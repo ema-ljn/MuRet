@@ -2,10 +2,12 @@
 
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
+#include "Protocol/FloorItems.h"
 #include "Protocol/Friends.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/Messages.h"
 #include "Protocol/OptionData.h"
+#include "Protocol/Quest.h"
 #include "Protocol/World.h"
 #include "Protocol/Movement.h"
 #include "Protocol/Viewport.h"
@@ -28,17 +30,21 @@ struct ReturnToSelectionReceived
 {
 };
 
-using WorldEvent =
-    std::variant<Protocol::Character::CharacterSelectResult, Protocol::Character::InventoryList, ClearInventoryReceived,
-                 ReturnToSelectionReceived, Protocol::World::Weather, Protocol::Movement::Walk,
-                 Protocol::Movement::Damage, Protocol::World::Teleport, Protocol::World::Regen,
-                 Protocol::Messages::Chat, Protocol::Messages::KeyChat, Protocol::Messages::Whisper,
-                 Protocol::Messages::WhisperResult, Protocol::Messages::Notice, Protocol::OptionData::OptionData,
-                 Protocol::Inventory::ItemMoveResult, Protocol::Inventory::ItemDelete, Protocol::Inventory::Durability,
-                 Protocol::Inventory::EquipmentChange, Protocol::Inventory::ItemPut, Protocol::Inventory::LifeRefill,
-                 Protocol::Inventory::ManaRefill, Protocol::Movement::Action, Protocol::Viewport::Players,
-                 Protocol::Viewport::Leave, Protocol::Viewport::Transformed, Protocol::Viewport::EquipmentShown,
-                 Protocol::Viewport::Position, Protocol::Friends::FriendList, Protocol::Friends::FriendAddResult,
-                 Protocol::Friends::FriendRequest, Protocol::Friends::FriendDeleteResult,
-                 Protocol::Friends::FriendState>;
+using WorldEvent = std::variant<
+    Protocol::Character::CharacterSelectResult, Protocol::Character::InventoryList, ClearInventoryReceived,
+    ReturnToSelectionReceived, Protocol::World::Weather, Protocol::Movement::Walk, Protocol::Movement::Damage,
+    Protocol::World::Teleport, Protocol::World::Regen, Protocol::Messages::Chat, Protocol::Messages::KeyChat,
+    Protocol::Messages::Whisper, Protocol::Messages::WhisperResult, Protocol::Messages::Notice,
+    Protocol::OptionData::OptionData, Protocol::Inventory::ItemMoveResult, Protocol::Inventory::ItemDelete,
+    Protocol::Inventory::Durability, Protocol::Inventory::EquipmentChange, Protocol::Inventory::ItemPut,
+    Protocol::Inventory::LifeRefill, Protocol::Inventory::ManaRefill, Protocol::FloorItems::FloorItemsCreate,
+    Protocol::FloorItems::FloorItemsDelete, Protocol::FloorItems::PickUpResult, Protocol::FloorItems::DropResult,
+    Protocol::FloorItems::StatFruit, Protocol::FloorItems::ShortPickUpResult, Protocol::FloorItems::ShortDropResult,
+    Protocol::FloorItems::ShortStatFruit, Protocol::Quest::QuestFlag, Protocol::Quest::QuestList,
+    Protocol::Quest::QuestStateChange, Protocol::Quest::SetQuestResult, Protocol::Quest::QuestResult,
+    Protocol::Movement::Action, Protocol::Viewport::Players, Protocol::Viewport::Leave, Protocol::Viewport::Transformed,
+    Protocol::Viewport::EquipmentShown, Protocol::Viewport::Position, Protocol::Viewport::Monsters,
+    Protocol::Viewport::Summons, Protocol::Viewport::Objects, Protocol::Viewport::MagicAttackCount,
+    Protocol::Friends::FriendList, Protocol::Friends::FriendAddResult, Protocol::Friends::FriendRequest,
+    Protocol::Friends::FriendDeleteResult, Protocol::Friends::FriendState>;
 } // namespace Client::App

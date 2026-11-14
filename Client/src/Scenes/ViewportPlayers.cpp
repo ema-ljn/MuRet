@@ -21,6 +21,7 @@
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/HelperTable.h"
+#include "Scenes/MonsterCreation.h"
 #include "Scenes/OwnItemPlacement.h"
 #include "Scenes/ViewportPacketRing.h"
 #include "Scenes/WorldEntry.h"
@@ -75,69 +76,10 @@ std::uint8_t ByteOf(std::span<const std::byte> bytes, std::size_t index)
     return std::to_integer<std::uint8_t>(bytes[index]);
 }
 
-// Una escritura de +0x41c o +0x420: abre la entrada, escribe y la cierra (4 rand() si queda sin accesos).
-void WriteCell(std::uint8_t value, std::uint8_t& cell, std::uint8_t& depth, Render::Models::CrtRandom& random)
-{
-    const Render::Models::LogicalAccess access(depth, random, Render::Models::SmallLogicalCloseRandoms);
-    cell = value;
-}
-
-// Una lectura: abre, lee y cierra (0x40b800 o el cierre en línea).
-std::uint8_t ReadCell(const std::uint8_t& cell, std::uint8_t& depth, Render::Models::CrtRandom& random)
-{
-    const Render::Models::LogicalAccess access(depth, random, Render::Models::SmallLogicalCloseRandoms);
-    return cell;
-}
-
-// 0x4c8b0c..0x4c8f1b y 0x4c939e..0x4c9523: la celda protegida y el blanco con los mismos valores.
-void WriteTheCells(ActorState& actor, std::uint8_t x, std::uint8_t y, Render::Models::CrtRandom& random)
-{
-    WriteCell(x, actor.cellX, actor.cellXAccesses, random);
-    WriteCell(y, actor.cellY, actor.cellYAccesses, random);
-    actor.targetX = x;
-    actor.targetY = y;
-}
-
-// 0x4c8f21..0x4c8f42 y 0x4c950c..0x4c9540: el nibble de arriba de la dirección.
-float AngleOf(std::uint8_t directionAndPk)
-{
-    constexpr int DirectionShift = 4;
-    return (static_cast<float>(directionAndPk >> DirectionShift) - 1.0f) * DirectionDegrees;
-}
-
 std::uint8_t PkOf(std::uint8_t directionAndPk)
 {
     constexpr std::uint8_t PkMask = 0xf;
     return directionAndPk & PkMask;
-}
-
-// 0x4c8f4b..0x4c905c: la X y después la Y, leídas de la tabla, al centro de la celda.
-void PutInTheCellCenter(ActorState& actor, Render::Models::CrtRandom& random)
-{
-    const std::uint8_t x = ReadCell(actor.cellX, actor.cellXAccesses, random);
-    actor.position.x = (static_cast<float>(x) + CellCenter) * CellSize;
-    const std::uint8_t y = ReadCell(actor.cellY, actor.cellYAccesses, random);
-    actor.position.y = (static_cast<float>(y) + CellCenter) * CellSize;
-}
-
-// 0x4c907c..0x4c91a3 y 0x4c9684..0x4c972c: la Y, la X y 0x4eac00(X, Y, destino, +0x3e8, 0); +0x378 en 1 solo si hay
-// camino (sin él queda como estaba).
-Core::Expected<void, std::string> WalkToTheTarget(ActorState& actor, std::uint8_t targetX, std::uint8_t targetY,
-                                                  const WorldEntryResources& resources)
-{
-    auto& random = resources.cloth.random;
-    const std::uint8_t y = ReadCell(actor.cellY, actor.cellYAccesses, random);
-    const std::uint8_t x = ReadCell(actor.cellX, actor.cellXAccesses, random);
-    auto& attributes = resources.world.Map().terrain.attributes;
-    if (!attributes)
-        return Core::Unexpected(std::string("0x4eac00: faltan las paredes vigentes para el camino de otro jugador"));
-    GameLogic::PathFinder finder(attributes->cells);
-    const auto path = finder.Find({x, y}, {targetX, targetY});
-    if (!path)
-        return {};
-    actor.path = *path;
-    actor.movement = 1;
-    return {};
 }
 
 // 0x4c8a36: los estados 2 a 4 con su acción (la segunda, de la clase 2: & 7, el elfo).
@@ -420,6 +362,65 @@ Core::Expected<void, std::string> ShowThePet(std::size_t index, const ShownItem&
 }
 } // namespace
 
+// Una escritura de +0x41c o +0x420: abre la entrada, escribe y la cierra (4 rand() si queda sin accesos).
+void WriteCell(std::uint8_t value, std::uint8_t& cell, std::uint8_t& depth, Render::Models::CrtRandom& random)
+{
+    const Render::Models::LogicalAccess access(depth, random, Render::Models::SmallLogicalCloseRandoms);
+    cell = value;
+}
+
+// Una lectura: abre, lee y cierra (0x40b800 o el cierre en línea).
+std::uint8_t ReadCell(const std::uint8_t& cell, std::uint8_t& depth, Render::Models::CrtRandom& random)
+{
+    const Render::Models::LogicalAccess access(depth, random, Render::Models::SmallLogicalCloseRandoms);
+    return cell;
+}
+
+// 0x4c8b0c..0x4c8f1b y 0x4c939e..0x4c9523: la celda protegida y el blanco con los mismos valores.
+void WriteTheCells(ActorState& actor, std::uint8_t x, std::uint8_t y, Render::Models::CrtRandom& random)
+{
+    WriteCell(x, actor.cellX, actor.cellXAccesses, random);
+    WriteCell(y, actor.cellY, actor.cellYAccesses, random);
+    actor.targetX = x;
+    actor.targetY = y;
+}
+
+// 0x4c8f21..0x4c8f42 y 0x4c950c..0x4c9540: el nibble de arriba de la dirección.
+float AngleOf(std::uint8_t directionAndPk)
+{
+    constexpr int DirectionShift = 4;
+    return (static_cast<float>(directionAndPk >> DirectionShift) - 1.0f) * DirectionDegrees;
+}
+
+// 0x4c8f4b..0x4c905c: la X y después la Y, leídas de la tabla, al centro de la celda.
+void PutInTheCellCenter(ActorState& actor, Render::Models::CrtRandom& random)
+{
+    const std::uint8_t x = ReadCell(actor.cellX, actor.cellXAccesses, random);
+    actor.position.x = (static_cast<float>(x) + CellCenter) * CellSize;
+    const std::uint8_t y = ReadCell(actor.cellY, actor.cellYAccesses, random);
+    actor.position.y = (static_cast<float>(y) + CellCenter) * CellSize;
+}
+
+// 0x4c907c..0x4c91a3 y 0x4c9684..0x4c972c: la Y, la X y 0x4eac00(X, Y, destino, +0x3e8, 0); +0x378 en 1 solo si hay
+// camino (sin él queda como estaba).
+Core::Expected<void, std::string> WalkToTheTarget(ActorState& actor, std::uint8_t targetX, std::uint8_t targetY,
+                                                  const WorldEntryResources& resources)
+{
+    auto& random = resources.cloth.random;
+    const std::uint8_t y = ReadCell(actor.cellY, actor.cellYAccesses, random);
+    const std::uint8_t x = ReadCell(actor.cellX, actor.cellXAccesses, random);
+    auto& attributes = resources.world.Map().terrain.attributes;
+    if (!attributes)
+        return Core::Unexpected(std::string("0x4eac00: faltan las paredes vigentes para el camino de otro jugador"));
+    GameLogic::PathFinder finder(attributes->cells);
+    const auto path = finder.Find({x, y}, {targetX, targetY});
+    if (!path)
+        return {};
+    actor.path = *path;
+    actor.movement = 1;
+    return {};
+}
+
 Core::Expected<void, std::string> ApplyViewportPlayers(const Protocol::Viewport::Players& players,
                                                        const WorldEntryResources& resources)
 {
@@ -456,14 +457,19 @@ void ApplyViewportLeave(const Protocol::Viewport::Leave& leave, WorldState& worl
 Core::Expected<void, std::string> ApplyTransformed(const Protocol::Viewport::Transformed& transformed,
                                                    const WorldEntryResources& resources)
 {
-    static_cast<void>(resources);
     for (const Protocol::Viewport::TransformedRecord& record : transformed.records)
     {
         // 0x4c9307..0x4c9311.
         if (IsHidden(record.name))
             continue;
-        return Core::Unexpected(std::string("0x4c934c: 0x5141e0, el alta del transformado o del monstruo de tipo +4, "
-                                            "es de la hito 2"));
+        // 0x4c9317..0x4c934c: la clase del héroe publicado antes del alta y 0x5141e0(tipo, X, Y, clave), sin mirar si
+        // devuelve 0.
+        const std::uint8_t heroClass = PublishedHero(resources).characterClass;
+        const auto created = CreateMonster(record.type, record.x, record.y, record.key, resources);
+        if (!created.HasValue())
+            return Core::Unexpected(created.Error());
+        if (auto finished = FinishTheTransformed(created.Value(), record, heroClass, resources); !finished.HasValue())
+            return finished;
     }
     return {};
 }
@@ -566,10 +572,27 @@ Core::Expected<void, std::string> ApplyViewportPosition(const Protocol::Viewport
 {
     WorldState& world = resources.world;
     ActorState& actor = world.Actors()[ActorWithKey(world, position.key)];
+    auto& random = resources.cloth.random;
     constexpr std::uint16_t PushedType = 0xf1;
     if (actor.type == PushedType)
-        return Core::Unexpected(std::string("0x4c6b80: el empujón del tipo 0xf1 (+0xe4, +0xd0 y +0xcc), el sonido 0x1b "
-                                            "y los joints 0x5c5 de 0x51fe10 son de la hito 2 y la CL11"));
+    {
+        // 0x4c6b80..0x4c6ca3: +0xe4 en 20; la X leída, (pkt[5] − X) · 400 en +0xd0; la Y leída, (Y − pkt[6]) · 400 en
+        // +0xcc (0x6b87b0); el sonido 0x1b y 0x51fe10 con la posición.
+        constexpr float PushSpeed = 20.0f;
+        constexpr float PushScale = 400.0f;
+        constexpr std::int32_t PushSound = 0x1b;
+        actor.floatE4 = PushSpeed;
+        const std::uint8_t x = ReadCell(actor.cellX, actor.cellXAccesses, random);
+        actor.floatD0 =
+            static_cast<float>(static_cast<std::int32_t>(position.x) - static_cast<std::int32_t>(x)) * PushScale;
+        const std::uint8_t y = ReadCell(actor.cellY, actor.cellYAccesses, random);
+        actor.floatCC =
+            static_cast<float>(static_cast<std::int32_t>(y) - static_cast<std::int32_t>(position.y)) * PushScale;
+        // (CL10) 0x41ed10(0x1b, 0, 0).
+        world.Runtime().lastSoundId = PushSound;
+        return Core::Unexpected(std::string("0x4c6c9d: 0x51fe10, los veinte joints 0x5c5 (0x53fe70) del empujón con "
+                                            "dos rand() cada uno, es de la CL11"));
+    }
     // 0x4c6ca8..0x4c6dfe.
     WriteTheCells(actor, position.x, position.y, resources.cloth.random);
     actor.byte399 = 1;

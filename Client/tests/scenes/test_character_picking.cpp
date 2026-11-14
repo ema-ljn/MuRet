@@ -49,6 +49,11 @@ void Place(WorldState& world, std::size_t slot, float x, std::uint8_t kind)
     actor.byte42c = 1;
     actor.byte88 = kind;
     actor.position = {x, 1000.0f, 0.0f};
+    // La caja que 0x511290 le pone al 0x20a (0x512270 y 0x5122d4).
+    actor.boundsMin = {-60.0f, -60.0f, 0.0f};
+    actor.boundsMaxX = 40.0f;
+    actor.boundsMaxY = 40.0f;
+    actor.boundsTop = 120.0f;
 }
 
 struct Picking
@@ -116,6 +121,24 @@ TEST(CharacterPickingTest, TheNearestBoxOnTheSegmentIsPicked)
     // Empatados, gana el primero.
     Place(world, 8, 2000.0f, Players);
     EXPECT_EQ(PickTheCharacter(world, Players, Ray), 2);
+}
+
+// La caja de cada tipo (CL9 hito 2): a 150 de altura, el segmento pasa por arriba del 0x20a (techo 120) y toca la del
+// 0x18e (0x51236f, de (−90, −50, 0) a (90, 50, 200)), aunque esté más lejos.
+TEST(CharacterPickingTest, TheBoxComesFromTheConstructedType)
+{
+    Picking tested;
+    WorldState& world = *tested.world;
+    Place(world, 1, 1000.0f, 2);
+    Place(world, 2, 3000.0f, 2);
+    ActorState& tall = world.Actors()[2];
+    tall.boundsMin = {-90.0f, -50.0f, 0.0f};
+    tall.boundsMaxX = 90.0f;
+    tall.boundsMaxY = 50.0f;
+    tall.boundsTop = 200.0f;
+    const TerrainPickingSegment high{.origin = {0.0f, 1000.0f, 150.0f}, .end = {20000.0f, 1000.0f, 150.0f}};
+    EXPECT_EQ(PickTheCharacter(world, Monsters, high), 2);
+    EXPECT_EQ(PickTheCharacter(world, Monsters, Ray), 1);
 }
 
 // 0x59e9ec..0x59ea6d: en Lorencia la capa 4 y en Devias la 3 cuentan solo con la capa de la celda del héroe; en los

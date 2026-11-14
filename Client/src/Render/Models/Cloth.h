@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Data/Models/Model.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/TextureSlot.h"
 
@@ -119,6 +120,9 @@ struct ClothBody
     glm::vec3 angles{};
     float scale = 1.0f;
     glm::vec3 position{};
+    // Solo la tela sobre la malla: los vértices de su malla en el mundo, como los dejó el último 0x4ebc80 en
+    // 0x5786f9c (la malla por 15.000 vértices). Los lee su anclaje (0x4564c0).
+    std::span<const glm::vec3> meshVertices{};
 };
 
 // Las banderas de la tela que mira el dibujo (06 § La tela de la clase 4).
@@ -167,6 +171,15 @@ public:
     // suman con OR a las que ya tenía, y las esferas quedan: así lo arma 0x50ba30 otra vez sobre la
     // cuarta tela.
     void Build(const ClothShape& shape, const ClothBody& body);
+    // 0x455ea0 (la vtable 0x6b8d04 + 0x24), la tela sobre la malla (08 P-C22 f): una partícula por vértice de
+    // `mesh` en `vertices` (0x5786f9c, en el mundo), anclada si su hueso es `bone`; por cada lado (a, b) de cada
+    // triángulo, en su orden, un resorte con L = f(|a − b|), el mínimo f(L · 0,5) y las banderas 3 si |a.x − b.x|
+    // pasa de 10 (en double) o 6 si no; y, si el triángulo vecino que lo recorre al revés (0x4563c0) tiene su
+    // tercer vértice d (desde 1: el 0 no cuenta, Q-C861) y f(|c − d|) < L · 1,2f, con c el tercero de este, otro
+    // de c a d con las mismas banderas si no hay ya uno de c a d (0x456470, en ese sentido). `meshIndex` es el
+    // +0x60 que lee el dibujo. Sin el modelo, las columnas en 0: la restricción mira todos los resortes.
+    void BuildOnTheMesh(const Data::Models::Mesh& mesh, std::int32_t meshIndex, std::int32_t bone, std::uint32_t flags,
+                        std::span<const glm::vec3> vertices);
     // 0x455cd0.
     void AddSphere(const glm::vec3& local, float radius, std::int32_t bone);
     // Los bytes +0x49 y +0x48: el mínimo y el rango del viento de las capas con 0x200.
@@ -179,6 +192,15 @@ public:
     // 0x4551d0: el viento, las fuerzas, los resortes que tiran, el anclaje, la integración, las
     // esferas, la relajación y la restricción. false si un resorte pasó de 20 veces su largo.
     [[nodiscard]] bool Step(float dt, const ClothBody& body, ClothWorld& world, std::uint8_t map);
+
+    // El dibujo de la tela sobre la malla (0x4568f0, la vtable 0x6b8d04 + 0x18): cada partícula a su vértice de
+    // 0x5786f9c, que dibuja después el RenderBody del modelo. Nada si `vertices` es más corto.
+    void WriteTheMesh(std::span<glm::vec3> vertices) const;
+    // La malla de la tela sobre la malla (+0x60), o −1 en la de la grilla.
+    [[nodiscard]] std::int32_t Mesh() const
+    {
+        return m_mesh;
+    }
 
     // El dibujo (0x455930): las cuatro esquinas de cada cuadrado, de adelante (i, j), (i+1, j),
     // (i+1, j+1), (i, j+1) y de atrás al revés, con u = f(i / (columnas − 1)) y v = j / (filas − 1)
@@ -238,6 +260,11 @@ private:
     void Reset();
     void AnchorTheTopRow(const BoneTransform& matrix, const ClothBody& body);
     void AddForces(ClothWorld& world);
+    // 0x454240: la fuerza de una partícula con su distancia de Manhattan al centro del viento.
+    void PushTheParticle(ClothParticle& particle, std::int32_t distance, const ClothWorld& world) const;
+    // 0x4565f0 y 0x4564c0, la tela sobre la malla sin 0x10000000.
+    void AddForcesOnTheMesh(ClothWorld& world);
+    void AnchorTheMesh(const ClothBody& body);
     void PullTheSprings();
     [[nodiscard]] bool Constrain(const ClothBody& body);
 
@@ -258,5 +285,8 @@ private:
     float m_dx = 1.0f;
     float m_dy = 1.0f;
     std::vector<ClothSphere> m_spheres;
+    // La tela sobre la malla: su malla (+0x60) y el hueso de cada vértice, que mira su anclaje.
+    std::int32_t m_mesh = -1;
+    std::vector<std::int16_t> m_vertexBones;
 };
 } // namespace Client::Render::Models

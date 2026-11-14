@@ -1,4 +1,6 @@
 #include "Scenes/FaunaModels.h"
+#include "Scenes/MonsterKinds.h"
+#include "Scenes/MonsterModelTable.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Data/Models/Model.h"
@@ -12,7 +14,11 @@
 #include "support/TemporaryFolder.h"
 #include "support/TextureFiles.h"
 #include <gtest/gtest.h>
+#include <algorithm>
 #include <filesystem>
+#include <memory>
+#include <optional>
+#include <set>
 #include <string>
 #include "Scenes/WorldModels.h"
 #include "support/GoldenDir.h"
@@ -170,5 +176,136 @@ TEST_F(GoldenFaunaModels, BothRealMonsterResourcesPrepareTheirMeshesTexturesAndA
         EXPECT_EQ(fauna.MeshTextures(model).size(), fauna.Find(model)->meshes.size());
     }
     EXPECT_GT(store.Size(), 0U);
+}
+} // namespace
+
+// 0x612d90 y 0x612270 con el Data del laboratorio (CL9 hito 2, P-C176): cada número que piden los casos de 0x5141e0 y
+// sus creadores de evento carga su Monster{n + 1}.bmd con mallas, texturas y las acciones que escriben sus tablas; el
+// 0x31 (Monster50) no está y corta (P-C173). Cada NPC con caso carga, salvo BloodCastle01 (Q-C108, P-C240).
+namespace
+{
+using GoldenMonsterModels = Client::Tests::GoldenDataTest;
+
+struct GoldenLoad
+{
+    Client::Tests::FakeTextureStore store;
+    Client::Tests::RecordingSink sink;
+    Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
+    Client::Render::Models::ModelTextureSlots slots{{0x41c}};
+};
+
+TEST_F(GoldenMonsterModels, EveryMonsterOfTheCasesLoadsWithItsActionTables)
+{
+    auto load = std::make_unique<GoldenLoad>();
+    Client::Scenes::FaunaModels models;
+    Client::Scenes::FaunaModelLoadContext context{m_dataRoot, load->store, load->log, load->slots};
+    std::set<std::int32_t> numbers;
+    const auto collect = [&numbers](const Client::Scenes::MonsterKind& kind)
+    {
+        for (const Client::Scenes::MonsterStep& step : kind.steps)
+            if (step.kind == Client::Scenes::MonsterStepKind::LoadMonster)
+            {
+                numbers.insert(static_cast<std::int32_t>(step.value));
+                // El 51443f suma rand() % 2.
+                if (step.plusRandom)
+                    numbers.insert(static_cast<std::int32_t>(step.value) + 1);
+            }
+    };
+    for (const auto& kind : Client::Scenes::MainMonsterKinds())
+        collect(kind);
+    collect(Client::Scenes::DefaultMonsterKind());
+    for (const auto& event : Client::Scenes::EventMonsterKinds())
+        collect(event.kind);
+    ASSERT_FALSE(numbers.empty());
+    for (const std::int32_t number : numbers)
+    {
+        SCOPED_TRACE(number);
+        const auto loaded = models.LoadMonster(number, 0, context);
+        if (number == 0x31)
+        {
+            ASSERT_FALSE(loaded.HasValue());
+            EXPECT_NE(loaded.Error().find("Monster50.bmd"), std::string::npos) << loaded.Error();
+            continue;
+        }
+        ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
+        const auto model = static_cast<std::uint16_t>(Client::Scenes::FirstMonsterModel + number);
+        ASSERT_NE(models.Find(model), nullptr);
+        ASSERT_NE(models.SkeletonOf(model), nullptr);
+        if (models.Find(model)->meshes.empty())
+            continue;
+        EXPECT_EQ(models.MeshTextures(model).size(), models.Find(model)->meshes.size());
+        EXPECT_FALSE(models.SkeletonOf(model)->actions[6].repeats);
+    }
+    // 0x613137: Monster01 con los cinco .wav del toro, sus sonidos y el hueso de la cabeza en 0x14.
+    EXPECT_EQ(models.SkeletonOf(0x152)->headBone, 0x14);
+    EXPECT_EQ(models.SoundActions(0x152)[4], 4);
+    // 0x612ea3: el 3 multiplica por 1,2 las acciones 0 a 5 (0,25 · 1,2).
+    EXPECT_EQ(models.SkeletonOf(0x155)->actions[0].speed, 0.25f * 1.2f);
+    EXPECT_EQ(models.SkeletonOf(0x155)->actions[6].speed, 0.55f);
+    EXPECT_EQ(models.SkeletonOf(0x155)->headBone, 0x10);
+    // 0x613f97: el 0x1b deja +0x88 en 1.
+    EXPECT_EQ(models.ModelByte(0x16d, 0x88), std::optional<std::uint8_t>{std::uint8_t{1}});
+    // 0x50c21c..0x50c281: el +0x376 0x4d copia el hueso 24 de Monster56 (0x189) y el 23 y el 14 de Monster57 (0x18a).
+    EXPECT_GT(models.SkeletonOf(0x189)->bones.size(), 24u);
+    EXPECT_GT(models.SkeletonOf(0x18a)->bones.size(), 23u);
+    // 0x50c762 y 0x50c83b: el 0x2a (Monster32, 0x171) cuelga del hueso 0x3d y las estatuas (Monster61, 0x18e), del 1.
+    EXPECT_GT(models.SkeletonOf(0x171)->bones.size(), 0x3du);
+    EXPECT_GT(models.SkeletonOf(0x18e)->bones.size(), 1u);
+}
+
+TEST_F(GoldenMonsterModels, EveryNpcOfTheCasesLoadsButBloodCastle01)
+{
+    auto load = std::make_unique<GoldenLoad>();
+    Client::Scenes::FaunaModels models;
+    Client::Scenes::FaunaModelLoadContext context{m_dataRoot, load->store, load->log, load->slots};
+    for (std::uint16_t model = 0x1cb; model <= 0x208; model = static_cast<std::uint16_t>(model + 1))
+    {
+        SCOPED_TRACE(model);
+        const auto loaded = models.LoadNpc(model, context);
+        if (model == 0x1f3)
+        {
+            ASSERT_FALSE(loaded.HasValue());
+            EXPECT_NE(loaded.Error().find("Q-C108"), std::string::npos) << loaded.Error();
+            continue;
+        }
+        ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
+        if (Client::Scenes::NpcModelCaseOf(model).ops.empty())
+            continue;
+        const auto* skeleton = models.SkeletonOf(model);
+        ASSERT_NE(skeleton, nullptr);
+        for (const auto& action : skeleton->actions)
+            EXPECT_EQ(action.speed, Client::Scenes::NpcActionSpeed);
+    }
+    // 0x6122c4: Female01 y sus partes de 0x1da a 0x1e3, cada una con sus texturas.
+    for (const int part : {0x1da, 0x1db, 0x1dc, 0x1dd, 0x1de, 0x1df, 0x1e2, 0x1e3})
+    {
+        const auto model = static_cast<std::uint16_t>(part);
+        ASSERT_NE(models.Find(model), nullptr) << part;
+        EXPECT_EQ(models.MeshTextures(model).size(), models.Find(model)->meshes.size());
+    }
+    // 0x612590: el herrero pide nBlackSmith.wav con un búfer y sin banderas.
+    const auto sounds = models.SoundFiles();
+    EXPECT_TRUE(
+        std::any_of(sounds.begin(), sounds.end(), [](const Client::Scenes::FaunaResourceSound& sound)
+                    { return sound.id == 0xa0 && sound.path == "Sound\\nBlackSmith.wav" && sound.buffers == 1; }));
+}
+
+// Q-C857: el Breeder (0x1f6) llama a 0x60d5f0 en su caso (0x612b47) y otra vez en la cola (0x612b8b), que encuentra
+// cada nombre y le suma una referencia; el herrero (0x1ce) solo pasa por la cola.
+TEST_F(GoldenMonsterModels, TheNpcTailAddsASecondReferenceToTheTexturesOfItsCase)
+{
+    auto load = std::make_unique<GoldenLoad>();
+    Client::Scenes::FaunaModels models;
+    models.TextureTable().Bind(load->store);
+    auto context = models.LoadContextOf(m_dataRoot, load->log);
+    ASSERT_TRUE(context.has_value());
+    ASSERT_TRUE(models.LoadNpc(0x1f6, *context).HasValue());
+    ASSERT_TRUE(models.LoadNpc(0x1ce, *context).HasValue());
+    ASSERT_FALSE(models.MeshTextures(0x1f6).empty());
+    for (const auto slot : models.MeshTextures(0x1f6))
+        EXPECT_EQ(models.TextureTable().References(slot), 2) << slot.value;
+    ASSERT_FALSE(models.MeshTextures(0x1ce).empty());
+    for (const auto slot : models.MeshTextures(0x1ce))
+        EXPECT_EQ(models.TextureTable().References(slot), 1) << slot.value;
 }
 } // namespace

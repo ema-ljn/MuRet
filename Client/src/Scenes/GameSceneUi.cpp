@@ -8,6 +8,7 @@
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Protocol/Character/CharacterList.h"
+#include "Protocol/FloorItems.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
@@ -108,6 +109,26 @@ public:
             return;
         }
         m_session->RequestPartyList();
+    }
+
+    void SendWindowClose() override
+    {
+        if (m_session == nullptr)
+        {
+            m_log.Warning("no se cierra la ventana (C1 03 31): no hay servidor");
+            return;
+        }
+        m_session->SendWindowClose();
+    }
+
+    void SendSetQuest(std::uint8_t quest, std::uint8_t state) override
+    {
+        if (m_session == nullptr)
+        {
+            m_log.Warning("no se manda el A2 de la misión {}: no hay servidor", quest);
+            return;
+        }
+        m_session->SendSetQuest(quest, state);
     }
 
     void SendFriendPacket(Protocol::Outgoing packet) override
@@ -246,15 +267,26 @@ GameChatContext GameScene::ChatContext()
                            .models = m_models};
 }
 
-InventoryServices GameScene::InventoryContext() const
+InventoryServices GameScene::InventoryContext()
 {
     InventoryServices services =
         m_context.worldEntry != nullptr ? InventoryServicesOf(*m_context.worldEntry) : InventoryServices{};
     if (m_context.worldEntry == nullptr)
+    {
         services.items = m_items;
+        services.texts = m_texts;
+    }
     if (App::ServerSession* session = m_session; session != nullptr)
+    {
         services.sendItemMove = [session](const Protocol::Inventory::ItemMove& move)
         { return session->SendItemMove(move); };
+        // CL9 hito 5: el 23, el 22 y el 26.
+        services.sendDrop = [session](const Protocol::FloorItems::Drop& drop) { return session->SendDrop(drop); };
+        services.sendPickUp = [session](std::uint16_t index) { return session->SendPickUp(index); };
+        services.sendUseItem = [session](const Protocol::FloorItems::UseItem& use)
+        { return session->SendUseItem(use); };
+    }
+    services.pickTheGround = [this] { return GroundUnderTheMouse(); };
     return services;
 }
 
@@ -272,7 +304,8 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
                             .ownRecordDepth = m_projectingFrame ? m_projection->ownRecordDepth : runtime.ownRecordDepth,
                             .targets = m_projectingFrame ? projectedTargets : runtime.selectedTargets,
                             .altDown = input.IsDown(Input::Key::Alt),
-                            .ray = m_mouseRay});
+                            .ray = m_mouseRay,
+                            .floorItems = FrameTail().floorItems});
     if (!picked.HasValue())
         return picked;
     // 0x637646..0x6376e6: la pasada 2D, en este orden (06 § El dibujo del juego). Un dibujo intermedio de MuRet dibuja
@@ -343,7 +376,8 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
                            .altDown = input.IsDown(Input::Key::Alt),
                            .sprites = canvas.sprites,
                            .text = canvas.text,
-                           .projecting = m_projectingFrame};
+                           .projecting = m_projectingFrame,
+                           .names = &hud};
     if (auto drawn = DrawTheHover(hover); !drawn.HasValue())
         return drawn;
     // 0x637660: 0x5a7320(1), el HUD, con 0x7d36899 en 0.

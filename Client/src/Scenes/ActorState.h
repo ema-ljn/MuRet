@@ -73,9 +73,56 @@ struct ActorState
     std::uint16_t type = 0;   // +2: 0x20a es un jugador
     std::int32_t subtype = 0; // +4: el sufijo de 0x4f2250 lo compara con 209 a 211, con signo
     float scale = 0.0f;       // +0xc, de 0x512930
-    // +0x138, el techo de la caja del personaje (+0x124..+0x138): 0x511290 lo pone por el tipo y 0x5133b0 le suma, sin
-    // portar. Lo lee el globo (0x5a9050), que va 60 más arriba.
+    // La caja del personaje, de +0x124 a +0x138, relativa a su posición: 0x511290 pone el piso en (−60, −60, 0)
+    // (0x512270..0x5122b9) y el resto por el tipo (las tablas de 0x512700 y 0x5126e4, y 0x42d7f0 con el 0x19b y el
+    // 0x1f8). El picking (0x59e700) prueba la caja de +0x13c, que 0x505de0 arma con estos valores y la posición.
+    glm::vec3 boundsMin{};
+    // +0x130 y +0x134, la X y la Y del otro rincón.
+    float boundsMaxX = 0.0f;
+    float boundsMaxY = 0.0f;
+    // +0x138, el techo de la caja. 0x5133b0 le suma 70. Lo lee también el globo (0x5a9050), que va 60 más arriba.
     float boundsTop = 0.0f;
+    // +0x58, +0x60 y +0x64: 0x511290 pone el primero y el último en −1 (0x511d45, 0x51248d) y no toca el del medio;
+    // los casos de 0x5141e0 los escriben por el tipo. +0x58 en −2 no se dibuja (0x42da90 y 0x42dfe0 lo escriben en el
+    // mapa 30); +0x60 es el contador de la partícula del 0xc5 y el estado de los ataques de Kundun en 0x43c150
+    // (KalimaSiegeHelpers.h). Quién lee los otros, sin leer.
+    std::int32_t dword58 = 0;
+    std::int32_t dword60 = 0;
+    std::int32_t dword64 = 0;
+    // +0x92 (1), +0x93 (0xa), +0x94 (1,2f), +0x98 (0) y +0xe8 (1) desde 0x511290 (0x511c70..0x511c88, 0x511bfe y
+    // 0x511be6). El 13 pone en +0x93 los bits 4..6 del tipo alto (0x4c9ee9), que la barra de vida del 0x1a8 lee
+    // (0x42a2c5, Scenes/HealthBars). Quién lee los otros, sin leer.
+    std::uint8_t byte92 = 0;
+    std::uint8_t byte93 = 0;
+    float float94 = 0.0f;
+    std::uint8_t byte98 = 0;
+    std::uint8_t byteE8 = 0;
+    // +0xcc, +0xd0 y +0xe4: el empujón del tipo 0xf1 que pone el DF (0x4c6b40): 20 en +0xe4 y la diferencia de celdas
+    // por 400 en las otras dos. +0xd8: 0x511290 lo pone en 0 (0x511c56); el creador de Castle Siege le copia la Z
+    // (0x42d23e). Quién los lee, sin leer.
+    float floatCC = 0.0f;
+    float floatD0 = 0.0f;
+    // +0xd4: el tercer giro del 0xf1, que 0x4fb910 suma al yaw y achica a 0,8f. Ningún camino del personaje del pool lo
+    // escribe (0x511290 tampoco: queda el del uso anterior del lugar, en MuRet 0; *estático*).
+    float floatD4 = 0.0f;
+    float floatD8 = 0.0f;
+    float floatE4 = 0.0f;
+    // +0x38a (0, 0x511c0c), +0x38f (0x42d7f0 lo pone en 0 con el 0x19b), +0x394 (0, 0x511ceb), +0x3e4 y +0x42d (el bit
+    // 7 del tipo alto del 13, 0x4c9ee3): los escriben las altas de los monstruos. Quién los lee, sin leer.
+    std::uint8_t byte38a = 0;
+    std::uint8_t byte38f = 0;
+    std::int32_t dword394 = 0;
+    std::uint8_t byte3e4 = 0;
+    std::uint8_t byte42d = 0;
+    // +0x110 (0x511290 lo pone en 0, 0x511c69) y +0x100: 0x42d890 los pone en 1 y en 0x12c cuando el 286 o el 287 del
+    // mapa 30 terminan la acción 5 (0x42d8fd y 0x42d904); 0x42da90 los lee y los escribe: abiertas y el tiempo que les
+    // queda, que baja 1 en cada paso (StepTheCastleObject, MonsterStepCases.h).
+    std::uint8_t byte110 = 0;
+    std::int32_t dword100 = 0;
+    // +0x3a4: la cola 0x5140c0 le copia el WORD de [0x57678b0] (WorldRuntime::heroSlot).
+    std::uint16_t word3a4 = 0;
+    // +0x428: −0x80 desde 0x511290 (0x511c77); el 68 lo pone en 0x96 (0x4e0b8a). Quién lo lee, sin leer.
+    std::int32_t dword428 = 0;
     // +0x7c: con 0x200000, 0x4f2250 sienta al personaje (la acción 0xca). Quién lo escribe, sin leer.
     std::uint32_t flags7c = 0;
     // +0x78: 0x511290 lo pone en 0 (0x511d51). Del jinete lo leen el paso del caballo (con 0x4000, sin
@@ -115,6 +162,9 @@ struct ActorState
     // que suelta ahí toma de acá su posición al crearse (0x5321f7) y en cada paso (0x53822f). 0x511290 no lo escribe:
     // queda el del uso anterior del registro (Q-C363).
     glm::vec3 effectOrigin{};
+    // +0x4c, +0x50 y +0x54: el punto del primer hueso de 0x505bc0 (el segundo va a +0x40), que escriben los casos del
+    // 0x179, el 0x17b a 0x17f, el 0x1aa y el 0x1ab de 0x505de0. 0x511290 no lo escribe. Quién lo lee, sin leer.
+    glm::vec3 bonePoint4c{};
     // +0x17c, +0x180 y +0x184: la posición que 0x4fcee0 copia antes del frame 3 y fuera de la acción 0x8d
     // (0x4fcf06..0x4fcf1b). La escribe también la habilidad (0x4f5b70), sin portar; 0x511290 no la toca: queda la
     // del uso anterior del registro (Q-C363). El joint 0x610/4 de la espada 0x223 sigue de acá al personaje (0x537d55).
@@ -151,16 +201,30 @@ struct ActorState
     // +0x68: la luz del blendMesh, que 0x4e9980 baja al alpha cuando es mayor y nunca sube (Q-C112).
     // 0x511290 la pone en 1,0 (0x512499).
     float blendMeshLight = 0.0f;
+    // +0x6c y +0x70: la U y la V de los pases de 0x4ef0c0 y 0x4ecc30 del personaje y de sus partes (0x60cf70). 0x511290
+    // las pone en 0 (0x511d7b y 0x511d7e); 0x433b2f (el 0x1af en el 34) guarda la U, y los casos de 0x505de0 del 0x186
+    // y del 0x16c la U y del 0x189, el 0x16f, el 0x16d y el 0x161 la V (Scenes::StepTheModelEffects).
+    float textureU = 0.0f;
+    float textureV = 0.0f;
     // +0x188: el contador de pasos de lógica (0x7d3a0f0) cuando lo construyó 0x511290.
     std::int32_t stepStamp = 0;
     // +0x16c: si se ve. 0x508f00 lo escribe en cada paso con el trapecio del último dibujo (0x5fba90) y,
     // vivo, otra vez 0x508ea0. 0x511290 lo pone en 0 (0x511bd8).
     bool seen = false;
-    // +0x13c, +0x148, +0x158 y +0x168: 0x510d00 los pone en 1.000, 1, 1 y 1 en el héroe con +0x1d8 & 4 en
-    // la escena 5 (0x510e57), en vez de dibujarlo. Qué son y quién los lee, sin leer.
+    // +0x13c..+0x168: una caja, el rincón (+0x13c..+0x144) y tres ejes de tres floats. 0x510d00 pone +0x13c, +0x148,
+    // +0x158 y +0x168 en 1.000, 1, 1 y 1 en el héroe con +0x1d8 & 4 en la escena 5 (0x510e57), en vez de dibujarlo;
+    // 0x505e15 arma la de un modelo sin acciones con la de +0x124 y la posición. Quién la lee, sin leer.
     float field13c = 0.0f;
+    float field140 = 0.0f;
+    float field144 = 0.0f;
     float field148 = 0.0f;
+    float field14c = 0.0f;
+    float field150 = 0.0f;
+    float field154 = 0.0f;
     float field158 = 0.0f;
+    float field15c = 0.0f;
+    float field160 = 0.0f;
+    float field164 = 0.0f;
     float field168 = 0.0f;
     // +0x389: distinto de 0, se está muriendo y 0x508f00 no lo pone en el TerrainWall. 0x511290 lo pone
     // en 0 (0x511c05); quién más lo escribe, sin leer.
@@ -169,6 +233,11 @@ struct ActorState
     // 0x508f00 no lo pone en el TerrainWall (0x508f60). 0x60cf70 contornea el 4 con otros colores y 0x50d374
     // viste al 1 con el Angel en Chaos Castle.
     std::uint8_t byte88 = 0;
+    // +0x89 y +0x8a (un short): el pulso del 0x62d de Kundun (0x192) en la acción 5 (0x43c7bb..0x43c8e3), que fuera de
+    // ella pone el +0x8a en 0. 0x511290 no los toca; los otros que escriben +0x8a (0x4f9f6f, 0x4fdc10, 0x5ff9ec) son
+    // caminos que MuRet no corre con un monstruo (*estático*).
+    std::uint8_t byte89 = 0;
+    std::int16_t word8a = 0;
     std::uint8_t controlCode = 0; // +0x1d8, el CtlCode de la respuesta del F3 03
     // +0x1d9: el nombre. La respuesta del F3 03 copia ahí los diez bytes del registro propio (0x4c47a2).
     std::array<std::byte, Protocol::Character::NameSize> name{};
@@ -176,6 +245,9 @@ struct ActorState
     // héroe, 0x5ffdf0 baja el alpha de cada objeto que posa (0x5ffe09).
     std::uint8_t byte1a1 = 0;
     std::uint8_t byte1e3 = 0; // +0x1e3: la respuesta del F3 03 lo pone en 0 (0x4c4844); qué es, sin leer
+    // +0x1e4..+0x1f1: lo que un nombre de monstruo de más de diez bytes pisa después de +0x1e3 (el strcpy sin tope de
+    // 0x5141e0 y el strcat del 1F, Q-C847). Qué guarda el original ahí, sin leer.
+    std::array<std::byte, 14> nameSpill{};
     // +0x1f4: la clave del personaje. 0x517270 pone el lugar de la selección (0x5172a8) y la respuesta del
     // F3 03 la del jugador (0x57678bc, 0x4c4516). 0x510f70 mata a los que no tienen la del héroe.
     std::uint16_t key = 0;
@@ -191,8 +263,8 @@ struct ActorState
     // 0x4c89ed). Qué es y quién más lo lee, sin leer.
     std::uint8_t byte372 = 0;
     std::uint8_t byte374 = 0;
-    // +0x42c: 0x511290 lo pone en 1 (0x511c92); sin él, el picking de 0x59e700 no lo elige (0x59e95e). Quién lo
-    // apaga, sin leer.
+    // +0x42c: 0x511290 lo pone en 1 (0x511c92); sin él, el picking de 0x59e700 no lo elige (0x59e95e). En el mapa 30
+    // lo apagan y lo prenden 0x42d890, 0x42da90 y 0x42dfe0 en los objetos del asedio.
     std::uint8_t byte42c = 0;
     // +0x381: la habilidad activa inhibe la orientación quieta (59b3e4). Retenido por 511290.
     std::uint8_t byte381 = 0;
@@ -215,11 +287,16 @@ struct ActorState
     // Cuántos accesos tienen abiertas las entradas de +0x41c y +0x420 (Render::Models::LogicalAccess).
     std::uint8_t cellXAccesses = 0;
     std::uint8_t cellYAccesses = 0;
+    // Los cuatro bytes de +0x41c y +0x420 como los deja el último acceso de 0x511290: si su cierre dejó la cuenta en
+    // 0, los rand() & 0xff de 0x412890 (Q-C125); si no, la celda en claro. Solo los lleva 0x511290: el único que los
+    // lee sin abrir, el 13 (0x4c9d01..0x4c9d36), lo hace justo después del alta (Q-C849).
+    std::uint32_t cellXLeft = 0;
+    std::uint32_t cellYLeft = 0;
     // Profundidad de la entrada de un byte +0x38e, que el dibujo consulta antes de cada mano.
     std::uint8_t byte38eAccesses = 0;
     // +0x38e: el valor lógico. Con ')' (0x29) el lazo de las manos de 0x50ba30 saltea la derecha en la
     // acción 0x3d, y con '4' (0x34) 0x509340 pone el frame de lo que cuelga en 3,2 en las acciones 0x22 a
-    // 0x97. Lo escriben 0x4cc530 y 0x4f5b70, sin portar: queda en 0.
+    // 0x97. Lo escriben 0x4cc530 y 0x4f5b70, sin portar, y el 1A (0x4ceee4, Scenes::ApplyMagicAttackCount).
     std::uint8_t byte38e = 0;
     // +0x390: 0x511290 lo pone en 0 (0x51186b), y lo ponen en 1 el estado de las misiones (0x418e20 y 0x418ee0, con la
     // misión 3 terminada, CL9.1), sin portar: queda en 0. Con 1, el tooltip de la skill del Dark Knight de nivel 220

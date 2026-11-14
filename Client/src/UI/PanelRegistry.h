@@ -184,6 +184,12 @@ struct PanelContext
     // +0x9304 a +0x9327 en 0, y con el registro propio abierto, 0x550d10 si un lugar del equipo tiene la durabilidad
     // en 0 (0x550cf0). Sin él, abrir el personaje corta.
     std::function<Core::Expected<void, std::string>()> characterOpened{};
+    // 0x659c68..0x659c70: abrir las misiones, si cerró lo demás, es 0x419840(−1) sobre [0x710148] (la lista, con su
+    // diálogo). Sin él, abrir las misiones corta.
+    std::function<Core::Expected<void, std::string>()> questOpened{};
+    // 0x657b2b..0x657b31: cerrar las misiones es 0x419900, que pone la ventana en 0 (lo hace el registro) y manda el
+    // C1 03 31 en claro. Sin él, cerrar las misiones corta.
+    std::function<void()> questClosed{};
     // El panel 1, la ventana de amigos del administrador viejo: 0x490a00(+0x48) para saber si está (sin él,
     // DelegatedPanels::friends), 0x491080(0x186, 0x106) al abrirlo (0x659f3d; sin él, abrirlo corta) y 0x4914e0 al
     // cerrarlo (0x6584e5; sin él, cerrarlo corta).

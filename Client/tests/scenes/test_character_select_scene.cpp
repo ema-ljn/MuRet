@@ -1184,8 +1184,9 @@ TEST(CharacterSelectSceneTest, EachFrameLeavesTheTrapezoidOfItsFixedPoint)
     EXPECT_EQ(tested.scene->Failure(), std::nullopt);
 }
 
-// 0x6342f9 recorre los 400 lugares, también un vivo que no vino en la lista de cinco.
-TEST(CharacterSelectSceneTest, TheCommonStepVisitsLivingActorsOutsideTheListAndStopsAtTheirNativeCut)
+// 0x6342f9 recorre los 400 lugares, también un vivo que no vino en la lista de cinco. Su modelo, sin cargar, es el
+// registro en 0 de 0x5769ad8: 0x4f9580 no avanza el cuadro y 0x505de0 arma la caja y sale (revisión B del hito 2, B3).
+TEST(CharacterSelectSceneTest, TheCommonStepVisitsLivingActorsOutsideTheList)
 {
     Client::Scenes::WorldState world;
     Client::Scenes::SelectionState selection(world);
@@ -1200,21 +1201,16 @@ TEST(CharacterSelectSceneTest, TheCommonStepVisitsLivingActorsOutsideTheListAndS
     constexpr std::uint32_t Seed = 16;
     cloth.random = Client::Render::Models::CrtRandom(Seed);
     cloth.logicSteps = 77;
-    const auto wind = cloth.wind;
-    const float windBase = cloth.windBase;
 
     tested.Step();
 
-    ASSERT_TRUE(tested.scene->Failure().has_value());
-    EXPECT_NE(tested.scene->Failure()->find("0x4fb910"), std::string::npos) << *tested.scene->Failure();
-    EXPECT_EQ(cloth.random.State(), Client::Tests::AfterDraws(Seed, 16).State());
-    EXPECT_EQ(cloth.logicSteps, 77);
-    EXPECT_EQ(cloth.wind, wind);
-    EXPECT_FLOAT_EQ(cloth.windBase, windBase);
-    const auto stopped = cloth.random.State();
-    tested.Step();
-    EXPECT_EQ(cloth.random.State(), stopped);
-    EXPECT_TRUE(tested.Frame().empty());
+    EXPECT_EQ(tested.scene->Failure(), std::nullopt);
+    // El 0xf1 cae (0x4fb910, sin rand(): el piso del login lo sube y +0xe4 rebota) y su cuadro sigue en 0.
+    EXPECT_EQ(other.floatE4, static_cast<float>(-6.0 * static_cast<double>(-0.4f)));
+    EXPECT_EQ(other.animation.frame, 0.0f);
+    EXPECT_EQ(cloth.logicSteps, 78);
+    // Los 32 rand() del paso sin él y los 24 de su paso.
+    EXPECT_EQ(cloth.random.State(), Client::Tests::AfterDraws(Seed, 32 + 24).State());
 }
 
 TEST(CharacterSelectSceneTest, TheFirstNativeStepConstructsBothPreviewsAndResetsOnlyEightOwnLevels)

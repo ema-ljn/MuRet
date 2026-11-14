@@ -21,6 +21,7 @@
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/HelperTable.h"
+#include "Scenes/FaunaModels.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/MovementReplies.h"
 #include "Scenes/SelectionState.h"
@@ -33,6 +34,7 @@
 #include "World/TerrainCulling.h"
 #include "World/WorldTerrain.h"
 
+#include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
 #include "support/ItemSetFiles.h"
 #include "support/PlayerActors.h"
@@ -46,6 +48,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <memory>
 #include <span>
 #include <string>
@@ -76,6 +79,8 @@ struct Game
 {
     Game()
     {
+        // 0x612d90 y 0x612270 suben las texturas de los modelos que cargan por la tabla que liga el juego.
+        world.FaunaResources().TextureTable().Bind(store);
         models.Set(PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
         ActorState& hero = world.Actors()[0];
         hero = Client::Tests::UnarmedPlayer();
@@ -87,7 +92,7 @@ struct Game
     {
         return {.world = world,
                 .selection = selection,
-                .dataRoot = {},
+                .dataRoot = dataRoot,
                 .cloth = cloth,
                 .camera = camera,
                 .cameraInput = input,
@@ -96,7 +101,11 @@ struct Game
                 .itemSetTables = &sets,
                 .log = log};
     }
+    // Antes que el mundo: FaunaModels suelta sus texturas al destruirse.
+    Client::Tests::FakeTextureStore store;
     Client::Scenes::WorldState world;
+    // El Data\ del laboratorio, para los Monster*.bmd que mira el alta de 0x5141e0; vacío fuera de los tests con datos.
+    std::filesystem::path dataRoot;
     Client::Scenes::SelectionState selection{world};
     Client::World::GameCamera camera;
     Client::World::GameCameraInput input;
@@ -140,6 +149,7 @@ protected:
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
         game->world.Map().terrain = std::move(loaded).Value();
         game->world.Runtime().map = map;
+        game->dataRoot = m_dataRoot;
     }
 
     // La primera celda, desde (100, 100), con las cuatro de su derecha libres: sin paredes ni zona segura.
@@ -556,21 +566,54 @@ TEST(ViewportLeaveTest, TheLeaveRemovesWithoutTheNewBitAndClearsTheSiegeHalf)
     EXPECT_FALSE(world.Actors()[5].alive);
 }
 
-// 0x4c92a0: el primer registro sin "webzen" corta en el alta de 0x5141e0 (hito 2).
-TEST(ViewportTransformedTest, TheTransformedCutsAtItsCreation)
+// 0x4c92a0: "webzen" no hace nada; el otro da el alta de 0x5141e0 con su tipo (el 3: Monster10.bmd y el modelo 0x15b)
+// y FinishTheTransformed le pone la clase del héroe leída antes. Los rand(): los 28 del alta, las dos celdas y el
+// camino.
+TEST_F(ViewportPlayersTest, TheTransformedIsCreatedByItsType)
 {
-    const auto game = std::make_unique<Game>();
+    Load(0);
     const std::array<Client::Tests::TransformedRecordBytes, 1> hidden{{{.key = 0x0456, .name = "webzen"}}};
     auto read = Client::Protocol::Viewport::ReadTransformed(Client::Tests::TransformedPacket(hidden));
     ASSERT_TRUE(read.HasValue());
     EXPECT_TRUE(Client::Scenes::ApplyTransformed(read.Value(), game->Resources()).HasValue());
-    const std::array<Client::Tests::TransformedRecordBytes, 1> shown{{{.key = 0x0456, .type = 0x0123, .name = "Tatu"}}};
+    EXPECT_EQ(game->cloth.random.State(), CrtRandom(Seed).State());
+    const Cell cell = FreeRow();
+    Actor(0).characterClass = 3;
+    const std::array<Client::Tests::TransformedRecordBytes, 1> shown{{{.key = 0x0456,
+                                                                       .x = cell.x,
+                                                                       .y = cell.y,
+                                                                       .type = 3,
+                                                                       .name = "Tatu",
+                                                                       .targetX = cell.x,
+                                                                       .targetY = cell.y,
+                                                                       .directionAndPk = 0x31}}};
     read = Client::Protocol::Viewport::ReadTransformed(Client::Tests::TransformedPacket(shown));
     ASSERT_TRUE(read.HasValue());
     const auto applied = Client::Scenes::ApplyTransformed(read.Value(), game->Resources());
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
+    const ActorState& actor = Actor(1);
+    EXPECT_EQ(actor.type, 0x15b);
+    EXPECT_EQ(actor.word376, 3);
+    EXPECT_EQ(actor.key, 0x0456);
+    EXPECT_EQ(actor.characterClass, 3);
+    EXPECT_EQ(actor.pk, 1);
+    EXPECT_EQ(actor.byte88, 1);
+    EXPECT_EQ(actor.byte3e3, 1);
+    EXPECT_EQ(std::to_integer<char>(actor.name[0]), 'T');
+    EXPECT_EQ(actor.angles.z, 90.0f);
+}
+
+// 0x4c934c: el tipo 68 pide Monster50.bmd, que el Data del laboratorio no trae: el original cierra (P-C173).
+TEST_F(ViewportPlayersTest, TheTransformedIntoTheMissingMonsterCuts)
+{
+    Load(0);
+    const std::array<Client::Tests::TransformedRecordBytes, 1> shown{{{.key = 0x0456, .x = 130, .y = 130, .type = 68}}};
+    const auto read = Client::Protocol::Viewport::ReadTransformed(Client::Tests::TransformedPacket(shown));
+    ASSERT_TRUE(read.HasValue());
+    const auto applied = Client::Scenes::ApplyTransformed(read.Value(), game->Resources());
     ASSERT_FALSE(applied.HasValue());
-    EXPECT_NE(applied.Error().find("0x4c934c"), std::string::npos) << applied.Error();
-    EXPECT_EQ(game->cloth.random.State(), CrtRandom(Seed).State());
+    EXPECT_NE(applied.Error().find("Monster50.bmd"), std::string::npos) << applied.Error();
+    EXPECT_FALSE(Actor(1).alive);
 }
 
 // 0x4c9356..0x4c975d sobre el personaje que dio el alta (que la hito 2 porta): con +0x376 en 7, la escala en 0,8; la
@@ -729,8 +772,9 @@ TEST_F(ShownEquipmentTest, TheWholeKeyWithTheNewBitFindsNobody)
     EXPECT_EQ(game->world.Actors()[Client::Scenes::CreatedActorSearch].hands[0].model, 0x3 + 0x212);
 }
 
-// 0x4c6ca8..0x4c6dfe: la celda protegida, el blanco y +0x399; el tipo 0xf1 corta.
-TEST_F(ShownEquipmentTest, ThePositionWritesTheCellsAndTheTypeF1Cuts)
+// 0x4c6ca8..0x4c6dfe: la celda protegida, el blanco y +0x399. El tipo 0xf1 se empuja (+0xe4, +0xd0 y +0xcc, con la
+// celda leída) y pide el sonido 0x1b antes de cortar en 0x51fe10 (CL11).
+TEST_F(ShownEquipmentTest, ThePositionWritesTheCellsAndTheTypeF1IsPushed)
 {
     const auto read = Client::Protocol::Viewport::ReadPosition(Client::Tests::PositionPacket(OtherKey, 140, 141));
     ASSERT_TRUE(read.HasValue());
@@ -742,9 +786,17 @@ TEST_F(ShownEquipmentTest, ThePositionWritesTheCellsAndTheTypeF1Cuts)
     EXPECT_EQ(Other().byte399, 1);
     EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, CellDraws).State());
     Other().type = 0xf1;
+    Other().cellX = 138;
+    Other().cellY = 143;
     const auto pushed = Client::Scenes::ApplyViewportPosition(read.Value(), game->Resources());
     ASSERT_FALSE(pushed.HasValue());
-    EXPECT_NE(pushed.Error().find("0x4c6b80"), std::string::npos) << pushed.Error();
+    EXPECT_NE(pushed.Error().find("0x4c6c9d"), std::string::npos) << pushed.Error();
+    EXPECT_EQ(Other().floatE4, 20.0f);
+    EXPECT_EQ(Other().floatD0, 800.0f);
+    EXPECT_EQ(Other().floatCC, 800.0f);
+    EXPECT_EQ(game->world.Runtime().lastSoundId, 0x1b);
+    EXPECT_EQ(Other().cellX, 138);
+    EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, CellDraws + CellDraws).State());
 }
 
 // El D3 y el D7 de otro (0x4c6d60 y 0x4cab40) encuentran al que dio de alta el 0x12.

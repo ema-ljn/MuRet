@@ -2,6 +2,7 @@
 #include "Scenes/DynamicWorldLight.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/GameParticles.h"
+#include "Scenes/HandShine.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/GameRibbonCreation.h"
 #include "Scenes/FaunaJointCreation.h"
@@ -12,6 +13,7 @@
 #include "World/ModelEffects.h"
 
 #include "Core/Expected.h"
+#include "Core/IClock.h"
 #include "Data/Models/PlayerModels.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/Skeleton.h"
@@ -42,6 +44,19 @@
 
 namespace Client::Scenes
 {
+namespace
+{
+// timeGetTime() (0x6b8144) con el reloj de la escena, en ms, que lee el mensaje del nombre (0x4fcd82); sin reloj,
+// vacío.
+std::function<std::uint32_t()> SceneSystemTime(Core::IClock* clock)
+{
+    if (clock == nullptr)
+        return {};
+    return [clock]()
+    { return static_cast<std::uint32_t>(std::chrono::duration_cast<std::chrono::milliseconds>(clock->Now()).count()); };
+}
+} // namespace
+
 Core::Expected<void, std::string> GameScene::StepTheFloorItems(float worldClock)
 {
     const auto& terrain = StepTerrain();
@@ -73,11 +88,16 @@ Core::Expected<void, std::string> GameScene::StepTheCharacters(float worldClock)
                                  .terrain = &StepTerrain(),
                                  .darkSpiritSkeleton = m_models ? m_models->SkeletonOf(DarkSpiritModel) : nullptr,
                                  .particles = &m_context.world->Particles(),
+                                 .sprites = &m_sprites,
                                  .worldClock = worldClock,
                                  .counter = m_context.cloth->logicSteps,
                                  .actionSpeeds = &m_context.world->ActionSpeeds(),
                                  .fixedHeight = CameraState().fixedHeight,
-                                 .soundRequest = [&](std::int32_t sound) { runtime.lastSoundId = sound; }});
+                                 .soundRequest = [&](std::int32_t sound) { runtime.lastSoundId = sound; },
+                                 .texts = m_texts,
+                                 .textMeasure = m_context.textMeasure,
+                                 .screen = m_screen,
+                                 .systemTime = SceneSystemTime(m_context.clock)});
         !stepped.HasValue())
     {
         return stepped;
@@ -171,7 +191,8 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
     if (auto particles = StepGameParticles(
             m_context.world->Particles(), m_context.cloth->random, runtime.map, terrainHeight, worldClock,
             ParticleOwnersAmong(m_context.world->Map().objects), ParticleActorActionsAmong(m_context.world->Actors()),
-            ParticleTextureHeightsOf(m_worldModels), &m_context.world->DynamicLighting().Lighting());
+            ParticleTextureHeightsOf(m_worldModels), &m_context.world->DynamicLighting().Lighting(),
+            ParticleActorHandsAmong(m_context.world->Actors(), runtime.hero));
         !particles.HasValue())
     {
         return particles;

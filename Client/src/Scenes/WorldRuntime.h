@@ -1,7 +1,9 @@
 #pragma once
 
+#include "Data/Text/DialogTable.h"
 #include "Data/Text/MoveRequirements.h"
 #include "GameLogic/MovementSpeed.h"
+#include "Render/Models/HalfLifeMath.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
 #include "Scenes/ChatBubbles.h"
@@ -11,6 +13,8 @@
 #include "Scenes/GameItemRenderState.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/ItemHelpLevels.h"
+#include "Scenes/NpcNames.h"
+#include "Scenes/QuestState.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/ViewportPacketRing.h"
@@ -36,6 +40,7 @@
 #include <cstddef>
 #include <array>
 #include <cstdint>
+#include <deque>
 #include <optional>
 #include <string>
 #include <vector>
@@ -47,6 +52,15 @@
 // (CL7.P, P-C22 c).
 namespace Client::Scenes
 {
+// Una entrada de la cola de las barras de vida (0x7239a8, de 0x10 bytes): la posición del personaje con la z sobre el
+// techo de su caja (+0x18 + +0x138 + 100) y su +0x93, el byte bajo del cuarto DWORD (los otros tres son lo que había en
+// la pila, que 0x42a53d descarta).
+struct QueuedHealthBar
+{
+    glm::vec3 position{};
+    std::uint8_t fill = 0;
+};
+
 // .data[0x6c8c5c] = 1e 00 00 00; los otros cuatro campos del clima están en .bss.
 inline constexpr std::int32_t InitialLeafCount = 30;
 
@@ -174,6 +188,43 @@ enum class CursorGrid : std::uint8_t
     Inventory, // 0x78a9bb0
 };
 
+// Un nodo de la lista de huesos con nombre de [0x6e5640] (0x401000 → 0x4011c0): el personaje (el lugar del pool), el
+// nombre que le da el creador del monstruo y el hueso de su modelo. Lo leen los efectos (CL11).
+struct NamedBone
+{
+    std::size_t actor = 0;
+    std::string name{};
+    std::uint32_t bone = 0;
+};
+
+// Lo que un alta de monstruo escribe en la tabla de modelos (0x5769ad8, de a 0xe0 bytes por modelo): el byte `offset`
+// del modelo o, con `mesh`, el byte +0 de esa malla (06, "El alta de un monstruo"). Lo lee el dibujo de los monstruos,
+// sin portar (08, P-C176).
+struct ModelBytePatch
+{
+    std::uint16_t model = 0;
+    std::optional<std::uint16_t> mesh{};
+    std::uint16_t offset = 0;
+    std::uint8_t value = 0;
+};
+
+// Los globales de los ítems del piso (CL9 hito 5; 06 § Los ítems del piso).
+struct FloorItemGlobals
+{
+    // 0x77f27b0 (.bss 0): el ítem del piso que se va a levantar. Lo escriben la barra (0x5ac9a1) y MoveHero (0x59dc8e);
+    // lo leen 0x5650c0 (su caso 1) y el aviso del 22 (0x4d0f5f).
+    std::int32_t chosen = 0;
+    // 0x77f3b40 (.bss 0): en 1 solo mientras la barra llama a 0x5650c0 (0x5ac9a7..0x5ac9bc), que así no mira la
+    // distancia al destino.
+    std::uint8_t fromSpace = 0;
+    // 0x6c82e8 (.data −1): el ítem pedido con el C1 22. Mientras no es −1, 0x5650c0 no pide otro; lo vuelven a −1 el
+    // 22 (0x4d10b9) y 0x4c2480 (0x4c24cf).
+    std::int32_t pendingPickUp = -1;
+    // 0x6c82ec (.data −1): el lugar del ítem tirado con el C1 23 (0x5e068d). Lo vuelve a −1 el 23 (0x4d13d1, 0x4d13e5)
+    // y nadie lo lee.
+    std::int32_t pendingDrop = -1;
+};
+
 struct WorldRuntime
 {
     // Q-C180/Q-C27: primer aviso de datos que pidió WM_DESTROY. Durable incluso si Poll falla;
@@ -184,6 +235,20 @@ struct WorldRuntime
     // 0x7239f0 (.bss 0): cuándo 0x42b540 eligió la música del mapa 30, en ms de timeGetTime guardados en float. Lo
     // ponen en 0 la carga del 30 (0x42a795) y 0x4294c0 (los paquetes del asedio, CL9.5).
     float siegeMusicTime = 0.0f;
+    // 0x7239d8 (.bss 0): lo pone en 0 la carga del 30 (0x42a78e) y en 2 0x42d890 cuando el 286 o el 287 terminan la
+    // acción 5 (0x42d8f6); lo leen y lo escriben los 286 y 287 en 0x42da90 (0x42db7b..0x42dc0f).
+    std::uint8_t castleByte7239d8 = 0;
+    // 0x7239d9 (.bss 0): el 277 del mapa 30 lo pone en 1 en cada paso (0x42db10); 0x42da60, al final del dibujo de los
+    // personajes, no abre las puertas con él en 1 y lo vuelve a 0.
+    std::uint8_t castleGatesClosed = 0;
+    // 0x7239dc y 0x7239e0 (.bss 0): la x y la y del 278 del mapa 30 con +0x42d en 0x80 (0x42dc38); 0x42da60 los pone
+    // en 0 al final del dibujo de los personajes. Los lee 0x42ddb0 (0x42ddf8), el dibujo del asedio sobre los
+    // personajes, que solo corre con el asedio y corta en 0x42b00b.
+    float castleMarkX = 0.0f;
+    float castleMarkY = 0.0f;
+    // 0x7239e4 (.bss 0): el +0x78 del 216 del mapa 30 (0x42daea). Lo comparan con 0x20000 0x42c850 (0x42c977, con el
+    // asedio, que corta) y 0x42de90 (0x42ded1, el helper del 30 de 0x5085db, que corta).
+    std::uint32_t castleFlags7239e4 = 0;
     // 0x6c649a (.data 0xff): el puesto del héroe en su gremio, que solo copia 0x412120 desde 0x4d9260 (el
     // paquete del gremio, CL9). Sin ese paquete queda en 0xff, sin gremio.
     std::uint8_t heroGuildPost = 0xff;
@@ -216,18 +281,35 @@ struct WorldRuntime
     // Los cinco selectores del mouse arrancan en -1 en la .data.
     std::array<std::int32_t, 5> selectedTargets{-1, -1, -1, -1, -1};
     // 0x723c18: la cola de los textos 3D (WorldTexts.h). La llena 0x4381f0 desde el cuerpo de los personajes
-    // (0x4fd603, que MuRet corta: CL9.5) y la vacía su dibujo (0x4383f0) en cada frame del juego.
+    // (0x4fd603, el 0xc5) y la vacía su dibujo (0x4383f0) en cada frame del juego.
     WorldTextQueue worldTexts{};
     // 0x723c68 (+8, la lista; +0xc, la cuenta): los destinos de movereq.bmd que 0x448440 lee en la carga (0x61ccb0) y
     // que la ventana /move recorre en su paso (0x448580) y en su dibujo (0x448fa0). main.cpp los copia de GameData.
     std::vector<Data::Text::MoveRequirement> moves{};
+    // [0x710148]: el objeto de las misiones (CL9 hito 2). main.cpp copia los registros de quest.bmd (GameData::quests).
+    QuestState quest{};
+    // 0x7688ac0: los 200 diálogos de Dialog.bmd, que main.cpp copia de GameData::dialogs. Vacío: el que muestra uno
+    // corta.
+    Data::Text::DialogTable dialogTable{};
+    // 0x7681eb8 (CL9 hito 2): los 512 nombres de NpcName(%s).txt que busca 0x54ebb0 (el título de la ventana de las
+    // misiones, 0x41be2c) y que la cola del alta (0x5140c0) copia al nombre. main.cpp les copia GameData::npcNames
+    // (0x61ed05); sin el archivo quedan en 0.
+    NpcNameTable npcNames = NpcNameTable(NpcNameCount);
+    // 0x6eeda8: el A0 lo pone en 0 y la llegada a un NPC (0x569593) en 1 si es el 0xe5. Lo lee el dibujo del diálogo de
+    // las misiones (0x41ba20) con la clase 3 o 4.
+    std::uint8_t byte6eeda8 = 0;
     // 0x7879f80: el ítem del cursor, un ItemState de 0x48 bytes en la .bss. Lo dibuja 0x5f7b10 (CL8 hito 4).
     World::ItemState cursorItem{};
     // 0x7879fbc, el +0x3c (occupied) de cursorItem: mayor que 0 con un ítem en el cursor. MuRet lo guarda aparte, y
     // quien levanta o suelta el ítem escribe los dos.
     std::int32_t cursorItemCount = 0;
+    FloorItemGlobals floor{};
     // 0x78ab9b8: la grilla de donde salió el ítem del cursor (CL8 hito 4).
     CursorGrid cursorGrid = CursorGrid::None;
+    // 0x78a59c8: el ítem de los diálogos (0x633110 lo dibuja, 0x63330f lo nombra, 0x623e70 lo usa), con la casilla de
+    // la grilla en el byte +9 (0x78a59d1), que en el ItemState es relleno. Lo escribe la fruta (0x5c8083, CL9 hito 5).
+    World::ItemState dialogItem{};
+    std::uint8_t dialogItemCell = 0;
     // 0x77f3cc8: el lugar adonde va el C1 .. 24 que sale (0x5ca4b0, 0x5bf209, 0x59bf46).
     std::int32_t itemMoveTarget = 0;
     // 0x787a518: la copia del ítem bajo el mouse que lee el cartel (0x5c42a7 y 0x5c3aba). Levantar un ítem le pone el
@@ -237,6 +319,10 @@ struct WorldRuntime
     std::int32_t field78abb10 = 0;
     std::uint8_t byte6c8e4d = 0xff;
     std::optional<std::int32_t> lastSoundId{};
+    // 0x743748c, 0x74374bc y 0x74374ec: las matrices que copia el dibujo del +0x376 0x4d (0x50c177): los huesos 23 y 14
+    // de su segundo modelo (el 0x18a) y el 24 del primero (el 0x189), de +0x120. Las lee el ataque de 0x4f5b70
+    // (0x4f840e y 0x4f8b92, hito 3).
+    std::array<Render::Models::BoneTransform, 3> phoenixBones{};
     World::ObjectModelStepState objectModelState{};
     // 7d365a0, .bss0.6061c0 lee el count retenido antes de60657a;6063d0 lo produce
     // sólo paraIcarus/Chaos/asedio. Kalima conserva0 después del reset del pase exitoso.
@@ -353,6 +439,26 @@ struct WorldRuntime
     // 0x75fdc38: meta del 0F. 0x75fdc3c es la cuenta actual, que ese paquete no cambia.
     // Estado durable de 0x530490 para el futuro binder de hojas; recibir 0F no crea lluvia.
     World::LeafWeather leafWeather{.firstWave = InitialLeafCount};
+    // [0x5767964] (.bss, 0): el lugar del último que pegó. Lo escriben el 18 con las acciones 0x78 y 0x79 (0x4cb849),
+    // el 0x19 (0x4cce7d), el 0x69 (0x4cc2e1) y el 0x1A (0x4cedf7, también con el 400 fantasma), y lo lee el D7 que
+    // llega con el efecto defensivo (0x4cb32f). MuRet escribe el del 1A (CL9 hito 2).
+    std::int32_t lastAttacker = 0;
+    // 0x7239a8: la cola de las barras de vida, un std::deque de bloques de 0x1000 bytes que 0x42a2b0 llena desde el
+    // paso de los personajes (el 0x1a8 con +0x93 debajo de 5) y 0x42a4d0 vacía de a la mitad en el HUD
+    // (Scenes/HealthBars.h). Solo la tocan esas dos y su constructor estático (0x4293d0): no se vacía al cambiar de
+    // mapa.
+    std::deque<QueuedHealthBar> healthBars{};
+    // 0x7437488, con el bit 0 de 0x743a174 de guarda (.bss): el timeGetTime() del último mensaje del nombre de 0x6c88b0
+    // (0x4fcd65..0x4fce15). El primer paso de un personaje lo pone en ahora − 5.000; vacío antes. Nadie lo vuelve a 0.
+    std::optional<std::uint32_t> namedLineTime{};
+    // 0x743a190 (.bss, 0): con 1 el próximo mensaje del nombre es el Text 1167 y con 0 el 1168; cambia con cada uno.
+    bool namedLineFirst = false;
+    // [0x6e5640]: los huesos con nombre de los personajes (0x401000). 0x4011c0 saca el del mismo personaje y nombre
+    // antes de agregar el nuevo; 0x401410 (desde 0x401040, en 0x512870, 0x510ff0 y 0x510f70) saca todos los de un
+    // personaje. En qué orden los recorre quien los lee, sin leer (CL11).
+    std::vector<NamedBone> namedBones{};
+    // Lo que las altas escribieron en la tabla de modelos (ModelBytePatch), en orden.
+    std::vector<ModelBytePatch> modelPatches{};
 };
 
 // 0x63722e y 0x59afd6: con el contador en más de esto, el juego no dibuja ni mueve al héroe.

@@ -12,7 +12,9 @@
 
 #include <gtest/gtest.h>
 
+#include <array>
 #include <cstdint>
+#include <string>
 
 namespace
 {
@@ -296,4 +298,122 @@ TEST(ActorFootstepTest, MapLayerAndSafeZoneChooseTheNativeSound)
         EXPECT_EQ(sounds[0], sample.sound);
         EXPECT_EQ(sounds[1], sample.sound);
     }
+}
+
+// 0x4f3efa..0x4f3f67: otro modelo que el 0x20a, sorteado con rand() & 15, suena con la tabla de su modelo (+0xaa, la de
+// 0x612c80): una de las dos primeras por rand() & 1, más 0xd2 (y 5 con el subtipo 9). Con la primera en −1, nada; sin
+// la tabla, corta.
+TEST_F(ActorWalkTest, AnotherModelSoundsFromItsModelTable)
+{
+    const std::array<std::int16_t, 10> table{0x10, 0x11, 0x12, 0x13, 0x14, -1, -1, -1, -1, -1};
+    const std::array<std::int16_t, 10> silent{-1, 0x11, 0x12, 0x13, 0x14, -1, -1, -1, -1, -1};
+    int sounded = 0;
+    int cut = 0;
+    for (std::uint32_t seed = 1; seed < 200; ++seed)
+    {
+        SCOPED_TRACE(seed);
+        for (const std::int32_t subtype : {0, 9})
+        {
+            auto actor = Client::Tests::UnarmedPlayer(3);
+            actor.type = 0x153;
+            actor.subtype = subtype;
+            Client::Render::Models::CrtRandom random(seed);
+            const auto walked = Client::Scenes::SetActorWalk(
+                actor, {{m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, random},
+                        m_speeds,
+                        false,
+                        &m_skeleton,
+                        table});
+            ASSERT_TRUE(walked.HasValue()) << walked.Error();
+            if (walked.Value().sound.has_value())
+            {
+                ++sounded;
+                const std::int32_t base = subtype == 9 ? 0xd2 + 5 : 0xd2;
+                EXPECT_TRUE(*walked.Value().sound == base + 0x10 || *walked.Value().sound == base + 0x11);
+            }
+
+            Client::Render::Models::CrtRandom quiet(seed);
+            const auto muted = Client::Scenes::SetActorWalk(
+                actor, {{m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, quiet},
+                        m_speeds,
+                        false,
+                        &m_skeleton,
+                        silent});
+            ASSERT_TRUE(muted.HasValue()) << muted.Error();
+            EXPECT_FALSE(muted.Value().sound.has_value());
+
+            Client::Render::Models::CrtRandom missing(seed);
+            const auto unknown = Client::Scenes::SetActorWalk(
+                actor, {{m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, missing},
+                        m_speeds,
+                        false,
+                        &m_skeleton});
+            if (!unknown.HasValue())
+            {
+                ++cut;
+                EXPECT_NE(unknown.Error().find("0x4f3f0f"), std::string::npos) << unknown.Error();
+            }
+        }
+    }
+    EXPECT_GT(sounded, 0);
+    EXPECT_EQ(cut, sounded);
+}
+
+// 0x4f3edc..0x4f3ef2: con el subtipo 209 a 211, antes de la tabla, 0x41ed10(0x7b) sin rand(): si la tabla no suena,
+// queda el 0x7b; si suena, su pedido es el último. Los rand() son los del subtipo 0.
+TEST_F(ActorWalkTest, TheSubtypes209To211AskForTheirLeadSoundBeforeTheTable)
+{
+    const std::array<std::int16_t, 10> table{0x10, 0x11, 0x12, 0x13, 0x14, -1, -1, -1, -1, -1};
+    const std::array<std::int16_t, 10> silent{-1, 0x11, 0x12, 0x13, 0x14, -1, -1, -1, -1, -1};
+    int sounded = 0;
+    for (std::uint32_t seed = 1; seed < 200; ++seed)
+    {
+        SCOPED_TRACE(seed);
+        auto plain = Client::Tests::UnarmedPlayer(3);
+        plain.type = 0x153;
+        Client::Render::Models::CrtRandom reference(seed);
+        const auto expected = Client::Scenes::SetActorWalk(
+            plain, {{m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, reference},
+                    m_speeds,
+                    false,
+                    &m_skeleton,
+                    table});
+        ASSERT_TRUE(expected.HasValue()) << expected.Error();
+        for (const std::int32_t subtype : {209, 210, 211})
+        {
+            SCOPED_TRACE(subtype);
+            auto actor = Client::Tests::UnarmedPlayer(3);
+            actor.type = 0x153;
+            actor.subtype = subtype;
+            Client::Render::Models::CrtRandom random(seed);
+            const auto walked = Client::Scenes::SetActorWalk(
+                actor, {{m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, random},
+                        m_speeds,
+                        false,
+                        &m_skeleton,
+                        table});
+            ASSERT_TRUE(walked.HasValue()) << walked.Error();
+            EXPECT_EQ(walked.Value().sound, expected.Value().sound);
+            EXPECT_EQ(random.State(), reference.State());
+
+            Client::Render::Models::CrtRandom quiet(seed);
+            const auto muted = Client::Scenes::SetActorWalk(
+                actor, {{m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, quiet},
+                        m_speeds,
+                        false,
+                        &m_skeleton,
+                        silent});
+            ASSERT_TRUE(muted.HasValue()) << muted.Error();
+            if (expected.Value().sound.has_value())
+            {
+                ++sounded;
+                EXPECT_EQ(muted.Value().sound, 0x7b);
+            }
+            else
+            {
+                EXPECT_FALSE(muted.Value().sound.has_value());
+            }
+        }
+    }
+    EXPECT_GT(sounded, 0);
 }

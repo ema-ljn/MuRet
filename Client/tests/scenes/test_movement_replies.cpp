@@ -13,6 +13,7 @@
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/FaunaModels.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/SelectionState.h"
@@ -342,6 +343,43 @@ TEST(MovementRepliesTest, JumpingActorAimsAtTheCellCornerWithoutMovingItsVisible
     EXPECT_FLOAT_EQ(other.angles.z,
                     static_cast<float>(Client::Render::Models::CreateAngle(2050.0f, 2150.0f, 3000.0f, 3100.0f)));
     EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(seed, 9).State());
+}
+// El 0x186 es el modelo de un monstruo (el tipo 71, Monster53.bmd): su D3 llega desde gObjMonster (CGMoveRecv del GS
+// 0.97) y 0x4f37c0 → 0x4ea030 lee las acciones del modelo que cargó su alta (WorldState::FaunaResources), no las de la
+// biblioteca del mapa, que no lo tiene. En Lorencia y en Devias.
+TEST(MovementRepliesTest, TheJumpingMonsterTakesTheActionsOfItsLoadedModel)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        const auto tested = std::make_unique<Replies>();
+        tested->world.Runtime().map = map;
+        MovementModels fauna;
+        tested->world.FaunaResources().Bind(&fauna);
+        auto& other = tested->world.Actors()[8];
+        other = Client::Tests::UnarmedPlayer();
+        other.alive = true;
+        other.key = 44;
+        other.type = 0x186;
+        other.position = {2050.0f, 2150.0f, 33.0f};
+        const auto seed = Client::Tests::FirstSeedWhere(
+            [](auto& random)
+            {
+                for (int index = 0; index < 8; ++index)
+                    static_cast<void>(random.Next());
+                return (random.Next() & 15) != 0;
+            });
+        tested->cloth.random = Client::Render::Models::CrtRandom(seed);
+        const auto result = Client::Scenes::ApplyWalkReply(Client::Protocol::Movement::Walk{44, {30, 31}, 15},
+                                                           Replies::PlayerKey, tested->Resources());
+        tested->world.FaunaResources().Bind(nullptr);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(other.cellX, 30);
+        EXPECT_EQ(other.cellY, 31);
+        EXPECT_EQ(other.byte399, 1);
+        EXPECT_EQ(other.animation.action, 2);
+        EXPECT_EQ(tested->cloth.random.State(), Client::Tests::AfterDraws(seed, 9).State());
+    }
 }
 TEST(MovementRepliesTest, AFailedOtherPathRunsStopAfterClosingItsLogicalCoordinates)
 {

@@ -1000,15 +1000,27 @@ TEST_F(GameHangingTest, TheUnportedCasesStopWithTheirAddress)
         EXPECT_NE(other.Error().find("0x4140d5"), std::string::npos) << other.Error();
         m_actor.byte360 = 0;
     }
-    {
-        const HangingModels models({});
-        m_actor.type = 0x20b;
-        m_random = Client::Render::Models::CrtRandom{1};
-        const auto result = Client::Scenes::DrawGameHanging(m_actor, Pass(models));
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_NE(result.Error().find("0x50e060"), std::string::npos) << result.Error();
-        EXPECT_EQ(m_random.State(), AfterRandoms(1));
-    }
+}
+
+// 0x50dcc2: lo que no es un 0x20a salta a 0x50e060, sin la capa de un GM ni el arma del evento; quedan el rand() de
+// 0x50db57 y los cierres de +0x38e de las dos manos.
+TEST_F(GameHangingTest, AMonsterSkipsTheBackTheLayerAndTheEventWeapon)
+{
+    const HangingModels models({MuSign});
+    m_actor.type = 0x20b;
+    constexpr std::string_view Name = "xwebzenx";
+    for (std::size_t index = 0; index < Name.size(); ++index)
+        m_actor.name[index] = static_cast<std::byte>(Name[index]);
+    GameHangingPass pass = Pass(models);
+    pass.map = 11;
+
+    const auto result = Client::Scenes::DrawGameHanging(m_actor, pass);
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_FALSE(m_actor.layer.has_value());
+    EXPECT_EQ(m_actor.byte360, 0);
+    EXPECT_TRUE(m_batch.Vertices().empty());
+    EXPECT_EQ(m_random.State(), AfterRandoms(3));
 }
 
 // Entre frames del original (0x509340 con la animación como quedó), lo que cuelga no avanza.

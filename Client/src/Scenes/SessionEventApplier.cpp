@@ -9,23 +9,29 @@
 #include "Protocol/Character/CharacterList.h"
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
+#include "Protocol/FloorItems.h"
 #include "Protocol/Friends.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/Messages.h"
 #include "Protocol/Movement.h"
 #include "Protocol/OptionData.h"
+#include "Protocol/Quest.h"
 #include "Protocol/Viewport.h"
 #include "Protocol/World.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActionReply.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/FloorItemPackets.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/GameFriends.h"
 #include "Scenes/IWorldEntryPublisher.h"
 #include "Scenes/IWorldTransitionPublisher.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/InventoryReply.h"
+#include "Scenes/MagicAttackCount.h"
+#include "Scenes/MonsterViewport.h"
 #include "Scenes/MovementReplies.h"
+#include "Scenes/QuestReplies.h"
 #include "Scenes/ReturnToSelection.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SelectionState.h"
@@ -61,11 +67,13 @@ void ApplyWeather(const Protocol::World::Weather& received, World::LeafWeather& 
         weather.target = static_cast<std::int32_t>(received.code & IntensityMask) * TargetPerIntensity;
 }
 
-// 0x42a760 manda el B9 02 por el socket del GS al cargar el 30: el de la sesión que aplica la respuesta.
+// 0x42a760 manda el B9 02 por el socket del GS al cargar el 30: el de la sesión que aplica la respuesta. Y 0x419900,
+// al cerrar las misiones, el C1 03 31 por la misma sesión.
 WorldEntryResources WithTheSiegeRequest(const WorldEntryResources& resources, App::ServerSession& session)
 {
     WorldEntryResources bound = resources;
     bound.requestCastleSiegeState = [&session] { session.RequestCastleSiegeState(); };
+    bound.sendWindowClose = [&session] { session.SendWindowClose(); };
     return bound;
 }
 
@@ -125,6 +133,8 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorld(const App::Wor
         return ApplyWalkReply(*walk, session.PlayerIndex(), m_resources);
     if (const auto* damage = std::get_if<Protocol::Movement::Damage>(&event))
         return ApplyDamageReply(*damage, session.PlayerIndex(), m_resources);
+    if (const auto* attack = std::get_if<Protocol::Viewport::MagicAttackCount>(&event))
+        return ApplyMagicAttackCount(*attack, session.PlayerIndex(), m_resources);
     if (const auto* action = std::get_if<Protocol::Movement::Action>(&event))
         return ApplyActionReply(*action, m_resources, [&session](std::uint8_t direction, std::uint8_t sent)
                                 { session.SendAction(direction, sent); });
@@ -190,6 +200,12 @@ std::optional<Core::Expected<void, std::string>> SessionEventApplier::ApplyViewp
         return ApplyEquipmentShown(*shown, m_resources);
     if (const auto* position = std::get_if<Protocol::Viewport::Position>(&event))
         return ApplyViewportPosition(*position, m_resources);
+    if (const auto* monsters = std::get_if<Protocol::Viewport::Monsters>(&event))
+        return ApplyViewportMonsters(*monsters, m_resources);
+    if (const auto* summons = std::get_if<Protocol::Viewport::Summons>(&event))
+        return ApplySummons(*summons, m_resources);
+    if (const auto* objects = std::get_if<Protocol::Viewport::Objects>(&event))
+        return ApplyViewportObjects(*objects, m_resources);
     return std::nullopt;
 }
 
@@ -225,6 +241,52 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
         return ApplyEquipmentChange(*change, m_resources);
     if (const auto* put = std::get_if<Protocol::Inventory::ItemPut>(&event))
         return ApplyItemPut(*put, m_resources);
+    // Las misiones (CL9 hito 2).
+    if (const auto* flag = std::get_if<Protocol::Quest::QuestFlag>(&event))
+    {
+        ApplyQuestFlag(*flag, m_resources.world);
+        return {};
+    }
+    if (const auto* list = std::get_if<Protocol::Quest::QuestList>(&event))
+    {
+        ApplyQuestList(*list, m_resources);
+        return {};
+    }
+    if (const auto* state = std::get_if<Protocol::Quest::QuestStateChange>(&event))
+        return ApplyQuestState(*state, WithTheSiegeRequest(m_resources, session));
+    if (const auto* set = std::get_if<Protocol::Quest::SetQuestResult>(&event))
+        return ApplySetQuestResult(*set, WithTheSiegeRequest(m_resources, session));
+    if (const auto* result = std::get_if<Protocol::Quest::QuestResult>(&event))
+        return ApplyQuestResult(*result, m_resources);
+    // CL9 hito 5.
+    if (const auto* created = std::get_if<Protocol::FloorItems::FloorItemsCreate>(&event))
+        return ApplyFloorItemsCreate(*created, m_resources);
+    if (const auto* deleted = std::get_if<Protocol::FloorItems::FloorItemsDelete>(&event))
+    {
+        ApplyFloorItemsDelete(*deleted, m_resources.world);
+        return {};
+    }
+    if (const auto* picked = std::get_if<Protocol::FloorItems::PickUpResult>(&event))
+        return ApplyPickUpResult(*picked, m_resources);
+    if (const auto* dropped = std::get_if<Protocol::FloorItems::DropResult>(&event))
+        return ApplyDropResult(*dropped, m_resources);
+    if (const auto* fruit = std::get_if<Protocol::FloorItems::StatFruit>(&event))
+        return ApplyStatFruit(*fruit, m_resources.world, m_resources.cloth.random, m_resources.texts);
+    if (std::holds_alternative<Protocol::FloorItems::ShortPickUpResult>(event))
+    {
+        ApplyShortPickUpResult(m_resources.world);
+        return {};
+    }
+    if (const auto* dropped = std::get_if<Protocol::FloorItems::ShortDropResult>(&event))
+    {
+        ApplyShortDropResult(*dropped, m_resources.world);
+        return {};
+    }
+    if (std::holds_alternative<Protocol::FloorItems::ShortStatFruit>(event))
+    {
+        ApplyShortStatFruit(m_resources.world);
+        return {};
+    }
     if (const auto* inventory = std::get_if<Protocol::Character::InventoryList>(&event))
     {
         const auto applied = ApplyInventory(*inventory, m_resources);

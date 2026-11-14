@@ -14,6 +14,7 @@
 #include "Protocol/Character/CharacterList.h"
 #include "Protocol/Connection/ServerList.h"
 #include "Protocol/Dispatcher.h"
+#include "Protocol/FloorItems.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/Movement.h"
 #include "Protocol/OptionData.h"
@@ -233,8 +234,22 @@ public:
     // El 24 del ítem del cursor (Protocol::Inventory::WriteItemMove), en C3. Los dos rand() del envío los saca la
     // escena antes.
     [[nodiscard]] Core::Expected<void, std::string> SendItemMove(const Protocol::Inventory::ItemMove& move);
+    // CL9 hito 5: el C1 05 22 (0x5650c0), el C1 06 23 (0x5dfe27) y el C1 06 26 (0x59ff10 y 0x5c4110), en C3. Los dos
+    // rand() del envío los saca la escena antes.
+    [[nodiscard]] Core::Expected<void, std::string> SendPickUp(std::uint16_t index);
+    [[nodiscard]] Core::Expected<void, std::string> SendDrop(const Protocol::FloorItems::Drop& drop);
+    [[nodiscard]] Core::Expected<void, std::string> SendUseItem(const Protocol::FloorItems::UseItem& use);
     // El C1 03 42 de 0x6599a0(4), al abrir la ventana de la party (Protocol::Party::WritePartyListRequest), en claro.
     void RequestPartyList();
+    // Las misiones y los NPC (CL9 hito 2), por el GS en el mundo. Los rand() del relleno y del serial de los C3 los
+    // saca la escena antes. El C3 A0 de 0x63693a y 0x5676a6 (Protocol::Quest::WriteQuestListRequest).
+    void RequestQuestList();
+    // El C3 A2 de 0x419bd0 y 0x41a9e0 (Protocol::Quest::WriteSetQuest).
+    void SendSetQuest(std::uint8_t quest, std::uint8_t state);
+    // El C3 30 de la llegada a un NPC (0x5650c0, Protocol::Quest::WriteTalk).
+    void SendTalk(std::int16_t key);
+    // El C1 03 31 en claro de 0x419900, al cerrar la ventana de las misiones (Protocol::Connection::WriteWindowClose).
+    void SendWindowClose();
     // El C0 y los C1..C4 que mandan la ventana de amigos y sus cajas (Protocol::Friends), como los demás de mundo.
     void SendFriendPacket(Protocol::Outgoing packet);
     // 0x4c609f: el 00 con la escena 2 (el login) pide la lista de servidores, C1 04 F4 02, por el socket que esté
@@ -362,6 +377,11 @@ private:
     void OnTransformed(const Network::Packet& packet);
     void OnEquipmentShown(const Network::Packet& packet);
     void OnViewportPosition(const Network::Packet& packet);
+    void OnViewportMonsters(const Network::Packet& packet);
+    void OnSummons(const Network::Packet& packet);
+    // El 1A (0x4cedd0): la skill que pega a varios.
+    void OnMagicAttackCount(const Network::Packet& packet);
+    void OnViewportObjects(const Network::Packet& packet);
     void OnTeleport(const Network::Packet& packet);
     void OnRegen(const Network::Packet& packet);
     void OnChat(const Network::Packet& packet);
@@ -377,8 +397,19 @@ private:
     void OnDurability(const Network::Packet& packet);
     void OnEquipmentChange(const Network::Packet& packet);
     void OnItemPut(const Network::Packet& packet);
+    void OnFloorItemsCreate(const Network::Packet& packet);
+    void OnFloorItemsDelete(const Network::Packet& packet);
+    void OnPickUpResult(const Network::Packet& packet);
+    void OnDropResult(const Network::Packet& packet);
+    void OnStatFruit(const Network::Packet& packet);
     void OnLogoutResult(const Network::Packet& packet);
     void OnMainCheck(const Network::Packet& packet);
+    // Las misiones (CL9 hito 2): 9F, A0, A1, A2 y A3, sin guarda de escena ni del cifrado.
+    void OnQuestFlag(const Network::Packet& packet);
+    void OnQuestList(const Network::Packet& packet);
+    void OnQuestState(const Network::Packet& packet);
+    void OnSetQuestResult(const Network::Packet& packet);
+    void OnQuestResult(const Network::Packet& packet);
     // CL9 hito 9: los amigos (C0..C4, 0x4e5a4e..0x4e5aae), sin guarda de escena ni del flag de cifrado.
     void OnFriendList(const Network::Packet& packet);
     void OnFriendAddResult(const Network::Packet& packet);

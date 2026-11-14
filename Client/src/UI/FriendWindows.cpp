@@ -7,6 +7,7 @@
 #include "UI/FriendModel.h"
 #include "UI/OldControls.h"
 #include "UI/OldWindowBase.h"
+#include "UI/OldWindowDraw.h"
 #include "UI/OldWindowSteps.h"
 #include "UI/OldWindows.h"
 
@@ -694,28 +695,26 @@ void SettleTheTab(OldWindowManager& manager, OldWindow& tab)
     PostToTheList(manager, tab, ToTheEndMessage);
 }
 
-// El 8 o el 9 de 0x45aa50 sobre una pestaña sin los globales del paso: su vtable + 0x28 no hace nada con ellos
-// (0x49d0b0, 0x49ea50 y 0x4a11b0 dan 0) y su paso con 1 solo vacía las colas de sus hijas. Lo que no es 8 ni 9 queda
-// en la cola para el próximo paso (P-C186).
-void PlaceTheTabForTheDraw(OldWindowManager& manager, OldWindow& tab, std::int32_t type)
+// 0x45aa50: el paso con 1 atiende TODA la cola, incluidos los comandos que llegaron del paso de los hijos.
+Core::Expected<void, std::string> PlaceTheTabForTheDraw(OldWindowManager& manager, OldWindow& tab, std::int32_t type,
+                                                        const OldWindowDrawView& view)
 {
-    std::deque<OldMessage> rest;
+    if (view.globals != nullptr && view.stepView != nullptr)
+        return Steps::PostAndStep(manager, tab, type, *view.globals, *view.stepView);
+    if (std::ranges::any_of(tab.base.queue, [](const OldMessage& message)
+                            { return message.type != PlaceMessage && message.type != SizeMessage; }))
+        return Cut("0x45aa50: un mensaje funcional de dibujo sin los servicios del paso");
     tab.base.queue.push_back(OldMessage{.type = type, .a = 0, .b = 0, .text = {}});
     while (!tab.base.queue.empty())
     {
         tab.base.current = tab.base.queue.front();
         tab.base.queue.pop_front();
-        if (tab.base.current.type != PlaceMessage && tab.base.current.type != SizeMessage)
-        {
-            rest.push_back(tab.base.current);
-            continue;
-        }
         Steps::PlaceAgainstTheParent(manager, tab.base);
     }
-    tab.base.queue = std::move(rest);
     DrainTheList(manager, tab);
     for (OldButton& button : tab.tab.buttons)
         DrainTheButton(manager, button);
+    return {};
 }
 } // namespace
 
@@ -905,7 +904,7 @@ Core::Expected<OldWindow, std::string> MakeTheFriendsWindow(OldWindowManager& ma
     for (OldWindow& tab : window.tabs)
     {
         // 0x4908d0: al segundo mapa.
-        manager.tabs.insert_or_assign(tab.base.id, base.id);
+        manager.tabs.try_emplace(tab.base.id, OldTabReference{base.id, window.allocationId});
         tab.base.placeMode = 0;
         tab.base.placeX = 0;
         tab.base.placeY = TabTop;
@@ -1054,7 +1053,7 @@ Core::Expected<bool, std::string> OpenTheFriendsWindow(OldWindowManager& manager
         }
         if (state == ShownWindow)
         {
-            if (auto dropped = DropTheFriendsWindow(manager); !dropped.HasValue())
+            if (auto dropped = DropTheFriendsWindow(manager, globals.pressedButton); !dropped.HasValue())
                 return Core::Unexpected(std::move(dropped).Error());
         }
         return false;
@@ -1164,33 +1163,41 @@ void PressEnterInTheOldEdit(OldWindowManager& manager)
     PostToTheWindow(manager, edit->base.parent, EnterMessage, 0, 0);
 }
 
-void SettleTheFriendsForTheDraw(OldWindowManager& manager, OldWindow& window)
+Core::Expected<void, std::string> SettleTheFriendsForTheDraw(OldWindowManager& manager, OldWindow& window,
+                                                             const OldWindowDrawView& view)
 {
     const bool moving = window.base.state == DraggedWindow || window.base.state == ResizedWindow;
     if (window.kind == OldWindowKind::AddFriendBox)
     {
         // 0x4a3750.
         if (!moving)
-            return;
+            return {};
         for (OldButton& button : window.add.buttons)
             Steps::PostAndSettle(manager, button, PlaceMessage);
         PostToTheEdit(manager, window.add.edit, PlaceMessage);
-        return;
+        return {};
     }
     if (window.kind != OldWindowKind::FriendsWindow)
-        return;
+        return {};
     constexpr std::array<std::size_t, FriendsTabCount> Order{FriendTabNumber, WindowsTabNumber, LettersTabNumber};
     // 0x4a2620: el 8 a las tres y su estado en 4; cambiando de tamaño, también el 9 y el estado en 1.
     if (moving)
     {
         for (const std::size_t at : Order)
-            PlaceTheTabForTheDraw(manager, window.tabs[at], PlaceMessage);
+        {
+            if (auto placed = PlaceTheTabForTheDraw(manager, window.tabs[at], PlaceMessage, view); !placed.HasValue())
+                return placed;
+        }
         for (const std::size_t at : Order)
             window.tabs[at].base.state = DraggedWindow;
         if (window.base.state == ResizedWindow)
         {
             for (const std::size_t at : Order)
-                PlaceTheTabForTheDraw(manager, window.tabs[at], SizeMessage);
+            {
+                if (auto placed = PlaceTheTabForTheDraw(manager, window.tabs[at], SizeMessage, view);
+                    !placed.HasValue())
+                    return placed;
+            }
             for (const std::size_t at : Order)
                 window.tabs[at].base.state = ResizedWindow;
         }
@@ -1199,14 +1206,15 @@ void SettleTheFriendsForTheDraw(OldWindowManager& manager, OldWindow& window)
     // lista y a los botones y, cambiando de tamaño, el 9 a la lista.
     const std::int32_t current = window.friends.currentTab;
     if (current < 0 || current >= static_cast<std::int32_t>(FriendsTabCount))
-        return;
+        return {};
     OldWindow& tab = window.tabs[static_cast<std::size_t>(current)];
     if (tab.base.state != DraggedWindow && tab.base.state != ResizedWindow)
-        return;
+        return {};
     PostToTheList(manager, tab, PlaceMessage);
     for (OldButton& button : tab.tab.buttons)
         Steps::PostAndSettle(manager, button, PlaceMessage);
     if (tab.base.state == ResizedWindow)
         PostToTheList(manager, tab, SizeMessage);
+    return {};
 }
 } // namespace Client::UI

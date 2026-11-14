@@ -13,6 +13,7 @@
 #include "Scenes/ITextDrawer.h"
 #include "UI/ChatLog.h"
 #include "UI/ChatLogWindow.h"
+#include "UI/ChatInput.h"
 #include "UI/FriendWindowsDraw.h"
 #include "UI/OldControls.h"
 #include "UI/OldWindowBase.h"
@@ -339,7 +340,10 @@ Core::Expected<void, std::string> DrawTheFrame(OldWindowManager& manager, OldWin
     if (window.kind == OldWindowKind::MessageBox)
         DrawTheBox(manager, window, context, view);
     else if (window.kind == OldWindowKind::AddFriendBox)
-        DrawTheAddFriendBox(manager, window, context, view);
+    {
+        if (auto drawn = DrawTheAddFriendBox(manager, window, context, view); !drawn.HasValue())
+            return drawn;
+    }
     else if (window.kind == OldWindowKind::FriendsWindow)
     {
         if (auto drawn = DrawTheFriendsWindow(manager, window, context, view); !drawn.HasValue())
@@ -432,6 +436,16 @@ Core::Expected<void, std::string> DrawTheFrame(OldWindowManager& manager, OldWin
 
 namespace OldDraw
 {
+OldWindowDrawView WithCurrentFocus(const OldWindowManager& manager, const OldWindowDrawView& view)
+{
+    OldWindowDrawView current = view;
+    if (view.globals != nullptr)
+    {
+        current.focusedList = view.globals->focusedList;
+        current.focusedEdit = view.globals->keyboardFocus == ChatFocus::OldWindow ? manager.focusedEdit : 0;
+    }
+    return current;
+}
 // _ftol (0x69fd3c): trunca hacia el 0.
 std::int32_t Truncate(double value)
 {
@@ -751,7 +765,8 @@ Core::Expected<void, std::string> DrawTheOldWindows(OldWindowManager& manager, c
         OldWindow* window = FindTheOldWindow(manager, id);
         if (window == nullptr || window->base.state == HiddenWindow || window->base.state == MinimizedWindow)
             continue;
-        if (auto drawn = DrawTheFrame(manager, *window, context, view); !drawn.HasValue())
+        if (auto drawn = DrawTheFrame(manager, *window, context, OldDraw::WithCurrentFocus(manager, view));
+            !drawn.HasValue())
             return drawn;
     }
     manager.drawn = 1;

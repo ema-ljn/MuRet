@@ -22,6 +22,7 @@ namespace Client::UI
 
 // 0x4a3750: arrastrada o cambiando de tamaño, ubica a sus hijas; los dos botones (0x45b2e0) y, con la mezcla normal,
 // el EDIT (0x468320). Termina sin mezcla (0x620980).
-void DrawTheAddFriendBox(OldWindowManager& manager, OldWindow& box, const OldWindowDrawContext& context,
-                         const OldWindowDrawView& view);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheAddFriendBox(OldWindowManager& manager, OldWindow& box,
+                                                                    const OldWindowDrawContext& context,
+                                                                    const OldWindowDrawView& view);
 } // namespace Client::UI

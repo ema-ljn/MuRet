@@ -11,6 +11,7 @@
 #include "UI/ChatInput.h"
 #include "UI/FriendModel.h"
 #include "UI/FriendWindows.h"
+#include "UI/GameUiState.h"
 #include "UI/OldControls.h"
 #include "UI/OldWindowBase.h"
 #include "UI/OldWindowDraw.h"
@@ -70,6 +71,7 @@ constexpr TextureSlot CheckSlot{0x64a};
 constexpr std::uint32_t Dim = 0xffc8dce6u;
 constexpr std::uint32_t White = 0xffffffffu;
 constexpr std::uint32_t Black = 0xff000000u;
+constexpr std::uint8_t EnterKey = 0x0d;
 
 class LetterMeasure final : public ITextMeasure
 {
@@ -157,12 +159,13 @@ protected:
     {
         return OldWindowStepView{.mouseX = 639,
                                  .mouseY = 479,
-                                 .keyEdge = [](std::uint8_t /*key*/) { return false; },
+                                 .keyEdge = [this](std::uint8_t key)
+                                 { return key == EnterKey && Client::UI::LatchTheKey(m_enterLatch, m_enterHeld); },
                                  .keyDown = {},
                                  .chatOpen = false,
                                  .texts = &m_texts,
                                  .measure = &m_measure,
-                                 .send = [](const FriendSend& /*send*/) {},
+                                 .send = [this](const FriendSend& send) { m_sent.push_back(send); },
                                  .whisperTo = {},
                                  .openFriends = {}};
     }
@@ -196,13 +199,17 @@ protected:
     // 0x490390 con la ventana de amigos abierta.
     Client::Core::Expected<void, std::string> Draw(std::int32_t x = 0, std::int32_t y = 0)
     {
+        const OldWindowGlobals globals = Globals();
+        const OldWindowStepView stepView = StepView();
         const OldWindowDrawView view{.mouseX = x,
                                      .mouseY = y,
                                      .leftClick = m_leftClick,
                                      .friendsOpen = true,
                                      .texts = &m_texts,
                                      .focusedList = m_focusedList,
-                                     .focusedEdit = m_focusedEdit};
+                                     .focusedEdit = m_focusedEdit,
+                                     .globals = m_withStepContext ? &globals : nullptr,
+                                     .stepView = m_withStepContext ? &stepView : nullptr};
         return Client::UI::DrawTheOldWindows(m_manager, Context(), view);
     }
 
@@ -246,6 +253,10 @@ protected:
         }
     }
 
+    bool m_withStepContext = false;
+    bool m_enterHeld = false;
+    std::int32_t m_enterLatch = 0;
+    std::vector<FriendSend> m_sent;
     LetterMeasure m_letters;
     const OldWindowTexts m_texts{.notice = "Aviso", .question = "Pregunta", .yes = "Si", .no = "No", .lookup = TextOf};
     const OldWindowMeasure m_measure{.measure = m_letters, .dcFont = FontKind::Normal, .screen = Screen640};
@@ -511,6 +522,102 @@ TEST_F(FriendWindowsDrawTest, TheHeaderUnderTheMouseIsWhite)
                        {"t1034", 460, 288, Dim},
                        {"t1033", 513, 288, White},
                    });
+}
+
+// 0x4a2620 llama 0x45aa50: el paso con 1 atiende la cola funcional antes de recolocar; no difiere el comando.
+TEST_F(FriendWindowsDrawTest, MovingTheWindowProcessesThePendingTabCommandDuringDrawing)
+{
+    m_withStepContext = true;
+    OpenFriends();
+    Friends().base.state = Client::UI::DraggedWindow;
+    Client::UI::PostToTheWindow(m_manager, Friends().tabs[0].base.id, Client::UI::CommandMessage, 4, 0);
+
+    const auto drawn = Draw();
+
+    ASSERT_FALSE(drawn.HasValue());
+    EXPECT_NE(drawn.Error().find("0x49d0b0(4)"), std::string::npos);
+}
+
+// 0x49d422 y 0x49d118: Name y Answer conservan orden, envían durante la pasada real y no vuelven al paso siguiente.
+TEST_F(FriendWindowsDrawTest, DrawingSendsPendingNamesAndDeleteAnswersInOrderOnce)
+{
+    m_withStepContext = true;
+    OpenFriends({{"Tero", 1}});
+    Client::UI::SelectInTheList(FriendList(), 1, 1);
+    Friends().base.state = Client::UI::DraggedWindow;
+    Friends().tabs[0].base.queue.push_back(
+        Client::UI::OldMessage{.type = Client::UI::NameMessage, .a = 0, .b = 1, .text = "Tordo"});
+    Client::UI::PostToTheWindow(m_manager, Friends().tabs[0].base.id, Client::UI::AnswerMessage, 0, 1);
+
+    ASSERT_TRUE(Draw().HasValue());
+
+    EXPECT_EQ(m_sent,
+              (std::vector<FriendSend>{{.kind = Client::UI::FriendSendKind::Add, .value = 0, .name = "Tordo"},
+                                       {.kind = Client::UI::FriendSendKind::Delete, .value = 0, .name = "Tero"}}));
+    EXPECT_TRUE(Friends().tabs[0].base.queue.empty());
+    ASSERT_TRUE(Client::UI::StepTheOldWindows(m_manager, Globals(), StepView()).HasValue());
+    EXPECT_EQ(m_sent.size(), 2u);
+}
+
+// 0x4a43eb consulta Enter incluso con arg1: la pregunta recién creada responde y la pestaña manda C3 en Draw.
+TEST_F(FriendWindowsDrawTest, DrawingADeleteCommandReadsEnterAndKeepsTheManagersClosePending)
+{
+    m_withStepContext = true;
+    OpenFriends({{"Tero", 1}});
+    Client::UI::SelectInTheList(FriendList(), 1, 1);
+    Friends().base.state = Client::UI::DraggedWindow;
+    m_enterHeld = true;
+    Client::UI::PostToTheWindow(m_manager, Friends().tabs[0].base.id, Client::UI::CommandMessage, 2, 0);
+
+    ASSERT_TRUE(Draw().HasValue());
+
+    ASSERT_EQ(m_sent.size(), 1u);
+    EXPECT_EQ(m_sent[0], (FriendSend{.kind = Client::UI::FriendSendKind::Delete, .value = 0, .name = "Tero"}));
+    EXPECT_EQ(m_enterLatch, 1);
+    ASSERT_NE(m_manager.modal, 0);
+    EXPECT_TRUE(m_manager.windows.contains(m_manager.modal));
+    EXPECT_TRUE(
+        std::ranges::any_of(m_manager.queue, [this](const Client::UI::OldMessage& message)
+                            { return message.type == Client::UI::CloseMessage && message.a == m_manager.modal; }));
+    ASSERT_TRUE(Draw().HasValue());
+    EXPECT_EQ(m_sent.size(), 1u);
+}
+
+// 0x490390 avanza la lista después de dibujar: Command1 agrega la caja, que ya muestra su caret en esta pasada.
+TEST_F(FriendWindowsDrawTest, DrawingAnAddCommandDrawsTheNewFocusedEditInTheSamePass)
+{
+    m_withStepContext = true;
+    OpenFriends();
+    Friends().base.state = Client::UI::DraggedWindow;
+    Client::UI::PostToTheWindow(m_manager, Friends().tabs[0].base.id, Client::UI::CommandMessage, 1, 0);
+
+    ASSERT_TRUE(Draw().HasValue());
+
+    ASSERT_NE(m_manager.letter, 0);
+    const OldEdit& edit = m_manager.windows.at(m_manager.letter).add.edit;
+    EXPECT_EQ(m_focus, ChatFocus::OldWindow);
+    EXPECT_EQ(m_manager.focusedEdit, edit.base.id);
+    EXPECT_EQ(edit.draws, 1);
+    const auto caret = std::ranges::find_if(
+        m_sprites.Vertices(), [](const SpriteVertex& vertex)
+        { return vertex.color == Color{200.0f / 255.0f, 200.0f / 255.0f, 200.0f / 255.0f, 1.0f}; });
+    ASSERT_NE(caret, m_sprites.Vertices().end());
+    EXPECT_NEAR(caret->x, static_cast<float>(edit.base.x + 1), 1e-4f);
+    EXPECT_NEAR(caret->y, static_cast<float>(480 - edit.base.y), 1e-4f);
+}
+
+TEST_F(FriendWindowsDrawTest, AFunctionalDrawMessageWithoutStepServicesIsAnExplicitError)
+{
+    OpenFriends();
+    Friends().base.state = Client::UI::DraggedWindow;
+    Client::UI::PostToTheWindow(m_manager, Friends().tabs[0].base.id, Client::UI::CommandMessage, 1, 0);
+
+    const auto drawn = Draw();
+
+    ASSERT_FALSE(drawn.HasValue());
+    EXPECT_NE(drawn.Error().find("0x45aa50"), std::string::npos);
+    ASSERT_FALSE(Friends().tabs[0].base.queue.empty());
+    EXPECT_EQ(Friends().tabs[0].base.queue.front().type, Client::UI::CommandMessage);
 }
 
 // La pestaña de las cartas (0x4a0a30) es del hito 10: el dibujo corta con la dirección.

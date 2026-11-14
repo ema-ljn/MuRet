@@ -7,6 +7,7 @@
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/GameMessages.h"
+#include "Scenes/GameUi.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatLog.h"
@@ -94,10 +95,13 @@ Core::Expected<std::int32_t, std::string> OpenABox(const ChatReceiveContext& con
         return Core::Unexpected(std::string(where) + ": la caja sin con qué medir su texto");
     WorldRuntime& runtime = context.world.Runtime();
     const UI::OldWindowTexts texts = OldWindowTextsOf(context.texts);
+    // 0x48f700 destruye los botones si la cascada aborta: también las cajas recibidas prestan la pulsación real.
+    const UI::OldWindowGlobals globals = OldWindowGlobalsOf(runtime);
     return UI::CreateTheOldWindow(
         runtime.oldWindows, UI::OldWindowRequest{.kind = kind, .x = -1, .y = -1, .data = text, .aux = aux, .flags = 0},
         texts,
-        UI::OldWindowMeasure{.measure = *context.measure, .dcFont = runtime.hud.dcFont, .screen = context.screen});
+        UI::OldWindowMeasure{.measure = *context.measure, .dcFont = runtime.hud.dcFont, .screen = context.screen},
+        &globals);
 }
 
 Core::Expected<void, std::string> Notice(const ChatReceiveContext& context, const std::string& text,

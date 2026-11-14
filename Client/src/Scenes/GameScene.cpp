@@ -290,7 +290,7 @@ void GameScene::StepEntry()
             UI::ClearTheChatFilter(runtime.chat.log);
             // 0x6368f9..0x636915: las ventanas viejas (0x48ea50), los amigos (0x49bac0) y las cartas (0x49f260, del
             // hito 10: MuRet no guarda ninguna).
-            UI::ResetTheOldWindows(runtime.oldWindows);
+            UI::ResetTheOldWindows(runtime.oldWindows, runtime.ui.pressedButton);
             UI::ClearTheFriends(runtime.oldWindows.friendModel);
             // 0x636920: 0x46b010, las colas del cartel de Slide.bmd, su timer 0x3eb y 0x46b0e0 (el registro propio y
             // un texto de Slide.bmd, con sus rand()).

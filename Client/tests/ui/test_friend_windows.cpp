@@ -15,6 +15,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <optional>
 #include <set>
 #include <string>
@@ -45,6 +46,15 @@ using Client::UI::OldWindowTexts;
 constexpr std::uint8_t EnterKey = 0x0d;
 constexpr std::uint8_t FriendsKey = 0x46;
 constexpr std::int32_t OpenSound = 0x1c;
+// 0x48f890..0x48f8e0 y 0x4a2280: área del marco y corrimiento de la pestaña dentro de ella.
+constexpr std::int32_t FrameClientLeft = 5;
+constexpr std::int32_t FrameClientTop = 0x15;
+constexpr std::int32_t FrameWidthCut = 10;
+constexpr std::int32_t TabTop = 0x15;
+constexpr std::int32_t FriendListBottom = 0x16;
+// En la esquina de 640 × 480 no entra otro cuadro; 479 % 10 == 9 dispara el abandono de 0x48f68b.
+constexpr std::int32_t CascadeLimitX = 639;
+constexpr std::int32_t CascadeLimitY = 479;
 
 class LetterMeasure final : public ITextMeasure
 {
@@ -101,11 +111,36 @@ protected:
                                                 Globals(), View());
     }
 
-    Client::Core::Expected<void, std::string> Step()
+    Client::Core::Expected<std::int32_t, std::string> CreateFriendsDirect()
+    {
+        const OldWindowGlobals globals = Globals();
+        const OldWindowStepView view = View();
+        return Client::UI::CreateTheOldWindow(m_manager,
+                                              OldWindowRequest{.kind = Client::UI::FriendsCase,
+                                                               .x = Client::UI::FriendsWindowX,
+                                                               .y = Client::UI::FriendsWindowY,
+                                                               .data = "amigos",
+                                                               .flags = Client::UI::KeepPlaceFlag},
+                                              m_texts, m_measure, &globals, &view);
+    }
+
+    Client::Core::Expected<std::int32_t, std::string> CreateNoticeAtTheCascadeLimit(std::int32_t flags)
+    {
+        const OldWindowGlobals globals = Globals();
+        return Client::UI::CreateTheOldWindow(m_manager,
+                                              OldWindowRequest{.kind = Client::UI::NoticeCase,
+                                                               .x = CascadeLimitX,
+                                                               .y = CascadeLimitY,
+                                                               .data = "aviso",
+                                                               .flags = flags},
+                                              m_texts, m_measure, &globals);
+    }
+
+    Client::Core::Expected<void, std::string> Step(std::int32_t x = 639, std::int32_t y = 479)
     {
         m_hovered = 0;
         m_mouseOnUi = 0;
-        return Client::UI::StepTheOldWindows(m_manager, Globals(), View());
+        return Client::UI::StepTheOldWindows(m_manager, Globals(), View(x, y));
     }
 
     std::int32_t OpenABox(std::int32_t kind, std::string_view text, std::int32_t aux = 0)
@@ -358,7 +393,7 @@ TEST_F(FriendWindowsTest, TheWindowsTabFollowsTheBoxes)
     ASSERT_EQ(Friends().tabs[2].tab.windows.size(), 1u);
     EXPECT_EQ(Friends().tabs[2].tab.windows[0].id, box);
     EXPECT_EQ(Friends().tabs[2].tab.windows[0].title, "aviso uno");
-    ASSERT_TRUE(Client::UI::DestroyTheOldWindow(m_manager, box).HasValue());
+    ASSERT_TRUE(Client::UI::DestroyTheOldWindow(m_manager, box, m_pressedButton).HasValue());
     EXPECT_TRUE(Friends().tabs[2].tab.windows.empty());
 }
 
@@ -416,6 +451,284 @@ TEST_F(FriendWindowsTest, TheFKeyClosesItOnTop)
     EXPECT_EQ(m_manager.friends, 0);
 }
 
+// 0x45adf0, 0x45ae34..0x45ae47: cerrar con F después del paso de los hijos libera la pulsación del botón destruido.
+TEST_F(FriendWindowsTest, ClosingWithFReleasesTheHeldButtonAndAllowsAnotherPressAfterReopening)
+{
+    ASSERT_TRUE(OpenFriends().HasValue());
+    const Client::UI::OldButton& button = FriendTab().tab.buttons.front();
+    const std::int32_t buttonX = button.base.x + 1;
+    const std::int32_t buttonY = button.base.y + 1;
+    m_leftHeld = true;
+    m_leftClick = true;
+    m_keys.insert(FriendsKey);
+
+    ASSERT_TRUE(Step(buttonX, buttonY).HasValue());
+    ASSERT_EQ(m_manager.friends, 0);
+    EXPECT_EQ(m_pressedButton, 0);
+
+    m_leftClick = false;
+    ASSERT_TRUE(OpenFriends().HasValue());
+    m_leftClick = true;
+    const Client::UI::OldButton& reopened = FriendTab().tab.buttons.front();
+    const std::int32_t reopenedId = reopened.base.id;
+    ASSERT_TRUE(Step(reopened.base.x + 1, reopened.base.y + 1).HasValue());
+    EXPECT_EQ(m_pressedButton, reopenedId);
+    EXPECT_EQ(FriendTab().tab.buttons.front().pressed, 1);
+}
+
+// El destructor del mismo botón también se alcanza desde 0x4900e0, el de la caja de agregar un amigo.
+TEST_F(FriendWindowsTest, ClosingTheAddBoxReleasesItsHeldButton)
+{
+    ASSERT_TRUE(OpenFriends().HasValue());
+    Client::UI::PostToTheWindow(m_manager, FriendTab().base.id, Client::UI::CommandMessage, 1, 0);
+    ASSERT_TRUE(Step().HasValue());
+    const std::int32_t boxId = m_manager.letter;
+    ASSERT_NE(boxId, 0);
+    const Client::UI::OldButton& button = m_manager.windows.at(boxId).add.buttons.front();
+    m_leftHeld = true;
+    m_leftClick = true;
+    Client::UI::PostToTheManager(m_manager, Client::UI::CloseMessage, boxId, 0);
+
+    ASSERT_TRUE(Step(button.base.x + 1, button.base.y + 1).HasValue());
+
+    EXPECT_FALSE(m_manager.windows.contains(boxId));
+    EXPECT_EQ(m_pressedButton, 0);
+}
+
+// La comparación del destructor es por ID: cerrar amigos no libera el botón de otra ventana que sigue viva.
+TEST_F(FriendWindowsTest, ClosingFriendsKeepsAnotherWindowsHeldButton)
+{
+    ASSERT_TRUE(OpenFriends().HasValue());
+    const std::int32_t friendsId = m_manager.friends;
+    const std::int32_t boxId = OpenABox(Client::UI::NoticeCase, "aviso");
+    const Client::UI::OldButton& button = m_manager.windows.at(boxId).box.buttons.front();
+    const std::int32_t buttonId = button.base.id;
+    m_leftHeld = true;
+    m_leftClick = true;
+    Client::UI::PostToTheManager(m_manager, Client::UI::CloseMessage, friendsId, 0);
+
+    ASSERT_TRUE(Step(button.base.x + 1, button.base.y + 1).HasValue());
+
+    EXPECT_EQ(m_manager.friends, 0);
+    ASSERT_TRUE(m_manager.windows.contains(boxId));
+    EXPECT_EQ(m_pressedButton, buttonId);
+    EXPECT_EQ(m_manager.windows.at(boxId).box.buttons.front().pressed, 1);
+}
+
+// 0x48f700..0x48f70a destruye el cuadro que no entró; 0x45ae34..0x45ae47 libera su botón por ID, aun reutilizado.
+TEST_F(FriendWindowsTest, AbortingTheCascadeReleasesAHeldButtonWithAReusedId)
+{
+    const auto first = CreateNoticeAtTheCascadeLimit(Client::UI::KeepPlaceFlag);
+    ASSERT_TRUE(first.HasValue()) << first.Error();
+    ASSERT_NE(first.Value(), 0);
+    const std::int32_t firstId = first.Value();
+    m_pressedButton = m_manager.windows.at(firstId).box.buttons.front().base.id;
+    m_manager.lastId = firstId - 1;
+
+    const auto aborted = CreateNoticeAtTheCascadeLimit(0);
+
+    ASSERT_TRUE(aborted.HasValue()) << aborted.Error();
+    EXPECT_EQ(aborted.Value(), 0);
+    EXPECT_EQ(m_pressedButton, 0);
+    EXPECT_EQ(m_manager.windows.size(), 1u);
+    EXPECT_TRUE(m_manager.windows.contains(firstId));
+    EXPECT_EQ(m_manager.order.size(), 1u);
+    // 0x4917ea llama 0x4918a0: el prefijo de boxes conserva una sola entrada para el ID reutilizado.
+    EXPECT_EQ(m_manager.boxes.size(), 1u);
+}
+
+// El mismo destructor no borra una pulsación cuyo ID no coincide con los hijos que destruye.
+TEST_F(FriendWindowsTest, AbortingTheCascadeKeepsAnUnrelatedHeldButton)
+{
+    const auto first = CreateNoticeAtTheCascadeLimit(Client::UI::KeepPlaceFlag);
+    ASSERT_TRUE(first.HasValue()) << first.Error();
+    ASSERT_NE(first.Value(), 0);
+    const std::int32_t firstId = first.Value();
+    const std::int32_t pressedButton = m_manager.windows.at(firstId).box.buttons.front().base.id;
+    m_pressedButton = pressedButton;
+
+    const auto aborted = CreateNoticeAtTheCascadeLimit(0);
+
+    ASSERT_TRUE(aborted.HasValue()) << aborted.Error();
+    EXPECT_EQ(aborted.Value(), 0);
+    EXPECT_EQ(m_pressedButton, pressedButton);
+    EXPECT_EQ(m_manager.windows.size(), 1u);
+    EXPECT_TRUE(m_manager.windows.contains(firstId));
+    EXPECT_EQ(m_manager.order.size(), 1u);
+    EXPECT_EQ(m_manager.boxes.size(), 2u);
+}
+
+// 0x4905a5..0x4905a7 compara sin signo con cero: también suelta amigos ocultos si su ID cruzó el bit de signo.
+TEST_F(FriendWindowsTest, HiddenFriendsAreDroppedAfterTheirIdCrossesTheSignBit)
+{
+    m_manager.lastId = std::numeric_limits<std::int32_t>::max();
+    ASSERT_TRUE(OpenFriends().HasValue());
+    ASSERT_EQ(m_manager.friends, std::numeric_limits<std::int32_t>::min());
+    Friends().base.state = Client::UI::HiddenWindow;
+
+    ASSERT_TRUE(Step().HasValue());
+
+    EXPECT_EQ(m_manager.friends, 0);
+    EXPECT_TRUE(m_manager.windows.empty());
+}
+
+// 0x4908d0 registra punteros a pestañas antes del insert principal: una colisión no vuelve inalcanzables esos hijos.
+TEST_F(FriendWindowsTest, ARejectedFriendsWindowKeepsItsRegisteredTabsReachable)
+{
+    const std::int32_t frameId = OpenABox(Client::UI::FrameCase, "marco");
+    m_manager.lastId = frameId - 1;
+    const auto created = CreateFriendsDirect();
+    ASSERT_TRUE(created.HasValue()) << created.Error();
+    ASSERT_EQ(created.Value(), frameId);
+    EXPECT_EQ(m_manager.windows.at(frameId).kind, OldWindowKind::Frame);
+    EXPECT_EQ(m_manager.friends, frameId);
+    const std::int32_t tabId = frameId + 1;
+
+    OldWindow* tab = Client::UI::FindTheOldWindow(m_manager, tabId);
+
+    ASSERT_NE(tab, nullptr);
+    EXPECT_EQ(tab->kind, OldWindowKind::FriendTab);
+    EXPECT_EQ(tab->base.parent, frameId);
+    // Parent+0x44 también es ID: el parent real de layout es el Frame registrado anterior, no el Friends rechazado.
+    const Client::UI::OldWindowBase& frame = m_manager.windows.at(frameId).base;
+    EXPECT_EQ(tab->base.x, frame.x + FrameClientLeft);
+    EXPECT_EQ(tab->base.y, frame.y + FrameClientTop + TabTop);
+    EXPECT_EQ(tab->base.width, frame.width - FrameWidthCut);
+    EXPECT_EQ(tab->tab.list.base.x, tab->base.x);
+    EXPECT_EQ(tab->tab.list.base.y, tab->base.y + tab->base.height - FriendListBottom);
+    EXPECT_EQ(tab->tab.list.base.width, tab->base.width);
+    Client::UI::PostToTheWindow(m_manager, tabId, Client::UI::AnswerMessage, 9, 1);
+    ASSERT_EQ(tab->base.queue.size(), 1u);
+    EXPECT_EQ(tab->base.queue.front().type, Client::UI::AnswerMessage);
+}
+
+// 0x48ea50 destruye las ventanas registradas, pero conserva el mapa +0x5c y el objeto que nunca entró al +0x4c.
+TEST_F(FriendWindowsTest, ResetKeepsTheTabsOfARejectedFriendsWindowReachable)
+{
+    const std::int32_t frameId = OpenABox(Client::UI::FrameCase, "marco");
+    m_manager.lastId = frameId - 1;
+    ASSERT_TRUE(CreateFriendsDirect().HasValue());
+    const std::int32_t tabId = frameId + 1;
+
+    Client::UI::ResetTheOldWindows(m_manager, m_pressedButton);
+
+    EXPECT_TRUE(m_manager.windows.empty());
+    OldWindow* tab = Client::UI::FindTheOldWindow(m_manager, tabId);
+    ASSERT_NE(tab, nullptr);
+    EXPECT_EQ(tab->kind, OldWindowKind::FriendTab);
+    Client::UI::PostToTheWindow(m_manager, tabId, Client::UI::PlaceMessage, 0, 0);
+    ASSERT_EQ(tab->base.queue.size(), 1u);
+    EXPECT_EQ(tab->base.queue.front().type, Client::UI::PlaceMessage);
+}
+
+// 0x49097c: el segundo mapa conserva su primer puntero, aunque el padre nuevo use el mismo ID tras Reset.
+TEST_F(FriendWindowsTest, ARepeatedTabIdKeepsTheFirstLiveAllocationAfterReset)
+{
+    const std::int32_t frameId = OpenABox(Client::UI::FrameCase, "marco");
+    m_manager.lastId = frameId - 1;
+    ASSERT_TRUE(CreateFriendsDirect().HasValue());
+    const std::int32_t tabId = frameId + 1;
+    OldWindow* original = Client::UI::FindTheOldWindow(m_manager, tabId);
+    ASSERT_NE(original, nullptr);
+    original->frame.title = "pestaña anterior";
+    Client::UI::ResetTheOldWindows(m_manager, m_pressedButton);
+    m_manager.lastId = frameId - 1;
+
+    ASSERT_TRUE(CreateFriendsDirect().HasValue());
+
+    OldWindow* resolved = Client::UI::FindTheOldWindow(m_manager, tabId);
+    ASSERT_NE(resolved, nullptr);
+    EXPECT_EQ(resolved, original);
+    EXPECT_EQ(resolved->frame.title, std::optional<std::string>("pestaña anterior"));
+    EXPECT_NE(resolved, &m_manager.windows.at(frameId).tabs[0]);
+}
+
+// El nativo deja una referencia colgante tras Destroy. El port la trata como ausente y no la atribuye al objeto nuevo.
+TEST_F(FriendWindowsTest, AStaleTabRegistrationDoesNotBindToAReusedNativeIdAfterDestroy)
+{
+    ASSERT_TRUE(OpenFriends().HasValue());
+    const std::int32_t friendsId = m_manager.friends;
+    const std::int32_t tabId = FriendTab().base.id;
+    ASSERT_TRUE(Client::UI::DestroyTheOldWindow(m_manager, friendsId, m_pressedButton).HasValue());
+    m_manager.lastId = friendsId - 1;
+    ASSERT_TRUE(CreateFriendsDirect().HasValue());
+
+    EXPECT_EQ(Client::UI::FindTheOldWindow(m_manager, tabId), nullptr);
+    Client::UI::PostToTheWindow(m_manager, tabId, Client::UI::AnswerMessage, 9, 1);
+    EXPECT_TRUE(FriendTab().base.queue.empty());
+}
+
+// Reset tampoco vacía +0x5c: una clave vieja sin dueño vivo no se asocia con la siguiente asignación del mismo ID.
+TEST_F(FriendWindowsTest, AStaleTabRegistrationDoesNotBindToAReusedNativeIdAfterReset)
+{
+    ASSERT_TRUE(OpenFriends().HasValue());
+    const std::int32_t friendsId = m_manager.friends;
+    const std::int32_t tabId = FriendTab().base.id;
+    Client::UI::ResetTheOldWindows(m_manager, m_pressedButton);
+    m_manager.lastId = friendsId - 1;
+    ASSERT_TRUE(CreateFriendsDirect().HasValue());
+
+    EXPECT_EQ(Client::UI::FindTheOldWindow(m_manager, tabId), nullptr);
+    Client::UI::PostToTheWindow(m_manager, tabId, Client::UI::AnswerMessage, 9, 1);
+    EXPECT_TRUE(FriendTab().base.queue.empty());
+}
+
+// El dibujo intermedio copia el administrador: sus registros deben apuntar a sus propios valores, no al runtime.
+TEST_F(FriendWindowsTest, CopyingTheManagerKeepsRejectedTabsIndependent)
+{
+    const std::int32_t frameId = OpenABox(Client::UI::FrameCase, "marco");
+    m_manager.lastId = frameId - 1;
+    ASSERT_TRUE(CreateFriendsDirect().HasValue());
+    const std::int32_t tabId = frameId + 1;
+    OldWindow* original = Client::UI::FindTheOldWindow(m_manager, tabId);
+    ASSERT_NE(original, nullptr);
+    original->frame.title = "original";
+
+    OldWindowManager projected = m_manager;
+    OldWindow* copied = Client::UI::FindTheOldWindow(projected, tabId);
+
+    ASSERT_NE(copied, nullptr);
+    EXPECT_NE(copied, original);
+    copied->frame.title = "proyectada";
+    Client::UI::PostToTheWindow(projected, tabId, Client::UI::AnswerMessage, 9, 1);
+    EXPECT_EQ(original->frame.title, std::optional<std::string>("original"));
+    EXPECT_TRUE(original->base.queue.empty());
+    ASSERT_EQ(copied->base.queue.size(), 1u);
+    std::int32_t projectedPress = 0;
+    Client::UI::ResetTheOldWindows(projected, projectedPress);
+    EXPECT_EQ(Client::UI::FindTheOldWindow(projected, tabId), copied);
+    EXPECT_EQ(Client::UI::FindTheOldWindow(m_manager, tabId), original);
+}
+
+// 0x48ff30, 0x48fbb0, 0x48fcf0 y 0x48fe60: todos los botones hijos pasan por el mismo destructor 0x45adf0.
+TEST_F(FriendWindowsTest, DestroyingFriendsReleasesAnyOfItsTabsButtons)
+{
+    for (std::size_t tabIndex = 0; tabIndex < Client::UI::FriendsTabCount; ++tabIndex)
+    {
+        const std::size_t buttons = tabIndex == Client::UI::WindowsTabNumber ? 1u : 4u;
+        for (std::size_t buttonIndex = 0; buttonIndex < buttons; ++buttonIndex)
+        {
+            ASSERT_TRUE(OpenFriends().HasValue());
+            m_pressedButton = Friends().tabs[tabIndex].tab.buttons[buttonIndex].base.id;
+
+            ASSERT_TRUE(Client::UI::DestroyTheOldWindow(m_manager, m_manager.friends, m_pressedButton).HasValue());
+
+            EXPECT_EQ(m_pressedButton, 0) << tabIndex << ":" << buttonIndex;
+        }
+    }
+}
+
+TEST_F(FriendWindowsTest, ResettingTheWindowsReleasesTheirHeldButton)
+{
+    ASSERT_TRUE(OpenFriends().HasValue());
+    m_pressedButton = FriendTab().tab.buttons.front().base.id;
+
+    Client::UI::ResetTheOldWindows(m_manager, m_pressedButton);
+
+    EXPECT_EQ(m_pressedButton, 0);
+    EXPECT_TRUE(m_manager.windows.empty());
+}
+
 // 0x4918d0: el título 1066 sin la lista y 990 con ella, también en la ventana.
 TEST_F(FriendWindowsTest, MarkingTheListChangesTheTitle)
 {
@@ -436,7 +749,7 @@ TEST_F(FriendWindowsTest, TheResetDropsEverything)
     m_manager.listReceived = 0;
     m_manager.titleText = 1066;
     m_manager.offlineSent = 1;
-    Client::UI::ResetTheOldWindows(m_manager);
+    Client::UI::ResetTheOldWindows(m_manager, m_pressedButton);
     EXPECT_TRUE(m_manager.windows.empty());
     EXPECT_TRUE(m_manager.order.empty());
     EXPECT_EQ(m_manager.friends, 0);

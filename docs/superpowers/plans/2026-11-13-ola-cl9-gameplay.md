@@ -374,13 +374,17 @@ con su marcador y los dos `C1 18`. **Desbloquea:** 12.
 
 ### Hito 9: los amigos (CL9.4, ~89 KB)
 
-- [ ] **Los controles de las ventanas viejas** que la CL8 dejó sin portar (57 funciones de la CL8.3, 14 KB: las
+- [x] **Los controles de las ventanas viejas** que la CL8 dejó sin portar (57 funciones de la CL8.3, 14 KB: las
       listas, los campos de texto, los botones de `0x45adf0`..`0x4aa7a0`; los que son la STL se reemplazan por la
       STL) y las vecinas de `0x479960` que leen las flechas (`0x47c870`, `0x47f7b0` y las chicas; `0x480e00` y
-      `0x4824d0` van con el 8, `0x4852b0` y `0x486910` con el 12).
-- [ ] **La lista de amigos:** `C0` (`0x4dc010`, `0x49b220`, `0x49c260`), `C1`..`C4` (`0x4dc3d0`, `0x4dc5b0`,
+      `0x4824d0` van con el 8, `0x4852b0` y `0x486910` con el 12). El EDIT, simplificado (08, P-C181).
+- [x] **La lista de amigos:** `C0` (`0x4dc010`, `0x49b220`, `0x49c260`), `C1`..`C4` (`0x4dc3d0`, `0x4dc5b0`,
       `0x4dc690`, `0x4dc720`), los casos de la fábrica `0x48ee60` que no son del correo, F5 y F6
-      (`0x490538`, `0x490561`) y la ventana de amigos (`0x4905a2`).
+      (`0x490538`, `0x490561`) y la ventana de amigos (`0x4905a2`). Lo del hito 10, cortado (P-C183).
+- [x] **El dibujo de los amigos** (08, P-C180): la ventana (`0x4a2620`, `0x4a2460`, `0x463090`), las pestañas
+      (`0x49cc20`, `0x49e7f0`) con sus listas (`0x47a810`, `0x461890`, `0x461cd0`, `0x462a60`), la caja de agregar
+      (`0x4a3750`) y su EDIT (`0x468320`), con las piezas para el hito 10 en `UI/OldWindowDrawParts.h`. Las 246 filas
+      del TSV que no estaban citadas, triadas en P-C185; el doble clic queda para el hito 10 (P-C182, P-C187).
 
 **Pruebas:** la lista con varios amigos, agregar y borrar uno, el cambio de estado; los `rand()` de abrir la
 ventana (los 3.848 del registro propio de la CL8). Si el PR pasa de ~90 KB, se parte en los controles y los

@@ -963,6 +963,58 @@ lee el handler); `App::ServerSession` los registra juntos después del `D7` y lo
 `ApplyViewportPosition`). Los tests arman los paquetes con los structs del ASM y nombres inventados
 (`support/ViewportPackets.h`).
 
+### Los amigos: `C0`..`C4`
+
+(CL9 hito 9, 2026-11-13, *estático*.) La reconstrucción del GameServer 0.97 no tiene amigos: el `switch` de
+`protocol.cpp` no tiene `C0`..`C4` (sus casos llegan a `0xB0`, `0xF1`, `0xF3` y `0xFF`) y el EDSProtocol tampoco. El
+oráculo es el ASM del cliente; el cable, de un servidor que los tenga, queda para la VM (08, P-C184). El dispatcher
+(`0x4e5a4e..0x4e5aae`) los pasa sin compuertas, ninguno mira el largo y ninguno saca `rand()`. Los nombres van en 10
+bytes y el cliente los copia con `strncpy` de 10 a un buffer de 11 en cero: uno de 10 no trae `'\0'`. La lista es el
+`std::deque` de `[0x5763518]` (elementos de `0x14` bytes: elegido, el nombre, una marca y el estado).
+
+- **`C0`** (`0x4dc010`): `C2 len C0 <cartas> <tope> <n> n × (<nombre:10> <estado>)`, los tres sin signo. Vacía la
+  lista, suma cada amigo al final (`0x49b220`), ordena por nombre y después por estado (`0x49c260`, Q-C881), copia la
+  lista a la pestaña de amigos si la ventana está (`0x49ddd0`), `0x4918d0(1)` (`+0xe8` del administrador en 1 y el
+  título de la ventana, el 990) y el tope en `0x5767970`. Con cartas, el 1072 con las dos cuentas al chat
+  (`0x555190`, con el nombre vacío de `0x5767a94`). El `C4 02` que arma en `0x4dc0d7..0x4dc37a` no sale (Q-C886).
+- **`C1`** (`0x4dc3d0`, la tabla `0x4dc590`): `C1 0F C1 <resultado> <nombre:10> <estado>`. 0: la caja del 1047 con el
+  nombre; 1: el 1075 al chat, lo suma, ordena con el modo que quedó, la pestaña y `0x4a6840` (la ventana de chat con
+  ese amigo, hito 10); 2: nada; 3: el 1048; 4: el 1049 con el nombre; 5: el 1050; 6: el 1068; más de 6, nada. Las
+  cajas son `0x48ee60(10, −1, −1, texto, 0, 0)`.
+- **`C2`** (`0x4dc5b0`): `C1 0D C2 <nombre:10>`. La pregunta del 1051 con el nombre,
+  `0x48ee60(9, −1, −1, texto, −1, 0)`; si la armó, `0x4a4440` le guarda el nombre (`strncpy` de 10 a `+0x2b8`).
+  Suena `0x2a` igual.
+- **`C3`** (`0x4dc690`): `C1 0E C3 <resultado> <nombre:10>`. 0: la caja del 1052; 1: lo saca (`0x49b690`, el primero
+  con ese nombre) y la pestaña; otro, nada.
+- **`C4`** (`0x4dc720`): `C1 0E C4 <nombre:10> <estado>`. Con `0xfc`, todos en `0xfc` (`0x49c0e0`), ordena, la
+  pestaña, `0x4a75c0` (hito 10) y `0x4918d0(0)` (el título 1066); si no, el estado del primero con ese nombre
+  (`0x49c010`), ordena, la pestaña y el estado en el chat con ese amigo (`0x4a6840`, `0x4a6430` y `0x495630`,
+  hito 10).
+
+Lo que manda la ventana de amigos sale en C1, con el XOR32 desde el byte 3 y en claro por el `send()` del socket,
+sin la cola de los cifrados:
+
+- **`C1 03 C0`**: la fábrica, el caso 3 (`0x48ee60`), al armar la ventana con `+0xe8` del administrador en 0. El
+  primer paso del juego lo pone en 1 (`0x48ea50`), el `C0` también y el `C4` con `0xfc` lo vuelve a 0 (`0x4918d0`):
+  la ventana pide la lista solo después de ese `C4`. No tiene bytes cifrados.
+- **`C1 0D C1 <nombre:10>`**: `0x49d0b0` con el 11 de la caja de agregar (`0x4a37e0`). Copia 10 bytes del texto del
+  mensaje (`0x49d4ca..0x49d4f0`): con un nombre corto, lo que haya detrás del `'\0'` en el buffer de `0x100` de la
+  caja (Q-C882).
+- **`C1 0E C2 <1 | 0> <nombre:10>`**: la respuesta de la caja del `C2` (`0x4a3b80` con dueño −1, `0x4a3bde` el sí
+  y `0x4a3fc8` el no), con el nombre de `+0x2b8`.
+- **`C1 0D C3 <nombre:10>`**: `0x49d0b0` con el 12 y 1, la respuesta de la pregunta de borrar, con el nombre del
+  elegido (`0x49cad0`).
+- **`C1 04 C4 <estado>`**: 0 desde la pregunta de salir de línea (`0x4a2be0`, el 12 con 1) y 1 desde el botón del
+  estado con `+0xe0` en 1 (`0x4a3030`). El `C4 02` de `0x48eb84` (el primer paso del juego) tampoco sale (Q-C886).
+
+**MuRet** (CL9 hito 9): `Protocol::Friends` lee los cinco (`ReadFriendList` en C2, los demás en C1, con `WrongPacket`
+y `TooShort`) y escribe los cinco que manda (`WriteFriendListRequest`, `WriteFriendAdd`, `WriteFriendAnswer`,
+`WriteFriendDelete` y `WriteFriendState`, con `Delivery::Clear`); el nombre va completado con ceros (Q-C882).
+`App::ServerSession` los registra juntos y los pasa al mundo (`Scenes::ApplyFriendList`, `ApplyFriendAddResult`,
+`ApplyFriendRequest`, `ApplyFriendDeleteResult` y `ApplyFriendState`); lo que manda la ventana sale por
+`IGameUiRequests::SendFriendPacket`. Lo del chat con un amigo y las cartas corta con su dirección para el hito 10
+(08, P-C183). Los tests usan nombres inventados.
+
 ## Qué implica para MuRet
 
 | Original | MuRet | Ola |

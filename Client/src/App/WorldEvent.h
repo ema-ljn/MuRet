@@ -3,6 +3,7 @@
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
 #include "Protocol/FloorItems.h"
+#include "Protocol/Friends.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/Messages.h"
 #include "Protocol/OptionData.h"
@@ -40,5 +41,6 @@ using WorldEvent = std::variant<
     Protocol::FloorItems::StatFruit, Protocol::FloorItems::ShortPickUpResult, Protocol::FloorItems::ShortDropResult,
     Protocol::FloorItems::ShortStatFruit, Protocol::Movement::Action, Protocol::Viewport::Players,
     Protocol::Viewport::Leave, Protocol::Viewport::Transformed, Protocol::Viewport::EquipmentShown,
-    Protocol::Viewport::Position>;
+    Protocol::Viewport::Position, Protocol::Friends::FriendList, Protocol::Friends::FriendAddResult,
+    Protocol::Friends::FriendRequest, Protocol::Friends::FriendDeleteResult, Protocol::Friends::FriendState>;
 } // namespace Client::App

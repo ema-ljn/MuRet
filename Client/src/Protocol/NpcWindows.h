@@ -129,7 +129,8 @@ struct WarehouseState
 
 [[nodiscard]] Core::Expected<WarehouseState, ProtocolError> ReadWarehouseState(const Network::Packet& packet);
 
-// El 86 que llega (0x4da280): pkt[3] es el resultado y, con 1, los siete bytes del ítem desde pkt[4].
+// El 86 que llega (0x4da280): pkt[3] es el resultado y, con 1 (0x4da2ff) y con 100 (0x4da378), los siete bytes del ítem
+// desde pkt[4].
 struct ChaosMixResult
 {
     std::uint8_t result = 0;
@@ -137,6 +138,8 @@ struct ChaosMixResult
 };
 
 inline constexpr std::uint8_t ChaosMixSucceeded = 1;
+// 0x4da373: la mezcla del entrenador, con su ítem para la caja del entrenador.
+inline constexpr std::uint8_t TrainerMixResult = 100;
 
 [[nodiscard]] Core::Expected<ChaosMixResult, ProtocolError> ReadChaosMixResult(const Network::Packet& packet);
 

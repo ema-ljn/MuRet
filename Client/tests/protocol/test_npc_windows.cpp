@@ -201,4 +201,21 @@ TEST(NpcWindowsProtocolTest, ReadsTheWarehouseStateTheClosesAndTheMix)
     ASSERT_TRUE(lost.HasValue());
     EXPECT_EQ(lost.Value().result, 0);
 }
+
+// 0x4da373..0x4da385: el 86 con 100, la mezcla del entrenador, también trae los siete bytes del ítem desde pkt[4]
+// (0x44ad70(0, pkt + 4, 1)); corto, es un error.
+TEST(NpcWindowsProtocolTest, TheTrainerMixReadsItsItem)
+{
+    const auto trained =
+        NpcWindows::ReadChaosMixResult(PacketOf(Bytes({0xc1, 0x0b, 0x86, 100, 3, 0x18, 0x20, 0, 0, 0, 0})));
+    ASSERT_TRUE(trained.HasValue());
+    EXPECT_EQ(trained.Value().result, NpcWindows::TrainerMixResult);
+    EXPECT_EQ(trained.Value().item, InventedItem);
+    EXPECT_EQ(ErrorOf(NpcWindows::ReadChaosMixResult(PacketOf(Bytes({0xc1, 0x04, 0x86, 100})))),
+              ProtocolError::TooShort);
+    // Los demás resultados no leen el ítem.
+    const auto refused = NpcWindows::ReadChaosMixResult(PacketOf(Bytes({0xc1, 0x05, 0x86, 2, 3})));
+    ASSERT_TRUE(refused.HasValue());
+    EXPECT_EQ(refused.Value().item, NpcWindows::ItemData{});
+}
 } // namespace

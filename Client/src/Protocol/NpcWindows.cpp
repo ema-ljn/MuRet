@@ -199,7 +199,8 @@ Core::Expected<ChaosMixResult, ProtocolError> ReadChaosMixResult(const Network::
     const auto result = reader.ReadU8();
     if (!result)
         return Core::Unexpected(ProtocolError::TooShort);
-    if (*result != ChaosMixSucceeded)
+    // 0x4da2ff y 0x4da378: solo el 1 y el 100 leen el ítem desde pkt[4].
+    if (*result != ChaosMixSucceeded && *result != TrainerMixResult)
         return ChaosMixResult{.result = *result, .item = {}};
     const auto item = ReadItem(reader);
     if (!item)

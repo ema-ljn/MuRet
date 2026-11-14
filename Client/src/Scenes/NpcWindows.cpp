@@ -77,7 +77,6 @@ constexpr std::uint8_t MixRefused = 2;
 constexpr std::uint8_t MixNotice = 4;
 constexpr std::uint8_t SecondMixNotice = 9;
 constexpr std::uint8_t SecondMixRefused = 0xb;
-constexpr std::uint8_t TrainerMix = 100;
 // 0x7d2dc80.
 constexpr std::int32_t MixIdle = 0;
 constexpr std::int32_t MixReady = 2;
@@ -552,7 +551,7 @@ Core::Expected<void, std::string> ApplyChaosMixResult(const Npc::ChaosMixResult&
         npc.chaosMixState = MixReady;
         return opened;
     }
-    case TrainerMix:
+    case Npc::TrainerMixResult:
     {
         // 0x4da373..0x4da385: la caja del entrenador vacía (0x449c40) y el ítem en su lugar 0 con 0x44ad70(0, datos,
         // 1), sin la cola de 0x5bc740, sin sonido y sin tocar 0x7d2dc80.

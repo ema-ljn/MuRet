@@ -1033,7 +1033,8 @@ cifrado. Abrir y cerrar las ventanas son casos de `0x6599a0` y `0x657ab0` (06 §
 - **`86`** (`0x4da280`, las tablas de `0x4da38c` y `0x4da3a8`): 0 el texto 594 (error); 1 el texto 595, la caja vacía
   y el ítem de `pkt[4..10]` en su lugar 0 (`0x5bc740(0x7d2d380, 8, 4, 0, pkt + 4, 1)`) con los sonidos `0x57` y `0x45`;
   2 y `0xb` el texto 596 con `0x7d2dc80` en 0; 4 y 9 la caja `0x632e30` con los textos 649 y 689; 100 la caja del
-  entrenador (`0x449c40` y `0x44ad70`, sin tocar `0x7d2dc80`). Salvo 2, `0xb` y 100, todos dejan `0x7d2dc80` en 2,
+  entrenador (`0x449c40` y `0x44ad70(0, pkt + 4, 1)`: también lee el ítem de `pkt[4..10]`, `0x4da378`, sin tocar
+  `0x7d2dc80`). Salvo 2, `0xb` y 100, todos dejan `0x7d2dc80` en 2,
   también los que no tienen caso.
 - **Lo que manda el cliente**: comprar `C1 04 32 <lugar>` (`0x5c4bdc`, desde la grilla de la tienda), vender
   `C1 04 33 <lugar>` (`0x5d8e1a`), reparar `C1 05 34 <lugar> <0x78abb10>` (`0x5c4485`, un ítem de la grilla; `0x5edaa7`,

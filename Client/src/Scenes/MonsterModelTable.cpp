@@ -1094,8 +1094,8 @@ std::optional<float> MonsterSpeedFactorOf(std::int32_t number) noexcept
 
 std::span<const ActionSpeedStore> EarlyMonsterSpeedsOf(std::int32_t number) noexcept
 {
-    const auto* found = std::find_if(EarlyCases.begin(), EarlyCases.end(),
-                                     [number](const EarlySpeeds& early) { return early.number == number; });
+    const auto found = std::find_if(EarlyCases.begin(), EarlyCases.end(),
+                                    [number](const EarlySpeeds& early) { return early.number == number; });
     return found != EarlyCases.end() ? found->stores : std::span<const ActionSpeedStore>{};
 }
 
@@ -1106,8 +1106,8 @@ bool MonsterFirstActionStops(std::int32_t number) noexcept
 
 MonsterModelCase MonsterModelCaseOf(std::int32_t number) noexcept
 {
-    const auto* found = std::find_if(Cases.begin(), Cases.end(),
-                                     [number](const MonsterModelCase& entry) { return entry.number == number; });
+    const auto found = std::find_if(Cases.begin(), Cases.end(),
+                                    [number](const MonsterModelCase& entry) { return entry.number == number; });
     return found != Cases.end() ? *found : MonsterModelCase{.number = number};
 }
 
@@ -1125,8 +1125,8 @@ std::string_view MonsterTextureFolderOf(std::int32_t number, std::int32_t map) n
 
 NpcModelCase NpcModelCaseOf(std::uint16_t model) noexcept
 {
-    const auto* found = std::find_if(NpcCases.begin(), NpcCases.end(),
-                                     [model](const NpcModelEntry& entry) { return entry.model == model; });
+    const auto found = std::find_if(NpcCases.begin(), NpcCases.end(),
+                                    [model](const NpcModelEntry& entry) { return entry.model == model; });
     return found != NpcCases.end() ? NpcModelCase{found->address, found->ops} : NpcModelCase{};
 }
 } // namespace Client::Scenes

@@ -20,6 +20,7 @@
 #include "Render/Models/Cloth.h"
 #include "Scenes/CastleBattleReceive.h"
 #include "Scenes/CastleSiegeReceive.h"
+#include "Scenes/MapServerMoveApply.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/IWorldEntryPublisher.h"
@@ -189,6 +190,17 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
         return ApplyCastleSiegePacket(*castle, CastleContextOf(m_resources, session));
     if (const auto* battle = std::get_if<Protocol::CastleBattle::CastleBattlePacket>(&event))
         return ApplyCastleBattlePacket(*battle, CastleContextOf(m_resources, session));
+    if (std::holds_alternative<App::MapServerLeft>(event))
+    {
+        const Protocol::Character::CharacterEntry* chosen = session.ChosenCharacter();
+        return ApplyMapServerLeave(m_resources,
+                                   chosen != nullptr ? std::optional<std::uint8_t>(chosen->slot) : std::nullopt);
+    }
+    if (std::holds_alternative<App::MapServerJoined>(event))
+    {
+        ApplyMapServerJoin(m_resources);
+        return {};
+    }
     if (const auto* moved = std::get_if<Protocol::Inventory::ItemMoveResult>(&event))
         return ApplyItemMoveResult(*moved, m_resources);
     if (const auto* life = std::get_if<Protocol::Inventory::LifeRefill>(&event))

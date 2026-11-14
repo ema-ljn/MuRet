@@ -13,6 +13,7 @@
 #include "Network/Packet.h"
 #include "Protocol/Character/CharacterDelete.h"
 #include "Protocol/Character/CharacterList.h"
+#include "Protocol/Connection/MapServerMove.h"
 #include "Protocol/Connection/ServerList.h"
 #include "Protocol/Dispatcher.h"
 #include "Protocol/Inventory.h"
@@ -371,6 +372,10 @@ private:
     void OnCastleSiege(const Network::Packet& packet);
     // CL9 hito 13: los de la batalla (Protocol::CastleBattle::ReadCastleBattlePacket).
     void OnCastleBattle(const Network::Packet& packet);
+    // CL9 hito 13: el B1 00, el cambio de servidor del mapa (0x4e5056 → 0x412b30).
+    void OnMapServerMove(const Network::Packet& packet);
+    // 0x4c1e20 con [0x5767928] distinto de 0: el saludo de un GameServer con el login ya mandado.
+    void OnGameHelloAfterLogin(const Network::Packet& packet);
     void OnOptionData(const Network::Packet& packet);
     void OnItemMove(const Network::Packet& packet);
     void OnLifeRefill(const Network::Packet& packet);
@@ -420,6 +425,13 @@ private:
     std::optional<ServerAddress> m_gameServerAddress;
     std::optional<std::uint8_t> m_loginResult;
     std::uint16_t m_playerIndex = 0;
+    // [0x5767928] distinto de 0: 0x641cf5 lo pone en 1 al mandar el login y 0x4c2f46, 0x642810 lo vuelven a 0 (aquí,
+    // Start). Con él, el B1 00 conecta con el otro servidor y el F1 00 toma el camino de 0x4c1e2c.
+    bool m_loginSent = false;
+    // 0x576792c: la cuenta del login, que vuelve en el B1 01. No va al log.
+    std::string m_account;
+    // +4 y +0x18 del objeto de 0x6eed7c: el último B1 00 (0x412aa0), hasta Start (0x4129d0 desde 0x4c2f4c).
+    std::optional<Protocol::Connection::MapServerMove> m_mapServerMove;
     std::optional<Protocol::Character::CharacterList> m_characters;
     std::optional<std::string> m_applicationFailure;
     // Solo durante el ApplyWorld de un F3 03: ahí vale PublishWorldEntry.

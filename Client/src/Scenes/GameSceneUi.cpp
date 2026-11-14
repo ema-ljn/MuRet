@@ -108,25 +108,10 @@ public:
         m_session->RequestPartyList();
     }
 
-    // 0x61c170: fopen("wt") crea el archivo o lo vacía. Lo que guardan las macros no va al log.
+    // 0x61c170 (Scenes::WriteMacroFile).
     Core::Expected<void, std::string> SaveMacros(std::string_view content) override
     {
-        std::error_code error;
-        std::optional<std::filesystem::path> path = Data::ResolveDataPath(m_dataRoot, MacroFile, error);
-        if (error)
-            return Core::Unexpected(
-                std::format("no se pudo buscar {} en {}: {}", MacroFile, Core::PathText(m_dataRoot), error.message()));
-        if (!path)
-            path = m_dataRoot / MacroFile;
-        std::ofstream file(*path, std::ios::binary | std::ios::trunc);
-        if (!file)
-            return Core::Unexpected(std::format("0x61c17c: no se pudo abrir {} para escribir (el original sigue con "
-                                                "fprintf sobre NULL)",
-                                                Core::PathText(*path)));
-        file.write(content.data(), static_cast<std::streamsize>(content.size()));
-        if (!file)
-            return Core::Unexpected(std::format("no se pudo escribir {}", Core::PathText(*path)));
-        return {};
+        return WriteMacroFile(m_dataRoot, content);
     }
 
     void Log(std::string_view line) override

@@ -50,6 +50,15 @@ void ApplyReturnToSelection(const WorldEntryResources& resources)
     // nueva (SelectionState::BeginSelection y GameScene::Enter).
     runtime.drawingEnabled = false; // 0x4c38f9
     // 0x4c3900: el estado 0 (la sesión espera la lista). 0x4c390a: 0x4c2480.
+    ResetForTheSelection(resources);
+    // MuRet: la cámara copia la posición del héroe publicado, que la selección lee desde acá (Q-C213).
+    resources.cameraInput.hero = world.Actors()[runtime.hero].position;
+}
+
+void ResetForTheSelection(const WorldEntryResources& resources)
+{
+    WorldState& world = resources.world;
+    WorldRuntime& runtime = world.Runtime();
     resources.camera.level = 0;   // 0x4c250e, el word 0x7d3a0ec
     runtime.ui.autoAttack = true; // 0x4c2533, 0x6c8e3c
     runtime.map = NoMap;          // 0x4c2540
@@ -72,7 +81,5 @@ void ApplyReturnToSelection(const WorldEntryResources& resources)
     UI::ClearTheWhisperSenders(runtime.chat.whisperSenders);
     // 0x4c2650..0x4c26fd: globales y objetos que MuRet no tiene, el byte del A0 ([0x710148] + 4 en 0xff,
     // Q-C215) y 0x657670, cuyo 0x4499b0 manda el segundo C1 03 31 (la sesión, Q-C214).
-    // MuRet: la cámara copia la posición del héroe publicado, que la selección lee desde acá (Q-C213).
-    resources.cameraInput.hero = world.Actors()[runtime.hero].position;
 }
 } // namespace Client::Scenes

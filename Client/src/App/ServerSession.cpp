@@ -30,6 +30,7 @@
 #include "Protocol/Connection/Login.h"
 #include "Protocol/Connection/Logout.h"
 #include "Protocol/Connection/MainCheck.h"
+#include "Protocol/Connection/MapServerMove.h"
 #include "Protocol/Connection/Opcodes.h"
 #include "Protocol/Connection/ServerList.h"
 #include "Protocol/Dispatcher.h"
@@ -37,6 +38,7 @@
 #include "Protocol/Messages.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
+#include "Protocol/PacketFields.h"
 #include "Protocol/Party.h"
 #include "Protocol/Pet/PetInfo.h"
 #include "Protocol/World.h"
@@ -307,7 +309,9 @@ bool ServerSession::RegisterCastleBattleHandlers()
     }
     return m_gameServer.On(Battle::ActorFieldOpcode, onBattle) &&
            m_gameServer.On(Battle::MinimapMembersOpcode, onBattle) &&
-           m_gameServer.On(Battle::CastleOpcode, Battle::SwitchHolderSubcode, onBattle);
+           m_gameServer.On(Battle::CastleOpcode, Battle::SwitchHolderSubcode, onBattle) &&
+           m_gameServer.On(Protocol::Connection::MapServerOpcode, Protocol::Connection::MapServerMoveSubcode,
+                           [this](const Network::Packet& packet) { OnMapServerMove(packet); });
 }
 
 void ServerSession::Start()
@@ -329,6 +333,9 @@ void ServerSession::Start()
     m_deleteResult.reset();
     m_deletingSlot.reset();
     m_chosenSlot.reset();
+    m_loginSent = false;
+    m_account.clear();
+    m_mapServerMove.reset();
     m_log.Info("se conecta al ConnectServer");
     Connect(m_settings.connectServer, std::nullopt);
     SetState(SessionState::ConnectingConnectServer);
@@ -476,6 +483,9 @@ void ServerSession::SubmitCredentials(const Credentials& credentials)
     }
     m_log.Info("se manda el login");
     m_loginResult.reset();
+    // 0x641cf5..0x641d22: [0x5767928] en 1 y la cuenta en 0x576792c.
+    m_loginSent = true;
+    m_account = credentials.account;
     Protocol::Outgoing outgoing = std::move(login).Value();
     m_connection.Send(std::move(outgoing.packet), outgoing.delivery);
     SetState(SessionState::WaitingLoginResult);
@@ -765,6 +775,11 @@ void ServerSession::OnServerBusy()
 // llega a comparar la versión.
 void ServerSession::OnGameHello(const Network::Packet& packet)
 {
+    if (m_loginSent)
+    {
+        OnGameHelloAfterLogin(packet);
+        return;
+    }
     if (m_state != SessionState::WaitingGameHello)
     {
         m_log.Warning("se ignora el saludo del GameServer (F1 00): {}", OutOfTurn);
@@ -795,6 +810,85 @@ void ServerSession::OnGameHello(const Network::Packet& packet)
     // 0x4c1e20 abre la ventana de la cuenta con el GS ya conectado (DAT_057678c0 en 2).
     m_log.Info("el GameServer saludó: se espera la cuenta y la clave");
     SetState(SessionState::WaitingCredentials);
+}
+
+// 0x4c1e2c..0x4c1e59: sin mirar el resultado, la versión ni el estado, la clave del jugador (0x57678bc), 0x412bb0 y
+// 0x447ae0. 0x412bb0 sale sin nada si no hay un B1 00 pendiente; con uno, 0x510f70(−1) y 0x4c2480 (el mundo, con sus
+// dos C1 03 31) y el B1 01 con la cuenta, el nombre del elegido (+0xc del objeto de 0x6eed7c, o "" de 0x6b85ec), los
+// códigos y el tick, cifrado como C3. 0x447ae0 vacía las 2000 entradas de la caché de las marcas de los gremios
+// (0x787aa48, de a 0x58) y +4 de 0x723c58: son del hito 8 de la CL9, que MuRet no tiene todavía.
+void ServerSession::OnGameHelloAfterLogin(const Network::Packet& packet)
+{
+    const auto hello = Protocol::Connection::ReadServerHello(packet);
+    if (!hello.HasValue())
+    {
+        m_log.Warning("se ignora el saludo del GameServer (F1 00): {}", Unreadable);
+        return;
+    }
+    m_playerIndex = hello.Value().playerIndex;
+    if (!m_mapServerMove)
+    {
+        m_log.Info("el GameServer saludó con el login ya mandado y sin un cambio de servidor pendiente");
+        return;
+    }
+    const Protocol::Character::CharacterEntry* chosen = ChosenCharacter();
+    const std::string name = chosen != nullptr ? Protocol::TextField(chosen->name) : std::string{};
+    auto auth = Protocol::Connection::WriteMapServerAuth(Protocol::Connection::MapServerAuth{
+        .account = m_account, .character = name, .codes = m_mapServerMove->codes, .tick = TickCountMs(m_clock.Now())});
+    if (!auth.HasValue())
+    {
+        m_log.Error("no se puede escribir el B1 01: la cuenta pasa de 10 bytes");
+        Fail(SessionFailure::CredentialsTooLong);
+        return;
+    }
+    if (!CheckApplication(m_eventSink.ApplyWorld(MapServerJoined{}, *this)))
+    {
+        return;
+    }
+    m_log.Info("el GameServer nuevo saludó: se le presenta el personaje (B1 01)");
+    Protocol::Outgoing firstClose = Protocol::Connection::WriteWindowClose();
+    m_connection.Send(std::move(firstClose.packet), firstClose.delivery);
+    Protocol::Outgoing secondClose = Protocol::Connection::WriteWindowClose();
+    m_connection.Send(std::move(secondClose.packet), secondClose.delivery);
+    Protocol::Outgoing outgoing = std::move(auth).Value();
+    m_connection.Send(std::move(outgoing.packet), outgoing.delivery);
+    SetState(SessionState::EnteringWorld);
+}
+
+// 0x412b30: guarda el movimiento (0x412aa0) y, con [0x5767928] distinto de 0, cierra el GameServer (0x4c1680), guarda
+// las opciones y las macros (el mundo), espera 20 ms (Sleep) y conecta con el host y el puerto del paquete (0x4c1340,
+// que pone [0x5767918] en 1 si conectó). En cualquier estado, como el original.
+void ServerSession::OnMapServerMove(const Network::Packet& packet)
+{
+    auto move = Protocol::Connection::ReadMapServerMove(packet);
+    if (!move.HasValue())
+    {
+        m_log.Warning("se ignora el cambio de servidor del mapa (B1 00): {}", Unreadable);
+        return;
+    }
+    m_mapServerMove = std::move(move).Value();
+    if (!m_loginSent)
+    {
+        m_log.Info("llegó un cambio de servidor del mapa (B1 00) antes del login: se guarda");
+        return;
+    }
+    m_connection.Close();
+    ++m_generation;
+    if (!CheckApplication(m_eventSink.ApplyWorld(MapServerLeft{}, *this)))
+    {
+        return;
+    }
+    if (!m_mapServerMove->hostEnds)
+    {
+        // Sin un 0 en los 0x24 bytes, 0x4c1340 lee el host fuera del objeto (Q-C1402): no se conecta, y el socket ya
+        // está cerrado como en el original.
+        m_log.Warning("el cambio de servidor del mapa (B1 00) trae un host sin terminar: no se conecta (Q-C1402)");
+        Fail(SessionFailure::GameServerLost);
+        return;
+    }
+    m_log.Info("el GameServer manda a otro servidor del mapa (B1 00): se cierra y se conecta a ese");
+    Connect(ServerAddress{m_mapServerMove->host, m_mapServerMove->port}, m_keys);
+    SetState(SessionState::ConnectingGameServer);
 }
 
 void ServerSession::OnLoginResult(const Network::Packet& packet)

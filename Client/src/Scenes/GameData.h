@@ -94,4 +94,9 @@ struct GameData
 // 0x61ccb0, también: sin él, la ventana /move queda sin destinos (0x448440 devuelve 0 y nadie lo mira);
 // uno que no se lee, corto o con un nombre sin terminar es un error que lo nombra.
 [[nodiscard]] Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& dataRoot);
+
+// 0x61c170: fopen("wt") de Data\Macro.txt, que lo crea o lo vacía, y `content` (UI::WrittenMacros). Lo que guardan
+// las macros no va al log. La salida del juego (GameSceneUi) y el cambio de servidor (0x412b6d) lo comparten.
+[[nodiscard]] Core::Expected<void, std::string> WriteMacroFile(const std::filesystem::path& dataRoot,
+                                                               std::string_view content);
 } // namespace Client::Scenes

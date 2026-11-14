@@ -28,6 +28,18 @@ struct ReturnToSelectionReceived
 {
 };
 
+// CL9 hito 13: el B1 00 con el login ya mandado ([0x5767928] distinto de 0), lo del juego de 0x412b30 entre que cierra
+// el GameServer (0x4c1680) y conecta con el nuevo (0x4c1340): Scenes::ApplyMapServerLeave.
+struct MapServerLeft
+{
+};
+
+// El saludo del GameServer nuevo con el movimiento pendiente: lo del juego de 0x412bb0 antes de armar el B1 01
+// (Scenes::ApplyMapServerJoin).
+struct MapServerJoined
+{
+};
+
 using WorldEvent =
     std::variant<Protocol::Character::CharacterSelectResult, Protocol::Character::InventoryList, ClearInventoryReceived,
                  ReturnToSelectionReceived, Protocol::World::Weather, Protocol::Movement::Walk,
@@ -37,5 +49,5 @@ using WorldEvent =
                  Protocol::Inventory::ItemMoveResult, Protocol::Inventory::ItemDelete, Protocol::Inventory::Durability,
                  Protocol::Inventory::EquipmentChange, Protocol::Inventory::ItemPut, Protocol::Inventory::LifeRefill,
                  Protocol::Inventory::ManaRefill, Protocol::CastleSiege::CastleSiegePacket,
-                 Protocol::CastleBattle::CastleBattlePacket>;
+                 Protocol::CastleBattle::CastleBattlePacket, MapServerLeft, MapServerJoined>;
 } // namespace Client::App

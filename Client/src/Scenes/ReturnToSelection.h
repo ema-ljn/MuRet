@@ -16,4 +16,10 @@ struct WorldEntryResources;
 // globales que MuRet no tiene (06, la tabla de "La vuelta a la selección"). No corta: nada de lo que lee
 // le falta a MuRet. El terreno, el pasto, el héroe publicado (0x743a170) y su lugar quedan.
 void ApplyReturnToSelection(const WorldEntryResources& resources);
+
+// 0x4c2480 en lo que MuRet tiene del mundo: el nivel de la cámara en 0, el ataque automático, el mundo en curso en −1,
+// el registro propio (3.848 rand() al cerrarse sin accesos), el sonido de los avisos y la lista de los que
+// susurraron. Los dos C1 03 31 que manda (0x4c2546 y 0x657670) son de la sesión. Lo llaman la vuelta a la selección
+// (0x4c390a) y el cambio de servidor del mapa (0x412c2a, hito 13 de la CL9).
+void ResetForTheSelection(const WorldEntryResources& resources);
 } // namespace Client::Scenes

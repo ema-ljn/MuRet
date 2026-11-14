@@ -4572,6 +4572,122 @@ TEST(ServerSessionTest, TheCastleBattlePacketsReachTheWorld)
     EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
 }
 
+// CL9 hito 13: el B1 00 (0x4e5056 → 0x412b30) con un host, un puerto y los códigos inventados.
+constexpr std::string_view MapServerHost = "10.0.0.3";
+constexpr std::uint16_t MapServerPort = 55919;
+
+ByteVector MapServerMovePacket(std::string_view host)
+{
+    ByteVector bytes = Bytes({0xc1, 0x28, 0xb1, 0x00});
+    ByteVector field(16);
+    for (std::size_t i = 0; i < host.size() && i < field.size(); ++i)
+        field[i] = static_cast<std::byte>(host[i]);
+    bytes.insert(bytes.end(), field.begin(), field.end());
+    const ByteVector rest = Bytes({MapServerPort & 0xff,
+                                   MapServerPort >> 8,
+                                   0,
+                                   0,
+                                   0x31,
+                                   0x32,
+                                   0x33,
+                                   0x34,
+                                   0x35,
+                                   0x36,
+                                   0x37,
+                                   0x38,
+                                   0x39,
+                                   0x3a,
+                                   0x3b,
+                                   0x3c,
+                                   0x3d,
+                                   0x3e,
+                                   0x3f,
+                                   0x40});
+    bytes.insert(bytes.end(), rest.begin(), rest.end());
+    return bytes;
+}
+
+// Con el login mandado: el mundo de 0x412b30 (MapServerLeft), el GameServer cerrado y el nuevo abierto con el host y
+// el puerto del paquete. Su saludo, sin mirar el resultado ni la versión, guarda la clave y, con el movimiento
+// pendiente, aplica el mundo de 0x412bb0 (MapServerJoined) y manda los dos C1 03 31 de 0x4c2480 y el B1 01 cifrado.
+TEST(ServerSessionTest, TheMapServerMoveReconnectsAndPresentsTheCharacter)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachEnteringWorld());
+    static_cast<void>(tested.eventSink.TakeWorldEvents());
+    const std::size_t connectsBefore = tested.socket.connects.size();
+    tested.socket.reads = {MapServerMovePacket(MapServerHost)};
+    static_cast<void>(tested.session.Poll());
+
+    auto events = tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 1u);
+    EXPECT_TRUE(std::holds_alternative<Client::App::MapServerLeft>(events[0]));
+    ASSERT_EQ(tested.socket.connects.size(), connectsBefore + 1);
+    EXPECT_EQ(tested.socket.connects.back().host, MapServerHost);
+    EXPECT_EQ(tested.socket.connects.back().port, MapServerPort);
+    EXPECT_EQ(tested.session.State(), SessionState::ConnectingGameServer);
+    EXPECT_TRUE(tested.LinesWithAnAddress().empty());
+
+    tested.gameServerStart = tested.socket.sent.size();
+    static_cast<void>(tested.session.Poll());
+    ASSERT_EQ(tested.session.State(), SessionState::WaitingGameHello);
+    PacketSerials newServerSends;
+    tested.socket.reads = {
+        FromTheGameServer(Bytes({0xC1, 0x0C, 0xF1, 0x00, 0x00, 0x01, 0x23, '0', '9', '9', '0', '8'}), newServerSends)};
+    static_cast<void>(tested.session.Poll());
+
+    events = tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 1u);
+    EXPECT_TRUE(std::holds_alternative<Client::App::MapServerJoined>(events[0]));
+    EXPECT_EQ(tested.session.PlayerIndex(), 0x0123);
+    EXPECT_EQ(tested.session.State(), SessionState::EnteringWorld);
+    const auto received = tested.GameServerReads();
+    ASSERT_EQ(received.packets.size(), 3u);
+    EXPECT_TRUE(SameBytes(received.packets[0].Bytes(), Bytes({0xc1, 3, 0x31})));
+    EXPECT_TRUE(SameBytes(received.packets[1].Bytes(), Bytes({0xc1, 3, 0x31})));
+    EXPECT_TRUE(received.packets[2].WasDecrypted());
+    const ByteVector moveBytes = MapServerMovePacket(MapServerHost);
+    const Packet auth = Xor32Decode(received.packets[2]);
+    ASSERT_EQ(auth.Bytes().size(), 0x45u);
+    EXPECT_TRUE(SameBytes(auth.Bytes().first(4), Bytes({0xc1, 0x45, 0xb1, 0x01})));
+    // El nombre del elegido (el lugar 0) y los códigos del B1 00.
+    EXPECT_TRUE(SameBytes(auth.Bytes().subspan(16, 12), Bytes({'c', 'h', 'a', 'r', '0', '0', '0', '1', 0, 0, 0, 0})));
+    EXPECT_TRUE(SameBytes(auth.Bytes().subspan(28, 16), std::span<const std::byte>(moveBytes).subspan(24, 16)));
+    EXPECT_FALSE(tested.LoggedTheCredentials());
+}
+
+// Antes del login, 0x412b30 solo guarda el movimiento ([0x5767928] en 0): no cierra ni conecta, y el saludo sigue el
+// camino del login.
+TEST(ServerSessionTest, AMapServerMoveBeforeTheLoginIsOnlyKept)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachGameHello());
+    const std::size_t connectsBefore = tested.socket.connects.size();
+    tested.socket.reads = {MapServerMovePacket(MapServerHost),
+                           FromTheGameServer(GameHello(1, ClientVersion), tested.gameServerSends)};
+    static_cast<void>(tested.session.Poll());
+    EXPECT_EQ(tested.socket.connects.size(), connectsBefore);
+    EXPECT_TRUE(tested.eventSink.TakeWorldEvents().empty());
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingCredentials);
+}
+
+// Un host sin 0 en los 0x24 bytes (Q-C1402): el GameServer ya se cerró, como en el original, y no se conecta a otro.
+TEST(ServerSessionTest, AMapServerMoveWithAnOpenHostDoesNotConnect)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    const std::size_t connectsBefore = tested.socket.connects.size();
+    ByteVector open = MapServerMovePacket("abcdefghijklmnop");
+    for (std::size_t at = 20; at < open.size(); ++at)
+        open[at] = std::byte{0x41};
+    tested.socket.reads = {open};
+    static_cast<void>(tested.session.Poll());
+    EXPECT_EQ(tested.socket.connects.size(), connectsBefore);
+    EXPECT_EQ(tested.session.State(), SessionState::Failed);
+    EXPECT_EQ(tested.session.Failure(), SessionFailure::GameServerLost);
+    EXPECT_TRUE(tested.Logged(LogLevel::Warning, "Q-C1402"));
+}
+
 // Lo que mandan las ventanas del castillo va por el GameServer con XOR32 y sin C3, y nada sin él abierto.
 TEST(ServerSessionTest, CastlePacketsGoToTheGameServerOnly)
 {

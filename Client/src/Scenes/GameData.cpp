@@ -19,6 +19,8 @@
 #include <cstdint>
 #include <filesystem>
 #include <format>
+#include <fstream>
+#include <ios>
 #include <optional>
 #include <span>
 #include <string>
@@ -345,5 +347,24 @@ Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& 
     }
     data.slides = std::move(slides).Value();
     return data;
+}
+Core::Expected<void, std::string> WriteMacroFile(const std::filesystem::path& dataRoot, std::string_view content)
+{
+    std::error_code error;
+    std::optional<std::filesystem::path> path = Data::ResolveDataPath(dataRoot, MacroFile, error);
+    if (error)
+        return Core::Unexpected(
+            std::format("no se pudo buscar {} en {}: {}", MacroFile, Core::PathText(dataRoot), error.message()));
+    if (!path)
+        path = dataRoot / MacroFile;
+    std::ofstream file(*path, std::ios::binary | std::ios::trunc);
+    if (!file)
+        return Core::Unexpected(std::format("0x61c17c: no se pudo abrir {} para escribir (el original sigue con "
+                                            "fprintf sobre NULL)",
+                                            Core::PathText(*path)));
+    file.write(content.data(), static_cast<std::streamsize>(content.size()));
+    if (!file)
+        return Core::Unexpected(std::format("no se pudo escribir {}", Core::PathText(*path)));
+    return {};
 }
 } // namespace Client::Scenes

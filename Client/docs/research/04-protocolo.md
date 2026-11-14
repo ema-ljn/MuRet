@@ -910,7 +910,7 @@ Las tablas, por el tipo de `+0`: `0x660da0` da el nivel de la vida por `+0x10` c
 `0x660d20(tipo, nivel)` la vida máxima (una puerta: 500000, 800000, y con `SUB 2, NEG, SBB, AND` 1500000 con el 2 y
 3000000 con cualquier otro; una estatua: 400000, 750000, 1300000 con el 2 y 2500000 con cualquier otro); `0x660f30` la
 defensa (`+8` de una puerta o una estatua); `0x661020` la recuperación (0 para una puerta, `+0xc` para una estatua).
-Otro tipo da −1 en las cuatro, así que el valor que sale es 0 (y `0x660d20(tipo, 0)` da −1).
+Otro tipo da −1 en las cuatro: la defensa y la recuperación salen en 0, y la vida en −1 (`0x660d20(tipo, 0)`).
 
 **MuRet**: `UI::LifeLevelOf` y `UI::MaxLifeOfLevel` son las dos tablas de la vida, y `Scenes/CastleSeniorAnswers.h`
 las nueve respuestas sobre `UI::CastleData` (el `Answer*Dialog` de cada una). Un registro elegido que cae fuera de la

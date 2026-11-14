@@ -160,8 +160,13 @@ TEST_F(CastleSeniorAnswersTest, TheLifeAnswersSendTheNextLevel)
     Record(0x7d5c520, 0x11b, 1, 0, 0, 750000, 1);
     Client::Scenes::AnswerTheStatueLifeDialog(8, Context());
     Client::Scenes::AnswerTheStatueLifeDialog(2, Context());
+    // Otro tipo: el nivel −1 + 1 y 0x660d20(tipo, 0) da −1.
+    Record(0x7d5c520, 0x120, 1, 0, 0, 750000, 1);
+    Client::Scenes::AnswerTheStatueLifeDialog(8, Context());
     const auto sent = Sent();
-    ASSERT_EQ(sent.size(), 3u);
+    ASSERT_EQ(sent.size(), 4u);
+    EXPECT_TRUE(SameBytes(sent[3],
+                          Bytes({0xc1, 0x14, 0xb2, 7, 0x20, 1, 0, 0, 1, 0, 0, 0, 3, 0, 0, 0, 0xff, 0xff, 0xff, 0xff})));
     // 800000 = 0x0c3500, 3000000 = 0x2dc6c0, 1300000 = 0x13d620.
     EXPECT_TRUE(
         SameBytes(sent[0], Bytes({0xc1, 0x14, 0xb2, 7, 0x15, 1, 0, 0, 1, 0, 0, 0, 3, 0, 0, 0, 0x00, 0x35, 0x0c, 0})));

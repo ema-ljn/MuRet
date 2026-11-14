@@ -103,9 +103,15 @@ public:
     // `count` acciones iguales a la primera.
     void SetActionCount(std::size_t count)
     {
-        m_skeleton.actions.assign(count, m_skeleton.actions.front());
+        {
+            const auto first = m_skeleton.actions.front();
+            m_skeleton.actions.assign(count, first);
+        }
         for (auto& bone : m_skeleton.bones)
-            bone.actions.assign(count, bone.actions.front());
+        {
+            const auto first = bone.actions.front();
+            bone.actions.assign(count, first);
+        }
     }
 
     // Una segunda malla igual a la primera, con su textura.
@@ -420,6 +426,9 @@ TEST_F(MonsterDrawingTest, TheKalimaGateOutlinesOnlyItsFirstMesh)
         SetUp();
         m_world->Runtime().map = map;
         Monster(4, Spider, 3);
+        // SetUp rehízo la luz: el pase se vuelve a armar para no apuntar a la anterior.
+        pass = Pass();
+        pass.hovered = 4;
         const auto spider = Draw(pass);
         ASSERT_TRUE(spider.HasValue()) << spider.Error();
         // Dos pases por las dos mallas, el cuerpo y la sombra.

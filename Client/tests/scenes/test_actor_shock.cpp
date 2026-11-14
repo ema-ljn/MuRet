@@ -45,10 +45,16 @@ protected:
     void SetUp() override
     {
         auto model = Client::Tests::SampleModel();
-        model.actions.assign(8, model.actions.front());
+        {
+            const auto first = model.actions.front();
+            model.actions.assign(8, first);
+        }
         for (auto& bone : model.bones)
             if (!bone.dummy)
-                bone.actions.assign(8, bone.actions.front());
+            {
+                const auto first = bone.actions.front();
+                bone.actions.assign(8, first);
+            }
         model.meshes.front().textureName = "body.tga";
         for (const char* name : {"Monster/Monster01.bmd", "Monster/Monster02.bmd"})
             Client::Tests::WriteSceneFile(m_folder.Path(), name,

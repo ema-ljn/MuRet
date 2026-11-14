@@ -274,8 +274,10 @@ cero `rand()` en el emote y en el `0x18`. **Desbloquea:** 2, 3 y 7. **Cierra:** 
       (solo corre en la batalla de Castle Siege). Fase 8: `0x50c177` (el `0x4d`, con el `0x18a` y su tela, Q-C864) y
       `0x50c59f` (las telas de la grilla del `0x47`, el `0x4a` y el `0x12d`), `0x50c762` y `0x50c83b` (lo que cuelgan
       el `0x2a` y las estatuas con `0x509340` desde `+0x2f8`, con el `0xef` de `0x5096ac` y el lugar de `0x5093f3`; el
-      `0xc1c` y el `0x225` cortan en `0x4ec200`, Q-C1119). Quedan, con su dirección: `0x43ed20`, `0x442e10`,
-      `0x433b2f` (la U de `+0x6c` y el `+0x88` del modelo), `0x6011f1` y `0x4ed775`.
+      `0xc1c` y el `0x225` cortan en `0x4ec200`, Q-C1119), `0x43ed20` (del `0x191` al `0x197`, con el brillo de
+      `0x43fc04`, Q-C1120; Kundun al caer y `0x4ee770` cortan, CL11) y `0x442e10` (del `0x1a3` al `0x1a9`). Quedan,
+      con su dirección: `0x433b2f` (la U de `+0x6c` y el `+0x88` del modelo), `0x6011f1` y `0x4ed775` (el `0x185` y
+      el `0x197`).
 - [ ] **La tela sobre la malla** (P-C22 f, vtable `0x6b8d04`: los monstruos `0x59..0x8f`; los tres pantalones
       también la usan), y Q-C95 con el primer modelo que se desvanezca (§ Lo que dejó la CL6). Hecha la de los
       monstruos (`Cloth::BuildOnTheMesh`, `Scenes::MonsterMeshCloth`; 06, "La tela sobre la malla"; Q-C861, Q-C862 y,

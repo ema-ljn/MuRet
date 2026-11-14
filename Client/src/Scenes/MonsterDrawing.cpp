@@ -379,7 +379,8 @@ Result DrawTheBody(MonsterFrame& frame, const Render::Models::Skeleton& skeleton
                           .cloth = *frame.pass.clothWorld,
                           .siegeActive = frame.world.Runtime().siegeActive,
                           .lastSoundId = &frame.world.Runtime().lastSoundId,
-                          .originalFrame = frame.originalFrame};
+                          .originalFrame = frame.originalFrame,
+                          .cameraShake = frame.pass.cameraShake};
     return DrawMonsterBody(body);
 }
 

@@ -10348,7 +10348,45 @@ con el modelo de `0x5769ad8 + tipo · 0xe0` (sin acciones, nada: `0x50ba82`), en
      subtipo 1 (si no, 1) y sin malla oculta; en Kalima, los tipos debajo de `0xa0` hacen el común y, hasta el `0x42`
      salvo 18 tipos secos, el agua: el color en `sin(T · 0,002f) · 0,1f + 0,3f` (un `FST` a los tres) y
      `RenderBody(2)` con alpha 0,3 y la textura `0x41 + 0x7d2d360`;
+   - `0x43ed20` (desde `0x438fe0`, en todos los mapas; fase 8): del `0x191` al `0x197`, los monstruos de Kalima de
+     `0x439df0`. Los pases de `0x4ecc30` llevan `+0x58` de textura. Salvo el `0x192`, al morir con el alpha por debajo
+     de 0,5 (`FCOMP`, también un NaN), `0x4ee770(0, 0x607)` (CL11). El `0x191`: `RenderBody(2)` sin la malla oculta y
+     la malla 0 con `0x48` y Chrome01. El `0x192` (Kundun, `+0x60` en 100 desde `0x43a155`): muriendo pasado el frame
+     14,8 con `+0x60` en `0x5a`, el sonido `0x1dd`, `+0x60` en 10, la malla 0, el temblor (`0x7d325c8`) en
+     `(rand() % 8 − 8) · 0,1f` y las partículas `0x124`, `0x11d` y `0x11e` de `0x518cf0` (CL11); si no, muriendo desde el
+     frame 8 con `+0x60` desde 100, el sonido `0x1de`, `+0x60` en `0x5a` y 0x56 vueltas de `rand() % 10` con dos joints
+     de `0x530860` (CL11) y el temblor; con `+0x60` desde `0x5a`, el alpha guardado en 1, `RenderBody(2)`, (0,4; 0,4;
+     0,3) con las mallas 1 a 6 en `0x44` y, en la acción 5 con el frame en (3,5; 6) o (8; 11), las 1, 2, 3 y 5 en
+     `0x42`; con `+0x60` en 10, nada. El `0x193`: `RenderBody(2)` y (0,5; 0,1; 0) con la malla 0 en `0x44`. El `0x194`:
+     `RenderBody(2)` sin la malla oculta y (0,25; 0,2; 0,1) con las mallas 0 y 2 en `0x44`. El `0x195`: con el subtipo
+     9, (0,3; 0,1; 0,1); la malla 0 en `0x42` y las 1 a 3 en 2; con el 9, (1; 0,6; 0,3) con la malla 1 en `0x44` al
+     alpha 0,5, 1 con la 1 en `0x240` y (1; 0,6; 0,1); si no, (0,1; 0,6; 1); las mallas 0 y 2 en `0x44` y, con el 9,
+     `0x439d90`. El `0x196`: `RenderBody(2)` y (0,5; sin(T · 0,002f) · 0,3f + 0,7f; 0,5) con la malla 0 en `0x44` al
+     alpha 0,8. El `0x197`: las mallas 0, 1, 3 y 5 en 2 sin el blendMesh; v = sin(T · 0,002f) · 0,3f + 0,7f en la x87,
+     con el subtipo 9 `+0x68` en 0,5 y (v; v · 0,4; v · 0,4), si no `+0x68` en 1 y (v · 0,3; v · 0,6; v); las mallas 2 y
+     4 en `0x440` (la onda) con su blendMesh; con el 9, 1 y las 0, 1 y 3 en `0x48`; si no, las 2 y 4 en 2 con su
+     blendMesh y la luz en `sin(T · 0,002f) · 0,3f + 0,7f`; la malla 6 en 2 con blendMesh 6 y la luz en
+     `sin(T · 0,002f) · 0,1f + 0,05f`, que queda en `+0x68`, y `0x439d90`. `0x439d90`: con `+0x110` en `0x21` o
+     `0x22`, `0x4ee770(6, 0x10a, 1 o 2)` (CL11), `+0x110` en 0 y el sonido `0x88`. Después de todos, `0x43fc04`: con
+     `+0x78 & 0x100` o `& 8`, v = sin(T · 0,001f) · 0,2f + 0,5f en la x87, el color (v · 0,1; v · 0,3; v · 0,6) o
+     (v · 0,1; v · 0,6; v · 0,3) y `0x60cd60(modelo, objeto, 0x44, 1, 1,3f)`: sin `+0x78 & 0x4000`, `+0x44` del modelo
+     en 0, `0x4ebc80` a 1,3 alrededor de los huesos propios y `RenderBody(0x44)`; esas mallas quedan en `0x5786f9c`
+     para el cuerpo de `0x602365` (Q-C1120);
    - `0x42cc10` en el 30: el `0x33` de la trampa por su caso del asedio (`DrawCastleSiegeBody`);
+   - `0x442e10` (desde `0x4403b0`, en todos los mapas; fase 8): los monstruos de `0x440530`, entre `0x4ecc10` y
+     `0x4ecc20`, con el color guardado y vuelto a poner. El `0x1a3`: `RenderBody(2)` sin la malla 1 y (0,6; 0,4; 0,4)
+     con la 1. El `0x1a4`: f = min(sin(T · 0,0012f) · 0,8f + 1,3f; 1,3f) en la x87; con `model+0x88` en 0 y el color por
+     f, la malla 0 con la U y la V en `(ftol(T) % 10.000) · 0,0002f` (el resto con el signo del dividendo) y en `0x42`;
+     con `0xff` y el color guardado, la 1. El `0x1a5`: `RenderBody(2)` sin la malla 0; la 0 con 1, sin blendMesh y la luz
+     en 1, y con (0,8; 0,6; 1) en `0x44`. El `0x1a6`: con el especial, el color en 1; con `model+0x88` en 1, el rojo por
+     f · 0,1 (x87), el verde por f y el azul por f · 0,1 guardado en un float, la malla 1 con la U y la V corridas y en
+     `0x44` con Chrome01 (con el especial) o `0x42`; con `0xff`, la 0 al alpha `sin(T · 0,0012f) · 0,2f + 0,8f` (y en
+     `0x44` con el especial); con `model+0x88` en 2, la 2 con blendMesh 2 y luz 0,5 (y en `0x44`, con `+0xc` en el `+0x68`
+     del modelo, que `0x5ffdf0` copió de ese `+0xc`: no cambia). El `0x1a7`: con el especial, el color en 1; por (0,5;
+     0,6; 0,8) la malla 0 y con (0,5; 0,8; 0,6) la 1 (cada una en `0x44` con Chrome01 con el especial). El `0x1a9`:
+     `RenderBody(2)` sin la malla 5; el alpha guardado en 1 y la malla 5 con `0x63b` y con la suya, sin blendMesh;
+     (1; 0,5; 0) con la 4 en `0x44`; (0,75; 0,65; 0,5) con las 0, 1 y 3 en `0x44`; la 0 con blendMesh 0, la luz en
+     `sin(T · 0,0012f) · 0,3f + 0,6f` y `0x63a`;
    - `0x428df0` (desde `0x425d90`, en todos los mapas; `0x425070` mira el 33 y el 54 sin usar lo que da): el `0x1bb`
      (la malla 0 con 1 y con (1, 0, 0) y `0x46`, con `model+0x88` en 0; la 1 con 1; la 2 con `model+0x88` en 1, con 1 y
      con (0,5; 0; 0) y `0x46`), el `0x1b8` (con 0,9, las mallas 0 a 2; con `model+0x88` en 0, la 3 con la U y la V en
@@ -10376,10 +10414,12 @@ con el modelo de `0x5769ad8 + tipo · 0xe0` (sin acciones, nada: `0x50ba82`), en
      con `0x42`, U y V en 0.
    Cortan con su dirección (P-C332): el `0x18e` muriéndose o antes de los 25 pasos y el `0x18f` muriéndose
    (`0x4ee770`, CL11, después de `+0x0` en 0 si muere y del sonido `0x87`), la clase de los bordes del `0x183`
-   (`0x6011f1`, después de la malla 0), la onda (`0x400`, `0x4ed775`) del `0x185` después de su cuerpo, y los helpers
-   de la cadena con tipos de monstruo: `0x43ed20` (del `0x191` al `0x197`), `0x42e3d0` (el `0x19b`, el `0x19c`, el
-   `0x1a8`, el `0x1f8` y el `0x1ff` en el 30), `0x442e10` (del `0x1a3` al `0x1a7` y el `0x1a9`, desde `0x4403b0`) y el
-   `0x1af` del 34 (`0x433b2f`: el acumulador `0x723c14`, el alpha guardado en 0,3 en la malla 2, `+0x64` en −2 y la U
+   (`0x6011f1`, después de la malla 0), la onda (`0x400`, `0x4ed775`) del `0x185` después de su cuerpo y del `0x197`
+   después de sus mallas 0, 1, 3 y 5, lo de la CL11 de `0x43ed20` (`0x4ee770` al morir del `0x191`, el `0x193` al
+   `0x197`, `0x43ed6c` y sus copias; las partículas de Kundun en `0x43eeb9`, después del temblor; sus joints en
+   `0x43f20d`, después del primer `rand()`; `0x439dc5`, que MuRet no alcanza: solo pone 0 y 1 en `+0x110`), y los
+   helpers de la cadena con tipos de monstruo: `0x42e3d0` (el `0x19b`, el `0x19c`, el `0x1a8`, el `0x1f8` y el `0x1ff`
+   en el 30) y el `0x1af` del 34 (`0x433b2f`: el acumulador `0x723c14`, el alpha guardado en 0,3 en la malla 2, `+0x64` en −2 y la U
    guardada en `+0x6c`, que `ActorState` no tiene).
 3. **La sombra** (`0x50bd89..0x50bf3e`): sin `+0x88` en 8, sin los `+0x376` `0x19`, `0x16`, `0x2a`, `0xf2`, `0x3b`,
    `0x3f` y `0x98`, fuera del mapa 10 y con el alpha desde 0,3f. En Blood Castle, con `+0x1a1` y muriéndose (`+0x389`),
@@ -10591,8 +10631,9 @@ con el personaje o su copia, el `rand()` del dibujo, las tablas del frame, el mu
 (`GameCharacterPass::kalima`) y el temblor (`GameCharacterPass::cameraShake`); el sonido va a
 `WorldRuntime::lastSoundId` (CL10) solo en un frame del original. Los efectos con modelo, los joints y las partículas
 que MuRet no tiene cortan con su dirección si su tabla tiene lugar; llena, el original no crea nada y sigue (08,
-P-C334). En esta rama se llega a los de Kalima y del asedio solo con un dibujo directo: el cuerpo corta antes el `0xc5`
-(`0x438fe0`) y del `0x191` al `0x197` (`0x43ed20`), y en el 30 `0x42cc10` corta el `0x19c` y el `0x1a8` (P-C179 b).
+P-C334). En esta rama se llega a algunos de Kalima y del asedio solo con un dibujo directo: el cuerpo corta antes el
+`0xc5` con el `+0x58` distinto de −1 (`0x60ce4e`), Kundun al caer y el `0x197` (`0x43ed20`, P-C332), y en el 30
+`0x42cc10` corta el `0x19c` y el `0x1a8` (P-C179 b).
 Tests: `KalimaSiegeHelperTest` (`test_kalima_siege_helpers.cpp`: cada tipo en Lorencia, Devias, Kalima o el 30, con sus
 `rand()` contados y el mundo de Kalima perturbado) y `MonsterDrawingTest.TheBoneSparksOf0x16eGoOverEachBoneOutsideTheTwoGaps`.
 

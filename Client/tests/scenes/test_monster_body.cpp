@@ -18,6 +18,7 @@
 
 #include <glm/ext/vector_float3.hpp>
 
+#include <algorithm>
 #include <array>
 #include <bit>
 #include <cmath>
@@ -134,7 +135,8 @@ protected:
                                                .cloth = m_cloth,
                                                .siegeActive = false,
                                                .lastSoundId = &m_sound,
-                                               .originalFrame = originalFrame};
+                                               .originalFrame = originalFrame,
+                                               .cameraShake = &m_shake};
         auto result = Client::Scenes::DrawMonsterBody(frame);
         m_color = model.object.color;
         return result;
@@ -174,6 +176,7 @@ protected:
     std::unique_ptr<ActorState> m_actor;
     Client::Render::Models::ClothWorld m_cloth;
     std::optional<std::int32_t> m_sound;
+    float m_shake = 0.0f;
     std::vector<Client::Render::Models::BoneTransform> m_bones{Client::Render::Models::BoneTransform(1.0f)};
     std::vector<Client::Render::Models::SkinnedMesh> m_meshes;
     glm::vec3 m_color{};
@@ -452,13 +455,12 @@ TEST_F(MonsterBodyTest, TheUnportedBranchesCutWithTheirAddress)
         std::int32_t map;
         const char* address;
     };
-    // La clase de los bordes del 0x183 y la onda del 0x185 después de lo que dibujan; la cadena; los tipos que ninguna
-    // alta da.
-    constexpr std::array cases{Case{0x183, 0, "0x6011f1"}, Case{0x185, 2, "0x4ed775"},  Case{0x191, 0, "0x43ed20"},
-                               Case{0x197, 2, "0x43ed20"}, Case{0x19b, 30, "0x42e3d0"}, Case{0x1ff, 30, "0x42e3d0"},
-                               Case{0x1a3, 0, "0x442e10"}, Case{0x1a9, 2, "0x442e10"},  Case{0x1af, 34, "0x433b2f"},
-                               Case{0x110, 0, "0x6004ed"}, Case{0x69, 0, "0x600a4a"},   Case{0x12a, 2, "0x600654"},
-                               Case{0x111, 0, "0x60246a"}};
+    // La clase de los bordes del 0x183 y la onda del 0x185 y del 0x197 después de lo que dibujan; la cadena; los tipos
+    // que ninguna alta da.
+    constexpr std::array cases{Case{0x183, 0, "0x6011f1"},  Case{0x185, 2, "0x4ed775"},  Case{0x197, 2, "0x4ed775"},
+                               Case{0x19b, 30, "0x42e3d0"}, Case{0x1ff, 30, "0x42e3d0"}, Case{0x1af, 34, "0x433b2f"},
+                               Case{0x110, 0, "0x6004ed"},  Case{0x69, 0, "0x600a4a"},   Case{0x12a, 2, "0x600654"},
+                               Case{0x111, 0, "0x60246a"},  Case{0x11d, 0, "0x43ed20"},  Case{0x13d, 2, "0x442e10"}};
     for (const Case& value : cases)
     {
         SCOPED_TRACE(value.address);
@@ -475,6 +477,299 @@ TEST_F(MonsterBodyTest, TheUnportedBranchesCutWithTheirAddress)
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(m_batch.Vertices().size(), WholeBody);
     }
+}
+
+// sin(T · rate) · factor + base en double, como la x87 con PC53 (el seno de la CRT basta en los relojes de las
+// pruebas).
+double WaveAt(float clock, std::uint32_t rate, std::uint32_t factor, std::uint32_t base)
+{
+    return std::sin(static_cast<double>(clock) * static_cast<double>(std::bit_cast<float>(rate))) *
+               static_cast<double>(std::bit_cast<float>(factor)) +
+           static_cast<double>(std::bit_cast<float>(base));
+}
+
+TEST_F(MonsterBodyTest, TheLateChainMonstersOf43ed20DrawTheirPassesOnEveryMap)
+{
+    constexpr float Clock = 4321.0f;
+    for (const std::int32_t map : {0, 2, 24})
+    {
+        SCOPED_TRACE(map);
+        // 0x43ed71: el 0x191, RenderBody(2) sin la malla oculta y la malla 0 con 0x48 y Chrome01.
+        m_actor->dword58 = 3;
+        m_batch.Begin(Client::Render::Pass3D{});
+        auto result = Draw(0x191, map, 0, Clock);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        ASSERT_EQ(m_batch.Vertices().size(), WholeBody + Triangle);
+        EXPECT_EQ(TextureAt(WholeBody), 0x5c0);
+        m_actor->dword58 = -1;
+        // 0x43f519: el 0x193, RenderBody(2) y la malla 0 cromada con (0,5; 0,1; 0).
+        m_batch.Begin(Client::Render::Pass3D{});
+        result = Draw(0x193, map, 0, Clock);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        ASSERT_EQ(m_batch.Vertices().size(), WholeBody + Triangle);
+        ExpectColor(0, 0.2f, 0.4f, 0.6f);
+        EXPECT_FLOAT_EQ(m_batch.Vertices()[WholeBody + 1].position.x, 1.0f);
+        EXPECT_EQ(m_color, glm::vec3(0.5f, std::bit_cast<float>(0x3dcccccdu), 0.0f));
+        // 0x43f5be: el 0x194, las mallas 0 y 2 cromadas.
+        m_batch.Begin(Client::Render::Pass3D{});
+        result = Draw(0x194, map, 0, Clock);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        ASSERT_EQ(m_batch.Vertices().size(), WholeBody + 2 * Triangle);
+        EXPECT_FLOAT_EQ(m_batch.Vertices()[WholeBody + Triangle].position.x, 2.0f);
+        // 0x43f687: el 0x195 sin el subtipo 9: la malla 0 aditiva, las 1 a 3 y las 0 y 2 cromadas con (0,1; 0,6; 1).
+        m_actor->subtype = 0;
+        m_batch.Begin(Client::Render::Pass3D{});
+        result = Draw(0x195, map, 0, Clock);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        ASSERT_EQ(m_batch.Vertices().size(), 6 * Triangle);
+        EXPECT_EQ(CommandAt(0).state.blend, ModelBlend::Additive);
+        ExpectColor(Triangle, 0.2f, 0.4f, 0.6f);
+        EXPECT_EQ(m_color, glm::vec3(std::bit_cast<float>(0x3dcccccdu), std::bit_cast<float>(0x3f19999au), 1.0f));
+        // Con el 9: (0,3; 0,1; 0,1), la malla 1 dos veces más (cromada al alpha 0,5 y con 0x240) y (1; 0,6; 0,1).
+        m_actor->subtype = 9;
+        m_batch.Begin(Client::Render::Pass3D{});
+        result = Draw(0x195, map, 0, Clock);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        ASSERT_EQ(m_batch.Vertices().size(), 8 * Triangle);
+        ExpectColor(Triangle, std::bit_cast<float>(0x3e99999au), std::bit_cast<float>(0x3dcccccdu),
+                    std::bit_cast<float>(0x3dcccccdu));
+        EXPECT_EQ(m_color, glm::vec3(1.0f, std::bit_cast<float>(0x3f19999au), std::bit_cast<float>(0x3dcccccdu)));
+        m_actor->subtype = 0;
+        // 0x43f882: el 0x196 con (0,5; sin(T · 0,002f) · 0,3f + 0,7f; 0,5) y la malla 0 cromada al alpha 0,8, que
+        // guarda en el color del modelo el suyo por el alpha (0x4ed3fd).
+        m_batch.Begin(Client::Render::Pass3D{});
+        result = Draw(0x196, map, 0, Clock);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        ASSERT_EQ(m_batch.Vertices().size(), WholeBody + Triangle);
+        const float fade = std::bit_cast<float>(0x3f4ccccdu);
+        EXPECT_FLOAT_EQ(m_color.x, 0.5f * fade);
+        EXPECT_NEAR(m_color.y, static_cast<float>(WaveAt(Clock, 0x3b03126fu, 0x3e99999au, 0x3f333333u)) * fade, 1e-6f);
+        // 0x43f945: el 0x197, las mallas 0, 1, 3 y 5 y +0x68 en 1 (0,5 con el subtipo 9) antes de la onda.
+        for (const std::int32_t subtype : {0, 9})
+        {
+            m_actor->subtype = subtype;
+            m_actor->blendMeshLight = 0.25f;
+            m_batch.Begin(Client::Render::Pass3D{});
+            result = Draw(0x197, map, 0, Clock);
+            ASSERT_FALSE(result.HasValue());
+            EXPECT_EQ(result.Error().rfind("0x4ed775", 0), 0u) << result.Error();
+            ASSERT_EQ(m_batch.Vertices().size(), 4 * Triangle);
+            EXPECT_FLOAT_EQ(m_batch.Vertices()[3 * Triangle].position.x, 5.0f);
+            EXPECT_FLOAT_EQ(m_actor->blendMeshLight, subtype == 9 ? 0.5f : 1.0f);
+        }
+        m_actor->subtype = 0;
+        m_actor->blendMeshLight = 1.0f;
+    }
+    EXPECT_EQ(m_cloth.random.State(), AfterRandoms(0));
+}
+
+TEST_F(MonsterBodyTest, TheFadingDeathOf43ed20CutsBeforeDrawing)
+{
+    m_actor->animation.action = 6;
+    m_actor->alpha = 0.25f;
+    for (const std::uint16_t type : {std::uint16_t{0x191}, std::uint16_t{0x195}, std::uint16_t{0x197}})
+    {
+        SCOPED_TRACE(type);
+        m_batch.Begin(Client::Render::Pass3D{});
+        const auto result = Draw(type, 2);
+        ASSERT_FALSE(result.HasValue());
+        EXPECT_NE(result.Error().find("0x4ee770(0, 0x607)"), std::string::npos) << result.Error();
+        EXPECT_TRUE(m_batch.Vertices().empty());
+    }
+    // Con el alpha en 0,5, dibuja.
+    m_actor->alpha = 0.5f;
+    m_batch.Begin(Client::Render::Pass3D{});
+    ASSERT_TRUE(Draw(0x193, 0).HasValue());
+    EXPECT_EQ(m_batch.Vertices().size(), WholeBody + Triangle);
+}
+
+TEST_F(MonsterBodyTest, KundunDrawsItsChromeUntilItFalls)
+{
+    for (const std::int32_t map : {0, 2, 24})
+    {
+        SCOPED_TRACE(map);
+        // 0x43f279: con +0x60 en 100, el alpha guardado en 1, RenderBody(2) y las mallas 1 a 6 cromadas.
+        m_actor->dword60 = 100;
+        m_actor->alpha = 0.75f;
+        m_actor->animation = {.action = 0, .frame = 4.0f};
+        m_batch.Begin(Client::Render::Pass3D{});
+        auto result = Draw(0x192, map);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        ASSERT_EQ(m_batch.Vertices().size(), WholeBody + 6 * Triangle);
+        EXPECT_FLOAT_EQ(m_actor->alpha, 1.0f);
+        EXPECT_EQ(m_color, glm::vec3(std::bit_cast<float>(0x3ecccccdu), std::bit_cast<float>(0x3ecccccdu),
+                                     std::bit_cast<float>(0x3e99999au)));
+        // 0x43f3fb: en la acción 5 con el frame en (3,5; 6), las mallas 1, 2, 3 y 5 aditivas.
+        m_actor->animation.action = 5;
+        m_batch.Begin(Client::Render::Pass3D{});
+        ASSERT_TRUE(Draw(0x192, map).HasValue());
+        ASSERT_EQ(m_batch.Vertices().size(), WholeBody + 10 * Triangle);
+        EXPECT_EQ(CommandAt(WholeBody + 6 * Triangle).state.blend, ModelBlend::Additive);
+        m_actor->animation.frame = 7.0f;
+        m_batch.Begin(Client::Render::Pass3D{});
+        ASSERT_TRUE(Draw(0x192, map).HasValue());
+        EXPECT_EQ(m_batch.Vertices().size(), WholeBody + 6 * Triangle);
+        // 0x43f182: al morir desde el frame 8, el sonido 0x1de, +0x60 en 0x5a y el primer rand() de los joints.
+        m_sound.reset();
+        m_actor->animation = {.action = 6, .frame = 8.0f};
+        m_cloth.random = Client::Render::Models::CrtRandom{1};
+        m_batch.Begin(Client::Render::Pass3D{});
+        result = Draw(0x192, map);
+        ASSERT_FALSE(result.HasValue());
+        EXPECT_EQ(result.Error().rfind("0x43f20d", 0), 0u) << result.Error();
+        EXPECT_EQ(m_sound, 0x1de);
+        EXPECT_EQ(m_actor->dword60, 0x5a);
+        EXPECT_TRUE(m_batch.Vertices().empty());
+        EXPECT_EQ(m_cloth.random.State(), AfterRandoms(1));
+        // Con +0x60 en 0x5a y el frame hasta 14,8, el cuerpo.
+        m_actor->animation.frame = std::bit_cast<float>(0x416ccccdu);
+        m_batch.Begin(Client::Render::Pass3D{});
+        ASSERT_TRUE(Draw(0x192, map).HasValue());
+        EXPECT_EQ(m_batch.Vertices().size(), WholeBody + 6 * Triangle);
+        // 0x43edff: pasado 14,8, el sonido 0x1dd, +0x60 en 10, la malla 0 y el temblor en (rand() % 8 − 8) · 0,1f.
+        m_actor->animation.frame = 15.0f;
+        m_cloth.random = Client::Render::Models::CrtRandom{1};
+        m_batch.Begin(Client::Render::Pass3D{});
+        result = Draw(0x192, map);
+        ASSERT_FALSE(result.HasValue());
+        EXPECT_EQ(result.Error().rfind("0x43eeb9", 0), 0u) << result.Error();
+        EXPECT_EQ(m_sound, 0x1dd);
+        EXPECT_EQ(m_actor->dword60, 10);
+        ASSERT_EQ(m_batch.Vertices().size(), Triangle);
+        Client::Render::Models::CrtRandom replica{1};
+        const auto shake = static_cast<float>(static_cast<double>((replica.Next() % 8) - 8) *
+                                              static_cast<double>(std::bit_cast<float>(0x3dcccccdu)));
+        EXPECT_FLOAT_EQ(m_shake, shake);
+        EXPECT_EQ(m_cloth.random.State(), AfterRandoms(1));
+        // Con +0x60 en 10, nada.
+        m_batch.Begin(Client::Render::Pass3D{});
+        ASSERT_TRUE(Draw(0x192, map).HasValue());
+        EXPECT_TRUE(m_batch.Vertices().empty());
+    }
+}
+
+TEST_F(MonsterBodyTest, TheFlaggedLateChainMonstersAddAWiderChromeShell)
+{
+    constexpr float Clock = 777.0f;
+    for (const std::int32_t map : {0, 2, 24})
+    {
+        SCOPED_TRACE(map);
+        // 0x43fc25: con +0x78 & 0x100, (v · 0,1; v · 0,3; v · 0,6) y 0x60cd60: RenderBody(0x44) a 1,3 alrededor de los
+        // huesos.
+        m_actor->flags78 = 0x100;
+        m_batch.Begin(Client::Render::Pass3D{});
+        auto result = Draw(0x193, map, 0, Clock);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        ASSERT_EQ(m_batch.Vertices().size(), 2 * WholeBody + Triangle);
+        const double v = WaveAt(Clock, 0x3a83126fu, 0x3e4ccccdu, 0x3f000000u);
+        const auto part = [v](std::uint32_t factor)
+        { return static_cast<float>(v * static_cast<double>(std::bit_cast<float>(factor))); };
+        EXPECT_NEAR(m_color.x, part(0x3dcccccdu), 1e-6f);
+        EXPECT_NEAR(m_color.y, part(0x3e99999au), 1e-6f);
+        EXPECT_NEAR(m_color.z, part(0x3f19999au), 1e-6f);
+        EXPECT_FLOAT_EQ(m_batch.Vertices()[WholeBody + 2 * Triangle].position.x, 1.3f);
+        // Con & 8, (v · 0,1; v · 0,6; v · 0,3); con +0x78 & 2 también, el cuerpo de 0x602365 sobre esas mallas.
+        m_actor->flags78 = 0xa;
+        m_batch.Begin(Client::Render::Pass3D{});
+        result = Draw(0x193, map, 0, Clock);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        ASSERT_EQ(m_batch.Vertices().size(), 3 * WholeBody + Triangle);
+        EXPECT_NEAR(m_color.y, part(0x3f19999au), 1e-6f);
+        EXPECT_NEAR(m_color.z, part(0x3e99999au), 1e-6f);
+        EXPECT_FLOAT_EQ(m_batch.Vertices()[2 * WholeBody + 2 * Triangle].position.x, 1.3f);
+        // Con & 0x4000, 0x60cd60 no dibuja.
+        m_actor->flags78 = 0x4100;
+        m_batch.Begin(Client::Render::Pass3D{});
+        ASSERT_TRUE(Draw(0x193, map, 0, Clock).HasValue());
+        EXPECT_EQ(m_batch.Vertices().size(), WholeBody + Triangle);
+    }
+}
+
+TEST_F(MonsterBodyTest, TheMonstersOf442e10DrawTheirPassesOnEveryMap)
+{
+    constexpr float Clock = 12345.0f;
+    const double glow = std::min(WaveAt(Clock, 0x3a9d4952u, 0x3f4ccccdu, 0x3fa66666u),
+                                 static_cast<double>(std::bit_cast<float>(0x3fa66666u)));
+    const auto drift = static_cast<float>(2345.0 * static_cast<double>(std::bit_cast<float>(0x3951b717u)));
+    for (const std::int32_t map : {0, 2, 31})
+    {
+        SCOPED_TRACE(map);
+        // 0x442e3d: el 0x1a3, RenderBody(2) sin la malla 1 y la 1 con (0,6; 0,4; 0,4); el color vuelve.
+        m_batch.Begin(Client::Render::Pass3D{});
+        auto result = Draw(0x1a3, map, 0, Clock);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        ASSERT_EQ(m_batch.Vertices().size(), WholeBody);
+        ExpectColor(WholeBody - Triangle, std::bit_cast<float>(0x3f19999au), std::bit_cast<float>(0x3ecccccdu),
+                    std::bit_cast<float>(0x3ecccccdu));
+        EXPECT_FLOAT_EQ(m_batch.Vertices()[WholeBody - Triangle].position.x, 1.0f);
+        EXPECT_EQ(m_color, glm::vec3(0.2f, 0.4f, 0.6f));
+        // 0x442eda: el 0x1a4, la malla 0 sin luz con el color por f y la U y la V corridas, aditiva, y la 1.
+        m_batch.Begin(Client::Render::Pass3D{});
+        result = Draw(0x1a4, map, 0, Clock);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        ASSERT_EQ(m_batch.Vertices().size(), 3 * Triangle);
+        ExpectColor(0, static_cast<float>(glow * static_cast<double>(0.2f)),
+                    static_cast<float>(glow * static_cast<double>(0.4f)),
+                    static_cast<float>(glow * static_cast<double>(0.6f)));
+        EXPECT_FLOAT_EQ(m_batch.Vertices()[0].uv.x, drift);
+        EXPECT_FLOAT_EQ(m_batch.Vertices()[0].uv.y, drift);
+        EXPECT_EQ(CommandAt(Triangle).state.blend, ModelBlend::Additive);
+        ExpectColor(2 * Triangle, 0.2f, 0.4f, 0.6f);
+        EXPECT_FLOAT_EQ(m_batch.Vertices()[2 * Triangle].position.x, 1.0f);
+        // 0x442fe9: el 0x1a5, RenderBody(2) sin la malla 0, la 0 con 1 y cromada.
+        m_batch.Begin(Client::Render::Pass3D{});
+        result = Draw(0x1a5, map, 0, Clock);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        ASSERT_EQ(m_batch.Vertices().size(), WholeBody + Triangle);
+        EXPECT_FLOAT_EQ(m_batch.Vertices()[0].position.x, 1.0f);
+        ExpectColor(WholeBody - Triangle, 1.0f, 1.0f, 1.0f);
+        // 0x4430a9: el 0x1a6, la malla 1 dos veces, la 0 al alpha del seno y la 2; con el cuarto argumento, cromadas.
+        m_batch.Begin(Client::Render::Pass3D{});
+        result = Draw(0x1a6, map, 0, Clock);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        ASSERT_EQ(m_batch.Vertices().size(), 4 * Triangle);
+        EXPECT_EQ(CommandAt(Triangle).state.blend, ModelBlend::Additive);
+        EXPECT_FLOAT_EQ(m_batch.Vertices()[2 * Triangle].color.alpha,
+                        static_cast<float>(WaveAt(Clock, 0x3a9d4952u, 0x3e4ccccdu, 0x3f4ccccdu)));
+        EXPECT_FLOAT_EQ(m_batch.Vertices()[3 * Triangle].position.x, 2.0f);
+        m_batch.Begin(Client::Render::Pass3D{});
+        result = Draw(0x1a6, map, 0x43, Clock);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        ASSERT_EQ(m_batch.Vertices().size(), 6 * Triangle);
+        ExpectColor(0, static_cast<float>(glow * static_cast<double>(std::bit_cast<float>(0x3dcccccdu))),
+                    static_cast<float>(glow),
+                    static_cast<float>(static_cast<double>(
+                        static_cast<float>(glow * static_cast<double>(std::bit_cast<float>(0x3dcccccdu))))));
+        EXPECT_EQ(TextureAt(Triangle), 0x5c0);
+        EXPECT_EQ(TextureAt(5 * Triangle), 0x5c0);
+        EXPECT_EQ(m_color, glm::vec3(1.0f));
+        // 0x4432b0: el 0x1a7, las mallas 0 y 1 (cromadas con el cuarto argumento).
+        m_batch.Begin(Client::Render::Pass3D{});
+        ASSERT_TRUE(Draw(0x1a7, map, 0, Clock).HasValue());
+        ASSERT_EQ(m_batch.Vertices().size(), 2 * Triangle);
+        ExpectColor(
+            0, 0.1f, static_cast<float>(0.4 * static_cast<double>(std::bit_cast<float>(0x3f19999au))),
+            static_cast<float>(static_cast<double>(0.6f) * static_cast<double>(std::bit_cast<float>(0x3f4ccccdu))));
+        ExpectColor(Triangle, 0.5f, std::bit_cast<float>(0x3f4ccccdu), std::bit_cast<float>(0x3f19999au));
+        m_batch.Begin(Client::Render::Pass3D{});
+        ASSERT_TRUE(Draw(0x1a7, map, 0x43, Clock).HasValue());
+        ASSERT_EQ(m_batch.Vertices().size(), 4 * Triangle);
+        EXPECT_EQ(TextureAt(Triangle), 0x5c0);
+        // 0x4433de: el 0x1a9, RenderBody(2) sin la malla 5, la 5 con 0x63b y con la suya al alpha 1, la 4 y las 0, 1 y
+        // 3 cromadas y la 0 con 0x63a.
+        m_actor->alpha = 0.75f;
+        m_batch.Begin(Client::Render::Pass3D{});
+        result = Draw(0x1a9, map, 0, Clock);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        ASSERT_EQ(m_batch.Vertices().size(), WholeBody + 6 * Triangle);
+        EXPECT_FLOAT_EQ(m_actor->alpha, 1.0f);
+        EXPECT_EQ(TextureAt(WholeBody - Triangle), 0x63b);
+        EXPECT_EQ(TextureAt(WholeBody), 0x305);
+        EXPECT_EQ(TextureAt(WholeBody + 5 * Triangle), 0x63a);
+        EXPECT_EQ(m_color, glm::vec3(0.2f, 0.4f, 0.6f));
+        m_actor->alpha = 1.0f;
+    }
+    EXPECT_EQ(m_cloth.random.State(), AfterRandoms(0));
 }
 
 TEST_F(MonsterBodyTest, The428df0CasesDrawLooseMeshesOnEveryMap)

@@ -13,6 +13,7 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <vector>
 
 namespace Client::Render::Models
 {
@@ -49,6 +50,9 @@ struct MonsterBodyModel
     DrawnObject object;
     std::span<const Render::Models::SkinnedMesh> meshes;
     Core::Duration frameClock{};
+    // Las mallas de otro 0x4ebc80 en medio de 0x6002e0 (0x60cd60 desde 0x43fc9d, a otra escala): `meshes` las mira
+    // desde ahí, como el original lee 0x5786f9c en lo que sigue.
+    std::vector<Render::Models::SkinnedMesh> rescaled{};
 };
 
 // 0x4ef0c0: RenderBody(flags, args) con el estado del modelo. El pase base (2 con la textura de cada malla) es el de
@@ -81,6 +85,8 @@ struct MonsterBodyFrame
     // El sonido pedido a 0x41ed10 (CL10); solo en los frames del original.
     std::optional<std::int32_t>* lastSoundId = nullptr;
     bool originalFrame = true;
+    // 0x7d325c8, el temblor de la cámara (GameCharacterPass::cameraShake). nullptr: corta si un caso lo escribe.
+    float* cameraShake = nullptr;
 };
 
 // 0x41ed10(id, objeto, 0) en un frame del original: lo anota para CL10.

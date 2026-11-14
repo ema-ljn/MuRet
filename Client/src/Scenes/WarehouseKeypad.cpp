@@ -347,9 +347,10 @@ Core::Expected<void, std::string> PressTheKey(const GameUiContext& context, UI::
     if (length >= digits)
         return {};
     const std::string number = std::format("{}", static_cast<std::int16_t>(npc.keypad[static_cast<std::size_t>(key)]));
+    // El error va sin la cifra: es parte de la contraseña.
     if (length + number.size() >= typed.size())
-        return Core::Unexpected(
-            std::format("0x5e7cdc: el strcat de \"{}\" pasa los {} bytes de 0x78ab9fc", number, typed.size()));
+        return Core::Unexpected(std::format("0x5e7cdc: el strcat de {} bytes después de {} pasa los {} de 0x78ab9fc",
+                                            number.size(), length, typed.size()));
     std::ranges::copy(number, typed.begin() + static_cast<std::ptrdiff_t>(length));
     typed[length + number.size()] = 0;
     return {};

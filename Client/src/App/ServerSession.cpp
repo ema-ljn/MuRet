@@ -1310,11 +1310,6 @@ void ServerSession::SendFriendPacket(Protocol::Outgoing packet)
     static_cast<void>(SendWorldPacket(std::move(packet)));
 }
 
-std::span<const std::vector<std::byte>> ServerSession::Teleports() const
-{
-    return m_teleports.Entries();
-}
-
 // 06 § Caminar: los ecos y el daño se aplican sin guarda de escena ni del flag de cifrado.
 void ServerSession::OnWalk(const Network::Packet& packet)
 {

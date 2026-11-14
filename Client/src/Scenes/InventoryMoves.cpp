@@ -4,6 +4,8 @@
 #include "Core/Expected.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemTable.h"
+#include "GameLogic/PathCell.h"
+#include "Protocol/FloorItems.h"
 #include "Protocol/Inventory.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
@@ -18,9 +20,12 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "Scenes/WorldTransitionSupport.h"
+#include "UI/GameDialogs.h"
 #include "UI/GameText.h"
 #include "UI/GameUiState.h"
 #include "UI/MessageArea.h"
+#include "UI/PanelRegistry.h"
+#include "UI/SprintfFormat.h"
 #include "World/Ftol.h"
 #include "World/ItemState.h"
 
@@ -120,6 +125,17 @@ constexpr std::uint16_t JewelOfBless = 0x1c0d;
 constexpr std::uint16_t JewelOfSoul = 0x1c0e;
 constexpr std::uint16_t JewelOfLife = 0x1c10;
 constexpr std::uint16_t JewelOfCreation = 0x1c16;
+// 0x5d82d4..0x5d82fb: la joya va sobre los tipos hasta 0x1806 y el 0x1a1e, salvo los virotes y las flechas.
+constexpr std::int32_t LastJeweledType = 0x1806;
+constexpr std::int32_t JeweledType1a1e = 0x1a1e;
+// 0x5d8305 y 0x5d8313: la de bendición hasta el nivel 5; la del alma, hasta el 8.
+constexpr std::uint32_t BlessLevelEnd = 6;
+constexpr std::uint32_t SoulLevelEnd = 9;
+// 0x5d8324..0x5d8366: la de bendición sobre el 0x1a25 sin la durabilidad 0xff abre el diálogo 0xa9 con el texto 1865.
+constexpr std::int32_t BlessDialogType = 0x1a25;
+constexpr std::uint8_t BlessDialogDurability = 0xff;
+constexpr std::int32_t BlessDialogText = 0x749;
+constexpr std::int32_t BlessDialog = 0xa9;
 
 // 0x5bee04..0x5bf2a0, la prueba del equipo.
 constexpr std::uint8_t ElfClass = 2;
@@ -194,6 +210,24 @@ constexpr std::size_t WingSlot = 7;
 
 // 0x449c00: la caja del entrenador.
 constexpr std::int32_t TrainerWithBox = 3;
+
+// CL9 hito 5. 0x5df62f: la lista de Castle Siege en el modo 3 va junto con el inventario.
+constexpr std::int32_t CastleSiegeListMode = 3;
+// 0x5df7a4..0x5df8ad: los niveles del héroe que piden los anillos de nivel 2 y 1, con el aviso 923 (0x7700b80).
+constexpr std::int32_t HighRingLevel = 80;
+constexpr std::int32_t LowRingLevel = 40;
+constexpr std::size_t RingLevelText = 923;
+// 0x5dfa55: el que mira 0x4379f0 antes de tirarse.
+constexpr std::uint16_t EventTicket = 0x1c1c;
+// 0x5e069d: la espera del mouse después de tirar.
+constexpr std::int32_t DropMouseUpdateTimeMax = 6;
+// 0x5a2bd3: "no se puede usar" (0x76dfd54); 0x5a2bf7: la espera del uso; 0x5a32aa..0x5a32c4: los sonidos de
+// 0x41ed10 (CL10), en lastSoundId.
+constexpr std::size_t UseRefusedText = 474;
+constexpr std::int32_t UseWait = 10;
+constexpr std::int32_t FirstPotionSound = 0x21;
+constexpr std::int32_t PotionSound = 0x20;
+constexpr std::int32_t LastSoundedPotion = 0x1c09;
 
 bool InChaosCastle(std::int32_t map)
 {
@@ -526,8 +560,47 @@ Core::Expected<void, std::string> ReturnToTheSlot(const InventoryMoveContext& co
     return {};
 }
 
-// 0x5bc740 con el último argumento en 0 (0x5bcd0b.. y su cola): el ítem en su lugar y, con el registro abierto, los
-// ayudantes sin mascota, el cuervo sin el lugar 1 y la capa sin el anillo de nivel 3.
+} // namespace
+
+Core::Expected<void, std::string> UseInventoryItem(const InventoryMoveContext& context, UI::PanelRegistry& panels,
+                                                   std::int32_t cell)
+{
+    return UseInventoryItemOn(context, panels, InventoryUse{.slot = cell + FirstGridSlot, .where = "0x5af520"});
+}
+
+Core::Expected<void, std::string> UseInventoryItemOn(const InventoryMoveContext& context, UI::PanelRegistry& panels,
+                                                     const InventoryUse& use)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    // 0x5af520 (o en línea): !IsOpen(0x40) && !IsOpen(0x80) && !IsOpen(0x20), en ese orden.
+    if (panels.IsOpen(UI::WarehousePanel) || panels.IsOpen(UI::ClosedPanel) || panels.IsOpen(UI::TradePanel))
+        return Message(context.services, UseRefusedText, UI::ErrorMessage, use.where);
+    if (runtime.ui.field5767954 > 0)
+        return {};
+    runtime.ui.field5767954 = UseWait;
+    context.random.Discard(2);
+    if (!context.services.sendUseItem)
+        return Core::Unexpected(std::format("{}: el C1 06 26 (como 0x5a30dc y 0x5c5e4a) sin la sesión", use.where));
+    const Protocol::FloorItems::UseItem packet{.slot = static_cast<std::uint8_t>(use.slot & 0xff),
+                                               .target = static_cast<std::uint8_t>(use.target & 0xff),
+                                               .kind = runtime.ui.field78abb26};
+    if (auto sent = context.services.sendUseItem(packet); !sent.HasValue())
+        return sent;
+    // 0x5a3296..0x5a32c9 (y 0x5c6030, 0x5d8c9a): el tipo de la casilla lugar − 12 después del envío. Con un lugar
+    // fuera de la grilla, el original solo lee la memoria de al lado (0x78a9bb0 + 0x48 · (lugar − 12)) y el paquete ya
+    // salió: MuRet no la inventa y no registra sonido.
+    const std::span<const ItemState> cells(context.world.Inventory().cells);
+    const std::int32_t cell = use.slot - FirstGridSlot;
+    if (cell < 0 || cell >= static_cast<std::int32_t>(cells.size()))
+        return {};
+    const std::int32_t type = Signed(cells[static_cast<std::size_t>(cell)].id);
+    if (type == FirstPotion)
+        runtime.lastSoundId = FirstPotionSound;
+    else if (type > FirstPotion && type <= LastSoundedPotion)
+        runtime.lastSoundId = PotionSound;
+    return {};
+}
+
 Core::Expected<void, std::string> PlaceMovedItem(std::uint8_t slot, const Protocol::Inventory::ItemData& item,
                                                  const WorldEntryResources& resources)
 {
@@ -556,6 +629,8 @@ Core::Expected<void, std::string> PlaceMovedItem(std::uint8_t slot, const Protoc
     return {};
 }
 
+namespace
+{
 // La copia del cursor y el lugar de origen en una pasada (0x5c52b1.. y 0x5c2d2b..).
 void TakeIntoTheCursor(WorldRuntime& runtime, const ItemState& item, std::int32_t slot)
 {
@@ -679,6 +754,114 @@ Core::Expected<bool, std::string> FitsTheSlot(const InventoryMoveContext& contex
         return false;
     return std::to_integer<std::int32_t>(record.Value()[ItemWidthOffset]) < WideItem;
 }
+
+// 0x5df58b..0x5df6c8: las ventanas con el mouse sobre ellas y las tiendas personales, que no dejan tirar nada. Las de
+// la derecha comparan con 0x78aba28 y el comercio con 0x78a5a1c, que escriben sus dibujos (0x5f4720, 0x5f4e30,
+// 0x5febf0, 0x5f3b40...): MuRet no abre ninguna, y una abierta corta.
+Core::Expected<bool, std::string> WindowKeepsTheItem(const WorldRuntime& runtime, UI::PanelRegistry& panels,
+                                                     const GroundDrop& drop)
+{
+    bool over = drop.inventoryOpen && drop.mouseX >= runtime.hud.inventoryX;
+    if (panels.IsOpen(UI::NpcShopPanel))
+        return Core::Unexpected(std::string("0x5df5cf: la tienda de NPC abierta lee la x de la ventana de la derecha "
+                                            "(0x78aba28), que escribe su dibujo (0x5f4720), del hito 6"));
+    if (panels.IsOpen(UI::WarehousePanel))
+        return Core::Unexpected(std::string("0x5df5f4: el almacén abierto lee 0x78aba28 (0x5f4e30), del hito 6"));
+    if (panels.IsOpen(UI::ChaosBoxPanel))
+        return Core::Unexpected(std::string("0x5df644: la caja del caos abierta lee 0x78aba28 (0x5febf0), del hito 6"));
+    if (panels.IsOpen(UI::CastleSiegeListPanel) && runtime.panels.delegated.castleSiegeListMode == CastleSiegeListMode)
+        return Core::Unexpected(std::string("0x5df635: 0x6689d0, la marca del asedio del héroe, es del hito 12"));
+    if (panels.IsOpen(UI::TradePanel))
+        return Core::Unexpected(std::string("0x5df667: el comercio abierto lee la x de su ventana (0x78a5a1c), que "
+                                            "escribe su dibujo (0x5f3b40), del hito 7"));
+    // 0x5df675..0x5df69d: la tienda personal propia o la ajena, con el mouse donde sea.
+    if (panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel))
+        over = true;
+    if (panels.IsOpen(UI::TrainerPanel))
+        return Core::Unexpected(std::string("0x5df6b5: la caja del entrenador abierta lee 0x78aba28, del hito 6"));
+    return over;
+}
+
+// 0x5df6c8..0x5dfa52: el anillo del mago, con el registro propio abierto (3.848 rand() al cerrarlo sin accesos). El
+// nivel 2 pide el 80 y el 1 el 40 ([0x7681eb0] + 0xe), con el aviso 923 (sprintf con el nivel) del tipo 1; el 3 no se
+// tira, sin aviso. Devuelve si sigue.
+Core::Expected<bool, std::string> CheckTheWizardsRing(const InventoryMoveContext& context)
+{
+    WorldState& world = context.world;
+    WorldRuntime& runtime = world.Runtime();
+    const ItemState& cursor = runtime.cursorItem;
+    std::optional<std::int32_t> required;
+    bool throws = true;
+    {
+        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
+                                                Render::Models::OwnRecordCloseRandoms);
+        if (cursor.id == WizardsRing)
+        {
+            const std::uint32_t level = LevelOf(cursor);
+            const std::uint16_t heroLevel = world.OwnCharacter().level;
+            if (heroLevel < HighRingLevel && level == 2)
+                required = HighRingLevel;
+            else if (heroLevel < LowRingLevel && level == 1)
+                required = LowRingLevel;
+            else if (level == 3)
+                throws = false;
+        }
+        if (required)
+        {
+            throws = false;
+            const std::optional<std::string_view> format = UI::TextAt(context.services.texts, RingLevelText);
+            if (!format)
+                return Core::Unexpected(std::format("0x5df7c9: falta el texto {} de Text.bmd", RingLevelText));
+            if (!context.services.chatLine)
+                return Core::Unexpected(std::string("0x5df7dc: 0x555190 con el aviso del anillo sin el chat"));
+            if (auto said = context.services.chatLine(UI::Sprintf(*format, *required), UI::SystemMessage);
+                !said.HasValue())
+                return Core::Unexpected(std::format("0x5df7dc, 0x555190: {}", said.Error()));
+        }
+    }
+    return throws;
+}
+
+Core::Expected<void, std::string> ThrowToTheGround(const InventoryMoveContext& context, const GroundDrop& drop)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    if (drop.panels == nullptr)
+        return Core::Unexpected(std::string("0x5df59a: 0x659290 sin el registro de las ventanas"));
+    UI::PanelRegistry& panels = *drop.panels;
+    const auto over = WindowKeepsTheItem(runtime, panels, drop);
+    if (!over.HasValue())
+        return Core::Unexpected(over.Error());
+    const auto ring = CheckTheWizardsRing(context);
+    if (!ring.HasValue())
+        return Core::Unexpected(ring.Error());
+    // 0x5dfa55..0x5dfd9a: el 0x1c1c abre el registro propio y llama a 0x4379f0 con la clase del héroe y su nivel.
+    if (runtime.cursorItem.id == EventTicket)
+        return Core::Unexpected(std::string("0x5dfb3e: tirar el 0x1c1c mira 0x4379f0 y 0x437a20, del hito 6"));
+    // 0x5dfd9d..0x5dfdb7: si no se tira o con el comercio abierto (su rand()), 0x5be150.
+    if (over.Value() || !ring.Value() || panels.IsOpen(UI::TradePanel))
+        return ReturnTheCursorItem(context);
+    if (!context.services.pickTheGround)
+        return Core::Unexpected(std::string("0x5dfdbf: 0x5fc260(1) sin el rayo del mouse"));
+    const auto cell = context.services.pickTheGround();
+    if (!cell.HasValue())
+        return Core::Unexpected(std::format("0x5dfdf2: {}", cell.Error()));
+    // 0x5dfdfc: sin terreno bajo el mouse, nada: el ítem sigue en el cursor.
+    if (!cell.Value())
+        return {};
+    // 0x5dfe27..0x5e0685: el C1 06 23 con la celda y el byte bajo de [0x78a6758].
+    context.random.Discard(2);
+    if (!context.services.sendDrop)
+        return Core::Unexpected(std::string("0x5e04cc: el C1 06 23 sin la sesión"));
+    const Protocol::FloorItems::Drop thrown{
+        .x = cell.Value()->x, .y = cell.Value()->y, .slot = static_cast<std::uint8_t>(runtime.slot78a6758 & 0xff)};
+    if (auto sent = context.services.sendDrop(thrown); !sent.HasValue())
+        return sent;
+    // 0x5e0685..0x5e069d.
+    runtime.floor.pendingDrop = runtime.slot78a6758;
+    runtime.movement.mouseUpdateTime = 0;
+    runtime.movement.mouseUpdateTimeMax = DropMouseUpdateTimeMax;
+    return {};
+}
 } // namespace
 
 InventoryServices InventoryServicesOf(const WorldEntryResources& resources)
@@ -697,7 +880,15 @@ InventoryServices InventoryServicesOf(const WorldEntryResources& resources)
             const App::PixelSize screen = resources.screen ? resources.screen() : App::PixelSize{640, 480};
             return AddGameMessage(resources.world.Runtime(), *resources.textMeasure, screen, {}, *text, type);
         },
-        .sendItemMove = {}};
+        .sendItemMove = {},
+        .texts = resources.texts,
+        .chatLine = [&resources](std::string_view text, std::int32_t type) -> Core::Expected<void, std::string>
+        {
+            if (resources.textMeasure == nullptr)
+                return Core::Unexpected(std::string("sin el medidor de los textos"));
+            const App::PixelSize screen = resources.screen ? resources.screen() : App::PixelSize{640, 480};
+            return AddGameMessage(resources.world.Runtime(), *resources.textMeasure, screen, {}, text, type);
+        }};
 }
 
 Core::Expected<ItemFootprint, std::string> ItemFootprintOf(const Data::Tables::ItemTable* items, std::uint16_t type,
@@ -998,6 +1189,48 @@ Core::Expected<void, std::string> DropOnTheEquipment(const InventoryMoveContext&
     return SendTheCursorItem(context, static_cast<std::uint8_t>(runtime.itemMoveTarget & 0xff));
 }
 
+namespace
+{
+// 0x5d82a8..0x5d8cd3: la joya del cursor sobre `under`, el ítem de la casilla bajo el mouse (una copia, con la columna
+// y la fila de su origen). El destino es su origen + 12; el lugar de la joya, [0x78a6758].
+Core::Expected<void, std::string> UseTheJewel(const InventoryMoveContext& context, const GridDrop& drop,
+                                              const ItemState& under)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    const std::uint16_t jewel = runtime.cursorItem.id;
+    const std::int32_t type = Signed(under.id);
+    // 0x5d82ce: SAR y AND 0xf del dword de +4, lo mismo que el corrimiento sin signo.
+    const std::uint32_t level = LevelOf(under);
+    const std::int32_t target = under.gridRow * Columns + under.gridColumn + FirstGridSlot;
+    bool accepted = type <= LastJeweledType || type == JeweledType1a1e;
+    if (type == Bolts || type == Arrows)
+        accepted = false;
+    if (jewel == JewelOfBless)
+    {
+        if (level >= BlessLevelEnd)
+            accepted = false;
+        if (type == BlessDialogType && under.durability != BlessDialogDurability)
+        {
+            // 0x5d8335..0x5d8372: la casilla de la joya y el destino para el diálogo, que es de la CL9.3 (0x6282dc).
+            runtime.dialogBox.jewelCell = runtime.slot78a6758 - FirstGridSlot;
+            runtime.dialogBox.jewelTarget = target;
+            return UI::OpenTextDialog(runtime.dialogBox, runtime.dialogs, context.services.texts, 1, BlessDialogText,
+                                      BlessDialog);
+        }
+    }
+    else if (jewel == JewelOfSoul && level >= SoulLevelEnd)
+        accepted = false;
+    if (!accepted)
+        return {};
+    // 0x5d837f..0x5d8398: el destino queda en 0x77f3cc8 antes de las consultas.
+    runtime.itemMoveTarget = target;
+    if (drop.panels == nullptr)
+        return Core::Unexpected(std::string("0x5d838c: las consultas de 0x659290 sin las ventanas"));
+    return UseInventoryItemOn(context, *drop.panels,
+                              InventoryUse{.slot = runtime.slot78a6758, .target = target, .where = "0x5d83d7"});
+}
+} // namespace
+
 Core::Expected<bool, std::string> DropOnTheInventoryGrid(const InventoryMoveContext& context, const GridDrop& drop)
 {
     WorldState& world = context.world;
@@ -1040,11 +1273,18 @@ Core::Expected<bool, std::string> DropOnTheInventoryGrid(const InventoryMoveCont
         return fits;
     if (!fits)
     {
-        if (jewelMark && drop.inventoryOpen && cursor.id != JewelOfCreation)
-            return Core::Unexpected(std::format("0x5d82a8: la joya {:#x} sobre otro ítem (0x5d7f50 y el C1 .. 26) es "
-                                                "de la CL9.3",
-                                                cursor.id));
-        return false;
+        // 0x5d825b..0x5d82a2: con la marca de la joya, la grilla del inventario (el último argumento en 0), el
+        // inventario abierto y la de bendición, la del alma o la de la vida, va sobre el ítem; si no, 0x5d8cd7 da
+        // falso. Desde 0x5d8cd3 (con 0x7d368a1 en 0) da verdadero.
+        if (!jewelMark || !drop.inventoryOpen ||
+            (cursor.id != JewelOfBless && cursor.id != JewelOfSoul && cursor.id != JewelOfLife))
+            return false;
+        auto under = CellAt(cells, cell.row * Columns + cell.column, "0x5d82b8");
+        if (!under.HasValue())
+            return Core::Unexpected(under.Error());
+        if (auto jeweled = UseTheJewel(context, drop, *under.Value()); !jeweled.HasValue())
+            return Core::Unexpected(jeweled.Error());
+        return true;
     }
     if (!drop.inventoryOpen)
         return true;
@@ -1123,8 +1363,7 @@ Core::Expected<void, std::string> DropOnTheGround(const InventoryMoveContext& co
         }
         return ReturnTheCursorItem(context);
     }
-    return Core::Unexpected(
-        std::format("0x5df58b: tirar el {:#x} al piso (el resto de 0x5df430 y su envío) es de la CL9.3", cursor.id));
+    return ThrowToTheGround(context, drop);
 }
 
 Core::Expected<void, std::string> ApplyItemMoveResult(const Protocol::Inventory::ItemMoveResult& result,
@@ -1275,6 +1514,63 @@ Core::Expected<void, std::string> ApplyItemPut(const Protocol::Inventory::ItemPu
         return placed;
     runtime.lastSoundId = ItemPutSound;
     return {};
+}
+
+Core::Expected<void, std::string> ApplyDropResult(const Protocol::FloorItems::DropResult& result,
+                                                  const WorldEntryResources& resources)
+{
+    WorldState& world = resources.world;
+    WorldRuntime& runtime = world.Runtime();
+    const InventoryServices services = InventoryServicesOf(resources);
+    const InventoryMoveContext context{.world = world, .random = resources.cloth.random, .services = services};
+    if (result.result == Protocol::FloorItems::DropRejected)
+    {
+        // 0x4d13e0..0x4d13e5.
+        if (auto returned = ReturnTheCursorItem(context); !returned.HasValue())
+            return returned;
+        runtime.floor.pendingDrop = -1;
+        return {};
+    }
+    if (result.slot < FirstInventoryGridSlot)
+    {
+        // 0x4d10f2..0x4d13c5: todo con el registro abierto, también 0x512a30 y 0x443d40.
+        const auto place = static_cast<std::size_t>(result.slot);
+        ActorState& hero = HeroOf(world);
+        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
+                                                Render::Models::OwnRecordCloseRandoms);
+        ItemState& item = world.OwnCharacter().equipment.at(place);
+        // 0x4d11b8..0x4d11df: el cuervo de +0x430.
+        if (place == LeftHandSlot && item.id == DarkRaven)
+            hero.darkSpirit.reset();
+        // 0x4d11e8..0x4d11f5: a diferencia de 0x5bd750, +0x3c en 0 y el aviso de +0x44 en 0.
+        item.id = EmptyOwnItemId;
+        item.occupied = 0;
+        item.warning = 0;
+        if (auto dressed = Dress(services, "0x4d11f9"); !dressed.HasValue())
+            return dressed;
+        if (place == PetSlot)
+            TurnOffHelpersOf(world.Helpers(), runtime.hero);
+    }
+    else if (auto removed = RemoveInventoryItem(context, result.slot); !removed.HasValue())
+        return removed;
+    // 0x4d13c7..0x4d13d1.
+    runtime.cursorItemCount = 0;
+    runtime.cursorItem.occupied = 0;
+    runtime.floor.pendingDrop = -1;
+    return {};
+}
+
+void ApplyShortDropResult(const Protocol::FloorItems::ShortDropResult& result, WorldState& world)
+{
+    WorldRuntime& runtime = world.Runtime();
+    if (result.result && *result.result != Protocol::FloorItems::DropRejected)
+    {
+        // 0x4d13c7.
+        runtime.cursorItemCount = 0;
+        runtime.cursorItem.occupied = 0;
+    }
+    // 0x4d13d1 y 0x4d13e5.
+    runtime.floor.pendingDrop = -1;
 }
 
 Core::Expected<void, std::string> ApplyEquipmentChange(const Protocol::Inventory::EquipmentChange& change,

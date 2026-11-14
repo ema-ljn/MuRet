@@ -2,6 +2,8 @@
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
+#include "Network/Crypto/Xor32.h"
+#include "Protocol/FloorItems.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Text/FontSet.h"
@@ -9,6 +11,7 @@
 #include "Scenes/GameChat.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GameUi.h"
+#include "Scenes/InventoryMoves.h"
 #include "Scenes/ItemSetState.h"
 #include "Scenes/OwnInventory.h"
 #include "Scenes/WorldRuntime.h"
@@ -16,14 +19,19 @@
 #include "UI/ChatInput.h"
 #include "UI/ChatLog.h"
 #include "UI/Dialogs.h"
+#include "UI/FriendWindows.h"
 #include "UI/GameUiState.h"
+#include "UI/OldWindowBase.h"
 #include "UI/OldWindows.h"
 #include "UI/PanelRegistry.h"
 
+#include "support/Bytes.h"
 #include "support/ChatTexts.h"
+#include "support/SameBytes.h"
 #include "support/SceneDataFiles.h"
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <initializer_list>
 #include <string>
@@ -39,10 +47,14 @@ using Client::Input::InputEvent;
 using Client::Input::InputState;
 using Client::Input::Key;
 using Client::Input::MouseButton;
+using Client::Network::Crypto::Xor32Decode;
+using Client::Protocol::FloorItems::UseItem;
 using Client::Render::Models::CrtRandom;
 using Client::Scenes::FramePickingContext;
 using Client::Scenes::GameUiContext;
 using Client::Scenes::WorldState;
+using Client::Tests::Bytes;
+using Client::Tests::SameBytes;
 
 // 0x5a05e5..0x5a10e2: el registro propio de la barra de skills, abierto y cerrado en cada paso.
 constexpr int SkillBarRandoms = 3848;
@@ -74,8 +86,8 @@ class SteppingUi
 public:
     Client::Core::Expected<void, std::string> Step(std::int32_t x = 0, std::int32_t y = 0)
     {
-        return Client::Scenes::StepTheGameUi(
-            GameUiContext{.world = world, .random = random, .input = input, .mouseX = x, .mouseY = y});
+        return Client::Scenes::StepTheGameUi(GameUiContext{
+            .world = world, .random = random, .input = input, .mouseX = x, .mouseY = y, .inventory = inventory});
     }
     Client::Core::Expected<void, std::string> Dialogs(std::int32_t x = 0, std::int32_t y = 0)
     {
@@ -98,6 +110,23 @@ public:
     WorldState world;
     CrtRandom random;
     InputState input;
+    const Client::Scenes::InventoryServices* inventory = nullptr;
+};
+
+// Los C1 06 26 que piden los pasos (CL9 hito 5).
+struct UseSink
+{
+    UseSink()
+    {
+        services.sendUseItem = [this](const UseItem& use)
+        {
+            sent.push_back(use);
+            return Client::Core::Expected<void, std::string>{};
+        };
+    }
+
+    Client::Scenes::InventoryServices services;
+    std::vector<UseItem> sent;
 };
 
 TEST(GameUiTest, TheBaseStepDrawsTheSkillBarTheSlotGatesAndTheAnyPanelTail)
@@ -271,21 +300,67 @@ TEST(GameUiTest, TheQuickSlotKeysWithoutTheirItemDoNothing)
     }
 }
 
-// 0x5a35e0: con el ítem, 0x5af520 y el C1 26, de la CL9.3. La poción chica de vida, la de maná y el antídoto.
-TEST(GameUiTest, TheQuickSlotKeysWithTheirItemAreACut)
+// 0x5a35e0.., 0x5a3d64.. y 0x5a44eb.. (CL9 hito 5): con el ítem, 0x5af520 (el rand() de IsOpen(0x20)), 0x5767954 en
+// 10, el C1 06 26 en C3 con la casilla + 12, 0 y [0x78abb26], y el sonido: 0x21 la manzana, 0x20 las demás pociones.
+// Mientras 0x5767954 no vuelva a 0 (las respuestas), la tecla no manda otro.
+TEST(GameUiTest, TheQuickSlotKeysUseTheirPotions)
 {
-    constexpr std::array<std::pair<Key, std::uint16_t>, 3> Slots{
-        {{Key::Q, std::uint16_t{0x1c00}}, {Key::W, std::uint16_t{0x1c04}}, {Key::E, std::uint16_t{0x1c08}}}};
-    for (const auto& [key, type] : Slots)
+    struct Slot
+    {
+        Key key;
+        std::uint16_t type;
+        std::int32_t sound;
+    };
+    constexpr std::array<Slot, 3> Slots{{{Key::Q, 0x1c00, 0x21}, {Key::W, 0x1c04, 0x20}, {Key::E, 0x1c08, 0x20}}};
+    for (const Slot& slot : Slots)
     {
         SteppingUi tested;
-        tested.world.Inventory().cells[9].id = type;
+        UseSink sink;
+        tested.inventory = &sink.services;
+        tested.world.Inventory().cells[9].id = slot.type;
         tested.world.Inventory().cells[9].occupied = 1;
-        Press(tested.input, key);
+        Press(tested.input, slot.key);
+        const CrtRandom expected = Advanced(tested.random, BaseStepRandoms + 1 + 2);
         const auto stepped = tested.Step();
-        ASSERT_FALSE(stepped.HasValue());
-        EXPECT_NE(stepped.Error().find("0x5a35e0"), std::string::npos) << stepped.Error();
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(tested.random.State(), expected.State());
+        ASSERT_EQ(sink.sent.size(), 1u);
+        const auto packet = Client::Protocol::FloorItems::WriteUseItem(sink.sent.front());
+        EXPECT_TRUE(SameBytes(Xor32Decode(packet.packet).Bytes(), Bytes({0xc1, 0x06, 0x26, 9 + 12, 0, 0})));
+        EXPECT_EQ(tested.world.Runtime().lastSoundId, slot.sound);
+        EXPECT_EQ(tested.Ui().field5767954, 10);
+
+        Release(tested.input, slot.key);
+        ASSERT_TRUE(tested.Step().HasValue());
+        Press(tested.input, slot.key);
+        ASSERT_TRUE(tested.Step().HasValue());
+        EXPECT_EQ(sink.sent.size(), 1u);
     }
+}
+
+// 0x5af520: con el almacén abierto (Q, W y E ni llegan: 0x5a343e), el clic derecho en la ranura avisa con el 474 del
+// tipo 2 y no manda nada.
+TEST(GameUiTest, TheRightClickOnAQuickSlotDoesNotUseWithTheWarehouseOpen)
+{
+    SteppingUi tested;
+    UseSink sink;
+    std::vector<std::size_t> messages;
+    sink.services.systemMessage = [&messages](std::size_t text, std::int32_t type)
+    {
+        EXPECT_EQ(type, 2);
+        messages.push_back(text);
+        return Client::Core::Expected<void, std::string>{};
+    };
+    tested.inventory = &sink.services;
+    tested.world.Inventory().cells[9].id = 0x1c00;
+    tested.world.Inventory().cells[9].occupied = 1;
+    tested.Panels().warehouse = 1;
+    tested.Ui().rightClick = true;
+    const auto stepped = tested.Step(0xd0, 0x1c4);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_TRUE(sink.sent.empty());
+    EXPECT_EQ(messages, std::vector<std::size_t>{474});
+    EXPECT_EQ(tested.Ui().field5767954, 0);
 }
 
 // 0x5a2b93: el clic derecho sobre una ranura se gasta aunque esté vacía.
@@ -298,15 +373,20 @@ TEST(GameUiTest, TheRightClickOnAnEmptyQuickSlotIsSpent)
     EXPECT_FALSE(tested.Ui().rightClick);
 }
 
-TEST(GameUiTest, TheRightClickOnAQuickSlotWithItsItemIsACut)
+// 0x5a2bc8..0x5a32cc (CL9 hito 5): el clic derecho sobre la ranura usa su ítem, como Q, W y E.
+TEST(GameUiTest, TheRightClickOnAQuickSlotUsesItsItem)
 {
     SteppingUi tested;
+    UseSink sink;
+    tested.inventory = &sink.services;
     tested.world.Inventory().cells[0].id = 0x1c05;
     tested.world.Inventory().cells[0].occupied = 1;
     tested.Ui().rightClick = true;
     const auto stepped = tested.Step(0xd0 + 0x1f, 0x1c4);
-    ASSERT_FALSE(stepped.HasValue());
-    EXPECT_NE(stepped.Error().find("0x5a2bc8"), std::string::npos) << stepped.Error();
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    ASSERT_EQ(sink.sent.size(), 1u);
+    EXPECT_EQ(sink.sent.front().slot, 12);
+    EXPECT_EQ(tested.world.Runtime().lastSoundId, 0x20);
     EXPECT_FALSE(tested.Ui().rightClick);
 }
 
@@ -711,6 +791,22 @@ std::int32_t OpenABox(WorldState& world, std::int32_t x, std::int32_t y)
     return opened.HasValue() ? opened.Value() : 0;
 }
 
+// La ventana de amigos de verdad (0x491080 desde el nivel, CL9 hito 9): el panel 1 abierto es que esté.
+void OpenTheFriendsWindowIn(WorldState& world)
+{
+    const TypedLetters letters;
+    auto& runtime = world.Runtime();
+    const Client::UI::OldWindowTexts texts{.notice = "Aviso", .question = "Pregunta", .yes = "Si", .no = "No"};
+    const Client::UI::OldWindowMeasure measure{
+        .measure = letters, .dcFont = Client::Render::Text::FontKind::Normal, .screen = {640, 480}};
+    const Client::UI::OldWindowStepView view{.texts = &texts, .measure = &measure};
+    const auto opened =
+        Client::UI::OpenTheFriendsWindow(runtime.oldWindows, Client::UI::FriendsWindowX, Client::UI::FriendsWindowY,
+                                         Client::Scenes::OldWindowGlobalsOf(runtime), view);
+    ASSERT_TRUE(opened.HasValue()) << opened.Error();
+    EXPECT_TRUE(opened.Value());
+}
+
 // 0x636e3c..0x636e5a: la lista de ventanas y las ventanas viejas toman el mouse antes que el registro del chat; sobre
 // una caja, el clic no es del juego (0x636e5d) y el foco del administrador queda.
 TEST(GameUiTest, TheOldWindowsTakeTheMouseBeforeTheChatLog)
@@ -754,12 +850,20 @@ TEST(GameUiTest, EscapeReachesTheOldWindowsOnlyWithTheFriendsWindowOpen)
         SCOPED_TRACE(friendsOpen);
         SteppingUi tested;
         auto& runtime = tested.world.Runtime();
-        runtime.panels.delegated.friends = friendsOpen ? std::uint8_t{1} : std::uint8_t{0};
+        if (friendsOpen)
+            OpenTheFriendsWindowIn(tested.world);
         const std::int32_t box = OpenABox(tested.world, 300, 0);
         Press(tested.input, Key::Escape);
         const auto dialogs = tested.Dialogs(639, 300);
         ASSERT_TRUE(dialogs.HasValue()) << dialogs.Error();
-        const auto stepped = tested.Step(639, 300);
+        // La de amigos mide el texto de su botón del estado en cada paso (0x4a3030).
+        const TypedLetters letters;
+        const auto stepped = Client::Scenes::StepTheGameUi(GameUiContext{.world = tested.world,
+                                                                         .random = tested.random,
+                                                                         .input = tested.input,
+                                                                         .mouseX = 639,
+                                                                         .mouseY = 300,
+                                                                         .measure = &letters});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(runtime.oldWindows.windows.contains(box), !friendsOpen);
         EXPECT_EQ(runtime.dialogs.current == Client::UI::EscapeMenuDialog, !friendsOpen);

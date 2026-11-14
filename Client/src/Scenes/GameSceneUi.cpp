@@ -8,6 +8,7 @@
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Protocol/Character/CharacterList.h"
+#include "Protocol/FloorItems.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
@@ -16,6 +17,7 @@
 #include "Scenes/GameChat.h"
 #include "Scenes/GameData.h"
 #include "Scenes/GameDialogDrawing.h"
+#include "Scenes/GameFriends.h"
 #include "Scenes/GameHover.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/GameItemSpecialDrawing.h"
@@ -31,6 +33,7 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "Scenes/WorldTexts.h"
+#include "UI/ChatInput.h"
 #include "UI/GameCursor.h"
 #include "UI/GameUiState.h"
 #include "UI/OldWindowDraw.h"
@@ -126,6 +129,16 @@ public:
             return;
         }
         m_session->SendSetQuest(quest, state);
+    }
+
+    void SendFriendPacket(Protocol::Outgoing packet) override
+    {
+        if (m_session == nullptr)
+        {
+            m_log.Warning("no se manda el paquete de los amigos: no hay servidor");
+            return;
+        }
+        m_session->SendFriendPacket(std::move(packet));
     }
 
     // 0x61c170: fopen("wt") crea el archivo o lo vacía. Lo que guardan las macros no va al log.
@@ -254,15 +267,26 @@ GameChatContext GameScene::ChatContext()
                            .models = m_models};
 }
 
-InventoryServices GameScene::InventoryContext() const
+InventoryServices GameScene::InventoryContext()
 {
     InventoryServices services =
         m_context.worldEntry != nullptr ? InventoryServicesOf(*m_context.worldEntry) : InventoryServices{};
     if (m_context.worldEntry == nullptr)
+    {
         services.items = m_items;
+        services.texts = m_texts;
+    }
     if (App::ServerSession* session = m_session; session != nullptr)
+    {
         services.sendItemMove = [session](const Protocol::Inventory::ItemMove& move)
         { return session->SendItemMove(move); };
+        // CL9 hito 5: el 23, el 22 y el 26.
+        services.sendDrop = [session](const Protocol::FloorItems::Drop& drop) { return session->SendDrop(drop); };
+        services.sendPickUp = [session](std::uint16_t index) { return session->SendPickUp(index); };
+        services.sendUseItem = [session](const Protocol::FloorItems::UseItem& use)
+        { return session->SendUseItem(use); };
+    }
+    services.pickTheGround = [this] { return GroundUnderTheMouse(); };
     return services;
 }
 
@@ -280,7 +304,8 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
                             .ownRecordDepth = m_projectingFrame ? m_projection->ownRecordDepth : runtime.ownRecordDepth,
                             .targets = m_projectingFrame ? projectedTargets : runtime.selectedTargets,
                             .altDown = input.IsDown(Input::Key::Alt),
-                            .ray = m_mouseRay});
+                            .ray = m_mouseRay,
+                            .floorItems = FrameTail().floorItems});
     if (!picked.HasValue())
         return picked;
     // 0x637646..0x6376e6: la pasada 2D, en este orden (06 § El dibujo del juego). Un dibujo intermedio de MuRet dibuja
@@ -351,7 +376,8 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
                            .altDown = input.IsDown(Input::Key::Alt),
                            .sprites = canvas.sprites,
                            .text = canvas.text,
-                           .projecting = m_projectingFrame};
+                           .projecting = m_projectingFrame,
+                           .names = &hud};
     if (auto drawn = DrawTheHover(hover); !drawn.HasValue())
         return drawn;
     // 0x637660: 0x5a7320(1), el HUD, con 0x7d36899 en 0.
@@ -365,10 +391,17 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
         .sprites = canvas.sprites, .text = canvas.text, .dcFont = hud.hud.dcFont, .textColors = hud.hud.textColors};
     // 0x659290(1) no saca rand(): se puede mirar antes de la ventana que la pregunta.
     GamePanels panels(*m_context.world, FrameCloth().random);
+    // Los textos de la ventana de amigos, la lista con las flechas del teclado (0x5762ec0) y el EDIT con el foco de
+    // Windows (GetFocus() de 0x468320: el de las ventanas viejas, con ChatFocus::OldWindow).
+    const UI::OldWindowTexts friendTexts = OldWindowTextsOf(m_texts);
+    const bool editFocused = runtime.chat.input.focus == UI::ChatFocus::OldWindow;
     const UI::OldWindowDrawView windowView{.mouseX = hud.mouse.x,
                                            .mouseY = hud.mouse.y,
                                            .leftClick = runtime.movement.pendingClick,
-                                           .friendsOpen = panels.Registry().IsOpen(UI::FriendsPanel)};
+                                           .friendsOpen = panels.Registry().IsOpen(UI::FriendsPanel),
+                                           .texts = &friendTexts,
+                                           .focusedList = runtime.ui.focusedList,
+                                           .focusedEdit = editFocused ? oldWindows.focusedEdit : 0};
     if (auto windows = UI::DrawTheOldWindows(oldWindows, windowContext, windowView); !windows.HasValue())
         return windows;
     if (auto list = UI::DrawTheWindowList(oldWindows, windowContext, windowView); !list.HasValue())

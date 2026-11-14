@@ -55,6 +55,8 @@ enum class ChatFocus : std::uint8_t
     Game,
     Message,
     Whisper,
+    // El EDIT de una ventana vieja (la caja de agregar un amigo, 0x4682a0): OldWindowManager::focusedEdit.
+    OldWindow,
 };
 
 using ChatBuffer = std::array<char, ChatBufferSize>;

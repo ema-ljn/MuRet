@@ -343,12 +343,20 @@ demoras; los `rand()` de la barra con skills (hoy se sacan sin ninguna); el cuer
 
 ### Hito 5: los ítems del piso, usar y tirar (CL9.3, ~20 KB)
 
-- [ ] **El piso:** el `0x20` (`0x4d0ba0`, la tabla `0x77f46c8` de `0x220` B por ítem, `0x608350`, `0x607fb0`,
+- [x] **El piso:** el `0x20` (`0x4d0ba0`, la tabla `0x77f46c8` de `0x220` B por ítem, `0x608350`, `0x607fb0`,
       `0x608880`), los nombres con Alt (`0x5ba790`, `0x608a00`), levantar con SPACE y por llegada (`C1 22`, la
       rama de ítem de `0x5650c0` y `0x59ec80`) y lo que falta del `0x22` y el `0x23` (`0x4d0cc0`, `0x4d10d0`).
-- [ ] **Usar y tirar** (decisión 5 de la CL8): el `26` (`0x5c4110`, Q/W/E `0x5a2b47..0x5a4c45`), el `23`
-      (`0x5df430..0x5dfe34`), las joyas sobre un ítem (`0x5fd4b0`, `0x5fd4f0`, `0x5d82a8`) y la fruta de stats
-      (`0x2C`, `0x4de500`).
+      Hecho el 2026-11-13: de `0x59ec80` solo las dos llamadas a la búsqueda `0x59e2e0` (`Scenes::PickTheFloorItem`)
+      y la rama del ítem de MoveHero; los cortes, en 08 P-C271, y lo que queda para la VM, en P-C270.
+- [x] **Usar y tirar** (decisión 5 de la CL8): el `26` (`0x5c4110`, Q/W/E `0x5a2b47..0x5a4c45`), el `23`
+      (`0x5df430..0x5dfe34`) y la fruta de stats (`0x2C`, `0x4de500`). Hecho el 2026-11-13: del clic derecho en la
+      grilla, las pociones, el pergamino del portal y la caja de la suerte de nivel 14.
+- [x] **Fase 2:** las joyas sobre un ítem (`0x5d82a8`) y el clic derecho de `0x5c7bc6` en adelante (los libros,
+      las esferas, la fruta, `0x1a0b` y los demás ítems), 08 P-C272. `0x5fd4b0` y `0x5fd4f0` no son de las joyas:
+      son la cuenta de la caja del caos y de la lista del asedio, que cortan en `0x5d8db6` y `0x5d8dad`. Hecho el
+      2026-11-13, sobre el hito 1 mergeado: `Scenes::UseTheLaterGridItem` y la joya en `DropOnTheInventoryGrid`.
+      Cortan el diálogo de la fruta (`0x63330f`) y el paso del 0xa9 (`0x6282dc`), de la CL9.3, y el clic derecho con
+      el almacén abierto (`0x5c8e8f`, hito 6, P-C274); lo de la VM, en P-C275.
 
 **Pruebas:** el `0x20` con varios ítems y su dibujo en la traza; levantar y tirar byte a byte; las pociones
 de Q/W/E; los `rand()` de la búsqueda del ítem del piso en el picking. **Desbloquea:** —.
@@ -406,13 +414,17 @@ con su marcador y los dos `C1 18`. **Desbloquea:** 12.
 
 ### Hito 9: los amigos (CL9.4, ~89 KB)
 
-- [ ] **Los controles de las ventanas viejas** que la CL8 dejó sin portar (57 funciones de la CL8.3, 14 KB: las
+- [x] **Los controles de las ventanas viejas** que la CL8 dejó sin portar (57 funciones de la CL8.3, 14 KB: las
       listas, los campos de texto, los botones de `0x45adf0`..`0x4aa7a0`; los que son la STL se reemplazan por la
       STL) y las vecinas de `0x479960` que leen las flechas (`0x47c870`, `0x47f7b0` y las chicas; `0x480e00` y
-      `0x4824d0` van con el 8, `0x4852b0` y `0x486910` con el 12).
-- [ ] **La lista de amigos:** `C0` (`0x4dc010`, `0x49b220`, `0x49c260`), `C1`..`C4` (`0x4dc3d0`, `0x4dc5b0`,
+      `0x4824d0` van con el 8, `0x4852b0` y `0x486910` con el 12). El EDIT, simplificado (08, P-C181).
+- [x] **La lista de amigos:** `C0` (`0x4dc010`, `0x49b220`, `0x49c260`), `C1`..`C4` (`0x4dc3d0`, `0x4dc5b0`,
       `0x4dc690`, `0x4dc720`), los casos de la fábrica `0x48ee60` que no son del correo, F5 y F6
-      (`0x490538`, `0x490561`) y la ventana de amigos (`0x4905a2`).
+      (`0x490538`, `0x490561`) y la ventana de amigos (`0x4905a2`). Lo del hito 10, cortado (P-C183).
+- [x] **El dibujo de los amigos** (08, P-C180): la ventana (`0x4a2620`, `0x4a2460`, `0x463090`), las pestañas
+      (`0x49cc20`, `0x49e7f0`) con sus listas (`0x47a810`, `0x461890`, `0x461cd0`, `0x462a60`), la caja de agregar
+      (`0x4a3750`) y su EDIT (`0x468320`), con las piezas para el hito 10 en `UI/OldWindowDrawParts.h`. Las 246 filas
+      del TSV que no estaban citadas, triadas en P-C185; el doble clic queda para el hito 10 (P-C182, P-C187).
 
 **Pruebas:** la lista con varios amigos, agregar y borrar uno, el cambio de estado; los `rand()` de abrir la
 ventana (los 3.848 del registro propio de la CL8). Si el PR pasa de ~90 KB, se parte en los controles y los

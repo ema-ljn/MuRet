@@ -26,6 +26,7 @@
 #include "Network/PacketSerials.h"
 #include "Network/SocketError.h"
 #include "Protocol/BuildConstants.h"
+#include "Protocol/FloorItems.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/Messages.h"
 #include "Protocol/Movement.h"
@@ -4396,6 +4397,31 @@ TEST(ServerSessionTest, TheLifeAndTheManaReachTheWorldBeforeTheMap)
     ASSERT_NE(mana, nullptr);
     EXPECT_EQ(mana->place, 0x15);
     EXPECT_EQ(mana->mana, 0x5a);
+}
+
+// 07 Q-C1240: con el GameServer 0.97, el 22 (C3 de 8 bytes), el 23 sin pkt[4] y el 2C de un byte no traen lo que lee
+// el cliente, pero 0x4d0cc0, 0x4d10d0 y 0x4de500 sueltan su espera en todos sus caminos: al mundo llega solo eso. El
+// 20 de entradas de 9 bytes no escribe nada fijo y no llega. Los valores son inventados.
+TEST(ServerSessionTest, TheShortFloorItemRepliesStillReleaseTheirWaits)
+{
+    namespace FloorItems = Client::Protocol::FloorItems;
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    tested.socket.reads = {
+        Join({FromTheGameServer(Bytes({0xc1, 0x08, 0x22, 0x0c, 0x00, 0x18, 0x2c, 0}), tested.gameServerSends),
+              Bytes({0xc1, 0x04, 0x23, 0x01}), Bytes({0xc1, 0x03, 0x23}), Bytes({0xc1, 0x04, 0x2c, 0x23}),
+              Bytes({0xc2, 0x00, 0x0e, 0x20, 1, 0x00, 0x05, 130, 120, 0x00, 0x18, 0x2c, 0, 0})})};
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+    const auto events = tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 4u);
+    EXPECT_TRUE(std::holds_alternative<FloorItems::ShortPickUpResult>(events[0]));
+    const auto* dropped = std::get_if<FloorItems::ShortDropResult>(&events[1]);
+    ASSERT_NE(dropped, nullptr);
+    EXPECT_EQ(dropped->result, std::optional<std::uint8_t>{std::uint8_t{1}});
+    const auto* bare = std::get_if<FloorItems::ShortDropResult>(&events[2]);
+    ASSERT_NE(bare, nullptr);
+    EXPECT_FALSE(bare->result.has_value());
+    EXPECT_TRUE(std::holds_alternative<FloorItems::ShortStatFruit>(events[3]));
 }
 
 // La conexión cifra sólo el gate: los tres C1 de mundo restantes salen con XOR32 sin C3.

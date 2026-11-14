@@ -17,6 +17,9 @@
 #include "Scenes/ActorMotion.h"
 #include "Scenes/ActorWalk.h"
 #include "Scenes/ChatBubbles.h"
+#include "Scenes/FloorItemActions.h"
+#include "Scenes/FloorItemPackets.h"
+#include "Scenes/GameDrawTail.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/GameMovementState.h"
@@ -37,6 +40,9 @@
 #include "UI/Dialogs.h"
 #include "UI/OldWindows.h"
 #include "UI/PanelRegistry.h"
+
+#include <glm/ext/vector_float3.hpp>
+
 #include <array>
 #include <cstddef>
 #include <algorithm>
@@ -65,6 +71,8 @@ constexpr float MinimumWalkingAlpha = 0.7f;
 constexpr float TeleportFade = 0.1f;
 constexpr float HoldSecondsPerMillisecond = 0.001f;
 constexpr double MaximumHoldSeconds = 3600.0;
+// 0x5650ef: el caso 1 de 0x5650c0, levantar el ítem del piso (0x59dc6e y 0x5ac99a).
+constexpr std::uint8_t PickUpMovement = 1;
 
 Core::Expected<void, std::string> CloseTheClickRecord(const HeroMovementContext& context)
 {
@@ -225,6 +233,16 @@ Core::Expected<void, std::string> ArriveAtTheTarget(ActorState& hero, const Hero
     const auto kind = static_cast<std::int8_t>(hero.movementType);
     if (kind == static_cast<std::int8_t>(NpcTalkMovement))
         return TalkToTheNpc(hero, context);
+    // El caso 1 (0x5650ef..0x565100, CL9 hito 5): levanta el ítem del piso elegido.
+    if (kind == static_cast<std::int8_t>(PickUpMovement))
+    {
+        static const InventoryServices NoServices{};
+        return PickUpTheFloorItem(
+            InventoryMoveContext{.world = context.world,
+                                 .random = context.random,
+                                 .services = context.inventory != nullptr ? *context.inventory : NoServices},
+            hero.position, context.fixedHeight);
+    }
     if (kind < FirstArrival || kind > LastArrival)
         return {};
     return Core::Unexpected(std::format("0x5650c0: la interacción de llegada {} requiere CL9", kind));
@@ -282,6 +300,43 @@ Core::Expected<void, std::string> WalkToTheNpc(ActorState& hero, const HeroMovem
     return ArriveAtTheTarget(hero, context);
 }
 
+// 0x59dc5e..0x59ddea (CL9 hito 5): con un ítem del piso elegido (0x6c8e28), +0x379 en 1, el elegido (0x77f27b0) y su
+// celda como destino (0x77e1ba8 y 0x77e1bac, la posición · 0,01 sin la máscara de 0x59de66), las celdas del héroe (y
+// después x) y el camino (0x4eac00): con él, 0x56acd0; sin él, 0x5650c0(héroe, héroe, 1) y +0x379 en 0.
+Core::Expected<void, std::string> WalkToTheFloorItem(ActorState& hero, const HeroMovementContext& context,
+                                                     std::int32_t index)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    GameMovementState& state = runtime.movement;
+    if (index < 0 || index >= FloorItemCount)
+        return Core::Unexpected(std::format("0x59dc82: el ítem del piso {} está fuera de la tabla 0x77f46c8", index));
+    hero.movementType = PickUpMovement;
+    runtime.floor.chosen = index;
+    const glm::vec3& position = context.world.DrawTail().floorItems[static_cast<std::size_t>(index)].position;
+    const auto x = World::OriginalFtolLow(static_cast<double>(position.x) * CellReciprocal);
+    const auto y = World::OriginalFtolLow(static_cast<double>(position.y) * CellReciprocal);
+    if (!x || !y)
+        return Core::Unexpected(std::string("0x59dc8e: la posición del ítem del piso fuera del perfil ftol"));
+    state.targetX = static_cast<std::uint32_t>(*x);
+    state.targetY = static_cast<std::uint32_t>(*y);
+    const GameLogic::PathCell target{static_cast<std::uint8_t>(*x & 0xff), static_cast<std::uint8_t>(*y & 0xff)};
+    if (*x != target.x || *y != target.y)
+        return Core::Unexpected(std::format("0x59ddbc: el destino ({}, {}) del ítem del piso sale del mapa", *x, *y));
+    if (const auto path = GameLogic::PathFinder(terrain.attributes->cells).Find({startX, startY}, target))
+    {
+        hero.path = *path;
+        return SendThePath(hero, target, context);
+    }
+    static const InventoryServices NoServices{};
+    auto picked = PickUpTheFloorItem(
+        InventoryMoveContext{.world = context.world,
+                             .random = context.random,
+                             .services = context.inventory != nullptr ? *context.inventory : NoServices},
+        hero.position, context.fixedHeight);
+    hero.movementType = 0;
+    return picked;
+}
+
 Core::Expected<void, std::string> ProcessInput(ActorState& hero, const HeroMovementContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
@@ -315,8 +370,12 @@ Core::Expected<void, std::string> ProcessInput(ActorState& hero, const HeroMovem
                 if (hero.safeZone == 0 && runtime.cursorItemCount <= 0 && runtime.selectedTargets[2] != -1)
                     return Core::Unexpected(
                         std::string("0x59cd3c: atacar al personaje elegido (0x558bb0) es del hito 3 (CL9.2)"));
+                // 0x59d8c3..0x59da70: el objeto elegido (0x6c8e34). 0x59eb90 no está portado y lo deja en −1.
+                if (runtime.selectedTargets[3] != -1)
+                    return Core::Unexpected(
+                        std::string("0x59d8d1: ir al objeto elegido (0x6c8e34, 0x59eb90) no está portado"));
                 // 0x59da75..0x59daa9: el NPC elegido (0x6c8e2c), sin la tienda de NPC (un rand() del byte protegido)
-                // ni el almacén abiertos, va a hablarle y sigue en 0x59e248; si no, sigue en el terreno.
+                // ni el almacén abiertos, va a hablarle y sigue en 0x59e248; si no, sigue en el ítem del piso.
                 bool toTheNpc = false;
                 if (runtime.selectedTargets[1] != -1)
                 {
@@ -327,6 +386,13 @@ Core::Expected<void, std::string> ProcessInput(ActorState& hero, const HeroMovem
                 if (toTheNpc)
                 {
                     if (const auto walked = WalkToTheNpc(hero, context, runtime.selectedTargets[1]); !walked.HasValue())
+                        return walked;
+                }
+                // 0x59dc5e..0x59ddea: con un ítem del piso elegido, caminar hasta él (CL9 hito 5); si no, el terreno.
+                else if (runtime.selectedTargets[0] != -1)
+                {
+                    if (const auto walked = WalkToTheFloorItem(hero, context, runtime.selectedTargets[0]);
+                        !walked.HasValue())
                         return walked;
                 }
                 else if (const auto clicked = UseGroundClick(hero, context); !clicked.HasValue())
@@ -400,7 +466,8 @@ Core::Expected<void, std::string> MoveTheHero(ActorState& hero, const HeroMoveme
             return Core::Unexpected(std::string("0x59b2d2: ángulo de llegada fuera del perfil ftol"));
         runtime.movement.arrivalYaw = *yaw;
         runtime.movement.movementTarget = 0;
-        // 0x59b2f7: 0x5650c0(héroe, héroe, 0). Con +0x379 en 0 sale por la tabla, sin interacción ni RNG.
+        // 0x59b2e4..0x59b2f7: 0x5650c0(héroe, héroe, 0). Con +0x379 en 0 sale por la tabla, sin interacción ni
+        // rand(); el 1 levanta el ítem del piso elegido (CL9 hito 5) y el 2 le habla al NPC (CL9 hito 2).
         return ArriveAtTheTarget(hero, context);
     }
     hero.flags7c &= ~std::uint32_t{0x200000};

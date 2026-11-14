@@ -11,6 +11,7 @@
 #include "Scenes/Quests.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/OldWindows.h"
 #include "UI/PanelRegistry.h"
 #include "World/ItemState.h"
 
@@ -67,6 +68,10 @@ UI::PanelContext ContextOf(WorldState& world, Render::Models::CrtRandom& random,
     // 0x659c70: 0x419840(−1) sobre [0x710148].
     context.questOpened = [&world, &random, tables]()
     { return OpenTheQuestList(QuestContext{.world = world, .random = random, .texts = tables.texts}, -1); };
+    // El panel 1, la de amigos (CL9 hito 9): 0x490a00(+0x48) y 0x4914e0 sobre el administrador viejo.
+    UI::OldWindowManager& oldWindows = runtime.oldWindows;
+    context.friendsShown = [&oldWindows]() { return UI::FindTheOldWindow(oldWindows, oldWindows.friends) != nullptr; };
+    context.friendsClosed = [&oldWindows]() { return UI::DropTheFriendsWindow(oldWindows); };
     return context;
 }
 } // namespace
@@ -101,5 +106,10 @@ void GamePanels::LendThePartyList(WorldState& world, IGameUiRequests* requests)
         runtime.hud.partyCount = 0;
         requests->RequestPartyList();
     };
+}
+
+void GamePanels::LendTheFriends(std::function<Core::Expected<void, std::string>()> opened)
+{
+    m_context.friendsOpened = std::move(opened);
 }
 } // namespace Client::Scenes

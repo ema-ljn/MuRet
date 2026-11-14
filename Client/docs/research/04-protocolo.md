@@ -424,7 +424,11 @@ está en [06](06-render-escenas-y-ui.md#la-escena-del-juego).
 | `0xBD` | C->S y S->C | `0x4c421a`, `0x4c785d`; `0x4e2b10` → `0x4033b0` | el estado de Crywolf; el recorrido de la cámara (abajo) |
 | `0x46` | S->C | `0x4dab90` → `0x5f8750` o `0x5f8710` | cambia bits del `.att`: el único camino al `0x40` y al `0x80` de la cámara ([06](06-render-escenas-y-ui.md#la-cámara-del-juego)) |
 | `0x18` | S->C | `0x4cb750` | acción o animación de un personaje remoto, según `pkt[6]` |
-| `0x22` | S->C | `0x4d0cc0` | crea objetos de 0xF08 bytes desde una plantilla |
+| `0x20` / `0x21` | S->C (C2) | `0x4d0ba0` / `0x4e3849` | los ítems del piso que aparecen y los que se van (abajo) |
+| `0x22` | C->S (C3) y S->C (C3) | `0x5650c0` (`0x566bd2`) / `0x4d0cc0` | levantar un ítem del piso y el resultado (abajo; antes esta tabla decía "crea objetos de 0xF08 bytes": es el registro propio, que abre para el zen) |
+| `0x23` | C->S (C3) y S->C | `0x5d8d50` (`0x5e04cc`) / `0x4d10d0` | tirar el ítem del cursor y el resultado (abajo) |
+| `0x26` | C->S (C3) | `0x59ff10` (`0x5a30dc`), `0x5c4110` (`0x5c5e4a`) | usar un ítem del inventario (abajo) |
+| `0x2C` | S->C | `0x4de500` | la fruta de stats (abajo) |
 | `0x26` / `0x27` | S->C | `0x4d3510` / `0x4d3820` | la vida y el maná (abajo); el objeto de 0xF08 bytes que esta tabla les daba es la entrada del registro propio en la tabla de protección, que abren y cierran |
 | `0x0D` | S->C | `0x4c65b0` | avisos del servidor: chat, banner, notificación |
 | `0x02` | S->C | `0x4e34ea` | mensaje privado: nombre de 10 bytes en `+3`, texto de 60 en `+0xD` |
@@ -943,6 +947,54 @@ structs del ASM (`support/ViewportPackets.h`). El `1A` lo lee `ReadMagicAttackCo
 sin el último byte de la última clave), lo registra `App::ServerSession` y lo aplica `Scenes::ApplyMagicAttackCount`
 con la clave del jugador.
 
+### Los ítems del piso: `20`, `21`, `22`, `23`, `26` y `2C`
+
+(CL9 hito 5, 2026-11-13, *estático*, contra `gs_protocol.h` y `protocol.cpp` del GameServer 0.97 reconstruido. El
+cable de la sesión del laboratorio queda para la VM, 08 P-C270.) El dispatcher (`0x4e2b10`) no mira si llegaron
+cifrados: el `22` y el `23` llegan en C3 o en C1, igual. Los siete bytes de un ítem son los del `F3 10`, y la entrada
+del piso es la de `0x220` bytes de `0x77f46c8` (1000), con el objeto en `+0x4c`.
+
+- **`20`** (`0x4d0ba0`): `C2 <largo:2> 20 <cuenta> {<clave:2, alto primero> <x> <y> <ítem:7>}`, de a 11 bytes desde
+  `pkt[5]`. La entrada es `clave & 0x7fff` (la 0 si pasa de 999) y el bit 15 dice "recién caído". Cada una va a
+  `0x608350(entrada, ítem, ((x + 0,5) · 100, (y + 0,5) · 100), recién caído)`, en orden. El GameServer 0.97 arma
+  entradas de 9 bytes (`PMSG_ITEMVIEWPORTCREATE`, el ítem de 5): con él, el cliente lee las entradas corridas
+  (07 Q-C1240).
+- **`21`** (`0x4e3849`, en el dispatcher): `C2 <largo:2> 21 <cuenta> {<clave:2, alto primero>}`. Apaga `+0x4c` de la
+  entrada de la clave entera (sin la máscara del `20`), con las de 1000 o más en la 0. El GameServer usa el mismo
+  par de bytes (`PMSG_VIEWPORTDESTROY`, *inferido* por el struct).
+- **`22` del cliente** (el caso 1 de `0x5650c0`, `0x566755`): `C1 05 22 <índice:2, alto primero>`, con el XOR32
+  desde el byte 3 y en C3 (2 `rand()`). Antes, el índice en `0x6c82e8`; mientras no vuelva a −1, no sale otro. Es
+  `PMSG_ITEMGETREQUEST` del GameServer, de 5 bytes.
+- **`22` del GameServer** (`0x4d0cc0`): `C3 <largo> 22 <resultado> …`. Con `0xfe`, el zen en `pkt[4..7]` con el
+  byte alto primero (`+0xecc` del registro propio, abierto); con un lugar (o `0xfd`, "en otro lado"), los siete
+  bytes del ítem desde `pkt[4]`; con `0xff`, nada. El sonido (CL10) sale de `pkt[4..]` como un ítem, también con el
+  zen. El GameServer 0.97 lo manda en C3 de 8 bytes (`PMSG_ITEMGETRESULT`, `Data[4]`): el ítem de un lugar sale
+  corto (07 Q-C1240).
+- **`23` del cliente** (`0x5dfe27..0x5e0685`): `C1 06 23 <x> <y> <lugar>`, la celda del terreno bajo el mouse
+  (`0x5fc260(1)` y `0x5fac90`, como MoveHero) y el byte bajo de `[0x78a6758]`, de donde salió el ítem del cursor;
+  con el XOR32 y en C3. Es `PMSG_ITEMTHROW`, de 6 bytes.
+- **`23` del GameServer** (`0x4d10d0`): `C1 05 23 <resultado> <lugar>` (`PMSG_ITEMTHROW_RESULT`). Con 0, `0x5be150`
+  vuelve el ítem del cursor; si no, el lugar sale del equipo (0 a 11, con el registro abierto) o de la grilla
+  (`0x5bd750`), y la cuenta del cursor queda en 0. Las dos ramas dejan `0x6c82ec` en −1. Con 0 no lee `pkt[4]`
+  (`0x4d10de`).
+- **`26` del cliente** (`0x5a2c01..`, `0x5a3623..`, `0x5a3da8..`, `0x5a452f..` y `0x5c5937..`): `C1 06 26 <lugar>
+  <destino> <[0x78abb26]>`, el lugar + 12 de la casilla, 0 y el byte que ponen dos diálogos de `0x623e70`; con el
+  XOR32 y en C3. `PMSG_USEITEM` del GameServer 0.97 es de 5 bytes, sin el tercero (07 Q-C1241). Lo mismo mandan los
+  libros y las esferas (`0x5c91a3..`) y el `0x1a0b` (`0x5c84e1..`) desde la grilla. La joya sobre un ítem
+  (`0x5d83ee..`, CL9 hito 5, fase 2) lleva un destino: `C1 06 26 <[0x78a6758]> <[0x77f3cc8]> <[0x78abb26]>`, el lugar
+  de la joya y el del origen del ítem, + 12; con los mismos dos `rand()` del envío.
+- **`2C`** (`0x4de500`): `C1 06 2C <resultado> <puntos> <stat>`. Con 0 o 3 y un stat de 0 a 4 (la energía, la
+  vitalidad, la agilidad, la fuerza y el comando), suma o resta los puntos con el registro abierto; otros resultados
+  abren un aviso. El GameServer 0.97 manda `C1 04 2C <resultado>` (`PMSG_USE_STAT_FRUIT`): sin los puntos ni el stat,
+  el cliente lee lo que quedó en su buffer (07 Q-C1240).
+
+**MuRet** (CL9 hito 5): `Protocol::FloorItems` lee los cinco que llegan y escribe los tres que salen;
+`App::ServerSession` los registra en un bloque y manda el `22`, el `23` y el `26` (`SendPickUp`, `SendDrop` y
+`SendUseItem`). Un `22`, un `23` o un `2C` más cortos de lo que lee el cliente no llegan al mundo, salvo lo que el
+original escribe en todos sus caminos (`ShortPickUpResult`, `ShortDropResult` con `pkt[3]` si llegó, y
+`ShortStatFruit`; 07 Q-C1240). Un `20` corto no escribe nada fijo y se ignora entero. Lo que hace el mundo con cada uno, en [06](06-render-escenas-y-ui.md#los-ítems-del-piso). Los tests
+usan ítems inventados.
+
 ### Los otros jugadores: `12`, `14`, `45`, `25` y `DF`
 
 (CL9 hito 1, 2026-11-13, *estático*; el cable queda para la VM, P-C160.) Los cinco llegan del GameServer cuando
@@ -993,6 +1045,58 @@ lee el handler); `App::ServerSession` los registra juntos después del `D7` y lo
 (`Scenes::ApplyViewportPlayers`, `ApplyViewportLeave`, `ApplyTransformed`, `ApplyEquipmentShown` y
 `ApplyViewportPosition`). Los tests arman los paquetes con los structs del ASM y nombres inventados
 (`support/ViewportPackets.h`).
+
+### Los amigos: `C0`..`C4`
+
+(CL9 hito 9, 2026-11-13, *estático*.) La reconstrucción del GameServer 0.97 no tiene amigos: el `switch` de
+`protocol.cpp` no tiene `C0`..`C4` (sus casos llegan a `0xB0`, `0xF1`, `0xF3` y `0xFF`) y el EDSProtocol tampoco. El
+oráculo es el ASM del cliente; el cable, de un servidor que los tenga, queda para la VM (08, P-C184). El dispatcher
+(`0x4e5a4e..0x4e5aae`) los pasa sin compuertas, ninguno mira el largo y ninguno saca `rand()`. Los nombres van en 10
+bytes y el cliente los copia con `strncpy` de 10 a un buffer de 11 en cero: uno de 10 no trae `'\0'`. La lista es el
+`std::deque` de `[0x5763518]` (elementos de `0x14` bytes: elegido, el nombre, una marca y el estado).
+
+- **`C0`** (`0x4dc010`): `C2 len C0 <cartas> <tope> <n> n × (<nombre:10> <estado>)`, los tres sin signo. Vacía la
+  lista, suma cada amigo al final (`0x49b220`), ordena por nombre y después por estado (`0x49c260`, Q-C881), copia la
+  lista a la pestaña de amigos si la ventana está (`0x49ddd0`), `0x4918d0(1)` (`+0xe8` del administrador en 1 y el
+  título de la ventana, el 990) y el tope en `0x5767970`. Con cartas, el 1072 con las dos cuentas al chat
+  (`0x555190`, con el nombre vacío de `0x5767a94`). El `C4 02` que arma en `0x4dc0d7..0x4dc37a` no sale (Q-C886).
+- **`C1`** (`0x4dc3d0`, la tabla `0x4dc590`): `C1 0F C1 <resultado> <nombre:10> <estado>`. 0: la caja del 1047 con el
+  nombre; 1: el 1075 al chat, lo suma, ordena con el modo que quedó, la pestaña y `0x4a6840` (la ventana de chat con
+  ese amigo, hito 10); 2: nada; 3: el 1048; 4: el 1049 con el nombre; 5: el 1050; 6: el 1068; más de 6, nada. Las
+  cajas son `0x48ee60(10, −1, −1, texto, 0, 0)`.
+- **`C2`** (`0x4dc5b0`): `C1 0D C2 <nombre:10>`. La pregunta del 1051 con el nombre,
+  `0x48ee60(9, −1, −1, texto, −1, 0)`; si la armó, `0x4a4440` le guarda el nombre (`strncpy` de 10 a `+0x2b8`).
+  Suena `0x2a` igual.
+- **`C3`** (`0x4dc690`): `C1 0E C3 <resultado> <nombre:10>`. 0: la caja del 1052; 1: lo saca (`0x49b690`, el primero
+  con ese nombre) y la pestaña; otro, nada.
+- **`C4`** (`0x4dc720`): `C1 0E C4 <nombre:10> <estado>`. Con `0xfc`, todos en `0xfc` (`0x49c0e0`), ordena, la
+  pestaña, `0x4a75c0` (hito 10) y `0x4918d0(0)` (el título 1066); si no, el estado del primero con ese nombre
+  (`0x49c010`), ordena, la pestaña y el estado en el chat con ese amigo (`0x4a6840`, `0x4a6430` y `0x495630`,
+  hito 10).
+
+Lo que manda la ventana de amigos sale en C1, con el XOR32 desde el byte 3 y en claro por el `send()` del socket,
+sin la cola de los cifrados:
+
+- **`C1 03 C0`**: la fábrica, el caso 3 (`0x48ee60`), al armar la ventana con `+0xe8` del administrador en 0. El
+  primer paso del juego lo pone en 1 (`0x48ea50`), el `C0` también y el `C4` con `0xfc` lo vuelve a 0 (`0x4918d0`):
+  la ventana pide la lista solo después de ese `C4`. No tiene bytes cifrados.
+- **`C1 0D C1 <nombre:10>`**: `0x49d0b0` con el 11 de la caja de agregar (`0x4a37e0`). Copia 10 bytes del texto del
+  mensaje (`0x49d4ca..0x49d4f0`): con un nombre corto, lo que haya detrás del `'\0'` en el buffer de `0x100` de la
+  caja (Q-C882).
+- **`C1 0E C2 <1 | 0> <nombre:10>`**: la respuesta de la caja del `C2` (`0x4a3b80` con dueño −1, `0x4a3bde` el sí
+  y `0x4a3fc8` el no), con el nombre de `+0x2b8`.
+- **`C1 0D C3 <nombre:10>`**: `0x49d0b0` con el 12 y 1, la respuesta de la pregunta de borrar, con el nombre del
+  elegido (`0x49cad0`).
+- **`C1 04 C4 <estado>`**: 0 desde la pregunta de salir de línea (`0x4a2be0`, el 12 con 1) y 1 desde el botón del
+  estado con `+0xe0` en 1 (`0x4a3030`). El `C4 02` de `0x48eb84` (el primer paso del juego) tampoco sale (Q-C886).
+
+**MuRet** (CL9 hito 9): `Protocol::Friends` lee los cinco (`ReadFriendList` en C2, los demás en C1, con `WrongPacket`
+y `TooShort`) y escribe los cinco que manda (`WriteFriendListRequest`, `WriteFriendAdd`, `WriteFriendAnswer`,
+`WriteFriendDelete` y `WriteFriendState`, con `Delivery::Clear`); el nombre va completado con ceros (Q-C882).
+`App::ServerSession` los registra juntos y los pasa al mundo (`Scenes::ApplyFriendList`, `ApplyFriendAddResult`,
+`ApplyFriendRequest`, `ApplyFriendDeleteResult` y `ApplyFriendState`); lo que manda la ventana sale por
+`IGameUiRequests::SendFriendPacket`. Lo del chat con un amigo y las cartas corta con su dirección para el hito 10
+(08, P-C183). Los tests usan nombres inventados.
 
 ## Qué implica para MuRet
 

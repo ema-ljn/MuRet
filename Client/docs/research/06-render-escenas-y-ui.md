@@ -993,8 +993,9 @@ como datos (`OldWindowKind`) y despacha con una función por método.
   `0x14c`; sin el bit 0 de las banderas corre la cascada (de a 20; sin lugar, (r + 1, r + 1) con r = y % 10, y con
   r = 9 no la arma; Q-C571). Va arriba de la lista y corre su vtable + `0x30` (`0x4a3a50`, que ubica los botones). Cada
   ventana y cada botón toman el id que sigue de `0x5762eb0` (sumado antes de usarlo); el valor de partida, el que
-  sigue al de la lista de ventanas, es *inferido* (P-C97). Los casos 1 a 4, 6 y 7 (amigos, su chat y las cartas) son
-  de la CL9.4.
+  sigue al de la lista de ventanas, es *inferido* (P-C97). El 3 (la ventana de amigos) y el 4 (la caja de agregar un
+  amigo) son del hito 9 de la CL9 ("Los amigos", abajo); el 1 y el 2 (el chat con un amigo) y el 6 y el 7 (las
+  cartas), del hito 10 (P-C183).
 - **El paso.** La lista de ventanas (`0x636e43`) y `0x490490`: la modal que ya no está; Esc (`0x4904bc`, Q-C446) le
   pide al administrador que cierre la del final si está a la vista; F5, con el foco del teclado en la ventana del
   juego, va a `0x4a5be0(1)` sobre la lista de ventanas, que sin entradas no hace nada; F6 alterna `+0xa8` y llama a
@@ -1024,9 +1025,85 @@ como datos (`OldWindowKind`) y despacha con una función por método.
 - **Chaos Castle** (`0x4c7b17..0x4c7b2f`): `0x4906a0(1, 0)` esconde las ventanas sin anotarlas (Q-C572), y `0x4914e0`
   suelta la de amigos; `0x4c7b34` sigue con el objeto de los comandos (CL9.4, P-C99).
 
-En la CL8 nadie arma una ventana vieja (los que llaman a la fábrica son de la CL9.4): el administrador queda vacío y
-la lista de ventanas, oculta; del paso quedan Esc (sin nada que cerrar), F5 (sin entradas) y F6 (Q-C573), y del
-dibujo, el de la lista oculta. Los tests abren una caja a mano. Lo que no se porta corta con su dirección (P-C95).
+En la CL8 nadie arma una ventana vieja (los que llaman a la fábrica son de la CL9: los amigos, abajo): el
+administrador queda vacío y la lista de ventanas, oculta; del paso quedan Esc (sin nada que cerrar), F5 (sin entradas)
+y F6 (Q-C573), y del dibujo, el de la lista oculta. Los tests abren una caja a mano. Lo que no se porta corta con su
+dirección (P-C95).
+
+**Los amigos** (CL9 hito 9, `UI/FriendModel`, `UI/FriendWindows`, `Scenes/GameFriends` y los controles de
+`UI/OldControls`; *estático*; los paquetes, en [04](04-protocolo.md#los-amigos-c0c4)). El panel 1 (`0x491080`, desde
+`0x6599a0` del registro de paneles y desde `0x4906a0`) abre la ventana: primero olvida lo que escondió F6
+(`0x490830`); con `0x6c7b8c` en 0 diría el 992, pero está en 1. Lee el nivel del héroe (`+0xe`) con el registro propio
+abierto: los 3.848 `rand()` del cierre (Q-C183). Debajo del 6, el 1067 al chat (`0x555190`, con el nombre vacío de
+`0x6e57a4`) si no está entre los últimos (`0x45db70`). Si la ventana ya está: oculta (3), a la vista con los sonidos
+`0x19` y `0x1c`; a la vista (0), se suelta (`0x4914e0`); con otro estado, nada. Si no, la arma la fábrica con el
+título de `+0xec` (990 o 1066) en (`0x186`, `0x106`) la primera vez (el ancho `+0xcc` en 0) o donde quedó y con el
+tamaño de antes (`0x45a9f0`), con la pestaña de antes (`+0xe4`) y el `C1 03 C0` si `+0xe8` está en 0; y si las dos
+colas del cartel (`0x46b7d0`) no tienen nada, el 1244 en la normal (`0x46b720(1, 0, 1244, 2, 2,5, 0xffc8dce6)`). La
+ventana (vtable `0x6b9d6c`) tiene tres pestañas: los amigos (`0x6b9e24`, una lista de dos columnas y cuatro botones:
+agregar, borrar, chat y carta), las ventanas (`0x6b9edc`, las cajas y los chats abiertos, con su id y su título;
+`0x49e6e0` y `0x49e710`) y las cartas (`0x6b9f38`, hito 10). La pestaña de amigos copia el `std::deque` de
+`[0x5763518]` a su lista (`0x49bd60`, Q-C885) y la ordena por nombre o por estado con los encabezados de las columnas
+(`0x49dcf0`; la de estado ordena por nombre primero). Los dos órdenes son los de `0x49c190` (nombre, de la Z a la A
+con `char` con signo) y `0x49c240` (el estado más alto primero) con el `std::sort` de MSVC6 (Q-C881). Agregar abre la
+caja `0x4a3700` (caso 4, modal, con su EDIT de `0x4674c0`); borrar, la pregunta modal del nombre con el 1024
+(`0x48ee60(5, …)`) que vuelve a la pestaña como el 12, y a las dos les manda el 8 y el 9 con su paso (`0x49dc37`,
+`0x490a00` y `0x45aa50`); el botón del estado (`0x4a3030`) pregunta "¿salir de línea?" o
+manda el `C4 01`. La F, con el chat cerrado, la cierra si es la de arriba (`0x4a2f70`). F5 y F6 ya estaban (CL8); con
+F6 la de amigos oculta se suelta (`0x4905a2`) y `0x4906a0` la vuelve a abrir al mostrar (Q-C448). El primer paso del
+juego suelta todas las ventanas (`0x48ea50`) y vacía la lista de amigos (`0x6368f9..0x636915`). El dibujo, abajo; el
+chat con un amigo, las cartas y la lista de ventanas de F5 con sus renglones son del hito 10 (P-C183).
+
+**El dibujo de los amigos** (CL9 hito 9, `UI/FriendWindowsDraw` y las piezas de `UI/OldWindowDrawParts`; *estático*,
+P-C186). Es la vtable + `0x50` de la ventana, que el marco (`0x492500`) llama con la fuente normal después de la
+sombra y antes de la barra del título; todo en 640 × 480 y con los colores de `0x491960`. `0x4a2620`: arrastrada o
+cambiando de tamaño, ubica las pestañas y lo de la de la vista (Q-C888); la vtable + `0x14` de la pestaña a la vista
+(`0x49cc20`, `0x49e7f0`; la de las cartas, `0x4a0a30`, corta: hito 10); con la mezcla normal, la franja del 7 de 20
+de alto arriba del área de adentro, los encabezados (`0x4a2460(x, y + 2, 0x35, 0x13, 3, vista)`: el de la vista con
+los filos del 2 arriba, a la izquierda (x − 1) y a la derecha y el relleno del 5 desde y + 1; los otros, 1 más abajo,
+con los filos de arriba, la derecha y abajo y el relleno del 6 desde y + 2, de alto h − 3) y la raya del 2 desde x +
+`0x9f`, `0x12` debajo de ellos. Después, el blanco con textura y los títulos de las tres pestañas, centrados con
+`((52 − cx / rx) + 0,5) · 0,5` desde x + 0, `0x36` y `0x6b` (Q-C890) y `((24 − cy / ry) + 0,5) · 0,5` desde y, en
+blanco el de la vista o el del mouse (`+0xb4`) y si no en `0xffc8dce6`; el 1035 en `0xffc8dce6` a 2 del borde
+derecho, y la casilla `0x463090` 14 y 1 a su izquierda y 1 más arriba, marcada con `+0xe0` del administrador en 1.
+`0x463090(x, y, marcada)`: sin mezcla, el marco de 9 × 9 del 0 (cuatro rayas de 1, las de enfrente en + 8), el
+blanco con textura, la mezcla normal y, marcada, `win_check.tga` (`0x64a`) de 5 × 5 en (x + 2, y + 2) con 0,625 de
+la textura; deja la mezcla normal (Q-C891). La pestaña de amigos (`0x49cc20`): con la mezcla normal, el 7 desde 0x12
+debajo del alto de la lista hasta el borde de abajo; sin mezcla, la lista y sus cuatro botones (`0x45b2e0`); con la
+mezcla normal, la raya del 2 en y + `0x10`, la franja del 5 de 16 arriba, la raya del 2 sobre los botones (0x11
+debajo del alto de la lista), la raya del medio en x + el ancho de la columna del nombre (`+0x134`) desde y + `0x11`
+con 22 + 17 menos de alto y su marca del 14 de 10 en y + 3; los títulos 1021 y 1022 en (x + 4, y + 3) y 4 + el ancho
+del nombre, en blanco el del orden (`+0` del modelo) o el que tiene el mouse encima (de `0x13` de alto, y el ancho
+de su columna), que después deja el color en `0xffc8dce6`, y si no con el color que haya; termina sin mezcla. La de
+las ventanas (`0x49e7f0`) es igual con un botón, sin la raya del medio ni su marca y sin volver a la opaca después del
+negro (Q-C889), y el título 1026 en (x + 8, y + 3) en `0xffc8dce6`.
+
+La lista es la plantilla de `0x47a810` (`0x47d730` en la de ventanas y `0x47eed0` en la de las cartas, iguales salvo
+el tamaño del elemento): la barra (+`0x7c`), el primero que se ve (+`0x74`), `glColor3f(1, 1, 1)`, la fuente normal y
+un renglón por vuelta (+`0x80`) hasta los renglones (+`0x104`, que lee en cada vuelta) o el final: un negativo saltea
+renglones, 0 repite el renglón y un positivo sigue; +`0x84` es un `ret`. La barra de las listas de amigos y de
+ventanas (`0x461890` = `0x462620`): ubicarla (`0x47b9c0`); las flechas de `win_scrollbar.jpg` (`0x649`) de 13 × 13 en
+(x + w − 12, y − h − 1) y (x + w − 12, y − 12), de (0, 0,09375) y (0, 0,5) con 0,8125 × 0,40625 de la textura, dadas
+vuelta (desde (0,8125, 0,90625) y (0,8125, 0,5) con los lados negativos) con el clic y el mouse encima; los filos de
+la pista del 2 en x + w − ancho del cursor + 1 y en x + w; el blanco con textura y el cursor en x + w − ancho + 2 de
+ancho − 2, el medio de (0, 0,03125) y las puntas de 1 de (0, 0) y (0, 0,0625), con 0,6875 × 0,03125; con menos
+elementos que renglones, el cursor es toda la pista. El renglón de la de amigos (`0x461cd0`): con la mezcla normal; el
+elegido (+`0xc4` = corrimiento + renglón + 1) con una franja blanca de alfa 0,7 si la lista tiene las flechas del
+teclado (`0x5762ec0`) y 0,3 si no, en (x, y del renglón − 3) de w − ancho del cursor + 1 × 13, y su texto en negro;
+los demás en `0xffc8dce6`; el nombre en x + 3 y, con +`0x130` en 1, el lugar 4 después de la columna: el 1039 con
+`0xff`, `0xfe` y `0xfc`, el 1041 con `0xfd`, y si no el 1042 con el servidor + 1; termina sin mezcla. El de la de
+ventanas (`0x462a60`), igual con el título en x + 8. Los renglones van de abajo hacia arriba (`0x461c70`): el primero
+del deque queda abajo.
+
+La caja de agregar (`0x4a3750`): arrastrada, ubica a sus hijas; los dos botones, y con la mezcla normal el EDIT
+(`0x468320`); termina sin mezcla. El EDIT, si se ve (`IsWindowVisible`): el ancho del cursor (+`0xa8`, 1,5 sin IME) y
+el alto de "1" (+`0xac`, en píxeles, la primera vez); con +`0x4c` & 8 (el filtro de la caja de agregar), el negro de
+(x, y, w, +`0xac`) (Q-C892); el cursor se ve con el foco de Windows en el EDIT y +`0x80` % 24 < 12; el texto y el
+cursor van a un bitmap de `min(1,5 + 1,5 + cx, w · rx)` × `h · ry` píxeles en (x · rx, y · ry) (`0x554000`), donde
+el texto (`0xff`) toma +`0x9c`, el fondo (0) +`0xa0` (0 en la caja de agregar: transparente, `0x4a365e`) y los grises
+del medio +`0xa4`, y adentro del cursor el texto toma el fondo y lo demás `0xffc8c8c8`; al final, +`0x80` suma uno. MuRet dibuja el
+bitmap como un quad del fondo, el texto con el dibujante de texto y el cursor como un quad de 1 × min(+`0xac`, alto)
+en la columna después del texto (*inferido*: el texto solo crece por el final; P-C181).
 
 **Los paneles.**
 
@@ -1113,7 +1190,7 @@ los paneles (`0x65feb0`, 0x1064 B, con Sí/No y Confirmar/Cancelar y un campo de
 | abrir la tienda personal (`0x800`) o la ajena (`0x20000`) | C3 `F3 10`: relleno (`0x65ae52`/`0x65b521`) + serial (`0x40b3f0`) | +2 | evento (CL9.4) |
 | abrir la tienda de NPC (`0x10000`) | cierre de su byte (`0x65be36`) | +1 | evento (CL9.3) |
 | cerrar el trade abierto | C3 `3D` (`0x6580b7` + serial) + su byte | +3 | evento (CL9.4) |
-| F6 para mostrar, si una de las ocultas ya no existe (la de amigos: `0x490490` la destruye al verla oculta) | `0x4906a0` → `0x491080` | 3.850 | evento |
+| F6 para mostrar, si una de las ocultas ya no existe (la de amigos: `0x490490` la destruye al verla oculta) | `0x4906a0` → `0x491080`, sin `CanOpen` (CL9 hito 9) | 3.848 | evento |
 | dibujo del marco viejo | `IsOpen(1)` | 0 | frame |
 | dibujo de CS `0x200000` | `0x64a060` (`0x64a9f0`) | 1+ | **frame**, solo con ese panel (CL9.5) |
 | dibujo del retrato de la carta | `0x497c10` (`0x497cce`) | 1+ | frame, solo con esa ventana (CL9.4) |
@@ -1961,8 +2038,10 @@ esquina) · 0,05f − tamaño · 0,5f + 0,5f)` en la x87, que trunca hacia el 0 
 `0x5c9b40` dice si entra: todas las casillas de su huella dentro de la grilla vacías o, en la casilla de arriba a la
 izquierda (fila · 8 + columna, Q-C474), el mismo tipo de los que se apilan (`0x1c00` a `0x1c08`, `0x807` y `0x80f`
 con el mismo `+4`, `0x1c1d` y `0x1a20` a `0x1a22`). Las casillas de la huella dentro de la grilla llevan la marca 2
-si entra, 4 si es una joya (Bless, Soul, Life o Creation) y 3 si no. Con el clic: si no entra, nada (una joya sobre
-otro ítem es de la CL9.3, `0x5d82a8`); con el inventario cerrado, nada más; si entra, el destino y, a otro lugar o
+si entra, 4 si es una joya (Bless, Soul, Life o Creation) y 3 si no. Con el clic: si no entra, nada, salvo una joya
+de bendición, del alma o de la vida con la marca 4 y el inventario abierto, que va sobre el ítem de la casilla
+(`0x5d82a8`, CL9 hito 5: ver [Los ítems del piso](#los-ítems-del-piso), "La joya sobre un ítem"); con el inventario
+cerrado, nada más; si entra, el destino y, a otro lugar o
 al mismo con algo que se apila, el `24` sin la traba, o si no `0x5be150`. Después, las grillas de las otras ventanas
 (`IsOpen(0x20)` con su `rand()`; el comercio `0x5deb1c`, el almacén `0x5deb57`, la tienda personal `0x5dec19` y la
 caja del entrenador `0x44aca9` cortan). Sin el clic, sale; si no, lo consume (`0x77f3b10` en 0 y `0x6c8dcc` en 6) y
@@ -6849,6 +6928,109 @@ Tres pruebas de GL real observan ZERO/SRC_COLOR, profundidad y culling del modo 
 Esto no completa los productores de equipo/armas/alas ni acredita todo P-C55; el gate integrado,
 Windows de la fuente nueva y la observación nativa siguen separados.
 
+### Los ítems del piso
+
+(CL9 hito 5, 2026-11-13, *estático*, leído en el ASM; los paquetes en
+[04](04-protocolo.md#los-ítems-del-piso-20-21-22-23-26-y-2c).) La tabla es `0x77f46c8`: 1000 entradas de `0x220`
+bytes, con el tipo del ítem en `+4`, el valor (`+8`: el nivel en `>> 3 & 0xf`, la skill en `0x80`, la suerte en 4 y la
+opción en 3), la durabilidad en `+0x1e`, las excelentes en `+0x1f`, el conjunto en `+0x20` y el objeto en `+0x4c`
+(vivo en `+0`, el modelo en `+2`, la proyección en `+0x5c` y `+0x5e`, la caída en `+0xe4`, la luz del pase de
+vértices en `+0xe8`, la luz en `+0xf4`, la caja del picking en `+0x13c` y "a la vista" en `+0x16c`). MuRet:
+`Scenes::FloorItemState` en `GameDrawTailState::floorItems`.
+
+- **Crear** (`0x608350`, desde el `20`): el tipo de `0x54b3a0`; el zen guarda en el valor `b1 · 2^16 + b2 · 2^8 + b4`
+  y lo demás `b1`, `b2`, `b3` y `b4`. El modelo es el tipo + `0x212`, salvo los que cambian por el nivel (la caja de
+  la suerte, el arma del arcángel `0x1a13`, que deja el valor en 0, y otros diez). `0x607b60` saca los `rand()` del modelo
+  (`HangingRandomCount`), la caja es de ±30 y la altura la de `0x5f93c0`: recién caído, 180 más arriba y la velocidad
+  20; si no, en el terreno. Las medallas de plata y de oro recién caídas (los modelos `0x2242` y `0x2243`) crean
+  las grietas `0x100` y `0xfe` (`0x518cf0` con la medalla de dueño y el tamaño `0x37`, a 3 sobre el terreno, sin
+  `rand()`) y quedan a 3 con la velocidad 50.
+  Termina con `0x607fb0`. Los sonidos (CL10) quedan en `lastSoundId`.
+- **La búsqueda del picking** (`0x59e2e0`, sin `rand()`): cada ítem vivo y a la vista con la luz del pase de vértices
+  y 0,2; después, el primero cuya caja toca el segmento del mouse, sin el pase y con 1,5. La llama `0x59ec80` sin ítem
+  en el cursor: con Alt, primero (`0x59ef4f`); sin Alt, después de las búsquedas de personajes de `0x59e700`, con
+  `0x6c8e30` y `0x6c8e2c` en −1 (`0x59f4ec`). MuRet: `Scenes::PickTheFloorItem`, llamada desde `PickInTheFrame` en esos
+  dos lugares; lo demás de `0x59ec80` no cambia.
+- **Ir a levantarlo** (MoveHero, `0x59dc5e..0x59ddea`): con el ítem elegido y sin NPC ni objeto, `+0x379` del héroe en
+  1, `0x77f27b0` con el índice, el destino en la celda del ítem y el camino (`0x5ae2b0`); sin camino, `0x5650c0` en el
+  lugar. Al llegar, `0x59b2f7` llama a `0x5650c0(héroe, héroe, 0)`.
+- **Levantarlo** (el caso 1 de `0x5650c0`, `0x566755..0x566eb3`): fuera de la barra, a más de 150 del centro de la
+  celda del destino, nada; si no, la espera del mouse en 6. El zen, o un ítem con lugar en la grilla (`0x5c9d20`),
+  pide el `22` si no hay otro pedido (`0x6c82e8`); sin lugar, el aviso 375 del tipo 1 y el ítem salta: 3 sobre el
+  terreno con la caída en 50. La barra (`0x5ac928..0x5ac9c2`, sin ítem en el cursor, con el chat cerrado y el mouse
+  fuera de la UI) hace lo mismo con el primer ítem vivo y a la vista a menos de 300 del héroe, sin mirar el destino.
+- **El `22`** (`0x4d0cc0`): el zen en el registro propio; el aviso "%d %s %s" (el valor del elegido, los textos 224 y
+  918) si el elegido sigue vivo, o "%s %s" con su nombre (`0x5b1c70`) y el 918; el ítem en su lugar (`0x5bc740`); el
+  sonido y el pedido en −1. La vuelta a la selección (`0x4c24cf`) también lo pone en −1.
+- **Tirar** (`0x5df430..0x5e069d`): después de los que no se tiran (CL8), las ventanas con el mouse encima y las
+  tiendas personales, el anillo del mago con el registro propio abierto (nivel 2 sin el 80, nivel 1 sin el 40: el
+  aviso 923; nivel 3: no), el `0x1c1c` (`0x4379f0`, hito 6: corta) y el comercio: si no se tira, `0x5be150`. Si se
+  tira, la celda bajo el mouse; sin terreno, nada. El `23` sale con la celda y el lugar, `0x6c82ec` con el lugar y la
+  espera del mouse en 6. Las ventanas de la derecha abiertas (la tienda de NPC, el almacén, la caja del caos, el
+  entrenador) leen la x que escribe su dibujo: cortan.
+- **Usar** (`0x5af520` y el `26`): las ranuras rápidas por el clic derecho (`0x5a2b47..0x5a32dd`, que sale después de
+  usar) y por Q, W y E (`0x5a35e0..`, que siguen con la tecla siguiente), y el clic derecho en la grilla
+  (`0x5c5895..0x5c9b0b`: el pergamino del portal sin un pedido de gate, la caja de la suerte de nivel 14 y las
+  pociones). Con el almacén, `0x80` o el comercio abiertos, el aviso 474; con `0x5767954` en más de 0, nada; si no,
+  `0x5767954` en 10, el `26` y el sonido por el tipo de la casilla lugar − 12 (fuera de la grilla el original lee la
+  memoria de al lado: MuRet no registra sonido). Las entradas a los eventos (el `91`, hito 11) cortan; el `0x1a1d`
+  antes mira la tienda de NPC, el almacén, el comercio, `0x1000` y `0x4000` (`0x5c67f3..0x5c685f`, con cortocircuito
+  y el `rand()` de `0x10000` y de `0x20`) y con una abierta no hace nada (`0x5c9b0b`).
+- **El clic derecho desde `0x5c7bc6`** (fase 2). La casilla es la de arriba a la izquierda (`+0x43` · 8 + `+0x42`,
+  en `esi` y `[ebp + 0x1c]`, `0x5c58aa`); el ítem, el de la casilla bajo el mouse (`ebx`), que es una copia.
+  - *Los libros y las esferas* (`0x1e00..0x1fff`, `0x1807..0x180e` y `0x1810..0x1818`, en comparaciones con signo;
+    el `0x180f` no): `0x5c8fb9` (un `CMP AX, 0x1e12` que nadie lee) abre el registro propio en línea y pide, con `JC`
+    sobre WORD, el nivel (`+0xe`) contra el `+0x3a` de Item.bmd, `+0x30` + la energía (`+0x1e`) contra el `+0x22` del
+    ítem y `+0x2a` + la fuerza (`+0x18`) contra su `+0x1e`, sumados en 16 bits. Sin alguno, nada; con los tres, las
+    consultas de `0x5af520` en línea (el aviso 474 del tipo 2, `0x5c912b`), `0x5767954` y el `26` con la casilla + 12,
+    0 y `[0x78abb26]`, y el sonido por el tipo (ninguno es poción). Todas las salidas pasan por `0x5c991b`, que cierra
+    el registro: los 3.848 `rand()` van después de los del envío.
+  - *La fruta* (`0x1a0f`, y `0x1a0f` también en esa casilla de `0x78a9bb0`, `0x5c7c1a`): abre el registro propio en
+    línea, lee el nivel y lo cierra (con su `rand()` por byte en `0x5c8026`). Con menos de 10, `0x632e30` con el texto
+    749. Si no, copia la fruta de la casilla de arriba a la izquierda en `0x78a59c8` (el ítem de los diálogos) con la
+    casilla en su byte `+9` (`0x78a59d1`, relleno del ItemState), abre el registro otra vez, mira los doce lugares del
+    equipo (`+0xb6c`, de a `0x48`) y la clase (`+0xb`, el byte entero) y lo cierra con `0x40b4d0`. Con algo puesto, el
+    aviso 1909; con el dword `+4` de la fruta bajo el mouse (`EBX`, no la copia) en `0x20` (nivel 4, sin otro bit:
+    Q-C1244) y otra clase que la 4, el 1905; si no, `0x633300(1, 376, 0x96)`, el diálogo que nombra el ítem de
+    `0x78a59c8` (CL9.3: corta en `0x63330f`).
+  - *El `0x1a0b`* (`0x5c8448`): de nivel 0, o de nivel 1 sin el héroe maestro del gremio (`+0x368` en `0x80`), las
+    consultas, `0x5767954`, el `26` con la casilla + 12 y el sonido por el tipo (`0x5c8e1a`); de nivel 2 o más, nada.
+  - *Los demás* (`0x5c8e37`): la copia de la casilla de arriba a la izquierda en el cursor (`0x7879f80`), la grilla en
+    `0x78ab9b8`, el mouse en `0x7d36890` y `0x7d36894` y, desde el inventario, `0x78abb28` en 1. Con el almacén
+    abierto (`IsOpen(0x40)`, sin `rand()`), `0x5c9e10` busca lugar en su grilla (`0x78a7070`, 8 × 15) y deja la
+    respuesta en `0x7d368a1`; si la hay, `0x78a6758` con el lugar, `0x5bd750` saca el ítem, `0x78abaa8` en 0,
+    `0x787a518` en `0xffff` y el sonido `0x1d`; si no, el cursor en ceros (`0x5c8f9a`, 0x12 dwords). Sin el almacén,
+    `0x7d368a1` queda como estaba: solo lo prenden `0x5c8eb3` y `0x5c8f30` y lo apaga `0x5ca250` (`0x5d8cf6`, después
+    de devolver el mouse de `0x7d36890` y `0x7d36894`). La rama de otra grilla (`0x5c8ef8`) es la misma con `0x5c9e10([0x78a5a14] + 0xf,
+    [0x78a5a10] + 0xc8, 0x78a9bb0, 8, 8)` y el lugar sin el + 12.
+- **La joya sobre un ítem** (`0x5ca250`, `0x5d825b..0x5d8cd3`). Si el ítem del cursor no entra, con la marca 4
+  (`[ebp + 0xf]`), el último argumento en 0 (la grilla del inventario), `IsOpen(0x4000000)` y una joya de
+  bendición, del alma o de la vida en el cursor, mira el ítem de la casilla bajo el mouse: va hasta el tipo `0x1806` y
+  el `0x1a1e`, sin los virotes (`0x807`) ni las flechas (`0x80f`); la de bendición hasta el nivel 5, la del alma hasta
+  el 8 y la de la vida en cualquiera. La de bendición sobre el `0x1a25` sin la durabilidad `0xff` deja la casilla de
+  la joya (`[0x78a6758]` − 12) en `0x7d3a0dc` y el lugar del ítem en `0x7d3a0e0` y abre `0x633300(1, 1865, 0xa9)`,
+  sin envío (el diálogo es de la CL9.3: su paso corta en `0x6282dc`). Si va, el lugar del origen del ítem + 12 en
+  `0x77f3cc8`, las consultas (el aviso 474), `0x5767954` y el `26` con el lugar de la joya (`[0x78a6758]`), el del ítem
+  y `[0x78abb26]`, y el sonido por el tipo de la casilla de la joya (`0x5d8c9a`). Todo eso da verdadero; si la joya no
+  entra, falso.
+- **El nombre** (`0x5ba790`): el hover lo pone en el mouse para el elegido y, con Alt, en la proyección de cada uno
+  vivo y a la vista. La fuente normal y los colores (blanco sobre negro); el texto y el color según el modelo: el zen
+  con su valor, las joyas en negrita, las cajas, los fuegos y las frutas con sus textos, el orbe de invocación (el modelo `0x1a1d`) con su
+  skill (nivel + 30, con su acceso a Skill.bmd) y los demás con el color del nivel (gris, blanco, naranja, celeste,
+  dorado desde el 7), celeste con opciones, verde excelente, el conjunto en blanco y negrita (verde sobre rojo) y los
+  textos de la skill, la opción y la suerte. 15 más arriba, centrado con la mitad del ancho con signo. Cortan el
+  `0x1a0a` (los monstruos de `0x7681eb8`, CL9 hito 2) y los modelos y niveles que no escriben el texto (07 Q-C1242).
+- **El `2C`** (`0x4de500`): con 0 y un stat de 0 a 4, el stat y `+0x44` suben; con 3, el stat baja y `+0x68` y
+  `+0x48` suben; los dos en el registro propio y con el aviso armado con 379, el texto del stat y 1412 o 1903. Los
+  otros resultados abren su aviso. Siempre `0x5767954` en 0.
+
+MuRet: `Scenes::FloorItemPackets` (el `20`, el `21`, el `22` y el `2C`), `InventoryMoves` (el `23`, tirar,
+`UseInventoryItem`, `UseInventoryItemOn` y la joya sobre un ítem en `DropOnTheInventoryGrid`), `GridItemUse` (el clic
+derecho desde `0x5c7bc6`), `FloorItemActions` (la búsqueda, el lugar en la grilla, levantar y la barra),
+`FloorItemNames` (el nombre) e `ItemNames` (`0x5b1c70`). El ítem de los diálogos es `WorldRuntime::dialogItem`, y
+`0x7d3a0dc` y `0x7d3a0e0`, `UI::DialogBoxState::jewelCell` y `jewelTarget`. Tests: `test_floor_items_scene`,
+`test_cursor_item`, `test_grid_item_use`, `test_game_inventory_step`, `test_game_ui` y `test_floor_items`.
+
 ### Ampliación CL7b de Kalima: recursos y objetos vivos
 
 `KalimaWorld` porta la carga y los dos planos de 65.536 celdas de `0x4377a0`, la actualización
@@ -9766,6 +9948,10 @@ está portado desde la hito 2), y las banderas que crean efectos (`0x4e644f`, `0
 `0x4e67d6` y `0x4e6869`, CL11 y CL10; `0x4e68f5`, P-C163). Los sonidos (`0x76`, `0x84`) quedan en el último sonido, sin
 audio hasta la CL10 (08, P-C162). Tests: `ViewportPlayersTest`, `ViewportLeaveTest`, `ViewportTransformedTest`,
 `ShownEquipmentTest` y `ViewportPacketRingTest`, en Lorencia y en Devias.
+
+**Kalima ya no corta** (auditoría de los cortes CL11, 2026-11-14): el joint `0x610`/8 de `0x4c91dc` (24 a 29 y 36),
+sin `rand()`, es la clase de los peces de Atlans, con el jugador de dueño (`JointOwnerKind::Actor`): nace en su
+posición con z = 300 y sus ángulos, el paso lo sigue y se apaga con él, y con los joints llenos no crea nada.
 
 ### El picking de los personajes del juego
 

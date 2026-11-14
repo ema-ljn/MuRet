@@ -9,6 +9,7 @@
 #include "Protocol/Character/CharacterList.h"
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
+#include "Protocol/FloorItems.h"
 #include "Protocol/Friends.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/Messages.h"
@@ -19,6 +20,7 @@
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActionReply.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/FloorItemPackets.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/GameFriends.h"
 #include "Scenes/IWorldEntryPublisher.h"
@@ -225,6 +227,35 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
         return ApplyEquipmentChange(*change, m_resources);
     if (const auto* put = std::get_if<Protocol::Inventory::ItemPut>(&event))
         return ApplyItemPut(*put, m_resources);
+    // CL9 hito 5.
+    if (const auto* created = std::get_if<Protocol::FloorItems::FloorItemsCreate>(&event))
+        return ApplyFloorItemsCreate(*created, m_resources);
+    if (const auto* deleted = std::get_if<Protocol::FloorItems::FloorItemsDelete>(&event))
+    {
+        ApplyFloorItemsDelete(*deleted, m_resources.world);
+        return {};
+    }
+    if (const auto* picked = std::get_if<Protocol::FloorItems::PickUpResult>(&event))
+        return ApplyPickUpResult(*picked, m_resources);
+    if (const auto* dropped = std::get_if<Protocol::FloorItems::DropResult>(&event))
+        return ApplyDropResult(*dropped, m_resources);
+    if (const auto* fruit = std::get_if<Protocol::FloorItems::StatFruit>(&event))
+        return ApplyStatFruit(*fruit, m_resources.world, m_resources.cloth.random, m_resources.texts);
+    if (std::holds_alternative<Protocol::FloorItems::ShortPickUpResult>(event))
+    {
+        ApplyShortPickUpResult(m_resources.world);
+        return {};
+    }
+    if (const auto* dropped = std::get_if<Protocol::FloorItems::ShortDropResult>(&event))
+    {
+        ApplyShortDropResult(*dropped, m_resources.world);
+        return {};
+    }
+    if (std::holds_alternative<Protocol::FloorItems::ShortStatFruit>(event))
+    {
+        ApplyShortStatFruit(m_resources.world);
+        return {};
+    }
     if (const auto* inventory = std::get_if<Protocol::Character::InventoryList>(&event))
     {
         const auto applied = ApplyInventory(*inventory, m_resources);

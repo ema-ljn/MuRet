@@ -55,6 +55,10 @@ struct DialogBoxState
     std::int32_t pageText = 0;
     std::int8_t page = 0;
     std::int8_t lastPage = 0;
+    // 0x7d3a0dc y 0x7d3a0e0: la casilla de la joya de bendición ([0x78a6758] − 12) y el lugar del 0x1a25 sobre el que
+    // se soltó (0x5d8345 y 0x5d8361, CL9 hito 5). Los lee el diálogo 0xa9 (0x629d0e y 0x629e03, CL9.3).
+    std::int32_t jewelCell = 0;
+    std::int32_t jewelTarget = 0;
 };
 
 // El renglón `row` como lo lee el dibujo: desde su primer byte hasta el primer '\0', que puede estar en el renglón

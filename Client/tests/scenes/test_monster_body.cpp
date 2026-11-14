@@ -458,9 +458,9 @@ TEST_F(MonsterBodyTest, TheUnportedBranchesCutWithTheirAddress)
     // La clase de los bordes del 0x183 y la onda del 0x185 y del 0x197 después de lo que dibujan; la cadena; los tipos
     // que ninguna alta da.
     constexpr std::array cases{Case{0x183, 0, "0x6011f1"},  Case{0x185, 2, "0x4ed775"},  Case{0x197, 2, "0x4ed775"},
-                               Case{0x19b, 30, "0x42e3d0"}, Case{0x1ff, 30, "0x42e3d0"}, Case{0x1af, 34, "0x433b2f"},
-                               Case{0x110, 0, "0x6004ed"},  Case{0x69, 0, "0x600a4a"},   Case{0x12a, 2, "0x600654"},
-                               Case{0x111, 0, "0x60246a"},  Case{0x11d, 0, "0x43ed20"},  Case{0x13d, 2, "0x442e10"}};
+                               Case{0x19b, 30, "0x42e3d0"}, Case{0x1ff, 30, "0x42e3d0"}, Case{0x110, 0, "0x6004ed"},
+                               Case{0x69, 0, "0x600a4a"},   Case{0x12a, 2, "0x600654"},  Case{0x111, 0, "0x60246a"},
+                               Case{0x11d, 0, "0x43ed20"},  Case{0x13d, 2, "0x442e10"}};
     for (const Case& value : cases)
     {
         SCOPED_TRACE(value.address);
@@ -840,6 +840,41 @@ TEST_F(MonsterBodyTest, TheMap34MonstersGoThrough4339d0)
         ASSERT_TRUE(Draw(0x171, map).HasValue());
         EXPECT_EQ(m_batch.Vertices().size(), WholeBody);
     }
+}
+
+TEST_F(MonsterBodyTest, The1afOfMap34KeepsItsUAndLeavesMesh2Unlit)
+{
+    constexpr float Clock = 12345.0f;
+    const auto u = static_cast<float>(2345.0 * static_cast<double>(std::bit_cast<float>(0x3a03126fu)));
+    // 0x433b2f: cada malla con 2 y la U guardada; desde la 2, el alpha en 0,3; al final el alpha en 1. Con
+    // +0x78 & 2, el cuerpo de 0x602365 corre la U en la malla 2, que sigue sin luz (+0x88 del modelo en 2).
+    m_actor->alpha = 0.75f;
+    m_actor->flags78 = 2;
+    const auto result = Draw(0x1af, 34, 0, Clock);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    ASSERT_EQ(m_batch.Vertices().size(), 2 * WholeBody);
+    EXPECT_FLOAT_EQ(m_actor->textureU, u);
+    EXPECT_FLOAT_EQ(m_actor->alpha, 1.0f);
+    EXPECT_EQ(m_actor->dword64, -1);
+    EXPECT_FLOAT_EQ(m_batch.Vertices()[0].color.alpha, 0.75f);
+    // La 2 con +0x64 en −2: aditiva, con la luz de +0x68 (0x4ecc30 mezcla toda malla con el blendMesh en −2).
+    EXPECT_EQ(CommandAt(2 * Triangle).state.blend, ModelBlend::Additive);
+    EXPECT_FLOAT_EQ(m_batch.Vertices()[3 * Triangle].color.alpha, std::bit_cast<float>(0x3e99999au));
+    EXPECT_FLOAT_EQ(m_batch.Vertices()[0].uv.x, 0.0f);
+    EXPECT_FLOAT_EQ(m_batch.Vertices()[2 * Triangle].uv.x, u);
+    EXPECT_FLOAT_EQ(m_batch.Vertices()[WholeBody + 2 * Triangle].uv.x, u);
+    EXPECT_FLOAT_EQ(m_batch.Vertices()[WholeBody].uv.x, 0.0f);
+    // Fuera del 34, el común.
+    for (const std::int32_t map : {0, 2})
+    {
+        m_actor->textureU = 0.0f;
+        m_actor->flags78 = 0;
+        m_batch.Begin(Client::Render::Pass3D{});
+        ASSERT_TRUE(Draw(0x1af, map, 0, Clock).HasValue());
+        EXPECT_EQ(m_batch.Vertices().size(), WholeBody);
+        EXPECT_FLOAT_EQ(m_actor->textureU, 0.0f);
+    }
+    EXPECT_EQ(m_cloth.random.State(), AfterRandoms(0));
 }
 
 TEST_F(MonsterBodyTest, TheCastleTrapGoesThroughTheSiegeCase)

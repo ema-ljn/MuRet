@@ -375,6 +375,8 @@ void SetTheStartingState(ActorState& actor, std::uint16_t type)
     actor.byte38a = 0;
     actor.dword394 = 0;
     actor.dword428 = -0x80;
+    // 0x511d7b: la U (+0x6c); la V (+0x70, 0x511d7e) MuRet no la guarda.
+    actor.textureU = 0.0f;
     // 0x511878: reconstruir el dueño borra el cuervo anterior.
     actor.darkSpirit.reset();
     // 0x511872: +0x364 en 0 sin 0x414340, así que +0x360 queda como estaba.

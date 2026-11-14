@@ -333,10 +333,10 @@ Result DrawTheBody(MonsterFrame& frame, const Render::Models::Skeleton& skeleton
     object.model = actor.type;
     object.animation = actor.animation;
     object.transform = transform;
-    // +0x6c y +0x70 (la U y la V) no los escribe ninguna alta: en 0 (*inferido*).
+    // +0x6c y +0x70 (la U y la V): 0x511290 las pone en 0 y solo 0x433b2f guarda la U.
     object.state = Render::Models::ObjectState{.blendMesh = static_cast<std::int16_t>(actor.dword64),
                                                .light = actor.blendMeshLight,
-                                               .uv = {},
+                                               .uv = {actor.textureU, 0.0f},
                                                .hiddenMesh = static_cast<std::int16_t>(actor.dword58)};
     object.color = light.color;
     object.alpha = actor.alpha;
@@ -561,7 +561,7 @@ PosedBody PosedBodyOf(const MonsterFrame& frame)
     object.transform = {.position = actor.position, .angles = actor.angles, .scale = actor.scale};
     object.state = Render::Models::ObjectState{.blendMesh = static_cast<std::int16_t>(actor.dword64),
                                                .light = actor.blendMeshLight,
-                                               .uv = {},
+                                               .uv = {actor.textureU, 0.0f},
                                                .hiddenMesh = static_cast<std::int16_t>(actor.dword58)};
     object.alpha = actor.alpha;
     object.vertexLight = actor.byteE8 != 0 && actor.type != 0x189 && actor.type != 0xe4;

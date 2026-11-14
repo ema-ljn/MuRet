@@ -10395,7 +10395,13 @@ con el modelo de `0x5769ad8 + tipo · 0xe0` (sin acciones, nada: `0x50ba82`), en
    - `0x4339d0` (desde `0x4306a0`, en el 34, por su tabla `0x434138`/`0x43410c`): el `0x1b0` (con 1) y el `0x1ad`
      (con el color que trae) sin la malla 5; el `0x1ab` con 1, cada malla con 2 y con `0x240` y `0x6b1`; el `0x1b4` y el
      `0x1b1` sin el especial sin la malla 5, y con él en (0,5; 0,5; 0,6) o (0,5; 0,5; 0,8) cada malla con 2 y con `0x44` y
-     Chrome01; el `0x17c`, el `0x17d`, el `0x17e` y el `0x171` en (0,6; 0,8; 0,6), igual;
+     Chrome01; el `0x17c`, el `0x17d`, el `0x17e` y el `0x171` en (0,6; 0,8; 0,6), igual; el `0x1af` (`0x433b2f`,
+     fase 8): el acumulador `0x723c14` (+0,1f por dibujo, a 0 pasado 1, que nadie más lee), y cada malla del modelo
+     con 2, la U guardada en `+0x6c` en `(ftol(T) % 10.000) · 0,0005f` y `+0x64` en −1; antes de la malla 2, el alpha
+     guardado en 0,3 como máximo, `+0x64` en −2 (la malla 2 aditiva con la luz de `+0x68`) y `model+0x88` en 2, que
+     nadie vuelve a `0xff` (lo ve `0x602365`; después, solo el contorno, sin luz ni textura, y la malla 2 de acá); al
+     final, el alpha guardado en 1. MuRet guarda la U en `ActorState::textureU`, que leen todos los pases del
+     personaje;
    - después de la cadena: el `0x17f` con el especial (las mallas 0 a 2 con 2 y con `0x44` y Chrome01); el `0x17c` con el
      subtipo 1 (la luz en `sin(T · 0,002f) · 0,01f + 1`, un float; la malla 0 con `0x6f6` y blendMesh 0, la 1 con `0x6f5`
      y la 2 dos veces, con blendMesh 1, todas `0x42`); el `0x190` (el común y la malla 2 con blendMesh 2 y luz 1); el
@@ -10417,10 +10423,9 @@ con el modelo de `0x5769ad8 + tipo · 0xe0` (sin acciones, nada: `0x50ba82`), en
    (`0x6011f1`, después de la malla 0), la onda (`0x400`, `0x4ed775`) del `0x185` después de su cuerpo y del `0x197`
    después de sus mallas 0, 1, 3 y 5, lo de la CL11 de `0x43ed20` (`0x4ee770` al morir del `0x191`, el `0x193` al
    `0x197`, `0x43ed6c` y sus copias; las partículas de Kundun en `0x43eeb9`, después del temblor; sus joints en
-   `0x43f20d`, después del primer `rand()`; `0x439dc5`, que MuRet no alcanza: solo pone 0 y 1 en `+0x110`), y los
-   helpers de la cadena con tipos de monstruo: `0x42e3d0` (el `0x19b`, el `0x19c`, el `0x1a8`, el `0x1f8` y el `0x1ff`
-   en el 30) y el `0x1af` del 34 (`0x433b2f`: el acumulador `0x723c14`, el alpha guardado en 0,3 en la malla 2, `+0x64` en −2 y la U
-   guardada en `+0x6c`, que `ActorState` no tiene).
+   `0x43f20d`, después del primer `rand()`; `0x439dc5`, que MuRet no alcanza: solo pone 0 y 1 en `+0x110`), y el
+   helper de la cadena con tipos de monstruo `0x42e3d0` (el `0x19b`, el `0x19c`, el `0x1a8`, el `0x1f8` y el `0x1ff`
+   en el 30).
 3. **La sombra** (`0x50bd89..0x50bf3e`): sin `+0x88` en 8, sin los `+0x376` `0x19`, `0x16`, `0x2a`, `0xf2`, `0x3b`,
    `0x3f` y `0x98`, fuera del mapa 10 y con el alpha desde 0,3f. En Blood Castle, con `+0x1a1` y muriéndose (`+0x389`),
    la z baja a la del terreno (`0x5f93c0`) si es menor. El `0xe8` y el `0xe9` ponen `+0x58` en 2. Salvo el `0x18e`,

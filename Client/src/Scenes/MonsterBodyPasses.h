@@ -37,8 +37,8 @@ struct BodyPassArgs
     std::int32_t texture = -1;
 };
 
-// Los de un pase con lo del personaje: +0x174, +0x64, +0x68, +0x6c y +0x70 (en 0, ninguna alta los escribe), +0x58
-// y la textura −1.
+// Los de un pase con lo del personaje: +0x174, +0x64, +0x68, +0x6c (ActorState::textureU), +0x70 (en 0: solo el alta
+// la escribe), +0x58 y la textura −1.
 [[nodiscard]] BodyPassArgs ActorPassArgs(const ActorState& actor);
 
 // El modelo compartido mientras 0x6002e0 lo dibuja: el color (+0x48..+0x50), el +0x88 (sin luz y con la UV corrida;

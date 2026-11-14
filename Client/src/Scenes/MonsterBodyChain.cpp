@@ -803,6 +803,43 @@ Chained DrawWithoutMesh5(MonsterBodyFrame& frame)
     return Drawn(DrawBodyPass(frame.model, BaseFlags, args));
 }
 
+// 0x433b2f..0x433c6e: el 0x1af, entre 0x4ecc10 y 0x4ecc20. El acumulador 0x723c14 (+0,1f por dibujo y a 0 pasado 1)
+// no lo lee nadie fuera de su propia cuenta: MuRet no lo guarda. Cada malla del modelo (+0x24, con signo) con 2, la U
+// guardada en +0x6c en (ftol(T) % 10.000) · 0,0005f (0x6b8a68) y +0x64 en −1; antes de la 2, el alpha guardado en 0,3
+// como máximo, +0x64 en −2 y el +0x88 del modelo en 2, que nadie vuelve a 0xff: lo ve 0x602365 en este dibujo, y en
+// los siguientes solo el contorno de 0x5ffdf0 (sin luz ni textura) y la malla 2 de acá, que lo vuelve a poner. Al
+// final, el alpha guardado en 1.
+Result DrawThe1af(MonsterBodyFrame& frame)
+{
+    ActorState& actor = frame.actor;
+    MonsterBodyModel& model = frame.model;
+    const auto* found = model.models.Find(actor.type);
+    const std::size_t count = found != nullptr ? found->meshes.size() : 0;
+    for (std::size_t mesh = 0; mesh < count; ++mesh)
+    {
+        if (mesh == 2)
+        {
+            if (actor.alpha > ThreeTenths)
+                actor.alpha = ThreeTenths;
+            actor.dword64 = -2;
+            model.object.unlitMesh = std::int16_t{2};
+        }
+        else
+        {
+            actor.dword64 = -1;
+        }
+        const auto clock = World::OriginalFtolLow(D(frame.worldClock));
+        if (!clock)
+            return Core::Unexpected<std::string>("0x433bf7: el reloj del mundo no cabe en 0x69fd3c");
+        actor.textureU = F32(static_cast<double>(*clock % 10000) * D(std::bit_cast<float>(0x3a03126fu)));
+        if (auto drawn = DrawMeshPass(model, static_cast<std::int16_t>(mesh), BaseFlags, ActorPassArgs(actor));
+            !drawn.HasValue())
+            return drawn;
+    }
+    actor.alpha = 1.0f;
+    return {};
+}
+
 // 0x4306a0: solo en el 34 (0x4303c0); sus tipos del mundo no los da ninguna alta; los de los monstruos, 0x4339d0 con
 // su tabla (0x434138 y 0x43410c), que devuelve 1 con todos ellos.
 Chained DrawTheMap34Case(MonsterBodyFrame& frame)
@@ -827,10 +864,7 @@ Chained DrawTheMap34Case(MonsterBodyFrame& frame)
         // 0x433b03: RenderBody(2) sin la malla 5, con el color que trae.
         return DrawWithoutMesh5(frame);
     case 0x1af:
-        // 0x433b2f: el acumulador 0x723c14 (+0,1 por dibujo, a 0 pasado 1), la malla 2 con el alpha guardado en 0,3
-        // como máximo, +0x64 en −2 y el +0x88 de su modelo en 2, la U (+0x6c) guardada con el reloj y el alpha en 1
-        // al final: MuRet no guarda la U de un personaje.
-        return Cut("0x433b2f", "el caso del 34 de 0x4339d0 (la U guardada en +0x6c)", frame.actor.type);
+        return Drawn(DrawThe1af(frame));
     case 0x1b4:
     case 0x1b1:
         // 0x433c75 y 0x433d37: sin el cuarto argumento, 0x433df9; con él, (0,5; 0,5; 0,6) o (0,5; 0,5; 0,8) y cada

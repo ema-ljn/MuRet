@@ -198,6 +198,9 @@ struct ActorState
     // +0x68: la luz del blendMesh, que 0x4e9980 baja al alpha cuando es mayor y nunca sube (Q-C112).
     // 0x511290 la pone en 1,0 (0x512499).
     float blendMeshLight = 0.0f;
+    // +0x6c: la U de los pases de 0x4ef0c0 y 0x4ecc30 del personaje (la V, +0x70, no la escribe nadie más que el alta:
+    // en 0). 0x511290 las pone en 0 (0x511d7b y 0x511d7e); solo 0x433b2f (el 0x1af en el 34) guarda la U.
+    float textureU = 0.0f;
     // +0x188: el contador de pasos de lógica (0x7d3a0f0) cuando lo construyó 0x511290.
     std::int32_t stepStamp = 0;
     // +0x16c: si se ve. 0x508f00 lo escribe en cada paso con el trapecio del último dibujo (0x5fba90) y,

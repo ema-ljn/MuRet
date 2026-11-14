@@ -1,6 +1,9 @@
 #include "Scenes/MonsterBody.h"
 
 #include "Core/Expected.h"
+#include "Data/Models/Model.h"
+#include "Data/Models/ModelTextures.h"
+#include "Data/Textures/TextureSet.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/MonsterBodyChain.h"
@@ -227,6 +230,31 @@ Result CutTheDeathMesh(MonsterBodyFrame& frame, bool dies, std::int32_t effect)
                                         frame.actor.type, effect));
 }
 
+// 0x457e00, la vtable+4 de la clase de los bordes (0x6b8d4c), con el cuarto argumento en 1 (0x60121f): si llega a
+// 0x457740, que marca en +0x22 las caras de la malla 1 que no dan hacia la dirección de la cámara al héroe y junta sus
+// aristas de silueta con la vecindad de +0x1a (P-C332 b). No llega con el alpha por debajo de 0,01f o un NaN
+// (0x457e53), con +0x58 o +0x64 (como int16) en −2 o en 1, ni con una textura de cuatro componentes en la malla 1
+// (+0x28 de su lugar en 0x7d3a198, 0x457efb; la de un .tga, como HasFourComponents); con cero triángulos no hace nada.
+// Sin la malla 1, el original lee fuera de las mallas.
+Core::Expected<bool, std::string> MarksTheSilhouette(const MonsterBodyFrame& frame)
+{
+    const ActorState& actor = frame.actor;
+    if (!(actor.alpha >= Hundredth))
+        return false;
+    const auto hidden = static_cast<std::int16_t>(actor.dword58);
+    const auto blend = static_cast<std::int16_t>(actor.dword64);
+    if (hidden == -2 || blend == -2 || hidden == 1 || blend == 1)
+        return false;
+    const Data::Models::Model* found = frame.model.models.Find(actor.type);
+    if (found == nullptr || found->meshes.size() < 2)
+        return Core::Unexpected(
+            std::format("0x457e97: el tipo {:#x} sin la malla 1 lee fuera de sus mallas", actor.type));
+    const Data::Models::Mesh& mesh = found->meshes[1];
+    if (Data::Models::ModelTextureLoaderOf(mesh.textureName) == Data::Textures::TextureLoader::Ozt)
+        return false;
+    return !mesh.triangles.empty();
+}
+
 // 0x601654..0x601bb1: el 0x18e.
 LateResult DrawTheSpiritBody(MonsterBodyFrame& frame)
 {
@@ -281,13 +309,21 @@ LateResult DrawTheLateCase(MonsterBodyFrame& frame)
         return Done(DrawMeshPass(model, 2, BaseFlags, lit), LateNext::Tail);
     }
     case 0x183:
+    {
         // 0x6011ae..0x6011e5: la malla 0; después, 0x457d60 arma la clase de los bordes (vtable 0x6b8d4c), 0x457e00
         // junta las aristas de silueta de la malla 1 y 0x457f70 las dibuja con 0x458000, un rand() por arista
-        // (0x6011f1..0x601241). Corta antes de esos rand(): le falta la vecindad de los triángulos (P-C332 b).
+        // (0x6011f1..0x601241), y vtable+8 la libera. Sin 0x457740 no junta ninguna y no se ve nada; con él, corta
+        // antes de esos rand(): le falta la vecindad de los triángulos y el quad sustractivo (P-C332 b).
         if (auto drawn = DrawMeshPass(model, 0, BaseFlags, args); !drawn.HasValue())
             return Core::Unexpected(drawn.Error());
+        const auto marks = MarksTheSilhouette(frame);
+        if (!marks.HasValue())
+            return Core::Unexpected(marks.Error());
+        if (!marks.Value())
+            return LateNext::Tail;
         return Core::Unexpected(
-            Cut("0x6011f1", "la clase de los bordes (0x457d60 y 0x457f70) de 0x6002e0", 0x183).Error());
+            Cut("0x6011f1", "la clase de los bordes (0x457740 y 0x457f70) de 0x6002e0", 0x183).Error());
+    }
     case 0x188:
     {
         if (!special)

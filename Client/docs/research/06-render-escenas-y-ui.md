@@ -10435,7 +10435,9 @@ con el modelo de `0x5769ad8 + tipo · 0xe0` (sin acciones, nada: `0x50ba82`), en
      con `0x42`, U y V en 0.
    Cortan con su dirección (P-C332): el `0x18e` muriéndose o antes de los 25 pasos y el `0x18f` muriéndose
    (`0x4ee770`, CL11, después de `+0x0` en 0 si muere y del sonido `0x87`), la clase de los bordes del `0x183`
-   (`0x6011f1`, después de la malla 0), lo de la CL11 de `0x43ed20` (`0x4ee770` al morir del `0x191`, el `0x193` al
+   (`0x6011f1`, después de la malla 0 y solo cuando `0x457e00` llega a `0x457740`: con el alpha desde 0,01f, sin
+   `+0x58` ni `+0x64` en −2 o en 1, con la malla 1 de tres componentes y con triángulos; si no, no se ve nada y sigue
+   en `0x602365`), lo de la CL11 de `0x43ed20` (`0x4ee770` al morir del `0x191`, el `0x193` al
    `0x197`, `0x43ed6c` y sus copias; las partículas de Kundun en `0x43eeb9`, después del temblor; sus joints en
    `0x43f20d`, después del primer `rand()`; `0x439dc5`, que MuRet no alcanza: solo pone 0 y 1 en `+0x110`), y el
    helper de la cadena con tipos de monstruo `0x42e3d0` (el `0x19b`, el `0x19c`, el `0x1a8`, el `0x1f8` y el `0x1ff`

@@ -28,6 +28,7 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <utility>
 #include <vector>
 
 // Los casos por tipo y por mapa de 0x6002e0 con un monstruo o un NPC (MonsterBody.h): vectores literales del ASM
@@ -87,6 +88,11 @@ public:
     [[nodiscard]] std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
     {
         return m_textures;
+    }
+
+    void SetTextureName(std::size_t mesh, std::string name)
+    {
+        m_model.meshes[mesh].textureName = std::move(name);
     }
 
 private:
@@ -475,6 +481,57 @@ TEST_F(MonsterBodyTest, TheUnportedBranchesCutWithTheirAddress)
         const auto result = Draw(type, 2);
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(m_batch.Vertices().size(), WholeBody);
+    }
+}
+
+TEST_F(MonsterBodyTest, TheEdgeClassOf183OnlyCutsWhenItMarksTheSilhouette)
+{
+    // 0x457e00: sin llegar a 0x457740 no junta ninguna arista, no saca rand() y solo queda la malla 0.
+    struct Case
+    {
+        const char* what;
+        float alpha;
+        std::int32_t hidden;
+        std::int32_t blend;
+        const char* texture;
+    };
+    const std::array quiet{
+        Case{"alpha bajo 0,01f", std::bit_cast<float>(0x3c23d709u), -1, -1, "monster.jpg"},
+        Case{"alpha NaN", std::bit_cast<float>(0x7fc00000u), -1, -1, "monster.jpg"},
+        Case{"+0x58 en -2", 1.0f, -2, -1, "monster.jpg"},
+        Case{"+0x64 en -2", 1.0f, -1, -2, "monster.jpg"},
+        Case{"+0x58 en 1 como int16", 1.0f, 0x10001, -1, "monster.jpg"},
+        Case{"+0x64 en 1", 1.0f, -1, 1, "monster.jpg"},
+        Case{"la malla 1 de cuatro componentes", 1.0f, -1, -1, "monster.tga"},
+    };
+    for (const std::int32_t map : {0, 2, 7})
+    {
+        SCOPED_TRACE(map);
+        for (const Case& value : quiet)
+        {
+            SCOPED_TRACE(value.what);
+            m_actor->alpha = value.alpha;
+            m_actor->dword58 = value.hidden;
+            m_actor->dword64 = value.blend;
+            m_models.SetTextureName(1, value.texture);
+            m_batch.Begin(Client::Render::Pass3D{});
+            const auto result = Draw(0x183, map);
+            ASSERT_TRUE(result.HasValue()) << result.Error();
+            ASSERT_EQ(m_batch.Vertices().size(), Triangle);
+            EXPECT_EQ(TextureAt(0), 0x300);
+            EXPECT_EQ(m_cloth.random.State(), AfterRandoms(0));
+        }
+        // Con 0x457740, corta después de la malla 0 y antes del primer rand() de 0x458000.
+        m_actor->alpha = 1.0f;
+        m_actor->dword58 = -1;
+        m_actor->dword64 = -1;
+        m_models.SetTextureName(1, "monster.jpg");
+        m_batch.Begin(Client::Render::Pass3D{});
+        const auto result = Draw(0x183, map);
+        ASSERT_FALSE(result.HasValue());
+        EXPECT_EQ(result.Error().rfind("0x6011f1", 0), 0u) << result.Error();
+        EXPECT_EQ(m_batch.Vertices().size(), Triangle);
+        EXPECT_EQ(m_cloth.random.State(), AfterRandoms(0));
     }
 }
 

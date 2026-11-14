@@ -233,6 +233,8 @@ public:
     [[nodiscard]] Core::Expected<void, std::string> SendItemMove(const Protocol::Inventory::ItemMove& move);
     // El C1 03 42 de 0x6599a0(4), al abrir la ventana de la party (Protocol::Party::WritePartyListRequest), en claro.
     void RequestPartyList();
+    // El C0 y los C1..C4 que mandan la ventana de amigos y sus cajas (Protocol::Friends), como los demás de mundo.
+    void SendFriendPacket(Protocol::Outgoing packet);
     // 0x4c609f: el 00 con la escena 2 (el login) pide la lista de servidores, C1 04 F4 02, por el socket que esté
     // abierto, sin mirar cuál es. En el CS es el saludo (OnConnectHello); acá, el que llega por el GS (Q-C511).
     void ResendServerListRequest();
@@ -372,6 +374,12 @@ private:
     void OnItemPut(const Network::Packet& packet);
     void OnLogoutResult(const Network::Packet& packet);
     void OnMainCheck(const Network::Packet& packet);
+    // CL9 hito 9: los amigos (C0..C4, 0x4e5a4e..0x4e5aae), sin guarda de escena ni del flag de cifrado.
+    void OnFriendList(const Network::Packet& packet);
+    void OnFriendAddResult(const Network::Packet& packet);
+    void OnFriendRequest(const Network::Packet& packet);
+    void OnFriendDeleteResult(const Network::Packet& packet);
+    void OnFriendState(const Network::Packet& packet);
     // El F1 02 con 1, con `encrypted` en el flag del paquete.
     void ReturnToSelection(bool encrypted);
     // El keepalive con el tick de `now` y las velocidades de SetKeepaliveSpeeds.

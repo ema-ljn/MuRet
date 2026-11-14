@@ -105,11 +105,38 @@ TEST(QuestTable, ANameWithoutZeroKeepsItsThirtyTwoBytes)
     EXPECT_EQ(NameOf(loaded.Value()[0]).size(), 0x20u);
 }
 
-TEST(QuestTable, AShortFileIsAnError)
+// 0x418d7c..0x418dba con el fread de 0x69fecb: con un registro y 4 bytes, el segundo tiene sus cuentas y el resto del
+// primero, que el XOR3 vuelve a cifrar; el tercero, el bloque descifrado otra vez. Con menos de un registro, el resto
+// del bloque sin iniciar es un error (Q-C1127).
+TEST(QuestTable, AShortFileKeepsWhatItsFreadLeaves)
 {
-    const std::vector<std::byte> file(QuestTableSize - 1);
+    const auto tooShort = LoadQuestTable(std::vector<std::byte>(QuestRecordSize - 1));
+    ASSERT_FALSE(tooShort.HasValue());
+    EXPECT_EQ(tooShort.Error(), DataError::FileTooShort);
+
+    std::vector<std::byte> plain(2 * QuestRecordSize);
+    Put(plain, 0, 3, 2);
+    Put(plain, 2, 4, 2);
+    for (std::size_t i = 0; i < 0x20; ++i)
+        plain[5 + i] = std::byte{'a'};
+    Put(plain, QuestRecordSize, 7, 2);
+    Put(plain, QuestRecordSize + 2, 8, 2);
+    std::vector<std::byte> file = plain;
+    Client::Core::Xor3(std::span(file).first(QuestRecordSize));
+    Client::Core::Xor3(std::span(file).subspan(QuestRecordSize, QuestRecordSize));
+    file.resize(QuestRecordSize + 4);
+
     const auto loaded = LoadQuestTable(file);
-    ASSERT_FALSE(loaded.HasValue());
-    EXPECT_EQ(loaded.Error(), DataError::FileTooShort);
+    ASSERT_TRUE(loaded.HasValue());
+    const auto& quests = loaded.Value();
+    ASSERT_EQ(quests.size(), QuestCount);
+    EXPECT_EQ(quests[0].entryCount, 3);
+    EXPECT_EQ(NameOf(quests[0]).size(), 0x20u);
+    EXPECT_EQ(quests[1].entryCount, 7);
+    EXPECT_EQ(quests[1].conditionCount, 8);
+    EXPECT_NE(quests[1].name, quests[0].name);
+    EXPECT_NE(quests[2].entryCount, 7);
+    EXPECT_EQ(quests[2].name, quests[0].name);
+    EXPECT_EQ(quests[3], quests[1]);
 }
 } // namespace

@@ -100,7 +100,9 @@ bool HasTheMessageName(const ActorState& actor)
         if (std::to_integer<std::uint8_t>(actor.name[i]) != MessageName[i])
             return false;
     }
-    return actor.byte1e3 == MessageName[actor.name.size()];
+    // 0x4fcdad..0x4fcdcb: el strcmp sigue después de los once bytes iguales y compara +0x1e4 con el 0 que termina la
+    // cadena de 0x6c88b0: solo da igual con +0x1e4 en 0.
+    return actor.byte1e3 == MessageName[actor.name.size()] && actor.nameSpill[0] == std::byte{0};
 }
 
 bool TurnTheNpc(ActorState& actor, std::int32_t map)

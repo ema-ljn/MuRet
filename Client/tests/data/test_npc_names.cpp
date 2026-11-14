@@ -154,14 +154,38 @@ TEST(NpcNamesTest, AZeroByteEndsTheNameForStrcpy)
     ExpectRecords("3 1 \"A\" \"end\0x\" 4 1 \"B\""sv, {{3, "A"}});
 }
 
-// Lo que pisaría otra cosa: el nombre con su '\0' en 0x34 bytes, 512 registros, la cadena con el suyo en 0x108 y el
-// número en 0x64.
+// 0x54e8b4: el strcpy no tiene tope. Un nombre que no entra con su '\0' en sus 0x34 bytes sigue en el tipo y el nombre
+// del registro que sigue, que se devuelve aunque el archivo no tenga otro; si lo tiene, su tipo y su nombre pisan lo
+// suyo y lo demás queda.
+TEST(NpcNamesTest, ALongNameSpillsIntoTheNextRecord)
+{
+    const std::string full(NpcNameBytes, 'n');
+    ExpectRecords("3 1 \"" + full + "\"", {{3, full}, {0, ""}});
+
+    // 0x34 + 2 + 3 letras: el '\0' en el cuarto byte del nombre del registro 1.
+    const std::string longer(NpcNameBytes + 5, 'n');
+    const std::vector<std::byte> alone = Bytes("3 1 \"" + longer + "\"");
+    auto loaded = LoadNpcNames(alone);
+    ASSERT_TRUE(loaded.HasValue());
+    ASSERT_EQ(loaded.Value().size(), 2u);
+    EXPECT_EQ(loaded.Value()[1].type, 0x6e6e);
+    EXPECT_EQ(NameOf(loaded.Value()[1]), "nnn");
+
+    const std::vector<std::byte> followed = Bytes("3 1 \"" + longer + "\" 4 1 \"B\"");
+    loaded = LoadNpcNames(followed);
+    ASSERT_TRUE(loaded.HasValue());
+    ASSERT_EQ(loaded.Value().size(), 2u);
+    EXPECT_EQ(NameOf(loaded.Value()[0]), full);
+    EXPECT_EQ(loaded.Value()[1].type, 4);
+    EXPECT_EQ(NameOf(loaded.Value()[1]), "B");
+    EXPECT_EQ(loaded.Value()[1].name[2], 'n');
+    EXPECT_EQ(loaded.Value()[1].name[3], '\0');
+}
+
+// Lo que escribiría fuera de 0x7681eb8..0x7688ab8 u otra cosa: un nombre que pasa del final de la tabla, 512 registros,
+// la cadena con su '\0' en 0x108 y el número en 0x64.
 TEST(NpcNamesTest, WhatWouldOverflowIsInvalid)
 {
-    const std::string longest(NpcNameBytes - 1, 'n');
-    ExpectRecords("3 1 \"" + longest + "\"", {{3, longest}});
-    ExpectInvalid("3 1 \"" + longest + "n\"");
-
     std::string full;
     for (std::size_t i = 0; i < NpcNameCount; ++i)
         full += "1 1 \"A\"\n";
@@ -171,6 +195,15 @@ TEST(NpcNamesTest, WhatWouldOverflowIsInvalid)
     EXPECT_EQ(loaded.Value().size(), NpcNameCount);
     ExpectInvalid(full + "1 1 \"A\"\n");
     ExpectRecords(full + "end 1 1 \"A\"\n", std::vector<ExpectedRecord>(NpcNameCount, ExpectedRecord{1, "A"}));
+    // En el último registro, 0x33 letras y el '\0' llegan justo a 0x7688ab8; una más pasa.
+    std::string last;
+    for (std::size_t i = 0; i + 1 < NpcNameCount; ++i)
+        last += "1 1 \"A\"\n";
+    std::vector<ExpectedRecord> lastRecords(NpcNameCount - 1, ExpectedRecord{1, "A"});
+    const std::string longest(NpcNameBytes - 1, 'n');
+    lastRecords.push_back({2, longest});
+    ExpectRecords(last + "2 1 \"" + longest + "\"", lastRecords);
+    ExpectInvalid(last + "2 1 \"" + longest + "n\"");
 
     const std::string token(NpcNameTokenBytes - 1, 't');
     ExpectRecords("\"" + token + "\" 1 \"A\"", {{0, "A"}});

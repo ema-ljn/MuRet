@@ -21,6 +21,7 @@
 #include "World/GameCamera.h"
 #include "World/TerrainCulling.h"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -38,6 +39,8 @@ namespace
 constexpr std::int32_t CastleSiegeMap = 30;
 constexpr std::uint16_t SiegeGateKind = 0x115;
 constexpr std::uint32_t GateOpenFlag = 0x20000;
+// 0x51745c: los seis dwords del nombre del invocado.
+constexpr std::size_t SummonNameBytes = 24;
 
 // 0x4c9790, los casos con la acción 1, +0x112 en 1, el alpha en 1 y, si hay, el sonido.
 Core::Expected<void, std::string> RiseWithActionOne(ActorState& actor, std::uint32_t address,
@@ -114,6 +117,48 @@ Core::Expected<void, std::string> ApplyMonsterRecord(const Protocol::Viewport::M
     return WalkToTheTarget(actor, record.targetX, record.targetY, resources);
 }
 
+// 0x51743f: wsprintfA(local de 0x64 bytes, el nombre de +0x1d9 como formato, el dueño de pkt + 0xd), sin más
+// argumentos. El formato sale tal cual, "%%" da '%' y el primer "%s" el dueño hasta su 0. Sin 0 en sus diez bytes,
+// wsprintfA sigue leyendo el registro (+0x17 y el siguiente), que solo cambia lo que se copia si el texto de antes del
+// "%s" tiene menos de 14 bytes: corta (P-C356). Otro especificador, o un segundo "%s", lee de la pila argumentos que
+// 0x517400 no pasa: corta (P-C356).
+Core::Expected<std::string, std::string> FormatTheSummonName(std::string_view format, std::span<const std::byte> owner)
+{
+    std::string text;
+    bool ownerUsed = false;
+    for (std::size_t i = 0; i < format.size(); ++i)
+    {
+        if (format[i] != '%')
+        {
+            text.push_back(format[i]);
+            continue;
+        }
+        const char kind = i + 1 < format.size() ? format[i + 1] : '\0';
+        ++i;
+        if (kind == '%')
+        {
+            text.push_back('%');
+            continue;
+        }
+        if (kind == 's' && !ownerUsed)
+        {
+            ownerUsed = true;
+            const auto end = std::ranges::find(owner, std::byte{0});
+            if (end == owner.end() && text.size() + owner.size() < SummonNameBytes)
+                return Core::Unexpected(std::format("0x51743f: el dueño de diez letras sin 0 sigue en el registro del "
+                                                    "1F dentro de los {} bytes del nombre (P-C356)",
+                                                    SummonNameBytes));
+            for (auto byte = owner.begin(); byte != end; ++byte)
+                text.push_back(static_cast<char>(std::to_integer<unsigned char>(*byte)));
+            continue;
+        }
+        return Core::Unexpected(std::format("0x51743f: wsprintfA con el formato \"{}\" en el nombre lee argumentos que "
+                                            "0x517400 no pasa (P-C356)",
+                                            format));
+    }
+    return text;
+}
+
 // 0x517400(dueño, clave, tipo, X, Y, recién llegado).
 Core::Expected<std::size_t, std::string> CreateSummon(const Protocol::Viewport::SummonRecord& record,
                                                       const WorldEntryResources& resources)
@@ -124,18 +169,24 @@ Core::Expected<std::size_t, std::string> CreateSummon(const Protocol::Viewport::
     ActorState& actor = resources.world.Actors()[created.Value()];
     constexpr std::uint16_t FirstSummonLevel = 0x97;
     actor.level = static_cast<std::uint16_t>(record.type - FirstSummonLevel);
-    // 0x51743f: wsprintfA(local, el nombre de +0x1d9 como formato, el dueño). Los casos de 0x98..0x9e dejan la cadena
-    // vacía de 0x6e57a4: sin '%', el resultado es el formato.
-    const std::string format = ActorText(actor);
-    if (format.find('%') != std::string::npos)
-        return Core::Unexpected(std::string("0x51743f: wsprintfA con un formato en el nombre, sin portar"));
+    // 0x51743f: el formato es el nombre que dejó la cola (0x5140c0) con NpcName(%s).txt sobre la cadena vacía del caso
+    // 0x514390: "Magic stone of %s " del 152 al 157 y "Shadow Knight" en el 158 del archivo del laboratorio (P-C177).
+    const auto format = ActorCString(actor, 0x51743f);
+    if (!format.HasValue())
+        return Core::Unexpected(format.Error());
+    const auto text = FormatTheSummonName(format.Value(), record.owner);
+    if (!text.HasValue())
+        return Core::Unexpected(text.Error());
     constexpr std::uint16_t LastSummonLevel = 7;
     if (actor.level == LastSummonLevel)
         actor.subtype = 1;
-    // 0x51745c..0x517466: los 24 bytes del local a +0x1d9; después del 0, la pila sin iniciar (Q-C848): MuRet escribe
-    // la cadena con su 0 y deja el resto (P-C177).
-    std::vector<std::byte> bytes(std::as_bytes(std::span(format)).begin(), std::as_bytes(std::span(format)).end());
+    // 0x51745c..0x517466: MOVSD.REP de 6 dwords, los 24 primeros bytes del local a +0x1d9..+0x1f0. Con menos de 24
+    // letras va el 0 y, después, la pila sin iniciar (Q-C848): MuRet escribe hasta el 0 y deja el resto como estaba
+    // (P-C177). Con 24 o más, los 24 primeros, sin 0.
+    std::vector<std::byte> bytes(std::as_bytes(std::span(text.Value())).begin(),
+                                 std::as_bytes(std::span(text.Value())).end());
     bytes.push_back(std::byte{0});
+    bytes.resize(std::min(bytes.size(), SummonNameBytes));
     if (auto put = PutActorText(actor, bytes, 0x51745c); !put.HasValue())
         return Core::Unexpected(put.Error());
     if (record.isNew)
@@ -150,7 +201,9 @@ Core::Expected<void, std::string> NameAfterTheOwner(ActorState& actor, const Pro
 {
     // 0x76e0a38, el registro 485 de Text.bmd.
     constexpr std::size_t OwnerText = 485;
-    const std::string monster = ActorText(actor);
+    const auto monster = ActorCString(actor, 0x4ca516);
+    if (!monster.HasValue())
+        return Core::Unexpected(monster.Error());
     actor.byte1e3 = 0;
     actor.name = record.owner;
     if (resources.texts == nullptr)
@@ -159,16 +212,20 @@ Core::Expected<void, std::string> NameAfterTheOwner(ActorState& actor, const Pro
     if (!text)
         return Core::Unexpected(std::string("0x4ca570: Text.bmd no tiene el 485"));
     // Los dos strcat, cada uno con su 0: el Text 485 (0x4ca57a..0x4ca592) y el nombre de antes (0x4ca5a7..0x4ca5bf).
-    const auto concatenate = [&actor](std::string_view added, std::uint32_t address)
+    const auto concatenate = [&actor](std::string_view added,
+                                      std::uint32_t address) -> Core::Expected<void, std::string>
     {
+        const auto before = ActorCString(actor, address);
+        if (!before.HasValue())
+            return Core::Unexpected(before.Error());
         const std::string_view cut = added.substr(0, added.find('\0'));
         std::vector<std::byte> bytes(std::as_bytes(std::span(cut)).begin(), std::as_bytes(std::span(cut)).end());
         bytes.push_back(std::byte{0});
-        return PutActorText(actor, bytes, address, ActorText(actor).size());
+        return PutActorText(actor, bytes, address, before.Value().size());
     };
     if (auto added = concatenate(*text, 0x4ca58b); !added.HasValue())
         return added;
-    return concatenate(monster, 0x4ca5b8);
+    return concatenate(monster.Value(), 0x4ca5b8);
 }
 
 bool IsSummonType(std::uint16_t type)
@@ -306,8 +363,8 @@ Core::Expected<void, std::string> ArriveAsNew(ActorState& actor, const WorldEntr
     case 0x35:
     case 0x36:
         return Core::Unexpected(
-            std::string("0x4c982b: +0x3e5 en 0x3c frena al recién llegado 60 pasos con los efectos y "
-                        "los rand() de 0x505de0 (0x5069ae), sin portar"));
+            std::string("0x4c982b: +0x3e5 en 0x3c frena al recién llegado 60 pasos con los efectos y los rand() de "
+                        "0x505de0 (0x5069ae: 0x53fe70 y 0x518cf0), de la CL11 (P-C54 c)"));
     case 0x55:
     case 0x5b:
     case 0x61:

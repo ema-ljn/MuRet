@@ -1141,8 +1141,8 @@ con `0x44ad70(0, datos, 1)`, sin la cola) y el `24` con 5 (`0x4d1d55`). `0x44ad4
 (275, 110); `0x44ad10` la recorre con `0x5c4110(0x113, 0x6e, 0x723c80, 8, 4, 0)` (la ayuda en el lugar 4, como la
 caja del caos: `0x449c30` en `0x5aed40`) y `0x44aca0` suelta en ella con `0x5ca250` y el tipo 5, donde `0x44acd0` solo
 deja la joya del caos, las de la mezcla y `0x1a1f`. `0x449d50` manda el `24` del 5 al inventario, `0x449c80` vuelve
-el ítem a la caja (`0x5be150`) y `0x449c60` pone sus marcas como las de las otras grillas (`0x5e5207`). Del equipo,
-el ítem de la caja corta como el de las otras grillas (`0x5c1d80`; 08, P-C340).
+el ítem a la caja (`0x5be150`) y `0x449c60` pone sus marcas como las de las otras grillas (`0x5e5207`). Soltado en
+el equipo, `0x449d50` manda el `24` del 5 al lugar (`0x5c1d80`, fase 5: "El equipo").
 
 **Los `rand()` de abrir y cerrar.**
 
@@ -2315,7 +2315,15 @@ Dark Lord con `+0x49`, el elfo y los arcos, el Magic Gladiator con las dos manos
 liderazgo sin agregados, por `0x4221a0`, Q-C775), el mapa (Atlans, Icarus y Chaos Castle con las monturas), Crywolf (las etapas 3 y 4
 con `0x200000` en `+0x7c`) y la montura en uso. Si va, la marca 2 y, con el clic, `0x78abaac` en 1, el destino
 (`0x77f3cc8`; un arma de una mano o un bastón al 1 con la derecha vacía va al 0), el aviso 1862 de Fenrir y, sin la
-traba, el `24`. Si no va, la marca 3 y, con el clic y sin la traba, `0x5be150`.
+traba, el `24`. Si no va, la marca 3 y, con el clic y sin la traba, `0x5be150`. Desde otra grilla (`0x5bf236` con
+`0x78ab9b8` distinto del inventario; CL9 hito 6, fase 5, `Scenes::DropOnTheEquipment`, test
+`CursorItemTest.TheItemOfAnotherGridGoesToTheEquipment`), sin el aviso de Fenrir: del almacén (`0x5c007c`), con su
+traba (`0x6c932f`) y sin `0x78abb1c`, el movimiento espera la contraseña (`0x78ab9bc..0x78ab9c8` con 2, el lugar, 0
+y el destino), el teclado se baraja (20 cambios de dos `rand() % 10`), `0x78abb20` queda en 1 y lo tecleado
+(`0x78ab9fc..0x78aba06`) en 0, sin mirar la traba del envío; si no, el `24` desde el 2. De la caja del caos
+(`0x5c0f66`), el `24` desde el 3; de la del entrenador, `0x449d50` (`0x5c1d80`), el `24` desde el 5. Los tres con los
+dos `rand()` del envío y el lugar de origen sin el 12. Lo demás (`0x5c1d90`: el comercio y la tienda personal, el
+`24` desde el 1 con `0x78abac8` en `0x96` si `0x78abac1` está en 0) es del hito 7 y corta (08, P-C367).
 
 **El paso del ítem del cursor** (`0x5d8d50`, desde `0x5ee1de` con `0x78abaac` en 0). Con la caja del caos, lo
 que vale y el tipo de la mezcla (`0x5d8db6..0x5d8dda`, "La caja del caos"); la lista del asedio en el modo 3 corta al

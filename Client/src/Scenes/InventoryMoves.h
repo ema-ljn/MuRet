@@ -172,8 +172,10 @@ void HoverTheEquipment(const InventoryMoveContext& context, std::size_t slot, st
 
 // 0x5bee04..0x5bf2a0, desde 0x5bec50 con un ítem en el cursor y el mouse en el lugar: si va ahí (las manos, la
 // clase del héroe publicado, los requisitos, el mapa y Crywolf). Si va, la marca 2 y, con el clic, el destino
-// (0x77f3cc8), el aviso 1862 de Fenrir y el 24; si no, la marca 3 y, con el clic, 0x5be150. El registro propio lo
-// tiene abierto quien llama.
+// (0x77f3cc8), el aviso 1862 de Fenrir y el 24; si no, la marca 3 y, con el clic, 0x5be150. Desde otra grilla
+// (0x5c007c), el 24 del almacén (o, con su traba, la contraseña y el teclado barajado), de la caja del caos o de la del
+// entrenador (0x5c1d80), sin el aviso; el comercio y la tienda personal cortan (0x5c1d90, hito 7). El registro propio
+// lo tiene abierto quien llama.
 [[nodiscard]] Core::Expected<void, std::string> DropOnTheEquipment(const InventoryMoveContext& context,
                                                                    std::size_t slot);
 

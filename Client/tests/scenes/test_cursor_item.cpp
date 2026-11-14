@@ -16,6 +16,7 @@
 
 #include <gtest/gtest.h>
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <initializer_list>
@@ -473,6 +474,121 @@ TEST_F(CursorItemTest, TheGridRefusesOccupiedPlacesAndTakesItsOwnPlaceBack)
     EXPECT_TRUE(outside.sent.empty());
     EXPECT_EQ(world.Runtime().cursorItemCount, 0);
     EXPECT_EQ(Cell(2, 1).id, Sword);
+}
+
+// 0x5c007c..0x5c1d8a, en Lorencia, Devias y Noria: el ítem de otra grilla al equipo manda el 24 desde su grilla con su
+// lugar sin el 12 y los dos rand() del envío: el casco del almacén a la cabeza (2), la espada de la caja del caos a la
+// derecha (3) y el escudo de la caja del entrenador a la izquierda (0x449d50 en 0x5c1d80, el 5). Con la traba del
+// almacén, el movimiento espera la contraseña (2, lugar, 0, destino), el teclado se baraja (40 rand()), 0x78abb20 en
+// 1 y lo tecleado en 0, sin mandar nada. Desde otra grilla (el comercio o la tienda personal), corta en 0x5c1d90.
+TEST_F(CursorItemTest, TheItemOfAnotherGridGoesToTheEquipment)
+{
+    for (const std::int32_t map : {0, 2, 3})
+    {
+        SCOPED_TRACE(map);
+        SetUp();
+        outside = Outside{};
+        Scenes::WorldRuntime& runtime = world.Runtime();
+        runtime.map = map;
+        runtime.ui.field78abb39 = 0;
+        runtime.cursorItemCount = 0;
+        runtime.panels.delegated.trainer = 3;
+        world.Actors()[0].characterClass = DarkKnight;
+        Scenes::NpcWindowState& npc = runtime.npcWindows;
+        const auto place = [](std::span<ItemState> cells, std::uint16_t type, std::initializer_list<std::size_t> at)
+        {
+            for (const std::size_t cell : at)
+            {
+                cells[cell] = Invented(type);
+                cells[cell].gridColumn = static_cast<std::uint8_t>(*at.begin() % 8);
+                cells[cell].gridRow = static_cast<std::uint8_t>(*at.begin() / 8);
+                cells[cell].occupied = cell == *at.begin() ? 1u : 0u;
+            }
+        };
+        const auto pickUp = [&](Scenes::CursorGrid grid, std::size_t cell)
+        {
+            runtime.ui.field78abb39 = 0;
+            runtime.cursorItemCount = 0;
+            runtime.movement.pendingClick = true;
+            ASSERT_TRUE(Scenes::PickUpFromOtherGrid(Moves(), grid, cell).HasValue());
+            EXPECT_EQ(runtime.cursorGrid, grid);
+            runtime.movement.pendingClick = true;
+        };
+
+        place(npc.grid, Helm, {9, 10, 17, 18});
+        pickUp(Scenes::CursorGrid::NpcGrid, 9);
+        CrtRandom sent = Advanced(random, SendRandoms);
+        auto dropped = Scenes::DropOnTheEquipment(Moves(), HeadSlot);
+        ASSERT_TRUE(dropped.HasValue()) << dropped.Error();
+        EXPECT_EQ(random.State(), sent.State());
+        EXPECT_EQ(runtime.ui.field78abaac, 1);
+        EXPECT_EQ(runtime.ui.field78abb39, 1);
+        ASSERT_EQ(outside.sent.size(), 1u);
+        EXPECT_EQ(outside.sent[0].sourceFlag, 2);
+        EXPECT_EQ(outside.sent[0].sourceSlot, 9);
+        EXPECT_EQ(outside.sent[0].item[0], std::byte{0x01});
+        EXPECT_EQ(outside.sent[0].item[5], std::byte{0x70});
+        EXPECT_EQ(outside.sent[0].targetFlag, 0);
+        EXPECT_EQ(outside.sent[0].targetSlot, HeadSlot);
+
+        // Con la traba del almacén, la contraseña: no mira la traba del envío ni manda.
+        npc.warehouseLocked = 1;
+        npc.field78abb1c = 0;
+        npc.typedNumber.fill(0x37);
+        runtime.movement.pendingClick = true;
+        CrtRandom shuffled = random;
+        std::array<std::uint16_t, Scenes::WarehouseKeyCount> keys{};
+        Scenes::ShuffleTheKeypad(shuffled, keys);
+        dropped = Scenes::DropOnTheEquipment(Moves(), HeadSlot);
+        ASSERT_TRUE(dropped.HasValue()) << dropped.Error();
+        EXPECT_EQ(random.State(), shuffled.State());
+        EXPECT_EQ(random.State(), Advanced(sent, 40).State());
+        EXPECT_EQ(npc.keypad, keys);
+        EXPECT_EQ(npc.pendingMove.slot, 2);
+        EXPECT_EQ(npc.pendingMove.second, 9);
+        EXPECT_EQ(npc.pendingMove.third, 0);
+        EXPECT_EQ(npc.pendingMove.fourth, HeadSlot);
+        EXPECT_EQ(runtime.ui.field78abb20, 1);
+        EXPECT_EQ(npc.typedNumber, (std::array<std::uint8_t, 11>{}));
+        EXPECT_EQ(outside.sent.size(), 1u);
+        npc.warehouseLocked = 0;
+        runtime.ui.field78abb20 = 0;
+
+        place(npc.chaosBox, Sword, {3, 11, 19});
+        pickUp(Scenes::CursorGrid::ChaosBox, 11);
+        sent = Advanced(random, SendRandoms);
+        dropped = Scenes::DropOnTheEquipment(Moves(), 0);
+        ASSERT_TRUE(dropped.HasValue()) << dropped.Error();
+        EXPECT_EQ(random.State(), sent.State());
+        ASSERT_EQ(outside.sent.size(), 2u);
+        EXPECT_EQ(outside.sent[1].sourceFlag, 3);
+        EXPECT_EQ(outside.sent[1].sourceSlot, 3);
+        EXPECT_EQ(outside.sent[1].targetFlag, 0);
+        EXPECT_EQ(outside.sent[1].targetSlot, 0);
+
+        runtime.npcWindows.trainerBox = Scenes::EmptyTrainerBox();
+        place(runtime.npcWindows.trainerBox, Shield, {0, 1, 8, 9});
+        pickUp(Scenes::CursorGrid::TrainerBox, 8);
+        sent = Advanced(random, SendRandoms);
+        dropped = Scenes::DropOnTheEquipment(Moves(), 1);
+        ASSERT_TRUE(dropped.HasValue()) << dropped.Error();
+        EXPECT_EQ(random.State(), sent.State());
+        ASSERT_EQ(outside.sent.size(), 3u);
+        EXPECT_EQ(outside.sent[2].sourceFlag, 5);
+        EXPECT_EQ(outside.sent[2].sourceSlot, 0);
+        EXPECT_EQ(outside.sent[2].targetFlag, 0);
+        EXPECT_EQ(outside.sent[2].targetSlot, 1);
+
+        runtime.cursorGrid = Scenes::CursorGrid::None;
+        runtime.ui.field78abb39 = 0;
+        runtime.movement.pendingClick = true;
+        const CrtRandom before = random;
+        const auto cut = Scenes::DropOnTheEquipment(Moves(), 1);
+        ASSERT_FALSE(cut.HasValue());
+        EXPECT_NE(cut.Error().find("0x5c1d90"), std::string::npos) << cut.Error();
+        EXPECT_EQ(random.State(), before.State());
+        EXPECT_EQ(outside.sent.size(), 3u);
+    }
 }
 
 // 0x5bee04..0x5bf2a0: el casco va en la cabeza (la marca 2 y, con el clic, el 24 al lugar 2) y no en la mano derecha

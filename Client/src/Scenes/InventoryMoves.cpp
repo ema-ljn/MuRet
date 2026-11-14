@@ -1075,6 +1075,48 @@ void HoverTheEquipment(const InventoryMoveContext& context, std::size_t slot, st
     runtime.ui.skillTooltipY = top;
 }
 
+namespace
+{
+// 0x5c007c..0x5c1d8a: el ítem de otra grilla al equipo, con el destino de 0x77f3cc8. Del almacén (0x78a7070), con su
+// traba (0x6c932f) y sin 0x78abb1c, el movimiento espera la contraseña (2, [0x78a6758], 0 y el destino), el teclado se
+// baraja, 0x78abb20 queda en 1 y lo tecleado en 0 (0x5c0088..0x5c015c); si no, el 24 del almacén al equipo
+// (0x5c0161..0x5c0f61). De la caja del caos (0x7d2d380), el 24 desde el 3 (0x5c0f66..0x5c1d72). De la caja del
+// entrenador, 0x449d50 (0x5c1d80): 0x449d80(5, lugar, 0, destino). El comercio y la tienda personal siguen en
+// 0x5c1d90 (el 24 desde el 1, con 0x78abac8 en 0x96 sin 0x78abac1), del hito 7.
+Core::Expected<void, std::string> DropFromOtherGridOnTheEquipment(const InventoryMoveContext& context)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    const auto source = static_cast<std::uint8_t>(runtime.slot78a6758 & 0xff);
+    const auto target = static_cast<std::uint8_t>(runtime.itemMoveTarget & 0xff);
+    switch (runtime.cursorGrid)
+    {
+    case CursorGrid::NpcGrid:
+    {
+        NpcWindowState& npc = runtime.npcWindows;
+        if (npc.warehouseLocked != 0 && npc.field78abb1c == 0)
+        {
+            npc.pendingMove = PendingWarehouseMove{.slot = WarehouseMoveGrid,
+                                                   .second = runtime.slot78a6758,
+                                                   .third = InventoryMoveGrid,
+                                                   .fourth = runtime.itemMoveTarget};
+            ShuffleTheKeypad(context.random, npc.keypad);
+            runtime.ui.field78abb20 = 1;
+            npc.typedNumber = {};
+            return {};
+        }
+        return SendTheCursorItemBetween(context, WarehouseMoveGrid, source, InventoryMoveGrid, target);
+    }
+    case CursorGrid::ChaosBox:
+        return SendTheCursorItemBetween(context, ChaosBoxMoveGrid, source, InventoryMoveGrid, target);
+    case CursorGrid::TrainerBox:
+        return SendTheCursorItemBetween(context, TrainerBoxMoveGrid, source, InventoryMoveGrid, target);
+    default:
+        return Core::Unexpected(
+            std::string("0x5c1d90: el ítem del comercio o de la tienda personal al equipo es del hito 7 (CL9.4)"));
+    }
+}
+} // namespace
+
 Core::Expected<void, std::string> DropOnTheEquipment(const InventoryMoveContext& context, std::size_t slot)
 {
     WorldState& world = context.world;
@@ -1107,7 +1149,7 @@ Core::Expected<void, std::string> DropOnTheEquipment(const InventoryMoveContext&
     if (slot == LeftHandSlot && weapon && world.OwnCharacter().equipment[RightHandSlot].id == EmptyOwnItemId)
         runtime.itemMoveTarget = 0;
     if (runtime.cursorGrid != CursorGrid::Inventory)
-        return Core::Unexpected(std::string("0x5c007c: el ítem de otra grilla al equipo es de la CL9.3 y la CL9.4"));
+        return DropFromOtherGridOnTheEquipment(context);
     const auto record = ItemRecordOf(context.services.items, cursor.id, "0x5bf248");
     if (!record.HasValue())
         return Core::Unexpected(record.Error());

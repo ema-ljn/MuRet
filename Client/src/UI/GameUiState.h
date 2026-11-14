@@ -110,8 +110,8 @@ struct GameUiState
     std::uint8_t field78abaac = 0;
     // 0x78abb20: el modo del teclado del almacén. Con 0, 0x5e7bf0 devuelve 0 y 0x5ee140 sigue. Lo prenden 0x5e7aa0
     // (Scenes::OpenTheKeypad), soltar en el inventario con la traba (0x5cb432) y el botón 2 del almacén (0x5ea227).
-    // 0x5d9c19 (el sí con 0x78abb14 en 4) también, con 6. 0x5c0139 (un ítem de otra grilla al equipo) sigue cortado en
-    // 0x5c007c.
+    // 0x5d9c19 (el sí con 0x78abb14 en 4) también, con 6, y 0x5c0139 (soltar en el equipo un ítem del almacén con la
+    // traba).
     std::int32_t field78abb20 = 0;
     // 0x7d36880: el flanco del clic derecho. Lo prende WM_RBUTTONDOWN si el botón no estaba abajo, lo apaga
     // WM_RBUTTONUP (02, la tabla del WndProc) y lo apaga quien lo usa.

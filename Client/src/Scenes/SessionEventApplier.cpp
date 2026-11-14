@@ -234,7 +234,10 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
         return {};
     }
     if (const auto* list = std::get_if<Protocol::Quest::QuestList>(&event))
-        return ApplyQuestList(*list, m_resources.world);
+    {
+        ApplyQuestList(*list, m_resources);
+        return {};
+    }
     if (const auto* state = std::get_if<Protocol::Quest::QuestStateChange>(&event))
         return ApplyQuestState(*state, WithTheSiegeRequest(m_resources, session));
     if (const auto* set = std::get_if<Protocol::Quest::SetQuestResult>(&event))

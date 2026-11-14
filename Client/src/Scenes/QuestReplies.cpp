@@ -1,6 +1,7 @@
 #include "Scenes/QuestReplies.h"
 
 #include "Core/Expected.h"
+#include "Core/Log.h"
 #include "Protocol/Quest.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
@@ -32,14 +33,22 @@ Core::Expected<void, std::string> ShowTheNewState(const WorldEntryResources& res
                                                   std::uint8_t state)
 {
     WorldState& world = resources.world;
-    if (auto set = SetTheQuestState(world, index, state); !set.HasValue())
-        return set;
+    SetTheQuestState(world, index, state);
     GamePanels panels(world, resources.cloth.random, GamePanelTables{.texts = resources.texts});
     panels.LendTheWindowClose(resources.sendWindowClose);
     if (auto closed = panels.Registry().CloseAll(); !closed.HasValue())
         return closed;
-    return OpenTheQuestDialog(QuestContext{.world = world, .random = resources.cloth.random, .texts = resources.texts},
-                              -1);
+    auto opened = OpenTheQuestDialog(
+        QuestContext{.world = world, .random = resources.cloth.random, .texts = resources.texts}, -1);
+    // Q-C842: con la misión en curso fuera de los 200 registros (la 255 de la vuelta, o una del A1 desde la 200), el
+    // original lee el registro después del objeto, memoria que MuRet no modela. Desde el paquete se descarta lo que
+    // falta del diálogo con un aviso, sin cortar la sesión: queda lo que se escribió hasta ahí.
+    if (!opened.HasValue() && ReadsAQuestOutsideTheRecords(opened.Error()))
+    {
+        resources.log.Warning("se descarta el diálogo de la misión {} del A1/A2: {}", index, opened.Error());
+        return {};
+    }
+    return opened;
 }
 
 std::string JointCut(std::uint8_t kind, std::uint32_t address)
@@ -56,9 +65,13 @@ void ApplyQuestFlag(const Protocol::Quest::QuestFlag& flag, WorldState& world)
         quest.flags[flag.index] = flag.value;
 }
 
-Core::Expected<void, std::string> ApplyQuestList(const Protocol::Quest::QuestList& list, WorldState& world)
+void ApplyQuestList(const Protocol::Quest::QuestList& list, const WorldEntryResources& resources)
 {
-    return ApplyTheQuestList(world, list.count, std::span(list.states));
+    // 0x418e20: lo que la copia escribiría después del objeto (+0x21398) se descarta con un aviso (Q-C1126).
+    if (const std::size_t outside = ApplyTheQuestList(resources.world, list.count, std::span(list.states));
+        outside != 0)
+        resources.log.Warning("el A0 copia {} bytes: se descartan los {} que pasan el objeto de las misiones (Q-C1126)",
+                              list.count, outside);
 }
 
 Core::Expected<void, std::string> ApplyQuestState(const Protocol::Quest::QuestStateChange& change,

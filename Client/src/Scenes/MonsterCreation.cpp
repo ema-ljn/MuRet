@@ -33,8 +33,26 @@ namespace Client::Scenes
 {
 namespace
 {
+// Desde +0x1d9: el nombre (diez bytes), +0x1e3, nameSpill hasta +0x1f1, el WORD de +0x1f2, la clave de +0x1f4,
+// +0x1f6 y +0x1f7 (MuRet no los guarda), la cabeza de +0x1f8 y el resto de su parte, +0x1fa..+0x217 (tampoco).
 constexpr std::size_t NameBytes = 10;
 constexpr std::size_t SpillStart = NameBytes + 1;
+constexpr std::size_t Word1f2Start = ActorTextSize;
+constexpr std::size_t KeyStart = Word1f2Start + 2;
+constexpr std::size_t HeadStart = 0x1f8 - 0x1d9;
+
+// `value` con su byte `index` (0 el bajo, 1 el alto) en `byte`.
+std::uint16_t WithByte(std::uint16_t value, std::size_t index, std::byte byte)
+{
+    const auto shift = static_cast<unsigned>(8 * index);
+    const auto kept = static_cast<unsigned>(value) & ~(0xffu << shift);
+    return static_cast<std::uint16_t>(kept | (std::to_integer<unsigned>(byte) << shift));
+}
+
+std::byte ByteOf(std::uint16_t value, std::size_t index)
+{
+    return static_cast<std::byte>((static_cast<unsigned>(value) >> (8 * index)) & 0xffu);
+}
 
 void SetTextByte(ActorState& actor, std::size_t index, std::byte value)
 {
@@ -42,8 +60,15 @@ void SetTextByte(ActorState& actor, std::size_t index, std::byte value)
         actor.name[index] = value;
     else if (index == NameBytes)
         actor.byte1e3 = std::to_integer<std::uint8_t>(value);
-    else
+    else if (index < Word1f2Start)
         actor.nameSpill[index - SpillStart] = value;
+    else if (index < KeyStart)
+        actor.word1f2 = WithByte(actor.word1f2, index - Word1f2Start, value);
+    else if (index < ActorTextReadable)
+        actor.key = WithByte(actor.key, index - KeyStart, value);
+    else if (index == HeadStart || index == HeadStart + 1)
+        actor.head = WithByte(actor.head, index - HeadStart, value);
+    // +0x1f6, +0x1f7 y +0x1fa..+0x217 no están en ActorState: el byte se pierde (P-C352).
 }
 
 std::byte TextByte(const ActorState& actor, std::size_t index)
@@ -52,7 +77,11 @@ std::byte TextByte(const ActorState& actor, std::size_t index)
         return actor.name[index];
     if (index == NameBytes)
         return std::byte{actor.byte1e3};
-    return actor.nameSpill[index - SpillStart];
+    if (index < Word1f2Start)
+        return actor.nameSpill[index - SpillStart];
+    if (index < KeyStart)
+        return ByteOf(actor.word1f2, index - Word1f2Start);
+    return ByteOf(actor.key, index - KeyStart);
 }
 
 // Una parte de +0x218..+0x2f7: las cinco del cuerpo y las dos manos, de a 0x20 bytes.
@@ -443,9 +472,9 @@ private:
             actor.scale = AddTailScale(actor.scale, tail.scaleSteps);
         }
         // 0x51411f..0x51416b: el strcpy a +0x1d9 del nombre del primer registro de 0x7681eb8 con el tipo (el word
-        // contra el dword), si hay uno. Los de LoadNpcNames terminan en su registro; uno de más de 24 letras (tres en
-        // el NpcName(%s).txt del laboratorio) pisaría +0x1f2 y la clave, y corta (Q-C847, P-C352).
-        if (const std::optional<std::string_view> name = NpcNameOf(runtime.npcNames, m_type))
+        // contra el dword), si hay uno. Uno de más de 24 letras (tres en el NpcName(%s).txt del laboratorio) sigue por
+        // el WORD de +0x1f2, la clave, +0x1f6, la cabeza y lo que sigue, como el original (Q-C847, P-C352).
+        if (const std::optional<std::string> name = NpcNameOf(runtime.npcNames, m_type))
         {
             std::vector<std::byte> bytes(std::as_bytes(std::span(*name)).begin(),
                                          std::as_bytes(std::span(*name)).end());
@@ -491,8 +520,9 @@ Core::Expected<void, std::string> SetMonsterAction(ActorState& actor, std::uint8
 Core::Expected<void, std::string> PutActorText(ActorState& actor, std::span<const std::byte> bytes,
                                                std::uint32_t address, std::size_t offset)
 {
-    if (offset + bytes.size() > ActorTextSize)
-        return Core::Unexpected(std::format("{:#x}: el nombre de {} bytes pisa +0x1f2 y la clave de +0x1f4 (Q-C847)",
+    if (offset + bytes.size() > ActorTextReach)
+        return Core::Unexpected(std::format("{:#x}: el nombre de {} bytes desde +0x1d9 pisa las partes de +0x218 "
+                                            "(Q-C847, P-C352)",
                                             address, offset + bytes.size()));
     for (std::size_t index = 0; index < bytes.size(); ++index)
         SetTextByte(actor, offset + index, bytes[index]);
@@ -502,7 +532,7 @@ Core::Expected<void, std::string> PutActorText(ActorState& actor, std::span<cons
 std::string ActorText(const ActorState& actor)
 {
     std::string text;
-    for (std::size_t index = 0; index < ActorTextSize; ++index)
+    for (std::size_t index = 0; index < ActorTextReadable; ++index)
     {
         const std::byte value = TextByte(actor, index);
         if (value == std::byte{0})

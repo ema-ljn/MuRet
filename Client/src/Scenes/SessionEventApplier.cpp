@@ -9,6 +9,7 @@
 #include "Protocol/Character/CharacterList.h"
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
+#include "Protocol/Friends.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/Messages.h"
 #include "Protocol/Movement.h"
@@ -19,6 +20,7 @@
 #include "Scenes/ActionReply.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/ChatReceive.h"
+#include "Scenes/GameFriends.h"
 #include "Scenes/IWorldEntryPublisher.h"
 #include "Scenes/IWorldTransitionPublisher.h"
 #include "Scenes/InventoryMoves.h"
@@ -155,6 +157,16 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorld(const App::Wor
         return ApplyOptionData(*options, ChatContextOf(m_resources, session));
     if (auto viewport = ApplyViewport(event))
         return *viewport;
+    if (const auto* list = std::get_if<Protocol::Friends::FriendList>(&event))
+        return ApplyFriendList(*list, ChatContextOf(m_resources, session));
+    if (const auto* added = std::get_if<Protocol::Friends::FriendAddResult>(&event))
+        return ApplyFriendAddResult(*added, ChatContextOf(m_resources, session));
+    if (const auto* request = std::get_if<Protocol::Friends::FriendRequest>(&event))
+        return ApplyFriendRequest(*request, ChatContextOf(m_resources, session));
+    if (const auto* deleted = std::get_if<Protocol::Friends::FriendDeleteResult>(&event))
+        return ApplyFriendDeleteResult(*deleted, ChatContextOf(m_resources, session));
+    if (const auto* state = std::get_if<Protocol::Friends::FriendState>(&event))
+        return ApplyFriendState(*state, ChatContextOf(m_resources, session));
     return ApplyWorldContent(event, session);
 }
 

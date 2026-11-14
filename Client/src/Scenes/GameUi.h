@@ -3,6 +3,7 @@
 #include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Protocol/OptionData.h"
+#include "Protocol/Outgoing.h"
 #include "UI/OldWindows.h"
 #include "World/TerrainPickingSegment.h"
 
@@ -62,6 +63,8 @@ public:
     virtual void RequestLogout(std::uint8_t kind) = 0;
     // 0x6599a0(4): el C1 03 42 en claro, el pedido de la lista de la party al abrir su ventana.
     virtual void RequestPartyList() = 0;
+    // CL9 hito 9: lo que mandan la ventana de amigos y sus cajas (Protocol::Friends, por Scenes::FriendPacketOf).
+    virtual void SendFriendPacket(Protocol::Outgoing packet) = 0;
     // 0x61c170("Data\\Macro.txt"): `content` (UI::WrittenMacros) en el archivo.
     [[nodiscard]] virtual Core::Expected<void, std::string> SaveMacros(std::string_view content) = 0;
     // 0x41fa40 sobre el log del original (0x57630f0).

@@ -31,6 +31,7 @@
 #include "Protocol/Connection/Opcodes.h"
 #include "Protocol/Connection/ServerList.h"
 #include "Protocol/Dispatcher.h"
+#include "Protocol/Friends.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/Messages.h"
 #include "Protocol/OptionData.h"
@@ -277,7 +278,18 @@ void ServerSession::RegisterGameServerHandlers()
                         [this](const Network::Packet& packet) { OnItemPut(packet); }) &&
         m_gameServer.On(JoinOpcode, LogoutSubcode, [this](const Network::Packet& packet) { OnLogoutResult(packet); }) &&
         m_gameServer.On(Protocol::Connection::MainCheckOpcode,
-                        [this](const Network::Packet& packet) { OnMainCheck(packet); });
+                        [this](const Network::Packet& packet) { OnMainCheck(packet); }) &&
+        // CL9 hito 9: los amigos.
+        m_gameServer.On(Protocol::Friends::FriendListOpcode,
+                        [this](const Network::Packet& packet) { OnFriendList(packet); }) &&
+        m_gameServer.On(Protocol::Friends::FriendAddOpcode,
+                        [this](const Network::Packet& packet) { OnFriendAddResult(packet); }) &&
+        m_gameServer.On(Protocol::Friends::FriendRequestOpcode,
+                        [this](const Network::Packet& packet) { OnFriendRequest(packet); }) &&
+        m_gameServer.On(Protocol::Friends::FriendDeleteOpcode,
+                        [this](const Network::Packet& packet) { OnFriendDeleteResult(packet); }) &&
+        m_gameServer.On(Protocol::Friends::FriendStateOpcode,
+                        [this](const Network::Packet& packet) { OnFriendState(packet); });
     assert(registered && "los handlers del GameServer se registran una vez");
 }
 
@@ -1034,6 +1046,61 @@ void ServerSession::OnWhisperResult(const Network::Packet& packet)
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(result.Value(), *this)));
 }
 
+void ServerSession::OnFriendList(const Network::Packet& packet)
+{
+    const auto list = Protocol::Friends::ReadFriendList(packet);
+    if (!list.HasValue())
+    {
+        m_log.Warning("se ignora la lista de amigos (C0): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(list.Value(), *this)));
+}
+
+void ServerSession::OnFriendAddResult(const Network::Packet& packet)
+{
+    const auto result = Protocol::Friends::ReadFriendAddResult(packet);
+    if (!result.HasValue())
+    {
+        m_log.Warning("se ignora el resultado de agregar un amigo (C1): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(result.Value(), *this)));
+}
+
+void ServerSession::OnFriendRequest(const Network::Packet& packet)
+{
+    const auto request = Protocol::Friends::ReadFriendRequest(packet);
+    if (!request.HasValue())
+    {
+        m_log.Warning("se ignora el pedido de amistad (C2): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(request.Value(), *this)));
+}
+
+void ServerSession::OnFriendDeleteResult(const Network::Packet& packet)
+{
+    const auto result = Protocol::Friends::ReadFriendDeleteResult(packet);
+    if (!result.HasValue())
+    {
+        m_log.Warning("se ignora el resultado de borrar un amigo (C3): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(result.Value(), *this)));
+}
+
+void ServerSession::OnFriendState(const Network::Packet& packet)
+{
+    const auto state = Protocol::Friends::ReadFriendState(packet);
+    if (!state.HasValue())
+    {
+        m_log.Warning("se ignora el estado de un amigo (C4): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(state.Value(), *this)));
+}
+
 void ServerSession::OnNotice(const Network::Packet& packet)
 {
     const auto notice = Protocol::Messages::ReadNotice(packet);
@@ -1236,6 +1303,16 @@ void ServerSession::RequestCastleSiegeState()
 void ServerSession::RequestPartyList()
 {
     static_cast<void>(SendWorldPacket(Protocol::Party::WritePartyListRequest()));
+}
+
+void ServerSession::SendFriendPacket(Protocol::Outgoing packet)
+{
+    static_cast<void>(SendWorldPacket(std::move(packet)));
+}
+
+std::span<const std::vector<std::byte>> ServerSession::Teleports() const
+{
+    return m_teleports.Entries();
 }
 
 // 06 § Caminar: los ecos y el daño se aplican sin guarda de escena ni del flag de cifrado.

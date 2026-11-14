@@ -78,6 +78,9 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
         context.requestGate = [&](std::uint8_t gate) { m_session->RequestGate(gate); };
     if (m_session)
         context.sendFacing = [&](std::uint8_t direction) { return m_session->SendFacing(direction); };
+    if (m_session)
+        context.sendAction = [&](std::uint8_t direction, std::uint8_t action)
+        { m_session->SendAction(direction, action); };
     const InventoryServices inventory = InventoryContext();
     context.inventory = &inventory;
     return StepHeroMovement(context);

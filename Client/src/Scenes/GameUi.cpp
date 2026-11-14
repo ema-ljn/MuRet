@@ -8,10 +8,12 @@
 #include "Protocol/Pet/PetInfo.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CharacterPicking.h"
 #include "Scenes/GameChat.h"
 #include "Scenes/GameCommandsWindow.h"
 #include "Scenes/GameDialogSteps.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/GameFriends.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GameMoveWindow.h"
 #include "Scenes/GameMovementState.h"
@@ -139,11 +141,11 @@ bool KeyEdge(UI::GameUiState& ui, const Input::InputState& input, GameKey key)
 }
 
 // 0x6578e0: hay un campo de texto con el foco (el chat 0x6c8e68, 0x77f3b68, el del diálogo de los paneles) o la
-// ventana del juego no lo tiene. MuRet tiene el del chat (hito 3); los otros son del hito 6, y su ventana es la del
-// juego.
+// ventana del juego no lo tiene. MuRet tiene el del chat (hito 3) y el EDIT de las ventanas viejas (CL9 hito 9, que
+// toma el foco de Windows); los otros son del hito 6, y su ventana es la del juego.
 bool TextInputBusy(const WorldRuntime& runtime)
 {
-    return runtime.ui.chatOpen;
+    return runtime.ui.chatOpen || runtime.chat.input.focus == UI::ChatFocus::OldWindow;
 }
 
 // 0x636e51..0x636e5a: el registro del chat, 0x45aa80(0) por la vtable + 0x18 de 0x576350c.
@@ -243,25 +245,95 @@ Core::Expected<void, std::string> Toggle(UI::PanelRegistry& panels, UI::PanelId 
     return {};
 }
 
+// Las cinco teclas que leen las ventanas viejas con 0x553520 (Esc, F5, F6, Enter y la F de la de amigos, 0x4a2f70) y
+// las dos que leen abajo con GetAsyncKeyState (las flechas de las listas, 0x47b0f0).
+constexpr std::array<GameKey, 5> OldWindowEdgeKeys{EscapeKey, F5Key, F6Key, EnterKey, Letter('F')};
+constexpr std::array<GameKey, 2> OldWindowDownKeys{UpKey, DownKey};
+
+// Lo que las ventanas viejas leen del juego en el paso de la UI (CL9 hito 9): la vista de 0x490490 (el mouse, las
+// teclas, el chat abierto, Text.bmd, la medida del DC, el cable y el EDIT del susurro) y 0x491080, que la usa también
+// (el panel 1 y 0x4906a0). Vive lo que el paso.
+class OldWindowSight
+{
+public:
+    explicit OldWindowSight(const GameUiContext& context) : m_context(context), m_texts(OldWindowTextsOf(context.texts))
+    {
+        if (context.measure != nullptr)
+            m_measure.emplace(UI::OldWindowMeasure{
+                .measure = *context.measure, .dcFont = context.world.Runtime().hud.dcFont, .screen = context.screen});
+    }
+    OldWindowSight(const OldWindowSight&) = delete;
+    OldWindowSight& operator=(const OldWindowSight&) = delete;
+    OldWindowSight(OldWindowSight&&) = delete;
+    OldWindowSight& operator=(OldWindowSight&&) = delete;
+    ~OldWindowSight() = default;
+
+    [[nodiscard]] UI::OldWindowStepView View() const
+    {
+        WorldRuntime& runtime = m_context.world.Runtime();
+        UI::GameUiState& ui = runtime.ui;
+        UI::ChatInputState& chat = runtime.chat.input;
+        const Input::InputState& input = m_context.input;
+        UI::OldWindowStepView view{.mouseX = m_context.mouseX,
+                                   .mouseY = m_context.mouseY,
+                                   .keyEdge =
+                                       [&ui, &input](std::uint8_t virtualKey)
+                                   {
+                                       for (const GameKey& key : OldWindowEdgeKeys)
+                                       {
+                                           if (key.virtualKey == virtualKey)
+                                               return KeyEdge(ui, input, key);
+                                       }
+                                       return false;
+                                   },
+                                   .keyDown =
+                                       [&input](std::uint8_t virtualKey)
+                                   {
+                                       for (const GameKey& key : OldWindowDownKeys)
+                                       {
+                                           if (key.virtualKey == virtualKey)
+                                               return input.IsDown(key.key);
+                                       }
+                                       return false;
+                                   },
+                                   .chatOpen = ui.chatOpen,
+                                   .texts = &m_texts,
+                                   .measure = m_measure ? &*m_measure : nullptr,
+                                   .send = {},
+                                   // 0x4694c0(0, 0, 1, nombre).
+                                   .whisperTo = [&chat](std::string_view name)
+                                   { UI::SetTheChatFields(chat, std::nullopt, name); },
+                                   .openFriends = [this]() { return OpenTheFriendsWindow(); }};
+        if (IGameUiRequests* requests = m_context.requests; requests != nullptr)
+            view.send = [requests](const UI::FriendSend& send) { requests->SendFriendPacket(FriendPacketOf(send)); };
+        return view;
+    }
+
+    // 0x491080(0x186, 0x106) con los globales de ahora.
+    [[nodiscard]] Core::Expected<void, std::string> OpenTheFriendsWindow() const
+    {
+        const UI::OldWindowGlobals globals = OldWindowGlobalsOf(m_context.world.Runtime());
+        const UI::OldWindowStepView view = View();
+        return OpenTheFriends(FriendsOpenContext{.world = m_context.world,
+                                                 .random = m_context.random,
+                                                 .measure = m_context.measure,
+                                                 .screen = m_context.screen,
+                                                 .texts = m_context.texts},
+                              globals, view);
+    }
+
+private:
+    const GameUiContext& m_context;
+    UI::OldWindowTexts m_texts;
+    std::optional<UI::OldWindowMeasure> m_measure;
+};
+
 // 0x636e3c..0x636e4c: el paso de la lista de ventanas ([0x5763524], la vtable + 0x18 con 0) y el de las ventanas
 // viejas (0x490490). Esc llega a 0x490490 ya leído por 0x623e70, salvo con la de amigos abierta (Q-C446).
-Core::Expected<void, std::string> StepTheOldWindows(const GameUiContext& context)
+Core::Expected<void, std::string> StepTheOldWindows(const GameUiContext& context, const OldWindowSight& sight)
 {
     WorldRuntime& runtime = context.world.Runtime();
-    UI::GameUiState& ui = runtime.ui;
-    const Input::InputState& input = context.input;
-    // 0x553520 con las cuatro teclas que leen las ventanas viejas.
-    const UI::OldWindowStepView view{.mouseX = context.mouseX,
-                                     .mouseY = context.mouseY,
-                                     .keyEdge = [&ui, &input](std::uint8_t virtualKey)
-                                     {
-                                         for (const GameKey& key : {EscapeKey, F5Key, F6Key, EnterKey})
-                                         {
-                                             if (key.virtualKey == virtualKey)
-                                                 return KeyEdge(ui, input, key);
-                                         }
-                                         return false;
-                                     }};
+    const UI::OldWindowStepView view = sight.View();
     const UI::OldWindowGlobals globals = OldWindowGlobalsOf(runtime);
     if (auto list = UI::StepTheWindowList(runtime.oldWindows, globals, view); !list.HasValue())
         return list;
@@ -1034,7 +1106,7 @@ void StepTheArrowKey(const GameUiContext& context, GameKey key, std::int32_t dir
     if (!KeyEdge(runtime.ui, context.input, key))
         return;
     bool sound = false;
-    if (input.focus != UI::ChatFocus::Game && input.field % 2 == 0)
+    if ((input.focus == UI::ChatFocus::Message || input.focus == UI::ChatFocus::Whisper) && input.field % 2 == 0)
         sound = UI::RecallFromTheHistory(input, direction);
     else
         sound = UI::StepTheWhisperName(input, direction);
@@ -1365,7 +1437,11 @@ UI::OldWindowGlobals OldWindowGlobalsOf(WorldRuntime& runtime)
                                 .capture = ui.capture,
                                 .pressedButton = ui.pressedButton,
                                 .keyboardFocus = runtime.chat.input.focus,
-                                .sound = runtime.lastSoundId};
+                                .sound = runtime.lastSoundId,
+                                .focusedList = ui.focusedList,
+                                .wheel = ui.wheel,
+                                .rightClick = ui.rightClick,
+                                .doubleClick = ui.doubleClick};
 }
 
 Core::Expected<void, std::string> StepTheGameDialogs(const GameUiContext& context)
@@ -1420,10 +1496,12 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
     // 0x636e0b: 0x7d36899 no lo escribe nadie.
     if (context.mouseY >= HudTop)
         ui.mouseOnUi = 1;
+    const OldWindowSight sight(context);
     GamePanels gamePanels(context.world, context.random,
                           GamePanelTables{.items = context.inventory != nullptr ? context.inventory->items : nullptr,
                                           .itemSetTables = context.itemSetTables});
     gamePanels.LendThePartyList(context.world, context.requests);
+    gamePanels.LendTheFriends([&sight]() { return sight.OpenTheFriendsWindow(); });
     UI::PanelRegistry& panels = gamePanels.Registry();
     // 0x636e24: 0x5ecdc0, la ventana /move, sin nadie que agarró el mouse (0x5ecdd1).
     if (panels.IsOpen(UI::MovePanel) && ui.capture == 0)
@@ -1439,7 +1517,7 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
                                                                                  .now = context.systemTime});
         !slides.HasValue())
         return slides;
-    if (auto old = StepTheOldWindows(context); !old.HasValue())
+    if (auto old = StepTheOldWindows(context, sight); !old.HasValue())
         return old;
     if (auto chat = StepTheChat(context); !chat.HasValue())
         return chat;
@@ -1536,50 +1614,128 @@ Core::Expected<void, std::string> StepTheFunctionKeys(const GameUiContext& conte
     return {};
 }
 
+namespace
+{
+constexpr std::int32_t NoTarget = -1;
+
+// 0x59ee4b..0x59ef10: el elegido de antes (0x6c8e30) sigue solo con el ataque automático (0x6c8e3c), fuera del mapa 6
+// y de Chaos Castle, entre 0 y 400, y si es un monstruo (+0x88 en 2) que no se muere (+0x389). Si sigue, con el otro
+// elegido (0x6c8e38) en −1, un botón del mouse (0x7d36874, 0x7d366d4, 0x7d3685c o 0x7d36880) o el héroe muriéndose,
+// suelta solo 0x6c8e30.
+void KeepTheChosen(const FramePickingContext& context)
+{
+    const WorldRuntime& runtime = context.world.Runtime();
+    std::array<std::int32_t, 5>& targets = context.targets;
+    constexpr std::int32_t LastRecord = 400;
+    constexpr std::int32_t SpectatorMap = 6;
+    const bool chaosCastle = runtime.map >= 18 && runtime.map <= 23;
+    if (!runtime.ui.autoAttack || runtime.map == SpectatorMap || chaosCastle || targets[2] < 0 ||
+        targets[2] > LastRecord)
+    {
+        targets[2] = NoTarget;
+        targets[4] = NoTarget;
+        return;
+    }
+    const auto actors = context.world.Actors();
+    const ActorState& chosen = actors[static_cast<std::size_t>(targets[2])];
+    constexpr std::uint8_t MonsterKind = 2;
+    if (chosen.dying != 0 || chosen.byte88 != MonsterKind)
+    {
+        targets[4] = NoTarget;
+        targets[2] = NoTarget;
+        return;
+    }
+    const bool mouse =
+        runtime.movement.leftHeld || runtime.movement.pendingClick || runtime.ui.rightDown || runtime.ui.rightClick;
+    if (targets[4] == NoTarget || mouse || actors[runtime.hero].dying != 0)
+        targets[2] = NoTarget;
+}
+
+// 0x59efb9..0x59f48d: el orden de las dos búsquedas de personajes sin Alt. El Dark Wizard y el Elf leen la skill de su
+// lugar (+0x425 del héroe) en el registro propio, abierto; con 0x1a a 0x1c, primero los de la máscara 1.
+std::array<std::uint8_t, 2> CharacterSearchOrder(const FramePickingContext& context)
+{
+    constexpr std::uint8_t Monsters = 0x22;
+    constexpr std::uint8_t Players = 1;
+    const WorldRuntime& runtime = context.world.Runtime();
+    const ActorState& hero = context.world.Actors()[runtime.hero];
+    const std::uint8_t heroClass = static_cast<std::uint8_t>(hero.characterClass & 7u);
+    if (heroClass != 0 && heroClass != 2)
+        return {Monsters, Players};
+    std::uint8_t skill = 0;
+    {
+        const Render::Models::LogicalAccess own(context.ownRecordDepth, context.random,
+                                                Render::Models::OwnRecordCloseRandoms);
+        skill = OwnSkillByte(context.world.OwnCharacter(), hero.skillIndex);
+    }
+    constexpr std::uint8_t FirstPlayersFirst = 0x1a;
+    constexpr std::uint8_t LastPlayersFirst = 0x1c;
+    if (skill >= FirstPlayersFirst && skill <= LastPlayersFirst)
+        return {Players, Monsters};
+    return {Monsters, Players};
+}
+
+// 0x59f52f.
+void ForgetTheOther(std::array<std::int32_t, 5>& targets)
+{
+    if (targets[2] == NoTarget)
+        targets[4] = NoTarget;
+}
+} // namespace
+
 Core::Expected<void, std::string> PickInTheFrame(const FramePickingContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
     std::array<std::int32_t, 5>& targets = context.targets;
-    // 0x59ec97..0x59eda4: los modos del editor (0x77f3b18) no los prende nadie.
-    // 0x59edb4..0x59ee66: el elegido de antes (0x6c8e30), con 0x6c8e3c en 1 (.data).
-    constexpr std::int32_t Pool = 400;
-    const bool chaosCastle = runtime.map >= 18 && runtime.map <= 23;
-    if (runtime.map == 6 || chaosCastle || targets[2] < 0 || targets[2] > Pool)
+    const auto pick = [&context](std::uint8_t mask) { return PickTheCharacter(context.world, mask, context.ray); };
+    // 0x59ec97..0x59ee48: los modos del editor (0x77f3b18) no los prende nadie.
+    KeepTheChosen(context);
+    // 0x59ef16..0x59ef29.
+    targets[0] = NoTarget;
+    targets[1] = NoTarget;
+    targets[3] = NoTarget;
+    // 0x59e3b0 (0x59f52a), con el mouse en la UI y en los saltos de abajo, solo recorre la party (0x78aba48), que está
+    // vacía en MuRet (hito 7): no hace nada. 0x59e2e0 (el ítem del piso, sin ítem en el cursor, 0x7879fbc) y 0x59eb90
+    // (los objetos) son de la CL9.3: dejan −1.
+    if (runtime.ui.mouseOnUi != 0)
     {
-        targets[2] = -1;
-        targets[4] = -1;
+        ForgetTheOther(targets);
+        return {};
     }
-    else
-        return Core::Unexpected(std::string("0x59ee0b: seguir al elegido de antes es de la CL9.1"));
-    targets[0] = -1;
-    targets[1] = -1;
-    targets[3] = -1;
-    if (runtime.ui.mouseOnUi == 0)
+    if (context.altDown)
     {
-        if (!context.altDown)
+        // 0x59ef46..0x59efb4: el ítem del piso, los de la máscara 4, los de 0x22 y 1, y los objetos.
+        targets[1] = pick(4);
+        if (targets[1] == NoTarget)
         {
-            const ActorState& hero = context.world.Actors()[runtime.hero];
-            const std::uint8_t heroClass = static_cast<std::uint8_t>(hero.characterClass & 7u);
-            // 0x59efda..0x59f46e: el Dark Wizard y el Elf leen su skill del registro propio para el orden de las
-            // búsquedas, que son de sus olas.
-            if (heroClass == 0 || heroClass == 2)
-            {
-                const Render::Models::LogicalAccess own(context.ownRecordDepth, context.random,
-                                                        Render::Models::OwnRecordCloseRandoms);
-            }
-            // 0x59f48d → 0x5e4140: sin la party abierta, el ancho del mundo y los de la party (0x78aba48), que
-            // MuRet no tiene.
-            GamePanels panels(context.world, context.random);
-            if (!panels.Registry().IsOpen(UI::PartyPanel))
-                static_cast<void>(panels.Registry().WorldWidth());
+            targets[2] = pick(0x22);
+            if (targets[2] != NoTarget)
+                return {};
+            targets[2] = pick(1);
+            if (targets[2] != NoTarget)
+                return {};
         }
-        // Las búsquedas: 0x59e700 (los personajes con 0x22, 1 y 4), 0x59e2e0 (el ítem del piso, sin ítem en el
-        // cursor) y 0x59eb90 (los objetos). Son de la CL9.1 y la CL9.3: dejan −1.
+        ForgetTheOther(targets);
+        return {};
     }
-    // Con el mouse en la UI, 0x59e3b0 (0x59f52a), sin rand(), del elegido.
-    // 0x59f52f.
-    if (targets[2] == -1)
-        targets[4] = -1;
+    const std::array<std::uint8_t, 2> order = CharacterSearchOrder(context);
+    // 0x59f48d → 0x5e4140: con la party cerrada, el ancho del mundo (0x5bb8d0) y la party (0x78aba48), vacía: da 0.
+    GamePanels panels(context.world, context.random);
+    if (!panels.Registry().IsOpen(UI::PartyPanel))
+        static_cast<void>(panels.Registry().WorldWidth());
+    // 0x59f49a..0x59f509.
+    if (targets[2] == NoTarget)
+    {
+        targets[2] = pick(order[0]);
+        if (targets[2] == NoTarget)
+        {
+            targets[2] = pick(order[1]);
+            if (targets[2] != NoTarget)
+                return {};
+            targets[1] = pick(4);
+        }
+    }
+    ForgetTheOther(targets);
     return {};
 }
 } // namespace Client::Scenes

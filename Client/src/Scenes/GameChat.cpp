@@ -3,8 +3,11 @@
 #include "Core/Expected.h"
 #include "Input/InputEvent.h"
 #include "Protocol/Chat/ChatSend.h"
+#include "Protocol/Movement.h"
 #include "Render/Models/LogicalAccess.h"
+#include "Scenes/ActionSend.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/Emote.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/ItemSetState.h"
@@ -14,10 +17,13 @@
 #include "UI/ChatCommands.h"
 #include "UI/ChatInput.h"
 #include "UI/ChatLog.h"
+#include "UI/Emotes.h"
+#include "UI/FriendWindows.h"
 #include "UI/GameText.h"
 #include "UI/GameUiState.h"
 #include "UI/MessageArea.h"
 #include "UI/NameChecks.h"
+#include "UI/OldWindows.h"
 #include "UI/PanelRegistry.h"
 #include "UI/WhisperSenders.h"
 
@@ -108,15 +114,26 @@ bool StartsWithTheCommand(std::string_view said, std::string_view command)
     return !command.empty() && said.starts_with(command);
 }
 
-// 0x4b56cc..0x4b571c y 0x5a11db..0x5a1204: los emotes (0x576eb0), salvo montado fuera de la zona segura.
-Core::Expected<void, std::string> CheckTheEmotes(const GameChatContext& context, std::string_view said)
+// 0x4b56cc..0x4b571c y 0x5a11db..0x5a1204: los emotes (0x576eb0), salvo montado fuera de la zona segura. Los C1 18
+// salen por `send`, como el chat.
+Core::Expected<void, std::string> DoTheEmotes(const GameChatContext& context, std::string_view said)
 {
-    const ActorState& hero = context.world.Actors()[context.world.Runtime().hero];
+    ActorState& hero = context.world.Actors()[context.world.Runtime().hero];
     if (hero.pet.model >= FirstMountModel && hero.pet.model <= LastMountModel && hero.safeZone == 0)
         return {};
     if (context.texts == nullptr)
         return Core::Unexpected(std::string("0x576eb0: los emotes sin Text.bmd"));
-    return UI::CheckTheEmotes(*context.texts, said);
+    const std::optional<UI::EmoteCase> emote = UI::FindTheEmote(*context.texts, said);
+    if (!emote)
+        return {};
+    if (context.models == nullptr)
+        return Core::Unexpected(std::string("0x576a60: el emote sin los modelos (0x4ea030)"));
+    const ActionSender send = [&context](std::uint8_t direction, std::uint8_t action)
+    {
+        if (context.send)
+            context.send(Protocol::Movement::WriteAction(direction, action));
+    };
+    return DoTheEmote(*emote, EmoteContext{.hero = hero, .models = *context.models, .send = send});
 }
 
 // Lo que 0x56c440 lee y escribe.
@@ -283,7 +300,7 @@ Core::Expected<bool, std::string> SayWhatWasTyped(const GameChatContext& context
     const std::string& text = said.Value();
     if ((!text.empty() && text.front() == '/') || input.whisperLength == 0 || !input.whisperMode)
     {
-        if (auto emotes = CheckTheEmotes(context, text); !emotes.HasValue())
+        if (auto emotes = DoTheEmotes(context, text); !emotes.HasValue())
             return Core::Unexpected(emotes.Error());
         if (auto chat = SayInTheChat(context, text); !chat.HasValue())
             return Core::Unexpected(chat.Error());
@@ -304,12 +321,28 @@ Core::Expected<void, std::string> TypeInTheGameChat(const GameChatContext& conte
     while (!rest.empty())
     {
         const std::size_t key = rest.find_first_of(Keys);
+        // El EDIT de una ventana vieja con el foco de Windows (CL9 hito 9) recibe el WM_CHAR, y su subclase (0x467b10)
+        // le pasa el Enter a su padre; el Tab no lo mira (P-C181).
+        const bool oldEdit = UI::HasAnOldEditFocused(runtime.oldWindows, input.focus);
         if (const std::string_view run = rest.substr(0, key); !run.empty())
-            UI::TypeInTheChat(input, run);
+        {
+            if (oldEdit)
+                UI::TypeInTheOldEdit(runtime.oldWindows, run);
+            else
+                UI::TypeInTheChat(input, run);
+        }
         if (key == std::string_view::npos)
             break;
         const char pressed = rest[key];
         rest.remove_prefix(key + 1);
+        if (oldEdit)
+        {
+            if (pressed == Input::EnterChar)
+                UI::PressEnterInTheOldEdit(runtime.oldWindows);
+            else if (pressed == Input::BackspaceChar)
+                UI::BackspaceInTheOldEdit(runtime.oldWindows);
+            continue;
+        }
         if (pressed == Input::TabChar)
         {
             if (UI::PressTabInTheChat(input, runtime.ui.chatOpen))
@@ -349,9 +382,18 @@ Core::Expected<void, std::string> PressEnterInTheGame(const GameChatContext& con
         if (taken.Value())
             return {};
     }
-    // 0x4b52fc..0x4b5334: +0x150 de [0x5763524], 0x5762ebc y +0xc0 de [0x5763514] son de las ventanas viejas (hito
-    // 7), vacías. 0x4b533d..0x4b5360: con el foco fuera de la ventana del juego, 0x467360 guarda el modo del IME, que
-    // MuRet no tiene.
+    // 0x4b5198..0x4b5334: el Enter es de las ventanas viejas con la lista de ventanas armada (+0x150 de [0x5763524]),
+    // con la caja modal (0x5762ebc) arriba de todas (el último de +0x84) o con una caja no modal (+0xb8 de
+    // [0x5763514], 0x4918a0) arriba de todas. 0x4b533d..0x4b5360: con el foco fuera de la ventana del juego, 0x467360
+    // guarda el modo del IME, que MuRet no tiene.
+    const UI::OldWindowManager& old = runtime.oldWindows;
+    if (old.windowList.list.armed == 1)
+        return {};
+    const std::int32_t top = UI::LastOldWindow(old);
+    if (old.modal != 0 && top == old.modal)
+        return {};
+    if (!old.boxes.empty() && std::ranges::find(old.boxes, top) != old.boxes.end())
+        return {};
     // 0x4b5397..0x4b5435: con el campo cerrado, el EDIT de [0x5763504] (el del diálogo, hito 6, vacío en MuRet); con
     // él abierto, los dos EDIT y lo escrito al historial (la vtable + 8).
     if (!ui.chatOpen)
@@ -414,7 +456,7 @@ Core::Expected<void, std::string> SayTheMacros(const GameChatContext& context,
             return Core::Unexpected(command.Error());
         if (command.Value().handled)
             continue;
-        if (auto emotes = CheckTheEmotes(context, text); !emotes.HasValue())
+        if (auto emotes = DoTheEmotes(context, text); !emotes.HasValue())
             return emotes;
         auto said = FilteredOf(context, text);
         if (!said.HasValue())

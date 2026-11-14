@@ -9832,6 +9832,10 @@ dueño, como el de la entrada del héroe. Cortan con su dirección, después de 
 sin audio hasta la CL10 (08, P-C162). Tests: `ViewportPlayersTest`, `ViewportLeaveTest`, `ViewportTransformedTest`,
 `ShownEquipmentTest` y `ViewportPacketRingTest`, en Lorencia y en Devias.
 
+**Kalima ya no corta** (auditoría de los cortes CL11, 2026-11-14): el joint `0x610`/8 de `0x4c91dc` (24 a 29 y 36),
+sin `rand()`, es la clase de los peces de Atlans, con el jugador de dueño (`JointOwnerKind::Actor`): nace en su
+posición con z = 300 y sus ángulos, el paso lo sigue y se apaga con él, y con los joints llenos no crea nada.
+
 ### El picking de los personajes del juego
 
 *Estático* (CL9 hito 1, 2026-11-13). `0x637641` llama a `0x59ec80` en cada frame de la escena 5, con el segmento

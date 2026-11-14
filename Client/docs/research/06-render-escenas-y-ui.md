@@ -10279,9 +10279,12 @@ NewFace suelto o el que cargó el alta ([Los modelos de los monstruos y los NPC]
    key y sortea con `rand() % 32` la 1 o la 0.
 3. **`0x4fcee0`** desde el frame 3 (`0x4fd10b..0x4fd5df`): deja estela (`0x52e470`) con `+0x376` en `0x47`, `0x4a` o
    `0x12d` en las acciones 3 y 4, el `0x194` en la 3, el `0x195` y el `0x197` en la 3 y la 4, y cualquier otro con una
-   espada (`0x212..0x411`) en la derecha en la 3 y la 4; después los helpers `0x441260` (el `0x1a7`), `0x42fa40` (el
-   `0x1b1` y el `0x1b3`), `0x432bd0` (su `rand()` y el `0x1ab`, del `0x1ae` al `0x1b1`, el `0x1b3` y el `0x1b4`:
-   [Los helpers de los monstruos](#los-helpers-de-los-monstruos)) y `0x426d90` (del `0x1b8` al `0x1ba`).
+   espada (`0x212..0x411`) en la derecha en la 3 y la 4; después los helpers `0x441260` (el `0x1a7` en la 3 y la 4), `0x42fa40` (el
+   `0x1b3` en la 3 y el `0x1b1` en la 4), `0x432bd0` (su `rand()` y el `0x1ab`, del `0x1ae` al `0x1b1`, el `0x1b3` y el `0x1b4`:
+   [Los helpers de los monstruos](#los-helpers-de-los-monstruos)) y `0x426d90` (el `0x1ba` en la 3, el `0x1b9` en la 3
+   y la 4, y el `0x1b8` en la 3 y la 4 con el frame en 5,06f (`0x6b8a30`) o menos, o NaN). Fuera de esas acciones no
+   hacen nada ni sacan `rand()`; en ellas, su estela (`0x52e470`) es de la CL11 y MuRet corta con la dirección del
+   helper (`ModelTrailCutOf`, revisión B).
 4. **`0x505de0`**: sin acciones va a la caja de `0x505e15`; la cabeza pasa antes por `0x4ea190` (`0x5068e3`): la acción
    6 no toca el blanco, la 0 sortea uno (`rand() % 32` en 0: `rand() % 128 − 64` y `rand() % 48 − 16`), la 2 con
    `+0x3a4` distinto de −1 mira a ese personaje del pool con `0x4ea0e0` (el rumbo de `0x4e93f0` a menos de 90 grados
@@ -10727,7 +10730,7 @@ para la estela `0x52e470`, que corta en la primera vuelta:
 | `0x1b3` | 3 (3) | la estela (`0x43397d`) |
 | `0x1b4` | 3 (3) | la estela (`0x432ea3`) |
 
-En MuRet, el `0x1a7`, el `0x1b1` y el `0x1b3` cortan antes, en `0x441260` y `0x42fa40`.
+En MuRet, el `0x1a7` en la 3 y la 4, el `0x1b3` en la 3 y el `0x1b1` en la 4 cortan antes, en `0x441260` y `0x42fa40`.
 
 MuRet: `Scenes::DrawTheMonsterHelpers` (`MonsterHelpers.h`), desde la cola de `DrawGameMonster` después de `0x43c150` y
 `0x42dfe0`, con el personaje o su copia, el `rand()` del dibujo y los sprites del frame; los sonidos en

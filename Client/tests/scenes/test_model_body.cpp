@@ -28,7 +28,11 @@
 #include <gtest/gtest.h>
 
 #include <array>
+#include <bit>
+#include <cmath>
 #include <cstdint>
+#include <ios>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <span>
@@ -286,12 +290,61 @@ TEST(ModelBodyTest, TheTrailOfTheOtherModelsCutsByType)
     ActorState knight = Monster(0x160, 4);
     knight.word376 = 0x12d;
     EXPECT_EQ(ModelTrailCutOf(knight)->address, 0x4fd233u);
-    EXPECT_EQ(ModelTrailCutOf(Monster(0x1a7, 0))->address, 0x441260u);
-    EXPECT_TRUE(ModelTrailCutOf(Monster(0x1b3, 0))->beforeTheRandom);
     // 0x432bd0 está portado: el 0x1ab no corta acá (StepTheSwingsOf1abTo1b4).
     EXPECT_FALSE(ModelTrailCutOf(Monster(0x1ab, 3)).has_value());
     EXPECT_FALSE(ModelTrailCutOf(Monster(0x1ac, 0)).has_value());
-    EXPECT_EQ(ModelTrailCutOf(Monster(0x1b9, 0))->address, 0x426d90u);
+}
+
+// 0x4fd5c1..0x4fd5df: 0x441260, 0x42fa40 y 0x426d90 solo dejan su estela (0x52e470, CL11) en sus acciones; quietos (la
+// 0) o en otra, no hacen nada.
+TEST(ModelBodyTest, TheTrailHelpersCutOnlyInTheirActions)
+{
+    using Client::Scenes::ModelTrailCutOf;
+    struct Case
+    {
+        std::uint16_t type;
+        std::uint8_t action;
+        std::optional<std::uint32_t> address;
+    };
+    constexpr std::optional<std::uint32_t> None;
+    // 0x44127c: el 0x1a7 en la 3 o la 4. 0x42fa64 y 0x42fb61: el 0x1b3 en la 3 y el 0x1b1 en la 4. 0x426db9 y
+    // 0x426ebc: el 0x1ba en la 3 y el 0x1b9 en la 3 o la 4.
+    const Case cases[]{
+        {0x1a7, 0, None},     {0x1a7, 2, None},     {0x1a7, 3, 0x441260}, {0x1a7, 4, 0x441260}, {0x1b3, 0, None},
+        {0x1b3, 3, 0x42fa40}, {0x1b3, 4, None},     {0x1b1, 0, None},     {0x1b1, 3, None},     {0x1b1, 4, 0x42fa40},
+        {0x1b2, 3, None},     {0x1ba, 0, None},     {0x1ba, 3, 0x426d90}, {0x1ba, 4, None},     {0x1b9, 0, None},
+        {0x1b9, 3, 0x426d90}, {0x1b9, 4, 0x426d90}, {0x1b9, 6, None},     {0x1b8, 0, None},     {0x1b8, 3, 0x426d90},
+    };
+    for (const Case& entry : cases)
+    {
+        SCOPED_TRACE(testing::Message() << std::hex << entry.type << " " << static_cast<int>(entry.action));
+        const auto cut = ModelTrailCutOf(Monster(entry.type, entry.action));
+        ASSERT_EQ(cut.has_value(), entry.address.has_value());
+        if (!cut.has_value())
+            continue;
+        EXPECT_EQ(cut->address, *entry.address);
+        // 0x441260 y 0x42fa40 van antes del rand() de 0x432bd0; 0x426d90, después.
+        EXPECT_EQ(cut->beforeTheRandom, *entry.address != 0x426d90u);
+    }
+}
+
+// 0x427057..0x427068: el 0x1b8 en la 3 o la 4 deja estela con el frame (+0x114) en 5,06f (0x6b8a30) o menos, o NaN.
+TEST(ModelBodyTest, TheTrailOfThe1b8EndsAfterItsFifthFrame)
+{
+    using Client::Scenes::ModelTrailCutOf;
+    const float last = std::bit_cast<float>(0x40a1eb85u);
+    for (const std::uint8_t action : {std::uint8_t{3}, std::uint8_t{4}})
+    {
+        SCOPED_TRACE(static_cast<int>(action));
+        ActorState actor = Monster(0x1b8, action);
+        actor.animation.frame = last;
+        ASSERT_TRUE(ModelTrailCutOf(actor).has_value());
+        EXPECT_EQ(ModelTrailCutOf(actor)->address, 0x426d90u);
+        actor.animation.frame = std::nextafter(last, 10.0f);
+        EXPECT_FALSE(ModelTrailCutOf(actor).has_value());
+        actor.animation.frame = std::numeric_limits<float>::quiet_NaN();
+        EXPECT_TRUE(ModelTrailCutOf(actor).has_value());
+    }
 }
 
 // 0x506ccc..0x50862f: el caso del modelo, los que van directo a 0x50862f y los seis helpers de 0x5085db.
@@ -563,6 +616,42 @@ TEST_F(MonsterStep, TheSwingOfThe1b0DrawsItsRandomsBeforeItsEffects)
     DrawTheHeadAndTheEffects(expected);
     EXPECT_EQ(random.State(), expected.State());
     EXPECT_EQ(m_world->PoseCarry().models.count(0x1b0), 1u);
+    m_world->FaunaResources().Bind(nullptr);
+}
+
+// 0x4fd5c1: quieto desde el frame 3, el 0x1a7 (Monster85, de los tipos 294 y 302: la 31) no deja estela en 0x441260
+// (solo en la 3 y la 4); sigue con el rand() de 0x432bf1 y llega a 0x505de0, donde ningún helper actúa con él.
+TEST_F(MonsterStep, AStanding1a7GoesPastItsTrailHelper)
+{
+    Skeleton standing = Model();
+    for (auto& action : standing.actions)
+        action.keyCount = 10;
+    for (auto& bone : standing.bones)
+        for (auto& keys : bone.actions)
+            if (!keys.empty())
+                keys.resize(10, keys.front());
+    TraderLibrary library(standing, 0x1a7);
+    m_world->FaunaResources().Bind(&library);
+    for (const std::int32_t map : {0, 2, 31})
+    {
+        SCOPED_TRACE(map);
+        m_world->Runtime().map = map;
+        m_actor.type = 0x1a7;
+        m_actor.animation.action = 0;
+        m_actor.animation.frame = 3.0f;
+        CrtRandom random(Seed);
+        const auto stepped = Step(random);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        ASSERT_EQ(m_actor.animation.action, 0);
+        CrtRandom expected = Client::Tests::AfterDraws(Seed, 8 + 1 + 1 + 8);
+        // 0x4ea190 con la 0: rand() % 32 y, si da 0, dos más.
+        if (CrtRandom(expected).Next() % 32 == 0)
+            Skip(expected, 3);
+        else
+            Skip(expected, 1);
+        DrawTheHeadAndTheEffects(expected);
+        EXPECT_EQ(random.State(), expected.State());
+    }
     m_world->FaunaResources().Bind(nullptr);
 }
 } // namespace

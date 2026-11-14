@@ -25,7 +25,9 @@ class Particles;
 // 610/4 de lo que cuelga de un jugador, el 60f/0, el 60f/0x12 y el 610/7 del conjunto completo, el 619/9 de su 5ac/3 y
 // el 619/1 del calco de la mascota (0x518900), donde es el ActorState del personaje. Con `ownerKind` en Helper es el
 // HelperState del caballo oscuro (0x444740), sólo para el 60f/0 y el 60f/0x12: lee su luz (+0xf4) al nacer y su
-// acción (+0x111) en el paso; con otro tipo corta antes de escribir (0x530860).
+// acción (+0x111) en el paso; con otro tipo corta antes de escribir (0x530860). Con `ownerKind` en Actor es el
+// ActorState del jugador que entra al viewport en Kalima (0x4c91dc), sólo para el 610/8, que por el tipo es del pez de
+// Atlans; con otro tipo corta igual.
 // Se escribe sobre el primer muerto sin reconstruirlo; pool lleno no lee los argumentos ni RNG.
 namespace Client::Scenes
 {

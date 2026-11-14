@@ -9719,8 +9719,10 @@ el mismo pool, así que mueven y lastiman a los que da de alta el `12`.
 `Scenes/ActorEffectFlags.h`). `CreateActor` y `RemoveActor` son `0x512870` y `0x510ff0`, para la hito 2 también:
 `CreateActor(mundo, clave, tipo, {X, Y, ángulo}, contexto de 0x511290, telas)` devuelve el lugar (el 400 con el pool
 lleno). `0x401040` y `0x4fb1a0` no tienen qué soltar en el mundo de MuRet (P-C161). El efecto `0x61f` va sin el
-dueño, como el de la entrada del héroe. Cortan con su dirección, después de lo que el original hace antes: Kalima en
-`0x4c91dc` (CL11), el alta del `45` en `0x4c934c` (la hito 2; lo que sigue está portado en
+dueño, como el de la entrada del héroe. En Kalima (24 a 29 y 36), el joint `0x610`/8 de `0x4c91dc`, sin `rand()`, con
+el jugador de dueño: la clase de los peces de Atlans, con `JointOwnerKind::Actor` (nace en su posición con z = 300 y
+sus ángulos; el paso lo sigue y se apaga con él). Cortan con su dirección, después de lo que el original hace antes:
+el alta del `45` en `0x4c934c` (la hito 2; lo que sigue está portado en
 `Scenes::FinishTheTransformed`, que corta en `0x4c965c` con el recién llegado, CL11), el tipo `0xf1` del `DF` en
 `0x4c6b80` (la hito 2 y la CL11), y las banderas que crean efectos (`0x4e644f`, `0x4e662d`, `0x4e6725`, `0x4e676e`,
 `0x4e67d6` y `0x4e6869`, CL11 y CL10; `0x4e68f5`, P-C163). Los sonidos (`0x76`, `0x84`) quedan en el último sonido,

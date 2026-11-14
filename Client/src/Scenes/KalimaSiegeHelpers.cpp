@@ -4,6 +4,7 @@
 #include "Render/ModelBatch.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
+#include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
@@ -20,7 +21,6 @@
 #include <glm/ext/vector_float3.hpp>
 
 #include <algorithm>
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <format>
@@ -73,10 +73,22 @@ bool InKalima(std::int32_t map)
     return (map >= FirstKalimaMap && map <= LastKalimaMap) || map == SeventhKalimaMap;
 }
 
-// FLD T; FMUL rate; FSIN: el seno del reloj en 53 bits.
-double Wave(float clock, float rate)
+// FLD T; FMUL tasa; FSIN y FMUL de un float de la .data (`Wave`), FMUL de un double (`WaveDouble`) o FADD (`WavePlus`):
+// el seno retenido con un solo R53 (ADR0014). DrawTheTail llama a los helpers después de DrawGameHanging, que corta con
+// el reloj fuera de 2^40: el argumento cae siempre en el perfil y el 0 de afuera no se alcanza (como GameHanging).
+double Wave(float clock, float rate, float factor)
 {
-    return std::sin(D(clock) * D(rate));
+    return Render::Models::Detail::SineProductPC53(D(clock) * D(rate), factor).value_or(0.0);
+}
+
+double WaveDouble(float clock, float rate, double factor)
+{
+    return Render::Models::Detail::SineDoubleProductPC53(D(clock) * D(rate), factor).value_or(0.0);
+}
+
+double WavePlus(float clock, float rate, double addend)
+{
+    return Render::Models::Detail::SineSumPC53(D(clock) * D(rate), addend).value_or(0.0);
 }
 
 // rand() % 360 en un float, como FILD/FSTP.
@@ -250,7 +262,7 @@ Result DrawTheGate(const Helper& helper)
 // 0x43c565..0x43c638: los 0x5ac de los huesos 51..55 y 29..33, también en la acción 6.
 void DrawTheSpineStars(const Helper& helper)
 {
-    const double lum = Wave(helper.Clock(), Thousandth) * D(Fifth) + D(TwoFifths);
+    const double lum = Wave(helper.Clock(), Thousandth, Fifth) + D(TwoFifths);
     const float stored = F32(lum);
     const glm::vec3 light{F32(lum * D(Tenth)), F32(D(stored) * D(TwoFifths)), stored};
     constexpr std::size_t FirstBone = 29;
@@ -366,9 +378,14 @@ Result ShakeForKundun(const Helper& helper)
         const float turn = RandomTurn(helper.Random());
         constexpr int Spread = 600;
         constexpr int Near = 200;
-        const double distance = static_cast<double>(helper.Random().Next() % Spread + Near);
-        const glm::vec3 position{F32(std::sin(D(turn)) * distance + D(actor.position.x)),
-                                 F32(std::cos(D(turn)) * distance + D(actor.position.y)),
+        // 0x43cf7d..0x43cf99: FSIN y FCOS del giro (en radianes, sin convertir) por la distancia entera de la x87 (FMUL
+        // ST1), con un solo R53 cada uno (ADR0014); el giro, menor que 360, cae siempre en el perfil.
+        const auto distance = static_cast<float>(helper.Random().Next() % Spread + Near);
+        const auto sine = Render::Models::Detail::SineProductPC53(D(turn), distance);
+        const auto cosine = Render::Models::Detail::CosineProductPC53(D(turn), distance);
+        if (!sine || !cosine)
+            return Core::Unexpected<std::string>("0x43cf83: el giro de la piedra fuera del perfil PC53");
+        const glm::vec3 position{F32(*sine + D(actor.position.x)), F32(*cosine + D(actor.position.y)),
                                  F32(D(actor.position.z) + 800.0)};
         if (auto made = helper.KalimaEffect(position, angles, light); !made.HasValue())
             return made;
@@ -461,7 +478,7 @@ Result DrawKundun(const Helper& helper)
         actor.hands[1].level = 0xff;
         return {};
     }
-    const float red = F32(Wave(helper.Clock(), 0.003f) * D(Fifth) + D(0.8f));
+    const float red = F32(Wave(helper.Clock(), 0.003f, Fifth) + D(0.8f));
     const glm::vec3 eyes{red, 0.0f, 0.0f};
     helper.Sprite(Flare, helper.Point(8, {}), TwoFifths, eyes);
     helper.Sprite(Flare, helper.Point(9, {}), TwoFifths, eyes);
@@ -469,7 +486,7 @@ Result DrawKundun(const Helper& helper)
     constexpr std::size_t StaffBone = 100;
     const glm::vec3 staff = helper.Point(StaffBone, {});
     constexpr std::uint8_t CastAction = 5;
-    const double halo = Wave(helper.Clock(), Thousandth) * D(ThreeTenths) + D(1.2f);
+    const double halo = Wave(helper.Clock(), Thousandth, ThreeTenths) + D(1.2f);
     float scale = 1.0f;
     if (actor.animation.action == CastAction)
     {
@@ -517,7 +534,7 @@ void DrawTheThirdKalimaHelper(const Helper& helper)
 {
     if (helper.Actor().animation.action == DeadAction)
         return;
-    const float lum = F32(Wave(helper.Clock(), 0.003f) * D(Fifth) + D(0.8f));
+    const float lum = F32(Wave(helper.Clock(), 0.003f, Fifth) + D(0.8f));
     const float pale = F32(D(lum) * D(0.9f));
     const glm::vec3 core{lum, pale, pale};
     const glm::vec3 fire{lum, F32(D(lum) * D(ThreeTenths)), F32(D(lum) * D(Tenth))};
@@ -548,7 +565,7 @@ Result DrawTheFourthKalimaHelper(const Helper& helper)
     ActorState& actor = helper.Actor();
     if (actor.animation.action == DeadAction)
         return {};
-    const float lum = F32(Wave(helper.Clock(), 0.005f) * D(0.15f) + D(0.85f));
+    const float lum = F32(Wave(helper.Clock(), 0.005f, 0.15f) + D(0.85f));
     const glm::vec3 white{lum, lum, lum};
     const glm::vec3 blue{F32(D(lum) * D(ThreeTenths)), F32(D(lum) * D(0.6f)), lum};
     for (const std::size_t bone : {std::size_t{9}, std::size_t{10}})
@@ -606,13 +623,12 @@ Result DrawTheFifthKalimaHelper(const Helper& helper)
         DropTheHands(actor);
         return {};
     }
-    const double wave = Wave(helper.Clock(), Thousandth);
     constexpr std::uint16_t RedMonster = 0x91;
     if (actor.word376 == RedMonster)
     {
         const glm::vec3 red{1.0f, 0.0f, 0.0f};
         const glm::vec3 point = helper.Point(0, {0.0f, 0.0f, 30.0f});
-        helper.Sprite(Halo, point, F32(wave * D(ThreeTenths) + 2.0), red);
+        helper.Sprite(Halo, point, F32(Wave(helper.Clock(), Thousandth, ThreeTenths) + 2.0), red);
         if ((helper.Random().Next() & 1) == 0)
         {
             if (auto made = helper.Particle(0x5f2, point, actor.angles, red, 13, 1.0f, "0x43e4c0"); !made.HasValue())
@@ -621,10 +637,10 @@ Result DrawTheFifthKalimaHelper(const Helper& helper)
     }
     else
     {
-        helper.Sprite(Halo, helper.Point(0, {0.0f, 0.0f, 30.0f}), F32(wave * D(ThreeTenths) + D(1.2f)),
-                      {1.0f, 1.0f, 1.0f});
+        helper.Sprite(Halo, helper.Point(0, {0.0f, 0.0f, 30.0f}),
+                      F32(Wave(helper.Clock(), Thousandth, ThreeTenths) + D(1.2f)), {1.0f, 1.0f, 1.0f});
     }
-    const float small = F32(wave * D(Fifth) + D(ThreeTenths));
+    const float small = F32(Wave(helper.Clock(), Thousandth, Fifth) + D(ThreeTenths));
     for (const std::size_t bone : {std::size_t{28}, std::size_t{29}})
         helper.Sprite(Star, helper.Point(bone, {5.0f, 0.0f, 0.0f}), small, {1.0f, 1.0f, 1.0f});
     return {};
@@ -638,13 +654,13 @@ Result DrawTheSixthKalimaHelper(const Helper& helper)
         return {};
     glm::vec3 turned = actor.angles;
     const glm::vec3 white{1.0f, 1.0f, 1.0f};
-    const float small = F32(Wave(helper.Clock(), Thousandth) * D(Fifth) + D(ThreeTenths));
+    const float small = F32(Wave(helper.Clock(), Thousandth, Fifth) + D(ThreeTenths));
     const glm::vec3 knee = helper.Point(9, {5.0f, 0.0f, 0.0f});
     helper.Sprite(Star, knee, small, white);
     const glm::vec3 other = helper.Point(10, {5.0f, 0.0f, 0.0f});
     helper.Sprite(Star, other, small, white);
     // 0x43e6fd..0x43e7f5: la luz del hueso 60, verde en la acción 4.
-    const double lum = Wave(helper.Clock(), 0.002f) * D(ThreeTenths) + D(0.6f);
+    const double lum = Wave(helper.Clock(), 0.002f, ThreeTenths) + D(0.6f);
     const float stored = F32(lum);
     const float tenth = F32(lum * D(Tenth));
     const glm::vec3 light = actor.animation.action == 4 ? glm::vec3{tenth, stored, tenth} : glm::vec3(stored);
@@ -658,7 +674,7 @@ Result DrawTheSixthKalimaHelper(const Helper& helper)
     helper.Sprite(Star, other, 1.0f, {Tenth, TwoFifths, 1.0f});
     // 0x43e843..0x43e915: los huesos 63..67, con rand() % 50 en las acciones 0 y 1 para el joint 0x610/5 hacia el 60.
     const glm::vec3 blue{Tenth, ThreeTenths, 1.0f};
-    const float glow = F32(Wave(helper.Clock(), Thousandth) * D(Fifth) + D(0.5f));
+    const float glow = F32(Wave(helper.Clock(), Thousandth, Fifth) + D(0.5f));
     for (std::size_t bone = 63; bone < 68; ++bone)
     {
         glm::vec3 point = helper.Point(bone, {});
@@ -687,7 +703,7 @@ Result DrawTheSeventhKalimaHelper(const Helper& helper)
         DropTheHands(actor);
         return {};
     }
-    const float lum = F32(Wave(helper.Clock(), 0.003f) * D(Fifth) + D(0.8f));
+    const float lum = F32(Wave(helper.Clock(), 0.003f, Fifth) + D(0.8f));
     const glm::vec3 first = helper.Point(33, {});
     const glm::vec3 second = helper.Point(34, {});
     // +0x4: el subtipo 9 rojo; los demás, azules.
@@ -792,7 +808,7 @@ Core::Expected<bool, std::string> DrawTheCastleHelpers(const Helper& helper)
     case 0x1a8:
         if (actor.byte93 >= 5)
         {
-            actor.blendMeshLight = F32(Wave(helper.Clock(), Thousandth) * 0.3 + D(ThreeTenths));
+            actor.blendMeshLight = F32(WaveDouble(helper.Clock(), Thousandth, 0.3) + D(ThreeTenths));
             glm::vec3 light = amber;
             drawn = DrawCastleGlow(pass, Additive, position.x, position.y, WideSide, light);
         }
@@ -808,7 +824,7 @@ Core::Expected<bool, std::string> DrawTheCastleHelpers(const Helper& helper)
         {
             actor.byte42c = 1;
             glm::vec3 point = helper.Point(1, {});
-            point.z = F32((Wave(helper.Clock(), Thousandth) + 1.0) * 60.0 + D(point.z));
+            point.z = F32(WavePlus(helper.Clock(), Thousandth, 1.0) * 60.0 + D(point.z));
             helper.Sprite(Star, point, 3.0f, gold);
             helper.Sprite(Glow, point, 1.5f, gold, RandomTurn(helper.Random()));
             helper.Sprite(Star, helper.Point(2, {}), 4.0f, gold);
@@ -831,7 +847,7 @@ Core::Expected<bool, std::string> DrawTheCastleHelpers(const Helper& helper)
             actor.position.z = F32(D(actor.floatD8) - 100.0);
             actor.byte42c = 0;
         }
-        actor.blendMeshLight = F32(Wave(helper.Clock(), Thousandth) * D(ThreeTenths) + 0.5);
+        actor.blendMeshLight = F32(Wave(helper.Clock(), Thousandth, ThreeTenths) + 0.5);
         break;
     default:
         return false;
@@ -847,7 +863,7 @@ Core::Expected<void, std::string> DrawCastleGlow(const KalimaSiegeHelperPass& pa
 {
     if (pass.heights == nullptr)
         return Core::Unexpected<std::string>("0x42a248: faltan las alturas del terreno para 0x5fb2f0");
-    const float lum = F32(Wave(pass.worldClock, 0.0015f) * D(ThreeTenths) + D(0.7f));
+    const float lum = F32(Wave(pass.worldClock, 0.0015f, ThreeTenths) + D(0.7f));
     constexpr std::int32_t Subtractive = 0x80;
     if (mode == Subtractive)
     {

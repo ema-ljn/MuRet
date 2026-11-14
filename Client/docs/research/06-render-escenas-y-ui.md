@@ -10647,9 +10647,13 @@ Tests: `KalimaSiegeHelperTest` (`test_kalima_siege_helpers.cpp`: cada tipo en Lo
 
 (CL9 hito 2, fase 6d, 2026-11-13, *estático*.) Cuatro funciones por tipo que el grafo había dejado en la CL7: tres de
 la cadena del dibujo (`0x510a42..0x510a72`, con `c`, el objeto y el modelo; `c` y el objeto son el mismo registro) y
-una del paso desde el frame 3 (`0x4fd5d7`). Lo que es estado, sonido o `rand()` está portado; los efectos
-(`0x518cf0`), las partículas (`0x53fe70`), los joints (`0x530860`), la estela (`0x52e470`), `0x4ee770` (un `rand()`
-por vértice y sus efectos) y las marcas del piso (`0x5fb2f0`) cortan con la dirección de la llamada (08, P-C336). Los
+una del paso desde el frame 3 (`0x4fd5d7`). Lo que es estado, sonido o `rand()` está portado, y las partículas
+(`0x53fe70`) que `World::Particles` crea (`0x5ca/0`, `0x5f2/11`, `0x5f3/0`, `0x5d9/0`, `0x729/0` y `/1`) salen con sus
+`rand()` (revisión C, 2026-11-14). Las demás partículas cortan con la dirección de la llamada solo con lugar en la
+tabla: llena, `0x53fe70` no crea nada ni saca `rand()` y el helper sigue, y como la tabla no se vacía mientras se
+dibuja, las que siguen tampoco crean nada. Los efectos (`0x518cf0`), los joints (`0x530860`), la estela (`0x52e470`),
+`0x51fe10` y `0x4ee770` (un `rand()` por vértice y sus efectos) cortan siempre (08, P-C336). Las marcas del piso
+(`0x5fb2f0`) se dibujan, salvo la que lee la pila (Q-C1100). Los
 sprites son de `0x5491e0` sin dueño, rotación 0 y mezcla 0 salvo donde se dice. Los sonidos son `0x41ed10(id, 0, 0)`
 (CL10). El `+4` del objeto (el subtipo, Q-C1098) hace de "ya sonó": con `+4` en 0, `+4 = 1` y el sonido, y al final
 `+4 = 0` en las acciones 0 y 1. "Ocioso" es la acción 2 o la 10.
@@ -10665,11 +10669,11 @@ Los puntos salen de los huesos con nombre que registró el alta (`0x401000`): `0
 | Tipo | Qué hace, en orden |
 | --- | --- |
 | `0x1a3` (Monster81) | `0x5ac` a 0,5 con (0,9; 0,2; 0,1) en `EyeRight` y en `EyeLeft`; ocioso, `rand() % 15` en 0: `0x1f5 + rand() % 2`; en la 3 y la 4, una vez, `0x1f7 + rand() % 2`; en la 6, una vez, `0x1f9` |
-| `0x1a4` (Monster82) | en la 6, `0x4ee770` (`0x441696`); si no, el punto (5, 10, 5) de `LHand` y las partículas `0x6ec` y `0x5f2` (`0x441774`) |
-| `0x1a5` (Monster83) | una vez, ocioso `0x200 + rand() % 2` (sin el `% 15`), en la 3 y la 4 `0x202 + rand() % 2` y en la 6 `0x1f4`; en la 4, tres `rand() % 12 − 6` (x, y, z) desplazan el punto de `Tail`: un `0x5fd` a 2,5 con mezcla 1 y un `0x61e` a 0,8, los dos con la luz propia (`+0xf4`), y las partículas `0x5ca` (`0x441f7f`) |
-| `0x1a6` (Monster84) | `timeGetTime()` sin usar; ocioso, una vez, `0x1fa + rand() % 2`; en la 6, `0x4ee770` (`0x442165`); en la 3, una vez `0x1fe`, y `rand() % 2` en 1 es el efecto `0x12e` (`0x442397`); en 0, otro `rand() % 2` elige `PoisonRight` (0) o `PoisonLeft`, `rand() % 32 + 50` es la escala y corta en la partícula (`0x442370`); en la 4 con el frame de 3,5 a 4,2, una vez `0x1fc + rand() % 2`, `RightHand`, `rand() % 32` y la partícula (`0x4424d7`); en las demás, tres `rand() % 10` (`PoisonTop`, `PoisonRight`, `PoisonLeft`): el primero en 0 corta en su partícula (`0x44267f`, `0x44274b`, `0x442817`) |
-| `0x1a7` (Monster85) | `0x5ac` a 0,7 rojo en `LeftEye` y `RightEye`; ocioso, `rand() % 10` en 0 es la partícula `0x5f3` (`0x4429d8`, y después `0x1f0 + rand() % 2`); en la 3 y la 4, una vez, `0x1f2 + rand() % 2`; en la 6, una vez, `0x1f4` |
-| `0x1a9` (Monster87) | dos `0x5ac` a 0,5 rojos en el punto (0, −2, 0) de `LeftEye` y dos en el de `RightEye`; en la 3, una vez, `0x20b + rand() % 2`; en la 6, una vez, `0x20e`; en la 4, con `+4` en 0, `+4 = 1` y el efecto `0x13f` (`0x442cb9`, y después `0x20d`); si no, el punto (0, 0, −10) de `LeftHand` y sus partículas (`0x442da1`) |
+| `0x1a4` (Monster82) | en la 6, `0x4ee770` (`0x441696`); si no, el punto (5, 10, 5) de `LHand` y la partícula `0x6ec/3` (`0x441774`); llena la tabla, las `0x5f2/21`, `0x6ec/4` y `0x6ec/0` que siguen no crean nada, `rand() % 20` en 0 pide `0x205 + rand() % 2` y, con `+4` en 0, la 3 con el frame de 8,4 a 10,2 y la 4 de 5 a 5,7 ponen `+4 = 1` y cortan en sus efectos (`0x441b33`) y en `0x51fe10` (`0x441d7d`) |
+| `0x1a5` (Monster83) | una vez, ocioso `0x200 + rand() % 2` (sin el `% 15`), en la 3 y la 4 `0x202 + rand() % 2` y en la 6 `0x1f4`; en la 4, tres `rand() % 12 − 6` (x, y, z) desplazan el punto de `Tail`: un `0x5fd` a 2,5 con mezcla 1 y un `0x61e` a 0,8, los dos con la luz propia (`+0xf4`), y dos `0x5ca/0` con (1; 0,3; 0) (`0x441f7f`, `0x441f9c`); después doce vueltas de `rand() % 40 − 20`, `rand() % 40 − 20` y `rand() % 48 − 24` para el punto de `Belly`, con los mismos dos sprites y una `0x5ca/0` (`0x4420dd`) |
+| `0x1a6` (Monster84) | `timeGetTime()` sin usar; ocioso, una vez, `0x1fa + rand() % 2`; en la 6, `0x4ee770` (`0x442165`); en la 3, una vez `0x1fe`, y `rand() % 2` en 1 es el efecto `0x12e` (`0x442397`); en 0, otro `rand() % 2` elige `PoisonRight` (0) o `PoisonLeft` y `(rand() % 32 + 50) · 0,025f` es la escala de su `0x5f2/11` con (0,4; 1; 0,7) (`0x442370`), antes del mismo efecto; en la 4 con el frame de 3,5 a 4,2, una vez `0x1fc + rand() % 2` y, en `RightHand` y `LeftHand` con la z del objeto, `(rand() % 32 + 50) · 0,05f` para su `0x5f2/11` (`0x4424d7`, `0x4425b3`); después (y en las demás), tres `rand() % 10` (`PoisonTop`, `PoisonRight`, `PoisonLeft`): cada uno en 0 es su `0x5f2/0x17`, que corta con lugar (`0x44267f`, `0x44274b`, `0x442817`) |
+| `0x1a7` (Monster85) | `0x5ac` a 0,7 rojo en `LeftEye` y `RightEye`; ocioso, `rand() % 10` en 0 es la partícula `0x5f3/0` en la posición con la luz de los ojos (`0x4429d8`), y después `0x1f0 + rand() % 2`; en la 3 y la 4, una vez, `0x1f2 + rand() % 2`; en la 6, una vez, `0x1f4` |
+| `0x1a9` (Monster87) | dos `0x5ac` a 0,5 rojos en el punto (0, −2, 0) de `LeftEye` y dos en el de `RightEye`; en la 3, una vez, `0x20b + rand() % 2`; en la 6, una vez, `0x20e`; en la 4, con `+4` en 0, `+4 = 1` y el efecto `0x13f` (`0x442cb9`, y después `0x20d`); si no, el punto (0, 0, −10) de `LeftHand` y su `0x6ec/3` (`0x442da1`; llena, la `0x5f2/21` que sigue tampoco crea nada) |
 
 **`0x434180`** (solo en el mapa 34, `0x4303c0`; la tabla de bytes `0x43559c` sobre la de saltos `0x43556c`). Los
 sonidos van por un solo `if`/`else`: ocioso, `rand() % 15` en 0 pide el primero más `rand() % 2`; si no, la acción
@@ -10682,23 +10686,23 @@ de la lista pide el suyo una vez. Devuelve 1 (corta la cadena) con el `0x1ad` y 
 | `0x1ad` | `0x229`; `0x22b`, `0x22c`, `0x22d` | |
 | `0x1af` | `0x23c`; `0x23e`, `0x23f`, `0x240` | después de los sonidos, `a = rand() % 14 · 0,01f` y el giro `rand() % 360`; en `Monster94_zx` un `0x699` a 1,5 blanco, tres `0x5ac` a `a · 5 + 3,5` y un `0x69a` a `a + 0,8` girado, los cuatro con (0,3; 0,3; 0,7); en `zx01` un `0x5fd` a 0,8 (0,1; 0; 0,6) girado y, con `rand() % 2` en 0, otro (0,7; 0,7; 1) con `360 − giro`; y un `0x5ac` a 1,5 azul |
 | `0x1b0` | `0x224`; `0x226`, `0x227`, `0x228` | |
-| `0x1b1` | `0x210`; `0x212`, `0x213`, `0x214` | antes, fuera de la 6, un `0x5ac` a 3,5 rojo en `Monster95_Head`; ocioso, `rand() % 10` en 0 es la partícula `0x5f3` (`0x434d84`) |
-| `0x1b2` | `0x21f`; `0x221`, `0x222`, `0x223` | antes, el giro `rand() % 360` y `l = sin(T · 0,0012f) · 0,8f + 1,3f`; un `0x5ac` del tamaño (1, o 0,5 en la 3 y la 4) con (0; `l · 0,5`; `l · 0,1f`) en `Monster96_Center`; en `Top` y `Bottom`, dos `0x5fd` de la mitad del tamaño con (0,5; 0,5; 0,5), con el giro y con `360 − giro` |
+| `0x1b1` | `0x210`; `0x212`, `0x213`, `0x214` | antes, fuera de la 6, un `0x5ac` a 3,5 rojo en `Monster95_Head`; ocioso, `rand() % 10` en 0 es la partícula `0x5f3/0` en la posición con la luz de los ojos (`0x434d84`) |
+| `0x1b2` | `0x21f`; `0x221`, `0x222`, `0x223` | antes, el giro `rand() % 360` y `l = sin(T · 0,0012f) · 0,8f + 1,3f` (el seno retenido, ADR0014); un `0x5ac` del tamaño (1, o 0,5 en la 3 y la 4) con (0; `l · 0,5`; `l · 0,1f`) en `Monster96_Center`; en `Top` y `Bottom`, dos `0x5fd` de la mitad del tamaño con (0,5; 0,5; 0,5), con el giro y con `360 − giro` |
 | `0x1b3` | `0x21a`; `0x21c`, `0x21d`, `0x21e` | antes, en la 4 con el frame de 4 a 6, el efecto `0x115` (`0x434ecf`) |
 | `0x1b4` | `0x215`; `0x217`, `0x218`, `0x219` | |
 | `0x1b5` | — ; `0x241` (3 y 4), `0x242` (6) | sin la regla de la 0 y la 1: en la 3 y la 6 deja `+4`, en las demás lo pone en 0 (Q-C1099); devuelve 0 |
-| `0x204..0x208` | — | `0x620a90`; con `+0x7c & 0x40000`, la luz propia en (0,09; 0,09; 0,04) y dos partículas `0x729` (`0x434281`); después, con o sin ellas, las dos marcas `0x69b` del piso (`0x43436c` y `0x43439a`, Q-C1100) y `0x620980`; devuelve 0. MuRet dibuja la primera (2,8, con `0x100000` o `0x20000` la luz (b; 0,1; 0,1) y el giro g; con `0x10000` u `0x80000`, (0,15; 0,15; b) y T · 0,01f; al doble) y corta en la segunda, cuyo giro solo escribe la rama de `0x40000` |
+| `0x204..0x208` | — | `0x620a90`; con `+0x7c & 0x40000`, la luz de las marcas (g; g; 0,05f), los giros T · 0,01f y T · −0,01f, la luz propia en (0,09; 0,09; 0,04) y las partículas `0x729/0` y `/1` en la posición con esa luz (`0x434281`, `0x43429a`); después, las dos marcas `0x69b` del piso (`0x43436c` de 2,8 y `0x43439a` de 3,6, la luz al doble; con `0x100000` o `0x20000` la luz (b; 0,1; 0,1), con `0x10000` u `0x80000` (0,15; 0,15; b) y el giro de la primera T · 0,01f) y `0x620980`; devuelve 0. La marca cuya luz o giro es la pila sin escribir (la primera sin ningún bit, la segunda sin `0x40000`) MuRet no la dibuja: solo liga su textura (Q-C1100) |
 
 **`0x4271d0`** (`c` y el objeto; la tabla de `0x428dd4`, del `0x1b6` al `0x1bb`; devuelve 0 siempre).
 
 | Tipo | Qué hace, en orden |
 | --- | --- |
-| `0x1b6` (Monster100) | `v = rand() % 30 · 0,01f + 0,6f` (en la x87) y la luz (`v + 0,5`; `v − 0,05f`; `v + 0,5`); `0x5ad` en `L_Hand` (0,8), `z02` (1,1), `z03` (1), `z04` (1,7) y `z05` (0,8); el punto (0, 0, −65) de `Footstepst` y la partícula `0x5ad` (`0x42769f`) |
-| `0x1b7` (Monster101) | el punto de `L_Arm` y las partículas `0x6f1` (`0x427b8b`) |
-| `0x1b8` (Monster102) | `rand() % 10`, un `0x5ad` a 3 con (0; `r · 0,01f + 0,2f`; 0) en el punto (60, −30, 0) de `Head` y la partícula `0x5c6` (`0x428164`); sus sonidos van después |
+| `0x1b6` (Monster100) | `v = rand() % 30 · 0,01f + 0,6f` (en la x87) y la luz (`v + 0,5`; `v − 0,05f`; `v + 0,5`); `0x5ad` en `L_Hand` (0,8), `z02` (1,1), `z03` (1), `z04` (1,7) y `z05` (0,8); el punto (0, 0, −65) de `Footstepst` y la partícula `0x5ad/4` (`0x42769f`); llena la tabla, los sonidos (ocioso `rand() % 15` en 0: `0x261 + rand() % 2`; una vez, `0x264` en la 3, `0x9c + rand() % 2` y `0x263` en la 4, `0x265` en la 6) y, en la 3 y la 4, las `0x5f2/0x1b` y `0x5ad` del pie y del blanco, que no crean nada; con el blanco `+0x3a4` (WORD con signo) en el pool, en la 4 desde el frame 6 el joint `0x614` (`0x427a8d`) |
+| `0x1b7` (Monster101) | el punto de `L_Arm` y su `0x6f1/1` (`0x427b8b`); llena, las de `R_Arm` y `Head` no crean nada, los sonidos (ocioso `0x247`; `0x249`, `0x24a`, `0x24b`) y, en la 3, las `0x5f2/0x19` (desde el frame 4) y `0x6eb/3` (de 5 a 5,5), que no crean nada, y con el blanco en el pool desde el frame 6,9 el joint `0x618` (`0x428036` salta a `0x427a8d`) |
+| `0x1b8` (Monster102) | `rand() % 10`, un `0x5ad` a 3 con (0; `r · 0,01f + 0,2f`; 0) en el punto (60, −30, 0) de `Head` y la partícula `0x5c6/7` (`0x428164`); llena, sus sonidos (ocioso `0x24c`; `0x24e`, `0x24f`, `0x250`) |
 | `0x1b9` | solo sonidos: ocioso `0x256`; `0x258`, `0x259`, `0x25a` |
-| `0x1ba` (Monster104) | sonidos (ocioso `0x251`; `0x253`, `0x254`, `0x255`); seis cuernos (`Monster104_Horn%d`): `rand() % 10`, un `0x5ad` a 0,4 con (0,4; `r · 0,01f + 0,8f`; 0,5) y la partícula `0x5c6` (`0x42849c`, en el primero) |
-| `0x1bb` (Monster105) | `rand() % 8`, la luz (`r · 0,1f + 0,6f`; 0; 0); `0x5ad` en `R_Eye` y `L_Eye` (0,3) y `L_Arm00` a `L_Arm02` (1); sonidos (ocioso `0x25b`; 3 `0x25f`, 4 `0x25e`, 8 `0x25d`, 6 `0x260`); la partícula `0x6ec` de `L_Hand` (`0x428adc` en la 4, `0x428c52` en las demás) |
+| `0x1ba` (Monster104) | sonidos (ocioso `0x251`; `0x253`, `0x254`, `0x255`); seis cuernos (`Monster104_Horn%d`): `rand() % 10`, un `0x5ad` a 0,4 con (0,4; `r · 0,01f + 0,8f`; 0,5) y la partícula `0x5c6/6` (`0x42849c`, que corta en el primero con lugar); llena, las seis vueltas y, en la 4, la `0x5f2/0x1a` de `Footsteps`, que no crea nada |
+| `0x1bb` (Monster105) | `rand() % 8`, la luz (`r · 0,1f + 0,6f`; 0; 0); `0x5ad` en `R_Eye` y `L_Eye` (0,3) y `L_Arm00` a `L_Arm02` (1); sonidos (ocioso `0x25b`; 3 `0x25f`, 4 `0x25e`, 8 `0x25d`, 6 `0x260`); la partícula `0x6ec/6` de `L_Hand` (`0x428adc` en la 4, `0x428c52` en las demás); llena, la de `R_Hand` no crea nada y en la 4 con el frame de 9 a 10, el efecto `0x5e8` (`0x428da7`) |
 
 **`0x432bd0`** (desde `0x4fcee0`, con cualquier tipo, `c`, el objeto y el modelo). Primero un `rand()` sin condición
 (`0x432bf1`); después, por tipo (la tabla de `0x4339a8`, del `0x1ab` al `0x1b4`; el `0x1ac`, el `0x1ad` y el `0x1b2`
@@ -10709,11 +10713,11 @@ para la estela `0x52e470`, que corta en la primera vuelta:
 
 | Tipo | Acción (velocidad) | Qué hace |
 | --- | --- | --- |
-| `0x1ab` | 3 (3) | con el frame en (3,5; 4,5), la partícula `0x640` después de posar (`0x433056`); si no, la estela (`0x433086`) |
-| `0x1ae` | 8 | el punto de `Left_Hand` y las partículas `0x5f2` y `0x5ad` (`0x433248`) |
+| `0x1ab` | 3 (3) | con el frame en (3,5; 4,5), la partícula `0x640` después de posar (`0x433056`, con lugar); después, la estela (`0x433086`) |
+| `0x1ae` | 8 | el punto de `Left_Hand` y la `0x5f2/0x1b` (`0x433248`, con lugar); llena, las dos `0x5ad/2` tampoco crean nada y sale |
 | `0x1ae` | 3 y 4 (la suya) | en la 4 con el frame en (4,5; 5), el efecto `0x145` antes de posar (`0x433339`); si no, la estela (`0x433410`) |
 | `0x1af` | 3 y 4 (la suya) | la estela (`0x433557`) |
-| `0x1b0` | 4 (4) | diez vueltas: la pose, el punto (0, 100, −150) del hueso 16; con el frame del objeto en (5, 7), la partícula `0x5d9` (`0x432d07`); el punto (0, −150, 0) girado por los ángulos (`0x5fc8f0`, `0x5fcbd0`), que nadie lee; la z de los ángulos menos 18; dos `rand()` (`0x432d6f`, `0x432d74`, Q-C1103). Al final, los ángulos vuelven a los de antes |
+| `0x1b0` | 4 (4) | diez vueltas: la pose, el punto (0, 100, −150) del hueso 16; con el frame del objeto en (5, 7), la partícula `0x5d9/0` en ese punto, con los ángulos de la vuelta, luz blanca y escala 1 (`0x432d07`); el punto (0, −150, 0) girado por los ángulos (`0x5fc8f0`, `0x5fcbd0`), que nadie lee; la z de los ángulos menos 18; dos `rand()` (`0x432d6f`, `0x432d74`, Q-C1103). Al final, los ángulos vuelven a los de antes |
 | `0x1b1` | 4 (4) | la estela (`0x4337cf`) |
 | `0x1b3` | 3 (3) | la estela (`0x43397d`) |
 | `0x1b4` | 3 (3) | la estela (`0x432ea3`) |
@@ -10721,9 +10725,9 @@ para la estela `0x52e470`, que corta en la primera vuelta:
 En MuRet, el `0x1a7`, el `0x1b1` y el `0x1b3` cortan antes, en `0x441260` y `0x42fa40`.
 
 MuRet: `Scenes::DrawTheMonsterHelpers` (`MonsterHelpers.h`), desde la cola de `DrawGameMonster` después de `0x43c150` y
-`0x42dfe0`, con el personaje o su copia, el `rand()` del dibujo y los sprites del frame; los sonidos en
+`0x42dfe0`, con el personaje o su copia, el `rand()` del dibujo y los sprites y las partículas del frame; los sonidos en
 `WorldRuntime::lastSoundId`, solo en un frame del original. `Scenes::StepTheSwingsOf1abTo1b4`, desde
-`StepTheWeaponTrail` (`CharacterStep`): las poses van a `WorldState::PoseCarry` con `PublishFaunaPoseRaw` (sin mallas)
+`StepTheWeaponTrail` (`CharacterStep`), con las partículas y el reloj del paso: las poses van a `WorldState::PoseCarry` con `PublishFaunaPoseRaw` (sin mallas)
 y la key a `FaunaModels::RecordPoseKey`; la acción, la escala y la posición del modelo son las del personaje
 (Q-C1102). Un hueso con nombre que falta corta en su llamada. Tests: `MonsterHelpersTest` (`test_monster_helpers.cpp`:
 cada tipo en Lorencia, Devias o Crywolf, con sus `rand()` contados) y

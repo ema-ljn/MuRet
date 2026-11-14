@@ -284,6 +284,8 @@ struct ActorState
     // +0x42c: 0x511290 lo pone en 1 (0x511c92); sin él, el picking de 0x59e700 no lo elige (0x59e95e). En el mapa 30
     // lo apagan y lo prenden 0x42d890, 0x42da90 y 0x42dfe0 en los objetos del asedio.
     std::uint8_t byte42c = 0;
+    // +0x1bc: 0x511ce4 lo inicia y el BA con 0x28 lo reemplaza.
+    std::uint8_t byte1bc = 0;
     // +0x381: la habilidad activa inhibe la orientación quieta (59b3e4). Retenido por 511290.
     std::uint8_t byte381 = 0;
     std::uint16_t word1f2 = 0;

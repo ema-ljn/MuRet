@@ -9,6 +9,7 @@
 #include "Core/IClock.h"
 #include "Core/Log.h"
 #include "Data/Models/PlayerModels.h"
+#include "Protocol/CastleBattle.h"
 #include "Protocol/CastleSiege.h"
 #include "Protocol/Character/CharacterList.h"
 #include "Protocol/Character/CharacterSelectResult.h"
@@ -39,6 +40,7 @@
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActionReply.h"
 #include "Scenes/ActorCombat.h"
+#include "Scenes/CastleBattleReceive.h"
 #include "Scenes/CastleSiegeReceive.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/ChatReceive.h"
@@ -561,6 +563,8 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
         return ApplyCastleSiegePacket(*castle, CastleContextOf(m_resources, session));
     if (auto npc = ApplyNpcWindowEvent(event, m_resources, session))
         return *std::move(npc);
+    if (const auto* battle = std::get_if<Protocol::CastleBattle::CastleBattlePacket>(&event))
+        return ApplyCastleBattlePacket(*battle, CastleContextOf(m_resources, session));
     if (const auto* moved = std::get_if<Protocol::Inventory::ItemMoveResult>(&event))
         return ApplyItemMoveResult(*moved, m_resources);
     if (const auto* life = std::get_if<Protocol::Inventory::LifeRefill>(&event))

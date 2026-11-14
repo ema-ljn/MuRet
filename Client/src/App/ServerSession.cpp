@@ -17,6 +17,7 @@
 #include "Network/LinkState.h"
 #include "Network/Packet.h"
 #include "Protocol/BuildConstants.h"
+#include "Protocol/CastleBattle.h"
 #include "Protocol/CastleSiege.h"
 #include "Protocol/Character/CharacterCreate.h"
 #include "Protocol/Character/CharacterDelete.h"
@@ -372,7 +373,7 @@ void ServerSession::RegisterGameServerHandlers()
         // CL9 hito 11: los eventos.
         RegisterTheEventPackets() &&
         // CL9 hito 12: el castillo fuera de la batalla.
-        RegisterCastleSiegeHandlers();
+        RegisterCastleSiegeHandlers() && RegisterCastleBattleHandlers();
     assert(registered && "los handlers del GameServer se registran una vez");
     // CL9 hito 3 (atacar, el daño y la muerte): el despacho de 0x4e2b10 manda el 0x16 a 0x4cf200 y el 0x9C a 0x4cfce0
     // (los dos con el flag de descifrado) y el 0x17 a 0x4d0a30. El 0x15 de la GS 0.97 (GCDamageSend) no tiene caso: cae
@@ -593,8 +594,9 @@ void ServerSession::SendGamePacket(Protocol::Outgoing packet)
 }
 
 // CL9 hito 12: el castillo fuera de la batalla (0x4e2b10 con B2, B3, B4, B5, B6 y B8). Del B2, los subcódigos de las
-// ventanas (Protocol::CastleSiege::WindowSubcodes); los de la batalla (hito 13) y los del default siguen llegando como
-// Unknown, como el B2 19 que el laboratorio manda después de cada /move. Del B8, solo el 01 (0x4e5894).
+// ventanas (Protocol::CastleSiege::WindowSubcodes); el 20 es de la batalla (RegisterCastleBattleHandlers), y los
+// demás de la batalla (P-C302) y los del default siguen llegando como Unknown, como el B2 19 que el laboratorio manda
+// después de cada /move. Del B8, solo el 01 (0x4e5894).
 bool ServerSession::RegisterCastleSiegeHandlers()
 {
     namespace Castle = Protocol::CastleSiege;
@@ -611,6 +613,23 @@ bool ServerSession::RegisterCastleSiegeHandlers()
             return false;
     }
     return m_gameServer.On(Castle::KillCountOpcode, Castle::KillCountSubcode, onCastle);
+}
+
+// CL9 hito 13: la batalla del castillo. Del B9 que llega, el 01, 02, 03 y 05 (0x4e58b0, tabla 0x4e61f8; el 04 y desde
+// el 06 caen al default y siguen llegando como Unknown); el BA (0x4e5929) y el BB (0x4e57f5) enteros; del B2, el 20
+// (0x4e572d).
+bool ServerSession::RegisterCastleBattleHandlers()
+{
+    namespace Battle = Protocol::CastleBattle;
+    const auto onBattle = [this](const Network::Packet& packet) { OnCastleBattle(packet); };
+    for (const std::uint8_t subcode : Battle::BattleSubcodes)
+    {
+        if (!m_gameServer.On(Battle::BattleOpcode, subcode, onBattle))
+            return false;
+    }
+    return m_gameServer.On(Battle::ActorFieldOpcode, onBattle) &&
+           m_gameServer.On(Battle::MinimapMembersOpcode, onBattle) &&
+           m_gameServer.On(Battle::CastleOpcode, Battle::SwitchHolderSubcode, onBattle);
 }
 
 void ServerSession::Start()
@@ -1543,6 +1562,17 @@ void ServerSession::OnCastleSiege(const Network::Packet& packet)
         return;
     }
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(std::move(castle).Value(), *this)));
+}
+
+void ServerSession::OnCastleBattle(const Network::Packet& packet)
+{
+    auto battle = Protocol::CastleBattle::ReadCastleBattlePacket(packet);
+    if (!battle.HasValue())
+    {
+        m_log.Warning("se ignora el paquete de la batalla del castillo: {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(std::move(battle).Value(), *this)));
 }
 
 void ServerSession::OnOptionData(const Network::Packet& packet)

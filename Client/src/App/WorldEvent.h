@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Network/Packet.h"
+#include "Protocol/CastleBattle.h"
 #include "Protocol/CastleSiege.h"
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
@@ -117,5 +118,5 @@ using WorldEvent = std::variant<
     Protocol::Combat::Death, Protocol::Events::EventPacket, Protocol::Guild::GuildPacket,
     Protocol::Letters::LetterSendResult, Protocol::Letters::LetterRow, Protocol::Letters::LetterRead,
     Protocol::Letters::LetterDeleteResult, Protocol::FriendChat::RoomAnswer, Protocol::FriendChat::InviteResult,
-    ChatRoomPacket, ChatRoomClosed, ChatRoomPingDue, Protocol::CastleSiege::CastleSiegePacket>;
+    ChatRoomPacket, ChatRoomClosed, ChatRoomPingDue, Protocol::CastleSiege::CastleSiegePacket, Protocol::CastleBattle::CastleBattlePacket>;
 } // namespace Client::App

@@ -11,6 +11,7 @@
 #include "support/ItemSetFiles.h"
 #include "Data/Text/FilterWords.h"
 #include "Data/Text/MoveRequirements.h"
+#include "Scenes/NpcNames.h"
 #include "Data/Text/TextTable.h"
 #include "support/SceneDataFiles.h"
 #include "support/GateFiles.h"
@@ -22,11 +23,13 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cstddef>
 #include <filesystem>
 #include <map>
 #include <span>
 #include <string>
+#include <string_view>
 #include <system_error>
 #include <utility>
 #include <vector>
@@ -224,6 +227,70 @@ TEST(GameDataTest, ReadsTheMoveRequirements)
     const auto shortFile = LoadGameData(folder.Path());
     ASSERT_FALSE(shortFile.HasValue());
     EXPECT_NE(shortFile.Error().find("Local\\movereq.bmd"), std::string::npos) << shortFile.Error();
+}
+
+// 0x61ed05 → 0x54e7f0: NpcName(Eng).txt sin mirar mayúsculas; sin él, la tabla vacía y sin error. main.cpp copia los
+// registros al principio de los 512 de WorldRuntime::npcNames (NpcNameTableOf), donde los busca 0x54ebb0. Uno que el
+// original no terminaría de leer lo nombra. Los nombres son inventados.
+TEST(GameDataTest, ReadsTheNpcNames)
+{
+    const TemporaryFolder folder("game-data");
+    WriteTextTable(folder.Path(), {{1, "uno"}});
+    WriteSceneFile(folder.Path(), "Gate.bmd", GateTableBytes({}));
+    WriteSceneFile(folder.Path(), "Local/Item.bmd", Client::Tests::EmptyItemTableBytes());
+    Client::Tests::WriteEmptyItemSetFiles(folder.Path());
+    Client::Tests::WriteEmptySkillFile(folder.Path());
+
+    const auto without = LoadGameData(folder.Path());
+    ASSERT_TRUE(without.HasValue()) << without.Error();
+    EXPECT_TRUE(without.Value().npcNames.empty());
+    const Client::Scenes::NpcNameTable empty = Client::Scenes::NpcNameTableOf(without.Value().npcNames);
+    EXPECT_EQ(empty.size(), Client::Scenes::NpcNameCount);
+    EXPECT_EQ(Client::Scenes::NpcNameOf(empty, 0), "");
+    EXPECT_FALSE(Client::Scenes::NpcNameOf(empty, 7).has_value());
+
+    const auto write = [&folder](std::string_view text)
+    {
+        const std::span<const std::byte> bytes = std::as_bytes(std::span(text));
+        WriteSceneFile(folder.Path(), "Local/NPCNAME(eng).TXT", bytes);
+    };
+    write("// inventados\r\n 7 1 \"Guardia inventado\"\r\n 9 1 \"Elfa inventada\"\r\n");
+    const auto data = LoadGameData(folder.Path());
+    ASSERT_TRUE(data.HasValue()) << data.Error();
+    ASSERT_EQ(data.Value().npcNames.size(), 2u);
+    const Client::Scenes::NpcNameTable table = Client::Scenes::NpcNameTableOf(data.Value().npcNames);
+    ASSERT_EQ(table.size(), Client::Scenes::NpcNameCount);
+    EXPECT_EQ(Client::Scenes::NpcNameOf(table, 7), "Guardia inventado");
+    EXPECT_EQ(Client::Scenes::NpcNameOf(table, 9), "Elfa inventada");
+    EXPECT_EQ(table[2].type, 0);
+    EXPECT_EQ(Client::Scenes::NpcNameOf(table, 0), "");
+
+    write(" 7 1 \"Guardia inventado\" // sin fin de línea");
+    const auto hanging = LoadGameData(folder.Path());
+    ASSERT_FALSE(hanging.HasValue());
+    EXPECT_NE(hanging.Error().find("Local\\NpcName(Eng).txt"), std::string::npos) << hanging.Error();
+}
+
+// 0x54ebb0 devuelve el puntero a +2 del registro: un nombre sin '\0' en sus 0x34 bytes (el que dejó un nombre largo de
+// 0x54e7f0) sigue por el tipo del registro siguiente (el byte bajo primero) y su nombre, hasta el primer '\0'; en el
+// último registro, hasta el final de la tabla. Los nombres son inventados.
+TEST(GameDataTest, ANameWithoutItsZeroGoesOnInTheNextRecord)
+{
+    Client::Scenes::NpcNameTable table = Client::Scenes::NpcNameTableOf({});
+    const std::string full(Client::Scenes::NpcNameBytes, 'a');
+    table[3].type = 5;
+    std::ranges::copy(full, table[3].name.begin());
+    table[4].type = 0x6362;
+    std::ranges::copy(std::string_view("def"), table[4].name.begin());
+    EXPECT_EQ(Client::Scenes::NpcNameOf(table, 5), full + "bcdef");
+    table[4].type = 0x0062;
+    EXPECT_EQ(Client::Scenes::NpcNameOf(table, 5), full + "b");
+    table[4].type = 0x6200;
+    EXPECT_EQ(Client::Scenes::NpcNameOf(table, 5), full);
+
+    table.back().type = 8;
+    std::ranges::fill(table.back().name, 'z');
+    EXPECT_EQ(Client::Scenes::NpcNameOf(table, 8), std::string(Client::Scenes::NpcNameBytes, 'z'));
 }
 
 // Uno con otra suma (o la del otro archivo) es un error que lo nombra, como el "File corrupted" del

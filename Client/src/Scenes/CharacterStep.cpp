@@ -29,6 +29,9 @@
 #include "Scenes/HealthBars.h"
 #include "Scenes/ItemSetOptionList.h"
 #include "Scenes/ModelBody.h"
+#include "Scenes/ModelEffects.h"
+#include "Scenes/MonsterHelpers.h"
+#include "Scenes/MonsterStepCases.h"
 #include "Scenes/NpcChatter.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnStatHelpers.h"
@@ -42,6 +45,7 @@
 #include "World/TerrainHeight.h"
 #include "World/TerrainWalls.h"
 #include "World/WorldObjectStepServices.h"
+#include "World/WorldObjects.h"
 #include "World/WorldTerrain.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -52,6 +56,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <format>
+#include <functional>
 #include <optional>
 #include <span>
 #include <string>
@@ -64,10 +69,8 @@ namespace
 constexpr std::size_t SteppedCharacters = 400;
 // 0x412162: en el mapa 30 (0x1e), 0x412140 arma el panel del asedio.
 constexpr std::int32_t CastleMap = 30;
-// 0x42daae..0x42dac4: los casos del switch de 0x42da90 sobre +0x376 − 0xd8 (las tablas 0x42dc4c y 0x42dc64).
-constexpr std::array<std::uint16_t, 6> SiegeObjectClasses{216, 277, 278, 283, 286, 287};
 
-// 0x4fd603: el tipo que pasa su nombre a 0x4381f0.
+// 0x4fd603: el tipo que pasa su nombre y su nivel a 0x4381f0.
 constexpr std::uint16_t NamedType = 0xc5;
 // 0x4fbe2e..0x4fbe41: 0x4fbe10 corre solo en los mapas 18 a 23.
 constexpr std::int32_t FirstCellReportMap = 18;
@@ -191,13 +194,29 @@ void ClearBit(std::uint8_t& bits, std::uint8_t bit)
 
 // El modelo de 0x5769ad8 + tipo · 0xe0 que leen 0x4f9580, 0x4fcbb0 y 0x505de0: Player.bmd, el NewFace suelto o el de
 // los monstruos y los NPC (WorldState::FaunaResources, con la biblioteca del mapa detrás; 08, P-C176).
+// El registro de un monstruo o un NPC existe siempre: el de un modelo que no se cargó (un .bmd que falta en Npc u
+// Object35, que 0x60da30 saltea, o un tipo sin caso de carga) está en 0, sin acciones (+0x26), y 0x4ea030, 0x4f9580 y
+// 0x505de0 lo toman como un modelo vacío.
 const Render::Models::Skeleton* ModelSkeletonOf(const ActorState& actor, const CharacterStepContext& context)
 {
+    static const Render::Models::Skeleton ZeroRecord;
     if (actor.type == Data::Models::PlayerSkeletonModel)
         return context.playerSkeleton;
     if (IsNewFace(actor.type))
         return context.newFaceSkeleton;
-    return context.world.FaunaResources().SkeletonOf(actor.type);
+    const Render::Models::Skeleton* loaded = context.world.FaunaResources().SkeletonOf(actor.type);
+    return loaded != nullptr ? loaded : &ZeroRecord;
+}
+
+// 0x5f93c0(x, y) sobre el terreno del paso, con la altura fija de context; vacía sin las alturas o sin el
+// TerrainWall.
+std::function<double(float, float)> TerrainHeightOf(const CharacterStepContext& context)
+{
+    const World::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
+    if (!terrain.heights || !terrain.attributes)
+        return {};
+    return [&terrain, fixedHeight = context.fixedHeight](float x, float y)
+    { return World::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y, fixedHeight); };
 }
 
 // 0x508ba0(c, c) desde 0x508ed8 con otro que el héroe publicado ([0x743a170]; con él sale en 0x508bad).
@@ -501,14 +520,24 @@ Core::Expected<void, std::string> StepTheAnimation(ActorState& actor, std::size_
             actor.animation.frame = NamedFrame;
         }
     }
-    // 0x4fce7a..0x4fced1: el 0x1f5 compara el frame que dejó en su modelo el último que lo posó (+0xa8 de
-    // 0x5769ad8 + 0x1f5 · 0xe0) con la última key de la acción y, si es esa, rand() % 32 elige la acción 1 o la 0.
+    // 0x4fce7a..0x4fced1: el 0x1f5 compara la key que dejó en su modelo la última pose (+0xa8 de 0x5769ad8 + 0x1f5 ·
+    // 0xe0, FaunaModels::PoseKey, que guarda el dibujo de los monstruos) con la última key de su acción (+0x111, sin
+    // mirar si el modelo la tiene) y, si es esa, rand() % 32 en 0 le pone la acción 1 con 0x4ea030 y si no la 0.
     constexpr std::uint16_t TraderModel = 0x1f5;
     if (actor.type == TraderModel)
     {
-        return Core::Unexpected(std::format("0x4fce84: el 0x1f5 del lugar {} lee el frame de su modelo compartido "
-                                            "(+0xa8), que deja la pose del último que lo dibujó",
-                                            slot));
+        const Render::Models::Skeleton& skeleton = *ModelSkeletonOf(actor, context);
+        const std::uint8_t action = actor.animation.action;
+        if (action >= skeleton.actions.size())
+            return Core::Unexpected(std::format("0x4fce9c: la acción {} del 0x1f5 del lugar {} está fuera de su modelo",
+                                                static_cast<int>(action), slot));
+        const std::int32_t lastKey = skeleton.actions[action].keyCount - 1;
+        if (context.world.FaunaResources().PoseKey(TraderModel) == lastKey)
+        {
+            constexpr int OddsOfTheOtherAction = 32;
+            const std::uint8_t next = context.random.Next() % OddsOfTheOtherAction == 0 ? 1 : 0;
+            Render::Models::SetAction(actor.animation, skeleton, next);
+        }
     }
     return {};
 }
@@ -535,9 +564,11 @@ bool LeavesATrail(std::uint8_t action, int model)
     return false;
 }
 
-// 0x4fcee0(c, c, b) desde 0x505410, con el 0x20a.
-Core::Expected<void, std::string> StepTheWeaponTrail(ActorState& actor, std::size_t slot,
-                                                     Render::Models::CrtRandom& random)
+// 0x4fcee0(c, c, b) desde 0x505410, con el 0x20a. Las partículas y el reloj son los del paso (0x432bd0 crea la 0x5d9
+// del 0x1b0).
+Core::Expected<void, std::string> StepTheWeaponTrail(ActorState& actor, std::size_t slot, WorldState& world,
+                                                     Render::Models::CrtRandom& random, World::Particles* particles,
+                                                     float worldClock)
 {
     const std::uint8_t action = actor.animation.action;
     // 0x4fceea..0x4fcf25: antes del frame 3 (o con NaN) y fuera de la 0x8d copia la posición a +0x17c y sale.
@@ -565,8 +596,9 @@ Core::Expected<void, std::string> StepTheWeaponTrail(ActorState& actor, std::siz
                                             cut->address, actor.type, slot, action));
     }
     // 0x4fd5c1..0x4fd5df: 0x441260 (solo el 0x1a7), 0x42fa40 (el 0x1b1 y el 0x1b3), 0x432bd0 y 0x426d90 (los
-    // 0x1b8 a 0x1ba). 0x432bf1: rand() sin condición, antes de mirar el tipo (0x1ab a 0x1b4).
-    static_cast<void>(random.Next());
+    // 0x1b8 a 0x1ba). 0x4fd5d7: 0x432bd0, con su rand() de 0x432bf1 sin condición (Scenes::StepTheSwingsOf1abTo1b4).
+    if (auto swung = StepTheSwingsOf1abTo1b4(actor, slot, world, random, particles, worldClock); !swung.HasValue())
+        return swung;
     if (cut.has_value())
     {
         return Core::Unexpected(std::format("{:#x}: el modelo {:#x} del lugar {} en la acción {:#x} desde el frame 3 "
@@ -658,13 +690,12 @@ Core::Expected<void, std::string> StepTheRaven(ActorState& actor, std::size_t sl
 Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slot, bool hero,
                                               const CharacterStepContext& context)
 {
-    const WorldRuntime& runtime = context.world.Runtime();
-    // 0x4fd603..0x4fd693: el 0xc5 pasa su nombre y +0x1d6 a 0x4381f0.
+    WorldRuntime& runtime = context.world.Runtime();
+    // 0x4fd603..0x4fd698: el 0xc5 pasa su nombre y +0x1d6 a 0x4381f0 (MonsterStepCases.h).
     if (actor.type == NamedType)
     {
-        return Core::Unexpected(std::format("0x4fd603: el 0xc5 del lugar {} pasa su nombre a 0x4381f0, que no está "
-                                            "portado",
-                                            slot));
+        if (auto queued = QueueTheGateName(actor, context.texts, runtime.worldTexts); !queued.HasValue())
+            return queued;
     }
     // 0x4fd69b..0x4fd6ef: la posición, la escala y la acción al modelo compartido (+0x6c, +0x68 y +0xa0), que
     // MuRet no tiene: 0x4f9580 y 0x4ec200 leen la acción del personaje.
@@ -686,8 +717,13 @@ Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slo
     // 0x511d3e; lo suben los mismos paquetes): no gira ni se corre (*estático*). El 0xf1 cae (0x4fb910).
     if (actor.type == FallingType)
     {
-        return Core::Unexpected(
-            std::format("0x4fb910: el 0xf1 del lugar {} cae con 0x5f93c0 y gira, sin portar", slot));
+        const std::function<double(float, float)> height = TerrainHeightOf(context);
+        if (!height)
+        {
+            return Core::Unexpected(
+                std::format("0x4fb942: falta la altura del terreno (0x5f93c0) para el 0xf1 del lugar {}", slot));
+        }
+        StepTheFallingBall(actor, height);
     }
     // 0x4fd722: 0x4fb9e0, muriéndose (+0x389). Lo que sigue corre aunque lo haya borrado.
     if (auto died = StepActorDying(actor, slot,
@@ -739,9 +775,25 @@ Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slo
     // 0x5053fc: 0x42a2b0, la barra de vida del 0x1a8.
     QueueTheHealthBar(actor, context.world.Runtime().healthBars);
     // 0x505410: 0x4fcee0.
-    if (auto trailed = StepTheWeaponTrail(actor, slot, context.random); !trailed.HasValue())
+    if (auto trailed =
+            StepTheWeaponTrail(actor, slot, context.world, context.random, context.particles, context.worldClock);
+        !trailed.HasValue())
     {
         return trailed;
+    }
+    // 0x505425..0x505444: el 0xf1 echa el fuego de la clase 0 de 0x52f360 sin offset, con sus ángulos, su posición
+    // y su luz.
+    if (actor.type == FallingType)
+    {
+        const World::ObjectStepGlobals globals{.worldClock = context.worldClock,
+                                               .dynamicLighting = &context.world.DynamicLighting().Lighting(),
+                                               .particles = context.particles};
+        if (auto fire = World::EmitObjectFire(0, actor.angles, actor.position, actor.light, glm::vec3(0.0f),
+                                              context.random, globals);
+            !fire.HasValue())
+        {
+            return Core::Unexpected(std::format("{} (el 0xf1 del lugar {})", fire.Error(), slot));
+        }
     }
     // 0x50544b: 0x420dd0, después de la estela y antes de 0x505de0, también fuera del trapecio.
     if (actor.darkSpirit && (actor.flags78 & FrozenFlag) == 0)
@@ -876,24 +928,46 @@ Core::Expected<void, std::string> DropTheDevilSquareRain(const ActorState& actor
     return {};
 }
 
+// 0x505e15..0x505ebb: la caja de +0x13c..+0x168 con la de +0x124..+0x138: el rincón más la posición y los tres ejes
+// (el largo de cada lado en la diagonal, el resto en 0). Cada resta y cada suma en la x87 se guarda en float: lo mismo
+// que en float.
+void BoxTheModelWithoutActions(ActorState& actor)
+{
+    actor.field14c = 0.0f;
+    actor.field13c = actor.boundsMin.x;
+    actor.field140 = actor.boundsMin.y;
+    actor.field144 = actor.boundsMin.z;
+    actor.field150 = 0.0f;
+    actor.field154 = 0.0f;
+    actor.field15c = 0.0f;
+    actor.field160 = 0.0f;
+    actor.field164 = 0.0f;
+    actor.field148 = actor.boundsMaxX - actor.boundsMin.x;
+    actor.field158 = actor.boundsMaxY - actor.boundsMin.y;
+    actor.field168 = actor.boundsTop - actor.boundsMin.z;
+    actor.field13c = actor.position.x + actor.field13c;
+    actor.field140 = actor.position.y + actor.field140;
+    actor.field144 = actor.position.z + actor.field144;
+}
+
 // 0x505de0(c, c) desde 0x508ee6, hasta su final (06, "Los efectos de los personajes (0x505de0)" y "El cuerpo de los
 // monstruos y los NPC"). `hero` es c == [0x743a170].
 Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t slot, bool hero,
                                                  const CharacterStepContext& context,
                                                  const Data::Terrain::TerrainLayer<std::uint16_t>* walls)
 {
-    // 0x505e0b: un modelo sin acciones (+0x26 de 0x5769ad8 + tipo · 0xe0) va a la caja de 0x505e15.
+    // 0x505e0b: un modelo sin acciones (+0x26 de 0x5769ad8 + tipo · 0xe0) va a la caja de 0x505e15 y sale.
     const bool player = actor.type == Data::Models::PlayerSkeletonModel;
     const Render::Models::Skeleton* skeleton = ModelSkeletonOf(actor, context);
     if (skeleton == nullptr)
     {
         return Core::Unexpected(
-            std::format("0x505e0b: el modelo {:#x} del lugar {} no está cargado", actor.type, slot));
+            std::format("0x505e0b: falta Player.bmd o el NewFace del modelo {:#x} (lugar {})", actor.type, slot));
     }
     if (skeleton->actions.empty())
     {
-        return Core::Unexpected(std::format(
-            "0x505e15: la caja del modelo {:#x} sin acciones (lugar {}) no está portada", actor.type, slot));
+        BoxTheModelWithoutActions(actor);
+        return {};
     }
     // 0x505ec6..0x505ee4: la posición, la escala y la acción van al modelo compartido (+0x6c, +0x68 y
     // +0xa0), que leen los 0x4ec110 de más abajo y que el dibujo vuelve a escribir antes de posar. MuRet
@@ -961,22 +1035,24 @@ Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t 
     // posición, y con 0x612 recorre los huesos con 0x4ec110; no crea nada (Q-C266). En los personajes +0x3d8 solo
     // lo escribe 0x4fd5f0, que lo baja si es positivo (0x4fd75e); los otros que escriben +0x3d4 y +0x3d8 son de la
     // UI (*estático*).
-    // 0x506cac: rand() & 7, sin condición. El camino del 0x20a no lee el valor (*estático*, Q-C207).
-    static_cast<void>(context.random.Next());
-    // 0x506ccc..0x506cf1: el caso del tipo − 0x152; el 0x20a cae en 0x506cf8, que mira el mapa 7 solo en la
-    // escena 5.
+    // 0x506cac..0x506cf1: rand() & 7, sin condición, y el caso del tipo − 0x152. Con otro modelo, su caso o los helpers
+    // de 0x5085db (Scenes::StepTheModelEffects); 0x50862f..0x508801 son del 0x20a, que cae en 0x506cf8 (mira el mapa 7
+    // solo en la escena 5) y no lee el rand() (*estático*, Q-C207).
     const std::int32_t map = context.world.Runtime().map;
     if (!player)
     {
-        // El caso del modelo o los helpers de 0x5085db (Scenes::ModelEffectsCutOf); 0x50862f..0x508801 son del 0x20a.
-        if (const auto cut = ModelEffectsCutOf(actor.type, map))
-        {
-            return Core::Unexpected(std::format("{:#x}: los efectos del modelo {:#x} (lugar {}) en 0x505de0 son de la "
-                                                "CL11",
-                                                *cut, actor.type, slot));
-        }
-        return {};
+        ModelEffectsPass pass{.actor = actor,
+                              .slot = slot,
+                              .world = context.world,
+                              .random = context.random,
+                              .skeleton = *skeleton,
+                              .particles = context.particles,
+                              .sprites = context.sprites,
+                              .worldClock = context.worldClock,
+                              .map = map};
+        return StepTheModelEffects(pass);
     }
+    static_cast<void>(context.random.Next());
     if (context.scene == SceneId::Game && map == ClockEffectMap)
     {
         if (auto bubbled = BlowTheAtlansBubble(actor, slot, context); !bubbled.HasValue())
@@ -1066,7 +1142,23 @@ Core::Expected<void, std::string> StepACharacter(ActorState& actor, std::size_t 
         return body;
     }
     const World::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
-    return StepTheEffects(actor, slot, hero, context, terrain.attributes ? &terrain.attributes->cells : nullptr);
+    if (auto effects =
+            StepTheEffects(actor, slot, hero, context, terrain.attributes ? &terrain.attributes->cells : nullptr);
+        !effects.HasValue())
+    {
+        return effects;
+    }
+    // 0x508eed: 0x42da90, que fuera del mapa 30 devuelve 0 (0x42da9a); en el 30 mueve, por +0x376, los objetos del
+    // asedio (MonsterStepCases.h).
+    const CastleObjectStep castle{.runtime = context.world.Runtime(),
+                                  .pool = context.world.Actors(),
+                                  .height = TerrainHeightOf(context),
+                                  .skeleton = ModelSkeletonOf(actor, context)};
+    if (auto stepped = StepTheCastleObject(actor, castle); !stepped.HasValue())
+    {
+        return Core::Unexpected(std::format("{} (lugar {})", stepped.Error(), slot));
+    }
+    return {};
 }
 } // namespace
 
@@ -1157,15 +1249,6 @@ Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& con
         if (auto stepped = StepACharacter(actor, slot, hero, context); !stepped.HasValue())
         {
             return stepped;
-        }
-        // 0x508eed: 0x42da90, que fuera del mapa 30 devuelve 0 (0x42da9a). En el 30 mueve, por +0x376, los objetos
-        // del asedio (0x42dac4): corta.
-        if (actor.alive && runtime.map == CastleMap &&
-            std::ranges::find(SiegeObjectClasses, actor.word376) != SiegeObjectClasses.end())
-        {
-            return Core::Unexpected(std::format("0x42dac4: el objeto del asedio {} del lugar {} (0x42da90) no está "
-                                                "portado",
-                                                actor.word376, slot));
         }
     }
     // Frontera (08 P-C44): 0x52e500 (0x5091d0), el paso de las estelas de 0x75e9870, sin rand(). Las

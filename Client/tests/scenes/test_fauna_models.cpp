@@ -268,7 +268,13 @@ TEST_F(GoldenMonsterModels, EveryMonsterOfTheCasesLoadsWithItsActionTables)
     EXPECT_EQ(models.SkeletonOf(0x155)->actions[6].speed, 0.55f);
     EXPECT_EQ(models.SkeletonOf(0x155)->headBone, 0x10);
     // 0x613f97: el 0x1b deja +0x88 en 1.
-    EXPECT_EQ(models.ModelByte(0x16d, 0x88), std::optional<std::uint8_t>{1});
+    EXPECT_EQ(models.ModelByte(0x16d, 0x88), std::optional<std::uint8_t>{std::uint8_t{1}});
+    // 0x50c21c..0x50c281: el +0x376 0x4d copia el hueso 24 de Monster56 (0x189) y el 23 y el 14 de Monster57 (0x18a).
+    EXPECT_GT(models.SkeletonOf(0x189)->bones.size(), 24u);
+    EXPECT_GT(models.SkeletonOf(0x18a)->bones.size(), 23u);
+    // 0x50c762 y 0x50c83b: el 0x2a (Monster32, 0x171) cuelga del hueso 0x3d y las estatuas (Monster61, 0x18e), del 1.
+    EXPECT_GT(models.SkeletonOf(0x171)->bones.size(), 0x3du);
+    EXPECT_GT(models.SkeletonOf(0x18e)->bones.size(), 1u);
 }
 
 TEST_F(GoldenMonsterModels, EveryNpcOfTheCasesLoadsButBloodCastle01)

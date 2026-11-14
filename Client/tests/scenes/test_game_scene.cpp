@@ -1175,6 +1175,8 @@ TEST_F(GameSceneDrawTest, AtlansDrawsItsCausticWaterAndNoGrass)
 TEST_F(GameSceneDrawTest, TheFrameDrawsTheChatBubblesWithTheWorldProjection)
 {
     ASSERT_NO_FATAL_FAILURE(Prepare(7, 226, 103));
+    // Un jugador: con otro tipo, 0x50ba30 lo dibujaría como un monstruo con el modelo de ese número.
+    MakeTheHeroAPlayer(226, 103);
     GameScene scene = Scene();
     ASSERT_TRUE(scene.Enter().HasValue());
     world.Actors()[HeroSlot].seen = true;

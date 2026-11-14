@@ -426,6 +426,30 @@ std::optional<std::uint8_t> SparkleOwnerAction(const JointState& joint)
     return static_cast<const ActorState*>(joint.ownerContext)->animation.action;
 }
 
+// El dueño del 610/8 (0x531c43..0x531f70 al nacer, 0x53801e..0x538055 en el paso): el pez de Atlans (FaunaObject, por
+// el tipo) o, con `ownerKind` en Actor, el jugador que entra en Kalima (ActorState, 0x4c91dc). Los dos son el objeto
+// del dueño: el byte vivo en +0, la posición en +0x10, los ángulos en +0x1c y la luz en +0xf4. Nada sin dueño.
+struct KalimaBeamOwner
+{
+    bool alive = false;
+    const glm::vec3* position = nullptr;
+    const glm::vec3* angles = nullptr;
+    const glm::vec3* light = nullptr;
+};
+
+std::optional<KalimaBeamOwner> KalimaBeamOwnerOf(const JointState& joint)
+{
+    if (joint.ownerContext == nullptr)
+        return std::nullopt;
+    if (joint.ownerKind == JointOwnerKind::Actor)
+    {
+        const auto* actor = static_cast<const ActorState*>(joint.ownerContext);
+        return KalimaBeamOwner{actor->alive, &actor->position, &actor->angles, &actor->light};
+    }
+    const auto* fish = static_cast<const FaunaObject*>(joint.ownerContext);
+    return KalimaBeamOwner{fish->active != 0, &fish->position, &fish->angles, &fish->light};
+}
+
 void FadeJointLight(JointState& joint, std::uint32_t factorBits)
 {
     const double factor = D(std::bit_cast<float>(factorBits));
@@ -565,6 +589,7 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
     }
     if (request.type == 0x610 && request.subtype == 8)
     {
+        const std::optional<KalimaBeamOwner> beamOwner = KalimaBeamOwnerOf(joint);
         joint.count = -1;
         joint.life = joint.key; // 531c43..531c60, antes del selector de color y de las escrituras de/8.
         joint.maximumCount = 50;
@@ -572,9 +597,9 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
         if (joint.skill == 3)
         {
             joint.width = 20;
-            if (owner == nullptr)
+            if (!beamOwner)
                 return Core::Unexpected(std::string("0x531c7b: falta el color del dueño del joint 0x610"));
-            joint.light = owner->light;
+            joint.light = *beamOwner->light;
         }
         joint.width = request.scale;
         joint.life = 100;
@@ -584,13 +609,13 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
         joint.category = 1;
         joint.field9ec = joint.skill;
         joint.light = {1, 1, 1};
-        if (owner == nullptr)
+        if (!beamOwner)
         {
             joint.alive = false;
             return Core::Unexpected(std::string("0x531f50: falta el dueño durable del joint 0x610/8"));
         }
-        joint.position = owner->position;
-        joint.angles = owner->angles;
+        joint.position = *beamOwner->position;
+        joint.angles = *beamOwner->angles;
         joint.position.z = 300;
         joint.targetPosition = request.secondPosition;
         return {};
@@ -687,6 +712,8 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateFaunaJoint(std::sp
     // Lo que lee MuRet de un ayudante de dueño: sólo la luz y la acción del 60f/0 y del 60f/0x12.
     const bool helperSparkle =
         request.type == SparkleJoint && (request.subtype == SparkleSubtype || request.subtype == WideSparkleSubtype);
+    // Y de un personaje fuera de su tipo: la posición, los ángulos, la luz y el byte vivo del 610/8 (0x4c91dc).
+    const bool kalimaBeam = request.type == 0x610 && request.subtype == 8;
     for (std::size_t i = 0; i < joints.size(); ++i)
     {
         if (joints[i].alive)
@@ -694,6 +721,10 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateFaunaJoint(std::sp
         if (ownerKind == JointOwnerKind::Helper && !helperSparkle)
             return Core::Unexpected(std::format("0x530860: el joint {:#x}/{} con un ayudante de dueño no está portado",
                                                 request.type, request.subtype));
+        if (ownerKind == JointOwnerKind::Actor && !kalimaBeam)
+            return Core::Unexpected(
+                std::format("0x530860: el joint {:#x}/{} con el ActorState de dueño fuera de su tipo no está portado",
+                            request.type, request.subtype));
         Prefix(joints[i], request, ownerKind);
         if (auto created = CreateCase(joints[i], request, random); !created.HasValue())
             return Core::Unexpected(created.Error());
@@ -1465,11 +1496,13 @@ Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints
                 return result;
         if (icarus)
         {
-            // 53801e..538055: dueño nulo apaga; muerto también copia. Ambos continúan en cola/vida.
-            joint.alive = owner != nullptr && owner->active != 0;
-            if (owner != nullptr)
+            // 53801e..538055: dueño nulo apaga; muerto también copia. Ambos continúan en cola/vida. El dueño es el pez
+            // o el jugador de Kalima (KalimaBeamOwnerOf).
+            const std::optional<KalimaBeamOwner> beamOwner = KalimaBeamOwnerOf(joint);
+            joint.alive = beamOwner && beamOwner->alive;
+            if (beamOwner)
             {
-                joint.position = owner->position;
+                joint.position = *beamOwner->position;
                 joint.position.z = 300;
             }
         }

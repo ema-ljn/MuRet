@@ -6,6 +6,7 @@
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/SkillTable.h"
 #include "Data/Text/TextTable.h"
+#include "GameLogic/PathCell.h"
 #include "Scenes/FaunaDrawing.h"
 #include "World/SphereFrustum.h"
 #include "World/TerrainPickingState.h"
@@ -141,7 +142,9 @@ private:
     [[nodiscard]] GameChatContext ChatContext();
     // Lo que levantar, soltar y equipar piden afuera: los de SceneContext::worldEntry y el envío del 24
     // (App::ServerSession::SendItemMove).
-    [[nodiscard]] InventoryServices InventoryContext() const;
+    [[nodiscard]] InventoryServices InventoryContext();
+    // 0x5fc260(1) y 0x5fac90 con el rayo del mouse (MoveHero y el C1 23): la celda del terreno bajo el mouse o nada.
+    [[nodiscard]] Core::Expected<std::optional<GameLogic::PathCell>, std::string> GroundUnderTheMouse();
     // 0x636da3..0x63717f: el paso con el mundo cargado, hasta su primer corte.
     [[nodiscard]] Core::Expected<void, std::string> StepWorld(const Input::InputState& input);
     [[nodiscard]] Core::Expected<void, std::string> StepTheFloorItems(float worldClock);

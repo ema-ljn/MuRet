@@ -225,7 +225,7 @@ TEST(AttackStepTest, TheCounterRunsFourteenStepsAndThenTheSkill)
 
     ASSERT_TRUE(struck.HasValue()) << struck.Error();
     EXPECT_EQ(hero.byte381, 0);
-    EXPECT_EQ(hero.word8a, 0xffff);
+    EXPECT_EQ(hero.word8a, -1);
     EXPECT_EQ(hero.word382, 0);
     EXPECT_EQ(hero.byte380, 0);
     EXPECT_EQ(tested.world.Runtime().skillThreshold, 15);

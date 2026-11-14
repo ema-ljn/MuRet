@@ -10,6 +10,7 @@
 #include "Scenes/ActorCombat.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatReceive.h"
+#include "Scenes/MonsterCreation.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
@@ -170,11 +171,20 @@ Core::Expected<void, std::string> ApplyActionReply(const Protocol::Movement::Act
         return StopTheActor(actor, resources, sendAction);
     if (action >= FirstStrikeAction && action <= LastStrikeAction)
         return Strike(actor, index, resources);
-    const auto* skeleton = resources.models.SkeletonOf(actor.type);
-    if (skeleton == nullptr)
-        return Core::Unexpected(std::format("0x4ea030: la acción {:#x} sin las acciones del modelo {:#x} del personaje",
-                                            action, actor.type));
-    Render::Models::SetAction(actor.animation, *skeleton, AnimationOf(actor, action));
+    // 0x4ea030 lee las acciones del modelo del personaje (0x5769ad8 + tipo · 0xe0): un monstruo o un NPC, el que
+    // cargó su alta; un modelo que no está es el registro sin acciones y no pone nada (0x4ea056). Sin Player.bmd, el
+    // jugador es una guarda de contrato.
+    if (actor.type == Data::Models::PlayerSkeletonModel)
+    {
+        const auto* player = resources.models.SkeletonOf(Data::Models::PlayerSkeletonModel);
+        if (player == nullptr)
+            return Core::Unexpected(std::format("0x4ea030: la acción {:#x} sin Player.bmd", action));
+        Render::Models::SetAction(actor.animation, *player, AnimationOf(actor, action));
+    }
+    else if (auto set = SetMonsterAction(actor, AnimationOf(actor, action), 0x4cbcdd, resources); !set.HasValue())
+    {
+        return set;
+    }
     // 0x4cb864: 0x41ed10(0x6f, 0, 0). MuRet no tiene audio hasta la CL10.
     if (action == ShieldAction)
         resources.world.Runtime().lastSoundId = ShieldSound;

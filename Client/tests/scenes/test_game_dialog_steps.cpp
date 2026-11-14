@@ -5,6 +5,7 @@
 #include "Input/InputState.h"
 #include "Protocol/Connection/Logout.h"
 #include "Protocol/OptionData.h"
+#include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
@@ -33,6 +34,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -109,6 +111,13 @@ public:
     void SendSetQuest(std::uint8_t quest, std::uint8_t state) override
     {
         requests.push_back({"A2", {quest, state}, {}});
+    }
+    void SendFriendPacket(Client::Protocol::Outgoing packet) override
+    {
+        std::vector<std::uint8_t> bytes;
+        for (const std::byte value : packet.packet.Bytes())
+            bytes.push_back(std::to_integer<std::uint8_t>(value));
+        requests.push_back({"amigos", std::move(bytes), {}});
     }
     Client::Core::Expected<void, std::string> SaveMacros(std::string_view content) override
     {

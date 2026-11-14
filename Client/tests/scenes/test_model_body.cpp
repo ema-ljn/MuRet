@@ -4,10 +4,13 @@
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Data/Terrain/TerrainAttributes.h"
+#include "Data/Models/Model.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
+#include "Render/TextureSlot.h"
+#include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterHead.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/FaunaModels.h"
@@ -26,10 +29,14 @@
 
 #include <array>
 #include <bit>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <ios>
+#include <limits>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -285,33 +292,61 @@ TEST(ModelBodyTest, TheTrailOfTheOtherModelsCutsByType)
     ActorState knight = Monster(0x160, 4);
     knight.word376 = 0x12d;
     EXPECT_EQ(ModelTrailCutOf(knight)->address, 0x4fd233u);
-    EXPECT_EQ(ModelTrailCutOf(Monster(0x1a7, 0))->address, 0x441260u);
-    EXPECT_TRUE(ModelTrailCutOf(Monster(0x1b3, 0))->beforeTheRandom);
-    EXPECT_EQ(ModelTrailCutOf(Monster(0x1ab, 0))->address, 0x432bd0u);
-    EXPECT_FALSE(ModelTrailCutOf(Monster(0x1ab, 0))->beforeTheRandom);
+    // 0x432bd0 está portado: el 0x1ab no corta acá (StepTheSwingsOf1abTo1b4).
+    EXPECT_FALSE(ModelTrailCutOf(Monster(0x1ab, 3)).has_value());
     EXPECT_FALSE(ModelTrailCutOf(Monster(0x1ac, 0)).has_value());
-    EXPECT_EQ(ModelTrailCutOf(Monster(0x1b9, 0))->address, 0x426d90u);
 }
 
-// 0x506ccc..0x50862f: el caso del modelo, los que van directo a 0x50862f y los seis helpers de 0x5085db.
-TEST(ModelBodyTest, TheEffectsOfTheOtherModelsCutByTypeAndMap)
+// 0x4fd5c1..0x4fd5df: 0x441260, 0x42fa40 y 0x426d90 solo dejan su estela (0x52e470, CL11) en sus acciones; quietos (la
+// 0) o en otra, no hacen nada.
+TEST(ModelBodyTest, TheTrailHelpersCutOnlyInTheirActions)
 {
-    using Client::Scenes::ModelEffectsCutOf;
-    EXPECT_EQ(ModelEffectsCutOf(0x152, 0), std::optional<std::uint32_t>{0x5084b3});
-    EXPECT_EQ(ModelEffectsCutOf(0x1aa, 0), std::optional<std::uint32_t>{0x507493});
-    EXPECT_EQ(ModelEffectsCutOf(0x1f5, 2), std::optional<std::uint32_t>{0x508093});
-    EXPECT_EQ(ModelEffectsCutOf(0x153, 0), std::nullopt);
-    EXPECT_EQ(ModelEffectsCutOf(0x183, 30), std::nullopt);
-    EXPECT_EQ(ModelEffectsCutOf(0x194, 0), std::optional<std::uint32_t>{0x43bdd0});
-    EXPECT_EQ(ModelEffectsCutOf(0x19c, 30), std::optional<std::uint32_t>{0x42de90});
-    EXPECT_EQ(ModelEffectsCutOf(0x19c, 0), std::nullopt);
-    EXPECT_EQ(ModelEffectsCutOf(0x1a4, 2), std::optional<std::uint32_t>{0x441210});
-    EXPECT_EQ(ModelEffectsCutOf(0x1b2, 35), std::optional<std::uint32_t>{0x42f550});
-    EXPECT_EQ(ModelEffectsCutOf(0x1b2, 0), std::optional<std::uint32_t>{0x431470});
-    EXPECT_EQ(ModelEffectsCutOf(0x1ac, 0), std::nullopt);
-    EXPECT_EQ(ModelEffectsCutOf(0x1bb, 0), std::optional<std::uint32_t>{0x426ce0});
-    EXPECT_EQ(ModelEffectsCutOf(0xa8, 30), std::nullopt);
-    EXPECT_EQ(ModelEffectsCutOf(0x1cb, 0), std::nullopt);
+    using Client::Scenes::ModelTrailCutOf;
+    struct Case
+    {
+        std::uint16_t type;
+        std::uint8_t action;
+        std::optional<std::uint32_t> address;
+    };
+    constexpr std::optional<std::uint32_t> None;
+    // 0x44127c: el 0x1a7 en la 3 o la 4. 0x42fa64 y 0x42fb61: el 0x1b3 en la 3 y el 0x1b1 en la 4. 0x426db9 y
+    // 0x426ebc: el 0x1ba en la 3 y el 0x1b9 en la 3 o la 4.
+    const Case cases[]{
+        {0x1a7, 0, None},     {0x1a7, 2, None},     {0x1a7, 3, 0x441260}, {0x1a7, 4, 0x441260}, {0x1b3, 0, None},
+        {0x1b3, 3, 0x42fa40}, {0x1b3, 4, None},     {0x1b1, 0, None},     {0x1b1, 3, None},     {0x1b1, 4, 0x42fa40},
+        {0x1b2, 3, None},     {0x1ba, 0, None},     {0x1ba, 3, 0x426d90}, {0x1ba, 4, None},     {0x1b9, 0, None},
+        {0x1b9, 3, 0x426d90}, {0x1b9, 4, 0x426d90}, {0x1b9, 6, None},     {0x1b8, 0, None},     {0x1b8, 3, 0x426d90},
+    };
+    for (const Case& entry : cases)
+    {
+        SCOPED_TRACE(testing::Message() << std::hex << entry.type << " " << static_cast<int>(entry.action));
+        const auto cut = ModelTrailCutOf(Monster(entry.type, entry.action));
+        ASSERT_EQ(cut.has_value(), entry.address.has_value());
+        if (!cut.has_value())
+            continue;
+        EXPECT_EQ(cut->address, *entry.address);
+        // 0x441260 y 0x42fa40 van antes del rand() de 0x432bd0; 0x426d90, después.
+        EXPECT_EQ(cut->beforeTheRandom, *entry.address != 0x426d90u);
+    }
+}
+
+// 0x427057..0x427068: el 0x1b8 en la 3 o la 4 deja estela con el frame (+0x114) en 5,06f (0x6b8a30) o menos, o NaN.
+TEST(ModelBodyTest, TheTrailOfThe1b8EndsAfterItsFifthFrame)
+{
+    using Client::Scenes::ModelTrailCutOf;
+    const float last = std::bit_cast<float>(0x40a1eb85u);
+    for (const std::uint8_t action : {std::uint8_t{3}, std::uint8_t{4}})
+    {
+        SCOPED_TRACE(static_cast<int>(action));
+        ActorState actor = Monster(0x1b8, action);
+        actor.animation.frame = last;
+        ASSERT_TRUE(ModelTrailCutOf(actor).has_value());
+        EXPECT_EQ(ModelTrailCutOf(actor)->address, 0x426d90u);
+        actor.animation.frame = std::nextafter(last, 10.0f);
+        EXPECT_FALSE(ModelTrailCutOf(actor).has_value());
+        actor.animation.frame = std::numeric_limits<float>::quiet_NaN();
+        EXPECT_TRUE(ModelTrailCutOf(actor).has_value());
+    }
 }
 
 // Un Monster02 (el modelo 0x153) cargado por 0x612d90 en WorldState::FaunaResources da su paso fuera del pool: avanza
@@ -324,10 +359,16 @@ protected:
     void SetUp() override
     {
         auto model = Client::Tests::SampleModel();
-        model.actions.assign(8, model.actions.front());
+        {
+            const auto first = model.actions.front();
+            model.actions.assign(8, first);
+        }
         for (auto& bone : model.bones)
             if (!bone.dummy)
-                bone.actions.assign(8, bone.actions.front());
+            {
+                const auto first = bone.actions.front();
+                bone.actions.assign(8, first);
+            }
         model.meshes.front().textureName = "body.tga";
         for (const char* name : {"Monster/Monster01.bmd", "Monster/Monster02.bmd"})
             Client::Tests::WriteSceneFile(m_folder.Path(), name,
@@ -352,8 +393,10 @@ protected:
 
     Client::Core::Expected<void, std::string> Step(CrtRandom& random)
     {
-        return Client::Scenes::StepCharacter(
-            m_actor, {.world = *m_world, .random = random, .scene = Client::Scenes::SceneId::Game});
+        return Client::Scenes::StepCharacter(m_actor, {.world = *m_world,
+                                                       .random = random,
+                                                       .scene = Client::Scenes::SceneId::Game,
+                                                       .particles = &m_world->Particles()});
     }
 
     const Skeleton& Model() const
@@ -484,15 +527,21 @@ TEST_F(MonsterStep, AMonsterThatEndsDyingBleedsOnceWhereTheLastOfItsTypeWas)
 
 // En Devias (el mapa 2), el monstruo de hielo (0x161, Monster16) que termina de morir apaga su byte vivo y suelta diez
 // pedazos 0xca en la tabla de 0x518cf0 del mapa, cinco rand() cada uno; el paso sigue (0x508ea0 no vuelve a mirar el
-// byte) y corta en su caso de 0x505de0 (0x507e63), después del & 7.
+// byte) hasta su caso de 0x505de0 (0x507e63, el corrimiento de la textura, sin rand()), después del & 7.
 TEST_F(MonsterStep, TheIceMonsterOfDeviasBreaksIntoShards)
 {
     m_world->Runtime().map = 2;
     auto model = Client::Tests::SampleModel();
-    model.actions.assign(8, model.actions.front());
+    {
+        const auto first = model.actions.front();
+        model.actions.assign(8, first);
+    }
     for (auto& bone : model.bones)
         if (!bone.dummy)
-            bone.actions.assign(8, bone.actions.front());
+        {
+            const auto first = bone.actions.front();
+            bone.actions.assign(8, first);
+        }
     model.meshes.front().textureName = "body.tga";
     Client::Tests::WriteSceneFile(m_folder.Path(), "Monster/Monster16.bmd",
                                   Client::Tests::PlainBmd(Client::Tests::BmdContent(model), 0x0a));
@@ -509,8 +558,7 @@ TEST_F(MonsterStep, TheIceMonsterOfDeviasBreaksIntoShards)
     m_actor.animation.frame = static_cast<float>(ice->actions[6].keyCount) - 0.1f;
     CrtRandom random(Seed);
     const auto stepped = Step(random);
-    ASSERT_FALSE(stepped.HasValue());
-    EXPECT_NE(stepped.Error().find("0x507e63"), std::string::npos) << stepped.Error();
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_FALSE(m_actor.alive);
     EXPECT_EQ(m_actor.byte38a, 1);
     std::size_t shards = 0;
@@ -528,25 +576,189 @@ TEST_F(MonsterStep, TheIceMonsterOfDeviasBreaksIntoShards)
     EXPECT_EQ(random.State(), expected.State());
 }
 
-// Monster01 (0x152) tiene caso en 0x505de0 (0x5084b3): corta después del & 7. Un modelo sin cargar (el 0x154) corta
-// en 0x4f9580, después de 0x508ba0.
-TEST_F(MonsterStep, TheModelsWithTheirOwnEffectsCutAfterTheirRandom)
+// Un modelo sin cargar (el 0x154) es el registro en 0 de 0x5769ad8 (+0x26 sin acciones): 0x4f9580 no avanza, el
+// rand() % 6 de 0x4fd7e4 sale igual y 0x505de0 va a 0x505e15, que arma la caja de +0x13c..+0x168 con la de +0x124 y
+// la posición y sale, sin la celda ni el & 7 (B3). En Lorencia, en Devias y en Atlans.
+TEST_F(MonsterStep, AModelThatIsNotLoadedOnlyBoxesItself)
+{
+    for (const std::int32_t map : {0, 2, 7})
+    {
+        SCOPED_TRACE(map);
+        m_world->Runtime().map = map;
+        m_actor.type = 0x154;
+        m_actor.animation = {};
+        m_actor.animation.action = 1;
+        m_actor.animation.frame = 0.5f;
+        m_actor.position = {1000.0f, 2000.0f, 30.0f};
+        m_actor.boundsMin = {-60.0f, -60.0f, 0.0f};
+        m_actor.boundsMaxX = 50.0f;
+        m_actor.boundsMaxY = 70.0f;
+        m_actor.boundsTop = 150.0f;
+        m_actor.field14c = 9.0f;
+        m_actor.field164 = 9.0f;
+        CrtRandom random(Seed);
+        const auto stepped = Step(random);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(m_actor.animation.action, 1);
+        EXPECT_EQ(m_actor.animation.frame, 0.5f);
+        EXPECT_EQ(m_actor.field13c, 940.0f);
+        EXPECT_EQ(m_actor.field140, 1940.0f);
+        EXPECT_EQ(m_actor.field144, 30.0f);
+        EXPECT_EQ(m_actor.field148, 110.0f);
+        EXPECT_EQ(m_actor.field158, 130.0f);
+        EXPECT_EQ(m_actor.field168, 150.0f);
+        for (const float zero : {m_actor.field14c, m_actor.field150, m_actor.field154, m_actor.field15c,
+                                 m_actor.field160, m_actor.field164})
+            EXPECT_EQ(zero, 0.0f);
+        EXPECT_EQ(random.State(), Client::Tests::AfterDraws(Seed, 8 + 1).State());
+    }
+}
+
+// Monster01 (0x152) tiene caso en 0x505de0 (0x5084b3): fuera de las ventanas de frame de su aliento no saca más que el
+// & 7 (Scenes::StepTheModelEffects).
+TEST_F(MonsterStep, AModelWithItsOwnCaseOutsideItsWindowOnlyDrawsTheBrightness)
 {
     m_actor.animation.action = 1;
     m_actor.type = 0x152;
     CrtRandom random(Seed);
     const auto stepped = Step(random);
-    ASSERT_FALSE(stepped.HasValue());
-    EXPECT_NE(stepped.Error().find("0x5084b3"), std::string::npos) << stepped.Error();
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     CrtRandom expected = Client::Tests::AfterDraws(Seed, 8 + 1 + 8);
     DrawTheHeadAndTheEffects(expected);
     EXPECT_EQ(random.State(), expected.State());
+}
 
-    m_actor.type = 0x154;
-    CrtRandom other(Seed);
-    const auto missing = Step(other);
-    ASSERT_FALSE(missing.HasValue());
-    EXPECT_NE(missing.Error().find("0x4f9580"), std::string::npos) << missing.Error();
-    EXPECT_EQ(other.State(), Client::Tests::AfterDraws(Seed, 8).State());
+// La biblioteca del mapa detrás de FaunaResources con el 0x1f5 (un NPC) en el esqueleto de Monster02.
+class TraderLibrary final : public Client::Scenes::IModelLibrary
+{
+public:
+    explicit TraderLibrary(const Skeleton& skeleton, std::uint16_t model = 0x1f5) : m_skeleton(skeleton), m_model(model)
+    {
+    }
+
+    [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t) const override
+    {
+        return nullptr;
+    }
+    [[nodiscard]] const Skeleton* SkeletonOf(std::uint16_t model) const override
+    {
+        return model == m_model ? &m_skeleton : nullptr;
+    }
+    [[nodiscard]] std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    {
+        return {};
+    }
+
+private:
+    const Skeleton& m_skeleton;
+    std::uint16_t m_model;
+};
+
+// 0x4fce7a..0x4fced1: el 0x1f5 mira la key que dejó la última pose en su modelo (+0xa8, FaunaModels::PoseKey): con la
+// última de su acción, rand() % 32 en 0 le pone la acción 1 y si no la 0 (0x4ea030); con otra, nada. Después sigue
+// hasta el caso de su modelo en 0x505de0 (0x508093): en la 0, su luz y sus joints; en las otras, nada.
+TEST_F(MonsterStep, TheTraderPicksItsNextActionWhenItsModelEndedTheLastPose)
+{
+    TraderLibrary trader(Model());
+    m_world->FaunaResources().Bind(&trader);
+    m_actor.type = 0x1f5;
+    const std::int16_t last = static_cast<std::int16_t>(Model().actions[2].keyCount - 1);
+    const auto stepFrom = [this](std::int16_t key, std::uint32_t seed)
+    {
+        m_actor.animation.action = 2;
+        m_actor.animation.frame = 0.0f;
+        m_world->FaunaResources().RecordPoseKey(0x1f5, key);
+        CrtRandom random(seed);
+        return Step(random);
+    };
+
+    const auto other = stepFrom(static_cast<std::int16_t>(last + 1), Seed);
+    ASSERT_TRUE(other.HasValue()) << other.Error();
+    EXPECT_EQ(m_actor.animation.action, 2);
+
+    int rests = 0;
+    int others = 0;
+    for (std::uint32_t seed = 1; seed < 300; ++seed)
+    {
+        SCOPED_TRACE(seed);
+        const auto stepped = stepFrom(last, seed);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        if (m_actor.animation.action == 0)
+            ++rests;
+        else if (m_actor.animation.action == 1)
+            ++others;
+        else
+            ADD_FAILURE() << static_cast<int>(m_actor.animation.action);
+        EXPECT_EQ(m_actor.animation.frame, 0.0f);
+    }
+    EXPECT_GT(rests, others);
+    EXPECT_GT(others, 0);
+    m_world->FaunaResources().Bind(nullptr);
+}
+
+// 0x4fd5d7: desde el frame 3, 0x432bd0 con el 0x1b0 en la 4 fuera de (5, 7) saca su rand() de 0x432bf1 y los dos de
+// cada una de sus diez poses (Scenes::StepTheSwingsOf1abTo1b4), entre el % 6 del cuerpo y la celda de 0x505de0;
+// después, el helper 0x431470 no hace nada con el 0x1b0 en la 4. El esqueleto de Monster02 con diez keys por acción.
+TEST_F(MonsterStep, TheSwingOfThe1b0DrawsItsRandomsBeforeItsEffects)
+{
+    Skeleton swinging = Model();
+    for (auto& action : swinging.actions)
+        action.keyCount = 10;
+    for (auto& bone : swinging.bones)
+        for (auto& keys : bone.actions)
+            if (!keys.empty())
+                keys.resize(10, keys.front());
+    TraderLibrary library(swinging, 0x1b0);
+    m_world->FaunaResources().Bind(&library);
+    m_actor.type = 0x1b0;
+    m_actor.animation.action = 4;
+    m_actor.animation.frame = 3.0f;
+    CrtRandom random(Seed);
+    const auto stepped = Step(random);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    ASSERT_EQ(m_actor.animation.action, 4);
+    ASSERT_GE(m_actor.animation.frame, 3.0f);
+    ASSERT_LE(m_actor.animation.frame, 5.0f);
+    CrtRandom expected = Client::Tests::AfterDraws(Seed, 8 + 1 + 1 + 20 + 8);
+    DrawTheHeadAndTheEffects(expected);
+    EXPECT_EQ(random.State(), expected.State());
+    EXPECT_EQ(m_world->PoseCarry().models.count(0x1b0), 1u);
+    m_world->FaunaResources().Bind(nullptr);
+}
+
+// 0x4fd5c1: quieto desde el frame 3, el 0x1a7 (Monster85, de los tipos 294 y 302: la 31) no deja estela en 0x441260
+// (solo en la 3 y la 4); sigue con el rand() de 0x432bf1 y llega a 0x505de0, donde ningún helper actúa con él.
+TEST_F(MonsterStep, AStanding1a7GoesPastItsTrailHelper)
+{
+    Skeleton standing = Model();
+    for (auto& action : standing.actions)
+        action.keyCount = 10;
+    for (auto& bone : standing.bones)
+        for (auto& keys : bone.actions)
+            if (!keys.empty())
+                keys.resize(10, keys.front());
+    TraderLibrary library(standing, 0x1a7);
+    m_world->FaunaResources().Bind(&library);
+    for (const std::int32_t map : {0, 2, 31})
+    {
+        SCOPED_TRACE(map);
+        m_world->Runtime().map = map;
+        m_actor.type = 0x1a7;
+        m_actor.animation.action = 0;
+        m_actor.animation.frame = 3.0f;
+        CrtRandom random(Seed);
+        const auto stepped = Step(random);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        ASSERT_EQ(m_actor.animation.action, 0);
+        CrtRandom expected = Client::Tests::AfterDraws(Seed, 8 + 1 + 1 + 8);
+        // 0x4ea190 con la 0: rand() % 32 y, si da 0, dos más.
+        if (CrtRandom(expected).Next() % 32 == 0)
+            Skip(expected, 3);
+        else
+            Skip(expected, 1);
+        DrawTheHeadAndTheEffects(expected);
+        EXPECT_EQ(random.State(), expected.State());
+    }
+    m_world->FaunaResources().Bind(nullptr);
 }
 } // namespace

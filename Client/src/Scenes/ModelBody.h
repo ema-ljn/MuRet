@@ -58,19 +58,12 @@ void LookAtTheTarget(ActorState& actor, const ActorState& target);
 // 0x4fd10b..0x4fd5df, desde el frame 3 de otro modelo que el 0x20a: la dirección donde corta lo que hace según el
 // tipo. La estela (0x52e470, desde 0x4fd233) con +0x376 de c en 0x47, 0x4a o 0x12d y las acciones 3 y 4, el 0x194 en la
 // 3, el 0x195 y el 0x197 en la 3 y la 4, o con una espada (0x212..0x411) en la derecha en la 3 y la 4; y los helpers
-// 0x441260 (el 0x1a7), 0x42fa40 (el 0x1b1 y el 0x1b3), 0x432bd0 (el 0x1ab, del 0x1ae al 0x1b1, el 0x1b3 y el 0x1b4,
-// después de su rand()) y 0x426d90 (del 0x1b8 al 0x1ba). `beforeTheRandom` dice si corta antes del rand() de 0x432bf1.
+// 0x441260 (el 0x1a7), 0x42fa40 (el 0x1b1 y el 0x1b3) y 0x426d90 (del 0x1b8 al 0x1ba). `beforeTheRandom` dice si corta
+// antes de 0x432bd0 (Scenes::StepTheSwingsOf1abTo1b4, con su rand() de 0x432bf1) o después.
 struct ModelTrailCut
 {
     std::uint32_t address = 0;
     bool beforeTheRandom = true;
 };
 [[nodiscard]] std::optional<ModelTrailCut> ModelTrailCutOf(const ActorState& actor);
-
-// 0x506ccc..0x50862f con otro modelo que el 0x20a: la dirección del caso del tipo − 0x152 (la tabla de bytes 0x508884
-// sobre la de saltos 0x50880c: 28 modelos con efectos) o del helper de 0x5085db que actúa (0x43bdd0 con el 0xc5 y del
-// 0x191 al 0x197; 0x42de90 en el mapa 30 con el 0x19b..0x1a1 y el 0x1fc; 0x441210 con el 0x1a4; 0x42f550 en el 35 con
-// el 0x1b1..0x1b3; 0x431470 con el 0x1ab y del 0x1ad al 0x1b5; 0x426ce0 con el 0x1b6, el 0x1b7 y el 0x1bb). Sin
-// ninguno, nada: el resto de 0x505de0 (0x50862f..0x508801) es del 0x20a.
-[[nodiscard]] std::optional<std::uint32_t> ModelEffectsCutOf(std::uint16_t type, std::int32_t map);
 } // namespace Client::Scenes

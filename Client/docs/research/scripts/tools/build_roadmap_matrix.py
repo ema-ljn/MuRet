@@ -44,7 +44,10 @@ NEW_COLUMNS = ['classification', 'primary_wave', 'consumer_waves', 'purpose', 'e
 # usa std::string. Leídos en el .c de cada uno (10-cobertura-roadmap.md, Bibliotecas).
 STL_STRING = {0x4017A0: '_Tidy', 0x4017F0: 'erase', 0x401910: '_Eos', 0x401930: 'assign',
               0x401A60: '_Copy', 0x4292E0: 'assign(const char*, n)', 0x4532F0: 'assign(str, pos, n)',
-              0x453C20: 'max_size', 0x453C30: '_Split'}
+              0x453C20: 'max_size', 0x453C30: '_Split',
+              # Segundas instancias, de la revisión independiente (10-cobertura-roadmap.md, La revisión).
+              0x680FF0: 'append(const char*, n) (otra instancia)', 0x683780: 'append(n, c) (otra instancia)',
+              0x66B830: 'compare(pos, n, s, m) (otra instancia)'}
 # Otras instancias de la STL de MSVC6 (list, deque, vector y un segundo string), leídas en su .c: nodos
 # centinela de 0xc bytes, bloques de deque, refcount en ptr[-1]. Sin llamadas directas en su mayoría.
 STL_OTHER = {0x429410: 'deque: _Tidy', 0x437700: 'deque: _Tidy', 0x449890: 'list: clear', 0x448520: 'list: _Freenode',
@@ -52,7 +55,8 @@ STL_OTHER = {0x429410: 'deque: _Tidy', 0x437700: 'deque: _Tidy', 0x449890: 'list
              0x456c00: 'list: push_back',
              0x456e10: 'list: _Buynode', 0x456da0: 'list: clear', 0x457c70: 'list: clear', 0x6827b0: 'list: _Buynode',
              0x67f570: 'string: _Tidy (otra instancia)', 0x471670: 'vector<string>: _Destroy',
-             0x680f60: 'vector: _Tidy', 0x680fb0: 'vector: _Tidy'}
+             0x680f60: 'vector: _Tidy', 0x680fb0: 'vector: _Tidy',
+             0x4879A0: 'copy de un rango de strings (asigna uno por uno con _Split y memmove)'}
 # Lo que ninguna regla alcanza (casi todo código muerto): decidido leyendo su .c y su .asm el
 # 2026-11-13. (ola o 'excluded', qué hace y por qué va ahí).
 _HOOK = 'MessageBox centrado con un hook WH_CBT (SetWindowsHookExA(5), GetDesktopWindow, SetWindowPos)'
@@ -116,7 +120,7 @@ MANUAL.update({
                       '0x5f8390..0x5fac90)'),
     0x5FD2C0: ('CL7', 'prueba de celdas del terreno (las de 0x5f8390..0x5fac90)'),
     0x450376: ('CL4', 'vacía: la llama el WM_TIMER 1000 antes del keepalive (02-arranque-y-ciclo-de-vida.md)'),
-    0x57CF90: ('CL8', 'contador de 1 a 50 (DAT_077f3bad) que llama 0x57cfc0 (CL8)'),
+    0x57CF90: ('CL9', 'contador de 1 a 50 (DAT_077f3bad) que llama 0x57cfc0 (CL9)'),
     0x5769E0: ('CL8', 'compara dos textos con un comodín, junto al filtro de palabras 0x576eb0 (CL8)'),
     0x5AECD0: ('CL8', 'color de un número según el nivel (umbrales 300, 200, 100 y 50)'),
     0x5AF940: ('CL8', 'bits de un arreglo de banderas de bytes (el formato de un flag de UI)'),
@@ -137,6 +141,8 @@ WHY_NOT = {
                         'se cuenta aparte (07 Q-C125, 08 P-C22)',
     'launcher': 'es del launcher (el auto-update y el servidor que deja en el registro); queda para más adelante, '
                 'si MuRet tiene un launcher propio o una reinterpretación',
+    'detector de trampas': 'anticheat: busca por título ventanas de programas de trampa (Speed Hack, GameHack, '
+                           'ArtMoney) y cierra el cliente; MuRet no lo hace (04-protocolo.md)',
 }
 GG_WHERE = ('docs/superpowers/specs/2026-10-30-cliente-design.md#fuera-de-alcance ("el anticheat del propio '
             'main.exe"); Client/docs/research/10-cobertura-roadmap.md#gameguard')
@@ -162,35 +168,135 @@ EXCLUDED_ROOTS = {
                'Text.bmd; lo llaman 0x688590 y 0x6891d0', GG_WHERE, 'GameGuard'),
     0x450380: ('el aviso de un código de error ("GameGuard Error : %lu", los códigos 0x6e..0xdc, con los textos 792, '
                '795 a 798 y 800 de Text.bmd), sin uso', GG_WHERE, 'GameGuard'),
+    # De la revisión independiente (10-cobertura-roadmap.md, La revisión independiente).
+    0x4AD070: ('el cierre por trampa: MessageBoxA "Error" con un texto de Text.bmd, WM_DESTROY al cliente y WM_CLOSE '
+               'a la ventana detectada; lo llaman el callback de GameGuard 0x4505d0 y la búsqueda de ventanas de '
+               '0x4ad100', 'Client/docs/research/04-protocolo.md (la búsqueda de ventanas no se porta); '
+               'anticheat de main.exe, Fuera de alcance', 'detector de trampas'),
+    0x681480: ('constructor del objeto de ResourceGuard (el new de 0x2c en 0x4c4a1b; el mismo objeto que recibe '
+               '0x681ec0)', 'Client/docs/research/07-quirks-y-bugs.md Q-C147; anticheat de main.exe, Fuera de alcance',
+               'ResourceGuard'),
+    0x6814D0: ('destructor del objeto de ResourceGuard (0x4c4b14, después del jmp de 0x4c4ad5)',
+               'Client/docs/research/07-quirks-y-bugs.md Q-C147; anticheat de main.exe, Fuera de alcance',
+               'ResourceGuard'),
+    0x448170: ('fija el multiplicador del hash (+0x1c) con rand(); lo llama WinMain en 0x4ba65f, antes del srand de '
+               '0x4bad9a, así que no mueve el azar del juego', 'Client/docs/research/02-arranque-y-ciclo-de-vida.md; '
+               'anticheat de main.exe, Fuera de alcance', 'hash anti-tamper'),
 }
+# Decisiones de la revisión independiente (10-cobertura-roadmap.md, La revisión independiente): ola
+# responsable y por qué, leídas en el .asm. Pesan como una semilla de MuRet (paso 1).
+REVIEW = {
+    0x4AD100: ('CL4', 'el keepalive inmediato después del login (0x4bee60, CL4.5); la búsqueda de ventanas de trampas '
+                      'que hace antes es anticheat y no se porta (04-protocolo.md)'),
+    0x4BEE60: ('CL4', 'arma y manda el keepalive C1 0C 0E (CL4.5, 04-protocolo.md); la CL7 solo le sumó las '
+                      'velocidades del personaje'),
+    0x40B3F0: ('CL2', 'cierra la entrada protegida del serial de los C3 (0x5767913) con un rand(); es la pareja de '
+                      '0x40b3b0 (CL2)'),
+    0x57CFC0: ('CL9', 'las acciones del héroe al final de MoveHero: arma los paquetes de habilidad 0x19, 0x1E y 0x26 '
+                      '(CL9.2); la CL7 porta su acceso al registro propio (LogicalAccess)'),
+    0x5650C0: ('CL9', 'la interacción al llegar: levantar un ítem (0x22), hablar con un NPC (0x30), la tienda personal '
+                      'y los demás (0x18, 0xA0, 0xD3, 0xD7); el TSV de la CL8 la da a la CL9.3 y la CL9.4, y MuRet '
+                      'solo porta la salida del tipo 0'),
+    0x517A20: ('CL9', 'el ataque a varios blancos (CL9.2): hasta 5 del viewport en un radio, el C1 .. 10 con el '
+                      'serial de los C3 y send (0x51867d, 0x5187ee); lo llaman los efectos 0x518cf0, 0x535840 y '
+                      '0x520170'),
+    0x612270: ('CL7', 'carga los modelos de los NPC (61 cargas de modelos y 3 de sonidos, "Npc\\", "NpcClerk"), como '
+                      'su par 0x612d90 (CL7)'),
+    0x4F97B0: ('CL11', 'la habilidad del personaje (CL11.4): 23 altas de efectos (0x518cf0, 0x530860, 0x53fe70), 7 '
+                       'sonidos y 11 rand(), sin paquetes; 06 la deja "sin leer: solo los llama la habilidad"'),
+    0x41ED10: ('CL10', 'toca un sonido: el buffer de DirectSound del id (0x71d2c4)'),
+    0x41EE00: ('CL10', 'para un sonido (el buffer de DirectSound del id)'),
+    0x41E520: ('CL10', 'arranca DirectSound (CoInitialize y DirectSoundCreate, DSOUND#1) desde WinMain'),
+    0x41FF30: ('CL10', 'el log de los drivers de sonido ("Sound Card Driver", DirectSoundEnumerate, DSOUND#2) desde '
+                       'WinMain'),
+    0x4ACF60: ('CL10', 'para la música (wzAudioStop)'),
+    0x4ACFD0: ('CL10', 'toca la música (wzAudioPlay)'),
+    0x4AD060: ('CL10', 'la posición del stream de la música (wzAudioGetStreamOffsetRange)'),
+    0x498820: ('CL9', 'la ventana de las cartas (CL9.4, amigos): el único que manda un C2 (03-red-y-cifrado.md); '
+                      'MuRet la cita solo como ejemplo del encuadre'),
+    0x4D2ED0: ('CL9', 'F3 05: la subida de nivel (los stats del personaje propio, 15 efectos y un sonido)'),
+    0x4D3B50: ('CL9', 'F3 08: el cambio de clase'),
+    0x4D9F00: ('CL9', 'F3 23: un efecto en la posición del héroe que pide el servidor'),
+    0x4DA070: ('CL9', 'F3 40: un aviso del servidor, que dibujan los avisos de la CL8 (0x632e30, 0x633300)'),
+    0x459A70: ('CL3', 'el temporizador de alta resolución (QueryPerformanceCounter, timeBeginPeriod) que arma WinMain'),
+    0x4B8FF0: ('CL3', 'registra la clase "MU" y crea la ventana (CreateWindowExA) desde WinMain'),
+    0x549EC0: ('CL6', 'carga FilterName.bmd, como su par 0x549c60 (Filter.bmd, CL6)'),
+    # Del plan de la CL9 (2026-11-13): 06 la nombra al pasar, en una sección de la CL7.
+    0x4E0980: ('CL9', 'el caso 0x68 del dispatcher (CL9.1); 06-render-escenas-y-ui.md solo la nombra entre los '
+                      'que crean un modelo con 0x5139f0'),
+}
+# Citas de Client/src que nombran la función sin portarla (revisión independiente): no cuentan como
+# implementación. MuRet no tiene audio hasta la CL10: sus citas de las funciones de sonido marcan dónde
+# se pide uno.
+MENTION_ONLY = {
+    0x4F97B0: 'CharacterStep.cpp la nombra como quien sube +0x1a0',
+    0x498820: 'EncryptedPacket.h la nombra como el único que manda un C2',
+    0x41ED10: 'sin audio hasta la CL10', 0x41EE00: 'sin audio hasta la CL10',
+    0x4ACF60: 'sin audio hasta la CL10', 0x4ACFD0: 'sin audio hasta la CL10',
+    0x435BD0: 'GameUi.cpp nombra la cadena de Crywolf del paso, sin portarla',
+    0x44F810: 'GameUi.cpp la nombra en el corte de la CL9.5',
+    0x40AD90: 'LogicalAccess.h: no hace el alta de la entrada', 0x40B240: 'LogicalAccess.h: no hace la búsqueda',
+    # Del plan de la CL9: el corte está en la línea siguiente a la cita.
+    0x4C8860: 'ActorState.h nombra el byte +0x360 que escribe el 0x12 (0x4c89e1), sin portar',
+    0x576A60: 'ChatCommands.h nombra el emote como de la CL9.1',
+}
+# Citas que portan solo una parte (revisión independiente).
+PARTIAL_ONLY = {
+    0x4365C0: 'GameHud.cpp porta el 0x620a00(1) del principio; la UI de los eventos es de la CL9.5',
+}
+# Los gigantes de los personajes: el paso (0x4fd5f0), el dibujo (0x50ba30, 0x505de0) y el alta de un
+# monstruo (0x5141e0). Lo que solo ellos alcanzan y la CL7 no cita son las ramas de los tipos y de la
+# habilidad que la CL7 no alcanza (paso 4e).
+TYPE_GIANTS = {0x4FD5F0, 0x50BA30, 0x505DE0, 0x5141E0}
+# Lo que escribe CL.M no es una fuente de CL.M: medido sobre un commit que ya los tiene, el informe y los
+# scripts le darían a las funciones la ola que les dio la corrida anterior.
+CLM_OUTPUTS = {'Client/docs/research/10-cobertura-roadmap.md',
+               'Client/docs/research/scripts/tools/build_roadmap_matrix.py',
+               'Client/docs/research/scripts/tools/check_roadmap_coverage.py',
+               'Client/docs/research/scripts/tools/test_check_roadmap_coverage.py',
+               # El barrido de la CL9 parte de la matriz (#334) y reparte sus filas entre los hitos; lo que
+               # corrige de la matriz (los opcodes) ya está acá. Sus olas entran cuando MuRet porte y cite
+               # (decisiones 5 y 9 del plan).
+               'docs/superpowers/plans/2026-11-13-ola-cl9-gameplay.md',
+               'docs/superpowers/plans/2026-11-13-ola-cl9-funciones.tsv',
+               'docs/superpowers/plans/2026-11-13-ola-cl9-cortes.tsv'}
+TYPE_CREATE = 0x5141E0
+EFFECT_CALLS = {0x518CF0, 0x530860, 0x53FE70, 0x5491E0, 0x41ED10}
 # Gigantes con ramas de varias olas: la ola responsable sale de su papel, no de quién lo cita más.
 ROLE_OVERRIDES = {
     0x4B9B80: ('CL3', 'WinMain: arranque, ventana y bucle de mensajes (02-arranque-y-ciclo-de-vida.md, CL3)'),
     0x4AF4E0: ('CL3', 'WndProc: la tabla de mensajes de la ventana y el input (02-arranque-y-ciclo-de-vida.md, CL3.3)'),
     0x4E2B10: ('CL4', 'dispatcher de recv: un caso por opcode (04-protocolo.md#el-dispatcher-0x4e2b10, CL4.2)'),
     0x636290: ('CL3', 'el paso por frame de las escenas (02-arranque-y-ciclo-de-vida.md, CL3.2)'),
+    # De la revisión independiente: llama a la limpieza de cada sistema, que es de la ola del sistema.
+    0x4AEDA0: ('CL3', 'el cierre por WM_QUIT desde WinMain (0x4be644): guarda la config en HKCU\\SOFTWARE\\Webzen\\Mu\\'
+                      'Config, cierra "MuPlayer", restaura SystemParametersInfo y libera cada sistema '
+                      '(02-arranque-y-ciclo-de-vida.md, CL3)'),
 }
 MULTI_WAVE_GIANTS = set(ROLE_OVERRIDES)
 DISPATCHER = 0x4E2B10
 # Opcode S->C del dispatcher -> ola y sub-ola (04-protocolo.md y paso5 del research; la CL8 ya
-# portó el chat, la vida y el maná y los ítems del inventario; la CL7, el movimiento y el clima).
+# portó el chat, la vida y el maná y los ítems del inventario; la CL7, el movimiento y el clima). Las
+# sub-olas de la CL9 son las del plan de la CL9 (docs/superpowers/plans/2026-11-13-ola-cl9-gameplay.md,
+# Lo que encontró el barrido), que corrigió once opcodes y les dio sub-ola a las misiones. Cada opcode
+# está una sola vez.
 OPCODE_WAVE = {}
 for ops, w in [((0x00, 0x03, 0x71, 0xEB, 0xF1, 0xF4), 'CL4 (conexión y keepalive)'),
                ((0x0F, 0x1C, 0x46, 0xBD, 0xD3, 0xD7), 'CL7 (mundo y movimiento)'),
                ((0x01, 0x02, 0x0C, 0x0D, 0x26, 0x27, 0x24, 0x28, 0x2A), 'CL8 (chat, vida y maná, inventario)'),
-               ((0x12, 0x13, 0x14, 0x18, 0x1A, 0x1F, 0x20, 0x25, 0x45, 0x5D, 0x68, 0x9C, 0xCA, 0xDF),
-                'CL9.1 (viewport)'),
-               ((0x07, 0x0B, 0x16, 0x17, 0x19, 0x1B, 0x1E, 0x29, 0x2C, 0x48, 0x69, 0x73, 0xA3, 0xA7, 0xA8, 0xB7),
-                'CL9.2 (combate y skills)'),
-               ((0x21, 0x22, 0x23, 0x30, 0x31, 0x32, 0x33, 0x34, 0x81, 0x82, 0x83, 0x86, 0x87, 0xA9),
-                'CL9.3 (ítems, tiendas, baúl y caos)'),
-               (tuple(range(0x36, 0x3E)) + tuple(range(0x40, 0x45)) + tuple(range(0x50, 0x57))
-                + tuple(range(0x60, 0x68)) + (0xAA, 0xAB, 0xAC, 0xAD) + tuple(range(0xC0, 0xCC))
-                + (0xE1, 0xE5, 0xE6, 0xE9), 'CL9.4 (comercio, party, gremio, amigos y duelo)'),
-               ((0x3F, 0x47, 0x51, 0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x99, 0x9A, 0x9B, 0x9D, 0x9E, 0x9F,
-                 0xAF, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5, 0xB6, 0xB8, 0xB9, 0xBA, 0xBB, 0xBC), 'CL9.5 (eventos y asedio)'),
-               ((0xA0, 0xA1, 0xA2), 'CL9 (misiones: sin sub-ola, ver 10-cobertura-roadmap.md)')]:
+               ((0x12, 0x13, 0x14, 0x18, 0x1A, 0x1F, 0x25, 0x45, 0x68, 0x9F, 0xA0, 0xA1, 0xA2, 0xA3, 0xDF),
+                'CL9.1 (viewport, NPC y misiones)'),
+               ((0x07, 0x16, 0x17, 0x19, 0x1B, 0x1E, 0x29, 0x48, 0x69, 0x73, 0x9C, 0xA7, 0xA8, 0xA9, 0xB7),
+                'CL9.2 (combate, skills, cuervo y mascotas)'),
+               ((0x20, 0x21, 0x22, 0x23, 0x2C, 0x30, 0x31, 0x32, 0x33, 0x34, 0x81, 0x82, 0x83, 0x86, 0x87),
+                'CL9.3 (ítems del piso, tiendas, almacén y caos)'),
+               (tuple(range(0x36, 0x3E)) + (0x3F,) + tuple(range(0x40, 0x45)) + tuple(range(0x50, 0x57))
+                + (0x5D,) + tuple(range(0x60, 0x68)) + (0xAA, 0xAB, 0xAC, 0xAD) + tuple(range(0xC0, 0xCC))
+                + (0xE1, 0xE5, 0xE6, 0xE9), 'CL9.4 (party, comercio, duelo, tiendas personales, gremio y amigos)'),
+               ((0x0B, 0x47, 0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x99, 0x9A, 0x9B, 0x9D, 0x9E,
+                 0xAF, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5, 0xB6, 0xB8, 0xB9, 0xBA, 0xBB, 0xBC), 'CL9.5 (eventos y asedio)')]:
     for op in ops:
+        assert op not in OPCODE_WAVE, f'opcode {op:#x} repetido'
         OPCODE_WAVE[op] = w
 # Raíces de lectura de CL11 (roadmap, La ola de efectos visuales): efectos con modelo, joints, cintas,
 # sprites y partículas.
@@ -205,7 +311,8 @@ IMPORT_FAMILY = [(re.compile(r'^(gl|glu|wgl)[A-Z]'), 'CL5', 'OpenGL'),
 ADDR = re.compile(r'0[xX](?:00)?([4-6][0-9a-fA-F]{5})\b')
 ADDR_RESEARCH = re.compile(r'(?:0[xX]|FUN_)(?:00)?([4-6][0-9a-fA-F]{5})\b')
 CUT = re.compile(r'cut\(|Unexpected\(|\bCL ?(9|10|11)\b|\bCL(9|10|11)\.|es de la CL|es del hito|\bcorte\b|'
-                 r'cortad|sin portar|no se porta|queda para|llegan? con|\bstub\b|gancho', re.I)
+                 r'cortad|sin portar|no se porta|queda para|llegan? con|\bstub\b|gancho|'
+                 r'\btodavía no\b|\bMuRet no\b|\bno (?:lo |la |los |las )?porta', re.I)
 WTOK = re.compile(r'\bCL ?(\d{1,2})(?:\.\d+|\.R\d?)?\b')
 SUBWAVE = re.compile(r'\bCL ?(\d{1,2}\.(?:\d+|R\d?))\b')
 
@@ -492,7 +599,7 @@ class MuRet:
         for f in files:
             if not f.startswith(('Client/', 'docs/')) or f.endswith('Input/Key.h'):
                 continue
-            if f.startswith('Client/docs/research/coverage/'):
+            if f.startswith('Client/docs/research/coverage/') or f in CLM_OUTPUTS:
                 continue
             if not f.endswith(('.h', '.cpp', '.md', '.tsv', '.py', '.txt', '.inc')):
                 continue
@@ -597,6 +704,10 @@ def build(args):
     header, rows = load_inventory(inv_path)
     F = Facts(args.research, rows)
     M = MuRet(args.repo, args.ref, F)
+    for a, why in MENTION_ONLY.items():   # la nombran sin portarla: la cita queda como mención
+        M.impl.pop(a, None)
+        for loc, _, _, text in M.impl_loc.pop(a, [])[::-1]:
+            M.doc[a].insert(0, (f'{loc} (la nombra: {why})', [], text))
     R = research_mentions(args.research, F)
     REG = registry_levels(args.research, F)
     kinds = {a: F.kind(a) for a in F.rows}
@@ -621,6 +732,11 @@ def build(args):
             wave[a], why = ROLE_OVERRIDES[a]
             basis[a] = 'papel'
             ev[a].append(why)
+        elif a in REVIEW:
+            wave[a], why = REVIEW[a]
+            basis[a] = 'revisión'
+            ev[a].append(f'revisión independiente: {why}')
+            ev_purpose[a] = why
         elif M.impl[a]:
             c = M.impl[a]
             wave[a] = max(c, key=lambda w: (c[w], -wnum(w)))
@@ -696,7 +812,7 @@ def build(args):
         wave.pop(a, None)
         basis.pop(a, None)
     # 3) Propagación por el grafo, en rondas (el resultado no depende del orden).
-    giants = {a for a in own if len(F.callees[a]) > 60 or F.size[a] > 20000}
+    giants = {a for a in own if len(F.callees[a]) > 60 or F.size[a] > 20000} | MULTI_WAVE_GIANTS
 
     def sources(a, with_giants):
         src = []
@@ -948,6 +1064,63 @@ def build(args):
                     + excluded[hit[0]][1:]
                 grew = True
     close_exclusions(dead)
+    # 4e) Las ramas de los tipos y de la habilidad que la CL7 no alcanza (revisión independiente): lo que
+    # la CL7 tiene solo por el grafo, sin citas de MuRet, y alcanzan únicamente los gigantes de los
+    # personajes (o la habilidad 0x4f97b0, CL11). Son los monstruos de los mapas de evento, cuyos módulos
+    # 06 da a la CL9, y la habilidad (06: "no se llega", "solo los llama la habilidad"). El alta de un
+    # tipo (lo que solo alcanza 0x5141e0) va a la CL9; lo que crea efectos o toca sonidos, a la CL11.4,
+    # con lo que solo eso alcanza; el resto, a la CL9.
+    reach_ok = TYPE_GIANTS | {a for a in REVIEW if REVIEW[a][0] == 'CL11'}
+    branch = {a for a in own if wave.get(a) == 'CL7' and basis.get(a) in ('grafo', 'gigante') and a not in dead}
+    grew = True
+    while grew:
+        grew = False
+        for a in sorted(branch):
+            refs = refs_of(a)
+            if not refs or not refs <= reach_ok | branch:
+                branch.discard(a)
+                grew = True
+    create = set()
+    grew = True
+    while grew:
+        grew = False
+        for a in sorted(branch - create):
+            refs = refs_of(a)
+            if refs <= {TYPE_CREATE} | create:
+                create.add(a)
+                grew = True
+    fx = {a for a in branch - create if F.callees[a] & EFFECT_CALLS}
+    grew = True
+    while grew:
+        grew = False
+        for a in sorted(branch - create - fx):
+            refs = refs_of(a)
+            if refs & fx and refs <= fx | (reach_ok - {TYPE_CREATE}):
+                fx.add(a)
+                grew = True
+    for a in sorted(branch):
+        w = 'CL11' if a in fx else 'CL9'
+        direct = bool(F.callees[a] & EFFECT_CALLS)
+        what = ('alta de un tipo' if a in create else 'crea efectos o toca sonidos' if direct
+                else 'la usan solo ramas que crean efectos' if a in fx else 'lógica de un tipo o de la habilidad')
+        reach = ', '.join(f'{c:#x}' for c in sorted(refs_of(a))[:3])
+        cons[a].add('CL7')
+        if a in fx:
+            cons[a].add('CL9')   # el disparador (CL11.4 conecta los efectos con la CL9)
+        elif direct:
+            cons[a].add('CL11')
+        wave[a], basis[a] = w, 'tipo'
+        ev[a].insert(0, f'rama que la CL7 no alcanza ({what}): solo la alcanzan {reach}; '
+                        f'06-render-escenas-y-ui.md:6389 y :9581 (los módulos de los mapas de evento son de la CL9)')
+    # 4f) Las consumidoras: las olas de quienes la alcanzan y, en un gigante, las olas abiertas (CL9 a CL11)
+    # de lo que llama, que son las ramas que le faltan.
+    for a in own:
+        if a not in wave:
+            continue
+        cons[a] |= {wave[c] for c in refs_of(a) if c in wave and c not in dead}
+        if a in giants:
+            cons[a] |= {wave[c] for c in F.callees[a] if c in wave and wnum(wave[c]) >= 9}
+        cons[a].discard(wave[a])
 
     # 5) Filas.
     out_rows = []
@@ -983,13 +1156,14 @@ def build(args):
                 why = f'hereda la ola de quien lo llama: {caller_txt}'
             elif m and int(m.group(1), 16) in excluded:
                 row['primary_wave'] = ''
-                why = f'sin llamadas directas; el destino está excluido ({excluded[int(m.group(1), 16)][2]})'
+                why = (f'sin llamadas desde código de juego; el destino está excluido '
+                       f'({excluded[int(m.group(1), 16)][2]})')
             elif fam:
                 row['primary_wave'] = fam[0][0]
-                why = f'sin llamadas directas; el destino es {fam[0][1]}'
+                why = f'sin llamadas desde código de juego; el destino es {fam[0][1]}'
             else:
                 row['primary_wave'] = ''
-                why = 'sin llamadas directas ni familia de juego: destino del sistema, sin ola'
+                why = 'sin llamadas desde código de juego ni familia de juego: destino del sistema, sin ola'
             row['purpose'] = clean(f'thunk de {r[2]} -> {imp or tgt}')
             row['evidence'] = clean(f'{asm}: JMP {tgt}; {why}', 300)
             row['analysis_state'] = 'static'
@@ -1099,7 +1273,7 @@ def build(args):
             implemented = bool(M.impl[a])
             if a in dead:
                 row['implementation_state'] = 'not-applicable'
-            elif implemented and (M.cut[a] or a in giants):
+            elif implemented and (M.cut[a] or a in giants or a in PARTIAL_ONLY):
                 row['implementation_state'] = 'partial'
             elif implemented:
                 row['implementation_state'] = 'implemented'
@@ -1110,7 +1284,7 @@ def build(args):
             if a in REG:
                 row['analysis_state'] = 'verified'
                 row['evidence'] = clean(row['evidence'] + f'; registro-niveles.tsv {REG[a][0]}: {REG[a][1]}', 480)
-            elif basis[a] in ('src', 'papel', 'corte', 'doc', 'lectura', 'opcode') or R[a]:
+            elif basis[a] in ('src', 'papel', 'corte', 'doc', 'lectura', 'opcode', 'revisión') or R[a]:
                 row['analysis_state'] = 'static'
             else:
                 row['analysis_state'] = 'inferred'
@@ -1164,7 +1338,7 @@ def build(args):
             prog['unknown'][w] += size
         elif st == 'partial':
             ncut, nimp = len(M.cut[a]), sum(M.impl[a].values())
-            left = ncut / (ncut + nimp) if ncut + nimp else 0.5
+            left = ncut / (ncut + nimp) if ncut + nimp and a not in PARTIAL_ONLY else 0.5
             later = sorted({x for _, ws, _ in M.cut[a] for x in ws if wnum(x) >= 9}, key=wnum) or [w]
             for x in later:
                 prog['partial_left'][x] += size * left / len(later)

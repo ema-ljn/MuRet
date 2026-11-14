@@ -403,7 +403,7 @@ Core::Expected<void, std::string> StepTheAttack(ActorState& actor, std::size_t s
     const auto key = ChosenKeyOf(context.world, slot, context.controlDown);
     if (!key.HasValue())
         return Core::Unexpected(key.Error());
-    actor.word8a = static_cast<std::uint16_t>(key.Value());
+    actor.word8a = static_cast<std::int16_t>(key.Value());
     // 0x4fdc17..0x4fdeeb: +0x38e y el switch de la cabeza.
     const std::uint8_t skill = ReadTheSkill(actor, context.random);
     if (IsOneOf(HeadSkills, skill))

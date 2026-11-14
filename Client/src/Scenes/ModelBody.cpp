@@ -10,6 +10,7 @@
 #include "Scenes/WorldRuntime.h"
 
 #include <array>
+#include <bit>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -131,27 +132,6 @@ bool FinishTheCastleObject(ActorState& actor, const Render::Models::Skeleton& sk
     }
 }
 
-// 0x506ccc..0x506cf1: los casos de 0x505de0 que no son el default (0x5085db), por modelo.
-struct EffectsCase
-{
-    std::uint16_t model;
-    std::uint32_t address;
-};
-constexpr std::array<EffectsCase, 29> EffectsCases{{
-    {0x152, 0x5084b3}, {0x154, 0x5081c9}, {0x155, 0x50826d}, {0x157, 0x50845e}, {0x158, 0x50826d}, {0x15d, 0x507dab},
-    {0x15e, 0x50846c}, {0x15f, 0x50846c}, {0x161, 0x507e63}, {0x166, 0x50826d}, {0x16c, 0x507ade}, {0x16d, 0x507ab7},
-    {0x16f, 0x507a20}, {0x172, 0x507b05}, {0x173, 0x5083a1}, {0x177, 0x5079c0}, {0x179, 0x5079ad}, {0x17b, 0x50798e},
-    {0x17c, 0x5078b5}, {0x17d, 0x50789c}, {0x17e, 0x50749c}, {0x17f, 0x507493}, {0x182, 0x507414}, {0x185, 0x507006},
-    {0x186, 0x5073c6}, {0x189, 0x5073ed}, {0x1aa, 0x507493}, {0x1ce, 0x507ee6}, {0x1d3, 0x507eb7},
-}};
-// Los que van directo a 0x50862f, sin los helpers: el 0x183, el 0x184 y el 0x188. El 0x1d8 y el 0x1f5 tienen caso.
-constexpr std::array<std::uint16_t, 3> QuietModels{0x183, 0x184, 0x188};
-constexpr std::array<EffectsCase, 2> LateEffectsCases{{{0x1d8, 0x507e8a}, {0x1f5, 0x508093}}};
-
-bool Within(std::uint16_t value, std::uint16_t first, std::uint16_t last)
-{
-    return value >= first && value <= last;
-}
 } // namespace
 
 float ModelSpeedOf(std::uint16_t type, std::uint8_t action, float frame, float speed)
@@ -297,45 +277,21 @@ std::optional<ModelTrailCut> ModelTrailCutOf(const ActorState& actor)
         trail = hand >= FirstSword && hand < EndOfSwords && swing;
     if (trail)
         return ModelTrailCut{.address = 0x4fd233, .beforeTheRandom = true};
-    // 0x4fd5c1..0x4fd5df.
-    if (type == 0x1a7)
+    // 0x4fd5c1..0x4fd5df: los cuatro, en orden. Cada uno solo pose y la estela (0x52e470, CL11) en sus acciones; en las
+    // otras no hace nada ni saca rand().
+    // 0x441260: el 0x1a7 en la 3 o la 4 (0x44127c).
+    if (type == 0x1a7 && swing)
         return ModelTrailCut{.address = 0x441260, .beforeTheRandom = true};
-    if (type == 0x1b1 || type == 0x1b3)
+    // 0x42fa40: el 0x1b3 en la 3 (0x42fa64) y el 0x1b1 en la 4 (0x42fb61).
+    if ((type == 0x1b3 && action == 3) || (type == 0x1b1 && action == 4))
         return ModelTrailCut{.address = 0x42fa40, .beforeTheRandom = true};
-    constexpr std::array<std::uint16_t, 7> ActingOn432bd0{0x1ab, 0x1ae, 0x1af, 0x1b0, 0x1b1, 0x1b3, 0x1b4};
-    for (const std::uint16_t model : ActingOn432bd0)
-        if (type == model)
-            return ModelTrailCut{.address = 0x432bd0, .beforeTheRandom = false};
-    if (Within(type, 0x1b8, 0x1ba))
+    // 0x432bd0 está portado (Scenes::StepTheSwingsOf1abTo1b4).
+    // 0x426d90: el 0x1ba en la 3 (0x426db9), el 0x1b9 en la 3 o la 4 (0x426eb6) y el 0x1b8 en la 3 o la 4 con el frame
+    // (+0x114) en 5,06f (0x6b8a30) o menos, o NaN (0x427065: TEST AH, 0x41).
+    constexpr float LastTrailFrame = std::bit_cast<float>(0x40a1eb85u);
+    const bool late = actor.animation.frame > LastTrailFrame;
+    if ((type == 0x1ba && action == 3) || (type == 0x1b9 && swing) || (type == 0x1b8 && swing && !late))
         return ModelTrailCut{.address = 0x426d90, .beforeTheRandom = false};
-    return std::nullopt;
-}
-
-std::optional<std::uint32_t> ModelEffectsCutOf(std::uint16_t type, std::int32_t map)
-{
-    for (const EffectsCase& entry : EffectsCases)
-        if (entry.model == type)
-            return entry.address;
-    for (const EffectsCase& entry : LateEffectsCases)
-        if (entry.model == type)
-            return entry.address;
-    for (const std::uint16_t model : QuietModels)
-        if (model == type)
-            return std::nullopt;
-    // 0x5085db: los seis helpers, en orden; el primero que devuelve 1 saltea los demás.
-    if (type == NamedModel || Within(type, 0x191, 0x197))
-        return 0x43bdd0;
-    if (map == CastleMap && (Within(type, 0x19b, 0x1a1) || type == 0x1fc))
-        return 0x42de90;
-    if (type == 0x1a4)
-        return 0x441210;
-    constexpr std::int32_t SummonMap = 35;
-    if (map == SummonMap && Within(type, 0x1b1, 0x1b3))
-        return 0x42f550;
-    if (type == 0x1ab || Within(type, 0x1ad, 0x1b5))
-        return 0x431470;
-    if (type == 0x1b6 || type == 0x1b7 || type == 0x1bb)
-        return 0x426ce0;
     return std::nullopt;
 }
 } // namespace Client::Scenes

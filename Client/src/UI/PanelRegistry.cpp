@@ -67,7 +67,7 @@ const char* WaveOf(PanelId id)
     switch (id)
     {
     case FriendsPanel:
-        return "el administrador viejo (hito 7) y la CL9.4";
+        return "la ventana de amigos, sin el paso de las ventanas viejas (CL9 hito 9)";
     case GuildPanel:
     case TradePanel:
     case PersonalShopPanel:
@@ -116,7 +116,7 @@ bool PanelRegistry::IsOpen(PanelId id)
     switch (id)
     {
     case FriendsPanel:
-        return delegated.friends != 0;
+        return m_context.friendsShown ? m_context.friendsShown() : delegated.friends != 0;
     case MovePanel:
         return m_state.overlayMode == MoveOverlayMode;
     case PartyPanel:
@@ -256,6 +256,13 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id)
             m_state.delegated.commands = 1;
         break;
     }
+    case FriendsPanel:
+        // 0x659f3d: sin cerrar nada, 0x491080(0x186, 0x106) y los sonidos.
+        if (!m_context.friendsOpened)
+            return Core::Unexpected(OpenCut(id));
+        if (auto opened = m_context.friendsOpened(); !opened.HasValue())
+            return Core::Unexpected(std::move(opened).Error());
+        break;
     case QuestPanel:
     {
         // 0x659c50..0x659c70: todos menos el personaje y los amigos; con lo que cerró, 0x419840(−1).
@@ -272,7 +279,6 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id)
         }
         break;
     }
-    case FriendsPanel:
     case GuildPanel:
     case TradePanel:
     case WarehousePanel:
@@ -414,6 +420,13 @@ Core::Expected<bool, std::string> PanelRegistry::CloseByMask(PanelId mask)
                 return Core::Unexpected(std::string("0x419900: cerrar las misiones manda el C1 03 31 sin el cable"));
             m_state.delegated.quest = 0;
             m_context.questClosed();
+            break;
+        case FriendsPanel:
+            // 0x6584e5: 0x4914e0.
+            if (!m_context.friendsClosed)
+                return Core::Unexpected(CloseCut(id));
+            if (auto closed = m_context.friendsClosed(); !closed.HasValue())
+                return Core::Unexpected(std::move(closed).Error());
             break;
         case InventoryPanel:
             // 0x659250..0x65926a.

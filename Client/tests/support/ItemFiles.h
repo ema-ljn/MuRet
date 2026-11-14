@@ -6,7 +6,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <initializer_list>
 #include <span>
 #include <utility>
 #include <vector>
@@ -31,8 +30,17 @@ struct ItemShape
     std::uint8_t equipSlot;
 };
 
-// Item.bmd sintético con esas formas y todo lo demás en 0, ya cargado.
-inline Data::Tables::ItemTable ItemTableOf(std::initializer_list<ItemShape> shapes)
+// Un WORD de un registro, en little endian (como el nivel que pide, +0x3a).
+struct ItemWord
+{
+    std::uint16_t type;
+    std::size_t offset;
+    std::uint16_t value;
+};
+
+// Item.bmd sintético con esas formas, esos WORD y todo lo demás en 0, ya cargado.
+inline Data::Tables::ItemTable ItemTableOf(const std::vector<ItemShape>& shapes,
+                                           const std::vector<ItemWord>& words = {})
 {
     using Data::Tables::ItemRecordSize;
     constexpr std::size_t EquipSlotOffset = 0x22;
@@ -45,6 +53,12 @@ inline Data::Tables::ItemTable ItemTableOf(std::initializer_list<ItemShape> shap
         plain[base + EquipSlotOffset] = std::byte{shape.equipSlot};
         plain[base + WidthOffset] = std::byte{shape.width};
         plain[base + HeightOffset] = std::byte{shape.height};
+    }
+    for (const ItemWord& word : words)
+    {
+        const std::size_t at = std::size_t{word.type} * ItemRecordSize + word.offset;
+        plain[at] = static_cast<std::byte>(word.value & 0xff);
+        plain[at + 1] = static_cast<std::byte>(word.value >> 8);
     }
     const std::vector<std::byte> encrypted = EncryptRecords(std::move(plain), ItemRecordSize);
     return Data::Tables::ItemTable(std::span<const std::byte>(encrypted));

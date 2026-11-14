@@ -15,8 +15,10 @@
 // "Data\Local\Dialog.bmd", antes de quest.bmd).
 //
 // 0x54b2b0 lee 200 veces 0x400 bytes con fread en un bloque de operator new, les pasa el XOR3 desde su primer byte
-// (0x5496c0, la clave de 0x6c8c74) y los copia a 0x7688ac0 + 0x400 i. No mira cuánto leyó (en MuRet, FileTooShort).
-// Sin el archivo, avisa con un MessageBox y cierra la ventana (WM_DESTROY); MuRet sigue sin diálogos (P-C170).
+// (0x5496c0, la clave de 0x6c8c74) y los copia a 0x7688ac0 + 0x400 i. No mira cuánto leyó: con un archivo corto, el
+// fread de la CRT (0x69fecb) deja en el bloque lo que no leyó, lo del registro anterior ya descifrado, y lo vuelve a
+// descifrar; MuRet hace lo mismo. Con menos de 0x400 bytes, eso es el bloque sin iniciar (Q-C1127). Sin el archivo,
+// avisa con un MessageBox y cierra la ventana (WM_DESTROY); MuRet sigue sin diálogos (P-C170).
 // *Verificado* con el del repo: 204.800 bytes, 75 registros que no están en cero, a lo sumo 3 respuestas, y las
 // acciones −1, 0, 1, 2 y 3.
 namespace Client::Data::Text
@@ -64,7 +66,8 @@ using DialogTable = std::vector<DialogRecord>;
 // La respuesta `answer` hasta su primer cero, o los 0x40 bytes.
 [[nodiscard]] std::string_view DialogAnswerOf(const DialogRecord& dialog, std::size_t answer);
 
-// Descifra los primeros DialogTableSize bytes de `file` como 0x54b2b0. FileTooShort si son menos; InvalidData si una
-// cuenta pasa de 10 (0x419710 y 0x632f70 escribirían fuera de 0x7d3691c). Lo que sobra se ignora.
+// Descifra los primeros DialogTableSize bytes de `file` como 0x54b2b0, con lo que falta como lo deja su fread.
+// FileTooShort con menos de un registro; InvalidData si una cuenta pasa de 10: al abrir ese diálogo, 0x419710 y
+// 0x632f70 escribirían sus renglones fuera de los 10 de 0x7d3691c (Q-C1127). Lo que sobra se ignora.
 [[nodiscard]] Core::Expected<DialogTable, DataError> LoadDialogTable(std::span<const std::byte> file);
 } // namespace Client::Data::Text

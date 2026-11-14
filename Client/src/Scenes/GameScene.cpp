@@ -8,6 +8,7 @@
 #include "Render/Models/Pose.h"
 #include "Scenes/DynamicWorldLight.h"
 #include "Scenes/FaunaDrawing.h"
+#include "Scenes/InventoryMoves.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/GameParticles.h"
 #include "Scenes/GameDrawTail.h"
@@ -62,8 +63,10 @@
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"
 #include "UI/ChatLog.h"
+#include "UI/FriendModel.h"
 #include "UI/GameCursor.h"
 #include "UI/GameUiState.h"
+#include "UI/OldWindows.h"
 #include "UI/PanelRegistry.h"
 #include "UI/Widget.h"
 #include "World/GameCamera.h"
@@ -282,6 +285,10 @@ void GameScene::StepEntry()
             input.focus = UI::ChatFocus::Game;
             UI::ClearTheLog(runtime.chat.log, runtime.ui.chatModes);
             UI::ClearTheChatFilter(runtime.chat.log);
+            // 0x6368f9..0x636915: las ventanas viejas (0x48ea50), los amigos (0x49bac0) y las cartas (0x49f260, del
+            // hito 10: MuRet no guarda ninguna).
+            UI::ResetTheOldWindows(runtime.oldWindows);
+            UI::ClearTheFriends(runtime.oldWindows.friendModel);
             // 0x636920: 0x46b010, las colas del cartel de Slide.bmd, su timer 0x3eb y 0x46b0e0 (el registro propio y
             // un texto de Slide.bmd, con sus rand()).
             if (m_context.cloth != nullptr)
@@ -396,6 +403,8 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
     // 0x63717f: 0x5ac8d0, las teclas de función.
     const UI::Point mouse = UI::MouseIn640x480(input, m_screen);
     const GameChatContext chat = ChatContext();
+    // CL9 hito 5: la barra levanta el ítem del piso con el C1 05 22 (InventoryContext).
+    const InventoryServices inventory = InventoryContext();
     return StepTheFunctionKeys(GameUiContext{.world = *m_context.world,
                                              .random = m_context.cloth->random,
                                              .input = input,
@@ -403,7 +412,9 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
                                              .mouseY = mouse.y,
                                              .measure = m_context.textMeasure,
                                              .screen = m_screen,
-                                             .chat = &chat});
+                                             .chat = &chat,
+                                             .inventory = &inventory,
+                                             .fixedHeight = CameraState().fixedHeight});
 }
 
 Core::Expected<void, std::string> GameScene::StepTheObjects()
@@ -1058,7 +1069,8 @@ Core::Expected<void, std::string> GameScene::DrawTheCharacters(SceneCanvas& canv
     WorldState& world = *m_context.world;
     if (m_models == nullptr)
     {
-        return DrawGameCharacters(world.Actors(), world.Runtime().hero, world.Map().terrain.attributes->cells);
+        return DrawGameCharacters(world.Actors(), world.Runtime().hero, world.Map().terrain.attributes->cells,
+                                  &world.Runtime());
     }
     std::optional<std::string> poseFailure;
     ItemSpecialDrawContext special;
@@ -1096,7 +1108,9 @@ Core::Expected<void, std::string> GameScene::DrawTheCharacters(SceneCanvas& canv
                           { return std::span<const Render::Models::BoneTransform>(FramePoseCarry().bones); },
                           .worldModels = m_worldModelsMap ? &m_worldModels : nullptr,
                           .polygon = &polygon,
-                          .fixedHeight = CameraState().fixedHeight});
+                          .fixedHeight = CameraState().fixedHeight,
+                          .kalima = FrameKalima(),
+                          .cameraShake = m_projectingFrame ? &m_projection->cameraShake : &CameraInputState().shake});
     if (poseFailure)
         return Core::Unexpected(*poseFailure);
     return drawn;
@@ -1138,7 +1152,11 @@ bool GameScene::WantsToQuit() const
 // Mientras el campo del chat está abierto, uno de sus EDIT tiene el foco y recibe los WM_CHAR.
 bool GameScene::WantsTextInput() const
 {
-    return m_context.world != nullptr && m_context.world->Runtime().ui.chatOpen;
+    if (m_context.world == nullptr)
+        return false;
+    // El chat abierto o el EDIT de una ventana vieja con el foco (CL9 hito 9).
+    const WorldRuntime& runtime = m_context.world->Runtime();
+    return runtime.ui.chatOpen || runtime.chat.input.focus == UI::ChatFocus::OldWindow;
 }
 
 bool GameScene::HoldsTheLastFrame() const

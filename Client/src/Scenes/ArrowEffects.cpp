@@ -205,7 +205,7 @@ Core::Expected<void, std::string> CreateTheArrow(std::int16_t type, ActorState& 
                                                 .light = owner.light,
                                                 .subtype = subtype,
                                                 .owner = &owner,
-                                                .key = owner.word8a,
+                                                .key = static_cast<std::uint16_t>(owner.word8a),
                                                 .byte89 = static_cast<std::uint8_t>(skillIndex & 0xff),
                                                 .byte88 = flag,
                                                 .byte1bd = 0,

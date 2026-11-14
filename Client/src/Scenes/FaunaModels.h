@@ -104,7 +104,14 @@ public:
     [[nodiscard]] std::optional<Render::TextureSlot> TextureSlotOf(std::uint32_t selector) const override;
     [[nodiscard]] std::optional<glm::vec2> TextureSize(Render::TextureSlot slot) const override;
     [[nodiscard]] std::span<const FaunaResourceSound> SoundFiles() const;
+    // +0xaa..+0xbc del modelo: lo que escribió 0x612c80, o los ceros de 0x60dbe0 (también sin el modelo: el registro en
+    // 0 del original).
     [[nodiscard]] std::span<const std::int16_t, 10> SoundActions(std::uint16_t model) const;
+    // +0xa8 del modelo: la key que dejó 0x4eb860 en su última pose (0x4eb8cd..0x4eb94c), que lee el paso del 0x1f5
+    // (0x4fce92). 0x60dbe0 deja el arreglo en 0 y solo la pose la escribe: no se reinicia al soltar los modelos
+    // (*inferido*). La guarda el dibujo de los monstruos en cada frame del original (DrawGameMonster).
+    [[nodiscard]] std::int16_t PoseKey(std::uint16_t model) const;
+    void RecordPoseKey(std::uint16_t model, std::int16_t key);
 
 private:
     struct Entry
@@ -137,5 +144,6 @@ private:
     std::map<std::uint32_t, TextureMetadata> m_metadata;
     std::vector<Render::TextureSlot> m_uploaded;
     std::vector<FaunaResourceSound> m_sounds;
+    std::map<std::uint16_t, std::int16_t> m_poseKeys;
 };
 } // namespace Client::Scenes

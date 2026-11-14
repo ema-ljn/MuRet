@@ -1,8 +1,12 @@
 #include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
+#include "GameLogic/PathCell.h"
+#include "Network/Crypto/Xor32.h"
+#include "Protocol/FloorItems.h"
 #include "Protocol/Inventory.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
+#include "Scenes/GamePanels.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
@@ -11,15 +15,20 @@
 #include "UI/GameUiState.h"
 #include "World/ItemState.h"
 
+#include "support/Bytes.h"
 #include "support/ItemFiles.h"
+#include "support/SameBytes.h"
+#include "support/SceneDataFiles.h"
 
 #include <gtest/gtest.h>
 
 #include <cstddef>
 #include <cstdint>
 #include <initializer_list>
+#include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
 // Levantar, soltar y equipar el ítem del cursor (CL8 hito 4; 06 § El inventario, "El ítem del cursor"): la grilla de
@@ -28,13 +37,18 @@
 namespace
 {
 using Client::Core::Expected;
+using Client::GameLogic::PathCell;
+using Client::Network::Crypto::Xor32Decode;
+using Client::Protocol::FloorItems::Drop;
 using Client::Protocol::Inventory::ItemMove;
 using Client::Render::Models::CrtRandom;
 using Client::Scenes::EmptyOwnItemId;
 using Client::Scenes::InventoryMoveContext;
 using Client::Scenes::InventoryServices;
 using Client::Scenes::WorldState;
+using Client::Tests::Bytes;
 using Client::Tests::ItemTableOf;
+using Client::Tests::SameBytes;
 using Client::World::ItemState;
 namespace Scenes = Client::Scenes;
 
@@ -59,6 +73,7 @@ constexpr std::uint16_t Bolts = 0x0807;    // 1 × 1
 constexpr std::uint16_t Arrows = 0x080f;   // 1 × 1
 // 1 × 1, la derecha: el Dark Raven con 32 tipos por grupo, que 0x5bf03f compara (en el Item.bmd real, vacío).
 constexpr std::uint16_t OldDarkRaven = 0x01a5;
+constexpr std::uint16_t WizardsRing = 0x1a14; // 1 × 1, el primer anillo
 constexpr std::uint8_t HeadSlot = 2;
 constexpr std::uint8_t WingSlot = 7;
 constexpr std::uint8_t NotWorn = 0xff;
@@ -188,7 +203,8 @@ protected:
                                                          {Crossbow, 2, 4, 0},
                                                          {Bolts, 1, 1, 1},
                                                          {Arrows, 1, 1, 0},
-                                                         {OldDarkRaven, 1, 1, 0}});
+                                                         {OldDarkRaven, 1, 1, 0},
+                                                         {WizardsRing, 1, 1, 10}});
     Outside outside;
     InventoryServices services;
 };
@@ -511,10 +527,109 @@ TEST_F(CursorItemTest, WhatCannotBeDroppedGoesBackWithItsWarning)
     EXPECT_EQ(outside.messages.size(), 3u);
     EXPECT_EQ(outside.messages.back(), 269u);
 
+    // Lo demás sigue a las ventanas (0x5df58b), que piden el registro de los paneles.
     hold(Shield);
     const auto dropped = ground(100, false);
     ASSERT_FALSE(dropped.HasValue());
-    EXPECT_TRUE(dropped.Error().starts_with("0x5df58b:")) << dropped.Error();
+    EXPECT_TRUE(dropped.Error().starts_with("0x5df59a:")) << dropped.Error();
+}
+
+// 0x5df58b..0x5e069d (CL9 hito 5): sin ventanas sobre el mouse, el anillo (el registro propio), IsOpen(0x20), la celda
+// del terreno bajo el mouse y el C1 06 23 con la celda y el lugar de donde salió, en C3; después [0x6c82ec] con ese
+// lugar y la espera del mouse en 6.
+TEST_F(CursorItemTest, TheDropSendsTheCellAndTheSlotByteByByte)
+{
+    Put(Shield, 2, 1);
+    world.Runtime().movement.pendingClick = true;
+    ASSERT_TRUE(Scenes::PickUpFromTheGrid(Moves(), 1 * 8 + 2).HasValue());
+    ASSERT_EQ(world.Runtime().slot78a6758, 12 + 10);
+    std::vector<Drop> sent;
+    services.sendDrop = [&sent](const Drop& drop)
+    {
+        sent.push_back(drop);
+        return Expected<void, std::string>{};
+    };
+    services.pickTheGround = [] { return Expected<std::optional<PathCell>, std::string>(PathCell{130, 121}); };
+    Scenes::GamePanels panels(world, random);
+    // IsOpen(0x10000) y IsOpen(0x20) de las ventanas, el registro propio, IsOpen(0x20) otra vez y el envío.
+    const CrtRandom expected = Advanced(random, 1 + 1 + Own + 1 + SendRandoms);
+    world.Runtime().movement.mouseUpdateTime = 3;
+
+    const auto dropped = Scenes::DropOnTheGround(
+        Moves(), Scenes::GroundDrop{.mouseX = 100, .inventoryOpen = false, .panels = &panels.Registry()});
+
+    ASSERT_TRUE(dropped.HasValue()) << dropped.Error();
+    EXPECT_EQ(random.State(), expected.State());
+    ASSERT_EQ(sent.size(), 1u);
+    const auto packet = Client::Protocol::FloorItems::WriteDrop(sent.front());
+    EXPECT_TRUE(SameBytes(Xor32Decode(packet.packet).Bytes(), Bytes({0xc1, 0x06, 0x23, 130, 121, 22})));
+    EXPECT_EQ(world.Runtime().floor.pendingDrop, 22);
+    EXPECT_EQ(world.Runtime().movement.mouseUpdateTime, 0);
+    EXPECT_EQ(world.Runtime().movement.mouseUpdateTimeMax, 6);
+    // El ítem queda en el cursor hasta el 23.
+    EXPECT_EQ(world.Runtime().cursorItemCount, 1);
+    EXPECT_EQ(Cell(2, 1).id, EmptyOwnItemId);
+}
+
+// 0x5dfdfc: sin terreno bajo el mouse no sale nada y el ítem sigue en el cursor. 0x5df58b: con el inventario abierto y
+// el mouse en él, vuelve a su lugar.
+TEST_F(CursorItemTest, WithoutGroundOrOverTheInventoryNothingIsDropped)
+{
+    Put(Potion, 0, 0);
+    world.Runtime().movement.pendingClick = true;
+    ASSERT_TRUE(Scenes::PickUpFromTheGrid(Moves(), 0).HasValue());
+    int sent = 0;
+    services.sendDrop = [&sent](const Drop&)
+    {
+        ++sent;
+        return Expected<void, std::string>{};
+    };
+    services.pickTheGround = [] { return Expected<std::optional<PathCell>, std::string>(std::nullopt); };
+    Scenes::GamePanels panels(world, random);
+    const CrtRandom expected = Advanced(random, 1 + 1 + Own + 1);
+    ASSERT_TRUE(
+        Scenes::DropOnTheGround(Moves(), Scenes::GroundDrop{.mouseX = 100, .panels = &panels.Registry()}).HasValue());
+    EXPECT_EQ(random.State(), expected.State());
+    EXPECT_EQ(sent, 0);
+    EXPECT_EQ(world.Runtime().cursorItemCount, 1);
+    EXPECT_EQ(world.Runtime().floor.pendingDrop, -1);
+
+    ASSERT_TRUE(
+        Scenes::DropOnTheGround(
+            Moves(), Scenes::GroundDrop{.mouseX = Left - 15, .inventoryOpen = true, .panels = &panels.Registry()})
+            .HasValue());
+    EXPECT_EQ(sent, 0);
+    EXPECT_EQ(world.Runtime().cursorItemCount, 0);
+    EXPECT_EQ(Cell(0, 0).id, Potion);
+}
+
+// 0x5df6c8..0x5dfa52: el anillo del mago de nivel 2 pide el nivel 80 (el aviso 923 con el número, del tipo 1) y vuelve;
+// el de nivel 3 vuelve sin aviso.
+TEST_F(CursorItemTest, TheWizardsRingAsksForItsLevelBeforeBeingDropped)
+{
+    const auto texts = Client::Tests::MakeTextTable({{923, "hace falta el nivel %d"}});
+    services.texts = &texts;
+    std::vector<std::string> lines;
+    services.chatLine = [&lines](std::string_view line, std::int32_t type)
+    {
+        EXPECT_EQ(type, 1);
+        lines.emplace_back(line);
+        return Expected<void, std::string>{};
+    };
+    world.OwnCharacter().level = 50;
+    Scenes::GamePanels panels(world, random);
+    for (const std::uint32_t level : {2u, 3u})
+    {
+        Put(WizardsRing, 0, 0);
+        Cell(0, 0).scalar1Low = level << 3u;
+        world.Runtime().movement.pendingClick = true;
+        ASSERT_TRUE(Scenes::PickUpFromTheGrid(Moves(), 0).HasValue());
+        ASSERT_TRUE(Scenes::DropOnTheGround(Moves(), Scenes::GroundDrop{.mouseX = 100, .panels = &panels.Registry()})
+                        .HasValue());
+        EXPECT_EQ(world.Runtime().cursorItemCount, 0);
+        EXPECT_EQ(Cell(0, 0).id, WizardsRing);
+    }
+    EXPECT_EQ(lines, std::vector<std::string>{"hace falta el nivel 80"});
 }
 
 // 0x59bd3e..0x59bf56: MoveHero pasa el arma de la izquierda al cursor en un acceso al registro propio, viste al héroe y

@@ -61,6 +61,7 @@
 #include "Scenes/IScene.h"
 #include "Scenes/LoadingScene.h"
 #include "Scenes/LoginScene.h"
+#include "Scenes/NpcNames.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
@@ -662,6 +663,8 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     world.Runtime().quest.records = scenes.data.quests;
     // 0x61ecdf: 0x54a440 deja MonsterSkill.bmd en [0x7437670], hasta el cierre.
     world.Runtime().monsterSkills = scenes.data.monsterSkills;
+    // 0x61ed05: 0x54e7f0 deja NpcName(%s).txt en los registros de 0x7681eb8, hasta el cierre.
+    world.Runtime().npcNames = Scenes::NpcNameTableOf(scenes.data.npcNames);
     // 0x61ed18: 0x46b3b0 deja Slide.bmd en el cartel de [0x5763528], que dura hasta el cierre.
     if (scenes.data.slides)
     {

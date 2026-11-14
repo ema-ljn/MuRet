@@ -32,6 +32,7 @@ class TextTable;
 
 namespace Client::World
 {
+class FrameSprites;
 class Particles;
 struct WorldTerrain;
 } // namespace Client::World
@@ -87,6 +88,8 @@ struct CharacterStepContext
     const World::WorldTerrain* terrain = nullptr;
     const Render::Models::Skeleton* darkSpiritSkeleton = nullptr;
     World::Particles* particles = nullptr;
+    // La tabla de sprites del frame (0x5491e0) que piden los casos de 0x505de0 (el 0x166). Sin ella, cortan ahí.
+    World::FrameSprites* sprites = nullptr;
     // Los joints del juego (0x74a8d78, GameDrawTailState::joints), para el 0x618/0 y /1 del que mató (0x505169). Vacío,
     // el paso del ataque corta ahí.
     std::span<JointState> joints{};

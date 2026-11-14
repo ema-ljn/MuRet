@@ -19,6 +19,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/DarkSpirit.h"
+#include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/HelperTable.h"
 #include "Scenes/FaunaModels.h"
@@ -40,6 +41,8 @@
 #include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
 #include "support/ViewportPackets.h"
+
+#include <glm/ext/vector_float3.hpp>
 
 #include <gtest/gtest.h>
 
@@ -372,23 +375,94 @@ TEST_F(ViewportPlayersTest, TheStatesTwoToFourPutTheirActions)
     }
 }
 
-// 0x4c91aa..0x4c91e1: en Kalima (24 a 29 y 36) corta antes del equipo y del nombre, con la celda ya escrita.
-TEST_F(ViewportPlayersTest, KalimaCutsBeforeTheEquipment)
+// 0x4c91aa..0x4c91e1: en Kalima (24 a 29 y 36), 0x530860(0x610, posición, posición, ángulos, 8, jugador, 20, −1, 0, 0,
+// −1) con el jugador de dueño, sin rand(): nace en su posición con z = 300 y sus ángulos, vida 100, 20 puntos, ancho
+// 20, mezcla 4. Después sigue: el equipo y el nombre. En Lorencia y Devias, ningún joint.
+TEST_F(ViewportPlayersTest, InKalimaTheEnteringPlayerTakesTheJoint0x610Of8)
 {
-    for (const std::int32_t map : {24, 29, 36})
+    for (const std::int32_t map : {0, 2, 24, 29, 36})
     {
         SCOPED_TRACE(map);
-        Load(0);
+        Load(map == 2 ? std::uint8_t{2} : std::uint8_t{0});
         game->world.Runtime().map = map;
         const Cell cell = FreeRow();
         const std::array<ViewportPlayerRecord, 1> records{
-            {{.key = 0x0040, .isNew = true, .x = cell.x, .y = cell.y, .name = "Hornero"}}};
+            {{.key = 0x0040, .isNew = true, .x = cell.x, .y = cell.y, .name = "Hornero", .directionAndPk = 0x30}}};
         const auto applied = Client::Scenes::ApplyViewportPlayers(Read(records), game->Resources());
-        ASSERT_FALSE(applied.HasValue());
-        EXPECT_NE(applied.Error().find("0x4c91dc"), std::string::npos) << applied.Error();
-        EXPECT_EQ(Actor(1).cellX, cell.x);
-        EXPECT_EQ(std::to_integer<char>(Actor(1).name[0]), '\0');
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, FreshRecordDraws).State());
+        const ActorState& actor = Actor(1);
+        EXPECT_EQ(actor.cellX, cell.x);
+        EXPECT_EQ(std::to_integer<char>(actor.name[0]), 'H');
+
+        const auto& joints = game->world.DrawTail().joints;
+        const bool kalima = map != 0 && map != 2;
+        const Client::Scenes::JointState& joint = joints[0];
+        ASSERT_EQ(joint.alive, kalima);
+        for (std::size_t i = 1; i < joints.size(); ++i)
+            ASSERT_FALSE(joints[i].alive) << i;
+        if (!kalima)
+            continue;
+        EXPECT_EQ(joint.type, 0x610);
+        EXPECT_EQ(joint.subtype, 8);
+        EXPECT_EQ(joint.ownerContext, &actor);
+        EXPECT_EQ(joint.ownerKind, Client::Scenes::JointOwnerKind::Actor);
+        EXPECT_EQ(joint.position, glm::vec3(actor.position.x, actor.position.y, 300.0f));
+        EXPECT_EQ(joint.angles, actor.angles);
+        EXPECT_EQ(joint.targetPosition, actor.position);
+        EXPECT_EQ(joint.life, 100);
+        EXPECT_EQ(joint.maximumCount, 20);
+        EXPECT_EQ(joint.width, 20.0f);
+        EXPECT_EQ(joint.count, -1);
+        EXPECT_EQ(joint.key, 0);
+        EXPECT_EQ(joint.blend, 4);
+        EXPECT_EQ(joint.drawEnabled, 2);
+        EXPECT_EQ(joint.category, 1);
+        EXPECT_EQ(joint.light, glm::vec3(1.0f));
     }
+}
+
+// 0x53801e..0x538055: el paso del 610/8 lee del jugador el byte vivo y la posición (con z = 300); muerto, se apaga.
+TEST_F(ViewportPlayersTest, TheKalimaJointFollowsItsPlayerAndDiesWithIt)
+{
+    Load(0);
+    game->world.Runtime().map = 36;
+    const Cell cell = FreeRow();
+    const std::array<ViewportPlayerRecord, 1> records{
+        {{.key = 0x0041, .isNew = true, .x = cell.x, .y = cell.y, .name = "Hornero"}}};
+    ASSERT_TRUE(Client::Scenes::ApplyViewportPlayers(Read(records), game->Resources()).HasValue());
+    auto& joints = game->world.DrawTail().joints;
+    ActorState& actor = Actor(1);
+    actor.position = {1234.0f, 5678.0f, 90.0f};
+    ASSERT_TRUE(Client::Scenes::StepJoints(joints).HasValue());
+    EXPECT_TRUE(joints[0].alive);
+    EXPECT_EQ(joints[0].position, glm::vec3(1234.0f, 5678.0f, 300.0f));
+    EXPECT_EQ(joints[0].life, 99);
+    actor.alive = false;
+    ASSERT_TRUE(Client::Scenes::StepJoints(joints).HasValue());
+    EXPECT_FALSE(joints[0].alive);
+}
+
+// Con los 500 joints vivos, 0x530860 no crea nada y el 0x12 sigue: el equipo y el nombre, sin rand() de más.
+TEST_F(ViewportPlayersTest, InKalimaWithTheJointsFullThePlayerStillEnters)
+{
+    Load(0);
+    game->world.Runtime().map = 24;
+    auto& joints = game->world.DrawTail().joints;
+    for (auto& joint : joints)
+    {
+        joint.alive = true;
+        joint.type = 0x617;
+    }
+    const Cell cell = FreeRow();
+    const std::array<ViewportPlayerRecord, 1> records{
+        {{.key = 0x0042, .isNew = true, .x = cell.x, .y = cell.y, .name = "Hornero"}}};
+    const auto applied = Client::Scenes::ApplyViewportPlayers(Read(records), game->Resources());
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
+    EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, FreshRecordDraws).State());
+    EXPECT_EQ(std::to_integer<char>(Actor(1).name[0]), 'H');
+    for (const auto& joint : joints)
+        EXPECT_EQ(joint.type, 0x617);
 }
 
 // 0x4c8968 → 0x512870: con los 400 vivos, el alta da el 400 y el registro escribe en ese, el 401 del pool.

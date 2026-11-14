@@ -291,10 +291,11 @@ Core::Expected<ActorWalkResult, std::string> StepSound(const ActorState& actor, 
     {
         return ActorWalkResult{};
     }
-    // 0x4f3edc..0x4f3f6c: los subtipos 209 a 211 piden el 0x7b, y después todos la WORD 0 o la 1 de la tabla del modelo
-    // (DrawModelSound): la del modelo cargado (ActorWalkContext::modelSounds, CL9 hito 2) o, sin ella, la que escribió
-    // el alta (WorldRuntime::modelSounds, CL9 hito 3); un 0x20a no la tiene y lee las WORD en 0 de 0x60dc80, el 0xd2.
-    // El último sonido es el que queda.
+    // 0x4f3edc..0x4f3f6c: los subtipos 209 a 211 piden antes el 0x7b (0x41ed10(0x7b, personaje, 0), CL10), y después
+    // todos la WORD 0 o la 1 de la tabla del modelo (DrawModelSound): la del modelo cargado (ActorWalkContext::
+    // modelSounds, CL9 hito 2) o, sin ella, la que escribió el alta (WorldRuntime::modelSounds, CL9 hito 3); un 0x20a
+    // no la tiene y lee las WORD en 0 de 0x60dc80, el 0xd2. Si la tabla suena, su pedido pisa al 0x7b en lastSoundId
+    // (08 P-C241 e).
     ActorWalkResult result;
     if (modelSound)
         result.sound = 0x7b;

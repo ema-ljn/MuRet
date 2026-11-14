@@ -14,6 +14,7 @@
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/DamageNumbers.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/MonsterCreation.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldState.h"
@@ -113,8 +114,10 @@ Core::Expected<void, std::string> ApplyJumpingWalk(ActorState& actor, const Worl
     const auto context = StopContext(resources);
     if (!context.HasValue())
         return Core::Unexpected(context.Error());
+    // 0x4f37c0 → 0x4ea030 con el modelo del personaje: el 0x186 es un monstruo (el GS 0.97 manda su D3 desde
+    // gObjMonster, que llama a CGMoveRecv), con su modelo en WorldState::FaunaResources (MonsterSkeletonOf).
     const auto walked = SetActorWalk(
-        actor, {context.Value(), resources.world.ActionSpeeds(), false, resources.models.SkeletonOf(actor.type)});
+        actor, {context.Value(), resources.world.ActionSpeeds(), false, MonsterSkeletonOf(resources, actor.type)});
     if (!walked.HasValue())
         return Core::Unexpected(walked.Error());
     if (walked.Value().sound)

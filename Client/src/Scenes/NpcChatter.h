@@ -16,7 +16,8 @@ struct ActorState;
 struct CharacterStepContext;
 
 // strcmp(+0x1d9, 0x6c88b0) en 0x4fcda2: "황금의 궁수" (el tipo 236). Los 10 bytes del nombre y +0x1e3 contra los 11
-// primeros; con los 11 iguales el resultado depende de +0x1e4, que MuRet no tiene: cuenta como igual.
+// primeros y, con los 11 iguales, +0x1e4 (ActorState::nameSpill) contra el 0 que la termina: igual solo con +0x1e4 en
+// 0.
 [[nodiscard]] bool HasTheMessageName(const ActorState& actor);
 
 // 0x4fcd0c..0x4fcd55: con +0x88 en 4, en los mapas 0 y 2, el 0x20a de subtipo 0xd1 a 0xd3 mira para un lado fijo

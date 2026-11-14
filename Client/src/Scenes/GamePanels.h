@@ -1,10 +1,12 @@
 #pragma once
 
+#include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Text/TextTable.h"
 #include "UI/PanelRegistry.h"
 
 #include <functional>
+#include <string>
 
 namespace Client::Data::Tables
 {
@@ -55,6 +57,9 @@ public:
     // 0x659aa0..0x659c3d: con `requests`, abrir la party pone en 0 la cuenta de `world` (HudState::partyCount) y pide
     // la lista (C1 03 42). Lo presta el paso de la UI, el que abre la party; sin él, o con nullptr, abrirla corta.
     void LendThePartyList(WorldState& world, IGameUiRequests* requests);
+    // 0x659f3d: abrir el panel 1 llama a 0x491080(0x186, 0x106) (Scenes::OpenTheFriends), con lo que lee del paso (la
+    // vista y los globales de las ventanas viejas). Lo presta el paso de la UI; sin él, abrirlo corta.
+    void LendTheFriends(std::function<Core::Expected<void, std::string>()> opened);
 
     // 0x419900: cerrar las misiones manda el C1 03 31 con `send`. Lo prestan el paso de la UI y los handlers del A1 y
     // del A2 (0x657a90); sin él, cerrarlas corta.

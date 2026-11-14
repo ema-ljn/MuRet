@@ -270,16 +270,20 @@ estiman aparte; una suite en verde no acredita equivalencia visual completa.
 
 ### Mapeo completo del decompilado a las olas
 
-**CL.M, la matriz completa (2026-11-13), con la revisión independiente pendiente.** El
+**CL.M, terminada (2026-11-13), con la revisión independiente hecha.** El
 [plan de cobertura](../plans/2026-11-10-cobertura-roadmap-cliente.md) dejó una fila por VA del
 inventario en [`mainexe-roadmap.tsv`](../../../Client/docs/research/coverage/mainexe-roadmap.tsv): una
 ola responsable para cada función de juego en alcance —todas se llaman `FUN_*`— y una justificación
 para cada biblioteca, thunk o exclusión. Las funciones compartidas tienen una sola ola responsable y
 sus otras olas consumidoras. El método, los conteos y el avance están en
-[10](../../../Client/docs/research/10-cobertura-roadmap.md): 3.594 funciones de juego (2.329.285
-bytes; la CL7 el 30,8 %, la CL8 el 37,0 %, la CL9 el 20,6 %), 1.887 de bibliotecas, 129 excluidas y
-38 thunks, sin pendientes. La exclusión del anticheat del propio `main.exe` alcanza también a
-GameGuard, enlazado en el exe (72 funciones, 29 KB), que hasta ahora no se había identificado.
+[10](../../../Client/docs/research/10-cobertura-roadmap.md): 3.583 funciones de juego (2.327.716
+bytes; la CL7 el 26,6 %, la CL8 el 34,4 %, la CL9 el 24,6 %, la CL11 el 3,1 %), 1.891 de
+bibliotecas, 136 excluidas y 38 thunks, sin pendientes. La exclusión del anticheat del propio
+`main.exe` alcanza también a GameGuard, enlazado en el exe (72 funciones, 29 KB), que hasta ahora no
+se había identificado, y al detector de ventanas de trampas (`0x4ad070`). La
+[revisión independiente](../../../Client/docs/research/10-cobertura-roadmap.md#la-revisión-independiente)
+movió a la CL9 dos gigantes de la CL8 y las ramas de lógica de los tipos, a la CL11 los efectos de
+la habilidad y de cada tipo de monstruo, y a la CL10 el audio.
 
 El [inventario fuente](https://github.com/EmaNLJN/mu-server-repack-research-102i/blob/91359b2ceffa4ce085ea19bc7bf11762fc2034a5/client-research/mainexe-vmxp-c32bbd5f/decompiled/inventory.tsv)
 contiene **5.648 funciones internas, incluidas 4.403 con nombre `FUN_*` y 38 thunks**. Los
@@ -287,7 +291,7 @@ contiene **5.648 funciones internas, incluidas 4.403 con nombre `FUN_*` y 38 thu
 de `size_bytes` es 2.494.367 bytes; 2.477.342 corresponden a `FUN_*`. Esto cuenta registros y
 tamaños del inventario, no funciones de juego pendientes de portar. El TSV no distingue juego de
 CRT/bibliotecas ni trae olas. Los unos 821 KB y el 36 % del traspaso se reproducen con la matriz:
-807 KB, el 35,5 % del código de juego, es lo que tiene ola solo por las reglas de CL.M o por el
+801 KB, el 35,2 % del código de juego, es lo que tiene ola solo por las reglas de CL.M o por el
 barrido de la CL8, posterior al traspaso ([10](../../../Client/docs/research/10-cobertura-roadmap.md#los-821-kb-y-el-36--del-traspaso)).
 
 CL.M cierra cuando las 5.648 VAs estén reconciliadas, no quede ninguna clasificación o asignación
@@ -428,9 +432,11 @@ portar que solo llama la CL9 (48 KB) y los 240 cortes de MuRet hacia la CL9:
    y la muerte; las skills, el cuervo y las mascotas; los ítems del piso; las tiendas de NPC, el almacén y la
    caja del caos; la party, el comercio, el duelo, las tiendas personales y los comandos; el gremio; los
    amigos; el chat entre amigos y las cartas; los eventos; y Castle Siege en dos (las ventanas y la batalla).
-4. **La matriz se equivoca en diez opcodes** de la tabla del generador (`0x20`, `0x5D`, `0x3F`, `0x51`, `0xCA`,
-   `0x9C`, `0xA3`, `0x9F`, `0x0B`, `0x2C`, `0xA9`): el plan usa las sub-olas corregidas y el generador se
-   corrige con la revisión independiente de la CL.M.
+4. **La matriz se equivocaba en once opcodes** de la tabla del generador (`0x20`, `0x5D`, `0x3F`, `0x51`, `0xCA`,
+   `0x9C`, `0xA3`, `0x9F`, `0x0B`, `0x2C`, `0xA9`): el plan usa las sub-olas corregidas, y la
+   [revisión independiente de la CL.M](../../../Client/docs/research/10-cobertura-roadmap.md#la-revisión-independiente)
+   las pasó al generador. Las cifras de la CL9 de arriba son de la primera matriz (#334); con la revisión, la
+   CL9 tiene 1.057 funciones y 559,5 KB.
 
 ## Cómo el research se vuelve test
 

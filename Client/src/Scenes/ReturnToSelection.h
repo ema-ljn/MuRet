@@ -26,4 +26,7 @@ struct WorldEntryResources;
 [[nodiscard]] Core::Expected<void, std::string> PrepareReturnToServerList(const WorldEntryResources& resources);
 // 0x4c2ef3..0x4c2f51: después del cierre del GS, deja la orden de login y reinicia su estado.
 void ApplyReturnToServerList(const WorldEntryResources& resources);
+
+// 0x4c2480, compartido con el cambio de servidor.
+void ResetForTheSelection(const WorldEntryResources& resources);
 } // namespace Client::Scenes

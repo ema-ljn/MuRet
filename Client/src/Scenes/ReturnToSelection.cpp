@@ -140,4 +140,8 @@ void ApplyReturnToServerList(const WorldEntryResources& resources)
     resources.world.Runtime().drawingEnabled = false;
     ResetAfterLogout(resources);
 }
+void ResetForTheSelection(const WorldEntryResources& resources)
+{
+    ResetAfterLogout(resources);
+}
 } // namespace Client::Scenes

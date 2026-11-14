@@ -47,6 +47,18 @@ struct ReturnToSelectionReceived
 {
 };
 
+// CL9 hito 13: el B1 00 con el login ya mandado ([0x5767928] distinto de 0), lo del juego de 0x412b30 entre que cierra
+// el GameServer (0x4c1680) y conecta con el nuevo (0x4c1340): Scenes::ApplyMapServerLeave.
+struct MapServerLeft
+{
+};
+
+// El saludo del GameServer nuevo con el movimiento pendiente: lo del juego de 0x412bb0 antes de armar el B1 01
+// (Scenes::ApplyMapServerJoin).
+struct MapServerJoined
+{
+};
+
 // 0x4c275c..0x4c2779: limpieza del motivo 2, antes de comprobar el cifrado y cerrar el socket.
 struct ServerListLogoutCleanup
 {
@@ -118,5 +130,5 @@ using WorldEvent = std::variant<
     Protocol::Combat::Death, Protocol::Events::EventPacket, Protocol::Guild::GuildPacket,
     Protocol::Letters::LetterSendResult, Protocol::Letters::LetterRow, Protocol::Letters::LetterRead,
     Protocol::Letters::LetterDeleteResult, Protocol::FriendChat::RoomAnswer, Protocol::FriendChat::InviteResult,
-    ChatRoomPacket, ChatRoomClosed, ChatRoomPingDue, Protocol::CastleSiege::CastleSiegePacket, Protocol::CastleBattle::CastleBattlePacket>;
+    ChatRoomPacket, ChatRoomClosed, ChatRoomPingDue, Protocol::CastleSiege::CastleSiegePacket, Protocol::CastleBattle::CastleBattlePacket, MapServerLeft, MapServerJoined>;
 } // namespace Client::App

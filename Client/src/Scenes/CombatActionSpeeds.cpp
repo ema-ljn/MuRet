@@ -62,20 +62,24 @@ void SetMagicSpeeds(PlayerActionSpeeds& speeds, float magic, float halfMagic)
 } // namespace
 void RefreshCombatActionSpeeds(const WorldEntryResources& resources)
 {
+    RefreshCombatActionSpeeds(resources.world, resources.cloth.random);
+}
+void RefreshCombatActionSpeeds(WorldState& world, Render::Models::CrtRandom& random)
+{
     float attack = 0.0f;
     float magic = 0.0f;
     float halfMagic = 0.0f;
     {
-        const Render::Models::LogicalAccess access(resources.world.Runtime().ownRecordDepth, resources.cloth.random,
+        const Render::Models::LogicalAccess access(world.Runtime().ownRecordDepth, random,
                                                    Render::Models::OwnRecordCloseRandoms);
-        const auto& own = resources.world.OwnCharacter();
+        const auto& own = world.OwnCharacter();
         constexpr double FullFactor = static_cast<double>(0.004f);
         constexpr double HalfFactor = static_cast<double>(0.002f);
         attack = static_cast<float>(static_cast<double>(own.attackSpeed) * FullFactor);
         magic = static_cast<float>(static_cast<double>(own.magicSpeed) * FullFactor);
         halfMagic = static_cast<float>(static_cast<double>(own.magicSpeed) * HalfFactor);
     }
-    SetAttackSpeeds(resources.world.ActionSpeeds(), attack);
-    SetMagicSpeeds(resources.world.ActionSpeeds(), magic, halfMagic);
+    SetAttackSpeeds(world.ActionSpeeds(), attack);
+    SetMagicSpeeds(world.ActionSpeeds(), magic, halfMagic);
 }
 } // namespace Client::Scenes

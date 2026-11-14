@@ -217,6 +217,30 @@ ModelEffect ArrivalAt(const glm::vec3& position, const glm::vec3& angles, const 
 }
 } // namespace
 
+std::optional<std::size_t> ModelEffects::Begin(const ModelEffectArguments& arguments)
+{
+    for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
+    {
+        ModelEffect& effect = m_effects[slot];
+        if (effect.alive)
+            continue;
+        InitializeCommonEffect(effect, arguments.type, arguments.position, arguments.angles, arguments.light,
+                               arguments.scale);
+        effect.subtype = arguments.subtype;
+        effect.hasOwner = arguments.owner != nullptr;
+        effect.ownerContext = arguments.owner;
+        effect.itemType = nullptr;
+        effect.itemLevel = nullptr;
+        effect.disturbanceState = arguments.key;
+        effect.state = arguments.byte88;
+        effect.byte89 = arguments.byte89;
+        effect.byte1bd = arguments.byte1bd;
+        effect.dword100 = 0;
+        return slot;
+    }
+    return std::nullopt;
+}
+
 std::optional<std::size_t> ModelEffects::CreateKalimaEffect(const glm::vec3& position, const glm::vec3& angles,
                                                             const glm::vec3& light, Render::Models::CrtRandom& random)
 {
@@ -565,6 +589,49 @@ ModelEffects::CreateGroundStone(std::int16_t type, const glm::vec3& position, co
     return std::optional<std::size_t>{};
 }
 
+std::optional<std::size_t> ModelEffects::CreateDebris(std::int16_t type, const glm::vec3& position,
+                                                      const glm::vec3& angles, const glm::vec3& light,
+                                                      Render::Models::CrtRandom& random)
+{
+    constexpr int PushMask = 127, PushBase = 32, LifeMask = 15, LifeBase = 32, ScaleMask = 3, ScaleBase = 8;
+    constexpr int Turn = 360, FallSpan = 5, FallBase = 2;
+    constexpr double Lift = 50.0; // 0x6b86b0
+    for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
+    {
+        ModelEffect& effect = m_effects[slot];
+        if (effect.alive)
+            continue;
+        InitializeOwnerlessEffect(effect, type, position, angles, light);
+        // 0x51bafb..0x51bb35: el empuje en un local y la z 50 más.
+        const glm::vec3 push{0.0f, F32(static_cast<double>((random.Next() & PushMask) + PushBase) * StoneTenth), 0.0f};
+        glm::vec3& place = effect.transform.position;
+        place.z = F32(static_cast<double>(place.z) + Lift);
+        // 0x51bb38..0x51bb6f.
+        effect.life = (random.Next() & LifeMask) + LifeBase;
+        effect.transform.scale = F32(static_cast<double>((random.Next() & ScaleMask) + ScaleBase) * StoneTenth);
+        // 0x51bb72..0x51bba4: la z de los ángulos y el empuje girado (0x5fc8f0, 0x5fcbd0) a +0xcc.
+        glm::vec3& turn = effect.transform.angles;
+        turn.z = static_cast<float>(random.Next() % Turn);
+        effect.velocity =
+            Render::Models::OriginalVectorRotate(push, Render::Models::OriginalAngleMatrix(effect.transform.angles));
+        // 0x51bbac..0x51bbf5: la caída en +0xe4; el 0x10b con el subtipo 0 pasa al 1 y suma otro rand() % 5.
+        effect.turnDirection = static_cast<float>((random.Next() % FallSpan) + FallBase);
+        if (type == DebrisEffect && effect.subtype == 0)
+        {
+            effect.subtype = 1;
+            effect.turnDirection =
+                F32(static_cast<double>(random.Next() % FallSpan) + static_cast<double>(effect.turnDirection));
+        }
+        // 0x51bbfb..0x51bc3b.
+        turn.x = static_cast<float>(random.Next() % Turn);
+        turn.y = static_cast<float>(random.Next() % Turn);
+        turn.z = static_cast<float>(random.Next() % Turn);
+        effect.previousPosition = place;
+        return slot;
+    }
+    return std::nullopt;
+}
+
 std::optional<std::size_t> ModelEffects::CreateFallingStone(const glm::vec3& position, const glm::vec3& angles,
                                                             const glm::vec3& light, Render::Models::CrtRandom& random)
 {
@@ -657,6 +724,38 @@ std::optional<std::size_t> ModelEffects::CreateGroundStoneChip(std::int16_t type
         const glm::vec3 push{0.0f, F32(static_cast<double>((random.Next() & PushMask) + PushBase) * PushStep), 0.0f};
         effect.life = (random.Next() & LifeMask) + LifeBase;
         effect.transform.scale = F32(static_cast<double>((random.Next() & ScaleMask) + ScaleBase) * ScaleStep);
+        effect.transform.angles.z = static_cast<float>(random.Next() % Degrees);
+        effect.velocity =
+            Render::Models::OriginalVectorRotate(push, Render::Models::OriginalAngleMatrix(effect.transform.angles));
+        effect.turnDirection = static_cast<float>((random.Next() & FallMask) + FallBase);
+        return slot;
+    }
+    return std::nullopt;
+}
+
+std::optional<std::size_t> ModelEffects::CreateIceShard(const glm::vec3& position, const glm::vec3& angles,
+                                                        const glm::vec3& light, Render::Models::CrtRandom& random)
+{
+    constexpr int PushMask = 255, PushBase = 64, LifeMask = 15, LifeBase = 32, ScaleMask = 3, ScaleBase = 8;
+    constexpr int Degrees = 360, FallMask = 15, FallBase = 8;
+    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8: 0,1f.
+    constexpr double Rise = 50.0;                                                    // 0x6b86b0
+    constexpr std::int16_t ShardBlendMesh = 0;                                       // 0x51b6e0: ESI, en 0 (0x518d08)
+    constexpr float ShardBlendLight = std::bit_cast<float>(0x3e99999au);             // 0x51b6e3: 0,3f
+    for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
+    {
+        ModelEffect& effect = m_effects[slot];
+        if (effect.alive)
+            continue;
+        InitializeOwnerlessEffect(effect, IceShardEffect, position, angles, light);
+        effect.objectState.blendMesh = ShardBlendMesh;
+        effect.objectState.light = ShardBlendLight;
+        const glm::vec3 push{0.0f, F32(static_cast<double>((random.Next() & PushMask) + PushBase) * Tenth), 0.0f};
+        glm::vec3& at = effect.transform.position;
+        at.z = F32(static_cast<double>(at.z) + Rise);
+        effect.previousPosition = at;
+        effect.life = (random.Next() & LifeMask) + LifeBase;
+        effect.transform.scale = F32(static_cast<double>((random.Next() & ScaleMask) + ScaleBase) * Tenth);
         effect.transform.angles.z = static_cast<float>(random.Next() % Degrees);
         effect.velocity =
             Render::Models::OriginalVectorRotate(push, Render::Models::OriginalAngleMatrix(effect.transform.angles));

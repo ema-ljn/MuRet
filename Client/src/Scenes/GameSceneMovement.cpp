@@ -44,7 +44,7 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
         .skills = m_skills,
         .gates = m_gates,
         .input = {mouse.x, mouse.y, false, input.IsDown(Input::MouseButton::Left), input.IsDown(Input::Key::Shift),
-                  static_cast<float>(ticks), static_cast<std::uint32_t>(ticks)},
+                  static_cast<float>(ticks), static_cast<std::uint32_t>(ticks), input.IsDown(Input::Key::Ctrl)},
         .fixedHeight = CameraState().fixedHeight};
     context.pickTarget = [this] { return GroundUnderTheMouse(); };
     context.sendWalk = [&](auto cells, auto target, float angle) -> Core::Expected<void, std::string>
@@ -57,6 +57,12 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
         context.requestGate = [&](std::uint8_t gate) { m_session->RequestGate(gate); };
     if (m_session)
         context.sendFacing = [&](std::uint8_t direction) { return m_session->SendFacing(direction); };
+    // El D7 de pegar al llegar (0x5650c0, CL9 hito 3).
+    if (m_session)
+        context.sendAttack = [&](std::uint16_t key, std::uint8_t action, std::uint8_t direction)
+        { return m_session->SendAttack(key, action, direction); };
+    if (m_session)
+        context.sendElfCell = [&](std::uint8_t x, std::uint8_t y) { return m_session->SendElfCell(x, y); };
     if (m_session)
     {
         context.sendWindowClose = [&]() { m_session->SendWindowClose(); };
@@ -121,8 +127,9 @@ Core::Expected<void, std::string> GameScene::StepTheFauna()
     auto* slots = m_worldModels.TextureSlots();
     if (!slots)
         return Core::Unexpected(std::string("612d90: falta la tabla de texturas del mundo"));
-    const FaunaModelLoadContext resources{m_context.dataRoot, m_context.textures, m_context.log, *slots,
-                                          &world.FaunaResources().TextureTable()};
+    const FaunaModelLoadContext resources{
+        m_context.dataRoot,          m_context.textures, m_context.log, *slots, &world.FaunaResources().TextureTable(),
+        &world.Runtime().modelSounds};
     context.effects = BindFaunaStepEffects(world.FaunaResources(), resources, world.DrawTail().joints,
                                            world.Map().effects, m_context.cloth->random);
     return StepGameFauna(context);

@@ -7,6 +7,7 @@
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActionSend.h"
 #include "Scenes/ActorActions.h"
+#include "Scenes/ActorCombat.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/MonsterCreation.h"
@@ -39,7 +40,7 @@ constexpr double HalfCell = 50.0;
 constexpr std::uint8_t ShieldAction = 0x12;
 constexpr std::uint8_t ShieldAnimation = 0x98;
 constexpr std::int32_t ShieldSound = 0x6f;
-// 0x4cb820: 0x78 y 0x79 van a 0x4f4a10.
+// 0x4cb820: 0x78 y 0x79 van a 0x4f4a10 (Strike).
 constexpr std::uint8_t FirstStrikeAction = 0x78;
 constexpr std::uint8_t LastStrikeAction = 0x79;
 // 0x4cb812: 0x7a y 0x7b van a 0x4f2250.
@@ -133,6 +134,20 @@ Core::Expected<void, std::string> StopTheActor(ActorState& actor, const WorldEnt
         resources.world.Runtime().lastSoundId = stopped.Value().sound;
     return {};
 }
+// 0x4cb820..0x4cb852: 0x4f4a10 (SetActorAttack, con sus rand() y su sonido) y, después, +0x381 en 1, el frame
+// (+0x114) en 0, el blanco (+0x3a4) con el WORD de abajo de [0x57678b0] (el lugar del héroe, heroSlot) y [0x5767964]
+// con el índice. Un corte de 0x4f4a10 deja lo de antes hecho y no escribe nada de esto.
+Core::Expected<void, std::string> Strike(ActorState& actor, std::size_t index, const WorldEntryResources& resources)
+{
+    if (auto attacked = SetActorAttack(actor, CombatContextOf(resources)); !attacked.HasValue())
+        return attacked;
+    WorldRuntime& runtime = resources.world.Runtime();
+    actor.byte381 = 1;
+    actor.animation.frame = 0.0f;
+    actor.attackTarget = static_cast<std::uint16_t>(runtime.heroSlot);
+    runtime.lastAttacker = static_cast<std::int32_t>(index);
+    return {};
+}
 } // namespace
 
 Core::Expected<void, std::string> ApplyActionReply(const Protocol::Movement::Action& reply,
@@ -155,11 +170,7 @@ Core::Expected<void, std::string> ApplyActionReply(const Protocol::Movement::Act
     if (action >= FirstStopAction && action <= LastStopAction)
         return StopTheActor(actor, resources, sendAction);
     if (action >= FirstStrikeAction && action <= LastStrikeAction)
-        return Core::Unexpected(std::format(
-            "0x4cb821: la acción {:#x} de otro va a 0x4f4a10 (sin leer, con sus rand(): ocho llamadas a 0x69fd70, una "
-            "en la rama del jugador en 0x4f4db9), que es del hito 3 de la CL9; después pone +0x381 en 1, el frame "
-            "(+0x114) en 0, +0x3a4 con [0x57678b0] y [0x5767964] con el índice {}",
-            action, index));
+        return Strike(actor, index, resources);
     // 0x4ea030 lee las acciones del modelo del personaje (0x5769ad8 + tipo · 0xe0): un monstruo o un NPC, el que
     // cargó su alta; un modelo que no está es el registro sin acciones y no pone nada (0x4ea056). Sin Player.bmd, el
     // jugador es una guarda de contrato.

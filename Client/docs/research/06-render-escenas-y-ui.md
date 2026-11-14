@@ -6383,7 +6383,7 @@ modelo compartido del tipo, `[0x5769ad8] + tipo · 0xe0` (`0x4fd6b0`). Leído en
    `rand()` y un `0x530860(0x614)`; después, `+0x1a0 −= 1`.
 8. Las acciones `0x4d`, `0x4f` y `0x5a` pasado el frame 5,5 (`0x6b8a40`): `0x53fe70(0x5ac)` en el hueso 42
    (`0x4fdae0..0x4fdb92`).
-9. **La habilidad** (`0x4fdb9a..0x50539e`):
+9. **La habilidad** (`0x4fdb9a..0x50539e`; el detalle, en [El paso del ataque](#el-paso-del-ataque)):
    - Con `+0x381` positivo, `0x4f97b0(c, o)`, `0x4f5b70(c)` y `+0x381 += 1`.
    - Con `+0x381` debajo de `[0x6c88ac]` (15, en `.data`) salta a `0x50539e`. Si no:
      - `+0x381 = 0` y `o+0x8a = 0x558eb0(c, [0x6c8e30])`;
@@ -6462,7 +6462,9 @@ Los de las llamadas, por función:
 | `0x432bd0`, desde `0x4fcee0` | 20 más (`0x432d6f` y `0x432d74`, dos por cada una de diez poses) | el `0x1b0` en la acción 4 con el frame fuera de (5, 7); los otros tipos de `0x1ab` a `0x1b4` cortan antes en su estela o su efecto ([Los helpers de los monstruos](#los-helpers-de-los-monstruos)) |
 | `0x4f5660` | 1 | muriéndose |
 | `0x52f360` | 8 | el `0xf1` |
-| `0x4f97b0` y `0x4f5b70` | 11 y 36 sitios | la habilidad |
+| `0x4f97b0` y `0x4f5b70` | 11 y 36 sitios; sin habilidad, 1 (`+0x38e`) y, del frame 5, 3.848 el primero, y 1 (`0x4f5b97`) y 2 lecturas de `+0x38e` el segundo | con `+0x381` distinto de 0; las lecturas, con `+0x3a4` en `[0, 400)` ([El paso del ataque](#el-paso-del-ataque)) |
+| las lecturas de `+0x38e` (`0x517630` y en línea) y su escritura (`0x40b0a0`) | 1 cada una | con la cuenta en 0 |
+| `0x40f370`, después del sonido | 3.848 | con blanco, salvo los casos de `0x5051f1` y `+0x376` de `0x44` a `0x4b` |
 | `0x518cf0`, `0x530860` y `0x53fe70` | 212, 85 y 312 sitios en sus cuerpos | según lo que creen (54, 29 y 3 llamadas) |
 
 Los que quedan dentro de la habilidad (punto 9) solo corren con `+0x381` en 15 o más.
@@ -6485,10 +6487,10 @@ columnas son la dirección, los bytes, qué es y qué tiene MuRet.
 | `0x4fbe10` | 1.599 | la celda del héroe por la red, en los mapas 18 a 23 | corta |
 | `0x4fc450` | 819 | los WORD del registro propio | `StepTheOwnTimers` |
 | `0x4fb380` | 1.619 | `+0x398`, `+0x399` y el `0xf1` | el `0xf1`, `Scenes::StepTheFallingBall` (`0x4fb910`, CL9 hito 2, fase 6c) |
-| `0x4fb9e0` | 1.058 | muriéndose | corta |
+| `0x4fb9e0` | 1.058 | muriéndose | `Scenes::StepActorDying`; corta en `0x4fba6d`, `0x4fbba8` y `0x4fbcdd` ([Pegar al llegar](#pegar-al-llegar), "Morirse") |
 | `0x4e9980` | 191 | el alpha | `World::StepObjectAlpha` |
 | `0x4fcd00` | 473 | la animación | `StepTheAnimation`, con el `0x20a`; corta en `0x4fcd0c` y `0x4fcda2` |
-| `0x4f5660` | 1.185 | las partículas del que se muere | corta antes, en `0x4fb9e0` |
+| `0x4f5660` | 1.185 | las partículas del que se muere | `Scenes::SetActorDie`, desde el paso 15 |
 | `0x4ec110` | 120 | un punto de un hueso | `Render::Models::OriginalRotation`; acá no se llega |
 | `0x530860`, `0x53fe70`, `0x518cf0` | 17.516, 15.049, 27.599 | los joints, las partículas y los efectos | aparte, para el caballo y el login; acá cortan antes |
 | `0x4e93f0` | 195 | el rumbo de un punto a otro | `Render::Models::OriginalAngles`; acá no se llega |
@@ -6519,7 +6521,7 @@ columnas son la dirección, los bytes, qué es y qué tiene MuRet.
 | `0x743a180..0x743a188` | la celda anterior del héroe | `0x4fbe10` |
 | `0x57630c8..0x57630d4` y `0x57630f0` | la tabla de protección | todas las lecturas protegidas |
 | `[0x7879fbc]`, `[0x78ab9b8]`, `[0x78a6758]` | el ítem que reemplaza al del lugar (P-C38 d) | en el sonido |
-| `[0x5767948]` | — | un byte que lee la habilidad `0x31` |
+| `[0x5767948]` | la skill del último tiro (`WorldRuntime::lastShotSkill`) | la escribe `0x53d9a0` (`0x53deb6`); la lee la habilidad `0x31` |
 | `0x6b8xxx` | constantes de `.rdata` (0,1f, 0,03, 5,5, 3, …) | lee |
 
 **El presupuesto del héroe quieto** (*simulado*, con el port). Es el héroe en la zona segura de Lorencia (el 0,
@@ -6552,11 +6554,15 @@ se repite. Es el mismo en los dos mapas (`GoldenCharacterStep.TheHeroAtRestDraws
   - ~~con el `0xc5` (`0x4fd603`) y el `0xf1` (`0x4fb910`)~~ (CL9 hito 2, fase 6c: el nombre del `0xc5` va a la cola
     de `0x4381f0` y corta solo sin Text.bmd, `0x4fd63b`, o si pasa de los 100 bytes, `0x4fd67c`; el `0xf1` cae,
     rebota, gira y suelta su fuego, y corta solo sin la altura del terreno, `0x4fb942`; Q-C1095 y Q-C1096);
-  - muriéndose (`0x4fb9e0`);
+  - muriéndose, donde corta `0x4fb9e0` (el `0x192`, las chispas de Chaos Castle y las partículas de la skill
+    `0x28`);
+  - después de pegar, donde corta el paso del ataque ([El paso del ataque](#el-paso-del-ataque), CL9 hito 3, fase
+    2b);
   - con `+0x88` en 4 (`0x4fcd0c`) y con el nombre de `0x6c88b0` (`0x4fcda2`);
   - con otro modelo o sin Player.bmd (`0x4f9580`), y con una acción fuera de él (`0x4f95c0`);
   - en las acciones `0x94`, `0x51` y `0x5b` de la clase 4 (`0x4f969d`);
-  - en las `0xc3` y `0xc4` que terminan (`0x4fcb87`);
+  - ~~en las `0xc3` y `0xc4` que terminan (`0x4fcb87`)~~: dejan los restos ([Los restos](#los-restos-0x52e810), CL9
+    hito 3, fase 7);
   - en la partícula de las `0x4d`, `0x4f` y `0x5a` (`0x4fdb70`);
   - en la estela (`0x4fd236`).
 - Sin Item.bmd, `0x54efe0` corta con equipo que no sea el vacío de la respuesta del F3 03 (Q-C246).
@@ -8548,15 +8554,16 @@ lado, el color y el alfa del último paso del juego, quietas (Q-C233).
 - **La tabla.** `WorldRuntime::groundMarks` (`World::GroundMarkTable`): 100 `GroundMark` apagadas al
   arrancar, como la .bss, que `LoadMap` no toca.
 - **`0x548fe0`.** `World::AddGroundMark`, con el `rand()` de `CrtRandom`. Si la tabla está llena y
-  ninguna vida baja de 9.999, corta con error en `0x54900c`. No lo llama nadie: los dos creadores están en
-  ramas que MuRet no corre. El modelo `0x182` corta antes en `0x505e0b`, y `0x52e810`, desde `0x4fd5f0`,
-  es frontera (P-C44, P-C49 b).
+  ninguna vida baja de 9.999, corta con error en `0x54900c`. La llama `0x52e810` (`Scenes::LeaveTheRemains`,
+  CL9 hito 3, [Los restos](#los-restos-0x52e810)); el modelo `0x182` corta antes, en su caso de `0x505de0`
+  (`0x507414`, P-C241 a).
 - **`0x549090`.** `World::StepGroundMarks`, desde `GameScene::StepWorld` después de la espera, en
   `0x63712d`.
 - **`0x549130` y `0x5fb2f0`.** `World::DrawGroundMarks` y `World::DrawTerrainDecal`, en `0x5fc365`, entre
-  el estado de `0x5fc35b..0x5fc360` y el depth test de `0x5fc36a`. El juego de MuRet no sube `blood01` ni
-  sabe los componentes de su slot: con la tabla vacía no dibuja nada, y con una marca prendida corta en
-  `0x549152` (P-C49 b). La selección y el login no dibujan las marcas (P-C49 c).
+  el estado de `0x5fc35b..0x5fc360` y el depth test de `0x5fc36a`. El juego sube `Effect\blood01.tga` al
+  `0x5e3` con las texturas de efectos (`0x61d7aa`, `EffectTextureSet`, CL9 hito 3) y el byte `+0x28` sale de
+  los componentes que guardó `GameModels`; un slot que no subió corta en `0x549152`. La selección no lo sube y
+  el login no dibuja las marcas (P-C49 c).
 
 Tests: `GroundMarksTest` y `TerrainDecalTest`;
 `GameSceneDrawTest.TheReferenceMapsDrawTheTerrainTheGrassTheGroundMarksAndTheObjects`,
@@ -9310,9 +9317,9 @@ de Lorencia verifican el componente; `GameScene`, reglas del clic y caminar sigu
 
   En la zona segura, un clic sobre un monstruo o un jugador no ataca: cae a las filas de abajo y, si
   no hay otra cosa, al terreno (`0x59cd2e`). `0x558bb0` da 0 sin elegido o con un ítem en el cursor
-  (`[0x7879fbc]` > 0). En MuRet la primera fila corta en `0x59cd3c` (el ataque, hito 3), la del NPC va a hablarle
-  (CL9 hito 2, abajo) y las del objeto y el ítem del piso no pasan: sus lugares siguen en −1 hasta la CL9.3
-  (P-C162).
+  (`[0x7879fbc]` > 0). En MuRet la primera fila es `AttackTheChosen` (`GameMovement.cpp`, CL9 hito 3, fase 2a;
+  [Pegar al llegar](#pegar-al-llegar), "El clic de ataque"), la del NPC va a hablarle (CL9 hito 2, abajo) y las del
+  objeto y el ítem del piso no pasan: sus lugares siguen en −1 hasta la CL9.3 (P-C162).
 - **Hablar con un NPC** (CL9 hito 2, *estático*; MuRet: `WalkToTheNpc` en `GameMovement.cpp` y
   `Scenes/NpcTalk.cpp`). La fila del NPC (`0x59da75..0x59dc59`): la tienda de NPC saca su `rand()` (el byte
   protegido) y el almacén no; con las dos cerradas, `+0x379 = 2` salvo con el bit `0x10000000` de `+0x7c`, el NPC en
@@ -9350,12 +9357,19 @@ tocados, para limpiar rápido (el centinela es 1.950.000.000); el costo desde el
 x y en y; y la lista abierta (la vtable `0x6ba068`, la cantidad y la raíz).
 
 `FindPath(sx, sy, tx, ty, bErrorCheck, iWall, bClearGoal, fDistance)` (`0x4ead70`, `thiscall`, todo
-con enteros salvo la rama de `fDistance`, que caminar no usa):
+con enteros salvo la rama de `fDistance`, que caminar no usa: solo el elfo que se acerca, `0x566271`):
 
 - **Sale con falso con `sx == 0` o `sy == 0`** (`0x4eadc1..0x4eadce`, Q-C156; *emulado*).
 - **La meta**: con `bClearGoal` pone `Map[meta] = 0`, **escribe el mapa** (solo el asedio,
   `0x435a00`, en el mapa 34 con un blanco de tipo `0x204..0x208`); con `bErrorCheck`, una meta con
   `Map ≥ iWall` sin el `0x20` falla; si no, `NodeFlag[meta] = 4`.
+- **La meta por distancia** (`0x4eae7c..0x4eb054`, CL9 hito 3, fase 2a; `FCOMP` con C3 en `0x4eadd4`: una
+  `fDistance` que no es 0, o NaN, va por acá y no lee `bClearGoal`): r = `_ftol(fDistance)`; en cada fila
+  dy de −r a r, las celdas con |dx| ≤ r − |dy| (el rombo) y, de las de afuera hasta |dx| = r, las que tienen
+  `!(√(dx² + dy²) ≥ fDistance)`. Cada una por su índice lineal (`(ty + dy) · 256 + tx ± dx`): cerca del borde
+  sigue por la fila de al lado, y fuera de los 65.536 no marca. Con `bErrorCheck` marca solo las que tienen
+  `Map < iWall`. Con 1,8 (r = 1) es el cuadrado de 3 × 3; con 2,0 (r = 2), el rombo sin (±2, ±1). MuRet:
+  `GameLogic::PathFinder::Find` con `distance` (`MarkTheRadius`).
 - **El tope de vueltas**: 500 con `bErrorCheck` y 50 sin (`0x4eb0dc`, Q-C157).
 - **La lista abierta** es un árbol binario sin balancear de nodos de `0x14` bytes: inserta
   (`0x4eb770`) a la izquierda con la clave menor y a la derecha si no (los iguales, a la derecha), y
@@ -9460,7 +9474,10 @@ pone `Movement` igual (Q-C177; nadie lo llama así).
   la 3 o la 4, y sigue. Después, con `+0x114` en 0 **o unordered**, suena un golpe que se elige
   según la clase (`0x4f5488..`; `0x4f5496` consulta C3). Las guardas previas no gastan RNG;
   tampoco los subtipos 209..211, cuyo sonido es `0x7b`, ni el tipo 160 silencioso. Los sorteos de
-  las ramas restantes están en el presupuesto de Q-C179, no en cada llamada incondicionalmente.
+  las ramas restantes están en el presupuesto de Q-C179, no en cada llamada incondicionalmente. Los
+  demás monstruos (`0x4f553d..0x4f55ac`, CL9 hito 3, fase 2c): la WORD 2 o la 3 de la tabla de su
+  modelo, como al pegar ([Los sonidos del modelo](#los-sonidos-del-modelo); con la WORD 2 en −1,
+  nada y sin `rand()`).
 
 **Aplicadores del hito 2 (2026-11-10).** `SessionEventApplier` recibe los eventos tipados en
 orden desde la sesión y aplica `MovementReplies`/`ActorShock` al mundo durable, antes del paso.
@@ -9599,7 +9616,10 @@ emulación, 6 celdas caminando son 49 pasos (1,96 s).
   `0xf` a `0x14` u `0x8b` caminando y `0x17` a `0x1c` u `0x8c` corriendo; los que no son jugadores,
   2.
 - **Los pasos suenan** (`0x41ed10`) con `rand() & 63 == 0` en el héroe y `rand() & 15 == 0` en los
-  otros: gasta `rand()` (Q-C179).
+  otros: gasta `rand()` (Q-C179). Elegido, un jugador sale salvo con los subtipos 209 a 211, que piden
+  el `0x7b`; esos y los que no son jugadores piden después la WORD 0 o la 1 de la tabla del modelo
+  (`0x4f3edc..0x4f3f6c`, con `rand() % 2` y sin él con la WORD 0 en −1; [Los sonidos del
+  modelo](#los-sonidos-del-modelo)).
 
 `SetPlayerStop` (`0x4f2250`; 1.607 instrucciones, 5.481 bytes, cotejados con el PE `c32bbd5f`;
 *estático*) pone `Run = 0` (`0x4f227f`) y la acción de parado con `0x4ea030`. La zona segura es
@@ -9662,6 +9682,527 @@ observación nativa en el borde del pueblo está pendiente ([08](08-pendientes.m
 `Scenes::StepCharacters`, con el héroe, contra el `.att` de Lorencia (el borde del este, (172, 128) y
 (173, 128)) y de Devias (el del norte, (220, 76) y (220, 77)) en
 `GoldenCharacterStep.TheSafeZoneFollowsTheLogicalCellAhead`.
+
+### Pegar al llegar
+
+CL9 hito 3 (2026-11-13), *estático* salvo lo que se marca; los paquetes, en
+[04](04-protocolo.md#pegar-el-daño-y-la-muerte-d7-15-16-17-y-9c). MuRet: `Scenes/HeroAttack.cpp`,
+`Scenes/ActorCombat.cpp` y `Scenes/CombatReplies.cpp`.
+
+- **Si el elegido se puede atacar** (`0x558bb0`, el cursor 4 de la tabla de arriba y el clic de
+  `0x59d3de`): no con un ítem en el cursor (`[0x7879fbc] > 0`, con signo) ni sin elegido
+  (`0x6c8e30` en −1); en Chaos Castle (18 a 23), cualquiera que no sea el héroe. Un monstruo (`+0x88`
+  en 2) sí, salvo con `0x576796c` y sin `0x576796d` (la guerra de gremios). Un jugador (`+0x88` en
+  1): con el asedio (`0x4294b0`), los puestos de `+0x360` enfrentados (6 a 11 contra 12 y 13) o las
+  marcas de `+0x78` deciden por el escudo `0x4000` del elegido; si no, `+0x370` en 2 u 8; con
+  `0x576796c`, el PK de 6 o más y gremio compara los nombres de `0x787aa55` (hito 8, corta en
+  `0x558da4`); en el duelo (`0x78abad8`), solo la clave de `0x78abadc` con el nombre de `0x78abae0`
+  (`strcmp` contra `+0x1d9`); con `0x576796c`, `+0x374` en 2 y que no sea el héroe; el PK de 6 o más;
+  y si no, Ctrl abajo (`GetAsyncKeyState(0x11)`, `0x558e7f`) y que no sea el héroe.
+- **El freno de 300 ms** (`0x576791c`, `0x57f2d1..0x57f2f9`, y el mismo en `0x559890`, `0x55b6f0`,
+  `0x55cbc0` y `0x55faa0`): salvo la skill `0x28`, si `|GetTickCount() − [0x576791c]|` (resta de 32
+  bits con signo, `CDQ`/`XOR`/`SUB`) es 300 o menos, la skill no sale; si sale, guarda un
+  `GetTickCount()` nuevo (la segunda llamada). Lo usan las skills de `0x57cfc0` (hito 4).
+- **`0x5650c0(héroe, héroe, 0)`**, al final del camino (`0x59b2d2`), salta por `+0x379` (`MOVSX`)
+  menos 1 a la tabla `0x56ab20`: 1 levanta el ítem del piso (`0x566755`, hito 5), 2 habla con el NPC
+  (`0x5674c8`, hito 2), 3 pega, 4 usa el objeto del mapa (`0x5695b4`) y 5 (`0x56601f`); otro valor
+  no hace nada. **El caso 3** (`0x565107..0x56601e`):
+  1. El alcance, en celdas: 1,8; 2,2 con la derecha en `0x600..0x7ff`; 6 con las ballestas de la
+     derecha (`0x808..0x80e`, `0x810`, `0x812..0x9ff`) o los arcos de la izquierda (`0x800..0x806`,
+     `0x811`, `0x814`, `0x815`); 7 con `+0x376` en 9. Las armas son las del registro propio
+     (`+0xb6c` y `+0xbb4`, 3848 `rand()` al cerrarlo).
+  2. Sale sin blanco (`0x6c8ebc` en −1) y si el héroe ya pega: un jugador con la acción `0x8d` (de
+     `0x22` a `0x97` solo esa, Q-C1162), otro modelo con la 3 o la 4.
+  3. La celda del blanco, `ftol(posición · 0,01f)`, va a `0x77e1ba8` y `0x77e1bac`; en la zona
+     segura (`+0x3e2`) sale ahí.
+  4. La distancia del héroe al centro de esa celda, en la x87, contra el alcance · 100: menor, igual
+     o unordered está en alcance. Fuera, solo el elfo camina hasta el alcance (`0x56535b..0x566299`: la Y
+     y la X de su celda lógica, 4 `rand()` cada una, y `PathFinding2` hasta la celda del blanco con el alcance
+     como `fDistance`; con camino, `+0x378 = 1` y nada más, **sin `SendMove`**, Q-C1164); los demás salen.
+  5. En alcance: `MouseUpdateTime = MouseUpdateTimeMax`, `0x4f4a10`, `+0x381 = 1`, la posición del
+     blanco en `+0x3a8` y el yaw hacia él (`0x4e93f0`); la celda del héroe publicado (`0x743a170`,
+     X e Y protegidas, 4 `rand()` cada una) sale en el `D3` de girar; `+0x378 = 0`, las celdas del que
+     pega se abren y se cierran (4 y 4), `+0x3a4` toma el blanco y, si el nombre del héroe publicado
+     no contiene `webzen` (`0x6c8ff0`, una búsqueda de subcadena), sale el `D7`.
+- **`0x4f4a10`, SetPlayerAttack.** Un jugador: primero `0x4f3f80` (las velocidades de `Player.bmd`
+  desde el registro propio, 3848 `rand()`); con Fenrir fuera de la zona segura, la acción por las
+  armas (`0x56` a `0x61`) y el Dark Lord la pisa con `0x59`; con el caballo oscuro, `0x50`; con
+  Uniria o Dinorant, `0x32` a `0x37`; a pie, por las armas, con la marca `+0x1e` de Item.bmd para las
+  de la derecha y `rand() & 1` donde el original sortea. Los monstruos: `0x27` y `0x33` crean efectos
+  (CL11); `0x28` la acción 1 y el sonido `0x10`; `0x172`, `rand() & 7` y, de 3 en adelante,
+  `rand() & 1 + 3`; los demás pasan por los cinco ayudantes, todos y en su orden (abajo, "Los ayudantes de los
+  monstruos"), y si nadie atiende, 3 o 4 por `+0x38f % 3`, con `+0x38f + 1`. Con el frame en 0 (`0x4ea030` lo vuelve a 0 al cambiar de acción),
+  el sonido: el del arma del jugador, o el de la tabla del modelo (`0x5769ad8 + tipo · 0xe0`, las diez WORD
+  de `+0xaa`): con la WORD 2 en −1, ninguno; si no, `rand() % 2` (`0x4f5222`) elige la 2 o la 3, más 5 con el
+  subtipo 9 y más `0xd2` (`0x4f51f1..0x4f5262`). Los subtipos `0xd1` a `0xd3` piden antes `rand() & 1 + 0x3c` y
+  siguen. Al final, `+0x38f + 1` siempre. El sonido queda en `WorldRuntime::lastSoundId` (CL10), como los demás.
+  La tabla la escribe el alta de cada monstruo ([Los sonidos del modelo](#los-sonidos-del-modelo)); un modelo
+  que nadie escribió tiene las diez WORD en 0 (el `REP STOSD` de `0x60dc80`): suena `0xd2` (`0xd7` con el
+  subtipo 9) con el mismo `rand()` (P-C253 a).
+- **Los ayudantes de los monstruos** (`0x4f5034..0x4f50b2`, CL9 hito 3, fase 2c; MuRet: `MonsterAttack` en
+  `ActorCombat.cpp`). Cada uno devuelve AL en 1 si atendió, y con alguno en 1 no hay acción por `+0x38f` ni
+  `+0x38f + 1` (`0x437580` en 1 salta directo a `0x4f50b8`):
+  1. `0x43a2f0`, en cualquier mapa, por `+0x376` (los bytes de `0x43a644` sobre `+0x376 − 0x91` y los saltos de
+     `0x43a628`): `0x91`, `0xaf`, `0xb7`, `0xbf`, `0x105`, `0x10d` leen `+0x38e` y con 1, `0x11`, `0x37`, `0xc8`,
+     `0xc9` o `0xca` (la tabla de `0x43a6d0`) toman la 4, si no la 3; `0x93`/`0x94` y sus grupos, `0x11` la 4 y
+     otro la 3; `0x95`, `0xb3`, `0xbb`, `0xc3`, `0x109`, `0x111`, 1 la 4, `0x11` la 3 y otro **ninguna** (Q-C1172);
+     `0xa0`, `0xa1`, `0xb4`, `0xb5`, `0xbc`, `0xbd`, `0xc4`, `0xc5`, `0x10a`, `0x10b`, `0x112` y `0x113`, `rand() &
+     1 + 3`. Cada lectura cierra la entrada antes de la acción (un `rand()` en 0).
+  2. `0x42dcb0`: el `0x19e` y el `0x19f`, `+0x110 = 3` y la acción 5.
+  3. `0x443750`, en el 31 (`0x43ff10`) con el `0x123`: con `+0x38e` abierto, `'2'` (`0x32`) la 3 y otro la 4, y
+     después lo cierra (`0x443946..0x443974`). Atiende siempre.
+  4. `0x429270` (los mapas 33 y 54, `0x425070`) con `0x130`, `0x131` y `0x135`, y `0x437580` (el 34, `0x4303c0`)
+     con `0x154`, `0x155`, `0x158`, `0x159` y `0x15d` (la tabla de `0x4375cc`): `0x4f92f0`, que abre `+0x42e` (un
+     byte protegido que escribe el `0x69`, `0x4cc290`, sin portar), busca su valor sin signo entre las cinco skills
+     de `+0x376` en `0x7437670 + +0x376 · 0x18` ([MonsterSkill.bmd](05-formatos-de-datos.md#monsterskillbmd)) y,
+     en el lugar 0 a 4, pone la 3, la 4, la 8, la 9 o la `0xb` (la tabla de `0x4f9564`) y atiende; encuentre o no,
+     deja `+0x42e` en `0xff` (`0x4f9476`) y cierra la entrada (un `rand()`). `0x511290` no toca `+0x42e`: un lugar
+     nuevo lo tiene en 0, que un tipo sin registro encuentra en la `.bss` (Q-C1173).
+- **`0x4f5660`, SetPlayerDie.** El héroe pone la vida propia (`+0x22`) en 0 con el registro abierto;
+  el jugador toma la `0xc3`, los modelos de efecto (`0x20a` con el subtipo `0xd1..0xd3`, `0x16b` y
+  `0x170`) crean partículas (CL11) y los demás la 6. Con el frame en 0, el sonido: en Chaos Castle
+  `rand() & 1 + 0x5e`; un jugador `0x6e` el elfo, `0x1c7` el Dark Lord y `0x6c` los demás, y con
+  Fenrir `0x278`; un monstruo, la WORD 4 de su tabla (`+0xb2`; −1, ninguno), más 5 con el subtipo 9 y más
+  `0xd2`, sin `rand()` (`0x4f5aa8..0x4f5ae8`). Después, el frame en 0,001.
+- **El `17` en los castillos** (`0x4d07c0`, en los mapas 11 a 23): con el `TerrainWall` de la celda
+  del muerto en 8 y Chaos Castle, cae al vacío (dos `rand()`, el sonido `0x60`); con `0x20`, lo
+  empujan del puente hacia el lado de la celda vecina con el 8 (cinco `rand()`). El héroe devuelve
+  el objeto del evento a `0x40ba20`. Fuera de los castillos, la skill `0x28` o `0x3b` lo empuja (dos
+  `rand()`) y lo gira hacia quien lo mató. El vuelo lo mueve `0x4fb9e0` (abajo, "Morirse").
+
+- **El clic de ataque** (`0x59cd49..0x59d8be`, CL9 hito 3, fase 2a; MuRet: `AttackTheChosen` en
+  `Scenes/GameMovement.cpp`). Con el héroe fuera de la zona segura y `0x558bb0` en 1 (arriba):
+  1. El elfo (`+0x1d4 & 7` en 2) que camina (`+0x378`) sin interacción (`+0x379` en 0), con una ballesta en la
+     derecha (`0x808..0x80e`, `0x810..0x9ff`) o un arco en la izquierda (`0x800..0x806`, `0x811`; acá sin el
+     `0x814` ni el `0x815`, Q-C1167), lee su celda lógica, la Y antes que la X, y manda `C1 05 DF X Y`
+     ([04](04-protocolo.md#pegar-el-daño-y-la-muerte-d7-15-16-17-y-9c), Q-C1163). Las manos, del registro propio.
+  2. `0x59d3de..0x59d3fd`: el blanco (`0x6c8e30`) a `0x6c8ebc`, `0x6c8e38` en 1 y `+0x379 = 3`; la celda del
+     blanco, `ftol(posición · 0,01f)`, a `0x77e1ba8` y `0x77e1bac`.
+  3. `0x558800(x, y, tx, ty)` desde la celda lógica (la Y y la X, 4 `rand()` cada una): un Bresenham sobre los
+     WORD de `0x7d0d348`, por índice lineal desde `0x5f82a0(x, y)`, con el eje largo el de la diferencia mayor
+     (con las dos iguales, la Y), que mira de la punta a la punta, las dos incluidas: tapa una celda con el WORD
+     en 4 o más y sin `0x20`, `0x40` ni `0x80` en su byte bajo. Si no lo ve, nada más (el final normal,
+     `0x59e248`), con el blanco y `+0x379` ya escritos. MuRet: `World::CanSeeTheCell`.
+  4. Si lo ve, otra vez la Y y la X y `PathFinding2` hasta la celda del blanco (en `+0x3e8`). Con camino, las
+     manos en otro acceso: sin ballesta en la derecha, sin arco en la izquierda (ahora con el `0x814` y el `0x815`)
+     y con `+0x376` distinto de 9, `SendMove` (`0x56acd0`) y el final normal.
+  5. Si no (sin camino, o con arma de tiro), `0x561c50` (abajo): con flechas, `0x5650c0(héroe, héroe, 1)`, que no
+     lee el tercer argumento (Q-C1165), y el final normal; sin flechas, `MoveHero` sale en `0x59e2c0`, sin la suma
+     de `MouseUpdateTime`, sin `0x57cfc0` y sin la capa del héroe.
+- **`0x561c50`, las flechas al pegar** (`Scenes::CheckTheArrows`). Lee las manos en un acceso al registro propio.
+  Con una ballesta en la derecha (`0x808..0x80e`, `0x810`, `0x812..0x9ff`: acá el `0x811` no lo es, Q-C1167)
+  mira la izquierda; si no, con un arco en la izquierda (`0x800..0x806`, `0x811`, `0x814`, `0x815`), la derecha.
+  En otro acceso, si ahí están los virotes (`0x807`) o las flechas (`0x80f`) con durabilidad (`+0xbce` o `+0xb86`)
+  da 1; si no, `0x561840` (que busca otras en el inventario y las equipa, con el registro todavía abierto: sin el
+  corte de Q-C773) y 0. Sin arma de tiro, 1.
+- **El ataque automático** (`0x6c8e3c`, la opción 386; fuera del mapa 6 y de Chaos Castle). En `0x59b8a7` el
+  clic de `MoveHero` cuenta como apretado con `0x6c8e38` en 1 y un elegido (`0x6c8e30` distinto de −1), y en
+  `0x59b22f..0x59b261`, con `0x6c8e38` distinto de −1, la cabeza va a 0 y el héroe quieto no gira (`BL` en 0).
+  El picking de los jugadores (`0x59ec80`) vuelve a poner `0x6c8e38` en −1 en cada frame: en la práctica solo
+  repite el clic sobre un monstruo. `0x57d1d9` (`0x57cfc0`) lo compara con 2, que solo escriben las skills
+  (hito 4).
+- **Morirse** (`0x4fb9e0(c, o, b)`, desde el cuerpo en `0x4fd722`, con `+0x389` distinto de 0; CL9 hito 3, fase
+  2a; MuRet: `Scenes::StepActorDying` en `Scenes/ActorDying.cpp`). Apaga `0x1000`, `0x4000` y `0x20` de `+0x78`.
+  `+0x3c8` sube 0,02 por paso (0,05 el `0x172` en el mapa 7; 0,01, `0x6b88d4`, el `0x192` con `+0x60` del objeto
+  en 100 o más, con signo, `0x4fba6d..0x4fba7b`: lo escribe su alta, `ActorState::dword60`). Desde 1, el alpha es 1 − (`+0x3c8` − 1) en la x87, y mientras no baje de 0,01
+  la Z baja 0,4; debajo, el que no es el héroe se borra (`+0` en 0, `+0x391`, `+0x1a1` y `+0x1bc` en 0, y
+  `0x401040` y `0x4fb1a0`, que en MuRet no tienen nada que soltar, P-C161). Después, el vuelo: en Blood Castle (11
+  a 17) con `+0x1a1`, `0x4fb2b0` (`(0, +0xd0, 0)` girado por `+0x1a4` desde `+0x1b0`, `+0xd0 += +0xcc`, `+0xe4 +=
+  +0xd8`, `+0xd8 −= +0xd4`, el ángulo X menos 5 y la Z en `+0x1b8 + +0xe4`); en Chaos Castle (18 a 23) igual con
+  `+0x1a1` (tope 15; sin él, 25) y, del tope − 10 al tope en los pasos impares, tres `rand() % 160` y las chispas
+  de `0x51fe10` (CL11: corta en `0x4fbba8`); fuera de los castillos, con la skill `0x28` o `0x3b` en `+0x391`,
+  hasta el paso 14 `+0xd0 −= +0xd8` (0 si queda debajo), `+0xd8 += 1` y `0x51fd20` (la posición más `(+0xcc,
+  +0xd0, +0xd4)` girado por los ángulos de la cabeza y `+0x30`), y con la `0x28` hasta el paso 30, diez
+  partículas `0x5ac` (CL11: corta en `0x4fbcdd`). Por último, en la escena 5 y el mapa 7, cuatro burbujas `0x607`
+  (`rand() & 0x7f − 64` en x e y y `rand() & 0xff` en z sobre la posición, `0x53fe70`). Al volver, el cuerpo sube
+  `+0x389` (un byte, Q-C1166) y desde 15 llama otra vez a `0x4f5660` (`0x4fd787..0x4fd7e1`; en Blood Castle con
+  `+0x1a1`, también antes), y al final apaga `0x8000` y `0x10000` de `+0x78` (`0x505453..0x5054aa`).
+- **`+0x381` después de pegar** (`0x4fdb9a..0x4fdbeb`). Lo ponen en 1 el ataque al llegar (`0x5653c1`) y el `18`
+  con `0x78` y `0x79` (`0x4cb830`): en cada paso el cuerpo llama a `0x4f97b0` y `0x4f5b70`, lo sube, y desde 15
+  corre la habilidad de `+0x38e` (`0x4fdbf1..0x50539e`). Portado en la fase 2b: [El paso del
+  ataque](#el-paso-del-ataque).
+
+### El paso del ataque
+
+*Estático*, cotejado con el PE c32bbd5f (CL9 hito 3, fase 2b; `Scenes::StepTheAttack`, `AttackStep.cpp`). Es el
+tramo `0x4fdb9a..0x50539e` del cuerpo (`0x4fd5f0`, punto 9 de [El cuerpo de los
+personajes](#el-cuerpo-de-los-personajes-0x4fd5f0)). Cada lectura de `+0x38e` (la habilidad, un byte por la
+[tabla de protección](#la-tabla-de-protección)) es un acceso: `0x517630` (thiscall sobre `0x57630c8`) o su copia
+en línea, con un `rand()` si el cierre deja la cuenta en 0.
+
+**`0x4f97b0(c, o)`, los frames del ataque.**
+
+1. `0x4f9780(o)` (1 con el `0x20a` en la `0x25` o la `0x26`; solo lo leen los casos), `+0x38e` en línea
+   (`0x4f97cf..0x4f987a`) y `[0x6c88ac] = 15` (`0x4f987d`).
+2. El `switch` de `0x4f9899` (habilidad − `0x28`, tabla `0x4fb10c`): `0x28`, `0x2b`, `0x2c`, `0x2f` a `0x31`,
+   `0x34`, `0x35`, `0x37` a `0x39`, `0x3c` a `0x3f`, `0x41` y `0x43` a `0x4a`. Son del hito 4 (la `0x4f9ee2` pone
+   `[0x6c88ac]` en 5).
+3. Los demás (`0x4fab5d`): desde el frame 1 (`0x6b87d4`, `FCOMP`: NaN no pasa), el `0x20a` en la `0x3e` termina
+   (`+0x381 = 15`). Antes del frame 5 (`0x6b87f8`), o con NaN, sale. Sigue el `0x20a` con una acción de `0x22` a
+   `0x97` o un tipo de `0x152` a `0x1c9` con la 3 o la 4: abre el registro propio en línea, lee la izquierda
+   (`+0xbb4`, `MOVSX`, sin el ítem del cursor) y lo cierra (los 3.848 de `0x40b4d0` en 0). Con `+0x381` en 1 o más,
+   el `0x815` y el `0x20a`, veinte `0x53fe70(0x5c6, o+0x10, o+0x1c, o+0xf4, 12, 2,0f, 0)` (`0x4fb0d1`). Después,
+   `+0x381 = 15`. El registro es el del héroe aunque pegue otro (Q-C1168).
+
+**`0x4f5b70(c)`, los ayudantes.** Un `rand()` sin condición en `0x4f5b97`, que no lee nadie (Q-C1169). Después,
+seis ayudantes, cada uno en sus mapas; el que devuelve 1 hace salir a `0x4f5b70` (`0x4f903c`). Lo que hace cada
+caso, con sus lecturas de `+0x38e` y sus `rand()`, en [Los casos de los monstruos](#los-casos-de-los-monstruos-0x4f5b70)
+(fase 2e-B):
+
+| Ayudante | Dónde | Quién actúa (su caso) |
+| --- | --- | --- |
+| `0x43a7a0` (`0x4f5c0f`) | los mapas 24 a 29 y 36 (`0x4f5ba3..0x4f5bda`) | 54 `+0x376` de Kalima, de `0x90` a `0x119` (la tabla de `0x43b8fc`; los demás, AL en 0 en `0x43b8cb`) |
+| `0x4436f0` (`0x4f5c22`) | el 31 | `0x123` a `0x125`, `0x127` y `0x12f`: devuelven 1 sin hacer nada más (`0x443721`) |
+| `0x42dcf0` (`0x4f5c35`) | el 30 | `0x68` (`0x42dd56`) y `0x120` (`0x42dd23`) |
+| `0x429110` (`0x4f5c48`) | el 33 y el 54 | `0x130` (`0x429211`), `0x134` (`0x4291b1`) y `0x135` (`0x42914b`) |
+| `0x42fce0` (`0x4f5c5b`) | el 35 (`0x42ee20`) | el tipo `0x1ad` (`0x42fd43`) y el `0x1b2` (`0x42fd04`), con `+0x381` en 14 |
+| `0x4324c0` (`0x4f5c6e`) | el 34 | el tipo `0x1b2` y el `0x1ad` con `+0x381` en 14, el `0x1b5` en 15, el `0x17c` y el `0x17e` (la tabla de `0x432b8c`) |
+
+Los dos `switch` por `+0x376` (`0x4f5c7e`: `0x23` a `0x48`, la tabla de `0x4f9074`; `0x4f7598`: `0x49` a `0x12d`,
+la de `0x4f90b8`) tienen casos para `0x23`, `0x26`, `0x2a`, `0x2d`, `0x31`, `0x35`, `0x36`, `0x39` a `0x3b`,
+`0x3d`, `0x3f`, `0x42`, `0x43`, `0x46` a `0x4b`, `0x4d`, `0x59`, `0x5f`, `0x67`, `0x70`, `0x76`, `0x7c`, `0x82`,
+`0x8f`, `0x97` y `0x12d`; los demás, los monstruos de los primeros mapas (`+0x376` debajo de `0x23`) y el `0xffff`
+de los jugadores (el de `0x511290`, `0x511d72`), van a la cola (`0x4f80e0`): con `+0x3a4` fuera de `[0, 400)`
+sale; si no, lee `+0x38e` (`0x4f811b`): con `0x11`, un `switch` por `+0x376 − 0x25` (`0x4f8147`, la tabla de
+`0x4f91cc`: `0x25`, `0x2e`, `0x3d`, `0x42`, `0x45`, `0x49`, `0x4b`, `0x4d`, `0x57`, `0x59`, `0x5d`, `0x5f`, `0x63`,
+`0x70`, `0x74`, `0x76`, `0x7a`, `0x7c`, `0x80`, `0x82`, `0x8d`, `0x8f` y `0xa3` a `0xad` impares) del que los
+demás salen; si no, otra vez (`0x4f8a2c`): con 3, un `switch` por `+0x376 − 0x22` (`0x4f8a56`, la tabla de
+`0x4f9274`: `0x22`, `0x25`, `0x27`, `0x30`, `0x4d`, `0x59`, `0x5f`, `0x70`, `0x76`, `0x7c`, `0x82` y `0x8f`) y los
+demás `0x4f8f5b` (el hueso de `+0x2bd` con `0x4ec110`, dos joints `0x614` y la partícula `0x5ca`).
+
+**La cabeza** (`0x4fdb9a..0x4fdbeb`). Con `+0x381` distinto de 0, las dos y `+0x381 += 1` (un byte). Si `+0x381`
+queda debajo de `[0x6c88ac]` (`JL`, con signo), salta a `0x50539e`.
+
+**La habilidad** (`0x4fdbf1..0x50539e`):
+
+1. `+0x381 = 0`; `o+0x8a` (WORD) = `0x558eb0(c, [0x6c8e30])`: la clave (`+0x1f4`, `MOVSX`) del elegido o −1. Da
+   −1 con un ítem en el cursor (`JG`), sin elegido o si `c` no es el héroe publicado (`[0x743a170]`). En Chaos
+   Castle (18 a 23), la clave, también la del héroe. Si no, como `0x558bb0` sin el asedio: la guerra de gremios
+   con el PK de 6 o más y un gremio compara los nombres (`0x558f29`, Q-C1170); `+0x370` en 2 u 8; fuera de la
+   guerra, el PK de 6 o más o Ctrl (`0x558fd6`) con otro; en ella, `+0x374` en 2 con otro; en el duelo, la clave
+   del rival, sin el nombre. No saca `rand()`.
+2. `+0x38e` y el `switch` de `0x4fdeeb` (habilidad − 5, índices en `0x505530`): 5, 8, 9, `0xa`, `0xc` a `0xe`,
+   `0x1e` a `0x24`, `0x26` a `0x2a`, `0x2c`, `0x30`, `0x31`, `0x35`, `0x37`, `0x38`, `0x3f` a `0x41`, `0x43` a
+   `0x48`, `0x4b` y `0x4c`. Los demás, como el 0, siguen en `0x502aff`.
+3. **Sin blanco** (`+0x3a4`, `MOVSX`, en −1; `0x502b12..0x5037d5`): `+0x38e` (con `0x18`, una bandera). El `0x20a`
+   en las `0x2e` a `0x31`, `0x36`, `0x37`, `0x5e` y `0x61` (el arco y la ballesta a pie, en Uniria o Dinorant y en
+   Fenrir), u otro tipo con `+0x88` en 1: dos lecturas más, `0x59fb80(segunda, bandera, primera)` y
+   `0x53e2b0(c, o, 0, r)` (`0x50376a`, la flecha). Los tipos `0x168`, `0x175`, `0x17a` y `0x180`:
+   `0x53e2b0(c, o, 0, 0, 0, 0)`.
+4. **Con blanco** (`0x5037dd..0x50534a`): el lugar de `+0x3a4` en el pool, sin mirar el rango (Q-C1171).
+   - Las mismas acciones del `0x20a`: dos lecturas, `0x59fb80(segunda, 0, primera)` y `0x53e2b0(c, o, blanco, r)`
+     (`0x504048`); los tipos `0x168`, `0x175` y `0x17a`, `0x53e2b0` (`0x5040a9`).
+   - Con `+0x384` del blanco en 1 o más (WORD sin signo, el daño del último `15`): si no es el `0x159`, diez veces
+     tres `rand() & 63` (x e y − 32, z + `0x5a`) y `0x53fe70(0x5e4, punto, o+0x1c, (1; 1; 1), 0, 1,0f, 0)`
+     (`0x5040fb..0x50419c`); con el `0x18e`, cinco `rand() & 1` y, con 0, `rand() % 30` y `0x518cf0(0x10b)`, y
+     el sonido `0x88`; por último `0x42ea00(blanco)`, que solo actúa en el mapa 30 con el `0x19b` y el `0x19c`.
+   - Las acciones `0x38` a `0x3c`: `0x52e740` (`0x5042ce`).
+   - Los ángulos de `o` con el rumbo de `0x4e93f0` hacia el blanco, `+0x38e` y el `switch` de `0x504372`
+     (habilidad − 1, índices en `0x5055c8`): 1, 2, 4, 7, `0xb`, `0x10`, `0x11`, `0x18`, `0x1a` a `0x1c`, `0x2d`,
+     `0x2e`, `0x33`, `0x34`, `0x3c`, `0x3d`, `0x49` y `0x4a`. El 3 y los demás van a `0x505069`.
+   - `0x505069`: el punto del blanco (z + 120), la bandera de la `0x25` y la `0x26` y la luz; con `+0x380` en 2
+     (el `16` del héroe), dos `0x530860(0x618, blanco+0x10, blanco+0x10, o+0x1c, 0 y 1, o, 20,0f, −1, 0, 0, −1)`
+     (`0x505169`, `0x5051a4`).
+   - `+0x38e` y el `switch` de `0x5051f1` (habilidad − `0x10`, índices en `0x505730`): `0x10`, `0x1a` a `0x1c`,
+     `0x1e` a `0x24`, `0x28`, `0x2b`, `0x2f`, `0x30`, `0x35`, `0x3f`, `0x40`, `0x43` a `0x46`, `0x48` y `0x4b`
+     no suenan. Los demás, con `+0x376` fuera de `0x44..0x4b`: abre el registro propio (`0x4e79a0`), toma las
+     manos (`+0xb6c` y `+0xbb4`, `MOVSX`; el ítem del cursor en el lugar de `[0x78a6758]`, 0 o 1, con
+     `[0x7879fbc] > 0` y la grilla `0x78a9bb0`), y con las dos de `0x800` a `0x9ff` pide `0x41ed10(0x4b +
+     rand() & 3, o, 0)` (`0x5052fd`) y si no `0x46 +` (`0x505322`); lo cierra (`0x40f370`, `0x50534a`).
+5. `0x40ae60`, `+0x38e = 0` y `0x40b0a0` (una escritura: un `rand()` en 0), `+0x382 = 0` y `+0x380 = 0`.
+
+**La sangre `0x5e4`** (CL9 hito 3, fase 2d; *estático*, con la textura `Effect\blood.tga` en el slot `0x5e4`, que
+carga `0x61d7c9` con `0x63bd00` lineal y `CLAMP`). Los diez puntos de `0x5040df..0x5041a4` suman a la x, la y y la
+z del blanco en la x87 (`fild` y `fadd`) y piden `0x53fe70(0x5e4, punto, o+0x1c, [EBP − 0x30], 0, 1,0f, 0)`:
+
+- **La creación** (`0x53fe70`, la tabla de bytes de `0x54446c` por tipo − `0x5de` y la de saltos de `0x544440`;
+  el caso de `0x542b3b`, que comparte con la `0x5e3`): la vida en 12; la escala, `((rand() & 3) + 8) · 0,05f`
+  (`0x6b8a48`), que pisa la del pedido; `ángulos.x = rand() % 360`; la matriz de los ángulos del pedido
+  (`0x5fc8f0`) gira `(0; −((rand() & 15) + 8); rand() % 6 − 3)` (`0x5fcbd0`) a la velocidad; con la `0x5e4`, la
+  luz en (0,1f; 0; 0) (`0x542bdb`, `0x542be9`), que pisa la del pedido. Cuatro `rand()`; no lee el subtipo. Con el
+  pool lleno no saca nada, y los tres `rand()` del punto salen igual.
+- **El paso** (`0x5446e0`, la tabla de `0x5482d4` y la de `0x5482a8`; el caso de `0x546b04`), después de la vida
+  y del movimiento común (la velocidad girada por los ángulos, `0x4e98d0`): la velocidad por 0,95f (`0x6ba30c`),
+  el cuadro `+0x48` en `(12 − vida) / 3` y la posición más la velocidad sin girar, la x con el producto sin
+  redondear a `float`. Muere en el paso 12, con el cuadro 4. No saca `rand()`.
+- **El dibujo** (`0x548550`, la tabla de `0x548c9c` y la de `0x548c78`; la `0x5e4` en `0x5487b9`, la `0x5e3` en el
+  billboard común): la mezcla del material, sin giro, la celda del cuadro en un atlas de 2 × 2 (la u, `cuadro % 2 ·
+  0,5`; la v, `cuadro / 2 · 0,5`) y el tamaño (0,5; 0,5).
+
+MuRet la crea, la mueve y la dibuja en el pool de partículas del mundo (`World::BloodParticle`, el mismo que usa
+la escena y el paso de los personajes; `BloodParticlesTest`, `AttackStepTest.TheTargetWithDamageBleedsTenTimes`).
+
+**Las piedras de las estatuas** (`0x5041bf..0x50426f`, *estático*; CL9 hito 3, fase 2e). Con el blanco `0x18e` (las
+estatuas 132 a 134 de Blood Castle, `0x51455d`) con daño, después de la sangre, cinco `rand() & 1`; con 0, el punto
+del blanco con la z en `(z + 50) + rand() % 30` y `0x518cf0(0x10b, punto, o+0x1c, o+0xf4, 0, sin dueño, −1, 0, 0, 0,
+0)`; después, el sonido `0x88`. El alta (`0x51bafb`, la del `0x10a` también; sale en `0x51bc42` sin la salida común):
+la z 50 más, el empuje (0; ((`rand()` & 127) + 32) · 0,1f; 0), la vida (& 15) + 32, la escala ((& 3) + 8) · 0,1f, la z
+de los ángulos en `rand() % 360` para girar el empuje (`0x5fc8f0`, `0x5fcbd0`) a la velocidad, la caída `+0xe4` en
+`rand() % 5` + 2 y, con el `0x10b` de subtipo 0, el subtipo 1 y otro `rand() % 5` en la caída; al final los tres
+ángulos en `rand() % 360`: nueve `rand()` (ocho con el `0x10a`). El paso (`0x52531d`), después del `rand()` de la luz
+local: la posición más la velocidad sin girar, la velocidad por 0,9f (y por 1,1f con el subtipo 1), la z más la caída
+y la caída menos 3; con la altura del terreno (`0x5f93c0`) por encima de la z, la z queda en ella, la caída por
+−0,2f, cinco vidas menos y la x de los ángulos menos escala · 128; si no, menos escala · 16; `+0x174` = vida · 0,1f.
+Termina en `0x5252e6`: `rand() % 10` y, con 0, el polvo `0x5f3`/0 en `[EBP − 0x28]`, un local que nadie escribe
+(Q-C1176): MuRet corta ahí, después de ese `rand()` (P-C232, para la VM); en los otros nueve de cada diez pasos, la
+cola común la mueve otra vez, con la velocidad girada (Q-C1177). MuRet la crea
+(`ModelEffects::CreateDebris`) y la mueve (`World::StepGameModelEffect`); su dibujo, con el modelo, es de la CL11
+(`AttackStepTest.TheStatueWithDamageThrowsStones`, `GameModelEffectsTest.TheStatueStonesJumpFallTiltAndCutAtTheDust`).
+
+**Las chispas del `0x815`** (`0x4fb0d1`, *estático*). En `0x4f97b0`, con `+0x381` en 1 o más, el `0x815` en la
+izquierda del registro propio y el `0x20a`, veinte `0x53fe70(0x5c6, o+0x10, o+0x1c, o+0xf4, 12, 2,0f, 0)`. La
+creación (`0x540a04`, la tabla de `0x5443c0` por subtipo − 1) pone la textura `0x5fc`, `+0x38` en 1,0f, la
+posición más (0; −100; 0) girado por los ángulos (`0x5fc8f0`, `0x5fcbd0`) y después `(rand() & 15) − 8` en x e y
+y 150 en z; la velocidad `((rand() % 20) · 0,1f − 1; igual; −(rand() % 3) − 3)`, la vida 40 y la escala `2 −
+(rand() % 15) · 0,1f`: seis `rand()`. El paso (`0x545397`, la tabla de `0x548204`) saca `rand() & 1` para la luz
+(menos 0,6f en rojo y verde, menos 0,8f en azul), resta 0,04f a la escala y 0,001f a `+0x38` (muere en 0 o
+menos); el dibujo es el billboard común con la textura `0x5fc`. Con el pool lleno no saca nada
+(`AttackStepTest.TheBowInTheOwnLeftHandSparksTwentyTimes`, `AttackParticlesTest`).
+
+**Los rayos del que mató** (`0x505169`, `0x5051a4`, *estático*). Con `+0x380` en 2, dos `0x530860(0x618, blanco+0x10,
+blanco+0x10, o+0x1c, 0 y 1, o, 20,0f, −1, 0, 0, −1)`. La creación (`0x532125`, `0x53214b`, y `0x5322df` o
+`0x5322f8`): el ancho, velocidad 3, vida 120, 8 puntos y la luz (0,4; 0,3; 0,2) o (0,1; 0,1; 0,5), sin `rand()`;
+con dueño, el destino (`+0x58`) queda el del uso anterior. El paso (`0x535840`, el `0x618` por la tabla de
+`0x53c4bc`/`0x53c48c` y el subtipo por `0x53c5a0`/`0x53c594`, `0x538313`), después del movimiento común:
+
+- con la vida en 100 o más, la /0 suma 10 al rumbo y 6 a la z; la /1 resta 10 y suma 5;
+- con menos, la velocidad + 5 hasta 30, el destino en el dueño (su posición y la z + 120) y `0x4e9810` hacia él con
+  la velocidad; a 35 o menos (o NaN) muere, pide `0x53fe70(0x5d5, …, 1, 1,0f, 0)` y el sonido `0x23`; de 35 a 70,
+  con el rumbo girado más de 20 y la velocidad en 20 o más, la velocidad − 10;
+- siempre: `v = ((rand() & 3) + 8) · 0,03f`, la luz dinámica de radio 2 (v · 0,4f; v; v · 0,8f) (`0x53861c`) y
+  `0x53fe70(0x5d5, …, 0, 1,0f, 0)` con la luz del joint (`0x538695`); después, la cola y la vida.
+
+El rayo `0x5d5` (`Effect\lightning2.jpg`): la /0 con la vida del prefijo (2) y la escala 0,15f, la /1 con vida 10 y
+escala 0, las dos con la luz del pedido + 0,5 (`0x540bbe`, `0x540bfe`); su paso (`0x545419`) gira con
+`(ftol(reloj) % 1000) · 0,001f` y pide la luz dinámica de radio 3 (v · 0,5f; v; v · 0,8f) con v = vida · 0,1f; el
+dibujo, el billboard común (`0x54889a`). MuRet los guarda en los joints del juego (`GameDrawTailState::joints`,
+`CharacterStepContext::joints`) y los mueve en `StepJoints` con la luz dinámica del mundo y el sonido
+(`KillBeamJointsTest`, `AttackStepTest.AKillOfEachClassSendsTheBeamsBackWithoutACut`).
+
+**La skill de la flecha** (`0x59fb80`, *estático*). Las dos ramas de la flecha (`0x50376a`, `0x504048`) le pasan la
+segunda lectura de `+0x38e` (los otros dos argumentos quedan en la pila para `0x53e2b0`): abre el registro propio
+(`[0x7681eb4]`, `0x40ad90`), busca ese byte entre los 64 de `+0x6c` de `[0x7681eb0]` y lo cierra (`0x40b4d0`, 3.848
+`rand()` si queda en 0); devuelve su lugar, o 0. MuRet la porta (`OwnSkillIndex`); el tiro de después
+(`0x53e2b0`, `0x50377d` y `0x504060`) está en [La flecha](#la-flecha) (fase 2e).
+
+**Los `rand()` de un ataque sin habilidad**, con las cuentas en 0: antes del frame 5, cuatro por paso (la lectura
+de `0x4f97b0`, el de `0x4f5b97` y las dos de la cola de `0x4f5b70`; con `+0x3a4` fuera del pool, dos); en el
+paso del frame 5, además, los 3.848 de `0x4f97b0`; en el de la habilidad, con blanco, tres lecturas, el del
+sonido, 3.848 y la escritura (3.853), y sin blanco tres. Con el daño del último `15` en el blanco, además setenta:
+tres por punto y cuatro por sangre. Con 0,5 keys por paso, el frame 5 llega en el paso 10 y la habilidad corre ahí;
+sin llegar, en el 14 (`AttackStepTest.AMeleeAttackOfEachClassRunsItsSteps`, con el paso de las partículas y los
+dos `rand()` del giro de la cabeza, `0x5068fd`, descontados: uno en 32 por paso y personaje que no es el héroe).
+
+**Lo que MuRet corta** (con lo de antes y sus `rand()`), y quién llega con un ataque sin habilidad:
+
+| Dónde | Qué | Quién llega |
+| --- | --- | --- |
+| `0x4f9899`, `0x4f8a39`, `0x4fdeeb`, `0x504372` | los casos de habilidad | nadie: `+0x38e` lo escriben `0x4cc530` y los monstruos (hito 4) |
+| los efectos, joints y partículas de los casos de `0x4f5b70` (fase 2e-B: cada uno en su dirección, en [Los casos de los monstruos](#los-casos-de-los-monstruos-0x4f5b70)) | `0x518cf0`, `0x530860`, `0x51fff0` y las partículas sin portar, con la lógica del caso hecha | los monstruos con caso, en sus mapas (CL11, P-C233); ningún jugador sin transformar |
+| `0x4fb0d1` | las veinte `0x5c6`/12 sin el pool de partículas | nadie en el juego (fase 2d) |
+| `0x558f29` | los nombres de gremio: desde la revisión no corta, da −1 como con los nombres iguales (Q-C1170) | el héroe en la guerra de gremios (hito 8) |
+| los cortes de [La flecha](#la-flecha) | las skills de tiro, los joints de las flechas y sus partículas sin portar | el elfo con esas armas o skills (fase 2e) |
+| `0x50419c` | la partícula `0x5e4` sin el pool de partículas | nadie en el juego: `GameScene` pasa el del mundo (fase 2d) |
+| `0x50428c` | `0x42ea00` (el mapa 30, Castle Siege) | nadie: el mapa 30 corta antes (`0x412140`; hito 13) |
+| `0x5042ce` | `0x52e740` | las acciones de skill `0x38` a `0x3c` (hito 4) |
+| `0x505169` | los joints `0x618`/0 y /1 sin el pool de joints | nadie en el juego (fase 2d) |
+
+### La flecha
+
+*Estático*, cotejado con el PE c32bbd5f (CL9 hito 3, fase 2e; `Scenes::FireTheArrow` y `Scenes::StepArrow`,
+`ArrowEffects.cpp`). El paso del ataque tira en cuatro lugares: sin blanco, `0x50377d` (con la acción de tiro del
+`0x20a` o `+0x88` en 1: la skill es la primera de dos lecturas más de `+0x38e`, el lugar sale de `0x59fb80` con la
+segunda y la bandera es 1 si la lectura de `0x502b12` dio `0x18`) y `0x5037d0` (los tipos `0x168`, `0x175`, `0x17a`
+y `0x180`, todo en 0); con blanco, `0x504060` (igual, con la bandera en 0) y `0x5040a9` (los tres primeros tipos).
+Después sigue el paso del ataque.
+
+**El tiro** (`0x53e2b0(c, o, blanco, lugar, bandera, skill)`). Con la skill `0x34`, `0x33` o `0x2e` va a `0x53e741`:
+`0x53d9a0` y el registro propio con `+0xf04` sumado (`0x53e75b`, hito 4: MuRet corta ahí, después del tiro). Con la
+bandera en 1, `0x53e2e0`, el abanico: cada tiro es `0x53d9a0(c, o, blanco, lugar, 1, skill)` y entre uno y otro la z
+de los ángulos de o (`+0x24`) se corre en la x87 y se guarda en `float`. Con `0xa24` o `0xa25` en `+0x2b8` de c,
+cuatro tiros con 5, 10, −20 y −10 antes de cada uno y 30 al final (`0x53e445..0x53e4da`: queda 15 más, Q-C1181); con
+otra, tres, el primero sin correrla, con 15 (`0x6b87bc`) y −30 antes de los otros dos y 15 al final
+(`0x53e300..0x53e362`). Después, el registro propio con `+0xf04` sumado (`0x53e365` y `0x53e4dd`, hito 4: MuRet corta
+ahí). Si no, `0x53d9a0` y, con `0xa25` en
+`+0x2b8`, el brillo de la mano (`0x53e630`: el hueso de `+0x2bd` con `0x4ec110`, quince giros `rand() % 360`, el joint
+`0x617`/3 con un `rand()` par y la `0x5c5`/0), que corta en `0x53e642` (CL11).
+
+**Las armas** (`0x53d9a0`). Las de `+0x2b8` y `+0x2d8` (MOVSX); con el héroe (`[0x743a170]`), el registro propio
+abierto y cerrado en línea (3.848 `rand()`) y los tipos de `+0xb6c` y `+0xbb4` más `0x212` (salvo el −1). La skill
+`0x34` deja el subtipo en 2 y pide el sonido `0x55`; la skill va a `[0x5767948]`; la `0x33` pide el `0x82` (los dos
+con `0x41ed10(id, o, 0)`, CL10: MuRet los manda a `soundRequest`); la bandera en 2 deja el subtipo en `0x63`; la
+skill `0x2e` crea solo el `0x13a` y sale (`0x53df2a`, hito 4). La derecha menos `0xa1a` (0..0xb, `0x53e240`) da
+`0xdc`, `0xdc`, `0xe0`, `0xde`, `0xdd`, `0xe3`, `0xe2`, nada, `0xf7`, nada, `0x10e` y `0x111`; la izquierda menos
+`0xa12` (0..0x15, `0x53e28c`/`0x53e270`), `0xdb`, `0xdb`, `0xdf`, `0xdb`, `0xdb`, `0xdb`, `0xe1`, nada × 10, `0xf8`,
+nada, nada, `0x11c` y `0xf9`. Cada una es `0x518cf0(tipo, o+0x10, o+0x1c, o+0xf4, subtipo, o, o+0x8a, lugar, bandera,
+0, 0)`: el lugar va a `+0x89`, la bandera a `+0x88`, la clave a `+0x8a` y el dueño a `+0x108`
+(`ModelEffects::Begin`).
+
+**El alta** (los casos de `0x518cf0`). `0x51c43b` (`0xdb`..`0xe1`, `0xe3`, `0xf9`, `0x11c`): `+0x64` en 1 con el
+`0xdb`, −2 con el `0xe1` y 0 con el `0xdd`, el `0xde`, el `0xdf` y el `0xe3`; `+0xd8` en 1, vida 30 y la boca
+(−10; −60; 135) girada por los ángulos (`0x5fc8f0`, `0x5fcbd0`) y sumada a la posición; el `0xe3`, escala 1,8f, la
+y de la velocidad en −50 y `+0xe4` en −10; el `0xf9`, escala 1 y −70 y el joint `0x610`/0xe (`0x51c56c`); los
+demás, escala 0,8f y −70. Con el subtipo 2, el efecto `0x105` (`0x51c5a9`, hito 4); el `0xe1`/1, el joint
+`0x610`/0xd; el `0xdb` con el subtipo 3 o 4, vida 40 y tres `rand()` (`0x51c601`, hito 4); el `0x11c`, `+0x64` en 1,
+la y de los ángulos en `rand() % 360` y el joint `0x610`/0xc (`0x51c713`). La salida `0x51a1b6` abre el registro
+propio, copia su `+0xf04` a `+0x8c` y lo cierra (3.848 `rand()`). El `0xe2` (`0x51a41e`): igual hasta la boca,
+`+0x64` en 0, escala 1, −30, `+0xe4` en −10, vida 40, con el subtipo 2 `+0x100` en 0 y `+0x88` en 1, y la misma
+salida. El `0xf7` (`0x51a24a`), el `0xf8` (`0x51a405`), el `0x10e` (`0x51a173`) y el `0x111` (`0x51bf35`; con un
+subtipo que no es 0 ni 2 sale con el prefijo) piden joints antes de sacar `rand()`: MuRet corta ahí (CL11).
+
+**El paso** (`0x5208a0`). El `rand()` de la luz local (`(rand() % 4 + 7) · 0,1f`, menos 0,2f por paso de vida bajo
+5), el caso del tipo y la cola `0x52cb98` (la animación, la velocidad girada sumada a la posición y una vida
+menos), que no mira el byte vivo: corre también si el choque la apagó.
+
+- `0xdb` (`0x52406c`): la luz dinámica de radio 2 (luz · 0,8f; luz · 0,5; luz · 0,2f) (`0x5240a5`); con el
+  subtipo 3 o 4, hito 4 (`0x5240b0`); con el 5, el fuego lleva (luz · 0,1f; luz · 0,6f; luz · 0,3f); el fuego
+  `0x53fe70(0x5d9, posición, ángulos, color, 0, 1,0f, 0)` y el choque.
+- `0xdc`, `0xdd`, `0xde`, `0xdf` y `0xe0` (`0x5267c7` → `0x526dc2`): solo el choque.
+- `0xe1` (`0x52697e`; el subtipo 1, `0x5267dc`, lo crean los casos de monstruo `0x42fd37` y `0x432532`: CL11): dos sprites `0x5d5` (`0x5491e0`, escalas 0,5 y 1, la luz
+  `+0xf4`, el giro ±`ftol(reloj)` · 0,1f), cuatro veces tres `rand()` del punto ((& 31) − 16; (& 63) − 32;
+  (& 31) − 16) y `0x608 + rand() % 3` (corta en `0x526a8b`, CL11), la y de los ángulos + 30, la luz (luz · 0,6f;
+  · 0,8f; · 0,8f) y el choque.
+- `0xe3` (`0x526c56`): los dos sprites, cuatro veces el punto (& 15) − 8 y la `0x607`/1 (corta en `0x526d5f`,
+  CL11), la `0x5f2`/0, la luz verde y el choque.
+- `0xe2` (`0x524237`): dos sprites `0x5ac` con (1; 0,6f; 0,4f) y escalas 1 y 2, cuatro veces el punto y la
+  `0x607`/1 (`0x52434e`, CL11; con el pool lleno no se crea ni saca `rand()`). Después cae (`0x52435d..0x5243bd`): la
+  z más `+0xe4` y `+0xe4` menos 1, cada uno en la x87 y guardado en `float`; con el terreno (`0x5f93c0`) por encima
+  de la z (el FCOM sin C0 ni C3: ni menor, ni igual, ni NaN), la z al terreno, `+0xe4` por −0,4f (`0x6ba18c`) y la
+  y de la velocidad por 0,4f (`0x6b87b4`). En la última vida, `0x51fe10(posición, 1)` y, con el héroe
+  (`[0x743a170]`) de dueño y sin el subtipo `0x63`, `0x517a20` (`0x524405`, hito 4). Al final, la luz (luz · 0,6f;
+  · 0,8f; · 0,8f) y el choque (`StepAquagoldArrow`, `ArrowStepContext::terrainHeight`;
+  `ArrowEffectsTest.TheAquagoldArrowFallsAndBounces`).
+- `0x11c` (`0x526aef`): la y de los ángulos + 60; con vida par, la `0x60f`/5 (`0x526bc2`), con impar, el `0x114`
+  (`0x526c05`). Los pasos del `0xf7`, `0xf8`, `0xf9`, `0x10e` y `0x111` no se alcanzan: su alta corta.
+
+**El choque** (`0x520170`). Con el asedio (`0x4294b0`) y el bit `0x100` de la celda, la frena (`0x52018d`, CL9.5);
+con `+0x88` distinto de 0 y sin el subtipo `0x63`, `0x517a20` (`0x5201ed`, hito 4). Si no, `0x517850(efecto, 100,
++0x8a, 0)`: el primero de los 400 vivos que no sea el dueño, que se vea (`+0x16c`), que no sea el héroe (salvo con la
+clase 2) y que no se esté muriendo, a 100 o menos en el plano (la raíz en la x87, guardada en `float`; NaN choca).
+Con uno, abre y cierra el registro propio (3.848 `rand()`) para leer la skill del lugar `+0x89`: con la `0x33` la
+apaga (y el `0xe2` y el `0xf8` sueltan `0x51fe10`); con la `0x34` y el subtipo 2, el joint `0x60f`/6 (`0x52083f`,
+CL11), y si no la apaga con `0x51fe10`; con otra, la apaga (`0x51fe10` con el `0xe2` y el `0xf8` sin el subtipo 1).
+`0x51fe10(punto, 1)`: la z + 80, veinte `0x5c5`/2 con los ángulos (`rand() % 60` + 150; 0; `rand() % 30`) y la
+`0x5ed`/0 con la luz 0,7f; MuRet corta en la primera `0x5c5`/2 (`0x51fe9e`, CL11) después de sus dos `rand()`. La
+flecha de otro elfo no choca con el héroe (la clase 0).
+
+MuRet dibuja las flechas con el modelo de su tipo cuando lo hay (CL11). Los `rand()` de un tiro del héroe con el
+arco corto: las dos lecturas de `+0x38e`, 3.848 de `0x59fb80`, 3.848 de las armas y 3.848 de la salida del alta; por
+paso de la flecha, uno de la luz (y los del fuego con el `0xdb`) y, al chocar, 3.848
+(`ArrowEffectsTest`, `AttackStepTest.TheElfBowShootsAndStopsAtTheSkill`).
+
+### Los casos de los monstruos (0x4f5b70)
+
+*Estático*, cotejado con el PE c32bbd5f (CL9 hito 3, fase 2e-B; `Scenes::StepTheAttackCases`,
+`MonsterAttackStep.cpp`). Es lo que corre en cada paso de `+0x381` después de `0x4f97b0` y del `rand()` de
+`0x4f5b97` (que queda en `StepTheAttack`): los seis ayudantes de [El paso del ataque](#el-paso-del-ataque), el
+`switch` por `+0x376` y la cola. Cada lectura de `+0x38e` es un acceso, con un `rand()` si el cierre deja la cuenta
+en 0: las de `0x517630`, las copias en línea y las que cierran con `0x40b3f0`. Lo portado son las condiciones, los
+`rand()` en su orden, lo que escriben en el monstruo (`+0x78`, `+0x381`, `+0x17c`), los sonidos (`lastSoundId`, CL10)
+y las partículas que MuRet ya crea; los efectos (`0x518cf0`), los joints (`0x530860`), las piedras de `0x51fff0`
+(`0x51fe10`) y las partículas sin portar cortan en su dirección, con lo de antes hecho (CL11, P-C233). `'2'` es
+`0x32` en `+0x38e`.
+
+**Los ayudantes** (el que devuelve 1 sale sin la cola):
+
+- `0x43a7a0`, Kalima (los mapas 24 a 29 y 36), por `+0x376` (la tabla de `0x43b8fc`); todos devuelven 1:
+  - `0x43a7fe` y `0x43ab7a`: en 14, la partícula `0x600`/1 sobre el blanco o el héroe (`0x43a861`, `0x43abd9`).
+  - `0x43a872`, `0x43b279` y `0x43b5e4`: leen `+0x38e` y, con `+0x381` desde 13 (sin signo), la habilidad (las
+    tablas de `0x43b9a0`, `0x43ba84` y `0x43bb68`): con 1, `rand() % 360` y cinco `0xc2`/8 de `0x439bd0`
+    (`0x439ca6`); con `0x37`, tres `0x11b`/1 de `0x439b20` (`0x439ba5`); con `0xc8`, `0xcb`/3 y `0xcc`/4 de
+    `0x439cd0` (`0x439d09`); con `0xc9` y `0xca`, `+0x78 |= 0x100` o `0x8`, `+0x381 = 15` y el sonido `0x1e1`
+    (`0x43aabf..0x43aaf7`, portado). Después, el `0x43a872` en la 4 y en 14 corta en el terremoto `0xfa` y el
+    `0x615` (`0x43ab42`); el `0x43b279` en la 3, en 7 en el terremoto (`0x43b570`) y desde 13 en `0xf6`/0 y
+    `0x5de`/1 (`0x43b5ac`).
+  - `0x43abea`: en la 4 y en 14, `0x11a` (`0x43ac29`).
+  - `0x43ac3a`: lee `+0x38e`; con `0x11` y en 14, el terremoto `0xfa`/1 (`0x43ae45`).
+  - `0x43ae56`: lee `+0x38e`; en 14, con 1, dos `rand() % 200` y el primero de tres `0xc2`/7 alrededor del héroe
+    (`0x43b1f4`), y con `0x11` y el blanco en `[0, 400)`, tres joints `0x610`/6 (`0x43b0ed`).
+  - `0x43b208`: en la 3 y desde 13, `0xf6`/5 y `0x5de`/2 (`0x43b241`).
+- `0x4436f0`, el 31: el `0x123` a `0x125`, el `0x127` y el `0x12f` devuelven 1 sin nada más.
+- `0x42dcf0`, el 30: el `0x120`, `0x61c` siempre (`0x42dd48`); el `0x68`, en 5, `0x19f` (`0x42dd9c`); los dos
+  devuelven 1.
+- `0x429110`, el 33 y el 54, solo en 10 (devuelven 1 siempre): el `0x135` en la 3, cinco `0xcf`/3 (`0x42919a`); el
+  `0x134` en la 4, `0x141` (`0x429202`); el `0x130` en la 4, `0x61c`/1 (`0x42925a`).
+- `0x42fce0`, el 35, por el tipo (`+2`): en 14, el `0x1b2` (`0xe1`/1, `0x42fd37`) y el `0x1ad` (`0xf8`/1,
+  `0x42fd76`), con la key de `+0x8a`; si no, AL en 0. En el alta del 35, el `0x136` es el `0x1ad` y el `0x13c` el
+  `0x1b2`; en el 34, el `0x138` es el `0x1b2`, el `0x13c` el `0x1ad` y el `0x15c` el `0x1b5`.
+- `0x4324c0`, Crywolf (el 34), por el tipo (la tabla de `0x432b8c`); salvo los efectos, AL en 0:
+  - en 14, el `0x1b2` (`0xe1`/1, `0x432532`) y el `0x1ad` (`0xf8`/1, `0x43257a`); en 15, el `0x1b5` (`0xed`/1,
+    `0x432b63`);
+  - el `0x17c`: en 1, `0x51fff0` (`0x43259e`); en 14 con el `+0x376` `0x3b`, lee `+0x38e` y con `'2'` dieciocho
+    `0xc1a` (`0x4329db`);
+  - el `0x17e`: seis veces `0x4ec110` con el hueso de una mano (`+0x2bd`) y un offset (`[EBP − 0x30]`) que nadie
+    escribe, y `rand() % 360`, sin leer el punto; en 1, el sonido `0x75`; corta en el segundo `0x4ec110`, cuyo punto
+    es el de las cuatro `0x5d9`/0 (`0x432acc`, Q-C1050).
+
+**El `switch` por `+0x376`** (`0x4f5c7e` y `0x4f7598`; siguen a la cola salvo que corten):
+
+| `+0x376` | Caso | Qué hace |
+| --- | --- | --- |
+| `0x46` | `0x4f5cb6` | en 5, con `+0x3a4` distinto de `0xffff` (sin mirar el rango), veinte `0x625` sobre el blanco (`0x4f5d13`) |
+| `0x3d` | `0x4f5d23` | en 1, `0xf6` (`0x4f6145`) |
+| `0x3f` | `0x4f5d23` | en 1, `0x51fff0` y `0xf6` (`0x4f5d3c`); si no, lee y con `'2'` dos `rand() % 800` y `0xf5` (`0x4f609d`) |
+| `0x42` | `0x4f6152` | lee; con `'2'` y en 1, `0xf6`/1 (`0x4f6422`) |
+| `0x35`, `0x3a`, `0x3b` | `0x4f6442` | en 1, `0x51fff0` (`0x4f6450`); en 14 y con el `0x3b`, lee y con `'2'` dieciocho `0xc1a` (`0x4f6780`) |
+| `0x31` | `0x4f67ad` | con `+0x381 % 5` en 1, el `0x5e9` del hueso 63 (`0x4f67fb`); después lee y con `'2'` en 1 el `0x5e8` (`0x4f6b51`, que en MuRet no llega: en 1 corta antes el `0x5e9`) |
+| `0x2a` | `0x4f6b78` | lee; con `'2'`, en 1 tres `0xc2`/2 del hueso 11 (`0x4f6ec5`), si no dos `rand() & 0x3ff` y `0xc2` (`0x4f6fc5`) |
+| `0x23` | `0x4f6fea` | lee; con `'2'` y en 1, dieciocho `0xc2`/1 (`0x4f7050`) |
+| `0x26`, `0x43` | `0x4f7074` | lee; con `'2'`, en 1 `0xcb` y `0xcc` (`0x4f70b8`), si no dos `rand() & 0x3ff` y `0xc2` (`0x4f80cf`) |
+| `0x2d` | `0x4f715a` | portado: las gotas (abajo) |
+| `0x48` | `0x4f7223` | lee; con `'2'` y en 14, tres `rand() % 360` y el primero de 36 joints `0x613`/1 (`0x4f756a`) |
+| `0x59`, `0x5f`, `0x70`, `0x76`, `0x7c`, `0x82`, `0x8f` | `0x4f75b5` | lee; con `'2'`, `rand() & 1`: con 1, dos `rand() & 0x3ff` y `0xc2` (`0x4f7930`); con 0 y en 1, `0xf6`/1 (`0x4f789b`) |
+| `0x47`, `0x4a`, `0x12d` | `0x4f793e` | en la 3 o la 4 y en 5, `0x51fff0` (`0x4f7962`) |
+| `0x49`, `0x4b` | `0x4f798d` | en la 3 y en 11, `0x51fff0` (`0x4f79af`); fuera de la 3 y en 13, el punto (−50, 100, 0) del hueso 11 va a `+0x17c` (portado, `ActorState::trailOrigin`) antes del `0x106`/1 (`0x4f80cf`, la llamada que comparten con los `0xc2` y que sigue con el sonido `0x42`) |
+| `0x4d` | `0x4f7bc8` | lee; con `'2'` en 2 o 6, tres `rand() % 360` y el primero de 40 joints `0x613`/3 (`0x4f7f3c`) |
+| `0x36`, `0x39`, `0x97` | `0x4f7f67` | en 1, el `0xe2` de la mano derecha (`0x4f7fd2`) |
+| `0x67` | `0x4f804e` | lee; con `'2'`, dos `rand() & 0x3ff` y `0xc2` (`0x4f80cf`) |
+
+**Las gotas del `0x2d`** (`0x4f715a..0x4f721e`, portado). Cuatro veces: tres `rand() & 31` − 16 (el offset),
+`0x4ec110` con el hueso 2 de los huesos propios (sin ellos, la matriz en cero: la posición, Q-C318) y
+`0x53fe70(0x607, punto, o+0x1c, (1; 1; 1), 0, 1,0f, 0)` (dos `rand()`) y la `0x5e4` igual (cuatro, la [sangre del
+blanco](#el-paso-del-ataque)): 36 `rand()` por paso, en el pool del mundo. Sin el pool corta en la primera
+(`0x4f71ed`), después de las tres del offset.
+
+**La cola** (`0x4f80e0`). Con `+0x3a4` (`MOVSX`) fuera de `[0, 400)` sale. Si no, lee `+0x38e`; con `0x11`, el
+`switch` de `0x4f8147`, del que todos salen (sin caso, sin nada):
+
+- `0xa3` a `0xad` impares (`0x4f814e`): el alta (`0x51443f`) les pone en la derecha (`+0x2b8`) el `0xa25` o el
+  `0xc17` con un `rand()`. Con el `0xa25`, en 8, la flecha `0x53e2b0(c, c, c, 0, 0, 0)` (`0x4f816f`, portada en
+  [La flecha](#la-flecha)): la derecha da el `0x111`, cuya alta corta en su joint (`0x51bf35`, CL11, P-C230). Sin él, en la 3 y en 15, `0x5e8` delante del que pega (`0x4f81cc`); en la 4 y en 8, `rand() & 1`: con 0,
+  dos `0xf5` (`0x4f8227`), y con 1, dos `0xc2`/6 (`0x4f8287`).
+- `0x59`, `0x5f`, `0x70`, `0x76`, `0x7c`, `0x82`, `0x8f` (`0x4f82b4`): en 14, el `0x106`/1 del hueso 33 y el joint
+  `0x614`/2 (`0x4f8326`).
+- `0x57`, `0x5d`, `0x63`, `0x74`, `0x7a`, `0x80`, `0x8d` (`0x4f835b`): en 13, el `0xc2`/5 del hueso 6 (`0x4f83e5`).
+- `0x4d` (`0x4f83f4`): en 14, el `0x106`/1 y el joint `0x614`/2 (`0x4f845e`).
+- `0x49`, `0x4b` (`0x4f8493`): en la 4 y en 13, el `0x106`/1 del hueso 11 (`0x4f852d`); en MuRet no llega, porque
+  su caso de `+0x376` corta antes.
+- `0x45` (`0x4f8562`): en 1, ocho joints `0x60f`/7 (`0x4f8592`).
+- `0x3d` (`0x4f85ca`): `rand() % 360` y doce joints `0x614`/2 de las manos (`0x4f8654`).
+- `0x2e` (`0x4f876e`): en 1, el sonido `0x75`; ocho joints `0x5bc`/1 (`0x4f87f8`).
+- `0x25` (`0x4f8837`): en 1, el sonido `0x75`; `rand() % 360`, el joint `0x61b`/0 y `0x5d9`/0 (`0x4f88d0`).
+- `0x42` (`0x4f890b`): en 1, el sonido `0x50`; joints `0x61b`/1 y `0x5d9`/0, sin `rand()` (`0x4f89df`).
+
+Si no es `0x11`, lee otra vez; con 3, el `switch` de `0x4f8a56` (sin caso, `0x4f8f5b`, que corta en `0x4f8a39`,
+hito 4):
+
+- `0x59`, `0x5f`, `0x70`, `0x76`, `0x7c`, `0x82`, `0x8f` (`0x4f8a5d`): en 1, el sonido `0x50`; joints `0x61b`/1
+  (`0x4f8b31`).
+- `0x4d` (`0x4f8b78`): desde 8 (`JC`), `rand() % 360` y el joint `0x614`/0 (`0x4f8bfb`); antes, sale.
+- `0x25` (`0x4f8c0d`): en 1, el sonido `0x75`; `rand() % 360` y el joint `0x61b`/0 (`0x4f8ca6`).
+- `0x22` (`0x4f8ce1`): `rand() % 360` y joints `0x614`/0 (`0x4f8d63`).
+- `0x30` (`0x4f8dc4`): `rand() % 360` y joints `0x614`/2 (`0x4f8e46`).
+- `0x27` (`0x4f8e85`): joints `0x614`/0 y la partícula `0x5ca`/0, sin `rand()` (`0x4f8f07`).
+
+**Los misiles de los monstruos** (`0x5037d0`, `0x5040a9`). `0x53e2b0(c, o, 0, 0, 0, 0)` no tiene rama para los
+tipos `0x168`, `0x175`, `0x17a` y `0x180`: va a `0x53d9a0`, el ataque común de [La flecha](#la-flecha), con las manos
+de `+0x2b8` y `+0x2d8` (sin el registro propio) y sin skill ni bandera; MuRet la porta (`FireTheArrow`, fase 2e,
+P-C234 cerrado) y sigue.
+
+Con monstruos reales, antes corta `0x4ea030` sin su esqueleto (P-C176); el alta de los tipos `0x35` a `0x3f` (los
+joints `0x618`, CL11) y la de los que llevan el modelo `0x17c` o `0x17e` (`0x3a`, `0x3b`, `0x3e`, `0x52`, `0x53` y
+`0x12c`) cortan antes. `MonsterAttackCasesTest` arma cada caso con `CreateMonster` y pone `+0x376` y el tipo a mano
+donde el alta corta, en su mapa y en Lorencia y Devias (donde, sin el ayudante, van a la cola).
 
 ### Los cambios de mapa
 
@@ -10212,6 +10753,37 @@ el sonido, en `WorldRuntime::lastSoundId` (CL10). Cortan los joints y la llegada
 sigue por el `WORD` de `+0x1f2`, la clave y la cabeza como en el original, y lo que llegaría a `+0x218` corta (Q-C847,
 P-C352). `ConstructActor` pone la caja y los huesos por tipo.
 
+### Los sonidos del modelo
+
+(CL9 hito 3, fase 2c, 2026-11-13, *estático*: los 87 casos leídos del listado.) `0x612d90(n)` carga `Monster{n + 1}.bmd`
+en el modelo `0x152 + n` y, después de sus acciones y su escala (`0x612dba..0x612dee`, la carga, que salta si el modelo
+ya estaba), entra al switch de `0x613127..0x613130`: `n` sin signo hasta `0x56` sobre la tabla de saltos de `0x615340`.
+Cada caso llama a `0x612c80(modelo, w0, …, w9)`, que copia las diez WORD en `+0xaa..+0xbc` del BMD del modelo
+(`0x5769ad8 + modelo · 0xe0`); nadie más escribe esas WORD. Las leen `0x4f37c0` (la 0 y la 1, caminar,
+`0x4f3efa..0x4f3f6c`), `0x4f4a10` (la 2 y la 3, pegar, [Pegar al llegar](#pegar-al-llegar)), `0x4f53a0` (la 2 y la
+3, el golpe, `0x4f553d..0x4f55ac`) y `0x4f5660` (la 4, morir); −1 es sin sonido. Los tres primeros miran la primera
+WORD: en −1, nada y sin `rand()`; si no, `rand() % 2` elige esa o la siguiente, más 5 con el subtipo 9 y más `0xd2`.
+
+- 67 llamadas para 75 escrituras: el 0, el `0x1e`, el `0x46` y el `0x47` empujan sus WORD y comparten la llamada de
+  `0x61322a`; el 4 lleva en ESI el `0x14` de `0x6134cd` (`0x6134d6`).
+- El `0xc` y el `0xd` (los dos yetis) escriben **los dos** modelos, `0x15e` con `0x44, 0x44, 0x46, 0x46, 0x47`
+  (`0x613a97`) y `0x15f` con `0x44, 0x45, 0x46, 0x46, 0x47` (`0x613ab5`), el resto en −1: cargar uno deja escrito el
+  otro (Q-C1174).
+- Sin `0x612c80`: el `0x26`, el `0x38`, el `0x3c`, el `0x3d`, el `0x4a`, el `0x4b`, del `0x4e` al `0x55` y del `0x57`
+  en adelante (el default). El `0x56` escribe las diez en −1.
+
+Lo llaman los casos del alta de un monstruo ([El alta de un monstruo](#el-alta-de-un-monstruo)), uno por cada modelo
+que cargan. MuRet: `Scenes::WriteMonsterSounds` (`MonsterSounds.h`, las 75 escrituras con su caso) sobre
+`WorldRuntime::modelSounds`, la tabla que leen los pasos del ataque; `ActorCombatContext::modelSounds` vacío cae en
+esa tabla; los tres sorteos, `Scenes::DrawModelSound`. La escribe `FaunaModels::LoadMonster` (con
+`FaunaModelLoadContext::sounds`) cuando el modelo carga con mallas, como el salto de `0x612dee`: desde el alta
+(`CreateMonster`, el paso `LoadMonster`, CL9 hito 2) y desde la fauna del 0x1f y el 0x21 (`FaunaModels::Prepare`); el
+lancero `0x4d` del 30 (`0x42aa6b`), en `GameScene` después de `WorldModels::Load`. El modelo cargado tiene su copia en
+`FaunaModels::SoundActions` ([Los modelos de los monstruos y los NPC](#los-modelos-de-los-monstruos-y-los-npc)), que
+lee el paso de caminar (`ActorWalkContext::modelSounds`) antes que esta tabla. Un modelo que nadie escribió queda fuera
+de `WorldRuntime::modelSounds` y los sorteos lo leen como diez WORD en 0, como el original (en 0 por `0x60dc80`, ver
+abajo): caminar, pegar, el golpe y morir suenan `0xd2` más la WORD (`Scenes::SoundsOrZeros`, P-C253 a).
+
 ### Los modelos de los monstruos y los NPC
 
 (CL9 hito 2, 2026-11-13, *estático*: las tablas están leídas del listado caso por caso; *verificado* con el `Data` del
@@ -10498,9 +11070,10 @@ la tabla pisa en `lastSoundId` si suena). El `0x1f5` lee la key de la última po
 Un modelo que no cargó nadie es el registro en 0 del original (`ModelSkeletonOf`, `SetMonsterAction` y
 `FaunaModels::SoundActions`): sin acciones, `0x4f9580` no avanza, `0x4ea030` no pone nada y `0x505de0` arma la caja de
 `0x505e15` (`+0x13c..+0x168`, `ActorState::field13c..field168`) y sale; sus sonidos, en 0. El 18 de otro (`0x4cb750`)
-también busca el modelo de un monstruo en la fauna. Cortan con su dirección los efectos que el pool no conoce (3 y 4, CL11, en su condición exacta) y la
-acción 6 que termina con `+0x38a` en 0 (`0x4fcc3c`); 08, P-C241. Tests (también `MonsterStep.AModelThatIsNotLoadedOnlyBoxesItself`,
-`ActionReplyTest.AMonsterTakesTheActionsOfItsLoadedModel`):
+también busca el modelo de un monstruo en la fauna. Cortan con su dirección los efectos que el pool no conoce (3 y 4,
+CL11, en su condición exacta); 08, P-C241. La acción 6 que termina con `+0x38a` en 0 deja los restos
+(`ModelActionEnd::LeaveRemains`, [Los restos](#los-restos-0x52e810), CL9 hito 3). Tests (también
+`MonsterStep.AModelThatIsNotLoadedOnlyBoxesItself`, `ActionReplyTest.AMonsterTakesTheActionsOfItsLoadedModel`):
 `ModelBodyTest` y `MonsterStep` (`test_model_body.cpp`: un Monster02 que avanza con su velocidad y descansa al terminar
 la 3, con sus `rand()`, y el `0x1f5` que elige su acción), `ActorWalkTest.AnotherModelSoundsFromItsModelTable` y
 `ActorWalkTest.TheSubtypes209To211AskForTheirLeadSoundBeforeTheTable`.
@@ -10936,6 +11509,56 @@ y la key a `FaunaModels::RecordPoseKey`; la acción, la escala y la posición de
 (Q-C1102). Un hueso con nombre que falta corta en su llamada. Tests: `MonsterHelpersTest` (`test_monster_helpers.cpp`:
 cada tipo en Lorencia, Devias o Crywolf, con sus `rand()` contados) y
 `MonsterStep.TheSwingOfThe1b0DrawsItsRandomsBeforeItsEffects` (`test_model_body.cpp`).
+
+### Los restos (0x52e810)
+
+(CL9 hito 3, fase 7, 2026-11-13, *estático*, ASM c32bbd5f.) Lo llaman `0x4fcb10` (`0x4fcb87..0x4fcba6`: el `0x20a` que
+termina la `0xc3` o la `0xc4`) y `0x4fcbb0` (`0x4fcc1d..0x4fcc3c`: un monstruo de `0x152` a `0x1c9` que termina la 6),
+los dos desde `0x4fcd00`, el paso del cuerpo, y solo con `+0x38a` en 0, que ponen en 1 antes de llamar. Con `+0x38a` en
+1 no hacen nada. En los dos casos salen después: el `0x20a` no vuelve a la de parado y el monstruo no pasa a la 0.
+
+`0x52e810(c)`:
+
+1. `0x52e81c..0x52e83b`: lee el DWORD `+0x54` del modelo del tipo (`0x5769ad8 + tipo · 0xe0`, con el tipo por `MOVSX`
+   del WORD `+2`), el hueso de la cabeza: 20 en Player.bmd; el de cada monstruo lo escribe su alta (`0x612d90`). Con −1
+   sale.
+2. `0x52e841..0x52e889`: el `0x161` (Monster16, el monstruo de hielo de Devias) pone el byte vivo de c en 0 y llama
+   diez veces a `0x518cf0(0xca, +0x10, +0x1c, +0xf4, 0, 0, −1, 0, 0, 0, 0)`, el pedazo de hielo
+   (`Data\Skill\Ice02.bmd`, `0x615d36`). Nadie borra el registro de otra manera: `0x508ea0` no vuelve a mirar el byte y
+   el resto del paso (`0x505de0`, `0x42da90`) corre con él en 0.
+3. `0x52e88a..0x52e8a5`: el `0x159`, el `0x160` y el `0x164` salen sin nada.
+4. Los demás, dos vueltas (`0x52e8ab..0x52e975`): `rand() % 100 − 50` para la x y otro para la y de un corrimiento con
+   la z en 0; `0x4ec110(modelo, [c + 0x120] + hueso · 0x30, &corrimiento, &punto, 1)`, el hueso de los huesos propios
+   (los del último dibujo, Q-C318) por la escala (`+0x68`) y más la posición (`+0x6c`) del modelo compartido, que son
+   las del último que las copió (Q-C1178); el lado `((rand() & 3) + 8) · 0,1f` (`FILD` y `FMUL` de `0x6b87b8`); el giro
+   `rand() % 360`; y `0x548fe0(0x5e3, &punto, giro, +0xf4, lado)`, la marca de sangre
+   ([Las marcas del suelo](#las-marcas-del-suelo)), que saca la vida si hay lugar. Son 5 `rand()` por vuelta, o 4 con
+   la tabla llena.
+
+**El pedazo de hielo.** `0x518cf0` con el `0xca` va a `0x51b659..0x51b809`, el caso que comparte con el `0xea` y el
+`0xeb`. La guarda de `0x51b65d` (el WORD `+2` del efecto en `0xe5` o `0xe6`, con tres `rand()`) no corre con el `0xca`.
+Pone el blendMesh (`+0x64`) en 0 (el ESI de `0x518d08`) y su luz (`+0x68`) en 0,3f, el empuje
+`((rand() & 255) + 64) · 0,1f` en y y la z 50 más arriba (`0x6b86b0`); desde `0x51b76f` sigue lo de las piedritas: la
+vida `(rand() & 15) + 32`, la escala `((rand() & 3) + 8) · 0,1f`, el yaw `rand() % 360`, la velocidad (el empuje girado
+por los ángulos, `0x5fc8f0` y `0x5fcbd0`) y la caída (`+0xe4`) en `(rand() & 15) + 8`. Cinco `rand()`. Su paso
+(`0x5208a0`, la tabla `0x52cef4` sobre `0x52ce14`) entra directo en `0x523974`: con el subtipo 0 es el de las piedritas
+(la velocidad sin girar, el arrastre por 0,9f, la caída, el rebote en el suelo y la inclinación) y, con `rand() % 10` en
+0 (`0x523adb`), el `0xca`, el `0xea` y el `0xeb` sueltan el aliento `0x53fe70(0x5f2, +0x10, +0x1c, +0xf4, 0, 1, 0)`
+(`0x523b47`) donde el `0xc8` y el `0xc9` sueltan el fuego con el `rand()` de su subtipo. Está entre los BMD de
+`[0xad, 0x151)`, que avanzan la animación común.
+
+**MuRet.** `Scenes::LeaveTheRemains` (`ActorRemains.h`), desde `CharacterStep`: `StopAtTheEnd` con el `0x20a` y
+`ModelActionEnd::LeaveRemains` de `FinishTheModelAction` con los monstruos. Toma el esqueleto del tipo, la tabla
+`WorldMap::effects`, `WorldRuntime::groundMarks` y la escala y la posición de `WorldState::ModelPlacement`, las del
+último `0x505ec6` de ese tipo (`WorldState::PlaceModel`). El pedazo, `ModelEffects::CreateIceShard`, y su paso,
+`StepStoneChip` con el aliento. El juego sube `Effect\blood01.tga` al `0x5e3` (`0x61d7aa`) para dibujar las marcas.
+Cortan el modelo sin cargar (`0x52e834`) y un hueso fuera de los huesos propios posados (`0x52e91c`, donde el original
+lee otra memoria). Sin huesos propios (los monstruos: su dibujo no está portado, P-C241 g) va la matriz en cero, y las
+marcas caen en la posición del modelo compartido. Lo que queda, en 08, P-C323. Tests: `ActorRemainsTest`,
+`MonsterStep.AMonsterThatEndsDyingBleedsOnceWhereTheLastOfItsTypeWas` (Lorencia) y
+`MonsterStep.TheIceMonsterOfDeviasBreaksIntoShards`, `CharacterStepTest.TheEndOfTheMarkActionsLeavesTheBloodOnce`
+(Lorencia y Devias), `ModelEffectsTest.TheIceShardRisesFiftyAndIsPushedAlongItsDrawnYaw` y
+`GameModelEffectsTest.TheIceShardStepsLikeAChipAndSometimesBreathes`.
 
 ### La tabla de protección
 

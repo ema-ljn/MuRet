@@ -158,7 +158,7 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 3> GlowTextureSet{{
 // flareBlue/62b (61dc9d), todos GL_LINEAR/GL_CLAMP; los dos últimos tienen slots físicos propios.
 // Lo que cuelga de un jugador (0x509340 y 0x50ba30) pide además Shiny03 en 0x5fe (61d937) e Impack03 de
 // Object9 en 0x5ad (61e799), del mismo lazo sin ramas de 0x61ccb0 y con el mismo sampling.
-inline constexpr std::array<Data::Textures::TextureSetEntry, 37> EffectTextureSet{{
+inline constexpr std::array<Data::Textures::TextureSetEntry, 39> EffectTextureSet{{
     {"Effect\\Fire01.jpg", 0x5d9, TextureSetsDetail::LinearClamp},
     // 0x61d663: ShockWave en 0x6eb, la onda del galope del caballo en Icarus (0x44431b).
     {"Effect\\ShockWave.jpg", 0x6eb, TextureSetsDetail::LinearClamp},
@@ -177,6 +177,11 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 37> EffectTextureSe
     {"Effect\\smoke02.tga", 0x5f3, TextureSetsDetail::LinearClamp},
     // 0x61d7e5 (0x63b870, GL_LINEAR y GL_CLAMP): Explotion01 en 0x5ed, la explosión 5ed/0 del terremoto 0xfa.
     {"Effect\\Explotion01.jpg", 0x5ed, TextureSetsDetail::LinearClamp},
+    // 0x61d7aa (0x63bd00, GL_LINEAR y GL_CLAMP): blood01.tga en 0x5e3, las dos marcas del suelo que deja el que termina
+    // de morir (0x52e810, CL9 hito 3), que dibuja 0x549130 con los componentes de este slot.
+    {"Effect\\blood01.tga", 0x5e3, TextureSetsDetail::LinearClamp},
+    // 0x61d7c9 (0x63bd00, GL_LINEAR y GL_CLAMP): blood.tga en 0x5e4, la sangre que suelta el golpe con daño (0x50419c).
+    {"Effect\\blood.tga", 0x5e4, TextureSetsDetail::LinearClamp},
     {"Effect\\clouds.jpg", 0x622, TextureSetsDetail::LinearClamp},
     {"Effect\\lightning2.jpg", 0x5d5, TextureSetsDetail::LinearClamp},
     {"Effect\\Spark01.jpg", 0x617, TextureSetsDetail::LinearClamp},

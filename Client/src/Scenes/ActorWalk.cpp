@@ -6,16 +6,18 @@
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/MonsterSounds.h"
 #include "Scenes/PlayerActionSpeeds.h"
 #include "Scenes/WorldRuntime.h"
 
+#include <algorithm>
 #include <array>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
-#include <format>
 #include <optional>
 #include <string>
+#include <tuple>
 
 namespace Client::Scenes
 {
@@ -284,32 +286,29 @@ Core::Expected<ActorWalkResult, std::string> StepSound(const ActorState& actor, 
     }
     const int mask = context.hero ? 63 : 15;
     const bool selected = (random.Next() & mask) == 0;
-    if (!selected ||
-        (actor.type == Data::Models::PlayerSkeletonModel && !(actor.subtype >= 209 && actor.subtype <= 211)))
+    const bool modelSound = actor.subtype >= 209 && actor.subtype <= 211;
+    if (!selected || (actor.type == Data::Models::PlayerSkeletonModel && !modelSound))
     {
         return ActorWalkResult{};
     }
-    // 0x4f3edc..0x4f3ef2: con el subtipo 209 a 211, antes 0x41ed10(0x7b, personaje, 0) (CL10). Si la tabla suena
-    // después, su pedido pisa a este en lastSoundId (08 P-C241 e).
-    constexpr std::int32_t LeadSound = 0x7b;
-    const std::optional<std::int32_t> lead =
-        actor.subtype >= 209 && actor.subtype <= 211 ? std::optional<std::int32_t>(LeadSound) : std::nullopt;
-    // 0x4f3efa..0x4f3f67: con la primera de la tabla en −1, nada; si no, rand() & 1 elige una de las dos primeras, más
-    // 0xd2 y 5 con el subtipo 9.
-    if (context.modelSounds.size() < 2)
+    // 0x4f3edc..0x4f3f6c: los subtipos 209 a 211 piden antes el 0x7b (0x41ed10(0x7b, personaje, 0), CL10), y después
+    // todos la WORD 0 o la 1 de la tabla del modelo (DrawModelSound): la del modelo cargado (ActorWalkContext::
+    // modelSounds, CL9 hito 2) o, sin ella, la que escribió el alta (WorldRuntime::modelSounds, CL9 hito 3); un 0x20a
+    // no la tiene y lee las WORD en 0 de 0x60dc80, el 0xd2. Si la tabla suena, su pedido pisa al 0x7b en lastSoundId
+    // (08 P-C241 e).
+    ActorWalkResult result;
+    if (modelSound)
+        result.sound = 0x7b;
+    std::optional<ModelSounds> sounds = WrittenSounds(context.stop.runtime.modelSounds, actor.type);
+    if (context.modelSounds.size() == std::tuple_size_v<ModelSounds>)
     {
-        return Core::Unexpected(std::format("0x4f3f0f: falta la tabla de sonidos del modelo {:#x}", actor.type));
+        sounds.emplace();
+        std::ranges::copy(context.modelSounds, sounds->begin());
     }
-    constexpr std::int16_t NoSound = -1;
-    if (context.modelSounds[0] == NoSound)
-    {
-        return ActorWalkResult{.sound = lead};
-    }
-    constexpr std::int32_t ModelSoundBase = 0xd2;
-    constexpr std::int32_t NinthSubtypeShift = 5;
-    const std::int32_t shift = actor.subtype == 9 ? NinthSubtypeShift : 0;
-    const auto pick = static_cast<std::size_t>(random.Next() & 1);
-    return ActorWalkResult{.sound = context.modelSounds[pick] + shift + ModelSoundBase};
+    constexpr std::size_t FirstWalkSound = 0;
+    if (const auto drawn = DrawModelSound(sounds, FirstWalkSound, actor.subtype, random))
+        result.sound = drawn;
+    return result;
 }
 } // namespace
 

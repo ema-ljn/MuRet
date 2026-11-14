@@ -311,12 +311,58 @@ Lorencia, Devias y un mapa de evento; el `0x1F` con un tipo `0x98..0x9e`; el cor
 
 ### Hito 3: atacar, el daño y la muerte (CL9.2, ~20 KB)
 
-- [ ] **Pegar:** la rama de ataque de `0x5650c0` (el `D7` del cliente en `0x565a79`, que FoxAnti manda como
-      `A4`) y de `0x57cfc0`, el freno de 300 ms (`0x576791c`), el cursor de ataque (`0x558bb0`).
-- [ ] **El daño y la muerte de otros:** las ramas de otros de `0x4caae0` (el `D7` que llega), el `0x17`
+- [x] **Pegar:** la rama de ataque de `0x5650c0` (el `D7` del cliente en `0x565a79`, que FoxAnti manda como
+      `A4`) y de `0x57cfc0`, el freno de 300 ms (`0x576791c`), el cursor de ataque (`0x558bb0`). Fase 1 hecha
+      (2026-11-13): el caso 3 de `0x5650c0`, `PassesTheActionBrake` para las skills de `0x57cfc0` (hito 4) y
+      `0x558bb0` en el cursor; el clic `0x59d3de` que deja `+0x379` en 3 queda para la fase 2 (P-C251). Fase 2a
+      hecha (2026-11-13): el clic de ataque (`0x59cd49..0x59d8be`, con el `DF` del elfo, `0x558800` y `0x561c50`),
+      el ataque automático (`0x59b8a7`, `0x59b22f`) y el elfo que se acerca (`0x566271`, `PathFinding2` con
+      distancia); `+0x381` corta en `0x4fdbb1` (P-C254). Fase 2b hecha (2026-11-13): el paso del ataque
+      (`0x4f97b0`, `0x4f5b70` con los jugadores y la habilidad `0x4fdbf1..0x50539e` con `0x558eb0`,
+      `Scenes::StepTheAttack`), por la decisión 5; sigue cortando en la partícula `0x5e4` del blanco con daño,
+      los joints `0x618` del que mató, las `0x5c6` del `0x815` y la flecha (P-C257), y en las habilidades (hito 4,
+      P-C258).
+- [x] **El daño y la muerte de otros:** las ramas de otros de `0x4caae0` (el `D7` que llega), el `0x17`
       (`0x4d0a30`, morir, con los casos `0x28` y `0x3b`), el `0x16` (`0x4cf200`, la experiencia), el `0x9C`
       (`0x4cfce0`), `0x4f4a10` (las acciones `0x78`/`0x79` del `0x18`, sin leer) y los números de daño
-      (`0x548e40`, `0x548eb0`).
+      (`0x548e40`, `0x548eb0`). Fase 1 hecha (2026-11-13): el `D7` que llega ya estaba (CL7/CL8); `0x4f4a10`
+      queda como `SetActorAttack` para que el hito 1a lo llame desde `0x4cb750`; los cortes, en P-C250, y el
+      cableado con los actores del `12` y del `13`, en P-C251. Fase 2a hecha (2026-11-13), sobre el hito 1: el
+      `0x78`/`0x79` del `18` llama a `SetActorAttack` (`0x4cb820..0x4cb852`); los sonidos de la tabla del modelo
+      van a `lastSoundId` (P-C253); morirse, `0x4fb9e0` (P-C255). Fase 2c hecha (2026-11-13, sobre el hito 2,
+      `5137d84`): los cinco ayudantes de monstruos de `0x4f4a10` (`0x43a2f0`, `0x42dcb0`, `0x443750`, `0x429270` y
+      `0x437580` con `0x4f92f0` y `MonsterSkill.bmd`, `0x54a440`), las tablas de sonidos del alta (`0x612d90` con
+      `0x612c80`, `WorldRuntime::modelSounds`), el `0x192` con `+0x60` en el que se muere y el `D7`, el `16` y el
+      `17` sobre los monstruos del `13`; los casos de monstruo de `0x4f5b70` cortan cada uno en su dirección
+      (P-C257 f) y, con monstruos reales, antes `0x4ea030` sin su esqueleto (P-C176). Fase 2d (2026-11-13), por
+      la regla 4e y la decisión 5: la sangre `0x5e4` del blanco con daño (`0x53fe70` en `0x542b3b`, `0x5446e0` en
+      `0x546b04` y su dibujo, `0x5487b9`) en el pool del mundo (P-C257 a); las veinte `0x5c6`/12 del `0x815`
+      (`0x540a04`, `0x545397`) y los joints `0x618`/0 y /1 del que mató (`0x532125`, `0x538313`) con el rayo `0x5d5`
+      (P-C257 b y c). Fase 2e (2026-11-13): la flecha del elfo con arco o ballesta y de los arcos montados
+      (`0x53e2b0`, `0x53d9a0`, el alta `0x51c43b`/`0x51a41e`, el paso `0x5208a0` y el choque `0x520170` con
+      `0x517850`; `Scenes::FireTheArrow`, P-C257 d); sus cortes, para la CL11 y el hito 4, en P-C230 y P-C231; y las
+      piedras `0x10b` de las estatuas de Blood Castle (`0x504267`, el alta `0x51bafb` y el paso `0x52531d`, P-C257 e),
+      que corta en el polvo de Q-C1176, un local sin escribir (`0x5252e6`, P-C232 para la VM).
+      Fase 2e-B (2026-11-13): la lógica de los casos de monstruo de `0x4f5b70`
+      (`Scenes::StepTheAttackCases`, `MonsterAttackStep.cpp`): los seis ayudantes (Kalima `0x43a7a0`, el 31, el 30,
+      el 33 y el 54, el 35 y Crywolf), el `switch` por `+0x376` y los de la cola con `0x11` y con 3, con sus lecturas
+      de `+0x38e`, sus `rand()`, lo que escriben (`+0x78`, `+0x381`, `+0x17c`), sus sonidos y las gotas del `0x2d`
+      (`0x607` y `0x5e4`); los efectos cortan en su dirección (P-C233, CL11), el `0x17e` en `0x432acc` (Q-C1050) y
+      los misiles de monstruo van con la flecha (P-C234, cerrado con la fase 2e).
+      Fase 7 (2026-11-13, con el merge de `cl9-h2` en `f2dd89b`): el final de la muerte, `0x52e810` desde `0x4fcb87`
+      (el `0x20a` con la `0xc3` o la `0xc4`) y `0x4fcc3c` (la 6 de un monstruo), con `+0x38a`
+      (`Scenes::LeaveTheRemains`): las dos marcas de sangre `0x5e3` (`0x548fe0`; el juego sube `Effect\blood01.tga`
+      en `0x61d7aa` para `0x549130`), los diez pedazos de hielo `0xca` del `0x161` (`0x518cf0` en `0x51b659`, su paso
+      en `0x523974` con el aliento `0x5f2`/0) y el modelo compartido por tipo de `0x505ec6` (Q-C1178); lo que queda,
+      en P-C323.
+      Revisión contra el ASM (2026-11-13): un modelo sin tabla de sonidos suena con diez WORD en 0 (el `REP STOSD`
+      de `0x60dc80`, P-C253 a); el altar de Crywolf de `0x4eac00` también en el clic de ataque (`0x59d653`) y en el
+      elfo que se acerca (`0x566272`), que cortan en `0x4eac41` (hito 11, P-C250 h); las celdas fuera de la grilla
+      (`0x55886d`, `0x59d653`, `0x566272`) y el puente de Blood Castle en el borde (`0x4d0949`) descartan sin cerrar
+      la sesión (Q-C1179, Q-C1180), y los nombres de gremio (`0x558da4`, `0x558f29`) descartan hasta el hito 8
+      (P-C250 f); las skills de tiro y el abanico de la `0x18` tiran antes de cortar en el registro propio
+      (`0x53e75b`, `0x53e365`, `0x53e4dd`, hito 4; Q-C1181); la caída del `0xe2` (`0x52435d`, P-C230); cada corte
+      con su ola o su hito.
 
 **Pruebas:** el `D7`/`A4` que sale al pegar; la muerte de un monstruo y la de otro jugador; la experiencia del
 `0x16` y del `0x9C` contra el struct del GS (`GCKillPlayerExpSend`); los `rand()` del paso con un monstruo en

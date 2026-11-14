@@ -1,4 +1,5 @@
 #include "Scenes/GameScene.h"
+#include "Scenes/ArrowEffects.h"
 #include "Scenes/DynamicWorldLight.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/GameParticles.h"
@@ -74,7 +75,7 @@ Core::Expected<void, std::string> GameScene::StepTheFloorItems(float worldClock)
     return {};
 }
 
-Core::Expected<void, std::string> GameScene::StepTheCharacters(float worldClock)
+Core::Expected<void, std::string> GameScene::StepTheCharacters(float worldClock, bool controlDown)
 {
     auto& runtime = m_context.world->Runtime();
     const Render::Models::Skeleton* player =
@@ -85,15 +86,18 @@ Core::Expected<void, std::string> GameScene::StepTheCharacters(float worldClock)
                                  .scene = SceneId::Game,
                                  .playerSkeleton = player,
                                  .items = m_items,
+                                 .models = m_models,
                                  .terrain = &StepTerrain(),
                                  .darkSpiritSkeleton = m_models ? m_models->SkeletonOf(DarkSpiritModel) : nullptr,
                                  .particles = &m_context.world->Particles(),
                                  .sprites = &m_sprites,
+                                 .joints = m_context.world->DrawTail().joints,
                                  .worldClock = worldClock,
                                  .counter = m_context.cloth->logicSteps,
                                  .actionSpeeds = &m_context.world->ActionSpeeds(),
                                  .fixedHeight = CameraState().fixedHeight,
                                  .soundRequest = [&](std::int32_t sound) { runtime.lastSoundId = sound; },
+                                 .controlDown = controlDown,
                                  .texts = m_texts,
                                  .textMeasure = m_context.textMeasure,
                                  .screen = m_screen,
@@ -154,6 +158,21 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
                 return stepped;
             continue;
         }
+        // 0x5208a0 sobre las flechas de 0x53d9a0 (CL9 hito 3, fase 2e): su choque lee el pool de personajes y el
+        // registro propio, fuera de World.
+        if (IsArrowEffect(effect.type))
+        {
+            const ArrowStepContext arrows{.world = *m_context.world,
+                                          .random = m_context.cloth->random,
+                                          .particles = &m_context.world->Particles(),
+                                          .sprites = &m_sprites,
+                                          .lighting = &m_context.world->DynamicLighting().Lighting(),
+                                          .worldClock = worldClock,
+                                          .terrainHeight = terrainHeight};
+            if (auto stepped = StepArrow(effect, skeleton, arrows); !stepped.HasValue())
+                return stepped;
+            continue;
+        }
         if (effect.type == 0xc2 && effect.subtype == 3)
         {
             if (auto stepped = StepFaunaLightning(effect, slot, skeleton, m_context.world->Particles(), m_sprites,
@@ -183,7 +202,9 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
     if (auto stepped = StepTheModelEffects(worldClock, terrainHeight); !stepped.HasValue())
         return stepped;
     if (auto stepped = StepJoints(m_context.world->DrawTail().joints, m_context.cloth->random, m_context.cloth,
-                                  &m_context.world->Particles(), worldClock, &m_sprites);
+                                  &m_context.world->Particles(), worldClock, &m_sprites,
+                                  &m_context.world->DynamicLighting().Lighting(),
+                                  [&](std::int32_t sound) { runtime.lastSoundId = sound; });
         !stepped.HasValue())
         return stepped;
     // 0x63712d: 0x549090, las marcas del suelo, sin rand(). En la espera también corre, y acá no: la tabla

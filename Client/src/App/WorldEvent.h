@@ -2,6 +2,7 @@
 
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
+#include "Protocol/Combat.h"
 #include "Protocol/FloorItems.h"
 #include "Protocol/Friends.h"
 #include "Protocol/Inventory.h"
@@ -46,5 +47,6 @@ using WorldEvent = std::variant<
     Protocol::Viewport::EquipmentShown, Protocol::Viewport::Position, Protocol::Viewport::Monsters,
     Protocol::Viewport::Summons, Protocol::Viewport::Objects, Protocol::Viewport::MagicAttackCount,
     Protocol::Friends::FriendList, Protocol::Friends::FriendAddResult, Protocol::Friends::FriendRequest,
-    Protocol::Friends::FriendDeleteResult, Protocol::Friends::FriendState>;
+    Protocol::Friends::FriendDeleteResult, Protocol::Friends::FriendState, Protocol::Combat::KillExperience,
+    Protocol::Combat::Death>;
 } // namespace Client::App

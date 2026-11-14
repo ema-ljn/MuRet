@@ -14,10 +14,14 @@
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorActions.h"
 #include "Scenes/ActorMotion.h"
+#include "Scenes/ActorRemains.h"
 #include "Scenes/ActorWalk.h"
 #include "Scenes/PlayerActionSpeeds.h"
+#include "Scenes/ActorCombat.h"
 #include "Scenes/ActorConstruction.h"
+#include "Scenes/ActorDying.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/AttackStep.h"
 #include "Scenes/CharacterHead.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/DynamicWorldLight.h"
@@ -396,16 +400,31 @@ Core::Expected<bool, std::string> AdvanceTheBody(ActorState& actor, std::size_t 
 
 bool IsKalima(std::int32_t map);
 
+// 0x52e810(c) desde 0x4fcb9c y 0x4fcc3c: los restos, con el modelo del tipo de c y la escala y la posición que le dejó
+// el último 0x505ec6 de ese tipo (Q-C1178).
+Core::Expected<void, std::string> LeaveTheRemainsOf(ActorState& actor, const CharacterStepContext& context)
+{
+    const SharedModelPlacement placement = context.world.ModelPlacement(actor.type);
+    return LeaveTheRemains(actor, ActorRemainsContext{.skeleton = ModelSkeletonOf(actor, context),
+                                                      .modelScale = placement.scale,
+                                                      .modelOrigin = placement.origin,
+                                                      .effects = context.world.Map().effects,
+                                                      .marks = context.world.Runtime().groundMarks,
+                                                      .random = context.random});
+}
+
 // 0x4fcb10(c, c) desde 0x4fce57, con la acción que terminó.
-Core::Expected<void, std::string> StopAtTheEnd(ActorState& actor, std::size_t slot, const CharacterStepContext& context)
+Core::Expected<void, std::string> StopAtTheEnd(ActorState& actor, const CharacterStepContext& context)
 {
     const std::uint8_t action = actor.animation.action;
-    // 0x4fcb17..0x4fcb23 y 0x4fcb87..0x4fcb9c: con +0x38a en 0, 0x52e810 una vez.
+    // 0x4fcb17..0x4fcb23 y 0x4fcb87..0x4fcba6: con +0x38a en 0, lo pone en 1 y corre 0x52e810 una vez; con o sin él,
+    // sale sin volver a la de parado.
     if (action == FirstMarkAction || action == SecondMarkAction)
     {
-        return Core::Unexpected(std::format("0x4fcb87: la acción {:#x} del lugar {} terminó; +0x38a y 0x52e810 no "
-                                            "están portados",
-                                            action, slot));
+        if (actor.byte38a != 0)
+            return {};
+        actor.byte38a = 1;
+        return LeaveTheRemainsOf(actor, context);
     }
     // 0x4fcb25..0x4fcb63: vuelven a la de parado (0x4f2250) las de antes de la 0x0d, las 0xbd a 0xbf, las 0x54
     // y 0x55 y, de la 0x22 a la 0xc2, las que no son 0x8b, 0x8c, 0x46, 0x47, 0x44, 0x49, 0x4b ni de la 0x6a a la
@@ -469,14 +488,22 @@ Core::Expected<void, std::string> StepTheAnimation(ActorState& actor, std::size_
         // 0x4fce3f..0x4fce57: el 0x20a que giró va a 0x4fc8c0 y el otro a 0x4fcb10.
         if (actor.type == Data::Models::PlayerSkeletonModel)
         {
-            return turned ? FinishTheTurnedNpc(actor, slot, context) : StopAtTheEnd(actor, slot, context);
+            return turned ? FinishTheTurnedNpc(actor, slot, context) : StopAtTheEnd(actor, context);
         }
         // 0x4fce5e: los otros modelos, a 0x4fcbb0. AdvanceTheBody ya encontró el modelo.
         const Render::Models::Skeleton& skeleton = *ModelSkeletonOf(actor, context);
-        const auto end = FinishTheModelAction(actor, slot, skeleton, context.world.Runtime(), context.random);
+        const auto end = FinishTheModelAction(actor, skeleton, context.world.Runtime(), context.random);
         if (!end.HasValue())
         {
             return Core::Unexpected(end.Error());
+        }
+        // 0x4fcc35..0x4fcc3c: el monstruo que terminó de morir deja sus restos.
+        if (end.Value() == ModelActionEnd::LeaveRemains)
+        {
+            if (auto left = LeaveTheRemainsOf(actor, context); !left.HasValue())
+            {
+                return left;
+            }
         }
         // 0x4fcbe3: con 0x42d890 en 1, 0x4f9580 otra vez; lo que devuelve no se mira.
         if (end.Value() == ModelActionEnd::AdvanceAgain)
@@ -631,6 +658,33 @@ Core::Expected<void, std::string> ReportTheHeroCell(const CharacterStepContext& 
     return {};
 }
 
+// 0x4fd787..0x4fd7e1: +0x389 más uno, en un byte; con 15 o más, 0x4f5660 (SetActorDie); en Blood Castle (11 a 17)
+// con +0x1a1, 0x4f5660 otra vez, también antes del 15.
+Core::Expected<void, std::string> DieAgain(ActorState& actor, const CharacterStepContext& context)
+{
+    const ActorCombatContext combat{.world = context.world,
+                                    .random = context.random,
+                                    .playerSkeleton = context.playerSkeleton,
+                                    .models = context.models,
+                                    .items = context.items};
+    constexpr std::uint8_t DyingAgain = 15;
+    actor.dying = static_cast<std::uint8_t>(actor.dying + 1);
+    if (actor.dying >= DyingAgain)
+    {
+        if (auto died = SetActorDie(actor, combat); !died.HasValue())
+            return died;
+    }
+    const std::int32_t map = context.world.Runtime().map;
+    constexpr std::int32_t FirstBloodCastleMap = 11;
+    constexpr std::int32_t LastBloodCastleMap = 17;
+    if (map >= FirstBloodCastleMap && map <= LastBloodCastleMap && actor.byte1a1 != 0)
+        return SetActorDie(actor, combat);
+    return {};
+}
+
+Core::Expected<void, std::string> StepTheRaven(ActorState& actor, std::size_t slot,
+                                               const CharacterStepContext& context);
+
 // 0x4fd5f0(c, c) desde 0x508edf, por el camino del 0x20a quieto (06, "El cuerpo de los personajes
 // (0x4fd5f0)"). `hero` es c == [0x743a170].
 Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slot, bool hero,
@@ -671,12 +725,17 @@ Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slo
         }
         StepTheFallingBall(actor, height);
     }
-    // 0x4fd722: 0x4fb9e0, muriéndose (+0x389).
-    if (actor.dying != 0)
+    // 0x4fd722: 0x4fb9e0, muriéndose (+0x389). Lo que sigue corre aunque lo haya borrado.
+    if (auto died = StepActorDying(actor, slot,
+                                   {.map = runtime.map,
+                                    .scene = context.scene,
+                                    .hero = hero,
+                                    .random = context.random,
+                                    .particles = context.particles,
+                                    .worldClock = context.worldClock});
+        !died.HasValue())
     {
-        return Core::Unexpected(std::format("0x4fb9e0: el personaje del lugar {} se muere (+0x389); sus partículas "
-                                            "y 0x4f5660 no están portados",
-                                            slot));
+        return died;
     }
     // 0x4fd72e: 0x4e9980, el alpha hacia su meta y la luz del blendMesh.
     World::StepObjectAlpha(actor.alphaTarget, actor.alpha, actor.blendMeshLight, actor.alphaMode);
@@ -686,7 +745,13 @@ Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slo
     {
         return animated;
     }
-    // 0x4fd77b..0x4fd7dc: muriéndose, que ya cortó.
+    // 0x4fd77b..0x4fd7dc: muriéndose, +0x389 sube (un byte, que da la vuelta) y desde 15 llama a 0x4f5660; en Blood
+    // Castle (11 a 17) con +0x1a1, otra vez.
+    if (actor.dying != 0)
+    {
+        if (auto died = DieAgain(actor, context); !died.HasValue())
+            return died;
+    }
     // 0x4fd7e4: rand() % 6 sin condición; (r + 2) · 0,1f va a un local que este camino no lee (Q-C247).
     static_cast<void>(context.random.Next());
     // 0x4fd835..0x4fdada: fuera del mapa 30, con +0x1a0 positivo, seis rand() por hueso y un 0x614. +0x1a0 en 0:
@@ -699,8 +764,13 @@ Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slo
                                             "hueso 42 (0x4ec110), sin portar",
                                             action, slot));
     }
-    // 0x4fdb9a..0x4fdbeb: +0x381 en 0, debajo de [0x6c88ac] (15): salta a 0x50539e sin la habilidad. Lo escribe
-    // solo este camino (*estático*).
+    // 0x4fdb9a..0x50539e: con +0x381 distinto de 0, 0x4f97b0 y 0x4f5b70 y +0x381 += 1; desde [0x6c88ac], la habilidad
+    // de +0x38e con el blanco de +0x3a4. Lo ponen en 1 el ataque al llegar (0x5653c1, HeroAttack) y el 18 con 0x78 y
+    // 0x79 (0x4cb830, ActionReply).
+    if (auto attacked = StepTheAttack(actor, slot, context); !attacked.HasValue())
+    {
+        return attacked;
+    }
     // 0x5053a2..0x5053f0: +0x428 en −128 (0x511290, 0x511c77; los paquetes lo ponen en 0x96): nada.
     // 0x5053fc: 0x42a2b0, la barra de vida del 0x1a8.
     QueueTheHealthBar(actor, context.world.Runtime().healthBars);
@@ -726,10 +796,26 @@ Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slo
         }
     }
     // 0x50544b: 0x420dd0, después de la estela y antes de 0x505de0, también fuera del trapecio.
-    if (!actor.darkSpirit || (actor.flags78 & FrozenFlag) != 0)
+    if (actor.darkSpirit && (actor.flags78 & FrozenFlag) == 0)
     {
-        return {};
+        if (auto raven = StepTheRaven(actor, slot, context); !raven.HasValue())
+        {
+            return raven;
+        }
     }
+    // 0x505453..0x5054aa: muriéndose, apaga 0x8000 y 0x10000 de +0x78.
+    if (actor.dying != 0)
+    {
+        constexpr std::uint32_t DyingClearedFlags = 0x8000 | 0x10000;
+        actor.flags78 &= ~DyingClearedFlags;
+    }
+    return {};
+}
+
+// 0x420dd0: el cuervo de +0x430, que el que llama da por existente y sin +0x78 & 0x1000.
+Core::Expected<void, std::string> StepTheRaven(ActorState& actor, std::size_t slot, const CharacterStepContext& context)
+{
+    const WorldRuntime& runtime = context.world.Runtime();
     // 0x416add..0x4176e6 y 0x417801..0x41789d: los estados 2, 5 y 6 son los de las órdenes A7 (los paquetes de
     // 0x416a20 y el objetivo de +0x3b0), sin portar (CL9). Nada de MuRet los pone.
     constexpr std::uint8_t LastRestingState = 4;
@@ -885,9 +971,10 @@ Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t 
     }
     // 0x505ec6..0x505ee4: la posición, la escala y la acción van al modelo compartido (+0x6c, +0x68 y
     // +0xa0), que leen los 0x4ec110 de más abajo y que el dibujo vuelve a escribir antes de posar. MuRet
-    // guarda la escala y la posición del de Player.bmd, que el cuervo lee en la zona segura antes de este
-    // punto de su dueño (Q-C412); los de abajo leen las del propio personaje (OwnBonePoint).
-    context.world.PlacePlayerModel(actor);
+    // guarda la escala y la posición de cada tipo: la de Player.bmd la lee el cuervo en la zona segura antes de
+    // este punto de su dueño (Q-C412), y las de todos, los restos de 0x52e810 en el paso del cuerpo, que va antes
+    // (Q-C1178); los de abajo leen las del propio personaje (OwnBonePoint).
+    context.world.PlaceModel(actor);
     // 0x505ef2: sin verse, nada más.
     if (!actor.seen)
     {

@@ -1,4 +1,5 @@
 #include "Scenes/FaunaModels.h"
+#include "Scenes/MonsterSounds.h"
 
 #include "Core/Expected.h"
 #include "Core/Log.h"
@@ -262,7 +263,13 @@ Core::Expected<void, std::string> FaunaModels::LoadMonster(std::int32_t number, 
     if (entry.model.meshes.empty())
         return {};
     AssignTextures(entry, MonsterTextureFolderOf(number, map), context);
-    return ApplyMonsterTables(number, entry, context);
+    if (auto applied = ApplyMonsterTables(number, entry, context); !applied.HasValue())
+        return applied;
+    // 0x613127: el caso del switch de `number` con su tabla de sonidos (0x612c80) también en la tabla de los pasos del
+    // ataque (WorldRuntime::modelSounds, CL9 hito 3).
+    if (context.sounds != nullptr)
+        WriteMonsterSounds(number, *context.sounds);
+    return {};
 }
 
 Core::Expected<void, std::string> FaunaModels::LoadNpc(std::uint16_t model, FaunaModelLoadContext& context)

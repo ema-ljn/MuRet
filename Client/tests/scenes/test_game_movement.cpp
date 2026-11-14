@@ -20,6 +20,7 @@
 #include "Network/Packet.h"
 #include "Network/Crypto/Xor32.h"
 #include "Protocol/Inventory.h"
+#include <glm/ext/vector_float2.hpp>
 #include <algorithm>
 #include <array>
 #include <cstdint>
@@ -29,6 +30,7 @@
 #include <string_view>
 #include <span>
 #include <vector>
+#include <utility>
 #include <cstddef>
 #include <gtest/gtest.h>
 
@@ -363,23 +365,121 @@ TEST(GameMovementTest, ALetterIdWithoutItsWindowDoesNotTakeTheRightClick)
     EXPECT_TRUE(tested->world.Runtime().ui.rightClick);
 }
 
-// 0x59cd2e..0x59cd43: fuera de la zona segura y con el cursor vacío, el clic con un personaje elegido va a 0x558bb0 y
-// al ataque, que corta (hito 3); en la zona segura, el mismo clic camina (0x59d8c3, como sin elegido).
-TEST(GameMovementTest, AClickWithAChosenOutsideTheSafeZoneCutsAtTheAttack)
+// El clic de ataque (CL9 hito 3): el héroe de MovingHero en (182, 115) y otro jugador elegido en el lugar 5, en
+// `cellX`. Las claves son inventadas.
+constexpr std::size_t ChosenSlot = 5;
+constexpr std::uint16_t ChosenKey = 0x0456;
+constexpr int OwnDraws = 3848;
+constexpr int CellDraws = 4;
+// Los dos cierres del contador de la espera (0x59af50) y el registro propio que cierra el clic (0x59bd01).
+constexpr int BeforeTheClick = 2 * CellDraws + OwnDraws;
+// Después de mandar el camino: las dos ventanas que miran SendMove y 0x57cfc0 (el registro propio y Skill.bmd).
+constexpr int AfterTheWalk = 2 + OwnDraws + 60;
+
+std::unique_ptr<MovingHero> AHeroClickingAPlayer(std::uint8_t cellX)
 {
-    for (const std::uint8_t safeZone : {std::uint8_t{0}, std::uint8_t{1}})
+    auto tested = std::make_unique<MovingHero>();
+    auto& runtime = tested->world.Runtime();
+    runtime.movement.mouseUpdateTime = 6;
+    runtime.selectedTargets[2] = static_cast<std::int32_t>(ChosenSlot);
+    auto& chosen = tested->world.Actors()[ChosenSlot];
+    chosen.alive = true;
+    chosen.type = Client::Data::Models::PlayerSkeletonModel;
+    chosen.byte88 = 1;
+    chosen.key = ChosenKey;
+    chosen.position = {static_cast<float>(cellX) * 100.0f + 50.0f, 11550.0f, 0.0f};
+    return tested;
+}
+
+CrtRandom Advanced(CrtRandom random, int draws)
+{
+    for (int draw = 0; draw < draws; ++draw)
+        static_cast<void>(random.Next());
+    return random;
+}
+
+struct Walk
+{
+    int count = 0;
+    Client::Protocol::Movement::Cell target{};
+    std::uint32_t randomState = 0;
+};
+
+// 0x59cd2e..0x59cd43 y 0x59d3de..0x59d8b6: fuera de la zona segura, un jugador elegido con Ctrl abajo (0x558e7f) se
+// ataca: el blanco a 0x6c8ebc, 0x6c8e38 en 1, +0x379 en 3 y su celda a 0x77e1ba8; se ve (0x558800), el camino sale y,
+// sin arma de tiro, SendMove con su celda de meta. Sin Ctrl, o en la zona segura, el mismo clic camina al terreno.
+TEST(GameMovementTest, AClickOnAPlayerWithCtrlWalksToItAndRemembersIt)
+{
+    for (const bool control : {true, false})
     {
-        SCOPED_TRACE(static_cast<int>(safeZone));
-        const auto tested = std::make_unique<MovingHero>();
-        tested->world.Map().terrain.attributes->cells[115 * 256 + 180] = 2;
-        tested->world.Runtime().movement.mouseUpdateTime = 6;
-        tested->world.Runtime().selectedTargets[2] = 5;
-        tested->world.Actors()[0].safeZone = safeZone;
+        for (const std::uint8_t safeZone : {std::uint8_t{0}, std::uint8_t{1}})
+        {
+            SCOPED_TRACE(::testing::Message() << "Ctrl " << control << ", zona segura " << int{safeZone});
+            const auto tested = AHeroClickingAPlayer(185);
+            tested->world.Actors()[0].safeZone = safeZone;
+            auto context = tested->Context();
+            context.input.leftPressed = true;
+            context.input.leftDown = true;
+            context.input.controlDown = control;
+            context.pickTarget = []() -> Client::Core::Expected<std::optional<Client::GameLogic::PathCell>, std::string>
+            { return std::optional{Client::GameLogic::PathCell{179, 116}}; };
+            const CrtRandom start = tested->random;
+            Walk walk;
+            context.sendWalk = [&](std::span<const Client::Protocol::Movement::Cell>,
+                                   Client::Protocol::Movement::Cell target,
+                                   float) -> Client::Core::Expected<void, std::string>
+            {
+                ++walk.count;
+                walk.target = target;
+                walk.randomState = tested->random.State();
+                return {};
+            };
+            const auto result = StepHeroMovement(context);
+            ASSERT_TRUE(result.HasValue()) << result.Error();
+            const auto& runtime = tested->world.Runtime();
+            const auto& hero = tested->world.Actors()[0];
+            EXPECT_EQ(walk.count, 1);
+            EXPECT_EQ(runtime.movement.mouseUpdateTime, 1);
+            EXPECT_EQ(hero.movement, 1);
+            if (!control || safeZone != 0)
+            {
+                EXPECT_EQ(walk.target.x, 179);
+                EXPECT_EQ(walk.target.y, 116);
+                EXPECT_EQ(hero.movementType, 0);
+                EXPECT_EQ(runtime.movement.attackTarget, -1);
+                EXPECT_EQ(runtime.selectedTargets[4], -1);
+                continue;
+            }
+            EXPECT_EQ(walk.target.x, 185);
+            EXPECT_EQ(walk.target.y, 115);
+            EXPECT_EQ(hero.movementType, 3);
+            EXPECT_EQ(runtime.movement.attackTarget, static_cast<std::int32_t>(ChosenSlot));
+            EXPECT_EQ(runtime.selectedTargets[4], 1);
+            EXPECT_EQ(runtime.movement.targetX, 185u);
+            EXPECT_EQ(runtime.movement.targetY, 115u);
+            ASSERT_EQ(hero.path.count, 4u);
+            EXPECT_EQ(hero.path.cells[3].x, 185);
+            // La Y y la X para ver, otra vez para el camino, y las manos.
+            const CrtRandom atTheWalk = Advanced(start, BeforeTheClick + 4 * CellDraws + OwnDraws);
+            EXPECT_EQ(walk.randomState, atTheWalk.State());
+            EXPECT_EQ(tested->random.State(), Advanced(atTheWalk, AfterTheWalk).State());
+        }
+    }
+}
+
+// 0x558800: una celda con el WORD en 4 o más y sin 0x20, 0x40 ni 0x80 entre el héroe y el elegido tapa: el blanco ya
+// quedó anotado, pero no hay camino y el clic termina como siempre (0x59e248). Con 0x20 se ve.
+TEST(GameMovementTest, AWallBetweenStopsTheAttackAfterRememberingTheTarget)
+{
+    for (const std::uint16_t wall : {std::uint16_t{4}, std::uint16_t{0x24}})
+    {
+        SCOPED_TRACE(wall);
+        const auto tested = AHeroClickingAPlayer(185);
+        tested->world.Map().terrain.attributes->cells[115 * 256 + 184] = wall;
         auto context = tested->Context();
         context.input.leftPressed = true;
         context.input.leftDown = true;
-        context.pickTarget = []() -> Client::Core::Expected<std::optional<Client::GameLogic::PathCell>, std::string>
-        { return std::optional{Client::GameLogic::PathCell{179, 116}}; };
+        context.input.controlDown = true;
         int walks = 0;
         context.sendWalk = [&](std::span<const Client::Protocol::Movement::Cell>, Client::Protocol::Movement::Cell,
                                float) -> Client::Core::Expected<void, std::string>
@@ -387,17 +487,259 @@ TEST(GameMovementTest, AClickWithAChosenOutsideTheSafeZoneCutsAtTheAttack)
             ++walks;
             return {};
         };
+        const CrtRandom start = tested->random;
         const auto result = StepHeroMovement(context);
-        if (safeZone == 0)
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(tested->world.Runtime().movement.attackTarget, static_cast<std::int32_t>(ChosenSlot));
+        EXPECT_EQ(tested->world.Actors()[0].movementType, 3);
+        EXPECT_EQ(tested->world.Runtime().movement.mouseUpdateTime, 1);
+        if (wall == 4)
+        {
+            EXPECT_EQ(walks, 0);
+            EXPECT_EQ(tested->random.State(), Advanced(start, BeforeTheClick + 2 * CellDraws + OwnDraws + 60).State());
+        }
+        else
+        {
+            EXPECT_EQ(walks, 1);
+        }
+    }
+}
+
+// El clic de ataque con el elegido fuera de la grilla: en la fila −1 la línea de 0x558800 sale de TerrainWall
+// (0x55886d) y en la columna 256 la ve (el índice lineal cae en la fila de al lado) pero PathFinding2 (0x59d653) la
+// toma como índice lineal; MuRet descarta el clic como el de una pared, con las lecturas de antes (07, Q-C1179). Con
+// Crywolf en la etapa 3 o 4, en el mapa 34 y un altar (0x204..0x208) en 0x6c8e54, PathFinding2 corta en 0x4eac41 (hito
+// 11) después de las cuatro lecturas; en Lorencia y en Devias el mismo altar no cuenta y el camino sale.
+TEST(GameMovementTest, AChosenOffTheGridDiscardsTheClickAndACrywolfAltarCuts)
+{
+    constexpr std::size_t AltarSlot = 9;
+    struct Case
+    {
+        std::string_view name;
+        std::int32_t map;
+        glm::vec2 position;
+        std::uint8_t stage;
+        std::uint16_t altar;
+        std::string_view cut;
+        int draws;
+        int walks;
+    };
+    const glm::vec2 near{18550.0f, 11550.0f};
+    const std::array cases{
+        Case{"la fila −1", 0, {18250.0f, -150.0f}, 0, 0, "", BeforeTheClick + 2 * CellDraws + OwnDraws + 60, 0},
+        Case{"la fila −1 en Devias",
+             2,
+             {18250.0f, -150.0f},
+             0,
+             0,
+             "",
+             BeforeTheClick + 2 * CellDraws + OwnDraws + 60,
+             0},
+        Case{"la columna 256", 0, {25650.0f, 11550.0f}, 0, 0, "", BeforeTheClick + 4 * CellDraws + OwnDraws + 60, 0},
+        Case{"la columna 256 en Devias",
+             2,
+             {25650.0f, 11550.0f},
+             0,
+             0,
+             "",
+             BeforeTheClick + 4 * CellDraws + OwnDraws + 60,
+             0},
+        Case{"un altar en Crywolf", 34, near, 3, 0x204, "0x4eac41", BeforeTheClick + 4 * CellDraws, 0},
+        Case{"el último altar en la etapa 4", 34, near, 4, 0x208, "0x4eac41", BeforeTheClick + 4 * CellDraws, 0},
+        Case{"otro NPC en Crywolf", 34, near, 3, 0x209, "", -1, 1},
+        Case{"un altar en la etapa 2", 34, near, 2, 0x204, "", -1, 1},
+        Case{"un altar en Lorencia", 0, near, 3, 0x204, "", -1, 1},
+        Case{"un altar en Devias", 2, near, 3, 0x204, "", -1, 1}};
+    for (const Case& probe : cases)
+    {
+        SCOPED_TRACE(probe.name);
+        const auto tested = AHeroClickingAPlayer(185);
+        auto& runtime = tested->world.Runtime();
+        runtime.map = probe.map;
+        runtime.crywolf.stage = probe.stage;
+        tested->world.Actors()[ChosenSlot].position = {probe.position.x, probe.position.y, 0.0f};
+        if (probe.altar != 0)
+        {
+            tested->world.Actors()[AltarSlot].type = probe.altar;
+            runtime.movement.chosenNpc = static_cast<std::int32_t>(AltarSlot);
+        }
+        auto context = tested->Context();
+        context.input.leftPressed = true;
+        context.input.leftDown = true;
+        context.input.controlDown = true;
+        int walks = 0;
+        context.sendWalk = [&](std::span<const Client::Protocol::Movement::Cell>, Client::Protocol::Movement::Cell,
+                               float) -> Client::Core::Expected<void, std::string>
+        {
+            ++walks;
+            return {};
+        };
+        const CrtRandom start = tested->random;
+
+        const auto result = StepHeroMovement(context);
+
+        EXPECT_EQ(walks, probe.walks);
+        EXPECT_EQ(runtime.movement.attackTarget, static_cast<std::int32_t>(ChosenSlot));
+        if (!probe.cut.empty())
         {
             ASSERT_FALSE(result.HasValue());
-            EXPECT_NE(result.Error().find("0x59cd3c"), std::string::npos);
-            EXPECT_EQ(walks, 0);
+            EXPECT_NE(result.Error().find(probe.cut), std::string::npos) << result.Error();
+            EXPECT_NE(result.Error().find("0x59d653"), std::string::npos) << result.Error();
         }
         else
         {
             ASSERT_TRUE(result.HasValue()) << result.Error();
+        }
+        if (probe.draws >= 0)
+        {
+            EXPECT_EQ(tested->random.State(), Advanced(start, probe.draws).State());
+        }
+    }
+}
+
+// 0x59d856..0x59d8bb y 0x561c50: con el arco en la izquierda el camino no se manda; sin flechas en la derecha,
+// 0x561840 las busca (el texto 251, tipo 2, sin ninguna) y MoveHero sale (0x59e2c0) sin sumar el contador ni
+// pasar por 0x57cfc0.
+TEST(GameMovementTest, ABowWithoutArrowsLeavesMoveHero)
+{
+    const auto tested = AHeroClickingAPlayer(185);
+    tested->world.OwnCharacter().equipment[0].id = 0xffff;
+    tested->world.OwnCharacter().equipment[1].id = 0x800;
+    std::vector<std::size_t> texts;
+    const Client::Scenes::InventoryServices inventory{
+        .systemMessage = [&](std::size_t index, std::int32_t type) -> Client::Core::Expected<void, std::string>
+        {
+            texts.push_back(index);
+            EXPECT_EQ(type, 2);
+            return {};
+        }};
+    auto context = tested->Context();
+    context.inventory = &inventory;
+    context.input.leftPressed = true;
+    context.input.leftDown = true;
+    context.input.controlDown = true;
+    int walks = 0;
+    context.sendWalk = [&](std::span<const Client::Protocol::Movement::Cell>, Client::Protocol::Movement::Cell,
+                           float) -> Client::Core::Expected<void, std::string>
+    {
+        ++walks;
+        return {};
+    };
+    const CrtRandom start = tested->random;
+    const auto result = StepHeroMovement(context);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_EQ(walks, 0);
+    EXPECT_EQ(texts, std::vector<std::size_t>{251});
+    EXPECT_EQ(tested->world.Runtime().movement.mouseUpdateTime, 0);
+    EXPECT_EQ(tested->world.Actors()[0].path.count, 4u);
+    // Las celdas, las manos y los dos accesos de 0x561c50.
+    EXPECT_EQ(tested->random.State(), Advanced(start, BeforeTheClick + 4 * CellDraws + 3 * OwnDraws).State());
+}
+
+// 0x59cd49..0x59d3d7 y 0x59d65f..0x59d678: el elfo que camina con el arco manda antes su celda lógica (C1 05 DF X Y,
+// la que ya va adelante); con flechas, 0x5650c0(héroe, héroe, 1) pega desde ahí si está en alcance (seis celdas con
+// el arco): el D3 de girar y el D7 con la clave del elegido.
+TEST(GameMovementTest, AWalkingElfWithABowSendsItsCellAndShoots)
+{
+    const auto tested = AHeroClickingAPlayer(188);
+    auto& hero = tested->world.Actors()[0];
+    hero.characterClass = 2;
+    hero.movement = 1;
+    hero.path.count = 4;
+    for (std::uint8_t cell = 0; cell < 4; ++cell)
+        hero.path.cells[cell] = {static_cast<std::uint8_t>(182 + cell), 115};
+    auto& own = tested->world.OwnCharacter();
+    own.equipment[0].id = 0x80f;
+    own.equipment[0].durability = 20;
+    own.equipment[1].id = 0x800;
+    auto context = tested->Context();
+    context.input.leftPressed = true;
+    context.input.leftDown = true;
+    context.input.controlDown = true;
+    std::vector<std::pair<std::uint8_t, std::uint8_t>> cells;
+    context.sendElfCell = [&](std::uint8_t x, std::uint8_t y) -> Client::Core::Expected<void, std::string>
+    {
+        cells.emplace_back(x, y);
+        return {};
+    };
+    std::vector<std::vector<std::byte>> sent;
+    context.sendWalk = [&](std::span<const Client::Protocol::Movement::Cell> path,
+                           Client::Protocol::Movement::Cell target,
+                           float angle) -> Client::Core::Expected<void, std::string>
+    {
+        const auto packet = Client::Protocol::Movement::WriteWalk(path, target, angle);
+        EXPECT_TRUE(packet.HasValue());
+        const auto decoded = Client::Network::Crypto::Xor32Decode(packet.Value().packet);
+        sent.emplace_back(decoded.Bytes().begin(), decoded.Bytes().end());
+        return {};
+    };
+    std::vector<std::uint16_t> keys;
+    context.sendAttack = [&](std::uint16_t key, std::uint8_t action,
+                             std::uint8_t) -> Client::Core::Expected<void, std::string>
+    {
+        keys.push_back(key);
+        EXPECT_EQ(action, 0x78);
+        return {};
+    };
+    const auto result = StepHeroMovement(context);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    const std::pair<std::uint8_t, std::uint8_t> elfCell{std::uint8_t{183}, std::uint8_t{115}};
+    EXPECT_EQ(cells, std::vector{elfCell});
+    ASSERT_EQ(sent.size(), 1u);
+    EXPECT_EQ(sent[0].size(), 6u);
+    EXPECT_EQ(sent[0][3], std::byte{183});
+    EXPECT_EQ(keys, std::vector<std::uint16_t>{ChosenKey});
+    EXPECT_EQ(hero.byte381, 1);
+    EXPECT_EQ(hero.movement, 0);
+    // 0x5653c1 pone el contador en su tope antes de la suma de 0x59e248.
+    const auto& movement = tested->world.Runtime().movement;
+    EXPECT_EQ(movement.mouseUpdateTime, movement.mouseUpdateTimeMax + 1);
+}
+
+// 0x59b89e..0x59b8cd: con el ataque automático, el otro elegido (0x6c8e38) en 1 y un elegido, el clic vuelve solo,
+// sin botón; fuera del mapa 6 y de Chaos Castle. 0x59b22f: lo mismo con 0x6c8e38 distinto de −1 pone la cabeza en 0 y
+// el héroe quieto no gira (0x59b3c4).
+TEST(GameMovementTest, TheAutomaticAttackClicksAgainAndHoldsTheHead)
+{
+    for (const std::int32_t map : {0, 6, 18})
+    {
+        SCOPED_TRACE(map);
+        const auto tested = AHeroClickingAPlayer(185);
+        auto& runtime = tested->world.Runtime();
+        runtime.map = map;
+        runtime.selectedTargets[4] = 1;
+        tested->world.Actors()[ChosenSlot].byte88 = 2;
+        auto context = tested->Context();
+        context.input.mouseX = 640;
+        context.input.mouseY = 180;
+        int walks = 0;
+        context.sendWalk = [&](std::span<const Client::Protocol::Movement::Cell>, Client::Protocol::Movement::Cell,
+                               float) -> Client::Core::Expected<void, std::string>
+        {
+            ++walks;
+            return {};
+        };
+        int facings = 0;
+        context.sendFacing = [&](std::uint8_t) -> Client::Core::Expected<void, std::string>
+        {
+            ++facings;
+            return {};
+        };
+        const auto result = StepHeroMovement(context);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        const auto& hero = tested->world.Actors()[0];
+        if (map == 0)
+        {
             EXPECT_EQ(walks, 1);
+            EXPECT_EQ(hero.movementType, 3);
+            EXPECT_EQ(hero.headTurn.target, (glm::vec2{0.0f, 0.0f}));
+            EXPECT_EQ(facings, 0);
+        }
+        else
+        {
+            EXPECT_EQ(walks, 0);
+            EXPECT_EQ(hero.movementType, 0);
+            EXPECT_FLOAT_EQ(hero.headTurn.target.x, 300.0f);
         }
     }
 }

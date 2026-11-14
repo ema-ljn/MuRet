@@ -471,7 +471,8 @@ protected:
                               .skills = &*data.skills,
                               .worldClock = worldClock,
                               .mouse = mouse,
-                              .leftDown = leftDown};
+                              .leftDown = leftDown,
+                              .controlDown = controlDown};
     }
 
     Client::Core::Expected<void, std::string> Hud(bool projecting = false)
@@ -540,6 +541,7 @@ protected:
     float worldClock = 0.0f;
     Client::UI::Point mouse{};
     bool leftDown = false;
+    bool controlDown = false;
     const Client::Scenes::GameProjection* projection = nullptr;
     Client::Scenes::GameData data;
 };
@@ -1028,20 +1030,56 @@ TEST_F(GameHudTest, TheRepairCursorTurnsWithTheClock)
     }
 }
 
-// Los cursores que leen otra ola: el de los objetos (CL9.1) y el de atacar fuera de la zona segura (CL9.2).
+// El cursor que lee otra ola: el de los objetos (CL9.1).
 TEST_F(GameHudTest, TheCursorsOfOtherWavesStop)
 {
     world.Runtime().selectedTargets[3] = 1;
     auto drawn = Cursor();
     ASSERT_FALSE(drawn.HasValue());
     EXPECT_NE(drawn.Error().find("0x5ac3d8"), std::string::npos) << drawn.Error();
+}
 
-    world.Runtime().selectedTargets[3] = -1;
-    world.Runtime().selectedTargets[2] = 1;
+// CL9 hito 3, 0x5ac53c..0x5ac60b: fuera de la zona segura, el elegido atacable (0x558bb0) con el mouse fuera de la UI
+// dibuja el de atacar (4, o 0x68d en el 30); el que no se puede atacar, el normal (2).
+TEST_F(GameHudTest, TheAttackCursorFollowsWhetherTheChosenCanBeAttacked)
+{
+    Client::Scenes::WorldRuntime& runtime = world.Runtime();
     Hero().safeZone = 0;
-    drawn = Cursor();
-    ASSERT_FALSE(drawn.HasValue());
-    EXPECT_NE(drawn.Error().find("0x558bb0"), std::string::npos) << drawn.Error();
+    auto& chosen = world.Actors()[7];
+    runtime.selectedTargets[2] = 7;
+    struct Case
+    {
+        std::int32_t map;
+        std::uint8_t object;
+        bool control;
+        std::uint16_t slot;
+    };
+    constexpr std::array<Case, 6> Cases{{{0, 2, false, 4},
+                                         {2, 2, false, 4},
+                                         {30, 2, false, 0x68d},
+                                         {0, 1, false, 2},
+                                         {2, 1, true, 4},
+                                         {0, 3, true, 2}}};
+    for (const Case& test : Cases)
+    {
+        SCOPED_TRACE(test.map);
+        runtime.map = test.map;
+        chosen.byte88 = test.object;
+        controlDown = test.control;
+        sprites.Begin(Screen640);
+        ASSERT_TRUE(Cursor().HasValue());
+        const std::vector<DrawnQuad> quads = QuadsOf(sprites);
+        ASSERT_EQ(quads.size(), 1u);
+        EXPECT_EQ(quads[0].slot, test.slot);
+    }
+    // El mouse sobre la UI no ataca.
+    runtime.map = 0;
+    chosen.byte88 = 2;
+    runtime.ui.mouseOnUi = 1;
+    sprites.Begin(Screen640);
+    ASSERT_TRUE(Cursor().HasValue());
+    ASSERT_EQ(QuadsOf(sprites).size(), 1u);
+    EXPECT_EQ(QuadsOf(sprites)[0].slot, 2);
 }
 
 // 6. 0x5a6600 (desde 0x42a735): el mouse sobre un ícono de estado dibuja su ayuda en la caja de los tooltips, en

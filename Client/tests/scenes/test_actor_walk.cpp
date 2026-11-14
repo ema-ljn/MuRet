@@ -14,6 +14,7 @@
 
 #include <array>
 #include <cstdint>
+#include <optional>
 #include <string>
 
 namespace
@@ -232,6 +233,46 @@ TEST_F(ActorWalkTest, Type16dRequestsItsUnconditionalSoundWithoutDrawingRandom)
     EXPECT_EQ(m_random.State(), 1U);
 }
 
+// 0x4f3edc..0x4f3f6c: el que no es un jugador, con rand() & 15 en 0, pide la WORD 0 o la 1 de la tabla que escribió el
+// alta (rand() % 2, más 5 con el subtipo 9 y más 0xd2); con la WORD 0 en −1, ninguna y sin el segundo rand(); sin la
+// tabla, las WORD en 0 de 0x60dc80: el rand() y el 0xd2.
+TEST_F(ActorWalkTest, AMonsterChosenToSoundDrawsItsWalkWord)
+{
+    std::uint32_t seed = 1;
+    while ((Client::Render::Models::CrtRandom(seed).Next() & 15) != 0)
+        ++seed;
+    constexpr std::uint16_t Model = 0x15b;
+    const auto walk = [this, seed](std::int32_t subtype)
+    {
+        m_random = Client::Render::Models::CrtRandom(seed);
+        auto actor = Client::Tests::UnarmedPlayer(3);
+        actor.type = Model;
+        actor.subtype = subtype;
+        return Client::Scenes::SetActorWalk(
+            actor,
+            {{m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, m_random}, m_speeds, false, &m_skeleton});
+    };
+
+    const auto unwritten = walk(0);
+    ASSERT_TRUE(unwritten.HasValue()) << (unwritten.HasValue() ? "" : unwritten.Error());
+    EXPECT_EQ(unwritten.Value().sound, std::optional<std::int32_t>(0xd2));
+    EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(seed, 2).State());
+
+    m_runtime.modelSounds[Model] = {0x30, 0x31, -1, -1, -1, -1, -1, -1, -1, -1};
+    const auto ninth = walk(9);
+    ASSERT_TRUE(ninth.HasValue()) << (ninth.HasValue() ? "" : ninth.Error());
+    auto expected = Client::Tests::AfterDraws(seed, 1);
+    const std::int32_t word = expected.Next() % 2;
+    EXPECT_EQ(ninth.Value().sound, std::optional<std::int32_t>(0x30 + word + 5 + 0xd2));
+    EXPECT_EQ(m_random.State(), expected.State());
+
+    m_runtime.modelSounds[Model][0] = -1;
+    const auto silent = walk(0);
+    ASSERT_TRUE(silent.HasValue()) << (silent.HasValue() ? "" : silent.Error());
+    EXPECT_FALSE(silent.Value().sound.has_value());
+    EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(seed, 1).State());
+}
+
 } // namespace
 
 TEST(ActorFootstepTest, ThresholdsUsePersistentLatchesAndDoNotDrawRandom)
@@ -302,13 +343,13 @@ TEST(ActorFootstepTest, MapLayerAndSafeZoneChooseTheNativeSound)
 
 // 0x4f3efa..0x4f3f67: otro modelo que el 0x20a, sorteado con rand() & 15, suena con la tabla de su modelo (+0xaa, la de
 // 0x612c80): una de las dos primeras por rand() & 1, más 0xd2 (y 5 con el subtipo 9). Con la primera en −1, nada; sin
-// la tabla, corta.
+// la tabla ni la de WorldRuntime::modelSounds, las WORD en 0 de 0x60dc80: el rand() y el 0xd2 (0xd7 con el 9).
 TEST_F(ActorWalkTest, AnotherModelSoundsFromItsModelTable)
 {
     const std::array<std::int16_t, 10> table{0x10, 0x11, 0x12, 0x13, 0x14, -1, -1, -1, -1, -1};
     const std::array<std::int16_t, 10> silent{-1, 0x11, 0x12, 0x13, 0x14, -1, -1, -1, -1, -1};
     int sounded = 0;
-    int cut = 0;
+    int drawnTwice = 0;
     for (std::uint32_t seed = 1; seed < 200; ++seed)
     {
         SCOPED_TRACE(seed);
@@ -348,15 +389,21 @@ TEST_F(ActorWalkTest, AnotherModelSoundsFromItsModelTable)
                         m_speeds,
                         false,
                         &m_skeleton});
-            if (!unknown.HasValue())
+            ASSERT_TRUE(unknown.HasValue()) << unknown.Error();
+            EXPECT_EQ(unknown.Value().sound.has_value(), walked.Value().sound.has_value());
+            if (unknown.Value().sound.has_value())
             {
-                ++cut;
-                EXPECT_NE(unknown.Error().find("0x4f3f0f"), std::string::npos) << unknown.Error();
+                EXPECT_EQ(*unknown.Value().sound, subtype == 9 ? 0xd2 + 5 : 0xd2);
+            }
+            if (walked.Value().sound.has_value())
+            {
+                ++drawnTwice;
+                EXPECT_EQ(missing.State(), random.State());
             }
         }
     }
     EXPECT_GT(sounded, 0);
-    EXPECT_EQ(cut, sounded);
+    EXPECT_EQ(drawnTwice, sounded);
 }
 
 // 0x4f3edc..0x4f3ef2: con el subtipo 209 a 211, antes de la tabla, 0x41ed10(0x7b) sin rand(): si la tabla no suena,

@@ -1,4 +1,5 @@
 #include "Scenes/GameScene.h"
+#include "Scenes/MonsterSounds.h"
 #include "Scenes/GameSceneFrameProjection.h"
 #include "Data/Tables/GateTable.h"
 #include "Data/Tables/SkillTable.h"
@@ -32,6 +33,7 @@
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Input/InputState.h"
+#include "Input/Key.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/ModelTextureSlots.h"
@@ -55,6 +57,7 @@
 #include "Scenes/TerrainPolygonFrame.h"
 #include "Scenes/TerrainTiles.h"
 #include "Scenes/WorldRuntime.h"
+#include "Scenes/WorldModels.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "World/GroundEffectDrawing.h"
 #include "Scenes/WorldState.h"
@@ -159,12 +162,6 @@ float F32(double value)
 std::string MapText(std::int32_t map)
 {
     return "mapa " + std::to_string(map);
-}
-
-// Los componentes de un slot en el juego de MuRet: no sube las texturas de 0x61ccb0 que no son de los sprites.
-std::optional<std::uint8_t> NoSlotComponents(std::int32_t /*slot*/)
-{
-    return std::nullopt;
 }
 
 // 0x63741d..0x637466 y 0x6375ea..0x63763a: el mapa 30 (0x6c9dd0) y el héroe publicado (0x743a170) en el rectángulo de
@@ -399,7 +396,7 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
     if (auto moved = StepTheHero(input); !moved.HasValue())
         return moved;
     // 63710f: personajes sobre el trapecio retenido del último dibujo.
-    if (auto stepped = StepTheCharacters(worldClock); !stepped.HasValue())
+    if (auto stepped = StepTheCharacters(worldClock, input.IsDown(Input::Key::Ctrl)); !stepped.HasValue())
         return stepped;
     if (auto effects = StepTheEffects(worldClock); !effects.HasValue())
         return effects;
@@ -772,6 +769,10 @@ Core::Expected<void, std::string> GameScene::LoadTheObjectModels(std::int32_t ma
     {
         return Core::Unexpected("0x616ec0: los modelos de los objetos del " + MapText(map) + ": " + loaded.Error());
     }
+    // 0x42aa6b: el lancero del 30 (0x612d90(0x4d)) escribe su tabla de sonidos (0x612c80) si cargó con mallas.
+    constexpr std::int32_t SpearmanMonster = 0x4d;
+    if (const auto* spearman = m_worldModels.Find(SpearmanModel); spearman != nullptr && !spearman->meshes.empty())
+        WriteMonsterSounds(SpearmanMonster, m_context.world->Runtime().modelSounds);
     m_worldModelsMap = map;
     World::SeedTarkanModelState(static_cast<std::uint8_t>(map), m_context.world->Runtime().objectModelState);
     if (m_projectingFrame)
@@ -928,11 +929,18 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
         marksState.depthTest = false;
         marksState.cullEnabled = true;
         canvas.models.SetState(marksState);
-        // 0x5fc365: 0x549130, las marcas del suelo de WorldRuntime, que la carga del mapa no vacía (Q-C228). MuRet
-        // no sube Effect\blood01.tga (0x61d7aa), la del 0x5e3 de sus dos creadores, y no sabe sus componentes:
-        // con una marca prendida, corta (08 P-C49).
+        // 0x5fc365: 0x549130, las marcas del suelo de WorldRuntime, que la carga del mapa no vacía (Q-C228). El byte
+        // +0x28 del slot, de la tabla de texturas compartida (0x7d3a198, sembrada en Enter con lo que subió
+        // GameModels): Effect\blood01.tga en el 0x5e3 (0x61d7aa, EffectTextureSet). Un slot que no subió (otro tipo,
+        // o el archivo que falta) corta (08 P-C49).
+        const ModelTextureTable& textureTable = m_context.world->FaunaResources().TextureTable();
+        const auto components = [&textureTable](std::int32_t slot) -> std::optional<std::uint8_t>
+        {
+            const auto metadata = textureTable.Metadata(static_cast<std::uint32_t>(slot));
+            return metadata ? std::optional(metadata->components) : std::nullopt;
+        };
         if (auto marked = World::DrawGroundMarks(canvas.models, m_context.world->Runtime().groundMarks,
-                                                 *terrain.heights, NoSlotComponents);
+                                                 *terrain.heights, components);
             !marked.HasValue())
         {
             return Core::Unexpected(marked.Error() + ", en el " + MapText(map));

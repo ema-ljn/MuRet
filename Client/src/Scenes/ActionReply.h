@@ -20,11 +20,13 @@ struct WorldEntryResources;
 // 0x4cb750: el personaje de la clave (0x5110d0, el primero de los 400 vivo; sin ninguno, MuRet descarta el paquete:
 // Q-C778). Con el caballo oscuro (+0x318 en 0x1c16) no hace nada. Si no, el ángulo de la dirección ((pkt[5] − 1) · 45),
 // +0x378 (Movement) en 0 y la X y la Y en el centro de su celda blanco (+0x39a y +0x39b · 100 + 50, Q-C779), y la
-// acción de pkt[6]: 0x12 la 0x98 y el sonido 0x6f (CL10); 0x78 y 0x79 corta (0x4f4a10, hito 3); 0x7a y 0x7b 0x4f2250
-// (sentado, con el C1 18 de `sendAction`); 0x7e la 5; de 0x80 a 0x9b la animación de la tabla, con la del elfo; y
-// cualquier otra, ella misma (0x4ea030 no pone la que el modelo no tiene). No saca rand() salvo en 0x4f2250 (el sufijo)
-// y en 0x4f4a10 (0x78 y 0x79: ocho llamadas a _rand, 0x69fd70, una en la rama del jugador en 0x4f4db9), que el hito 3
-// tiene que contar.
+// acción de pkt[6]: 0x12 la 0x98 y el sonido 0x6f (CL10); 0x78 y 0x79 pegan (0x4f4a10, SetActorAttack del hito 3, y
+// después +0x381 en 1, el frame en 0, el blanco +0x3a4 con el lugar del héroe y [0x5767964] con el índice); 0x7a y
+// 0x7b 0x4f2250 (sentado, con el C1 18 de `sendAction`); 0x7e la 5; de 0x80 a 0x9b la animación de la tabla, con la
+// del elfo; y cualquier otra, ella misma (0x4ea030 no pone la que el modelo no tiene). No saca rand() salvo en 0x4f2250
+// (el sufijo) y en 0x4f4a10: las velocidades del registro propio (0x4f3f80, 3848 al cerrarlo) y los de sus ocho
+// llamadas a _rand (0x69fd70) que toque la rama (con un jugador, 0x4f4db9 y 0x4f4e07/0x4f4e1c por las armas y
+// 0x4f5192 por el sonido).
 [[nodiscard]] Core::Expected<void, std::string> ApplyActionReply(const Protocol::Movement::Action& reply,
                                                                  const WorldEntryResources& resources,
                                                                  const ActionSender& sendAction);

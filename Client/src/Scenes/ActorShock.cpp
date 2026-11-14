@@ -9,6 +9,7 @@
 #include "Scenes/FaunaModels.h"
 #include "Scenes/MonsterCreation.h"
 #include "Scenes/WorldEntry.h"
+#include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 
 #include <cstddef>
@@ -64,24 +65,25 @@ void PlayerHitSound(const ActorState& actor, const WorldEntryResources& resource
     }
     sound = 0x69 + random.Next() % 3;
 }
-Core::Expected<void, std::string> HitSound(const ActorState& actor, const WorldEntryResources& resources)
+void HitSound(const ActorState& actor, const WorldEntryResources& resources)
 {
     // 0x4f5496 mira C3: unordered también entra en el sonido.
     if (actor.animation.frame < 0.0f || actor.animation.frame > 0.0f)
-        return {};
+        return;
+    auto& sound = resources.world.Runtime().lastSoundId;
     if (actor.subtype >= 209 && actor.subtype <= 211)
     {
-        resources.world.Runtime().lastSoundId = 0x7b;
-        return {};
+        sound = 0x7b;
+        return;
     }
     if (actor.type == Data::Models::PlayerSkeletonModel)
     {
         PlayerHitSound(actor, resources);
-        return {};
+        return;
     }
     constexpr std::uint16_t SilentMonster = 0x160;
     if (actor.type == SilentMonster)
-        return {};
+        return;
     // 0x4f553d..0x4f55a7: el WORD +0xae del modelo (el tercero de los diez de 0x612c80, que carga el alta; en 0 en un
     // modelo sin tabla o sin cargar); en −1, sin sonido ni rand(). Si no, rand() & 1 elige +0xae o +0xb0, y el sonido
     // es ese WORD + 0xd2, + 5 con el subtipo 9 (CL10).
@@ -91,11 +93,10 @@ Core::Expected<void, std::string> HitSound(const ActorState& actor, const WorldE
     constexpr std::int32_t ShiftedSound = 5;
     const std::span<const std::int16_t, 10> sounds = resources.world.FaunaResources().SoundActions(actor.type);
     if (sounds[HitSoundWord] == -1)
-        return {};
+        return;
     const std::int32_t shift = actor.subtype == ShiftedSubtype ? ShiftedSound : 0;
     const auto chosen = HitSoundWord + static_cast<std::size_t>(resources.cloth.random.Next() & 1);
-    resources.world.Runtime().lastSoundId = sounds[chosen] + shift + HitSoundBase;
-    return {};
+    sound = sounds[chosen] + shift + HitSoundBase;
 }
 } // namespace
 Core::Expected<void, std::string> SetActorShock(ActorState& actor, std::uint16_t damage,
@@ -124,8 +125,7 @@ Core::Expected<void, std::string> SetActorShock(ActorState& actor, std::uint16_t
             resources.world.Runtime().lastSoundId = 0x27b + (resources.cloth.random.Next() & 1);
         actor.movement = 0;
     }
-    if (auto sounded = HitSound(actor, resources); !sounded.HasValue())
-        return sounded;
+    HitSound(actor, resources);
     constexpr std::uint16_t SparkMonster = 0x18f;
     if (actor.type == SparkMonster)
         return Core::Unexpected(std::string("0x4f55bb: las cinco chispas del monstruo no están portadas"));

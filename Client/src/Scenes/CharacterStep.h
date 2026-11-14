@@ -5,6 +5,7 @@
 #include "Data/Tables/ItemTable.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ActorCooldownServices.h"
+#include "Scenes/GameDrawTail.h"
 #include "Scenes/SceneId.h"
 #include "World/TerrainCulling.h"
 
@@ -12,6 +13,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <span>
 #include <string>
 
 namespace Client::Render::Models
@@ -44,6 +46,7 @@ struct WorldTerrain;
 // (0x505de0)".
 namespace Client::Scenes
 {
+class IModelLibrary;
 class WorldState;
 struct WorldRuntime;
 class PlayerActionSpeeds;
@@ -78,12 +81,18 @@ struct CharacterStepContext
     // *[0x7758550], Item.bmd en memoria: lo leen los helpers de 0x4fc450 y la acción de parado (0x4f2250)
     // con un arma o un ítem puesto. nullptr si no se cargó: cortan donde lo leen.
     const Data::Tables::ItemTable* items = nullptr;
+    // Los esqueletos de los demás modelos, para 0x4f5660 (SetActorDie) con el que se muere desde el paso 15 (CL9 hito
+    // 3). nullptr: un modelo que no es el 0x20a corta ahí.
+    const IModelLibrary* models = nullptr;
     // La carga de la escena 2 o 4; vacío, el mapa del juego. El TerrainWall se escribe ahí mismo.
     const World::WorldTerrain* terrain = nullptr;
     const Render::Models::Skeleton* darkSpiritSkeleton = nullptr;
     World::Particles* particles = nullptr;
     // La tabla de sprites del frame (0x5491e0) que piden los casos de 0x505de0 (el 0x166). Sin ella, cortan ahí.
     World::FrameSprites* sprites = nullptr;
+    // Los joints del juego (0x74a8d78, GameDrawTailState::joints), para el 0x618/0 y /1 del que mató (0x505169). Vacío,
+    // el paso del ataque corta ahí.
+    std::span<JointState> joints{};
     float worldClock = 0.0f;
     std::int32_t counter = 0;
     // El objeto suelto de 0x7437050 (NewFace 0xa8..0xac), fuera de los 400 del pool.
@@ -94,6 +103,9 @@ struct CharacterStepContext
     ActorCooldownServices cooldown{};
     // Solicitudes de sonido: el consumidor CL10 decide cómo reproducirlas.
     std::function<void(std::int32_t)> soundRequest{};
+    // GetAsyncKeyState(0x11) con 0x80 en el byte de arriba: Ctrl abajo, que 0x558eb0 lee en la habilidad del héroe
+    // (0x558fd6, CL9 hito 3).
+    bool controlDown = false;
     // Lo que dicen los NPC (0x4fc790, 0x4fc8c0 y 0x4fcda2): los textos de Text.bmd y el medidor y la pantalla del globo
     // (0x557170). Sin ellos, el que tiene que hablar corta.
     const Data::Text::TextTable* texts = nullptr;

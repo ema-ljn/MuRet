@@ -4,6 +4,7 @@
 
 #include <array>
 #include <cstdint>
+#include <optional>
 #include <span>
 
 // El mapa vivo de 0x7d0d348: los WORD del .att y el bit de personajes (0x508f00; 06 § Caminar).
@@ -50,6 +51,16 @@ inline constexpr std::array<GateCell, 6> GateCells{
 // y + 1, 4, 1, 4, 0) lo saca (0x5f8730, and con ~0x04) de las cuatro de x − 1 a x + 2 en esa fila. Corre
 // en todos los mapas (Q-C276).
 void OpenTheGates(Data::Terrain::TerrainLayer<std::uint16_t>& cells);
+
+// 0x558800(x, y, tx, ty): si se ve la celda (tx, ty) desde (x, y), con el Bresenham de los WORD de 0x7d0d348 desde el
+// índice de 0x5f82a0(x, y) (los ocho bits bajos de cada una). El eje largo es el de la diferencia mayor (con las dos
+// iguales, la Y); cada paso suma la corta a un error que, mayor que la mitad de la larga (división con signo hacia el
+// 0), mueve también por la corta y le resta la larga. Mira las celdas del 0 a la larga, las dos puntas incluidas: una
+// con el WORD en 4 o más y sin 0x20, 0x40 ni 0x80 en su byte bajo tapa. Los pasos son lineales (±1 y ±0x100), así
+// que una punta fuera de la grilla sigue por la fila de al lado o sale del arreglo: nullopt donde el original leería
+// fuera de los 65.536 WORD.
+[[nodiscard]] std::optional<bool> CanSeeTheCell(const Data::Terrain::TerrainLayer<std::uint16_t>& cells, int x, int y,
+                                                int targetX, int targetY);
 
 struct TerrainWalls
 {

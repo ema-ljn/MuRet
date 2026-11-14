@@ -20,6 +20,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <memory>
 #include <optional>
 #include <set>
 #include <string>
@@ -400,6 +401,49 @@ TEST(ModelEffectsTest, TheStoneChipsArePushedAlongTheirDrawnYaw)
     EXPECT_FALSE(effects.CreateStoneChip(0xca, {}, {}, glm::vec3(1.0f), random).has_value());
     EXPECT_FALSE(effects.Effects()[0].alive);
     EXPECT_EQ(random.State(), 4u);
+}
+
+// 0x518cf0(0xca, …) → 0x51b659..0x51b809, el pedazo de hielo de 0x52e810: el blendMesh (+0x64) en 0 y su luz (+0x68)
+// en 0,3f, el empuje ((& 255) + 64) · 0,1f en y, la z 50 más (0x6b86b0), la vida (& 15) + 32, la escala ((& 3) + 8) ·
+// 0,1f, el yaw rand() % 360 sobre los ángulos que trae, la velocidad (el empuje girado) y la caída (& 15) + 8. Cinco
+// rand(); con la tabla llena, ninguno.
+TEST(ModelEffectsTest, TheIceShardRisesFiftyAndIsPushedAlongItsDrawnYaw)
+{
+    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
+    auto effects = std::make_unique<ModelEffects>();
+    Client::Render::Models::CrtRandom random(7);
+    Client::Render::Models::CrtRandom draws(7);
+    const auto slot =
+        effects->CreateIceShard({100.0f, 200.0f, 30.0f}, {10.0f, 0.0f, 90.0f}, {0.5f, 0.25f, 1.0f}, random);
+    ASSERT_EQ(slot, std::optional<std::size_t>(0));
+    const ModelEffect& effect = effects->Effects()[0];
+    const auto push = static_cast<float>(((draws.Next() & 255) + 64) * Tenth);
+    const int life = (draws.Next() & 15) + 32;
+    const auto scale = static_cast<float>(((draws.Next() & 3) + 8) * Tenth);
+    const auto yaw = static_cast<float>(draws.Next() % 360);
+    const auto fall = static_cast<float>((draws.Next() & 15) + 8);
+    EXPECT_TRUE(effect.alive);
+    EXPECT_EQ(effect.type, Client::World::IceShardEffect);
+    EXPECT_EQ(effect.subtype, 0);
+    EXPECT_EQ(effect.objectState.blendMesh, 0);
+    EXPECT_EQ(effect.objectState.light, std::bit_cast<float>(0x3e99999au));
+    EXPECT_EQ(effect.transform.position, glm::vec3(100.0f, 200.0f, 80.0f));
+    EXPECT_EQ(effect.previousPosition, effect.transform.position);
+    EXPECT_EQ(effect.light, glm::vec3(0.5f, 0.25f, 1.0f));
+    EXPECT_EQ(effect.life, life);
+    EXPECT_EQ(effect.transform.scale, scale);
+    EXPECT_EQ(effect.transform.angles, glm::vec3(10.0f, 0.0f, yaw));
+    EXPECT_EQ(effect.velocity,
+              Client::Render::Models::OriginalVectorRotate(
+                  {0.0f, push, 0.0f}, Client::Render::Models::OriginalAngleMatrix({10.0f, 0.0f, yaw})));
+    EXPECT_EQ(effect.turnDirection, fall);
+    EXPECT_EQ(random.State(), draws.State());
+
+    for (auto& taken : effects->Effects())
+        taken.alive = true;
+    Client::Render::Models::CrtRandom full(7);
+    EXPECT_FALSE(effects->CreateIceShard({}, {}, glm::vec3(1.0f), full).has_value());
+    EXPECT_EQ(full.State(), 7u);
 }
 } // namespace
 

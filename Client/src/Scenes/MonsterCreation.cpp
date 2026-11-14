@@ -285,6 +285,9 @@ Core::Expected<void, std::string> LoadTheModel(const MonsterStep& step, const Wo
                                             step.kind == MonsterStepKind::LoadMonster ? "0x612d90" : "0x612270"));
     if (step.kind == MonsterStepKind::LoadMonster)
     {
+        // 0x613127..0x615232: la tabla de sonidos del modelo (0x612c80, CL9 hito 3, fase 2c) va a
+        // WorldRuntime::modelSounds, que leen los pasos del ataque.
+        context->sounds = &resources.world.Runtime().modelSounds;
         if (auto loaded =
                 models.LoadMonster(static_cast<std::int32_t>(step.value), resources.world.Runtime().map, *context);
             !loaded.HasValue())

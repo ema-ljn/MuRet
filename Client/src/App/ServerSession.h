@@ -217,6 +217,11 @@ public:
     [[nodiscard]] Core::Expected<void, std::string> SendWalk(std::span<const Protocol::Movement::Cell> path,
                                                              Protocol::Movement::Cell target, float angle);
     [[nodiscard]] Core::Expected<void, std::string> SendFacing(std::uint8_t direction);
+    // CL9 hito 3: el D7 de pegar (0x5650c0, Protocol::Combat::WriteAttack), XOR32, que FoxAnti saca como A4.
+    [[nodiscard]] Core::Expected<void, std::string> SendAttack(std::uint16_t key, std::uint8_t action,
+                                                               std::uint8_t direction);
+    // CL9 hito 3: el DF de la celda del elfo que camina antes de pegar (0x59cf88, Protocol::Combat::WriteElfCell).
+    [[nodiscard]] Core::Expected<void, std::string> SendElfCell(std::uint8_t x, std::uint8_t y);
     // El C1 18 de sentarse (0x4f2416..0x4f2bea) y del emote (0x576a60 y los casos de 0x576eb0), con
     // Protocol::Movement::WriteAction: como el original con el socket en −1, sin un GameServer abierto un aviso y nada.
     void SendAction(std::uint8_t direction, std::uint8_t action);
@@ -370,6 +375,10 @@ private:
     void OnWeather(const Network::Packet& packet);
     void OnWalk(const Network::Packet& packet);
     void OnDamage(const Network::Packet& packet);
+    // CL9 hito 3: el 0x16 (0x4cf200), el 0x9C (0x4cfce0) y el 0x17 (0x4d0a30).
+    void OnKillExperience(const Network::Packet& packet);
+    void OnExtendedKillExperience(const Network::Packet& packet);
+    void OnDeath(const Network::Packet& packet);
     void OnAction(const Network::Packet& packet);
     // Los otros jugadores en el viewport (CL9 hito 1): 0x12, 0x14, 0x45, 0x25 y 0xDF.
     void OnViewportPlayers(const Network::Packet& packet);

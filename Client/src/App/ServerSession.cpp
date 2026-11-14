@@ -23,6 +23,7 @@
 #include "Protocol/Character/CharacterSelect.h"
 #include "Protocol/Character/InventoryList.h"
 #include "Protocol/Character/Opcodes.h"
+#include "Protocol/Combat.h"
 #include "Protocol/Connection/Hello.h"
 #include "Protocol/Connection/Keepalive.h"
 #include "Protocol/Connection/Login.h"
@@ -255,6 +256,7 @@ void ServerSession::RegisterGameServerHandlers()
                         [this](const Network::Packet& packet) { OnSummons(packet); }) &&
         m_gameServer.On(Protocol::Viewport::ObjectsOpcode,
                         [this](const Network::Packet& packet) { OnViewportObjects(packet); }) &&
+        // CL9 hito 2: el 1A, la skill que pega a varios.
         m_gameServer.On(Protocol::Viewport::MagicAttackCountOpcode,
                         [this](const Network::Packet& packet) { OnMagicAttackCount(packet); }) &&
         m_gameServer.On(Protocol::World::TeleportOpcode,
@@ -325,6 +327,16 @@ void ServerSession::RegisterGameServerHandlers()
         m_gameServer.On(Protocol::Friends::FriendStateOpcode,
                         [this](const Network::Packet& packet) { OnFriendState(packet); });
     assert(registered && "los handlers del GameServer se registran una vez");
+    // CL9 hito 3 (atacar, el daño y la muerte): el despacho de 0x4e2b10 manda el 0x16 a 0x4cf200 y el 0x9C a 0x4cfce0
+    // (los dos con el flag de descifrado) y el 0x17 a 0x4d0a30. El 0x15 de la GS 0.97 (GCDamageSend) no tiene caso: cae
+    // en el default (0x4e5b4a) y no hace nada, como acá. El D7 que llega ya lo atiende OnDamage.
+    [[maybe_unused]] const bool combatRegistered =
+        m_gameServer.On(Protocol::Combat::KillExperienceOpcode,
+                        [this](const Network::Packet& packet) { OnKillExperience(packet); }) &&
+        m_gameServer.On(Protocol::Combat::ExtendedKillExperienceOpcode,
+                        [this](const Network::Packet& packet) { OnExtendedKillExperience(packet); }) &&
+        m_gameServer.On(Protocol::Combat::DeathOpcode, [this](const Network::Packet& packet) { OnDeath(packet); });
+    assert(combatRegistered && "los handlers del combate se registran una vez");
 }
 
 void ServerSession::Start()
@@ -1386,6 +1398,17 @@ void ServerSession::SendAction(std::uint8_t direction, std::uint8_t action)
     static_cast<void>(SendWorldPacket(Protocol::Movement::WriteAction(direction, action)));
 }
 
+Core::Expected<void, std::string> ServerSession::SendAttack(std::uint16_t key, std::uint8_t action,
+                                                            std::uint8_t direction)
+{
+    return SendWorldPacket(Protocol::Combat::WriteAttack(key, action, direction));
+}
+
+Core::Expected<void, std::string> ServerSession::SendElfCell(std::uint8_t x, std::uint8_t y)
+{
+    return SendWorldPacket(Protocol::Combat::WriteElfCell(x, y));
+}
+
 Core::Expected<void, std::string> ServerSession::SendOptionData(const Protocol::OptionData::OptionBody& body)
 {
     return SendWorldPacket(Protocol::OptionData::WriteOptionData(body));
@@ -1523,6 +1546,56 @@ void ServerSession::OnDamage(const Network::Packet& packet)
         return;
     }
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(damage.Value(), *this)));
+}
+
+// CL9 hito 3. 0x4cf200 y 0x4cfce0 miran el flag antes de leer: con 0, el F1 03 con el opcode y nada más.
+void ServerSession::OnKillExperience(const Network::Packet& packet)
+{
+    if (!packet.WasDecrypted())
+    {
+        m_log.Warning("la experiencia (16) no llegó cifrada: se le avisa al GameServer (F1 03)");
+        Protocol::Outgoing report = Protocol::Combat::WriteClearKillReport(Protocol::Combat::KillExperienceOpcode);
+        m_connection.Send(std::move(report.packet), report.delivery);
+        return;
+    }
+    const auto experience = Protocol::Combat::ReadKillExperience(packet);
+    if (!experience.HasValue())
+    {
+        m_log.Warning("se ignora la experiencia (16): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(experience.Value(), *this)));
+}
+
+void ServerSession::OnExtendedKillExperience(const Network::Packet& packet)
+{
+    if (!packet.WasDecrypted())
+    {
+        m_log.Warning("la experiencia (9C) no llegó cifrada: se le avisa al GameServer (F1 03)");
+        Protocol::Outgoing report =
+            Protocol::Combat::WriteClearKillReport(Protocol::Combat::ExtendedKillExperienceOpcode);
+        m_connection.Send(std::move(report.packet), report.delivery);
+        return;
+    }
+    const auto experience = Protocol::Combat::ReadExtendedKillExperience(packet);
+    if (!experience.HasValue())
+    {
+        m_log.Warning("se ignora la experiencia (9C): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(experience.Value(), *this)));
+}
+
+// 0x4d0a30 recibe el paquete y el largo: no mira el flag.
+void ServerSession::OnDeath(const Network::Packet& packet)
+{
+    const auto death = Protocol::Combat::ReadDeath(packet);
+    if (!death.HasValue())
+    {
+        m_log.Warning("se ignora la muerte (17): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(death.Value(), *this)));
 }
 
 // 0x4cb750 (desde 0x4e39ab): la acción de otro, sin guarda de escena ni del flag de cifrado.

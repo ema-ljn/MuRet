@@ -47,6 +47,7 @@ Devias). Todos trabajan sobre buffers: leer el archivo es tarea del que llama.
 | `credit.bmd` | `0x63ff30`, desde `0x63f020` / sin buscar | 400 × 33 bytes, el XOR3 del login (`0x4c1690`) de una vez sobre los 13.200, sin checksum ([los registros](#creditbmd)) | `+0x610` de la ventana de los créditos (`0x7d53728 + 0x4578`), 0x3390 |
 | `Slide.bmd` | `0x46b3b0`, desde `0x61ccb0` (`0x61ed18`) / sin buscar | 0xa030 bytes con el XOR3 entero (`0x4c1690`, la clave de `0x6c82e4`): el período, la velocidad y 5 tramos de 0x2008 bytes ([los campos](#slidebmd)) | `[0x5763528] + 0x11ac..+0x1218` |
 | `movereq.bmd` | `0x448440`, desde `0x61ccb0` (`0x61ec8f`, por `0x449830`) / sin buscar | la cuenta en claro y cuenta × 0x50 bytes, el XOR3 por registro (`0x449770`, la clave en la pila), sin checksum ([los campos](#movereqbmd)) | la lista de `0x723c68` (+8; la cuenta en +0xc), un bloque de 0x50 por destino |
+| `MonsterSkill.bmd` | `0x54a440`, desde `0x61ccb0` (`0x61ecdf`) / sin buscar | la cuenta en claro y cuenta × 0x1c bytes, el XOR3 por registro (`0x5496c0`), sin checksum ([los campos](#monsterskillbmd)) | `0x7437670 + tipo · 0x18`, seis dwords por tipo |
 
 Si falta un archivo, el original muestra un `MessageBox`, manda `WM_DESTROY` y **sigue cargando**
 las demás tablas.
@@ -231,6 +232,39 @@ que tuviera el bloque nuevo) y un nombre de `+4` sin `\0` antes del final de su 
 (`strlen` seguiría fuera del bloque; uno de 32 letras sigue, como en el original, con el de `+0x24`). Lo que sobra se
 ignora. `Scenes::LoadGameData` lo carga antes de las tablas de los conjuntos (hasta 1 MiB, 13.107 destinos), y uno
 que no está deja la lista vacía; main.cpp la copia a `WorldRuntime::moves`.
+
+### `MonsterSkill.bmd`
+
+Leído en la CL9 (hito 3, fase 2c, 2026-11-13; *estático*, y la forma *verificada* con el archivo real,
+`GoldenMonsterSkillTable`). `0x54a440` (desde `0x61ccb0`, `0x61ecdf`, con `Data\Local\MonsterSkill.bmd`, `0x6d29fc`)
+pone en −1 los seis dwords del tipo 0 (`0x54a44f..0x54a461`); el resto de la tabla es .bss, en 0. Abre el archivo con
+`"rb"`; si no está, arma `%s - File not exist.` (`0x6c6448`), lo deja en el log (`0x41fa40`), lo muestra con un
+`MessageBox` y manda `WM_DESTROY` (`0x54a500..0x54a549`). Pide un bloque de 0x1c con `operator new` (`0x54a47d`), lee
+la cuenta en claro con `fread(&cuenta, 4, 1)` (`0x54a490`) y, mientras el índice es menor (con signo,
+`0x54a49b..0x54a4e8`), lee 0x1c bytes en el bloque, les pasa el XOR3 desde su primer byte (`0x5496c0`, la clave de
+`0x6c8c74`; 0x1c no es múltiplo de 3, así que vuelve a empezar en cada registro) y copia (`0x54a4b5..0x54a4d6`):
+
+| Desplazamiento | Qué | Dónde |
+| --- | --- | --- |
+| `0x0` | el tipo (int32, sin mirar) | el índice: `tipo · 0x18` |
+| `0x4..0x14` | las cinco skills (int32) | `0x7437670 + tipo · 0x18` |
+| `0x18` | un sexto int32 | `0x7437684 + tipo · 0x18`; quién lo lee, sin leer |
+
+Al final libera el bloque y cierra el archivo (`0x54a4eb`, `0x54a4f1`). No mira cuánto leyó `fread` (un archivo corto
+deja en el bloque lo del registro anterior) ni el tipo (uno fuera de la tabla escribe fuera de ella); un tipo repetido
+se queda con el último. Las lee `0x4f92f0`, el ayudante de los monstruos de los mapas 33, 34 y 54 (06 § Pegar al
+llegar).
+
+El real trae 228 bytes, 8 registros y nada más: `0x130` con 4 y 1, `0x131` con 5, `0x135` con 2 y 3, `0x154` con 6, 7
+y 8, `0x155` con 11, `0x158` con 9, `0x159` con 10 y `0x15d` con 12 y 13, el resto de las skills en −1 y el sexto
+int32 en 0 en todos.
+
+MuRet: `Data::Tables::LoadMonsterSkillTable` lee la cuenta de los primeros cuatro bytes (sin ellos,
+`DataError::FileTooShort`); con 0 o menos, ninguno. Un registro que falta es `DataError::FileTooShort` y un tipo fuera
+de `[0, 0xffff]` (lo que cabe en `+0x376`), `DataError::InvalidData`; lo que sobra se ignora. `MonsterSkillTable::Of`
+da lo del archivo, o lo de la .bss: 0, salvo el tipo 0, en −1. `Scenes::LoadGameData` lo carga después de las tablas de
+los conjuntos (hasta 1 MiB), y uno que no está deja la tabla vacía (el original cerraría la ventana); main.cpp la copia
+a `WorldRuntime::monsterSkills`.
 
 ### `NpcName(%s).txt`
 

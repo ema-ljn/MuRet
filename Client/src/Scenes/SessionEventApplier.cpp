@@ -9,6 +9,7 @@
 #include "Protocol/Character/CharacterList.h"
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
+#include "Protocol/Combat.h"
 #include "Protocol/FloorItems.h"
 #include "Protocol/Friends.h"
 #include "Protocol/Inventory.h"
@@ -21,8 +22,10 @@
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActionReply.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/ActorCombat.h"
 #include "Scenes/FloorItemPackets.h"
 #include "Scenes/ChatReceive.h"
+#include "Scenes/CombatReplies.h"
 #include "Scenes/GameFriends.h"
 #include "Scenes/IWorldEntryPublisher.h"
 #include "Scenes/IWorldTransitionPublisher.h"
@@ -135,6 +138,11 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorld(const App::Wor
         return ApplyDamageReply(*damage, session.PlayerIndex(), m_resources);
     if (const auto* attack = std::get_if<Protocol::Viewport::MagicAttackCount>(&event))
         return ApplyMagicAttackCount(*attack, session.PlayerIndex(), m_resources);
+    // CL9 hito 3: el 0x16 y el 0x9C (0x4cf200, 0x4cfce0) y el 0x17 (0x4d0a30).
+    if (const auto* experience = std::get_if<Protocol::Combat::KillExperience>(&event))
+        return ApplyKillExperience(*experience, CombatContextOf(m_resources), ChatContextOf(m_resources, session));
+    if (const auto* death = std::get_if<Protocol::Combat::Death>(&event))
+        return ApplyDeath(*death, CombatContextOf(m_resources));
     if (const auto* action = std::get_if<Protocol::Movement::Action>(&event))
         return ApplyActionReply(*action, m_resources, [&session](std::uint8_t direction, std::uint8_t sent)
                                 { session.SendAction(direction, sent); });

@@ -477,6 +477,34 @@ TEST_F(EventPacketsTest, TheOpenTimeOfChaosCastleOpensTheChaosCastleDialog)
     EXPECT_EQ(Runtime().dialogs.current, Client::UI::ChaosCastleDialog);
 }
 
+// 0x4daa3b..0x4daa73: el strcat de 851 sobre el registro 1154 (300 bytes) que no entra con su '\0' pisaría el 1155 y
+// el original abre el 0x9a igual. MuRet descarta el resto del 91 sin el 0x9a, la sesión sigue y el aviso lleva el
+// largo, no los textos (Q-C1109). Con 299 caracteres y su '\0' entra justo y abre el 0x9a.
+TEST_F(EventPacketsTest, TheChaosCastleTimeThatOverflowsItsRecordIsDiscarded)
+{
+    // "Cuando 4" (1164 con las horas) y "entra en d minutos" (851): 8 y 18 caracteres, más el relleno.
+    const auto withHours = [this](std::size_t padding)
+    {
+        auto longer = EventTexts();
+        longer[1164] = std::string(padding, 'h') + "Cuando %d";
+        texts = Client::Tests::MakeTextTable(longer);
+    };
+    // 1 · 256 + 10 = 266 minutos: 4 horas y 26.
+    const Events::EventOpenTime packet{.kind = 4, .value4 = 1, .value5 = 0, .value6 = 10};
+    withHours(300 - 8 - 18);
+    const std::string reason = Discarded(packet);
+    EXPECT_NE(reason.find("0x4daa73"), std::string::npos) << reason;
+    EXPECT_NE(reason.find("301 bytes"), std::string::npos) << reason;
+    EXPECT_EQ(reason.find("hhh"), std::string::npos) << reason;
+    EXPECT_EQ(reason.find("minutos"), std::string::npos) << reason;
+    EXPECT_EQ(Runtime().dialogs.current, 0);
+
+    ResetTheBox();
+    withHours(299 - 8 - 18);
+    EXPECT_FALSE(Applied(packet).discarded.has_value());
+    EXPECT_EQ(Runtime().dialogs.current, Client::UI::ChaosCastleDialog);
+}
+
 // ----- 92 (0x4e4930) y la cuenta (0x40bab0).
 
 // Con el objeto del evento, +8 = pkt[3] + 1 y +0xc = GetTickCount; sin él (Lorencia, Devias, Kalima, Crywolf), nada.

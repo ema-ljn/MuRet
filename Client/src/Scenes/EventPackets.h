@@ -66,7 +66,8 @@ struct EventPacketResult
     std::vector<std::int32_t> sounds;
     std::vector<std::int32_t> stoppedSounds;
     // Dónde y por qué MuRet descartó el resto del paquete: donde el original lee o escribe fuera de sus tablas y sigue
-    // (el 93 y el 94 cortos, Q-C1324, Q-C1325, Q-C1328, Q-C1341 y Q-C1347). Lo de antes, con sus rand(), queda hecho;
+    // (el 93 y el 94 cortos, Q-C1324, Q-C1325, Q-C1328, Q-C1341 y Q-C1347, y el strcat del 91 de Chaos Castle,
+    // Q-C1109). Lo de antes, con sus rand(), queda hecho;
     // la sesión lo anota en el log y sigue, como con el D3 y el 18 de una clave desconocida (Q-C174, Q-C778).
     std::optional<std::string> discarded;
 };

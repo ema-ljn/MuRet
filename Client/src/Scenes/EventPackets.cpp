@@ -650,12 +650,14 @@ private:
         auto second = FormatText(Wsprintf, CanEnterInText, minuteArguments, PageStackBuffer, "0x4daa39");
         if (!second.HasValue())
             return Core::Unexpected(std::move(second).Error());
-        // 0x4daa3b..0x4daa73: el strcat del segundo sobre el registro 1154.
+        // 0x4daa3b..0x4daa73: el strcat del segundo sobre el registro 1154. Si no entra con su '\0', el original pisa
+        // el registro 1155 y abre el 0x9a igual: dentro del handler se descarta el resto del paquete, sin el 0x9a, y la
+        // sesión sigue con el aviso (Q-C1109; los textos no van al log, solo su largo).
         std::string joined = std::move(first).Value() + second.Value();
         if (joined.size() >= UI::TextRecordBytes)
-            return Core::Unexpected(std::format("0x4daa73: el strcat ocupa {} bytes con su '\\0' y pisa el registro "
-                                                "1155 de Text.bmd",
-                                                joined.size() + 1));
+            return Discard(std::format("0x4daa73: el strcat ocupa {} bytes con su '\\0' y pisa el registro 1155 de "
+                                       "Text.bmd (Q-C1109)",
+                                       joined.size() + 1));
         const std::array<std::string_view, 1> texts{joined};
         return UI::OpenTheChaosCastleDialog(m_runtime.dialogBox, m_runtime.dialogs, texts);
     }

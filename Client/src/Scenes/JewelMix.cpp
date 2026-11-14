@@ -7,6 +7,7 @@
 #include "Scenes/GameMessages.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GameUi.h"
+#include "Scenes/JewelBundleList.h"
 #include "Scenes/NpcWindowState.h"
 #include "Scenes/OwnInventory.h"
 #include "Scenes/WorldRuntime.h"
@@ -103,6 +104,15 @@ constexpr float UnmixCloseLeft = 279.5f;
 constexpr float UnmixCloseRight = 359.5f;
 constexpr float UnmixCloseTop = 200.0f;
 constexpr float UnmixCloseBottom = 225.0f;
+// 0x625dc3..0x625f37: con la joya, el OK y el cancelar de 80 × 25, desde 10 debajo de la lista (su borde de abajo
+// en alto + 0xf0).
+constexpr std::int32_t UnmixListBottom = 0xf0;
+constexpr float UnmixButtonsDrop = 10.0f;
+constexpr float UnmixButtonHeight = 25.0f;
+constexpr float UnmixOkLeft = 234.5f;
+constexpr float UnmixOkRight = 314.5f;
+constexpr float UnmixCancelLeft = 324.5f;
+constexpr float UnmixCancelRight = 404.5f;
 // 0x402a20: el nivel del paquete, (+4 >> 3) & 0xf.
 constexpr std::uint32_t LevelShift = 3;
 constexpr std::uint32_t LevelMask = 0xf;
@@ -323,23 +333,37 @@ Core::Expected<void, std::string> AskTheQuestion(const GameUiContext& context)
     LeaveTheMouseTime(runtime);
     return {};
 }
+
 // 0x402a10 y 0x402a20: la lista de 0x6e5660 vacía (0x482f80) y llena, casilla por casilla, con los paquetes de la
-// joya elegida (0x181e con 0, 0x181f con 1) y su nivel. 0x46e940 rechaza una casilla fuera de [0, 0x40] o repetida,
-// que acá no llegan.
+// joya elegida (0x181e con 0, 0x181f con 1) y su nivel (0x46e940).
 void FillTheBundles(WorldState& world)
 {
     JewelMixState& jewels = world.Runtime().npcWindows.jewels;
-    jewels.bundles.clear();
+    ClearTheBundles(jewels.bundles);
     const auto& cells = world.Inventory().cells;
     for (std::size_t cell = 0; cell < cells.size(); ++cell)
     {
         const std::uint16_t id = cells[cell].id;
         if ((id != BlessBundle || jewels.kind != BlessKind) && (id != SoulBundle || jewels.kind != SoulKind))
             continue;
-        jewels.bundles.push_back(JewelMixState::BundleRow{
-            .cell = static_cast<std::int32_t>(cell),
-            .level = static_cast<std::uint8_t>((cells[cell].scalar1Low >> LevelShift) & LevelMask)});
+        AddTheBundle(jewels.bundles, static_cast<std::int32_t>(cell),
+                     static_cast<std::uint8_t>((cells[cell].scalar1Low >> LevelShift) & LevelMask));
     }
+}
+
+// 0x402a90(casilla, nivel): los guarda en 0x6c62d8 y 0x6c62dc y pregunta con 0x402b70; si alcanza, cierra y abre el
+// 0xa3 con su texto, como el 0xa2 (0x402aad..0x402acf).
+Core::Expected<void, std::string> AskForTheBundle(const GameUiContext& context, std::int32_t cell, std::int32_t level)
+{
+    JewelMixState& jewels = context.world.Runtime().npcWindows.jewels;
+    jewels.cell = cell;
+    jewels.level = level;
+    auto enough = AskForTheJewels(context);
+    if (!enough.HasValue())
+        return Core::Unexpected(std::move(enough).Error());
+    if (!enough.Value())
+        return {};
+    return AskTheQuestion(context);
 }
 } // namespace
 
@@ -454,7 +478,7 @@ Core::Expected<void, std::string> StepTheJewelUnmix(const GameUiContext& context
         click = false;
         jewels.kind = kind;
         FillTheBundles(context.world);
-        if (jewels.bundles.empty())
+        if (jewels.bundles.rows.empty())
         {
             const std::optional<std::string_view> text = UI::TextAt(context.texts, NoBundleText);
             if (!text)
@@ -478,9 +502,30 @@ Core::Expected<void, std::string> StepTheJewelUnmix(const GameUiContext& context
             return CloseTheJewelMix(context);
         return {};
     }
-    return Core::Unexpected(std::string("0x625dbe: el paso de la lista de 0x6e5660 (0x402af0 → 0x45aa80, la vtable "
-                                        "0x6b85f8), su OK con el elegido (+0x64 y 0x402a90) y el cancelar "
-                                        "(0x625ebe..0x625f37) son del hito 6 y no están (08 P-C338)"));
+    // 0x625dbe: el paso de la lista. El derecho suelto sobre una fila pide su paquete desde adentro (0x46f297).
+    if (const BundleListStep listed = StepTheBundleList(context); listed.asked)
+    {
+        if (auto asked = AskForTheBundle(context, listed.asked->cell, static_cast<std::int8_t>(listed.asked->level));
+            !asked.HasValue())
+            return asked;
+    }
+    // 0x625dc3..0x625eb8: el OK, x en [234,5; 314,5] e y en [alto + 0xf0 + 10, + 25], con el clic (que apaga) pide el
+    // elegido (la vtable + 0x64) con su nivel con signo (0x625ea7); sin elegido, nada.
+    const float top = static_cast<float>(jewels.bundles.height + UnmixListBottom) + UnmixButtonsDrop;
+    if (WithinFloat(context, UnmixOkLeft, UnmixOkRight, top, top + UnmixButtonHeight) && click)
+    {
+        click = false;
+        if (const std::optional<JewelBundleList::Row> chosen = ChosenBundle(jewels.bundles))
+        {
+            if (auto asked = AskForTheBundle(context, chosen->cell, static_cast<std::int8_t>(chosen->level));
+                !asked.HasValue())
+                return asked;
+        }
+    }
+    // 0x625ebe..0x625f37: el cancelar, x en [324,5; 404,5], con el clic (que no apaga) cierra todo.
+    if (WithinFloat(context, UnmixCancelLeft, UnmixCancelRight, top, top + UnmixButtonHeight) && click)
+        return CloseTheJewelMix(context);
+    return {};
 }
 
 Core::Expected<void, std::string> StepTheJewelResult(const GameUiContext& context)

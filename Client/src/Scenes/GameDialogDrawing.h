@@ -31,8 +31,8 @@ struct GameHudContext;
 //     (0x632a45); o centrados como los de las cajas los del 0xaa (0x632472);
 //   - el modo de la caja del caos (0x8e) y la mezcla de joyas (0xa1, 0xa2, 0xa4, 0xa5 y 0xa6, CL9 hito 6): el marco
 //     desde y = 120, los botones 0xf0 en blanco con el mouse, la joya elegida en (1; 1; 0,2), los textos de Text.bmd
-//     y el título de la cola (734, 1801 o 1800) en negrita con 0xff0080ff; con una joya elegida el 0xa4 corta en la
-//     lista de 0x6e5660 (0x62f739);
+//     y el título de la cola (734, 1801 o 1800) en negrita con 0xff0080ff; con una joya elegida el 0xa4 dibuja la
+//     lista de 0x6e5660 (0x62f739, Scenes/JewelBundleList) y su OK y su cancelar;
 //   - el 0x91: el marco desde y = 100, y corta en el EDIT del diálogo (0x6305c9, CL9.4).
 // Los demás cortan con la ola que los trae, como su paso. En un dibujo intermedio de MuRet, la esquina de la barra y
 // el clic no se escriben. Sin Text.bmd, o sin uno de sus textos, corta.

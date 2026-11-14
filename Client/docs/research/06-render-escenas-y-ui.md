@@ -1882,8 +1882,8 @@ pasado a float con los floats de la `.rdata`, con los bordes adentro.
   con 0, `0x181f` con 1) con su nivel `(+4 >> 3) & 0xf` (`0x46e940`, que rechaza la casilla fuera de `[0, 0x40]` o
   repetida; su chequeo del nivel no rechaza nada, 07 Q-C954). Sin paquetes, el aviso 1818 de error y `0x402e50`,
   que deja la joya sin elegir y vuelve a abrir el `0xa4`. Sin joya, x en `[279,5; 359,5]` e y en `[200, 225]` con el
-  clic, que **no** apaga (07 Q-C952), `0x402eb0`. Con una, el paso, el OK y el cancelar de la lista (`0x625dbe..`)
-  cortan (08, P-C338). Sin `rand()`.
+  clic, que **no** apaga (07 Q-C952), `0x402eb0`. Con una, el paso de la lista, su OK y su cancelar
+  (`0x625dbe..0x625f37`, fase 5): abajo, en "La lista de `0x6e5660`". Sin `rand()`.
 
 El texto del `0xa3` (`0x63340d`) es `sprintf` del 1809 (juntar: la joya, 1806 o 1807, y las contadas) o del 1813
 (deshacer: la joya y el nivel + 1) en 300 bytes de la pila, partido con `0x632c90` en a lo sumo 2 renglones de
@@ -1891,7 +1891,45 @@ El texto del `0xa3` (`0x63340d`) es `sprintf` del 1809 (juntar: la joya, 1806 o 
 `strcpy` a los dos primeros; debajo, el precio con el 1810 o el 1814. El del `0x99` (`0x63333d`) es el número de
 `0x77f3b6c` con sus puntos (`0x5b1130`) en el formato del primer texto y los siguientes con `0x69fd9b` sin argumentos.
 Lo abre `0x5dc7d5`, con `0x78aba60` en 2 (CL9.4): MuRet lo porta para cuando llegue. Los dibujos de la mezcla de
-joyas (fase 4a) van en la tabla de abajo; del `0xa4` con una joya, la lista de `0x6e5660` corta (08, P-C338).
+joyas (fase 4a) van en la tabla de abajo; el de la lista de `0x6e5660` (fase 5), en el párrafo que sigue.
+
+**La lista de `0x6e5660`** (CL9 hito 6, fase 5; en MuRet `Scenes/JewelBundleList`, tests en `JewelBundleListTest`,
+`JewelUnmixTest` y `GameDialogDrawingTest`). Es la clase de `0x46e290` (vtable `0x6b85f8`), una ventana vieja con un
+deque de filas de `0xc` bytes (`{bandera, casilla, nivel}`) que arma el inicializador estático `0x401ef0` antes de
+WinMain y nadie vuelve a armar: su id es el 1 (08 P-C366), su esquina de abajo a la izquierda la pone el dibujo del
+`0xa4` en cada frame, mide `0xb4` × `0x6d`, muestra 8 filas (`+0x104`), el elegido va de 1 en adelante (`+0xc4`, 0
+es ninguno) y el primero que se ve en `+0x100`. Sin `rand()` en nada de lo que sigue.
+
+- Llenarla: `0x402a10` → `0x482f80` la vacía (el elegido y el primero que se ve en 0); `0x402a20` → `0x46e940`
+  agrega `{0, casilla, nivel}` si la casilla está en `[0, 0x40]` y no está, pone el elegido en 0, corre el primero que
+  se ve (+1 con más filas que las que se ven; si desde él quedan menos de 8, la cuenta − 8) y ordena por casilla
+  (`0x46e4c0` con `0x46e4a0`).
+- El paso (`0x625dbe` → `0x402af0`): pone `0x5762eb4` (el mouse agarrado) en el id, corre `0x45aa80(0)` y lo vuelve a
+  0. Primero la cola de la ventana (la vtable `+0x28`, `0x4834a0`): el `0xf` elige el siguiente y el `0x10` el
+  anterior (hasta el 1), y los dos dejan el elegido a la vista; sin elegido no eligen y, con más filas que las que se
+  ven, el primero que se ve vuelve a 0 (07 Q-C1153). Después el mouse sobre `[x, x + 0xb4) × [y − 0x6d, y)` marca
+  `0x5762eb8` si estaba en 0, y la vtable `+0x20` (`0x483bc0`): con `0x5762ec0` en el id lee las flechas del teclado
+  (Izquierda y Derecha sin efecto; Arriba manda el `0xf` y Abajo el `0x10`, que atiende el paso siguiente: manda con
+  `+0xc0` en 0, la sube hasta 6 y desde ahí manda en cada paso; sin Arriba ni Abajo, `+0xc0` vuelve a 0). Con el mouse
+  encima: la rueda corre de a 3 filas y se apaga; sin el clic, las cuentas de la barra vuelven a 0; con el clic,
+  `0x5762ec0` toma el id, las flechas de la barra (13 × 13 en x + `0xb4` − `0x15` + 8, arriba y abajo) corren de a una con el
+  sonido `0x19`, cuentan hasta 15 y desde 16 corren en cada paso, y con tantas filas como las que se ven o más, la
+  pista arriba o abajo del cursor corre 8, sin sonido; el clic no se apaga. El cursor no se agarra (07 Q-C1151).
+  Con el mouse encima, `0x5762ef4` en 1. Por último las filas (`0x46f1a0`, la vtable `+0x88`, desde el primero que se
+  ve): el mouse en `(x, yᵢ − 3, 168, 13)`, con `yᵢ = (min(8, filas) − i) · 13 − 0x6d − 10 + y`; el clic elige la fila,
+  da vuelta su `+0` (nadie lo lee) y se apaga; el derecho suelto (`0x7d36849`) la elige, se apaga y, con su nivel
+  distinto de `0xff` y su casilla en `[1, 0x3f]` (07 Q-C1152), llama a `0x402a90(casilla, nivel)`.
+- El OK y el cancelar (`0x625dc3..0x625f37`), en y `[0x6d + 0xf0 + 10, + 25]`: el OK, x en `[234,5; 314,5]` con el
+  clic (que apaga), pide el elegido (la vtable `+0x64`, `0x483aa0`) a `0x402a90` con su nivel con signo; sin elegido,
+  nada. El cancelar, x en `[324,5; 404,5]` con el clic (que no apaga), `0x402eb0`. `0x402a90` guarda la casilla y el
+  nivel y pregunta con `0x402b70`: si alcanza, abre el `0xa3`, como el `0xa2`.
+- El dibujo (`0x45a9d0(x, y)` y `0x402b20` → `0x4832e0`, la vtable `+0x14`): el marco en la mezcla alfa con el
+  `0x491960(7, 0,4)` de `(x − 1, y − 0x6d − 1, 0xb5, 0x6f)`, las dos flechas de `win_scrollbar` (`0x649`, al revés
+  con el clic sobre ellas), la barra (`0x46ebe0` con `0x484490`, que guarda la pista y el cursor para el paso) con
+  las dos líneas del `0x491960(2)` y los tres pedazos del cursor (la pista entera con menos filas que las que se
+  ven); después el blanco y la fuente normal, y desde el primero que se ve hasta 8 filas (`0x46f020`): el velo
+  `(1, 1, 1, 0,5)` y el texto `0xff000000` en el elegido, `0xffc8dce6` en las otras, sobre 0, `"%s,  %d"` con el
+  1806 o el 1807 y `(nivel + 1) · 10` en `(x + 6, yᵢ)` en un buffer de 300 bytes; cada fila deja la mezcla apagada.
 
 **El dibujo** (`0x62db60`, en `0x637696` con la escena 5). Siempre deja `0x620980`, el blanco, la fuente normal en el
 DC y los colores del texto en (−1, 0), y termina con `0x620a00(1)`. Los textos van con `0x554180` centrados en
@@ -1906,7 +1944,7 @@ DC y los colores del texto en (−1, 0), y termina con `0x620a00(1)`. Los textos
 | `0x8e` | `0xfc` de 213 × 5 en (213, 120), 5 filas de `0xfb` desde 125 y `0xfc` en 325; los 2 botones `0xf0` de 150 × 35 en `(245, 190 + 85i)` con las UV `(0, 0, 0,83203125, 1)`, en blanco con el mouse en `[245, 395] × [y, y + 35]` y en 0,7 si no; el título 735 + i en negrita con `0xfffff0c8` centrado en y + 12; en la normal y en blanco, las explicaciones en x = `0xf8` (872, 873 y 1923 en 150, 160 y 170; 870 y 871 en 240 y 250); en la cola (`0x632323`), el 734 en negrita con `0xff0080ff` centrado en 135, y así queda el DC |
 | `0xa1` (CL9 hito 6, fase 4a) | `0x62e92e..0x62ed05`. El marco del `0x8e` con 6 filas (todos los de la mezcla de joyas desde y = 120, `[EBP − 0x20]` en `0x78`); el 1802 y el 1803 en x = `0xf8`, y = 150 y 160; los 2 botones `0xf0` de 150 × 35 en `(245, 190 + 65i)` con las UV `(0, 0, 0,83203125, 1)`, en blanco con el mouse y en 0,7 si no, con el 1801 (juntar) y el 1800 (deshacer) en negrita y `0xfffff0c8` centrados en y + 12; el cancelar de 81 × 25 en (279, 320), en 0,8 sin el mouse, con el 1002 centrado en `0x13f` e y = `0x148`. En la cola (`0x632372`), el 1801 como el título del `0x8e`. Deja el texto en `0xfffff0c8` y el blanco |
 | `0xa2` (fase 4a) | `0x62ed0a..0x62f36c`. 7 filas; el 1804 y el 1805 en x = `0xee`, y = 155 y 165; las 2 joyas (1806 y 1807) de 80 × 25 en `(235 + ftol(90k), 185)`: la elegida en negrita, `(1; 1; 0,2)` y `0xfffff0c8`, la del mouse en blanco y `0xfffff0c8`, y si no 0,5, sin volver la fuente ni el color entre las dos (07 Q-C950; el paso elige en otra x, Q-C951), con el texto centrado en `ftol(90k + 275)` e y + 8; después la fuente normal y el blanco. Los 3 paquetes de 170 × 35 en `(235, 225 + 45i)`: sin joya en 0,5; con una, en blanco con el mouse o 0,7, y el texto en negrita y `0xfffff0c8`; el 1808 con `10i` joyas y `500.000i` de zen en un buffer de `0x800` bytes (más largo corta: `0x62f1dc`), centrado en y + 12. El cancelar en (279, 365), su texto en y = `0x175`. La cola, la del `0xa1` |
-| `0xa4` (fase 4a) | `0x62f371..0x62fae6`. 3 filas sin joya, 7 con una; las 2 joyas de 80 × 25 en `(235 + 80k, 160)`, pintadas como en el `0xa2`, con el texto en `ftol(x + 40)` e y = `0xa8`. Sin joya, el cancelar de 80 × 25 en (279,5; 200) con su texto en y = `0xd0` (`0x62f9c6..0x62fae6`) y el texto en blanco. Con una, el 1821 con las casillas vacías (`0x402de0`) en un buffer de 300 bytes en `(0xe4, 0xc5)` y el 1822 en `(0xe4, 0xd4)`, con `0xc8c8c8c8` y en la fuente que dejó la joya (Q-C950); después, la lista de `0x6e5660` (`0x62f71a..0x62f9c1`) corta (08, P-C338). En la cola (`0x6323c1`), el 1800 |
+| `0xa4` (fase 4a) | `0x62f371..0x62fae6`. 3 filas sin joya, 7 con una; las 2 joyas de 80 × 25 en `(235 + 80k, 160)`, pintadas como en el `0xa2`, con el texto en `ftol(x + 40)` e y = `0xa8`. Sin joya, el cancelar de 80 × 25 en (279,5; 200) con su texto en y = `0xd0` (`0x62f9c6..0x62fae6`) y el texto en blanco. Con una, el 1821 con las casillas vacías (`0x402de0`) en un buffer de 300 bytes en `(0xe4, 0xc5)` y el 1822 en `(0xe4, 0xd4)`, con `0xc8c8c8c8` y en la fuente que dejó la joya (Q-C950); después (fase 5, `0x62f71a..0x62f9c1`), la lista de `0x6e5660` en `(0xe4, 0x6d + 0xf0)` (arriba); el OK `0xf0` de 80 × 25 en `(234,5; 0x6d + 0xf0 + 10)` con el color y la mezcla que dejó la lista, y el 188 en negrita centrado en `0x112` e y + 8: con un elegido en `(1; 1; 0,2)` y `0xfffff0c8`, sin él en 0,5 con el color de texto que había; el cancelar en `(324,5; y)`, en blanco con el mouse y 0,7 si no, con el 1002 en negrita y `0xfffff0c8` centrado en `0x16c`; después la fuente normal, el texto en blanco y el blanco. En la cola (`0x6323c1`), el 1800 |
 | `0xa5`, `0xa6` (fase 4a) | `0x62faeb..0x62fc1a` y `0x62fc1f..0x62febe`, 2 filas, sin título en la cola (`0x632aec`). El `0xa5`, el 471 centrado en `0x13f` e y = `0xa5`. El `0xa6`, `"%s%s %s"` con el 1801 o el 1800 (según `0x6e5794`), el 1816 y el 858 en un buffer de 256 bytes (más largo corta: `0x62fd43`) en negrita, centrado en y = `0x91`; el OK de 65 × 25 en (287, 170), en 0,8 sin el mouse, con el 228 en negrita y `0xfffff0c8` en y = `0xb2`; deja la fuente normal y el blanco |
 | `0x91` (fase 4a) | `0x6304f2..0x6305c7`: `0xfc` en (213, 100), 2 filas y `0xfc`. Con `0x6c7b8c` en 1 sigue el EDIT del diálogo, de la CL9.4, y corta (`0x6305c9`); la rama del 0 no corre (07 Q-C953). Detrás quedan el OK y el cancelar (`0x6306ee..0x630813`) y la cola `0x631d2f` (el 1128 o el 1129) |
 | `0x9a`, `0xa3`, `0xa8`, `0xaa` (fase 4a) | Los de sí y no de abajo, con lo suyo: el `0xa3` con el marco en y = 210 y los renglones en x = `0x145`; el `0x9a` con 4 filas (`0x630d20..0x630d2c`), el sí en `(1; 0,3; 0,3)` sin el ítem y si no en blanco (el color queda) y los renglones en x = `0x140`; el `0xa8` con sus tres botones (`0x630e1f..0x630f53` y `0x630fdb..0x6310d5`), `0x646` en `(x + 213, y + 100, w, h)` con las UV `(0, 0, 0,765625, 1)` y la mezcla normal, su texto en negrita (`"%s"` del 1412 y del 1903 en un buffer de 100 bytes, y el 229 el tercero, que se dibuja sin mirar su estado) en `x + 0xed − cx / 2` e y + 104 con `0xff000000` sobre `0xff`, que vuelve el color del texto y deja la negrita; el `0xaa` con los renglones de las cajas (`0x632472`). Con `0x78abb14` en 2, salvo en el `0x96` y el `0x9a`, antes de los renglones va el título de la mezcla (`0x632683..0x6328e3`), en negrita y `(1, 1, 0)` centrado en y = arriba + `0x19`, con el texto de `0x7d2dc98` (el `0x1c` con una capa que no es 3 ni 4 deja el buffer sin escribir y corta: `0x6327eb`) |

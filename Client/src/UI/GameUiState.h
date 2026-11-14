@@ -119,6 +119,14 @@ struct GameUiState
     // 0x7d3685c: el derecho abajo. Lo prende WM_RBUTTONDOWN, lo apaga WM_RBUTTONUP y lo apaga quien lo usa (el
     // registro del chat, 0x45d760).
     bool rightDown = false;
+    // 0x7d36849: el derecho suelto. Lo prende WM_RBUTTONUP (0x4b47b6) y lo apaga cualquier mensaje del mouse o del
+    // teclado que llega con el foco (0x4b3444), así que dura mientras no llegue otro. Lo apagan quien lo usa: la lista
+    // de 0x6e5660 (0x46f29f, Scenes/JewelBundleList), y 0x461f00 y 0x464510, que no son del hito 6.
+    bool rightReleased = false;
+    // Dónde se soltó: MuRet ve los mensajes del paso juntos, y el mouse en otro lugar es otro mensaje (*inferido*,
+    // P-C96).
+    std::int32_t rightReleaseX = 0;
+    std::int32_t rightReleaseY = 0;
     // 0x6c8e3c (.data 1): el ataque automático. Lo escriben el F3 30 (el bit 0x01, 0x4dd7d7), el menú de Esc
     // (0x625632) y la vuelta a la selección (0x4c2533, en 1). Sus lectores de MuRet: el picking (0x59ee4b), con el
     // elegido de antes (0x6c8e30), y MoveHero (0x59b22f y 0x59b89e) y 0x57cfc0 (0x57d1bc), con 0x6c8e38 distinto de −1,

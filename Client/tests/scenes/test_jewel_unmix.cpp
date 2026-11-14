@@ -13,6 +13,7 @@
 #include "Scenes/OwnInventory.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/GameDialogs.h"
 #include "UI/MessageArea.h"
 #include "World/ItemState.h"
 
@@ -32,13 +33,15 @@
 
 #include <gtest/gtest.h>
 
-// El paso del 0xa4, deshacer un paquete de joyas (0x625cf4, CL9 hito 6, fase 4a): las dos joyas con la lista de
-// 0x6e5660 (0x402a10 y 0x402a20), el aviso sin paquetes, el cancelar sin joya y el corte de la lista. Ninguno saca
-// rand(). Textos inventados; el mundo, en Lorencia (0), Devias (2) y Noria (3).
+// El paso del 0xa4, deshacer un paquete de joyas (0x625cf4, CL9 hito 6, fases 4a y 5): las dos joyas con la lista de
+// 0x6e5660 (0x402a10 y 0x402a20), el aviso sin paquetes, el cancelar sin joya y, con una, el paso de la lista, su OK
+// con el elegido y su cancelar (0x625dbe..0x625f37). Ninguno saca rand(). Textos inventados; el mundo, en Lorencia
+// (0), Devias (2) y Noria (3).
 namespace
 {
 using Client::Render::Models::CrtRandom;
 using Client::Scenes::GameUiContext;
+using Client::Scenes::JewelBundleList;
 using Client::Scenes::JewelMixState;
 using Client::Scenes::WorldState;
 using Client::Tests::Bytes;
@@ -54,6 +57,10 @@ constexpr std::int32_t UnmixDialog = 0xa4;
 constexpr std::int32_t KindY = 170;
 constexpr std::int32_t BlessX = 250;
 constexpr std::int32_t SoulX = 330;
+// 0x625dc3..0x625f37: el OK y el cancelar, en y desde 0x6d + 0xf0 + 10 = 359 hasta 384.
+constexpr std::int32_t ButtonsY = 370;
+constexpr std::int32_t OkX = 270;
+constexpr std::int32_t CancelX = 360;
 
 class LetterMeasure final : public Client::Render::Text::ITextMeasure
 {
@@ -133,14 +140,18 @@ public:
     CrtRandom random{0x2468u};
     Client::Input::InputState input;
     LetterMeasure measure;
-    Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable({{1818, "nada para deshacer"}});
+    Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable({{1806, "bendicion"},
+                                                                        {1807, "alma"},
+                                                                        {1813, "deshacer %s %d?"},
+                                                                        {1814, "cuesta %d"},
+                                                                        {1818, "nada para deshacer"}});
     std::vector<Client::Protocol::Outgoing> sent;
 };
 
 std::vector<std::pair<std::int32_t, std::uint8_t>> RowsOf(const JewelMixState& jewels)
 {
     std::vector<std::pair<std::int32_t, std::uint8_t>> rows;
-    for (const JewelMixState::BundleRow& row : jewels.bundles)
+    for (const JewelBundleList::Row& row : jewels.bundles.rows)
         rows.emplace_back(row.cell, row.level);
     return rows;
 }
@@ -154,10 +165,10 @@ TEST(JewelUnmixTest, AKindWithoutBundlesSaysWhyAndGoesBack)
         SCOPED_TRACE(map);
         UnmixingJewels tested(map);
         tested.Put(SoulBundle, 4, 1);
-        tested.Jewels().bundles.push_back({.cell = 9, .level = 9});
+        tested.Jewels().bundles.rows.push_back({.cell = 9, .level = 9});
         const CrtRandom before = tested.random;
         ASSERT_TRUE(tested.Click(BlessX, KindY).HasValue());
-        EXPECT_TRUE(tested.Jewels().bundles.empty());
+        EXPECT_TRUE(tested.Jewels().bundles.rows.empty());
         EXPECT_EQ(tested.Errors(), std::vector<std::string>{"nada para deshacer"});
         EXPECT_EQ(tested.Jewels().kind, 0xff);
         EXPECT_EQ(tested.Runtime().dialogs.current, UnmixDialog);
@@ -169,8 +180,8 @@ TEST(JewelUnmixTest, AKindWithoutBundlesSaysWhyAndGoesBack)
 }
 
 // 0x625d73..0x625dbe y 0x402a20: la joya del clic (x = 315 es de la primera) llena la lista con sus paquetes en el
-// orden de las casillas, con el nivel de (+4 >> 3) & 0xf, y la lista corta en su paso (0x625dbe).
-TEST(JewelUnmixTest, AKindFillsTheListAndTheListIsCut)
+// orden de las casillas, con el nivel de (+4 >> 3) & 0xf, sin elegido; el clic ya no llega al OK ni al cancelar.
+TEST(JewelUnmixTest, AKindFillsTheList)
 {
     for (const std::int32_t map : Maps)
     {
@@ -188,12 +199,12 @@ TEST(JewelUnmixTest, AKindFillsTheListAndTheListIsCut)
             tested.Put(BlessBundle, 12, 15);
             tested.Put(SoulBundle, 5, 3);
             const CrtRandom before = tested.random;
-            const auto stepped = tested.Click(x, y);
-            ASSERT_FALSE(stepped.HasValue());
-            EXPECT_NE(stepped.Error().find("0x625dbe"), std::string::npos) << stepped.Error();
-            EXPECT_NE(stepped.Error().find("P-C338"), std::string::npos) << stepped.Error();
+            ASSERT_TRUE(tested.Click(x, y).HasValue());
             EXPECT_EQ(tested.Jewels().kind, kind);
             EXPECT_EQ(RowsOf(tested.Jewels()), rows);
+            EXPECT_EQ(tested.Jewels().bundles.selection, 0);
+            EXPECT_EQ(tested.Runtime().dialogs.current, UnmixDialog);
+            EXPECT_TRUE(tested.sent.empty());
             EXPECT_FALSE(tested.Runtime().movement.pendingClick);
             EXPECT_TRUE(tested.Errors().empty());
             EXPECT_EQ(tested.random.State(), before.State());
@@ -227,6 +238,116 @@ TEST(JewelUnmixTest, TheCancelClosesAllAndKeepsTheClick)
         EXPECT_EQ(runtime.dialogs.current, 0);
         EXPECT_EQ(tested.Jewels().mode, 0);
         EXPECT_EQ(tested.Jewels().cell, -1);
+        EXPECT_TRUE(runtime.movement.pendingClick);
+        ASSERT_EQ(tested.sent.size(), 1u);
+        EXPECT_TRUE(SameBytes(tested.sent[0].packet.Bytes(), Bytes({0xc1, 0x03, 0x31})));
+    }
+}
+
+// 0x625dc3..0x625eb8 y 0x402a90, en los tres mapas: sin elegido el OK solo apaga el clic. Con uno, pide su paquete
+// con su nivel: 0x402b70 lo encuentra en su casilla y abre el 0xa3 con la pregunta; sin el paquete, el aviso 1818 y la
+// vuelta de 0x402e50.
+TEST(JewelUnmixTest, TheOkAsksForTheChosenBundle)
+{
+    for (const std::int32_t map : Maps)
+    {
+        SCOPED_TRACE(map);
+        UnmixingJewels tested(map);
+        tested.Put(SoulBundle, 7, 2);
+        tested.Put(SoulBundle, 30, 5);
+        auto& runtime = tested.Runtime();
+        const CrtRandom before = tested.random;
+        ASSERT_TRUE(tested.Click(SoulX, KindY).HasValue());
+        ASSERT_EQ(tested.Jewels().bundles.rows.size(), 2u);
+
+        ASSERT_TRUE(tested.Click(OkX, ButtonsY).HasValue());
+        EXPECT_FALSE(runtime.movement.pendingClick);
+        EXPECT_EQ(runtime.dialogs.current, UnmixDialog);
+        EXPECT_EQ(tested.Jewels().cell, -1);
+
+        tested.Jewels().bundles.selection = 2;
+        ASSERT_TRUE(tested.Click(OkX, ButtonsY).HasValue());
+        EXPECT_EQ(tested.Jewels().cell, 30);
+        EXPECT_EQ(tested.Jewels().level, 5);
+        EXPECT_EQ(tested.Jewels().counted, 1);
+        EXPECT_EQ(tested.Jewels().price, 1000000);
+        EXPECT_EQ(runtime.dialogs.current, Client::UI::ServerTimeDialog);
+        EXPECT_EQ(Client::UI::DialogRow(runtime.dialogBox, 0), "deshacer alma 6?");
+        EXPECT_EQ(runtime.movement.mouseUpdateTimeMax, 6);
+        EXPECT_FALSE(runtime.movement.pendingClick);
+        EXPECT_TRUE(tested.sent.empty());
+
+        runtime.dialogs.current = UnmixDialog;
+        tested.world->Inventory().cells[30].id = EmptyItem;
+        ASSERT_TRUE(tested.Click(OkX, ButtonsY).HasValue());
+        EXPECT_EQ(tested.Errors(), std::vector<std::string>{"nada para deshacer"});
+        EXPECT_EQ(tested.Jewels().kind, 0xff);
+        EXPECT_EQ(runtime.dialogs.current, UnmixDialog);
+        EXPECT_EQ(tested.random.State(), before.State());
+    }
+}
+
+// 0x46f1a0 y 0x402a90, en los tres mapas: con la lista en su esquina (0xe4, 0x15d), el derecho suelto sobre una fila
+// la elige y pide su paquete; el de la casilla 0 solo la elige (07 Q-C1152). El OK lo pide igual.
+TEST(JewelUnmixTest, TheRightReleaseOnARowAsksForItsBundle)
+{
+    for (const std::int32_t map : Maps)
+    {
+        SCOPED_TRACE(map);
+        UnmixingJewels tested(map);
+        tested.Put(BlessBundle, 0, 1);
+        tested.Put(BlessBundle, 3, 4);
+        auto& runtime = tested.Runtime();
+        ASSERT_TRUE(tested.Click(BlessX, KindY).HasValue());
+        JewelBundleList& list = tested.Jewels().bundles;
+        list.x = 0xe4;
+        list.y = 0x6d + 0xf0;
+        // Con 2 filas, la fila i en y = (2 − i) · 13 + 230: la 0 en [253, 266) y la 1 en [240, 253).
+        runtime.ui.rightReleased = true;
+        ASSERT_TRUE(tested.Step(300, 260).HasValue());
+        EXPECT_EQ(list.selection, 1);
+        EXPECT_FALSE(runtime.ui.rightReleased);
+        EXPECT_EQ(runtime.dialogs.current, UnmixDialog);
+        EXPECT_EQ(tested.Jewels().cell, -1);
+        EXPECT_EQ(runtime.ui.hovered, list.id);
+        EXPECT_EQ(runtime.ui.capture, 0);
+
+        runtime.ui.rightReleased = true;
+        ASSERT_TRUE(tested.Step(300, 245).HasValue());
+        EXPECT_EQ(list.selection, 2);
+        EXPECT_EQ(tested.Jewels().cell, 3);
+        EXPECT_EQ(tested.Jewels().level, 4);
+        EXPECT_EQ(runtime.dialogs.current, Client::UI::ServerTimeDialog);
+        EXPECT_EQ(Client::UI::DialogRow(runtime.dialogBox, 0), "deshacer bendicion 5?");
+
+        runtime.dialogs.current = UnmixDialog;
+        list.selection = 1;
+        ASSERT_TRUE(tested.Click(OkX, ButtonsY).HasValue());
+        EXPECT_EQ(tested.Jewels().cell, 0);
+        EXPECT_EQ(runtime.dialogs.current, Client::UI::ServerTimeDialog);
+    }
+}
+
+// 0x625ebe..0x625f37, en los tres mapas: con una joya, el cancelar (x de 324,5 a 404,5) con el clic cierra todo con
+// 0x402eb0 y el C1 03 31, sin apagarlo; el OK apaga el clic antes y el cancelar ya no lo ve.
+TEST(JewelUnmixTest, TheCancelWithAKindClosesAll)
+{
+    for (const std::int32_t map : Maps)
+    {
+        SCOPED_TRACE(map);
+        UnmixingJewels tested(map);
+        tested.Put(SoulBundle, 12, 0);
+        auto& runtime = tested.Runtime();
+        ASSERT_TRUE(tested.Click(SoulX, KindY).HasValue());
+        ASSERT_TRUE(tested.Step(CancelX, ButtonsY).HasValue());
+        ASSERT_TRUE(tested.Click(320, ButtonsY).HasValue());
+        ASSERT_TRUE(tested.Click(CancelX, 385).HasValue());
+        EXPECT_EQ(runtime.dialogs.current, UnmixDialog);
+        EXPECT_TRUE(tested.sent.empty());
+
+        ASSERT_TRUE(tested.Click(CancelX, ButtonsY).HasValue());
+        EXPECT_EQ(runtime.dialogs.current, 0);
+        EXPECT_EQ(tested.Jewels().kind, 0xff);
         EXPECT_TRUE(runtime.movement.pendingClick);
         ASSERT_EQ(tested.sent.size(), 1u);
         EXPECT_TRUE(SameBytes(tested.sent[0].packet.Bytes(), Bytes({0xc1, 0x03, 0x31})));

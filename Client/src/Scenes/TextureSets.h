@@ -40,15 +40,16 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 1> DamageTextureSet
 // desde 0x61ccb0. Las sube GameModels con los modelos, y quedan. El 2 y el 3, Cursor y CursorPush, no: son de
 // WindowTextureSet, que cada escena sube y suelta, y el juego también. La pista del registro, nis_back en 0x640, la
 // pisa Skill\SwordEff.jpg con GL_LINEAR más adelante en la misma función (0x61ccb0, Q-C463): queda la de la skill.
-// Las de las ventanas del paso que son marco (hito 6): win_check en 0x64a (0x61d1f0, con 0x63bd00), la casilla de los
-// comandos; CursorID_Wnd en 0x65b (0x61d3ab), el cartel del personaje elegido. Las del inventario (hito 4): setitem,
-// btn_pshop y btn_pshop2 en 0x652, 0x657 y 0x658 (0x61d319..0x61d354). Y las de 0x104 a 0x120 que 0x61ae60 sube
-// después de command.jpg (0x61aec8..0x61b1f2), de los hitos 4 y 6: el fondo de las ventanas, los casilleros del
+// Las de las ventanas del paso que son marco (hito 6): win_scrollbar en 0x649 (0x61d1d1, con 0x63b870), la barra de la
+// lista de los paquetes de joyas (Scenes/JewelBundleList); win_check en 0x64a (0x61d1f0, con 0x63bd00), la casilla de
+// los comandos; CursorID_Wnd en 0x65b (0x61d3ab), el cartel del personaje elegido. Las del inventario (hito 4):
+// setitem, btn_pshop y btn_pshop2 en 0x652, 0x657 y 0x658 (0x61d319..0x61d354). Y las de 0x104 a 0x120 que 0x61ae60
+// sube después de command.jpg (0x61aec8..0x61b1f2), de los hitos 4 y 6: el fondo de las ventanas, los casilleros del
 // equipo, la plata, la grilla, la línea del comercio y los botones, entre ellos el de cerrar (0x118). La 0x106 no la
 // sube nadie. Las de la caja de la contraseña del almacén y su botón (CL9 hito 6, fase 3): bar.jpg y back1 a back3 en
 // 0xfd a 0x100 (0x61d3e3..0x61d43a, después de menu01_new2) y lock_01 a lock_04 en 0x126 a 0x129 (0x61b2c3..0x61b31d,
 // después de level_02, accept_box y mix_button de 0x121 a 0x125, que son de la caja del caos).
-inline constexpr std::array<Data::Textures::TextureSetEntry, 88> HudTextureSet{{
+inline constexpr std::array<Data::Textures::TextureSetEntry, 89> HudTextureSet{{
     {"Interface\\CursorAttack.tga", 0x04, TextureSetsDetail::LinearClamp},
     {"Interface\\CursorGet.tga", 0x05, TextureSetsDetail::LinearClamp},
     {"Interface\\CursorTalk.tga", 0x06, TextureSetsDetail::LinearClamp},
@@ -84,6 +85,7 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 88> HudTextureSet{{
     {"Interface\\nis_btnchat.jpg", 0x642, TextureSetsDetail::NearestClamp},
     {"Interface\\nis_btnsize.jpg", 0x643, TextureSetsDetail::NearestClamp},
     {"Interface\\nis_btnalpha.jpg", 0x644, TextureSetsDetail::NearestClamp},
+    {"Interface\\win_scrollbar.jpg", 0x649, TextureSetsDetail::NearestClamp},
     {"Interface\\win_check.tga", 0x64a, TextureSetsDetail::NearestClamp},
     {"Interface\\win_letter.jpg", 0x64d, TextureSetsDetail::NearestClamp},
     {"Interface\\win_man.jpg", 0x64e, TextureSetsDetail::NearestClamp},

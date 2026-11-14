@@ -72,6 +72,22 @@ struct ChatLogStepResult
 [[nodiscard]] bool MouseInRect(std::int32_t mouseX, std::int32_t mouseY, std::int32_t x, std::int32_t y,
                                std::int32_t width, std::int32_t height, std::int32_t mode);
 
+// La barra de una lista vieja: los bordes de la pista (+0x108 y +0x10c), y el lugar y el alto del cursor (+0x110 y
+// +0x118).
+struct OldListBar
+{
+    float barTop = 0.0f;
+    float barBottom = 0.0f;
+    float thumbY = 0.0f;
+    float thumbHeight = 0.0f;
+};
+
+// 0x47a230 y 0x484490, iguales byte a byte salvo los saltos: la barra de una lista con la esquina de abajo en `y`, de
+// `height` de alto, el modo de +0x12c, `rows` renglones a la vista, `count` en la lista (la vtable + 0x54) y `scroll`
+// el primero que se ve.
+[[nodiscard]] OldListBar PlaceTheListBar(std::int32_t y, std::int32_t height, std::int32_t barMode, std::int32_t rows,
+                                         std::int32_t count, std::int32_t scroll);
+
 // 0x47a230, la vtable + 0x70: los bordes de la pista y el tamaño y el lugar del cursor de la barra.
 void PlaceTheLogBar(const ChatLogState& log, ChatModes modes, ChatLogFrame& frame);
 

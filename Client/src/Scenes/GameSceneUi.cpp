@@ -59,13 +59,31 @@ namespace
 {
 // El WndProc: WM_RBUTTONDOWN prende 0x7d36880 (con 0x7d3685c en 0, que el apretón siempre ve así: lo apagó el
 // WM_RBUTTONUP de antes) y 0x7d3685c, y WM_RBUTTONUP apaga los dos. MuRet ve los mensajes del paso juntos: apretado y
-// soltado en el mismo paso, quedan apagados, como después de los dos.
-void LatchTheRightButton(UI::GameUiState& ui, const Input::InputState& input)
+// soltado en el mismo paso, quedan apagados, como después de los dos. WM_RBUTTONUP prende además 0x7d36849, que
+// cualquier mensaje con el foco apaga antes de atenderse (0x4b3444): MuRet lo deja prendido si el soltado fue el último
+// (sin apretón después) y lo apaga con otro botón, la rueda, el texto o el mouse en otro lugar (*inferido*, P-C96 y
+// P-C366).
+void LatchTheRightButton(UI::GameUiState& ui, const Input::InputState& input, UI::Point mouse)
 {
     const bool down = input.IsDown(Input::MouseButton::Right);
     const bool pressed = input.WasPressed(Input::MouseButton::Right);
     ui.rightClick = down && (ui.rightClick || pressed);
     ui.rightDown = down && (ui.rightDown || pressed);
+    const bool others = input.WasPressed(Input::MouseButton::Left) || input.WasReleased(Input::MouseButton::Left) ||
+                        input.WasPressed(Input::MouseButton::Middle) || input.WasReleased(Input::MouseButton::Middle) ||
+                        input.Wheel() != 0.0f || !input.Text().empty();
+    if (ui.rightReleased && (others || ui.rightReleaseX != mouse.x || ui.rightReleaseY != mouse.y))
+        ui.rightReleased = false;
+    if (pressed && down)
+    {
+        ui.rightReleased = false;
+        return;
+    }
+    if (!input.WasReleased(Input::MouseButton::Right))
+        return;
+    ui.rightReleased = true;
+    ui.rightReleaseX = mouse.x;
+    ui.rightReleaseY = mouse.y;
 }
 
 // Lo que piden los diálogos del juego: el F3 30 y el F1 02 por la sesión (sin servidor, un aviso al log),
@@ -182,7 +200,7 @@ Core::Expected<void, std::string> GameScene::StepTheDialogs(const Input::InputSt
                         mouse.y);
     LatchTheLeftButton(runtime.movement, input.WasPressed(Input::MouseButton::Left),
                        input.IsDown(Input::MouseButton::Left));
-    LatchTheRightButton(runtime.ui, input);
+    LatchTheRightButton(runtime.ui, input, mouse);
     LatchTheWheel(runtime.ui, input);
     // Y los WM_CHAR, en su orden: Tab y Enter al WndProc (la entrada del chat) y lo demás al EDIT con el foco.
     if (auto typed = TypeInTheGameChat(ChatContext(), input.Text()); !typed.HasValue())

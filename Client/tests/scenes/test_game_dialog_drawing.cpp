@@ -12,6 +12,7 @@
 #include "Scenes/EventMapObject.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/GameMovementState.h"
+#include "Scenes/JewelBundleList.h"
 #include "Scenes/NpcWindowState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -1073,7 +1074,8 @@ int CenteredAt(int center, const std::string& text)
 // Los textos de la mezcla de joyas, inventados.
 Client::Data::Text::TextTable JewelTexts()
 {
-    return Client::Tests::MakeTextTable({{228, "listo"},
+    return Client::Tests::MakeTextTable({{188, "ok"},
+                                         {228, "listo"},
                                          {471, "esperando"},
                                          {858, "fin"},
                                          {1002, "cancelar"},
@@ -1248,35 +1250,96 @@ TEST(GameDialogDrawingTest, TheJewelUnmixWithoutAKindDrawsTheCancel)
     }
 }
 
-// 0x62f68f..0x62f739, en los tres mapas: con el alma elegida, 7 filas, el 1821 con las casillas vacías (0x402de0) y
-// el 1822 en x = 0xe4 con 0xc8c8c8c8, y la lista de 0x6e5660 corta.
-TEST(GameDialogDrawingTest, TheJewelUnmixWithAKindCutsAtTheList)
+// 0x62f68f..0x62f9c1, en los tres mapas: con el alma elegida, 7 filas, el 1821 con las casillas vacías (0x402de0) y
+// el 1822 en x = 0xe4 con 0xc8c8c8c8; la lista de 0x6e5660 en (0xe4, 0x6d + 0xf0) con su marco, su barra, el velo del
+// elegido y sus filas; el OK (0xf0 de 80 × 25 en (234,5; 359), con la mezcla apagada que dejó la lista) con el 188 en
+// (1; 1; 0,2) y 0xfffff0c8, y el cancelar en blanco con el mouse encima, los dos en negrita en y = 367. Después la
+// normal, el texto en blanco y el blanco, con el que sale el título 1800 de la cola.
+TEST(GameDialogDrawingTest, TheJewelUnmixWithAKindDrawsTheListAndItsButtons)
 {
+    constexpr Color White{1.0f, 1.0f, 1.0f, 1.0f};
     for (const std::int32_t map : {Lorencia, Devias, Noria})
     {
         SCOPED_TRACE(map);
         auto tested = std::make_unique<DrawingDialogs>(map);
         tested->texts = JewelTexts();
-        tested->world.Runtime().dialogs.current = 0xa4;
-        tested->world.Runtime().npcWindows.jewels.kind = 1;
+        auto& runtime = tested->world.Runtime();
+        runtime.dialogs.current = 0xa4;
+        runtime.npcWindows.jewels.kind = 1;
         for (const std::size_t cell : {3u, 9u, 63u})
             tested->world.Inventory().cells[cell].id = 0xffff;
-        const auto drawn = tested->Draw();
-        ASSERT_FALSE(drawn.HasValue());
-        EXPECT_NE(drawn.Error().find("0x62f739"), std::string::npos) << drawn.Error();
-        EXPECT_NE(drawn.Error().find("P-C338"), std::string::npos) << drawn.Error();
+        Client::Scenes::JewelBundleList& list = runtime.npcWindows.jewels.bundles;
+        Client::Scenes::AddTheBundle(list, 8, 0);
+        Client::Scenes::AddTheBundle(list, 5, 2);
+        list.selection = 1;
+        tested->mouse = {330, 380};
+        ASSERT_TRUE(tested->Draw().HasValue());
+        EXPECT_EQ(list.x, 0xe4);
+        EXPECT_EQ(list.y, 0x15d);
         const std::vector<DrawnQuad> quads = QuadsOf(tested->sprites);
-        ASSERT_EQ(quads.size(), 11u);
+        ASSERT_EQ(quads.size(), 22u);
         EXPECT_FLOAT_EQ(quads[8].y, 405.0f);
-        EXPECT_FLOAT_EQ(quads[9].color.red, 0.5f);
-        EXPECT_FLOAT_EQ(quads[10].color.blue, 0.2f);
-        const std::vector<std::string> expected{"bendicion", "alma", "libres 3", "paquetes"};
+        EXPECT_FALSE(quads[11].slot.has_value());
+        EXPECT_FLOAT_EQ(quads[11].x, 227.0f);
+        EXPECT_EQ(quads[12].slot, 0x649);
+        EXPECT_FALSE(quads[19].slot.has_value());
+        EXPECT_FLOAT_EQ(quads[19].y, 256.0f - 3.0f);
+        EXPECT_EQ(quads[20].slot, 0xf0);
+        EXPECT_FLOAT_EQ(quads[20].x, 234.5f);
+        EXPECT_FLOAT_EQ(quads[20].y, 359.0f);
+        EXPECT_EQ(quads[20].blend, BlendMode::Opaque);
+        EXPECT_FLOAT_EQ(quads[20].color.blue, 1.0f);
+        EXPECT_EQ(quads[21].slot, 0xf0);
+        EXPECT_FLOAT_EQ(quads[21].x, 324.5f);
+        EXPECT_FLOAT_EQ(quads[21].color.red, 1.0f);
+        const std::vector<std::string> expected{"bendicion", "alma", "libres 3", "paquetes", "alma,  30",
+                                                "alma,  10", "ok",   "cancelar", "deshacer"};
         ASSERT_EQ(tested->Texts(), expected);
-        EXPECT_EQ(tested->text.texts[2].x, 0xe4);
-        EXPECT_EQ(tested->text.texts[2].y, 0xc5);
-        EXPECT_EQ(tested->text.texts[2].style.colors.text, 0xc8c8c8c8u);
-        EXPECT_EQ(tested->text.texts[2].style.font, Client::Render::Text::FontKind::Bold);
-        EXPECT_EQ(tested->text.texts[3].y, 0xd4);
+        const auto& drawn = tested->text.texts;
+        EXPECT_EQ(drawn[4].x, 0xe4 + 6);
+        EXPECT_EQ(drawn[4].y, 256);
+        EXPECT_EQ(drawn[4].style.colors.text, 0xff000000u);
+        EXPECT_EQ(drawn[4].style.font, Client::Render::Text::FontKind::Normal);
+        EXPECT_EQ(drawn[5].style.colors.text, 0xffc8dce6u);
+        EXPECT_EQ(drawn[6].x, CenteredAt(0x112, "ok"));
+        EXPECT_EQ(drawn[6].y, 367);
+        EXPECT_EQ(drawn[6].style.colors.text, 0xfffff0c8u);
+        EXPECT_EQ(drawn[6].style.font, Client::Render::Text::FontKind::Bold);
+        EXPECT_FLOAT_EQ(TextColorsOf(tested->sprites)[6].blue, 0.2f);
+        EXPECT_EQ(drawn[7].x, CenteredAt(0x16c, "cancelar"));
+        EXPECT_EQ(drawn[7].y, 367);
+        EXPECT_EQ(drawn[7].style.font, Client::Render::Text::FontKind::Bold);
+        EXPECT_EQ(drawn[8].y, 135);
+        EXPECT_EQ(TextColorsOf(tested->sprites)[8], White);
+    }
+}
+
+// 0x62f78a..0x62f807 y 0x62f8ec, en los tres mapas: sin elegido, el 188 en 0,5 con el color de texto que había (el
+// 0xc8c8c8c8 de las notas), y el cancelar sin el mouse en 0,7. Sin filas, la lista solo dibuja su marco y la mezcla
+// queda prendida para el OK.
+TEST(GameDialogDrawingTest, TheJewelUnmixOkIsGreyWithoutAChoice)
+{
+    constexpr Color White{1.0f, 1.0f, 1.0f, 1.0f};
+    for (const std::int32_t map : {Lorencia, Devias, Noria})
+    {
+        SCOPED_TRACE(map);
+        auto tested = std::make_unique<DrawingDialogs>(map);
+        tested->texts = JewelTexts();
+        auto& runtime = tested->world.Runtime();
+        runtime.dialogs.current = 0xa4;
+        runtime.npcWindows.jewels.kind = 0;
+        ASSERT_TRUE(tested->Draw().HasValue());
+        const std::vector<DrawnQuad> quads = QuadsOf(tested->sprites);
+        ASSERT_EQ(quads.size(), 21u);
+        EXPECT_EQ(quads[19].blend, BlendMode::Alpha);
+        EXPECT_FLOAT_EQ(quads[20].color.red, 0.7f);
+        const auto& drawn = tested->text.texts;
+        ASSERT_EQ(drawn.size(), 7u);
+        EXPECT_EQ(drawn[4].text, "ok");
+        EXPECT_EQ(drawn[4].style.colors.text, 0xc8c8c8c8u);
+        EXPECT_FLOAT_EQ(TextColorsOf(tested->sprites)[4].red, 0.5f);
+        EXPECT_EQ(drawn[6].text, "deshacer");
+        EXPECT_EQ(TextColorsOf(tested->sprites)[6], White);
     }
 }
 

@@ -40,6 +40,58 @@ inline constexpr std::size_t TrainerBoxCellCount = 32;
     return cells;
 }
 
+// La lista de 0x6e5660, de los paquetes que se pueden deshacer en el 0xa4 (la clase de 0x46e290, vtable 0x6b85f8;
+// Scenes/JewelBundleList): una ventana vieja (0x45a210) con un std::deque de filas de 0xc bytes. La arma el
+// inicializador estático 0x401ef0 (el tercero de la tabla de 0x6c6004, antes de WinMain) y nadie la destruye ni la
+// vuelve a armar: lo que no vacía 0x482f80 (la cola, el lugar, la barra, el foco) dura de una apertura a la otra. Su
+// estado (+0x48, 0x45a9b0) queda en 0: no tiene borde que agarrar (la vtable + 0x8c es 0x403140) y el cursor de la
+// barra no se agarra nunca (07 Q-C1151), así que el arrastre (+0x11c y las ramas del 1 y el 2 de 0x483bc0) no está.
+struct JewelBundleList
+{
+    // Una fila (0x46e940): +0 lo da vuelta el clic sobre ella (0x46f20a; nadie más lo lee), +4 la casilla del
+    // inventario y +8 el nivel del paquete.
+    struct Row
+    {
+        std::int32_t flag = 0;
+        std::int32_t cell = 0;
+        std::uint8_t level = 0;
+    };
+    // +0x80..+0xa8: el deque y su cuenta. Con +0xc8 en 0 (el constructor; nadie lo cambia en esta clase), la cuenta
+    // de 0x403100 es la del deque.
+    std::vector<Row> rows{};
+    // +0x40: el id del contador 0x5762eb0 (0x459ef0). Es la primera ventana que se arma (los dos inicializadores de
+    // antes no arman ninguna): el 1 (*estático*; 08 P-C366).
+    std::int32_t id = 1;
+    // +0x50..+0x5c: la esquina de abajo a la izquierda (el modo 2 de +0x78) y el tamaño. 0x45a210 y 0x46e290 la dejan
+    // en (0, 0) de 0xb4 × 0x6d; el dibujo del 0xa4 la pone en (0xe4, alto + 0xf0) en cada frame (0x62f734).
+    std::int32_t x = 0;
+    std::int32_t y = 0;
+    std::int32_t width = 0xb4;
+    std::int32_t height = 0x6d;
+    // +0x8..+0x30: la cola de mensajes de la ventana (0x459f70). A esta solo le llegan los suyos, el 0xf y el 0x10 de
+    // las flechas del teclado (0x483c21..0x483c84, sin parámetros), que atiende el paso siguiente (0x45aa8e).
+    std::vector<std::int32_t> messages{};
+    // +0xc0: la repetición de las flechas del teclado.
+    std::int32_t keyRepeat = 0;
+    // +0xc4: el elegido, de 1 en adelante (0: ninguno).
+    std::int32_t selection = 0;
+    // +0x100: el primero que se ve (el de abajo) y +0x104 cuántos se ven (8 del constructor; nadie lo cambia).
+    std::int32_t scroll = 0;
+    std::int32_t shownRows = 8;
+    // +0x108, +0x10c, +0x110 y +0x118: la barra que pone el dibujo (0x484490) y lee el paso del frame siguiente;
+    // +0x114, el ancho del cursor (13 del constructor).
+    float barTop = 0.0f;
+    float barBottom = 0.0f;
+    float thumbY = 0.0f;
+    float thumbWidth = 13.0f;
+    float thumbHeight = 0.0f;
+    // +0x120 y +0x124: la repetición de las flechas de la barra y de la pista.
+    std::int32_t arrowRepeat = 0;
+    std::int32_t trackRepeat = 0;
+    // +0x12c: el modo de la barra (1, del constructor).
+    std::int32_t barMode = 1;
+};
+
 // La mezcla de joyas del NPC del 30 con 9 (los diálogos 0xa1, 0xa2, 0xa3, 0xa4 y 0xa6, y el BC; los textos 1806 a
 // 1815 de Text.bmd, "misturar" y "dissolver"): juntar 10, 20 o 30 joyas de bendición (0x1c0d) o del alma (0x1c0e)
 // en un paquete (0x181e o 0x181f), o deshacer uno. Los globales de 0x6e5794..0x6e57a0 y 0x6c62d8..0x6c62e1; los de
@@ -65,16 +117,9 @@ struct JewelMixState
     std::uint8_t kind = 0xff;
     // 0x6c62e1: cuántas juntar (10, 20 o 30; 0xff sin elegir), con signo para el BC 00 (0x40276b).
     std::uint8_t count = 0xff;
-    // La lista de 0x6e5660 (la clase de 0x46e290, vtable 0x6b85f8), solo sus filas en orden: lo que agrega 0x46e940
-    // (la casilla en +4 y el nivel en +8) y su cuenta (+0xa8). No es de los globales de 0x402e10: la vacían 0x402a10
-    // (0x482f80) y la llenan 0x402a20 desde el paso del 0xa4. Lo demás de la lista (la esquina, el desplazamiento, el
-    // elegido y su dibujo) no está (08 P-C338).
-    struct BundleRow
-    {
-        std::int32_t cell = 0;
-        std::uint8_t level = 0;
-    };
-    std::vector<BundleRow> bundles{};
+    // La lista de 0x6e5660. No es de los globales de 0x402e10: la vacían 0x402a10 (0x482f80) y la llenan 0x402a20
+    // desde el paso del 0xa4.
+    JewelBundleList bundles{};
 };
 
 // 0x78ab9bc..0x78ab9c8: lo que el almacén dejó esperando la contraseña, que el 83 con 0xc manda (0x4e4744..). Con el

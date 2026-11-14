@@ -6546,7 +6546,7 @@ escenas 2, 4 y 5: todo *estático*. Es la misma función para todos: el héroe y
 | Tipo | Caso | `rand()` directos | Lo que hace |
 | --- | --- | --- | --- |
 | `0x20a` | `0x506cf8` | `0x506db7`, `0x506e07` y `0x506f7a` | en la escena 5 y el mapa 7, un `0x607` con `ftol(0x5767b88) % 10000` debajo de 1000; en el mapa 9, dos `rand() & 3` que en 0 sacan un `0x68` cada uno; en las acciones `0x44` y `0x45`, con `+0x120`, partículas `0x5ac` por hueso y `0x5189f0` (2 `rand()`); en la `0x96`, diez `0x5d9` en el hueso `rand() % huesos`; y un `0x4ec110` del hueso de `+0x2bd` a un local que nadie lee (`0x506fc1..0x507001`) |
-| `0x185` | `0x507006` | — | doce joints (`0x530860`) por huesos |
+| `0x185` | `0x507006` | — | catorce joints `0x614/7` de ancho 14 (`0x530860`) entre pares de huesos |
 | `0x186`, `0x189`, `0x16d`, `0x16c`, `0x161` | `0x5073c6`, `0x5073ed`, `0x507ab7`, `0x507ade`, `0x507e63` | — | escriben campos con el reloj (`ftol`) |
 | `0x182` | `0x507414` | `0x507414`, `0x507429` y `0x50744b` | `rand() % 5` en 0: dos `rand() % 21 − 10` y una marca del suelo `0x5e3` (`0x548fe0`, que saca uno más) |
 | `0x17e` | `0x50749c` | — | partículas, luces (`0x5f9780`) y `0x505bc0`, `0x505c50` (3 `rand()`) y `0x505d50` (2) |
@@ -6560,13 +6560,15 @@ escenas 2, 4 y 5: todo *estático*. Es la misma función para todos: el héroe y
 | `0x1ce` | `0x507ee6` | `0x508005` y `0x508028` | sonido, luz, un joint `0x617` y un `0x5c5` |
 | `0x1f5` | `0x508093` | `0x508128`, `0x508148` y `0x508188` | luz, un joint `0x617` y, con `rand() & 1`, un `0x5c5` |
 | `0x154` | `0x5081c9` | `0x508209` | en la acción 3, `rand() % 32` y un `0x5d9` |
-| `0x155`, `0x158`, `0x166` | `0x50826d` | `0x5082f6`, `0x50830d`, `0x50832d` y `0x50834d` | un sprite `0x5ac` (`0x5491e0`) y, con `rand() & 3`, un `0x5f2` |
+| `0x155`, `0x158`, `0x166` | `0x50826d` | `0x5082f6`, `0x50830d`, `0x50832d` y `0x50834d` | el `0x166`, un sprite `0x5ac` (`0x5491e0`); sin morirse, con `rand() & 3` en 0, un `0x5f2/0` en Devias o un `0x5f3/0` |
 | `0x173` | `0x5083a1` | `0x5083c0`, `0x5083d7`, `0x5083f7` y `0x508417` | con `+0x1d6` en 1, `rand() & 3` y un `0x5f3` |
 | `0x157` | `0x50845e` | — | `0x505c50` (3 `rand()`) |
 | `0x15e`, `0x15f` | `0x50846c` | `0x50846c` | `rand() & 3` y sigue en el del `0x152` (`0x5085ac`) |
 | `0x152` | `0x5084b3` | `0x50856a` | según la acción y el frame, `rand() & 1` y un `0x5f2` |
 | `0x183`, `0x184`, `0x188` | `0x50862f` | — | nada |
 | los demás | `0x5085db` | — | `0x43bdd0`, `0x42de90`, `0x441210`, `0x42f550`, `0x431470` y `0x426ce0`, en ese orden, hasta que uno devuelva verdadero: cada uno mira el tipo o el mapa |
+
+MuRet (revisión B, 2026-11-14): `Scenes::StepTheModelEffects` (`ModelEffects.h`), desde `CharacterStep` con otro modelo que el `0x20a`, saca el `& 7` y corre el caso o los helpers con lo que escriben (la U y la V de `+0x6c` y `+0x70`, `+0x68`, `+0x64`, `+0x58`, el ángulo z, `+0x84`, la acción, los puntos de `0x505bc0` en `+0x4c` y `+0x40`), sus luces (`World::AddDynamicLight`), sus sonidos (`lastSoundId`), las partículas que el pool conoce (`0x5f2/0`, `0x5f3/0`, `0x5d9/0` y `/1`, `0x5ca/0`, `0x5c5/0`), los joints `0x617/0`, el sprite del `0x166` (la tabla del paso de los efectos, `CharacterStepContext::sprites`), la marca del `0x182` y las poses de `0x431470` (el `0x1ab` y el `0x1b4`, en `WorldState::PoseCarry`). Cortan con su dirección, después de sus `rand()`: el joint `0x614/7` del `0x185` (con un lugar libre), el `0x5de` del `0x17e` (`0x50758a` o `0x50780d`, también con el pool lleno), el `0x5f3/1` de `0x505c50` (`0x505d2c`), el `0x5f2/0x11` del `0x192` y el `0x197` (`0x43bf75`, `0x43c04b`), los efectos de `0x518cf0` (el `0xc5` en la 0, `0x43bea5`; el `0x1b3` en la 4 con el frame en [4, 6], `0x42f63b` o `0x431f37`; el `0x1ab`, el `0x1b0` y el `0x1b4` en su ventana de ataque, `0x43195f`, `0x4316db` y `0x4315b4`; el `0x1b5` en la 3 con `+0x84` en 1 desde el frame 5, `0x432460`), los huesos por nombre de `0x4292e0` con sus sprites (el `0x1b2` después de su `rand() % 360`, `0x42f6ce` o `0x431fa4`; el `0x1b1` fuera de la 6, `0x42f946` o `0x431d5c`) y el polvo del `0x1ab` y del `0x1b4` en la 2 y la `0xa`, que lee una luz que ese camino no escribe (`0x431e86`, comportamiento indefinido). El `0x1ae` mira además `[0x723bec]`, que MuRet no modela (en 0): no hace nada. Tests: `ModelEffectsTest` (`test_monster_effect_cases.cpp`, en los mapas 0 y 2 y los del caso: 30, 34, 35, 24).
 
 **Los `rand()`.** 46 llamadas directas a `0x69fd70`. Con el `0x20a`, que es lo que MuRet tiene:
 
@@ -10300,7 +10302,7 @@ NewFace suelto o el que cargó el alta ([Los modelos de los monstruos y los NPC]
    (y 5 con el subtipo 9). El arreglo empieza en 0 (`0x60dbe0`): un modelo sin `0x612c80`, como los NPC, suena `0xd2`.
 
 MuRet: `Scenes::ModelBody` (`ModelSpeedOf`, `FinishTheModelAction` con `0x42d890`, `SetTheModelHeadTarget` y
-`LookAtTheTarget`, `ModelTrailCutOf` y `ModelEffectsCutOf`), llamado desde `CharacterStep` con el modelo de
+`LookAtTheTarget` y `ModelTrailCutOf`) y `Scenes::StepTheModelEffects` (los casos de `0x505de0`), llamados desde `CharacterStep` con el modelo de
 `WorldState::FaunaResources()` (con la biblioteca del mapa detrás); el sonido al caminar con
 `ActorWalkContext::modelSounds` (`FaunaModels::SoundActions`); con el subtipo 209 a 211, antes el `0x7b` (`0x4f3ef2`, que
 la tabla pisa en `lastSoundId` si suena). El `0x1f5` lee la key de la última pose de su modelo en
@@ -10308,7 +10310,7 @@ la tabla pisa en `lastSoundId` si suena). El `0x1f5` lee la key de la última po
 Un modelo que no cargó nadie es el registro en 0 del original (`ModelSkeletonOf`, `SetMonsterAction` y
 `FaunaModels::SoundActions`): sin acciones, `0x4f9580` no avanza, `0x4ea030` no pone nada y `0x505de0` arma la caja de
 `0x505e15` (`+0x13c..+0x168`, `ActorState::field13c..field168`) y sale; sus sonidos, en 0. El 18 de otro (`0x4cb750`)
-también busca el modelo de un monstruo en la fauna. Cortan con su dirección los efectos por tipo (3 y 4, CL11) y la
+también busca el modelo de un monstruo en la fauna. Cortan con su dirección los efectos que el pool no conoce (3 y 4, CL11, en su condición exacta) y la
 acción 6 que termina con `+0x38a` en 0 (`0x4fcc3c`); 08, P-C241. Tests (también `MonsterStep.AModelThatIsNotLoadedOnlyBoxesItself`,
 `ActionReplyTest.AMonsterTakesTheActionsOfItsLoadedModel`):
 `ModelBodyTest` y `MonsterStep` (`test_model_body.cpp`: un Monster02 que avanza con su velocidad y descansa al terminar

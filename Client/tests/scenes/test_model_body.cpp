@@ -347,27 +347,6 @@ TEST(ModelBodyTest, TheTrailOfThe1b8EndsAfterItsFifthFrame)
     }
 }
 
-// 0x506ccc..0x50862f: el caso del modelo, los que van directo a 0x50862f y los seis helpers de 0x5085db.
-TEST(ModelBodyTest, TheEffectsOfTheOtherModelsCutByTypeAndMap)
-{
-    using Client::Scenes::ModelEffectsCutOf;
-    EXPECT_EQ(ModelEffectsCutOf(0x152, 0), std::optional<std::uint32_t>{0x5084b3});
-    EXPECT_EQ(ModelEffectsCutOf(0x1aa, 0), std::optional<std::uint32_t>{0x507493});
-    EXPECT_EQ(ModelEffectsCutOf(0x1f5, 2), std::optional<std::uint32_t>{0x508093});
-    EXPECT_EQ(ModelEffectsCutOf(0x153, 0), std::nullopt);
-    EXPECT_EQ(ModelEffectsCutOf(0x183, 30), std::nullopt);
-    EXPECT_EQ(ModelEffectsCutOf(0x194, 0), std::optional<std::uint32_t>{0x43bdd0});
-    EXPECT_EQ(ModelEffectsCutOf(0x19c, 30), std::optional<std::uint32_t>{0x42de90});
-    EXPECT_EQ(ModelEffectsCutOf(0x19c, 0), std::nullopt);
-    EXPECT_EQ(ModelEffectsCutOf(0x1a4, 2), std::optional<std::uint32_t>{0x441210});
-    EXPECT_EQ(ModelEffectsCutOf(0x1b2, 35), std::optional<std::uint32_t>{0x42f550});
-    EXPECT_EQ(ModelEffectsCutOf(0x1b2, 0), std::optional<std::uint32_t>{0x431470});
-    EXPECT_EQ(ModelEffectsCutOf(0x1ac, 0), std::nullopt);
-    EXPECT_EQ(ModelEffectsCutOf(0x1bb, 0), std::optional<std::uint32_t>{0x426ce0});
-    EXPECT_EQ(ModelEffectsCutOf(0xa8, 30), std::nullopt);
-    EXPECT_EQ(ModelEffectsCutOf(0x1cb, 0), std::nullopt);
-}
-
 // Un Monster02 (el modelo 0x153) cargado por 0x612d90 en WorldState::FaunaResources da su paso fuera del pool: avanza
 // con la velocidad de su acción (0,2 la 1, 0x612e5a..0x612e9f) y, al terminar la 3, vuelve a la 0 (0x4fcbb0), que
 // después sortea la cabeza con 0x4ea190. Los rand(): los dos accesos de 0x508ba0, el % 6 del cuerpo, la celda de
@@ -406,8 +385,10 @@ protected:
 
     Client::Core::Expected<void, std::string> Step(CrtRandom& random)
     {
-        return Client::Scenes::StepCharacter(
-            m_actor, {.world = *m_world, .random = random, .scene = Client::Scenes::SceneId::Game});
+        return Client::Scenes::StepCharacter(m_actor, {.world = *m_world,
+                                                       .random = random,
+                                                       .scene = Client::Scenes::SceneId::Game,
+                                                       .particles = &m_world->Particles()});
     }
 
     const Skeleton& Model() const
@@ -504,15 +485,15 @@ TEST_F(MonsterStep, AModelThatIsNotLoadedOnlyBoxesItself)
     }
 }
 
-// Monster01 (0x152) tiene caso en 0x505de0 (0x5084b3): corta después del & 7.
-TEST_F(MonsterStep, TheModelsWithTheirOwnEffectsCutAfterTheirRandom)
+// Monster01 (0x152) tiene caso en 0x505de0 (0x5084b3): fuera de las ventanas de frame de su aliento no saca más que el
+// & 7 (Scenes::StepTheModelEffects).
+TEST_F(MonsterStep, AModelWithItsOwnCaseOutsideItsWindowOnlyDrawsTheBrightness)
 {
     m_actor.animation.action = 1;
     m_actor.type = 0x152;
     CrtRandom random(Seed);
     const auto stepped = Step(random);
-    ASSERT_FALSE(stepped.HasValue());
-    EXPECT_NE(stepped.Error().find("0x5084b3"), std::string::npos) << stepped.Error();
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     CrtRandom expected = Client::Tests::AfterDraws(Seed, 8 + 1 + 8);
     DrawTheHeadAndTheEffects(expected);
     EXPECT_EQ(random.State(), expected.State());
@@ -546,7 +527,7 @@ private:
 
 // 0x4fce7a..0x4fced1: el 0x1f5 mira la key que dejó la última pose en su modelo (+0xa8, FaunaModels::PoseKey): con la
 // última de su acción, rand() % 32 en 0 le pone la acción 1 y si no la 0 (0x4ea030); con otra, nada. Después sigue
-// hasta el caso de su modelo en 0x505de0 (0x508093), que corta.
+// hasta el caso de su modelo en 0x505de0 (0x508093): en la 0, su luz y sus joints; en las otras, nada.
 TEST_F(MonsterStep, TheTraderPicksItsNextActionWhenItsModelEndedTheLastPose)
 {
     TraderLibrary trader(Model());
@@ -563,8 +544,7 @@ TEST_F(MonsterStep, TheTraderPicksItsNextActionWhenItsModelEndedTheLastPose)
     };
 
     const auto other = stepFrom(static_cast<std::int16_t>(last + 1), Seed);
-    ASSERT_FALSE(other.HasValue());
-    EXPECT_NE(other.Error().find("0x508093"), std::string::npos) << other.Error();
+    ASSERT_TRUE(other.HasValue()) << other.Error();
     EXPECT_EQ(m_actor.animation.action, 2);
 
     int rests = 0;
@@ -573,8 +553,7 @@ TEST_F(MonsterStep, TheTraderPicksItsNextActionWhenItsModelEndedTheLastPose)
     {
         SCOPED_TRACE(seed);
         const auto stepped = stepFrom(last, seed);
-        ASSERT_FALSE(stepped.HasValue());
-        EXPECT_NE(stepped.Error().find("0x508093"), std::string::npos) << stepped.Error();
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         if (m_actor.animation.action == 0)
             ++rests;
         else if (m_actor.animation.action == 1)
@@ -590,7 +569,7 @@ TEST_F(MonsterStep, TheTraderPicksItsNextActionWhenItsModelEndedTheLastPose)
 
 // 0x4fd5d7: desde el frame 3, 0x432bd0 con el 0x1b0 en la 4 fuera de (5, 7) saca su rand() de 0x432bf1 y los dos de
 // cada una de sus diez poses (Scenes::StepTheSwingsOf1abTo1b4), entre el % 6 del cuerpo y la celda de 0x505de0;
-// después, 0x505de0 corta en el helper 0x431470. El esqueleto de Monster02 con diez keys por acción.
+// después, el helper 0x431470 no hace nada con el 0x1b0 en la 4. El esqueleto de Monster02 con diez keys por acción.
 TEST_F(MonsterStep, TheSwingOfThe1b0DrawsItsRandomsBeforeItsEffects)
 {
     Skeleton swinging = Model();
@@ -607,8 +586,7 @@ TEST_F(MonsterStep, TheSwingOfThe1b0DrawsItsRandomsBeforeItsEffects)
     m_actor.animation.frame = 3.0f;
     CrtRandom random(Seed);
     const auto stepped = Step(random);
-    ASSERT_FALSE(stepped.HasValue());
-    EXPECT_NE(stepped.Error().find("0x431470"), std::string::npos) << stepped.Error();
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     ASSERT_EQ(m_actor.animation.action, 4);
     ASSERT_GE(m_actor.animation.frame, 3.0f);
     ASSERT_LE(m_actor.animation.frame, 5.0f);

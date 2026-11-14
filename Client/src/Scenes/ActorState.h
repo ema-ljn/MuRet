@@ -162,6 +162,9 @@ struct ActorState
     // que suelta ahí toma de acá su posición al crearse (0x5321f7) y en cada paso (0x53822f). 0x511290 no lo escribe:
     // queda el del uso anterior del registro (Q-C363).
     glm::vec3 effectOrigin{};
+    // +0x4c, +0x50 y +0x54: el punto del primer hueso de 0x505bc0 (el segundo va a +0x40), que escriben los casos del
+    // 0x179, el 0x17b a 0x17f, el 0x1aa y el 0x1ab de 0x505de0. 0x511290 no lo escribe. Quién lo lee, sin leer.
+    glm::vec3 bonePoint4c{};
     // +0x17c, +0x180 y +0x184: la posición que 0x4fcee0 copia antes del frame 3 y fuera de la acción 0x8d
     // (0x4fcf06..0x4fcf1b). La escribe también la habilidad (0x4f5b70), sin portar; 0x511290 no la toca: queda la
     // del uso anterior del registro (Q-C363). El joint 0x610/4 de la espada 0x223 sigue de acá al personaje (0x537d55).
@@ -198,9 +201,11 @@ struct ActorState
     // +0x68: la luz del blendMesh, que 0x4e9980 baja al alpha cuando es mayor y nunca sube (Q-C112).
     // 0x511290 la pone en 1,0 (0x512499).
     float blendMeshLight = 0.0f;
-    // +0x6c: la U de los pases de 0x4ef0c0 y 0x4ecc30 del personaje (la V, +0x70, no la escribe nadie más que el alta:
-    // en 0). 0x511290 las pone en 0 (0x511d7b y 0x511d7e); solo 0x433b2f (el 0x1af en el 34) guarda la U.
+    // +0x6c y +0x70: la U y la V de los pases de 0x4ef0c0 y 0x4ecc30 del personaje y de sus partes (0x60cf70). 0x511290
+    // las pone en 0 (0x511d7b y 0x511d7e); 0x433b2f (el 0x1af en el 34) guarda la U, y los casos de 0x505de0 del 0x186
+    // y del 0x16c la U y del 0x189, el 0x16f, el 0x16d y el 0x161 la V (Scenes::StepTheModelEffects).
     float textureU = 0.0f;
+    float textureV = 0.0f;
     // +0x188: el contador de pasos de lógica (0x7d3a0f0) cuando lo construyó 0x511290.
     std::int32_t stepStamp = 0;
     // +0x16c: si se ve. 0x508f00 lo escribe en cada paso con el trapecio del último dibujo (0x5fba90) y,

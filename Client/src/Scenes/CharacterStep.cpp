@@ -25,6 +25,7 @@
 #include "Scenes/HealthBars.h"
 #include "Scenes/ItemSetOptionList.h"
 #include "Scenes/ModelBody.h"
+#include "Scenes/ModelEffects.h"
 #include "Scenes/MonsterHelpers.h"
 #include "Scenes/MonsterStepCases.h"
 #include "Scenes/NpcChatter.h"
@@ -943,22 +944,24 @@ Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t 
     // posición, y con 0x612 recorre los huesos con 0x4ec110; no crea nada (Q-C266). En los personajes +0x3d8 solo
     // lo escribe 0x4fd5f0, que lo baja si es positivo (0x4fd75e); los otros que escriben +0x3d4 y +0x3d8 son de la
     // UI (*estático*).
-    // 0x506cac: rand() & 7, sin condición. El camino del 0x20a no lee el valor (*estático*, Q-C207).
-    static_cast<void>(context.random.Next());
-    // 0x506ccc..0x506cf1: el caso del tipo − 0x152; el 0x20a cae en 0x506cf8, que mira el mapa 7 solo en la
-    // escena 5.
+    // 0x506cac..0x506cf1: rand() & 7, sin condición, y el caso del tipo − 0x152. Con otro modelo, su caso o los helpers
+    // de 0x5085db (Scenes::StepTheModelEffects); 0x50862f..0x508801 son del 0x20a, que cae en 0x506cf8 (mira el mapa 7
+    // solo en la escena 5) y no lee el rand() (*estático*, Q-C207).
     const std::int32_t map = context.world.Runtime().map;
     if (!player)
     {
-        // El caso del modelo o los helpers de 0x5085db (Scenes::ModelEffectsCutOf); 0x50862f..0x508801 son del 0x20a.
-        if (const auto cut = ModelEffectsCutOf(actor.type, map))
-        {
-            return Core::Unexpected(std::format("{:#x}: los efectos del modelo {:#x} (lugar {}) en 0x505de0 son de la "
-                                                "CL11",
-                                                *cut, actor.type, slot));
-        }
-        return {};
+        ModelEffectsPass pass{.actor = actor,
+                              .slot = slot,
+                              .world = context.world,
+                              .random = context.random,
+                              .skeleton = *skeleton,
+                              .particles = context.particles,
+                              .sprites = context.sprites,
+                              .worldClock = context.worldClock,
+                              .map = map};
+        return StepTheModelEffects(pass);
     }
+    static_cast<void>(context.random.Next());
     if (context.scene == SceneId::Game && map == ClockEffectMap)
     {
         if (auto bubbled = BlowTheAtlansBubble(actor, slot, context); !bubbled.HasValue())

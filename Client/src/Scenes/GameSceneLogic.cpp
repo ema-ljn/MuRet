@@ -88,6 +88,7 @@ Core::Expected<void, std::string> GameScene::StepTheCharacters(float worldClock)
                                  .terrain = &StepTerrain(),
                                  .darkSpiritSkeleton = m_models ? m_models->SkeletonOf(DarkSpiritModel) : nullptr,
                                  .particles = &m_context.world->Particles(),
+                                 .sprites = &m_sprites,
                                  .worldClock = worldClock,
                                  .counter = m_context.cloth->logicSteps,
                                  .actionSpeeds = &m_context.world->ActionSpeeds(),

@@ -334,10 +334,10 @@ Result DrawTheBody(MonsterFrame& frame, const Render::Models::Skeleton& skeleton
     object.model = actor.type;
     object.animation = actor.animation;
     object.transform = transform;
-    // +0x6c y +0x70 (la U y la V): 0x511290 las pone en 0 y solo 0x433b2f guarda la U.
+    // +0x6c y +0x70 (la U y la V): 0x511290 las pone en 0; las escriben 0x433b2f y los casos de 0x505de0.
     object.state = Render::Models::ObjectState{.blendMesh = static_cast<std::int16_t>(actor.dword64),
                                                .light = actor.blendMeshLight,
-                                               .uv = {actor.textureU, 0.0f},
+                                               .uv = {actor.textureU, actor.textureV},
                                                .hiddenMesh = static_cast<std::int16_t>(actor.dword58)};
     object.color = light.color;
     object.alpha = actor.alpha;
@@ -563,7 +563,7 @@ PosedBody PosedBodyOf(const MonsterFrame& frame)
     object.transform = {.position = actor.position, .angles = actor.angles, .scale = actor.scale};
     object.state = Render::Models::ObjectState{.blendMesh = static_cast<std::int16_t>(actor.dword64),
                                                .light = actor.blendMeshLight,
-                                               .uv = {actor.textureU, 0.0f},
+                                               .uv = {actor.textureU, actor.textureV},
                                                .hiddenMesh = static_cast<std::int16_t>(actor.dword58)};
     object.alpha = actor.alpha;
     object.vertexLight = actor.byteE8 != 0 && actor.type != 0x189 && actor.type != 0xe4;
@@ -892,7 +892,7 @@ Result DrawThePart(MonsterFrame& frame, std::uint16_t model, std::uint8_t level,
     object.transform = {.position = actor.position, .angles = actor.angles, .scale = actor.scale};
     object.state = Render::Models::ObjectState{.blendMesh = static_cast<std::int16_t>(actor.dword64),
                                                .light = actor.blendMeshLight,
-                                               .uv = {actor.textureU, 0.0f},
+                                               .uv = {actor.textureU, actor.textureV},
                                                .hiddenMesh = static_cast<std::int16_t>(actor.dword58)};
     object.color = actor.drawnLight;
     object.alpha = actor.alpha;

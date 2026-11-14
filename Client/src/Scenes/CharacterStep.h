@@ -30,6 +30,7 @@ class TextTable;
 
 namespace Client::World
 {
+class FrameSprites;
 class Particles;
 struct WorldTerrain;
 } // namespace Client::World
@@ -81,6 +82,8 @@ struct CharacterStepContext
     const World::WorldTerrain* terrain = nullptr;
     const Render::Models::Skeleton* darkSpiritSkeleton = nullptr;
     World::Particles* particles = nullptr;
+    // La tabla de sprites del frame (0x5491e0) que piden los casos de 0x505de0 (el 0x166). Sin ella, cortan ahí.
+    World::FrameSprites* sprites = nullptr;
     float worldClock = 0.0f;
     std::int32_t counter = 0;
     // El objeto suelto de 0x7437050 (NewFace 0xa8..0xac), fuera de los 400 del pool.

@@ -44,7 +44,7 @@ BodyPassArgs ActorPassArgs(const ActorState& actor)
     return {.alpha = actor.alpha,
             .blendMesh = actor.dword64,
             .light = actor.blendMeshLight,
-            .uv = {actor.textureU, 0.0f},
+            .uv = {actor.textureU, actor.textureV},
             .hiddenMesh = actor.dword58,
             .texture = -1};
 }

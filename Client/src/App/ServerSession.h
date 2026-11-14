@@ -335,6 +335,7 @@ private:
     void RegisterConnectServerHandlers();
     void RegisterGameServerHandlers();
     [[nodiscard]] bool RegisterCastleSiegeHandlers();
+    [[nodiscard]] bool RegisterCastleBattleHandlers();
 
     // Los eventos de la conexión, en orden, hasta que un handler cambie o cierre la conexión.
     void HandleEvents();
@@ -368,6 +369,8 @@ private:
     void OnNotice(const Network::Packet& packet);
     // CL9 hito 12: los paquetes del castillo fuera de la batalla (Protocol::CastleSiege::ReadCastleSiegePacket).
     void OnCastleSiege(const Network::Packet& packet);
+    // CL9 hito 13: los de la batalla (Protocol::CastleBattle::ReadCastleBattlePacket).
+    void OnCastleBattle(const Network::Packet& packet);
     void OnOptionData(const Network::Packet& packet);
     void OnItemMove(const Network::Packet& packet);
     void OnLifeRefill(const Network::Packet& packet);

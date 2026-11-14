@@ -194,6 +194,12 @@ struct ActorState
     // lo deja en 0xff. Lo escribe además 0x652330 (hito 13).
     std::uint8_t byte373 = 0;
     std::uint8_t byte374 = 0;
+    // +0x93: 0x511290 lo pone en 0xa (0x511c70), el alta del 13 en el byte de su paquete (0x4c9ee9) y el B9 01
+    // (0x4e0750) en pkt[6]. Lo comparan con 2, 3 y 5 los dibujos del asedio (0x42e3d0, 0x42dfe0, 0x42a2b0):
+    // *inferido*, el nivel de una puerta o una estatua (hito 13).
+    std::uint8_t byte93 = 0;
+    // +0x1bc: 0x511290 lo pone en 0 (0x511ce4) y el BA con 0x28 (0x4cf1b0) en pkt[6] (hito 13).
+    std::uint8_t byte1bc = 0;
     // +0x381: la habilidad activa inhibe la orientación quieta (59b3e4). Retenido por 511290.
     std::uint8_t byte381 = 0;
     std::uint16_t word1f2 = 0;

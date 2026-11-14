@@ -6,6 +6,7 @@
 #include "App/WorldEvent.h"
 #include "Core/Expected.h"
 #include "Data/Models/PlayerModels.h"
+#include "Protocol/CastleBattle.h"
 #include "Protocol/CastleSiege.h"
 #include "Protocol/Character/CharacterList.h"
 #include "Protocol/Character/CharacterSelectResult.h"
@@ -17,6 +18,7 @@
 #include "Protocol/Outgoing.h"
 #include "Protocol/World.h"
 #include "Render/Models/Cloth.h"
+#include "Scenes/CastleBattleReceive.h"
 #include "Scenes/CastleSiegeReceive.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/ChatReceive.h"
@@ -185,6 +187,8 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
     }
     if (const auto* castle = std::get_if<Protocol::CastleSiege::CastleSiegePacket>(&event))
         return ApplyCastleSiegePacket(*castle, CastleContextOf(m_resources, session));
+    if (const auto* battle = std::get_if<Protocol::CastleBattle::CastleBattlePacket>(&event))
+        return ApplyCastleBattlePacket(*battle, CastleContextOf(m_resources, session));
     if (const auto* moved = std::get_if<Protocol::Inventory::ItemMoveResult>(&event))
         return ApplyItemMoveResult(*moved, m_resources);
     if (const auto* life = std::get_if<Protocol::Inventory::LifeRefill>(&event))

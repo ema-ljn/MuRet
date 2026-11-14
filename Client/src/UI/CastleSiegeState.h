@@ -1,5 +1,7 @@
 #pragma once
 
+#include "UI/CastleBattleState.h"
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -93,8 +95,14 @@ struct HuntZoneWindow
 {
     // +0x15: la entrada abierta (B2 1F con 1: SETNZ de pkt[5]).
     std::uint8_t allowed = 0;
+    // +0x16: el modo, pkt[4] del B9 03 distinto de 0 (0x4e0830, hito 13).
+    std::uint8_t mode = 0;
     // +0x18: el precio (B2 09 con pkt[5] en 3).
     std::uint32_t fee = 0;
+    // +0x1c, +0x20 y +0x24: el B9 03 (0x4e0844..0x4e0856, hito 13) los escribe con el precio, pkt+0x10 y pkt+0xc.
+    std::uint32_t field1c = 0;
+    std::uint32_t field20 = 0;
+    std::uint32_t field24 = 0;
 };
 
 struct CastleSiegeState
@@ -106,5 +114,7 @@ struct CastleSiegeState
     // 0x5b12f0, 0x5f4720 y 0x5febf0, la batalla (hito 13).
     std::uint32_t siegeFlag1 = 0;
     std::uint32_t siegeFlag2 = 0;
+    // La batalla (hito 13): 0x5767924 y la marca del dueño.
+    CastleBattleState battle{};
 };
 } // namespace Client::UI

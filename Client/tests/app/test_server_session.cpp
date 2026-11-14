@@ -26,6 +26,7 @@
 #include "Network/PacketSerials.h"
 #include "Network/SocketError.h"
 #include "Protocol/BuildConstants.h"
+#include "Protocol/CastleBattle.h"
 #include "Protocol/CastleSiege.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/Messages.h"
@@ -4543,6 +4544,31 @@ TEST(ServerSessionTest, TheCastlePacketsReachTheWorldAndTheFightOnesStayUnknown)
     EXPECT_TRUE(tested.Logged(LogLevel::Warning, "el opcode B2 y el subcódigo 19 no tiene handler"));
     EXPECT_TRUE(tested.Logged(LogLevel::Warning, "el opcode B8 y el subcódigo 02 no tiene handler"));
     EXPECT_TRUE(tested.Logged(LogLevel::Warning, "se ignora el paquete del castillo"));
+    EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
+}
+
+// CL9 hito 13: los paquetes de la batalla llegan al mundo. El B9 04 cae al default del original (0x4e58c8) y sigue sin
+// handler; un BA que no trae lo que lee se ignora con un aviso, sin cerrar la sesión. Los valores son inventados.
+TEST(ServerSessionTest, TheCastleBattlePacketsReachTheWorld)
+{
+    namespace Battle = Client::Protocol::CastleBattle;
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    std::vector<std::byte> holder = Bytes({0xc1, 0x1b, 0xb2, 0x20, 0x01, 0x3d});
+    holder.resize(0x1b);
+    tested.socket.reads = {Join({Bytes({0xc1, 7, 0xb9, 0x01, 0x00, 0x05, 3}), Bytes({0xc1, 5, 0xb9, 0x04, 1}),
+                                 Bytes({0xc1, 5, 0xb9, 0x05, 1}), Bytes({0xc1, 7, 0xba, 0x00, 0x05, 0x28, 2}),
+                                 Bytes({0xc1, 5, 0xba, 0x00, 0x05}), Bytes({0xc1, 5, 0xbb, 0x00, 0x00}), holder})};
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+    const auto events = tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 5u);
+    EXPECT_EQ(std::get<Battle::NpcLevel>(std::get<Battle::CastleBattlePacket>(events[0])).level, 3);
+    EXPECT_EQ(std::get<Battle::HuntZoneEntryResult>(std::get<Battle::CastleBattlePacket>(events[1])).result, 1);
+    EXPECT_EQ(std::get<Battle::ActorField>(std::get<Battle::CastleBattlePacket>(events[2])).value, 2);
+    EXPECT_TRUE(std::get<Battle::MinimapMembers>(std::get<Battle::CastleBattlePacket>(events[3])).members.empty());
+    EXPECT_EQ(std::get<Battle::SwitchHolder>(std::get<Battle::CastleBattlePacket>(events[4])).key, 0x013d);
+    EXPECT_TRUE(tested.Logged(LogLevel::Warning, "el opcode B9 y el subcódigo 04 no tiene handler"));
+    EXPECT_TRUE(tested.Logged(LogLevel::Warning, "se ignora el paquete de la batalla del castillo"));
     EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
 }
 

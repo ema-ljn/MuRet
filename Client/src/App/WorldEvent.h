@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Protocol/CastleBattle.h"
 #include "Protocol/CastleSiege.h"
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
@@ -35,5 +36,6 @@ using WorldEvent =
                  Protocol::Messages::WhisperResult, Protocol::Messages::Notice, Protocol::OptionData::OptionData,
                  Protocol::Inventory::ItemMoveResult, Protocol::Inventory::ItemDelete, Protocol::Inventory::Durability,
                  Protocol::Inventory::EquipmentChange, Protocol::Inventory::ItemPut, Protocol::Inventory::LifeRefill,
-                 Protocol::Inventory::ManaRefill, Protocol::CastleSiege::CastleSiegePacket>;
+                 Protocol::Inventory::ManaRefill, Protocol::CastleSiege::CastleSiegePacket,
+                 Protocol::CastleBattle::CastleBattlePacket>;
 } // namespace Client::App

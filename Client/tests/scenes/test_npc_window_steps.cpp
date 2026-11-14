@@ -656,6 +656,56 @@ TEST_F(NpcWindowStepsTest, TheTrainerBoxGridLiftsAndSendsToTheInventory)
     }
 }
 
+// Q-C921, en Lorencia, Devias y Noria: después de una mezcla (0x7d2dc80 en 2, 0x4da2d1), el ítem que dejó en la caja
+// del caos se levanta y va al inventario. Con el ítem en el cursor, 0x5ca250 con la caja del caos pone [ebp − 0x2d] en
+// 0 (0x5ca333) cada frame: sobre la caja, la huella queda marcada como rechazada (el clic ahí sigue hacia el piso,
+// 0x5deca7, del hito 5), y el clic en el inventario manda 0x449d80(3, 0, 0, 32).
+TEST_F(NpcWindowStepsTest, TheMixResultLeavesTheChaosBoxForTheInventory)
+{
+    constexpr std::int32_t ChaosBoxTop = 0x6e;
+    for (const std::int32_t map : {0, 2, 3})
+    {
+        SCOPED_TRACE(map);
+        SetUp();
+        sent.clear();
+        auto& runtime = world.Runtime();
+        runtime.map = map;
+        runtime.ui.field78abb39 = 0;
+        runtime.cursorItemCount = 0;
+        runtime.panels.chaosBox = 1;
+        runtime.dialogs.current = 0;
+        Npc().chaosMixState = 2;
+        Place(Npc().chaosBox, ItemState{.id = Sword, .durability = 7}, 0, 0, 1, 3);
+        Click();
+        const auto picked = Step(NpcGridLeft + 5, ChaosBoxTop + 5);
+        ASSERT_TRUE(picked.HasValue()) << picked.Error();
+        ASSERT_EQ(runtime.cursorItemCount, 1);
+        EXPECT_EQ(runtime.cursorGrid, Client::Scenes::CursorGrid::ChaosBox);
+        EXPECT_EQ(runtime.slot78a6758, 0);
+        for (const std::size_t cell : {0u, 8u, 16u})
+            EXPECT_EQ(Npc().chaosBox[cell].id, EmptyOwnItemId) << cell;
+
+        // Sobre la caja y sin el clic: la huella queda rechazada (0x5ca385..0x5ca453), sin el 24.
+        const auto refused = Step(NpcGridLeft + 2 * 20 + 10, ChaosBoxTop + 30);
+        ASSERT_TRUE(refused.HasValue()) << refused.Error();
+        EXPECT_TRUE(sent.empty());
+        EXPECT_EQ(runtime.cursorItemCount, 1);
+        for (const std::size_t cell : {2u, 10u, 18u})
+            EXPECT_EQ(Npc().chaosBox[cell].warning, 3) << cell;
+        EXPECT_EQ(Npc().chaosMixState, 2);
+
+        const CrtRandom beforeTheDrop = random;
+        Click();
+        const auto dropped = Step(InventoryX + 15 + 4 * 20 + 5, 200 + 3 * 20 + 5);
+        ASSERT_TRUE(dropped.HasValue()) << dropped.Error();
+        EXPECT_EQ(random.State(), Advanced(beforeTheDrop, ChaosBoxStepRandoms + CursorTradeQuery + C3).State());
+        ASSERT_EQ(sent.size(), 1u);
+        EXPECT_TRUE(SameBytes(Plain(0).Bytes(),
+                              Bytes({0xc1, 0x0e, 0x24, 0x03, 0, 0x01, 0x00, 7, 0x00, 0x00, 0x00, 0x00, 0x00, 32})));
+        EXPECT_EQ(runtime.ui.field78abb39, 1);
+    }
+}
+
 // 0x5ea060: meter (el botón de x + 0x1a) abre el 0x73 con la entrada numérica; su OK con Enter (0x6270ed) manda
 // C1 08 81 00 y el zen, con el XOR32 y en claro, con el registro propio abierto. Más zen que el del inventario abre
 // el 0x74; más de 100.000.000, el 0x75.

@@ -1313,9 +1313,10 @@ Core::Expected<bool, std::string> DropOnOtherGrid(const InventoryMoveContext& co
     bool allowed = true;
     if (chaosBox)
     {
+        // 0x5ca31d..0x5ca337: con la mezcla fuera de 0 y la lista de Castle Siege cerrada, [ebp − 0x2d] en 0 sin
+        // 0x5c9b40: no entra y la huella queda marcada (Q-C921).
         if (npc.chaosMixState != 0 && runtime.panels.delegated.castleSiegeList == 0)
-            return Core::Unexpected(std::string("0x5ca337: con la mezcla fuera de 0, 0x5ca250 no llama a 0x5c9b40 y "
-                                                "lee [ebp − 0x2d] sin escribir (Q-C921)"));
+            allowed = false;
     }
     else if (runtime.panels.delegated.trainer == TrainerWithBox && trainerBox)
         allowed = std::ranges::find(TrainerBoxItems, cursor.id) != TrainerBoxItems.end();

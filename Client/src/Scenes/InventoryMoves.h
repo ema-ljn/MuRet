@@ -201,7 +201,7 @@ struct GridDrop
 // salvo los ítems que no van a otra grilla (0x5cf3a5..0x5cf40b), el C1 0E 24 de 0x449d80 desde la grilla del cursor (0
 // el inventario; si no, la misma) al lugar fila · 8 + columna. Con 0x724580 en 3, a la caja del entrenador solo van
 // las joyas de su mezcla y 0x1a1f (0x44acd0). La caja del caos con la mezcla fuera de 0 y la lista de Castle Siege
-// cerrada no llama a 0x5c9b40 y lee un local sin escribir (0x5ca337, Q-C921): corta.
+// cerrada no llama a 0x5c9b40 y no deja (0x5ca333, Q-C921).
 struct OtherGridDrop
 {
     std::int32_t mouseX = 0;

@@ -26,6 +26,7 @@
 #include "Network/PacketSerials.h"
 #include "Network/SocketError.h"
 #include "Protocol/BuildConstants.h"
+#include "Protocol/CastleSiege.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/Messages.h"
 #include "Protocol/Movement.h"
@@ -4514,6 +4515,55 @@ TEST(ServerSessionTest, PartyListRequestGoesClearToTheGameServerOnly)
     const auto received = inWorld.GameServerReads();
     ASSERT_EQ(received.packets.size(), before + 1);
     EXPECT_TRUE(SameBytes(received.packets.back().Bytes(), Bytes({0xc1, 3, 0x42})));
+    EXPECT_FALSE(received.packets.back().WasDecrypted());
+}
+
+// CL9 hito 12: los paquetes del castillo fuera de la batalla llegan al mundo. El B2 19 que el laboratorio manda después
+// de cada /move es de la batalla (hito 13) y sigue sin handler, igual que un B8 con otro subcódigo; un B2 05 que no
+// trae lo que lee se ignora con un aviso, sin cerrar la sesión. Los valores son inventados.
+TEST(ServerSessionTest, TheCastlePacketsReachTheWorldAndTheFightOnesStayUnknown)
+{
+    namespace Castle = Client::Protocol::CastleSiege;
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    tested.socket.reads = {
+        Join({Bytes({0xc1, 5, 0xb2, 0x01, 3}), Bytes({0xc1, 5, 0xb2, 0x19, 0}), Bytes({0xc1, 5, 0xb8, 1, 4}),
+              Bytes({0xc1, 5, 0xb8, 2, 4}), Bytes({0xc1, 0x0c, 0xb3, 1, 1, 0, 0, 0, 0, 0, 0, 0}),
+              Bytes({0xc1, 5, 0xb2, 0x05, 1}), Bytes({0xc1, 6, 0xb2, 0x1a, 1, 7}), Bytes({0xc1, 5, 0xb5, 0, 2})})};
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+    const auto events = tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 5u);
+    const auto* registered = std::get_if<Castle::CastleSiegePacket>(&events[0]);
+    ASSERT_NE(registered, nullptr);
+    EXPECT_EQ(std::get<Castle::RegisterResult>(*registered).result, 3);
+    EXPECT_EQ(std::get<Castle::KillCount>(std::get<Castle::CastleSiegePacket>(events[1])).value, 4);
+    EXPECT_TRUE(std::get<Castle::NpcList>(std::get<Castle::CastleSiegePacket>(events[2])).records.empty());
+    EXPECT_EQ(std::get<Castle::SiegeFlags>(std::get<Castle::CastleSiegePacket>(events[3])).value, 7);
+    EXPECT_EQ(std::get<Castle::RegisteredGuildList>(std::get<Castle::CastleSiegePacket>(events[4])).result, 2);
+    EXPECT_TRUE(tested.Logged(LogLevel::Warning, "el opcode B2 y el subcódigo 19 no tiene handler"));
+    EXPECT_TRUE(tested.Logged(LogLevel::Warning, "el opcode B8 y el subcódigo 02 no tiene handler"));
+    EXPECT_TRUE(tested.Logged(LogLevel::Warning, "se ignora el paquete del castillo"));
+    EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
+}
+
+// Lo que mandan las ventanas del castillo va por el GameServer con XOR32 y sin C3, y nada sin él abierto.
+TEST(ServerSessionTest, CastlePacketsGoToTheGameServerOnly)
+{
+    namespace Castle = Client::Protocol::CastleSiege;
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingServer());
+    const auto beforeChoosing = tested.socket.sent.size();
+    tested.session.SendCastlePacket(Castle::WriteRegister());
+    EXPECT_EQ(tested.socket.sent.size(), beforeChoosing);
+
+    Harness inWorld(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(inWorld.ReachLoggedIn());
+    const auto before = inWorld.GameServerReads().packets.size();
+    inWorld.session.SendCastlePacket(Castle::WriteTaxRate(3, 100000));
+    const auto received = inWorld.GameServerReads();
+    ASSERT_EQ(received.packets.size(), before + 1);
+    EXPECT_TRUE(
+        SameBytes(Xor32Decode(received.packets.back()).Bytes(), Bytes({0xc1, 9, 0xb2, 9, 3, 0, 1, 0x86, 0xa0})));
     EXPECT_FALSE(received.packets.back().WasDecrypted());
 }
 

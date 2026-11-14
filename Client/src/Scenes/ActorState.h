@@ -187,6 +187,12 @@ struct ActorState
     std::uint8_t direction = 0;
     std::uint8_t byte369 = 0;
     std::uint8_t byte370 = 0;
+    // +0x372: 0x511290 lo pone en 0 (0x511ccf) y el B8 01 (0x4e0700) lo escribe en el héroe con pkt[4]. 0x652330 (la
+    // skill del asedio en la barra, hito 13) lo compara con un tope: *inferido*, la cuenta de muertes del asedio.
+    std::uint8_t byte372 = 0;
+    // +0x373: 0x511290 lo pone en 0xff (0x511cc8); el B8 01 con 0 lo devuelve a la habilidad (+0x425) si no es 0xff y
+    // lo deja en 0xff. Lo escribe además 0x652330 (hito 13).
+    std::uint8_t byte373 = 0;
     std::uint8_t byte374 = 0;
     // +0x381: la habilidad activa inhibe la orientación quieta (59b3e4). Retenido por 511290.
     std::uint8_t byte381 = 0;

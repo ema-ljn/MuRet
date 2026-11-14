@@ -14,6 +14,7 @@
 #include "Scenes/SceneId.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/WorldTexts.h"
+#include "UI/CastleSiegeState.h"
 #include "UI/ChatInput.h"
 #include "UI/ChatLog.h"
 #include "UI/Dialogs.h"
@@ -197,6 +198,9 @@ struct WorldRuntime
     // escena.
     UI::PanelState panels{};
     UI::DialogState dialogs{};
+    // Lo que guardan los paquetes del castillo fuera de la batalla (CL9 hito 12): la .bss 0x7d5c504..0x7d5c658, los
+    // campos de [0x7d536f8] y [0x7d53700] que escriben y 0x78aba30/0x78aba34.
+    UI::CastleSiegeState castleSiege{};
     // 0x7d36a98, 0x7d368e4, 0x7d368b8 y 0x7d3a0f4..0x7d3a0f9: el texto y los botones de las cajas viejas (hito 6).
     UI::DialogBoxState dialogBox{};
     UI::GameUiState ui{};

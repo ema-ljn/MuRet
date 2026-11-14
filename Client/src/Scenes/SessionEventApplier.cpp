@@ -6,6 +6,7 @@
 #include "App/WorldEvent.h"
 #include "Core/Expected.h"
 #include "Data/Models/PlayerModels.h"
+#include "Protocol/CastleSiege.h"
 #include "Protocol/Character/CharacterList.h"
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
@@ -13,8 +14,10 @@
 #include "Protocol/Messages.h"
 #include "Protocol/Movement.h"
 #include "Protocol/OptionData.h"
+#include "Protocol/Outgoing.h"
 #include "Protocol/World.h"
 #include "Render/Models/Cloth.h"
+#include "Scenes/CastleSiegeReceive.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/IWorldEntryPublisher.h"
@@ -35,6 +38,7 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <utility>
 #include <variant>
 
 namespace Client::Scenes
@@ -74,6 +78,19 @@ ChatReceiveContext ChatContextOf(const WorldEntryResources& resources, const App
                               .texts = resources.texts,
                               .chosenSlot =
                                   chosen != nullptr ? std::optional<std::uint8_t>(chosen->slot) : std::nullopt};
+}
+
+// Lo que los paquetes del castillo leen del juego (CL9 hito 12); lo que mandan va por el GameServer de la sesión.
+CastleReceiveContext CastleContextOf(const WorldEntryResources& resources, App::ServerSession& session)
+{
+    return CastleReceiveContext{.world = resources.world,
+                                .random = resources.cloth.random,
+                                .log = resources.log,
+                                .measure = resources.textMeasure,
+                                .screen = resources.screen ? resources.screen() : App::PixelSize{640, 480},
+                                .texts = resources.texts,
+                                .send = [&session](Protocol::Outgoing packet)
+                                { session.SendCastlePacket(std::move(packet)); }};
 }
 
 // El 0x3d de la respuesta va a la sesión que la está aplicando.
@@ -166,6 +183,8 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
         ApplyReturnToSelection(m_resources);
         return {};
     }
+    if (const auto* castle = std::get_if<Protocol::CastleSiege::CastleSiegePacket>(&event))
+        return ApplyCastleSiegePacket(*castle, CastleContextOf(m_resources, session));
     if (const auto* moved = std::get_if<Protocol::Inventory::ItemMoveResult>(&event))
         return ApplyItemMoveResult(*moved, m_resources);
     if (const auto* life = std::get_if<Protocol::Inventory::LifeRefill>(&event))

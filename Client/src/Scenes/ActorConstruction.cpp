@@ -150,7 +150,9 @@ void SetTheStartingState(ActorState& actor, std::uint16_t type)
     actor.baseMovementSpeed = ConstructedMovementSpeed; // 0x511d48
     actor.byte369 = 0;
     actor.byte370 = 0;
-    actor.byte374 = 0; // 0x511c13
+    actor.byte373 = 0xff; // 0x511cc8
+    actor.byte372 = 0;    // 0x511ccf
+    actor.byte374 = 0;    // 0x511c13
     actor.word1f2 = NoItemModel;
     actor.byte399 = 0;
     actor.byte80 = 0;

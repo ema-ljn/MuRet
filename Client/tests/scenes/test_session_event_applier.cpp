@@ -7,6 +7,7 @@
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Data/Models/PlayerModels.h"
+#include "Protocol/CastleSiege.h"
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
 #include "Protocol/Messages.h"
@@ -31,6 +32,7 @@
 #include <gtest/gtest.h>
 
 #include <cstddef>
+#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
@@ -197,6 +199,29 @@ TEST(SessionEventApplierTest, The00InTheLoginAsksForTheListThroughTheGameServer)
     EXPECT_EQ(request, Client::Tests::ListRequest());
     EXPECT_EQ(tested.cloth.random.State(), Client::Render::Models::CrtRandom{}.State());
 }
+// CL9 hito 12: los paquetes del castillo llegan a su aplicador, y lo que manda el B2 02 con 1 sale por el GameServer de
+// la sesión antes del mensaje, que sin medidor corta.
+TEST(SessionEventApplierTest, TheCastlePacketsReachTheirApplierAndSendThroughTheSession)
+{
+    namespace Castle = Client::Protocol::CastleSiege;
+    const auto tested = std::make_unique<Applier>();
+    Client::Tests::LoggedInSession online;
+    ASSERT_NO_FATAL_FAILURE(online.LogIn());
+    const Client::App::WorldEvent count = Castle::CastleSiegePacket{Castle::KillCount{.value = 6}};
+    ASSERT_TRUE(tested->applier.ApplyWorld(count, online.session).HasValue());
+    EXPECT_EQ(tested->world.Actors()[tested->world.Runtime().hero].byte372, 6);
+
+    const std::size_t sent = online.socket.sent.size();
+    const Client::App::WorldEvent giveUp = Castle::CastleSiegePacket{Castle::GiveUpResult{.result = 1}};
+    const auto result = tested->applier.ApplyWorld(giveUp, online.session);
+    ASSERT_FALSE(result.HasValue());
+    EXPECT_NE(result.Error().find("0x555190"), std::string::npos);
+    const std::vector<std::byte> requests(online.socket.sent.begin() + static_cast<std::ptrdiff_t>(sent),
+                                          online.socket.sent.end());
+    EXPECT_EQ(requests, (std::vector<std::byte>{std::byte{0xc1}, std::byte{4}, std::byte{0xb2}, std::byte{0x38},
+                                                std::byte{0xc1}, std::byte{3}, std::byte{0xb4}}));
+}
+
 TEST(SessionEventApplierTest, TeleportUsesTheCursorGuardBeforeTouchingTheHero)
 {
     Applier tested;

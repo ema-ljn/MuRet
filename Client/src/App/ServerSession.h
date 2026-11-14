@@ -233,6 +233,9 @@ public:
     [[nodiscard]] Core::Expected<void, std::string> SendItemMove(const Protocol::Inventory::ItemMove& move);
     // El C1 03 42 de 0x6599a0(4), al abrir la ventana de la party (Protocol::Party::WritePartyListRequest), en claro.
     void RequestPartyList();
+    // Los C1 del castillo (Protocol::CastleSiege; CL9 hito 12), como los demás de mundo: sin un GameServer abierto, un
+    // aviso y nada.
+    void SendCastlePacket(Protocol::Outgoing packet);
     // 0x4c609f: el 00 con la escena 2 (el login) pide la lista de servidores, C1 04 F4 02, por el socket que esté
     // abierto, sin mirar cuál es. En el CS es el saludo (OnConnectHello); acá, el que llega por el GS (Q-C511).
     void ResendServerListRequest();
@@ -331,6 +334,7 @@ public:
 private:
     void RegisterConnectServerHandlers();
     void RegisterGameServerHandlers();
+    [[nodiscard]] bool RegisterCastleSiegeHandlers();
 
     // Los eventos de la conexión, en orden, hasta que un handler cambie o cierre la conexión.
     void HandleEvents();
@@ -362,6 +366,8 @@ private:
     void OnWhisper(const Network::Packet& packet);
     void OnWhisperResult(const Network::Packet& packet);
     void OnNotice(const Network::Packet& packet);
+    // CL9 hito 12: los paquetes del castillo fuera de la batalla (Protocol::CastleSiege::ReadCastleSiegePacket).
+    void OnCastleSiege(const Network::Packet& packet);
     void OnOptionData(const Network::Packet& packet);
     void OnItemMove(const Network::Packet& packet);
     void OnLifeRefill(const Network::Packet& packet);

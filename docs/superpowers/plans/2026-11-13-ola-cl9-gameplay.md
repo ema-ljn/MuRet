@@ -214,6 +214,8 @@ portar y las ramas que el hito llena en funciones de otras olas. El detalle por 
 
 ### Hito 1: el emote y los otros jugadores (CL9.1, ~35 KB)
 
+> Cierre posterior a la auditoría: [reparaciones propias, evidencia y límites H1/H9](2026-11-14-cl9-h1-h9-resultado.md).
+
 - [x] **El emote entero** (§ Lo que encontró el barrido): `UI::CheckTheEmotes` pasa a `FindTheEmote`, que
       devuelve el caso con los 95 textos en el orden del original (incluidos los 15 literales, comparados con
       `0x576960` sobre los bytes CP949 tal cual); `0x576a60` con su compuerta (`+0x111` en 1..12 o `0x8a`), el +1
@@ -414,6 +416,8 @@ con su marcador y los dos `C1 18`. **Desbloquea:** 12.
 
 ### Hito 9: los amigos (CL9.4, ~89 KB)
 
+> Cierre posterior a la auditoría: [reparaciones propias, evidencia y límites H1/H9](2026-11-14-cl9-h1-h9-resultado.md).
+
 - [x] **Los controles de las ventanas viejas** que la CL8 dejó sin portar (57 funciones de la CL8.3, 14 KB: las
       listas, los campos de texto, los botones de `0x45adf0`..`0x4aa7a0`; los que son la STL se reemplazan por la
       STL) y las vecinas de `0x479960` que leen las flechas (`0x47c870`, `0x47f7b0` y las chicas; `0x480e00` y
@@ -424,7 +428,8 @@ con su marcador y los dos `C1 18`. **Desbloquea:** 12.
 - [x] **El dibujo de los amigos** (08, P-C180): la ventana (`0x4a2620`, `0x4a2460`, `0x463090`), las pestañas
       (`0x49cc20`, `0x49e7f0`) con sus listas (`0x47a810`, `0x461890`, `0x461cd0`, `0x462a60`), la caja de agregar
       (`0x4a3750`) y su EDIT (`0x468320`), con las piezas para el hito 10 en `UI/OldWindowDrawParts.h`. Las 246 filas
-      del TSV que no estaban citadas, triadas en P-C185; el doble clic queda para el hito 10 (P-C182, P-C187).
+      del TSV que no estaban citadas, triadas en P-C185; el adaptador de doble clic se completa en el cierre H1/H9
+      (P-C182, P-C187). Sus consumidores de chats/cartas siguen siendo H10.
 
 **Pruebas:** la lista con varios amigos, agregar y borrar uno, el cambio de estado; los `rand()` de abrir la
 ventana (los 3.848 del registro propio de la CL8). Si el PR pasa de ~90 KB, se parte en los controles y los

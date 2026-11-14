@@ -113,11 +113,13 @@ constexpr std::int32_t ConfirmDialog = 0x98;
 // 0x78abb14: lo que espera el diálogo del ítem del cursor.
 constexpr std::int32_t SellChoice = 1;
 constexpr std::int32_t MixChoice = 2;
-// 0x5d9b82: el 4 lo deja el paso del panel 0x2000 (0x5e75fc, con el 0x98 del texto 0x1c0); el 5, levantar un ítem de
-// la tienda personal propia (0x5c5181, hito 7).
+// 0x5d965a: el 3, el OK del comercio (hito 7). 0x5d9b82: el 4 lo deja el paso del panel 0x2000 (0x5e75fc, con el 0x98
+// del texto 0x1c0); el 5, levantar un ítem de la tienda personal propia (0x5c5181, hito 7); el 6, el precio de la
+// tienda personal menor que lo que vale el ítem (0x5da592, hito 7).
+constexpr std::int32_t TradeChoice = 3;
 constexpr std::int32_t KeypadChoice = 4;
 constexpr std::int32_t PersonalShopChoice = 5;
-constexpr std::int32_t LastChoice = 6;
+constexpr std::int32_t ShopPriceChoice = 6;
 // 0x5d9c19: el teclado del almacén que abre el sí del 4.
 constexpr std::int32_t KeypadChoiceMode = 6;
 // 0x6c932e: las respuestas del 0x98 (0x62a779) y nada.
@@ -606,13 +608,35 @@ Core::Expected<bool, std::string> StepTheCursorChoice(const GameUiContext& conte
         }
         return true;
     }
-    if (choice == PersonalShopChoice)
-        return Core::Unexpected(std::string("0x5d9c75: 0x78abb14 en 5, el sí que manda el C1 3F 06 de la tienda "
-                                            "personal, es del hito 7 (CL9.4, 08 P-C339)"));
-    if (choice > MixChoice && choice <= LastChoice)
-        return Core::Unexpected(std::format("0x5d965a: 0x78abb14 en {} (el comercio, la tienda personal y el duelo) "
-                                            "es de la CL9.4",
-                                            choice));
+    if (choice == TradeChoice || choice == PersonalShopChoice)
+    {
+        if (npc.dialogAnswer == YesAnswer)
+        {
+            if (choice == TradeChoice)
+                return Core::Unexpected(std::string("0x5d966b: 0x78abb14 en 3 con el sí, el OK del comercio que da "
+                                                    "vuelta 0x78abac1 y manda el C1 04 3C, es del hito 7 (CL9.4)"));
+            return Core::Unexpected(std::string("0x5d9c82: 0x78abb14 en 5 con el sí, el C1 3F 06 de la tienda "
+                                                "personal, es del hito 7 (CL9.4, 08 P-C339)"));
+        }
+        if (npc.dialogAnswer == NoAnswer)
+        {
+            // 0x5d9634..0x5d9659, como el no de la mezcla.
+            npc.cursorChoice = 0;
+            npc.dialogAnswer = NoAnswerYet;
+        }
+        return true;
+    }
+    if (choice == ShopPriceChoice)
+    {
+        if (npc.dialogAnswer == YesAnswer)
+            return Core::Unexpected(std::string("0x5da5ac: 0x78abb14 en 6 con el sí, el precio de la tienda personal "
+                                                "con su C1 3F, es del hito 7 (CL9.4)"));
+        if (npc.dialogAnswer == NoAnswer)
+            return Core::Unexpected(std::string("0x5dc765..0x5dc778: 0x78abb14 en 6 con el no, 0x78abb14 en 0, la "
+                                                "respuesta en 0xff y 0x5eba70(2), el diálogo del precio de la tienda "
+                                                "personal, es del hito 7 (CL9.4)"));
+        return true;
+    }
     return false;
 }
 

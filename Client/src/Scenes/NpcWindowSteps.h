@@ -61,7 +61,8 @@ PriceTheRepairOfEverything(WorldState& world, Render::Models::CrtRandom& random,
 // diálogo 0x98 (0x6c932e en 1: el C1 04 33 en C3; en 2, 0x5be150); con 2, la mezcla (en 1: 0x7d2dc80 en 1 y el
 // C1 04 86 en claro; en 2, nada); con 4, el del panel 0x2000 (0x5d9b82: en 1, el teclado del almacén barajado en
 // 6; en 2, 0x78abb08 en 0). En todos, 0x78abb14 en 0 y 0x6c932e en 0xff al contestar. Devuelve verdadero si
-// 0x5d8d50 sale (0x78abb14 de 1 a 6); 3, 5 y 6 cortan (CL9.4; el 5, 0x5d9c75, del hito 7).
+// 0x5d8d50 sale (0x78abb14 de 1 a 6). El 3, el 5 y el 6 son del hito 7: cortan el sí de los tres (0x5d966b, 0x5d9c82,
+// 0x5da5ac) y el no del 6 (0x5dc765); el no del 3 y del 5 es el de la mezcla (0x5d9634).
 [[nodiscard]] Core::Expected<bool, std::string> StepTheCursorChoice(const GameUiContext& context);
 
 // 0x5deca7..0x5df448, con el clic fuera de las grillas: con la tienda abierta (su rand()) y el mouse en su grilla

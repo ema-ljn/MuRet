@@ -863,8 +863,8 @@ TEST_F(NpcWindowStepsTest, TheMixConfirmationSends86)
 
 // 0x5d9b82..0x5d9c6b, en Lorencia, Devias y Noria: con 0x78abb14 en 4 (el panel 0x2000) y el sí, el teclado del
 // almacén vuelve a 0..9 y se baraja con veinte pares de rand() % 10 (los 40 rand()), lo tecleado queda en 0 y
-// 0x78abb20 en 6; con el no, 0x78abb08 en 0 y sin rand(); sin respuesta, nada. 0x5d9c75: el 5 (la tienda personal)
-// corta hacia el hito 7.
+// 0x78abb20 en 6; con el no, 0x78abb08 en 0 y sin rand(); sin respuesta, nada. 0x5d9c82: el sí del 5 (la tienda
+// personal) corta hacia el hito 7.
 TEST_F(NpcWindowStepsTest, TheKeypadChoiceShufflesTheWarehouseKeypadInSix)
 {
     for (const std::int32_t map : {0, 2, 3})
@@ -917,8 +917,56 @@ TEST_F(NpcWindowStepsTest, TheKeypadChoiceShufflesTheWarehouseKeypadInSix)
         Npc().dialogAnswer = 1;
         const auto shop = Client::Scenes::StepTheCursorChoice(Context(0, 0));
         ASSERT_FALSE(shop.HasValue());
-        EXPECT_NE(shop.Error().find("0x5d9c75"), std::string::npos) << shop.Error();
+        EXPECT_NE(shop.Error().find("0x5d9c82"), std::string::npos) << shop.Error();
         EXPECT_NE(shop.Error().find("P-C339"), std::string::npos) << shop.Error();
+    }
+}
+
+// 0x5d965a, 0x5d9c75 y 0x5da592, en Lorencia, Devias y Noria: el 3, el 5 y el 6 de 0x78abb14 (los pone el hito 7)
+// cortan solo con la respuesta que lleva al hito 7: el sí de los tres (0x5d966b, 0x5d9c82 y 0x5da5ac) y el no del 6
+// (0x5dc765, 0x5eba70(2)). El no del 3 y del 5 va a 0x5d9634: 0x78abb14 en 0 y la respuesta en 0xff, sin rand(); sin
+// respuesta, los tres terminan el paso sin tocar nada.
+TEST_F(NpcWindowStepsTest, TheTradeAndShopChoicesCutOnlyOnTheAnswerOfHitoSeven)
+{
+    for (const std::int32_t map : {0, 2, 3})
+    {
+        SCOPED_TRACE(map);
+        world.Runtime().map = map;
+        const CrtRandom unchanged = random;
+        for (const std::int32_t choice : {3, 5, 6})
+        {
+            SCOPED_TRACE(choice);
+            Npc().cursorChoice = choice;
+            Npc().dialogAnswer = 0xff;
+            const auto pending = Client::Scenes::StepTheCursorChoice(Context(0, 0));
+            ASSERT_TRUE(pending.HasValue()) << pending.Error();
+            EXPECT_TRUE(pending.Value());
+            EXPECT_EQ(Npc().cursorChoice, choice);
+            EXPECT_EQ(Npc().dialogAnswer, 0xff);
+
+            Npc().dialogAnswer = 1;
+            const auto yes = Client::Scenes::StepTheCursorChoice(Context(0, 0));
+            ASSERT_FALSE(yes.HasValue());
+            EXPECT_NE(yes.Error().find(choice == 3 ? "0x5d966b" : (choice == 5 ? "0x5d9c82" : "0x5da5ac")),
+                      std::string::npos)
+                << yes.Error();
+            EXPECT_NE(yes.Error().find("hito 7"), std::string::npos) << yes.Error();
+
+            Npc().dialogAnswer = 2;
+            const auto no = Client::Scenes::StepTheCursorChoice(Context(0, 0));
+            if (choice == 6)
+            {
+                ASSERT_FALSE(no.HasValue());
+                EXPECT_NE(no.Error().find("0x5eba70(2)"), std::string::npos) << no.Error();
+                continue;
+            }
+            ASSERT_TRUE(no.HasValue()) << no.Error();
+            EXPECT_TRUE(no.Value());
+            EXPECT_EQ(Npc().cursorChoice, 0);
+            EXPECT_EQ(Npc().dialogAnswer, 0xff);
+        }
+        EXPECT_EQ(random.State(), unchanged.State());
+        EXPECT_TRUE(sent.empty());
     }
 }
 

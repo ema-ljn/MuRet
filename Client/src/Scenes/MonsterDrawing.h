@@ -70,7 +70,12 @@ struct GameCharacterPass;
 //   el 0x2a (0x50c762: el 0xef del hueso 9 y el 0xf0 del 0x3d a 0,9f con la luz en 1) y las estatuas 0x84 a 0x86
 //   (0x50c83b: el 0xc1c, el 0x225 o el 0xa24 del hueso 1 con la bandera), con HangFromTheWingsSlot (GameHanging.h) y
 //   la biblioteca de la fauna; los demás, CheckMonsterDecorations;
-// - las partes (0x50d3e3), el Angel (0x50d383) y la marca del gremio (0x50c99b) cortan si el registro las tiene;
+// - el bloque de la guerra de gremios y el duelo (0x50c972..0x50cc29), que con sus globales en 0 no hace nada (sin
+//   cortar con +0x1f2: los hitos 7 y 8 los conectan);
+// - sin +0x3e3, las partes de la 5 a la 0 con 0x60cf70 (0x50d3e3: el contorno de las partes con el modo 1, la pose en
+//   los huesos propios y 0x60b3d0 con el nivel, el excelente y el set de cada una, con la luz de +0x3b4); un modelo
+//   fuera de los registros que 0x60dbe0 pone en 0 corta en 0x50d431, y el Angel de Chaos Castle (+0x88 en 1) en
+//   0x50d383;
 // - las telas (0x50d58b): con el +0x376 0x37 fuera de los mapas 0x12 a 0x17 (WearsTheMonsterCloth), el CharacterCloth
 //   de pass.cloths[slot] sobre los huesos propios (sin él, corta), con sus destellos en pass.sprites;
 // - 0x50db57: el rand() y la luz de lo que cuelga (HangingLightOf) y, fuera de la espalda, las manos (DrawGameHanging);

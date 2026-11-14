@@ -23,6 +23,7 @@
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameCharacters.h"
 #include "Scenes/GameHanging.h"
+#include "Scenes/GameItemSpecialDrawing.h"
 #include "Scenes/KalimaSiegeHelpers.h"
 #include "Scenes/MonsterBody.h"
 #include "Scenes/MonsterBodyPasses.h"
@@ -835,26 +836,136 @@ Result DrawTheShadow(MonsterFrame& frame)
     return {};
 }
 
-// 0x50c972: con +0x1f2 (que solo escriben los paquetes de los jugadores; 0x511290 lo deja en 0xffff), los colores de la
-// guerra de gremios (0x576796d) antes de la luz de 0x50cc55.
-Result CheckTheGuild(const ActorState& actor)
+// 0x60cf70 con su modo 1, en un personaje que no es el 0x20a: los dos pases de 0x60cd60 de cada parte (0x60d056..
+// 0x60d14c), con la escala de +0x94 y los colores por +0x88 (con 4, los del NPC: 0x60d069 y 0x60d0dd) y el segundo
+// 0,02f (0x6b8b90) más chico; en los mapas 18 a 23, otros colores y las escalas por la del objeto (+0xc): 0,1 / escala
+// + 1 guardado en float y 0,04 / escala + 1,02 − 0,02 en la x87. No son los del cuerpo (OutlinePassesOf, 0x5ffdf0).
+std::array<ObjectOutlinePass, 2> PartOutlinePassesOf(const ActorState& actor, std::int32_t map)
 {
-    if (actor.word1f2 != NoItemModel)
-        return Cut("0x50c99b", "el gremio de un personaje que no es un jugador", actor.type);
-    return {};
+    constexpr float InnerStep = std::bit_cast<float>(0x3ca3d70au); // 0,02 (0x6b8b90)
+    if (InChaosCastle(map))
+    {
+        const float outer = F32(D(OuterSpan) / D(actor.scale) + 1.0);
+        const double inner = D(OutlineStep) / D(actor.scale) + D(std::bit_cast<float>(0x3f828f5cu)); // 1,02 (0x6ba764)
+        return {{{outer, Render::Color{OuterSpan, std::bit_cast<float>(0x3c23d70au), 0.0f, 1.0f}},
+                 {F32(inner - D(InnerStep)),
+                  Render::Color{std::bit_cast<float>(0x3f333333u), std::bit_cast<float>(0x3d8f5c29u), 0.0f, 1.0f}}}};
+    }
+    const float inner = F32(D(actor.float94) - D(InnerStep));
+    if (actor.byte88 == NpcKind)
+        return {
+            {{actor.float94, Render::Color{std::bit_cast<float>(0x3ca3d70au), OuterSpan, 0.0f, 1.0f}},
+             {inner, Render::Color{std::bit_cast<float>(0x3e23d70au), std::bit_cast<float>(0x3f333333u), 0.0f, 1.0f}}}};
+    return {{{actor.float94, Render::Color{OuterSpan, std::bit_cast<float>(0x3cf5c28fu), 0.0f, 1.0f}},
+             {inner, Render::Color{std::bit_cast<float>(0x3f333333u), std::bit_cast<float>(0x3e4ccccdu), 0.0f, 1.0f}}}};
 }
 
-// 0x50d363..0x50d58b y 0x50c929..0x50c95f: lo que 0x50ba30 viste en un personaje que no es el 0x20a.
-Result CheckTheParts(const ActorState& actor, std::int32_t map)
+// Los registros de 0x5769ad8 que 0x60dbe0 deja en 0 (0x60dc75: 0xf0258 DWORD desde la base, que cae entre 0 y 0x3ff
+// registros después del comienzo del arreglo de 0x489d): un modelo de 0 a 0x449c sin cargar es un registro vacío; uno
+// más allá lee y escribe fuera de lo que el original pone en 0, o fuera del arreglo.
+constexpr std::int32_t ZeroedModelRecords = 0x449d;
+
+// 0x60cf70(c, modelo, parte, &c+0x3b4, c+0x174, nivel · 8, +3, +4, 0, 0, 1, modo, 2) con una parte de un personaje
+// que no es el 0x20a. Sale con el alpha en 0,01f o menos (0x60cf99, con NaN también). Con el modo 1, los dos contornos
+// (0x60cd60, salvo +0x78 & 0x4000); 0x5ffce0; 0x4ebc80 con los huesos propios (+0x120, el noveno argumento en 0) y la
+// escala de 0x6c881c por el modo (1 con el 1: 0x60cd60 la deja en 1); la tela del pantalón solo con los modelos
+// 0x1424, 0x1425 y 0x1428, que no son partes de ningún alta (las del +0x18 de la parte, que solo escribe esa rama, en
+// 0); y 0x60b3d0 con el nivel, el excelente y el set de la parte, el modo y 2. El objeto es el propio personaje: su
+// +0x64, +0x68, +0x6c y +0x70 en el cuerpo de 0x609640 (sin malla oculta) y su +0x58 en el contorno (0x60ce68). Un
+// modelo sin cargar no tiene mallas que dibujar ni efectos por nivel con el nivel 0 de las partes del alta.
+Result DrawThePart(MonsterFrame& frame, std::uint16_t model, std::uint8_t level, std::uint8_t excellent,
+                   std::uint8_t ancient)
 {
-    if (actor.byte3e3 == 0)
+    ActorState& actor = frame.actor;
+    if (!(actor.alpha > DrawnAlpha))
+        return {};
+    // 0x60cf9f..0x60cfc1: el 0x1e1e va con el modelo 0x223a con el nivel 0 y con el 0x223b con el 2.
+    constexpr std::uint16_t LeveledModel = 0x1e1e;
+    if (model == LeveledModel && (level & 15) == 0)
+        model = 0x223a;
+    else if (model == LeveledModel && (level & 15) == 2)
+        model = 0x223b;
+    if (frame.fauna.Find(model) == nullptr)
+        return {};
+    DrawnObject object;
+    object.model = model;
+    object.transform = {.position = actor.position, .angles = actor.angles, .scale = actor.scale};
+    object.state = Render::Models::ObjectState{.blendMesh = static_cast<std::int16_t>(actor.dword64),
+                                               .light = actor.blendMeshLight,
+                                               .uv = {actor.textureU, 0.0f},
+                                               .hiddenMesh = static_cast<std::int16_t>(actor.dword58)};
+    object.color = actor.drawnLight;
+    object.alpha = actor.alpha;
+    // 0x60cffa..0x60d003: +0x44 del modelo con +0xe8 del objeto (los contornos lo ponen en 0 para ellos).
+    object.vertexLight = actor.byteE8 != 0;
+    if (frame.outline == PoseMode::Outlined && (actor.flags78 & RiderFlag) == 0)
     {
-        if (actor.byte88 == PlayerKind && InChaosCastle(map))
-            return Cut("0x50d383", "el Angel de Chaos Castle en un personaje que no es un jugador", actor.type);
-        const bool dressed = actor.head != NoItemModel || std::ranges::any_of(actor.body, [](const ActorItemPart& part)
-                                                                              { return part.model != NoItemModel; });
-        if (dressed)
-            return Cut("0x50d3e3", "el lazo de las partes (0x60cf70) en un personaje que no es un jugador", actor.type);
+        const auto passes = PartOutlinePassesOf(actor, frame.map);
+        if (actor.type == KalimaGate && actor.dword58 != -1)
+            return Cut("0x60ce4e", "la textura +0x58 del contorno de una parte del 0xc5", actor.type);
+        if (actor.type == KalimaGate)
+            DrawObjectOutlineOfTheFirstMesh(frame.batch, frame.fauna, object, frame.pass.frameClock, actor.bodyPose,
+                                            passes);
+        else
+            DrawObjectOutline(frame.batch, frame.fauna, object, frame.pass.frameClock, actor.bodyPose, passes);
+    }
+    object.state.hiddenMesh = Render::Models::NoHiddenMesh;
+    const std::vector<Render::Models::SkinnedMesh> meshes =
+        SkinObjectMeshes(frame.fauna, object, actor.bodyPose, BoneScaleOf(frame.outline));
+    ItemDrawContext resources = frame.pass.itemContext != nullptr ? *frame.pass.itemContext : ItemDrawContext{};
+    ItemSpecialDrawContext special = resources.special != nullptr ? *resources.special : ItemSpecialDrawContext{};
+    special.flags = 2;
+    special.worldClock = frame.worldClock;
+    special.random = &frame.random;
+    special.sprites = frame.pass.sprites;
+    special.objectFlags = static_cast<std::uint32_t>(frame.outline);
+    special.objectLight = &actor.light;
+    special.publishedObject = &object;
+    resources.special = &special;
+    resources.map = frame.map;
+    resources.originalFrame = frame.originalFrame;
+    resources.ownerContext = &actor;
+    resources.poseBones = [&actor]() { return std::span<const BoneTransform>(actor.bodyPose); };
+    return DrawItemFromMeshes(frame.batch, frame.fauna, object, frame.pass.frameClock, meshes,
+                              static_cast<std::uint8_t>(level & 15), excellent, ancient, 4, resources);
+}
+
+// 0x50d363..0x50d4f5: las partes de un personaje que no es el 0x20a, sin +0x3e3 (0x50d36e). En Chaos Castle (18 a 23),
+// con +0x88 en 1, el Angel (0x1f7) en lugar de las partes (0x50d383): corta. Si no, de la 5 a la 0 (+0x1f8 + k ·
+// 0x20: la cabeza, el casco, la armadura, el pantalón, los guantes y las botas al revés), cada una que no sea −1 con
+// su modelo (MOVSX), la piel de la clase en +0x98 del modelo (0x50d431: 2 · (clase & 7) + (clase >> 3), en 0 con la
+// clase 0 que 0x511290 deja a todo lo que no es el NewFace; la textura de los modelos del alta no es la de la piel) y
+// 0x60cf70. La cabeza no guarda nivel ni opciones (+0x1fa..+0x1fc): 0x511290 los pone en 0 y solo un nombre de más de
+// 24 letras los pisa (P-C352). La marca del gremio de después (0x50d509..0x50d588) pide el 0x20a.
+Result DrawTheParts(MonsterFrame& frame)
+{
+    const ActorState& actor = frame.actor;
+    if (actor.byte3e3 != 0)
+        return {};
+    if (actor.byte88 == PlayerKind && InChaosCastle(frame.map))
+        return Cut("0x50d383", "el Angel de Chaos Castle en un personaje que no es un jugador", actor.type);
+    for (std::size_t k = actor.body.size() + 1; k-- > 0;)
+    {
+        const ActorItemPart* part = k == 0 ? nullptr : &actor.body[k - 1];
+        const std::uint16_t word = part != nullptr ? part->model : actor.head;
+        if (word == NoItemModel)
+            continue;
+        const auto model = static_cast<std::int16_t>(word);
+        if (model < 0 || model >= ZeroedModelRecords)
+            return Core::Unexpected(std::format("0x50d431: la parte {} del tipo {:#x} tiene el modelo {:#x}, fuera de "
+                                                "los registros que 0x60dbe0 pone en 0: el original escribe +0x98 y "
+                                                "0x60cf70 lee y escribe fuera de ellos (P-C352)",
+                                                k, actor.type, word));
+        // 0x50d43d..0x50d4a4: la clase 4 en el casco escribe +0x68 y la piel de otro modelo. Solo la tiene un NewFace,
+        // que no se dibuja aquí (no está en la fauna: 0x50ba82).
+        if (actor.characterClass != 0)
+            return Cut("0x50d431", "la piel de la clase de un personaje que no es un jugador", actor.type);
+        const std::uint8_t level = part != nullptr ? part->level : std::uint8_t{0};
+        const std::uint8_t excellent = part != nullptr ? part->flags1b : std::uint8_t{0};
+        const std::uint8_t ancient = part != nullptr ? part->flags1c : std::uint8_t{0};
+        if (auto drawn = DrawThePart(frame, static_cast<std::uint16_t>(model), level, excellent, ancient);
+            !drawn.HasValue())
+            return drawn;
     }
     return {};
 }
@@ -1257,8 +1368,11 @@ Core::Expected<void, std::string> DrawGameMonster(Render::ModelBatch& batch, con
         return shadow;
     if (auto decorated = DrawTheDecorations(frame); !decorated.HasValue())
         return decorated;
-    if (auto guild = CheckTheGuild(actor); !guild.HasValue())
-        return guild;
+    // 0x50c972..0x50cc29: con +0x1f2 distinto de 0xffff (un nombre largo de NpcName lo pisa, P-C352), los colores de la
+    // guerra de gremios piden [0x576796d] o [0x576796f], y los del duelo, para todos, [0x78abad8]. Esos globales los
+    // escriben los paquetes de la guerra de gremios y del duelo, que MuRet no modela: en 0 (.bss), el bloque no hace
+    // nada. Con uno de ellos, compararía los nombres de la tabla de gremios por +0x1f2 (0x787aa55 + i · 0x58) y pondría
+    // bVar23 ([EBP+0xf], que prende la tela de 0x50d58b) y su color ([EBP−0x5c..−0x54]): los hitos 7 y 8 lo conectan.
     // 0x50cc55: la luz del terreno (0x5f99e0) más la propia, en +0x3b4; el 0x189 en 0,6.
     if (pass.dynamicLighting == nullptr)
         return Core::Unexpected<std::string>("0x50cc55: falta el buffer dinámico de luz del terreno para 0x50ba30");
@@ -1266,7 +1380,7 @@ Core::Expected<void, std::string> DrawGameMonster(Render::ModelBatch& batch, con
     actor.drawnLight = terrainLight + actor.light;
     if (actor.type == 0x189)
         actor.drawnLight = glm::vec3(std::bit_cast<float>(0x3f19999au));
-    if (auto parts = CheckTheParts(actor, frame.map); !parts.HasValue())
+    if (auto parts = DrawTheParts(frame); !parts.HasValue())
         return parts;
     if (auto clothed = RunTheCloth(frame); !clothed.HasValue())
         return clothed;

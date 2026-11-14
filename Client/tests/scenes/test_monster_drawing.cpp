@@ -1270,6 +1270,204 @@ TEST_F(MonsterDrawingTest, InChaosCastleTheHeroFlagFadesTheStoredAlpha)
     EXPECT_FLOAT_EQ(spider.alpha, 0.85f);
 }
 
+// Las partes de los NPC del alta (0x5141e0): la biblioteca del monstruo con un triángulo propio por cada modelo de
+// parte, corrido en x por el número del modelo menos 0x1d0, para ver el orden; `missing` no está cargado.
+class PartModels final : public Client::Scenes::IModelLibrary
+{
+public:
+    explicit PartModels(const Client::Scenes::IModelLibrary& body) : m_body(body)
+    {
+        for (std::uint16_t model = 0x1da; model <= 0x1f0; ++model)
+        {
+            Client::Data::Models::Model part = *body.Find(Spider);
+            for (auto& vertex : part.meshes.front().vertices)
+                vertex.position[0] += static_cast<float>(model - 0x1d0);
+            m_parts.push_back(part);
+        }
+    }
+
+    [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t model) const override
+    {
+        if (model == missing)
+            return nullptr;
+        if (model >= 0x1da && model <= 0x1f0)
+            return &m_parts[static_cast<std::size_t>(model - 0x1da)];
+        return m_body.Find(model);
+    }
+    [[nodiscard]] const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    {
+        return m_body.SkeletonOf(model);
+    }
+    [[nodiscard]] std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t model) const override
+    {
+        return m_body.MeshTextures(model);
+    }
+
+    std::uint16_t missing = 0;
+
+private:
+    const Client::Scenes::IModelLibrary& m_body;
+    std::vector<Client::Data::Models::Model> m_parts;
+};
+
+// Un NPC del alta con sus partes: el tipo, su modelo y los modelos de +0x218, +0x238, +0x258, +0x278 y +0x298
+// (MonsterKindTable.cpp, 0x5162dd..0x5162f8 y los casos de 0x5141e0).
+struct DressedNpc
+{
+    std::int32_t type;
+    std::uint16_t model;
+    std::array<std::uint16_t, 5> parts;
+};
+
+constexpr std::array<DressedNpc, 5> DressedNpcs{{
+    {253, 0x1cd, {0x1ec, 0x1ee, 0x1f0, 0xffff, 0xffff}},
+    {255, 0x1cb, {0x1db, 0x1dd, 0x1df, 0xffff, 0x1e3}},
+    {230, 0x1cc, {0x1e4, 0x1e7, 0xffff, 0x1e9, 0x1ea}},
+    {248, 0x1cc, {0x1e5, 0x1e7, 0xffff, 0x1e9, 0x1eb}},
+    {250, 0x1cc, {0x1e4, 0x1e6, 0xffff, 0x1e8, 0x1ea}},
+}};
+
+class MonsterPartsTest : public MonsterDrawingTest
+{
+protected:
+    void SetUp() override
+    {
+        MonsterDrawingTest::SetUp();
+        m_world->FaunaResources().Bind(&m_parts);
+    }
+
+    ActorState& Npc(const DressedNpc& npc)
+    {
+        ActorState& actor = Monster(6, npc.model, 0xffff);
+        actor.byte88 = 4;
+        for (std::size_t index = 0; index < npc.parts.size(); ++index)
+            actor.body[index].model = npc.parts[index];
+        return actor;
+    }
+
+    // La x del primer vértice de la parte `model` con el NPC en 150 y la escala 1.
+    static float PartX(std::uint16_t model)
+    {
+        return 150.0f + static_cast<float>(model - 0x1d0);
+    }
+
+    PartModels m_parts{m_models};
+};
+
+// 0x50d3dc..0x50d4f5: sin +0x3e3, después de la sombra y de la luz de 0x50cc55, las partes de la 5 a la 0 (las botas,
+// los guantes, el pantalón, la armadura, el casco y la cabeza), cada una con 0x60cf70: 0x60b3d0 con la luz de +0x3b4 y
+// el nivel 0, sin brillo ni rand(). La chica de las pociones (253) y la cantinera (255) de Lorencia, y los NPC 230, 248
+// y 250 en Lorencia, Devias y Noria: el dibujo no mira el mapa fuera de Chaos Castle.
+TEST_F(MonsterPartsTest, TheTownNpcsDrawTheirPartsFromTheBootsToTheHelm)
+{
+    for (const DressedNpc& npc : DressedNpcs)
+    {
+        for (const std::int32_t map : {0, 2, 3})
+        {
+            if (npc.type >= 253 && map != 0)
+                continue;
+            SCOPED_TRACE(std::to_string(npc.type) + " en el mapa " + std::to_string(map));
+            m_world->Runtime().map = map;
+            m_batch.Begin(Client::Render::Pass3D{});
+            m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+            Npc(npc);
+
+            const auto result = Draw(Pass());
+
+            ASSERT_TRUE(result.HasValue()) << result.Error();
+            std::vector<std::uint16_t> drawn;
+            for (std::size_t index = npc.parts.size(); index-- > 0;)
+                if (npc.parts[index] != 0xffff)
+                    drawn.push_back(npc.parts[index]);
+            // El cuerpo, la sombra y un triángulo por parte.
+            ASSERT_EQ(m_batch.Vertices().size(), 6u + 3u * drawn.size());
+            for (std::size_t index = 0; index < drawn.size(); ++index)
+            {
+                const auto& vertex = m_batch.Vertices()[6 + 3 * index];
+                EXPECT_FLOAT_EQ(vertex.position.x, PartX(drawn[index])) << index;
+                // La luz de +0x3b4 (el terreno más la propia), por el factor del nivel 0.
+                ExpectColor(vertex, 0.3f, 0.6f, 0.9f, 1.0f);
+            }
+            // El de 0x50db57 y los dos de +0x38e en el lazo de las manos: las partes no sacan rand().
+            EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(3));
+        }
+    }
+}
+
+// 0x60cf70 con el modo 1 (el NPC bajo el mouse): antes de cada parte, los dos pases de 0x60cd60 con los colores del NPC
+// (+0x88 en 4: 0x60d069 y 0x60d0dd), la escala de +0x94 y 0,02 menos; con +0x78 & 0x4000, sin contorno (0x60cd74).
+TEST_F(MonsterPartsTest, AHoveredNpcOutlinesEachPartBeforeIt)
+{
+    ActorState& npc = Npc(DressedNpcs[0]);
+    GameCharacterPass pass = Pass();
+    pass.hovered = 6;
+
+    const auto result = Draw(pass);
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    // El cuerpo con sus dos contornos, la sombra y, por cada una de las tres partes, dos contornos y el cuerpo.
+    ASSERT_EQ(m_batch.Vertices().size(), 12u + 3u * 9u);
+    const auto& outer = m_batch.Vertices()[12];
+    ExpectColor(outer, 0.02f, 0.1f, 0.0f, 1.0f);
+    ExpectColor(m_batch.Vertices()[15], 0.16f, 0.7f, 0.0f, 1.0f);
+    // El vértice (1, 0, 0) de la bota (0x1f0) a 1,2 y a 1,18 alrededor del hueso 0.
+    EXPECT_FLOAT_EQ(m_batch.Vertices()[13].position.x, 150.0f + 1.2f * (1.0f + PartX(0x1f0) - 150.0f));
+    EXPECT_FLOAT_EQ(m_batch.Vertices()[16].position.x, 150.0f + 1.18f * (1.0f + PartX(0x1f0) - 150.0f));
+    EXPECT_FLOAT_EQ(m_batch.Vertices()[18].position.x, PartX(0x1f0));
+
+    m_batch.Begin(Client::Render::Pass3D{});
+    npc.flags78 |= 0x4000;
+    ASSERT_TRUE(Draw(pass).HasValue());
+    // Sin contornos (tampoco el del cuerpo) ni sombra (0x50be6e): el cuerpo y las tres partes.
+    EXPECT_EQ(m_batch.Vertices().size(), 3u + 3u * 3u);
+}
+
+// La cabeza (+0x1f8) va última. Un modelo que no se cargó es un registro en 0 sin mallas: no dibuja nada. Uno fuera de
+// los 0x449d registros que 0x60dbe0 pone en 0 (la cabeza que deja el nombre de 34 letras del 231, P-C352) haría
+// escribir al original fuera de ellos: corta después de las partes que ya dibujó.
+TEST_F(MonsterPartsTest, TheHeadGoesLastAndAModelOutsideTheTableCuts)
+{
+    ActorState& npc = Npc(DressedNpcs[0]);
+    npc.head = 0x1da;
+    m_parts.missing = 0x1ee;
+
+    auto result = Draw(Pass());
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    ASSERT_EQ(m_batch.Vertices().size(), 6u + 3u * 3u);
+    EXPECT_FLOAT_EQ(m_batch.Vertices()[6].position.x, PartX(0x1f0));
+    EXPECT_FLOAT_EQ(m_batch.Vertices()[9].position.x, PartX(0x1ec));
+    EXPECT_FLOAT_EQ(m_batch.Vertices()[12].position.x, PartX(0x1da));
+
+    m_batch.Begin(Client::Render::Pass3D{});
+    npc.head = 0x6e61;
+    result = Draw(Pass());
+    ASSERT_FALSE(result.HasValue());
+    EXPECT_NE(result.Error().find("0x50d431"), std::string::npos) << result.Error();
+    EXPECT_EQ(m_batch.Vertices().size(), 6u + 3u * 2u);
+}
+
+// 0x50c972..0x50cc29: el WORD +0x1f2 pisado por un nombre largo (P-C352) no hace nada sin la guerra de gremios ni el
+// duelo ([0x576796d], [0x576796f] y [0x78abad8] en 0): el NPC se dibuja con sus partes, sin rand() de más.
+TEST_F(MonsterPartsTest, ALongNameOverTheGuildWordDrawsAsUsual)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        m_world->Runtime().map = map;
+        m_batch.Begin(Client::Render::Pass3D{});
+        m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+        ActorState& npc = Npc(DressedNpcs[1]);
+        npc.word1f2 = 0x6e61;
+
+        const auto result = Draw(Pass());
+
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(m_batch.Vertices().size(), 6u + 3u * 4u);
+        EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(3));
+    }
+}
+
 TEST(MonsterHangingLight, BloodCastleKeepersRedAndOrdinaryLight)
 {
     ActorState actor;

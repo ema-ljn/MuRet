@@ -10542,14 +10542,15 @@ partículas); del `0x46`, su sprite; del `0x4d`, todo (`DrawGameMonster` con el 
 quedó; sin `GameCharacterPass::cloths`, corta en `0x50c283`); del `0x47`, el `0x4a` y el `0x12d`, su tela, igual (sin
 `GameCharacterPass::cloths`, corta en `0x50c59f`); del `0x2a` y de las estatuas, lo que cuelgan, con
 `Scenes::HangFromTheWingsSlot` (`GameHanging.h`) y la biblioteca de la fauna, que sigue con la del mapa y la global como
-la tabla única del original (el `0xc1c` y el `0x225` cortan en `0x4ec200`, Q-C1119). Cortan con su dirección: los casos de `0x6002e0` y de su cadena, lo demás de `0x50bf45`, las partes (`0x50d3e3`), el Angel (`0x50d383`) y el gremio (`0x50c99b`), el joint `0x618/6` en
+la tabla única del original (el `0xc1c` y el `0x225` cortan en `0x4ec200`, Q-C1119). Las partes de un NPC (`0x50d3e3..0x50d4f5`, revisión B, 2026-11-14) van de las botas al casco y la cabeza al final, cada una con `0x60cf70` en el modo del cuadro: con el contorno, dos pases con la escala de `+0x94` (el segundo 0,02f más chico) y los colores del NPC o del monstruo, otros en Chaos Castle (`PartOutlinePassesOf`), y su cuerpo con los efectos por nivel de `DrawItemFromMeshes` (el 0x1e1e con el nivel 0 o 2 cambia de modelo). El bloque del gremio y del duelo (`0x50c972..0x50cc29`) no hace nada: sus globales (`[0x576796d]`, `[0x576796f]`, `[0x78abad8]`) quedan en 0 hasta los hitos 7 y 8. Cortan con su dirección: los casos de `0x6002e0` y de su cadena, lo demás de `0x50bf45`, el Angel (`0x50d383`), una parte con un modelo fuera de los registros que `0x60dbe0` pone en 0 o con la piel de una clase (`0x50d431`), el joint `0x618/6` en
 `CreateFaunaJoint` (`0x530c18`), los efectos de la CL11 del `0x16e`, de `0x43c150` y de `0x42dfe0` ([Los helpers
 de Kalima y del asedio](#los-helpers-de-kalima-y-del-asedio-0x43c150-y-0x42dfe0)) y de los otros helpers de `0x510a1e`
 (`Scenes::DrawTheMonsterHelpers`, que sigue) y `0x510f4d` (`0x518cf0`, CL11); 08, P-C179.
 Tests: `MonsterDrawingTest`, `MonsterHangingLight` y `MonsterDecorations` (`test_monster_drawing.cpp`: un Spider de
 Lorencia, un Yeti de Devias, la sombra por mapa, el contorno de un monstruo, de un NPC y de la puerta de Kalima, el
 calco del `0xe8` y el `0xe9` en Lorencia, Devias y Blood Castle, la tela del `0x37` en Lorencia, Devias y Chaos
-Castle, los sprites del `0x45` y del `0x46` en Lorencia y Devias, el cuervo, el hada del NPC 237, el caso del `0x176` y los cortes),
+Castle, los sprites del `0x45` y del `0x46` en Lorencia y Devias, el cuervo, el hada del NPC 237, el caso del `0x176` y los cortes), `MonsterPartsTest` (las partes de los NPC 253, 255, 230, 248
+y 250 en sus mapas y en Lorencia y Devias, sus contornos, la cabeza y un modelo fuera de la tabla),
 `GameCharacterRenderTest.TheMonster55WearsTheClothOfThe0x37` y
 `GameHangingTest.AMonsterSkipsTheBackTheLayerAndTheEventWeapon`.
 

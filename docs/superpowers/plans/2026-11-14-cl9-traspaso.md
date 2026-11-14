@@ -1,7 +1,7 @@
 # CL9: traspaso para terminar la ola (2026-11-14)
 
 El 2026-11-14 Emanuel pidió dejar la CL9 lista para que **otros agentes terminen los PRs que faltan**.
-Este documento es la foto a las 05:45Z, con `main` en `0f5bb82` (#338). Dice qué hay en cada hito, en qué
+Este documento es la foto a las 07:40Z, con `main` en `b7ebd3e` (#341). Dice qué hay en cada hito, en qué
 orden se cierra la pila, qué le falta a cada uno y cómo se trabaja. Las notas de las revisiones que quedaron
 sin arreglar están en [`2026-11-14-cl9-traspaso/`](2026-11-14-cl9-traspaso/).
 
@@ -22,9 +22,9 @@ no cuenta.
 | --- | --- | --- | --- | --- | --- |
 | 1, emote y otros jugadores | — | #338 | cerrado | 100 % | mergeado |
 | 9, amigos y ventanas viejas | — | #339 | cerrado | 100 % | mergeado |
-| 5, ítems del piso | `claude/cl9-hito-5` | #340 | todas | 96 % | listo, base `main`, sin conflictos |
-| 2, monstruos, NPC, misiones | `claude/cl9-hito-2` | #341 | 8 de 8 | 100 % | listo y en verde, base hito 5 |
-| 3, pegar, daño, muerte | `claude/cl9-hito-3` | #342 | 8 de 8 | 100 % | borrador, base hito 2, 19 archivos en conflicto |
+| 5, ítems del piso | — | #340 | cerrado | 96 % | mergeado |
+| 2, monstruos, NPC, misiones | — | #341 | cerrado | 100 % | mergeado |
+| 3, pegar, daño, muerte | `claude/cl9-hito-3` | #342 | 8 de 8 | 100 % | borrador, base `main`, 19 archivos en conflicto con la última cabeza del hito 2 |
 | 4, skills, cuervo, mascotas | `claude/cl9-hito-4` | #343 | 7 de 7 | 98 % | borrador, base hito 3, 18 en conflicto |
 | 11, eventos | `claude/cl9-hito-11` | #344 | 7 de 7 | 96 % | borrador, base hito 4, 37 en conflicto |
 | 7, party, comercio, duelo, tiendas | `claude/cl9-hito-7` | #345 | 7 de 7 | 76 % | borrador, base hito 11, 28 en conflicto |
@@ -50,18 +50,18 @@ de fases que ya están mergeadas en su hito. No hace falta tocarlas.
 
 Los hitos van en una sola cadena apilada, en este orden:
 
-`main` ← #340 (5) ← #341 (2) ← #342 (3) ← #343 (4) ← #344 (11) ← #345 (7) ← #346 (8) ← #347 (10) ←
+`main` ← #342 (3) ← #343 (4) ← #344 (11) ← #345 (7) ← #346 (8) ← #347 (10) ←
 #348 (6) ← #349 (12) ← hito 13
 
 - **Emanuel mergea** (squash) cuando un PR está listo y en verde. El agente no mergea: le avisa.
 - Cuando el PR de abajo entra, GitHub cambia solo la base del siguiente a `main` (las ramas se borran solas
-  al mergear). Pasó con el #340 después del #338.
+  al mergear). Pasó con el #340 después del #338 y con el #341 después del #340.
 - **Nunca** force push, rebase, amend ni squash de commits ya pusheados: el auto-mode los bloquea y la rama
   remota es el respaldo. Siempre commits nuevos y merges.
 
 ### Actualizar una rama cuando su base entró por squash
 
-**Caso A: la rama ya tiene mergeada la última versión de su base** (hoy el #340 y el #341). El squash trae el
+**Caso A: la rama ya tiene mergeada la última versión de su base** (así entraron el #340 y el #341). El squash trae el
 mismo contenido, pero git ve conflictos porque compara contra la base vieja. Se resuelve mergeando con la
 cabeza de la base como base del merge:
 
@@ -75,14 +75,17 @@ git commit                             # merge con dos padres
 diff <(git diff origin/main HEAD) <(git diff <cabeza de la base> HEAD^1)
 ```
 
-Así se resolvió el #340 en `115b0422` (base del merge `dbb77e7b`, la última cabeza del #338). El código
-queda idéntico al que ya estaba en verde.
+Así se resolvieron el #340 en `115b0422` (base del merge `dbb77e7b`, la última cabeza del #338) y el #341 en
+`92231db2` (base del merge `e95bca00`). El código queda idéntico al que ya estaba en verde.
 
 **Caso B: la rama todavía no mergeó la última versión de su base** (del #342 en adelante). Cada rama trae
 versiones viejas de los hitos de abajo, por eso los conflictos. Hay que:
 
-1. Mergear la rama de la base (o `main`, si la base ya entró) y resolver: el código de los hitos de abajo
-   queda como está en su versión final; lo propio del hito se conserva encima.
+1. Mergear la última cabeza de la base y resolver: el código de los hitos de abajo queda como está en su
+   versión final; lo propio del hito se conserva encima. Si la base ya entró, su rama se borró, pero la
+   cabeza sigue en el PR: `git fetch origin pull/<N>/head` (para el hito 3, la del #341 es `92231db2`, con 19
+   archivos en conflicto). Después, el caso A contra `main` con esa cabeza como base del merge. Mergear
+   `main` directo da muchos más conflictos (83 en el hito 3).
 2. Cablear lo que el PR lista en "Al armar la cadena" (más abajo, por hito).
 3. Correr los chequeos locales y el CI, y escribir el texto final del PR con las secciones del #341: Qué
    hace, Lo que corta, Revisiones, Research y Pruebas.
@@ -92,12 +95,6 @@ Se puede adelantar el paso 1 contra la rama de la base antes de que entre, pero 
 caso A cuando la base entre por squash.
 
 ## Qué le falta a cada hito
-
-### Hito 5 (#340) y hito 2 (#341)
-
-- **#340**: que termine el CI de `115b0422` y que Emanuel lo mergee.
-- **#341**: después del #340, caso A con base del merge `115b0422`. El CI de `7119b226` ya pasó con Linux,
-  Windows y formato.
 
 ### Hito 3 (#342)
 

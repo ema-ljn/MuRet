@@ -96,6 +96,10 @@ struct FloorItemDrawContext
 enum class JointOwnerKind : std::uint8_t
 {
     ByType,
+    // El 610/8, que por el tipo lleva el pez de Atlans (FaunaObject), con el ActorState del jugador que entra al
+    // viewport en Kalima (0x4c91dc): lee del dueño su luz (+0xf4), su posición (+0x10) y sus ángulos (+0x1c) al nacer,
+    // y su byte vivo (+0) y su posición en el paso. Con otro tipo, CreateFaunaJoint corta antes de escribir (0x530860).
+    Actor,
     Helper,
 };
 

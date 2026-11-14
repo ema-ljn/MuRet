@@ -48,8 +48,8 @@ struct FullSetScan;
 struct ItemDrawContext;
 
 // Los recursos del pase 0x510d00 en el juego. La luz es el buffer dinámico, no su base sombreada.
-// Los dos lugares de picking arrancan en -1 en la .data (0x6c8e30 y 0x6c8e2c); el caller publica
-// sus cambios cuando porta 0x59ec80. Las telas pertenecen a cada lugar entre frames. Lo que cuelga
+// Los dos lugares de picking arrancan en -1 en la .data (0x6c8e30 y 0x6c8e2c); el juego pasa los que dejó
+// 0x59ec80 en el dibujo anterior (PickInTheFrame). Las telas pertenecen a cada lugar entre frames. Lo que cuelga
 // (GameHanging.h) se posa en el buffer global de la pose y se dibuja con los globales de 0x60b3d0.
 struct GameCharacterPass
 {

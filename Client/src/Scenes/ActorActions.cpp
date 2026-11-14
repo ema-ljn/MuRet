@@ -4,8 +4,10 @@
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Terrain/TerrainGrid.h"
+#include "Protocol/Movement.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
+#include "Scenes/ActionSend.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldRuntime.h"
@@ -266,8 +268,14 @@ Core::Expected<std::optional<std::uint8_t>, std::string> ChooseStand(ActorState&
             return std::optional<std::uint8_t>{};
         }
         Render::Models::SetAction(actor.animation, context.playerSkeleton, SittingAction);
-        return Core::Unexpected(std::string("0x4f2250: sentarse manda un C1 .. 18 con el XOR32 en línea "
-                                            "(0x4f2416..0x4f2bea, CL9) que MuRet no tiene"));
+        // 0x4f2416..0x4f2bea (0x4f2834..0x4f2bea por el piso): C1 05 18 con la dirección del ángulo del personaje
+        // (+0x24, no el del héroe) y 0x82, y el sufijo (0x4f36be), también si el envío falla.
+        auto sent = SendTheAction(actor.angles.z, Protocol::Movement::SittingAction, context.sendAction, "0x4f2416");
+        if (!sent.HasValue())
+        {
+            return Core::Unexpected(sent.Error());
+        }
+        return std::optional<std::uint8_t>{};
     }
     if (flying.Value())
     {

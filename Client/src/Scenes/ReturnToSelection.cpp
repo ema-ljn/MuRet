@@ -50,7 +50,9 @@ void ApplyReturnToSelection(const WorldEntryResources& resources)
     // nueva (SelectionState::BeginSelection y GameScene::Enter).
     runtime.drawingEnabled = false; // 0x4c38f9
     // 0x4c3900: el estado 0 (la sesión espera la lista). 0x4c390a: 0x4c2480.
-    resources.camera.level = 0;   // 0x4c250e, el word 0x7d3a0ec
+    resources.camera.level = 0; // 0x4c250e, el word 0x7d3a0ec
+    // 0x4c2515..0x4c252d: los cinco del picking (0x6c8e28..0x6c8e38) en −1, también el personaje elegido.
+    runtime.selectedTargets.fill(-1);
     runtime.ui.autoAttack = true; // 0x4c2533, 0x6c8e3c
     runtime.map = NoMap;          // 0x4c2540
     // 0x4c2546: 0x419900 manda el C1 03 31 (la sesión). 0x4c2575..0x4c25ea: abre el registro propio por la

@@ -42,10 +42,6 @@ inline constexpr std::size_t RivalCommandText = 1356;
 inline constexpr std::size_t RivalOffCommandText = 1357;
 // "No se puede en Chaos Castle", con el tipo 1.
 inline constexpr std::size_t ChaosCastleCommandText = 1150;
-// 0x576eb0: los textos de los emotes, del 270 al 348 y el 783.
-inline constexpr std::size_t FirstEmoteText = 270;
-inline constexpr std::size_t LastEmoteText = 348;
-inline constexpr std::size_t LastEmoteExtraText = 783;
 
 // Un aviso de 0x555190 con el nombre vacío: el texto `text` de Text.bmd y su tipo.
 struct ChatCommandNotice
@@ -96,9 +92,4 @@ struct ChatCommandOutcome
 
 // 0x56c1f0: lo que sigue a "/N " es uno de los comandos que una macro no puede guardar.
 [[nodiscard]] bool IsAForbiddenMacro(const Data::Text::TextTable& texts, std::string_view text);
-
-// 0x576eb0: con alguno de los textos de los emotes en `text` (0x576960), el emote (0x576a60 y el C1 18) es de la
-// CL9.1 y el error lo dice. Sin ninguno, nada.
-[[nodiscard]] Core::Expected<void, std::string> CheckTheEmotes(const Data::Text::TextTable& texts,
-                                                               std::string_view text);
 } // namespace Client::UI

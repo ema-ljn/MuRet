@@ -62,6 +62,22 @@ struct CastleData
 // 0x669030: el registro de un tipo (0x115 elige las puertas, cualquier otro las estatuas) y un índice, en 32 bits.
 [[nodiscard]] std::uint32_t NpcRecordAddress(std::uint32_t type, std::uint32_t index);
 
+// Las elegidas de las ventanas del Castle Senior (las ponen 0x663b20 para las puertas y 0x666190 para las estatuas) y
+// lo que miran las respuestas del diálogo: las puertas desde 0x7d5c590 y las estatuas desde 0x7d5c520, el registro 1 de
+// cada lista (0x6623e0, 0x664370).
+inline constexpr std::uint32_t SelectedGateAt = 0x7d5c638;
+inline constexpr std::uint32_t SelectedStatueAt = 0x7d5c63c;
+inline constexpr std::uint32_t FirstGateAt = 0x7d5c590;
+inline constexpr std::uint32_t FirstStatueAt = 0x7d5c520;
+
+// 0x660da0: el nivel de la vida de un registro por su vida máxima (+0x10, con signo). Una puerta: hasta 500000 el 0,
+// hasta 800000 el 1, 1500000 justo el 2 y si no el 3. Una estatua: hasta 400000 el 0, hasta 750000 el 1, hasta
+// 1300000 el 2 y si no el 3. Otro tipo, −1.
+[[nodiscard]] std::int32_t LifeLevelOf(std::uint32_t type, std::int32_t maxLife);
+// 0x660d20: la vida máxima de un nivel. Una puerta: 500000, 800000, 1500000 con el 2 y 3000000 con cualquier otro;
+// una estatua: 400000, 750000, 1300000 con el 2 y 2500000 con cualquier otro. Otro tipo, −1.
+[[nodiscard]] std::int32_t MaxLifeOfLevel(std::uint32_t type, std::int32_t level);
+
 // Una de las tres fechas de +0xbc..+0xcd: el año en un word (el primero arriba en el paquete) y cuatro bytes.
 struct SiegeDate
 {

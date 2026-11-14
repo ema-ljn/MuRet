@@ -415,6 +415,9 @@ los `rand()` de los contadores; Crywolf solo contra el ASM. **Desbloquea:** —.
       mandan los `B2`), `0x648a30` (`B2`, `B9`), `0x64d350` (`B4`, `B5`), `0x661310` (`B2`, `B3`), los paneles
       `0x80000` (`0x64aca0`) y `0x200000` (`0x64a060`), `0x661090` y `0x6485f0`, y sus listas (`0x46f320`,
       `0x4706f0`).
+      A medias el 2026-11-14 (04 § Castle Siege, las ventanas del castillo, sus respuestas): las nueve
+      respuestas `0x6623e0..0x667a40` y las tablas `0x660d20`, `0x660da0`, `0x660f30` y `0x661020`
+      (`Scenes/CastleSeniorAnswers.h`, Q-C1363), sin quién las llame. Falta el resto (P-C300).
 
 **Pruebas:** cada `B2` que sale de cada ventana, byte a byte; las listas del `B4`; los `rand()` de abrir cada
 panel. **Desbloquea:** 13.

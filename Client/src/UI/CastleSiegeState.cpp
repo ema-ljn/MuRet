@@ -64,6 +64,65 @@ void CastleData::SetBytes(std::uint32_t address, std::span<const std::uint8_t> v
     }
 }
 
+std::int32_t LifeLevelOf(std::uint32_t type, std::int32_t maxLife)
+{
+    if (type == GateType)
+    {
+        if (maxLife <= 500000)
+        {
+            return 0;
+        }
+        if (maxLife <= 800000)
+        {
+            return 1;
+        }
+        return maxLife == 1500000 ? 2 : 3;
+    }
+    if (type == StatueType)
+    {
+        if (maxLife <= 400000)
+        {
+            return 0;
+        }
+        if (maxLife <= 750000)
+        {
+            return 1;
+        }
+        return maxLife <= 1300000 ? 2 : 3;
+    }
+    return -1;
+}
+
+// SUB 2, NEG, SBB y AND: el nivel 2 da la base y cualquier otro, la base más el salto.
+std::int32_t MaxLifeOfLevel(std::uint32_t type, std::int32_t level)
+{
+    if (type == GateType)
+    {
+        if (level == 0)
+        {
+            return 500000;
+        }
+        if (level == 1)
+        {
+            return 800000;
+        }
+        return level == 2 ? 1500000 : 3000000;
+    }
+    if (type == StatueType)
+    {
+        if (level == 0)
+        {
+            return 400000;
+        }
+        if (level == 1)
+        {
+            return 750000;
+        }
+        return level == 2 ? 1300000 : 2500000;
+    }
+    return -1;
+}
+
 // LEA [index × 8], SUB index, LEA [× 4 + base]: base + index × 0x1c, que da la vuelta en 32 bits.
 std::uint32_t NpcRecordAddress(std::uint32_t type, std::uint32_t index)
 {

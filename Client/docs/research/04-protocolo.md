@@ -889,6 +889,36 @@ con un aviso, sin cerrar la sesión (Q-C1360). Cortan con su dirección: abrir e
 `tests/protocol/test_castle_siege.cpp` (byte a byte, en C1 y en C2), `tests/scenes/test_castle_siege_receive.cpp`
 (en los mapas 0, 2 y 30) y la sesión; los nombres son inventados.
 
+**Las respuestas del diálogo del Castle Senior** (CL9 hito 12, fase 2, *estático*). Son las funciones que el diálogo de
+los paneles (`0x6600d0` sobre `[0x7d53704]`, hito 8, P-C90) llama con la respuesta, un int en `[EBP + 8]`. Todas salen
+sin hacer nada si la respuesta no es la que esperan (`CMP EAX,8`; la de la plata, `CMP EAX,2`), toman el registro
+elegido como `primero + elegida · 0x1c` en 32 bits (la elegida, un int de `0x7d5c638` para las puertas y de
+`0x7d5c63c` para las estatuas; el primero, `0x7d5c590` y `0x7d5c520`, el registro 1 de cada lista: una elegida en −1
+cae en el 0) y calculan el valor antes de armar el paquete:
+
+| Respuesta | Qué manda |
+| --- | --- |
+| `0x6623e0` (puertas) y `0x664370` (estatuas) | `B2 05` con `+0x1a` en 0 y `B2 06` si no: el tipo y el índice del registro |
+| `0x662d50` (puertas) y `0x664ce0` (estatuas) | `B2 07` con 3 y `0x660d20(tipo, 0x660da0(registro) + 1)`: la vida máxima del nivel siguiente |
+| `0x663440` (puertas) y `0x6653d0` (estatuas) | `B2 07` con 1 y `0x660f30(registro) + 1`: la defensa siguiente |
+| `0x665ab0` (estatuas) | `B2 07` con 2 y `0x661020(registro) + 1`: la recuperación siguiente |
+| `0x666b30` | dos `B2 09`: el 1 con `[0x7d5c640]` y el 2 con `[0x7d5c644]` (`SAR` 0x18, 0x10, 8: el byte de arriba primero) |
+| `0x667a40` | `0x6602d0` da el texto del campo del diálogo y `sscanf(texto, "%u", &[EBP − 0x34])` (`0x6a1dd4`, el formato en `0x6c7b04`); manda `B2 10` con ese dword, el byte de abajo primero. Sin número, el dword es lo que había en la pila (Q-C1363) |
+
+Las tablas, por el tipo de `+0`: `0x660da0` da el nivel de la vida por `+0x10` con signo (una puerta: hasta 500000 el
+0, hasta 800000 el 1, 1500000 justo el 2 y si no el 3; una estatua: hasta 400000, 750000 y 1300000, y si no el 3);
+`0x660d20(tipo, nivel)` la vida máxima (una puerta: 500000, 800000, y con `SUB 2, NEG, SBB, AND` 1500000 con el 2 y
+3000000 con cualquier otro; una estatua: 400000, 750000, 1300000 con el 2 y 2500000 con cualquier otro); `0x660f30` la
+defensa (`+8` de una puerta o una estatua); `0x661020` la recuperación (0 para una puerta, `+0xc` para una estatua).
+Otro tipo da −1 en las cuatro, así que el valor que sale es 0 (y `0x660d20(tipo, 0)` da −1).
+
+**MuRet**: `UI::LifeLevelOf` y `UI::MaxLifeOfLevel` son las dos tablas de la vida, y `Scenes/CastleSeniorAnswers.h`
+las nueve respuestas sobre `UI::CastleData` (el `Answer*Dialog` de cada una). Un registro elegido que cae fuera de la
+zona no manda nada, con un aviso (Q-C1360); la plata sin número tampoco (Q-C1363). `sscanf("%u")` es *inferido* del
+CRT de VC6 (saltea espacios, toma un signo, da la vuelta en 32 bits y un menos niega). Nadie las llama todavía: falta
+el diálogo de los paneles (P-C90) y los pasos de las ventanas que lo abren y ponen las elegidas (`0x6691c0`,
+`0x663b20` las puertas, `0x666190` las estatuas; P-C300). Tests en `tests/scenes/test_castle_senior_answers.cpp`.
+
 ## Qué implica para MuRet
 
 | Original | MuRet | Ola |

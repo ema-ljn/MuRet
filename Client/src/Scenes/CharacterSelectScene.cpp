@@ -1375,7 +1375,8 @@ void CharacterSelectScene::DrawTheWorldAndTheCharacters(SceneCanvas& canvas, flo
                 return;
             }
         }
-        // 0x634906: 0x4129f0, el nombre del elegido, es de la UI de los carteles (CL9).
+        // 0x634906→0x4129f0 guarda el nombre en el objeto de [0x6eed7c] para B1/01 (0x412bb0), no dibuja un cartel.
+        // PrepareSelectedActor ya lo conserva en el registro propio; el consumidor de transferencia es H13.
     }
     canvas.flushModels();
     // 0x63490d..0x634927: el pase de ojo.

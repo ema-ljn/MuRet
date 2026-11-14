@@ -31,6 +31,7 @@
 #include "UI/NameChecks.h"
 #include "World/GameCamera.h"
 #include "World/ModelEffects.h"
+#include "World/ParticleBurst.h"
 #include "World/TerrainCulling.h"
 
 #include <array>
@@ -203,8 +204,7 @@ Core::Expected<void, std::string> ApplyPlayerRecord(const Protocol::Viewport::Pl
         Render::Models::SetAction(actor.animation, *skeleton, *action);
     }
     // 0x4c8adc..0x4c8aec.
-    if (auto flagged = ApplyEffectFlags(actor, record.effects, index == runtime.hero, runtime.lastSoundId);
-        !flagged.HasValue())
+    if (auto flagged = ApplyEffectFlags(actor, record.effects, index == runtime.hero, resources); !flagged.HasValue())
         return flagged;
     WriteTheCells(actor, record.x, record.y, random);
     actor.angles.z = AngleOf(record.directionAndPk);
@@ -491,8 +491,7 @@ Core::Expected<void, std::string> FinishTheTransformed(std::size_t index,
     actor.byte88 = 1;
     actor.byte3e3 = 1;
     // 0x4c938c..0x4c9396.
-    if (auto flagged = ApplyEffectFlags(actor, record.effects, index == runtime.hero, runtime.lastSoundId);
-        !flagged.HasValue())
+    if (auto flagged = ApplyEffectFlags(actor, record.effects, index == runtime.hero, resources); !flagged.HasValue())
         return flagged;
     ApplyCastleSiegeFlags(actor, record.effects, runtime.map);
     WriteTheCells(actor, record.x, record.y, random);
@@ -590,8 +589,10 @@ Core::Expected<void, std::string> ApplyViewportPosition(const Protocol::Viewport
             static_cast<float>(static_cast<std::int32_t>(y) - static_cast<std::int32_t>(position.y)) * PushScale;
         // (CL10) 0x41ed10(0x1b, 0, 0).
         world.Runtime().lastSoundId = PushSound;
-        return Core::Unexpected(std::string("0x4c6c9d: 0x51fe10, los veinte joints 0x5c5 (0x53fe70) del empujón con "
-                                            "dos rand() cada uno, es de la CL11"));
+        if (auto burst = World::CreatePushBurst(world.Particles(), actor.position, random); !burst.HasValue())
+            return Core::Unexpected(std::format("0x51fe9e: falla la partícula 0x5c5/2 del empujón DF, error {}",
+                                                static_cast<unsigned>(burst.Error())));
+        return {};
     }
     // 0x4c6ca8..0x4c6dfe.
     WriteTheCells(actor, position.x, position.y, resources.cloth.random);

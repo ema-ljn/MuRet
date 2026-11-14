@@ -69,6 +69,34 @@ TEST(NoriaParticlesTest, TheFairySparkKeepsFiveRandomDrawsAndItsStoredMotion)
     EXPECT_EQ(particle.velocity.z, 0.0f);
     EXPECT_EQ(random.State(), 0xbca151d2u);
 }
+
+// 0x5404ad..0x5404ca: /2 duplica escala y triplica el vector local antes de 0x5fcbd0; mismo resto que /0.
+TEST(NoriaParticlesTest, ThePushedSparkDoublesTheScaleAndTriplesTheForwardSpeed)
+{
+    for (const std::uint32_t seed : {1u, 7u, 99u})
+    {
+        SCOPED_TRACE(seed);
+        auto ordinary = std::make_unique<Client::World::Particles>();
+        auto pushed = std::make_unique<Client::World::Particles>();
+        Client::Render::Models::CrtRandom first(seed);
+        Client::Render::Models::CrtRandom second(seed);
+        const auto base = ordinary->CreateChecked(0x5c5, {10, 20, 30}, {170, 0, 12}, {1, 1, 1}, 0, 1, 0, first);
+        ASSERT_TRUE(base.HasValue());
+        ASSERT_TRUE(base.Value().has_value());
+        const auto created = pushed->CreateChecked(0x5c5, {10, 20, 30}, {170, 0, 12}, {1, 1, 1}, 2, 1, 0, second);
+        ASSERT_TRUE(created.HasValue());
+        ASSERT_TRUE(created.Value().has_value());
+        const auto& original = ordinary->All()[*base.Value()];
+        const auto& particle = pushed->All()[*created.Value()];
+        EXPECT_FLOAT_EQ(particle.scale, original.scale * 2.0f);
+        EXPECT_EQ(particle.life, original.life);
+        EXPECT_EQ(particle.angles, original.angles);
+        EXPECT_EQ(particle.verticalSpeed, original.verticalSpeed);
+        for (int axis = 0; axis < 3; ++axis)
+            EXPECT_NEAR(particle.velocity[axis], original.velocity[axis] * 3.0f, 0.00001f);
+        EXPECT_EQ(first.State(), second.State());
+    }
+}
 TEST(NoriaParticlesTest, TheFairySparkKeepsThePrefixBeforeMissingTerrainAndContinuesAfterCollision)
 {
     auto particles = std::make_unique<Client::World::Particles>();
@@ -112,6 +140,7 @@ TEST(NoriaParticlesTest, NoriaParticleBillboardsUseTheWholeTextureAndTheStoredRo
         Client::World::Particle particle;
         particle.alive = true;
         particle.type = particle.texture = type;
+        particle.subtype = type == Client::World::FairySparkParticle ? 2 : 0;
         particle.scale = 2.0f;
         particle.rotation = 27.0f;
         particle.light = {0.2f, 0.4f, 0.6f};
@@ -173,7 +202,7 @@ TEST(NoriaParticlesTest, TheStaffSparkDrawsOnlyItsScaleAndItsLife)
 // 0x544f7b: la /7 cae 0,6 (0x6b8a20) por paso; la /0 y la /1, 2 (0x6b8818).
 TEST(NoriaParticlesTest, TheButterflySparkFallsSlowerThanTheFairySpark)
 {
-    for (const int subtype : {0, 1, 7})
+    for (const int subtype : {0, 1, 2, 7})
     {
         auto particles = std::make_unique<Client::World::Particles>();
         auto& particle = particles->All().front();

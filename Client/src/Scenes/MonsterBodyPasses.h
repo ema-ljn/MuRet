@@ -50,6 +50,8 @@ struct MonsterBodyModel
     DrawnObject object;
     std::span<const Render::Models::SkinnedMesh> meshes;
     Core::Duration frameClock{};
+    // El reloj del mundo (0x5767b88) en ms, que lee la onda de 0x4ecc30 (la bandera 0x400, 0x4ed775).
+    float worldClock = 0.0f;
     // Las mallas de otro 0x4ebc80 en medio de 0x6002e0 (0x60cd60 desde 0x43fc9d, a otra escala): `meshes` las mira
     // desde ahí, como el original lee 0x5786f9c en lo que sigue.
     std::vector<Render::Models::SkinnedMesh> rescaled{};

@@ -276,8 +276,8 @@ cero `rand()` en el emote y en el `0x18`. **Desbloquea:** 2, 3 y 7. **Cierra:** 
       el `0x2a` y las estatuas con `0x509340` desde `+0x2f8`, con el `0xef` de `0x5096ac` y el lugar de `0x5093f3`; el
       `0xc1c` y el `0x225` cortan en `0x4ec200`, Q-C1119), `0x43ed20` (del `0x191` al `0x197`, con el brillo de
       `0x43fc04`, Q-C1120; Kundun al caer y `0x4ee770` cortan, CL11) y `0x442e10` (del `0x1a3` al `0x1a9`) y `0x433b2f`
-      (el `0x1af` del 34, con la U en `ActorState::textureU`). Quedan, con su dirección: `0x6011f1` y `0x4ed775` (el
-      `0x185` y el `0x197`).
+      (el `0x1af` del 34, con la U en `ActorState::textureU`) y la onda de `0x4ed775` (el `0x185` y el `0x197`, con el
+      reloj del mundo en `DrawItemMeshPass`). Queda, con su dirección: `0x6011f1`.
 - [ ] **La tela sobre la malla** (P-C22 f, vtable `0x6b8d04`: los monstruos `0x59..0x8f`; los tres pantalones
       también la usan), y Q-C95 con el primer modelo que se desvanezca (§ Lo que dejó la CL6). Hecha la de los
       monstruos (`Cloth::BuildOnTheMesh`, `Scenes::MonsterMeshCloth`; 06, "La tela sobre la malla"; Q-C861, Q-C862 y,

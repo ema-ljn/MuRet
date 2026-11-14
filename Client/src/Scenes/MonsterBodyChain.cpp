@@ -51,6 +51,7 @@ constexpr float FourTenths = std::bit_cast<float>(0x3ecccccdu);    // 0,4 (0x6b8
 constexpr float Half = 0.5f;                                       // 0x6b882c
 constexpr float SixTenths = std::bit_cast<float>(0x3f19999au);     // 0,6 (0x6b8a20)
 constexpr float SevenTenths = std::bit_cast<float>(0x3f333333u);   // 0,7 (0x6b8a5c)
+constexpr float Twentieth = std::bit_cast<float>(0x3d4ccccdu);     // 0,05 (0x6b8a48)
 constexpr float EightTenths = std::bit_cast<float>(0x3f4ccccdu);   // 0,8 (0x6b8a38)
 constexpr float Ceiling = std::bit_cast<float>(0x3fa66666u);       // 1,3 (0x6b8ac0)
 
@@ -228,9 +229,52 @@ Result DrawThe197(MonsterBodyFrame& frame)
         actor.blendMeshLight = 1.0f;
         model.object.color = {F32(v * D(ThreeTenths)), F32(v * D(SixTenths)), F32(v)};
     }
-    // 0x43fa26..0x43fa6f: las mallas 2 y 4 con 0x440 (la onda de 0x4ecc30) y su blendMesh.
-    return Core::Unexpected(std::string("0x4ed775: la onda de 0x4ecc30 (la bandera 0x400) de las mallas 2 y 4 del tipo "
-                                        "0x197 no está portada"));
+    // 0x43fa26..0x43fa6f: las mallas 2 y 4 con 0x440 (aditivas, con la onda de 0x4ecc30, 0x4ed775) y su blendMesh,
+    // con la luz de +0x68.
+    constexpr std::uint32_t WavingGlow = 0x440;
+    args = MeshArgsOf(actor);
+    for (const std::int16_t mesh : {std::int16_t{2}, std::int16_t{4}})
+    {
+        args.blendMesh = mesh;
+        if (auto drawn = DrawMeshPass(model, mesh, WavingGlow, args); !drawn.HasValue())
+            return drawn;
+    }
+    args.blendMesh = -1;
+    if (dark)
+    {
+        // 0x43fa7a..0x43fae8: con 1, las mallas 0, 1 y 3 con 0x48, sin el blendMesh.
+        model.object.color = glm::vec3(1.0f);
+        if (auto drawn = DrawMeshes(model, {0, 1, 3}, ShinyFlags, args); !drawn.HasValue())
+            return drawn;
+    }
+    else
+    {
+        // 0x43faea..0x43fb47: las mallas 2 y 4 con 2, su blendMesh y la luz en sin(T · 0,002f) · 0,3f + 0,7f (un
+        // float).
+        const auto light = WaveOf(D(frame.worldClock) * D(PulseRate), ThreeTenths, SevenTenths, "0x43fb00");
+        if (!light.HasValue())
+            return Core::Unexpected(light.Error());
+        BodyPassArgs lit = args;
+        lit.light = F32(light.Value());
+        for (const std::int16_t mesh : {std::int16_t{2}, std::int16_t{4}})
+        {
+            lit.blendMesh = mesh;
+            if (auto drawn = DrawMeshPass(model, mesh, BaseFlags, lit); !drawn.HasValue())
+                return drawn;
+        }
+    }
+    // 0x43fb4c..0x43fb8b: la luz en sin(T · 0,002f) · 0,1f + 0,05f (un float), guardada en +0x68, y la malla 6 con 2 y
+    // el blendMesh en 6.
+    const auto glow = WaveOf(D(frame.worldClock) * D(PulseRate), Tenth, Twentieth, "0x43fb62");
+    if (!glow.HasValue())
+        return Core::Unexpected(glow.Error());
+    actor.blendMeshLight = F32(glow.Value());
+    BodyPassArgs last = MeshArgsOf(actor);
+    last.blendMesh = 6;
+    if (auto drawn = DrawMeshPass(model, 6, BaseFlags, last); !drawn.HasValue())
+        return drawn;
+    // 0x43fb97: 0x439d90.
+    return CutTheStruckGlow(actor);
 }
 
 // 0x43ed20 con los tipos de 0x191 a 0x197, hasta 0x43fc04.

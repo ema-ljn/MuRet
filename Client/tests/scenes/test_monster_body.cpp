@@ -124,7 +124,8 @@ protected:
                                                .models = m_models,
                                                .object = object,
                                                .meshes = m_meshes,
-                                               .frameClock = Client::Core::Duration{}};
+                                               .frameClock = Client::Core::Duration{},
+                                               .worldClock = worldClock};
         Client::Scenes::MonsterBodyFrame frame{.model = model,
                                                .actor = *m_actor,
                                                .bones = m_bones,
@@ -455,12 +456,10 @@ TEST_F(MonsterBodyTest, TheUnportedBranchesCutWithTheirAddress)
         std::int32_t map;
         const char* address;
     };
-    // La clase de los bordes del 0x183 y la onda del 0x185 y del 0x197 después de lo que dibujan; la cadena; los tipos
-    // que ninguna alta da.
-    constexpr std::array cases{Case{0x183, 0, "0x6011f1"},  Case{0x185, 2, "0x4ed775"},  Case{0x197, 2, "0x4ed775"},
-                               Case{0x19b, 30, "0x42e3d0"}, Case{0x1ff, 30, "0x42e3d0"}, Case{0x110, 0, "0x6004ed"},
-                               Case{0x69, 0, "0x600a4a"},   Case{0x12a, 2, "0x600654"},  Case{0x111, 0, "0x60246a"},
-                               Case{0x11d, 0, "0x43ed20"},  Case{0x13d, 2, "0x442e10"}};
+    // La clase de los bordes del 0x183 después de su malla 0; la cadena; los tipos que ninguna alta da.
+    constexpr std::array cases{Case{0x183, 0, "0x6011f1"}, Case{0x19b, 30, "0x42e3d0"}, Case{0x1ff, 30, "0x42e3d0"},
+                               Case{0x110, 0, "0x6004ed"}, Case{0x69, 0, "0x600a4a"},   Case{0x12a, 2, "0x600654"},
+                               Case{0x111, 0, "0x60246a"}, Case{0x11d, 0, "0x43ed20"},  Case{0x13d, 2, "0x442e10"}};
     for (const Case& value : cases)
     {
         SCOPED_TRACE(value.address);
@@ -544,23 +543,55 @@ TEST_F(MonsterBodyTest, TheLateChainMonstersOf43ed20DrawTheirPassesOnEveryMap)
         const float fade = std::bit_cast<float>(0x3f4ccccdu);
         EXPECT_FLOAT_EQ(m_color.x, 0.5f * fade);
         EXPECT_NEAR(m_color.y, static_cast<float>(WaveAt(Clock, 0x3b03126fu, 0x3e99999au, 0x3f333333u)) * fade, 1e-6f);
-        // 0x43f945: el 0x197, las mallas 0, 1, 3 y 5 y +0x68 en 1 (0,5 con el subtipo 9) antes de la onda.
+        // 0x43f945: el 0x197, las mallas 0, 1, 3 y 5, las 2 y 4 con la onda y, sin el subtipo 9, otra vez con 2 (con
+        // él, las 0, 1 y 3 con 0x48), y la 6; +0x68 queda en sin(T · 0,002f) · 0,1f + 0,05f.
         for (const std::int32_t subtype : {0, 9})
         {
             m_actor->subtype = subtype;
             m_actor->blendMeshLight = 0.25f;
             m_batch.Begin(Client::Render::Pass3D{});
             result = Draw(0x197, map, 0, Clock);
-            ASSERT_FALSE(result.HasValue());
-            EXPECT_EQ(result.Error().rfind("0x4ed775", 0), 0u) << result.Error();
-            ASSERT_EQ(m_batch.Vertices().size(), 4 * Triangle);
+            ASSERT_TRUE(result.HasValue()) << result.Error();
+            ASSERT_EQ(m_batch.Vertices().size(), (subtype == 9 ? 10 : 9) * Triangle);
             EXPECT_FLOAT_EQ(m_batch.Vertices()[3 * Triangle].position.x, 5.0f);
-            EXPECT_FLOAT_EQ(m_actor->blendMeshLight, subtype == 9 ? 0.5f : 1.0f);
+            EXPECT_EQ(CommandAt(4 * Triangle).state.blend, ModelBlend::Additive);
+            EXPECT_NEAR(m_actor->blendMeshLight,
+                        static_cast<float>(WaveAt(Clock, 0x3b03126fu, 0x3dcccccdu, 0x3d4ccccdu)), 1e-6f);
+            EXPECT_FLOAT_EQ(m_batch.Vertices()[m_batch.Vertices().size() - Triangle].position.x, 6.0f);
         }
         m_actor->subtype = 0;
         m_actor->blendMeshLight = 1.0f;
     }
     EXPECT_EQ(m_cloth.random.State(), AfterRandoms(0));
+}
+
+TEST_F(MonsterBodyTest, The185WavesItsMesh1AlongItsNormals)
+{
+    constexpr float Clock = 2024.0f;
+    for (const std::int32_t map : {0, 2, 24})
+    {
+        SCOPED_TRACE(map);
+        // 0x60157c: RenderBody(2) sin la malla 1 y la malla 1 dos veces con 0x402, al alpha 0,5 y al suyo: cada esquina
+        // corrida por su normal (0, 0, 1) en sin((931 · v + ftol(T)) · 0,007f) · 28 (0x4ed775).
+        m_batch.Begin(Client::Render::Pass3D{});
+        const auto result = Draw(0x185, map, 0, Clock);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        ASSERT_EQ(m_batch.Vertices().size(), WholeBody + Triangle);
+        EXPECT_FLOAT_EQ(m_batch.Vertices()[WholeBody - Triangle].color.alpha, 0.5f);
+        for (std::size_t corner = 0; corner < Triangle; ++corner)
+        {
+            SCOPED_TRACE(corner);
+            const double phase = static_cast<double>(931 * static_cast<int>(corner) + 2024);
+            const auto z =
+                static_cast<float>(std::sin(phase * static_cast<double>(std::bit_cast<float>(0x3be56042u))) * 28.0);
+            for (const std::size_t first : {WholeBody - Triangle, WholeBody})
+            {
+                EXPECT_NEAR(m_batch.Vertices()[first + corner].position.z, z, 1e-5f);
+            }
+        }
+        EXPECT_FLOAT_EQ(m_batch.Vertices()[WholeBody - Triangle].position.x, 1.0f);
+        EXPECT_FLOAT_EQ(m_batch.Vertices()[WholeBody - Triangle + 1].position.x, 2.0f);
+    }
 }
 
 TEST_F(MonsterBodyTest, TheFadingDeathOf43ed20CutsBeforeDrawing)

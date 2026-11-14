@@ -525,7 +525,7 @@ archivo y su lector están en [05](05-formatos-de-datos.md#modelos-bmd); acá, l
   | `0x2` | con textura: `0x40` aditiva, `0x80` `0x620b10`, alpha < 0,99 o un slot de cuatro componentes (`+0x28` en 4) → `0x620a00(1)`; si no, opaca |
   | `0x40` sin `0x2` | aditiva y sin UV; un slot de cuatro componentes no se dibuja |
   | `0x20` | la sombra plana: X = x' + (x' + 2000) · z' / (z' − 4000) + px, Z = pz + 5 |
-  | `0x400` | la onda: v + sin((T + 931 · i) · 0,007) · n · 28, con i el vértice |
+  | `0x400` sin `0x20` | la onda (`0x4ed775`): v + n · sin((931 · i + ftol(T)) · 0,007f) · 28, con i el vértice y n la normal girada de la esquina; el seno en la x87 y cada producto y la suma en PC53 (CL9 hito 2, fase 8: `DrawItemMeshPass` con el reloj del mundo, una esquina por vértice) |
   | `0x4`, `0x8`, `0x200`, `0x800`, `0x1000`, `0x4000`, `0x8000`, `0x10000` | un pase de brillo (abajo) |
 
   Las mezclas no tocan `glDepthFunc` y guardan la última en `0x7d366dc`: `0x620980` opaca (sin
@@ -10364,7 +10364,7 @@ con el modelo de `0x5769ad8 + tipo · 0xe0` (sin acciones, nada: `0x50ba82`), en
      `0x439d90`. El `0x196`: `RenderBody(2)` y (0,5; sin(T · 0,002f) · 0,3f + 0,7f; 0,5) con la malla 0 en `0x44` al
      alpha 0,8. El `0x197`: las mallas 0, 1, 3 y 5 en 2 sin el blendMesh; v = sin(T · 0,002f) · 0,3f + 0,7f en la x87,
      con el subtipo 9 `+0x68` en 0,5 y (v; v · 0,4; v · 0,4), si no `+0x68` en 1 y (v · 0,3; v · 0,6; v); las mallas 2 y
-     4 en `0x440` (la onda) con su blendMesh; con el 9, 1 y las 0, 1 y 3 en `0x48`; si no, las 2 y 4 en 2 con su
+     4 en `0x440` (aditivas y con la onda de `0x4ed775`, fase 8) con su blendMesh; con el 9, 1 y las 0, 1 y 3 en `0x48`; si no, las 2 y 4 en 2 con su
      blendMesh y la luz en `sin(T · 0,002f) · 0,3f + 0,7f`; la malla 6 en 2 con blendMesh 6 y la luz en
      `sin(T · 0,002f) · 0,1f + 0,05f`, que queda en `+0x68`, y `0x439d90`. `0x439d90`: con `+0x110` en `0x21` o
      `0x22`, `0x4ee770(6, 0x10a, 1 o 2)` (CL11), `+0x110` en 0 y el sonido `0x88`. Después de todos, `0x43fc04`: con
@@ -10413,15 +10413,16 @@ con el modelo de `0x5769ad8 + tipo · 0xe0` (sin acciones, nada: `0x50ba82`), en
      sin otro acceso abierto) y, 25 pasos o más después de `+0x188` (con signo), hace el común, `0x44` con 1 y `0x48`
      con (0,3; 0,3; 1), los dos con Chrome01; el `0x198`, el común; el `0x18a` (`0x601601`, el segundo modelo del
      `+0x376` `0x4d`, que ninguna alta da: lo dibuja `0x50c244` con el tipo + 1), con `model+0x88` en 0 y el color en 1,
-     `RenderBody(0x42)` con Chrome01, y después `model+0x88` en `0xff`, el color en 0,6 y el común (`0x602216`);
+     `RenderBody(0x42)` con Chrome01, y después `model+0x88` en `0xff`, el color en 0,6 y el común (`0x602216`); el
+     `0x185` (`0x60157c`, fase 8): `RenderBody(2)` sin la malla 1 y la malla 1 dos veces con `0x402` (la onda de
+     `0x4ed775`) y la textura de `+0x58`, al alpha 0,5 y al de `+0x174`;
    - `0x602391`: el `0x177` con la luz en `sin(T · 0,002f) · 0,3f + 0,5f`, la malla 0 con la textura de su malla 6
      (`IndexTexture[6]`, `[model+0x38]+0xc`) y blendMesh 0, y la malla 3 con `0x44`, blendMesh 3 y la V en
      `−((ftol(T) % 100) · 0,01f)` (el resto con el signo del dividendo); `0x60243e`: el `0x1f3` y el `0x1f4`, la malla 0
      con `0x42`, U y V en 0.
    Cortan con su dirección (P-C332): el `0x18e` muriéndose o antes de los 25 pasos y el `0x18f` muriéndose
    (`0x4ee770`, CL11, después de `+0x0` en 0 si muere y del sonido `0x87`), la clase de los bordes del `0x183`
-   (`0x6011f1`, después de la malla 0), la onda (`0x400`, `0x4ed775`) del `0x185` después de su cuerpo y del `0x197`
-   después de sus mallas 0, 1, 3 y 5, lo de la CL11 de `0x43ed20` (`0x4ee770` al morir del `0x191`, el `0x193` al
+   (`0x6011f1`, después de la malla 0), lo de la CL11 de `0x43ed20` (`0x4ee770` al morir del `0x191`, el `0x193` al
    `0x197`, `0x43ed6c` y sus copias; las partículas de Kundun en `0x43eeb9`, después del temblor; sus joints en
    `0x43f20d`, después del primer `rand()`; `0x439dc5`, que MuRet no alcanza: solo pone 0 y 1 en `+0x110`), y el
    helper de la cadena con tipos de monstruo `0x42e3d0` (el `0x19b`, el `0x19c`, el `0x1a8`, el `0x1f8` y el `0x1ff`
@@ -10443,7 +10444,7 @@ con el modelo de `0x5769ad8 + tipo · 0xe0` (sin acciones, nada: `0x50ba82`), en
    deja en 0), y tres `0x53fe70(0x5c6, punto, ángulos, &luz, 3, 1, 0)` con la luz (x' · 0,6f; x' · 0,7f; x · 0,8f), x'
    el x guardado en float, cada una con cuatro `rand()` antes: el corrimiento `rand() % 20 − 10` en x, y y z (que queda
    en `[ebp−0x50]`) y el hueso `rand() % +0x22` del modelo. El `0x46` (`0x50c0fb..0x50c136`, el monstruo 70 con el
-   modelo `0x185`, que corta antes en `0x4ed775`, P-C332): un `0x5491e0(0x5ac, punto, 0,8f, &luz, objeto, 0, 0)` en el hueso 20
+   modelo `0x185`): un `0x5491e0(0x5ac, punto, 0,8f, &luz, objeto, 0, 0)` en el hueso 20
    con el corrimiento de `[ebp−0x50]` en 0 y la luz de `[ebp−0x44]`, (1; 1; 1) desde `0x50bab9`, sin `rand()`.
    Los pases de brillo (fase 7, `Scenes::MonsterShines`): `0x50c671..0x50c705` con los `+0x376` `0x26`, `0x2b`, `0x34`,
    `0x3b`, `0x43` y `0x4e..0x53` y el factor en 1 (0,5 el `0x3b`): el `0x2b` y los `0x4e..0x53` con

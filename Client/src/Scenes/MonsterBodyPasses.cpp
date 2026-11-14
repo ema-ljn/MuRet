@@ -61,7 +61,7 @@ Result DrawBodyPass(MonsterBodyModel& model, std::uint32_t flags, const BodyPass
         return {};
     }
     return DrawItemMeshPass(model.batch, model.models, object, model.frameClock, model.meshes, -1, flags,
-                            texture.Value(), &model.object.color);
+                            texture.Value(), &model.object.color, model.worldClock);
 }
 
 Result DrawMeshPass(MonsterBodyModel& model, std::int16_t mesh, std::uint32_t flags, const BodyPassArgs& args)
@@ -75,7 +75,7 @@ Result DrawMeshPass(MonsterBodyModel& model, std::int16_t mesh, std::uint32_t fl
     meshArgs.hiddenMesh = -1;
     const DrawnObject object = PassObject(model, meshArgs);
     return DrawItemMeshPass(model.batch, model.models, object, model.frameClock, model.meshes, mesh, flags,
-                            texture.Value(), &model.object.color);
+                            texture.Value(), &model.object.color, model.worldClock);
 }
 
 void RequestBodySound(MonsterBodyFrame& frame, std::int32_t sound)

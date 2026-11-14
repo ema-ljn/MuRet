@@ -316,11 +316,13 @@ DrawItemFromMeshes(Render::ModelBatch& batch, const IModelLibrary& models, const
 // Los pases especiales prestan las mismas mallas y no calculan otra pose.
 // storedColor recibe sólo los FSTP de RGB, también antes de un error posterior.
 // El bit0x20 proyecta al piso con spread2000 (4ed6f6, Kalima); no acredita el spread2500 del asedio.
+// El 0x400 sin el 0x20 es la onda de 4ed775: cada esquina corrida por su normal girada en
+// sin((931 · vértice + ftol(T)) · 0,007f) · 28, con T el reloj del mundo (`worldClock`, 0x5767b88); sin él, corta.
 [[nodiscard]] Core::Expected<void, std::string>
 DrawItemMeshPass(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
                  Core::Duration frameClock, std::span<const Render::Models::SkinnedMesh> meshes, std::int16_t mesh,
                  std::uint32_t flags, std::optional<Render::TextureSlot> texture = std::nullopt,
-                 glm::vec3* storedColor = nullptr);
+                 glm::vec3* storedColor = nullptr, std::optional<float> worldClock = std::nullopt);
 
 // El punto `offset` del hueso `bone` de `object` posado como lo posa DrawObject, en el mundo (por la escala
 // y más la posición del objeto, como los vértices). Es lo que lee del buffer global de la pose

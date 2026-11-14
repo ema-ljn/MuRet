@@ -281,8 +281,9 @@ LateResult DrawTheLateCase(MonsterBodyFrame& frame)
         return Done(DrawMeshPass(model, 2, BaseFlags, lit), LateNext::Tail);
     }
     case 0x183:
-        // 0x6011ae..0x6011e5: la malla 0; después, 0x457d60 arma la clase de los bordes (vtable 0x6b8d4c) y 0x457f70
-        // la dibuja (0x6011f1..0x601241).
+        // 0x6011ae..0x6011e5: la malla 0; después, 0x457d60 arma la clase de los bordes (vtable 0x6b8d4c), 0x457e00
+        // junta las aristas de silueta de la malla 1 y 0x457f70 las dibuja con 0x458000, un rand() por arista
+        // (0x6011f1..0x601241). Corta antes de esos rand(): le falta la vecindad de los triángulos (P-C332 b).
         if (auto drawn = DrawMeshPass(model, 0, BaseFlags, args); !drawn.HasValue())
             return Core::Unexpected(drawn.Error());
         return Core::Unexpected(
@@ -356,13 +357,17 @@ LateResult DrawTheLateCase(MonsterBodyFrame& frame)
     case 0x185:
     {
         // 0x60157c..0x6015f1: RenderBody(2) sin la malla 1 y la malla 1 dos veces con 0x402 (la onda de 0x4ecc30,
-        // 0x4ed775), la textura en +0x58 y el alpha en 0,5 y en +0x174.
+        // 0x4ed775), la textura en +0x58 y el alpha en 0,5 y en +0x174; después 0x602365.
+        constexpr std::uint32_t Waving = 0x402;
         BodyPassArgs hidden = args;
         hidden.hiddenMesh = 1;
         if (auto drawn = DrawBodyPass(model, BaseFlags, hidden); !drawn.HasValue())
             return Core::Unexpected(drawn.Error());
-        return Core::Unexpected(
-            Cut("0x4ed775", "la onda de 0x4ecc30 (la bandera 0x400) de la malla 1 de 0x6002e0", 0x185).Error());
+        BodyPassArgs waving = WithTexture(args, actor.dword58);
+        waving.alpha = 0.5f;
+        if (auto drawn = DrawMeshPass(model, 1, Waving, waving); !drawn.HasValue())
+            return Core::Unexpected(drawn.Error());
+        return Done(DrawMeshPass(model, 1, Waving, WithTexture(args, actor.dword58)), LateNext::Tail);
     }
     case 0x18a:
         // 0x601601..0x60164f, el segundo modelo del +0x376 0x4d (0x50c244): con el +0x88 en 0 y el color en 1,

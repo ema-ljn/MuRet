@@ -368,7 +368,8 @@ Result DrawTheBody(MonsterFrame& frame, const Render::Models::Skeleton& skeleton
                            .models = frame.fauna,
                            .object = object,
                            .meshes = meshes,
-                           .frameClock = frame.pass.frameClock};
+                           .frameClock = frame.pass.frameClock,
+                           .worldClock = frame.worldClock};
     MonsterBodyFrame body{.model = model,
                           .actor = actor,
                           .bones = bones,

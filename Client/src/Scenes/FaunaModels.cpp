@@ -37,7 +37,8 @@ namespace
 {
 constexpr std::int32_t IcarusMonster = 0x1f;
 constexpr std::int32_t KalimaMonster = 0x21;
-constexpr std::array<std::int16_t, 10> NoSounds{-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
+// Los sonidos de un modelo que no cargó nadie: el registro de 0x5769ad8 en 0 (0x60dbe0, 0x60dc80), no −1.
+constexpr std::array<std::int16_t, 10> NoSounds{};
 constexpr Data::Textures::Sampling MonsterSampling{Data::Textures::Filter::Nearest, Data::Textures::Wrap::Repeat};
 // El slot que el destructor del BMD no suelta (0x4f07b0..0x4f07c3).
 constexpr std::uint16_t KeptSlot = 0x12e;

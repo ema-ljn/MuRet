@@ -189,13 +189,18 @@ void ClearBit(std::uint8_t& bits, std::uint8_t bit)
 
 // El modelo de 0x5769ad8 + tipo · 0xe0 que leen 0x4f9580, 0x4fcbb0 y 0x505de0: Player.bmd, el NewFace suelto o el de
 // los monstruos y los NPC (WorldState::FaunaResources, con la biblioteca del mapa detrás; 08, P-C176).
+// El registro de un monstruo o un NPC existe siempre: el de un modelo que no se cargó (un .bmd que falta en Npc u
+// Object35, que 0x60da30 saltea, o un tipo sin caso de carga) está en 0, sin acciones (+0x26), y 0x4ea030, 0x4f9580 y
+// 0x505de0 lo toman como un modelo vacío.
 const Render::Models::Skeleton* ModelSkeletonOf(const ActorState& actor, const CharacterStepContext& context)
 {
+    static const Render::Models::Skeleton ZeroRecord;
     if (actor.type == Data::Models::PlayerSkeletonModel)
         return context.playerSkeleton;
     if (IsNewFace(actor.type))
         return context.newFaceSkeleton;
-    return context.world.FaunaResources().SkeletonOf(actor.type);
+    const Render::Models::Skeleton* loaded = context.world.FaunaResources().SkeletonOf(actor.type);
+    return loaded != nullptr ? loaded : &ZeroRecord;
 }
 
 // 0x5f93c0(x, y) sobre el terreno del paso, con la altura fija de context; vacía sin las alturas o sin el
@@ -832,24 +837,46 @@ Core::Expected<void, std::string> DropTheDevilSquareRain(const ActorState& actor
     return {};
 }
 
+// 0x505e15..0x505ebb: la caja de +0x13c..+0x168 con la de +0x124..+0x138: el rincón más la posición y los tres ejes
+// (el largo de cada lado en la diagonal, el resto en 0). Cada resta y cada suma en la x87 se guarda en float: lo mismo
+// que en float.
+void BoxTheModelWithoutActions(ActorState& actor)
+{
+    actor.field14c = 0.0f;
+    actor.field13c = actor.boundsMin.x;
+    actor.field140 = actor.boundsMin.y;
+    actor.field144 = actor.boundsMin.z;
+    actor.field150 = 0.0f;
+    actor.field154 = 0.0f;
+    actor.field15c = 0.0f;
+    actor.field160 = 0.0f;
+    actor.field164 = 0.0f;
+    actor.field148 = actor.boundsMaxX - actor.boundsMin.x;
+    actor.field158 = actor.boundsMaxY - actor.boundsMin.y;
+    actor.field168 = actor.boundsTop - actor.boundsMin.z;
+    actor.field13c = actor.position.x + actor.field13c;
+    actor.field140 = actor.position.y + actor.field140;
+    actor.field144 = actor.position.z + actor.field144;
+}
+
 // 0x505de0(c, c) desde 0x508ee6, hasta su final (06, "Los efectos de los personajes (0x505de0)" y "El cuerpo de los
 // monstruos y los NPC"). `hero` es c == [0x743a170].
 Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t slot, bool hero,
                                                  const CharacterStepContext& context,
                                                  const Data::Terrain::TerrainLayer<std::uint16_t>* walls)
 {
-    // 0x505e0b: un modelo sin acciones (+0x26 de 0x5769ad8 + tipo · 0xe0) va a la caja de 0x505e15.
+    // 0x505e0b: un modelo sin acciones (+0x26 de 0x5769ad8 + tipo · 0xe0) va a la caja de 0x505e15 y sale.
     const bool player = actor.type == Data::Models::PlayerSkeletonModel;
     const Render::Models::Skeleton* skeleton = ModelSkeletonOf(actor, context);
     if (skeleton == nullptr)
     {
         return Core::Unexpected(
-            std::format("0x505e0b: el modelo {:#x} del lugar {} no está cargado", actor.type, slot));
+            std::format("0x505e0b: falta Player.bmd o el NewFace del modelo {:#x} (lugar {})", actor.type, slot));
     }
     if (skeleton->actions.empty())
     {
-        return Core::Unexpected(std::format(
-            "0x505e15: la caja del modelo {:#x} sin acciones (lugar {}) no está portada", actor.type, slot));
+        BoxTheModelWithoutActions(actor);
+        return {};
     }
     // 0x505ec6..0x505ee4: la posición, la escala y la acción van al modelo compartido (+0x6c, +0x68 y
     // +0xa0), que leen los 0x4ec110 de más abajo y que el dibujo vuelve a escribir antes de posar. MuRet

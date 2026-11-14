@@ -1053,7 +1053,6 @@ TEST(CharacterStepTest, TheBodyStopsWhereMuRetHasNothing)
                  tested.Hero().byte1e3 = Name[10];
              },
              "0x4fcd82", AfterTheTimers},
-        Case{"otro modelo", [](GameWorld& tested) { tested.Hero().type = 0x100; }, "0x4f9580", AfterTheTimers},
         Case{"sin Player.bmd", [](GameWorld& tested) { tested.player = nullptr; }, "0x4f9580", AfterTheTimers},
         Case{"una acción fuera",
              [](GameWorld& tested)
@@ -1081,6 +1080,13 @@ TEST(CharacterStepTest, TheBodyStopsWhereMuRetHasNothing)
         EXPECT_TRUE(HasError(stepped, probe.cut)) << ErrorOf(stepped);
         EXPECT_EQ(tested.random.State(), RandomAfter(probe.draws).State());
     }
+    // Otro modelo sin cargar es el registro en 0 (+0x26 sin acciones): 0x4f9580 no avanza, sale el rand() % 6 y
+    // 0x505de0 arma la caja de 0x505e15 y sale, sin la celda ni el & 7.
+    GameWorld unloaded;
+    unloaded.Hero().type = 0x100;
+    const auto boxed = unloaded.Step(Everything);
+    EXPECT_TRUE(boxed.HasValue()) << ErrorOf(boxed);
+    EXPECT_EQ(unloaded.random.State(), RandomAfter(AfterTheTimers + BodyDraws).State());
 }
 
 // Los bordes de esos cortes: los mapas 17 y 24, el nombre con +0x1e3 en 0 (el que deja la respuesta del F3 03) y
@@ -1553,9 +1559,9 @@ TEST(CharacterStepTest, AfterItsHeadAnotherCharacterTakesThePathOfTheHero)
 }
 
 // Las salidas de 0x508ba0 antes de la celda: el que se muere sale (0x508bb6) y corta en su cuerpo (0x4fb9e0),
-// salvo el 0x154, que toma la altura del terreno (0x508e89); el que camina sigue su camino (0x508e27); el 0x159
-// sale sin leer la celda y corta en su modelo (0x4f9580). Cada uno, con el héroe vivo en el lugar 42, después del
-// TerrainWall.
+// salvo el 0x154, que toma la altura del terreno (0x508e89); el que camina sigue su camino (0x508e27). Cada uno, con el
+// héroe vivo en el lugar 42, después del TerrainWall. El 0x159 sale sin leer la celda; sin su modelo (el registro en
+// 0), no avanza, saca el rand() % 6 y 0x505de0 arma su caja (0x505e15), y después el héroe da su paso entero.
 TEST(CharacterStepTest, TheExitsOf508ba0BeforeTheCell)
 {
     struct Case
@@ -1568,11 +1574,12 @@ TEST(CharacterStepTest, TheExitsOf508ba0BeforeTheCell)
         int draws;
     };
     constexpr std::uint16_t Player = Client::Data::Models::PlayerSkeletonModel;
-    for (const Case& probe : {Case{"se muere", Player, 1, 0, "0x4fb9e0", WallDraws},
-                              Case{"se muere el 0x154", 0x154, 1, 0, "0x508e89", WallDraws},
-                              // Walk ya existe: consume su rand antes de que Position encuentre la altura ausente.
-                              Case{"camina", Player, 0, 1, "0x508a80", 2 * WallDraws + 1},
-                              Case{"el 0x159", 0x159, 0, 0, "0x4f9580", 2 * WallDraws}})
+    for (const Case& probe :
+         {Case{"se muere", Player, 1, 0, "0x4fb9e0", WallDraws},
+          Case{"se muere el 0x154", 0x154, 1, 0, "0x508e89", WallDraws},
+          // Walk ya existe: consume su rand antes de que Position encuentre la altura ausente.
+          Case{"camina", Player, 0, 1, "0x508a80", 2 * WallDraws + 1},
+          Case{"el 0x159", 0x159, 0, 0, "", 2 * WallDraws + BodyDraws + OwnRecordDraws + BodyDraws + SeenEffectsDraws}})
     {
         SCOPED_TRACE(probe.name);
         GameWorld tested;
@@ -1585,7 +1592,10 @@ TEST(CharacterStepTest, TheExitsOf508ba0BeforeTheCell)
 
         const auto stepped = tested.Step(Everything);
 
-        EXPECT_TRUE(HasError(stepped, probe.cut)) << ErrorOf(stepped);
+        if (probe.cut.empty())
+            EXPECT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
+        else
+            EXPECT_TRUE(HasError(stepped, probe.cut)) << ErrorOf(stepped);
         EXPECT_EQ(tested.random.State(), RandomAfter(probe.draws).State());
     }
 }

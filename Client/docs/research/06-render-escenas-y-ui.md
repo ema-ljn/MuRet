@@ -10164,7 +10164,11 @@ desde `SessionEventApplier`, con `RaiseTheHandShine` (`0x53d810`), `HandShinePoi
 `CreateDamageNumber` (`0x548e40`, el mismo del hito 3); la 5fd está en `World::Particles` (su alta en
 `CreateOwnedChecked` con el dueño personaje, su paso con `ParticleActorHands` y su dibujo en el billboard común). La
 escala y el origen del modelo son los del dueño (Q-C853). Corta sin las acciones del modelo del que pega (`0x4cee23`,
-por ejemplo con el fantasma) y con un golpe que corta (`0x4f53a0`: el monstruo sin tabla de sonidos, `0x4f5552`).
+por ejemplo con el fantasma). El golpe de un monstruo (`0x4f53a0`) toma la acción 5 de las acciones de su modelo
+(`SetMonsterAction`, `0x4f5480`) y su sonido de la tabla de `0x612c80` (`0x4f553d..0x4f55a7`: el `WORD` `+0xae`; en −1 sin
+sonido ni `rand()`, si no `rand() & 1` elige `+0xae` o `+0xb0`, más `0xd2` y 5 con el subtipo 9, en `lastSoundId`); un
+modelo sin cargar es el registro en 0 del original (sin acciones, sonido `0xd2`). Las chispas del `0x18f` cortan
+(`0x4f55bb`, CL9.2). Tests: `ActorShockTest` (Lorencia y Devias).
 Tests: `MagicAttackCountTest`, `HandShineTest` y `ViewportTest.MagicAttackCountReadsTheCasterTheSkillAndTheTargets`.
 
 ### Lo que dicen los NPC
@@ -10298,8 +10302,12 @@ MuRet: `Scenes::ModelBody` (`ModelSpeedOf`, `FinishTheModelAction` con `0x42d890
 `ActorWalkContext::modelSounds` (`FaunaModels::SoundActions`); con el subtipo 209 a 211, antes el `0x7b` (`0x4f3ef2`, que
 la tabla pisa en `lastSoundId` si suena). El `0x1f5` lee la key de la última pose de su modelo en
 `FaunaModels::PoseKey`, que guarda el dibujo ([El dibujo de los monstruos y los NPC](#el-dibujo-de-los-monstruos-y-los-npc)).
-Cortan con su dirección los efectos por tipo (3 y 4, CL11) y la acción 6 que termina con `+0x38a` en 0 (`0x4fcc3c`);
-08, P-C241. Tests:
+Un modelo que no cargó nadie es el registro en 0 del original (`ModelSkeletonOf`, `SetMonsterAction` y
+`FaunaModels::SoundActions`): sin acciones, `0x4f9580` no avanza, `0x4ea030` no pone nada y `0x505de0` arma la caja de
+`0x505e15` (`+0x13c..+0x168`, `ActorState::field13c..field168`) y sale; sus sonidos, en 0. El 18 de otro (`0x4cb750`)
+también busca el modelo de un monstruo en la fauna. Cortan con su dirección los efectos por tipo (3 y 4, CL11) y la
+acción 6 que termina con `+0x38a` en 0 (`0x4fcc3c`); 08, P-C241. Tests (también `MonsterStep.AModelThatIsNotLoadedOnlyBoxesItself`,
+`ActionReplyTest.AMonsterTakesTheActionsOfItsLoadedModel`):
 `ModelBodyTest` y `MonsterStep` (`test_model_body.cpp`: un Monster02 que avanza con su velocidad y descansa al terminar
 la 3, con sus `rand()`, y el `0x1f5` que elige su acción), `ActorWalkTest.AnotherModelSoundsFromItsModelTable` y
 `ActorWalkTest.TheSubtypes209To211AskForTheirLeadSoundBeforeTheTable`.

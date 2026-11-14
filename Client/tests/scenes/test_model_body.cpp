@@ -413,8 +413,45 @@ TEST_F(MonsterStep, AMonsterThatEndsItsAttackRests)
     EXPECT_EQ(random.State(), expected.State());
 }
 
-// Monster01 (0x152) tiene caso en 0x505de0 (0x5084b3): corta después del & 7. Un modelo sin cargar (el 0x154) corta
-// en 0x4f9580, después de 0x508ba0.
+// Un modelo sin cargar (el 0x154) es el registro en 0 de 0x5769ad8 (+0x26 sin acciones): 0x4f9580 no avanza, el
+// rand() % 6 de 0x4fd7e4 sale igual y 0x505de0 va a 0x505e15, que arma la caja de +0x13c..+0x168 con la de +0x124 y
+// la posición y sale, sin la celda ni el & 7 (B3). En Lorencia, en Devias y en Atlans.
+TEST_F(MonsterStep, AModelThatIsNotLoadedOnlyBoxesItself)
+{
+    for (const std::int32_t map : {0, 2, 7})
+    {
+        SCOPED_TRACE(map);
+        m_world->Runtime().map = map;
+        m_actor.type = 0x154;
+        m_actor.animation = {};
+        m_actor.animation.action = 1;
+        m_actor.animation.frame = 0.5f;
+        m_actor.position = {1000.0f, 2000.0f, 30.0f};
+        m_actor.boundsMin = {-60.0f, -60.0f, 0.0f};
+        m_actor.boundsMaxX = 50.0f;
+        m_actor.boundsMaxY = 70.0f;
+        m_actor.boundsTop = 150.0f;
+        m_actor.field14c = 9.0f;
+        m_actor.field164 = 9.0f;
+        CrtRandom random(Seed);
+        const auto stepped = Step(random);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(m_actor.animation.action, 1);
+        EXPECT_EQ(m_actor.animation.frame, 0.5f);
+        EXPECT_EQ(m_actor.field13c, 940.0f);
+        EXPECT_EQ(m_actor.field140, 1940.0f);
+        EXPECT_EQ(m_actor.field144, 30.0f);
+        EXPECT_EQ(m_actor.field148, 110.0f);
+        EXPECT_EQ(m_actor.field158, 130.0f);
+        EXPECT_EQ(m_actor.field168, 150.0f);
+        for (const float zero : {m_actor.field14c, m_actor.field150, m_actor.field154, m_actor.field15c,
+                                 m_actor.field160, m_actor.field164})
+            EXPECT_EQ(zero, 0.0f);
+        EXPECT_EQ(random.State(), Client::Tests::AfterDraws(Seed, 8 + 1).State());
+    }
+}
+
+// Monster01 (0x152) tiene caso en 0x505de0 (0x5084b3): corta después del & 7.
 TEST_F(MonsterStep, TheModelsWithTheirOwnEffectsCutAfterTheirRandom)
 {
     m_actor.animation.action = 1;
@@ -426,13 +463,6 @@ TEST_F(MonsterStep, TheModelsWithTheirOwnEffectsCutAfterTheirRandom)
     CrtRandom expected = Client::Tests::AfterDraws(Seed, 8 + 1 + 8);
     DrawTheHeadAndTheEffects(expected);
     EXPECT_EQ(random.State(), expected.State());
-
-    m_actor.type = 0x154;
-    CrtRandom other(Seed);
-    const auto missing = Step(other);
-    ASSERT_FALSE(missing.HasValue());
-    EXPECT_NE(missing.Error().find("0x4f9580"), std::string::npos) << missing.Error();
-    EXPECT_EQ(other.State(), Client::Tests::AfterDraws(Seed, 8).State());
 }
 
 // La biblioteca del mapa detrás de FaunaResources con el 0x1f5 (un NPC) en el esqueleto de Monster02.

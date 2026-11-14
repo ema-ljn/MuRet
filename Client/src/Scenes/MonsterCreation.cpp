@@ -477,14 +477,14 @@ const Render::Models::Skeleton* MonsterSkeletonOf(const WorldEntryResources& res
     return resources.models.SkeletonOf(model);
 }
 
-Core::Expected<void, std::string> SetMonsterAction(ActorState& actor, std::uint8_t action, std::uint32_t address,
+Core::Expected<void, std::string> SetMonsterAction(ActorState& actor, std::uint8_t action,
+                                                   [[maybe_unused]] std::uint32_t address,
                                                    const WorldEntryResources& resources)
 {
-    const auto* skeleton = MonsterSkeletonOf(resources, actor.type);
-    if (skeleton == nullptr)
-        return Core::Unexpected(
-            std::format("{:#x}: 0x4ea030 lee las acciones del modelo {:#x}, que no está cargado", address, actor.type));
-    Render::Models::SetAction(actor.animation, *skeleton, action);
+    // El registro de 0x5769ad8 + tipo · 0xe0 existe siempre: el de un modelo que no se cargó (un .bmd que falta en Npc
+    // u Object35, que 0x60da30 saltea) tiene +0x26 en 0, y 0x4ea030 sale sin poner nada (0x4ea056).
+    if (const auto* skeleton = MonsterSkeletonOf(resources, actor.type))
+        Render::Models::SetAction(actor.animation, *skeleton, action);
     return {};
 }
 

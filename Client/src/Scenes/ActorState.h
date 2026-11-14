@@ -206,11 +206,20 @@ struct ActorState
     // +0x16c: si se ve. 0x508f00 lo escribe en cada paso con el trapecio del último dibujo (0x5fba90) y,
     // vivo, otra vez 0x508ea0. 0x511290 lo pone en 0 (0x511bd8).
     bool seen = false;
-    // +0x13c, +0x148, +0x158 y +0x168: 0x510d00 los pone en 1.000, 1, 1 y 1 en el héroe con +0x1d8 & 4 en
-    // la escena 5 (0x510e57), en vez de dibujarlo. Qué son y quién los lee, sin leer.
+    // +0x13c..+0x168: una caja, el rincón (+0x13c..+0x144) y tres ejes de tres floats. 0x510d00 pone +0x13c, +0x148,
+    // +0x158 y +0x168 en 1.000, 1, 1 y 1 en el héroe con +0x1d8 & 4 en la escena 5 (0x510e57), en vez de dibujarlo;
+    // 0x505e15 arma la de un modelo sin acciones con la de +0x124 y la posición. Quién la lee, sin leer.
     float field13c = 0.0f;
+    float field140 = 0.0f;
+    float field144 = 0.0f;
     float field148 = 0.0f;
+    float field14c = 0.0f;
+    float field150 = 0.0f;
+    float field154 = 0.0f;
     float field158 = 0.0f;
+    float field15c = 0.0f;
+    float field160 = 0.0f;
+    float field164 = 0.0f;
     float field168 = 0.0f;
     // +0x389: distinto de 0, se está muriendo y 0x508f00 no lo pone en el TerrainWall. 0x511290 lo pone
     // en 0 (0x511c05); quién más lo escribe, sin leer.

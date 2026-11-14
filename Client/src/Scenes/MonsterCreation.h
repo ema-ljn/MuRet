@@ -25,7 +25,8 @@ struct WorldEntryResources;
 [[nodiscard]] const Render::Models::Skeleton* MonsterSkeletonOf(const WorldEntryResources& resources,
                                                                 std::uint16_t model);
 
-// 0x4ea030(personaje, acción) con el esqueleto de MonsterSkeletonOf; un modelo que no está corta con `address`.
+// 0x4ea030(personaje, acción) con el esqueleto de MonsterSkeletonOf. Un modelo que no está es el registro en 0 del
+// original (+0x26, sin acciones): no pone nada y no es un error. `address` queda para quien llama.
 [[nodiscard]] Core::Expected<void, std::string>
 SetMonsterAction(ActorState& actor, std::uint8_t action, std::uint32_t address, const WorldEntryResources& resources);
 

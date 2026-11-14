@@ -338,7 +338,8 @@ de Q/W/E; los `rand()` de la búsqueda del ítem del piso en el picking. **Desbl
       2026-11-14: la lista de `0x6e5660` con su paso, su dibujo y el OK y el cancelar del `0xa4`,
       `Scenes/JewelBundleList`; lo que se infiere, en 08, P-C366. Y el ítem del almacén (con su contraseña), de la
       caja del caos y de la del entrenador al equipo (`0x5c007c..0x5c1d8a`); el comercio y la tienda personal al
-      equipo (`0x5c1d90`, hito 7), P-C367.)
+      equipo (`0x5c1d90`, hito 7), P-C367. El EDIT de los diálogos (`[0x5763504]`, del hito 6): leído y sin portar,
+      con lo que tienen que llamar el `0x91` y los cortes del hito 7, P-C368.)
 - [ ] **Las ventanas:** la tienda (`0x5f4720`), el almacén (`0x5f4e30`, `0x5e7bf0`, `0x5e9b10`, el teclado de
       `0x78abb20`), la caja del caos (`0x5febf0`, `0x5fe610`), reparar (`0x44b910`, la R de `0x59ff10`), el `BC`
       (`0x401f30`, `0x402500`) y los precios (`0x5b1200`, `0x5b2d23`). (Fase 2, 2026-11-13: los pasos de la tienda con

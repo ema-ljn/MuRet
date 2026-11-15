@@ -112,8 +112,9 @@ TEST(InputEventsTest, AutoRepeatIsNotAnEvent)
 
 TEST(InputEventsTest, RepeatedNavigationAndDeleteRemainEditingEvents)
 {
-    for (const auto [scancode, key] : {std::pair{SDL_SCANCODE_LEFT, Key::Left}, std::pair{SDL_SCANCODE_HOME, Key::Home},
-                                       std::pair{SDL_SCANCODE_DELETE, Key::Delete}})
+    for (const auto& [scancode, key] :
+         {std::pair{SDL_SCANCODE_LEFT, Key::Left}, std::pair{SDL_SCANCODE_HOME, Key::Home},
+          std::pair{SDL_SCANCODE_DELETE, Key::Delete}})
     {
         const auto repeated = InputEventFor(KeyboardEvent(SDL_EVENT_KEY_DOWN, scancode, true));
         ASSERT_TRUE(repeated.has_value());
@@ -127,7 +128,7 @@ TEST(InputEventsTest, RepeatedNavigationAndDeleteRemainEditingEvents)
 // actuales sin crear un flanco físico.
 TEST(InputEventsTest, RepeatedControlKeysRemainEditingKeys)
 {
-    for (const auto [scancode, key] :
+    for (const auto& [scancode, key] :
          {std::pair{SDL_SCANCODE_BACKSPACE, Key::Backspace}, std::pair{SDL_SCANCODE_TAB, Key::Tab},
           std::pair{SDL_SCANCODE_RETURN, Key::Enter}})
     {

@@ -1,63 +1,89 @@
-# CL9: traspaso para terminar la ola (2026-11-14)
+# CL9: traspaso para terminar la ola (actualizado 2026-11-15)
 
-> **Actualización posterior sobre H1/H9:** ver [reparación, verificación y pendientes](2026-11-14-cl9-h1-h9-resultado.md).
-> La tabla de abajo conserva la foto histórica: sus porcentajes por bytes no certifican equivalencia funcional.
+> **Entrega actual: [PR #354](https://github.com/ema-ljn/MuRet/pull/354).** H1 está implementado
+> en el alcance ASM revisado. H9 conserva pendientes propios del editor, además de la validación con
+> servidor. La comparación estricta restante en VM y servidor se difiere. Los porcentajes de la tabla
+> miden cobertura por citas de direcciones, no equivalencia funcional ni porcentaje de pruebas nativas.
 
 El 2026-11-14 Emanuel pidió dejar la CL9 lista para que **otros agentes terminen los PRs que faltan**.
-Este documento es la foto a las 08:40Z, con `main` en `910ac03` (#351). Dice qué hay en cada hito, en qué
-orden se cierra la pila, qué le falta a cada uno y cómo se trabaja. Las notas de las revisiones que quedaron
-sin arreglar están en [`2026-11-14-cl9-traspaso/`](2026-11-14-cl9-traspaso/).
+El estado y los porcentajes se actualizaron el 2026-11-15, con `main` en `9649f53e` (#353) y las
+reparaciones del #354 en `37264fa5`. Las notas detalladas de integración más abajo conservan la base
+histórica del 14/11, salvo las actualizaciones expresas; no se volvieron a auditar todos los hitos.
+Las revisiones pendientes están en [`2026-11-14-cl9-traspaso/`](2026-11-14-cl9-traspaso/).
 
-- Plan de la ola: [`2026-11-13-ola-cl9-gameplay.md`](2026-11-13-ola-cl9-gameplay.md), con la tabla de
-  funciones por hito ([`-funciones.tsv`](2026-11-13-ola-cl9-funciones.tsv)) y la de cortes de MuRet
-  ([`-cortes.tsv`](2026-11-13-ola-cl9-cortes.tsv)).
-- Roadmap del cliente: [`2026-10-30-cliente-design.md`](../specs/2026-10-30-cliente-design.md).
-- **Castle Siege (hitos 12 y 13)** tiene su propia sección más abajo: el primer agente del hito 12 lo
-  cortaron los filtros de seguridad de la API.
+- Plan: [`2026-11-13-ola-cl9-gameplay.md`](2026-11-13-ola-cl9-gameplay.md), con las tablas de
+  [funciones](2026-11-13-ola-cl9-funciones.tsv) y [cortes](2026-11-13-ola-cl9-cortes.tsv).
+- Roadmap: [`2026-10-30-cliente-design.md`](../specs/2026-10-30-cliente-design.md).
+- Castle Siege (hitos 12 y 13) conserva su sección y sus pendientes más abajo.
 
 **Por dónde seguir:**
 
-1. Que termine el CI del #342 (hito 3) y Emanuel lo mergee.
-2. El merge del hito 4 con el hito 3 (26 archivos; ver "Hito 4" más abajo). Después, de a uno, cada hito de
-   la cadena con su base, según "Cómo resolver un merge de la cadena".
-3. Los arreglos pendientes de cada hito (CL11 del 3 y del 4, las revisiones del 6), el cableado de "Al armar
-   la cadena" y Castle Siege (12 y 13).
-4. Al final de la ola, la auditoría de cierre y la lista para la VM.
+1. Revisar el #354 y su CI. La suite local conjunta aprobó **7.108 tests**, incluidos 106 GL y 59
+   históricos, sin fallos ni salteos. El merge queda a cargo de Emanuel.
+2. Corregir el CI del #342 (hito 3), integrar el `main` actualizado y resolver sus conflictos antes del
+   merge. La corrida de `de674ec6` terminó con fallos; ya no está corriendo.
+3. Integrar el hito 4 con el hito 3. Después, de a uno, cada hito con su base, según las instrucciones
+   de la cadena. Los conteos de conflictos del resto del documento son la foto histórica del 14/11.
+4. Resolver los arreglos pendientes de cada hito, el editor restante de H9, el cableado de la cadena y
+   Castle Siege (12 y 13).
+5. Completar la auditoría de cierre y la validación estricta pendiente con VM y servidor.
 
 ## Estado por hito
 
-"Portado" es el % de los bytes de la tabla de funciones del plan cuyo código ya está, con la dirección citada
-fuera de un corte, en cualquier rama de la CL9. Es una cota baja: una función portada sin citar su dirección
-no cuenta.
+**Cobertura por citas** = bytes de las filas con alguna dirección de su rango citada fuera de una línea
+de corte en `Client/src/`, divididos por los bytes de todas las filas del hito. Se toma la unión de
+`main`, el #354 y las cabezas de los hitos pendientes; no se suman dos veces los mismos bytes.
+Es un indicador estático: una cita no demuestra que todas las ramas estén implementadas, y una función
+implementada sin cita puede no contar. Por eso H9 puede tener 100 % de citas y seguir incompleto.
 
-| Hito | Rama | PR | Fase | Portado | Estado del PR |
-| --- | --- | --- | --- | --- | --- |
-| 1, emote y otros jugadores | — | #338 | cerrado | 100 % | mergeado |
-| 9, amigos y ventanas viejas | — | #339 | cerrado | 100 % | mergeado |
-| 5, ítems del piso | — | #340 | cerrado | 96 % | mergeado |
-| 2, monstruos, NPC, misiones | — | #341 | cerrado | 100 % | mergeado |
-| 3, pegar, daño, muerte | `claude/cl9-hito-3` | #342 | 8 de 8 | 100 % | listo, base `main`, sin conflictos (mergeó el hito 2 final y `main`), CI corriendo en `de674ec6` |
-| 4, skills, cuervo, mascotas | `claude/cl9-hito-4` | #343 | 7 de 7 | 98 % | borrador, base hito 3, 26 en conflicto con `de674ec6` |
-| 11, eventos | `claude/cl9-hito-11` | #344 | 7 de 7 | 96 % | borrador, base hito 4, 37 en conflicto |
-| 7, party, comercio, duelo, tiendas | `claude/cl9-hito-7` | #345 | 7 de 7 | 76 % | borrador, base hito 11, 28 en conflicto |
-| 8, gremio, alianza, guerra | `claude/cl9-hito-8` | #346 | 7 de 7 | 76 % | borrador, base hito 7, 14 en conflicto |
-| 10, chat con amigos y cartas | `claude/cl9-hito-10` | #347 | 5 de 5 | 100 % | borrador, base hito 8, 14 en conflicto |
-| 6, tienda del NPC, almacén, caos | `claude/cl9-hito-6` | #348 | 6 de 6, a medias | 78 % | borrador, base hito 10, 17 en conflicto |
-| 12, ventanas del asedio | `claude/cl9-hito-12` | #349 | 1 de 4 | 55 % | borrador, base hito 6, 9 en conflicto |
-| 13, batalla del asedio | `claude/cl9-hito-13` | — | 1 de 4, a medias | 10 % | sin PR |
+| Hito | Rama / revisión | PR | Cobertura por citas | Estado y siguiente paso |
+| --- | --- | --- | ---: | --- |
+| 1, emote y otros jugadores | `main` + `37264fa5` | #338, #353, #354 | 100,0 % | implementación propia contrastada con ASM; completar validación estricta en VM |
+| 9, amigos y ventanas viejas | `main` + `37264fa5` | #339, #353, #354 | 100,0 % | editor occidental XP reparado; faltan IME completo y funciones del editor de mensaje/susurro; validación del servicio pendiente |
+| 5, ítems del piso | `main` | #340 | 95,7 % | PR mergeado; auditoría de filas sin cita e integraciones pendientes |
+| 2, monstruos, NPC, misiones | `main` | #341 | 99,7 % | PR mergeado; conservar cortes e integraciones del hito 3 |
+| 3, pegar, daño, muerte | `claude/cl9-hito-3` @ `de674ec6` | #342 | 100,0 % | abierto, 8/8 fases; CI fallido y cuatro conflictos con `main`; corregir antes del merge |
+| 4, skills, cuervo, mascotas | `claude/cl9-hito-4` @ `6a9dd828` | #343 | 98,1 % | borrador, 7/7 fases; WIP sin tests finales y base hito 3 por integrar |
+| 11, eventos | `claude/cl9-hito-11` @ `dae3ff19` | #344 | 94,9 % | borrador, 7/7 fases; integrar base hito 4 y revisar filas sin cita |
+| 7, party, comercio, duelo, tiendas | `claude/cl9-hito-7` @ `d73ecbbd` | #345 | 75,7 % | borrador, 7/7 fases; integrar base hito 11 y auditar cobertura restante |
+| 8, gremio, alianza, guerra | `claude/cl9-hito-8` @ `5f0a80f7` | #346 | 76,0 % | borrador, 7/7 fases; integrar base hito 7 y auditar cobertura restante |
+| 10, chat con amigos y cartas | `claude/cl9-hito-10` @ `21c7b222` | #347 | 100,0 % | borrador, 5/5 fases; integrar base hito 8, H9 y combate; validar con servidor |
+| 6, tienda del NPC, almacén, caos | `claude/cl9-hito-6` @ `0d70b071` | #348 | 78,0 % | borrador, fase 6 a medias; terminar arreglos de revisión, EDIT e integración |
+| 12, ventanas del asedio | `claude/cl9-hito-12` @ `3ebd97ac` | #349 | 55,6 % | borrador, 1/4 fases; faltan ventanas y revisiones |
+| 13, batalla del asedio | `claude/cl9-hito-13` @ `032b83d4` | — | 9,9 % | sin PR, fase 1 a medias; WIP sin compilar |
 
-En total está portado alrededor del 82 % de los ~517 KB del plan. Los borradores no tienen CI: GitHub no lo
-corre mientras haya conflictos. Los conflictos de la tabla salen de `git merge-tree` de cada rama contra la
-rama de su base, a esta hora.
+El total recalculado es **436.380 / 529.535 bytes = 82,4 %**, ponderado por bytes, no por el promedio de
+los trece porcentajes. Las reparaciones de H1/H9 no aumentan ese indicador: trabajan sobre rangos que
+ya tenían citas. Las 1.141 filas del plan son el denominador; las ramas dentro de funciones de otras
+olas, los cortes, la fidelidad del editor y los casos nativos se siguen por sus contratos y pendientes.
+La unión incluye trabajo que todavía no entró en `main` y no representa una compilación integrada.
 
-**Ojo con el 6, el 7 y el 8.** Los agentes dieron el 7 y el 8 por terminados, con dos revisiones contra el
-ASM cada uno, pero ~24 % de los bytes de su tabla no aparece citado en el código. En una muestra de los más
-grandes del 8 hay contenedores que el original arma a mano y MuRet reemplaza por la STL (`0x4727f0`) y
-ayudantes de las clases de las ventanas viejas (`0x46b800`, `0x46d440`). No están revisados uno por uno: la
-auditoría de cierre tiene que recorrer esas filas antes de dar los hitos por cerrados.
+El recálculo usa los patrones `ADDR` y `CUT` de
+[`build_roadmap_matrix.py`](../../../Client/docs/research/scripts/tools/build_roadmap_matrix.py),
+los archivos `.cpp`/`.h` de `Client/src/` salvo `Input/Key.h`, y los rangos `[va, va + bytes)` del
+[TSV por hito](2026-11-13-ola-cl9-funciones.tsv). Se excluyen líneas que coincidan con `CUT`, se
+marca cada fila alcanzada por una cita y se suman sus bytes una sola vez entre las revisiones indicadas.
+No se cuentan tests ni documentación como implementación. Frente a la foto anterior, se explicita la
+selección de cabezas y se muestra un decimal, sin reutilizar los porcentajes redondeados.
 
-Las otras ramas `claude/cl9-hito-N-*` (`-body`, `-fixa`, `-helpa`, `-step`, `-chaos`, `-sign`…) son respaldos
-de fases que ya están mergeadas en su hito. No hace falta tocarlas.
+Resultados que fijan el estado de H1/H9:
+
+- [H1: reparaciones propias y límites de la validación](2026-11-15-cl9-h1-resultado.md).
+- [H9: editor XP, codificación y pendientes propios](2026-11-15-cl9-h1-h9-resultado.md).
+- [Runbook para retomar la validación en VM](../../../Client/docs/research/scripts/game/capture/RUNBOOK-cl9-vm.md).
+
+El CI de #342 en `de674ec6` terminó con
+[fallos](https://github.com/ema-ljn/MuRet/actions/runs/43575871006).
+`git merge-tree` contra `main` en `9649f53e` encuentra cuatro conflictos: research 08,
+`GameSceneMovement.cpp`, `GameSceneUi.cpp` y `test_viewport_players.cpp`. Los demás PRs de la cadena
+siguen en borrador y requieren reconciliar sus bases; no se hereda el CI de #353.
+
+**Hitos 6, 7 y 8:** las fases y los informes previos no cierran la auditoría de sus filas sin cita. En el
+7 y el 8 todavía representan alrededor del 24 % de los bytes. Hay contenedores reemplazados por STL y
+helpers de ventanas viejas que deben revisarse individualmente antes de dar los hitos por cerrados.
+
+Las ramas `claude/cl9-hito-N-*` (`-body`, `-fixa`, `-helpa`, `-step`, `-chaos`, `-sign`…) son respaldos
+de fases: no se incluyen en este recálculo ni hace falta modificarlas.
 
 ## La pila y el orden de merge
 
@@ -147,7 +173,8 @@ commits aparte o en otra tanda.
    - dejar una sola tabla de sonidos de monstruo (`FaunaModels::SoundActions` o `WorldRuntime::modelSounds`);
    - `+0x3a4` está modelado dos veces (`attackTarget` y `word3a4`);
    - los casos 1 y 2 de `ArrivalCaseOf` ya no se alcanzan: sacar esos cortes.
-4. El CI de `de674ec6` estaba corriendo a las 08:40Z. Emanuel ya lo pasó a listo.
+4. **Actualización 15/11:** el CI de `de674ec6` terminó con fallos. El PR sigue listo para revisión, pero
+   no para merge: integrar el `main` actualizado, resolver sus cuatro conflictos y volver a verificar.
 5. Quedan cortes que cablean otros hitos: las flechas `0x53e75b`, `0x53e365`, `0x53e4dd` y `0x524405`
    (hito 4), los nombres de gremio `0x558da4`/`0x558f29` (hito 8, Q-C1170) y el altar de Crywolf `0x4eac41`
    (hito 11).

@@ -421,11 +421,19 @@ y cambió la forma de la ola:
 
 Plan: [`2026-11-13-ola-cl9-gameplay.md`](../plans/2026-11-13-ola-cl9-gameplay.md), con la tabla de
 [funciones](../plans/2026-11-13-ola-cl9-funciones.tsv) y la de [cortes](../plans/2026-11-13-ola-cl9-cortes.tsv).
+
+**Estado por hitos al 2026-11-15:** [tabla y porcentajes actualizados](../plans/2026-11-14-cl9-traspaso.md#estado-por-hito).
+La cobertura por citas suma **82,4 %** entre las ramas de los trece hitos; no mide equivalencia funcional
+ni integración en `main`. El [PR #354](https://github.com/ema-ljn/MuRet/pull/354) entrega las reparaciones
+de H1/H9: H1 queda implementado en el alcance ASM revisado; H9 conserva pendientes propios del editor.
+La validación estricta restante en VM y contra el servidor se hará más adelante.
+
 El barrido (2026-11-13) repartió las 1.014 funciones de la CL9 de la matriz (469 KB), las 127 de otras olas sin
 portar que solo llama la CL9 (48 KB) y los 240 cortes de MuRet hacia la CL9:
 
-1. **Nadie entra al viewport:** MuRet no registra ningún handler de la CL9, así que en un servidor real el héroe
-   está solo. Los hitos 1 y 2 (otros jugadores; monstruos, NPC y misiones) son el portón de la ola.
+1. **El viewport abre la ola:** al comenzar el plan no había handlers de la CL9 y el héroe estaba solo.
+   Los hitos 1 y 2 (otros jugadores; monstruos, NPC y misiones) entraron en #338 y #341; sus
+   integraciones y validaciones pendientes se siguen en la tabla de estado.
 2. **El emote abre la ola** (hito 1): `0x576eb0` busca 95 textos, 15 de ellos literales del binario que la CL8
    no mira (`;`, `^^`…), y con el héroe parado manda dos `C1 18` iguales.
 3. **Trece hitos, un PR por hito:** el emote y los otros jugadores; monstruos, NPC y misiones; atacar, el daño

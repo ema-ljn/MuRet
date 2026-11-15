@@ -7,6 +7,7 @@
 #include "Data/DataPath.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
+#include "Input/MouseMessageState.h"
 #include "Protocol/Character/CharacterList.h"
 #include "Protocol/FloorItems.h"
 #include "Protocol/Inventory.h"
@@ -22,6 +23,7 @@
 #include "Scenes/GameHud.h"
 #include "Scenes/GameItemSpecialDrawing.h"
 #include "Scenes/GameMessages.h"
+#include "Scenes/GameMovementState.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameProjection.h"
 #include "Scenes/GameSceneFrameProjection.h"
@@ -189,11 +191,12 @@ Core::Expected<void, std::string> GameScene::StepTheDialogs(const Input::InputSt
     WorldRuntime& runtime = m_context.world->Runtime();
     // Los mensajes del mouse que el WndProc atendió antes de esta vuelta de WinMain.
     const UI::Point mouse = UI::MouseIn640x480(input, m_screen);
-    LatchTheLeftRelease(runtime.movement, input.WasPressed(Input::MouseButton::Left),
-                        input.WasReleased(Input::MouseButton::Left), input.IsDown(Input::MouseButton::Left), mouse.x,
-                        mouse.y);
-    LatchTheLeftButton(runtime.movement, input.WasPressed(Input::MouseButton::Left),
-                       input.IsDown(Input::MouseButton::Left));
+    const Input::MouseMessageState& mouseMessages = input.MouseMessages();
+    LatchTheLeftRelease(runtime.movement, mouseMessages.leftPress, mouseMessages.leftRelease, mouseMessages.leftDown,
+                        mouse.x, mouse.y);
+    LatchTheLeftButton(runtime.movement, mouseMessages.leftPress, mouseMessages.leftDown);
+    if (const std::optional<bool> doubleClick = input.TakeDoubleClickMessage(); doubleClick.has_value())
+        runtime.ui.doubleClick = *doubleClick;
     LatchTheRightButton(runtime.ui, input);
     LatchTheWheel(runtime.ui, input);
     // Y los WM_CHAR, en su orden: Tab y Enter al WndProc (la entrada del chat) y lo demás al EDIT con el foco.
@@ -331,7 +334,7 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
         .setTypes = m_chatTables.itemSetTables != nullptr ? &m_chatTables.itemSetTables->types : nullptr,
         .worldClock = static_cast<float>(std::chrono::duration<double, std::milli>(canvas.frameClock).count()),
         .mouse = UI::MouseIn640x480(input, canvas.screen),
-        .leftDown = input.IsDown(Input::MouseButton::Left),
+        .leftDown = input.MouseMessages().leftDown,
         .chosenServer = m_session != nullptr ? m_session->ChosenServer() : std::nullopt};
     // 0x5ac120: el pase 3D de los ítems de la UI, con los modelos de los ítems, el buffer global de la pose y los
     // contextos de 0x60b3d0 del frame (o sus copias en un dibujo intermedio). Sin la biblioteca, sin dibujo.
@@ -395,13 +398,50 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
     // Windows (GetFocus() de 0x468320: el de las ventanas viejas, con ChatFocus::OldWindow).
     const UI::OldWindowTexts friendTexts = OldWindowTextsOf(m_texts);
     const bool editFocused = runtime.chat.input.focus == UI::ChatFocus::OldWindow;
+    // Una pasada intermedia parte del mismo estado que su copia del administrador y no publica efectos de red.
+    UI::GameUiState projectedUi = runtime.ui;
+    GameMovementState projectedMovement = runtime.movement;
+    UI::ChatFocus projectedFocus = runtime.chat.input.focus;
+    UI::GameUiState& drawUi = m_projectingFrame ? projectedUi : runtime.ui;
+    GameMovementState& drawMovement = m_projectingFrame ? projectedMovement : runtime.movement;
+    UI::ChatFocus& drawFocus = m_projectingFrame ? projectedFocus : runtime.chat.input.focus;
+    const UI::OldWindowGlobals drawGlobals{.leftHeld = drawMovement.leftHeld,
+                                           .leftClick = drawMovement.pendingClick,
+                                           .releasedClick = drawMovement.releasedClick,
+                                           .mouseOnUi = drawUi.mouseOnUi,
+                                           .hovered = drawUi.hovered,
+                                           .capture = drawUi.capture,
+                                           .pressedButton = drawUi.pressedButton,
+                                           .keyboardFocus = drawFocus,
+                                           .sound = m_projectingFrame ? m_projection->sound : runtime.lastSoundId,
+                                           .focusedList = drawUi.focusedList,
+                                           .wheel = drawUi.wheel,
+                                           .rightClick = drawUi.rightClick,
+                                           .doubleClick = drawUi.doubleClick};
+    const UI::OldWindowMeasure drawMeasure{.measure = canvas.text, .dcFont = hud.hud.dcFont, .screen = canvas.screen};
+    SceneUiRequests drawRequests(m_session, m_context.log, m_context.dataRoot);
+    const UI::OldWindowStepView drawStep{.mouseX = hud.mouse.x,
+                                         .mouseY = hud.mouse.y,
+                                         .keyEdge = [&drawUi, &input](std::uint8_t key)
+                                         { return OldWindowKeyEdge(drawUi, input, key); },
+                                         .chatOpen = drawUi.chatOpen,
+                                         .texts = &friendTexts,
+                                         .measure = &drawMeasure,
+                                         .send =
+                                             [this, &drawRequests](const UI::FriendSend& send)
+                                         {
+                                             if (!m_projectingFrame)
+                                                 drawRequests.SendFriendPacket(FriendPacketOf(send));
+                                         }};
     const UI::OldWindowDrawView windowView{.mouseX = hud.mouse.x,
                                            .mouseY = hud.mouse.y,
                                            .leftClick = runtime.movement.pendingClick,
                                            .friendsOpen = panels.Registry().IsOpen(UI::FriendsPanel),
                                            .texts = &friendTexts,
                                            .focusedList = runtime.ui.focusedList,
-                                           .focusedEdit = editFocused ? oldWindows.focusedEdit : 0};
+                                           .focusedEdit = editFocused ? oldWindows.focusedEdit : 0,
+                                           .globals = &drawGlobals,
+                                           .stepView = &drawStep};
     if (auto windows = UI::DrawTheOldWindows(oldWindows, windowContext, windowView); !windows.HasValue())
         return windows;
     if (auto list = UI::DrawTheWindowList(oldWindows, windowContext, windowView); !list.HasValue())

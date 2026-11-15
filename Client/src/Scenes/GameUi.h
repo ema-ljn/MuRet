@@ -24,6 +24,11 @@ namespace Client::Input
 class InputState;
 }
 
+namespace Client::UI
+{
+struct GameUiState;
+}
+
 namespace Client::Render::Models
 {
 class CrtRandom;
@@ -51,6 +56,9 @@ struct TerrainPickingSegment;
 
 namespace Client::Scenes
 {
+// 0x553520 para las teclas de las ventanas viejas: mismo latch en el paso y al atender mensajes durante el dibujo.
+[[nodiscard]] bool OldWindowKeyEdge(UI::GameUiState& ui, const Input::InputState& input, std::uint8_t virtualKey);
+
 class WorldState;
 struct FloorItemState;
 struct GameChatContext;

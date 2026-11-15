@@ -94,6 +94,25 @@ constexpr std::int32_t WindowListWidth = 0x34;
 // 0x4a5e10: oculta, el parpadeo baja de a 0,25.
 constexpr float WindowListBlinkDown = -0.25f;
 
+// 0x45ae34..0x45ae47: el destructor de cada botón sólo libera su propia pulsación global.
+void ReleaseTheDestroyedButtons(const OldWindow& window, std::int32_t& pressedButton)
+{
+    const auto release = [&pressedButton](const OldButton& button)
+    {
+        if (button.base.id == pressedButton)
+            pressedButton = 0;
+    };
+    if (window.kind == OldWindowKind::MessageBox)
+        std::ranges::for_each(window.box.buttons, release);
+    else if (window.kind == OldWindowKind::AddFriendBox)
+        std::ranges::for_each(window.add.buttons, release);
+    else if (window.kind == OldWindowKind::FriendTab || window.kind == OldWindowKind::WindowsTab ||
+             window.kind == OldWindowKind::LettersTab)
+        std::ranges::for_each(window.tab.buttons, release);
+    for (const OldWindow& tab : window.tabs)
+        ReleaseTheDestroyedButtons(tab, pressedButton);
+}
+
 } // namespace
 
 namespace Steps
@@ -111,7 +130,9 @@ bool IsShowing(std::int32_t state)
 
 std::int32_t NextId(OldWindowManager& manager)
 {
-    return ++manager.lastId;
+    // 0x459ef5: INC de un DWORD, incluido el cruce del bit de signo y el wrap a cero.
+    manager.lastId = static_cast<std::int32_t>(static_cast<std::uint32_t>(manager.lastId) + 1u);
+    return manager.lastId;
 }
 
 // 0x45a210.
@@ -136,6 +157,7 @@ OldButton MakeTheButton(OldWindowManager& manager)
 OldWindow MakeTheFrame(OldWindowManager& manager)
 {
     OldWindow window;
+    window.allocationId = ++manager.lastAllocationId;
     window.base = MakeTheBase(manager);
     window.base.flags = AllFrameFlags;
     return window;
@@ -749,7 +771,7 @@ Core::Expected<void, std::string> HandleTheMessage(OldWindowManager& manager, co
         if (id == 0)
             return {};
         globals.sound = ButtonSound;
-        if (auto destroyed = DestroyTheOldWindow(manager, id); !destroyed.HasValue())
+        if (auto destroyed = DestroyTheOldWindow(manager, id, globals.pressedButton); !destroyed.HasValue())
             return destroyed;
         FocusTheLast(manager, globals);
         return {};
@@ -797,10 +819,25 @@ OldWindow* FindTheOldWindow(OldWindowManager& manager, std::int32_t id)
     const auto tab = manager.tabs.find(id);
     if (tab == manager.tabs.end())
         return nullptr;
-    const auto owner = manager.windows.find(tab->second);
-    if (owner == manager.windows.end())
+    const OldTabReference& reference = tab->second;
+    OldWindow* owner = nullptr;
+    if (const auto found = manager.windows.find(reference.ownerId);
+        found != manager.windows.end() && found->second.allocationId == reference.allocationId)
+        owner = &found->second;
+    else
+    {
+        for (OldWindow& rejected : manager.unregisteredWindows)
+        {
+            if (rejected.base.id == reference.ownerId && rejected.allocationId == reference.allocationId)
+            {
+                owner = &rejected;
+                break;
+            }
+        }
+    }
+    if (owner == nullptr)
         return nullptr;
-    for (OldWindow& candidate : owner->second.tabs)
+    for (OldWindow& candidate : owner->tabs)
     {
         if (candidate.base.id == id)
             return &candidate;
@@ -912,10 +949,16 @@ CreateTheOldWindow(OldWindowManager& manager, const OldWindowRequest& request, c
             manager.boxes.push_back(window.base.id);
         break;
     }
-    default:
+    case 1:
+    case 2:
+    case 6:
+    case 7:
         return Core::Unexpected(std::format("0x48ee60: el caso {} de la fábrica de las ventanas viejas (el chat con un "
                                             "amigo y las cartas) es del hito 10",
                                             request.kind));
+    default:
+        // 0x48ee98..0x48ee9b: fuera de 0..10 (sin signo), retorna 0 sin construir ni consumir IDs.
+        return 0;
     }
     std::int32_t x = request.x == -1 ? 0 : request.x;
     std::int32_t y = request.y == -1 ? DefaultY : request.y;
@@ -988,7 +1031,12 @@ CreateTheOldWindow(OldWindowManager& manager, const OldWindowRequest& request, c
             {
                 const std::int32_t rest = y % CascadeWrap;
                 if (rest == CascadeGiveUp)
+                {
+                    // 0x48f700..0x48f70a destruye el objeto nuevo, incluido el global de cada botón (0x45adf0).
+                    if (globals != nullptr)
+                        ReleaseTheDestroyedButtons(window, globals->pressedButton);
                     return 0;
+                }
                 y = rest + 1;
                 x = y;
             }
@@ -998,7 +1046,12 @@ CreateTheOldWindow(OldWindowManager& manager, const OldWindowRequest& request, c
     base.x = x;
     base.y = y;
     const std::int32_t id = base.id;
-    OldWindow& placed = manager.windows.insert_or_assign(id, std::move(window)).first->second;
+    const auto [registered, inserted] = manager.windows.try_emplace(id, std::move(window));
+    // 0x48f7b2 conserva el registro anterior sin destruir el nuevo; 0x48f82d asienta siempre el recién construido.
+    // Debe ser encontrable antes de asentar: la lista busca su pestaña en el segundo mapa (0x490a00).
+    if (!inserted)
+        manager.unregisteredWindows.push_back(std::move(window));
+    OldWindow& placed = inserted ? registered->second : manager.unregisteredWindows.back();
     manager.order.push_back(id);
     if (Steps::IsAFriendsKind(placed.kind))
     {
@@ -1040,12 +1093,12 @@ Core::Expected<void, std::string> StepTheOldWindows(OldWindowManager& manager, c
             return hidden;
     }
     // 0x4905a2..0x4905bf: la de amigos oculta se suelta (0x4914e0); al volver a mostrar, 0x4906a0 la abre (Q-C448).
-    if (manager.friends > 0)
+    if (manager.friends != 0)
     {
         const OldWindow* friends = FindTheOldWindow(manager, manager.friends);
         if (friends != nullptr && friends->base.state == HiddenWindow)
         {
-            if (auto dropped = DropTheFriendsWindow(manager); !dropped.HasValue())
+            if (auto dropped = DropTheFriendsWindow(manager, globals.pressedButton); !dropped.HasValue())
                 return dropped;
         }
     }
@@ -1069,7 +1122,8 @@ Core::Expected<void, std::string> StepTheOldWindows(OldWindowManager& manager, c
     return {};
 }
 
-Core::Expected<void, std::string> DestroyTheOldWindow(OldWindowManager& manager, std::int32_t id)
+Core::Expected<void, std::string> DestroyTheOldWindow(OldWindowManager& manager, std::int32_t id,
+                                                      std::int32_t& pressedButton)
 {
     if (manager.friends == id)
     {
@@ -1087,6 +1141,7 @@ Core::Expected<void, std::string> DestroyTheOldWindow(OldWindowManager& manager,
         return {};
     // 0x491840.
     manager.boxes.remove(id);
+    ReleaseTheDestroyedButtons(found->second, pressedButton);
     manager.windows.erase(found);
     manager.order.remove(id);
     if (manager.order.empty())
@@ -1146,11 +1201,11 @@ Core::Expected<void, std::string> HideTheOldWindows(OldWindowManager& manager, s
     return {};
 }
 
-Core::Expected<void, std::string> DropTheFriendsWindow(OldWindowManager& manager)
+Core::Expected<void, std::string> DropTheFriendsWindow(OldWindowManager& manager, std::int32_t& pressedButton)
 {
     if (manager.friends == 0)
         return {};
-    return DestroyTheOldWindow(manager, manager.friends);
+    return DestroyTheOldWindow(manager, manager.friends, pressedButton);
 }
 
 void ForgetTheHiddenWindows(OldWindowManager& manager)
@@ -1159,13 +1214,15 @@ void ForgetTheHiddenWindows(OldWindowManager& manager)
     manager.hidden.clear();
 }
 
-void ResetTheOldWindows(OldWindowManager& manager)
+void ResetTheOldWindows(OldWindowManager& manager, std::int32_t& pressedButton)
 {
-    // 0x48ea5f..0x48eb43: +0x48 en 0, los dos mapas (soltando cada ventana), la lista del orden, 0x4a4480 (la cola de
-    // la lista de ventanas, vacía sin los chats del hito 10), lo que escondió F6 y las cajas.
+    // 0x48ea5f..0x48eb43: +0x48 en 0, el mapa principal (soltando cada ventana), el mapa de cartas del hito 10,
+    // la lista del orden, 0x4a4480, lo que escondió F6 y las cajas. El segundo mapa +0x5c no se toca: conserva
+    // referencias obsoletas y las pestañas aún vivas de los objetos rechazados por el mapa principal.
     manager.friends = 0;
+    for (const auto& [id, window] : manager.windows)
+        ReleaseTheDestroyedButtons(window, pressedButton);
     manager.windows.clear();
-    manager.tabs.clear();
     manager.order.clear();
     ForgetTheHiddenWindows(manager);
     manager.boxes.clear();
@@ -1175,7 +1232,7 @@ void ResetTheOldWindows(OldWindowManager& manager)
     manager.titleText = 990;
     manager.letter = 0;
     manager.offlineSent = 0;
-    // Los destructores de las ventanas sueltan sus EDIT, y con ellos el foco.
+    // El reinicio de la escena olvida el identificador lógico del EDIT anterior.
     manager.focusedEdit = 0;
     // 0x48eb7d: +0x48 ya está en 0, así que 0x4a23b0 sobre la de amigos no corre.
 }

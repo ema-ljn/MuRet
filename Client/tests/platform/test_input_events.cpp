@@ -1,5 +1,7 @@
 #include "Input/InputEvent.h"
+#include "Input/InputState.h"
 #include "Input/Key.h"
+#include "Input/MouseMessageState.h"
 #include "Platform/InputEvents.h"
 
 #include <SDL3/SDL_events.h>
@@ -151,6 +153,89 @@ TEST(InputEventsTest, MapsTheMouseButtons)
 
     EXPECT_EQ(InputEventFor(ButtonEvent(SDL_EVENT_MOUSE_BUTTON_DOWN, SDL_BUTTON_X1)), std::nullopt);
     EXPECT_EQ(InputEventFor(ButtonEvent(SDL_EVENT_MOUSE_BUTTON_UP, SDL_BUTTON_X2)), std::nullopt);
+}
+
+// 0x4b349d -> 0x4b4444: el segundo DOWN de SDL representa WM_LBUTTONDBLCLK y no otro WM_LBUTTONDOWN.
+TEST(InputEventsTest, EvenLeftPressesCarryADifferentEventFromOrdinaryPresses)
+{
+    SDL_Event ordinary = ButtonEvent(SDL_EVENT_MOUSE_BUTTON_DOWN, SDL_BUTTON_LEFT);
+    ordinary.button.clicks = 1;
+    const auto first = InputEventFor(ordinary);
+    ASSERT_TRUE(first.has_value());
+    for (const std::uint8_t clicks : {std::uint8_t{2}, std::uint8_t{4}})
+    {
+        SDL_Event doubled = ordinary;
+        doubled.button.clicks = clicks;
+        const auto second = InputEventFor(doubled);
+        ASSERT_TRUE(second.has_value());
+        EXPECT_NE(second->kind, first->kind) << static_cast<int>(clicks);
+        EXPECT_EQ(second->button, MouseButton::Left);
+    }
+    ordinary.button.clicks = 3;
+    ASSERT_TRUE(InputEventFor(ordinary).has_value());
+    EXPECT_EQ(InputEventFor(ordinary)->kind, first->kind);
+}
+
+// La selección sigue viendo el segundo apretón físico; los flags de WM_LBUTTONDOWN del juego no lo ven.
+TEST(InputEventsTest, ADoubleClickKeepsThePhysicalPressWithoutAnotherGamePress)
+{
+    Client::Input::InputState input;
+    SDL_Event down = ButtonEvent(SDL_EVENT_MOUSE_BUTTON_DOWN, SDL_BUTTON_LEFT);
+    down.button.clicks = 1;
+    input.Apply(*InputEventFor(down));
+    EXPECT_TRUE(input.MouseMessages().leftPress);
+    EXPECT_TRUE(input.MouseMessages().leftDown);
+    input.ConsumeEdges();
+    input.Apply(*InputEventFor(ButtonEvent(SDL_EVENT_MOUSE_BUTTON_UP, SDL_BUTTON_LEFT)));
+    input.ConsumeEdges();
+    down.button.clicks = 2;
+
+    input.Apply(*InputEventFor(down));
+
+    EXPECT_TRUE(input.IsDown(MouseButton::Left));
+    EXPECT_TRUE(input.WasPressed(MouseButton::Left));
+    EXPECT_TRUE(input.MouseMessages().doubleClick);
+    EXPECT_FALSE(input.MouseMessages().leftPress);
+    EXPECT_FALSE(input.MouseMessages().leftDown);
+    input.ConsumeEdges();
+    // 0x4b3444 lo borra al llegar otro mensaje, no al consumir los flancos del paso.
+    EXPECT_TRUE(input.MouseMessages().doubleClick);
+    EXPECT_FALSE(input.MouseMessages().leftDown);
+}
+
+TEST(InputEventsTest, ADownUpDoubleDownBatchHasNoOrdinaryGamePress)
+{
+    Client::Input::InputState input;
+    SDL_Event down = ButtonEvent(SDL_EVENT_MOUSE_BUTTON_DOWN, SDL_BUTTON_LEFT);
+    down.button.clicks = 1;
+    input.Apply(*InputEventFor(down));
+    input.Apply(*InputEventFor(ButtonEvent(SDL_EVENT_MOUSE_BUTTON_UP, SDL_BUTTON_LEFT)));
+    down.button.clicks = 2;
+
+    input.Apply(*InputEventFor(down));
+
+    EXPECT_TRUE(input.MouseMessages().doubleClick);
+    EXPECT_FALSE(input.MouseMessages().leftPress);
+    EXPECT_FALSE(input.MouseMessages().leftDown);
+    EXPECT_TRUE(input.WasPressed(MouseButton::Left));
+}
+
+TEST(InputEventsTest, TheNextMessageClearsTheDoubleClickAndTheThirdPressIsOrdinary)
+{
+    Client::Input::InputState input;
+    SDL_Event down = ButtonEvent(SDL_EVENT_MOUSE_BUTTON_DOWN, SDL_BUTTON_LEFT);
+    down.button.clicks = 2;
+    input.Apply(*InputEventFor(down));
+    ASSERT_TRUE(input.MouseMessages().doubleClick);
+
+    input.Apply(InputEvent{.kind = InputEvent::Kind::Message});
+    EXPECT_FALSE(input.MouseMessages().doubleClick);
+    input.Apply(*InputEventFor(ButtonEvent(SDL_EVENT_MOUSE_BUTTON_UP, SDL_BUTTON_LEFT)));
+    down.button.clicks = 3;
+    input.Apply(*InputEventFor(down));
+    EXPECT_FALSE(input.MouseMessages().doubleClick);
+    EXPECT_TRUE(input.MouseMessages().leftPress);
+    EXPECT_TRUE(input.MouseMessages().leftDown);
 }
 
 TEST(InputEventsTest, TheWheelIsInWholeNotches)

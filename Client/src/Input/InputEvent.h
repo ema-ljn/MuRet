@@ -8,8 +8,8 @@
 // Un evento de teclado, de mouse o de foco, ya traducido de SDL por Platform (InputEventFor,
 // CL3.3). InputState::Apply lo suma al estado del frame.
 // Contrato: el plan de la CL3, sub-ola CL3.3, y el de la CL5, sub-ola CL5.5 (el texto). Cada tipo
-// usa solo sus campos: KeyDown y KeyUp la tecla, ButtonDown y ButtonUp el botón, Wheel las
-// muescas, Motion la posición, Text el texto y FocusLost ninguno. Un InputEvent sin llenar no hace
+// usa solo sus campos: KeyDown y KeyUp la tecla, ButtonDown/Up/DoubleClick el botón, Wheel las
+// muescas, Motion la posición, Text el texto y FocusLost/Message ninguno. Un InputEvent sin llenar no hace
 // nada: es el KeyDown de Key::Count, que no es tecla.
 namespace Client::Input
 {
@@ -27,6 +27,10 @@ struct InputEvent
         // Lo tecleado, de SDL_EVENT_TEXT_INPUT (CL5.5): ya con el layout, Shift y las teclas
         // muertas aplicados, que el campo de texto de la UI no tiene que saber.
         Text,
+        // WM_LBUTTONDBLCLK del juego: el segundo DOWN izquierdo de SDL, sin otro clic ordinario.
+        ButtonDoubleClick,
+        // Un evento de plataforma sin otra entrada: igual apaga el doble clic del mensaje anterior (0x4b3444).
+        Message,
     };
 
     Kind kind = Kind::KeyDown;

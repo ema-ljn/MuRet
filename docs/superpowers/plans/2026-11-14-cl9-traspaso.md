@@ -1,5 +1,8 @@
 # CL9: traspaso para terminar la ola (2026-11-14)
 
+> **Actualización posterior sobre H1/H9:** ver [reparación, verificación y pendientes](2026-11-14-cl9-h1-h9-resultado.md).
+> La tabla de abajo conserva la foto histórica: sus porcentajes por bytes no certifican equivalencia funcional.
+
 El 2026-11-14 Emanuel pidió dejar la CL9 lista para que **otros agentes terminen los PRs que faltan**.
 Este documento es la foto a las 08:40Z, con `main` en `910ac03` (#351). Dice qué hay en cada hito, en qué
 orden se cierra la pila, qué le falta a cada uno y cómo se trabaja. Las notas de las revisiones que quedaron

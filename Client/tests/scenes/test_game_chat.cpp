@@ -1,14 +1,19 @@
 #include "Scenes/GameChat.h"
 
 #include "Core/Expected.h"
+#include "Core/ILogSink.h"
+#include "Core/Log.h"
+#include "Data/Models/Model.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Text/TextTable.h"
 #include "Network/Crypto/Xor32.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/ModelTextureSlots.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/FaunaModels.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -20,9 +25,14 @@
 
 #include "support/Bytes.h"
 #include "support/ChatTexts.h"
+#include "support/FakeTextureStore.h"
 #include "support/PlayerActors.h"
+#include "support/RecordingSink.h"
 #include "support/SameBytes.h"
 #include "support/SceneDataFiles.h"
+#include "support/SyntheticModels.h"
+#include "support/TemporaryFolder.h"
+#include "support/TextureFiles.h"
 
 #include <gtest/gtest.h>
 
@@ -128,6 +138,8 @@ protected:
         return world.Runtime().chat.input;
     }
 
+    // Fauna conserva el backend hasta destruirse: debe vivir más que WorldState, incluso si falla un ASSERT.
+    Client::Tests::FakeTextureStore m_faunaStore;
     WorldState world;
     CrtRandom random;
     Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable(Client::Tests::ChatTexts());
@@ -206,6 +218,47 @@ TEST_F(GameChat, AnEmoteSendsItsActionsBeforeTheChat)
     EXPECT_EQ(Decode(sent[2]).opcode, 0x00);
     EXPECT_EQ(Decode(sent[2]).text, "hola ^^");
     EXPECT_EQ(hero.animation.action, 0xaf);
+    EXPECT_EQ(random.State(), before);
+}
+
+// El modelo del transformado se carga realmente en fauna; el proveedor base sólo tiene Player.
+// 0x576abf→0x4ea030 debe consultar ese modelo incluso antes de que el primer dibujo ligue WorldModels.
+TEST_F(GameChat, ATransformedHeroUsesItsLoadedFaunaModelBeforeSendingTheChat)
+{
+    Client::Tests::TemporaryFolder folder{"emote-fauna"};
+    Client::Data::Models::Model monster = Client::Tests::SampleModel();
+    const auto action = monster.actions.front();
+    monster.actions.assign(8, action);
+    for (auto& bone : monster.bones)
+        if (!bone.dummy)
+        {
+            const auto keys = bone.actions.front();
+            bone.actions.assign(8, keys);
+        }
+    monster.meshes.front().textureName = "emote.tga";
+    Client::Tests::WriteSceneFile(folder.Path(), "Monster/Monster10.bmd",
+                                  Client::Tests::PlainBmd(Client::Tests::BmdContent(monster), 0x0a));
+    Client::Tests::WriteSceneFile(folder.Path(), "Monster/emote.OZT", Client::Tests::PlainOzt(2, 2));
+    Client::Tests::RecordingSink sink;
+    Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
+    Client::Render::Models::ModelTextureSlots slots{{0x41c}};
+    Client::Scenes::FaunaModelLoadContext load{folder.Path(), m_faunaStore, log, slots};
+    const auto loaded = world.FaunaResources().LoadMonster(9, 0, load);
+    ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
+    auto& hero = world.Actors()[world.Runtime().hero];
+    hero.type = 0x15b;
+    hero.animation.action = 1;
+    hero.angles.z = 100.0f;
+    ASSERT_EQ(models.SkeletonOf(hero.type), nullptr);
+    ASSERT_NE(world.FaunaResources().SkeletonOf(hero.type), nullptr);
+    const auto before = random.State();
+    const auto said = Type("\rhola ^^\r");
+    ASSERT_TRUE(said.HasValue()) << said.Error();
+    ASSERT_EQ(sent.size(), 3u);
+    EXPECT_TRUE(IsTheAction(sent[0], 3, 0x8e));
+    EXPECT_TRUE(IsTheAction(sent[1], 3, 0x8e));
+    EXPECT_EQ(Decode(sent[2]).text, "hola ^^");
+    EXPECT_EQ(hero.animation.action, 1); // El modelo de ocho acciones no contiene 0xaf; 0x4ea030 no la cambia.
     EXPECT_EQ(random.State(), before);
 }
 

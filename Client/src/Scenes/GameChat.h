@@ -53,8 +53,8 @@ struct GameChatContext
     const Render::Text::ITextMeasure* measure = nullptr;
     App::PixelSize screen{640, 480};
     ChatSender send{};
-    // Los modelos: 0x4ea030 mira las acciones del modelo del tipo del héroe al animar su emote (0x576a60). Sin ellos,
-    // un emote es el error.
+    // Biblioteca base: el emote consulta primero FaunaResources(), donde el viewport carga los transformados,
+    // y después ésta. 0x4ea030 mira las acciones del tipo del héroe; si ninguna ofrece el modelo, corta.
     const IModelLibrary* models = nullptr;
 };
 

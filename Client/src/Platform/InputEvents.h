@@ -37,6 +37,8 @@ namespace Client::Platform
 // El auto-repeat de Backspace y de Tab es la excepción: da un Text con su byte (InputEvent.h),
 // como el WM_CHAR que Windows repite al EDIT de un campo (CL5.5).
 // SDL_EVENT_WINDOW_FOCUS_LOST da FocusLost (PumpEvents lo pasa también al estado de la ventana).
+// Cada DOWN izquierdo con clicks par positivo da ButtonDoubleClick: equivale al WM_LBUTTONDBLCLK que sustituye el
+// segundo WM_LBUTTONDOWN. Los flancos físicos siguen disponibles para la selección, que tiene su propio reloj.
 //
 // La posición del mouse va en píxeles del framebuffer (CL5.5): SDL la da en coordenadas de la
 // ventana, y `pixelDensity` (SDL_GetWindowPixelDensity) es cuántos píxeles mide cada una. Una

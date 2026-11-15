@@ -1054,8 +1054,18 @@ F6 la de amigos oculta se suelta (`0x4905a2`) y `0x4906a0` la vuelve a abrir al 
 juego suelta todas las ventanas (`0x48ea50`) y vacía la lista de amigos (`0x6368f9..0x636915`). El dibujo, abajo; el
 chat con un amigo, las cartas y la lista de ventanas de F5 con sus renglones son del hito 10 (P-C183).
 
+El cierre H1/H9 completa la destrucción de botones (`0x45ae34..0x45ae47`): sólo borra el global de pulsación
+si pertenece al botón destruido, también al cerrar Amigos con F/F6 o resetear. Las tablas de ventanas comparan
+IDs unsigned y conservan el primer registro. El mapa de pestañas guarda identidad de asignación además del ID:
+las de una ventana rechazada por colisión siguen siendo localizables y sobreviven a Reset, como los punteros
+nativos de `0x4908d0`/`0x490a00` y el mapa secundario que `0x48ea50` no vacía (Q-C1364, ADR0015).
+Los objetos rechazados se retienen por valor, también en las copias de proyección.
+
 **El dibujo de los amigos** (CL9 hito 9, `UI/FriendWindowsDraw` y las piezas de `UI/OldWindowDrawParts`; *estático*,
-P-C186). Es la vtable + `0x50` de la ventana, que el marco (`0x492500`) llama con la fuente normal después de la
+P-C186). Al ubicar sus pestañas, `0x45aa50 → 0x45aa80(1)` drena toda la cola antes del guard del mouse,
+incluidos Name/Answer, foco, teclado y envíos. MuRet reutiliza ese mismo paso; los Close/Raise del manager
+esperan su Step. Los dibujos intermedios operan sobre copias sin envíos externos.
+Es la vtable + `0x50` de la ventana, que el marco (`0x492500`) llama con la fuente normal después de la
 sombra y antes de la barra del título; todo en 640 × 480 y con los colores de `0x491960`. `0x4a2620`: arrastrada o
 cambiando de tamaño, ubica las pestañas y lo de la de la vista (Q-C888); la vtable + `0x14` de la pestaña a la vista
 (`0x49cc20`, `0x49e7f0`; la de las cartas, `0x4a0a30`, corta: hito 10); con la mezcla normal, la franja del 7 de 20
@@ -1731,7 +1741,19 @@ sin cursor en el medio ni IME. Los ids de los dos EDIT (1 y 2, los dos primeros 
   `0x4d8e1d`, hito 8). `0x576960` avanza con `_mbclen`: con la página de códigos coreana (949) no encuentra un literal
   que empiece en el segundo byte de un carácter doble; MuRet compara de a un byte, como con la occidental (1252). Ni
   la búsqueda ni los casos sacan `rand()`. En MuRet: `UI::FindTheEmote`, `Scenes::PlayTheEmote` y
-  `Scenes::DoTheEmote`, con los `C1 18` por el `send` del chat.
+  `Scenes::DoTheEmote`, con los `C1 18` por el `send` del chat. El caller `GameChat` consulta primero los modelos
+  ya cargados en `WorldState::FaunaResources()` y después la biblioteca base: un transformado no falla sólo porque
+  su BMD no esté en `GameModels`, incluso antes del primer dibujo. Si la animación queda fuera del modelo,
+  `0x4ea030` no la cambia, pero se conservan los dos envíos del héroe parado y el chat posterior.
+
+- **El aviso de la bandera `0x2000000` en el héroe** (`0x4e68e1..0x4e68fd`, P-C163) es
+  `0x555190(nombreVacío, Text[1828], 1)`. `0x774300c = 0x76bd1dc + 1828·300`; lo escribe el cargador de Text.bmd
+  `0x5495e0`, no un owner de otra ventana. El nombre `0x5767b6c` es una ancla zero-fill de `.data` que los consumidores
+  recuperados sólo leen; no se identificó un writer de nombre por sus bases visibles. El aviso se emite en cada
+  aplicación al héroe, aunque el bit ya esté puesto, y el OR del bit va después. Para otro actor sólo se prende el bit.
+  Un texto vacío también pasa por el servicio de mensajes, envejece el registro y añade su fila al área vieja.
+  `ApplyEffectFlags` recibe los recursos efectivos del viewport para usar tabla, medidor y pantalla; si falta un servicio,
+  conserva el prefijo y falla antes del OR. No se afirma un análisis universal de alias de la memoria nativa writable.
 - **Las teclas de `0x5ac8d0`**: F2, F3 y F4 cambian lo suyo y suenan (F4, con el registro en su ventana, va a x 0 con
   el inventario y una de las seis ventanas anchas, si no a `0xba`); F1 cicla las ayudas ("Las ayudas de F1"); la
   barra (CL9.3) corta, y después Impr Pant (`0x637cff`, la captura, P-C94).
@@ -9930,8 +9952,11 @@ nibble entero: de 8 a 15 da 0, `0x51334e`), el excelente `pkt[8] & 0x3f` y el se
 Al final, `0x4053f0` y `0x512930`.
 
 **El `DF`, `0x4c6b40`**: el personaje de la clave entera. Con el tipo `0xf1` (que solo crea `0x5141e0`), el empujón
-(`+0xe4`, `+0xd0` y `+0xcc`), el sonido `0x1b` y los joints `0x5c5` de `0x51fe10`; si no, la celda protegida en
-`pkt[5]` y `pkt[6]` (8 `rand()`), `+0x39a`/`+0x39b` y `+0x399` en 1.
+(`+0xe4`, `+0xd0` y `+0xcc`), el sonido `0x1b` y `0x51fe10(posición, 0)`: veinte intentos de partícula
+`0x5c5/2` a Z+80, sin explosión `0x5ed`. Cada intento consume dos `rand()` antes de buscar slot; cada alta
+consume otros cinco. Con N lugares libres, el tramo completo consume `8 + 40 + 5·min(N,20)` sorteos, incluidos
+los dos accesos a celdas. Llenar el pool no corta los intentos siguientes. Si no es `0xf1`, escribe la celda protegida
+en `pkt[5]` y `pkt[6]` (8 `rand()`), `+0x39a`/`+0x39b` y `+0x399` en 1.
 
 **Lo que el héroe ya hacía con otros**: el `D3` y el `D7` ([Caminar](#caminar)) buscan al personaje por la clave en
 el mismo pool, así que mueven y lastiman a los que da de alta el `12`.
@@ -9941,11 +9966,13 @@ el mismo pool, así que mueven y lastiman a los que da de alta el `12`.
 `CreateActor(mundo, clave, tipo, {X, Y, ángulo}, contexto de 0x511290, telas)` devuelve el lugar (el 400 con el pool
 lleno). `0x401040` saca los huesos con nombre (`WorldRuntime::namedBones`, desde la hito 2); `0x4fb1a0` no tiene qué
 soltar en el mundo de MuRet (P-C161). El efecto `0x61f` va sin el dueño, como el de la entrada del héroe. Cortan con su
-dirección, después de lo que el original hace antes: Kalima en `0x4c91dc` (CL11), el recién llegado del `45` en
-`0x4c965c` (CL11; el alta de `0x4c934c` es `CreateMonster` desde la hito 2, [Los monstruos y los NPC en el
-viewport](#los-monstruos-y-los-npc-en-el-viewport)), los joints del tipo `0xf1` del `DF` en `0x4c6c9d` (CL11; el empujón
-está portado desde la hito 2), y las banderas que crean efectos (`0x4e644f`, `0x4e662d`, `0x4e6725`, `0x4e676e`,
-`0x4e67d6` y `0x4e6869`, CL11 y CL10; `0x4e68f5`, P-C163). Los sonidos (`0x76`, `0x84`) quedan en el último sonido, sin
+dirección, después de lo que el original hace antes: el recién llegado del `45` en `0x4c965c` (CL11; el alta de
+`0x4c934c` es `CreateMonster` desde el hito 2, [Los monstruos y los NPC en el
+viewport](#los-monstruos-y-los-npc-en-el-viewport)), y las banderas que crean efectos (`0x4e644f`, `0x4e662d`,
+`0x4e6725`, `0x4e676e`, `0x4e67d6` y `0x4e6869`, CL11 y CL10). La ráfaga DF ya está conectada mediante
+`World::CreatePushBurst` y el subtipo de `NoriaParticleKernels`: duplica escala y triplica el vector local antes de
+girarlo (`0x5404ad..0x5404ca`); comparte paso y dibujo con la familia ya portada. `GameModels` carga su textura
+`Effect\Spark02.jpg` en el slot `0x5c5` mediante `EffectTextureSet`. Los sonidos (`0x76`, `0x84`) quedan en el último sonido, sin
 audio hasta la CL10 (08, P-C162). Tests: `ViewportPlayersTest`, `ViewportLeaveTest`, `ViewportTransformedTest`,
 `ShownEquipmentTest` y `ViewportPacketRingTest`, en Lorencia y en Devias.
 
@@ -10310,8 +10337,8 @@ del dueño, el Text 485 (`0x76e0a38`) y el nombre que tenía (`strcat`, sin tope
 
 **El `45` y el `DF` sobre los monstruos** (del hito 1, `0x4c934c` y `0x4c6b80`): el `45` da de alta con `0x5141e0`;
 el `DF` con el tipo `0xf1` empuja: `+0xe4` en 20, `+0xd0` en `(pkt[5] − X) · 400` y `+0xcc` en `(Y − pkt[6]) · 400`
-con la X y la Y de la celda protegida (8 `rand()`), el sonido `0x1b` y los 20 joints `0x5c5` de `0x51fe10` (dos
-`rand()` cada uno).
+con la X y la Y de la celda protegida (8 `rand()`), el sonido `0x1b` y los veinte intentos de partículas `0x5c5/2`
+de `0x51fe10`: dos sorteos por intento y cinco adicionales por alta efectiva, incluso con pool parcialmente lleno.
 
 **El picking** (`0x505de0`, `0x505e15..0x505ebb`): la caja de `+0x13c` es el piso de `+0x124..+0x12c` más la
 posición, con los lados `+0x130..+0x138` menos el piso (*inferido* que vale la posición de ahora, como Q-C100).
@@ -10321,7 +10348,7 @@ posición, con los lados `+0x130..+0x138` menos el piso (*inferido* que vale la 
 empuja al `0xf1`. Cortan con su dirección, después de lo que el original hace antes: la puerta del asedio (`0x4c9f0f` y
 `0x4e0bd1`, CL9.5), el freno del `0x35` (`0x4c982b`: `0x53fe70` y `0x518cf0`, CL11, P-C54 c), la llegada del `0x154`
 (`0x4c9883`, CL11), la acción sin el esqueleto del modelo (P-C176), el invocado que llega (`0x51747c` y `0x4ca5f6`,
-CL11), los joints del `DF` (`0x4c6c9d`, CL11), el nombre que llegaría a `+0x218` (Q-C847) y el formato de un invocado
+CL11), el nombre que llegaría a `+0x218` (Q-C847) y el formato de un invocado
 que lee más de lo que `0x517400` le pasa (P-C356). `CharacterPicking` usa la caja de cada tipo. Tests:
 `MonsterViewportTest` (Lorencia, Devias, Devil Square, Castle Siege y Crywolf),
 `ViewportPlayersTest.TheTransformedIsCreatedByItsType`, `ShownEquipmentTest`, `ActorConstructionTest`,

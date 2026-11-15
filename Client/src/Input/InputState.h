@@ -2,8 +2,10 @@
 
 #include "Input/InputEvent.h"
 #include "Input/Key.h"
+#include "Input/MouseMessageState.h"
 
 #include <bitset>
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -49,6 +51,12 @@ public:
     [[nodiscard]] bool IsDown(MouseButton button) const;
     [[nodiscard]] bool WasPressed(MouseButton button) const;
     [[nodiscard]] bool WasReleased(MouseButton button) const;
+    // Estado del mouse del WndProc del juego, distinto de los flancos físicos del botón.
+    [[nodiscard]] const MouseMessageState& MouseMessages() const;
+    // Una actualización de 0x7d36849 por los mensajes nuevos: true con DBL, false con el mensaje siguiente.
+    // Se publica una sola vez al juego; sin mensajes, se conserva lo que dejó su consumidor. ConsumeEdges no la
+    // borra antes de publicarla. Es const como TakePress: sólo marca que esa actualización ya se tomó.
+    [[nodiscard]] std::optional<bool> TakeDoubleClickMessage() const;
     // Las muescas sumadas desde el último ConsumeEdges.
     [[nodiscard]] float Wheel() const;
     // Las muescas del último evento de la rueda desde el último ConsumeEdges, o 0 sin ninguno: lo que deja el
@@ -86,6 +94,8 @@ private:
     std::bitset<MouseButtonCount> m_buttonsDown;
     std::bitset<MouseButtonCount> m_buttonsPressed;
     std::bitset<MouseButtonCount> m_buttonsReleased;
+    MouseMessageState m_mouseMessages;
+    mutable std::optional<bool> m_doubleClickMessage;
     float m_wheel = 0.0f;
     float m_lastWheel = 0.0f;
     float m_mouseX = 0.0f;

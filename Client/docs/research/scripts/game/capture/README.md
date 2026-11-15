@@ -21,6 +21,13 @@ paso a paso y escrita para que la corra un agente: [RUNBOOK-cl7-vm.md](RUNBOOK-c
 no el hash completo del proceso. Verificar aparte el SHA del archivo. No escriben en el proceso
 ni lo suspenden, depuran o inyectan código.
 
+## CL9 H1/H9 y las referencias archivadas
+
+El [runbook CL9](RUNBOOK-cl9-vm.md) reúne los insumos para el agente con VM: recuperación del corpus
+de 59 tests con el [helper](recover_cl9_evidence.py), [manifest de hashes](cl9-vm-evidence.json),
+spec de estado UI y casos nuevos de H1/H9. El helper corre en el host moderno, no ejecuta el original
+y mantiene separadas las capturas históricas 2f16 de las observaciones c32.
+
 ## Compilar y ejecutar
 
 Los tres lectores usan C++20 y dueños RAII para handles y salida. Los cierres normales se

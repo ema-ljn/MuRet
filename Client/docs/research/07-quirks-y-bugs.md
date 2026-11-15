@@ -606,6 +606,14 @@ El anticheat (watchdog de ventanas, timer 1001, mensaje `0x2B11`, hash anti-tamp
 y checksums de FoxAnti) **no se porta** ni se estudia más allá de lo que hace falta para
 reconocerlo (`AGENTS.md`, "Fuera de alcance").
 
+## Cierre de H1/H9: IDs de ventanas
+
+Q-C1364 toma el siguiente número libre después de los reservados por las cabezas CL9 auditadas (hasta Q-C1363).
+
+| # | Dónde | Qué pasa | Clase | MuRet | Ola |
+| --- | --- | --- | --- | --- | --- |
+| Q-C1364 | contador `0x459ef0` y fábrica `0x48f6f2..0x48f84d` | el DWORD da la vuelta; las tablas comparan unsigned y no reemplazan claves. Una colisión agrega el ID otra vez al orden y asienta un objeto nuevo que queda sin registro y vivo. Su mapa secundario guarda punteros a las pestañas, y Reset no lo vacía. No se identificó un trigger ordinario sin forzar el contador | bug interno en el extremo de colisión | conserva contador, comparación, primer registro, orden y asentado del objeto nuevo. Las asignaciones rechazadas se retienen por valor; las pestañas guardan identidad de asignación además del ID y sobreviven a Reset como el segundo mapa nativo. Una asignación destruida no se reatribuye a otra con el mismo ID; no se desreferencia memoria liberada. Tests `OldWindowsTest.ARepeatedIdKeepsTheFirstRegisteredWindow`, `ARepeatedIdDoesNotRepositionTheFirstWindowsButtons`, `WindowIdsKeepTheirUnsignedOrderAcrossTheSignBit`, `WindowIdsWrapFromAllBitsSetToZero`; [ADR0015](../../../docs/adr/0015-colisiones-de-ids-de-ventanas.md) | CL9 H9 |
+
 ## Cómo se agrega un quirk
 
 Igual que en el DataServer: número nuevo, dirección del original, evidencia (archivo del repo de

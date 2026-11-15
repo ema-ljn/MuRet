@@ -71,7 +71,8 @@ UI::PanelContext ContextOf(WorldState& world, Render::Models::CrtRandom& random,
     // El panel 1, la de amigos (CL9 hito 9): 0x490a00(+0x48) y 0x4914e0 sobre el administrador viejo.
     UI::OldWindowManager& oldWindows = runtime.oldWindows;
     context.friendsShown = [&oldWindows]() { return UI::FindTheOldWindow(oldWindows, oldWindows.friends) != nullptr; };
-    context.friendsClosed = [&oldWindows]() { return UI::DropTheFriendsWindow(oldWindows); };
+    context.friendsClosed = [&runtime]()
+    { return UI::DropTheFriendsWindow(runtime.oldWindows, runtime.ui.pressedButton); };
     return context;
 }
 } // namespace

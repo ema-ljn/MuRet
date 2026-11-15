@@ -93,7 +93,10 @@ std::optional<InputEvent> ButtonEventFor(const SDL_MouseButtonEvent& button, Inp
     {
         return std::nullopt;
     }
-    return InputEvent{.kind = kind, .button = *mapped};
+    // CS_DBLCLKS sustituye cada segundo DOWN por DBLCLK; clicks == 0 conserva los eventos sintéticos ordinarios.
+    const bool doubleClick = kind == InputEvent::Kind::ButtonDown && *mapped == MouseButton::Left &&
+                             button.clicks != 0 && button.clicks % 2 == 0;
+    return InputEvent{.kind = doubleClick ? InputEvent::Kind::ButtonDoubleClick : kind, .button = *mapped};
 }
 
 std::optional<InputEvent> MotionEventFor(const SDL_MouseMotionEvent& motion, float pixelDensity)

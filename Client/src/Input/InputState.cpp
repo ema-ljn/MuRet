@@ -2,6 +2,7 @@
 
 #include "Input/InputEvent.h"
 #include "Input/Key.h"
+#include "Input/MouseMessageState.h"
 
 #include <cmath>
 #include <cstddef>
@@ -99,6 +100,9 @@ Sides SidesOf(Key logical)
 
 void InputState::Apply(const InputEvent& event)
 {
+    // 0x4b3444: el siguiente mensaje apaga el doble clic, aunque sea una tecla o un cambio de ventana.
+    m_mouseMessages.doubleClick = false;
+    m_doubleClickMessage = false;
     switch (event.kind)
     {
     case InputEvent::Kind::KeyDown:
@@ -109,9 +113,26 @@ void InputState::Apply(const InputEvent& event)
         return;
     case InputEvent::Kind::ButtonDown:
         Press(event.button);
+        if (event.button == MouseButton::Left)
+        {
+            m_mouseMessages.leftPress = !m_mouseMessages.leftDown || m_mouseMessages.leftPress;
+            m_mouseMessages.leftDown = true;
+            m_mouseMessages.leftRelease = false;
+        }
+        return;
+    case InputEvent::Kind::ButtonDoubleClick:
+        Press(event.button);
+        m_mouseMessages.doubleClick = event.button == MouseButton::Left;
+        m_doubleClickMessage = m_mouseMessages.doubleClick;
         return;
     case InputEvent::Kind::ButtonUp:
         Release(event.button);
+        if (event.button == MouseButton::Left)
+        {
+            m_mouseMessages.leftDown = false;
+            m_mouseMessages.leftPress = false;
+            m_mouseMessages.leftRelease = true;
+        }
         return;
     case InputEvent::Kind::Wheel:
         if (std::isfinite(event.wheel))
@@ -126,9 +147,12 @@ void InputState::Apply(const InputEvent& event)
         return;
     case InputEvent::Kind::FocusLost:
         ReleaseEverything();
+        m_mouseMessages = MouseMessageState{.leftRelease = WasReleased(MouseButton::Left)};
         return;
     case InputEvent::Kind::Text:
         m_text += event.text;
+        return;
+    case InputEvent::Kind::Message:
         return;
     }
 }
@@ -180,6 +204,18 @@ bool InputState::WasReleased(MouseButton button) const
     return index && m_buttonsReleased[*index];
 }
 
+const MouseMessageState& InputState::MouseMessages() const
+{
+    return m_mouseMessages;
+}
+
+std::optional<bool> InputState::TakeDoubleClickMessage() const
+{
+    const std::optional<bool> message = m_doubleClickMessage;
+    m_doubleClickMessage.reset();
+    return message;
+}
+
 float InputState::Wheel() const
 {
     return m_wheel;
@@ -212,6 +248,8 @@ void InputState::ConsumeEdges()
     m_keysTaken.reset();
     m_buttonsPressed.reset();
     m_buttonsReleased.reset();
+    m_mouseMessages.leftPress = false;
+    m_mouseMessages.leftRelease = false;
     m_wheel = 0.0f;
     m_lastWheel = 0.0f;
     m_text.clear();

@@ -207,7 +207,7 @@ protected:
         return Stage(m_dataRoot, &*m_items);
     }
 
-    // En el heap: WorldState pesa unos 350 KB, y tres en la pila pasan el 1 MB de la de Windows.
+    // En el heap: WorldState pesa más de 600 KB y algunas pruebas tienen dos etapas.
     [[nodiscard]] std::unique_ptr<Stage> FreshOnTheHeap() const
     {
         return std::make_unique<Stage>(m_dataRoot, &*m_items);
@@ -407,7 +407,8 @@ TEST_F(InventoryReplyTest, AnItemPastTheLastColumnContinuesOnTheNextRow)
 // las de adentro, con su 0x54bf40, y corta en la primera de afuera.
 TEST_F(InventoryReplyTest, AnItemPastTheLastCellIsAnExplicitFrontier)
 {
-    Stage tested = Fresh();
+    const std::unique_ptr<Stage> testedOnHeap = FreshOnTheHeap();
+    Stage& tested = *testedOnHeap;
 
     const auto placed = Client::Scenes::PlaceInventoryItem(12 + 63, ItemBytes(SmallShield), tested.Resources());
 
@@ -449,8 +450,10 @@ TEST_F(InventoryReplyTest, TheSecondGridStartsAtSlot76)
 // con 12 o más no lo toca. Los WORD +0x3e y +0x42 en 0 no llaman a 0x54fe10.
 TEST_F(InventoryReplyTest, AfterTheGridTheRecordClosesOnlyWithSlot78a6758BelowTwelve)
 {
-    Stage closing = Fresh();
-    Stage skipping = Fresh();
+    const std::unique_ptr<Stage> closingOnHeap = FreshOnTheHeap();
+    Stage& closing = *closingOnHeap;
+    const std::unique_ptr<Stage> skippingOnHeap = FreshOnTheHeap();
+    Stage& skipping = *skippingOnHeap;
     skipping.world.Runtime().slot78a6758 = 12;
     constexpr std::uint16_t Untouched = 0x1234;
     closing.world.OwnCharacter().attackSpeed = Untouched;
@@ -484,14 +487,16 @@ TEST_F(InventoryReplyTest, EachNonZeroWord3eOr42RunsTheSpeeds)
 // 0x10 de B3 lee su nivel, que el último cierre dejó en rand() & 0xff. Abierto, es el nivel.
 TEST_F(InventoryReplyTest, ALateWeaponReadsTheLevelOnlyWithTheRecordOpen)
 {
-    Stage closed = Fresh();
+    const std::unique_ptr<Stage> closedOnHeap = FreshOnTheHeap();
+    Stage& closed = *closedOnHeap;
     const auto cut = Client::Scenes::PlaceInventoryItem(12, ItemBytes(Kris, 0, 20, 0x10), closed.Resources());
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("Q-C202"), std::string::npos) << cut.Error();
     EXPECT_EQ(closed.Cell(0).id, Kris);
     EXPECT_EQ(closed.Cell(8).id, 0);
 
-    Stage held = Fresh();
+    const std::unique_ptr<Stage> heldOnHeap = FreshOnTheHeap();
+    Stage& held = *heldOnHeap;
     held.world.Runtime().ownRecordDepth = 1;
     held.world.OwnCharacter().level = 200;
     const auto placed = Client::Scenes::PlaceInventoryItem(12, ItemBytes(Kris, 0, 20, 0x10), held.Resources());
@@ -864,7 +869,8 @@ TEST_F(InventoryReplyTest, TheFiveCableSlotsDressTheHeroInTheSamePoll)
 // lugar.
 TEST_F(InventoryReplyTest, TheItemMoveResultPlacesTheItemOrPutsItBack)
 {
-    Stage tested = Fresh();
+    const std::unique_ptr<Stage> testedOnHeap = FreshOnTheHeap();
+    Stage& tested = *testedOnHeap;
     tested.PublishedHero();
     Client::Scenes::WorldRuntime& runtime = tested.world.Runtime();
     runtime.ui.field78abb39 = 1;

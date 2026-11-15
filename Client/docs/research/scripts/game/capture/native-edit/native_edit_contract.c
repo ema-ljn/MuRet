@@ -60,14 +60,31 @@ static void dump(const char* label)
 {
     char text[512] = {0};
     DWORD first = 0, last = 0;
+    POINT caret = {-1, -1};
     int i;
     const int length = GetWindowTextA(s_edit, text, (int)sizeof(text));
     SendMessageA(s_edit, EM_GETSEL, (WPARAM)&first, (LPARAM)&last);
     printf("%s\t", label);
     for (i = 0; i < length; ++i)
         printf("%02x", (unsigned char)text[i]);
-    printf("\t%lu\t%lu\t%ld\t%ld\n", first, last, (long)SendMessageA(s_edit, EM_CANUNDO, 0, 0),
-           (long)SendMessageA(s_edit, EM_GETFIRSTVISIBLELINE, 0, 0));
+    GetCaretPos(&caret);
+    printf("\t%lu\t%lu\t%ld\t%ld\t%ld\t%ld\t%ld\n", first, last, (long)SendMessageA(s_edit, EM_CANUNDO, 0, 0),
+           (long)SendMessageA(s_edit, EM_GETFIRSTVISIBLELINE, 0, 0), caret.x, caret.y,
+           (long)SendMessageA(s_edit, EM_POSFROMCHAR, 0, 0));
+}
+
+static void paint_like_client(void)
+{
+    HDC parent = GetDC(s_parent);
+    HDC target = CreateCompatibleDC(parent);
+    HBITMAP bitmap = CreateCompatibleBitmap(parent, 128, 32);
+    HGDIOBJ previous = SelectObject(target, bitmap);
+    SendMessageA(s_edit, WM_ERASEBKGND, (WPARAM)target, 0);
+    SendMessageA(s_edit, WM_PAINT, (WPARAM)target, 0);
+    SelectObject(target, previous);
+    DeleteObject(bitmap);
+    DeleteDC(target);
+    ReleaseDC(s_parent, parent);
 }
 
 static void paste(const char* label, const char* text)
@@ -141,6 +158,11 @@ static void navigation(void)
     selection(1, 4);
     selection(-2, -1);
     dump("setsel_minus2_minus1");
+    reset("abcdef", 0);
+    selection(5, 1);
+    dump("setsel_reversed");
+    key(VK_LEFT, 1, 0, 0);
+    dump("shift_left_after_reversed_setsel");
     reset("ABCDEFGHIJKLMNO", 14);
     selection(10, 14);
     type("Q");
@@ -264,6 +286,8 @@ static void horizontal_scroll(void)
     reset("", 0);
     type("WWWWWWWWWW");
     dump("scroll_ten_w");
+    paint_like_client();
+    dump("scroll_ten_w_after_paint");
     key(VK_HOME, 0, 0, 0);
     dump("scroll_home");
     key(VK_END, 0, 0, 0);
@@ -348,7 +372,8 @@ int main(void)
     }
     SendMessageA(s_edit, EM_LIMITTEXT, 10, 0);
     printf("native-edit-contract-v1\tbits=%u\tACP=%u\n", (unsigned)(sizeof(void*) * 8), GetACP());
-    puts("case\thex_text\tselection_begin\tselection_end\tcan_undo\tfirst_visible_char");
+    puts("case\thex_text\tselection_begin\tselection_end\tcan_undo\tem_getfirstvisibleline\tcaret_x\tcaret_"
+         "y\tposfromchar0");
     navigation();
     undo();
     reset("abc def", 7);

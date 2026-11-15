@@ -147,6 +147,88 @@ static void navigation(void)
     dump("settext_over_limit_replace");
 }
 
+static void translated_key(const char* label, UINT vk, int ctrl, int alt)
+{
+    MSG input = {0}, posted;
+    BYTE state[256] = {0};
+    state[VK_CONTROL] = ctrl ? 0x80 : 0;
+    state[VK_MENU] = alt ? 0x80 : 0;
+    state[vk] = 0x80;
+    SetKeyboardState(state);
+    input.hwnd = s_edit;
+    input.message = alt ? WM_SYSKEYDOWN : WM_KEYDOWN;
+    input.wParam = vk;
+    input.lParam = alt ? (LPARAM)0x20000001 : 1;
+    TranslateMessage(&input);
+    DispatchMessageA(&input);
+    while (PeekMessageA(&posted, s_edit, WM_CHAR, WM_SYSDEADCHAR, PM_REMOVE))
+    {
+        printf("message_%s\t%04x\t%04lx\n", label, posted.message, (unsigned long)posted.wParam);
+        DispatchMessageA(&posted);
+    }
+    dump(label);
+}
+
+static void word_breaks(void)
+{
+    unsigned code;
+    char name[64];
+    char text[6] = {'a', 'b', 0, 'c', 'd', 0};
+    for (code = 0x20; code <= 0xff; ++code)
+    {
+        if (code >= 0x7f && code < 0xa0)
+            continue;
+        text[2] = (char)code;
+        reset(text, 5);
+        key(VK_LEFT, 0, 1, 0);
+        sprintf_s(name, sizeof(name), "word_%02x_left", code);
+        dump(name);
+        reset(text, 0);
+        key(VK_RIGHT, 0, 1, 0);
+        sprintf_s(name, sizeof(name), "word_%02x_right", code);
+        dump(name);
+        reset(text, 2);
+        key(VK_RIGHT, 0, 1, 0);
+        sprintf_s(name, sizeof(name), "word_%02x_right_from_separator", code);
+        dump(name);
+        reset(text, 3);
+        key(VK_LEFT, 0, 1, 0);
+        sprintf_s(name, sizeof(name), "word_%02x_left_from_word", code);
+        dump(name);
+    }
+}
+
+static void horizontal_scroll(void)
+{
+    RECT format;
+    SIZE size;
+    HDC dc;
+    HGDIOBJ previous;
+    HFONT font = (HFONT)GetStockObject(ANSI_FIXED_FONT);
+    SendMessageA(s_edit, WM_SETFONT, (WPARAM)font, FALSE);
+    SetWindowPos(s_edit, NULL, 200, 100, 20, 14, SWP_NOZORDER | SWP_NOACTIVATE);
+    SendMessageA(s_edit, EM_GETRECT, 0, (LPARAM)&format);
+    dc = GetDC(s_edit);
+    previous = SelectObject(dc, font);
+    GetTextExtentPoint32A(dc, "W", 1, &size);
+    SelectObject(dc, previous);
+    ReleaseDC(s_edit, dc);
+    printf("metrics_fixed\t%ld\t%ld\t%ld\t%ld\n", size.cx, size.cy, format.left, format.right);
+    reset("", 0);
+    type("WWWWWWWWWW");
+    dump("scroll_ten_w");
+    key(VK_HOME, 0, 0, 0);
+    dump("scroll_home");
+    key(VK_END, 0, 0, 0);
+    dump("scroll_end");
+    key(VK_LEFT, 0, 0, 0);
+    dump("scroll_left_one");
+    key(VK_LEFT, 0, 0, 0);
+    dump("scroll_left_two");
+    key(VK_LEFT, 0, 0, 0);
+    dump("scroll_left_three");
+}
+
 static void undo(void)
 {
     reset("", 0);
@@ -212,6 +294,12 @@ int main(void)
     puts("case\thex_text\tselection_begin\tselection_end\tcan_undo\tfirst_visible_char");
     navigation();
     undo();
+    reset("abc def", 7);
+    translated_key("translated_ctrl_backspace", VK_BACK, 1, 0);
+    reset("", 0);
+    type("abc");
+    translated_key("translated_alt_backspace", VK_BACK, 0, 1);
+    word_breaks();
     paste("paste_empty", "");
     paste("paste_cr", "\r");
     paste("paste_lf", "\n");
@@ -220,6 +308,7 @@ int main(void)
     paste("paste_lf_middle", "X\nY");
     paste("paste_crlf_middle", "X\r\nY");
     paste("paste_controls", "X\tY\b\x1a");
+    horizontal_scroll();
     SetKeyboardState(s_keyboard);
     DestroyWindow(s_edit);
     DestroyWindow(s_parent);

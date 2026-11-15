@@ -120,8 +120,6 @@ struct ActorState
     // 0x19e y el 0x19f (CL9 hito 3).
     std::uint8_t byte110 = 0;
     std::int32_t dword100 = 0;
-    // +0x3a4: la cola 0x5140c0 le copia el WORD de [0x57678b0] (WorldRuntime::heroSlot).
-    std::uint16_t word3a4 = 0;
     // +0x428: −0x80 desde 0x511290 (0x511c77); el 68 lo pone en 0x96 (0x4e0b8a). Quién lo lee, sin leer.
     std::int32_t dword428 = 0;
     // +0x7c: con 0x200000, 0x4f2250 sienta al personaje (la acción 0xca). Quién lo escribe, sin leer.
@@ -276,12 +274,12 @@ struct ActorState
     std::uint16_t word1f2 = 0;
     std::uint16_t damage = 0; // +0x384
     // CL9 hito 3 (atacar, el daño y la muerte). +0x380 y +0x382: el 0x16 sin el bit 15 pone en el héroe 2 y el daño
-    // (0x4cf2f9). +0x3a4: el lugar del blanco, en WORD: lo escriben el 0x16 (en el héroe) y el ataque al llegar
-    // (0x5659ab); 0x505de0 lo mira con +0x380 en 2 (CharacterHead.h). +0x3a8..+0x3b0: la posición del blanco al pegar
-    // (0x5653ec). +0x38f: cuántas veces pegó, que 0x4f4a10 sube y usa para alternar la acción. +0x391: la skill que lo
-    // mató (0x4d0a7e) y +0x398, que el 0x17 de los empujes pone en 0. Quién más los escribe, sin leer.
+    // (0x4cf2f9). +0x3a8..+0x3b0: la posición del blanco al pegar (0x5653ec). +0x38f: cuántas veces pegó, que 0x4f4a10
+    // sube y usa para alternar la acción. +0x391: la skill que lo mató (0x4d0a7e) y +0x398, que el 0x17 de los empujes
+    // pone en 0. Quién más los escribe, sin leer.
     std::uint8_t byte380 = 0;
     std::uint16_t word382 = 0;
+    // +0x3a4: el WORD del blanco, que escriben 0x5140c0 y los handlers de combate.
     std::uint16_t attackTarget = 0;
     glm::vec3 attackPosition{};
     std::uint8_t attackCount = 0;

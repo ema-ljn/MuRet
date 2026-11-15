@@ -1021,7 +1021,7 @@ TEST_F(MonsterHelpersTest, The1b6FollowsItsTailWithAFullTable)
         SCOPED_TRACE(map);
         ActorState& actor = Monster(0x1b6, 4, 6.0f);
         actor.subtype = 0;
-        actor.word3a4 = 3;
+        actor.attackTarget = 3;
         CrtRandom random(11);
         MonsterHelperPass pass = Pass(map, random);
         EXPECT_TRUE(CutAt(Client::Scenes::DrawTheMonsterHelpers(pass), "0x427a8d"));
@@ -1033,13 +1033,13 @@ TEST_F(MonsterHelpersTest, The1b6FollowsItsTailWithAFullTable)
 
         for (const std::uint16_t target : {std::uint16_t{0xffff}, std::uint16_t{0x190}})
         {
-            actor.word3a4 = target;
+            actor.attackTarget = target;
             CrtRandom untargeted(11);
             MonsterHelperPass free = Pass(map, untargeted);
             ASSERT_TRUE(Client::Scenes::DrawTheMonsterHelpers(free).HasValue());
             EXPECT_EQ(untargeted.State(), AfterDraws(11, 1).State());
         }
-        actor.word3a4 = 3;
+        actor.attackTarget = 3;
         actor.animation.frame = 5.9f;
         CrtRandom early(11);
         MonsterHelperPass before = Pass(map, early);
@@ -1160,7 +1160,7 @@ TEST_F(MonsterHelpersTest, The1b7To1bbFollowTheirTailWithAFullTable)
             m_world->Runtime().lastSoundId.reset();
             ActorState& actor = Monster(value.type, value.action, value.frame);
             actor.subtype = 0;
-            actor.word3a4 = 0x18f;
+            actor.attackTarget = 0x18f;
             CrtRandom random(21);
             MonsterHelperPass pass = Pass(map, random);
             const auto drawn = Client::Scenes::DrawTheMonsterHelpers(pass);

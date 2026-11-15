@@ -488,7 +488,7 @@ private:
         }
         actor.word376 = static_cast<std::uint16_t>(m_type);
         actor.byte8 = 0;
-        actor.word3a4 = static_cast<std::uint16_t>(runtime.heroSlot);
+        actor.attackTarget = static_cast<std::uint16_t>(runtime.heroSlot);
         actor.byte88 = tail.objectClass;
         return {};
     }

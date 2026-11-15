@@ -235,7 +235,7 @@ TEST(ModelBodyTest, TheHeadOfAnotherModelLooksAtItsTarget)
     pool[5].position = {300.0f, 900.0f, 180.0f};
     ActorState actor = Monster(0x160, 2);
     actor.position = {100.0f, 200.0f, 30.0f};
-    actor.word3a4 = 5;
+    actor.attackTarget = 5;
     const auto heading = static_cast<float>(Client::Render::Models::CreateAngle(100.0f, 200.0f, 300.0f, 900.0f));
     actor.angles.z = heading;
     CrtRandom random(Seed);
@@ -251,10 +251,10 @@ TEST(ModelBodyTest, TheHeadOfAnotherModelLooksAtItsTarget)
     pool[5].position.z = 0.0f;
     ASSERT_TRUE(Client::Scenes::SetTheModelHeadTarget(actor, pool, random).HasValue());
     EXPECT_EQ(actor.headTurn.target.y, static_cast<float>((0.0 - 80.0) * static_cast<double>(0.2f)) + 360.0f);
-    actor.word3a4 = 0xffff;
+    actor.attackTarget = 0xffff;
     ASSERT_TRUE(Client::Scenes::SetTheModelHeadTarget(actor, pool, random).HasValue());
     EXPECT_EQ(actor.headTurn.target, (glm::vec2{0.0f, 0.0f}));
-    actor.word3a4 = 500;
+    actor.attackTarget = 500;
     const auto outside = Client::Scenes::SetTheModelHeadTarget(actor, pool, random);
     ASSERT_FALSE(outside.HasValue());
     EXPECT_NE(outside.Error().find("0x4ea24c"), std::string::npos);

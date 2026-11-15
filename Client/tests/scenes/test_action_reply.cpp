@@ -7,12 +7,14 @@
 #include "Data/Models/PlayerModels.h"
 #include "Protocol/Movement.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/OriginalAngles.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActionSend.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/FaunaModels.h"
+#include "Scenes/ModelBody.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
@@ -388,6 +390,33 @@ TEST_F(ActionReplyTest, TheStrikeAttacksAndRemembersTheAttacker)
     EXPECT_TRUE(m_sent.empty());
 }
 
+// 0x4cb820 escribe el WORD +0x3a4 del héroe; 0x4ea190 debe leer ese mismo blanco al seguir con la cabeza.
+TEST_F(ActionReplyTest, TheModelHeadTracksTheHeroSlotWrittenByAnAttackReply)
+{
+    constexpr std::size_t StaleTargetSlot = 6;
+    constexpr std::size_t HeroTargetSlot = 7;
+    m_world->Runtime().heroSlot = static_cast<std::uint16_t>(HeroTargetSlot);
+    Other().type = SmallModel;
+    Other().attackTarget = static_cast<std::uint16_t>(StaleTargetSlot);
+    ASSERT_TRUE(Apply(3, 0x78).HasValue());
+    ASSERT_EQ(Other().attackTarget, static_cast<std::uint16_t>(HeroTargetSlot));
+
+    ActorState& heroTarget = m_world->Actors()[HeroTargetSlot];
+    heroTarget.position = Other().position + glm::vec3{0.0f, 100.0f, 150.0f};
+    m_world->Actors()[StaleTargetSlot].position = Other().position + glm::vec3{0.0f, -100.0f, 200.0f};
+    Other().angles.z = static_cast<float>(Client::Render::Models::CreateAngle(
+        Other().position.x, Other().position.y, heroTarget.position.x, heroTarget.position.y));
+    Other().animation.action = 2;
+
+    const auto before = m_cloth.random.State();
+    ASSERT_TRUE(Client::Scenes::SetTheModelHeadTarget(Other(), m_world->Actors(), m_cloth.random).HasValue());
+    EXPECT_EQ(Other().headTurn.target.x, 0.0f);
+    EXPECT_EQ(Other().headTurn.target.y, static_cast<float>((static_cast<double>(heroTarget.position.z) -
+                                                             (static_cast<double>(Other().position.z) + 50.0)) *
+                                                            static_cast<double>(0.2f)));
+    EXPECT_EQ(m_cloth.random.State(), before);
+}
+
 // Un corte de 0x4f4a10 (el 0x27, con su efecto de la CL11) deja el ángulo, el Movement y la posición, y no escribe ni
 // +0x381 ni [0x5767964].
 TEST_F(ActionReplyTest, AStrikeThatCutsLeavesTheAttackerAlone)
@@ -444,7 +473,7 @@ TEST_F(ActionReplyTest, AStrikeOnTheSpareSlotCompletesTheAttackAndItsSuffix)
     spare.byte381 = 1;
     spare.animation.action = 0x20;
     spare.animation.frame = 9.5f;
-    spare.word3a4 = 0x1234;
+    spare.attackTarget = 0x1234;
     m_world->Runtime().lastAttacker = 77;
 
     for (const std::uint8_t action : {std::uint8_t{0x78}, std::uint8_t{0x79}})
@@ -460,7 +489,6 @@ TEST_F(ActionReplyTest, AStrikeOnTheSpareSlotCompletesTheAttackAndItsSuffix)
         EXPECT_EQ(spare.byte381, 1);
         EXPECT_EQ(spare.animation.action, 0x22);
         EXPECT_EQ(spare.animation.frame, 0.0f);
-        EXPECT_EQ(spare.word3a4, 0x1234);
         EXPECT_EQ(spare.attackTarget, static_cast<std::uint16_t>(m_world->Runtime().heroSlot));
         EXPECT_EQ(m_world->Runtime().lastAttacker, 400);
     }

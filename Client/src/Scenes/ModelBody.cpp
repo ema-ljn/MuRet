@@ -242,10 +242,10 @@ Core::Expected<void, std::string> SetTheModelHeadTarget(ActorState& actor, std::
     }
     constexpr std::uint8_t TrackingAction = 2;
     constexpr std::uint16_t NoTarget = 0xffff;
-    if (action == TrackingAction && actor.word3a4 != NoTarget)
+    if (action == TrackingAction && actor.attackTarget != NoTarget)
     {
         // 0x4ea236: MOVSX, el lugar con signo sobre 0x743a16c.
-        const auto target = static_cast<std::int16_t>(actor.word3a4);
+        const auto target = static_cast<std::int16_t>(actor.attackTarget);
         if (target < 0 || static_cast<std::size_t>(target) >= pool.size())
             return Core::Unexpected(
                 std::format("0x4ea24c: el blanco +0x3a4 ({}) cae fuera de los {} personajes", target, pool.size()));

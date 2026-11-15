@@ -2,6 +2,7 @@
 
 #include "Protocol/Character/CharacterList.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CharacterCloth.h"
 #include "Scenes/DynamicWorldLight.h"
 #include "Scenes/HelperTable.h"
 #include "Scenes/ItemSetState.h"
@@ -67,6 +68,8 @@ public:
 
     [[nodiscard]] std::span<ActorState, ActorPoolSize> Actors();
     [[nodiscard]] std::span<const ActorState, ActorPoolSize> Actors() const;
+    [[nodiscard]] std::span<CharacterCloth, ActorPoolSize> ActorCloths();
+    [[nodiscard]] std::span<const CharacterCloth, ActorPoolSize> ActorCloths() const;
     [[nodiscard]] OwnCharacterRecord& OwnCharacter();
     [[nodiscard]] const OwnCharacterRecord& OwnCharacter() const;
     // Lo que llena el F3 10 fuera del equipo (06, "El F3 10, el inventario").
@@ -119,6 +122,7 @@ public:
 
 private:
     std::array<ActorState, ActorPoolSize> m_actors{};
+    std::array<CharacterCloth, ActorPoolSize> m_actorCloths{};
     OwnCharacterRecord m_own;
     OwnInventory m_inventory;
     WorldRuntime m_runtime;

@@ -1,5 +1,7 @@
 #include "Scenes/GameCharacters.h"
 
+#include "Scenes/ActorPickingBox.h"
+
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Data/Models/PlayerModels.h"
@@ -60,16 +62,26 @@ constexpr std::uint8_t PlayerKind = 1;
 constexpr std::uint32_t ChaosCastleBodyFlags = 2;
 constexpr std::uint32_t ChaosCastleHeroFlags = 6;
 
-bool SuppressTheHero(ActorState& actor, bool hero)
+bool SuppressTheHero(ActorState& actor, bool hero, std::span<ActorPickingBox> pickingBoxes, std::size_t slot)
 {
     if (!hero || (actor.controlCode & UndrawnHeroControlBit) == 0)
     {
         return false;
     }
-    actor.field13c = UndrawnHeroMark;
-    actor.field148 = 1.0f;
-    actor.field158 = 1.0f;
-    actor.field168 = 1.0f;
+    if (slot < pickingBoxes.size())
+    {
+        pickingBoxes[slot].origin.x = UndrawnHeroMark;
+        pickingBoxes[slot].axisX.x = 1.0f;
+        pickingBoxes[slot].axisY.y = 1.0f;
+        pickingBoxes[slot].axisZ.z = 1.0f;
+    }
+    else
+    {
+        actor.field13c = UndrawnHeroMark;
+        actor.field148 = 1.0f;
+        actor.field158 = 1.0f;
+        actor.field168 = 1.0f;
+    }
     return true;
 }
 
@@ -144,6 +156,15 @@ DrawnCharacter CharacterToDraw(ActorState& actor, std::size_t slot, const GameCh
     character.sprites = pass.sprites;
     character.originalRandom = pass.clothWorld != nullptr ? &pass.clothWorld->random : nullptr;
     character.pace = pass.pace;
+    character.onPartBox = [&actor, slot, boxes = pass.pickingBoxes](const glm::vec3& position)
+    {
+        const glm::vec3 max{actor.boundsMaxX, actor.boundsMaxY, actor.boundsTop};
+        const ActorPickingBox box = PickingBoxFor(position, actor.boundsMin, max);
+        if (slot < boxes.size())
+            boxes[slot] = box;
+        else
+            PublishPickingBox(actor, position, actor.boundsMin, max);
+    };
     // 0x511290 le da al personaje su buffer de huesos (+0x11c en 1 en 0x511bf7, +0x120): 0x5ffdf0 posa ahí el
     // cuerpo, que arranca de lo que dejó el dibujo anterior (actor.bodyPose, Q-C318), y no del global.
     if (pass.poseBones)
@@ -376,7 +397,7 @@ Core::Expected<void, std::string> DrawThePool(Render::ModelBatch& batch, const I
     for (std::size_t slot = 0; slot < DrawnActorCount; ++slot)
     {
         ActorState& actor = world.Actors()[slot];
-        if (SuppressTheHero(actor, slot == hero) || !actor.alive || !actor.seen)
+        if (SuppressTheHero(actor, slot == hero, pass.pickingBoxes, slot) || !actor.alive || !actor.seen)
             continue;
         if (auto drawn = DrawOne(batch, models, world, slot, pass, originalFrame); !drawn.HasValue())
             return Core::Unexpected(std::format("{}, en el personaje {}", drawn.Error(), slot));
@@ -462,13 +483,13 @@ Core::Expected<void, std::string> DrawCharacterTail(Render::ModelBatch& batch, c
 
 Core::Expected<void, std::string> DrawGameCharacters(std::span<ActorState> actors, std::size_t hero,
                                                      Data::Terrain::TerrainLayer<std::uint16_t>& walls,
-                                                     WorldRuntime* runtime)
+                                                     WorldRuntime* runtime, std::span<ActorPickingBox> pickingBoxes)
 {
     for (std::size_t slot = 0; slot < std::min(actors.size(), DrawnActorCount); ++slot)
     {
         ActorState& actor = actors[slot];
         // 0x510e40: el héroe con +0x1d8 & 4 en la escena 5.
-        if (SuppressTheHero(actor, slot == hero))
+        if (SuppressTheHero(actor, slot == hero, pickingBoxes, slot))
         {
             continue;
         }

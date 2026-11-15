@@ -219,6 +219,28 @@ TEST_F(ActorWalkTest, NonplayerUsesItsOwnSkeletonWithoutWritingPlayerSpeeds)
     EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(1, 1).State());
 }
 
+TEST_F(ActorWalkTest, MissingNonplayerSkeletonLeavesTheModelActionAloneAndKeepsWalking)
+{
+    auto actor = Client::Tests::UnarmedPlayer(3);
+    actor.type = 0x154;
+    actor.animation.action = 1;
+    const std::array<std::int16_t, 10> fallbackSounds{};
+    m_speeds.SetWalking(true);
+
+    const auto walked =
+        Client::Scenes::SetActorWalk(actor, {{m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, m_random},
+                                             m_speeds,
+                                             true,
+                                             nullptr,
+                                             fallbackSounds});
+
+    ASSERT_TRUE(walked.HasValue()) << (walked.HasValue() ? "" : walked.Error());
+    EXPECT_EQ(actor.animation.action, 1);
+    EXPECT_EQ(actor.run, 1);
+    EXPECT_FLOAT_EQ(m_speeds.Speed(13, 9.0f), 0.165f);
+    EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(1, 1).State());
+}
+
 TEST_F(ActorWalkTest, Type16dRequestsItsUnconditionalSoundWithoutDrawingRandom)
 {
     auto actor = Client::Tests::UnarmedPlayer();

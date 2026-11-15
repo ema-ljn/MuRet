@@ -1,5 +1,7 @@
 #include "Scenes/NpcTalk.h"
 
+#include "Render/Models/LogicalAccess.h"
+
 #include "Core/Expected.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/SkillTable.h"
@@ -359,6 +361,19 @@ TEST(NpcTalkTest, WithoutANpcOrWithAnotherWordTheArrivalOnlyStops)
         EXPECT_TRUE(tested->events.empty());
         EXPECT_EQ(tested->random.State(), expected.State());
         EXPECT_EQ(tested->Hero().movement, 0);
+    }
+    {
+        const auto tested = std::make_unique<TalkingHero>();
+        tested->Hero().type = 0x154;
+        tested->Hero().animation.action = 2;
+        tested->Hero().movement = 1;
+        const CrtRandom expected = Advanced(tested->random, 2 * Client::Render::Models::SmallLogicalCloseRandoms + 1);
+        const auto stopped = Client::Scenes::TalkToTheNpc(tested->Hero(), tested->Context());
+        ASSERT_TRUE(stopped.HasValue()) << stopped.Error();
+        EXPECT_TRUE(tested->events.empty());
+        EXPECT_EQ(tested->random.State(), expected.State());
+        EXPECT_EQ(tested->Hero().movement, 0);
+        EXPECT_EQ(tested->Hero().animation.action, 2);
     }
     {
         const auto tested = std::make_unique<TalkingHero>();

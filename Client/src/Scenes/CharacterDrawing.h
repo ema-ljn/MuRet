@@ -138,6 +138,8 @@ struct DrawnCharacter
                        const Render::Models::ObjectTransform&, bool)>
         onPose{};
     std::function<std::span<const Render::Models::BoneTransform>(std::uint16_t)> poseBones{};
+    // Publica la caja después de dibujar partes y contornos, antes del cuerpo del personaje.
+    std::function<void(const glm::vec3&)> onPartBox{};
 };
 
 // 0x50db57 separa las partes y la tela de lo que cuelga con un rand y una nueva luz. Ambos

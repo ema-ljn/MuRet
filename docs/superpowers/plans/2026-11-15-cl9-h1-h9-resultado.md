@@ -1,5 +1,12 @@
 # CL9 H1/H9: editor XP y contraste nativo parcial
 
+Este informe conserva la pasada del editor y sus 7.074 tests. El resultado
+posterior de [H1](2026-11-15-cl9-h1-resultado.md) registra la suite conjunta final
+de **7.108 tests**. Se entregan las reparaciones de ambos hitos en un PR a `main`
+y se difiere la validación estricta en VM y contra el servidor. H1 queda
+implementado en el alcance ASM revisado; los pendientes propios de H9 descritos
+abajo siguen abiertos, además de los casos que requieren soporte del servidor.
+
 El cliente se reconstruye según ASM y pseudocódigo; prevalece el ASM. El servidor
 del laboratorio está en otra PC y no se modifica como parte de este trabajo.
 Emanuel confirmó que el sistema de amigos/chat no conecta y que Agregar+Enter

@@ -214,7 +214,7 @@ portar y las ramas que el hito llena en funciones de otras olas. El detalle por 
 
 ### Hito 1: el emote y los otros jugadores (CL9.1, ~35 KB)
 
-> Cierre posterior a la auditoría: [reparaciones propias, evidencia y límites H1/H9](2026-11-14-cl9-h1-h9-resultado.md).
+> Auditorías: [reparaciones iniciales H1/H9](2026-11-14-cl9-h1-h9-resultado.md) y [reparaciones propias de H1, VM y límites del cierre](2026-11-15-cl9-h1-resultado.md). La validación nativa completa sigue pendiente en los casos indicados.
 
 - [x] **El emote entero** (§ Lo que encontró el barrido): `UI::CheckTheEmotes` pasa a `FindTheEmote`, que
       devuelve el caso con los 95 textos en el orden del original (incluidos los 15 literales, comparados con

@@ -75,6 +75,7 @@ merecen un ADR propio y cuáles alcanzan con la fila de 07; hasta entonces, la f
 | ADR | Título | Estado |
 | --- | --- | --- |
 | [0015](0015-colisiones-de-ids-de-ventanas.md) | Identidad de asignación de las ventanas con ID repetido | propuesto e implementado en la rama de cierre H1/H9; Q-C1364 |
+| [0017](0017-viewport-truncado.md) | Registros de viewport incompletos conservan TooShort, sin inventar los campos faltantes | documenta el lector existente y la prueba de frontera de H1 (2026-11-15) |
 
 ## Codificación occidental
 

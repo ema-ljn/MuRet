@@ -14,6 +14,7 @@
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/ActorPickingBox.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/GameChat.h"
 #include "Scenes/GameData.h"
@@ -46,6 +47,7 @@
 #include <array>
 #include <chrono>
 #include <cstdint>
+#include <cstddef>
 #include <filesystem>
 #include <format>
 #include <fstream>
@@ -54,6 +56,7 @@
 #include <ratio>
 #include <string>
 #include <string_view>
+#include <span>
 #include <system_error>
 #include <utility>
 
@@ -61,6 +64,44 @@ namespace Client::Scenes
 {
 namespace
 {
+class ProjectionTintRestore
+{
+public:
+    ProjectionTintRestore(std::span<ActorState> actors, bool active) : m_actors(actors), m_active(active)
+    {
+        if (!m_active)
+            return;
+        for (std::size_t slot = 0; slot < m_actors.size(); ++slot)
+        {
+            m_byteE8[slot] = m_actors[slot].byteE8;
+            m_light[slot] = m_actors[slot].light;
+        }
+    }
+
+    ~ProjectionTintRestore()
+    {
+        Restore();
+    }
+
+    void Restore()
+    {
+        if (!m_active)
+            return;
+        for (std::size_t slot = 0; slot < m_actors.size(); ++slot)
+        {
+            m_actors[slot].byteE8 = m_byteE8[slot];
+            m_actors[slot].light = m_light[slot];
+        }
+        m_active = false;
+    }
+
+private:
+    std::span<ActorState> m_actors;
+    std::array<std::uint8_t, ActorPoolSize> m_byteE8{};
+    std::array<glm::vec3, ActorPoolSize> m_light{};
+    bool m_active = false;
+};
+
 // El WndProc: WM_RBUTTONDOWN prende 0x7d36880 (con 0x7d3685c en 0, que el apretón siempre ve así: lo apagó el
 // WM_RBUTTONUP de antes) y 0x7d3685c, y WM_RBUTTONUP apaga los dos. MuRet ve los mensajes del paso juntos: apretado y
 // soltado en el mismo paso, quedan apagados, como después de los dos.
@@ -302,14 +343,18 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
     // 0x637641: 0x59ec80, el picking del frame. Un dibujo intermedio de MuRet lo corre sobre las copias: el rand(), la
     // profundidad del registro propio y los elegidos.
     std::array<std::int32_t, 5> projectedTargets = runtime.selectedTargets;
-    auto picked = PickInTheFrame(
-        FramePickingContext{.world = *m_context.world,
-                            .random = FrameCloth().random,
-                            .ownRecordDepth = m_projectingFrame ? m_projection->ownRecordDepth : runtime.ownRecordDepth,
-                            .targets = m_projectingFrame ? projectedTargets : runtime.selectedTargets,
-                            .altDown = input.IsDown(Input::Key::Alt),
-                            .ray = m_mouseRay,
-                            .floorItems = FrameTail().floorItems});
+    ProjectionTintRestore tintRestore(m_context.world->Actors(), m_projectingFrame);
+    auto picked = PickInTheFrame(FramePickingContext{
+        .world = *m_context.world,
+        .random = FrameCloth().random,
+        .ownRecordDepth = m_projectingFrame ? m_projection->ownRecordDepth : runtime.ownRecordDepth,
+        .targets = m_projectingFrame ? projectedTargets : runtime.selectedTargets,
+        .altDown = input.IsDown(Input::Key::Alt),
+        .ray = m_mouseRay,
+        .cameraPosition = m_drawnCamera.position,
+        .pickingBoxes = m_projectingFrame ? std::span(m_projection->actorPickingBoxes) : std::span<ActorPickingBox>{},
+        .floorItems = FrameTail().floorItems});
+    tintRestore.Restore();
     if (!picked.HasValue())
         return picked;
     // 0x637646..0x6376e6: la pasada 2D, en este orden (06 § El dibujo del juego). Un dibujo intermedio de MuRet dibuja

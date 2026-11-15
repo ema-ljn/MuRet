@@ -92,6 +92,8 @@
 //   con el GS --F1 02 con 1 cifrado: aplica en el sink la vuelta a la selección y manda F3 00 y dos
 //     C1 03 31--> WaitingCharacterList (Q-C211 a Q-C215)
 //   con el GS --F1 02 con 1 en claro: manda F1 03 00 F1--> el mismo estado (Q-C211)
+//   con el GS --F1 02 con 2: limpia el juego en escena 5; cifrado, cierra el GS y ordena login con
+//     estado Idle. LoginScene::Enter conecta al CS. En claro, sólo reporta F1 03 después de la limpieza.
 //   cualquier Waiting* que espera un servidor --ReplyTimeout sin su respuesta: cierra--> Failed
 //     (NoReply); ChoosingServer, WaitingCredentials y ChoosingCharacter esperan al jugador y no
 //     tienen tope; EnteringWorld tampoco, como el mosaico del original mientras no llega la
@@ -104,7 +106,7 @@
 // manda al final de su cuenta de 5 s (gObjCloseSet) y justo después cierra la conexión: ese cierre
 // ya no es GameServerLost, porque la sesión cerró antes y deja el resto del lote, como el original,
 // que al cerrar vacía su cola de paquetes (0x4e8380). QuitOrdered es el final: ni Start la saca. Con
-// 2 (la lista, Q-C79) se ignora con un aviso hasta la CL9.
+// 2 vuelve a la lista de servidores, por la escena de login (Q-C79).
 //
 // El F1 02 con 1 vuelve a la selección, también en cualquier estado con el GS y sin mirar la escena
 // (0x4c2710). Cifrado, el sink limpia el juego y deja la orden de la escena 4 (Scenes::ApplyReturnToSelection),
@@ -403,6 +405,7 @@ private:
     void OnDropResult(const Network::Packet& packet);
     void OnStatFruit(const Network::Packet& packet);
     void OnLogoutResult(const Network::Packet& packet);
+    void ReturnToServerList(bool encrypted);
     void OnMainCheck(const Network::Packet& packet);
     // Las misiones (CL9 hito 2): 9F, A0, A1, A2 y A3, sin guarda de escena ni del cifrado.
     void OnQuestFlag(const Network::Packet& packet);

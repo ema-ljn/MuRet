@@ -18,6 +18,7 @@
 #include "Scenes/LoginModels.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
+#include "Scenes/GameDrawTail.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/SelectionState.h"
@@ -63,6 +64,7 @@ struct Applier
     Client::Scenes::SingleModelLibrary models;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
+    std::optional<Client::Scenes::SceneId> scene;
     Client::Scenes::SessionEventApplier applier{Client::Scenes::WorldEntryResources{.world = world,
                                                                                     .selection = selection,
                                                                                     .dataRoot = {},
@@ -70,7 +72,8 @@ struct Applier
                                                                                     .camera = camera,
                                                                                     .cameraInput = input,
                                                                                     .models = models,
-                                                                                    .log = log}};
+                                                                                    .log = log,
+                                                                                    .scene = [this] { return scene; }}};
 };
 
 TEST(SessionEventApplierTest, AppliesAnEmptyCharacterListImmediately)
@@ -80,6 +83,20 @@ TEST(SessionEventApplierTest, AppliesAnEmptyCharacterListImmediately)
     const Client::App::CharacterEvent event = Client::App::CharacterListReceived{};
     ASSERT_TRUE(tested.applier.ApplyCharacter(event, online.session).HasValue());
     EXPECT_TRUE(tested.selection.HasReceivedList());
+}
+
+TEST(SessionEventApplierTest, ALogoutResponseReleasesOnlyThePendingRequest)
+{
+    auto tested = std::make_unique<Applier>();
+    tested->world.Runtime().ui.logoutRequested = true;
+    tested->world.Runtime().drawingEnabled = true;
+    tested->world.Runtime().map = 2;
+
+    tested->applier.ClearLogoutRequest();
+
+    EXPECT_FALSE(tested->world.Runtime().ui.logoutRequested);
+    EXPECT_TRUE(tested->world.Runtime().drawingEnabled);
+    EXPECT_EQ(tested->world.Runtime().map, 2);
 }
 
 TEST(SessionEventApplierTest, PropagatesTheActualSelectionConstructionFailure)
@@ -159,6 +176,8 @@ TEST(SessionEventApplierTest, TheReturnToSelectionGoesToTheNativeApplier)
 {
     Applier tested;
     Client::Tests::LoggedInSession online;
+    ASSERT_TRUE(tested.applier.ApplyCharacter(Client::App::CharacterListReceived{}, online.session).HasValue());
+    ASSERT_TRUE(tested.selection.HasReceivedList());
     tested.world.Runtime().map = 0;
     tested.world.Runtime().drawingEnabled = true;
     const Client::App::WorldEvent event = Client::App::ReturnToSelectionReceived{};
@@ -172,6 +191,97 @@ TEST(SessionEventApplierTest, TheReturnToSelectionGoesToTheNativeApplier)
     EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(1, 0xf08).State());
     EXPECT_EQ(online.session.State(), Client::App::SessionState::Idle);
     EXPECT_FALSE(tested.selection.HasReceivedList());
+}
+
+TEST(SessionEventApplierTest, TheServerListCleanupRunsOnlyInTheGameAndDoesNotResetTheSceneYet)
+{
+    auto tested = std::make_unique<Applier>();
+    Client::Tests::LoggedInSession online;
+    tested->world.Runtime().map = 0;
+    tested->world.Runtime().drawingEnabled = true;
+    tested->world.Actors()[5].alive = true;
+    tested->world.Actors()[5].key = 5;
+    const auto random = tested->cloth.random.State();
+    const Client::App::WorldEvent event = Client::App::ServerListLogoutCleanup{};
+    tested->scene = Client::Scenes::SceneId::CharacterSelect;
+    ASSERT_TRUE(tested->applier.ApplyWorld(event, online.session).HasValue());
+    EXPECT_TRUE(tested->world.Actors()[5].alive);
+
+    tested->scene = Client::Scenes::SceneId::Game;
+    ASSERT_TRUE(tested->applier.ApplyWorld(event, online.session).HasValue());
+
+    EXPECT_FALSE(tested->world.Actors()[5].alive);
+    EXPECT_FALSE(tested->world.Runtime().orderedScene.has_value());
+    EXPECT_EQ(tested->world.Runtime().map, 0);
+    EXPECT_TRUE(tested->world.Runtime().drawingEnabled);
+    EXPECT_EQ(tested->cloth.random.State(), random);
+}
+
+TEST(SessionEventApplierTest, TheServerListReturnResetsTheWorldAndOrdersTheLogin)
+{
+    auto tested = std::make_unique<Applier>();
+    Client::Tests::LoggedInSession online;
+    ASSERT_TRUE(tested->applier.ApplyCharacter(Client::App::CharacterListReceived{}, online.session).HasValue());
+    tested->world.Runtime().map = 0;
+    tested->world.Runtime().drawingEnabled = true;
+    tested->world.OwnCharacter().word3e = 9;
+    const Client::App::WorldEvent event = Client::App::ReturnToServerListReceived{};
+
+    ASSERT_TRUE(tested->applier.ApplyWorld(event, online.session).HasValue());
+
+    EXPECT_EQ(tested->world.Runtime().orderedScene, Client::Scenes::SceneId::Login);
+    EXPECT_EQ(tested->world.Runtime().map, -1);
+    EXPECT_FALSE(tested->world.Runtime().drawingEnabled);
+    EXPECT_FALSE(tested->selection.HasReceivedList());
+    EXPECT_EQ(tested->world.OwnCharacter().word3e, 0);
+    EXPECT_EQ(tested->cloth.random.State(), Client::Tests::AfterDraws(1, 0xf08).State());
+}
+
+TEST(SessionEventApplierTest, TheServerListReturnAlsoKillsSelectionActorsWithoutClearingFloorItems)
+{
+    auto tested = std::make_unique<Applier>();
+    Client::Tests::LoggedInSession online;
+    tested->scene = Client::Scenes::SceneId::CharacterSelect;
+    tested->world.Actors()[3].alive = true;
+    tested->world.Actors()[3].key = 3;
+    tested->world.Actors()[4].alive = true;
+    tested->world.Actors()[4].key = 0xffff;
+    tested->world.DrawTail().floorItems[0].alive = true;
+    ASSERT_TRUE(tested->applier.ApplyWorld(Client::App::ServerListLogoutCleanup{}, online.session).HasValue());
+    ASSERT_TRUE(tested->world.Actors()[3].alive);
+
+    ASSERT_TRUE(tested->applier.ApplyWorld(Client::App::ReturnToServerListReceived{}, online.session).HasValue());
+
+    EXPECT_FALSE(tested->world.Actors()[3].alive);
+    EXPECT_TRUE(tested->world.Actors()[4].alive);
+    EXPECT_TRUE(tested->world.DrawTail().floorItems[0].alive);
+}
+
+TEST(SessionEventApplierTest, ALogoutDoesNotSkipACursorReturnFailureBeforeReleasingTheWorld)
+{
+    for (const bool serverList : {false, true})
+    {
+        SCOPED_TRACE(serverList);
+        auto tested = std::make_unique<Applier>();
+        Client::Tests::LoggedInSession online;
+        tested->scene = Client::Scenes::SceneId::Game;
+        tested->world.Runtime().map = 2;
+        tested->world.Actors()[3].alive = true;
+        tested->world.Actors()[3].key = 3;
+        tested->world.Runtime().cursorItemCount = 1;
+        tested->world.Runtime().cursorItem.id = 0;
+        const Client::App::WorldEvent event = serverList
+                                                  ? Client::App::WorldEvent{Client::App::ServerListLogoutCleanup{}}
+                                                  : Client::App::WorldEvent{Client::App::ReturnToSelectionReceived{}};
+
+        const auto applied = tested->applier.ApplyWorld(event, online.session);
+
+        EXPECT_FALSE(applied.HasValue());
+        EXPECT_TRUE(tested->world.Actors()[3].alive);
+        EXPECT_EQ(tested->world.Runtime().cursorItemCount, 1);
+        EXPECT_EQ(tested->world.Runtime().map, 2);
+        EXPECT_FALSE(tested->world.Runtime().orderedScene.has_value());
+    }
 }
 TEST(SessionEventApplierTest, WalkAndDamageReachTheirAppliersWithoutFallingThroughToF303)
 {

@@ -14,7 +14,7 @@ namespace Client::App
 {
 enum class SessionState : std::uint8_t
 {
-    Idle,                    // sin Start
+    Idle,                    // sin conexión activa; también F1/02=2 antes de entrar al login
     ConnectingConnectServer, // Start abrió el CS
     WaitingConnectHello,     // el A9 salió; se espera C1 04 00 01
     WaitingServerList,       // F4 02 salió

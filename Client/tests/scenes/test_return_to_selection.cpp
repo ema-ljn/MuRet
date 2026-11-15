@@ -203,7 +203,7 @@ TEST_F(ReturnToSelectionTest, TheReturnReleasesTheGameAndKeepsTheTerrain)
         const std::vector<float> grass = tested.world.Map().grassOffsets;
         const CrtRandom before = tested.cloth.random;
 
-        ApplyReturnToSelection(resources);
+        ASSERT_TRUE(ApplyReturnToSelection(resources).HasValue());
 
         EXPECT_TRUE(tested.world.Map().objects.empty());
         EXPECT_TRUE(tested.world.Map().objectRecords.empty());
@@ -243,7 +243,7 @@ TEST(ReturnToSelectionWithoutDataTest, WithTheOwnRecordOpenTheReturnDrawsNoRand)
     tested.world.OwnCharacter().word40 = 5;
     const CrtRandom before = tested.cloth.random;
 
-    ApplyReturnToSelection(tested.Resources());
+    ASSERT_TRUE(ApplyReturnToSelection(tested.Resources()).HasValue());
 
     EXPECT_EQ(tested.cloth.random.State(), before.State());
     EXPECT_EQ(tested.world.Runtime().ownRecordDepth, 1);
@@ -261,7 +261,7 @@ TEST(ReturnToSelectionWithoutDataTest, TheQuestsGoBackToTheirStart)
     runtime.quest.states[0] = 0xaa;
     runtime.panels.delegated.quest = Client::Scenes::QuestListWindow;
 
-    ApplyReturnToSelection(tested->Resources());
+    ASSERT_TRUE(ApplyReturnToSelection(tested->Resources()).HasValue());
 
     EXPECT_EQ(runtime.quest.characterClass, Client::Scenes::QuestClassUnknown);
     EXPECT_EQ(runtime.quest.current, 0);
@@ -275,7 +275,7 @@ TEST(ReturnToSelectionWithoutDataTest, TheReturnForgetsThePickedTargets)
     const auto tested = std::make_unique<Returning>(std::filesystem::path{}, Seed);
     tested->world.Runtime().selectedTargets = {3, 4, 5, 6, 1};
 
-    ApplyReturnToSelection(tested->Resources());
+    ASSERT_TRUE(ApplyReturnToSelection(tested->Resources()).HasValue());
 
     EXPECT_EQ(tested->world.Runtime().selectedTargets, (std::array<std::int32_t, 5>{-1, -1, -1, -1, -1}));
 }
@@ -295,7 +295,7 @@ TEST(ReturnToSelectionWithoutDataTest, OnlyTheKeyFFFFSurvives)
     helpers[0] = Client::Scenes::HelperState{.alive = true, .type = Client::Scenes::DarkHorseModel, .rider = 1};
     helpers[1] = Client::Scenes::HelperState{.alive = true, .type = Client::Scenes::DarkHorseModel, .rider = 2};
 
-    ApplyReturnToSelection(tested.Resources());
+    ASSERT_TRUE(ApplyReturnToSelection(tested.Resources()).HasValue());
 
     EXPECT_FALSE(actors[1].alive);
     EXPECT_TRUE(actors[2].alive);
@@ -314,7 +314,7 @@ TEST(ReturnToSelectionPoolsTest, ReleasesTheLiveFlagsWithoutReplacingRetainedRec
     tested.world.DrawTail().floorItems[3].alive = true;
     tested.world.DrawTail().joints[4].alive = true;
     tested.world.DrawTail().ribbons[5].alive = true;
-    ApplyReturnToSelection(tested.Resources());
+    ASSERT_TRUE(ApplyReturnToSelection(tested.Resources()).HasValue());
     EXPECT_FALSE(tested.world.Fauna().Birds()[0].active);
     EXPECT_FALSE(tested.world.Leaves().All()[0].alive);
     EXPECT_EQ(tested.world.Leaves().All()[0].type, 123);

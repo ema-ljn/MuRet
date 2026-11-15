@@ -48,6 +48,7 @@
 #include "Scenes/OptionsSettings.h"
 #include "Scenes/SceneCameras.h"
 #include "Scenes/SelectionWorld.h"
+#include "Scenes/SelectionInventory.h"
 #include "UI/MessageArea.h"
 #include "World/GameCamera.h"
 #include "World/TerrainCulling.h"
@@ -227,10 +228,12 @@ Core::Expected<void, std::string> CharacterSelectScene::Enter()
     CameraInputState().scene = World::CullingScene::CharacterSelect;
     if (m_context.selection != nullptr)
     {
-        // 0x633f20 carga World54 desde el primer paso habilitado por F3/00. Este reset precede
-        // al único RequestCharacterList, al final de Enter: Poll/Step/Request corren en el mismo
-        // hilo y Request entra de forma síncrona, sin Poll intermedio ni lista válida anterior.
-        m_context.selection->BeginSelection();
+        // Desde el login, el reset precede al único RequestCharacterList del final de Enter.
+        // Al volver, F1/02 ya lo hizo: un F3/00 del mismo Poll puede haber construido la lista nueva.
+        if (m_session == nullptr || m_session->State() == App::SessionState::LoggedIn)
+            m_context.selection->BeginSelection();
+        else
+            m_context.selection->SetScene(World::CullingScene::CharacterSelect);
     }
     if (auto loaded = m_textures.Load(m_context.dataRoot); !loaded.HasValue())
     {
@@ -390,6 +393,8 @@ bool CharacterSelectScene::PrepareTheCharacters()
         m_failure = window.Error();
         return false;
     }
+    // 0x633f91: vaciado previo al reset parcial; no es el del F3/10, que toca otros campos y grillas.
+    ClearSelectionInventory(*m_context.world, m_context.cloth->random);
     // 0x634049..0x634177: el reset parcial, con el cierre del mismo registro de 0x4fc450.
     const Render::Models::LogicalAccess access(m_context.world->Runtime().ownRecordDepth, m_context.cloth->random,
                                                Render::Models::OwnRecordCloseRandoms);

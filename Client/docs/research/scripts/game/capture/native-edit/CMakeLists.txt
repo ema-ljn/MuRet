@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.20)
+project(MuRetNativeEditContract LANGUAGES C)
+if(NOT WIN32)
+    message(FATAL_ERROR "Este lector del contrato de EDIT requiere Windows.")
+endif()
+add_executable(native_edit_contract native_edit_contract.c)
+target_compile_definitions(native_edit_contract PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX _WIN32_WINNT=0x0501)
+target_link_libraries(native_edit_contract PRIVATE user32 gdi32)

@@ -8,6 +8,11 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      native_edit_only:
+        description: 'Observar sólo el contrato del EDIT del sistema (sin ejecutar MU)'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -19,11 +24,27 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  native-edit:
+    name: Contrato del EDIT de Windows
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.native_edit_only }}
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v7
+      - name: Compilar el observador propio x86
+        run: >-
+          cmake -S Client/docs/research/scripts/game/capture/native-edit
+          -B "${{ runner.temp }}/native-edit" -A Win32
+      - name: Build del observador
+        run: cmake --build "${{ runner.temp }}/native-edit" --config Release
+      - name: Observar sin cargar el cliente original
+        shell: pwsh
+        run: '& "${{ runner.temp }}/native-edit/Release/native_edit_contract.exe"'
   # El formato de todo el C++ del repo, con el .clang-format del repo (el de MuMain). Va aparte y
   # sin vcpkg: tarda segundos. clang-format-18 es el que da apt en ubuntu-24.04, la misma versión
   # mayor que se usa a mano. Lo que clang-format no mira (el orden de la cabecera, los nombres) lo
   # pide la regla 7, y Server/ y labs/0.0-enlace lo siguen cuando se toca cada archivo.
   format:
+    if: ${{ !inputs.native_edit_only }}
     name: Formato (clang-format 18)
     runs-on: ubuntu-24.04
     steps:
@@ -47,6 +68,7 @@ jobs:
             | xargs -0 clang-format-18 --dry-run --Werror
 
   build:
+    if: ${{ !inputs.native_edit_only }}
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     strategy:

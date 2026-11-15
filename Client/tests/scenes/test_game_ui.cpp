@@ -553,7 +553,8 @@ public:
                                                                   .random = random,
                                                                   .ownRecordDepth = world.Runtime().ownRecordDepth,
                                                                   .targets = world.Runtime().selectedTargets,
-                                                                  .altDown = alt});
+                                                                  .altDown = alt,
+                                                                  .cameraPosition = {}});
     }
     WorldState world;
     CrtRandom random;

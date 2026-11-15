@@ -109,6 +109,49 @@ TEST(ChatInputTest, TypingStopsAtTheLimitsOfTheEdits)
     EXPECT_EQ(input.whisper.Value(), "NombreLarg");
 }
 
+TEST(ChatInputTest, MessageAndWhisperStoreXpWindows1252Bytes)
+{
+    ChatInputState input = OpenInput();
+    TypeInTheChat(input, "€漢😊é");
+    const std::string expected("\x80???e\xb4", 6);
+
+    EXPECT_EQ(input.message.Value().size(), expected.size());
+    EXPECT_TRUE(input.message.Value() == expected);
+
+    input.focus = ChatFocus::Whisper;
+    TypeInTheChat(input, "€漢😊é");
+
+    EXPECT_EQ(input.whisper.Value().size(), expected.size());
+    EXPECT_TRUE(input.whisper.Value() == expected);
+}
+
+TEST(ChatInputTest, MessageAndWhisperLimitsCountEncodedBytesAndReplaceSelection)
+{
+    ChatInputState input = OpenInput();
+    input.message.SetText(std::string(ChatMessageLimit - 1, 'm'));
+    TypeInTheChat(input, "€x");
+    ASSERT_EQ(input.message.Value().size(), ChatMessageLimit);
+    EXPECT_EQ(static_cast<unsigned char>(input.message.Value().back()), 0x80U);
+
+    input.whisper.SetText(std::string(ChatWhisperLimit - 1, 'w'));
+    input.focus = ChatFocus::Whisper;
+    TypeInTheChat(input, "€x");
+    ASSERT_EQ(input.whisper.Value().size(), ChatWhisperLimit);
+    EXPECT_EQ(static_cast<unsigned char>(input.whisper.Value().back()), 0x80U);
+
+    input.message.SetText("antiguo");
+    input.message.SelectAll();
+    input.focus = ChatFocus::Message;
+    TypeInTheChat(input, "€");
+    EXPECT_TRUE(input.message.Value() == std::string("\x80", 1));
+
+    input.whisper.SetText("anterior");
+    input.whisper.SelectAll();
+    input.focus = ChatFocus::Whisper;
+    TypeInTheChat(input, "€");
+    EXPECT_TRUE(input.whisper.Value() == std::string("\x80", 1));
+}
+
 // 0x4693e0 y 0x4694c0: los EDIT a los buffers, y un texto de 0x100 bytes o más no se pone.
 TEST(ChatInputTest, TheFieldsGoToTheBuffersAndBack)
 {

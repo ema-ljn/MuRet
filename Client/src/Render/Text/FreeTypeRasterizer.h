@@ -23,8 +23,8 @@
 // - La negrita sale de `bold`, si se da; si no, de la normal ensanchada un píxel
 //   (FT_Outline_EmboldenXY) con un píxel más de avance por letra, como la negrita que GDI simula
 //   cuando no hay una cara negrita (*inferido*).
-// - Cada byte del texto es el carácter Unicode de ese número (Latin-1): Text.bmd es de un byte por
-//   letra (Q-C67). Sin kerning, como GetTextExtentPointA.
+// - Cada byte del texto se decodifica como Windows-1252 antes de cargar el glifo: Text.bmd es de un
+//   byte por letra (Q-C67; 12-codificacion.md). Sin kerning, como GetTextExtentPointA.
 // - Solo el contorno: no usa los bitmaps que traiga la fuente (FT_LOAD_NO_BITMAP).
 //
 // FreeType es de la FTL (el crédito va en el README del cliente). Sus headers no salen de acá.

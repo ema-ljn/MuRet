@@ -34,6 +34,7 @@
 #include "Network/SystemResolver.h"
 #include "Network/SystemSocket.h"
 #include "Platform/BasePath.h"
+#include "Platform/Clipboard.h"
 #include "Platform/DisplayModes.h"
 #include "Platform/GlLoader.h"
 #include "Platform/LocalTime.h"
@@ -704,6 +705,7 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
         online.emplace(*startup.server, startup.config.obfuscation, clock, log, eventApplier);
     }
     App::ServerSession* session = online ? &online->session : nullptr;
+    Platform::Clipboard clipboard;
     const Scenes::SceneContext context{.dataRoot = *startup.config.dataPath,
                                        .textures = textures,
                                        .log = log,
@@ -716,7 +718,8 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
                                        .selection = &selection,
                                        .world = &world,
                                        .textMeasure = &frame.Value()->TextMeasure(),
-                                       .worldEntry = &worldEntry};
+                                       .worldEntry = &worldEntry,
+                                       .clipboard = &clipboard};
     // El cursor lo dibuja el juego: el del sistema no se ve sobre la ventana (0x4ba238). Si SDL no puede,
     // se ven los dos.
     if (const auto hidden = window.HideSystemCursor(); !hidden.HasValue())

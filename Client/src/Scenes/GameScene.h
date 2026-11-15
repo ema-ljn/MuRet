@@ -19,7 +19,6 @@
 #include "Scenes/IScene.h"
 #include "Scenes/OriginalFramesOfTheSteps.h"
 #include "Scenes/GroundEffectFrame.h"
-#include "Scenes/CharacterCloth.h"
 #include "World/Sprites.h"
 #include "World/ModelEffects.h"
 #include "Scenes/SceneCanvas.h"
@@ -41,7 +40,6 @@
 #include <optional>
 #include <string>
 #include <span>
-#include <vector>
 
 // Escena5: entrada F303, espera de gates y ciclos de lógica/dibujo sobre WorldState.
 // La espera retiene la presentación, pero no interrumpe las fases posteriores a MoveHero.
@@ -232,7 +230,6 @@ private:
     // Los frames del original, por los pasos de la escena (#307).
     OriginalFramesOfTheSteps m_cameraFrames;
     GroundEffectFrame m_groundEffects;
-    std::vector<CharacterCloth> m_characterCloths;
     World::FrameSprites m_sprites;
     World::FrameSprites m_spriteReplay;
     bool m_spriteReplayValid = false;

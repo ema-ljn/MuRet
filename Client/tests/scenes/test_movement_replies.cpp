@@ -1,5 +1,7 @@
 #include "Scenes/MovementReplies.h"
 
+#include "Render/Models/LogicalAccess.h"
+
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Data/Models/Model.h"
@@ -44,13 +46,23 @@ public:
     }
     const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
     {
-        return model == 0x186 || model == Client::Data::Models::PlayerSkeletonModel ? &skeleton : nullptr;
+        if (model == 0x186 || model == Client::Data::Models::PlayerSkeletonModel)
+            return &skeleton;
+        return model == 0x154 ? &transformed : nullptr;
     }
     std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
     {
         return {};
     }
     Client::Render::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
+    Client::Render::Models::Skeleton transformed = []
+    {
+        Client::Render::Models::Skeleton value;
+        value.actions.resize(7);
+        for (auto& action : value.actions)
+            action.keyCount = 10;
+        return value;
+    }();
 };
 struct Replies
 {
@@ -399,6 +411,33 @@ TEST(MovementRepliesTest, AFailedOtherPathRunsStopAfterClosingItsLogicalCoordina
     EXPECT_EQ(other.movement, 0);
     EXPECT_EQ(other.animation.action, 1);
     EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(1, 9).State());
+}
+
+TEST(MovementRepliesTest, AFailedTransformedPathStopsWithItsLoadedModel)
+{
+    Replies tested;
+    MovementModels fauna;
+    tested.world.FaunaResources().Bind(&fauna);
+    tested.world.Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+    auto& other = tested.world.Actors()[8];
+    other = Client::Tests::UnarmedPlayer();
+    other.alive = true;
+    other.key = 44;
+    other.type = 0x154;
+    other.cellX = 0;
+    other.cellY = 21;
+    other.movement = 1;
+    other.animation.action = 2;
+
+    const auto result = Client::Scenes::ApplyWalkReply(Client::Protocol::Movement::Walk{44, {30, 31}, 15},
+                                                       Replies::PlayerKey, tested.Resources());
+    tested.world.FaunaResources().Bind(nullptr);
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_EQ(other.movement, 0);
+    EXPECT_EQ(other.animation.action, 0);
+    EXPECT_EQ(tested.cloth.random.State(),
+              Client::Tests::AfterDraws(1, 4 * Client::Render::Models::SmallLogicalCloseRandoms + 1).State());
 }
 TEST(MovementRepliesTest, BitSixProducesTwoDimCopiesBeforeTheNormalNumberAtTheOriginalHeight)
 {

@@ -48,6 +48,7 @@ constexpr std::size_t OtherSlot = 12;
 constexpr std::uint8_t ElfClass = 2;
 // Un tipo que no es jugador, con diez acciones.
 constexpr std::uint16_t SmallModel = 0x20;
+constexpr std::uint16_t TransformedModel = 0x154;
 constexpr std::uint32_t SittingFlag = 0x200000;
 
 class ReplyModels final : public Client::Scenes::IModelLibrary
@@ -56,6 +57,7 @@ public:
     ReplyModels()
     {
         small.actions.resize(10);
+        transformed.actions.resize(7);
     }
     const Client::Data::Models::Model* Find(std::uint16_t) const override
     {
@@ -65,7 +67,9 @@ public:
     {
         if (model == Client::Data::Models::PlayerSkeletonModel)
             return &player;
-        return model == SmallModel ? &small : nullptr;
+        if (model == SmallModel)
+            return &small;
+        return model == TransformedModel ? &transformed : nullptr;
     }
     std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
     {
@@ -73,6 +77,7 @@ public:
     }
     Client::Render::Models::Skeleton player = Client::Tests::PlayerActionsSkeleton();
     Client::Render::Models::Skeleton small;
+    Client::Render::Models::Skeleton transformed;
 };
 
 // 0x4cb871..0x4cbcc8: la animación de cada acción para las otras clases y para el elfo.
@@ -264,24 +269,74 @@ TEST_F(ActionReplyTest, TheDarkHorseIsLeftAlone)
     }
 }
 
-// 0x5110d0 (MOVSX): sin nadie vivo con la clave, o con una desde 0x8000, el original escribe en el lugar 400 (Q-C778);
-// MuRet no toca a nadie. Con dos con la misma, el primero.
-TEST_F(ActionReplyTest, AnUnknownKeyTouchesNobody)
+// 0x5110d0 (MOVSX): si no hay una clave viva, devuelve el lugar 400 y el 18 sigue escribiendo ahí (Q-C778).
+TEST_F(ActionReplyTest, AMissingKeyUpdatesTheSpareActorAtSlot400)
 {
-    const auto before = m_world->Actors()[400].angles;
-    ASSERT_TRUE(Apply(3, 0x83, 0x4321).HasValue());
+    ActorState& spare = m_world->Actors()[400];
+    spare = Client::Tests::UnarmedPlayer();
+    spare.alive = false;
+    spare.key = 0x4321;
+    spare.targetX = 0;
+    spare.targetY = 0xff;
+    spare.cellX = 11;
+    spare.cellY = 12;
+    spare.position = {1.0f, 2.0f, 3.0f};
+    spare.angles = {4.0f, 5.0f, 6.0f};
+    spare.movement = 1;
+
+    ASSERT_TRUE(Apply(0xff, 0x83, 0x4321).HasValue());
+
+    EXPECT_FALSE(spare.alive);
+    EXPECT_EQ(spare.key, 0x4321);
+    EXPECT_EQ(spare.movement, 0);
+    EXPECT_EQ(spare.angles, glm::vec3(4.0f, 5.0f, 11430.0f));
+    EXPECT_EQ(spare.position, glm::vec3(50.0f, 25550.0f, 3.0f));
+    EXPECT_EQ(spare.animation.action, 0x99);
+    EXPECT_EQ(spare.cellX, 11);
+    EXPECT_EQ(spare.cellY, 12);
+    EXPECT_EQ(spare.targetX, 0);
+    EXPECT_EQ(spare.targetY, 0xff);
+
     EXPECT_EQ(Other().animation.action, 0);
-    EXPECT_EQ(m_world->Actors()[400].angles, before);
+    EXPECT_EQ(Other().movement, 1);
+    EXPECT_EQ(Other().position, glm::vec3(1.0f, 2.0f, 3.0f));
+}
+
+// 0x5110d0 ignora claves sin signo desde 0x8000 por el MOVSX, y no encuentra una clave solo en un actor muerto.
+TEST_F(ActionReplyTest, DeadAndHighBitKeysAlsoSelectTheSpareActor)
+{
+    ActorState& spare = m_world->Actors()[400];
+    spare = Client::Tests::UnarmedPlayer();
+    spare.alive = false;
+    spare.targetX = 13;
+    spare.targetY = 14;
+    spare.position = {1.0f, 2.0f, 3.0f};
 
     Other().alive = false;
     ASSERT_TRUE(Apply(3, 0x83).HasValue());
+    EXPECT_EQ(spare.animation.action, 0x99);
+    EXPECT_EQ(spare.movement, 0);
+    EXPECT_EQ(spare.position, glm::vec3(1350.0f, 1450.0f, 3.0f));
     EXPECT_EQ(Other().animation.action, 0);
 
+    spare = Client::Tests::UnarmedPlayer();
+    spare.alive = false;
+    spare.targetX = 13;
+    spare.targetY = 14;
+    spare.position = {1.0f, 2.0f, 3.0f};
     Other().alive = true;
     Other().key = 0x8001;
-    ASSERT_TRUE(Apply(3, 0x83, 0x8001).HasValue());
+    Other().position = {7.0f, 8.0f, 9.0f};
+    ASSERT_TRUE(Apply(0xff, 0x83, 0x8001).HasValue());
+    EXPECT_EQ(spare.animation.action, 0x99);
+    EXPECT_EQ(spare.angles.z, 11430.0f);
     EXPECT_EQ(Other().animation.action, 0);
+    EXPECT_EQ(Other().position, glm::vec3(7.0f, 8.0f, 9.0f));
+}
 
+// Si hay dos vivos con la misma clave, 0x5110d0 elige el primero del pool.
+TEST_F(ActionReplyTest, TheFirstAliveActorWithADuplicateKeyWins)
+{
     Other().key = OtherKey;
     ActorState& first = m_world->Actors()[5];
     first = Client::Tests::UnarmedPlayer();
@@ -306,7 +361,133 @@ TEST_F(ActionReplyTest, TheStrikeIsAFrontier)
         EXPECT_EQ(Other().movement, 0);
         EXPECT_EQ(Other().position, glm::vec3(1350.0f, 1450.0f, 3.0f));
         EXPECT_EQ(Other().animation.action, 0);
+        EXPECT_EQ(Other().byte381, 0);
+        EXPECT_EQ(Other().animation.frame, 0.0f);
+        EXPECT_EQ(Other().word3a4, 0);
+        EXPECT_EQ(m_world->Runtime().lastAttacker, 0);
     }
+}
+
+// 0x4cb781 es la única salida antes de los stores comunes, también si la búsqueda cayó en el 400.
+TEST_F(ActionReplyTest, DarkHorseInTheSpareSlotStopsTheReplyBeforeAnyStores)
+{
+    ActorState& spare = m_world->Actors()[400];
+    spare = Client::Tests::UnarmedPlayer();
+    spare.alive = false;
+    spare.targetX = 13;
+    spare.targetY = 14;
+    spare.position = {1.0f, 2.0f, 3.0f};
+    spare.angles = {4.0f, 5.0f, 6.0f};
+    spare.movement = 7;
+    spare.animation.action = 0x20;
+    spare.animation.frame = 9.5f;
+    spare.pet.model = 0x1c16;
+    m_world->Runtime().lastSoundId = 0x44;
+    const auto random = m_cloth.random.State();
+
+    const auto applied = Apply(0xff, 0x78, 0x4321);
+
+    ASSERT_TRUE(applied.HasValue());
+    EXPECT_FALSE(spare.alive);
+    EXPECT_EQ(spare.position, glm::vec3(1.0f, 2.0f, 3.0f));
+    EXPECT_EQ(spare.angles, glm::vec3(4.0f, 5.0f, 6.0f));
+    EXPECT_EQ(spare.movement, 7);
+    EXPECT_EQ(spare.animation.action, 0x20);
+    EXPECT_EQ(spare.animation.frame, 9.5f);
+    EXPECT_EQ(m_world->Runtime().lastSoundId, 0x44);
+    EXPECT_EQ(m_cloth.random.State(), random);
+}
+
+// 0x4cb820: para 0x78/0x79 el sufijo de CL9 hito 3 queda después del error, pero los stores comunes ya ocurrieron.
+TEST_F(ActionReplyTest, AStrikeOnTheSpareSlotStoresCommonFieldsBeforeTheH3Error)
+{
+    ActorState& spare = m_world->Actors()[400];
+    spare = Client::Tests::UnarmedPlayer();
+    spare.alive = false;
+    spare.targetX = 13;
+    spare.targetY = 14;
+    spare.position = {1.0f, 2.0f, 3.0f};
+    spare.movement = 7;
+    spare.byte381 = 1;
+    spare.animation.action = 0x20;
+    spare.animation.frame = 9.5f;
+    spare.word3a4 = 0x1234;
+    m_world->Runtime().lastAttacker = 77;
+
+    for (const std::uint8_t action : {std::uint8_t{0x78}, std::uint8_t{0x79}})
+    {
+        SCOPED_TRACE(int{action});
+        spare.movement = 7;
+        const auto applied = Apply(3, action, 0x4321);
+
+        ASSERT_FALSE(applied.HasValue());
+        EXPECT_NE(applied.Error().find("0x4cb821"), std::string::npos);
+        EXPECT_EQ(spare.movement, 0);
+        EXPECT_EQ(spare.angles.z, 90.0f);
+        EXPECT_EQ(spare.position, glm::vec3(1350.0f, 1450.0f, 3.0f));
+        EXPECT_EQ(spare.byte381, 1);
+        EXPECT_EQ(spare.animation.action, 0x20);
+        EXPECT_EQ(spare.animation.frame, 9.5f);
+        EXPECT_EQ(spare.word3a4, 0x1234);
+        EXPECT_EQ(m_world->Runtime().lastAttacker, 77);
+    }
+}
+
+// 0x4cb812: 0x7a va a 0x4f2250 incluso para la búsqueda sin resultado, que devuelve el slot 400.
+TEST_F(ActionReplyTest, AStopActionAppliesToTheSpareActorAtSlot400)
+{
+    ActorState& spare = m_world->Actors()[400];
+    spare = Client::Tests::UnarmedPlayer();
+    spare.alive = false;
+    spare.targetX = 13;
+    spare.targetY = 14;
+    spare.position = {1.0f, 2.0f, 3.0f};
+    spare.movement = 7;
+    spare.animation.action = 0x20;
+
+    const auto random = m_cloth.random;
+    const auto applied = Apply(3, 0x7a, 0x4321);
+
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
+    EXPECT_FALSE(spare.alive);
+    EXPECT_EQ(spare.movement, 0);
+    EXPECT_EQ(spare.angles.z, 90.0f);
+    EXPECT_EQ(spare.position, glm::vec3(1350.0f, 1450.0f, 3.0f));
+    EXPECT_EQ(spare.animation.action, 1);
+    auto expectedRandom = random;
+    static_cast<void>(expectedRandom.Next());
+    EXPECT_EQ(m_cloth.random.State(), expectedRandom.State());
+    EXPECT_EQ(Other().animation.action, 0);
+}
+
+// 0x4cb853..0x4cb864 pide el sonido aunque Player.bmd no tenga la animación 0x98.
+TEST_F(ActionReplyTest, ShieldSetsItsSoundWhenTheModelLacksItsAnimation)
+{
+    m_models.player.actions.resize(0x98);
+    Other().animation.action = 3;
+    Other().animation.frame = 7.5f;
+    m_world->Runtime().lastSoundId = 0x44;
+
+    ASSERT_TRUE(Apply(3, 0x12).HasValue());
+
+    EXPECT_EQ(Other().animation.action, 3);
+    EXPECT_EQ(Other().animation.frame, 7.5f);
+    EXPECT_EQ(m_world->Runtime().lastSoundId, 0x6f);
+}
+
+// 0x4ea030 no reinicia el frame si la respuesta vuelve a pedir la acción actual, pero sí corre los stores previos.
+TEST_F(ActionReplyTest, RepeatingTheCurrentAnimationStillUpdatesTheReplyPosition)
+{
+    Other().animation.action = 5;
+    Other().animation.frame = 3.5f;
+
+    ASSERT_TRUE(Apply(0xff, 0x7e).HasValue());
+
+    EXPECT_EQ(Other().movement, 0);
+    EXPECT_EQ(Other().angles.z, 11430.0f);
+    EXPECT_EQ(Other().position, glm::vec3(1350.0f, 1450.0f, 3.0f));
+    EXPECT_EQ(Other().animation.action, 5);
+    EXPECT_EQ(Other().animation.frame, 3.5f);
 }
 
 // 0x4cb812: 0x7a y 0x7b van a 0x4f2250, con su sufijo (un rand()); sin armas, la 1 y la 2 con el elfo, en Lorencia y
@@ -334,6 +515,17 @@ TEST_F(ActionReplyTest, TheStopActionsGoThroughSetActorStop)
         }
     }
     EXPECT_TRUE(m_sent.empty());
+}
+
+TEST_F(ActionReplyTest, AStopReplyUsesTheTransformedActorsSevenActionModel)
+{
+    Other().type = TransformedModel;
+    Other().animation.action = 2;
+
+    const auto stopped = Apply(3, 0x7a);
+
+    ASSERT_TRUE(stopped.HasValue()) << stopped.Error();
+    EXPECT_EQ(Other().animation.action, 0);
 }
 
 // Sentado (+0x7c con 0x200000), 0x4f2250 pone la 0xca y manda el C1 18 0x82 con el ángulo que el 18 acaba de poner.

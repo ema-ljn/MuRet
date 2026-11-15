@@ -46,7 +46,8 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
         .gates = m_gates,
         .input = {mouse.x, mouse.y, false, input.MouseMessages().leftDown, input.IsDown(Input::Key::Shift),
                   static_cast<float>(ticks), static_cast<std::uint32_t>(ticks)},
-        .fixedHeight = CameraState().fixedHeight};
+        .fixedHeight = CameraState().fixedHeight,
+        .models = m_models};
     context.pickTarget = [this] { return GroundUnderTheMouse(); };
     context.sendWalk = [&](auto cells, auto target, float angle) -> Core::Expected<void, std::string>
     {

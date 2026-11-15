@@ -1497,7 +1497,9 @@ UI::OldWindowGlobals OldWindowGlobalsOf(WorldRuntime& runtime)
                                 .focusedList = ui.focusedList,
                                 .wheel = ui.wheel,
                                 .rightClick = ui.rightClick,
-                                .doubleClick = ui.doubleClick};
+                                .doubleClick = ui.doubleClick,
+                                .mouseUpdateTime = &movement.mouseUpdateTime,
+                                .mouseUpdateTimeMax = &movement.mouseUpdateTimeMax};
 }
 
 Core::Expected<void, std::string> StepTheGameDialogs(const GameUiContext& context)
@@ -1735,7 +1737,8 @@ Core::Expected<void, std::string> PickInTheFrame(const FramePickingContext& cont
 {
     WorldRuntime& runtime = context.world.Runtime();
     std::array<std::int32_t, 5>& targets = context.targets;
-    const auto pick = [&context](std::uint8_t mask) { return PickTheCharacter(context.world, mask, context.ray); };
+    const auto pick = [&context](std::uint8_t mask)
+    { return PickTheCharacter(context.world, mask, context.cameraPosition, context.ray, context.pickingBoxes); };
     // 0x59ec97..0x59ee48: los modos del editor (0x77f3b18) no los prende nadie.
     KeepTheChosen(context);
     // 0x59ef16..0x59ef29.

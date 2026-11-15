@@ -1107,13 +1107,17 @@ del deque queda abajo.
 
 La caja de agregar (`0x4a3750`): arrastrada, ubica a sus hijas; los dos botones, y con la mezcla normal el EDIT
 (`0x468320`); termina sin mezcla. El EDIT, si se ve (`IsWindowVisible`): el ancho del cursor (+`0xa8`, 1,5 sin IME) y
-el alto de "1" (+`0xac`, en píxeles, la primera vez); con +`0x4c` & 8 (el filtro de la caja de agregar), el negro de
+el alto de "Q" (+`0xac`, en píxeles, la primera vez; verificación del literal en el PE c32); con +`0x4c` & 8 (el filtro de la caja de agregar), el negro de
 (x, y, w, +`0xac`) (Q-C892); el cursor se ve con el foco de Windows en el EDIT y +`0x80` % 24 < 12; el texto y el
 cursor van a un bitmap de `min(1,5 + 1,5 + cx, w · rx)` × `h · ry` píxeles en (x · rx, y · ry) (`0x554000`), donde
 el texto (`0xff`) toma +`0x9c`, el fondo (0) +`0xa0` (0 en la caja de agregar: transparente, `0x4a365e`) y los grises
-del medio +`0xa4`, y adentro del cursor el texto toma el fondo y lo demás `0xffc8c8c8`; al final, +`0x80` suma uno. MuRet dibuja el
-bitmap como un quad del fondo, el texto con el dibujante de texto y el cursor como un quad de 1 × min(+`0xac`, alto)
-en la columna después del texto (*inferido*: el texto solo crece por el final; P-C181).
+del medio +`0xa4`, y adentro del cursor el texto toma el fondo y lo demás `0xffc8c8c8`; al final, +`0x80` suma uno.
+La revisión del 2026-11-15 corrigió la aproximación anterior del port: el caret usa el prefijo hasta el byte
+activo y su margen, la selección usa el color de texto del objeto y el caret invierte una columna de la máscara,
+sin pintar texto debajo. El recorte estricto puede excluir el caret final o vacío. El dibujo parte de coordenadas
+en píxeles para conservar el origen a 1024 × 768. El ASM, los píxeles visibles del perfil XP y el límite de la
+comparación se documentan en [11-edit-win32](11-edit-win32.md#bitmap-visible-selección-y-caret).
+Preedición visible, scroll y modos IME siguen abiertos en P-C181.
 
 **Los paneles.**
 
@@ -1696,8 +1700,11 @@ dos EDIT de Windows del objeto `[0x57634f8]` (`0x4691e0`): el del mensaje en (`0
 `0x7798cf8` (de los diez de `0x100` que vacía `0x553570`), con sus largos en `0x7758590` y `0x7758594`; el campo
 elegido, `0x77f3b70`; el historial, el deque de `+0x2e4` (`0x469540` guarda, `0x469790` recorre, `0x469a80` deja
 diez). La subclase `0x467b10` le pasa Tab y Enter al WndProc y descarta Esc y `0x19..0x1c`. MuRet emula los EDIT como
-el campo del login (`UI::TextField` en Latin-1): `EM_SETSEL(0, −1)` elige todo y lo primero que entra lo reemplaza,
-sin cursor en el medio ni IME. Los ids de los dos EDIT (1 y 2, los dos primeros objetos que arma WinMain en
+`UI::TextField`; desde la revisión del 2026-11-15 el mensaje y el destinatario usan el perfil ANSI CP1252 de XP,
+con límites de 50 y 10 bytes. `4691e0` no activa filtros numéricos ni alfanuméricos: el tercer argumento cero de
+Init es el flag de contraseña, no el filtro `obj+4c`. `EM_SETSEL(0, −1)` elige todo y lo primero que entra lo
+reemplaza. La ruta del chat común todavía no integra la navegación, el clipboard ni la composición del editor
+viejo; no se declara equivalente al EDIT completo. Los ids de los dos EDIT (1 y 2, los dos primeros objetos que arma WinMain en
 `0x4bb173` y `0x4bb184`) son *inferidos*.
 
 - **Enter** (`0x4b50b0..0x4b88e9`): sale sin hacer nada en Chaos Castle fuera de la zona segura, con el diálogo
@@ -9628,8 +9635,12 @@ emulación, 6 celdas caminando son 49 pasos (1,96 s).
 `+0x3e2`, la mano derecha `+0x2b8` y la izquierda `+0x2d8`, y los modelos se comparan como WORD con
 signo. En este orden:
 
-1. Un tipo que no es `0x20a` va a su propia rama (`0x4f2d87..0x4f36b5`), que lee sus celdas por la
-   tabla de protección y el `TerrainWall`, sin leer en detalle.
+1. Un tipo que no es `0x20a` va a su propia rama (`0x4f2d87..0x4f36b5`): lee la celda lógicaY,
+   cierra ese acceso y luego lee/cierraX. Cada cierre que llega a profundidad0 consume cuatro CRT;
+   no se sustituye por un gasto fijo de8. Pide acción0 del modelo propio, excepto el tipo0x172:
+   con bit0 del TerrainWall de esa celda pide7. Sólo ese tipo consulta el contenido del terreno.
+   El modelo0x154 del anillo pide0; un registro sin acciones conserva acción/frame. Contraste
+   actualizado: [transformación](14-transformacion-en-vmxp.md#contrato-de-movimiento-y-reposo).
 2. Fenrir (`0x1c37` en `+0x318`) fuera de la zona segura: `0x7d3a0d0 = 0` y `0x76` con las dos manos
    vacías, `0x77` con las dos, `0x78` solo con la derecha y `0x79` solo con la izquierda
    (`0x4f228c..0x4f22f6`).
@@ -9656,13 +9667,15 @@ signo. En este orden:
 Con la acción puesta, el sufijo (`0x4f36be..0x4f37a5`): con `rand() % 16` distinto de 0 termina. Si
 no, con el tipo `0x20a` y el subtipo (`+4`) fuera de 209 a 211: sin Fenrir termina; con Fenrir,
 `rand() % 3` distinto de 0 termina y si no suena `0x41ed10(0x279 + (rand() & 1), c, 0)`. Con otro
-tipo o esos subtipos lee la tabla de sonidos de los modelos (`0x5769ad8 + tipo · 0xe0 + 0xaa`), sin
-leer en detalle. Gasta de uno a tres `rand()`. MuRet (`Scenes::SetActorStop`) porta los pasos 2 a 9
-y el sufijo, y corta con un error explícito en la rama de los que no son jugadores, el `TerrainWall`
-de los mapas de vuelo en la escena 5 cuando quien llama no lo presta (el paso de los personajes lo presta en
-todos los mapas desde el PR de Atlans: en el 7 y en Kalima, fuera de la zona segura, de pie nadan), sentarse
-cuando quien llama no presta quien mande el `C1 18` (desde la CL9 lo prestan el paso del héroe y el `18`) y la tabla
-de sonidos.
+tipo o esos subtipos lee la tabla signed de sonidos (`0x5769ad8 + tipo · 0xe0 + 0xaa`): primera−1
+termina sin segundo sorteo; si no, `rand() & 1` elige entre las dos primeras, suma0xd2 y suma5 con
+subtipo9. El noPlayer nunca elige la rama Fenrir. El sufijo gasta de uno a tres CRT, además de los
+cierres de celda previos del noPlayer. MuRet (`Scenes::SetActorStop`) porta las dos ramas y el
+sufijo; `ActorStopContext` presta modelo propio y tabla desde FaunaModels/IModelLibrary. El fallback
+son diez WORD cero. Falta de TerrainWall sólo corta al consultarlo (0x172 o vuelo Player); falta de
+sendAction sólo al sentarse, y tabla ausente sólo si el gate del sufijo la consulta. Los callers de
+caminar, llegada,18,D3,paso,NPC y transiciones prestan esos recursos sin forzar Player.bmd al
+transformado. La revisión añadió una regresión para la tabla en llegada de Player/subtipo209..211.
 
 `0x4f9580` no toca el movimiento: da la **velocidad de la animación**, la base del `PlaySpeed` de la
 acción (después va `0x4ec200`, salvo con `+0x78 & 0x1000`), con multiplicadores por tipo, acción y
@@ -9964,8 +9977,9 @@ el mismo pool, así que mueven y lastiman a los que da de alta el `12`.
 **MuRet** (`Scenes/ActorCreation.h`, `Scenes/ViewportPlayers.h`, `Scenes/ActorCharacterSet.h` y
 `Scenes/ActorEffectFlags.h`). `CreateActor` y `RemoveActor` son `0x512870` y `0x510ff0`, para la hito 2 también:
 `CreateActor(mundo, clave, tipo, {X, Y, ángulo}, contexto de 0x511290, telas)` devuelve el lugar (el 400 con el pool
-lleno). `0x401040` saca los huesos con nombre (`WorldRuntime::namedBones`, desde la hito 2); `0x4fb1a0` no tiene qué
-soltar en el mundo de MuRet (P-C161). El efecto `0x61f` va sin el dueño, como el de la entrada del héroe. Cortan con su
+lleno). `0x401040` saca los huesos con nombre (`WorldRuntime::namedBones`, desde la hito 2); `0x4fb1a0` reinicializa las telas del slot,
+propiedad de `WorldState`, también en cleanup de mapa; reconstruir una clave viva las conserva
+([contraste del ciclo](13-h1-actores-y-picking.md#el-dueño-de-las-telas), P-C161 resuelto). El efecto `0x61f` va sin el dueño, como el de la entrada del héroe. Cortan con su
 dirección, después de lo que el original hace antes: el recién llegado del `45` en `0x4c965c` (CL11; el alta de
 `0x4c934c` es `CreateMonster` desde el hito 2, [Los monstruos y los NPC en el
 viewport](#los-monstruos-y-los-npc-en-el-viewport)), y las banderas que crean efectos (`0x4e644f`, `0x4e662d`,
@@ -10009,17 +10023,22 @@ publicado (salvo en la escena 4) y con `+0x42c`, gana el de menor distancia² a 
 `(dz² + dy²) + dx²` en el x87 contra un float que arranca en `0x5368d4a5`, ~10¹²) cuya caja (`+0x13c`) toca el
 segmento (`0x622900`). En Lorencia la capa 1 en 4 y en Devias en 3 (los techos y los pisos de arriba) cuentan solo si
 es la capa de la celda del héroe (`0x77f36d0`), con la celda de la posición truncada (`0x69fd3c`) sobre 100. El
-primero gana los empates. Con jugadores en la party (`0x78aba48`), además escribe sus datos; vacía, nada. No saca
+primero gana los empates exactamente representables. `best` se redondea a float al aceptar:
+un redondeo hacia arriba puede permitir que gane el siguiente; la comparación también acepta
+unordered. Startup selecciona PC53 en el x87; no se presupone precisión extendida por el uso de
+esas instrucciones ([contraste](13-h1-actores-y-picking.md#lectura-y-aritmética-de-0x59e700)). Con jugadores en la party (`0x78aba48`), además escribe sus datos; vacía, nada. No saca
 `rand()`.
 
 **MuRet**: `Scenes::PickTheCharacter` es `0x59e700` y `Scenes::PickInTheFrame` (`GameUi.h`) es `0x59ec80`, con el
-segmento de `GameScene::MouseRay` y, desde la hito 2, la caja de cada tipo (`+0x124..+0x138` de `0x511290` desde la
-posición, [El alta de un monstruo](#el-alta-de-un-monstruo)). El dibujo de los personajes del juego toma el elegido
+segmento de `GameScene::MouseRay`, la cámara del dibujo y los48 bytes persistidos en `+0x13c..+0x168`,
+publicados al dibujar cuerpo/partes desde los bounds de cada tipo (`+0x124..+0x138` de `0x511290`,
+[El alta de un monstruo](#el-alta-de-un-monstruo)). El movimiento por sí solo no actualiza esa caja. El dibujo de los personajes del juego toma el elegido
 (`0x6c8e30`) y el NPC (`0x6c8e2c`) del frame anterior. El ítem del piso y los objetos son de la CL9.3 (−1) y la party,
 de la hito 7 (vacía). `0x6c8e38` solo baja a −1 acá: lo suben el ataque (`0x59d3fd`) y las skills, de los hitos 3 y 4.
 Con el elegido de verdad, cada lector de `0x6c8e30` y `0x6c8e38` está portado, corta con su dirección o no se alcanza:
-la lista, en 08, P-C162 (d). La vuelta a la selección los deja en −1 (`0x4c2515..0x4c252d`). Lo *inferido* (la cámara,
-la caja y la doble precisión), en 08, P-C164. Tests: `CharacterPickingTest` y
+la lista, en 08, P-C162 (d). La vuelta a la selección los deja en −1 (`0x4c2515..0x4c252d`). Cámara, caja, guardas y PC53 están contrastados
+[por función](13-h1-actores-y-picking.md); CW efectivo durante DLL/GL y límites fuera de capa siguen
+registrados en08, P-C164. Tests: `CharacterPickingTest` y
 `GameUiTest.ThePreviousMonsterStaysOutsideTheMapSix`.
 
 ### La vuelta a la selección

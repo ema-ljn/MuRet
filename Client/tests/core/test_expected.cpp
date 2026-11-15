@@ -1,5 +1,7 @@
 #include "Core/Expected.h"
 
+#include "support/SystemCrashReports.h"
+
 #include <gtest/gtest.h>
 
 #include <memory>
@@ -83,14 +85,24 @@ TEST(ExpectedDeathTest, ValueOfAnErrorStopsTheProgram)
 {
     const Expected<int, std::string> result = Unexpected(std::string("archivo corto"));
 
-    EXPECT_DEATH(static_cast<void>(result.Value()), "de un Expected que no tiene valor");
+    EXPECT_DEATH(
+        {
+            ASSERT_TRUE(Client::Tests::SuppressSystemCrashReports());
+            static_cast<void>(result.Value());
+        },
+        "de un Expected que no tiene valor");
 }
 
 TEST(ExpectedDeathTest, ErrorOfAValueStopsTheProgram)
 {
     const Expected<int, std::string> result = 42;
 
-    EXPECT_DEATH(static_cast<void>(result.Error()), "de un Expected que no tiene error");
+    EXPECT_DEATH(
+        {
+            ASSERT_TRUE(Client::Tests::SuppressSystemCrashReports());
+            static_cast<void>(result.Error());
+        },
+        "de un Expected que no tiene error");
 }
 
 // Un valor cuyo move tira una excepción, solo cuando se le pide.
@@ -123,7 +135,12 @@ TEST(ExpectedDeathTest, ErrorOfOneWithNeitherStopsTheProgram)
     EXPECT_THROW(result = std::move(source), std::runtime_error);
 
     ASSERT_FALSE(result.HasValue());
-    EXPECT_DEATH(static_cast<void>(result.Error()), "de un Expected que no tiene error");
+    EXPECT_DEATH(
+        {
+            ASSERT_TRUE(Client::Tests::SuppressSystemCrashReports());
+            static_cast<void>(result.Error());
+        },
+        "de un Expected que no tiene error");
 }
 
 // Expected<void, E>: lo que solo puede fallar (subir las texturas de una escena, CL5.1). Un
@@ -156,6 +173,11 @@ TEST(ExpectedVoidDeathTest, ErrorOfASuccessStopsTheProgram)
 {
     const Expected<void, std::string> result = SucceedsUnless(false);
 
-    EXPECT_DEATH(static_cast<void>(result.Error()), "de un Expected que no tiene error");
+    EXPECT_DEATH(
+        {
+            ASSERT_TRUE(Client::Tests::SuppressSystemCrashReports());
+            static_cast<void>(result.Error());
+        },
+        "de un Expected que no tiene error");
 }
 } // namespace

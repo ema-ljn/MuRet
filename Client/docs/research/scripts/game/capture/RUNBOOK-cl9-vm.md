@@ -10,6 +10,14 @@ Antes de trabajar, leer `AGENTS.md`, `docs/CODING_RULES.md` y `cpp-pro`; aplicar
 y consultar Context7 para las APIs usadas. El modo tutor está apagado. No mergear el PR ni modificar
 configuraciones de GitHub.
 
+**Estado del laboratorio al 2026-11-15:** la nueva pasada está en el
+[resultado de VM y editor XP](../../../../../../docs/superpowers/plans/2026-11-15-cl9-h1-h9-resultado.md).
+En este host sólo está el cliente en VMXP; el servidor real corre en otra PC. Emanuel confirmó que
+Agregar+Enter desconecta porque el servicio de amigos/chat no conecta. Ya se observó una solicitud única
+al propio personaje, seguida de cierre remoto sin respuesta: no repetir altas/bajas en ese entorno
+hasta resolver esa precondición. Conservar las pruebas locales del cliente y los pendientes de servidor
+por separado; esa desconexión no certifica el flujo completo ni cierra H1/H9.
+
 ## 1. Qué se necesita y qué ya está disponible
 
 Hay dos tareas diferentes, ambas necesarias:
@@ -167,7 +175,7 @@ Cada caso debe producir entrada, precondición, secuencia, evidencia original, c
 
 | Caso | Acción y estado | Qué comparar con ASM y MuRet |
 | --- | --- | --- |
-| H1-E1 | Héroe parado, escribir `^^`; repetir caminando, con elfo y con transformación realmente cargada | `576eb0 → 576a60 → 4ea030`: parado dos acciones 18 iguales antes del chat; caminando una. Para `^^`, acción 0x8e; dirección del héroe. Si la animación no existe en el modelo transformado, se conserva el no-op pero continúan los envíos. Registrar modelo/acciones y recurso realmente cargado. |
+| H1-E1 | Héroe parado, escribir `^^`; repetir caminando, con elfo y con transformación realmente cargada | `576eb0 → 576a60 → 4ea030`: dos acciones18 iguales antes del chat si la acción actual está en1..12 o8a; fuera de ese rango, una. El personaje normal suele cumplirlo parado y salir del rango caminando. En una transformación, registrar acción y Movement por separado: reposo0 no pasa la compuerta. Para `^^`, acción0x8e; dirección del héroe. Un modelo sin animación175/176 conserva el no-op de SetAction y continúa los envíos que correspondan a la compuerta. Registrar descriptor/recurso cargado; [contraste nativo](../../../13-h1-actores-y-picking.md#comparación-nativa-alcanzada). |
 | H1-E2 | Provocar por una mecánica real del laboratorio un DF de tipo 0xf1 con actor publicado | `4c6b40 → 51fe10(pos,0)`: empujón, sonido 0x1b, intentos 0x5c5/2, z + 80; sin explosión opcional 0x5ed. Con slots libres se esperan 20 altas. Correlacionar paquete, estado y frame; vídeo por sí solo no cuenta intentos ni RNG. |
 | H1-E3 | Aplicar al héroe el bit 0x02000000; repetir sin quitarlo, y observar un actor distinto | `4e68d3..4e6904`: aviso con nombre vacío y Text[1828], tipo 1, en cada aplicación al héroe; OR después. Otro actor sólo recibe el bit. Si el servidor no ofrece una mecánica para ese flag, registrar bloqueo, no alterar memoria para simularla. |
 | H9-B1 | Abrir Amigos, mantener un botón, cerrar con F y reabrir sin una liberación intermedia; repetir F6 y caja Agregar | Destructor 0x45adf0 limpia pressed_button sólo por igualdad de ID. Cerrar una ventana debe conservar el botón ajeno que sigue vivo. Guardar snapshots/acciones correlacionados, no sólo el estado final. |

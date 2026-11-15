@@ -168,8 +168,11 @@ cliente es la Season 1 completa. Para esos, el oráculo es el cliente (los bytes
    (su contenido y sus paquetes `C0`..`CA`) son de la CL9.4.
 8. **El Esc, las opciones y los créditos del login y la selección** (`+0x3d0`, `+0x7e8`, `+0x4578` de la UI
    nueva) **entran en la CL8**, como dice el roadmap (§ Lo que dejó la CL6), en el hito de la UI nueva.
-9. **Sin IME:** la entrada de texto es SDL3 (`SDL_EVENT_TEXT_INPUT`) pasada a Latin1, como el `TextField` del
-   login. El IME coreano queda fuera (el `Text.bmd` es occidental y el original lo apaga en `0x467360`).
+9. **Decisión original de CL8, revisada el 2026-11-15:** se había simplificado la entrada SDL3 a Latin1.
+   El contraste posterior con el EDIT y NLS de XP encontró ACP1252, best fit y sustituciones; mensaje,
+   destinatario y nombre usan ahora ese perfil (ADR 0016 y research12). Text.bmd no distingue ambas páginas
+   porque no contiene `80..9f`. Apagar/restaurar modos en `467360` no demuestra ausencia de composición:
+   el IME genuino y el editor completo siguen abiertos en P-C181.
 10. **El ancho del texto del chat** (los cortes a 256 y a 180 px de `GetTextExtentPointA`) sale de FreeType en
     640 × 480; la diferencia con GDI se registra (P-C60) y la VM la mide.
 11. **La captura** usa el compresor de libjpeg-turbo (calidad 100, filas de abajo arriba). El archivo no tiene

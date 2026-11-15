@@ -1139,6 +1139,13 @@ Core::Expected<void, std::string> DestroyTheOldWindow(OldWindowManager& manager,
     const auto found = manager.windows.find(id);
     if (found == manager.windows.end())
         return {};
+    if (found->second.kind == OldWindowKind::AddFriendBox && !manager.focusedEditIsOrphan &&
+        found->second.add.edit.base.id == manager.focusedEdit)
+    {
+        // El EDIT nativo sobrevive al wrapper; MuRet conserva solo el estado editable si todavía tiene el foco.
+        manager.orphanedEdit = found->second.add.edit;
+        manager.focusedEditIsOrphan = true;
+    }
     // 0x491840.
     manager.boxes.remove(id);
     ReleaseTheDestroyedButtons(found->second, pressedButton);
@@ -1234,6 +1241,8 @@ void ResetTheOldWindows(OldWindowManager& manager, std::int32_t& pressedButton)
     manager.offlineSent = 0;
     // El reinicio de la escena olvida el identificador lógico del EDIT anterior.
     manager.focusedEdit = 0;
+    manager.focusedEditIsOrphan = false;
+    manager.orphanedEdit.reset();
     // 0x48eb7d: +0x48 ya está en 0, así que 0x4a23b0 sobre la de amigos no corre.
 }
 

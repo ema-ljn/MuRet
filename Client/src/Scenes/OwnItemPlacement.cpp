@@ -5,12 +5,14 @@
 #include "Data/Tables/ItemTable.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
+#include "Render/Models/Skeleton.h"
 #include "Scenes/ActorActions.h"
 #include "Scenes/ActorEquipment.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/DarkHorse.h"
 #include "Scenes/HelperTable.h"
+#include "Scenes/MonsterCreation.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
 #include "Scenes/OwnStatHelpers.h"
@@ -295,24 +297,31 @@ PlaceInEquipment(std::uint8_t slot, std::uint16_t type, InventoryItemBytes bytes
     {
         return Core::Unexpected(initialized.Error());
     }
+    ActorState& hero = world.Actors()[runtime.hero];
     const Render::Models::Skeleton* player = resources.models.SkeletonOf(Data::Models::PlayerSkeletonModel);
-    if (player == nullptr)
+    const bool isPlayer = hero.type == Data::Models::PlayerSkeletonModel;
+    if (player == nullptr && isPlayer)
     {
         return Core::Unexpected(std::string("0x5bc740 (0x5bc886): 0x512a30 necesita Player.bmd (0x20a) para 0x4f2250"));
     }
-    ActorState& hero = world.Actors()[runtime.hero];
-    const ActorEquipmentContext equipment{.own = world.OwnCharacter(),
-                                          .ownRecordAccesses = runtime.ownRecordDepth,
-                                          .publishedHero = hero,
-                                          .fullSetScan = runtime.fullSetScan,
-                                          .stop = ActorStopContext{.runtime = runtime,
-                                                                   .scene = SceneId::Game,
-                                                                   .playerSkeleton = *player,
-                                                                   .items = resources.items,
-                                                                   .random = resources.cloth.random},
-                                          .itemSetTables = resources.itemSetTables,
-                                          .itemSets = &world.ItemSets(),
-                                          .held = HeldItemOf(runtime)};
+    static const Render::Models::Skeleton EmptySkeleton;
+    const Render::Models::Skeleton* playerSkeleton = player != nullptr ? player : &EmptySkeleton;
+    const Render::Models::Skeleton* actorSkeleton = isPlayer ? nullptr : MonsterSkeletonOf(resources, hero.type);
+    const ActorEquipmentContext equipment{
+        .own = world.OwnCharacter(),
+        .ownRecordAccesses = runtime.ownRecordDepth,
+        .publishedHero = hero,
+        .fullSetScan = runtime.fullSetScan,
+        .stop = ActorStopContext{.runtime = runtime,
+                                 .scene = SceneId::Game,
+                                 .playerSkeleton = *playerSkeleton,
+                                 .items = resources.items,
+                                 .random = resources.cloth.random,
+                                 .actorSkeleton = actorSkeleton,
+                                 .modelSounds = world.FaunaResources().SoundActions(hero.type)},
+        .itemSetTables = resources.itemSetTables,
+        .itemSets = &world.ItemSets(),
+        .held = HeldItemOf(runtime)};
     const auto dressed = ApplyActorEquipment(hero, equipment);
     if (!dressed.HasValue())
     {

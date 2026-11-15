@@ -2,6 +2,7 @@
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Input/MouseMessageState.h"
+#include "Input/TextInputEvent.h"
 #include "Platform/InputEvents.h"
 
 #include <SDL3/SDL_events.h>
@@ -15,6 +16,7 @@
 #include <limits>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 // Client::Platform::KeyFor e InputEventFor: de SDL a Input, con el SDL_Event armado a mano, sin
@@ -69,6 +71,9 @@ TEST(InputEventsTest, MapsTheScancodes)
     EXPECT_EQ(KeyFor(SDL_SCANCODE_F1), Key::F1);
     EXPECT_EQ(KeyFor(SDL_SCANCODE_F12), Key::F12);
     EXPECT_EQ(KeyFor(SDL_SCANCODE_BACKSPACE), Key::Backspace);
+    EXPECT_EQ(KeyFor(SDL_SCANCODE_HOME), Key::Home);
+    EXPECT_EQ(KeyFor(SDL_SCANCODE_END), Key::End);
+    EXPECT_EQ(KeyFor(SDL_SCANCODE_DELETE), Key::Delete);
     EXPECT_EQ(KeyFor(SDL_SCANCODE_LSHIFT), Key::ShiftLeft);
     EXPECT_EQ(KeyFor(SDL_SCANCODE_RSHIFT), Key::ShiftRight);
     EXPECT_EQ(KeyFor(SDL_SCANCODE_LCTRL), Key::CtrlLeft);
@@ -105,19 +110,50 @@ TEST(InputEventsTest, AutoRepeatIsNotAnEvent)
     EXPECT_EQ(InputEventFor(KeyboardEvent(SDL_EVENT_KEY_DOWN, SDL_SCANCODE_A, true)), std::nullopt);
 }
 
-// Salvo Backspace y Tab: su repetición es texto, el byte de cada una (InputState.h), como el
-// WM_CHAR que Windows repite al EDIT del campo. Sin tecla: no es otro apretón.
-TEST(InputEventsTest, ARepeatedBackspaceOrTabIsTyped)
+TEST(InputEventsTest, RepeatedNavigationAndDeleteRemainEditingEvents)
 {
-    const auto backspace = InputEventFor(KeyboardEvent(SDL_EVENT_KEY_DOWN, SDL_SCANCODE_BACKSPACE, true));
-    ASSERT_TRUE(backspace.has_value());
-    EXPECT_EQ(backspace->kind, InputEvent::Kind::Text);
-    EXPECT_EQ(backspace->text, std::string(1, Client::Input::BackspaceChar));
+    for (const auto [scancode, key] : {std::pair{SDL_SCANCODE_LEFT, Key::Left}, std::pair{SDL_SCANCODE_HOME, Key::Home},
+                                       std::pair{SDL_SCANCODE_DELETE, Key::Delete}})
+    {
+        const auto repeated = InputEventFor(KeyboardEvent(SDL_EVENT_KEY_DOWN, scancode, true));
+        ASSERT_TRUE(repeated.has_value());
+        EXPECT_EQ(repeated->kind, InputEvent::Kind::KeyDown);
+        EXPECT_EQ(repeated->key, key);
+        EXPECT_TRUE(repeated->repeat);
+    }
+}
 
-    const auto tab = InputEventFor(KeyboardEvent(SDL_EVENT_KEY_DOWN, SDL_SCANCODE_TAB, true));
-    ASSERT_TRUE(tab.has_value());
-    EXPECT_EQ(tab->kind, InputEvent::Kind::Text);
-    EXPECT_EQ(tab->text, std::string(1, Client::Input::TabChar));
+// Backspace, Tab y Enter se repiten como KeyDown para que InputState adjunte los modificadores
+// actuales sin crear un flanco físico.
+TEST(InputEventsTest, RepeatedControlKeysRemainEditingKeys)
+{
+    for (const auto [scancode, key] :
+         {std::pair{SDL_SCANCODE_BACKSPACE, Key::Backspace}, std::pair{SDL_SCANCODE_TAB, Key::Tab},
+          std::pair{SDL_SCANCODE_RETURN, Key::Enter}})
+    {
+        const auto repeated = InputEventFor(KeyboardEvent(SDL_EVENT_KEY_DOWN, scancode, true));
+        ASSERT_TRUE(repeated.has_value());
+        EXPECT_EQ(repeated->kind, InputEvent::Kind::KeyDown);
+        EXPECT_EQ(repeated->key, key);
+        EXPECT_TRUE(repeated->repeat);
+    }
+}
+
+TEST(InputEventsTest, ARepeatedControlKeyKeepsCurrentModifiersWithoutAKeyPressEdge)
+{
+    Client::Input::InputState input;
+    input.Apply(*InputEventFor(KeyboardEvent(SDL_EVENT_KEY_DOWN, SDL_SCANCODE_LCTRL)));
+    input.Apply(*InputEventFor(KeyboardEvent(SDL_EVENT_KEY_DOWN, SDL_SCANCODE_BACKSPACE, true)));
+
+    const auto events = input.TextInputEvents();
+    ASSERT_EQ(events.size(), 1u);
+    EXPECT_EQ(events[0].kind, Client::Input::TextInputEvent::Kind::Key);
+    EXPECT_EQ(events[0].key, Key::Backspace);
+    EXPECT_TRUE(events[0].ctrl);
+    EXPECT_FALSE(input.WasPressed(Key::Backspace));
+    EXPECT_TRUE(input.IsDown(Key::Ctrl));
+    EXPECT_EQ(input.Text().size(), 1u);
+    EXPECT_EQ(input.Text()[0], Client::Input::BackspaceChar);
 }
 
 TEST(InputEventsTest, KeyDownAndUpCarryTheKey)
@@ -337,8 +373,8 @@ TEST(InputEventsTest, TranslatesTheTextInput)
     EXPECT_EQ(text->text, "a\xc3\xa1");
 }
 
-// Uno sin texto, y lo que manda el IME mientras compone (SDL_EVENT_TEXT_EDITING), no son texto.
-TEST(InputEventsTest, AnEmptyTextAndTheImeCompositionAreNotText)
+// Uno sin texto no es una entrada; la composición IME es un evento aparte, incluso al cancelarse.
+TEST(InputEventsTest, EmptyTextIsIgnoredAndImeCompositionIsCopied)
 {
     SDL_Event empty{};
     empty.type = SDL_EVENT_TEXT_INPUT;
@@ -352,8 +388,23 @@ TEST(InputEventsTest, AnEmptyTextAndTheImeCompositionAreNotText)
 
     SDL_Event editing{};
     editing.type = SDL_EVENT_TEXT_EDITING;
-    editing.edit.text = "a";
-    EXPECT_EQ(InputEventFor(editing), std::nullopt);
+    std::string composition = "か";
+    editing.edit.text = composition.c_str();
+    editing.edit.start = 1;
+    editing.edit.length = 2;
+    const auto composed = InputEventFor(editing);
+    composition = "x";
+    ASSERT_TRUE(composed.has_value());
+    EXPECT_EQ(composed->kind, InputEvent::Kind::Composition);
+    EXPECT_EQ(composed->text, "か");
+    EXPECT_EQ(composed->compositionStart, 1);
+    EXPECT_EQ(composed->compositionLength, 2);
+
+    editing.edit.text = "";
+    const auto cancelled = InputEventFor(editing);
+    ASSERT_TRUE(cancelled.has_value());
+    EXPECT_EQ(cancelled->kind, InputEvent::Kind::Composition);
+    EXPECT_TRUE(cancelled->text.empty());
 }
 
 TEST(InputEventsTest, FocusLostIsAnEvent)

@@ -1,5 +1,8 @@
 #include "Scenes/GameChat.h"
 
+#include "Input/Key.h"
+#include "Input/TextInputEvent.h"
+
 #include "Core/Expected.h"
 #include "Input/InputEvent.h"
 #include "Protocol/Chat/ChatSend.h"
@@ -108,6 +111,21 @@ Core::Expected<void, std::string> AddNotice(const GameChatContext& context, std:
 std::int32_t LengthOf(const UI::ChatBuffer& buffer)
 {
     return static_cast<std::int32_t>(UI::CStringOf(buffer).size());
+}
+
+std::string LegacyControlText(Input::Key key)
+{
+    switch (key)
+    {
+    case Input::Key::Backspace:
+        return std::string(1, Input::BackspaceChar);
+    case Input::Key::Tab:
+        return std::string(1, Input::TabChar);
+    case Input::Key::Enter:
+        return std::string(1, Input::EnterChar);
+    default:
+        return {};
+    }
 }
 
 // strncmp(texto, comando, strlen(comando)) con el comando no vacío.
@@ -348,6 +366,8 @@ Core::Expected<void, std::string> TypeInTheGameChat(const GameChatContext& conte
                 UI::PressEnterInTheOldEdit(runtime.oldWindows);
             else if (pressed == Input::BackspaceChar)
                 UI::BackspaceInTheOldEdit(runtime.oldWindows);
+            else if (pressed == Input::TabChar)
+                UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Tab, false, false, context.clipboard);
             continue;
         }
         if (pressed == Input::TabChar)
@@ -362,6 +382,104 @@ Core::Expected<void, std::string> TypeInTheGameChat(const GameChatContext& conte
         }
         else
             UI::BackspaceInTheChat(input);
+    }
+    return {};
+}
+
+Core::Expected<void, std::string> TypeTheGameInput(const GameChatContext& context,
+                                                   std::span<const Input::TextInputEvent> events)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    UI::ChatInputState& input = runtime.chat.input;
+    for (const Input::TextInputEvent& event : events)
+    {
+        if (event.kind == Input::TextInputEvent::Kind::Text)
+        {
+            if (auto typed = TypeInTheGameChat(context, event.text); !typed.HasValue())
+                return typed;
+            continue;
+        }
+        if (event.kind == Input::TextInputEvent::Kind::Composition)
+        {
+            if (!UI::HasAnOldEditFocused(runtime.oldWindows, input.focus))
+                continue;
+            UI::SetTheOldEditComposition(runtime.oldWindows, event.text, event.compositionStart,
+                                         event.compositionLength);
+            continue;
+        }
+        // SDL aún entrega las teclas como Key durante el preedit; no las confirmamos ni enviamos. Falta modelar el
+        // manejo de teclas por un IME genuino como el de EDIT.
+        const bool oldEdit = UI::HasAnOldEditFocused(runtime.oldWindows, input.focus);
+        if (!oldEdit)
+        {
+            const std::string control = LegacyControlText(event.key);
+            if (!control.empty())
+            {
+                if (auto typed = TypeInTheGameChat(context, control); !typed.HasValue())
+                    return typed;
+            }
+            continue;
+        }
+        switch (event.key)
+        {
+        case Input::Key::Backspace:
+            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Backspace, event.shift, event.ctrl,
+                                     context.clipboard);
+            break;
+        case Input::Key::Tab:
+            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Tab, event.shift, event.ctrl,
+                                     context.clipboard);
+            break;
+        case Input::Key::Delete:
+            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Delete, event.shift, event.ctrl,
+                                     context.clipboard);
+            break;
+        case Input::Key::Left:
+            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Left, event.shift, event.ctrl,
+                                     context.clipboard);
+            break;
+        case Input::Key::Right:
+            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Right, event.shift, event.ctrl,
+                                     context.clipboard);
+            break;
+        case Input::Key::Up:
+            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Up, event.shift, event.ctrl,
+                                     context.clipboard);
+            break;
+        case Input::Key::Down:
+            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Down, event.shift, event.ctrl,
+                                     context.clipboard);
+            break;
+        case Input::Key::Home:
+            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Home, event.shift, event.ctrl,
+                                     context.clipboard);
+            break;
+        case Input::Key::End:
+            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::End, event.shift, event.ctrl,
+                                     context.clipboard);
+            break;
+        case Input::Key::C:
+            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Copy, event.shift, event.ctrl,
+                                     context.clipboard);
+            break;
+        case Input::Key::X:
+            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Cut, event.shift, event.ctrl,
+                                     context.clipboard);
+            break;
+        case Input::Key::V:
+            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Paste, event.shift, event.ctrl,
+                                     context.clipboard);
+            break;
+        case Input::Key::A:
+            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::CtrlA, event.shift, event.ctrl,
+                                     context.clipboard);
+            break;
+        case Input::Key::Enter:
+            UI::PressEnterInTheOldEdit(runtime.oldWindows);
+            break;
+        default:
+            break;
+        }
     }
     return {};
 }

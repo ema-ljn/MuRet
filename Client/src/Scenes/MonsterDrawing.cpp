@@ -16,6 +16,7 @@
 #include "Render/Models/Skeleton.h"
 #include "Render/Models/Skinning.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/ActorPickingBox.h"
 #include "Scenes/CharacterCloth.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/FaunaModels.h"
@@ -268,6 +269,17 @@ struct MonsterFrame
     PoseMode outline = PoseMode::Plain;
 };
 
+void PublishMonsterPickingBox(MonsterFrame& frame, const glm::vec3& position)
+{
+    ActorState& actor = frame.actor;
+    const glm::vec3 max{actor.boundsMaxX, actor.boundsMaxY, actor.boundsTop};
+    const ActorPickingBox box = PickingBoxFor(position, actor.boundsMin, max);
+    if (frame.slot < frame.pass.pickingBoxes.size())
+        frame.pass.pickingBoxes[frame.slot] = box;
+    else
+        PublishPickingBox(actor, position, actor.boundsMin, max);
+}
+
 // 0x50bae7..0x50bbca: la tela sobre la malla (MonsterCloth.h) entre 0x5ffdf0 y 0x6002e0, sobre `meshes` (lo que dejó
 // 0x4ebc80 en 0x5786f9c) con los huesos `bones` y la posición del modelo. Entre frames del original, la de antes.
 Result StepTheMeshCloth(MonsterFrame& frame, std::span<Render::Models::SkinnedMesh> meshes,
@@ -368,6 +380,8 @@ Result DrawTheBody(MonsterFrame& frame, const Render::Models::Skeleton& skeleton
     }
     // 0x600177: el último 0x4ebc80 de 0x5ffdf0, con la escala de 0x6c881c por el modo, deja las mallas en 0x5786f9c.
     std::vector<Render::Models::SkinnedMesh> meshes = SkinObjectMeshes(frame.fauna, object, bones, BoneScaleOf(mode));
+    if (!(actor.alpha < DrawnAlpha))
+        PublishMonsterPickingBox(frame, transform.position);
     if (cloth)
     {
         if (auto stepped = StepTheMeshCloth(frame, meshes, bones, transform.position); !stepped.HasValue())
@@ -898,7 +912,10 @@ Result DrawThePart(MonsterFrame& frame, std::uint16_t model, std::uint8_t level,
     else if (model == LeveledModel && (level & 15) == 2)
         model = 0x223b;
     if (frame.fauna.Find(model) == nullptr)
+    {
+        PublishMonsterPickingBox(frame, actor.position);
         return {};
+    }
     DrawnObject object;
     object.model = model;
     object.transform = {.position = actor.position, .angles = actor.angles, .scale = actor.scale};
@@ -924,6 +941,7 @@ Result DrawThePart(MonsterFrame& frame, std::uint16_t model, std::uint8_t level,
     object.state.hiddenMesh = Render::Models::NoHiddenMesh;
     const std::vector<Render::Models::SkinnedMesh> meshes =
         SkinObjectMeshes(frame.fauna, object, actor.bodyPose, BoneScaleOf(frame.outline));
+    PublishMonsterPickingBox(frame, actor.position);
     ItemDrawContext resources = frame.pass.itemContext != nullptr ? *frame.pass.itemContext : ItemDrawContext{};
     ItemSpecialDrawContext special = resources.special != nullptr ? *resources.special : ItemSpecialDrawContext{};
     special.flags = 2;

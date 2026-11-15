@@ -5,6 +5,7 @@
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Text/TextTable.h"
+#include "Input/TextInputEvent.h"
 #include "Protocol/Outgoing.h"
 #include "UI/ChatInput.h"
 
@@ -23,6 +24,11 @@ namespace Client::Render::Text
 {
 class ITextMeasure;
 }
+
+namespace Client::UI
+{
+class IClipboard;
+} // namespace Client::UI
 
 // La entrada del chat en el juego (CL8 hito 3; 06 § El chat): lo que el WndProc (0x4af4e0) hace con los WM_CHAR que
 // le llegan o que le pasa la subclase de los EDIT (0x467b10: Tab y Enter), lo que los EDIT hacen con los demás, y las
@@ -53,6 +59,7 @@ struct GameChatContext
     const Render::Text::ITextMeasure* measure = nullptr;
     App::PixelSize screen{640, 480};
     ChatSender send{};
+    UI::IClipboard* clipboard = nullptr;
     // Biblioteca base: el emote consulta primero FaunaResources(), donde el viewport carga los transformados,
     // y después ésta. 0x4ea030 mira las acciones del tipo del héroe; si ninguna ofrece el modelo, corta.
     const IModelLibrary* models = nullptr;
@@ -63,6 +70,10 @@ struct GameChatContext
 // lo descarta). La subclase descarta Esc y los bytes 0x19 a 0x1c; TextField, los que no son imprimibles.
 [[nodiscard]] Core::Expected<void, std::string> TypeInTheGameChat(const GameChatContext& context,
                                                                   std::string_view typed);
+
+// Conserva el orden de SDL_TEXTINPUT, las teclas de edición y SDL_TEXTEDITING del paso de la escena.
+[[nodiscard]] Core::Expected<void, std::string> TypeTheGameInput(const GameChatContext& context,
+                                                                 std::span<const Input::TextInputEvent> events);
 
 // 0x4b50b0..0x4b88e9: Enter en el WndProc, con el modo de los EDIT (0x6c7b8c en 1). Las compuertas (Chaos Castle
 // fuera de la zona segura, los diálogos 0x7d, 0x95, 0x8a, 0x8d y 0x8b, 0x78abb00 en 3 y la tecla para los paneles,

@@ -6,6 +6,7 @@
 #include "Render/SpriteBatch.h"
 #include "Render/TextureSlot.h"
 #include "UI/NewUi.h"
+#include "UI/NameChecks.h"
 #include "UI/Widget.h"
 
 #include "support/RecordingTextDrawer.h"
@@ -311,8 +312,8 @@ TEST(CreateCharacterWindowTest, TheDarkLordHasCommandAndTwoLines)
     EXPECT_EQ(text.texts[7].y, 37 + 355 + 12 + 19);
 }
 
-// El nombre toma las letras de Latin-1 (el EDIT no filtra): "Peña" es "Pe\xf1a".
-TEST(CreateCharacterWindowTest, TheNameTakesLatin1Letters)
+// U+00f1 conserva el mismo byte con el perfil XP del EDIT.
+TEST(CreateCharacterWindowTest, TheNameKeepsTheNWithTildeByte)
 {
     CreateCharacterWindow window(LabSizes(), nullptr);
     window.Open();
@@ -322,6 +323,66 @@ TEST(CreateCharacterWindowTest, TheNameTakesLatin1Letters)
     static_cast<void>(StepOnce(window, input));
     EXPECT_EQ(window.Name(), "Pe\xf1"
                              "a");
+}
+
+TEST(CreateCharacterWindowTest, TheNameUsesXpWindows1252BeforeTheExistingByteCheck)
+{
+    CreateCharacterWindow window(LabSizes(), nullptr);
+    window.Open();
+    InputState oddByte;
+    TypeText(oddByte, "a€bc");
+    static_cast<void>(StepOnce(window, oddByte));
+
+    EXPECT_TRUE(window.Name() == std::string("a\x80"
+                                             "bc",
+                                             4));
+    EXPECT_FALSE(Client::UI::HasForbiddenSymbol(window.Name()));
+
+    window.Open();
+    InputState evenByte;
+    TypeText(evenByte, "€abc");
+    static_cast<void>(StepOnce(window, evenByte));
+
+    EXPECT_TRUE(window.Name() == std::string("\x80"
+                                             "abc",
+                                             4));
+    EXPECT_TRUE(Client::UI::HasForbiddenSymbol(window.Name()));
+
+    window.Open();
+    InputState unsupported;
+    TypeText(unsupported, "a漢b");
+    static_cast<void>(StepOnce(window, unsupported));
+
+    EXPECT_TRUE(window.Name() == "a?b");
+    EXPECT_FALSE(Client::UI::HasForbiddenSymbol(window.Name()));
+}
+
+TEST(CreateCharacterWindowTest, EnterIsNotInsertedIntoTheNameBeforeSubmission)
+{
+    CreateCharacterWindow window(LabSizes(), nullptr);
+    const std::array cases{
+        std::pair{std::string("abcd"), std::string("abcd")},
+        std::pair{std::string("abcde"), std::string("abcde")},
+        std::pair{std::string("a€b"), std::string("a\x80"
+                                                  "b",
+                                                  3)},
+    };
+
+    for (const auto& [typed, expectedName] : cases)
+    {
+        window.Open();
+        InputState input;
+        TypeText(input, typed);
+        static_cast<void>(StepOnce(window, input));
+        TapKey(input, Key::Enter);
+
+        ASSERT_EQ(StepOnce(window, input), std::optional{CreateWindowEvent::Submitted});
+        EXPECT_TRUE(window.Name() == expectedName);
+        EXPECT_FALSE(Client::UI::HasForbiddenSymbol(window.Name()));
+
+        const std::string expectedBuffer = expectedName + '\0';
+        EXPECT_TRUE(window.Buffer().substr(0, expectedBuffer.size()) == expectedBuffer);
+    }
 }
 
 // El buffer de 0x7798bf8: el OK copia el campo con su cero (GetWindowTextA) y lo de detrás queda; se

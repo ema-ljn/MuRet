@@ -55,6 +55,7 @@ namespace Client::Scenes
 {
 namespace
 {
+constexpr float PartBoxAlphaThreshold = 0.01f;
 using Render::Models::BoneTransform;
 using Render::Models::ObjectState;
 
@@ -597,9 +598,18 @@ std::vector<MeshDraw> MeshDrawsOf(const IModelLibrary& models, std::uint16_t mod
 void DrawModel(const CharacterFrame& frame, std::uint16_t modelId, std::span<const BoneTransform> bones,
                const ModelUse& use)
 {
+    const DrawnCharacter& character = frame.character;
+    if (!use.hanging && !(character.alpha > PartBoxAlphaThreshold))
+        return;
+    const auto publishBox = [&]
+    {
+        if (!use.hanging && character.alpha > PartBoxAlphaThreshold && character.onPartBox)
+            character.onPartBox(character.object.position);
+    };
     const Data::Models::Model* model = frame.models.Find(modelId);
     if (model == nullptr)
     {
+        publishBox();
         return;
     }
     // Las partes usan los huesos del cuerpo y no se vuelven a posar: no publican nada. Lo que cuelga ya se publicó
@@ -626,6 +636,7 @@ void DrawModel(const CharacterFrame& frame, std::uint16_t modelId, std::span<con
         }
         DrawOutline(frame, outlined, bones);
     }
+    publishBox();
     DrawPasses(frame, draws, use);
 }
 
@@ -1081,6 +1092,8 @@ Core::Expected<void, std::string> DrawChaosCastleBody(Render::ModelBatch& batch,
                                                       const IModelLibrary& angelModels, const DrawnCharacter& character,
                                                       Core::Duration frameClock, std::uint32_t flags)
 {
+    if (!(character.alpha > PartBoxAlphaThreshold))
+        return {};
     const std::vector<BoneTransform> body = PoseCharacterBody(models, character);
     if (body.empty())
         return {};
@@ -1088,7 +1101,11 @@ Core::Expected<void, std::string> DrawChaosCastleBody(Render::ModelBatch& batch,
         character.onPose(Data::Models::PlayerSkeletonModel, body, character.object, false);
     const Data::Models::Model* model = angelModels.Find(ChaosCastleBodyModel);
     if (model == nullptr)
+    {
+        if (character.alpha > PartBoxAlphaThreshold && character.onPartBox)
+            character.onPartBox(character.object.position);
         return {};
+    }
     if (character.onPose)
         character.onPose(ChaosCastleBodyModel, body, character.object, false);
     // El objeto del personaje: sin blendMesh ni malla oculta y con la luz +0x68 en 1, como la deja 0x511290. En
@@ -1108,6 +1125,8 @@ Core::Expected<void, std::string> DrawChaosCastleBody(Render::ModelBatch& batch,
             draw.alpha = character.alpha;
         DrawOutline(frame, draws, body);
     }
+    if (character.alpha > PartBoxAlphaThreshold && character.onPartBox)
+        character.onPartBox(character.object.position);
     std::vector<Render::Models::SkinnedMesh> meshes(model->meshes.size());
     for (std::size_t index = 0; index < model->meshes.size(); ++index)
     {

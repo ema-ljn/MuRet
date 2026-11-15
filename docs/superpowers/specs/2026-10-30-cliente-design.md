@@ -94,7 +94,7 @@ La regla guía es la del servidor: el **contrato** (wire + archivos de datos) se
 | D-C9 | Tests | — | GoogleTest; los de datos reales leen `Client/assets/Data/`, la base del proyecto, o la carpeta de `MURET_CLIENT_GOLDEN_DIR` si está. Si la carpeta no existe o le falta el archivo pedido, fallan (CL0.2). Hasta el 2026-11-04, sin la variable se salteaban; desde ese día corren siempre, también en CI (decidido por Emanuel: no depender de otras copias). Los volcados de memoria, el cable y las trazas siguen afuera, y sin su variable se saltean | oráculos que corren en cada PR |
 | D-C10 | Config | registro de Windows; el ConnectServer viene compilado y el launcher lo puede cambiar por el registro; los argumentos no se leen, y el parser de `/u /p` está sin usar ([02](../../../Client/docs/research/02-arranque-y-ciclo-de-vida.md#del-launcher-al-juego)) | archivo de config + argumentos; se acepta `connect /u<ip> /p<puerto>`, como se lo lanza en el laboratorio | nada hardcodeado |
 | D-C11 | Resolución | 640 × 480 de referencia | lo que el original escala (`0x620d50` y `0x620d80`) se diseña en 640 × 480 y se escala a la ventana real, cada eje por su lado; las ventanas de la UI nueva (`0x65f300`: la lista, la cuenta, los avisos) van en píxeles del framebuffer, centradas como en el original, con sus textos en 640 × 480 (corregido en la CL5.5, con la pregunta 10 del plan de la CL5); resoluciones y pantallas anchas modernas. La ventana no cambia de tamaño, y su resolución es una de las cinco del original (640 × 480, 800 × 600, 1024 × 768, 1280 × 1024 y 1600 × 1200) o un modo real del monitor, el del escritorio o uno de pantalla completa (decidido con Emanuel el 2026-11-03; `App::IsValidResolution`) | separar coordenadas lógicas de físicas |
-| D-C12 | Texto | GDI → textura, caché por texto, IME coreano | FreeType en un bit (el hinting del intérprete v35, sin suavizado) → la caja de 256 × 32 del original, con una caché propia (CL5.3); se conserva el byte `0x02` de color. Los textos son de un byte por letra, leídos como Latin-1 (Q-C67) | rasterizado de fuentes, hinting, codificaciones de un byte |
+| D-C12 | Texto | GDI → textura, caché por texto, IME coreano | FreeType en un bit (el hinting del intérprete v35, sin suavizado) → la caja de 256 × 32 del original, con una caché propia (CL5.3); se conserva el byte `0x02` de color. Para el perfil occidental, los bytes se decodifican como Windows-1252 al dibujar (Q-C67, ADR 0016); activos y wire conservan sus bytes | rasterizado de fuentes, hinting, codificaciones de un byte |
 | D-C13 | Audio | `wzAudio.dll` (derivado de CoolPlayer 215: MP3 y Ogg) + DirectSound (WAV) | audio de SDL3 detrás de `Audio::`, con decodificadores de MP3, Ogg y WAV de terceros; la ABI de `wzAudio` es el contrato de comportamiento (volumen, posición, ecualizador) | mezcla de audio, streaming |
 | D-C14 | Anticheat | watchdog, hash, `0x2B11` | **no se porta** | fuera de alcance (`AGENTS.md`) |
 
@@ -421,11 +421,19 @@ y cambió la forma de la ola:
 
 Plan: [`2026-11-13-ola-cl9-gameplay.md`](../plans/2026-11-13-ola-cl9-gameplay.md), con la tabla de
 [funciones](../plans/2026-11-13-ola-cl9-funciones.tsv) y la de [cortes](../plans/2026-11-13-ola-cl9-cortes.tsv).
+
+**Estado por hitos al 2026-11-15:** [tabla y porcentajes actualizados](../plans/2026-11-14-cl9-traspaso.md#estado-por-hito).
+La cobertura por citas suma **82,4 %** entre las ramas de los trece hitos; no mide equivalencia funcional
+ni integración en `main`. El [PR #354](https://github.com/ema-ljn/MuRet/pull/354) entrega las reparaciones
+de H1/H9: H1 queda implementado en el alcance ASM revisado; H9 conserva pendientes propios del editor.
+La validación estricta restante en VM y contra el servidor se hará más adelante.
+
 El barrido (2026-11-13) repartió las 1.014 funciones de la CL9 de la matriz (469 KB), las 127 de otras olas sin
 portar que solo llama la CL9 (48 KB) y los 240 cortes de MuRet hacia la CL9:
 
-1. **Nadie entra al viewport:** MuRet no registra ningún handler de la CL9, así que en un servidor real el héroe
-   está solo. Los hitos 1 y 2 (otros jugadores; monstruos, NPC y misiones) son el portón de la ola.
+1. **El viewport abre la ola:** al comenzar el plan no había handlers de la CL9 y el héroe estaba solo.
+   Los hitos 1 y 2 (otros jugadores; monstruos, NPC y misiones) entraron en #338 y #341; sus
+   integraciones y validaciones pendientes se siguen en la tabla de estado.
 2. **El emote abre la ola** (hito 1): `0x576eb0` busca 95 textos, 15 de ellos literales del binario que la CL8
    no mira (`;`, `^^`…), y con el héroe parado manda dos `C1 18` iguales.
 3. **Trece hitos, un PR por hito:** el emote y los otros jugadores; monstruos, NPC y misiones; atacar, el daño

@@ -8,6 +8,7 @@
 #include "Render/Models/Pose.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/ActorPickingBox.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -77,6 +78,7 @@ struct GameCharacterPass
         onPose{};
     // Publica las matrices del dibujo intermedio al buffer que presta el caller, sin avanzar el estado.
     bool publishProjectedPose = false;
+    std::span<ActorPickingBox> pickingBoxes{};
     std::function<std::span<const Render::Models::BoneTransform>(std::uint16_t)> poseBones{};
     // Los modelos del mundo, donde 0x618970 carga el Angel (0x1f7) de Chaos Castle: en el original, el mismo
     // arreglo global. Sin ellos, un jugador en los mapas 18 a 23 corta.
@@ -134,7 +136,8 @@ inline constexpr std::uint8_t UndrawnHeroControlBit = 0x04;
 // en 0.
 [[nodiscard]] Core::Expected<void, std::string> DrawGameCharacters(std::span<ActorState> actors, std::size_t hero,
                                                                    Data::Terrain::TerrainLayer<std::uint16_t>& walls,
-                                                                   WorldRuntime* runtime = nullptr);
+                                                                   WorldRuntime* runtime = nullptr,
+                                                                   std::span<ActorPickingBox> pickingBoxes = {});
 
 // 0x42da60, al final de 0x510d00.
 void FinishTheCastleFrame(WorldRuntime* runtime, Data::Terrain::TerrainLayer<std::uint16_t>& walls);

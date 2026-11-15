@@ -28,6 +28,7 @@ class ITextMeasure;
 
 namespace Client::Scenes
 {
+class IModelLibrary;
 class WorldState;
 struct InventoryServices;
 struct HeroMovementInput
@@ -81,6 +82,8 @@ struct HeroMovementContext
     // 0x555190, para esos avisos: el medidor del texto y la pantalla. Sin medidor, cortan.
     const Render::Text::ITextMeasure* measure = nullptr;
     App::PixelSize screen{640, 480};
+    // La biblioteca base para acciones de personajes transformados que no estén en FaunaResources.
+    const IModelLibrary* models = nullptr;
 };
 [[nodiscard]] Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& context);
 } // namespace Client::Scenes

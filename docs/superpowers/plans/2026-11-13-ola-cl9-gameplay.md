@@ -10,6 +10,13 @@
 >
 > **Quién escribe:** Claude o Codex. El modo tutor está apagado (2026-11-10).
 
+**Estado actualizado (2026-11-15):** ver la [tabla por hito y sus porcentajes](2026-11-14-cl9-traspaso.md#estado-por-hito).
+El recálculo de cobertura por citas da **82,4 %** entre las ramas; no mide fidelidad ni integración en `main`.
+El [PR #354](https://github.com/ema-ljn/MuRet/pull/354) entrega las reparaciones de H1/H9: H1 está
+implementado en el alcance ASM revisado; H9 conserva pendientes propios del editor. La validación
+estricta restante en VM y servidor se difiere. El barrido y la arquitectura de abajo describen el punto
+de partida del plan; los checkboxes describen la implementación integrada, con los límites indicados.
+
 **Objetivo:** el "terminada cuando" de la CL9 en el roadmap, **una sesión de juego estable, también en los
 mapas de evento**: los otros jugadores, los monstruos y los NPC en el viewport, el emote, pegar y morir, las
 skills, los ítems del piso, las tiendas, el almacén y la caja del caos, la party, el comercio, el duelo, las
@@ -213,6 +220,10 @@ Trece hitos, un PR cada uno. Los KB son de binario aproximados: los propios de l
 portar y las ramas que el hito llena en funciones de otras olas. El detalle por función está en las tablas.
 
 ### Hito 1: el emote y los otros jugadores (CL9.1, ~35 KB)
+
+> Implementación propia completada en el alcance ASM revisado, con las reparaciones del #353 y #354.
+> Ver [resultado de H1](2026-11-15-cl9-h1-resultado.md): la validación estricta restante en VM y servidor
+> sigue pendiente; los cortes de otros hitos conservan sus dueños.
 
 - [x] **El emote entero** (§ Lo que encontró el barrido): `UI::CheckTheEmotes` pasa a `FindTheEmote`, que
       devuelve el caso con los 95 textos en el orden del original (incluidos los 15 literales, comparados con
@@ -460,6 +471,9 @@ con su marcador y los dos `C1 18`. **Desbloquea:** 12.
 
 ### Hito 9: los amigos (CL9.4, ~89 KB)
 
+> Estado posterior a la auditoría: [editor XP, codificación y pendientes propios](2026-11-15-cl9-h1-h9-resultado.md),
+> incluido en #354. La cobertura por citas del 100 % no cierra el editor completo ni valida el servicio.
+
 - [x] **Los controles de las ventanas viejas** que la CL8 dejó sin portar (57 funciones de la CL8.3, 14 KB: las
       listas, los campos de texto, los botones de `0x45adf0`..`0x4aa7a0`; los que son la STL se reemplazan por la
       STL) y las vecinas de `0x479960` que leen las flechas (`0x47c870`, `0x47f7b0` y las chicas; `0x480e00` y
@@ -470,7 +484,15 @@ con su marcador y los dos `C1 18`. **Desbloquea:** 12.
 - [x] **El dibujo de los amigos** (08, P-C180): la ventana (`0x4a2620`, `0x4a2460`, `0x463090`), las pestañas
       (`0x49cc20`, `0x49e7f0`) con sus listas (`0x47a810`, `0x461890`, `0x461cd0`, `0x462a60`), la caja de agregar
       (`0x4a3750`) y su EDIT (`0x468320`), con las piezas para el hito 10 en `UI/OldWindowDrawParts.h`. Las 246 filas
-      del TSV que no estaban citadas, triadas en P-C185; el doble clic queda para el hito 10 (P-C182, P-C187).
+      del TSV que no estaban citadas, triadas en P-C185; el adaptador de doble clic se completa en el cierre H1/H9
+      (P-C182, P-C187). Sus consumidores de chats/cartas siguen siendo H10.
+- [x] **El perfil occidental del EDIT de XP:** CP1252 y best fit nativo, selección y caret por bytes,
+      atajos, pegado, foco, orden de eventos y dibujo. Contratos en research 11/12 y ADR 0016.
+- [ ] **El editor completo (P-C181):** IME genuino, preedición visible y candidatos; contratos de
+      multiline, scroll y perfiles DBCS. El editor de mensaje/susurro todavía requiere enrutar
+      navegación, portapapeles y composición como el EDIT viejo.
+- [ ] **La validación estricta en VM y servidor:** completar los casos nativos pendientes y el flujo
+      de amigos con un servicio compatible; la desconexión al confirmar Agregar no certifica el cliente.
 
 **Pruebas:** la lista con varios amigos, agregar y borrar uno, el cambio de estado; los `rand()` de abrir la
 ventana (los 3.848 del registro propio de la CL8). Si el PR pasa de ~90 KB, se parte en los controles y los

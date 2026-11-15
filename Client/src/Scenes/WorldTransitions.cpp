@@ -83,7 +83,7 @@ Core::Expected<void, std::string> ChangeTeleportMap(std::uint8_t map, std::uint1
         if (auto hidden = UI::HideTheOldWindows(runtime.oldWindows, 1, 0, OldWindowGlobalsOf(runtime));
             !hidden.HasValue())
             return hidden;
-        if (auto dropped = UI::DropTheFriendsWindow(runtime.oldWindows); !dropped.HasValue())
+        if (auto dropped = UI::DropTheFriendsWindow(runtime.oldWindows, runtime.ui.pressedButton); !dropped.HasValue())
             return dropped;
         return Core::Unexpected(std::string("0x4c7b34: rearmar el objeto de los comandos (0x6e592c) en la transición "
                                             "de Chaos Castle es de la CL9.4"));

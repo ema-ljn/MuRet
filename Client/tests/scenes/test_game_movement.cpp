@@ -7,11 +7,14 @@
 #include "Scenes/WorldState.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/Skeleton.h"
+#include "Render/TextureSlot.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "Data/Terrain/TerrainMapping.h"
 #include "Data/Tables/SkillTable.h"
+#include "Data/Models/Model.h"
+#include "Scenes/CharacterDrawing.h"
 #include "Protocol/Movement.h"
 #include "Scenes/GameMovementState.h"
 #include "UI/ChatInput.h"
@@ -41,6 +44,30 @@ using Client::Scenes::HeroMovementContext;
 using Client::Scenes::StepHeroMovement;
 using Client::Scenes::WorldState;
 
+constexpr std::uint16_t TransformedModel = 0x154;
+
+class MovementModels final : public Client::Scenes::IModelLibrary
+{
+public:
+    const Client::Data::Models::Model* Find(std::uint16_t) const override
+    {
+        return nullptr;
+    }
+    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    {
+        if (model == Client::Data::Models::PlayerSkeletonModel)
+            return &player;
+        return model == TransformedModel ? &transformed : nullptr;
+    }
+    std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    {
+        return {};
+    }
+
+    Client::Render::Models::Skeleton player;
+    Client::Render::Models::Skeleton transformed;
+};
+
 class MovingHero
 {
 public:
@@ -64,14 +91,19 @@ public:
         skeleton.actions.resize(205);
         for (auto& action : skeleton.actions)
             action.keyCount = 10;
+        models.player = skeleton;
+        models.transformed.actions.resize(7);
+        for (auto& action : models.transformed.actions)
+            action.keyCount = 10;
     }
     HeroMovementContext Context()
     {
-        return {.world = world, .random = random, .playerSkeleton = &skeleton, .skills = &skills};
+        return {.world = world, .random = random, .playerSkeleton = &skeleton, .skills = &skills, .models = &models};
     }
     WorldState world;
     CrtRandom random;
     Client::Render::Models::Skeleton skeleton;
+    MovementModels models;
     Client::Data::Tables::SkillTable skills{std::vector<std::byte>(Client::Data::Tables::SkillTableSize)};
 };
 
@@ -211,6 +243,50 @@ TEST(GameMovementTest, AClickFindsAndSendsTheHistoricalD3)
     EXPECT_EQ(tested.world.Actors()[0].movementType, 0);
     EXPECT_EQ(tested.world.Runtime().movement.mouseUpdateTimeMax, 16);
 }
+
+TEST(GameMovementTest, ATransformedHeroUsesItsSevenActionModelFromClickThroughArrival)
+{
+    MovingHero tested;
+    auto& hero = tested.world.Actors()[0];
+    hero.type = TransformedModel;
+    tested.world.Runtime().movement.mouseUpdateTime = 6;
+    tested.world.ActionSpeeds().Set(2, 3.25f);
+    auto context = tested.Context();
+    context.playerSkeleton = nullptr;
+    context.input.leftPressed = true;
+    context.input.leftDown = true;
+    context.pickTarget = []() -> Client::Core::Expected<std::optional<Client::GameLogic::PathCell>, std::string>
+    { return std::optional{Client::GameLogic::PathCell{183, 115}}; };
+    bool sentD3 = false;
+    context.sendWalk = [&](std::span<const Client::Protocol::Movement::Cell>, Client::Protocol::Movement::Cell,
+                           float) -> Client::Core::Expected<void, std::string>
+    {
+        sentD3 = true;
+        return {};
+    };
+
+    auto result = StepHeroMovement(context);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    ASSERT_TRUE(sentD3);
+    ASSERT_EQ(hero.movement, 1);
+
+    context.input.leftPressed = false;
+    context.input.leftDown = false;
+    result = StepHeroMovement(context);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_EQ(hero.animation.action, 2);
+    EXPECT_FLOAT_EQ(tested.world.ActionSpeeds().Speed(2, 0.0f), 3.25f);
+
+    for (int frame = 0; frame < 80 && hero.movement != 0; ++frame)
+    {
+        result = StepHeroMovement(context);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+    }
+    EXPECT_EQ(hero.movement, 0);
+    EXPECT_EQ(hero.animation.action, 0);
+    EXPECT_FLOAT_EQ(tested.world.ActionSpeeds().Speed(2, 0.0f), 3.25f);
+}
+
 TEST(GameMovementTest, AWalkingHeroMovesByTwelveAndKeepsTheLogicalCellAhead)
 {
     MovingHero tested;

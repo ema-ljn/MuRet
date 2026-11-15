@@ -1085,6 +1085,11 @@ las banderas de 32 bits en `+0x18`. `PMSG_VIEWPORTCREATE_CHANGE` (el `45`) mide 
 constructor en el GameServer 0.97. MuRet sigue el ASM del cliente; lo que mande un GameServer 1.02 real queda para la
 VM (08, P-C160).
 
+**Captura real del anillo (2026-11-15):**12 con32 bytes y45 con22 por registro en esta sesión.
+En45, el nombre coincide con el offset12 del cliente, aunque falta su sufijo de destino/dirección;
+no se clasifica como el layout0.97 de arriba sólo por compartir tamaño. El campo de flags8..11 ya
+contiene20 y el actor queda inmóvil. [Datos, A/B y límites](14-transformacion-en-vmxp.md).
+
 **MuRet** (CL9 hito 1): `Protocol::Viewport` lee los cinco con los offsets del ASM (`ReadPlayers`, `ReadLeave`,
 `ReadTransformed`, `ReadEquipmentShown` y `ReadPosition`; un registro corto es `TooShort`, hasta el último byte que
 lee el handler); `App::ServerSession` los registra juntos después del `D7` y los pasa al mundo

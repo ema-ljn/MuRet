@@ -45,7 +45,8 @@ inline constexpr std::int32_t ArrowUpMessage = 15;
 inline constexpr std::int32_t ArrowDownMessage = 16;
 
 // 0x459f70: un mensaje de 12 bytes (el tipo y dos argumentos) al final de la cola (+0x08..+0x30, un std::deque);
-// 0x45a140 saca el primero a +0x34..+0x3c.
+// 0x45a140 saca el primero a +0x34..+0x3c. El deque de mensajes (stride 12, bloques 0xffc) usa 0x472d30; no es el
+// deque de FriendEntry de 20 bytes.
 struct OldMessage
 {
     std::int32_t type = 0;

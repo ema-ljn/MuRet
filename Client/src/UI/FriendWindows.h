@@ -14,6 +14,8 @@
 // del administrador (OldWindowKind) y corren por su paso (UI/OldWindows); acá está lo que se llama de afuera.
 namespace Client::UI
 {
+struct OldWindowDrawView;
+class IClipboard;
 // La x y la y de la primera vez (0x6599a0 con el panel 1, 0x659f3d, y 0x4906a0).
 inline constexpr std::int32_t FriendsWindowX = 0x186;
 inline constexpr std::int32_t FriendsWindowY = 0x106;
@@ -27,6 +29,23 @@ inline constexpr std::uint16_t FriendsLevel = 6;
 inline constexpr std::size_t FriendsLevelText = 1067;
 // 0x491080: el cartel de ayuda de Text.bmd (0x77183ac) en la cola normal (tipo 2), a 2,5 y en 0xffc8dce6.
 inline constexpr std::size_t FriendsHelpText = 1244;
+
+enum class OldEditKey : std::uint8_t
+{
+    Backspace,
+    Delete,
+    Left,
+    Right,
+    Home,
+    End,
+    Up,
+    Down,
+    Tab,
+    Copy,
+    Cut,
+    Paste,
+    CtrlA,
+};
 
 // 0x491080 desde el nivel: con la de amigos oculta (3), la muestra (0x490670) con los sonidos 0x19 y 0x1c; a la vista
 // (0), la suelta (0x4914e0); con otro estado, nada; sin ella, la arma (0x48ee60(3)) en (x, y) la primera vez o donde
@@ -52,10 +71,15 @@ void RememberTheFriendRequest(OldWindowManager& manager, std::int32_t box, std::
 [[nodiscard]] bool HasAnOldEditFocused(const OldWindowManager& manager, ChatFocus focus);
 void TypeInTheOldEdit(OldWindowManager& manager, std::string_view typed);
 void BackspaceInTheOldEdit(OldWindowManager& manager);
+void ApplyKeyToTheOldEdit(OldWindowManager& manager, OldEditKey key, bool shift, bool ctrl,
+                          IClipboard* clipboard = nullptr);
+void SetTheOldEditComposition(OldWindowManager& manager, std::string_view text, std::int32_t start,
+                              std::int32_t length);
 void PressEnterInTheOldEdit(OldWindowManager& manager);
 
 // Lo que el dibujo de la ventana de amigos (0x4a2620), de sus pestañas (0x49cc20 y 0x49e7f0) y de la caja de agregar
 // (0x4a3750) hace antes de dibujar: arrastradas o cambiando de tamaño, vuelven a ubicar y medir a sus hijas (el 8 y el
 // 9 con 0x45aa50), y la de amigos les pasa el estado. El dibujo en sí está en UI/FriendWindowsDraw.
-void SettleTheFriendsForTheDraw(OldWindowManager& manager, OldWindow& window);
+[[nodiscard]] Core::Expected<void, std::string> SettleTheFriendsForTheDraw(OldWindowManager& manager, OldWindow& window,
+                                                                           const OldWindowDrawView& view);
 } // namespace Client::UI

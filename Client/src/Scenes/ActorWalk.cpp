@@ -16,6 +16,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <span>
 #include <string>
 #include <tuple>
 
@@ -197,10 +198,6 @@ Core::Expected<std::optional<std::uint8_t>, std::string> ChooseAction(const Acto
     const auto chosen = [](std::uint8_t action) { return std::optional{action}; };
     if (actor.type != Data::Models::PlayerSkeletonModel)
     {
-        if (context.actorSkeleton == nullptr)
-        {
-            return Core::Unexpected(std::string("0x4f3d83: falta el esqueleto propio del personaje no jugador"));
-        }
         return chosen(2);
     }
     if (actor.pet.model == Fenrir && !safe)
@@ -326,9 +323,14 @@ Core::Expected<ActorWalkResult, std::string> SetActorWalk(ActorState& actor, con
     }
     if (action.Value())
     {
-        const auto& skeleton =
-            actor.type == Data::Models::PlayerSkeletonModel ? context.stop.playerSkeleton : *context.actorSkeleton;
-        Render::Models::SetAction(actor.animation, skeleton, *action.Value());
+        if (actor.type == Data::Models::PlayerSkeletonModel)
+        {
+            Render::Models::SetAction(actor.animation, context.stop.playerSkeleton, *action.Value());
+        }
+        else if (context.actorSkeleton != nullptr)
+        {
+            Render::Models::SetAction(actor.animation, *context.actorSkeleton, *action.Value());
+        }
     }
     return StepSound(actor, context);
 }

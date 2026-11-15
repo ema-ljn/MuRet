@@ -98,8 +98,9 @@ FinishTheTransformed(std::size_t index, const Protocol::Viewport::TransformedRec
 
 // 0x4c6b40: el personaje de la clave entera (0x5110d0). Con el tipo 0xf1 (el que crea 0x5141e0 para los tipos 160,
 // 180, 188, 196, 266, 274 y 337): +0xe4 en 20, la X y la Y de la celda leídas con su acceso, +0xd0 y +0xcc con las
-// diferencias por 400 y el sonido 0x1b (WorldRuntime::lastSoundId, CL10); corta en 0x4c6c9d (los joints 0x5c5 de
-// 0x51fe10, CL11). Si no, la celda protegida en pkt[5] y pkt[6], +0x39a/+0x39b y +0x399 en 1.
+// diferencias por 400 y el sonido 0x1b (WorldRuntime::lastSoundId, CL10); 0x51fe10(posición, 0) intenta veinte
+// partículas 5c5/2 a Z+80, con dos sorteos por intento aun con el pool lleno y cinco adicionales por alta. Si no, la
+// celda protegida en pkt[5] y pkt[6], +0x39a/+0x39b y +0x399 en 1.
 [[nodiscard]] Core::Expected<void, std::string> ApplyViewportPosition(const Protocol::Viewport::Position& position,
                                                                       const WorldEntryResources& resources);
 } // namespace Client::Scenes

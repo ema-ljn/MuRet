@@ -1,6 +1,7 @@
 #include "Scenes/GameMovement.h"
 
 #include "Core/Expected.h"
+#include "Data/Models/PlayerModels.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainMapping.h"
@@ -12,10 +13,12 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalAngles.h"
+#include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ActorActions.h"
 #include "Scenes/ActorMotion.h"
 #include "Scenes/ActorWalk.h"
+#include "Scenes/CharacterDrawing.h"
 #include "Scenes/ChatBubbles.h"
 #include "Scenes/FloorItemActions.h"
 #include "Scenes/FloorItemPackets.h"
@@ -56,6 +59,7 @@
 #include <span>
 #include <cstdint>
 #include <string>
+#include <string_view>
 #include <utility>
 
 namespace Client::Scenes
@@ -82,6 +86,38 @@ enum class MoveHeroEnd : std::uint8_t
     Continue,
     Leave,
 };
+
+Core::Expected<ActorStopContext, std::string> StopContextForActor(const ActorState& actor,
+                                                                  const HeroMovementContext& context,
+                                                                  const World::WorldTerrain& terrain,
+                                                                  std::string_view missingPlayer)
+{
+    static const Render::Models::Skeleton EmptySkeleton;
+    const Render::Models::Skeleton* playerSkeleton = context.playerSkeleton;
+    if (actor.type == Data::Models::PlayerSkeletonModel && playerSkeleton == nullptr)
+        return Core::Unexpected(std::string(missingPlayer));
+    if (playerSkeleton == nullptr)
+        playerSkeleton = &EmptySkeleton;
+
+    const Render::Models::Skeleton* actorSkeleton = nullptr;
+    const std::span<const std::int16_t> modelSounds = context.world.FaunaResources().SoundActions(actor.type);
+    if (actor.type != Data::Models::PlayerSkeletonModel)
+    {
+        actorSkeleton = context.world.FaunaResources().SkeletonOf(actor.type);
+        if (actorSkeleton == nullptr && context.models != nullptr)
+            actorSkeleton = context.models->SkeletonOf(actor.type);
+    }
+
+    return ActorStopContext{.runtime = context.world.Runtime(),
+                            .scene = SceneId::Game,
+                            .playerSkeleton = *playerSkeleton,
+                            .items = context.items,
+                            .random = context.random,
+                            .terrainWalls = terrain.attributes ? &terrain.attributes->cells : nullptr,
+                            .sendAction = context.sendAction,
+                            .actorSkeleton = actorSkeleton,
+                            .modelSounds = modelSounds};
+}
 
 Core::Expected<void, std::string> CloseTheClickRecord(const HeroMovementContext& context)
 {
@@ -606,12 +642,10 @@ Core::Expected<void, std::string> MoveTheHero(ActorState& hero, const HeroMoveme
         return {};
     WorldRuntime& runtime = context.world.Runtime();
     const World::WorldTerrain& terrain = context.world.Map().terrain;
-    if (!context.playerSkeleton)
-        return Core::Unexpected(std::string("0x4f37c0: falta Player.bmd"));
-    const ActorStopContext stop{
-        runtime,           SceneId::Game,  *context.playerSkeleton,
-        context.items,     context.random, terrain.attributes ? &terrain.attributes->cells : nullptr,
-        context.sendAction};
+    const auto stopContext = StopContextForActor(hero, context, terrain, "0x4f37c0: falta Player.bmd");
+    if (!stopContext.HasValue())
+        return Core::Unexpected(stopContext.Error());
+    const ActorStopContext& stop = stopContext.Value();
     if ((hero.flags78 & MovementLockedFlag) != 0)
     {
         const auto stopped = SetActorStop(hero, stop);
@@ -621,7 +655,8 @@ Core::Expected<void, std::string> MoveTheHero(ActorState& hero, const HeroMoveme
             runtime.lastSoundId = stopped.Value().sound;
         return {};
     }
-    const auto walked = SetActorWalk(hero, {stop, context.world.ActionSpeeds(), true});
+    const auto walked =
+        SetActorWalk(hero, {stop, context.world.ActionSpeeds(), true, stop.actorSkeleton, stop.modelSounds});
     if (!walked.HasValue())
         return Core::Unexpected(walked.Error());
     if (walked.Value().sound)
@@ -751,12 +786,12 @@ Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& co
     LatchTheLeftButton(runtime.movement, context.input.leftPressed, context.input.leftDown);
     if (runtime.movement.cameraTour)
     {
-        if (!context.playerSkeleton)
-            return Core::Unexpected(std::string("0x59ae24: falta Player.bmd para parar durante el recorrido"));
         const auto& terrain = context.world.Map().terrain;
-        const auto stopped =
-            SetActorStop(hero, {runtime, SceneId::Game, *context.playerSkeleton, context.items, context.random,
-                                terrain.attributes ? &terrain.attributes->cells : nullptr, context.sendAction});
+        const auto stop =
+            StopContextForActor(hero, context, terrain, "0x59ae24: falta Player.bmd para parar durante el recorrido");
+        if (!stop.HasValue())
+            return Core::Unexpected(stop.Error());
+        const auto stopped = SetActorStop(hero, stop.Value());
         if (!stopped.HasValue())
             return Core::Unexpected(stopped.Error());
         if (stopped.Value().sound)

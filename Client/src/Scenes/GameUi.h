@@ -2,6 +2,7 @@
 
 #include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Scenes/ActorPickingBox.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
 #include "UI/OldWindows.h"
@@ -14,6 +15,8 @@
 #include <string>
 #include <string_view>
 
+#include <glm/ext/vector_float3.hpp>
+
 namespace Client::Data::Tables
 {
 struct ItemSetTables;
@@ -22,6 +25,11 @@ struct ItemSetTables;
 namespace Client::Input
 {
 class InputState;
+}
+
+namespace Client::UI
+{
+struct GameUiState;
 }
 
 namespace Client::Render::Models
@@ -51,6 +59,9 @@ struct TerrainPickingSegment;
 
 namespace Client::Scenes
 {
+// 0x553520 para las teclas de las ventanas viejas: mismo latch en el paso y al atender mensajes durante el dibujo.
+[[nodiscard]] bool OldWindowKeyEdge(UI::GameUiState& ui, const Input::InputState& input, std::uint8_t virtualKey);
+
 class WorldState;
 struct FloorItemState;
 struct GameChatContext;
@@ -154,6 +165,9 @@ struct FramePickingContext
     bool altDown = false;
     // El segmento del mouse del dibujo (GameScene::MouseRay): la cámara (0x7d36834) y el punto lejano (0x7d366c0).
     std::optional<World::TerrainPickingSegment> ray{};
+    // La posición de la cámara del dibujo (0x7d36884), distinta del origen del rayo.
+    glm::vec3 cameraPosition{};
+    std::span<ActorPickingBox> pickingBoxes{};
     // CL9 hito 5: los ítems del piso del dibujo (0x77f46c8, o su copia en un dibujo intermedio) para 0x59e2e0, con el
     // mismo segmento; sin él (antes del primer dibujo) no busca.
     std::span<FloorItemState> floorItems{};

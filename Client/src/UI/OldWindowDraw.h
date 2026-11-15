@@ -60,6 +60,9 @@ struct OldWindowDrawView
     // GetFocus() de 0x468320: el id del EDIT con el foco de Windows (OldWindowManager::focusedEdit con
     // ChatFocus::OldWindow), o 0.
     std::int32_t focusedEdit = 0;
+    // 0x45aa50 también ejecuta mensajes funcionales al recolocar: son los servicios del paso de esta pasada.
+    const OldWindowGlobals* globals = nullptr;
+    const OldWindowStepView* stepView = nullptr;
 };
 
 // 0x491960(índice, alfa): el glColor4ub de cada uno de los 19 colores de las ventanas, con el alfa en ftol(alfa ·

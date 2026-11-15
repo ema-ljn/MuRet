@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include "UI/OldWindowBase.h"
 #include "UI/TextField.h"
 
@@ -153,24 +155,28 @@ using OldListRowHover = std::function<std::int32_t(std::int32_t row, std::size_t
                                     const OldListView& view, const OldListRowHover& hover);
 
 // El EDIT de las ventanas viejas, 0x4674c0 (vtable 0x6b9550): un EDIT de Windows hijo de la ventana del juego, con su
-// subclase 0x467b10. MuRet guarda el texto con el tope de EM_LIMITTEXT (0x467f30) y deja afuera lo que el original
-// dibuja con el DC del EDIT (la selección, las flechas y la barra de 0x468d50: P-C86); el cursor, al final del texto
-// (0x468320, P-C181).
+// subclase 0x467b10. El modelo guarda cursor y selección en bytes y la preedición aparte. La conversión de
+// entrada, el bitmap de selección/composición, el scroll y el IME completo siguen P-C181 (11-edit-win32 y
+// 12-codificacion). 0x468d50 maneja foco/barra; la edición de caracteres corresponde al EDIT nativo.
 struct OldEdit
 {
     OldWindowBase base;
     // +0x4c: con 1 solo números, con 2 letras y números en mayúscula (0x467b10). La caja de agregar un amigo, 8, que no
     // filtra y le pone al dibujo el negro de fondo (0x468477).
     std::int32_t filter = 0;
-    TextField text{10, false, TextField::Charset::Latin1};
+    TextField text{10, false, TextField::Charset::Windows1252Xp};
     // +0x80: los dibujos (0x468320 suma uno al final de cada uno); el cursor se ve con el resto de 24 menor que 12.
     std::int32_t draws = 0;
+    // El preedit del SDL_TEXTEDITING no modifica `text` hasta que SDL_TEXTINPUT confirma sus bytes.
+    std::string compositionText;
+    std::int32_t compositionStart = 0;
+    std::int32_t compositionLength = 0;
     // +0x9c y +0xa0 (0x4674c0; la vtable + 0x40 y + 0x44): los colores del texto y del fondo del bitmap del EDIT
     // (0x468320), como los lee la CL8 (UI/GameHud, 0x4691e0). Los píxeles del medio (+0xa4, 0xff969696) los pone el
     // dibujo del texto de MuRet.
     std::uint32_t textColor = 0xffffffffu;
     std::uint32_t backgroundColor = 0xff000000u;
-    // +0xac: el alto de "1" en píxeles (0x6c7af4), que 0x468320 mide la primera vez (0 hasta entonces).
+    // +0xac: el alto de "Q" en píxeles (0x6c7af4), que 0x468320 mide la primera vez (0 hasta entonces).
     float caretHeight = 0.0f;
 };
 } // namespace Client::UI

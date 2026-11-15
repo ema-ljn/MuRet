@@ -1,6 +1,7 @@
 #include "Scenes/GameScene.h"
 #include "Scenes/MonsterSounds.h"
 #include "Scenes/GameSceneFrameProjection.h"
+#include "Scenes/ActorPickingBox.h"
 #include "Data/Tables/GateTable.h"
 #include "Data/Tables/SkillTable.h"
 #include "Data/Text/TextTable.h"
@@ -218,7 +219,6 @@ Core::Expected<void, std::string> GameScene::Enter()
         textureTable.Seed(*m_gameSlots, m_models);
     }
     m_tiles.BindTextureTable(textureTable);
-    m_characterCloths.resize(ActorPoolSize);
     // El original las sube en la carga (0x61ccb0) y en el login (0x61c7c0) y no las suelta; MuRet, con cada escena.
     if (auto loaded = m_windowTextures.Load(m_context.dataRoot); !loaded.HasValue())
         return loaded;
@@ -287,7 +287,7 @@ void GameScene::StepEntry()
             UI::ClearTheChatFilter(runtime.chat.log);
             // 0x6368f9..0x636915: las ventanas viejas (0x48ea50), los amigos (0x49bac0) y las cartas (0x49f260, del
             // hito 10: MuRet no guarda ninguna).
-            UI::ResetTheOldWindows(runtime.oldWindows);
+            UI::ResetTheOldWindows(runtime.oldWindows, runtime.ui.pressedButton);
             UI::ClearTheFriends(runtime.oldWindows.friendModel);
             // 0x636920: 0x46b010, las colas del cartel de Slide.bmd, su timer 0x3eb y 0x46b0e0 (el registro propio y
             // un texto de Slide.bmd, con sus rand()).
@@ -1069,8 +1069,9 @@ Core::Expected<void, std::string> GameScene::DrawTheCharacters(SceneCanvas& canv
     WorldState& world = *m_context.world;
     if (m_models == nullptr)
     {
-        return DrawGameCharacters(world.Actors(), world.Runtime().hero, world.Map().terrain.attributes->cells,
-                                  &world.Runtime());
+        return DrawGameCharacters(
+            world.Actors(), world.Runtime().hero, world.Map().terrain.attributes->cells, &world.Runtime(),
+            m_projectingFrame ? std::span(m_projection->actorPickingBoxes) : std::span<ActorPickingBox>{});
     }
     std::optional<std::string> poseFailure;
     ItemSpecialDrawContext special;
@@ -1086,7 +1087,7 @@ Core::Expected<void, std::string> GameScene::DrawTheCharacters(SceneCanvas& canv
                           // después de los personajes): 0x6c8e30 y 0x6c8e2c.
                           .hovered = world.Runtime().selectedTargets[2],
                           .targeted = world.Runtime().selectedTargets[1],
-                          .cloths = m_characterCloths,
+                          .cloths = world.ActorCloths(),
                           .sprites = &FrameSpritesForDraw(),
                           .poseCarry = &FramePoseCarry(),
                           .joints = FrameTail().joints,
@@ -1104,6 +1105,8 @@ Core::Expected<void, std::string> GameScene::DrawTheCharacters(SceneCanvas& canv
                                   poseFailure = published.Error();
                           },
                           .publishProjectedPose = true,
+                          .pickingBoxes = m_projectingFrame ? std::span(m_projection->actorPickingBoxes)
+                                                            : std::span<ActorPickingBox>{},
                           .poseBones = [&](std::uint16_t)
                           { return std::span<const Render::Models::BoneTransform>(FramePoseCarry().bones); },
                           .worldModels = m_worldModelsMap ? &m_worldModels : nullptr,

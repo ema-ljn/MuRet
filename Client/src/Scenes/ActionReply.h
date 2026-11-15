@@ -17,9 +17,10 @@ namespace Client::Scenes
 {
 struct WorldEntryResources;
 
-// 0x4cb750: el personaje de la clave (0x5110d0, el primero de los 400 vivo; sin ninguno, MuRet descarta el paquete:
-// Q-C778). Con el caballo oscuro (+0x318 en 0x1c16) no hace nada. Si no, el ángulo de la dirección ((pkt[5] − 1) · 45),
-// +0x378 (Movement) en 0 y la X y la Y en el centro de su celda blanco (+0x39a y +0x39b · 100 + 50, Q-C779), y la
+// 0x4cb750: el personaje de la clave (0x5110d0, el primero de los 400 vivo; sin ninguno, el registro fantasma 400:
+// Q-C778). Con el caballo oscuro (+0x318 en 0x1c16) no hace nada. Si no, +0x378 (Movement) en 0, el ángulo de la
+// dirección
+// ((pkt[5] − 1) · 45) y la X y la Y en el centro de su celda blanco (+0x39a y +0x39b · 100 + 50, Q-C779), y la
 // acción de pkt[6]: 0x12 la 0x98 y el sonido 0x6f (CL10); 0x78 y 0x79 pegan (0x4f4a10, SetActorAttack del hito 3, y
 // después +0x381 en 1, el frame en 0, el blanco +0x3a4 con el lugar del héroe y [0x5767964] con el índice); 0x7a y
 // 0x7b 0x4f2250 (sentado, con el C1 18 de `sendAction`); 0x7e la 5; de 0x80 a 0x9b la animación de la tabla, con la

@@ -48,28 +48,27 @@ std::optional<MouseButton> ButtonFor(std::uint8_t button)
     }
 }
 
-// La repetición de Backspace, Tab y Enter, como el WM_CHAR que Windows repite al EDIT del campo: su byte
-// en el texto tecleado (InputEvent.h). La de las otras teclas no es un evento.
+// Las teclas de edición repetidas siguen como KeyDown para que InputState adjunte Shift/Ctrl sin
+// crear otro flanco físico ni perder el orden con SDL_TEXTINPUT.
 std::optional<InputEvent> RepeatEventFor(SDL_Scancode scancode)
 {
-    char typed = '\0';
     switch (scancode)
     {
     case SDL_SCANCODE_BACKSPACE:
-        typed = Input::BackspaceChar;
-        break;
+        return InputEvent{.kind = InputEvent::Kind::KeyDown, .key = Key::Backspace, .repeat = true};
     case SDL_SCANCODE_TAB:
-        typed = Input::TabChar;
-        break;
+        return InputEvent{.kind = InputEvent::Kind::KeyDown, .key = Key::Tab, .repeat = true};
     case SDL_SCANCODE_RETURN:
-        typed = Input::EnterChar;
-        break;
+        return InputEvent{.kind = InputEvent::Kind::KeyDown, .key = Key::Enter, .repeat = true};
     default:
-        return std::nullopt;
+        const auto key = KeyFor(scancode);
+        if (!key || (*key != Key::Up && *key != Key::Down && *key != Key::Left && *key != Key::Right &&
+                     *key != Key::Home && *key != Key::End && *key != Key::Delete))
+        {
+            return std::nullopt;
+        }
+        return InputEvent{.kind = InputEvent::Kind::KeyDown, .key = *key, .repeat = true};
     }
-    InputEvent event{.kind = InputEvent::Kind::Text};
-    event.text = std::string(1, typed);
-    return event;
 }
 
 std::optional<InputEvent> KeyEventFor(const SDL_KeyboardEvent& key, InputEvent::Kind kind)
@@ -93,7 +92,10 @@ std::optional<InputEvent> ButtonEventFor(const SDL_MouseButtonEvent& button, Inp
     {
         return std::nullopt;
     }
-    return InputEvent{.kind = kind, .button = *mapped};
+    // CS_DBLCLKS sustituye cada segundo DOWN por DBLCLK; clicks == 0 conserva los eventos sintéticos ordinarios.
+    const bool doubleClick = kind == InputEvent::Kind::ButtonDown && *mapped == MouseButton::Left &&
+                             button.clicks != 0 && button.clicks % 2 == 0;
+    return InputEvent{.kind = doubleClick ? InputEvent::Kind::ButtonDoubleClick : kind, .button = *mapped};
 }
 
 std::optional<InputEvent> MotionEventFor(const SDL_MouseMotionEvent& motion, float pixelDensity)
@@ -111,6 +113,14 @@ std::optional<InputEvent> TextEventFor(const SDL_TextInputEvent& text)
     InputEvent event{.kind = InputEvent::Kind::Text};
     event.text = std::string{text.text};
     return event;
+}
+
+InputEvent CompositionEventFor(const SDL_TextEditingEvent& editing)
+{
+    return InputEvent{.kind = InputEvent::Kind::Composition,
+                      .text = editing.text == nullptr ? std::string{} : std::string{editing.text},
+                      .compositionStart = editing.start,
+                      .compositionLength = editing.length};
 }
 
 std::optional<InputEvent> WheelEventFor(const SDL_MouseWheelEvent& wheel)
@@ -169,6 +179,12 @@ std::optional<Input::Key> KeyFor(SDL_Scancode scancode)
         return Key::Left;
     case SDL_SCANCODE_RIGHT:
         return Key::Right;
+    case SDL_SCANCODE_HOME:
+        return Key::Home;
+    case SDL_SCANCODE_END:
+        return Key::End;
+    case SDL_SCANCODE_DELETE:
+        return Key::Delete;
     case SDL_SCANCODE_TAB:
         return Key::Tab;
     case SDL_SCANCODE_BACKSPACE:
@@ -208,6 +224,8 @@ std::optional<Input::InputEvent> InputEventFor(const SDL_Event& event, float pix
         return MotionEventFor(event.motion, pixelDensity);
     case SDL_EVENT_TEXT_INPUT:
         return TextEventFor(event.text);
+    case SDL_EVENT_TEXT_EDITING:
+        return CompositionEventFor(event.edit);
     case SDL_EVENT_WINDOW_FOCUS_LOST:
         return InputEvent{.kind = InputEvent::Kind::FocusLost};
     default:

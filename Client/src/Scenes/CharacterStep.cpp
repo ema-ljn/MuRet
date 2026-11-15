@@ -1,4 +1,6 @@
 #include "Scenes/CharacterStep.h"
+
+#include "Scenes/ActorPickingBox.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/Particles.h"
 
@@ -237,14 +239,13 @@ Core::Expected<void, std::string> StepOtherCharacter(ActorState& actor, std::siz
     const Render::Models::Skeleton empty;
     const Render::Models::Skeleton& skeleton = context.playerSkeleton != nullptr ? *context.playerSkeleton : empty;
     PlayerActionSpeeds& speeds = context.actionSpeeds != nullptr ? *context.actionSpeeds : context.world.ActionSpeeds();
+    const std::span<const std::int16_t> modelSounds = context.world.FaunaResources().SoundActions(actor.type);
     const ActorWalkContext walk{
         {context.world.Runtime(), context.scene, skeleton, context.items, context.random, &terrain.attributes->cells},
         speeds,
         false,
         player ? nullptr : own,
-        // Los sonidos de los modelos que cargó el alta (0x612c80); los del NewFace, que carga 0x60dbe0, sin leer.
-        player || IsNewFace(actor.type) ? std::span<const std::int16_t>{}
-                                        : context.world.FaunaResources().SoundActions(actor.type)};
+        modelSounds};
     ActorMotionContext motion{context.world.Runtime(), context.random, {}};
     if (terrain.heights)
     {
@@ -436,13 +437,22 @@ Core::Expected<void, std::string> StopAtTheEnd(ActorState& actor, const Characte
     if (stops)
     {
         const auto& terrain = context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
+        static const Render::Models::Skeleton emptyPlayerSkeleton;
+        const Render::Models::Skeleton* playerSkeleton = context.playerSkeleton;
+        if (playerSkeleton == nullptr)
+            playerSkeleton = &emptyPlayerSkeleton;
+        const bool player = actor.type == Data::Models::PlayerSkeletonModel;
+        const Render::Models::Skeleton* actorSkeleton = player ? nullptr : ModelSkeletonOf(actor, context);
+        const std::span<const std::int16_t> modelSounds = context.world.FaunaResources().SoundActions(actor.type);
         const auto stopped = SetActorStop(
             actor, ActorStopContext{.runtime = context.world.Runtime(),
                                     .scene = context.scene,
-                                    .playerSkeleton = *context.playerSkeleton,
+                                    .playerSkeleton = *playerSkeleton,
                                     .items = context.items,
                                     .random = context.random,
-                                    .terrainWalls = terrain.attributes ? &terrain.attributes->cells : nullptr});
+                                    .terrainWalls = terrain.attributes ? &terrain.attributes->cells : nullptr,
+                                    .actorSkeleton = actorSkeleton,
+                                    .modelSounds = modelSounds});
         if (!stopped.HasValue())
         {
             return Core::Unexpected(stopped.Error());
@@ -933,21 +943,7 @@ Core::Expected<void, std::string> DropTheDevilSquareRain(const ActorState& actor
 // que en float.
 void BoxTheModelWithoutActions(ActorState& actor)
 {
-    actor.field14c = 0.0f;
-    actor.field13c = actor.boundsMin.x;
-    actor.field140 = actor.boundsMin.y;
-    actor.field144 = actor.boundsMin.z;
-    actor.field150 = 0.0f;
-    actor.field154 = 0.0f;
-    actor.field15c = 0.0f;
-    actor.field160 = 0.0f;
-    actor.field164 = 0.0f;
-    actor.field148 = actor.boundsMaxX - actor.boundsMin.x;
-    actor.field158 = actor.boundsMaxY - actor.boundsMin.y;
-    actor.field168 = actor.boundsTop - actor.boundsMin.z;
-    actor.field13c = actor.position.x + actor.field13c;
-    actor.field140 = actor.position.y + actor.field140;
-    actor.field144 = actor.position.z + actor.field144;
+    PublishPickingBox(actor, actor.position, actor.boundsMin, {actor.boundsMaxX, actor.boundsMaxY, actor.boundsTop});
 }
 
 // 0x505de0(c, c) desde 0x508ee6, hasta su final (06, "Los efectos de los personajes (0x505de0)" y "El cuerpo de los

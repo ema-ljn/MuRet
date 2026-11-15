@@ -4,6 +4,7 @@
 #include "Data/Models/PlayerModels.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
+#include "Input/MouseMessageState.h"
 #include "Scenes/FaunaStep.h"
 #include "Scenes/FaunaEffects.h"
 #include "Scenes/FaunaModels.h"
@@ -43,9 +44,10 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
         .items = m_items,
         .skills = m_skills,
         .gates = m_gates,
-        .input = {mouse.x, mouse.y, false, input.IsDown(Input::MouseButton::Left), input.IsDown(Input::Key::Shift),
+        .input = {mouse.x, mouse.y, false, input.MouseMessages().leftDown, input.IsDown(Input::Key::Shift),
                   static_cast<float>(ticks), static_cast<std::uint32_t>(ticks), input.IsDown(Input::Key::Ctrl)},
-        .fixedHeight = CameraState().fixedHeight};
+        .fixedHeight = CameraState().fixedHeight,
+        .models = m_models};
     context.pickTarget = [this] { return GroundUnderTheMouse(); };
     context.sendWalk = [&](auto cells, auto target, float angle) -> Core::Expected<void, std::string>
     {

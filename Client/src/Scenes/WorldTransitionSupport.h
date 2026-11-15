@@ -11,7 +11,8 @@ namespace Client::Scenes
 struct ActorState;
 struct WorldEntryResources;
 [[nodiscard]] ActorState& PublishedHero(const WorldEntryResources& resources);
-[[nodiscard]] Core::Expected<ActorStopContext, std::string> TransitionStopContext(const WorldEntryResources& resources);
+[[nodiscard]] Core::Expected<ActorStopContext, std::string> TransitionStopContext(const ActorState& actor,
+                                                                                  const WorldEntryResources& resources);
 [[nodiscard]] Core::Expected<void, std::string> StopTransitionHero(ActorState& actor,
                                                                    const WorldEntryResources& resources);
 [[nodiscard]] Core::Expected<void, std::string> DressTransitionHero(ActorState& actor,

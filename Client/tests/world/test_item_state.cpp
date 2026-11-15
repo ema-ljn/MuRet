@@ -4,6 +4,8 @@
 #include "Scenes/GameData.h"
 #include "support/GoldenDir.h"
 
+#include "support/SystemCrashReports.h"
+
 #include <gtest/gtest.h>
 
 #include <array>
@@ -729,7 +731,12 @@ TEST(ItemStateDeathTest, InvalidTagIndicesStopWithADiagnosticInEveryBuild)
     const ItemState item;
     for (const std::uint8_t index : std::array<std::uint8_t, 2>{9, 255})
     {
-        EXPECT_DEATH(static_cast<void>(item.OptionTag(index)), "ItemState.*fuera de rango");
+        EXPECT_DEATH(
+            {
+                ASSERT_TRUE(Client::Tests::SuppressSystemCrashReports());
+                static_cast<void>(item.OptionTag(index));
+            },
+            "ItemState.*fuera de rango");
     }
 }
 
@@ -738,7 +745,12 @@ TEST(ItemStateDeathTest, InvalidValueIndicesStopWithADiagnosticInEveryBuild)
     const ItemState item;
     for (const std::uint8_t index : std::array<std::uint8_t, 2>{9, 255})
     {
-        EXPECT_DEATH(static_cast<void>(item.OptionValue(index)), "ItemState.*fuera de rango");
+        EXPECT_DEATH(
+            {
+                ASSERT_TRUE(Client::Tests::SuppressSystemCrashReports());
+                static_cast<void>(item.OptionValue(index));
+            },
+            "ItemState.*fuera de rango");
     }
 }
 

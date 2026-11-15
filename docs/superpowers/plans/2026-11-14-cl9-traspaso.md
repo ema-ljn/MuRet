@@ -1,67 +1,106 @@
-# CL9: traspaso para terminar la ola (2026-11-14)
+# CL9: traspaso para terminar la ola (actualizado 2026-11-15)
+
+> **Entrega actual: [PR #354](https://github.com/ema-ljn/MuRet/pull/354).** H1 está implementado
+> en el alcance ASM revisado. H9 conserva pendientes propios del editor, además de la validación con
+> servidor. La comparación estricta restante en VM y servidor se difiere. Los porcentajes de la tabla
+> miden cobertura por citas de direcciones, no equivalencia funcional ni porcentaje de pruebas nativas.
 
 El 2026-11-14 Emanuel pidió dejar la CL9 lista para que **otros agentes terminen los PRs que faltan**.
-Este documento es la foto a las 05:45Z, con `main` en `0f5bb82` (#338). Dice qué hay en cada hito, en qué
-orden se cierra la pila, qué le falta a cada uno y cómo se trabaja. Las notas de las revisiones que quedaron
-sin arreglar están en [`2026-11-14-cl9-traspaso/`](2026-11-14-cl9-traspaso/).
+El estado y los porcentajes se actualizaron el 2026-11-15, con `main` en `9649f53e` (#353) y las
+reparaciones del #354 en `37264fa5`. Las notas detalladas de integración más abajo conservan la base
+histórica del 14/11, salvo las actualizaciones expresas; no se volvieron a auditar todos los hitos.
+Las revisiones pendientes están en [`2026-11-14-cl9-traspaso/`](2026-11-14-cl9-traspaso/).
 
-- Plan de la ola: [`2026-11-13-ola-cl9-gameplay.md`](2026-11-13-ola-cl9-gameplay.md), con la tabla de
-  funciones por hito ([`-funciones.tsv`](2026-11-13-ola-cl9-funciones.tsv)) y la de cortes de MuRet
-  ([`-cortes.tsv`](2026-11-13-ola-cl9-cortes.tsv)).
-- Roadmap del cliente: [`2026-10-30-cliente-design.md`](../specs/2026-10-30-cliente-design.md).
-- **Castle Siege (hitos 12 y 13)** tiene su propia sección más abajo: el primer agente del hito 12 lo
-  cortaron los filtros de seguridad de la API.
+- Plan: [`2026-11-13-ola-cl9-gameplay.md`](2026-11-13-ola-cl9-gameplay.md), con las tablas de
+  [funciones](2026-11-13-ola-cl9-funciones.tsv) y [cortes](2026-11-13-ola-cl9-cortes.tsv).
+- Roadmap: [`2026-10-30-cliente-design.md`](../specs/2026-10-30-cliente-design.md).
+- Castle Siege (hitos 12 y 13) conserva su sección y sus pendientes más abajo.
+
+**Por dónde seguir:**
+
+1. Revisar el #354 y su CI. La suite local conjunta aprobó **7.108 tests**, incluidos 106 GL y 59
+   históricos, sin fallos ni salteos. El merge queda a cargo de Emanuel.
+2. Corregir el CI del #342 (hito 3), integrar el `main` actualizado y resolver sus conflictos antes del
+   merge. La corrida de `de674ec6` terminó con fallos; ya no está corriendo.
+3. Integrar el hito 4 con el hito 3. Después, de a uno, cada hito con su base, según las instrucciones
+   de la cadena. Los conteos de conflictos del resto del documento son la foto histórica del 14/11.
+4. Resolver los arreglos pendientes de cada hito, el editor restante de H9, el cableado de la cadena y
+   Castle Siege (12 y 13).
+5. Completar la auditoría de cierre y la validación estricta pendiente con VM y servidor.
 
 ## Estado por hito
 
-"Portado" es el % de los bytes de la tabla de funciones del plan cuyo código ya está, con la dirección citada
-fuera de un corte, en cualquier rama de la CL9. Es una cota baja: una función portada sin citar su dirección
-no cuenta.
+**Cobertura por citas** = bytes de las filas con alguna dirección de su rango citada fuera de una línea
+de corte en `Client/src/`, divididos por los bytes de todas las filas del hito. Se toma la unión de
+`main`, el #354 y las cabezas de los hitos pendientes; no se suman dos veces los mismos bytes.
+Es un indicador estático: una cita no demuestra que todas las ramas estén implementadas, y una función
+implementada sin cita puede no contar. Por eso H9 puede tener 100 % de citas y seguir incompleto.
 
-| Hito | Rama | PR | Fase | Portado | Estado del PR |
-| --- | --- | --- | --- | --- | --- |
-| 1, emote y otros jugadores | — | #338 | cerrado | 100 % | mergeado |
-| 9, amigos y ventanas viejas | — | #339 | cerrado | 100 % | mergeado |
-| 5, ítems del piso | `claude/cl9-hito-5` | #340 | todas | 96 % | listo, base `main`, sin conflictos |
-| 2, monstruos, NPC, misiones | `claude/cl9-hito-2` | #341 | 8 de 8 | 100 % | listo y en verde, base hito 5 |
-| 3, pegar, daño, muerte | `claude/cl9-hito-3` | #342 | 8 de 8 | 100 % | borrador, base hito 2, 19 archivos en conflicto |
-| 4, skills, cuervo, mascotas | `claude/cl9-hito-4` | #343 | 7 de 7 | 98 % | borrador, base hito 3, 18 en conflicto |
-| 11, eventos | `claude/cl9-hito-11` | #344 | 7 de 7 | 96 % | borrador, base hito 4, 37 en conflicto |
-| 7, party, comercio, duelo, tiendas | `claude/cl9-hito-7` | #345 | 7 de 7 | 76 % | borrador, base hito 11, 28 en conflicto |
-| 8, gremio, alianza, guerra | `claude/cl9-hito-8` | #346 | 7 de 7 | 76 % | borrador, base hito 7, 14 en conflicto |
-| 10, chat con amigos y cartas | `claude/cl9-hito-10` | #347 | 5 de 5 | 100 % | borrador, base hito 8, 14 en conflicto |
-| 6, tienda del NPC, almacén, caos | `claude/cl9-hito-6` | #348 | 6 de 6, a medias | 78 % | borrador, base hito 10, 17 en conflicto |
-| 12, ventanas del asedio | `claude/cl9-hito-12` | #349 | 1 de 4 | 55 % | borrador, base hito 6, 9 en conflicto |
-| 13, batalla del asedio | `claude/cl9-hito-13` | — | 1 de 4, a medias | 10 % | sin PR |
+| Hito | Rama / revisión | PR | Cobertura por citas | Estado y siguiente paso |
+| --- | --- | --- | ---: | --- |
+| 1, emote y otros jugadores | `main` + `37264fa5` | #338, #353, #354 | 100,0 % | implementación propia contrastada con ASM; completar validación estricta en VM |
+| 9, amigos y ventanas viejas | `main` + `37264fa5` | #339, #353, #354 | 100,0 % | editor occidental XP reparado; faltan IME completo y funciones del editor de mensaje/susurro; validación del servicio pendiente |
+| 5, ítems del piso | `main` | #340 | 95,7 % | PR mergeado; auditoría de filas sin cita e integraciones pendientes |
+| 2, monstruos, NPC, misiones | `main` | #341 | 99,7 % | PR mergeado; conservar cortes e integraciones del hito 3 |
+| 3, pegar, daño, muerte | `claude/cl9-hito-3` @ `de674ec6` | #342 | 100,0 % | abierto, 8/8 fases; CI fallido y cuatro conflictos con `main`; corregir antes del merge |
+| 4, skills, cuervo, mascotas | `claude/cl9-hito-4` @ `6a9dd828` | #343 | 98,1 % | borrador, 7/7 fases; WIP sin tests finales y base hito 3 por integrar |
+| 11, eventos | `claude/cl9-hito-11` @ `dae3ff19` | #344 | 94,9 % | borrador, 7/7 fases; integrar base hito 4 y revisar filas sin cita |
+| 7, party, comercio, duelo, tiendas | `claude/cl9-hito-7` @ `d73ecbbd` | #345 | 75,7 % | borrador, 7/7 fases; integrar base hito 11 y auditar cobertura restante |
+| 8, gremio, alianza, guerra | `claude/cl9-hito-8` @ `5f0a80f7` | #346 | 76,0 % | borrador, 7/7 fases; integrar base hito 7 y auditar cobertura restante |
+| 10, chat con amigos y cartas | `claude/cl9-hito-10` @ `21c7b222` | #347 | 100,0 % | borrador, 5/5 fases; integrar base hito 8, H9 y combate; validar con servidor |
+| 6, tienda del NPC, almacén, caos | `claude/cl9-hito-6` @ `0d70b071` | #348 | 78,0 % | borrador, fase 6 a medias; terminar arreglos de revisión, EDIT e integración |
+| 12, ventanas del asedio | `claude/cl9-hito-12` @ `3ebd97ac` | #349 | 55,6 % | borrador, 1/4 fases; faltan ventanas y revisiones |
+| 13, batalla del asedio | `claude/cl9-hito-13` @ `032b83d4` | — | 9,9 % | sin PR, fase 1 a medias; WIP sin compilar |
 
-En total está portado alrededor del 82 % de los ~517 KB del plan. Los borradores no tienen CI: GitHub no lo
-corre mientras haya conflictos.
+El total recalculado es **436.380 / 529.535 bytes = 82,4 %**, ponderado por bytes, no por el promedio de
+los trece porcentajes. Las reparaciones de H1/H9 no aumentan ese indicador: trabajan sobre rangos que
+ya tenían citas. Las 1.141 filas del plan son el denominador; las ramas dentro de funciones de otras
+olas, los cortes, la fidelidad del editor y los casos nativos se siguen por sus contratos y pendientes.
+La unión incluye trabajo que todavía no entró en `main` y no representa una compilación integrada.
 
-**Ojo con el 6, el 7 y el 8.** Los agentes dieron el 7 y el 8 por terminados, con dos revisiones contra el
-ASM cada uno, pero ~24 % de los bytes de su tabla no aparece citado en el código. En una muestra de los más
-grandes del 8 hay contenedores que el original arma a mano y MuRet reemplaza por la STL (`0x4727f0`) y
-ayudantes de las clases de las ventanas viejas (`0x46b800`, `0x46d440`). No están revisados uno por uno: la
-auditoría de cierre tiene que recorrer esas filas antes de dar los hitos por cerrados.
+El recálculo usa los patrones `ADDR` y `CUT` de
+[`build_roadmap_matrix.py`](../../../Client/docs/research/scripts/tools/build_roadmap_matrix.py),
+los archivos `.cpp`/`.h` de `Client/src/` salvo `Input/Key.h`, y los rangos `[va, va + bytes)` del
+[TSV por hito](2026-11-13-ola-cl9-funciones.tsv). Se excluyen líneas que coincidan con `CUT`, se
+marca cada fila alcanzada por una cita y se suman sus bytes una sola vez entre las revisiones indicadas.
+No se cuentan tests ni documentación como implementación. Frente a la foto anterior, se explicita la
+selección de cabezas y se muestra un decimal, sin reutilizar los porcentajes redondeados.
 
-Las otras ramas `claude/cl9-hito-N-*` (`-body`, `-fixa`, `-helpa`, `-step`, `-chaos`, `-sign`…) son respaldos
-de fases que ya están mergeadas en su hito. No hace falta tocarlas.
+Resultados que fijan el estado de H1/H9:
+
+- [H1: reparaciones propias y límites de la validación](2026-11-15-cl9-h1-resultado.md).
+- [H9: editor XP, codificación y pendientes propios](2026-11-15-cl9-h1-h9-resultado.md).
+- [Runbook para retomar la validación en VM](../../../Client/docs/research/scripts/game/capture/RUNBOOK-cl9-vm.md).
+
+El CI de #342 en `de674ec6` terminó con
+[fallos](https://github.com/ema-ljn/MuRet/actions/runs/43575871006).
+`git merge-tree` contra `main` en `9649f53e` encuentra cuatro conflictos: research 08,
+`GameSceneMovement.cpp`, `GameSceneUi.cpp` y `test_viewport_players.cpp`. Los demás PRs de la cadena
+siguen en borrador y requieren reconciliar sus bases; no se hereda el CI de #353.
+
+**Hitos 6, 7 y 8:** las fases y los informes previos no cierran la auditoría de sus filas sin cita. En el
+7 y el 8 todavía representan alrededor del 24 % de los bytes. Hay contenedores reemplazados por STL y
+helpers de ventanas viejas que deben revisarse individualmente antes de dar los hitos por cerrados.
+
+Las ramas `claude/cl9-hito-N-*` (`-body`, `-fixa`, `-helpa`, `-step`, `-chaos`, `-sign`…) son respaldos
+de fases: no se incluyen en este recálculo ni hace falta modificarlas.
 
 ## La pila y el orden de merge
 
 Los hitos van en una sola cadena apilada, en este orden:
 
-`main` ← #340 (5) ← #341 (2) ← #342 (3) ← #343 (4) ← #344 (11) ← #345 (7) ← #346 (8) ← #347 (10) ←
+`main` ← #342 (3) ← #343 (4) ← #344 (11) ← #345 (7) ← #346 (8) ← #347 (10) ←
 #348 (6) ← #349 (12) ← hito 13
 
 - **Emanuel mergea** (squash) cuando un PR está listo y en verde. El agente no mergea: le avisa.
 - Cuando el PR de abajo entra, GitHub cambia solo la base del siguiente a `main` (las ramas se borran solas
-  al mergear). Pasó con el #340 después del #338.
+  al mergear). Pasó con el #340 después del #338 y con el #341 después del #340.
 - **Nunca** force push, rebase, amend ni squash de commits ya pusheados: el auto-mode los bloquea y la rama
   remota es el respaldo. Siempre commits nuevos y merges.
 
 ### Actualizar una rama cuando su base entró por squash
 
-**Caso A: la rama ya tiene mergeada la última versión de su base** (hoy el #340 y el #341). El squash trae el
+**Caso A: la rama ya tiene mergeada la última versión de su base** (así entraron el #340 y el #341). El squash trae el
 mismo contenido, pero git ve conflictos porque compara contra la base vieja. Se resuelve mergeando con la
 cabeza de la base como base del merge:
 
@@ -75,44 +114,85 @@ git commit                             # merge con dos padres
 diff <(git diff origin/main HEAD) <(git diff <cabeza de la base> HEAD^1)
 ```
 
-Así se resolvió el #340 en `115b0422` (base del merge `dbb77e7b`, la última cabeza del #338). El código
-queda idéntico al que ya estaba en verde.
+Así se resolvieron el #340 en `115b0422` (base del merge `dbb77e7b`, la última cabeza del #338) y el #341 en
+`92231db2` (base del merge `e95bca00`). El código queda idéntico al que ya estaba en verde.
 
-**Caso B: la rama todavía no mergeó la última versión de su base** (del #342 en adelante). Cada rama trae
+**Caso B: la rama todavía no mergeó la última versión de su base** (del #343 en adelante). Cada rama trae
 versiones viejas de los hitos de abajo, por eso los conflictos. Hay que:
 
-1. Mergear la rama de la base (o `main`, si la base ya entró) y resolver: el código de los hitos de abajo
-   queda como está en su versión final; lo propio del hito se conserva encima.
-2. Cablear lo que el PR lista en "Al armar la cadena" (más abajo, por hito).
+1. Mergear la última cabeza de la base (`git merge --no-ff origin/claude/cl9-hito-<base>`) y resolver. Si la
+   base ya entró, su rama se borró, pero la cabeza sigue en el PR: `git fetch origin pull/<N>/head`. Después,
+   el caso A contra `main` con esa cabeza como base del merge. Mergear `main` directo da muchos más
+   conflictos (en el hito 3 eran 83 contra 19).
+2. Cablear lo que el PR lista en "Al armar la cadena" (más abajo, por hito), en commits aparte del merge.
 3. Correr los chequeos locales y el CI, y escribir el texto final del PR con las secciones del #341: Qué
-   hace, Lo que corta, Revisiones, Research y Pruebas.
+   hace, Lo que corta, Revisiones, Research y Pruebas. El texto del #342 muestra cómo contar el merge.
 4. Pasarlo a listo y avisarle a Emanuel.
 
+Así se hizo el #342: `123eed83` mergea el hito 2 final (`92231db2`, 19 archivos) y `de674ec6` es el caso A
+contra `main`.
+
 Se puede adelantar el paso 1 contra la rama de la base antes de que entre, pero después hay que repetir el
-caso A cuando la base entre por squash.
+caso A cuando la base entre por squash. Por ejemplo, el hito 4 puede mergear hoy `de674ec6`; si el #342 entra
+después, el hito 4 hace el caso A con `de674ec6` como base del merge.
+
+### Cómo resolver un merge de la cadena
+
+Emanuel pidió que el merge resuelva **solo los conflictos**. Lo demás (cablear, arreglos pendientes) va en
+commits aparte o en otra tanda.
+
+1. El código de los hitos de abajo es el final, tal como está en la cabeza de la base: pasó sus revisiones y
+   su CI. Donde choca una copia vieja que trae la rama con la versión de la base, gana la base.
+2. Lo propio del hito se conserva encima. Para separarlo: `git log --no-merges <merge-base>..HEAD` (los commits
+   `CL9 hito <N>: …`) y `git diff <merge-base> HEAD -- <archivo>`. Si los dos lados cambiaron lo mismo, el
+   hito se adapta a las interfaces finales de la base (nombres, firmas, parámetros nuevos) sin deshacer sus
+   arreglos.
+3. Docs (04, 06, 07, 08, el plan): quedan las filas y secciones de los dos lados. No se pierde ningún id, y
+   si los dos editaron la misma fila se unen los textos.
+4. Nunca `git checkout --theirs/--ours` de un archivo entero: hunk por hunk.
+5. Compilar `ClientLib` y correr los tests del hito, los de los archivos en conflicto y los vecinos. Después
+   clang-format, include-cleaner y el chequeo de estrechamiento de MSVC sobre lo que se tocó.
+6. Al final, `git merge-tree --write-tree origin/main HEAD` tiene que salir limpio.
 
 ## Qué le falta a cada hito
-
-### Hito 5 (#340) y hito 2 (#341)
-
-- **#340**: que termine el CI de `115b0422` y que Emanuel lo mergee.
-- **#341**: después del #340, caso A con base del merge `115b0422`. El CI de `7119b226` ya pasó con Linux,
-  Windows y formato.
 
 ### Hito 3 (#342)
 
 1. **El arreglo de los cortes CL11 falsos** de la [auditoría](2026-11-14-cl9-traspaso/auditoria-cl11-hitos-3-y-4.md)
    (sin empezar): el terremoto `0xfa`, `ArrowEffects.cpp:729`, exponer `BurstAt` y usarlo en
    `MonsterAttackStep`, y los `rand()` de `ActorDying`. Ids reservados: Q-C1134..Q-C1136, P-C361.
-2. Al armar la cadena: con el hito 2, que `DrawGameMonster` llene `bodyPose` y llame a
-   `WorldState::PlaceModel` (P-C323 b).
-3. Quedan cortes que cablean otros hitos: las flechas `0x53e75b`, `0x53e365`, `0x53e4dd` y `0x524405`
+2. **El merge con el hito 2 ya está** (`123eed83` y `de674ec6`; el detalle por archivo, en el texto del
+   #342). Quedaron así:
+   - `ActorState::word8a` es el `int16_t` del hito 2; el hito 3 se adaptó (`test_attack_step` espera -1);
+   - el sonido del golpe (`0x4f553d`) usa `FaunaModels::SoundActions` del hito 2, y los del ataque y del paso
+     usan `WorldRuntime::modelSounds` del hito 3;
+   - la llegada atiende hablar con el NPC (2) y levantar (1) antes de `InteractOnArrival`, y el clic sin
+     ataque mira el objeto elegido (`0x59d8c3`), el NPC, el ítem del piso y el suelo.
+3. Al armar la cadena (sin hacer, en commits aparte):
+   - con el hito 2, que `DrawGameMonster` llene `bodyPose` y llame a `WorldState::PlaceModel` (P-C323 b);
+   - dejar una sola tabla de sonidos de monstruo (`FaunaModels::SoundActions` o `WorldRuntime::modelSounds`);
+   - `+0x3a4` está modelado dos veces (`attackTarget` y `word3a4`);
+   - los casos 1 y 2 de `ArrivalCaseOf` ya no se alcanzan: sacar esos cortes.
+4. **Actualización 15/11:** el CI de `de674ec6` terminó con fallos. El PR sigue listo para revisión, pero
+   no para merge: integrar el `main` actualizado, resolver sus cuatro conflictos y volver a verificar.
+5. Quedan cortes que cablean otros hitos: las flechas `0x53e75b`, `0x53e365`, `0x53e4dd` y `0x524405`
    (hito 4), los nombres de gremio `0x558da4`/`0x558f29` (hito 8, Q-C1170) y el altar de Crywolf `0x4eac41`
    (hito 11).
 
 ### Hito 4 (#343)
 
-1. **Terminar el arreglo CL11** del commit WIP `6a9dd828`: compila, pero los tests no se corrieron. Ya
+1. **El merge con el hito 3** (`de674ec6`, ya con los hitos 1, 5 y 2 finales y `main`): 26 archivos en
+   conflicto. Son las docs 06, 07 y 08, `WorldEvent.h`, `ActorState.h`, `ArrowEffects.*`, `AttackStep.cpp`,
+   `GameHud.cpp`, `GameMovement.h`, `GameMovementState.h`, `GamePanels.*`, `GameParticles.*`,
+   `GameSceneLogic.cpp`, `GameWindowDrawing.cpp`, `HeroAttack.cpp`, `TextureSets.h`,
+   `World/ParticleDrawing.cpp`, `World/Particles.*` y los tests `test_arrow_effects`, `test_character_step`,
+   `test_game_ui` y `test_session_event_applier`.
+   - En `HeroAttack.cpp`, `WalkIntoRange` queda con el cuerpo del hito 3 (con `CheckTheCrywolfAltar`) y la
+     estructura del hito 4, que movió el cuerpo de `IsAttackable` a un ayudante compartido.
+   - El último commit (`6a9dd828`) es un WIP cuyos tests nunca se corrieron. Si después del merge falla un
+     test, hay que ver primero si ya fallaba en `6a9dd828`.
+   - Un primer intento de este merge se frenó a pedido de Emanuel y se descartó: la rama está intacta.
+2. **Terminar el arreglo CL11** del commit WIP `6a9dd828`: compila, pero los tests no se corrieron. Ya
    porta la Flame `0x500531` con `0x52ae2a`, los `0x5ac` /2 y /1, las banderas del hito 1 (`0x4e6725`,
    `0x4e676e`), el calco `0x61e`/3, las `rand()` del Inferno antes del corte `0x51fe9e`, el cuervo `0x5ac`/6
    y los joints `0x60f`/0 con llave 2. Siguen cortando `0x1b` (`0x504561`) y `0x4dbfc5`. Usa Q-C1131..Q-C1133
@@ -126,7 +206,7 @@ caso A cuando la base entre por squash.
      `test_kill_beam_joints`, `test_game_characters`, `test_dark_spirit`, `test_game_scene`,
      `test_game_scene_viewports` y `test_game_scene_tail_integration`.
    - El `0x0e` llama a `BurstAt` del hito 3 (P-C360), y `ApplyEffectFlags` toma la tabla de efectos.
-2. Al armar la cadena:
+3. Al armar la cadena:
    - `HeroAttack.cpp` `WalkIntoRange` queda con el cuerpo del hito 3 y `CheckTheCrywolfAltar`. El chequeo del
      altar probablemente también va en los `PathFinding2` del hito 4.
    - Reconciliar P-C256 con Q-C1179 del hito 3.

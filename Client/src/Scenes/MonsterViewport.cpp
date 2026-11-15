@@ -97,8 +97,7 @@ Core::Expected<void, std::string> ApplyMonsterRecord(const Protocol::Viewport::M
     const std::size_t index = created.Value();
     ActorState& actor = world.Actors()[index];
     // 0x4c9cee..0x4c9cf3.
-    if (auto flagged = ApplyEffectFlags(actor, record.effects, index == runtime.hero, runtime.lastSoundId);
-        !flagged.HasValue())
+    if (auto flagged = ApplyEffectFlags(actor, record.effects, index == runtime.hero, resources); !flagged.HasValue())
         return flagged;
     constexpr int DirectionShift = 4;
     const float step = AngleStepOf(actor);
@@ -249,8 +248,7 @@ Core::Expected<void, std::string> ApplySummonRecord(const Protocol::Viewport::Su
     const std::size_t index = created.Value();
     ActorState& actor = world.Actors()[index];
     // 0x4ca16d..0x4ca1a4.
-    if (auto flagged = ApplyEffectFlags(actor, record.effects, index == runtime.hero, runtime.lastSoundId);
-        !flagged.HasValue())
+    if (auto flagged = ApplyEffectFlags(actor, record.effects, index == runtime.hero, resources); !flagged.HasValue())
         return flagged;
     actor.angles.z = AngleOf(record.directionAndPk);
     WriteTheCells(actor, record.x, record.y, random);
@@ -312,8 +310,7 @@ Core::Expected<void, std::string> ApplyObjectPlayer(const Protocol::Viewport::Ob
     actor.skin = 0;
     actor.pk = 0;
     actor.byte88 = ObjectClass;
-    if (auto flagged = ApplyEffectFlags(actor, record.effects, index == runtime.hero, runtime.lastSoundId);
-        !flagged.HasValue())
+    if (auto flagged = ApplyEffectFlags(actor, record.effects, index == runtime.hero, resources); !flagged.HasValue())
         return flagged;
     WriteTheCells(actor, record.x, record.y, random);
     TurnAtRandom(actor, random);
@@ -342,8 +339,7 @@ Core::Expected<void, std::string> ApplyObjectMonster(const Protocol::Viewport::O
         return Core::Unexpected(created.Error());
     const std::size_t index = created.Value();
     ActorState& actor = world.Actors()[index];
-    if (auto flagged = ApplyEffectFlags(actor, record.effects, index == runtime.hero, runtime.lastSoundId);
-        !flagged.HasValue())
+    if (auto flagged = ApplyEffectFlags(actor, record.effects, index == runtime.hero, resources); !flagged.HasValue())
         return flagged;
     WriteTheCells(actor, record.x, record.y, random);
     TurnAtRandom(actor, random);

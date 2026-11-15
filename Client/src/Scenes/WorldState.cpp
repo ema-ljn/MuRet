@@ -6,6 +6,7 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CharacterCloth.h"
 #include "Scenes/DynamicWorldLight.h"
 #include "Scenes/HelperTable.h"
 #include "Scenes/ItemSetState.h"
@@ -35,6 +36,16 @@ std::span<ActorState, ActorPoolSize> WorldState::Actors()
 std::span<const ActorState, ActorPoolSize> WorldState::Actors() const
 {
     return m_actors;
+}
+
+std::span<CharacterCloth, ActorPoolSize> WorldState::ActorCloths()
+{
+    return m_actorCloths;
+}
+
+std::span<const CharacterCloth, ActorPoolSize> WorldState::ActorCloths() const
+{
+    return m_actorCloths;
 }
 
 OwnCharacterRecord& WorldState::OwnCharacter()

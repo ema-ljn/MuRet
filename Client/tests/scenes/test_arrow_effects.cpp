@@ -667,7 +667,6 @@ TEST(ArrowEffectsTest, TheSkillOfThePlaceDecidesTheHit)
             const auto stepped = StepArrow(arrow, nullptr, tested.StepContext());
 
             EXPECT_FALSE(arrow.alive);
-            constexpr int FirstSpark = 2;
             if (skill == 0x33)
             {
                 ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
@@ -676,8 +675,10 @@ TEST(ArrowEffectsTest, TheSkillOfThePlaceDecidesTheHit)
             }
             else
             {
-                EXPECT_TRUE(HasError(stepped, "0x51fe9e")) << ErrorOf(stepped);
-                EXPECT_EQ(DrawsSince(before.State(), tested.random), 1 + fireDraws + OwnRecord + FirstSpark);
+                ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+                constexpr int FullBurst = 20 * (2 + 5);
+                EXPECT_EQ(DrawsSince(before.State(), tested.random), 1 + fireDraws + OwnRecord + FullBurst);
+                EXPECT_EQ(arrow.life, 29);
             }
         }
     }

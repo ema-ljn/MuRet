@@ -280,36 +280,27 @@ public:
         UI::GameUiState& ui = runtime.ui;
         UI::ChatInputState& chat = runtime.chat.input;
         const Input::InputState& input = m_context.input;
-        UI::OldWindowStepView view{.mouseX = m_context.mouseX,
-                                   .mouseY = m_context.mouseY,
-                                   .keyEdge =
-                                       [&ui, &input](std::uint8_t virtualKey)
-                                   {
-                                       for (const GameKey& key : OldWindowEdgeKeys)
-                                       {
-                                           if (key.virtualKey == virtualKey)
-                                               return KeyEdge(ui, input, key);
-                                       }
-                                       return false;
-                                   },
-                                   .keyDown =
-                                       [&input](std::uint8_t virtualKey)
-                                   {
-                                       for (const GameKey& key : OldWindowDownKeys)
-                                       {
-                                           if (key.virtualKey == virtualKey)
-                                               return input.IsDown(key.key);
-                                       }
-                                       return false;
-                                   },
-                                   .chatOpen = ui.chatOpen,
-                                   .texts = &m_texts,
-                                   .measure = m_measure ? &*m_measure : nullptr,
-                                   .send = {},
-                                   // 0x4694c0(0, 0, 1, nombre).
-                                   .whisperTo = [&chat](std::string_view name)
-                                   { UI::SetTheChatFields(chat, std::nullopt, name); },
-                                   .openFriends = [this]() { return OpenTheFriendsWindow(); }};
+        UI::OldWindowStepView view{
+            .mouseX = m_context.mouseX,
+            .mouseY = m_context.mouseY,
+            .keyEdge = [&ui, &input](std::uint8_t virtualKey) { return OldWindowKeyEdge(ui, input, virtualKey); },
+            .keyDown =
+                [&input](std::uint8_t virtualKey)
+            {
+                for (const GameKey& key : OldWindowDownKeys)
+                {
+                    if (key.virtualKey == virtualKey)
+                        return input.IsDown(key.key);
+                }
+                return false;
+            },
+            .chatOpen = ui.chatOpen,
+            .texts = &m_texts,
+            .measure = m_measure ? &*m_measure : nullptr,
+            .send = {},
+            // 0x4694c0(0, 0, 1, nombre).
+            .whisperTo = [&chat](std::string_view name) { UI::SetTheChatFields(chat, std::nullopt, name); },
+            .openFriends = [this]() { return OpenTheFriendsWindow(); }};
         if (IGameUiRequests* requests = m_context.requests; requests != nullptr)
             view.send = [requests](const UI::FriendSend& send) { requests->SendFriendPacket(FriendPacketOf(send)); };
         return view;
@@ -1449,11 +1440,22 @@ Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& con
 }
 } // namespace
 
+bool OldWindowKeyEdge(UI::GameUiState& ui, const Input::InputState& input, std::uint8_t virtualKey)
+{
+    for (const GameKey& key : OldWindowEdgeKeys)
+    {
+        if (key.virtualKey == virtualKey)
+            return KeyEdge(ui, input, key);
+    }
+    return false;
+}
+
+// 0x4b3961: un DOWN nuevo rearma held aunque la UI lo hubiera consumido y UP+DOWN lleguen en un mismo pump.
 void LatchTheLeftButton(GameMovementState& state, bool pressed, bool down)
 {
     if (!down)
         state.leftHeld = false;
-    else if (!state.previousLeftDown)
+    else if (pressed || !state.previousLeftDown)
         state.leftHeld = true;
     state.previousLeftDown = down;
     // WM_LBUTTONDOWN prende el flanco con el botón arriba (0x4b395a) y WM_LBUTTONUP lo apaga (0x4b3ce3): un clic
@@ -1495,7 +1497,9 @@ UI::OldWindowGlobals OldWindowGlobalsOf(WorldRuntime& runtime)
                                 .focusedList = ui.focusedList,
                                 .wheel = ui.wheel,
                                 .rightClick = ui.rightClick,
-                                .doubleClick = ui.doubleClick};
+                                .doubleClick = ui.doubleClick,
+                                .mouseUpdateTime = &movement.mouseUpdateTime,
+                                .mouseUpdateTimeMax = &movement.mouseUpdateTimeMax};
 }
 
 Core::Expected<void, std::string> StepTheGameDialogs(const GameUiContext& context)
@@ -1733,7 +1737,8 @@ Core::Expected<void, std::string> PickInTheFrame(const FramePickingContext& cont
 {
     WorldRuntime& runtime = context.world.Runtime();
     std::array<std::int32_t, 5>& targets = context.targets;
-    const auto pick = [&context](std::uint8_t mask) { return PickTheCharacter(context.world, mask, context.ray); };
+    const auto pick = [&context](std::uint8_t mask)
+    { return PickTheCharacter(context.world, mask, context.cameraPosition, context.ray, context.pickingBoxes); };
     // 0x59ec97..0x59ee48: los modos del editor (0x77f3b18) no los prende nadie.
     KeepTheChosen(context);
     // 0x59ef16..0x59ef29.

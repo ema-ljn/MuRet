@@ -2,6 +2,7 @@
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
+#include "Input/MouseMessageState.h"
 #include "Network/Crypto/Xor32.h"
 #include "Protocol/FloorItems.h"
 #include "Protocol/Outgoing.h"
@@ -484,6 +485,29 @@ TEST(GameUiTest, TheClickLatchKeepsTheEdgeUntilSomeoneUsesIt)
     EXPECT_FALSE(state.leftHeld);
 }
 
+// El consumidor apagó 0x7d36874; WM_LBUTTONUP seguido de DOWN lo prende de nuevo, aunque se lean en un mismo pump.
+TEST(GameUiTest, AnUpDownBatchRearmsAHeldFlagConsumedByTheUi)
+{
+    Client::Input::InputState input;
+    Client::Scenes::GameMovementState state;
+    input.Apply({.kind = Client::Input::InputEvent::Kind::ButtonDown, .button = Client::Input::MouseButton::Left});
+    Client::Scenes::LatchTheLeftButton(state, input.MouseMessages().leftPress, input.MouseMessages().leftDown);
+    ASSERT_TRUE(state.leftHeld);
+    ASSERT_TRUE(state.previousLeftDown);
+    state.leftHeld = false;
+    state.pendingClick = false;
+    input.ConsumeEdges();
+    input.Apply({.kind = Client::Input::InputEvent::Kind::ButtonUp, .button = Client::Input::MouseButton::Left});
+    input.Apply({.kind = Client::Input::InputEvent::Kind::ButtonDown, .button = Client::Input::MouseButton::Left});
+    ASSERT_TRUE(input.MouseMessages().leftPress);
+    ASSERT_TRUE(input.MouseMessages().leftDown);
+
+    Client::Scenes::LatchTheLeftButton(state, input.MouseMessages().leftPress, input.MouseMessages().leftDown);
+
+    EXPECT_TRUE(state.leftHeld);
+    EXPECT_TRUE(state.pendingClick);
+}
+
 // WM_LBUTTONUP apaga el flanco (0x4b3ce3): sin usar, se pierde al soltar, y apretado y soltado en el mismo paso no
 // queda.
 TEST(GameUiTest, TheReleasedButtonDropsTheEdge)
@@ -529,7 +553,8 @@ public:
                                                                   .random = random,
                                                                   .ownRecordDepth = world.Runtime().ownRecordDepth,
                                                                   .targets = world.Runtime().selectedTargets,
-                                                                  .altDown = alt});
+                                                                  .altDown = alt,
+                                                                  .cameraPosition = {}});
     }
     WorldState world;
     CrtRandom random;

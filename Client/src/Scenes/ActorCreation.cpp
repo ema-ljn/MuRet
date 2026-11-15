@@ -62,6 +62,7 @@ Core::Expected<std::size_t, std::string> CreateActor(WorldState& world, std::int
         ForgetNamedBones(world.Runtime(), slot);
         actor.darkSpirit.reset();
         ReleaseTheLayer(actor);
+        world.ActorCloths()[slot] = {};
         if (auto built = ConstructActor(actor, type, placement, context, cloth); !built.HasValue())
             return Core::Unexpected(built.Error());
         actor.key = static_cast<std::uint16_t>(key);
@@ -86,6 +87,7 @@ void RemoveActor(WorldState& world, std::int32_t key)
         TurnOffHelpersOf(world.Helpers(), slot);
         actor.darkSpirit.reset();
         ReleaseTheLayer(actor);
+        world.ActorCloths()[slot] = {};
         return;
     }
 }

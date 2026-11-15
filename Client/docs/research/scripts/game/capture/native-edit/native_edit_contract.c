@@ -181,21 +181,68 @@ static void word_breaks(void)
         text[2] = (char)code;
         reset(text, 5);
         key(VK_LEFT, 0, 1, 0);
-        sprintf_s(name, sizeof(name), "word_%02x_left", code);
+        wsprintfA(name, "word_%02x_left", code);
         dump(name);
         reset(text, 0);
         key(VK_RIGHT, 0, 1, 0);
-        sprintf_s(name, sizeof(name), "word_%02x_right", code);
+        wsprintfA(name, "word_%02x_right", code);
         dump(name);
         reset(text, 2);
         key(VK_RIGHT, 0, 1, 0);
-        sprintf_s(name, sizeof(name), "word_%02x_right_from_separator", code);
+        wsprintfA(name, "word_%02x_right_from_separator", code);
         dump(name);
         reset(text, 3);
         key(VK_LEFT, 0, 1, 0);
-        sprintf_s(name, sizeof(name), "word_%02x_left_from_word", code);
+        wsprintfA(name, "word_%02x_left_from_word", code);
         dump(name);
     }
+}
+
+static void word_sequences(void)
+{
+    const char* samples[] = {"ab  cd", "ab--cd", "ab$$cd",  "ab!$cd", "ab$!cd", "ab\tcd", "ab\ncd",
+                             "ab. cd", "ab .cd", "a_b/c.d", "  ab  ", "a--",    "--a"};
+    unsigned i;
+    int pos;
+    char label[64];
+    for (i = 0; i < sizeof(samples) / sizeof(samples[0]); ++i)
+    {
+        for (pos = 0; pos <= (int)strlen(samples[i]); ++pos)
+        {
+            reset(samples[i], pos);
+            key(VK_LEFT, 0, 1, 0);
+            wsprintfA(label, "sequence_%u_%d_left", i, pos);
+            dump(label);
+            reset(samples[i], pos);
+            key(VK_RIGHT, 0, 1, 0);
+            wsprintfA(label, "sequence_%u_%d_right", i, pos);
+            dump(label);
+        }
+    }
+    reset("abc def", 0);
+    selection(1, 5);
+    key(VK_LEFT, 0, 1, 0);
+    dump("ctrl_left_with_selection");
+    reset("abc def", 0);
+    selection(1, 5);
+    key(VK_RIGHT, 0, 1, 0);
+    dump("ctrl_right_with_selection");
+    reset("abc def", 0);
+    selection(5, 1);
+    key(VK_LEFT, 1, 1, 0);
+    dump("ctrl_shift_left_with_reversed_selection");
+    reset("abcdef", 3);
+    key(VK_UP, 0, 0, 0);
+    dump("up_singleline");
+    reset("abcdef", 3);
+    key(VK_DOWN, 0, 0, 0);
+    dump("down_singleline");
+    reset("abcdef", 3);
+    key(VK_UP, 1, 0, 0);
+    dump("shift_up_singleline");
+    reset("abcdef", 3);
+    key(VK_DOWN, 1, 0, 0);
+    dump("shift_down_singleline");
 }
 
 static void horizontal_scroll(void)
@@ -289,6 +336,16 @@ int main(void)
         DestroyWindow(s_parent);
         return 2;
     }
+    ShowWindow(s_parent, SW_SHOWNOACTIVATE);
+    SetFocus(s_edit);
+    printf("control_visibility\tvisible=%u\tfocused=%u\n", (unsigned)(IsWindowVisible(s_edit) != 0),
+           (unsigned)(GetFocus() == s_edit));
+    if (!IsWindowVisible(s_edit) || GetFocus() != s_edit)
+    {
+        DestroyWindow(s_edit);
+        DestroyWindow(s_parent);
+        return 2;
+    }
     SendMessageA(s_edit, EM_LIMITTEXT, 10, 0);
     printf("native-edit-contract-v1\tbits=%u\tACP=%u\n", (unsigned)(sizeof(void*) * 8), GetACP());
     puts("case\thex_text\tselection_begin\tselection_end\tcan_undo\tfirst_visible_char");
@@ -300,6 +357,7 @@ int main(void)
     type("abc");
     translated_key("translated_alt_backspace", VK_BACK, 0, 1);
     word_breaks();
+    word_sequences();
     paste("paste_empty", "");
     paste("paste_cr", "\r");
     paste("paste_lf", "\n");

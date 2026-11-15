@@ -1107,13 +1107,17 @@ del deque queda abajo.
 
 La caja de agregar (`0x4a3750`): arrastrada, ubica a sus hijas; los dos botones, y con la mezcla normal el EDIT
 (`0x468320`); termina sin mezcla. El EDIT, si se ve (`IsWindowVisible`): el ancho del cursor (+`0xa8`, 1,5 sin IME) y
-el alto de "1" (+`0xac`, en píxeles, la primera vez); con +`0x4c` & 8 (el filtro de la caja de agregar), el negro de
+el alto de "Q" (+`0xac`, en píxeles, la primera vez; verificación del literal en el PE c32); con +`0x4c` & 8 (el filtro de la caja de agregar), el negro de
 (x, y, w, +`0xac`) (Q-C892); el cursor se ve con el foco de Windows en el EDIT y +`0x80` % 24 < 12; el texto y el
 cursor van a un bitmap de `min(1,5 + 1,5 + cx, w · rx)` × `h · ry` píxeles en (x · rx, y · ry) (`0x554000`), donde
 el texto (`0xff`) toma +`0x9c`, el fondo (0) +`0xa0` (0 en la caja de agregar: transparente, `0x4a365e`) y los grises
-del medio +`0xa4`, y adentro del cursor el texto toma el fondo y lo demás `0xffc8c8c8`; al final, +`0x80` suma uno. MuRet dibuja el
-bitmap como un quad del fondo, el texto con el dibujante de texto y el cursor como un quad de 1 × min(+`0xac`, alto)
-en la columna después del texto (*inferido*: el texto solo crece por el final; P-C181).
+del medio +`0xa4`, y adentro del cursor el texto toma el fondo y lo demás `0xffc8c8c8`; al final, +`0x80` suma uno.
+La revisión del 2026-11-15 corrigió la aproximación anterior del port: el caret usa el prefijo hasta el byte
+activo y su margen, la selección usa el color de texto del objeto y el caret invierte una columna de la máscara,
+sin pintar texto debajo. El recorte estricto puede excluir el caret final o vacío. El dibujo parte de coordenadas
+en píxeles para conservar el origen a 1024 × 768. El ASM, los píxeles visibles del perfil XP y el límite de la
+comparación se documentan en [11-edit-win32](11-edit-win32.md#bitmap-visible-selección-y-caret).
+Preedición visible, scroll y modos IME siguen abiertos en P-C181.
 
 **Los paneles.**
 
@@ -1696,8 +1700,11 @@ dos EDIT de Windows del objeto `[0x57634f8]` (`0x4691e0`): el del mensaje en (`0
 `0x7798cf8` (de los diez de `0x100` que vacía `0x553570`), con sus largos en `0x7758590` y `0x7758594`; el campo
 elegido, `0x77f3b70`; el historial, el deque de `+0x2e4` (`0x469540` guarda, `0x469790` recorre, `0x469a80` deja
 diez). La subclase `0x467b10` le pasa Tab y Enter al WndProc y descarta Esc y `0x19..0x1c`. MuRet emula los EDIT como
-el campo del login (`UI::TextField` en Latin-1): `EM_SETSEL(0, −1)` elige todo y lo primero que entra lo reemplaza,
-sin cursor en el medio ni IME. Los ids de los dos EDIT (1 y 2, los dos primeros objetos que arma WinMain en
+`UI::TextField`; desde la revisión del 2026-11-15 el mensaje y el destinatario usan el perfil ANSI CP1252 de XP,
+con límites de 50 y 10 bytes. `4691e0` no activa filtros numéricos ni alfanuméricos: el tercer argumento cero de
+Init es el flag de contraseña, no el filtro `obj+4c`. `EM_SETSEL(0, −1)` elige todo y lo primero que entra lo
+reemplaza. La ruta del chat común todavía no integra la navegación, el clipboard ni la composición del editor
+viejo; no se declara equivalente al EDIT completo. Los ids de los dos EDIT (1 y 2, los dos primeros objetos que arma WinMain en
 `0x4bb173` y `0x4bb184`) son *inferidos*.
 
 - **Enter** (`0x4b50b0..0x4b88e9`): sale sin hacer nada en Chaos Castle fuera de la zona segura, con el diálogo

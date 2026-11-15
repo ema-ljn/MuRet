@@ -3,11 +3,14 @@
 #include "Input/InputEvent.h"
 #include "Input/Key.h"
 #include "Input/MouseMessageState.h"
+#include "Input/TextInputEvent.h"
 
 #include <bitset>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
+#include <vector>
 
 // El teclado y el mouse del frame, armados con los eventos y no consultados al sistema: un apretón
 // y su soltada entre dos lecturas se ven igual (SDL_GetKeyboardState no los ve, y el original
@@ -71,6 +74,9 @@ public:
     // mismo paso no se mezclen. Vale hasta el próximo Apply o ConsumeEdges. FocusLost lo borra,
     // como los apretones.
     [[nodiscard]] std::string_view Text() const;
+    // Texto, composición y teclas de edición en orden de llegada. La vista vale hasta el próximo
+    // Apply o ConsumeEdges; un frame sin paso no la consume.
+    [[nodiscard]] std::span<const TextInputEvent> TextInputEvents() const;
 
     // Lo llama GameLoop después de un paso: borra los flancos, la rueda y el texto, no lo que está
     // abajo.
@@ -101,5 +107,6 @@ private:
     float m_mouseX = 0.0f;
     float m_mouseY = 0.0f;
     std::string m_text;
+    std::vector<TextInputEvent> m_textInputEvents;
 };
 } // namespace Client::Input

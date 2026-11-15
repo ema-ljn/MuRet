@@ -75,3 +75,9 @@ merecen un ADR propio y cuáles alcanzan con la fila de 07; hasta entonces, la f
 | ADR | Título | Estado |
 | --- | --- | --- |
 | [0015](0015-colisiones-de-ids-de-ventanas.md) | Identidad de asignación de las ventanas con ID repetido | propuesto e implementado en la rama de cierre H1/H9; Q-C1364 |
+
+## Codificación occidental
+
+| ADR | Título | Estado |
+| --- | --- | --- |
+| [0016](0016-texto-occidental-en-windows-1252.md) | entrada y dibujo occidental con Windows-1252 de XP; activos y wire en bytes | propuesto junto con la corrección de entrada y rasterizador, 2026-11-15 |

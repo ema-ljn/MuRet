@@ -88,7 +88,9 @@ protected:
                                 .focusedList = m_focusedList,
                                 .wheel = m_wheel,
                                 .rightClick = m_rightClick,
-                                .doubleClick = m_doubleClick};
+                                .doubleClick = m_doubleClick,
+                                .mouseUpdateTime = &m_mouseUpdateTime,
+                                .mouseUpdateTimeMax = &m_mouseUpdateTimeMax};
     }
 
     OldWindowStepView View(std::int32_t x = 639, std::int32_t y = 479)
@@ -143,6 +145,22 @@ protected:
         return Client::UI::StepTheOldWindows(m_manager, Globals(), View(x, y));
     }
 
+    Client::Core::Expected<void, std::string> StepWithCurrentHover(std::int32_t x, std::int32_t y)
+    {
+        m_mouseOnUi = 0;
+        return Client::UI::StepTheOldWindows(m_manager, Globals(), View(x, y));
+    }
+
+    std::int32_t OpenAddFriendBox()
+    {
+        if (!OpenFriends().HasValue() || !Step().HasValue())
+            return 0;
+        Client::UI::PostToTheWindow(m_manager, FriendTab().base.id, Client::UI::CommandMessage, 1, 0);
+        if (!Step().HasValue())
+            return 0;
+        return m_manager.letter;
+    }
+
     std::int32_t OpenABox(std::int32_t kind, std::string_view text, std::int32_t aux = 0)
     {
         const auto opened = Client::UI::CreateTheOldWindow(
@@ -177,6 +195,8 @@ protected:
     std::optional<std::int32_t> m_sound;
     std::int32_t m_focusedList = 0;
     std::int32_t m_wheel = 0;
+    std::int32_t m_mouseUpdateTime = 3;
+    std::int32_t m_mouseUpdateTimeMax = 9;
     bool m_rightClick = false;
     bool m_doubleClick = false;
     bool m_chatOpen = false;
@@ -314,6 +334,89 @@ TEST_F(FriendWindowsTest, TheAddBoxSendsTheTypedName)
     EXPECT_FALSE(m_manager.windows.contains(box));
 }
 
+TEST_F(FriendWindowsTest, DestroyingTheFocusedAddBoxKeepsItsEditBufferWithoutItsParent)
+{
+    const std::int32_t boxId = OpenAddFriendBox();
+    ASSERT_NE(boxId, 0);
+    auto& edit = m_manager.windows.at(boxId).add.edit;
+    edit.text.SetText("abcd");
+    const std::int32_t editId = edit.base.id;
+
+    ASSERT_TRUE(Client::UI::DestroyTheOldWindow(m_manager, boxId, m_pressedButton).HasValue());
+
+    ASSERT_TRUE(m_manager.orphanedEdit.has_value());
+    EXPECT_TRUE(m_manager.focusedEditIsOrphan);
+    EXPECT_EQ(m_manager.focusedEdit, editId);
+    EXPECT_TRUE(Client::UI::HasAnOldEditFocused(m_manager, m_focus));
+    Client::UI::TypeInTheOldEdit(m_manager, "z");
+    Client::UI::ApplyKeyToTheOldEdit(m_manager, Client::UI::OldEditKey::Left, false, false);
+    Client::UI::BackspaceInTheOldEdit(m_manager);
+    EXPECT_EQ(m_manager.orphanedEdit->text.Value(), "abcz");
+
+    Client::UI::PressEnterInTheOldEdit(m_manager);
+    EXPECT_TRUE(m_manager.queue.empty());
+    EXPECT_TRUE(m_sent.empty());
+}
+
+TEST_F(FriendWindowsTest, ANewEditFocusReplacesTheOrphanAndGameFocusStopsEditingIt)
+{
+    const std::int32_t boxId = OpenAddFriendBox();
+    ASSERT_NE(boxId, 0);
+    m_manager.windows.at(boxId).add.edit.text.SetText("orphan");
+    ASSERT_TRUE(Client::UI::DestroyTheOldWindow(m_manager, boxId, m_pressedButton).HasValue());
+    ASSERT_TRUE(m_manager.orphanedEdit.has_value());
+
+    m_focus = ChatFocus::Game;
+    if (Client::UI::HasAnOldEditFocused(m_manager, m_focus))
+        Client::UI::TypeInTheOldEdit(m_manager, "x");
+    EXPECT_EQ(m_manager.orphanedEdit->text.Value(), "orphan");
+
+    const OldWindowGlobals globals = Globals();
+    const OldWindowStepView view = View();
+    m_manager.lastId = m_manager.focusedEdit - 2;
+    const auto opened = Client::UI::CreateTheOldWindow(
+        m_manager, OldWindowRequest{.kind = Client::UI::AddFriendCase, .x = -1, .y = -1, .data = "agregar", .flags = 0},
+        m_texts, m_measure, &globals, &view);
+    ASSERT_TRUE(opened.HasValue()) << opened.Error();
+    const std::int32_t newBoxId = opened.Value();
+    ASSERT_NE(newBoxId, 0);
+    EXPECT_EQ(m_manager.windows.at(newBoxId).add.edit.base.id, m_manager.focusedEdit);
+    EXPECT_FALSE(m_manager.orphanedEdit.has_value());
+    EXPECT_FALSE(m_manager.focusedEditIsOrphan);
+    EXPECT_EQ(m_manager.focusedEdit, m_manager.windows.at(newBoxId).add.edit.base.id);
+    EXPECT_TRUE(m_manager.windows.at(newBoxId).add.edit.text.Value().empty());
+}
+
+TEST_F(FriendWindowsTest, ResetDropsTheOrphanedEditSnapshot)
+{
+    const std::int32_t boxId = OpenAddFriendBox();
+    ASSERT_NE(boxId, 0);
+    ASSERT_TRUE(Client::UI::DestroyTheOldWindow(m_manager, boxId, m_pressedButton).HasValue());
+    ASSERT_TRUE(m_manager.orphanedEdit.has_value());
+
+    Client::UI::ResetTheOldWindows(m_manager, m_pressedButton);
+
+    EXPECT_FALSE(m_manager.orphanedEdit.has_value());
+    EXPECT_FALSE(m_manager.focusedEditIsOrphan);
+    EXPECT_EQ(m_manager.focusedEdit, 0);
+}
+
+TEST_F(FriendWindowsTest, DestroyingANonEditDoesNotClearTheOrphanedEdit)
+{
+    const std::int32_t boxId = OpenAddFriendBox();
+    ASSERT_NE(boxId, 0);
+    ASSERT_TRUE(Client::UI::DestroyTheOldWindow(m_manager, boxId, m_pressedButton).HasValue());
+    ASSERT_TRUE(m_manager.orphanedEdit.has_value());
+    const std::string orphanedText(m_manager.orphanedEdit->text.Value());
+    const std::int32_t noticeId = OpenABox(Client::UI::NoticeCase, "aviso");
+
+    ASSERT_TRUE(Client::UI::DestroyTheOldWindow(m_manager, noticeId, m_pressedButton).HasValue());
+
+    ASSERT_TRUE(m_manager.orphanedEdit.has_value());
+    EXPECT_EQ(m_manager.orphanedEdit->text.Value(), orphanedText);
+    EXPECT_TRUE(m_manager.focusedEditIsOrphan);
+}
+
 // Con la lista de ventanas armada (F5, +0x150), Enter no es del EDIT (0x467b10).
 TEST_F(FriendWindowsTest, WithTheWindowListArmedEnterIsNotTheEdits)
 {
@@ -326,6 +429,103 @@ TEST_F(FriendWindowsTest, WithTheWindowListArmedEnterIsNotTheEdits)
     m_manager.windowList.list.armed = 1;
     Client::UI::PressEnterInTheOldEdit(m_manager);
     EXPECT_TRUE(m_manager.windows.at(box).base.queue.empty());
+}
+
+TEST_F(FriendWindowsTest, ClickingTheOldEditFocusesItWithoutPlacingTheCaretByMouse)
+{
+    const std::int32_t boxId = OpenAddFriendBox();
+    ASSERT_NE(boxId, 0);
+    auto& edit = m_manager.windows.at(boxId).add.edit;
+    edit.text.SetText("abcdef");
+    edit.text.Select(1, 3);
+    m_manager.focusedEdit = 0;
+    m_focus = ChatFocus::Game;
+    m_leftClick = true;
+    m_leftHeld = false;
+    m_pressedButton = 7;
+    m_hovered = 0;
+    m_capture = 0;
+
+    const auto stepped = StepWithCurrentHover(edit.base.x, edit.base.y);
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(m_focus, ChatFocus::OldWindow);
+    EXPECT_EQ(m_manager.focusedEdit, edit.base.id);
+    EXPECT_FALSE(edit.text.HasSelection());
+    EXPECT_EQ(edit.text.Cursor(), edit.text.Size());
+    EXPECT_EQ(m_mouseOnUi, 1);
+    EXPECT_TRUE(m_leftClick);
+    EXPECT_EQ(m_pressedButton, 7);
+    EXPECT_EQ(m_mouseUpdateTime, 0);
+    EXPECT_EQ(m_mouseUpdateTimeMax, 6);
+}
+
+TEST_F(FriendWindowsTest, AForeignHoverBlocksTheOldEditClick)
+{
+    const std::int32_t boxId = OpenAddFriendBox();
+    ASSERT_NE(boxId, 0);
+    auto& edit = m_manager.windows.at(boxId).add.edit;
+    edit.text.SetText("abcdef");
+    edit.text.Select(1, 3);
+    m_manager.focusedEdit = 0;
+    m_focus = ChatFocus::Game;
+    m_leftClick = true;
+    m_hovered = 0x1337;
+    m_capture = 0;
+
+    const auto stepped = StepWithCurrentHover(edit.base.x, edit.base.y);
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(m_focus, ChatFocus::Game);
+    EXPECT_EQ(m_manager.focusedEdit, 0);
+    EXPECT_TRUE(edit.text.HasSelection());
+    EXPECT_EQ(edit.text.Cursor(), 3u);
+}
+
+TEST_F(FriendWindowsTest, AForeignCaptureBlocksTheOldEditClick)
+{
+    const std::int32_t boxId = OpenAddFriendBox();
+    ASSERT_NE(boxId, 0);
+    auto& edit = m_manager.windows.at(boxId).add.edit;
+    edit.text.SetText("abcdef");
+    edit.text.Select(1, 3);
+    m_manager.focusedEdit = 0;
+    m_focus = ChatFocus::Game;
+    m_leftClick = true;
+    m_hovered = 0;
+    m_capture = edit.base.id + 1;
+
+    const auto stepped = StepWithCurrentHover(edit.base.x, edit.base.y);
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(m_focus, ChatFocus::Game);
+    EXPECT_EQ(m_manager.focusedEdit, 0);
+    EXPECT_TRUE(edit.text.HasSelection());
+    EXPECT_EQ(edit.text.Cursor(), 3u);
+}
+
+TEST_F(FriendWindowsTest, TheOldEditFocusesOnItsOwnCaptureWhenItsStateIsNotShown)
+{
+    const std::int32_t boxId = OpenAddFriendBox();
+    ASSERT_NE(boxId, 0);
+    auto& edit = m_manager.windows.at(boxId).add.edit;
+    edit.base.state = 2;
+    edit.text.SetText("abcdef");
+    edit.text.Select(1, 3);
+    m_manager.focusedEdit = 0;
+    m_focus = ChatFocus::Game;
+    m_leftClick = true;
+    m_hovered = 0;
+    m_capture = edit.base.id;
+
+    const auto stepped = StepWithCurrentHover(edit.base.x, edit.base.y);
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(m_focus, ChatFocus::OldWindow);
+    EXPECT_EQ(m_manager.focusedEdit, edit.base.id);
+    EXPECT_FALSE(edit.text.HasSelection());
+    EXPECT_EQ(m_mouseUpdateTime, 0);
+    EXPECT_EQ(m_mouseUpdateTimeMax, 6);
 }
 
 // Borrar: el botón 2 pregunta "<nombre><1024>" en una caja modal que le responde a la pestaña; con sí, C1 0D C3.

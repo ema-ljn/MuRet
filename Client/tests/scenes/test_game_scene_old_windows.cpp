@@ -20,6 +20,7 @@
 #include "UI/FriendModel.h"
 #include "UI/FriendWindows.h"
 #include "UI/GameUiState.h"
+#include "UI/IClipboard.h"
 #include "UI/OldControls.h"
 #include "UI/OldWindowBase.h"
 #include "UI/OldWindows.h"
@@ -37,6 +38,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -52,6 +55,25 @@ public:
     {
         return {static_cast<int>(text.size()) * 6, 13};
     }
+};
+
+class SceneClipboard final : public Client::UI::IClipboard
+{
+public:
+    [[nodiscard]] std::optional<std::string> ReadText() override
+    {
+        ++reads;
+        return text;
+    }
+
+    [[nodiscard]] bool WriteText(std::string_view value) override
+    {
+        text = value;
+        return true;
+    }
+
+    std::string text = "€";
+    int reads = 0;
 };
 
 class GameSceneOldWindowsTest : public Client::Tests::GoldenDataTest
@@ -79,7 +101,8 @@ protected:
                                                                                            .cloth = &m_cloth,
                                                                                            .input = &m_input,
                                                                                            .world = m_world.get(),
-                                                                                           .textMeasure = &m_letters},
+                                                                                           .textMeasure = &m_letters,
+                                                                                           .clipboard = &m_clipboard},
                                                               &m_online.session, m_models.get(), nullptr,
                                                               &m_models->TextureSlots(), nullptr, &m_skills);
         ASSERT_TRUE(m_scene->Enter().HasValue());
@@ -143,6 +166,7 @@ protected:
     Client::Tests::FakeClock m_clock;
     Client::Render::Models::ClothWorld m_cloth;
     Client::Input::InputState m_input;
+    SceneClipboard m_clipboard;
     LetterMeasure m_letters;
     const Client::UI::OldWindowTexts m_texts{.notice = "Aviso", .question = "Pregunta", .yes = "Si", .no = "No"};
     const Client::UI::OldWindowMeasure m_measure{
@@ -236,6 +260,86 @@ TEST_F(GameSceneOldWindowsTest, IntermediateDeleteDrawingsKeepTheRuntimeFocusIds
         ASSERT_EQ(Friends().tabs[0].base.queue.size(), 1u);
         EXPECT_EQ(Friends().tabs[0].base.queue.front().type, Client::UI::CommandMessage);
     }
+}
+
+TEST_F(GameSceneOldWindowsTest, OrderedInputEventsEditTheFocusedOldWindowThroughTheScene)
+{
+    ASSERT_NO_FATAL_FAILURE(OpenFriends());
+    m_scene->Step(m_input);
+    ASSERT_FALSE(m_scene->Failure().has_value()) << *m_scene->Failure();
+    auto& manager = m_world->Runtime().oldWindows;
+    Client::UI::PostToTheWindow(manager, Friends().tabs[0].base.id, Client::UI::CommandMessage, 1, 0);
+    m_scene->Step(m_input);
+    ASSERT_FALSE(m_scene->Failure().has_value()) << *m_scene->Failure();
+    ASSERT_NE(manager.letter, 0);
+    Client::UI::OldEdit& edit = manager.windows.at(manager.letter).add.edit;
+    ASSERT_EQ(m_world->Runtime().chat.input.focus, Client::UI::ChatFocus::OldWindow);
+
+    m_input.Apply({.kind = Client::Input::InputEvent::Kind::Text, .text = "ac"});
+    m_input.Apply({.kind = Client::Input::InputEvent::Kind::KeyDown, .key = Client::Input::Key::Left});
+    m_input.Apply({.kind = Client::Input::InputEvent::Kind::Text, .text = "b"});
+    m_scene->Step(m_input);
+    ASSERT_FALSE(m_scene->Failure().has_value()) << *m_scene->Failure();
+
+    EXPECT_EQ(edit.text.Value(), "abc");
+    EXPECT_EQ(edit.text.Cursor(), 2u);
+    EXPECT_TRUE(m_online.socket.sent.empty());
+    m_input.ConsumeEdges();
+
+    m_input.Apply({.kind = Client::Input::InputEvent::Kind::KeyDown, .key = Client::Input::Key::CtrlLeft});
+    m_input.Apply({.kind = Client::Input::InputEvent::Kind::KeyDown, .key = Client::Input::Key::Backspace});
+    m_scene->Step(m_input);
+    ASSERT_FALSE(m_scene->Failure().has_value()) << *m_scene->Failure();
+    EXPECT_EQ(edit.text.Size(), 4u);
+    EXPECT_EQ(static_cast<unsigned char>(edit.text.Value()[2]), 0x7fU);
+    EXPECT_TRUE(m_online.socket.sent.empty());
+}
+
+TEST_F(GameSceneOldWindowsTest, ClipboardInputUsesTheSceneContextForTheFocusedOldEdit)
+{
+    ASSERT_NO_FATAL_FAILURE(OpenFriends());
+    m_scene->Step(m_input);
+    Client::UI::PostToTheWindow(m_world->Runtime().oldWindows, Friends().tabs[0].base.id, Client::UI::CommandMessage, 1,
+                                0);
+    m_scene->Step(m_input);
+    ASSERT_FALSE(m_scene->Failure().has_value()) << *m_scene->Failure();
+    ASSERT_NE(m_world->Runtime().oldWindows.letter, 0);
+    auto& edit = m_world->Runtime().oldWindows.windows.at(m_world->Runtime().oldWindows.letter).add.edit;
+    edit.text.SetText("ab");
+    edit.text.SetCursor(1);
+
+    m_input.Apply({.kind = Client::Input::InputEvent::Kind::KeyDown, .key = Client::Input::Key::CtrlLeft});
+    m_input.Apply({.kind = Client::Input::InputEvent::Kind::KeyDown, .key = Client::Input::Key::V});
+    m_scene->Step(m_input);
+    ASSERT_FALSE(m_scene->Failure().has_value()) << *m_scene->Failure();
+
+    EXPECT_EQ(edit.text.Size(), 3u);
+    EXPECT_EQ(static_cast<unsigned char>(edit.text.Value()[1]), 0x80U);
+    EXPECT_EQ(m_clipboard.reads, 1);
+    EXPECT_TRUE(m_online.socket.sent.empty());
+}
+
+TEST_F(GameSceneOldWindowsTest, FocusLostCancelsPreeditInTheFollowingSceneStep)
+{
+    ASSERT_NO_FATAL_FAILURE(OpenFriends());
+    m_scene->Step(m_input);
+    Client::UI::PostToTheWindow(m_world->Runtime().oldWindows, Friends().tabs[0].base.id, Client::UI::CommandMessage, 1,
+                                0);
+    m_scene->Step(m_input);
+    ASSERT_FALSE(m_scene->Failure().has_value()) << *m_scene->Failure();
+    ASSERT_NE(m_world->Runtime().oldWindows.letter, 0);
+    auto& edit = m_world->Runtime().oldWindows.windows.at(m_world->Runtime().oldWindows.letter).add.edit;
+
+    m_input.Apply({.kind = Client::Input::InputEvent::Kind::Composition, .text = "preedit"});
+    m_scene->Step(m_input);
+    ASSERT_FALSE(m_scene->Failure().has_value()) << *m_scene->Failure();
+    ASSERT_EQ(edit.compositionText, "preedit");
+    m_input.ConsumeEdges();
+    m_input.Apply({.kind = Client::Input::InputEvent::Kind::FocusLost});
+    m_scene->Step(m_input);
+
+    ASSERT_FALSE(m_scene->Failure().has_value()) << *m_scene->Failure();
+    EXPECT_TRUE(edit.compositionText.empty());
 }
 
 TEST_F(GameSceneOldWindowsTest, ADoubleClickReachesTheGameWithoutRearmingTheOrdinaryClick)

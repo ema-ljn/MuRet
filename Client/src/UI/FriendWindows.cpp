@@ -1,11 +1,14 @@
 #include "UI/FriendWindows.h"
 
 #include "Core/Expected.h"
+#include "Core/Windows1252.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Render/Text/TextLayout.h"
 #include "UI/ChatInput.h"
 #include "UI/FriendModel.h"
+#include "UI/IClipboard.h"
 #include "UI/OldControls.h"
+#include "UI/OldEditWordMovement.h"
 #include "UI/OldWindowBase.h"
 #include "UI/OldWindowDraw.h"
 #include "UI/OldWindowSteps.h"
@@ -92,6 +95,9 @@ constexpr std::int32_t EditWidth = 0x50;
 constexpr std::int32_t EditHeight = 0xe;
 constexpr std::int32_t EditX = 0x1e;
 constexpr std::int32_t EditY = 0xe;
+constexpr std::int32_t EditMouseVerticalPadding = 4;
+constexpr std::int32_t EditMouseUpdateTime = 0;
+constexpr std::int32_t EditMouseUpdateTimeMax = 6;
 constexpr std::int32_t AddNameFilter = 8;
 constexpr std::int32_t AddBoxButtonWidth = 0x32;
 constexpr std::int32_t AddBoxButtonHeight = 0x14;
@@ -175,6 +181,8 @@ void PostToTheEdit(OldWindowManager& manager, OldEdit& edit, std::int32_t type)
 // la ventana del juego y sin filtro) MuRet no lo tiene.
 void FocusTheEdit(OldWindowManager& manager, OldEdit& edit, const OldWindowGlobals& globals)
 {
+    manager.orphanedEdit.reset();
+    manager.focusedEditIsOrphan = false;
     globals.keyboardFocus = ChatFocus::OldWindow;
     manager.focusedEdit = edit.base.id;
     globals.focusedList = edit.base.id;
@@ -407,7 +415,22 @@ void StepTheEdit(OldWindowManager& manager, OldEdit& edit, std::int32_t arg, con
     }
     if (arg == 1)
         return;
-    static_cast<void>(Steps::ClaimTheMouse(manager, edit.base, globals, view));
+    if (!Steps::ClaimTheMouse(manager, edit.base, globals, view))
+        return;
+    const bool mouseOverEdit = view.mouseX >= edit.base.x && view.mouseX < edit.base.x + edit.base.width &&
+                               view.mouseY >= edit.base.y - EditMouseVerticalPadding &&
+                               view.mouseY < edit.base.y + edit.base.height + EditMouseVerticalPadding;
+    if (!mouseOverEdit)
+        return;
+    globals.mouseOnUi = 1;
+    if (!globals.leftClick)
+        return;
+    FocusTheEdit(manager, edit, globals);
+    edit.text.Deselect();
+    if (globals.mouseUpdateTime != nullptr)
+        *globals.mouseUpdateTime = EditMouseUpdateTime;
+    if (globals.mouseUpdateTimeMax != nullptr)
+        *globals.mouseUpdateTimeMax = EditMouseUpdateTimeMax;
 }
 
 // 0x4a37e0: el texto del EDIT (GetText de 0xff), el EDIT vacío y, con algo escrito, el 11 a la pestaña con el texto
@@ -1126,6 +1149,8 @@ namespace
 {
 OldEdit* FocusedEdit(OldWindowManager& manager)
 {
+    if (manager.focusedEditIsOrphan)
+        return manager.orphanedEdit ? &*manager.orphanedEdit : nullptr;
     for (auto& [id, window] : manager.windows)
     {
         if (window.kind == OldWindowKind::AddFriendBox && window.add.edit.base.id == manager.focusedEdit)
@@ -1137,28 +1162,156 @@ OldEdit* FocusedEdit(OldWindowManager& manager)
 
 bool HasAnOldEditFocused(const OldWindowManager& manager, ChatFocus focus)
 {
-    return focus == ChatFocus::OldWindow && manager.focusedEdit != 0;
+    if (focus != ChatFocus::OldWindow)
+        return false;
+    if (manager.focusedEditIsOrphan)
+        return manager.orphanedEdit.has_value();
+    for (const auto& [id, window] : manager.windows)
+    {
+        if (window.kind == OldWindowKind::AddFriendBox && window.add.edit.base.id == manager.focusedEdit)
+            return true;
+    }
+    return false;
 }
 
 void TypeInTheOldEdit(OldWindowManager& manager, std::string_view typed)
 {
     if (OldEdit* edit = FocusedEdit(manager); edit != nullptr)
+    {
+        edit->draws = 0;
+        edit->compositionText.clear();
+        edit->compositionStart = 0;
+        edit->compositionLength = 0;
         edit->text.Type(typed);
+    }
 }
 
 void BackspaceInTheOldEdit(OldWindowManager& manager)
 {
     if (OldEdit* edit = FocusedEdit(manager); edit != nullptr)
+    {
+        edit->draws = 0;
+        if (!edit->compositionText.empty())
+            return;
+        edit->compositionText.clear();
+        edit->compositionStart = 0;
+        edit->compositionLength = 0;
         edit->text.Backspace();
+    }
+}
+
+void ApplyKeyToTheOldEdit(OldWindowManager& manager, OldEditKey key, bool shift, bool ctrl, IClipboard* clipboard)
+{
+    OldEdit* edit = FocusedEdit(manager);
+    if (edit == nullptr)
+        return;
+    switch (key)
+    {
+    case OldEditKey::Backspace:
+    case OldEditKey::Left:
+    case OldEditKey::Right:
+    case OldEditKey::Up:
+    case OldEditKey::Down:
+    case OldEditKey::Tab:
+    case OldEditKey::Copy:
+    case OldEditKey::Cut:
+    case OldEditKey::Paste:
+    case OldEditKey::CtrlA:
+        edit->draws = 0;
+        break;
+    case OldEditKey::Delete:
+    case OldEditKey::Home:
+    case OldEditKey::End:
+        break;
+    }
+    if (!edit->compositionText.empty())
+        return;
+    switch (key)
+    {
+    case OldEditKey::Backspace:
+        if (ctrl)
+            edit->text.InsertBytes(std::string(1, '\x7f'));
+        else
+            edit->text.Backspace();
+        break;
+    case OldEditKey::Delete:
+        // Ctrl+Delete borra hasta el final solo sin selección; con una, EDIT borra únicamente el rango elegido.
+        if (ctrl && !edit->text.HasSelection())
+            edit->text.Select(edit->text.Cursor(), edit->text.Size());
+        edit->text.Delete();
+        break;
+    case OldEditKey::Left:
+        if (ctrl)
+            edit->text.SetCursor(OldEditWordMovement::CursorAfterCtrlLeft(edit->text.Value(), edit->text.Cursor()),
+                                 shift);
+        else
+            edit->text.MoveLeft(shift);
+        break;
+    case OldEditKey::Right:
+        if (ctrl)
+            edit->text.SetCursor(OldEditWordMovement::CursorAfterCtrlRight(edit->text.Value(), edit->text.Cursor()),
+                                 shift);
+        else
+            edit->text.MoveRight(shift);
+        break;
+    case OldEditKey::Home:
+        edit->text.MoveHome(shift);
+        break;
+    case OldEditKey::End:
+        edit->text.MoveEnd(shift);
+        break;
+    case OldEditKey::Up:
+    case OldEditKey::Down:
+    case OldEditKey::Tab:
+        break;
+    case OldEditKey::Copy:
+    case OldEditKey::Cut:
+        if (!ctrl || clipboard == nullptr || !edit->text.HasSelection())
+            break;
+        if (const std::string copied = Core::DecodeWindows1252(edit->text.Selected());
+            clipboard->WriteText(copied) && key == OldEditKey::Cut)
+        {
+            edit->draws = 0;
+            edit->text.Backspace();
+        }
+        break;
+    case OldEditKey::Paste:
+        if (!ctrl || clipboard == nullptr)
+            break;
+        if (std::optional<std::string> pasted = clipboard->ReadText(); pasted.has_value())
+        {
+            edit->draws = 0;
+            edit->text.PasteUTF8(*pasted);
+        }
+        break;
+    case OldEditKey::CtrlA:
+        // El Ctrl+A del EDIT XP es no-op: no reemplaza ni mueve una selección existente.
+        break;
+    }
+}
+
+void SetTheOldEditComposition(OldWindowManager& manager, std::string_view text, std::int32_t start, std::int32_t length)
+{
+    OldEdit* edit = FocusedEdit(manager);
+    if (edit == nullptr)
+        return;
+    edit->compositionText.assign(text);
+    edit->compositionStart = text.empty() ? 0 : start;
+    edit->compositionLength = text.empty() ? 0 : length;
 }
 
 void PressEnterInTheOldEdit(OldWindowManager& manager)
 {
+    OldEdit* edit = FocusedEdit(manager);
+    if (edit == nullptr)
+        return;
+    edit->draws = 0;
+    if (!edit->compositionText.empty())
+        return;
     // 0x467b10: con +0x150 de la lista de ventanas en 1 (F5), Enter es de ella.
     if (manager.windowList.list.armed == 1)
         return;
-    OldEdit* edit = FocusedEdit(manager);
-    if (edit == nullptr)
+    if (manager.focusedEditIsOrphan)
         return;
     PostToTheWindow(manager, edit->base.parent, EnterMessage, 0, 0);
 }

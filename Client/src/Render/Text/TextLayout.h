@@ -65,6 +65,10 @@ struct TextPiece
 // Un texto de ancho 0 no da ninguna caja; el original no dibuja un texto vacío.
 [[nodiscard]] std::vector<TextPiece> TextPieces(int x, int y, TextExtent extent, App::PixelSize screen);
 
+// Como TextPieces, pero `pixelX` y `pixelY` ya están en píxeles y no vuelven por 640 × 480.
+[[nodiscard]] std::vector<TextPiece> TextPiecesAtPixels(int pixelX, int pixelY, TextExtent extent,
+                                                        App::PixelSize screen);
+
 // 0x467060 con el modo 2 (0x46711b..0x467132), el de 0x554180(x, y, texto, caja, 1, ·) y 0x5542f0(·, caja, 2, ·):
 // el texto centrado en una caja de `boxWidth` columnas, para un texto de `textWidth` (cx). Se dibuja con
 // Scenes::ITextDrawer::DrawColumns, con −textColumn de primera columna y `width` columnas.

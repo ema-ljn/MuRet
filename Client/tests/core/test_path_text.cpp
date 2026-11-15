@@ -1,7 +1,9 @@
 #include "Core/PathText.h"
+#include "Core/Utf8.h"
 
 #include <gtest/gtest.h>
 
+#include <cstddef>
 #include <string_view>
 
 // Client::Core::PathFromUtf8 y PathText: rutas leídas y escritas como UTF-8, también en Windows,
@@ -10,6 +12,7 @@ namespace
 {
 using Client::Core::PathFromUtf8;
 using Client::Core::PathText;
+using Client::Core::ReadUtf8CodePoint;
 
 // Una ruta con letras que no están en la página 1252: "Ł" (U+0141) y "データ" (U+30C7, U+30FC,
 // U+30BF). Con path(std::string), en Windows llegarían cambiadas por "?".
@@ -57,5 +60,26 @@ TEST(PathTextTest, PathFromUtf8AcceptsTheLimits)
     {
         EXPECT_TRUE(PathFromUtf8(text).has_value()) << "largo " << text.size();
     }
+}
+
+TEST(Utf8Test, ReadsOneCodePointAndAdvancesByItsByteLength)
+{
+    constexpr std::string_view text = "A\xe2\x82\xac";
+    std::size_t offset = 0;
+
+    EXPECT_EQ(ReadUtf8CodePoint(text, offset), U'A');
+    EXPECT_EQ(offset, 1u);
+    EXPECT_EQ(ReadUtf8CodePoint(text, offset), U'\u20ac');
+    EXPECT_EQ(offset, text.size());
+    EXPECT_FALSE(ReadUtf8CodePoint(text, offset).has_value());
+}
+
+TEST(Utf8Test, LeavesOffsetAtMalformedCodePoint)
+{
+    constexpr std::string_view text = "A\xed\xa0\x80";
+    std::size_t offset = 1;
+
+    EXPECT_FALSE(ReadUtf8CodePoint(text, offset).has_value());
+    EXPECT_EQ(offset, 1u);
 }
 } // namespace

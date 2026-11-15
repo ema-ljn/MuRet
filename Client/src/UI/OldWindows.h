@@ -284,6 +284,10 @@ struct OldWindowManager
     std::uint8_t letterLimit = 0;
     // El EDIT de las ventanas viejas con el foco del teclado (GetFocus, con ChatFocus::OldWindow): su id.
     std::int32_t focusedEdit = 0;
+    // Snapshot de MuRet para el EDIT enfocado cuyo wrapper ya se destruyó; conserva solo el estado del control que
+    // sigue recibiendo entrada, no el HWND filtrado del original.
+    bool focusedEditIsOrphan = false;
+    std::optional<OldEdit> orphanedEdit;
     // 0x5762ebc: la caja modal. Con una, la fábrica no arma otra.
     std::int32_t modal = 0;
     // 0x5762eb0: el último id que dio 0x459ef0.
@@ -317,6 +321,9 @@ struct OldWindowGlobals
     std::int32_t& wheel;
     bool& rightClick;
     bool& doubleClick;
+    // 0x77f3b10 y 0x6c8dcc: el paso del mouse sobre el EDIT reinicia su espera.
+    std::int32_t* mouseUpdateTime = nullptr;
+    std::int32_t* mouseUpdateTimeMax = nullptr;
 };
 
 // Lo que mandan las ventanas de amigos (Protocol/Friends; Scenes lo arma y lo manda por la sesión).

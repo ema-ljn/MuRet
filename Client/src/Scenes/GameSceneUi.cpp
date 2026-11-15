@@ -199,8 +199,8 @@ Core::Expected<void, std::string> GameScene::StepTheDialogs(const Input::InputSt
         runtime.ui.doubleClick = *doubleClick;
     LatchTheRightButton(runtime.ui, input);
     LatchTheWheel(runtime.ui, input);
-    // Y los WM_CHAR, en su orden: Tab y Enter al WndProc (la entrada del chat) y lo demás al EDIT con el foco.
-    if (auto typed = TypeInTheGameChat(ChatContext(), input.Text()); !typed.HasValue())
+    // Los eventos de texto, edición y composición, en el orden en que los atendió InputState.
+    if (auto typed = TypeTheGameInput(ChatContext(), input.TextInputEvents()); !typed.HasValue())
         return typed;
     // 0x637c4a..0x637c5c: con 0x5762eb4 en 0 (nadie agarró el mouse: el registro del chat o una ventana vieja) y la
     // escena 5, 0x623e70 antes de la lógica de la escena (0x636290), con el mundo cargado o no.
@@ -267,6 +267,7 @@ GameChatContext GameScene::ChatContext()
                            .send = session != nullptr ? ChatSender([session](Protocol::Outgoing packet)
                                                                    { session->SendChat(std::move(packet)); })
                                                       : ChatSender{},
+                           .clipboard = m_context.clipboard,
                            .models = m_models};
 }
 

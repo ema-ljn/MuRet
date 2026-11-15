@@ -46,6 +46,8 @@ trazas; el audio, casi nada. Este research lo dice explícitamente en cada tema 
 | 08 | [Lo que falta saber](08-pendientes.md) | huecos de conocimiento, ruta crítica y cómo cerrarlos | todas |
 | 09 | [Datos disponibles](09-datos-disponibles.md) | si alcanza lo que hay: el `Data\` contra lo que pide `main.exe`, el GameServer reconstruido, las texturas de las trazas | todas |
 | 10 | [Cobertura del roadmap](10-cobertura-roadmap.md) | a qué ola va cada una de las 5.648 funciones, qué es biblioteca o exclusión y cuánto del juego tiene MuRet; la matriz está en [`coverage/`](coverage/mainexe-roadmap.tsv) | todas (CL.M) |
+| 11 | [El EDIT de Windows](11-edit-win32.md) | contratos ASM y contraste en VMXP de cursor, selección, foco e IME del editor de H9 | CL8, CL9 |
+| 12 | [Codificación](12-codificacion.md) | ANSI, Unicode, páginas del CRT y de GDI; pruebas discriminantes en XP y límites de Latin-1 | CL5, CL8, CL9 |
 
 Orden de lectura sugerido para aprender: 01 → 03 → 04 → 05 → 02 → 06, y el resto como
 referencia.

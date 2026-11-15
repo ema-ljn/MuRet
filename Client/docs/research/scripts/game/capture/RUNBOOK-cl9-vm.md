@@ -10,6 +10,14 @@ Antes de trabajar, leer `AGENTS.md`, `docs/CODING_RULES.md` y `cpp-pro`; aplicar
 y consultar Context7 para las APIs usadas. El modo tutor está apagado. No mergear el PR ni modificar
 configuraciones de GitHub.
 
+**Estado del laboratorio al 2026-11-15:** la nueva pasada está en el
+[resultado de VM y editor XP](../../../../../../docs/superpowers/plans/2026-11-15-cl9-h1-h9-resultado.md).
+En este host sólo está el cliente en VMXP; el servidor real corre en otra PC. Emanuel confirmó que
+Agregar+Enter desconecta porque el servicio de amigos/chat no conecta. Ya se observó una solicitud única
+al propio personaje, seguida de cierre remoto sin respuesta: no repetir altas/bajas en ese entorno
+hasta resolver esa precondición. Conservar las pruebas locales del cliente y los pendientes de servidor
+por separado; esa desconexión no certifica el flujo completo ni cierra H1/H9.
+
 ## 1. Qué se necesita y qué ya está disponible
 
 Hay dos tareas diferentes, ambas necesarias:

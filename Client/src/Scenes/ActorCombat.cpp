@@ -94,11 +94,14 @@ Core::Expected<void, std::string> SetTheAction(ActorState& actor, const ActorCom
     const Render::Models::Skeleton* skeleton = nullptr;
     if (actor.type == Data::Models::PlayerSkeletonModel && context.playerSkeleton != nullptr)
         skeleton = context.playerSkeleton;
-    else if (context.models != nullptr)
-        skeleton = context.models->SkeletonOf(actor.type);
-    if (skeleton == nullptr)
-        return Core::Unexpected(std::format("0x4ea030: falta el esqueleto del modelo {:#x}", actor.type));
-    Render::Models::SetAction(actor.animation, *skeleton, action);
+    else
+    {
+        skeleton = context.world.FaunaResources().SkeletonOf(actor.type);
+        if (skeleton == nullptr && context.models != nullptr)
+            skeleton = context.models->SkeletonOf(actor.type);
+    }
+    if (skeleton != nullptr)
+        Render::Models::SetAction(actor.animation, *skeleton, action);
     return {};
 }
 

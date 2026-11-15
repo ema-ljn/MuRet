@@ -57,6 +57,7 @@ constexpr std::uint16_t Monster = 0x10;
 constexpr std::uint16_t NoItem = Client::Scenes::NoItemModel;
 constexpr std::uint32_t OwnRecordDraws = 0xf08;
 constexpr float DeathFrame = std::bit_cast<float>(0x3a83126fu);
+constexpr float UnorderedFrame = std::bit_cast<float>(0x7fc00000u);
 
 class LetterMeasure final : public Client::Render::Text::ITextMeasure
 {
@@ -786,6 +787,39 @@ TEST_F(CombatRepliesTest, AnOrdinaryMonsterCountsTwiceAndSoundsFromItsTable)
     ASSERT_TRUE(Client::Scenes::SetActorAttack(silent, CombatWithSounds(sounds)).HasValue());
     EXPECT_FALSE(Runtime().lastSoundId.has_value());
     EXPECT_EQ(m_random.State(), expected.State());
+}
+
+// 0x4ea030 hace no-op si no encuentra el modelo; 0x4f50b2 y 0x4f5265 siguen contando, y el sonido solo sortea con
+// el frame en 0 o unordered (0x4f50b8..0x4f51ee).
+TEST_F(CombatRepliesTest, AnAttackWithoutAModelKeepsItsAnimationButStillCountsAndSounds)
+{
+    const std::array<float, 3> frames{0.0f, 1.5f, UnorderedFrame};
+    for (std::size_t index = 0; index < frames.size(); ++index)
+    {
+        SCOPED_TRACE(index);
+        ActorState& monster = MonsterAt(12 + index, static_cast<std::uint16_t>(0x130 + index));
+        monster.type = 0x15b;
+        monster.animation.action = 7;
+        monster.animation.frame = frames[index];
+        const std::uint32_t frameBits = std::bit_cast<std::uint32_t>(frames[index]);
+        Runtime().lastSoundId.reset();
+        CrtRandom expected = m_random;
+        const bool frameIsZeroOrUnordered = index != 1;
+        if (frameIsZeroOrUnordered)
+            static_cast<void>(expected.Next());
+
+        const auto attacked = Client::Scenes::SetActorAttack(monster, Combat());
+        ASSERT_TRUE(attacked.HasValue()) << attacked.Error();
+        EXPECT_EQ(monster.animation.action, 7);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(monster.animation.frame), frameBits);
+        EXPECT_EQ(monster.attackCount, 2);
+        EXPECT_EQ(Runtime().lastSoundId.has_value(), frameIsZeroOrUnordered);
+        if (frameIsZeroOrUnordered)
+        {
+            EXPECT_EQ(Runtime().lastSoundId, std::optional<std::int32_t>(0xd2));
+        }
+        EXPECT_EQ(m_random.State(), expected.State());
+    }
 }
 
 // Un jugador con el subtipo 0xd1 a 0xd3 pide rand() & 1 + 0x3c y después el de la tabla del modelo 0x20a, que nadie

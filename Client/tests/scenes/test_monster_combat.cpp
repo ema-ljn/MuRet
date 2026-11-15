@@ -96,7 +96,7 @@ public:
     }
     [[nodiscard]] const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
     {
-        return model == PlayerSkeletonModel || model == LorenciaModel ? &skeleton : nullptr;
+        return model == PlayerSkeletonModel ? &skeleton : nullptr;
     }
     [[nodiscard]] std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t /*model*/) const override
     {
@@ -224,6 +224,8 @@ TEST_F(MonsterCombatTest, AMonsterAttacksAndStepsItsAttack)
     Load(0);
     const std::size_t slot = Create(LorenciaType);
     ActorState& monster = game->world.Actors()[slot];
+    ASSERT_NE(game->world.FaunaResources().SkeletonOf(LorenciaModel), nullptr);
+    EXPECT_EQ(game->models.SkeletonOf(LorenciaModel), nullptr);
     const std::uint32_t created = game->cloth.random.State();
 
     const Client::Protocol::Movement::Action attack{.key = MonsterKey, .direction = 0, .action = 0x78};
@@ -232,6 +234,8 @@ TEST_F(MonsterCombatTest, AMonsterAttacksAndStepsItsAttack)
     EXPECT_EQ(monster.animation.action, 3);
     EXPECT_EQ(monster.attackCount, 2);
     EXPECT_EQ(monster.byte381, 1);
+    EXPECT_EQ(monster.attackTarget, static_cast<std::uint16_t>(HeroSlot));
+    EXPECT_EQ(game->world.Runtime().lastAttacker, static_cast<std::int32_t>(slot));
     EXPECT_EQ(game->world.Runtime().lastSoundId, std::optional<std::int32_t>(0xd + 0xd2));
     EXPECT_EQ(DrawsSince(created, game->cloth.random), 1);
 

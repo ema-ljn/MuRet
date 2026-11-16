@@ -99,9 +99,12 @@ struct GameUiState
     // cifrado (0x4d1400).
     std::uint8_t field78abb39 = 0;
     // 0x5767954: con más de 0, el paso del equipo (0x5bec50) y de las grillas (0x5c4110) sale sin hacer nada. Lo
-    // ponen en 10 el uso de un ítem (0x59ff10, CL9.3) y las respuestas de los ítems. MuRet solo lo vuelve a 0: el 26
-    // con 0xfd (0x4d35dc), el 28 (0x4c5ec0) y el 2A (0x4d3cc0).
+    // ponen en 10 el uso de un ítem (0x5a2bf7, 0x5a3619... y 0x5c592d, CL9 hito 5) y lo vuelven a 0 las respuestas: el
+    // 26 con 0xfd (0x4d35dc), el 28 (0x4c5ec0), el 2A (0x4d3cc0) y el 2C (0x4de500).
     std::int32_t field5767954 = 0;
+    // 0x78abb26: el tercer byte del C1 06 26 (0x5a2e61, 0x5a3883, 0x5c5ba4...). Lo ponen en 1 y en 0 dos diálogos de
+    // 0x623e70 (0x628bdc y 0x6293b5, hito 6) antes de usar el ítem; hasta entonces, el 0 de la .bss.
+    std::uint8_t field78abb26 = 0;
     // 0x78abad9: con 1, 0x5ee140 no corre sus hijas (0x5ee181) y 0x5ebca0 no hace nada. Es el duelo (CL9.4, P-C59).
     std::uint8_t field78abad9 = 0;
     // 0x78abaac: con 1, 0x5ee140 no llama a 0x5d8d50 (0x5ee1de). Hito 4: lo ponen en 1 0x5bf1fb y 0x5c2c56 (en
@@ -113,12 +116,19 @@ struct GameUiState
     // 0x7d36880: el flanco del clic derecho. Lo prende WM_RBUTTONDOWN si el botón no estaba abajo, lo apaga
     // WM_RBUTTONUP (02, la tabla del WndProc) y lo apaga quien lo usa.
     bool rightClick = false;
-    // 0x7d36849: el doble clic izquierdo (WM_LBUTTONDBLCLK). MuRet no lo prende en el juego (P-C182): en la CL9 solo
-    // lo lee la lista de amigos (0x461f00), que con él abre el chat con un amigo del hito 10.
+    // 0x7d36849: el doble clic izquierdo (WM_LBUTTONDBLCLK), desde MouseMessageState, sin otro clic ordinario.
+    // Lo consume la lista de amigos (0x461f00); abrir el chat con ese amigo sigue siendo del hito 10.
     bool doubleClick = false;
     // 0x7d3685c: el derecho abajo. Lo prende WM_RBUTTONDOWN, lo apaga WM_RBUTTONUP y lo apaga quien lo usa (el
     // registro del chat, 0x45d760).
     bool rightDown = false;
+    // 0x7d36840: el flanco del derecho soltado. Lo apaga WM_RBUTTONDOWN (0x4b3d15), lo prende WM_RBUTTONUP con el
+    // botón abajo (0x4b40ac) y lo apaga 0x57cfc0 cuando suelta la skill que se carga (0x57d13e).
+    bool rightReleased = false;
+    // 0x7d368a4: los frames de la skill que se carga (la 0x28 como 0x3a). 0x57cfc0 lo pone en 1 al empezar (0x57d1a0),
+    // lo sube en cada paso con el derecho abajo y lo vuelve a 0 al soltar o con una acción que no deja usar skills
+    // (0x57d495).
+    std::int32_t rightHoldFrames = 0;
     // 0x6c8e3c (.data 1): el ataque automático. Lo escriben el F3 30 (el bit 0x01, 0x4dd7d7), el menú de Esc
     // (0x625632) y la vuelta a la selección (0x4c2533, en 1). Sus lectores de MuRet: el picking (0x59ee4b), con el
     // elegido de antes (0x6c8e30), y MoveHero (0x59b22f y 0x59b89e) y 0x57cfc0 (0x57d1bc), con 0x6c8e38 distinto de −1,

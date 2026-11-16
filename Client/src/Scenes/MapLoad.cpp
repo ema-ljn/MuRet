@@ -225,6 +225,7 @@ void KillOtherActors(WorldState& world, std::int32_t key)
         }
         // 0x510fc2..0x510fc3: 0x421d60 también con los muertos y los que conservan su clave, y después
         // 0x414340 (0x510fd2), la capa de los GM.
+        world.ActorCloths()[slot] = {};
         actor.darkSpirit.reset();
         ReleaseTheLayer(actor);
     }

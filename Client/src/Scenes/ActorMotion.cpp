@@ -1,6 +1,7 @@
 #include "Scenes/ActorMotion.h"
 
 #include "Core/Expected.h"
+#include "Data/Models/PlayerModels.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "GameLogic/CharacterPosition.h"
 #include "GameLogic/MovePath.h"
@@ -138,7 +139,11 @@ Core::Expected<void, std::string> StepOtherActorMotion(ActorState& actor, const 
     if (MoveActorPath(actor, 1, motion.random))
     {
         actor.movement = 0;
-        const auto stopped = SetActorStop(actor, walk.stop);
+        ActorStopContext stop = walk.stop;
+        stop.modelSounds = walk.modelSounds;
+        if (actor.type != Data::Models::PlayerSkeletonModel)
+            stop.actorSkeleton = walk.actorSkeleton;
+        const auto stopped = SetActorStop(actor, stop);
         if (!stopped.HasValue())
         {
             return Core::Unexpected(stopped.Error());

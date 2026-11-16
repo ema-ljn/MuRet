@@ -1,6 +1,8 @@
 #include "Scenes/GamePanels.h"
 
 #include "Core/Expected.h"
+#include "Protocol/Outgoing.h"
+#include "Protocol/Pet/PetInfo.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameUi.h"
@@ -71,7 +73,8 @@ UI::PanelContext ContextOf(WorldState& world, Render::Models::CrtRandom& random,
     // El panel 1, la de amigos (CL9 hito 9): 0x490a00(+0x48) y 0x4914e0 sobre el administrador viejo.
     UI::OldWindowManager& oldWindows = runtime.oldWindows;
     context.friendsShown = [&oldWindows]() { return UI::FindTheOldWindow(oldWindows, oldWindows.friends) != nullptr; };
-    context.friendsClosed = [&oldWindows]() { return UI::DropTheFriendsWindow(oldWindows); };
+    context.friendsClosed = [&runtime]()
+    { return UI::DropTheFriendsWindow(runtime.oldWindows, runtime.ui.pressedButton); };
     return context;
 }
 } // namespace
@@ -108,6 +111,18 @@ void GamePanels::LendThePartyList(WorldState& world, IGameUiRequests* requests)
     {
         runtime.hud.partyCount = 0;
         requests->RequestPartyList();
+    };
+}
+
+void GamePanels::LendThePetRequests(std::function<void(Protocol::Outgoing)> send)
+{
+    m_context.petOpened = [send = std::move(send)]()
+    {
+        if (!send)
+            return;
+        send(Protocol::Pet::WritePetInfoRequest(Protocol::Pet::LoginScenePetInfoRequest));
+        send(Protocol::Pet::WritePetInfoRequest(
+            {Protocol::Pet::DarkHorsePet, Protocol::Pet::InventoryPlace, Protocol::Pet::PetSlot}));
     };
 }
 

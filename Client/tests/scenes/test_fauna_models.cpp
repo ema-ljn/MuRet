@@ -1,6 +1,7 @@
 #include "Scenes/FaunaModels.h"
 #include "Scenes/MonsterKinds.h"
 #include "Scenes/MonsterModelTable.h"
+#include "Scenes/MonsterSounds.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Data/Models/Model.h"
@@ -74,6 +75,29 @@ TEST(FaunaModelsTest, PrepareLoadsMonster32AndItsExactActionStoresOnce)
     EXPECT_EQ(store.loadCalls, 1);
     EXPECT_EQ(models.SoundFiles().size(), 3U);
 }
+// 0x613127: con `sounds`, la carga del 0x1f (con mallas) escribe la tabla de sonidos del 0x171 como el alta de un
+// monstruo (0x612c80); la segunda, que reutiliza el modelo, no la vuelve a escribir.
+TEST(FaunaModelsTest, PrepareWritesTheSoundTableOfTheLoadedMonster)
+{
+    Client::Tests::TemporaryFolder folder{"fauna-model32-sounds"};
+    WriteMonster(folder.Path(), 32);
+    Client::Tests::FakeTextureStore store;
+    Client::Tests::RecordingSink sink;
+    Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
+    Client::Render::Models::ModelTextureSlots slots{Client::Render::TextureSlot{0x500}};
+    Client::Scenes::FaunaModels models;
+    Client::Scenes::ModelSoundTable sounds;
+    Client::Scenes::FaunaModelLoadContext context{folder.Path(), store, log, slots, nullptr, &sounds};
+    ASSERT_TRUE(models.Prepare(0x1f, context).HasValue());
+    Client::Scenes::ModelSoundTable expected;
+    Client::Scenes::WriteMonsterSounds(0x1f, expected);
+    EXPECT_EQ(sounds, expected);
+    ASSERT_TRUE(Client::Scenes::WrittenSounds(sounds, 0x171).has_value());
+    sounds.clear();
+    ASSERT_TRUE(models.Prepare(0x1f, context).HasValue());
+    EXPECT_TRUE(sounds.empty());
+}
+
 TEST(FaunaModelsTest, PrepareLoadsMonster34AndKeepsTheGenericActionSettings)
 {
     Client::Tests::TemporaryFolder folder{"fauna-model34"};
@@ -244,7 +268,13 @@ TEST_F(GoldenMonsterModels, EveryMonsterOfTheCasesLoadsWithItsActionTables)
     EXPECT_EQ(models.SkeletonOf(0x155)->actions[6].speed, 0.55f);
     EXPECT_EQ(models.SkeletonOf(0x155)->headBone, 0x10);
     // 0x613f97: el 0x1b deja +0x88 en 1.
-    EXPECT_EQ(models.ModelByte(0x16d, 0x88), std::optional<std::uint8_t>{1});
+    EXPECT_EQ(models.ModelByte(0x16d, 0x88), std::optional<std::uint8_t>{std::uint8_t{1}});
+    // 0x50c21c..0x50c281: el +0x376 0x4d copia el hueso 24 de Monster56 (0x189) y el 23 y el 14 de Monster57 (0x18a).
+    EXPECT_GT(models.SkeletonOf(0x189)->bones.size(), 24u);
+    EXPECT_GT(models.SkeletonOf(0x18a)->bones.size(), 23u);
+    // 0x50c762 y 0x50c83b: el 0x2a (Monster32, 0x171) cuelga del hueso 0x3d y las estatuas (Monster61, 0x18e), del 1.
+    EXPECT_GT(models.SkeletonOf(0x171)->bones.size(), 0x3du);
+    EXPECT_GT(models.SkeletonOf(0x18e)->bones.size(), 1u);
 }
 
 TEST_F(GoldenMonsterModels, EveryNpcOfTheCasesLoadsButBloodCastle01)

@@ -50,6 +50,9 @@ struct QuestState
     std::int16_t dialog = 0;
     // +0x21386: el estado de la misión en curso (0x419560(−1)), o 5.
     std::uint8_t currentState = 0;
+    // +0x21387: relleno. Lo leen 0x419560 con las misiones 236 a 239 y lo pisan el A1 y el A2 de esas misiones o un A0
+    // de más de 59 bytes (Q-C1126).
+    std::uint8_t byte21387 = 0;
     // +0x21388: el zen que pide la condición (0x418fb0).
     std::uint32_t zen = 0;
     // +0x2138c: la pestaña de la lista (0x41b170 solo atiende la 0).

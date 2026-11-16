@@ -32,18 +32,21 @@ namespace Client::Platform
 // los dos con el otro abajo la soltaría; queda para la CL8, con su lado, como Shift (P-C08).
 [[nodiscard]] std::optional<Input::Key> KeyFor(SDL_Scancode scancode);
 
-// El evento de Input de un SDL_Event. Da std::nullopt con un evento que no es de input, un
-// auto-repeat, una tecla o un botón que el cliente no usa (X1, X2) y una rueda sin muesca entera.
-// El auto-repeat de Backspace y de Tab es la excepción: da un Text con su byte (InputEvent.h),
-// como el WM_CHAR que Windows repite al EDIT de un campo (CL5.5).
+// El evento de Input de un SDL_Event. Da std::nullopt con un evento que no es de input, una tecla
+// o un botón que el cliente no usa (X1, X2) y una rueda sin muesca entera. Las repeticiones de
+// navegación y Delete se conservan como KeyDown repetidos para el EDIT; Backspace, Tab y Enter
+// siguen como Text con su byte (InputEvent.h), como el WM_CHAR repetido del EDIT (CL5.5). Las
+// otras repeticiones no son eventos.
 // SDL_EVENT_WINDOW_FOCUS_LOST da FocusLost (PumpEvents lo pasa también al estado de la ventana).
+// Cada DOWN izquierdo con clicks par positivo da ButtonDoubleClick: equivale al WM_LBUTTONDBLCLK que sustituye el
+// segundo WM_LBUTTONDOWN. Los flancos físicos siguen disponibles para la selección, que tiene su propio reloj.
 //
 // La posición del mouse va en píxeles del framebuffer (CL5.5): SDL la da en coordenadas de la
 // ventana, y `pixelDensity` (SDL_GetWindowPixelDensity) es cuántos píxeles mide cada una. Una
 // densidad que no es positiva y finita cuenta como 1: SDL da 0 si falla.
 //
 // SDL_EVENT_TEXT_INPUT da Text con el texto copiado (SDL lo libera en el próximo SDL_PollEvent);
-// uno vacío no es un evento. Lo que manda el IME mientras compone (SDL_EVENT_TEXT_EDITING) no es
-// texto: llega en un TEXT_INPUT cuando se confirma.
+// uno vacío no es un evento. SDL_EVENT_TEXT_EDITING da Composition con su texto copiado, start y
+// length, incluso vacío cuando el IME cancela la composición; no agrega nada al Text() legado.
 [[nodiscard]] std::optional<Input::InputEvent> InputEventFor(const SDL_Event& event, float pixelDensity = 1.0f);
 } // namespace Client::Platform

@@ -640,7 +640,8 @@ TEST_F(SkillTooltipTest, TheDarkLordCommandsShowTheirHelpWithoutTheRecord)
     EXPECT_EQ(Lines().text[3], "Ayuda D");
 }
 
-// Fuera de 0x78 a 0x7b, o con otra clase, el cuerpo de la skill: el byte +0x6c + lugar, que MuRet tiene hasta el 63.
+// Fuera de 0x78 a 0x7b, o con otra clase, el cuerpo de la skill: el byte +0x6c + lugar, de los 256 que escribe el
+// F3 11 (0x4c5070, CL9 hito 4). Fuera de ellos corta.
 TEST_F(SkillTooltipTest, OtherSlotsReadTheSkillByteOfTheRecord)
 {
     HeroIs(DarkLord);
@@ -649,9 +650,13 @@ TEST_F(SkillTooltipTest, OtherSlotsReadTheSkillByteOfTheRecord)
     EXPECT_EQ(Lines().text[1], "Tajo");
 
     HeroIs(Knight);
-    const auto commands = DrawSlot(0x79);
-    ASSERT_FALSE(commands.HasValue());
-    EXPECT_NE(commands.Error().find("0x5b91af"), std::string::npos);
+    world.OwnCharacter().SetSkillAt(0x79, Slash);
+    ASSERT_TRUE(DrawSlot(0x79).HasValue());
+    EXPECT_EQ(Lines().text[1], "Tajo");
+    EXPECT_EQ(world.Runtime().ownRecordDepth, 0);
+    const auto past = DrawSlot(0x100);
+    ASSERT_FALSE(past.HasValue());
+    EXPECT_NE(past.Error().find("0x5b91af"), std::string::npos);
     const auto negative = DrawSlot(-2);
     ASSERT_FALSE(negative.HasValue());
     EXPECT_NE(negative.Error().find("0x5b91af"), std::string::npos);

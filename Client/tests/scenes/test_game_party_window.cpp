@@ -136,10 +136,6 @@ public:
     {
         requests.emplace_back("42");
     }
-    void SendFriendPacket(Client::Protocol::Outgoing /*packet*/) override
-    {
-        requests.emplace_back("amigos");
-    }
     void SendWindowClose() override
     {
         requests.emplace_back("31");
@@ -147,6 +143,10 @@ public:
     void SendSetQuest(std::uint8_t /*quest*/, std::uint8_t /*state*/) override
     {
         requests.emplace_back("A2");
+    }
+    void SendFriendPacket(Client::Protocol::Outgoing /*packet*/) override
+    {
+        requests.emplace_back("amigos");
     }
     Client::Core::Expected<void, std::string> SaveMacros(std::string_view /*content*/) override
     {

@@ -2,6 +2,7 @@
 
 #include "Render/Models/Cloth.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/ActorPickingBox.h"
 #include "Scenes/GameItemRenderState.h"
 #include "Scenes/WorldRuntime.h"
 #include "UI/OldWindows.h"
@@ -29,6 +30,7 @@ struct GameSceneFrameProjection
     World::ModelEffects effects{};
     World::Particles particles{};
     std::vector<World::WorldObject> objects{};
+    std::vector<ActorPickingBox> actorPickingBoxes{};
     std::unique_ptr<World::KalimaWorld> kalima{};
     std::uint8_t heroXDepth = 0;
     std::uint8_t heroYDepth = 0;

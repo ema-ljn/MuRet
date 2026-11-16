@@ -761,14 +761,15 @@ std::uint16_t Word12WithOptions(const ItemState& item)
 }
 
 // 0x550a40..0x550b1b: por cada lugar del 1 al 7 con durabilidad, 0x54e680 reducido por 0x54ee00 (las
-// alas, con 0 y 0), sumado en 32 bits; +0x62 suma los 16 de abajo. Lee Item.bmd también con el tipo −1.
+// alas, con 0 y 0), sumado en 32 bits; +0x62 suma los 16 de abajo. Con tipo −1 el aporte al WORD es 0:
+// 0x54e680 devuelve AX=0 y todos los factores que devuelve 0x54ee00 son finitos.
 Core::Expected<void, std::string> AddSlotsToWord62(OwnCharacterRecord& own, const ItemTable* items)
 {
     std::uint32_t sum = 0;
     for (std::size_t slot = LeftHandSlot; slot <= WingsSlot; ++slot)
     {
         const ItemState& item = own.equipment[slot];
-        if (item.durability == 0)
+        if (item.durability == 0 || item.id == EmptyItem)
         {
             continue;
         }

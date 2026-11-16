@@ -33,14 +33,26 @@ void SelectFont(GameHudContext& context, Render::Text::FontKind font);
 // texto vacío no se dibuja, pero se mide igual: su tamaño en 640 × 480 queda en 0x77f31b8 y 0x77f31bc.
 void DrawText(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text);
 
-// 0x554180(x, y, texto, 120 · W / 640, 1, 3), el título de una ventana: 0x467060 con el modo 2 centra el texto en una
-// caja de 120 · W / 640 píxeles (la división sin signo de 0x5f0cd6..0x5f0cef) que empieza en _ftol(x · rx), con el
-// fondo en toda la caja (Render::Text::CenterInBox e ITextDrawer::DrawColumns, Q-C710), y deja en 0x77f31b8 el ancho
-// recortado a la caja. Un texto vacío mide el "0" y dibuja solo el fondo.
+// El ancho de una caja de 0x554180 en píxeles: W · k / 640, la división sin signo de 0x5f0cd6..0x5f0cef.
+[[nodiscard]] std::int32_t BoxWidth(const GameHudContext& context, std::uint32_t designWidth);
+
+// 0x554180(x, y, texto, caja, 1, ·): 0x467060 con el modo 2 centra el texto en una caja de `box` píxeles que empieza
+// en _ftol(x · rx), con el fondo en toda la caja (Render::Text::CenterInBox e ITextDrawer::DrawColumns, Q-C710), y
+// deja en 0x77f31b8 el ancho recortado a la caja. Un texto vacío mide el "0" y dibuja solo el fondo; vacío y sin caja,
+// nada.
+void DrawInBox(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text, std::int32_t box);
+
+// 0x554180(x, y, texto, ancho, 0, ·): 0x467060 con el modo 1 y un ancho, la caja de ese ancho desde x (0x467102..
+// 0x467119); si el texto es más ancho, se ve desde la columna cx − ancho. Deja la medida recortada al ancho, como
+// DrawInBox.
+void DrawClipped(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text, std::int32_t width);
+
+// 0x554180(x, y, texto, 120 · W / 640, 1, 3), el título de una ventana: DrawInBox con la caja de 120.
 void DrawTitle(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text);
 
-// 0x554180(x, y, texto, ancho · W / 640, 1, 3): DrawTitle con otra caja (116, 120 o 130 en las ventanas de los NPC de
-// evento, 0x5f58f0).
+// 0x554180(x, y, texto, ancho · W / 640, 1, p6), lo mismo que DrawTitle con otra caja (CL9 hito 2): el nombre de la
+// misión va en una de 150 (0x41bedc y 0x41c322), y las ventanas de los NPC de evento (0x5f58f0, CL9 hito 11) usan
+// 116, 120 o 130. El sexto argumento le llega a 0x467060, que no lo lee.
 void DrawInBox(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text,
                std::uint32_t designWidth);
 

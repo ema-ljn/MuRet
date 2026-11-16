@@ -47,8 +47,10 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 1> DamageTextureSet
 // setitem, btn_pshop y btn_pshop2 en 0x652, 0x657 y 0x658 (0x61d319..0x61d354). Y las de 0x104 a 0x120 que 0x61ae60
 // sube después de command.jpg (0x61aec8..0x61b1f2), de los hitos 4 y 6: el fondo de las ventanas, los casilleros del
 // equipo, la plata, la grilla, la línea del comercio y los botones, entre ellos el de cerrar (0x118). La 0x106 no la
-// sube nadie.
-inline constexpr std::array<Data::Textures::TextureSetEntry, 85> HudTextureSet{{
+// sube nadie. Las de la ventana de la mascota (CL9 hito 4): Level_box en 0xf5 (0x61cf8f, que también usa la ventana del
+// personaje), win_button en 0x646 (0x61d17a, con 0x63bd00; también el botón de la UI vieja) y pet1 y pet2 en 0x65d y
+// 0x65e (0x61d4b0 y 0x61d4cc), el botón de la mascota.
+inline constexpr std::array<Data::Textures::TextureSetEntry, 88> HudTextureSet{{
     {"Interface\\CursorAttack.tga", 0x04, TextureSetsDetail::LinearClamp},
     {"Interface\\CursorGet.tga", 0x05, TextureSetsDetail::LinearClamp},
     {"Interface\\CursorTalk.tga", 0x06, TextureSetsDetail::LinearClamp},
@@ -71,6 +73,7 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 85> HudTextureSet{{
     {"Interface\\ok2.jpg", 0xf2, TextureSetsDetail::NearestClamp},
     {"Interface\\cancel.jpg", 0xf3, TextureSetsDetail::NearestClamp},
     {"Interface\\cancel2.jpg", 0xf4, TextureSetsDetail::NearestClamp},
+    {"Interface\\Level_box.jpg", 0xf5, TextureSetsDetail::NearestClamp},
     {"Interface\\Menu_Green.jpg", 0xf7, TextureSetsDetail::NearestClamp},
     {"Interface\\dialogue1.jpg", 0xf8, TextureSetsDetail::NearestClamp},
     {"Interface\\dialogue2.jpg", 0xf9, TextureSetsDetail::NearestClamp},
@@ -100,6 +103,8 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 85> HudTextureSet{{
     {"Interface\\CursorID_Wnd.jpg", 0x65b, TextureSetsDetail::NearestClamp},
     {"Interface\\menu01_new2.jpg", 0x65c, TextureSetsDetail::NearestClamp},
     {"Interface\\Menu03_new_AG.jpg", 0x101, TextureSetsDetail::NearestClamp},
+    {"Interface\\pet1.jpg", 0x65d, TextureSetsDetail::NearestClamp},
+    {"Interface\\pet2.jpg", 0x65e, TextureSetsDetail::NearestClamp},
     {"Skill\\SwordEff.jpg", 0x640, TextureSetsDetail::LinearClamp},
     {"Interface\\CursorAttack2.tga", 0x68d, TextureSetsDetail::NearestClamp},
     {"Interface\\StatusIcon.jpg", 0x68e, TextureSetsDetail::NearestClamp},
@@ -209,7 +214,7 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 3> GlowTextureSet{{
 // flareBlue/62b (61dc9d), todos GL_LINEAR/GL_CLAMP; los dos últimos tienen slots físicos propios.
 // Lo que cuelga de un jugador (0x509340 y 0x50ba30) pide además Shiny03 en 0x5fe (61d937) e Impack03 de
 // Object9 en 0x5ad (61e799), del mismo lazo sin ramas de 0x61ccb0 y con el mismo sampling.
-inline constexpr std::array<Data::Textures::TextureSetEntry, 37> EffectTextureSet{{
+inline constexpr std::array<Data::Textures::TextureSetEntry, 39> EffectTextureSet{{
     {"Effect\\Fire01.jpg", 0x5d9, TextureSetsDetail::LinearClamp},
     // 0x61d663: ShockWave en 0x6eb, la onda del galope del caballo en Icarus (0x44431b).
     {"Effect\\ShockWave.jpg", 0x6eb, TextureSetsDetail::LinearClamp},
@@ -228,6 +233,11 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 37> EffectTextureSe
     {"Effect\\smoke02.tga", 0x5f3, TextureSetsDetail::LinearClamp},
     // 0x61d7e5 (0x63b870, GL_LINEAR y GL_CLAMP): Explotion01 en 0x5ed, la explosión 5ed/0 del terremoto 0xfa.
     {"Effect\\Explotion01.jpg", 0x5ed, TextureSetsDetail::LinearClamp},
+    // 0x61d7aa (0x63bd00, GL_LINEAR y GL_CLAMP): blood01.tga en 0x5e3, las dos marcas del suelo que deja el que termina
+    // de morir (0x52e810, CL9 hito 3), que dibuja 0x549130 con los componentes de este slot.
+    {"Effect\\blood01.tga", 0x5e3, TextureSetsDetail::LinearClamp},
+    // 0x61d7c9 (0x63bd00, GL_LINEAR y GL_CLAMP): blood.tga en 0x5e4, la sangre que suelta el golpe con daño (0x50419c).
+    {"Effect\\blood.tga", 0x5e4, TextureSetsDetail::LinearClamp},
     {"Effect\\clouds.jpg", 0x622, TextureSetsDetail::LinearClamp},
     {"Effect\\lightning2.jpg", 0x5d5, TextureSetsDetail::LinearClamp},
     {"Effect\\Spark01.jpg", 0x617, TextureSetsDetail::LinearClamp},

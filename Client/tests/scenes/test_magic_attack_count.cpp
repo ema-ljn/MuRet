@@ -12,6 +12,7 @@
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/FaunaModels.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/HandShine.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -55,6 +56,9 @@ constexpr std::size_t FirstSlot = 20;
 constexpr std::uint16_t SecondKey = 0x0102;
 constexpr std::size_t SecondSlot = 21;
 constexpr std::uint8_t Magic = 0x29;
+// Un modelo de monstruo (0x152 + 1, Monster02.bmd), con las acciones hasta la 0x96.
+constexpr std::uint16_t MonsterModel = 0x153;
+constexpr std::size_t MonsterActionCount = 0x97;
 // 0x40b3f0 y 0x40b4d0: lo que gasta cada cierre.
 constexpr std::uint32_t SkillCloseRandoms = 1;
 constexpr std::uint32_t OwnRecordCloseRandoms = 0xf08;
@@ -75,6 +79,29 @@ public:
         return {};
     }
     Client::Render::Models::Skeleton player = Client::Tests::PlayerActionsSkeleton();
+};
+
+// Lo que 0x612d90 deja en WorldState::FaunaResources para un monstruo: solo sus acciones.
+class MonsterModels final : public Client::Scenes::IModelLibrary
+{
+public:
+    MonsterModels()
+    {
+        monster.actions.resize(MonsterActionCount);
+    }
+    const Client::Data::Models::Model* Find(std::uint16_t) const override
+    {
+        return nullptr;
+    }
+    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    {
+        return model == MonsterModel ? &monster : nullptr;
+    }
+    std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    {
+        return {};
+    }
+    Client::Render::Models::Skeleton monster;
 };
 
 // Un hueso que solo traslada a `at`.
@@ -189,6 +216,8 @@ protected:
         return numbers;
     }
 
+    // Antes del mundo: su FaunaResources la presta y se destruye después.
+    MonsterModels m_fauna;
     std::unique_ptr<Client::Scenes::WorldState> m_world = std::make_unique<Client::Scenes::WorldState>();
     Client::Scenes::SelectionState m_selection{*m_world};
     Client::World::GameCamera m_camera;
@@ -283,16 +312,78 @@ TEST_F(MagicAttackCountTest, ThePlayerLosesItsLifeDownToZero)
     EXPECT_EQ(m_world->OwnCharacter().life, 0);
 }
 
-// 0x5110d0 sin nadie con la clave: el 400 fantasma (Q-C778) también pega, con lo que haya en su lugar; sin las acciones
-// de su modelo, 0x4ea030 corta, después del brillo y del sonido.
+// 0x5110d0 sin nadie con la clave: el 400 fantasma (Q-C778, Q-C1125) también pega, en Lorencia y en Devias. El brillo,
+// el sonido, la skill en su +0x38e (con el rand() de su cierre), +0x381 y los blancos van como con cualquiera; la
+// acción 0x96 lee el tipo que haya en el 400, memoria que MuRet no modela, y se descarta con un aviso, sin cortar la
+// sesión.
 TEST_F(MagicAttackCountTest, AnUnknownCasterIsTheGhostSlot)
 {
-    const auto applied = Apply({}, 0x0999);
-    EXPECT_EQ(m_world->Runtime().lastAttacker, 400);
-    ASSERT_FALSE(applied.HasValue());
-    EXPECT_NE(applied.Error().find("0x4cee23"), std::string::npos);
-    EXPECT_EQ(Shines().size(), 2u);
-    EXPECT_EQ(m_world->Runtime().lastSoundId, std::optional<std::int32_t>{0x76});
+    constexpr std::size_t Ghost = 400;
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        m_world->Runtime().map = map;
+        m_world->DrawTail().damage = {};
+        m_world->Actors()[Ghost] = ActorState{};
+        Target(FirstSlot).animation.action = 0;
+        Target(FirstSlot).damage = 0x30;
+        const std::size_t shinesBefore = Shines().size();
+        const std::size_t linesBefore = m_sink.lines.size();
+        // El blanco con rand() par: el golpe de 0x4f53a0 y el rand() de su sonido.
+        const std::uint32_t seed = SeedFor({true});
+        m_cloth.random = Client::Render::Models::CrtRandom(seed);
+        const auto applied = Apply({FirstKey}, 0x0999);
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        const ActorState& ghost = m_world->Actors()[Ghost];
+        EXPECT_EQ(m_world->Runtime().lastAttacker, static_cast<std::int32_t>(Ghost));
+        EXPECT_EQ(Shines().size(), shinesBefore + 2);
+        EXPECT_EQ(ghost.animation.action, 0);
+        EXPECT_EQ(ghost.byte38e, Magic);
+        EXPECT_EQ(ghost.byte38eAccesses, 0);
+        EXPECT_EQ(ghost.byte381, 1);
+        EXPECT_EQ(Target(FirstSlot).animation.action, 0xc2);
+        ASSERT_EQ(Numbers().size(), 1u);
+        EXPECT_EQ(Numbers()[0]->number, 0x30);
+        EXPECT_EQ(m_cloth.random.State(),
+                  Client::Tests::AfterDraws(seed, static_cast<int>(SkillCloseRandoms) + 2).State());
+        ASSERT_EQ(m_sink.lines.size(), linesBefore + 1);
+        EXPECT_NE(m_sink.lines.back().find("0x96"), std::string::npos) << m_sink.lines.back();
+    }
+}
+
+// Un monstruo que pega: 0x4ea030 lee las acciones de su modelo, el que cargó su alta en WorldState::FaunaResources
+// (0x612d90), no Player.bmd. El GS 0.97 manda el 1A también por un monstruo (user.cpp:11887). En Lorencia y en Devias.
+TEST_F(MagicAttackCountTest, AMonsterCasterTakesTheActionOfItsModel)
+{
+    m_world->FaunaResources().Bind(&m_fauna);
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        m_world->Runtime().map = map;
+        Caster().type = MonsterModel;
+        Caster().animation = {};
+        Caster().byte381 = 0;
+        Target(FirstSlot).damage = 0;
+        // El blanco con rand() impar: sin golpe; sin +0x384, sin número.
+        const std::uint32_t seed = SeedFor({false});
+        m_cloth.random = Client::Render::Models::CrtRandom(seed);
+        const auto applied = Apply({FirstKey});
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        EXPECT_EQ(Caster().animation.action, 0x96);
+        EXPECT_EQ(Caster().byte38e, Magic);
+        EXPECT_EQ(Caster().byte381, 1);
+        EXPECT_EQ(m_cloth.random.State(),
+                  Client::Tests::AfterDraws(seed, static_cast<int>(SkillCloseRandoms) + 1).State());
+    }
+    // Sin el modelo cargado, su registro de 0x5769ad8 está en 0 (+0x26 sin acciones): 0x4ea030 sale en 0x4ea056 sin
+    // tocar la acción (revisión B del hito 2, B3) y el 1A sigue.
+    m_world->FaunaResources().Bind(nullptr);
+    Caster().animation = {};
+    const auto before = Caster().animation.action;
+    const auto unloaded = Apply({});
+    ASSERT_TRUE(unloaded.HasValue()) << unloaded.Error();
+    EXPECT_EQ(Caster().animation.action, before);
+    EXPECT_EQ(Caster().byte38e, Magic);
 }
 
 // El paso de las partículas pide la mano con ParticleActorHandsAmong: la del héroe sobre los huesos del dueño.

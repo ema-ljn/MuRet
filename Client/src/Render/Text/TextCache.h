@@ -74,6 +74,11 @@ public:
     [[nodiscard]] Core::Expected<void, std::string> DrawColumns(SpriteBatch& batch, int x, int y, std::string_view text,
                                                                 const TextStyle& style, int firstColumn, int columns);
 
+    // Como DrawColumns, con origen en píxeles para callers que ya calcularon la posición del EDIT.
+    [[nodiscard]] Core::Expected<void, std::string> DrawColumnsAtPixels(SpriteBatch& batch, int pixelX, int pixelY,
+                                                                        std::string_view text, const TextStyle& style,
+                                                                        int firstColumn, int columns);
+
     // 0x553e50 y 0x554000 de un renglón de un globo (0x555b00): la caja de `box` con el texto en (0, 0), aunque esté
     // vacío (el fondo solo), en (x, y) de la pantalla en píxeles, como la corre BoxedQuad. Cada caja es otra entrada
     // de la caché, de un slot. Los errores, los de Draw.
@@ -132,6 +137,7 @@ private:
     [[nodiscard]] Core::Expected<Entries::iterator, std::string> Find(const Key& key, const SpriteBatch& batch);
     // Los quads de `entry` en (x, y), como TextPieces.
     static void DrawPieces(SpriteBatch& batch, const Entry& entry, int x, int y);
+    static void DrawPiecesAtPixels(SpriteBatch& batch, const Entry& entry, int pixelX, int pixelY);
     // Saca la entrada del fondo de la lista (la que hace más tiempo que no se dibuja).
     void EvictOldest();
 

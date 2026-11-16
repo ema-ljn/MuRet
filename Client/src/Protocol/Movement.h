@@ -74,6 +74,9 @@ struct Damage
 // MuRet rechaza no finitos y cuentas fuera de [-2^63,2^63): son errores de su API,
 // no una validación del original ni una afirmación sobre sus máscaras de excepción.
 [[nodiscard]] Core::Expected<Outgoing, WalkWriteError> WriteWalk(std::span<const Cell> path, Cell target, float angle);
+// El rumbo de 0 a 7 de un ángulo: ftol((ángulo + 22,5) · 0,0222 + 1) & 7, en la x87 sin guardar en float. Es el de
+// SendMove (0x56b0b7..0x56b0cc) y el del D3 y el D7 del ataque al llegar (0x5656e6..0x565715, 0x5659b8..0x5659e2).
+[[nodiscard]] Core::Expected<std::uint8_t, WalkWriteError> DirectionFromAngle(float angle);
 
 // El rumbo de `angle` como 0x56b0b7..0x56b0cc (y 0x4e1260..0x4e128a, que le suma un AND 0xff): (ángulo + 22,5) ·
 // 0x3cb60b61 + 1, el ftol y &7, con los mismos errores que WriteWalk.

@@ -1,8 +1,10 @@
 #include "Scenes/GameScene.h"
 
+#include "Scenes/ActorPickingBox.h"
 #include "Scenes/GameSceneFrameProjection.h"
 #include "Scenes/WorldState.h"
 #include "Scenes/WorldRuntime.h"
+#include "Scenes/ActorState.h"
 #include "Scenes/DynamicWorldLight.h"
 #include "Scenes/ActorState.h"
 #include "Render/Models/LogicalAccess.h"
@@ -31,6 +33,10 @@ void GameScene::PrepareDrawProjection(int frames)
     m_projection->effects = world.Map().effects;
     m_projection->particles = world.Particles();
     m_projection->objects = world.Map().objects;
+    m_projection->actorPickingBoxes.clear();
+    m_projection->actorPickingBoxes.reserve(world.Actors().size());
+    for (const ActorState& actor : world.Actors())
+        m_projection->actorPickingBoxes.push_back(PickingBoxOf(actor));
     m_projection->kalima = world.Map().kalima ? world.Map().kalima->CloneForFrame() : nullptr;
     const auto& hero = world.Actors()[world.Runtime().hero];
     m_projection->heroXDepth = hero.cellXAccesses;

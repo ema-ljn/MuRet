@@ -47,6 +47,15 @@ inline constexpr std::uint16_t SparkParticle = 0x5c6;
 inline constexpr std::int32_t TeleportSparkSubtype = 1;
 inline constexpr std::int32_t RavenSparkSubtype = 5;
 inline constexpr std::int32_t MapSparkSubtype = 9;
+// Las veinte chispas del 0x815 en la izquierda del registro propio, que pide el paso del ataque (0x4fb0d1): nacen en
+// 0x540a04 con la textura 0x5fc, seis rand() y +0x38 en 1,0f, y su paso (0x545397) saca un rand() para la luz.
+inline constexpr std::int32_t BowSparkSubtype = 12;
+// El rayo 0x5d5 (Effect\lightning2.jpg) que deja el joint 0x618/0 o /1 del que mató (0x53867e, la /0 en cada paso, y
+// 0x538577, la /1 al llegar). Nacen sin rand() (0x540bbe y 0x540bfe) y su paso (0x545419) gira con el reloj y pide la
+// luz dinámica; 548550 los dibuja con el billboard común.
+inline constexpr std::int32_t LightningParticle = 0x5d5;
+inline constexpr std::int32_t LightningTrailSubtype = 0;
+inline constexpr std::int32_t LightningHitSubtype = 1;
 inline constexpr std::uint16_t CloudParticle = 0x622;
 inline constexpr std::int32_t LoginCloudSubtype = 10;
 // Los dos tipos que comparten creación y paso; la 68 además corre la posición al nacer.
@@ -79,6 +88,16 @@ inline constexpr std::int32_t DustParticle = 0x5f3;
 // (0x521dfd): nace en 0x542a60 con vida 20 y su paso (0x5459a4) avanza el cuadro (+0x48) con la vida y prende la luz
 // dinámica. El alta termina con el sonido 0x41ed10(0x40, 0, 0), que Particles no hace: lo hace quien la crea.
 inline constexpr std::int32_t ExplosionParticle = 0x5ed;
+// La sangre 5e4 (Effect\blood.tga, 0x61d7c9) que suelta el golpe con daño del paso del ataque (0x50419c, diez sobre el
+// blanco): nace en 0x542b3b con cuatro rand() y la velocidad girada por los ángulos del que pega, su paso (0x546b04)
+// la frena y avanza el cuadro (+0x48), y 548550 la dibuja con los cuadros de dos por dos (0x5487b9). No lee el subtipo.
+// La 5e3 comparte su creación (sin la luz) y su paso, pero nadie la pide en MuRet.
+inline constexpr std::int32_t BloodParticle = 0x5e4;
+// El brillo 5fe (Effect\Shiny03.jpg, 0x61d937) de las skills de las armas (0x55be23, sobre el héroe): nace en 0x542bff
+// con vida 18 y sin rand(), y 0x53fdb0 la pone en el hueso de su dueño (+0x40); su paso (0x546d54) le da la escala
+// sin(vida · π/18) · 3 y la vuelve a poner en el hueso. 548550 la dibuja con el billboard común (0x5488f6 → 0x54889a).
+// No lee el subtipo; 0x53fdb0 sí.
+inline constexpr std::int32_t SkillShineParticle = 0x5fe;
 // El brillo de la mano 5fd (Effect\Shiny02.jpg) de la skill que pega a varios (0x53d810, del 1A): la /0 y la /2 nacen
 // en 0x542b0e con vida 36 y el ángulo x en 45, y 0x53fdb0 las pone en la mano de su dueño, un personaje (lo hace quien
 // las crea: Scenes::RaiseTheHandShine). Su paso (0x546cd4) late la escala con el seno de la vida, gira la /2 y las
@@ -152,6 +171,9 @@ using ParticleObjectOwners = std::function<WorldObject*(std::uint64_t)>;
 // La acción (+0x111) del personaje de una identidad (ParticleOwnerKind::Actor, el lugar del pool): lo que el paso de
 // la órbita 60f/0 lee por el puntero +0x40 (0x54735f). nullopt si no está.
 using ParticleActorActions = std::function<std::optional<std::uint8_t>(std::uint64_t)>;
+// 0x53fdb0(partícula): el punto en el mundo del hueso que sigue la 5fe, el de su dueño (+0x40, ParticleOwner del pool
+// de personajes) que elige el héroe publicado con el subtipo. nullopt si el dueño no está o no se resuelve.
+using ParticleOwnerBones = std::function<std::optional<glm::vec3>(const Particle&)>;
 // 0x53fdb0 en el paso de la 5fd (0x546d37 y 0x546d47): el punto de la mano del personaje dueño
 // (ParticleOwnerKind::Actor, el lugar del pool) para el subtipo. nullopt si no está.
 using ParticleActorHands = std::function<std::optional<glm::vec3>(std::uint64_t, std::int32_t)>;
@@ -161,7 +183,8 @@ class Particles
 public:
     // 0x53fe70(tipo, posición, ángulos, luz, subtipo, escala, dueño) en el primer lugar libre, con el reloj
     // del mundo (DAT_05767b88, en ms) y el rand() de la CRT. Con los 3.000 llenos no se crea ni saca
-    // rand(). Se aceptan5ca/0, 5f2/0,2,11,21,33, 5f3/0, 5ed/0, 5c6/1,5,9,11, 622/6,8,9,10, 5d9/0..3, 607/0, 67/0,
+    // rand(). Se aceptan5ca/0, 5e4 (cualquier subtipo), 5f2/0,2,11,21,33, 5f3/0, 5ed/0, 5c6/1,5,9,11, 622/6,8,9,10,
+    // 5d9/0..3, 607/0, 67/0,
     // 68/0, 698/0, 6ab/0,1 y 6ac/0; la órbita 60f/0,3,4,10 pide el overload con la trigonometría. Create es la
     // compatibilidad login; Core usa CreateChecked para distinguir errores de pool lleno. La neblina consume cinco
     // rand() y conserva +0x60 del uso anterior del lugar. 622/8 consume siete rand().
@@ -193,6 +216,13 @@ public:
     CreateOwnedChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
                        std::int32_t subtype, float scale, float worldClock, Render::Models::CrtRandom& random,
                        std::int32_t scene, ParticleOwner owner = {});
+    // 0x53fe70 con la 5fe (SkillShineParticle) de las skills: el prefijo común, la vida 18 (0x542c00) y 0x53fdb0 con
+    // `bones` y `owner` (el dueño, +0x40), que pisa la posición. Sin rand(). Con los 3.000 llenos, nada; sin el
+    // dueño, MissingOwner con el lugar apagado. Otro tipo, UnsupportedType.
+    [[nodiscard]] Core::Expected<std::optional<std::size_t>, ParticleError>
+    CreateFollowingChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles,
+                           const glm::vec3& light, std::int32_t subtype, float scale, ParticleOwner owner,
+                           const ParticleOwnerBones& bones);
     // 0x6070a0, al entrar a la escena: apaga el byte vivo de cada lugar. El viento sigue como estaba.
     void Clear();
 
@@ -235,6 +265,8 @@ std::optional<ParticleError> StepParticles(Particles& particles, Render::Models:
 // la órbita 60f/0 (0x54735c); sin él, una 60f/0 viva falla con MissingOwner. La 5f3 pide la altura del terreno y el
 // alto de su textura
 // (`textureHeight`): sin ellos corta después de mover, frenar y agrandar. La 5ed pide la luz dinámica (`lighting`,
+// 0x7b4ccc4): sin ella corta con MissingDynamicLight después de su cuadro. La 5fe pide el hueso de su dueño
+// (`ownerBones`, 0x53fdb0): sin él corta con MissingOwner después de su escala.
 // 0x7b4ccc4): sin ella corta con MissingDynamicLight después de su cuadro. La 5fd pide la mano de su dueño
 // (`actorHands`, 0x53fdb0): sin ella corta con MissingOwner después de la escala y la rotación.
 [[nodiscard]] Core::Expected<void, ParticleError>
@@ -243,5 +275,6 @@ StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random,
                      IParticleTrigonometry& trigonometry, const ParticleTerrainHeight& terrainHeight = {},
                      const ParticleObjectOwners& owners = {}, const ParticleActorActions& actorActions = {},
                      const ParticleTextureHeight& textureHeight = {}, TerrainLighting* lighting = nullptr,
-                     const ParticleActorHands& actorHands = {});
+                     const ParticleActorHands& actorHands = {}, const ParticleOwnerBones& ownerBones = {});
+
 } // namespace Client::World

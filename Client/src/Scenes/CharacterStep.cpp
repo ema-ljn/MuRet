@@ -1,4 +1,7 @@
 #include "Scenes/CharacterStep.h"
+#include "Protocol/Pet/PetOrders.h"
+
+#include "Scenes/ActorPickingBox.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/Particles.h"
 
@@ -13,19 +16,30 @@
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorActions.h"
+#include "Scenes/ActorCreation.h"
 #include "Scenes/ActorMotion.h"
+#include "Scenes/ActorRemains.h"
 #include "Scenes/ActorWalk.h"
 #include "Scenes/PlayerActionSpeeds.h"
+#include "Scenes/ActorCombat.h"
 #include "Scenes/ActorConstruction.h"
+#include "Scenes/ActorDying.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/AttackStep.h"
 #include "Scenes/CharacterHead.h"
+#include "Scenes/CharacterDrawing.h"
 #include "Scenes/CrywolfContract.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/DynamicWorldLight.h"
 #include "Scenes/FaunaModels.h"
+#include "Scenes/FaunaJointCreation.h"
 #include "Scenes/HealthBars.h"
 #include "Scenes/ItemSetOptionList.h"
 #include "Scenes/ModelBody.h"
+#include "Scenes/ModelEffects.h"
+#include "Scenes/MonsterHelpers.h"
+#include "Scenes/MonsterRibbonTrails.h"
+#include "Scenes/MonsterStepCases.h"
 #include "Scenes/NpcChatter.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnStatHelpers.h"
@@ -33,12 +47,15 @@
 #include "Scenes/WorldRuntime.h"
 #include "UI/GameUiState.h"
 #include "Scenes/WorldState.h"
+#include "Scenes/WeaponTrail.h"
 #include "World/ObjectAlpha.h"
 #include "World/OriginalFtol.h"
+#include "World/IFishStepServices.h"
 #include "World/TerrainCulling.h"
 #include "World/TerrainHeight.h"
 #include "World/TerrainWalls.h"
 #include "World/WorldObjectStepServices.h"
+#include "World/WorldObjects.h"
 #include "World/WorldTerrain.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -49,9 +66,11 @@
 #include <cstddef>
 #include <cstdint>
 #include <format>
+#include <functional>
 #include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 
 namespace Client::Scenes
 {
@@ -61,10 +80,8 @@ namespace
 constexpr std::size_t SteppedCharacters = 400;
 // 0x412162: en el mapa 30 (0x1e), 0x412140 arma el panel del asedio.
 constexpr std::int32_t CastleMap = 30;
-// 0x42daae..0x42dac4: los casos del switch de 0x42da90 sobre +0x376 − 0xd8 (las tablas 0x42dc4c y 0x42dc64).
-constexpr std::array<std::uint16_t, 6> SiegeObjectClasses{216, 277, 278, 283, 286, 287};
 
-// 0x4fd603: el tipo que pasa su nombre a 0x4381f0.
+// 0x4fd603: el tipo que pasa su nombre y su nivel a 0x4381f0.
 constexpr std::uint16_t NamedType = 0xc5;
 // 0x4fbe2e..0x4fbe41: 0x4fbe10 corre solo en los mapas 18 a 23.
 constexpr std::int32_t FirstCellReportMap = 18;
@@ -108,25 +125,6 @@ constexpr std::uint8_t LastKeptRange = 0x75;
 // 0x4fceea..0x4fcf04: antes del frame 3 (0x6b86b8), salvo en la 0x8d, 0x4fcee0 sale sin estela.
 constexpr float TrailFrame = 3.0f;
 constexpr std::uint8_t AlwaysTrailedAction = 0x8d;
-// 0x4fcf3e..0x4fcf4a: con las acciones 0x25 y 0x26, la estela mira la mano izquierda.
-constexpr std::uint8_t FirstLeftHandAction = 0x25;
-constexpr std::uint8_t SecondLeftHandAction = 0x26;
-// 0x4fcf87..0x4fd082: las acciones y los modelos del 0x20a que dejan estela (0x52e470).
-constexpr std::array<std::uint8_t, 3> TrailedActions{0x84, 0x85, 0x4c};
-constexpr std::uint8_t FirstSwingAction = 0x39;
-constexpr std::uint8_t LastSwingAction = 0x3c;
-constexpr int FirstSwordModel = 0x212;
-constexpr int EndOfSwordModels = 0x412;
-constexpr std::uint8_t FirstSwordAction = 0x23;
-constexpr std::uint8_t LastSwordAction = 0x29;
-constexpr int SpearModel = 0x415;
-constexpr int FirstPoleModel = 0x417;
-constexpr int EndOfPoleModels = 0x812;
-constexpr std::uint8_t FirstPoleAction = 0x38;
-constexpr std::uint8_t LastPoleAction = 0x3c;
-constexpr int EndOfBowModels = 0xa12;
-constexpr std::uint8_t FirstBowAction = 0x2a;
-constexpr std::uint8_t LastBowAction = 0x2d;
 
 // 0x4fc57e, 0x4fc5b0 y 0x4fc606: el bit de +0x3c que 0x4fc450 apaga con cada WORD en 0.
 constexpr std::uint8_t Word3eBit = 0x01;
@@ -188,13 +186,29 @@ void ClearBit(std::uint8_t& bits, std::uint8_t bit)
 
 // El modelo de 0x5769ad8 + tipo · 0xe0 que leen 0x4f9580, 0x4fcbb0 y 0x505de0: Player.bmd, el NewFace suelto o el de
 // los monstruos y los NPC (WorldState::FaunaResources, con la biblioteca del mapa detrás; 08, P-C176).
+// El registro de un monstruo o un NPC existe siempre: el de un modelo que no se cargó (un .bmd que falta en Npc u
+// Object35, que 0x60da30 saltea, o un tipo sin caso de carga) está en 0, sin acciones (+0x26), y 0x4ea030, 0x4f9580 y
+// 0x505de0 lo toman como un modelo vacío.
 const Render::Models::Skeleton* ModelSkeletonOf(const ActorState& actor, const CharacterStepContext& context)
 {
+    static const Render::Models::Skeleton ZeroRecord;
     if (actor.type == Data::Models::PlayerSkeletonModel)
         return context.playerSkeleton;
     if (IsNewFace(actor.type))
         return context.newFaceSkeleton;
-    return context.world.FaunaResources().SkeletonOf(actor.type);
+    const Render::Models::Skeleton* loaded = context.world.FaunaResources().SkeletonOf(actor.type);
+    return loaded != nullptr ? loaded : &ZeroRecord;
+}
+
+// 0x5f93c0(x, y) sobre el terreno del paso, con la altura fija de context; vacía sin las alturas o sin el
+// TerrainWall.
+std::function<double(float, float)> TerrainHeightOf(const CharacterStepContext& context)
+{
+    const World::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
+    if (!terrain.heights || !terrain.attributes)
+        return {};
+    return [&terrain, fixedHeight = context.fixedHeight](float x, float y)
+    { return World::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y, fixedHeight); };
 }
 
 // 0x508ba0(c, c) desde 0x508ed8 con otro que el héroe publicado ([0x743a170]; con él sale en 0x508bad).
@@ -215,14 +229,13 @@ Core::Expected<void, std::string> StepOtherCharacter(ActorState& actor, std::siz
     const Render::Models::Skeleton empty;
     const Render::Models::Skeleton& skeleton = context.playerSkeleton != nullptr ? *context.playerSkeleton : empty;
     PlayerActionSpeeds& speeds = context.actionSpeeds != nullptr ? *context.actionSpeeds : context.world.ActionSpeeds();
+    const std::span<const std::int16_t> modelSounds = context.world.FaunaResources().SoundActions(actor.type);
     const ActorWalkContext walk{
         {context.world.Runtime(), context.scene, skeleton, context.items, context.random, &terrain.attributes->cells},
         speeds,
         false,
         player ? nullptr : own,
-        // Los sonidos de los modelos que cargó el alta (0x612c80); los del NewFace, que carga 0x60dbe0, sin leer.
-        player || IsNewFace(actor.type) ? std::span<const std::int16_t>{}
-                                        : context.world.FaunaResources().SoundActions(actor.type)};
+        modelSounds};
     ActorMotionContext motion{context.world.Runtime(), context.random, {}, CrywolfAltarGoal(context.world)};
     if (terrain.heights)
     {
@@ -303,7 +316,6 @@ Core::Expected<bool, std::string> AdvanceTheBody(ActorState& actor, std::size_t 
 {
     // 0x4f958e..0x4f95a5: el modelo compartido del tipo.
     const bool player = actor.type == Data::Models::PlayerSkeletonModel;
-    const bool newFace = IsNewFace(actor.type);
     const Render::Models::Skeleton* skeleton = ModelSkeletonOf(actor, context);
     if (skeleton == nullptr)
     {
@@ -319,17 +331,18 @@ Core::Expected<bool, std::string> AdvanceTheBody(ActorState& actor, std::size_t 
     }
     Render::Models::AnimationState& animation = actor.animation;
     const std::uint8_t action = animation.action;
-    if (action >= skeleton->actions.size())
+    const auto publishedAction = context.world.ModelPlacement(actor.type).action;
+    if (publishedAction >= skeleton->actions.size())
     {
         return Core::Unexpected(std::format("0x4f95c0: la acción {:#x} del lugar {} lee fuera de las {} del modelo "
                                             "{:#x}",
-                                            action, slot, skeleton->actions.size(), actor.type));
+                                            publishedAction, slot, skeleton->actions.size(), actor.type));
     }
-    const Render::Models::ActionInfo& info = skeleton->actions[action];
+    const Render::Models::ActionInfo& info = skeleton->actions[publishedAction];
     // 0x4f95c0..0x4f95d4: una velocidad negativa o NaN cuenta 0. La de Player.bmd, con la de cada personaje.
     const PlayerActionSpeeds& speeds =
         context.actionSpeeds != nullptr ? *context.actionSpeeds : context.world.ActionSpeeds();
-    const float sharedSpeed = player ? speeds.Speed(action, info.speed) : info.speed;
+    const float sharedSpeed = player ? speeds.Speed(publishedAction, info.speed) : info.speed;
     float speed = sharedSpeed >= 0.0f ? sharedSpeed : 0.0f;
     if (actor.byte3e3 != 0 && action >= FirstFasterAction && action <= LastFasterAction)
     {
@@ -369,25 +382,54 @@ Core::Expected<bool, std::string> AdvanceTheBody(ActorState& actor, std::size_t 
         return true;
     }
     // 0x4f9774: 0x4ec200, que devuelve 0 al terminar; en la escena 4 lo decide el frame + 2 (Q-C21). El NewFace es el
-    // objeto suelto de la selección.
-    const Render::Models::AnimationScene scene = context.scene == SceneId::CharacterSelect || newFace
+    // objeto suelto de la selección; 4ec200 consulta la escena vigente, no el tipo.
+    const Render::Models::AnimationScene scene = context.scene == SceneId::CharacterSelect
                                                      ? Render::Models::AnimationScene::CharacterSelect
                                                      : Render::Models::AnimationScene::Other;
-    return Render::Models::AdvanceAnimation(animation, info, speed, scene);
+    // 4ec21b usa el BYTE +a0 publicado antes de animar, aunque el actor haya cambiado de acción.
+    if (info.keyCount <= 1)
+        return false;
+    auto advanced = animation;
+    advanced.action = publishedAction;
+    const bool finished = Render::Models::AdvanceAnimation(advanced, info, speed, scene);
+    animation.frame = advanced.frame;
+    animation.previousAction = advanced.previousAction;
+    animation.previousKey = advanced.previousKey;
+    const auto whole = World::OriginalFtolLow(static_cast<double>(animation.frame));
+    if (!whole)
+        return Core::Unexpected(std::string("0x4ec31f: el frame avanzado no tiene conversión nativa observada"));
+    const auto key = std::bit_cast<std::int16_t>(static_cast<std::uint16_t>(*whole));
+    context.world.FaunaResources().RecordAnimation(actor.type, animation.frame, key);
+    return finished;
 }
 
 bool IsKalima(std::int32_t map);
 
+// 0x52e810(c) desde 0x4fcb9c y 0x4fcc3c: los restos, con el modelo del tipo de c y la escala y la posición que le dejó
+// el último 0x505ec6 de ese tipo (Q-C1178).
+Core::Expected<void, std::string> LeaveTheRemainsOf(ActorState& actor, const CharacterStepContext& context)
+{
+    const SharedModelPlacement placement = context.world.ModelPlacement(actor.type);
+    return LeaveTheRemains(actor, ActorRemainsContext{.skeleton = ModelSkeletonOf(actor, context),
+                                                      .modelScale = placement.scale,
+                                                      .modelOrigin = placement.origin,
+                                                      .effects = context.world.Map().effects,
+                                                      .marks = context.world.Runtime().groundMarks,
+                                                      .random = context.random});
+}
+
 // 0x4fcb10(c, c) desde 0x4fce57, con la acción que terminó.
-Core::Expected<void, std::string> StopAtTheEnd(ActorState& actor, std::size_t slot, const CharacterStepContext& context)
+Core::Expected<void, std::string> StopAtTheEnd(ActorState& actor, const CharacterStepContext& context)
 {
     const std::uint8_t action = actor.animation.action;
-    // 0x4fcb17..0x4fcb23 y 0x4fcb87..0x4fcb9c: con +0x38a en 0, 0x52e810 una vez.
+    // 0x4fcb17..0x4fcb23 y 0x4fcb87..0x4fcba6: con +0x38a en 0, lo pone en 1 y corre 0x52e810 una vez; con o sin él,
+    // sale sin volver a la de parado.
     if (action == FirstMarkAction || action == SecondMarkAction)
     {
-        return Core::Unexpected(std::format("0x4fcb87: la acción {:#x} del lugar {} terminó; +0x38a y 0x52e810 no "
-                                            "están portados",
-                                            action, slot));
+        if (actor.byte38a != 0)
+            return {};
+        actor.byte38a = 1;
+        return LeaveTheRemainsOf(actor, context);
     }
     // 0x4fcb25..0x4fcb63: vuelven a la de parado (0x4f2250) las de antes de la 0x0d, las 0xbd a 0xbf, las 0x54
     // y 0x55 y, de la 0x22 a la 0xc2, las que no son 0x8b, 0x8c, 0x46, 0x47, 0x44, 0x49, 0x4b ni de la 0x6a a la
@@ -399,13 +441,22 @@ Core::Expected<void, std::string> StopAtTheEnd(ActorState& actor, std::size_t sl
     if (stops)
     {
         const auto& terrain = context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
+        static const Render::Models::Skeleton emptyPlayerSkeleton;
+        const Render::Models::Skeleton* playerSkeleton = context.playerSkeleton;
+        if (playerSkeleton == nullptr)
+            playerSkeleton = &emptyPlayerSkeleton;
+        const bool player = actor.type == Data::Models::PlayerSkeletonModel;
+        const Render::Models::Skeleton* actorSkeleton = player ? nullptr : ModelSkeletonOf(actor, context);
+        const std::span<const std::int16_t> modelSounds = context.world.FaunaResources().SoundActions(actor.type);
         const auto stopped = SetActorStop(
             actor, ActorStopContext{.runtime = context.world.Runtime(),
                                     .scene = context.scene,
-                                    .playerSkeleton = *context.playerSkeleton,
+                                    .playerSkeleton = *playerSkeleton,
                                     .items = context.items,
                                     .random = context.random,
-                                    .terrainWalls = terrain.attributes ? &terrain.attributes->cells : nullptr});
+                                    .terrainWalls = terrain.attributes ? &terrain.attributes->cells : nullptr,
+                                    .actorSkeleton = actorSkeleton,
+                                    .modelSounds = modelSounds});
         if (!stopped.HasValue())
         {
             return Core::Unexpected(stopped.Error());
@@ -451,14 +502,22 @@ Core::Expected<void, std::string> StepTheAnimation(ActorState& actor, std::size_
         // 0x4fce3f..0x4fce57: el 0x20a que giró va a 0x4fc8c0 y el otro a 0x4fcb10.
         if (actor.type == Data::Models::PlayerSkeletonModel)
         {
-            return turned ? FinishTheTurnedNpc(actor, slot, context) : StopAtTheEnd(actor, slot, context);
+            return turned ? FinishTheTurnedNpc(actor, slot, context) : StopAtTheEnd(actor, context);
         }
         // 0x4fce5e: los otros modelos, a 0x4fcbb0. AdvanceTheBody ya encontró el modelo.
         const Render::Models::Skeleton& skeleton = *ModelSkeletonOf(actor, context);
-        const auto end = FinishTheModelAction(actor, slot, skeleton, context.world.Runtime(), context.random);
+        const auto end = FinishTheModelAction(actor, skeleton, context.world.Runtime(), context.random);
         if (!end.HasValue())
         {
             return Core::Unexpected(end.Error());
+        }
+        // 0x4fcc35..0x4fcc3c: el monstruo que terminó de morir deja sus restos.
+        if (end.Value() == ModelActionEnd::LeaveRemains)
+        {
+            if (auto left = LeaveTheRemainsOf(actor, context); !left.HasValue())
+            {
+                return left;
+            }
         }
         // 0x4fcbe3: con 0x42d890 en 1, 0x4f9580 otra vez; lo que devuelve no se mira.
         if (end.Value() == ModelActionEnd::AdvanceAgain)
@@ -475,43 +534,32 @@ Core::Expected<void, std::string> StepTheAnimation(ActorState& actor, std::size_
             actor.animation.frame = NamedFrame;
         }
     }
-    // 0x4fce7a..0x4fced1: el 0x1f5 compara el frame que dejó en su modelo el último que lo posó (+0xa8 de
-    // 0x5769ad8 + 0x1f5 · 0xe0) con la última key de la acción y, si es esa, rand() % 32 elige la acción 1 o la 0.
+    // 0x4fce7a..0x4fced1: el 0x1f5 compara la key que dejó en su modelo la última pose (+0xa8 de 0x5769ad8 + 0x1f5 ·
+    // 0xe0, FaunaModels::PoseKey, que guarda el dibujo de los monstruos) con la última key de su acción (+0x111, sin
+    // mirar si el modelo la tiene) y, si es esa, rand() % 32 en 0 le pone la acción 1 con 0x4ea030 y si no la 0.
     constexpr std::uint16_t TraderModel = 0x1f5;
     if (actor.type == TraderModel)
     {
-        return Core::Unexpected(std::format("0x4fce84: el 0x1f5 del lugar {} lee el frame de su modelo compartido "
-                                            "(+0xa8), que deja la pose del último que lo dibujó",
-                                            slot));
+        const Render::Models::Skeleton& skeleton = *ModelSkeletonOf(actor, context);
+        const std::uint8_t action = actor.animation.action;
+        if (action >= skeleton.actions.size())
+            return Core::Unexpected(std::format("0x4fce9c: la acción {} del 0x1f5 del lugar {} está fuera de su modelo",
+                                                static_cast<int>(action), slot));
+        const std::int32_t lastKey = skeleton.actions[action].keyCount - 1;
+        if (context.world.FaunaResources().PoseKey(TraderModel) == lastKey)
+        {
+            constexpr int OddsOfTheOtherAction = 32;
+            const std::uint8_t next = context.random.Next() % OddsOfTheOtherAction == 0 ? 1 : 0;
+            Render::Models::SetAction(actor.animation, skeleton, next);
+        }
     }
     return {};
 }
 
-// 0x4fcf26..0x4fd106: con el 0x20a, si la acción y el modelo del arma (con signo) dejan estela.
-bool LeavesATrail(std::uint8_t action, int model)
-{
-    if (IsOneOf(TrailedActions, action) || (action >= FirstSwingAction && action <= LastSwingAction))
-    {
-        return true;
-    }
-    if (model >= FirstSwordModel && model < EndOfSwordModels)
-    {
-        return (action >= FirstSwordAction && action <= LastSwordAction) || action == AlwaysTrailedAction;
-    }
-    if (model == SpearModel || (model >= FirstPoleModel && model < EndOfPoleModels))
-    {
-        return action >= FirstPoleAction && action <= LastPoleAction;
-    }
-    if (model >= EndOfPoleModels && model < EndOfBowModels)
-    {
-        return action >= FirstBowAction && action <= LastBowAction;
-    }
-    return false;
-}
-
-// 0x4fcee0(c, c, b) desde 0x505410, con el 0x20a.
+// 0x4fcee0(c, c, b) desde 0x505410, con el 0x20a. Las partículas y el reloj son los del paso (0x432bd0 crea la 0x5d9
+// del 0x1b0).
 Core::Expected<void, std::string> StepTheWeaponTrail(ActorState& actor, std::size_t slot,
-                                                     Render::Models::CrtRandom& random)
+                                                     const CharacterStepContext& context)
 {
     const std::uint8_t action = actor.animation.action;
     // 0x4fceea..0x4fcf25: antes del frame 3 (o con NaN) y fuera de la 0x8d copia la posición a +0x17c y sale.
@@ -520,34 +568,18 @@ Core::Expected<void, std::string> StepTheWeaponTrail(ActorState& actor, std::siz
         actor.trailOrigin = actor.position;
         return {};
     }
-    const bool left = action == FirstLeftHandAction || action == SecondLeftHandAction;
-    const ActorItemPart& hand = actor.hands[left ? std::size_t{1} : std::size_t{0}];
-    const int model = static_cast<std::int16_t>(hand.model);
-    if (actor.type == Data::Models::PlayerSkeletonModel && LeavesATrail(action, model))
-    {
-        return Core::Unexpected(std::format("0x4fd236: la estela de la acción {:#x} del lugar {} con el modelo {:#x} "
-                                            "(0x52e470) no está portada",
-                                            action, slot, hand.model));
-    }
-    // 0x4fd10b..0x4fd5df con los otros modelos: la estela por tipo y los helpers de algunos (Scenes::ModelTrailCutOf).
-    const auto cut =
-        actor.type == Data::Models::PlayerSkeletonModel ? std::optional<ModelTrailCut>{} : ModelTrailCutOf(actor);
-    if (cut.has_value() && cut->beforeTheRandom)
-    {
-        return Core::Unexpected(std::format("{:#x}: el modelo {:#x} del lugar {} en la acción {:#x} desde el frame 3 "
-                                            "(0x4fcee0): su estela o sus efectos son de la CL11",
-                                            cut->address, actor.type, slot, action));
-    }
+    if (auto emitted = EmitWeaponTrail(actor, ModelSkeletonOf(actor, context), context); !emitted.HasValue())
+        return emitted;
+    const auto* skeleton = ModelSkeletonOf(actor, context);
+    if (auto emitted = EmitEarlyMonsterRibbonTrails(actor, skeleton, context); !emitted.HasValue())
+        return emitted;
     // 0x4fd5c1..0x4fd5df: 0x441260 (solo el 0x1a7), 0x42fa40 (el 0x1b1 y el 0x1b3), 0x432bd0 y 0x426d90 (los
-    // 0x1b8 a 0x1ba). 0x432bf1: rand() sin condición, antes de mirar el tipo (0x1ab a 0x1b4).
-    static_cast<void>(random.Next());
-    if (cut.has_value())
-    {
-        return Core::Unexpected(std::format("{:#x}: el modelo {:#x} del lugar {} en la acción {:#x} desde el frame 3 "
-                                            "(0x4fcee0): sus efectos son de la CL11",
-                                            cut->address, actor.type, slot, action));
-    }
-    return {};
+    // 0x1b8 a 0x1ba). 0x4fd5d7: 0x432bd0, con su rand() de 0x432bf1 sin condición (Scenes::StepTheSwingsOf1abTo1b4).
+    if (auto swung =
+            StepTheSwingsOf1abTo1b4(actor, slot, context.world, context.random, context.particles, context.worldClock);
+        !swung.HasValue())
+        return swung;
+    return EmitLateMonsterRibbonTrails(actor, skeleton, context);
 }
 
 // Una lectura de la celda protegida del héroe: abre la entrada (0x40b570) y la cierra (0x40b800, o en línea
@@ -611,21 +643,164 @@ Core::Expected<void, std::string> ReportTheHeroCell(const CharacterStepContext& 
     return {};
 }
 
+// 0x4fd787..0x4fd7e1: +0x389 más uno, en un byte; con 15 o más, 0x4f5660 (SetActorDie); en Blood Castle (11 a 17)
+// con +0x1a1, 0x4f5660 otra vez, también antes del 15.
+Core::Expected<void, std::string> DieAgain(ActorState& actor, const CharacterStepContext& context)
+{
+    const ActorCombatContext combat{.world = context.world,
+                                    .random = context.random,
+                                    .playerSkeleton = context.playerSkeleton,
+                                    .models = context.models,
+                                    .items = context.items};
+    constexpr std::uint8_t DyingAgain = 15;
+    actor.dying = static_cast<std::uint8_t>(actor.dying + 1);
+    if (actor.dying >= DyingAgain)
+    {
+        if (auto died = SetActorDie(actor, combat); !died.HasValue())
+            return died;
+    }
+    const std::int32_t map = context.world.Runtime().map;
+    constexpr std::int32_t FirstBloodCastleMap = 11;
+    constexpr std::int32_t LastBloodCastleMap = 17;
+    if (map >= FirstBloodCastleMap && map <= LastBloodCastleMap && actor.byte1a1 != 0)
+        return SetActorDie(actor, combat);
+    return {};
+}
+
+Core::Expected<void, std::string> StepTheRaven(ActorState& actor, std::size_t slot,
+                                               const CharacterStepContext& context);
+
 // 0x4fd5f0(c, c) desde 0x508edf, por el camino del 0x20a quieto (06, "El cuerpo de los personajes
 // (0x4fd5f0)"). `hero` es c == [0x743a170].
+// 0x417e62: el grito del cuervo.
+constexpr std::int32_t RavenShoutSound = 0x1d1;
+
+// Lo que el paso del cuervo lee del pool (DarkSpiritTargets): el personaje de +8 y el de +0x3b0, con signo. Entre 0 y
+// 399 mira sus banderas (0x416a8b..0x416ab9); el 6 lee su posición con cualquier valor distinto de 0xffff (0x417858):
+// los lugares que escriben el A8 (0 a 400) están en el pool de MuRet, y otro valor corta.
+Core::Expected<DarkSpiritTargets, std::string> RavenTargetsOf(const DarkSpirit& spirit, WorldState& world,
+                                                              std::size_t slot)
+{
+    constexpr std::int16_t PoolActors = 400;
+    constexpr std::uint16_t NoAttackTarget = 0xffff;
+    const auto actors = world.Actors();
+    DarkSpiritTargets targets;
+    if (spirit.target < actors.size())
+    {
+        targets.target = actors[spirit.target].position;
+    }
+    const auto attack = static_cast<std::int16_t>(spirit.target3b0);
+    if (attack >= 0 && attack < PoolActors)
+    {
+        targets.attackInPool = true;
+        targets.attackFlags = actors[static_cast<std::size_t>(attack)].flags78;
+    }
+    if (spirit.target3b0 != NoAttackTarget)
+    {
+        if (attack < 0 || static_cast<std::size_t>(attack) >= actors.size())
+        {
+            return Core::Unexpected(
+                std::format("0x417869: el +0x3b0 del cuervo del lugar {} ({}) cae fuera del pool", slot, attack));
+        }
+        targets.attackPosition = actors[static_cast<std::size_t>(attack)].position;
+    }
+    return targets;
+}
+
+glm::vec3 OwnBonePoint(const ActorState& actor, std::size_t bone, const glm::vec3& offset);
+
+// El cuerpo publicó el modelo ANTES de mover al moribundo. No sustituir este placement por actor.position actual.
+glm::vec3 SharedBonePoint(const ActorState& actor, std::size_t bone, const glm::vec3& offset, const WorldState& world)
+{
+    const auto placement = world.ModelPlacement(actor.type);
+    const Render::Models::BoneTransform matrix =
+        bone < actor.bodyPose.size() ? actor.bodyPose[bone] : Render::Models::BoneTransform(0.0f);
+    return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), offset, placement.scale,
+                                                     placement.origin);
+}
+
+const Render::Models::Skeleton* BoneEmitterSkeleton(const ActorState& actor, const CharacterStepContext& context)
+{
+    if (actor.type != Data::Models::PlayerSkeletonModel && !IsNewFace(actor.type) && context.models != nullptr)
+    {
+        if (const auto* loaded = context.models->SkeletonOf(actor.type); loaded != nullptr)
+            return loaded;
+    }
+    return ModelSkeletonOf(actor, context);
+}
+
+// 4fd835..4fdada: el contador sólo baja después de recorrer los huesos; J lleno conserva seis selectores por hueso.
+Core::Expected<void, std::string> StepTheBoneEmitter(ActorState& actor, const CharacterStepContext& context)
+{
+    if (context.world.Runtime().map == CastleMap || actor.byte1a0 == 0)
+        return {};
+    const auto* skeleton = BoneEmitterSkeleton(actor, context);
+    if (skeleton == nullptr)
+        return Core::Unexpected(std::string("0x4fd86e: faltan los huesos del modelo para el emisor 0x614/7"));
+    constexpr int OffsetSpan = 41, OffsetCentre = 20;
+    constexpr std::int32_t BoneJoint = 0x614, BoneSubtype = 7;
+    constexpr float Width = 20.0f;
+    for (std::size_t bone = 0; bone < skeleton->bones.size(); ++bone)
+    {
+        const auto& entry = skeleton->bones[bone];
+        if (entry.dummy || entry.parent < 0 || static_cast<std::size_t>(entry.parent) >= skeleton->bones.size())
+            continue;
+        glm::vec3 first = SharedBonePoint(actor, bone, glm::vec3(0.0f), context.world);
+        glm::vec3 second =
+            SharedBonePoint(actor, static_cast<std::size_t>(entry.parent), glm::vec3(0.0f), context.world);
+        for (auto* point : {&first, &second})
+            for (int axis = 0; axis < 3; ++axis)
+                (*point)[axis] =
+                    static_cast<float>(static_cast<double>((*point)[axis]) +
+                                       static_cast<double>(context.random.Next() % OffsetSpan - OffsetCentre));
+        if (context.joints.empty())
+            return Core::Unexpected(std::string("0x4fdabf: falta el pool de joints del emisor 0x614/7"));
+        const World::FishEffectRequest request{.type = BoneJoint,
+                                               .firstPosition = first,
+                                               .secondPosition = second,
+                                               .angles = actor.angles,
+                                               .subtype = BoneSubtype,
+                                               .ownerContext = nullptr,
+                                               .scale = Width,
+                                               .key = -1,
+                                               .skill = 0,
+                                               .skillSerial = 0,
+                                               .target = -1};
+        if (auto joint = CreateFaunaJoint(context.joints, request, context.random); !joint.HasValue())
+            return Core::Unexpected(std::format("0x4fdabf: {}", joint.Error()));
+    }
+    --actor.byte1a0;
+    return {};
+}
+
+Core::Expected<void, std::string> CreateTheActionFlare(ActorState& actor, const CharacterStepContext& context)
+{
+    constexpr std::size_t FlareBone = 42;
+    constexpr std::int32_t FlareType = 0x5ac;
+    constexpr glm::vec3 Light{0.3f, 0.5f, 1.0f};
+    const glm::vec3 point = SharedBonePoint(actor, FlareBone, glm::vec3(0.0f), context.world);
+    if (context.particles == nullptr)
+        return Core::Unexpected(std::string("0x4fdb92: falta el pool de partículas de la acción con 0x5ac/0"));
+    const auto made = context.particles->CreateChecked(FlareType, point, actor.angles, Light, 0, 1.0f,
+                                                       context.worldClock, context.random);
+    if (!made.HasValue())
+        return Core::Unexpected(
+            std::format("0x4fdb92: la partícula 0x5ac/0 falla con error {}", static_cast<unsigned>(made.Error())));
+    return {};
+}
+
 Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slot, bool hero,
                                               const CharacterStepContext& context)
 {
-    const WorldRuntime& runtime = context.world.Runtime();
-    // 0x4fd603..0x4fd693: el 0xc5 pasa su nombre y +0x1d6 a 0x4381f0.
+    WorldRuntime& runtime = context.world.Runtime();
+    // 0x4fd603..0x4fd698: el 0xc5 pasa su nombre y +0x1d6 a 0x4381f0 (MonsterStepCases.h).
     if (actor.type == NamedType)
     {
-        return Core::Unexpected(std::format("0x4fd603: el 0xc5 del lugar {} pasa su nombre a 0x4381f0, que no está "
-                                            "portado",
-                                            slot));
+        if (auto queued = QueueTheGateName(actor, context.texts, runtime.worldTexts); !queued.HasValue())
+            return queued;
     }
-    // 0x4fd69b..0x4fd6ef: la posición, la escala y la acción al modelo compartido (+0x6c, +0x68 y +0xa0), que
-    // MuRet no tiene: 0x4f9580 y 0x4ec200 leen la acción del personaje.
+    // 0x4fd69b..0x4fd6ef: publica la posición, la escala y la acción al modelo compartido (+0x6c, +0x68 y +0xa0).
+    context.world.PlaceModel(actor);
     // 0x4fd6f5: 0x4fbe10, la celda del héroe en los mapas 18 a 23.
     if (runtime.map >= FirstCellReportMap && runtime.map <= LastCellReportMap)
     {
@@ -640,19 +815,38 @@ Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slo
             return timers;
         }
     }
-    // 0x4fd70e: 0x4fb380. +0x398 en 0 (solo lo escriben paquetes que MuRet no aplica) y +0x399 en 0 (0x511290,
-    // 0x511d3e; lo suben los mismos paquetes): no gira ni se corre (*estático*). El 0xf1 cae (0x4fb910).
+    // 4fb38b..4fb3b1: skills8/9 ponen +398; primero gira por el valor ANTERIOR, sin normalizar y sin RNG.
+    if (actor.byte398 != 0)
+    {
+        constexpr double TurnPerCount = 10.0;
+        actor.angles.z =
+            static_cast<float>(static_cast<double>(actor.angles.z) + static_cast<double>(actor.byte398) * TurnPerCount);
+        --actor.byte398;
+    }
+    // 0x4fd70e: 0x4fb380. El 0xf1 cae (0x4fb910).
     if (actor.type == FallingType)
     {
-        return Core::Unexpected(
-            std::format("0x4fb910: el 0xf1 del lugar {} cae con 0x5f93c0 y gira, sin portar", slot));
+        const std::function<double(float, float)> height = TerrainHeightOf(context);
+        if (!height)
+        {
+            return Core::Unexpected(
+                std::format("0x4fb942: falta la altura del terreno (0x5f93c0) para el 0xf1 del lugar {}", slot));
+        }
+        StepTheFallingBall(actor, height);
     }
-    // 0x4fd722: 0x4fb9e0, muriéndose (+0x389).
-    if (actor.dying != 0)
+    // 0x4fd722: 0x4fb9e0, muriéndose (+0x389). Lo que sigue corre aunque lo haya borrado.
+    if (auto died = StepActorDying(actor, slot,
+                                   {.map = runtime.map,
+                                    .scene = context.scene,
+                                    .hero = hero,
+                                    .random = context.random,
+                                    .particles = context.particles,
+                                    .worldClock = context.worldClock,
+                                    .world = &context.world,
+                                    .soundRequest = context.soundRequest});
+        !died.HasValue())
     {
-        return Core::Unexpected(std::format("0x4fb9e0: el personaje del lugar {} se muere (+0x389); sus partículas "
-                                            "y 0x4f5660 no están portados",
-                                            slot));
+        return died;
     }
     // 0x4fd72e: 0x4e9980, el alpha hacia su meta y la luz del blendMesh.
     World::StepObjectAlpha(actor.alphaTarget, actor.alpha, actor.blendMeshLight, actor.alphaMode);
@@ -662,60 +856,116 @@ Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slo
     {
         return animated;
     }
-    // 0x4fd77b..0x4fd7dc: muriéndose, que ya cortó.
+    // 0x4fd77b..0x4fd7dc: muriéndose, +0x389 sube (un byte, que da la vuelta) y desde 15 llama a 0x4f5660; en Blood
+    // Castle (11 a 17) con +0x1a1, otra vez.
+    if (actor.dying != 0)
+    {
+        if (auto died = DieAgain(actor, context); !died.HasValue())
+            return died;
+    }
     // 0x4fd7e4: rand() % 6 sin condición; (r + 2) · 0,1f va a un local que este camino no lee (Q-C247).
     static_cast<void>(context.random.Next());
-    // 0x4fd835..0x4fdada: fuera del mapa 30, con +0x1a0 positivo, seis rand() por hueso y un 0x614. +0x1a0 en 0:
-    // lo pone 0x511290 (0x511c62) y lo sube solo 0x4f97b0 (0x4f9ba2), desde la habilidad de abajo (*estático*).
+    if (auto emitted = StepTheBoneEmitter(actor, context); !emitted.HasValue())
+        return emitted;
     // 0x4fdae0..0x4fdb92: las 0x4d, 0x4f y 0x5a pasado el frame 5,5 sacan la partícula 0x5ac del hueso 42.
     const std::uint8_t action = actor.animation.action;
     if (IsOneOf(ParticleActions, action) && actor.animation.frame > ParticleFrame)
     {
-        return Core::Unexpected(std::format("0x4fdb70: la acción {:#x} del lugar {} saca la partícula 0x5ac en el "
-                                            "hueso 42 (0x4ec110), sin portar",
-                                            action, slot));
+        if (auto flare = CreateTheActionFlare(actor, context); !flare.HasValue())
+            return flare;
     }
-    // 0x4fdb9a..0x4fdbeb: +0x381 en 0, debajo de [0x6c88ac] (15): salta a 0x50539e sin la habilidad. Lo escribe
-    // solo este camino (*estático*).
-    // 0x5053a2..0x5053f0: +0x428 en −128 (0x511290, 0x511c77; los paquetes lo ponen en 0x96): nada.
+    // 0x4fdb9a..0x50539e: con +0x381 distinto de 0, 0x4f97b0 y 0x4f5b70 y +0x381 += 1; desde [0x6c88ac], la habilidad
+    // de +0x38e con el blanco de +0x3a4. Lo ponen en 1 el ataque al llegar (0x5653c1, HeroAttack) y el 18 con 0x78 y
+    // 0x79 (0x4cb830, ActionReply).
+    if (auto attacked = StepTheAttack(actor, slot, context); !attacked.HasValue())
+    {
+        return attacked;
+    }
+    // 0x5053a2..0x5053f0: cuenta el +0x428 y, al vencer, corre 0x511070(c, o) sin cortar el cuerpo.
+    if (actor.dword428 > 0)
+        --actor.dword428;
+    if (actor.dword428 <= 0 && actor.dword428 != ActorRemovalCountdownSentinel)
+    {
+        actor.dword428 = ActorRemovalCountdownSentinel;
+        RemoveActorAtSlot(context.world, actor, slot);
+    }
     // 0x5053fc: 0x42a2b0, la barra de vida del 0x1a8.
     QueueTheHealthBar(actor, context.world.Runtime().healthBars);
     // 0x505410: 0x4fcee0.
-    if (auto trailed = StepTheWeaponTrail(actor, slot, context.random); !trailed.HasValue())
+    if (auto trailed = StepTheWeaponTrail(actor, slot, context); !trailed.HasValue())
     {
         return trailed;
     }
+    // 0x505425..0x505444: el 0xf1 echa el fuego de la clase 0 de 0x52f360 sin offset, con sus ángulos, su posición
+    // y su luz.
+    if (actor.type == FallingType)
+    {
+        const World::ObjectStepGlobals globals{.worldClock = context.worldClock,
+                                               .dynamicLighting = &context.world.DynamicLighting().Lighting(),
+                                               .particles = context.particles};
+        if (auto fire = World::EmitObjectFire(0, actor.angles, actor.position, actor.light, glm::vec3(0.0f),
+                                              context.random, globals);
+            !fire.HasValue())
+        {
+            return Core::Unexpected(std::format("{} (el 0xf1 del lugar {})", fire.Error(), slot));
+        }
+    }
     // 0x50544b: 0x420dd0, después de la estela y antes de 0x505de0, también fuera del trapecio.
-    if (!actor.darkSpirit || (actor.flags78 & FrozenFlag) != 0)
+    if (actor.darkSpirit && (actor.flags78 & FrozenFlag) == 0)
     {
-        return {};
+        if (auto raven = StepTheRaven(actor, slot, context); !raven.HasValue())
+        {
+            return raven;
+        }
     }
-    // 0x416add..0x4176e6 y 0x417801..0x41789d: los estados 2, 5 y 6 son los de las órdenes A7 (los paquetes de
-    // 0x416a20 y el objetivo de +0x3b0), sin portar (CL9). Nada de MuRet los pone.
-    constexpr std::uint8_t LastRestingState = 4;
-    const std::uint8_t ravenState = actor.darkSpirit->state;
-    if (ravenState == 2 || ravenState > LastRestingState)
+    // 0x505453..0x5054aa: muriéndose, apaga 0x8000 y 0x10000 de +0x78.
+    if (actor.dying != 0)
     {
-        return Core::Unexpected(std::format(
-            "0x416add: el estado {} del cuervo del lugar {} es de las órdenes A7, sin portar", ravenState, slot));
+        constexpr std::uint32_t DyingClearedFlags = 0x8000 | 0x10000;
+        actor.flags78 &= ~DyingClearedFlags;
     }
+    return {};
+}
+
+// 0x420dd0: el cuervo de +0x430, que el que llama da por existente y sin +0x78 & 0x1000.
+Core::Expected<void, std::string> StepTheRaven(ActorState& actor, std::size_t slot, const CharacterStepContext& context)
+{
+    const WorldRuntime& runtime = context.world.Runtime();
     if (context.darkSpiritSkeleton == nullptr || context.particles == nullptr)
     {
         return Core::Unexpected(
             std::format("0x416a20: faltan el modelo o las partículas del cuervo del lugar {}", slot));
     }
+    auto targets = RavenTargetsOf(*actor.darkSpirit, context.world, slot);
+    if (!targets.HasValue())
+    {
+        return Core::Unexpected(targets.Error());
+    }
     const SharedModelPlacement& player = context.world.PlayerModel();
-    static_cast<void>(StepDarkSpirit(*actor.darkSpirit, *context.darkSpiritSkeleton,
-                                     {.position = actor.position,
-                                      .flags = actor.flags78,
-                                      .angles = actor.angles,
-                                      .pet = actor.pet.model,
-                                      .safeZone = actor.safeZone,
-                                      .pose = actor.bodyPose,
-                                      .modelScale = player.scale,
-                                      .modelOrigin = player.origin},
-                                     static_cast<std::uint8_t>(runtime.map), *context.particles, context.worldClock,
-                                     context.random, context.counter));
+    const DarkSpiritStepped stepped =
+        StepDarkSpirit(*actor.darkSpirit, *context.darkSpiritSkeleton,
+                       {.position = actor.position,
+                        .flags = actor.flags78,
+                        .angles = actor.angles,
+                        .pet = actor.pet.model,
+                        .safeZone = actor.safeZone,
+                        .pose = actor.bodyPose,
+                        .modelScale = player.scale,
+                        .modelOrigin = player.origin},
+                       static_cast<std::uint8_t>(runtime.map), *context.particles, context.worldClock, context.random,
+                       context.counter, targets.Value());
+    // 0x416fc8 y 0x4175de: el A7 que corta el ataque, por send(); sin la sesión, no sale.
+    if (stepped.stopsTheAttack && context.send)
+    {
+        context.send(Protocol::Pet::WritePetCommand({.pet = Protocol::Pet::RavenPet,
+                                                     .command = Protocol::Pet::StopTheAttackCommand,
+                                                     .key = Protocol::Pet::NoTargetKey}));
+    }
+    // 0x417e67: 0x41ed10(0x1d1) (CL10).
+    if (stepped.shouts && context.soundRequest)
+    {
+        context.soundRequest(RavenShoutSound);
+    }
     return {};
 }
 
@@ -732,6 +982,100 @@ glm::vec3 OwnBonePoint(const ActorState& actor, std::size_t bone, const glm::vec
         bone < actor.bodyPose.size() ? actor.bodyPose[bone] : Render::Models::BoneTransform(0.0f);
     return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), offset, actor.scale,
                                                      actor.position);
+}
+
+Core::Expected<void, std::string> EmitSkillParticle(std::int32_t type, const glm::vec3& point, ActorState& actor,
+                                                    const glm::vec3& light, std::int32_t subtype, float scale,
+                                                    const CharacterStepContext& context, std::string_view address)
+{
+    if (context.particles == nullptr)
+        return Core::Unexpected(std::format("{}: falta el pool de partículas de la skill", address));
+    const auto made = context.particles->CreateChecked(type, point, actor.angles, light, subtype, scale,
+                                                       context.worldClock, context.random);
+    if (!made.HasValue())
+        return Core::Unexpected(std::format("{}: la partícula {:#x}/{} de la skill falla con error {}", address, type,
+                                            subtype, static_cast<unsigned>(made.Error())));
+    return {};
+}
+
+// 5189f0: tres619/8. Los dos selectores preceden cada intento, también con J lleno.
+Core::Expected<void, std::string> EmitChargedSkillJoints(ActorState& actor, const CharacterStepContext& context)
+{
+    constexpr int Count = 3, PitchSpan = 90, YawSpan = 360;
+    constexpr glm::vec3 Offset{0.0f, -500.0f, 0.0f};
+    constexpr double Lift = 120.0;
+    constexpr std::int32_t Type = 0x619, Subtype = 8;
+    constexpr float Width = 10.0f;
+    for (int index = 0; index < Count; ++index)
+    {
+        glm::vec3 angles{static_cast<float>(context.random.Next() % PitchSpan), 0.0f,
+                         static_cast<float>(context.random.Next() % YawSpan)};
+        const glm::vec3 rotated =
+            Render::Models::OriginalVectorRotate(Offset, Render::Models::OriginalAngleMatrix(angles));
+        glm::vec3 first{};
+        for (int axis = 0; axis < 3; ++axis)
+            first[axis] = static_cast<float>(static_cast<double>(actor.position[axis]) -
+                                             static_cast<double>(rotated[axis]) + (axis == 2 ? Lift : 0.0));
+        if (context.joints.empty())
+            return Core::Unexpected(std::string("0x518aa8: falta el pool de joints619/8 de la skill cargada"));
+        const World::FishEffectRequest request{.type = Type,
+                                               .firstPosition = first,
+                                               .secondPosition = actor.position,
+                                               .angles = angles,
+                                               .subtype = Subtype,
+                                               .ownerContext = &actor,
+                                               .scale = Width,
+                                               .key = -1,
+                                               .skill = 0,
+                                               .skillSerial = 0,
+                                               .target = -1};
+        if (auto joint = CreateFaunaJoint(context.joints, request, context.random); !joint.HasValue())
+            return Core::Unexpected(std::format("0x518aa8: {}", joint.Error()));
+    }
+    return {};
+}
+
+// 506e57..506f5a: la pose sin publicar usa la matriz0 de Q-C318, no equivale a puntero120NULL.
+Core::Expected<void, std::string> EmitChargedSkillFlares(ActorState& actor, const Render::Models::Skeleton& skeleton,
+                                                         const CharacterStepContext& context)
+{
+    constexpr std::size_t PastBone = 40, BoneStep = 2;
+    constexpr glm::vec3 Offset{-15.0f, 0.0f, 0.0f}, Light{0.3f, 0.3f, 1.0f};
+    constexpr std::int32_t Type = 0x5ac, Subtype = 6;
+    constexpr double ScaleStep = static_cast<double>(0.08f), BaseScale = static_cast<double>(1.3f);
+    const float scale = static_cast<float>(static_cast<double>(actor.byte1bc) * ScaleStep + BaseScale);
+    for (std::size_t bone = 0; bone < PastBone && bone < skeleton.bones.size(); bone += BoneStep)
+    {
+        if (skeleton.bones[bone].dummy)
+            continue;
+        const glm::vec3 point = OwnBonePoint(actor, bone, Offset);
+        for (int flare = 0; flare <= static_cast<int>(actor.byte1bc); ++flare)
+        {
+            if (auto made = EmitSkillParticle(Type, point, actor, Light, Subtype, scale, context, "0x506f02");
+                !made.HasValue())
+                return made;
+        }
+    }
+    return EmitChargedSkillJoints(actor, context);
+}
+
+// 506f62..506fc1: diez selecciones de hueso y partículas5d9/0 ya portadas; count0 conserva rand antes del IDIV.
+Core::Expected<void, std::string> EmitRandomBoneFires(ActorState& actor, const Render::Models::Skeleton& skeleton,
+                                                      const CharacterStepContext& context)
+{
+    constexpr int Count = 10;
+    constexpr glm::vec3 Offset{-15.0f, 0.0f, 0.0f}, Light{1.0f, 1.0f, 1.0f};
+    constexpr std::int32_t Type = 0x5d9;
+    for (int index = 0; index < Count; ++index)
+    {
+        const auto selector = static_cast<std::size_t>(context.random.Next());
+        if (skeleton.bones.empty())
+            return Core::Unexpected(std::string("0x506f84: el modelo sin huesos dividiría por cero en la acción0x96"));
+        const glm::vec3 point = OwnBonePoint(actor, selector % skeleton.bones.size(), Offset);
+        if (auto made = EmitSkillParticle(Type, point, actor, Light, 0, 1.0f, context, "0x506fb6"); !made.HasValue())
+            return made;
+    }
+    return {};
 }
 
 // 0x506d0a..0x506d7c: en la escena 5 y el mapa 7, el segundo de cada diez del reloj del mundo (ftol % 10000
@@ -802,30 +1146,39 @@ Core::Expected<void, std::string> DropTheDevilSquareRain(const ActorState& actor
     return {};
 }
 
+// 0x505e15..0x505ebb: la caja de +0x13c..+0x168 con la de +0x124..+0x138: el rincón más la posición y los tres ejes
+// (el largo de cada lado en la diagonal, el resto en 0). Cada resta y cada suma en la x87 se guarda en float: lo mismo
+// que en float.
+void BoxTheModelWithoutActions(ActorState& actor)
+{
+    PublishPickingBox(actor, actor.position, actor.boundsMin, {actor.boundsMaxX, actor.boundsMaxY, actor.boundsTop});
+}
+
 // 0x505de0(c, c) desde 0x508ee6, hasta su final (06, "Los efectos de los personajes (0x505de0)" y "El cuerpo de los
 // monstruos y los NPC"). `hero` es c == [0x743a170].
 Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t slot, bool hero,
                                                  const CharacterStepContext& context,
                                                  const Data::Terrain::TerrainLayer<std::uint16_t>* walls)
 {
-    // 0x505e0b: un modelo sin acciones (+0x26 de 0x5769ad8 + tipo · 0xe0) va a la caja de 0x505e15.
+    // 0x505e0b: un modelo sin acciones (+0x26 de 0x5769ad8 + tipo · 0xe0) va a la caja de 0x505e15 y sale.
     const bool player = actor.type == Data::Models::PlayerSkeletonModel;
     const Render::Models::Skeleton* skeleton = ModelSkeletonOf(actor, context);
     if (skeleton == nullptr)
     {
         return Core::Unexpected(
-            std::format("0x505e0b: el modelo {:#x} del lugar {} no está cargado", actor.type, slot));
+            std::format("0x505e0b: falta Player.bmd o el NewFace del modelo {:#x} (lugar {})", actor.type, slot));
     }
     if (skeleton->actions.empty())
     {
-        return Core::Unexpected(std::format(
-            "0x505e15: la caja del modelo {:#x} sin acciones (lugar {}) no está portada", actor.type, slot));
+        BoxTheModelWithoutActions(actor);
+        return {};
     }
     // 0x505ec6..0x505ee4: la posición, la escala y la acción van al modelo compartido (+0x6c, +0x68 y
     // +0xa0), que leen los 0x4ec110 de más abajo y que el dibujo vuelve a escribir antes de posar. MuRet
-    // guarda la escala y la posición del de Player.bmd, que el cuervo lee en la zona segura antes de este
-    // punto de su dueño (Q-C412); los de abajo leen las del propio personaje (OwnBonePoint).
-    context.world.PlacePlayerModel(actor);
+    // guarda la escala y la posición de cada tipo: la de Player.bmd la lee el cuervo en la zona segura antes de
+    // este punto de su dueño (Q-C412), y las de todos, los restos de 0x52e810 en el paso del cuerpo, que va antes
+    // (Q-C1178); los de abajo leen las del propio personaje (OwnBonePoint).
+    context.world.PlaceModel(actor);
     // 0x505ef2: sin verse, nada más.
     if (!actor.seen)
     {
@@ -886,22 +1239,24 @@ Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t 
     // posición, y con 0x612 recorre los huesos con 0x4ec110; no crea nada (Q-C266). En los personajes +0x3d8 solo
     // lo escribe 0x4fd5f0, que lo baja si es positivo (0x4fd75e); los otros que escriben +0x3d4 y +0x3d8 son de la
     // UI (*estático*).
-    // 0x506cac: rand() & 7, sin condición. El camino del 0x20a no lee el valor (*estático*, Q-C207).
-    static_cast<void>(context.random.Next());
-    // 0x506ccc..0x506cf1: el caso del tipo − 0x152; el 0x20a cae en 0x506cf8, que mira el mapa 7 solo en la
-    // escena 5.
+    // 0x506cac..0x506cf1: rand() & 7, sin condición, y el caso del tipo − 0x152. Con otro modelo, su caso o los helpers
+    // de 0x5085db (Scenes::StepTheModelEffects); 0x50862f..0x508801 son del 0x20a, que cae en 0x506cf8 (mira el mapa 7
+    // solo en la escena 5) y no lee el rand() (*estático*, Q-C207).
     const std::int32_t map = context.world.Runtime().map;
     if (!player)
     {
-        // El caso del modelo o los helpers de 0x5085db (Scenes::ModelEffectsCutOf); 0x50862f..0x508801 son del 0x20a.
-        if (const auto cut = ModelEffectsCutOf(actor.type, map))
-        {
-            return Core::Unexpected(std::format("{:#x}: los efectos del modelo {:#x} (lugar {}) en 0x505de0 son de la "
-                                                "CL11",
-                                                *cut, actor.type, slot));
-        }
-        return {};
+        ModelEffectsPass pass{.actor = actor,
+                              .slot = slot,
+                              .world = context.world,
+                              .random = context.random,
+                              .skeleton = *skeleton,
+                              .particles = context.particles,
+                              .sprites = context.sprites,
+                              .worldClock = context.worldClock,
+                              .map = map};
+        return StepTheModelEffects(pass);
     }
+    static_cast<void>(context.random.Next());
     if (context.scene == SceneId::Game && map == ClockEffectMap)
     {
         if (auto bubbled = BlowTheAtlansBubble(actor, slot, context); !bubbled.HasValue())
@@ -919,15 +1274,13 @@ Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t 
     const std::uint8_t action = actor.animation.action;
     if (action == FirstEffectAction || action == SecondEffectAction)
     {
-        return Core::Unexpected(std::format("0x506e5d: la acción {:#x} del lugar {} saca los efectos 0x5ac y los de "
-                                            "0x5189f0, que no están portados",
-                                            action, slot));
+        if (auto flared = EmitChargedSkillFlares(actor, *skeleton, context); !flared.HasValue())
+            return flared;
     }
     if (action == BoneEffectAction)
     {
-        return Core::Unexpected(std::format("0x506f62: la acción 0x96 del lugar {} saca diez efectos 0x5d9 en huesos "
-                                            "de rand(), que no están portados",
-                                            slot));
+        if (auto fired = EmitRandomBoneFires(actor, *skeleton, context); !fired.HasValue())
+            return fired;
     }
     // 0x506fc1..0x507001: 0x4ec110 con el hueso de +0x2bd a un local que nadie lee, y a 0x50862f.
     // 0x50862f..0x5086ca: solo con el héroe publicado (0x508641), los pasos: el sonido de 0x505770 con +0x3e0 y
@@ -991,7 +1344,23 @@ Core::Expected<void, std::string> StepACharacter(ActorState& actor, std::size_t 
         return body;
     }
     const World::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
-    return StepTheEffects(actor, slot, hero, context, terrain.attributes ? &terrain.attributes->cells : nullptr);
+    if (auto effects =
+            StepTheEffects(actor, slot, hero, context, terrain.attributes ? &terrain.attributes->cells : nullptr);
+        !effects.HasValue())
+    {
+        return effects;
+    }
+    // 0x508eed: 0x42da90, que fuera del mapa 30 devuelve 0 (0x42da9a); en el 30 mueve, por +0x376, los objetos del
+    // asedio (MonsterStepCases.h).
+    const CastleObjectStep castle{.runtime = context.world.Runtime(),
+                                  .pool = context.world.Actors(),
+                                  .height = TerrainHeightOf(context),
+                                  .skeleton = ModelSkeletonOf(actor, context)};
+    if (auto stepped = StepTheCastleObject(actor, castle); !stepped.HasValue())
+    {
+        return Core::Unexpected(std::format("{} (lugar {})", stepped.Error(), slot));
+    }
+    return {};
 }
 } // namespace
 
@@ -1082,15 +1451,6 @@ Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& con
         if (auto stepped = StepACharacter(actor, slot, hero, context); !stepped.HasValue())
         {
             return stepped;
-        }
-        // 0x508eed: 0x42da90, que fuera del mapa 30 devuelve 0 (0x42da9a). En el 30 mueve, por +0x376, los objetos
-        // del asedio (0x42dac4): corta.
-        if (actor.alive && runtime.map == CastleMap &&
-            std::ranges::find(SiegeObjectClasses, actor.word376) != SiegeObjectClasses.end())
-        {
-            return Core::Unexpected(std::format("0x42dac4: el objeto del asedio {} del lugar {} (0x42da90) no está "
-                                                "portado",
-                                                actor.word376, slot));
         }
     }
     // Frontera (08 P-C44): 0x52e500 (0x5091d0), el paso de las estelas de 0x75e9870, sin rand(). Las

@@ -1,5 +1,6 @@
 #include "Protocol/Viewport.h"
 
+#include "Network/Packet.h"
 #include "Protocol/ProtocolError.h"
 
 #include "support/Bytes.h"
@@ -132,6 +133,37 @@ TEST(ViewportTest, TransformedReadsTheTypeAndTheShortRecord)
     EXPECT_EQ(record.targetX, 71);
     EXPECT_EQ(record.targetY, 81);
     EXPECT_EQ(record.directionAndPk, 0x31);
+}
+
+// ADR0017: el45 observado en XP tiene22 bytes de registro; el ASM lee destino y dirección hasta el24.
+TEST(ViewportTest, ATransformRecordNeedsItsTargetAndDirectionButNotUnusedPadding)
+{
+    const std::array<Client::Tests::TransformedRecordBytes, 1> records{{{.key = 7,
+                                                                         .type = 2,
+                                                                         .effects = 0x20,
+                                                                         .name = "Probe",
+                                                                         .targetX = 71,
+                                                                         .targetY = 81,
+                                                                         .directionAndPk = 0x31}}};
+    const auto packet = Client::Tests::TransformedPacket(records);
+    const std::vector<std::byte> complete(packet.Bytes().begin(), packet.Bytes().end());
+    constexpr std::size_t HeaderAndCount = 5;
+    constexpr std::size_t ObservedRecordBytes = 22;
+    constexpr std::size_t LastReadRecordBytes = 25;
+    auto bytes = complete;
+    bytes.resize(HeaderAndCount + ObservedRecordBytes);
+    bytes[2] = std::byte{static_cast<std::uint8_t>(bytes.size())};
+    EXPECT_EQ(ErrorOf(ReadTransformed(PacketOf(bytes))), ProtocolError::TooShort);
+
+    bytes = complete;
+    bytes.resize(HeaderAndCount + LastReadRecordBytes);
+    bytes[2] = std::byte{static_cast<std::uint8_t>(bytes.size())};
+    const auto read = ReadTransformed(PacketOf(bytes));
+    ASSERT_TRUE(read.HasValue());
+    ASSERT_EQ(read.Value().records.size(), 1u);
+    EXPECT_EQ(read.Value().records[0].targetX, 71);
+    EXPECT_EQ(read.Value().records[0].targetY, 81);
+    EXPECT_EQ(read.Value().records[0].directionAndPk, 0x31);
 }
 
 // 0x4c838e: la clave entera; el ítem hasta pkt[10] (el byte 5, el último que lee 0x54b3a0) y el 6 en 0.

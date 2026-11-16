@@ -7,13 +7,16 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalAngles.h"
+#include "Render/Models/Skeleton.h"
 #include "Scenes/ActorActions.h"
 #include "Scenes/ActorShock.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ActorWalk.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CrywolfContract.h"
+#include "Scenes/DamageNumbers.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/MonsterCreation.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldState.h"
@@ -32,7 +35,6 @@ constexpr std::size_t SearchActorCount = 400;
 constexpr std::uint16_t JumpingActor = 0x186;
 constexpr std::uint16_t NoRandomShock = 0x113;
 constexpr float CellSize = 100.0f;
-constexpr float DamageHeight = 140.0f;
 constexpr float NormalDamageScale = 15.0f;
 constexpr float HighlightDamageScale = 50.0f;
 constexpr float DuplicateHeight = 10.0f;
@@ -54,18 +56,25 @@ void WriteCell(std::uint8_t value, std::uint8_t& cell, std::uint8_t& depth, Rend
     const Render::Models::LogicalAccess access(depth, random, Render::Models::SmallLogicalCloseRandoms);
     cell = value;
 }
-Core::Expected<ActorStopContext, std::string> StopContext(const WorldEntryResources& resources)
+Core::Expected<ActorStopContext, std::string> StopContext(const ActorState& actor, const WorldEntryResources& resources)
 {
     const auto* skeleton = resources.models.SkeletonOf(Data::Models::PlayerSkeletonModel);
-    if (skeleton == nullptr)
+    if (skeleton == nullptr && actor.type == Data::Models::PlayerSkeletonModel)
         return Core::Unexpected(std::string("0x4c6790: falta Player.bmd para la acción del personaje"));
-    return ActorStopContext{resources.world.Runtime(),
-                            SceneId::Game,
-                            *skeleton,
-                            resources.items,
-                            resources.cloth.random,
-                            resources.world.Map().terrain.attributes ? &resources.world.Map().terrain.attributes->cells
-                                                                     : nullptr};
+    static const Render::Models::Skeleton EmptySkeleton;
+    const Render::Models::Skeleton* playerSkeleton = skeleton != nullptr ? skeleton : &EmptySkeleton;
+    const Render::Models::Skeleton* actorSkeleton =
+        actor.type == Data::Models::PlayerSkeletonModel ? nullptr : MonsterSkeletonOf(resources, actor.type);
+    return ActorStopContext{.runtime = resources.world.Runtime(),
+                            .scene = SceneId::Game,
+                            .playerSkeleton = *playerSkeleton,
+                            .items = resources.items,
+                            .random = resources.cloth.random,
+                            .terrainWalls = resources.world.Map().terrain.attributes
+                                                ? &resources.world.Map().terrain.attributes->cells
+                                                : nullptr,
+                            .actorSkeleton = actorSkeleton,
+                            .modelSounds = resources.world.FaunaResources().SoundActions(actor.type)};
 }
 Core::Expected<void, std::string> ApplyOtherWalk(ActorState& actor, const WorldEntryResources& resources)
 {
@@ -91,7 +100,7 @@ Core::Expected<void, std::string> ApplyOtherWalk(ActorState& actor, const WorldE
         actor.path = *path;
         return {};
     }
-    const auto context = StopContext(resources);
+    const auto context = StopContext(actor, resources);
     if (!context.HasValue())
         return Core::Unexpected(context.Error());
     const auto stopped = SetActorStop(actor, context.Value());
@@ -113,11 +122,13 @@ Core::Expected<void, std::string> ApplyJumpingWalk(ActorState& actor, const Worl
                                                                         static_cast<float>(actor.cellX) * CellSize,
                                                                         static_cast<float>(actor.cellY) * CellSize));
     }
-    const auto context = StopContext(resources);
+    const auto context = StopContext(actor, resources);
     if (!context.HasValue())
         return Core::Unexpected(context.Error());
-    const auto walked = SetActorWalk(
-        actor, {context.Value(), resources.world.ActionSpeeds(), false, resources.models.SkeletonOf(actor.type)});
+    // 0x4f37c0 → 0x4ea030 con el modelo del personaje: el 0x186 es un monstruo (el GS 0.97 manda su D3 desde
+    // gObjMonster, que llama a CGMoveRecv), con su modelo en WorldState::FaunaResources (MonsterSkeletonOf).
+    const auto walked = SetActorWalk(actor, {context.Value(), resources.world.ActionSpeeds(), false,
+                                             context.Value().actorSkeleton, context.Value().modelSounds});
     if (!walked.HasValue())
         return Core::Unexpected(walked.Error());
     if (walked.Value().sound)
@@ -125,24 +136,10 @@ Core::Expected<void, std::string> ApplyJumpingWalk(ActorState& actor, const Worl
     actor.byte399 = 1;
     return {};
 }
-void CreateDamageNumber(WorldState& world, const glm::vec3& position, std::int32_t amount, const glm::vec3& light,
+void CreateRisingDamage(WorldState& world, const glm::vec3& position, std::int32_t amount, const glm::vec3& light,
                         float scale)
 {
-    for (DamageNumberState& number : world.DrawTail().damage)
-    {
-        if (number.alive)
-            continue;
-        number.alive = true;
-        number.number = amount;
-        number.position = position;
-        number.position.z = static_cast<float>(static_cast<double>(position.z) + DamageHeight);
-        number.light = light;
-        number.scale = scale;
-        number.speed = 10.0f;
-        number.timer = 0;
-        number.rise = true;
-        return;
-    }
+    CreateDamageNumber(world, position, amount, light, scale, true);
 }
 void SubtractHeroLife(std::uint16_t amount, const WorldEntryResources& resources)
 {
@@ -176,7 +173,7 @@ void CreateOrdinaryDamage(const Protocol::Movement::Damage& reply, ActorState& a
 {
     if (reply.amount == 0)
     {
-        CreateDamageNumber(resources.world, actor.position, -1, glm::vec3(hero ? 1.0f : 0.5f), NormalDamageScale);
+        CreateRisingDamage(resources.world, actor.position, -1, glm::vec3(hero ? 1.0f : 0.5f), NormalDamageScale);
         return;
     }
     const glm::vec3 light = DamageLight(reply.type, hero);
@@ -187,13 +184,13 @@ void CreateOrdinaryDamage(const Protocol::Movement::Damage& reply, ActorState& a
     {
         const float dim = index == 0 ? FirstDuplicateLight : SecondDuplicateLight;
         const float enlarged = index == 0 ? scale : scale + DuplicateScale;
-        CreateDamageNumber(resources.world, position, reply.amount, light - glm::vec3(dim), enlarged);
+        CreateRisingDamage(resources.world, position, reply.amount, light - glm::vec3(dim), enlarged);
         position.z = static_cast<float>(static_cast<double>(position.z) + DuplicateHeight);
     }
     // 0x4cb614 salta a 0x4cb6c1 y cae después en 0x4cb6c9: bit7 también emite el normal final.
     if (reply.flag)
-        CreateDamageNumber(resources.world, position, reply.amount, light, scale + DuplicateHeight);
-    CreateDamageNumber(resources.world, actor.position, reply.amount, light, scale);
+        CreateRisingDamage(resources.world, position, reply.amount, light, scale + DuplicateHeight);
+    CreateRisingDamage(resources.world, actor.position, reply.amount, light, scale);
 }
 } // namespace
 Core::Expected<void, std::string> ApplyWalkReply(const Protocol::Movement::Walk& reply, std::uint16_t playerKey,
@@ -226,7 +223,7 @@ Core::Expected<void, std::string> ApplyDamageReply(const Protocol::Movement::Dam
     {
         if (auto shocked = SetActorShock(*actor, reply.amount, resources); !shocked.HasValue())
             return shocked;
-        CreateDamageNumber(resources.world, actor->position, reply.amount, {1.0f, 0.0f, 0.0f}, NormalDamageScale);
+        CreateRisingDamage(resources.world, actor->position, reply.amount, {1.0f, 0.0f, 0.0f}, NormalDamageScale);
         if (hero)
             SubtractHeroLife(reply.amount, resources);
     }

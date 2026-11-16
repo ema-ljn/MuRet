@@ -89,20 +89,12 @@ bool Matches(const World::ItemState& item, std::int32_t type, std::int32_t level
         return false;
     return id != ByLevel || LevelOf(item) == level;
 }
-} // namespace
 
-Core::Expected<std::optional<std::size_t>, std::string>
-FindQuickSlotItem(const QuickSlots& slots, std::span<const World::ItemState, InventoryCellCount> cells, int slot,
-                  bool requestBlocked)
+// 0x5582e5..0x55838e: los tipos de arriba abajo, las columnas de la 7 a la 0 y, en cada una, las filas de la 7 a la 0.
+std::optional<std::size_t> FindInTheGrid(std::span<const World::ItemState, InventoryCellCount> cells,
+                                         const SlotRange& range, std::int32_t level)
 {
-    auto range = RangeOf(slots, slot, "0x558110");
-    if (!range.HasValue())
-        return Core::Unexpected(range.Error());
-    // 0x5582c1: con el pedido trabado, el 0x1c0a no se usa.
-    if (requestBlocked && range.Value().last == Counted1c0a && range.Value().first == Counted1c0a)
-        return std::optional<std::size_t>{};
-    const std::int32_t level = slots.levels[static_cast<std::size_t>(slot)];
-    for (std::int32_t type = range.Value().last; type >= range.Value().first; --type)
+    for (std::int32_t type = range.last; type >= range.first; --type)
     {
         for (std::size_t column = GridSide; column-- > 0;)
         {
@@ -110,11 +102,32 @@ FindQuickSlotItem(const QuickSlots& slots, std::span<const World::ItemState, Inv
             {
                 const std::size_t index = row * GridSide + column;
                 if (Matches(cells[index], type, level))
-                    return std::optional<std::size_t>{index};
+                    return index;
             }
         }
     }
-    return std::optional<std::size_t>{};
+    return std::nullopt;
+}
+} // namespace
+
+Core::Expected<std::optional<std::size_t>, std::string>
+FindQuickSlotItem(const QuickSlots& slots, std::span<const World::ItemState, InventoryCellCount> cells, int slot,
+                  bool requestBlocked)
+{
+    // 0x558119..0x558141: las pociones de las skills, sin mirar la ranura; 0x55815d las lleva a 0x5582c1.
+    if (slot == ManaPotionSlot || slot == LifePotionSlot)
+    {
+        const SlotRange potions = slot == ManaPotionSlot ? SlotRange{.first = ManaFirst, .last = ManaLast}
+                                                         : SlotRange{.first = HealingFirst, .last = HealingLast};
+        return FindInTheGrid(cells, potions, 0);
+    }
+    auto range = RangeOf(slots, slot, "0x558110");
+    if (!range.HasValue())
+        return Core::Unexpected(range.Error());
+    // 0x5582c1: con el pedido trabado, el 0x1c0a no se usa.
+    if (requestBlocked && range.Value().last == Counted1c0a && range.Value().first == Counted1c0a)
+        return std::optional<std::size_t>{};
+    return FindInTheGrid(cells, range.Value(), slots.levels[static_cast<std::size_t>(slot)]);
 }
 
 Core::Expected<std::int32_t, std::string>

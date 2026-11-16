@@ -450,7 +450,9 @@ Core::Expected<void, std::string> AddSlotBonusToCopies(OwnStatCopies& copies, co
 {
     const Render::Models::LogicalAccess access(context.ownRecordAccesses, context.random,
                                                Render::Models::OwnRecordCloseRandoms);
-    if (item.durability == 0)
+    // 0x40e038..0x40e075: la contribución de valor 0 es nula cualquiera sea el selector.
+    // El acceso lógico queda alrededor, con su cierre y RNG nativos.
+    if (item.durability == 0 || (item.id == EmptyOwnItemId && ItemStatBonusValueOf(item) == 0))
     {
         return {};
     }

@@ -40,6 +40,12 @@ void TextCacheDrawer::DrawColumns(int x, int y, std::string_view text, const Ren
     LogOnce(m_cache.DrawColumns(m_batch, x, y, text, style, firstColumn, columns));
 }
 
+void TextCacheDrawer::DrawColumnsAtPixels(int pixelX, int pixelY, std::string_view text,
+                                          const Render::Text::TextStyle& style, int firstColumn, int columns)
+{
+    LogOnce(m_cache.DrawColumnsAtPixels(m_batch, pixelX, pixelY, text, style, firstColumn, columns));
+}
+
 void TextCacheDrawer::DrawBoxed(int x, int y, std::string_view text, const Render::Text::TextStyle& style,
                                 const Render::Text::BoxShape& box, bool clampY)
 {

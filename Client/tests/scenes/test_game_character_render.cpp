@@ -36,6 +36,7 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <span>
 #include <string>
@@ -567,16 +568,47 @@ TEST_F(GameCharacterRenderTest, TheSharedRandomAdvancesOnlyForThe607b60CasesThat
     }
 }
 
-TEST_F(GameCharacterRenderTest, AnUnportedMonsterBranchStopsBeforeThePlayerRecordAndItsRandoms)
+TEST_F(GameCharacterRenderTest, TheClothOnTheMeshStopsBeforeThePlayerRecordAndItsRandoms)
 {
     Player(0).word376 = 0x59;
 
     const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
 
     ASSERT_FALSE(result.HasValue());
-    EXPECT_NE(result.Error().find("0x50bad8"), std::string::npos) << result.Error();
+    EXPECT_NE(result.Error().find("0x50bae7"), std::string::npos) << result.Error();
     EXPECT_TRUE(m_batch.Vertices().empty());
     EXPECT_EQ(m_clothWorld.random.State(), 1u);
+}
+
+// 0x50c951: el monstruo 55 es un 0x20a con el +0x376 0x37; sin la clase 3 ni la 4, bVar23 lo prende y 0x50d812 arma
+// la tela de ClothMonster (10 por 10, la textura 0x252), salvo en los mapas 0x12 a 0x17.
+TEST_F(GameCharacterRenderTest, TheMonster55WearsTheClothOfThe0x37)
+{
+    for (const std::int32_t map : {0, 2, 0x12})
+    {
+        SCOPED_TRACE(map);
+        m_world->Runtime().map = map;
+        Player(0).word376 = 0x37;
+        m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+        std::array<Client::Scenes::CharacterCloth, 401> cloths;
+        GameCharacterPass pass = Pass();
+        pass.cloths = cloths;
+        m_batch.Begin(Client::Render::Pass3D{});
+
+        const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        if (map == 0x12)
+        {
+            EXPECT_TRUE(cloths[0].Cloths().empty());
+            continue;
+        }
+        ASSERT_EQ(cloths[0].Cloths().size(), 1u);
+        EXPECT_EQ(cloths[0].Count(), 1);
+        EXPECT_EQ(cloths[0].Cloths()[0].Particles().size(), 100u);
+        EXPECT_EQ(cloths[0].Cloths()[0].Front(), Client::Render::TextureSlot{0x252});
+        EXPECT_GT(m_batch.Vertices().size(), 6u);
+    }
 }
 
 TEST_F(GameCharacterRenderTest, TheHiddenClothFlagDoesNotRunTheClothSimulationBeforeItsBoundary)
@@ -945,6 +977,12 @@ TEST_F(GameCharacterRenderTest, InChaosCastleAPlayerWearsTheAngelAndOnlyTheHeroA
         const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
 
         ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(actor.field13c, actor.position.x + actor.boundsMin.x);
+        EXPECT_EQ(actor.field140, actor.position.y + actor.boundsMin.y);
+        EXPECT_EQ(actor.field144, actor.position.z + actor.boundsMin.z);
+        EXPECT_EQ(actor.field148, actor.boundsMaxX - actor.boundsMin.x);
+        EXPECT_EQ(actor.field158, actor.boundsMaxY - actor.boundsMin.y);
+        EXPECT_EQ(actor.field168, actor.boundsTop - actor.boundsMin.z);
         const auto commands = m_batch.Commands();
         ASSERT_EQ(commands.size(), slot == 0 ? 4u : 2u);
         EXPECT_EQ(commands[0].state.blend, Client::Render::ModelBlend::Shadow);
@@ -970,6 +1008,30 @@ TEST_F(GameCharacterRenderTest, InChaosCastleAPlayerWearsTheAngelAndOnlyTheHeroA
         EXPECT_EQ(commands[3].state.texture, Client::Render::TextureSlot{0x5c0});
         EXPECT_EQ(commands[3].vertexCount, 3u);
         EXPECT_FLOAT_EQ(m_batch.Vertices()[12].color.red, 1.0f);
+    }
+}
+
+TEST_F(GameCharacterRenderTest, ChaosCastleAngelPartsSkipDrawingAtTheAlphaBoundaryAndForNan)
+{
+    m_world->Runtime().map = 18;
+    ActorState& actor = Player(7);
+    actor.byte88 = 1;
+    m_world->Runtime().hero = 42;
+    actor.field13c = 123.0f;
+    GameCharacterPass pass = Pass();
+    pass.hovered = 7;
+
+    for (const float alpha : {0.01f, std::numeric_limits<float>::quiet_NaN()})
+    {
+        SCOPED_TRACE(alpha);
+        actor.alpha = alpha;
+        m_batch.Begin(Client::Render::Pass3D{});
+
+        const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_TRUE(m_batch.Commands().empty());
+        EXPECT_EQ(actor.field13c, 123.0f);
     }
 }
 

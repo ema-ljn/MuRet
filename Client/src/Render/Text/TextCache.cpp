@@ -136,6 +136,25 @@ Core::Expected<void, std::string> TextCache::DrawColumns(SpriteBatch& batch, int
     return {};
 }
 
+Core::Expected<void, std::string> TextCache::DrawColumnsAtPixels(SpriteBatch& batch, int pixelX, int pixelY,
+                                                                 std::string_view text, const TextStyle& style,
+                                                                 int firstColumn, int columns)
+{
+    if (columns < 0)
+        return Core::Unexpected(
+            std::format("0x4671cf: la caja de {} columnas: el rep stos limpiaría fuera del DIB", columns));
+    if (columns == 0)
+        return {};
+
+    const Core::Expected<Entries::iterator, std::string> found =
+        Find(Key{.font = style.font, .colors = style.colors, .text = text, .skipped = firstColumn, .columns = columns},
+             batch);
+    if (!found.HasValue())
+        return Core::Unexpected(found.Error());
+    DrawPiecesAtPixels(batch, *found.Value(), pixelX, pixelY);
+    return {};
+}
+
 Core::Expected<void, std::string> TextCache::DrawBoxed(SpriteBatch& batch, int x, int y, std::string_view text,
                                                        const TextStyle& style, const BoxShape& box, bool clampY)
 {
@@ -157,9 +176,20 @@ void TextCache::DrawPieces(SpriteBatch& batch, const Entry& entry, int x, int y)
     {
         const auto box = static_cast<std::size_t>(piece.firstColumn / TextBoxWidth);
         if (box >= entry.boxes.size())
-        {
             break;
-        }
+        OriginalQuad quad = piece.quad;
+        quad.slot = entry.boxes[box];
+        batch.Quad(quad);
+    }
+}
+
+void TextCache::DrawPiecesAtPixels(SpriteBatch& batch, const Entry& entry, int pixelX, int pixelY)
+{
+    for (const TextPiece& piece : TextPiecesAtPixels(pixelX, pixelY, entry.extent, batch.Screen()))
+    {
+        const auto box = static_cast<std::size_t>(piece.firstColumn / TextBoxWidth);
+        if (box >= entry.boxes.size())
+            break;
         OriginalQuad quad = piece.quad;
         quad.slot = entry.boxes[box];
         batch.Quad(quad);

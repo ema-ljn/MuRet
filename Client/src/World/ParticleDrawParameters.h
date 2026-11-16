@@ -15,7 +15,9 @@ enum class ParticleDrawKind
     // 0x54899a, la burbuja 698 de Crywolf: la columna de 8 cuadros de coll.jpg.
     Bubble,
     // 0x54864b, la explosión 5ed del terremoto: los cuatro por cuatro cuadros de Explotion01.jpg.
-    Explosion
+    Explosion,
+    // 0x5487b9, la sangre 5e4 del golpe: los dos por dos cuadros de blood.tga, sin giro.
+    Blood
 };
 struct ParticleDrawParameters
 {

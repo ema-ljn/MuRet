@@ -283,7 +283,6 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id)
     case TradePanel:
     case WarehousePanel:
     case ChaosBoxPanel:
-    case PetPanel:
     case PersonalShopPanel:
     case EventNpcPanel:
     case Panel2000:
@@ -299,6 +298,24 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id)
     case SecondSiegeWeaponPanel:
     case SiegeGatePanel:
         return Core::Unexpected(OpenCut(id));
+    case PetPanel:
+    {
+        // 0x659fd9..0x65a8af: todos menos el personaje y los amigos; con lo que cerró, 0x420cb0 (0x723911 en 2) y los
+        // pedidos del cuervo y del caballo.
+        mask ^= CharacterPanel;
+        auto closed = CloseByMask(mask);
+        if (!closed.HasValue())
+            return closed;
+        if (closed.Value())
+        {
+            m_state.delegated.pet = PetPanelOpen;
+            if (!m_context.petOpened)
+                return Core::Unexpected(std::string("0x659ff6: abrir la mascota pide el cuervo y el caballo (C1 A9) "
+                                                    "sin el cable"));
+            m_context.petOpened();
+        }
+        break;
+    }
     case CharacterPanel:
     {
         // 0x65c94b..0x65ca72: todos menos el inventario y los amigos; con lo que cerró, el personaje.
@@ -414,12 +431,9 @@ Core::Expected<bool, std::string> PanelRegistry::CloseByMask(PanelId mask)
         case CommandsPanel:
             ResetTheCommands(m_state.delegated);
             break;
-        case FriendsPanel:
-            // 0x6584e5: 0x4914e0.
-            if (!m_context.friendsClosed)
-                return Core::Unexpected(CloseCut(id));
-            if (auto closed = m_context.friendsClosed(); !closed.HasValue())
-                return Core::Unexpected(std::move(closed).Error());
+        case PetPanel:
+            // 0x6589b1: 0x420ca0, 0x723911 en 0.
+            m_state.delegated.pet = 0;
             break;
         case QuestPanel:
             // 0x657b2b: 0x419900, la ventana en 0 y el C1 03 31.
@@ -427,6 +441,13 @@ Core::Expected<bool, std::string> PanelRegistry::CloseByMask(PanelId mask)
                 return Core::Unexpected(std::string("0x419900: cerrar las misiones manda el C1 03 31 sin el cable"));
             m_state.delegated.quest = 0;
             m_context.questClosed();
+            break;
+        case FriendsPanel:
+            // 0x6584e5: 0x4914e0.
+            if (!m_context.friendsClosed)
+                return Core::Unexpected(CloseCut(id));
+            if (auto closed = m_context.friendsClosed(); !closed.HasValue())
+                return Core::Unexpected(std::move(closed).Error());
             break;
         case InventoryPanel:
             // 0x659250..0x65926a.

@@ -2,7 +2,9 @@
 
 #include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
+#include "Data/Terrain/TerrainGrid.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/LogicalAccess.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActionSend.h"
 #include "Scenes/ActorState.h"
@@ -13,8 +15,11 @@
 
 #include <gtest/gtest.h>
 
+#include <array>
+#include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -37,6 +42,16 @@ std::uint32_t QuietSeed()
     return FirstSeedWhere([](CrtRandom& random) { return random.Next() % 16 != 0; });
 }
 
+std::uint32_t SeedWithSuffixGate(std::uint32_t prefixDraws, bool gate)
+{
+    return FirstSeedWhere(
+        [prefixDraws, gate](CrtRandom& random)
+        {
+            random.Discard(prefixDraws);
+            return (random.Next() % 16 == 0) == gate;
+        });
+}
+
 class ActorStopTest : public ::testing::Test
 {
 protected:
@@ -51,7 +66,10 @@ protected:
                                        .playerSkeleton = m_skeleton,
                                        .items = m_withItems ? &m_items : nullptr,
                                        .random = m_random,
-                                       .sendAction = send};
+                                       .terrainWalls = m_terrainWalls,
+                                       .sendAction = send,
+                                       .actorSkeleton = m_actorSkeleton,
+                                       .modelSounds = m_modelSounds};
         return Client::Scenes::SetActorStop(actor, context);
     }
 
@@ -66,6 +84,10 @@ protected:
     Client::Scenes::WorldRuntime m_runtime{.map = 0, .movementSpeed = {}};
     SceneId m_scene = SceneId::Game;
     Client::Render::Models::Skeleton m_skeleton = Client::Tests::PlayerActionsSkeleton();
+    Client::Render::Models::Skeleton m_actorModelSkeleton = Client::Tests::PlayerActionsSkeleton();
+    const Client::Render::Models::Skeleton* m_actorSkeleton = nullptr;
+    std::span<const std::int16_t> m_modelSounds{};
+    const Client::Data::Terrain::TerrainLayer<std::uint16_t>* m_terrainWalls = nullptr;
     // Las armas de la matriz que llevan la marca +0x1e en Item.bmd.
     Client::Data::Tables::ItemTable m_items =
         Client::Tests::ItemsMarking({0x213, 0x227, 0x229, 0x231, 0x811, 0x815, 0xc12, 0xe11});
@@ -379,45 +401,307 @@ TEST_F(ActorStopTest, TheSuffixDrawsOneRandAndFenrirMaySound)
     EXPECT_EQ(m_random.State(), expected.State());
 }
 
-// 0x4f36e2..0x4f36f3: un jugador de subtipo 209 a 211 va a la tabla de sonidos de los modelos
-// (0x5769ad8), sin portar: error, solo en el camino del rand() % 16 en 0.
-TEST_F(ActorStopTest, TheModelSoundSubtypesAreAFrontierOnlyWhenTheSuffixReachesThem)
+// 0x4f2286..0x4f36be: el tipo 0x154 pide la acción 0 del esqueleto propio tras leer Y y luego X.
+TEST_F(ActorStopTest, TransformedActorUsesItsModelIdleAndPreservesTheSameActionFrame)
 {
-    const std::uint32_t lucky = FirstSeedWhere([](CrtRandom& random) { return random.Next() % 16 == 0; });
+    m_actorModelSkeleton.actions.resize(7);
+    m_actorSkeleton = &m_actorModelSkeleton;
+    const std::array<std::int16_t, 10> sounds{10, 11, 11, 11, 12, -1, -1, -1, -1, -1};
+    m_modelSounds = sounds;
+    ActorState transformed = UnarmedPlayer();
+    transformed.type = 0x154;
+    transformed.cellX = 23;
+    transformed.cellY = 17;
+    transformed.run = 40;
+    transformed.animation.action = 3;
+    transformed.animation.frame = 4.5f;
+    const std::uint32_t quiet = SeedWithSuffixGate(8, false);
+    m_random = CrtRandom(quiet);
+
+    const auto changed = Stop(transformed);
+
+    ASSERT_TRUE(changed.HasValue()) << changed.Error();
+    EXPECT_EQ(transformed.run, 0);
+    EXPECT_EQ(transformed.animation.action, 0);
+    EXPECT_EQ(transformed.animation.frame, 0.0f);
+    EXPECT_EQ(transformed.cellX, 23);
+    EXPECT_EQ(transformed.cellY, 17);
+    EXPECT_EQ(transformed.cellXAccesses, 0);
+    EXPECT_EQ(transformed.cellYAccesses, 0);
+    EXPECT_EQ(m_random.State(), AfterDraws(quiet, 9).State());
+
+    transformed.animation.frame = 6.25f;
+    m_random = CrtRandom(quiet);
+    const auto unchanged = Stop(transformed);
+
+    ASSERT_TRUE(unchanged.HasValue()) << unchanged.Error();
+    EXPECT_EQ(transformed.animation.action, 0);
+    EXPECT_EQ(transformed.animation.frame, 6.25f);
+    EXPECT_EQ(m_random.State(), AfterDraws(quiet, 9).State());
+}
+
+// El 0x172 consulta solamente el bit 0 del TerrainWall en la celda lógica y elige 7 o 0.
+TEST_F(ActorStopTest, Type172UsesTheLogicalCellTerrainWallBit)
+{
+    m_actorModelSkeleton.actions.resize(8);
+    m_actorSkeleton = &m_actorModelSkeleton;
+    const std::array<std::int16_t, 10> noModelSound{-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
+    m_modelSounds = noModelSound;
+    Client::Data::Terrain::TerrainLayer<std::uint16_t> walls{};
+    m_terrainWalls = &walls;
+    ActorState actor = UnarmedPlayer();
+    actor.type = 0x172;
+    actor.cellX = 31;
+    actor.cellY = 47;
+    actor.position = {9000.0f, 8000.0f, 12.0f};
+    walls[Client::Data::Terrain::CellIndex(actor.cellX, actor.cellY)] = 1;
+    m_random = CrtRandom(SeedWithSuffixGate(8, false));
+
+    ASSERT_TRUE(Stop(actor).HasValue());
+    EXPECT_EQ(actor.animation.action, 7);
+
+    actor.animation.action = 6;
+    actor.animation.frame = 5.0f;
+    walls[Client::Data::Terrain::CellIndex(actor.cellX, actor.cellY)] = 0;
+    m_random = CrtRandom(SeedWithSuffixGate(8, false));
+    ASSERT_TRUE(Stop(actor).HasValue());
+    EXPECT_EQ(actor.animation.action, 0);
+    EXPECT_EQ(actor.animation.frame, 0.0f);
+    EXPECT_EQ(actor.position, glm::vec3(9000.0f, 8000.0f, 12.0f));
+}
+
+// El actor transformado necesita celdas Y y X con cierres separados: cada cierre a cero gasta cuatro rand().
+TEST_F(ActorStopTest, LogicalCellCloseDrawsRespectExistingDepthAndByteWrap)
+{
+    m_actorSkeleton = &m_actorModelSkeleton;
+    const std::array<std::int16_t, 10> noModelSound{-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
+    m_modelSounds = noModelSound;
+    struct DepthCase
+    {
+        std::uint8_t y;
+        std::uint8_t x;
+        int draws;
+    };
+    const std::array cases{DepthCase{0, 0, 9},     DepthCase{1, 0, 5},   DepthCase{0, 1, 5},  DepthCase{1, 1, 1},
+                           DepthCase{255, 255, 1}, DepthCase{255, 0, 5}, DepthCase{0, 255, 5}};
+    constexpr std::uint32_t Seed = 0x734u;
+    for (const DepthCase& depth : cases)
+    {
+        SCOPED_TRACE(testing::Message() << "Y " << int{depth.y} << ", X " << int{depth.x});
+        ActorState actor = UnarmedPlayer();
+        actor.type = 0x154;
+        actor.cellX = 29;
+        actor.cellY = 51;
+        actor.cellXAccesses = depth.x;
+        actor.cellYAccesses = depth.y;
+        m_random = CrtRandom(Seed);
+
+        const auto stopped = Stop(actor);
+
+        ASSERT_TRUE(stopped.HasValue()) << stopped.Error();
+        EXPECT_EQ(actor.cellXAccesses, depth.x);
+        EXPECT_EQ(actor.cellYAccesses, depth.y);
+        EXPECT_EQ(actor.cellX, 29);
+        EXPECT_EQ(actor.cellY, 51);
+        EXPECT_EQ(m_random.State(), AfterDraws(Seed, depth.draws).State());
+    }
+}
+
+// Un modelo sin esqueleto equivale al registro vacío: SetAction no-op, pero el sufijo sigue corriendo.
+TEST_F(ActorStopTest, MissingOrEmptyActorSkeletonLeavesTheAnimationAndRunsTheSuffix)
+{
+    const std::array<std::int16_t, 10> noModelSound{-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
+    m_modelSounds = noModelSound;
+    Client::Render::Models::Skeleton emptySkeleton;
+    const std::array<const Client::Render::Models::Skeleton*, 2> skeletons{nullptr, &emptySkeleton};
+    for (const Client::Render::Models::Skeleton* skeleton : skeletons)
+    {
+        ActorState actor = UnarmedPlayer();
+        actor.type = 0x154;
+        actor.animation.action = 3;
+        actor.animation.frame = 8.5f;
+        m_actorSkeleton = skeleton;
+        const std::uint32_t seed = SeedWithSuffixGate(8, false);
+        m_random = CrtRandom(seed);
+
+        const auto stopped = Stop(actor);
+
+        ASSERT_TRUE(stopped.HasValue()) << stopped.Error();
+        EXPECT_EQ(actor.animation.action, 3);
+        EXPECT_EQ(actor.animation.frame, 8.5f);
+        EXPECT_EQ(m_random.State(), AfterDraws(seed, 9).State());
+    }
+}
+
+// En el 0x172 la falta de TerrainWall corta después de run y los dos accesos, antes de cambiar la acción.
+TEST_F(ActorStopTest, Type172WithoutTerrainWallsErrorsAfterTheLogicalCellAccesses)
+{
+    m_actorSkeleton = &m_actorModelSkeleton;
+    const std::array<std::int16_t, 10> noModelSound{-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
+    m_modelSounds = noModelSound;
+    m_terrainWalls = nullptr;
+    ActorState monster = UnarmedPlayer();
+    monster.type = 0x172;
+    monster.run = 40;
+    monster.animation.action = 2;
+    const std::uint32_t seed = 0x735u;
+    m_random = CrtRandom(seed);
+
+    const auto stopped = Stop(monster);
+
+    ASSERT_FALSE(stopped.HasValue());
+    EXPECT_NE(stopped.Error().find("TerrainWall"), std::string::npos);
+    EXPECT_EQ(monster.run, 0);
+    EXPECT_EQ(monster.animation.action, 2);
+    EXPECT_EQ(monster.cellXAccesses, 0);
+    EXPECT_EQ(monster.cellYAccesses, 0);
+    EXPECT_EQ(m_random.State(), AfterDraws(seed, 8).State());
+}
+
+// 0x4f36e2..0x4f36f3: los subtipos 209 a 211 usan la tabla de sonido con jugadores y no jugadores.
+TEST_F(ActorStopTest, ModelSoundSubtypesUseTheirTableWhenTheSuffixGateOpens)
+{
+    const std::array<std::int16_t, 10> sounds{10, 11, 11, 11, 12, -1, -1, -1, -1, -1};
+    m_modelSounds = sounds;
+    const std::uint32_t seed = FirstSeedWhere([](CrtRandom& random) { return random.Next() % 16 == 0; });
     for (const std::int32_t subtype : {209, 210, 211})
     {
         SCOPED_TRACE(subtype);
         ActorState player = UnarmedPlayer();
         player.subtype = subtype;
-        m_random = CrtRandom(QuietSeed());
-        EXPECT_TRUE(Stop(player).HasValue());
-        m_random = CrtRandom(lucky);
+        CrtRandom expected = AfterDraws(seed, 1);
+        const int variant = expected.Next() & 1;
+        m_random = CrtRandom(seed);
         const auto stopped = Stop(player);
-        ASSERT_FALSE(stopped.HasValue());
-        EXPECT_NE(stopped.Error().find("0x5769ad8"), std::string::npos);
+        ASSERT_TRUE(stopped.HasValue()) << stopped.Error();
+        EXPECT_EQ(stopped.Value().sound, 0xd2 + sounds[static_cast<std::size_t>(variant)]);
+        EXPECT_EQ(m_random.State(), expected.State());
     }
     for (const std::int32_t subtype : {208, 212})
     {
         SCOPED_TRACE(subtype);
         ActorState player = UnarmedPlayer();
         player.subtype = subtype;
-        m_random = CrtRandom(lucky);
-        EXPECT_TRUE(Stop(player).HasValue());
+        m_random = CrtRandom(seed);
+        const auto stopped = Stop(player);
+        ASSERT_TRUE(stopped.HasValue()) << stopped.Error();
+        EXPECT_EQ(stopped.Value().sound, std::nullopt);
+        EXPECT_EQ(m_random.State(), AfterDraws(seed, 1).State());
     }
 }
 
-// 0x4f2286 → 0x4f2d87: el que no es jugador lee sus celdas protegidas y el TerrainWall: error, con Run
-// ya en 0 y sin acción nueva.
-TEST_F(ActorStopTest, ANonPlayerIsAFrontierAfterRunGoesToZero)
+// El primer WORD −1 corta antes del segundo rand(); los ceros del registro vacío son datos válidos y sí toman el
+// segundo.
+TEST_F(ActorStopTest, ModelSoundSentinelAndZeroFallbackHaveDifferentRandomPaths)
 {
+    m_actorSkeleton = &m_actorModelSkeleton;
     ActorState monster = UnarmedPlayer();
-    monster.type = 0x172;
-    monster.run = 40;
-    monster.animation.action = 2;
+    monster.type = 0x154;
+    const std::uint32_t seed = SeedWithSuffixGate(8, true);
+
+    const std::array<std::int16_t, 10> emptyModel{};
+    m_modelSounds = emptyModel;
+    m_random = CrtRandom(seed);
+    const auto zeroFallback = Stop(monster);
+    ASSERT_TRUE(zeroFallback.HasValue()) << zeroFallback.Error();
+    EXPECT_EQ(zeroFallback.Value().sound, 0xd2);
+    EXPECT_EQ(m_random.State(), AfterDraws(seed, 10).State());
+
+    const std::array<std::int16_t, 10> noSound{-1, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    m_modelSounds = noSound;
+    m_random = CrtRandom(seed);
+    const auto sentinel = Stop(monster);
+    ASSERT_TRUE(sentinel.HasValue()) << sentinel.Error();
+    EXPECT_EQ(sentinel.Value().sound, std::nullopt);
+    EXPECT_EQ(m_random.State(), AfterDraws(seed, 9).State());
+}
+
+// El sufijo noPlayer usa los dos WORD del modelo, añade 5 con subtype 9 y no aplica la rama de sonido de Fenrir.
+TEST_F(ActorStopTest, NonPlayerSuffixUsesItsModelTableInsteadOfFenrirSounds)
+{
+    m_actorSkeleton = &m_actorModelSkeleton;
+    const std::array<std::int16_t, 10> sounds{10, 11, 11, 11, 12, -1, -1, -1, -1, -1};
+    m_modelSounds = sounds;
+    ActorState monster = UnarmedPlayer();
+    monster.type = 0x154;
+    monster.subtype = 9;
+    monster.pet.model = 0x1c37;
+    const std::uint32_t seed = SeedWithSuffixGate(8, true);
+    CrtRandom expected = AfterDraws(seed, 9);
+    const int variant = expected.Next() & 1;
+    m_random = CrtRandom(seed);
+
     const auto stopped = Stop(monster);
-    ASSERT_FALSE(stopped.HasValue());
+
+    ASSERT_TRUE(stopped.HasValue()) << stopped.Error();
+    EXPECT_EQ(stopped.Value().sound, 0xd2 + sounds[static_cast<std::size_t>(variant)] + 5);
+    EXPECT_EQ(m_random.State(), expected.State());
+}
+
+// Los dos WORD se leen con signo: si el segundo es −1 se suma como tal, no termina el sufijo.
+TEST_F(ActorStopTest, TheSecondModelSoundWordIsSignedAndStillAddsTheSubtypeOffset)
+{
+    m_actorSkeleton = &m_actorModelSkeleton;
+    const std::array<std::int16_t, 10> sounds{10, -1, 11, 11, 12, -1, -1, -1, -1, -1};
+    m_modelSounds = sounds;
+    ActorState monster = UnarmedPlayer();
+    monster.type = 0x154;
+    monster.subtype = 9;
+    const std::uint32_t seed = FirstSeedWhere(
+        [](CrtRandom& random)
+        {
+            random.Discard(8);
+            return random.Next() % 16 == 0 && (random.Next() & 1) == 1;
+        });
+    m_random = CrtRandom(seed);
+
+    const auto stopped = Stop(monster);
+
+    ASSERT_TRUE(stopped.HasValue()) << stopped.Error();
+    EXPECT_EQ(stopped.Value().sound, 0xd2 - 1 + 5);
+    EXPECT_EQ(m_random.State(), AfterDraws(seed, 10).State());
+}
+
+// Si el sufijo no abre la tabla no hace falta prestarla; si la abre, el error conserva los cambios anteriores.
+TEST_F(ActorStopTest, MissingModelSoundTableErrorsOnlyWhenTheSuffixReadsIt)
+{
+    m_actorSkeleton = &m_actorModelSkeleton;
+    ActorState monster = UnarmedPlayer();
+    monster.type = 0x154;
+    const std::uint32_t quiet = SeedWithSuffixGate(8, false);
+    m_random = CrtRandom(quiet);
+    const auto skipped = Stop(monster);
+    ASSERT_TRUE(skipped.HasValue()) << skipped.Error();
+    EXPECT_EQ(m_random.State(), AfterDraws(quiet, 9).State());
+
+    monster.run = 40;
+    monster.animation.action = 3;
+    const std::uint32_t loud = SeedWithSuffixGate(8, true);
+    m_random = CrtRandom(loud);
+    const auto read = Stop(monster);
+    ASSERT_FALSE(read.HasValue());
+    EXPECT_NE(read.Error().find("tabla de sonidos"), std::string::npos);
     EXPECT_EQ(monster.run, 0);
-    EXPECT_EQ(monster.animation.action, 2);
-    EXPECT_EQ(m_random.State(), CrtRandom(QuietSeed()).State());
+    EXPECT_EQ(monster.animation.action, 0);
+    EXPECT_EQ(m_random.State(), AfterDraws(loud, 9).State());
+}
+
+// También en el jugador transformado, 209..211 consultan la tabla que presta su caller.
+TEST_F(ActorStopTest, PlayerSoundSubtypesUseTheBorrowedModelTable)
+{
+    const std::array<std::int16_t, 10> sounds{10, 11, 11, 11, 12, -1, -1, -1, -1, -1};
+    m_modelSounds = sounds;
+    const std::uint32_t seed = FirstSeedWhere([](CrtRandom& random) { return random.Next() % 16 == 0; });
+    ActorState player = UnarmedPlayer();
+    player.subtype = 209;
+    CrtRandom expected = AfterDraws(seed, 1);
+    const int variant = expected.Next() & 1;
+    m_random = CrtRandom(seed);
+
+    const auto stopped = Stop(player);
+
+    ASSERT_TRUE(stopped.HasValue()) << stopped.Error();
+    EXPECT_EQ(stopped.Value().sound, 0xd2 + sounds[static_cast<std::size_t>(variant)]);
+    EXPECT_EQ(m_random.State(), expected.State());
 }
 } // namespace

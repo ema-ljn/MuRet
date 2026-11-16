@@ -104,13 +104,6 @@ public:
     {
         requests.push_back({"42", {}, {}});
     }
-    void SendFriendPacket(Client::Protocol::Outgoing packet) override
-    {
-        std::vector<std::uint8_t> bytes;
-        for (const std::byte value : packet.packet.Bytes())
-            bytes.push_back(std::to_integer<std::uint8_t>(value));
-        requests.push_back({"amigos", std::move(bytes), {}});
-    }
     void SendWindowClose() override
     {
         requests.push_back({"31", {}, {}});
@@ -118,6 +111,13 @@ public:
     void SendSetQuest(std::uint8_t quest, std::uint8_t state) override
     {
         requests.push_back({"A2", {quest, state}, {}});
+    }
+    void SendFriendPacket(Client::Protocol::Outgoing packet) override
+    {
+        std::vector<std::uint8_t> bytes;
+        for (const std::byte value : packet.packet.Bytes())
+            bytes.push_back(std::to_integer<std::uint8_t>(value));
+        requests.push_back({"amigos", std::move(bytes), {}});
     }
     Client::Core::Expected<void, std::string> SaveMacros(std::string_view content) override
     {

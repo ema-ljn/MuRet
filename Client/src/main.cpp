@@ -34,6 +34,7 @@
 #include "Network/SystemResolver.h"
 #include "Network/SystemSocket.h"
 #include "Platform/BasePath.h"
+#include "Platform/Clipboard.h"
 #include "Platform/DisplayModes.h"
 #include "Platform/GlLoader.h"
 #include "Platform/LocalTime.h"
@@ -61,6 +62,7 @@
 #include "Scenes/IScene.h"
 #include "Scenes/LoadingScene.h"
 #include "Scenes/LoginScene.h"
+#include "Scenes/NpcNames.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
@@ -660,6 +662,10 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     // 0x61eb69 y 0x61eb7c: Dialog.bmd en 0x7688ac0 y quest.bmd en los registros de [0x710148], hasta el cierre.
     world.Runtime().dialogTable = scenes.data.dialogs;
     world.Runtime().quest.records = scenes.data.quests;
+    // 0x61ecdf: 0x54a440 deja MonsterSkill.bmd en [0x7437670], hasta el cierre.
+    world.Runtime().monsterSkills = scenes.data.monsterSkills;
+    // 0x61ed05: 0x54e7f0 deja NpcName(%s).txt en los registros de 0x7681eb8, hasta el cierre.
+    world.Runtime().npcNames = Scenes::NpcNameTableOf(scenes.data.npcNames);
     // 0x61ed18: 0x46b3b0 deja Slide.bmd en el cartel de [0x5763528], que dura hasta el cierre.
     if (scenes.data.slides)
     {
@@ -693,7 +699,8 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
         .screen = [&window] { return window.PixelSize(); },
         .scene = [&sceneManager]() -> std::optional<Scenes::SceneId>
         { return sceneManager != nullptr ? sceneManager->Current() : std::nullopt; },
-        .texts = scenes.data.text ? &*scenes.data.text : nullptr};
+        .texts = scenes.data.text ? &*scenes.data.text : nullptr,
+        .skills = scenes.data.skills ? &*scenes.data.skills : nullptr};
     Scenes::SessionEventApplier eventApplier(worldEntry);
     std::optional<Online> online;
     if (startup.server)
@@ -701,6 +708,7 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
         online.emplace(*startup.server, startup.config.obfuscation, clock, log, eventApplier);
     }
     App::ServerSession* session = online ? &online->session : nullptr;
+    Platform::Clipboard clipboard;
     const Scenes::SceneContext context{.dataRoot = *startup.config.dataPath,
                                        .textures = textures,
                                        .log = log,
@@ -713,7 +721,8 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
                                        .selection = &selection,
                                        .world = &world,
                                        .textMeasure = &frame.Value()->TextMeasure(),
-                                       .worldEntry = &worldEntry};
+                                       .worldEntry = &worldEntry,
+                                       .clipboard = &clipboard};
     // El cursor lo dibuja el juego: el del sistema no se ve sobre la ventana (0x4ba238). Si SDL no puede,
     // se ven los dos.
     if (const auto hidden = window.HideSystemCursor(); !hidden.HasValue())

@@ -437,6 +437,10 @@ Linux muere por la señal, como sin manejador.
 
 ## Tests
 
+Los death tests de Linux provocan fallos deliberados en procesos hijo. El helper de tests desactiva
+sus reportes al sistema para evitar avisos de systemd-coredump/DrKonqi; el dump propio de MuRet y
+las señales esperadas se siguen comprobando. El aislamiento no cambia la configuración del escritorio.
+
 ```bash
 ctest --preset linux-x64-debug     # en Windows: ctest --preset windows-x64-debug
 ```

@@ -28,6 +28,7 @@ using Client::Render::Text::FontKind;
 using Client::Render::Text::RightAlignedAt;
 using Client::Render::Text::TextExtent;
 using Client::Render::Text::TextPieces;
+using Client::Render::Text::TextPiecesAtPixels;
 using Client::Tests::FakeGlyphRasterizer;
 
 constexpr PixelSize Screen640{640, 480};
@@ -144,6 +145,30 @@ TEST(TextLayoutTest, TheQuadIsInPixelsWithTheUvOfTheBox)
     EXPECT_FALSE(piece.quad.scaleSize);
     EXPECT_FALSE(piece.quad.scalePosition);
     EXPECT_EQ(piece.quad.alpha, 0.0f);
+}
+
+// El llamador de un EDIT ya tiene el origen en píxeles. No volver por 640 × 480, porque en
+// 1024 × 768 el origen 239 volvería como 238.
+TEST(TextLayoutTest, PixelAnchoredPiecesKeepTheirOriginAndClipAcrossTiles)
+{
+    const auto pieces = TextPiecesAtPixels(239, 21, TextExtent{600, 13}, Screen1024);
+
+    ASSERT_EQ(pieces.size(), 3u);
+    EXPECT_EQ(pieces[0].quad.x, 239.0f);
+    EXPECT_EQ(pieces[1].quad.x, 495.0f);
+    EXPECT_EQ(pieces[2].quad.x, 751.0f);
+    EXPECT_EQ(pieces[0].firstColumn, 0);
+    EXPECT_EQ(pieces[1].firstColumn, 256);
+    EXPECT_EQ(pieces[2].firstColumn, 512);
+    EXPECT_EQ(pieces[0].width, 256);
+    EXPECT_EQ(pieces[1].width, 256);
+    EXPECT_EQ(pieces[2].width, 88);
+    EXPECT_FALSE(pieces[0].quad.scalePosition);
+
+    const auto clipped = TextPiecesAtPixels(900, 21, TextExtent{600, 13}, Screen1024);
+    ASSERT_EQ(clipped.size(), 1u);
+    EXPECT_EQ(clipped[0].quad.x, 900.0f);
+    EXPECT_EQ(clipped[0].width, 124);
 }
 
 // Las filas son las de la celda, hasta las 32 de la caja.

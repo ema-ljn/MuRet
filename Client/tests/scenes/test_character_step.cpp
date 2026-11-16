@@ -6,14 +6,22 @@
 #include "Data/Tables/ItemTable.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
+#include "Network/Crypto/Xor32.h"
+#include "Network/Delivery.h"
+#include "Protocol/Outgoing.h"
+#include "Render/ModelBatch.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/Skeleton.h"
+#include "Render/Pass3D.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterHead.h"
+#include "Scenes/CharacterCloth.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/DynamicWorldLight.h"
+#include "Scenes/GameDrawTail.h"
+#include "Scenes/FaunaModels.h"
 #include "Scenes/CharacterSlots.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -29,18 +37,22 @@
 
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"
+#include "support/Bytes.h"
 #include "support/PlayerActors.h"
+#include "support/SameBytes.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <span>
@@ -91,6 +103,13 @@ constexpr int OtherCellDraws = 8;
 constexpr int OtherSeenCellDraws = 8;
 // El rand() & 7 de 0x506cac, después de la cabeza.
 constexpr int EffectsRandomDraws = 1;
+// Una lectura de +0x38e (0x517630 o sus copias en línea): un rand() al cerrarse en 0.
+constexpr int SkillReadDraws = 1;
+// Una habilidad con caso en el switch de 0x4f97b0 (0x4f9899) que corta: la 0x34 con +0x381 en 3, en el efecto 0x621
+// (0x4f9ecb, CL11).
+constexpr std::uint8_t FrameSkill = 0x34;
+constexpr std::uint8_t FrameSkillStep = 3;
+constexpr std::string_view FrameSkillCut = "0x4f9ecb";
 // 0x5068fd: la cabeza de otro que el héroe sortea con rand() % 32 en 0.
 constexpr int HeadOneIn = 32;
 // La selección (0x633f20, World55) y el login (0x6349a0, World56).
@@ -128,6 +147,32 @@ TEST(CharacterStepTest, TheSelectionPreviewRunsTheCommonBodyOutsideThePool)
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(Seed, 19).State());
     EXPECT_EQ(terrain.attributes->cells[0] & Client::World::CharacterWallBit, 0u);
     EXPECT_FALSE(world.Actors()[0].alive);
+}
+
+// 4ec200 decide el look-ahead por la escena global: ser NewFace no equivale a escena4.
+TEST(CharacterStepTest, ANewFaceInTheGameUsesTheGameAnimationEndGate)
+{
+    auto world = std::make_unique<WorldState>();
+    world->Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+    ActorState preview;
+    preview.alive = true;
+    preview.type = 0xa9;
+    preview.animation.action = preview.animation.previousAction = 1;
+    preview.animation.frame = 2.0f;
+    preview.firstFootstepSound = 1;
+    preview.secondFootstepSound = 1;
+    preview.hands[0].model = preview.hands[1].model = 0xffff;
+    Skeleton face;
+    face.actions.assign(2, ActionInfo{.repeats = true, .speed = 0.0f, .keyCount = 4});
+    CrtRandom random(Seed);
+
+    const auto stepped =
+        StepCharacter(preview, {.world = *world, .random = random, .scene = SceneId::Game, .newFaceSkeleton = &face});
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(preview.firstFootstepSound, 1);
+    EXPECT_EQ(preview.secondFootstepSound, 1);
+    EXPECT_EQ(preview.animation.frame, 2.0f);
 }
 
 TEST(CharacterStepTest, TheNewFaceHeadHasItsOwnDrawBeforeTheCommonHeadAndUsesModuloFortyEight)
@@ -304,6 +349,145 @@ struct GameWorld
 
 const TerrainPolygon Everything{.everything = true};
 
+TEST(CharacterStepTest, SkillHitStunTurnsByItsOldCounterWithoutWrapping)
+{
+    for (const std::uint8_t counter : {std::uint8_t{0}, std::uint8_t{1}, std::uint8_t{10}, std::uint8_t{255}})
+    {
+        SCOPED_TRACE(int{counter});
+        GameWorld tested;
+        tested.Hero().byte398 = counter;
+        tested.Hero().angles.z = 350.5f;
+        const auto stepped = tested.Step(Everything);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(tested.Hero().byte398, counter == 0 ? 0 : counter - 1);
+        EXPECT_EQ(tested.Hero().angles.z, 350.5f + static_cast<float>(counter) * 10.0f);
+        EXPECT_EQ(tested.random.State(), Client::Tests::AfterDraws(Seed, SeenHeroDraws).State());
+    }
+}
+
+TEST(CharacterStepTest, FullJointsKeepTheBoneEmitterSelectorsAndDecrementItsByte)
+{
+    for (const std::int32_t map : {0, 30})
+    {
+        SCOPED_TRACE(map);
+        GameWorld tested(map);
+        tested.Hero().byte1a0 = 35;
+        tested.skeleton.bones.resize(5);
+        tested.skeleton.bones[0].parent = 2; // El padre puede venir después.
+        tested.skeleton.bones[1].dummy = true;
+        tested.skeleton.bones[1].parent = 0;
+        tested.skeleton.bones[2].parent = -1;
+        tested.skeleton.bones[3].parent = 5; // Fuera del modelo.
+        tested.skeleton.bones[4].parent = 0;
+        tested.world.Runtime().terrainPolygon = Everything;
+        for (auto& joint : tested.world.DrawTail().joints)
+            joint.alive = true;
+        const auto stepped = StepCharacters({.world = tested.world,
+                                             .random = tested.random,
+                                             .playerSkeleton = &tested.skeleton,
+                                             .joints = tested.world.DrawTail().joints});
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(tested.Hero().byte1a0, map == 30 ? 35 : 34);
+        EXPECT_EQ(tested.random.State(), Client::Tests::AfterDraws(Seed, SeenHeroDraws + (map == 30 ? 0 : 12)).State());
+    }
+}
+
+TEST(CharacterStepTest, TheFlareSkillActionUsesTheExistingParticleAndSkipsItsFullPool)
+{
+    for (const bool full : {false, true})
+    {
+        SCOPED_TRACE(full);
+        GameWorld tested;
+        tested.Hero().animation.action = 0x4d;
+        tested.Hero().animation.frame = 6.0f;
+        tested.Hero().animation.previousAction = 0x4d;
+        tested.world.Runtime().terrainPolygon = Everything;
+        if (full)
+            for (auto& particle : tested.world.Particles().All())
+                particle.alive = true;
+        const auto stepped = StepCharacters({.world = tested.world,
+                                             .random = tested.random,
+                                             .playerSkeleton = &tested.skeleton,
+                                             .particles = &tested.world.Particles()});
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(tested.random.State(),
+                  Client::Tests::AfterDraws(Seed, SeenHeroDraws + TrailDraws + (full ? 0 : 3)).State());
+        if (!full)
+        {
+            const auto& particle = tested.world.Particles().All().front();
+            EXPECT_TRUE(particle.alive);
+            EXPECT_EQ(particle.type, 0x5ac);
+            EXPECT_EQ(particle.subtype, 0);
+            EXPECT_EQ(particle.light, (glm::vec3{0.3f, 0.5f, 1.0f}));
+        }
+    }
+}
+
+TEST(CharacterStepTest, ChargedSkillFlaresAndTheFullJointTailUseTheirNativeBudgets)
+{
+    for (const bool full : {false, true})
+    {
+        SCOPED_TRACE(full);
+        GameWorld tested;
+        tested.Hero().animation.action = 0x44;
+        tested.Hero().animation.previousAction = 0x44;
+        tested.Hero().byte1bc = 1;
+        tested.skeleton.bones.resize(5);
+        tested.skeleton.bones[2].dummy = true;
+        tested.world.Runtime().terrainPolygon = Everything;
+        for (auto& joint : tested.world.DrawTail().joints)
+            joint.alive = true;
+        if (full)
+            for (auto& particle : tested.world.Particles().All())
+                particle.alive = true;
+        const auto stepped = StepCharacters({.world = tested.world,
+                                             .random = tested.random,
+                                             .playerSkeleton = &tested.skeleton,
+                                             .particles = &tested.world.Particles(),
+                                             .joints = tested.world.DrawTail().joints});
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(tested.random.State(), Client::Tests::AfterDraws(Seed, SeenHeroDraws + 6 + (full ? 0 : 12)).State());
+        if (!full)
+        {
+            const auto& all = tested.world.Particles().All();
+            EXPECT_EQ(std::ranges::count_if(all, [](const auto& p) { return p.alive; }), 4);
+            EXPECT_EQ(all.front().type, 0x5ac);
+            EXPECT_EQ(all.front().subtype, 6);
+            EXPECT_EQ(all.front().light, (glm::vec3{0.3f, 0.3f, 1.0f}));
+        }
+    }
+}
+
+TEST(CharacterStepTest, Action96CreatesTenFiresAndFullParticlesKeepItsBoneChoices)
+{
+    for (const bool full : {false, true})
+    {
+        SCOPED_TRACE(full);
+        GameWorld tested;
+        tested.Hero().animation.action = 0x96;
+        tested.Hero().animation.previousAction = 0x96;
+        tested.skeleton.bones.resize(3);
+        tested.world.Runtime().terrainPolygon = Everything;
+        if (full)
+            for (auto& particle : tested.world.Particles().All())
+                particle.alive = true;
+        const auto stepped = StepCharacters({.world = tested.world,
+                                             .random = tested.random,
+                                             .playerSkeleton = &tested.skeleton,
+                                             .particles = &tested.world.Particles()});
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        // 506f7a selector y 541189/5411ce/5413ef, tres del constructor5d9/0 si hay hueco.
+        EXPECT_EQ(tested.random.State(), Client::Tests::AfterDraws(Seed, SeenHeroDraws + 10 * (full ? 1 : 4)).State());
+        if (!full)
+        {
+            const auto& all = tested.world.Particles().All();
+            EXPECT_EQ(std::ranges::count_if(all, [](const auto& p) { return p.alive; }), 10);
+            EXPECT_EQ(all.front().type, 0x5d9);
+            EXPECT_EQ(all.front().light, (glm::vec3{1.0f, 1.0f, 1.0f}));
+        }
+    }
+}
+
 TEST(CharacterStepTest, TheSceneTerrainSuppliesItsWallsAndSafeZone)
 {
     GameWorld tested;
@@ -356,10 +540,9 @@ TEST(CharacterStepTest, TheRavenRunsInsideTheBodyBeforeTheCellAndHead)
     EXPECT_EQ(actor.headTurn.target, glm::vec2(0.0f));
 }
 
-// Q-C412: el cuervo posado (el estado 3, 0x4178a6) en la zona segura va al hueso 37 de los huesos propios de su
-// dueño con (−10, 0, 10), por la escala y más la posición del modelo compartido de Player.bmd: las que copió el
-// 0x505ec6 del último 0x20a que pasó antes (el del lugar 2), no las del dueño, que las copia después.
-TEST(CharacterStepTest, ThePerchedRavenUsesTheSharedModelOfThePreviousPlayer)
+// 0x4fd69b..0x4fd6ef publica la colocación antes de que 0x4fb9e0 hunda al dueño; 0x420dd0 consume ese snapshot.
+
+TEST(CharacterStepTest, ThePerchedRavenUsesThePlacementPublishedByItsOwner)
 {
     GameWorld tested;
     tested.Hero().alive = false;
@@ -389,36 +572,106 @@ TEST(CharacterStepTest, ThePerchedRavenUsesTheSharedModelOfThePreviousPlayer)
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(owner.darkSpirit->state, 3);
-    // 1,5 · ((7, 8, 9) + (−10, 0, 10)) + (1.000, 2.000, 300).
-    EXPECT_EQ(owner.darkSpirit->position, glm::vec3(995.5f, 2012.0f, 328.5f));
+    // 0x4fd69b publica al dueño antes del 0x420dd0: 1,25 · ((7, 8, 9) + (−10, 0, 10)) + su posición.
+    EXPECT_EQ(owner.darkSpirit->position, glm::vec3(10599.25f, 14122.0f, 603.75f));
     EXPECT_EQ(owner.darkSpirit->angles, glm::vec3(3.0f, 0.0f, 68.0f));
     // El último 0x20a del paso deja lo suyo para el próximo.
     EXPECT_EQ(tested.world.PlayerModel().scale, 1.25f);
     EXPECT_EQ(tested.world.PlayerModel().origin, owner.position);
 }
 
-// 0x416add: los estados 2, 5 y 6 son de las órdenes A7 (CL9) y cortan antes de tocar el cuervo.
-TEST(CharacterStepTest, TheRavenOrdersOfThePacketsCut)
+// 0x416a88..0x4176e6: en los estados 2, 5 y 6, con el personaje de +0x3b0 escondido (0x4000), el cuervo manda el A7
+// que corta el ataque (C1 07 A7 00 78 FF FF, con el XOR32) y deja +0x3b0 en 0xffff. Sin 0x4000, no manda nada.
+
+TEST(CharacterStepTest, AHiddenRavenTargetSendsTheA7ThatStopsTheAttack)
 {
-    for (const std::uint8_t state : {std::uint8_t{2}, std::uint8_t{5}, std::uint8_t{6}})
+    for (const std::int32_t map : {0, 2, std::int32_t{LoginMap}})
     {
-        GameWorld tested(LoginMap);
-        tested.Hero().alive = false;
-        ActorState& actor = tested.Other(2, 0, 0);
-        actor.darkSpirit.emplace();
-        actor.darkSpirit->state = state;
-        Skeleton raven;
-        raven.actions.resize(4);
-        Client::World::Particles particles;
-        tested.world.Runtime().terrainPolygon = Everything;
-        const auto stepped = StepCharacters({.world = tested.world,
-                                             .random = tested.random,
-                                             .scene = SceneId::Login,
-                                             .playerSkeleton = tested.player,
-                                             .darkSpiritSkeleton = &raven,
-                                             .particles = &particles});
-        EXPECT_TRUE(HasError(stepped, "0x416add")) << static_cast<int>(state) << ": " << ErrorOf(stepped);
+        for (const std::uint8_t state : {std::uint8_t{2}, std::uint8_t{5}, std::uint8_t{6}})
+        {
+            for (const std::uint32_t flags : {0u, 0x4000u})
+            {
+                SCOPED_TRACE(testing::Message() << map << " " << int{state} << " " << flags);
+                GameWorld tested(map);
+                tested.Hero().alive = false;
+                ActorState& actor = tested.Other(2, 0, 0);
+                ActorState& target = tested.Other(7, 1, 1);
+                target.flags78 = flags;
+                target.position = {300.0f, 400.0f, 0.0f};
+                actor.darkSpirit.emplace();
+                actor.darkSpirit->state = state;
+                actor.darkSpirit->target3b0 = 7;
+                Skeleton raven;
+                raven.actions.resize(4);
+                Client::World::Particles particles;
+                tested.world.Runtime().terrainPolygon = Everything;
+                std::vector<Client::Protocol::Outgoing> sent;
+                const auto stepped = StepCharacters(
+                    {.world = tested.world,
+                     .random = tested.random,
+                     .scene = SceneId::Login,
+                     .playerSkeleton = tested.player,
+                     .darkSpiritSkeleton = &raven,
+                     .particles = &particles,
+                     .send = [&sent](Client::Protocol::Outgoing packet) { sent.push_back(std::move(packet)); }});
+                ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+                if (flags == 0)
+                {
+                    EXPECT_TRUE(sent.empty());
+                    EXPECT_EQ(actor.darkSpirit->target3b0, 7);
+                    continue;
+                }
+                ASSERT_EQ(sent.size(), 1u);
+                EXPECT_EQ(sent[0].delivery, Client::Network::Delivery::Clear);
+                EXPECT_EQ(Client::Network::Crypto::Xor32Decode(sent[0].packet).Bytes().size(), 7u);
+                EXPECT_TRUE(Client::Tests::SameBytes(Client::Network::Crypto::Xor32Decode(sent[0].packet).Bytes(),
+                                                     Client::Tests::Bytes({0xc1, 7, 0xa7, 0, 0x78, 0xff, 0xff})));
+                EXPECT_EQ(actor.darkSpirit->target3b0, 0xffff);
+            }
+        }
     }
+}
+
+// 0x416a8b: +0x3b0 entre 0 y 399 mira las banderas de ese personaje; fuera (el 400 de una clave que no estaba), solo
+// las del dueño.
+
+TEST(CharacterStepTest, TheRavenLooksAtTheAttackTargetOnlyInsideTheFourHundred)
+{
+    GameWorld tested(LoginMap);
+    tested.Hero().alive = false;
+    ActorState& actor = tested.Other(2, 0, 0);
+    tested.world.Actors()[400].flags78 = 0x4000;
+    actor.darkSpirit.emplace();
+    actor.darkSpirit->state = 6;
+    actor.darkSpirit->target3b0 = 400;
+    Skeleton raven;
+    raven.actions.resize(4);
+    Client::World::Particles particles;
+    tested.world.Runtime().terrainPolygon = Everything;
+    std::vector<Client::Protocol::Outgoing> sent;
+    const auto stepped =
+        StepCharacters({.world = tested.world,
+                        .random = tested.random,
+                        .scene = SceneId::Login,
+                        .playerSkeleton = tested.player,
+                        .darkSpiritSkeleton = &raven,
+                        .particles = &particles,
+                        .send = [&sent](Client::Protocol::Outgoing packet) { sent.push_back(std::move(packet)); }});
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_TRUE(sent.empty());
+    EXPECT_EQ(actor.darkSpirit->state, 6);
+
+    actor.flags78 = 0x4000;
+    const auto hidden =
+        StepCharacters({.world = tested.world,
+                        .random = tested.random,
+                        .scene = SceneId::Login,
+                        .playerSkeleton = tested.player,
+                        .darkSpiritSkeleton = &raven,
+                        .particles = &particles,
+                        .send = [&sent](Client::Protocol::Outgoing packet) { sent.push_back(std::move(packet)); }});
+    ASSERT_TRUE(hidden.HasValue()) << hidden.Error();
+    EXPECT_EQ(sent.size(), 1u);
 }
 
 TEST(CharacterStepTest, AMissingRavenResourceCutsAfterTheBodyRandoms)
@@ -487,6 +740,7 @@ std::optional<Skeleton> LoadPlayerSkeleton(const std::filesystem::path& dataRoot
 // en (172, 128) y (173, 128); en Devias (el 2), el del norte en (220, 76) y (220, 77). Con el héroe visto:
 // los 8 rand() del TerrainWall, los 3.848 del registro propio y el rand() % 6 de 0x4fd5f0, los 8 de la celda
 // de 0x505de0 y el rand() & 7.
+
 TEST_F(GoldenCharacterStep, TheSafeZoneFollowsTheLogicalCellAhead)
 {
     struct Case
@@ -546,6 +800,7 @@ TEST_F(GoldenCharacterStep, TheSafeZoneFollowsTheLogicalCellAhead)
 // (0x4fc450), el rand() % 6 (0x4fd7e4), y los 8 de la celda y el rand() & 7 de 0x505de0: 3.866. Desde el paso 11
 // el frame pasa de 3 y 0x432bf1 saca uno más; en el 22 la acción termina (6,16), vuelve al frame 0,16 y 0x4f2250
 // saca el de su sufijo, sin el de 0x432bf1. En Lorencia y en Devias.
+
 TEST_F(GoldenCharacterStep, TheHeroAtRestDrawsTheSameBudgetOnLorenciaAndDevias)
 {
     const std::optional<Skeleton> player = LoadPlayerSkeleton(m_dataRoot);
@@ -598,6 +853,7 @@ TEST_F(GoldenCharacterStep, TheHeroAtRestDrawsTheSameBudgetOnLorenciaAndDevias)
 
 // 0x505ef2: sin verse, 0x505de0 no lee la celda ni toca +0x3e2; quedan los 8 rand() del TerrainWall y los del
 // cuerpo, que corre igual.
+
 TEST(CharacterStepTest, AnUnseenHeroKeepsItsSafeZone)
 {
     GameWorld tested;
@@ -621,6 +877,7 @@ TEST(CharacterStepTest, AnUnseenHeroKeepsItsSafeZone)
 }
 
 // 0x505de0 mira el bit 0x01 del byte bajo del WORD: el 0x02 del héroe y los bits altos no cuentan.
+
 TEST(CharacterStepTest, TheSafeZoneIsTheLowBitOfTheCell)
 {
     struct Case
@@ -647,7 +904,10 @@ TEST(CharacterStepTest, TheSafeZoneIsTheLowBitOfTheCell)
 // 0x508f14..0x5091a0: el 0x02 sale de toda la grilla y vuelve en la celda lógica (los ocho bits bajos) de
 // cada personaje vivo, sin morirse (+0x389) y sin el 8 de +0x88, con sus dos accesos; si se ve, de los 400
 // primeros, vivos o no; el 401 no. Después, el primer vivo que no es el héroe, el que se muere, sale de 0x508ba0
-// sin leer su celda (0x508bb6) y el paso corta en su cuerpo, en 0x4fb9e0.
+// sin leer su celda (0x508bb6) y, después de su paso de morirse (0x4fb9e0, sin rand() fuera del mapa 7), su modelo, el
+// 0, es el registro sin acciones de 0x5769ad8: no avanza (0x4f9580), saca el rand() % 6 y 0x505de0 arma su caja y sale
+// (0x505e15). Los otros dos, sin modelo, leen su celda en 0x508ba0 y hacen lo mismo, y el héroe da su paso entero.
+
 TEST(CharacterStepTest, TheWallsAndTheViewCoverTheFirstFourHundred)
 {
     GameWorld tested;
@@ -672,8 +932,8 @@ TEST(CharacterStepTest, TheWallsAndTheViewCoverTheFirstFourHundred)
 
     const auto stepped = tested.Step(Everything);
 
-    ASSERT_TRUE(HasError(stepped, "0x4fb9e0")) << ErrorOf(stepped);
-    EXPECT_NE(stepped.Error().find("lugar 1 "), std::string::npos) << stepped.Error();
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_FLOAT_EQ(actors[1].dyingTime, 0.02f);
     EXPECT_EQ(tested.Cell(200, 201), 0x0104);
     EXPECT_EQ(tested.Cell(1, 1), 0);
     EXPECT_EQ(tested.Cell(2, 2), 0);
@@ -683,11 +943,13 @@ TEST(CharacterStepTest, TheWallsAndTheViewCoverTheFirstFourHundred)
     EXPECT_TRUE(actors[0].seen);
     EXPECT_TRUE(actors[399].seen);
     EXPECT_FALSE(actors[400].seen);
-    EXPECT_EQ(tested.random.State(), RandomAfter(2 * WallDraws).State());
+    EXPECT_EQ(tested.random.State(),
+              RandomAfter(2 * WallDraws + BodyDraws + 2 * (OtherCellDraws + BodyDraws) + SeenHeroDraws).State());
 }
 
-// Una cuenta abierta en la tabla de protección no se vuelve a cifrar al cerrar: la celda no gasta, y quedan el
-// registro propio, el rand() % 6 del cuerpo y el rand() & 7.
+// 0x4fbb08: al llegar a 1, 0x4fb1a0 suelta las telas en el mismo frame, también para el héroe. 0x4fb1a0 es
+// idempotente: los frames siguientes vuelven a llamarlo mientras el tiempo de muerte siga arriba de 1.
+
 TEST(CharacterStepTest, AnOpenAccessSpendsNothingOnClosing)
 {
     GameWorld tested;
@@ -702,6 +964,7 @@ TEST(CharacterStepTest, AnOpenAccessSpendsNothingOnClosing)
 }
 
 // Sin vivos, el paso borra el TerrainWall, escribe +0x16c y no gasta rand().
+
 TEST(CharacterStepTest, WithoutLiveCharactersOnlyTheWallsAndTheViewChange)
 {
     GameWorld tested;
@@ -718,6 +981,7 @@ TEST(CharacterStepTest, WithoutLiveCharactersOnlyTheWallsAndTheViewChange)
 // Q-C217: antes de cualquier 0x5fb570 el global tiene los ceros de la .bss, un trapecio sin área en (0, 0): los
 // cuatro lados dan 0, que pasa el margen de −20, y se ven todos, en cualquier lugar, también el muerto del lugar
 // 0. Con un WorldState nuevo (lo que deja WinMain) el paso sigue entero.
+
 TEST(CharacterStepTest, WithTheTrapezoidOfTheBssEveryoneIsSeen)
 {
     GameWorld tested;
@@ -739,6 +1003,7 @@ TEST(CharacterStepTest, WithTheTrapezoidOfTheBssEveryoneIsSeen)
 // del asedio de la clase 0 y el paso sigue como en Lorencia, con los mismos rand() y las mismas paredes; con otro
 // puesto corta en 0x412193 antes de tocar nada. Fuera del 30, 0x412560 suelta el panel. Sin el mapa cargado no
 // hay TerrainWall: corta antes de tocar nada.
+
 TEST(CharacterStepTest, TheCastleSiegePanelAndAnUnloadedMapComeBeforeTheWalls)
 {
     GameWorld castle(30);
@@ -777,6 +1042,7 @@ TEST(CharacterStepTest, TheCastleSiegePanelAndAnUnloadedMapComeBeforeTheWalls)
 // baja si es positivo y, en 0, apaga su bit de +0x3c y llama a sus helpers; con +0x40 en 0, las 16 marcas de
 // la lista de [0x6eed3c] vuelven a 0. Al cerrar, los 3.848 rand() si la cuenta queda en 0; con el registro ya
 // abierto, ninguno.
+
 TEST(CharacterStepTest, TheOwnRecordTimersRunWithTheHero)
 {
     for (const std::uint8_t depth : {std::uint8_t{0}, std::uint8_t{1}})
@@ -804,6 +1070,7 @@ TEST(CharacterStepTest, TheOwnRecordTimersRunWithTheHero)
 }
 
 // Con otro que el héroe, 0x4fc450 sale en 0x4fc464: el registro propio queda como estaba y no gasta.
+
 TEST(CharacterStepTest, TheOwnRecordTimersSkipTheOthers)
 {
     GameWorld tested;
@@ -826,6 +1093,7 @@ TEST(CharacterStepTest, TheOwnRecordTimersSkipTheOthers)
 
 // 0x4e9980 desde 0x4fd72e: con +0x16d en 1 (0x511290) el alpha sube de a 0,05f, en doble, y llega a 1 en el paso
 // 20, el de la entrada (la respuesta del F3 03 lo deja en 0); la luz del blendMesh (+0x68) baja con él.
+
 TEST(CharacterStepTest, TheHeroAppearsInTwentySteps)
 {
     GameWorld tested;
@@ -848,9 +1116,45 @@ TEST(CharacterStepTest, TheHeroAppearsInTwentySteps)
     EXPECT_LT(hero.blendMeshLight, 0.1f) << "la luz del blendMesh no sube (Q-C112)";
 }
 
+// 4ec31f..4ec33a publica +a4/+a8 antes del sufijo, incluso sin un dibujo entre pasos.
+TEST(CharacterStepTest, AdvancingTheBodyPublishesTheSharedFrameAndUnclampedKey)
+{
+    GameWorld tested;
+    tested.skeleton = SkeletonWith(1, 20, 0.4f);
+    tested.Hero().animation.frame = 1.2f;
+    tested.world.FaunaResources().RecordPoseKey(tested.Hero().type, 9);
+
+    const auto stepped = tested.Step(Everything);
+
+    ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
+    EXPECT_FLOAT_EQ(tested.world.FaunaResources().PoseFrame(tested.Hero().type), 1.6f);
+    EXPECT_EQ(tested.world.FaunaResources().PoseKey(tested.Hero().type), 1);
+}
+
+// 4ec21b/4ec229 y 4f973a: sin avance no se publican+a4/+a8 ni se hereda el frame del actor.
+TEST(CharacterStepTest, AOneKeyOrFrozenBodyPreservesTheSharedAnimationMetadata)
+{
+    for (const bool frozen : {false, true})
+    {
+        SCOPED_TRACE(frozen);
+        GameWorld tested;
+        tested.skeleton = SkeletonWith(1, frozen ? 20 : 1, 0.4f);
+        tested.Hero().animation.frame = 1.2f;
+        tested.Hero().flags78 = frozen ? 0x1000 : 0;
+        tested.world.FaunaResources().RecordAnimation(tested.Hero().type, 6.25f, 9);
+
+        const auto stepped = tested.Step(Everything);
+
+        ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
+        EXPECT_EQ(tested.world.FaunaResources().PoseFrame(tested.Hero().type), 6.25f);
+        EXPECT_EQ(tested.world.FaunaResources().PoseKey(tested.Hero().type), 9);
+    }
+}
+
 // 0x4f9580: la velocidad de la acción (0,4 por paso acá) por 1,5 en las 3 y 4 con +0x3e3, por 0,5 en la 0x3f
 // pasado el frame 6 y en la 0x44, por 0,1f en las 0x4d, 0x4f y 0x5a pasado el 5,5, y de nuevo por 0,5 en la 0x44.
 // En la clase 4, las 0x94, 0x51 y 0x5b entre el frame 1 y el 3 cortan en 0x59e680 sin avanzar.
+
 TEST(CharacterStepTest, TheSpeedOfTheActionGoesThroughItsFactors)
 {
     constexpr float Speed = 0.4f;
@@ -867,7 +1171,7 @@ TEST(CharacterStepTest, TheSpeedOfTheActionGoesThroughItsFactors)
          {Case{3, 0, 1, 0.0f, Speed, ""}, Case{3, 1, 1, 0.0f, Speed * 1.5f, ""}, Case{4, 1, 1, 0.0f, Speed * 1.5f, ""},
           Case{5, 1, 1, 0.0f, Speed, ""}, Case{0x3f, 0, 1, 6.0f, 6.0f + Speed, ""},
           Case{0x3f, 0, 1, 6.5f, 6.5f + (Speed * 0.5f), ""}, Case{0x4d, 0, 1, 5.0f, 5.0f + Speed, ""},
-          Case{0x5a, 0, 1, 5.6f, 5.6f + (Speed * 0.1f), "0x4fdb70"}, Case{0x44, 0, 1, 0.0f, Speed * 0.5f, "0x506e5d"},
+          Case{0x5a, 0, 1, 5.6f, 5.6f + (Speed * 0.1f), "0x4fdb92"}, Case{0x44, 0, 1, 0.0f, Speed * 0.5f, "0x518aa8"},
           Case{0x51, 0, 4, 2.0f, 2.0f, "0x4f969d"}, Case{0x51, 0, 4, 3.5f, 3.5f + Speed, ""},
           Case{0x51, 0, 0x14, 0.5f, 0.5f + Speed, ""}})
     {
@@ -898,7 +1202,9 @@ TEST(CharacterStepTest, TheSpeedOfTheActionGoesThroughItsFactors)
 // 0x4fcd00 con la acción que terminó (+0x78 & 0x1000: 0x4f9580 devuelve 0 sin avanzar, en cada paso) va a
 // 0x4fcb10: las de antes de la 0x0d, las 0xbd a 0xbf, las 0x54 y 0x55 y, de la 0x22 a la 0xc2, las que no
 // están en la lista vuelven a la de parado (0x4f2250: la 1 del jugador sin armas, con el rand() de su sufijo);
-// las demás quedan; la 0x44 vuelve al frame 0; las 0xc3 y 0xc4 cortan en 0x52e810.
+// las demás quedan; la 0x44 vuelve al frame 0; las 0xc3 y 0xc4 quedan y ponen +0x38a en 1 (0x52e810, que con el
+// esqueleto de test, sin el hueso +0x54, no deja nada).
+
 TEST(CharacterStepTest, AnEndedActionGoesBackToStanding)
 {
     struct Case
@@ -914,9 +1220,8 @@ TEST(CharacterStepTest, AnEndedActionGoesBackToStanding)
           Case{0x54, 1, "", Stopped}, Case{0x55, 1, "", Stopped}, Case{0x22, 1, "", Stopped},
           Case{0xc2, 1, "", Stopped}, Case{0x0d, 0x0d, "", SeenHeroDraws}, Case{0x8c, 0x8c, "", SeenHeroDraws},
           Case{0x46, 0x46, "", SeenHeroDraws}, Case{0x6a, 0x6a, "", SeenHeroDraws}, Case{0x75, 0x75, "", SeenHeroDraws},
-          Case{0x76, 1, "", Stopped}, Case{0xc5, 0xc5, "", SeenHeroDraws},
-          Case{0xc3, 0xc3, "0x4fcb87", WallDraws + OwnRecordDraws},
-          Case{0xc4, 0xc4, "0x4fcb87", WallDraws + OwnRecordDraws}})
+          Case{0x76, 1, "", Stopped}, Case{0xc5, 0xc5, "", SeenHeroDraws}, Case{0xc3, 0xc3, "", SeenHeroDraws},
+          Case{0xc4, 0xc4, "", SeenHeroDraws}})
     {
         SCOPED_TRACE(::testing::Message() << "acción " << static_cast<int>(probe.action));
         GameWorld tested;
@@ -940,11 +1245,15 @@ TEST(CharacterStepTest, AnEndedActionGoesBackToStanding)
         EXPECT_EQ(hero.animation.action, probe.after);
         EXPECT_EQ(hero.run, probe.draws == Stopped ? 0 : 1);
         EXPECT_EQ(hero.animation.frame, probe.after != probe.action ? 0.0f : 2.5f);
+        EXPECT_EQ(hero.byte38a, probe.action == 0xc3 || probe.action == 0xc4 ? 1 : 0);
         EXPECT_EQ(tested.random.State(), RandomAfter(probe.draws).State());
     }
 }
 
-// 0x4fcb71: la 0x44 que terminó se queda y vuelve al frame 0; después, 0x505de0 corta en sus efectos.
+// 0x4fcb87..0x4fcba6: el jugador que termina la 0xc3 o la 0xc4 con +0x38a en 0 lo pone en 1 y deja sus restos
+// (0x52e810): con el hueso 20 de Player.bmd posado en sus huesos propios, dos marcas 0x5e3 alrededor de él, por la
+// escala y posición publicadas al entrar al cuerpo, y sus diez rand(). En Lorencia y en Devias.
+
 TEST(CharacterStepTest, AnEndedActionFortyFourRestartsItsFrame)
 {
     GameWorld tested;
@@ -955,15 +1264,52 @@ TEST(CharacterStepTest, AnEndedActionFortyFourRestartsItsFrame)
 
     const auto stepped = tested.Step(Everything);
 
-    EXPECT_TRUE(HasError(stepped, "0x506e5d")) << ErrorOf(stepped);
+    EXPECT_TRUE(HasError(stepped, "0x518aa8")) << ErrorOf(stepped);
     EXPECT_EQ(hero.animation.action, 0x44);
     EXPECT_EQ(hero.animation.frame, 0.0f);
-    EXPECT_EQ(tested.random.State(), RandomAfter(SeenHeroDraws).State());
+    EXPECT_EQ(tested.random.State(), RandomAfter(SeenHeroDraws + 2).State());
+}
+
+// Regresión del ataque observado en vivo: la mano visible debe producir una cinta, no cerrar Game.
+// 4fd236..4fd5bb: diez muestras, tipo0, color del nivel7 y continuación con el rand de432bf1.
+TEST(CharacterStepTest, AnEquippedSwordAttackCreatesItsTrailAndContinuesTheBody)
+{
+    GameWorld tested;
+    ActorState& hero = tested.Hero();
+    hero.animation.action = 0x23;
+    hero.animation.frame = 3.0f;
+    hero.position = {100.0f, 200.0f, 300.0f};
+    hero.scale = 1.0f;
+    hero.hands[0].model = 0x222;
+    hero.hands[0].level = 7;
+    hero.hands[0].bone = 0;
+    tested.skeleton.actions[0x23] = ActionInfo{.repeats = true, .speed = 0.0f, .keyCount = 10};
+    Client::Render::Models::SkeletonBone bone;
+    bone.actions.resize(tested.skeleton.actions.size());
+    for (auto& keys : bone.actions)
+        keys.resize(10);
+    tested.skeleton.bones.push_back(std::move(bone));
+
+    const auto stepped = tested.Step(Everything);
+
+    ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
+    const auto& ribbon = tested.world.DrawTail().ribbons[0];
+    ASSERT_TRUE(ribbon.alive);
+    EXPECT_EQ(ribbon.ownerContext, &hero);
+    EXPECT_EQ(ribbon.ownerEquipment, &hero.level);
+    EXPECT_EQ(ribbon.type, 0);
+    EXPECT_EQ(ribbon.count, 10);
+    EXPECT_EQ(ribbon.life, 15);
+    EXPECT_EQ(ribbon.light, (glm::vec3{1.0f, 0.6f, 0.2f}));
+    EXPECT_EQ(ribbon.first[0], (glm::vec3{100.0f, 180.0f, 300.0f}));
+    EXPECT_EQ(ribbon.second[0], (glm::vec3{100.0f, 80.0f, 300.0f}));
+    EXPECT_EQ(tested.random.State(), RandomAfter(SeenHeroDraws + TrailDraws).State());
 }
 
 // 0x4fcee0: antes del frame 3, salvo en la 0x8d, copia la posición a +0x17c y sale; si no, con el 0x20a, la estela
 // según la acción y el arma de la mano (la izquierda con las 0x25 y 0x26) corta en 0x52e470, y sin estela 0x432bd0
 // saca su rand() sin condición (0x432bf1).
+
 TEST(CharacterStepTest, TheWeaponTrailDrawsFromFrameThree)
 {
     constexpr std::uint16_t NoItem = Client::Scenes::NoItemModel;
@@ -1008,20 +1354,23 @@ TEST(CharacterStepTest, TheWeaponTrailDrawsFromFrameThree)
 
         if (probe.trail)
         {
-            EXPECT_TRUE(HasError(stepped, "0x4fd236")) << ErrorOf(stepped);
+            EXPECT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
+            EXPECT_TRUE(tested.world.DrawTail().ribbons[0].alive);
         }
         else
         {
             EXPECT_TRUE(stepped.HasValue()) << stepped.Error();
         }
-        EXPECT_EQ(tested.random.State(), RandomAfter(probe.draws).State());
+        EXPECT_EQ(tested.random.State(), RandomAfter(probe.trail ? Drawn : probe.draws).State());
     }
 }
 
 // Lo que el cuerpo (0x4fd5f0) no tiene corta, en su orden y después de los rand() de antes: los mapas 18 a 23 con
-// el héroe 10 s en una celda con el bit 8 sin la sesión del C1 06 AF 02 (0x4fbee8), el 0xc5 (0x4fd603), el 0xf1
-// (0x4fb910), muriéndose (0x4fb9e0), el nombre de 0x6c88b0 sin timeGetTime() (0x4fcd82), otro modelo, Player.bmd sin
-// cargar o una acción fuera de él (0x4f9580, 0x4f95c0) y la partícula de las 0x4d, 0x4f y 0x5a (0x4fdb70).
+// el héroe 10 s en una celda con el bit 8 sin la sesión del C1 06 AF 02 (0x4fbee8), el 0xc5 sin Text.bmd (0x4fd63b),
+// el 0xf1 sin las alturas del terreno (0x4fb942), el nombre de 0x6c88b0 sin timeGetTime() (0x4fcd82), otro modelo,
+// Player.bmd sin cargar o una acción fuera de él (0x4f9580, 0x4f95c0), la partícula de las 0x4d, 0x4f y 0x5a
+// (0x4fdb70) y, después de pegar, una habilidad de +0x38e en 0x4f97b0 (0x4f9899, después de leerla; también
+// muriéndose: el paso de morirse, 0x4fb9e0, y el de 0x4fd787 ya pasaron).
 TEST(CharacterStepTest, TheBodyStopsWhereMuRetHasNothing)
 {
     struct Case
@@ -1037,9 +1386,23 @@ TEST(CharacterStepTest, TheBodyStopsWhereMuRetHasNothing)
              WallDraws + HeroCellReads},
         Case{"mapa 23", [](GameWorld& tested) { tested.StandOnTheReportedCell(23); }, "0x4fbee8",
              WallDraws + HeroCellReads},
-        Case{"el 0xc5", [](GameWorld& tested) { tested.Hero().type = 0xc5; }, "0x4fd603", WallDraws},
-        Case{"el 0xf1", [](GameWorld& tested) { tested.Hero().type = 0xf1; }, "0x4fb910", AfterTheTimers},
-        Case{"se muere", [](GameWorld& tested) { tested.Hero().dying = 1; }, "0x4fb9e0", OwnRecordDraws},
+        Case{"el 0xc5", [](GameWorld& tested) { tested.Hero().type = 0xc5; }, "0x4fd63b", WallDraws},
+        Case{"el 0xf1", [](GameWorld& tested) { tested.Hero().type = 0xf1; }, "0x4fb942", AfterTheTimers},
+        Case{"se muere y pegó con una habilidad",
+             [](GameWorld& tested)
+             {
+                 tested.Hero().dying = 1;
+                 tested.Hero().byte381 = FrameSkillStep;
+                 tested.Hero().byte38e = FrameSkill;
+             },
+             FrameSkillCut, OwnRecordDraws + BodyDraws + SkillReadDraws},
+        Case{"pegó con una habilidad",
+             [](GameWorld& tested)
+             {
+                 tested.Hero().byte381 = FrameSkillStep;
+                 tested.Hero().byte38e = FrameSkill;
+             },
+             FrameSkillCut, AfterTheTimers + BodyDraws + SkillReadDraws},
         Case{"el nombre",
              [](GameWorld& tested)
              {
@@ -1052,7 +1415,6 @@ TEST(CharacterStepTest, TheBodyStopsWhereMuRetHasNothing)
                  tested.Hero().byte1e3 = Name[10];
              },
              "0x4fcd82", AfterTheTimers},
-        Case{"otro modelo", [](GameWorld& tested) { tested.Hero().type = 0x100; }, "0x4f9580", AfterTheTimers},
         Case{"sin Player.bmd", [](GameWorld& tested) { tested.player = nullptr; }, "0x4f9580", AfterTheTimers},
         Case{"una acción fuera",
              [](GameWorld& tested)
@@ -1067,7 +1429,7 @@ TEST(CharacterStepTest, TheBodyStopsWhereMuRetHasNothing)
                  tested.Hero().animation.action = 0x4f;
                  tested.Hero().animation.frame = 5.6f;
              },
-             "0x4fdb70", AfterTheTimers + BodyDraws},
+             "0x4fdb92", AfterTheTimers + BodyDraws},
     };
     for (const Case& probe : cases)
     {
@@ -1080,10 +1442,18 @@ TEST(CharacterStepTest, TheBodyStopsWhereMuRetHasNothing)
         EXPECT_TRUE(HasError(stepped, probe.cut)) << ErrorOf(stepped);
         EXPECT_EQ(tested.random.State(), RandomAfter(probe.draws).State());
     }
+    // Otro modelo sin cargar es el registro en 0 (+0x26 sin acciones): 0x4f9580 no avanza, sale el rand() % 6 y
+    // 0x505de0 arma la caja de 0x505e15 y sale, sin la celda ni el & 7.
+    GameWorld unloaded;
+    unloaded.Hero().type = 0x100;
+    const auto boxed = unloaded.Step(Everything);
+    EXPECT_TRUE(boxed.HasValue()) << ErrorOf(boxed);
+    EXPECT_EQ(unloaded.random.State(), RandomAfter(AfterTheTimers + BodyDraws).State());
 }
 
 // Los bordes de esos cortes: los mapas 17 y 24, el nombre con +0x1e3 en 0 (el que deja la respuesta del F3 03) y
 // la partícula en el frame 5,5 justo siguen el camino entero.
+
 TEST(CharacterStepTest, TheBordersOfTheBodyCutsGoOn)
 {
     for (const std::int32_t map : {17, 24})
@@ -1111,23 +1481,7 @@ TEST(CharacterStepTest, TheBordersOfTheBodyCutsGoOn)
 
 // 0x4fcd00 con +0x88 en 4 y el 0x20a de subtipo 0xd2 (el tipo 236) en Lorencia: gira a 90 y 0x4fc790 saca su rand()
 // después de los relojes; sin +0x376 en 0x101 no dice nada. El resto es el camino del héroe quieto, con uno más.
-TEST(CharacterStepTest, TheTurnedNpcTurnsAndDrawsItsLine)
-{
-    GameWorld tested;
-    tested.Hero().byte88 = 4;
-    tested.Hero().subtype = 0xd2;
-    tested.Hero().angles = {1.0f, 2.0f, 3.0f};
 
-    const auto stepped = tested.Step(Everything);
-
-    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-    EXPECT_EQ(tested.Hero().angles, glm::vec3(0.0f, 0.0f, 90.0f));
-    EXPECT_EQ(tested.random.State(), RandomAfter(SeenHeroDraws + 1).State());
-}
-
-// 0x4fbe10 en los mapas 18 a 23, sin mandar nada: con otra celda guarda la del héroe y el reloj del mundo, y
-// abre y cierra la X dos veces y la Y una (12 rand()); con la misma y menos de 10 s, no toca nada y lee las dos (8);
-// con 10 s en una celda sin el bit 8, guarda el reloj. El resto del paso es el del mapa 17.
 TEST(CharacterStepTest, ChaosCastleKeepsTheHeroCellAndItsClock)
 {
     GameWorld plain(17);
@@ -1243,6 +1597,7 @@ glm::vec3 DynamicLightAt(WorldState& world, std::uint8_t x, std::uint8_t y)
 // dinámico (0x5f9780) con la x y la y del objeto, sin rand(); el paso sigue hasta el final. El 0x21e da
 // (0,8; 0,64; 0,4) con radio 3 y los otros cuatro (0,64; 0,4; 0,24) con radio 2, con los bits de los DWORD de
 // 0x506af7..0x506b05 y 0x506b2d..0x506b3b. Con 6 o más, no hay luces.
+
 TEST(CharacterStepTest, TheHandLightsAddToTheDynamicBufferBelowPkSix)
 {
     struct Case
@@ -1297,6 +1652,7 @@ TEST(CharacterStepTest, TheHandLightsAddToTheDynamicBufferBelowPkSix)
 
 // Con luz en las dos manos, primero la derecha y después la izquierda: cada canal suma en double y guarda en
 // float, sobre lo que dejó la otra.
+
 TEST(CharacterStepTest, BothHandsAddTheirLightsRightFirst)
 {
     GameWorld tested;
@@ -1319,6 +1675,7 @@ TEST(CharacterStepTest, BothHandsAddTheirLightsRightFirst)
 // El caso del 0x20a en 0x506cf8 y los pasos del héroe (0x50862f), después del rand() & 7: el mapa 7 y las
 // acciones 0x44, 0x45 y 0x96 cortan (el 7 sin el pool de la burbuja); el 9 tiene su test. Los pasos ya producen
 // solicitudes CL10 sin cortar ni agregar RNG.
+
 TEST(CharacterStepTest, ThePlayerEffectsAndStepsStopAfterTheRandom)
 {
     struct Case
@@ -1327,8 +1684,8 @@ TEST(CharacterStepTest, ThePlayerEffectsAndStepsStopAfterTheRandom)
         std::uint8_t action;
         std::string_view cut;
     };
-    for (const Case& probe : {Case{7, 1, "0x506d77"}, Case{0, 0x44, "0x506e5d"}, Case{0, 0x45, "0x506e5d"},
-                              Case{0, 0x96, "0x506f62"}, Case{0, 0x0d, ""}, Case{0, 0x21, ""}, Case{2, 0x8b, ""},
+    for (const Case& probe : {Case{7, 1, "0x506d77"}, Case{0, 0x44, "0x518aa8"}, Case{0, 0x45, "0x518aa8"},
+                              Case{0, 0x96, "0x506f84"}, Case{0, 0x0d, ""}, Case{0, 0x21, ""}, Case{2, 0x8b, ""},
                               Case{2, 0x8c, ""}, Case{2, 0x4b, ""}, Case{2, 0x0c, ""}, Case{0, 0x22, ""}})
     {
         SCOPED_TRACE(::testing::Message() << "mapa " << probe.map << ", acción " << static_cast<int>(probe.action));
@@ -1345,7 +1702,10 @@ TEST(CharacterStepTest, ThePlayerEffectsAndStepsStopAfterTheRandom)
         {
             EXPECT_TRUE(HasError(stepped, probe.cut)) << ErrorOf(stepped);
         }
-        EXPECT_EQ(tested.random.State(), RandomAfter(SeenHeroDraws).State());
+        EXPECT_EQ(tested.random.State(), RandomAfter(SeenHeroDraws + (probe.action == 0x44 || probe.action == 0x45 ? 2
+                                                                      : probe.action == 0x96                       ? 1
+                                                                                                                   : 0))
+                                             .State());
     }
 }
 
@@ -1353,6 +1713,7 @@ TEST(CharacterStepTest, ThePlayerEffectsAndStepsStopAfterTheRandom)
 // la copia en claro (0x511290 escribe las dos), así que no busca camino (Q-C236). Su cuerpo (0x4fd5f0) saca el
 // rand() % 6, sin el registro propio, y su 0x505de0, visto, la celda (8 más), la cabeza que sortea (0x5068fd) y el
 // rand() & 7. Después, el héroe del lugar 42 hace su paso entero. En Lorencia y en Devias.
+
 TEST(CharacterStepTest, AnotherCharacterRunsItsWholeStepBeforeTheHero)
 {
     for (const std::int32_t map : {0, 2})
@@ -1410,6 +1771,7 @@ TEST(CharacterStepTest, AnotherCharacterRetriesItsPathWithTheCrywolfAltarFlag)
 // 0x5068eb..0x5069ab con otro que el héroe, paso a paso: rand() % 32 en 0 sortea el blanco con dos rand() más
 // (+0x34 y +0x38), y los dos ángulos giran hacia él (+0x28 y +0x2c), como en el login. Con el héroe muerto, cada
 // paso saca el TerrainWall del otro y lo suyo, con 1 o 3 en la cabeza. En Lorencia y en Devias.
+
 TEST(CharacterStepTest, TheHeadOfAnotherCharacterSortsOneStepInThirtyTwo)
 {
     constexpr int Steps = 200;
@@ -1442,6 +1804,7 @@ TEST(CharacterStepTest, TheHeadOfAnotherCharacterSortsOneStepInThirtyTwo)
 
 // Con el héroe la cabeza no sortea ni gasta: gira hacia el blanco (+0x34 y +0x38), que MoveHero escribe con el
 // mouse (CL7.4), a lo sumo el 20 % de lo que falta por paso. En Lorencia y en Devias.
+
 TEST(CharacterStepTest, TheHeroTurnsItsHeadWithoutRandoms)
 {
     for (const std::int32_t map : {0, 2})
@@ -1468,6 +1831,7 @@ TEST(CharacterStepTest, TheHeroTurnsItsHeadWithoutRandoms)
 // 0x5068be..0x5068d4: con +0x78 & 0x20 o & 0x1000 la cabeza no se mueve ni sortea, y el paso sigue con el
 // rand() & 7. Con 0x1000 la acción además termina sin avanzar y vuelve a la de parado (0x4f2250, con el rand() de
 // su sufijo). En Lorencia y en Devias.
+
 TEST(CharacterStepTest, TheFlagsOf78KeepTheHeadStill)
 {
     struct Case
@@ -1499,6 +1863,7 @@ TEST(CharacterStepTest, TheFlagsOf78KeepTheHeadStill)
 
 // 0x50862f..0x508641: los pasos (0x505770) son solo del héroe publicado. Otro en las acciones de los pasos no
 // corta y sigue hasta el final. En Lorencia y en Devias.
+
 TEST(CharacterStepTest, TheStepSoundsAreOnlyTheHeros)
 {
     for (const std::int32_t map : {0, 2})
@@ -1524,6 +1889,7 @@ TEST(CharacterStepTest, TheStepSoundsAreOnlyTheHeros)
 // 0x5086cf..0x5087fc: en Kalima (los mapas 24 a 29 y el 36), el 0x20a en las acciones 0x15, 0x1d a 0x21 y 0x4b
 // saca dos rand() % 64 y el 0x6f4, que corta. En los mapas de al lado, o con otra acción, sigue. El héroe ya
 // atraviesa la solicitud de sonido 0x508668 y alcanza la misma partícula, con sus dos rand adicionales.
+
 TEST(CharacterStepTest, KalimaParticleCutsAfterItsTwoRandoms)
 {
     struct Case
@@ -1567,6 +1933,7 @@ TEST(CharacterStepTest, KalimaParticleCutsAfterItsTwoRandoms)
 
 // Después de la cabeza, otro que el héroe sigue el camino del 0x20a del héroe: la luz de una mano suma al buffer
 // dinámico y sigue; el mapa 7 (solo en el juego) y las acciones 0x44, 0x45 y 0x96 cortan después del rand() & 7.
+
 TEST(CharacterStepTest, AfterItsHeadAnotherCharacterTakesThePathOfTheHero)
 {
     struct Case
@@ -1580,8 +1947,8 @@ TEST(CharacterStepTest, AfterItsHeadAnotherCharacterTakesThePathOfTheHero)
     };
     constexpr std::uint16_t NoItem = Client::Scenes::NoItemModel;
     for (const Case& probe :
-         {Case{"el mapa 7", 7, 1, NoItem, "0x506d77", true}, Case{"la 0x44", 2, 0x44, NoItem, "0x506e5d", true},
-          Case{"la 0x45", 0, 0x45, NoItem, "0x506e5d", true}, Case{"la 0x96", 2, 0x96, NoItem, "0x506f62", true}})
+         {Case{"el mapa 7", 7, 1, NoItem, "0x506d77", true}, Case{"la 0x44", 2, 0x44, NoItem, "0x518aa8", true},
+          Case{"la 0x45", 0, 0x45, NoItem, "0x518aa8", true}, Case{"la 0x96", 2, 0x96, NoItem, "0x506f84", true}})
     {
         SCOPED_TRACE(probe.name);
         GameWorld tested(probe.map);
@@ -1597,6 +1964,9 @@ TEST(CharacterStepTest, AfterItsHeadAnotherCharacterTakesThePathOfTheHero)
         CharacterHead head;
         StepCharacterHead(head, true, withoutTheRandom);
 
+        const int extra = probe.action == 0x44 || probe.action == 0x45 ? 2 : probe.action == 0x96 ? 1 : 0;
+        Skip(expected, extra);
+        Skip(withoutTheRandom, extra);
         const auto stepped = tested.Step(Everything);
 
         EXPECT_TRUE(HasError(stepped, probe.cut)) << ErrorOf(stepped);
@@ -1624,10 +1994,12 @@ TEST(CharacterStepTest, AfterItsHeadAnotherCharacterTakesThePathOfTheHero)
     EXPECT_EQ(DynamicLightAt(lit.world, 0, 0).r, std::bit_cast<float>(0x3f4ccccdu));
 }
 
-// Las salidas de 0x508ba0 antes de la celda: el que se muere sale (0x508bb6) y corta en su cuerpo (0x4fb9e0),
-// salvo el 0x154, que toma la altura del terreno (0x508e89); el que camina sigue su camino (0x508e27); el 0x159
-// sale sin leer la celda y corta en su modelo (0x4f9580). Cada uno, con el héroe vivo en el lugar 42, después del
-// TerrainWall.
+// Las salidas de 0x508ba0 antes de la celda: el que se muere sale (0x508bb6) y hace su cuerpo, con el paso de morirse
+// (0x4fb9e0) y el rand() % 6, hasta la habilidad de +0x38e después de pegar (0x4f9899), salvo el 0x154, que toma la
+// altura del terreno (0x508e89); el que camina sigue su camino (0x508e27). Cada uno, con el héroe vivo en el lugar 42,
+// después del TerrainWall. El 0x159 sale sin leer la celda; sin su modelo (el registro en 0), no avanza, saca el
+// rand() % 6 y 0x505de0 arma su caja (0x505e15), y después el héroe da su paso entero.
+
 TEST(CharacterStepTest, TheExitsOf508ba0BeforeTheCell)
 {
     struct Case
@@ -1640,11 +2012,12 @@ TEST(CharacterStepTest, TheExitsOf508ba0BeforeTheCell)
         int draws;
     };
     constexpr std::uint16_t Player = Client::Data::Models::PlayerSkeletonModel;
-    for (const Case& probe : {Case{"se muere", Player, 1, 0, "0x4fb9e0", WallDraws},
-                              Case{"se muere el 0x154", 0x154, 1, 0, "0x508e89", WallDraws},
-                              // Walk ya existe: consume su rand antes de que Position encuentre la altura ausente.
-                              Case{"camina", Player, 0, 1, "0x508a80", 2 * WallDraws + 1},
-                              Case{"el 0x159", 0x159, 0, 0, "0x4f9580", 2 * WallDraws}})
+    for (const Case& probe :
+         {Case{"se muere", Player, 1, 0, FrameSkillCut, WallDraws + BodyDraws + SkillReadDraws},
+          Case{"se muere el 0x154", 0x154, 1, 0, "0x508e89", WallDraws},
+          // Walk ya existe: consume su rand antes de que Position encuentre la altura ausente.
+          Case{"camina", Player, 0, 1, "0x508a80", 2 * WallDraws + 1},
+          Case{"el 0x159", 0x159, 0, 0, "", 2 * WallDraws + BodyDraws + OwnRecordDraws + BodyDraws + SeenEffectsDraws}})
     {
         SCOPED_TRACE(probe.name);
         GameWorld tested;
@@ -1654,10 +2027,15 @@ TEST(CharacterStepTest, TheExitsOf508ba0BeforeTheCell)
         other.type = probe.type;
         other.dying = probe.dying;
         other.movement = probe.movement;
+        other.byte381 = probe.dying != 0 ? FrameSkillStep : 0;
+        other.byte38e = FrameSkill;
 
         const auto stepped = tested.Step(Everything);
 
-        EXPECT_TRUE(HasError(stepped, probe.cut)) << ErrorOf(stepped);
+        if (probe.cut.empty())
+            EXPECT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
+        else
+            EXPECT_TRUE(HasError(stepped, probe.cut)) << ErrorOf(stepped);
         EXPECT_EQ(tested.random.State(), RandomAfter(probe.draws).State());
     }
 }
@@ -1665,6 +2043,7 @@ TEST(CharacterStepTest, TheExitsOf508ba0BeforeTheCell)
 // Una cuenta abierta no se vuelve a cifrar al cerrar: ni en el TerrainWall, ni en 0x508ba0, ni en la celda de
 // 0x505de0. Al otro le quedan el rand() % 6, la cabeza y el rand() & 7, y después el héroe hace su paso. En
 // Lorencia y en Devias.
+
 TEST(CharacterStepTest, AnotherCharacterWithOpenCellAccessesSpendsNothingOnThem)
 {
     for (const std::int32_t map : {0, 2})
@@ -1756,6 +2135,7 @@ TerrainPolygon SelectionPolygon()
 // Los lugares 1 a 4 gastan su 0x508ba0, su cuerpo, su celda, su cabeza (1 o 3) y el rand() & 7. Por paso, 40 +
 // 3.858 + 4 · 19 = 3.974, más 2 por cada cabeza que sortea (*simulado*). El esqueleto de prueba no tiene velocidad:
 // la animación no avanza, sin el rand() de 0x432bf1 desde el frame 3 ni el del sufijo al terminar la acción.
+
 TEST_F(GoldenCharacterStep, TheSelectionStepsItsFiveSlots)
 {
     constexpr int Steps = 64;
@@ -1794,6 +2174,7 @@ TEST_F(GoldenCharacterStep, TheSelectionStepsItsFiveSlots)
 
 // Sin Item.bmd, el héroe de la selección corta en las alas del tipo 0 de su registro en cero (0x54efe0, desde
 // 0x4fc450), después de los TerrainWall y de cerrar el registro propio.
+
 TEST_F(GoldenCharacterStep, WithoutItemBmdTheSelectionHeroStopsAtItsWings)
 {
     SceneCharacters tested(m_dataRoot, SelectionMap, 0);
@@ -1810,6 +2191,7 @@ TEST_F(GoldenCharacterStep, WithoutItemBmdTheSelectionHeroStopsAtItsWings)
 // son otros, sin el registro propio, y cada uno saca su TerrainWall, su 0x508ba0, su cuerpo, su celda, su cabeza y
 // el rand() & 7: 40 + 5 · 19 = 135 por paso, más 2 por cada cabeza que sortea (*simulado*), con la animación
 // quieta.
+
 TEST_F(GoldenCharacterStep, AfterTheReturnTheFiveSlotsAreOthers)
 {
     constexpr int Steps = 64;
@@ -1846,6 +2228,7 @@ TEST_F(GoldenCharacterStep, AfterTheReturnTheFiveSlotsAreOthers)
 // cabeza y el rand() & 7: 27, y 29 cuando la cabeza sortea (*simulado*), con la animación quieta (sin el rand() de
 // 0x432bf1 desde el frame 3). La cabeza es la que el login corre por su cuenta (LoginScene, 06 § Lo demás del
 // login).
+
 TEST_F(GoldenCharacterStep, TheLoginStepsItsCharacter)
 {
     constexpr int Steps = 200;
@@ -1877,6 +2260,7 @@ TEST_F(GoldenCharacterStep, TheLoginStepsItsCharacter)
 
 // Fuera del juego el héroe hace el mismo camino: con el héroe solo, en un mapa del juego (el 0 y el 2) y con la
 // selección o el login de escena, el cuerpo y 0x505de0 enteros, con los mismos rand().
+
 TEST(CharacterStepTest, OutsideTheGameTheHeroTakesTheSamePath)
 {
     for (const std::int32_t map : {0, 2})
@@ -1898,6 +2282,7 @@ TEST(CharacterStepTest, OutsideTheGameTheHeroTakesTheSamePath)
 
 // 0x506cf8: el 0x607 del mapa 7 es solo de la escena 5; en las otras el mapa 7 sigue de largo. Sin el pool de
 // partículas, la burbuja corta.
+
 TEST(CharacterStepTest, TheClockEffectOfMapSevenIsOnlyInTheGame)
 {
     GameWorld game(7);
@@ -1912,6 +2297,7 @@ TEST(CharacterStepTest, TheClockEffectOfMapSevenIsOnlyInTheGame)
 // de 1000) saca la burbuja 0x607/0 (dos rand()) del hueso de la cabeza (20) de los huesos del último dibujo:
 // (0, 20, −10) por la escala, más la posición, con los ángulos del personaje y la luz en 1. Sin dibujo todavía,
 // de la posición (Q-C318).
+
 TEST(CharacterStepTest, AtlansBlowsABubbleFromTheHeadOneSecondInTen)
 {
     struct Case
@@ -1963,6 +2349,7 @@ TEST(CharacterStepTest, AtlansBlowsABubbleFromTheHeadOneSecondInTen)
 // 0x506d7f..0x506e54: en el mapa 9, en cualquier escena, dos rand() & 3; con 0, una gota 0x68/0 del hueso 26 (el
 // primero) y del 35 (el segundo) del último dibujo: (−15, 0, 0) más la traslación del hueso, por la escala, más la
 // posición, con los ángulos del personaje y la luz en 1. Sin el pool corta sólo si tenía que crearla.
+
 TEST(CharacterStepTest, DevilSquareRainsFromTwoBonesOfEachCharacter)
 {
     struct Drop
@@ -2050,6 +2437,7 @@ TEST(CharacterStepTest, DevilSquareRainsFromTwoBonesOfEachCharacter)
 
 // En la selección (la escena 4) 0x4ec200 decide el final con el frame + 2 (Q-C21): la acción de 6 keys a 1 por
 // paso termina en el frame 4 y vuelve a la de parado, con el rand() del sufijo de 0x4f2250; en el juego, no.
+
 TEST(CharacterStepTest, TheSelectionEndsTheActionTwoFramesEarlier)
 {
     for (const SceneId scene : {SceneId::Game, SceneId::CharacterSelect})
@@ -2094,3 +2482,269 @@ TEST(CharacterStepTest, KalimaFootstepCallerCreatesSubtypeOneInTheSharedPool)
     EXPECT_EQ(p.scale, 1);
     EXPECT_EQ(tested.random.State(), RandomAfter(SeenHeroDraws + 3).State());
 }
+
+TEST(CharacterStepTest, ThePerchedRavenUsesItsOwnersPlacementBeforeDeathMovesTheActor)
+{
+    GameWorld tested;
+    tested.Hero().alive = false;
+    ActorState& first = tested.Other(2, 0, 0);
+    first.position = {1000.0f, 2000.0f, 300.0f};
+    first.scale = 1.5f;
+    ActorState& owner = tested.Other(5, 0, 0);
+    owner.position = {10603.0f, 14112.0f, 580.0f};
+    owner.scale = 1.25f;
+    owner.dying = 1;
+    owner.dyingTime = 0.98f;
+    owner.angles = {3.0f, 0.0f, 188.0f};
+    owner.safeZone = 1;
+    tested.Cell(0, 0) = 1;
+    owner.bodyPose.assign(60, Client::Render::Models::BoneTransform(1.0f));
+    owner.bodyPose[37][3] = glm::vec3(7.0f, 8.0f, 9.0f);
+    owner.darkSpirit.emplace();
+    owner.darkSpirit->state = 3;
+    Skeleton raven;
+    raven.actions.resize(4);
+    Client::World::Particles particles;
+    tested.world.Runtime().terrainPolygon = Everything;
+
+    const auto stepped = StepCharacters({.world = tested.world,
+                                         .random = tested.random,
+                                         .playerSkeleton = tested.player,
+                                         .darkSpiritSkeleton = &raven,
+                                         .particles = &particles});
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(owner.darkSpirit->state, 3);
+    EXPECT_FLOAT_EQ(owner.position.z, 579.6f);
+    // 1,25 · ((7, 8, 9) + (−10, 0, 10)) + (10.603, 14.112, 580).
+    EXPECT_EQ(owner.darkSpirit->position, glm::vec3(10599.25f, 14122.0f, 603.75f));
+    EXPECT_EQ(owner.darkSpirit->angles, glm::vec3(3.0f, 0.0f, 68.0f));
+    // El jugador posterior publica su modelo después del dueño.
+    EXPECT_EQ(tested.world.PlayerModel().scale, 1.25f);
+    EXPECT_EQ(tested.world.PlayerModel().origin, owner.position);
+}
+
+TEST(CharacterStepTest, TheBodyCountsDownTheRemovalWordAndKeepsItsMinus128Sentinel)
+{
+    struct Case
+    {
+        std::int32_t before;
+        std::int32_t after;
+        bool removed;
+    };
+    constexpr std::array Cases{Case{150, 149, false},  Case{2, 1, false},
+                               Case{1, -128, true},    Case{0, -128, true},
+                               Case{-1, -128, true},   Case{-127, -128, true},
+                               Case{-129, -128, true}, Case{std::numeric_limits<std::int32_t>::min(), -128, true},
+                               Case{-128, -128, false}};
+    for (const Case& probe : Cases)
+    {
+        SCOPED_TRACE(probe.before);
+        GameWorld tested;
+        ActorState& actor = tested.Other(1);
+        actor.dword428 = probe.before;
+
+        const auto stepped = tested.Step(Everything);
+
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(actor.dword428, probe.after);
+        EXPECT_EQ(actor.alive, !probe.removed);
+    }
+}
+
+// La baja del contador es por lugar, no por clave: otros duplicados de la clave y sus efectos quedan vivos.
+
+TEST(CharacterStepTest, ExpiringOneActorCleansOnlyItsOwnEffectsAndLetsTheBodyFinish)
+{
+    GameWorld tested;
+    ActorState& expired = tested.Other(1);
+    expired.key = 77;
+    expired.dword428 = 1;
+    expired.dying = 1;
+    expired.flags78 = 0x18000;
+    expired.darkSpirit.emplace();
+    expired.darkSpirit->state = 2;
+    expired.byte360 = 5;
+    expired.layer.emplace();
+    ActorState& duplicate = tested.Other(2);
+    duplicate.key = 77;
+    tested.world.Helpers()[0] = {.alive = true, .type = 0xbf, .rider = 1};
+    tested.world.Helpers()[1] = {.alive = true, .type = 0xbf, .rider = 2};
+    tested.world.Runtime().namedBones = {{1, "RightHand", 3}, {2, "LeftHand", 4}};
+
+    const auto stepped = tested.Step(Everything);
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_FALSE(expired.alive);
+    EXPECT_EQ(expired.dword428, -128);
+    EXPECT_FALSE(expired.darkSpirit.has_value());
+    EXPECT_FALSE(expired.layer.has_value());
+    EXPECT_EQ(expired.byte360, 0);
+    EXPECT_EQ(expired.flags78 & 0x18000u, 0u);
+    EXPECT_TRUE(duplicate.alive);
+    EXPECT_FALSE(tested.world.Helpers()[0].alive);
+    EXPECT_TRUE(tested.world.Helpers()[1].alive);
+    ASSERT_EQ(tested.world.Runtime().namedBones.size(), 1u);
+    EXPECT_EQ(tested.world.Runtime().namedBones[0].actor, 2u);
+    EXPECT_EQ(tested.world.Runtime().namedBones[0].name, "LeftHand");
+}
+
+TEST(CharacterStepTest, AnExpiringActorOutsideThePoolStillRunsItsDirectCleanup)
+{
+    GameWorld tested;
+    ActorState actor = Client::Tests::UnarmedPlayer(1);
+    actor.alive = true;
+    actor.dword428 = 1;
+    actor.darkSpirit.emplace();
+    actor.darkSpirit->state = 2;
+
+    const auto stepped = StepCharacter(
+        actor,
+        {.world = tested.world, .random = tested.random, .scene = SceneId::Login, .playerSkeleton = tested.player});
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_FALSE(actor.alive);
+    EXPECT_EQ(actor.dword428, Client::Scenes::ActorRemovalCountdownSentinel);
+    EXPECT_FALSE(actor.darkSpirit.has_value());
+}
+
+// 0x416add: los estados 2, 5 y 6 son de las órdenes A7 (CL9) y cortan antes de tocar el cuervo.
+
+TEST(CharacterStepTest, DyingActorsReleaseTheirClothsAtTheFadeStart)
+{
+    GameWorld tested;
+    std::array<Client::Render::Models::BoneTransform, 21> bones{};
+    const Client::Render::Models::ClothBody body{.bones = bones};
+    Client::Render::Models::ClothWorld clothWorld{.random = CrtRandom(Seed)};
+    for (const std::size_t slot : {GameWorld::HeroSlot, std::size_t{1}})
+    {
+        ActorState& actor = slot == GameWorld::HeroSlot ? tested.Hero() : tested.Other(slot);
+        actor.dying = 1;
+        actor.dyingTime = 0.98f;
+        auto& cloth = tested.world.ActorCloths()[slot];
+        Client::Scenes::ClothWearer wearer;
+        wearer.characterClass = 4;
+        Client::Render::ModelBatch batch;
+        batch.Begin(Client::Render::Pass3D{});
+        cloth.Frame(batch, wearer, body, clothWorld, 0, 0.0f, true);
+        ASSERT_FALSE(cloth.Cloths().empty()) << "slot " << slot;
+    }
+
+    ASSERT_TRUE(tested.Step(Everything).HasValue());
+
+    for (const std::size_t slot : {GameWorld::HeroSlot, std::size_t{1}})
+    {
+        EXPECT_FLOAT_EQ(tested.world.Actors()[slot].dyingTime, 1.0f);
+        EXPECT_TRUE(tested.world.Actors()[slot].alive);
+        EXPECT_TRUE(tested.world.ActorCloths()[slot].Cloths().empty()) << "slot " << slot;
+    }
+
+    ASSERT_TRUE(tested.Step(Everything).HasValue());
+    for (const std::size_t slot : {GameWorld::HeroSlot, std::size_t{1}})
+    {
+        EXPECT_TRUE(tested.world.ActorCloths()[slot].Cloths().empty()) << "slot " << slot;
+    }
+}
+
+// 0x4fbad6..0x4fbb08 y 0x401040: al bajar de 0,01 se borra el registro no héroe y sus huesos con nombre, sin
+// tocar los nombres de los demás lugares del pool.
+
+TEST(CharacterStepTest, RemovingADyingActorForgetsOnlyItsNamedBones)
+{
+    GameWorld tested;
+    ActorState& removed = tested.Other(1);
+    removed.dying = 1;
+    removed.dyingTime = 1.98f;
+    tested.world.Runtime().namedBones = {{1, "Left_Hand", 3}, {1, "Right_Hand", 4}, {2, "Left_Hand", 3}};
+
+    ASSERT_TRUE(tested.Step(Everything).HasValue());
+
+    EXPECT_FALSE(removed.alive);
+    ASSERT_EQ(tested.world.Runtime().namedBones.size(), 1u);
+    EXPECT_EQ(tested.world.Runtime().namedBones[0].actor, 2u);
+    EXPECT_EQ(tested.world.Runtime().namedBones[0].name, "Left_Hand");
+}
+
+// Una cuenta abierta en la tabla de protección no se vuelve a cifrar al cerrar: la celda no gasta, y quedan el
+// registro propio, el rand() % 6 del cuerpo y el rand() & 7.
+
+TEST(CharacterStepTest, TheEndOfTheMarkActionsLeavesTheBloodOnce)
+{
+    constexpr int RemainsDraws = 2 * 5;
+    for (const std::int32_t map : {0, 2})
+    {
+        for (const std::uint8_t action : {std::uint8_t{0xc3}, std::uint8_t{0xc4}})
+        {
+            SCOPED_TRACE(::testing::Message() << "mapa " << map << ", acción " << static_cast<int>(action));
+            GameWorld tested(map);
+            tested.skeleton.headBone = 20;
+            ActorState& hero = tested.Hero();
+            hero.position = {3000.0f, 4000.0f, 10.0f};
+            hero.scale = 1.5f;
+            hero.flags78 = 0x1000;
+            hero.animation.action = action;
+            hero.animation.frame = 2.5f;
+            hero.light = {0.5f, 0.25f, 0.125f};
+            hero.bodyPose.assign(21, Client::Render::Models::BoneTransform(1.0f));
+            hero.bodyPose[20][3] = {0.0f, 0.0f, 40.0f};
+            tested.Cell(0, 0) = 1;
+            tested.world.PlayerModel() = {.scale = 0.75f, .origin = {-3000.0f, -4000.0f, -10.0f}};
+
+            const auto stepped = tested.Step(Everything);
+
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+            EXPECT_EQ(hero.animation.action, action);
+            EXPECT_EQ(hero.byte38a, 1);
+            const auto& marks = tested.world.Runtime().groundMarks;
+            CrtRandom draws = RandomAfter(WallDraws + OwnRecordDraws);
+            for (std::size_t slot = 0; slot < 2; ++slot)
+            {
+                SCOPED_TRACE(slot);
+                const int x = draws.Next() % 100 - 50;
+                const int y = draws.Next() % 100 - 50;
+                const auto size =
+                    static_cast<float>(static_cast<double>((draws.Next() & 3) + 8) * static_cast<double>(0.1f));
+                const auto angle = static_cast<float>(draws.Next() % 360);
+                const std::int32_t life = draws.Next() % 32 + 50;
+                ASSERT_TRUE(marks[slot].live);
+                EXPECT_EQ(marks[slot].type, 0x5e3);
+                EXPECT_EQ(marks[slot].position, (glm::vec3{static_cast<float>(x) * 1.5f + 3000.0f,
+                                                           static_cast<float>(y) * 1.5f + 4000.0f, 70.0f}));
+                EXPECT_EQ(marks[slot].size, size);
+                EXPECT_EQ(marks[slot].angle, angle);
+                EXPECT_EQ(marks[slot].color, hero.light);
+                EXPECT_EQ(marks[slot].life, life);
+            }
+            EXPECT_FALSE(marks[2].live);
+            EXPECT_EQ(tested.random.State(), RandomAfter(SeenHeroDraws + RemainsDraws).State());
+
+            const CrtRandom before = tested.random;
+            ASSERT_TRUE(tested.Step(Everything).HasValue());
+            EXPECT_FALSE(marks[2].live);
+            CrtRandom again = before;
+            for (int draw = 0; draw < SeenHeroDraws; ++draw)
+                static_cast<void>(again.Next());
+            EXPECT_EQ(tested.random.State(), again.State());
+        }
+    }
+}
+
+// 0x4fcb71: la 0x44 que terminó se queda y vuelve al frame 0; después, 0x505de0 corta en sus efectos.
+
+TEST(CharacterStepTest, TheTurnedNpcTurnsAndDrawsItsLine)
+{
+    GameWorld tested;
+    tested.Hero().byte88 = 4;
+    tested.Hero().subtype = 0xd2;
+    tested.Hero().angles = {1.0f, 2.0f, 3.0f};
+
+    const auto stepped = tested.Step(Everything);
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(tested.Hero().angles, glm::vec3(0.0f, 0.0f, 90.0f));
+    EXPECT_EQ(tested.random.State(), RandomAfter(SeenHeroDraws + 1).State());
+}
+
+// 0x4fbe10 en los mapas 18 a 23, sin mandar nada: con otra celda guarda la del héroe y el reloj del mundo, y
+// abre y cierra la X dos veces y la Y una (12 rand()); con la misma y menos de 10 s, no toca nada y lee las dos (8);
+// con 10 s en una celda sin el bit 8, guarda el reloj. El resto del paso es el del mapa 17.

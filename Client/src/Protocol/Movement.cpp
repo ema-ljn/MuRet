@@ -58,6 +58,7 @@ std::optional<std::uint8_t> DirectionBetween(Cell from, Cell to)
     }
     return std::nullopt;
 }
+} // namespace
 
 } // namespace
 

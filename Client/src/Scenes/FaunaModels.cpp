@@ -1,4 +1,5 @@
 #include "Scenes/FaunaModels.h"
+#include "Scenes/MonsterSounds.h"
 
 #include "Core/Expected.h"
 #include "Core/Log.h"
@@ -37,7 +38,8 @@ namespace
 {
 constexpr std::int32_t IcarusMonster = 0x1f;
 constexpr std::int32_t KalimaMonster = 0x21;
-constexpr std::array<std::int16_t, 10> NoSounds{-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
+// Los sonidos de un modelo que no cargó nadie: el registro de 0x5769ad8 en 0 (0x60dbe0, 0x60dc80), no −1.
+constexpr std::array<std::int16_t, 10> NoSounds{};
 constexpr Data::Textures::Sampling MonsterSampling{Data::Textures::Filter::Nearest, Data::Textures::Wrap::Repeat};
 // El slot que el destructor del BMD no suelta (0x4f07b0..0x4f07c3).
 constexpr std::uint16_t KeptSlot = 0x12e;
@@ -261,7 +263,13 @@ Core::Expected<void, std::string> FaunaModels::LoadMonster(std::int32_t number, 
     if (entry.model.meshes.empty())
         return {};
     AssignTextures(entry, MonsterTextureFolderOf(number, map), context);
-    return ApplyMonsterTables(number, entry, context);
+    if (auto applied = ApplyMonsterTables(number, entry, context); !applied.HasValue())
+        return applied;
+    // 0x613127: el caso del switch de `number` con su tabla de sonidos (0x612c80) también en la tabla de los pasos del
+    // ataque (WorldRuntime::modelSounds, CL9 hito 3).
+    if (context.sounds != nullptr)
+        WriteMonsterSounds(number, *context.sounds);
+    return {};
 }
 
 Core::Expected<void, std::string> FaunaModels::LoadNpc(std::uint16_t model, FaunaModelLoadContext& context)
@@ -437,5 +445,27 @@ std::span<const std::int16_t, 10> FaunaModels::SoundActions(std::uint16_t model)
     const auto found = m_models.find(model);
     return found != m_models.end() ? std::span<const std::int16_t, 10>(found->second.sounds)
                                    : std::span<const std::int16_t, 10>(NoSounds);
+}
+
+std::int16_t FaunaModels::PoseKey(std::uint16_t model) const
+{
+    const auto found = m_animationMetadata.find(model);
+    return found != m_animationMetadata.end() ? found->second.key : std::int16_t{0};
+}
+
+float FaunaModels::PoseFrame(std::uint16_t model) const
+{
+    const auto found = m_animationMetadata.find(model);
+    return found != m_animationMetadata.end() ? found->second.frame : 0.0f;
+}
+
+void FaunaModels::RecordAnimation(std::uint16_t model, float frame, std::int16_t key)
+{
+    m_animationMetadata[model] = {.frame = frame, .key = key};
+}
+
+void FaunaModels::RecordPoseKey(std::uint16_t model, std::int16_t key)
+{
+    m_animationMetadata[model].key = key;
 }
 } // namespace Client::Scenes

@@ -1,6 +1,7 @@
 #include "Scenes/GameUi.h"
 
 #include "Core/Expected.h"
+#include "Data/Tables/SkillTable.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Protocol/Character/LevelUpPoint.h"
@@ -14,21 +15,23 @@
 #include "Scenes/CrywolfContract.h"
 #include "Scenes/EventChipWindow.h"
 #include "Scenes/EventNpcWindows.h"
+#include "Scenes/FloorItemActions.h"
 #include "Scenes/GameChat.h"
 #include "Scenes/GameCommandsWindow.h"
 #include "Scenes/GameDialogSteps.h"
-#include "Scenes/GameDrawTail.h"
 #include "Scenes/GameFriends.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GameMoveWindow.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GamePartyWindow.h"
+#include "Scenes/GridItemUse.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/ItemSetState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
+#include "Scenes/QuestWindow.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"
@@ -42,8 +45,9 @@
 #include "UI/SlideBanner.h"
 #include "World/ItemState.h"
 
+#include <algorithm>
 #include <array>
-#include <cmath>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <format>
@@ -107,8 +111,30 @@ constexpr std::int32_t PetButtonTop = 0x18b;
 constexpr std::int32_t PetButtonBottom = 0x1a3;
 // 0x42474c: 0x723911 en 2, la ventana de la mascota.
 constexpr std::uint8_t PetWindowOpen = 2;
+// 0x42475f..0x424990: la ventana de la mascota y sus botones (0x6b8a08, 0x6b8a04, 0x6b87bc, 0x6b8874, 0x6b8a00,
+// 0x6b89f8, 0x6b89fc, 0x6b86d0, 0x6b8800, 0x6b8804 y 0x6b89f4).
+constexpr std::int32_t PetWindowLeft = 0x1c2;
+constexpr std::int32_t PetWindowBesideTheCharacter = 0x104;
+constexpr float PetWindowWidth = 190.0f;
+constexpr float PetWindowHeight = 433.0f;
+constexpr std::uint8_t PetTabCount = 2;
+constexpr std::int32_t PetTabStep = 0x2d;
+constexpr float PetTabLeft = 15.0f;
+constexpr float PetTabWidth = 49.0f;
+constexpr float PetOtherTabTop = 67.0f;
+constexpr float PetChosenTabTop = 63.0f;
+constexpr float PetTabBottom = 83.0f;
+constexpr float PetCloseLeft = 20.0f;
+constexpr float PetCloseSize = 24.0f;
+constexpr float PetCloseTop = 395.0f;
 // 0x5aca1b..0x5aca24: F1 da la vuelta por 0, 1 y 2 (idiv por 3).
 constexpr std::int32_t FunctionHelpModes = 3;
+// CL9 hito 5, el clic derecho de la grilla (0x5c58b0..0x5c740c): el pergamino del portal y la caja de la suerte de
+// nivel 14 (+4 & 0x78 en 0x70). Los tres que mandan el C1 .. 91, en GridItemUse.
+constexpr std::int32_t TownPortalScroll = 0x1c0a;
+constexpr std::int32_t BoxOfLuck = 0x1c0b;
+constexpr std::uint32_t UsedLevelBits = 0x78;
+constexpr std::uint32_t UsedBoxLevelBits = 0x70;
 // 0x636e11: desde esta y, el mouse está sobre la barra.
 constexpr std::int32_t HudTop = 0x1b0;
 // 0x5a1181..0x5a1189: Chaos Castle.
@@ -137,8 +163,6 @@ constexpr std::int32_t WhisperModeLeft = 0x1b2;
 constexpr std::int32_t WhisperModeTop = 0x19f;
 constexpr std::int32_t WhisperModeRight = 0x1c6;
 constexpr std::int32_t WhisperModeBottom = 0x1bc;
-// 0x5ac93f..0x5ac97b: la barra levanta un ítem del piso a menos de 300 (0x6b8900).
-constexpr float PickUpDistance = 300.0f;
 
 // 0x553520(vk).
 bool KeyEdge(UI::GameUiState& ui, const Input::InputState& input, GameKey key)
@@ -319,36 +343,27 @@ public:
         UI::GameUiState& ui = runtime.ui;
         UI::ChatInputState& chat = runtime.chat.input;
         const Input::InputState& input = m_context.input;
-        UI::OldWindowStepView view{.mouseX = m_context.mouseX,
-                                   .mouseY = m_context.mouseY,
-                                   .keyEdge =
-                                       [&ui, &input](std::uint8_t virtualKey)
-                                   {
-                                       for (const GameKey& key : OldWindowEdgeKeys)
-                                       {
-                                           if (key.virtualKey == virtualKey)
-                                               return KeyEdge(ui, input, key);
-                                       }
-                                       return false;
-                                   },
-                                   .keyDown =
-                                       [&input](std::uint8_t virtualKey)
-                                   {
-                                       for (const GameKey& key : OldWindowDownKeys)
-                                       {
-                                           if (key.virtualKey == virtualKey)
-                                               return input.IsDown(key.key);
-                                       }
-                                       return false;
-                                   },
-                                   .chatOpen = ui.chatOpen,
-                                   .texts = &m_texts,
-                                   .measure = m_measure ? &*m_measure : nullptr,
-                                   .send = {},
-                                   // 0x4694c0(0, 0, 1, nombre).
-                                   .whisperTo = [&chat](std::string_view name)
-                                   { UI::SetTheChatFields(chat, std::nullopt, name); },
-                                   .openFriends = [this]() { return OpenTheFriendsWindow(); }};
+        UI::OldWindowStepView view{
+            .mouseX = m_context.mouseX,
+            .mouseY = m_context.mouseY,
+            .keyEdge = [&ui, &input](std::uint8_t virtualKey) { return OldWindowKeyEdge(ui, input, virtualKey); },
+            .keyDown =
+                [&input](std::uint8_t virtualKey)
+            {
+                for (const GameKey& key : OldWindowDownKeys)
+                {
+                    if (key.virtualKey == virtualKey)
+                        return input.IsDown(key.key);
+                }
+                return false;
+            },
+            .chatOpen = ui.chatOpen,
+            .texts = &m_texts,
+            .measure = m_measure ? &*m_measure : nullptr,
+            .send = {},
+            // 0x4694c0(0, 0, 1, nombre).
+            .whisperTo = [&chat](std::string_view name) { UI::SetTheChatFields(chat, std::nullopt, name); },
+            .openFriends = [this]() { return OpenTheFriendsWindow(); }};
         if (IGameUiRequests* requests = m_context.requests; requests != nullptr)
             view.send = [requests](const UI::FriendSend& send) { requests->SendFriendPacket(FriendPacketOf(send)); };
         return view;
@@ -518,12 +533,48 @@ Core::Expected<void, std::string> StepTheEquipment(const GameUiContext& context)
     return {};
 }
 
-// Lo que hizo el ítem de la grilla bajo el mouse: con levantarlo, 0x5c4110 sale (0x5c5884).
+// Lo que hizo el ítem de la grilla bajo el mouse: con levantarlo (0x5c5884) o el clic derecho (0x5c5895..0x5c9b0b),
+// 0x5c4110 sale.
 enum class GridHover : std::uint8_t
 {
     Stayed,
     PickedUp,
+    RightClicked,
 };
+
+// 0x5c5895..0x5c9b0b (CL9 hito 5): el clic derecho sobre el ítem de la casilla `index`, consumido, con la casilla de
+// arriba a la izquierda del ítem. Los que solo mandan el C1 06 26 (UseInventoryItem): el 0x1c0a sin 0x576794c
+// (0x5c58bd), el 0x1c0b de nivel 14 (0x5c608c) y las pociones (0x1c00..0x1c06, 0x1c08, 0x1c09, el 0x1c14 de nivel 0 y
+// el 0x1c07, 0x5c73ea). Las entradas a los eventos cortan con su dirección (0x5c6865, después de las ventanas que
+// mira el 0x1a1d; 0x5c6c36 y 0x5c7010). Desde 0x5c7bc6, los libros y las esferas de skills, la fruta, el 0x1a0b y el
+// resto: UseTheLaterGridItem.
+Core::Expected<void, std::string> UseTheGridItem(const GameUiContext& context, UI::PanelRegistry& panels,
+                                                 std::size_t index)
+{
+    const World::ItemState& hovered = context.world.Inventory().cells[index];
+    WorldRuntime& runtime = context.world.Runtime();
+    runtime.ui.rightClick = false;
+    constexpr auto Columns = static_cast<std::int32_t>(InventoryColumns);
+    const std::int32_t cell = hovered.gridRow * Columns + hovered.gridColumn;
+    const std::int32_t type = std::bit_cast<std::int16_t>(hovered.id);
+    const std::uint32_t levelBits = hovered.scalar1Low & UsedLevelBits;
+    const auto use = [&] { return UseInventoryItem(MovesOf(context), panels, cell); };
+    if (type == TownPortalScroll)
+    {
+        if (runtime.movement.gateRequestBlocked != 0)
+            return {};
+        return use();
+    }
+    if (type == BoxOfLuck && levelBits == UsedBoxLevelBits)
+        return use();
+    if (IsAnEventTicket(type))
+        return UseTheEventTicket(panels, type);
+    const bool potion = (type >= 0x1c00 && type <= 0x1c06) || type == 0x1c08 || type == 0x1c09 ||
+                        (type == 0x1c14 && levelBits == 0) || type == 0x1c07;
+    if (potion)
+        return use();
+    return UseTheLaterGridItem(MovesOf(context), panels, index);
+}
 
 // 0x5c41f4..0x5c4b3b y 0x5c52b1..0x5c5894: el ítem de la casilla `index` bajo el mouse. La marca 2 en su huella, el
 // ítem del cartel (0x78abaa8, su copia en 0x787a518 y su lugar), la esquina de su ayuda y, según las tiendas
@@ -596,7 +647,11 @@ Core::Expected<GridHover, std::string> HoverTheGridItem(const GameUiContext& con
     }
     // 0x5c4aa5..0x5c4aac.
     if (ui.rightClick)
-        return cut("0x5c5895: usar el ítem de la grilla (el C1 .. 26) es de la CL9.3");
+    {
+        if (auto used = UseTheGridItem(context, panels, index); !used.HasValue())
+            return Core::Unexpected(used.Error());
+        return GridHover::RightClicked;
+    }
     // 0x5c4ab7: 0x5aed40 con la grilla del inventario.
     ui.field78abb28 = 0;
     ui.field78abb2c = cell + FirstGridSlot;
@@ -636,7 +691,7 @@ Core::Expected<void, std::string> StepTheInventoryGrid(const GameUiContext& cont
             const auto hovered = HoverTheGridItem(context, panels, index, left, top);
             if (!hovered.HasValue())
                 return Core::Unexpected(hovered.Error());
-            if (hovered.Value() == GridHover::PickedUp)
+            if (hovered.Value() != GridHover::Stayed)
                 return {};
         }
     }
@@ -766,10 +821,53 @@ Core::Expected<void, std::string> StepTheCharacterWindow(const GameUiContext& co
     return {};
 }
 
+// 0x424759..0x424990, la ventana de la mascota abierta (CL9 hito 4): a la izquierda de 0x1c2, o de 0x104 con el
+// personaje abierto, 190 × 433 es de la UI (0x775857c). Las dos pestañas (la 0 el caballo y la 1 el cuervo, de a 45
+// desde 15, de 49 de ancho): un clic en la que no está elegida, entre 67 y 83, la elige; en la elegida, entre 63 y 83,
+// solo se come el clic. El botón de cerrar (20, 395, de 24 × 24) cierra el panel 0x400. Todo en float, con los bordes
+// incluidos salvo los de la UI y los del botón. Sin rand().
+Core::Expected<void, std::string> StepThePetWindow(const GameUiContext& context, UI::PanelRegistry& panels)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    GameMovementState& movement = runtime.movement;
+    const std::int32_t left = panels.IsOpen(UI::CharacterPanel) ? PetWindowBesideTheCharacter : PetWindowLeft;
+    const auto mouseX = static_cast<float>(context.mouseX);
+    const auto mouseY = static_cast<float>(context.mouseY);
+    const auto base = static_cast<float>(left);
+    if (left <= context.mouseX && mouseX < base + PetWindowWidth && context.mouseY >= 0 && mouseY < PetWindowHeight)
+        runtime.ui.mouseOnUi = 1;
+    const auto clickTab = [&](std::uint8_t tab, float top)
+    {
+        const float x = static_cast<float>(tab * PetTabStep) + base + PetTabLeft;
+        if (x <= mouseX && mouseX <= x + PetTabWidth && top <= mouseY && mouseY <= PetTabBottom &&
+            movement.pendingClick)
+        {
+            movement.leftHeld = false;
+            movement.pendingClick = false;
+            runtime.petTab = tab;
+        }
+    };
+    for (std::uint8_t tab = 0; tab < PetTabCount; ++tab)
+        if (runtime.petTab != tab)
+            clickTab(tab, PetOtherTabTop);
+    for (std::uint8_t tab = 0; tab < PetTabCount; ++tab)
+        if (runtime.petTab == tab)
+            clickTab(tab, PetChosenTabTop);
+    const float closeLeft = base + PetCloseLeft;
+    if (closeLeft <= mouseX && mouseX < closeLeft + PetCloseSize && PetCloseTop <= mouseY &&
+        mouseY < PetCloseTop + PetCloseSize && movement.pendingClick)
+    {
+        movement.leftHeld = false;
+        movement.pendingClick = false;
+        if (auto closed = panels.Close(UI::PetPanel); !closed.HasValue())
+            return Core::Unexpected(std::move(closed).Error());
+    }
+    return {};
+}
+
 // 0x424130 → 0x424230: con el personaje cerrado, 0x723911 en 0. Abierto, la primera vez el pedido del caballo oscuro
-// (C1 06 A9 01 00 08, Q-C16) y 0x723911 en 1; el botón de la mascota abre o cierra el panel 0x400. Con 0x723911 en 2
-// (la respuesta del A9, que MuRet no lee), la ventana de la mascota es de la CL9.2. 0x416660, desde 0x424130 con 2,
-// no hace nada.
+// (C1 06 A9 01 00 08, Q-C16) y 0x723911 en 1; el botón de la mascota abre o cierra el panel 0x400. Con 0x723911 en 2,
+// el paso de la ventana de la mascota. 0x416660, desde 0x424130 con 2, no hace nada.
 Core::Expected<void, std::string> StepThePetButton(const GameUiContext& context, UI::PanelRegistry& panels)
 {
     WorldRuntime& runtime = context.world.Runtime();
@@ -797,7 +895,7 @@ Core::Expected<void, std::string> StepThePetButton(const GameUiContext& context,
             return Core::Unexpected(std::move(toggled).Error());
     }
     if (pet == PetWindowOpen)
-        return Core::Unexpected(std::string("0x424759: la ventana de la mascota (0x723911 en 2) es de la CL9.2"));
+        return StepThePetWindow(context, panels);
     return {};
 }
 
@@ -950,7 +1048,8 @@ Core::Expected<void, std::string> StepTheCursorItem(const GameUiContext& context
                                                                .mouseY = context.mouseY,
                                                                .left = runtime.hud.inventoryX + 15,
                                                                .top = runtime.hud.inventoryY + 200,
-                                                               .inventoryOpen = panels.IsOpen(UI::InventoryPanel)});
+                                                               .inventoryOpen = panels.IsOpen(UI::InventoryPanel),
+                                                               .panels = &panels});
     if (!inGrid.HasValue())
         return Core::Unexpected(inGrid.Error());
     // 0x5deb11..0x5dec41: las otras grillas. La caja del caos y la lista del asedio ya cortaron arriba.
@@ -974,8 +1073,9 @@ Core::Expected<void, std::string> StepTheCursorItem(const GameUiContext& context
     // 0x5deca7..0x5decc8: la tienda de NPC, con su rand(); con el mouse en ella, vender.
     if (panels.IsOpen(UI::NpcShopPanel))
         return cut("0x5decce: vender el ítem del cursor en la tienda de NPC (0x78aba28) es de la CL9.3");
-    return DropOnTheGround(moves,
-                           GroundDrop{.mouseX = context.mouseX, .inventoryOpen = panels.IsOpen(UI::InventoryPanel)});
+    return DropOnTheGround(
+        moves,
+        GroundDrop{.mouseX = context.mouseX, .inventoryOpen = panels.IsOpen(UI::InventoryPanel), .panels = &panels});
 }
 
 Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI::PanelRegistry& panels)
@@ -1029,12 +1129,196 @@ Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI
     // 0x40a450, los comandos ([0x6e592c]), que empieza con su +4.
     if (auto commands = StepTheCommandsWindow(context); !commands.HasValue())
         return commands;
-    // 0x41b5a0, el quest: con el personaje cerrado escribe +0x21390 y +0x21394 de su objeto, que MuRet no tiene
-    // ni lee; con +0x21383 en 1 o 2, su ventana.
-    if (delegated.quest == 1 || delegated.quest == 2)
-        return Core::Unexpected(std::string("0x41b5a0: el paso del quest es de la CL9.1"));
+    // 0x5ee20d (CL9 hito 2): 0x41b5a0, la ventana de las misiones y su botón en la del personaje.
+    if (auto quest = StepTheQuestWindow(context, panels); !quest.HasValue())
+        return quest;
     // 0x5ee212: 0x424130.
     return StepThePetButton(context, panels);
+}
+
+// La skill `index` del tooltip y del clic de la lista (0x5a08a1..0x5a08f3) y de los botones de las órdenes del
+// cuervo (0x420ee4..0x420f4a): el tooltip, el mouse en la UI y, con el clic, la skill del héroe, la lista cerrada, el
+// sonido 0x19 y el reloj del mouse.
+void PointAtTheSkill(const GameUiContext& context, std::uint8_t index, std::int32_t tooltipX, std::int32_t tooltipY)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    UI::GameUiState& ui = runtime.ui;
+    ui.skillTooltipX = tooltipX;
+    ui.skillTooltip = index;
+    ui.skillTooltipY = tooltipY;
+    ui.mouseOnUi = 1;
+    if (!runtime.movement.pendingClick)
+        return;
+    runtime.movement.pendingClick = false;
+    context.world.Actors()[runtime.hero].skillIndex = index;
+    ui.skillListOpen = 0;
+    runtime.lastSoundId = ButtonSound;
+    runtime.movement.mouseUpdateTime = 0;
+    runtime.movement.mouseUpdateTimeMax = 6;
+}
+
+// 0x420e90: con el cuervo (+0x430), los cuatro botones de sus órdenes (las skills 0x78 a 0x7b), de 0x20 desde x 0x100,
+// con y de 0x14a a 0x16e.
+void StepThePetOrderButtons(const GameUiContext& context)
+{
+    const ActorState& hero = context.world.Actors()[context.world.Runtime().hero];
+    if (!hero.darkSpirit)
+        return;
+    constexpr std::uint8_t FirstOrder = 0x78;
+    constexpr std::uint8_t OrderCount = 4;
+    constexpr std::int32_t Width = 0x20;
+    for (std::uint8_t order = 0; order < OrderCount; ++order)
+    {
+        const std::int32_t x = 0x100 + Width * order;
+        if (InRect(context, x, 0x14a, x + Width, 0x16e))
+            PointAtTheSkill(context, static_cast<std::uint8_t>(FirstOrder + order), x + 0x10, 0x14a);
+    }
+}
+
+// Las teclas de Ctrl + número sobre la skill `index` de la lista (0x5a08fd..0x5a106e): por cada número abajo, del 1 al
+// 9 y el 0, con el registro propio abierto, saca ese número de las 64 teclas del lugar del elegido (0x6d5edc) y se lo
+// da a la skill.
+void StepTheSkillKeys(const GameUiContext& context, std::uint8_t index)
+{
+    const Input::InputState& input = context.input;
+    if (!input.IsDown(Key::Ctrl))
+        return;
+    WorldRuntime& runtime = context.world.Runtime();
+    OwnCharacterRecord& own = context.world.OwnCharacter();
+    const std::size_t place = context.chosenSlot.value_or(std::uint8_t{0});
+    constexpr std::size_t KeyedSlots = 0x40;
+    constexpr std::uint8_t NoKey = 0xff;
+    for (int digit = 1; digit <= 10; ++digit)
+    {
+        const auto number = static_cast<std::uint8_t>(digit % 10);
+        if (!input.IsDown(Digit(number).key) || place >= own.skillKeys.size())
+            continue;
+        const Render::Models::LogicalAccess access(runtime.ownRecordDepth, context.random,
+                                                   Render::Models::OwnRecordCloseRandoms);
+        auto& keys = own.skillKeys[place];
+        for (std::size_t slot = 0; slot < KeyedSlots; ++slot)
+        {
+            if (keys[slot] == number)
+                keys[slot] = NoKey;
+        }
+        keys[index] = number;
+    }
+}
+
+// 0x5a070e..0x5a1098: la lista abierta. Por cada una de las 64 skills que hay, salvo las 0x43 a 0x48 y las que tienen
+// el +0x31 de Skill.bmd en 1 (con su entrada abierta y cerrada: 60 rand() si la cierra en 0), un ícono de 32 × 42 en
+// filas de hasta 20 centradas en x 320 desde y 0x172, la segunda 0x34 más arriba. Bajo el mouse, su tooltip y su clic
+// (PointAtTheSkill) y las teclas (StepTheSkillKeys). Después, los botones de las órdenes del cuervo (0x420e90).
+Core::Expected<void, std::string> StepTheSkillList(const GameUiContext& context)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    const OwnCharacterRecord& own = context.world.OwnCharacter();
+    constexpr std::int32_t RowSize = 0x14;
+    const std::int32_t width =
+        std::min(static_cast<std::int32_t>(own.byte6a) - static_cast<std::int32_t>(own.byte6b), RowSize);
+    std::int32_t shown = 0;
+    std::int32_t column = 0;
+    std::int32_t y = 0x172;
+    constexpr std::uint8_t ListedSlots = 0x40;
+    for (std::uint8_t index = 0; index < ListedSlots; ++index)
+    {
+        const std::uint8_t skill = OwnSkillByte(own, index);
+        if (skill == 0 || (skill >= 0x43 && skill <= 0x48))
+            continue;
+        if (context.skills == nullptr)
+            return Core::Unexpected(std::string("0x5a07a3: la lista de skills lee Skill.bmd y MuRet no lo cargó"));
+        const auto record = context.skills->Record(skill);
+        if (!record)
+            return Core::Unexpected(std::format("0x5a07a3: Skill.bmd no tiene la skill {}", skill));
+        std::uint8_t hidden = 0;
+        {
+            const Render::Models::LogicalAccess entry(runtime.movement.skillDepths[skill], context.random,
+                                                      static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
+            constexpr std::size_t HiddenOffset = 0x31;
+            hidden = std::to_integer<std::uint8_t>((*record)[HiddenOffset]);
+        }
+        if (hidden == 1)
+            continue;
+        if (shown == RowSize)
+        {
+            y -= 0x34;
+            column = 0;
+        }
+        // 0x5a084f..0x5a085f: el CDQ/SAR divide hacia el 0.
+        const std::int32_t x = (column + 10) * 32 - width * 32 / 2;
+        ++shown;
+        ++column;
+        if (!InRect(context, x, y, x + 0x20, y + 0x2a))
+            continue;
+        PointAtTheSkill(context, index, x + 0x10, y);
+        StepTheSkillKeys(context, index);
+    }
+    StepThePetOrderButtons(context);
+    return {};
+}
+
+// 0x420e30: el Dark Lord con Shift y el 1 al 4 elige la orden del cuervo (las skills 0x78 a 0x7b), con el primero
+// abajo. Dice si eligió.
+bool StepThePetOrderKeys(const GameUiContext& context)
+{
+    ActorState& hero = context.world.Actors()[context.world.Runtime().hero];
+    if ((hero.characterClass & 7u) != DarkLordClass || !context.input.IsDown(Key::Shift))
+        return false;
+    for (int order = 0; order < 4; ++order)
+    {
+        if (context.input.IsDown(Digit(order + 1).key))
+        {
+            hero.skillIndex = static_cast<std::uint8_t>(0x78 + order);
+            return true;
+        }
+    }
+    return false;
+}
+
+// 0x59f810(número): con el registro propio abierto, la primera de las 64 skills con esa tecla en el lugar del elegido
+// que no sea de las 0x43 a 0x48 pasa a ser la del héroe; si no hay, la primera de las órdenes del cuervo (0x78 a 0x7b)
+// con la tecla. En cada vuelta sin elegir, con el ataque automático fuera de los mapas 6 y 18 a 23 y la skill del héroe
+// en 6 o 0xf, los elegidos 0x6c8e30 y 0x6c8e38 vuelven a −1. Dice si eligió.
+bool ChooseTheSkillByKey(const GameUiContext& context, std::uint8_t number)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    const OwnCharacterRecord& own = context.world.OwnCharacter();
+    ActorState& hero = context.world.Actors()[runtime.hero];
+    const Render::Models::LogicalAccess access(runtime.ownRecordDepth, context.random,
+                                               Render::Models::OwnRecordCloseRandoms);
+    const std::size_t place = context.chosenSlot.value_or(std::uint8_t{0});
+    if (place >= own.skillKeys.size())
+        return false;
+    const auto& keys = own.skillKeys[place];
+    constexpr std::uint8_t KeyedSlots = 0x40;
+    for (std::uint8_t slot = 0; slot < KeyedSlots; ++slot)
+    {
+        const std::uint8_t skill = OwnSkillByte(own, slot);
+        if (skill != 0 && keys[slot] == number && (skill < 0x43 || skill > 0x48))
+        {
+            hero.skillIndex = slot;
+            return true;
+        }
+        const std::int32_t map = runtime.map;
+        if (runtime.ui.autoAttack && map != 6 && !(map >= 0x12 && map <= 0x17))
+        {
+            const std::uint8_t chosen = OwnSkillByte(own, hero.skillIndex);
+            if (chosen == 6 || chosen == 0xf)
+            {
+                runtime.selectedTargets[2] = -1;
+                runtime.selectedTargets[4] = -1;
+            }
+        }
+    }
+    for (std::uint8_t slot = 0x78; slot < 0x7c; ++slot)
+    {
+        if (keys[slot] == number)
+        {
+            hero.skillIndex = slot;
+            return true;
+        }
+    }
+    return false;
 }
 
 // 0x5a05e5..0x5a10e2: la barra de skills. Abre el registro propio aunque no haya skills y lo cierra al final.
@@ -1065,7 +1349,7 @@ Core::Expected<void, std::string> StepTheSkillBar(const GameUiContext& context)
     if (runtime.siegeActive)
         return Core::Unexpected(std::string("0x652330: la skill del asedio en la barra es de la CL9.5"));
     if (ui.skillListOpen != 0)
-        return Core::Unexpected(std::string("0x5a070e: la lista de skills es de la CL9.2"));
+        return StepTheSkillList(context);
     return {};
 }
 
@@ -1290,26 +1574,19 @@ Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& con
     }
     if (auto bar = StepTheSkillBar(context); !bar.HasValue())
         return bar;
-    // 0x5a10e7..0x5a116f: los números eligen la skill (0x59f810), con el foco en el juego, sin campos de texto,
-    // sin Alt y sin las órdenes de la mascota del Dark Lord (0x420e30, Shift con 1 a 4). 0x7d368a4 no lo escribe
-    // MuRet, y el diálogo 0x73 (con el que no se mira el foco) es del hito 6.
-    if (runtime.chat.input.focus == UI::ChatFocus::Game && !ui.chatOpen && !runtime.chat.input.otherInput)
+    // 0x5a10e7..0x5a116f: los números eligen la skill (0x59f810), con el foco en el juego, sin campos de texto, sin
+    // una skill que se carga (0x5a1115, 0x7d368a4 en 0), sin las órdenes del cuervo (0x420e30, Shift con 1 a 4) y sin
+    // Alt. El diálogo 0x73 (con el que no se mira el foco) es del hito 6.
+    if (runtime.chat.input.focus == UI::ChatFocus::Game && !ui.chatOpen && !runtime.chat.input.otherInput &&
+        ui.rightHoldFrames == 0)
     {
-        if ((hero.characterClass & 7u) == DarkLordClass && input.IsDown(Key::Shift))
+        if (!StepThePetOrderKeys(context) && !input.IsDown(Key::Alt))
         {
-            for (int digit = 1; digit <= 4; ++digit)
-            {
-                if (input.IsDown(Digit(digit).key))
-                    return Core::Unexpected(std::string("0x420e30: las órdenes de la mascota del Dark Lord son de la "
-                                                        "CL9.2"));
-            }
-        }
-        if (!input.IsDown(Key::Alt))
-        {
+            // 0x5a1139..0x5a116a: del 1 al 9 y después el 0, cada uno que esté abajo.
             for (int digit = 1; digit <= 10; ++digit)
             {
                 if (input.IsDown(Digit(digit % 10).key))
-                    return Core::Unexpected(std::string("0x59f810: elegir la skill con los números es de la CL9.2"));
+                    static_cast<void>(ChooseTheSkillByKey(context, static_cast<std::uint8_t>(digit % 10)));
             }
         }
     }
@@ -1330,9 +1607,14 @@ Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& con
                 FindQuickSlotItem(runtime.hud.quickSlots, cells, slot, runtime.movement.gateRequestBlocked != 0);
             if (!found.HasValue())
                 return Core::Unexpected(found.Error());
+            // 0x5a2bc8..0x5a32cc: usarlo (CL9 hito 5) y salir de las ranuras.
             if (found.Value())
-                return Core::Unexpected(std::string("0x5a2bc8: usar el ítem de la ranura rápida (0x5af520 y el C1 26) "
-                                                    "es de la CL9.3"));
+            {
+                if (auto used = UseInventoryItem(MovesOf(context), panels, static_cast<std::int32_t>(*found.Value()));
+                    !used.HasValue())
+                    return used;
+                break;
+            }
         }
     }
     if (TextInputBusy(runtime))
@@ -1358,11 +1640,13 @@ Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& con
                 FindQuickSlotItem(runtime.hud.quickSlots, cells, slot, runtime.movement.gateRequestBlocked != 0);
             if (!found.HasValue())
                 return Core::Unexpected(found.Error());
+            // 0x5a35e0.., 0x5a3d64.. y 0x5a44eb..: usarlo (CL9 hito 5); la tecla que sigue se lee igual.
             if (found.Value())
-                return Core::Unexpected(
-                    std::format("0x5a35e0: {} usa el ítem de la ranura rápida (0x5af520 y el C1 26), "
-                                "de la CL9.3",
-                                letter));
+            {
+                if (auto used = UseInventoryItem(MovesOf(context), panels, static_cast<std::int32_t>(*found.Value()));
+                    !used.HasValue())
+                    return used;
+            }
         }
     }
     // 0x5a4c6e..0x5a5504: las letras de los paneles, B y R, sin campo de texto, sin diálogo y con la lista de CS
@@ -1450,11 +1734,22 @@ Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& con
 
 } // namespace
 
+bool OldWindowKeyEdge(UI::GameUiState& ui, const Input::InputState& input, std::uint8_t virtualKey)
+{
+    for (const GameKey& key : OldWindowEdgeKeys)
+    {
+        if (key.virtualKey == virtualKey)
+            return KeyEdge(ui, input, key);
+    }
+    return false;
+}
+
+// 0x4b3961: un DOWN nuevo rearma held aunque la UI lo hubiera consumido y UP+DOWN lleguen en un mismo pump.
 void LatchTheLeftButton(GameMovementState& state, bool pressed, bool down)
 {
     if (!down)
         state.leftHeld = false;
-    else if (!state.previousLeftDown)
+    else if (pressed || !state.previousLeftDown)
         state.leftHeld = true;
     state.previousLeftDown = down;
     // WM_LBUTTONDOWN prende el flanco con el botón arriba (0x4b395a) y WM_LBUTTONUP lo apaga (0x4b3ce3): un clic
@@ -1496,7 +1791,9 @@ UI::OldWindowGlobals OldWindowGlobalsOf(WorldRuntime& runtime)
                                 .focusedList = ui.focusedList,
                                 .wheel = ui.wheel,
                                 .rightClick = ui.rightClick,
-                                .doubleClick = ui.doubleClick};
+                                .doubleClick = ui.doubleClick,
+                                .mouseUpdateTime = &movement.mouseUpdateTime,
+                                .mouseUpdateTimeMax = &movement.mouseUpdateTimeMax};
 }
 
 Core::Expected<void, std::string> StepTheGameDialogs(const GameUiContext& context)
@@ -1562,6 +1859,8 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
                                           .itemSetTables = context.itemSetTables,
                                           .texts = context.texts});
     gamePanels.LendThePartyList(context.world, context.requests);
+    if (context.chat != nullptr)
+        gamePanels.LendThePetRequests(context.chat->send);
     gamePanels.LendTheWindowClose(context.requests);
     gamePanels.LendTheFriends([&sight]() { return sight.OpenTheFriendsWindow(); });
     UI::PanelRegistry& panels = gamePanels.Registry();
@@ -1611,22 +1910,11 @@ Core::Expected<void, std::string> StepTheFunctionKeys(const GameUiContext& conte
     UI::GameUiState& ui = runtime.ui;
     const Input::InputState& input = context.input;
     // 0x5ac8d9..0x5ac9ce: sin ítem en el cursor (0x7879fbc), la barra con el chat cerrado y el mouse fuera de la UI
-    // (0x775857c) levanta el primer ítem del piso vivo a menos de 300 del héroe (0x5650c0). El byte +0x15c del ítem
-    // que también mira no está identificado: con un ítem cerca, el corte.
+    // (0x775857c) levanta el primer ítem del piso vivo y a la vista a menos de 300 del héroe (0x5650c0, CL9 hito 5).
     if (runtime.cursorItemCount == 0 && KeyEdge(ui, input, SpaceKey) && !ui.chatOpen && ui.mouseOnUi == 0)
     {
-        const ActorState& hero = context.world.Actors()[runtime.hero];
-        for (const FloorItemState& item : context.world.DrawTail().floorItems)
-        {
-            if (!item.alive)
-                continue;
-            const double dx = static_cast<double>(item.position.x) - static_cast<double>(hero.position.x);
-            const double dy = static_cast<double>(item.position.y) - static_cast<double>(hero.position.y);
-            const double dz = static_cast<double>(item.position.z) - static_cast<double>(hero.position.z);
-            if (std::sqrt(dx * dx + dy * dy + dz * dz) < static_cast<double>(PickUpDistance))
-                return Core::Unexpected(std::string("0x5ac9ae: levantar el ítem del piso con la barra (0x5650c0) es "
-                                                    "de la CL9.3"));
-        }
+        if (auto picked = PickUpTheNearestFloorItem(MovesOf(context), context.fixedHeight); !picked.HasValue())
+            return picked;
     }
     // 0x5ac9ce..0x5aca42: F1 pasa por las ayudas (0x77f3b08): de 3 o 4 (la del ítem o la ventana /move) a 0 y si no
     // al siguiente de 0, 1 y 2. Apaga el cartel del conjunto (+0x9305 de [0x6eed3c]) y pide el 0x19.
@@ -1751,7 +2039,8 @@ Core::Expected<void, std::string> PickInTheFrame(const FramePickingContext& cont
 {
     WorldRuntime& runtime = context.world.Runtime();
     std::array<std::int32_t, 5>& targets = context.targets;
-    const auto pick = [&context](std::uint8_t mask) { return PickTheCharacter(context.world, mask, context.ray); };
+    const auto pick = [&context](std::uint8_t mask)
+    { return PickTheCharacter(context.world, mask, context.cameraPosition, context.ray, context.pickingBoxes); };
     // 0x59ec97..0x59ee48: los modos del editor (0x77f3b18) no los prende nadie.
     KeepTheChosen(context);
     // 0x59ef16..0x59ef29.
@@ -1759,25 +2048,35 @@ Core::Expected<void, std::string> PickInTheFrame(const FramePickingContext& cont
     targets[1] = NoTarget;
     targets[3] = NoTarget;
     // 0x59e3b0 (0x59f52a), con el mouse en la UI y en los saltos de abajo, solo recorre la party (0x78aba48), que está
-    // vacía en MuRet (hito 7): no hace nada. 0x59e2e0 (el ítem del piso, sin ítem en el cursor, 0x7879fbc) y 0x59eb90
-    // (los objetos) son de la CL9.3: dejan −1.
+    // vacía en MuRet (hito 7): no hace nada. 0x59eb90 (los objetos) no está portado: deja −1.
     if (runtime.ui.mouseOnUi != 0)
     {
         ForgetTheOther(targets);
         return {};
     }
+    // 0x59e2e0, la búsqueda del ítem del piso (CL9 hito 5), sin ítem en el cursor (0x7879fbc: 0x59ef46 y 0x59f4e3).
+    const auto pickTheFloorItem = [&context, &runtime, &targets]
+    {
+        if (runtime.cursorItemCount == 0 && context.ray)
+            targets[0] = PickTheFloorItem(context.floorItems, *context.ray);
+    };
     if (context.altDown)
     {
-        // 0x59ef46..0x59efb4: el ítem del piso, los de la máscara 4, los de 0x22 y 1, y los objetos.
-        targets[1] = pick(4);
-        if (targets[1] == NoTarget)
+        // 0x59ef46..0x59efb4: el ítem del piso; sin él, los de la máscara 4, los de 0x22 y 1, y los objetos (0x59eb90,
+        // que dejan −1).
+        pickTheFloorItem();
+        if (targets[0] == NoTarget)
         {
-            targets[2] = pick(0x22);
-            if (targets[2] != NoTarget)
-                return {};
-            targets[2] = pick(1);
-            if (targets[2] != NoTarget)
-                return {};
+            targets[1] = pick(4);
+            if (targets[1] == NoTarget)
+            {
+                targets[2] = pick(0x22);
+                if (targets[2] != NoTarget)
+                    return {};
+                targets[2] = pick(1);
+                if (targets[2] != NoTarget)
+                    return {};
+            }
         }
         ForgetTheOther(targets);
         return {};
@@ -1797,6 +2096,9 @@ Core::Expected<void, std::string> PickInTheFrame(const FramePickingContext& cont
             if (targets[2] != NoTarget)
                 return {};
             targets[1] = pick(4);
+            // 0x59f4e3..0x59f509: sin NPC, el ítem del piso y, sin ítem, los objetos (0x59eb90), que dejan −1.
+            if (targets[1] == NoTarget)
+                pickTheFloorItem();
         }
     }
     ForgetTheOther(targets);

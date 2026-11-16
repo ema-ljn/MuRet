@@ -1,16 +1,16 @@
 #include "Scenes/MagicAttackCount.h"
 
 #include "Core/Expected.h"
+#include "Core/Log.h"
 #include "Protocol/Viewport.h"
-#include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorShock.h"
 #include "Scenes/ActorState.h"
-#include "Scenes/CharacterDrawing.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/DamageNumbers.h"
 #include "Scenes/HandShine.h"
+#include "Scenes/MonsterCreation.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
@@ -31,6 +31,8 @@ namespace
 constexpr std::int32_t MagicAttackSound = 0x76;
 // 0x4cee1d: 0x4ea030(el que pega, 0x96).
 constexpr std::uint8_t MagicAttackAction = 0x96;
+// 0x5110d0 sin nadie con la clave: el lugar de después de los 400.
+constexpr std::size_t NoActor = 400;
 // 0x40b3f0: un rand() por el byte de +0x38e al cerrarse.
 constexpr std::uint16_t Byte38eCloseRandoms = 1;
 // 0x4cefe4: +0x381 en 1.
@@ -67,12 +69,15 @@ Core::Expected<void, std::string> ApplyMagicAttackCount(const Protocol::Viewport
         !raised.HasValue())
         return raised;
     runtime.lastSoundId = MagicAttackSound;
-    // 0x4cee23: 0x4ea030 lee la cuenta de acciones del modelo del que pega (+0x26 de 0x5769ad8).
-    const auto* skeleton = resources.models.SkeletonOf(caster.type);
-    if (skeleton == nullptr)
-        return Core::Unexpected(
-            std::format("0x4cee23: la acción 0x96 sin las acciones del modelo {:#x} del que pega", caster.type));
-    Render::Models::SetAction(caster.animation, *skeleton, MagicAttackAction);
+    // 0x4cee23: 0x4ea030 lee la cuenta de acciones del modelo del que pega (+0x26 de 0x5769ad8): el de un monstruo o
+    // un NPC, el que cargó su alta (el GS 0.97 también manda el 1A de un monstruo, user.cpp:11887). Sin nadie con la
+    // clave, el 400 (Q-C1125): su tipo es memoria que MuRet no modela y la acción se descarta, con una línea de
+    // depuración (con el viewport del GS, que no es el del cliente, pasa jugando); lo demás va al 400 como en el
+    // original.
+    if (casterSlot == NoActor)
+        resources.log.Debug("se descarta la acción 0x96 del 1A: la clave {:#x} del que pega no está", attack.key);
+    else if (auto set = SetMonsterAction(caster, MagicAttackAction, 0x4cee23, resources); !set.HasValue())
+        return set;
     // 0x4cee28..0x4cefd7: pkt[5] en +0x38e, con la entrada de la tabla abierta.
     {
         const Render::Models::LogicalAccess skill(caster.byte38eAccesses, random, Byte38eCloseRandoms);

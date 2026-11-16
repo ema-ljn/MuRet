@@ -1,10 +1,13 @@
 #include "Scenes/NpcTalk.h"
 
 #include "Core/Expected.h"
+#include "Data/Models/PlayerModels.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Render/Models/LogicalAccess.h"
+#include "Render/Models/Skeleton.h"
 #include "Scenes/ActorActions.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CharacterDrawing.h"
 #include "Scenes/CrywolfContract.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GameMovement.h"
@@ -115,6 +118,35 @@ Core::Expected<std::string_view, std::string> TextOf(const HeroMovementContext& 
         return Core::Unexpected(std::format("{}: sin el texto {} de Text.bmd", where, index));
     return *text;
 }
+
+Core::Expected<ActorStopContext, std::string> StopContextForHero(const ActorState& hero,
+                                                                 const HeroMovementContext& context)
+{
+    static const Render::Models::Skeleton EmptySkeleton;
+    const bool player = hero.type == Data::Models::PlayerSkeletonModel;
+    if (player && context.playerSkeleton == nullptr)
+        return Core::Unexpected(std::string("0x5674e5: falta Player.bmd"));
+
+    const Render::Models::Skeleton* playerSkeleton =
+        context.playerSkeleton != nullptr ? context.playerSkeleton : &EmptySkeleton;
+    const Render::Models::Skeleton* actorSkeleton = nullptr;
+    if (!player)
+    {
+        actorSkeleton = context.world.FaunaResources().SkeletonOf(hero.type);
+        if (actorSkeleton == nullptr && context.models != nullptr)
+            actorSkeleton = context.models->SkeletonOf(hero.type);
+    }
+    const World::WorldTerrain& terrain = context.world.Map().terrain;
+    return ActorStopContext{.runtime = context.world.Runtime(),
+                            .scene = SceneId::Game,
+                            .playerSkeleton = *playerSkeleton,
+                            .items = context.items,
+                            .random = context.random,
+                            .terrainWalls = terrain.attributes ? &terrain.attributes->cells : nullptr,
+                            .sendAction = context.sendAction,
+                            .actorSkeleton = actorSkeleton,
+                            .modelSounds = context.world.FaunaResources().SoundActions(hero.type)};
+}
 } // namespace
 
 Core::Expected<void, std::string> TalkToTheNpc(ActorState& hero, const HeroMovementContext& context)
@@ -127,14 +159,10 @@ Core::Expected<void, std::string> TalkToTheNpc(ActorState& hero, const HeroMovem
     const bool crywolf = CrywolfIsActive(runtime);
     if (!crywolf)
     {
-        if (context.playerSkeleton == nullptr)
-            return Core::Unexpected(std::string("0x5674e5: falta Player.bmd"));
-        const World::WorldTerrain& terrain = context.world.Map().terrain;
-        const ActorStopContext stop{
-            runtime,           SceneId::Game,  *context.playerSkeleton,
-            context.items,     context.random, terrain.attributes ? &terrain.attributes->cells : nullptr,
-            context.sendAction};
-        const auto stopped = SetActorStop(hero, stop);
+        const auto stop = StopContextForHero(hero, context);
+        if (!stop.HasValue())
+            return Core::Unexpected(stop.Error());
+        const auto stopped = SetActorStop(hero, stop.Value());
         if (!stopped.HasValue())
             return Core::Unexpected(stopped.Error());
         if (stopped.Value().sound)

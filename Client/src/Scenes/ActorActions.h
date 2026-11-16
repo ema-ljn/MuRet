@@ -8,6 +8,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <span>
 #include <string>
 
 namespace Client::Render::Models
@@ -41,6 +42,10 @@ struct ActorStopContext
     const Data::Terrain::TerrainLayer<std::uint16_t>* terrainWalls = nullptr;
     // El C1 18 de sentarse (0x4f2416..0x4f2bea). Vacío, sentarse corta con error después de poner la 0xca.
     ActionSender sendAction{};
+    // El esqueleto de este actor; nullptr representa un registro de modelo sin acciones.
+    const Render::Models::Skeleton* actorSkeleton = nullptr;
+    // +0xaa del registro del modelo, los primeros sonidos que lee el sufijo para no jugadores y subtipos 209 a 211.
+    std::span<const std::int16_t> modelSounds{};
 };
 
 // Lo que 0x4f2250 pide afuera: el sonido de Fenrir del sufijo, 0x41ed10(id, personaje, 0) en 0x4f37a0.
@@ -50,12 +55,11 @@ struct ActorStopResult
     std::optional<std::int32_t> sound;
 };
 
-// 0x4f2250: Run en 0 y la acción de parado con 0x4ea030, según la mascota, la zona segura, las armas,
-// las alas y el mapa; después el sufijo de rand(). Sentado (+0x7c con 0x200000), la 0xca y el C1 05 18 con la
-// dirección del personaje y la acción 0x82 (CL9 hito 1), o nada si ya la tiene; después, el sufijo. Lo que no está
-// leído o MuRet no tiene corta con error, después de lo que el original hace antes: un personaje que no es jugador, la
-// celda de los mapas de vuelo en la escena 5 sin terrainWalls, sentarse sin sendAction y la tabla de sonidos de los
-// subtipos 209 a 211.
+// 0x4f2250: siempre pone Run en 0. El jugador elige su acción por mascota, zona segura, armas, alas y mapa; los
+// otros leen la celda lógica Y y luego X, y el tipo 0x172 consulta TerrainWall para elegir 7 o 0. Después, cada ruta
+// corre el sufijo de rand(). Sentado (+0x7c con 0x200000), el jugador pide la 0xca y el C1 05 18 con su dirección y la
+// acción 0x82 (CL9 hito 1), o nada si ya la tiene; después corre el sufijo. Error si falta una dependencia consultada:
+// TerrainWall para los casos que lo leen, sendAction al sentarse o la tabla de sonidos al abrirse el gate del sufijo.
 [[nodiscard]] Core::Expected<ActorStopResult, std::string> SetActorStop(ActorState& actor,
                                                                         const ActorStopContext& context);
 } // namespace Client::Scenes

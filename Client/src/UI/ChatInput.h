@@ -20,9 +20,8 @@
 // macros (0x77f1db0). /whisper off y on (0x77f3b98), el último destinatario (0x57678c4) y los que susurraron
 // (0x77997f8) los comparte con el chat que llega y están en ChatRuntime. *Estático*.
 //
-// Los EDIT se emulan como el login (TextField, Latin-1 como el EDIT de Occidente): lo tecleado entra al final, una
-// selección de todo se reemplaza con lo primero que entra, y no hay cursor en el medio ni IME (decisión 9 del plan
-// de la CL8). Lo que el jugador escribe no va al log.
+// Los EDIT usan TextField con la página Windows-1252 de XP. La navegación, el portapapeles y la composición IME
+// compartidos con el EDIT viejo siguen pendientes (P-C181). Lo que el jugador escribe no va al log.
 namespace Client::UI
 {
 // 0x4691e0: EM_LIMITTEXT del mensaje (0x32) y del susurro (10).
@@ -76,8 +75,8 @@ struct ChatHistory
 
 struct ChatInputState
 {
-    TextField message{ChatMessageLimit, false, TextField::Charset::Latin1};
-    TextField whisper{ChatWhisperLimit, false, TextField::Charset::Latin1};
+    TextField message{ChatMessageLimit, false, TextField::Charset::Windows1252Xp};
+    TextField whisper{ChatWhisperLimit, false, TextField::Charset::Windows1252Xp};
     // +0x48 de los dos EDIT: con 3 ocultos (ShowWindow(SW_HIDE), 0x468260). 0x469450 los pone juntos.
     bool shown = false;
     ChatFocus focus = ChatFocus::Game;

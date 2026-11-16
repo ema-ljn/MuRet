@@ -17,6 +17,11 @@ struct GameCamera;
 struct GameCameraInput;
 } // namespace Client::World
 
+namespace Client::UI
+{
+class IClipboard;
+} // namespace Client::UI
+
 // Lo que comparten las escenas (CL5.4). Lo arma main.cpp y vive más que el SceneManager; los tests,
 // con un FakeTextureStore (support/). Lo que se leyó antes de la primera escena va aparte, en
 // GameData.h.
@@ -69,6 +74,8 @@ struct SceneContext
     // soltar y equipar (InventoryServicesOf). nullptr en los tests que no lo miran: lo que necesita vestir al héroe,
     // el cuervo o los mensajes corta.
     const WorldEntryResources* worldEntry = nullptr;
+    // Portapapeles del hilo principal para los EDIT; nullptr en tests que no editan texto.
+    UI::IClipboard* clipboard = nullptr;
 };
 
 // Cómo cuentan los frames del original la tela y el cetro con el ritmo `pacing`.

@@ -1,5 +1,7 @@
 #include "Scenes/GameScene.h"
+#include "Scenes/MonsterSounds.h"
 #include "Scenes/GameSceneFrameProjection.h"
+#include "Scenes/ActorPickingBox.h"
 #include "Data/Tables/GateTable.h"
 #include "Data/Tables/SkillTable.h"
 #include "Data/Text/TextTable.h"
@@ -10,6 +12,7 @@
 #include "Scenes/EventPackets.h"
 #include "Scenes/ObjectCollapse.h"
 #include "Scenes/FaunaDrawing.h"
+#include "Scenes/InventoryMoves.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/GameParticles.h"
 #include "Scenes/GameDrawTail.h"
@@ -34,6 +37,7 @@
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Input/InputState.h"
+#include "Input/Key.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/ModelTextureSlots.h"
@@ -53,11 +57,13 @@
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/TextureSets.h"
 #include "Scenes/SceneContext.h"
+#include "Scenes/SkillDelays.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/Slides.h"
 #include "Scenes/TerrainPolygonFrame.h"
 #include "Scenes/TerrainTiles.h"
 #include "Scenes/WorldRuntime.h"
+#include "Scenes/WorldModels.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "World/GroundEffectDrawing.h"
 #include "Scenes/WorldState.h"
@@ -164,12 +170,6 @@ std::string MapText(std::int32_t map)
     return "mapa " + std::to_string(map);
 }
 
-// Los componentes de un slot en el juego de MuRet: no sube las texturas de 0x61ccb0 que no son de los sprites.
-std::optional<std::uint8_t> NoSlotComponents(std::int32_t /*slot*/)
-{
-    return std::nullopt;
-}
-
 // 0x63741d..0x637466 y 0x6375ea..0x63763a: el mapa 30 (0x6c9dd0) y el héroe publicado (0x743a170) en el rectángulo de
 // World::InTheCastleSiegeFog. Cada lectura relee las dos cosas.
 bool HeroInTheCastleSiegeFog(const WorldState& world)
@@ -216,6 +216,10 @@ Core::Expected<void, std::string> GameScene::Enter()
     }
     m_firstStep = true;
     m_holdFrame = true;
+    // Fuera de la escena 5, 0x4eb620 no baja las esperas. Su primer frame en la 5 se lleva los ms desde el último de la
+    // escena anterior (0x4eb746 escribe 0x5767b7c en todas); MuRet empieza con 0 (07, Q-C1238).
+    m_frameStarts = true;
+    m_lastFrameStart.reset();
     m_groundEffects.Reset();
     auto& textureTable = m_context.world->FaunaResources().TextureTable();
     textureTable.Bind(m_context.textures);
@@ -224,7 +228,6 @@ Core::Expected<void, std::string> GameScene::Enter()
         textureTable.Seed(*m_gameSlots, m_models);
     }
     m_tiles.BindTextureTable(textureTable);
-    m_characterCloths.resize(ActorPoolSize);
     // El original las sube en la carga (0x61ccb0) y en el login (0x61c7c0) y no las suelta; MuRet, con cada escena.
     if (auto loaded = m_windowTextures.Load(m_context.dataRoot); !loaded.HasValue())
         return loaded;
@@ -240,6 +243,27 @@ void GameScene::Step(const Input::InputState& input)
     if (m_failure)
     {
         return;
+    }
+    // 0x4eb620, al empezar un frame del original y antes de sus pasos: en la escena 5, 0x552f10 con los ms de
+    // timeGetTime() desde el frame anterior (sin tope: 02, "Lo que va por reloj"). El primero de la escena, con 0
+    // (Q-C1238); los frames que la espera retiene no empiezan uno, y el siguiente se lleva todo su tiempo (P-C267).
+    if (m_frameStarts && m_context.world != nullptr && m_context.cloth != nullptr)
+    {
+        m_frameStarts = false;
+        const std::uint32_t now =
+            m_context.clock != nullptr
+                ? static_cast<std::uint32_t>(
+                      std::chrono::duration_cast<std::chrono::milliseconds>(m_context.clock->Now()).count())
+                : 0U;
+        const auto elapsed = static_cast<std::int32_t>(now - m_lastFrameStart.value_or(now));
+        m_lastFrameStart = now;
+        if (auto counted = CountDownSkillDelays(
+                elapsed, {.world = *m_context.world, .random = m_context.cloth->random, .skills = m_skills});
+            !counted.HasValue())
+        {
+            m_failure = counted.Error();
+            return;
+        }
     }
     m_cameraFrames.Step();
     if (auto dialogs = StepTheDialogs(input); !dialogs.HasValue())
@@ -293,7 +317,7 @@ void GameScene::StepEntry()
             UI::ClearTheChatFilter(runtime.chat.log);
             // 0x6368f9..0x636915: las ventanas viejas (0x48ea50), los amigos (0x49bac0) y las cartas (0x49f260, del
             // hito 10: MuRet no guarda ninguna).
-            UI::ResetTheOldWindows(runtime.oldWindows);
+            UI::ResetTheOldWindows(runtime.oldWindows, runtime.ui.pressedButton);
             UI::ClearTheFriends(runtime.oldWindows.friendModel);
             // 0x636920: 0x46b010, las colas del cartel de Slide.bmd, su timer 0x3eb y 0x46b0e0 (el registro propio y
             // un texto de Slide.bmd, con sus rand()).
@@ -402,13 +426,15 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
     if (auto moved = StepTheHero(input); !moved.HasValue())
         return moved;
     // 63710f: personajes sobre el trapecio retenido del último dibujo.
-    if (auto stepped = StepTheCharacters(worldClock); !stepped.HasValue())
+    if (auto stepped = StepTheCharacters(worldClock, input.IsDown(Input::Key::Ctrl)); !stepped.HasValue())
         return stepped;
     if (auto effects = StepTheEffects(worldClock); !effects.HasValue())
         return effects;
     // 0x63717f: 0x5ac8d0, las teclas de función.
     const UI::Point mouse = UI::MouseIn640x480(input, m_screen);
     const GameChatContext chat = ChatContext();
+    // CL9 hito 5: la barra levanta el ítem del piso con el C1 05 22 (InventoryContext).
+    const InventoryServices inventory = InventoryContext();
     return StepTheFunctionKeys(GameUiContext{.world = *m_context.world,
                                              .random = m_context.cloth->random,
                                              .input = input,
@@ -416,7 +442,9 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
                                              .mouseY = mouse.y,
                                              .measure = m_context.textMeasure,
                                              .screen = m_screen,
-                                             .chat = &chat});
+                                             .chat = &chat,
+                                             .inventory = &inventory,
+                                             .fixedHeight = CameraState().fixedHeight});
 }
 
 Core::Expected<void, std::string> GameScene::StepTheObjects()
@@ -659,6 +687,8 @@ Core::Expected<void, std::string> GameScene::DrawTheFrame(SceneCanvas& canvas)
     WorldRuntime& runtime = m_context.world->Runtime();
     const World::WorldTerrain& terrain = m_context.world->Map().terrain;
     const int frames = m_cameraFrames.FramesAtDraw(OriginalFramePaceOf(m_context.pacing));
+    if (frames > 0)
+        m_frameStarts = true;
     m_framePoseCarry = &m_context.world->PoseCarry();
     m_frameSprites = &m_sprites;
     PrepareDrawProjection(frames);
@@ -789,6 +819,10 @@ Core::Expected<void, std::string> GameScene::LoadTheObjectModels(std::int32_t ma
     {
         return Core::Unexpected("0x616ec0: los modelos de los objetos del " + MapText(map) + ": " + loaded.Error());
     }
+    // 0x42aa6b: el lancero del 30 (0x612d90(0x4d)) escribe su tabla de sonidos (0x612c80) si cargó con mallas.
+    constexpr std::int32_t SpearmanMonster = 0x4d;
+    if (const auto* spearman = m_worldModels.Find(SpearmanModel); spearman != nullptr && !spearman->meshes.empty())
+        WriteMonsterSounds(SpearmanMonster, m_context.world->Runtime().modelSounds);
     m_worldModelsMap = map;
     World::SeedTarkanModelState(static_cast<std::uint8_t>(map), m_context.world->Runtime().objectModelState);
     if (m_projectingFrame)
@@ -956,11 +990,18 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
         marksState.depthTest = false;
         marksState.cullEnabled = true;
         canvas.models.SetState(marksState);
-        // 0x5fc365: 0x549130, las marcas del suelo de WorldRuntime, que la carga del mapa no vacía (Q-C228). MuRet
-        // no sube Effect\blood01.tga (0x61d7aa), la del 0x5e3 de sus dos creadores, y no sabe sus componentes:
-        // con una marca prendida, corta (08 P-C49).
+        // 0x5fc365: 0x549130, las marcas del suelo de WorldRuntime, que la carga del mapa no vacía (Q-C228). El byte
+        // +0x28 del slot, de la tabla de texturas compartida (0x7d3a198, sembrada en Enter con lo que subió
+        // GameModels): Effect\blood01.tga en el 0x5e3 (0x61d7aa, EffectTextureSet). Un slot que no subió (otro tipo,
+        // o el archivo que falta) corta (08 P-C49).
+        const ModelTextureTable& textureTable = m_context.world->FaunaResources().TextureTable();
+        const auto components = [&textureTable](std::int32_t slot) -> std::optional<std::uint8_t>
+        {
+            const auto metadata = textureTable.Metadata(static_cast<std::uint32_t>(slot));
+            return metadata ? std::optional(metadata->components) : std::nullopt;
+        };
         if (auto marked = World::DrawGroundMarks(canvas.models, m_context.world->Runtime().groundMarks,
-                                                 *terrain.heights, NoSlotComponents);
+                                                 *terrain.heights, components);
             !marked.HasValue())
         {
             return Core::Unexpected(marked.Error() + ", en el " + MapText(map));
@@ -1089,7 +1130,9 @@ Core::Expected<void, std::string> GameScene::DrawTheCharacters(SceneCanvas& canv
     WorldState& world = *m_context.world;
     if (m_models == nullptr)
     {
-        return DrawGameCharacters(world.Actors(), world.Runtime().hero, world.Map().terrain.attributes->cells);
+        return DrawGameCharacters(
+            world.Actors(), world.Runtime().hero, world.Map().terrain.attributes->cells, &world.Runtime(),
+            m_projectingFrame ? std::span(m_projection->actorPickingBoxes) : std::span<ActorPickingBox>{});
     }
     std::optional<std::string> poseFailure;
     ItemSpecialDrawContext special;
@@ -1105,7 +1148,7 @@ Core::Expected<void, std::string> GameScene::DrawTheCharacters(SceneCanvas& canv
                           // después de los personajes): 0x6c8e30 y 0x6c8e2c.
                           .hovered = world.Runtime().selectedTargets[2],
                           .targeted = world.Runtime().selectedTargets[1],
-                          .cloths = m_characterCloths,
+                          .cloths = world.ActorCloths(),
                           .sprites = &FrameSpritesForDraw(),
                           .poseCarry = &FramePoseCarry(),
                           .joints = FrameTail().joints,
@@ -1123,11 +1166,15 @@ Core::Expected<void, std::string> GameScene::DrawTheCharacters(SceneCanvas& canv
                                   poseFailure = published.Error();
                           },
                           .publishProjectedPose = true,
+                          .pickingBoxes = m_projectingFrame ? std::span(m_projection->actorPickingBoxes)
+                                                            : std::span<ActorPickingBox>{},
                           .poseBones = [&](std::uint16_t)
                           { return std::span<const Render::Models::BoneTransform>(FramePoseCarry().bones); },
                           .worldModels = m_worldModelsMap ? &m_worldModels : nullptr,
                           .polygon = &polygon,
-                          .fixedHeight = CameraState().fixedHeight});
+                          .fixedHeight = CameraState().fixedHeight,
+                          .kalima = FrameKalima(),
+                          .cameraShake = m_projectingFrame ? &m_projection->cameraShake : &CameraInputState().shake});
     if (poseFailure)
         return Core::Unexpected(*poseFailure);
     return drawn;

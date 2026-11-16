@@ -62,6 +62,7 @@
 
 #include "support/AppPrinters.h"
 #include "support/Bytes.h"
+#include "support/FakeClock.h"
 #include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
 #include "support/PlayerActors.h"
@@ -124,8 +125,11 @@ constexpr int GameUiStepDraws = Client::Render::Models::OwnRecordCloseRandoms + 
 // 0x636920, en el primer paso de la escena: 0x46b010 y 0x46b0e0, que abre y cierra el registro propio. Sin Slide.bmd
 // ningún tramo tiene textos y no sortea.
 constexpr int SlideStartDraws = Client::Render::Models::OwnRecordCloseRandoms;
-// El primer paso de cada escena: el cartel y, después, la UI del paso.
-constexpr int FirstStepDraws = SlideStartDraws + GameUiStepDraws;
+// 0x4eb620, al empezar cada frame del original y antes del paso: en la escena 5, 0x552f10 (la espera de las skills)
+// abre y cierra el registro propio.
+constexpr int FrameStartDraws = Client::Render::Models::OwnRecordCloseRandoms;
+// El primer paso de cada escena: el comienzo del frame, el cartel y, después, la UI del paso.
+constexpr int FirstStepDraws = FrameStartDraws + SlideStartDraws + GameUiStepDraws;
 // 0x637641: el picking del frame del Dark Wizard (la clase 0) lee su skill del registro propio (0x59efda).
 constexpr int FramePickingDraws = Client::Render::Models::OwnRecordCloseRandoms;
 // 0x637660: el HUD (0x5a7320) en el estado base: 19 cierres del registro propio (las flechas, los doce avisos de
@@ -553,13 +557,13 @@ private:
 // 0x6370f4: 0x445230, los ayudantes, antes de MoveHero (0x63710a) y también en la espera. Con el jinete
 // muerto, el paso de la escena 5 apaga su caballo y la espera sigue, con los 8 rand() de MoveHero. Con el
 // jinete vivo fuera de una celda segura, el aliento saca un rand() después de los seis candidatos
-// de peces del mapa inerte (con Seed, tres rand() antes, el cartel y la UI del paso, % 3 da 0) y, sin ningún dibujo
-// antes, sale del hueso 27 en cero del buffer global: la 5f2 nace, MoveHero baja el contador y la espera sigue, con el
-// cuerpo del jinete avanzado por Player.bmd (0x4f9580).
+// de peces del mapa inerte (con Seed, un rand() antes, el comienzo del frame, el cartel y la UI del paso, % 3 da 0) y,
+// sin ningún dibujo antes, sale del hueso 27 en cero del buffer global: la 5f2 nace, MoveHero baja el contador y la
+// espera sigue, con el cuerpo del jinete avanzado por Player.bmd (0x4f9580).
 TEST(GameSceneTest, TheHorseStepsBeforeMoveHeroAlsoInTheWait)
 {
     constexpr std::size_t RiderSlot = 5;
-    constexpr int Skipped = 3;
+    constexpr int Skipped = 1;
     CrtRandom first = RandomAfter(Skipped + FirstStepDraws + InertFishCandidateRandoms);
     ASSERT_EQ(first.Next() % 3, 0);
     for (const bool riderAlive : {false, true})
@@ -615,7 +619,8 @@ TEST(GameSceneTest, TheHorseStepsBeforeMoveHeroAlsoInTheWait)
 }
 
 // 0x636da3 y 0x6371a6: sin el mundo cargado y sin el estado 0x3d, el paso sale antes de MoveHero y el
-// dibujo devuelve 0 sin leer el contador. El cartel del primer paso (0x636920) y la tela corren igual.
+// dibujo devuelve 0 sin leer el contador. El comienzo del frame (0x4eb620), el cartel del primer paso (0x636920) y la
+// tela corren igual.
 TEST(GameSceneTest, WithoutTheLoadedWorldNeitherTheStepNorTheDrawReadTheCounter)
 {
     Client::Tests::RecordingSink sink;
@@ -630,7 +635,7 @@ TEST(GameSceneTest, WithoutTheLoadedWorldNeitherTheStepNorTheDrawReadTheCounter)
     EXPECT_TRUE(tested.scene.HoldsTheLastFrame());
     EXPECT_FALSE(tested.Runtime().drawingEnabled);
     EXPECT_EQ(tested.Runtime().warpCounter, 30);
-    EXPECT_EQ(tested.cloth.random.State(), StateAfterAStep(SlideStartDraws));
+    EXPECT_EQ(tested.cloth.random.State(), StateAfterAStep(FrameStartDraws + SlideStartDraws));
 }
 
 // 0x636da3..0x636dac: con la sesión en el mundo (el 0x3d que publica la respuesta del F3 03), el paso
@@ -1363,6 +1368,8 @@ TEST_F(GameSceneDrawTest, AtlansDrawsItsCausticWaterAndNoGrass)
 TEST_F(GameSceneDrawTest, TheFrameDrawsTheChatBubblesWithTheWorldProjection)
 {
     ASSERT_NO_FATAL_FAILURE(Prepare(7, 226, 103));
+    // Un jugador: con otro tipo, 0x50ba30 lo dibujaría como un monstruo con el modelo de ese número.
+    MakeTheHeroAPlayer(226, 103);
     GameScene scene = Scene();
     ASSERT_TRUE(scene.Enter().HasValue());
     world.Actors()[HeroSlot].seen = true;
@@ -1422,18 +1429,20 @@ TEST_F(GameSceneDrawTest, TheEventTimeOfTheF322DrawsUpToTenMinutes)
     world.Runtime().events.timeValue = 0;
 }
 
-// 0x5fc365 con una marca prendida (como la dejarían 0x505de0 o 0x52e810, que MuRet no corre): 0x549130 lee el
-// byte +0x28 del slot 0x5e3, Effect\blood01.tga, que el juego de MuRet no sube (0x61d7aa). Corta ahí, con el
-// terreno y el pasto dibujados, los 4 + 8 rand() de siempre y sin un vértice del calco (08 P-C49).
-TEST_F(GameSceneDrawTest, ALiveGroundMarkStopsWhereMuRetDoesNotKnowItsTexture)
+// 0x5fc365 con una marca de sangre prendida (como la dejan 0x52e810 y 0x505de0): 0x549130 lee el byte +0x28 del slot
+// 0x5e3, Effect\blood01.tga, que el juego sube con las texturas de efectos (0x61d7aa): 32 bits, cuatro componentes,
+// así que va con la mezcla de alfa y su calco (0x5fb2f0) sale con esa textura. No saca rand(): el cuadro termina con
+// los mismos rand() que sin marcas (08 P-C49).
+TEST_F(GameSceneDrawTest, ALiveBloodMarkIsDrawnWithBlood01)
 {
     struct Case
     {
         std::uint8_t map;
         std::uint8_t x;
         std::uint8_t y;
+        int objectDraws;
     };
-    for (const Case& probe : {Case{0, 143, 120}, Case{2, 220, 30}})
+    for (const Case& probe : {Case{0, 143, 120, 83 + 1}, Case{2, 220, 30, 54}})
     {
         SCOPED_TRACE(static_cast<int>(probe.map));
         ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, probe.x, probe.y));
@@ -1452,17 +1461,20 @@ TEST_F(GameSceneDrawTest, ALiveGroundMarkStopsWhereMuRetDoesNotKnowItsTexture)
         scene.PrepareFrame();
         scene.Render(target.BeginFrame(std::chrono::milliseconds{1000}), 0.0f);
 
-        ASSERT_TRUE(scene.Failure().has_value());
-        EXPECT_NE(scene.Failure()->find("0x549152"), std::string::npos) << *scene.Failure();
-        EXPECT_NE(scene.Failure()->find("mapa " + std::to_string(probe.map)), std::string::npos) << *scene.Failure();
+        ASSERT_FALSE(scene.Failure().has_value()) << *scene.Failure();
         const Client::Tests::FrameEvent* models = ModelsOf(target.frames.at(0));
         ASSERT_NE(models, nullptr);
-        EXPECT_FALSE(models->modelVertices.empty());
+        std::size_t decalVertices = 0;
         for (const Client::Render::ModelDrawCommand& command : models->modelCommands)
         {
-            EXPECT_NE(command.state.texture, Client::Render::TextureSlot{0x5e3});
+            if (command.state.texture != Client::Render::TextureSlot{0x5e3})
+                continue;
+            EXPECT_EQ(command.state.blend, Client::Render::ModelBlend::Alpha);
+            decalVertices += command.vertexCount;
         }
-        EXPECT_EQ(cloth.random.State(), RandomAfter(4 + 8).State());
+        EXPECT_GT(decalVertices, 0u);
+        EXPECT_EQ(cloth.random.State(),
+                  RandomAfter(4 + 8 + probe.objectDraws + FramePickingDraws + HudBaseDraws).State());
         scene.Leave();
     }
     world.Runtime().groundMarks = {};
@@ -1651,6 +1663,71 @@ TEST_F(GameSceneDrawTest, AnIntermediateDrawKeepsTheScanOfTheLastFrame)
     scene.Leave();
 }
 
+// 0x4eb620 → 0x552f10: al empezar cada frame del original (el primer paso después de su dibujo), las esperas de los
+// +0x6a + 2 primeros lugares bajan los ms del reloj desde el frame anterior, sin pasar de 0; el lugar de más no se
+// toca. El primer paso de la escena empieza uno con 0 ms, los pasos que siguen en el mismo frame no bajan nada, y al
+// volver a entrar lo que pasó afuera no cuenta.
+TEST_F(GameSceneDrawTest, EachFrameStartCountsTheSkillDelaysDown)
+{
+    ASSERT_NO_FATAL_FAILURE(Prepare(0, 96, 126));
+    MakeTheHeroAPlayer(95, 126);
+    world.Runtime().terrainPolygon = SelectionPolygon();
+    Client::Tests::FakeClock clock;
+    clock.Advance(std::chrono::milliseconds{1000});
+    GameScene scene(SceneContext{.dataRoot = m_dataRoot,
+                                 .textures = store,
+                                 .log = log,
+                                 .clock = &clock,
+                                 .cloth = &cloth,
+                                 .camera = &camera,
+                                 .cameraInput = &cameraInput,
+                                 .world = &world},
+                    nullptr, &playerModels, &data.items->table, &playerModels.TextureSlots(), &*data.gates,
+                    &*data.skills);
+    Client::Scenes::OwnCharacterRecord& own = world.OwnCharacter();
+    own.byte6a = 1;
+    own.skillDelays[0] = 500;
+    own.skillDelays[1] = 30;
+    own.skillDelays[2] = 0;
+    own.skillDelays[3] = 400;
+    ASSERT_TRUE(scene.Enter().HasValue());
+    Client::Tests::RecordingFrameTarget target;
+    const auto drawAFrame = [&]
+    {
+        scene.PrepareFrame();
+        ASSERT_FALSE(scene.HoldsTheLastFrame());
+        scene.Render(target.BeginFrame(clock.Now()), 0.0f);
+        ASSERT_EQ(scene.Failure(), std::nullopt);
+        target.Present();
+    };
+
+    scene.Step(Client::Input::InputState{});
+    ASSERT_EQ(scene.Failure(), std::nullopt);
+    EXPECT_EQ(own.skillDelays[0], 500) << "el primer frame de la escena, con 0 ms";
+    ASSERT_NO_FATAL_FAILURE(drawAFrame());
+    clock.Advance(std::chrono::milliseconds{80});
+    scene.Step(Client::Input::InputState{});
+    ASSERT_EQ(scene.Failure(), std::nullopt);
+    EXPECT_EQ(own.skillDelays[0], 420);
+    EXPECT_EQ(own.skillDelays[1], 0);
+    EXPECT_EQ(own.skillDelays[2], 0);
+    EXPECT_EQ(own.skillDelays[3], 400) << "+0x6a + 2 lugares";
+    clock.Advance(std::chrono::milliseconds{40});
+    scene.Step(Client::Input::InputState{});
+    EXPECT_EQ(own.skillDelays[0], 420) << "el mismo frame";
+    ASSERT_NO_FATAL_FAILURE(drawAFrame());
+    scene.Step(Client::Input::InputState{});
+    EXPECT_EQ(own.skillDelays[0], 380) << "los 40 ms desde el frame anterior";
+    scene.Leave();
+
+    clock.Advance(std::chrono::milliseconds{5000});
+    ASSERT_TRUE(scene.Enter().HasValue());
+    scene.Step(Client::Input::InputState{});
+    ASSERT_EQ(scene.Failure(), std::nullopt);
+    EXPECT_EQ(own.skillDelays[0], 380) << "fuera de la escena 5 no baja";
+    scene.Leave();
+}
+
 // 0x63712d: después de los personajes, el paso del juego envejece las marcas del suelo (0x549090), sin rand(): la
 // prendida pierde un paso de vida, crece 0,004 y se pone roja (0,1; 0; 0); la apagada no cambia. Con el héroe de
 // TheFirstStepAfterTheWaitReadsTheTrapezoidOfTheSelection, en Lorencia y en Devias.
@@ -1786,12 +1863,12 @@ TEST_F(GameSceneDrawTest, WithoutPlayerBmdTheStepStopsAtTheBody)
 }
 
 // Un dibujo cortado deja la escena en Failure: el paso que sigue no corre, aunque el dibujo haya dejado su
-// trapecio. La marca de sangre usa el selector nativo 0x5e3, cuya metadata sigue ausente.
+// trapecio. La marca es del tipo 0x606, un slot que el juego de MuRet no sube: 0x549130 corta en 0x549152.
 TEST_F(GameSceneDrawTest, AStepAfterACutDrawDoesNothing)
 {
     ASSERT_NO_FATAL_FAILURE(Prepare(0, 143, 120));
     world.Runtime().groundMarks[0] = Client::World::GroundMark{.live = true,
-                                                               .type = 0x5e3,
+                                                               .type = 0x606,
                                                                .size = 1.0f,
                                                                .position = world.Actors()[HeroSlot].position,
                                                                .color = glm::vec3(1.0f),

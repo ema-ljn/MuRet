@@ -210,7 +210,7 @@ bool SetTheSiegeBox(ActorState& actor, std::uint16_t type)
     if (type == SiegeGate)
     {
         PutTheBox(actor, {{-140.0f, -140.0f, 0.0f}, 140.0f, 140.0f, 300.0f});
-        actor.byte38f = 0;
+        actor.attackCount = 0;
         return true;
     }
     if (type == SiegeStatue)
@@ -330,6 +330,7 @@ void SetTheStartingState(ActorState& actor, std::uint16_t type)
     ResetTheAnimation(actor);
     actor.seen = false;
     actor.dying = 0;
+    actor.dyingTime = 0.0f; // 0x51247a, con el ESI en 0 de 0x5121f6
     actor.byte88 = 1;
     // 0x511d51, con el ESI en 0 de 0x511c36.
     actor.flags78 = 0;
@@ -347,6 +348,7 @@ void SetTheStartingState(ActorState& actor, std::uint16_t type)
     actor.byte374 = 0; // 0x511c13
     actor.byte42c = 1; // 0x511c92
     actor.byte110 = 0; // 0x511c69
+    actor.byte1a0 = 0; // 0x511c62
     actor.word1f2 = NoItemModel;
     actor.byte399 = 0;
     actor.byte80 = 0;
@@ -375,6 +377,9 @@ void SetTheStartingState(ActorState& actor, std::uint16_t type)
     actor.byte38a = 0;
     actor.dword394 = 0;
     actor.dword428 = -0x80;
+    // 0x511d7b y 0x511d7e: la U (+0x6c) y la V (+0x70).
+    actor.textureU = 0.0f;
+    actor.textureV = 0.0f;
     // 0x511878: reconstruir el dueño borra el cuervo anterior.
     actor.darkSpirit.reset();
     // 0x511872: +0x364 en 0 sin 0x414340, así que +0x360 queda como estaba.

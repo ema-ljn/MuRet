@@ -9,6 +9,7 @@
 #include "Scenes/ConstructedBmdPrefix.h"
 #include "Scenes/TextureMetadata.h"
 #include "Scenes/ModelTextureTable.h"
+#include "Scenes/MonsterSounds.h"
 
 #include <array>
 #include <cstdint>
@@ -42,6 +43,9 @@ struct FaunaModelLoadContext
     Core::Log& log;
     Render::Models::ModelTextureSlots& slots;
     ModelTextureTable* sharedTextures = nullptr;
+    // WorldRuntime::modelSounds: 0x612d90 escribe la tabla de sonidos del modelo (0x612c80, 0x613127) después de
+    // cargarlo con mallas. nullptr, no la escribe.
+    ModelSoundTable* sounds = nullptr;
 };
 struct FaunaResourceSound
 {
@@ -105,7 +109,15 @@ public:
     [[nodiscard]] std::optional<Render::TextureSlot> TextureSlotOf(std::uint32_t selector) const override;
     [[nodiscard]] std::optional<glm::vec2> TextureSize(Render::TextureSlot slot) const override;
     [[nodiscard]] std::span<const FaunaResourceSound> SoundFiles() const;
+    // +0xaa..+0xbc del modelo: lo que escribió 0x612c80, o los ceros de 0x60dbe0 (también sin el modelo: el registro en
+    // 0 del original).
     [[nodiscard]] std::span<const std::int16_t, 10> SoundActions(std::uint16_t model) const;
+    // +0xa4/+0xa8 del modelo: frame/key publicados por pose (4eb860) y avance (4ec200).
+    // 0x60dbe0 los deja en cero; no se reinician al soltar los modelos (*inferido*).
+    [[nodiscard]] float PoseFrame(std::uint16_t model) const;
+    [[nodiscard]] std::int16_t PoseKey(std::uint16_t model) const;
+    void RecordPoseKey(std::uint16_t model, std::int16_t key);
+    void RecordAnimation(std::uint16_t model, float frame, std::int16_t key);
 
 private:
     struct Entry
@@ -138,5 +150,11 @@ private:
     std::map<std::uint32_t, TextureMetadata> m_metadata;
     std::vector<Render::TextureSlot> m_uploaded;
     std::vector<FaunaResourceSound> m_sounds;
+    struct AnimationMetadata
+    {
+        float frame = 0.0f;
+        std::int16_t key = 0;
+    };
+    std::map<std::uint16_t, AnimationMetadata> m_animationMetadata;
 };
 } // namespace Client::Scenes

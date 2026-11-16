@@ -35,11 +35,14 @@ enum class Key : std::uint16_t
     // se lee en todas.
     PrintScreen,
     // Las flechas: arriba y abajo las nombra el 02 (0x59ff10); izquierda y derecha las lee el
-    // binario en 0x467b10 y 0x479960.
+    // binario en 0x467b10 y 0x479960. Home, End y Delete son para el EDIT.
     Up,
     Down,
     Left,
     Right,
+    Home,
+    End,
+    Delete,
     // Tab: no la nombra el 02; la lee el binario con 0x553520(9) (0x40f6e8..0x40f6ea).
     Tab,
     // Retroceso: el original no la lee con GetAsyncKeyState. Le llega al EDIT de Windows de cada

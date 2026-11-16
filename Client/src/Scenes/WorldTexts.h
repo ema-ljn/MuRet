@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <deque>
 #include <string>
+#include <string_view>
 
 namespace Client::Render
 {
@@ -16,7 +17,7 @@ class SpriteBatch;
 
 // Los textos 3D del juego (CL8 hito 6; 06 § HUD y ventanas, "La pasada 2D del juego"): la cola de la .bss en 0x723c18,
 // un std::deque de entradas de 0x4c bytes (el texto en 64 y la posición en tres float), que llena 0x4381f0 desde el
-// cuerpo de los personajes (0x4fd603, el tipo 0xc5 con su nombre y +0x1d6, que corta: CL9.5) y que vacía el dibujo,
+// cuerpo de los personajes (0x4fd603, el tipo 0xc5 con su nombre y +0x1d6, MonsterStepCases.h) y que vacía el dibujo,
 // 0x4383f0, lo primero de la pasada 2D (0x63764b). Nada de esto saca rand().
 namespace Client::Scenes
 {
@@ -34,6 +35,10 @@ struct WorldText
 };
 
 using WorldTextQueue = std::deque<WorldText>;
+
+// 0x4381f0(texto, posición): copia los primeros 64 bytes del texto (los 0x10 dwords de 0x438209, aunque el texto sea
+// más corto: MuRet completa con 0 lo que el original toma de la pila) y la posición, y los pone al final de la cola.
+void QueueWorldText(WorldTextQueue& queue, std::string_view text, const glm::vec3& position);
 
 struct WorldTextDrawContext
 {

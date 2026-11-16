@@ -79,8 +79,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Tests de la recuperación de evidencia CL9
-        run: python -m unittest discover -s Client/docs/research/scripts/game/capture -p test_recover_cl9_evidence.py -v
+      - name: Tests de las herramientas de evidencia CL9
+        run: python -m unittest discover -s Client/docs/research/scripts/game/capture -p 'test_*evidence.py' -v
 
       # Lo que el puerto sdl3 de vcpkg pide del sistema para las features x11 y wayland, los
       # headers de OpenGL/EGL, y Xvfb + Mesa (llvmpipe) para abrir la ventana sin pantalla. NASM lo

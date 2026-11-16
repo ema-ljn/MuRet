@@ -67,6 +67,10 @@ seguido de un ítem válido con bono. La revisión fue estática; no ejecutó bu
 
 ## Repetición en VM y captura pendiente
 
+El [handoff y programa de captura](../../../Client/docs/research/scripts/game/capture/RUNBOOK-qc184-vm.md)
+prepara dos modalidades de WinDbg y una lectura pasiva previa/posterior a adjuntar. Es la entrega
+operativa para el agente con VM; la preparación/análisis del host no acredita una ejecución nativa.
+
 1. Con proceso nuevo, crear/entrar con caballero, equipar arma ordinaria, volver a selección, crear
    mago en otro lugar y entrar. Comprobar cuerpo, animación y que no se cierre por Q-C184.
 2. Repetir con mochila, armadura/escudo y elecciones de personajes existentes. Conservar SHA y log.

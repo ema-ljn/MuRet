@@ -396,6 +396,50 @@ TEST(NpcTalkTest, AGroundClickWithAChosenAltarAlsoClearsItsCell)
     }
 }
 
+// 0x59ddbc → 0x4eac00 (Q-C1351): el camino hasta un ítem del piso (0x59dc5e, hito 5) también lleva la bandera si
+// 0x6c8e54 todavía tiene un altar. En el 34 con la etapa 4 la celda de pared del ítem queda en 0 y el camino llega; en
+// Lorencia y Devias, el más cercano.
+TEST(NpcTalkTest, TheWalkToAFloorItemWithAChosenAltarAlsoClearsItsCell)
+{
+    constexpr std::int32_t FloorItem = 3;
+    for (const std::int32_t map : {0, 2, 34})
+    {
+        SCOPED_TRACE(map);
+        const auto tested = std::make_unique<TalkingHero>();
+        auto& runtime = tested->world.Runtime();
+        runtime.map = map;
+        runtime.crywolf.stage = 4;
+        runtime.movement.chosenNpc = static_cast<std::int32_t>(NpcSlot);
+        tested->Npc().type = 0x205;
+        runtime.selectedTargets[0] = FloorItem;
+        tested->world.DrawTail().floorItems[FloorItem].position = {18650.0f, 11550.0f, 0.0f};
+        auto& walls = tested->world.Map().terrain.attributes->cells;
+        const std::size_t item = Client::Data::Terrain::CellIndex(186, 115);
+        walls[item] = 0x04;
+        runtime.movement.mouseUpdateTime = 6;
+        auto context = tested->Context();
+        context.input.leftPressed = true;
+        context.input.leftDown = true;
+        const auto stepped = Client::Scenes::StepHeroMovement(context);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(tested->events, (std::vector<std::string>{"D3 186 115"}));
+        EXPECT_EQ(runtime.floor.chosen, FloorItem);
+        const auto& path = tested->Hero().path;
+        ASSERT_GE(path.count, 2);
+        const Client::GameLogic::PathCell last = path.cells[path.count - 1U];
+        if (map == 34)
+        {
+            EXPECT_EQ(walls[item], 0);
+            EXPECT_EQ(last, (Client::GameLogic::PathCell{186, 115}));
+        }
+        else
+        {
+            EXPECT_EQ(walls[item], 0x04);
+            EXPECT_EQ(last, (Client::GameLogic::PathCell{185, 114}));
+        }
+    }
+}
+
 // 0x5674c8..0x5695b3: parar al héroe, el registro propio, el C3 30 con la clave y 0x6c8e54 en −1; el máximo de
 // MouseUpdateTime en 12 y las banderas de los paneles en 0.
 TEST(NpcTalkTest, TheArrivalStopsTheHeroAndSendsTheTalk)

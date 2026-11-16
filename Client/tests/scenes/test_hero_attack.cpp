@@ -329,9 +329,9 @@ TEST_F(HeroAttackTest, OutOfRangeOnlyTheElfWalksIntoRange)
 
 // El elfo fuera de alcance con el blanco en la columna 256, que PathFinding2 (0x566272) toma como índice lineal: MuRet
 // descarta el acercamiento después de leer la Y y la X (07, Q-C1179). Con Crywolf en la etapa 3, en el mapa 34 y un
-// altar (0x206) en 0x6c8e54, PathFinding2 corta en 0x4eac41 (hito 11) después de las mismas lecturas; en Lorencia y en
-// Devias el altar no cuenta y el elfo se acerca.
-TEST_F(HeroAttackTest, TheElfDiscardsATargetOffTheGridAndCutsAtACrywolfAltar)
+// altar (0x206) en 0x6c8e54, PathFinding2 le pone la bandera al A* (0x4eac0a..0x4eac41), que con el alcance distinto
+// de 0 no cuenta (0x4eadd4): el elfo se acerca por el mismo camino que en Lorencia y en Devias.
+TEST_F(HeroAttackTest, TheElfDiscardsATargetOffTheGridAndWalksTheSameWithACrywolfAltar)
 {
     constexpr std::size_t AltarIndex = 30;
     for (const std::int32_t map : {0, 2, 34})
@@ -353,18 +353,15 @@ TEST_F(HeroAttackTest, TheElfDiscardsATargetOffTheGridAndCutsAtACrywolfAltar)
 
             EXPECT_EQ(m_random.State(), After(OwnRecordDraws + 2 * CellDraws));
             EXPECT_TRUE(m_sent.empty());
-            if (!offTheGrid && map == 34)
-            {
-                ASSERT_FALSE(arrived.HasValue());
-                EXPECT_NE(arrived.Error().find("0x4eac41"), std::string::npos) << arrived.Error();
-                EXPECT_NE(arrived.Error().find("0x566272"), std::string::npos) << arrived.Error();
-                EXPECT_EQ(Hero().movement, 0);
-                continue;
-            }
             ASSERT_TRUE(arrived.HasValue()) << arrived.Error();
             EXPECT_EQ(Runtime().movement.targetX, offTheGrid ? 256u : 192u);
             EXPECT_EQ(Hero().movement, offTheGrid ? 0 : 1);
             EXPECT_EQ(Hero().path.count, offTheGrid ? 0u : 10u);
+            if (!offTheGrid)
+            {
+                EXPECT_EQ(Hero().path.cells[0].x, 182);
+                EXPECT_EQ(Hero().path.cells[9].x, 191);
+            }
         }
     }
 }

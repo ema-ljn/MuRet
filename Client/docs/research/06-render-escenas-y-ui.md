@@ -9835,9 +9835,10 @@ con enteros salvo la rama de `fDistance`, que caminar no usa: solo el elfo que s
 - **Sale con falso con `sx == 0` o `sy == 0`** (`0x4eadc1..0x4eadce`, Q-C156; *emulado*).
 - **La meta**: con `bClearGoal` pone `Map[meta] = 0`, **escribe el mapa** (solo con el asedio,
   `0x435a00`, en el mapa 34 y el registro de `0x6c8e54` de tipo `0x204..0x208`, que `0x4eac00` mira para cualquier
-  camino: Q-C1350 y Q-C1351; de las 15 llamadas a `0x4eac00`, las 7 que MuRet no porta, `0x55980f`, `0x566272`,
-  `0x57f148`, `0x58edc6`, `0x59ba9c`, `0x59d653` y `0x59ddbc`, tienen que pasarle a `PathFinder::Find` la bandera de
-  `Scenes::CrywolfAltarGoal` al portarlas); con `bErrorCheck`, una meta con
+  camino: Q-C1350 y Q-C1351; de las 19 llamadas a `0x4eac00` (los `CALL` de `.text`; el decompilado lista 15, sin
+  `0x581853`, `0x58975f`, `0x58b1d1` ni `0x58ec65`), las 17 que MuRet porta le pasan a `PathFinder::Find` la bandera
+  de `Scenes::CrywolfAltarGoal`, y las 2 que faltan, `0x58b1d1` (Soul Barrier con el elegido en la party, hito 7) y
+  `0x59ba9c` (MoveHero hacia `0x6c8e50`), tienen que pasarla al portarlas); con `bErrorCheck`, una meta con
   `Map ≥ iWall` sin el `0x20` falla; si no, `NodeFlag[meta] = 4`.
 - **La meta por distancia** (`0x4eae7c..0x4eb054`, CL9 hito 3, fase 2a; `FCOMP` con C3 en `0x4eadd4`: una
   `fDistance` que no es 0, o NaN, va por acá y no lee `bClearGoal`): r = `_ftol(fDistance)`; en cada fila

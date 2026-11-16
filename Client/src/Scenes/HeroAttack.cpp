@@ -13,6 +13,7 @@
 #include "Scenes/ActorCombat.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/AttackRules.h"
+#include "Scenes/CrywolfContract.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/HeroSkillCasts.h"
 #include "Scenes/HeroSkills.h"
@@ -228,18 +229,15 @@ Core::Expected<void, std::string> HitTheTarget(ActorState& hero, std::int32_t ta
 }
 
 // 0x56535b..0x566299: la Y (+0x420) y la X (+0x41c), cada una con 0x40b570 y 0x40b800, y PathFinding2(X, Y, blanco,
-// +0x3e8, 0) con el alcance de distancia (0x4eac00, sin bClearGoal): las celdas a menos del alcance del blanco son la
-// meta. Con camino, +0x378 en 1 y nada más: sin SendMove, el servidor no ve el camino hasta el D3 de girar al llegar
-// (07). Sin camino, nada.
+// +0x3e8, 0) con el alcance de distancia (0x4eac00, donde la bandera del altar no cuenta): las celdas a menos del
+// alcance del blanco son la meta. Con camino, +0x378 en 1 y nada más: sin SendMove, el servidor no ve el camino hasta
+// el D3 de girar al llegar (07). Sin camino, nada.
 Core::Expected<void, std::string> WalkIntoRange(ActorState& hero, std::int32_t targetX, std::int32_t targetY,
                                                 float range, const HeroArrivalContext& context)
 {
     auto& random = context.combat.random;
     const std::uint8_t y = ReadTheCell(hero.cellYAccesses, hero.cellY, random);
     const std::uint8_t x = ReadTheCell(hero.cellXAccesses, hero.cellX, random);
-    // 0x566272: PathFinding2 mira primero el altar de Crywolf.
-    if (auto altar = CheckTheCrywolfAltar(context.combat.world, "0x566272"); !altar.HasValue())
-        return altar;
     // La celda del blanco fuera de la grilla, que el A* toma como índice lineal (la fila de al lado, o fuera de los
     // 65.536 WORD): MuRet descarta el acercamiento, con los dos rand() de las lecturas (07, Q-C1179).
     if (targetX < 0 || targetX > LastCell || targetY < 0 || targetY > LastCell)
@@ -248,7 +246,10 @@ Core::Expected<void, std::string> WalkIntoRange(ActorState& hero, std::int32_t t
     if (!terrain.attributes)
         return Core::Unexpected(std::string("0x566272: falta TerrainWall para el camino hasta el alcance"));
     const GameLogic::PathCell target{static_cast<std::uint8_t>(targetX), static_cast<std::uint8_t>(targetY)};
-    const auto path = GameLogic::PathFinder(terrain.attributes->cells).Find({x, y}, target, false, range);
+    // 0x566272: PathFinding2 calcula primero la bandera del altar de Crywolf (0x4eac0a..0x4eac41), que con el alcance
+    // distinto de 0 no cuenta (0x4eadd4).
+    const auto path = GameLogic::PathFinder(terrain.attributes->cells)
+                          .Find({x, y}, target, CrywolfAltarGoal(context.combat.world), range);
     if (!path)
         return {};
     hero.path = *path;
@@ -553,32 +554,6 @@ Core::Expected<std::int32_t, std::string> ChosenKeyOf(const WorldState& world, s
     if (target.pk >= MinimumOutlawPk)
         return key;
     return controlDown && !isHero ? key : NoKey;
-}
-
-Core::Expected<void, std::string> CheckTheCrywolfAltar(const WorldState& world, std::string_view caller)
-{
-    // 0x4eac0a..0x4eac1a: 0x435a00 (la etapa 3 o 4) y 0x4303c0 (el mapa 34).
-    constexpr std::int32_t CrywolfMap = 34;
-    constexpr std::uint8_t ThirdStage = 3;
-    constexpr std::uint8_t FourthStage = 4;
-    const WorldRuntime& runtime = world.Runtime();
-    const bool crywolf =
-        (runtime.crywolf.stage == ThirdStage || runtime.crywolf.stage == FourthStage) && runtime.map == CrywolfMap;
-    if (!crywolf)
-        return {};
-    // 0x4eac1c..0x4eac3f: [0x743a16c] + 0x438 · [0x6c8e54] + 2, comparado en 16 bits con signo.
-    const std::int32_t chosen = runtime.movement.chosenNpc;
-    const auto actors = world.Actors();
-    if (chosen < 0 || static_cast<std::size_t>(chosen) >= actors.size())
-        return {};
-    constexpr std::int16_t FirstAltar = 0x204;
-    constexpr std::int16_t LastAltar = 0x208;
-    const auto model = static_cast<std::int16_t>(actors[static_cast<std::size_t>(chosen)].type);
-    if (model < FirstAltar || model > LastAltar)
-        return {};
-    return Core::Unexpected(std::format("0x4eac41: el camino de {} con un altar de Crywolf elegido (la bandera del A* "
-                                        "de 0x4ead70) es del hito 11",
-                                        caller));
 }
 
 bool PassesTheActionBrake(std::uint32_t& last, std::int32_t skill, const std::function<std::uint32_t()>& tickCount)

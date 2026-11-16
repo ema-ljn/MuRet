@@ -19,6 +19,7 @@
 #include "Scenes/ArrowEffects.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/CombatActionSpeeds.h"
+#include "Scenes/CrywolfContract.h"
 #include "Scenes/GameParticles.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GamePanels.h"
@@ -456,8 +457,6 @@ Core::Expected<bool, std::string> UseTheSkillOnTheChosen(ActorState& caster, Act
     // 0x559725..0x559822: fuera de alcance, el camino desde las celdas lógicas de c.
     const std::uint8_t y = ReadCell(caster.cellYAccesses, caster.cellY, context.random);
     const std::uint8_t x = ReadCell(caster.cellXAccesses, caster.cellX, context.random);
-    if (auto altar = CheckTheCrywolfAltar(world, "0x55980f"); !altar.HasValue())
-        return Core::Unexpected(altar.Error());
     const World::WorldTerrain& terrain = world.Map().terrain;
     if (!terrain.attributes)
         return Core::Unexpected(std::string("0x55980f: falta TerrainWall para el camino de la skill"));
@@ -466,9 +465,11 @@ Core::Expected<bool, std::string> UseTheSkillOnTheChosen(ActorState& caster, Act
         return Core::Unexpected(std::format("0x55980f: la celda del elegido ({}, {}) fuera de la grilla, que "
                                             "PathFinding2 toma como índice lineal",
                                             *cellX, *cellY));
-    const auto path =
-        GameLogic::PathFinder(terrain.attributes->cells)
-            .Find({x, y}, {static_cast<std::uint8_t>(*cellX), static_cast<std::uint8_t>(*cellY)}, false, reach);
+    // 0x55980f: PathFinding2 con la bandera del altar de Crywolf (0x4eac0a..0x4eac41), que con el alcance distinto de 0
+    // no cuenta (0x4eadd4).
+    const auto path = GameLogic::PathFinder(terrain.attributes->cells)
+                          .Find({x, y}, {static_cast<std::uint8_t>(*cellX), static_cast<std::uint8_t>(*cellY)},
+                                CrywolfAltarGoal(world), reach);
     if (!path)
         return false;
     caster.path = *path;

@@ -420,16 +420,16 @@ Core::Expected<MoveHeroEnd, std::string> AttackTheChosen(ActorState& hero, const
         return MoveHeroEnd::Continue;
     const auto startY = ReadCell(hero.cellYAccesses, hero.cellY, context.random);
     const auto startX = ReadCell(hero.cellXAccesses, hero.cellX, context.random);
-    // 0x59d653: PathFinding2 mira primero el altar de Crywolf (0x4eac0a..0x4eac41, hito 11).
-    if (auto altar = CheckTheCrywolfAltar(context.world, "0x59d653"); !altar.HasValue())
-        return Core::Unexpected(altar.Error());
     // La celda del elegido fuera de la grilla, que el A* toma como índice lineal (la fila de al lado, o fuera de los
     // 65.536 WORD): MuRet descarta el clic, con los rand() de las cuatro lecturas (07, Q-C1179).
     constexpr std::int32_t LastCell = 0xff;
     if (*targetX < 0 || *targetX > LastCell || *targetY < 0 || *targetY > LastCell)
         return MoveHeroEnd::Continue;
     const GameLogic::PathCell target{static_cast<std::uint8_t>(*targetX), static_cast<std::uint8_t>(*targetY)};
-    const auto path = GameLogic::PathFinder(terrain.attributes->cells).Find({startX, startY}, target);
+    // 0x59d653: PathFinding2 con la bandera del altar de Crywolf (0x4eac0a..0x4eac41): sin distancia, con un altar
+    // elegido la meta en el TerrainWall queda en 0.
+    const auto path = GameLogic::PathFinder(terrain.attributes->cells)
+                          .Find({startX, startY}, target, CrywolfAltarGoal(context.world));
     if (path)
     {
         hero.path = *path;
@@ -550,7 +550,10 @@ Core::Expected<void, std::string> WalkToTheFloorItem(ActorState& hero, const Her
     const GameLogic::PathCell target{static_cast<std::uint8_t>(*x & 0xff), static_cast<std::uint8_t>(*y & 0xff)};
     if (*x != target.x || *y != target.y)
         return Core::Unexpected(std::format("0x59ddbc: el destino ({}, {}) del ítem del piso sale del mapa", *x, *y));
-    if (const auto path = GameLogic::PathFinder(terrain.attributes->cells).Find({startX, startY}, target))
+    // 0x59ddbc: PathFinding2 con la bandera del altar de Crywolf (0x4eac0a..0x4eac41, Q-C1351): con un altar todavía en
+    // 0x6c8e54, la celda del ítem queda en 0 en TerrainWall.
+    if (const auto path = GameLogic::PathFinder(terrain.attributes->cells)
+                              .Find({startX, startY}, target, CrywolfAltarGoal(context.world)))
     {
         hero.path = *path;
         return SendThePath(hero, target, context);

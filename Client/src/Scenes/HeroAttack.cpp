@@ -194,8 +194,7 @@ Core::Expected<void, std::string> HitTheTarget(ActorState& hero, std::int32_t ta
     if (context.sendWalk)
     {
         const std::array<Protocol::Movement::Cell, 1> cell{{{x, y}}};
-        if (auto sent = context.sendWalk(cell, cell[0], published.angles.z); !sent.HasValue())
-            return sent;
+        context.sendWalk(cell, cell[0], published.angles.z);
     }
     hero.movement = 0;
     // 0x565954..0x56599f: abre y cierra la X y la Y de la celda.
@@ -210,8 +209,9 @@ Core::Expected<void, std::string> HitTheTarget(ActorState& hero, std::int32_t ta
         return {};
     if (!context.sendAttack)
         return {};
-    return context.sendAttack(world.Actors()[static_cast<std::size_t>(target)].key, Protocol::Combat::AttackAction,
-                              direction.Value());
+    context.sendAttack(world.Actors()[static_cast<std::size_t>(target)].key, Protocol::Combat::AttackAction,
+                       direction.Value());
+    return {};
 }
 
 // 0x56535b..0x566299: la Y (+0x420) y la X (+0x41c), cada una con 0x40b570 y 0x40b800, y PathFinding2(X, Y, blanco,

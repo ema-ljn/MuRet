@@ -48,16 +48,13 @@ struct ActorState;
 // 0x567ae5 y 0x56959b) el original lee fuera de la tabla; MuRet lo toma como sin altar (07, Q-C1182). No saca rand().
 [[nodiscard]] Core::Expected<void, std::string> CheckTheCrywolfAltar(const WorldState& world, std::string_view caller);
 
-// Lo que 0x5650c0 necesita además del mundo: los envíos del D3 de girar (C1 06 D3 X Y rumbo, como el SendMove de un
-// paso) y del D7 de pegar. Vacíos, no manda nada (el original los manda por el socket, que puede estar cerrado).
+// Lo que 0x5650c0 necesita además del mundo: los intentos del D3 de girar (C1 06 D3 X Y rumbo, como el SendMove de un
+// paso) y del D7 de pegar. Son best-effort como el socket original: que el transporte esté cerrado no corta la llegada.
 struct HeroArrivalContext
 {
     ActorCombatContext combat;
-    std::function<Core::Expected<void, std::string>(std::span<const Protocol::Movement::Cell>, Protocol::Movement::Cell,
-                                                    float)>
-        sendWalk{};
-    std::function<Core::Expected<void, std::string>(std::uint16_t key, std::uint8_t action, std::uint8_t direction)>
-        sendAttack{};
+    std::function<void(std::span<const Protocol::Movement::Cell>, Protocol::Movement::Cell, float)> sendWalk{};
+    std::function<void(std::uint16_t key, std::uint8_t action, std::uint8_t direction)> sendAttack{};
 };
 
 // 0x5650c0(héroe, héroe, 0) al llegar (0x59b2d2): por +0x379 (MOVSX, del 1 al 5; con otro, nada). El 3 pega

@@ -283,13 +283,14 @@ bool AutoAttacksHere(const WorldRuntime& runtime)
            (runtime.map < FirstChaosCastleMap || runtime.map > LastChaosCastleMap);
 }
 
-// Lo que necesita 0x5650c0 desde MoveHero (0x59b2d2 y 0x59d670): el héroe es un jugador, sin la biblioteca de modelos.
+// Lo que necesita 0x5650c0 desde MoveHero (0x59b2d2 y 0x59d670): el esqueleto del jugador va aparte, y los modelos
+// base siguen disponibles para acciones de héroes transformados.
 HeroArrivalContext ArrivalContextOf(const HeroMovementContext& context)
 {
     return HeroArrivalContext{.combat = {.world = context.world,
                                          .random = context.random,
                                          .playerSkeleton = context.playerSkeleton,
-                                         .models = nullptr,
+                                         .models = context.models,
                                          .items = context.items},
                               .sendWalk = context.sendWalk,
                               .sendAttack = context.sendAttack};

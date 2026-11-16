@@ -224,6 +224,47 @@ TEST_F(HeroAttackTest, WithoutSendersTheHeroStillHits)
     EXPECT_EQ(m_random.State(), After(2 * OwnRecordDraws + 4 * CellDraws));
 }
 
+TEST_F(HeroAttackTest, AFailedTurnSendStillCompletesTheAttackAndAttemptsTheD7)
+{
+    auto context = Arrival();
+    bool attemptedAttack = false;
+    context.sendWalk = [](std::span<const Client::Protocol::Movement::Cell>, Client::Protocol::Movement::Cell,
+                          float) -> Client::Core::Expected<void, std::string>
+    { return Client::Core::Unexpected(std::string("GameServer no abierto")); };
+    context.sendAttack = [&](std::uint16_t, std::uint8_t, std::uint8_t) -> Client::Core::Expected<void, std::string>
+    {
+        attemptedAttack = true;
+        return {};
+    };
+
+    const auto attacked = Client::Scenes::InteractOnArrival(Hero(), context);
+
+    ASSERT_TRUE(attacked.HasValue()) << attacked.Error();
+    EXPECT_TRUE(attemptedAttack);
+    EXPECT_EQ(Hero().movement, 0);
+    EXPECT_EQ(Hero().attackTarget, TargetIndex);
+    EXPECT_EQ(m_random.State(), After(2 * OwnRecordDraws + 4 * CellDraws));
+}
+
+TEST_F(HeroAttackTest, AFailedAttackSendDoesNotUndoTheCompletedArrival)
+{
+    auto context = Arrival();
+    bool attemptedAttack = false;
+    context.sendAttack = [&](std::uint16_t, std::uint8_t, std::uint8_t) -> Client::Core::Expected<void, std::string>
+    {
+        attemptedAttack = true;
+        return Client::Core::Unexpected(std::string("GameServer no abierto"));
+    };
+
+    const auto attacked = Client::Scenes::InteractOnArrival(Hero(), context);
+
+    ASSERT_TRUE(attacked.HasValue()) << attacked.Error();
+    EXPECT_TRUE(attemptedAttack);
+    EXPECT_EQ(Hero().movement, 0);
+    EXPECT_EQ(Hero().attackTarget, TargetIndex);
+    EXPECT_EQ(m_random.State(), After(2 * OwnRecordDraws + 4 * CellDraws));
+}
+
 // 0x565107..0x56526a: el alcance es 1,8 celdas a mano o con espada, 2,2 con las lanzas (0x600..0x7ff en la derecha),
 // 6 con arcos y ballestas y 7 con +0x376 en 9. El blanco a dos celdas queda fuera con 1,8 y dentro con 2,2.
 TEST_F(HeroAttackTest, TheRangeFollowsTheOwnWeapons)

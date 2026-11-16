@@ -287,6 +287,52 @@ TEST(GameMovementTest, ATransformedHeroUsesItsSevenActionModelFromClickThroughAr
     EXPECT_FLOAT_EQ(tested.world.ActionSpeeds().Speed(2, 0.0f), 3.25f);
 }
 
+TEST(GameMovementTest, ATransformedHeroUsesTheBaseLibrarySkeletonWhenAttackingOnArrival)
+{
+    MovingHero tested;
+    auto& runtime = tested.world.Runtime();
+    auto& hero = tested.world.Actors()[0];
+    hero.type = TransformedModel;
+    runtime.movement.mouseUpdateTime = 6;
+    tested.world.ActionSpeeds().Set(2, 3.25f);
+    auto& target = tested.world.Actors()[13];
+    target.alive = true;
+    target.type = 0x10;
+    target.position = {18450.0f, 11550.0f, 0.0f};
+    runtime.movement.attackTarget = 13;
+    auto context = tested.Context();
+    context.playerSkeleton = nullptr;
+    context.input.leftPressed = true;
+    context.input.leftDown = true;
+    context.pickTarget = []() -> Client::Core::Expected<std::optional<Client::GameLogic::PathCell>, std::string>
+    { return std::optional{Client::GameLogic::PathCell{183, 115}}; };
+    context.sendWalk = [](std::span<const Client::Protocol::Movement::Cell>, Client::Protocol::Movement::Cell,
+                          float) -> Client::Core::Expected<void, std::string> { return {}; };
+    bool sentAttack = false;
+    context.sendAttack = [&](std::uint16_t, std::uint8_t, std::uint8_t) -> Client::Core::Expected<void, std::string>
+    {
+        sentAttack = true;
+        return {};
+    };
+
+    auto result = StepHeroMovement(context);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    ASSERT_EQ(hero.movement, 1);
+    hero.movementType = 3;
+    context.input.leftPressed = false;
+    context.input.leftDown = false;
+    for (int frame = 0; frame < 80 && hero.movement != 0; ++frame)
+    {
+        result = StepHeroMovement(context);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+    }
+
+    ASSERT_TRUE(sentAttack);
+    EXPECT_EQ(hero.animation.action, 3);
+    EXPECT_EQ(hero.attackTarget, 13);
+    EXPECT_EQ(hero.movement, 0);
+}
+
 TEST(GameMovementTest, AWalkingHeroMovesByTwelveAndKeepsTheLogicalCellAhead)
 {
     MovingHero tested;

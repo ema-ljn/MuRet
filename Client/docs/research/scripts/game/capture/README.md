@@ -37,6 +37,11 @@ con cuatro puntos de hardware, un spec pasivo para s31mem y analizadores de cons
 No ejecuta el original ni requiere Python en XP. Ambos modos se ejercitaron con CDB 6.12 x86
 en XP SP3; el handoff conserva resultados y pendientes. CAPTURED no significa fidelidad verificada.
 
+Los [auxiliares de interacción Linux/XP](interactions/README.md) conservan los sources propios
+de teclado/mouse y control CDB, junto con adaptadores Python de los comandos usados. Sirven para
+preparar pruebas funcionales supervisadas; no confunden entrega de eventos con un resultado PASS.
+Las dos repeticiones reales en MuRet Linux están registradas en el [handoff, §8](RUNBOOK-qc184-vm.md#8-repetición-en-muret-linux-2026-11-16).
+
 ## Compilar y ejecutar
 
 Los tres lectores usan C++20 y dueños RAII para handles y salida. Los cierres normales se

@@ -5492,6 +5492,9 @@ devuelve en `eax` no lo lee nadie: `0x512a30` lo pisa en `0x512efa`. En orden:
    1 en 57 registros (los grupos 0 a 3, como `Kris`, y 3 del 13), 2 en 20 (el grupo 4 y 3 del 13), 3
    en 12 (el grupo 5, `Rune Blade` y 2 del 13) y 4 en 161 (los grupos 6 a 11 y 2 del 13); en los
    demás, 0. Con el tipo en −1 y la durabilidad distinta de 0 lee fuera de la tabla (Q-C184).
+   En MuRet, sólo para IDffff con valor 0, el consumidor resuelve la contribución nula: las cuatro
+   ramas sumarían 0 y las otras no sumarían. No necesita inventar el selector leído antes de la tabla;
+   `ItemStatBonusOf` conserva el error al pedir ese selector real.
 5. `0x40da20` sobre `[0x6eed3c]` cinco veces (`0x550dc2..0x550e12`; 151 bytes): `+0x2a` con `0x8c`,
    `+0x2c` con `0x8d`, `+0x30` con `0x8e`, `+0x2e` con `0x8f` y `+0x36` con `0x90`. Suma al WORD,
    una sola vez cada uno, los valores de la lista que dejó `0x40e1b0` (de a 3 bytes desde `+0x934c`,
@@ -5578,6 +5581,10 @@ durabilidad distinta de 0, `0x40dc50` y, por la tabla de saltos de `0x40e194`, s
 copia de la fuerza (1), la agilidad (2), la energía (3) o la vitalidad (4). Después, `0x40da20` con
 `0x8c`, `0x8d`, `0x8e` y `0x8f` sobre esas copias (`0x40e14c..0x40e17c`), que deja marcadas esas
 opciones: por eso el paso 2 de `0x550d10` borra las marcas.
+Con IDffff y valor `((flags1c >> 2) & 3)` en 0, `0x40e038..0x40e075` también deja idénticas las cuatro
+copias para los 256 selectores posibles. MuRet resuelve esa contribución conservando el acceso y
+cierre de cada lugar: no cambia los doce cierres ni sus `rand()`. Con valor distinto de 0 sigue
+necesitando el selector, todavía pendiente en P-C38(a).
 
 `0x40da20` (151 bytes) es el código de `0x40d690` ([abajo](#los-ocho-helpers-de-los-stats-propios)):
 recorre las `+0x9348 + +0x9349` opciones de la lista; las que valen `selector − 0x8c` y no están
@@ -5692,7 +5699,11 @@ en `0x54f9b0`; 0, 1, 5, 10 y 11 en `0x54fe10`. Qué son esos globales no está l
 6. `0x550990`: `+0x62` es A/10 en la clase 2, A/3 en la 1, A/4 en la 0, A/7 en la 4 y A/5 en las
    otras. Suma, en 32 bits, los lugares 1 a 7 con durabilidad: `0x54e680` (`D+0x12` más sus `0x53`, o
    0 con el tipo −1) reducido, las alas con 0 y 0; el `+0x2d` lo lee también con el tipo −1
-   (Q-C192). Con `[0x743a17c]` distinto de 0 (lo deja `0x505820`), `w + _ftol(w · f)` con f 0.05f,
+   (Q-C192). Para IDffff, `0x54e68c` pone AX en 0 y conserva el alto de EAX; ese residuo sólo aporta
+   múltiplos de 65.536. `0x550b17..0x550b1b` publica DX, así que la contribución al WORD es 0 con
+   cualquiera de los factores finitos de `0x54ee00`. MuRet resuelve esa contribución sin consultar
+   el byte anterior a la tabla. Esto conserva el estado portable, sin reproducir la lectura inválida
+   ni las banderas FP. Con `[0x743a17c]` distinto de 0 (lo deja `0x505820`), `w + _ftol(w · f)` con f 0.05f,
    0.1f, 0.15f o 0.2f para `[0x743a178]` de 10 a 13 y 0 para los otros. Después `0x40d690` con
    `0x96`, `0x40d7f0` con A (`0xa6`) y con V (`0xa7`) y, con un tipo de `0xc00` a `0xdff` en el lugar
    1, `0x40d730` con `0xa2`; al final, las `0x96` del lugar 8 y, si el 7 es Cape of Lord, las suyas.

@@ -53,6 +53,8 @@ struct SharedModelPlacement
 {
     float scale = 0.0f;
     glm::vec3 origin{};
+    // BYTE +0xa0: publicado antes del cuerpo; la acción del actor puede cambiar después.
+    std::uint8_t action = 0;
 };
 
 // 0x6b88d4 (0,01f): con menos alpha, 0x6001b0 sale sin copiar nada al modelo.

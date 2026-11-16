@@ -85,9 +85,9 @@ libre. Luego continúa y siempre solicita el sonido `0x86`. El oráculo de integ
 constructor para probar el cableado y la intercalación; sus cálculos internos tienen sus propios
 tests y esa reutilización no se presenta como una segunda validación independiente del constructor.
 
-## Verificación de la implementación
+## Verificación previa (PR #342)
 
-La compilación completa de todos los targets terminó correctamente. La corrida final del 2026-11-16
+La compilación completa de todos los targets del PR #342 terminó correctamente. Su corrida del 2026-11-16
 aprobó **7.335/7.335 tests**, **cero fallos y cero saltos**, en 236,06 segundos: incluye los **106 GL**
 y los **59 casos del manifest de referencias recuperadas**, todos presentes en el XML de CTest.
 Se usaron los assets reales, el corpus privado recuperado y una fuente configurada; GL era obligatorio.
@@ -167,3 +167,97 @@ Se usaron exports ASM/pseudocódigo del build identificado, CMake/GoogleTest, cl
 clang-tidy 18.1.8, las CLIs oficiales de VMware y Context7 para el contrato de vida de fixtures de
 GoogleTest. REA identificó el PE, pero su análisis no terminó dentro del timeout; no se le atribuye
 la revisión de las funciones. Su sesión se cerró y se continuó con los exports verificados.
+
+## Estelas de ataque: auditoría del 2026-11-16
+
+El ataque reportado por Emanuel (acción `0x23`, arma visible `0x222`) atravesaba un corte explícito
+`4fd236` pese a que el creador, paso y dibujo de las cintas ya existían. Los tests por clase
+configuraban el equipo propio, pero conservaban vacías las manos visibles del actor; otro test
+llamaba directamente al paso de ataque. Así omitían el productor del cuerpo `4fcee0`.
+
+La nueva regresión `AttackStepTest.AVisibleMeleeWeaponSurvivesTheFullAttackBodyPipeline` usa
+mano visible `0x222`, nivel 13 y hueso 33 y pasa por `StepCharacters`: con los tres archivos originales de
+`main@015c1746` falla exactamente en `4fd236`; con el port atraviesa cuatro pasos y conserva la cinta.
+El fixture tiene todos sus huesos/acciones válidos y observa la saturación nativa en 29 puntos.
+
+### Contratos reconstruidos
+
+| Productor | Contrato que ahora observa la implementación |
+| --- | --- |
+| `4fcee0` | gate de frame 3/NaN y excepción `0x8d`; mano izquierda `0x25/0x26`; modelo WORD firmado; prioridades por acción, arma y tipo; color; una o diez muestras; continuación de helpers |
+| `4eb860`, flags 0,1 | raíz con `OriginalAngleMatrix`; nueve floats de base escalados; posición sin escalar; concatenación mundial; dummy y scratch persistentes |
+| `4ec200` y `4f9580` | acción compartida BYTE `+0xa0`, velocidad de esa acción y factores de la acción del actor; publicaciones `+0xa4/+0xa8` incluso al terminar; congelado/sin acciones/una key no publican avance |
+| `441260` | `0x1a7`, acciones 3/4: huesos 23/34, keys 23/34; dos llamadas por cada una de diez poses |
+| `42fa40` | `0x1b3`, acción 3: hueso 25/key 25; `0x1b1`, acción 4: huesos 80/82, keys 80/84, intercalados |
+| `432bd0` | sorteo incondicional; cintas `0x1ab/0x1ae/0x1af/0x1b1/0x1b3/0x1b4`; `0x1b1` y `0x1b3` agregan una segunda tanda a los registros del helper anterior |
+| `426d90` | `0x1b8`, acciones 3/4 hasta 5,06 inclusive; `0x1b9`, acciones 3/4 con tres segmentos; `0x1ba`, acción 3 con uno; diez poses, colores/keys y orden originales |
+
+Las diez muestras acumulan `float(frame-speed)` y `float(speed*0.1f)` con un store float por
+incremento. No se sustituyen por `first+i*step`. Una tabla de cintas llena no evita posar ni la
+continuación; un registro vivo del dueño/key sigue recibiendo muestras sin reiniciar su vida.
+
+El modelo es `*[0x5769ad8] + tipo*0xe0`: el global contiene un puntero al arreglo. Su acción,
+escala y origen son compartidos por tipo y pueden pertenecer a otro actor cuando se leen fuera de
+la llamada. El avance no escribe `+0xa0`; la pose sí lo limita a 0 si pasa el número de acciones.
+
+Dos fallos adicionales quedaron expuestos por la revisión: el segundo avance del asedio leía la
+velocidad de la nueva acción del actor, en vez de la retenida en el modelo (caso discriminante:
+frame 0,25 frente a 2,0); y un efecto `0x147` consultaba erróneamente el pool de partículas. Los tests cruzan
+ambos pools: `0x145` va antes de posar, `0x147` después de diez muestras. La cinta no elimina sus fronteras.
+
+### Observación nueva en XP y límites
+
+Se copió el archivo del guest y se confirmó el SHA c32 indicado al inicio. Los exports de
+`4fcee0`, `4eb860`, `4ec200`, `52e470` y `52e3b0` coinciden en **3.485 bytes, cero diferencias**.
+El lector nuevo valida además dos firmas de 16 bytes en el proceso vivo; eso no sustituye el hash
+completo del archivo ni verifica todos los bytes del código cargado.
+
+Un clic sostenido normal en Lorencia produjo 500 muestras completas, sin errores de lectura:
+414 en acción `0x03`, 10 en `0x24`, 1 en `0x23` y 75 caminando (0f). Hubo 52 muestras con una cinta viva del héroe:
+tipo 0, key 0 y RGB `(1;0,6;0,2)` en todas. Con el arma `0x222`, nivel 13, hueso 33 y escala 0,9, las distancias
+entre sus extremos fueron de 89,999685 a 90,000466, consistentes con el segmento de 100 escalado.
+El cliente siguió en el mapa. No se cuentan estas lecturas como diez llamadas observadas al creador:
+el pool se muestrea después de otros pasos, con count entre 2 y 28 y envejecimiento ya aplicado.
+
+Las muestras son secuenciales, **no atómicas**. Que coincidan los guards antes/después no demuestra
+que no hubo un paso intermedio; tampoco se interpreta el modelo compartido como el estado exclusivo
+del héroe. No hubo breakpoints, suspensión, escritura de memoria ni cambios de protección.
+El lector, las fuentes de interacción y el uso están en [capturas](scripts/game/capture/README.md).
+
+En MuRet se llegó al mismo mapa con el caballero equipado. Emanuel realizó el combate con entrada
+física y la captura mostró bajas y avisos de 21.000 y 27.000 de experiencia. Después informó que
+un mob había matado al personaje: la captura siguiente lo mostró reaparecido en Lorencia, con el
+proceso activo y sin `4fd236` ni otro error de escena. No se capturó el frame exacto de la muerte.
+Esto acredita continuidad manual en esa secuencia de combate/recompensa/reaparición; no acredita
+un D7 capturado ni la equivalencia numérica de cada punto de cinta entre ambos procesos. La
+comparación estricta y las ramas especiales no ejercitadas siguen abiertas. Los primeros intentos
+de automatización que sólo caminaron no se convierten en PASS de combate.
+
+Los hashes, conteos, fuentes y límites se versionan; logs, imágenes y lecturas crudas permanecen
+fuera de Git. El inventario ampliado y los cortes restantes están en la
+[pasada funcional](../../../docs/superpowers/plans/2026-11-16-h3-auditoria-funcional-y-estelas.md).
+
+Hash SHA-256 de la serie original (864.819 bytes):
+`b6073c722158335f0daa174eb38b39780ef8096b971175edff93cf5ca49f7884`.
+El hash identifica el artefacto privado; no lo convierte en una captura atómica ni sustituye sus
+precondiciones. La observación manual de MuRet usa el candidato de binario
+`274cc5a04045c99af7fab6501f83b6ed00df00d02dbed9e5e0912cff52e06d66`.
+
+### Verificación de esta reparación
+
+La cabeza de esta reparación aprobó **7.365/7.365 tests**, cero fallos y cero saltos, en
+**240,06 segundos** de CTest. El XML contiene los **106 GL** y los **59 casos del manifest de
+referencias recuperadas**. Se configuraron assets/corpus reales, una fuente y GL obligatorio.
+La compilación completa terminó sin PCH y con warnings como errores. No se atribuye este
+resultado al CI de Linux/Windows.
+
+Pasaron clang-format 18 sobre los 31 fuentes/headers C/C++ modificados y misc-include-cleaner 18
+sobre los 29 de aplicación/tests, incluidos los headers. Los dos auxiliares XP se recompilaron
+con MinGW-w64 y warnings como errores; sus PE32 GUI tienen subsistema 5.01 e imports
+KERNEL32/MSVCRT/USER32. Los dos fuentes Python modificados pasaron el análisis sintáctico.
+La revisión independiente final no encontró nuevos P0/P1/P2 reproducibles; fue estática.
+
+SHA-256 del XML privado de esta corrida:
+`06ff2406e258a52f3d68d2f05512e446b2719e4e1c89b273fbf6eb0ed055dbea`.
+Estas verificaciones cubren la reparación y sus regresiones; las fronteras funcionales de H3
+y el contraste dinámico pendiente siguen descritos arriba y en el plan.

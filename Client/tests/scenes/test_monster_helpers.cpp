@@ -1,5 +1,8 @@
 #include "Scenes/MonsterHelpers.h"
 
+#include "Scenes/GameDrawTail.h"
+#include <algorithm>
+
 #include "Core/Expected.h"
 #include "Data/Models/Model.h"
 #include "Data/Terrain/TerrainHeights.h"
@@ -17,6 +20,7 @@
 #include "Scenes/FaunaModels.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "Scenes/WorldMap.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
 #include "World/TerrainDecal.h"
@@ -69,6 +73,20 @@ public:
         m_skeleton.actions.assign(8, ActionInfo{.repeats = true, .speed = 0.5f, .keyCount = 10});
     }
 
+    void ResizeBones(std::size_t count)
+    {
+        using namespace Client::Render::Models;
+        SkeletonBone bone;
+        bone.actions.assign(8, std::vector<BoneKey>(10));
+        m_skeleton.bones.resize(count, bone);
+    }
+
+    void SetBoneActionPosition(std::size_t bone, std::size_t action, const glm::vec3& position)
+    {
+        for (auto& key : m_skeleton.bones.at(bone).actions.at(action))
+            key.position = position;
+    }
+
     [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t) const override
     {
         return nullptr;
@@ -112,6 +130,7 @@ protected:
         actor.bodyPose.assign(120, Client::Render::Models::BoneTransform(1.0f));
         for (std::size_t bone = 0; bone < actor.bodyPose.size(); ++bone)
             actor.bodyPose[bone][3] = glm::vec3(0.0f, 0.0f, static_cast<float>(bone));
+        m_world->PlaceModel(actor);
         return actor;
     }
 
@@ -154,6 +173,18 @@ protected:
     {
         for (auto& particle : m_particles->All())
             particle.alive = true;
+    }
+
+    void FillModelEffects()
+    {
+        for (auto& effect : m_world->Map().effects.Effects())
+            effect.alive = true;
+    }
+
+    void ClearModelEffects()
+    {
+        for (auto& effect : m_world->Map().effects.Effects())
+            effect.alive = false;
     }
 
     void ClearParticles()
@@ -1289,36 +1320,45 @@ TEST_F(MonsterHelpersTest, The1b0SwingSparksInEveryPose)
     EXPECT_EQ(full.State(), AfterDraws(1, 21).State());
 }
 
-// Las estelas cortan después de su primera pose, y el 0x1ae en la 4 entre 4,5 y 5 antes de posar. Con lugar en la
-// tabla, la 0x640 del 0x1ab y la 0x5f2/0x1b del 0x1ae en la 8 cortan; llena, no crean nada: el 0x1ab sigue a su estela
-// y el 0x1ae sale. En Lorencia y en Devias da lo mismo.
-TEST_F(MonsterHelpersTest, TheOtherSwingsCutAfterTheirFirstPose)
+// 0x432bd0: las estelas publican diez poses y agregan las muestras a las cintas del GameDrawTail.
+TEST_F(MonsterHelpersTest, OtherSwingsEmitTheirRibbonSamplesAndKeepGenuineCuts)
 {
     Name("Left_Hand", 17);
+    m_models.ResizeBones(90);
     struct Case
     {
         std::uint16_t type;
         std::uint8_t action;
         float frame;
         std::string_view address;
-        bool posed;
-        bool full;
+        bool particlePoolFull;
+        std::size_t ribbons;
+        bool effectPoolFull = false;
     };
     for (const Case& value :
-         {Case{0x1ab, 3, 4.0f, "0x433056", true, false}, Case{0x1ab, 3, 4.0f, "0x433086", true, true},
-          Case{0x1ab, 3, 4.5f, "0x433086", true, false}, Case{0x1ae, 8, 4.0f, "0x433248", false, false},
-          Case{0x1ae, 8, 4.0f, "", false, true}, Case{0x1ae, 4, 4.7f, "0x433339", false, false},
-          Case{0x1ae, 3, 4.7f, "0x433410", true, false}, Case{0x1af, 4, 3.0f, "0x433557", true, false},
-          Case{0x1b1, 4, 3.0f, "0x4337cf", true, false}, Case{0x1b3, 3, 3.0f, "0x43397d", true, false},
-          Case{0x1b4, 3, 3.0f, "0x432ea3", true, false}})
+         {Case{0x1ab, 3, 4.0f, "0x433056", false, 0}, Case{0x1ab, 3, 4.0f, "", true, 1},
+          Case{0x1ab, 3, 4.5f, "", false, 1}, Case{0x1ae, 8, 4.0f, "0x433248", false, 0},
+          Case{0x1ae, 8, 4.0f, "", true, 0}, Case{0x1ae, 4, 4.7f, "0x433339", false, 0},
+          Case{0x1ae, 3, 4.7f, "", false, 1}, Case{0x1af, 4, 3.0f, "", false, 1},
+          Case{0x1af, 4, 4.7f, "0x43365e", false, 1}, Case{0x1af, 4, 4.7f, "", false, 1, true},
+          Case{0x1b1, 4, 3.0f, "", false, 2}, Case{0x1b3, 3, 3.0f, "", false, 1}, Case{0x1b4, 3, 3.0f, "", false, 2}})
     {
-        SCOPED_TRACE(testing::Message() << value.address << (value.full ? " llena" : ""));
+        SCOPED_TRACE(testing::Message() << value.address << (value.particlePoolFull ? " llena" : ""));
         ClearParticles();
-        if (value.full)
+        ClearModelEffects();
+        m_world->DrawTail().ribbons = {};
+        if (value.particlePoolFull)
             FillParticles();
+        if (value.effectPoolFull)
+            FillModelEffects();
         m_world->PoseCarry() = {};
         m_world->Runtime().map = value.type % 2 == 0 ? Lorencia : Devias;
         ActorState& actor = Monster(value.type, value.action, value.frame);
+        actor.scale = 2.0f;
+        actor.hands[0].bone = 7;
+        if (value.action < 8)
+            m_models.SetBoneActionPosition(7, value.action, {0.0f, 0.0f, 7.0f});
+        m_world->PlaceModel(actor);
         CrtRandom random(1);
         const auto stepped =
             Client::Scenes::StepTheSwingsOf1abTo1b4(actor, Slot, *m_world, random, m_particles.get(), 0.0f);
@@ -1327,7 +1367,161 @@ TEST_F(MonsterHelpersTest, TheOtherSwingsCutAfterTheirFirstPose)
         else
             EXPECT_TRUE(CutAt(stepped, value.address)) << (stepped.HasValue() ? "" : stepped.Error());
         EXPECT_EQ(random.State(), AfterDraws(1, 1).State());
-        EXPECT_EQ(m_world->PoseCarry().models.count(value.type), value.posed ? 1u : 0u);
+        const bool posed = !(value.type == 0x1ae && value.action == 8) && value.address != "0x433339";
+        EXPECT_EQ(m_world->PoseCarry().models.count(value.type), posed ? 1u : 0u);
+        std::vector<const Client::Scenes::RibbonState*> ribbons;
+        for (const auto& ribbon : m_world->DrawTail().ribbons)
+        {
+            if (ribbon.alive && ribbon.ownerContext == &actor)
+                ribbons.push_back(&ribbon);
+        }
+        EXPECT_EQ(ribbons.size(), value.ribbons);
+        for (const auto* ribbon : ribbons)
+        {
+            EXPECT_EQ(ribbon->count, 10);
+            EXPECT_EQ(ribbon->type, 3);
+            EXPECT_EQ(ribbon->ownerEquipment, &actor.level);
+            EXPECT_EQ(ribbon->ownerContext, &actor);
+            EXPECT_EQ(ribbon->life, 15);
+            EXPECT_EQ(ribbon->light, value.type == 0x1ab   ? glm::vec3(0.0f, 0.0f, 5.0f)
+                                     : value.type == 0x1af ? glm::vec3(0.2f, 1.0f, 0.4f)
+                                                           : glm::vec3(1.0f));
+        }
+        if (!ribbons.empty())
+        {
+            const auto& first = *ribbons.front();
+            const auto transformOffset = [this](std::size_t bone, const glm::vec3& offset)
+            {
+                const auto& matrix = m_world->PoseCarry().bones[bone];
+                return Client::Render::Models::OriginalVectorTransform(
+                    offset, Client::Render::Models::OriginalMatrixOf(matrix));
+            };
+            std::size_t firstBone = 0;
+            std::size_t secondBone = 0;
+            glm::vec3 firstOffset{};
+            glm::vec3 secondOffset{};
+            if (value.type == 0x1ab || value.type == 0x1ae)
+            {
+                firstBone = secondBone = 7;
+                firstOffset = {0.0f, 0.0f, -60.0f};
+                secondOffset = {0.0f, 0.0f, -150.0f};
+            }
+            else if (value.type == 0x1af)
+            {
+                firstBone = secondBone = 27;
+                firstOffset = {0.0f, 250.0f, 0.0f};
+            }
+            else if (value.type == 0x1b1)
+            {
+                firstBone = secondBone = 80;
+                firstOffset = {0.0f, 0.0f, -90.0f};
+            }
+            else if (value.type == 0x1b3)
+            {
+                firstBone = secondBone = 25;
+                firstOffset = {0.0f, 0.0f, 120.0f};
+            }
+            else
+            {
+                firstBone = 12;
+                secondBone = 16;
+                firstOffset = {20.0f, 0.0f, 0.0f};
+                secondOffset = {60.0f, 0.0f, 0.0f};
+            }
+            EXPECT_EQ(first.first[0], transformOffset(firstBone, firstOffset));
+            EXPECT_EQ(first.second[0], transformOffset(secondBone, secondOffset));
+            EXPECT_EQ(first.key, value.type == 0x1b3 ? 25 : value.type == 0x1b4 ? 23 : 80);
+        }
+        if (value.ribbons > 0)
+        {
+            const auto& transform = m_world->PoseCarry().models.at(value.type);
+            EXPECT_EQ(transform.position, Origin);
+            EXPECT_FLOAT_EQ(transform.scale, 2.0f);
+            float lastFrame = value.frame - 0.5f;
+            for (int sample = 0; sample < 9; ++sample)
+                lastFrame = static_cast<float>(static_cast<double>(lastFrame) + static_cast<double>(0.05f));
+            EXPECT_EQ(m_world->FaunaResources().PoseKey(value.type), static_cast<std::int16_t>(lastFrame));
+        }
     }
+}
+
+TEST_F(MonsterHelpersTest, SwingRibbonPoolFullStillPosesAndMatchingOwnersAppend)
+{
+    m_models.ResizeBones(90);
+    ActorState& actor = Monster(0x1b1, 4, 3.0f);
+    m_world->DrawTail().ribbons.fill(Client::Scenes::RibbonState{.alive = true, .ownerContext = m_world.get()});
+    CrtRandom full(1);
+    const auto fullPoolStep =
+        Client::Scenes::StepTheSwingsOf1abTo1b4(actor, Slot, *m_world, full, m_particles.get(), 0.0f);
+    ASSERT_TRUE(fullPoolStep.HasValue()) << fullPoolStep.Error();
+    EXPECT_EQ(full.State(), AfterDraws(1, 1).State());
+    EXPECT_EQ(m_world->PoseCarry().models.at(actor.type).position, Origin);
+    EXPECT_FLOAT_EQ(m_world->PoseCarry().models.at(actor.type).scale, actor.scale);
+    EXPECT_EQ(m_world->FaunaResources().PoseKey(actor.type), 2);
+    EXPECT_TRUE(std::ranges::all_of(m_world->DrawTail().ribbons,
+                                    [](const Client::Scenes::RibbonState& ribbon) { return ribbon.count == 0; }));
+
+    m_world->DrawTail().ribbons = {};
+    CrtRandom append(1);
+    ASSERT_TRUE(
+        Client::Scenes::StepTheSwingsOf1abTo1b4(actor, Slot, *m_world, append, m_particles.get(), 0.0f).HasValue());
+    ASSERT_TRUE(
+        Client::Scenes::StepTheSwingsOf1abTo1b4(actor, Slot, *m_world, append, m_particles.get(), 0.0f).HasValue());
+    EXPECT_EQ(append.State(), AfterDraws(1, 2).State());
+    std::vector<const Client::Scenes::RibbonState*> own;
+    for (const auto& ribbon : m_world->DrawTail().ribbons)
+    {
+        if (ribbon.alive && ribbon.ownerContext == &actor)
+            own.push_back(&ribbon);
+    }
+    ASSERT_EQ(own.size(), 2u);
+    EXPECT_EQ(own[0]->count, 20);
+    EXPECT_EQ(own[1]->count, 20);
+    EXPECT_EQ(own[0]->key, 80);
+    EXPECT_EQ(own[1]->key, 84);
+}
+
+TEST_F(MonsterHelpersTest, SwingEffectsCutOnlyWhenTheModelEffectPoolHasRoom)
+{
+    m_models.ResizeBones(90);
+    ActorState& type1af = Monster(0x1af, 4, 4.7f);
+    FillParticles();
+    CrtRandom firstRandom(1);
+    const auto cutAfterRibbon =
+        Client::Scenes::StepTheSwingsOf1abTo1b4(type1af, Slot, *m_world, firstRandom, m_particles.get(), 0.0f);
+    EXPECT_TRUE(CutAt(cutAfterRibbon, "0x43365e")) << (cutAfterRibbon.HasValue() ? "" : cutAfterRibbon.Error());
+    EXPECT_EQ(firstRandom.State(), AfterDraws(1, 1).State());
+    ASSERT_EQ(m_world->DrawTail().ribbons[0].count, 10);
+
+    ClearParticles();
+    m_world->DrawTail().ribbons = {};
+    m_world->PoseCarry() = {};
+    FillModelEffects();
+    CrtRandom fullEffectsRandom(1);
+    const auto fullEffects =
+        Client::Scenes::StepTheSwingsOf1abTo1b4(type1af, Slot, *m_world, fullEffectsRandom, m_particles.get(), 0.0f);
+    ASSERT_TRUE(fullEffects.HasValue()) << fullEffects.Error();
+    EXPECT_EQ(fullEffectsRandom.State(), AfterDraws(1, 1).State());
+    ASSERT_EQ(m_world->DrawTail().ribbons[0].count, 10);
+
+    ClearModelEffects();
+    m_world->DrawTail().ribbons = {};
+    m_world->PoseCarry() = {};
+    ActorState& type1ae = Monster(0x1ae, 4, 4.7f);
+    const auto beforePose =
+        Client::Scenes::StepTheSwingsOf1abTo1b4(type1ae, Slot, *m_world, fullEffectsRandom, m_particles.get(), 0.0f);
+    EXPECT_TRUE(CutAt(beforePose, "0x433339")) << (beforePose.HasValue() ? "" : beforePose.Error());
+    EXPECT_FALSE(m_world->DrawTail().ribbons[0].alive);
+    EXPECT_EQ(m_world->PoseCarry().models.count(type1ae.type), 0u);
+
+    FillModelEffects();
+    CrtRandom noEffect(1);
+    const auto fullEffectPool =
+        Client::Scenes::StepTheSwingsOf1abTo1b4(type1ae, Slot, *m_world, noEffect, m_particles.get(), 0.0f);
+    ASSERT_TRUE(fullEffectPool.HasValue()) << fullEffectPool.Error();
+    EXPECT_EQ(noEffect.State(), AfterDraws(1, 1).State());
+    EXPECT_TRUE(m_world->DrawTail().ribbons[0].alive);
+    EXPECT_EQ(m_world->DrawTail().ribbons[0].count, 10);
+    EXPECT_EQ(m_world->PoseCarry().models.count(type1ae.type), 1u);
 }
 } // namespace

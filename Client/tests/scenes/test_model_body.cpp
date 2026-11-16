@@ -29,11 +29,8 @@
 
 #include <array>
 #include <bit>
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
-#include <ios>
-#include <limits>
 #include <memory>
 #include <optional>
 #include <span>
@@ -272,82 +269,8 @@ TEST(ModelBodyTest, TheHeadOfAnotherModelLooksAtItsTarget)
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(Seed, expected.Next() % 32 == 0 ? 3 : 1).State());
 }
 
-// Desde el frame 3, 0x4fcee0 con otro modelo: la estela del 0x194 en la 3, del 0x195 y el 0x197 en la 3 y la 4, de
-// +0x376 en 0x47, 0x4a o 0x12d y de una espada en la derecha; y los helpers por tipo.
-TEST(ModelBodyTest, TheTrailOfTheOtherModelsCutsByType)
-{
-    using Client::Scenes::ModelTrailCutOf;
-    ActorState sword = Monster(0x160, 3);
-    sword.hands[0].model = 0x212;
-    ASSERT_TRUE(ModelTrailCutOf(sword).has_value());
-    EXPECT_EQ(ModelTrailCutOf(sword)->address, 0x4fd233u);
-    sword.animation.action = 2;
-    EXPECT_FALSE(ModelTrailCutOf(sword).has_value());
-    sword.hands[0].model = 0x412;
-    sword.animation.action = 4;
-    EXPECT_FALSE(ModelTrailCutOf(sword).has_value());
-    EXPECT_EQ(ModelTrailCutOf(Monster(0x194, 3))->address, 0x4fd233u);
-    EXPECT_FALSE(ModelTrailCutOf(Monster(0x194, 4)).has_value());
-    EXPECT_EQ(ModelTrailCutOf(Monster(0x197, 4))->address, 0x4fd233u);
-    ActorState knight = Monster(0x160, 4);
-    knight.word376 = 0x12d;
-    EXPECT_EQ(ModelTrailCutOf(knight)->address, 0x4fd233u);
-    // 0x432bd0 está portado: el 0x1ab no corta acá (StepTheSwingsOf1abTo1b4).
-    EXPECT_FALSE(ModelTrailCutOf(Monster(0x1ab, 3)).has_value());
-    EXPECT_FALSE(ModelTrailCutOf(Monster(0x1ac, 0)).has_value());
-}
-
-// 0x4fd5c1..0x4fd5df: 0x441260, 0x42fa40 y 0x426d90 solo dejan su estela (0x52e470, CL11) en sus acciones; quietos (la
-// 0) o en otra, no hacen nada.
-TEST(ModelBodyTest, TheTrailHelpersCutOnlyInTheirActions)
-{
-    using Client::Scenes::ModelTrailCutOf;
-    struct Case
-    {
-        std::uint16_t type;
-        std::uint8_t action;
-        std::optional<std::uint32_t> address;
-    };
-    constexpr std::optional<std::uint32_t> None;
-    // 0x44127c: el 0x1a7 en la 3 o la 4. 0x42fa64 y 0x42fb61: el 0x1b3 en la 3 y el 0x1b1 en la 4. 0x426db9 y
-    // 0x426ebc: el 0x1ba en la 3 y el 0x1b9 en la 3 o la 4.
-    const Case cases[]{
-        {0x1a7, 0, None},     {0x1a7, 2, None},     {0x1a7, 3, 0x441260}, {0x1a7, 4, 0x441260}, {0x1b3, 0, None},
-        {0x1b3, 3, 0x42fa40}, {0x1b3, 4, None},     {0x1b1, 0, None},     {0x1b1, 3, None},     {0x1b1, 4, 0x42fa40},
-        {0x1b2, 3, None},     {0x1ba, 0, None},     {0x1ba, 3, 0x426d90}, {0x1ba, 4, None},     {0x1b9, 0, None},
-        {0x1b9, 3, 0x426d90}, {0x1b9, 4, 0x426d90}, {0x1b9, 6, None},     {0x1b8, 0, None},     {0x1b8, 3, 0x426d90},
-    };
-    for (const Case& entry : cases)
-    {
-        SCOPED_TRACE(testing::Message() << std::hex << entry.type << " " << static_cast<int>(entry.action));
-        const auto cut = ModelTrailCutOf(Monster(entry.type, entry.action));
-        ASSERT_EQ(cut.has_value(), entry.address.has_value());
-        if (!cut.has_value())
-            continue;
-        EXPECT_EQ(cut->address, *entry.address);
-        // 0x441260 y 0x42fa40 van antes del rand() de 0x432bd0; 0x426d90, después.
-        EXPECT_EQ(cut->beforeTheRandom, *entry.address != 0x426d90u);
-    }
-}
-
-// 0x427057..0x427068: el 0x1b8 en la 3 o la 4 deja estela con el frame (+0x114) en 5,06f (0x6b8a30) o menos, o NaN.
-TEST(ModelBodyTest, TheTrailOfThe1b8EndsAfterItsFifthFrame)
-{
-    using Client::Scenes::ModelTrailCutOf;
-    const float last = std::bit_cast<float>(0x40a1eb85u);
-    for (const std::uint8_t action : {std::uint8_t{3}, std::uint8_t{4}})
-    {
-        SCOPED_TRACE(static_cast<int>(action));
-        ActorState actor = Monster(0x1b8, action);
-        actor.animation.frame = last;
-        ASSERT_TRUE(ModelTrailCutOf(actor).has_value());
-        EXPECT_EQ(ModelTrailCutOf(actor)->address, 0x426d90u);
-        actor.animation.frame = std::nextafter(last, 10.0f);
-        EXPECT_FALSE(ModelTrailCutOf(actor).has_value());
-        actor.animation.frame = std::numeric_limits<float>::quiet_NaN();
-        EXPECT_TRUE(ModelTrailCutOf(actor).has_value());
-    }
-}
+// Las antiguas expectativas de corte de 4fcee0 se sustituyeron por geometría y continuidad
+// en test_weapon_trail, test_monster_ribbon_trails y test_weapon_trail_pipeline.
 
 // Un Monster02 (el modelo 0x153) cargado por 0x612d90 en WorldState::FaunaResources da su paso fuera del pool: avanza
 // con la velocidad de su acción (0,2 la 1, 0x612e5a..0x612e9f) y, al terminar la 3, vuelve a la 0 (0x4fcbb0), que
@@ -654,34 +577,39 @@ private:
     std::uint16_t m_model;
 };
 
-// 0x4fce7a..0x4fced1: el 0x1f5 mira la key que dejó la última pose en su modelo (+0xa8, FaunaModels::PoseKey): con la
+// 0x4fce7a..0x4fced1: el 0x1f5 mira +a8 después de 4ec200, que acaba de publicarlo al avanzar; con la
 // última de su acción, rand() % 32 en 0 le pone la acción 1 y si no la 0 (0x4ea030); con otra, nada. Después sigue
 // hasta el caso de su modelo en 0x505de0 (0x508093): en la 0, su luz y sus joints; en las otras, nada.
-TEST_F(MonsterStep, TheTraderPicksItsNextActionWhenItsModelEndedTheLastPose)
+TEST_F(MonsterStep, TheTraderUsesTheKeyPublishedByTheAdvanceBeforeChoosingItsNextAction)
 {
     TraderLibrary trader(Model());
     m_world->FaunaResources().Bind(&trader);
     m_actor.type = 0x1f5;
     const std::int16_t last = static_cast<std::int16_t>(Model().actions[2].keyCount - 1);
-    const auto stepFrom = [this](std::int16_t key, std::uint32_t seed)
+    const auto stepFrom = [this](std::int16_t key, std::uint32_t seed, float frame)
     {
         m_actor.animation.action = 2;
-        m_actor.animation.frame = 0.0f;
+        m_actor.animation.frame = frame;
         m_world->FaunaResources().RecordPoseKey(0x1f5, key);
         CrtRandom random(seed);
         return Step(random);
     };
 
-    const auto other = stepFrom(static_cast<std::int16_t>(last + 1), Seed);
+    const auto other = stepFrom(static_cast<std::int16_t>(last + 1), Seed, 0.0f);
     ASSERT_TRUE(other.HasValue()) << other.Error();
     EXPECT_EQ(m_actor.animation.action, 2);
 
+    // Un dibujo anterior en last no dispara el gate: el avance actual lo sobrescribe con 0.
+    ASSERT_TRUE(stepFrom(last, Seed, 0.0f).HasValue());
+    EXPECT_EQ(m_actor.animation.action, 2);
+    EXPECT_EQ(m_world->FaunaResources().PoseKey(0x1f5), 0);
+    const float beforeLast = static_cast<float>(last) - Model().actions[2].speed;
     int rests = 0;
     int others = 0;
     for (std::uint32_t seed = 1; seed < 300; ++seed)
     {
         SCOPED_TRACE(seed);
-        const auto stepped = stepFrom(last, seed);
+        const auto stepped = stepFrom(last, seed, beforeLast);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         if (m_actor.animation.action == 0)
             ++rests;

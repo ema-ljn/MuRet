@@ -335,6 +335,10 @@ Result DrawTheBody(MonsterFrame& frame, const Render::Models::Skeleton& skeleton
         transform.position.y = F32(D(actor.position.y) + 60.0);
     else if (actor.type == 0x18e)
         transform.position.y = F32(D(actor.position.y) + 120.0);
+    // 0x4ec110 copia la escala y el origen del modelo compartido antes de posar; entre frames del original no escribe.
+    if (frame.originalFrame)
+        frame.world.PlaceModel(actor.type,
+                               SharedModelPlacement{.scale = transform.scale, .origin = transform.position});
     // 0x5ffef2: con un dueño (+0x108) con +0x78 & 0x1000, el frame (+0x114) a 0. Ninguna alta ni paquete escribe el
     // +0x108 de un personaje del pool: queda en 0 (Q-C224, *inferido*).
     // 0x4eb860 en el buffer propio (+0x120, que 0x511290 le dio a todo personaje): los huesos dummy quedan como los

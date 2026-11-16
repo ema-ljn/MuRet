@@ -174,10 +174,17 @@ void WorldState::PlacePlayerModel(const ActorState& actor)
 
 void WorldState::PlaceModel(const ActorState& actor)
 {
-    SharedModelPlacement& placement =
-        actor.type == Data::Models::PlayerSkeletonModel ? m_playerModel : m_modelPlacements[actor.type];
-    placement.scale = actor.scale;
-    placement.origin = actor.position;
+    PlaceModel(actor.type, SharedModelPlacement{.scale = actor.scale, .origin = actor.position});
+}
+
+void WorldState::PlaceModel(std::uint16_t type, const SharedModelPlacement& placement)
+{
+    if (type == Data::Models::PlayerSkeletonModel)
+    {
+        m_playerModel = placement;
+        return;
+    }
+    m_modelPlacements[type] = placement;
 }
 
 SharedModelPlacement WorldState::ModelPlacement(std::uint16_t type) const

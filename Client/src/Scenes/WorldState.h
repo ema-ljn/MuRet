@@ -113,12 +113,12 @@ public:
     [[nodiscard]] const SharedModelPlacement& PlayerModel() const;
     // Lo que 0x505ec6 y 0x6001b0 copian de `actor` si es un 0x20a; con otro tipo, a otro modelo.
     void PlacePlayerModel(const ActorState& actor);
-    // 0x505ec6..0x505ed8, en el paso de cada personaje: la escala y la posición de `actor` al modelo de su tipo (el
-    // 0x20a, a PlayerModel). Las lee 0x52e810, los restos del que termina de morir, desde el paso de su cuerpo, que va
-    // antes: las del último de ese tipo que pasó (CL9 hito 3, Q-C1178).
+    // 0x505ec6 y 0x4ec110: copia escala y origen al modelo compartido de su tipo (el 0x20a, a PlayerModel).
     void PlaceModel(const ActorState& actor);
+    void PlaceModel(std::uint16_t type, const SharedModelPlacement& placement);
     // La escala y la posición que tiene el modelo `type` (0x5769ad8 + tipo · 0xe0, +0x68 y +0x6c). En cero hasta la
-    // primera copia, como el de Player.bmd. El dibujo de los monstruos (0x6001b0, sin portar, P-C241 g) no las escribe.
+    // primera copia, como el de Player.bmd. 0x4ec110 la publica al dibujar el cuerpo en un frame del original (P-C241
+    // g).
     [[nodiscard]] SharedModelPlacement ModelPlacement(std::uint16_t type) const;
 
     // Lo que hace la selección al pasar a la escena 3 con `chosen`, el elegido (06, "La lógica" y "La

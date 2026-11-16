@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <string>
+#include <string_view>
 #include <vector>
 
 // Client::UI::FormatOriginal (CL9 hito 11): el sprintf de la CRT (0x69fd9b) y wsprintfA ([0x6b851c]) con los

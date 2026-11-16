@@ -11,7 +11,6 @@
 #include <functional>
 #include <span>
 #include <string>
-#include <string_view>
 
 // CL9 hito 3: pegar. Si el personaje elegido se puede atacar (0x558bb0), el freno de 300 ms entre acciones
 // (0x576791c) y lo que hace el héroe al llegar al final del camino (0x5650c0), con el ataque del caso 3.

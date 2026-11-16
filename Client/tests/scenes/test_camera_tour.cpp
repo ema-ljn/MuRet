@@ -1,6 +1,7 @@
 #include "Scenes/CameraTour.h"
 
 #include "Core/Expected.h"
+#include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Data/Models/PlayerModels.h"
 #include "Render/Models/Cloth.h"

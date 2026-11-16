@@ -5,7 +5,6 @@
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Protocol/Character/LevelUpPoint.h"
-#include "Protocol/Connection/Logout.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Pet/PetInfo.h"
 #include "Render/Models/LogicalAccess.h"

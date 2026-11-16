@@ -2,7 +2,6 @@
 
 #include "Core/Expected.h"
 
-#include <cstdint>
 #include <string>
 
 namespace Client::Data::Terrain

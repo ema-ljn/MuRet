@@ -229,3 +229,48 @@ Documentación consultada mediante Context7:
 [pseudo-registros](https://learn.microsoft.com/en-us/windows-hardware/drivers/debuggercmds/pseudo-register-syntax),
 [gc](https://learn.microsoft.com/en-us/windows-hardware/drivers/debuggercmds/gc--go-from-conditional-breakpoint-),
 [logopen](https://learn.microsoft.com/en-us/windows-hardware/drivers/debuggercmds/-logopen--open-log-file-).
+
+## 8. Repetición en MuRet Linux: 2026-11-16
+
+Fuentes `e752a89b8e885d97ca54880afec95781f8b4cd9a` (#356), Main Linux x64 Debug, 197.609.152
+bytes, SHA-256 `dd27eadd78b83aee1f44814e857bea38a0cca171bdebf3295ad9bed35406dfe8`.
+Configuración/build del preset `linux-x64-debug`, warnings como errores y PCH habilitados.
+Se usaron los assets del checkout y la GPU AMD Radeon 860M/radeonsi, OpenGL 4.6 Mesa 26.0.8;
+SDL 3.4.18 X11 sobre Wayland. Se recibió la lista del servidor remoto y el login fue manual.
+No se ejecutó el original en Linux ni se modificó la memoria de ningún cliente para estas acciones.
+
+| Secuencia por UI | Observación | Dictamen |
+| --- | --- | --- |
+| Caballero nivel 387 equipado → selección → mago existente nivel 1 | WorldLoading → Game, cuerpo de mago visible, inventario vacío y ventana C funcional; sin cierre ni error Q-C184/Q-C192 | PASS de esta regresión |
+| Caballero equipado → selección → crear mago nuevo nivel 1 → entrar | F3 de creación aceptado en lugar 4, WorldLoading → Game en otra celda, cuerpo visible y caminata con animación; ventana C recalcula sin error | PASS de esta regresión |
+
+Se liberó únicamente el lugar del mago de prueba nivel 1 creado durante §7, con autorización de
+Emanuel. El servidor aceptó el código de borrado vacío; no se adivinó ni registró un código personal.
+Se creó otro mago de prueba. No se alteraron los personajes de nivel alto, su equipo ni sus puntos.
+
+La ventana C del mago nuevo mostró fuerza/agilidad/vitalidad/energía 18/18/15/30, daño 2–4 (tasa 36),
+defensa 4 (tasa 6), velocidad 1, vida/maná 60/60 y daño mágico 3–7. Son valores observados en MuRet,
+no una comparación numérica completa con la traza XP: `wear` publica un parcial en 550b1e.
+Permanecen abiertos los pendientes numéricos, FPU/RNG y controles de §7.
+
+Se verificó que Main y los cinco ejecutables de tests implicados estaban actualizados con CMake.
+Pasaron 84 tests dirigidos de stats/copias/helpers/inventario y los dos `CharacterFirstWorldEntryTest`,
+cero fallos y cero omitidos; no se atribuye a esta corrida la suite completa histórica de 7.124 casos.
+El log privado congelado al terminar tiene 13.744 bytes, SHA-256
+`2baa0ade2d3e6f185e4411e9505df26eb970bf9c5228e27fd503f42aa604bc6e`, sin entradas error/fatal.
+La captura final de stats tiene 1.230.367 bytes, SHA-256
+`da6e814bb7ab8ccf7585b92b23796d35b22d66cbe295ff5d16ef1898bc8a878d`.
+Logs/capturas y manifest con identidad del binario permanecen fuera de Git.
+
+Los [auxiliares recuperados](interactions/README.md) conservan los sources usados para interactuar
+con XP y los comandos de ventana que funcionaron en Linux. Permiten preparar regresiones
+funcionales futuras; requieren estado inicial, observación posterior y aserciones propias.
+Estas pruebas cierran la reproducción práctica del cierre de #356 para los dos casos, no toda CL9.
+
+**Incidencia posterior:** después de congelar esa evidencia, el log completo registró
+`0x558bb0: si el personaje elegido se puede atacar es de la CL9.2` al dibujar Game. Es la frontera
+explícita de `GameHud.cpp`, diferente de Q-C184/Q-C192; queda para una regresión funcional de picking/
+combate y no se atribuye su disparador a una interacción concreta. El usuario también informó
+haber cerrado el cliente. Log completo privado: 14.734 bytes, SHA-256
+`0d8d923875caec8f2d2807b7a279582844cbe0cbb4e65bce0a58aaa987f8533d`.
+El PASS anterior está acotado a las dos secuencias; no acredita estabilidad de todo el juego.

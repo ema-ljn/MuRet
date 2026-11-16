@@ -36,6 +36,8 @@ test_character_first_world_entry. Sin dependencias nuevas.
 - [x] Resolver la contribución nula de IDffff en AddSlotsToWord62, conservando los otros pasos.
 - [x] Revisión adversarial fresca Astra6high: sin Critical/Important de implementación.
 - [x] Build completo, cuatro regresiones y suite local; formato e includes de los nueve archivos C++.
+- [x] Repetir en MuRet Linux: caballero equipado → mago existente y caballero equipado → crear
+  mago nuevo → entrar/caminar, sin cierre; [resultado acotado §8](../../../Client/docs/research/scripts/game/capture/RUNBOOK-qc184-vm.md#8-repetición-en-muret-linux-2026-11-16).
 - [ ] Completar el contraste estricto en VM con procesos nuevos, comparación MuRet y bonos no nulos;
   el tramo de cambio de personaje ya se ejercitó en la observación acotada siguiente.
 

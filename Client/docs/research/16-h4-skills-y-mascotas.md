@@ -100,3 +100,7 @@ Cinco suites de regresión: ViewportPlayers 31, GoldenGameModels 14, RavenAttack
 Build completo GCC14 Debug, sin PCH y con warnings como errores, terminado. CTest registró **7.750 casos:7.691 pasaron,59 se saltaron por falta de capturas/datos de referencia y0 fallaron**, en315,98s. Los **106 tests con etiquetaGL pasaron**, con `MURET_CLIENT_REQUIRE_GL=1` y Xvfb/X11. Los tres arranques de60frames (normal, sinVSync y pacingfaithful) terminaron con código0. El formato y los includes de los dos últimos cambios también pasaron.
 
 Estos resultados corresponden al código del PR con las dos reparaciones anteriores. El CI de la primera cabeza e39d8bf detectó justamente esos tres fallos; se publica una nueva cabeza para repetirLinux/Windows. El resultado remoto debe consultarse por SHA, yWindows no se presume validado por el resultado deLinux. Los59 saltos originales siguen pendientes de la evidencia descrita arriba.
+
+### Compilador de Windows
+
+El log recuperado de la primera corridaWindows identificó C2220/C4242 en el test de hotkeys: asignar `int` a `optional<uint8_t>`. El literal se cambió a `std::uint8_t{3}` y las24pruebasHUD volvieron a pasar. Es un cambio de tipo en la fixture; el código de juego es el mismo de la suite completa anterior. Windows usa dos proyectos concurrentes mediante `cmake --build --parallel 2`, en Debug y en el perfil Release. Se conservan configuraciones, targets, warnings como errores, filtros y todos los checks; Context7/Kitware fija el significado de esa opción.

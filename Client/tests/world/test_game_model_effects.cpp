@@ -356,6 +356,101 @@ TEST(GameModelEffectsTest, TheFallingStoneFallsAndBouncesOnTheGround)
     EXPECT_NE(cut.Error().find("0x524473"), std::string::npos) << cut.Error();
 }
 
+// La piedra 0x10b del ataque a las estatuas de Blood Castle. El alta (0x51bafb): nueve rand() con el 0x10b, que pasa al
+// subtipo 1, y ocho con el 0x10a; la z 50 más, sin dueño. El paso (0x52531d): la velocidad sin girar se suma y queda
+// por 0,9f (por 1,1f más con el subtipo 1), la caída suma y pierde 3; en el aire se inclina escala · 16 y en el suelo
+// se apoya, la caída por −0,2f, pierde 5 de vida y se inclina escala · 128; +0x174 = vida · 0,1f. Después, rand() % 10:
+// con 0 corta en 0x5252e6 (el polvo 0x5f3/0 va en un local sin escribir, Q-C1176); si no, la cola común resta la vida.
+TEST(GameModelEffectsTest, TheStatueStonesJumpFallTiltAndCutAtTheDust)
+{
+    {
+        Client::World::ModelEffects effects;
+        Client::Render::Models::CrtRandom random(7);
+        const auto slot = effects.CreateDebris(Client::World::DebrisEffect, {1000.0f, 1000.0f, 100.0f}, glm::vec3(0.0f),
+                                               glm::vec3(1.0f), random);
+        ASSERT_TRUE(slot.has_value());
+        EXPECT_EQ(random.State(), Client::Tests::AfterDraws(7, 9).State());
+        const Client::World::ModelEffect& stone = effects.Effects()[*slot];
+        EXPECT_EQ(stone.subtype, 1);
+        EXPECT_EQ(stone.transform.position, glm::vec3(1000.0f, 1000.0f, 150.0f));
+        EXPECT_GE(stone.life, 32);
+        EXPECT_LE(stone.life, 47);
+        EXPECT_GE(stone.turnDirection, 2.0f);
+        EXPECT_LE(stone.turnDirection, 10.0f);
+        EXPECT_FALSE(stone.hasOwner);
+        EXPECT_EQ(stone.disturbanceState, 0xffff);
+        Client::Render::Models::CrtRandom other(7);
+        const auto first = effects.CreateDebris(Client::World::FirstDebrisEffect, glm::vec3(0.0f), glm::vec3(0.0f),
+                                                glm::vec3(1.0f), other);
+        ASSERT_TRUE(first.has_value());
+        EXPECT_EQ(other.State(), Client::Tests::AfterDraws(7, 8).State());
+        EXPECT_EQ(effects.Effects()[*first].subtype, 0);
+    }
+    const auto stone = []
+    {
+        Client::World::ModelEffect effect = DungeonEffect(Client::World::DebrisEffect, 40);
+        effect.subtype = 1;
+        effect.velocity = {0.0f, 10.0f, 0.0f};
+        effect.turnDirection = 5.0f;
+        effect.transform.position = {1000.0f, 1000.0f, 500.0f};
+        return effect;
+    };
+    const auto times = [](double a, float b) { return static_cast<float>(a * static_cast<double>(b)); };
+    Client::World::Particles particles;
+    Client::World::ModelEffectStepServices services;
+    const std::uint32_t quiet = SeedWhereDraw(1, [](int draw) { return draw % 10 != 0; });
+    {
+        Client::World::ModelEffect flying = stone();
+        services.terrainHeight = [](float, float) { return 0.0; };
+        Client::Render::Models::CrtRandom random(quiet);
+        ASSERT_TRUE(
+            Client::World::StepGameModelEffect(flying, nullptr, particles, 0.0f, random, nullptr, services).HasValue());
+        EXPECT_EQ(flying.velocity.y,
+                  times(times(10.0, std::bit_cast<float>(0x3f666666u)), std::bit_cast<float>(0x3f8ccccdu)));
+        EXPECT_EQ(flying.turnDirection, 2.0f);
+        EXPECT_EQ(flying.transform.angles.x, -16.0f);
+        EXPECT_EQ(flying.alpha, times(40.0, std::bit_cast<float>(0x3dcccccdu)));
+        EXPECT_EQ(flying.life, 39);
+        EXPECT_EQ(flying.previousPosition, glm::vec3(1000.0f, 1000.0f, 500.0f));
+        EXPECT_EQ(random.State(), Client::Tests::AfterDraws(quiet, 2).State());
+        EXPECT_FALSE(particles.Any());
+    }
+    {
+        Client::World::ModelEffect landing = stone();
+        services.terrainHeight = [](float, float) { return 1000.0; };
+        Client::Render::Models::CrtRandom random(quiet);
+        ASSERT_TRUE(Client::World::StepGameModelEffect(landing, nullptr, particles, 0.0f, random, nullptr, services)
+                        .HasValue());
+        EXPECT_EQ(landing.turnDirection, times(2.0, std::bit_cast<float>(0xbe4ccccdu)));
+        EXPECT_EQ(landing.transform.angles.x, -128.0f);
+        EXPECT_EQ(landing.alpha, times(35.0, std::bit_cast<float>(0x3dcccccdu)));
+        EXPECT_EQ(landing.life, 34);
+    }
+    {
+        // El paso en que rand() % 10 da 0: corta en 0x5252e6 después de sus dos rand(), sin el polvo ni la cola.
+        const std::uint32_t dusty = SeedWhereDraw(1, [](int draw) { return draw % 10 == 0; });
+        Client::World::ModelEffect raising = stone();
+        services.terrainHeight = [](float, float) { return 0.0; };
+        Client::Render::Models::CrtRandom random(dusty);
+        const auto cut =
+            Client::World::StepGameModelEffect(raising, nullptr, particles, 0.0f, random, nullptr, services);
+        ASSERT_FALSE(cut.HasValue());
+        EXPECT_NE(cut.Error().find("0x5252e6"), std::string::npos) << cut.Error();
+        EXPECT_NE(cut.Error().find("P-C232"), std::string::npos) << cut.Error();
+        EXPECT_EQ(random.State(), Client::Tests::AfterDraws(dusty, 2).State());
+        EXPECT_EQ(raising.transform.angles.x, -16.0f);
+        EXPECT_EQ(raising.alpha, times(40.0, std::bit_cast<float>(0x3dcccccdu)));
+        EXPECT_EQ(raising.life, 40);
+        EXPECT_FALSE(particles.Any());
+    }
+    services.terrainHeight = {};
+    Client::World::ModelEffect blind = stone();
+    Client::Render::Models::CrtRandom random(quiet);
+    const auto cut = Client::World::StepGameModelEffect(blind, nullptr, particles, 0.0f, random, nullptr, services);
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x5253d9"), std::string::npos) << cut.Error();
+}
+
 // 0x5239c8..0x523b3a con el subtipo 0: la velocidad sin girar se suma y queda por 0,9f; la caída suma y
 // pierde 3; en el aire se inclina escala · 32 y en el suelo se apoya, rebota a −0,5, pierde 4 de vida y se
 // inclina escala · 128. Con rand() % 10 en 0, un fuego 5d9 de subtipo rand() % 3 + 1 con su luz.
@@ -407,6 +502,55 @@ TEST(GameModelEffectsTest, TheStoneChipsDragTiltBounceAndSometimesBurn)
     const auto cut = Client::World::StepGameModelEffect(owned, nullptr, particles, 0.0f, random);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x5238be"), std::string::npos) << cut.Error();
+}
+
+// El pedazo de hielo 0xca de 0x52e810 entra en 0x523974 con el subtipo 0: el mismo paso que la piedrita (se arrastra,
+// cae, rebota y se inclina) y, con rand() % 10 en 0, el aliento 5f2/0 con su luz y escala 1 en lugar del fuego, sin el
+// rand() de su subtipo (0x523af4 y 0x523b47): el prefijo, el % 10 y los dos de la creación de 0x54184b. Otro subtipo
+// corta en 0x523974.
+TEST(GameModelEffectsTest, TheIceShardStepsLikeAChipAndSometimesBreathes)
+{
+    const std::uint32_t breathes = SeedWhereDraw(1, [](int value) { return value % 10 == 0; });
+    const std::uint32_t cold = SeedWhereDraw(1, [](int value) { return value % 10 != 0; });
+    Client::World::ModelEffectStepServices services;
+    services.terrainHeight = [](float, float) { return 200.0; };
+    {
+        Client::World::ModelEffect shard = DungeonEffect(Client::World::IceShardEffect, 40);
+        shard.velocity = {10.0f, 0.0f, 0.0f};
+        shard.turnDirection = 5.0f;
+        auto particles = std::make_unique<Client::World::Particles>();
+        Client::Render::Models::CrtRandom random(breathes);
+        ASSERT_TRUE(
+            Client::World::StepGameModelEffect(shard, nullptr, *particles, 0.0f, random, nullptr, services).HasValue());
+        EXPECT_EQ(shard.velocity.x, static_cast<float>(10.0 * static_cast<double>(std::bit_cast<float>(0x3f666666u))));
+        EXPECT_EQ(shard.turnDirection, -1.0f);
+        EXPECT_EQ(shard.transform.angles.x, -128.0f);
+        EXPECT_EQ(shard.life, 35);
+        const auto& breath = particles->All()[0];
+        ASSERT_TRUE(breath.alive);
+        EXPECT_EQ(breath.type, 0x5f2);
+        EXPECT_EQ(breath.subtype, 0);
+        // Donde quedó antes de 0x51fc80, que después le suma la velocidad girada.
+        EXPECT_EQ(breath.position, glm::vec3(1010.0f, 1000.0f, 200.0f));
+        EXPECT_FALSE(particles->All()[1].alive);
+        EXPECT_EQ(random.State(), Client::Tests::AfterDraws(breathes, 2 + 2).State());
+    }
+    {
+        Client::World::ModelEffect shard = DungeonEffect(Client::World::IceShardEffect, 40);
+        auto particles = std::make_unique<Client::World::Particles>();
+        Client::Render::Models::CrtRandom random(cold);
+        ASSERT_TRUE(
+            Client::World::StepGameModelEffect(shard, nullptr, *particles, 0.0f, random, nullptr, services).HasValue());
+        EXPECT_FALSE(particles->Any());
+        EXPECT_EQ(random.State(), Client::Tests::AfterDraws(cold, 2).State());
+    }
+    Client::World::ModelEffect owned = DungeonEffect(Client::World::IceShardEffect, 40);
+    owned.subtype = 5;
+    auto particles = std::make_unique<Client::World::Particles>();
+    Client::Render::Models::CrtRandom random(1);
+    const auto cut = Client::World::StepGameModelEffect(owned, nullptr, *particles, 0.0f, random, nullptr, services);
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x523974"), std::string::npos) << cut.Error();
 }
 
 // 0x52ad21..0x52ae25 con el subtipo 0: seis llamas 5de/0 a ±25 en x e y (sus dos sorteos antes de cada

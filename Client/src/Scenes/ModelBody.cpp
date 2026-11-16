@@ -145,7 +145,7 @@ float ModelSpeedOf(std::uint16_t type, std::uint8_t action, float frame, float s
     return speed;
 }
 
-Core::Expected<ModelActionEnd, std::string> FinishTheModelAction(ActorState& actor, std::size_t slot,
+Core::Expected<ModelActionEnd, std::string> FinishTheModelAction(ActorState& actor,
                                                                  const Render::Models::Skeleton& skeleton,
                                                                  WorldRuntime& runtime,
                                                                  Render::Models::CrtRandom& random)
@@ -166,13 +166,13 @@ Core::Expected<ModelActionEnd, std::string> FinishTheModelAction(ActorState& act
     if (type >= FirstMonsterModel && type < EndOfMonsterModels)
     {
         const std::uint8_t action = actor.animation.action;
+        // 0x4fcc1d..0x4fcc3c: +0x38a en 1 (el ECX en 1 de 0x4fcbd5) antes de 0x52e810, que corre quien llama.
         if (action == DyingAction)
         {
             if (actor.byte38a != 0)
                 return ModelActionEnd::Done;
-            return Core::Unexpected(std::format("0x4fcc3c: el monstruo {:#x} del lugar {} terminó de morir: +0x38a y "
-                                                "0x52e810 (los restos, 0x518cf0) son de la CL11",
-                                                type, slot));
+            actor.byte38a = 1;
+            return ModelActionEnd::LeaveRemains;
         }
         if (IsOneOf(RestingActions, action))
             SetModelAction(actor, skeleton, 0);
@@ -242,10 +242,10 @@ Core::Expected<void, std::string> SetTheModelHeadTarget(ActorState& actor, std::
     }
     constexpr std::uint8_t TrackingAction = 2;
     constexpr std::uint16_t NoTarget = 0xffff;
-    if (action == TrackingAction && actor.word3a4 != NoTarget)
+    if (action == TrackingAction && actor.attackTarget != NoTarget)
     {
         // 0x4ea236: MOVSX, el lugar con signo sobre 0x743a16c.
-        const auto target = static_cast<std::int16_t>(actor.word3a4);
+        const auto target = static_cast<std::int16_t>(actor.attackTarget);
         if (target < 0 || static_cast<std::size_t>(target) >= pool.size())
             return Core::Unexpected(
                 std::format("0x4ea24c: el blanco +0x3a4 ({}) cae fuera de los {} personajes", target, pool.size()));

@@ -1,6 +1,7 @@
 #include "Scenes/FaunaModels.h"
 #include "Scenes/MonsterKinds.h"
 #include "Scenes/MonsterModelTable.h"
+#include "Scenes/MonsterSounds.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Data/Models/Model.h"
@@ -74,6 +75,29 @@ TEST(FaunaModelsTest, PrepareLoadsMonster32AndItsExactActionStoresOnce)
     EXPECT_EQ(store.loadCalls, 1);
     EXPECT_EQ(models.SoundFiles().size(), 3U);
 }
+// 0x613127: con `sounds`, la carga del 0x1f (con mallas) escribe la tabla de sonidos del 0x171 como el alta de un
+// monstruo (0x612c80); la segunda, que reutiliza el modelo, no la vuelve a escribir.
+TEST(FaunaModelsTest, PrepareWritesTheSoundTableOfTheLoadedMonster)
+{
+    Client::Tests::TemporaryFolder folder{"fauna-model32-sounds"};
+    WriteMonster(folder.Path(), 32);
+    Client::Tests::FakeTextureStore store;
+    Client::Tests::RecordingSink sink;
+    Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
+    Client::Render::Models::ModelTextureSlots slots{Client::Render::TextureSlot{0x500}};
+    Client::Scenes::FaunaModels models;
+    Client::Scenes::ModelSoundTable sounds;
+    Client::Scenes::FaunaModelLoadContext context{folder.Path(), store, log, slots, nullptr, &sounds};
+    ASSERT_TRUE(models.Prepare(0x1f, context).HasValue());
+    Client::Scenes::ModelSoundTable expected;
+    Client::Scenes::WriteMonsterSounds(0x1f, expected);
+    EXPECT_EQ(sounds, expected);
+    ASSERT_TRUE(Client::Scenes::WrittenSounds(sounds, 0x171).has_value());
+    sounds.clear();
+    ASSERT_TRUE(models.Prepare(0x1f, context).HasValue());
+    EXPECT_TRUE(sounds.empty());
+}
+
 TEST(FaunaModelsTest, PrepareLoadsMonster34AndKeepsTheGenericActionSettings)
 {
     Client::Tests::TemporaryFolder folder{"fauna-model34"};

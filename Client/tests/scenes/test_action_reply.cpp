@@ -7,12 +7,14 @@
 #include "Data/Models/PlayerModels.h"
 #include "Protocol/Movement.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/OriginalAngles.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActionSend.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/FaunaModels.h"
+#include "Scenes/ModelBody.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
@@ -347,25 +349,85 @@ TEST_F(ActionReplyTest, TheFirstAliveActorWithADuplicateKeyWins)
     EXPECT_EQ(Other().animation.action, 0);
 }
 
-// 0x4cb820: 0x78 y 0x79 van a 0x4f4a10, que es del hito 3: corta después del ángulo, el Movement y la posición.
-TEST_F(ActionReplyTest, TheStrikeIsAFrontier)
+// 0x4cb820..0x4cb852: 0x78 y 0x79 pegan con 0x4f4a10 (sin armas, la 0x22, sin sonido: el único rand() es el cierre del
+// registro propio de 0x4f3f80) y después ponen +0x381 en 1, el frame en 0 (aunque 0x4ea030 lo haya dejado en otro
+// valor por seguir en la misma acción), el blanco +0x3a4 con el WORD de abajo de [0x57678b0] y [0x5767964] con el
+// índice. En Lorencia y en Devias.
+TEST_F(ActionReplyTest, TheStrikeAttacksAndRemembersTheAttacker)
 {
-    for (const std::uint8_t action : {std::uint8_t{0x78}, std::uint8_t{0x79}})
+    constexpr std::uint32_t OwnRecordDraws = 0xf08;
+    m_world->Runtime().heroSlot = 0x10007;
+    for (const std::int32_t map : {0, 2})
     {
-        Other().movement = 1;
-        const auto applied = Apply(3, action);
-        ASSERT_FALSE(applied.HasValue());
-        EXPECT_NE(applied.Error().find("0x4cb821"), std::string::npos);
-        EXPECT_NE(applied.Error().find("hito 3"), std::string::npos);
-        EXPECT_EQ(Other().angles.z, 90.0f);
-        EXPECT_EQ(Other().movement, 0);
-        EXPECT_EQ(Other().position, glm::vec3(1350.0f, 1450.0f, 3.0f));
-        EXPECT_EQ(Other().animation.action, 0);
-        EXPECT_EQ(Other().byte381, 0);
-        EXPECT_EQ(Other().animation.frame, 0.0f);
-        EXPECT_EQ(Other().word3a4, 0);
-        EXPECT_EQ(m_world->Runtime().lastAttacker, 0);
+        for (const std::uint8_t action : {std::uint8_t{0x78}, std::uint8_t{0x79}})
+        {
+            SCOPED_TRACE(testing::Message() << "mapa " << map << ", acción " << int{action});
+            m_world->Runtime().map = map;
+            m_world->Runtime().lastAttacker = 0;
+            m_world->Runtime().lastSoundId.reset();
+            Other().movement = 1;
+            Other().byte381 = 0;
+            Other().attackCount = 0;
+            Other().animation.action = 0x22;
+            Other().animation.frame = 1.5f;
+            auto expected = m_cloth.random;
+            expected.Discard(OwnRecordDraws);
+            const auto applied = Apply(3, action);
+            ASSERT_TRUE(applied.HasValue()) << applied.Error();
+            EXPECT_EQ(Other().angles.z, 90.0f);
+            EXPECT_EQ(Other().movement, 0);
+            EXPECT_EQ(Other().position, glm::vec3(1350.0f, 1450.0f, 3.0f));
+            EXPECT_EQ(Other().animation.action, 0x22);
+            EXPECT_EQ(Other().animation.frame, 0.0f);
+            EXPECT_EQ(Other().byte381, 1);
+            EXPECT_EQ(Other().attackCount, 1);
+            EXPECT_EQ(Other().attackTarget, 7);
+            EXPECT_EQ(m_world->Runtime().lastAttacker, static_cast<std::int32_t>(OtherSlot));
+            EXPECT_FALSE(m_world->Runtime().lastSoundId.has_value());
+            EXPECT_EQ(m_cloth.random.State(), expected.State());
+        }
     }
+    EXPECT_TRUE(m_sent.empty());
+}
+
+// 0x4cb820 escribe el WORD +0x3a4 del héroe; 0x4ea190 debe leer ese mismo blanco al seguir con la cabeza.
+TEST_F(ActionReplyTest, TheModelHeadTracksTheHeroSlotWrittenByAnAttackReply)
+{
+    constexpr std::size_t StaleTargetSlot = 6;
+    constexpr std::size_t HeroTargetSlot = 7;
+    m_world->Runtime().heroSlot = static_cast<std::uint16_t>(HeroTargetSlot);
+    Other().type = SmallModel;
+    Other().attackTarget = static_cast<std::uint16_t>(StaleTargetSlot);
+    ASSERT_TRUE(Apply(3, 0x78).HasValue());
+    ASSERT_EQ(Other().attackTarget, static_cast<std::uint16_t>(HeroTargetSlot));
+
+    ActorState& heroTarget = m_world->Actors()[HeroTargetSlot];
+    heroTarget.position = Other().position + glm::vec3{0.0f, 100.0f, 150.0f};
+    m_world->Actors()[StaleTargetSlot].position = Other().position + glm::vec3{0.0f, -100.0f, 200.0f};
+    Other().angles.z = static_cast<float>(Client::Render::Models::CreateAngle(
+        Other().position.x, Other().position.y, heroTarget.position.x, heroTarget.position.y));
+    Other().animation.action = 2;
+
+    const auto before = m_cloth.random.State();
+    ASSERT_TRUE(Client::Scenes::SetTheModelHeadTarget(Other(), m_world->Actors(), m_cloth.random).HasValue());
+    EXPECT_EQ(Other().headTurn.target.x, 0.0f);
+    EXPECT_EQ(Other().headTurn.target.y, static_cast<float>((static_cast<double>(heroTarget.position.z) -
+                                                             (static_cast<double>(Other().position.z) + 50.0)) *
+                                                            static_cast<double>(0.2f)));
+    EXPECT_EQ(m_cloth.random.State(), before);
+}
+
+// Un corte de 0x4f4a10 (el 0x27, con su efecto de la CL11) deja el ángulo, el Movement y la posición, y no escribe ni
+// +0x381 ni [0x5767964].
+TEST_F(ActionReplyTest, AStrikeThatCutsLeavesTheAttackerAlone)
+{
+    Other().type = 0x27;
+    const auto applied = Apply(3, 0x78);
+    ASSERT_FALSE(applied.HasValue());
+    EXPECT_NE(applied.Error().find("0x4f4f5b"), std::string::npos);
+    EXPECT_EQ(Other().movement, 0);
+    EXPECT_EQ(Other().byte381, 0);
+    EXPECT_EQ(m_world->Runtime().lastAttacker, 0);
 }
 
 // 0x4cb781 es la única salida antes de los stores comunes, también si la búsqueda cayó en el 400.
@@ -398,8 +460,8 @@ TEST_F(ActionReplyTest, DarkHorseInTheSpareSlotStopsTheReplyBeforeAnyStores)
     EXPECT_EQ(m_cloth.random.State(), random);
 }
 
-// 0x4cb820: para 0x78/0x79 el sufijo de CL9 hito 3 queda después del error, pero los stores comunes ya ocurrieron.
-TEST_F(ActionReplyTest, AStrikeOnTheSpareSlotStoresCommonFieldsBeforeTheH3Error)
+// 0x4cb820: con H3 integrado, el registro fantasma también completa el ataque y su sufijo.
+TEST_F(ActionReplyTest, AStrikeOnTheSpareSlotCompletesTheAttackAndItsSuffix)
 {
     ActorState& spare = m_world->Actors()[400];
     spare = Client::Tests::UnarmedPlayer();
@@ -411,7 +473,7 @@ TEST_F(ActionReplyTest, AStrikeOnTheSpareSlotStoresCommonFieldsBeforeTheH3Error)
     spare.byte381 = 1;
     spare.animation.action = 0x20;
     spare.animation.frame = 9.5f;
-    spare.word3a4 = 0x1234;
+    spare.attackTarget = 0x1234;
     m_world->Runtime().lastAttacker = 77;
 
     for (const std::uint8_t action : {std::uint8_t{0x78}, std::uint8_t{0x79}})
@@ -420,16 +482,15 @@ TEST_F(ActionReplyTest, AStrikeOnTheSpareSlotStoresCommonFieldsBeforeTheH3Error)
         spare.movement = 7;
         const auto applied = Apply(3, action, 0x4321);
 
-        ASSERT_FALSE(applied.HasValue());
-        EXPECT_NE(applied.Error().find("0x4cb821"), std::string::npos);
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
         EXPECT_EQ(spare.movement, 0);
         EXPECT_EQ(spare.angles.z, 90.0f);
         EXPECT_EQ(spare.position, glm::vec3(1350.0f, 1450.0f, 3.0f));
         EXPECT_EQ(spare.byte381, 1);
-        EXPECT_EQ(spare.animation.action, 0x20);
-        EXPECT_EQ(spare.animation.frame, 9.5f);
-        EXPECT_EQ(spare.word3a4, 0x1234);
-        EXPECT_EQ(m_world->Runtime().lastAttacker, 77);
+        EXPECT_EQ(spare.animation.action, 0x22);
+        EXPECT_EQ(spare.animation.frame, 0.0f);
+        EXPECT_EQ(spare.attackTarget, static_cast<std::uint16_t>(m_world->Runtime().heroSlot));
+        EXPECT_EQ(m_world->Runtime().lastAttacker, 400);
     }
 }
 

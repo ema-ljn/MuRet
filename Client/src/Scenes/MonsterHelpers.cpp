@@ -785,7 +785,7 @@ Handled DrawTheCrywolfCase(MonsterHelperPass& pass)
 // 0x427fb5..0x427fcd).
 bool HasTarget(const ActorState& actor)
 {
-    const auto target = static_cast<std::int16_t>(actor.word3a4);
+    const auto target = static_cast<std::int16_t>(actor.attackTarget);
     return target >= 0 && target < PoolSize;
 }
 

@@ -1267,6 +1267,80 @@ TEST_F(MonsterDrawingTest, BetweenOriginalFramesNothingIsStored)
     EXPECT_EQ(m_clothWorld.random.State(), 1u);
 }
 
+// 0x5ffe9d..0x5ffeef: 0x18f suma 60 y 0x18e 120 a y antes de copiar escala y origen al modelo compartido; entre frames
+// del original no publica esa transformacion.
+TEST_F(MonsterDrawingTest, TheBodyPublishesItsSharedModelPlacementOnOriginalFrames)
+{
+    ActorState& first = Monster(1, Spider, 3);
+    first.position = {1000.0f, 2000.0f, 30.0f};
+    first.scale = 0.5f;
+    ActorState& last = Monster(2, Spider, 3);
+    last.position = {9000.0f, 11000.0f, 60.0f};
+    last.scale = 2.0f;
+    last.alpha = 0.01f;
+    ActorState& faint = Monster(3, Spider, 3);
+    faint.position = {13000.0f, 15000.0f, 90.0f};
+    faint.scale = 3.0f;
+    faint.alpha = 0.009f;
+    ActorState& otherType = Monster(4, Yeti, 19);
+    otherType.position = {3000.0f, 4000.0f, 50.0f};
+    otherType.scale = 1.5f;
+
+    const auto result = Draw(Pass());
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    const auto spiderPlacement = m_world->ModelPlacement(Spider);
+    EXPECT_EQ(spiderPlacement.origin, last.position);
+    EXPECT_FLOAT_EQ(spiderPlacement.scale, last.scale);
+    const auto yetiPlacement = m_world->ModelPlacement(Yeti);
+    EXPECT_EQ(yetiPlacement.origin, otherType.position);
+    EXPECT_FLOAT_EQ(yetiPlacement.scale, otherType.scale);
+
+    struct OffsetCase
+    {
+        std::uint16_t type;
+        std::uint16_t monster;
+        glm::vec3 position;
+        float scale;
+        float yOffset;
+    };
+    const std::array offsetCases{OffsetCase{0x18e, 0x21, {5000.0f, 6000.0f, 70.0f}, 1.25f, 120.0f},
+                                 OffsetCase{0x18f, 3, {7000.0f, 8000.0f, 80.0f}, 0.75f, 60.0f}};
+    for (const OffsetCase& value : offsetCases)
+    {
+        m_world = std::make_unique<Client::Scenes::WorldState>();
+        SetUp();
+        ActorState& actor = Monster(5, value.type, value.monster);
+        actor.position = value.position;
+        actor.scale = value.scale;
+
+        const auto offsetResult = Draw(Pass());
+
+        if (!offsetResult.HasValue())
+        {
+            EXPECT_NE(offsetResult.Error().find("0x4ee770"), std::string::npos) << offsetResult.Error();
+        }
+        const auto placement = m_world->ModelPlacement(value.type);
+        EXPECT_EQ(placement.origin, value.position + glm::vec3(0.0f, value.yOffset, 0.0f));
+        EXPECT_FLOAT_EQ(placement.scale, value.scale);
+        TearDown();
+    }
+
+    m_world = std::make_unique<Client::Scenes::WorldState>();
+    SetUp();
+    ActorState& projected = Monster(7, Spider, 3);
+    projected.position = {17000.0f, 18000.0f, 100.0f};
+    projected.scale = 4.0f;
+    GameCharacterPass betweenFrames = Pass();
+    betweenFrames.originalFrames = 0;
+    const auto projectedResult = Draw(betweenFrames);
+
+    ASSERT_TRUE(projectedResult.HasValue()) << projectedResult.Error();
+    const auto projectedPlacement = m_world->ModelPlacement(Spider);
+    EXPECT_EQ(projectedPlacement.origin, glm::vec3{});
+    EXPECT_FLOAT_EQ(projectedPlacement.scale, 0.0f);
+}
+
 TEST_F(MonsterDrawingTest, InChaosCastleTheHeroFlagFadesTheStoredAlpha)
 {
     m_world->Runtime().map = 20;

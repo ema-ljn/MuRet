@@ -299,6 +299,138 @@ Core::Expected<void, ParticleError> StepTheDust(Particle& particle, const Partic
     return {};
 }
 
+// 0x542b3b..0x542bf3, la 5e4 después del prefijo: la vida 12, la escala ((rand() & 3) + 8) · 0,05f (0x6b8a48, en la
+// x87), que pisa la del argumento, el giro x rand() % 360 y la velocidad (0; −((rand() & 15) + 8); rand() % 6 − 3)
+// girada por AngleMatrix de los ángulos del pedido (0x5fc8f0 y 0x5fcbd0, entre el segundo rand() y el tercero, sin
+// sacar ninguno); con el tipo 0x5e4 (0x542bdb), la luz (0,1f; 0; 0). Cuatro rand(). El and con la corrección del signo
+// es el & simple.
+constexpr std::int32_t BloodLife = 12;
+void CreateTheBlood(Particle& particle, const glm::vec3& angles, Render::Models::CrtRandom& random)
+{
+    constexpr int ScaleMask = 3, ScaleBase = 8, FallMask = 15, FallBase = 8, SideSpan = 6, SideCenter = 3;
+    constexpr double ScaleStep = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu));
+    constexpr float Red = std::bit_cast<float>(0x3dcccccdu);
+    particle.life = BloodLife;
+    particle.scale = F32(static_cast<double>((random.Next() & ScaleMask) + ScaleBase) * ScaleStep);
+    particle.angles.x = static_cast<float>(random.Next() % FullTurn);
+    const auto matrix = Render::Models::OriginalAngleMatrix(angles);
+    const float fall = -static_cast<float>((random.Next() & FallMask) + FallBase);
+    const float side = static_cast<float>((random.Next() % SideSpan) - SideCenter);
+    particle.velocity = Render::Models::OriginalVectorRotate(glm::vec3(0.0f, fall, side), matrix);
+    particle.light = glm::vec3(Red, 0.0f, 0.0f);
+}
+
+// 0x546b04..0x546b61, después de la vida y el movimiento comunes (también con la vida en 0): la velocidad por 0,95f
+// (0x6ba30c), el cuadro (+0x48) (12 − vida) / 3 (imul por 0x55555556, hacia 0) y la posición más la velocidad otra vez,
+// sin girar. La x suma el producto que quedó en la x87 después del fst (en 53 bits, exacto), la y y la z, el float
+// guardado.
+void StepTheBlood(Particle& particle)
+{
+    constexpr double Brake = static_cast<double>(std::bit_cast<float>(0x3f733333u));
+    constexpr std::int32_t BloodFrameSteps = 3;
+    const double x = static_cast<double>(particle.velocity.x) * Brake;
+    particle.velocity.x = F32(x);
+    particle.velocity.y = F32(static_cast<double>(particle.velocity.y) * Brake);
+    particle.velocity.z = F32(static_cast<double>(particle.velocity.z) * Brake);
+    particle.field48 = std::bit_cast<float>((BloodLife - particle.life) / BloodFrameSteps);
+    particle.position.x = F32(x + static_cast<double>(particle.position.x));
+    particle.position.y = F32(static_cast<double>(particle.velocity.y) + static_cast<double>(particle.position.y));
+    particle.position.z = F32(static_cast<double>(particle.velocity.z) + static_cast<double>(particle.position.z));
+}
+
+// 0x540a04..0x540b41, el caso 12 de la 5c6 (las veinte del 0x815, 0x4fb0d1): la textura 0x5fc, +0x38 en 1,0f, la
+// posición más (0; −100; 0) girado por AngleMatrix de los ángulos del pedido (0x5fc8f0 y 0x5fcbd0) y después
+// (rand() & 15) − 8 en x y en y y 150 en z; la velocidad ((rand() % 20) · 0,1f − 1; igual; −(rand() % 3) − 3), la vida
+// 40 y la escala del pedido menos (rand() % 15) · 0,1f. Cada suma, en la x87 antes del store. Seis rand().
+void CreateTheBowSpark(Particle& particle, float scale, Render::Models::CrtRandom& random)
+{
+    constexpr std::int32_t BowSparkTexture = 0x5fc;
+    constexpr std::int32_t BowSparkLife = 40;
+    constexpr int Spread = 15, SpeedSpan = 20, FallSpan = 3, ShrinkSpan = 15;
+    constexpr double Center = 8.0, Rise = 150.0, Fall = 3.0, Unit = 1.0;
+    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b8a34
+    particle.texture = BowSparkTexture;
+    particle.field38 = std::bit_cast<std::uint32_t>(1.0f);
+    const auto pushed = Render::Models::OriginalVectorRotate(glm::vec3(0.0f, -100.0f, 0.0f),
+                                                             Render::Models::OriginalAngleMatrix(particle.angles));
+    for (int axis = 0; axis < 3; ++axis)
+        particle.position[axis] = F32(static_cast<double>(pushed[axis]) + static_cast<double>(particle.position[axis]));
+    const int x = random.Next() & Spread;
+    particle.position.x = F32((static_cast<double>(x) + static_cast<double>(particle.position.x)) - Center);
+    const int y = random.Next() & Spread;
+    particle.position.y = F32((static_cast<double>(y) + static_cast<double>(particle.position.y)) - Center);
+    particle.position.z = F32(static_cast<double>(particle.position.z) + Rise);
+    const int vx = random.Next() % SpeedSpan;
+    particle.velocity.x = F32((static_cast<double>(vx) * Tenth) - Unit);
+    const int vy = random.Next() % SpeedSpan;
+    particle.velocity.y = F32((static_cast<double>(vy) * Tenth) - Unit);
+    const int vz = random.Next() % FallSpan;
+    particle.life = BowSparkLife;
+    particle.velocity.z = F32(-static_cast<double>(vz) - Fall);
+    const int shrink = random.Next() % ShrinkSpan;
+    particle.scale = F32(static_cast<double>(scale) - (static_cast<double>(shrink) * Tenth));
+}
+
+// 0x545397..0x5453ce y 0x545340..0x545363, después de la vida y el movimiento comunes: rand() & 1 menos 0,6f en el rojo
+// y el verde y menos 0,8f en el azul, la escala menos 0,04f y +0x38 menos 0,001f; con +0x38 en 0 o menos (o NaN),
+// muere. Un rand().
+void StepTheBowSpark(Particle& particle, Render::Models::CrtRandom& random)
+{
+    constexpr double RedGreen = static_cast<double>(std::bit_cast<float>(0x3f19999au)); // 0x6b8a20
+    constexpr double Blue = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu));     // 0x6b8a38
+    constexpr double Shrink = static_cast<double>(std::bit_cast<float>(0x3d23d70au));   // 0x6b8aec
+    constexpr double Fade = static_cast<double>(std::bit_cast<float>(0x3a83126fu));     // 0x6b89c8
+    const auto flicker = static_cast<double>(random.Next() & 1);
+    particle.light.x = F32(flicker - RedGreen);
+    particle.light.y = particle.light.x;
+    particle.light.z = F32(flicker - Blue);
+    particle.scale = F32(static_cast<double>(particle.scale) - Shrink);
+    const double faded = static_cast<double>(std::bit_cast<float>(particle.field38)) - Fade;
+    particle.field38 = std::bit_cast<std::uint32_t>(F32(faded));
+    if (!(faded > 0.0))
+        particle.alive = false;
+}
+
+// 0x540bbe..0x540bf4 (/0) y 0x540bfe (/1, vida 10 y escala 0): la escala 0,15f en la /0 y la luz del pedido más 0,5 en
+// cada canal. La /0 conserva la vida del prefijo (2). Sin rand().
+void CreateTheLightning(Particle& particle, const glm::vec3& light)
+{
+    constexpr std::int32_t HitLife = 10;
+    constexpr double Lift = 0.5; // 0x6b882c
+    if (particle.subtype == LightningHitSubtype)
+    {
+        particle.life = HitLife;
+        particle.scale = 0.0f;
+    }
+    else
+        particle.scale = std::bit_cast<float>(0x3e19999au);
+    for (int axis = 0; axis < 3; ++axis)
+        particle.light[axis] = F32(static_cast<double>(light[axis]) + Lift);
+}
+
+// 0x545419..0x545489 con la /0 y la /1, después de la vida y el movimiento comunes: el giro (+0x44) es
+// (ftol(reloj) % 1000) · 0,001f y la luz dinámica de radio 3 (0x5f9780) es (v · 0,5f; v; v · 0,8f) con v = vida · 0,1f:
+// el rojo, del producto sin redondear; el azul, del verde ya guardado. Sin rand().
+Core::Expected<void, ParticleError> StepTheLightning(Particle& particle, const float* worldClock,
+                                                     TerrainLighting* lighting)
+{
+    constexpr std::int32_t ClockSpan = 1000;
+    constexpr std::int32_t LightningLightRadius = 3;
+    constexpr double Milli = static_cast<double>(std::bit_cast<float>(0x3a83126fu)); // 0x6b89c8
+    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b8a34
+    constexpr double Half = static_cast<double>(0.5f);                               // 0x6b882c
+    constexpr double Blue = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu));  // 0x6b8a38
+    if (worldClock == nullptr)
+        return Core::Unexpected(ParticleError::MissingClock);
+    particle.rotation = F32(static_cast<double>(FtolLow(static_cast<double>(*worldClock)) % ClockSpan) * Milli);
+    const double glow = static_cast<double>(particle.life) * Tenth;
+    const float green = F32(glow);
+    const glm::vec3 color{F32(glow * Half), green, F32(static_cast<double>(green) * Blue)};
+    if (!AddDynamicLight(lighting, particle.position, color, LightningLightRadius, "0x54547b").HasValue())
+        return Core::Unexpected(ParticleError::MissingDynamicLight);
+    return {};
+}
+
 bool IsSpark(const Particle& particle)
 {
     return particle.type == SparkParticle && particle.subtype == RavenSparkSubtype;
@@ -599,12 +731,21 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
     }
     if (type == BubbleParticle || type == DustParticle || type == ExplosionParticle)
         return subtype == 0 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
+    // 0x542b3b y 0x546b04: la 5e4 no lee el subtipo.
+    if (type == BloodParticle)
+        return std::nullopt;
+    if (type == LightningParticle)
+    {
+        return subtype == LightningTrailSubtype || subtype == LightningHitSubtype
+                   ? std::nullopt
+                   : std::optional(ParticleError::UnsupportedSubtype);
+    }
     if (type == HandShineParticle)
         return IsHandShine(type, subtype) ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     if (type == SparkParticle)
     {
         return subtype == TeleportSparkSubtype || subtype == RavenSparkSubtype || subtype == MapSparkSubtype ||
-                       IsWeaponSpark(type, subtype) || IsFenrirSpark(type, subtype)
+                       subtype == BowSparkSubtype || IsWeaponSpark(type, subtype) || IsFenrirSpark(type, subtype)
                    ? std::nullopt
                    : std::optional(ParticleError::UnsupportedSubtype);
     }
@@ -1469,6 +1610,11 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
             CreateTheExplosion(particle, scale);
             return std::optional(index);
         }
+        if (type == BloodParticle)
+        {
+            CreateTheBlood(particle, angles, random);
+            return std::optional(index);
+        }
         if (type == CloudParticle && subtype == 8)
         {
             CreateTheCloud8(particle, scale, random);
@@ -1492,6 +1638,16 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
         if (type == SparkParticle && subtype == MapSparkSubtype)
         {
             CreateTheMapSpark(particle, random);
+            return std::optional(index);
+        }
+        if (type == SparkParticle && subtype == BowSparkSubtype)
+        {
+            CreateTheBowSpark(particle, scale, random);
+            return std::optional(index);
+        }
+        if (type == LightningParticle)
+        {
+            CreateTheLightning(particle, light);
             return std::optional(index);
         }
         if (IsWeaponSpark(type, subtype))
@@ -1721,6 +1877,10 @@ StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random, const
             if (!stepped.HasValue())
                 return stepped;
         }
+        else if (particle.type == BloodParticle)
+        {
+            StepTheBlood(particle);
+        }
         else if (particle.type == HandShineParticle)
         {
             const auto stepped = StepTheHandShine(particle, trigonometry, actorHands);
@@ -1730,6 +1890,16 @@ StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random, const
         else if (IsMapSpark(particle))
         {
             StepTheMapSpark(particle);
+        }
+        else if (particle.type == SparkParticle && particle.subtype == BowSparkSubtype)
+        {
+            StepTheBowSpark(particle, random);
+        }
+        else if (particle.type == LightningParticle)
+        {
+            const auto stepped = StepTheLightning(particle, worldClock, lighting);
+            if (!stepped.HasValue())
+                return stepped;
         }
         else if (particle.type == SparkParticle && particle.subtype == TeleportSparkSubtype)
         {

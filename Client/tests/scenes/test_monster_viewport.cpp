@@ -266,7 +266,7 @@ TEST_F(MonsterViewportTest, TheMonstersOfLorenciaAndDeviasComeFromTheirCase)
         EXPECT_EQ(actor.hands[1].bone, 0x2au);
         EXPECT_EQ(actor.byte88, 2);
         EXPECT_EQ(actor.byte8, 0);
-        EXPECT_EQ(actor.word3a4, HeroSlot);
+        EXPECT_EQ(actor.attackTarget, HeroSlot);
         EXPECT_EQ(actor.characterClass, 0);
         // (3 − 1) · 45.
         EXPECT_EQ(actor.angles.z, 90.0f);

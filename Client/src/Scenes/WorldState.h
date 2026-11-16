@@ -22,6 +22,8 @@
 
 #include <array>
 #include <cstddef>
+#include <cstdint>
+#include <map>
 #include <span>
 #include <memory>
 
@@ -111,6 +113,13 @@ public:
     [[nodiscard]] const SharedModelPlacement& PlayerModel() const;
     // Lo que 0x505ec6 y 0x6001b0 copian de `actor` si es un 0x20a; con otro tipo, a otro modelo.
     void PlacePlayerModel(const ActorState& actor);
+    // 0x505ec6 y 0x4ec110: copia escala y origen al modelo compartido de su tipo (el 0x20a, a PlayerModel).
+    void PlaceModel(const ActorState& actor);
+    void PlaceModel(std::uint16_t type, const SharedModelPlacement& placement);
+    // La escala y la posición que tiene el modelo `type` (0x5769ad8 + tipo · 0xe0, +0x68 y +0x6c). En cero hasta la
+    // primera copia, como el de Player.bmd. 0x4ec110 la publica al dibujar el cuerpo en un frame del original (P-C241
+    // g).
+    [[nodiscard]] SharedModelPlacement ModelPlacement(std::uint16_t type) const;
 
     // Lo que hace la selección al pasar a la escena 3 con `chosen`, el elegido (06, "La lógica" y "La
     // entrada al mundo", paso 1; los tres caminos: Enter 0x6343e2..0x634470, doble clic
@@ -138,5 +147,6 @@ private:
     std::unique_ptr<GameDrawTailState> m_drawTail = std::make_unique<GameDrawTailState>();
     std::unique_ptr<World::Leaves> m_leaves = std::make_unique<World::Leaves>();
     SharedModelPlacement m_playerModel;
+    std::map<std::uint16_t, SharedModelPlacement> m_modelPlacements;
 };
 } // namespace Client::Scenes

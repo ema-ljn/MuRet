@@ -57,6 +57,7 @@ inline constexpr std::size_t ActorTextReach = 0x218 - 0x1d9;
 // WorldRuntime::map) corre sus pasos en orden, con cada rand() en su lugar entre los del alta (0x511290 y sus celdas):
 // - LoadMonster y LoadNpc cargan el modelo en WorldState::FaunaResources (0x612d90 y 0x612270, con las texturas de la
 //   tabla que liga el juego): sin Monster{n + 1}.bmd, el original cierra (0x612dd6..0x612de1, Q-C23) y MuRet corta.
+//   LoadMonster escribe la tabla de sonidos del modelo también en WorldRuntime::modelSounds (MonsterSounds.h).
 // - Create es CreateActor con la clave, el modelo, la celda y el ángulo del paso; Write, Name, Dress (0x512930), Box
 //   (0x5133b0), Ground, Lower y CopyHeight escriben el personaje; MeshFlag y ModelByte quedan en
 //   WorldRuntime::modelPatches; BoneName en WorldRuntime::namedBones (0x401000); Sound en WorldRuntime::lastSoundId

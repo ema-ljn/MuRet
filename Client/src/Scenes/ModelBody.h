@@ -2,7 +2,6 @@
 
 #include "Core/Expected.h"
 
-#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <span>
@@ -31,14 +30,16 @@ enum class ModelActionEnd : std::uint8_t
 {
     Done,         // sale
     AdvanceAgain, // 0x42d890 devolvió 1: 0x4f9580 otra vez (0x4fcbe3)
+    LeaveRemains, // la 6 de un monstruo con +0x38a en 0, que ya quedó en 1: 0x52e810 (0x4fcc3c, LeaveTheRemains)
 };
 
 // 0x4fcbb0(c, c), al terminar la acción de otro modelo que el 0x20a (0x4fce60). `skeleton` es el del modelo, que lee
 // 0x4ea030. En orden: el 0xc5 pone +0x111 en 1; 0x42d890 en el mapa 30, por +0x376 (221 y 222 a la acción 0; 277 por
 // +0x78; 286 y 287 por la acción, con el byte 0x7239d8, `runtime.castleByte7239d8`); en el mapa 1 el 0x28 a la 0; los
-// 0x152..0x1c9 (los monstruos): la 6 con +0x38a en 0 corta (0x52e810, CL11), las 1, 3, 4, 5, 8, 9 y 0xb a la 0; el
+// 0x152..0x1c9 (los monstruos): la 6 con +0x38a en 0 lo pone en 1 y pide los restos (LeaveRemains: 0x52e810, CL9
+// hito 3; con +0x38a en 1, nada), las 1, 3, 4, 5, 8, 9 y 0xb a la 0; el
 // 0x1ce y el 0x1cf, rand() % 16 debajo de 12 a la 0 y si no a 1 + rand() % 2; el NewFace nada; los demás a rand() % 2.
-[[nodiscard]] Core::Expected<ModelActionEnd, std::string> FinishTheModelAction(ActorState& actor, std::size_t slot,
+[[nodiscard]] Core::Expected<ModelActionEnd, std::string> FinishTheModelAction(ActorState& actor,
                                                                                const Render::Models::Skeleton& skeleton,
                                                                                WorldRuntime& runtime,
                                                                                Render::Models::CrtRandom& random);

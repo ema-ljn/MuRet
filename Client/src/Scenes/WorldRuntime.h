@@ -1,11 +1,13 @@
 #pragma once
 
+#include "Data/Tables/MonsterSkillTable.h"
 #include "Data/Text/DialogTable.h"
 #include "Data/Text/MoveRequirements.h"
 #include "GameLogic/MovementSpeed.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
+#include "Scenes/AttackRules.h"
 #include "Scenes/ChatBubbles.h"
 #include "Scenes/EventMapObject.h"
 #include "Scenes/FullSetScan.h"
@@ -13,6 +15,7 @@
 #include "Scenes/GameItemRenderState.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/ItemHelpLevels.h"
+#include "Scenes/MonsterSounds.h"
 #include "Scenes/NpcNames.h"
 #include "Scenes/QuestState.h"
 #include "Scenes/SceneId.h"
@@ -428,9 +431,8 @@ struct WorldRuntime
     World::TerrainPolygonState terrainPolygonState{};
     // Las marcas del suelo, 0x760cab0..0x760f990, en la .bss: todas apagadas al arrancar. Solo las tocan
     // 0x548fe0, 0x549090 y 0x549130, y ninguna carga las vacía: 0x6070a0 apaga las tablas de al lado y no esta
-    // (Q-C228). Las llenan 0x505de0 con el modelo 0x182 (0x507486) y 0x52e810 (0x52e96c), desde el paso del
-    // cuerpo (0x4fd5f0 → 0x4fcd00), y MuRet no corre ninguno de los dos: corta antes, en 0x505e0b y 0x4fcb87
-    // (08 P-C49).
+    // (Q-C228). Las llenan 0x505de0 con el modelo 0x182 (0x507486), que MuRet corta antes (0x507414, 08 P-C241 a), y
+    // 0x52e810 (0x52e96c, Scenes::LeaveTheRemains, CL9 hito 3), desde el paso del cuerpo (0x4fd5f0 → 0x4fcd00).
     World::GroundMarkTable groundMarks{};
     // 0x77f36d0, la capa 1 de la celda del héroe, en la .bss: 0 al arrancar. La escribe MoveHero (0x59e2ba),
     // después del contador. La leen el paso de los objetos
@@ -439,10 +441,26 @@ struct WorldRuntime
     // 0x75fdc38: meta del 0F. 0x75fdc3c es la cuenta actual, que ese paquete no cambia.
     // Estado durable de 0x530490 para el futuro binder de hojas; recibir 0F no crea lluvia.
     World::LeafWeather leafWeather{.firstWave = InitialLeafCount};
+    // CL9 hito 3: lo que mira 0x558bb0 para saber si el personaje elegido se puede atacar (AttackRules.h).
+    AttackRules attackRules{};
     // [0x5767964] (.bss, 0): el lugar del último que pegó. Lo escriben el 18 con las acciones 0x78 y 0x79 (0x4cb849),
     // el 0x19 (0x4cce7d), el 0x69 (0x4cc2e1) y el 0x1A (0x4cedf7, también con el 400 fantasma), y lo lee el D7 que
-    // llega con el efecto defensivo (0x4cb32f). MuRet escribe el del 1A (CL9 hito 2).
+    // llega con el efecto defensivo (0x4cb32f, que corta). MuRet escribe el del 18 (CL9 hito 3, fase 2a) y el del 1A
+    // (CL9 hito 2).
     std::int32_t lastAttacker = 0;
+    // [0x6c88ac] (.data, 15): desde cuántos pasos de +0x381 corre la habilidad de 0x4fd5f0 (0x4fdbe5, con signo). Lo
+    // escribe solo 0x4f97b0: 15 en 0x4f987d, antes de su switch, y 5 en 0x4f9ee2, un caso de habilidad (hito 4).
+    std::int32_t skillThreshold = 15;
+    // [0x5767948] (.bss, 0): la skill (el sexto argumento, & 0xff) del último tiro de 0x53d9a0 (0x53deb6, CL9 hito 3,
+    // fase 2e). Lo lee la habilidad 0x31 (06, la tabla de globales), del hito 4.
+    std::uint32_t lastShotSkill = 0;
+    // +0xaa..+0xbc de los modelos de [0x5769ad8]: lo que 0x612c80 escribió desde el alta de cada monstruo (0x612d90,
+    // MonsterSounds.h), que leen 0x4f4a10 y 0x4f5660 (CL9 hito 3, fase 2c). No se vacía: nadie más escribe esas WORD,
+    // y un modelo que se suelta conserva las suyas.
+    ModelSoundTable modelSounds{};
+    // [0x7437670]: las skills de los monstruos de MonsterSkill.bmd (0x54a440), que main.cpp copia de
+    // GameData::monsterSkills y lee 0x4f92f0 (CL9 hito 3, fase 2c). Sin el archivo, la .bss.
+    Data::Tables::MonsterSkillTable monsterSkills{};
     // 0x7239a8: la cola de las barras de vida, un std::deque de bloques de 0x1000 bytes que 0x42a2b0 llena desde el
     // paso de los personajes (el 0x1a8 con +0x93 debajo de 5) y 0x42a4d0 vacía de a la mitad en el HUD
     // (Scenes/HealthBars.h). Solo la tocan esas dos y su constructor estático (0x4293d0): no se vacía al cambiar de

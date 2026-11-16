@@ -63,6 +63,7 @@ protected:
         m_world->FaunaResources().TextureTable().Bind(m_store);
         auto context = m_world->FaunaResources().LoadContextOf(m_folder.Path(), m_log);
         ASSERT_TRUE(context.has_value());
+        context->sounds = &m_world->Runtime().modelSounds;
         for (const std::int32_t number : {0, 1})
         {
             const auto loaded = m_world->FaunaResources().LoadMonster(number, 0, *context);

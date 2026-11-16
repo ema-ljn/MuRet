@@ -98,6 +98,9 @@ public:
     // Entre frames del original: la primera tela como quedó, sin simularla, llevada a `body` (#307). Sin tela, nada.
     void DrawTheMonsterCloth(Render::ModelBatch& batch, const Render::Models::ClothBody& body, float worldTime);
 
+    // 0x4fb1a0: suelta los recursos de las telas del personaje, sin reiniciar el reloj del bloque ni su blend anterior.
+    void ReleaseResources();
+
     // Advance vuelve a contar desde cero, como en el primer frame: el próximo corre un frame del bloque y no
     // pone al día el tiempo que pasó sin dibujo. Las telas quedan como estaban. Es para un frame retenido
     // (Q-C85): el original no dibuja mientras conecta, y en el frame siguiente corre uno.

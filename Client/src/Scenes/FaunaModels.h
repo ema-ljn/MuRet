@@ -9,6 +9,7 @@
 #include "Scenes/ConstructedBmdPrefix.h"
 #include "Scenes/TextureMetadata.h"
 #include "Scenes/ModelTextureTable.h"
+#include "Scenes/MonsterSounds.h"
 
 #include <array>
 #include <cstdint>
@@ -42,6 +43,9 @@ struct FaunaModelLoadContext
     Core::Log& log;
     Render::Models::ModelTextureSlots& slots;
     ModelTextureTable* sharedTextures = nullptr;
+    // WorldRuntime::modelSounds: 0x612d90 escribe la tabla de sonidos del modelo (0x612c80, 0x613127) después de
+    // cargarlo con mallas. nullptr, no la escribe.
+    ModelSoundTable* sounds = nullptr;
 };
 struct FaunaResourceSound
 {

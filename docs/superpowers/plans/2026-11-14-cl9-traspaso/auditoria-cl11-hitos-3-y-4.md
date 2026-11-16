@@ -78,7 +78,7 @@ F es sistemático (todos los `CutAt`/`Core::Unexpected` de alta de 0x518cf0/0x53
 
 ### P2 (bajo). El brillo de la mano 0xa25 — ArrowEffects.cpp:729 (h3), 0x53e642
 
-- Original (0x53e2b0): 0x4ec110 hueso de la mano (+0x2bd) con (0, 10, −130); 15 × {rand() % 360 → ángulo z;
+- Original (0x53e2b0): 0x4ec110 hueso de la mano (+0x2bd) con (0, 10, −130); 15 × {rand() % 360 → ángulo x;
   rand() & 1 == 0 → joint 0x530860(0x617, pt, pt, ángulos, 3, sin dueño, 10,0f, −1, 0, 0, −1); partícula
   0x53fe70(0x5c5, pt, ángulos, (1,1,1), 0, 1,0f, 0)}.
 - Las dos clases están portadas (joint 0x617/3, partícula 0x5c5/0): `CreateFaunaJoint` + `Particles::CreateChecked`.

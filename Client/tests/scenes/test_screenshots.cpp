@@ -329,7 +329,8 @@ TEST(ScreenshotsTest, WithoutAChosenServerTheGroupIsEmpty)
 TEST(ScreenshotsTest, AHeldFrameWithTheRequestCuts)
 {
     {
-        Shooting shooting;
+        const std::unique_ptr<Shooting> shootingOnHeap = std::make_unique<Shooting>();
+        Shooting& shooting = *shootingOnHeap;
         Screenshots screenshots(ScreenshotState{.requested = true});
         screenshots.FinishTheLoop(true);
         ASSERT_TRUE(shooting.Frame(screenshots).HasValue());
@@ -337,7 +338,8 @@ TEST(ScreenshotsTest, AHeldFrameWithTheRequestCuts)
         screenshots.FinishTheLoop(false);
         EXPECT_TRUE(screenshots.StepTheKey(shooting.ui, shooting.input).HasValue()) << "un frame dibujado no corta";
     }
-    Shooting shooting;
+    const std::unique_ptr<Shooting> shootingOnHeap = std::make_unique<Shooting>();
+    Shooting& shooting = *shootingOnHeap;
     Screenshots screenshots(ScreenshotState{.requested = true});
     screenshots.FinishTheLoop(false);
     const auto step = screenshots.StepTheKey(shooting.ui, shooting.input);

@@ -145,6 +145,8 @@ Core::Expected<DrawSelection, ParticleDrawingError> SelectBranch(Particle& p, st
         return DrawSelection{ParticleDrawKind::Bubble, false};
     case ExplosionParticle: // 0x548644 → 0x54864b, sin leer el subtipo.
         return DrawSelection{ParticleDrawKind::Explosion, false};
+    case BloodParticle: // 0x548644 → 0x5487b9, sin leer el subtipo.
+        return DrawSelection{ParticleDrawKind::Blood, false};
     case TorchSparkParticle: // 0x5488f6: la 6ab va al default, 0x54889a.
     case HandShineParticle:  // 0x5488f6: la 5fd también (el byte 8 de 0x548cf7), sin leer el subtipo.
         return DrawSelection{ParticleDrawKind::Common, false};
@@ -173,7 +175,8 @@ Core::Expected<DrawSelection, ParticleDrawingError> SelectBranch(Particle& p, st
             return Core::Unexpected(blended.Error());
         return DrawSelection{ParticleDrawKind::Common, false, added};
     }
-    case ThunderParticle: // 548ca1→54889a: billboard común sin lectura del subtipo.
+    case ThunderParticle:   // 548ca1→54889a: billboard común sin lectura del subtipo.
+    case LightningParticle: // 0x548644: el índice 8 de 0x548c9c, al mismo 0x54889a.
     case SparkParticle:
     case Particle67:
     case Particle68:

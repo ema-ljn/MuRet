@@ -11,6 +11,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <span>
 #include <string>
 
@@ -148,4 +149,40 @@ TEST_F(GoldenTerrainWalls, TheGatesOpenInLorenciaAndDevias)
         EXPECT_EQ(changed, 4u * walled);
     }
 }
+// 0x558800: el Bresenham de la línea de vista, con las dos puntas. Tapa una celda con el WORD en 4 o más sin 0x20,
+// 0x40 ni 0x80 en el byte bajo; la de partida también. Con las dos diferencias iguales el eje largo es la Y, y el error
+// mueve la corta cuando pasa de la mitad de la larga.
+TEST(TerrainWallsTest, TheLineOfSightStopsAtTheFirstWall)
+{
+    Client::World::TerrainWalls walls;
+    const auto at = [&](int x, int y) -> std::uint16_t& { return walls.cells[static_cast<std::size_t>(y * 256 + x)]; };
+    EXPECT_EQ(Client::World::CanSeeTheCell(walls.cells, 10, 10, 14, 10), std::optional<bool>{true});
+    for (const std::uint16_t word :
+         {std::uint16_t{3}, std::uint16_t{0x24}, std::uint16_t{0x44}, std::uint16_t{0x84}, std::uint16_t{0x104}})
+    {
+        SCOPED_TRACE(word);
+        at(12, 10) = word;
+        const bool seen = word == 3 || (word & 0xe0) != 0;
+        EXPECT_EQ(Client::World::CanSeeTheCell(walls.cells, 10, 10, 14, 10), std::optional<bool>{seen});
+        EXPECT_EQ(Client::World::CanSeeTheCell(walls.cells, 14, 10, 10, 10), std::optional<bool>{seen});
+    }
+    at(12, 10) = 0;
+    at(14, 10) = 4;
+    EXPECT_EQ(Client::World::CanSeeTheCell(walls.cells, 10, 10, 14, 10), std::optional<bool>{false});
+    EXPECT_EQ(Client::World::CanSeeTheCell(walls.cells, 14, 10, 10, 10), std::optional<bool>{false});
+    at(14, 10) = 0;
+    // (10, 10) a (14, 12): la X es la larga; el error suma 2 por paso y pasa de 2 en el segundo y el cuarto, así que
+    // recorre (10, 10), (11, 10), (12, 11), (13, 11) y (14, 12).
+    at(12, 10) = 4;
+    at(11, 11) = 4;
+    EXPECT_EQ(Client::World::CanSeeTheCell(walls.cells, 10, 10, 14, 12), std::optional<bool>{true});
+    at(12, 11) = 4;
+    EXPECT_EQ(Client::World::CanSeeTheCell(walls.cells, 10, 10, 14, 12), std::optional<bool>{false});
+    // Con dx = dy, la Y es la larga y la diagonal pasa por (11, 11).
+    at(12, 11) = 0;
+    EXPECT_EQ(Client::World::CanSeeTheCell(walls.cells, 10, 10, 13, 13), std::optional<bool>{false});
+    // Fuera de la grilla: la punta de llegada se lee del índice lineal y sale del arreglo.
+    EXPECT_EQ(Client::World::CanSeeTheCell(walls.cells, 5, 255, 5, 257), std::nullopt);
+}
+
 } // namespace

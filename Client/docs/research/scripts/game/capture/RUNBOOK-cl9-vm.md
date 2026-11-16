@@ -1,4 +1,4 @@
-# CL9 H1/H9: entrega para el agente con acceso a la VM
+# CL9 H1/H9 y H3: entrega para el agente con acceso a la VM
 
 **Pedido de Emanuel:** fidelidad al ASM y al pseudocódigo; si discrepan, prevalece el ASM.
 Primero se contrasta el código, después se observa el original en la VM. Esta entrega permite recuperar
@@ -210,3 +210,28 @@ Conservar privados raw logs, claves, volcados, trazas, imágenes y vídeo. Devol
 Si aparecen diferencias, conservar el original y su referencia. Corregir el port o el fixture cuando se demuestre
 una precondición obsoleta; no ajustar tolerancias, conteos o datos esperados sólo para obtener verde.
 Los 59 tests son una regresión histórica acotada. Pasarlos no termina CL9 ni integra H3/H4/H7/H10/H13.
+
+## 6. H3: repetir el combate normal
+
+El [informe de H3](../../../15-h3-combate-y-muerte.md) registra una corrida nueva en XP: dos ataques
+normales, una muerte y la experiencia. Para repetirla:
+
+1. Dejar al personaje fuera de la zona segura, junto a un monstruo atacable. El operador hace el
+   login privado. Verificar que la captura muestre el mapa y que el juego tenga el foco antes de
+   enviar entrada. Un protector de pantalla o una ventana ausente no prueban una caída del cliente.
+2. Capturar una ventana breve de red, correlacionando la única conexión TCP del cliente. En Linux,
+   `vmnet-sniffer -w` debe escribir a un archivo privado distinto de stdout: el sniffer también imprime
+   texto y mezclar ambos canales corrompe el PCAP. Verificar el encabezado binario, filtrar la conexión
+   y eliminar sólo el archivo amplio generado por esa captura después de comprobar el filtrado.
+3. Resaltar el monstruo y hacer un clic normal. Si se usa un auxiliar propio de entrada, compilarlo
+   con subsistema GUI y exigir foco/rectángulo válidos; un auxiliar de consola puede quitar el foco
+   al juego a pantalla completa. Soltar el botón al terminar. Esta secuencia no necesita leer memoria.
+4. Correlacionar el A4 saliente (D7 remapeado, siete bytes, acción 0x78), el D7 de daño entrante
+   (ocho bytes), el 17 y el C3 16 con los números visibles. `pcap2log.py` y `wirelib.py` necesitan las
+   referencias C3/C4 ya recuperadas. No publicar claves de actores ni paquetes reales de esa sesión.
+
+La corrida del informe recibió el 17 **antes** del 16 sin shock. La regresión
+`MonsterCombatTest.APlainDeathThenKillExperienceReplyFinishesTheMonster` conserva ese orden con claves
+sintéticas y observa daño, XP, chat y retiro del cuerpo. El 17 de cinco bytes confirma el problema de
+Q-C1161; no informa qué bytes residuales leyó el original. Ninguna de estas observaciones demuestra
+por sí sola saturación de pools, RNG interno, combate especial ni interoperabilidad completa de MuRet.

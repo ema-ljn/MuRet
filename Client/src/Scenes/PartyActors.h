@@ -13,7 +13,13 @@ class PanelRegistry;
 namespace Client::Scenes
 {
 class WorldState;
+struct ActorState;
 struct FramePickingContext;
+
+// 0x59e680(personaje), y el mismo lazo en línea del Teleport Ally (0x5926ca..0x592766): con party (0x78aba48 sobre 0,
+// con signo), si algún lugar de 0x77f3cd0 (de a 0x24, hasta la cuenta) da 0 en strncmp(lugar, +0x1d9, n), con n el
+// largo del nombre o 1 si está vacío: el lugar empieza con el nombre (con el nombre vacío, el lugar vacío). Sin rand().
+[[nodiscard]] bool IsInTheParty(const WorldState& world, const ActorState& actor);
 
 // 0x59e890..0x59e948 (en 0x59e700) y 0x59e439..0x59e4ed (en 0x59e3b0), con el personaje `index`, que el que llama ya
 // eligió: el primer lugar de la party (hasta 0x78aba48) con +0x1c en −2 cuyo nombre es el suyo (strncmp con el mayor

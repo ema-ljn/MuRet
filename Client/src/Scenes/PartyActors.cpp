@@ -66,6 +66,19 @@ std::size_t Members(const WorldRuntime& runtime)
 }
 } // namespace
 
+bool IsInTheParty(const WorldState& world, const ActorState& actor)
+{
+    const WorldRuntime& runtime = world.Runtime();
+    const std::string_view name = NameView(actor.name);
+    for (std::size_t at = 0; at < Members(runtime); ++at)
+    {
+        const std::string_view member = NameView(runtime.social.party.slots[at].name);
+        if (name.empty() ? member.empty() : member.starts_with(name))
+            return true;
+    }
+    return false;
+}
+
 void MatchThePartyMembers(WorldState& world, std::size_t index)
 {
     WorldRuntime& runtime = world.Runtime();

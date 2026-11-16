@@ -8,6 +8,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/ActorPickingBox.h"
 #include "Scenes/GameUi.h"
+#include "Scenes/PartyActors.h"
 #include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -367,6 +368,37 @@ TEST(CharacterPickingTest, ThePlayersFindTheirPartySlotsWhilePicking)
         static_cast<void>(PickTheCharacter(world, Players, Ray.origin, Ray));
         EXPECT_EQ(Indices(world), (std::array<std::int32_t, 4>{-1, -3, -1, -1}));
         EXPECT_EQ(slots[1].actorFlags, 0U);
+    }
+}
+
+// 0x59e680 (y el lazo en línea de 0x5926ca): strncmp(lugar, nombre, max(largo, 1)) en los lugares hasta 0x78aba48. El
+// lugar que empieza con el nombre cuenta; con el nombre vacío, solo el lugar vacío; sin party o con la cuenta negativa,
+// nadie. No toca +0x1c ni +0x20.
+TEST(CharacterPickingTest, IsInThePartyComparesTheNameAsAPrefix)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        Picking tested;
+        WorldState& world = *tested.world;
+        world.Runtime().map = map;
+        Client::Scenes::ActorState& actor = world.Actors()[3];
+        Name(actor.name, "Brezal");
+        EXPECT_FALSE(Client::Scenes::IsInTheParty(world, actor));
+        Party(world, {"Tejon", "Brez"}, -2);
+        EXPECT_FALSE(Client::Scenes::IsInTheParty(world, actor));
+        Party(world, {"Tejon", "Brezales"}, -2);
+        EXPECT_TRUE(Client::Scenes::IsInTheParty(world, actor));
+        EXPECT_EQ(Indices(world), (std::array<std::int32_t, 4>{-2, -2, 0, 0}));
+        Party(world, {"Tejon", "Brezal"}, -2);
+        EXPECT_TRUE(Client::Scenes::IsInTheParty(world, actor));
+        // El tercer lugar vacío no cuenta con la cuenta en 2.
+        Name(actor.name, "");
+        EXPECT_FALSE(Client::Scenes::IsInTheParty(world, actor));
+        world.Runtime().hud.partyCount = 3;
+        EXPECT_TRUE(Client::Scenes::IsInTheParty(world, actor));
+        world.Runtime().hud.partyCount = -1;
+        EXPECT_FALSE(Client::Scenes::IsInTheParty(world, actor));
     }
 }
 

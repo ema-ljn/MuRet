@@ -11826,8 +11826,9 @@ dirección en `Scenes/Skill4f5290`, `Skill57ce80` y, compartidos con la rama del
 `Skill4e9920`, `Skill551f40` y `Skill57cf90`, y lo que va en línea en `Scenes/HeroSkillSupport`. `0x5767948` es
 `GameMovementState::lastShotSkill`, el del elfo. Los envíos en
 [04](04-protocolo.md#lo-que-manda-la-rama-del-wizard-19-1e-1c-y-b0). La clave del jugador llega de la sesión
-(`ServerSession::PlayerIndex`). Cortan: la party (`0x58b06e`, `0x59272c`, hito 7) y la poción (`0x589936`, hito 5)
-(08, P-C222); `0x5808da` es `UseTheSharedTail` ([abajo](#la-cola-de-las-0x43-a-0x48)).
+(`ServerSession::PlayerIndex`). La party (`0x58b06e` y el `strncmp` de `0x59272c`) es `Scenes::IsInTheParty`
+(`0x59e680`, con los lugares del hito 7) y la poción (`0x589936`), `UseAManaPotion` (08, P-C222); `0x5808da` es
+`UseTheSharedTail` ([abajo](#la-cola-de-las-0x43-a-0x48)).
 
 ### La cola de las 0x43 a 0x48
 

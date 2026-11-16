@@ -17,6 +17,7 @@
 #include "Scenes/HeroSkills.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/Skill55cbc0.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -30,6 +31,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
@@ -38,6 +40,7 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -173,6 +176,22 @@ struct WizardHero
         chosen.byte88 = 1;
         chosen.byte370 = 0;
         chosen.hands[0].model = chosen.hands[1].model = Client::Scenes::NoItemModel;
+    }
+    // El aliado se llama `name` y la party (0x77f3cd0, con 0x78aba48) tiene estos nombres.
+    void JoinTheParty(std::string_view name, std::initializer_list<std::string_view> members)
+    {
+        const auto write = [](std::span<std::byte> bytes, std::string_view text)
+        {
+            std::ranges::fill(bytes, std::byte{0});
+            for (std::size_t at = 0; at < text.size(); ++at)
+                bytes[at] = static_cast<std::byte>(text[at]);
+        };
+        write(Chosen().name, name);
+        auto& party = world.Runtime().social.party;
+        std::size_t at = 0;
+        for (const std::string_view member : members)
+            write(party.slots[at++].name, member);
+        world.Runtime().hud.partyCount = static_cast<std::int32_t>(members.size());
     }
     // Sin elegido: 0x57ce80 apunta al terreno, a (186, 119).
     void AimAtTheTerrain()
@@ -943,24 +962,47 @@ AllyCell FirstAllyCell(CrtRandom random)
     }
 }
 
-// 0x5925d9..0x593050: Teleport Ally. Sin asedio, solo con la party (los nombres son del hito 7); en el asedio (mapa
-// 30), una celda de al lado sin pared, o cualquiera dentro del castillo, y el B0 con la clave del elegido en little
-// endian; el elegido mira a su +0x3a8 y toma la acción 0x93.
+// 0x5925d9..0x593050: Teleport Ally. Sin asedio, solo un miembro de la party (0x5926ca..0x592766, el strncmp de
+// 0x59272c: un lugar que empieza con su nombre); en el asedio (mapa 30), una celda de al lado sin pared, o cualquiera
+// dentro del castillo, y el B0 con la clave del elegido en little endian; el elegido mira a su +0x3a8 y toma la acción
+// 0x93.
 TEST(HeroSkillsWizardTest, TeleportAllyMovesTheChosenNextToTheHero)
 {
     for (const std::int32_t map : {0, 2})
     {
         SCOPED_TRACE(map);
+        for (const bool partied : {false, true})
+        {
+            SCOPED_TRACE(partied);
+            const auto tested = AWizard(0xf, Wizard, map);
+            tested->ChooseAnAlly();
+            if (partied)
+                tested->JoinTheParty("aliado", {"otro", "aliad"});
+            const CrtRandom expected = Advanced(tested->random, HeadDraws + HeroCellDraws);
+            ASSERT_TRUE(tested->Use().HasValue());
+            EXPECT_EQ(tested->random.State(), expected.State());
+            EXPECT_TRUE(tested->sent.empty());
+        }
+        // Fuera del mapa 30 la celda de al lado no lee la del héroe publicado: dos rand() % 3 por vuelta.
         const auto tested = AWizard(0xf, Wizard, map);
         tested->ChooseAnAlly();
-        const CrtRandom expected = Advanced(tested->random, HeadDraws + HeroCellDraws);
+        tested->JoinTheParty("aliado", {"otro", "aliado2"});
+        CrtRandom probe = Advanced(tested->random, HeadDraws + HeroCellDraws);
+        int dx = 1;
+        int dy = 1;
+        while (dx == 1 && dy == 1)
+        {
+            dx = probe.Next() % 3;
+            dy = probe.Next() % 3;
+        }
+        const CrtRandom expected = Advanced(probe, SendDraws);
         ASSERT_TRUE(tested->Use().HasValue());
         EXPECT_EQ(tested->random.State(), expected.State());
-        EXPECT_TRUE(tested->sent.empty());
-        tested->world.Runtime().hud.partyCount = 2;
-        const auto result = tested->Use();
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_TRUE(Contains(result.Error(), "0x59272c")) << result.Error();
+        ASSERT_EQ(tested->sent.size(), 1u);
+        EXPECT_EQ(tested->Sent(0), (std::vector<std::uint8_t>{0xc1, 0x07, 0xb0, 0x1b, 0x0a,
+                                                              static_cast<std::uint8_t>(182 + dx - 1),
+                                                              static_cast<std::uint8_t>(115 + dy - 1)}));
+        EXPECT_EQ(tested->Chosen().animation.action, 0x93);
     }
     for (const bool castle : {true, false})
     {
@@ -1022,7 +1064,7 @@ TEST(HeroSkillsWizardTest, TeleportAllyMovesTheChosenNextToTheHero)
 }
 
 // 0x58b026..0x58c15b: Soul Barrier. Sin elegido, el 19 con la clave del jugador, 0x4f5290 y sigue por el alcance; con
-// un elegido que no es jugador, 0x6c8e38 en −1; con un jugador, la party (hito 7).
+// un elegido que no es jugador, 0x6c8e38 en −1; con un jugador fuera de la party (0x59e680), nada.
 TEST(HeroSkillsWizardTest, SoulBarrierWithoutAChosenGoesOnTheHero)
 {
     for (const std::int32_t map : {0, 2})
@@ -1046,14 +1088,55 @@ TEST(HeroSkillsWizardTest, SoulBarrierWithoutAChosenGoesOnTheHero)
         EXPECT_EQ(tested->world.Runtime().selectedTargets[4], -1);
         EXPECT_TRUE(tested->sent.empty());
     }
+    for (const bool partied : {false, true})
+    {
+        SCOPED_TRACE(partied);
+        const auto tested = AWizard(0x10);
+        tested->ChooseAnAlly();
+        if (partied)
+            tested->JoinTheParty("aliado", {"otro", "aliad"});
+        const CrtRandom expected = Advanced(tested->random, HeadDraws);
+        ASSERT_TRUE(tested->Use().HasValue());
+        EXPECT_EQ(tested->random.State(), expected.State());
+        EXPECT_TRUE(tested->sent.empty());
+        EXPECT_EQ(tested->Movement().weaponSkill.active, 0u);
+    }
+}
+
+// 0x58b07e..0x58b50d: Soul Barrier sobre un miembro de la party: +0x3a4 y 0x7758580..88 con el elegido. En alcance,
+// el 19 con su clave, 0x4f5290 y sigue por el alcance (que vuelve a escribir 0x7758588: el aliado no se ataca); fuera,
+// el camino hasta el alcance desde la celda del héroe (0x58b1d1: +0x378 en 1 y +0x379 en 5) y nada más.
+TEST(HeroSkillsWizardTest, SoulBarrierOnAPartyMember)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        const auto tested = AWizard(0x10, Wizard, map);
+        tested->ChooseAnAlly();
+        tested->JoinTheParty("aliado", {"otro", "aliado"});
+        const CrtRandom expected = Advanced(tested->random, HeadDraws + SendDraws + HitDraws + HeroCellDraws);
+        ASSERT_TRUE(tested->Use().HasValue());
+        EXPECT_EQ(tested->random.State(), expected.State());
+        ASSERT_EQ(tested->sent.size(), 1u);
+        EXPECT_EQ(tested->Sent(0), (std::vector<std::uint8_t>{0xc1, 0x06, 0x19, 0x10, 0x0a, 0x1b}));
+        EXPECT_EQ(tested->Hero().attackTarget, ChosenSlot);
+        EXPECT_EQ(tested->Movement().weaponSkill.active, 1u);
+        EXPECT_EQ(tested->Movement().weaponSkill.target, -1);
+    }
     const auto tested = AWizard(0x10);
     tested->ChooseAnAlly();
+    tested->JoinTheParty("aliado", {"aliado"});
+    tested->Movement().selectedSkillRange = 2.0f;
+    const CrtRandom expected = Advanced(tested->random, HeadDraws + HeroCellDraws);
     ASSERT_TRUE(tested->Use().HasValue());
+    EXPECT_EQ(tested->random.State(), expected.State());
     EXPECT_TRUE(tested->sent.empty());
-    tested->world.Runtime().hud.partyCount = 1;
-    const auto result = tested->Use();
-    ASSERT_FALSE(result.HasValue());
-    EXPECT_TRUE(Contains(result.Error(), "0x58b06e")) << result.Error();
+    EXPECT_EQ(tested->Hero().attackTarget, ChosenSlot);
+    EXPECT_EQ(tested->Movement().weaponSkill.active, 1u);
+    EXPECT_EQ(tested->Movement().weaponSkill.slot, 0u);
+    EXPECT_EQ(tested->Movement().weaponSkill.target, static_cast<std::int32_t>(ChosenSlot));
+    EXPECT_EQ(tested->Hero().movement, 1);
+    EXPECT_EQ(tested->Hero().movementType, 5);
 }
 
 // 0x58a13a: las 0x12 a 0x17 y la 0x2f no hacen nada después de apuntar.

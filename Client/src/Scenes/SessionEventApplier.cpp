@@ -185,6 +185,11 @@ void SessionEventApplier::CopyToPacketRing(std::span<const std::byte> packet)
     StoreViewportPacket(m_resources.world.Runtime().viewportPackets, packet);
 }
 
+void SessionEventApplier::ClearLogoutRequest()
+{
+    m_resources.world.Runtime().ui.logoutRequested = false;
+}
+
 std::optional<Core::Expected<void, std::string>> SessionEventApplier::ApplyViewport(const App::WorldEvent& event)
 {
     if (const auto* players = std::get_if<Protocol::Viewport::Players>(&event))
@@ -224,7 +229,15 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
     }
     if (std::holds_alternative<App::ReturnToSelectionReceived>(event))
     {
-        ApplyReturnToSelection(m_resources);
+        return ApplyReturnToSelection(m_resources);
+    }
+    if (std::holds_alternative<App::ServerListLogoutCleanup>(event))
+    {
+        return PrepareReturnToServerList(m_resources);
+    }
+    if (std::holds_alternative<App::ReturnToServerListReceived>(event))
+    {
+        ApplyReturnToServerList(m_resources);
         return {};
     }
     if (const auto* moved = std::get_if<Protocol::Inventory::ItemMoveResult>(&event))

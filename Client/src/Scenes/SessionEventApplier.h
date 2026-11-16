@@ -34,6 +34,7 @@ public:
     Core::Expected<void, std::string> ApplyWorld(const App::WorldEvent& event, App::ServerSession& session) override;
     // La copia del dispatcher a la cola de la .bss (WorldRuntime::viewportPackets), con StoreViewportPacket.
     void CopyToPacketRing(std::span<const std::byte> packet) override;
+    void ClearLogoutRequest() override;
 
 private:
     Core::Expected<void, std::string> ApplyWorldContent(const App::WorldEvent& event, App::ServerSession& session);

@@ -26,6 +26,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string>
@@ -107,6 +108,11 @@ private:
 // el grupo "Grupo Uno".
 struct Shooting
 {
+private:
+    // El caso con dos capturas no debe reservar dos WorldState en la pila de Windows.
+    std::unique_ptr<Client::Scenes::WorldState> m_world = std::make_unique<Client::Scenes::WorldState>();
+
+public:
     Shooting() : texts(Client::Tests::MakeTextTable({{ScreenshotText, "Guardada %s"}, {FirstGroupText, "Grupo Uno"}}))
     {
         Client::Scenes::ActorState& hero = world.Actors()[world.Runtime().hero];
@@ -149,7 +155,7 @@ struct Shooting
         return lines;
     }
 
-    Client::Scenes::WorldState world;
+    Client::Scenes::WorldState& world = *m_world;
     LetterMeasure measure;
     Client::Data::Text::TextTable texts;
     TemporaryFolder folder{"screenshots"};

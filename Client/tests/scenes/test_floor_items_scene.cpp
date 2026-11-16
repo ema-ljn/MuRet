@@ -685,7 +685,7 @@ TEST(FloorItemsSceneTest, TheReturnToSelectionClearsThePickUpRequest)
     auto stage = StageIn(0);
     stage->world.Runtime().floor.pendingPickUp = 7;
     stage->world.Runtime().ui.field5767954 = 10;
-    Scenes::ApplyReturnToSelection(stage->Resources());
+    ASSERT_TRUE(Scenes::ApplyReturnToSelection(stage->Resources()).HasValue());
     EXPECT_EQ(stage->world.Runtime().floor.pendingPickUp, -1);
     EXPECT_EQ(stage->world.Runtime().ui.field5767954, 0);
 }

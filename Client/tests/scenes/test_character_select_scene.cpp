@@ -40,6 +40,8 @@
 #include "Scenes/SceneId.h"
 #include "Scenes/PetHelperSteps.h"
 #include "Scenes/SelectionState.h"
+#include "Scenes/OwnInventory.h"
+#include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "Scenes/TextureMetadata.h"
@@ -90,6 +92,7 @@
 #include <cstdint>
 #include <iterator>
 #include <limits>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string>
@@ -1224,9 +1227,18 @@ TEST(CharacterSelectSceneTest, TheFirstNativeStepConstructsBothPreviewsAndResets
     for (auto& item : own.equipment)
     {
         item.id = 9;
+        item.occupied = 1;
         item.scalar1Low = 31;
         item.flags1b = 17;
     }
+    for (auto& item : world.Inventory().cells)
+    {
+        item.id = 9;
+        item.occupied = 1;
+        item.flags1b = 17;
+    }
+    world.Inventory().secondCells[0].id = 7;
+    world.Inventory().secondCells[0].occupied = 2;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, false, false, &selection, &world, &cloth);
 
@@ -1245,13 +1257,22 @@ TEST(CharacterSelectSceneTest, TheFirstNativeStepConstructsBothPreviewsAndResets
     EXPECT_EQ(own.words6c, (std::array<std::uint32_t, 16>{}));
     for (std::size_t slot = 0; slot < own.equipment.size(); ++slot)
     {
-        EXPECT_EQ(own.equipment[slot].id, 9u);
+        EXPECT_EQ(own.equipment[slot].id, Client::Scenes::EmptyOwnItemId);
+        EXPECT_EQ(own.equipment[slot].occupied, 0u);
         EXPECT_EQ(own.equipment[slot].scalar1Low, slot < 8 ? 0u : 31u);
         EXPECT_EQ(own.equipment[slot].flags1b, 17u);
     }
-    // Constructores56, propio3848, preview19, partículas2 y finalmente tela9; antes, los 65.536 del pasto
+    for (const auto& item : world.Inventory().cells)
+    {
+        EXPECT_EQ(item.id, Client::Scenes::EmptyOwnItemId);
+        EXPECT_EQ(item.occupied, 0);
+        EXPECT_EQ(item.flags1b, 17u);
+    }
+    EXPECT_EQ(world.Inventory().secondCells[0].id, 7u);
+    EXPECT_EQ(world.Inventory().secondCells[0].occupied, 2);
+    // Constructores56, vaciado3848, propio3848, preview19, partículas2 y finalmente tela9; antes, los 65.536 del pasto
     // (0x5f8300) de la carga del 54 (0x61a560), que no crea objetos con rand().
-    EXPECT_EQ(cloth.random.State(), Client::Tests::AfterDraws(1, 3934 + 65536).State());
+    EXPECT_EQ(cloth.random.State(), Client::Tests::AfterDraws(1, 3934 + 3848 + 65536).State());
 }
 
 // 0x634199..0x634227: el primer paso con la lista abre el campo del chat, vacía el área vieja con 120 entradas y, con
@@ -1297,7 +1318,8 @@ TEST(CharacterSelectSceneTest, WithoutNumbersThereIsNoAccountNotice)
     EXPECT_EQ(world.Runtime().chat.area.rows.back().text, "");
 }
 
-TEST(CharacterSelectSceneTest, TheFirstSelectionHeroNeedsItemBmdBeforeAnyWorldEntry)
+// 0x633f91 vacía el lugar 7 antes de que 0x4fd5f0 consulte su ítem en 0x54efe0.
+TEST(CharacterSelectSceneTest, TheFirstSelectionEmptiesTheEquipmentBeforeTheBodyReadsItemBmd)
 {
     Client::Scenes::WorldState world;
     Client::Scenes::SelectionState selection(world);
@@ -1309,10 +1331,9 @@ TEST(CharacterSelectSceneTest, TheFirstSelectionHeroNeedsItemBmdBeforeAnyWorldEn
     hero.equipment[4] = 3; // petNONE: esta prueba llega a las tablas del actor, no al helper6342f4.
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({hero}));
 
-    ASSERT_TRUE(tested.scene->Failure().has_value());
-    EXPECT_NE(tested.scene->Failure()->find("0x54efe0"), std::string::npos) << *tested.scene->Failure();
-    EXPECT_EQ(world.OwnCharacter().equipment[7].id, 0u);
-    EXPECT_FLOAT_EQ(tested.scene->PreviewActor().animation.frame, 0.0f) << "el corte precede 0x634303";
+    ASSERT_FALSE(tested.scene->Failure().has_value());
+    EXPECT_EQ(world.OwnCharacter().equipment[7].id, Client::Scenes::EmptyOwnItemId);
+    EXPECT_FLOAT_EQ(tested.scene->PreviewActor().animation.frame, 0.6f);
 }
 
 TEST(CharacterSelectSceneTest, TheLoadedItemTableLetsTheFirstHeroReachThePreviewStep)
@@ -1329,7 +1350,7 @@ TEST(CharacterSelectSceneTest, TheLoadedItemTableLetsTheFirstHeroReachThePreview
 
     ASSERT_FALSE(tested.scene->Failure().has_value());
     EXPECT_FLOAT_EQ(tested.scene->PreviewActor().animation.frame, 0.6f);
-    EXPECT_EQ(world.OwnCharacter().equipment[7].id, 0u);
+    EXPECT_EQ(world.OwnCharacter().equipment[7].id, Client::Scenes::EmptyOwnItemId);
     EXPECT_TRUE(world.Actors()[0].seen);
 }
 
@@ -2407,6 +2428,37 @@ TEST(CharacterSelectSceneTest, SelectionPosesUseTheSharedWorldCarryOnlyOnNativeF
     static_cast<void>(tested.Frame());
     EXPECT_EQ(world.PoseCarry().bones[0][3], glm::vec3(7, 8, 9));
     EXPECT_EQ(tested.scene->Failure(), std::nullopt);
+}
+
+// F1/02 y F3/00 pueden despacharse en el mismo Poll, antes del Enter de la escena 4.
+// La lista nueva ya construyó los actores: Enter no debe volver a esperar otra respuesta.
+TEST(CharacterSelectSceneTest, AListReceivedBeforeSceneEntryDoesNotLeaveTheLastFrameHeld)
+{
+    auto world = std::make_unique<Client::Scenes::WorldState>();
+    Client::Scenes::SelectionState selection(*world);
+    Client::Render::Models::ClothWorld cloth;
+    ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
+    Harness tested(true, false, false, &selection, world.get(), &cloth);
+    ASSERT_NO_FATAL_FAILURE(tested.online.LogIn());
+    selection.BeginSelection();
+    tested.online.session.RequestCharacterList();
+    auto characters = TwoCharacters();
+    for (auto& character : characters)
+        character.equipment[4] = 3; // Sin mascota: FlatModels no presta Helper01.bmd.
+    tested.online.ReceiveTheList(characters);
+    ASSERT_NO_FATAL_FAILURE(tested.Poll());
+    ASSERT_TRUE(selection.HasReceivedList());
+    const auto revision = world->Actors()[3].revision;
+
+    ASSERT_TRUE(tested.scene->Enter().HasValue());
+    tested.Step();
+
+    EXPECT_EQ(tested.scene->Failure(), std::nullopt);
+    EXPECT_TRUE(selection.HasReceivedList());
+    EXPECT_TRUE(selection.IsInitialized());
+    EXPECT_FALSE(tested.scene->HoldsTheLastFrame());
+    EXPECT_EQ(world->Actors()[3].revision, revision);
+    EXPECT_EQ(tested.CharacterPacketsSent(0x00).size(), 1u);
 }
 
 // Q-C410: la lista (0x4c20a0) arma cada personaje con 0x517270 → 0x511290, que le pone +0x11c en 1 (0x511bf7) y le

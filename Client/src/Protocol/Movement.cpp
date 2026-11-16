@@ -60,8 +60,6 @@ std::optional<std::uint8_t> DirectionBetween(Cell from, Cell to)
 }
 } // namespace
 
-} // namespace
-
 Core::Expected<std::uint8_t, WalkWriteError> DirectionFromAngle(float angle)
 {
     if (!std::isfinite(angle))

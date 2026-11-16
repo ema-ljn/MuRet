@@ -1564,11 +1564,6 @@ Core::Expected<void, std::string> ServerSession::SendChaosCastleReposition(std::
     return SendWorldPacket(Protocol::Events::WriteChaosCastleReposition(x, y));
 }
 
-void ServerSession::SendFriendPacket(Protocol::Outgoing packet)
-{
-    static_cast<void>(SendWorldPacket(std::move(packet)));
-}
-
 // 0x4e4b3a..0x4e4bf2: las misiones, sin guarda de escena ni del flag de cifrado (CL9 hito 2).
 void ServerSession::OnQuestFlag(const Network::Packet& packet)
 {

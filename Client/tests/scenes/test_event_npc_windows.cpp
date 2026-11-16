@@ -386,8 +386,8 @@ TEST_F(EventNpcWindowTest, TheDevilSquareStepSendsTheEntry)
 // gasta sin nada más.
 TEST_F(EventNpcWindowTest, TheDevilSquareStepWarns)
 {
-    for (const auto& [level, warning] : {std::pair<std::uint16_t, std::string_view>{200, "muy fuerte"},
-                                         std::pair<std::uint16_t, std::string_view>{100, "muy debil"}})
+    for (const auto& [level, warning] : {std::pair<std::uint16_t, std::string_view>{std::uint16_t{200}, "muy fuerte"},
+                                         std::pair<std::uint16_t, std::string_view>{std::uint16_t{100}, "muy debil"}})
     {
         SCOPED_TRACE(level);
         world = std::make_unique<WorldState>();

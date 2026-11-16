@@ -1593,7 +1593,7 @@ TEST(CharacterStepTest, ChaosCastleKeepsTheHeroCellAndItsClock)
                                  }});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         ASSERT_EQ(sent.size(), 1u);
-        EXPECT_EQ(sent[0], (std::pair<std::uint8_t, std::uint8_t>{5, 6}));
+        EXPECT_EQ(sent[0], (std::pair<std::uint8_t, std::uint8_t>{std::uint8_t{5}, std::uint8_t{6}}));
         EXPECT_EQ(reported.world.Runtime().reportedCellTime, 10000.0f);
         EXPECT_EQ(reported.random.State(), after(HeroCellReads));
     }

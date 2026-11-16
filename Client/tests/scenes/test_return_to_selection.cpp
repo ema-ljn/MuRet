@@ -251,6 +251,25 @@ TEST(ReturnToSelectionWithoutDataTest, WithTheOwnRecordOpenTheReturnDrawsNoRand)
     EXPECT_EQ(tested.world.Runtime().orderedScene, Client::Scenes::SceneId::CharacterSelect);
 }
 
+// 0x4c26e7 → 0x657670 → 0x420cd0 (CL9 hito 4): la vuelta pone en 0 la pestaña, la ventana y las tres mascotas.
+TEST(ReturnToSelectionWithoutDataTest, TheReturnForgetsThePets)
+{
+    const auto tested = std::make_unique<Returning>(std::filesystem::path{}, Seed);
+    Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+    runtime.petTab = 1;
+    runtime.panels.delegated.pet = 2;
+    runtime.pets[1].level = 30;
+    runtime.pets[0].experience = 12;
+
+    const auto returned = ApplyReturnToSelection(tested->Resources());
+    ASSERT_TRUE(returned.HasValue()) << returned.Error();
+
+    EXPECT_EQ(runtime.petTab, 0);
+    EXPECT_EQ(runtime.panels.delegated.pet, 0);
+    EXPECT_EQ(runtime.pets[1].level, 0);
+    EXPECT_EQ(runtime.pets[0].experience, 0u);
+}
+
 // 0x4c268a..0x4c26d2: las misiones vuelven a +4 = 0xff (el A0 se vuelve a pedir) y la ventana se cierra sin el 31.
 TEST(ReturnToSelectionWithoutDataTest, TheQuestsGoBackToTheirStart)
 {

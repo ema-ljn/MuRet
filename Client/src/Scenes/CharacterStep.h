@@ -3,6 +3,8 @@
 #include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
+#include "Data/Tables/SkillTable.h"
+#include "Protocol/Outgoing.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ActorCooldownServices.h"
 #include "Scenes/GameDrawTail.h"
@@ -81,6 +83,9 @@ struct CharacterStepContext
     // *[0x7758550], Item.bmd en memoria: lo leen los helpers de 0x4fc450 y la acción de parado (0x4f2250)
     // con un arma o un ítem puesto. nullptr si no se cargó: cortan donde lo leen.
     const Data::Tables::ItemTable* items = nullptr;
+    // *[0x76bd1d8], Skill.bmd en memoria: el alcance (0x5526f0) del lazo de la skill 0x4c del paso del ataque
+    // (0x50243d, CL9 hito 4). nullptr: corta ahí con un blanco que mirar.
+    const Data::Tables::SkillTable* skills = nullptr;
     // Los esqueletos de los demás modelos, para 0x4f5660 (SetActorDie) con el que se muere desde el paso 15 (CL9 hito
     // 3). nullptr: un modelo que no es el 0x20a corta ahí.
     const IModelLibrary* models = nullptr;
@@ -103,6 +108,8 @@ struct CharacterStepContext
     ActorCooldownServices cooldown{};
     // Solicitudes de sonido: el consumidor CL10 decide cómo reproducirlas.
     std::function<void(std::int32_t)> soundRequest{};
+    // Lo que el paso manda por send() (el A7 del cuervo, 0x416a20). Vacío, sin la sesión: no sale.
+    std::function<void(Protocol::Outgoing)> send{};
     // GetAsyncKeyState(0x11) con 0x80 en el byte de arriba: Ctrl abajo, que 0x558eb0 lee en la habilidad del héroe
     // (0x558fd6, CL9 hito 3).
     bool controlDown = false;

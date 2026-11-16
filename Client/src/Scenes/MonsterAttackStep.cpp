@@ -651,33 +651,9 @@ Core::Expected<void, std::string> ScatterAndCut(std::uint32_t address, const Act
 Core::Expected<void, std::string> ScatterTheBurst(const ActorState& actor, std::size_t slot,
                                                   const CharacterStepContext& context)
 {
-    constexpr int Groups = 8;
-    constexpr int YawStep = 45;
-    constexpr int SelectorSpan = 2;
-    constexpr std::uint32_t StoneCut = 0x520119;
-    constexpr glm::vec3 Offset{0.0f, -220.0f, 0.0f};
-    for (int group = 0; group < Groups; ++group)
-    {
-        const glm::vec3 angles{0.0f, 0.0f, static_cast<float>(group * YawStep)};
-        const glm::vec3 rotated =
-            Render::Models::OriginalVectorRotate(Offset, Render::Models::OriginalAngleMatrix(angles));
-        glm::vec3 point{};
-        for (int axis = 0; axis < 3; ++axis)
-            point[axis] =
-                static_cast<float>(static_cast<double>(rotated[axis]) + static_cast<double>(actor.position[axis]));
-        if (auto burst = CreateCombatBurstAt(point, context); !burst.HasValue())
-            return Core::Unexpected(burst.Error());
-        static_cast<void>(context.random.Next() % SelectorSpan);
-        const auto& effects = context.world.Map().effects.Effects();
-        const auto freeEffect =
-            std::ranges::find_if(effects, [](const World::ModelEffect& effect) { return !effect.alive; });
-        if (freeEffect != effects.end())
-        {
-            return CutAt(StoneCut, "el efecto de piedra del grupo disperso", actor, slot);
-        }
-        // El segundo tipo de piedra también sólo consume el selector cuando el pool de modelos está lleno.
-        static_cast<void>(context.random.Next() % SelectorSpan);
-    }
+    const auto burst = ScatterCombatBurstAt(actor.position, context);
+    if (!burst.HasValue())
+        return Core::Unexpected(std::format("{} (lugar {})", burst.Error(), slot));
     return {};
 }
 
@@ -975,7 +951,7 @@ Core::Expected<void, std::string> StepTheKindSkill(ActorState& actor, const Kind
         if (actor.hands[0].model == MonsterBow)
         {
             if (step == EighthStep)
-                return FireTheArrow(actor, slot, 0, 0, 0, context);
+                return FireTheArrow(actor, &actor, slot, 0, 0, 0, context);
             return {};
         }
         // En la 3 y en 15, 0x4f5b10 (el punto (−20, −90, 100) de c) y 0x518cf0(0x5e8, dueño c).
@@ -1264,6 +1240,8 @@ Core::Expected<void, std::string> StepTheTail(ActorState& actor, std::size_t slo
         std::size_t boneCount = 0;
         const auto model = static_cast<std::uint16_t>(actor.type);
         const Render::Models::Skeleton* skeleton = context.world.FaunaResources().SkeletonOf(model);
+        if (model == Data::Models::PlayerSkeletonModel && context.playerSkeleton != nullptr)
+            skeleton = context.playerSkeleton;
         if (skeleton == nullptr && context.models != nullptr)
             skeleton = context.models->SkeletonOf(model);
         if (skeleton != nullptr)

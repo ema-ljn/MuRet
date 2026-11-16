@@ -16,6 +16,9 @@
 #include "Protocol/Messages.h"
 #include "Protocol/Movement.h"
 #include "Protocol/OptionData.h"
+#include "Protocol/Pet/PetInfo.h"
+#include "Protocol/Pet/PetOrders.h"
+#include "Protocol/Skill.h"
 #include "Protocol/Quest.h"
 #include "Protocol/Viewport.h"
 #include "Protocol/World.h"
@@ -34,10 +37,13 @@
 #include "Scenes/MagicAttackCount.h"
 #include "Scenes/MonsterViewport.h"
 #include "Scenes/MovementReplies.h"
+#include "Scenes/PetOrders.h"
+#include "Scenes/PetStats.h"
 #include "Scenes/QuestReplies.h"
 #include "Scenes/ReturnToSelection.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SelectionState.h"
+#include "Scenes/SkillReplies.h"
 #include "Scenes/ViewportPacketRing.h"
 #include "Scenes/ViewportPlayers.h"
 #include "Scenes/WorldEntry.h"
@@ -49,6 +55,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <utility>
 #include <span>
 #include <string>
 #include <variant>
@@ -173,6 +180,8 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorld(const App::Wor
         return ApplyNotice(*notice, ChatContextOf(m_resources, session));
     if (const auto* options = std::get_if<Protocol::OptionData::OptionData>(&event))
         return ApplyOptionData(*options, ChatContextOf(m_resources, session));
+    if (auto skill = ApplySkillEvent(event); skill)
+        return std::move(*skill);
     if (auto viewport = ApplyViewport(event))
         return *viewport;
     if (const auto* list = std::get_if<Protocol::Friends::FriendList>(&event))
@@ -186,6 +195,47 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorld(const App::Wor
     if (const auto* state = std::get_if<Protocol::Friends::FriendState>(&event))
         return ApplyFriendState(*state, ChatContextOf(m_resources, session));
     return ApplyWorldContent(event, session);
+}
+
+// CL9 hito 4: las skills que llegan (Scenes/SkillReplies.h), las órdenes del cuervo (Scenes/PetOrders.h) y el A9 de
+// las mascotas (Scenes/PetStats.h). nullopt si `event` no es una.
+std::optional<Core::Expected<void, std::string>> SessionEventApplier::ApplySkillEvent(const App::WorldEvent& event)
+{
+    if (const auto* attack = std::get_if<Protocol::Skill::MagicAttack>(&event))
+        return ApplyMagicAttack(*attack, m_resources);
+    if (const auto* magic = std::get_if<Protocol::Skill::DurationMagic>(&event))
+        return ApplyDurationMagic(*magic, m_resources);
+    if (const auto* cancel = std::get_if<Protocol::Skill::MagicCancel>(&event))
+    {
+        ApplyMagicCancel(*cancel, m_resources);
+        return Core::Expected<void, std::string>{};
+    }
+    if (const auto* state = std::get_if<Protocol::Skill::ActorState>(&event))
+        return ApplyActorState(*state, m_resources);
+    if (const auto* effect = std::get_if<Protocol::Skill::ActorEffect>(&event))
+        return ApplyActorEffect(*effect, m_resources);
+    if (const auto* target = std::get_if<Protocol::Skill::SkillTarget>(&event))
+        return ApplySkillTarget(*target, m_resources);
+    if (const auto* list = std::get_if<Protocol::Skill::SkillList>(&event))
+        return ApplySkillList(*list, m_resources);
+    if (const auto* summon = std::get_if<Protocol::Skill::SummonLife>(&event))
+    {
+        ApplySummonLife(*summon, m_resources);
+        return Core::Expected<void, std::string>{};
+    }
+    if (const auto* order = std::get_if<Protocol::Pet::PetOrder>(&event))
+    {
+        ApplyPetOrder(*order, m_resources.world);
+        return Core::Expected<void, std::string>{};
+    }
+    if (const auto* attack = std::get_if<Protocol::Pet::PetAttack>(&event))
+    {
+        ApplyPetAttack(*attack, m_resources);
+        return Core::Expected<void, std::string>{};
+    }
+    if (const auto* info = std::get_if<Protocol::Pet::PetInfoReply>(&event))
+        return ApplyPetInfo(*info, m_resources);
+    return std::nullopt;
 }
 
 void SessionEventApplier::CopyToPacketRing(std::span<const std::byte> packet)

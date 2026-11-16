@@ -4,6 +4,7 @@
 #include "Data/Models/PlayerModels.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
+#include "Protocol/Outgoing.h"
 #include "Input/MouseMessageState.h"
 #include "Scenes/FaunaStep.h"
 #include "Scenes/FaunaEffects.h"
@@ -18,14 +19,17 @@
 #include "UI/Widget.h"
 #include "UI/GameCursor.h"
 #include "World/TerrainPicking.h"
+#include "World/TerrainPickingState.h"
 #include "World/TerrainPickingTarget.h"
 #include "World/TerrainCells.h"
 #include "World/WorldTerrain.h"
+#include <glm/ext/vector_float3.hpp>
 #include <chrono>
 #include <cstdint>
 #include <optional>
 #include <ratio>
 #include <string>
+#include <utility>
 
 namespace Client::Scenes
 {
@@ -72,6 +76,39 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
         context.sendTalk = [&](std::int16_t key) { m_session->SendTalk(key); };
         context.sendAction = [&](std::uint8_t direction, std::uint8_t action)
         { m_session->SendAction(direction, action); };
+    }
+    // 0x57ceea: la skill sin elegido apunta al terreno bajo el mouse: 0x5fc260(1), el barrido, y 0x5fac90, el reintento
+    // sobre la celda elegida; el punto es el que deja el barrido (0x7d366e0..0x7d366e8). *Inferido*: el mismo par que
+    // el clic (PickTerrainTarget) después de un PickTerrain del paso.
+    context.pickTerrainPoint = [&]() -> Core::Expected<std::optional<glm::vec3>, std::string>
+    {
+        if (!m_mouseRay)
+            return std::optional<glm::vec3>{};
+        const auto& terrain = world.Map().terrain;
+        World::TerrainView view;
+        view.mapping = terrain.mapping.get();
+        view.heights = terrain.heights.get();
+        view.attributes = terrain.attributes.get();
+        view.lighting = &world.DynamicLighting().Lighting();
+        view.map = static_cast<std::uint8_t>(world.Runtime().map);
+        view.fixedHeight = CameraState().fixedHeight;
+        if (auto swept =
+                World::PickTerrain(m_picking, view, m_terrainRange, world.Runtime().terrainPolygon, *m_mouseRay);
+            !swept.HasValue())
+            return Core::Unexpected(std::move(swept).Error());
+        World::TerrainPickingTarget target;
+        const auto picked = World::PickTerrainTarget(m_picking, target, view, m_terrainRange,
+                                                     world.Runtime().terrainPolygon, *m_mouseRay);
+        if (!picked.HasValue())
+            return Core::Unexpected(picked.Error());
+        if (!picked.Value())
+            return std::optional<glm::vec3>{};
+        return std::optional{m_picking.hit};
+    };
+    if (m_session)
+    {
+        context.sendSkill = [session = m_session](Protocol::Outgoing packet) { session->SendChat(std::move(packet)); };
+        context.playerKey = m_session->PlayerIndex();
     }
     context.texts = m_texts;
     context.measure = m_context.textMeasure;

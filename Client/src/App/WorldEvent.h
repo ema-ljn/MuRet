@@ -11,6 +11,9 @@
 #include "Protocol/Quest.h"
 #include "Protocol/World.h"
 #include "Protocol/Movement.h"
+#include "Protocol/Pet/PetInfo.h"
+#include "Protocol/Pet/PetOrders.h"
+#include "Protocol/Skill.h"
 #include "Protocol/Viewport.h"
 
 #include <variant>
@@ -52,7 +55,10 @@ using WorldEvent = std::variant<
     Protocol::Inventory::ManaRefill, Protocol::FloorItems::FloorItemsCreate, Protocol::FloorItems::FloorItemsDelete,
     Protocol::FloorItems::PickUpResult, Protocol::FloorItems::DropResult, Protocol::FloorItems::StatFruit,
     Protocol::FloorItems::ShortPickUpResult, Protocol::FloorItems::ShortDropResult,
-    Protocol::FloorItems::ShortStatFruit, Protocol::Quest::QuestFlag, Protocol::Quest::QuestList,
+    Protocol::FloorItems::ShortStatFruit, Protocol::Skill::MagicAttack, Protocol::Skill::DurationMagic,
+    Protocol::Skill::MagicCancel, Protocol::Skill::ActorState, Protocol::Skill::ActorEffect,
+    Protocol::Skill::SkillTarget, Protocol::Skill::SkillList, Protocol::Skill::SummonLife, Protocol::Pet::PetOrder,
+    Protocol::Pet::PetAttack, Protocol::Pet::PetInfoReply, Protocol::Quest::QuestFlag, Protocol::Quest::QuestList,
     Protocol::Quest::QuestStateChange, Protocol::Quest::SetQuestResult, Protocol::Quest::QuestResult,
     Protocol::Movement::Action, Protocol::Viewport::Players, Protocol::Viewport::Leave, Protocol::Viewport::Transformed,
     Protocol::Viewport::EquipmentShown, Protocol::Viewport::Position, Protocol::Viewport::Monsters,

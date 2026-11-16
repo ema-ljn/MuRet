@@ -29,6 +29,7 @@
 #include "World/ItemState.h"
 #include "support/GoldenDir.h"
 #include "support/RecordingTextDrawer.h"
+#include "support/TableFiles.h"
 
 #include <gtest/gtest.h>
 
@@ -81,6 +82,15 @@ CrtRandom Advanced(CrtRandom random, int count)
     for (int i = 0; i < count; ++i)
         static_cast<void>(random.Next());
     return random;
+}
+
+Client::Data::Tables::SkillTable SkillsForTheList()
+{
+    std::vector<std::byte> plain(Client::Data::Tables::SkillTableSize);
+    plain[9 * Client::Data::Tables::SkillRecordSize + 0x31] = std::byte{1};
+    plain[2 * Client::Data::Tables::SkillRecordSize + 0x31] = std::byte{2};
+    const auto encrypted = Client::Tests::EncryptRecords(std::move(plain), Client::Data::Tables::SkillRecordSize);
+    return Client::Data::Tables::SkillTable(encrypted);
 }
 
 // Un quad del lote: su textura, la mezcla, el color de sus vértices y las esquinas 0 y 2 del fan (arriba a la
@@ -447,6 +457,9 @@ protected:
         own.maxLife = 100;
         own.mana = 100;
         own.maxMana = 100;
+        // La captura base ya recibió F3 30 sin teclas: FF en los cinco bancos, no la .bss anterior al login.
+        for (auto& keys : own.skillKeys)
+            keys.fill(0xff);
         sprites.Begin(Screen640);
     }
 
@@ -782,6 +795,107 @@ TEST_F(GameHudTest, ACommandSkillDrawsItsIconAndItsNumber)
     // El 2, en (308 − 4,5; 470).
     EXPECT_FLOAT_EQ(number->first.u, 0.125f);
     EXPECT_FLOAT_EQ(number->first.x, 303.5f);
+}
+
+// 5aa29d filtra hidden==1 y 43..48; 5aa2b0 resta46 una sola vez, sin paginar otra vez al mostrado41.
+TEST_F(GameHudTest, TheOpenSkillListDrawsTheNativeRowsColorsAndAccesses)
+{
+    const auto skills = SkillsForTheList();
+    auto& own = world.OwnCharacter();
+    for (std::size_t slot = 0; slot < 41; ++slot)
+        own.SetSkillAt(slot, 1);
+    own.SetSkillAt(41, 2); // hidden==2 también se dibuja, aunque las reglas lo tiñan por falta de0x200.
+    own.SetSkillAt(42, 9);
+    own.SetSkillAt(43, 0x43);
+    own.SetSkillAt(63, 0x11);
+    own.byte6a = 45;
+    own.byte6b = 1;
+    own.energy = 100;
+    Hero().skillIndex = 63;
+    Hero().flags78 = 0x200;
+    world.Runtime().ui.skillListOpen = 1;
+    auto context = Context();
+    context.skills = &skills;
+
+    const auto drawn = Client::Scenes::DrawTheHud(context);
+
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    std::vector<DrawnQuad> icons;
+    for (const auto& quad : QuadsOf(sprites))
+        if (quad.slot == 0x12a && quad.first.y > 36.0f)
+            icons.push_back(quad);
+    ASSERT_EQ(icons.size(), 43u);
+    EXPECT_FLOAT_EQ(icons[0].first.x, 0.0f);
+    EXPECT_FLOAT_EQ(icons[0].first.y, 110.0f); // GL invierte Y:480−370.
+    EXPECT_FLOAT_EQ(icons[19].first.x, 608.0f);
+    EXPECT_FLOAT_EQ(icons[20].first.x, 0.0f);
+    EXPECT_FLOAT_EQ(icons[20].first.y, 156.0f);
+    EXPECT_FLOAT_EQ(icons[40].first.x, 640.0f);
+    EXPECT_FLOAT_EQ(icons[40].first.y, 156.0f);
+    EXPECT_FLOAT_EQ(icons.back().first.x, 704.0f);
+    EXPECT_EQ(icons.front().color, (Color{0.6f, 0.7f, 0.8f, 1.0f}));
+    EXPECT_EQ(icons.back().color, (Color{1.0f, 0.9f, 0.8f, 1.0f}));
+    const int listDraws = 44 * 60 + 43 * SkillIconDraws;
+    EXPECT_EQ(random.State(), Advanced(CrtRandom(Seed), HudBaseDraws + SkillIconDraws + listDraws).State());
+    EXPECT_EQ(world.Runtime().ownRecordDepth, 0);
+}
+
+TEST_F(GameHudTest, TheOpenListAddsRavenCommandsOnlyWhenTheRavenExists)
+{
+    const auto skills = SkillsForTheList();
+    world.OwnCharacter().byte6a = 1;
+    Hero().skillIndex = 0x79;
+    Hero().darkSpirit.emplace();
+    world.Runtime().ui.skillListOpen = 1;
+    auto context = Context();
+    context.skills = &skills;
+    const auto drawn = Client::Scenes::DrawTheHud(context);
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    std::vector<DrawnQuad> commands;
+    for (const auto& quad : QuadsOf(sprites))
+        if (quad.slot == 300 && std::abs(quad.first.y - 150.0f) < 0.001f)
+            commands.push_back(quad);
+    ASSERT_EQ(commands.size(), 4u);
+    for (std::size_t i = 0; i < commands.size(); ++i)
+    {
+        EXPECT_FLOAT_EQ(commands[i].first.x, 256.0f + 32.0f * static_cast<float>(i));
+        EXPECT_FLOAT_EQ(commands[i].third.y, 114.0f);
+        EXPECT_EQ(commands[i].color, (i == 1 ? Color{1.0f, 0.9f, 0.8f, 1.0f} : Color{0.6f, 0.7f, 0.8f, 1.0f}));
+    }
+    // El cuervo activa además su HUD de418460, que consulta el equipo con un cierre propio.
+    EXPECT_EQ(random.State(),
+              Advanced(CrtRandom(Seed), HudBaseDraws + OwnRecordCloseRandoms + 5 * SkillIconDraws).State());
+    Hero().darkSpirit.reset();
+    sprites.Begin(Screen640);
+    ASSERT_TRUE(Client::Scenes::DrawTheHud(context).HasValue());
+    for (const auto& quad : QuadsOf(sprites))
+        EXPECT_FALSE(quad.slot == 300 && std::abs(quad.first.y - 150.0f) < 0.001f);
+}
+
+TEST_F(GameHudTest, TheOrdinarySkillDrawsTheHotkeyOfTheChosenCharacter)
+{
+    const auto skills = SkillsForTheList();
+    auto& own = world.OwnCharacter();
+    own.byte6a = 1;
+    own.SetSkillAt(0, 0x11);
+    own.skillKeys[0][0] = 3;
+    own.skillKeys[3][0] = 7;
+    auto context = Context();
+    context.skills = &skills;
+    context.chosenSlot = std::uint8_t{3};
+    ASSERT_TRUE(Client::Scenes::DrawTheHud(context).HasValue());
+    const auto quads = QuadsOf(sprites);
+    const auto key = std::ranges::find_if(quads,
+                                          [](const DrawnQuad& quad)
+                                          {
+                                              return quad.slot == DigitSlot &&
+                                                     std::abs(quad.first.x - 303.5f) < 0.001f &&
+                                                     std::abs(quad.first.y - 10.0f) < 0.001f;
+                                          });
+    ASSERT_NE(key, quads.end());
+    EXPECT_FLOAT_EQ(key->first.u, 7.0f / 16.0f);
+    EXPECT_EQ(key->color, (Color{1.0f, 0.9f, 0.8f, 1.0f}));
+    EXPECT_EQ(random.State(), Advanced(CrtRandom(Seed), HudBaseDraws + SkillIconDraws).State());
 }
 
 // 18. 0x5f7440: la party (0x5f0be0, lo primero) y los comandos (0x40a650, casi al final) en (0x1c2, 0), con el fondo

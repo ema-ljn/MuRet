@@ -6,6 +6,9 @@
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ArrowEffects.h"
+#include "Scenes/AttackFrameSkills.h"
+#include "Scenes/AttackSkillReads.h"
+#include "Scenes/AttackSkillCases.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/HeroAttack.h"
@@ -38,24 +41,10 @@ using Render::Models::CrtRandom;
 using Render::Models::LogicalAccess;
 
 constexpr std::uint16_t PlayerType = Data::Models::PlayerSkeletonModel;
-// 0x517630 y los accesos en línea a +0x38e: una entrada de un byte, un rand() al cerrarla en 0.
-constexpr std::uint16_t SkillCloseRandoms = 1;
 // 0x4fdbf1: el valor al que vuelve +0x381 cuando corre la habilidad, y el 15 de 0x4f97b0 (0x4fb0df).
 constexpr std::uint8_t AttackDone = 15;
 constexpr std::int16_t NoTarget = -1;
 
-// 0x4f9899: los casos del switch de 0x4f97b0 (habilidad − 0x28, la tabla de 0x4fb10c); los demás van a 0x4fab5d.
-constexpr std::array<std::uint8_t, 24> FrameSkills{0x28, 0x2b, 0x2c, 0x2f, 0x30, 0x31, 0x34, 0x35,
-                                                   0x37, 0x38, 0x39, 0x3c, 0x3d, 0x3e, 0x3f, 0x41,
-                                                   0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4a};
-// 0x4fdeeb: los casos del switch de la cabeza (habilidad − 5, los índices de 0x505530); los demás van a 0x502aff.
-constexpr std::array<std::uint8_t, 36> HeadSkills{
-    0x05, 0x08, 0x09, 0x0a, 0x0c, 0x0d, 0x0e, 0x1e, 0x1f, 0x20, 0x21, 0x22, 0x23, 0x24, 0x26, 0x27, 0x28, 0x29,
-    0x2a, 0x2c, 0x30, 0x31, 0x35, 0x37, 0x38, 0x3f, 0x40, 0x41, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x4b, 0x4c};
-// 0x504372: los casos del primer switch con blanco (habilidad − 1, los índices de 0x5055c8); el 3 y los demás van a
-// 0x505069.
-constexpr std::array<std::uint8_t, 19> TargetSkills{0x01, 0x02, 0x04, 0x07, 0x0b, 0x10, 0x11, 0x18, 0x1a, 0x1b,
-                                                    0x1c, 0x2d, 0x2e, 0x33, 0x34, 0x3c, 0x3d, 0x49, 0x4a};
 // 0x5051f1: los casos del segundo (habilidad − 0x10, los índices de 0x505730), que van a 0x50534f sin el sonido.
 constexpr std::array<std::uint8_t, 24> QuietSkills{0x10, 0x1a, 0x1b, 0x1c, 0x1e, 0x1f, 0x20, 0x21,
                                                    0x22, 0x23, 0x24, 0x28, 0x2b, 0x2f, 0x30, 0x35,
@@ -70,13 +59,6 @@ constexpr std::uint16_t MissileTypeWithoutTarget = 0x180;
 template <typename T, std::size_t N> bool IsOneOf(const std::array<T, N>& values, T value)
 {
     return std::ranges::find(values, value) != values.end();
-}
-
-// 0x517630 (thiscall sobre 0x57630c8) y sus copias en línea: abre +0x38e, lo lee y lo cierra.
-std::uint8_t ReadTheSkill(ActorState& actor, CrtRandom& random)
-{
-    const LogicalAccess access(actor.byte38eAccesses, random, SkillCloseRandoms);
-    return actor.byte38e;
 }
 
 // Un tipo de la mano como WORD con signo (MOVSX).
@@ -94,12 +76,12 @@ Core::Expected<void, std::string> StepTheAttackFrames(ActorState& actor, std::si
     const std::uint8_t skill = ReadTheSkill(actor, context.random);
     // 0x4f987d.
     runtime.skillThreshold = AttackDone;
-    if (IsOneOf(FrameSkills, skill))
-    {
-        return Core::Unexpected(std::format("0x4f9899: la habilidad {:#x} de +0x38e en el lugar {} (0x4f97b0) es del "
-                                            "hito 4",
-                                            skill, slot));
-    }
+    // 0x4f9899: los casos de la habilidad (la tabla de 0x4fb10c), que salen; los demás siguen en 0x4fab5d.
+    auto handled = StepTheFrameSkill(actor, skill, slot, context);
+    if (!handled.HasValue())
+        return Core::Unexpected(handled.Error());
+    if (handled.Value())
+        return {};
     // 0x4fab5d..0x4fab7f: pasado el frame 1 (0x6b87d4), el 0x20a con la 0x3e termina (FCOMP: NaN no pasa).
     constexpr float FirstFrame = 1.0f;
     constexpr float StrikeFrame = 5.0f;
@@ -160,22 +142,6 @@ Core::Expected<void, std::string> StepTheAttackHelpers(ActorState& actor, std::s
     return StepTheAttackCases(actor, slot, context);
 }
 
-// 0x59fb80(skill): abre el registro propio ([0x7681eb4], 0x40ad90), busca `skill` entre los 64 bytes de +0x6c de
-// [0x7681eb0] y lo cierra (0x40b4d0: 3.848 rand() si queda en 0). Devuelve su lugar, o 0 si no está. Los otros dos
-// argumentos que le empuja el caller quedan en la pila para 0x53e2b0.
-std::int32_t OwnSkillIndex(const CharacterStepContext& context, std::uint8_t skill)
-{
-    constexpr std::size_t OwnSkills = 64;
-    WorldRuntime& runtime = context.world.Runtime();
-    const LogicalAccess own(runtime.ownRecordDepth, context.random, Render::Models::OwnRecordCloseRandoms);
-    for (std::size_t index = 0; index < OwnSkills; ++index)
-    {
-        if (context.world.OwnCharacter().SkillAt(index) == skill)
-            return static_cast<std::int32_t>(index);
-    }
-    return 0;
-}
-
 // 0x502b12..0x5037d5: sin blanco (+0x3a4 en −1).
 Core::Expected<void, std::string> StrikeNothing(ActorState& actor, std::size_t slot,
                                                 const CharacterStepContext& context)
@@ -191,12 +157,12 @@ Core::Expected<void, std::string> StrikeNothing(ActorState& actor, std::size_t s
         const std::uint8_t skill = ReadTheSkill(actor, context.random);
         const std::uint8_t second = ReadTheSkill(actor, context.random);
         const std::int32_t index = OwnSkillIndex(context, second);
-        if (auto fired = FireTheArrow(actor, slot, index, flag, skill, context); !fired.HasValue())
+        if (auto fired = FireTheArrow(actor, nullptr, slot, index, flag, skill, context); !fired.HasValue())
             return fired;
     }
     // 0x503785..0x5037d0: los tipos que tiran, 0x53e2b0(c, o, 0, 0, 0, 0).
     if (IsOneOf(MissileTypes, actor.type) || actor.type == MissileTypeWithoutTarget)
-        return FireTheArrow(actor, slot, 0, 0, 0, context);
+        return FireTheArrow(actor, nullptr, slot, 0, 0, 0, context);
     return {};
 }
 
@@ -271,7 +237,7 @@ Core::Expected<void, std::string> StrikeTheTarget(ActorState& actor, std::size_t
         return Core::Unexpected(
             std::format("0x5037e0: el blanco {} de +0x3a4 del lugar {} está fuera del pool", target, slot));
     }
-    const ActorState& victim = actors[static_cast<std::size_t>(target)];
+    ActorState& victim = actors[static_cast<std::size_t>(target)];
     if (actor.type == PlayerType && IsOneOf(RangedActions, actor.animation.action))
     {
         // 0x5038a1..0x504043: dos lecturas de +0x38e; la primera es la skill de 0x53e2b0 (0x503ac7) y la segunda va a
@@ -279,13 +245,13 @@ Core::Expected<void, std::string> StrikeTheTarget(ActorState& actor, std::size_t
         const std::uint8_t skill = ReadTheSkill(actor, context.random);
         const std::uint8_t second = ReadTheSkill(actor, context.random);
         const std::int32_t index = OwnSkillIndex(context, second);
-        if (auto fired = FireTheArrow(actor, slot, index, 0, skill, context); !fired.HasValue())
+        if (auto fired = FireTheArrow(actor, &victim, slot, index, 0, skill, context); !fired.HasValue())
             return fired;
     }
     // 0x504068..0x5040a9: los tipos que tiran con blanco, 0x53e2b0(c, o, el blanco, 0, 0, 0).
     if (IsOneOf(MissileTypes, actor.type))
     {
-        if (auto fired = FireTheArrow(actor, slot, 0, 0, 0, context); !fired.HasValue())
+        if (auto fired = FireTheArrow(actor, &victim, slot, 0, 0, 0, context); !fired.HasValue())
             return fired;
     }
     // 0x5040b9: el blanco con daño (+0x384, el del último 0x15).
@@ -327,20 +293,17 @@ Core::Expected<void, std::string> StrikeTheTarget(ActorState& actor, std::size_t
             return Core::Unexpected(
                 std::format("0x50428c: 0x42ea00 con el blanco {:#x}, sin portar (hito 13)", victim.type));
     }
-    // 0x50429f..0x5042ce: las acciones 0x38 a 0x3c, 0x52e740.
+    // 0x50429f..0x5042ce: las acciones 0x38 a 0x3c, 0x52e740 (AttackSkillCases.h).
     if (actor.animation.action > 0x37 && actor.animation.action < 0x3d)
     {
-        return Core::Unexpected(std::format("0x5042ce: 0x52e740 con la acción {:#x} del lugar {}, sin portar (hito 4)",
-                                            actor.animation.action, slot));
+        if (auto sparked = SparkTheTarget(actor, victim, slot, context); !sparked.HasValue())
+            return sparked;
     }
-    // 0x5042d3..0x50431c: los ángulos con el rumbo de 0x4e93f0 hacia el blanco, que solo leen los casos.
+    // 0x5042d3..0x50431c: los ángulos con el rumbo de 0x4e93f0 hacia el blanco, que solo leen los casos (sin rand()).
+    // 0x50432a..0x504372: +0x38e y su switch (AttackSkillCases.h).
     const std::uint8_t first = ReadTheSkill(actor, context.random);
-    if (IsOneOf(TargetSkills, first))
-    {
-        return Core::Unexpected(std::format("0x504372: la habilidad {:#x} de +0x38e del lugar {} con blanco es del "
-                                            "hito 4",
-                                            first, slot));
-    }
+    if (auto cased = StepTheTargetSkill(actor, victim, slot, first, context); !cased.HasValue())
+        return cased;
     // 0x505069..0x505107: el punto del blanco, la bandera de la 0x25 y la 0x26 y la luz, que leen los casos de
     // habilidad. Con +0x380 en 2 (el 16 del héroe, mató), 0x530860(0x618, blanco+0x10, blanco+0x10, o+0x1c, 0 y 1, o,
     // 20,0f, −1, 0, 0, −1) (0x505169, 0x5051a4), sin rand().
@@ -406,11 +369,8 @@ Core::Expected<void, std::string> StepTheAttack(ActorState& actor, std::size_t s
     actor.word8a = static_cast<std::int16_t>(key.Value());
     // 0x4fdc17..0x4fdeeb: +0x38e y el switch de la cabeza.
     const std::uint8_t skill = ReadTheSkill(actor, context.random);
-    if (IsOneOf(HeadSkills, skill))
-    {
-        return Core::Unexpected(
-            std::format("0x4fdeeb: la habilidad {:#x} de +0x38e del lugar {} es del hito 4", skill, slot));
-    }
+    if (auto cased = StepTheHeadSkill(actor, slot, skill, context); !cased.HasValue())
+        return cased;
     // 0x502aff..0x502b0c: +0x3a4 (MOVSX) en −1.
     const auto target = std::bit_cast<std::int16_t>(actor.attackTarget);
     auto struck =

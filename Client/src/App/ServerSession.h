@@ -416,6 +416,20 @@ private:
     void OnLogoutResult(const Network::Packet& packet);
     void ReturnToServerList(bool encrypted);
     void OnMainCheck(const Network::Packet& packet);
+    // CL9 hito 4: las skills (04 § Las skills).
+    void RegisterSkillHandlers();
+    void OnMagicAttack(const Network::Packet& packet);
+    void OnDurationMagic(const Network::Packet& packet);
+    void OnMagicCancel(const Network::Packet& packet);
+    void OnActorState(const Network::Packet& packet);
+    void OnActorEffect(const Network::Packet& packet);
+    void OnSkillTarget(const Network::Packet& packet);
+    void OnReport73(const Network::Packet& packet);
+    void OnSkillList(const Network::Packet& packet);
+    void OnSummonLife(const Network::Packet& packet);
+    void OnPetOrder(const Network::Packet& packet);
+    void OnPetAttack(const Network::Packet& packet);
+    void OnPetInfo(const Network::Packet& packet);
     // Las misiones (CL9 hito 2): 9F, A0, A1, A2 y A3, sin guarda de escena ni del cifrado.
     void OnQuestFlag(const Network::Packet& packet);
     void OnQuestList(const Network::Packet& packet);

@@ -38,6 +38,7 @@ public:
 
 private:
     Core::Expected<void, std::string> ApplyWorldContent(const App::WorldEvent& event, App::ServerSession& session);
+    std::optional<Core::Expected<void, std::string>> ApplySkillEvent(const App::WorldEvent& event);
     // Los otros jugadores en el viewport (ViewportPlayers.h). nullopt si `event` no es uno de ellos.
     std::optional<Core::Expected<void, std::string>> ApplyViewport(const App::WorldEvent& event);
     WorldEntryResources m_resources;

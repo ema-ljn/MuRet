@@ -742,7 +742,7 @@ TEST_F(MonsterViewportTest, TheCastleSiegeGateCutsWhenItIsOpenOrUnmarked)
     EXPECT_EQ(gate.type, 0x19b);
     EXPECT_EQ(gate.boundsMin, (glm::vec3{-140.0f, -140.0f, 0.0f}));
     EXPECT_EQ(gate.boundsTop, 300.0f);
-    EXPECT_EQ(gate.byte38f, 0);
+    EXPECT_EQ(gate.attackCount, 0);
     EXPECT_EQ(gate.byte92, 0);
 
     records[0].effects = 1;

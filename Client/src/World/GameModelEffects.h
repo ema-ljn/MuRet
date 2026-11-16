@@ -41,6 +41,12 @@ struct ModelEffectStepServices
     float* cameraShake = nullptr;
     // MuRet todavía no tiene audio (CL10): la escena pasa uno que no hace nada.
     std::function<void(std::int32_t)> sound{};
+    // 0x52ae2a: el héroe publicado ([0x743a170]), que el chorro 0x5de/0 de la Flame compara con su dueño (+0x108), y
+    // 0x517a20(+0x89, la posición, `radius`, el byte +0x8c, +0x8a, 0) sobre ese chorro (Scenes/SkillHits, que lee el
+    // pool de personajes y el registro propio y manda el C1 10; CL9 hito 4). Sin `skillHits`, el chorro del héroe corta
+    // ahí.
+    const void* hero = nullptr;
+    std::function<Core::Expected<void, std::string>(const ModelEffect&, float)> skillHits{};
 };
 // 0x5208c5..0x52091a: la luz local del paso, del primer rand(): ((r & 3) + 7) · 0,1f (0x6b87b8); con menos de 5 de
 // vida, menos (5 − vida) · 0,2f (0x6b8854), guardada en float y comparada sin redondear con 0.
@@ -49,7 +55,8 @@ struct ModelEffectStepServices
 // 0x5208a0: CRT común, llegada/teleport, torre de Noria, 9/0 de Kalima con el owner de ondas, la mariposa
 // 0xae (sus rand() del vuelo, la luz del subtipo, las chispas 5c5/7 del /3 y el sprite 0x5ac) y los del
 // Dungeon y Lost Tower: la piedra 0xda que rebota (0x52444d), el chorro 0x5de/0 (0x52ad21: seis llamas
-// 5de/0, a veces una piedrita y su luz, con la luz local del primer rand()) y las piedritas 0xc8/0xc9 con el
+// 5de/0, a veces una piedrita y su luz, con la luz local del primer rand(); el de la Flame, con el héroe de dueño y la
+// vida múltiplo de 20, manda los blancos a 150 por `skillHits`, 0x52ae2a) y las piedritas 0xc8/0xc9 con el
 // subtipo 0 (0x5238be: rebotan, se inclinan y a veces sueltan un fuego 5d9 de subtipo 1 a 3) y con el 10 (igual, sin
 // el fuego ni su rand()). Esos cuatro dejan en previousPosition la posición de antes del paso entero. Las piedras
 // 0x118/0x119 del pisotón del caballo (0x5275ca), en sus pasos 33 a 36, sueltan el polvo 5f2/11 y una piedrita

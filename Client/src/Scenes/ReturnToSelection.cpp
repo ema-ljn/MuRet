@@ -8,6 +8,7 @@
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/MapLoad.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/PetStats.h"
 #include "Scenes/Quests.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SelectionState.h"
@@ -71,6 +72,10 @@ void ResetAfterLogout(const WorldEntryResources& resources)
     runtime.chat.noticeSound = false;
     UI::ClearTheWhisperSenders(runtime.chat.whisperSenders);
     ResetTheQuests(runtime.quest, runtime.panels.delegated.quest);
+    // 0x4c2650..0x4c26fd: lo demás son globales y objetos que MuRet no tiene, y 0x657670, cuyo 0x4499b0 manda el
+    // segundo C1 03 31 (la sesión, Q-C214) y cuyo 0x420cd0 pone en 0 las mascotas (CL9 hito 4).
+    ResetThePets(runtime);
+    // MuRet: la cámara copia la posición del héroe publicado, que la selección lee desde acá (Q-C213).
     resources.cameraInput.hero = world.Actors()[runtime.hero].position;
 }
 

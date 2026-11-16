@@ -263,7 +263,7 @@ protected:
     }
 
     // 0x5f7bc0: el cuerpo con el registro propio abierto alrededor.
-    Client::Core::Expected<void, std::string> Draw(const ItemState& item, std::int32_t x = 320, std::int32_t y = 300)
+    Client::Core::Expected<void, std::string> Draw(ItemState item, std::int32_t x = 320, std::int32_t y = 300)
     {
         GameHudContext context = Context();
         const Client::Render::Models::LogicalAccess own(world.Runtime().ownRecordDepth, random, OwnRecordCloseRandoms);
@@ -296,7 +296,7 @@ protected:
             EXPECT_TRUE(lines.text[i].empty()) << "renglón " << i;
     }
 
-    Client::Core::Expected<void, std::string> Repair(const ItemState& item, std::int32_t x = 320, std::int32_t y = 300)
+    Client::Core::Expected<void, std::string> Repair(ItemState item, std::int32_t x = 320, std::int32_t y = 300)
     {
         GameHudContext context = Context();
         const Client::Render::Models::LogicalAccess own(world.Runtime().ownRecordDepth, random, OwnRecordCloseRandoms);
@@ -607,7 +607,9 @@ TEST_F(ItemTooltipsTest, ThePriceOfTheNpcShopCuts)
     EXPECT_EQ(random.State(), expected.State());
 }
 
-TEST_F(ItemTooltipsTest, ThePetTooltipCutsAfterClearingTheLines)
+// 0x5b2b0d..0x5b2b17: con el 0x1a04, 0x422990 (Scenes/PetTooltip.h) es todo el tooltip. La primera vez pide su A9 y no
+// dibuja nada, con los renglones ya limpios.
+TEST_F(ItemTooltipsTest, ThePetTooltipTakesOverAfterClearingTheLines)
 {
     Lines().text[4] = "viejo";
     ItemState item;
@@ -615,9 +617,11 @@ TEST_F(ItemTooltipsTest, ThePetTooltipCutsAfterClearingTheLines)
 
     const auto drawn = Draw(item);
 
-    ASSERT_FALSE(drawn.HasValue());
-    EXPECT_NE(drawn.Error().find("0x4229d4"), std::string::npos) << drawn.Error();
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_TRUE(Lines().text[4].empty());
+    EXPECT_EQ(Lines().next, 0);
+    EXPECT_EQ(world.Runtime().petTooltipQuery.type, Pet);
+    EXPECT_TRUE(text.texts.empty());
 }
 
 TEST_F(ItemTooltipsTest, TheEmptyItemDrawsNothing)

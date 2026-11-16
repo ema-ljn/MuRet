@@ -101,7 +101,9 @@ mínima (`analysis/foxanti/minimal/src/packet.c`):
     personaje (C), la que abre la tecla C (06 § HUD y ventanas). *Verificado* en el cable: 9 en el `muproxy.log` y 10 en la sesión real, todos
     `01 00 08` y todos después de entrar al mundo.
   - `0x422990` manda el de un ítem `0x1a04` o `0x1a05` cuando cambia el que se mira (lo llama la UI,
-    `0x5b2b0d`), con el lugar y la casilla que recibe.
+    `0x5b2b0d`): la mascota (1 el caballo, 0 el cuervo) y los bytes de abajo de `0x78abb28` y `0x78abb2c`, la
+    ventana y el lugar del ítem del cartel (desde el inventario, 0 y la casilla + 12 o el lugar del equipo).
+    *Estático*; MuRet lo manda desde la CL9 hito 4 (`Scenes::DrawThePetTooltip`, [06](06-render-escenas-y-ui.md#el-a9-de-las-mascotas)).
 
   La respuesta S->C es el handler `A9` (`0x4e4ca1` → `0x421db0`): guarda por `pkt[3]` (el tipo) el
   nivel de `pkt[6]` y un DWORD de `pkt[8]` en la tabla de `0x723960`, y recalcula los atributos
@@ -909,6 +911,129 @@ El GameServer 1.02 manda el `26` con `0xfd` (rechazos del uso de un ítem, con l
 solo con `0xfe` y `0xff`); `App::ServerSession` los pasa al mundo y `Scenes::ApplyLifeRefill` y `ApplyManaRefill`
 escriben el registro propio que leen los orbes y el AG del HUD (06). Un lugar fuera de la grilla corta con
 `0x4d35f6` o `0x4d3917` (08, P-C150). Los tests usan valores inventados.
+
+### Las skills que llegan: `19`, `1E`, `1B`, `07`, `48`, `69`, `73`, `F3 11` y `F3 20`
+
+(CL9 hito 4, 2026-11-13, *estático*, contra `gs_protocol.h` y `protocol.cpp` del GameServer reconstruido.) Lo que
+hacen con el mundo está en [06](06-render-escenas-y-ui.md#las-skills-que-llegan). Las claves son índices de
+`0x5110d0`, que compara con `MOVSX`: una clave desde `0x8000` nunca está, y sin el personaje es el 400.
+
+| Paquete | Handler | Layout que lee el cliente | GameServer 0.97 |
+| --- | --- | --- | --- |
+| `19` | `0x4cc530` | `C3 08 19 <skill> <fuente H L> <blanco H L>`; el bit 15 del blanco es el éxito (`+0x38d`) y el blanco se busca con los 15 de abajo | `PMSG_MAGICATTACK_RESULT` (`GCMagicAttackNumberSend`, `0x426200`), igual. El FoxAnti lo pasa como `A5` cifrado (`EncryptedRemaps`) |
+| `1E` | `0x4ce000` | `C3 09 1E <skill> <clave H L> <x> <y> <rumbo>` | del mismo largo; el emisor no está nombrado en el reconstruido. `A6` cifrado |
+| `1B` | `0x4cbe90` | `C1 06 1B <skill> <clave H L>` | `PMSG_MAGICCANCEL` (`0x4262f0`), igual |
+| `07` | `0x4cbe00` | `C1 0A 07 <tipo> <máscara: 4, little endian> <clave H L>` | `GCSend_07` (`0x4263a0`) arma 8 bytes y nadie lo llama (P-C260) |
+| `48` | `0x4dbf50` | `C1 06 48 <clave H L> <tipo>` | no lo manda (P-C262) |
+| `69` | `0x4cc290` | `C1 08 69 <skill> <fuente: 2> <blanco: 2>`, los dos WORD en little endian y sin máscara | no lo manda (P-C262) |
+| `73` | `0x4d5b10` | cifrado no lee nada; sin cifrar, avisa | no lo manda (P-C262) |
+| `F3 11` | `0x4c5070` | `C1 .. F3 11 <cantidad> <lista>` y desde `pkt[6]`: con `0xff`, el lugar a vaciar; con `0xfe`, el lugar y la skill; con la lista en 2, el lugar a vaciar; si no, `cantidad` entradas de 3 bytes (lugar, skill y uno que no lee) | `PMSG_MAGICLISTCOUNT` mide 5 bytes y las entradas (`PMSG_MAGICLIST`, con `(nivel << 3) \| (skill & 7)` de tercero) van desde `pkt[5]`: el byte de la lista lo mete el FoxAnti del repack (P-C261) |
+| `F3 20` | `0x4e31e1` | `C1 05 F3 20 <vida>` (la del invocado, `0x5767960`) | — |
+
+Los avisos: el `19` (`0x4cc562..0x4cce21`) y el `1E` (`0x4ce032`) que no llegaron cifrados no se leen y mandan
+`C1 06 F1 03 00 <opcode>` con el XOR32 y para cifrar como C3, como el `F3 03`; el `73` sin cifrar manda el mismo con
+`0xf1` (`0x4d5d8c`, P-C263) y cifrado no hace nada. Los demás no miran el cifrado.
+
+**MuRet**: `Protocol::Skill` lee los nueve (WrongPacket con otro tipo u opcode, TooShort si faltan campos) y escribe
+el aviso (`WriteClearSkillReport`); `App::ServerSession` los registra juntos (`RegisterSkillHandlers`) y los pasa al
+mundo, donde `Scenes::SessionEventApplier::ApplySkillEvent` los manda a `Scenes/SkillReplies`. El `B7` y los C→S de
+las skills (`19`, `1E`, `D3`, `DF` y `26` de las cuatro funciones por clase) son de la fase 2 (08, P-C264; los `19` y
+`1E` de la rama del caballero, abajo). Los tests usan claves inventadas.
+
+### Las skills que se mandan: `19` y `1E`
+
+(CL9 hito 4, fase 2c, 2026-11-13, *estático*, contra `protocol.cpp` del GameServer reconstruido.) Las funciones que
+mandan (`0x55b6f0`, `0x55a368`, `0x561f60`) y las ramas de las clases de `0x57cfc0` los arman en línea, con el XOR32
+desde `pkt[3]`, y los mandan cifrados como C3: el relleno (`0x69fd70`) y el serial (`0x40ae60`, `0x40b0a0`,
+`0x5767913`) sacan dos `rand()` antes de mirar el socket (`+0xc` de `0x6c82a0`). Lo que hacen y cuándo, en
+[06](06-render-escenas-y-ui.md#usar-una-skill) y [Las skills del caballero](06-render-escenas-y-ui.md#las-skills-del-caballero).
+
+| Paquete | Quién | Layout que manda el cliente | GameServer 0.97 |
+| --- | --- | --- | --- |
+| `19` | `0x55b6f0` (`0x55bf36..0x55c622`), `0x55a368` (la opción `0x12`) | `C1 06 19 <skill> <clave H L>`: la clave entera del blanco (`+0x1f4`) | `PMSG_MAGICATTACK` (`CGMagicAttack`, `0x425f60`) lee 7 bytes, con un `Dis` que el cliente no manda; el repack lo espera como `A5`. *Estático* |
+| `19` | las ramas del caballero (`0x584e09..0x5851b0` y las otras tres) | `C1 06 19 <skill> <clave H L>`: las `0x30`, `0x3f`, `0x40` y `0x4b` mandan la clave del jugador (`0x57678bc`) | `CGMagicAttack` (`0x425f60`) lo pide cifrado (`DataEncryptCheck`) y lee la skill y la clave; `PMSG_MAGICATTACK` tiene un `Dis` más que no lee. El repack lo recibe como `A5` |
+| `1E` | `0x561f60` (`0x562b36` y `0x563f5a`) | `C1 0C 1E <skill> <X> <Y> <rumbo> <hacia> <espalda> <clave H L> 00`: la celda lógica de c (la Y se lee antes); la `0x18`, el rumbo · 256/360 y dos ceros; la `0x36`, el rumbo · 255/360, la celda hacia el blanco (`((dx + 8) << 4) \| ((dy − 8) & 0xf)`, cada eje entre −8 y 7) y el rumbo + 180°. La clave es la de `0x558eb0` con `0x7758588`, o `0xffff` | `PMSG_DURATION_MAGIC_RECV` (`CGDurationMagicRecv`, `0x427870`) lee 7: los cinco de después son del cliente (Q-C1211). *Estático* |
+| `1E` | las ramas del caballero (`0x582439..0x5896a3`) | `C1 0C 1E <skill> <x> <y> <rumbo> <hacia> <espalda> <clave H L> <b11>`: la celda lógica del héroe, el rumbo (`· 256/360`; la `0x38`, `· 1/360 · 255`), en el de "hacia" la posición del blanco y en el de "espalda" la celda de `0x4e9920` o el rumbo opuesto, la clave del elegido y en `b11` la clave de la magia (`0x57cf90`, la `0x4c`) | `CGDurationMagicRecv` (`0x427870`) lo pide cifrado y lee los cuatro primeros (`PMSG_DURATION_MAGIC_RECV`); `EnableSkill` (`0x457694`) deja `0x29`, `0x2a` y `0x37`, no `0x38`, `0x3e`, `0x41` ni `0x4c` (Q-C1230). También `A6` |
+
+**MuRet**: `Protocol::Skill::WriteMagicAttack` y `WriteDurationMagic` (`EncryptedC1`; `DurationMagicSend` lleva en
+`magicKey` el byte 11, 0 salvo en la `0x4c` del caballero); los dos `rand()` del C3 los saca quien los manda
+(`Scenes::SendTheSkillPacket`, `Scenes::UseTheKnightSkill`). Los tests usan claves inventadas.
+
+### Lo que manda la rama del Wizard: `19`, `1E`, `1C` y `B0`
+
+(CL9 hito 4, fase 2c, 2026-11-13, *estático*, contra `protocol.cpp` del GameServer 0.97 reconstruido.) La rama del
+Wizard de `0x57cfc0` y `0x55cbc0` ([06](06-render-escenas-y-ui.md#la-rama-del-wizard)) los arman en línea como los de
+arriba: el XOR32 desde `pkt[3]` y cifrados como C3, con el `rand()` del relleno (`0x69fd70`) y el del serial
+(`0x5767913`) antes de `send()`, aunque el socket esté cerrado. Sin "webzen" en el nombre del héroe publicado; el `19`,
+además, con el freno de 300 ms (`0x576791c`, que la `0x28` no mira).
+
+| Paquete | Quién lo manda | Layout | GameServer 0.97 |
+| --- | --- | --- | --- |
+| `19` | `0x58a1e5`, `0x58a954` y `0x58ba70` (Wizard) y `0x55cbc0` | `C1 06 19 <skill> <clave H L>`: la `0x3a`, la Soul Barrier sin elegido y la `0x28` sin la clave de `0x558eb0` mandan la del jugador (`0x57678bc`) | `CGMagicAttack` (`0x425f60`), como el de arriba |
+| `1E` | `0x58c1b6`, `0x58cf37`, `0x58dcc4`, `0x58ef1e`, `0x58fced`, `0x590b18`, `0x591859` (Wizard) y `0x55e67e` | `C1 0C 1E <skill> <x> <y> <rumbo> 00 <espalda> <clave H L> <clave de la magia>`: `<espalda>` en 0 salvo en la `0x4c` (la celda de `0x4e9920`); la clave de la magia (`0x57cf90` en línea) en la 8, la 9 y la `0x4c`, 0 en las demás; sin blanco, la clave `0xffff`. El rumbo es `ftol(ángulo · 256/360)` (`0x6ba440`) | `CGDurationMagicRecv` (`0x427870`) lee la skill, X, Y y el rumbo: lo demás no lo usa (08, P-C221; Q-C1211) |
+| `1C` | el Teleport (`0x593151..0x59350e`) | `C1 06 1C 00 <x> <y>` | `CGTeleportMagicRecv` (`0x426450`): el 0 es la skill 6 |
+| `B0` | el Teleport Ally (`0x59293b..0x592d1b`) | `C1 07 B0 <clave L H> <x> <y>`: el WORD `+0x1f4` del elegido tal cual, en little endian | `CGTargetTeleportRecv` (`0x426870`) la arma con `NumberH \| NumberL << 8`, igual |
+
+**MuRet**: `Protocol::Skill::WriteMagicAttack`, `WriteDurationMagic` (con la clave de la magia en
+`DurationMagicSend::magicKey`), `WriteTeleportMagic` y `WriteTargetTeleport`; los `rand()` los saca
+`Scenes::SendTheSkillPacket`. El `D3` de girar de `0x55cbc0` es el `WriteWalk` de un paso, sin C3 ni `rand()`.
+
+### Lo que manda la rama del elfo: `19`, `1E` y `D3`
+
+(CL9 hito 4, fase 2c, 2026-11-13, *estático*.) La rama del elfo de `0x57cfc0` y `0x55faa0`
+([06](06-render-escenas-y-ui.md#la-rama-del-elfo)) los arman en línea como la del Wizard: C3 con sus dos `rand()`
+antes de `send()`, sin "webzen" en el nombre del héroe publicado, y el `19` con el freno de 300 ms.
+
+| Paquete | Quién lo manda | Layout | GameServer 0.97 |
+| --- | --- | --- | --- |
+| `19` | las invocaciones (`0x57f2fe`), las `0x1a` a `0x1c` (`0x57fadb`) y la `0x35` (`0x58021d`); `0x55faa0` (`0x56018f`, `0x5608fd`, `0x56109a`) | `C1 06 19 <skill> <clave H L>`: la rama manda la clave del jugador (`0x57678bc`); `0x55faa0`, la del blanco (`+0x1f4` de `0x7758588`) | `CGMagicAttack` (`0x425f60`) |
+| `1E` | la `0x34` (`0x57e2c8..0x57ef4e`) y la `0x4c` (`0x580af3..0x5817a5`) | `C1 0C 1E <skill> <x> <y> <rumbo> 00 <espalda> <clave H L> <clave de la magia>`, como el de la rama del Wizard: la `0x34` deja la espalda y la clave de la magia en 0 y manda la clave de `0x558eb0` con `0x7758588` (o `0xffff`); la `0x4c`, la celda de `0x4e9920` y la clave de `0x57cf90` | `CGDurationMagicRecv` (`0x427870`) lee la skill, X, Y y el rumbo (Q-C1211) |
+| `D3` | `0x55faa0` (`0x55fac2..0x55ffcf`) | el giro de un paso de `0x55cbc0`, con la celda lógica del héroe publicado (la X antes que la Y) y su ángulo de antes de girar (Q-C1214) | como el de `0x55cbc0` |
+
+| `10` (FoxAnti: `1D`) | `0x517a20` (`0x517c74..0x5184c7`), desde el choque de las flechas de skill (`0x520497`) | `C1 [8 + 3n] 10 <skill> <x> <y> <tanda> <n>` y, por blanco, `<clave H> <clave L> <extra>`: la skill del lugar, la celda del punto (`ftol(· 0,01f)`, el byte bajo), `+0x8c` de la flecha, hasta cinco claves (`+0x1f4`) y el sexto argumento (0 desde la flecha). CL9 hito 4 | `CGBeattackRecv` (`0x426db0`) pide el `1D` (`PMSG_BEATTACK_COUNT`: la skill, x, y, el serial y la cuenta, con la cuenta en 5 como mucho) pero lee entradas de dos bytes (`PMSG_BEATTACK`): desde el segundo blanco toma otra clave (07, Q-C1219). *Estático* |
+
+**MuRet**: `Protocol::Skill::WriteMagicAttack` y `WriteDurationMagic` con `Scenes::SendTheSkillPacket`, el `D3` con
+`SendTheTurn`, el de la rama del Wizard, y el `10` con `WriteSkillHits` desde `Scenes::HitTheTargetsAround`.
+
+### Lo que manda la cola de las 0x43 a 0x48: `19` y `1E`
+
+(CL9 hito 4, fase 2c, 2026-11-13, *estático*, contra `protocol.cpp` y `ObjUseSkill.cpp` del GameServer 0.97
+reconstruido.) La cola de `0x57cfc0` (`0x5808da..0x599d5d`, [06](06-render-escenas-y-ui.md#la-cola-de-las-0x43-a-0x48),
+de todas las clases) los arma en línea como las ramas: C3 con sus dos `rand()` antes de `send()` y sin "webzen" en el
+nombre del héroe publicado; el `19`, además, con el freno de 300 ms, y el `1E` sin él.
+
+| Paquete | Quién lo manda | Layout | GameServer 0.97 |
+| --- | --- | --- | --- |
+| `1E` | la `0x43` (`0x594137..0x594de1`) | `C1 0C 1E 43 <x> <y> <rumbo> <hacia> <espalda> <clave H L> 00`: la celda lógica del héroe (la X se lee antes), `ftol(+0x24 · 256/360)`, la celda hacia el blanco de `0x5ae300` (desde la celda lógica, cada eje entre −8 y 7), la de `0x4e9920` (desde la posición), la clave de `0x558eb0` con `0x7758588` (o `0xffff`) y la clave de la magia de `0x57cf90(0)`, siempre 0 (Q-C1228) | `CGDurationMagicRecv` (`0x427870`) lee los cuatro primeros, pero `EnableSkill` (`0x457680`) no tiene la 67 en su lista: la descarta. No la usa nadie: el ASM del cliente es el oráculo |
+| `19` | las `0x44` a `0x48` (`0x594e42..0x599d1c`, dos copias cada una) | `C1 06 19 <skill> <clave H L>`: con `0x6c8e30` en −1, la del jugador (`0x57678bc`); si no, el WORD `+0x1f4` del elegido, sin mirar si se lo puede atacar (Q-C1229) | `CGMagicAttack` (`0x425f60`): la skill tiene que estar entre las del personaje (`gObjGetMagicSearch`) y en su clase (`SkillGetRequireClass`); `UseSkill2` (`0x457b30`) cobra el maná y la stamina si `RunningSkill` (`0x457c70`) da 1, y como no tiene un caso para 68 a 72 va al `default` (`0x457f7a`): `gObjAttack` sobre la clave que llega (sin elegido, la del propio jugador). Sin lo que hacen en 1.02 (Stern, Swell Mana, Invisibility...): el ASM del cliente es el oráculo |
+
+**MuRet**: `Protocol::Skill::WriteMagicAttack` y `WriteDurationMagic` (`magicKey` en 0) con
+`Scenes::SendTheSkillPacket`, desde `Scenes::UseTheSharedTail`. Los tests usan claves inventadas.
+
+### Las órdenes del cuervo: `A7` y `A8`
+
+(CL9 hito 4, 2026-11-13, *estático*.) El GameServer 0.97 no tiene el Dark Lord y no los manda (P-C262): el oráculo es
+el cliente. Lo que hacen está en [06](06-render-escenas-y-ui.md#las-órdenes-del-cuervo).
+
+- **`A7`** (`0x4e4c0a` → `0x421b50`): `C1 07 A7 <?> <orden> <clave H L>`. `pkt[3]` no lo lee nadie.
+- **`A8`** (`0x4e4c42` → `0x421b70`): `C1 09 A8 <?> <tipo> <dueño H L> <blanco H L>`. `pkt[3]`, igual.
+- **`A7` que sale**: `C1 07 A7 <mascota> <orden> <clave H L>`, con el XOR32 desde `pkt[3]` y por `send()` directo
+  (sin cifrar como C3). El paso del cuervo (`0x416a20`, en `0x416b05..0x417095` y una copia en `0x417113..0x4176a9`)
+  lo arma cuando el blanco de `+0x3b0` o el dueño se esconden en un ataque: `C1 07 A7 00 78 FF FF` (la mascota es el
+  `+0x444` del cuervo, que `0x4167b0` pone en 0; la orden `0x78`, la primera skill del cuervo; sin blanco). El
+  GameServer 0.97 no lo lee. **MuRet**: `Protocol::Pet::WritePetCommand`.
+- **`A7` de las órdenes** (`0x420f70`, desde `0x57cfc0` con el derecho y el lugar de `0x78` a `0x7b`, fase 2b): con
+  `0x78` a `0x7a`, `C1 07 A7 00 <lugar − 0x78> FF FF`; con `0x7b`, si `0x558bb0` deja atacar al elegido y es un jugador
+  o un monstruo, `C1 07 A7 00 03 <clave H L>` con la clave del elegido (`+0x1f4`). Las órdenes van de 0 a 3, como las
+  que el `A7` que llega le pasa a `0x416510`; la del paso (`0x78`) no es una de ellas (Q-C1209). **MuRet**:
+  `Scenes::UseTheHeroSkill` ([06](06-render-escenas-y-ui.md#usar-una-skill)).
+
+Ninguno mira el largo. **MuRet**: `Protocol::Pet::ReadPetOrder` y `ReadPetAttack` (TooShort si faltan campos),
+registrados con las skills; `Scenes/PetOrders` los aplica. El `A9` de respuesta (`0x4e4ca1` → `0x421db0`): `C1 0C A9
+<tipo> <clase> <casilla> <nivel> <?> <experiencia: 4, little endian>`, sin mirar el cifrado ni el largo; `pkt[7]` no lo
+lee nadie. **MuRet**: `Protocol::Pet::ReadPetInfoReply` (TooShort sin los 12 bytes) y `Scenes::ApplyPetInfo`
+([06](06-render-escenas-y-ui.md#el-a9-de-las-mascotas)). Abrir el panel de la mascota manda `A9 00 00 01` y `A9 01 00
+08` (`0x659ff6..0x65a8a3`).
 
 ### Las misiones y los NPC: `9F`, `A0`..`A3` y `30`
 

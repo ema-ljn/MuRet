@@ -8,7 +8,11 @@
 #include "Data/Text/TextTable.h"
 #include "GameLogic/PathCell.h"
 #include "Protocol/Movement.h"
+#include "Protocol/Outgoing.h"
 #include "Scenes/ActionSend.h"
+
+#include <glm/ext/vector_float3.hpp>
+
 #include <cstdint>
 #include <functional>
 #include <optional>
@@ -79,6 +83,12 @@ struct HeroMovementContext
     // Text.bmd: los textos de los avisos de la llegada a un NPC (el 663 del 0xee, 0x567618, y el 1830 del 0x101,
     // 0x567ad3). nullptr: esos avisos cortan.
     const Data::Text::TextTable* texts = nullptr;
+    // 0x57ceea: el punto del terreno bajo el mouse para una skill sin elegido (0x5fc260(1) y 0x5fac90). Vacío: corta.
+    std::function<Core::Expected<std::optional<glm::vec3>, std::string>()> pickTerrainPoint{};
+    // Lo que manda 0x57cfc0 (las skills, el cuervo y la poción de maná). Vacío, no sale.
+    std::function<void(Protocol::Outgoing)> sendSkill{};
+    // La clave del jugador del F1 00 ([0x57678bc]), que las skills mandan en el C1 19 (CL9 hito 4, fase 2c).
+    std::uint16_t playerKey = 0;
     // 0x555190, para esos avisos: el medidor del texto y la pantalla. Sin medidor, cortan.
     const Render::Text::ITextMeasure* measure = nullptr;
     App::PixelSize screen{640, 480};

@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Text/TextTable.h"
+#include "Protocol/Outgoing.h"
 #include "UI/PanelRegistry.h"
 
 #include <functional>
@@ -57,6 +58,9 @@ public:
     // 0x659aa0..0x659c3d: con `requests`, abrir la party pone en 0 la cuenta de `world` (HudState::partyCount) y pide
     // la lista (C1 03 42). Lo presta el paso de la UI, el que abre la party; sin él, o con nullptr, abrirla corta.
     void LendThePartyList(WorldState& world, IGameUiRequests* requests);
+    // 0x659ff6..0x65a8a3: con `send`, abrir la mascota manda los pedidos del cuervo y del caballo (C1 06 A9 00 00 01 y
+    // A9 01 00 08, Protocol::Pet::WritePetInfoRequest). Lo presta el paso de la UI; sin él, abrirla corta.
+    void LendThePetRequests(std::function<void(Protocol::Outgoing)> send);
     // 0x659f3d: abrir el panel 1 llama a 0x491080(0x186, 0x106) (Scenes::OpenTheFriends), con lo que lee del paso (la
     // vista y los globales de las ventanas viejas). Lo presta el paso de la UI; sin él, abrirlo corta.
     void LendTheFriends(std::function<Core::Expected<void, std::string>()> opened);

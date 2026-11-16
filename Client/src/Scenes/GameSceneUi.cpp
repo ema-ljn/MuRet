@@ -102,13 +102,18 @@ private:
     bool m_active = false;
 };
 
-// El WndProc: WM_RBUTTONDOWN prende 0x7d36880 (con 0x7d3685c en 0, que el apretón siempre ve así: lo apagó el
-// WM_RBUTTONUP de antes) y 0x7d3685c, y WM_RBUTTONUP apaga los dos. MuRet ve los mensajes del paso juntos: apretado y
-// soltado en el mismo paso, quedan apagados, como después de los dos.
+// El WndProc: WM_RBUTTONDOWN apaga 0x7d36840 y prende 0x7d36880 (con 0x7d3685c en 0, que el apretón siempre ve así:
+// lo apagó el WM_RBUTTONUP de antes) y 0x7d3685c, y WM_RBUTTONUP apaga los dos y, si 0x7d3685c estaba prendido, prende
+// 0x7d36840. MuRet ve los mensajes del paso juntos: apretado y soltado en el mismo paso, quedan apagados y el soltado
+// prendido, como después de los dos.
 void LatchTheRightButton(UI::GameUiState& ui, const Input::InputState& input)
 {
     const bool down = input.IsDown(Input::MouseButton::Right);
     const bool pressed = input.WasPressed(Input::MouseButton::Right);
+    if (pressed)
+        ui.rightReleased = false;
+    if (!down && (ui.rightDown || pressed))
+        ui.rightReleased = true;
     ui.rightClick = down && (ui.rightClick || pressed);
     ui.rightDown = down && (ui.rightDown || pressed);
 }
@@ -291,7 +296,8 @@ Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& 
                                        .requests = &requests,
                                        .systemTime = systemTime,
                                        .inventory = &inventory,
-                                       .itemSetTables = m_chatTables.itemSetTables});
+                                       .itemSetTables = m_chatTables.itemSetTables,
+                                       .skills = m_skills});
 }
 
 GameChatContext GameScene::ChatContext()
@@ -383,6 +389,11 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
         .leftDown = input.MouseMessages().leftDown,
         .controlDown = input.IsDown(Input::Key::Ctrl),
         .chosenServer = m_session != nullptr ? m_session->ChosenServer() : std::nullopt};
+    if (m_session != nullptr)
+    {
+        if (const auto* chosen = m_session->ChosenCharacter(); chosen != nullptr)
+            hud.chosenSlot = chosen->slot;
+    }
     // 0x5ac120: el pase 3D de los ítems de la UI, con los modelos de los ítems, el buffer global de la pose y los
     // contextos de 0x60b3d0 del frame (o sus copias en un dibujo intermedio). Sin la biblioteca, sin dibujo.
     ItemSpecialDrawContext itemSpecial;
@@ -404,6 +415,9 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
                                         .pass = pass.Value()});
         hud.uiItems = &*uiItems;
     }
+    // 0x42403d: el A9 del tooltip de las mascotas sale por la sesión del juego, como el del botón de la mascota.
+    if (App::ServerSession* session = m_session; session != nullptr && !m_projectingFrame)
+        hud.send = [session](Protocol::Outgoing packet) { session->SendChat(std::move(packet)); };
     // 0x637646: 0x6219b0 empieza el 2D (gluOrtho2D y MODELVIEW identidad, con push): el lote de SceneCanvas.
     // 0x63764b: 0x4383f0, los textos 3D.
     WorldTextDrawContext worldTexts{.queue = runtime.worldTexts,

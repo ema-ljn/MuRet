@@ -191,6 +191,38 @@ enum class CursorGrid : std::uint8_t
     Inventory, // 0x78a9bb0
 };
 
+// Las mascotas de 0x723960 (CL9 hito 4): 0x14 bytes por tipo, tres (0x420cd0 pone en 0 quince dwords).
+inline constexpr std::size_t PetStatsCount = 3;
+inline constexpr std::size_t RavenPetStats = 0;
+inline constexpr std::size_t DarkHorsePetStats = 1;
+
+struct PetStats
+{
+    std::uint32_t experience = 0;     // +0: el DWORD del A9 (pkt[8])
+    std::uint32_t nextExperience = 0; // +4: (nivel + 11) · (nivel + 1)³ · 100, en 32 bits (0x4221d0)
+    std::uint16_t level = 0;          // +8: pkt[6]
+    std::uint16_t durability = 0;     // +0xa: la durabilidad del caballo del registro propio (+0xdc6) o del cartel
+    // +0xc a +0x12: lo que 0x4221d0 calcula con el nivel, el liderazgo (+0x36 + +0x20 del registro propio) y, en el
+    // caballo, la fuerza y +0x2a. Los lee la ventana de la mascota (0x4249a0) y su tooltip (0x422990).
+    std::uint16_t word0c = 0;
+    std::uint16_t word0e = 0;
+    std::uint16_t word10 = 0;
+    std::uint16_t word12 = 0;
+};
+
+// 0x723914, 0x723918 y 0x72391c: el último ítem del que el tooltip de las mascotas (0x422990) pidió el A9. Si el ítem
+// que muestra no es ese (otro lugar de la caja, otro tipo u otro D+4), lo anota, pide el A9 y no dibuja nada en ese
+// frame. Arrancan en 0 (la .bss). 0x421d90, desde el comercio (0x44b910, CL9.3), pone en 0 dieciocho dwords desde
+// 0x723918: el tipo y D+4, no la clave.
+struct PetTooltipQuery
+{
+    // ((y & 0xffff) << 16) | (x & 0xffff), con la x y la y de 0x422990: el centro de arriba de la caja.
+    std::uint32_t key = 0;
+    std::uint16_t type = 0;
+    // D+4 del ítem (World::ItemState::scalar1Low).
+    std::uint32_t scalar = 0;
+};
+
 // Un nodo de la lista de huesos con nombre de [0x6e5640] (0x401000 → 0x4011c0): el personaje (el lugar del pool), el
 // nombre que le da el creador del monstruo y el hueso de su modelo. Lo leen los efectos (CL11).
 struct NamedBone
@@ -388,13 +420,15 @@ struct WorldRuntime
     std::uint8_t warpDepth = 0;
     // Cuántos accesos tienen abierto el registro propio ([0x7681eb4], 0xf08 bytes).
     std::uint8_t ownRecordDepth = 0;
-    // [0x72397c], el nivel del caballo oscuro: lo escribe 0x421db0 con el A9 de las mascotas (el tipo 1 en el
-    // lugar 8, 0x421e9e), sin portar (CL9), y lo leen 0x4225d0 (el byte de abajo) y 0x422930. Queda en el 0 de
-    // la .bss.
-    std::uint16_t darkHorseLevel = 0;
-    // [0x723968], el nivel del cuervo: la mascota 0 de 0x421db0 (el A9 con el tipo 0, sin portar, CL9). Lo lee el
-    // requisito de liderazgo del 0x1a5 (0x5bf027). Queda en el 0 de la .bss.
-    std::uint16_t ravenLevel = 0;
+    // 0x723960: lo de cada mascota que escribe el A9 (0x421db0 y 0x4221d0, Scenes/PetInfo.h), por el tipo: el 0 el
+    // cuervo y el 1 el caballo. 0x420cd0 pone en 0 los tres. El nivel del caballo ([0x72397c]) lo leen 0x4225d0 (el
+    // byte de abajo) y 0x422930; el del cuervo ([0x723968]), el requisito de liderazgo del 0x1a5 (0x5bf027) y 0x422930.
+    std::array<PetStats, PetStatsCount> pets{};
+    // 0x723910: la pestaña de la ventana de la mascota (0 el caballo, que dibuja 0x424e40, y 1 el cuervo, 0x416670),
+    // que eligen los dos botones de 0x424759. El 0x723911 de al lado es UI::DelegatedPanels::pet.
+    std::uint8_t petTab = 0;
+    // 0x723914, 0x723918 y 0x72391c: de qué ítem pidió el A9 el tooltip de las mascotas (0x422990).
+    PetTooltipQuery petTooltipQuery{};
     // DAT_057678b0: el lugar del pool que la respuesta del F3 03 elige para el héroe, rand() % 400
     // (0x4c44d4, la única escritura; 06, "La entrada al mundo", fila 3). Cada respuesta lo vuelve a
     // sortear.
@@ -404,6 +438,9 @@ struct WorldRuntime
     // lo escribe nadie más: en una segunda respuesta, hasta ahí es el héroe anterior, y después de la vuelta
     // a la selección sigue en el lugar del juego (Q-C213).
     std::size_t hero = 0;
+    // 0x5767964: el lugar del pool de la fuente del último 19 (0x4cce7d) o 69 (0x4cc2e1), el 400 si no está. Quién lo
+    // lee, sin leer (CL9 hito 4).
+    std::int32_t skillSource = 0;
     // [0x743a178] y [0x743a17c], lo que dejó el último 0x505820 (06, "El conjunto completo de 0x505820"): en
     // la .bss, 0 al arrancar. Lo escriben 0x512a30 con el héroe publicado y el dibujo de los personajes
     // (0x50ba30 en 0x50c91e), el del login y el de la selección (ScanTheDrawnCharacter). nullopt después de un
@@ -451,8 +488,7 @@ struct WorldRuntime
     // [0x6c88ac] (.data, 15): desde cuántos pasos de +0x381 corre la habilidad de 0x4fd5f0 (0x4fdbe5, con signo). Lo
     // escribe solo 0x4f97b0: 15 en 0x4f987d, antes de su switch, y 5 en 0x4f9ee2, un caso de habilidad (hito 4).
     std::int32_t skillThreshold = 15;
-    // [0x5767948] (.bss, 0): la skill (el sexto argumento, & 0xff) del último tiro de 0x53d9a0 (0x53deb6, CL9 hito 3,
-    // fase 2e). Lo lee la habilidad 0x31 (06, la tabla de globales), del hito 4.
+    // [0x5767948]: un único estado para el tiro de H3 y las skills de H4.
     std::uint32_t lastShotSkill = 0;
     // +0xaa..+0xbc de los modelos de [0x5769ad8]: lo que 0x612c80 escribió desde el alta de cada monstruo (0x612d90,
     // MonsterSounds.h), que leen 0x4f4a10 y 0x4f5660 (CL9 hito 3, fase 2c). No se vacía: nadie más escribe esas WORD,

@@ -241,6 +241,7 @@ TEST(AttackStepTest, TheCounterRunsFourteenStepsAndThenTheSkill)
 
 // Pasado el frame 5 (0x6b87f8), 0x4f97b0 lee la izquierda del registro propio y pone +0x381 en 15: la habilidad corre
 // en el mismo paso. La 0x3e del 0x20a termina desde el frame 1, sin el registro. Antes del 5, o con NaN, sigue.
+
 TEST(AttackStepTest, TheStrikeFrameEndsTheCount)
 {
     struct Case
@@ -275,6 +276,7 @@ TEST(AttackStepTest, TheStrikeFrameEndsTheCount)
 // Un monstruo sin caso en 0x4f5b70 (el +0x376 3 en Lorencia) cuenta y pega como un jugador: los ayudantes de los
 // mapas no lo miran, su +0x376 va a 0x4f80e0 y 0x4f97b0 lo deja pegar en la 3 o la 4 desde el frame 5. El sonido es el
 // de las manos del registro propio (Q-C1168).
+
 TEST(AttackStepTest, AnOrdinaryMonsterCountsAndStrikesLikeAPlayer)
 {
     AttackWorld tested;
@@ -306,6 +308,7 @@ TEST(AttackStepTest, AnOrdinaryMonsterCountsAndStrikesLikeAPlayer)
 // Los ayudantes de 0x4f5b70, cada uno en sus mapas, después del rand() de 0x4f5b97: los que devuelven 1 salen sin la
 // cola (0x4436f0, los de Kalima y los del 33 y el 54 fuera de su efecto); 0x42fce0 y 0x4324c0 miran el tipo y +0x381 y
 // siguen; los efectos cortan. Los casos uno por uno, en test_monster_attack_cases.cpp.
+
 TEST(AttackStepTest, TheMapHelpersOfTheMonstersExitOrCut)
 {
     struct Case
@@ -358,6 +361,7 @@ TEST(AttackStepTest, TheMapHelpersOfTheMonstersExitOrCut)
 }
 
 // Sin blanco (+0x3a4 en −1), 0x4f5b70 sale después de su rand() (0x4f80ea) y la habilidad no suena.
+
 TEST(AttackStepTest, WithoutATargetThereIsNoSound)
 {
     AttackWorld tested;
@@ -374,6 +378,7 @@ TEST(AttackStepTest, WithoutATargetThereIsNoSound)
 
 // El sonido sale de las manos del registro propio, también cuando pega otro: 0x4b con las dos de 0x800 a 0x9ff y 0x46
 // si no; el ítem del cursor, sacado de la grilla del inventario, toma el lugar de [0x78a6758].
+
 TEST(AttackStepTest, TheStrikeSoundFollowsTheOwnHands)
 {
     struct Case
@@ -417,9 +422,13 @@ TEST(AttackStepTest, TheStrikeSoundFollowsTheOwnHands)
     }
 }
 
-// Lo que corta, en su orden y con los rand() de antes: las habilidades del hito 4 (0x4f9899, 0x4f8a39, 0x4fdeeb,
-// 0x504372), los efectos de los casos de 0x4f5b70 (0x4f7050), 0x52e740 (0x5042ce) y, sin el pool de joints, los de
-// +0x380 en 2 (0x505169). La flecha (0x53e2b0) ya no corta: sus cortes están en test_arrow_effects.cpp.
+// Lo que corta, en su orden y con los rand() de antes: el efecto 0x621 de la 0x34 en 3 (0x4f9ecb, CL11), los joints
+// 0x614 de la 3 sin caso (0x4f8fef, CL11), lo que crean los casos de la cabeza y con blanco (0x4fdeeb, 0x504372,
+// CL11), los efectos de los casos de 0x4f5b70 (0x4f7050), la partícula de 0x52e740 (0x5042ce, CL11) y, sin el pool de
+// joints, los de +0x380 en 2 (0x505169). La flecha (0x53e2b0) ya no corta: sus cortes están en test_arrow_effects.cpp.
+// Los demás casos de 0x4f97b0, en test_attack_frame_skills.cpp; los de 0x4fdeeb y 0x504372, en
+// test_attack_skill_cases.cpp.
+
 TEST(AttackStepTest, TheCutsAfterTheirDraws)
 {
     struct Case
@@ -430,22 +439,28 @@ TEST(AttackStepTest, TheCutsAfterTheirDraws)
         int draws;
     };
     const std::array cases{
-        Case{"la habilidad 0x28", [](AttackWorld&, ActorState& hero) { hero.byte38e = 0x28; }, "0x4f9899", SkillRead},
+        Case{"la habilidad 0x34 en 3",
+             [](AttackWorld&, ActorState& hero)
+             {
+                 hero.byte38e = 0x34;
+                 hero.byte381 = 3;
+             },
+             "0x4f9ecb", SkillRead},
         Case{"la habilidad 3", [](AttackWorld&, ActorState& hero) { hero.byte38e = 3; }, "0x4f8fef", CountingStep},
-        Case{"la habilidad 5",
+        Case{"la habilidad 8",
              [](AttackWorld&, ActorState& hero)
              {
-                 hero.byte38e = 5;
+                 hero.byte38e = 8;
                  hero.byte381 = 14;
              },
-             "0x4fdeeb", CountingStep + SkillRead},
-        Case{"la habilidad 0x18",
+             "0x500c49", CountingStep + SkillRead + OwnRecord},
+        Case{"la habilidad 7",
              [](AttackWorld&, ActorState& hero)
              {
-                 hero.byte38e = 0x18;
+                 hero.byte38e = 7;
                  hero.byte381 = 14;
              },
-             "0x504372", CountingStep + 2 * SkillRead},
+             "0x504768", CountingStep + 2 * SkillRead},
         Case{"el caso 0x23 de +0x376",
              [](AttackWorld&, ActorState& hero)
              {
@@ -459,7 +474,7 @@ TEST(AttackStepTest, TheCutsAfterTheirDraws)
                  hero.animation.action = 0x39;
                  hero.byte381 = 14;
              },
-             "0x5042ce", CountingStep + SkillRead},
+             "0x52e77b", CountingStep + SkillRead},
         Case{"mató, sin los joints",
              [](AttackWorld& tested, ActorState& hero)
              {
@@ -485,7 +500,8 @@ TEST(AttackStepTest, TheCutsAfterTheirDraws)
 
 // 0x558eb0: la clave del elegido solo con el héroe que pega. −1 con otro, con un ítem en el cursor o sin elegido; el
 // PK de 6 o más, Ctrl con otro y +0x370 en 2 dan la clave; Chaos Castle, también la del héroe; el duelo, solo la del
-// rival; en la guerra de gremios con un PK de 6, −1 hasta el hito 8.
+// rival; la guerra de gremios con un PK de 6 corta.
+
 TEST(AttackStepTest, TheChosenKeyIsTheHerosOnly)
 {
     struct Case
@@ -570,6 +586,7 @@ TEST(AttackStepTest, TheChosenKeyIsTheHerosOnly)
 // rand() & 63 (el punto: la x y la y del blanco − 32, su z + 0x5a) y la sangre 0x5e4 (0x53fe70, con cuatro rand() y los
 // ángulos del que pega); después sigue la habilidad hasta el sonido. Sin el pool, corta después del primer punto; con
 // el pool lleno, solo los tres rand() de cada punto. El 0x159 no sangra.
+
 TEST(AttackStepTest, TheTargetWithDamageBleedsTenTimes)
 {
     constexpr int Bleeding = 10 * (3 + 4);
@@ -640,6 +657,7 @@ TEST(AttackStepTest, TheTargetWithDamageBleedsTenTimes)
 // rand() & 1; con 0, rand() % 30 para la z (z + 50 + el rand()) y la piedra 0x10b (0x51bafb, nueve rand(): con el
 // subtipo 0 pasa al 1), con los ángulos y la luz del que pega y sin dueño. Después, el sonido 0x88 y el resto. En
 // Lorencia, en Devias y en Blood Castle 1 (el 11). Cada piedra da pasos hasta morir o hasta el corte de 0x5252e6.
+
 TEST(AttackStepTest, TheStatueWithDamageThrowsStones)
 {
     constexpr int Bleeding = 10 * (3 + 4);
@@ -737,6 +755,7 @@ TEST(AttackStepTest, TheStatueWithDamageThrowsStones)
 // 0x4fb08c..0x4fb0da: con el 0x815 en la izquierda del registro propio, el frame 5 de cualquiera que pegue pide veinte
 // chispas 0x5c6/12 sobre él, con su luz (+0xf4), escala 2 y seis rand() cada una, y el ataque sigue hasta el sonido.
 // Sin el pool corta después del registro; con el pool lleno no saca nada más.
+
 TEST(AttackStepTest, TheBowInTheOwnLeftHandSparksTwentyTimes)
 {
     constexpr int Sparks = 20;
@@ -793,6 +812,7 @@ TEST(AttackStepTest, TheBowInTheOwnLeftHandSparksTwentyTimes)
 
 // 0x505069..0x5051a4: con +0x380 en 2 (el 16 del héroe: mató), la habilidad lanza el 0x618/0 y el 0x618/1 desde el
 // blanco, con el que pega de dueño, el ancho 20 y los ángulos del que pega, sin rand(), y sigue hasta el sonido.
+
 TEST(AttackStepTest, TheKillerLaunchesTwoBeamsFromTheTarget)
 {
     AttackWorld tested;
@@ -834,6 +854,7 @@ TEST(AttackStepTest, TheKillerLaunchesTwoBeamsFromTheTarget)
 // lecturas de 0x4f5b70 y la habilidad con el sonido. Después, +0x381 en 0. Con el daño del último 15 en el blanco,
 // además las diez sangres 0x5e4 con sus rand(), que viven sus 12 pasos. Los dos rand() del giro de la cabeza (0x5068fd,
 // uno en 32 por paso en los que no son el héroe) dependen de la semilla: se descuentan los de cada blanco que cambió.
+
 TEST(AttackStepTest, AMeleeAttackOfEachClassRunsItsSteps)
 {
     struct Case
@@ -931,6 +952,7 @@ TEST(AttackStepTest, AMeleeAttackOfEachClassRunsItsSteps)
 // entero de los personajes (0x508f00), el de los joints (0x535840) y el de las partículas (0x5446e0) corren sin cortar
 // hasta que los dos 0x618 vuelven al héroe con su sonido 0x23 (además del del golpe) y se apagan, con sus 0x5d5 y las
 // sangres.
+
 TEST(AttackStepTest, AKillOfEachClassSendsTheBeamsBackWithoutACut)
 {
     constexpr int Steps = 120;
@@ -980,9 +1002,10 @@ TEST(AttackStepTest, AKillOfEachClassSendsTheBeamsBackWithoutACut)
 
 // El elfo con el arco (0x2e, el 4/0 en la izquierda del registro propio) o la ballesta (0x2f, el 4/8 en la derecha) y
 // la skill 0x18 en el lugar 3 de +0x6c tira en el paso del frame 5 (0x504060): 0x59fb80 da el lugar, 0x53e2b0 crea la
-// flecha con el lugar en +0x89 y deja la skill en [0x5767948]; después corta en el switch de las skills con blanco
-// (0x504372, hito 4), con la flecha viva.
-TEST(AttackStepTest, TheElfBowShootsAndStopsAtTheSkill)
+// flecha con el lugar en +0x89 y deja la skill en [0x5767948]; después, el caso 0x18 de las skills con blanco
+// (0x504379) tira la tanda de tres y sigue en el de la 0x34, que tira una más: cinco flechas, sin corte.
+
+TEST(AttackStepTest, TheElfBowShootsAndThenTheSkillVolley)
 {
     struct Case
     {
@@ -1003,20 +1026,25 @@ TEST(AttackStepTest, TheElfBowShootsAndStopsAtTheSkill)
         tested.world.OwnCharacter().equipment[1].id = probe.left;
         ActorState& hero = tested.Striker(HeroSlot, probe.action, VictimSlot);
         hero.byte38e = 0x18;
-        Client::Core::Expected<void, std::string> stepped;
-        int step = 0;
-        for (; step < 20 && stepped.HasValue(); ++step)
-            stepped = StepCharacters(tested.Context());
+        for (int step = 1; step <= 10; ++step)
+        {
+            SCOPED_TRACE(step);
+            const auto stepped = StepCharacters(tested.Context());
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        }
 
-        EXPECT_TRUE(HasError(stepped, "0x504372")) << ErrorOf(stepped);
-        EXPECT_EQ(step, 10);
+        EXPECT_EQ(hero.byte381, 0);
         EXPECT_EQ(tested.world.Runtime().lastShotSkill, 0x18u);
         const auto& effects = tested.world.Map().effects.Effects();
-        const auto arrow = std::ranges::find_if(effects, [](const auto& effect) { return effect.alive; });
-        ASSERT_NE(arrow, effects.end());
-        EXPECT_EQ(arrow->type, probe.arrow);
-        EXPECT_EQ(arrow->byte89, 3);
-        EXPECT_EQ(arrow->ownerContext, &hero);
+        EXPECT_EQ(std::ranges::count_if(effects, [](const auto& effect) { return effect.alive; }), 5);
+        for (const auto& arrow : effects)
+        {
+            if (!arrow.alive)
+                continue;
+            EXPECT_EQ(arrow.type, probe.arrow);
+            EXPECT_EQ(arrow.byte89, 3);
+            EXPECT_EQ(arrow.ownerContext, &hero);
+        }
     }
 }
 
@@ -1066,5 +1094,43 @@ TEST(AttackStepTest, AVisibleMeleeWeaponSurvivesTheFullAttackBodyPipeline)
     EXPECT_EQ(ribbon->type, 0);
     EXPECT_EQ(ribbon->count, 29); // 52e454: cuatro tandas de diez saturan en 29.
     EXPECT_EQ(ribbon->light, (glm::vec3{1.0f, 0.6f, 0.2f}));
+}
+
+// Composición359/H4: la acción38 llega a SparkTheTarget con P lleno y continúa hasta producir la estela.
+TEST(AttackStepTest, FullSparkParticlesDoNotPreventTheVisibleSpearTrail)
+{
+    constexpr std::uint8_t SpearAttack = 0x38;
+    constexpr std::uint16_t SpearModel = 0x415;
+    constexpr std::size_t HandBone = 33;
+    std::uint32_t withoutTrail = 0;
+    for (const bool visible : {false, true})
+    {
+        SCOPED_TRACE(visible);
+        AttackWorld tested;
+        tested.skeleton.actions[SpearAttack] = ActionInfo{.repeats = true, .speed = 0.0f, .keyCount = 10};
+        Client::Render::Models::SkeletonBone bone;
+        bone.actions.resize(tested.skeleton.actions.size());
+        for (auto& keys : bone.actions)
+            keys.resize(10);
+        tested.skeleton.bones.assign(HandBone + 1, bone);
+        auto& hero = tested.Striker(HeroSlot, SpearAttack, VictimSlot);
+        hero.animation.frame = 5.0f;
+        hero.byte381 = 14;
+        hero.hands[0].model = visible ? SpearModel : Client::Scenes::NoItemModel;
+        hero.hands[0].level = 13;
+        hero.hands[0].bone = HandBone;
+        tested.Victim().alive = true;
+        for (auto& particle : tested.particles.All())
+            particle.alive = true;
+        const auto stepped = StepCharacters(tested.Context());
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(hero.byte381, 0);
+        const bool ribbon = std::ranges::any_of(tested.world.DrawTail().ribbons, [](const auto& r) { return r.alive; });
+        EXPECT_EQ(ribbon, visible);
+        if (visible)
+            EXPECT_EQ(tested.random.State(), withoutTrail);
+        else
+            withoutTrail = tested.random.State();
+    }
 }
 } // namespace

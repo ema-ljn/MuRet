@@ -340,7 +340,10 @@ Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const I
                                               .frameClock = pass.frameClock,
                                               .map = map,
                                               .heroByte1a1 = heroByte1a1,
-                                              .originalFrame = originalFrame});
+                                              .originalFrame = originalFrame,
+                                              .random = &random,
+                                              .particles = pass.particles,
+                                              .worldClock = worldClock});
 }
 
 Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const IModelLibrary& models, WorldState& world,

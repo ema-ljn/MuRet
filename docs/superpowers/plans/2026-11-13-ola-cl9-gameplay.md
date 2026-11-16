@@ -390,15 +390,62 @@ el viewport. **Desbloquea:** 4 y 11.
 - [ ] **Usar una skill:** las cuatro funciones por clase (`0x559890`, `0x55b6f0`, `0x55cbc0`, `0x55faa0`,
       32 KB, que mandan `C1 19`, `1E`, `D3`, `DF` y `26`), las demoras (`0x5521f0`, `0x552990`, `0x552c50`,
       `0x552f10`) y la barra de skills (`0x5a05e5..0x5a1170`, el tramo de `0x59ff10` que hoy solo saca sus
-      3.848 `rand()`; los números `0x59f810`).
-- [ ] **Lo que llega:** el `0x19` (`0x4cc530`, 6,5 KB, con las acciones `0x94`, `0x51` y `0x5b` de
+      3.848 `rand()`; los números `0x59f810`). *Hecho en parte (2026-11-13):* las demoras (`Scenes/SkillDelays`),
+      la lista de la barra con sus `rand()`, Ctrl con un número, `0x420e90`, `0x420e30` y `0x59f810`
+      (`Scenes/GameUi.cpp`); en la fase 2, `0x4eb620` (`GameScene::Step`, P-C267) y, con los hitos 1 y 3
+      integrados, `0x4f4a10` y `0x4e6380` en lo que llega (`SetActorAttack`, `ApplyEffectFlags`). En la fase 2b,
+      la cabeza de `0x57cfc0` (`Scenes/HeroSkills`: el derecho, el ataque automático, el reloj, la zona segura, el
+      blanco `0x57ce80` y el lazo de las manos), desde MoveHero (`0x59e255`), y las órdenes del cuervo (`0x420f70`).
+      Las ramas de cada clase y lo que mandan las cuatro funciones quedan cortados con su dirección (08, P-C268).
+      En la fase 2c-A, `0x558110` con 3 y 4, `0x559890` (`0x559afc`, `0x55a368`) con `0x559510` → `0x55b6f0` y
+      la cola del elfo de `0x561f60` (`0x562024`), en `Scenes/HeroSkillCasts`; cortan la poción (hito 5) y, todavía,
+      la rama del elfo, `0x55faa0` y el caso 5 de `0x5650c0` (P-C269). En la fase 2c-A2, el brillo `0x5fe` de
+      `0x55be23` en el pool de partículas (`0x542bff`, `0x546d54`, `0x53fdb0` y el billboard común).
+      En la fase 2c-B, la rama del Wizard (`0x5897aa..0x593874`, `Scenes/HeroSkillsWizard`) y `0x55cbc0`
+      (`Scenes/Skill55cbc0`), con el `1E`, el `1C` y el `B0`; cortan la party (hito 7), la poción y `0x5808da`
+      (08, P-C222).
+      En la fase 2c-C, la rama de las clases 1, 3 y 4 (`0x581894..0x5897a7`, `Scenes/HeroSkillsKnight`: los `19` y
+      `1E` de las `0x29`, `0x2a`, `0x30`, `0x37`, `0x38`, `0x3e`, `0x3f`, `0x40`, `0x41`, `0x4b` y `0x4c`, con
+      `0x551f40`, `0x4e9920`, `0x4e9c50` y `0x57cf90`, y el costo y la poción de `Scenes/HeroSkillCasts`); corta
+      la poción con una en el inventario (`0x581b9e`, hito 5), y el Magic Gladiator sigue en la rama del Wizard
+      (`0x5897b7`) (08, P-C223).
+      En la fase 2c-A2, la rama del elfo (`0x57d790..0x58187c`, `Scenes/HeroSkillsElf`: los `19` de las
+      invocaciones, de las `0x1a` a `0x1c` y de la `0x35`, y los `1E` de la `0x34` y la `0x4c`) y `0x55faa0`
+      (`Scenes/Skill55faa0`, con el `D3`, sus `19` y `0x4f48e0`); cortan la poción (`0x57d837`, hito 5) y
+      `0x5808da` (08, P-C220). También el caso 5 de `0x5650c0` (`0x56601f`, `UseTheSkillOnArrival` en
+      `Scenes/HeroAttack.cpp`), que llega a `0x55b6f0`, `0x55cbc0` y `0x55faa0` con la skill pendiente.
+      En la fase 2c-D, la cola de las `0x43` a `0x48` (`0x5808da..0x599d5d`, `Scenes/HeroSkillsTail`, de todas las
+      clases: el `1E` de la `0x43` y los `19` de las `0x44` a `0x48`, con la acción por la montura); corta la poción
+      con una en el inventario (`0x580954`, hito 5, 08, P-C269 b). Con ella, `0x57cfc0` no corta ninguna rama.
+      En la fase 5, los cortes de la flecha que el hito 3 dejó (P-C231): las skills de tiro (`0x53e741`, la bandera
+      `0x53e2e0`, el `0x13a`, el `0x105`, la `0xdb`/3 y /4 y la `0xe1`/1) y el choque de `0x5201ed` con `0x517a20` y
+      el C1 10 (`Scenes/ArrowEffects`, `Scenes/SkillHits`, `Protocol::Skill::WriteSkillHits`); lo que dibujan corta
+      en CL11 (P-C326) y el asedio sigue en CL9.5 (P-C327).
+      En la fase 6a, los casos de habilidad de `0x4f97b0` (la tabla de `0x4fb10c`, con la `0x4f9ee2`) y `0x4f8f5b`
+      de la cola de `0x4f5b70` (`Scenes/AttackFrameSkills`, 08, P-C258); sus efectos cortan en CL11 (P-C344) y la
+      `0x34` llega al tiro desde `+0x381` en 4 (P-C345). También la flecha de `0x564f2f` (P-C269 c, con
+      `HeroSkillContext::models`), y `PassesTheActionBrake` cotejado en todos los frenos de `0x57cfc0` (P-C251 b).
+      En la fase 6b, los casos de habilidad del paso del ataque que el hito 3 dejó (P-C258): la cabeza (`0x4fdeeb`),
+      los de con blanco (`0x504372`) y `0x52e740` (`0x5042ce`), con la `0x4c` entera (`0x5588d0`, el alcance de
+      `0x5526f0` sin dueño) (`Scenes/AttackSkillCases`); los efectos, joints y partículas que crean cortan en CL11
+      (08, P-C346).
+- [x] **Lo que llega:** el `0x19` (`0x4cc530`, 6,5 KB, con las acciones `0x94`, `0x51` y `0x5b` de
       `0x50f828`), el `0x1E` (`0x4ce000`), el `0x1B` (`0x4cbe90`), el `0x07` (los estados de un personaje,
       `GCSend_07` del GS: `0x4cbe00`, con `0x4e6910`), el `0x48`, el `0x69`, el `0x73` (`0x4d5b10`),
-      el `B7`, la lista de skills (`F3 11`, `0x4c5070`) y el invocado (`F3 20`, `0x5ab210`).
-- [ ] **El cuervo y las mascotas:** las órdenes del `A7` (los paquetes de `0x416a20`, `0x418920` desde
+      el `B7`, la lista de skills (`F3 11`, `0x4c5070`) y el invocado (`F3 20`, `0x5ab210`). *Hecho
+      (2026-11-13):* `Protocol/Skill`, `Scenes/SkillReplies` y `Scenes/ActorFlags`, salvo el `B7` (del asedio,
+      08, P-C264 e), el dibujo del invocado (`0x5ab210`) y los efectos de la CL11 (P-C265).
+- [x] **El cuervo y las mascotas:** las órdenes del `A7` (los paquetes de `0x416a20`, `0x418920` desde
       `0x41835a`, el objetivo de `+0x3b0` y los estados 2, 5 y 6 del cuervo), el `A8`, el `A9` (`0x421db0`,
       `0x4225d0`, `0x422930`, la ventana `0x424160`, el tooltip `0x422990`), `0x420cd0`, y los íconos de estado
-      (`0x42a660`).
+      (`0x42a660`). *Hecho (2026-11-13):* el `A7` y el `A8` (`Protocol/Pet/PetOrders`,
+      `Scenes/PetOrders`); en la fase 2, los estados 2, 5 y 6 del paso, `0x418920` (con sus efectos cortados, CL11), el
+      `A9` (`Scenes/PetStats`), `0x420cd0`, abrir y cerrar el panel `0x400` y el paso de la ventana (`0x424759`); los
+      íconos ya estaban; en la fase 2b, las órdenes del derecho (`0x420f70`, `Scenes/HeroSkills`); en la fase 2c, el
+      dibujo de la ventana (`0x424160`, `0x4249a0`, `0x424e40`, `0x416670`, `0x4149b0` y el cartel del cuervo
+      `0x418460`, `Scenes/GamePetWindow`) y el tooltip (`0x422990`, `Scenes/PetTooltip`, con el `A9` que pide; el
+      precio de la tienda de NPC corta hasta `0x5b1130`, 08 P-C246). Los joints del cuervo con `0xfe` y `0xff` y los
+      efectos del ataque quedan para la CL11 (08, P-C266).
 
 **Pruebas:** cada skill de cada clase manda sus bytes; el `0x19` y el `0x1E` sobre el héroe y sobre otro; las
 demoras; los `rand()` de la barra con skills (hoy se sacan sin ninguna); el cuervo con cada orden.

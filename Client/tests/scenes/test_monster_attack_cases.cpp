@@ -2210,8 +2210,9 @@ TEST_F(MonsterAttackCasesTest, TheSkill0x11CasesLeaveAfterTheirEffect)
     }
 }
 
-// La cola con 3 en +0x38e (0x4f8a56): los casos con sus sonidos en 1 y su rand() % 360 antes del joint; sin caso, la
-// habilidad del hito 4 (0x4f8a39).
+// La cola con 3 en +0x38e (0x4f8a56): los casos con sus sonidos en 1 y su rand() % 360 antes del joint; sin caso,
+// 0x4f8f5b: el hueso de la mano del alta pasa la cuenta del esqueleto de prueba (sin huesos) y sale, sin rand(). Sus
+// joints 0x614/0 (0x4f8fef), en test_attack_frame_skills.cpp.
 TEST_F(MonsterAttackCasesTest, TheSkill3CasesLeaveAfterTheirJoints)
 {
     const std::vector<Probe> probes{

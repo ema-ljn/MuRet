@@ -18,6 +18,7 @@
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameUi.h"
+#include "Scenes/NpcNames.h"
 #include "Scenes/OwnInventory.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -34,6 +35,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -189,14 +191,13 @@ protected:
                                .texts = &texts,
                                .worldClock = worldClock,
                                .mouse = mouse};
+        // 0x7681eb8 (CL9 hito 2): el NPC 236 en el registro 7 de la tabla, con un nombre inventado.
+        Client::Scenes::NpcName& record = runtime.npcNames[7];
+        record = {};
         if (withNames)
         {
-            context.npcName = [](std::uint16_t npc) -> std::optional<std::string_view>
-            {
-                if (npc != 236)
-                    return std::nullopt;
-                return InventedNpc;
-            };
+            record.type = 236;
+            std::ranges::copy(InventedNpc, record.name.begin());
         }
         return Client::Scenes::DrawTheEventChipWindow(context);
     }
@@ -524,13 +525,24 @@ TEST(EventChipEditTest, TheEditFilterTakesDigitsAndLetters)
 
 // ----- El dibujo (0x5f6550).
 
-// 0x5f65df: el título es el NPC 236 de la tabla de NpcName(%s).txt, que MuRet no carga: sin ella, corta.
-TEST_F(EventChipWindowTest, TheTitleNeedsTheNpcNames)
+// 0x5f65df: el título es el NPC 236 de la tabla de NpcName(%s).txt (0x54ebb0). Sin un registro con ese tipo, 0x54ebb0
+// da NULL y 0x554180 no dibuja el título, como el de las misiones (0x41be9e): la ventana sigue igual, sin cortar. En
+// Lorencia y en Devias.
+TEST_F(EventChipWindowTest, WithoutTheNpcInTheTableTheTitleIsNotDrawn)
 {
-    Runtime().panels.field78abb00 = Client::Scenes::RenaChipWindow;
-    const auto drawn = Draw({0, 0}, false, false);
-    ASSERT_FALSE(drawn.HasValue());
-    EXPECT_NE(drawn.Error().find("0x5f65df"), std::string::npos) << drawn.Error();
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        Reset(map);
+        Runtime().panels.field78abb00 = Client::Scenes::RenaChipWindow;
+        const auto drawn = Draw({0, 0}, false, false);
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        const auto& lines = text.texts;
+        ASSERT_FALSE(lines.empty());
+        EXPECT_EQ(lines[0].text, "registrar rena");
+        for (const auto& line : lines)
+            EXPECT_NE(line.text, InventedNpc);
+    }
 }
 
 // Con 1: la esquina en (0x1c2, 0), el fondo, el título, el botón 0xf0 en (485, 231) blanco y con el texto 243 en

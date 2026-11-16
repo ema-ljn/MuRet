@@ -1750,8 +1750,9 @@ modo con EDIT: lo que el original hace con 0 (la entrada sin EDIT, `0x553ae0`, y
   Al final, el soltado apagado (`0x5e74cc`). Lo prueban `EventChipWindowTest` en Lorencia y en Devias.
 - **El dibujo, `0x5f6550`** (desde `0x5f75d0`, después de los NPC de evento). El color blanco, la mezcla normal, la
   esquina en (`0x1c2`, 0), el fondo (`0x5ee220`) y el título en (x + `0x23`, y + `0xc`) en `0xfff0ff96` sobre 0: el
-  nombre del NPC 236 de `0x54ebb0`, la tabla de `Data\Local\NpcName(%s).txt` que carga `0x54e7f0` (MuRet no la
-  carga: `GameHudContext::npcName` la presta y sin ella corta en `0x5f65df`, P-C248). Después la cuenta del `0x1c15`
+  nombre del NPC 236 de `0x54ebb0`, la tabla de `Data\Local\NpcName(%s).txt` que carga `0x54e7f0` (la de
+  `WorldRuntime::npcNames`, CL9 hito 2; sin un registro con ese tipo, `0x54ebb0` da NULL y `0x554180` no dibuja el
+  título, como en las misiones, P-C248). Después la cuenta del `0x1c15`
   (`0x558740`, de nivel 1 con 2) y el texto en `0xffd2e6ff`.
   - Con 4, el botón `0xf0` (120 de ancho desde x = 485, du = 0,83203125) en y 220 de 24 de alto con el texto 903
     centrado en (`0x221`, `0xe1`); con los otros salvo el 3, en 231 de 22 con el 243 (1) o el 818 (2) en (`0x221`,

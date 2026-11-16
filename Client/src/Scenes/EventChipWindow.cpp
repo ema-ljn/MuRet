@@ -15,6 +15,7 @@
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/GameWindowDrawing.h"
+#include "Scenes/NpcNames.h"
 #include "Scenes/UiItemDrawing.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -588,14 +589,14 @@ Core::Expected<void, std::string> DrawTheEventChipWindow(GameHudContext& context
     context.hud.inventoryY = WindowTop;
     WindowDrawing::DrawTheWindowBack(sprites, WindowLeft, WindowTop);
     context.hud.textColors = TitleColors;
-    // 0x5f65df: 0x54ebb0(0xec), el nombre del NPC 236 en la tabla de NpcName(%s).txt.
-    // TODO(hito 2): en el juego este corte salta con cada 94 hasta que el hito 2 porte 0x54e7f0 y 0x54e8d0 (P-C174);
-    // al juntar el hito 2 en el hito 11, GameSceneUi le pasa esa tabla a npcName (P-C248).
-    const std::optional<std::string_view> title = context.npcName ? context.npcName(TitleNpc) : std::nullopt;
-    if (!title)
-        return Core::Unexpected(std::string("0x5f65df: el título es el NPC 236 de 0x54ebb0, la tabla de "
-                                            "Data\\Local\\NpcName(%s).txt (0x54e7f0), que MuRet no carga (hito 2)"));
-    WindowDrawing::DrawTitle(context, WindowLeft + 0x23, WindowTop + 0xc, *title);
+    // 0x5f65df: 0x554180 con 0x54ebb0(0xec), el nombre del NPC 236 en la tabla de NpcName(%s).txt (0x7681eb8, que
+    // carga 0x54e7f0, CL9 hito 2). Sin un registro con ese tipo, 0x54ebb0 da NULL y 0x554180 no dibuja: mide
+    // lstrlen(NULL), 0 caracteres, como el título de las misiones (0x41be9e).
+    const std::optional<std::string> title = NpcNameOf(runtime.npcNames, TitleNpc);
+    if (title)
+        WindowDrawing::DrawTitle(context, WindowLeft + 0x23, WindowTop + 0xc, *title);
+    else
+        WindowDrawing::DrawText(context, WindowLeft + 0x23, WindowTop + 0xc, {});
     // 0x5f6609..0x5f661b: la cuenta del 0x1c15, de nivel 1 con el 2.
     const std::int32_t items =
         CountInventoryItems(context.world.Inventory(), ChipItem, window == StoneChipWindow ? StoneLevel : 0);

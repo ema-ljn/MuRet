@@ -317,6 +317,7 @@ TEST(AttackStepTest, TheMapHelpersOfTheMonstersExitOrCut)
         std::uint8_t counter;
         std::string_view cut;
         int draws;
+        std::vector<std::int32_t> sounds{};
     };
     // La lectura de 0x4f97b0 y el rand() de 0x4f5b97.
     constexpr int Helper = SkillRead + 1;
@@ -329,7 +330,7 @@ TEST(AttackStepTest, TheMapHelpersOfTheMonstersExitOrCut)
                            Case{"el 54", 0x36, 0x160, 0x134, 1, "", Helper},
                            Case{"el 35 en 14", 0x23, 0x1b2, 3, 14, "0x42fd37", Helper},
                            Case{"el 35 en 2", 0x23, 0x1b2, 3, 2, "", CountingStep},
-                           Case{"Crywolf 0x17c", 0x22, 0x17c, 3, 1, "0x43259e", Helper},
+                           Case{"Crywolf 0x17c", 0x22, 0x17c, 3, 1, "0x520119", Helper + 141, {0x40}},
                            Case{"Crywolf 0x1ad en 2", 0x22, 0x1ad, 3, 2, "", CountingStep},
                            Case{"un caso de +0x376", 0, 0x160, 0x4d, 1, "", CountingStep + SkillRead}};
     for (const Case& probe : cases)
@@ -352,6 +353,7 @@ TEST(AttackStepTest, TheMapHelpersOfTheMonstersExitOrCut)
             EXPECT_TRUE(HasError(stepped, probe.cut)) << ErrorOf(stepped);
         }
         EXPECT_EQ(DrawsSince(Seed, tested.random), probe.draws);
+        EXPECT_EQ(tested.sounds, probe.sounds);
     }
 }
 
@@ -429,7 +431,7 @@ TEST(AttackStepTest, TheCutsAfterTheirDraws)
     };
     const std::array cases{
         Case{"la habilidad 0x28", [](AttackWorld&, ActorState& hero) { hero.byte38e = 0x28; }, "0x4f9899", SkillRead},
-        Case{"la habilidad 3", [](AttackWorld&, ActorState& hero) { hero.byte38e = 3; }, "0x4f8a39", CountingStep},
+        Case{"la habilidad 3", [](AttackWorld&, ActorState& hero) { hero.byte38e = 3; }, "0x4f8fef", CountingStep},
         Case{"la habilidad 5",
              [](AttackWorld&, ActorState& hero)
              {

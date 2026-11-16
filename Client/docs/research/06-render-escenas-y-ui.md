@@ -1810,11 +1810,12 @@ modo con EDIT: lo que el original hace con 0 (la entrada sin EDIT, `0x553ae0`, y
   en (540, 333), con `0x5e1480` y sus `rand()`. Después `0x5ac1df` salta a `0x5ac269`: sin las grillas (`0x5f7610`),
   el ítem del cursor ni las ranuras rápidas.
 - **La entrada del número de serie.** La abre el `94` con el tipo 2 (`0x4dd8ce..0x4dd920`): los `0x40` bytes de
-  `0x78ab078` en 0, `0x553570(0)`, el chat cerrado, `0x6c8e6c` en 1 (un solo campo para el Tab) y `0x77f3b6b` en 1
-  (`0x77f3b6a`, `0x77f3b6c`, `0x78abacc` y `0x6c8e78` en `0xc` son del modo sin EDIT). La cierran la X (arriba) y
+  `0x78ab078` en 0, `0x553570(0)`, el chat cerrado, el modo del zen (`0x77f3b6a`), el zen escrito (`0x77f3b6c`) y
+  `0x78abacc` en 0, el largo del campo del diálogo (`0x6c8e78`) en `0xc`, `0x6c8e6c` en 1 (un solo campo para el Tab)
+  y `0x77f3b6b` en 1. La cierran la X (arriba) y
   `SendMove` con 3 después del `97` (`0x56b6a9..0x56b72a`): `0x6c8e74` en −1, el campo elegido en 0, los diez
   buffers de `0x7798bf8` salvo el del susurro con sus largos, la vtable + `0x4c` con 0 en `[0x5763504]` y
-  `[0x5763508]`, el chat cerrado y `0x77f3b6b` en 0, sin `SetFocus`. El WndProc mira `0x77f3b6b` en siete lugares:
+  `[0x5763508]`, el chat cerrado, el modo del zen, el zen escrito, `0x78abacc` y `0x77f3b6b` en 0, sin `SetFocus`. El WndProc mira `0x77f3b6b` en siete lugares:
   `0x4b4dbe` y `0x4b4e55`, con `0x6c7b8c` en 0; `0x4b5616` y `0x4b8888`, el Enter con texto, que con él prendido
   pone el campo en 0 y nada más (Q-C1346); `0x4b8934`, `0x4b89b3` y `0x4b8aa9`, las letras que la ventana del juego
   escribe en sus buffers (solo letras y cifras, en mayúscula), que MuRet no modela (P-C247). El EDIT con el foco

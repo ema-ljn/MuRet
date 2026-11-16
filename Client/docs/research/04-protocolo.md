@@ -984,7 +984,7 @@ El GameServer 0.97 no los tiene (08 P-C200): el oráculo es el ASM del cliente.
 | Op | Bytes | Quién | Qué hace |
 | --- | --- | --- | --- |
 | `AA` | `C1 10 AA <resultado> <clave BE> <nombre:10>` | `0x4dac90` | Con el resultado: el duelo en curso (`0x78abad8`), la clave (`0x78abadc`), el nombre (`0x78abae0`), el texto 912 con el nombre y el sonido `0x8d`; sin él, el nombre y el texto 913 |
-| `AB` | `C1 0F AB <clave BE> <nombre:10>` | `0x4e4d10` | el duelo terminado, la clave, el nombre, el texto 914 y, con `0x5767814` en 2, `0x5767816` en 0 (08 P-C201) |
+| `AB` | `C1 0F AB <clave BE> <nombre:10>` | `0x4e4d10` | el duelo terminado, la clave, el nombre, el texto 914 y, con el tiempo del `F3 22` del tipo 2 (`0x5767814`), el tiempo en 0 (`0x5767816`; 08 P-C201) |
 | `AC` | `C1 0F AC <clave BE> <nombre:10>` | `0x4e4d75` | con el diálogo `0x9a`, nada; si no, la clave, el nombre, el pedido (`0x78abad9`) y el sonido `0x8c` |
 | `AD` | `C1 09 AD <clave1 BE> <clave2 BE> <p1> <p2>` | `0x4e4dd1` | los puntos (`0x78abaf8` el propio, `0x78abafc` el del rival) según cuál clave es la del rival |
 

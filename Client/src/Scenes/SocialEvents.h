@@ -122,7 +122,8 @@ void ApplyPartyLife(const Protocol::Party::PartyLife& life, WorldState& world, C
 [[nodiscard]] Core::Expected<void, std::string> ApplyDuelStart(const Protocol::Duel::DuelStart& start,
                                                                const WorldEntryResources& resources);
 
-// 0x4e4d10: el duelo terminado, la clave, el nombre, el texto 914 (tipo 2) y, con 0x5767814 en 2, 0x5767816 en 0.
+// 0x4e4d10: el duelo terminado, la clave, el nombre, el texto 914 (tipo 2) y, con el tiempo del F3 22 del tipo 2
+// (0x5767814), el tiempo en 0 (0x5767816): 0x5a7eb0 deja de dibujarlo.
 [[nodiscard]] Core::Expected<void, std::string> ApplyDuelEnd(const Protocol::Duel::DuelEnd& end,
                                                              const WorldEntryResources& resources);
 

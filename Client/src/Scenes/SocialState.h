@@ -115,10 +115,8 @@ struct DuelState
     // 0x78abaf8 y 0x78abafc: los puntos propios y los del rival (AD).
     std::int32_t ownScore = 0;
     std::int32_t rivalScore = 0;
-    // 0x5767814 y 0x5767816: el AB, con el primero en 2, pone el WORD en 0 (*estático*; qué son queda para la VM,
-    // 08 P-C201).
-    std::uint8_t byte5767814 = 0;
-    std::uint16_t word5767816 = 0;
+    // 0x5767814 y 0x5767816, que el AB mira y vacía (0x4e4d58), son el tiempo del F3 22 (EventGlobals::timeKind y
+    // timeValue, 08 P-C201).
 };
 
 // Un cartel del mapa de 0x7245c8 (el objeto de 100 bytes de 0x4521d0, que arma 0x4524e0): la clave (+0x40), el nombre

@@ -736,11 +736,11 @@ TEST_P(SocialEventsTest, ADuelFromRequestToEnd)
     Client::Scenes::ApplyDuelScore({0x0044, 0x0055, 9, 9}, *stage->world);
     EXPECT_EQ(duel.rivalScore, 3);
 
-    stage->Runtime().social.duel.byte5767814 = 2;
-    stage->Runtime().social.duel.word5767816 = 7;
+    stage->Runtime().events.timeKind = 2;
+    stage->Runtime().events.timeValue = 7;
     ASSERT_TRUE(Client::Scenes::ApplyDuelEnd({0x0102, NameOf<10>("Brezal")}, stage->Resources()).HasValue());
     EXPECT_EQ(duel.active, 0);
-    EXPECT_EQ(duel.word5767816, 0);
+    EXPECT_EQ(stage->Runtime().events.timeValue, 0);
     EXPECT_EQ(stage->LastMessage().text, "fin del duelo");
     EXPECT_EQ(DrawsSince(stage->cloth.random), 0);
 }

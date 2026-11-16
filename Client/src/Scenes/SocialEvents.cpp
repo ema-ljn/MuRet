@@ -92,8 +92,8 @@ constexpr std::int32_t ViewingAnotherShop = 2;
 constexpr std::size_t ShopOwnerLeftText = 1126;
 // 0x4e41a9..0x4e41b6: los décimos del 44, hasta 10.
 constexpr std::uint8_t MaxLifeTenths = 10;
-// 0x4e4d58: el valor de 0x5767814 con que el AB pone 0x5767816 en 0.
-constexpr std::uint8_t DuelEndClearsWord = 2;
+// 0x4e4d58: el tipo del tiempo del F3 22 (0x5767814) con el que el AB lo apaga (0x5767816 en 0).
+constexpr std::uint8_t DuelEndClearsTime = 2;
 // El relleno y el serial de un C3 (0x40b0a0).
 constexpr std::uint32_t C3Randoms = 2;
 // 0x5bc470: 0x5bc260 con 1 (el ítem está como en la copia) o con 99 (cambió), y la lista de su pila, de 10.
@@ -789,8 +789,8 @@ Core::Expected<void, std::string> ApplyDuelEnd(const Protocol::Duel::DuelEnd& en
     duel.rivalName.back() = std::byte{0};
     if (auto shown = Message(resources, DuelEndedText, UI::ErrorMessage, "0x4e4d4b"); !shown.HasValue())
         return shown;
-    if (duel.byte5767814 == DuelEndClearsWord)
-        duel.word5767816 = 0;
+    if (runtime.events.timeKind == DuelEndClearsTime)
+        runtime.events.timeValue = 0;
     return {};
 }
 

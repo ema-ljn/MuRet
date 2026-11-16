@@ -333,6 +333,7 @@ TEST_F(InventoryReplyTest, AnEmptiedSlotKeepsItsDurabilityUntilQC184)
     Stage tested = Fresh();
     tested.PublishedHero();
     tested.world.OwnCharacter().equipment[5].durability = 10;
+    tested.world.OwnCharacter().equipment[5].flags1c = 4; // Bono no nulo: Q-C184 sigue necesitando el prefijo.
 
     const auto applied = ApplyInventory(ListOf({Entry(0, Kris)}), tested.Resources());
 

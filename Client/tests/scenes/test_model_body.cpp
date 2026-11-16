@@ -475,11 +475,11 @@ DrawnMark DrawBloodMark(CrtRandom& draws)
 }
 
 // En Lorencia, el Monster02 (0x153, hueso +0x54 en 5) que termina la 6 deja sus restos una vez (0x4fcc3c → 0x52e810):
-// +0x38a en 1 y dos marcas 0x5e3 con su luz. Sin huesos propios (su dibujo no está portado) caen en la posición del
-// modelo compartido, la que dejó el último 0x153 que pasó por 0x505ec6 (Q-C1178), y después este la pisa con la suya.
+// +0x38a en 1 y dos marcas 0x5e3 con su luz. Sin huesos propios (antes de su primer dibujo) caen en la posición del
+// modelo compartido que 0x4fd69b ya publicó desde este actor; no conservan el origen de otro 0x153 (Q-C1178 revisado).
 // Los rand(): los de 0x508ba0, los diez de las marcas, el % 6, la celda de 0x505de0, la cabeza y el & 7. El paso que
 // sigue, con +0x38a en 1, no deja nada.
-TEST_F(MonsterStep, AMonsterThatEndsDyingBleedsOnceWhereTheLastOfItsTypeWas)
+TEST_F(MonsterStep, AMonsterThatEndsDyingBleedsOnceAtItsPublishedPosition)
 {
     ActorState previous = m_actor;
     previous.position = {5000.0f, 6000.0f, 70.0f};
@@ -503,7 +503,7 @@ TEST_F(MonsterStep, AMonsterThatEndsDyingBleedsOnceWhereTheLastOfItsTypeWas)
         const DrawnMark drawn = DrawBloodMark(draws);
         ASSERT_TRUE(marks[slot].live);
         EXPECT_EQ(marks[slot].type, 0x5e3);
-        EXPECT_EQ(marks[slot].position, previous.position);
+        EXPECT_EQ(marks[slot].position, m_actor.position);
         EXPECT_EQ(marks[slot].size, drawn.size);
         EXPECT_EQ(marks[slot].angle, drawn.angle);
         EXPECT_EQ(marks[slot].color, m_actor.light);

@@ -103,9 +103,8 @@ struct PartyState
     std::int32_t followTarget = -1;
 };
 
-// 0x78abad8, 0x78abadc y 0x78abae0 también los lee el cursor de ataque (0x558bb0): el hito 3 los guarda en
-// AttackRules (duelActive, duelKey y duelName) y espera que el hito 7 los escriba ahí. Al juntar las dos ramas queda
-// una sola copia (08 P-C206).
+// 0x78abad8, 0x78abadc y 0x78abae0 también los lee el cursor de ataque (0x558bb0, Scenes/HeroAttack): es la única
+// copia (08 P-C206 b).
 struct DuelState
 {
     // 0x78abad8: el duelo en curso (el marcador de 0x5a6cc0).

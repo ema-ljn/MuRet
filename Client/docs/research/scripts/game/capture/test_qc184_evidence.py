@@ -167,7 +167,7 @@ class Qc184EvidenceTest(unittest.TestCase):
         outside = self.function('_outside_git')
         marker = self.root / '.git'
         marker.mkdir()
-        self.assertEqual(outside(self.root / 'capture'), self.root / 'capture')
+        self.assertEqual(outside(self.root / 'capture'), (self.root / 'capture').resolve())
         (marker / 'HEAD').write_text('ref: refs/heads/main\n')
         with self.assertRaises(ValueError):
             outside(self.root / 'capture')

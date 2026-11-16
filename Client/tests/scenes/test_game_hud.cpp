@@ -882,7 +882,7 @@ TEST_F(GameHudTest, TheOrdinarySkillDrawsTheHotkeyOfTheChosenCharacter)
     own.skillKeys[3][0] = 7;
     auto context = Context();
     context.skills = &skills;
-    context.chosenSlot = 3;
+    context.chosenSlot = std::uint8_t{3};
     ASSERT_TRUE(Client::Scenes::DrawTheHud(context).HasValue());
     const auto quads = QuadsOf(sprites);
     const auto key = std::ranges::find_if(quads,

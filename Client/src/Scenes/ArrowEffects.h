@@ -7,6 +7,8 @@
 #include <functional>
 #include <string>
 
+#include <glm/ext/vector_float3.hpp>
+
 // CL9 hito 3, fase 2e: la flecha del elfo con arco o ballesta y de los arcos en Uniria, Dinorant y Fenrir. El tiro
 // (0x53e2b0 y 0x53d9a0), el alta de cada flecha en la tabla de efectos con modelo (los casos de 0x518cf0) y su paso
 // (los casos de 0x5208a0 con el choque de 0x520170 y 0x517850). 06, "La flecha".
@@ -44,6 +46,14 @@ class WorldState;
 [[nodiscard]] Core::Expected<void, std::string> FireTheArrow(ActorState& actor, std::size_t slot,
                                                              std::int32_t skillIndex, std::uint8_t flag,
                                                              std::uint8_t skill, const CharacterStepContext& context);
+
+// 0x518cf0 de la flecha 0xe2, con los campos nativos de 0x4f7f67.
+[[nodiscard]] Core::Expected<void, std::string> CreateAquagoldArrow(ActorState& owner, const glm::vec3& angles,
+                                                                    const CharacterStepContext& context);
+
+// 0x51fff0 con el estallido de combate 0x51fe10 y el sonido 0x40 de 0x542a7c.
+[[nodiscard]] Core::Expected<void, std::string> CreateCombatBurstAt(const glm::vec3& position,
+                                                                    const CharacterStepContext& context);
 
 // Lo que el paso de una flecha lee y escribe afuera de su lugar: el pool de personajes, el registro propio y el
 // héroe (0x520170), las partículas (0x53fe70), los sprites del frame (0x5491e0), la luz dinámica (0x5f9780), el

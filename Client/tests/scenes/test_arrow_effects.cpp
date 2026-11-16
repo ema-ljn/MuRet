@@ -2,6 +2,8 @@
 
 #include "Core/Expected.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/HalfLifeMath.h"
+#include "Scenes/GameDrawTail.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
@@ -26,6 +28,7 @@
 #include <algorithm>
 #include <array>
 #include <bit>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -559,8 +562,8 @@ TEST(ArrowEffectsTest, TheAquagoldArrowFallsAndBounces)
 // 0x34 no llega: corta en 0x4f9899. La bandera de la 0x18 sin blanco tira el abanico de 0x53e2e0: tres flechas con la z
 // de los ángulos del héroe en 0, 15 y −15, que vuelve a 0, y corta en 0x53e365; con la 0xa24 o la 0xa25 en +0x2b8,
 // cuatro en 5, 15, −5 y −15, que queda en 15 (Q-C1181), y corta en 0x53e4dd. Cada tiro saca los 3.848 rand() del
-// registro propio de 0x53d9a0 y otros tantos en la salida del alta. Con la 0xa25 en +0x2b8 sin skill, el brillo de la
-// mano corta en 0x53e642 después de la flecha. En Lorencia, en Devias y en Icarus (10).
+// registro propio de 0x53d9a0 y otros tantos en la salida del alta. El brillo 0x53e642 de la 0xa25 se cubre con el
+// cuerpo, los pools y el RNG intercalado abajo. En Lorencia, en Devias y en Icarus (10).
 TEST(ArrowEffectsTest, TheSkillShotsAndTheFanCutAfterShooting)
 {
     struct Case
@@ -582,8 +585,7 @@ TEST(ArrowEffectsTest, TheSkillShotsAndTheFanCutAfterShooting)
         Case{"la 0x33", 0x33, NoTarget, 0xffff, "0x53e75b", {0.0f}, 0.0f},
         Case{"la 0x18 sin blanco", 0x18, NoTarget, 0xffff, "0x53e365", {0.0f, 15.0f, -15.0f}, 0.0f},
         Case{"la 0x18 con la 0xa24", 0x18, NoTarget, 0xa24, "0x53e4dd", {5.0f, 15.0f, -5.0f, -15.0f}, 15.0f},
-        Case{"la 0x18 con la 0xa25", 0x18, NoTarget, 0xa25, "0x53e4dd", {5.0f, 15.0f, -5.0f, -15.0f}, 15.0f},
-        Case{"la 0xa25 en la mano", 0, VictimSlot, 0xa25, "0x53e642", {0.0f}, 0.0f}};
+        Case{"la 0x18 con la 0xa25", 0x18, NoTarget, 0xa25, "0x53e4dd", {5.0f, 15.0f, -5.0f, -15.0f}, 15.0f}};
     for (const std::int32_t map : {0, 2, 10})
     {
         for (const Case& probe : cases)
@@ -677,11 +679,33 @@ TEST(ArrowEffectsTest, TheSkillOfThePlaceDecidesTheHit)
             {
                 ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
                 constexpr int FullBurst = 20 * (2 + 5);
+                EXPECT_EQ(tested.world.Runtime().lastSoundId, 0x40);
                 EXPECT_EQ(DrawsSince(before.State(), tested.random), 1 + fireDraws + OwnRecord + FullBurst);
                 EXPECT_EQ(arrow.life, 29);
             }
         }
     }
+}
+
+TEST(ArrowEffectsTest, MissingBurstParticlesKeepsItsTwoCallerDrawsBeforeTheDiagnostic)
+{
+    ArrowWorld tested(0);
+    tested.Target(VictimSlot, true, 50.0f);
+    ActorState& hero = tested.Archer(Crossbow, Crossbow.action, VictimSlot);
+    ASSERT_TRUE(StepTheAttack(hero, HeroSlot, tested.Context()).HasValue());
+    const auto arrows = tested.Arrows();
+    ASSERT_EQ(arrows.size(), 1u);
+    ModelEffect& arrow = *arrows.front();
+    arrow.byte89 = 3;
+    tested.world.OwnCharacter().words6c[0] = static_cast<std::uint32_t>(0x34) << 24;
+    const CrtRandom before = tested.random;
+    ArrowStepContext context = tested.StepContext();
+    context.particles = nullptr;
+
+    const auto stepped = StepArrow(arrow, nullptr, context);
+
+    EXPECT_TRUE(HasError(stepped, "0x51fe9e")) << ErrorOf(stepped);
+    EXPECT_EQ(DrawsSince(before.State(), tested.random), 1 + OwnRecord + 2);
 }
 
 // La flecha 0xdb con el subtipo 5 (la crea el hito 4) no corta en el paso: su fuego 0x5d9/0 lleva (luz · 0,1f;
@@ -762,6 +786,145 @@ TEST(ArrowEffectsTest, TheMonsterMissilesShootWithTheirHands)
                 EXPECT_EQ(arrows.front()->byte89, 0);
             }
         }
+    }
+}
+
+// 0x53e642: pose propia retenida y escala/origen compartidos; los sorteos de los pools van intercalados.
+TEST(ArrowEffectsTest, TheReignHandShineUsesTheSharedPlacementAndRespectsPoolCapacity)
+{
+    for (const bool particlesFull : {false, true})
+    {
+        for (const bool jointsFull : {false, true})
+        {
+            SCOPED_TRACE(testing::Message() << "partículas " << particlesFull << ", joints " << jointsFull);
+            auto tested = std::make_unique<ArrowWorld>(0);
+            ActorState& actor = tested->world.Actors()[OtherSlot];
+            actor = ArrowWorld::Player(2);
+            actor.hands[0].model = 0xa25;
+            actor.hands[0].bone = 0;
+            actor.position = {9000.0f, 8000.0f, 7000.0f};
+            actor.scale = 7.0f;
+            actor.bodyPose.resize(1, Client::Render::Models::BoneTransform(1.0f));
+            actor.bodyPose[0][3] = {3.0f, 4.0f, 5.0f};
+            tested->world.PlayerModel() = {.scale = 2.0f, .origin = {100.0f, 200.0f, 300.0f}};
+            // El tiro sigue al brillo aunque no encuentre lugar para la flecha 0x111.
+            for (ModelEffect& effect : tested->world.Map().effects.Effects())
+                effect.alive = true;
+            if (particlesFull)
+                for (Client::World::Particle& particle : tested->particles.All())
+                    particle.alive = true;
+            std::vector<Client::Scenes::JointState> joints(100);
+            if (jointsFull)
+                for (Client::Scenes::JointState& joint : joints)
+                    joint.alive = true;
+            auto context = tested->Context();
+            context.joints = joints;
+            CrtRandom expected = tested->random;
+            int expectedJoints = 0;
+            for (int index = 0; index < 15; ++index)
+            {
+                static_cast<void>(expected.Next());
+                if (expected.Next() % 2 == 0 && !jointsFull)
+                {
+                    ++expectedJoints;
+                    expected.Discard(2);
+                }
+                if (!particlesFull)
+                    expected.Discard(5);
+            }
+            const auto shot = Client::Scenes::FireTheArrow(actor, OtherSlot, 0, 0, 0, context);
+            ASSERT_TRUE(shot.HasValue()) << shot.Error();
+            EXPECT_EQ(tested->random.State(), expected.State());
+            if (!particlesFull)
+            {
+                int created = 0;
+                for (const auto& particle : tested->particles.All())
+                {
+                    if (!particle.alive)
+                        continue;
+                    ++created;
+                    EXPECT_EQ(particle.type, Client::World::FairySparkParticle);
+                    EXPECT_EQ(particle.subtype, 0);
+                    EXPECT_EQ(particle.position, glm::vec3(106.0f, 228.0f, 50.0f));
+                }
+                EXPECT_EQ(created, 15);
+            }
+            if (!jointsFull)
+            {
+                int created = 0;
+                for (const auto& joint : joints)
+                {
+                    if (!joint.alive)
+                        continue;
+                    ++created;
+                    EXPECT_EQ(joint.type, 0x617);
+                    EXPECT_EQ(joint.subtype, 3);
+                }
+                EXPECT_EQ(created, expectedJoints);
+            }
+        }
+    }
+}
+
+// 0x517850 recorre los lugares 0..399: incluye al 399 y deja afuera al registro fantasma 400. En el plano, el borde
+// de 100 cuenta; nextafter fuera no, y el unordered de la comparación nativa cuenta.
+TEST(ArrowEffectsTest, ArrowHitSearchUsesTheNativePoolBoundAndDistancePredicate)
+{
+    struct Case
+    {
+        std::string_view name;
+        std::optional<std::size_t> targetSlot;
+        float distance;
+        bool seen;
+        std::uint8_t dying;
+        bool owner;
+        bool heroNear;
+        bool expectedHit;
+    };
+    constexpr float Radius = 100.0f;
+    const float OutsideRadius = std::nextafter(Radius, 200.0f);
+    const float Unordered = std::bit_cast<float>(0x7fc00000u);
+    const std::array cases{
+        Case{"lugar 399", 399, 50.0f, true, 0, false, false, true},
+        Case{"lugar 400", 400, 50.0f, true, 0, false, false, false},
+        Case{"borde", 399, Radius, true, 0, false, false, true},
+        Case{"apenas afuera", 399, OutsideRadius, true, 0, false, false, false},
+        Case{"NaN", 399, Unordered, true, 0, false, false, true},
+        Case{"dueño", 399, 50.0f, true, 0, true, false, false},
+        Case{"héroe", std::nullopt, 50.0f, true, 0, false, true, false},
+        Case{"no visto", 399, 50.0f, false, 0, false, false, false},
+        Case{"muriéndose", 399, 50.0f, true, 1, false, false, false},
+    };
+    for (const Case& test : cases)
+    {
+        SCOPED_TRACE(test.name);
+        ArrowWorld tested(0);
+        ModelEffect& arrow = tested.world.Map().effects.Effects().front();
+        arrow.alive = true;
+        arrow.type = 0xdc;
+        arrow.life = 30;
+        arrow.transform.position = {};
+        if (test.targetSlot)
+        {
+            ActorState& target = tested.world.Actors()[*test.targetSlot];
+            target.alive = true;
+            target.byte88 = 2;
+            target.seen = test.seen;
+            target.dying = test.dying;
+            target.position = {0.0f, -test.distance, 0.0f};
+            if (test.owner)
+                arrow.ownerContext = &target;
+        }
+        if (test.heroNear)
+        {
+            tested.Hero().seen = true;
+            tested.Hero().position = {0.0f, -test.distance, 0.0f};
+        }
+
+        const auto stepped = StepArrow(arrow, nullptr, tested.StepContext());
+
+        ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
+        EXPECT_EQ(!arrow.alive, test.expectedHit);
     }
 }
 } // namespace

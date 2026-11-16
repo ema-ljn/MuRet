@@ -2,16 +2,21 @@
 
 #include "Core/Expected.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalRotation.h"
+#include "Scenes/ActorCreation.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterStep.h"
+#include "Scenes/FaunaJointCreation.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/GameModelEffects.h"
+#include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
+#include "World/ParticleBurst.h"
 #include "World/OriginalFtol.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
@@ -240,6 +245,45 @@ Core::Expected<void, std::string> CreateTheArrow(std::int16_t type, ActorState& 
     }
 }
 
+// 0x53e642..0x53e73a: quince puntos del hueso de la mano, un joint par y una chispa por iteración.
+Core::Expected<void, std::string> CreateTheReignHandShine(ActorState& actor, const CharacterStepContext& context)
+{
+    constexpr int Samples = 15;
+    constexpr int FullTurn = 360;
+    constexpr std::int32_t ShineJoint = 0x617;
+    constexpr std::int32_t ShineSubtype = 3;
+    constexpr glm::vec3 HandOffset{0.0f, 10.0f, -130.0f};
+    const std::size_t handBone = actor.hands[0].bone;
+    const Render::Models::BoneTransform matrix =
+        handBone < actor.bodyPose.size() ? actor.bodyPose[handBone] : Render::Models::BoneTransform(0.0f);
+    const SharedModelPlacement placement = context.world.ModelPlacement(actor.type);
+    glm::vec3 point = Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), HandOffset,
+                                                                placement.scale, placement.origin);
+    glm::vec3 angles{};
+    for (int sample = 0; sample < Samples; ++sample)
+    {
+        angles.x = static_cast<float>(context.random.Next() % FullTurn);
+        angles.y = 0.0f;
+        angles.z = 0.0f;
+        if ((context.random.Next() & 1) == 0)
+        {
+            const World::FishEffectRequest request{ShineJoint, point, point, angles, ShineSubtype, nullptr, 10.0f,
+                                                   -1,         0,     0,     -1};
+            const auto joint = CreateFaunaJoint(context.joints, request, context.random);
+            if (!joint.HasValue())
+                return Core::Unexpected(std::format("0x53e6a8: {}", joint.Error()));
+        }
+        if (context.particles == nullptr)
+            return Core::Unexpected(std::string("0x53e73a: falta el pool de partículas del brillo de la mano"));
+        const auto particle = context.particles->CreateChecked(
+            World::FairySparkParticle, point, angles, glm::vec3(1.0f), 0, 1.0f, context.worldClock, context.random);
+        if (!particle.HasValue())
+            return Core::Unexpected(std::format("0x53e73a: la partícula 0x5c5/0 falla con error {}",
+                                                static_cast<unsigned>(particle.Error())));
+    }
+    return {};
+}
+
 // 0x53d9a0(c, o, blanco, lugar, bandera, skill).
 Core::Expected<void, std::string> ShootTheArrows(ActorState& actor, std::size_t slot, std::int32_t skillIndex,
                                                  std::uint8_t flag, std::uint8_t skill,
@@ -311,7 +355,7 @@ bool HitsSomeone(const World::ModelEffect& effect, WorldState& world, const Acto
                  std::uint8_t kind)
 {
     constexpr std::uint8_t HeroKind = 2;
-    for (const ActorState& actor : world.Actors())
+    for (const ActorState& actor : world.Actors().first(CreatedActorSearch))
     {
         if (!actor.alive)
             continue;
@@ -338,31 +382,20 @@ bool HitsSomeone(const World::ModelEffect& effect, WorldState& world, const Acto
 // 2, 1,0f, 0) y la 0x5ed/0 con la luz en 0,7f.
 Core::Expected<void, std::string> BurstAt(const glm::vec3& position, const ArrowStepContext& context)
 {
-    constexpr int Sparks = 20;
-    constexpr int PitchSpan = 60, PitchBase = 150, YawSpan = 30;
-    constexpr double Lift = 80.0; // 0x6b9ffc
+    constexpr std::int32_t BurstSound = 0x40;
     if (context.particles == nullptr)
-        return Core::Unexpected(std::string("0x51fe9e: falta el pool de partículas de 0x51fe10"));
-    const glm::vec3 point{position.x, position.y, F32(D(position.z) + Lift)};
-    glm::vec3 angles{};
-    for (int spark = 0; spark < Sparks; ++spark)
     {
-        angles.x = static_cast<float>((context.random.Next() % PitchSpan) + PitchBase);
-        angles.y = 0.0f;
-        angles.z = static_cast<float>(context.random.Next() % YawSpan);
-        const auto created = context.particles->CreateChecked(World::FairySparkParticle, point, angles, glm::vec3(1.0f),
-                                                              2, 1.0f, context.worldClock, context.random);
-        if (!created.HasValue())
-            return Core::Unexpected(std::format("0x51fe9e: la chispa 0x5c5/2 de 0x51fe10 falla con error {}, sin "
-                                                "portar (CL11)",
-                                                static_cast<unsigned>(created.Error())));
+        static_cast<void>(context.random.Next());
+        static_cast<void>(context.random.Next());
+        return Core::Unexpected(std::string("0x51fe9e: falta el pool de partículas de 0x51fe10"));
     }
-    const glm::vec3 dim(std::bit_cast<float>(0x3f333333u));
-    const auto created = context.particles->CreateChecked(World::ExplosionParticle, point, angles, dim, 0, 1.0f,
-                                                          context.worldClock, context.random);
+    const auto created =
+        World::CreateParticleBurst(*context.particles, position, context.random, true, context.worldClock);
     if (!created.HasValue())
-        return Core::Unexpected(
-            std::format("0x51fee0: la 0x5ed/0 de 0x51fe10 falla con error {}", static_cast<unsigned>(created.Error())));
+        return Core::Unexpected(std::format("0x51fe9e: el estallido de 0x51fe10 falla con error {}",
+                                            static_cast<unsigned>(created.Error())));
+    if (created.Value())
+        context.world.Runtime().lastSoundId = BurstSound;
     return {};
 }
 
@@ -694,6 +727,51 @@ Core::Expected<void, std::string> FireTheFan(ActorState& actor, std::size_t slot
 }
 } // namespace
 
+Core::Expected<void, std::string> CreateAquagoldArrow(ActorState& owner, const glm::vec3& angles,
+                                                      const CharacterStepContext& context)
+{
+    constexpr std::int16_t ArrowType = 0xe2;
+    const World::ModelEffectArguments arguments{.type = ArrowType,
+                                                .position = owner.position,
+                                                .angles = angles,
+                                                .light = owner.light,
+                                                .subtype = 0,
+                                                .owner = &owner,
+                                                .key = 0xffff,
+                                                .byte89 = 0,
+                                                .byte88 = 0,
+                                                .byte1bd = 0,
+                                                .scale = 0.0f};
+    const auto slot = context.world.Map().effects.Begin(arguments);
+    if (!slot.has_value())
+        return {};
+    World::ModelEffect& effect = context.world.Map().effects.Effects()[*slot];
+    BeginTheAquagoldArrow(effect, context.world, context.random);
+    return {};
+}
+
+Core::Expected<void, std::string> CreateCombatBurstAt(const glm::vec3& position, const CharacterStepContext& context)
+{
+    if (context.particles == nullptr)
+    {
+        static_cast<void>(context.random.Next());
+        static_cast<void>(context.random.Next());
+        return Core::Unexpected(std::string("0x51fe9e: falta el pool de partículas de 0x51fe10"));
+    }
+    const auto created =
+        World::CreateParticleBurst(*context.particles, position, context.random, true, context.worldClock);
+    if (!created.HasValue())
+        return Core::Unexpected(std::format("0x51fe9e: el estallido de 0x51fe10 falla con error {}",
+                                            static_cast<unsigned>(created.Error())));
+    if (!created.Value())
+        return {};
+    constexpr std::int32_t BurstSound = 0x40;
+    context.world.Runtime().lastSoundId = BurstSound;
+    if (context.soundRequest)
+        context.soundRequest(BurstSound);
+    return {};
+}
+
 bool IsArrowEffect(std::int16_t type)
 {
     return (type >= BowArrow && type <= BluewingArrow) || (type >= SaintArrow && type <= ViperArrow) ||
@@ -725,11 +803,7 @@ Core::Expected<void, std::string> FireTheArrow(ActorState& actor, std::size_t sl
     // con un rand() par el joint 0x617/3 y siempre la 0x5c5/0.
     constexpr std::uint16_t ReignCrossbow = 0xa25;
     if (actor.hands[0].model == ReignCrossbow)
-    {
-        return Core::Unexpected(std::format("0x53e642: el brillo de la 0xa25 del lugar {} (el hueso de la mano con "
-                                            "0x4ec110, quince 0x617/3 y 0x5c5/0), sin portar (CL11)",
-                                            slot));
-    }
+        return CreateTheReignHandShine(actor, context);
     return {};
 }
 

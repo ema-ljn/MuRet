@@ -469,7 +469,8 @@ TEST_F(MonsterAttackCasesTest, Kalima91CreatesTheStateOneEarthquakeBeforeThe615B
                 EXPECT_EQ(Client::World::OwnerTypeOf(earthquake->owner), std::optional<std::uint16_t>{monster.type});
                 const std::uint16_t initialType = monster.type;
                 monster.type = 0x1777;
-                EXPECT_EQ(Client::World::OwnerTypeOf(earthquake->owner), std::optional<std::uint16_t>{0x1777});
+                EXPECT_EQ(Client::World::OwnerTypeOf(earthquake->owner),
+                          std::optional<std::uint16_t>{std::uint16_t{0x1777}});
                 monster.type = initialType;
             }
         }
@@ -2247,7 +2248,7 @@ TEST_F(MonsterAttackCasesTest, TheSkill3CasesLeaveAfterTheirJoints)
                                              .skill = 3,
                                              .target = 0,
                                              .kind = std::uint16_t{0x2345},
-                                             .bone = 0});
+                                             .bone = std::uint8_t{0}});
         ASSERT_NE(game->world.FaunaResources().Find(static_cast<std::uint16_t>(fallback.type)), nullptr);
         ASSERT_NE(game->world.FaunaResources().SkeletonOf(static_cast<std::uint16_t>(fallback.type)), nullptr);
         game->joints.assign(1, Client::Scenes::JointState{});

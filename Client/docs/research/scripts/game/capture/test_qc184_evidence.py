@@ -45,13 +45,46 @@ class Qc184EvidenceTest(unittest.TestCase):
 
     def stats(self, event, pc):
         return (f'QC184_{event} tid=12 own=2000 caller=512efa pc={pc:x} frame=100000 depth=1 '
-                'w2a=0 w2c=0 w2e=0 w30=0 w32=0 w34=0 w36=0 w62=4b w64=0 w66=0\n')
+                'w2a=0 w2c=0 w2e=0 w30=0 w32=0 w34=0 w36=0 w62=4b w64=0 w66=0 '
+                + self.guard() + '\n')
 
     def read(self, kind=0xfe, value=0, flags=0xf3, address=0x1000-16):
         return (f'QC184_READ tid=00000012 own=00002000 item=00002b6c table=00001000 '
                 f'address={address:08x} index=ffffffeb id=0000ffff dur=00000019 '
                 f'flags={flags:08x} value={value:08x} kind={kind:08x} mem={kind:08x} '
-                'caller=0040e038 depth=00000001\n')
+                'caller=0040e038 depth=00000001 ' + self.guard() + '\n')
+
+    def guard(self):
+        return ('gvalues=8000 gkeys=9000 gcap=10 gmult=1 gslot=0 gkey=2000 '
+                'shadow=a000 ghash=448310 gprobes=0')
+
+    def test_positive_depth_without_matching_shadow_provenance_is_incomplete(self):
+        valid = self.trace(self.read())
+        for old, new in (('gkey=2000', 'gkey=2004'), ('shadow=a000', 'shadow=0'),
+                         ('gcap=10', 'gcap=0'), ('gslot=0', 'gslot=10'),
+                         ('ghash=448310', 'ghash=448314')):
+            with self.subTest(field=old):
+                report = self.function('analyze_trace')(valid.replace(old, new), self.manifest())
+                self.assertNotEqual(report['status'], 'CAPTURED')
+
+    def test_shadow_slot_uses_wrapped_hash_and_modulo_for_non_power_of_two_capacity(self):
+        # 448310: bytes 04,03,02,01 with multiplier ffffffff yield fffffffe.
+        # fffffffe % 7 == 2; one linear probe reaches slot 3.
+        row = dict(own=0x01020304, gvalues=0x8000, gkeys=0x9000, gcap=7,
+                   gmult=0xffffffff, gslot=3, gkey=0x01020304, shadow=0xa000,
+                   ghash=0x448310, gprobes=1, depth=1)
+        self.assertEqual(self.function('_guard_errors')(row), [])
+        row['gslot'] = 2
+        self.assertTrue(self.function('_guard_errors')(row))
+
+    def test_bonus_records_the_counter_from_the_hash_shadow(self):
+        commands = self.function('render_commands')(self.manifest(), r'C:\Capture\qc184-01')
+        for name in ('on-read.wds', 'on-begin.wds', 'on-end.wds'):
+            with self.subTest(script=name):
+                self.assertIn('by(@$t6+0xf08)', commands[name])
+                self.assertIn('shadow=%08x', commands[name])
+                self.assertIn('gkey=%08x', commands[name])
+                self.assertNotIn('depth=%08x\\n", by(', commands[name])
 
     def test_unknown_selector_is_observed_without_assuming_zero(self):
         report = self.function('analyze_trace')(self.trace(self.read()), self.manifest())
@@ -70,6 +103,13 @@ class Qc184EvidenceTest(unittest.TestCase):
         for row in (self.read(address=0x1000), self.read(value=2)):
             with self.subTest(row=row):
                 self.assertTrue(analyze(self.trace(row), self.manifest())['errors'])
+
+    def test_masm_expression_errors_in_an_otherwise_complete_trace_are_rejected(self):
+        for error in ('Numeric expression missing from expression', 'Operand error at division'):
+            with self.subTest(error=error):
+                text = self.trace(self.read()).replace('QC184_COMPLETE', error + '\nQC184_COMPLETE')
+                report = self.function('analyze_trace')(text, self.manifest())
+                self.assertNotEqual(report['status'], 'CAPTURED')
 
     def test_missing_completion_wrong_session_and_zero_reads_remain_incomplete(self):
         analyze = self.function('analyze_trace')
@@ -148,6 +188,38 @@ class Qc184EvidenceTest(unittest.TestCase):
             self.assertNotIn('bc *', commands['stop.wds'])
             self.assertIn('.detach', commands['stop.wds'])
             self.assertNotIn('DebugActiveProcess', ''.join(commands.values()))
+
+    def test_startup_uses_the_debugger_number_base_and_version_commands(self):
+        # CDB 6.12 stops the generated script at .radix; .version is invalid too.
+        # These are debugger commands, rather than extension or dot commands.
+        for mode in ('bonus', 'wear'):
+            with self.subTest(mode=mode):
+                startup = self.function('render_commands')(
+                    self.manifest(mode), r'C:\Capture\qc184-01')['start.wds'].splitlines()
+                self.assertIn('n 16', startup)
+                self.assertIn('version', startup)
+                self.assertNotIn('.radix 16', startup)
+                self.assertNotIn('.version', startup)
+
+    def test_guards_combine_parenthesized_masm_predicates(self):
+        # && produces "Numeric expression missing" with the selected MASM evaluator.
+        for mode in ('bonus', 'wear'):
+            commands = self.function('render_commands')(self.manifest(mode), r'C:\Capture\qc184-01')
+            for name in ('start.wds', 'arm.wds', 'stop.wds'):
+                with self.subTest(mode=mode, script=name):
+                    self.assertNotIn('&&', commands[name])
+                    self.assertIn(') & (', commands[name])
+            self.assertIn('(@$ptrsize == 4) & (@$t19 == 0)', commands['start.wds'])
+            self.assertIn('(@$bp0 == 0x', commands['stop.wds'])
+
+    def test_startup_checks_the_breakpoint_list_without_reading_absent_pseudo_registers(self):
+        # @$bp0 raises "Bad register" when ID 0 does not exist; it never reads as zero.
+        for mode in ('bonus', 'wear'):
+            startup = self.function('render_commands')(
+                self.manifest(mode), r'C:\Capture\qc184-01')['start.wds']
+            self.assertIn('r @$t19 = 0', startup)
+            self.assertIn('.foreach (qc184point { bl }) { r @$t19 = 1; }', startup)
+            self.assertNotRegex(startup, r'@\$bp[0-3] == 0(?:[ )])')
 
     def test_guest_path_cannot_inject_debugger_commands(self):
         render = self.function('render_commands')

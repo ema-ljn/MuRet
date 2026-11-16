@@ -25,6 +25,10 @@ EQUIPMENT_OFFSET = 0xb6c
 ITEM_SIZE = 0x48
 POINTER_MASK = 0xffffffff
 MAX_LOG_SIZE = 64 * 1024 * 1024
+GUARD_CONTAINER = 0x57630c8
+GUARD_HASH = 0x448310
+MAX_GUARD_CAPACITY = 0x100000
+GUARD_FIELDS = ('gvalues', 'gkeys', 'gcap', 'gmult', 'gslot', 'gkey', 'shadow', 'ghash', 'gprobes')
 POINTS = {
     'bonus': [(0x40dc8c, 'on-read.wds'), (0x550d10, 'on-begin.wds'),
               (0x5513a3, 'on-end.wds'), (0x5513b1, 'on-end.wds')],
@@ -33,7 +37,8 @@ POINTS = {
 }
 SIGNATURES = {
     'bonus': [('sig_item', 0x40dc50, 16), ('sig_stats', 0x550d10, 16),
-              ('sig_return_a', 0x5513a3, 1), ('sig_return_b', 0x5513b1, 1)],
+              ('sig_return_a', 0x5513a3, 1), ('sig_return_b', 0x5513b1, 1),
+              ('sig_guard_hash', GUARD_HASH, 0x30)],
     'wear': [('sig_wear_before', 0x550adb, 8), ('sig_wear_factor', 0x550ae0, 8),
              ('sig_wear_reduced', 0x550b00, 8), ('sig_wear_sum', 0x550b1e, 8)],
 }
@@ -96,9 +101,40 @@ def _handler(condition, command):
     return f'.if ({condition}) {{ {command}; {FP_COMMANDS}; }}\ngc\n'
 
 
+def _guard_commands(own):
+    # 550ed8..550f7b: own has 0xf08 data bytes; the counter is shadow[0xf08].
+    # 448310 hashes the four key bytes with the multiplier at container+0x1c.
+    # Only debugger pseudo-registers change; the target's hash method is never called.
+    commands = [f'r @$t0 = {own}',
+                f'r @$t1 = poi(0x{GUARD_CONTAINER+4:x})',
+                f'r @$t2 = poi(0x{GUARD_CONTAINER+8:x})',
+                f'r @$t3 = dwo(0x{GUARD_CONTAINER+12:x})',
+                f'r @$t4 = dwo(0x{GUARD_CONTAINER+28:x})',
+                *[f'r @$t{i} = 0' for i in range(5, 10)],
+                f'r @$t10 = poi(poi(0x{GUARD_CONTAINER:x})+0xc)']
+    checks = (f'(@$t10 == 0x{GUARD_HASH:x}) & (@$t3 > 0) & '
+              f'(@$t3 <= 0x{MAX_GUARD_CAPACITY:x}) & (@$t1 != 0) & (@$t2 != 0)')
+    lookup = [f'r @$t5 = ((@$t5*@$t4)+((@$t0>>0x{shift:x})&0xff))&0xffffffff'
+              for shift in (0, 8, 16, 24)]
+    lookup += ['r @$t5 = @$t5 mod @$t3',
+               '.for (r @$t9 = 0; @$t9 < @$t3; r @$t9 = @$t9+1) { '
+               'r @$t7 = dwo(@$t2+4*@$t5); '
+               '.if (@$t7 == @$t0) { r @$t6 = poi(@$t1+4*@$t5); .break; } '
+               '.if (@$t7 == 0) { .break; } '
+               'r @$t5 = (@$t5+1) mod @$t3; }',
+               '.if (@$t6 != 0) { r @$t8 = by(@$t6+0xf08); }']
+    commands.append(f'.if ({checks}) {{ {"; ".join(lookup)}; }}')
+    return '; '.join(commands) + '; '
+
+
+def _guard_fields():
+    registers = dict(zip(GUARD_FIELDS, (1, 2, 3, 4, 5, 7, 6, 10, 9)))
+    return dict(depth='@$t8', **{name: f'@$t{index}' for name, index in registers.items()})
+
+
 def _stat_fields(own, caller):
     fields = {'tid': '@$tid', 'own': own, 'caller': caller, 'pc': '@eip', 'frame': '@esp',
-              'depth': f'by(({own})+0xf08)'}
+              **_guard_fields()}
     for offset in (0x2a, 0x2c, 0x2e, 0x30, 0x32, 0x34, 0x36, 0x62, 0x64, 0x66):
         fields[f'w{offset:x}'] = f'wo(({own})+0x{offset:x})'
     return fields
@@ -110,11 +146,13 @@ def _bonus_handlers():
               'id': 'wo(poi(@ebp+8))', 'dur': 'by(poi(@ebp+8)+0x1a)',
               'flags': 'by(poi(@ebp+8)+0x1c)', 'value': 'wo(poi(@ebp+0xc))',
               'kind': '@ecx&0xff', 'mem': 'by(@edx-0x10)', 'caller': 'poi(@ebp+4)',
-              'depth': f'by(poi(0x{OWN_POINTER:x})+0xf08)'}
-    read = (_record('READ', fields) + '; .echo QC184_PREFIX_BEGIN; '
+              **_guard_fields()}
+    read = (_guard_commands(f'poi(0x{OWN_POINTER:x})') + _record('READ', fields)
+            + '; .echo QC184_PREFIX_BEGIN; '
             'db @edx-0x40 L40; .echo QC184_PREFIX_END')
-    begin = _record('BEGIN', _stat_fields('@ecx', 'poi(@esp)'))
-    end = _record('END', _stat_fields(f'poi(0x{OWN_POINTER:x})', 'poi(@esp)'))
+    begin = _guard_commands('@ecx') + _record('BEGIN', _stat_fields('@ecx', 'poi(@esp)'))
+    end = (_guard_commands(f'poi(0x{OWN_POINTER:x})')
+           + _record('END', _stat_fields(f'poi(0x{OWN_POINTER:x})', 'poi(@esp)')))
     return {'on-read.wds': _handler('wo(poi(@ebp+8)) == 0xffff', read),
             'on-begin.wds': begin + '; ' + FP_COMMANDS + '\ngc\n',
             'on-end.wds': end + '; ' + FP_COMMANDS + '\ngc\n'}
@@ -160,20 +198,24 @@ def render_commands(manifest, guest_directory):
     if mode not in POINTS:
         raise ValueError('modo desconocido')
     handlers = _bonus_handlers() if mode == 'bonus' else _wear_handlers()
-    checks = ['@$ptrsize == 4', *(f'@$bp{i} == 0' for i in range(4)),
+    checks = ['@$ptrsize == 4', '@$t19 == 0',
               *_signature_conditions(manifest['fingerprints'])]
+    # MASM uses bitwise AND on the 0/1 comparison results; && is C++ syntax.
+    profile = ' & '.join(f'({check})' for check in checks)
     install = ['.echo QC184_PROFILE_OK']
     for index, (address, name) in enumerate(POINTS[mode]):
         # CommandString interpreta escapes C: duplicar las barras del nombre guest.
         handler = str(guest / name).replace('\\', '\\\\')
         install.append(f'ba{index} e 1 0x{address:08x} "$$><{handler}"')
     install.extend(('bl', '.echo QC184_REVIEW_FOUR_HARDWARE_POINTS_THEN_RUN_arm.wds'))
-    start = (f'.logopen /t {guest / "native.log"}\n.expr /s masm\n.radix 16\n.version\n.time\nlm a 0x00400000\n'
+    start = (f'.logopen /t {guest / "native.log"}\n.expr /s masm\nn 16\nversion\n.time\nlm a 0x00400000\n'
              f'.echo QC184_SESSION id={manifest["session"]} mode={mode} schema=1\n'
              '.printf "QC184_PROCESS pid=%08x\\n", @$tpid\n'
-             f'.if ({" && ".join(checks)}) {{ {"; ".join(install)}; }} '
+             # An absent $bpN is an error, so inspect bl before referring to owned IDs.
+             'r @$t19 = 0\n.foreach (qc184point { bl }) { r @$t19 = 1; }\n'
+             f'.if ({profile}) {{ {"; ".join(install)}; }} '
              '.else { .echo QC184_BLOCKED_PROFILE_OR_BREAKPOINT_IDS; }\n')
-    ownership = ' && '.join(f'@$bp{i} == 0x{address:08x}'
+    ownership = ' & '.join(f'(@$bp{i} == 0x{address:08x})'
                             for i, (address, _) in enumerate(POINTS[mode]))
     stop = (f'.if ({ownership}) {{ bc 0; bc 1; bc 2; bc 3; .echo QC184_COMPLETE; '
             '.logclose; .detach; } .else { .echo QC184_STOP_BLOCKED_CHECK_OWNERSHIP; }\n')
@@ -232,12 +274,29 @@ def _report(manifest):
             'native_fidelity_verified': False, 'rng_count_observed': False}
 
 
+def _guard_errors(row):
+    if not set((*GUARD_FIELDS, 'depth', 'own')).issubset(row):
+        return ['falta procedencia del contador de la sombra']
+    capacity = row['gcap']
+    if not 0 < capacity <= MAX_GUARD_CAPACITY:
+        return ['capacidad del guardia inválida o fuera del límite de captura']
+    hashed = 0
+    for shift in (0, 8, 16, 24):
+        hashed = (hashed * row['gmult'] + (row['own'] >> shift & 255)) & POINTER_MASK
+    valid = (row['gvalues'] != 0 and row['gkeys'] != 0 and row['shadow'] != 0
+             and row['gkey'] == row['own'] and row['ghash'] == GUARD_HASH
+             and row['gprobes'] < capacity and row['gslot'] < capacity
+             and row['gslot'] == (hashed + row['gprobes']) % capacity
+             and 0 < row['depth'] <= 255)
+    return [] if valid else ['la sombra no acredita acceso al registro observado']
+
+
 def _check_read(row):
     required = {'tid', 'own', 'item', 'table', 'address', 'index', 'id', 'dur',
                 'flags', 'value', 'kind', 'mem', 'caller', 'depth'}
     if not required.issubset(row):
         return ['READ incompleto']
-    errors = []
+    errors = _guard_errors(row)
     checks = ((row['id'] == 0xffff, 'ID distinto de ffff'),
               (row['address'] == (row['table'] - 16) & POINTER_MASK, 'dirección distinta de table-16'),
               (row['index'] == 0xffffffeb, 'EAX no contiene 21*(-1) en 32 bits'),
@@ -331,7 +390,8 @@ def _parse_events(text, report):
                 report['errors'].append(f'registro mal formado en línea {number}')
         elif 'QC184_BLOCKED_' in line or 'QC184_STOP_BLOCKED' in line:
             report['errors'].append('el debugger informó un bloqueo de perfil o de limpieza')
-        elif re.match(r'(Memory access error|Syntax error|Bad register|Unable to|Couldn.t resolve)', line, re.I):
+        elif re.match(r'(Memory access error|Syntax error|Bad register|Unable to|Couldn.t resolve|'
+                      r'Numeric expression missing|Operand error)', line, re.I):
             report['errors'].append(f'error del debugger en línea {number}')
     if block is not None:
         report['errors'].append('bloque FPU/prefijo truncado')
@@ -369,10 +429,12 @@ def _bonus_flow(events, report):
             report['errors'].append('registro de otro modo en la captura bonus')
             continue
         required = ('tid', 'own') if row['event'] == 'READ' else (
-            'tid', 'own', 'caller', 'pc', 'frame', 'depth', *words)
+            'tid', 'own', 'caller', 'pc', 'frame', 'depth', *GUARD_FIELDS, *words)
         if not _require(row, required, report):
             continue
         stack = stacks.setdefault(row['tid'], [])
+        if row['event'] != 'READ':
+            report['errors'].extend(_guard_errors(row))
         if row['event'] == 'BEGIN':
             if row['pc'] != 0x550d10 or row['depth'] == 0:
                 report['errors'].append('BEGIN fuera de la entrada esperada o con registro cerrado')

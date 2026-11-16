@@ -36,7 +36,19 @@ test_character_first_world_entry. Sin dependencias nuevas.
 - [x] Resolver la contribución nula de IDffff en AddSlotsToWord62, conservando los otros pasos.
 - [x] Revisión adversarial fresca Astra6high: sin Critical/Important de implementación.
 - [x] Build completo, cuatro regresiones y suite local; formato e includes de los nueve archivos C++.
-- [ ] Repetir la secuencia en VM; el CI remoto de Linux/Windows queda enlazado en el PR.
+- [ ] Completar el contraste estricto en VM con procesos nuevos, comparación MuRet y bonos no nulos;
+  el tramo de cambio de personaje ya se ejercitó en la observación acotada siguiente.
+
+### Avance nativo, 2026-11-16, después del merge de #356
+
+En XP SP3 y con la DLL acotada aportada por Emanuel, el original permitió caballero equipado →
+selección → crear mago nuevo → entrar sin cierre. Los controles pasivos y ambos modos del capturador
+quedaron CAPTURED: bonus registra 18 lecturas y un BEGIN/END con profundidad de sombra acreditada;
+wear registra cinco casos completos en lugares 2–6. Los logs y volcados se conservan privados.
+El [runbook §7](../../../Client/docs/research/scripts/game/capture/RUNBOOK-qc184-vm.md#7-observación-acotada-en-xp-2026-11-16)
+fija hashes, precondiciones y límites. Es un mismo proceso ya autenticado; no cierra los pendientes
+de arriba ni equivale a MATCH completo con MuRet. Las correcciones de esta tanda afectan al
+capturador: sintaxis del debugger, comprobación de puntos y contador en la sombra, no al cliente.
 
 ## Evidencia y límite
 

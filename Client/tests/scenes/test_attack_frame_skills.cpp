@@ -387,6 +387,7 @@ TEST(AttackFrameSkillsTest, TheHandOf2bChargesUntilEight)
             hero.bodyPose[HandBone][3] = {10.0f, 20.0f, 30.0f};
             const glm::vec3 untouched{-1.0f, -2.0f, -3.0f};
             hero.skillHandPoint = untouched;
+            tested.world.PlaceModel(hero); // El caller4fd69b publica antes de entrar al helper de frames.
 
             const auto stepped = tested.Step(hero, 0x2b);
 
@@ -421,6 +422,7 @@ TEST(AttackFrameSkillsTest, TheHandOf2bTurnsWithTheHeading)
         hero.position = {1000.0f, 2000.0f, 0.0f};
         hero.angles = {0.0f, 0.0f, 30.0f};
         hero.scale = 1.0f;
+        tested.world.PlaceModel(hero);
 
         const auto stepped = tested.Step(hero, 0x2b);
 

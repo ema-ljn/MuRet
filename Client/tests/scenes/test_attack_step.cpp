@@ -1095,4 +1095,42 @@ TEST(AttackStepTest, AVisibleMeleeWeaponSurvivesTheFullAttackBodyPipeline)
     EXPECT_EQ(ribbon->count, 29); // 52e454: cuatro tandas de diez saturan en 29.
     EXPECT_EQ(ribbon->light, (glm::vec3{1.0f, 0.6f, 0.2f}));
 }
+
+// Composición359/H4: la acción38 llega a SparkTheTarget con P lleno y continúa hasta producir la estela.
+TEST(AttackStepTest, FullSparkParticlesDoNotPreventTheVisibleSpearTrail)
+{
+    constexpr std::uint8_t SpearAttack = 0x38;
+    constexpr std::uint16_t SpearModel = 0x415;
+    constexpr std::size_t HandBone = 33;
+    std::uint32_t withoutTrail = 0;
+    for (const bool visible : {false, true})
+    {
+        SCOPED_TRACE(visible);
+        AttackWorld tested;
+        tested.skeleton.actions[SpearAttack] = ActionInfo{.repeats = true, .speed = 0.0f, .keyCount = 10};
+        Client::Render::Models::SkeletonBone bone;
+        bone.actions.resize(tested.skeleton.actions.size());
+        for (auto& keys : bone.actions)
+            keys.resize(10);
+        tested.skeleton.bones.assign(HandBone + 1, bone);
+        auto& hero = tested.Striker(HeroSlot, SpearAttack, VictimSlot);
+        hero.animation.frame = 5.0f;
+        hero.byte381 = 14;
+        hero.hands[0].model = visible ? SpearModel : Client::Scenes::NoItemModel;
+        hero.hands[0].level = 13;
+        hero.hands[0].bone = HandBone;
+        tested.Victim().alive = true;
+        for (auto& particle : tested.particles.All())
+            particle.alive = true;
+        const auto stepped = StepCharacters(tested.Context());
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(hero.byte381, 0);
+        const bool ribbon = std::ranges::any_of(tested.world.DrawTail().ribbons, [](const auto& r) { return r.alive; });
+        EXPECT_EQ(ribbon, visible);
+        if (visible)
+            EXPECT_EQ(tested.random.State(), withoutTrail);
+        else
+            withoutTrail = tested.random.State();
+    }
+}
 } // namespace

@@ -7,7 +7,7 @@ Pasada del 2026-11-16 para el PR #343. El objetivo es reconstruir el comportamie
 - Cliente PE32 i386, base `0x400000`, SHA-256 `c32bbd5f16ca400c7cfc71fa5f4cd573c57f146dd19a6da52fdd1007abaca26a`.
 - Research `mu-server-repack-research-102i`, commit `14f0f931f68776dd103927f58c4359dc29ced712`, exports `client-research/mainexe-vmxp-c32bbd5f/decompiled/functions/`. Los exports ASM de algunas funciones grandes tienen huecos: se contrastaron también los bytes del PE mediante desensamblado estático de `.text` (VA `0x401000`).
 - Se revisaron callers, callees, puertas anteriores a las capacidades, escrituras persistentes, cierres de accesos y consumo del RNG. El original y sus DLL no se ejecutaron ni emularon en el host. Todavía falta el contraste dinámico en VM.
-- La rama integra H3 final `63605ff4` y `main` `015c1746` mediante los casos B y A del traspaso, preservando la historia y las reparaciones de entrada al mundo de #355/#356.
+- La rama integra H3 final `63605ff4` y `main` `015c1746` mediante los casos B y A del traspaso, preservando la historia y las reparaciones de entrada al mundo de #355/#356. También integra la cabeza `52f835dc` del fix de estelas #359 por pedido de Emanuel; al traerla, GitHub aún mostraba ese PR abierto. Se conserva su acción/modelo compartido y la cadena de estelas, junto con las correcciones H4.
 
 ## Inventario
 
@@ -59,11 +59,13 @@ Se observaron fallos antes de las correcciones y regresiones focales posteriores
 
 ## Fronteras reales
 
-Party (H7) y reglas de guild/duel (H8) requieren los datos de sus hitos. B7 y el asedio son H13; el altar de Crywolf usa la condición compartida de H3 y conserva la frontera de eventos. Audio CL10 todavía es un evento lógico en `lastSoundId`, no reproducción equivalente. Los constructores y pasos CL11 ausentes con capacidad disponible conservan su VA y su pendiente; un pool lleno debe omitir únicamente el alta, no el resto del caller.
+El precio del tooltip de mascota en tienda NPC (P-C246) todavía depende del formato de dinero `5b1130` y de la tienda. Party (H7) y reglas de guild/duel (H8) requieren los datos de sus hitos. B7 y el asedio son H13; el altar de Crywolf usa la condición compartida de H3 y conserva la frontera de eventos. Audio CL10 todavía es un evento lógico en `lastSoundId`, no reproducción equivalente. Los constructores y pasos CL11 ausentes con capacidad disponible conservan su VA y su pendiente; un pool lleno debe omitir únicamente el alta, no el resto del caller.
 
 El GS reconstruido antiguo no prueba compatibilidad de todas estas respuestas. Su F3 11 usa cabecera de cinco bytes y entradas desde +5; el cliente inspeccionado lee list en +5 y entradas desde +6. Su 07 usa máscara WORD y clave desde +6, mientras el cliente lee máscara DWORD y clave desde +8. No se alteró el cliente para acomodar esas diferencias de versión.
 
 ## Evidencia dinámica necesaria para cerrar la fidelidad
+
+El agente de VM debe probar también la continuación conjunta con #359: arma visible0x222/acción23 durante cuatro pasos y acción38 con partículas llenas, con estela y chispa habilitadas. La pose compartida de las estelas no reemplaza bodyPose, que los readers de skills leen del dueño.
 
 El agente de VM debe usar el mismo SHA del original y registrar también el commit exacto de MuRet, mapa, clase, equipo, skill, selección, teclas y estado inicial. Las trazas y los volcados van fuera de Git; se versionan hashes y resultados resumidos. Puede reutilizar el [runbook CL9](scripts/game/capture/RUNBOOK-cl9-vm.md).
 
@@ -77,3 +79,9 @@ El agente de VM debe usar el mismo SHA del original y registrar también el comm
 8. Demoras y transiciones: retorno a selección, cambio de personaje y vuelta al mundo sin arrastrar acceso abierto, tecla de otro slot o estado del cuervo anterior.
 
 Para cada caso hacen falta observaciones originales y de MuRet, no sólo una captura visual de MuRet. Si una variante exige manipular estado en el depurador por no emitirla el GS del laboratorio, registrar que es un experimento controlado, sus bytes exactos y los gates que se omitieron. No presentar ese caso como recorrido de juego normal ni inventar evidencia para los tests salteados.
+
+## Validación de la composición con #359
+
+Sobre la implementación integrada se ejecutaron nueve suites y **177 pruebas sin fallos**: AttackFrameSkills14, AttackStep17, AttackSkillCases31, ArrowEffects29, CharacterStep66, WeaponTrail9, WeaponTrailPipeline2, MonsterRibbonTrails7 y WorldModelPose2. Incluyen la regresión de arma visible de359 y una nueva acción38 con partículas llenas y estela de lanza. El formato de los1890 archivos C++ versionados pasó con clang-format18; include-cleaner18 revisó el diff del cliente. UBSan de resta signed:10 pruebas sin reporte.
+
+Estos resultados son focales. La suite completa Linux y el CI Linux/Windows se registran sobre el commit publicado en los checks y en la descripción de #343; no se sustituyen por esta cifra ni se presume validación VM. Las herramientas de evidencia ejecutaron49 pruebas Python, con un salto de plataforma.

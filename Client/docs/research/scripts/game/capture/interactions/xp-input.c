@@ -42,10 +42,11 @@ int main(int argc, char** argv)
     HWND game, foreground;
     RECT client;
     POINT origin = {0, 0};
+    const DWORD MaxHoldMilliseconds = 5000;
     DWORD pid = 0;
     FILE* out;
     int ok = 1, x = 0, y = 0;
-    if (argc != 3 && argc != 5)
+    if (argc != 3 && argc != 5 && argc != 6)
         return 2;
     out = fopen(argv[argc - 1], "w");
     if (!out)
@@ -104,12 +105,16 @@ int main(int argc, char** argv)
             ok = (SendInput(1, &input, sizeof input) == 1) && ok;
         }
     }
-    else if (argc == 5 && (!strcmp(argv[1], "move") || !strcmp(argv[1], "click")))
+    /* hold <x> <y> <ms> <salida>: sostiene un clic normal mientras se capturan frames. */
+    else if ((argc == 5 && (!strcmp(argv[1], "move") || !strcmp(argv[1], "click"))) ||
+             (argc == 6 && !strcmp(argv[1], "hold")))
     {
+        const DWORD hold = argc == 6 ? (DWORD)strtoul(argv[4], NULL, 10) : 100;
         GetClientRect(game, &client);
         x = atoi(argv[2]);
         y = atoi(argv[3]);
-        if (GetForegroundWindow() != game || x < 0 || y < 0 || x >= client.right || y >= client.bottom)
+        if (GetForegroundWindow() != game || x < 0 || y < 0 || x >= client.right || y >= client.bottom ||
+            hold > MaxHoldMilliseconds)
             ok = 0;
         else
         {
@@ -118,10 +123,10 @@ int main(int argc, char** argv)
             ok = ClientToScreen(game, &origin) && SetCursorPos(origin.x, origin.y);
             /* Deja dibujar el rayo de este punto antes del flanco, por Q-C165. */
             Sleep(250);
-            if (!strcmp(argv[1], "click"))
+            if (strcmp(argv[1], "move"))
             {
                 ok = button(MOUSEEVENTF_LEFTDOWN) && ok;
-                Sleep(100);
+                Sleep(hold);
                 ok = button(MOUSEEVENTF_LEFTUP) && ok;
             }
         }

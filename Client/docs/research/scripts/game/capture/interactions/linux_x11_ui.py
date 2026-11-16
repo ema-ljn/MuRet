@@ -68,6 +68,9 @@ def main() -> None:
     pointer = actions.add_parser("click")
     pointer.add_argument("x", type=int)
     pointer.add_argument("y", type=int)
+    motion = actions.add_parser("move")
+    motion.add_argument("x", type=int)
+    motion.add_argument("y", type=int)
     text = actions.add_parser("type")
     text.add_argument("text", help="non-secret ASCII test name, never credentials")
     shot = actions.add_parser("capture")
@@ -84,6 +87,9 @@ def main() -> None:
         press(args.window, args.key)
     elif args.action == "click":
         click(args.window, args.x, args.y)
+    elif args.action == "move":
+        from x11_motion import move
+        move(args.window, args.x, args.y)
     elif args.action == "type":
         if not args.text.isascii() or not args.text.isalnum():
             raise ValueError("only non-empty ASCII alphanumeric test names are supported")

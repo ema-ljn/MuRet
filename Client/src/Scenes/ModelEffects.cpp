@@ -263,7 +263,7 @@ Core::Expected<float, std::string> PoseTheModel(ModelEffectsPass& pass, std::uin
         !published.HasValue())
         return Core::Unexpected(published.Error());
     if (const auto key = PoseKeyOf(skeleton, animation))
-        models.RecordPoseKey(actor.type, *key);
+        models.RecordAnimation(actor.type, animation.frame, *key);
     return speed;
 }
 

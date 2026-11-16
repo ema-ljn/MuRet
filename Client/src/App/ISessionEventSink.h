@@ -34,5 +34,8 @@ public:
     // del handler del 0x0B, el 0x12, el 0x1C, el 0x24 y el 0x2A, sin mirar el flag de cifrado ni si se puede leer: la
     // sesión lo entrega acá, crudo, antes de su ApplyWorld o de su rechazo. El 0x0B todavía no se atiende (hito 11).
     virtual void CopyToPacketRing(std::span<const std::byte> packet) = 0;
+    // 0x4c273f: todo F1/02 legible libera la salida pedida, incluso en claro o con motivo desconocido.
+    // Los consumidores sin UI no conservan ese global.
+    virtual void ClearLogoutRequest() {}
 };
 } // namespace Client::App

@@ -4563,6 +4563,11 @@ Leída en la CL6.R en el desensamblado de `c32bbd5f`: todo *estático* salvo lo 
 - ninguno elegido (`DAT_006d5edc` en -1) y la UI en el modo 4 (`0x65f4b0`): el aviso de `+0x8`
   (352 × 113, al centro), las ventanas de `+0x3d0` y `+0x7e8`, la de la selección (`+0x7f50`, en x
   22, abierta) y la de `+0x8498` (454 × 406, al centro); los botones, con `0x63eb40`;
+- `0x633f91 → 0x5bbe10`: vacía los doce lugares del equipo y las 64 casillas de mochila, escribiendo sólo
+  tipo `0xffff` y ocupación 0. Conserva nivel, flags y durabilidad; no vacía la segunda grilla de
+  `0x78ab0b8`. El cierre propio de `0x5bc092` consume 3.848 `rand()` si deja la cuenta en cero,
+  independientemente del acceso siguiente. MuRet lo conecta con `ClearSelectionInventory`; las otras
+  seis grillas y los globales de interacción de esa función conservan sus dueños H6/H7/CL9.5.
 - `0x633f96`..`0x63417a`: abre el registro propio (`[0x7681eb4]`, por la tabla de hash de `0x57630c8`), pone en
   0 `+0x6a` y `+0x6c..+0xab` de `[0x7681eb0]` y ocho dwords de `[0x7681eb4]` (`+0xb70`, de a `0x48`) y lo
   cierra: con la cuenta en 0, `0x40b4d0` y sus 3.848 `rand()` (Q-C238; [El paso de los personajes en la
@@ -10589,8 +10594,8 @@ T14). No mira la escena ni el estado: lo primero que mira es el cuarto argumento
 del paquete cifrado (`0x4c2f5b..0x4c2f5e`). La mirada a la escena 5 de `0x4c275c` es solo del 2:
 con 2, en la escena 5 limpia el juego (`0x42fdc0`, `0x622b00`, `0x41ee50`, `0x5be150` y `0x61eef0`,
 `0x4c2765..0x4c2779`) **antes** de mirar si llegó cifrado, así que también lo limpia en claro, y
-recién después elige entre volver al login (`0x4c2ef3`) y el aviso (`0x4c2787..0x4c2ef2`). El 2
-llega con la CL9.
+recién después elige entre volver al login (`0x4c2ef3`) y el aviso (`0x4c2787..0x4c2ef2`). La ruta del 2
+está conectada en la CL9; se detalla abajo.
 
 - **Sin cifrar** (`0x4c2f64..0x4c35dd`): arma `C1 06 F1 03 00 F1` y lo manda por el C3, como el
   aviso del `F3 03` en claro (`0x4c396a`) y el del `F3 10` (Q-C205), y sale por `0x4c3921`. No
@@ -10600,12 +10605,12 @@ llega con la CL9.
 | Dónde | Qué hace | MuRet |
 | --- | --- | --- |
 | `0x4c3626`, `0x4c362b` | `0x622b00` y `0x41ee50`: paran sonidos | sin audio hasta la CL10 |
-| `0x4c3630` | `0x5be150`: sale en `0x5be160` sin un ítem en `[0x7879fbc]`, que solo escriben con un valor `0x4d1c89` y `0x4d29cb`, handlers que MuRet no tiene; con uno, saca `rand()` y toca la caja de `0x723c80` | queda en 0 ([Los stats del registro propio](#los-stats-del-registro-propio)): nada |
+| `0x4c3630` | `0x5be150`: sale en `0x5be160` sin un ítem en `[0x7879fbc]`; con uno, saca `rand()` y toca la caja de `0x723c80` | `ReturnTheCursorItem`, antes de liberar actores; conserva su orden, RNG y errores de dependencias |
 | `0x4c3635` | `0x61eef0`: `0x6070a0` (los efectos y los objetos del mapa; no toca el terreno ni el pasto), `0x612230` y `0x612d50` (sueltan los modelos `0x152..0x207` y los sonidos `0xa0..0x1c1`), `0x607b40` (los ítems del piso) y `0x510f70(−1)` (`0x61ef04`) | `ReleaseTheMapObjects`, `ClearWorldTransientPools`, piso.alive=false y `KillOtherActors(−1)`, en orden. Payloads y terreno/pasto se conservan; de los 400 sobrevive sólo clave `0xffff`, el slot 400 no se recorre (Q-C212). La descarga nativa de modelos/sonidos no se reproduce |
-| `0x4c363a` | `0x42fdc0`: globales de la interfaz a su valor inicial | no los tiene |
+| `0x4c363a` | `0x42fdc0`: globales de la interfaz a su valor inicial | estado/etapa de Crywolf en 0 y NPC elegido en −1; los otros globales siguen sin representación |
 | `0x4c363f` | la escena 4 | `WorldRuntime::orderedScene`: el `SceneManager` la toma después del `Poll` y entra en su próximo paso, antes del paso de la escena (`SceneManager::Step`) |
 | `0x4c3649..0x4c38e4` | el estado `0x32` y el `F3 00` | la sesión: `WriteCharacterListRequest` |
-| `0x4c38eb`, `0x4c38f2` | `0x7d3a13f` y `0x7d3a140` en 0: la primera vez de la selección (`0x633f20` corre otra vez) y del juego (`0x636290`, otro `F3 03`) | cada escena es nueva: `SelectionState::BeginSelection` y `GameScene::Enter` |
+| `0x4c38eb`, `0x4c38f2` | `0x7d3a13f` y `0x7d3a140` en 0: la primera vez de la selección (`0x633f20` corre otra vez) y del juego (`0x636290`, otro `F3 03`) | `SelectionState::BeginSelection` dentro de la respuesta de salida, antes de otro paquete del mismo Poll, y `GameScene::Enter`; Enter de selección conserva la lista si ya llegó |
 | `0x4c38f9` | `0x7d3a101` en 0: el mundo sin cargar | `drawingEnabled` en `false`: el juego no avanza ni dibuja hasta que la selección cargue el 54 |
 | `0x4c3900` | el estado en 0: la lógica de la selección (`0x6342c4`) y su dibujo (`0x634695`) esperan la lista, que lo pasa a `0x33` (`0x4c224f`, `0x4c225f`) | `WaitingCharacterList`, con su `ReplyTimeout`; la selección no pide otra lista |
 | `0x4c390a` | `0x4c2480`, abajo | |
@@ -10628,8 +10633,8 @@ del juego que MuRet no tiene (`0x57678ed..0x5767960`, `0x6c82e8`, `0x6c8e3d..0x6
 `+0x2134c..+0x21385` de `[0x710148]`), y las llamadas `0x5545f0`, `0x555030`, `0x40ba20` (con
 `[0x723c60]`), `0x5e3c70`, `0x5ecda0`, `0x403300` y `0x403d60`. Ninguna de esas llamadas, ni
 `0x622b00`, `0x41ee50`, `0x61eef0`, `0x42fdc0`, `0x419900` y `0x657670`, llega a `rand()` por
-llamadas directas; `0x5be150` sí, y no lo saca sin el ítem. Así, la vuelta saca solo los 3.848 del
-cierre del registro (`ReturnToSelectionTest`). Lo que **queda**: el terreno y el pasto del juego
+llamadas directas; `0x5be150` sí, y no lo saca sin el ítem. Sin ítem en el cursor, la vuelta saca solo
+los 3.848 del cierre del registro (`ReturnToSelectionTest`). Lo que **queda**: el terreno y el pasto del juego
 (la selección los usa para construir los personajes de la lista hasta que `0x633f20` cargue el 54),
 el héroe publicado (`0x743a170`, que solo escriben WinMain y `0x4c4725`) en su lugar del juego,
 aunque esté muerto, y lo que la cámara lee de él (Q-C213).
@@ -10656,6 +10661,26 @@ no se reconstruyen, salvo el nivel de cámara puesto en 0 por 4c250e. `ReturnToS
 regresiones del sink observan esos datos retenidos y el recorrido juego→selección→juego, además
 del orden de los tres paquetes. Esto no implementa la UI pendiente ni la descarga nativa de
 modelos/sonidos, y no sustituye la observación nativa pendiente de P-C45.
+
+### La vuelta a la lista de servidores
+
+CL9, reparación del 2026-11-15, leída en el ASM de `0x4c2710`. Toda respuesta `F1 02` legible pone
+en 0 la salida pedida (`0x4c273f`), incluso en claro o con un motivo desconocido. Con motivo 2:
+
+1. `0x4c275c..0x4c2779`: sólo en escena 5, reinicia la interfaz, para sonidos, devuelve el ítem del
+   cursor y limpia el juego con `0x61eef0`. Esto precede a comprobar el cifrado.
+2. Sin cifrar: manda el aviso `F1 03`, conservando conexión y escena, con la limpieza anterior aplicada.
+3. Cifrado: `0x4c2f0a` cierra el GameServer; `0x4c2f0f → 0x61cc50` libera objetos, pools y actores
+   también desde selección. Esta última función no llama `0x607b40`: conserva los ítems del piso.
+4. `0x4c2f1a..0x4c2f51`: ordena escena 2, reinicia las banderas de entrada y llama al reset común
+   `0x4c2480`. MuRet queda Idle y `LoginScene::Enter` inicia de nuevo la conexión al ConnectServer.
+
+`ServerSession::ReturnToServerList` y los dos eventos del aplicador mantienen separados los efectos
+anteriores y posteriores al cierre. La generación de conexión evita aplicar el resto del lote viejo
+o interpretar su Closed como una caída del nuevo login. Las regresiones prueban claro/cifrado,
+salida desde selección, cierre con paquetes sobrantes e ítem levantado después del pedido de salida.
+Los sonidos, la descarga nativa de modelos y los globales sin representación conservan sus límites
+de implementación. La repetición visual en VM sigue pendiente.
 
 ### Las misiones
 

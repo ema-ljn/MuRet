@@ -1760,23 +1760,54 @@ void ServerSession::OnLogoutResult(const Network::Packet& packet)
         m_log.Warning("se ignora la orden de salida del GameServer (F1 02): {}", Unreadable);
         return;
     }
+    m_eventSink.ClearLogoutRequest(); // 0x4c273f, antes del switch y del guard de cifrado.
     if (result.Value() == Protocol::Connection::LogoutReturnsToSelection)
     {
         ReturnToSelection(packet.WasDecrypted());
         return;
     }
+    if (result.Value() == Protocol::Connection::LogoutReturnsToServerList)
+    {
+        ReturnToServerList(packet.WasDecrypted());
+        return;
+    }
     if (result.Value() != Protocol::Connection::LogoutQuitsTheGame)
     {
-        // 2 es la lista, que cambia de escena (Q-C79): la CL9. Con otro, el original no hace nada.
-        m_log.Warning("se ignora la orden de salida del GameServer (F1 02 con {}): MuRet sigue la de "
-                      "cerrar el juego, con 0, y la de volver a la selección, con 1",
-                      result.Value());
+        // Con otro resultado, el original no hace nada.
+        m_log.Warning("se ignora la orden de salida del GameServer (F1 02 con {}): motivo desconocido", result.Value());
         return;
     }
     m_log.Info("el GameServer ordenó cerrar el juego (F1 02 con 0): se cierra la conexión y el juego, sin aviso");
     m_connection.Close();
     ++m_generation;
     SetState(SessionState::QuitOrdered);
+}
+
+void ServerSession::ReturnToServerList(bool encrypted)
+{
+    // 0x4c275c: en escena 5 la limpieza precede incluso al rechazo por falta de cifrado.
+    if (!CheckApplication(m_eventSink.ApplyWorld(ServerListLogoutCleanup{}, *this)))
+        return;
+    if (!encrypted)
+    {
+        m_log.Warning("la orden de volver a los servidores (F1 02 con 2) no llegó cifrada: se avisa al GameServer");
+        Protocol::Outgoing report = Protocol::Connection::WriteClearLogoutReport();
+        m_connection.Send(std::move(report.packet), report.delivery);
+        return;
+    }
+    // 0x4c2f0a: cierre explícito, sin procesar el Closed ni otros paquetes del mismo lote.
+    m_connection.Close();
+    ++m_generation;
+    if (!CheckApplication(m_eventSink.ApplyWorld(ReturnToServerListReceived{}, *this)))
+        return;
+    m_characters.reset();
+    m_chosenSlot.reset();
+    m_createResult.reset();
+    m_deleteResult.reset();
+    m_deletingSlot.reset();
+    m_loginResult.reset();
+    SetState(SessionState::Idle); // 0x4c2f40: estado 0; LoginScene::Enter inicia la conexión al CS.
+    m_log.Info("el GameServer ordenó volver a los servidores (F1 02 con 2): se cierra el GS y se vuelve al login");
 }
 
 // 0x4c2f5b: sin cifrar, el F1 03 00 F1 y nada más (Q-C211). Cifrado, 0x4c3626..0x4c390f: el sink limpia el

@@ -137,6 +137,11 @@ Client::Data::Tables::ItemSetTables NoSets()
 // Lo que dura la sesión, con Player.bmd, sin conjuntos y el Item.bmd que pase la prueba.
 struct Stage
 {
+private:
+    // Dos mundos simultáneos exceden la pila de 1 MiB del runner Windows.
+    std::unique_ptr<Client::Scenes::WorldState> m_world = std::make_unique<Client::Scenes::WorldState>();
+
+public:
     Stage(std::filesystem::path root, const Client::Data::Tables::ItemTable* itemTable)
         : dataRoot(std::move(root)), cloth{.random = CrtRandom(Seed)}, items(itemTable)
     {
@@ -175,7 +180,7 @@ struct Stage
     }
 
     std::filesystem::path dataRoot;
-    Client::Scenes::WorldState world;
+    Client::Scenes::WorldState& world = *m_world;
     Client::Scenes::SelectionState selection{world};
     Client::World::GameCamera camera;
     Client::World::GameCameraInput cameraInput;

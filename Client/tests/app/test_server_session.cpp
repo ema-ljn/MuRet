@@ -2316,29 +2316,24 @@ TEST(ServerSessionTest, TheQuitOrderStopsTheKeepalive)
     EXPECT_EQ(tested.session.Failure(), std::nullopt);
 }
 
-// Con 2 (la lista), el original cambia de escena (Q-C79): hasta la CL9, la sesión lo ignora con un aviso
-// y sigue. Con otro que 0, 1 o 2, el original no hace nada, y acá, lo mismo con su aviso. Sin el
-// resultado, no se puede leer.
+// Fuera de 0/1/2 el original no hace nada; sin el resultado, no se puede leer.
 TEST(ServerSessionTest, TheOtherLogoutResultsAreIgnored)
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
 
-    tested.socket.reads = {FromTheGameServer(LogoutResult(2), tested.gameServerSends),
-                           FromTheGameServer(LogoutResult(3), tested.gameServerSends), Bytes({0xC1, 0x04, 0xF1, 0x02})};
+    tested.socket.reads = {FromTheGameServer(LogoutResult(3), tested.gameServerSends), Bytes({0xC1, 0x04, 0xF1, 0x02})};
     static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
     EXPECT_EQ(tested.connection.State(), LinkState::Open);
     const auto ignored = [](int result)
     {
-        return std::format("[warning] se ignora la orden de salida del GameServer (F1 02 con {}): MuRet sigue la de "
-                           "cerrar el juego, con 0, y la de volver a la selección, con 1",
+        return std::format("[warning] se ignora la orden de salida del GameServer (F1 02 con {}): motivo desconocido",
                            result);
     };
     EXPECT_EQ(tested.Warnings(),
-              (Lines{ignored(2), ignored(3),
-                     "[warning] se ignora la orden de salida del GameServer (F1 02): no se puede leer"}));
+              (Lines{ignored(3), "[warning] se ignora la orden de salida del GameServer (F1 02): no se puede leer"}));
     EXPECT_TRUE(tested.eventSink.TakeWorldEvents().empty());
 }
 
@@ -2413,6 +2408,69 @@ TEST(ServerSessionTest, AnEncryptedLogoutWithOneGoesToTheSelection)
 
     EXPECT_EQ(tested.session.State(), SessionState::EnteringWorld);
     EXPECT_EQ(tested.CharacterPacketsSent(SelectSubcode).size(), 2u);
+}
+
+// 0x4c2ef3..0x4c2f51: cierra GS y deja el estado 0, sin error; la escena 2 inicia el CS.
+TEST(ServerSessionTest, AnEncryptedTwoClosesTheOldConnectionWithoutConsumingItsRemainingPackets)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(ReachInWorld(tested));
+    const std::size_t sentBefore = tested.socket.sent.size();
+    tested.socket.reads = {FromTheGameServer(LogoutResult(2), tested.gameServerSends),
+                           CharacterListBytes(TwoCharacters())};
+    tested.socket.peerClosed = true;
+
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+
+    EXPECT_EQ(tested.session.State(), SessionState::Idle);
+    EXPECT_EQ(tested.connection.State(), LinkState::Closed);
+    EXPECT_EQ(tested.session.Failure(), std::nullopt);
+    EXPECT_FALSE(tested.session.Characters().has_value());
+    EXPECT_EQ(tested.session.ChosenCharacter(), nullptr);
+    EXPECT_EQ(tested.eventSink.TakeWorldEvents().size(), 2u);
+    EXPECT_EQ(tested.socket.sent.size(), sentBefore);
+    EXPECT_FALSE(tested.Logged(LogLevel::Error, "se perdió la conexión"));
+    tested.PollEachFrameUntil(seconds{43});
+    EXPECT_EQ(tested.socket.sent.size(), sentBefore);
+    EXPECT_EQ(tested.session.Failure(), std::nullopt);
+    tested.socket.peerClosed = false;
+    tested.session.Start();
+    EXPECT_EQ(tested.session.State(), SessionState::ConnectingConnectServer);
+}
+
+// A diferencia del 1, el 2 limpia el juego ANTES de comprobar el cifrado (0x4c275c..0x4c2781).
+TEST(ServerSessionTest, AClearTwoStillDeliversTheCleanupAndReportsWithoutClosing)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(ReachInWorld(tested));
+    const std::size_t sentBefore = tested.GameServerReads().packets.size();
+    tested.socket.reads = {LogoutResult(2)};
+
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+
+    EXPECT_EQ(tested.session.State(), SessionState::InWorld);
+    EXPECT_EQ(tested.connection.State(), LinkState::Open);
+    EXPECT_EQ(tested.eventSink.TakeWorldEvents().size(), 1u);
+    const auto sent = GameServerPacketsFrom(tested, sentBefore);
+    ASSERT_EQ(sent.size(), 1u);
+    EXPECT_TRUE(SameBytes(sent[0].Bytes(), Bytes({0xC1, 0x06, 0xF1, 0x03, 0x00, 0xF1})));
+}
+
+TEST(ServerSessionTest, EveryReadableLogoutResultReleasesThePendingUiRequest)
+{
+    for (const int result : {0, 1, 2, 3})
+    {
+        SCOPED_TRACE(result);
+        Harness tested(IdentityObfuscation::Shared());
+        ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+        bool requested = true;
+        tested.eventSink.onLogoutResponse = [&] { requested = false; };
+        tested.socket.reads = {LogoutResult(result)};
+
+        ASSERT_TRUE(tested.session.Poll().HasValue());
+
+        EXPECT_FALSE(requested);
+    }
 }
 
 // 0x4c2f5b: sin cifrar, el 1 no limpia ni cambia de escena: solo le avisa al GS con el F1 03 00 F1, para

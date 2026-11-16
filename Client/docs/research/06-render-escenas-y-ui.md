@@ -3663,9 +3663,9 @@ mismo** en 8 semillas × 5.000 pasos, y `raven_stats.py` lo corre en 40 semillas
   a menos de 50 se posa (el 3), en el hueso 37 con (−10, 0, 10), con los ángulos del dueño y el rumbo 120
   grados menos; la velocidad queda como estaba. Al salir de la zona vuelve al 0 y a volar. `0x4ec110` con
   Translate en 1 suma la escala (`+0x68`) y la posición (`+0x6c`) del **modelo compartido** del tipo del
-  dueño (`0x5769ad8 + 0x20a · 0xe0`), no las del dueño: las del último `0x20a` que las copió, en su paso
-  (`0x505ec6`) o al posar su cuerpo (`0x6001b0`), y el paso del cuervo corre antes del `0x505ec6` de su
-  dueño (Q-C412). `0x4e9810`: el rumbo con `CreateAngle` de (x, y) a (x, y) del objetivo y `TurnAngle`;
+  dueño (`0x5769ad8 + 0x20a · 0xe0`). El prefijo `0x4fd69b..0x4fd6ef` las copia del propio dueño antes
+  del cuervo: en el lazo normal son su snapshot al entrar al cuerpo, no las del jugador anterior.
+  La inferencia anterior omitía ese prefijo (Q-C412, corrección del 2026-11-15). `0x4e9810`: el rumbo con `CreateAngle` de (x, y) a (x, y) del objetivo y `TurnAngle`;
   dx y dy en la pila, dz y los cuadrados de dx y dy en float, el largo en el plano en float, el cabeceo
   con 360 menos `CreateAngle(z, plano, z del objetivo, 0)` y `TurnAngle`, y devuelve
   √(dz² + dx² + dy²) sin guardar en float.
@@ -3703,8 +3703,9 @@ mismo** en 8 semillas × 5.000 pasos, y `raven_stats.py` lo corre en 40 semillas
   y MuRet la suma al final. Desde la auditoría del cierre de la CL7 (2026-11-12), **la zona segura**: los
   estados 3 y 4 bit a bit contra el código real (`tests/vectors/world55/raven_safe_zone.txt`, de
   `make_raven_safe_zone_vectors.py`: 4 casos y 610 pasos, con los huesos propios del dueño girados y la escala
-  y la posición del modelo compartido), `Render::Models::MoveToward` (`0x4e9810`) y
-  `WorldState::PlayerModel`, el `+0x68`/`+0x6c` de `Player.bmd`, que escriben `0x505ec6` en el paso y
+  y la posición del modelo compartido; el arnés no ejecuta el prefijo del cuerpo),
+  `Render::Models::MoveToward` (`0x4e9810`) y `WorldState::PlayerModel`, el `+0x68`/`+0x6c` de `Player.bmd`,
+  que escriben el prefijo `0x4fd69b..0x4fd6ef`, `0x505ec6` en el paso y
   `0x6001b0` en el dibujo del juego, del login y de la selección (Q-C412). Los estados 2, 5 y 6 (las órdenes
   `A7`) cortan en `0x416add`.
 - **Lo que crea**: una **chispa por paso** (`0x5c6`, `Effect\Spark03.jpg`, subtipo 5), desde un
@@ -6428,7 +6429,9 @@ modelo compartido del tipo, `[0x5769ad8] + tipo · 0xe0` (`0x4fd6b0`). Leído en
      - el cierre del registro propio (`0x40f370`, `0x50534a`);
      - por último, `+0x382 = 0` y `+0x380 = 0`.
 10. La cola (`0x5053a2..0x5054aa`):
-    - `+0x428` positivo baja en 1 y, si queda entre −127 y 0, pasa a −128 y llama a `0x511070(c, o)`.
+    - `+0x428` positivo baja en 1; después, si es ≤0 y distinto de −128, pasa a −128 y llama a
+      `0x511070(c, o)`. También expiran −129 e INT_MIN (`0x5053c6`, `0x5053d2`). El cleanup apaga vivo,
+      borra huesos con nombre y helpers propios, libera cuervo, telas y capa; el resto de la cola continúa.
     - `0x42a2b0(o)`, que solo actúa con el `0x1a8` ([Las barras de vida del 0x1a8](#las-barras-de-vida-del-0x1a8)).
     - `0x4fcee0(c, o, b)` (`0x505410`): la estela del arma.
     - Con el `0xf1`, `0x52f360`.
@@ -9735,8 +9738,8 @@ CL9 hito 3 (2026-11-13), *estático* salvo lo que se marca; los paquetes, en
   en 2) sí, salvo con `0x576796c` y sin `0x576796d` (la guerra de gremios). Un jugador (`+0x88` en
   1): con el asedio (`0x4294b0`), los puestos de `+0x360` enfrentados (6 a 11 contra 12 y 13) o las
   marcas de `+0x78` deciden por el escudo `0x4000` del elegido; si no, `+0x370` en 2 u 8; con
-  `0x576796c`, el PK de 6 o más y gremio compara los nombres de `0x787aa55` (hito 8, corta en
-  `0x558da4`); en el duelo (`0x78abad8`), solo la clave de `0x78abadc` con el nombre de `0x78abae0`
+  `0x576796c`, el PK de 6 o más y gremio compara los nombres de `0x787aa55` (hito 8; MuRet devuelve
+  falso como con los nombres iguales hasta integrarlo, P-C250 f); en el duelo (`0x78abad8`), solo la clave de `0x78abadc` con el nombre de `0x78abae0`
   (`strcmp` contra `+0x1d9`); con `0x576796c`, `+0x374` en 2 y que no sea el héroe; el PK de 6 o más;
   y si no, Ctrl abajo (`GetAsyncKeyState(0x11)`, `0x558e7f`) y que no sea el héroe.
 - **El freno de 300 ms** (`0x576791c`, `0x57f2d1..0x57f2f9`, y el mismo en `0x559890`, `0x55b6f0`,
@@ -10037,7 +10040,7 @@ dos `rand()` del giro de la cabeza, `0x5068fd`, descontados: uno en 32 por paso 
 
 | Dónde | Qué | Quién llega |
 | --- | --- | --- |
-| `0x4f9899`, `0x4f8a39`, `0x4fdeeb`, `0x504372` | los casos de habilidad | nadie: `+0x38e` lo escriben `0x4cc530` y los monstruos (hito 4) |
+| `0x4f9899`, `0x4f8fef`, `0x4fdeeb`, `0x504372` | los casos de habilidad | nadie: `+0x38e` lo escriben `0x4cc530` y los monstruos (hito 4) |
 | los efectos, joints y partículas de los casos de `0x4f5b70` (fase 2e-B: cada uno en su dirección, en [Los casos de los monstruos](#los-casos-de-los-monstruos-0x4f5b70)) | `0x518cf0`, `0x530860`, `0x51fff0` y las partículas sin portar, con la lógica del caso hecha | los monstruos con caso, en sus mapas (CL11, P-C233); ningún jugador sin transformar |
 | `0x4fb0d1` | las veinte `0x5c6`/12 sin el pool de partículas | nadie en el juego (fase 2d) |
 | `0x558f29` | los nombres de gremio: desde la revisión no corta, da −1 como con los nombres iguales (Q-C1170) | el héroe en la guerra de gremios (hito 8) |
@@ -10223,8 +10226,9 @@ blanco](#el-paso-del-ataque)): 36 `rand()` por paso, en el pool del mundo. Sin e
 - `0x25` (`0x4f8837`): en 1, el sonido `0x75`; `rand() % 360`, el joint `0x61b`/0 y `0x5d9`/0 (`0x4f88d0`).
 - `0x42` (`0x4f890b`): en 1, el sonido `0x50`; joints `0x61b`/1 y `0x5d9`/0, sin `rand()` (`0x4f89df`).
 
-Si no es `0x11`, lee otra vez; con 3, el `switch` de `0x4f8a56` (sin caso, `0x4f8f5b`, que corta en `0x4f8a39`,
-hito 4):
+Si no es `0x11`, lee otra vez; con 3, el `switch` de `0x4f8a56` (sin caso, `0x4f8f5b`) continúa con dos joints
+`0x614`/0 y la partícula `0x5ca`/0. MuRet conserva el corte en la llamada `0x530860` del primer joint (`0x4f8fef`)
+cuando hay un slot libre:
 
 - `0x59`, `0x5f`, `0x70`, `0x76`, `0x7c`, `0x82`, `0x8f` (`0x4f8a5d`): en 1, el sonido `0x50`; joints `0x61b`/1
   (`0x4f8b31`).
@@ -11000,8 +11004,11 @@ escala y el origen del modelo son los del dueño (Q-C853). Corta sin las accione
 por ejemplo con el fantasma). El golpe de un monstruo (`0x4f53a0`) toma la acción 5 de las acciones de su modelo
 (`SetMonsterAction`, `0x4f5480`) y su sonido de la tabla de `0x612c80` (`0x4f553d..0x4f55a7`: el `WORD` `+0xae`; en −1 sin
 sonido ni `rand()`, si no `rand() & 1` elige `+0xae` o `+0xb0`, más `0xd2` y 5 con el subtipo 9, en `lastSoundId`); un
-modelo sin cargar es el registro en 0 del original (sin acciones, sonido `0xd2`). Las chispas del `0x18f` cortan
-(`0x4f55bb`, CL9.2). Tests: `ActorShockTest` (Lorencia y Devias).
+modelo sin cargar es el registro en 0 del original (sin acciones, sonido `0xd2`). Revisión de H3: el golpe
+lee `WorldRuntime::modelSounds`, igual que ataque y muerte. El `0x18f` conserva cinco intentos de polvo `5f3/0`,
+con gate `rand() % 2`, offsets X/Z y cuatro sorteos del constructor sólo si encuentra slot; después siempre pide
+el sonido `0x86` (`0x4f5649`). Ya no corta en `0x4f55bb`: reutiliza `Particles::CreateChecked` en la llamada
+`0x4f5635`. Tests: `ActorShockTest` y `MonsterCombatTest` (Lorencia y Devias).
 Tests: `MagicAttackCountTest`, `HandShineTest` y `ViewportTest.MagicAttackCountReadsTheCasterTheSkillAndTheTargets`.
 
 ### Lo que dicen los NPC
@@ -11601,7 +11608,8 @@ los dos desde `0x4fcd00`, el paso del cuerpo, y solo con `+0x38a` en 0, que pone
 4. Los demás, dos vueltas (`0x52e8ab..0x52e975`): `rand() % 100 − 50` para la x y otro para la y de un corrimiento con
    la z en 0; `0x4ec110(modelo, [c + 0x120] + hueso · 0x30, &corrimiento, &punto, 1)`, el hueso de los huesos propios
    (los del último dibujo, Q-C318) por la escala (`+0x68`) y más la posición (`+0x6c`) del modelo compartido, que son
-   las del último que las copió (Q-C1178); el lado `((rand() & 3) + 8) · 0,1f` (`FILD` y `FMUL` de `0x6b87b8`); el giro
+   las del propio actor al entrar al cuerpo (`0x4fd69b..0x4fd6ef`, antes del movimiento y de la muerte;
+   Q-C1178, corrección del 2026-11-15); el lado `((rand() & 3) + 8) · 0,1f` (`FILD` y `FMUL` de `0x6b87b8`); el giro
    `rand() % 360`; y `0x548fe0(0x5e3, &punto, giro, +0xf4, lado)`, la marca de sangre
    ([Las marcas del suelo](#las-marcas-del-suelo)), que saca la vida si hay lugar. Son 5 `rand()` por vuelta, o 4 con
    la tabla llena.

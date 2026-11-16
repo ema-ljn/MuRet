@@ -1,13 +1,15 @@
-# CL9: traspaso para terminar la ola (actualizado 2026-11-15)
+# CL9: traspaso para terminar la ola (actualizado 2026-11-16)
 
-> **Entrega actual: [PR #354](https://github.com/ema-ljn/MuRet/pull/354).** H1 está implementado
-> en el alcance ASM revisado. H9 conserva pendientes propios del editor, además de la validación con
-> servidor. La comparación estricta restante en VM y servidor se difiere. Los porcentajes de la tabla
-> miden cobertura por citas de direcciones, no equivalencia funcional ni porcentaje de pruebas nativas.
+> **Entrega actual: cierre de H3 en [PR #342](https://github.com/ema-ljn/MuRet/pull/342).** #354 y #355
+> ya están en `main`. H1 conserva su alcance ASM revisado; H9 mantiene pendientes propios del editor
+> y del servicio. H3 incorpora auditoría de continuaciones y un combate normal observado en XP.
+> La comparación estricta completa con MuRet y servidor sigue pendiente. Los porcentajes miden citas
+> de direcciones, no equivalencia funcional ni porcentaje de pruebas nativas.
 
 El 2026-11-14 Emanuel pidió dejar la CL9 lista para que **otros agentes terminen los PRs que faltan**.
-El estado y los porcentajes se actualizaron el 2026-11-15, con `main` en `9649f53e` (#353) y las
-reparaciones del #354 en `37264fa5`. Las notas detalladas de integración más abajo conservan la base
+El estado se actualizó el 2026-11-16, con `main` en `985496cd` (#355) y el cierre de #342.
+Los porcentajes se reprodujeron sobre la unión de las mismas ramas, sustituyendo la cabeza antigua
+de H3 por sus reparaciones: no se ganó ni perdió ninguna fila del inventario fijo. Las notas detalladas de integración más abajo conservan la base
 histórica del 14/11, salvo las actualizaciones expresas; no se volvieron a auditar todos los hitos.
 Las revisiones pendientes están en [`2026-11-14-cl9-traspaso/`](2026-11-14-cl9-traspaso/).
 
@@ -18,15 +20,14 @@ Las revisiones pendientes están en [`2026-11-14-cl9-traspaso/`](2026-11-14-cl9-
 
 **Por dónde seguir:**
 
-1. Revisar el #354 y su CI. La suite local conjunta aprobó **7.108 tests**, incluidos 106 GL y 59
-   históricos, sin fallos ni salteos. El merge queda a cargo de Emanuel.
-2. Corregir el CI del #342 (hito 3), integrar el `main` actualizado y resolver sus conflictos antes del
-   merge. La corrida de `de674ec6` terminó con fallos; ya no está corriendo.
-3. Integrar el hito 4 con el hito 3. Después, de a uno, cada hito con su base, según las instrucciones
-   de la cadena. Los conteos de conflictos del resto del documento son la foto histórica del 14/11.
-4. Resolver los arreglos pendientes de cada hito, el editor restante de H9, el cableado de la cadena y
-   Castle Siege (12 y 13).
-5. Completar la auditoría de cierre y la validación estricta pendiente con VM y servidor.
+1. Consultar el [resultado de H3](../../../Client/docs/research/15-h3-combate-y-muerte.md): compilación
+   completa, 7.335 tests locales sin fallos ni saltos, incluidos 106 GL y 59 de referencias recuperadas.
+   El CI de la cabeza publicada y su integración se registran en #342.
+2. Continuar con H4 (#343), integrando H3 antes de resolver sus skills, mascotas y efectos pendientes.
+3. Después, de a uno, integrar cada hito con su base según la cadena. Los conteos de conflictos
+   históricos del resto del documento no se presentan como el estado actual de esas ramas.
+4. Conservar los pendientes de editor de H9, integraciones sociales y Castle Siege (12 y 13).
+5. Completar la comparación estricta pendiente de MuRet con VM y servidor, incluidos casos especiales.
 
 ## Estado por hito
 
@@ -38,11 +39,11 @@ implementada sin cita puede no contar. Por eso H9 puede tener 100 % de citas y s
 
 | Hito | Rama / revisión | PR | Cobertura por citas | Estado y siguiente paso |
 | --- | --- | --- | ---: | --- |
-| 1, emote y otros jugadores | `main` + `37264fa5` | #338, #353, #354 | 100,0 % | implementación propia contrastada con ASM; completar validación estricta en VM |
-| 9, amigos y ventanas viejas | `main` + `37264fa5` | #339, #353, #354 | 100,0 % | editor occidental XP reparado; faltan IME completo y funciones del editor de mensaje/susurro; validación del servicio pendiente |
+| 1, emote y otros jugadores | `main` @ `985496cd` | #338, #353, #354 | 100,0 % | implementación propia contrastada con ASM; completar validación estricta en VM |
+| 9, amigos y ventanas viejas | `main` @ `985496cd` | #339, #353, #354 | 100,0 % | editor occidental XP reparado; faltan IME completo y funciones del editor de mensaje/susurro; validación del servicio pendiente |
 | 5, ítems del piso | `main` | #340 | 95,7 % | PR mergeado; auditoría de filas sin cita e integraciones pendientes |
 | 2, monstruos, NPC, misiones | `main` | #341 | 99,7 % | PR mergeado; conservar cortes e integraciones del hito 3 |
-| 3, pegar, daño, muerte | `claude/cl9-hito-3` @ `de674ec6` | #342 | 100,0 % | abierto, 8/8 fases; CI fallido y cuatro conflictos con `main`; corregir antes del merge |
+| 3, pegar, daño, muerte | cierre de `claude/cl9-hito-3` | #342 | 100,0 % | alcance propio revisado contra ASM, 7.335 tests locales y combate normal en XP; fronteras de otros hitos y comparación estricta documentadas |
 | 4, skills, cuervo, mascotas | `claude/cl9-hito-4` @ `6a9dd828` | #343 | 98,1 % | borrador, 7/7 fases; WIP sin tests finales y base hito 3 por integrar |
 | 11, eventos | `claude/cl9-hito-11` @ `dae3ff19` | #344 | 94,9 % | borrador, 7/7 fases; integrar base hito 4 y revisar filas sin cita |
 | 7, party, comercio, duelo, tiendas | `claude/cl9-hito-7` @ `d73ecbbd` | #345 | 75,7 % | borrador, 7/7 fases; integrar base hito 11 y auditar cobertura restante |
@@ -53,8 +54,8 @@ implementada sin cita puede no contar. Por eso H9 puede tener 100 % de citas y s
 | 13, batalla del asedio | `claude/cl9-hito-13` @ `032b83d4` | — | 9,9 % | sin PR, fase 1 a medias; WIP sin compilar |
 
 El total recalculado es **436.380 / 529.535 bytes = 82,4 %**, ponderado por bytes, no por el promedio de
-los trece porcentajes. Las reparaciones de H1/H9 no aumentan ese indicador: trabajan sobre rangos que
-ya tenían citas. Las 1.141 filas del plan son el denominador; las ramas dentro de funciones de otras
+los trece porcentajes. Las reparaciones de H1/H9/H3 no aumentan ese indicador: trabajan sobre rangos
+que ya tenían citas. Las 1.141 filas del plan son el denominador; las ramas dentro de funciones de otras
 olas, los cortes, la fidelidad del editor y los casos nativos se siguen por sus contratos y pendientes.
 La unión incluye trabajo que todavía no entró en `main` y no representa una compilación integrada.
 
@@ -72,11 +73,16 @@ Resultados que fijan el estado de H1/H9:
 - [H9: editor XP, codificación y pendientes propios](2026-11-15-cl9-h1-h9-resultado.md).
 - [Runbook para retomar la validación en VM](../../../Client/docs/research/scripts/game/capture/RUNBOOK-cl9-vm.md).
 
-El CI de #342 en `de674ec6` terminó con
-[fallos](https://github.com/ema-ljn/MuRet/actions/runs/43575871006).
-`git merge-tree` contra `main` en `9649f53e` encuentra cuatro conflictos: research 08,
-`GameSceneMovement.cpp`, `GameSceneUi.cpp` y `test_viewport_players.cpp`. Los demás PRs de la cadena
-siguen en borrador y requieren reconciliar sus bases; no se hereda el CI de #353.
+Los cinco desbordes de stack de fixtures Windows se corrigieron en #342 y se integró #355,
+sin duplicar el arreglo de entrada reservado a la otra sesión. La base `f3c13a72` aprobó
+[Linux, Windows y formato](https://github.com/ema-ljn/MuRet/actions/runs/43779698488).
+Los controles de la cabeza final se consultan en #342; no se hereda el estado de la base. Los demás PRs de la cadena siguen necesitando
+reconciliar sus bases; no heredan el CI del hito anterior.
+
+Resultado de H3: [contratos, regresiones y observación en XP](../../../Client/docs/research/15-h3-combate-y-muerte.md).
+El 100 % de H3 es **11.766/11.766 bytes citados**, no ausencia de fronteras. El TSV fijo deja fuera
+varios helpers/inline revisados en el cierre; `0x511070`, por ejemplo, fue reclasificado después de
+congelar esa tabla. No se cambió el denominador para presentar esos arreglos como un aumento.
 
 **Hitos 6, 7 y 8:** las fases y los informes previos no cierran la auditoría de sus filas sin cita. En el
 7 y el 8 todavía representan alrededor del 24 % de los bytes. Hay contenedores reemplazados por STL y
@@ -158,26 +164,23 @@ commits aparte o en otra tanda.
 
 ### Hito 3 (#342)
 
-1. **El arreglo de los cortes CL11 falsos** de la [auditoría](2026-11-14-cl9-traspaso/auditoria-cl11-hitos-3-y-4.md)
-   (sin empezar): el terremoto `0xfa`, `ArrowEffects.cpp:729`, exponer `BurstAt` y usarlo en
-   `MonsterAttackStep`, y los `rand()` de `ActorDying`. Ids reservados: Q-C1134..Q-C1136, P-C361.
-2. **El merge con el hito 2 ya está** (`123eed83` y `de674ec6`; el detalle por archivo, en el texto del
-   #342). Quedaron así:
-   - `ActorState::word8a` es el `int16_t` del hito 2; el hito 3 se adaptó (`test_attack_step` espera -1);
-   - el sonido del golpe (`0x4f553d`) usa `FaunaModels::SoundActions` del hito 2, y los del ataque y del paso
-     usan `WorldRuntime::modelSounds` del hito 3;
-   - la llegada atiende hablar con el NPC (2) y levantar (1) antes de `InteractOnArrival`, y el clic sin
-     ataque mira el objeto elegido (`0x59d8c3`), el NPC, el ítem del piso y el suelo.
-3. Al armar la cadena (sin hacer, en commits aparte):
-   - con el hito 2, que `DrawGameMonster` llene `bodyPose` y llame a `WorldState::PlaceModel` (P-C323 b);
-   - dejar una sola tabla de sonidos de monstruo (`FaunaModels::SoundActions` o `WorldRuntime::modelSounds`);
-   - `+0x3a4` está modelado dos veces (`attackTarget` y `word3a4`);
-   - los casos 1 y 2 de `ArrivalCaseOf` ya no se alcanzan: sacar esos cortes.
-4. **Actualización 15/11:** el CI de `de674ec6` terminó con fallos. El PR sigue listo para revisión, pero
-   no para merge: integrar el `main` actualizado, resolver sus cuatro conflictos y volver a verificar.
-5. Quedan cortes que cablean otros hitos: las flechas `0x53e75b`, `0x53e365`, `0x53e4dd` y `0x524405`
-   (hito 4), los nombres de gremio `0x558da4`/`0x558f29` (hito 8, Q-C1170) y el altar de Crywolf `0x4eac41`
-   (hito 11).
+- Se integraron H1/H2/H5 y #354/#355, resolviendo los conflictos por contrato. El arreglo de entrada
+  realizado por la otra sesión se incorporó mediante `main`.
+- Se revisaron los cortes falsos CL11: terremoto FA, E2, brillo A25, burst/scatter, chispas de golpe y
+  las continuaciones con capacidad agotada. Un constructor realmente pendiente con espacio sigue
+  cortando en su primera CALL, conservando el prefijo del original.
+- `+0x3a4` tiene un único campo. El dibujo publica la colocación real, y el cuerpo publica el snapshot
+  antes de caída/muerte. Los puntos de hueso y el cuervo consumen el snapshot que les corresponde.
+- Se revisaron sonido, muerte, expiración y liberación de recursos. La reacción al golpe se integra con
+  la tabla canónica usada por ataque/muerte; las demás lecturas heredadas de H1/H2 se conservan.
+- XP/daño/muerte normales se observaron en el original de XP, con captura correlacionada y una
+  regresión sintética del orden 17→16 sin shock. No sustituye la comparación completa de MuRet en vivo.
+- Permanecen las fronteras de H4/CL11, nombres de gremio de H8 (Q-C1170), altar de Crywolf de H11,
+  audio CL10, offset no inicializado Q-C1050 y estado residual del 17 corto Q-C1161. El informe detalla
+  cada límite y la evidencia que falta; no se cierran por tener todos los tests locales en verde.
+- Verificación local final: 7.335/7.335, sin fallos ni saltos. El estado remoto y el merge quedan
+  registrados en #342. Emanuel autorizó expresamente al agente a mergearlo después de los controles
+  de esta sesión; la regla general de la cadena no se amplía.
 
 ### Hito 4 (#343)
 

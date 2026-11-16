@@ -1,7 +1,9 @@
 #include "Scenes/EventPackets.h"
 
 #include "Core/Expected.h"
+#include "Data/Models/Model.h"
 #include "Data/Models/PlayerModels.h"
+#include "Data/Tables/ItemTable.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainLight.h"
@@ -14,7 +16,9 @@
 #include "Render/Models/Skeleton.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
+#include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CharacterDrawing.h"
 #include "Scenes/EventGlobals.h"
 #include "Scenes/EventMapObject.h"
 #include "Scenes/GamePanels.h"
@@ -23,6 +27,7 @@
 #include "Scenes/WorldState.h"
 #include "UI/Dialogs.h"
 #include "UI/GameDialogs.h"
+#include "UI/MessageArea.h"
 #include "UI/OriginalFormat.h"
 #include "UI/PanelRegistry.h"
 #include "World/TerrainLighting.h"
@@ -30,6 +35,7 @@
 #include "support/Bytes.h"
 #include "support/FileBytes.h"
 #include "support/SameBytes.h"
+#include "support/TableFiles.h"
 
 #include "support/SceneDataFiles.h"
 
@@ -70,6 +76,9 @@ constexpr std::size_t ChaosCastleNameText = 1147;
 std::map<std::size_t, std::string> EventTexts()
 {
     return {
+        {176, "+Suerte"},
+        {177, "+Habil"},
+        {178, "+Opcion"},
         {423, "aviso cc siete"},
         {449, "aviso fijo"},
         {639 + 1, "ds uno en %d"},
@@ -97,9 +106,12 @@ std::map<std::size_t, std::string> EventTexts()
         {854, "otra capa"},
         {867, "no mas que% d"},
         {868, "permitida% d veces"},
+        {918, "obtuvo"},
         {886, "serie cero"},
         {890, "serie cuatro"},
         {899, "serie ya"},
+        {620, "Excelente"},
+        {1089, "Conjunto"},
         {BloodCastleNameText, "Blood Castle"},
         {ChaosCastleNameText, "Chaos Castle"},
         {1156, "%s abre %d de %d"},
@@ -124,14 +136,65 @@ std::map<std::size_t, std::string> EventTexts()
     };
 }
 
+// Item.bmd con dos nombres: una espada (el tipo 1) y un escudo (0x0c05); los demás registros, vacíos.
+Client::Data::Tables::ItemTable EventItems()
+{
+    using Client::Data::Tables::ItemRecordSize;
+    std::vector<std::byte> plain(Client::Data::Tables::ItemTableSize);
+    const std::array<std::pair<std::size_t, std::string_view>, 2> names{{{0x0001, "Espada"}, {0x0c05, "Escudo"}}};
+    for (const auto& [type, name] : names)
+    {
+        for (std::size_t i = 0; i < name.size(); ++i)
+            plain[type * ItemRecordSize + i] = static_cast<std::byte>(name[i]);
+    }
+    const std::vector<std::byte> encrypted = Client::Tests::EncryptRecords(std::move(plain), ItemRecordSize);
+    return Client::Data::Tables::ItemTable(std::span<const std::byte>(encrypted));
+}
+
+// Los modelos por tipo de 0x4ea030: Player.bmd y uno de transformado con dos acciones.
+class EventModels final : public Client::Scenes::IModelLibrary
+{
+public:
+    explicit EventModels(const Client::Render::Models::Skeleton& player) : m_player(player)
+    {
+        transformed.actions.resize(2);
+    }
+
+    [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t /*model*/) const override
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    {
+        if (model == Client::Data::Models::PlayerSkeletonModel)
+            return &m_player;
+        return model == TransformedModel ? &transformed : nullptr;
+    }
+
+    [[nodiscard]] std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t /*model*/) const override
+    {
+        return {};
+    }
+
+    static constexpr std::uint16_t TransformedModel = 0x45;
+    static constexpr std::uint16_t MissingModel = 0x46;
+    Client::Render::Models::Skeleton transformed;
+
+private:
+    const Client::Render::Models::Skeleton& m_player;
+};
+
 class LetterMeasure final : public Client::Render::Text::ITextMeasure
 {
 public:
     [[nodiscard]] Client::Render::Text::TextExtent Measure(Client::Render::Text::FontKind /*font*/,
                                                            std::string_view text) const override
     {
-        return {static_cast<int>(text.size()) * 6, 13};
+        return {static_cast<int>(text.size()) * letterWidth, 13};
     }
+
+    int letterWidth = 6;
 };
 
 // Los mapas de cada evento y los de afuera (Lorencia, Devias, Kalima y Crywolf).
@@ -171,10 +234,12 @@ protected:
         return EventPacketContext{.world = world,
                                   .random = random,
                                   .texts = &texts,
+                                  .items = &items,
                                   .measure = &letters,
                                   .screen = {640, 480},
                                   .tickCount = tickCount,
                                   .playerSkeleton = &player,
+                                  .models = &models,
                                   .send = [this](Client::Protocol::Outgoing packet)
                                   { worldPackets.push_back(std::move(packet)); },
                                   .dataRoot = dataRoot};
@@ -276,7 +341,9 @@ protected:
     CrtRandom random{1};
     Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable(EventTexts());
     LetterMeasure letters;
+    Client::Data::Tables::ItemTable items = EventItems();
     Client::Render::Models::Skeleton player;
+    EventModels models{player};
     std::uint32_t tickCount = 0;
     // Lo que manda el send() de mundo (el C1 05 18 del BD 03).
     std::vector<Client::Protocol::Outgoing> worldPackets;
@@ -379,12 +446,76 @@ TEST_F(EventPacketsTest, TheAttributesNeedTheMapAttributes)
 
 // ----- 47 (0x4d6990).
 
-// Con la clave del héroe, nada; con otra, el aviso lleva el nombre del ítem (0x5b1c70, CL8) y corta.
-TEST_F(EventPacketsTest, TheItemAcquiredNoticeIsCutForOthers)
+// Con la clave del héroe, nada. Con otra, el mensaje de 0x555190 con el nombre del dueño (+0x1d9): el prefijo de
+// 0x10000 (620) o, sin él, el de 0x20000 (1089) con "%s ", el nombre de 0x5b1c70 (los 13 bits bajos y pkt[0xc]), lo
+// de 0x2000, 0x8000 y 0x4000 en ese orden (176, 177 y 178) y "%s %s" con el 918. Sin nadie con la clave, el 400.
+TEST_F(EventPacketsTest, TheItemAcquiredNoticeNamesTheItemAndItsOwner)
 {
-    Applied(Events::ItemAcquired{.key = 0x0123, .item = 0x1234, .level = 1});
-    const std::string cut = Cut(Events::ItemAcquired{.key = 0x0456, .item = 0x1234, .level = 1});
-    EXPECT_NE(cut.find("0x4d6a54"), std::string::npos) << cut;
+    // Letras de un punto: el aviso entra entero en el primer renglón de 180 de 0x45bb20.
+    letters.letterWidth = 1;
+    Client::Scenes::ActorState& other = world.Actors()[5];
+    other.alive = true;
+    other.key = 0x0456;
+    const std::string_view name = "Brezal";
+    for (std::size_t i = 0; i < name.size(); ++i)
+        other.name[i] = static_cast<std::byte>(name[i]);
+
+    Applied(Events::ItemAcquired{.key = 0x0123, .item = 0x1fffe001, .level = 1});
+    EXPECT_TRUE(Runtime().chat.log.entries.empty());
+
+    struct Case
+    {
+        std::uint32_t item;
+        std::uint8_t level;
+        std::string_view text;
+    };
+    const std::array<Case, 5> cases{{
+        {0x0001, 0, "Espada obtuvo"},
+        {0x10000 | 0x2000 | 0x4000 | 0x8000 | 0x0001, 3, "Excelente Espada +3+Suerte+Habil+Opcion obtuvo"},
+        {0x20000 | 0x4000 | 0x0c05, 0, "Conjunto Escudo+Opcion obtuvo"},
+        {0x30000 | 0x0c05, 0, "Excelente Escudo obtuvo"},
+        {0xa000 | 0x0001, 2, "Espada +2+Suerte+Habil obtuvo"},
+    }};
+    for (const Case& test : cases)
+    {
+        SCOPED_TRACE(test.item);
+        Applied(Events::ItemAcquired{.key = 0x0456, .item = test.item, .level = test.level});
+        ASSERT_FALSE(Runtime().chat.log.entries.empty());
+        EXPECT_EQ(Runtime().chat.log.entries.front().name, "Brezal");
+        EXPECT_EQ(Runtime().chat.log.entries.front().text, test.text);
+        EXPECT_EQ(Runtime().chat.log.entries.front().type, Client::UI::SystemMessage);
+    }
+    // 0x5110d0 sin la clave (y con una desde 0x8000, por el MOVSX) da el 400, sin nombre.
+    for (const std::uint16_t key : {std::uint16_t{0x0789}, std::uint16_t{0x8456}})
+    {
+        Applied(Events::ItemAcquired{.key = key, .item = 0x0001, .level = 0});
+        EXPECT_EQ(Runtime().chat.log.entries.front().name, "");
+        EXPECT_EQ(Runtime().chat.log.entries.front().text, "Espada obtuvo");
+    }
+}
+
+// Sin Item.bmd corta en 0x5b1c70; lo que no entra con su '\0' en los buffers de 100 de la pila, también.
+TEST_F(EventPacketsTest, TheItemAcquiredNoticeCutsWithoutTheItemsOrOutsideItsBuffers)
+{
+    letters.letterWidth = 1;
+    auto context = Context();
+    context.items = nullptr;
+    const auto withoutItems = Client::Scenes::ApplyEventPacket(Events::ItemAcquired{.key = 0x0456, .item = 1}, context);
+    ASSERT_FALSE(withoutItems.HasValue());
+    EXPECT_NE(withoutItems.Error().find("0x4d6a54"), std::string::npos) << withoutItems.Error();
+
+    auto longTexts = EventTexts();
+    longTexts[176] = std::string(86, 'x');
+    texts = Client::Tests::MakeTextTable(longTexts);
+    // "Espada" y 86: 92 en el primero, y con " obtuvo" 99 y el '\0' en el segundo: entran justo.
+    Applied(Events::ItemAcquired{.key = 0x0456, .item = 0x2001, .level = 0});
+    EXPECT_EQ(Runtime().chat.log.entries.front().text.size(), 99u);
+    // Con "+Habil" y "+Opcion", 105 no entran en el primero.
+    const std::string strcat = Cut(Events::ItemAcquired{.key = 0x0456, .item = 0xe001, .level = 0});
+    EXPECT_NE(strcat.find("0x4d6b1f"), std::string::npos) << strcat;
+    // Con "+Habil", 98 entran en el primero y 105 no en el segundo.
+    const std::string sprintf = Cut(Events::ItemAcquired{.key = 0x0456, .item = 0xa001, .level = 0});
+    EXPECT_NE(sprintf.find("0x4d6b36"), std::string::npos) << sprintf;
 }
 
 // ----- 90 (0x4e4870).
@@ -1361,6 +1492,27 @@ TEST_F(EventPacketsTest, TheSignedCrywolfContractSitsTheHero)
     const EventPacketResult outside = Applied(Events::CrywolfContract{.result = 1, .value = 0x13, .key = 0x141});
     EXPECT_FALSE(outside.discarded.has_value());
     EXPECT_EQ(worldPackets.size(), 1u);
+}
+
+// BD 03 con 1: 0x4ea030 lee las acciones del modelo del tipo del héroe. Transformado en un modelo sin la 0xca, la
+// acción no cambia y el resto sigue; sin ese modelo cargado, corta.
+TEST_F(EventPacketsTest, TheSignedCrywolfContractUsesTheActionsOfTheHeroModel)
+{
+    Runtime().map = 0;
+    Hero().type = EventModels::TransformedModel;
+    Hero().animation = {};
+    Hero().animation.action = 1;
+    Hero().flags7c = 0;
+    Applied(Events::CrywolfContract{.result = 1, .value = 0x13, .key = 0x140});
+    EXPECT_EQ(Hero().animation.action, 1);
+    EXPECT_EQ(Hero().flags7c, 0x200000u);
+    EXPECT_EQ(worldPackets.size(), 1u);
+
+    Hero().type = EventModels::MissingModel;
+    worldPackets.clear();
+    const std::string cut = Cut(Events::CrywolfContract{.result = 1, .value = 0x13, .key = 0x140});
+    EXPECT_NE(cut.find("0x4e11d9"), std::string::npos) << cut;
+    EXPECT_TRUE(worldPackets.empty());
 }
 
 // BD 0C (0x430040, los efectos de la CL11) corta con su dirección.

@@ -11,10 +11,14 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/FaunaModels.h"
+#include "Scenes/GameRibbonCreation.h"
+#include "Scenes/GameDrawTail.h"
+#include "Scenes/WorldModelPose.h"
 #include "Scenes/WorldRuntime.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/WorldState.h"
-#include "World/OriginalFtol.h"
+#include "Scenes/WorldMap.h"
+#include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/TerrainDecal.h"
 #include "World/Sprites.h"
@@ -202,6 +206,15 @@ Result Particle(const MonsterHelperPass& pass, std::int32_t type, std::int32_t s
 Result Unported(const MonsterHelperPass& pass, std::int32_t type, std::int32_t subtype, std::uint32_t call)
 {
     return UnportedParticle(pass.particles, pass.actor, type, subtype, call);
+}
+
+Result UnportedModelEffect(WorldState& world, const ActorState& actor, std::int16_t type, std::int32_t subtype,
+                           std::uint32_t call)
+{
+    const auto effects = world.Map().effects.Effects();
+    if (std::ranges::any_of(effects, [](const World::ModelEffect& effect) { return !effect.alive; }))
+        return Cut(call, std::format("el efecto {:#x}/{} (0x518cf0)", type, subtype), actor);
+    return {};
 }
 
 // FLD T; FMUL tasa; FSIN; FMUL factor (un float de la .data, positivo): el seno retenido por el factor con un solo R53
@@ -956,24 +969,10 @@ Result DrawThe1bb(MonsterHelperPass& pass)
     return {};
 }
 
-// 0x4eb860 (0x4eb86d..0x4eb94c): la key que deja en +0xa8 del modelo, como PoseKeyOf de MonsterDrawing.
-std::optional<std::int16_t> SwingKeyOf(const Render::Models::Skeleton& skeleton,
-                                       const Render::Models::AnimationState& animation)
-{
-    const auto truncated = World::OriginalFtolLow(D(animation.frame));
-    if (skeleton.actions.empty() || !truncated)
-        return std::nullopt;
-    auto key = static_cast<std::int16_t>(*truncated);
-    if (key < 0)
-        key = 0;
-    const std::size_t action = animation.action < skeleton.actions.size() ? animation.action : 0;
-    if (key >= skeleton.actions[action].keyCount)
-        key = 0;
-    return key;
-}
-
 // Lo que comparten las estelas de 0x432bd0: el frame de la primera pose (el del objeto menos la velocidad de la acción
 // del modelo, +0x30 + acción · 0x10 + 4) y el paso entre poses (un décimo de esa velocidad), en float.
+constexpr int SwingSampleCount = 10;
+
 struct Swing
 {
     const Render::Models::Skeleton* skeleton = nullptr;
@@ -995,48 +994,64 @@ Core::Expected<Swing, std::string> SwingOf(WorldState& world, const ActorState& 
         .skeleton = skeleton, .first = F32(D(actor.animation.frame) - D(speed)), .step = F32(D(speed) * D(0.1f))};
 }
 
-// 0x4eb860(modelo, 0x68b181c, frame, +0x118, +0x112, ángulos, +0x28, 0, 1): la pose en el buffer global, trasladada al
-// mundo, con la key en +0xa8 del modelo. La acción (+0xa0), la escala (+0x68) y la posición (+0x6c) del modelo las
-// dejó su último 0x5ffdf0; MuRet usa las del personaje (Q-C1102).
+// 0x4eb860 con flags (0, 1): PoseWorldModel conserva la colocación compartida, escribe el scratch mundial y registra la
+// key del modelo, incluidos los huesos dummy. El 0x1b0 también consume la última muestra a través de ese scratch.
 Result PoseTheSwing(WorldState& world, const ActorState& actor, const Swing& swing, float frame,
-                    const glm::vec3& angles, std::uint32_t call)
+                    const glm::vec3& angles)
 {
-    const Render::Models::Skeleton& skeleton = *swing.skeleton;
-    const Render::Models::AnimationState animation{.action = actor.animation.action,
-                                                   .frame = frame,
-                                                   .previousAction = actor.animation.previousAction,
-                                                   .previousKey = actor.animation.previousKey};
-    const Render::Models::ObjectTransform transform{
-        .position = actor.position, .angles = angles, .scale = actor.scale, .lockedRootHeight = 0.0f};
-    FaunaDrawCarry& carry = world.PoseCarry();
-    if (carry.bones.size() < skeleton.bones.size())
-        carry.bones.resize(skeleton.bones.size(), BoneTransform(0.0f));
-    const auto bones = std::span(carry.bones).first(skeleton.bones.size());
-    if (!Render::Models::PoseSkeleton(skeleton, animation, transform, actor.headTurn.angles, bones))
-        return Core::Unexpected(std::format("{:#x}: la pose de la estela del modelo {:#x} falló", call, actor.type));
-    FaunaModels& models = world.FaunaResources();
-    if (auto published = PublishFaunaPoseRaw(carry, models, actor.type, bones, transform, true, false);
-        !published.HasValue())
-        return published;
-    if (const auto key = SwingKeyOf(skeleton, animation))
-        models.RecordPoseKey(actor.type, *key);
+    return PoseWorldModel(world, actor, *swing.skeleton, frame, angles);
+}
+
+struct SwingLeg
+{
+    std::uint8_t firstBone;
+    std::uint8_t secondBone;
+    glm::vec3 first;
+    glm::vec3 second;
+    glm::vec3 light;
+    std::int32_t key;
+};
+
+Result EmitSwing(WorldState& world, const ActorState& actor, const Swing& swing, World::Particles* particles,
+                 std::span<const SwingLeg> legs, bool weaponBone = false, bool particle640 = false)
+{
+    const std::uint8_t bone = weaponBone ? actor.hands[0].bone : 0;
+    float frame = swing.first;
+    for (int sample = 0; sample < SwingSampleCount; ++sample)
+    {
+        if (auto posed = PoseWorldModel(world, actor, *swing.skeleton, frame, actor.angles); !posed.HasValue())
+            return posed;
+        if (particle640 && actor.animation.frame > 3.5f && actor.animation.frame < 4.5f)
+        {
+            if (auto made = UnportedParticle(particles, actor, 0x640, 0, 0x433056); !made.HasValue())
+                return made;
+        }
+        const auto& bones = world.PoseCarry().bones;
+        for (const auto& leg : legs)
+        {
+            const std::uint8_t firstBone = weaponBone ? bone : leg.firstBone;
+            const std::uint8_t secondBone = weaponBone ? bone : leg.secondBone;
+            const auto& firstMatrix = firstBone < bones.size() ? bones[firstBone] : BoneTransform(0.0f);
+            const auto& secondMatrix = secondBone < bones.size() ? bones[secondBone] : BoneTransform(0.0f);
+            const glm::vec3 first =
+                Render::Models::OriginalVectorTransform(leg.first, Render::Models::OriginalMatrixOf(firstMatrix));
+            const glm::vec3 second =
+                Render::Models::OriginalVectorTransform(leg.second, Render::Models::OriginalMatrixOf(secondMatrix));
+            const auto created = CreateRibbon(world.DrawTail().ribbons, {.ownerContext = &actor,
+                                                                         .ownerEquipment = &actor.level,
+                                                                         .first = first,
+                                                                         .second = second,
+                                                                         .light = leg.light,
+                                                                         .type = 3,
+                                                                         .shortTrail = true,
+                                                                         .key = leg.key});
+            if (!created.HasValue())
+                return Core::Unexpected(created.Error());
+        }
+        frame = F32(D(frame) + D(swing.step));
+    }
     return {};
 }
-
-// La primera vuelta de una estela que corta: la pose en `pose` y el corte en `cut`.
-Result PoseAndCut(WorldState& world, const ActorState& actor, std::uint8_t speedAction, std::uint32_t pose,
-                  std::uint32_t cut, std::string_view what)
-{
-    const auto swing = SwingOf(world, actor, speedAction);
-    if (!swing.HasValue())
-        return Core::Unexpected(swing.Error());
-    if (auto posed = PoseTheSwing(world, actor, swing.Value(), swing.Value().first, actor.angles, pose);
-        !posed.HasValue())
-        return posed;
-    return Cut(cut, what, actor);
-}
-
-constexpr std::string_view Ribbon = "la estela 0x52e470 de los huesos de la pose";
 
 // 0x432c12..0x432db0, el 0x1b0 en la 4: diez poses desde el frame menos la velocidad de la 4, cada una con los ángulos
 // del objeto y su z 18 grados menos por vuelta (0x6b886c, que 0x432da1 devuelve al final), el punto (0, 100, −150) del
@@ -1058,7 +1073,7 @@ Result SwingThe1b0(WorldState& world, const ActorState& actor, Render::Models::C
     constexpr int Poses = 10;
     for (int turn = 0; turn < Poses; ++turn)
     {
-        if (auto posed = PoseTheSwing(world, actor, swing.Value(), pose, angles, 0x432c94); !posed.HasValue())
+        if (auto posed = PoseTheSwing(world, actor, swing.Value(), pose, angles); !posed.HasValue())
             return posed;
         if (sparks)
         {
@@ -1193,22 +1208,14 @@ Core::Expected<void, std::string> StepTheSwingsOf1abTo1b4(ActorState& actor, std
     {
     case 0x1ab:
     {
-        // 0x432f19: en la 3, la primera pose, con el frame en (3,5; 4,5) la partícula 0x640 (CL11; con la tabla llena
-        // no crea nada) y la estela.
+        // 0x432f19: posa diez veces; el constructor 0x640 sigue sin portar y corta solo si hay lugar.
         if (action != 3)
             return {};
         const auto swing = SwingOf(world, actor, 3);
         if (!swing.HasValue())
             return Core::Unexpected(swing.Error());
-        if (auto posed = PoseTheSwing(world, actor, swing.Value(), swing.Value().first, actor.angles, 0x432f9d);
-            !posed.HasValue())
-            return posed;
-        if (frame > 3.5f && frame < 4.5f)
-        {
-            if (auto made = UnportedParticle(particles, actor, 0x640, 0, 0x433056); !made.HasValue())
-                return made;
-        }
-        return Cut(0x433086, Ribbon, actor);
+        constexpr std::array legs{SwingLeg{0, 0, {0, 0, -60}, {0, 0, -150}, {0, 0, 5}, 80}};
+        return EmitSwing(world, actor, swing.Value(), particles, legs, true, true);
     }
     case 0x1ae:
         // 0x4330a9: en la 8, el punto de la mano izquierda y su partícula 0x5f2/0x1b (CL11); con la tabla llena, las
@@ -1223,13 +1230,38 @@ Core::Expected<void, std::string> StepTheSwingsOf1abTo1b4(ActorState& actor, std
         if (action != 3 && action != 4)
             return {};
         if (action == 4 && frame > 4.5f && frame < 5.0f)
-            return Cut(0x433339, "el efecto 0x145 (0x518cf0) del ataque", actor);
-        return PoseAndCut(world, actor, action, 0x433382, 0x433410, Ribbon);
+        {
+            if (auto effect = UnportedModelEffect(world, actor, 0x145, 2, 0x433339); !effect.HasValue())
+                return effect;
+        }
+        {
+            const auto swing = SwingOf(world, actor, action);
+            if (!swing.HasValue())
+                return Core::Unexpected(swing.Error());
+            constexpr std::array legs{SwingLeg{0, 0, {0, 0, -60}, {0, 0, -150}, {1, 1, 1}, 80}};
+            return EmitSwing(world, actor, swing.Value(), particles, legs, true);
+        }
     case 0x1af:
         // 0x433451: en la 3 y la 4, con la velocidad de la suya.
         if (action != 3 && action != 4)
             return {};
-        return PoseAndCut(world, actor, action, 0x4334e0, 0x433557, Ribbon);
+        {
+            const auto swing = SwingOf(world, actor, action);
+            if (!swing.HasValue())
+                return Core::Unexpected(swing.Error());
+            constexpr std::array legs{SwingLeg{27, 27, {0, 250, 0}, {}, {0.2f, 1.0f, 0.4f}, 80}};
+            if (auto emitted = EmitSwing(world, actor, swing.Value(), particles, legs); !emitted.HasValue())
+                return emitted;
+            if (frame > 4.5f && frame < 5.0f)
+            {
+                for (int effect = 0; effect < 4; ++effect)
+                {
+                    if (auto made = UnportedModelEffect(world, actor, 0x147, effect % 2, 0x43365e); !made.HasValue())
+                        return made;
+                }
+            }
+            return {};
+        }
     case 0x1b0:
         if (action != 4)
             return {};
@@ -1237,15 +1269,35 @@ Core::Expected<void, std::string> StepTheSwingsOf1abTo1b4(ActorState& actor, std
     case 0x1b1:
         if (action != 4)
             return {};
-        return PoseAndCut(world, actor, 4, 0x433761, 0x4337cf, Ribbon);
+        {
+            const auto swing = SwingOf(world, actor, 4);
+            if (!swing.HasValue())
+                return Core::Unexpected(swing.Error());
+            constexpr std::array legs{SwingLeg{80, 80, {0, 0, -90}, {}, {1, 1, 1}, 80},
+                                      SwingLeg{82, 82, {0, 0, 90}, {}, {1, 1, 1}, 84}};
+            return EmitSwing(world, actor, swing.Value(), particles, legs);
+        }
     case 0x1b3:
         if (action != 3)
             return {};
-        return PoseAndCut(world, actor, 3, 0x4338e5, 0x43397d, Ribbon);
+        {
+            const auto swing = SwingOf(world, actor, 3);
+            if (!swing.HasValue())
+                return Core::Unexpected(swing.Error());
+            constexpr std::array legs{SwingLeg{25, 25, {0, 0, 120}, {}, {1, 1, 1}, 25}};
+            return EmitSwing(world, actor, swing.Value(), particles, legs);
+        }
     case 0x1b4:
         if (action != 3)
             return {};
-        return PoseAndCut(world, actor, 3, 0x432e35, 0x432ea3, Ribbon);
+        {
+            const auto swing = SwingOf(world, actor, 3);
+            if (!swing.HasValue())
+                return Core::Unexpected(swing.Error());
+            constexpr std::array legs{SwingLeg{12, 16, {20, 0, 0}, {60, 0, 0}, {1, 1, 1}, 23},
+                                      SwingLeg{20, 24, {20, 0, 0}, {60, 0, 0}, {1, 1, 1}, 24}};
+            return EmitSwing(world, actor, swing.Value(), particles, legs);
+        }
     default:
         // 0x432c05: el 0x1ac, el 0x1ad, el 0x1b2 y los de fuera de la tabla, nada más.
         return {};

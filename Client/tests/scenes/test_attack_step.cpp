@@ -1019,4 +1019,52 @@ TEST(AttackStepTest, TheElfBowShootsAndStopsAtTheSkill)
         EXPECT_EQ(arrow->ownerContext, &hero);
     }
 }
+
+// 0x4fd236..0x4fd5bb: durante la acción 0x23, el cuerpo completo de un jugador con la espada 0x222 en la mano derecha
+// produce la cinta naranja de nivel 13 y sigue por 0x4fd5f0 sin cortar.
+TEST(AttackStepTest, AVisibleMeleeWeaponSurvivesTheFullAttackBodyPipeline)
+{
+    constexpr int Steps = 4;
+    constexpr std::uint8_t KnightClass = 1;
+    constexpr std::uint8_t SwordAttack = 0x23;
+    constexpr std::uint16_t SwordModel = 0x222;
+    constexpr std::uint8_t SwordLevel = 13;
+    constexpr std::size_t SwordBone = 33;
+
+    AttackWorld tested;
+    tested.skeleton.actions[SwordAttack] = ActionInfo{.repeats = true, .speed = 0.0f, .keyCount = 10};
+    Client::Render::Models::SkeletonBone swordBone;
+    swordBone.actions.resize(tested.skeleton.actions.size());
+    for (auto& keys : swordBone.actions)
+        keys.resize(10);
+    tested.skeleton.bones.assign(SwordBone + 1, swordBone);
+
+    tested.Hero().characterClass = KnightClass;
+    tested.Hero().position = {100.0f, 200.0f, 300.0f};
+    ActorState& hero = tested.Striker(HeroSlot, SwordAttack, VictimSlot);
+    hero.animation.frame = 5.0f;
+    hero.scale = 0.9f;
+    hero.hands[0].model = SwordModel;
+    hero.hands[0].level = SwordLevel;
+    hero.hands[0].bone = SwordBone;
+    tested.Victim().alive = true;
+    tested.Victim().position = {hero.position.x + 300.0f, hero.position.y, hero.position.z};
+
+    for (int step = 0; step < Steps; ++step)
+    {
+        SCOPED_TRACE(step);
+        const auto stepped = StepCharacters(tested.Context());
+
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    }
+
+    const auto& ribbons = tested.world.DrawTail().ribbons;
+    const auto ribbon = std::ranges::find_if(ribbons, [](const auto& candidate) { return candidate.alive; });
+    ASSERT_NE(ribbon, ribbons.end());
+    EXPECT_EQ(ribbon->ownerContext, &hero);
+    EXPECT_EQ(ribbon->ownerEquipment, &hero.level);
+    EXPECT_EQ(ribbon->type, 0);
+    EXPECT_EQ(ribbon->count, 29); // 52e454: cuatro tandas de diez saturan en 29.
+    EXPECT_EQ(ribbon->light, (glm::vec3{1.0f, 0.6f, 0.2f}));
+}
 } // namespace

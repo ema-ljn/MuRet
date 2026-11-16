@@ -429,12 +429,23 @@ std::span<const std::int16_t, 10> FaunaModels::SoundActions(std::uint16_t model)
 
 std::int16_t FaunaModels::PoseKey(std::uint16_t model) const
 {
-    const auto found = m_poseKeys.find(model);
-    return found != m_poseKeys.end() ? found->second : std::int16_t{0};
+    const auto found = m_animationMetadata.find(model);
+    return found != m_animationMetadata.end() ? found->second.key : std::int16_t{0};
+}
+
+float FaunaModels::PoseFrame(std::uint16_t model) const
+{
+    const auto found = m_animationMetadata.find(model);
+    return found != m_animationMetadata.end() ? found->second.frame : 0.0f;
+}
+
+void FaunaModels::RecordAnimation(std::uint16_t model, float frame, std::int16_t key)
+{
+    m_animationMetadata[model] = {.frame = frame, .key = key};
 }
 
 void FaunaModels::RecordPoseKey(std::uint16_t model, std::int16_t key)
 {
-    m_poseKeys[model] = key;
+    m_animationMetadata[model].key = key;
 }
 } // namespace Client::Scenes

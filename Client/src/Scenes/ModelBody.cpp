@@ -10,12 +10,10 @@
 #include "Scenes/WorldRuntime.h"
 
 #include <array>
-#include <bit>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <format>
-#include <optional>
 #include <span>
 #include <string>
 
@@ -256,42 +254,4 @@ Core::Expected<void, std::string> SetTheModelHeadTarget(ActorState& actor, std::
     return {};
 }
 
-std::optional<ModelTrailCut> ModelTrailCutOf(const ActorState& actor)
-{
-    const std::uint16_t type = actor.type;
-    const std::uint8_t action = actor.animation.action;
-    const bool swing = action == 3 || action == 4;
-    // 0x4fd10b..0x4fd20e.
-    bool trail = false;
-    constexpr std::array<std::uint16_t, 3> TrailedObjects{0x47, 0x4a, 0x12d};
-    constexpr int FirstSword = 0x212;
-    constexpr int EndOfSwords = 0x412;
-    const int hand = static_cast<std::int16_t>(actor.hands[0].model);
-    if (actor.word376 == TrailedObjects[0] || actor.word376 == TrailedObjects[1] || actor.word376 == TrailedObjects[2])
-        trail = swing;
-    else if (type == 0x194)
-        trail = action == 3;
-    else if (type == 0x195 || type == 0x197)
-        trail = swing;
-    else
-        trail = hand >= FirstSword && hand < EndOfSwords && swing;
-    if (trail)
-        return ModelTrailCut{.address = 0x4fd233, .beforeTheRandom = true};
-    // 0x4fd5c1..0x4fd5df: los cuatro, en orden. Cada uno solo pose y la estela (0x52e470, CL11) en sus acciones; en las
-    // otras no hace nada ni saca rand().
-    // 0x441260: el 0x1a7 en la 3 o la 4 (0x44127c).
-    if (type == 0x1a7 && swing)
-        return ModelTrailCut{.address = 0x441260, .beforeTheRandom = true};
-    // 0x42fa40: el 0x1b3 en la 3 (0x42fa64) y el 0x1b1 en la 4 (0x42fb61).
-    if ((type == 0x1b3 && action == 3) || (type == 0x1b1 && action == 4))
-        return ModelTrailCut{.address = 0x42fa40, .beforeTheRandom = true};
-    // 0x432bd0 está portado (Scenes::StepTheSwingsOf1abTo1b4).
-    // 0x426d90: el 0x1ba en la 3 (0x426db9), el 0x1b9 en la 3 o la 4 (0x426eb6) y el 0x1b8 en la 3 o la 4 con el frame
-    // (+0x114) en 5,06f (0x6b8a30) o menos, o NaN (0x427065: TEST AH, 0x41).
-    constexpr float LastTrailFrame = std::bit_cast<float>(0x40a1eb85u);
-    const bool late = actor.animation.frame > LastTrailFrame;
-    if ((type == 0x1ba && action == 3) || (type == 0x1b9 && swing) || (type == 0x1b8 && swing && !late))
-        return ModelTrailCut{.address = 0x426d90, .beforeTheRandom = false};
-    return std::nullopt;
-}
 } // namespace Client::Scenes

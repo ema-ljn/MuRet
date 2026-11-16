@@ -322,6 +322,12 @@ Lorencia, Devias y un mapa de evento; el `0x1F` con un tipo `0x98..0x9e`; el cor
 
 ### Hito 3: atacar, el daño y la muerte (CL9.2, ~20 KB)
 
+> Auditoría funcional 2026-11-16: el ataque normal con espada visible todavía cortaba en `4fd236`
+> después de #342. La [pasada de estelas](2026-11-16-h3-auditoria-funcional-y-estelas.md) completa ese
+> productor, sus helpers de cintas y el estado del modelo. Las trece filas citadas del inventario
+> no acreditan un H3 funcional al 100 %. Los cortes genuinos de efectos y las integraciones con
+> otros hitos permanecen identificados en ese inventario de comportamiento.
+
 - [x] **Pegar:** la rama de ataque de `0x5650c0` (el `D7` del cliente en `0x565a79`, que FoxAnti manda como
       `A4`) y de `0x57cfc0`, el freno de 300 ms (`0x576791c`), el cursor de ataque (`0x558bb0`). Fase 1 hecha
       (2026-11-13): el caso 3 de `0x5650c0`, `PassesTheActionBrake` para las skills de `0x57cfc0` (hito 4) y

@@ -5,6 +5,7 @@
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/FaunaModels.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -494,9 +495,12 @@ TEST_F(ModelEffectsTest, TheCrywolfHelpersCutOnlyAtTheirEffects)
         EXPECT_EQ(Alive(Client::World::DustParticle, 0), 1);
         m_actor.animation.action = 0;
         m_actor.animation.frame = 3.0f;
+        m_world->FaunaResources().RecordAnimation(0x1b4, 6.25f, 7);
         CrtRandom posed(Seed);
         const auto stepped = Step(0x1b4, map, posed);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_FLOAT_EQ(m_world->FaunaResources().PoseFrame(0x1b4), 2.75f);
+        EXPECT_EQ(m_world->FaunaResources().PoseKey(0x1b4), 2);
         EXPECT_EQ(posed.State(), AfterDraws(Seed, 1).State());
         m_actor.animation.action = 2;
         CrtRandom undefined(dust);

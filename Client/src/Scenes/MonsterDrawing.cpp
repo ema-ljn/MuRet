@@ -337,8 +337,9 @@ Result DrawTheBody(MonsterFrame& frame, const Render::Models::Skeleton& skeleton
         transform.position.y = F32(D(actor.position.y) + 120.0);
     // 0x4ec110 copia la escala y el origen del modelo compartido antes de posar; entre frames del original no escribe.
     if (frame.originalFrame)
-        frame.world.PlaceModel(actor.type,
-                               SharedModelPlacement{.scale = transform.scale, .origin = transform.position});
+        frame.world.PlaceModel(actor.type, SharedModelPlacement{.scale = transform.scale,
+                                                                .origin = transform.position,
+                                                                .action = actor.animation.action});
     // 0x5ffef2: con un dueño (+0x108) con +0x78 & 0x1000, el frame (+0x114) a 0. Ninguna alta ni paquete escribe el
     // +0x108 de un personaje del pool: queda en 0 (Q-C224, *inferido*).
     // 0x4eb860 en el buffer propio (+0x120, que 0x511290 le dio a todo personaje): los huesos dummy quedan como los
@@ -348,12 +349,12 @@ Result DrawTheBody(MonsterFrame& frame, const Render::Models::Skeleton& skeleton
     if (!Render::Models::PoseSkeleton(skeleton, actor.animation, transform, actor.headTurn.angles, bones))
         return Core::Unexpected(std::format("0x4eb860: la pose del modelo {:#x} falló", actor.type));
     actor.bodyPose = bones;
-    // 0x4eb8cd..0x4eb94c: la key en +0xa8 del modelo compartido, que lee el paso del 0x1f5 (0x4fce92). Entre frames del
-    // original no se guarda.
+    // 0x4eb8b3..0x4eb94c: frame/key en +0xa4/+0xa8 del modelo compartido; el paso del 0x1f5 lee la key (0x4fce92).
+    // Entre frames del original no se guardan.
     if (frame.originalFrame)
     {
         if (const auto key = PoseKeyOf(skeleton, actor.animation))
-            frame.world.FaunaResources().RecordPoseKey(actor.type, *key);
+            frame.world.FaunaResources().RecordAnimation(actor.type, actor.animation.frame, *key);
     }
     if (frame.pass.dynamicLighting == nullptr)
         return Core::Unexpected<std::string>("0x5ffce0: falta el buffer dinámico de luz del terreno");

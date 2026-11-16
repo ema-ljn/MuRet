@@ -1,6 +1,7 @@
 #include "Render/Models/Pose.h"
 
 #include "Render/Models/HalfLifeMath.h"
+#include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Skeleton.h"
 
 #include <glm/ext/quaternion_float.hpp>
@@ -127,9 +128,27 @@ BoneTransform LocalTransform(const SkeletonBone& bone, std::size_t index, const 
     return local;
 }
 
+BoneTransform WorldRoot(const ObjectTransform& object)
+{
+    OriginalMatrix root = OriginalAngleMatrix(object.angles);
+    for (std::size_t row = 0; row < 3; ++row)
+    {
+        for (std::size_t column = 0; column < 3; ++column)
+        {
+            const std::size_t index = row * 4 + column;
+            root[index] *= object.scale;
+        }
+    }
+    root[3] = object.position.x;
+    root[7] = object.position.y;
+    root[11] = object.position.z;
+    return BoneTransformOf(root);
+}
+
 // La pose con la raíz `root` para los huesos sin padre.
 bool PoseFromRoot(const Skeleton& skeleton, const AnimationState& animation, const ObjectTransform& object,
-                  const BoneTransform& root, const glm::vec2& headAngles, std::span<BoneTransform> bones)
+                  const BoneTransform& root, const glm::vec2& headAngles, std::span<BoneTransform> bones,
+                  bool originalConcat = false)
 {
     if (bones.size() != skeleton.bones.size())
     {
@@ -153,7 +172,10 @@ bool PoseFromRoot(const Skeleton& skeleton, const AnimationState& animation, con
         }
         const BoneTransform local = LocalTransform(bone, index, keys, skeleton, object, headAngles);
         const BoneTransform& parent = bone.parent == -1 ? root : bones[static_cast<std::size_t>(bone.parent)];
-        bones[index] = ConcatTransforms(parent, local);
+        bones[index] =
+            originalConcat
+                ? BoneTransformOf(OriginalConcatTransforms(OriginalMatrixOf(parent), OriginalMatrixOf(local)))
+                : ConcatTransforms(parent, local);
     }
     return true;
 }
@@ -163,6 +185,12 @@ bool PoseSkeleton(const Skeleton& skeleton, const AnimationState& animation, con
                   const glm::vec2& headAngles, std::span<BoneTransform> bones)
 {
     return PoseFromRoot(skeleton, animation, object, AngleMatrix(object.angles), headAngles, bones);
+}
+
+bool PoseWorldSkeleton(const Skeleton& skeleton, const AnimationState& animation, const ObjectTransform& object,
+                       const glm::vec2& headAngles, std::span<BoneTransform> bones)
+{
+    return PoseFromRoot(skeleton, animation, object, WorldRoot(object), headAngles, bones, true);
 }
 
 bool PoseAttached(const Skeleton& skeleton, const AnimationState& animation, const BoneTransform& root,

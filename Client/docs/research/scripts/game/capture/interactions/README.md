@@ -85,6 +85,7 @@ Invocaciones en el guest; cada salida debe tener un nombre nuevo:
 xp-input.exe state C:\Capture\sesion\state-01.txt
 xp-input.exe focus C:\Capture\sesion\focus-01.txt
 xp-input.exe click X_CLIENTE Y_CLIENTE C:\Capture\sesion\click-01.txt
+xp-input.exe hold X_CLIENTE Y_CLIENTE 3000 C:\Capture\sesion\hold-01.txt
 xp-input.exe key 1b 100 C:\Capture\sesion\escape-01.txt
 xp-input.exe up C:\Capture\sesion\release-01.txt
 ```
@@ -93,6 +94,9 @@ xp-input.exe up C:\Capture\sesion\release-01.txt
 sin él no funcionó la entrada del nombre en el original. `click` espera 250 ms después de mover
 el cursor para que el picking atienda el punto (Q-C165), mantiene 100 ms y suelta. Ambos exigen
 que `MU` esté al frente. `up` sólo libera el botón izquierdo global: es recuperación explícita.
+`hold X Y MILISEGUNDOS SALIDA` hace el mismo clic con duración explícita de hasta 5.000 ms;
+suelta al terminar y permite capturar la animación durante la pulsación mediante MKS. Es una
+extensión de la auditoría H3 del 2026-11-16, posterior a los hashes históricos de `provenance.json`.
 No abre el proceso del juego ni lee/escribe su memoria. Revisar `action_ok`, `foreground_is_game`,
 `left_down` y `end`; después comprobar imagen/estado. `action_ok=1` tampoco acredita el efecto.
 
@@ -161,3 +165,42 @@ los scripts no borran personajes automáticamente ni incorporan credenciales o s
 Las repeticiones observadas y sus límites están en [Q-C184, §8](../RUNBOOK-qc184-vm.md#8-repetición-en-muret-linux-2026-11-16).
 Se pueden automatizar después sus aserciones y transiciones; hoy son herramientas de interacción
 supervisada, no una suite desatendida ni una prueba de equivalencia numérica con el original.
+
+## Hover y captura de cierre en Linux
+
+`move` envía un `MotionNotify` lógico a MuRet mediante Xlib. En esta sesión, `xdotool mousemove`
+cambiaba el puntero X11 sin actualizar siempre el cursor de SDL; el evento explícito permitió
+actualizar el cursor del juego sin un clic que iniciara una caminata. La ABI procede de `XMotionEvent`
+en Xlib.h; usa la biblioteca de sistema X11, no una biblioteca del cliente original.
+
+```bash
+python3 linux_x11_ui.py --window ID_ACTUAL move X_CLIENTE Y_CLIENTE
+python3 linux_x11_ui.py --window ID_ACTUAL capture /capturas-privadas/hover.png
+python3 linux_x11_ui.py --window ID_ACTUAL click X_CLIENTE Y_CLIENTE
+```
+
+Confirmar el elegido en un dibujo anterior al DOWN y dejar más de 500 ms entre clics ordinarios.
+El picking del juego corre después del movimiento: un primer clic sobre una posición recién enviada
+puede usar la selección anterior. Sostener un píxel fijo tampoco sigue al mob cuando se mueve la
+cámara. Los dobles clics SDL no equivalen a dos DOWN ordinarios. Este auxiliar no acredita un D7;
+conservar un caso sin ataque confirmado como no verificado.
+
+Para distinguir una salida normal de una señal externa puede arrancarse el binario **propio** en
+un servicio temporal del usuario, con strace limitado a señales. Las variables son rutas privadas;
+no habilitar una unidad permanente ni usar este procedimiento sobre el original.
+
+```bash
+systemd-run --user --unit=UNIDAD_NUEVA --working-directory="$MURET_LAB_OUTPUT" \
+  --setenv=DISPLAY --setenv=XAUTHORITY --setenv=SDL_VIDEODRIVER=x11 \
+  --property="StandardOutput=append:$MURET_LAB_OUTPUT/cliente.log" \
+  --property=StandardError=inherit \
+  strace -ff -e trace=none -e signal=all -o "$MURET_LAB_OUTPUT/signals" \
+  "$MURET_BIN" --config "$MURET_PRIVATE_CONFIG"
+systemctl --user show UNIDAD_NUEVA -p ActiveState -p ExecMainStatus
+```
+
+Esto abre la ventana de MuRet y registra señales, sin registrar lecturas de teclado ni bytes de red;
+strace puede alterar el rendimiento, por lo que no sirve para medir tiempos fieles. El login sigue
+siendo manual. Al terminar, salir normalmente del juego y retirar la unidad temporal con
+`systemctl --user stop UNIDAD_NUEVA`. En esta auditoría dos arranques anteriores salieron con código0
+sin error de escena; no se atribuye su causa sin una captura de la señal o solicitud de cierre.

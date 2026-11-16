@@ -34,6 +34,7 @@
 #include "Scenes/ModelBody.h"
 #include "Scenes/ModelEffects.h"
 #include "Scenes/MonsterHelpers.h"
+#include "Scenes/MonsterRibbonTrails.h"
 #include "Scenes/MonsterStepCases.h"
 #include "Scenes/NpcChatter.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -42,6 +43,7 @@
 #include "Scenes/WorldRuntime.h"
 #include "UI/GameUiState.h"
 #include "Scenes/WorldState.h"
+#include "Scenes/WeaponTrail.h"
 #include "World/ObjectAlpha.h"
 #include "World/OriginalFtol.h"
 #include "World/TerrainCulling.h"
@@ -117,25 +119,6 @@ constexpr std::uint8_t LastKeptRange = 0x75;
 // 0x4fceea..0x4fcf04: antes del frame 3 (0x6b86b8), salvo en la 0x8d, 0x4fcee0 sale sin estela.
 constexpr float TrailFrame = 3.0f;
 constexpr std::uint8_t AlwaysTrailedAction = 0x8d;
-// 0x4fcf3e..0x4fcf4a: con las acciones 0x25 y 0x26, la estela mira la mano izquierda.
-constexpr std::uint8_t FirstLeftHandAction = 0x25;
-constexpr std::uint8_t SecondLeftHandAction = 0x26;
-// 0x4fcf87..0x4fd082: las acciones y los modelos del 0x20a que dejan estela (0x52e470).
-constexpr std::array<std::uint8_t, 3> TrailedActions{0x84, 0x85, 0x4c};
-constexpr std::uint8_t FirstSwingAction = 0x39;
-constexpr std::uint8_t LastSwingAction = 0x3c;
-constexpr int FirstSwordModel = 0x212;
-constexpr int EndOfSwordModels = 0x412;
-constexpr std::uint8_t FirstSwordAction = 0x23;
-constexpr std::uint8_t LastSwordAction = 0x29;
-constexpr int SpearModel = 0x415;
-constexpr int FirstPoleModel = 0x417;
-constexpr int EndOfPoleModels = 0x812;
-constexpr std::uint8_t FirstPoleAction = 0x38;
-constexpr std::uint8_t LastPoleAction = 0x3c;
-constexpr int EndOfBowModels = 0xa12;
-constexpr std::uint8_t FirstBowAction = 0x2a;
-constexpr std::uint8_t LastBowAction = 0x2d;
 
 // 0x4fc57e, 0x4fc5b0 y 0x4fc606: el bit de +0x3c que 0x4fc450 apaga con cada WORD en 0.
 constexpr std::uint8_t Word3eBit = 0x01;
@@ -327,7 +310,6 @@ Core::Expected<bool, std::string> AdvanceTheBody(ActorState& actor, std::size_t 
 {
     // 0x4f958e..0x4f95a5: el modelo compartido del tipo.
     const bool player = actor.type == Data::Models::PlayerSkeletonModel;
-    const bool newFace = IsNewFace(actor.type);
     const Render::Models::Skeleton* skeleton = ModelSkeletonOf(actor, context);
     if (skeleton == nullptr)
     {
@@ -343,17 +325,18 @@ Core::Expected<bool, std::string> AdvanceTheBody(ActorState& actor, std::size_t 
     }
     Render::Models::AnimationState& animation = actor.animation;
     const std::uint8_t action = animation.action;
-    if (action >= skeleton->actions.size())
+    const auto publishedAction = context.world.ModelPlacement(actor.type).action;
+    if (publishedAction >= skeleton->actions.size())
     {
         return Core::Unexpected(std::format("0x4f95c0: la acción {:#x} del lugar {} lee fuera de las {} del modelo "
                                             "{:#x}",
-                                            action, slot, skeleton->actions.size(), actor.type));
+                                            publishedAction, slot, skeleton->actions.size(), actor.type));
     }
-    const Render::Models::ActionInfo& info = skeleton->actions[action];
+    const Render::Models::ActionInfo& info = skeleton->actions[publishedAction];
     // 0x4f95c0..0x4f95d4: una velocidad negativa o NaN cuenta 0. La de Player.bmd, con la de cada personaje.
     const PlayerActionSpeeds& speeds =
         context.actionSpeeds != nullptr ? *context.actionSpeeds : context.world.ActionSpeeds();
-    const float sharedSpeed = player ? speeds.Speed(action, info.speed) : info.speed;
+    const float sharedSpeed = player ? speeds.Speed(publishedAction, info.speed) : info.speed;
     float speed = sharedSpeed >= 0.0f ? sharedSpeed : 0.0f;
     if (actor.byte3e3 != 0 && action >= FirstFasterAction && action <= LastFasterAction)
     {
@@ -393,11 +376,25 @@ Core::Expected<bool, std::string> AdvanceTheBody(ActorState& actor, std::size_t 
         return true;
     }
     // 0x4f9774: 0x4ec200, que devuelve 0 al terminar; en la escena 4 lo decide el frame + 2 (Q-C21). El NewFace es el
-    // objeto suelto de la selección.
-    const Render::Models::AnimationScene scene = context.scene == SceneId::CharacterSelect || newFace
+    // objeto suelto de la selección; 4ec200 consulta la escena vigente, no el tipo.
+    const Render::Models::AnimationScene scene = context.scene == SceneId::CharacterSelect
                                                      ? Render::Models::AnimationScene::CharacterSelect
                                                      : Render::Models::AnimationScene::Other;
-    return Render::Models::AdvanceAnimation(animation, info, speed, scene);
+    // 4ec21b usa el BYTE +a0 publicado antes de animar, aunque el actor haya cambiado de acción.
+    if (info.keyCount <= 1)
+        return false;
+    auto advanced = animation;
+    advanced.action = publishedAction;
+    const bool finished = Render::Models::AdvanceAnimation(advanced, info, speed, scene);
+    animation.frame = advanced.frame;
+    animation.previousAction = advanced.previousAction;
+    animation.previousKey = advanced.previousKey;
+    const auto whole = World::OriginalFtolLow(static_cast<double>(animation.frame));
+    if (!whole)
+        return Core::Unexpected(std::string("0x4ec31f: el frame avanzado no tiene conversión nativa observada"));
+    const auto key = std::bit_cast<std::int16_t>(static_cast<std::uint16_t>(*whole));
+    context.world.FaunaResources().RecordAnimation(actor.type, animation.frame, key);
+    return finished;
 }
 
 bool IsKalima(std::int32_t map);
@@ -553,33 +550,10 @@ Core::Expected<void, std::string> StepTheAnimation(ActorState& actor, std::size_
     return {};
 }
 
-// 0x4fcf26..0x4fd106: con el 0x20a, si la acción y el modelo del arma (con signo) dejan estela.
-bool LeavesATrail(std::uint8_t action, int model)
-{
-    if (IsOneOf(TrailedActions, action) || (action >= FirstSwingAction && action <= LastSwingAction))
-    {
-        return true;
-    }
-    if (model >= FirstSwordModel && model < EndOfSwordModels)
-    {
-        return (action >= FirstSwordAction && action <= LastSwordAction) || action == AlwaysTrailedAction;
-    }
-    if (model == SpearModel || (model >= FirstPoleModel && model < EndOfPoleModels))
-    {
-        return action >= FirstPoleAction && action <= LastPoleAction;
-    }
-    if (model >= EndOfPoleModels && model < EndOfBowModels)
-    {
-        return action >= FirstBowAction && action <= LastBowAction;
-    }
-    return false;
-}
-
 // 0x4fcee0(c, c, b) desde 0x505410, con el 0x20a. Las partículas y el reloj son los del paso (0x432bd0 crea la 0x5d9
 // del 0x1b0).
-Core::Expected<void, std::string> StepTheWeaponTrail(ActorState& actor, std::size_t slot, WorldState& world,
-                                                     Render::Models::CrtRandom& random, World::Particles* particles,
-                                                     float worldClock)
+Core::Expected<void, std::string> StepTheWeaponTrail(ActorState& actor, std::size_t slot,
+                                                     const CharacterStepContext& context)
 {
     const std::uint8_t action = actor.animation.action;
     // 0x4fceea..0x4fcf25: antes del frame 3 (o con NaN) y fuera de la 0x8d copia la posición a +0x17c y sale.
@@ -588,35 +562,18 @@ Core::Expected<void, std::string> StepTheWeaponTrail(ActorState& actor, std::siz
         actor.trailOrigin = actor.position;
         return {};
     }
-    const bool left = action == FirstLeftHandAction || action == SecondLeftHandAction;
-    const ActorItemPart& hand = actor.hands[left ? std::size_t{1} : std::size_t{0}];
-    const int model = static_cast<std::int16_t>(hand.model);
-    if (actor.type == Data::Models::PlayerSkeletonModel && LeavesATrail(action, model))
-    {
-        return Core::Unexpected(std::format("0x4fd236: la estela de la acción {:#x} del lugar {} con el modelo {:#x} "
-                                            "(0x52e470) no está portada",
-                                            action, slot, hand.model));
-    }
-    // 0x4fd10b..0x4fd5df con los otros modelos: la estela por tipo y los helpers de algunos (Scenes::ModelTrailCutOf).
-    const auto cut =
-        actor.type == Data::Models::PlayerSkeletonModel ? std::optional<ModelTrailCut>{} : ModelTrailCutOf(actor);
-    if (cut.has_value() && cut->beforeTheRandom)
-    {
-        return Core::Unexpected(std::format("{:#x}: el modelo {:#x} del lugar {} en la acción {:#x} desde el frame 3 "
-                                            "(0x4fcee0): su estela o sus efectos son de la CL11",
-                                            cut->address, actor.type, slot, action));
-    }
+    if (auto emitted = EmitWeaponTrail(actor, ModelSkeletonOf(actor, context), context); !emitted.HasValue())
+        return emitted;
+    const auto* skeleton = ModelSkeletonOf(actor, context);
+    if (auto emitted = EmitEarlyMonsterRibbonTrails(actor, skeleton, context); !emitted.HasValue())
+        return emitted;
     // 0x4fd5c1..0x4fd5df: 0x441260 (solo el 0x1a7), 0x42fa40 (el 0x1b1 y el 0x1b3), 0x432bd0 y 0x426d90 (los
     // 0x1b8 a 0x1ba). 0x4fd5d7: 0x432bd0, con su rand() de 0x432bf1 sin condición (Scenes::StepTheSwingsOf1abTo1b4).
-    if (auto swung = StepTheSwingsOf1abTo1b4(actor, slot, world, random, particles, worldClock); !swung.HasValue())
+    if (auto swung =
+            StepTheSwingsOf1abTo1b4(actor, slot, context.world, context.random, context.particles, context.worldClock);
+        !swung.HasValue())
         return swung;
-    if (cut.has_value())
-    {
-        return Core::Unexpected(std::format("{:#x}: el modelo {:#x} del lugar {} en la acción {:#x} desde el frame 3 "
-                                            "(0x4fcee0): sus efectos son de la CL11",
-                                            cut->address, actor.type, slot, action));
-    }
-    return {};
+    return EmitLateMonsterRibbonTrails(actor, skeleton, context);
 }
 
 // Una lectura de la celda protegida del héroe: abre la entrada (0x40b570) y la cierra (0x40b800, o en línea
@@ -795,9 +752,7 @@ Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slo
     // 0x5053fc: 0x42a2b0, la barra de vida del 0x1a8.
     QueueTheHealthBar(actor, context.world.Runtime().healthBars);
     // 0x505410: 0x4fcee0.
-    if (auto trailed =
-            StepTheWeaponTrail(actor, slot, context.world, context.random, context.particles, context.worldClock);
-        !trailed.HasValue())
+    if (auto trailed = StepTheWeaponTrail(actor, slot, context); !trailed.HasValue())
     {
         return trailed;
     }

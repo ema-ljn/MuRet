@@ -6469,15 +6469,14 @@ modelo compartido del tipo, `[0x5769ad8] + tipo · 0xe0` (`0x4fd6b0`). Leído en
 Le quedan los seis pasos del punto 3, la animación, el `rand() % 6`, la estela y `0x42a2b0` y `0x420dd0`, que
 no hacen nada con él. En `0x4fcee0` (`0x4fcee0..0x4fd5df`), antes del frame 3 (`0x6b86b8`), o con NaN, y fuera de
 la `0x8d`, copia la posición a `+0x17c` y sale. Si no, mira el arma, que es la mano izquierda con las acciones
-`0x25` y `0x26` y la derecha con las demás, con el modelo como WORD con signo. Pide una estela (`0x52e470`, hasta
-`0x4fd236`) en estos casos:
+`0x25` y `0x26` y la derecha con las demás, con el modelo como WORD con signo. El productor común de `0x52e470` elige una estela en estos casos:
 
 - las acciones `0x84`, `0x85` y `0x4c`, y de la `0x39` a la `0x3c`;
 - un modelo de `0x212` a `0x411`, con las acciones `0x23` a `0x29` o con la `0x8d`;
 - el `0x415` o un modelo de `0x417` a `0x811`, con las acciones `0x38` a `0x3c`;
 - un modelo de `0x812` a `0xa11`, con las acciones `0x2a` a `0x2d`.
 
-Sin estela, llama en `0x4fd5c1..0x4fd5df` a `0x441260`, `0x42fa40`, `0x432bd0` y `0x426d90`. De esas cuatro, solo
+Después del productor común, haya agregado una estela o no, llama en `0x4fd5c1..0x4fd5df` a `0x441260`, `0x42fa40`, `0x432bd0` y `0x426d90`. De esas cuatro, solo
 `0x432bd0` saca `rand()` con el `0x20a`: uno sin condición en `0x432bf1`, antes de mirar el tipo.
 
 **Los `rand()`.** En el cuerpo de la función hay 28 llamadas directas a `0x69fd70`:
@@ -6506,8 +6505,8 @@ Los de las llamadas, por función:
 | `0x4fcbb0`, desde `0x4fcd00` | 3 (`0x4fcc9a..0x4fccdf`) | el `0xc5` |
 | `0x4fcd00` | 1 (`0x4fcea6`) | el `0x1f5` |
 | `0x4f2250`, desde `0x4fcb10` | 1, el de su sufijo | al volver a la de parado; en la escena 4, con el frame + 2 (Q-C21) |
-| `0x432bd0`, desde `0x4fcee0` | 1 (`0x432bf1`), sin condición | cuando la acción pasa del frame 3 sin dejar estela |
-| `0x432bd0`, desde `0x4fcee0` | 20 más (`0x432d6f` y `0x432d74`, dos por cada una de diez poses) | el `0x1b0` en la acción 4 con el frame fuera de (5, 7); los otros tipos de `0x1ab` a `0x1b4` cortan antes en su estela o su efecto ([Los helpers de los monstruos](#los-helpers-de-los-monstruos)) |
+| `0x432bd0`, desde `0x4fcee0` | 1 (`0x432bf1`), sin condición | desde el frame 3, con o sin estela común, y también en la acción0x8d |
+| `0x432bd0`, desde `0x4fcee0` | 20 más (`0x432d6f` y `0x432d74`, dos por cada una de diez poses) | el `0x1b0` en la acción4; las partículas de (5,7) pueden consumir RNG adicional; las otras estelas ya no cortan por sí solas ([Los helpers de los monstruos](#los-helpers-de-los-monstruos)) |
 | `0x4f5660` | 1 | muriéndose |
 | `0x52f360` | 8 | el `0xf1` |
 | `0x4f97b0` y `0x4f5b70` | 11 y 36 sitios; sin habilidad, 1 (`+0x38e`) y, del frame 5, 3.848 el primero, y 1 (`0x4f5b97`) y 2 lecturas de `+0x38e` el segundo | con `+0x381` distinto de 0; las lecturas, con `+0x3a4` en `[0, 400)` ([El paso del ataque](#el-paso-del-ataque)) |
@@ -6548,7 +6547,7 @@ columnas son la dirección, los bytes, qué es y qué tiene MuRet.
 | `0x52f360` | 482 | el fuego de la clase 0 del `0xf1` (`0x505425..0x505433`) | `World::EmitObjectFire` con los ángulos, la posición y la luz del personaje |
 | `0x511070` | 84 | con `+0x428` entre −127 y 0, sin leer | no se llega |
 | `0x42a2b0` | 542 | el `0x1a8` | con el `0x20a` no hace nada |
-| `0x4fcee0` | 1.806 | la estela del arma | `StepTheWeaponTrail`: sin estela; corta en `0x4fd236` |
+| `0x4fcee0` | 1.806 | la estela del arma | `StepTheWeaponTrail`: productor común y cuatro helpers, pose mundial y cintas; cortes genuinos de efectos/partículas descritos en [H3](15-h3-combate-y-muerte.md#estelas-de-ataque-auditoría-del-2026-11-16) |
 | `0x420dd0` | 23 | la virtual de `+0x430`, el cuervo del login (`0x416a20`) | `ActorState::darkSpirit`, dentro del cuerpo en 0x50544b; los estados 0/1 del login; sin recursos o fuera de ese alcance, error explícito |
 
 **Los globales.**
@@ -6612,7 +6611,7 @@ se repite. Es el mismo en los dos mapas (`GoldenCharacterStep.TheHeroAtRestDraws
   - ~~en las `0xc3` y `0xc4` que terminan (`0x4fcb87`)~~: dejan los restos ([Los restos](#los-restos-0x52e810), CL9
     hito 3, fase 7);
   - en la partícula de las `0x4d`, `0x4f` y `0x5a` (`0x4fdb70`);
-  - en la estela (`0x4fd236`).
+  - en la partícula `5dc/12` de la estela del `0x194` (`0x4fd585`) y en los efectos aún no portados de algunos helpers; la cinta común de `0x4fd236` está implementada.
 - Sin Item.bmd, `0x54efe0` corta con equipo que no sea el vacío de la respuesta del F3 03 (Q-C246).
 - Tests: `CharacterStepTest` y `GoldenCharacterStep`, `GameSceneDrawTest.WithoutPlayerBmdTheStepStopsAtTheBody` y
   `ActorConstructionTest.LeavesThePlayerUnseenAndNotDying`.
@@ -11134,8 +11133,9 @@ NewFace suelto o el que cargó el alta ([Los modelos de los monstruos y los NPC]
    `0x1b3` en la 3 y el `0x1b1` en la 4), `0x432bd0` (su `rand()` y el `0x1ab`, del `0x1ae` al `0x1b1`, el `0x1b3` y el `0x1b4`:
    [Los helpers de los monstruos](#los-helpers-de-los-monstruos)) y `0x426d90` (el `0x1ba` en la 3, el `0x1b9` en la 3
    y la 4, y el `0x1b8` en la 3 y la 4 con el frame en 5,06f (`0x6b8a30`) o menos, o NaN). Fuera de esas acciones no
-   hacen nada ni sacan `rand()`; en ellas, su estela (`0x52e470`) es de la CL11 y MuRet corta con la dirección del
-   helper (`ModelTrailCutOf`, revisión B).
+   hacen nada ni sacan `rand()`, salvo el sorteo incondicional de `0x432bd0`. Las cintas de los cuatro helpers
+   están portadas: [auditoría de estelas H3](15-h3-combate-y-muerte.md#estelas-de-ataque-auditoría-del-2026-11-16).
+   Los efectos145/147 y partículas640/5dc aún conservan su frontera cuando hay capacidad en su pool.
 4. **`0x505de0`**: sin acciones va a la caja de `0x505e15`; la cabeza pasa antes por `0x4ea190` (`0x5068e3`): la acción
    6 no toca el blanco, la 0 sortea uno (`rand() % 32` en 0: `rand() % 128 − 64` y `rand() % 48 − 16`), la 2 con
    `+0x3a4` distinto de −1 mira a ese personaje del pool con `0x4ea0e0` (el rumbo de `0x4e93f0` a menos de 90 grados

@@ -170,11 +170,13 @@ void WorldState::PlacePlayerModel(const ActorState& actor)
     }
     m_playerModel.scale = actor.scale;
     m_playerModel.origin = actor.position;
+    m_playerModel.action = actor.animation.action;
 }
 
 void WorldState::PlaceModel(const ActorState& actor)
 {
-    PlaceModel(actor.type, SharedModelPlacement{.scale = actor.scale, .origin = actor.position});
+    PlaceModel(actor.type,
+               SharedModelPlacement{.scale = actor.scale, .origin = actor.position, .action = actor.animation.action});
 }
 
 void WorldState::PlaceModel(std::uint16_t type, const SharedModelPlacement& placement)

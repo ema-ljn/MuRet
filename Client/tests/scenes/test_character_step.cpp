@@ -17,6 +17,8 @@
 #include "Scenes/CharacterCloth.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/DynamicWorldLight.h"
+#include "Scenes/GameDrawTail.h"
+#include "Scenes/FaunaModels.h"
 #include "Scenes/CharacterSlots.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -136,6 +138,32 @@ TEST(CharacterStepTest, TheSelectionPreviewRunsTheCommonBodyOutsideThePool)
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(Seed, 19).State());
     EXPECT_EQ(terrain.attributes->cells[0] & Client::World::CharacterWallBit, 0u);
     EXPECT_FALSE(world.Actors()[0].alive);
+}
+
+// 4ec200 decide el look-ahead por la escena global: ser NewFace no equivale a escena4.
+TEST(CharacterStepTest, ANewFaceInTheGameUsesTheGameAnimationEndGate)
+{
+    auto world = std::make_unique<WorldState>();
+    world->Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+    ActorState preview;
+    preview.alive = true;
+    preview.type = 0xa9;
+    preview.animation.action = preview.animation.previousAction = 1;
+    preview.animation.frame = 2.0f;
+    preview.firstFootstepSound = 1;
+    preview.secondFootstepSound = 1;
+    preview.hands[0].model = preview.hands[1].model = 0xffff;
+    Skeleton face;
+    face.actions.assign(2, ActionInfo{.repeats = true, .speed = 0.0f, .keyCount = 4});
+    CrtRandom random(Seed);
+
+    const auto stepped =
+        StepCharacter(preview, {.world = *world, .random = random, .scene = SceneId::Game, .newFaceSkeleton = &face});
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(preview.firstFootstepSound, 1);
+    EXPECT_EQ(preview.secondFootstepSound, 1);
+    EXPECT_EQ(preview.animation.frame, 2.0f);
 }
 
 TEST(CharacterStepTest, TheNewFaceHeadHasItsOwnDrawBeforeTheCommonHeadAndUsesModuloFortyEight)
@@ -999,6 +1027,41 @@ TEST(CharacterStepTest, TheHeroAppearsInTwentySteps)
     EXPECT_LT(hero.blendMeshLight, 0.1f) << "la luz del blendMesh no sube (Q-C112)";
 }
 
+// 4ec31f..4ec33a publica +a4/+a8 antes del sufijo, incluso sin un dibujo entre pasos.
+TEST(CharacterStepTest, AdvancingTheBodyPublishesTheSharedFrameAndUnclampedKey)
+{
+    GameWorld tested;
+    tested.skeleton = SkeletonWith(1, 20, 0.4f);
+    tested.Hero().animation.frame = 1.2f;
+    tested.world.FaunaResources().RecordPoseKey(tested.Hero().type, 9);
+
+    const auto stepped = tested.Step(Everything);
+
+    ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
+    EXPECT_FLOAT_EQ(tested.world.FaunaResources().PoseFrame(tested.Hero().type), 1.6f);
+    EXPECT_EQ(tested.world.FaunaResources().PoseKey(tested.Hero().type), 1);
+}
+
+// 4ec21b/4ec229 y 4f973a: sin avance no se publican+a4/+a8 ni se hereda el frame del actor.
+TEST(CharacterStepTest, AOneKeyOrFrozenBodyPreservesTheSharedAnimationMetadata)
+{
+    for (const bool frozen : {false, true})
+    {
+        SCOPED_TRACE(frozen);
+        GameWorld tested;
+        tested.skeleton = SkeletonWith(1, frozen ? 20 : 1, 0.4f);
+        tested.Hero().animation.frame = 1.2f;
+        tested.Hero().flags78 = frozen ? 0x1000 : 0;
+        tested.world.FaunaResources().RecordAnimation(tested.Hero().type, 6.25f, 9);
+
+        const auto stepped = tested.Step(Everything);
+
+        ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
+        EXPECT_EQ(tested.world.FaunaResources().PoseFrame(tested.Hero().type), 6.25f);
+        EXPECT_EQ(tested.world.FaunaResources().PoseKey(tested.Hero().type), 9);
+    }
+}
+
 // 0x4f9580: la velocidad de la acción (0,4 por paso acá) por 1,5 en las 3 y 4 con +0x3e3, por 0,5 en la 0x3f
 // pasado el frame 6 y en la 0x44, por 0,1f en las 0x4d, 0x4f y 0x5a pasado el 5,5, y de nuevo por 0,5 en la 0x44.
 // En la clase 4, las 0x94, 0x51 y 0x5b entre el frame 1 y el 3 cortan en 0x59e680 sin avanzar.
@@ -1177,6 +1240,42 @@ TEST(CharacterStepTest, AnEndedActionFortyFourRestartsItsFrame)
     EXPECT_EQ(tested.random.State(), RandomAfter(SeenHeroDraws).State());
 }
 
+// Regresión del ataque observado en vivo: la mano visible debe producir una cinta, no cerrar Game.
+// 4fd236..4fd5bb: diez muestras, tipo0, color del nivel7 y continuación con el rand de432bf1.
+TEST(CharacterStepTest, AnEquippedSwordAttackCreatesItsTrailAndContinuesTheBody)
+{
+    GameWorld tested;
+    ActorState& hero = tested.Hero();
+    hero.animation.action = 0x23;
+    hero.animation.frame = 3.0f;
+    hero.position = {100.0f, 200.0f, 300.0f};
+    hero.scale = 1.0f;
+    hero.hands[0].model = 0x222;
+    hero.hands[0].level = 7;
+    hero.hands[0].bone = 0;
+    tested.skeleton.actions[0x23] = ActionInfo{.repeats = true, .speed = 0.0f, .keyCount = 10};
+    Client::Render::Models::SkeletonBone bone;
+    bone.actions.resize(tested.skeleton.actions.size());
+    for (auto& keys : bone.actions)
+        keys.resize(10);
+    tested.skeleton.bones.push_back(std::move(bone));
+
+    const auto stepped = tested.Step(Everything);
+
+    ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
+    const auto& ribbon = tested.world.DrawTail().ribbons[0];
+    ASSERT_TRUE(ribbon.alive);
+    EXPECT_EQ(ribbon.ownerContext, &hero);
+    EXPECT_EQ(ribbon.ownerEquipment, &hero.level);
+    EXPECT_EQ(ribbon.type, 0);
+    EXPECT_EQ(ribbon.count, 10);
+    EXPECT_EQ(ribbon.life, 15);
+    EXPECT_EQ(ribbon.light, (glm::vec3{1.0f, 0.6f, 0.2f}));
+    EXPECT_EQ(ribbon.first[0], (glm::vec3{100.0f, 180.0f, 300.0f}));
+    EXPECT_EQ(ribbon.second[0], (glm::vec3{100.0f, 80.0f, 300.0f}));
+    EXPECT_EQ(tested.random.State(), RandomAfter(SeenHeroDraws + TrailDraws).State());
+}
+
 // 0x4fcee0: antes del frame 3, salvo en la 0x8d, copia la posición a +0x17c y sale; si no, con el 0x20a, la estela
 // según la acción y el arma de la mano (la izquierda con las 0x25 y 0x26) corta en 0x52e470, y sin estela 0x432bd0
 // saca su rand() sin condición (0x432bf1).
@@ -1224,13 +1323,14 @@ TEST(CharacterStepTest, TheWeaponTrailDrawsFromFrameThree)
 
         if (probe.trail)
         {
-            EXPECT_TRUE(HasError(stepped, "0x4fd236")) << ErrorOf(stepped);
+            EXPECT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
+            EXPECT_TRUE(tested.world.DrawTail().ribbons[0].alive);
         }
         else
         {
             EXPECT_TRUE(stepped.HasValue()) << stepped.Error();
         }
-        EXPECT_EQ(tested.random.State(), RandomAfter(probe.draws).State());
+        EXPECT_EQ(tested.random.State(), RandomAfter(probe.trail ? Drawn : probe.draws).State());
     }
 }
 

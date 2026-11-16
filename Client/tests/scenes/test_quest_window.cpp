@@ -20,6 +20,7 @@
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameUi.h"
+#include "Scenes/ItemNames.h"
 #include "Scenes/NpcNames.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
@@ -42,6 +43,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <format>
 #include <map>
 #include <memory>
 #include <optional>
@@ -105,13 +107,13 @@ void PutText(std::span<char> to, std::string_view value)
     std::ranges::copy(value, to.begin());
 }
 
-// Item.bmd con los nombres de los cuatro ítems de misión y nada más.
+// Item.bmd con los nombres de los cuatro ítems de misión, el de una espada (el tipo 1) y nada más.
 Client::Data::Tables::ItemTable QuestItems()
 {
     using Client::Data::Tables::ItemRecordSize;
     std::vector<std::byte> plain(Client::Data::Tables::ItemTableSize);
     const std::vector<std::pair<std::int32_t, std::string_view>> names{
-        {0x1c17, "Pergamino"}, {0x1c18, "Hueso"}, {0x1c19, "Cuerno"}, {0x1c1a, "Pluma"}};
+        {0x1c17, "Pergamino"}, {0x1c18, "Hueso"}, {0x1c19, "Cuerno"}, {0x1c1a, "Pluma"}, {0x0001, "Espada"}};
     for (const auto& [type, name] : names)
     {
         const auto base = static_cast<std::size_t>(type) * ItemRecordSize;
@@ -696,8 +698,10 @@ TEST_P(QuestWindowTest, TheDialogInProgressDrawsTheItemsAndTheFinishButton)
     EXPECT_EQ(m_random.State(), Seed);
 }
 
-// 0x5b1c70 desde 0x41b810: el 0x1c17 y el 0x1c18 con nivel 1 se llaman con los textos 906 y 907; con otro nivel
-// distinto de 0 el buffer queda sin iniciar y corta (Q-C874), y un ítem que no es de misión corta hacia el hito 11.
+// 0x5b1c70 desde 0x41b810 (Scenes::ItemNameOf): el 0x1c17 y el 0x1c18 con nivel 1 se llaman con los textos 906 y 907;
+// con otro nivel distinto de 0 el buffer queda sin iniciar y corta (Q-C874), igual que otro tipo con un nivel sin
+// nombre (el 0x1c09 con el 2). Un ítem que no es de misión lleva el nombre de Item.bmd y, con nivel, " +nivel"; con un
+// grupo de 128 o más el tipo lee fuera de Item.bmd.
 TEST_P(QuestWindowTest, TheAskedItemNamesFollowTheLevel)
 {
     auto& entry = Quest().records[0].entries[0];
@@ -711,7 +715,7 @@ TEST_P(QuestWindowTest, TheAskedItemNamesFollowTheLevel)
     ASSERT_TRUE(Draw(0, 0).HasValue());
     EXPECT_NE(FindText(m_text.texts, "Otro de nivel x 1"), nullptr);
 
-    for (const auto& [index, where] : {std::pair{23, "0x5b1cb1"}, std::pair{24, "0x5b1cf3"}})
+    for (const auto& [index, where] : {std::pair{23, "0x5b1cb1"}, std::pair{24, "0x5b1cf3"}, std::pair{9, "0x41b924"}})
     {
         SCOPED_TRACE(where);
         entry.itemIndex = static_cast<std::uint8_t>(index);
@@ -719,14 +723,26 @@ TEST_P(QuestWindowTest, TheAskedItemNamesFollowTheLevel)
         const auto cut = Draw(0, 0);
         ASSERT_FALSE(cut.HasValue());
         EXPECT_TRUE(cut.Error().starts_with(where)) << cut.Error();
+        EXPECT_NE(cut.Error().find("Q-C874"), std::string::npos) << cut.Error();
     }
 
     entry.itemGroup = 0;
     entry.itemIndex = 1;
+    for (const auto& [level, name] : {std::pair{0, "Espada x 1"}, std::pair{3, "Espada +3 x 1"}})
+    {
+        SCOPED_TRACE(level);
+        entry.itemLevel = static_cast<std::uint8_t>(level);
+        m_text.texts.clear();
+        const auto drawn = Draw(0, 0);
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_NE(FindText(m_text.texts, name), nullptr);
+    }
+
+    entry.itemGroup = 0x80;
     entry.itemLevel = 0;
     const auto cut = Draw(0, 0);
     ASSERT_FALSE(cut.HasValue());
-    EXPECT_TRUE(cut.Error().starts_with("0x5b1d39")) << cut.Error();
+    EXPECT_TRUE(cut.Error().starts_with("0x5b1c76")) << cut.Error();
 }
 
 TEST_P(QuestWindowTest, WithoutTheItemsTheFinishButtonIsGrey)
@@ -944,4 +960,27 @@ TEST_P(QuestWindowTest, TheUi3DPassDrawsTheAskedItems)
 }
 
 INSTANTIATE_TEST_SUITE_P(Maps, QuestWindowTest, ::testing::Values(Lorencia, Devias));
+
+// Los casos de 0x5b1c70 que no escriben el buffer, los que 0x41b810 lee sin iniciar (Q-C874): los niveles sin nombre
+// de los tipos con un nombre por nivel. El 0x180b, las cajas +1..+5 del 0x1c0b, el 0x1c0c de nivel 2 y los demás tipos
+// escriben con cualquier nivel.
+TEST(QuestItemNamesTest, OnlyTheLevelsWithoutANameAreNotWritten)
+{
+    struct Case
+    {
+        std::uint16_t type;
+        std::int32_t level;
+        bool written;
+    };
+    for (const Case& probe :
+         {Case{0x1c17, 0, true},  Case{0x1c17, 1, true},  Case{0x1c17, 2, false}, Case{0x1c17, -1, false},
+          Case{0x1c18, 5, false}, Case{0x1c19, 9, true},  Case{0x1c09, 1, true},  Case{0x1c09, 2, false},
+          Case{0x1c15, 3, true},  Case{0x1c15, 4, false}, Case{0x1a0f, 4, true},  Case{0x1a0f, 5, false},
+          Case{0x1c0b, 3, true},  Case{0x1c0b, 4, false}, Case{0x1c0b, 9, true},  Case{0x1c0b, 16, false},
+          Case{0x1c0c, 2, true},  Case{0x1c0c, 3, false}, Case{0x180b, 7, true},  Case{0x0001, 13, true}})
+    {
+        SCOPED_TRACE(std::format("{:#x} {}", probe.type, probe.level));
+        EXPECT_EQ(Client::Scenes::ItemNameIsWritten(probe.type, probe.level), probe.written);
+    }
+}
 } // namespace

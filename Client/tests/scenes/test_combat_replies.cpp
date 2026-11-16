@@ -389,6 +389,165 @@ TEST_F(CombatRepliesTest, AMonsterDeathSoundComesFromItsTableOnlyWithTheFrameAtZ
     EXPECT_EQ(m_random.State(), After(7 * OwnRecordDraws));
 }
 
+// 0x4f58a7, 0x4f5942 y 0x4f599e apagan el byte vivo antes de intentar los efectos; con el pool lleno no se crean y
+// siguen el sonido 0x7c, el gate del frame y 0x4f5a09. No cambia la acción ni se gastan rand() salvo en Chaos Castle.
+TEST_F(CombatRepliesTest, SpecialEffectDeathsContinueWhenTheModelEffectPoolIsFull)
+{
+    struct Case
+    {
+        std::uint16_t model;
+        std::int32_t subtype;
+        std::uint8_t characterClass;
+        std::optional<std::int16_t> deathSound;
+    };
+    const std::array cases{
+        Case{0x20a, 0xd1, 0, std::int16_t{-1}}, Case{0x20a, 0xd2, 2, std::int16_t{0x7d}},
+        Case{0x20a, 0xd3, 4, std::nullopt},     Case{0x16b, 9, 1, std::int16_t{0x7d}},
+        Case{0x170, 0, 3, std::nullopt},
+    };
+    constexpr std::array<float, 3> Frames{1.0f, 0.0f, UnorderedFrame};
+    constexpr std::array<std::int32_t, 7> Maps{0, 18, 19, 20, 21, 22, 23};
+
+    for (const std::int32_t map : Maps)
+    {
+        for (const Case& tested : cases)
+        {
+            for (std::size_t frameIndex = 0; frameIndex < Frames.size(); ++frameIndex)
+            {
+                SCOPED_TRACE(map);
+                SCOPED_TRACE(tested.model);
+                SCOPED_TRACE(tested.subtype);
+                SCOPED_TRACE(frameIndex);
+                Runtime().map = map;
+                Runtime().ownRecordDepth = 0;
+                Runtime().lastSoundId.reset();
+                Runtime().modelSounds.clear();
+                if (tested.deathSound)
+                {
+                    Client::Scenes::ModelSounds sounds{};
+                    sounds.fill(0);
+                    sounds[4] = *tested.deathSound;
+                    Runtime().modelSounds[tested.model] = sounds;
+                }
+
+                auto effectPool = m_world->Map().effects.Effects();
+                for (Client::World::ModelEffect& effect : effectPool)
+                    effect.alive = true;
+
+                ActorState& dead = Actor(20);
+                dead = ActorState{};
+                dead.alive = true;
+                dead.type = tested.model;
+                dead.subtype = tested.subtype;
+                dead.characterClass = tested.characterClass;
+                dead.animation.action = 7;
+                dead.animation.frame = Frames[frameIndex];
+                const std::uint32_t oldFrame = std::bit_cast<std::uint32_t>(dead.animation.frame);
+                CrtRandom expected = m_random;
+                std::optional<std::int32_t> sound = 0x7c;
+                std::uint32_t expectedFrame = oldFrame;
+                if (frameIndex != 0)
+                {
+                    expectedFrame = std::bit_cast<std::uint32_t>(DeathFrame);
+                    if (map >= 18 && map <= 23)
+                    {
+                        sound = static_cast<std::int32_t>((expected.Next() & 1) + 0x5e);
+                    }
+                    else
+                    {
+                        const std::int16_t word = tested.deathSound.value_or(0);
+                        if (word != -1)
+                            sound = word + (tested.subtype == 9 ? 5 : 0) + 0xd2;
+                    }
+                }
+
+                const auto died = Client::Scenes::SetActorDie(dead, Combat());
+                ASSERT_TRUE(died.HasValue()) << died.Error();
+                EXPECT_FALSE(dead.alive);
+                EXPECT_EQ(dead.animation.action, 7);
+                EXPECT_EQ(std::bit_cast<std::uint32_t>(dead.animation.frame), expectedFrame);
+                EXPECT_EQ(Runtime().lastSoundId, sound);
+                EXPECT_EQ(m_random.State(), expected.State());
+                EXPECT_TRUE(std::ranges::all_of(effectPool,
+                                                [](const Client::World::ModelEffect& effect) { return effect.alive; }));
+            }
+        }
+    }
+}
+
+// El cierre del registro propio ocurre antes del rand() del sonido de Chaos Castle, y solo lo cierra el acceso que lo
+// deja en 0. Incluso si la primera alta de efectos corta, el héroe ya quedó vivo=false y su vida en 0.
+TEST_F(CombatRepliesTest, AHeroDeathClosesItsOwnRecordBeforeTheChaosSound)
+{
+    for (const std::uint8_t depth : {std::uint8_t{0}, std::uint8_t{1}, std::uint8_t{0xff}})
+    {
+        SCOPED_TRACE(depth);
+        Runtime().map = 18;
+        Runtime().ownRecordDepth = depth;
+        Runtime().lastSoundId.reset();
+        m_world->OwnCharacter().life = 50;
+        for (Client::World::ModelEffect& effect : m_world->Map().effects.Effects())
+            effect.alive = true;
+
+        ActorState& hero = Hero();
+        hero = ActorState{};
+        hero.alive = true;
+        hero.type = 0x16b;
+        hero.animation.action = 7;
+        hero.animation.frame = 0.0f;
+        CrtRandom expected = m_random;
+        if (depth == 0)
+            expected.Discard(OwnRecordDraws);
+        const std::int32_t sound = static_cast<std::int32_t>((expected.Next() & 1) + 0x5e);
+
+        const auto died = Client::Scenes::SetActorDie(hero, Combat());
+
+        ASSERT_TRUE(died.HasValue()) << died.Error();
+        EXPECT_FALSE(hero.alive);
+        EXPECT_EQ(hero.animation.action, 7);
+        EXPECT_EQ(hero.animation.frame, DeathFrame);
+        EXPECT_EQ(m_world->OwnCharacter().life, 0);
+        EXPECT_EQ(Runtime().ownRecordDepth, depth);
+        EXPECT_EQ(Runtime().lastSoundId, std::optional<std::int32_t>(sound));
+        EXPECT_EQ(m_random.State(), expected.State());
+    }
+}
+
+// Con un efecto libre, 0x518cf0 aún corta por CL11, pero el prefijo ya dejó vivo=false y puso en 0 la vida propia.
+TEST_F(CombatRepliesTest, AHeroSpecialEffectDeathKeepsItsPrefixWhenTheEffectCreationCuts)
+{
+    Runtime().map = 0;
+    Runtime().ownRecordDepth = 0;
+    Runtime().lastSoundId.reset();
+    m_world->OwnCharacter().life = 50;
+    auto effectPool = m_world->Map().effects.Effects();
+    for (Client::World::ModelEffect& effect : effectPool)
+        effect.alive = true;
+    effectPool.front().alive = false;
+
+    ActorState& hero = Hero();
+    hero = ActorState{};
+    hero.alive = true;
+    hero.type = 0x16b;
+    hero.animation.action = 7;
+    hero.animation.frame = 0.0f;
+
+    const auto died = Client::Scenes::SetActorDie(hero, Combat());
+
+    ASSERT_FALSE(died.HasValue());
+    EXPECT_NE(died.Error().find("CL11"), std::string::npos);
+    EXPECT_FALSE(hero.alive);
+    EXPECT_EQ(hero.animation.action, 7);
+    EXPECT_EQ(hero.animation.frame, 0.0f);
+    EXPECT_EQ(m_world->OwnCharacter().life, 0);
+    EXPECT_EQ(Runtime().ownRecordDepth, 0);
+    EXPECT_FALSE(Runtime().lastSoundId.has_value());
+    EXPECT_EQ(m_random.State(), After(OwnRecordDraws));
+    EXPECT_FALSE(effectPool.front().alive);
+    EXPECT_EQ(std::ranges::count_if(effectPool, [](const Client::World::ModelEffect& effect) { return effect.alive; }),
+              effectPool.size() - 1);
+}
+
 // El 0x9C que manda el GameServer 0.97 (0x49af90) lleva la clave 0xFFFF: 0x7fff con el bit 15. Nadie tiene la 0x7fff y
 // 0x5110d0 devuelve el lugar 400, el de tipo 0, que muere con el sonido 0xd2 (nadie escribe la tabla del modelo 0 y el
 // REP STOSD de 0x60dc80 la dejó en diez WORD en 0) y suma la experiencia (Q-C1160, P-C252).

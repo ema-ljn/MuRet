@@ -518,10 +518,18 @@ Core::Expected<void, std::string> SetActorDie(ActorState& actor, const ActorComb
     }
     else if (actor.type == Data::Models::PlayerSkeletonModel || actor.type == 0x16b || actor.type == 0x170)
     {
-        // 0x4f58a3..0x4f59fc: +0 en 0, los efectos 0xd5 y diez 0xd6 (o ocho pares 0xe5/0xe6 el 0x16b) y el sonido 0x7c.
-        return Core::Unexpected(std::format("0x4f58a3: los efectos de la muerte del modelo {:#x} (0x518cf0) son de "
-                                            "la CL11",
-                                            actor.type));
+        // 0x4f58a7, 0x4f5942 y 0x4f599e apagan +0 antes del primer creador de efectos.
+        actor.alive = false;
+        const char* firstEffectCall = actor.type == Data::Models::PlayerSkeletonModel ? "0x4f58c2"
+                                      : actor.type == 0x170                           ? "0x4f595d"
+                                                                                      : "0x4f59ca";
+        // Un lugar libre llega a la llamada CL11; lleno, los creadores no-op y sigue con el sonido y el frame.
+        if (std::ranges::any_of(context.world.Map().effects.Effects(),
+                                [](const World::ModelEffect& effect) { return !effect.alive; }))
+            return Core::Unexpected(std::format("{}: los efectos de la muerte del modelo {:#x} (0x518cf0) son de "
+                                                "la CL11",
+                                                firstEffectCall, actor.type));
+        context.world.Runtime().lastSoundId = 0x7c;
     }
     else if (auto set = SetTheAction(actor, context, 6); !set.HasValue())
     {

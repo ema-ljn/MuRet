@@ -15,6 +15,7 @@
 #include "Scenes/IWorldEntryPublisher.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/QuestState.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/WorldEntry.h"
@@ -202,7 +203,7 @@ TEST_F(ReturnToSelectionTest, TheReturnReleasesTheGameAndKeepsTheTerrain)
         const std::vector<float> grass = tested.world.Map().grassOffsets;
         const CrtRandom before = tested.cloth.random;
 
-        ApplyReturnToSelection(resources);
+        ASSERT_TRUE(ApplyReturnToSelection(resources).HasValue());
 
         EXPECT_TRUE(tested.world.Map().objects.empty());
         EXPECT_TRUE(tested.world.Map().objectRecords.empty());
@@ -242,12 +243,49 @@ TEST(ReturnToSelectionWithoutDataTest, WithTheOwnRecordOpenTheReturnDrawsNoRand)
     tested.world.OwnCharacter().word40 = 5;
     const CrtRandom before = tested.cloth.random;
 
-    ApplyReturnToSelection(tested.Resources());
+    ASSERT_TRUE(ApplyReturnToSelection(tested.Resources()).HasValue());
 
     EXPECT_EQ(tested.cloth.random.State(), before.State());
     EXPECT_EQ(tested.world.Runtime().ownRecordDepth, 1);
     EXPECT_EQ(tested.world.OwnCharacter().word40, 0);
     EXPECT_EQ(tested.world.Runtime().orderedScene, Client::Scenes::SceneId::CharacterSelect);
+}
+
+// 0x4c26e7 → 0x657670 → 0x420cd0 (CL9 hito 4): la vuelta pone en 0 la pestaña, la ventana y las tres mascotas.
+TEST(ReturnToSelectionWithoutDataTest, TheReturnForgetsThePets)
+{
+    const auto tested = std::make_unique<Returning>(std::filesystem::path{}, Seed);
+    Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+    runtime.petTab = 1;
+    runtime.panels.delegated.pet = 2;
+    runtime.pets[1].level = 30;
+    runtime.pets[0].experience = 12;
+
+    const auto returned = ApplyReturnToSelection(tested->Resources());
+    ASSERT_TRUE(returned.HasValue()) << returned.Error();
+
+    EXPECT_EQ(runtime.petTab, 0);
+    EXPECT_EQ(runtime.panels.delegated.pet, 0);
+    EXPECT_EQ(runtime.pets[1].level, 0);
+    EXPECT_EQ(runtime.pets[0].experience, 0u);
+}
+
+// 0x4c268a..0x4c26d2: las misiones vuelven a +4 = 0xff (el A0 se vuelve a pedir) y la ventana se cierra sin el 31.
+TEST(ReturnToSelectionWithoutDataTest, TheQuestsGoBackToTheirStart)
+{
+    const auto tested = std::make_unique<Returning>(std::filesystem::path{}, Seed);
+    auto& runtime = tested->world.Runtime();
+    runtime.quest.characterClass = 1;
+    runtime.quest.current = 2;
+    runtime.quest.states[0] = 0xaa;
+    runtime.panels.delegated.quest = Client::Scenes::QuestListWindow;
+
+    ASSERT_TRUE(ApplyReturnToSelection(tested->Resources()).HasValue());
+
+    EXPECT_EQ(runtime.quest.characterClass, Client::Scenes::QuestClassUnknown);
+    EXPECT_EQ(runtime.quest.current, 0);
+    EXPECT_EQ(runtime.quest.states[0], 0);
+    EXPECT_EQ(runtime.panels.delegated.quest, 0);
 }
 
 // 0x4c2515..0x4c252d: la vuelta deja los cinco del picking en −1, también el personaje elegido y 0x6c8e38.
@@ -256,7 +294,7 @@ TEST(ReturnToSelectionWithoutDataTest, TheReturnForgetsThePickedTargets)
     const auto tested = std::make_unique<Returning>(std::filesystem::path{}, Seed);
     tested->world.Runtime().selectedTargets = {3, 4, 5, 6, 1};
 
-    ApplyReturnToSelection(tested->Resources());
+    ASSERT_TRUE(ApplyReturnToSelection(tested->Resources()).HasValue());
 
     EXPECT_EQ(tested->world.Runtime().selectedTargets, (std::array<std::int32_t, 5>{-1, -1, -1, -1, -1}));
 }
@@ -276,7 +314,7 @@ TEST(ReturnToSelectionWithoutDataTest, OnlyTheKeyFFFFSurvives)
     helpers[0] = Client::Scenes::HelperState{.alive = true, .type = Client::Scenes::DarkHorseModel, .rider = 1};
     helpers[1] = Client::Scenes::HelperState{.alive = true, .type = Client::Scenes::DarkHorseModel, .rider = 2};
 
-    ApplyReturnToSelection(tested.Resources());
+    ASSERT_TRUE(ApplyReturnToSelection(tested.Resources()).HasValue());
 
     EXPECT_FALSE(actors[1].alive);
     EXPECT_TRUE(actors[2].alive);
@@ -295,7 +333,7 @@ TEST(ReturnToSelectionPoolsTest, ReleasesTheLiveFlagsWithoutReplacingRetainedRec
     tested.world.DrawTail().floorItems[3].alive = true;
     tested.world.DrawTail().joints[4].alive = true;
     tested.world.DrawTail().ribbons[5].alive = true;
-    ApplyReturnToSelection(tested.Resources());
+    ASSERT_TRUE(ApplyReturnToSelection(tested.Resources()).HasValue());
     EXPECT_FALSE(tested.world.Fauna().Birds()[0].active);
     EXPECT_FALSE(tested.world.Leaves().All()[0].alive);
     EXPECT_EQ(tested.world.Leaves().All()[0].type, 123);

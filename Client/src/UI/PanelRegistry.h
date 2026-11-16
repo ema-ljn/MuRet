@@ -89,7 +89,8 @@ struct CommandsWindowState
 // Los ids cuyo estado vive en otro objeto. MuRet no tiene a sus dueños: quedan en 0, cerrados, hasta su ola.
 struct DelegatedPanels
 {
-    // 1: 0x490a00(*(0x5763514)+0x48), la de amigos del administrador viejo (hito 7, CL9.4).
+    // 1: 0x490a00(*(0x5763514)+0x48), la de amigos del administrador viejo. En el juego la mira
+    // PanelContext::friendsShown (CL9 hito 9); sin él, este byte.
     std::uint8_t friends = 0;
     // 8: *(0x710148)+0x21383. IsOpen lo mira distinto de 0 y CanOpen no abre nada con 1.
     std::uint8_t quest = 0;
@@ -178,6 +179,9 @@ struct PanelContext
     // 0x659aa0..0x659c3d: lo que abrir la party hace si cerró lo demás, antes de prenderla: 0x78aba48 (la cuenta de la
     // party) en 0 y el pedido de la lista, C1 03 42. Sin él, abrir la party corta.
     std::function<void()> partyOpened{};
+    // 0x658a18..0x658bc7 y 0x658c0e..0x658dbe: cerrar un NPC de evento (0x1000 o 0x4000) manda el C1 03 31 en claro
+    // antes de poner 0x7d53712 en 0. Sin él, cerrarlos corta.
+    std::function<void()> eventNpcClosed{};
     // 0x41ed10(id, 0, 0): el sonido, gancho de la CL10.
     std::function<void(std::int32_t)> sound{};
     // 0x65c966..0x65ca6d: lo que abrir el personaje hace fuera de los paneles, cierre o no lo demás: [0x6eed3c] de
@@ -196,6 +200,21 @@ struct PanelContext
     // 0x6589cb y 0x6589ef: 0x5eb020 al cerrar cualquiera de las dos, antes de apagar 0x7d5370f
     // (Scenes::CloseThePersonalShop). Sin él, cerrar una tienda corta.
     std::function<Core::Expected<void, std::string>()> personalShopClosed{};
+    // 0x659ff6..0x65a8a3: lo que abrir la mascota hace si cerró lo demás, después de 0x420cb0: los pedidos del cuervo y
+    // del caballo, C1 06 A9 00 00 01 y A9 01 00 08, con el XOR32 y por send() (CL9 hito 4). Sin él, abrirla corta.
+    std::function<void()> petOpened{};
+    // 0x659c68..0x659c70: abrir las misiones, si cerró lo demás, es 0x419840(−1) sobre [0x710148] (la lista, con su
+    // diálogo). Sin él, abrir las misiones corta.
+    std::function<Core::Expected<void, std::string>()> questOpened{};
+    // 0x657b2b..0x657b31: cerrar las misiones es 0x419900, que pone la ventana en 0 (lo hace el registro) y manda el
+    // C1 03 31 en claro. Sin él, cerrar las misiones corta.
+    std::function<void()> questClosed{};
+    // El panel 1, la ventana de amigos del administrador viejo: 0x490a00(+0x48) para saber si está (sin él,
+    // DelegatedPanels::friends), 0x491080(0x186, 0x106) al abrirlo (0x659f3d; sin él, abrirlo corta) y 0x4914e0 al
+    // cerrarlo (0x6584e5; sin él, cerrarlo corta).
+    std::function<bool()> friendsShown{};
+    std::function<Core::Expected<void, std::string>()> friendsOpened{};
+    std::function<Core::Expected<void, std::string>()> friendsClosed{};
 };
 
 class PanelRegistry

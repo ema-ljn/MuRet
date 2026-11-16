@@ -26,6 +26,7 @@
 #include "Scenes/UiItemDrawing.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "Scenes/ZenText.h"
 #include "UI/GameText.h"
 #include "UI/HudPrimitives.h"
 #include "UI/PanelRegistry.h"
@@ -238,7 +239,8 @@ void SpendUiItemRandoms(GameHudContext& context, std::int32_t model, std::uint8_
         context.world.Runtime().itemRender.selections[static_cast<std::uint16_t>(model)] = context.random.Next() % 100;
 }
 
-// Item.bmd +0x24 y +0x25: las casillas de ancho y de alto, cada una por 20 (0x6b86d0) en la x87 con el fstp.
+} // namespace
+
 Core::Expected<UiItemBox, std::string> ItemSizeOf(const GameHudContext& context, std::int32_t type,
                                                   std::string_view where)
 {
@@ -255,7 +257,6 @@ Core::Expected<UiItemBox, std::string> ItemSizeOf(const GameHudContext& context,
     box.height = F32(static_cast<double>(std::to_integer<std::uint8_t>((*record)[Height])) * CellPixels);
     return box;
 }
-} // namespace
 
 Core::Expected<void, std::string> DrawUiItem(GameHudContext& context, const UiItemBox& box, std::int32_t type,
                                              std::uint32_t level, std::uint8_t excellent, std::uint8_t set, bool always)
@@ -392,18 +393,6 @@ void DrawTheGridBoxes(Render::SpriteBatch& sprites, float x, float y, std::span<
     }
 }
 
-// 0x5f2771..0x5f27ef: el color del zen por cuánto es.
-std::uint32_t ZenColor(std::uint32_t zen)
-{
-    if (zen >= 10000000u)
-        return 0xff0000ffu;
-    if (zen >= 1000000u)
-        return 0xff0096ffu;
-    if (zen >= 100000u)
-        return 0xff18c900u;
-    return 0xff96dcffu;
-}
-
 // Un botón de 24 × 24 al pie de la ventana y su ayuda con el mouse encima, en (_ftol(x), _ftol(y) − arriba).
 Core::Expected<void, std::string> DrawFootButton(GameHudContext& context, std::uint16_t slot, float x, float y,
                                                  std::size_t help, int above, std::string_view where)
@@ -484,6 +473,7 @@ Core::Expected<void, std::string> DrawTheInventory(GameHudContext& context, UI::
         const auto own = OwnAccess(context);
         zen = world.OwnCharacter().zen;
     }
+    // 0x5f26a7..0x5f2751 y 0x5f2771..0x5f27ef: la misma cuenta que 0x5b1130 y 0x5b10f0, copiada.
     const std::string amount = FormatZen(zen);
     hud.textColors = Render::Text::TextColors{.text = 0xff96dcffu, .background = 0xff282828u};
     const std::int32_t textY = Truncate(zenY) + 3;

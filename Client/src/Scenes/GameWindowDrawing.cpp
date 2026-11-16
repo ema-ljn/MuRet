@@ -44,7 +44,7 @@ constexpr float CloseUv = 0.75f;
 constexpr std::int32_t HelpAbove = 0xd;
 // 0x6c8e5c y 0x6c8e64 de la ayuda del botón de cerrar (0x5f1296, 0x40a861).
 constexpr Render::Text::TextColors CloseHelpColors{.text = 0xffffffffu, .background = 0xff000000u};
-// 0x5f0cd6..0x5f0cef: el ancho de la caja del título, 120 · W / 640 sin signo (k · W / 640 en las demás cajas).
+// 0x5f0cd6..0x5f0cef: el ancho de la caja del título, 120 · W / 640 sin signo.
 constexpr std::uint32_t TitleBoxDesignWidth = 120;
 constexpr std::uint32_t DesignWidth = 640;
 
@@ -122,17 +122,15 @@ void DrawText(GameHudContext& context, std::int32_t x, std::int32_t y, std::stri
     KeepTheMeasure(context, text, 0);
 }
 
-void DrawTitle(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text)
+std::int32_t BoxWidth(const GameHudContext& context, std::uint32_t designWidth)
 {
-    DrawCenteredInBox(context, x, y, text, TitleBoxDesignWidth);
+    const auto screenWidth = static_cast<std::uint32_t>(context.sprites.Screen().width);
+    return static_cast<std::int32_t>(screenWidth * designWidth / DesignWidth);
 }
 
-void DrawCenteredInBox(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text,
-                       std::uint32_t designWidth)
+void DrawInBox(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text, std::int32_t box)
 {
     HudState& hud = context.hud;
-    const App::PixelSize screen = context.sprites.Screen();
-    const auto box = static_cast<std::int32_t>(static_cast<std::uint32_t>(screen.width) * designWidth / DesignWidth);
     // 0x554180: 0x465950 con un texto o con caja. 0x467060 en el modo 2 (0x46711b..0x467132): la caja de
     // cx + 2 · ((caja − cx) / 2) columnas desde _ftol(x · rx), con el fondo entero, y el texto corrido (caja − cx) / 2.
     if (!text.empty() || box != 0)
@@ -142,6 +140,36 @@ void DrawCenteredInBox(GameHudContext& context, std::int32_t x, std::int32_t y, 
                                  -placed.textColumn, placed.width);
     }
     KeepTheMeasure(context, text, box);
+}
+
+void DrawInBox(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text,
+               std::uint32_t designWidth)
+{
+    DrawInBox(context, x, y, text, BoxWidth(context, designWidth));
+}
+
+void DrawClipped(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text, std::int32_t width)
+{
+    HudState& hud = context.hud;
+    const Render::Text::TextStyle style{.font = hud.dcFont, .colors = hud.textColors};
+    if (width <= 0)
+    {
+        if (!text.empty())
+            context.text.Draw(x, y, text, style);
+    }
+    else
+    {
+        // El cx de GetTextExtentPoint32A en 0x467060: un texto vacío mide "0" (0x4670ba..0x4670d0).
+        const std::int32_t measured =
+            context.text.Measure(hud.dcFont, text.empty() ? std::string_view("0") : text).width;
+        context.text.DrawColumns(x, y, text, style, width < measured ? measured - width : 0, width);
+    }
+    KeepTheMeasure(context, text, width);
+}
+
+void DrawTitle(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text)
+{
+    DrawInBox(context, x, y, text, BoxWidth(context, TitleBoxDesignWidth));
 }
 
 void DrawCenteredText(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text)

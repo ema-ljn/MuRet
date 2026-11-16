@@ -3,7 +3,13 @@
 #include "Core/Expected.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
+#include "Data/Terrain/TerrainLight.h"
 #include "Render/Models/Cloth.h"
+#include "Render/ModelBatch.h"
+#include "Render/Pass3D.h"
+#include "Scenes/CharacterCloth.h"
+#include "Scenes/ActorConstruction.h"
+#include "Scenes/ActorCreation.h"
 #include "Scenes/DarkHorse.h"
 #include "Scenes/EventMapObject.h"
 #include "Scenes/HelperTable.h"
@@ -12,13 +18,17 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/GroundMarks.h"
+#include "World/TerrainLighting.h"
 #include "World/WorldObjectRegistrations.h"
 #include "World/WorldTerrain.h"
+#include "World/TerrainCulling.h"
+#include "Data/Models/PlayerModels.h"
 
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"
 #include "support/PlayerActors.h"
 #include "support/TemporaryFolder.h"
+#include "support/ClothVectors.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -37,6 +47,8 @@ namespace
 {
 using Client::Render::Models::CrtRandom;
 using Client::Scenes::ArmEventMapObject;
+using Client::Scenes::CharacterCloth;
+using Client::Scenes::ClothWearer;
 using Client::Scenes::EventMapKind;
 using Client::Scenes::EventMapObject;
 using Client::Scenes::LoadMap;
@@ -48,6 +60,48 @@ using Client::Scenes::WorldState;
 constexpr std::uint32_t Seed = 0x5eed;
 constexpr std::uint16_t PlayerKey = 5;
 constexpr int GrassRandoms = 65536;
+
+TEST(ActorClothLifecycleTest, MapCleanupReleasesClothsInEveryPoolSlotExceptTheSentinel)
+{
+    Client::Tests::ClothVectors vectors;
+    const auto error =
+        Client::Tests::ReadClothVectors(Client::Tests::ClothVectorsDir() / "a_login_dark_lord.txt", vectors);
+    ASSERT_FALSE(error.has_value()) << *error;
+    ASSERT_FALSE(vectors.frames.empty());
+    const auto& frame = vectors.frames.front();
+    Client::Render::Models::ClothWorld clothWorld{.random = Client::Render::Models::CrtRandom(vectors.randomState)};
+
+    WorldState world;
+    for (const std::size_t slot : {0u, 1u, 400u})
+    {
+        CharacterCloth& cloth = world.ActorCloths()[slot];
+        const Client::Render::Models::ClothBody body{
+            .bones = frame.bones, .angles = frame.angles, .scale = frame.scale, .position = frame.origin};
+        ClothWearer wearer;
+        wearer.characterClass = frame.characterClass;
+        wearer.armor = frame.armor;
+        if (frame.wings != 0xffff)
+            wearer.wings = frame.wings;
+        Client::Render::ModelBatch batch;
+        batch.Begin(Client::Render::Pass3D{});
+        cloth.Frame(batch, wearer, body, clothWorld, frame.map, frame.worldTime, frame.wears);
+        ASSERT_FALSE(cloth.Cloths().empty()) << "slot " << slot;
+    }
+
+    world.Actors()[0].alive = true;
+    world.Actors()[0].key = 7;
+    world.Actors()[1].alive = false;
+    world.Actors()[1].key = 7;
+    world.Actors()[400].alive = true;
+    world.Actors()[400].key = 8;
+
+    Client::Scenes::KillOtherActors(world, 7);
+
+    EXPECT_TRUE(world.Actors()[0].alive);
+    EXPECT_TRUE(world.ActorCloths()[0].Cloths().empty());
+    EXPECT_TRUE(world.ActorCloths()[1].Cloths().empty());
+    EXPECT_FALSE(world.ActorCloths()[400].Cloths().empty());
+}
 
 // 06 § La carga del mapa, paso 2: 0x60719c..0x6071ac solo apaga el primer byte de los 200
 // registros de 0x7d34818. La próxima creación debe poder reutilizarlos sin borrar sus demás campos.
@@ -130,6 +184,60 @@ TEST_F(MapLoadTest, MapThirtyTwoLoadsWorldTenAsNine)
     ASSERT_TRUE(worldTen.HasValue());
     EXPECT_EQ(world.Map().terrain.attributes->cells, worldTen.Value().attributes->cells);
     EXPECT_EQ(world.Map().terrain.heights->cells, worldTen.Value().heights->cells);
+}
+
+TEST_F(MapLoadTest, CreatingAnActorInAFreeSlotDropsItsClothAndLiveKeyRecreationKeepsIt)
+{
+    ASSERT_TRUE(Load(0).HasValue());
+
+    Client::Tests::ClothVectors vectors;
+    const auto error =
+        Client::Tests::ReadClothVectors(Client::Tests::ClothVectorsDir() / "a_login_dark_lord.txt", vectors);
+    ASSERT_FALSE(error.has_value()) << *error;
+    ASSERT_FALSE(vectors.frames.empty());
+    const auto& frame = vectors.frames.front();
+    const auto buildCloth = [&](CharacterCloth& cloth)
+    {
+        Client::Render::Models::ClothWorld clothWorld{.random = CrtRandom(vectors.randomState)};
+        const Client::Render::Models::ClothBody body{
+            .bones = frame.bones, .angles = frame.angles, .scale = frame.scale, .position = frame.origin};
+        ClothWearer wearer;
+        wearer.characterClass = frame.characterClass;
+        wearer.armor = frame.armor;
+        if (frame.wings != 0xffff)
+            wearer.wings = frame.wings;
+        Client::Render::ModelBatch batch;
+        batch.Begin(Client::Render::Pass3D{});
+        cloth.Frame(batch, wearer, body, clothWorld, frame.map, frame.worldTime, frame.wears);
+    };
+
+    buildCloth(world.ActorCloths()[0]);
+    ASSERT_FALSE(world.ActorCloths()[0].Cloths().empty());
+    const Client::Scenes::ActorConstructionContext construction{world.Map().terrain, 0,
+                                                                Client::World::CullingScene::Game, 450.0f};
+    Client::Render::Models::ClothWorld actorClothWorld{.random = CrtRandom(Seed)};
+
+    const auto first = Client::Scenes::CreateActor(world, PlayerKey, Client::Data::Models::PlayerSkeletonModel,
+                                                   {100, 100, 0.0f}, construction, actorClothWorld);
+    ASSERT_TRUE(first.HasValue()) << first.Error();
+    ASSERT_EQ(first.Value(), 0u);
+    EXPECT_TRUE(world.ActorCloths()[0].Cloths().empty());
+
+    buildCloth(world.ActorCloths()[0]);
+    ASSERT_FALSE(world.ActorCloths()[0].Cloths().empty());
+    const auto liveRecreation = Client::Scenes::CreateActor(world, PlayerKey, Client::Data::Models::PlayerSkeletonModel,
+                                                            {100, 100, 0.0f}, construction, actorClothWorld);
+    ASSERT_TRUE(liveRecreation.HasValue()) << liveRecreation.Error();
+    EXPECT_EQ(liveRecreation.Value(), first.Value());
+    EXPECT_FALSE(world.ActorCloths()[0].Cloths().empty());
+
+    Client::Scenes::RemoveActor(world, PlayerKey);
+    EXPECT_TRUE(world.ActorCloths()[0].Cloths().empty());
+    const auto afterLeave = Client::Scenes::CreateActor(world, PlayerKey, Client::Data::Models::PlayerSkeletonModel,
+                                                        {100, 100, 0.0f}, construction, actorClothWorld);
+    ASSERT_TRUE(afterLeave.HasValue()) << afterLeave.Error();
+    EXPECT_EQ(afterLeave.Value(), first.Value());
+    EXPECT_TRUE(world.ActorCloths()[0].Cloths().empty());
 }
 
 // 0x447d70: Devil Square (9), Blood Castle (11 a 17) y Chaos Castle (18 a 23) arman su objeto de evento, con
@@ -399,8 +507,9 @@ TEST_F(MapLoadTest, CastleSiegeWithTheSiegeOnStopsAtItsAttributes)
 }
 
 // 0x61a6d0 → 0x42fe50: con el estado de Crywolf de la .bss (0) el 34 toma EncTerrain35.att, el mismo que lee el
-// cargador del repo, y no EncTerrain351.att. Con 1, 2 o 3, que solo pone un paquete, corta en 0x61a6f4 (Q-C340).
-TEST_F(MapLoadTest, CrywolfTakesItsPlainAttributesOnlyWithTheStartingState)
+// cargador del repo, y no EncTerrain351.att. Con 1 y 2, que pone el BD 00, EncTerrain351/352.att y TerrainLight1/2;
+// con 3, los archivos anteriores (Q-C181): corta en 0x61a74d.
+TEST_F(MapLoadTest, CrywolfTakesTheAttributesAndTheLightOfItsState)
 {
     ASSERT_EQ(world.Runtime().crywolf.state, 0);
     ASSERT_TRUE(Load(34).HasValue());
@@ -413,16 +522,33 @@ TEST_F(MapLoadTest, CrywolfTakesItsPlainAttributesOnlyWithTheStartingState)
     ASSERT_NE(expected.Value()->cells, other.Value()->cells);
     ASSERT_TRUE(world.Map().terrain.attributes);
     EXPECT_EQ(world.Map().terrain.attributes->cells, expected.Value()->cells);
-    for (const std::uint8_t state : {std::uint8_t{1}, std::uint8_t{2}, std::uint8_t{3}})
+    const auto plainLight = world.Map().terrain.lighting->cells;
+    for (const std::uint8_t state : {std::uint8_t{1}, std::uint8_t{2}})
     {
         SCOPED_TRACE(static_cast<int>(state));
         world.Runtime().crywolf.state = state;
         const auto loaded = Load(34);
-        ASSERT_FALSE(loaded.HasValue());
-        EXPECT_NE(loaded.Error().find("0x61a6f4"), std::string::npos) << loaded.Error();
-        EXPECT_NE(loaded.Error().find("estado de Crywolf " + std::to_string(state)), std::string::npos)
-            << loaded.Error();
+        ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
+        const auto file =
+            Client::Tests::ReadFileBytes(m_dataRoot / "world35" / ("EncTerrain35" + std::to_string(state) + ".att"));
+        ASSERT_TRUE(file.has_value());
+        const auto attributes = Client::Data::Terrain::LoadTerrainAttributes(std::as_bytes(std::span(*file)), 35);
+        ASSERT_TRUE(attributes.HasValue());
+        EXPECT_EQ(world.Map().terrain.attributes->cells, attributes.Value()->cells);
+        const auto light =
+            Client::Tests::ReadFileBytes(m_dataRoot / "world35" / ("TerrainLight" + std::to_string(state) + ".OZJ"));
+        ASSERT_TRUE(light.has_value());
+        const auto decoded = Client::Data::Terrain::LoadTerrainLight(std::as_bytes(std::span(*light)));
+        ASSERT_TRUE(decoded.HasValue());
+        EXPECT_EQ(world.Map().terrain.lighting->cells,
+                  Client::World::ShadeTerrainLight(*decoded.Value(), *world.Map().terrain.heights, 34)->cells);
+        EXPECT_NE(world.Map().terrain.lighting->cells, plainLight);
     }
+    world.Runtime().crywolf.state = 3;
+    const auto loaded = Load(34);
+    ASSERT_FALSE(loaded.HasValue());
+    EXPECT_NE(loaded.Error().find("0x61a74d"), std::string::npos) << loaded.Error();
+    EXPECT_NE(loaded.Error().find("Q-C181"), std::string::npos) << loaded.Error();
 }
 
 // Los mapas con datos en la Data del repo: los que carga y, en los demás, dónde corta.

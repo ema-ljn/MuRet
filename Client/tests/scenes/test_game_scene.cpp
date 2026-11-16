@@ -1,9 +1,11 @@
 #include "Scenes/GameScene.h"
 
+#include "App/PacingMode.h"
 #include "App/ServerSession.h"
 #include "App/SessionState.h"
 #include "App/WorldEvent.h"
 #include "Core/Expected.h"
+#include "Core/IClock.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Data/Models/Model.h"
@@ -14,12 +16,15 @@
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "Data/Terrain/TerrainMapping.h"
+#include "Data/Text/TextTable.h"
 #include "Input/InputState.h"
 #include "Network/PacketSerials.h"
 #include "Render/ModelBatch.h"
+#include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/Skeleton.h"
+#include "Render/Pass3D.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Render/TextureSlot.h"
@@ -27,6 +32,7 @@
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/ChatBubbles.h"
 #include "Scenes/DarkHorse.h"
+#include "Scenes/EventGlobals.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/FaunaStep.h"
 #include "Scenes/FaunaState.h"
@@ -56,6 +62,7 @@
 
 #include "support/AppPrinters.h"
 #include "support/Bytes.h"
+#include "support/FakeClock.h"
 #include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
 #include "support/PlayerActors.h"
@@ -66,6 +73,7 @@
 #include "support/SessionHarness.h"
 #include "support/TestGameServer.h"
 
+#include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
 #include <gtest/gtest.h>
@@ -117,8 +125,11 @@ constexpr int GameUiStepDraws = Client::Render::Models::OwnRecordCloseRandoms + 
 // 0x636920, en el primer paso de la escena: 0x46b010 y 0x46b0e0, que abre y cierra el registro propio. Sin Slide.bmd
 // ningún tramo tiene textos y no sortea.
 constexpr int SlideStartDraws = Client::Render::Models::OwnRecordCloseRandoms;
-// El primer paso de cada escena: el cartel y, después, la UI del paso.
-constexpr int FirstStepDraws = SlideStartDraws + GameUiStepDraws;
+// 0x4eb620, al empezar cada frame del original y antes del paso: en la escena 5, 0x552f10 (la espera de las skills)
+// abre y cierra el registro propio.
+constexpr int FrameStartDraws = Client::Render::Models::OwnRecordCloseRandoms;
+// El primer paso de cada escena: el comienzo del frame, el cartel y, después, la UI del paso.
+constexpr int FirstStepDraws = FrameStartDraws + SlideStartDraws + GameUiStepDraws;
 // 0x637641: el picking del frame del Dark Wizard (la clase 0) lee su skill del registro propio (0x59efda).
 constexpr int FramePickingDraws = Client::Render::Models::OwnRecordCloseRandoms;
 // 0x637660: el HUD (0x5a7320) en el estado base: 19 cierres del registro propio (las flechas, los doce avisos de
@@ -546,13 +557,13 @@ private:
 // 0x6370f4: 0x445230, los ayudantes, antes de MoveHero (0x63710a) y también en la espera. Con el jinete
 // muerto, el paso de la escena 5 apaga su caballo y la espera sigue, con los 8 rand() de MoveHero. Con el
 // jinete vivo fuera de una celda segura, el aliento saca un rand() después de los seis candidatos
-// de peces del mapa inerte (con Seed, tres rand() antes, el cartel y la UI del paso, % 3 da 0) y, sin ningún dibujo
-// antes, sale del hueso 27 en cero del buffer global: la 5f2 nace, MoveHero baja el contador y la espera sigue, con el
-// cuerpo del jinete avanzado por Player.bmd (0x4f9580).
+// de peces del mapa inerte (con Seed, un rand() antes, el comienzo del frame, el cartel y la UI del paso, % 3 da 0) y,
+// sin ningún dibujo antes, sale del hueso 27 en cero del buffer global: la 5f2 nace, MoveHero baja el contador y la
+// espera sigue, con el cuerpo del jinete avanzado por Player.bmd (0x4f9580).
 TEST(GameSceneTest, TheHorseStepsBeforeMoveHeroAlsoInTheWait)
 {
     constexpr std::size_t RiderSlot = 5;
-    constexpr int Skipped = 3;
+    constexpr int Skipped = 1;
     CrtRandom first = RandomAfter(Skipped + FirstStepDraws + InertFishCandidateRandoms);
     ASSERT_EQ(first.Next() % 3, 0);
     for (const bool riderAlive : {false, true})
@@ -608,7 +619,8 @@ TEST(GameSceneTest, TheHorseStepsBeforeMoveHeroAlsoInTheWait)
 }
 
 // 0x636da3 y 0x6371a6: sin el mundo cargado y sin el estado 0x3d, el paso sale antes de MoveHero y el
-// dibujo devuelve 0 sin leer el contador. El cartel del primer paso (0x636920) y la tela corren igual.
+// dibujo devuelve 0 sin leer el contador. El comienzo del frame (0x4eb620), el cartel del primer paso (0x636920) y la
+// tela corren igual.
 TEST(GameSceneTest, WithoutTheLoadedWorldNeitherTheStepNorTheDrawReadTheCounter)
 {
     Client::Tests::RecordingSink sink;
@@ -623,7 +635,7 @@ TEST(GameSceneTest, WithoutTheLoadedWorldNeitherTheStepNorTheDrawReadTheCounter)
     EXPECT_TRUE(tested.scene.HoldsTheLastFrame());
     EXPECT_FALSE(tested.Runtime().drawingEnabled);
     EXPECT_EQ(tested.Runtime().warpCounter, 30);
-    EXPECT_EQ(tested.cloth.random.State(), StateAfterAStep(SlideStartDraws));
+    EXPECT_EQ(tested.cloth.random.State(), StateAfterAStep(FrameStartDraws + SlideStartDraws));
 }
 
 // 0x636da3..0x636dac: con la sesión en el mundo (el 0x3d que publica la respuesta del F3 03), el paso
@@ -799,17 +811,21 @@ protected:
                                                Client::Scenes::SelectionCamera().angles.z);
     }
 
-    [[nodiscard]] GameScene Scene()
+    // Con `texts`, el Text.bmd de la Data (sin él, lo que lo lee corta); con el ritmo fiel, cada dibujo es un frame del
+    // original.
+    [[nodiscard]] GameScene Scene(const Client::Data::Text::TextTable* texts = nullptr,
+                                  Client::App::PacingMode pacing = Client::App::PacingMode::Decoupled)
     {
         return GameScene(SceneContext{.dataRoot = m_dataRoot,
                                       .textures = store,
                                       .log = log,
                                       .cloth = &cloth,
+                                      .pacing = pacing,
                                       .camera = &camera,
                                       .cameraInput = &cameraInput,
                                       .world = &world},
                          nullptr, &playerModels, &data.items->table, &playerModels.TextureSlots(), &*data.gates,
-                         &*data.skills);
+                         &*data.skills, texts);
     }
 
     static constexpr std::size_t HeroSlot = 42;
@@ -1022,6 +1038,183 @@ TEST_F(GameSceneDrawTest, TheReferenceMapsDrawTheTerrainTheGrassTheGroundMarksAn
     }
 }
 
+// 0x635ead..0x635ed8 y 0x637324: con el recorrido de la cámara andando (0x4033d0: la etapa 2, sin la espera ni el
+// corte), la cámara y el centro del mundo de cada frame del original siguen su posición (0x4034b0) y la z del héroe
+// queda en 300 (0x635ec0): el frame es el de un héroe parado en ese punto a 300, con su celda lógica. Cortado (+0x158)
+// o con otra etapa, el frame siguiente vuelve al héroe, que sigue a 300 porque parado nadie le recalcula la z. El word
+// del nivel (0x7d3a0ec) es el +0x150 del recorrido: el trapecio lo toma en el mismo frame (0x5fb570), la meta de D
+// también (0x6361d0) y el far en el siguiente (0x635e00); sin el recorrido, el trapecio sigue con el nivel hasta que D
+// vuelve a 1.000. En Lorencia, en Devias y en Crywolf.
+TEST_F(GameSceneDrawTest, TheCameraFollowsTheTourWhileItRunsAndThenTheHeroAgain)
+{
+    struct Case
+    {
+        std::uint8_t map;
+        std::uint8_t x;
+        std::uint8_t y;
+        // true: el BD 00 deja otra etapa (0x4033b0, la 3); false: Esc o el fin del guion (+0x158, 0x623edc y 0x404bc6).
+        bool otherStage;
+    };
+    struct Drawn
+    {
+        Client::Render::Pass3D pass;
+        Client::World::TerrainPolygon polygon;
+        std::vector<std::size_t> seen;
+        std::uint32_t random = 0;
+    };
+    constexpr Client::Core::Duration FrameTime = Client::Render::Models::OriginalFrameTime;
+    constexpr Client::Core::Duration FirstFrame = std::chrono::milliseconds{1000};
+    for (const Case& probe :
+         {Case{0, 143, 120, false}, Case{2, 220, 30, true}, Case{34, 120, 114, false}, Case{34, 120, 114, true}})
+    {
+        SCOPED_TRACE(static_cast<int>(probe.map));
+        SCOPED_TRACE(probe.otherStage);
+        const glm::vec3 tourPoint{(static_cast<float>(probe.x + 6) * 100.0f) + 50.0f,
+                                  (static_cast<float>(probe.y + 4) * 100.0f) + 50.0f, 400.0f};
+        // Un frame del original en `at`: su pase de los modelos, el trapecio, los objetos vistos y el rand().
+        const auto draw = [&](GameScene& scene, Client::Tests::RecordingFrameTarget& target, Client::Core::Duration at)
+        {
+            scene.PrepareFrame();
+            EXPECT_FALSE(scene.HoldsTheLastFrame());
+            scene.Render(target.BeginFrame(at), 0.0f);
+            EXPECT_FALSE(scene.Failure().has_value()) << scene.Failure().value_or("");
+            const Client::Tests::FrameEvent* models = ModelsOf(target.frames.back());
+            target.Present();
+            Drawn drawn{.pass = {},
+                        .polygon = world.Runtime().terrainPolygon,
+                        .seen = SeenObjects(world),
+                        .random = cloth.random.State()};
+            if (models != nullptr && models->pass)
+                drawn.pass = *models->pass;
+            else
+                ADD_FAILURE() << "sin el pase de los modelos";
+            return drawn;
+        };
+
+        // El gemelo sin recorrido: el héroe dibujado en el punto del recorrido a 300 y en la misma celda lógica.
+        ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, probe.x, probe.y));
+        world.Actors()[HeroSlot].position = {tourPoint.x, tourPoint.y, Client::World::CameraTourHeroHeight};
+        Drawn twin;
+        {
+            GameScene scene = Scene();
+            ASSERT_TRUE(scene.Enter().HasValue());
+            Client::Tests::RecordingFrameTarget target;
+            twin = draw(scene, target, FirstFrame);
+            EXPECT_EQ(camera.level, 0);
+            scene.Leave();
+        }
+        // Y el del héroe en su lugar, ya a 300, como lo deja el recorrido.
+        ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, probe.x, probe.y));
+        const glm::vec2 heroPlace{world.Actors()[HeroSlot].position};
+        world.Actors()[HeroSlot].position.z = Client::World::CameraTourHeroHeight;
+        Drawn standing;
+        {
+            GameScene scene = Scene();
+            ASSERT_TRUE(scene.Enter().HasValue());
+            Client::Tests::RecordingFrameTarget target;
+            standing = draw(scene, target, FirstFrame);
+            scene.Leave();
+        }
+
+        // El recorrido andando con `level`, en una escena que dibuja un frame del original por dibujo.
+        const auto startTheTour = [&](std::int32_t level)
+        {
+            Client::Scenes::CameraTour& tour = world.Runtime().events.cameraTour;
+            tour = Client::Scenes::CameraTour{};
+            tour.stage = 2;
+            tour.waiting = false;
+            tour.position = tourPoint;
+            tour.level = level;
+        };
+        const auto stopTheTour = [&]
+        {
+            Client::Scenes::CameraTour& tour = world.Runtime().events.cameraTour;
+            if (probe.otherStage)
+                tour.stage = 3;
+            else
+                tour.skipped = true;
+        };
+
+        // Con el nivel 0: el frame del gemelo y, sin el recorrido, el del héroe a 300.
+        {
+            ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, probe.x, probe.y));
+            startTheTour(0);
+            GameScene scene = Scene(nullptr, Client::App::PacingMode::Faithful);
+            ASSERT_TRUE(scene.Enter().HasValue());
+            Client::Tests::RecordingFrameTarget target;
+            const Drawn first = draw(scene, target, FirstFrame);
+            ASSERT_TRUE(cameraInput.tour.has_value());
+            EXPECT_EQ(cameraInput.tour->position, tourPoint);
+            EXPECT_EQ(world.Actors()[HeroSlot].position,
+                      glm::vec3(heroPlace.x, heroPlace.y, Client::World::CameraTourHeroHeight));
+            EXPECT_EQ(cameraInput.hero, world.Actors()[HeroSlot].position);
+            EXPECT_EQ(first.pass.view, twin.pass.view);
+            EXPECT_EQ(first.pass.projection, twin.pass.projection);
+            EXPECT_EQ(first.pass.farPlane, twin.pass.farPlane);
+            EXPECT_EQ(first.polygon.x, twin.polygon.x);
+            EXPECT_EQ(first.polygon.y, twin.polygon.y);
+            EXPECT_EQ(first.seen, twin.seen);
+            EXPECT_EQ(first.random, twin.random);
+            EXPECT_NE(first.pass.view, standing.pass.view);
+
+            stopTheTour();
+            const Drawn back = draw(scene, target, FirstFrame + FrameTime);
+            EXPECT_FALSE(cameraInput.tour.has_value());
+            EXPECT_EQ(back.pass.view, standing.pass.view);
+            EXPECT_EQ(back.pass.farPlane, standing.pass.farPlane);
+            EXPECT_EQ(back.polygon.x, standing.polygon.x);
+            EXPECT_EQ(back.polygon.y, standing.polygon.y);
+            EXPECT_EQ(back.seen, standing.seen);
+            EXPECT_EQ(world.Actors()[HeroSlot].position.z, Client::World::CameraTourHeroHeight)
+                << "0x635ec0 no vuelve: el héroe parado se queda a 300";
+            scene.Leave();
+        }
+
+        // Con el nivel 2: la vista del primer frame es la del gemelo (la D de antes del suavizado), pero el trapecio y
+        // la meta de D ya son los del 2; el far, desde el segundo.
+        ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, probe.x, probe.y));
+        startTheTour(2);
+        GameScene scene = Scene(nullptr, Client::App::PacingMode::Faithful);
+        ASSERT_TRUE(scene.Enter().HasValue());
+        Client::Tests::RecordingFrameTarget target;
+        Client::Core::Duration at = FirstFrame;
+        const Drawn leveled = draw(scene, target, at);
+        EXPECT_EQ(camera.level, 2);
+        EXPECT_EQ(camera.targetDistance, 1200.0f);
+        EXPECT_EQ(world.Runtime().terrainPolygonState.effectiveLevel, 2);
+        EXPECT_EQ(leveled.pass.farPlane, 2000.0f);
+        EXPECT_EQ(leveled.pass.view, twin.pass.view);
+        EXPECT_NE(leveled.polygon.x, twin.polygon.x);
+        at += FrameTime;
+        const Drawn away = draw(scene, target, at);
+        EXPECT_EQ(away.pass.farPlane, 2600.0f);
+        EXPECT_NE(away.pass.view, twin.pass.view) << "la D ya subió hacia 1.200";
+
+        // Sin el recorrido: el far lee el 2 una vez más y la meta vuelve a 1.000, pero con D por encima el trapecio
+        // sigue con el nivel 2 (0x5fb70e..0x5fb73d) hasta que D vuelve a 1.000.
+        stopTheTour();
+        at += FrameTime;
+        const Drawn back = draw(scene, target, at);
+        EXPECT_FALSE(cameraInput.tour.has_value());
+        EXPECT_EQ(camera.level, 0);
+        EXPECT_EQ(camera.targetDistance, 1000.0f);
+        EXPECT_EQ(back.pass.farPlane, 2600.0f);
+        EXPECT_GT(camera.distance, 1001.0f);
+        EXPECT_EQ(world.Runtime().terrainPolygonState.effectiveLevel, 2);
+        int frames = 1;
+        while (world.Runtime().terrainPolygonState.effectiveLevel != 0 && frames < 30)
+        {
+            at += FrameTime;
+            static_cast<void>(draw(scene, target, at));
+            ++frames;
+        }
+        EXPECT_EQ(world.Runtime().terrainPolygonState.effectiveLevel, 0);
+        EXPECT_LT(camera.distance, 1001.0f);
+        EXPECT_GT(frames, 5);
+        scene.Leave();
+    }
+}
+
 // 63706a: el paso posterior al dibujo actualiza los techos y el blendMesh de los objetos vistos.
 // El dibujo usa recursos completos; el paso aisla estos objetos para no mezclar sus tres rand()
 // con creadores de fuego o puertas. Continúa hasta personajes, viento y tela sin cortar.
@@ -1175,6 +1368,8 @@ TEST_F(GameSceneDrawTest, AtlansDrawsItsCausticWaterAndNoGrass)
 TEST_F(GameSceneDrawTest, TheFrameDrawsTheChatBubblesWithTheWorldProjection)
 {
     ASSERT_NO_FATAL_FAILURE(Prepare(7, 226, 103));
+    // Un jugador: con otro tipo, 0x50ba30 lo dibujaría como un monstruo con el modelo de ese número.
+    MakeTheHeroAPlayer(226, 103);
     GameScene scene = Scene();
     ASSERT_TRUE(scene.Enter().HasValue());
     world.Actors()[HeroSlot].seen = true;
@@ -1201,10 +1396,10 @@ TEST_F(GameSceneDrawTest, TheFrameDrawsTheChatBubblesWithTheWorldProjection)
     scene.Leave();
 }
 
-// 0x5fc365 con una marca prendida (como la dejarían 0x505de0 o 0x52e810, que MuRet no corre): 0x549130 lee el
-// byte +0x28 del slot 0x5e3, Effect\blood01.tga, que el juego de MuRet no sube (0x61d7aa). Corta ahí, con el
-// terreno y el pasto dibujados, los 4 + 8 rand() de siempre y sin un vértice del calco (08 P-C49).
-TEST_F(GameSceneDrawTest, ALiveGroundMarkStopsWhereMuRetDoesNotKnowItsTexture)
+// 0x5a7eb0 (0x637668): con la palabra del F3 22 (0x5767816) en 1 o más y hasta 10 minutos (659 s), el tiempo sale
+// después del HUD con los textos 1390 y 1391 del Text.bmd de la Data (test_event_drawing mira el dibujo); con 11
+// minutos (660 s) o en 0, sale sin dibujar. En ningún caso corta.
+TEST_F(GameSceneDrawTest, TheEventTimeOfTheF322DrawsUpToTenMinutes)
 {
     struct Case
     {
@@ -1213,6 +1408,41 @@ TEST_F(GameSceneDrawTest, ALiveGroundMarkStopsWhereMuRetDoesNotKnowItsTexture)
         std::uint8_t y;
     };
     for (const Case& probe : {Case{0, 143, 120}, Case{2, 220, 30}})
+    {
+        SCOPED_TRACE(static_cast<int>(probe.map));
+        ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, probe.x, probe.y));
+        for (const std::uint16_t time : {std::uint16_t{0}, std::uint16_t{1}, std::uint16_t{659}, std::uint16_t{660}})
+        {
+            SCOPED_TRACE(time);
+            world.Runtime().events.timeValue = time;
+            GameScene scene = Scene(&*data.text);
+            ASSERT_TRUE(scene.Enter().HasValue());
+            Client::Tests::RecordingFrameTarget target;
+
+            scene.PrepareFrame();
+            scene.Render(target.BeginFrame(std::chrono::milliseconds{1000}), 0.0f);
+
+            EXPECT_FALSE(scene.Failure().has_value()) << *scene.Failure();
+            scene.Leave();
+        }
+    }
+    world.Runtime().events.timeValue = 0;
+}
+
+// 0x5fc365 con una marca de sangre prendida (como la dejan 0x52e810 y 0x505de0): 0x549130 lee el byte +0x28 del slot
+// 0x5e3, Effect\blood01.tga, que el juego sube con las texturas de efectos (0x61d7aa): 32 bits, cuatro componentes,
+// así que va con la mezcla de alfa y su calco (0x5fb2f0) sale con esa textura. No saca rand(): el cuadro termina con
+// los mismos rand() que sin marcas (08 P-C49).
+TEST_F(GameSceneDrawTest, ALiveBloodMarkIsDrawnWithBlood01)
+{
+    struct Case
+    {
+        std::uint8_t map;
+        std::uint8_t x;
+        std::uint8_t y;
+        int objectDraws;
+    };
+    for (const Case& probe : {Case{0, 143, 120, 83 + 1}, Case{2, 220, 30, 54}})
     {
         SCOPED_TRACE(static_cast<int>(probe.map));
         ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, probe.x, probe.y));
@@ -1231,17 +1461,20 @@ TEST_F(GameSceneDrawTest, ALiveGroundMarkStopsWhereMuRetDoesNotKnowItsTexture)
         scene.PrepareFrame();
         scene.Render(target.BeginFrame(std::chrono::milliseconds{1000}), 0.0f);
 
-        ASSERT_TRUE(scene.Failure().has_value());
-        EXPECT_NE(scene.Failure()->find("0x549152"), std::string::npos) << *scene.Failure();
-        EXPECT_NE(scene.Failure()->find("mapa " + std::to_string(probe.map)), std::string::npos) << *scene.Failure();
+        ASSERT_FALSE(scene.Failure().has_value()) << *scene.Failure();
         const Client::Tests::FrameEvent* models = ModelsOf(target.frames.at(0));
         ASSERT_NE(models, nullptr);
-        EXPECT_FALSE(models->modelVertices.empty());
+        std::size_t decalVertices = 0;
         for (const Client::Render::ModelDrawCommand& command : models->modelCommands)
         {
-            EXPECT_NE(command.state.texture, Client::Render::TextureSlot{0x5e3});
+            if (command.state.texture != Client::Render::TextureSlot{0x5e3})
+                continue;
+            EXPECT_EQ(command.state.blend, Client::Render::ModelBlend::Alpha);
+            decalVertices += command.vertexCount;
         }
-        EXPECT_EQ(cloth.random.State(), RandomAfter(4 + 8).State());
+        EXPECT_GT(decalVertices, 0u);
+        EXPECT_EQ(cloth.random.State(),
+                  RandomAfter(4 + 8 + probe.objectDraws + FramePickingDraws + HudBaseDraws).State());
         scene.Leave();
     }
     world.Runtime().groundMarks = {};
@@ -1430,6 +1663,71 @@ TEST_F(GameSceneDrawTest, AnIntermediateDrawKeepsTheScanOfTheLastFrame)
     scene.Leave();
 }
 
+// 0x4eb620 → 0x552f10: al empezar cada frame del original (el primer paso después de su dibujo), las esperas de los
+// +0x6a + 2 primeros lugares bajan los ms del reloj desde el frame anterior, sin pasar de 0; el lugar de más no se
+// toca. El primer paso de la escena empieza uno con 0 ms, los pasos que siguen en el mismo frame no bajan nada, y al
+// volver a entrar lo que pasó afuera no cuenta.
+TEST_F(GameSceneDrawTest, EachFrameStartCountsTheSkillDelaysDown)
+{
+    ASSERT_NO_FATAL_FAILURE(Prepare(0, 96, 126));
+    MakeTheHeroAPlayer(95, 126);
+    world.Runtime().terrainPolygon = SelectionPolygon();
+    Client::Tests::FakeClock clock;
+    clock.Advance(std::chrono::milliseconds{1000});
+    GameScene scene(SceneContext{.dataRoot = m_dataRoot,
+                                 .textures = store,
+                                 .log = log,
+                                 .clock = &clock,
+                                 .cloth = &cloth,
+                                 .camera = &camera,
+                                 .cameraInput = &cameraInput,
+                                 .world = &world},
+                    nullptr, &playerModels, &data.items->table, &playerModels.TextureSlots(), &*data.gates,
+                    &*data.skills);
+    Client::Scenes::OwnCharacterRecord& own = world.OwnCharacter();
+    own.byte6a = 1;
+    own.skillDelays[0] = 500;
+    own.skillDelays[1] = 30;
+    own.skillDelays[2] = 0;
+    own.skillDelays[3] = 400;
+    ASSERT_TRUE(scene.Enter().HasValue());
+    Client::Tests::RecordingFrameTarget target;
+    const auto drawAFrame = [&]
+    {
+        scene.PrepareFrame();
+        ASSERT_FALSE(scene.HoldsTheLastFrame());
+        scene.Render(target.BeginFrame(clock.Now()), 0.0f);
+        ASSERT_EQ(scene.Failure(), std::nullopt);
+        target.Present();
+    };
+
+    scene.Step(Client::Input::InputState{});
+    ASSERT_EQ(scene.Failure(), std::nullopt);
+    EXPECT_EQ(own.skillDelays[0], 500) << "el primer frame de la escena, con 0 ms";
+    ASSERT_NO_FATAL_FAILURE(drawAFrame());
+    clock.Advance(std::chrono::milliseconds{80});
+    scene.Step(Client::Input::InputState{});
+    ASSERT_EQ(scene.Failure(), std::nullopt);
+    EXPECT_EQ(own.skillDelays[0], 420);
+    EXPECT_EQ(own.skillDelays[1], 0);
+    EXPECT_EQ(own.skillDelays[2], 0);
+    EXPECT_EQ(own.skillDelays[3], 400) << "+0x6a + 2 lugares";
+    clock.Advance(std::chrono::milliseconds{40});
+    scene.Step(Client::Input::InputState{});
+    EXPECT_EQ(own.skillDelays[0], 420) << "el mismo frame";
+    ASSERT_NO_FATAL_FAILURE(drawAFrame());
+    scene.Step(Client::Input::InputState{});
+    EXPECT_EQ(own.skillDelays[0], 380) << "los 40 ms desde el frame anterior";
+    scene.Leave();
+
+    clock.Advance(std::chrono::milliseconds{5000});
+    ASSERT_TRUE(scene.Enter().HasValue());
+    scene.Step(Client::Input::InputState{});
+    ASSERT_EQ(scene.Failure(), std::nullopt);
+    EXPECT_EQ(own.skillDelays[0], 380) << "fuera de la escena 5 no baja";
+    scene.Leave();
+}
+
 // 0x63712d: después de los personajes, el paso del juego envejece las marcas del suelo (0x549090), sin rand(): la
 // prendida pierde un paso de vida, crece 0,004 y se pone roja (0,1; 0; 0); la apagada no cambia. Con el héroe de
 // TheFirstStepAfterTheWaitReadsTheTrapezoidOfTheSelection, en Lorencia y en Devias.
@@ -1565,12 +1863,12 @@ TEST_F(GameSceneDrawTest, WithoutPlayerBmdTheStepStopsAtTheBody)
 }
 
 // Un dibujo cortado deja la escena en Failure: el paso que sigue no corre, aunque el dibujo haya dejado su
-// trapecio. La marca de sangre usa el selector nativo 0x5e3, cuya metadata sigue ausente.
+// trapecio. La marca es del tipo 0x606, un slot que el juego de MuRet no sube: 0x549130 corta en 0x549152.
 TEST_F(GameSceneDrawTest, AStepAfterACutDrawDoesNothing)
 {
     ASSERT_NO_FATAL_FAILURE(Prepare(0, 143, 120));
     world.Runtime().groundMarks[0] = Client::World::GroundMark{.live = true,
-                                                               .type = 0x5e3,
+                                                               .type = 0x606,
                                                                .size = 1.0f,
                                                                .position = world.Actors()[HeroSlot].position,
                                                                .color = glm::vec3(1.0f),

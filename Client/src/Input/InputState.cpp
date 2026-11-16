@@ -1,7 +1,13 @@
 #include "Input/InputState.h"
 
+#include "Input/TextInputEvent.h"
+
+#include <span>
+#include <string>
+
 #include "Input/InputEvent.h"
 #include "Input/Key.h"
+#include "Input/MouseMessageState.h"
 
 #include <cmath>
 #include <cstddef>
@@ -45,6 +51,42 @@ std::optional<std::size_t> IndexOf(MouseButton button)
 bool IsLogical(Key key)
 {
     return key == Key::Shift || key == Key::Ctrl || key == Key::Alt;
+}
+
+bool IsEditingKey(Key key, bool ctrlDown)
+{
+    switch (key)
+    {
+    case Key::Up:
+    case Key::Down:
+    case Key::Left:
+    case Key::Right:
+    case Key::Home:
+    case Key::End:
+    case Key::Delete:
+    case Key::Backspace:
+    case Key::Tab:
+    case Key::Enter:
+        return true;
+    case Key::A:
+    case Key::C:
+    case Key::V:
+    case Key::X:
+        return ctrlDown;
+    default:
+        return false;
+    }
+}
+
+TextInputEvent TextEvent(std::string_view text)
+{
+    return TextInputEvent{.kind = TextInputEvent::Kind::Text, .text = std::string(text)};
+}
+
+TextInputEvent KeyTextEvent(Key key, bool shiftDown, bool ctrlDown)
+{
+    return TextInputEvent{
+        .kind = TextInputEvent::Kind::Key, .key = key, .text = {}, .shift = shiftDown, .ctrl = ctrlDown};
 }
 
 // El byte que Backspace, Tab y Enter dejan en el texto tecleado (InputEvent.h); las demás, ninguno.
@@ -99,19 +141,60 @@ Sides SidesOf(Key logical)
 
 void InputState::Apply(const InputEvent& event)
 {
+    // 0x4b3444: el siguiente mensaje apaga el doble clic, aunque sea una tecla o un cambio de ventana.
+    m_mouseMessages.doubleClick = false;
+    m_doubleClickMessage = false;
     switch (event.kind)
     {
     case InputEvent::Kind::KeyDown:
-        Press(event.key);
+        if (event.repeat)
+        {
+            const bool ctrlDown = IsDown(Key::Ctrl);
+            if (const std::optional<char> typed = TypedCharOf(event.key))
+            {
+                m_text.push_back(*typed);
+            }
+            if (IsEditingKey(event.key, ctrlDown))
+            {
+                m_textInputEvents.push_back(KeyTextEvent(event.key, IsDown(Key::Shift), ctrlDown));
+            }
+            return;
+        }
+        {
+            const bool wasDown = IsDown(event.key);
+            Press(event.key);
+            const bool ctrlDown = IsDown(Key::Ctrl);
+            if (!wasDown && IsEditingKey(event.key, ctrlDown))
+            {
+                m_textInputEvents.push_back(KeyTextEvent(event.key, IsDown(Key::Shift), ctrlDown));
+            }
+        }
         return;
     case InputEvent::Kind::KeyUp:
         Release(event.key);
         return;
     case InputEvent::Kind::ButtonDown:
         Press(event.button);
+        if (event.button == MouseButton::Left)
+        {
+            m_mouseMessages.leftPress = !m_mouseMessages.leftDown || m_mouseMessages.leftPress;
+            m_mouseMessages.leftDown = true;
+            m_mouseMessages.leftRelease = false;
+        }
+        return;
+    case InputEvent::Kind::ButtonDoubleClick:
+        Press(event.button);
+        m_mouseMessages.doubleClick = event.button == MouseButton::Left;
+        m_doubleClickMessage = m_mouseMessages.doubleClick;
         return;
     case InputEvent::Kind::ButtonUp:
         Release(event.button);
+        if (event.button == MouseButton::Left)
+        {
+            m_mouseMessages.leftDown = false;
+            m_mouseMessages.leftPress = false;
+            m_mouseMessages.leftRelease = true;
+        }
         return;
     case InputEvent::Kind::Wheel:
         if (std::isfinite(event.wheel))
@@ -126,9 +209,26 @@ void InputState::Apply(const InputEvent& event)
         return;
     case InputEvent::Kind::FocusLost:
         ReleaseEverything();
+        m_mouseMessages = MouseMessageState{.leftRelease = WasReleased(MouseButton::Left)};
+        m_text.clear();
+        m_textInputEvents.clear();
+        // El consumidor debe quitar el preedit aunque se descarte el resto de la entrada del pump.
+        m_textInputEvents.push_back(TextInputEvent{.kind = TextInputEvent::Kind::Composition, .text = {}});
         return;
     case InputEvent::Kind::Text:
         m_text += event.text;
+        if (!event.text.empty())
+        {
+            m_textInputEvents.push_back(TextEvent(event.text));
+        }
+        return;
+    case InputEvent::Kind::Composition:
+        m_textInputEvents.push_back(TextInputEvent{.kind = TextInputEvent::Kind::Composition,
+                                                   .text = event.text,
+                                                   .compositionStart = event.compositionStart,
+                                                   .compositionLength = event.compositionLength});
+        return;
+    case InputEvent::Kind::Message:
         return;
     }
 }
@@ -180,6 +280,18 @@ bool InputState::WasReleased(MouseButton button) const
     return index && m_buttonsReleased[*index];
 }
 
+const MouseMessageState& InputState::MouseMessages() const
+{
+    return m_mouseMessages;
+}
+
+std::optional<bool> InputState::TakeDoubleClickMessage() const
+{
+    const std::optional<bool> message = m_doubleClickMessage;
+    m_doubleClickMessage.reset();
+    return message;
+}
+
 float InputState::Wheel() const
 {
     return m_wheel;
@@ -205,6 +317,11 @@ std::string_view InputState::Text() const
     return m_text;
 }
 
+std::span<const TextInputEvent> InputState::TextInputEvents() const
+{
+    return m_textInputEvents;
+}
+
 void InputState::ConsumeEdges()
 {
     m_keysPressed.reset();
@@ -212,9 +329,12 @@ void InputState::ConsumeEdges()
     m_keysTaken.reset();
     m_buttonsPressed.reset();
     m_buttonsReleased.reset();
+    m_mouseMessages.leftPress = false;
+    m_mouseMessages.leftRelease = false;
     m_wheel = 0.0f;
     m_lastWheel = 0.0f;
     m_text.clear();
+    m_textInputEvents.clear();
 }
 
 void InputState::Press(Key key)

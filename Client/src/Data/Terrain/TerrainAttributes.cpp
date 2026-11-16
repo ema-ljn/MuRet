@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <memory>
 #include <span>
+#include <utility>
 #include <vector>
 
 namespace Client::Data::Terrain
@@ -25,10 +26,15 @@ bool IsTheHeader(std::span<const std::byte> plain)
 {
     return plain[0] == HeaderStart && plain[2] == HeaderEnd && plain[3] == HeaderEnd;
 }
-} // namespace
 
-Core::Expected<std::unique_ptr<TerrainAttributes>, DataError> LoadTerrainAttributes(std::span<const std::byte> file,
-                                                                                    std::uint8_t world)
+// Las celdas y el mundo de la cabecera, sin compararlo.
+struct DecodedAttributes
+{
+    std::unique_ptr<TerrainAttributes> attributes;
+    std::uint8_t world = 0;
+};
+
+Core::Expected<DecodedAttributes, DataError> DecodeTerrainAttributes(std::span<const std::byte> file)
 {
     if (file.size() != TerrainAttributesSizeWithByteCells && file.size() != TerrainAttributesSizeWithWordCells)
     {
@@ -56,10 +62,30 @@ Core::Expected<std::unique_ptr<TerrainAttributes>, DataError> LoadTerrainAttribu
         attributes->cells[cell] = low;
     }
 
-    if (std::to_integer<std::uint8_t>(plain[TerrainAttributesWorldOffset]) != world)
+    return DecodedAttributes{.attributes = std::move(attributes),
+                             .world = std::to_integer<std::uint8_t>(plain[TerrainAttributesWorldOffset])};
+}
+} // namespace
+
+Core::Expected<std::unique_ptr<TerrainAttributes>, DataError> LoadTerrainAttributes(std::span<const std::byte> file,
+                                                                                    std::uint8_t world)
+{
+    auto decoded = DecodeTerrainAttributes(file);
+    if (!decoded.HasValue())
+        return Core::Unexpected(decoded.Error());
+    if (decoded.Value().world != world)
     {
         return Core::Unexpected(DataError::WrongWorld);
     }
-    return attributes;
+    return std::move(decoded.Value().attributes);
+}
+
+Core::Expected<std::unique_ptr<TerrainAttributes>, DataError>
+LoadTerrainAttributesOfAnyWorld(std::span<const std::byte> file)
+{
+    auto decoded = DecodeTerrainAttributes(file);
+    if (!decoded.HasValue())
+        return Core::Unexpected(decoded.Error());
+    return std::move(decoded.Value().attributes);
 }
 } // namespace Client::Data::Terrain

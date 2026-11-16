@@ -5,11 +5,13 @@
 #include "Data/Tables/ItemTable.h"
 #include "Data/Tables/SkillTable.h"
 #include "Data/Text/TextTable.h"
+#include "Protocol/Outgoing.h"
 #include "Render/SpriteBatch.h"
 #include "Scenes/ITextDrawer.h"
 #include "UI/Widget.h"
 
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <string>
 
@@ -26,6 +28,7 @@ class CrtRandom;
 namespace Client::Scenes
 {
 class WorldState;
+struct CrywolfInterface;
 struct GameProjection;
 struct HudState;
 struct UiItemResources;
@@ -43,6 +46,9 @@ struct GameHudContext
     // 0x5a7520 apaga después de dibujarlo una vez). En un dibujo intermedio, copias que nadie vuelve a leer.
     HudState& hud;
     std::uint8_t& crywolfSandOverlay;
+    // Lo que escribe la interfaz de Crywolf (0x4365c0): en un dibujo intermedio, la copia que nadie vuelve a leer;
+    // nullptr, la de WorldRuntime.
+    CrywolfInterface* crywolfInterface = nullptr;
     // 0x41ed10(id, 0, 0): el sonido que pide la barra principal (0x22, la vida baja), el gancho de la CL10.
     std::optional<std::int32_t>& sound;
     // Un dibujo intermedio de MuRet no escribe los avisos de los ítems puestos (D+0x44): van a una copia que nadie
@@ -64,16 +70,26 @@ struct GameHudContext
     const Data::Tables::ItemSetTypeTable* setTypes = nullptr;
     // 0x5767b88: el reloj del mundo, en ms.
     float worldClock = 0.0f;
+    // GetTickCount del frame (App::TickCountMs), que leen la cuenta de los eventos (0x40bab0) y el reloj de la interfaz
+    // de Crywolf (0x437410 y 0x437426), y que MuRet da también por el timeGetTime() de 0x63b0e3 (0x430180).
+    std::uint32_t tickCount = 0;
     // 0x7d3682c y 0x7d36828: el mouse en 640 × 480 (UI::MouseIn640x480).
     UI::Point mouse{};
     // 0x7d36874: el botón izquierdo abajo.
     bool leftDown = false;
+    // GetAsyncKeyState(0x11) en el dibujo: Ctrl abajo, que 0x558bb0 mira para atacar a otro jugador (0x558e7f).
+    bool controlDown = false;
     // El código del servidor elegido (App::ServerSession::ChosenServer), de donde salen [0x6d5ec4] (el lugar del
     // grupo) y [0x6d5ecc] (el número) que lee la ventana del personaje; sin él, corta.
     std::optional<std::uint16_t> chosenServer{};
+    // [0x6d5edc], el lugar del personaje: el banco de teclas +0x26c + lugar·0x100. Sin sesión, el banco inicial 0.
+    std::optional<std::uint8_t> chosenSlot{};
     // Lo que el tramo 3D de 0x5ac120 necesita para dibujar los modelos de los ítems de la UI. Sin él (una escena sin
     // la biblioteca de los modelos, como las de las pruebas), cada ítem saca sus rand() sin dibujar.
     UiItemResources* uiItems = nullptr;
+    // El send() de la sesión, el del A9 que pide el tooltip de las mascotas (0x423c87..0x42403d). Sin él (una escena
+    // sin sesión, como las de las pruebas), el pedido no sale; un dibujo intermedio no lo llama.
+    std::function<void(Protocol::Outgoing)> send{};
 };
 
 // 0x5a7320(1): los 31 hijos del HUD en su orden (06 § HUD y ventanas, "El HUD hijo por hijo"). En el estado base

@@ -25,11 +25,13 @@
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"
 #include "UI/GameText.h"
+#include "UI/OriginalFormat.h"
 #include "UI/SprintfFormat.h"
 #include "UI/Widget.h"
 #include "World/ItemState.h"
 #include "support/GoldenDir.h"
 #include "support/RecordingTextDrawer.h"
+#include "support/TableFiles.h"
 
 #include <gtest/gtest.h>
 
@@ -38,6 +40,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <deque>
 #include <iterator>
 #include <optional>
 #include <string>
@@ -81,6 +84,15 @@ CrtRandom Advanced(CrtRandom random, int count)
     for (int i = 0; i < count; ++i)
         static_cast<void>(random.Next());
     return random;
+}
+
+Client::Data::Tables::SkillTable SkillsForTheList()
+{
+    std::vector<std::byte> plain(Client::Data::Tables::SkillTableSize);
+    plain[9 * Client::Data::Tables::SkillRecordSize + 0x31] = std::byte{1};
+    plain[2 * Client::Data::Tables::SkillRecordSize + 0x31] = std::byte{2};
+    const auto encrypted = Client::Tests::EncryptRecords(std::move(plain), Client::Data::Tables::SkillRecordSize);
+    return Client::Data::Tables::SkillTable(encrypted);
 }
 
 // Un quad del lote: su textura, la mezcla, el color de sus vértices y las esquinas 0 y 2 del fan (arriba a la
@@ -447,6 +459,9 @@ protected:
         own.maxLife = 100;
         own.mana = 100;
         own.maxMana = 100;
+        // La captura base ya recibió F3 30 sin teclas: FF en los cinco bancos, no la .bss anterior al login.
+        for (auto& keys : own.skillKeys)
+            keys.fill(0xff);
         sprites.Begin(Screen640);
     }
 
@@ -470,8 +485,10 @@ protected:
                               .items = &data.items->table,
                               .skills = &*data.skills,
                               .worldClock = worldClock,
+                              .tickCount = tickCount,
                               .mouse = mouse,
-                              .leftDown = leftDown};
+                              .leftDown = leftDown,
+                              .controlDown = controlDown};
     }
 
     Client::Core::Expected<void, std::string> Hud(bool projecting = false)
@@ -538,8 +555,10 @@ protected:
     SpriteBatch sprites;
     Client::Tests::RecordingTextDrawer text{sprites};
     float worldClock = 0.0f;
+    std::uint32_t tickCount = 0;
     Client::UI::Point mouse{};
     bool leftDown = false;
+    bool controlDown = false;
     const Client::Scenes::GameProjection* projection = nullptr;
     Client::Scenes::GameData data;
 };
@@ -782,6 +801,107 @@ TEST_F(GameHudTest, ACommandSkillDrawsItsIconAndItsNumber)
     EXPECT_FLOAT_EQ(number->first.x, 303.5f);
 }
 
+// 5aa29d filtra hidden==1 y 43..48; 5aa2b0 resta46 una sola vez, sin paginar otra vez al mostrado41.
+TEST_F(GameHudTest, TheOpenSkillListDrawsTheNativeRowsColorsAndAccesses)
+{
+    const auto skills = SkillsForTheList();
+    auto& own = world.OwnCharacter();
+    for (std::size_t slot = 0; slot < 41; ++slot)
+        own.SetSkillAt(slot, 1);
+    own.SetSkillAt(41, 2); // hidden==2 también se dibuja, aunque las reglas lo tiñan por falta de0x200.
+    own.SetSkillAt(42, 9);
+    own.SetSkillAt(43, 0x43);
+    own.SetSkillAt(63, 0x11);
+    own.byte6a = 45;
+    own.byte6b = 1;
+    own.energy = 100;
+    Hero().skillIndex = 63;
+    Hero().flags78 = 0x200;
+    world.Runtime().ui.skillListOpen = 1;
+    auto context = Context();
+    context.skills = &skills;
+
+    const auto drawn = Client::Scenes::DrawTheHud(context);
+
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    std::vector<DrawnQuad> icons;
+    for (const auto& quad : QuadsOf(sprites))
+        if (quad.slot == 0x12a && quad.first.y > 36.0f)
+            icons.push_back(quad);
+    ASSERT_EQ(icons.size(), 43u);
+    EXPECT_FLOAT_EQ(icons[0].first.x, 0.0f);
+    EXPECT_FLOAT_EQ(icons[0].first.y, 110.0f); // GL invierte Y:480−370.
+    EXPECT_FLOAT_EQ(icons[19].first.x, 608.0f);
+    EXPECT_FLOAT_EQ(icons[20].first.x, 0.0f);
+    EXPECT_FLOAT_EQ(icons[20].first.y, 156.0f);
+    EXPECT_FLOAT_EQ(icons[40].first.x, 640.0f);
+    EXPECT_FLOAT_EQ(icons[40].first.y, 156.0f);
+    EXPECT_FLOAT_EQ(icons.back().first.x, 704.0f);
+    EXPECT_EQ(icons.front().color, (Color{0.6f, 0.7f, 0.8f, 1.0f}));
+    EXPECT_EQ(icons.back().color, (Color{1.0f, 0.9f, 0.8f, 1.0f}));
+    const int listDraws = 44 * 60 + 43 * SkillIconDraws;
+    EXPECT_EQ(random.State(), Advanced(CrtRandom(Seed), HudBaseDraws + SkillIconDraws + listDraws).State());
+    EXPECT_EQ(world.Runtime().ownRecordDepth, 0);
+}
+
+TEST_F(GameHudTest, TheOpenListAddsRavenCommandsOnlyWhenTheRavenExists)
+{
+    const auto skills = SkillsForTheList();
+    world.OwnCharacter().byte6a = 1;
+    Hero().skillIndex = 0x79;
+    Hero().darkSpirit.emplace();
+    world.Runtime().ui.skillListOpen = 1;
+    auto context = Context();
+    context.skills = &skills;
+    const auto drawn = Client::Scenes::DrawTheHud(context);
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    std::vector<DrawnQuad> commands;
+    for (const auto& quad : QuadsOf(sprites))
+        if (quad.slot == 300 && std::abs(quad.first.y - 150.0f) < 0.001f)
+            commands.push_back(quad);
+    ASSERT_EQ(commands.size(), 4u);
+    for (std::size_t i = 0; i < commands.size(); ++i)
+    {
+        EXPECT_FLOAT_EQ(commands[i].first.x, 256.0f + 32.0f * static_cast<float>(i));
+        EXPECT_FLOAT_EQ(commands[i].third.y, 114.0f);
+        EXPECT_EQ(commands[i].color, (i == 1 ? Color{1.0f, 0.9f, 0.8f, 1.0f} : Color{0.6f, 0.7f, 0.8f, 1.0f}));
+    }
+    // El cuervo activa además su HUD de418460, que consulta el equipo con un cierre propio.
+    EXPECT_EQ(random.State(),
+              Advanced(CrtRandom(Seed), HudBaseDraws + OwnRecordCloseRandoms + 5 * SkillIconDraws).State());
+    Hero().darkSpirit.reset();
+    sprites.Begin(Screen640);
+    ASSERT_TRUE(Client::Scenes::DrawTheHud(context).HasValue());
+    for (const auto& quad : QuadsOf(sprites))
+        EXPECT_FALSE(quad.slot == 300 && std::abs(quad.first.y - 150.0f) < 0.001f);
+}
+
+TEST_F(GameHudTest, TheOrdinarySkillDrawsTheHotkeyOfTheChosenCharacter)
+{
+    const auto skills = SkillsForTheList();
+    auto& own = world.OwnCharacter();
+    own.byte6a = 1;
+    own.SetSkillAt(0, 0x11);
+    own.skillKeys[0][0] = 3;
+    own.skillKeys[3][0] = 7;
+    auto context = Context();
+    context.skills = &skills;
+    context.chosenSlot = std::uint8_t{3};
+    ASSERT_TRUE(Client::Scenes::DrawTheHud(context).HasValue());
+    const auto quads = QuadsOf(sprites);
+    const auto key = std::ranges::find_if(quads,
+                                          [](const DrawnQuad& quad)
+                                          {
+                                              return quad.slot == DigitSlot &&
+                                                     std::abs(quad.first.x - 303.5f) < 0.001f &&
+                                                     std::abs(quad.first.y - 10.0f) < 0.001f;
+                                          });
+    ASSERT_NE(key, quads.end());
+    EXPECT_FLOAT_EQ(key->first.u, 7.0f / 16.0f);
+    EXPECT_EQ(key->color, (Color{1.0f, 0.9f, 0.8f, 1.0f}));
+    EXPECT_EQ(random.State(), Advanced(CrtRandom(Seed), HudBaseDraws + SkillIconDraws).State());
+}
+
 // 18. 0x5f7440: la party (0x5f0be0, lo primero) y los comandos (0x40a650, casi al final) en (0x1c2, 0), con el fondo
 // de Item_Back01 y 02 y el botón de cerrar; los comandos, con sus once botones de Message_box. En Lorencia y en Devias.
 TEST_F(GameHudTest, TheEighteenthChildDrawsThePartyAndTheCommands)
@@ -832,17 +952,8 @@ TEST_F(GameHudTest, ThePiecesOfOtherWavesStopWithTheirAddress)
         std::string_view address;
         void (*arrange)(WorldState&);
     };
-    const std::array<Case, 5> cases{{
+    const std::array<Case, 3> cases{{
         {"0x5f7180", [](WorldState& state) { state.Runtime().panels.panel2000 = 1; }},
-        {"0x40bab0",
-         [](WorldState& state) { state.Runtime().eventObject = Client::Scenes::EventMapObject{.field08 = 5}; }},
-        {"0x40c2d0",
-         [](WorldState& state)
-         {
-             state.Runtime().map = 11;
-             state.Runtime().eventObject =
-                 Client::Scenes::EventMapObject{.kind = Client::Scenes::EventMapKind::BloodCastle, .field10 = 1};
-         }},
         {"0x4125b0",
          [](WorldState& state)
          {
@@ -953,6 +1064,38 @@ TEST_F(GameHudTest, TheThirteenthChildDrawsTheShopSigns)
     }
 }
 
+// 5. 0x42a4d0: las barras de vida de la cola, con la proyección del pase del mundo (sin ella, una barra corta). Cada
+// frame dibuja la mitad redondeada para arriba y deja el resto; un dibujo intermedio vacía una copia.
+TEST_F(GameHudTest, TheFifthChildDrawsHalfTheHealthBars)
+{
+    std::deque<Client::Scenes::QueuedHealthBar>& bars = world.Runtime().healthBars;
+    for (std::uint8_t stage = 0; stage < 3; ++stage)
+        bars.push_back(Client::Scenes::QueuedHealthBar{.position = {0.0f, 0.0f, 0.0f}, .fill = stage});
+
+    const auto cut = Hud();
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x42a529"), std::string::npos) << cut.Error();
+    EXPECT_EQ(bars.size(), 3u);
+
+    Client::Scenes::GameProjection flat;
+    flat.view = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
+    flat.horizontalScale = 1.0f;
+    flat.verticalScale = 1.0f;
+    flat.centerX = 320;
+    flat.centerY = 240;
+    flat.screenWidth = 640;
+    flat.screenHeight = 480;
+    projection = &flat;
+    const auto projected = Hud(true);
+    ASSERT_TRUE(projected.HasValue()) << projected.Error();
+    EXPECT_EQ(bars.size(), 3u);
+
+    const auto drawn = Hud();
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    ASSERT_EQ(bars.size(), 1u);
+    EXPECT_EQ(bars.front().fill, 2);
+}
+
 // Devil Square tiene su objeto de evento, pero su método +4 es un ret (0x40bdb0) y la cuenta (0x40bab0) sale con +8
 // en 0: el HUD sigue.
 TEST_F(GameHudTest, TheEventObjectsWithoutTheirPacketsDrawNothing)
@@ -966,6 +1109,126 @@ TEST_F(GameHudTest, TheEventObjectsWithoutTheirPacketsDrawNothing)
         world.Runtime().eventObject = Client::Scenes::EventMapObject{.kind = kind};
         const auto drawn = Hud();
         EXPECT_TRUE(drawn.HasValue()) << drawn.Error();
+    }
+}
+
+// CL9 hito 11, el método +4 (0x40c2d0, 0x405090) en el HUD, con el Text.bmd de la Data: los puntos (864 o 1161), 865
+// y el tiempo en la columna 570. Chaos Castle elige el área de la trampa (0x6c634c) por +0x20; un dibujo intermedio
+// no la escribe. Fuera de sus mapas (Lorencia, Devias) no dibuja.
+TEST_F(GameHudTest, TheCastleObjectsDrawTheirPointsAndTime)
+{
+    struct Case
+    {
+        std::int32_t map;
+        Client::Scenes::EventMapKind kind;
+        std::uint8_t state;
+        std::size_t points;
+        bool draws;
+    };
+    for (const Case& probe : {Case{11, Client::Scenes::EventMapKind::BloodCastle, 1, 864, true},
+                              Case{23, Client::Scenes::EventMapKind::ChaosCastle, 7, 1161, true},
+                              Case{0, Client::Scenes::EventMapKind::BloodCastle, 1, 864, false},
+                              Case{2, Client::Scenes::EventMapKind::ChaosCastle, 7, 1161, false}})
+    {
+        SCOPED_TRACE(probe.map);
+        const std::optional<std::string_view> format = Client::UI::TextAt(&*data.text, probe.points);
+        ASSERT_TRUE(format.has_value());
+        const auto points = Client::UI::FormatOriginal(Client::UI::FormatFunction::Wsprintf, *format,
+                                                       std::vector<Client::UI::FormatArgument>{42, 70}, "test");
+        ASSERT_TRUE(points.HasValue()) << points.Error();
+        for (const bool projecting : {true, false})
+        {
+            SCOPED_TRACE(projecting);
+            world.Runtime() = Client::Scenes::WorldRuntime{};
+            world.Runtime().map = probe.map;
+            world.Runtime().eventObject = Client::Scenes::EventMapObject{
+                .kind = probe.kind, .field10 = probe.state, .field14 = {900, 1000, 70, 42}};
+            text.texts.clear();
+            const auto drawn = Hud(projecting);
+            ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+            const auto line = std::ranges::find(text.texts, points.Value(), &Client::Tests::RecordedText::text);
+            const auto time =
+                std::ranges::find(text.texts, std::string(" 16 : 40"), &Client::Tests::RecordedText::text);
+            if (!probe.draws)
+            {
+                EXPECT_EQ(line, text.texts.end());
+                EXPECT_EQ(time, text.texts.end());
+                EXPECT_EQ(world.Runtime().chaosCastleArea, 0xff);
+                continue;
+            }
+            ASSERT_NE(line, text.texts.end());
+            EXPECT_EQ(line->y, 345);
+            ASSERT_NE(time, text.texts.end());
+            EXPECT_EQ(time->y, 367);
+            const bool writes = probe.kind == Client::Scenes::EventMapKind::ChaosCastle && !projecting;
+            EXPECT_EQ(world.Runtime().chaosCastleArea, writes ? 0 : 0xff);
+        }
+    }
+}
+
+// CL9 hito 11, 0x40bab0: con +8 de 1 a 14, el texto de la entrada con los segundos que faltan de 30 desde +0xc
+// (GetTickCount), en 0xffff8080 sobre 0x80000000 en (10, 0x174). El 12 de Chaos Castle toma el 828 (no el 825).
+// Vencida, el frame del original apaga +8; un dibujo intermedio no. En Lorencia, Devias y los mapas del evento.
+TEST_F(GameHudTest, TheEventCountdownDrawsTheSecondsLeftAndExpires)
+{
+    const std::optional<std::string_view> format = Client::UI::TextAt(&*data.text, 828);
+    const std::optional<std::string_view> name = Client::UI::TextAt(&*data.text, 1147);
+    ASSERT_TRUE(format && name);
+    const std::vector<Client::UI::FormatArgument> arguments{Client::UI::TextArgument{.index = 1147, .text = *name}, 18};
+    const auto expected = Client::UI::FormatOriginal(Client::UI::FormatFunction::Wsprintf, *format, arguments, "test");
+    ASSERT_TRUE(expected.HasValue()) << expected.Error();
+    for (const std::int32_t map : {0, 2, 9, 11, 18})
+    {
+        SCOPED_TRACE(map);
+        world.Runtime() = Client::Scenes::WorldRuntime{};
+        world.Runtime().map = map;
+        world.Runtime().eventObject = Client::Scenes::EventMapObject{.field08 = 12, .field0c = 1000};
+        tickCount = 1000 + 12345;
+        text.texts.clear();
+        ASSERT_TRUE(Hud().HasValue());
+        const auto countdown = std::ranges::find(text.texts, expected.Value(), &Client::Tests::RecordedText::text);
+        ASSERT_NE(countdown, text.texts.end());
+        EXPECT_EQ(countdown->x, 10);
+        EXPECT_EQ(countdown->y, 0x174);
+        EXPECT_EQ(countdown->style.colors.text, 0xffff8080u);
+        EXPECT_EQ(countdown->style.colors.background, 0x80000000u);
+
+        tickCount = 1000 + 30001;
+        ASSERT_TRUE(Hud(true).HasValue());
+        EXPECT_EQ(world.Runtime().eventObject->field08, 12);
+        ASSERT_TRUE(Hud().HasValue());
+        EXPECT_EQ(world.Runtime().eventObject->field08, 0);
+    }
+}
+
+// CL9 hito 11, 0x4365c0: el hijo 21. Con el aviso de Crywolf (0x6c73d1) en 1, que pone el BD 00 con la etapa 5
+// (0x42fec8), el HUD dibuja el cartel 0x6c0 (0x6b6 + 0x6c73dc) y la tabla del rango en cualquier mapa; con −1, nada.
+TEST_F(GameHudTest, TheCrywolfNoticeIsDrawnOnAnyMap)
+{
+    for (const std::int32_t map : {0, 2, 34})
+    {
+        SCOPED_TRACE(map);
+        world.Runtime() = Client::Scenes::WorldRuntime{};
+        world.Runtime().map = map;
+        const auto countOf = [this](std::uint16_t slot)
+        {
+            const std::vector<DrawnQuad> quads = QuadsOf(sprites);
+            return std::count_if(quads.begin(), quads.end(),
+                                 [slot](const DrawnQuad& quad) { return quad.slot == slot; });
+        };
+        sprites.Begin(Screen640);
+        ASSERT_EQ(world.Runtime().crywolf.ui.message, -1);
+        const auto quiet = Hud();
+        ASSERT_TRUE(quiet.HasValue()) << quiet.Error();
+        EXPECT_EQ(countOf(0x6c0), 0);
+        EXPECT_EQ(countOf(0x6d0), 0);
+        sprites.Begin(Screen640);
+        world.Runtime().crywolf.ui.message = 1;
+        const auto drawn = Hud();
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_EQ(countOf(0x6c0), 1);
+        EXPECT_EQ(countOf(0x6d0), 1);
+        EXPECT_EQ(world.Runtime().crywolf.ui.dword6c73d8, 2);
     }
 }
 
@@ -1047,20 +1310,56 @@ TEST_F(GameHudTest, TheRepairCursorTurnsWithTheClock)
     }
 }
 
-// Los cursores que leen otra ola: el de los objetos (CL9.1) y el de atacar fuera de la zona segura (CL9.2).
+// El cursor que lee otra ola: el de los objetos (CL9.1).
 TEST_F(GameHudTest, TheCursorsOfOtherWavesStop)
 {
     world.Runtime().selectedTargets[3] = 1;
     auto drawn = Cursor();
     ASSERT_FALSE(drawn.HasValue());
     EXPECT_NE(drawn.Error().find("0x5ac3d8"), std::string::npos) << drawn.Error();
+}
 
-    world.Runtime().selectedTargets[3] = -1;
-    world.Runtime().selectedTargets[2] = 1;
+// CL9 hito 3, 0x5ac53c..0x5ac60b: fuera de la zona segura, el elegido atacable (0x558bb0) con el mouse fuera de la UI
+// dibuja el de atacar (4, o 0x68d en el 30); el que no se puede atacar, el normal (2).
+TEST_F(GameHudTest, TheAttackCursorFollowsWhetherTheChosenCanBeAttacked)
+{
+    Client::Scenes::WorldRuntime& runtime = world.Runtime();
     Hero().safeZone = 0;
-    drawn = Cursor();
-    ASSERT_FALSE(drawn.HasValue());
-    EXPECT_NE(drawn.Error().find("0x558bb0"), std::string::npos) << drawn.Error();
+    auto& chosen = world.Actors()[7];
+    runtime.selectedTargets[2] = 7;
+    struct Case
+    {
+        std::int32_t map;
+        std::uint8_t object;
+        bool control;
+        std::uint16_t slot;
+    };
+    constexpr std::array<Case, 6> Cases{{{0, 2, false, 4},
+                                         {2, 2, false, 4},
+                                         {30, 2, false, 0x68d},
+                                         {0, 1, false, 2},
+                                         {2, 1, true, 4},
+                                         {0, 3, true, 2}}};
+    for (const Case& test : Cases)
+    {
+        SCOPED_TRACE(test.map);
+        runtime.map = test.map;
+        chosen.byte88 = test.object;
+        controlDown = test.control;
+        sprites.Begin(Screen640);
+        ASSERT_TRUE(Cursor().HasValue());
+        const std::vector<DrawnQuad> quads = QuadsOf(sprites);
+        ASSERT_EQ(quads.size(), 1u);
+        EXPECT_EQ(quads[0].slot, test.slot);
+    }
+    // El mouse sobre la UI no ataca.
+    runtime.map = 0;
+    chosen.byte88 = 2;
+    runtime.ui.mouseOnUi = 1;
+    sprites.Begin(Screen640);
+    ASSERT_TRUE(Cursor().HasValue());
+    ASSERT_EQ(QuadsOf(sprites).size(), 1u);
+    EXPECT_EQ(QuadsOf(sprites)[0].slot, 2);
 }
 
 // 6. 0x5a6600 (desde 0x42a735): el mouse sobre un ícono de estado dibuja su ayuda en la caja de los tooltips, en

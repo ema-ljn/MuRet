@@ -21,7 +21,7 @@ inline constexpr std::int32_t InventoryPrice = 1;
 inline constexpr std::int32_t RepairPriceMode = 2;
 
 // Los niveles de las dos mascotas, los words de 0x723968 + 0x14 · tipo que escribe 0x421db0 con el A9: el 0 (el
-// cuervo) para el 0x1a05 y el 1 (el caballo, WorldRuntime::darkHorseLevel) para el 0x1a04. Solo los lee 0x422930.
+// cuervo) para el 0x1a05 y el 1 (el caballo, WorldRuntime::pets) para el 0x1a04. Solo los lee 0x422930.
 struct PetPriceLevels
 {
     std::uint16_t raven = 0; // [0x723968]

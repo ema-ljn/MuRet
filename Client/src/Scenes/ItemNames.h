@@ -23,4 +23,8 @@ namespace Client::Scenes
 [[nodiscard]] Core::Expected<std::string, std::string> ItemNameOf(const Data::Tables::ItemTable* items,
                                                                   const Data::Text::TextTable* texts,
                                                                   std::uint16_t type, std::int32_t level);
+
+// Falso en los casos en que 0x5b1c70 no escribe nada en el buffer: un nivel sin nombre de los tipos con un nombre por
+// nivel (los que ItemNameOf da vacíos). Quien no pone el buffer en cero antes, como 0x41b810 (Q-C874), lee la pila.
+[[nodiscard]] bool ItemNameIsWritten(std::uint16_t type, std::int32_t level);
 } // namespace Client::Scenes

@@ -7,6 +7,7 @@
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Protocol/OptionData.h"
+#include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
@@ -152,6 +153,18 @@ public:
         for (const std::byte b : decoded.Bytes())
             bytes += std::format("{:02X} ", std::to_integer<unsigned>(b));
         requests.push_back(bytes);
+    }
+    void SendWindowClose() override
+    {
+        requests.emplace_back("31");
+    }
+    void SendSetQuest(std::uint8_t /*quest*/, std::uint8_t /*state*/) override
+    {
+        requests.emplace_back("A2");
+    }
+    void SendFriendPacket(Client::Protocol::Outgoing /*packet*/) override
+    {
+        requests.emplace_back("amigos");
     }
     Client::Core::Expected<void, std::string> SaveMacros(std::string_view /*content*/) override
     {

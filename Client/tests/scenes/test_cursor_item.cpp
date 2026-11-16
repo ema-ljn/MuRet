@@ -430,7 +430,7 @@ TEST_F(CursorItemTest, TheOldDarkRavenAsksForTheLeadershipOfTheRavenLevel)
     EXPECT_EQ(mark(), 3);
     own.leadership = 0xb9;
     EXPECT_EQ(mark(), 2);
-    runtime.ravenLevel = 2;
+    runtime.pets[Client::Scenes::RavenPetStats].level = 2;
     EXPECT_EQ(mark(), 3);
     own.leadership = 0xb9 + 30;
     EXPECT_EQ(mark(), 2);
@@ -438,7 +438,7 @@ TEST_F(CursorItemTest, TheOldDarkRavenAsksForTheLeadershipOfTheRavenLevel)
     own.leadership = 0xb9 + 29;
     EXPECT_EQ(mark(), 3);
     // 4.357 · 15 + 0xb9 = 0x10004: queda 4.
-    runtime.ravenLevel = 4357;
+    runtime.pets[Client::Scenes::RavenPetStats].level = 4357;
     own.leadership = 4;
     EXPECT_EQ(mark(), 2);
 }
@@ -782,6 +782,50 @@ TEST_F(CursorItemTest, TheArrowsStopWhereTheOriginalReadsWhatMuRetDoesNotHave)
     ASSERT_TRUE(Scenes::RemoveInventoryItem(Moves(), 0).HasValue());
     EXPECT_EQ(outside.messages.size(), 2u);
     EXPECT_EQ(outside.messages.back(), NoArrowsText);
+}
+
+// 0x561c50 (el clic de ataque, CL9 hito 3): sin arma de tiro, un acceso y verdadero; con una ballesta y sus virotes
+// con durabilidad, dos y verdadero. Sin ellos, 0x561840 dentro del segundo acceso (anidado: sin el corte de Q-C202) y
+// falso: el 251 si no hay más en la grilla, o las flechas de la grilla a la derecha vacía del arco, con su 24.
+TEST_F(CursorItemTest, TheAttackChecksTheArrowsOfTheRangedWeapon)
+{
+    world.OwnCharacter().characterClass = Elf;
+    ItemState& right = world.OwnCharacter().equipment[0];
+    ItemState& left = world.OwnCharacter().equipment[1];
+    const auto checked = [this](int draws, bool expected)
+    {
+        const CrtRandom after = Advanced(random, draws);
+        const auto arrows = Scenes::CheckTheArrows(Moves());
+        ASSERT_TRUE(arrows.HasValue()) << arrows.Error();
+        EXPECT_EQ(arrows.Value(), expected);
+        EXPECT_EQ(random.State(), after.State());
+    };
+
+    right = Invented(Sword);
+    checked(Own, true);
+    // 0x811 en la derecha no es ballesta para 0x561c50.
+    right = Invented(0x0811);
+    checked(Own, true);
+
+    right = Invented(Crossbow);
+    left = Invented(Bolts);
+    checked(2 * Own, true);
+    EXPECT_TRUE(outside.messages.empty());
+
+    left.durability = 0;
+    checked(2 * Own, false);
+    EXPECT_EQ(outside.messages, std::vector<std::size_t>{NoArrowsText});
+
+    right = ItemState{};
+    right.id = EmptyOwnItemId;
+    left = Invented(Bow);
+    Put(Arrows, 6, 2);
+    checked(2 * Own + SendRandoms, false);
+    EXPECT_EQ(outside.messages.back(), EquippedArrowsText);
+    ASSERT_EQ(outside.sent.size(), 1u);
+    EXPECT_EQ(outside.sent.front().sourceSlot, 12 + 2 * 8 + 6);
+    EXPECT_EQ(outside.sent.front().targetSlot, 0);
+    EXPECT_EQ(world.Runtime().cursorItem.id, Arrows);
 }
 
 // Sin el envío, el 24 corta después de la traba y de sus dos rand(); sin Item.bmd, levantar corta antes de tocar nada.

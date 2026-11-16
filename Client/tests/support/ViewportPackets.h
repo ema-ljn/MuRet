@@ -13,7 +13,8 @@
 #include <vector>
 
 // Los paquetes de los otros jugadores en el viewport armados con los structs que leen 0x4c8860 (0x12), 0x4ca780
-// (0x14), 0x4c92a0 (0x45), 0x4c8380 (0x25) y 0x4c6b40 (0xDF): los offsets del ASM, no los del GS 0.97 (08, P-C160).
+// (0x14), 0x4c92a0 (0x45), 0x4c8380 (0x25) y 0x4c6b40 (0xDF), y los de los monstruos que leen 0x4c9c60 (0x13), 0x4ca0b0
+// (0x1F) y 0x4e0980 (0x68): los offsets del ASM, no los del GS 0.97 (08, P-C160 y P-C172).
 // Los nombres son inventados.
 namespace Client::Tests
 {
@@ -32,7 +33,7 @@ struct ViewportPlayerRecord
     std::uint8_t classAndState = 0;
     std::array<std::uint8_t, 17> equipment = NakedEquipment;
     std::uint32_t effects = 0;
-    std::string_view name;
+    std::string_view name{};
     std::uint8_t targetX = 0;
     std::uint8_t targetY = 0;
     std::uint8_t directionAndPk = 0;
@@ -47,10 +48,53 @@ struct TransformedRecordBytes
     std::uint8_t y = 0;
     std::uint16_t type = 0;
     std::uint32_t effects = 0;
-    std::string_view name;
+    std::string_view name{};
     std::uint8_t targetX = 0;
     std::uint8_t targetY = 0;
     std::uint8_t directionAndPk = 0;
+};
+
+// Un registro del 0x13 (0x10 bytes): el tipo alto entero en +2 (con los bits de +0x42d y +0x93).
+struct MonsterRecordBytes
+{
+    std::uint16_t key = 0;
+    bool isNew = false;
+    std::uint8_t typeHigh = 0;
+    std::uint8_t typeLow = 0;
+    std::uint32_t effects = 0;
+    std::uint8_t x = 0;
+    std::uint8_t y = 0;
+    std::uint8_t targetX = 0;
+    std::uint8_t targetY = 0;
+    std::uint8_t direction = 0;
+};
+
+// Un registro del 0x1F (0x18 bytes).
+struct SummonRecordBytes
+{
+    std::uint16_t key = 0;
+    bool isNew = false;
+    std::uint16_t type = 0;
+    std::uint32_t effects = 0;
+    std::uint8_t x = 0;
+    std::uint8_t y = 0;
+    std::uint8_t targetX = 0;
+    std::uint8_t targetY = 0;
+    std::uint8_t directionAndPk = 0;
+    std::string_view owner{};
+};
+
+// Un registro del 0x68 (0x1c bytes).
+struct ObjectRecordBytes
+{
+    std::uint8_t kind = 0;
+    std::uint8_t classOrTypeHigh = 0;
+    std::uint8_t typeLow = 0;
+    std::uint16_t key = 0;
+    std::uint8_t x = 0;
+    std::uint8_t y = 0;
+    std::array<std::uint8_t, 17> equipment = NakedEquipment;
+    std::uint32_t effects = 0;
 };
 
 namespace ViewportDetail
@@ -143,6 +187,76 @@ inline Network::Packet TransformedPacket(std::span<const TransformedRecordBytes>
     return Built(std::move(bytes));
 }
 
+// El C2 13.
+inline Network::Packet MonstersPacket(std::span<const MonsterRecordBytes> records)
+{
+    using namespace ViewportDetail;
+    constexpr std::size_t Size = 0x10;
+    std::vector<std::byte> bytes = C2Header(0x13, records.size(), Size);
+    for (std::size_t index = 0; index < records.size(); ++index)
+    {
+        const MonsterRecordBytes& record = records[index];
+        const std::span<std::byte> at = std::span(bytes).subspan(5 + index * Size, Size);
+        PutKey(at, record.key, record.isNew);
+        at[2] = std::byte{record.typeHigh};
+        at[3] = std::byte{record.typeLow};
+        PutLe32(at.subspan(4), record.effects);
+        at[8] = std::byte{record.x};
+        at[9] = std::byte{record.y};
+        at[0xa] = std::byte{record.targetX};
+        at[0xb] = std::byte{record.targetY};
+        at[0xc] = std::byte{record.direction};
+    }
+    return Built(std::move(bytes));
+}
+
+// El C2 1F.
+inline Network::Packet SummonsPacket(std::span<const SummonRecordBytes> records)
+{
+    using namespace ViewportDetail;
+    constexpr std::size_t Size = 0x18;
+    std::vector<std::byte> bytes = C2Header(0x1f, records.size(), Size);
+    for (std::size_t index = 0; index < records.size(); ++index)
+    {
+        const SummonRecordBytes& record = records[index];
+        const std::span<std::byte> at = std::span(bytes).subspan(5 + index * Size, Size);
+        PutKey(at, record.key, record.isNew);
+        at[2] = std::byte{static_cast<std::uint8_t>(record.type >> 8)};
+        at[3] = std::byte{static_cast<std::uint8_t>(record.type & 0xff)};
+        PutLe32(at.subspan(4), record.effects);
+        at[8] = std::byte{record.x};
+        at[9] = std::byte{record.y};
+        at[0xa] = std::byte{record.targetX};
+        at[0xb] = std::byte{record.targetY};
+        at[0xc] = std::byte{record.directionAndPk};
+        PutName(at.subspan(0xd), record.owner);
+    }
+    return Built(std::move(bytes));
+}
+
+// El C2 68.
+inline Network::Packet ObjectsPacket(std::span<const ObjectRecordBytes> records)
+{
+    using namespace ViewportDetail;
+    constexpr std::size_t Size = 0x1c;
+    std::vector<std::byte> bytes = C2Header(0x68, records.size(), Size);
+    for (std::size_t index = 0; index < records.size(); ++index)
+    {
+        const ObjectRecordBytes& record = records[index];
+        const std::span<std::byte> at = std::span(bytes).subspan(5 + index * Size, Size);
+        at[0] = std::byte{record.kind};
+        at[1] = std::byte{record.classOrTypeHigh};
+        at[2] = std::byte{record.typeLow};
+        PutKey(at.subspan(3), record.key, false);
+        at[5] = std::byte{record.x};
+        at[6] = std::byte{record.y};
+        for (std::size_t i = 0; i < record.equipment.size(); ++i)
+            at[7 + i] = std::byte{record.equipment[i]};
+        PutLe32(at.subspan(0x18), record.effects);
+    }
+    return Built(std::move(bytes));
+}
+
 // El C1 14: pkt[3] la cuenta y las claves enteras, big-endian.
 inline Network::Packet LeavePacket(std::span<const std::uint16_t> keys)
 {
@@ -183,6 +297,29 @@ inline Network::Packet PositionPacket(std::uint16_t key, std::uint8_t x, std::ui
                                  std::byte{static_cast<std::uint8_t>(key & 0xff)},
                                  std::byte{x},
                                  std::byte{y}};
+    return ViewportDetail::Built(std::move(bytes));
+}
+
+// El 1A como lo arma PMSG_MAGICATTACK_COUNT_SEND: la cabecera C1, NumberH/NumberL, MagicNumber, X, Y, Count y las
+// claves de PMSG_MAGICATTACK_COUNT_INFO (NumberH/NumberL).
+inline Network::Packet MagicAttackCountPacket(std::uint16_t key, std::uint8_t magic, std::uint8_t x, std::uint8_t y,
+                                              std::span<const std::uint16_t> targets)
+{
+    std::vector<std::byte> bytes(9 + targets.size() * 2);
+    bytes[0] = std::byte{0xc1};
+    bytes[1] = std::byte{static_cast<std::uint8_t>(bytes.size())};
+    bytes[2] = std::byte{0x1a};
+    bytes[3] = std::byte{static_cast<std::uint8_t>(key >> 8)};
+    bytes[4] = std::byte{static_cast<std::uint8_t>(key & 0xff)};
+    bytes[5] = std::byte{magic};
+    bytes[6] = std::byte{x};
+    bytes[7] = std::byte{y};
+    bytes[8] = std::byte{static_cast<std::uint8_t>(targets.size())};
+    for (std::size_t index = 0; index < targets.size(); ++index)
+    {
+        bytes[9 + index * 2] = std::byte{static_cast<std::uint8_t>(targets[index] >> 8)};
+        bytes[10 + index * 2] = std::byte{static_cast<std::uint8_t>(targets[index] & 0xff)};
+    }
     return ViewportDetail::Built(std::move(bytes));
 }
 } // namespace Client::Tests

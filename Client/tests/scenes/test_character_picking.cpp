@@ -6,6 +6,7 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/ActorPickingBox.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
@@ -21,6 +22,8 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <cmath>
+#include <limits>
 #include <memory>
 #include <initializer_list>
 #include <optional>
@@ -55,6 +58,13 @@ void Place(WorldState& world, std::size_t slot, float x, std::uint8_t kind)
     actor.byte42c = 1;
     actor.byte88 = kind;
     actor.position = {x, 1000.0f, 0.0f};
+    // La caja que 0x511290 le pone al 0x20a (0x512270 y 0x5122d4).
+    actor.boundsMin = {-60.0f, -60.0f, 0.0f};
+    actor.boundsMaxX = 40.0f;
+    actor.boundsMaxY = 40.0f;
+    actor.boundsTop = 120.0f;
+    Client::Scenes::PublishPickingBox(actor, actor.position, actor.boundsMin,
+                                      {actor.boundsMaxX, actor.boundsMaxY, actor.boundsTop});
 }
 
 struct Picking
@@ -85,7 +95,7 @@ TEST(CharacterPickingTest, TheMaskedOnesAreTintedByLevelAndPk)
     world.Actors()[9] = world.Actors()[1];
     world.Actors()[9].alpha = 0.0f;
 
-    EXPECT_EQ(PickTheCharacter(world, Players, std::nullopt), NoPick);
+    EXPECT_EQ(PickTheCharacter(world, Players, Ray.origin, std::nullopt), NoPick);
     const auto light = [&world](std::size_t slot) { return world.Actors()[slot].light; };
     EXPECT_EQ(light(1), glm::vec3(0.2f));
     EXPECT_EQ(light(2), glm::vec3(-0.4f));
@@ -96,6 +106,31 @@ TEST(CharacterPickingTest, TheMaskedOnesAreTintedByLevelAndPk)
     EXPECT_EQ(light(7), glm::vec3(-0.4f));
     EXPECT_EQ(light(8), glm::vec3(9.0f));
     EXPECT_EQ(light(9), glm::vec3(9.0f));
+}
+
+TEST(CharacterPickingTest, EligibleTintingSetsThePersistentEffectFlag)
+{
+    Picking tested;
+    WorldState& world = *tested.world;
+    Place(world, 1, 0.0f, Players);
+    Place(world, 2, 0.0f, Players);
+    Place(world, 3, 0.0f, Players);
+    Place(world, 4, 0.0f, Monsters);
+    world.Actors()[1].byteE8 = 0;
+    world.Actors()[2].alpha = std::nextafter(0.0f, 1.0f);
+    world.Actors()[3].alpha = std::numeric_limits<float>::quiet_NaN();
+    world.Actors()[4].byteE8 = 0;
+    world.Actors()[0].byteE8 = 0;
+    world.Actors()[0].light = glm::vec3(9.0f);
+
+    ASSERT_EQ(PickTheCharacter(world, Players, Ray.origin, std::nullopt), NoPick);
+
+    EXPECT_EQ(world.Actors()[1].byteE8, 1);
+    EXPECT_EQ(world.Actors()[2].byteE8, 1);
+    EXPECT_EQ(world.Actors()[3].byteE8, 0);
+    EXPECT_EQ(world.Actors()[4].byteE8, 0);
+    EXPECT_EQ(world.Actors()[0].byteE8, 1);
+    EXPECT_EQ(world.Actors()[0].light, glm::vec3(0.2f));
 }
 
 // 0x59e7fc..0x59ea95: el más cercano a la cámara cuya caja toca el segmento; sin el héroe publicado, el que se muere,
@@ -116,12 +151,96 @@ TEST(CharacterPickingTest, TheNearestBoxOnTheSegmentIsPicked)
     // Fuera del segmento: en Y 2.000.
     Place(world, 7, 600.0f, Players);
     world.Actors()[7].position.y = 2000.0f;
-    EXPECT_EQ(PickTheCharacter(world, Players, Ray), 2);
-    EXPECT_EQ(PickTheCharacter(world, Monsters, Ray), 6);
-    EXPECT_EQ(PickTheCharacter(world, Npcs, Ray), NoPick);
+    Client::Scenes::PublishPickingBox(
+        world.Actors()[7], world.Actors()[7].position, world.Actors()[7].boundsMin,
+        {world.Actors()[7].boundsMaxX, world.Actors()[7].boundsMaxY, world.Actors()[7].boundsTop});
+    EXPECT_EQ(PickTheCharacter(world, Players, Ray.origin, Ray), 2);
+    EXPECT_EQ(PickTheCharacter(world, Monsters, Ray.origin, Ray), 6);
+    EXPECT_EQ(PickTheCharacter(world, Npcs, Ray.origin, Ray), NoPick);
     // Empatados, gana el primero.
     Place(world, 8, 2000.0f, Players);
-    EXPECT_EQ(PickTheCharacter(world, Players, Ray), 2);
+    EXPECT_EQ(PickTheCharacter(world, Players, Ray.origin, Ray), 2);
+}
+
+TEST(CharacterPickingTest, DistanceUsesTheCameraPositionRatherThanTheRayOrigin)
+{
+    Picking tested;
+    WorldState& world = *tested.world;
+    Place(world, 1, 100.0f, Players);
+    Place(world, 2, 9000.0f, Players);
+    const glm::vec3 camera{10000.0f, 1000.0f, 60.0f};
+
+    EXPECT_EQ(PickTheCharacter(world, Players, camera, Ray), 2);
+    EXPECT_EQ(PickTheCharacter(world, Players, Ray.origin, Ray), 1);
+}
+
+TEST(CharacterPickingTest, FloatRoundedBestCanLetTheLaterSlightlyFartherCandidateWin)
+{
+    Picking tested;
+    WorldState& world = *tested.world;
+    Place(world, 1, 10000.3f, Players);
+    Place(world, 2, 10000.3f, Players);
+    world.Actors()[2].position.y = 1001.0f;
+    Client::Scenes::PublishPickingBox(
+        world.Actors()[2], world.Actors()[2].position, world.Actors()[2].boundsMin,
+        {world.Actors()[2].boundsMaxX, world.Actors()[2].boundsMaxY, world.Actors()[2].boundsTop});
+
+    EXPECT_EQ(PickTheCharacter(world, Players, Ray.origin, Ray), 2);
+}
+
+TEST(CharacterPickingTest, UnorderedDistanceComparisonAcceptsTheLaterCandidate)
+{
+    Picking tested;
+    WorldState& world = *tested.world;
+    Place(world, 1, 1000.0f, Players);
+    Place(world, 2, 2000.0f, Players);
+    world.Actors()[2].position.x = std::numeric_limits<float>::quiet_NaN();
+
+    EXPECT_EQ(PickTheCharacter(world, Players, Ray.origin, Ray), 2);
+}
+
+// La caja de cada tipo (CL9 hito 2): a 150 de altura, el segmento pasa por arriba del 0x20a (techo 120) y toca la del
+// 0x18e (0x51236f, de (−90, −50, 0) a (90, 50, 200)), aunque esté más lejos.
+TEST(CharacterPickingTest, TheBoxComesFromTheConstructedType)
+{
+    Picking tested;
+    WorldState& world = *tested.world;
+    Place(world, 1, 1000.0f, 2);
+    Place(world, 2, 3000.0f, 2);
+    ActorState& tall = world.Actors()[2];
+    tall.boundsMin = {-90.0f, -50.0f, 0.0f};
+    tall.boundsMaxX = 90.0f;
+    tall.boundsMaxY = 50.0f;
+    tall.boundsTop = 200.0f;
+    Client::Scenes::PublishPickingBox(tall, tall.position, tall.boundsMin,
+                                      {tall.boundsMaxX, tall.boundsMaxY, tall.boundsTop});
+    const TerrainPickingSegment high{.origin = {0.0f, 1000.0f, 150.0f}, .end = {20000.0f, 1000.0f, 150.0f}};
+    EXPECT_EQ(PickTheCharacter(world, Monsters, high.origin, high), 2);
+    EXPECT_EQ(PickTheCharacter(world, Monsters, Ray.origin, Ray), 1);
+}
+
+TEST(CharacterPickingTest, PickingUsesTheLastPublishedBoxAfterTheActorMoves)
+{
+    Picking tested;
+    WorldState& world = *tested.world;
+    Place(world, 1, 2000.0f, Players);
+    ActorState& actor = world.Actors()[1];
+    actor.field13c = 1940.0f;
+    actor.field140 = 940.0f;
+    actor.field144 = 0.0f;
+    actor.field148 = 100.0f;
+    actor.field14c = 0.0f;
+    actor.field150 = 0.0f;
+    actor.field154 = 0.0f;
+    actor.field158 = 100.0f;
+    actor.field15c = 0.0f;
+    actor.field160 = 0.0f;
+    actor.field164 = 0.0f;
+    actor.field168 = 120.0f;
+    actor.position.x = 9000.0f;
+    const TerrainPickingSegment shortRay{.origin = {0.0f, 1000.0f, 60.0f}, .end = {2500.0f, 1000.0f, 60.0f}};
+
+    EXPECT_EQ(PickTheCharacter(world, Players, shortRay.origin, shortRay), 1);
 }
 
 // 0x59e9ec..0x59ea6d: en Lorencia la capa 4 y en Devias la 3 cuentan solo con la capa de la celda del héroe; en los
@@ -145,13 +264,13 @@ TEST(CharacterPickingTest, TheUpperFloorsCountOnlyOnTheHerosLayer)
         Place(world, 2, 3000.0f, Players);
         // La celda (12, 10) del primero.
         mapping->layer1[Client::Data::Terrain::CellIndex(12, 10)] = tried.upper;
-        EXPECT_EQ(PickTheCharacter(world, Players, Ray), 2);
+        EXPECT_EQ(PickTheCharacter(world, Players, Ray.origin, Ray), 2);
         world.Runtime().heroCellLayer = tried.upper;
-        EXPECT_EQ(PickTheCharacter(world, Players, Ray), 1);
+        EXPECT_EQ(PickTheCharacter(world, Players, Ray.origin, Ray), 1);
         // En otro mapa la capa no cuenta.
         world.Runtime().heroCellLayer = 0;
         world.Runtime().map = 1;
-        EXPECT_EQ(PickTheCharacter(world, Players, Ray), 1);
+        EXPECT_EQ(PickTheCharacter(world, Players, Ray.origin, Ray), 1);
     }
 }
 
@@ -375,6 +494,9 @@ TEST(CharacterPickingTest, TheChosenMonsterStaysWithoutButtons)
     world.Actors()[0].characterClass = 1;
     Place(world, 5, 8000.0f, 2);
     world.Actors()[5].position.y = 5000.0f;
+    Client::Scenes::PublishPickingBox(
+        world.Actors()[5], world.Actors()[5].position, world.Actors()[5].boundsMin,
+        {world.Actors()[5].boundsMaxX, world.Actors()[5].boundsMaxY, world.Actors()[5].boundsTop});
     Place(world, 3, 2000.0f, Players);
     auto& targets = world.Runtime().selectedTargets;
     targets = {-1, -1, 5, -1, 5};

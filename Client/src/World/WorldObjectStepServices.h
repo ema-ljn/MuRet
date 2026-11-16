@@ -31,6 +31,12 @@ struct WorldObject;
                                                                const glm::vec3& offset,
                                                                Render::Models::CrtRandom& random,
                                                                const ObjectStepGlobals& globals);
+// 0x52f360 con otro objeto que uno del mundo (el 0xf1 desde 0x505425): lo que lee del objeto, los ángulos (+0x1c), la
+// posición (+0x10) y la luz (+0xf4, la del humo de las clases 1 y 2). Solo usa worldClock, dynamicLighting y particles
+// de `globals`.
+[[nodiscard]] Core::Expected<void, std::string>
+EmitObjectFire(std::int32_t fireClass, const glm::vec3& angles, const glm::vec3& position, const glm::vec3& light,
+               const glm::vec3& offset, Render::Models::CrtRandom& random, const ObjectStepGlobals& globals);
 
 // 0x604ee9/0x604f5c: lámparas 0x5a/0x96 del mapa 0, sobre la luz dinámica durable.
 [[nodiscard]] Core::Expected<void, std::string>

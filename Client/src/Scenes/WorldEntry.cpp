@@ -215,6 +215,7 @@ void StartTheWait(const WorldEntryResources& resources)
 Core::Expected<void, std::string> CloseTheWindows(const WorldEntryResources& resources)
 {
     GamePanels panels(resources.world, resources.cloth.random);
+    panels.LendTheWindowClose(resources.sendWindowClose);
     return panels.Registry().CloseAll();
 }
 

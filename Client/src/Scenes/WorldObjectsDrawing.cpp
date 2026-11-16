@@ -128,10 +128,15 @@ void CountTheObjectDraw(std::int32_t& counter)
     ++counter;
 }
 
+// 0x60470b: el +8 del sector queda con lo que dio el trapecio, también para los objetos que no están vivos.
+void PassTheSector(const World::TerrainPolygon& polygon, World::WorldObject& object)
+{
+    object.sectorPassed = SectorPasses(polygon, World::SectorX(object), World::SectorY(object));
+}
+
 bool SeenInTheDraw(const World::TerrainPolygon& polygon, const World::WorldObject& object, float extraMargin = 0.0f)
 {
-    return SectorPasses(polygon, World::SectorX(object), World::SectorY(object)) &&
-           ObjectPasses(polygon, object, extraMargin);
+    return object.sectorPassed && ObjectPasses(polygon, object, extraMargin);
 }
 
 // 0x5ffce0 con la luz del terreno en su lugar (0x5f99e0), o 0 sin ella, y lo que decide World::DrawOf.
@@ -248,18 +253,50 @@ void DrawObjectGlows(std::span<const SeenObjectEffects> seen, const ObjectFrameE
 }
 } // namespace
 
-Core::Expected<void, std::string> StepGameWorldObjects(std::span<World::WorldObject> objects, std::uint8_t map,
-                                                       const IModelLibrary& models, Render::Models::CrtRandom& random,
-                                                       const World::ObjectStepGlobals& globals,
-                                                       const AfterObjectStep& after)
+Core::Expected<void, std::string> WalkTheObjectSectors(std::span<World::WorldObject> objects,
+                                                       const AfterObjectStep& seenStep, const AfterObjectStep& collapse)
 {
     for (const std::size_t index : World::DrawOrder(objects))
     {
         World::WorldObject& object = objects[index];
+        // +0x16c solo queda prendido en un sector que pasó el último dibujo (MuRet lo apaga en el dibujo).
+        if (!object.sectorPassed && !object.seen)
+        {
+            // 0x6065d1..0x6065f4: 0x5ff960 con el vivo y +0x16c en 0.
+            if (object.alive && collapse)
+            {
+                if (auto collapsed = collapse(object); !collapsed.HasValue())
+                    return collapsed;
+            }
+            object.seen = false;
+            continue;
+        }
         if (!object.alive || !object.seen)
         {
             continue;
         }
+        // 0x6065a8..0x6065bd: 0x604ab0, 0x6063d0 y 0x5ff960.
+        if (seenStep)
+        {
+            if (auto stepped = seenStep(object); !stepped.HasValue())
+                return stepped;
+        }
+        if (collapse)
+        {
+            if (auto collapsed = collapse(object); !collapsed.HasValue())
+                return collapsed;
+        }
+    }
+    return {};
+}
+
+Core::Expected<void, std::string> StepGameWorldObjects(std::span<World::WorldObject> objects, std::uint8_t map,
+                                                       const IModelLibrary& models, Render::Models::CrtRandom& random,
+                                                       const World::ObjectStepGlobals& globals,
+                                                       const AfterObjectStep& after, const AfterObjectStep& collapse)
+{
+    const AfterObjectStep seenStep = [&](World::WorldObject& object) -> Core::Expected<void, std::string>
+    {
         if (auto stepped = World::StepWorldObjectChecked(
                 object, map, models.SkeletonOf(static_cast<std::uint16_t>(object.type)), random, globals);
             !stepped.HasValue())
@@ -268,12 +305,10 @@ Core::Expected<void, std::string> StepGameWorldObjects(std::span<World::WorldObj
         }
         // 0x6065b7: 0x6063d0(objeto, &selector, &0x7d365a0) después de 0x604ab0.
         if (after)
-        {
-            if (auto stepped = after(object); !stepped.HasValue())
-                return stepped;
-        }
-    }
-    return {};
+            return after(object);
+        return {};
+    };
+    return WalkTheObjectSectors(objects, seenStep, collapse);
 }
 
 void StepWorldObjects(std::span<World::WorldObject> objects, std::uint8_t map, const IModelLibrary& models,
@@ -312,6 +347,7 @@ void DrawWorldObjects(Render::ModelBatch& batch, const IModelLibrary& models, st
     for (const std::size_t index : World::DrawOrder(objects))
     {
         World::WorldObject& object = objects[index];
+        PassTheSector(polygon, object);
         object.seen = SeenInTheDraw(polygon, object, ExtraObjectMargin(map));
         if (!object.seen)
         {
@@ -516,6 +552,7 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
     for (const std::size_t index : World::DrawOrder(objects))
     {
         World::WorldObject& object = objects[index];
+        PassTheSector(polygon, object);
         // 0x60473b: el que no está vivo no se mira.
         if (!object.alive)
         {

@@ -31,6 +31,7 @@
 #include <cstdint>
 #include <functional>
 #include <ios>
+#include <limits>
 #include <numbers>
 #include <optional>
 #include <span>
@@ -240,6 +241,66 @@ TEST(CharacterDrawingTest, AnOutlinedPartGoesTwiceAroundItsBoneFirst)
     EXPECT_FLOAT_EQ(vertices[4].position.x, 1.2f - 0.02f);
     ExpectColor(vertices[6], 0.4f, 0.4f, 0.4f);
     EXPECT_FLOAT_EQ(vertices[7].position.x, 1.0f);
+}
+
+TEST(CharacterDrawingTest, PublishesPartBoxAtTheBodyPartDrawBoundary)
+{
+    DrawnCharacter character;
+    character.appearance = Client::GameLogic::ClassAppearance(0, 0);
+    for (auto& part : character.appearance.bodyParts)
+        part.model = 0x1234;
+    int published = 0;
+    character.onPartBox = [&published](const glm::vec3&) { ++published; };
+    const auto draw = [&character](const OneModel& models, Client::Scenes::CharacterDrawPass pass)
+    {
+        ModelBatch batch;
+        batch.Begin(Client::Render::Pass3D{});
+        DrawCharacter(batch, models, character, {}, pass);
+        return batch.Commands().size();
+    };
+
+    const OneModel missing(0x5678);
+    EXPECT_EQ(draw(missing, Client::Scenes::CharacterDrawPass::Parts), 0u);
+    EXPECT_EQ(published, character.appearance.bodyParts.size());
+
+    published = 0;
+    const OneModel zeroMeshes(0x1234, "part.jpg", 0);
+    EXPECT_EQ(draw(zeroMeshes, Client::Scenes::CharacterDrawPass::Parts), 0u);
+    EXPECT_EQ(published, character.appearance.bodyParts.size());
+
+    published = 0;
+    const OneModel hiddenMesh(0x1234, "part.jpg", 1, TextureSlot{0x12d});
+    EXPECT_EQ(draw(hiddenMesh, Client::Scenes::CharacterDrawPass::Parts), 0u);
+    EXPECT_EQ(published, character.appearance.bodyParts.size());
+
+    published = 0;
+    character.alpha = 0.01f;
+    const OneModel models(0x1234);
+    EXPECT_EQ(draw(models, Client::Scenes::CharacterDrawPass::Parts), 0u);
+    EXPECT_EQ(published, 0);
+
+    character.alpha = std::nextafter(0.01f, 1.0f);
+    EXPECT_GT(draw(models, Client::Scenes::CharacterDrawPass::Parts), 0u);
+    EXPECT_EQ(published, character.appearance.bodyParts.size());
+
+    published = 0;
+    character.alpha = std::numeric_limits<float>::quiet_NaN();
+    EXPECT_EQ(draw(models, Client::Scenes::CharacterDrawPass::Parts), 0u);
+    EXPECT_EQ(published, 0);
+
+    published = 0;
+    character.alpha = 1.0f;
+    EXPECT_EQ(draw(models, Client::Scenes::CharacterDrawPass::Shadow), 0u);
+    EXPECT_EQ(published, 0);
+
+    DrawnCharacter hanging;
+    hanging.appearance.pet = std::uint16_t{0x1c13};
+    hanging.onPartBox = [&published](const glm::vec3&) { ++published; };
+    const TwoPets attachedModels;
+    ModelBatch hangingBatch;
+    hangingBatch.Begin(Client::Render::Pass3D{});
+    DrawCharacter(hangingBatch, attachedModels, hanging, {}, Client::Scenes::CharacterDrawPass::Hanging);
+    EXPECT_EQ(published, 0);
 }
 
 // Los dos pases recorren todas las mallas de la parte, y la parte va después (0x60cf70).

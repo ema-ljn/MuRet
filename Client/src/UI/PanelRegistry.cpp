@@ -67,7 +67,7 @@ const char* WaveOf(PanelId id)
     switch (id)
     {
     case FriendsPanel:
-        return "el administrador viejo (hito 7) y la CL9.4";
+        return "la ventana de amigos, sin el paso de las ventanas viejas (CL9 hito 9)";
     case GuildPanel:
     case TradePanel:
     case SecondGuildPanel:
@@ -114,7 +114,7 @@ bool PanelRegistry::IsOpen(PanelId id)
     switch (id)
     {
     case FriendsPanel:
-        return delegated.friends != 0;
+        return m_context.friendsShown ? m_context.friendsShown() : delegated.friends != 0;
     case MovePanel:
         return m_state.overlayMode == MoveOverlayMode;
     case PartyPanel:
@@ -295,11 +295,31 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id)
         break;
     }
     case FriendsPanel:
+        // 0x659f3d: sin cerrar nada, 0x491080(0x186, 0x106) y los sonidos.
+        if (!m_context.friendsOpened)
+            return Core::Unexpected(OpenCut(id));
+        if (auto opened = m_context.friendsOpened(); !opened.HasValue())
+            return Core::Unexpected(std::move(opened).Error());
+        break;
     case QuestPanel:
+    {
+        // 0x659c50..0x659c70: todos menos el personaje y los amigos; con lo que cerró, 0x419840(−1).
+        mask ^= CharacterPanel;
+        auto closed = CloseByMask(mask);
+        if (!closed.HasValue())
+            return closed;
+        if (closed.Value())
+        {
+            if (!m_context.questOpened)
+                return Core::Unexpected(std::string("0x419840: abrir las misiones sin [0x710148]"));
+            if (auto opened = m_context.questOpened(); !opened.HasValue())
+                return Core::Unexpected(std::move(opened).Error());
+        }
+        break;
+    }
     case GuildPanel:
     case WarehousePanel:
     case ChaosBoxPanel:
-    case PetPanel:
     case EventNpcPanel:
     case Panel2000:
     case SecondEventNpcPanel:
@@ -313,6 +333,24 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id)
     case SecondSiegeWeaponPanel:
     case SiegeGatePanel:
         return Core::Unexpected(OpenCut(id));
+    case PetPanel:
+    {
+        // 0x659fd9..0x65a8af: todos menos el personaje y los amigos; con lo que cerró, 0x420cb0 (0x723911 en 2) y los
+        // pedidos del cuervo y del caballo.
+        mask ^= CharacterPanel;
+        auto closed = CloseByMask(mask);
+        if (!closed.HasValue())
+            return closed;
+        if (closed.Value())
+        {
+            m_state.delegated.pet = PetPanelOpen;
+            if (!m_context.petOpened)
+                return Core::Unexpected(std::string("0x659ff6: abrir la mascota pide el cuervo y el caballo (C1 A9) "
+                                                    "sin el cable"));
+            m_context.petOpened();
+        }
+        break;
+    }
     case CharacterPanel:
     {
         // 0x65c94b..0x65ca72: todos menos el inventario y los amigos; con lo que cerró, el personaje.
@@ -460,6 +498,24 @@ Core::Expected<bool, std::string> PanelRegistry::CloseByMask(PanelId mask, bool 
             m_state.personalShop = 0;
             break;
         }
+        case PetPanel:
+            // 0x6589b1: 0x420ca0, 0x723911 en 0.
+            m_state.delegated.pet = 0;
+            break;
+        case QuestPanel:
+            // 0x657b2b: 0x419900, la ventana en 0 y el C1 03 31.
+            if (!m_context.questClosed)
+                return Core::Unexpected(std::string("0x419900: cerrar las misiones manda el C1 03 31 sin el cable"));
+            m_state.delegated.quest = 0;
+            m_context.questClosed();
+            break;
+        case FriendsPanel:
+            // 0x6584e5: 0x4914e0.
+            if (!m_context.friendsClosed)
+                return Core::Unexpected(CloseCut(id));
+            if (auto closed = m_context.friendsClosed(); !closed.HasValue())
+                return Core::Unexpected(std::move(closed).Error());
+            break;
         case InventoryPanel:
             // 0x659250..0x65926a.
             m_state.inventory = 0;
@@ -467,6 +523,13 @@ Core::Expected<bool, std::string> PanelRegistry::CloseByMask(PanelId mask, bool 
             m_state.repairMode = 0;
             m_state.field78abb00 = 0;
             m_state.field78abb04 = 0;
+            break;
+        case EventNpcPanel:
+        case SecondEventNpcPanel:
+            if (!m_context.eventNpcClosed)
+                return Core::Unexpected(CloseCut(id));
+            m_context.eventNpcClosed();
+            m_state.eventNpc = 0;
             break;
         default:
             return Core::Unexpected(CloseCut(id));

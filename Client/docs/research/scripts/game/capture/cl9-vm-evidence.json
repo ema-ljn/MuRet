@@ -1,0 +1,1458 @@
+{
+  "schema_version": 1,
+  "description": "Corpus de los 59 skips observados en MuRet fe421138; referencias archivadas, no nuevas observaciones de H1/H9 en VM.",
+  "muret_code_snapshot": "fe42113832541051463f3ce15fbe8b2efb233b65",
+  "source_commits": {
+    "research": "14f0f931f68776dd103927f58c4359dc29ced712",
+    "lab": "9f83b4c7e4e40aaa3b3f0876c9ddbf04a3fa163d",
+    "graphics": "cb575444f3f0923640083431ceabe1dc24aa2186"
+  },
+  "source_repositories": {
+    "research": "https://github.com/EmaNLJN/mu-server-repack-research-102i",
+    "lab": "https://github.com/EmaNLJN/mu-online-reverse-lab",
+    "graphics": "https://github.com/EmaNLJN/mu-online-reverse-lab"
+  },
+  "profiles": {
+    "cl9_sha256": "c32bbd5f16ca400c7cfc71fa5f4cd573c57f146dd19a6da52fdd1007abaca26a",
+    "historical_memory_sha256": "2f16a9c6bc0905a78ff2be3306d26673a4a2b0fda0956dba492d0a9b2b411de0",
+    "graphics_sha256": "c32bbd5f16ca400c7cfc71fa5f4cd573c57f146dd19a6da52fdd1007abaca26a",
+    "wire_binary_identity": "No se atribuye identidad del EXE sólo por el hash del log; se conserva como corpus histórico fijado por bytes."
+  },
+  "data_git_tree": "b5a010ea1459758e05bd0619ee60776760833427",
+  "group_counts": {
+    "memory": 20,
+    "wire": 25,
+    "gl": 14
+  },
+  "artifacts": [
+    {
+      "source": "research",
+      "path": "client-research/mu-golden/memoria-cliente/2026-10-09-devias/s31_gate.bin",
+      "output": "memory/2026-10-09-devias/s31_gate.bin",
+      "sha256": "53bc01accfe9cefc37fbe9779ca3d579b7a863a4bce6ce60beb46bc05a857226",
+      "size": 2304
+    },
+    {
+      "source": "research",
+      "path": "client-research/mu-golden/memoria-cliente/2026-10-09-devias/s31_item.bin",
+      "output": "memory/2026-10-09-devias/s31_item.bin",
+      "sha256": "695dee9d04231cda2620997ceb9938a979707de31bf01bb98fbcfb38a6fdaae7",
+      "size": 688128
+    },
+    {
+      "source": "research",
+      "path": "client-research/mu-golden/memoria-cliente/2026-10-09-devias/s31_text.bin",
+      "output": "memory/2026-10-09-devias/s31_text.bin",
+      "sha256": "791c1189d94f813ba327c474a1959962b99c28a9ba5aab79ecd37680c8b3d417",
+      "size": 614400
+    },
+    {
+      "source": "research",
+      "path": "client-research/mu-golden/memoria-cliente/2026-10-09-lorencia/lor2_slot023.bin",
+      "output": "memory/2026-10-09-lorencia/lor2_slot023.bin",
+      "sha256": "8d712a569e164e8a514045729f6f0884333669ca3d6242be145c763181f0d460",
+      "size": 196608
+    },
+    {
+      "source": "research",
+      "path": "client-research/mu-golden/memoria-cliente/2026-10-09-lorencia/lor2_slot024.bin",
+      "output": "memory/2026-10-09-lorencia/lor2_slot024.bin",
+      "sha256": "21360e972a2e159deeeaf51877aedd99e175ef88c1eee8978ab1c9b0fdb65a98",
+      "size": 49152
+    },
+    {
+      "source": "research",
+      "path": "client-research/mu-golden/memoria-cliente/2026-10-09-lorencia/lor2_slot025.bin",
+      "output": "memory/2026-10-09-lorencia/lor2_slot025.bin",
+      "sha256": "1c73107d2057069f4b66b9bb37c2cd61f136471c996477f79610c6ac20c0f71d",
+      "size": 196608
+    },
+    {
+      "source": "research",
+      "path": "client-research/mu-golden/memoria-cliente/2026-10-09-lorencia/lor2_slot026.bin",
+      "output": "memory/2026-10-09-lorencia/lor2_slot026.bin",
+      "sha256": "5751fcb1f9578c304ef518cb0a1e4c155e496750bdefce806be60e3607ef5546",
+      "size": 49152
+    },
+    {
+      "source": "research",
+      "path": "client-research/mu-golden/memoria-cliente/2026-10-09-lorencia/lor2_slot027.bin",
+      "output": "memory/2026-10-09-lorencia/lor2_slot027.bin",
+      "sha256": "0b5cfb94a0a0aa2445de7e323135295eb075cce17814b84edfdbd8218617a04d",
+      "size": 49152
+    },
+    {
+      "source": "research",
+      "path": "client-research/mu-golden/memoria-cliente/2026-10-09-lorencia/lor2_slot028.bin",
+      "output": "memory/2026-10-09-lorencia/lor2_slot028.bin",
+      "sha256": "2a3ba93729dabdb886feca861608e54478bde9da17859c5495070cd541876f0a",
+      "size": 196608
+    },
+    {
+      "source": "research",
+      "path": "client-research/mu-golden/memoria-cliente/2026-10-09-lorencia/lor2_slot029.bin",
+      "output": "memory/2026-10-09-lorencia/lor2_slot029.bin",
+      "sha256": "4ec4cba5cc74e7ef6746a59161d0dca5dab9f6c1a8ad033a0d72fded8b454dc8",
+      "size": 49152
+    },
+    {
+      "source": "research",
+      "path": "client-research/mu-golden/memoria-cliente/2026-10-09-lorencia/lor2_slot02a.bin",
+      "output": "memory/2026-10-09-lorencia/lor2_slot02a.bin",
+      "sha256": "c5f9c20f5dced32139dfa0118e7c3539ede1a8f47d89780b74d9c5df33639c2f",
+      "size": 196608
+    },
+    {
+      "source": "research",
+      "path": "client-research/mu-golden/memoria-cliente/2026-10-09-lorencia/lor2_slot02b.bin",
+      "output": "memory/2026-10-09-lorencia/lor2_slot02b.bin",
+      "sha256": "83bdbcb88bbe4867646b86993797abe37c0ce031e4475216b65a398435b2d430",
+      "size": 49152
+    },
+    {
+      "source": "research",
+      "path": "client-research/mu-golden/memoria-cliente/2026-10-09-lorencia/lor2_slot002.bin",
+      "output": "memory/2026-10-09-lorencia/lor2_slot002.bin",
+      "sha256": "e13ca7f35a44a82a5e08bf7450dd72c6d8d94a8a9081c0c91fbc1fd42096b2ea",
+      "size": 4096
+    },
+    {
+      "source": "research",
+      "path": "client-research/mu-golden/memoria-cliente/2026-10-09-lorencia/lor2_slot003.bin",
+      "output": "memory/2026-10-09-lorencia/lor2_slot003.bin",
+      "sha256": "79a286c5f09b330aff8ca4b05ca2d5ebcc1cd28eac2a486afb72469da6a7a073",
+      "size": 4096
+    },
+    {
+      "source": "research",
+      "path": "client-research/mu-golden/memoria-cliente/2026-10-09-lorencia/lor2_slot004.bin",
+      "output": "memory/2026-10-09-lorencia/lor2_slot004.bin",
+      "sha256": "adf7dd9b4522ab24a7ddb6fe5638a9aae4b8515bfb65d488787c4f1e74bc2454",
+      "size": 4096
+    },
+    {
+      "source": "research",
+      "path": "client-research/mu-golden/memoria-cliente/2026-10-09-lorencia/lor2_slot005.bin",
+      "output": "memory/2026-10-09-lorencia/lor2_slot005.bin",
+      "sha256": "dbc32095d80db4ade6d6fd1f3100f4a450b09a72d4e7cb5dc56f3167859650e0",
+      "size": 4096
+    },
+    {
+      "source": "research",
+      "path": "client-research/mu-golden/memoria-cliente/2026-10-09-lorencia/lor2_slot006.bin",
+      "output": "memory/2026-10-09-lorencia/lor2_slot006.bin",
+      "sha256": "f5381df36487d0d688231c73a1c99db711814fa46a7b9686c90f5e308b3bf6a5",
+      "size": 16384
+    },
+    {
+      "source": "research",
+      "path": "client-research/mu-golden/memoria-cliente/2026-10-09-lorencia/lor2_slot007.bin",
+      "output": "memory/2026-10-09-lorencia/lor2_slot007.bin",
+      "sha256": "efed92f942aa2b424603b5bf6160234bfa3965337a4c93793d9ffc5d787413c0",
+      "size": 4096
+    },
+    {
+      "source": "research",
+      "path": "client-research/mu-golden/memoria-cliente/2026-10-09-lorencia/lor2_slot008.bin",
+      "output": "memory/2026-10-09-lorencia/lor2_slot008.bin",
+      "sha256": "fa7e89dd99a9c235a9db18faab8c9b2e10572f5d5e96fd60d510ffc6d4ae165c",
+      "size": 4096
+    },
+    {
+      "source": "research",
+      "path": "client-research/mu-golden/memoria-cliente/2026-10-09-lorencia/lor2_slot009.bin",
+      "output": "memory/2026-10-09-lorencia/lor2_slot009.bin",
+      "sha256": "bf786d48f3c0c340be6ec760b505978b5e4b4f9a3e821c908a4cb08d49210794",
+      "size": 4096
+    },
+    {
+      "source": "research",
+      "path": "client-research/mu-golden/memoria-cliente/2026-10-09-lorencia/lor2_slot00a.bin",
+      "output": "memory/2026-10-09-lorencia/lor2_slot00a.bin",
+      "sha256": "3264e1654c18e55d107782e5f9b90b477f0c0fbcf80849dc8d560d35592e6292",
+      "size": 4096
+    },
+    {
+      "source": "research",
+      "path": "client-research/mu-golden/memoria-cliente/2026-10-09-lorencia/lor2_slot032.bin",
+      "output": "memory/2026-10-09-lorencia/lor2_slot032.bin",
+      "sha256": "01db78b5fe098d42dac3fdad97794a380e969054dffc5e1244c58964836a350c",
+      "size": 65536
+    },
+    {
+      "source": "research",
+      "path": "client-research/mu-golden/memoria-cliente/2026-10-09-lorencia-obj/obj_nodes.bin",
+      "output": "memory/2026-10-09-lorencia-obj/obj_nodes.bin",
+      "sha256": "a8f261e62c48e82f48472986e96e80d0ab8632111aaaf8d965d7d986fac02ab8",
+      "size": 1366120
+    },
+    {
+      "source": "research",
+      "path": "client-research/mu-golden/memoria-cliente/2026-10-09-lorencia-obj/obj_count.bin",
+      "output": "memory/2026-10-09-lorencia-obj/obj_count.bin",
+      "sha256": "d5418dbe869be60f5a86036bfa4efe9753afad1eaeb5dab4e992768f872d3740",
+      "size": 4
+    },
+    {
+      "source": "research",
+      "path": "client-research/mu-golden/memoria-cliente/2026-10-09-lorencia-obj/obj_gworld.bin",
+      "output": "memory/2026-10-09-lorencia-obj/obj_gworld.bin",
+      "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+      "size": 4
+    },
+    {
+      "source": "research",
+      "path": "client-research/mu-golden/memoria-cliente/2026-10-09-lorencia-obj/obj_scene.bin",
+      "output": "memory/2026-10-09-lorencia-obj/obj_scene.bin",
+      "sha256": "2594b6a92ebfb1c3312deb7d01c015fb95e9fbe9bd7bc6b527af07813ec7b910",
+      "size": 4
+    },
+    {
+      "source": "research",
+      "path": "client-research/mu-golden/memoria-cliente/2026-10-09-devias/s31_att.bin",
+      "output": "memory/2026-10-09-devias/s31_att.bin",
+      "sha256": "692d787e51ea1d372d2b496839bfa5fef463a2caeb6e92ed9cd0cef330c62501",
+      "size": 131072
+    },
+    {
+      "source": "research",
+      "path": "client-research/mu-golden/memoria-cliente/2026-10-09-lorencia/lor_att.bin",
+      "output": "memory/2026-10-09-lorencia/lor_att.bin",
+      "sha256": "983fafaaa370783fdfcf1690f2f1c41862927f3df978b389fecee2cb8ce9245b",
+      "size": 131072
+    },
+    {
+      "source": "research",
+      "path": "client-research/mu-golden/memoria-cliente/2026-10-09-devias/s31_height.bin",
+      "output": "memory/2026-10-09-devias/s31_height.bin",
+      "sha256": "01361b28bb69f4c372fafac6fe908fd247a45155c022533c4262a9a311e03880",
+      "size": 262144
+    },
+    {
+      "source": "research",
+      "path": "client-research/mu-golden/memoria-cliente/2026-10-09-devias/s31_bmphdr.bin",
+      "output": "memory/2026-10-09-devias/s31_bmphdr.bin",
+      "sha256": "2a19a94b1f655702f0f43fc3dffdfd0df14675212475f72c62b188ee91bb52f9",
+      "size": 1080
+    },
+    {
+      "source": "research",
+      "path": "client-research/mu-golden/memoria-cliente/2026-10-09-lorencia/lor_height.bin",
+      "output": "memory/2026-10-09-lorencia/lor_height.bin",
+      "sha256": "24c5811f3ff8b508585bd16cddf3fe48b883fbaa8b8e429d3bf72301a64bcc8c",
+      "size": 262144
+    },
+    {
+      "source": "research",
+      "path": "client-research/mu-golden/memoria-cliente/2026-10-09-lorencia/lor_bmphdr.bin",
+      "output": "memory/2026-10-09-lorencia/lor_bmphdr.bin",
+      "sha256": "1f609dbeabc7cc52895c2d1023da6cfaa9d89b6112211b6613b12cfdde53746a",
+      "size": 1080
+    },
+    {
+      "source": "research",
+      "path": "client-research/mu-golden/memoria-cliente/2026-10-09-devias/s31_light.bin",
+      "output": "memory/2026-10-09-devias/s31_light.bin",
+      "sha256": "0b22bd11caf3abcc969249a6c85a468ab487acf9d8d58d415aa76f0cc2216e3a",
+      "size": 786432
+    },
+    {
+      "source": "research",
+      "path": "client-research/mu-golden/memoria-cliente/2026-10-09-lorencia/lor_light.bin",
+      "output": "memory/2026-10-09-lorencia/lor_light.bin",
+      "sha256": "9362a02e3468d63728538bb95487ac6d755a4f705b63d7b71e359a0e34a35ad5",
+      "size": 786432
+    },
+    {
+      "source": "research",
+      "path": "client-research/mu-golden/memoria-cliente/2026-10-09-devias/s31_l2l1.bin",
+      "output": "memory/2026-10-09-devias/s31_l2l1.bin",
+      "sha256": "7366da55f31a3a0a68c0fce940dfbcdb00886505780dbb5e288d09ab038ff1d5",
+      "size": 131072
+    },
+    {
+      "source": "research",
+      "path": "client-research/mu-golden/memoria-cliente/2026-10-09-devias/s31_alpha.bin",
+      "output": "memory/2026-10-09-devias/s31_alpha.bin",
+      "sha256": "1aa6ecebc342be111bd11fa43725a3f6142d36dde1225da9a9f4b2f5ea1ccb76",
+      "size": 262144
+    },
+    {
+      "source": "research",
+      "path": "client-research/mu-golden/memoria-cliente/2026-10-09-lorencia/lor_l2l1.bin",
+      "output": "memory/2026-10-09-lorencia/lor_l2l1.bin",
+      "sha256": "a8908986a49e1b463cd388d29ee3195917b5b5588dbfc816306e30f47938129c",
+      "size": 131072
+    },
+    {
+      "source": "research",
+      "path": "client-research/mu-golden/memoria-cliente/2026-10-09-lorencia/lor_alpha.bin",
+      "output": "memory/2026-10-09-lorencia/lor_alpha.bin",
+      "sha256": "cb2cecda2a43787429595dd27ec8b79202a752d7e5c1bb0bf0680c33e57a68d7",
+      "size": 262144
+    },
+    {
+      "source": "lab",
+      "path": "analysis/mainexe/evidence/muproxy.log",
+      "output": "wire/muproxy.log",
+      "sha256": "f09225602bdd1cb0cf8184eda60639de0871ed59d5d4a6fe9bec14b013f0dfb0",
+      "size": 160689
+    },
+    {
+      "source": "research",
+      "path": "gameserver/evidence/keyfiles/Dec1.dat",
+      "output": "wire/Dec1.dat",
+      "sha256": "5364ab7d639c584549601dee87fd73e27a509af51454ac33b542936aecbf8efd",
+      "size": 54
+    },
+    {
+      "source": "research",
+      "path": "gameserver/evidence/keyfiles/Enc2.dat",
+      "output": "wire/Enc2.dat",
+      "sha256": "9cf86fdc5030fb986e62b1cf535fc90bc299ddee2a8d59beb0ad34202f37e89c",
+      "size": 54
+    },
+    {
+      "source": "graphics",
+      "path": "reports/gameserver-passive-2026-10-30/graphics-01/character-selection-Frame_003207.txt.gz",
+      "output": "gl/character-selection-Frame_003207.txt.gz",
+      "sha256": "e33173da3a0165ae594d6ad794ef93f9baaddc07ee0d784bd4ef5d806c1c94c3",
+      "size": 3223289,
+      "unpack": {
+        "output": "gl/character-selection-Frame_003207.txt",
+        "sha256": "dda5e51663fd4dd0e15a53c07ab0f34b8d3b72cb9b5164c7e2954ff137a55d52",
+        "size": 46626235
+      }
+    },
+    {
+      "source": "graphics",
+      "path": "reports/gameserver-passive-2026-10-30/graphics-01/lorencia-Frame_016215.txt.gz",
+      "output": "gl/lorencia-Frame_016215.txt.gz",
+      "sha256": "e6613dcf45af380bfb00fc7b1fbb9a45f959dde4359ffe4b363b7276d63ea8c2",
+      "size": 2013286,
+      "unpack": {
+        "output": "gl/lorencia-Frame_016215.txt",
+        "sha256": "45cdf0f3b374a673d11dcafd6149a49b324d552b45dcfdae1980cd244654129b",
+        "size": 26474061
+      }
+    },
+    {
+      "source": "research",
+      "path": "client-research/mu-golden/memoria-cliente/2026-10-09-lorencia/lor_slots.bin",
+      "output": "memory/2026-10-09-lorencia/lor_slots.bin",
+      "sha256": "656906d280d7d26b3df90ce43b944b899a2191d87313fc73215cc6bb9fcb476e",
+      "size": 103320
+    },
+    {
+      "source": "research",
+      "path": "client-research/analysis/mainexe/scripts/c3c4_reference.py",
+      "output": "tools/c3c4_reference.py",
+      "sha256": "83db8893b691cfc82a51e574023abdfe8711502fe3373e11fd8e71e74d2368ac",
+      "size": 10476
+    },
+    {
+      "source": "lab",
+      "path": "analysis/mainexe/scripts/s31mem.c",
+      "output": "tools/s31mem.c",
+      "sha256": "f013f841c033787deddabf482660d54a774c8653de6a15fbba1c7cdedcca4eec",
+      "size": 9397
+    }
+  ],
+  "generated": [
+    {
+      "output": "wire/inventory-capture-0.c4",
+      "sha256": "cdc1d67700352a10bf6a9e52776ae9eb327b5ac040310dfd64a81f0cf9f92c8a",
+      "size": 69
+    },
+    {
+      "output": "wire/inventory-reference-0.c2",
+      "sha256": "efd0152abed7f0b644a528cf9d4a7326d2764a744248cb1befd8aa402531ff3a",
+      "size": 46
+    },
+    {
+      "output": "wire/inventory-capture-1.c4",
+      "sha256": "cdc1d67700352a10bf6a9e52776ae9eb327b5ac040310dfd64a81f0cf9f92c8a",
+      "size": 69
+    },
+    {
+      "output": "wire/inventory-reference-1.c2",
+      "sha256": "efd0152abed7f0b644a528cf9d4a7326d2764a744248cb1befd8aa402531ff3a",
+      "size": 46
+    },
+    {
+      "output": "wire/inventory-capture-2.c4",
+      "sha256": "7cae543d799c26bf46abe4445e1171be50888e99a6a5d507629c075e68cdd01e",
+      "size": 36
+    },
+    {
+      "output": "wire/inventory-reference-2.c2",
+      "sha256": "b0776d5bb1a4ddacefa36539863f3ca3ce85b1ac405451c4f8e12eb4ebde834c",
+      "size": 22
+    },
+    {
+      "output": "wire/inventory-capture-3.c4",
+      "sha256": "cdc1d67700352a10bf6a9e52776ae9eb327b5ac040310dfd64a81f0cf9f92c8a",
+      "size": 69
+    },
+    {
+      "output": "wire/inventory-reference-3.c2",
+      "sha256": "efd0152abed7f0b644a528cf9d4a7326d2764a744248cb1befd8aa402531ff3a",
+      "size": 46
+    },
+    {
+      "output": "wire/inventory-capture-4.c4",
+      "sha256": "cdc1d67700352a10bf6a9e52776ae9eb327b5ac040310dfd64a81f0cf9f92c8a",
+      "size": 69
+    },
+    {
+      "output": "wire/inventory-reference-4.c2",
+      "sha256": "efd0152abed7f0b644a528cf9d4a7326d2764a744248cb1befd8aa402531ff3a",
+      "size": 46
+    },
+    {
+      "output": "wire/inventory-capture-5.c4",
+      "sha256": "cdc1d67700352a10bf6a9e52776ae9eb327b5ac040310dfd64a81f0cf9f92c8a",
+      "size": 69
+    },
+    {
+      "output": "wire/inventory-reference-5.c2",
+      "sha256": "efd0152abed7f0b644a528cf9d4a7326d2764a744248cb1befd8aa402531ff3a",
+      "size": 46
+    },
+    {
+      "output": "wire/inventory-capture-6.c4",
+      "sha256": "0f54e36aa5d27e403012d5173b7d00c6e0532a92c85f95d6524f9c9b6859634e",
+      "size": 80
+    },
+    {
+      "output": "wire/inventory-reference-6.c2",
+      "sha256": "27df916d6731419a7d01e029f6064fbb94e1d931a5f9b3f8e872866f809af6d6",
+      "size": 54
+    }
+  ],
+  "assets": [
+    {
+      "path": "Dec2.dat",
+      "sha256": "d19e950c44e5648113269cb35d74c25f1c7ca27399e62da95fa127d4d714325e",
+      "size": 54
+    },
+    {
+      "path": "Enc1.dat",
+      "sha256": "ee73a59bf278d42735e537c96c25cc1ad0f69f1de089a7b20a1e6d2910a4372d",
+      "size": 54
+    },
+    {
+      "path": "Gate.bmd",
+      "sha256": "3bafce50e8cc74b0710ed81bda6797887de3932763efe41d132ccbafcd595ac7",
+      "size": 2304
+    },
+    {
+      "path": "Interface/Cursor.ozt",
+      "sha256": "fa263b817af88071d88a24c279c98d12bfa14b3abb18a450c407904d4edad630",
+      "size": 4144
+    },
+    {
+      "path": "Interface/CursorAttack.ozt",
+      "sha256": "abb0720a0b1ac63c74620a38ec189f9299e302a52c940b3b519f7c74891a6edb",
+      "size": 4144
+    },
+    {
+      "path": "Interface/CursorDontMove.OZT",
+      "sha256": "6408e3b15a26d4597f5273c352bd32b74d6f8500b016f545c5e235cf5745221b",
+      "size": 4144
+    },
+    {
+      "path": "Interface/CursorGet.ozt",
+      "sha256": "d73e18d548dad9eb7b88f5929c979c2ae9d9142dfd6b9a8bdbeb6a4fb756ad3f",
+      "size": 4144
+    },
+    {
+      "path": "Interface/CursorLeanAgainst.ozt",
+      "sha256": "96f2034d2ff677c48bb14924553eafa727bb17cbfb32628bd2f0296127882ebb",
+      "size": 4144
+    },
+    {
+      "path": "Interface/CursorPush.ozt",
+      "sha256": "ab5d8a34dccc189fb5930d63a4c70772908767d95f3a92294fb7f11bd1eb88c4",
+      "size": 4144
+    },
+    {
+      "path": "Interface/CursorRepair.OZT",
+      "sha256": "412a86570a9b2245fb75ffebaa7fdc3950bb090b7e6369a02f027fdff751f1f5",
+      "size": 4144
+    },
+    {
+      "path": "Interface/CursorSitDown.ozt",
+      "sha256": "67c810fd2acd214309d753ae42f7605490cb33be638661286988a2430d229051",
+      "size": 4144
+    },
+    {
+      "path": "Interface/CursorTalk.ozt",
+      "sha256": "7983731596c064aeaa3e30df53849a3e00fcd82836be1aecf0bfda9ce31d6c5c",
+      "size": 16432
+    },
+    {
+      "path": "Item/Sword17.bmd",
+      "sha256": "52cc22e7dd28ddea584082a2de41f1d4098817e66be27084dc7b87dd8a287622",
+      "size": 22670
+    },
+    {
+      "path": "Local/item.bmd",
+      "sha256": "952a95b5d3e032e772cbdb2fad62a5a79dcc10a9f2caffc24852fed391dd87e9",
+      "size": 688212
+    },
+    {
+      "path": "Local/Text.bmd",
+      "sha256": "5a596bebcc775d9d141310dd2a741b9053c616f6f5e11d78f23f485b5ab65cba",
+      "size": 614400
+    },
+    {
+      "path": "player/ArmorMale10.bmd",
+      "sha256": "5a13776380590564843209432610420afdd9a72b88accf68654d894f920a59f0",
+      "size": 22413
+    },
+    {
+      "path": "player/ArmorMale17.bmd",
+      "sha256": "f07915298f23e817ead688a5c05f4c639ccf7ee4bb9b969fab39860507dc5c6f",
+      "size": 27275
+    },
+    {
+      "path": "player/BootMale10.bmd",
+      "sha256": "3ff1ecc29ace424151fe30178460a2a248ef7c03c97b1a78829f2d8dae8d0f38",
+      "size": 19371
+    },
+    {
+      "path": "player/BootMale17.bmd",
+      "sha256": "8502befb96b44b65b44a4ebd7901c0a3936629fc7a4032a83efed1136f727902",
+      "size": 18415
+    },
+    {
+      "path": "player/GloveMale10.bmd",
+      "sha256": "b432bf7134b2b1b311c85f1b051e841a5314155517d9aa3a4fd77d4f0c28d3ce",
+      "size": 18443
+    },
+    {
+      "path": "player/GloveMale17.bmd",
+      "sha256": "716701790faaae9cbb20ac7b04c1d4c564d0a18dfbbbfcc03cb246b3cb08cfd0",
+      "size": 17509
+    },
+    {
+      "path": "player/HelmMale10.bmd",
+      "sha256": "7f99958a987d539b33ec9aa35efebead4da6df4354c751f84e965731f04b91d1",
+      "size": 6923
+    },
+    {
+      "path": "player/HelmMale17.bmd",
+      "sha256": "25e47f9d4104085157cf6f77e270665049eb47b1193fd2844c61a647dfde59c2",
+      "size": 20461
+    },
+    {
+      "path": "player/Helper02.bmd",
+      "sha256": "f278a9fbb70d13e09266e63d7b21c06d3dcd27d67f17ccdb387b248104e0408a",
+      "size": 6897
+    },
+    {
+      "path": "player/PantMale02.bmd",
+      "sha256": "cae5c18c0b57a487726c11c81c1ece80ccc5105b8be08da45715273d7cc60724",
+      "size": 14073
+    },
+    {
+      "path": "player/PantMale10.bmd",
+      "sha256": "197d1b77e4d50f619d3cf478adb183203730f0188ae40d2076fa92c932496ea5",
+      "size": 11977
+    },
+    {
+      "path": "player/Player.bmd",
+      "sha256": "7ca366e763ac7072502ca793c20f3cdc07d6fb929bba3599e4d1d7eba87e98c3",
+      "size": 2414277
+    },
+    {
+      "path": "player/Shadow01.bmd",
+      "sha256": "199fad432203813c5cbb27768c4b9fbccbe1f1f3bfde84b5fc5b43ad568a5950",
+      "size": 11671
+    },
+    {
+      "path": "world1/EncTerrain1.att",
+      "sha256": "d294c19748c69ee6b0a1a3d2811329c410ecad1a380059474c9a769c38fe6306",
+      "size": 131076
+    },
+    {
+      "path": "world1/EncTerrain1.map",
+      "sha256": "0a41f3349c3b50efcbfc7559bf389b611668ad4cba315dfee13310c00af81a54",
+      "size": 196610
+    },
+    {
+      "path": "world1/EncTerrain1.obj",
+      "sha256": "78b6c1446556c0ed7e12a4ed9eeb7f3e4a074e92d8bd5327c2c31b21a89fbec6",
+      "size": 86104
+    },
+    {
+      "path": "world1/TerrainHeight.OZB",
+      "sha256": "85067a70679143a387b37069b859712f6a587e707a5e875c915413cfe47c7004",
+      "size": 66620
+    },
+    {
+      "path": "world1/TerrainLight.OZJ",
+      "sha256": "114bdabef9588a461822a9bff5cebd442584558c5f6aec19baf59655570f11b7",
+      "size": 70843
+    },
+    {
+      "path": "world1/TileGrass01.OZJ",
+      "sha256": "900acaeab3f41dc2f80a066e5f4766b978000666580a7e1d64f9596a18cce354",
+      "size": 70432
+    },
+    {
+      "path": "world1/TileGrass01.OZT",
+      "sha256": "551aa96f37949cb27472c0a993fff90f5a235fc1756768160b5b63829714db2f",
+      "size": 65584
+    },
+    {
+      "path": "world1/TileGrass02.OZJ",
+      "sha256": "719235fdb374d3cdbadf4798dfe247a0a0d8b8219d299fba421f8efb4ed7b8e4",
+      "size": 31235
+    },
+    {
+      "path": "world1/TileGround01.OZJ",
+      "sha256": "0a107a88287e01a9a20b966b8880f480763e43e632f7fe22eeafa296d6401567",
+      "size": 96282
+    },
+    {
+      "path": "world1/TileGround02.OZJ",
+      "sha256": "bef15eec12f1d9bddf3320815d829cbcb016bdbbdc1267aea4d84c170fcef1d2",
+      "size": 24054
+    },
+    {
+      "path": "world1/TileGround03.OZJ",
+      "sha256": "956ff5c656a8ddc3e621b392c77dc3c217c0594ded2422ccad227ae42fdee6d4",
+      "size": 34562
+    },
+    {
+      "path": "world1/TileRock01.OZJ",
+      "sha256": "ae88a73e45848110c5383bbbaa7d19c90984d77878fe9358ba7c1e69eb4a10c2",
+      "size": 100444
+    },
+    {
+      "path": "world1/TileRock02.OZJ",
+      "sha256": "b5562672143ef291d3a2c8629a82edcd60c0c17a077e7453c48d7685aaecf95e",
+      "size": 31573
+    },
+    {
+      "path": "world1/TileWater01.OZJ",
+      "sha256": "fbe5beb16a959113dcae9d27cff13788e6e7fc9ff6e612ec923552c19e9aaee8",
+      "size": 63000
+    },
+    {
+      "path": "world1/TileWood01.OZJ",
+      "sha256": "1de7ad384b990f907e762420d3f0cbd9f66a3eb096c482e8eb5283a3d61b4c5e",
+      "size": 34393
+    },
+    {
+      "path": "world3/EncTerrain3.att",
+      "sha256": "2ed353a24101c88c86288c4b5d630c32984149b0e208d9a1f41e5431477df2c9",
+      "size": 65540
+    },
+    {
+      "path": "world3/EncTerrain3.map",
+      "sha256": "466e7b9145fa975e12219eab4d5b2d5db41ee567a9e5857bf0d3da4e740efcd4",
+      "size": 196610
+    },
+    {
+      "path": "world3/TerrainHeight.OZB",
+      "sha256": "2b69d5e893776f94fcfb2471e681f49c786d20aa17bd19ea5e3f09356c6b8e32",
+      "size": 66620
+    },
+    {
+      "path": "world3/TerrainLight.OZJ",
+      "sha256": "fa904874a61f48579ddefa7ddce8fe99e668366c867657bb09c435e33301e4f9",
+      "size": 64182
+    },
+    {
+      "path": "world55/EncTerrain55.att",
+      "sha256": "2bbe54c3fe758a84ca65ff5550bdc3bcd3fdc0a598b09a6646b6b4a967abd788",
+      "size": 131076
+    },
+    {
+      "path": "world55/EncTerrain55.map",
+      "sha256": "96d9b0f9cfebd9e7f63444c46aeff71df3f5aa4857dd42bada8cebdfe4d953cb",
+      "size": 196610
+    },
+    {
+      "path": "world55/TerrainHeight.OZB",
+      "sha256": "08ad3a5261079bddec322761efc8537bf2a8424ab97e554262a09580017a78e1",
+      "size": 66620
+    },
+    {
+      "path": "world55/TerrainLight.OZJ",
+      "sha256": "3dabed71bfba7e15b8bb496ec9e8150bc52e1f765ad08d50e89d26ae80266ed6",
+      "size": 21641
+    }
+  ],
+  "tests": [
+    {
+      "name": "MemoryGateTable.EqualsTheOriginalsMemory",
+      "source": "Client/tests/data/test_golden_gate_table.cpp",
+      "group": "memory",
+      "required_outputs": [
+        "memory/2026-10-09-devias/s31_gate.bin"
+      ],
+      "historical_constraints": [],
+      "profile": "historical_memory_2f16"
+    },
+    {
+      "name": "MemoryItemTable.EqualsTheOriginalsMemory",
+      "source": "Client/tests/data/test_golden_item_table.cpp",
+      "group": "memory",
+      "required_outputs": [
+        "memory/2026-10-09-devias/s31_item.bin"
+      ],
+      "historical_constraints": [],
+      "profile": "historical_memory_2f16"
+    },
+    {
+      "name": "MemoryOzjTexture.EqualsTheOriginalsMemory",
+      "source": "Client/tests/data/test_golden_ozj_texture.cpp",
+      "group": "memory",
+      "required_outputs": [
+        "memory/2026-10-09-lorencia/lor2_slot023.bin",
+        "memory/2026-10-09-lorencia/lor2_slot024.bin",
+        "memory/2026-10-09-lorencia/lor2_slot025.bin",
+        "memory/2026-10-09-lorencia/lor2_slot026.bin",
+        "memory/2026-10-09-lorencia/lor2_slot027.bin",
+        "memory/2026-10-09-lorencia/lor2_slot028.bin",
+        "memory/2026-10-09-lorencia/lor2_slot029.bin",
+        "memory/2026-10-09-lorencia/lor2_slot02a.bin",
+        "memory/2026-10-09-lorencia/lor2_slot02b.bin"
+      ],
+      "historical_constraints": [],
+      "profile": "historical_memory_2f16"
+    },
+    {
+      "name": "MemoryOztTexture.EqualsTheOriginalsMemory",
+      "source": "Client/tests/data/test_golden_ozt_texture.cpp",
+      "group": "memory",
+      "required_outputs": [
+        "memory/2026-10-09-lorencia/lor2_slot002.bin",
+        "memory/2026-10-09-lorencia/lor2_slot003.bin",
+        "memory/2026-10-09-lorencia/lor2_slot004.bin",
+        "memory/2026-10-09-lorencia/lor2_slot005.bin",
+        "memory/2026-10-09-lorencia/lor2_slot006.bin",
+        "memory/2026-10-09-lorencia/lor2_slot007.bin",
+        "memory/2026-10-09-lorencia/lor2_slot008.bin",
+        "memory/2026-10-09-lorencia/lor2_slot009.bin",
+        "memory/2026-10-09-lorencia/lor2_slot00a.bin",
+        "memory/2026-10-09-lorencia/lor2_slot032.bin"
+      ],
+      "historical_constraints": [],
+      "profile": "historical_memory_2f16"
+    },
+    {
+      "name": "MemoryTerrainAttributes.EqualsTheOriginalsMemoryInDeviasButForTheGameState",
+      "source": "Client/tests/data/test_golden_terrain_attributes.cpp",
+      "group": "memory",
+      "required_outputs": [
+        "memory/2026-10-09-devias/s31_att.bin"
+      ],
+      "historical_constraints": [
+        "exact list of 10 changed cells in Devias or 7 in Lorencia; player/passages state of historical snapshot"
+      ],
+      "profile": "historical_memory_2f16"
+    },
+    {
+      "name": "MemoryTerrainAttributes.EqualsTheOriginalsMemoryInLorenciaButForTheGameState",
+      "source": "Client/tests/data/test_golden_terrain_attributes.cpp",
+      "group": "memory",
+      "required_outputs": [
+        "memory/2026-10-09-lorencia/lor_att.bin"
+      ],
+      "historical_constraints": [
+        "exact list of 10 changed cells in Devias or 7 in Lorencia; player/passages state of historical snapshot"
+      ],
+      "profile": "historical_memory_2f16"
+    },
+    {
+      "name": "MemoryTerrainHeights.EqualsTheOriginalsMemoryInDevias",
+      "source": "Client/tests/data/test_golden_terrain_heights.cpp",
+      "group": "memory",
+      "required_outputs": [
+        "memory/2026-10-09-devias/s31_height.bin",
+        "memory/2026-10-09-devias/s31_bmphdr.bin"
+      ],
+      "historical_constraints": [],
+      "profile": "historical_memory_2f16"
+    },
+    {
+      "name": "MemoryTerrainHeights.EqualsTheOriginalsMemoryInLorencia",
+      "source": "Client/tests/data/test_golden_terrain_heights.cpp",
+      "group": "memory",
+      "required_outputs": [
+        "memory/2026-10-09-lorencia/lor_height.bin",
+        "memory/2026-10-09-lorencia/lor_bmphdr.bin"
+      ],
+      "historical_constraints": [],
+      "profile": "historical_memory_2f16"
+    },
+    {
+      "name": "MemoryTerrainHeights.ReadingFromBfOffBitsWouldNotMatch",
+      "source": "Client/tests/data/test_golden_terrain_heights.cpp",
+      "group": "memory",
+      "required_outputs": [
+        "memory/2026-10-09-devias/s31_height.bin"
+      ],
+      "historical_constraints": [
+        "52139 differences is specific to matching World3 file and historical memory values; not an arbitrary BMP corpus"
+      ],
+      "profile": "historical_memory_2f16"
+    },
+    {
+      "name": "MemoryTerrainLight.EqualsTheOriginalsMemoryInDevias",
+      "source": "Client/tests/data/test_golden_terrain_light.cpp",
+      "group": "memory",
+      "required_outputs": [
+        "memory/2026-10-09-devias/s31_light.bin"
+      ],
+      "historical_constraints": [],
+      "profile": "historical_memory_2f16"
+    },
+    {
+      "name": "MemoryTerrainLight.EqualsTheOriginalsMemoryInLorencia",
+      "source": "Client/tests/data/test_golden_terrain_light.cpp",
+      "group": "memory",
+      "required_outputs": [
+        "memory/2026-10-09-lorencia/lor_light.bin"
+      ],
+      "historical_constraints": [],
+      "profile": "historical_memory_2f16"
+    },
+    {
+      "name": "MemoryTerrainMapping.EqualsTheOriginalsMemoryInDevias",
+      "source": "Client/tests/data/test_golden_terrain_mapping.cpp",
+      "group": "memory",
+      "required_outputs": [
+        "memory/2026-10-09-devias/s31_l2l1.bin",
+        "memory/2026-10-09-devias/s31_alpha.bin"
+      ],
+      "historical_constraints": [],
+      "profile": "historical_memory_2f16"
+    },
+    {
+      "name": "MemoryTerrainMapping.EqualsTheOriginalsMemoryInLorencia",
+      "source": "Client/tests/data/test_golden_terrain_mapping.cpp",
+      "group": "memory",
+      "required_outputs": [
+        "memory/2026-10-09-lorencia/lor_l2l1.bin",
+        "memory/2026-10-09-lorencia/lor_alpha.bin"
+      ],
+      "historical_constraints": [],
+      "profile": "historical_memory_2f16"
+    },
+    {
+      "name": "MemoryTerrainObjects.LorenciaEqualsTheOriginalsMemory",
+      "source": "Client/tests/data/test_golden_terrain_objects.cpp",
+      "group": "memory",
+      "required_outputs": [
+        "memory/2026-10-09-lorencia-obj/obj_nodes.bin",
+        "memory/2026-10-09-lorencia-obj/obj_count.bin",
+        "memory/2026-10-09-lorencia-obj/obj_gworld.bin",
+        "memory/2026-10-09-lorencia-obj/obj_scene.bin"
+      ],
+      "historical_constraints": [
+        "g_world=0, scene=5; 256 original block lists concatenated in map/file order; raw476-byte nodes have8-byte list header then0x1D4-byte native object; tests compare fields at object offsets2/12/16/28 and ignore addresses/header fields, not arbitrary process dump bytes"
+      ],
+      "profile": "historical_memory_2f16"
+    },
+    {
+      "name": "MemoryTextTable.EqualsTheOriginalsMemory",
+      "source": "Client/tests/data/test_golden_text_table.cpp",
+      "group": "memory",
+      "required_outputs": [
+        "memory/2026-10-09-devias/s31_text.bin"
+      ],
+      "historical_constraints": [],
+      "profile": "historical_memory_2f16"
+    },
+    {
+      "name": "GoldenConnection.DeliversWhatTheGameServerAnswered",
+      "source": "Client/tests/network/test_golden_connection.cpp",
+      "group": "wire",
+      "required_outputs": [
+        "wire/muproxy.log",
+        "wire/Dec1.dat"
+      ],
+      "historical_constraints": [
+        "ports44405/55901 and0xAA FoxAnti mask as used by this corpus; matching client/server key pairs, do not print payloads"
+      ],
+      "profile": "archived_wire"
+    },
+    {
+      "name": "GoldenConnection.EncryptsLikeTheClient",
+      "source": "Client/tests/network/test_golden_connection.cpp",
+      "group": "wire",
+      "required_outputs": [
+        "wire/muproxy.log",
+        "wire/Dec1.dat"
+      ],
+      "historical_constraints": [
+        "ports44405/55901 and0xAA FoxAnti mask as used by this corpus; matching client/server key pairs, do not print payloads"
+      ],
+      "profile": "archived_wire"
+    },
+    {
+      "name": "GoldenEncryptedPacket.DecryptsWhatTheClientSent",
+      "source": "Client/tests/network/test_golden_encrypted_packet.cpp",
+      "group": "wire",
+      "required_outputs": [
+        "wire/muproxy.log",
+        "wire/Dec1.dat",
+        "wire/Enc2.dat"
+      ],
+      "historical_constraints": [
+        "ports44405/55901 and0xAA FoxAnti mask as used by this corpus; matching client/server key pairs, do not print payloads"
+      ],
+      "profile": "archived_wire"
+    },
+    {
+      "name": "GoldenEncryptedPacket.DecryptsWhatTheGameServerAnswered",
+      "source": "Client/tests/network/test_golden_encrypted_packet.cpp",
+      "group": "wire",
+      "required_outputs": [
+        "wire/muproxy.log",
+        "wire/Dec1.dat",
+        "wire/Enc2.dat"
+      ],
+      "historical_constraints": [
+        "ports44405/55901 and0xAA FoxAnti mask as used by this corpus; matching client/server key pairs, do not print payloads"
+      ],
+      "profile": "archived_wire"
+    },
+    {
+      "name": "GoldenEncryptedPacket.ReadsAllSevenInventoryCapturesAgainstTheIndependentReference",
+      "source": "Client/tests/network/test_golden_encrypted_packet.cpp",
+      "group": "wire",
+      "required_outputs": [
+        "wire/muproxy.log",
+        "wire/Dec1.dat",
+        "wire/Enc2.dat",
+        "wire/inventory-capture-0.c4",
+        "wire/inventory-reference-0.c2",
+        "wire/inventory-capture-1.c4",
+        "wire/inventory-reference-1.c2",
+        "wire/inventory-capture-2.c4",
+        "wire/inventory-reference-2.c2",
+        "wire/inventory-capture-3.c4",
+        "wire/inventory-reference-3.c2",
+        "wire/inventory-capture-4.c4",
+        "wire/inventory-reference-4.c2",
+        "wire/inventory-capture-5.c4",
+        "wire/inventory-reference-5.c2",
+        "wire/inventory-capture-6.c4",
+        "wire/inventory-reference-6.c2"
+      ],
+      "historical_constraints": [
+        "ports44405/55901 and0xAA FoxAnti mask as used by this corpus; matching client/server key pairs, do not print payloads",
+        "seven indexed captures0..6 must equal packets from same log, independent C2 reference, exactly25 decrypted answers and inventory-count histogram {2:1,5:5,6:1}"
+      ],
+      "profile": "archived_wire"
+    },
+    {
+      "name": "GoldenEncryptedPacket.EncryptPacketGivesWhatTheClientSent",
+      "source": "Client/tests/network/test_golden_encrypted_packet.cpp",
+      "group": "wire",
+      "required_outputs": [
+        "wire/muproxy.log",
+        "wire/Dec1.dat",
+        "wire/Enc2.dat"
+      ],
+      "historical_constraints": [
+        "ports44405/55901 and0xAA FoxAnti mask as used by this corpus; matching client/server key pairs, do not print payloads"
+      ],
+      "profile": "archived_wire"
+    },
+    {
+      "name": "GoldenFoxAntiObfuscation.CutsWhatBothServersAnswered",
+      "source": "Client/tests/network/test_golden_fox_anti_obfuscation.cpp",
+      "group": "wire",
+      "required_outputs": [
+        "wire/muproxy.log"
+      ],
+      "historical_constraints": [
+        "ports44405/55901 and0xAA FoxAnti mask as used by this corpus; matching client/server key pairs, do not print payloads"
+      ],
+      "profile": "archived_wire"
+    },
+    {
+      "name": "GoldenFoxAntiObfuscation.OneByteAtATimeGivesTheSamePackets",
+      "source": "Client/tests/network/test_golden_fox_anti_obfuscation.cpp",
+      "group": "wire",
+      "required_outputs": [
+        "wire/muproxy.log"
+      ],
+      "historical_constraints": [
+        "ports44405/55901 and0xAA FoxAnti mask as used by this corpus; matching client/server key pairs, do not print payloads"
+      ],
+      "profile": "archived_wire"
+    },
+    {
+      "name": "GoldenFoxAntiObfuscation.TheLabServerListsBecomeTheOnesMainExeReads",
+      "source": "Client/tests/network/test_golden_fox_anti_obfuscation.cpp",
+      "group": "wire",
+      "required_outputs": [
+        "wire/muproxy.log"
+      ],
+      "historical_constraints": [
+        "ports44405/55901 and0xAA FoxAnti mask as used by this corpus; matching client/server key pairs, do not print payloads"
+      ],
+      "profile": "archived_wire"
+    },
+    {
+      "name": "GoldenFoxAntiObfuscation.EverythingTheGameServerAnsweredReachesTheDispatcher",
+      "source": "Client/tests/network/test_golden_fox_anti_obfuscation.cpp",
+      "group": "wire",
+      "required_outputs": [
+        "wire/muproxy.log"
+      ],
+      "historical_constraints": [
+        "ports44405/55901 and0xAA FoxAnti mask as used by this corpus; matching client/server key pairs, do not print payloads"
+      ],
+      "profile": "archived_wire"
+    },
+    {
+      "name": "GoldenFoxAntiObfuscation.TheChosenServerIsWhatTheOriginalClientSent",
+      "source": "Client/tests/network/test_golden_fox_anti_obfuscation.cpp",
+      "group": "wire",
+      "required_outputs": [
+        "wire/muproxy.log"
+      ],
+      "historical_constraints": [
+        "ports44405/55901 and0xAA FoxAnti mask as used by this corpus; matching client/server key pairs, do not print payloads"
+      ],
+      "profile": "archived_wire"
+    },
+    {
+      "name": "GoldenPacketReaderCapture.HasTheLabConnections",
+      "source": "Client/tests/network/test_golden_packet_reader.cpp",
+      "group": "wire",
+      "required_outputs": [
+        "wire/muproxy.log"
+      ],
+      "historical_constraints": [
+        "ports44405/55901 and0xAA FoxAnti mask as used by this corpus; matching client/server key pairs, do not print payloads"
+      ],
+      "profile": "archived_wire"
+    },
+    {
+      "name": "GoldenPacketReaderCapture.CutsWhatTheClientSent",
+      "source": "Client/tests/network/test_golden_packet_reader.cpp",
+      "group": "wire",
+      "required_outputs": [
+        "wire/muproxy.log"
+      ],
+      "historical_constraints": [
+        "ports44405/55901 and0xAA FoxAnti mask as used by this corpus; matching client/server key pairs, do not print payloads"
+      ],
+      "profile": "archived_wire"
+    },
+    {
+      "name": "GoldenPacketReaderCapture.CutsWhatTheConnectServerAnswered",
+      "source": "Client/tests/network/test_golden_packet_reader.cpp",
+      "group": "wire",
+      "required_outputs": [
+        "wire/muproxy.log"
+      ],
+      "historical_constraints": [
+        "ports44405/55901 and0xAA FoxAnti mask as used by this corpus; matching client/server key pairs, do not print payloads"
+      ],
+      "profile": "archived_wire"
+    },
+    {
+      "name": "GoldenPacketReaderCapture.OneByteAtATimeGivesTheSamePackets",
+      "source": "Client/tests/network/test_golden_packet_reader.cpp",
+      "group": "wire",
+      "required_outputs": [
+        "wire/muproxy.log"
+      ],
+      "historical_constraints": [
+        "ports44405/55901 and0xAA FoxAnti mask as used by this corpus; matching client/server key pairs, do not print payloads"
+      ],
+      "profile": "archived_wire"
+    },
+    {
+      "name": "GoldenPacketReaderCapture.ReadsEndingInsideTheNextHeaderGiveTheSamePackets",
+      "source": "Client/tests/network/test_golden_packet_reader.cpp",
+      "group": "wire",
+      "required_outputs": [
+        "wire/muproxy.log"
+      ],
+      "historical_constraints": [
+        "ports44405/55901 and0xAA FoxAnti mask as used by this corpus; matching client/server key pairs, do not print payloads"
+      ],
+      "profile": "archived_wire"
+    },
+    {
+      "name": "GoldenSimpleModulusKeyFile.EachPairHasInverseKeys",
+      "source": "Client/tests/network/test_golden_simple_modulus_key_file.cpp",
+      "group": "wire",
+      "required_outputs": [
+        "wire/Dec1.dat",
+        "wire/Enc2.dat"
+      ],
+      "historical_constraints": [
+        "all four54-byte files must be corresponding pairs; arithmetic is independent of a session count"
+      ],
+      "profile": "archived_wire"
+    },
+    {
+      "name": "GoldenSimpleModulusKeyFile.TheRealKeysFitTheLaneArithmetic",
+      "source": "Client/tests/network/test_golden_simple_modulus_key_file.cpp",
+      "group": "wire",
+      "required_outputs": [
+        "wire/Dec1.dat",
+        "wire/Enc2.dat"
+      ],
+      "historical_constraints": [
+        "all four54-byte files must be corresponding pairs; arithmetic is independent of a session count"
+      ],
+      "profile": "archived_wire"
+    },
+    {
+      "name": "GoldenSimpleModulusKeyFile.WhatOneSideEncryptsTheOtherDecrypts",
+      "source": "Client/tests/network/test_golden_simple_modulus_key_file.cpp",
+      "group": "wire",
+      "required_outputs": [
+        "wire/Dec1.dat",
+        "wire/Enc2.dat"
+      ],
+      "historical_constraints": [
+        "all four54-byte files must be corresponding pairs; arithmetic is independent of a session count"
+      ],
+      "profile": "archived_wire"
+    },
+    {
+      "name": "GoldenCharacterPackets.TheRequestsHaveTheShapeOfTheCable",
+      "source": "Client/tests/protocol/test_golden_character.cpp",
+      "group": "wire",
+      "required_outputs": [
+        "wire/muproxy.log"
+      ],
+      "historical_constraints": [
+        "ports44405/55901 and0xAA FoxAnti mask as used by this corpus; matching client/server key pairs, do not print payloads"
+      ],
+      "profile": "archived_wire"
+    },
+    {
+      "name": "GoldenCharacterPackets.TheListsOfTheCableRead",
+      "source": "Client/tests/protocol/test_golden_character.cpp",
+      "group": "wire",
+      "required_outputs": [
+        "wire/muproxy.log"
+      ],
+      "historical_constraints": [
+        "ports44405/55901 and0xAA FoxAnti mask as used by this corpus; matching client/server key pairs, do not print payloads"
+      ],
+      "profile": "archived_wire"
+    },
+    {
+      "name": "GoldenLogin.FindsTheLoginsAndKeepalivesThatTheClientSent",
+      "source": "Client/tests/protocol/test_golden_login.cpp",
+      "group": "wire",
+      "required_outputs": [
+        "wire/muproxy.log",
+        "wire/Dec1.dat"
+      ],
+      "historical_constraints": [
+        "ports44405/55901 and0xAA FoxAnti mask as used by this corpus; matching client/server key pairs, do not print payloads",
+        "historical version09908, host172.16.198.1, fixed counts72lists/8hellos/7accepted/156keepalives depending on case"
+      ],
+      "profile": "archived_wire"
+    },
+    {
+      "name": "GoldenLogin.ReadsTheHellosAndLoginResultsOfTheGameServer",
+      "source": "Client/tests/protocol/test_golden_login.cpp",
+      "group": "wire",
+      "required_outputs": [
+        "wire/muproxy.log",
+        "wire/Dec1.dat"
+      ],
+      "historical_constraints": [
+        "ports44405/55901 and0xAA FoxAnti mask as used by this corpus; matching client/server key pairs, do not print payloads",
+        "historical version09908, host172.16.198.1, fixed counts72lists/8hellos/7accepted/156keepalives depending on case"
+      ],
+      "profile": "archived_wire"
+    },
+    {
+      "name": "GoldenLogin.AsksForTheListChoosesAndReadsTheAddressLikeTheConnectServer",
+      "source": "Client/tests/protocol/test_golden_login.cpp",
+      "group": "wire",
+      "required_outputs": [
+        "wire/muproxy.log",
+        "wire/Dec1.dat"
+      ],
+      "historical_constraints": [
+        "ports44405/55901 and0xAA FoxAnti mask as used by this corpus; matching client/server key pairs, do not print payloads",
+        "historical version09908, host172.16.198.1, fixed counts72lists/8hellos/7accepted/156keepalives depending on case"
+      ],
+      "profile": "archived_wire"
+    },
+    {
+      "name": "GoldenLogin.ReadsTheListsOfTheConnectServerAfterFoxAnti",
+      "source": "Client/tests/protocol/test_golden_login.cpp",
+      "group": "wire",
+      "required_outputs": [
+        "wire/muproxy.log",
+        "wire/Dec1.dat"
+      ],
+      "historical_constraints": [
+        "ports44405/55901 and0xAA FoxAnti mask as used by this corpus; matching client/server key pairs, do not print payloads",
+        "historical version09908, host172.16.198.1, fixed counts72lists/8hellos/7accepted/156keepalives depending on case"
+      ],
+      "profile": "archived_wire"
+    },
+    {
+      "name": "GoldenPass3DTrace.TheSelectionCameraPassesMatch",
+      "source": "Client/tests/render/test_golden_pass_3d_trace.cpp",
+      "group": "gl",
+      "required_outputs": [
+        "gl/character-selection-Frame_003207.txt"
+      ],
+      "historical_constraints": [
+        "window1024x768, historical viewports and projection/camera state"
+      ],
+      "profile": "graphics_c32"
+    },
+    {
+      "name": "GoldenPass3DTrace.TheLorenciaWorldPassMatches",
+      "source": "Client/tests/render/test_golden_pass_3d_trace.cpp",
+      "group": "gl",
+      "required_outputs": [
+        "gl/lorencia-Frame_016215.txt"
+      ],
+      "historical_constraints": [
+        "window1024x768, historical viewports and projection/camera state",
+        "fixed hero(14350,12050,165), cellAttribute1, camera stepping sequence"
+      ],
+      "profile": "graphics_c32"
+    },
+    {
+      "name": "GoldenSkinningTrace.MatchesTheFiveFramesOfTheSelection",
+      "source": "Client/tests/render/test_golden_skinning_trace.cpp",
+      "group": "gl",
+      "required_outputs": [
+        "gl/character-selection-Frame_003207.txt"
+      ],
+      "historical_constraints": [
+        "window1024x768, historical viewports and projection/camera state",
+        "exactly5 completed frames; hardcoded action/frame/position/rotation/head pose tables (SelectionPlayer/LorenciaPlayer/LorenciaGuard)"
+      ],
+      "profile": "graphics_c32"
+    },
+    {
+      "name": "GoldenSkinningTrace.MatchesThePlayerOfLorencia",
+      "source": "Client/tests/render/test_golden_skinning_trace.cpp",
+      "group": "gl",
+      "required_outputs": [
+        "gl/lorencia-Frame_016215.txt"
+      ],
+      "historical_constraints": [
+        "window1024x768, historical viewports and projection/camera state",
+        "exactly5 completed frames; hardcoded action/frame/position/rotation/head pose tables (SelectionPlayer/LorenciaPlayer/LorenciaGuard)"
+      ],
+      "profile": "graphics_c32"
+    },
+    {
+      "name": "GoldenSkinningTrace.MatchesTheGuardOfLorencia",
+      "source": "Client/tests/render/test_golden_skinning_trace.cpp",
+      "group": "gl",
+      "required_outputs": [
+        "gl/lorencia-Frame_016215.txt"
+      ],
+      "historical_constraints": [
+        "window1024x768, historical viewports and projection/camera state",
+        "exactly5 completed frames; hardcoded action/frame/position/rotation/head pose tables (SelectionPlayer/LorenciaPlayer/LorenciaGuard)"
+      ],
+      "profile": "graphics_c32"
+    },
+    {
+      "name": "GoldenSkinningTrace.TheSwordAndThePetHangFromTheirBones",
+      "source": "Client/tests/render/test_golden_skinning_trace.cpp",
+      "group": "gl",
+      "required_outputs": [
+        "gl/character-selection-Frame_003207.txt"
+      ],
+      "historical_constraints": [
+        "window1024x768, historical viewports and projection/camera state",
+        "indexes the first5 completed frames using the fixed5-pose table; no explicit frame-count equality in this body; hardcoded action/frame/position/rotation/head pose tables (SelectionPlayer/LorenciaPlayer/LorenciaGuard)"
+      ],
+      "profile": "graphics_c32"
+    },
+    {
+      "name": "GoldenShineTrace.MatchesThePassesOfTheSelection",
+      "source": "Client/tests/render/test_golden_skinning_trace.cpp",
+      "group": "gl",
+      "required_outputs": [
+        "gl/character-selection-Frame_003207.txt"
+      ],
+      "historical_constraints": [
+        "window1024x768, historical viewports and projection/camera state",
+        "exactly5 completed frames; hardcoded action/frame/position/rotation/head pose tables (SelectionPlayer/LorenciaPlayer/LorenciaGuard)",
+        "absolute historical millisecond clocks, shine texture names115/120/141 and pass counts; see constants lines in source"
+      ],
+      "profile": "graphics_c32"
+    },
+    {
+      "name": "GoldenShineTrace.MatchesThePassesOfThePlayerOfLorencia",
+      "source": "Client/tests/render/test_golden_skinning_trace.cpp",
+      "group": "gl",
+      "required_outputs": [
+        "gl/lorencia-Frame_016215.txt"
+      ],
+      "historical_constraints": [
+        "window1024x768, historical viewports and projection/camera state",
+        "exactly5 completed frames; hardcoded action/frame/position/rotation/head pose tables (SelectionPlayer/LorenciaPlayer/LorenciaGuard)",
+        "absolute historical millisecond clocks, shine texture names115/120/141 and pass counts; see constants lines in source"
+      ],
+      "profile": "graphics_c32"
+    },
+    {
+      "name": "GoldenShineTrace.MatchesThePassOfTheGuardOfLorencia",
+      "source": "Client/tests/render/test_golden_skinning_trace.cpp",
+      "group": "gl",
+      "required_outputs": [
+        "gl/lorencia-Frame_016215.txt"
+      ],
+      "historical_constraints": [
+        "window1024x768, historical viewports and projection/camera state",
+        "exactly5 completed frames; hardcoded action/frame/position/rotation/head pose tables (SelectionPlayer/LorenciaPlayer/LorenciaGuard)",
+        "absolute historical millisecond clocks, shine texture names115/120/141 and pass counts; see constants lines in source"
+      ],
+      "profile": "graphics_c32"
+    },
+    {
+      "name": "GoldenCharacterDrawing.MatchesTheCharacterOfTheSelection",
+      "source": "Client/tests/scenes/test_golden_character_drawing.cpp",
+      "group": "gl",
+      "required_outputs": [
+        "gl/character-selection-Frame_003207.txt"
+      ],
+      "historical_constraints": [
+        "window1024x768, historical viewports and projection/camera state",
+        "5frames, Male17(level13)+PantMale02+Sword17+Helper02; hardcoded body/pet frames, clocks and transform; one-to-one blocks/vertices"
+      ],
+      "profile": "graphics_c32"
+    },
+    {
+      "name": "ModelTextureSlotsGoldenTest.TheCloudTextureMatchesTheNativeSlot",
+      "source": "Client/tests/scenes/test_golden_game_models.cpp",
+      "group": "memory",
+      "required_outputs": [
+        "memory/2026-10-09-lorencia/lor_slots.bin"
+      ],
+      "historical_constraints": [
+        "slot table has1845 records of0x38 bytes; resident names/residual sizes depend on lifecycle stage of original capture"
+      ],
+      "profile": "historical_memory_2f16"
+    },
+    {
+      "name": "ModelTextureSlotsGoldenTest.StartupMatchesTheDump",
+      "source": "Client/tests/scenes/test_golden_game_models.cpp",
+      "group": "memory",
+      "required_outputs": [
+        "memory/2026-10-09-lorencia/lor_slots.bin"
+      ],
+      "historical_constraints": [
+        "slot table has1845 records of0x38 bytes; resident names/residual sizes depend on lifecycle stage of original capture"
+      ],
+      "profile": "historical_memory_2f16"
+    },
+    {
+      "name": "ModelTextureSlotsGoldenTest.TheRavenFindsItsBodyInTheBillsSlot",
+      "source": "Client/tests/scenes/test_golden_game_models.cpp",
+      "group": "memory",
+      "required_outputs": [],
+      "historical_constraints": [
+        "hardcoded Raven model/texture slots and skeleton 77 bones/4 actions, derived from matching Data/native loader"
+      ],
+      "profile": "historical_memory_2f16"
+    },
+    {
+      "name": "ModelTextureSlotsGoldenTest.TheSelectionTexturesEndAt0x716",
+      "source": "Client/tests/scenes/test_golden_game_models.cpp",
+      "group": "memory",
+      "required_outputs": [
+        "memory/2026-10-09-lorencia/lor_slots.bin"
+      ],
+      "historical_constraints": [
+        "slot table has1845 records of0x38 bytes; resident names/residual sizes depend on lifecycle stage of original capture"
+      ],
+      "profile": "historical_memory_2f16"
+    },
+    {
+      "name": "GoldenLorenciaModelTextureSlots.TheWorldNamesMatchTheNativeTable",
+      "source": "Client/tests/scenes/test_golden_world_models.cpp",
+      "group": "memory",
+      "required_outputs": [
+        "memory/2026-10-09-lorencia/lor_slots.bin"
+      ],
+      "historical_constraints": [
+        "slot table has1845 records of0x38 bytes; resident names/residual sizes depend on lifecycle stage of original capture"
+      ],
+      "profile": "historical_memory_2f16"
+    },
+    {
+      "name": "GoldenTerrainTrace.TheCellsOfLorenciaMatchTheTrace",
+      "source": "Client/tests/world/test_golden_terrain_trace.cpp",
+      "group": "gl",
+      "required_outputs": [
+        "gl/lorencia-Frame_016215.txt"
+      ],
+      "historical_constraints": [
+        "window1024x768, historical viewports and projection/camera state",
+        "first-frame cells/GL texture-name mapping; counts329opaque/141alpha/3acceptBox for Lorencia or5109cells for selection; exact hero/camera state"
+      ],
+      "profile": "graphics_c32"
+    },
+    {
+      "name": "GoldenTerrainTrace.LorenciaDrawsTheCellsOfTheTraceInItsOrder",
+      "source": "Client/tests/world/test_golden_terrain_trace.cpp",
+      "group": "gl",
+      "required_outputs": [
+        "gl/lorencia-Frame_016215.txt"
+      ],
+      "historical_constraints": [
+        "window1024x768, historical viewports and projection/camera state",
+        "first-frame cells/GL texture-name mapping; counts329opaque/141alpha/3acceptBox for Lorencia or5109cells for selection; exact hero/camera state"
+      ],
+      "profile": "graphics_c32"
+    },
+    {
+      "name": "GoldenTerrainTrace.TheGameSceneDrawsTheCellsOfLorencia",
+      "source": "Client/tests/world/test_golden_terrain_trace.cpp",
+      "group": "gl",
+      "required_outputs": [
+        "gl/lorencia-Frame_016215.txt"
+      ],
+      "historical_constraints": [
+        "window1024x768, historical viewports and projection/camera state",
+        "first-frame cells/GL texture-name mapping; counts329opaque/141alpha/3acceptBox for Lorencia or5109cells for selection; exact hero/camera state"
+      ],
+      "profile": "graphics_c32"
+    },
+    {
+      "name": "GoldenTerrainTrace.TheSelectionDrawsTheCellsOfItsTrace",
+      "source": "Client/tests/world/test_golden_terrain_trace.cpp",
+      "group": "gl",
+      "required_outputs": [
+        "gl/character-selection-Frame_003207.txt"
+      ],
+      "historical_constraints": [
+        "window1024x768, historical viewports and projection/camera state",
+        "first-frame cells/GL texture-name mapping; counts329opaque/141alpha/3acceptBox for Lorencia or5109cells for selection; exact hero/camera state"
+      ],
+      "profile": "graphics_c32"
+    }
+  ],
+  "limits": [
+    "La presencia y SHA de archivos no acredita equivalencia dinámica ni ejecución del original.",
+    "Raven hereda el gate MemoryDumpTest pero no consume un dump.",
+    "GameModels y otros loaders requieren Data completo; la lista de hashes de assets es el subconjunto explícito, no un reemplazo de Data.",
+    "Los estados y conteos históricos se conservan; no sustituirlos por capturas nuevas sin una referencia independiente."
+  ]
+}

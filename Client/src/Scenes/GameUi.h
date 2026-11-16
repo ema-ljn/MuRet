@@ -2,6 +2,8 @@
 
 #include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Data/Tables/SkillTable.h"
+#include "Scenes/ActorPickingBox.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
 #include "UI/OldWindows.h"
@@ -15,6 +17,8 @@
 #include <string>
 #include <string_view>
 
+#include <glm/ext/vector_float3.hpp>
+
 namespace Client::Data::Tables
 {
 struct ItemSetTables;
@@ -23,6 +27,11 @@ struct ItemSetTables;
 namespace Client::Input
 {
 class InputState;
+}
+
+namespace Client::UI
+{
+struct GameUiState;
 }
 
 namespace Client::Render::Models
@@ -52,6 +61,9 @@ struct TerrainPickingSegment;
 
 namespace Client::Scenes
 {
+// 0x553520 para las teclas de las ventanas viejas: mismo latch en el paso y al atender mensajes durante el dibujo.
+[[nodiscard]] bool OldWindowKeyEdge(UI::GameUiState& ui, const Input::InputState& input, std::uint8_t virtualKey);
+
 class WorldState;
 struct FloorItemState;
 struct GameChatContext;
@@ -74,6 +86,12 @@ public:
     // Un paquete de mundo que arma Protocol (el comercio, la party y el duelo de la CL9 hito 7: 37, 3A, 3C, 3D, 41, 43
     // y AC), como sale. Los dos rand() de un C3 los saca el paso antes.
     virtual void SendGamePacket(Protocol::Outgoing outgoing) = 0;
+    // 0x419900: el C1 03 31 en claro, al cerrar la ventana de las misiones (CL9 hito 2).
+    virtual void SendWindowClose() = 0;
+    // 0x419bd0 y 0x41a9e0: el C3 A2 con la misión y el estado. Los dos rand() del C3 los saca el paso.
+    virtual void SendSetQuest(std::uint8_t quest, std::uint8_t state) = 0;
+    // CL9 hito 9: lo que mandan la ventana de amigos y sus cajas (Protocol::Friends, por Scenes::FriendPacketOf).
+    virtual void SendFriendPacket(Protocol::Outgoing packet) = 0;
     // 0x61c170("Data\\Macro.txt"): `content` (UI::WrittenMacros) en el archivo.
     [[nodiscard]] virtual Core::Expected<void, std::string> SaveMacros(std::string_view content) = 0;
     // 0x41fa40 sobre el log del original (0x57630f0).
@@ -115,6 +133,9 @@ struct GameUiContext
     // ItemSetType.bmd e ItemSetOption.bmd (0x40c600), que lee 0x550d10 con el Item.bmd de `inventory` cuando la C o el
     // botón del HUD abren el personaje (0x65ca1e). nullptr si no se cargaron: abrirlo corta en 0x40e1b0.
     const Data::Tables::ItemSetTables* itemSetTables = nullptr;
+    // Skill.bmd (0x76bd1d8): el +0x31 de cada skill de la lista de la barra (0x5a07a3). nullptr: la lista abierta
+    // corta.
+    const Data::Tables::SkillTable* skills = nullptr;
 };
 
 // El WndProc: 0x7d366d4 (el flanco del clic, que apagan quien lo usa y el botón suelto) y 0x7d36874 (el botón
@@ -154,6 +175,9 @@ struct FramePickingContext
     std::optional<World::TerrainPickingSegment> ray{};
     // 0x7d3682c y 0x7d36828: el mouse en 640 × 480, que lee la lista de la party (0x5e4140).
     UI::Point mouse{};
+    // La posición de la cámara del dibujo (0x7d36884), distinta del origen del rayo.
+    glm::vec3 cameraPosition{};
+    std::span<ActorPickingBox> pickingBoxes{};
     // CL9 hito 5: los ítems del piso del dibujo (0x77f46c8, o su copia en un dibujo intermedio) para 0x59e2e0, con el
     // mismo segmento; sin él (antes del primer dibujo) no busca.
     std::span<FloorItemState> floorItems{};

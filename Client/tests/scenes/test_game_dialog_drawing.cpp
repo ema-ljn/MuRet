@@ -2,6 +2,7 @@
 
 #include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Data/Text/DialogTable.h"
 #include "Data/Text/TextTable.h"
 #include "Render/Models/Cloth.h"
 #include "Render/SpriteBatch.h"
@@ -23,9 +24,11 @@
 #include "support/RecordingTextDrawer.h"
 #include "support/SceneDataFiles.h"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <string_view>
 #include <memory>
 #include <optional>
 #include <string>
@@ -158,6 +161,12 @@ public:
         {418, "de %s"},
         {419, "comerciar?"},
         {425, "entrar a la party?"},
+        {857, "ganaste"},
+        {858, "mision cumplida"},
+        {859, "perdiste"},
+        {860, "mision sin cumplir"},
+        {861, "exp %d"},
+        {863, "puntos %d"},
         {919, "carteles"},
         {1840, "brillo"},
     });
@@ -330,20 +339,27 @@ TEST(GameDialogDrawingTest, ThePagedArrowsTakeTheClick)
     EXPECT_FLOAT_EQ(QuadsOf(tested.sprites).back().color.red, 0.7f);
 }
 
-// 0x632a2b: las cajas 0x8b, 0x97 y 0x9b sin el objeto del evento no tienen texto; con él, cortan.
-TEST(GameDialogDrawingTest, TheEventBoxesCutWithTheEventObject)
+// 0x632a2b: las cajas 0x8b, 0x97 y 0x9b sin el objeto del evento no tienen texto; con él, el de su método +0x10 por
+// el tipo del objeto y no por la caja (test_event_drawing mira cada uno), en Lorencia y en Devias.
+TEST(GameDialogDrawingTest, TheEventBoxesDrawTheTextOfTheEventObject)
 {
-    DrawingDialogs tested(Devias);
-    Client::Scenes::WorldRuntime& runtime = tested.world.Runtime();
-    runtime.dialogs.current = 0x97;
-    ASSERT_TRUE(tested.Draw().HasValue());
-    EXPECT_EQ(QuadsOf(tested.sprites).size(), 9u);
-    EXPECT_TRUE(tested.text.texts.empty());
+    for (const std::int32_t map : {Lorencia, Devias})
+    {
+        SCOPED_TRACE(map);
+        DrawingDialogs tested(map);
+        Client::Scenes::WorldRuntime& runtime = tested.world.Runtime();
+        runtime.dialogs.current = 0x97;
+        ASSERT_TRUE(tested.Draw().HasValue());
+        EXPECT_EQ(QuadsOf(tested.sprites).size(), 9u);
+        EXPECT_TRUE(tested.text.texts.empty());
 
-    runtime.eventObject = Client::Scenes::EventMapObject{};
-    const auto drawn = tested.Draw();
-    ASSERT_FALSE(drawn.HasValue());
-    EXPECT_NE(drawn.Error().find("0x632a2b"), std::string::npos) << drawn.Error();
+        runtime.eventObject = Client::Scenes::EventMapObject{.kind = Client::Scenes::EventMapKind::BloodCastle};
+        tested.sprites.Begin(Screen640);
+        const auto drawn = tested.Draw();
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_EQ(QuadsOf(tested.sprites).size(), 9u);
+        EXPECT_EQ(tested.Texts(), (std::vector<std::string>{"perdiste", "mision sin cumplir", "exp 0", "puntos 0"}));
+    }
 }
 
 // 0x630c51: el OK genérico, con su botón (0xf2 con el mouse) y sus textos de uno o dos renglones.
@@ -600,12 +616,98 @@ TEST(GameDialogDrawingTest, TheMoneyDialogDrawsItsFrameAndCutsAtTheEdit)
     }
 }
 
+// Los colores de los textos dibujados, en su orden (los quads de marca de RecordingTextDrawer).
+std::vector<Color> TextColorsOf(const SpriteBatch& sprites)
+{
+    std::vector<Color> colors;
+    const auto vertices = sprites.Vertices();
+    for (const Client::Render::DrawCommand& command : sprites.Commands())
+    {
+        if (command.texture != Client::Tests::TextMarkerSlot)
+            continue;
+        for (std::size_t quad = 0; quad < command.vertexCount / 6; ++quad)
+            colors.push_back(vertices[command.firstVertex + quad * 6].color);
+    }
+    return colors;
+}
+
+// 0x632472..0x632636: el 0x8d dibuja su texto desde ((7 − 2 − 1) · 0x12) / 2 + 0x4c = 112 y debajo las respuestas, en
+// amarillo y en rojo la del mouse (a no más de 0x6a de x = 0x13f); una respuesta vacía no se dibuja ni baja la y. Al
+// final, el blanco (no se ve: nada se dibuja después). El marco lleva 4 filas de 0xfb (las de (3 · 0x12 + 0x31) / 40 =
+// 2, con 4 como mínimo).
+TEST(GameDialogDrawingTest, TheAnswersDialogDrawsItsTextAndItsAnswers)
+{
+    constexpr Color White{1.0f, 1.0f, 1.0f, 1.0f};
+    constexpr Color Yellow{1.0f, 1.0f, 0.0f, 1.0f};
+    constexpr Color Red{1.0f, 0.0f, 0.0f, 1.0f};
+    const auto tested = std::make_unique<DrawingDialogs>(Lorencia);
+    Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+    Client::Data::Text::DialogTable table(Client::Data::Text::DialogCount);
+    std::ranges::copy(std::string_view("hola viajero"), table[3].text.begin());
+    table[3].answerCount = 2;
+    std::ranges::copy(std::string_view("seguir"), table[3].answers[0].begin());
+    std::ranges::copy(std::string_view("chau"), table[3].answers[1].begin());
+    ASSERT_TRUE(
+        Client::UI::OpenTheAnswersDialog(runtime.dialogBox, runtime.dialogs, &table, &tested->texts, 3).HasValue());
+    tested->mouse = {0x13f - 0x6a, 150};
+
+    ASSERT_TRUE(tested->Draw().HasValue());
+    const std::vector<DrawnQuad> quads = QuadsOf(tested->sprites);
+    ASSERT_EQ(quads.size(), 6u);
+    EXPECT_EQ(quads[4].slot, 0xfb);
+    EXPECT_FLOAT_EQ(quads[5].y, 225.0f);
+    EXPECT_EQ(tested->Texts(), (std::vector<std::string>{"hola viajero", "1) seguir", "2) chau"}));
+    ASSERT_EQ(tested->text.texts.size(), 3u);
+    EXPECT_EQ(tested->text.texts[0].y, 112);
+    EXPECT_EQ(tested->text.texts[1].y, 130);
+    EXPECT_EQ(tested->text.texts[2].y, 148);
+    EXPECT_EQ(tested->text.texts[2].x, CenteredX("2) chau"));
+    EXPECT_EQ(TextColorsOf(tested->sprites), (std::vector<Color>{White, Yellow, Red}));
+
+    // Afuera de x, ninguna en rojo; la primera vacía no baja la y de la segunda.
+    tested->sprites.Begin(Screen640);
+    tested->text.texts.clear();
+    tested->mouse = {0x13f + 0x6b, 150};
+    runtime.dialogBox.answers[0] = '\0';
+    ASSERT_TRUE(tested->Draw().HasValue());
+    EXPECT_EQ(tested->Texts(), (std::vector<std::string>{"hola viajero", "2) chau"}));
+    EXPECT_EQ(tested->text.texts[1].y, 130);
+    EXPECT_EQ(TextColorsOf(tested->sprites), (std::vector<Color>{White, Yellow}));
+}
+
+// 0x631150..0x631182 y 0x6324a3: con 7 renglones y 3 respuestas, (10 · 0x12 + 0x31) / 40 = 5 filas, y el texto no
+// arranca más arriba de 0x46 (sería ((7 − 3 − 7) · 0x12) / 2 + 0x4c = 49).
+TEST(GameDialogDrawingTest, TheAnswersDialogGrowsWithItsRows)
+{
+    const auto tested = std::make_unique<DrawingDialogs>(Lorencia);
+    Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+    runtime.dialogs.current = Client::UI::AnswersDialog;
+    runtime.dialogBox.lineCount = 7;
+    runtime.dialogBox.answerCount = 3;
+    std::ranges::copy(std::string_view("arriba"), runtime.dialogBox.rows.begin());
+    ASSERT_TRUE(tested->Draw().HasValue());
+    const std::vector<DrawnQuad> quads = QuadsOf(tested->sprites);
+    ASSERT_EQ(quads.size(), 7u);
+    EXPECT_EQ(quads[5].slot, 0xfb);
+    EXPECT_FLOAT_EQ(quads[6].y, 265.0f);
+    ASSERT_EQ(tested->Texts(), (std::vector<std::string>{"arriba"}));
+    EXPECT_EQ(tested->text.texts[0].y, 0x46);
+
+    // El 0x8a también baja con las respuestas que quedaron (0x632472 es el mismo tramo), sin el mínimo.
+    tested->sprites.Begin(Screen640);
+    tested->text.texts.clear();
+    runtime.dialogs.current = Client::UI::MessageBoxDialog;
+    ASSERT_TRUE(tested->Draw().HasValue());
+    ASSERT_EQ(tested->Texts(), (std::vector<std::string>{"arriba"}));
+    EXPECT_EQ(tested->text.texts[0].y, 49);
+}
+
 // Los diálogos que no son de la CL8 cortan con la ola de su paso.
 TEST(GameDialogDrawingTest, TheOtherDialogsAreCut)
 {
     DrawingDialogs tested(Lorencia);
-    for (const auto& [id, wave] : std::to_array<std::pair<std::int32_t, std::string>>(
-             {{0x8d, "CL9.1"}, {0x76, "CL9.4"}, {0x8e, "CL9.3"}, {0x15, "CL9"}}))
+    for (const auto& [id, wave] :
+         std::to_array<std::pair<std::int32_t, std::string>>({{0x76, "CL9.4"}, {0x8e, "CL9.3"}, {0x15, "CL9"}}))
     {
         tested.world.Runtime().dialogs.current = id;
         const auto drawn = tested.Draw();

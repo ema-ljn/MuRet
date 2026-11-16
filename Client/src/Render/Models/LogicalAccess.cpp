@@ -17,6 +17,12 @@ LogicalAccess::LogicalAccess(std::uint8_t& depth, CrtRandom& random, std::uint16
     m_depth = static_cast<std::uint8_t>(m_depth + 1u);
 }
 
+LogicalAccess::LogicalAccess(std::uint8_t& depth, CrtRandom& random, std::uint16_t closeRandoms, std::uint32_t& left)
+    : LogicalAccess(depth, random, closeRandoms)
+{
+    m_left = &left;
+}
+
 LogicalAccess::~LogicalAccess()
 {
     m_depth = static_cast<std::uint8_t>(m_depth - 1u);
@@ -25,6 +31,17 @@ LogicalAccess::~LogicalAccess()
         return;
     }
     // El cifrado del último cierre: un rand() por byte (0x40b4d0 llama a 0x69fd70 en 0x40b52e).
-    m_random.Discard(m_closeRandoms);
+    constexpr std::uint16_t LeftBytes = 4;
+    if (m_left == nullptr || m_closeRandoms > LeftBytes)
+    {
+        m_random.Discard(m_closeRandoms);
+        return;
+    }
+    // 0x4128e2..0x4128f9: AND 0x800000ff de un rand() que no es negativo, en el byte i de la variable.
+    constexpr std::uint32_t ByteMask = 0xff;
+    std::uint32_t left = 0;
+    for (std::uint16_t index = 0; index < m_closeRandoms; ++index)
+        left |= (static_cast<std::uint32_t>(m_random.Next()) & ByteMask) << (8u * index);
+    *m_left = left;
 }
 } // namespace Client::Render::Models

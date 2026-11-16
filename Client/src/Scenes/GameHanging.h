@@ -5,6 +5,8 @@
 #include "Render/Models/HalfLifeMath.h"
 #include "Scenes/GameDrawTail.h"
 
+#include <glm/ext/vector_float3.hpp>
+
 #include <cstdint>
 #include <span>
 #include <string>
@@ -73,6 +75,20 @@ struct GameHangingPass
 // que crea y avanza en +0x360 y +0x364), las alas y Helper02 (fuera de los mapas 18 a 23), y fuera de la
 // espalda las dos manos, cada una con +0x38e abierto y cerrado antes. Escribe el
 // hueso, la acción, la velocidad y la animación de cada parte que cuelga, como el original, y +0x3b4 ya
-// tiene que tener la luz de lo que cuelga (0x50db94).
+// tiene que tener la luz de lo que cuelga (0x50db94). Con un monstruo o un NPC (0x50dcc2 salta a 0x50e060), solo el
+// rand(), la espalda (que corta lo que sigue) y las manos, sin el efecto de +0x78 & 0x800, que es del 0x20a; `body`
+// son sus huesos propios.
 [[nodiscard]] Core::Expected<void, std::string> DrawGameHanging(ActorState& actor, const GameHangingPass& pass);
+
+// 0x509340 desde lo que 0x50ba30 agrega por el +0x376 de un monstruo (0x50c79a, 0x50c803 y 0x50c8b8): el modelo del
+// lugar de las alas (+0x2f8), que quien llama ya armó (el modelo, el hueso, las dos acciones y la velocidad), sin
+// nivel ni excelente. Sin `placed`, desde su hueso del cuerpo con `offset`; con él, por el lugar de 0x5093d2 (el de
+// las estatuas 0x84 a 0x86: el 0xc1c, el 0x225 y el 0xa24; otro modelo corta en 0x5095e0). `bodyScale` es la escala
+// con que se posó el cuerpo (+0x68 del modelo del tipo, que lee 0x4ec190), y la del personaje, la del modelo que
+// cuelga. Con el 0xef, su origen y su giro (0x5096ac). Saca los rand() de 0x509340 (los de 0x607b60, el cierre de
+// +0x38e y los de los sprites del modelo), no el de 0x50db57; `pass.body` son los huesos propios del personaje. Entre
+// frames del original no avanza la animación de lo que cuelga.
+[[nodiscard]] Core::Expected<void, std::string> HangFromTheWingsSlot(ActorState& actor, const GameHangingPass& pass,
+                                                                     const glm::vec3& offset, bool placed,
+                                                                     float bodyScale);
 } // namespace Client::Scenes

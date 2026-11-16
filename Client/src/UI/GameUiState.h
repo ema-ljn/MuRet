@@ -56,6 +56,11 @@ struct GameUiState
     // 0x775857c: el mouse es de la UI. 0x636e04 lo pone en 0 en cada paso, la UI en 1 y lo leen MoveHero
     // (0x59b37a, 0x59b853), 0x57cfc0 (0x57cff2) y el picking (0x59ec80).
     std::uint8_t mouseOnUi = 0;
+    // 0x78aba28 y 0x78aba2c (.bss 0): la esquina de las ventanas de NPC de la derecha. La ponen en (0x104, 0) los pasos
+    // y los dibujos de las de los NPC de evento (0x5e5920, 0x5f58f0), de la tienda, del almacén, de la caja del caos y
+    // del asedio, y la lee el inventario (0x5e4e9e) para el mouse sobre la UI.
+    std::int32_t npcWindowX = 0;
+    std::int32_t npcWindowY = 0;
     // 0x6c9320 (.data −1): el tooltip de la skill del HUD. 0x636dfa lo vuelve a −1 en cada paso.
     std::int32_t skillTooltip = -1;
     // 0x78a9bac y 0x78a9ba8: dónde va ese tooltip (0x5a06a4, 0x5a06ba).
@@ -119,9 +124,19 @@ struct GameUiState
     // 0x7d36880: el flanco del clic derecho. Lo prende WM_RBUTTONDOWN si el botón no estaba abajo, lo apaga
     // WM_RBUTTONUP (02, la tabla del WndProc) y lo apaga quien lo usa.
     bool rightClick = false;
+    // 0x7d36849: el doble clic izquierdo (WM_LBUTTONDBLCLK), desde MouseMessageState, sin otro clic ordinario.
+    // Lo consume la lista de amigos (0x461f00); abrir el chat con ese amigo sigue siendo del hito 10.
+    bool doubleClick = false;
     // 0x7d3685c: el derecho abajo. Lo prende WM_RBUTTONDOWN, lo apaga WM_RBUTTONUP y lo apaga quien lo usa (el
     // registro del chat, 0x45d760).
     bool rightDown = false;
+    // 0x7d36840: el flanco del derecho soltado. Lo apaga WM_RBUTTONDOWN (0x4b3d15), lo prende WM_RBUTTONUP con el
+    // botón abajo (0x4b40ac) y lo apaga 0x57cfc0 cuando suelta la skill que se carga (0x57d13e).
+    bool rightReleased = false;
+    // 0x7d368a4: los frames de la skill que se carga (la 0x28 como 0x3a). 0x57cfc0 lo pone en 1 al empezar (0x57d1a0),
+    // lo sube en cada paso con el derecho abajo y lo vuelve a 0 al soltar o con una acción que no deja usar skills
+    // (0x57d495).
+    std::int32_t rightHoldFrames = 0;
     // 0x6c8e3c (.data 1): el ataque automático. Lo escriben el F3 30 (el bit 0x01, 0x4dd7d7), el menú de Esc
     // (0x625632) y la vuelta a la selección (0x4c2533, en 1). Sus lectores de MuRet: el picking (0x59ee4b), con el
     // elegido de antes (0x6c8e30), y MoveHero (0x59b22f y 0x59b89e) y 0x57cfc0 (0x57d1bc), con 0x6c8e38 distinto de −1,

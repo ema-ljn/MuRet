@@ -49,6 +49,12 @@ public:
         packetCopies.emplace_back(packet.begin(), packet.end());
     }
 
+    void ClearLogoutRequest() override
+    {
+        if (onLogoutResponse)
+            onLogoutResponse();
+    }
+
     std::vector<App::CharacterEvent> TakeCharacterEvents()
     {
         return std::exchange(characters, {});
@@ -66,5 +72,6 @@ public:
     std::vector<std::string> trace;
     std::function<Core::Expected<void, std::string>(const App::CharacterEvent&, const App::ServerSession&)> onCharacter;
     std::function<Core::Expected<void, std::string>(const App::WorldEvent&, App::ServerSession&)> onWorld;
+    std::function<void()> onLogoutResponse;
 };
 } // namespace Client::Tests

@@ -60,8 +60,11 @@ struct OwnCharacterRecord
     void ResetForSelection();
 
     // El byte `index` de las skills (+0x6c + index), el que leen la barra, la ventana del personaje y el tooltip de la
-    // skill con el lugar de la skill del héroe (+0x425). MuRet tiene los 64 de +0x6c a +0xab; con uno de más, nada.
+    // skill con el lugar de la skill del héroe (+0x425). Los 256 de +0x6c a +0x16b: los 64 de words6c y los de
+    // skillsAc; con uno de más, nada.
     [[nodiscard]] std::optional<std::uint8_t> SkillAt(std::size_t index) const;
+    // Escribe el byte `index` de las skills (el F3 11, 0x4c5070). Con uno de más, nada.
+    void SetSkillAt(std::size_t index, std::uint8_t skill);
 
     // 06, "La lógica": lo copia la selección (0x6342c0) y la respuesta no lo cambia.
     std::array<std::byte, Protocol::Character::NameSize + 1> name{}; // +0, hasta la clase
@@ -121,8 +124,14 @@ struct OwnCharacterRecord
     std::uint16_t word64 = 0;
     std::uint16_t word66 = 0;
     std::uint16_t levelUpPoints = 0; // +0x68
+    // +0x6a: cuántas skills hay en los 64 primeros lugares y +0x6b, cuántas de ellas tienen el +0x31 de Skill.bmd en 1
+    // (las que la barra no muestra). Los cuenta el F3 11 (0x4c5070).
     std::uint8_t byte6a = 0;
+    std::uint8_t byte6b = 0;
     std::array<std::uint32_t, 16> words6c{};
+    // +0xac a +0x16b: los lugares 64 a 255 de las skills. Solo los escribe el F3 11 (0x4c5070, que pone en 0 los 256
+    // con la lista entera y los 0x78 a 0x7b del Dark Lord); 0x633f20 no los toca.
+    std::array<std::uint8_t, 0xc0> skillsAc{};
     // +0x26c a +0x76b: las teclas de las skills, 0x100 bytes por cada lugar de la selección (0x6d5edc, de 0 a 4). El
     // F3 30 llena el del elegido (0x4dd632..0x4dd6dc): 0xff en todos y, en el lugar de cada skill del registro, el
     // número de su tecla. Las lee el HUD (0x5a61f9) y las usa la CL9.
@@ -163,7 +172,7 @@ struct OwnCharacterRecord
 };
 
 // El byte `index` de las skills del registro propio (+0x6c + index), el que leen el F3 30 que llega (0x4dd632) y el
-// que sale (0x61c2e4). MuRet tiene los 64 de +0x6c a +0xab; los que siguen, hasta +0x16b, los escribe solo el F3 11
-// (0x4c5070, CL9.2) y quedan en el 0 con que WinMain deja el registro.
+// que sale (0x61c2e4): SkillAt, con 0 de más allá de +0x16b. Los de +0xac a +0x16b los escribe solo el F3 11
+// (0x4c5070).
 [[nodiscard]] std::uint8_t OwnSkillByte(const OwnCharacterRecord& own, std::size_t index);
 } // namespace Client::Scenes

@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Protocol/Outgoing.h"
+#include "Protocol/Pet/PetInfo.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameUi.h"
@@ -11,8 +12,10 @@
 #include "Scenes/OwnStatHelpers.h"
 #include "Scenes/PersonalShopLists.h"
 #include "Scenes/SocialEvents.h"
+#include "Scenes/Quests.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/OldWindows.h"
 #include "UI/PanelRegistry.h"
 #include "World/ItemState.h"
 
@@ -72,6 +75,14 @@ UI::PanelContext ContextOf(WorldState& world, Render::Models::CrtRandom& random,
     context.personalShopOpened = [&world, &random](UI::PanelId id)
     { return OpenThePersonalShop(world, random, id, {}); };
     context.personalShopClosed = [&world, &random]() { return CloseThePersonalShop(world, random, {}); };
+    // 0x659c70: 0x419840(−1) sobre [0x710148].
+    context.questOpened = [&world, &random, tables]()
+    { return OpenTheQuestList(QuestContext{.world = world, .random = random, .texts = tables.texts}, -1); };
+    // El panel 1, la de amigos (CL9 hito 9): 0x490a00(+0x48) y 0x4914e0 sobre el administrador viejo.
+    UI::OldWindowManager& oldWindows = runtime.oldWindows;
+    context.friendsShown = [&oldWindows]() { return UI::FindTheOldWindow(oldWindows, oldWindows.friends) != nullptr; };
+    context.friendsClosed = [&runtime]()
+    { return UI::DropTheFriendsWindow(runtime.oldWindows, runtime.ui.pressedButton); };
     return context;
 }
 } // namespace
@@ -102,6 +113,24 @@ void GamePanels::LendThePersonalShops(WorldState& world, Render::Models::CrtRand
     m_context.personalShopClosed = [&world, &random, send]() { return CloseThePersonalShop(world, random, send); };
 }
 
+void GamePanels::LendTheWindowClose(std::function<void()> send)
+{
+    m_context.questClosed = send;
+    m_context.eventNpcClosed = std::move(send);
+}
+
+void GamePanels::LendTheWindowClose(IGameUiRequests* requests)
+{
+    if (requests == nullptr)
+    {
+        m_context.questClosed = {};
+        m_context.eventNpcClosed = {};
+        return;
+    }
+    m_context.questClosed = [requests]() { requests->SendWindowClose(); };
+    m_context.eventNpcClosed = m_context.questClosed;
+}
+
 void GamePanels::LendThePartyList(WorldState& world, IGameUiRequests* requests)
 {
     if (requests == nullptr)
@@ -112,5 +141,22 @@ void GamePanels::LendThePartyList(WorldState& world, IGameUiRequests* requests)
         runtime.hud.partyCount = 0;
         requests->RequestPartyList();
     };
+}
+
+void GamePanels::LendThePetRequests(std::function<void(Protocol::Outgoing)> send)
+{
+    m_context.petOpened = [send = std::move(send)]()
+    {
+        if (!send)
+            return;
+        send(Protocol::Pet::WritePetInfoRequest(Protocol::Pet::LoginScenePetInfoRequest));
+        send(Protocol::Pet::WritePetInfoRequest(
+            {Protocol::Pet::DarkHorsePet, Protocol::Pet::InventoryPlace, Protocol::Pet::PetSlot}));
+    };
+}
+
+void GamePanels::LendTheFriends(std::function<Core::Expected<void, std::string>()> opened)
+{
+    m_context.friendsOpened = std::move(opened);
 }
 } // namespace Client::Scenes

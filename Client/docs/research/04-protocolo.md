@@ -101,7 +101,9 @@ mínima (`analysis/foxanti/minimal/src/packet.c`):
     personaje (C), la que abre la tecla C (06 § HUD y ventanas). *Verificado* en el cable: 9 en el `muproxy.log` y 10 en la sesión real, todos
     `01 00 08` y todos después de entrar al mundo.
   - `0x422990` manda el de un ítem `0x1a04` o `0x1a05` cuando cambia el que se mira (lo llama la UI,
-    `0x5b2b0d`), con el lugar y la casilla que recibe.
+    `0x5b2b0d`): la mascota (1 el caballo, 0 el cuervo) y los bytes de abajo de `0x78abb28` y `0x78abb2c`, la
+    ventana y el lugar del ítem del cartel (desde el inventario, 0 y la casilla + 12 o el lugar del equipo).
+    *Estático*; MuRet lo manda desde la CL9 hito 4 (`Scenes::DrawThePetTooltip`, [06](06-render-escenas-y-ui.md#el-a9-de-las-mascotas)).
 
   La respuesta S->C es el handler `A9` (`0x4e4ca1` → `0x421db0`): guarda por `pkt[3]` (el tipo) el
   nivel de `pkt[6]` y un DWORD de `pkt[8]` en la tabla de `0x723960`, y recalcula los atributos
@@ -240,7 +242,10 @@ mínima (`analysis/foxanti/minimal/src/packet.c`):
   mandarlo, y `0x4499b0` sale sin mandar si la caja de `0x723c80` tiene algo (`0x449c10`) y, si no,
   pone en 0 `0x724580` y `0x724584`. En el GS reconstruido es `CGCloseWindow`
   (`protocol.cpp:443`, `0x42ab20`): MuRet lo llama `WindowClose`. Los llaman también otros lugares de la interfaz (`0x44b5da`,
-  `0x44b9ce`, `0x44c62e` y `0x658dfd` a `0x4499b0`), que MuRet no tiene.
+  `0x44b9ce`, `0x44c62e` y `0x658dfd` a `0x4499b0`), que MuRet no tiene. Cerrar un NPC de evento (`0x657ab0` con
+  `0x1000` o `0x4000`, `0x658a18` y `0x658c0e`) lo arma en la pila y lo manda, en claro, antes de poner `0x7d53712` en 0
+  (CL9 hito 11, fase 2; `UI::PanelContext::eventNpcClosed`, que prestan el paso de la UI, caminar, el `90`, los
+  cierres de todos los paneles y la entrada, el teleport y el regen).
 - **La suma del ejecutable (`03`)**, S->C y C->S (`0x4e2b10` → `0x4e16c0`; *estático*, ASM
   c32bbd5f, y del lado del GS la reconstrucción del research del servidor). Al entrar al mundo
   (`gObjSetCharacter`, con el `F3 03`) el GS manda `C1 06 03 00 <clave:2>` (`GCCheckMainExeKeySend`):
@@ -596,6 +601,48 @@ bit el cliente para a otro jugador una vez de cada dos, con un `rand() & 1` (las
 Q-C178). Este documento lo daba
 como posición y dirección: lo de caminar es solo esa parada.
 
+### Pegar, el daño y la muerte: `D7`, `15`, `16`, `17` y `9C`
+
+CL9 hito 3 (2026-11-13). Cada paquete, contra la función del GameServer reconstruido
+(`gameserver/src/reconstructed/win32-vc6`) que lo arma o lo lee (*estático* los dos lados); qué hace
+el cliente con ellos, en [06](06-render-escenas-y-ui.md#pegar-al-llegar). Lo que no coincide, en
+[08](08-pendientes.md) (P-C252).
+
+- **El `D7` del cliente** (`0x5650c0`, `0x565a49..0x56601e`): `C1 07 D7 idH idL 78 dir`, con el
+  XOR32 y por `send()` directo, sin `rand()`. `id` es `+0x1f4` del blanco, entero (el bit 15 viaja
+  si lo tiene); la acción es siempre `0x78`, y `dir`, `ftol((yaw + 22,5) · 0,0222 + 1) & 7` con el
+  yaw del héroe publicado ya girado hacia el blanco (`0x5659b8..0x5659e2`). La GS lo lee como
+  `PMSG_ATTACK` (`CGAttack`, `0x4254d0`: `NumberH NumberL AttackAction DirDis`, el número en 16 bits
+  y hasta `0x15df`) y contesta con el `18` de esa acción (`GCActionSend`): **coincide**. Antes sale
+  el `D3` de girar, `C1 06 D3 X Y dir<<4`, con la celda del héroe (`0x56548b..0x565954`).
+- **El `DF` del cliente, la celda del elfo** (`0x59cf88..0x59d3d7`, en el clic de ataque de `MoveHero`;
+  *estático*, uno en el cable): `C1 05 DF X Y`, con el XOR32 y por `send()` directo, sin `rand()` propios (la
+  celda lógica sale de `+0x41c` y `+0x420`, la Y leída antes que la X, 4 `rand()` cada una). Lo manda un elfo que
+  camina (`+0x378`) sin interacción (`+0x379` en 0) con una ballesta en la derecha o un arco en la izquierda, antes
+  de `0x59d3de` ([06](06-render-escenas-y-ui.md#pegar-al-llegar), "El clic de ataque"). FoxAnti no lo cambia (solo
+  el `D3` y el `D7`). La GS reconstruida no tiene caso para el `DF` que llega: su posición es el `C1 11`
+  (`CGPositionRecv`, `0x4250d0`), así que lo descarta (Q-C1163). MuRet: `Protocol::Combat::WriteElfCell` y
+  `ServerSession::SendElfCell`.
+- **El `15` de la GS** (`GCDamageSend`, `0x425880`): `C1 07 15 idH|f idL dañoH|tipo dañoL`. El
+  cliente 1.02 **no tiene caso** para el `15`: el despacho cae en el default `0x4e5b4a`, que no
+  hace nada. El daño que lee es el `D7` de 8 bytes (`0x4caae0`, arriba), el que manda la GS del
+  laboratorio (*verificado*: 614 en el cable).
+- **El `16`, la experiencia de una muerte** (`0x4cf200`, desde `0x4e3a74` con el flag de
+  descifrado): `C3 [C1 09 16 idH|f idL expH expL dañoH dañoL]`, el `PMSG_KILLPLAYER_EXP` de
+  `GCKillPlayerExpSend` (`0x425a70`, `PHeadSetBE`): **coincide**, con el `MSBFlag` en el bit 15 de
+  la clave. Con el flag en 0 manda `C1 06 F1 03 00 16` en C3 y no lee nada (`0x4cf2aa`). El muerto
+  es `0x5110d0(id & 0x7fff)`.
+- **El `9C`, la experiencia de Blood Castle** (`0x4cfce0`, desde `0x4e3a93`, con el flag igual):
+  `C3 [C1 0C 9C idH|f idL — eH eL dañoH dañoL]`, donde `eH` y `eL` son dos WORD en little endian
+  en `pkt[6..9]` y `pkt[5]` es el relleno: la experiencia es `eH · 65536 + eL`. Es el
+  `PMSG_KILLPLAYER_EXT` de `CalcSendRewardEXP` (`0x49af90`), con `HIWORD` y `LOWORD` en WORD
+  nativos: **coincide**. Esa GS manda siempre `NumberH = NumberL = 0xFF` y el daño en 0: la clave
+  `0x7fff` con el bit 15, que no tiene nadie, cae en el lugar 400 (Q-C1160).
+- **El `17`, la muerte** (`0x4d0a30`, desde `0x4e3ab2`, sin flag): lee `pkt[3..4]` (la clave, sin
+  máscara), `pkt[5]` (la skill, a `+0x391`) y, con la skill `0x28` o `0x3b`, `pkt[6..7]` (quién lo
+  mató). La GS manda el `PMSG_DIEPLAYER` de **5 bytes** (`GCDiePlayerSend`, `0x425bb0`: solo
+  `NumberH NumberL`): la skill y el que mató salen de lo que quedó en el buffer de recepción
+  (Q-C1161).
 ### La acción: `18`
 
 CL9 hito 1 (2026-11-13). *Estático*, con el ASM de `0x4cb750`, `0x576a60`, `0x576eb0`, `0x4f2250` y `0x59b456`,
@@ -620,7 +667,7 @@ del cable con un emote ni sentado.
 | Acción | Qué hace |
 | --- | --- |
 | `0x12` | la `0x98` y el sonido `0x41ed10(0x6f, 0, 0)` (CL10) |
-| `0x78`, `0x79` | `0x4f4a10` (sin leer, hito 3), `+0x381` en 1, `+0x114` en 0, `+0x3a4` con `[0x57678b0]` y `[0x5767964]` con el índice |
+| `0x78`, `0x79` | `0x4f4a10` (SetPlayerAttack, [06](06-render-escenas-y-ui.md#pegar-al-llegar)), `+0x381` en 1, `+0x114` en 0, `+0x3a4` con el WORD bajo de `[0x57678b0]` (el lugar del héroe) y `[0x5767964]` con el índice |
 | `0x7a`, `0x7b` | `0x4f2250`, la de parado: sentado, la `0xca` y el `C1 18` de `0x82`; después su `rand()` |
 | `0x7e` | la 5 |
 | `0x80`, `0x81`, `0x82` | `0xc5`, `0xcb` y `0xc9`; con el elfo (`+0x1d4 & 7 == 2`), `0xc7`, `0xcc` y `0xca` |
@@ -628,9 +675,12 @@ del cable con un emote ni sentado.
 | `0x92` a `0x9b` | `0xb7`, `0xb8`, `0xc0`, `0xb9`, `0xba`, `0xbb`, `0xbc`, `0xbd`, `0xbe` y `0xbf`, sin mirar la clase |
 | cualquier otra | ella misma |
 
-  No saca `rand()` salvo en `0x4f2250` (el sufijo) y en `0x4f4a10` (el `0x78` y el `0x79`: ocho llamadas a `_rand`,
-  `0x69fd70`, una en la rama del jugador en `0x4f4db9`, después de `CMP AX,0x20a` en `0x4f4a20`; las cuenta el
-  hito 3). Lo que los demás ven de un emote es la animación que se puso el que lo hizo.
+  No saca `rand()` salvo en `0x4f2250` (el sufijo) y en `0x4f4a10` (el `0x78` y el `0x79`): con un jugador
+  (`CMP AX,0x20a` en `0x4f4a20`), `0x4f3f80` abre y cierra el registro propio (3.848 si queda sin accesos) y, de
+  las ocho llamadas a `_rand` (`0x69fd70`), las de la rama que toque: a pie, por las armas, `0x4f4db9`, `0x4f4e07`
+  o `0x4f4e1c`, y con el frame en 0 el sonido del arma (`0x4f5192`); con un monstruo, el `0x172` (`0x4f4fd7` y
+  `0x4f4fed`), los subtipos `0xd1` a `0xd3` (`0x4f51d4`) y la tabla de sonidos del modelo (`0x4f5222`, 08 P-C253).
+  Lo que los demás ven de un emote es la animación que se puso el que lo hizo.
 - **El GameServer** (`CGActionRecv`): guarda la dirección y la acción sin validarlas y reenvía el `C1 07 18` con la
   clave del que la hizo a los jugadores de su viewport (`VpPlayer2`), no a él: el emote propio se ve por `0x576a60` y
   el de los demás por `0x4cb750`. Las acciones de descanso que mira son `0x6c`, `0x6d` y `0x6e` (`m_ViewState` 2 a 4
@@ -639,7 +689,8 @@ del cable con un emote ni sentado.
   manda al propio jugador la `0x66`, que el cliente pone tal cual.
 
 En MuRet: `Protocol::Movement::ReadAction`, `ServerSession::OnAction` y `Scenes::ApplyActionReply` (una clave
-desconocida se descarta, como el `D3`; el `0x78`/`0x79` corta con `0x4cb821` hasta el hito 3); los que mandan,
+desconocida se descarta, como el `D3`; el `0x78`/`0x79` pega con `Scenes::SetActorAttack` y deja el lugar en
+`WorldRuntime::lastAttacker`, CL9 hito 3, fase 2a); los que mandan,
 `Scenes::SendTheAction` con `ServerSession::SendAction` (sin el GameServer abierto, un aviso y nada).
 
 ### Los cambios de mapa: `1C`, `F3 04` y `F3 12`
@@ -727,8 +778,9 @@ Antes de cada `1C` va el `/move` del cliente en el chat, y después el servidor 
   dos (`0x4c4269`, `0x4c78ac`; *estático*; *inferido*: el pedido del estado de Crywolf). Hay otros
   dos emisores de `BD`, con el 3 (`0x435d4c`) y con el 9 (`0x65a986`), sin leer.
 - **El `BD 00` del servidor** (`0x4e2b10` → `0x4033b0`): pone en su estado el recorrido de la
-  cámara `CCameraMove`, el único camino a él ([06](06-render-escenas-y-ui.md#la-cámara-del-juego);
-  *estático*).
+  cámara `CCameraMove`, el único camino a él ([06](06-render-escenas-y-ui.md#el-recorrido-de-la-cámara);
+  *estático*): con la etapa 2 empieza 5.000 ms después. Los `BD 02` a `0C` llenan la interfaz de Crywolf
+  ([Los eventos](#los-eventos-0b-46-47-909e-af-bc-bd-y-f3-222340)).
 
 ### El chat que llega: `00`, `01`, `02`, `0C`, `0D` y `F3 30`
 
@@ -992,6 +1044,295 @@ que queda de las tiendas personales (su dibujo y los carteles) lo dice 08 P-C208
 las grillas del comercio está portado (06
 § Lo social en pantalla, "Las grillas del comercio"), con el clic derecho sobre la propia (fase 5, 08 P-C235). Los tests (`TradePartyDuelTest`, `SocialEventsTest`, `GameSocialStepsTest` y los
 de los diálogos, la party, los comandos y el registro de las ventanas) usan nombres inventados.
+### Los eventos: `0B`, `46`, `47`, `90`..`9E`, `AF`, `BC`, `BD` y `F3 22`/`23`/`40`
+
+(CL9 hito 11, 2026-11-13, *estático*, contra el ASM y contra `gs_protocol.h` y `protocol.cpp` del GameServer
+reconstruido.) Todos llegan por `0x4e2b10` sin guarda de escena, de estado de la sesión ni del flag C3. Los formatos
+de Text.bmd los arma `sprintf` de la CRT (`0x69fd9b`) o `wsprintfA` (`[0x6b851c]`) según el handler: el primero
+entiende `"% d"` (la bandera del espacio) y el segundo no (P-C290, *inferido*): copia el espacio y la letra y no toma
+el argumento, así que los textos con `"% s"` y `"% d"` del 91 salen sin el nombre ni el número. Un `%d` que toma el
+nombre del evento (un puntero a su registro, `0x76bd1dc + 300 · índice`) imprime la dirección (Q-C1321).
+
+| Paquete | Handler | Lo que lee | GameServer 1.02 |
+| --- | --- | --- | --- |
+| `C1 05 0B estado evento` | `0x4e3594` | guarda la copia en la cola de `0x77f27b4` (como el `1C`); con evento 1 o 3, la tormenta (`0x723c50`) en 1 o 3 si estado ≠ 0, y siempre los 40 pájaros apagados (`0x4455c0`) | `PMSG_EVENTSTATE` (`GCEventStateSend` `0x416560`, `GCMapEventStateSend` `0x4165c0`), igual |
+| `C1 46 tipo atributo modo cuenta …` | `0x4dab90` | tipo 1: `cuenta` celdas `(x, y)` desde `pkt[7]`, `0x5f8730` (quita) con modo ≠ 0 y `0x5f8710` (agrega) con 0. Tipo 0: `cuenta` rectángulos `(x1, y1, x2, y2)`; en Blood Castle (11..17) con el atributo 8, antes el derrumbe `0x5ff930(mapa, 0x24, 0, 1)`; cada uno con `0x5f8750(x1, y1, x2 − x1 + 1, y2 − y1 + 1, atributo, 1 − modo)` en un byte (Q-C1320). Otro tipo, nada | `PMSG_SETMAPATTR_COUNT` (Blood Castle `0x497cb0`, `0x497ea0`, `0x498090`): el tipo 0 con cuenta 1, el atributo 4 (la entrada y la puerta) u 8 (el puente), `btMapSetType` = vivo ? 0 : 1 y dos pares `(x, y)`, que el cliente lee como un rectángulo; el largo cubre seis pares (`7 + 2 · 6`) y los otros 8 bytes no los lee |
+| `C1 47 clave:2 … ítem:4 nivel` (hasta `pkt[0xc]`) | `0x4d6990` | la clave big-endian; con la del héroe, nada; con otra, el aviso con el nombre del ítem (`0x5b1c70`) | no está; el oráculo es el cliente |
+| `C1 04 90 resultado` | `0x4e4870` | cierra el NPC de evento (`0x65cae0(0x1000, 0)`) y, con 1..5, el aviso 677, 678, 686, 687 o 679 | `PMSG_RESULT`, igual |
+| `C1 91 tipo …` | `0x4da8c0` | tipo 1 (Devil Square): `pkt[4]` 0 → 643, si no 644 con los minutos; tipo 2 (Blood Castle): 850 o 851 con el nombre 1146; tipo 4 (Chaos Castle): la palabra `pkt[4]:pkt[6]` y `pkt[5]`, con 850 + 1156 o 1164 + 851 en los registros 1154/1155 y el diálogo `0x9a` | `PMSG_ENTERCOUNT_RESULT` (`CGEnterCountRequest` `0x429c10`), sólo los tipos 1 y 2: el 4 no lo manda |
+| `C1 04 92 tipo` | `0x4e4930` | con el objeto del evento (`[0x723c60]`), `0x40ba60(pkt[3] + 1)`: `+8` y `GetTickCount` en `+0xc`, que dibuja la cuenta de 30 s (`0x40bab0`) | `PMSG_SET_DEVILSQUARE`: Devil Square 0..2 y Blood Castle 3..6; el 10..13 de Chaos Castle no lo manda |
+| `C1 93 puesto cuenta registros…` | `0x4e4959` → `0x4e7360` → método `+0xc` | Devil Square (`0x40bd20`): con cuenta < 200, `cuenta` registros de 24 bytes a `+0x2c` y el diálogo `0x8b`; Blood Castle (`0x40c0c0`) con cuenta `0xff` y Chaos Castle (`0x404da0`) con `0xfe`: uno, con los diálogos `0x97` y `0x9b` | `PMSG_DEVILSQUARERESULT` de 11 registros (`0x10d`); Blood Castle manda puesto 1, cuenta `0xff` y `0x35` bytes. Con más de 11, Q-C1324 |
+| `C1 94 tipo cuenta:2 [a:2 b:2 c:2]` | `0x4dd8a0` | cierra las ventanas, `0x78abb04` = cuenta y `0x78abb00` = tipo + 1; con el 1 (Muto) los tres números si ninguno es `0xffff`; con el 3, el número de serie en cero y su entrada (`0x4dd8ce..0x4dd920`: `0x553570(0)`, el chat cerrado, un solo campo para el Tab y `0x77f3b6b` en 1; 06 § La ventana de los chips) | `PMSG_EVENTCHIPINFO` (`0xc`), igual |
+| `C1 06 95 tipo cuenta:2` | `0x4e49d4` | `0x78abb04` = cuenta salvo `0xffff` | `PMSG_EVENTCHIP_RESULT`, −1 al fallar, igual |
+| `C1 96 … a:2 b:2 c:2` | `0x4e49fb` | los tres números (`0x6c9328`, `0x6c932c`) si ninguno es `0xffff` | `PMSG_EVENTCHIP_MUTO`; al fallar a = −1, que el cliente salta |
+| `C1 04 99 tipo` | `0x4e4a40` | con 0 o 1, los diálogos `0x8f` o `0x90` | `PMSG_RESULT`, igual |
+| `C1 04 9A resultado` | `0x4da780` | cierra las ventanas y, con `sprintf`: 1 → 854; 2 → 852 con 1146; 3 → 686; 4 → 687; 5 → 853 con 1146 y 10; 6 → 867 con 6; 8 → 852 con 1147; 9 → 853 con 1147 y 100 | `PMSG_RESULT`, igual |
+| `C1 0E 9B estado quedan:2 máx:2 actual:2 dueño:2 arma` | `0x4e4999` → método `+8` | Blood Castle (`0x40c140`): 0 gira a los jugadores (`0x5111a0(0xc0)`) y la música `0x8b`; 0, 1 y 4, `+0x10` = estado + 1, el tiempo y las cuentas (`0x40ba80`) y el arma en `+0x360` del dueño (`0x511150`, Q-C1326); 2, `0x40ba20` y la música apagada; 3, el derrumbe `(mapa, 0x24, 0x14, 1)`. Chaos Castle (`0x404e20`), 5..10: la trampa armada, la entrada, la música; el tiempo; el fin; los tres derrumbes con cuatro rectángulos del atributo 8 cada uno. Devil Square, `ret` | `PMSG_STATEBLOODCASTLE` (`0xe`), igual |
+| `C1 44 9D resultado datos:0x40` | `0x4e4a86` | el aviso 886 + resultado (0..4) o 899 (5) y siempre los `0x40` bytes en `0x78ab078` | no está |
+| `C1 06 9E … sonido:2` | `0x4e4ad4` | con 0, 1 o 2, el sonido `0x5b`, `0x5c` o `0x5d` (CL10) | no está |
+| `C1 05 AF 01 resultado` | `0x4e5032` → `0x4daa90` | como el 9A con Chaos Castle (1147, 100), y 7 → 423 | no está en el 0.97; el oráculo es el cliente |
+| `C1 05 BC 00/01 resultado` | `0x4e4547`, `0x4da540` | el texto de la mezcla (1801/1800 con 1816 y 868, o 1817, 1811, 1812, 1815) en `"%s%s %s"`, `0x6236f0(0)` y `0x6236f0(0xa6)`, y la ventana de la mezcla (`0x402e50`, corta: hito 6) | no está |
+| `C1 06 BD 00 estado etapa` | `0x4e5965` | `0x42fe80(estado, etapa)` (la interfaz de Crywolf; con otro estado que el anterior, la luz y el `.att` del mapa en curso, `0x42ff81` y `0x42ffe8`, [06](06-render-escenas-y-ui.md#los-objetos-de-crywolf), Q-C1340) y `0x4033b0(etapa)` en el recorrido de la cámara | no está: el GameServer 0.97 no tiene Crywolf y el oráculo es el ASM del cliente |
+| `C1 0D BD 02 luz:4 a0 a1 a2 a3 a4` | `0x4e5990` → `0x4e0fe0` → `0x430000` | la luz a `0x723c08` y los cinco altares a `0x6c73cc..0x6c73d0` (`.data` en 2), en cualquier mapa | no está (Crywolf) |
+| `C1 08 BD 03 resultado valor clave:2` | `0x4e59a5` → `0x4e1010` | el resultado del contrato de los altares, con la clave big-endian (`pkt[6]·256 + pkt[7]`), en cualquier mapa: con 0, el héroe sin `0x200000` en `+0x7c`, el nivel (`+0xe`) con el registro propio abierto (0xf08 `rand()` al cerrarlo) y `0x435b00(0x36)` + `(0x37)` con menos de 350 o `(0x3a)`; con 1, `0x435b00(3)` + `(4)`, `0x435ad0(clave − 0x13c, valor)` (sin tope, Q-C1347), `0x200000` en `+0x7c`, la acción `0xca` (`0x4ea030`) y el `C1 05 18 rumbo 82` de abajo; con otro, nada. `0x435b00` y `0x435ad0` solo hacen algo con la etapa 3 o 4 en el 34 (06 § La interfaz de Crywolf) | no está |
+| `C1 06 BD 04 a minutos` | `0x4e59ba` → `0x435a20` | con la etapa 4 (`0x4359f0`) en el 34 (`0x4303c0`): `0x723be4` = a, `0x723be8` = minutos, `0x7239f4` = `GetTickCount` y `0x723bf8` en 1 | no está |
+| `C1 09 BD 05 vida:4 n` | `0x4e59eb` → `0x435a70` | con la etapa 3 o 4 (`0x435a00`) en el 34: `0x723bd8` = n; la barra `0x723a3d` en 1 con la vida en más de 0 y en 0 con 0 o menos; `0x6c73d4` = vida (`0x436590`) | no está |
+| `C1 0C BD 07 rango … exp:4` | `0x4e5a09` → `0x437600` | `0x723bed` = `pkt[4]`, `0x723bf0` = el dword de `pkt+8` | no está |
+| `C1 BD 08 n registros de 0x14…` | `0x4e5a39` → `0x4e1680` → `0x437620` | por registro (desde `pkt+5`): los puntos (`+0xc`) a `0x6c73e4 + 4 · lugar`, la clase (`+0x10`) a `0x723a30 + lugar`, el nombre (`+1`, 10 bytes y el 0) a `0x7239f8 + 11 · lugar` y `0x723bf9` en 1. El lugar (`+0`) no tiene tope (Q-C1341) | no está |
+| `C1 05 BD 09 b` | `0x4e5a25` | `0x7d2dc9d` = b (lo lee la caja del caos, `0x5ff2f2`) | no está |
+| `C1 BD 0C … a b c d` | `0x4e59d6` → `0x4e15f0` → `0x430040` | un solo efecto `0xee` (`0x518cf0`, CL11) en (`pkt[8]` · 100, `pkt[9]` · 100, 100) con el héroe de dueño, el caso 2 con `pkt[6]` en `0x7a` o `0x74`, el 1 con `0xb7` y el 0 con otro, y un segundo punto corrido con z 800; no escribe estado ni saca `rand()` fuera de `0x518cf0` (leído entero en la fase 4); MuRet corta | no está |
+| `C1 F3 22 b w:2` | `0x4e31f8` | el byte de `pkt[4]` a `0x5767814` y la palabra de `pkt[6]` a `0x5767816` | `PMSG_F3_22` (`0x418330`, la guerra de gremios) mide 6: la palabra la lee fuera del paquete (Q-C1322) |
+| `C1 16 F3 23 nombre:8 p1 nombre:8 p2` | `0x4d9f00` | los nombres con su `'\0'`, los puntos, `0x576796f` = p1 ≠ `0xff`, y el efecto `0x60e` en la celda del héroe (`0x518cf0`, corta) | `PMSG_BATTLESOCCER_SCORE` (`0x16`): la palabra de `pkt[0x15]` toma `pkt[0x16]` (Q-C1323) |
+| `C1 07 F3 40 comando a b` | `0x4da070` | por la tabla `0x4da24c`: 0, el efecto `0x60e` en la celda (`0x518cf0`, corta); 1, el aviso 650 + a (810 + a desde `0x14`); 2, el sonido `0x5a`; 3, 710 + a; 5, el diálogo a de `0x632f70` (`UI::OpenTheAnswersDialog`; sin tope, Q-C1325); 6, 449; 7, con a en 0 el texto 2020 en el diálogo `0xaa` y si no el aviso 2020 + a; `0xd`, 1826; `0x2f..0x31`, 1776 + comando | `PMSG_F3_40`, igual |
+
+Lo que manda el cliente:
+
+- **`C1 03 97`** (`0x56b4e8..0x56b5a0`), en claro y sin XOR32: `SendMove` lo agrega después del `D3` con `0x78abb00`
+  distinto de 0; después, con 3, cierra la entrada del número de serie (`0x56b6a9..0x56b72a`), y pone `0x78abb00`
+  en 0, el cursor con `SetCursorPos` en x · ancho / 260 (Q-C1330), `0x6c8dcc` en 6 y el izquierdo suelto. El GS lo
+  atiende en `CGEventChip97Request` (apaga `m_IfState` del tipo 9). También lo manda, en claro, la X de la ventana
+  de `0x78abb00` (`0x5e72e3`, el paso `0x5e6520`), que después cierra el inventario (`0x65cae0(0x4000000, 0)`).
+- **`C1 04 98 01`** (`0x5e65f6..0x5e67a0`), **`C1 05 95 tipo casilla`** (`0x5e68ed..0x5e6bc9`) y **`C1 12 9D
+  a:4 0 b:4 0 c:4 0`** (`0x5e6db9..0x5e7184`), los tres con el XOR32 y en claro, desde el paso de la ventana de
+  `0x78abb00` al soltar el clic (`0x7d366ec`) sobre su botón (fase 4 del hito 11; *estático*; 06 § La ventana de los
+  chips). El `98` con el tipo 4 (el número del Muto): el GS lo atiende en `CGEventChip98Request` (`0x42a6e0`), que no
+  lee el cuerpo y le pide el número al servidor de los chips. El `95` con 1, 2 u otro que no sea 3: el tipo es
+  `0x78abb00` − 1 en un byte y la casilla la de `0x5583a0` para el `0x1c15` de nivel 1 (con 2) o 0, sin sumarle nada;
+  sin el ítem no sale. El GS (`CGEventChipRegRequest`, `0x429fc0`) acepta los tipos 0 y 1 y le suma 12 a la casilla.
+  El `9D` con 3, si `0x558740(−1, −1)` encuentra alguna casilla libre (si no, el aviso 896): los 12 bytes del texto del
+  EDIT de `[0x5763504]` (GetText, la vtable + `0x50`) en tres pedazos de 4, cada uno con un 0; detrás del `'\0'` de un
+  texto más corto el original deja la pila del paso y MuRet ceros (P-C247). El GS 0.97 no atiende el `9D`: el oráculo
+  es el ASM del cliente. MuRet: `Protocol::Events::WriteMutoNumberRequest`, `WriteEventChipRegister` y
+  `WriteSerialNumber`.
+- **`C1 05 90 cuadrado casilla`** (`0x5e5b2f..0x5e5eb4`, el paso de la ventana de Devil Square) y **`C1 05 9A puente
+  casilla`** (`0x5e6156..`, la de Blood Castle), con el XOR32 y en claro (fase 2; *estático*). El cuadrado va de 0 a
+  5 y la casilla de la invitación (`0x1c13`) más `0x18`; el puente de 1 a 7 y la casilla de la capa (`0x1a12`) más
+  `0xc` (06 § Las ventanas de los NPC de evento). El GS reconstruido resta 12 a la casilla del `90` (la del
+  inventario, de 12 + casilla) y acepta los cuadrados 0 a 3; al `9A` le resta 1 al puente y usa la casilla tal cual.
+  MuRet: `Protocol::Events::WriteDevilSquareEntry` y `WriteBloodCastleEntry`.
+- **`C1 06 AF 02 x y`** (`0x4fbee8`, desde `0x4fbe10`), con el XOR32: en Chaos Castle, el héroe 10 s en la misma
+  celda con el bit 8 del atributo. `MOV CL,0x2` en `0x4fbf6a`: no es el `AF 01` que decía 06.
+- **`C1 06 BD 03 alto bajo`** (`0x435d1c..0x4361a2`, el paso `0x435bd0`), con el XOR32 y en claro: el Sí de la
+  ventana del contrato de Crywolf (`0x723a44` en 1), sin la mascota `0x1c14`, `0x1c15` o `0x1c37` en `+0x318` del
+  héroe; los bytes son `SAR 8` y el bajo de `0x723be0`, la clave del altar con signo que dejó `0x435b00` (fase 4 del
+  hito 11; *estático*: GS 0.97 no tiene Crywolf). MuRet: `Protocol::Events::WriteCrywolfContract`.
+- **`C1 05 18 rumbo 82`** (`0x4e11e1..0x4e15bd`), con el XOR32 y en claro: el `BD 03` con el resultado 1, con el rumbo
+  de `+0x24` del héroe por las cuentas de `0x56b0b7` (`0x4e1260..0x4e128a`) y la acción `0x82`; es el mismo `18` del
+  héroe quieto (`0x59b333`, que manda `7A`). MuRet: `Protocol::Movement::WriteAction` y `DirectionFromAngle`.
+
+**MuRet**: `Protocol::Events` lee los 21 con `TooShort` cuando faltan los bytes que el original lee siempre (los que
+dependen de un campo se miran al aplicar) y escribe el `97` y el `AF 02`. `App::ServerSession::RegisterTheEventPackets`
+los registra en un bloque y `Scenes::ApplyEventPacket` (`Scenes/EventPackets.cpp`) los aplica sobre
+`WorldRuntime::events` (`EventGlobals`), el objeto del evento, las celdas de `TerrainWall`, los diálogos y la caja de
+mensajes; `UI::FormatOriginal` hace las dos funciones de formato con los argumentos que pasa el original. Los cortes
+están en 08 (P-C291 y P-C292). Los tests usan textos inventados, salvo los formatos de `Text.bmd` que se citan
+arriba.
+
+### Las skills que llegan: `19`, `1E`, `1B`, `07`, `48`, `69`, `73`, `F3 11` y `F3 20`
+
+(CL9 hito 4, 2026-11-13, *estático*, contra `gs_protocol.h` y `protocol.cpp` del GameServer reconstruido.) Lo que
+hacen con el mundo está en [06](06-render-escenas-y-ui.md#las-skills-que-llegan). Las claves son índices de
+`0x5110d0`, que compara con `MOVSX`: una clave desde `0x8000` nunca está, y sin el personaje es el 400.
+
+| Paquete | Handler | Layout que lee el cliente | GameServer 0.97 |
+| --- | --- | --- | --- |
+| `19` | `0x4cc530` | `C3 08 19 <skill> <fuente H L> <blanco H L>`; el bit 15 del blanco es el éxito (`+0x38d`) y el blanco se busca con los 15 de abajo | `PMSG_MAGICATTACK_RESULT` (`GCMagicAttackNumberSend`, `0x426200`), igual. El FoxAnti lo pasa como `A5` cifrado (`EncryptedRemaps`) |
+| `1E` | `0x4ce000` | `C3 09 1E <skill> <clave H L> <x> <y> <rumbo>` | del mismo largo; el emisor no está nombrado en el reconstruido. `A6` cifrado |
+| `1B` | `0x4cbe90` | `C1 06 1B <skill> <clave H L>` | `PMSG_MAGICCANCEL` (`0x4262f0`), igual |
+| `07` | `0x4cbe00` | `C1 0A 07 <tipo> <máscara: 4, little endian> <clave H L>` | `GCSend_07` (`0x4263a0`) arma 8 bytes y nadie lo llama (P-C260) |
+| `48` | `0x4dbf50` | `C1 06 48 <clave H L> <tipo>` | no lo manda (P-C262) |
+| `69` | `0x4cc290` | `C1 08 69 <skill> <fuente: 2> <blanco: 2>`, los dos WORD en little endian y sin máscara | no lo manda (P-C262) |
+| `73` | `0x4d5b10` | cifrado no lee nada; sin cifrar, avisa | no lo manda (P-C262) |
+| `F3 11` | `0x4c5070` | `C1 .. F3 11 <cantidad> <lista>` y desde `pkt[6]`: con `0xff`, el lugar a vaciar; con `0xfe`, el lugar y la skill; con la lista en 2, el lugar a vaciar; si no, `cantidad` entradas de 3 bytes (lugar, skill y uno que no lee) | `PMSG_MAGICLISTCOUNT` mide 5 bytes y las entradas (`PMSG_MAGICLIST`, con `(nivel << 3) \| (skill & 7)` de tercero) van desde `pkt[5]`: el byte de la lista lo mete el FoxAnti del repack (P-C261) |
+| `F3 20` | `0x4e31e1` | `C1 05 F3 20 <vida>` (la del invocado, `0x5767960`) | — |
+
+Los avisos: el `19` (`0x4cc562..0x4cce21`) y el `1E` (`0x4ce032`) que no llegaron cifrados no se leen y mandan
+`C1 06 F1 03 00 <opcode>` con el XOR32 y para cifrar como C3, como el `F3 03`; el `73` sin cifrar manda el mismo con
+`0xf1` (`0x4d5d8c`, P-C263) y cifrado no hace nada. Los demás no miran el cifrado.
+
+**MuRet**: `Protocol::Skill` lee los nueve (WrongPacket con otro tipo u opcode, TooShort si faltan campos) y escribe
+el aviso (`WriteClearSkillReport`); `App::ServerSession` los registra juntos (`RegisterSkillHandlers`) y los pasa al
+mundo, donde `Scenes::SessionEventApplier::ApplySkillEvent` los manda a `Scenes/SkillReplies`. El `B7` y los C→S de
+las skills (`19`, `1E`, `D3`, `DF` y `26` de las cuatro funciones por clase) son de la fase 2 (08, P-C264; los `19` y
+`1E` de la rama del caballero, abajo). Los tests usan claves inventadas.
+
+### Las skills que se mandan: `19` y `1E`
+
+(CL9 hito 4, fase 2c, 2026-11-13, *estático*, contra `protocol.cpp` del GameServer reconstruido.) Las funciones que
+mandan (`0x55b6f0`, `0x55a368`, `0x561f60`) y las ramas de las clases de `0x57cfc0` los arman en línea, con el XOR32
+desde `pkt[3]`, y los mandan cifrados como C3: el relleno (`0x69fd70`) y el serial (`0x40ae60`, `0x40b0a0`,
+`0x5767913`) sacan dos `rand()` antes de mirar el socket (`+0xc` de `0x6c82a0`). Lo que hacen y cuándo, en
+[06](06-render-escenas-y-ui.md#usar-una-skill) y [Las skills del caballero](06-render-escenas-y-ui.md#las-skills-del-caballero).
+
+| Paquete | Quién | Layout que manda el cliente | GameServer 0.97 |
+| --- | --- | --- | --- |
+| `19` | `0x55b6f0` (`0x55bf36..0x55c622`), `0x55a368` (la opción `0x12`) | `C1 06 19 <skill> <clave H L>`: la clave entera del blanco (`+0x1f4`) | `PMSG_MAGICATTACK` (`CGMagicAttack`, `0x425f60`) lee 7 bytes, con un `Dis` que el cliente no manda; el repack lo espera como `A5`. *Estático* |
+| `19` | las ramas del caballero (`0x584e09..0x5851b0` y las otras tres) | `C1 06 19 <skill> <clave H L>`: las `0x30`, `0x3f`, `0x40` y `0x4b` mandan la clave del jugador (`0x57678bc`) | `CGMagicAttack` (`0x425f60`) lo pide cifrado (`DataEncryptCheck`) y lee la skill y la clave; `PMSG_MAGICATTACK` tiene un `Dis` más que no lee. El repack lo recibe como `A5` |
+| `1E` | `0x561f60` (`0x562b36` y `0x563f5a`) | `C1 0C 1E <skill> <X> <Y> <rumbo> <hacia> <espalda> <clave H L> 00`: la celda lógica de c (la Y se lee antes); la `0x18`, el rumbo · 256/360 y dos ceros; la `0x36`, el rumbo · 255/360, la celda hacia el blanco (`((dx + 8) << 4) \| ((dy − 8) & 0xf)`, cada eje entre −8 y 7) y el rumbo + 180°. La clave es la de `0x558eb0` con `0x7758588`, o `0xffff` | `PMSG_DURATION_MAGIC_RECV` (`CGDurationMagicRecv`, `0x427870`) lee 7: los cinco de después son del cliente (Q-C1211). *Estático* |
+| `1E` | las ramas del caballero (`0x582439..0x5896a3`) | `C1 0C 1E <skill> <x> <y> <rumbo> <hacia> <espalda> <clave H L> <b11>`: la celda lógica del héroe, el rumbo (`· 256/360`; la `0x38`, `· 1/360 · 255`), en el de "hacia" la posición del blanco y en el de "espalda" la celda de `0x4e9920` o el rumbo opuesto, la clave del elegido y en `b11` la clave de la magia (`0x57cf90`, la `0x4c`) | `CGDurationMagicRecv` (`0x427870`) lo pide cifrado y lee los cuatro primeros (`PMSG_DURATION_MAGIC_RECV`); `EnableSkill` (`0x457694`) deja `0x29`, `0x2a` y `0x37`, no `0x38`, `0x3e`, `0x41` ni `0x4c` (Q-C1230). También `A6` |
+
+**MuRet**: `Protocol::Skill::WriteMagicAttack` y `WriteDurationMagic` (`EncryptedC1`; `DurationMagicSend` lleva en
+`magicKey` el byte 11, 0 salvo en la `0x4c` del caballero); los dos `rand()` del C3 los saca quien los manda
+(`Scenes::SendTheSkillPacket`, `Scenes::UseTheKnightSkill`). Los tests usan claves inventadas.
+
+### Lo que manda la rama del Wizard: `19`, `1E`, `1C` y `B0`
+
+(CL9 hito 4, fase 2c, 2026-11-13, *estático*, contra `protocol.cpp` del GameServer 0.97 reconstruido.) La rama del
+Wizard de `0x57cfc0` y `0x55cbc0` ([06](06-render-escenas-y-ui.md#la-rama-del-wizard)) los arman en línea como los de
+arriba: el XOR32 desde `pkt[3]` y cifrados como C3, con el `rand()` del relleno (`0x69fd70`) y el del serial
+(`0x5767913`) antes de `send()`, aunque el socket esté cerrado. Sin "webzen" en el nombre del héroe publicado; el `19`,
+además, con el freno de 300 ms (`0x576791c`, que la `0x28` no mira).
+
+| Paquete | Quién lo manda | Layout | GameServer 0.97 |
+| --- | --- | --- | --- |
+| `19` | `0x58a1e5`, `0x58a954` y `0x58ba70` (Wizard) y `0x55cbc0` | `C1 06 19 <skill> <clave H L>`: la `0x3a`, la Soul Barrier sin elegido y la `0x28` sin la clave de `0x558eb0` mandan la del jugador (`0x57678bc`) | `CGMagicAttack` (`0x425f60`), como el de arriba |
+| `1E` | `0x58c1b6`, `0x58cf37`, `0x58dcc4`, `0x58ef1e`, `0x58fced`, `0x590b18`, `0x591859` (Wizard) y `0x55e67e` | `C1 0C 1E <skill> <x> <y> <rumbo> 00 <espalda> <clave H L> <clave de la magia>`: `<espalda>` en 0 salvo en la `0x4c` (la celda de `0x4e9920`); la clave de la magia (`0x57cf90` en línea) en la 8, la 9 y la `0x4c`, 0 en las demás; sin blanco, la clave `0xffff`. El rumbo es `ftol(ángulo · 256/360)` (`0x6ba440`) | `CGDurationMagicRecv` (`0x427870`) lee la skill, X, Y y el rumbo: lo demás no lo usa (08, P-C221; Q-C1211) |
+| `1C` | el Teleport (`0x593151..0x59350e`) | `C1 06 1C 00 <x> <y>` | `CGTeleportMagicRecv` (`0x426450`): el 0 es la skill 6 |
+| `B0` | el Teleport Ally (`0x59293b..0x592d1b`) | `C1 07 B0 <clave L H> <x> <y>`: el WORD `+0x1f4` del elegido tal cual, en little endian | `CGTargetTeleportRecv` (`0x426870`) la arma con `NumberH \| NumberL << 8`, igual |
+
+**MuRet**: `Protocol::Skill::WriteMagicAttack`, `WriteDurationMagic` (con la clave de la magia en
+`DurationMagicSend::magicKey`), `WriteTeleportMagic` y `WriteTargetTeleport`; los `rand()` los saca
+`Scenes::SendTheSkillPacket`. El `D3` de girar de `0x55cbc0` es el `WriteWalk` de un paso, sin C3 ni `rand()`.
+
+### Lo que manda la rama del elfo: `19`, `1E` y `D3`
+
+(CL9 hito 4, fase 2c, 2026-11-13, *estático*.) La rama del elfo de `0x57cfc0` y `0x55faa0`
+([06](06-render-escenas-y-ui.md#la-rama-del-elfo)) los arman en línea como la del Wizard: C3 con sus dos `rand()`
+antes de `send()`, sin "webzen" en el nombre del héroe publicado, y el `19` con el freno de 300 ms.
+
+| Paquete | Quién lo manda | Layout | GameServer 0.97 |
+| --- | --- | --- | --- |
+| `19` | las invocaciones (`0x57f2fe`), las `0x1a` a `0x1c` (`0x57fadb`) y la `0x35` (`0x58021d`); `0x55faa0` (`0x56018f`, `0x5608fd`, `0x56109a`) | `C1 06 19 <skill> <clave H L>`: la rama manda la clave del jugador (`0x57678bc`); `0x55faa0`, la del blanco (`+0x1f4` de `0x7758588`) | `CGMagicAttack` (`0x425f60`) |
+| `1E` | la `0x34` (`0x57e2c8..0x57ef4e`) y la `0x4c` (`0x580af3..0x5817a5`) | `C1 0C 1E <skill> <x> <y> <rumbo> 00 <espalda> <clave H L> <clave de la magia>`, como el de la rama del Wizard: la `0x34` deja la espalda y la clave de la magia en 0 y manda la clave de `0x558eb0` con `0x7758588` (o `0xffff`); la `0x4c`, la celda de `0x4e9920` y la clave de `0x57cf90` | `CGDurationMagicRecv` (`0x427870`) lee la skill, X, Y y el rumbo (Q-C1211) |
+| `D3` | `0x55faa0` (`0x55fac2..0x55ffcf`) | el giro de un paso de `0x55cbc0`, con la celda lógica del héroe publicado (la X antes que la Y) y su ángulo de antes de girar (Q-C1214) | como el de `0x55cbc0` |
+
+| `10` (FoxAnti: `1D`) | `0x517a20` (`0x517c74..0x5184c7`), desde el choque de las flechas de skill (`0x520497`) | `C1 [8 + 3n] 10 <skill> <x> <y> <tanda> <n>` y, por blanco, `<clave H> <clave L> <extra>`: la skill del lugar, la celda del punto (`ftol(· 0,01f)`, el byte bajo), `+0x8c` de la flecha, hasta cinco claves (`+0x1f4`) y el sexto argumento (0 desde la flecha). CL9 hito 4 | `CGBeattackRecv` (`0x426db0`) pide el `1D` (`PMSG_BEATTACK_COUNT`: la skill, x, y, el serial y la cuenta, con la cuenta en 5 como mucho) pero lee entradas de dos bytes (`PMSG_BEATTACK`): desde el segundo blanco toma otra clave (07, Q-C1219). *Estático* |
+
+**MuRet**: `Protocol::Skill::WriteMagicAttack` y `WriteDurationMagic` con `Scenes::SendTheSkillPacket`, el `D3` con
+`SendTheTurn`, el de la rama del Wizard, y el `10` con `WriteSkillHits` desde `Scenes::HitTheTargetsAround`.
+
+### Lo que manda la cola de las 0x43 a 0x48: `19` y `1E`
+
+(CL9 hito 4, fase 2c, 2026-11-13, *estático*, contra `protocol.cpp` y `ObjUseSkill.cpp` del GameServer 0.97
+reconstruido.) La cola de `0x57cfc0` (`0x5808da..0x599d5d`, [06](06-render-escenas-y-ui.md#la-cola-de-las-0x43-a-0x48),
+de todas las clases) los arma en línea como las ramas: C3 con sus dos `rand()` antes de `send()` y sin "webzen" en el
+nombre del héroe publicado; el `19`, además, con el freno de 300 ms, y el `1E` sin él.
+
+| Paquete | Quién lo manda | Layout | GameServer 0.97 |
+| --- | --- | --- | --- |
+| `1E` | la `0x43` (`0x594137..0x594de1`) | `C1 0C 1E 43 <x> <y> <rumbo> <hacia> <espalda> <clave H L> 00`: la celda lógica del héroe (la X se lee antes), `ftol(+0x24 · 256/360)`, la celda hacia el blanco de `0x5ae300` (desde la celda lógica, cada eje entre −8 y 7), la de `0x4e9920` (desde la posición), la clave de `0x558eb0` con `0x7758588` (o `0xffff`) y la clave de la magia de `0x57cf90(0)`, siempre 0 (Q-C1228) | `CGDurationMagicRecv` (`0x427870`) lee los cuatro primeros, pero `EnableSkill` (`0x457680`) no tiene la 67 en su lista: la descarta. No la usa nadie: el ASM del cliente es el oráculo |
+| `19` | las `0x44` a `0x48` (`0x594e42..0x599d1c`, dos copias cada una) | `C1 06 19 <skill> <clave H L>`: con `0x6c8e30` en −1, la del jugador (`0x57678bc`); si no, el WORD `+0x1f4` del elegido, sin mirar si se lo puede atacar (Q-C1229) | `CGMagicAttack` (`0x425f60`): la skill tiene que estar entre las del personaje (`gObjGetMagicSearch`) y en su clase (`SkillGetRequireClass`); `UseSkill2` (`0x457b30`) cobra el maná y la stamina si `RunningSkill` (`0x457c70`) da 1, y como no tiene un caso para 68 a 72 va al `default` (`0x457f7a`): `gObjAttack` sobre la clave que llega (sin elegido, la del propio jugador). Sin lo que hacen en 1.02 (Stern, Swell Mana, Invisibility...): el ASM del cliente es el oráculo |
+
+**MuRet**: `Protocol::Skill::WriteMagicAttack` y `WriteDurationMagic` (`magicKey` en 0) con
+`Scenes::SendTheSkillPacket`, desde `Scenes::UseTheSharedTail`. Los tests usan claves inventadas.
+
+### Las órdenes del cuervo: `A7` y `A8`
+
+(CL9 hito 4, 2026-11-13, *estático*.) El GameServer 0.97 no tiene el Dark Lord y no los manda (P-C262): el oráculo es
+el cliente. Lo que hacen está en [06](06-render-escenas-y-ui.md#las-órdenes-del-cuervo).
+
+- **`A7`** (`0x4e4c0a` → `0x421b50`): `C1 07 A7 <?> <orden> <clave H L>`. `pkt[3]` no lo lee nadie.
+- **`A8`** (`0x4e4c42` → `0x421b70`): `C1 09 A8 <?> <tipo> <dueño H L> <blanco H L>`. `pkt[3]`, igual.
+- **`A7` que sale**: `C1 07 A7 <mascota> <orden> <clave H L>`, con el XOR32 desde `pkt[3]` y por `send()` directo
+  (sin cifrar como C3). El paso del cuervo (`0x416a20`, en `0x416b05..0x417095` y una copia en `0x417113..0x4176a9`)
+  lo arma cuando el blanco de `+0x3b0` o el dueño se esconden en un ataque: `C1 07 A7 00 78 FF FF` (la mascota es el
+  `+0x444` del cuervo, que `0x4167b0` pone en 0; la orden `0x78`, la primera skill del cuervo; sin blanco). El
+  GameServer 0.97 no lo lee. **MuRet**: `Protocol::Pet::WritePetCommand`.
+- **`A7` de las órdenes** (`0x420f70`, desde `0x57cfc0` con el derecho y el lugar de `0x78` a `0x7b`, fase 2b): con
+  `0x78` a `0x7a`, `C1 07 A7 00 <lugar − 0x78> FF FF`; con `0x7b`, si `0x558bb0` deja atacar al elegido y es un jugador
+  o un monstruo, `C1 07 A7 00 03 <clave H L>` con la clave del elegido (`+0x1f4`). Las órdenes van de 0 a 3, como las
+  que el `A7` que llega le pasa a `0x416510`; la del paso (`0x78`) no es una de ellas (Q-C1209). **MuRet**:
+  `Scenes::UseTheHeroSkill` ([06](06-render-escenas-y-ui.md#usar-una-skill)).
+
+Ninguno mira el largo. **MuRet**: `Protocol::Pet::ReadPetOrder` y `ReadPetAttack` (TooShort si faltan campos),
+registrados con las skills; `Scenes/PetOrders` los aplica. El `A9` de respuesta (`0x4e4ca1` → `0x421db0`): `C1 0C A9
+<tipo> <clase> <casilla> <nivel> <?> <experiencia: 4, little endian>`, sin mirar el cifrado ni el largo; `pkt[7]` no lo
+lee nadie. **MuRet**: `Protocol::Pet::ReadPetInfoReply` (TooShort sin los 12 bytes) y `Scenes::ApplyPetInfo`
+([06](06-render-escenas-y-ui.md#el-a9-de-las-mascotas)). Abrir el panel de la mascota manda `A9 00 00 01` y `A9 01 00
+08` (`0x659ff6..0x65a8a3`).
+
+### Las misiones y los NPC: `9F`, `A0`..`A3` y `30`
+
+(CL9 hito 2, 2026-11-13, *estático*, contra `protocol.cpp` del GameServer reconstruido: `GCQuestInfoSend`
+`0x42a7c0`, `GCQuestStateSend` `0x42a920`, `CGSetQuestState` `0x42a9c0`, `GCQuestResultSend` `0x42aa70` y
+`CGTalkRequestRecv`.) Los handlers están en línea en el dispatcher (`0x4e4b3a`, `0x4e4b6d`, `0x4e4b9f`, `0x4e4ba9`
+y `0x4e4bf2`, copias de `0x4ddaa0`, `0x4ddad0`, `0x4ddb00`, `0x4ddb40` y `0x4ddb80`), sin guarda de escena ni del
+cifrado, y no miran el largo.
+
+- **`9F`** (`0x4e4b3a`): `C1 05 9F <i> <v>`; con `i` de 0 a 3, `[0x710148] + 6 + i = v`. Nadie más lee esos
+  bytes en lo portado. El GS 0.97 no lo manda; el `C1 9F` que arma `0x41b170` (la pestaña de la ventana) es código
+  muerto (Q-C845).
+- **`A0`** (`0x4e4b6d` → `0x418e20`): `C1 xx A0 <cuenta> <estados...>`. Copia `cuenta` bytes desde `pkt[4]` sobre
+  los 50 de `+0x2134c` (después de ponerlos en 0) y busca entre las `cuenta` primeras misiones la primera no
+  terminada. El GS manda `Count = i`, el índice de la última misión cargada (3 con las cuatro del `quest.bmd`), y
+  un largo de `i / 4 + 4`: con las cuatro, ningún byte de estado (Q-C840). El cliente copia igual los 3 bytes que
+  siguen en el buffer; MuRet los pone en 0 (08, P-C171). El A0 se pide con `C1 03 A0` (C3) en el primer paso del
+  juego con `+4` en `0xff` (`0x63693a`) y al llegar a un NPC (`0x5676a6`).
+- **`A1`** (`0x4e4b9f`): `C1 05 A1 <misión> <estado>`. `0x418ee0` escribe el byte entero `misión >> 2` con
+  `estado`: el GS manda `GetQuestStateBYTE`, el byte con las cuatro misiones (Q-C843). Después `0x657a90` (cierra
+  todos los paneles) y `0x4198b0(−1)`.
+- **`A2`** (`0x4e4ba9`): `C1 06 A2 <misión> <resultado> <estado>`; con resultado 0, lo mismo que el `A1` con
+  `pkt[5]`. El cliente lo manda (`C1 05 A2 <misión> 1`, C3) desde el paso de la ventana: las respuestas (`0x419bd0`,
+  la acción 1 cuando las condiciones de `0x418fb0` se cumplen y la 3 sin mirarlas) y el botón de terminar
+  (`0x41a9e0`, con los ítems de `0x419b10`). MuRet: `Scenes::StepTheQuestWindow` (CL9 hito 2, fase 5b;
+  [06](06-render-escenas-y-ui.md#las-misiones)).
+- **`A3`** (`0x4e4bf2` → `0x4ddb80`): `C1 07 A3 <claveH> <claveL> <tipo> <valor>`, también al viewport
+  (`MsgSendV2`). La clave va `& 0x7fff` a `0x5110d0` (el 400 sin nadie). El sonido `0x66` y, por tipo: `0xc8` y
+  `0xca` suman `valor` a `+0x68` del registro propio si es el héroe; `0xc9` pone la clase `((v & 0x10) | (v >> 4))
+  >> 1` en `+0x1d4` del personaje y, si es el héroe, en `+0xb` del registro; `0xcb` solo el efecto. Los cuatro
+  siguen con quince joints `0x60f` (`0x530860`), el `0x61e` de `0x518cf0` y, salvo `0xc8`, `0x513100` y la acción
+  `0xb8`. Otro tipo: solo el sonido.
+- **`30`** (C→S, `0x567c2d..0x567db5`, y las copias de `0x568288`, `0x568908` y `0x568f54`): `C1 05 30 <claveH>
+  <claveL>` con la clave `+0x1f4` del NPC (MOVSX, el alto con SAR), C3. Lo manda la llegada al NPC elegido
+  (`0x5650c0` con `+0x379` en 2; 06, "Hablar con un NPC"): cada uno saca el `rand()` del relleno y el del serial.
+  El GS contesta con el `C3 30` (`PMSG_TALKRESULT`) que abre la ventana del NPC (hito 6).
+- **`31`** (C→S, `0x419900`): `C1 03 31` en claro, al cerrar la ventana de las misiones (`CGCloseWindow`).
+
+**MuRet**: `Protocol::Quest` (lectores y escritores), `App::ServerSession` los registra juntos y el sink los aplica
+con `Scenes::ApplyQuest*` (06, "Las misiones"); el `A0` y el `30` de la llegada, `Scenes::TalkToTheNpc`. Un paquete corto se ignora con un aviso. Los joints del `A3` cortan
+(CL11).
+
+### Los monstruos y los NPC que entran: `13`, `1F`, `68` y `1A`
+
+(CL9.R del hito 2, 2026-11-13, *estático*; los handlers se registran en la fase 2.) Contra
+`PMSG_MONSTER_VIEWPORTCREATE` y `PMSG_CALLMONSTER_VIEWPORTCREATE` del GS reconstruido (`user.cpp`, `gObjViewportProc`).
+
+- **`13`** (`0x4c9c60`): `C2 xx xx 13 <n>` y `n` elementos de `0x10` desde `pkt[5]`: `+0` y `+1` la clave (el bit 7
+  de `+0`, el `m_State` 1 del GS, decide entre la creación nueva y la que ya existía, `0x4c9f4c`), `+2` el tipo alto
+  (`& 3`) con `& 0x80` en `+0x42d` y `(>> 4) & 7` en `+0x93`, `+3` el tipo bajo, `+4..+7` los estados (`0x4e6380`),
+  `+8` y `+9` la celda, `+0xa` y `+0xb` el blanco, `+0xc` la dirección `<< 4`. Por elemento: `0x5141e0(tipo, x, y,
+  clave & 0x7fff)` (un 0 corta el lazo entero), `0x4e6380`, el ángulo `+0x24` (`(dir − 1) · 45` con los casos del
+  `0x1b5`), las celdas protegidas `+0x41c`/`+0x420` y `+0x39a`/`+0x39b`, en Castle Siege el `0x115` con
+  `0x4ea030` y `0x42a110`, y sin el bit 7 el camino de `0x4eac00` (`+0x378`) o, con él, `0x4c9790`. El GS 0.97 arma
+  elementos de `0xc` (`Type` de un byte en `+2`, `ViewSkillState` de dos en `+4`): no es el cliente 1.02 (08, P-C172).
+- **`1F`** (`0x4ca0b0`): `C2 xx xx 1F <n>` y `n` elementos de `0x18`: la clave como el `13`, el tipo entero en `+2` y
+  `+3` (el alto primero), los estados en `+4..+7`, la celda en `+8`/`+9`, el blanco en `+0xa`/`+0xb`, la dirección
+  (arriba) y el PK (abajo) en `+0xc` y el nombre del dueño en `+0xd..+0x16` (`0x4ca132` y `0x4ca547`). Los tipos
+  `0x98..0x9e` van por `0x517400` (el nivel, `tipo − 0x97`, y `wsprintfA` con el nombre del caso como formato y el
+  dueño), los demás por `0x5141e0` con el nombre del dueño, el Text 485 y el del monstruo; el recién llegado, con el
+  efecto `0xec` (`0x518cf0`) y el joint `0x5d5` (`0x53fe70`), CL11.
+- **`68`** (`0x4e0980`): `C2 xx xx 68 <n>` y `n` elementos de `0x1c`: `+0` el tipo de registro, `+1` la clase o el
+  tipo alto, `+2` el tipo bajo, `+3`/`+4` la clave (el alto primero, sin el bit 15), `+5`/`+6` la celda, `+7..+0x17`
+  el equipo (los 17 bytes de la lista) y `+0x18..+0x1b` los estados. Con 1 (`0x4e0c1d`), un jugador: `0x512870(clave,
+  0x20a, x, y, 0)` con la clase de `+1` y el equipo (`0x5139f0`); con 2 o 3 (`0x4e09ca`), el monstruo del tipo
+  `+1 << 8 | +2` por `0x5141e0`; con otro, nada. No tiene recién llegado ni camino: el ángulo es `rand() % 360`.
+- **`1A`** (`0x4cedd0`): no crea nada: es la skill que pega a varios (`PMSG_MAGICATTACK_COUNT_SEND`). `C1 xx 1A`, la
+  clave del que pega en `pkt[3..4]` (el alto primero, entera), la skill en `pkt[5]` (va al `+0x38e`), la celda en
+  `pkt[6]` y `pkt[7]` (que nadie lee), la cuenta en `pkt[8]` y las claves de los blancos desde `pkt[9]`, de a dos
+  bytes con el alto primero (`PMSG_MAGICATTACK_COUNT_INFO`). Lo que hace con el mundo, en
+  [06](06-render-escenas-y-ui.md#la-skill-que-pega-a-varios).
+
+El dispatcher llama a los tres sin copiarlos a la cola de `0x77f27b4` ni mirar el flag de cifrado (`0x4e37d1`,
+`0x4e37e9` y `0x4e4643`). Lo que cada handler hace con el mundo, en
+[06](06-render-escenas-y-ui.md#los-monstruos-y-los-npc-en-el-viewport).
+
+**MuRet** (CL9 hito 2, fase 2): `Protocol::Viewport` lee los tres con los offsets del ASM (`ReadMonsters`,
+`ReadSummons` y `ReadObjects`; un registro corto es `TooShort`, hasta el último byte que lee el handler: `+0xc`,
+`+0x16` y `+0x1b`); `App::ServerSession` los registra después del `DF` y los pasa al mundo
+(`Scenes::ApplyViewportMonsters`, `ApplySummons` y `ApplyViewportObjects`). Los tests arman los paquetes con los
+structs del ASM (`support/ViewportPackets.h`). El `1A` lo lee `ReadMagicAttackCount` (`TooShort` sin la cuenta o
+sin el último byte de la última clave), lo registra `App::ServerSession` y lo aplica `Scenes::ApplyMagicAttackCount`
+con la clave del jugador.
 
 ### Los ítems del piso: `20`, `21`, `22`, `23`, `26` y `2C`
 
@@ -1085,12 +1426,69 @@ las banderas de 32 bits en `+0x18`. `PMSG_VIEWPORTCREATE_CHANGE` (el `45`) mide 
 constructor en el GameServer 0.97. MuRet sigue el ASM del cliente; lo que mande un GameServer 1.02 real queda para la
 VM (08, P-C160).
 
+**Captura real del anillo (2026-11-15):**12 con32 bytes y45 con22 por registro en esta sesión.
+En45, el nombre coincide con el offset12 del cliente, aunque falta su sufijo de destino/dirección;
+no se clasifica como el layout0.97 de arriba sólo por compartir tamaño. El campo de flags8..11 ya
+contiene20 y el actor queda inmóvil. [Datos, A/B y límites](14-transformacion-en-vmxp.md).
+
 **MuRet** (CL9 hito 1): `Protocol::Viewport` lee los cinco con los offsets del ASM (`ReadPlayers`, `ReadLeave`,
 `ReadTransformed`, `ReadEquipmentShown` y `ReadPosition`; un registro corto es `TooShort`, hasta el último byte que
 lee el handler); `App::ServerSession` los registra juntos después del `D7` y los pasa al mundo
 (`Scenes::ApplyViewportPlayers`, `ApplyViewportLeave`, `ApplyTransformed`, `ApplyEquipmentShown` y
 `ApplyViewportPosition`). Los tests arman los paquetes con los structs del ASM y nombres inventados
 (`support/ViewportPackets.h`).
+
+### Los amigos: `C0`..`C4`
+
+(CL9 hito 9, 2026-11-13, *estático*.) La reconstrucción del GameServer 0.97 no tiene amigos: el `switch` de
+`protocol.cpp` no tiene `C0`..`C4` (sus casos llegan a `0xB0`, `0xF1`, `0xF3` y `0xFF`) y el EDSProtocol tampoco. El
+oráculo es el ASM del cliente; el cable, de un servidor que los tenga, queda para la VM (08, P-C184). El dispatcher
+(`0x4e5a4e..0x4e5aae`) los pasa sin compuertas, ninguno mira el largo y ninguno saca `rand()`. Los nombres van en 10
+bytes y el cliente los copia con `strncpy` de 10 a un buffer de 11 en cero: uno de 10 no trae `'\0'`. La lista es el
+`std::deque` de `[0x5763518]` (elementos de `0x14` bytes: elegido, el nombre, una marca y el estado).
+
+- **`C0`** (`0x4dc010`): `C2 len C0 <cartas> <tope> <n> n × (<nombre:10> <estado>)`, los tres sin signo. Vacía la
+  lista, suma cada amigo al final (`0x49b220`), ordena por nombre y después por estado (`0x49c260`, Q-C881), copia la
+  lista a la pestaña de amigos si la ventana está (`0x49ddd0`), `0x4918d0(1)` (`+0xe8` del administrador en 1 y el
+  título de la ventana, el 990) y el tope en `0x5767970`. Con cartas, el 1072 con las dos cuentas al chat
+  (`0x555190`, con el nombre vacío de `0x5767a94`). El `C4 02` que arma en `0x4dc0d7..0x4dc37a` no sale (Q-C886).
+- **`C1`** (`0x4dc3d0`, la tabla `0x4dc590`): `C1 0F C1 <resultado> <nombre:10> <estado>`. 0: la caja del 1047 con el
+  nombre; 1: el 1075 al chat, lo suma, ordena con el modo que quedó, la pestaña y `0x4a6840` (la ventana de chat con
+  ese amigo, hito 10); 2: nada; 3: el 1048; 4: el 1049 con el nombre; 5: el 1050; 6: el 1068; más de 6, nada. Las
+  cajas son `0x48ee60(10, −1, −1, texto, 0, 0)`.
+- **`C2`** (`0x4dc5b0`): `C1 0D C2 <nombre:10>`. La pregunta del 1051 con el nombre,
+  `0x48ee60(9, −1, −1, texto, −1, 0)`; si la armó, `0x4a4440` le guarda el nombre (`strncpy` de 10 a `+0x2b8`).
+  Suena `0x2a` igual.
+- **`C3`** (`0x4dc690`): `C1 0E C3 <resultado> <nombre:10>`. 0: la caja del 1052; 1: lo saca (`0x49b690`, el primero
+  con ese nombre) y la pestaña; otro, nada.
+- **`C4`** (`0x4dc720`): `C1 0E C4 <nombre:10> <estado>`. Con `0xfc`, todos en `0xfc` (`0x49c0e0`), ordena, la
+  pestaña, `0x4a75c0` (hito 10) y `0x4918d0(0)` (el título 1066); si no, el estado del primero con ese nombre
+  (`0x49c010`), ordena, la pestaña y el estado en el chat con ese amigo (`0x4a6840`, `0x4a6430` y `0x495630`,
+  hito 10).
+
+Lo que manda la ventana de amigos sale en C1, con el XOR32 desde el byte 3 y en claro por el `send()` del socket,
+sin la cola de los cifrados:
+
+- **`C1 03 C0`**: la fábrica, el caso 3 (`0x48ee60`), al armar la ventana con `+0xe8` del administrador en 0. El
+  primer paso del juego lo pone en 1 (`0x48ea50`), el `C0` también y el `C4` con `0xfc` lo vuelve a 0 (`0x4918d0`):
+  la ventana pide la lista solo después de ese `C4`. No tiene bytes cifrados.
+- **`C1 0D C1 <nombre:10>`**: `0x49d0b0` con el 11 de la caja de agregar (`0x4a37e0`). Copia 10 bytes del texto del
+  mensaje (`0x49d4ca..0x49d4f0`): con un nombre corto, lo que haya detrás del `'\0'` en el buffer de `0x100` de la
+  caja (Q-C882).
+- **`C1 0E C2 <1 | 0> <nombre:10>`**: la respuesta de la caja del `C2` (`0x4a3b80` con dueño −1, `0x4a3bde` el sí
+  y `0x4a3fc8` el no), con el nombre de `+0x2b8`.
+- **`C1 0D C3 <nombre:10>`**: `0x49d0b0` con el 12 y 1, la respuesta de la pregunta de borrar, con el nombre del
+  elegido (`0x49cad0`).
+- **`C1 04 C4 <estado>`**: 0 desde la pregunta de salir de línea (`0x4a2be0`, el 12 con 1) y 1 desde el botón del
+  estado con `+0xe0` en 1 (`0x4a3030`). El `C4 02` de `0x48eb84` (el primer paso del juego) tampoco sale (Q-C886).
+
+**MuRet** (CL9 hito 9): `Protocol::Friends` lee los cinco (`ReadFriendList` en C2, los demás en C1, con `WrongPacket`
+y `TooShort`) y escribe los cinco que manda (`WriteFriendListRequest`, `WriteFriendAdd`, `WriteFriendAnswer`,
+`WriteFriendDelete` y `WriteFriendState`, con `Delivery::Clear`); el nombre va completado con ceros (Q-C882).
+`App::ServerSession` los registra juntos y los pasa al mundo (`Scenes::ApplyFriendList`, `ApplyFriendAddResult`,
+`ApplyFriendRequest`, `ApplyFriendDeleteResult` y `ApplyFriendState`); lo que manda la ventana sale por
+`IGameUiRequests::SendFriendPacket`. Lo del chat con un amigo y las cartas corta con su dirección para el hito 10
+(08, P-C183). Los tests usan nombres inventados.
 
 ## Qué implica para MuRet
 
@@ -1107,6 +1505,7 @@ lee el handler); `App::ServerSession` los registra juntos después del `D7` y lo
 | La respuesta del `F3 03`: un C3 de `0x34` bytes que `0x4c3940` lee hasta el `0x37` (Q-C144), y el `F3 10` con entradas de 8 bytes | un lector de la respuesta con `TooShort`, el estado `0x3d` en la sesión, y un lector del `F3 10` con el lugar y los 7 bytes de cada ítem (propuesta del barrido de Lorencia) | CL7 |
 | Caminar: el `D3` con el tope de 14 y la dirección final por el blanco o por el ángulo; el `D3` y el `D7` del servidor | un escritor del `D3` contra el `SendMove` real emulado y los bytes del cable, y lectores del `D3` y del `D7` (este, al menos, con la sacudida); el `A3` y el `A4` siguen siendo de la capa de FoxAnti (propuesta del barrido) | CL7.4 |
 | Los cambios de mapa: el `1C` en los dos sentidos, el `F3 04`, el `F3 12` y el `BD 00` | lectores del `1C` y del `F3 04`, escritores del `1C` (en C3), del `F3 12` y del `BD 00` (en C1 con el XOR32), y la espera del warp en la sesión (propuesta del barrido) | CL7.5 |
+| Los paquetes de los eventos, sin guarda de escena, con `sprintf` o `wsprintfA` según el handler | `Protocol::Events` (lectores y los escritores del `97` y del `AF 02`) y `Scenes::ApplyEventPacket` sobre `WorldRuntime::events` y el objeto del evento; `UI::FormatOriginal` para los dos formatos ([Los eventos](#los-eventos-0b-46-47-909e-af-bc-bd-y-f3-222340)) | CL9 hito 11 |
 
 Tests que fija:
 

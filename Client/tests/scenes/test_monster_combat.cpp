@@ -6,11 +6,14 @@
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
+#include "Data/Text/TextTable.h"
 #include "Protocol/Combat.h"
 #include "Protocol/Movement.h"
 #include "Protocol/Viewport.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/Skeleton.h"
+#include "Render/Text/FontSet.h"
+#include "Render/Text/IGlyphRasterizer.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActionReply.h"
 #include "Scenes/ActorCombat.h"
@@ -32,15 +35,19 @@
 #include "World/GameCamera.h"
 #include "World/WorldTerrain.h"
 
+#include "support/Bytes.h"
 #include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
 #include "support/ItemSetFiles.h"
+#include "support/Packets.h"
 #include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
+#include "support/SceneDataFiles.h"
 #include "support/ViewportPackets.h"
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -49,6 +56,7 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -64,6 +72,16 @@ using Client::Render::Models::CrtRandom;
 using Client::Scenes::ActorState;
 using Client::Scenes::ModelSounds;
 using Client::Tests::MonsterRecordBytes;
+
+class CombatMessageMeasure final : public Client::Render::Text::ITextMeasure
+{
+public:
+    [[nodiscard]] Client::Render::Text::TextExtent Measure(Client::Render::Text::FontKind /*font*/,
+                                                           std::string_view text) const override
+    {
+        return {static_cast<int>(text.size()) * 6, 13};
+    }
+};
 
 constexpr std::uint32_t Seed = 0x5eed;
 constexpr std::uint16_t HeroKey = 33;
@@ -298,6 +316,81 @@ TEST_F(MonsterCombatTest, AMonsterIsHurtKilledAndDies)
     {
         const auto stepped = Client::Scenes::StepActorDying(
             monster, slot, {.map = 0, .scene = Client::Scenes::SceneId::Game, .random = game->cloth.random});
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        ++steps;
+    }
+    EXPECT_FALSE(monster.alive);
+    EXPECT_GT(steps, 50);
+}
+
+// Tras un golpe normal, la captura entrega primero el 0x17 de cinco bytes y luego el 0x16 sin shock. Los lectores
+// reciben los payloads en claro después del descifrado de red; ambas respuestas se aplican al monstruo dado de alta
+// desde el Data real del fixture.
+TEST_F(MonsterCombatTest, APlainDeathThenKillExperienceReplyFinishesTheMonster)
+{
+    Load(0);
+    const std::size_t slot = Create(LorenciaType);
+    ActorState& monster = game->world.Actors()[slot];
+    monster.position = {1000.0f, 2000.0f, 30.0f};
+    monster.movement = 1;
+
+    const auto hit = Client::Protocol::Movement::ReadDamage(
+        Client::Tests::PacketOf(Client::Tests::Bytes({0xc1, 8, 0xd7, 0x01, 0x23, 0x00, 0x0c, 0x00})));
+    ASSERT_TRUE(hit.HasValue());
+    const auto appliedHit = Client::Scenes::ApplyDamageReply(hit.Value(), HeroKey, game->Resources());
+    ASSERT_TRUE(appliedHit.HasValue()) << appliedHit.Error();
+
+    const auto death =
+        Client::Protocol::Combat::ReadDeath(Client::Tests::PacketOf(Client::Tests::Bytes({0xc1, 5, 0x17, 0x01, 0x23})));
+    ASSERT_TRUE(death.HasValue());
+    EXPECT_EQ(death.Value().key, MonsterKey);
+    EXPECT_EQ(death.Value().skill, 0);
+    EXPECT_EQ(death.Value().killer, 0);
+
+    const auto experience = Client::Protocol::Combat::ReadKillExperience(
+        Client::Tests::PacketOf(Client::Tests::Bytes({0xc1, 9, 0x16, 0x01, 0x23, 0x36, 0x8c, 0x12, 0x16})));
+    ASSERT_TRUE(experience.HasValue());
+    EXPECT_EQ(experience.Value().key, MonsterKey);
+    EXPECT_FALSE(experience.Value().shock);
+    EXPECT_EQ(experience.Value().amount, 13964u);
+    EXPECT_EQ(experience.Value().damage, 4630);
+
+    const auto appliedDeath =
+        Client::Scenes::ApplyDeath(death.Value(), Client::Scenes::CombatContextOf(game->Resources()));
+    ASSERT_TRUE(appliedDeath.HasValue()) << appliedDeath.Error();
+    EXPECT_EQ(monster.dying, 1);
+    EXPECT_EQ(monster.movement, 0);
+    EXPECT_EQ(monster.animation.action, 5);
+
+    Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable({{486, "Experiencia %d"}});
+    CombatMessageMeasure measure;
+    Client::Scenes::ChatReceiveContext chat{
+        .world = game->world, .random = game->cloth.random, .measure = &measure, .texts = &texts};
+    const auto appliedExperience = Client::Scenes::ApplyKillExperience(
+        experience.Value(), Client::Scenes::CombatContextOf(game->Resources()), chat);
+    ASSERT_TRUE(appliedExperience.HasValue()) << appliedExperience.Error();
+
+    EXPECT_EQ(monster.dying, 1);
+    EXPECT_EQ(monster.movement, 0);
+    const ActorState& hero = game->world.Actors()[0];
+    EXPECT_EQ(hero.byte380, 2);
+    EXPECT_EQ(hero.word382, 4630);
+    EXPECT_EQ(hero.attackTarget, slot);
+    const auto& damageNumbers = game->world.DrawTail().damage;
+    const auto damage = std::find_if(damageNumbers.begin(), damageNumbers.end(),
+                                     [](const auto& number) { return number.alive && number.number == 4630; });
+    ASSERT_NE(damage, damageNumbers.end());
+    EXPECT_EQ(damage->position, glm::vec3(1000.0f, 2000.0f, 170.0f));
+    EXPECT_EQ(game->world.OwnCharacter().experience, 13964u);
+    ASSERT_EQ(game->world.Runtime().chat.log.entries.size(), 1u);
+    EXPECT_EQ(game->world.Runtime().chat.log.entries[0].text, "Experiencia 13964");
+
+    int steps = 0;
+    while (monster.alive && steps < 200)
+    {
+        const auto stepped = Client::Scenes::StepActorDying(
+            monster, slot,
+            {.map = 0, .scene = Client::Scenes::SceneId::Game, .random = game->cloth.random, .world = &game->world});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         ++steps;
     }

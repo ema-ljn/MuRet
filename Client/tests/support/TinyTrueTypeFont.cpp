@@ -166,11 +166,21 @@ std::vector<std::uint8_t> Hmtx()
     return hmtx.Take();
 }
 
-// Un cmap de Unicode (plataforma 3, codificación 1) con un subtable de formato 4: el segmento de
-// FlatGlyphLetter, que va al glifo 1, y el 0xffff que pide el formato.
-std::vector<std::uint8_t> Cmap()
+// Un cmap Unicode con segmentos de formato 4 para FlatGlyphLetter, el codepoint extra y 0xffff.
+std::vector<std::uint8_t> Cmap(std::uint16_t extraFlatCodePoint)
 {
-    constexpr auto Letter = static_cast<std::uint16_t>(FlatGlyphLetter);
+    constexpr std::uint16_t Letter = static_cast<std::uint16_t>(FlatGlyphLetter);
+    std::array<std::uint16_t, 2> mapped = {Letter, extraFlatCodePoint};
+    const std::uint16_t mappedCount = extraFlatCodePoint == Letter ? 1 : 2;
+    if (mapped[1] < mapped[0])
+    {
+        std::swap(mapped[0], mapped[1]);
+    }
+    const std::uint16_t segmentCount = static_cast<std::uint16_t>(mappedCount + 1);
+    constexpr std::uint16_t SearchRange = 4;
+    constexpr std::uint16_t EntrySelector = 1;
+    const std::uint16_t rangeShift = static_cast<std::uint16_t>(segmentCount * 2 - SearchRange);
+    const std::uint16_t length = static_cast<std::uint16_t>(16 + 8 * segmentCount);
     BigEndian cmap;
     cmap.U16(0);  // version
     cmap.U16(1);  // numTables
@@ -178,21 +188,32 @@ std::vector<std::uint8_t> Cmap()
     cmap.U16(1);  // encodingID
     cmap.U32(12); // offset: el subtable va después de este encabezado
     cmap.U16(4);  // format
-    cmap.U16(32); // length
-    cmap.U16(0);  // language
-    cmap.U16(4);  // segCountX2: dos segmentos
-    cmap.U16(4);  // searchRange
-    cmap.U16(1);  // entrySelector
-    cmap.U16(0);  // rangeShift
-    cmap.U16(Letter);
+    cmap.U16(length);
+    cmap.U16(0); // language
+    cmap.U16(static_cast<std::uint16_t>(segmentCount * 2));
+    cmap.U16(SearchRange);
+    cmap.U16(EntrySelector);
+    cmap.U16(rangeShift);
+    for (std::uint16_t index = 0; index < mappedCount; ++index)
+    {
+        cmap.U16(mapped[index]);
+    }
     cmap.U16(0xffff); // endCode
     cmap.U16(0);      // reservedPad
-    cmap.U16(Letter);
+    for (std::uint16_t index = 0; index < mappedCount; ++index)
+    {
+        cmap.U16(mapped[index]);
+    }
     cmap.U16(0xffff); // startCode
-    cmap.U16(static_cast<std::uint16_t>(FlatGlyph - Letter));
-    cmap.U16(1); // idDelta: la letra al glifo 1, y 0xffff al 0
-    cmap.U16(0);
-    cmap.U16(0); // idRangeOffset
+    for (std::uint16_t index = 0; index < mappedCount; ++index)
+    {
+        cmap.U16(static_cast<std::uint16_t>(FlatGlyph - mapped[index]));
+    }
+    cmap.U16(1); // idDelta: 0xffff al glifo 0
+    for (std::uint16_t index = 0; index < segmentCount; ++index)
+    {
+        cmap.U16(0); // idRangeOffset
+    }
     return cmap.Take();
 }
 
@@ -288,7 +309,7 @@ std::uint32_t Checksum(const std::vector<std::uint8_t>& table)
 }
 } // namespace
 
-std::vector<std::uint8_t> TinyTrueTypeFont()
+std::vector<std::uint8_t> TinyTrueTypeFont(std::uint16_t extraFlatCodePoint)
 {
     // searchRange es 16 por la potencia de 2 más grande que no pasa de TableCount (4), y
     // entrySelector, su logaritmo.
@@ -298,7 +319,7 @@ std::vector<std::uint8_t> TinyTrueTypeFont()
     GlyphTables glyphs = GlyfAndLoca();
     // En el orden de sus etiquetas, como pide el directorio.
     const std::array<Table, TableCount> tables = {{
-        {"cmap", Cmap()},
+        {"cmap", Cmap(extraFlatCodePoint)},
         {"glyf", std::move(glyphs.glyf)},
         {"head", Head()},
         {"hhea", Hhea()},

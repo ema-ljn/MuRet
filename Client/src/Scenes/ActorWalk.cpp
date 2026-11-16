@@ -10,12 +10,15 @@
 #include "Scenes/PlayerActionSpeeds.h"
 #include "Scenes/WorldRuntime.h"
 
+#include <algorithm>
 #include <array>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <span>
 #include <string>
+#include <tuple>
 
 namespace Client::Scenes
 {
@@ -195,10 +198,6 @@ Core::Expected<std::optional<std::uint8_t>, std::string> ChooseAction(const Acto
     const auto chosen = [](std::uint8_t action) { return std::optional{action}; };
     if (actor.type != Data::Models::PlayerSkeletonModel)
     {
-        if (context.actorSkeleton == nullptr)
-        {
-            return Core::Unexpected(std::string("0x4f3d83: falta el esqueleto propio del personaje no jugador"));
-        }
         return chosen(2);
     }
     if (actor.pet.model == Fenrir && !safe)
@@ -289,14 +288,22 @@ Core::Expected<ActorWalkResult, std::string> StepSound(const ActorState& actor, 
     {
         return ActorWalkResult{};
     }
-    // 0x4f3edc..0x4f3f6c: los subtipos 209 a 211 piden el 0x7b, y después todos la WORD 0 o la 1 de la tabla del modelo
-    // (DrawModelSound, la que escribió el alta: un 0x20a no la tiene). El último sonido es el que queda.
+    // 0x4f3edc..0x4f3f6c: los subtipos 209 a 211 piden antes el 0x7b (0x41ed10(0x7b, personaje, 0), CL10), y después
+    // todos la WORD 0 o la 1 de la tabla del modelo (DrawModelSound): la del modelo cargado (ActorWalkContext::
+    // modelSounds, CL9 hito 2) o, sin ella, la que escribió el alta (WorldRuntime::modelSounds, CL9 hito 3); un 0x20a
+    // no la tiene y lee las WORD en 0 de 0x60dc80, el 0xd2. Si la tabla suena, su pedido pisa al 0x7b en lastSoundId
+    // (08 P-C241 e).
     ActorWalkResult result;
     if (modelSound)
         result.sound = 0x7b;
+    std::optional<ModelSounds> sounds = WrittenSounds(context.stop.runtime.modelSounds, actor.type);
+    if (context.modelSounds.size() == std::tuple_size_v<ModelSounds>)
+    {
+        sounds.emplace();
+        std::ranges::copy(context.modelSounds, sounds->begin());
+    }
     constexpr std::size_t FirstWalkSound = 0;
-    if (const auto drawn = DrawModelSound(WrittenSounds(context.stop.runtime.modelSounds, actor.type), FirstWalkSound,
-                                          actor.subtype, random))
+    if (const auto drawn = DrawModelSound(sounds, FirstWalkSound, actor.subtype, random))
         result.sound = drawn;
     return result;
 }
@@ -316,9 +323,14 @@ Core::Expected<ActorWalkResult, std::string> SetActorWalk(ActorState& actor, con
     }
     if (action.Value())
     {
-        const auto& skeleton =
-            actor.type == Data::Models::PlayerSkeletonModel ? context.stop.playerSkeleton : *context.actorSkeleton;
-        Render::Models::SetAction(actor.animation, skeleton, *action.Value());
+        if (actor.type == Data::Models::PlayerSkeletonModel)
+        {
+            Render::Models::SetAction(actor.animation, context.stop.playerSkeleton, *action.Value());
+        }
+        else if (context.actorSkeleton != nullptr)
+        {
+            Render::Models::SetAction(actor.animation, *context.actorSkeleton, *action.Value());
+        }
     }
     return StepSound(actor, context);
 }

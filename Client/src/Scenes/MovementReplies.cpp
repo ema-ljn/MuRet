@@ -7,6 +7,7 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalAngles.h"
+#include "Render/Models/Skeleton.h"
 #include "Scenes/ActorActions.h"
 #include "Scenes/ActorShock.h"
 #include "Scenes/ActorState.h"
@@ -14,6 +15,7 @@
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/DamageNumbers.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/MonsterCreation.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldState.h"
@@ -53,18 +55,25 @@ void WriteCell(std::uint8_t value, std::uint8_t& cell, std::uint8_t& depth, Rend
     const Render::Models::LogicalAccess access(depth, random, Render::Models::SmallLogicalCloseRandoms);
     cell = value;
 }
-Core::Expected<ActorStopContext, std::string> StopContext(const WorldEntryResources& resources)
+Core::Expected<ActorStopContext, std::string> StopContext(const ActorState& actor, const WorldEntryResources& resources)
 {
     const auto* skeleton = resources.models.SkeletonOf(Data::Models::PlayerSkeletonModel);
-    if (skeleton == nullptr)
+    if (skeleton == nullptr && actor.type == Data::Models::PlayerSkeletonModel)
         return Core::Unexpected(std::string("0x4c6790: falta Player.bmd para la acción del personaje"));
-    return ActorStopContext{resources.world.Runtime(),
-                            SceneId::Game,
-                            *skeleton,
-                            resources.items,
-                            resources.cloth.random,
-                            resources.world.Map().terrain.attributes ? &resources.world.Map().terrain.attributes->cells
-                                                                     : nullptr};
+    static const Render::Models::Skeleton EmptySkeleton;
+    const Render::Models::Skeleton* playerSkeleton = skeleton != nullptr ? skeleton : &EmptySkeleton;
+    const Render::Models::Skeleton* actorSkeleton =
+        actor.type == Data::Models::PlayerSkeletonModel ? nullptr : MonsterSkeletonOf(resources, actor.type);
+    return ActorStopContext{.runtime = resources.world.Runtime(),
+                            .scene = SceneId::Game,
+                            .playerSkeleton = *playerSkeleton,
+                            .items = resources.items,
+                            .random = resources.cloth.random,
+                            .terrainWalls = resources.world.Map().terrain.attributes
+                                                ? &resources.world.Map().terrain.attributes->cells
+                                                : nullptr,
+                            .actorSkeleton = actorSkeleton,
+                            .modelSounds = resources.world.FaunaResources().SoundActions(actor.type)};
 }
 Core::Expected<void, std::string> ApplyOtherWalk(ActorState& actor, const WorldEntryResources& resources)
 {
@@ -88,7 +97,7 @@ Core::Expected<void, std::string> ApplyOtherWalk(ActorState& actor, const WorldE
         actor.path = *path;
         return {};
     }
-    const auto context = StopContext(resources);
+    const auto context = StopContext(actor, resources);
     if (!context.HasValue())
         return Core::Unexpected(context.Error());
     const auto stopped = SetActorStop(actor, context.Value());
@@ -110,11 +119,13 @@ Core::Expected<void, std::string> ApplyJumpingWalk(ActorState& actor, const Worl
                                                                         static_cast<float>(actor.cellX) * CellSize,
                                                                         static_cast<float>(actor.cellY) * CellSize));
     }
-    const auto context = StopContext(resources);
+    const auto context = StopContext(actor, resources);
     if (!context.HasValue())
         return Core::Unexpected(context.Error());
-    const auto walked = SetActorWalk(
-        actor, {context.Value(), resources.world.ActionSpeeds(), false, resources.models.SkeletonOf(actor.type)});
+    // 0x4f37c0 → 0x4ea030 con el modelo del personaje: el 0x186 es un monstruo (el GS 0.97 manda su D3 desde
+    // gObjMonster, que llama a CGMoveRecv), con su modelo en WorldState::FaunaResources (MonsterSkeletonOf).
+    const auto walked = SetActorWalk(actor, {context.Value(), resources.world.ActionSpeeds(), false,
+                                             context.Value().actorSkeleton, context.Value().modelSounds});
     if (!walked.HasValue())
         return Core::Unexpected(walked.Error());
     if (walked.Value().sound)

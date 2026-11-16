@@ -50,6 +50,11 @@ void DrawClipped(GameHudContext& context, std::int32_t x, std::int32_t y, std::s
 // 0x554180(x, y, texto, 120 · W / 640, 1, 3), el título de una ventana: DrawInBox con la caja de 120.
 void DrawTitle(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text);
 
+// 0x554180(x, y, texto, ancho · W / 640, 1, p6), lo mismo que DrawTitle con otra caja (CL9 hito 2): el nombre de la
+// misión va en una de 150 (0x41bedc y 0x41c322). El sexto argumento le llega a 0x467060, que no lo lee.
+void DrawInBox(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text,
+               std::uint32_t designWidth);
+
 // 0x623690(x, y, texto): x − (cx · 640 / W) / 2 y 0x554180(…, 0, 0, 0).
 void DrawCenteredText(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text);
 

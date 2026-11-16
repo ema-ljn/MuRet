@@ -116,6 +116,11 @@ std::optional<ModelSounds> WrittenSounds(const ModelSoundTable& table, std::uint
     return std::nullopt;
 }
 
+ModelSounds SoundsOrZeros(const std::optional<ModelSounds>& sounds)
+{
+    return sounds.value_or(ModelSounds{});
+}
+
 std::optional<std::int32_t> DrawModelSound(const std::optional<ModelSounds>& sounds, std::size_t word,
                                            std::int32_t subtype, Render::Models::CrtRandom& random)
 {
@@ -123,11 +128,10 @@ std::optional<std::int32_t> DrawModelSound(const std::optional<ModelSounds>& sou
     constexpr std::int32_t NinthSubtype = 9;
     constexpr std::int32_t NinthSubtypeOffset = 5;
     constexpr std::int32_t MonsterSoundBase = 0xd2;
-    if (sounds && (*sounds)[word] == NoSound)
+    const ModelSounds table = SoundsOrZeros(sounds);
+    if (table[word] == NoSound)
         return std::nullopt;
     const auto drawn = static_cast<std::size_t>(random.Next() % 2);
-    if (!sounds)
-        return std::nullopt;
-    return (*sounds)[word + drawn] + (subtype == NinthSubtype ? NinthSubtypeOffset : 0) + MonsterSoundBase;
+    return table[word + drawn] + (subtype == NinthSubtype ? NinthSubtypeOffset : 0) + MonsterSoundBase;
 }
 } // namespace Client::Scenes

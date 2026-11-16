@@ -270,7 +270,7 @@ TEST(HeroSkillsKnightTest, Skill29SendsThe1E)
         ASSERT_EQ(tested->sent.size(), 1u);
         EXPECT_EQ(tested->sent[0].delivery, Client::Network::Delivery::Encrypted);
         EXPECT_EQ(tested->Sent(0), DurationMagic(0x29, ExpectedDirection(TurnsOf256), 0, 0, ChosenKey));
-        EXPECT_EQ(tested->Movement().lastShotSkill, 0x29u);
+        EXPECT_EQ(tested->world.Runtime().lastShotSkill, 0x29u);
         EXPECT_EQ(tested->Hero().animation.action, 0x3d);
         EXPECT_EQ(tested->Hero().movement, 0);
         EXPECT_EQ(tested->world.Runtime().ownRecordDepth, 0);
@@ -308,7 +308,7 @@ TEST(HeroSkillsKnightTest, TheGameMasterAndTheClosedSocketSendNothing)
         ASSERT_TRUE(tested->Use().HasValue());
         EXPECT_EQ(tested->random.State(), expected.State());
         EXPECT_TRUE(tested->sent.empty());
-        EXPECT_EQ(tested->Movement().lastShotSkill, 0u);
+        EXPECT_EQ(tested->world.Runtime().lastShotSkill, 0u);
         EXPECT_EQ(tested->Hero().animation.action, 0x3d);
     }
     {
@@ -318,7 +318,7 @@ TEST(HeroSkillsKnightTest, TheGameMasterAndTheClosedSocketSendNothing)
         const CrtRandom expected = Advanced(tested->random, PaidDraws + CellsDraws + C3Draws);
         ASSERT_TRUE(UseTheKnightSkill(tested->Hero(), Knight, 0x29, context).HasValue());
         EXPECT_EQ(tested->random.State(), expected.State());
-        EXPECT_EQ(tested->Movement().lastShotSkill, 0x29u);
+        EXPECT_EQ(tested->world.Runtime().lastShotSkill, 0x29u);
     }
 }
 
@@ -493,7 +493,7 @@ TEST(HeroSkillsKnightTest, Skill30SendsThe19AndActs)
         ASSERT_EQ(tested->sent.size(), 1u);
         EXPECT_EQ(tested->Sent(0), (std::vector<std::uint8_t>{0xc1, 0x06, 0x19, 0x30, 0x12, 0x34}));
         EXPECT_EQ(tested->Movement().lastActionTick, 10'000u);
-        EXPECT_EQ(tested->Movement().lastShotSkill, 0u);
+        EXPECT_EQ(tested->world.Runtime().lastShotSkill, 0u);
         EXPECT_EQ(tested->Hero().animation.action, 0x3f);
         EXPECT_EQ(tested->Hero().movement, 0);
     }

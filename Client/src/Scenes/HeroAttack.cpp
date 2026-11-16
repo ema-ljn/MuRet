@@ -207,8 +207,7 @@ Core::Expected<void, std::string> HitTheTarget(ActorState& hero, std::int32_t ta
     if (context.sendWalk)
     {
         const std::array<Protocol::Movement::Cell, 1> cell{{{x, y}}};
-        if (auto sent = context.sendWalk(cell, cell[0], published.angles.z); !sent.HasValue())
-            return sent;
+        context.sendWalk(cell, cell[0], published.angles.z);
     }
     hero.movement = 0;
     // 0x565954..0x56599f: abre y cierra la X y la Y de la celda.
@@ -223,8 +222,9 @@ Core::Expected<void, std::string> HitTheTarget(ActorState& hero, std::int32_t ta
         return {};
     if (!context.sendAttack)
         return {};
-    return context.sendAttack(world.Actors()[static_cast<std::size_t>(target)].key, Protocol::Combat::AttackAction,
-                              direction.Value());
+    context.sendAttack(world.Actors()[static_cast<std::size_t>(target)].key, Protocol::Combat::AttackAction,
+                       direction.Value());
+    return {};
 }
 
 // 0x56535b..0x566299: la Y (+0x420) y la X (+0x41c), cada una con 0x40b570 y 0x40b800, y PathFinding2(X, Y, blanco,
@@ -237,8 +237,11 @@ Core::Expected<void, std::string> WalkIntoRange(ActorState& hero, std::int32_t t
     auto& random = context.combat.random;
     const std::uint8_t y = ReadTheCell(hero.cellYAccesses, hero.cellY, random);
     const std::uint8_t x = ReadTheCell(hero.cellXAccesses, hero.cellX, random);
+    // 0x566272: PathFinding2 mira primero el altar de Crywolf.
+    if (auto altar = CheckTheCrywolfAltar(context.combat.world, "0x566272"); !altar.HasValue())
+        return altar;
     // La celda del blanco fuera de la grilla, que el A* toma como índice lineal (la fila de al lado, o fuera de los
-    // 65.536 WORD): MuRet descarta el acercamiento, con los dos rand() de las lecturas (08, P-C256).
+    // 65.536 WORD): MuRet descarta el acercamiento, con los dos rand() de las lecturas (07, Q-C1179).
     if (targetX < 0 || targetX > LastCell || targetY < 0 || targetY > LastCell)
         return {};
     World::WorldTerrain& terrain = context.combat.world.Map().terrain;
@@ -456,8 +459,7 @@ Core::Expected<void, std::string> AttackOnArrival(ActorState& hero, const HeroAr
 
 // 0x558bb0 desde el chequeo del cursor con el elegido y 0x5588d0 con su argumento: el mismo código. `guildCompare` es
 // donde cada una compara los nombres de gremio (0x558da4 y 0x558aa9).
-Core::Expected<bool, std::string> AttackableTarget(const WorldState& world, const ActorState& target, bool controlDown,
-                                                   std::uint32_t guildCompare)
+Core::Expected<bool, std::string> AttackableTarget(const WorldState& world, const ActorState& target, bool controlDown)
 {
     const WorldRuntime& runtime = world.Runtime();
     const ActorState& hero = world.Actors()[runtime.hero];
@@ -478,9 +480,7 @@ Core::Expected<bool, std::string> AttackableTarget(const WorldState& world, cons
     if (target.byte370 == 2 || target.byte370 == 8)
         return true;
     if (rules.byte576796c != 0 && target.pk >= MinimumOutlawPk && target.word1f2 != NoGuild)
-        return Core::Unexpected(std::format("{:#x}: comparar los nombres de gremio de 0x787aa55 en la guerra de "
-                                            "gremios es del hito 8",
-                                            guildCompare));
+        return false; // P-C250 f: los nombres y su continuación quedan en H8.
     if (rules.duelActive)
     {
         const bool rival = static_cast<std::int32_t>(static_cast<std::int16_t>(target.key)) == rules.duelKey;
@@ -505,16 +505,14 @@ Core::Expected<bool, std::string> IsAttackable(const WorldState& world, bool con
     const auto actors = world.Actors();
     if (chosen < 0 || static_cast<std::size_t>(chosen) >= actors.size())
         return Core::Unexpected(std::format("0x558bce: el elegido {} está fuera del pool", chosen));
-    constexpr std::uint32_t ChosenGuildCompare = 0x558da4;
-    return AttackableTarget(world, actors[static_cast<std::size_t>(chosen)], controlDown, ChosenGuildCompare);
+    return AttackableTarget(world, actors[static_cast<std::size_t>(chosen)], controlDown);
 }
 
 Core::Expected<bool, std::string> IsAttackableActor(const WorldState& world, const ActorState& target, bool controlDown)
 {
     if (world.Runtime().cursorItemCount > 0)
         return false;
-    constexpr std::uint32_t ActorGuildCompare = 0x558aa9;
-    return AttackableTarget(world, target, controlDown, ActorGuildCompare);
+    return AttackableTarget(world, target, controlDown);
 }
 
 Core::Expected<std::int32_t, std::string> ChosenKeyOf(const WorldState& world, std::size_t attacker, bool controlDown)
@@ -541,9 +539,10 @@ Core::Expected<std::int32_t, std::string> ChosenKeyOf(const WorldState& world, s
         return key;
     const AttackRules& rules = runtime.attackRules;
     // 0x558f09..0x558f7c.
+    // 0x558f29..0x558f7c: los nombres de gremio, como en 0x558da4; iguales, −1. Sin los nombres hasta el hito 8, −1
+    // (08, P-C250 f; Q-C1170).
     if (rules.byte576796c != 0 && target.pk >= MinimumOutlawPk && target.word1f2 != NoGuild)
-        return Core::Unexpected(std::string("0x558f29: comparar los nombres de gremio de 0x787aa55 en la guerra de "
-                                            "gremios es del hito 8"));
+        return NoKey;
     // 0x558f84..0x558fed.
     if (rules.duelActive)
         return key == rules.duelKey ? key : NoKey;
@@ -554,6 +553,32 @@ Core::Expected<std::int32_t, std::string> ChosenKeyOf(const WorldState& world, s
     if (target.pk >= MinimumOutlawPk)
         return key;
     return controlDown && !isHero ? key : NoKey;
+}
+
+Core::Expected<void, std::string> CheckTheCrywolfAltar(const WorldState& world, std::string_view caller)
+{
+    // 0x4eac0a..0x4eac1a: 0x435a00 (la etapa 3 o 4) y 0x4303c0 (el mapa 34).
+    constexpr std::int32_t CrywolfMap = 34;
+    constexpr std::uint8_t ThirdStage = 3;
+    constexpr std::uint8_t FourthStage = 4;
+    const WorldRuntime& runtime = world.Runtime();
+    const bool crywolf =
+        (runtime.crywolf.stage == ThirdStage || runtime.crywolf.stage == FourthStage) && runtime.map == CrywolfMap;
+    if (!crywolf)
+        return {};
+    // 0x4eac1c..0x4eac3f: [0x743a16c] + 0x438 · [0x6c8e54] + 2, comparado en 16 bits con signo.
+    const std::int32_t chosen = runtime.movement.chosenNpc;
+    const auto actors = world.Actors();
+    if (chosen < 0 || static_cast<std::size_t>(chosen) >= actors.size())
+        return {};
+    constexpr std::int16_t FirstAltar = 0x204;
+    constexpr std::int16_t LastAltar = 0x208;
+    const auto model = static_cast<std::int16_t>(actors[static_cast<std::size_t>(chosen)].type);
+    if (model < FirstAltar || model > LastAltar)
+        return {};
+    return Core::Unexpected(std::format("0x4eac41: el camino de {} con un altar de Crywolf elegido (la bandera del A* "
+                                        "de 0x4ead70) es del hito 11",
+                                        caller));
 }
 
 bool PassesTheActionBrake(std::uint32_t& last, std::int32_t skill, const std::function<std::uint32_t()>& tickCount)

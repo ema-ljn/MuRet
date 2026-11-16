@@ -5,11 +5,13 @@
 #include "Protocol/Movement.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/Skeleton.h"
 #include "Scenes/ActionSend.h"
 #include "Scenes/ActorActions.h"
 #include "Scenes/ActorCombat.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatReceive.h"
+#include "Scenes/MonsterCreation.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
@@ -26,8 +28,6 @@ namespace Client::Scenes
 {
 namespace
 {
-// 0x5110d0 sin ninguno: el lugar de después de los 400.
-constexpr std::size_t NoActor = 400;
 // 0x4cb781: el caballo oscuro en +0x318.
 constexpr std::uint16_t DarkHorsePet = 0x1c16;
 // 0x4cb7b9..0x4cb7fa: (pkt[5] − 1.0) · 45.0 (0x6b87d4 y 0x6b8848) y la celda · 100.0 + 50.0 (0x6b86b4 y 0x6b86b0).
@@ -114,18 +114,23 @@ Core::Expected<void, std::string> StopTheActor(ActorState& actor, const WorldEnt
                                                const ActionSender& sendAction)
 {
     const auto* player = resources.models.SkeletonOf(Data::Models::PlayerSkeletonModel);
-    if (player == nullptr)
+    if (player == nullptr && actor.type == Data::Models::PlayerSkeletonModel)
         return Core::Unexpected(std::string("0x4cb813: falta Player.bmd para 0x4f2250"));
-    const ActorStopContext context{
-        .runtime = resources.world.Runtime(),
-        .scene = SceneId::Game,
-        .playerSkeleton = *player,
-        .items = resources.items,
-        .random = resources.cloth.random,
-        .terrainWalls =
-            resources.world.Map().terrain.attributes ? &resources.world.Map().terrain.attributes->cells : nullptr,
-        .sendAction = sendAction,
-    };
+    static const Render::Models::Skeleton EmptySkeleton;
+    const Render::Models::Skeleton* playerSkeleton = player != nullptr ? player : &EmptySkeleton;
+    const Render::Models::Skeleton* actorSkeleton =
+        actor.type == Data::Models::PlayerSkeletonModel ? nullptr : MonsterSkeletonOf(resources, actor.type);
+    const ActorStopContext context{.runtime = resources.world.Runtime(),
+                                   .scene = SceneId::Game,
+                                   .playerSkeleton = *playerSkeleton,
+                                   .items = resources.items,
+                                   .random = resources.cloth.random,
+                                   .terrainWalls = resources.world.Map().terrain.attributes
+                                                       ? &resources.world.Map().terrain.attributes->cells
+                                                       : nullptr,
+                                   .sendAction = sendAction,
+                                   .actorSkeleton = actorSkeleton,
+                                   .modelSounds = resources.world.FaunaResources().SoundActions(actor.type)};
     const auto stopped = SetActorStop(actor, context);
     if (!stopped.HasValue())
         return Core::Unexpected(stopped.Error());
@@ -152,17 +157,15 @@ Core::Expected<void, std::string> Strike(ActorState& actor, std::size_t index, c
 Core::Expected<void, std::string> ApplyActionReply(const Protocol::Movement::Action& reply,
                                                    const WorldEntryResources& resources, const ActionSender& sendAction)
 {
-    // 0x4cb769: sin nadie con la clave, el original escribe en el lugar 400, fantasma (Q-C778); MuRet lo descarta.
+    // 0x4cb769: sin nadie vivo con la clave, el original devuelve el lugar 400 y el 18 también le escribe (Q-C778).
     const std::size_t index = ActorWithKey(resources.world, reply.key);
-    if (index == NoActor)
-        return {};
     ActorState& actor = resources.world.Actors()[index];
     if (actor.pet.model == DarkHorsePet)
         return {};
-    // 0x4cb794..0x4cb7fa: el ángulo, el Movement en 0 y la posición en el centro de la celda blanco (Q-C779). Todo en
+    // 0x4cb7b2..0x4cb7fa: el Movement en 0, el ángulo y la posición en el centro de la celda blanco (Q-C779). Todo en
     // la x87 y guardado en float; con bytes las cuentas son exactas.
-    actor.angles.z = static_cast<float>((static_cast<double>(reply.direction) - DirectionBase) * DegreesPerDirection);
     actor.movement = 0;
+    actor.angles.z = static_cast<float>((static_cast<double>(reply.direction) - DirectionBase) * DegreesPerDirection);
     actor.position.x = static_cast<float>(static_cast<double>(actor.targetX) * CellSize + HalfCell);
     actor.position.y = static_cast<float>(static_cast<double>(actor.targetY) * CellSize + HalfCell);
     const std::uint8_t action = reply.action;
@@ -170,11 +173,20 @@ Core::Expected<void, std::string> ApplyActionReply(const Protocol::Movement::Act
         return StopTheActor(actor, resources, sendAction);
     if (action >= FirstStrikeAction && action <= LastStrikeAction)
         return Strike(actor, index, resources);
-    const auto* skeleton = resources.models.SkeletonOf(actor.type);
-    if (skeleton == nullptr)
-        return Core::Unexpected(std::format("0x4ea030: la acción {:#x} sin las acciones del modelo {:#x} del personaje",
-                                            action, actor.type));
-    Render::Models::SetAction(actor.animation, *skeleton, AnimationOf(actor, action));
+    // 0x4ea030 lee las acciones del modelo del personaje (0x5769ad8 + tipo · 0xe0): un monstruo o un NPC, el que
+    // cargó su alta; un modelo que no está es el registro sin acciones y no pone nada (0x4ea056). Sin Player.bmd, el
+    // jugador es una guarda de contrato.
+    if (actor.type == Data::Models::PlayerSkeletonModel)
+    {
+        const auto* player = resources.models.SkeletonOf(Data::Models::PlayerSkeletonModel);
+        if (player == nullptr)
+            return Core::Unexpected(std::format("0x4ea030: la acción {:#x} sin Player.bmd", action));
+        Render::Models::SetAction(actor.animation, *player, AnimationOf(actor, action));
+    }
+    else if (auto set = SetMonsterAction(actor, AnimationOf(actor, action), 0x4cbcdd, resources); !set.HasValue())
+    {
+        return set;
+    }
     // 0x4cb864: 0x41ed10(0x6f, 0, 0). MuRet no tiene audio hasta la CL10.
     if (action == ShieldAction)
         resources.world.Runtime().lastSoundId = ShieldSound;

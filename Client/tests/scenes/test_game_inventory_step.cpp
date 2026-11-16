@@ -1,5 +1,6 @@
 #include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
+#include "GameLogic/PathCell.h"
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
@@ -22,6 +23,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -217,10 +219,13 @@ protected:
     }
 
     static constexpr std::uint16_t Potion = 0x1c00;
+    static constexpr std::uint16_t Sword = 0x0001;
+    static constexpr std::uint16_t EventTicket = 0x1a1d;
     static constexpr std::size_t PotionCell = 2 * 8 + 1;
     static constexpr std::int32_t PotionX = WindowX + 15 + 20 + 5;
     static constexpr std::int32_t PotionY = 200 + 40 + 5;
-    Client::Data::Tables::ItemTable items = Client::Tests::ItemTableOf({{Potion, 1, 1, 0xff}, {0x1c0d, 1, 1, 0xff}});
+    Client::Data::Tables::ItemTable items = Client::Tests::ItemTableOf(
+        {{Potion, 1, 1, 0xff}, {0x1c0d, 1, 1, 0xff}, {Sword, 1, 3, 0}, {EventTicket, 1, 1, 0xff}});
     Client::Scenes::InventoryServices services;
     int dressed = 0;
     std::vector<std::size_t> messages;
@@ -279,8 +284,45 @@ TEST_F(InventoryMovesStepTest, AClickPicksTheItemUpAndEscapePutsItBack)
     EXPECT_EQ(dressed, 1);
 }
 
+// CL9 hito 5, fase 2: el clic derecho sobre la casilla de abajo de una espada (0x5c8e37) ya no corta. La copia va
+// al cursor y, sin el almacén ni 0x7d368a1, el cursor queda en ceros: la espada sigue en la grilla, sin rand() de más.
+TEST_F(InventoryMovesStepTest, TheRightClickOnASwordLeavesItInTheGrid)
+{
+    for (std::size_t row = 4; row < 7; ++row)
+    {
+        Client::World::ItemState& part = world.Inventory().cells[row * 8 + 5];
+        part.id = Sword;
+        part.gridColumn = 5;
+        part.gridRow = 4;
+        part.occupied = row == 4 ? 1u : 0u;
+    }
+    world.Runtime().ui.rightClick = true;
+    const CrtRandom expected = Advanced(random, BaseStepRandoms + InventoryStepRandoms);
+    const auto stepped = Step(WindowX + 15 + 5 * 20 + 5, 200 + 6 * 20 + 5, &services);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(random.State(), expected.State());
+    EXPECT_FALSE(world.Runtime().ui.rightClick);
+    EXPECT_EQ(world.Runtime().cursorItemCount, 0);
+    EXPECT_EQ(world.Runtime().cursorItem.id, 0);
+    EXPECT_EQ(world.Runtime().cursorGrid, Client::Scenes::CursorGrid::Inventory);
+    EXPECT_EQ(world.Inventory().cells[4 * 8 + 5].id, Sword);
+    EXPECT_EQ(world.Inventory().cells[6 * 8 + 5].id, Sword);
+}
+
+// 0x5c67e9..0x5c685f: el clic derecho sobre el 0x1a1d con todas las ventanas cerradas llega al 91, que corta en
+// 0x5c6865 (hito 11). Con una de las que mira abierta, 0x5e4ce0 corta antes (0x5e4d2a y las que siguen): esa rama
+// está en GridItemUseTest.TheTicket1a1dLooksAtTheShopFirst.
+TEST_F(InventoryMovesStepTest, TheRightClickOnThe1a1dCutsAtTheEventEntry)
+{
+    world.Inventory().cells[PotionCell].id = EventTicket;
+    world.Runtime().ui.rightClick = true;
+    ExpectCut(Step(PotionX, PotionY, &services), "0x5c6865");
+    EXPECT_FALSE(world.Runtime().ui.rightClick);
+}
+
 // 0x5d8d50 con el ítem en el cursor y el clic fuera de las grillas: consume el clic (MouseUpdateTime en 0 y su máximo
-// en 6) y lo tira al piso. La poción se tira (CL9.3: corta en 0x5df58b); un Jewel of Bless vuelve con el aviso 269.
+// en 6) y lo tira al piso. La poción se tira (CL9 hito 5): sin terreno bajo el mouse (0x5dfdfc) sigue en el cursor; un
+// Jewel of Bless vuelve con el aviso 269.
 TEST_F(InventoryMovesStepTest, AClickOutsideTheGridsDropsTheCursorItem)
 {
     Click();
@@ -288,7 +330,11 @@ TEST_F(InventoryMovesStepTest, AClickOutsideTheGridsDropsTheCursorItem)
     world.Runtime().panels.inventory = 0;
     Click();
     world.Runtime().movement.mouseUpdateTime = 4;
-    ExpectCut(Step(100, 300, &services), "0x5df58b");
+    services.pickTheGround = []
+    { return Client::Core::Expected<std::optional<Client::GameLogic::PathCell>, std::string>(std::nullopt); };
+    const auto dropped = Step(100, 300, &services);
+    ASSERT_TRUE(dropped.HasValue()) << dropped.Error();
+    EXPECT_EQ(world.Runtime().cursorItemCount, 1);
     EXPECT_FALSE(world.Runtime().movement.pendingClick);
     EXPECT_EQ(world.Runtime().movement.mouseUpdateTime, 0);
     EXPECT_EQ(world.Runtime().movement.mouseUpdateTimeMax, 6);

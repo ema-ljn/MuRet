@@ -6,6 +6,7 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CharacterCloth.h"
 #include "Scenes/DynamicWorldLight.h"
 #include "Scenes/HelperTable.h"
 #include "Scenes/ItemSetState.h"
@@ -22,6 +23,7 @@
 #include "World/Particles.h"
 
 #include <cstddef>
+#include <cstdint>
 #include <span>
 
 namespace Client::Scenes
@@ -34,6 +36,16 @@ std::span<ActorState, ActorPoolSize> WorldState::Actors()
 std::span<const ActorState, ActorPoolSize> WorldState::Actors() const
 {
     return m_actors;
+}
+
+std::span<CharacterCloth, ActorPoolSize> WorldState::ActorCloths()
+{
+    return m_actorCloths;
+}
+
+std::span<const CharacterCloth, ActorPoolSize> WorldState::ActorCloths() const
+{
+    return m_actorCloths;
 }
 
 OwnCharacterRecord& WorldState::OwnCharacter()
@@ -158,6 +170,29 @@ void WorldState::PlacePlayerModel(const ActorState& actor)
     }
     m_playerModel.scale = actor.scale;
     m_playerModel.origin = actor.position;
+}
+
+void WorldState::PlaceModel(const ActorState& actor)
+{
+    PlaceModel(actor.type, SharedModelPlacement{.scale = actor.scale, .origin = actor.position});
+}
+
+void WorldState::PlaceModel(std::uint16_t type, const SharedModelPlacement& placement)
+{
+    if (type == Data::Models::PlayerSkeletonModel)
+    {
+        m_playerModel = placement;
+        return;
+    }
+    m_modelPlacements[type] = placement;
+}
+
+SharedModelPlacement WorldState::ModelPlacement(std::uint16_t type) const
+{
+    if (type == Data::Models::PlayerSkeletonModel)
+        return m_playerModel;
+    const auto found = m_modelPlacements.find(type);
+    return found != m_modelPlacements.end() ? found->second : SharedModelPlacement{};
 }
 
 FaunaDrawCarry& WorldState::PoseCarry()

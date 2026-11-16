@@ -7,6 +7,7 @@
 #include "Scenes/ActorName.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatBubbles.h"
+#include "Scenes/FloorItemNames.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/HudText.h"
@@ -75,6 +76,19 @@ Core::Expected<void, std::string> CharacterName(GameHoverContext& context, std::
     return {};
 }
 
+// 0x5ba790 sobre la entrada `index` de 0x77f46c8.
+Core::Expected<void, std::string> FloorItemName(GameHoverContext& context, std::int32_t index, bool atTheItem,
+                                                std::string_view where)
+{
+    const auto& items = context.tail.floorItems;
+    if (index < 0 || static_cast<std::size_t>(index) >= items.size())
+        return Core::Unexpected(std::format("{}: el ítem del piso {} está fuera de la tabla 0x77f46c8", where, index));
+    if (context.names == nullptr)
+        return Core::Unexpected(
+            std::format("{}: el nombre del ítem {} del piso (0x5ba790) sin sus tablas", where, index));
+    return DrawTheFloorItemName(*context.names, items[static_cast<std::size_t>(index)], atTheItem);
+}
+
 // 0x5bbd6a..0x5bbde7: Alt.
 Core::Expected<void, std::string> FloorItemNames(GameHoverContext& context)
 {
@@ -89,8 +103,8 @@ Core::Expected<void, std::string> FloorItemNames(GameHoverContext& context)
         // elegido.
         if (!items[index].alive || !items[index].seen || static_cast<std::int32_t>(index) == context.targets[0])
             continue;
-        return Core::Unexpected(
-            std::format("0x5bbdd2: el nombre del ítem {} del piso con Alt (0x5ba790) es de la CL9.3", index));
+        if (auto named = FloorItemName(context, static_cast<std::int32_t>(index), true, "0x5bbdd2"); !named.HasValue())
+            return named;
     }
     return {};
 }
@@ -125,8 +139,9 @@ Core::Expected<void, std::string> DrawTheHover(GameHoverContext& context)
     }
     else if (floorItem != NoTarget)
     {
-        return Core::Unexpected(
-            std::format("0x5bbd62: el nombre del ítem {} del piso bajo el mouse (0x5ba790) es de la CL9.3", floorItem));
+        // 0x5bbd31..0x5bbd62: en el mouse.
+        if (auto named = FloorItemName(context, floorItem, false, "0x5bbd62"); !named.HasValue())
+            return named;
     }
     return FloorItemNames(context);
 }

@@ -743,7 +743,7 @@ Core::Expected<bool, std::string> UseTheElfWeaponOptions(ActorState& hero, const
         if (!NamedWebzen(world.Actors()[runtime.hero]))
         {
             // 0x562af5..0x563b78 y 0x563f19..0x564e84: 0x5767948, la celda lógica otra vez y el 1E.
-            state.lastShotSkill = skill;
+            context.world.Runtime().lastShotSkill = skill;
             send.y = ReadCell(hero.cellYAccesses, hero.cellY, context.random);
             send.x = ReadCell(hero.cellXAccesses, hero.cellX, context.random);
             const auto direction =

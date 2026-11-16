@@ -32,11 +32,14 @@
 #include "Protocol/Connection/Opcodes.h"
 #include "Protocol/Connection/ServerList.h"
 #include "Protocol/Dispatcher.h"
+#include "Protocol/FloorItems.h"
+#include "Protocol/Friends.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/Messages.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Party.h"
+#include "Protocol/ProtocolError.h"
 #include "Protocol/Pet/PetInfo.h"
 #include "Protocol/Pet/PetOrders.h"
 #include "Protocol/Skill.h"
@@ -255,6 +258,9 @@ void ServerSession::RegisterGameServerHandlers()
                         [this](const Network::Packet& packet) { OnSummons(packet); }) &&
         m_gameServer.On(Protocol::Viewport::ObjectsOpcode,
                         [this](const Network::Packet& packet) { OnViewportObjects(packet); }) &&
+        // CL9 hito 2: el 1A, la skill que pega a varios.
+        m_gameServer.On(Protocol::Viewport::MagicAttackCountOpcode,
+                        [this](const Network::Packet& packet) { OnMagicAttackCount(packet); }) &&
         m_gameServer.On(Protocol::World::TeleportOpcode,
                         [this](const Network::Packet& packet) { OnTeleport(packet); }) &&
         m_gameServer.On(Protocol::World::WorldOpcode, Protocol::World::RegenSubcode,
@@ -285,6 +291,18 @@ void ServerSession::RegisterGameServerHandlers()
                         [this](const Network::Packet& packet) { OnEquipmentChange(packet); }) &&
         m_gameServer.On(CharacterOpcode, Protocol::Inventory::ItemPutSubcode,
                         [this](const Network::Packet& packet) { OnItemPut(packet); }) &&
+        // CL9 hito 5: los ítems del piso (0x4d0ba0, 0x4e3849, 0x4d0cc0, 0x4d10d0) y la fruta de stats (0x4de500). El
+        // dispatcher (0x4e3831..0x4e3bdb) no mira si llegaron cifrados.
+        m_gameServer.On(Protocol::FloorItems::CreateOpcode,
+                        [this](const Network::Packet& packet) { OnFloorItemsCreate(packet); }) &&
+        m_gameServer.On(Protocol::FloorItems::DeleteOpcode,
+                        [this](const Network::Packet& packet) { OnFloorItemsDelete(packet); }) &&
+        m_gameServer.On(Protocol::FloorItems::PickUpOpcode,
+                        [this](const Network::Packet& packet) { OnPickUpResult(packet); }) &&
+        m_gameServer.On(Protocol::FloorItems::DropOpcode,
+                        [this](const Network::Packet& packet) { OnDropResult(packet); }) &&
+        m_gameServer.On(Protocol::FloorItems::StatFruitOpcode,
+                        [this](const Network::Packet& packet) { OnStatFruit(packet); }) &&
         m_gameServer.On(JoinOpcode, LogoutSubcode, [this](const Network::Packet& packet) { OnLogoutResult(packet); }) &&
         m_gameServer.On(Protocol::Connection::MainCheckOpcode,
                         [this](const Network::Packet& packet) { OnMainCheck(packet); }) &&
@@ -298,7 +316,18 @@ void ServerSession::RegisterGameServerHandlers()
         m_gameServer.On(Protocol::Quest::SetQuestOpcode,
                         [this](const Network::Packet& packet) { OnSetQuestResult(packet); }) &&
         m_gameServer.On(Protocol::Quest::QuestResultOpcode,
-                        [this](const Network::Packet& packet) { OnQuestResult(packet); });
+                        [this](const Network::Packet& packet) { OnQuestResult(packet); }) &&
+        // CL9 hito 9: los amigos.
+        m_gameServer.On(Protocol::Friends::FriendListOpcode,
+                        [this](const Network::Packet& packet) { OnFriendList(packet); }) &&
+        m_gameServer.On(Protocol::Friends::FriendAddOpcode,
+                        [this](const Network::Packet& packet) { OnFriendAddResult(packet); }) &&
+        m_gameServer.On(Protocol::Friends::FriendRequestOpcode,
+                        [this](const Network::Packet& packet) { OnFriendRequest(packet); }) &&
+        m_gameServer.On(Protocol::Friends::FriendDeleteOpcode,
+                        [this](const Network::Packet& packet) { OnFriendDeleteResult(packet); }) &&
+        m_gameServer.On(Protocol::Friends::FriendStateOpcode,
+                        [this](const Network::Packet& packet) { OnFriendState(packet); });
     assert(registered && "los handlers del GameServer se registran una vez");
     // CL9 hito 3 (atacar, el daño y la muerte): el despacho de 0x4e2b10 manda el 0x16 a 0x4cf200 y el 0x9C a 0x4cfce0
     // (los dos con el flag de descifrado) y el 0x17 a 0x4d0a30. El 0x15 de la GS 0.97 (GCDamageSend) no tiene caso: cae
@@ -1092,6 +1121,61 @@ void ServerSession::OnWhisperResult(const Network::Packet& packet)
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(result.Value(), *this)));
 }
 
+void ServerSession::OnFriendList(const Network::Packet& packet)
+{
+    const auto list = Protocol::Friends::ReadFriendList(packet);
+    if (!list.HasValue())
+    {
+        m_log.Warning("se ignora la lista de amigos (C0): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(list.Value(), *this)));
+}
+
+void ServerSession::OnFriendAddResult(const Network::Packet& packet)
+{
+    const auto result = Protocol::Friends::ReadFriendAddResult(packet);
+    if (!result.HasValue())
+    {
+        m_log.Warning("se ignora el resultado de agregar un amigo (C1): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(result.Value(), *this)));
+}
+
+void ServerSession::OnFriendRequest(const Network::Packet& packet)
+{
+    const auto request = Protocol::Friends::ReadFriendRequest(packet);
+    if (!request.HasValue())
+    {
+        m_log.Warning("se ignora el pedido de amistad (C2): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(request.Value(), *this)));
+}
+
+void ServerSession::OnFriendDeleteResult(const Network::Packet& packet)
+{
+    const auto result = Protocol::Friends::ReadFriendDeleteResult(packet);
+    if (!result.HasValue())
+    {
+        m_log.Warning("se ignora el resultado de borrar un amigo (C3): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(result.Value(), *this)));
+}
+
+void ServerSession::OnFriendState(const Network::Packet& packet)
+{
+    const auto state = Protocol::Friends::ReadFriendState(packet);
+    if (!state.HasValue())
+    {
+        m_log.Warning("se ignora el estado de un amigo (C4): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(state.Value(), *this)));
+}
+
 void ServerSession::OnNotice(const Network::Packet& packet)
 {
     const auto notice = Protocol::Messages::ReadNotice(packet);
@@ -1209,6 +1293,88 @@ void ServerSession::OnItemPut(const Network::Packet& packet)
 Core::Expected<void, std::string> ServerSession::SendItemMove(const Protocol::Inventory::ItemMove& move)
 {
     return SendWorldPacket(Protocol::Inventory::WriteItemMove(move));
+}
+
+// 04 § Los ítems del piso (CL9 hito 5).
+void ServerSession::OnFloorItemsCreate(const Network::Packet& packet)
+{
+    const auto created = Protocol::FloorItems::ReadFloorItemsCreate(packet);
+    if (!created.HasValue())
+    {
+        m_log.Warning("se ignoran los ítems del piso (20): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(created.Value(), *this)));
+}
+
+void ServerSession::OnFloorItemsDelete(const Network::Packet& packet)
+{
+    const auto deleted = Protocol::FloorItems::ReadFloorItemsDelete(packet);
+    if (!deleted.HasValue())
+    {
+        m_log.Warning("se ignora el borrado de ítems del piso (21): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(deleted.Value(), *this)));
+}
+
+void ServerSession::OnPickUpResult(const Network::Packet& packet)
+{
+    const auto result = Protocol::FloorItems::ReadPickUpResult(packet);
+    if (!result.HasValue())
+    {
+        m_log.Warning("se ignora lo levantado del piso (22): {}", Unreadable);
+        // 07 Q-C1240: 0x4d0cc0 no mira el largo y suelta el pedido (0x4d10b9) en todos sus caminos.
+        if (result.Error() == Protocol::ProtocolError::TooShort)
+            static_cast<void>(
+                CheckApplication(m_eventSink.ApplyWorld(Protocol::FloorItems::ShortPickUpResult{}, *this)));
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(result.Value(), *this)));
+}
+
+void ServerSession::OnDropResult(const Network::Packet& packet)
+{
+    const auto result = Protocol::FloorItems::ReadDropResult(packet);
+    if (!result.HasValue())
+    {
+        m_log.Warning("se ignora lo tirado al piso (23): {}", Unreadable);
+        // 07 Q-C1240: 0x4d10d0 suelta el lugar tirado (0x4d13d1 y 0x4d13e5) en todos sus caminos.
+        const auto unread = Protocol::FloorItems::ReadShortDropResult(packet);
+        if (result.Error() == Protocol::ProtocolError::TooShort && unread.HasValue())
+            static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(unread.Value(), *this)));
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(result.Value(), *this)));
+}
+
+void ServerSession::OnStatFruit(const Network::Packet& packet)
+{
+    const auto fruit = Protocol::FloorItems::ReadStatFruit(packet);
+    if (!fruit.HasValue())
+    {
+        m_log.Warning("se ignora la fruta de stats (2C): {}", Unreadable);
+        // 07 Q-C1240: 0x4de500 no mira el largo y termina la espera del uso (0x4deb0e) en todos sus caminos.
+        if (fruit.Error() == Protocol::ProtocolError::TooShort)
+            static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(Protocol::FloorItems::ShortStatFruit{}, *this)));
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(fruit.Value(), *this)));
+}
+
+Core::Expected<void, std::string> ServerSession::SendPickUp(std::uint16_t index)
+{
+    return SendWorldPacket(Protocol::FloorItems::WritePickUp(index));
+}
+
+Core::Expected<void, std::string> ServerSession::SendDrop(const Protocol::FloorItems::Drop& drop)
+{
+    return SendWorldPacket(Protocol::FloorItems::WriteDrop(drop));
+}
+
+Core::Expected<void, std::string> ServerSession::SendUseItem(const Protocol::FloorItems::UseItem& use)
+{
+    return SendWorldPacket(Protocol::FloorItems::WriteUseItem(use));
 }
 
 void ServerSession::ResendServerListRequest()
@@ -1381,6 +1547,11 @@ void ServerSession::OnQuestResult(const Network::Packet& packet)
         return;
     }
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(result.Value(), *this)));
+}
+
+void ServerSession::SendFriendPacket(Protocol::Outgoing packet)
+{
+    static_cast<void>(SendWorldPacket(std::move(packet)));
 }
 
 // 06 § Caminar: los ecos y el daño se aplican sin guarda de escena ni del flag de cifrado.
@@ -1699,6 +1870,17 @@ void ServerSession::OnSummons(const Network::Packet& packet)
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(summons.Value(), *this)));
 }
 
+void ServerSession::OnMagicAttackCount(const Network::Packet& packet)
+{
+    const auto attack = Protocol::Viewport::ReadMagicAttackCount(packet);
+    if (!attack.HasValue())
+    {
+        m_log.Warning("se ignora la skill que pega a varios (1A): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(attack.Value(), *this)));
+}
+
 void ServerSession::OnViewportObjects(const Network::Packet& packet)
 {
     const auto objects = Protocol::Viewport::ReadObjects(packet);
@@ -1757,23 +1939,54 @@ void ServerSession::OnLogoutResult(const Network::Packet& packet)
         m_log.Warning("se ignora la orden de salida del GameServer (F1 02): {}", Unreadable);
         return;
     }
+    m_eventSink.ClearLogoutRequest(); // 0x4c273f, antes del switch y del guard de cifrado.
     if (result.Value() == Protocol::Connection::LogoutReturnsToSelection)
     {
         ReturnToSelection(packet.WasDecrypted());
         return;
     }
+    if (result.Value() == Protocol::Connection::LogoutReturnsToServerList)
+    {
+        ReturnToServerList(packet.WasDecrypted());
+        return;
+    }
     if (result.Value() != Protocol::Connection::LogoutQuitsTheGame)
     {
-        // 2 es la lista, que cambia de escena (Q-C79): la CL9. Con otro, el original no hace nada.
-        m_log.Warning("se ignora la orden de salida del GameServer (F1 02 con {}): MuRet sigue la de "
-                      "cerrar el juego, con 0, y la de volver a la selección, con 1",
-                      result.Value());
+        // Con otro resultado, el original no hace nada.
+        m_log.Warning("se ignora la orden de salida del GameServer (F1 02 con {}): motivo desconocido", result.Value());
         return;
     }
     m_log.Info("el GameServer ordenó cerrar el juego (F1 02 con 0): se cierra la conexión y el juego, sin aviso");
     m_connection.Close();
     ++m_generation;
     SetState(SessionState::QuitOrdered);
+}
+
+void ServerSession::ReturnToServerList(bool encrypted)
+{
+    // 0x4c275c: en escena 5 la limpieza precede incluso al rechazo por falta de cifrado.
+    if (!CheckApplication(m_eventSink.ApplyWorld(ServerListLogoutCleanup{}, *this)))
+        return;
+    if (!encrypted)
+    {
+        m_log.Warning("la orden de volver a los servidores (F1 02 con 2) no llegó cifrada: se avisa al GameServer");
+        Protocol::Outgoing report = Protocol::Connection::WriteClearLogoutReport();
+        m_connection.Send(std::move(report.packet), report.delivery);
+        return;
+    }
+    // 0x4c2f0a: cierre explícito, sin procesar el Closed ni otros paquetes del mismo lote.
+    m_connection.Close();
+    ++m_generation;
+    if (!CheckApplication(m_eventSink.ApplyWorld(ReturnToServerListReceived{}, *this)))
+        return;
+    m_characters.reset();
+    m_chosenSlot.reset();
+    m_createResult.reset();
+    m_deleteResult.reset();
+    m_deletingSlot.reset();
+    m_loginResult.reset();
+    SetState(SessionState::Idle); // 0x4c2f40: estado 0; LoginScene::Enter inicia la conexión al CS.
+    m_log.Info("el GameServer ordenó volver a los servidores (F1 02 con 2): se cierra el GS y se vuelve al login");
 }
 
 // 0x4c2f5b: sin cifrar, el F1 03 00 F1 y nada más (Q-C211). Cifrado, 0x4c3626..0x4c390f: el sink limpia el

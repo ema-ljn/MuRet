@@ -1,5 +1,8 @@
 #include "Scenes/GameChat.h"
 
+#include "Input/Key.h"
+#include "Input/TextInputEvent.h"
+
 #include "Core/Expected.h"
 #include "Input/InputEvent.h"
 #include "Protocol/Chat/ChatSend.h"
@@ -7,7 +10,9 @@
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActionSend.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CharacterDrawing.h"
 #include "Scenes/Emote.h"
+#include "Scenes/FaunaModels.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/ItemSetState.h"
@@ -18,10 +23,12 @@
 #include "UI/ChatInput.h"
 #include "UI/ChatLog.h"
 #include "UI/Emotes.h"
+#include "UI/FriendWindows.h"
 #include "UI/GameText.h"
 #include "UI/GameUiState.h"
 #include "UI/MessageArea.h"
 #include "UI/NameChecks.h"
+#include "UI/OldWindows.h"
 #include "UI/PanelRegistry.h"
 #include "UI/WhisperSenders.h"
 
@@ -106,6 +113,21 @@ std::int32_t LengthOf(const UI::ChatBuffer& buffer)
     return static_cast<std::int32_t>(UI::CStringOf(buffer).size());
 }
 
+std::string LegacyControlText(Input::Key key)
+{
+    switch (key)
+    {
+    case Input::Key::Backspace:
+        return std::string(1, Input::BackspaceChar);
+    case Input::Key::Tab:
+        return std::string(1, Input::TabChar);
+    case Input::Key::Enter:
+        return std::string(1, Input::EnterChar);
+    default:
+        return {};
+    }
+}
+
 // strncmp(texto, comando, strlen(comando)) con el comando no vacío.
 bool StartsWithTheCommand(std::string_view said, std::string_view command)
 {
@@ -124,14 +146,19 @@ Core::Expected<void, std::string> DoTheEmotes(const GameChatContext& context, st
     const std::optional<UI::EmoteCase> emote = UI::FindTheEmote(*context.texts, said);
     if (!emote)
         return {};
-    if (context.models == nullptr)
+    // 0x576abf→0x4ea030 lee el arreglo global: los modelos cargados por el viewport también están disponibles.
+    // Fauna conserva esos recursos por separado y puede existir antes de ligar los modelos del primer dibujo.
+    const IModelLibrary* models = context.world.FaunaResources().SkeletonOf(hero.type) != nullptr
+                                      ? &context.world.FaunaResources()
+                                      : context.models;
+    if (models == nullptr)
         return Core::Unexpected(std::string("0x576a60: el emote sin los modelos (0x4ea030)"));
     const ActionSender send = [&context](std::uint8_t direction, std::uint8_t action)
     {
         if (context.send)
             context.send(Protocol::Movement::WriteAction(direction, action));
     };
-    return DoTheEmote(*emote, EmoteContext{.hero = hero, .models = *context.models, .send = send});
+    return DoTheEmote(*emote, EmoteContext{.hero = hero, .models = *models, .send = send});
 }
 
 // Lo que 0x56c440 lee y escribe.
@@ -319,12 +346,30 @@ Core::Expected<void, std::string> TypeInTheGameChat(const GameChatContext& conte
     while (!rest.empty())
     {
         const std::size_t key = rest.find_first_of(Keys);
+        // El EDIT de una ventana vieja con el foco de Windows (CL9 hito 9) recibe el WM_CHAR, y su subclase (0x467b10)
+        // le pasa el Enter a su padre; el Tab no lo mira (P-C181).
+        const bool oldEdit = UI::HasAnOldEditFocused(runtime.oldWindows, input.focus);
         if (const std::string_view run = rest.substr(0, key); !run.empty())
-            UI::TypeInTheChat(input, run);
+        {
+            if (oldEdit)
+                UI::TypeInTheOldEdit(runtime.oldWindows, run);
+            else
+                UI::TypeInTheChat(input, run);
+        }
         if (key == std::string_view::npos)
             break;
         const char pressed = rest[key];
         rest.remove_prefix(key + 1);
+        if (oldEdit)
+        {
+            if (pressed == Input::EnterChar)
+                UI::PressEnterInTheOldEdit(runtime.oldWindows);
+            else if (pressed == Input::BackspaceChar)
+                UI::BackspaceInTheOldEdit(runtime.oldWindows);
+            else if (pressed == Input::TabChar)
+                UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Tab, false, false, context.clipboard);
+            continue;
+        }
         if (pressed == Input::TabChar)
         {
             if (UI::PressTabInTheChat(input, runtime.ui.chatOpen))
@@ -337,6 +382,104 @@ Core::Expected<void, std::string> TypeInTheGameChat(const GameChatContext& conte
         }
         else
             UI::BackspaceInTheChat(input);
+    }
+    return {};
+}
+
+Core::Expected<void, std::string> TypeTheGameInput(const GameChatContext& context,
+                                                   std::span<const Input::TextInputEvent> events)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    UI::ChatInputState& input = runtime.chat.input;
+    for (const Input::TextInputEvent& event : events)
+    {
+        if (event.kind == Input::TextInputEvent::Kind::Text)
+        {
+            if (auto typed = TypeInTheGameChat(context, event.text); !typed.HasValue())
+                return typed;
+            continue;
+        }
+        if (event.kind == Input::TextInputEvent::Kind::Composition)
+        {
+            if (!UI::HasAnOldEditFocused(runtime.oldWindows, input.focus))
+                continue;
+            UI::SetTheOldEditComposition(runtime.oldWindows, event.text, event.compositionStart,
+                                         event.compositionLength);
+            continue;
+        }
+        // SDL aún entrega las teclas como Key durante el preedit; no las confirmamos ni enviamos. Falta modelar el
+        // manejo de teclas por un IME genuino como el de EDIT.
+        const bool oldEdit = UI::HasAnOldEditFocused(runtime.oldWindows, input.focus);
+        if (!oldEdit)
+        {
+            const std::string control = LegacyControlText(event.key);
+            if (!control.empty())
+            {
+                if (auto typed = TypeInTheGameChat(context, control); !typed.HasValue())
+                    return typed;
+            }
+            continue;
+        }
+        switch (event.key)
+        {
+        case Input::Key::Backspace:
+            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Backspace, event.shift, event.ctrl,
+                                     context.clipboard);
+            break;
+        case Input::Key::Tab:
+            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Tab, event.shift, event.ctrl,
+                                     context.clipboard);
+            break;
+        case Input::Key::Delete:
+            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Delete, event.shift, event.ctrl,
+                                     context.clipboard);
+            break;
+        case Input::Key::Left:
+            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Left, event.shift, event.ctrl,
+                                     context.clipboard);
+            break;
+        case Input::Key::Right:
+            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Right, event.shift, event.ctrl,
+                                     context.clipboard);
+            break;
+        case Input::Key::Up:
+            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Up, event.shift, event.ctrl,
+                                     context.clipboard);
+            break;
+        case Input::Key::Down:
+            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Down, event.shift, event.ctrl,
+                                     context.clipboard);
+            break;
+        case Input::Key::Home:
+            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Home, event.shift, event.ctrl,
+                                     context.clipboard);
+            break;
+        case Input::Key::End:
+            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::End, event.shift, event.ctrl,
+                                     context.clipboard);
+            break;
+        case Input::Key::C:
+            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Copy, event.shift, event.ctrl,
+                                     context.clipboard);
+            break;
+        case Input::Key::X:
+            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Cut, event.shift, event.ctrl,
+                                     context.clipboard);
+            break;
+        case Input::Key::V:
+            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Paste, event.shift, event.ctrl,
+                                     context.clipboard);
+            break;
+        case Input::Key::A:
+            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::CtrlA, event.shift, event.ctrl,
+                                     context.clipboard);
+            break;
+        case Input::Key::Enter:
+            UI::PressEnterInTheOldEdit(runtime.oldWindows);
+            break;
+        default:
+            break;
+        }
     }
     return {};
 }
@@ -364,9 +507,18 @@ Core::Expected<void, std::string> PressEnterInTheGame(const GameChatContext& con
         if (taken.Value())
             return {};
     }
-    // 0x4b52fc..0x4b5334: +0x150 de [0x5763524], 0x5762ebc y +0xc0 de [0x5763514] son de las ventanas viejas (hito
-    // 7), vacías. 0x4b533d..0x4b5360: con el foco fuera de la ventana del juego, 0x467360 guarda el modo del IME, que
-    // MuRet no tiene.
+    // 0x4b5198..0x4b5334: el Enter es de las ventanas viejas con la lista de ventanas armada (+0x150 de [0x5763524]),
+    // con la caja modal (0x5762ebc) arriba de todas (el último de +0x84) o con una caja no modal (+0xb8 de
+    // [0x5763514], 0x4918a0) arriba de todas. 0x4b533d..0x4b5360: con el foco fuera de la ventana del juego, 0x467360
+    // guarda el modo del IME, que MuRet no tiene.
+    const UI::OldWindowManager& old = runtime.oldWindows;
+    if (old.windowList.list.armed == 1)
+        return {};
+    const std::int32_t top = UI::LastOldWindow(old);
+    if (old.modal != 0 && top == old.modal)
+        return {};
+    if (!old.boxes.empty() && std::ranges::find(old.boxes, top) != old.boxes.end())
+        return {};
     // 0x4b5397..0x4b5435: con el campo cerrado, el EDIT de [0x5763504] (el del diálogo, hito 6, vacío en MuRet); con
     // él abierto, los dos EDIT y lo escrito al historial (la vtable + 8).
     if (!ui.chatOpen)

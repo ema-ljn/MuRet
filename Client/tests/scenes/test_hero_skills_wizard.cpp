@@ -454,7 +454,7 @@ TEST(HeroSkillsWizardTest, HellfireAndInfernoSendTheirCellAndDirection)
                 EXPECT_EQ(tested->sent[0].delivery, Client::Network::Delivery::Encrypted);
                 EXPECT_EQ(tested->Sent(0), (std::vector<std::uint8_t>{0xc1, 0x0c, 0x1e, tried.skill, 182, 115, 0x40, 0,
                                                                       0, 0xff, 0xff, 0}));
-                EXPECT_EQ(tested->Movement().lastShotSkill, std::uint32_t{tried.skill});
+                EXPECT_EQ(tested->world.Runtime().lastShotSkill, std::uint32_t{tried.skill});
                 EXPECT_EQ(tested->Hero().animation.action, tried.action);
                 EXPECT_EQ(tested->Hero().movement, 0);
             }
@@ -548,7 +548,7 @@ TEST(HeroSkillsWizardTest, FlameAndTheWeaponTargetSkillsCastAtTheTargetCell)
             ASSERT_EQ(tested->sent.size(), 1u);
             EXPECT_EQ(tested->Sent(0), (std::vector<std::uint8_t>{0xc1, 0x0c, 0x1e, tried.skill, 184, 117, 0x60, 0, 0,
                                                                   tried.keyHigh, tried.keyLow, 0}));
-            EXPECT_EQ(tested->Movement().lastShotSkill, std::uint32_t{tried.skill});
+            EXPECT_EQ(tested->world.Runtime().lastShotSkill, std::uint32_t{tried.skill});
             EXPECT_EQ(tested->Hero().movement, tried.skill == 5 ? 1 : 0);
         }
     }
@@ -728,7 +728,7 @@ TEST(HeroSkillsWizardTest, InReachTheSkill0dSendsItsDurationAtTheChosen)
         EXPECT_EQ(tested->Sent(0),
                   (std::vector<std::uint8_t>{0xc1, 0x0c, 0x1e, 0xd, 184, 117, 0x60, 0, 0, 0x0a, 0x1b, 0}));
         EXPECT_EQ(tested->Sent(1), (std::vector<std::uint8_t>{0xc1, 0x06, 0xd3, 182, 115, 0x40}));
-        EXPECT_EQ(tested->Movement().lastShotSkill, 0xdu);
+        EXPECT_EQ(tested->world.Runtime().lastShotSkill, 0xdu);
     }
 }
 
@@ -835,7 +835,7 @@ TEST(HeroSkillsWizardTest, TheSkillOnItsTargetSplitsTheUserAndTheTurned)
                     EXPECT_LE(user.animation.action, 0x8f);
                     EXPECT_EQ(turned.animation.action, 1);
                 }
-                EXPECT_EQ(tested->Movement().lastShotSkill, skill == 0xd && sends ? 0xdu : 0u);
+                EXPECT_EQ(tested->world.Runtime().lastShotSkill, skill == 0xd && sends ? 0xdu : 0u);
 
                 ASSERT_EQ(tested->sent.size(), sends ? 2u : 1u);
                 if (sends && skill == 0xd)

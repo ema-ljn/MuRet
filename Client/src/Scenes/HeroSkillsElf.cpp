@@ -277,7 +277,7 @@ Core::Expected<void, std::string> ElfBranch::Shoot()
     if (!HasTheSilentName(m_world))
     {
         // 0x57e2c8..0x57ef4e: 0x5767948 y el 1E con la celda lógica (la Y antes que la X).
-        m_state.lastShotSkill = ShotSkill;
+        m_context.world.Runtime().lastShotSkill = ShotSkill;
         const SkillCell cell = ReadTheHeroCell(m_hero, m_context);
         const auto direction = LowByteOf(static_cast<double>(m_hero.angles.z) * static_cast<double>(DirectionScale));
         if (!direction)
@@ -486,7 +486,7 @@ Core::Expected<void, std::string> ElfBranch::CastTheSkill4c()
     {
         // 0x580af3..0x5817a5: 0x5767948, la celda lógica (la Y y la X), el rumbo, la celda relativa en el byte 8 y la
         // clave mágica (0x57cf90 en línea, con +0x1bd).
-        m_state.lastShotSkill = m_skill;
+        m_context.world.Runtime().lastShotSkill = m_skill;
         const SkillCell cell = ReadTheHeroCell(m_hero, m_context);
         const auto direction = LowByteOf(static_cast<double>(m_hero.angles.z) * static_cast<double>(DirectionScale));
         if (!direction)

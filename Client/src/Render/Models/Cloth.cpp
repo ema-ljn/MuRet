@@ -1,16 +1,19 @@
 #include "Render/Models/Cloth.h"
 
+#include "Data/Models/Model.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/TextureSlot.h"
 
 #include <glm/ext/vector_float3.hpp>
 
+#include <algorithm>
 #include <array>
 #include <bit>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
+#include <span>
 #include <vector>
 
 // Contrato: Client/docs/research/06-render-escenas-y-ui.md, "La tela de la clase 4". F() es el FSTP
@@ -26,29 +29,31 @@ constexpr float Bits(std::uint32_t bits)
 {
     return std::bit_cast<float>(bits);
 }
-constexpr float WidthGrowth = Bits(0x3ecccccc);   // 0x6b8cf4: 0,4 (el ancho de la fila crece)
-constexpr float WidthStart = Bits(0x3f19999a);    // 0x6b8a20: 0,6
-constexpr float Half = Bits(0x3f000000);          // 0x6b882c: 0,5
-constexpr float ArchDepth = Bits(0x41200000);     // 0x6b87a8: 10
-constexpr float Twenty = Bits(0x41a00000);        // 0x6b86d0 y el inmediato de la grilla
-constexpr float ShortFactor = Bits(0x3f4ccccd);   // 0x6b8a38: 0,8
-constexpr float Hundredth = Bits(0x3c23d70a);     // 0x6b88d4 y 0x6b86c0: 0,01
-constexpr float Tenth = Bits(0x3dcccccd);         // 0x6b87b8: 0,1
-constexpr float GravityScale = Bits(0x42c80000);  // 0x6b86b4: 100
-constexpr float OneEighty = Bits(0x43340000);     // 0x6b86bc: 180
-constexpr float MapWindStep = Bits(0x3ca3d70a);   // 0x6b89e4: 0,02
-constexpr float Degree = Bits(0x3c8efa35);        // 0x6b8cf8 y 0x6ba360: π/180
-constexpr float Thousandth = Bits(0x3a83126f);    // 0x6b89c8: 0,001
-constexpr float ThirtySecond = Bits(0x3d000000);  // 0x6b8880: 1/32
-constexpr float Three = Bits(0x40400000);         // 0x6b86b8: 3
-constexpr float Gravity = Bits(0x411ccccd);       // 0x6c7a40, en la .data: 9,8
-constexpr float GravityFactor = Bits(0x3b23d70a); // 0x6c7a44: 0,0025
-constexpr float InverseMass = Bits(0x43c80000);   // 0x6c7a48: 400
-constexpr float GlowBase = Bits(0x3ecccccd);      // 0x6b87b4: 0,4
-constexpr float Fifth = Bits(0x3e4ccccd);         // 0x6b8854 y 0x6b8cfc: 0,2
-constexpr float LastRow = Bits(0x3f7d70a4);       // 0x6b8d00: 0,99
-constexpr float WindFloor = Bits(0xbe4ccccd);     // 0x6b8d3c: −0,2
-constexpr float WindCeiling = Bits(0x3f800000);   // 0x6b87d4: 1
+constexpr float WidthGrowth = Bits(0x3ecccccc);        // 0x6b8cf4: 0,4 (el ancho de la fila crece)
+constexpr float WidthStart = Bits(0x3f19999a);         // 0x6b8a20: 0,6
+constexpr float Half = Bits(0x3f000000);               // 0x6b882c: 0,5
+constexpr float ArchDepth = Bits(0x41200000);          // 0x6b87a8: 10
+constexpr float Twenty = Bits(0x41a00000);             // 0x6b86d0 y el inmediato de la grilla
+constexpr float ShortFactor = Bits(0x3f4ccccd);        // 0x6b8a38: 0,8
+constexpr float Hundredth = Bits(0x3c23d70a);          // 0x6b88d4 y 0x6b86c0: 0,01
+constexpr float Tenth = Bits(0x3dcccccd);              // 0x6b87b8: 0,1
+constexpr float GravityScale = Bits(0x42c80000);       // 0x6b86b4: 100
+constexpr float OneEighty = Bits(0x43340000);          // 0x6b86bc: 180
+constexpr float MapWindStep = Bits(0x3ca3d70a);        // 0x6b89e4: 0,02
+constexpr float Degree = Bits(0x3c8efa35);             // 0x6b8cf8 y 0x6ba360: π/180
+constexpr float Thousandth = Bits(0x3a83126f);         // 0x6b89c8: 0,001
+constexpr float ThirtySecond = Bits(0x3d000000);       // 0x6b8880: 1/32
+constexpr float Three = Bits(0x40400000);              // 0x6b86b8: 3
+constexpr float Gravity = Bits(0x411ccccd);            // 0x6c7a40, en la .data: 9,8
+constexpr float GravityFactor = Bits(0x3b23d70a);      // 0x6c7a44: 0,0025
+constexpr float InverseMass = Bits(0x43c80000);        // 0x6c7a48: 400
+constexpr float GlowBase = Bits(0x3ecccccd);           // 0x6b87b4: 0,4
+constexpr float Fifth = Bits(0x3e4ccccd);              // 0x6b8854 y 0x6b8cfc: 0,2
+constexpr float LastRow = Bits(0x3f7d70a4);            // 0x6b8d00: 0,99
+constexpr float WindFloor = Bits(0xbe4ccccd);          // 0x6b8d3c: −0,2
+constexpr float WindCeiling = Bits(0x3f800000);        // 0x6b87d4: 1
+constexpr double MeshSpringSpan = 10.0;                // 0x6b8d30, un double
+constexpr float MeshNeighbourReach = Bits(0x3f99999a); // 0x6b8bb0: 1,2
 
 // El mapa del login (el 55): la tercera tela saca su viento de rand() (0x4551f4).
 constexpr std::uint8_t LoginMap = 0x37;
@@ -179,6 +184,24 @@ double ArchOf(std::int32_t column, std::int32_t columns)
 {
     return std::abs(static_cast<double>(column) / static_cast<double>(columns - 1) - D(Half)) * 2.0;
 }
+
+// 0x4563c0(malla, a, b, c): el primer triángulo de la malla que recorre el lado (b, a), con el tercer vértice
+// distinto de `c`, da ese tercero; ninguno, −1. Cada triángulo, lado por lado: (v0, v1), (v1, v2), (v2, v0).
+std::int32_t NeighbourAcross(const Data::Models::Mesh& mesh, std::int32_t a, std::int32_t b, std::int32_t c)
+{
+    for (const Data::Models::Triangle& triangle : mesh.triangles)
+    {
+        for (std::size_t side = 0; side < 3; ++side)
+        {
+            const std::int32_t from = triangle.vertices[side];
+            const std::int32_t to = triangle.vertices[(side + 1) % 3];
+            const std::int32_t third = triangle.vertices[(side + 2) % 3];
+            if (a == to && b == from && c != third)
+                return third;
+        }
+    }
+    return -1;
+}
 } // namespace
 
 int CrtRandom::Next() noexcept
@@ -273,6 +296,68 @@ void Cloth::SetWindBytes(std::uint8_t minimum, std::uint8_t range)
 void Cloth::AddSphere(const glm::vec3& local, float radius, std::int32_t bone)
 {
     m_spheres.push_back(ClothSphere{.local = local, .radius = radius, .bone = bone, .world = glm::vec3(0.0f)});
+}
+
+void Cloth::BuildOnTheMesh(const Data::Models::Mesh& mesh, std::int32_t meshIndex, std::int32_t bone,
+                           std::uint32_t flags, std::span<const glm::vec3> vertices)
+{
+    m_bone = bone;
+    m_mesh = meshIndex;
+    m_flags |= flags;
+    m_columns = 0;
+    m_rows = 0;
+    // 0x455f06..0x455ff2: una partícula por vértice, en la posición de 0x5786f9c, anclada con el hueso de la tela.
+    m_particles.assign(mesh.vertices.size(), ClothParticle{});
+    m_vertexBones.resize(mesh.vertices.size());
+    for (std::size_t vertex = 0; vertex < mesh.vertices.size(); ++vertex)
+    {
+        ClothParticle& particle = m_particles[vertex];
+        particle.position = vertex < vertices.size() ? vertices[vertex] : glm::vec3(0.0f);
+        m_vertexBones[vertex] = mesh.vertices[vertex].bone;
+        particle.anchored = mesh.vertices[vertex].bone == bone;
+    }
+    // 0x455ff6..0x4561aa: los resortes de los lados y de los vecinos; reserva seis por triángulo.
+    m_springs.clear();
+    const auto count = static_cast<std::int32_t>(m_particles.size());
+    const auto within = [count](std::int32_t vertex) { return vertex >= 0 && vertex < count; };
+    const auto add = [this](std::int32_t a, std::int32_t b, float rest, std::uint8_t springFlags)
+    {
+        m_springs.push_back(ClothSpring{.a = static_cast<std::int16_t>(a),
+                                        .b = static_cast<std::int16_t>(b),
+                                        .shortest = F(D(rest) * D(Half)),
+                                        .rest = rest,
+                                        .flags = springFlags});
+    };
+    for (const Data::Models::Triangle& triangle : mesh.triangles)
+    {
+        for (std::size_t side = 0; side < 3; ++side)
+        {
+            const std::int32_t a = triangle.vertices[side];
+            const std::int32_t b = triangle.vertices[(side + 1) % 3];
+            const std::int32_t c = triangle.vertices[(side + 2) % 3];
+            if (!within(a) || !within(b) || !within(c))
+                continue;
+            const ClothParticle& first = m_particles[static_cast<std::size_t>(a)];
+            const ClothParticle& second = m_particles[static_cast<std::size_t>(b)];
+            const float rest = F(Distance(first, second).length);
+            // 0x456094..0x4560b1: FSUB de los dos floats en la x87, sin redondear, contra el double 10.
+            const bool wide = std::abs(D(first.position.x) - D(second.position.x)) > MeshSpringSpan;
+            const auto springFlags = static_cast<std::uint8_t>(wide ? (Relaxes | Pulls) : (Restrains | Pulls));
+            add(a, b, rest, springFlags);
+            // 0x4560f8..0x456170: el vecino que comparte el lado, con el largo sin redondear contra L · 1,2f.
+            const std::int32_t d = NeighbourAcross(mesh, a, b, c);
+            if (d <= 0 || !within(d))
+                continue;
+            const double across =
+                Distance(m_particles[static_cast<std::size_t>(c)], m_particles[static_cast<std::size_t>(d)]).length;
+            if (!(across < D(rest) * D(MeshNeighbourReach)))
+                continue;
+            const bool linked = std::ranges::any_of(m_springs, [c, d](const ClothSpring& spring)
+                                                    { return spring.a == c && spring.b == d; });
+            if (!linked)
+                add(c, d, F(across), springFlags);
+        }
+    }
 }
 
 void Cloth::Build(const ClothShape& shape, const ClothBody& body)
@@ -416,7 +501,8 @@ bool Cloth::Simulate(float dt, int steps, const ClothBody& body, ClothWorld& wor
 
 bool Cloth::Step(float dt, const ClothBody& body, ClothWorld& world, std::uint8_t map)
 {
-    if (static_cast<std::size_t>(m_bone) >= body.bones.size())
+    const bool onTheMesh = m_mesh >= 0;
+    if (!onTheMesh && static_cast<std::size_t>(m_bone) >= body.bones.size())
     {
         return true;
     }
@@ -439,9 +525,20 @@ bool Cloth::Step(float dt, const ClothBody& body, ClothWorld& world, std::uint8_
     world.wind.x = F(std::sin(angle) * D(m_wind));
     world.wind.y = F(-(std::cos(angle) * D(m_wind)));
 
-    AddForces(world);
-    PullTheSprings();
-    AnchorTheTopRow(body.bones[static_cast<std::size_t>(m_bone)], body);
+    // 0x4555d0: las fuerzas (+0x14), los resortes, el anclaje (+0xc) y la integración; las de la vtable
+    // 0x6b8d04, sobre la malla.
+    if (onTheMesh)
+    {
+        AddForcesOnTheMesh(world);
+        PullTheSprings();
+        AnchorTheMesh(body);
+    }
+    else
+    {
+        AddForces(world);
+        PullTheSprings();
+        AnchorTheTopRow(body.bones[static_cast<std::size_t>(m_bone)], body);
+    }
 
     // 0x454350: Euler semi-implícito con la masa 1/400; la posición con la velocidad sin redondear.
     for (ClothParticle& particle : m_particles)
@@ -479,36 +576,91 @@ void Cloth::AddForces(ClothWorld& world)
     // El centro del viento: ((V / 10) · 101) mod N, con las divisiones de la x86 y el producto en 32 bits.
     const auto product = static_cast<std::uint32_t>(world.logicSteps / 10) * 101u;
     const std::int32_t center = static_cast<std::int32_t>(product) % count;
-    const double gravity = D(GravityFactor) * D(Gravity);
-    const std::uint32_t windMode = m_flags & WindModeMask;
     for (std::int32_t i = 0; i < count; ++i)
     {
         ClothParticle& particle = m_particles[static_cast<std::size_t>(i)];
-        if (particle.anchored)
-        {
-            particle.force = glm::vec3(0.0f);
-            continue;
-        }
         const std::int32_t distance =
             std::abs(center % m_columns - i % m_columns) + std::abs(center / m_columns - i / m_columns);
-        // u = 5 − d sin signo: d ≤ 1 → 6, 2 → 5, 3 → 4, 4 → 3, 5 → 0, y d ≥ 6 da la vuelta y vuelve a 6.
-        const auto u = static_cast<std::uint32_t>(5 - distance);
-        const int weight = u >= 4 ? 6 : (u == 0 ? 0 : static_cast<int>(u) + 2);
-        for (int k = 0; k < 3; ++k)
+        PushTheParticle(particle, distance, world);
+    }
+}
+
+void Cloth::PushTheParticle(ClothParticle& particle, std::int32_t distance, const ClothWorld& world) const
+{
+    if (particle.anchored)
+    {
+        particle.force = glm::vec3(0.0f);
+        return;
+    }
+    const double gravity = D(GravityFactor) * D(Gravity);
+    const std::uint32_t windMode = m_flags & WindModeMask;
+    // u = 5 − d sin signo: d ≤ 1 → 6, 2 → 5, 3 → 4, 4 → 3, 5 → 0, y d ≥ 6 da la vuelta y vuelve a 6.
+    const auto u = static_cast<std::uint32_t>(5 - distance);
+    const int weight = u >= 4 ? 6 : (u == 0 ? 0 : static_cast<int>(u) + 2);
+    for (int k = 0; k < 3; ++k)
+    {
+        particle.force[k] = F(static_cast<double>(weight) * D(world.wind[k]) - D(particle.velocity[k]) * D(Hundredth));
+    }
+    if (windMode == WindRises)
+    {
+        particle.force.z = F((D(m_wind) + D(Tenth)) * static_cast<double>(weight) + D(particle.force.z));
+    }
+    else if (windMode == WindFromBytes)
+    {
+        particle.force.z = F(static_cast<double>(weight) * D(m_wind) + D(particle.force.z));
+    }
+    const double pull = (m_flags & GravityMask) == StrongGravity ? D(OneEighty) : D(GravityScale);
+    particle.force.z = F(D(particle.force.z) - gravity * pull);
+}
+
+// 0x4565f0 sin 0x10000000: el mismo acceso al contador (4 rand() al cerrarlo), y la misma distancia para todas,
+// |c % 10| con c = ((V / 10) · 101) mod N (0x4568af..0x4568c0).
+void Cloth::AddForcesOnTheMesh(ClothWorld& world)
+{
+    if (world.openCounterAccesses == 0)
+    {
+        for (int i = 0; i < ProtectionRandoms; ++i)
         {
-            particle.force[k] =
-                F(static_cast<double>(weight) * D(world.wind[k]) - D(particle.velocity[k]) * D(Hundredth));
+            static_cast<void>(world.random.Next());
         }
-        if (windMode == WindRises)
+    }
+    const auto count = static_cast<std::int32_t>(m_particles.size());
+    if (count == 0)
+    {
+        return;
+    }
+    const auto product = static_cast<std::uint32_t>(world.logicSteps / 10) * 101u;
+    const std::int32_t center = static_cast<std::int32_t>(product) % count;
+    const std::int32_t distance = std::abs(center % 10);
+    for (ClothParticle& particle : m_particles)
+    {
+        PushTheParticle(particle, distance, world);
+    }
+}
+
+// 0x4564c0 sin 0x10000000: cada vértice del hueso de la tela a su posición de 0x5786f9c, anclado (0x454210).
+void Cloth::AnchorTheMesh(const ClothBody& body)
+{
+    for (std::size_t vertex = 0; vertex < m_particles.size() && vertex < m_vertexBones.size(); ++vertex)
+    {
+        if (m_vertexBones[vertex] != m_bone || vertex >= body.meshVertices.size())
         {
-            particle.force.z = F((D(m_wind) + D(Tenth)) * static_cast<double>(weight) + D(particle.force.z));
+            continue;
         }
-        else if (windMode == WindFromBytes)
-        {
-            particle.force.z = F(static_cast<double>(weight) * D(m_wind) + D(particle.force.z));
-        }
-        const double pull = (m_flags & GravityMask) == StrongGravity ? D(OneEighty) : D(GravityScale);
-        particle.force.z = F(D(particle.force.z) - gravity * pull);
+        m_particles[vertex].position = body.meshVertices[vertex];
+        m_particles[vertex].anchored = true;
+    }
+}
+
+void Cloth::WriteTheMesh(std::span<glm::vec3> vertices) const
+{
+    if (vertices.size() < m_particles.size())
+    {
+        return;
+    }
+    for (std::size_t vertex = 0; vertex < m_particles.size(); ++vertex)
+    {
+        vertices[vertex] = m_particles[vertex].position;
     }
 }
 

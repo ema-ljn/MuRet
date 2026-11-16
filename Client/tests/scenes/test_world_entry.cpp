@@ -679,25 +679,26 @@ TEST_F(WorldEntryTest, TheSettlingFollowsTheNativeOrder)
     }
 }
 
-// 0x4f2250 corta en un personaje que no es jugador: el contador ya quedó en 30 y los dos efectos de
-// llegada están creados.
+// Falta el servicio del C1 18 al sentarse: el contador ya quedó en30 y los dos efectos de llegada están creados.
 TEST_F(WorldEntryTest, AStopFailureKeepsCounterThirtyAndTwoArrivals)
 {
     Entry tested(m_dataRoot, Seed);
     tested.world.Runtime().warpCounter = Client::Scenes::WorldLoadingWait;
     ActorState& hero = tested.DressedHero(PublishedSlot);
-    hero.type = 0xa9;
+    constexpr std::uint32_t Sitting = 0x200000;
+    hero.flags7c |= Sitting;
     RecordingPublisher publisher;
 
     const auto settled = SettleWorldEntry({}, tested.Resources(), publisher);
 
     ASSERT_FALSE(settled.HasValue());
-    EXPECT_NE(settled.Error().find("0x4f2250"), std::string::npos) << settled.Error();
+    EXPECT_NE(settled.Error().find("0x4f2416"), std::string::npos) << settled.Error();
     EXPECT_EQ(publisher.calls, 1);
     EXPECT_EQ(tested.world.Runtime().warpCounter, Client::Scenes::WaitDrawThreshold);
     EXPECT_EQ(tested.AliveArrivals(), 2u);
     EXPECT_EQ(tested.world.Runtime().hero, PublishedSlot);
     EXPECT_EQ(hero.alpha, 0.0f);
+    EXPECT_EQ(hero.animation.action, 0xca);
 }
 
 // 0x4c49d6..0x4c4a11: sin el 0x8b en Blood Castle y sin el 0x99 ni el 0x9e en Chaos Castle.

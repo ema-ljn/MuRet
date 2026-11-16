@@ -201,7 +201,7 @@ Core::Expected<void, std::string> Vanish(ActorState& actor, bool arriving, const
 // 0x4f2250 sobre `actor`, con el sonido de Fenrir que pida.
 Core::Expected<void, std::string> Stop(ActorState& actor, const WorldEntryResources& resources)
 {
-    const auto context = TransitionStopContext(resources);
+    const auto context = TransitionStopContext(actor, resources);
     if (!context.HasValue())
         return Core::Unexpected(context.Error());
     const auto stopped = SetActorStop(actor, context.Value());
@@ -808,8 +808,7 @@ Core::Expected<void, std::string> ApplyActorState(const Protocol::Skill::ActorSt
         if (!lit)
         {
             WorldRuntime& runtime = world.Runtime();
-            return ApplyEffectFlags(actor, state.mask, &actor == &world.Actors()[runtime.hero], runtime.lastSoundId,
-                                    world.Map().effects);
+            return ApplyEffectFlags(actor, state.mask, &actor == &world.Actors()[runtime.hero], resources);
         }
         // 0x4cbe52..0x4cbe72: el NEG/SBB deja +0x7c entero en 0x200000 si lo tenía y en 0 si no (Q-C1202).
         constexpr std::uint32_t Sitting = 0x200000;

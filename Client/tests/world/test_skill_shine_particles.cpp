@@ -104,7 +104,7 @@ TEST(SkillShineParticlesTest, TheShineSwellsWithItsLifeAndFollowsTheBone)
         static_cast<void>(wind.Next());
         static_cast<void>(wind.Next());
         const auto stepped = Client::World::StepParticlesChecked(particles, random, std::cref(clock), &map,
-                                                                 trigonometry, {}, {}, {}, {}, nullptr, BonePoint);
+                                                                 trigonometry, {}, {}, {}, {}, nullptr, {}, BonePoint);
         ASSERT_TRUE(stepped.HasValue());
         const int life = 18 - step;
         EXPECT_EQ(shine.life, life);

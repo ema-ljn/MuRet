@@ -62,6 +62,8 @@ StepGameWaterspoutFrame(World::WorldObject& object, World::Particles& particles,
 // del personaje dueño de la órbita 60f/0 (World::ParticleActorActions), `textureHeight`, el alto de la textura
 // que lee la 5f3 (World::ParticleTextureHeight), `lighting`, la luz dinámica (0x7b4ccc4) de la 5ed, y `ownerBones`, el
 // hueso del dueño de la 5fe (World::ParticleOwnerBones, 0x53fdb0).
+// que lee la 5f3 (World::ParticleTextureHeight), `lighting`, la luz dinámica (0x7b4ccc4) de la 5ed, y `actorHands`,
+// la mano del dueño de la 5fd (0x53fdb0, World::ParticleActorHands).
 [[nodiscard]] Core::Expected<void, std::string>
 StepGameParticles(World::Particles& particles, Render::Models::CrtRandom& random, const std::int32_t& map,
                   const std::function<double(float, float)>& terrainHeight = {}, const float& worldClock = 0.0f,
@@ -69,7 +71,9 @@ StepGameParticles(World::Particles& particles, Render::Models::CrtRandom& random
                   const std::function<std::optional<std::uint8_t>(std::uint64_t)>& actorActions = {},
                   const std::function<std::optional<float>(std::int32_t)>& textureHeight = {},
                   World::TerrainLighting* lighting = nullptr,
-                  const std::function<std::optional<glm::vec3>(const World::Particle&)>& ownerBones = {});
+                  const std::function<std::optional<glm::vec3>(std::uint64_t, std::int32_t)>& actorHands = {},
+const std::function<std::optional<glm::vec3>(const World::Particle&)>& ownerBones = {});
+
 
 // La acción (+0x111) del personaje de un lugar del pool entre `actors`, que tienen que vivir más que el
 // resolvedor: lo que el paso de la órbita 60f/0 lee por el puntero +0x40 (0x54735f).

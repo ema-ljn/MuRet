@@ -14,6 +14,7 @@
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "World/ModelEffects.h"
 
 #include <algorithm>
 #include <array>
@@ -94,11 +95,14 @@ Core::Expected<void, std::string> SetTheAction(ActorState& actor, const ActorCom
     const Render::Models::Skeleton* skeleton = nullptr;
     if (actor.type == Data::Models::PlayerSkeletonModel && context.playerSkeleton != nullptr)
         skeleton = context.playerSkeleton;
-    else if (context.models != nullptr)
-        skeleton = context.models->SkeletonOf(actor.type);
-    if (skeleton == nullptr)
-        return Core::Unexpected(std::format("0x4ea030: falta el esqueleto del modelo {:#x}", actor.type));
-    Render::Models::SetAction(actor.animation, *skeleton, action);
+    else
+    {
+        skeleton = context.world.FaunaResources().SkeletonOf(actor.type);
+        if (skeleton == nullptr && context.models != nullptr)
+            skeleton = context.models->SkeletonOf(actor.type);
+    }
+    if (skeleton != nullptr)
+        Render::Models::SetAction(actor.animation, *skeleton, action);
     return {};
 }
 
@@ -426,13 +430,13 @@ void DeathSound(const ActorState& actor, const ActorCombatContext& context)
     if (actor.type != Data::Models::PlayerSkeletonModel || HasModelSoundSubtype(actor))
     {
         // 0x4f5aa8..0x4f5ae8: la WORD 4 de la tabla del modelo; 0xffff, nada; si no, con signo, más 5 con el subtipo 9
-        // y más 0xd2. Sin la tabla, no se pide (P-C253). No saca rand().
-        const std::optional<ModelSounds> table = SoundsOf(actor, context);
+        // y más 0xd2. Sin la tabla, la WORD en 0 de 0x60dc80 (SoundsOrZeros): el 0xd2. No saca rand().
+        const ModelSounds table = SoundsOrZeros(SoundsOf(actor, context));
         constexpr std::size_t DeathSoundWord = 4;
-        if (!table || (*table)[DeathSoundWord] == -1)
+        if (table[DeathSoundWord] == -1)
             return;
         constexpr std::int32_t MonsterSoundBase = 0xd2;
-        sound = (*table)[DeathSoundWord] + SubtypeOffset(actor) + MonsterSoundBase;
+        sound = table[DeathSoundWord] + SubtypeOffset(actor) + MonsterSoundBase;
         return;
     }
     const auto characterClass = actor.characterClass & ClassMask;
@@ -461,14 +465,23 @@ Core::Expected<void, std::string> SetActorAttack(ActorState& actor, const ActorC
             return attacked;
         break;
     case 0x27:
-        return Core::Unexpected(std::string("0x4f4f5b: el efecto 0xd4 del 0x27 al pegar (0x518cf0) es de la CL11"));
+        if (std::ranges::any_of(context.world.Map().effects.Effects(),
+                                [](const World::ModelEffect& effect) { return !effect.alive; }))
+            return Core::Unexpected(std::string("0x4f4f5b: el efecto 0xd4 del 0x27 al pegar (0x518cf0) es de la CL11"));
+        context.world.Runtime().lastSoundId = 0x10;
+        break;
     case 0x28:
         if (auto set = SetTheAction(actor, context, 1); !set.HasValue())
             return set;
         context.world.Runtime().lastSoundId = 0x10;
         break;
     case 0x33:
-        return Core::Unexpected(std::string("0x4f4fb9: el efecto 0x5da del 0x33 al pegar (0x518cf0) es de la CL11"));
+        if (std::ranges::any_of(context.world.Map().effects.Effects(),
+                                [](const World::ModelEffect& effect) { return !effect.alive; }))
+            return Core::Unexpected(
+                std::string("0x4f4fb9: el efecto 0x5da del 0x33 al pegar (0x518cf0) es de la CL11"));
+        context.world.Runtime().lastSoundId = 0x79;
+        break;
     case 0x172:
     {
         // 0x4f4fd7..0x4f502f: rand() & 7; con 0 la 9, con 1 o 2 la 8, y si no rand() & 1 + 3.
@@ -505,10 +518,18 @@ Core::Expected<void, std::string> SetActorDie(ActorState& actor, const ActorComb
     }
     else if (actor.type == Data::Models::PlayerSkeletonModel || actor.type == 0x16b || actor.type == 0x170)
     {
-        // 0x4f58a3..0x4f59fc: +0 en 0, los efectos 0xd5 y diez 0xd6 (o ocho pares 0xe5/0xe6 el 0x16b) y el sonido 0x7c.
-        return Core::Unexpected(std::format("0x4f58a3: los efectos de la muerte del modelo {:#x} (0x518cf0) son de "
-                                            "la CL11",
-                                            actor.type));
+        // 0x4f58a7, 0x4f5942 y 0x4f599e apagan +0 antes del primer creador de efectos.
+        actor.alive = false;
+        const char* firstEffectCall = actor.type == Data::Models::PlayerSkeletonModel ? "0x4f58c2"
+                                      : actor.type == 0x170                           ? "0x4f595d"
+                                                                                      : "0x4f59ca";
+        // Un lugar libre llega a la llamada CL11; lleno, los creadores no-op y sigue con el sonido y el frame.
+        if (std::ranges::any_of(context.world.Map().effects.Effects(),
+                                [](const World::ModelEffect& effect) { return !effect.alive; }))
+            return Core::Unexpected(std::format("{}: los efectos de la muerte del modelo {:#x} (0x518cf0) son de "
+                                                "la CL11",
+                                                firstEffectCall, actor.type));
+        context.world.Runtime().lastSoundId = 0x7c;
     }
     else if (auto set = SetTheAction(actor, context, 6); !set.HasValue())
     {

@@ -335,7 +335,7 @@ TEST(HeroSkillsElfTest, Skill34ShootsAtTheChosen)
         EXPECT_EQ(tested->Sent(0),
                   (std::vector<std::uint8_t>{0xc1, 0x0c, 0x1e, 0x34, 182, 115, 0x60, 0, 0, 0x0a, 0x1b, 0}));
         EXPECT_FLOAT_EQ(tested->Hero().angles.z, 135.0f);
-        EXPECT_EQ(tested->Movement().lastShotSkill, 0x34u);
+        EXPECT_EQ(tested->world.Runtime().lastShotSkill, 0x34u);
         EXPECT_EQ(tested->Movement().weaponSkill.active, 1u);
     }
     {
@@ -369,7 +369,7 @@ TEST(HeroSkillsElfTest, Skill34ShootsAtTheChosen)
         tested->CallIt("webzen");
         ASSERT_TRUE(tested->Use().HasValue());
         EXPECT_TRUE(tested->sent.empty());
-        EXPECT_EQ(tested->Movement().lastShotSkill, 0u);
+        EXPECT_EQ(tested->world.Runtime().lastShotSkill, 0u);
         EXPECT_FLOAT_EQ(tested->Hero().angles.z, 135.0f);
     }
 }
@@ -506,7 +506,7 @@ TEST(HeroSkillsElfTest, TheSkill4cCastsWithThePositionAndTheMagicKey)
         EXPECT_EQ(tested->Hero().magicKey, 1);
         EXPECT_EQ(tested->Hero().animation.action, 0x62);
         EXPECT_EQ(tested->Hero().movement, 0);
-        EXPECT_EQ(tested->Movement().lastShotSkill, 0x4cu);
+        EXPECT_EQ(tested->world.Runtime().lastShotSkill, 0x4cu);
     }
     {
         const auto tested = AnElf(0x4c, 2);

@@ -10,6 +10,7 @@
 #include "Data/Text/Credits.h"
 #include "Data/Text/DialogTable.h"
 #include "Data/Text/MoveRequirements.h"
+#include "Data/Text/NpcNames.h"
 #include "Data/Text/SlideTable.h"
 #include "Data/Text/TextTable.h"
 #include "UI/MacroFile.h"
@@ -51,6 +52,9 @@ inline constexpr std::string_view DialogTableFile = "Local\\Dialog.bmd";
 inline constexpr std::string_view QuestTableFile = "Local\\quest.bmd";
 // Las skills de los monstruos, como las pide 0x61ccb0 (0x61ecdf, con 0x6d29fc).
 inline constexpr std::string_view MonsterSkillTableFile = "Local\\MonsterSkill.bmd";
+// Los nombres de los monstruos y los NPC, como los pide 0x61ccb0 (0x61ed05, con 0x6d29e0 y el idioma de [0x5763350]).
+// El idioma es *inferido* (P-C352): Eng, que es igual byte a byte al Chs del laboratorio.
+inline constexpr std::string_view NpcNameFile = "Local\\NpcName(Eng).txt";
 
 struct GameData
 {
@@ -88,6 +92,9 @@ struct GameData
     // MonsterSkill.bmd (CL9 hito 3, fase 2c): las skills de [0x7437670], que main.cpp copia a
     // WorldRuntime::monsterSkills. Sin el archivo, la .bss (el original avisa y cierra la ventana, 0x54a500..0x54a549).
     Data::Tables::MonsterSkillTable monsterSkills;
+    // NpcName(%s).txt (CL9 hito 2): los registros que 0x54e7f0 deja en 0x7681eb8, que main.cpp copia al principio de
+    // WorldRuntime::npcNames. Vacío si no está, como cuando fopen falla.
+    std::vector<Data::Text::NpcNameRecord> npcNames;
 };
 
 // Lo de WinMain antes de la escena 1: Text.bmd en 0x4b9b9f (0x61ee30 y 0x5495e0), antes de las
@@ -110,9 +117,12 @@ struct GameData
 // que no se lee o es corto es un error que lo nombra. movereq.bmd, antes de las tablas de los conjuntos como en
 // 0x61ccb0, también: sin él, la ventana /move queda sin destinos (0x448440 devuelve 0 y nadie lo mira);
 // uno que no se lee, corto o con un nombre sin terminar es un error que lo nombra. Antes de movereq.bmd, Dialog.bmd
-// y quest.bmd (0x61eb69 y 0x61eb7c): uno que no está queda con sus 200 registros vacíos; uno que no se lee, corto o
-// (Dialog.bmd) con más de 10 respuestas en un registro es un error que lo nombra. Después de las tablas de los
-// conjuntos, MonsterSkill.bmd (0x61ecdf): uno que no está deja la tabla de la .bss (el original avisa y cierra la
-// ventana); uno que no se lee, corto o con un tipo fuera de [0, 0xffff] es un error que lo nombra.
+// y quest.bmd (0x61eb69 y 0x61eb7c): uno que no está queda con sus 200 registros vacíos; uno corto, con lo que deja
+// su fread (Q-C1127); uno que no se lee, de menos de un registro o (Dialog.bmd) con más de 10 respuestas en un
+// registro es un error que lo nombra. Después de las tablas de los conjuntos, MonsterSkill.bmd (0x61ecdf): uno que no
+// está deja la tabla de la .bss (el original avisa y cierra la ventana); uno que no se lee, corto o con un tipo fuera
+// de [0, 0xffff] es un error que lo nombra. Detrás, NpcName(Eng).txt (0x61ed05): uno que no está deja la tabla vacía;
+// uno que no se lee, de más de 1 MiB o que el original no cargaría sin pisar otra cosa (Data::Text::LoadNpcNames) es
+// un error que lo nombra.
 [[nodiscard]] Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& dataRoot);
 } // namespace Client::Scenes

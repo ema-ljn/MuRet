@@ -3,6 +3,7 @@
 #include "Scenes/DynamicWorldLight.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/GameParticles.h"
+#include "Scenes/HandShine.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/GameRibbonCreation.h"
 #include "Scenes/FaunaJointCreation.h"
@@ -14,6 +15,7 @@
 
 #include "App/ServerSession.h"
 #include "Core/Expected.h"
+#include "Core/IClock.h"
 #include "Data/Models/PlayerModels.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
@@ -47,6 +49,19 @@
 
 namespace Client::Scenes
 {
+namespace
+{
+// timeGetTime() (0x6b8144) con el reloj de la escena, en ms, que lee el mensaje del nombre (0x4fcd82); sin reloj,
+// vacío.
+std::function<std::uint32_t()> SceneSystemTime(Core::IClock* clock)
+{
+    if (clock == nullptr)
+        return {};
+    return [clock]()
+    { return static_cast<std::uint32_t>(std::chrono::duration_cast<std::chrono::milliseconds>(clock->Now()).count()); };
+}
+} // namespace
+
 Core::Expected<void, std::string> GameScene::StepTheFloorItems(float worldClock)
 {
     const auto& terrain = StepTerrain();
@@ -69,28 +84,33 @@ Core::Expected<void, std::string> GameScene::StepTheCharacters(float worldClock,
     auto& runtime = m_context.world->Runtime();
     const Render::Models::Skeleton* player =
         m_models != nullptr ? m_models->SkeletonOf(Data::Models::PlayerSkeletonModel) : nullptr;
-    if (auto stepped = StepCharacters(CharacterStepContext{
-            .world = *m_context.world,
-            .random = m_context.cloth->random,
-            .scene = SceneId::Game,
-            .playerSkeleton = player,
-            .items = m_items,
-            .skills = m_skills,
-            .models = m_models,
-            .terrain = &StepTerrain(),
-            .darkSpiritSkeleton = m_models ? m_models->SkeletonOf(DarkSpiritModel) : nullptr,
-            .particles = &m_context.world->Particles(),
-            .joints = m_context.world->DrawTail().joints,
-            .worldClock = worldClock,
-            .counter = m_context.cloth->logicSteps,
-            .actionSpeeds = &m_context.world->ActionSpeeds(),
-            .fixedHeight = CameraState().fixedHeight,
-            .soundRequest = [&](std::int32_t sound) { runtime.lastSoundId = sound; },
+    if (auto stepped = StepCharacters(
+            CharacterStepContext{.world = *m_context.world,
+                                 .random = m_context.cloth->random,
+                                 .scene = SceneId::Game,
+                                 .playerSkeleton = player,
+                                 .items = m_items,
+                                 .skills = m_skills,
+                                 .models = m_models,
+                                 .terrain = &StepTerrain(),
+                                 .darkSpiritSkeleton = m_models ? m_models->SkeletonOf(DarkSpiritModel) : nullptr,
+                                 .particles = &m_context.world->Particles(),
+                                 .sprites = &m_sprites,
+                                 .joints = m_context.world->DrawTail().joints,
+                                 .worldClock = worldClock,
+                                 .counter = m_context.cloth->logicSteps,
+                                 .actionSpeeds = &m_context.world->ActionSpeeds(),
+                                 .fixedHeight = CameraState().fixedHeight,
+                                 .soundRequest = [&](std::int32_t sound) { runtime.lastSoundId = sound; },
             .send = m_session != nullptr
                         ? std::function<void(Protocol::Outgoing)>([session = m_session](Protocol::Outgoing packet)
                                                                   { session->SendChat(std::move(packet)); })
                         : std::function<void(Protocol::Outgoing)>{},
-            .controlDown = controlDown});
+                                 .controlDown = controlDown,
+                                 .texts = m_texts,
+                                 .textMeasure = m_context.textMeasure,
+                                 .screen = m_screen,
+                                 .systemTime = SceneSystemTime(m_context.clock)});
         !stepped.HasValue())
     {
         return stepped;
@@ -242,6 +262,7 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
             m_context.world->Particles(), m_context.cloth->random, runtime.map, terrainHeight, worldClock,
             ParticleOwnersAmong(m_context.world->Map().objects), ParticleActorActionsAmong(m_context.world->Actors()),
             ParticleTextureHeightsOf(m_worldModels), &m_context.world->DynamicLighting().Lighting(),
+            ParticleActorHandsAmong(m_context.world->Actors(), runtime.hero),
             ParticleOwnerBonesOf(*m_context.world));
         !particles.HasValue())
     {

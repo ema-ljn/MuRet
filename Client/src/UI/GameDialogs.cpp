@@ -286,4 +286,14 @@ Core::Expected<void, std::string> StepTheDialogPages(DialogBoxState& box, const 
     box.lineCount = written.Value();
     return {};
 }
+
+std::int32_t DialogTextTop(const DialogBoxState& box, std::int32_t id)
+{
+    constexpr std::int32_t BoxTextRows = static_cast<std::int32_t>(DialogRowCount);
+    constexpr std::int32_t BoxTextTop = 0x4c;
+    const std::int32_t top = ((BoxTextRows - box.answerCount - box.lineCount) * DialogLineStep) / 2 + BoxTextTop;
+    if (id == AnswersDialog)
+        return std::max(top, AnswersDialogTopMinimum);
+    return top;
+}
 } // namespace Client::UI

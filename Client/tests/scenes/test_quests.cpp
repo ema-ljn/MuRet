@@ -122,25 +122,29 @@ std::unique_ptr<Quests> MakeQuests()
 
 TEST(Quests, TheStateOfAQuestIsReadShiftedLikeTheOriginal)
 {
-    QuestState quest;
+    const auto runtime = std::make_unique<Client::Scenes::WorldRuntime>();
+    QuestState& quest = runtime->quest;
     // Byte 0: las misiones 0 a 3 donde las escribe el GS (2 bits cada una, la 0 abajo).
     quest.states[0] = 0b10'01'11'00;
     quest.states[1] = 0b11'00'00'10;
-    EXPECT_EQ(QuestStateOf(quest, 0), 0);
-    EXPECT_EQ(QuestStateOf(quest, 1), 3);
-    EXPECT_EQ(QuestStateOf(quest, 2), 1);
-    EXPECT_EQ(QuestStateOf(quest, 3), 2);
+    EXPECT_EQ(QuestStateOf(*runtime, 0), 0);
+    EXPECT_EQ(QuestStateOf(*runtime, 1), 3);
+    EXPECT_EQ(QuestStateOf(*runtime, 2), 1);
+    EXPECT_EQ(QuestStateOf(*runtime, 3), 2);
     // Q-C841: la 4 lee el byte 1 corrido (4 − 1) · 2 = 6 bits; desde la 5, la cuenta llega a 8 y da 0.
-    EXPECT_EQ(QuestStateOf(quest, 4), 3);
-    EXPECT_EQ(QuestStateOf(quest, 5), 0);
-    EXPECT_EQ(QuestStateOf(quest, 8), 0);
-    // −1: el byte 0 (la división con signo) corrido 30 bits; fuera de los 50 bytes, 0.
-    EXPECT_EQ(QuestStateOf(quest, -1), 0);
-    EXPECT_EQ(QuestStateOf(quest, 200), 0);
-    EXPECT_EQ(QuestStateOf(quest, -5), 0);
+    EXPECT_EQ(QuestStateOf(*runtime, 4), 3);
+    EXPECT_EQ(QuestStateOf(*runtime, 5), 0);
+    EXPECT_EQ(QuestStateOf(*runtime, 8), 0);
+    // −1: el byte 0 (la división con signo) corrido 30 bits; fuera de los 64 bytes, 0.
+    EXPECT_EQ(QuestStateOf(*runtime, -1), 0);
+    EXPECT_EQ(QuestStateOf(*runtime, 200), 0);
+    EXPECT_EQ(QuestStateOf(*runtime, -5), 0);
+    // La 236 lee el relleno de +0x21387 (el byte 59) corrido (236 − 59) & 0xf · 2 = 2 bits.
+    quest.byte21387 = 0b0000'1100;
+    EXPECT_EQ(QuestStateOf(*runtime, 236), 3);
 
     quest.current = 3;
-    Client::Scenes::ReadTheCurrentQuestState(quest);
+    Client::Scenes::ReadTheCurrentQuestState(*runtime);
     EXPECT_EQ(quest.currentState, 2);
 }
 
@@ -169,7 +173,7 @@ TEST(Quests, TheListOfTheA0CopiesTheStatesAndFindsTheFirstUnfinished)
     tested->Hero().byte390 = 1;
     tested->world.Runtime().byte6eeda8 = 1;
     const std::array<std::uint8_t, 2> bytes{0b00'00'10'10, 0x40};
-    ASSERT_TRUE(Client::Scenes::ApplyTheQuestList(tested->world, 2, bytes).HasValue());
+    EXPECT_EQ(Client::Scenes::ApplyTheQuestList(tested->world, 2, bytes), 0u);
     EXPECT_EQ(quest.characterClass, 3);
     EXPECT_EQ(quest.evolution, 2);
     EXPECT_EQ(quest.refreshClass, 1);
@@ -189,7 +193,7 @@ TEST(Quests, TheThirdQuestDoneMarksTheHeroAndAShortA0IsFilledWithZeros)
     QuestState& quest = tested->Quest();
     // Q-C840 y P-C171: la cuenta pide 3 bytes y el paquete trae 1; lo que falta va en 0.
     const std::array<std::uint8_t, 1> bytes{0b10'10'10'10};
-    ASSERT_TRUE(Client::Scenes::ApplyTheQuestList(tested->world, 3, bytes).HasValue());
+    EXPECT_EQ(Client::Scenes::ApplyTheQuestList(tested->world, 3, bytes), 0u);
     EXPECT_EQ(quest.states[0], 0b10'10'10'10);
     EXPECT_EQ(quest.states[1], 0);
     EXPECT_EQ(quest.states[2], 0);
@@ -198,13 +202,38 @@ TEST(Quests, TheThirdQuestDoneMarksTheHeroAndAShortA0IsFilledWithZeros)
     EXPECT_EQ(tested->Hero().byte390, 1);
 }
 
-TEST(Quests, AnA0OfMoreThanFiftyBytesCuts)
+// Q-C1126: la copia del A0 (0x418e20) sigue después de los 50 bytes por los campos del objeto hasta su final
+// (+0x21398): +0x2137e.., la ventana de +0x21383, el diálogo, el zen, la pestaña, +0x2138d (también el 1 de recién) y
+// la esquina. Después, la primera sin terminar (con lo que dejó la copia) en +0x2137e y +0x2137f. Lo que pasa del
+// objeto no se escribe y se cuenta.
+TEST(Quests, AnA0OfMoreThanFiftyBytesWritesTheObjectUpToItsEnd)
 {
     auto tested = MakeQuests();
-    const std::vector<std::uint8_t> bytes(51, 0);
-    const auto applied = Client::Scenes::ApplyTheQuestList(tested->world, 51, bytes);
-    ASSERT_FALSE(applied.HasValue());
-    EXPECT_NE(applied.Error().find("0x418e20"), std::string::npos);
+    QuestState& quest = tested->Quest();
+    std::vector<std::uint8_t> bytes(80, 0);
+    // 0xaa: las misiones 0 a 4 terminadas (Q-C841) y la 5 no.
+    std::fill_n(bytes.begin(), 50, std::uint8_t{0xaa});
+    for (std::size_t i = 50; i < bytes.size(); ++i)
+        bytes[i] = static_cast<std::uint8_t>(i);
+    EXPECT_EQ(Client::Scenes::ApplyTheQuestList(tested->world, 80, bytes), 4u);
+    EXPECT_EQ(quest.states[49], 0xaa);
+    EXPECT_EQ(quest.current, 5);
+    EXPECT_EQ(quest.reached, 5);
+    EXPECT_EQ(quest.byte21380, 52);
+    EXPECT_EQ(quest.byte21381, 53);
+    EXPECT_EQ(quest.byte21382, 54);
+    EXPECT_EQ(tested->world.Runtime().panels.delegated.quest, 55);
+    EXPECT_EQ(quest.dialog, 0x3938);
+    EXPECT_EQ(quest.currentState, 58);
+    EXPECT_EQ(quest.byte21387, 59);
+    EXPECT_EQ(quest.zen, 0x3f3e3d3cu);
+    EXPECT_EQ(quest.tab, 64);
+    EXPECT_EQ(quest.refreshClass, 65);
+    EXPECT_EQ(quest.x, 0x47464544);
+    EXPECT_EQ(quest.y, 0x4b4a4948);
+    EXPECT_EQ(tested->Hero().byte390, 1);
+    // Hasta el final justo, nada afuera.
+    EXPECT_EQ(Client::Scenes::ApplyTheQuestList(tested->world, 76, bytes), 0u);
 }
 
 TEST(Quests, TheA1WritesTheWholeByteAndKeepsTheHighest)
@@ -214,16 +243,37 @@ TEST(Quests, TheA1WritesTheWholeByteAndKeepsTheHighest)
     quest.reached = 9;
     quest.states[1] = 0xff;
     // Q-C843: el byte entero de las cuatro misiones, no los dos bits de la 5.
-    ASSERT_TRUE(Client::Scenes::SetTheQuestState(tested->world, 5, 0x04).HasValue());
+    Client::Scenes::SetTheQuestState(tested->world, 5, 0x04);
     EXPECT_EQ(quest.current, 5);
     EXPECT_EQ(quest.reached, 9);
     EXPECT_EQ(quest.states[1], 0x04);
-    ASSERT_TRUE(Client::Scenes::SetTheQuestState(tested->world, 12, 0x80).HasValue());
+    Client::Scenes::SetTheQuestState(tested->world, 12, 0x80);
     EXPECT_EQ(quest.reached, 12);
     EXPECT_EQ(tested->Hero().byte390, 0);
-    ASSERT_TRUE(Client::Scenes::SetTheQuestState(tested->world, 3, 0x80).HasValue());
+    Client::Scenes::SetTheQuestState(tested->world, 3, 0x80);
     EXPECT_EQ(tested->Hero().byte390, 1);
-    EXPECT_FALSE(Client::Scenes::SetTheQuestState(tested->world, 200, 1).HasValue());
+}
+
+// Q-C1126: desde la misión 200, 0x418ee0 escribe el estado en los campos que siguen a los 50 bytes, después de poner
+// +0x2137e y +0x2137f: la 201 pisa la misión en curso de recién, la 204 la más alta, la 222 la ventana y la 255 el byte
+// alto del zen.
+TEST(Quests, TheA1PastTheTwoHundredWritesTheFieldsThatFollow)
+{
+    auto tested = MakeQuests();
+    QuestState& quest = tested->Quest();
+    Client::Scenes::SetTheQuestState(tested->world, 201, 7);
+    EXPECT_EQ(quest.current, 7);
+    EXPECT_EQ(quest.reached, 201);
+    Client::Scenes::SetTheQuestState(tested->world, 204, 3);
+    EXPECT_EQ(quest.current, 204);
+    EXPECT_EQ(quest.reached, 3);
+    Client::Scenes::SetTheQuestState(tested->world, 222, 2);
+    EXPECT_EQ(tested->world.Runtime().panels.delegated.quest, 2);
+    EXPECT_EQ(quest.reached, 222);
+    quest.zen = 0x00123456;
+    Client::Scenes::SetTheQuestState(tested->world, 255, 0x01);
+    EXPECT_EQ(quest.zen, 0x01123456u);
+    EXPECT_EQ(QuestStateOf(tested->world.Runtime(), 255), 1);
 }
 
 TEST(Quests, AnAvailableQuestChecksItsConditionsWithTheOwnRecordOpen)

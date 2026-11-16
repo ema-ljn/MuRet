@@ -111,7 +111,7 @@ Core::Expected<void, std::string> ShakeTheGround(ActorState& actor, const Charac
     if (created.has_value())
     {
         World::ModelEffect& quake = effects.Effects()[*created];
-        quake.disturbanceState = actor.word8a;
+        quake.disturbanceState = static_cast<std::uint16_t>(actor.word8a);
         quake.byte89 = static_cast<std::uint8_t>(index & 0xff);
         quake.byte1bd = 0;
         quake.ownerContext = &actor;
@@ -152,7 +152,7 @@ Core::Expected<void, std::string> CastTheFlame(ActorState& actor, const Characte
                                                 .light = actor.light,
                                                 .subtype = 0,
                                                 .owner = &actor,
-                                                .key = actor.word8a,
+                                                .key = static_cast<std::uint16_t>(actor.word8a),
                                                 .byte89 = static_cast<std::uint8_t>(index & 0xff)};
     static_cast<void>(world.Map().effects.CreateOwnedFlameJet(arguments, runtime.ownRecordDepth,
                                                               world.OwnCharacter().bytef04, context.random));

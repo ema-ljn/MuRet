@@ -165,10 +165,9 @@ TEST(ActorDyingTest, TheBloodCastleFlight)
 }
 
 // 0x4fbb4a..0x4fbc19: en Chaos Castle (18 a 23) vuela con +0x1a1 y el tope es 15 (25 sin él): de tope − 10 al tope, en
-// los pasos impares, las chispas de 0x51fe10 cortan (CL11), con el vuelo hecho.
+// los pasos impares, 0x51fe10(position, 1) crea veinte 0x5c5/2 y una 0x5ed/0.
 TEST(ActorDyingTest, ChaosCastleSparksOnTheOddSteps)
 {
-    CrtRandom random(Seed);
     struct Case
     {
         std::uint8_t byte1a1;
@@ -184,18 +183,94 @@ TEST(ActorDyingTest, ChaosCastleSparksOnTheOddSteps)
         actor.byte1a1 = probe.byte1a1;
         actor.dying = probe.dying;
         actor.angles.x = 20.0f;
-        const auto stepped = StepActorDying(actor, Slot, {.map = 18, .random = random});
+        CrtRandom random(Seed);
+        Client::World::Particles particles;
+        std::int32_t sound = 0;
+        int soundRequests = 0;
+        const auto requestSound = [&](std::int32_t requested)
+        {
+            sound = requested;
+            ++soundRequests;
+        };
+        const auto stepped = StepActorDying(
+            actor, Slot, {.map = 18, .random = random, .particles = &particles, .soundRequest = requestSound});
         if (probe.sparks)
-            EXPECT_TRUE(CutsAt(stepped, "0x4fbba8")) << (stepped.HasValue() ? "" : stepped.Error());
+        {
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+            EXPECT_EQ(random.State(), After(Seed, 143).State());
+            std::size_t alive = 0;
+            for (const Client::World::Particle& particle : particles.All())
+            {
+                if (!particle.alive)
+                    continue;
+                if (alive < 20)
+                {
+                    EXPECT_EQ(particle.type, Client::World::FairySparkParticle);
+                    EXPECT_EQ(particle.subtype, 2);
+                }
+                else
+                {
+                    EXPECT_EQ(particle.type, Client::World::ExplosionParticle);
+                    EXPECT_EQ(particle.subtype, 0);
+                }
+                ++alive;
+            }
+            EXPECT_EQ(alive, 21u);
+            EXPECT_EQ(soundRequests, 1);
+            EXPECT_EQ(sound, 0x40);
+        }
         else
+        {
             EXPECT_TRUE(stepped.HasValue()) << stepped.Error();
+            EXPECT_EQ(random.State(), Seed);
+            EXPECT_FALSE(particles.Any());
+            EXPECT_EQ(soundRequests, 0);
+        }
         EXPECT_EQ(actor.angles.x, probe.byte1a1 != 0 ? 15.0f : 20.0f);
     }
 }
 
+TEST(ActorDyingTest, MissingChaosCastleParticlesKeepsTheOffsetAndFirstSparkDraws)
+{
+    ActorState actor = Dying();
+    actor.dying = 15;
+    CrtRandom random(Seed);
+
+    const auto stepped = StepActorDying(actor, Slot, {.map = 18, .random = random});
+
+    EXPECT_TRUE(CutsAt(stepped, "0x4fbba8"));
+    EXPECT_EQ(random.State(), After(Seed, 5).State());
+}
+
+TEST(ActorDyingTest, AFullChaosCastlePoolSkipsTheExplosionAndItsSound)
+{
+    ActorState actor = Dying();
+    actor.dying = 15;
+    Client::World::Particles particles;
+    for (Client::World::Particle& particle : particles.All())
+    {
+        particle.alive = true;
+        particle.type = -1;
+    }
+    CrtRandom random(Seed);
+    int soundRequests = 0;
+
+    const auto stepped = StepActorDying(
+        actor, Slot,
+        {.map = 18, .random = random, .particles = &particles, .soundRequest = [&soundRequests](std::int32_t) {
+             ++soundRequests;
+         }});
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(random.State(), After(Seed, 43).State());
+    EXPECT_EQ(soundRequests, 0);
+    for (const Client::World::Particle& particle : particles.All())
+        EXPECT_EQ(particle.type, -1);
+}
+
 // 0x4fbc1e..0x4fbcdd y 0x51fd20: fuera de los castillos, con la skill 0x28 o 0x3b y hasta el paso 14, +0xd0 baja
 // +0xd8 (sin bajar de 0), +0xd8 sube 1 y la posición suma (+0xcc, +0xd0, +0xd4) girado por la cabeza y +0x30. Con la
-// 0x28, hasta el paso 30 las partículas 0x5ac cortan (CL11).
+// 0x28, hasta el paso 30 0x4ec110 sortea hueso y escala antes de las partículas 0x5ac (CL11).
 TEST(ActorDyingTest, ThePushedFliesUntilTheFourteenthStep)
 {
     CrtRandom random(Seed);
@@ -237,8 +312,11 @@ TEST(ActorDyingTest, ThePushedFliesUntilTheFourteenthStep)
         ActorState sparks = Dying();
         sparks.deathSkill = 0x28;
         sparks.dying = dying;
-        const auto cut = StepActorDying(sparks, Slot, {.random = random});
+        CrtRandom prefixRandom(Seed);
+        Client::World::Particles particles;
+        const auto cut = StepActorDying(sparks, Slot, {.random = prefixRandom, .particles = &particles});
         EXPECT_TRUE(CutsAt(cut, "0x4fbcdd")) << (cut.HasValue() ? "" : cut.Error());
+        EXPECT_EQ(prefixRandom.State(), After(Seed, 2).State());
     }
     ActorState done = Dying();
     done.deathSkill = 0x28;

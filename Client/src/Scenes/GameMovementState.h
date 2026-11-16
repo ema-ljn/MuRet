@@ -48,17 +48,11 @@ struct GameMovementState
     std::uint32_t targetY = 0;
     float actionInputTime = 0.0f;
     float actionInputElapsed = 0.0f;
-    // CL9 hito 3. 0x6c8ebc (.data −1): el lugar del personaje que el héroe va a pegar al llegar, que 0x5650c0 lee con
-    // +0x379 en 3. Lo escribe el clic sobre un personaje atacable de MoveHero (0x59d3de, sin portar).
+    // 0x6c8ebc (.data −1): el lugar del personaje al que va el héroe. Lo escriben el clic sobre el NPC elegido
+    // (0x59dad3, CL9 hito 2) y sobre un personaje atacable (0x59d3de, hito 3); 0x5650c0 lo lee con +0x379 en 3.
     std::int32_t attackTarget = -1;
     // 0x576791c (.bss 0): el GetTickCount del último envío que pasó el freno de 300 ms (PassesTheActionBrake).
     std::uint32_t lastActionTick = 0;
-    // 0x5767948 (.bss 0): la skill del último 1E del elfo (0x562b0b, 0x563f2f; 0x34 en 0x57e2c8), de las ramas del
-    // caballero (0x582446 y las demás, antes de armarlo), del Wizard (de 0x58c23b a 0x5918f9) y de la 0x43 de la cola
-    // (0x594140) de 0x57cfc0, de 0x55cbc0 (0x55e71c) y del último tiro de 0x53d9a0 (el sexto argumento & 0xff, 0x53deb6;
-    // CL9 hito 3, fase 2e). Lo leen el paso del ataque para la flecha (0x4febe1, sin portar) y la habilidad 0x31 (06, la
-    // tabla de globales).
-    std::uint32_t lastShotSkill = 0;
     // CL9 hito 4. 0x77f3ba4 (.bss 0): lo pone en 0 el Aqua Beam del Wizard (0x590afd). Quién más lo escribe y lo lee,
     // sin leer.
     std::int32_t dword77f3ba4 = 0;
@@ -68,5 +62,12 @@ struct GameMovementState
     WeaponSkillRequest weaponSkill{};
     // 0x77f3bad (.bss 0): el contador de la clave de las magias (0x57cf90, Skill57cf90.h), de 1 a 0x32.
     std::uint8_t magicKeyCounter = 0;
+    // 0x6c8e54 (.data −1): el NPC al que le habla la llegada (0x5650c0 con +0x379 en 2). Lo escribe el clic sobre el
+    // NPC elegido (0x59db1f) y lo vuelven a −1 la llegada (0x56959b) y la vuelta a la selección (0x42fdf8).
+    std::int32_t chosenNpc = -1;
+    // 0x7798bf0 y 0x77f36cc (.bss): el tipo del NPC elegido (+2, MOVSX) y su ángulo z (+0x24, el dword crudo), que
+    // escribe el mismo clic (0x59db25 y 0x59db2b). Los lee otro caso de 0x5650c0 (0x569859.., sin portar).
+    std::int32_t chosenNpcType = 0;
+    std::uint32_t chosenNpcAngle = 0;
 };
 } // namespace Client::Scenes

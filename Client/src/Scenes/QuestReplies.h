@@ -23,12 +23,13 @@ struct WorldEntryResources;
 // 0x4ddaa0: con pkt[3] de 0 a 3, +6 + pkt[3] de [0x710148] = pkt[4]; con otro, nada.
 void ApplyQuestFlag(const Protocol::Quest::QuestFlag& flag, WorldState& world);
 
-// 0x4ddad0 → 0x418e20 (ApplyTheQuestList).
-[[nodiscard]] Core::Expected<void, std::string> ApplyQuestList(const Protocol::Quest::QuestList& list,
-                                                               WorldState& world);
+// 0x4ddad0 → 0x418e20 (ApplyTheQuestList). Lo que la copia escribiría después del objeto se descarta con un aviso en
+// resources.log (Q-C1126).
+void ApplyQuestList(const Protocol::Quest::QuestList& list, const WorldEntryResources& resources);
 
 // 0x4ddb00: 0x418ee0(pkt[3], pkt[4]), 0x657a90 (todos los paneles: las misiones abiertas mandan el C1 03 31 con
-// resources.sendWindowClose) y 0x4198b0(−1), la ventana del diálogo con el NPC.
+// resources.sendWindowClose) y 0x4198b0(−1), la ventana del diálogo con el NPC. Un registro fuera de los 200 en el
+// diálogo (Q-C842) descarta lo que falta con un aviso en resources.log, sin cortar.
 [[nodiscard]] Core::Expected<void, std::string> ApplyQuestState(const Protocol::Quest::QuestStateChange& change,
                                                                 const WorldEntryResources& resources);
 

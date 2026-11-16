@@ -69,6 +69,10 @@ struct DialogBoxState
     std::int32_t answerCount = 0;
     // 0x6d5e28 (.data, −1): el registro de Dialog.bmd que muestran.
     std::int32_t dialogIndex = -1;
+    // 0x7d3a0dc y 0x7d3a0e0: la casilla de la joya de bendición ([0x78a6758] − 12) y el lugar del 0x1a25 sobre el que
+    // se soltó (0x5d8345 y 0x5d8361, CL9 hito 5). Los lee el diálogo 0xa9 (0x629d0e y 0x629e03, CL9.3).
+    std::int32_t jewelCell = 0;
+    std::int32_t jewelTarget = 0;
 };
 
 // La respuesta `row` como la lee el dibujo: desde su primer byte hasta el primer '\0', que puede estar en la
@@ -120,4 +124,17 @@ void OpenMessageBox(DialogBoxState& box, DialogState& dialogs, std::string_view 
 // paso no dibuja nada (*inferido*, 08).
 [[nodiscard]] Core::Expected<void, std::string>
 StepTheDialogPages(DialogBoxState& box, const Data::Text::TextTable* texts, Point mouse, bool click);
+
+// Los renglones del texto y de las respuestas de las cajas van de 0x12 en 0x12 (0x62d92f, 0x632501 y 0x6325ee).
+inline constexpr std::int32_t DialogLineStep = 0x12;
+// 0x62d93e y 0x6324a3: el 0x8d no arranca su texto más arriba de y = 0x46.
+inline constexpr std::int32_t AnswersDialogTopMinimum = 0x46;
+// 0x62d96a..0x62d979 y 0x632573..0x632582: el mouse está sobre las respuestas a no más de 0x6a de x = 0x13f.
+inline constexpr std::int32_t AnswersCenterX = 0x13f;
+inline constexpr std::int32_t AnswersHalfWidth = 0x6a;
+
+// 0x632472..0x6324a6 (y 0x62d91d..0x62d943 en el paso): la y del primer renglón del texto de los 0x8a, 0x8c y 0x8d,
+// ((7 − [0x7d3a0fc] − renglones) · 0x12) / 2 + 0x4c (la división con signo, hacia el cero); con el 0x8d, no menos de
+// 0x46. Las respuestas del 0x8d siguen debajo del texto, en esa y + renglones · 0x12.
+[[nodiscard]] std::int32_t DialogTextTop(const DialogBoxState& box, std::int32_t id);
 } // namespace Client::UI

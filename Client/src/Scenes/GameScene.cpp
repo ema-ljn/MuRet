@@ -1,6 +1,7 @@
 #include "Scenes/GameScene.h"
 #include "Scenes/MonsterSounds.h"
 #include "Scenes/GameSceneFrameProjection.h"
+#include "Scenes/ActorPickingBox.h"
 #include "Data/Tables/GateTable.h"
 #include "Data/Tables/SkillTable.h"
 #include "Data/Text/TextTable.h"
@@ -8,6 +9,7 @@
 #include "Render/Models/Pose.h"
 #include "Scenes/DynamicWorldLight.h"
 #include "Scenes/FaunaDrawing.h"
+#include "Scenes/InventoryMoves.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/GameParticles.h"
 #include "Scenes/GameDrawTail.h"
@@ -63,8 +65,10 @@
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"
 #include "UI/ChatLog.h"
+#include "UI/FriendModel.h"
 #include "UI/GameCursor.h"
 #include "UI/GameUiState.h"
+#include "UI/OldWindows.h"
 #include "UI/PanelRegistry.h"
 #include "UI/Widget.h"
 #include "World/GameCamera.h"
@@ -162,12 +166,6 @@ std::string MapText(std::int32_t map)
     return "mapa " + std::to_string(map);
 }
 
-// Los componentes de un slot en el juego de MuRet: no sube las texturas de 0x61ccb0 que no son de los sprites.
-std::optional<std::uint8_t> NoSlotComponents(std::int32_t /*slot*/)
-{
-    return std::nullopt;
-}
-
 // 0x63741d..0x637466 y 0x6375ea..0x63763a: el mapa 30 (0x6c9dd0) y el héroe publicado (0x743a170) en el rectángulo de
 // World::InTheCastleSiegeFog. Cada lectura relee las dos cosas.
 bool HeroInTheCastleSiegeFog(const WorldState& world)
@@ -226,7 +224,6 @@ Core::Expected<void, std::string> GameScene::Enter()
         textureTable.Seed(*m_gameSlots, m_models);
     }
     m_tiles.BindTextureTable(textureTable);
-    m_characterCloths.resize(ActorPoolSize);
     // El original las sube en la carga (0x61ccb0) y en el login (0x61c7c0) y no las suelta; MuRet, con cada escena.
     if (auto loaded = m_windowTextures.Load(m_context.dataRoot); !loaded.HasValue())
         return loaded;
@@ -314,6 +311,10 @@ void GameScene::StepEntry()
             input.focus = UI::ChatFocus::Game;
             UI::ClearTheLog(runtime.chat.log, runtime.ui.chatModes);
             UI::ClearTheChatFilter(runtime.chat.log);
+            // 0x6368f9..0x636915: las ventanas viejas (0x48ea50), los amigos (0x49bac0) y las cartas (0x49f260, del
+            // hito 10: MuRet no guarda ninguna).
+            UI::ResetTheOldWindows(runtime.oldWindows, runtime.ui.pressedButton);
+            UI::ClearTheFriends(runtime.oldWindows.friendModel);
             // 0x636920: 0x46b010, las colas del cartel de Slide.bmd, su timer 0x3eb y 0x46b0e0 (el registro propio y
             // un texto de Slide.bmd, con sus rand()).
             if (m_context.cloth != nullptr)
@@ -428,6 +429,8 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
     // 0x63717f: 0x5ac8d0, las teclas de función.
     const UI::Point mouse = UI::MouseIn640x480(input, m_screen);
     const GameChatContext chat = ChatContext();
+    // CL9 hito 5: la barra levanta el ítem del piso con el C1 05 22 (InventoryContext).
+    const InventoryServices inventory = InventoryContext();
     return StepTheFunctionKeys(GameUiContext{.world = *m_context.world,
                                              .random = m_context.cloth->random,
                                              .input = input,
@@ -435,7 +438,9 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
                                              .mouseY = mouse.y,
                                              .measure = m_context.textMeasure,
                                              .screen = m_screen,
-                                             .chat = &chat});
+                                             .chat = &chat,
+                                             .inventory = &inventory,
+                                             .fixedHeight = CameraState().fixedHeight});
 }
 
 Core::Expected<void, std::string> GameScene::StepTheObjects()
@@ -952,11 +957,18 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
         marksState.depthTest = false;
         marksState.cullEnabled = true;
         canvas.models.SetState(marksState);
-        // 0x5fc365: 0x549130, las marcas del suelo de WorldRuntime, que la carga del mapa no vacía (Q-C228). MuRet
-        // no sube Effect\blood01.tga (0x61d7aa), la del 0x5e3 de sus dos creadores, y no sabe sus componentes:
-        // con una marca prendida, corta (08 P-C49).
+        // 0x5fc365: 0x549130, las marcas del suelo de WorldRuntime, que la carga del mapa no vacía (Q-C228). El byte
+        // +0x28 del slot, de la tabla de texturas compartida (0x7d3a198, sembrada en Enter con lo que subió
+        // GameModels): Effect\blood01.tga en el 0x5e3 (0x61d7aa, EffectTextureSet). Un slot que no subió (otro tipo,
+        // o el archivo que falta) corta (08 P-C49).
+        const ModelTextureTable& textureTable = m_context.world->FaunaResources().TextureTable();
+        const auto components = [&textureTable](std::int32_t slot) -> std::optional<std::uint8_t>
+        {
+            const auto metadata = textureTable.Metadata(static_cast<std::uint32_t>(slot));
+            return metadata ? std::optional(metadata->components) : std::nullopt;
+        };
         if (auto marked = World::DrawGroundMarks(canvas.models, m_context.world->Runtime().groundMarks,
-                                                 *terrain.heights, NoSlotComponents);
+                                                 *terrain.heights, components);
             !marked.HasValue())
         {
             return Core::Unexpected(marked.Error() + ", en el " + MapText(map));
@@ -1085,7 +1097,9 @@ Core::Expected<void, std::string> GameScene::DrawTheCharacters(SceneCanvas& canv
     WorldState& world = *m_context.world;
     if (m_models == nullptr)
     {
-        return DrawGameCharacters(world.Actors(), world.Runtime().hero, world.Map().terrain.attributes->cells);
+        return DrawGameCharacters(
+            world.Actors(), world.Runtime().hero, world.Map().terrain.attributes->cells, &world.Runtime(),
+            m_projectingFrame ? std::span(m_projection->actorPickingBoxes) : std::span<ActorPickingBox>{});
     }
     std::optional<std::string> poseFailure;
     ItemSpecialDrawContext special;
@@ -1101,7 +1115,7 @@ Core::Expected<void, std::string> GameScene::DrawTheCharacters(SceneCanvas& canv
                           // después de los personajes): 0x6c8e30 y 0x6c8e2c.
                           .hovered = world.Runtime().selectedTargets[2],
                           .targeted = world.Runtime().selectedTargets[1],
-                          .cloths = m_characterCloths,
+                          .cloths = world.ActorCloths(),
                           .sprites = &FrameSpritesForDraw(),
                           .poseCarry = &FramePoseCarry(),
                           .joints = FrameTail().joints,
@@ -1119,11 +1133,15 @@ Core::Expected<void, std::string> GameScene::DrawTheCharacters(SceneCanvas& canv
                                   poseFailure = published.Error();
                           },
                           .publishProjectedPose = true,
+                          .pickingBoxes = m_projectingFrame ? std::span(m_projection->actorPickingBoxes)
+                                                            : std::span<ActorPickingBox>{},
                           .poseBones = [&](std::uint16_t)
                           { return std::span<const Render::Models::BoneTransform>(FramePoseCarry().bones); },
                           .worldModels = m_worldModelsMap ? &m_worldModels : nullptr,
                           .polygon = &polygon,
-                          .fixedHeight = CameraState().fixedHeight});
+                          .fixedHeight = CameraState().fixedHeight,
+                          .kalima = FrameKalima(),
+                          .cameraShake = m_projectingFrame ? &m_projection->cameraShake : &CameraInputState().shake});
     if (poseFailure)
         return Core::Unexpected(*poseFailure);
     return drawn;
@@ -1165,7 +1183,11 @@ bool GameScene::WantsToQuit() const
 // Mientras el campo del chat está abierto, uno de sus EDIT tiene el foco y recibe los WM_CHAR.
 bool GameScene::WantsTextInput() const
 {
-    return m_context.world != nullptr && m_context.world->Runtime().ui.chatOpen;
+    if (m_context.world == nullptr)
+        return false;
+    // El chat abierto o el EDIT de una ventana vieja con el foco (CL9 hito 9).
+    const WorldRuntime& runtime = m_context.world->Runtime();
+    return runtime.ui.chatOpen || runtime.chat.input.focus == UI::ChatFocus::OldWindow;
 }
 
 bool GameScene::HoldsTheLastFrame() const

@@ -317,7 +317,7 @@ TEST(HeroSkillsTailTest, TheSternSendsTheDurationMagic)
         EXPECT_EQ(tested->Sent(0),
                   (std::vector<std::uint8_t>{0xc1, 0x0c, 0x1e, 0x43, 182, 115, 0x60, 0xaa, 0xaa, 0x0a, 0x1b, 0}));
         EXPECT_FLOAT_EQ(tested->Hero().angles.z, 135.0f);
-        EXPECT_EQ(tested->Movement().lastShotSkill, 0x43u);
+        EXPECT_EQ(tested->world.Runtime().lastShotSkill, 0x43u);
         EXPECT_EQ(tested->Movement().lastActionTick, 0u);
         EXPECT_EQ(tested->Movement().magicKeyCounter, 7);
         EXPECT_EQ(tested->Hero().magicKey, 0);
@@ -358,7 +358,7 @@ TEST(HeroSkillsTailTest, TheSternSendsTheDurationMagic)
     ASSERT_TRUE(tested->Use().HasValue());
     EXPECT_EQ(tested->random.State(), expected.State());
     EXPECT_TRUE(tested->sent.empty());
-    EXPECT_EQ(tested->Movement().lastShotSkill, 0u);
+    EXPECT_EQ(tested->world.Runtime().lastShotSkill, 0u);
     EXPECT_FLOAT_EQ(tested->Hero().angles.z, 135.0f);
     EXPECT_EQ(tested->Hero().animation.action, StandingAction);
     EXPECT_EQ(tested->Hero().movement, 0);
@@ -383,7 +383,7 @@ TEST(HeroSkillsTailTest, TheMagicAttacksSendTheChosenKey)
             EXPECT_EQ(tested->sent[0].delivery, Client::Network::Delivery::Encrypted);
             EXPECT_EQ(tested->Sent(0), (std::vector<std::uint8_t>{0xc1, 0x06, 0x19, skill, 0x0a, 0x1b}));
             EXPECT_EQ(tested->Movement().lastActionTick, Ticks);
-            EXPECT_EQ(tested->Movement().lastShotSkill, 0u);
+            EXPECT_EQ(tested->world.Runtime().lastShotSkill, 0u);
             EXPECT_EQ(tested->Hero().animation.action, DefaultActionOf(skill));
             EXPECT_EQ(tested->Hero().movement, 0);
         }

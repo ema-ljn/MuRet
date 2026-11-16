@@ -239,7 +239,7 @@ Core::Expected<void, std::string> SharedTail::CastTheStern()
     {
         // 0x594137..0x594de1: 0x5767948 y el 1E. La celda lógica la lee 0x4e7e40 al armarlo: la X (0x5942c9) antes
         // que la Y (0x5943c8).
-        m_state.lastShotSkill = m_skill;
+        m_context.world.Runtime().lastShotSkill = m_skill;
         const std::uint8_t x = ReadTheSkillCell(m_hero.cellXAccesses, m_hero.cellX, m_context.random);
         const std::uint8_t y = ReadTheSkillCell(m_hero.cellYAccesses, m_hero.cellY, m_context.random);
         const auto direction =

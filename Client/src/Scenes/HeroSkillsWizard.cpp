@@ -420,7 +420,7 @@ Core::Expected<void, std::string> WizardBranch::CastAround(std::uint8_t action, 
         return {};
     if (!HasTheSilentName(m_world))
     {
-        m_state.lastShotSkill = m_skill;
+        m_context.world.Runtime().lastShotSkill = m_skill;
         const SkillCell cell = ReadTheHeroCell(m_hero, m_context);
         const auto direction = DirectionOf(m_hero, where);
         if (!direction.HasValue())
@@ -498,7 +498,7 @@ Core::Expected<void, std::string> WizardBranch::CastTheSkill4c()
     m_hero.skillTarget4c = chosen;
     if (!HasTheSilentName(m_world))
     {
-        m_state.lastShotSkill = m_skill;
+        m_context.world.Runtime().lastShotSkill = m_skill;
         const SkillCell cell = ReadTheHeroCell(m_hero, m_context);
         const auto direction = DirectionOf(m_hero, "0x58e232");
         if (!direction.HasValue())
@@ -607,7 +607,7 @@ Core::Expected<void, std::string> WizardBranch::CastTheMagicKey()
 {
     if (!HasTheSilentName(m_world))
     {
-        m_state.lastShotSkill = m_skill;
+        m_context.world.Runtime().lastShotSkill = m_skill;
         const SkillCell cell = ReadTheHeroCell(m_hero, m_context);
         const auto direction = DirectionOf(m_hero, "0x58f371");
         if (!direction.HasValue())
@@ -641,7 +641,7 @@ Core::Expected<void, std::string> WizardBranch::CastTheFlame()
 {
     if (!HasTheSilentName(m_world))
     {
-        m_state.lastShotSkill = m_skill;
+        m_context.world.Runtime().lastShotSkill = m_skill;
         const auto cell = AttackCellOf(m_hero, "0x590d01");
         if (!cell.HasValue())
             return Core::Unexpected(cell.Error());
@@ -674,7 +674,7 @@ Core::Expected<void, std::string> WizardBranch::CastAtTheWeaponTarget()
     }
     if (!HasTheSilentName(m_world))
     {
-        m_state.lastShotSkill = m_skill;
+        m_context.world.Runtime().lastShotSkill = m_skill;
         const auto cell = AttackCellOf(m_hero, "0x591a6c");
         if (!cell.HasValue())
             return Core::Unexpected(cell.Error());

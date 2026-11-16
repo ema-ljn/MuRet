@@ -23,9 +23,11 @@
 #include "UI/HudPrimitives.h"
 #include "UI/Widget.h"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <format>
 #include <optional>
 #include <string>
@@ -130,8 +132,9 @@ constexpr float GlowDigitSize = 12.0f;
 constexpr int GlowFirstDigit = 5;
 constexpr int GlowDigitStep = 2;
 
-// 0x630e1b..0x630f17: el marco de las cajas, 0xfc de 213 × 5 en (213, 60), filas de 0xfb de 213 × 40 desde y = 65
-// (4 en el 0x8a, el 0x8c y el 0x9b; 7 en los demás) y otra vez 0xfc, con las UV (0, 0, 0,83203125, 0,625).
+// 0x6310da..0x631202: el marco de las cajas, 0xfc de 213 × 5 en (213, 60), filas de 0xfb de 213 × 40 desde y = 65
+// (por la tabla 0x632b00: 4 en el 0x8a, el 0x8c y el 0x9b; las del texto y las respuestas en el 0x8d; 7 en los demás)
+// y otra vez 0xfc, con las UV (0, 0, 0,83203125, 0,625).
 constexpr float BoxLeft = 213.0f;
 constexpr float BoxTop = 60.0f;
 constexpr float BoxWidth = 213.0f;
@@ -142,6 +145,9 @@ constexpr int BoxRowStep = 40;
 constexpr float BoxDv = 0.625f;
 constexpr int ShortBoxRows = 4;
 constexpr int TallBoxRows = 7;
+// 0x631150..0x631182: las del 0x8d, ((renglones + respuestas) · 0x12 + 0x31) / 40, de 4 a 9.
+constexpr int AnswersBoxRowsMaximum = 9;
+constexpr int AnswersBoxRowsRound = 0x31;
 // 0x630f1c..0x630f9b: cada botón con estado, 0xf0 + estado en (x + 213, y + 60, w, h − 1) con las UV (0, 0, w / 128,
 // h / 32) (0x6ba7a8, 0x6b86cc, 0x6b87d4, 0x6b8b08 y 0x6b8880).
 constexpr float ButtonDu = 0.0078125f;
@@ -161,11 +167,9 @@ constexpr int RightArrowLeft = 0x178;
 constexpr int RightArrowRight = 0x189;
 constexpr int ArrowTop = 0xc9;
 constexpr int ArrowBottom = 0xdf;
-// 0x631aa7..0x631ae0: los renglones del 0x8a y del 0x8c desde y = ((7 − [0x7d3a0fc] − renglones) · 0x12) / 2 + 0x4c,
-// de 0x12 en 0x12. 0x7d3a0fc es la lista del 0x8d (CL9.1): 0.
-constexpr std::int32_t BoxTextRows = 7;
-constexpr std::int32_t BoxTextStep = 0x12;
-constexpr std::int32_t BoxTextTop = 0x4c;
+// 0x632548..0x632596: las respuestas del 0x8d en amarillo, y en rojo la que tiene el mouse encima.
+constexpr Color AnswerColor{1.0f, 1.0f, 0.0f, 1.0f};
+constexpr Color HoveredAnswerColor{1.0f, 0.0f, 0.0f, 1.0f};
 
 // 0x630c51..0x630d4c: el marco del OK genérico, 0xf0 de 213 × 64 en (213, 60), y el OK, 0xf1 (0xf2 con el mouse en
 // [0x11c, 0x161] × [0x62, 0x76]) de 70 × 21 en (284, 98) con las UV (0, 0, 0,546875, 0,65625). Sus textos van desde
@@ -435,12 +439,22 @@ void DrawTheArrow(Frame& frame, bool atTheEnd, int left, int right, float x, flo
 }
 
 // 0x630e14..0x6313ff: el marco de las cajas, sus botones y las flechas del 0x8c.
+int BoxRowsOf(const UI::DialogBoxState& box, std::int32_t id)
+{
+    if (id == UI::MessageBoxDialog || id == UI::PagedDialog || id == 0x9b)
+        return ShortBoxRows;
+    if (id != UI::AnswersDialog)
+        return TallBoxRows;
+    const int rows = ((box.lineCount + box.answerCount) * UI::DialogLineStep + AnswersBoxRowsRound) / BoxRowStep;
+    return std::clamp(rows, ShortBoxRows, AnswersBoxRowsMaximum);
+}
+
 void DrawTheBox(Frame& frame, std::int32_t id)
 {
-    const bool shortBox = id == UI::MessageBoxDialog || id == UI::PagedDialog || id == 0x9b;
+    const int rows = BoxRowsOf(frame.runtime.dialogBox, id);
     Quad(frame, BoxEdgeSlot, BoxLeft, BoxTop, BoxWidth, BoxEdgeHeight, MessageBoxDu, BoxDv);
     int y = BoxFirstRowY;
-    for (int row = 0; row < (shortBox ? ShortBoxRows : TallBoxRows); ++row, y += BoxRowStep)
+    for (int row = 0; row < rows; ++row, y += BoxRowStep)
         Quad(frame, BoxRowSlot, BoxLeft, static_cast<float>(y), BoxWidth, BoxRowHeight, MessageBoxDu, BoxDv);
     Quad(frame, BoxEdgeSlot, BoxLeft, static_cast<float>(y), BoxWidth, BoxEdgeHeight, MessageBoxDu, BoxDv);
     for (const UI::DialogButton& button : frame.runtime.dialogBox.buttons)
@@ -461,14 +475,37 @@ void DrawTheBox(Frame& frame, std::int32_t id)
     frame.context.sprites.SetColor(White);
 }
 
-// 0x631a9b..0x631b8b: los renglones del 0x8a y del 0x8c, centrados.
-void DrawTheBoxRows(Frame& frame)
+// 0x632472..0x632636: los renglones del 0x8a, del 0x8c y del 0x8d, centrados desde DialogTextTop; en el 0x8d, debajo,
+// cada respuesta con su color y, si su primer byte no es 0, su renglón (la y baja solo con las que se dibujan). Al
+// final, el blanco.
+Core::Expected<void, std::string> DrawTheBoxText(Frame& frame, std::int32_t id)
 {
     const UI::DialogBoxState& box = frame.runtime.dialogBox;
-    std::int32_t y = ((BoxTextRows - box.lineCount) * BoxTextStep) / 2 + BoxTextTop;
-    for (std::int32_t row = 0; row < box.lineCount; ++row, y += BoxTextStep)
+    std::int32_t y = UI::DialogTextTop(box, id);
+    for (std::int32_t row = 0; row < box.lineCount; ++row, y += UI::DialogLineStep)
         DrawCentered(frame, y, UI::DialogRow(box, static_cast<std::size_t>(row)));
+    if (id == UI::AnswersDialog)
+    {
+        if (box.answerCount > static_cast<std::int32_t>(UI::DialogAnswerRows))
+            return Core::Unexpected(
+                std::format("0x632563: {} respuestas pasan los 10 renglones de 0x7d3691c", box.answerCount));
+        // 0x632515..0x632535: la respuesta bajo el mouse, con la división hacia el cero, o −1 arriba de la primera.
+        const UI::Point mouse = frame.context.mouse;
+        const std::int32_t offset = mouse.y - y;
+        const std::int32_t hovered = offset < 0 ? -1 : offset / UI::DialogLineStep;
+        const bool inside = std::abs(UI::AnswersCenterX - mouse.x) <= UI::AnswersHalfWidth;
+        for (std::int32_t answer = 0; answer < box.answerCount; ++answer)
+        {
+            frame.context.sprites.SetColor(answer == hovered && inside ? HoveredAnswerColor : AnswerColor);
+            const std::size_t first = static_cast<std::size_t>(answer) * UI::DialogRowBytes;
+            if (box.answers[first] == '\0')
+                continue;
+            DrawCentered(frame, y, UI::DialogAnswer(box, static_cast<std::size_t>(answer)));
+            y += UI::DialogLineStep;
+        }
+    }
     frame.context.sprites.SetColor(White);
+    return {};
 }
 
 // 0x630c51..0x630d4c: el marco del OK genérico y su botón.
@@ -510,7 +547,8 @@ Core::Expected<void, std::string> DrawTheGameDialogs(GameHudContext& context)
         if (entry.id == id)
             generic = entry;
     }
-    const bool box = id == UI::MessageBoxDialog || id == UI::PagedDialog || id == 0x8b || id == 0x97 || id == 0x9b;
+    const bool box = id == UI::MessageBoxDialog || id == UI::PagedDialog || id == UI::AnswersDialog || id == 0x8b ||
+                     id == 0x97 || id == 0x9b;
     if (id == UI::EscapeMenuDialog)
     {
         if (auto drawn = DrawTheEscapeMenu(frame); !drawn.HasValue())
@@ -529,9 +567,10 @@ Core::Expected<void, std::string> DrawTheGameDialogs(GameHudContext& context)
         return CutTheDialog(id);
     // 0x63140b: la mezcla normal y los textos de la cola.
     sprites.SetBlend(BlendMode::Alpha);
-    if (id == UI::MessageBoxDialog || id == UI::PagedDialog)
-        DrawTheBoxRows(frame);
-    else if (box)
+    // 0x631432: la tabla 0x632bf0 lleva el 0x8a, el 0x8c y el 0x8d a 0x632472, y las otras cajas a 0x632a2b.
+    if (id == UI::MessageBoxDialog || id == UI::PagedDialog || id == UI::AnswersDialog)
+        return DrawTheBoxText(frame, id);
+    if (box)
     {
         // 0x632a2b: [0x723c60] + 0x10, el texto de la caja del objeto del evento (0x40bdd0, 0x40c440 o 0x405220).
         // Sin el objeto, nada.

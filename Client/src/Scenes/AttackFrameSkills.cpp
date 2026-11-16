@@ -330,7 +330,7 @@ Core::Expected<void, std::string> StepTheSkill37(ActorState& actor, std::uint8_t
     const auto key = ChosenKeyOf(context.world, slot, context.controlDown);
     if (!key.HasValue())
         return Core::Unexpected(key.Error());
-    actor.word8a = static_cast<std::uint16_t>(key.Value());
+    actor.word8a = static_cast<std::int16_t>(key.Value());
     // 0x4f9f7a: 0x41ed10(0x72, 0, 0).
     constexpr std::int32_t ThrowSound = 0x72;
     RequestTheSound(context, ThrowSound);

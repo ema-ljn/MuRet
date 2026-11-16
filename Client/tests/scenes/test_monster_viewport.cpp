@@ -8,14 +8,18 @@
 #include "Data/Tables/ItemTable.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
+#include "Data/Text/NpcNames.h"
 #include "Data/Text/TextTable.h"
 #include "Protocol/Viewport.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorCreation.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/ChatReceive.h"
+#include "Scenes/FaunaModels.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/MonsterCreation.h"
 #include "Scenes/MonsterKinds.h"
+#include "Scenes/NpcNames.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
@@ -23,6 +27,8 @@
 #include "World/GameCamera.h"
 #include "World/WorldTerrain.h"
 
+#include "support/FakeTextureStore.h"
+#include "support/FileBytes.h"
 #include "support/GoldenDir.h"
 #include "support/ItemSetFiles.h"
 #include "support/PlayerActors.h"
@@ -34,14 +40,17 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <memory>
+#include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -75,6 +84,8 @@ struct Game
 {
     Game()
     {
+        // 0x612d90 y 0x612270 suben las texturas de los modelos que cargan por la tabla que liga el juego.
+        world.FaunaResources().TextureTable().Bind(store);
         models.Set(PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
         ActorState& hero = world.Actors()[0];
         hero = Client::Tests::UnarmedPlayer();
@@ -97,6 +108,8 @@ struct Game
                 .log = log,
                 .texts = texts};
     }
+    // Antes que el mundo: FaunaModels suelta sus texturas al destruirse.
+    Client::Tests::FakeTextureStore store;
     Client::Scenes::WorldState world;
     std::filesystem::path dataRoot;
     Client::Scenes::SelectionState selection{world};
@@ -265,6 +278,129 @@ TEST_F(MonsterViewportTest, TheMonstersOfLorenciaAndDeviasComeFromTheirCase)
         EXPECT_EQ(actor.movement, 1);
         EXPECT_EQ(actor.alpha, 1.0f);
         EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, WalkingRecordDraws).State());
+    }
+}
+
+// 0x51411f..0x51416b: con NpcName(%s).txt cargado, la cola copia a +0x1d9 el nombre del primer registro con el tipo
+// (con su '\0': lo que queda del nombre del caso no se ve). Un tipo sin registro se queda con el del caso. Uno de 25
+// letras deja su '\0' en el byte bajo del WORD de +0x1f2, como el strcpy sin tope del original (Q-C847); uno que
+// llegaría a las partes de +0x218 corta antes de +0x376 (P-C352). Los nombres son inventados.
+TEST_F(MonsterViewportTest, TheTailCopiesTheNameOfTheTable)
+{
+    const auto put = [](Client::Scenes::NpcName& record, std::uint16_t type, std::string_view name)
+    {
+        record.type = type;
+        record.name = {};
+        std::ranges::copy(name, record.name.begin());
+    };
+    struct Case
+    {
+        std::uint8_t map;
+        std::uint8_t type;
+        const char* caseName;
+    };
+    for (const Case& tested : {Case{0, 3, "\xb0\xc5\xb9\xcc"}, Case{2, 19, "\xbc\xb3\xc0\xce"}})
+    {
+        SCOPED_TRACE(tested.map);
+        Load(tested.map);
+        auto& names = game->world.Runtime().npcNames;
+        // El 0x54ebb0 de la cola compara el word sin signo con el dword del tipo: gana el primero.
+        put(names[4], tested.type, "Bicho");
+        put(names[9], tested.type, "Otro bicho");
+        const Cell cell = FreeRow();
+        std::array<MonsterRecordBytes, 1> records{
+            {{.key = 0x0123, .typeLow = tested.type, .x = cell.x, .y = cell.y, .targetX = cell.x, .targetY = cell.y}}};
+        auto applied = Monsters(records);
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        EXPECT_EQ(Client::Scenes::ActorText(Actor(1)), "Bicho");
+        EXPECT_EQ(Actor(1).word376, tested.type);
+
+        names[4].type = 0;
+        names[9].type = 0;
+        records[0].key = 0x0124;
+        applied = Monsters(records);
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        EXPECT_EQ(Client::Scenes::ActorText(Actor(2)), tested.caseName);
+
+        // 24 letras y el '\0' llegan a +0x1f1; el WORD de +0x1f2 sigue con el 0xffff de 0x511290.
+        put(names[4], tested.type, "Bicho de veinticuatro le");
+        records[0].key = 0x0125;
+        applied = Monsters(records);
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        EXPECT_EQ(Client::Scenes::ActorText(Actor(3)), "Bicho de veinticuatro le");
+        EXPECT_EQ(Actor(3).word1f2, 0xffff);
+
+        // Con una más, el '\0' cae en el byte bajo de +0x1f2; la clave de +0x1f4 no la toca.
+        put(names[4], tested.type, "Bicho de veinticinco letr");
+        records[0].key = 0x0126;
+        applied = Monsters(records);
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        EXPECT_EQ(Client::Scenes::ActorText(Actor(4)), "Bicho de veinticinco letr");
+        EXPECT_EQ(Actor(4).word1f2, 0xff00);
+        EXPECT_EQ(Actor(4).key, 0x0126);
+        EXPECT_EQ(Actor(4).word376, tested.type);
+
+        // Sin '\0' en sus 0x34 bytes, 0x54ebb0 sigue por el tipo y el nombre del registro 5: 52 + 2 + 10 letras y el
+        // '\0' son 65 bytes desde +0x1d9, que pasan de +0x217.
+        names[4].type = tested.type;
+        std::ranges::fill(names[4].name, 'x');
+        put(names[5], 0x7979, "zzzzzzzzzz");
+        records[0].key = 0x0127;
+        applied = Monsters(records);
+        ASSERT_FALSE(applied.HasValue());
+        EXPECT_NE(applied.Error().find("0x514164"), std::string::npos) << applied.Error();
+        EXPECT_NE(applied.Error().find("P-C352"), std::string::npos) << applied.Error();
+        // +0x376 sigue con el 0xffff de 0x511290.
+        EXPECT_EQ(Actor(5).word376, 0xffff);
+        names[5].type = 0;
+    }
+}
+
+// Los tres nombres de NpcName(Eng).txt de más de 24 letras: el strcpy de 0x51416b sigue por +0x1f2 (76 y 246, con su
+// '\0' en el byte alto) y, con las 34 de 231, por la clave de +0x1f4 (que 0x512926 ya escribió), +0x1f6 y +0x1f7 (que
+// MuRet no guarda), la cabeza de +0x1f8 y +0x1fa..+0x1fb (P-C352). El nombre de 231 no tiene '\0' en los 29 bytes que
+// MuRet guarda seguidos.
+TEST_F(MonsterViewportTest, TheLongNamesOfTheTableSpillIntoTheKey)
+{
+    const auto path = DataFile("Local\\NpcName(Eng).txt");
+    ASSERT_TRUE(path.has_value());
+    const std::optional<std::vector<char>> file = Client::Tests::ReadFileBytes(*path);
+    ASSERT_TRUE(file.has_value());
+    const auto names = Client::Data::Text::LoadNpcNames(std::as_bytes(std::span(*file)));
+    ASSERT_TRUE(names.HasValue());
+    for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
+    {
+        SCOPED_TRACE(map);
+        Load(map);
+        game->world.Runtime().npcNames = Client::Scenes::NpcNameTableOf(names.Value());
+        const Cell cell = FreeRow();
+        const auto monster = [&cell](std::uint16_t key, std::uint8_t type)
+        {
+            return MonsterRecordBytes{
+                .key = key, .typeLow = type, .x = cell.x, .y = cell.y, .targetX = cell.x, .targetY = cell.y};
+        };
+        const std::array<MonsterRecordBytes, 3> records{
+            {monster(0x0130, 76), monster(0x0131, 246), monster(0x0132, 231)}};
+        const auto applied = Monsters(records);
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+
+        EXPECT_EQ(Client::Scenes::ActorText(Actor(1)), "Phoenix of Darkness shield");
+        EXPECT_EQ(Actor(1).word1f2, 0x0064);
+        EXPECT_EQ(Actor(1).key, 0x0130);
+        EXPECT_EQ(Actor(1).word376, 76);
+        EXPECT_EQ(Client::Scenes::ActorText(Actor(2)), "Zienna the Weapon Merchant");
+        EXPECT_EQ(Actor(2).word1f2, 0x0074);
+        EXPECT_EQ(Actor(2).key, 0x0131);
+
+        // "Thompson Kenel the Weapon Merchant": " M" en +0x1f2, "er" en la clave, "ch" perdidas, "an" en la cabeza.
+        const ActorState& merchant = Actor(3);
+        EXPECT_EQ(merchant.word376, 231);
+        EXPECT_EQ(Client::Scenes::ActorText(merchant), "Thompson Kenel the Weapon Mer");
+        EXPECT_EQ(merchant.word1f2, 0x4d20);
+        EXPECT_EQ(merchant.key, 0x7265);
+        EXPECT_EQ(merchant.head, 0x6e61);
+        // La clave ya no es la del registro: el original tampoco lo encuentra por ella.
+        EXPECT_EQ(Client::Scenes::ActorWithKey(game->world, 0x0132), Client::Scenes::CreatedActorSearch);
     }
 }
 
@@ -445,6 +581,94 @@ TEST_F(MonsterViewportTest, TheCrywolfAltarReadsItsClosedCell)
     }
 }
 
+// 0x612d90 y 0x612270 desde el alta (P-C176): en Lorencia el tipo 3 carga Monster10.bmd en el 0x15b con la acción 2 en
+// 1,2 (0x612f4a); en Devias el 19, Monster13.bmd en el 0x15e con el hueso de la cabeza en 0x14 y sus sonidos
+// (0x6133f4); el herrero (251) Smith01.bmd en el 0x1ce con sus acciones a 0,25; en Chaos Castle (18) el 162 lee las
+// texturas de Monster71.bmd de la carpeta Npc (0x612e0d) y en Castle Siege (30) el 283 las de Monster75.bmd de la
+// Object31 (0x612e2a), antes de cortar en su llegada (CL11). Cargar no saca rand() ni vuelve a leer lo que ya está.
+TEST_F(MonsterViewportTest, TheCreationLoadsTheModelsOfItsCase)
+{
+    struct Case
+    {
+        std::uint8_t map;
+        std::uint16_t type;
+        std::uint16_t model;
+        const char* folder;
+        bool cuts;
+    };
+    const std::array<Case, 5> cases{{
+        {0, 3, 0x15b, "Monster\\", false},
+        {2, 19, 0x15e, "Monster\\", false},
+        {0, 251, 0x1ce, "Npc\\", false},
+        {18, 162, 0x198, "Npc\\", false},
+        {30, 283, 0x19c, "Object31\\", true},
+    }};
+    for (const Case& tested : cases)
+    {
+        SCOPED_TRACE(tested.type);
+        Load(tested.map);
+        const Cell cell = FreeRow();
+        const std::array<MonsterRecordBytes, 1> records{{{.key = 0x0123,
+                                                          .typeHigh = Byte(tested.type >> 8),
+                                                          .typeLow = Byte(tested.type),
+                                                          .x = cell.x,
+                                                          .y = cell.y,
+                                                          .targetX = cell.x,
+                                                          .targetY = cell.y}}};
+        const auto applied = Monsters(records);
+        ASSERT_EQ(applied.HasValue(), !tested.cuts) << (applied.HasValue() ? "" : applied.Error());
+        auto& models = game->world.FaunaResources();
+        const auto* model = models.Find(tested.model);
+        ASSERT_NE(model, nullptr);
+        ASSERT_FALSE(model->meshes.empty());
+        EXPECT_EQ(models.MeshTextures(tested.model).size(), model->meshes.size());
+        const auto requests = models.TextureTable().Slots().ToLoad();
+        ASSERT_FALSE(requests.empty());
+        EXPECT_TRUE(requests.front().path.starts_with(tested.folder)) << requests.front().path;
+        EXPECT_GT(game->store.loadCalls, 0);
+        if (!tested.cuts)
+        {
+            EXPECT_EQ(Actor(1).type, tested.model);
+        }
+        if (tested.model == 0x198)
+        {
+            // El 0x46 va por 0x613053: las acciones 3 y 4 en 0,5 y la 2 en 0,3; el hueso de la cabeza, 0x14.
+            const auto* skeleton = models.SkeletonOf(0x198);
+            ASSERT_NE(skeleton, nullptr);
+            EXPECT_EQ(skeleton->actions[3].speed, 0.5f);
+            EXPECT_EQ(skeleton->actions[2].speed, Real(0x3e99999a));
+            EXPECT_EQ(skeleton->headBone, 0x14);
+        }
+    }
+
+    Load(2);
+    const Cell cell = FreeRow();
+    std::array<MonsterRecordBytes, 1> records{
+        {{.key = 0x0124, .typeLow = 19, .x = cell.x, .y = cell.y, .targetX = cell.x, .targetY = cell.y}}};
+    ASSERT_TRUE(Monsters(records).HasValue());
+    const auto& devias = game->world.FaunaResources();
+    EXPECT_EQ(devias.SkeletonOf(0x15e)->actions[2].speed, Real(0x3e99999a));
+    EXPECT_EQ(devias.SkeletonOf(0x15e)->headBone, 0x14);
+    EXPECT_EQ(devias.SoundActions(0x15e)[0], 0x44);
+    const int loads = game->store.loadCalls;
+    records[0].key = 0x0125;
+    ASSERT_TRUE(Monsters(records).HasValue());
+    EXPECT_EQ(game->store.loadCalls, loads);
+    EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, 2 * WalkingRecordDraws).State());
+
+    Load(0);
+    const Cell lorencia = FreeRow();
+    records[0] = {
+        .key = 0x0126, .typeLow = 3, .x = lorencia.x, .y = lorencia.y, .targetX = lorencia.x, .targetY = lorencia.y};
+    ASSERT_TRUE(Monsters(records).HasValue());
+    EXPECT_EQ(game->world.FaunaResources().SkeletonOf(0x15b)->actions[2].speed, Real(0x3f99999a));
+    records[0] = {
+        .key = 0x0127, .typeLow = 251, .x = lorencia.x, .y = lorencia.y, .targetX = lorencia.x, .targetY = lorencia.y};
+    ASSERT_TRUE(Monsters(records).HasValue());
+    for (const auto& action : game->world.FaunaResources().SkeletonOf(0x1ce)->actions)
+        EXPECT_EQ(action.speed, 0.25f);
+}
+
 // 0x51481a: el 68 pide Monster50.bmd, que el Data del laboratorio no trae; el original cierra (Q-C23) y MuRet corta
 // antes del alta, sin rand().
 TEST_F(MonsterViewportTest, TheMissingMonsterFileCutsBeforeTheCreation)
@@ -459,8 +683,8 @@ TEST_F(MonsterViewportTest, TheMissingMonsterFileCutsBeforeTheCreation)
     EXPECT_EQ(game->cloth.random.State(), CrtRandom(Seed).State());
 }
 
-// 0x4c9790: el 85 pide el sonido 0x173; el 21 la acción 1 con el esqueleto de su modelo (sin él corta en 0x4c97ff) y
-// el sonido 0x13. El 0x35 y el 0x154 cortan en 0x4c982b y 0x4c9883.
+// 0x4c9790: el 85 pide el sonido 0x173; el 21 la acción 1 (0x4c97ff) con las acciones de Monster15.bmd, que su caso
+// cargó en el modelo 0x160 (0x612d90(0xe), P-C176), y el sonido 0x13. El 0x35 y el 0x154 cortan en 0x4c982b y 0x4c9883.
 TEST_F(MonsterViewportTest, TheNewArrivalsAskForTheirSoundOrAction)
 {
     Load(0);
@@ -477,18 +701,15 @@ TEST_F(MonsterViewportTest, TheNewArrivalsAskForTheirSoundOrAction)
 
     records[0] = {.key = 0x0801, .isNew = true, .typeLow = 21, .x = cell.x, .y = cell.y};
     applied = Monsters(records);
-    ASSERT_FALSE(applied.HasValue());
-    EXPECT_NE(applied.Error().find("0x4c97ff"), std::string::npos) << applied.Error();
-    EXPECT_EQ(Actor(2).type, 0x160);
-
-    game->models.Set(0x160, {}, Client::Tests::PlayerActionsSkeleton(), {});
-    records[0].key = 0x0802;
-    applied = Monsters(records);
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
-    EXPECT_EQ(Actor(3).animation.action, 1);
-    EXPECT_EQ(Actor(3).animation.previousAction, 1);
-    EXPECT_EQ(Actor(3).alpha, 1.0f);
+    EXPECT_EQ(Actor(2).type, 0x160);
+    ASSERT_NE(game->world.FaunaResources().SkeletonOf(0x160), nullptr);
+    EXPECT_EQ(Actor(2).animation.action, 1);
+    EXPECT_EQ(Actor(2).animation.previousAction, 1);
+    EXPECT_EQ(Actor(2).alpha, 1.0f);
     EXPECT_EQ(game->world.Runtime().lastSoundId, 0x13);
+    // Cargar no saca rand(): el alta y las celdas, como el 85.
+    EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, 2 * ArrivingRecordDraws).State());
 
     ActorState arriving = Actor(1);
     arriving.word376 = 0x35;
@@ -596,7 +817,8 @@ TEST_F(MonsterViewportTest, ANewSummonCutsAfterItsName)
 }
 
 // 0x4ca516..0x4ca5bf: fuera de 0x98..0x9e, el nombre es el del dueño (diez bytes), el Text 485 y el del monstruo; sin
-// Text.bmd corta en 0x4ca570, y lo que pisaría +0x1f2 corta (Q-C847). El recién llegado corta en 0x4ca5f6.
+// Text.bmd corta en 0x4ca570. Los strcat siguen por +0x1f2 y la clave de +0x1f4 como el original (Q-C847). El recién
+// llegado corta en 0x4ca5f6.
 TEST_F(MonsterViewportTest, TheOtherSummonsTakeTheOwnersName)
 {
     Load(0);
@@ -620,17 +842,125 @@ TEST_F(MonsterViewportTest, TheOtherSummonsTakeTheOwnersName)
     EXPECT_EQ(Client::Scenes::ActorText(Actor(1)), "Carpincho con su \xb0\xc5\xb9\xcc");
     EXPECT_EQ(Actor(1).byte88, 1);
 
+    // Diez letras, " con su " y las nueve del caso del 20 (0x515949): 27, con el '\0' en el byte bajo de la clave. El
+    // WORD de +0x1f2 queda con las dos últimas.
+    records[0].key = 0x0c02;
     records[0].owner = "Carpinchos";
     records[0].type = 20;
     applied = Summons(records);
-    ASSERT_FALSE(applied.HasValue());
-    EXPECT_NE(applied.Error().find("Q-C847"), std::string::npos) << applied.Error();
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
+    const ActorState& spilled = Actor(2);
+    EXPECT_EQ(Client::Scenes::ActorText(spilled), "Carpinchos con su \xbc\xb3\xc0\xce \xb4\xeb\xc0\xe5");
+    EXPECT_EQ(spilled.word1f2, 0xe5c0);
+    EXPECT_EQ(spilled.key, 0x0c00);
 
     records[0] = {.key = 0x0c01, .isNew = true, .type = 3, .x = cell.x, .y = cell.y, .owner = "Carpincho"};
     applied = Summons(records);
     ASSERT_FALSE(applied.HasValue());
     EXPECT_NE(applied.Error().find("0x4ca5f6"), std::string::npos) << applied.Error();
-    EXPECT_EQ(Actor(2).alpha, 0.0f);
+    EXPECT_EQ(Actor(3).alpha, 0.0f);
+}
+
+// 0x51743f..0x517466 con NpcName(Eng).txt cargado: la cola deja "Magic stone of %s " del 152 al 157 (0x98..0x9d) y
+// "Shadow Knight" en el 158 (0x9e), y wsprintfA pone el dueño en el "%s". Los 24 bytes del local van a +0x1d9: con
+// menos de 24 letras, con su '\0'; con más, los 24 primeros sin él, y el nombre sigue en +0x1f1. Los dueños son
+// inventados.
+TEST_F(MonsterViewportTest, TheMagicStonesFormatTheOwnersName)
+{
+    const auto path = DataFile("Local\\NpcName(Eng).txt");
+    ASSERT_TRUE(path.has_value());
+    const std::optional<std::vector<char>> file = Client::Tests::ReadFileBytes(*path);
+    ASSERT_TRUE(file.has_value());
+    const auto names = Client::Data::Text::LoadNpcNames(std::as_bytes(std::span(*file)));
+    ASSERT_TRUE(names.HasValue());
+    for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
+    {
+        SCOPED_TRACE(map);
+        Load(map);
+        game->world.Runtime().npcNames = Client::Scenes::NpcNameTableOf(names.Value());
+        const Cell cell = FreeRow();
+        const auto summon = [&cell](std::uint16_t key, std::uint8_t type, std::string_view owner)
+        {
+            return SummonRecordBytes{.key = key,
+                                     .type = type,
+                                     .x = cell.x,
+                                     .y = cell.y,
+                                     .targetX = cell.x,
+                                     .targetY = cell.y,
+                                     .directionAndPk = 0x10,
+                                     .owner = owner};
+        };
+        const std::array<SummonRecordBytes, 3> records{
+            {summon(0x0e00, 0x98, "Yacare"), summon(0x0e01, 0x9d, "Carpinchos"), summon(0x0e02, 0x9e, "Yacare")}};
+        const auto applied = Summons(records);
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+
+        EXPECT_EQ(Actor(1).word376, 0x98);
+        EXPECT_EQ(Client::Scenes::ActorText(Actor(1)), "Magic stone of Yacare ");
+        // "Magic stone of Carpinchos " tiene 26: los 24 primeros, sin '\0'; +0x1f1 sigue en 0 y corta la cadena.
+        EXPECT_EQ(Client::Scenes::ActorText(Actor(2)), "Magic stone of Carpincho");
+        EXPECT_EQ(Actor(2).nameSpill[13], std::byte{0});
+        EXPECT_EQ(Actor(2).word1f2, 0xffff);
+        EXPECT_EQ(Actor(2).key, 0x0e01);
+        EXPECT_EQ(Actor(2).level, 6);
+        EXPECT_EQ(Client::Scenes::ActorText(Actor(3)), "Shadow Knight");
+        EXPECT_EQ(Actor(3).subtype, 1);
+    }
+}
+
+// 0x51743f: wsprintfA con otro especificador, o un segundo "%s", lee de la pila argumentos que 0x517400 no pasa, y un
+// dueño de diez letras sin '\0' detrás de menos de 14 bytes sigue en el registro del 1F dentro de los 24 bytes: cortan
+// (P-C356). "%%" da '%'. Los nombres de la tabla y los dueños son inventados.
+TEST_F(MonsterViewportTest, TheSummonFormatsThatReadMoreCut)
+{
+    for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
+    {
+        SCOPED_TRACE(map);
+        Load(map);
+        auto& names = game->world.Runtime().npcNames;
+        const auto put = [&names](std::size_t at, std::uint16_t type, std::string_view name)
+        {
+            names[at].type = type;
+            names[at].name = {};
+            std::ranges::copy(name, names[at].name.begin());
+        };
+        put(0, 0x98, "Piedra 100%% de %s");
+        put(1, 0x99, "Piedra %d");
+        put(2, 0x9a, "%s y %s");
+        put(3, 0x9b, "%s");
+        put(4, 0x9c, "Piedra de mago de %s");
+        const Cell cell = FreeRow();
+        std::array<SummonRecordBytes, 1> records{{{.key = 0x0f00,
+                                                   .type = 0x98,
+                                                   .x = cell.x,
+                                                   .y = cell.y,
+                                                   .targetX = cell.x,
+                                                   .targetY = cell.y,
+                                                   .owner = "Yacare"}}};
+        auto applied = Summons(records);
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        EXPECT_EQ(Client::Scenes::ActorText(Actor(1)), "Piedra 100% de Yacare");
+
+        for (const std::uint16_t type : {std::uint16_t{0x99}, std::uint16_t{0x9a}})
+        {
+            records[0].type = type;
+            applied = Summons(records);
+            ASSERT_FALSE(applied.HasValue());
+            EXPECT_NE(applied.Error().find("0x51743f"), std::string::npos) << applied.Error();
+            EXPECT_NE(applied.Error().find("P-C356"), std::string::npos) << applied.Error();
+        }
+
+        // Sin '\0' en los diez bytes del dueño: detrás de "%s" solo, corta; detrás de 18 bytes, los 24 son conocidos.
+        records[0].owner = "Carpinchos";
+        records[0].type = 0x9b;
+        applied = Summons(records);
+        ASSERT_FALSE(applied.HasValue());
+        EXPECT_NE(applied.Error().find("P-C356"), std::string::npos) << applied.Error();
+        records[0].type = 0x9c;
+        applied = Summons(records);
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        EXPECT_EQ(Client::Scenes::ActorText(Actor(1)), "Piedra de mago de Carpin");
+    }
 }
 
 // 0x4e0980: con 1, un jugador (0x20a) con la clase de +1, +0x88 en 0x80, +0x428 en 0x96, el ángulo rand() % 360 y el

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Tables/GateTable.h"
@@ -24,8 +25,14 @@ class CrtRandom;
 struct Skeleton;
 } // namespace Client::Render::Models
 
+namespace Client::Render::Text
+{
+class ITextMeasure;
+} // namespace Client::Render::Text
+
 namespace Client::Scenes
 {
+class IModelLibrary;
 class WorldState;
 struct InventoryServices;
 struct HeroMovementInput
@@ -69,11 +76,12 @@ struct HeroMovementContext
     const InventoryServices* inventory = nullptr;
     // 0x419900: el C1 03 31 al cerrar las misiones, que caminar cierra (0x56b397..). Sin él, cerrarlas corta.
     std::function<void()> sendWindowClose{};
-    // La llegada a un NPC (0x5674c8): el C3 A0 sin la clase de las misiones (0x5676a6) y el C3 30 (0x567c2d..). Los
-    // dos rand() de cada C3 los saca el paso. Sin ellos, la llegada corta donde los manda.
+    // La llegada a un NPC (0x5674c8, Scenes/NpcTalk.h): el C3 A0 sin la clase de las misiones (0x5676a6) y el C3 30
+    // (0x567c2d..). Los dos rand() de cada C3 los saca el paso. Sin ellos, la llegada corta donde los manda.
     std::function<void()> requestQuestList{};
     std::function<void(std::int16_t)> sendTalk{};
-    // Text.bmd: el texto del aviso de nivel del NPC 0xee (0x567618, el 0x76edad0). nullptr: ese aviso corta.
+    // Text.bmd: los textos de los avisos de la llegada a un NPC (el 663 del 0xee, 0x567618, y el 1830 del 0x101,
+    // 0x567ad3). nullptr: esos avisos cortan.
     const Data::Text::TextTable* texts = nullptr;
     // 0x57ceea: el punto del terreno bajo el mouse para una skill sin elegido (0x5fc260(1) y 0x5fac90). Vacío: corta.
     std::function<Core::Expected<std::optional<glm::vec3>, std::string>()> pickTerrainPoint{};
@@ -81,6 +89,11 @@ struct HeroMovementContext
     std::function<void(Protocol::Outgoing)> sendSkill{};
     // La clave del jugador del F1 00 ([0x57678bc]), que las skills mandan en el C1 19 (CL9 hito 4, fase 2c).
     std::uint16_t playerKey = 0;
+    // 0x555190, para esos avisos: el medidor del texto y la pantalla. Sin medidor, cortan.
+    const Render::Text::ITextMeasure* measure = nullptr;
+    App::PixelSize screen{640, 480};
+    // La biblioteca base para acciones de personajes transformados que no estén en FaunaResources.
+    const IModelLibrary* models = nullptr;
 };
 [[nodiscard]] Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& context);
 } // namespace Client::Scenes

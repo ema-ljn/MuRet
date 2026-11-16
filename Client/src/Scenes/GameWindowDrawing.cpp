@@ -142,6 +142,12 @@ void DrawInBox(GameHudContext& context, std::int32_t x, std::int32_t y, std::str
     KeepTheMeasure(context, text, box);
 }
 
+void DrawInBox(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text,
+               std::uint32_t designWidth)
+{
+    DrawInBox(context, x, y, text, BoxWidth(context, designWidth));
+}
+
 void DrawClipped(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text, std::int32_t width)
 {
     HudState& hud = context.hud;

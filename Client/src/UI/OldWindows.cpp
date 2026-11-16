@@ -4,6 +4,8 @@
 #include "UI/ChatInput.h"
 #include "UI/ChatLog.h"
 #include "UI/ChatLogWindow.h"
+#include "UI/OldWindowBase.h"
+#include "UI/OldWindowSteps.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -92,6 +94,29 @@ constexpr std::int32_t WindowListWidth = 0x34;
 // 0x4a5e10: oculta, el parpadeo baja de a 0,25.
 constexpr float WindowListBlinkDown = -0.25f;
 
+// 0x45ae34..0x45ae47: el destructor de cada botón sólo libera su propia pulsación global.
+void ReleaseTheDestroyedButtons(const OldWindow& window, std::int32_t& pressedButton)
+{
+    const auto release = [&pressedButton](const OldButton& button)
+    {
+        if (button.base.id == pressedButton)
+            pressedButton = 0;
+    };
+    if (window.kind == OldWindowKind::MessageBox)
+        std::ranges::for_each(window.box.buttons, release);
+    else if (window.kind == OldWindowKind::AddFriendBox)
+        std::ranges::for_each(window.add.buttons, release);
+    else if (window.kind == OldWindowKind::FriendTab || window.kind == OldWindowKind::WindowsTab ||
+             window.kind == OldWindowKind::LettersTab)
+        std::ranges::for_each(window.tab.buttons, release);
+    for (const OldWindow& tab : window.tabs)
+        ReleaseTheDestroyedButtons(tab, pressedButton);
+}
+
+} // namespace
+
+namespace Steps
+{
 bool MouseIn(const OldWindowStepView& view, std::int32_t x, std::int32_t y, std::int32_t width, std::int32_t height,
              std::int32_t mode)
 {
@@ -105,7 +130,9 @@ bool IsShowing(std::int32_t state)
 
 std::int32_t NextId(OldWindowManager& manager)
 {
-    return ++manager.lastId;
+    // 0x459ef5: INC de un DWORD, incluido el cruce del bit de signo y el wrap a cero.
+    manager.lastId = static_cast<std::int32_t>(static_cast<std::uint32_t>(manager.lastId) + 1u);
+    return manager.lastId;
 }
 
 // 0x45a210.
@@ -130,6 +157,7 @@ OldButton MakeTheButton(OldWindowManager& manager)
 OldWindow MakeTheFrame(OldWindowManager& manager)
 {
     OldWindow window;
+    window.allocationId = ++manager.lastAllocationId;
     window.base = MakeTheBase(manager);
     window.base.flags = AllFrameFlags;
     return window;
@@ -147,25 +175,32 @@ OldWindow MakeTheMessageBox(OldWindowManager& manager, std::int32_t oneButton)
     return window;
 }
 
-// 0x48f890..0x48f8e0: el área de adentro del marco, la vtable + 0x3c..+0x48. Todas las ventanas del mapa son marcos.
-std::int32_t ClientX(const OldWindowBase& base, std::int32_t offset)
+// La vtable + 0x3c..+0x48: 0x48f890..0x48f8e0 en el marco y sus derivadas; 0x48fb40..0x48fb70 en las pestañas de la
+// de amigos, sin borde ni barra.
+bool HasNoInsets(const OldWindow& window)
 {
-    return base.x + offset + ClientLeft;
+    return window.kind == OldWindowKind::FriendTab || window.kind == OldWindowKind::WindowsTab ||
+           window.kind == OldWindowKind::LettersTab;
 }
 
-std::int32_t ClientY(const OldWindowBase& base, std::int32_t offset)
+std::int32_t ClientX(const OldWindow& window, std::int32_t offset)
 {
-    return base.y + offset + ClientTop;
+    return window.base.x + offset + (HasNoInsets(window) ? 0 : ClientLeft);
 }
 
-std::int32_t ClientWidth(const OldWindowBase& base)
+std::int32_t ClientY(const OldWindow& window, std::int32_t offset)
 {
-    return base.width - ClientWidthCut;
+    return window.base.y + offset + (HasNoInsets(window) ? 0 : ClientTop);
 }
 
-std::int32_t ClientHeight(const OldWindowBase& base)
+std::int32_t ClientWidth(const OldWindow& window)
 {
-    return base.height - ClientHeightCut;
+    return window.base.width - (HasNoInsets(window) ? 0 : ClientWidthCut);
+}
+
+std::int32_t ClientHeight(const OldWindow& window)
+{
+    return window.base.height - (HasNoInsets(window) ? 0 : ClientHeightCut);
 }
 
 // 0x45abc0, la vtable + 0x24 de todas: el 8 ubica y el 9 mide contra el área de adentro del padre.
@@ -177,7 +212,7 @@ void PlaceAgainstTheParent(OldWindowManager& manager, OldWindowBase& base)
     const OldWindow* parent = FindTheOldWindow(manager, base.parent);
     if (parent == nullptr)
         return;
-    const OldWindowBase& p = parent->base;
+    const OldWindow& p = *parent;
     if (type == PlaceMessage)
     {
         switch (base.placeMode)
@@ -325,7 +360,7 @@ void StepTheButton(OldWindowManager& manager, OldButton& button, std::int32_t ar
 // 0x45aa50 sobre un botón: el mensaje y su paso con 1 (0x45aa80), que atiende la cola y no llega al mouse.
 void PostAndSettle(OldWindowManager& manager, OldButton& button, std::int32_t type)
 {
-    button.base.queue.push_back(OldMessage{.type = type, .a = 0, .b = 0});
+    button.base.queue.push_back(OldMessage{.type = type, .a = 0, .b = 0, .text = {}});
     while (!button.base.queue.empty())
     {
         button.base.current = button.base.queue.front();
@@ -335,16 +370,21 @@ void PostAndSettle(OldWindowManager& manager, OldButton& button, std::int32_t ty
 }
 
 // La vtable + 0x30: 0x48faf0 (nada) en el marco y en la lista, y 0x4a3a50 en la caja: ubica los dos botones (el 8 y
-// su paso con 1) y pone 0x77f3708 en 1, que nadie lee (*estático*; MuRet no lo guarda).
-void SettleTheWindow(OldWindowManager& manager, OldWindow& window)
+// su paso con 1) y pone 0x77f3708 en 1, que nadie lee (*estático*; MuRet no lo guarda). Las de amigos, en
+// UI/FriendWindows.
+Core::Expected<void, std::string> SettleTheWindow(OldWindowManager& manager, OldWindow& window,
+                                                  const OldWindowGlobals& globals, const OldWindowStepView& view)
 {
-    if (window.kind != OldWindowKind::MessageBox)
-        return;
-    SettleTheButtons(manager, window);
+    if (IsAFriendsKind(window.kind))
+        return SettleTheFriendsKinds(manager, window, globals, view);
+    if (window.kind == OldWindowKind::MessageBox)
+        SettleTheButtons(manager, window);
+    return {};
 }
 
 // 0x4930f0, la vtable + 0x38 del marco y de la caja: estira la ventana de y = 0 hasta la barra, o la vuelve.
-void StretchTheWindow(OldWindowManager& manager, OldWindow& window)
+Core::Expected<void, std::string> StretchTheWindow(OldWindowManager& manager, OldWindow& window,
+                                                   const OldWindowGlobals& globals, const OldWindowStepView& view)
 {
     OldWindowBase& base = window.base;
     OldFrame& frame = window.frame;
@@ -354,30 +394,39 @@ void StretchTheWindow(OldWindowManager& manager, OldWindow& window)
         frame.savedY = base.y;
         base.y = 0;
         base.height = StretchedHeight;
-        SettleTheWindow(manager, window);
+        if (auto settled = SettleTheWindow(manager, window, globals, view); !settled.HasValue())
+            return settled;
         frame.stretched = 1;
-        return;
+        return {};
     }
     base.height = frame.savedHeight;
     base.y = frame.savedY;
-    SettleTheWindow(manager, window);
+    if (auto settled = SettleTheWindow(manager, window, globals, view); !settled.HasValue())
+        return settled;
     frame.stretched = 0;
+    return {};
 }
 
 // 0x4a3b80, la vtable + 0x28 de la caja: el comando de un botón. El 1 (y el 2 con dos botones) le avisa al dueño
 // (el 12 con el id y 1 o 0) y le pide al administrador que la cierre. Siempre da 0: después corre 0x45abc0.
-Core::Expected<void, std::string> AnswerTheBox(OldWindowManager& manager, OldWindow& window)
+Core::Expected<void, std::string> AnswerTheBox(OldWindowManager& manager, OldWindow& window,
+                                               const OldWindowStepView& view)
 {
     const OldMessage& message = window.base.current;
     if (message.type != CommandMessage)
         return {};
     if (message.a != YesCommand && (message.a != NoCommand || window.box.oneButton != 0))
         return {};
+    // 0x4a3bde y 0x4a3fc8: la respuesta a un pedido de amistad (C1 0E C2, 1 o 0, y el nombre de +0x2b8).
     if (window.box.owner == -1)
-        return Core::Unexpected(std::string(
-            message.a == YesCommand ? "0x4a3bde: la respuesta C1 C2 01 a un pedido de amistad es de la CL9.4"
-                                    : "0x4a3fc8: la respuesta C1 C2 01 a un pedido de amistad es de la CL9.4"));
-    if (window.box.owner != 0)
+    {
+        if (!view.send)
+            return Core::Unexpected(std::string("0x4a3b80: la respuesta a un pedido de amistad (C1 C2) sin el cable"));
+        view.send(FriendSend{.kind = FriendSendKind::Answer,
+                             .value = static_cast<std::uint8_t>(message.a == YesCommand ? 1 : 0),
+                             .name = window.box.friendName});
+    }
+    else if (window.box.owner != 0)
         PostToTheWindow(manager, window.box.owner, AnswerMessage, window.base.id, message.a == YesCommand ? 1 : 0);
     PostToTheManager(manager, CloseMessage, window.base.id, 0);
     return {};
@@ -385,29 +434,35 @@ Core::Expected<void, std::string> AnswerTheBox(OldWindowManager& manager, OldWin
 
 // La vtable + 0x1c: 0x48fb10 (nada) en el marco; 0x4a43c0 en la caja (Enter, siendo la del final de la lista, se
 // manda el 10 con 1; y el paso de los dos botones, también el del que no se usa), y 0x4a4e20 en la lista de ventanas
-// (con +0x150 en 1, Enter la oculta: sin entradas, sin subir ninguna).
-void BeforeTheMouse(OldWindowManager& manager, OldWindow& window, std::int32_t arg, const OldWindowGlobals& globals,
-                    const OldWindowStepView& view)
+// (con +0x150 en 1, Enter la oculta: sin entradas, sin subir ninguna). Las de amigos, en UI/FriendWindows.
+Core::Expected<void, std::string> BeforeTheMouse(OldWindowManager& manager, OldWindow& window, std::int32_t arg,
+                                                 const OldWindowGlobals& globals, const OldWindowStepView& view)
 {
+    if (IsAFriendsKind(window.kind))
+        return StepTheFriendsChildren(manager, window, arg, globals, view);
     if (window.kind == OldWindowKind::MessageBox)
     {
         if (LastOldWindow(manager) == window.base.id && view.keyEdge && view.keyEdge(EnterKey))
-            window.base.queue.push_back(OldMessage{.type = CommandMessage, .a = YesCommand, .b = 0});
+            window.base.queue.push_back(OldMessage{.type = CommandMessage, .a = YesCommand, .b = 0, .text = {}});
         for (OldButton& button : window.box.buttons)
             StepTheButton(manager, button, arg, globals, view);
-        return;
+        return {};
     }
     if (window.kind == OldWindowKind::WindowList && window.list.armed == 1 && view.keyEdge && view.keyEdge(EnterKey))
     {
         HideTheWindowList(window);
         window.list.armed = 0;
     }
+    return {};
 }
 
 // La vtable + 0x58: 0x48fb20 y 0x4a4430 (nada) en el marco y en la caja; 0x4a4eb0 en la lista, que solo hace algo a la
-// vista (sus renglones, CL9.4).
-Core::Expected<void, std::string> AfterTheMove(const OldWindow& window)
+// vista (sus renglones, hito 10). Las de amigos, en UI/FriendWindows.
+Core::Expected<void, std::string> AfterTheMove(OldWindowManager& manager, OldWindow& window,
+                                               const OldWindowGlobals& globals, const OldWindowStepView& view)
 {
+    if (IsAFriendsKind(window.kind))
+        return AfterTheFriendsMove(manager, window, globals, view);
     if (window.kind == OldWindowKind::WindowList && window.base.state == ShownWindow)
         return Core::Unexpected(
             std::string("0x4a4eb0: la lista de ventanas a la vista (sus renglones) es de la CL9.4"));
@@ -562,19 +617,19 @@ Core::Expected<void, std::string> StepTheFrameMouse(OldWindowManager& manager, O
                 base.y = ScreenHeight - base.height;
             frame.grabX = view.mouseX;
             frame.grabY = view.mouseY;
-            return AfterTheMove(window);
+            return AfterTheMove(manager, window, globals, view);
         }
         base.state = ShownWindow;
         if (globals.capture == base.id)
             globals.capture = 0;
-        return AfterTheMove(window);
+        return AfterTheMove(manager, window, globals, view);
     }
     if (base.state != ResizedWindow)
-        return AfterTheMove(window);
+        return AfterTheMove(manager, window, globals, view);
     if (globals.leftHeld)
     {
         if (frame.resizeCorner != BottomRightCorner && frame.resizeCorner != TopLeftCorner)
-            return AfterTheMove(window);
+            return AfterTheMove(manager, window, globals, view);
         if (globals.hovered == 0)
             globals.hovered = base.id;
         globals.mouseOnUi = 1;
@@ -582,12 +637,12 @@ Core::Expected<void, std::string> StepTheFrameMouse(OldWindowManager& manager, O
             ResizeFromTheBottomRight(window, view);
         else
             ResizeFromTheTopLeft(window, view);
-        return AfterTheMove(window);
+        return AfterTheMove(manager, window, globals, view);
     }
     base.state = ShownWindow;
     if (globals.capture == base.id)
         globals.capture = 0;
-    return AfterTheMove(window);
+    return AfterTheMove(manager, window, globals, view);
 }
 
 // 0x45aa80, la vtable + 0x18 de las tres: la cola (la vtable + 0x28 y, si da 0, 0x45abc0), la vtable + 0x1c, el
@@ -602,12 +657,18 @@ Core::Expected<void, std::string> StepTheWindow(OldWindowManager& manager, OldWi
         base.queue.pop_front();
         if (window.kind == OldWindowKind::MessageBox)
         {
-            if (auto answered = AnswerTheBox(manager, window); !answered.HasValue())
+            if (auto answered = AnswerTheBox(manager, window, view); !answered.HasValue())
                 return answered;
+        }
+        else if (IsAFriendsKind(window.kind))
+        {
+            if (auto handled = HandleTheFriendsMessage(manager, window, globals, view); !handled.HasValue())
+                return handled;
         }
         PlaceAgainstTheParent(manager, base);
     }
-    BeforeTheMouse(manager, window, arg, globals, view);
+    if (auto before = BeforeTheMouse(manager, window, arg, globals, view); !before.HasValue())
+        return before;
     if (arg == 1)
         return {};
     if (!ClaimTheMouse(manager, base, globals, view))
@@ -651,8 +712,17 @@ void FocusTheLast(OldWindowManager& manager, const OldWindowGlobals& globals)
     FocusTheGame(globals);
 }
 
+// 0x45aa50: el mensaje y el paso con 1.
+Core::Expected<void, std::string> PostAndStep(OldWindowManager& manager, OldWindow& window, std::int32_t type,
+                                              const OldWindowGlobals& globals, const OldWindowStepView& view)
+{
+    window.base.queue.push_back(OldMessage{.type = type, .a = 0, .b = 0, .text = {}});
+    return StepTheWindow(manager, window, 1, globals, view);
+}
+
 // 0x490b70: los mensajes del administrador.
-Core::Expected<void, std::string> HandleTheMessage(OldWindowManager& manager, const OldWindowGlobals& globals)
+Core::Expected<void, std::string> HandleTheMessage(OldWindowManager& manager, const OldWindowGlobals& globals,
+                                                   const OldWindowStepView& view)
 {
     const std::int32_t id = manager.current.a;
     switch (manager.current.type)
@@ -674,7 +744,7 @@ Core::Expected<void, std::string> HandleTheMessage(OldWindowManager& manager, co
             PostToTheWindow(manager, id, RaisedMessage, 0, 0);
         }
         manager.focus = id;
-        // 0x4a60b0(id) sobre la lista de ventanas: sin entradas (CL9.4), nada.
+        // 0x4a60b0(id) sobre la lista de ventanas: sin entradas (los chats del hito 10), nada.
         HideTheWindowList(manager.windowList);
         return {};
     }
@@ -692,7 +762,8 @@ Core::Expected<void, std::string> HandleTheMessage(OldWindowManager& manager, co
             return {};
         if (OldWindow* window = FindTheOldWindow(manager, id); window != nullptr)
         {
-            StretchTheWindow(manager, *window);
+            if (auto stretched = StretchTheWindow(manager, *window, globals, view); !stretched.HasValue())
+                return stretched;
             globals.sound = ButtonSound;
         }
         return {};
@@ -700,7 +771,7 @@ Core::Expected<void, std::string> HandleTheMessage(OldWindowManager& manager, co
         if (id == 0)
             return {};
         globals.sound = ButtonSound;
-        if (auto destroyed = DestroyTheOldWindow(manager, id); !destroyed.HasValue())
+        if (auto destroyed = DestroyTheOldWindow(manager, id, globals.pressedButton); !destroyed.HasValue())
             return destroyed;
         FocusTheLast(manager, globals);
         return {};
@@ -714,7 +785,17 @@ Core::Expected<void, std::string> HandleTheMessage(OldWindowManager& manager, co
         return {};
     }
 }
-} // namespace
+} // namespace Steps
+
+using Steps::ClaimTheMouse;
+using Steps::FocusTheGame;
+using Steps::HandleTheMessage;
+using Steps::IsShowing;
+using Steps::MakeTheFrame;
+using Steps::MakeTheMessageBox;
+using Steps::PostAndSettle;
+using Steps::SettleTheWindow;
+using Steps::StepTheWindow;
 
 OldWindow OldWindowManager::MakeTheWindowList()
 {
@@ -733,8 +814,40 @@ OldWindow OldWindowManager::MakeTheWindowList()
 
 OldWindow* FindTheOldWindow(OldWindowManager& manager, std::int32_t id)
 {
-    const auto found = manager.windows.find(id);
-    return found != manager.windows.end() ? &found->second : nullptr;
+    if (const auto found = manager.windows.find(id); found != manager.windows.end())
+        return &found->second;
+    const auto tab = manager.tabs.find(id);
+    if (tab == manager.tabs.end())
+        return nullptr;
+    const OldTabReference& reference = tab->second;
+    OldWindow* owner = nullptr;
+    if (const auto found = manager.windows.find(reference.ownerId);
+        found != manager.windows.end() && found->second.allocationId == reference.allocationId)
+        owner = &found->second;
+    else
+    {
+        for (OldWindow& rejected : manager.unregisteredWindows)
+        {
+            if (rejected.base.id == reference.ownerId && rejected.allocationId == reference.allocationId)
+            {
+                owner = &rejected;
+                break;
+            }
+        }
+    }
+    if (owner == nullptr)
+        return nullptr;
+    for (OldWindow& candidate : owner->tabs)
+    {
+        if (candidate.base.id == id)
+            return &candidate;
+    }
+    return nullptr;
+}
+
+std::string OldWindowTexts::At(std::size_t index) const
+{
+    return lookup ? lookup(index) : std::string();
 }
 
 bool HasTheOldWindow(const OldWindowManager& manager, std::int32_t id)
@@ -761,18 +874,18 @@ std::int32_t LastOldWindow(const OldWindowManager& manager)
 
 void PostToTheManager(OldWindowManager& manager, std::int32_t type, std::int32_t a, std::int32_t b)
 {
-    manager.queue.push_back(OldMessage{.type = type, .a = a, .b = b});
+    manager.queue.push_back(OldMessage{.type = type, .a = a, .b = b, .text = {}});
 }
 
 void PostToTheWindow(OldWindowManager& manager, std::int32_t id, std::int32_t type, std::int32_t a, std::int32_t b)
 {
     if (OldWindow* window = FindTheOldWindow(manager, id); window != nullptr)
-        window->base.queue.push_back(OldMessage{.type = type, .a = a, .b = b});
+        window->base.queue.push_back(OldMessage{.type = type, .a = a, .b = b, .text = {}});
 }
 
-Core::Expected<std::int32_t, std::string> CreateTheOldWindow(OldWindowManager& manager, const OldWindowRequest& request,
-                                                             const OldWindowTexts& texts,
-                                                             const OldWindowMeasure& measure)
+Core::Expected<std::int32_t, std::string>
+CreateTheOldWindow(OldWindowManager& manager, const OldWindowRequest& request, const OldWindowTexts& texts,
+                   const OldWindowMeasure& measure, const OldWindowGlobals* globals, const OldWindowStepView* view)
 {
     // 0x48ee93: con 0x6c7b8c en 0 no arma nada; está en 1 en la .data y nadie lo escribe.
     OldWindow window;
@@ -781,6 +894,43 @@ Core::Expected<std::int32_t, std::string> CreateTheOldWindow(OldWindowManager& m
     case FrameCase:
         window = MakeTheFrame(manager);
         break;
+    case FriendsCase:
+    {
+        // Una sola: con +0x48 da 0.
+        if (manager.friends != 0)
+            return 0;
+        if (globals == nullptr || view == nullptr)
+            return Core::Unexpected(std::string("0x48ee60(3): la ventana de amigos sin el paso de las ventanas"));
+        auto made = Steps::MakeTheFriendsWindow(manager, request, texts, measure);
+        if (!made.HasValue())
+            return Core::Unexpected(std::move(made).Error());
+        window = std::move(made).Value();
+        manager.friends = window.base.id;
+        // +0xb0: con una carta nueva (+0x144 de la lista de ventanas), la pestaña de las cartas; si no, la de antes.
+        window.friends.currentTab = manager.windowList.list.newLetter == 1 ? 1 : manager.lastTab;
+        // 0x4a6420(0).
+        manager.windowList.list.newLetter = 0;
+        if (manager.listReceived == 0)
+        {
+            if (!view->send)
+                return Core::Unexpected(std::string("0x48ee60(3): el pedido de la lista de amigos (C1 03 C0) sin el "
+                                                    "cable"));
+            view->send(FriendSend{.kind = FriendSendKind::ListRequest, .value = 0, .name = {}});
+        }
+        break;
+    }
+    case AddFriendCase:
+    {
+        if (manager.modal != 0)
+            return 0;
+        if (globals == nullptr || view == nullptr)
+            return Core::Unexpected(
+                std::string("0x48ee60(4): la caja de agregar un amigo sin el paso de las ventanas"));
+        window = Steps::MakeTheAddFriendBox(manager, request, texts);
+        Steps::AddTheWindowRow(manager, window.base.id, request.data);
+        manager.modal = window.base.id;
+        break;
+    }
     case ModalQuestionCase:
     case ModalNoticeCase:
     case QuestionCase:
@@ -791,24 +941,28 @@ Core::Expected<std::int32_t, std::string> CreateTheOldWindow(OldWindowManager& m
             return 0;
         const bool oneButton = request.kind == ModalNoticeCase || request.kind == NoticeCase;
         window = MakeTheMessageBox(manager, oneButton ? 1 : 0);
-        // 0x49e6e0(id, texto) sobre +0x4d0 de la ventana de amigos: la anota en su lista. No hay ventana de amigos en
-        // la CL8.
-        if (FindTheOldWindow(manager, manager.friends) != nullptr)
-            return Core::Unexpected(std::string("0x49e6e0: anotar la caja en la ventana de amigos es de la CL9.4"));
+        // 0x49e6e0(id, texto) sobre +0x4d0 de la ventana de amigos: la anota en su lista.
+        Steps::AddTheWindowRow(manager, window.base.id, request.data);
         if (modal)
             manager.modal = window.base.id;
         else if (std::ranges::find(manager.boxes, window.base.id) == manager.boxes.end())
             manager.boxes.push_back(window.base.id);
         break;
     }
-    default:
-        return Core::Unexpected(std::format("0x48ee60: el caso {} de la fábrica de las ventanas viejas (los amigos, "
-                                            "su chat y las cartas) es de la CL9.4",
+    case 1:
+    case 2:
+    case 6:
+    case 7:
+        return Core::Unexpected(std::format("0x48ee60: el caso {} de la fábrica de las ventanas viejas (el chat con un "
+                                            "amigo y las cartas) es del hito 10",
                                             request.kind));
+    default:
+        // 0x48ee98..0x48ee9b: fuera de 0..10 (sin signo), retorna 0 sin construir ni consumir IDs.
+        return 0;
     }
     std::int32_t x = request.x == -1 ? 0 : request.x;
     std::int32_t y = request.y == -1 ? DefaultY : request.y;
-    // La vtable + 0x2c: 0x4920a0 en el marco y 0x4a38f0 en la caja.
+    // La vtable + 0x2c: 0x4920a0 en el marco y 0x4a38f0 en la caja (0x4a2280 y 0x4a35a0, en Steps::MakeThe...).
     OldWindowBase& base = window.base;
     if (window.kind == OldWindowKind::Frame)
     {
@@ -819,7 +973,7 @@ Core::Expected<std::int32_t, std::string> CreateTheOldWindow(OldWindowManager& m
         base.width = FrameWidth;
         base.height = FrameHeight;
     }
-    else
+    else if (window.kind == OldWindowKind::MessageBox)
     {
         OldMessageBox& box = window.box;
         window.frame.title = box.oneButton == 0 ? texts.question : texts.notice;
@@ -877,7 +1031,12 @@ Core::Expected<std::int32_t, std::string> CreateTheOldWindow(OldWindowManager& m
             {
                 const std::int32_t rest = y % CascadeWrap;
                 if (rest == CascadeGiveUp)
+                {
+                    // 0x48f700..0x48f70a destruye el objeto nuevo, incluido el global de cada botón (0x45adf0).
+                    if (globals != nullptr)
+                        ReleaseTheDestroyedButtons(window, globals->pressedButton);
                     return 0;
+                }
                 y = rest + 1;
                 x = y;
             }
@@ -887,9 +1046,20 @@ Core::Expected<std::int32_t, std::string> CreateTheOldWindow(OldWindowManager& m
     base.x = x;
     base.y = y;
     const std::int32_t id = base.id;
-    OldWindow& placed = manager.windows.insert_or_assign(id, std::move(window)).first->second;
+    const auto [registered, inserted] = manager.windows.try_emplace(id, std::move(window));
+    // 0x48f7b2 conserva el registro anterior sin destruir el nuevo; 0x48f82d asienta siempre el recién construido.
+    // Debe ser encontrable antes de asentar: la lista busca su pestaña en el segundo mapa (0x490a00).
+    if (!inserted)
+        manager.unregisteredWindows.push_back(std::move(window));
+    OldWindow& placed = inserted ? registered->second : manager.unregisteredWindows.back();
     manager.order.push_back(id);
-    SettleTheWindow(manager, placed);
+    if (Steps::IsAFriendsKind(placed.kind))
+    {
+        if (auto settled = SettleTheWindow(manager, placed, *globals, *view); !settled.HasValue())
+            return Core::Unexpected(std::move(settled).Error());
+    }
+    else if (placed.kind == OldWindowKind::MessageBox)
+        SettleTheButtons(manager, placed);
     return id;
 }
 
@@ -912,19 +1082,26 @@ Core::Expected<void, std::string> StepTheOldWindows(OldWindowManager& manager, c
             PostToTheManager(manager, CloseMessage, LastOldWindow(manager), 0);
     }
     // 0x490538..0x49055c: F5 con el foco en la ventana del juego, 0x4a5be0(1) sobre la lista de ventanas: sin entradas
-    // (+0xdc, CL9.4), nada.
+    // (+0xdc, los chats con un amigo del hito 10), nada.
     if (globals.keyboardFocus == ChatFocus::Game && view.keyEdge)
         static_cast<void>(view.keyEdge(F5Key));
     // 0x490561..0x4905a2: F6 esconde las ventanas, o las vuelve a mostrar si escondió alguna.
     if (view.keyEdge && view.keyEdge(F6Key) && (manager.hiddenByF6 == 0 || !manager.hidden.empty()))
     {
         manager.hiddenByF6 = (manager.hiddenByF6 + 1) % 2;
-        if (auto hidden = HideTheOldWindows(manager, manager.hiddenByF6, 1, globals); !hidden.HasValue())
+        if (auto hidden = HideTheOldWindows(manager, manager.hiddenByF6, 1, globals, &view); !hidden.HasValue())
             return hidden;
     }
-    // 0x4905a2..0x4905bf: la de amigos oculta se suelta (0x4914e0). No hay ventana de amigos en la CL8.
+    // 0x4905a2..0x4905bf: la de amigos oculta se suelta (0x4914e0); al volver a mostrar, 0x4906a0 la abre (Q-C448).
     if (manager.friends != 0)
-        return Core::Unexpected(std::string("0x4905a2: la ventana de amigos (+0x48) es de la CL9.4"));
+    {
+        const OldWindow* friends = FindTheOldWindow(manager, manager.friends);
+        if (friends != nullptr && friends->base.state == HiddenWindow)
+        {
+            if (auto dropped = DropTheFriendsWindow(manager, globals.pressedButton); !dropped.HasValue())
+                return dropped;
+        }
+    }
     // 0x4905c4: de arriba hacia abajo, cada una a la vista corre su paso con 0 (solo las del primer mapa).
     for (auto it = manager.order.rbegin(); it != manager.order.rend(); ++it)
     {
@@ -938,22 +1115,23 @@ Core::Expected<void, std::string> StepTheOldWindows(OldWindowManager& manager, c
     {
         manager.current = manager.queue.front();
         manager.queue.pop_front();
-        if (auto handled = HandleTheMessage(manager, globals); !handled.HasValue())
+        if (auto handled = HandleTheMessage(manager, globals, view); !handled.HasValue())
             return handled;
     }
     manager.drawn = 0;
     return {};
 }
 
-Core::Expected<void, std::string> DestroyTheOldWindow(OldWindowManager& manager, std::int32_t id)
+Core::Expected<void, std::string> DestroyTheOldWindow(OldWindowManager& manager, std::int32_t id,
+                                                      std::int32_t& pressedButton)
 {
     if (manager.friends == id)
     {
         if (manager.modal != 0)
             return {};
         // 0x49022a..0x490270: guarda el lugar de la ventana de amigos para la próxima.
-        if (FindTheOldWindow(manager, manager.friends) != nullptr)
-            return Core::Unexpected(std::string("0x49022a: soltar la ventana de amigos es de la CL9.4"));
+        if (const OldWindow* friends = FindTheOldWindow(manager, manager.friends); friends != nullptr)
+            Steps::SaveTheFriendsPlace(manager, *friends);
         manager.friends = 0;
     }
     if (manager.letter == id)
@@ -961,22 +1139,31 @@ Core::Expected<void, std::string> DestroyTheOldWindow(OldWindowManager& manager,
     const auto found = manager.windows.find(id);
     if (found == manager.windows.end())
         return {};
+    if (found->second.kind == OldWindowKind::AddFriendBox && !manager.focusedEditIsOrphan &&
+        found->second.add.edit.base.id == manager.focusedEdit)
+    {
+        // El EDIT nativo sobrevive al wrapper; MuRet conserva solo el estado editable si todavía tiene el foco.
+        manager.orphanedEdit = found->second.add.edit;
+        manager.focusedEditIsOrphan = true;
+    }
     // 0x491840.
     manager.boxes.remove(id);
+    ReleaseTheDestroyedButtons(found->second, pressedButton);
     manager.windows.erase(found);
     manager.order.remove(id);
     if (manager.order.empty())
         manager.focus = 0;
-    if (manager.friends != 0 && FindTheOldWindow(manager, manager.friends) != nullptr)
-        return Core::Unexpected(std::string("0x49e710: sacarla de la ventana de amigos es de la CL9.4"));
-    // 0x4a4b30(id) sobre la lista de ventanas: sin entradas (CL9.4), nada.
+    // 0x49e710(id) sobre la pestaña de las ventanas de la de amigos.
+    Steps::ForgetTheWindowRow(manager, id);
+    // 0x4a4b30(id) sobre la lista de ventanas: sin entradas (los chats del hito 10), nada.
     if (manager.modal == id)
         manager.modal = 0;
     return {};
 }
 
 Core::Expected<void, std::string> HideTheOldWindows(OldWindowManager& manager, std::int32_t hide,
-                                                    std::int32_t withFriends, const OldWindowGlobals& globals)
+                                                    std::int32_t withFriends, const OldWindowGlobals& globals,
+                                                    const OldWindowStepView* view)
 {
     std::int32_t shown = 0;
     for (auto& [id, window] : manager.windows)
@@ -1009,18 +1196,54 @@ Core::Expected<void, std::string> HideTheOldWindows(OldWindowManager& manager, s
     // 0x490608: quedó en la lista una que ya no está (la de amigos que soltó 0x4914e0, Q-C448): 0x491080 abre otra.
     const auto count = static_cast<std::int32_t>(manager.hidden.size());
     if (count != shown && count - shown >= 0)
-        return Core::Unexpected(std::string("0x491080: abrir la ventana de amigos (0x186, 0x106) es de la CL9.4"));
+    {
+        if (view == nullptr || !view->openFriends)
+            return Core::Unexpected(std::string("0x491080: abrir la ventana de amigos (0x186, 0x106) sin el juego"));
+        if (auto opened = view->openFriends(); !opened.HasValue())
+            return opened;
+    }
     if (shown > 0 && TopOldWindow(manager) != 0)
         PostToTheManager(manager, RaiseMessage, TopOldWindow(manager), 0);
     manager.hidden.clear();
     return {};
 }
 
-Core::Expected<void, std::string> DropTheFriendsWindow(OldWindowManager& manager)
+Core::Expected<void, std::string> DropTheFriendsWindow(OldWindowManager& manager, std::int32_t& pressedButton)
 {
     if (manager.friends == 0)
         return {};
-    return DestroyTheOldWindow(manager, manager.friends);
+    return DestroyTheOldWindow(manager, manager.friends, pressedButton);
+}
+
+void ForgetTheHiddenWindows(OldWindowManager& manager)
+{
+    manager.hiddenByF6 = 0;
+    manager.hidden.clear();
+}
+
+void ResetTheOldWindows(OldWindowManager& manager, std::int32_t& pressedButton)
+{
+    // 0x48ea5f..0x48eb43: +0x48 en 0, el mapa principal (soltando cada ventana), el mapa de cartas del hito 10,
+    // la lista del orden, 0x4a4480, lo que escondió F6 y las cajas. El segundo mapa +0x5c no se toca: conserva
+    // referencias obsoletas y las pestañas aún vivas de los objetos rechazados por el mapa principal.
+    manager.friends = 0;
+    for (const auto& [id, window] : manager.windows)
+        ReleaseTheDestroyedButtons(window, pressedButton);
+    manager.windows.clear();
+    manager.order.clear();
+    ForgetTheHiddenWindows(manager);
+    manager.boxes.clear();
+    manager.modal = 0;
+    manager.lastTab = 0;
+    manager.listReceived = 1;
+    manager.titleText = 990;
+    manager.letter = 0;
+    manager.offlineSent = 0;
+    // El reinicio de la escena olvida el identificador lógico del EDIT anterior.
+    manager.focusedEdit = 0;
+    manager.focusedEditIsOrphan = false;
+    manager.orphanedEdit.reset();
+    // 0x48eb7d: +0x48 ya está en 0, así que 0x4a23b0 sobre la de amigos no corre.
 }
 
 void SettleTheButtons(OldWindowManager& manager, OldWindow& box)

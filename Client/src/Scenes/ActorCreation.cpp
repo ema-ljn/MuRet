@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Scenes/ActorConstruction.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CharacterCloth.h"
 #include "Scenes/HelperTable.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -62,6 +63,7 @@ Core::Expected<std::size_t, std::string> CreateActor(WorldState& world, std::int
         ForgetNamedBones(world.Runtime(), slot);
         actor.darkSpirit.reset();
         ReleaseTheLayer(actor);
+        world.ActorCloths()[slot] = {};
         if (auto built = ConstructActor(actor, type, placement, context, cloth); !built.HasValue())
             return Core::Unexpected(built.Error());
         actor.key = static_cast<std::uint16_t>(key);
@@ -86,7 +88,22 @@ void RemoveActor(WorldState& world, std::int32_t key)
         TurnOffHelpersOf(world.Helpers(), slot);
         actor.darkSpirit.reset();
         ReleaseTheLayer(actor);
+        world.ActorCloths()[slot] = {};
         return;
     }
+}
+
+void RemoveActorAtSlot(WorldState& world, ActorState& actor, std::size_t slot)
+{
+    actor.alive = false;
+    if (slot < CreatedActorSearch)
+    {
+        ForgetNamedBones(world.Runtime(), slot);
+        TurnOffHelpersOf(world.Helpers(), slot);
+    }
+    actor.darkSpirit.reset();
+    if (slot < CreatedActorSearch)
+        world.ActorCloths()[slot].ReleaseResources();
+    ReleaseTheLayer(actor);
 }
 } // namespace Client::Scenes

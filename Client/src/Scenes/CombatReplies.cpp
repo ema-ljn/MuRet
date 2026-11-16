@@ -40,8 +40,8 @@ constexpr std::uint8_t KillerOnRecord = 2;
 // Los empujes del 0x17: la skill 0x28 y la 0x3b (0x4d0ab3, 0x4d0b41).
 constexpr std::uint8_t FirstPushSkill = 0x28;
 constexpr std::uint8_t SecondPushSkill = 0x3b;
+// 0x4d0a5f..0x4d0aa2: 0x4d07c0 corre en Blood Castle (11 a 17) y en Chaos Castle (18 a 23), dos rangos seguidos.
 constexpr std::int32_t FirstBloodCastleMap = 11;
-constexpr std::int32_t LastBloodCastleMap = 17;
 constexpr std::int32_t FirstChaosCastleMap = 18;
 constexpr std::int32_t LastChaosCastleMap = 23;
 // El TerrainWall de 0x4d07c0: 8 en Chaos Castle (cae) y 0x20 (lo empujan); el bit 8 de la celda de al lado decide
@@ -83,6 +83,48 @@ Core::Expected<void, std::string> AddTheExperienceMessage(std::uint32_t amount, 
                           UI::SystemMessage);
 }
 
+// 0x4d08ea..0x4d0a06: lo empujan del puente, hacia el lado de la celda vecina con el bit 8: la de la derecha
+// (0x4d0949) o, sin el bit ahí, la de la izquierda (0x4d0979); sin ninguna, el empujón queda como estaba. En el borde
+// de la grilla (la celda 0xffff, o la 0 sin el bit en la 1) el original lee la memoria de al lado de TerrainWall
+// (0x7d0d348): MuRet saca los tres rand() de antes de esa lectura y descarta el empujón (+0x1a1 de nuevo en 0), sin
+// cortar el handler (07, Q-C1180).
+void PushOffTheBridge(ActorState& actor, std::size_t cell, const Data::Terrain::TerrainLayer<std::uint16_t>& cells,
+                      Render::Models::CrtRandom& random)
+{
+    actor.byte1a1 = 1;
+    actor.byte398 = 0;
+    actor.floatE4 = Plus(random.Next() % 10, 10.0f);
+    actor.floatD8 = Plus(random.Next() % 20, 20.0f);
+    const float push = Plus(random.Next() % 10, 85.0f);
+    const auto falls = [&cells](std::size_t index) { return (cells[index] & FallWall) == FallWall; };
+    if (cell + 1 >= TerrainCells)
+    {
+        actor.byte1a1 = 0;
+        return;
+    }
+    if (falls(cell + 1))
+    {
+        actor.push = {0.0f, 0.0f, -push};
+    }
+    else
+    {
+        if (cell == 0)
+        {
+            actor.byte1a1 = 0;
+            return;
+        }
+        if (falls(cell - 1))
+            actor.push = {0.0f, 0.0f, push};
+    }
+    actor.angles.z = actor.push.z;
+    actor.floatCC = Plus(random.Next() % 6, 8.0f);
+    // 0x4d09c2..0x4d09d4: NEG y el resto con signo de 2: 0 o −1.
+    const std::int32_t side = (-random.Next()) % 2;
+    actor.floatD4 = 5.0f;
+    actor.pushOrigin = actor.position;
+    actor.floatD0 = Plus(side, 13.0f);
+}
+
 // 0x4d07c0 con los dos argumentos en el mismo personaje.
 Core::Expected<void, std::string> DieInTheCastle(ActorState& actor, const ActorCombatContext& combat)
 {
@@ -119,25 +161,7 @@ Core::Expected<void, std::string> DieInTheCastle(ActorState& actor, const ActorC
     }
     else if ((wall & PushWall) == PushWall)
     {
-        // 0x4d08ea..0x4d0a06: lo empujan del puente, hacia el lado de la celda vecina con el bit 8.
-        if (cell == 0 || cell + 1 >= TerrainCells)
-            return Core::Unexpected(std::string("0x4d0949: la celda vecina del que muere cae fuera del TerrainWall"));
-        actor.byte1a1 = 1;
-        actor.byte398 = 0;
-        actor.floatE4 = Plus(random.Next() % 10, 10.0f);
-        actor.floatD8 = Plus(random.Next() % 20, 20.0f);
-        const float push = Plus(random.Next() % 10, 85.0f);
-        if ((attributes->cells[cell + 1] & FallWall) == FallWall)
-            actor.push = {0.0f, 0.0f, -push};
-        else if ((attributes->cells[cell - 1] & FallWall) == FallWall)
-            actor.push = {0.0f, 0.0f, push};
-        actor.angles.z = actor.push.z;
-        actor.floatCC = Plus(random.Next() % 6, 8.0f);
-        // 0x4d09c2..0x4d09d4: NEG y el resto con signo de 2: 0 o −1.
-        const std::int32_t side = (-random.Next()) % 2;
-        actor.floatD4 = 5.0f;
-        actor.pushOrigin = actor.position;
-        actor.floatD0 = Plus(side, 13.0f);
+        PushOffTheBridge(actor, cell, attributes->cells, random);
     }
     // 0x4d0a0c..0x4d0a25: el héroe con el objeto del evento lo vuelve a 0x40ba20.
     if (&actor == &combat.world.Actors()[runtime.hero] && runtime.eventObject)

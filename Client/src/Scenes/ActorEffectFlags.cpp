@@ -1,13 +1,19 @@
 #include "Scenes/ActorEffectFlags.h"
 
 #include "Core/Expected.h"
+#include "App/WindowState.h"
 #include "Data/Models/PlayerModels.h"
 #include "Scenes/ActorFlags.h"
 #include "Scenes/ActorState.h"
 #include "World/ModelEffects.h"
+#include "Data/Text/TextTable.h"
+#include "Scenes/GameMessages.h"
+#include "Scenes/WorldEntry.h"
+#include "Scenes/WorldRuntime.h"
+#include "Scenes/WorldState.h"
 
+#include <cstddef>
 #include <cstdint>
-#include <optional>
 #include <string>
 #include <utility>
 
@@ -20,6 +26,8 @@ constexpr std::uint32_t Bit40000 = 0x40000;
 constexpr std::uint32_t Bit80000 = 0x80000;
 constexpr std::uint32_t Bit400000 = 0x400000;
 constexpr std::uint32_t Bit800000 = 0x800000;
+constexpr std::size_t BlessingNoticeText = 1828; // 0x76bd1dc + 1828 * 300 = 0x774300c.
+constexpr std::int32_t SystemMessage = 1;
 
 bool Has(std::uint32_t flags, std::uint32_t bit)
 {
@@ -54,11 +62,27 @@ Core::Expected<void, std::string> Cut(const char* text)
 {
     return Core::Unexpected(std::string(text));
 }
+
+Core::Expected<void, std::string> ShowTheBlessingNotice(const WorldEntryResources& resources)
+{
+    if (resources.texts == nullptr)
+        return Cut("0x4e68f5: falta Text.bmd para el aviso de la bandera 0x2000000");
+    if (resources.textMeasure == nullptr)
+        return Cut("0x4e68f5: falta el medidor para 0x555190 y el aviso de la bandera 0x2000000");
+    const auto text = resources.texts->Text(BlessingNoticeText);
+    if (!text)
+        return Cut("0x4e68f5: Text.bmd no ofrece el registro 1828 del aviso");
+    const App::PixelSize screen = resources.screen ? resources.screen() : App::PixelSize{640, 480};
+    // 0x5767b6c es una ancla de nombre vacía. Incluso un Text1828 vacío debe envejecer el log y añadir su fila.
+    return AddGameMessage(resources.world.Runtime(), *resources.textMeasure, screen, {}, *text, SystemMessage);
+}
 } // namespace
 
 Core::Expected<void, std::string> ApplyEffectFlags(ActorState& actor, std::uint32_t flags, bool publishedHero,
-                                                   std::optional<std::int32_t>& lastSound, World::ModelEffects& effects)
+                                                   const WorldEntryResources& resources)
 {
+    auto& lastSound = resources.world.Runtime().lastSoundId;
+    auto& effects = resources.world.Map().effects;
     // 0x4e6390..0x4e63b7.
     if (Has(flags, Bit800000))
     {
@@ -181,8 +205,10 @@ Core::Expected<void, std::string> ApplyEffectFlags(ActorState& actor, std::uint3
     if (Has(flags, Bit2000000))
     {
         if (publishedHero)
-            return Cut("0x4e68f5: el renglón de 0x555190 con 0x5767b6c y 0x774300c (sin leer) de la bandera 0x2000000 "
-                       "en el héroe está abierto (P-C163)");
+        {
+            if (auto notice = ShowTheBlessingNotice(resources); !notice.HasValue())
+                return notice;
+        }
         actor.flags78 |= Bit2000000;
     }
     return {};

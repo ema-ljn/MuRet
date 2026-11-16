@@ -388,6 +388,25 @@ TEST(PanelRegistryTest, TheCharacterKeepsTheInventoryOpenAndRunsItsHook)
     EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x19, 0x1c}));
 }
 
+// 0x659f3d: los amigos no cierran nada y corren 0x491080 (CL9 hito 9), que saca sus propios rand(); acá, los 2 de
+// CanOpen.
+TEST(PanelRegistryTest, TheFriendsRunTheirHookWithoutClosingAnything)
+{
+    Tested tested;
+    int hooks = 0;
+    tested.context.friendsOpened = [&hooks]() -> Client::Core::Expected<void, std::string>
+    {
+        ++hooks;
+        return {};
+    };
+    tested.state.inventory = 1;
+    const auto opened = tested.panels.Open(FriendsPanel);
+    ASSERT_TRUE(opened.HasValue()) << opened.Error();
+    EXPECT_EQ(hooks, 1);
+    EXPECT_EQ(tested.state.inventory, 1);
+    EXPECT_EQ(DrawsSince(tested.random), 2);
+}
+
 TEST(PanelRegistryTest, TheCharacterWithoutItsHookIsACut)
 {
     Tested tested;

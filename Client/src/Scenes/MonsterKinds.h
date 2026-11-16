@@ -133,10 +133,10 @@ private:
 ResolveMonsterSteps(const MonsterCreation& creation, const MonsterCreationContext& context,
                     Render::Models::CrtRandom& random);
 
-// 0x5140c0, la cola de cada alta, sin el nombre de la tabla de 0x7681eb8: en los mapas 10 a 17 los tipos 0x54 a
-// 0x8f van con el nivel (+0x1d6) en 0 y la escala (+0xc) más (mapa − 9) / 3 · 0,05 (0x6b8a48); después +0x376 = el
-// tipo, +8 = 0, +0x3a4 = el word de 0x57678b0 y la clase del objeto (+0x88): 4 con los tipos 201 a 259, 8 con los
-// 100 a 110 y 2 con el resto.
+// 0x5140c0, la cola de cada alta (el nombre de la tabla de 0x7681eb8 lo copia MonsterCreation): en los mapas 10 a 17
+// los tipos 0x54 a 0x8f van con el nivel (+0x1d6) en 0 y la escala (+0xc) más (mapa − 9) / 3 · 0,05 (0x6b8a48);
+// después +0x376 = el tipo, +8 = 0, +0x3a4 = el word de 0x57678b0 y la clase del objeto (+0x88): 4 con los tipos 201 a
+// 259, 8 con los 100 a 110 y 2 con el resto.
 struct MonsterTail
 {
     bool clearsLevel = false;

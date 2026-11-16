@@ -675,7 +675,7 @@ TEST(HeroSkillsTest, TheMagicGladiatorGoesOnThroughTheKnightIntoTheWizardBranch)
         ASSERT_EQ(tested->sent.size(), 1u);
         EXPECT_EQ(ClearBytesOf(tested->sent[0]),
                   (std::vector<std::uint8_t>{0xc1, 0x0c, 0x1e, 0x0a, 182, 115, 0, 0, 0, 0xff, 0xff, 0}));
-        EXPECT_EQ(tested->Movement().lastShotSkill, 0xau);
+        EXPECT_EQ(tested->world.Runtime().lastShotSkill, 0xau);
         EXPECT_EQ(tested->Hero().animation.action, 0x96);
         EXPECT_EQ(tested->Hero().movement, 0);
     }
@@ -1230,7 +1230,7 @@ TEST(HeroSkillsTest, TheElfTripleShotSendsA1E)
         EXPECT_EQ(ClearBytesOf(tested->sent[0]),
                   (std::vector<std::uint8_t>{0xc1, 0x0c, 0x1e, 0x18, 182, 115, 0x60, 0, 0, 0x0a, 0x1b, 0}));
         EXPECT_FLOAT_EQ(tested->Hero().angles.z, 135.0f);
-        EXPECT_EQ(tested->Movement().lastShotSkill, 0x18u);
+        EXPECT_EQ(tested->world.Runtime().lastShotSkill, 0x18u);
     }
 }
 
@@ -1266,7 +1266,7 @@ TEST(HeroSkillsTest, TheElfShotNeedsTheNameAndTheReach)
         ASSERT_TRUE(tested->Use().HasValue());
         EXPECT_EQ(tested->random.State(), expected.State());
         EXPECT_TRUE(tested->sent.empty());
-        EXPECT_EQ(tested->Movement().lastShotSkill, 0u);
+        EXPECT_EQ(tested->world.Runtime().lastShotSkill, 0u);
     }
     {
         const auto tested = AnElfWithTheOption(0x36, 2);
@@ -1316,7 +1316,7 @@ TEST(HeroSkillsTest, TheTransformedElfShootsThroughTheArrowOf53e2b0)
             ASSERT_EQ(tested->sent.size(), 1u);
             EXPECT_EQ(tested->Hero().animation.action, 1);
             EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x10);
-            EXPECT_EQ(tested->Movement().lastShotSkill, 0u);
+            EXPECT_EQ(tested->world.Runtime().lastShotSkill, 0u);
             EXPECT_EQ(tested->world.OwnCharacter().bytef04, probe.volleys);
             // Los tres tiros de la bandera en 1 giran el rumbo 15, −30 y 15: vuelve al de 0x5629b6.
             EXPECT_EQ(tested->Hero().angles.z, 135.0f);

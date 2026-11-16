@@ -6,15 +6,19 @@
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
+#include "Data/Text/TextTable.h"
 #include "Protocol/Combat.h"
 #include "Protocol/Movement.h"
 #include "Protocol/Viewport.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/Skeleton.h"
+#include "Render/Text/FontSet.h"
+#include "Render/Text/IGlyphRasterizer.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActionReply.h"
 #include "Scenes/ActorCombat.h"
 #include "Scenes/ActorDying.h"
+#include "Scenes/ActorShock.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/AttackStep.h"
 #include "Scenes/CharacterDrawing.h"
@@ -30,32 +34,41 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
+#include "World/Particles.h"
 #include "World/WorldTerrain.h"
 
+#include "support/Bytes.h"
+#include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
 #include "support/ItemSetFiles.h"
+#include "support/Packets.h"
 #include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
+#include "support/SceneDataFiles.h"
 #include "support/ViewportPackets.h"
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
 // Los monstruos del 0x13 en combate (CL9 hito 3, fase 2c): el alta escribe la tabla de sonidos de su modelo (0x612d90),
 // el 0x18 con la 0x78 los hace pegar (0x4f4a10 con sus ayudantes) y contar en el paso (0x4fd5f0 con 0x4f97b0 y
 // 0x4f5b70), y el D7, el 0x16 y el 0x17 los lastiman y los matan (0x4f5660 y 0x4fb9e0). Con el Data del laboratorio
-// (Lorencia y Devias); las claves son inventadas y el esqueleto del monstruo es el del 0x20a (MuRet no carga los
-// modelos de los monstruos, P-C176).
+// (Lorencia y Devias); las claves son inventadas y el alta carga el modelo del monstruo (0x612d90, CL9 hito 2) con una
+// tabla de texturas falsa.
 namespace
 {
 using Client::Data::Models::PlayerSkeletonModel;
@@ -63,6 +76,16 @@ using Client::Render::Models::CrtRandom;
 using Client::Scenes::ActorState;
 using Client::Scenes::ModelSounds;
 using Client::Tests::MonsterRecordBytes;
+
+class CombatMessageMeasure final : public Client::Render::Text::ITextMeasure
+{
+public:
+    [[nodiscard]] Client::Render::Text::TextExtent Measure(Client::Render::Text::FontKind /*font*/,
+                                                           std::string_view text) const override
+    {
+        return {static_cast<int>(text.size()) * 6, 13};
+    }
+};
 
 constexpr std::uint32_t Seed = 0x5eed;
 constexpr std::uint16_t HeroKey = 33;
@@ -85,7 +108,7 @@ int DrawsSince(std::uint32_t state, const CrtRandom& random)
     return draws;
 }
 
-// Los esqueletos de 0x4ea030: el de Player.bmd también para los monstruos.
+// La biblioteca del mapa, detrás de FaunaResources: Player.bmd, también en el modelo del monstruo de Lorencia.
 class MonsterModels final : public Client::Scenes::IModelLibrary
 {
 public:
@@ -95,7 +118,7 @@ public:
     }
     [[nodiscard]] const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
     {
-        return model == PlayerSkeletonModel || model == LorenciaModel ? &skeleton : nullptr;
+        return model == PlayerSkeletonModel ? &skeleton : nullptr;
     }
     [[nodiscard]] std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t /*model*/) const override
     {
@@ -110,6 +133,8 @@ struct Game
 {
     Game()
     {
+        // 0x612d90 sube las texturas de los modelos que carga por la tabla que liga el juego (CL9 hito 2).
+        world.FaunaResources().TextureTable().Bind(store);
         ActorState& hero = world.Actors()[0];
         hero = Client::Tests::UnarmedPlayer();
         hero.alive = true;
@@ -134,6 +159,8 @@ struct Game
     {
         return {.world = world, .random = cloth.random, .playerSkeleton = &models.skeleton, .models = &models};
     }
+    // Antes que el mundo: FaunaModels suelta sus texturas al destruirse.
+    Client::Tests::FakeTextureStore store;
     Client::Scenes::WorldState world;
     std::filesystem::path dataRoot;
     Client::Scenes::SelectionState selection{world};
@@ -219,6 +246,8 @@ TEST_F(MonsterCombatTest, AMonsterAttacksAndStepsItsAttack)
     Load(0);
     const std::size_t slot = Create(LorenciaType);
     ActorState& monster = game->world.Actors()[slot];
+    ASSERT_NE(game->world.FaunaResources().SkeletonOf(LorenciaModel), nullptr);
+    EXPECT_EQ(game->models.SkeletonOf(LorenciaModel), nullptr);
     const std::uint32_t created = game->cloth.random.State();
 
     const Client::Protocol::Movement::Action attack{.key = MonsterKey, .direction = 0, .action = 0x78};
@@ -227,6 +256,8 @@ TEST_F(MonsterCombatTest, AMonsterAttacksAndStepsItsAttack)
     EXPECT_EQ(monster.animation.action, 3);
     EXPECT_EQ(monster.attackCount, 2);
     EXPECT_EQ(monster.byte381, 1);
+    EXPECT_EQ(monster.attackTarget, static_cast<std::uint16_t>(HeroSlot));
+    EXPECT_EQ(game->world.Runtime().lastAttacker, static_cast<std::int32_t>(slot));
     EXPECT_EQ(game->world.Runtime().lastSoundId, std::optional<std::int32_t>(0xd + 0xd2));
     EXPECT_EQ(DrawsSince(created, game->cloth.random), 1);
 
@@ -294,5 +325,265 @@ TEST_F(MonsterCombatTest, AMonsterIsHurtKilledAndDies)
     }
     EXPECT_FALSE(monster.alive);
     EXPECT_GT(steps, 50);
+}
+
+// Tras un golpe normal, la captura entrega primero el 0x17 de cinco bytes y luego el 0x16 sin shock. Los lectores
+// reciben los payloads en claro después del descifrado de red; ambas respuestas se aplican al monstruo dado de alta
+// desde el Data real del fixture.
+TEST_F(MonsterCombatTest, APlainDeathThenKillExperienceReplyFinishesTheMonster)
+{
+    Load(0);
+    const std::size_t slot = Create(LorenciaType);
+    ActorState& monster = game->world.Actors()[slot];
+    monster.position = {1000.0f, 2000.0f, 30.0f};
+    monster.movement = 1;
+
+    const auto hit = Client::Protocol::Movement::ReadDamage(
+        Client::Tests::PacketOf(Client::Tests::Bytes({0xc1, 8, 0xd7, 0x01, 0x23, 0x00, 0x0c, 0x00})));
+    ASSERT_TRUE(hit.HasValue());
+    const auto appliedHit = Client::Scenes::ApplyDamageReply(hit.Value(), HeroKey, game->Resources());
+    ASSERT_TRUE(appliedHit.HasValue()) << appliedHit.Error();
+
+    const auto death =
+        Client::Protocol::Combat::ReadDeath(Client::Tests::PacketOf(Client::Tests::Bytes({0xc1, 5, 0x17, 0x01, 0x23})));
+    ASSERT_TRUE(death.HasValue());
+    EXPECT_EQ(death.Value().key, MonsterKey);
+    EXPECT_EQ(death.Value().skill, 0);
+    EXPECT_EQ(death.Value().killer, 0);
+
+    const auto experience = Client::Protocol::Combat::ReadKillExperience(
+        Client::Tests::PacketOf(Client::Tests::Bytes({0xc1, 9, 0x16, 0x01, 0x23, 0x36, 0x8c, 0x12, 0x16})));
+    ASSERT_TRUE(experience.HasValue());
+    EXPECT_EQ(experience.Value().key, MonsterKey);
+    EXPECT_FALSE(experience.Value().shock);
+    EXPECT_EQ(experience.Value().amount, 13964u);
+    EXPECT_EQ(experience.Value().damage, 4630);
+
+    const auto appliedDeath =
+        Client::Scenes::ApplyDeath(death.Value(), Client::Scenes::CombatContextOf(game->Resources()));
+    ASSERT_TRUE(appliedDeath.HasValue()) << appliedDeath.Error();
+    EXPECT_EQ(monster.dying, 1);
+    EXPECT_EQ(monster.movement, 0);
+    EXPECT_EQ(monster.animation.action, 5);
+
+    Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable({{486, "Experiencia %d"}});
+    CombatMessageMeasure measure;
+    Client::Scenes::ChatReceiveContext chat{
+        .world = game->world, .random = game->cloth.random, .measure = &measure, .texts = &texts};
+    const auto appliedExperience = Client::Scenes::ApplyKillExperience(
+        experience.Value(), Client::Scenes::CombatContextOf(game->Resources()), chat);
+    ASSERT_TRUE(appliedExperience.HasValue()) << appliedExperience.Error();
+
+    EXPECT_EQ(monster.dying, 1);
+    EXPECT_EQ(monster.movement, 0);
+    const ActorState& hero = game->world.Actors()[0];
+    EXPECT_EQ(hero.byte380, 2);
+    EXPECT_EQ(hero.word382, 4630);
+    EXPECT_EQ(hero.attackTarget, slot);
+    const auto& damageNumbers = game->world.DrawTail().damage;
+    const auto damage = std::find_if(damageNumbers.begin(), damageNumbers.end(),
+                                     [](const auto& number) { return number.alive && number.number == 4630; });
+    ASSERT_NE(damage, damageNumbers.end());
+    EXPECT_EQ(damage->position, glm::vec3(1000.0f, 2000.0f, 170.0f));
+    EXPECT_EQ(game->world.OwnCharacter().experience, 13964u);
+    ASSERT_EQ(game->world.Runtime().chat.log.entries.size(), 1u);
+    EXPECT_EQ(game->world.Runtime().chat.log.entries[0].text, "Experiencia 13964");
+
+    int steps = 0;
+    while (monster.alive && steps < 200)
+    {
+        const auto stepped = Client::Scenes::StepActorDying(
+            monster, slot,
+            {.map = 0, .scene = Client::Scenes::SceneId::Game, .random = game->cloth.random, .world = &game->world});
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        ++steps;
+    }
+    EXPECT_FALSE(monster.alive);
+    EXPECT_GT(steps, 50);
+}
+
+// 0x4f553d..0x4f55bb y 0x4f55c0..0x4f5649: la tabla del registro canónico manda el sonido del golpe; el tipo 0x18f
+// conserva cinco oportunidades de polvo y termina siempre con el sonido 0x86, incluso si el pool está lleno.
+TEST_F(MonsterCombatTest, TheBlackSkullKeepsItsSparkLoopAcrossFreePartialAndFullPools)
+{
+    struct PoolCase
+    {
+        const char* name;
+        std::size_t initiallyFree;
+        std::size_t expectedSparks;
+    };
+    for (const PoolCase probe :
+         {PoolCase{"libre", Client::World::ParticleCount, 2}, PoolCase{"parcial", 1, 1}, PoolCase{"lleno", 0, 0}})
+    {
+        SCOPED_TRACE(probe.name);
+        Load(0);
+        const std::size_t slot = Create(LorenciaType);
+        ActorState& monster = game->world.Actors()[slot];
+        monster.type = 0x18f;
+        monster.animation = {.action = 3, .frame = 0.0f};
+        monster.position = {100.0f, 200.0f, 300.0f};
+        monster.angles = {10.0f, 20.0f, 30.0f};
+        monster.light = {0.25f, 0.5f, 0.75f};
+        game->world.Runtime().modelSounds[0x18f] = Sounds(0x31, 0x32, 0x41, 0x42, 0x43);
+
+        auto actual = game->world.Particles().All();
+        auto expected = std::make_unique<Client::World::Particles>();
+        if (probe.initiallyFree != Client::World::ParticleCount)
+        {
+            for (std::size_t index = 0; index < actual.size(); ++index)
+            {
+                actual[index].alive = true;
+                actual[index].type = 0x1234;
+                expected->All()[index] = actual[index];
+            }
+            if (probe.initiallyFree != 0)
+            {
+                actual.back().alive = false;
+                expected->All().back().alive = false;
+            }
+        }
+
+        constexpr std::uint32_t SparkSeed = 2;
+        game->cloth.random = CrtRandom(SparkSeed);
+        game->world.Runtime().lastSoundId.reset();
+        CrtRandom expectedRandom(SparkSeed);
+        static_cast<void>(expectedRandom.Next()); // El sonido de golpe precede al bucle de las chispas.
+        std::size_t expectedSparkCount = 0;
+        for (int attempt = 0; attempt < 5; ++attempt)
+        {
+            if ((expectedRandom.Next() & 1) != 0)
+                continue;
+            const float x = static_cast<float>(static_cast<double>(monster.position.x) +
+                                               static_cast<double>(expectedRandom.Next() % 128 - 64));
+            const float z = static_cast<float>(
+                (static_cast<double>(monster.position.z) + static_cast<double>(expectedRandom.Next() % 50)) + 200.0);
+            const auto created = expected->CreateChecked(Client::World::DustParticle, {x, monster.position.y, z},
+                                                         monster.angles, monster.light, 0, 1.0f, 0.0f, expectedRandom);
+            ASSERT_TRUE(created.HasValue());
+            expectedSparkCount += created.Value().has_value() ? 1u : 0u;
+        }
+
+        const auto shocked = Client::Scenes::SetActorShock(monster, 30, game->Resources());
+        EXPECT_TRUE(shocked.HasValue()) << (shocked.HasValue() ? "" : shocked.Error());
+        EXPECT_EQ(monster.animation.action, 3);
+        EXPECT_EQ(game->world.Runtime().lastSoundId, std::optional<std::int32_t>(0x86));
+        EXPECT_EQ(game->cloth.random.State(), expectedRandom.State());
+        EXPECT_EQ(expectedSparkCount, probe.expectedSparks);
+
+        const auto actualParticles = game->world.Particles().All();
+        const auto expectedParticles = expected->All();
+        std::size_t actualSparkCount = 0;
+        for (std::size_t index = 0; index < actualParticles.size(); ++index)
+        {
+            const auto& actualParticle = actualParticles[index];
+            const auto& expectedParticle = expectedParticles[index];
+            EXPECT_EQ(actualParticle.alive, expectedParticle.alive) << index;
+            EXPECT_EQ(actualParticle.type, expectedParticle.type) << index;
+            if (!actualParticle.alive || actualParticle.type != Client::World::DustParticle)
+                continue;
+            ++actualSparkCount;
+            EXPECT_EQ(actualParticle.subtype, 0) << index;
+            EXPECT_EQ(actualParticle.position, expectedParticle.position) << index;
+            EXPECT_EQ(actualParticle.angles, expectedParticle.angles) << index;
+            EXPECT_EQ(actualParticle.light, monster.light) << index;
+            EXPECT_EQ(actualParticle.life, expectedParticle.life) << index;
+        }
+        EXPECT_EQ(actualSparkCount, probe.expectedSparks);
+    }
+}
+
+// 0x612d90 carga el mismo modelo y registro de sonidos que consume el ataque y la muerte. Una escritura posterior al
+// alta en WorldRuntime.modelSounds es la tabla canónica para el golpe (0x4f553d..0x4f55a7).
+TEST_F(MonsterCombatTest, AMonsterHitUsesTheCanonicalRuntimeSoundRecord)
+{
+    Load(0);
+    const std::size_t slot = Create(LorenciaType);
+    ActorState& monster = game->world.Actors()[slot];
+    monster.animation = {.action = 3, .frame = 0.0f};
+    const ModelSounds sounds = Sounds(0x31, 0x32, 0x41, 0x42, 0x43);
+    game->world.Runtime().modelSounds[LorenciaModel] = sounds;
+
+    constexpr std::uint32_t HitSeed = 0x2468;
+    game->cloth.random = CrtRandom(HitSeed);
+    CrtRandom expected(HitSeed);
+    const std::size_t word = 2 + static_cast<std::size_t>(expected.Next() & 1);
+    const auto shocked = Client::Scenes::SetActorShock(monster, 30, game->Resources());
+    ASSERT_TRUE(shocked.HasValue()) << shocked.Error();
+    EXPECT_EQ(game->world.Runtime().lastSoundId, std::optional<std::int32_t>(sounds[word] + 0xd2));
+    EXPECT_EQ(game->cloth.random.State(), expected.State());
+}
+
+// 0x4f5496: un frame distinto de cero salta el sonido; con NaN los dos saltos ordenados son falsos y consume su rand().
+// En ambos casos, los cinco gates impares siguen sin crear polvo y el 0x18f termina con 0x86.
+TEST_F(MonsterCombatTest, TheBlackSkullKeepsItsFinalSoundWhenEverySparkGateMisses)
+{
+    struct FrameCase
+    {
+        const char* name;
+        float frame;
+        std::uint32_t seed;
+        bool soundDraw;
+    };
+    for (const FrameCase probe : {FrameCase{"frame no cero", 1.0f, 29, false},
+                                  FrameCase{"frame unordered", std::numeric_limits<float>::quiet_NaN(), 63, true}})
+    {
+        SCOPED_TRACE(probe.name);
+        Load(0);
+        const std::size_t slot = Create(LorenciaType);
+        ActorState& monster = game->world.Actors()[slot];
+        monster.type = 0x18f;
+        monster.animation = {.action = 3, .frame = probe.frame};
+        game->world.Runtime().modelSounds[0x18f] = Sounds(0x31, 0x32, 0x41, 0x42, 0x43);
+        game->cloth.random = CrtRandom(probe.seed);
+        game->world.Runtime().lastSoundId.reset();
+
+        CrtRandom expected(probe.seed);
+        if (probe.soundDraw)
+            static_cast<void>(expected.Next());
+        for (int attempt = 0; attempt < 5; ++attempt)
+            EXPECT_NE(expected.Next() & 1, 0);
+
+        const auto shocked = Client::Scenes::SetActorShock(monster, 30, game->Resources());
+        ASSERT_TRUE(shocked.HasValue()) << shocked.Error();
+        EXPECT_EQ(monster.animation.action, 3);
+        if (std::isnan(probe.frame))
+            EXPECT_TRUE(std::isnan(monster.animation.frame));
+        else
+            EXPECT_EQ(monster.animation.frame, probe.frame);
+        EXPECT_FALSE(game->world.Particles().Any());
+        EXPECT_EQ(game->world.Runtime().lastSoundId, std::optional<std::int32_t>(0x86));
+        EXPECT_EQ(game->cloth.random.State(), expected.State());
+    }
+}
+
+// En Devias el alta real escribe dos registros, 0x15e y 0x15f. Sus WORD 2 y 3 distinguen el registro elegido por el
+// golpe; comprobar ambos evita leer una copia vieja de FaunaResources para uno de los modelos.
+TEST_F(MonsterCombatTest, TheTwoDeviasModelsUseTheirOwnCanonicalHitSoundPairs)
+{
+    Load(2);
+    const std::size_t slot = Create(19);
+    ActorState& monster = game->world.Actors()[slot];
+    const ModelSounds first = Sounds(0x20, 0x21, 0x41, 0x42, 0x43);
+    const ModelSounds second = Sounds(0x30, 0x31, 0x51, 0x52, 0x53);
+    game->world.Runtime().modelSounds[0x15e] = first;
+    game->world.Runtime().modelSounds[0x15f] = second;
+
+    for (const auto& [model, sounds] :
+         {std::pair{std::uint16_t{0x15e}, first}, std::pair{std::uint16_t{0x15f}, second}})
+    {
+        SCOPED_TRACE(model);
+        monster.type = model;
+        monster.animation = {.action = 3, .frame = 0.0f};
+        constexpr std::uint32_t HitSeed = 0x1357;
+        game->cloth.random = CrtRandom(HitSeed);
+        game->world.Runtime().lastSoundId.reset();
+        CrtRandom expected(HitSeed);
+        const std::size_t word = 2 + static_cast<std::size_t>(expected.Next() & 1);
+
+        const auto shocked = Client::Scenes::SetActorShock(monster, 30, game->Resources());
+        ASSERT_TRUE(shocked.HasValue()) << shocked.Error();
+        EXPECT_EQ(game->world.Runtime().lastSoundId, std::optional<std::int32_t>(sounds[word] + 0xd2));
+        EXPECT_EQ(game->cloth.random.State(), expected.State());
+    }
 }
 } // namespace

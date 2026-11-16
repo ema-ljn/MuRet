@@ -41,14 +41,16 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 1> DamageTextureSet
 // WindowTextureSet, que cada escena sube y suelta, y el juego también. La pista del registro, nis_back en 0x640, la
 // pisa Skill\SwordEff.jpg con GL_LINEAR más adelante en la misma función (0x61ccb0, Q-C463): queda la de la skill.
 // Las de las ventanas del paso que son marco (hito 6): win_check en 0x64a (0x61d1f0, con 0x63bd00), la casilla de los
-// comandos; CursorID_Wnd en 0x65b (0x61d3ab), el cartel del personaje elegido. Las del inventario (hito 4): setitem,
-// btn_pshop y btn_pshop2 en 0x652, 0x657 y 0x658 (0x61d319..0x61d354). Y las de 0x104 a 0x120 que 0x61ae60 sube
-// después de command.jpg (0x61aec8..0x61b1f2), de los hitos 4 y 6: el fondo de las ventanas, los casilleros del
+// comandos; CursorID_Wnd en 0x65b (0x61d3ab), el cartel del personaje elegido. Las de las ventanas viejas (CL9 hito 9,
+// UI/OldWindowDraw.h): win_titlebar, win_button, win_size, win_resize y win_scrollbar en 0x645 a 0x649
+// (0x61d151..0x61d1db, sin filtro y sin repetir), que la CL8 dibujaba sin subirlas. Las del inventario (hito 4):
+// setitem, btn_pshop y btn_pshop2 en 0x652, 0x657 y 0x658 (0x61d319..0x61d354). Y las de 0x104 a 0x120 que 0x61ae60
+// sube después de command.jpg (0x61aec8..0x61b1f2), de los hitos 4 y 6: el fondo de las ventanas, los casilleros del
 // equipo, la plata, la grilla, la línea del comercio y los botones, entre ellos el de cerrar (0x118). La 0x106 no la
 // sube nadie. Las de la ventana de la mascota (CL9 hito 4): Level_box en 0xf5 (0x61cf8f, que también usa la ventana del
 // personaje), win_button en 0x646 (0x61d17a, con 0x63bd00; también el botón de la UI vieja) y pet1 y pet2 en 0x65d y
 // 0x65e (0x61d4b0 y 0x61d4cc), el botón de la mascota.
-inline constexpr std::array<Data::Textures::TextureSetEntry, 84> HudTextureSet{{
+inline constexpr std::array<Data::Textures::TextureSetEntry, 89> HudTextureSet{{
     {"Interface\\CursorAttack.tga", 0x04, TextureSetsDetail::LinearClamp},
     {"Interface\\CursorGet.tga", 0x05, TextureSetsDetail::LinearClamp},
     {"Interface\\CursorTalk.tga", 0x06, TextureSetsDetail::LinearClamp},
@@ -85,7 +87,11 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 84> HudTextureSet{{
     {"Interface\\nis_btnchat.jpg", 0x642, TextureSetsDetail::NearestClamp},
     {"Interface\\nis_btnsize.jpg", 0x643, TextureSetsDetail::NearestClamp},
     {"Interface\\nis_btnalpha.jpg", 0x644, TextureSetsDetail::NearestClamp},
+    {"Interface\\win_titlebar.jpg", 0x645, TextureSetsDetail::NearestClamp},
     {"Interface\\win_button.tga", 0x646, TextureSetsDetail::NearestClamp},
+    {"Interface\\win_size.jpg", 0x647, TextureSetsDetail::NearestClamp},
+    {"Interface\\win_resize.tga", 0x648, TextureSetsDetail::NearestClamp},
+    {"Interface\\win_scrollbar.jpg", 0x649, TextureSetsDetail::NearestClamp},
     {"Interface\\win_check.tga", 0x64a, TextureSetsDetail::NearestClamp},
     {"Interface\\win_letter.jpg", 0x64d, TextureSetsDetail::NearestClamp},
     {"Interface\\win_man.jpg", 0x64e, TextureSetsDetail::NearestClamp},
@@ -157,7 +163,7 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 3> GlowTextureSet{{
 // flareBlue/62b (61dc9d), todos GL_LINEAR/GL_CLAMP; los dos últimos tienen slots físicos propios.
 // Lo que cuelga de un jugador (0x509340 y 0x50ba30) pide además Shiny03 en 0x5fe (61d937) e Impack03 de
 // Object9 en 0x5ad (61e799), del mismo lazo sin ramas de 0x61ccb0 y con el mismo sampling.
-inline constexpr std::array<Data::Textures::TextureSetEntry, 38> EffectTextureSet{{
+inline constexpr std::array<Data::Textures::TextureSetEntry, 39> EffectTextureSet{{
     {"Effect\\Fire01.jpg", 0x5d9, TextureSetsDetail::LinearClamp},
     // 0x61d663: ShockWave en 0x6eb, la onda del galope del caballo en Icarus (0x44431b).
     {"Effect\\ShockWave.jpg", 0x6eb, TextureSetsDetail::LinearClamp},
@@ -176,6 +182,9 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 38> EffectTextureSe
     {"Effect\\smoke02.tga", 0x5f3, TextureSetsDetail::LinearClamp},
     // 0x61d7e5 (0x63b870, GL_LINEAR y GL_CLAMP): Explotion01 en 0x5ed, la explosión 5ed/0 del terremoto 0xfa.
     {"Effect\\Explotion01.jpg", 0x5ed, TextureSetsDetail::LinearClamp},
+    // 0x61d7aa (0x63bd00, GL_LINEAR y GL_CLAMP): blood01.tga en 0x5e3, las dos marcas del suelo que deja el que termina
+    // de morir (0x52e810, CL9 hito 3), que dibuja 0x549130 con los componentes de este slot.
+    {"Effect\\blood01.tga", 0x5e3, TextureSetsDetail::LinearClamp},
     // 0x61d7c9 (0x63bd00, GL_LINEAR y GL_CLAMP): blood.tga en 0x5e4, la sangre que suelta el golpe con daño (0x50419c).
     {"Effect\\blood.tga", 0x5e4, TextureSetsDetail::LinearClamp},
     {"Effect\\clouds.jpg", 0x622, TextureSetsDetail::LinearClamp},

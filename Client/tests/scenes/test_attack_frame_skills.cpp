@@ -560,7 +560,7 @@ TEST(AttackFrameSkillsTest, ThePiercingShotReachesTheArrowThroughTheAttack)
         ASSERT_TRUE(shot.HasValue()) << shot.Error();
         EXPECT_EQ(archer.byte381, 0);
         EXPECT_EQ(archer.byte38e, 0);
-        EXPECT_EQ(shooting.world.Runtime().movement.lastShotSkill, 0x34u);
+        EXPECT_EQ(shooting.world.Runtime().lastShotSkill, 0x34u);
         EXPECT_EQ(shooting.sounds, std::vector<std::int32_t>{0x55});
         EXPECT_EQ(shooting.world.OwnCharacter().bytef04, 1);
         // 0x4f97b0 y 0x4f5b97; la cabeza, la bandera de 0x502b12 y las dos lecturas del tiro; el lugar de 0x59fb80, las

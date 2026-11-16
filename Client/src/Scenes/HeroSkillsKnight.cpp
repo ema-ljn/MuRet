@@ -340,7 +340,7 @@ struct DurationBytes
 void SendTheDurationMagic(ActorState& hero, std::uint8_t skill, const DurationBytes& bytes,
                           const HeroSkillContext& context)
 {
-    context.world.Runtime().movement.lastShotSkill = skill;
+    context.world.Runtime().lastShotSkill = skill;
     const Cells cells = ReadTheCells(hero, context.random);
     // Un C3: el relleno (0x69fd70) y el serial (0x40ae60 y 0x40b0a0) sacan dos rand() antes de mirar el socket.
     SendTheSkillPacket(context, Protocol::Skill::WriteDurationMagic({.skill = skill,

@@ -1,11 +1,13 @@
 #pragma once
 
+#include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Text/TextTable.h"
 #include "Protocol/Outgoing.h"
 #include "UI/PanelRegistry.h"
 
 #include <functional>
+#include <string>
 
 namespace Client::Data::Tables
 {
@@ -59,6 +61,9 @@ public:
     // 0x659ff6..0x65a8a3: con `send`, abrir la mascota manda los pedidos del cuervo y del caballo (C1 06 A9 00 00 01 y
     // A9 01 00 08, Protocol::Pet::WritePetInfoRequest). Lo presta el paso de la UI; sin él, abrirla corta.
     void LendThePetRequests(std::function<void(Protocol::Outgoing)> send);
+    // 0x659f3d: abrir el panel 1 llama a 0x491080(0x186, 0x106) (Scenes::OpenTheFriends), con lo que lee del paso (la
+    // vista y los globales de las ventanas viejas). Lo presta el paso de la UI; sin él, abrirlo corta.
+    void LendTheFriends(std::function<Core::Expected<void, std::string>()> opened);
 
     // 0x419900: cerrar las misiones manda el C1 03 31 con `send`. Lo prestan el paso de la UI y los handlers del A1 y
     // del A2 (0x657a90); sin él, cerrarlas corta.

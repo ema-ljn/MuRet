@@ -10,6 +10,13 @@
 >
 > **Quién escribe:** Claude o Codex. El modo tutor está apagado (2026-11-10).
 
+**Estado actualizado (2026-11-15):** ver la [tabla por hito y sus porcentajes](2026-11-14-cl9-traspaso.md#estado-por-hito).
+El recálculo de cobertura por citas da **82,4 %** entre las ramas; no mide fidelidad ni integración en `main`.
+El [PR #354](https://github.com/ema-ljn/MuRet/pull/354) entrega las reparaciones de H1/H9: H1 está
+implementado en el alcance ASM revisado; H9 conserva pendientes propios del editor. La validación
+estricta restante en VM y servidor se difiere. El barrido y la arquitectura de abajo describen el punto
+de partida del plan; los checkboxes describen la implementación integrada, con los límites indicados.
+
 **Objetivo:** el "terminada cuando" de la CL9 en el roadmap, **una sesión de juego estable, también en los
 mapas de evento**: los otros jugadores, los monstruos y los NPC en el viewport, el emote, pegar y morir, las
 skills, los ítems del piso, las tiendas, el almacén y la caja del caos, la party, el comercio, el duelo, las
@@ -214,6 +221,10 @@ portar y las ramas que el hito llena en funciones de otras olas. El detalle por 
 
 ### Hito 1: el emote y los otros jugadores (CL9.1, ~35 KB)
 
+> Implementación propia completada en el alcance ASM revisado, con las reparaciones del #353 y #354.
+> Ver [resultado de H1](2026-11-15-cl9-h1-resultado.md): la validación estricta restante en VM y servidor
+> sigue pendiente; los cortes de otros hitos conservan sus dueños.
+
 - [x] **El emote entero** (§ Lo que encontró el barrido): `UI::CheckTheEmotes` pasa a `FindTheEmote`, que
       devuelve el caso con los 95 textos en el orden del original (incluidos los 15 literales, comparados con
       `0x576960` sobre los bytes CP949 tal cual); `0x576a60` con su compuerta (`+0x111` en 1..12 o `0x8a`), el +1
@@ -249,25 +260,59 @@ cero `rand()` en el emote y en el `0x18`. **Desbloquea:** 2, 3 y 7. **Cierra:** 
 - [x] **El alta de un monstruo o un NPC por tipo** (`0x5141e0`, 11,6 KB, con los `Monster*.bmd` y la pose de
       los NPC de Q-C108): el `0x13` (`0x4c9c60`), el `0x1F` (`0x4ca0b0`, con los tipos `0x98..0x9e` por
       `0x517400`) y el `0x68` (`0x4e0980`); `0x511290` con la caja y las manos de cada tipo; el `0x45` y el `0xDF`
-      del hito 1 dan de alta y empujan. El `0x1A` (`0x4cedd0`) no crea nada: es la skill que pega a varios y va
-      con el hito 3 (04). El tipo 68 (el caso `0x3a`) corta con su dirección (`Monster50` no está, P-C173).
+      del hito 1 dan de alta y empujan. El tipo 68 (el caso `0x3a`) corta con su dirección (`Monster50` no está,
+      P-C173). En la fase 7, el nombre de la cola `0x5140c0` con la tabla de `NpcName(%s).txt` (`0x54e7f0` y
+      `0x54e8d0`, P-C174 cerrado; el idioma y los tres nombres largos, P-C352).
+- [x] **El `0x1A`** (`0x4cedd0`), la skill que pega a varios: no crea nada; el brillo de la mano (`0x53d810`, la
+      partícula 5fd con su paso y su dibujo), la acción `0x96`, el `+0x38e`, el golpe y el número de cada blanco
+      (`0x4f53a0`, `0x548e40`) y la vida del jugador (06, "La skill que pega a varios").
+- [x] **Los modelos de los monstruos y los NPC** (`0x612d90` y `0x612270`, 08 P-C176): el alta los carga en
+      `WorldState::FaunaResources()` con sus tablas (velocidades, sonidos, hueso de la cabeza, texturas fijas) y la
+      acción `0x4ea030` ya no corta; el `0x1f3` (`BloodCastle01`, Q-C108) corta (P-C240).
 - [ ] Las partes de monstruo de `0x50ba30` y `0x4fd5f0` que la CL7 dejó cortadas, y los monstruos que la revisión
-      de la CL.M dejó en la CL7 por `0x50ba30` (`0x4271d0`, `0x441400`, `0x434180`): necesitan los modelos de los
-      monstruos, que el alta no carga (08, P-C176 y P-C178).
+      de la CL.M dejó en la CL7 por `0x50ba30` (`0x4271d0`, `0x441400`, `0x434180`) (08, P-C176 y P-C178). Hecho el
+      paso del cuerpo (`0x4f9580`, `0x4fcbb0`, `0x4ea190`/`0x4ea0e0` y el sonido al caminar; 06, "El cuerpo de los
+      monstruos y los NPC"). Hecho el dibujo (fase 5a: `0x50ba30` con otro tipo, el cuerpo común de `0x6002e0`, el
+      contorno, la sombra, las manos y los sprites de los casos del modelo; 06, "El dibujo de los monstruos y los
+      NPC"). Hechos los casos por tipo y por mapa de `0x6002e0` y su cadena para los tipos del alta (fase 6b:
+      `0x6004ed`, `0x438fe0`, `0x42cc10`, `0x600f74..`, `0x602391`, `0x60243e`; 06, "El dibujo de los monstruos y los
+      NPC"). Hechos en la fase 6c `0x43c150`, `0x42dfe0` y el `0x16e` (`0x5108b6`), salvo sus efectos de la CL11 (06,
+      "Los helpers de Kalima y del asedio"; 08, P-C334), y el `0xc5` y el `0xf1` de `0x4fd5f0` (`0x4fd603`, `0x4fb910`
+      y `0x505425`). Hechos en la fase 6d `0x441400`, `0x434180`, `0x4271d0` y `0x432bd0`, salvo sus efectos de la
+      CL11 (06, "Los helpers de los monstruos"; 08, P-C336; en la revisión C, las partículas que `World::Particles`
+      crea, las dos marcas y las `0x729` de los altares con `0x40000`, y las que MuRet no tiene cortan solo con lugar
+      en la tabla); quedan los efectos por tipo y los helpers, que cortan con
+      su dirección (08, P-C179, P-C241 y P-C332). Fase 7: la primera marca del piso del `0x204` al `0x208`
+      (`0x43436c`), los pases de brillo de `0x50c671`, `0x50c71b` y `0x50c8ce` (Q-C863), y `0x42e3d0` pasa al hito 13
+      (solo corre en la batalla de Castle Siege). Fase 8: `0x50c177` (el `0x4d`, con el `0x18a` y su tela, Q-C864) y
+      `0x50c59f` (las telas de la grilla del `0x47`, el `0x4a` y el `0x12d`), `0x50c762` y `0x50c83b` (lo que cuelgan
+      el `0x2a` y las estatuas con `0x509340` desde `+0x2f8`, con el `0xef` de `0x5096ac` y el lugar de `0x5093f3`; el
+      `0xc1c` y el `0x225` cortan en `0x4ec200`, Q-C1119), `0x43ed20` (del `0x191` al `0x197`, con el brillo de
+      `0x43fc04`, Q-C1120; Kundun al caer y `0x4ee770` cortan, CL11) y `0x442e10` (del `0x1a3` al `0x1a9`) y `0x433b2f`
+      (el `0x1af` del 34, con la U en `ActorState::textureU`) y la onda de `0x4ed775` (el `0x185` y el `0x197`, con el
+      reloj del mundo en `DrawItemMeshPass`). Queda, con su dirección: `0x6011f1`.
 - [ ] **La tela sobre la malla** (P-C22 f, vtable `0x6b8d04`: los monstruos `0x59..0x8f`; los tres pantalones
-      también la usan), y Q-C95 con el primer modelo que se desvanezca (§ Lo que dejó la CL6).
+      también la usan), y Q-C95 con el primer modelo que se desvanezca (§ Lo que dejó la CL6). Hecha la de los
+      monstruos (`Cloth::BuildOnTheMesh`, `Scenes::MonsterMeshCloth`; 06, "La tela sobre la malla"; Q-C861, Q-C862 y,
+      para la VM, P-C330); quedan los pantalones, con las partes del jugador (`0x60cf70`). Q-C95 se alcanza desde la
+      fase 7 con los pases de brillo de `0x50c671` de un monstruo que se desvanece
+      (`MonsterDrawingTest.AFadingShineDarkensEachMeshInPlace`).
 - [x] El picking de NPC y monstruos en `0x59ec80`, con la caja de cada tipo.
-- [ ] **Lo que se ve sobre ellos:** las barras de vida (`0x42a4d0`, `0x42a2b0`), NewFace (`0x42d890`,
-      `0x42da90`, con los monstruos `0x11e` y `0x11f`) y los mensajes de monstruo (`0x4fc790`, `0x4fc8c0`,
-      `0x4fcd00`).
-- [ ] **Hablar con un NPC:** el `C1 30` desde la interacción de llegada (`0x5650c0`, el corte de
+- [x] **Lo que se ve sobre ellos:** las barras de vida (`0x42a4d0`, `0x42a2b0`) y los mensajes de monstruo
+      (`0x4fc790`, `0x4fc8c0`, `0x4fcd00`, con el mensaje del nombre y su reloj; 06, "Lo que dicen los NPC" y "Las
+      barras de vida del 0x1a8").
+- [x] NewFace del mapa 30 (`0x42d890`, `0x42da90`, con los monstruos `0x11e` y `0x11f`): `0x42d890` hecho;
+      `0x42da90` en la fase 6c, con `0x42a020` y `0x42da60` (`Scenes::StepTheCastleObject`; 06, "Los objetos del mapa
+      30 en el paso"; P-C241 f).
+- [x] **Hablar con un NPC:** el `C1 30` desde la interacción de llegada (`0x5650c0`, el corte de
       `GameMovement.cpp`, solo su rama de NPC), el diálogo `0x8d` (`0x62d91d`, `0x632f70`, la lista
       `0x7d3a0fc`). Lo que abre cada NPC (tienda, almacén, caja del caos) es del hito 6. El escritor del `C1 30`
-      ya está.
+      ya está. (Los altares de Crywolf, `0x4eac41` y `0x567b6d`, cortan: hito 11.)
 - [x] **Las misiones, sin la ventana:** `A0`..`A3` (`0x418e20`, `0x418ee0`, `0x4198b0`, `0x4ddb80`), el `9F`, el
       objeto `[0x710148]` y las funciones que no dibujan, con `Quest.bmd` y `Dialog.bmd`.
-- [ ] **La ventana del quest** (`0x41ca40`, `0x41ba20`, `0x41c600`, `0x41b5a0`, `0x41b9e0`) y sus pasos que mandan
-      (`0x419bd0` y `0x41a9e0`, el `A2`, y `0x41b170`, el `9F`).
+- [x] **La ventana del quest** (`0x41ca40`, `0x41ba20`, `0x41c600`, `0x41b5a0`, `0x41b9e0`) y sus pasos que mandan
+      (`0x419bd0` y `0x41a9e0`, el `A2`, y `0x41b170`, el `9F`, que no se alcanza). Lo que corta, P-C243; lo que
+      falta mirar en la VM, P-C244.
 
 **Pruebas:** el alta de un monstruo de cada familia de `0x5141e0` (un caso por rama de la tabla de tipos), en
 Lorencia, Devias y un mapa de evento; el `0x1F` con un tipo `0x98..0x9e`; el corte del tipo 68 (el caso
@@ -315,6 +360,20 @@ Lorencia, Devias y un mapa de evento; el `0x1F` con un tipo `0x98..0x9e`; el cor
       de `+0x38e`, sus `rand()`, lo que escriben (`+0x78`, `+0x381`, `+0x17c`), sus sonidos y las gotas del `0x2d`
       (`0x607` y `0x5e4`); los efectos cortan en su dirección (P-C233, CL11), el `0x17e` en `0x432acc` (Q-C1050) y
       los misiles de monstruo van con la flecha (P-C234, cerrado con la fase 2e).
+      Fase 7 (2026-11-13, con el merge de `cl9-h2` en `f2dd89b`): el final de la muerte, `0x52e810` desde `0x4fcb87`
+      (el `0x20a` con la `0xc3` o la `0xc4`) y `0x4fcc3c` (la 6 de un monstruo), con `+0x38a`
+      (`Scenes::LeaveTheRemains`): las dos marcas de sangre `0x5e3` (`0x548fe0`; el juego sube `Effect\blood01.tga`
+      en `0x61d7aa` para `0x549130`), los diez pedazos de hielo `0xca` del `0x161` (`0x518cf0` en `0x51b659`, su paso
+      en `0x523974` con el aliento `0x5f2`/0) y el modelo compartido por tipo de `0x505ec6` (Q-C1178); lo que queda,
+      en P-C323.
+      Revisión contra el ASM (2026-11-13): un modelo sin tabla de sonidos suena con diez WORD en 0 (el `REP STOSD`
+      de `0x60dc80`, P-C253 a); el altar de Crywolf de `0x4eac00` también en el clic de ataque (`0x59d653`) y en el
+      elfo que se acerca (`0x566272`), que cortan en `0x4eac41` (hito 11, P-C250 h); las celdas fuera de la grilla
+      (`0x55886d`, `0x59d653`, `0x566272`) y el puente de Blood Castle en el borde (`0x4d0949`) descartan sin cerrar
+      la sesión (Q-C1179, Q-C1180), y los nombres de gremio (`0x558da4`, `0x558f29`) descartan hasta el hito 8
+      (P-C250 f); las skills de tiro y el abanico de la `0x18` tiran antes de cortar en el registro propio
+      (`0x53e75b`, `0x53e365`, `0x53e4dd`, hito 4; Q-C1181); la caída del `0xe2` (`0x52435d`, P-C230); cada corte
+      con su ola o su hito.
 
 **Pruebas:** el `D7`/`A4` que sale al pegar; la muerte de un monstruo y la de otro jugador; la experiencia del
 `0x16` y del `0x9C` contra el struct del GS (`GCKillPlayerExpSend`); los `rand()` del paso con un monstruo en
@@ -388,12 +447,20 @@ demoras; los `rand()` de la barra con skills (hoy se sacan sin ninguna); el cuer
 
 ### Hito 5: los ítems del piso, usar y tirar (CL9.3, ~20 KB)
 
-- [ ] **El piso:** el `0x20` (`0x4d0ba0`, la tabla `0x77f46c8` de `0x220` B por ítem, `0x608350`, `0x607fb0`,
+- [x] **El piso:** el `0x20` (`0x4d0ba0`, la tabla `0x77f46c8` de `0x220` B por ítem, `0x608350`, `0x607fb0`,
       `0x608880`), los nombres con Alt (`0x5ba790`, `0x608a00`), levantar con SPACE y por llegada (`C1 22`, la
       rama de ítem de `0x5650c0` y `0x59ec80`) y lo que falta del `0x22` y el `0x23` (`0x4d0cc0`, `0x4d10d0`).
-- [ ] **Usar y tirar** (decisión 5 de la CL8): el `26` (`0x5c4110`, Q/W/E `0x5a2b47..0x5a4c45`), el `23`
-      (`0x5df430..0x5dfe34`), las joyas sobre un ítem (`0x5fd4b0`, `0x5fd4f0`, `0x5d82a8`) y la fruta de stats
-      (`0x2C`, `0x4de500`).
+      Hecho el 2026-11-13: de `0x59ec80` solo las dos llamadas a la búsqueda `0x59e2e0` (`Scenes::PickTheFloorItem`)
+      y la rama del ítem de MoveHero; los cortes, en 08 P-C271, y lo que queda para la VM, en P-C270.
+- [x] **Usar y tirar** (decisión 5 de la CL8): el `26` (`0x5c4110`, Q/W/E `0x5a2b47..0x5a4c45`), el `23`
+      (`0x5df430..0x5dfe34`) y la fruta de stats (`0x2C`, `0x4de500`). Hecho el 2026-11-13: del clic derecho en la
+      grilla, las pociones, el pergamino del portal y la caja de la suerte de nivel 14.
+- [x] **Fase 2:** las joyas sobre un ítem (`0x5d82a8`) y el clic derecho de `0x5c7bc6` en adelante (los libros,
+      las esferas, la fruta, `0x1a0b` y los demás ítems), 08 P-C272. `0x5fd4b0` y `0x5fd4f0` no son de las joyas:
+      son la cuenta de la caja del caos y de la lista del asedio, que cortan en `0x5d8db6` y `0x5d8dad`. Hecho el
+      2026-11-13, sobre el hito 1 mergeado: `Scenes::UseTheLaterGridItem` y la joya en `DropOnTheInventoryGrid`.
+      Cortan el diálogo de la fruta (`0x63330f`) y el paso del 0xa9 (`0x6282dc`), de la CL9.3, y el clic derecho con
+      el almacén abierto (`0x5c8e8f`, hito 6, P-C274); lo de la VM, en P-C275.
 
 **Pruebas:** el `0x20` con varios ítems y su dibujo en la traza; levantar y tirar byte a byte; las pociones
 de Q/W/E; los `rand()` de la búsqueda del ítem del piso en el picking. **Desbloquea:** —.
@@ -451,13 +518,28 @@ con su marcador y los dos `C1 18`. **Desbloquea:** 12.
 
 ### Hito 9: los amigos (CL9.4, ~89 KB)
 
-- [ ] **Los controles de las ventanas viejas** que la CL8 dejó sin portar (57 funciones de la CL8.3, 14 KB: las
+> Estado posterior a la auditoría: [editor XP, codificación y pendientes propios](2026-11-15-cl9-h1-h9-resultado.md),
+> incluido en #354. La cobertura por citas del 100 % no cierra el editor completo ni valida el servicio.
+
+- [x] **Los controles de las ventanas viejas** que la CL8 dejó sin portar (57 funciones de la CL8.3, 14 KB: las
       listas, los campos de texto, los botones de `0x45adf0`..`0x4aa7a0`; los que son la STL se reemplazan por la
       STL) y las vecinas de `0x479960` que leen las flechas (`0x47c870`, `0x47f7b0` y las chicas; `0x480e00` y
-      `0x4824d0` van con el 8, `0x4852b0` y `0x486910` con el 12).
-- [ ] **La lista de amigos:** `C0` (`0x4dc010`, `0x49b220`, `0x49c260`), `C1`..`C4` (`0x4dc3d0`, `0x4dc5b0`,
+      `0x4824d0` van con el 8, `0x4852b0` y `0x486910` con el 12). El EDIT, simplificado (08, P-C181).
+- [x] **La lista de amigos:** `C0` (`0x4dc010`, `0x49b220`, `0x49c260`), `C1`..`C4` (`0x4dc3d0`, `0x4dc5b0`,
       `0x4dc690`, `0x4dc720`), los casos de la fábrica `0x48ee60` que no son del correo, F5 y F6
-      (`0x490538`, `0x490561`) y la ventana de amigos (`0x4905a2`).
+      (`0x490538`, `0x490561`) y la ventana de amigos (`0x4905a2`). Lo del hito 10, cortado (P-C183).
+- [x] **El dibujo de los amigos** (08, P-C180): la ventana (`0x4a2620`, `0x4a2460`, `0x463090`), las pestañas
+      (`0x49cc20`, `0x49e7f0`) con sus listas (`0x47a810`, `0x461890`, `0x461cd0`, `0x462a60`), la caja de agregar
+      (`0x4a3750`) y su EDIT (`0x468320`), con las piezas para el hito 10 en `UI/OldWindowDrawParts.h`. Las 246 filas
+      del TSV que no estaban citadas, triadas en P-C185; el adaptador de doble clic se completa en el cierre H1/H9
+      (P-C182, P-C187). Sus consumidores de chats/cartas siguen siendo H10.
+- [x] **El perfil occidental del EDIT de XP:** CP1252 y best fit nativo, selección y caret por bytes,
+      atajos, pegado, foco, orden de eventos y dibujo. Contratos en research 11/12 y ADR 0016.
+- [ ] **El editor completo (P-C181):** IME genuino, preedición visible y candidatos; contratos de
+      multiline, scroll y perfiles DBCS. El editor de mensaje/susurro todavía requiere enrutar
+      navegación, portapapeles y composición como el EDIT viejo.
+- [ ] **La validación estricta en VM y servidor:** completar los casos nativos pendientes y el flujo
+      de amigos con un servicio compatible; la desconexión al confirmar Agregar no certifica el cliente.
 
 **Pruebas:** la lista con varios amigos, agregar y borrar uno, el cambio de estado; los `rand()` de abrir la
 ventana (los 3.848 del registro propio de la CL8). Si el PR pasa de ~90 KB, se parte en los controles y los

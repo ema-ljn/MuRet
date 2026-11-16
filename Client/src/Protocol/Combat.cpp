@@ -63,7 +63,7 @@ Core::Expected<KillExperience, ProtocolError> ReadKillExperience(const Network::
     return ExperienceOf(*key, *amount, *damage);
 }
 
-// 0x4cfd94..0x4cfdf0: después de la clave saltea +5 (el relleno natural del WORD de la GS) y lee los dos WORD en
+// 0x4d0439..0x4d047a: después de la clave saltea +5 (el relleno natural del WORD de la GS) y lee los dos WORD en
 // little endian, ExpH · 65536 + ExpL.
 Core::Expected<KillExperience, ProtocolError> ReadExtendedKillExperience(const Network::Packet& packet)
 {

@@ -1,5 +1,6 @@
 #include "Protocol/Viewport.h"
 
+#include "Network/Packet.h"
 #include "Protocol/ProtocolError.h"
 
 #include "support/Bytes.h"
@@ -19,6 +20,7 @@ namespace
 using Client::Protocol::ProtocolError;
 using Client::Protocol::Viewport::ReadEquipmentShown;
 using Client::Protocol::Viewport::ReadLeave;
+using Client::Protocol::Viewport::ReadMagicAttackCount;
 using Client::Protocol::Viewport::ReadMonsters;
 using Client::Protocol::Viewport::ReadObjects;
 using Client::Protocol::Viewport::ReadPlayers;
@@ -133,6 +135,37 @@ TEST(ViewportTest, TransformedReadsTheTypeAndTheShortRecord)
     EXPECT_EQ(record.directionAndPk, 0x31);
 }
 
+// ADR0017: el45 observado en XP tiene22 bytes de registro; el ASM lee destino y dirección hasta el24.
+TEST(ViewportTest, ATransformRecordNeedsItsTargetAndDirectionButNotUnusedPadding)
+{
+    const std::array<Client::Tests::TransformedRecordBytes, 1> records{{{.key = 7,
+                                                                         .type = 2,
+                                                                         .effects = 0x20,
+                                                                         .name = "Probe",
+                                                                         .targetX = 71,
+                                                                         .targetY = 81,
+                                                                         .directionAndPk = 0x31}}};
+    const auto packet = Client::Tests::TransformedPacket(records);
+    const std::vector<std::byte> complete(packet.Bytes().begin(), packet.Bytes().end());
+    constexpr std::size_t HeaderAndCount = 5;
+    constexpr std::size_t ObservedRecordBytes = 22;
+    constexpr std::size_t LastReadRecordBytes = 25;
+    auto bytes = complete;
+    bytes.resize(HeaderAndCount + ObservedRecordBytes);
+    bytes[2] = std::byte{static_cast<std::uint8_t>(bytes.size())};
+    EXPECT_EQ(ErrorOf(ReadTransformed(PacketOf(bytes))), ProtocolError::TooShort);
+
+    bytes = complete;
+    bytes.resize(HeaderAndCount + LastReadRecordBytes);
+    bytes[2] = std::byte{static_cast<std::uint8_t>(bytes.size())};
+    const auto read = ReadTransformed(PacketOf(bytes));
+    ASSERT_TRUE(read.HasValue());
+    ASSERT_EQ(read.Value().records.size(), 1u);
+    EXPECT_EQ(read.Value().records[0].targetX, 71);
+    EXPECT_EQ(read.Value().records[0].targetY, 81);
+    EXPECT_EQ(read.Value().records[0].directionAndPk, 0x31);
+}
+
 // 0x4c838e: la clave entera; el ítem hasta pkt[10] (el byte 5, el último que lee 0x54b3a0) y el 6 en 0.
 TEST(ViewportTest, EquipmentShownReadsTheWholeKeyAndSixItemBytes)
 {
@@ -144,6 +177,27 @@ TEST(ViewportTest, EquipmentShownReadsTheWholeKeyAndSixItemBytes)
     EXPECT_EQ(std::to_integer<std::uint8_t>(read.Value().item[6]), 0);
     EXPECT_EQ(ErrorOf(ReadEquipmentShown(PacketOf(Bytes({0xc1, 10, 0x25, 0, 1, 1, 2, 3, 4, 5})))),
               ProtocolError::TooShort);
+}
+
+// 0x4cedd0: la clave entera (0x4cedde..0x4cede8), la skill (0x4ceee4), la cuenta (0x4cefeb) y cada blanco
+// (0x4ceffd..0x4cf007); la celda no la lee nadie. Sin la cuenta o sin el último byte de la última clave, TooShort.
+TEST(ViewportTest, MagicAttackCountReadsTheCasterTheSkillAndTheTargets)
+{
+    const std::array<std::uint16_t, 3> targets{0x0102, 0x8003, 0x7fff};
+    const auto read = ReadMagicAttackCount(Client::Tests::MagicAttackCountPacket(0x9abc, 0x29, 140, 141, targets));
+    ASSERT_TRUE(read.HasValue());
+    EXPECT_EQ(read.Value().key, 0x9abc);
+    EXPECT_EQ(read.Value().magic, 0x29);
+    EXPECT_EQ(read.Value().targets, (std::vector<std::uint16_t>{0x0102, 0x8003, 0x7fff}));
+    const auto none = ReadMagicAttackCount(Client::Tests::MagicAttackCountPacket(1, 2, 3, 4, {}));
+    ASSERT_TRUE(none.HasValue());
+    EXPECT_TRUE(none.Value().targets.empty());
+    EXPECT_EQ(ErrorOf(ReadMagicAttackCount(PacketOf(Bytes({0xc1, 8, 0x1a, 0, 1, 2, 3, 4})))), ProtocolError::TooShort);
+    EXPECT_EQ(ErrorOf(ReadMagicAttackCount(PacketOf(Bytes({0xc1, 0xb, 0x1a, 0, 1, 2, 3, 4, 2, 0, 5})))),
+              ProtocolError::TooShort);
+    EXPECT_EQ(ErrorOf(ReadMagicAttackCount(PacketOf(Bytes({0xc1, 0xa, 0x1a, 0, 1, 2, 3, 4, 1, 0})))),
+              ProtocolError::TooShort);
+    EXPECT_EQ(ErrorOf(ReadMagicAttackCount(Client::Tests::PositionPacket(1, 2, 3))), ProtocolError::WrongPacket);
 }
 
 TEST(ViewportTest, PositionReadsTheKeyAndTheCell)

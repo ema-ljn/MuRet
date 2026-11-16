@@ -347,6 +347,7 @@ void SetTheStartingState(ActorState& actor, std::uint16_t type)
     actor.byte372 = 0; // 0x511ccf
     actor.byte374 = 0; // 0x511c13
     actor.byte42c = 1; // 0x511c92
+    actor.byte110 = 0; // 0x511c69
     actor.word1f2 = NoItemModel;
     actor.byte399 = 0;
     actor.byte80 = 0;
@@ -375,6 +376,9 @@ void SetTheStartingState(ActorState& actor, std::uint16_t type)
     actor.byte38a = 0;
     actor.dword394 = 0;
     actor.dword428 = -0x80;
+    // 0x511d7b y 0x511d7e: la U (+0x6c) y la V (+0x70).
+    actor.textureU = 0.0f;
+    actor.textureV = 0.0f;
     // 0x511878: reconstruir el dueño borra el cuervo anterior.
     actor.darkSpirit.reset();
     // 0x511872: +0x364 en 0 sin 0x414340, así que +0x360 queda como estaba.

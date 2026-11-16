@@ -19,6 +19,7 @@ namespace Client::Scenes
 {
 class WorldState;
 struct WorldRuntime;
+struct ActorState;
 struct ActorConstructionContext;
 struct ActorPlacement;
 
@@ -41,6 +42,10 @@ inline constexpr std::size_t CreatedActorSearch = 400;
 // llevan (0x511031..0x51104b, como 0x443d40), suelta el cuervo (0x421d60), las telas (0x4fb1a0, lo de arriba) y la
 // capa (0x414340). Sin ninguno, nada.
 void RemoveActor(WorldState& world, std::int32_t key);
+
+// 0x511070(c, o): baja la referencia directa, sin resolver la clave ni comprobar que siga viva. Solo usa `slot` para
+// limpiar recursos indexados del mundo; conserva los demás campos para que el cuerpo termine el paso actual.
+void RemoveActorAtSlot(WorldState& world, ActorState& actor, std::size_t slot);
 
 // 0x401040 → 0x401410: saca de [0x6e5640] los huesos con nombre del personaje `actor`.
 void ForgetNamedBones(WorldRuntime& runtime, std::size_t actor);

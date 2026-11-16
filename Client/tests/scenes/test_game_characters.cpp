@@ -12,6 +12,7 @@
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorAppearance.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/ActorPickingBox.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/WorldMap.h"
@@ -93,6 +94,40 @@ TEST(GameCharactersTest, TheHeroWithControlBitFourIsNotDrawn)
     const auto other = Client::Scenes::DrawGameCharacters(*actors, Hero + 1, *walls);
     ASSERT_FALSE(other.HasValue());
     EXPECT_NE(other.Error().find("0x510ea1"), std::string::npos) << other.Error();
+}
+
+TEST(GameCharactersTest, ProjectedHeroSuppressionWritesOnlyTheProjectionBox)
+{
+    auto actors = std::make_unique<std::array<ActorState, 400>>();
+    ActorState& hero = (*actors)[Hero];
+    hero.alive = true;
+    hero.seen = true;
+    hero.controlCode = Client::Scenes::UndrawnHeroControlBit;
+    hero.field13c = 10.0f;
+    hero.field140 = 20.0f;
+    hero.field144 = 30.0f;
+    hero.field148 = 40.0f;
+    hero.field158 = 50.0f;
+    hero.field168 = 60.0f;
+    std::array<Client::Scenes::ActorPickingBox, 400> boxes{};
+    boxes[Hero] = {.origin = {1.0f, 2.0f, 3.0f},
+                   .axisX = {4.0f, 5.0f, 6.0f},
+                   .axisY = {7.0f, 8.0f, 9.0f},
+                   .axisZ = {10.0f, 11.0f, 12.0f}};
+    auto walls = GateWalls();
+
+    ASSERT_TRUE(Client::Scenes::DrawGameCharacters(*actors, Hero, *walls, nullptr, boxes).HasValue());
+
+    EXPECT_EQ(hero.field13c, 10.0f);
+    EXPECT_EQ(hero.field140, 20.0f);
+    EXPECT_EQ(hero.field144, 30.0f);
+    EXPECT_EQ(hero.field148, 40.0f);
+    EXPECT_EQ(hero.field158, 50.0f);
+    EXPECT_EQ(hero.field168, 60.0f);
+    EXPECT_EQ(boxes[Hero].origin, (glm::vec3{1000.0f, 2.0f, 3.0f}));
+    EXPECT_EQ(boxes[Hero].axisX, (glm::vec3{1.0f, 5.0f, 6.0f}));
+    EXPECT_EQ(boxes[Hero].axisY, (glm::vec3{7.0f, 1.0f, 9.0f}));
+    EXPECT_EQ(boxes[Hero].axisZ, (glm::vec3{10.0f, 11.0f, 1.0f}));
 }
 
 // 0x510ea1: el primer personaje vivo y visto, por lugar, va a 0x50ba30, que MuRet no tiene en el juego: corta

@@ -224,6 +224,47 @@ TEST_F(HeroAttackTest, WithoutSendersTheHeroStillHits)
     EXPECT_EQ(m_random.State(), After(2 * OwnRecordDraws + 4 * CellDraws));
 }
 
+TEST_F(HeroAttackTest, AFailedTurnSendStillCompletesTheAttackAndAttemptsTheD7)
+{
+    auto context = Arrival();
+    bool attemptedAttack = false;
+    context.sendWalk = [](std::span<const Client::Protocol::Movement::Cell>, Client::Protocol::Movement::Cell,
+                          float) -> Client::Core::Expected<void, std::string>
+    { return Client::Core::Unexpected(std::string("GameServer no abierto")); };
+    context.sendAttack = [&](std::uint16_t, std::uint8_t, std::uint8_t) -> Client::Core::Expected<void, std::string>
+    {
+        attemptedAttack = true;
+        return {};
+    };
+
+    const auto attacked = Client::Scenes::InteractOnArrival(Hero(), context);
+
+    ASSERT_TRUE(attacked.HasValue()) << attacked.Error();
+    EXPECT_TRUE(attemptedAttack);
+    EXPECT_EQ(Hero().movement, 0);
+    EXPECT_EQ(Hero().attackTarget, TargetIndex);
+    EXPECT_EQ(m_random.State(), After(2 * OwnRecordDraws + 4 * CellDraws));
+}
+
+TEST_F(HeroAttackTest, AFailedAttackSendDoesNotUndoTheCompletedArrival)
+{
+    auto context = Arrival();
+    bool attemptedAttack = false;
+    context.sendAttack = [&](std::uint16_t, std::uint8_t, std::uint8_t) -> Client::Core::Expected<void, std::string>
+    {
+        attemptedAttack = true;
+        return Client::Core::Unexpected(std::string("GameServer no abierto"));
+    };
+
+    const auto attacked = Client::Scenes::InteractOnArrival(Hero(), context);
+
+    ASSERT_TRUE(attacked.HasValue()) << attacked.Error();
+    EXPECT_TRUE(attemptedAttack);
+    EXPECT_EQ(Hero().movement, 0);
+    EXPECT_EQ(Hero().attackTarget, TargetIndex);
+    EXPECT_EQ(m_random.State(), After(2 * OwnRecordDraws + 4 * CellDraws));
+}
+
 // 0x565107..0x56526a: el alcance es 1,8 celdas a mano o con espada, 2,2 con las lanzas (0x600..0x7ff en la derecha),
 // 6 con arcos y ballestas y 7 con +0x376 en 9. El blanco a dos celdas queda fuera con 1,8 y dentro con 2,2.
 TEST_F(HeroAttackTest, TheRangeFollowsTheOwnWeapons)
@@ -284,6 +325,48 @@ TEST_F(HeroAttackTest, OutOfRangeOnlyTheElfWalksIntoRange)
     EXPECT_EQ(Hero().path.cells[0].x, 182);
     EXPECT_EQ(Hero().path.cells[9].x, 191);
     EXPECT_EQ(m_random.State(), After(OwnRecordDraws + 2 * CellDraws));
+}
+
+// El elfo fuera de alcance con el blanco en la columna 256, que PathFinding2 (0x566272) toma como índice lineal: MuRet
+// descarta el acercamiento después de leer la Y y la X (07, Q-C1179). Con Crywolf en la etapa 3, en el mapa 34 y un
+// altar (0x206) en 0x6c8e54, PathFinding2 corta en 0x4eac41 (hito 11) después de las mismas lecturas; en Lorencia y en
+// Devias el altar no cuenta y el elfo se acerca.
+TEST_F(HeroAttackTest, TheElfDiscardsATargetOffTheGridAndCutsAtACrywolfAltar)
+{
+    constexpr std::size_t AltarIndex = 30;
+    for (const std::int32_t map : {0, 2, 34})
+    {
+        for (const bool offTheGrid : {true, false})
+        {
+            SCOPED_TRACE(::testing::Message() << "mapa " << map << (offTheGrid ? ", la columna 256" : ", el altar"));
+            Reset(map);
+            m_world->Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+            Hero().characterClass = 2;
+            Hero().movement = 0;
+            Hero().path = {};
+            Target().position = {offTheGrid ? 25650.0f : 19250.0f, 11550.0f, 0.0f};
+            Runtime().crywolf.stage = 3;
+            m_world->Actors()[AltarIndex].type = 0x206;
+            Runtime().movement.chosenNpc = offTheGrid ? -1 : static_cast<std::int32_t>(AltarIndex);
+
+            const auto arrived = Client::Scenes::InteractOnArrival(Hero(), Arrival());
+
+            EXPECT_EQ(m_random.State(), After(OwnRecordDraws + 2 * CellDraws));
+            EXPECT_TRUE(m_sent.empty());
+            if (!offTheGrid && map == 34)
+            {
+                ASSERT_FALSE(arrived.HasValue());
+                EXPECT_NE(arrived.Error().find("0x4eac41"), std::string::npos) << arrived.Error();
+                EXPECT_NE(arrived.Error().find("0x566272"), std::string::npos) << arrived.Error();
+                EXPECT_EQ(Hero().movement, 0);
+                continue;
+            }
+            ASSERT_TRUE(arrived.HasValue()) << arrived.Error();
+            EXPECT_EQ(Runtime().movement.targetX, offTheGrid ? 256u : 192u);
+            EXPECT_EQ(Hero().movement, offTheGrid ? 0 : 1);
+            EXPECT_EQ(Hero().path.count, offTheGrid ? 0u : 10u);
+        }
+    }
 }
 
 // Las salidas antes de pegar: sin blanco (0x6c8ebc en −1) después del alcance, el héroe pegando ya (0x8d, o 3 y 4 si
@@ -419,8 +502,8 @@ TEST_F(HeroAttackTest, InChaosCastleEveryoneButTheHeroIsAttackable)
     }
 }
 
-// Un monstruo se puede atacar salvo en la guerra de gremios (0x576796c) sin 0x576796d; un jugador, por el PK de 6 o
-// más, +0x370 en 2 u 8 o con Ctrl abajo, y nunca el héroe.
+// Un monstruo se puede atacar salvo en la guerra de gremios (0x576796c) sin 0x576796d; un jugador por +0x370 en 2/8,
+// PK de 6 o más (también el héroe), guerra de gremios o duelo; fuera de eso, Ctrl y no ser el héroe.
 TEST_F(HeroAttackTest, MonstersAndPlayersFollowTheRules)
 {
     Chosen(TargetIndex);
@@ -451,7 +534,42 @@ TEST_F(HeroAttackTest, MonstersAndPlayersFollowTheRules)
     EXPECT_FALSE(Client::Scenes::IsAttackable(*m_world, true).Value());
 }
 
-// En la guerra de gremios cuenta +0x374 en 2; con el PK de 6 y gremio, comparar los nombres de 0x787aa55 es del hito 8.
+// 0x558e74..0x558e7b: el umbral PK 6 permite al héroe; con 5 no lo permite ni siquiera con Ctrl.
+TEST_F(HeroAttackTest, TheOutlawThresholdAllowsTheHeroAtSixButNotFive)
+{
+    Chosen(HeroIndex);
+    Hero().pk = 5;
+    EXPECT_FALSE(Client::Scenes::IsAttackable(*m_world, false).Value());
+    EXPECT_FALSE(Client::Scenes::IsAttackable(*m_world, true).Value());
+
+    Hero().pk = 6;
+    EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, false).Value());
+    EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, true).Value());
+}
+
+// 0x558d6e..0x558d7e: +0x370 en 2/8 antecede los filtros de gremio, duelo y PK.
+TEST_F(HeroAttackTest, Byte370OverridesGuildDuelAndPkFilters)
+{
+    ActorState& player = Chosen(20);
+    player = Client::Tests::UnarmedPlayer();
+    player.byte88 = 1;
+    player.pk = 6;
+    player.word1f2 = 3;
+    Name(player, "not-rival");
+    Runtime().attackRules.byte576796c = 1;
+    Runtime().attackRules.duelActive = true;
+    Runtime().attackRules.duelKey = 0x7777;
+
+    for (const std::uint8_t byte370 : {std::uint8_t{2}, std::uint8_t{8}})
+    {
+        SCOPED_TRACE(byte370);
+        player.byte370 = byte370;
+        EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, false).Value());
+    }
+}
+
+// En la guerra de gremios cuenta +0x374 en 2; con el PK de 6 y gremio, comparar los nombres de 0x787aa55 es del hito 8:
+// hasta entonces no es atacable (0x558da4, P-C250 f), sin cerrar la sesión, aunque tenga el control o la marca.
 TEST_F(HeroAttackTest, TheGuildWarLooksAtTheEnemyMark)
 {
     Runtime().attackRules.byte576796c = 1;
@@ -463,9 +581,12 @@ TEST_F(HeroAttackTest, TheGuildWarLooksAtTheEnemyMark)
     EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, false).Value());
     player.pk = 6;
     player.word1f2 = 3;
-    const auto cut = Client::Scenes::IsAttackable(*m_world, false);
-    ASSERT_FALSE(cut.HasValue());
-    EXPECT_NE(cut.Error().find("0x558da4"), std::string::npos);
+    for (const bool controlDown : {false, true})
+    {
+        const auto attackable = Client::Scenes::IsAttackable(*m_world, controlDown);
+        ASSERT_TRUE(attackable.HasValue()) << attackable.Error();
+        EXPECT_FALSE(attackable.Value());
+    }
 }
 
 // En el duelo (0x78abad8), sólo el rival: la clave de 0x78abadc y el nombre de 0x78abae0.
@@ -506,5 +627,46 @@ TEST_F(HeroAttackTest, InTheSiegeTheSidesDecideByTheShield)
     player.byte360 = 9;
     EXPECT_FALSE(Client::Scenes::IsAttackable(*m_world, false).Value());
     EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, true).Value());
+}
+
+// 0x558c5b..0x558c7e: también el defensor puede atacar al atacante; el escudo 0x4000 del blanco bloquea ambos sentidos.
+TEST_F(HeroAttackTest, InTheSiegeDefendersCanAttackUnshieldedAttackers)
+{
+    Runtime().siegeActive = true;
+    Hero().byte360 = 13;
+    ActorState& player = Chosen(20);
+    player = Client::Tests::UnarmedPlayer();
+    player.byte88 = 1;
+    player.byte360 = 6;
+    EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, false).Value());
+    player.flags78 = 0x4000;
+    EXPECT_FALSE(Client::Scenes::IsAttackable(*m_world, true).Value());
+}
+
+// 0x558cc1..0x558d59: las marcas 0x80000/0x400000/0x800000 comparan blanco sin marcas; si ambos tienen marca, sigue
+// fuera del asedio. El 0x40000 del héroe es una regla aparte cuando no tiene una de esas tres marcas.
+TEST_F(HeroAttackTest, SiegeMarksUseTheShieldAndBothMarkedSidesContinue)
+{
+    Runtime().siegeActive = true;
+    ActorState& player = Chosen(20);
+    player = Client::Tests::UnarmedPlayer();
+    player.byte88 = 1;
+    player.pk = 3;
+    Hero().flags78 = 0x80000;
+    player.flags78 = 0;
+    EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, false).Value());
+    player.flags78 = 0x4000;
+    EXPECT_FALSE(Client::Scenes::IsAttackable(*m_world, true).Value());
+
+    player.pk = 6;
+    player.flags78 = 0x400000 | 0x4000;
+    EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, false).Value());
+
+    Hero().flags78 = 0x40000;
+    player.pk = 3;
+    player.flags78 = 0;
+    EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, false).Value());
+    player.flags78 = 0x4000;
+    EXPECT_FALSE(Client::Scenes::IsAttackable(*m_world, false).Value());
 }
 } // namespace

@@ -7,11 +7,14 @@
 #include "Scenes/WorldState.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/Skeleton.h"
+#include "Render/TextureSlot.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "Data/Terrain/TerrainMapping.h"
 #include "Data/Tables/SkillTable.h"
+#include "Data/Models/Model.h"
+#include "Scenes/CharacterDrawing.h"
 #include "Protocol/Movement.h"
 #include "Scenes/GameMovementState.h"
 #include "UI/ChatInput.h"
@@ -41,6 +44,30 @@ using Client::Scenes::HeroMovementContext;
 using Client::Scenes::StepHeroMovement;
 using Client::Scenes::WorldState;
 
+constexpr std::uint16_t TransformedModel = 0x154;
+
+class MovementModels final : public Client::Scenes::IModelLibrary
+{
+public:
+    const Client::Data::Models::Model* Find(std::uint16_t) const override
+    {
+        return nullptr;
+    }
+    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    {
+        if (model == Client::Data::Models::PlayerSkeletonModel)
+            return &player;
+        return model == TransformedModel ? &transformed : nullptr;
+    }
+    std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    {
+        return {};
+    }
+
+    Client::Render::Models::Skeleton player;
+    Client::Render::Models::Skeleton transformed;
+};
+
 class MovingHero
 {
 public:
@@ -64,14 +91,19 @@ public:
         skeleton.actions.resize(205);
         for (auto& action : skeleton.actions)
             action.keyCount = 10;
+        models.player = skeleton;
+        models.transformed.actions.resize(7);
+        for (auto& action : models.transformed.actions)
+            action.keyCount = 10;
     }
     HeroMovementContext Context()
     {
-        return {.world = world, .random = random, .playerSkeleton = &skeleton, .skills = &skills};
+        return {.world = world, .random = random, .playerSkeleton = &skeleton, .skills = &skills, .models = &models};
     }
     WorldState world;
     CrtRandom random;
     Client::Render::Models::Skeleton skeleton;
+    MovementModels models;
     Client::Data::Tables::SkillTable skills{std::vector<std::byte>(Client::Data::Tables::SkillTableSize)};
 };
 
@@ -211,6 +243,96 @@ TEST(GameMovementTest, AClickFindsAndSendsTheHistoricalD3)
     EXPECT_EQ(tested.world.Actors()[0].movementType, 0);
     EXPECT_EQ(tested.world.Runtime().movement.mouseUpdateTimeMax, 16);
 }
+
+TEST(GameMovementTest, ATransformedHeroUsesItsSevenActionModelFromClickThroughArrival)
+{
+    MovingHero tested;
+    auto& hero = tested.world.Actors()[0];
+    hero.type = TransformedModel;
+    tested.world.Runtime().movement.mouseUpdateTime = 6;
+    tested.world.ActionSpeeds().Set(2, 3.25f);
+    auto context = tested.Context();
+    context.playerSkeleton = nullptr;
+    context.input.leftPressed = true;
+    context.input.leftDown = true;
+    context.pickTarget = []() -> Client::Core::Expected<std::optional<Client::GameLogic::PathCell>, std::string>
+    { return std::optional{Client::GameLogic::PathCell{183, 115}}; };
+    bool sentD3 = false;
+    context.sendWalk = [&](std::span<const Client::Protocol::Movement::Cell>, Client::Protocol::Movement::Cell,
+                           float) -> Client::Core::Expected<void, std::string>
+    {
+        sentD3 = true;
+        return {};
+    };
+
+    auto result = StepHeroMovement(context);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    ASSERT_TRUE(sentD3);
+    ASSERT_EQ(hero.movement, 1);
+
+    context.input.leftPressed = false;
+    context.input.leftDown = false;
+    result = StepHeroMovement(context);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_EQ(hero.animation.action, 2);
+    EXPECT_FLOAT_EQ(tested.world.ActionSpeeds().Speed(2, 0.0f), 3.25f);
+
+    for (int frame = 0; frame < 80 && hero.movement != 0; ++frame)
+    {
+        result = StepHeroMovement(context);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+    }
+    EXPECT_EQ(hero.movement, 0);
+    EXPECT_EQ(hero.animation.action, 0);
+    EXPECT_FLOAT_EQ(tested.world.ActionSpeeds().Speed(2, 0.0f), 3.25f);
+}
+
+TEST(GameMovementTest, ATransformedHeroUsesTheBaseLibrarySkeletonWhenAttackingOnArrival)
+{
+    MovingHero tested;
+    auto& runtime = tested.world.Runtime();
+    auto& hero = tested.world.Actors()[0];
+    hero.type = TransformedModel;
+    runtime.movement.mouseUpdateTime = 6;
+    tested.world.ActionSpeeds().Set(2, 3.25f);
+    auto& target = tested.world.Actors()[13];
+    target.alive = true;
+    target.type = 0x10;
+    target.position = {18450.0f, 11550.0f, 0.0f};
+    runtime.movement.attackTarget = 13;
+    auto context = tested.Context();
+    context.playerSkeleton = nullptr;
+    context.input.leftPressed = true;
+    context.input.leftDown = true;
+    context.pickTarget = []() -> Client::Core::Expected<std::optional<Client::GameLogic::PathCell>, std::string>
+    { return std::optional{Client::GameLogic::PathCell{183, 115}}; };
+    context.sendWalk = [](std::span<const Client::Protocol::Movement::Cell>, Client::Protocol::Movement::Cell,
+                          float) -> Client::Core::Expected<void, std::string> { return {}; };
+    bool sentAttack = false;
+    context.sendAttack = [&](std::uint16_t, std::uint8_t, std::uint8_t) -> Client::Core::Expected<void, std::string>
+    {
+        sentAttack = true;
+        return {};
+    };
+
+    auto result = StepHeroMovement(context);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    ASSERT_EQ(hero.movement, 1);
+    hero.movementType = 3;
+    context.input.leftPressed = false;
+    context.input.leftDown = false;
+    for (int frame = 0; frame < 80 && hero.movement != 0; ++frame)
+    {
+        result = StepHeroMovement(context);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+    }
+
+    ASSERT_TRUE(sentAttack);
+    EXPECT_EQ(hero.animation.action, 3);
+    EXPECT_EQ(hero.attackTarget, 13);
+    EXPECT_EQ(hero.movement, 0);
+}
+
 TEST(GameMovementTest, AWalkingHeroMovesByTwelveAndKeepsTheLogicalCellAhead)
 {
     MovingHero tested;
@@ -505,6 +627,98 @@ TEST(GameMovementTest, AWallBetweenStopsTheAttackAfterRememberingTheTarget)
         else
         {
             EXPECT_EQ(walks, 1);
+        }
+    }
+}
+
+// El clic de ataque con el elegido fuera de la grilla: en la fila −1 la línea de 0x558800 sale de TerrainWall
+// (0x55886d) y en la columna 256 la ve (el índice lineal cae en la fila de al lado) pero PathFinding2 (0x59d653) la
+// toma como índice lineal; MuRet descarta el clic como el de una pared, con las lecturas de antes (07, Q-C1179). Con
+// Crywolf en la etapa 3 o 4, en el mapa 34 y un altar (0x204..0x208) en 0x6c8e54, PathFinding2 corta en 0x4eac41 (hito
+// 11) después de las cuatro lecturas; en Lorencia y en Devias el mismo altar no cuenta y el camino sale.
+TEST(GameMovementTest, AChosenOffTheGridDiscardsTheClickAndACrywolfAltarCuts)
+{
+    constexpr std::size_t AltarSlot = 9;
+    struct Case
+    {
+        std::string_view name;
+        std::int32_t map;
+        glm::vec2 position;
+        std::uint8_t stage;
+        std::uint16_t altar;
+        std::string_view cut;
+        int draws;
+        int walks;
+    };
+    const glm::vec2 near{18550.0f, 11550.0f};
+    const std::array cases{
+        Case{"la fila −1", 0, {18250.0f, -150.0f}, 0, 0, "", BeforeTheClick + 2 * CellDraws + OwnDraws + 60, 0},
+        Case{"la fila −1 en Devias",
+             2,
+             {18250.0f, -150.0f},
+             0,
+             0,
+             "",
+             BeforeTheClick + 2 * CellDraws + OwnDraws + 60,
+             0},
+        Case{"la columna 256", 0, {25650.0f, 11550.0f}, 0, 0, "", BeforeTheClick + 4 * CellDraws + OwnDraws + 60, 0},
+        Case{"la columna 256 en Devias",
+             2,
+             {25650.0f, 11550.0f},
+             0,
+             0,
+             "",
+             BeforeTheClick + 4 * CellDraws + OwnDraws + 60,
+             0},
+        Case{"un altar en Crywolf", 34, near, 3, 0x204, "0x4eac41", BeforeTheClick + 4 * CellDraws, 0},
+        Case{"el último altar en la etapa 4", 34, near, 4, 0x208, "0x4eac41", BeforeTheClick + 4 * CellDraws, 0},
+        Case{"otro NPC en Crywolf", 34, near, 3, 0x209, "", -1, 1},
+        Case{"un altar en la etapa 2", 34, near, 2, 0x204, "", -1, 1},
+        Case{"un altar en Lorencia", 0, near, 3, 0x204, "", -1, 1},
+        Case{"un altar en Devias", 2, near, 3, 0x204, "", -1, 1}};
+    for (const Case& probe : cases)
+    {
+        SCOPED_TRACE(probe.name);
+        const auto tested = AHeroClickingAPlayer(185);
+        auto& runtime = tested->world.Runtime();
+        runtime.map = probe.map;
+        runtime.crywolf.stage = probe.stage;
+        tested->world.Actors()[ChosenSlot].position = {probe.position.x, probe.position.y, 0.0f};
+        if (probe.altar != 0)
+        {
+            tested->world.Actors()[AltarSlot].type = probe.altar;
+            runtime.movement.chosenNpc = static_cast<std::int32_t>(AltarSlot);
+        }
+        auto context = tested->Context();
+        context.input.leftPressed = true;
+        context.input.leftDown = true;
+        context.input.controlDown = true;
+        int walks = 0;
+        context.sendWalk = [&](std::span<const Client::Protocol::Movement::Cell>, Client::Protocol::Movement::Cell,
+                               float) -> Client::Core::Expected<void, std::string>
+        {
+            ++walks;
+            return {};
+        };
+        const CrtRandom start = tested->random;
+
+        const auto result = StepHeroMovement(context);
+
+        EXPECT_EQ(walks, probe.walks);
+        EXPECT_EQ(runtime.movement.attackTarget, static_cast<std::int32_t>(ChosenSlot));
+        if (!probe.cut.empty())
+        {
+            ASSERT_FALSE(result.HasValue());
+            EXPECT_NE(result.Error().find(probe.cut), std::string::npos) << result.Error();
+            EXPECT_NE(result.Error().find("0x59d653"), std::string::npos) << result.Error();
+        }
+        else
+        {
+            ASSERT_TRUE(result.HasValue()) << result.Error();
+        }
+        if (probe.draws >= 0)
+        {
+            EXPECT_EQ(tested->random.State(), Advanced(start, probe.draws).State());
         }
     }
 }

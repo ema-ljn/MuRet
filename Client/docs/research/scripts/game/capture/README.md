@@ -34,8 +34,8 @@ El [handoff específico para VM](RUNBOOK-qc184-vm.md) explica cómo obtener el s
 argumentos y el estado FPU/stats sin asumir que una lectura fuera de la tabla vale cero.
 [qc184_evidence.py](qc184_evidence.py) prepara en el host bundles ASCII/CRLF para WinDbg x86
 con cuatro puntos de hardware, un spec pasivo para s31mem y analizadores de consistencia.
-No ejecuta el original ni requiere Python en XP. Los comandos generados todavía necesitan su
-primera ejecución supervisada en la VM; CAPTURED no significa fidelidad verificada.
+No ejecuta el original ni requiere Python en XP. Ambos modos se ejercitaron con CDB 6.12 x86
+en XP SP3; el handoff conserva resultados y pendientes. CAPTURED no significa fidelidad verificada.
 
 ## Compilar y ejecutar
 

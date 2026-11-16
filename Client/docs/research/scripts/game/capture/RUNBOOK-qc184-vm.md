@@ -17,10 +17,14 @@ recover_cl9_evidence.py para la política de rutas. Sólo los bundles se copian 
 | bonus | CL después de 40dc88, ítem/valor/caller, prefijo, stats y FPU antes/después de 550d10 | Sumas aisladas de cada ADD, conteo de rand() ni un selector universal |
 | wear | Cinco argumentos de 54ee00, valor bruto de 54e680, ST0/FPU, EBX y publicación de word62 | En 550b1e todavía faltan modificadores posteriores; no es el final de 550990 |
 
-Se probaron generador/analizadores con fixtures y se prepararon ambos bundles leyendo el PE como datos.
-**Los comandos WinDbg requieren su primera ejecución supervisada en la VM.** No se ejecutó, cargó ni
-emuló el original/DLL en este host. CAPTURED es consistencia de captura, no MATCH con MuRet: los reportes
-mantienen native_fidelity_verified=false y rng_count_observed=false.
+Se probaron generador/analizadores con fixtures y, el 2026-11-16, ambos modos con el motor
+WinDbg/CDB 6.12.0002.633 x86 dentro de XP SP3 (resultado acotado en §7). No se ejecutó, cargó ni
+emuló el original/DLL en el host. CAPTURED es consistencia de captura, no MATCH con MuRet: los
+reportes mantienen native_fidelity_verified=false y rng_count_observed=false.
+
+El arranque usa `n 16`, `version` y comparaciones MASM parentizadas con `&`. `bl` debe estar vacío:
+el script lo inspecciona con `.foreach` antes de instalar puntos; `$bp0` no se puede consultar como
+cero cuando no existe. Reserva los pseudo-registros del debugger `$t0` a `$t10` y `$t19`.
 
 ## 1. Identificar la sesión
 
@@ -127,6 +131,14 @@ Si no se puede obtener el control pasivo, declararlo BLOCKED; la traza instrumen
 En 40dc8c, CL ya contiene el byte; EAX es `0xffffffeb` para IDffff. `[ebp+8]` es el ítem,
 `[ebp+c]` apunta al valor y `[ebp+4]` es el retorno: 40e038 corresponde a copias y 550d72 a WORD propios.
 BEGIN/END emparejan ESP/hilo/registro/caller; no se capturan nombres, chat ni clave de la cuenta.
+El contador `depth` se obtiene de **shadow+0xf08**, nunca de own+0xf08: el registro útil mide
+0xf08 bytes y su sombra mide 0xf09 (`550f73..550fa0`). Cada evento registra arrays de claves/valores,
+capacidad, multiplicador, índice, clave, sombra, función hash y sondeos para acreditar su procedencia.
+`448310` calcula el hash de los cuatro bytes little-endian de own con multiplicador de
+`container+0x1c`, producto/suma truncados a 32 bits y módulo unsigned por capacidad. El sondeo
+avanza `(index+1)%capacity`, hasta clave cero, coincidencia o capacity intentos (`550e36..550eb3`).
+El script reproduce sólo esa búsqueda de lectura; no llama al método del objetivo ni cambia su memoria.
+El validador rechaza contadores positivos sin procedencia y cálculos con registro cerrado.
 
 **Excepción nativa:** si se detiene en 40dc88 u otra lectura, guardar `.exr -1`, `r`, `rF`, `kb`,
 VAs y regiones legibles. Registrar SOURCE_ACCESS_FAULT y selector no observado. No ocultar/continuar
@@ -178,7 +190,40 @@ Devolver al PR/handoff:
 
 Raw logs, prefijos y volcados permanecen privados. Compartir herramientas, hashes y conclusiones.
 Tests: `python -m unittest discover -s Client/docs/research/scripts/game/capture -p 'test_*evidence.py' -v`.
+
+## 7. Observación acotada en XP: 2026-11-16
+
+Cliente c32bbd5f, base cargada 0x400000; XP SP3 x86, motor CDB 6.12.0002.633. El cliente se había
+iniciado normalmente y ya estaba autenticado; el servidor seguía en otro equipo. Se usó la DLL
+acotada aportada por Emanuel: 65.536 bytes, SHA-256
+`279a20ec92c6adcc3cb8b5adc1d7eb8cc8c2c7040c895c5e94f40f756906e664`, igual antes/después y con ruta
+de carga comprobada. Los modos usaron sesiones nuevas de debugger y el mismo proceso del juego.
+El `Data/Local/item.bmd` del guest coincidió con el del repo: 688.212 bytes, SHA-256
+`952a95b5d3e032e772cbdb2fad62a5a79dcc10a9f2caffc24852fed391dd87e9`.
+
+| Captura | Ejercicio y observación | Dictamen |
+| --- | --- | --- |
+| Pasivos de bonus y wear | Antes/después de adjuntar: huellas correctas, cero páginas ilegibles, puntero estable y prefijo de 64 bytes en cero; table−16/table−39 valieron 0 | CAPTURED, sólo esta sesión |
+| bonus | Caballero equipado → selección → creación de un mago nuevo → entrada en otra celda. Un BEGIN/END y 18 READ, IDffff con durabilidad residual, selector CL/memoria 0 y profundidad de sombra 1/2. El mago quedó visible en el mapa, sin cierre | CAPTURED |
+| wear | Caballero equipado → selección → mago existente. Cinco secuencias BEFORE/FACTOR/REDUCED, lugares 2–6, más SUM, con FPU y los cinco DWORD de argumentos. El low16 de EBX resultó 0 en los cinco casos; su parte alta se conserva | CAPTURED |
+
+Logs privados: bonus, 27.640 bytes, SHA-256
+`0e0c3637991ba23248bf7b7d259aab359e9d3e2d436c92923023df9f5f4b88b8`; wear, 15.254 bytes,
+SHA-256 `a612b3c3c679242d867aff077c71e75dd63c912f91ea2e4219587cb47d1239e4`.
+
+Se verificaron los cuatro puntos hardware antes de continuar y su eliminación con COMPLETE y
+detach al terminar. Los debuggers auxiliares se cerraron después de comprobar NO_DEBUGGEE; el
+cliente quedó activo. No se cambiaron el original ni la DLL y no se borraron personajes.
+Una captura bonus previa, que leía mal depth, permanece INCOMPLETE; no se reinterpretó como aprobada.
+
+**Pendiente:** comparación numérica completa con MuRet, bonos reales 1/2/3, repeticiones en procesos
+nuevos y control desde antes del login, hash completo de Data y conteo de RNG. No se generaliza el
+cero del prefijo ni se acredita fidelidad universal. Wear sigue siendo parcial en 550b1e, como §5.
+
 Documentación consultada mediante Context7:
+[base numérica n](https://learn.microsoft.com/en-us/windows-hardware/drivers/debuggercmds/n--set-number-base-),
+[version](https://learn.microsoft.com/en-us/windows-hardware/drivers/debuggercmds/version--show-debugger-version-),
+[operadores MASM](https://learn.microsoft.com/en-us/windows-hardware/drivers/debuggercmds/masm-numbers-and-operators),
 [ba](https://learn.microsoft.com/en-us/windows-hardware/drivers/debuggercmds/ba--break-on-access-),
 [registros/rF](https://learn.microsoft.com/en-us/windows-hardware/drivers/debuggercmds/r--registers-),
 [pseudo-registros](https://learn.microsoft.com/en-us/windows-hardware/drivers/debuggercmds/pseudo-register-syntax),

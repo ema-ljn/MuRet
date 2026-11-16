@@ -723,7 +723,7 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateFaunaJoint(std::sp
     {
         if (joints[i].alive)
             continue;
-        if (ownerKind != JointOwnerKind::ByType && !helperSparkle)
+        if ((ownerKind == JointOwnerKind::Helper || ownerKind == JointOwnerKind::Raven) && !helperSparkle)
             return Core::Unexpected(std::format("0x530860: el joint {:#x}/{} con un ayudante o el cuervo de dueño no "
                                                 "está portado",
                                                 request.type, request.subtype));

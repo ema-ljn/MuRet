@@ -85,3 +85,18 @@ Para cada caso hacen falta observaciones originales y de MuRet, no sólo una cap
 Sobre la implementación integrada se ejecutaron nueve suites y **177 pruebas sin fallos**: AttackFrameSkills14, AttackStep17, AttackSkillCases31, ArrowEffects29, CharacterStep66, WeaponTrail9, WeaponTrailPipeline2, MonsterRibbonTrails7 y WorldModelPose2. Incluyen la regresión de arma visible de359 y una nueva acción38 con partículas llenas y estela de lanza. El formato de los1890 archivos C++ versionados pasó con clang-format18; include-cleaner18 revisó el diff del cliente. UBSan de resta signed:10 pruebas sin reporte.
 
 Estos resultados son focales. La suite completa Linux y el CI Linux/Windows se registran sobre el commit publicado en los checks y en la descripción de #343; no se sustituyen por esta cifra ni se presume validación VM. Las herramientas de evidencia ejecutaron49 pruebas Python, con un salto de plataforma.
+
+### Regresiones encontradas por la suite completa
+
+La primera suite completa detectó tres fallos de código, también reproducidos por el CI Linux del commit e39d8bf. Eran dos errores de la reconciliación H3/H4 iniciada en fc158dd:
+
+- `HudTextureSet` declaraba 89 elementos pero tenía 88 inicializadores: se intentaba cargar una ruta vacía. Se corrigió el tamaño a 88, sin agregar ni quitar recursos nativos. El golden que compara todas las cargas volvió a pasar.
+- El gate genérico de `CreateFaunaJoint` para Helper/Raven también interceptaba Actor, impidiendo el 610/8 que el viewport de Kalima ya implementaba. Se restringió ese primer gate a Helper/Raven; el gate separado de Actor mantiene sólo 610/8. Dos pruebas de entrada/seguimiento volvieron a pasar. Los pools llenos todavía salen antes de validar dueño, escribir o consumir RNG.
+
+Cinco suites de regresión: ViewportPlayers 31, GoldenGameModels 14, RavenAttack 8, FullSetJoints 18 y GameJointStep 17, **88 pruebas sin fallos**. Son fallos de integración corregidos, no nuevas fronteras del ASM. El problema gráfico local fue distinto: el SDL privado había quedado sin backend X11 por falta de headers; se reparó el entorno y se repite GL obligatorio. Esa reparación del SDK no cambia archivos ni dependencias versionadas del repositorio.
+
+### Resultado local posterior a las reparaciones
+
+Build completo GCC14 Debug, sin PCH y con warnings como errores, terminado. CTest registró **7.750 casos:7.691 pasaron,59 se saltaron por falta de capturas/datos de referencia y0 fallaron**, en315,98s. Los **106 tests con etiquetaGL pasaron**, con `MURET_CLIENT_REQUIRE_GL=1` y Xvfb/X11. Los tres arranques de60frames (normal, sinVSync y pacingfaithful) terminaron con código0. El formato y los includes de los dos últimos cambios también pasaron.
+
+Estos resultados corresponden al código del PR con las dos reparaciones anteriores. El CI de la primera cabeza e39d8bf detectó justamente esos tres fallos; se publica una nueva cabeza para repetirLinux/Windows. El resultado remoto debe consultarse por SHA, yWindows no se presume validado por el resultado deLinux. Los59 saltos originales siguen pendientes de la evidencia descrita arriba.

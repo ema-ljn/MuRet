@@ -50,7 +50,7 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 1> DamageTextureSet
 // sube nadie. Las de la ventana de la mascota (CL9 hito 4): Level_box en 0xf5 (0x61cf8f, que también usa la ventana del
 // personaje), win_button en 0x646 (0x61d17a, con 0x63bd00; también el botón de la UI vieja) y pet1 y pet2 en 0x65d y
 // 0x65e (0x61d4b0 y 0x61d4cc), el botón de la mascota.
-inline constexpr std::array<Data::Textures::TextureSetEntry, 89> HudTextureSet{{
+inline constexpr std::array<Data::Textures::TextureSetEntry, 88> HudTextureSet{{
     {"Interface\\CursorAttack.tga", 0x04, TextureSetsDetail::LinearClamp},
     {"Interface\\CursorGet.tga", 0x05, TextureSetsDetail::LinearClamp},
     {"Interface\\CursorTalk.tga", 0x06, TextureSetsDetail::LinearClamp},

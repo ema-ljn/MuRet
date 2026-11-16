@@ -301,8 +301,8 @@ Core::Expected<void, std::string> DrawTheBody(Render::ModelBatch& batch, const I
     }
     // 0x50c929..0x50c96e: bVar23, la clase 3 o 4 o el +0x376 0x37 (el monstruo 55, que es un 0x20a), fuera de
     // Chaos Castle; con el duelo, LookOfTheCloth (DrawnCharacter::wearsCloth).
-    const bool wears = character.wearsCloth.value_or(
-        WearsACloth(actor.characterClass, character.map) || WearsTheMonsterCloth(actor.word376, character.map));
+    const bool wears = character.wearsCloth.value_or(WearsACloth(actor.characterClass, character.map) ||
+                                                     WearsTheMonsterCloth(actor.word376, character.map));
     if (wears && character.cloth == nullptr)
         return Core::Unexpected<std::string>("0x50d58b: falta la tela persistente del lugar del personaje");
     DrawCharacter(batch, models, character, pass.frameClock, CharacterDrawPass::Cloth);

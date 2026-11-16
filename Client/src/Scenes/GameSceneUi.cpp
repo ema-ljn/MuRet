@@ -170,7 +170,7 @@ public:
             return;
         }
         m_session->SendGamePacket(std::move(outgoing));
-}
+    }
 
     void SendWindowClose() override
     {

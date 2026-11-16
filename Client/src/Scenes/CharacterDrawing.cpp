@@ -935,9 +935,9 @@ void DrawTheCloth(const CharacterFrame& frame, std::span<const BoneTransform> bo
                                               .angles = character.object.angles,
                                               .scale = character.object.scale,
                                               .position = character.object.position};
-    const bool wears = character.wearsCloth.value_or(
-        WearsACloth(appearance.characterClass, character.map) ||
-        (character.monster && WearsTheMonsterCloth(*character.monster, character.map)));
+    const bool wears =
+        character.wearsCloth.value_or(WearsACloth(appearance.characterClass, character.map) ||
+                                      (character.monster && WearsTheMonsterCloth(*character.monster, character.map)));
     if (character.advanceCloth)
     {
         character.cloth->Advance(frame.batch, wearer, clothBody, *character.clothWorld, character.map, frame.clock,

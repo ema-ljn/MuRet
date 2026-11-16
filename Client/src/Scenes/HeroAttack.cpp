@@ -483,8 +483,8 @@ Core::Expected<bool, std::string> AttackableTarget(const WorldState& world, cons
         return true;
     if (rules.byte576796c != 0 && target.pk >= MinimumOutlawPk && target.word1f2 != NoGuild)
         return false; // P-C250 f: los nombres y su continuación quedan en H8.
-    // 0x558dff..0x558e3d: con el duelo en curso (el BYTE de 0x78abad8), sólo el rival: la clave con MOVSX contra el DWORD
-    // de 0x78abadc y strcmp de +0x1d9 con 0x78abae0 (SocialState::duel, del hito 7).
+    // 0x558dff..0x558e3d: con el duelo en curso (el BYTE de 0x78abad8), sólo el rival: la clave con MOVSX contra el
+    // DWORD de 0x78abadc y strcmp de +0x1d9 con 0x78abae0 (SocialState::duel, del hito 7).
     const DuelState& duel = runtime.social.duel;
     if (duel.active != 0)
     {

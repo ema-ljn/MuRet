@@ -999,9 +999,9 @@ TEST(HeroSkillsWizardTest, TeleportAllyMovesTheChosenNextToTheHero)
         ASSERT_TRUE(tested->Use().HasValue());
         EXPECT_EQ(tested->random.State(), expected.State());
         ASSERT_EQ(tested->sent.size(), 1u);
-        EXPECT_EQ(tested->Sent(0), (std::vector<std::uint8_t>{0xc1, 0x07, 0xb0, 0x1b, 0x0a,
-                                                              static_cast<std::uint8_t>(182 + dx - 1),
-                                                              static_cast<std::uint8_t>(115 + dy - 1)}));
+        EXPECT_EQ(tested->Sent(0),
+                  (std::vector<std::uint8_t>{0xc1, 0x07, 0xb0, 0x1b, 0x0a, static_cast<std::uint8_t>(182 + dx - 1),
+                                             static_cast<std::uint8_t>(115 + dy - 1)}));
         EXPECT_EQ(tested->Chosen().animation.action, 0x93);
     }
     for (const bool castle : {true, false})

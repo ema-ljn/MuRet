@@ -609,8 +609,8 @@ TEST_F(HeroAttackTest, InADuelOnlyTheRivalIsAttackable)
     EXPECT_EQ(Client::Scenes::ChosenKeyOf(*m_world, HeroIndex, true).Value(), -1);
 }
 
-// 0x558e0f y 0x558f94: la clave del personaje va con MOVSX contra el DWORD de 0x78abadc, que el duelo escribe sin signo:
-// un rival desde 0x8000 nunca coincide, como en el original.
+// 0x558e0f y 0x558f94: la clave del personaje va con MOVSX contra el DWORD de 0x78abadc, que el duelo escribe sin
+// signo: un rival desde 0x8000 nunca coincide, como en el original.
 TEST_F(HeroAttackTest, ARivalKeyFrom0x8000NeverMatches)
 {
     ActorState& player = Chosen(20);

@@ -66,17 +66,25 @@ std::size_t Members(const WorldRuntime& runtime)
 }
 } // namespace
 
+std::span<const PartySlot> PartyMembers(const WorldRuntime& runtime)
+{
+    return std::span<const PartySlot>(runtime.social.party.slots).first(Members(runtime));
+}
+
 bool IsInTheParty(const WorldState& world, const ActorState& actor)
 {
-    const WorldRuntime& runtime = world.Runtime();
+    return IsInTheParty(PartyMembers(world.Runtime()), actor);
+}
+
+bool IsInTheParty(std::span<const PartySlot> members, const ActorState& actor)
+{
     const std::string_view name = NameView(actor.name);
-    for (std::size_t at = 0; at < Members(runtime); ++at)
-    {
-        const std::string_view member = NameView(runtime.social.party.slots[at].name);
-        if (name.empty() ? member.empty() : member.starts_with(name))
-            return true;
-    }
-    return false;
+    return std::ranges::any_of(members,
+                               [name](const PartySlot& slot)
+                               {
+                                   const std::string_view member = NameView(slot.name);
+                                   return name.empty() ? member.empty() : member.starts_with(name);
+                               });
 }
 
 void MatchThePartyMembers(WorldState& world, std::size_t index)

@@ -25,6 +25,7 @@
 #include "Scenes/GameHanging.h"
 #include "Scenes/MonsterDrawing.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/PartyActors.h"
 #include "Scenes/SocialState.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
@@ -361,6 +362,7 @@ Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const I
                                                .effects = pass.effects,
                                                .slot = slot,
                                                .scan = scan,
+                                               .party = PartyMembers(world.Runtime()),
                                                .worldClock = worldClock,
                                                .map = map,
                                                .logicSteps = pass.clothWorld->logicSteps,

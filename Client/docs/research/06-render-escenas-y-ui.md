@@ -6934,7 +6934,8 @@ se repite. Es el mismo en los dos mapas (`GoldenCharacterStep.TheHeroAtRestDraws
     2b);
   - con `+0x88` en 4 (`0x4fcd0c`) y con el nombre de `0x6c88b0` (`0x4fcda2`);
   - con otro modelo o sin Player.bmd (`0x4f9580`), y con una acción fuera de él (`0x4f95c0`);
-  - en las acciones `0x94`, `0x51` y `0x5b` de la clase 4 (`0x4f969d`);
+  - ~~en las acciones `0x94`, `0x51` y `0x5b` de la clase 4 (`0x4f969d`)~~: con el personaje en la party
+    (`0x59e680`, `Scenes::IsInTheParty`) van por 0,125 (`0x6ba170`) y si no por 0,5 (CL9 hito 7, al armar la cadena);
   - ~~en las `0xc3` y `0xc4` que terminan (`0x4fcb87`)~~: dejan los restos ([Los restos](#los-restos-0x52e810), CL9
     hito 3, fase 7);
   - en la partícula de las `0x4d`, `0x4f` y `0x5a` (`0x4fdb70`);
@@ -7746,9 +7747,13 @@ frame del original:
   `0x4ce000`): fuera de la clase 4, la `0x94` sin `+0x78 & 0x4000` pone tres lightning2 (`0x5d5`) en el
   hueso de la mano derecha (`+0x2bd`), con s = frame · 0,1f: s · 0,3f con (0,1; 0,1; 1), s con la luz
   propia y −ftol(T) · 0,1f de giro, y s · 2,5 con ftol(T) · 0,1f. La clase 4, la `0x51` y la `0x5b` tienen
-  ventanas: en [1,2f; 1,6f) el efecto `621/2` y el sonido `0x1cc` (corta en `0x50f9b3`); por debajo de 2,
-  con el grupo (`0x78aba48`, CL9, 0 en MuRet), `0x59e680` y los joints `0x618`; en [7, 8), dos `117/2` en
-  la mano derecha (corta en `0x50fb64`).
+  ventanas: en [1,2f; 1,6f) el efecto `621/2` y el sonido `0x1cc` (corta en `0x50f9b3`); por debajo de 2
+  (`0x6b8818`; el `fcomp` también entra con NaN) y con party (`0x78aba48` sobre 0), `0x59e680`
+  (`Scenes::IsInTheParty`): fuera de la party `0x50f9f8` salta a `0x510a7a`, sin las banderas, el contador ni
+  el conjunto, también entre frames; en la party, por cada lugar con `+0x1c` en 0 o más que no es él, dos
+  joints `0x618` (`/0xc` y `/0xd`, de ancho 20) de la posición del miembro con 150 más de z (`0x6b87ac`) al
+  personaje, que corta en un frame del original (`0x50fa74`, 08 P-C55 d). En [7, 8), dos `117/2` en la mano
+  derecha (corta en `0x50fb64`). (CL9 hito 7, al armar la cadena.)
 - **Las banderas** `+0x78 & 4` o `0x2000000`, sin `0x4000` (`0x50fba4`): un `rand() % 30` por mano, los
   sprites con ese color y los cinco joints `10f/4` si no hay uno. `+0x78` sólo lo escriben los paquetes:
   corta en `0x50fbd5` con esa condición.

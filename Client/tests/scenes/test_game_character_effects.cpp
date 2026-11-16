@@ -20,6 +20,7 @@
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/SocialState.h"
 #include "World/ModelEffects.h"
 #include "World/ParticleOwner.h"
 #include "World/Particles.h"
@@ -40,6 +41,7 @@
 #include <memory>
 #include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
 // La cola de 0x50ba30 (0x50ea20..0x510ab6) y el cuervo de 0x420df0, contra el ASM de c32bbd5f. Los floats
@@ -51,6 +53,7 @@ using Client::Render::Models::CrtRandom;
 using Client::Scenes::ActorState;
 using Client::Scenes::GameCharacterEffectsPass;
 using Client::Scenes::GameRavenPass;
+using Client::Scenes::PartySlot;
 
 float Float(std::uint32_t bits)
 {
@@ -329,6 +332,66 @@ TEST_F(GameCharacterEffectsTest, TheGlowFlagsCutWithTheExactConditionOfTheAssemb
         if (probe.cuts)
         {
             EXPECT_NE(result.Error().find("0x50fbd5"), std::string::npos) << result.Error();
+        }
+    }
+}
+
+// 0x50f9c9..0x50fac2: por debajo del frame 2 (0x6b8818) y con party, 0x59e680 sobre el nombre. Fuera de la party salta
+// a 0x510a7a, sin las banderas de 0x50fba4, también entre frames. En la party, los joints 0x618 hacia otro miembro a la
+// vista (+0x1c en 0 o más y no él) cortan en un frame del original. Con el frame en 2 o sin party, las banderas cortan.
+TEST_F(GameCharacterEffectsTest, BelowFrameTwoTheActionsReadTheParty)
+{
+    struct Case
+    {
+        const char* member;
+        std::int32_t memberIndex;
+        float frame;
+        bool originalFrame;
+        bool partyListed;
+        const char* cut;
+    };
+    constexpr std::int32_t Self = static_cast<std::int32_t>(Slot);
+    constexpr std::array cases{
+        Case{"Otro", -1, 1.9f, true, true, nullptr},      Case{"Otro", -1, 0.5f, false, true, nullptr},
+        Case{"Otro", -1, 2.0f, false, true, "0x50fbd5"},  Case{"Otro", -1, 1.9f, false, false, "0x50fbd5"},
+        Case{"Lordes", -1, 1.9f, true, true, "0x50fbd5"}, Case{"Lordes", Self, 1.9f, true, true, "0x50fbd5"},
+        Case{"Lordes", 7, 1.9f, true, true, "0x50fa74"},  Case{"Lordes", 7, 1.9f, false, true, "0x50fbd5"},
+        Case{"Lord", 0, 0.0f, true, true, "0x50fa74"},
+    };
+    for (const Case& probe : cases)
+    {
+        SCOPED_TRACE(testing::Message() << probe.member << ' ' << probe.memberIndex << ' ' << probe.frame << ' '
+                                        << probe.originalFrame << ' ' << probe.partyListed);
+        m_actor = {};
+        SetUp();
+        m_actor.characterClass = 4;
+        m_actor.animation.action = 0x51;
+        m_actor.animation.frame = probe.frame;
+        m_actor.flags78 = 0x4;
+        const std::string_view name = "Lord";
+        for (std::size_t at = 0; at < name.size(); ++at)
+            m_actor.name[at] = static_cast<std::byte>(name[at]);
+        std::array<PartySlot, 2> party{};
+        const std::string_view member = probe.member;
+        for (std::size_t at = 0; at < member.size(); ++at)
+            party[1].name[at] = static_cast<std::byte>(member[at]);
+        party[0].actorIndex = -1;
+        party[1].actorIndex = probe.memberIndex;
+        GameCharacterEffectsPass pass = Pass();
+        pass.originalFrame = probe.originalFrame;
+        if (probe.partyListed)
+            pass.party = party;
+
+        const auto result = Client::Scenes::DrawGameCharacterEffects(m_actor, pass);
+
+        if (probe.cut == nullptr)
+        {
+            ASSERT_TRUE(result.HasValue()) << result.Error();
+        }
+        else
+        {
+            ASSERT_FALSE(result.HasValue());
+            EXPECT_NE(result.Error().find(probe.cut), std::string::npos) << result.Error();
         }
     }
 }

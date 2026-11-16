@@ -14,6 +14,7 @@
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "World/ModelEffects.h"
 
 #include <algorithm>
 #include <array>
@@ -464,14 +465,23 @@ Core::Expected<void, std::string> SetActorAttack(ActorState& actor, const ActorC
             return attacked;
         break;
     case 0x27:
-        return Core::Unexpected(std::string("0x4f4f5b: el efecto 0xd4 del 0x27 al pegar (0x518cf0) es de la CL11"));
+        if (std::ranges::any_of(context.world.Map().effects.Effects(),
+                                [](const World::ModelEffect& effect) { return !effect.alive; }))
+            return Core::Unexpected(std::string("0x4f4f5b: el efecto 0xd4 del 0x27 al pegar (0x518cf0) es de la CL11"));
+        context.world.Runtime().lastSoundId = 0x10;
+        break;
     case 0x28:
         if (auto set = SetTheAction(actor, context, 1); !set.HasValue())
             return set;
         context.world.Runtime().lastSoundId = 0x10;
         break;
     case 0x33:
-        return Core::Unexpected(std::string("0x4f4fb9: el efecto 0x5da del 0x33 al pegar (0x518cf0) es de la CL11"));
+        if (std::ranges::any_of(context.world.Map().effects.Effects(),
+                                [](const World::ModelEffect& effect) { return !effect.alive; }))
+            return Core::Unexpected(
+                std::string("0x4f4fb9: el efecto 0x5da del 0x33 al pegar (0x518cf0) es de la CL11"));
+        context.world.Runtime().lastSoundId = 0x79;
+        break;
     case 0x172:
     {
         // 0x4f4fd7..0x4f502f: rand() & 7; con 0 la 9, con 1 o 2 la 8, y si no rand() & 1 + 3.

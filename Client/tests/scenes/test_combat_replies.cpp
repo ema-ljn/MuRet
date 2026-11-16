@@ -25,6 +25,7 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/MessageArea.h"
+#include "World/ModelEffects.h"
 
 #include "support/PlayerActors.h"
 #include "support/SceneDataFiles.h"
@@ -32,6 +33,7 @@
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <bit>
 #include <cstddef>
@@ -974,8 +976,8 @@ TEST_F(CombatRepliesTest, TheSkillMonstersLookTheirSkillUpInTheTable)
     EXPECT_EQ(m_random.State(), After(6));
 }
 
-// El 0x19e pone +0x110 en 3 y la acción 5 (0x42dcb0) sin contar; el 0x27 corta en su efecto de la CL11.
-TEST_F(CombatRepliesTest, TheSpecialMonstersSetTheirActionOrCut)
+// El 0x19e pone +0x110 en 3 y la acción 5 (0x42dcb0) sin contar.
+TEST_F(CombatRepliesTest, TheSpecialMonsterSetsItsActionWithoutCountingTwice)
 {
     ActorState& special = MonsterAt(15, 0x126);
     special.type = 0x19e;
@@ -985,10 +987,128 @@ TEST_F(CombatRepliesTest, TheSpecialMonstersSetTheirActionOrCut)
     EXPECT_EQ(special.byte110, 3);
     EXPECT_EQ(special.animation.action, 5);
     EXPECT_EQ(special.attackCount, 1);
+}
 
-    ActorState& effect = MonsterAt(16, 0x127);
-    effect.type = 0x27;
-    EXPECT_TRUE(HasError(Client::Scenes::SetActorAttack(effect, Combat()), "0x4f4f5b"));
+// 0x4f4f5b y 0x4f4fb9: si el pool de efectos no tiene lugar, no se cambia la acción; igual se pide el sonido nativo,
+// corre 0x4f50b8..0x4f5262 con su regla de frame/tabla y al final se suma +0x38f una sola vez.
+TEST_F(CombatRepliesTest, EffectsWithoutPoolSpaceKeepTheAnimationAndFinishAttackBookkeeping)
+{
+    struct Case
+    {
+        float frame;
+        bool frameIsZeroOrUnordered;
+        std::int32_t subtype;
+        std::optional<Client::Scenes::ModelSounds> sounds;
+    };
+    Client::Scenes::ModelSounds silent{};
+    silent.fill(-1);
+    Client::Scenes::ModelSounds zeroed{};
+    zeroed.fill(0);
+    const std::array<Case, 6> cases{{
+        {1.0f, false, 0xd2, zeroed},
+        {0.0f, true, 0, silent},
+        {0.0f, true, 0xd1, zeroed},
+        {0.0f, true, 0xd3, silent},
+        {0.0f, true, 9, zeroed},
+        {UnorderedFrame, true, 0, std::nullopt},
+    }};
+
+    constexpr std::array<std::uint16_t, 2> EffectModels{0x27, 0x33};
+    std::size_t slot = 12;
+    for (const std::uint16_t model : EffectModels)
+    {
+        for (const Case& test : cases)
+        {
+            SCOPED_TRACE(model);
+            SCOPED_TRACE(test.subtype);
+            SCOPED_TRACE(std::bit_cast<std::uint32_t>(test.frame));
+            auto effectPool = m_world->Map().effects.Effects();
+            for (Client::World::ModelEffect& poolEffect : effectPool)
+                poolEffect.alive = true;
+            const std::uint16_t key = static_cast<std::uint16_t>(0x200 + slot);
+            ActorState& effect = MonsterAt(slot, key);
+            ++slot;
+            effect.type = model;
+            effect.subtype = test.subtype;
+            effect.attackCount = 0xff;
+            effect.animation.action = 7;
+            effect.animation.frame = test.frame;
+            const std::uint32_t frameBits = std::bit_cast<std::uint32_t>(test.frame);
+            Runtime().lastSoundId.reset();
+
+            ActorCombatContext combat = Combat();
+            if (test.sounds)
+            {
+                const Client::Scenes::ModelSounds sounds = *test.sounds;
+                combat.modelSounds = [model,
+                                      sounds](std::uint16_t requested) -> std::optional<Client::Scenes::ModelSounds>
+                {
+                    if (requested != model)
+                        return std::nullopt;
+                    return sounds;
+                };
+            }
+
+            CrtRandom expected = m_random;
+            std::optional<std::int32_t> expectedSound = model == 0x27 ? 0x10 : 0x79;
+            if (test.frameIsZeroOrUnordered)
+            {
+                if (test.subtype >= 0xd1 && test.subtype <= 0xd3)
+                    expectedSound = static_cast<std::int32_t>((expected.Next() & 1) + 0x3c);
+                const Client::Scenes::ModelSounds sounds = test.sounds.value_or(Client::Scenes::ModelSounds{});
+                if (sounds[2] != -1)
+                {
+                    const auto drawn = static_cast<std::size_t>(expected.Next() % 2);
+                    expectedSound = sounds[2 + drawn] + (test.subtype == 9 ? 5 : 0) + 0xd2;
+                }
+            }
+
+            const auto attacked = Client::Scenes::SetActorAttack(effect, combat);
+            ASSERT_TRUE(attacked.HasValue()) << attacked.Error();
+            EXPECT_EQ(effect.animation.action, 7);
+            EXPECT_EQ(std::bit_cast<std::uint32_t>(effect.animation.frame), frameBits);
+            EXPECT_EQ(effect.attackCount, 0);
+            EXPECT_EQ(Runtime().lastSoundId, expectedSound);
+            EXPECT_EQ(m_random.State(), expected.State());
+            EXPECT_TRUE(std::ranges::all_of(effectPool, [](const Client::World::ModelEffect& poolEffect)
+                                            { return poolEffect.alive; }));
+        }
+    }
+}
+
+// Con un lugar libre, los dos efectos siguen cortando en la alta que no está portada.
+TEST_F(CombatRepliesTest, EffectsWithPoolSpaceKeepTheirCut)
+{
+    struct EffectCase
+    {
+        std::uint16_t model;
+        std::string_view errorAddress;
+    };
+    constexpr std::array<EffectCase, 2> EffectModels{{{0x27, "0x4f4f5b"}, {0x33, "0x4f4fb9"}}};
+    std::size_t slot = 12;
+    for (const EffectCase& test : EffectModels)
+    {
+        SCOPED_TRACE(test.model);
+        ActorState& effect = MonsterAt(slot, static_cast<std::uint16_t>(0x200 + slot));
+        ++slot;
+        effect.type = test.model;
+        effect.attackCount = 0xff;
+        effect.animation.action = 7;
+        effect.animation.frame = 1.0f;
+        Runtime().lastSoundId.reset();
+
+        auto effectPool = m_world->Map().effects.Effects();
+        for (Client::World::ModelEffect& poolEffect : effectPool)
+            poolEffect.alive = true;
+        effectPool.front().alive = false;
+
+        EXPECT_TRUE(HasError(Client::Scenes::SetActorAttack(effect, Combat()), test.errorAddress));
+        EXPECT_EQ(effect.animation.action, 7);
+        EXPECT_EQ(effect.animation.frame, 1.0f);
+        EXPECT_EQ(effect.attackCount, 0xff);
+        EXPECT_FALSE(Runtime().lastSoundId.has_value());
+        EXPECT_FALSE(effectPool.front().alive);
+    }
 }
 
 // La tabla de sonidos que escribió el alta (WorldRuntime::modelSounds) es la de 0x4f4a10 si el contexto no trae otra.

@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Scenes/ActorConstruction.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CharacterCloth.h"
 #include "Scenes/HelperTable.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -90,5 +91,19 @@ void RemoveActor(WorldState& world, std::int32_t key)
         world.ActorCloths()[slot] = {};
         return;
     }
+}
+
+void RemoveActorAtSlot(WorldState& world, ActorState& actor, std::size_t slot)
+{
+    actor.alive = false;
+    if (slot < CreatedActorSearch)
+    {
+        ForgetNamedBones(world.Runtime(), slot);
+        TurnOffHelpersOf(world.Helpers(), slot);
+    }
+    actor.darkSpirit.reset();
+    if (slot < CreatedActorSearch)
+        world.ActorCloths()[slot].ReleaseResources();
+    ReleaseTheLayer(actor);
 }
 } // namespace Client::Scenes

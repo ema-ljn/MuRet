@@ -242,6 +242,19 @@ void CharacterCloth::DrawTheMonsterCloth(Render::ModelBatch& batch, const Render
     Draw(batch, cloth, PlainClothColor, worldTime, carry);
 }
 
+void CharacterCloth::ReleaseResources()
+{
+    for (Cloth& cloth : m_cloths)
+    {
+        cloth.Release();
+    }
+    m_cloths.clear();
+    m_simulatedBody.reset();
+    m_count = 0;
+    m_flares.clear();
+    m_onTheMesh.Release();
+}
+
 void CharacterCloth::Build(const ClothWearer& wearer, const Render::Models::ClothBody& body)
 {
     if ((wearer.characterClass & ClassMask) == DarkLord)

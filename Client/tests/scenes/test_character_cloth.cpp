@@ -482,6 +482,27 @@ constexpr Client::Core::Duration BetweenFrames = std::chrono::milliseconds{20};
 // del origen del mundo, donde un float tiene un ulp de 0,001.
 constexpr float CarryTolerance = 0.01f;
 
+TEST(CharacterClothTest, ReleasingResourcesPreservesTheOriginalFrameClock)
+{
+    const LoginLord lord = ReadTheLoginLord();
+    ClothWorld world{.random = CrtRandom(17)};
+    CharacterCloth cloth;
+    const auto advance = [&](Client::Core::Duration clock)
+    {
+        ModelBatch batch;
+        batch.Begin(Client::Render::Pass3D{});
+        cloth.Advance(batch, lord.wearer, lord.body, world, lord.map, clock, true);
+        return batch.Vertices().size();
+    };
+
+    EXPECT_GT(advance(Client::Core::Duration{}), 0u);
+    cloth.ReleaseResources();
+    EXPECT_TRUE(cloth.Cloths().empty());
+    EXPECT_EQ(cloth.Count(), 0u);
+    EXPECT_EQ(advance(BetweenFrames), 0u);
+    EXPECT_GT(advance(Client::Render::Models::OriginalFrameTime), 0u);
+}
+
 std::vector<glm::vec3> PositionsOf(const ModelBatch& batch)
 {
     std::vector<glm::vec3> positions;

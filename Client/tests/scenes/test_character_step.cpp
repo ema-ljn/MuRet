@@ -6,12 +6,15 @@
 #include "Data/Tables/ItemTable.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
+#include "Render/ModelBatch.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/Skeleton.h"
+#include "Render/Pass3D.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterHead.h"
+#include "Scenes/CharacterCloth.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/DynamicWorldLight.h"
 #include "Scenes/CharacterSlots.h"
@@ -41,6 +44,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <span>
@@ -360,10 +364,8 @@ TEST(CharacterStepTest, TheRavenRunsInsideTheBodyBeforeTheCellAndHead)
     EXPECT_EQ(actor.headTurn.target, glm::vec2(0.0f));
 }
 
-// Q-C412: el cuervo posado (el estado 3, 0x4178a6) en la zona segura va al hueso 37 de los huesos propios de su
-// dueño con (−10, 0, 10), por la escala y más la posición del modelo compartido de Player.bmd: las que copió el
-// 0x505ec6 del último 0x20a que pasó antes (el del lugar 2), no las del dueño, que las copia después.
-TEST(CharacterStepTest, ThePerchedRavenUsesTheSharedModelOfThePreviousPlayer)
+// 0x4fd69b..0x4fd6ef publica la colocación antes de que 0x4fb9e0 hunda al dueño; 0x420dd0 consume ese snapshot.
+TEST(CharacterStepTest, ThePerchedRavenUsesItsOwnersPlacementBeforeDeathMovesTheActor)
 {
     GameWorld tested;
     tested.Hero().alive = false;
@@ -373,6 +375,8 @@ TEST(CharacterStepTest, ThePerchedRavenUsesTheSharedModelOfThePreviousPlayer)
     ActorState& owner = tested.Other(5, 0, 0);
     owner.position = {10603.0f, 14112.0f, 580.0f};
     owner.scale = 1.25f;
+    owner.dying = 1;
+    owner.dyingTime = 0.98f;
     owner.angles = {3.0f, 0.0f, 188.0f};
     owner.safeZone = 1;
     tested.Cell(0, 0) = 1;
@@ -393,12 +397,96 @@ TEST(CharacterStepTest, ThePerchedRavenUsesTheSharedModelOfThePreviousPlayer)
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(owner.darkSpirit->state, 3);
-    // 1,5 · ((7, 8, 9) + (−10, 0, 10)) + (1.000, 2.000, 300).
-    EXPECT_EQ(owner.darkSpirit->position, glm::vec3(995.5f, 2012.0f, 328.5f));
+    EXPECT_FLOAT_EQ(owner.position.z, 579.6f);
+    // 1,25 · ((7, 8, 9) + (−10, 0, 10)) + (10.603, 14.112, 580).
+    EXPECT_EQ(owner.darkSpirit->position, glm::vec3(10599.25f, 14122.0f, 603.75f));
     EXPECT_EQ(owner.darkSpirit->angles, glm::vec3(3.0f, 0.0f, 68.0f));
-    // El último 0x20a del paso deja lo suyo para el próximo.
+    // El jugador posterior publica su modelo después del dueño.
     EXPECT_EQ(tested.world.PlayerModel().scale, 1.25f);
     EXPECT_EQ(tested.world.PlayerModel().origin, owner.position);
+}
+
+TEST(CharacterStepTest, TheBodyCountsDownTheRemovalWordAndKeepsItsMinus128Sentinel)
+{
+    struct Case
+    {
+        std::int32_t before;
+        std::int32_t after;
+        bool removed;
+    };
+    constexpr std::array Cases{Case{150, 149, false},  Case{2, 1, false},
+                               Case{1, -128, true},    Case{0, -128, true},
+                               Case{-1, -128, true},   Case{-127, -128, true},
+                               Case{-129, -128, true}, Case{std::numeric_limits<std::int32_t>::min(), -128, true},
+                               Case{-128, -128, false}};
+    for (const Case& probe : Cases)
+    {
+        SCOPED_TRACE(probe.before);
+        GameWorld tested;
+        ActorState& actor = tested.Other(1);
+        actor.dword428 = probe.before;
+
+        const auto stepped = tested.Step(Everything);
+
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(actor.dword428, probe.after);
+        EXPECT_EQ(actor.alive, !probe.removed);
+    }
+}
+
+// La baja del contador es por lugar, no por clave: otros duplicados de la clave y sus efectos quedan vivos.
+TEST(CharacterStepTest, ExpiringOneActorCleansOnlyItsOwnEffectsAndLetsTheBodyFinish)
+{
+    GameWorld tested;
+    ActorState& expired = tested.Other(1);
+    expired.key = 77;
+    expired.dword428 = 1;
+    expired.dying = 1;
+    expired.flags78 = 0x18000;
+    expired.darkSpirit.emplace();
+    expired.darkSpirit->state = 2;
+    expired.byte360 = 5;
+    expired.layer.emplace();
+    ActorState& duplicate = tested.Other(2);
+    duplicate.key = 77;
+    tested.world.Helpers()[0] = {.alive = true, .type = 0xbf, .rider = 1};
+    tested.world.Helpers()[1] = {.alive = true, .type = 0xbf, .rider = 2};
+    tested.world.Runtime().namedBones = {{1, "RightHand", 3}, {2, "LeftHand", 4}};
+
+    const auto stepped = tested.Step(Everything);
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_FALSE(expired.alive);
+    EXPECT_EQ(expired.dword428, -128);
+    EXPECT_FALSE(expired.darkSpirit.has_value());
+    EXPECT_FALSE(expired.layer.has_value());
+    EXPECT_EQ(expired.byte360, 0);
+    EXPECT_EQ(expired.flags78 & 0x18000u, 0u);
+    EXPECT_TRUE(duplicate.alive);
+    EXPECT_FALSE(tested.world.Helpers()[0].alive);
+    EXPECT_TRUE(tested.world.Helpers()[1].alive);
+    ASSERT_EQ(tested.world.Runtime().namedBones.size(), 1u);
+    EXPECT_EQ(tested.world.Runtime().namedBones[0].actor, 2u);
+    EXPECT_EQ(tested.world.Runtime().namedBones[0].name, "LeftHand");
+}
+
+TEST(CharacterStepTest, AnExpiringActorOutsideThePoolStillRunsItsDirectCleanup)
+{
+    GameWorld tested;
+    ActorState actor = Client::Tests::UnarmedPlayer(1);
+    actor.alive = true;
+    actor.dword428 = 1;
+    actor.darkSpirit.emplace();
+    actor.darkSpirit->state = 2;
+
+    const auto stepped = StepCharacter(
+        actor,
+        {.world = tested.world, .random = tested.random, .scene = SceneId::Login, .playerSkeleton = tested.player});
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_FALSE(actor.alive);
+    EXPECT_EQ(actor.dword428, Client::Scenes::ActorRemovalCountdownSentinel);
+    EXPECT_FALSE(actor.darkSpirit.has_value());
 }
 
 // 0x416add: los estados 2, 5 y 6 son de las órdenes A7 (CL9) y cortan antes de tocar el cuervo.
@@ -693,6 +781,62 @@ TEST(CharacterStepTest, TheWallsAndTheViewCoverTheFirstFourHundred)
               RandomAfter(2 * WallDraws + BodyDraws + 2 * (OtherCellDraws + BodyDraws) + SeenHeroDraws).State());
 }
 
+// 0x4fbb08: al llegar a 1, 0x4fb1a0 suelta las telas en el mismo frame, también para el héroe. 0x4fb1a0 es
+// idempotente: los frames siguientes vuelven a llamarlo mientras el tiempo de muerte siga arriba de 1.
+TEST(CharacterStepTest, DyingActorsReleaseTheirClothsAtTheFadeStart)
+{
+    GameWorld tested;
+    std::array<Client::Render::Models::BoneTransform, 21> bones{};
+    const Client::Render::Models::ClothBody body{.bones = bones};
+    Client::Render::Models::ClothWorld clothWorld{.random = CrtRandom(Seed)};
+    for (const std::size_t slot : {GameWorld::HeroSlot, std::size_t{1}})
+    {
+        ActorState& actor = slot == GameWorld::HeroSlot ? tested.Hero() : tested.Other(slot);
+        actor.dying = 1;
+        actor.dyingTime = 0.98f;
+        auto& cloth = tested.world.ActorCloths()[slot];
+        Client::Scenes::ClothWearer wearer;
+        wearer.characterClass = 4;
+        Client::Render::ModelBatch batch;
+        batch.Begin(Client::Render::Pass3D{});
+        cloth.Frame(batch, wearer, body, clothWorld, 0, 0.0f, true);
+        ASSERT_FALSE(cloth.Cloths().empty()) << "slot " << slot;
+    }
+
+    ASSERT_TRUE(tested.Step(Everything).HasValue());
+
+    for (const std::size_t slot : {GameWorld::HeroSlot, std::size_t{1}})
+    {
+        EXPECT_FLOAT_EQ(tested.world.Actors()[slot].dyingTime, 1.0f);
+        EXPECT_TRUE(tested.world.Actors()[slot].alive);
+        EXPECT_TRUE(tested.world.ActorCloths()[slot].Cloths().empty()) << "slot " << slot;
+    }
+
+    ASSERT_TRUE(tested.Step(Everything).HasValue());
+    for (const std::size_t slot : {GameWorld::HeroSlot, std::size_t{1}})
+    {
+        EXPECT_TRUE(tested.world.ActorCloths()[slot].Cloths().empty()) << "slot " << slot;
+    }
+}
+
+// 0x4fbad6..0x4fbb08 y 0x401040: al bajar de 0,01 se borra el registro no héroe y sus huesos con nombre, sin
+// tocar los nombres de los demás lugares del pool.
+TEST(CharacterStepTest, RemovingADyingActorForgetsOnlyItsNamedBones)
+{
+    GameWorld tested;
+    ActorState& removed = tested.Other(1);
+    removed.dying = 1;
+    removed.dyingTime = 1.98f;
+    tested.world.Runtime().namedBones = {{1, "Left_Hand", 3}, {1, "Right_Hand", 4}, {2, "Left_Hand", 3}};
+
+    ASSERT_TRUE(tested.Step(Everything).HasValue());
+
+    EXPECT_FALSE(removed.alive);
+    ASSERT_EQ(tested.world.Runtime().namedBones.size(), 1u);
+    EXPECT_EQ(tested.world.Runtime().namedBones[0].actor, 2u);
+    EXPECT_EQ(tested.world.Runtime().namedBones[0].name, "Left_Hand");
+}
+
 // Una cuenta abierta en la tabla de protección no se vuelve a cifrar al cerrar: la celda no gasta, y quedan el
 // registro propio, el rand() % 6 del cuerpo y el rand() & 7.
 TEST(CharacterStepTest, AnOpenAccessSpendsNothingOnClosing)
@@ -954,8 +1098,7 @@ TEST(CharacterStepTest, AnEndedActionGoesBackToStanding)
 
 // 0x4fcb87..0x4fcba6: el jugador que termina la 0xc3 o la 0xc4 con +0x38a en 0 lo pone en 1 y deja sus restos
 // (0x52e810): con el hueso 20 de Player.bmd posado en sus huesos propios, dos marcas 0x5e3 alrededor de él, por la
-// escala y más la posición que el último 0x505ec6 de un 0x20a dejó en el modelo compartido (Q-C1178), y sus diez
-// rand() entre el registro propio y el cuerpo. Con +0x38a en 1, nada. En Lorencia y en Devias.
+// escala y posición publicadas al entrar al cuerpo, y sus diez rand(). En Lorencia y en Devias.
 TEST(CharacterStepTest, TheEndOfTheMarkActionsLeavesTheBloodOnce)
 {
     constexpr int RemainsDraws = 2 * 5;
@@ -967,6 +1110,8 @@ TEST(CharacterStepTest, TheEndOfTheMarkActionsLeavesTheBloodOnce)
             GameWorld tested(map);
             tested.skeleton.headBone = 20;
             ActorState& hero = tested.Hero();
+            hero.position = {3000.0f, 4000.0f, 10.0f};
+            hero.scale = 1.5f;
             hero.flags78 = 0x1000;
             hero.animation.action = action;
             hero.animation.frame = 2.5f;
@@ -974,7 +1119,7 @@ TEST(CharacterStepTest, TheEndOfTheMarkActionsLeavesTheBloodOnce)
             hero.bodyPose.assign(21, Client::Render::Models::BoneTransform(1.0f));
             hero.bodyPose[20][3] = {0.0f, 0.0f, 40.0f};
             tested.Cell(0, 0) = 1;
-            tested.world.PlayerModel() = {.scale = 1.5f, .origin = {3000.0f, 4000.0f, 10.0f}};
+            tested.world.PlayerModel() = {.scale = 0.75f, .origin = {-3000.0f, -4000.0f, -10.0f}};
 
             const auto stepped = tested.Step(Everything);
 

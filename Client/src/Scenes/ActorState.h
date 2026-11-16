@@ -21,6 +21,8 @@
 // el REP STOSD de WinMain (0x4bafa6..0x4bafb3).
 namespace Client::Scenes
 {
+inline constexpr std::int32_t ActorRemovalCountdownSentinel = -0x80;
+
 // El modelo de una parte sin ítem.
 inline constexpr std::uint16_t NoItemModel = 0xffff;
 
@@ -120,8 +122,9 @@ struct ActorState
     // 0x19e y el 0x19f (CL9 hito 3).
     std::uint8_t byte110 = 0;
     std::int32_t dword100 = 0;
-    // +0x428: −0x80 desde 0x511290 (0x511c77); el 68 lo pone en 0x96 (0x4e0b8a). Quién lo lee, sin leer.
-    std::int32_t dword428 = 0;
+    // +0x428: −0x80 desde 0x511290 (0x511c77); el 68 lo pone en 0x96 (0x4e0b8a), y 0x4fd5f0 cuenta hasta bajarlo.
+    // El default representa un actor construido; las entradas BSS sin construir no se recorren porque están muertas.
+    std::int32_t dword428 = ActorRemovalCountdownSentinel;
     // +0x7c: con 0x200000, 0x4f2250 sienta al personaje (la acción 0xca). Quién lo escribe, sin leer.
     std::uint32_t flags7c = 0;
     // +0x78: 0x511290 lo pone en 0 (0x511d51). Del jinete lo leen el paso del caballo (con 0x4000, sin

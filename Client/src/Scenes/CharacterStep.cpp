@@ -15,6 +15,7 @@
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorActions.h"
+#include "Scenes/ActorCreation.h"
 #include "Scenes/ActorMotion.h"
 #include "Scenes/ActorRemains.h"
 #include "Scenes/ActorWalk.h"
@@ -707,8 +708,8 @@ Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slo
         if (auto queued = QueueTheGateName(actor, context.texts, runtime.worldTexts); !queued.HasValue())
             return queued;
     }
-    // 0x4fd69b..0x4fd6ef: la posición, la escala y la acción al modelo compartido (+0x6c, +0x68 y +0xa0), que
-    // MuRet no tiene: 0x4f9580 y 0x4ec200 leen la acción del personaje.
+    // 0x4fd69b..0x4fd6ef: publica la posición, la escala y la acción al modelo compartido (+0x6c, +0x68 y +0xa0).
+    context.world.PlaceModel(actor);
     // 0x4fd6f5: 0x4fbe10, la celda del héroe en los mapas 18 a 23.
     if (runtime.map >= FirstCellReportMap && runtime.map <= LastCellReportMap)
     {
@@ -742,7 +743,9 @@ Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slo
                                     .hero = hero,
                                     .random = context.random,
                                     .particles = context.particles,
-                                    .worldClock = context.worldClock});
+                                    .worldClock = context.worldClock,
+                                    .world = &context.world,
+                                    .soundRequest = context.soundRequest});
         !died.HasValue())
     {
         return died;
@@ -781,7 +784,14 @@ Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slo
     {
         return attacked;
     }
-    // 0x5053a2..0x5053f0: +0x428 en −128 (0x511290, 0x511c77; los paquetes lo ponen en 0x96): nada.
+    // 0x5053a2..0x5053f0: cuenta el +0x428 y, al vencer, corre 0x511070(c, o) sin cortar el cuerpo.
+    if (actor.dword428 > 0)
+        --actor.dword428;
+    if (actor.dword428 <= 0 && actor.dword428 != ActorRemovalCountdownSentinel)
+    {
+        actor.dword428 = ActorRemovalCountdownSentinel;
+        RemoveActorAtSlot(context.world, actor, slot);
+    }
     // 0x5053fc: 0x42a2b0, la barra de vida del 0x1a8.
     QueueTheHealthBar(actor, context.world.Runtime().healthBars);
     // 0x505410: 0x4fcee0.

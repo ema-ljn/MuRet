@@ -576,6 +576,8 @@ Core::Expected<void, std::string> WalkTowardsTheTarget(ActorState& hero, std::in
                                                        const HeroSkillContext& context)
 {
     const Cells cells = ReadTheCells(hero, context.random);
+    if (auto altar = CheckTheCrywolfAltar(context.world, "0x58975f"); !altar.HasValue())
+        return altar;
     const auto reach =
         static_cast<float>(static_cast<double>(context.world.Runtime().movement.selectedSkillRange) * WalkReach);
     if (!InRange(targetX, 0, 0xff) || !InRange(targetY, 0, 0xff))

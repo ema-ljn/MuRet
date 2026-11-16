@@ -267,9 +267,13 @@ TEST(HeroSkillsTailTest, TheHeadNeverStopsTheSkill)
         potion.id = 0x1c05;
         potion.occupied = 1;
         tested->ticks += 1000;
+        const auto potionExpected = Advanced(tested->random, UnpaidHeadDraws + 3 + SendDraws);
         const auto again = tested->Use();
-        ASSERT_FALSE(again.HasValue());
-        EXPECT_TRUE(Contains(again.Error(), "0x580954")) << again.Error();
+        ASSERT_TRUE(again.HasValue()) << again.Error();
+        ASSERT_EQ(tested->sent.size(), 3u);
+        EXPECT_EQ(tested->Sent(1), (std::vector<std::uint8_t>{0xc1, 6, 0x26, 24, 0, 0}));
+        EXPECT_EQ(tested->Sent(2), tested->Sent(0));
+        EXPECT_EQ(tested->random.State(), potionExpected.State());
     }
     {
         const auto tested = AHero(0x45);

@@ -6,6 +6,7 @@
 #include "GameLogic/PathFinder.h"
 #include "Network/Delivery.h"
 #include "Protocol/Combat.h"
+#include "Protocol/FloorItems.h"
 #include "Protocol/Movement.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Skill.h"
@@ -20,6 +21,7 @@
 #include "Scenes/CombatActionSpeeds.h"
 #include "Scenes/GameParticles.h"
 #include "Scenes/GameMovementState.h"
+#include "Scenes/GamePanels.h"
 #include "Scenes/HeroAttack.h"
 #include "Scenes/HeroSkills.h"
 #include "Scenes/HudItems.h"
@@ -310,10 +312,6 @@ Core::Expected<void, std::string> ShineOnTheHero(const ActorState& hero, const H
     const std::size_t slot = SlotOf(world, hero);
     if (slot >= world.Actors().size())
         return Core::Unexpected(std::string("0x55be23: el dueño del brillo 0x5fe no está en el pool de personajes"));
-    if (hero.type != Data::Models::PlayerSkeletonModel)
-        return Core::Unexpected(std::format("0x53fdb0: el brillo 0x5fe sobre el modelo {:#x} necesita la escala de su "
-                                            "modelo compartido, de los anillos de transformación",
-                                            hero.type));
     const auto created = world.Particles().CreateFollowingChecked(
         World::SkillShineParticle, hero.position, hero.angles, glm::vec3(1.0f), 0, 0.0f,
         World::ParticleOwner{.kind = World::ParticleOwnerKind::Actor, .identity = slot}, ParticleOwnerBonesOf(world));
@@ -354,8 +352,25 @@ Core::Expected<void, std::string> UseAManaPotion(const HeroSkillContext& context
         return Core::Unexpected(found.Error());
     if (!found.Value())
         return {};
-    return Core::Unexpected(std::format("{}: la poción de maná de la casilla {} (0x5af520 y el C1 26) es del hito 5",
-                                        where, *found.Value()));
+    InventoryServices inventory = context.inventory != nullptr ? *context.inventory : InventoryServices{};
+    if (!inventory.sendUseItem)
+    {
+        // 0x5af520 saca el relleno y el serial antes del send. UseInventoryItem ya conserva esos dos rand(),
+        // incluso con el socket en −1: acá se presta sólo el envío, sin pasar otra vez por SendTheSkillPacket.
+        inventory.sendUseItem =
+            [&context](const Protocol::FloorItems::UseItem& use) -> Core::Expected<void, std::string>
+        {
+            if (context.send)
+                context.send(Protocol::FloorItems::WriteUseItem(use));
+            return {};
+        };
+    }
+    GamePanels panels(context.world, context.random);
+    const auto used = UseInventoryItem({context.world, context.random, inventory}, panels.Registry(),
+                                       static_cast<std::int32_t>(*found.Value()));
+    if (!used.HasValue())
+        return Core::Unexpected(std::format("{}: {}", where, used.Error()));
+    return {};
 }
 
 Core::Expected<float, std::string> SkillRangeOf(std::uint8_t skill, const ActorState& caster,
@@ -441,6 +456,8 @@ Core::Expected<bool, std::string> UseTheSkillOnTheChosen(ActorState& caster, Act
     // 0x559725..0x559822: fuera de alcance, el camino desde las celdas lógicas de c.
     const std::uint8_t y = ReadCell(caster.cellYAccesses, caster.cellY, context.random);
     const std::uint8_t x = ReadCell(caster.cellXAccesses, caster.cellX, context.random);
+    if (auto altar = CheckTheCrywolfAltar(world, "0x55980f"); !altar.HasValue())
+        return Core::Unexpected(altar.Error());
     const World::WorldTerrain& terrain = world.Map().terrain;
     if (!terrain.attributes)
         return Core::Unexpected(std::string("0x55980f: falta TerrainWall para el camino de la skill"));

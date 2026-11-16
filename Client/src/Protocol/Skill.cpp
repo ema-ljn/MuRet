@@ -137,6 +137,9 @@ Core::Expected<SkillList, ProtocolError> ReadSkillList(const Network::Packet& pa
     // 0x4c507c, 0x4c5145 y 0x4c522e: cuál de las cuatro formas.
     if (*count == SkillListRemoveOne || *count == SkillListAddOne || *list == SkillListClearSlot)
     {
+        // 0x4c52ab..0x4c52ad: la lista 2 vacía no toca pkt[6]; FE y FF ya tienen prioridad por count.
+        if (*count == 0)
+            return read;
         const auto slot = reader.ReadU8();
         if (!slot)
             return Core::Unexpected(ProtocolError::TooShort);
@@ -150,16 +153,18 @@ Core::Expected<SkillList, ProtocolError> ReadSkillList(const Network::Packet& pa
         }
         return read;
     }
-    // 0x4c537e..0x4c5390: de a tres bytes desde pkt[6], el lugar y la skill.
+    // 0x4c537e..0x4c5390: stride de tres, pero sólo lee el lugar y la skill. El último padding no se consulta.
     constexpr std::size_t EntrySize = 3;
     read.entries.reserve(*count);
     for (std::uint8_t entry = 0; entry < *count; ++entry)
     {
-        const auto bytes = reader.ReadBytes(EntrySize);
+        const auto bytes = reader.ReadBytes(EntrySize - 1);
         if (!bytes)
             return Core::Unexpected(ProtocolError::TooShort);
         read.entries.push_back(
             SkillListEntry{std::to_integer<std::uint8_t>((*bytes)[0]), std::to_integer<std::uint8_t>((*bytes)[1])});
+        if (entry + 1 < *count && !reader.ReadU8())
+            return Core::Unexpected(ProtocolError::TooShort);
     }
     return read;
 }

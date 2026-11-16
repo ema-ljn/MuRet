@@ -12,6 +12,7 @@
 #include <gtest/gtest.h>
 
 #include <cstddef>
+#include <cstdint>
 #include <utility>
 #include <vector>
 
@@ -133,6 +134,37 @@ TEST(SkillProtocolTest, TheSkillListWithMissingEntriesIsTooShort)
               ProtocolError::TooShort);
     EXPECT_EQ(ErrorOf(Skill::ReadSkillList(PacketOf(Bytes({0xc1, 6, 0xf3, 0x11, 0xff, 0})))), ProtocolError::TooShort);
     EXPECT_EQ(ErrorOf(Skill::ReadSkillList(PacketOf(Bytes({0xc1, 5, 0xf3, 0x11, 1})))), ProtocolError::TooShort);
+}
+
+// 0x4c52a6..0x4c52c4: count=0 salta la lectura de pkt[6], sin cambiar la prioridad de FE/FF.
+TEST(SkillProtocolTest, AnEmptyClearListNeedsNoSlot)
+{
+    const auto clear = Skill::ReadSkillList(PacketOf(Bytes({0xc1, 6, 0xf3, 0x11, 0, 2})));
+    ASSERT_TRUE(clear.HasValue());
+    EXPECT_EQ(clear.Value().count, 0);
+    EXPECT_EQ(clear.Value().list, 2);
+    EXPECT_TRUE(clear.Value().entries.empty());
+    EXPECT_EQ(ErrorOf(Skill::ReadSkillList(PacketOf(Bytes({0xc1, 6, 0xf3, 0x11, 1, 2})))), ProtocolError::TooShort);
+    const auto add = Skill::ReadSkillList(PacketOf(Bytes({0xc1, 8, 0xf3, 0x11, 0xfe, 2, 7, 0x12})));
+    ASSERT_TRUE(add.HasValue());
+    EXPECT_EQ(add.Value().slot, 7);
+    EXPECT_EQ(add.Value().skill, 0x12);
+    EXPECT_EQ(ErrorOf(Skill::ReadSkillList(PacketOf(Bytes({0xc1, 6, 0xf3, 0x11, 0xff, 2})))), ProtocolError::TooShort);
+}
+
+// 0x4c5381..0x4c5390 lee dos bytes y avanza tres: nunca lee el padding de la última entrada.
+TEST(SkillProtocolTest, TheLastSkillEntryNeedsOnlyItsTwoReadBytes)
+{
+    for (const std::uint8_t list : {std::uint8_t{0}, std::uint8_t{1}, std::uint8_t{3}})
+    {
+        const auto read =
+            Skill::ReadSkillList(PacketOf(Bytes({0xc1, 11, 0xf3, 0x11, 2, list, 0, 0x11, 0xaa, 63, 0x29})));
+        ASSERT_TRUE(read.HasValue()) << static_cast<int>(list);
+        ASSERT_EQ(read.Value().entries.size(), 2u);
+        EXPECT_EQ(read.Value().entries[0].skill, 0x11);
+        EXPECT_EQ(read.Value().entries[1].slot, 63);
+        EXPECT_EQ(read.Value().entries[1].skill, 0x29);
+    }
 }
 
 TEST(SkillProtocolTest, TheSummonLifeIsOneByte)

@@ -17,6 +17,8 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/ModelEffects.h"
+#include "World/KalimaWorld.h"
+#include "World/Particles.h"
 #include "World/TerrainHeight.h"
 #include "World/WorldTerrain.h"
 
@@ -59,6 +61,50 @@ Core::Unexpected<std::string> CutAt(std::uint32_t address, std::string_view what
 {
     return Core::Unexpected(
         std::format("{:#x}: {} de la habilidad {:#x} del lugar {}, sin portar (CL11)", address, what, skill, slot));
+}
+
+// 518d0f/530872: lleno sale antes del constructor. Un pool de joints ausente sigue siendo una capacidad pendiente.
+bool HasEffectRoom(const CharacterStepContext& context)
+{
+    return std::ranges::any_of(context.world.Map().effects.Effects(), [](const auto& effect) { return !effect.alive; });
+}
+
+bool HasJointRoom(const CharacterStepContext& context)
+{
+    return context.joints.empty() ||
+           std::ranges::any_of(context.joints, [](const auto& joint) { return !joint.alive; });
+}
+
+Core::Expected<void, std::string> EffectThenSound(std::uint32_t address, std::string_view what, std::uint8_t skill,
+                                                  std::size_t slot, std::int32_t sound,
+                                                  const CharacterStepContext& context)
+{
+    if (HasEffectRoom(context))
+        return CutAt(address, what, skill, slot);
+    if (sound >= 0)
+        RequestTheSound(context, sound);
+    return {};
+}
+
+Core::Expected<void, std::string> JointThenSound(std::uint32_t address, std::string_view what, std::uint8_t skill,
+                                                 std::size_t slot, std::int32_t sound,
+                                                 const CharacterStepContext& context)
+{
+    if (HasJointRoom(context))
+        return CutAt(address, what, skill, slot);
+    if (sound >= 0)
+        RequestTheSound(context, sound);
+    return {};
+}
+
+// 500141/501147/501867/50202e: sólo el héroe publica la tanda; el cierre conserva sus 3848 rand().
+void CountHeroVolley(const ActorState& actor, const CharacterStepContext& context)
+{
+    if (&actor != &context.world.Actors()[context.world.Runtime().hero])
+        return;
+    const Render::Models::LogicalAccess own(context.world.Runtime().ownRecordDepth, context.random,
+                                            Render::Models::OwnRecordCloseRandoms);
+    ++context.world.OwnCharacter().bytef04;
 }
 
 // Un tipo de la mano como WORD con signo (MOVSX).
@@ -177,7 +223,8 @@ Core::Expected<void, std::string> BindTheTarget(ActorState& actor, std::size_t s
         return Core::Unexpected(target.Error());
     if (target.Value() == nullptr || target.Value() == &actor)
         return {};
-    return CutAt(joint, "el joint 0x632 sobre el blanco (0x530860)", skill, slot);
+    constexpr std::int32_t BindSound = 0x267;
+    return JointThenSound(joint, "el joint 0x632 sobre el blanco (0x530860)", skill, slot, BindSound, context);
 }
 
 // 0x4fe383..0x4fe43d, la 0x46: con blanco, 0x534f90(0x10f, blanco, 4) y (…, 9), el calco 0x61e/6 sobre él (0x518cf0)
@@ -194,7 +241,8 @@ Core::Expected<void, std::string> FreeTheTarget(ActorState& actor, std::size_t s
         return Core::Unexpected(std::format("0x4fe3ce: faltan los joints del juego (0x534f90) del lugar {}", slot));
     KillJointsOf(context.joints, FlameJoint, target.Value(), 4);
     KillJointsOf(context.joints, FlameJoint, target.Value(), 9);
-    return CutAt(0x4fe424, "el calco 0x61e/6 sobre el blanco (0x518cf0)", skill, slot);
+    constexpr std::int32_t FreeSound = 0x269;
+    return EffectThenSound(0x4fe424, "el calco 0x61e/6 sobre el blanco (0x518cf0)", skill, slot, FreeSound, context);
 }
 
 // 0x4fe986..0x4feab6 (la 0x40) y 0x502993..0x502aee (la 0x4b): con otra cosa que 0xa21 en la derecha, el 0x117/0 en su
@@ -208,16 +256,17 @@ Core::Expected<void, std::string> SwingTheHands(const ActorState& actor, std::si
     constexpr std::int32_t PlainLeft = 0xa19;
     constexpr std::int32_t FirstShield = 0xe12;
     constexpr std::int32_t PastShields = 0x1012;
-    if (HandOf(actor, 0) != PlainRight)
+    if (HandOf(actor, 0) != PlainRight && HasEffectRoom(context))
         return CutAt(right, "el efecto 0x117/0 en el hueso de la derecha (0x518cf0)", skill, slot);
     const std::int32_t held = HandOf(actor, 1);
-    if (held != PlainLeft && !(held >= FirstShield && held < PastShields))
+    if (held != PlainLeft && !(held >= FirstShield && held < PastShields) && HasEffectRoom(context))
         return CutAt(left, "el efecto 0x117/1 en el hueso de la izquierda (0x518cf0)", skill, slot);
     constexpr std::uint8_t RaiseSkill = 0x40;
-    if (skill != RaiseSkill)
+    if (skill != RaiseSkill && HasEffectRoom(context))
         return CutAt(0x502ae6, "el efecto 0x138 sobre o (0x518cf0)", skill, slot);
     constexpr std::int32_t RaiseSound = 0x1cf;
-    RequestTheSound(context, RaiseSound);
+    constexpr std::int32_t OtherSwingSound = 0x272;
+    RequestTheSound(context, skill == RaiseSkill ? RaiseSound : OtherSwingSound);
     return {};
 }
 
@@ -285,7 +334,15 @@ Core::Expected<void, std::string> StrikeAround(const ActorState& actor, std::siz
     }
     static_cast<void>(context.random.Next());
     static_cast<void>(context.random.Next());
-    return CutAt(0x5026a4, "el primero de los cuatro joints 0x14f hacia el blanco de +0x434 (0x530860)", skill, slot);
+    if (HasJointRoom(context))
+        return CutAt(0x5026a4, "el primero de los cuatro joints 0x14f hacia el blanco de +0x434 (0x530860)", skill,
+                     slot);
+    // 50261e..5028e4: 2×2 para el blanco principal, N×2×2 para los encontrados y 6×3 para los seis 62c.
+    constexpr std::size_t RemainingFixedDraws = 20;
+    constexpr std::size_t DrawsPerTarget = 4;
+    for (std::size_t draw = 0; draw < RemainingFixedDraws + gathered * DrawsPerTarget; ++draw)
+        static_cast<void>(context.random.Next());
+    return {};
 }
 } // namespace
 
@@ -315,13 +372,17 @@ Core::Expected<void, std::string> StepTheHeadSkill(ActorState& actor, std::size_
         return {};
     case 0x30:
         // 0x4fe015: treinta y seis vueltas; la primera, 0x530860(0x613, …, 2, o, 60, …) sin rand() antes.
-        return CutAt(0x4fe0e4, "el primero de los 36 joints 0x613/2 (0x530860)", skill, slot);
+        if (HasJointRoom(context))
+            return CutAt(0x4fe0e4, "el primero de los 36 joints 0x613/2 (0x530860)", skill, slot);
+        return EffectThenSound(0x4fe127, "el calco 0x61e/4 entre los joints", skill, slot, 0x7f, context);
     case 0x43:
-        return CutAt(0x4fe172, "el joint 0x632/7 sobre o (0x530860)", skill, slot);
+        return JointThenSound(0x4fe172, "el joint 0x632/7 sobre o (0x530860)", skill, slot, 0x266, context);
     case 0x44:
         return BindTheTarget(actor, slot, skill, context, 0x4fe1a6, 0x4fe235);
     case 0x45:
-        return CutAt(0x4fe322, "el primero de los 36 joints 0x613/0x15 (0x530860)", skill, slot);
+        if (HasJointRoom(context))
+            return CutAt(0x4fe322, "el primero de los 36 joints 0x613/0x15 (0x530860)", skill, slot);
+        return EffectThenSound(0x4fe360, "el calco 0x61e/0xa entre los joints", skill, slot, 0x268, context);
     case 0x46:
         return FreeTheTarget(actor, slot, skill, context);
     case 0x47:
@@ -329,66 +390,105 @@ Core::Expected<void, std::string> StepTheHeadSkill(ActorState& actor, std::size_
     case 0x48:
         // 0x4fe53b: +0x78 de o en 0, antes de los seis joints 0x10f.
         actor.flags78 = 0;
-        return CutAt(0x4fe590, "el primero de los seis joints 0x10f (el /5, 0x530860)", skill, slot);
+        return JointThenSound(0x4fe590, "el primero de los seis joints 0x10f (el /5, 0x530860)", skill, slot, 0x26b,
+                              context);
     case 0x35:
         // 0x4fe795: los puntos con 0x6a1a90 y 0x6a19e0 (sin rand()) y cuatro joints 0x619.
-        return CutAt(0x4fe856, "el primero de los cuatro joints 0x619/0xa (0x530860)", skill, slot);
+        return JointThenSound(0x4fe856, "el primero de los cuatro joints 0x619/0xa (0x530860)", skill, slot, 0x7f,
+                              context);
     case 0x40:
         return SwingTheHands(actor, slot, skill, context, 0x4fea10, 0x4fea9b);
     case 0x3f:
-        return CutAt(0x4feae8, "el efecto 0xcb/2 sobre o (0x518cf0)", skill, slot);
+        return EffectThenSound(0x4feae8, "el efecto 0xcb/2 sobre o (0x518cf0)", skill, slot, 0x1cb, context);
     case 0x41:
         // 0x4feb3b: el punto de 0x4f5b10(o, 0, −90, −50), más alto en las acciones 0x51 y 0x5b, sin rand().
-        return CutAt(0x4febbb, "el efecto 0x62c (0x518cf0)", skill, slot);
+        return EffectThenSound(0x4febbb, "el efecto 0x62c (0x518cf0)", skill, slot, 0x1cd, context);
     case 0x31:
-        return CutAt(0x4fec15, "el efecto 0x6ac sobre o (0x518cf0)", skill, slot);
+        return EffectThenSound(0x4fec15, "el efecto 0x6ac sobre o (0x518cf0)", skill, slot, 0x72, context);
     case 0x29:
         // 0x4fec30: el arma y 0x59fb80(0x29) antes del 0xf3.
         KeepTheWeapon(actor);
         static_cast<void>(OwnSkillIndex(context, skill));
-        return CutAt(0x4fec9a, "el efecto 0xf3 sobre o (0x518cf0)", skill, slot);
+        return EffectThenSound(0x4fec9a, "el efecto 0xf3 sobre o (0x518cf0)", skill, slot, 0x73, context);
     case 0x0a:
         // 0x4fecb5: 0x59fb80(0xa) antes del 0xcb; lo de Kalima de después (0x4fed2d) no se alcanza.
         static_cast<void>(OwnSkillIndex(context, skill));
-        return CutAt(0x4fecf3, "el efecto 0xcb sobre o (0x518cf0)", skill, slot);
+        if (HasEffectRoom(context))
+            return CutAt(0x4fecf3, "el efecto 0xcb sobre o (0x518cf0)", skill, slot);
+        // 4fed2d..4ff4a8: Y, X y 437860(x,y,2,-1500); puntero 723c48 nulo es no-op, no una frontera.
+        if (World::IsKalimaMap(context.world.Runtime().map))
+        {
+            const LogicalCell cell = ReadLogicalCell(actor, context.random);
+            constexpr std::int32_t WaveRadius = 2, WaveAmplitude = -1500;
+            if (auto* kalima = context.world.Map().kalima.get(); kalima != nullptr)
+            {
+                const auto disturbed = kalima->Disturb(cell.x, cell.y, WaveRadius, WaveAmplitude, context.random);
+                if (!disturbed.HasValue())
+                    return Core::Unexpected(disturbed.Error());
+            }
+        }
+        RequestTheSound(context, 0x77);
+        return {};
     case 0x28:
-        return CutAt(0x4ff4ef, "el efecto 0xcb/1 sobre o (0x518cf0)", skill, slot);
+        return EffectThenSound(0x4ff4ef, "el efecto 0xcb/1 sobre o (0x518cf0)", skill, slot, 0x93, context);
     case 0x26:
         // 0x4ff51c: el punto de la celda +0x39c/+0x39d con la altura de 0x5f93c0 (sin rand()).
-        return CutAt(0x4ff5b2, "el primer efecto 0xc2/6 (0x518cf0)", skill, slot);
+        if (HasEffectRoom(context))
+            return CutAt(0x4ff5b2, "el primer efecto 0xc2/6 (0x518cf0)", skill, slot);
+        RequestTheSound(context, 0x8e); // 4ff5ed: antes de publicar la tanda.
+        CountHeroVolley(actor, context);
+        return {};
     case 0x27:
         // 0x4ffcbe: la celda con su altura y la primera de diez vueltas: rand() % 50 · 0 en la z, y el 0x108/1.
-        static_cast<void>(context.random.Next());
-        return CutAt(0x4ffdaf, "el primero de los diez efectos 0x108 (0x518cf0)", skill, slot);
+        // 4ffd5c: un selector por alta, incluso si el allocator no encuentra lugar; subtipo0, key=i+1.
+        for (int index = 0; index < 10; ++index)
+        {
+            static_cast<void>(context.random.Next());
+            if (HasEffectRoom(context))
+                return CutAt(0x4ffdaf, "el primero de los diez efectos 0x108 (0x518cf0)", skill, slot);
+        }
+        CountHeroVolley(actor, context);
+        RequestTheSound(context, 0x90);
+        return {};
     case 0x05:
         return CastTheFlame(actor, context);
     case 0x08:
         static_cast<void>(OwnSkillIndex(context, skill));
-        return CutAt(0x500c49, "el efecto 0xcf sobre o (0x518cf0)", skill, slot);
+        return EffectThenSound(0x500c49, "el efecto 0xcf sobre o (0x518cf0)", skill, slot, 0x74, context);
     case 0x0c:
         // 0x500c64: el punto de 0x4f5b10(o, −20, −90, 100), sin rand(), y 0x59fb80(0xc).
         static_cast<void>(OwnSkillIndex(context, skill));
-        return CutAt(0x500cb9, "el efecto 0x5e8 (0x518cf0)", skill, slot);
+        return EffectThenSound(0x500cb9, "el efecto 0x5e8 (0x518cf0)", skill, slot, 0x7a, context);
     case 0x0d:
         // 0x500cd4: la celda con su altura y 0x59fb80(0xd).
         static_cast<void>(OwnSkillIndex(context, skill));
-        return CutAt(0x500d7b, "el primer efecto 0xf5 (0x518cf0)", skill, slot);
+        if (HasEffectRoom(context))
+            return CutAt(0x500d7b, "el primer efecto 0xf5 (0x518cf0)", skill, slot);
+        CountHeroVolley(actor, context);
+        return {};
     case 0x0e:
-        // 0x50148b: 0x51fff0(o+0x10, 0) gira el primer punto, sin rand(), y 0x51fe10(punto, 1) saca rand() % 60 + 150 y
-        // rand() % 30 antes de la primera chispa 0x5c5/2 (0x51fe9e), que es de la CL11. El hito 3 tiene ese 0x51fe10
-        // (Scenes::BurstAt, ArrowEffects): al juntar las ramas, este corte pasa a llamarlo con el primer punto girado.
-        static_cast<void>(context.random.Next());
-        static_cast<void>(context.random.Next());
-        return CutAt(0x51fe9e, "la primera chispa 0x5c5/2 de 0x51fe10 en las piedras de 0x51fff0(o+0x10, 0) (0x501494)",
-                     skill, slot);
+        if (auto burst = ScatterCombatBurstAt(actor.position, context); !burst.HasValue())
+            return burst;
+        static_cast<void>(OwnSkillIndex(context, skill));
+        if (HasEffectRoom(context))
+            return CutAt(0x5014da, "el efecto 0xf6 tras el estallido", skill, slot);
+        CountHeroVolley(actor, context);
+        return {};
     case 0x09:
         // 0x501bab: la primera de cuatro vueltas, con 0x59fb80(9).
-        static_cast<void>(OwnSkillIndex(context, skill));
-        return CutAt(0x501c67, "el primero de los joints 0x613/0 (0x530860)", skill, slot);
+        for (int index = 0; index < 4; ++index)
+        {
+            static_cast<void>(OwnSkillIndex(context, skill));
+            if (HasJointRoom(context))
+                return CutAt(0x501c67, "el primero de los joints 0x613/0 (0x530860)", skill, slot);
+        }
+        CountHeroVolley(actor, context);
+        RequestTheSound(context, 0x75);
+        return {};
     case 0x4c:
         return StrikeAround(actor, slot, skill, context);
     case 0x2c:
-        return CutAt(0x502975, "el efecto 0x13b sobre o (0x518cf0)", skill, slot);
+        return EffectThenSound(0x502975, "el efecto 0x13b sobre o (0x518cf0)", skill, slot, 0x26c, context);
     case 0x4b:
         return SwingTheHands(actor, slot, skill, context, 0x502a23, 0x502ab4);
     default:
@@ -441,7 +541,25 @@ Core::Expected<void, std::string> StepTheTargetSkill(ActorState& actor, ActorSta
         // 0x5044fe: con +0x38d y sin 0x4000 en o+0x78, el calco 0x61e/2 sobre el blanco.
         if (actor.skillSucceeded == 0 || (actor.flags78 & QuietFlag) != 0)
             return {};
-        return CutAt(0x504561, "el calco 0x61e/2 sobre el blanco (0x518cf0)", skill, slot);
+        if (HasEffectRoom(context))
+            return CutAt(0x504561, "el calco 0x61e/2 sobre el blanco (0x518cf0)", skill, slot);
+        {
+            constexpr std::uint32_t BoundFlag = 8;
+            const bool alreadyBound = (victim.flags78 & BoundFlag) != 0;
+            if (!alreadyBound)
+                victim.flags78 |= BoundFlag;
+            const bool hasBinding = std::ranges::any_of(context.joints,
+                                                        [&victim](const auto& joint)
+                                                        {
+                                                            return joint.alive && joint.type == FlameJoint &&
+                                                                   joint.ownerContext == &victim &&
+                                                                   (joint.subtype == 4 || joint.subtype == 9);
+                                                        });
+            if (!alreadyBound || !hasBinding)
+                return JointThenSound(alreadyBound ? 0x5046b0 : 0x5045f9, "el joint 0x10f/4 del calco", skill, slot, -1,
+                                      context);
+        }
+        return {};
     case 0x1c:
     {
         // 0x5046bf..0x50473b: sin 0x4000 en o+0x78, 0x518cf0(0x61e, blanco+0x10, blanco+0x1c, blanco+0xf4, 3, blanco,
@@ -457,7 +575,12 @@ Core::Expected<void, std::string> StepTheTargetSkill(ActorState& actor, ActorSta
         return {};
     }
     case 0x07:
-        return CutAt(0x504768, "el efecto 0xc1 sobre el blanco (0x518cf0)", skill, slot);
+        if (HasEffectRoom(context))
+            return CutAt(0x504768, "el efecto 0xc1 sobre el blanco (0x518cf0)", skill, slot);
+        if (actor.skillSucceeded != 0)
+            victim.flags78 |= 2;
+        RequestTheSound(context, 0x78);
+        return {};
     case 0x10:
     {
         // 0x504808..0x5048e5: el 0x189 prende 0x100 en su +0x78 y sale; con 0x4000, nada; si no, 0x100 en +0x78 del
@@ -477,39 +600,48 @@ Core::Expected<void, std::string> StepTheTargetSkill(ActorState& actor, ActorSta
         if (context.joints.empty())
             return Core::Unexpected(std::format("0x504876: faltan los joints del juego (0x534f90) del lugar {}", slot));
         KillJointsOf(context.joints, FlameJoint, &victim, 0);
-        return CutAt(0x5048db, "el primero de los cinco joints 0x10f/0 sobre el blanco (0x530860)", skill, slot);
+        return JointThenSound(0x5048db, "el primero de los cinco joints 0x10f/0 sobre el blanco (0x530860)", skill,
+                              slot, -1, context);
     }
     case 0x01:
     {
-        // 0x5048ea: el 0x20a crea el 0xc3; los demás, diez partículas 0x5f2/1.
+        // 504926/50497e: el jugador intenta c3 y TODOS los tipos intentan diez partículas 5f2/1.
         constexpr std::uint16_t PlayerType = 0x20a;
-        if (actor.type == PlayerType)
+        if (actor.type == PlayerType && HasEffectRoom(context))
             return CutAt(0x504926, "el efecto 0xc3 sobre el blanco (0x518cf0)", skill, slot);
-        return CutAt(0x50497e, "la primera de las diez partículas 0x5f2/1 (0x53fe70)", skill, slot);
+        if (context.particles == nullptr ||
+            std::ranges::any_of(context.particles->All(), [](const auto& p) { return !p.alive; }))
+            return CutAt(0x50497e, "la primera de las diez partículas 0x5f2/1 (0x53fe70)", skill, slot);
+        if (actor.skillSucceeded != 0)
+            victim.flags78 |= 1;
+        RequestTheSound(context, 0x22);
+        return {};
     }
     case 0x02:
-        return CutAt(0x5049ef, "el efecto 0xc2 sobre el blanco (0x518cf0)", skill, slot);
+        return EffectThenSound(0x5049ef, "el efecto 0xc2 sobre el blanco (0x518cf0)", skill, slot, 0x42, context);
     case 0x2d:
-        return CutAt(0x504a3a, "el primero de los tres efectos 0x139 (0x518cf0)", skill, slot);
+        return EffectThenSound(0x504a3a, "el primero de los tres efectos 0x139 (0x518cf0)", skill, slot, 0x26d,
+                               context);
     case 0x49:
-        return CutAt(0x504b33, "el joint 0x61c/4 (0x530860)", skill, slot);
+        return JointThenSound(0x504b33, "el joint 0x61c/4 (0x530860)", skill, slot, 0x26f, context);
     case 0x4a:
-        return CutAt(0x504b80, "el efecto 0x116/2 (0x518cf0)", skill, slot);
+        return EffectThenSound(0x504b80, "el efecto 0x116/2 (0x518cf0)", skill, slot, 0x271, context);
     case 0x04:
-        return CutAt(0x504bce, "el efecto 0xc2/1 (0x518cf0)", skill, slot);
+        return EffectThenSound(0x504bce, "el efecto 0xc2/1 (0x518cf0)", skill, slot, 0x42, context);
     case 0x0b:
     {
         // 0x504be9: el 0x164 crea dos 0xce más, el primero con 10 más en el rumbo.
         constexpr std::uint16_t TripleType = 0x164;
         if (actor.type == TripleType)
-            return CutAt(0x504c38, "el primero de los tres efectos 0xce (0x518cf0)", skill, slot);
-        return CutAt(0x504cc0, "el efecto 0xce (0x518cf0)", skill, slot);
+            return EffectThenSound(0x504c38, "el primero de los tres efectos 0xce (0x518cf0)", skill, slot, 0x76,
+                                   context);
+        return EffectThenSound(0x504cc0, "el efecto 0xce (0x518cf0)", skill, slot, 0x76, context);
     }
     case 0x3c:
-        return CutAt(0x504d05, "el primero de los efectos 0x114/1 (0x518cf0)", skill, slot);
+        return EffectThenSound(0x504d05, "el primero de los efectos 0x114/1 (0x518cf0)", skill, slot, 0x1c8, context);
     case 0x3d:
         // 0x504d87: el punto del primer hueso de o (0x4ec110), sin rand().
-        return CutAt(0x504e40, "el primero de los efectos 0x116 (0x518cf0)", skill, slot);
+        return EffectThenSound(0x504e40, "el primero de los efectos 0x116 (0x518cf0)", skill, slot, -1, context);
     case 0x11:
     {
         // 0x504f56..0x504fd0: los +0x376 de las tablas de 0x50561a y 0x505672 que van a 0x504fd7, y el 0x76, no
@@ -521,8 +653,8 @@ Core::Expected<void, std::string> StepTheTargetSkill(ActorState& actor, ActorSta
         if (std::ranges::find(QuietKinds, actor.word376) != QuietKinds.end())
             return {};
         if (actor.type == RayType)
-            return CutAt(0x50501a, "el efecto 0xd7 (0x518cf0)", skill, slot);
-        return CutAt(0x505053, "el efecto 0x5ca (0x518cf0)", skill, slot);
+            return EffectThenSound(0x50501a, "el efecto 0xd7 (0x518cf0)", skill, slot, -1, context);
+        return EffectThenSound(0x505053, "el efecto 0x5ca (0x518cf0)", skill, slot, 0x76, context);
     }
     default:
         // 0x505069: el 3 y los demás.
@@ -530,10 +662,19 @@ Core::Expected<void, std::string> StepTheTargetSkill(ActorState& actor, ActorSta
     }
 }
 
-Core::Expected<void, std::string> SparkTheTarget(const ActorState& actor, const ActorState& victim, std::size_t slot)
+Core::Expected<void, std::string> SparkTheTarget(const ActorState& actor, const ActorState& victim, std::size_t slot,
+                                                 const CharacterStepContext& context)
 {
     // 0x52e740: la partícula 0x5c6/0 en el blanco con sus ángulos, y veinte veces dos rand() y la 0x5c5/0; la primera
     // ya es de la CL11, sin rand() antes.
+    if (context.particles != nullptr &&
+        std::ranges::all_of(context.particles->All(), [](const auto& particle) { return particle.alive; }))
+    {
+        constexpr int SparkDraws = 20 * 2; // 52e7d5/52e7da, aun si las veinte 5c5/0 tampoco encuentran lugar.
+        for (int draw = 0; draw < SparkDraws; ++draw)
+            static_cast<void>(context.random.Next());
+        return {};
+    }
     return Core::Unexpected(
         std::format("0x52e77b: la partícula 0x5c6/0 de 0x52e740 sobre el blanco (tipo {:#x}) con la "
                     "acción {:#x} del lugar {}, sin portar (CL11)",

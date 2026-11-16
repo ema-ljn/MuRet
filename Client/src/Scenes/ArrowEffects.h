@@ -47,7 +47,8 @@ class WorldState;
 // que corta en su joint (0x51a08a, CL11). Con la tabla llena, nada y sin rand().
 [[nodiscard]] Core::Expected<void, std::string> CreateTheArrowEffect(const World::ModelEffectArguments& arguments,
                                                                      WorldState& world,
-                                                                     Render::Models::CrtRandom& random);
+                                                                     Render::Models::CrtRandom& random,
+                                                                     glm::vec3* callerAngles = nullptr);
 
 // 0x53e2b0(c, o, blanco, lugar, bandera, skill), como lo llama el paso del ataque (0x50377d, 0x5037d0, 0x504060 y
 // 0x5040a9) y el caso 0x4f814e de los monstruos (0x4f816f). `actor` es c y o; `target`, el blanco (nullptr sin él),
@@ -70,6 +71,11 @@ class WorldState;
 // 0x51fff0 con el estallido de combate 0x51fe10 y el sonido 0x40 de 0x542a7c.
 [[nodiscard]] Core::Expected<void, std::string> CreateCombatBurstAt(const glm::vec3& position,
                                                                     const CharacterStepContext& context);
+
+// 0x51fff0(posición,0): ocho grupos con 0x51fe10 y dos selectores de piedra. Con hueco, el subtipo1 sigue CL11;
+// sin hueco en efectos, las ocho vueltas conservan los RNG y continúan.
+[[nodiscard]] Core::Expected<void, std::string> ScatterCombatBurstAt(const glm::vec3& position,
+                                                                     const CharacterStepContext& context);
 
 // Lo que el paso de una flecha lee y escribe afuera de su lugar: el pool de personajes, el registro propio y el
 // héroe (0x520170), las partículas (0x53fe70), los sprites del frame (0x5491e0), la luz dinámica (0x5f9780) y el

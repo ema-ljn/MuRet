@@ -11,6 +11,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/FaunaJointCreation.h"
+#include "Scenes/GameDrawTail.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/SkillHits.h"
 #include "Scenes/WorldMap.h"
@@ -120,6 +121,22 @@ void CountTheVolley(WorldState& world, CrtRandom& random)
     ++world.OwnCharacter().bytef04;
 }
 
+bool HasJointRoom(WorldState& world)
+{
+    return std::ranges::any_of(world.DrawTail().joints, [](const auto& joint) { return !joint.alive; });
+}
+
+bool HasEffectRoom(WorldState& world)
+{
+    return std::ranges::any_of(world.Map().effects.Effects(), [](const auto& effect) { return !effect.alive; });
+}
+
+bool HasParticleRoom(const ArrowStepContext& context)
+{
+    return context.particles == nullptr ||
+           std::ranges::any_of(context.particles->All(), [](const auto& particle) { return !particle.alive; });
+}
+
 // 0x51c590..0x51c5a9: 0x518cf0(0x105, la posición de la flecha, sus ángulos, su luz, 0, la flecha, −1, 0, 0, 0, 0), la
 // estela de la skill 0x34. El caso 0x105 con el subtipo 0 (0x519fc9..0x51a06d): vida 100, +0x64 en 0, +0x68 en 1, +0xe4
 // en 0, la escala 12 (0x519ff3) y la partida en la posición del dueño (0x51a040); después, el joint 0x610 (0x51a08a),
@@ -151,6 +168,13 @@ Core::Expected<void, std::string> CreateTheArrowTrail(World::ModelEffect& arrow,
     trail.turnDirection = 0.0f;
     trail.transform.scale = TrailScale;
     trail.start = arrow.transform.position;
+    if (!HasJointRoom(world))
+    {
+        constexpr std::int32_t TrailSound = 0x7a;
+        world.Runtime().lastSoundId = TrailSound;
+        trail.transform.scale = 1.0f; // 51a101, después de los cuatro intentos de joint610.
+        return {};
+    }
     return Core::Unexpected(std::string("0x51a08a: el joint 0x610 de la estela 0x105 de la flecha de la skill 0x34 "
                                         "(0x530860), sin portar (CL11)"));
 }
@@ -214,8 +238,9 @@ Core::Expected<void, std::string> BeginTheArrow(World::ModelEffect& effect, Worl
     {
         effect.transform.scale = 1.0f;
         effect.velocity.y = -70.0f;
-        return Core::Unexpected(std::string("0x51c56c: el joint 0x610/0xe de la flecha 0xf9 (0x530860), sin portar "
-                                            "(CL11)"));
+        if (HasJointRoom(world))
+            return Core::Unexpected(std::string("0x51c56c: el joint 0x610/0xe de la flecha 0xf9 (0x530860), sin portar "
+                                                "(CL11)"));
     }
     else
     {
@@ -232,7 +257,7 @@ Core::Expected<void, std::string> BeginTheArrow(World::ModelEffect& effect, Worl
         effect.dword100 = 0;
         effect.state = 1;
     }
-    if (type == NatureArrow && effect.subtype == 1)
+    if (type == NatureArrow && effect.subtype == 1 && HasJointRoom(world))
         return Core::Unexpected(std::string("0x51c713: el joint 0x610/0xd de la flecha 0xe1/1 (0x530860), sin portar "
                                             "(CL11)"));
     if (type == BowArrow && (effect.subtype == 3 || effect.subtype == 4))
@@ -247,8 +272,10 @@ Core::Expected<void, std::string> BeginTheArrow(World::ModelEffect& effect, Worl
         constexpr int FullTurn = 360;
         effect.objectState.blendMesh = 1;
         effect.transform.angles.y = static_cast<float>(random.Next() % FullTurn);
-        return Core::Unexpected(std::string("0x51c713: el joint 0x610/0xc de la flecha 0x11c (0x530860), sin portar "
-                                            "(CL11)"));
+        if (HasJointRoom(world))
+            return Core::Unexpected(
+                std::string("0x51c713: el joint 0x610/0xc de la flecha 0x11c (0x530860), sin portar "
+                            "(CL11)"));
     }
     CopyTheOwnCount(effect, world, random);
     return {};
@@ -278,6 +305,71 @@ void BeginTheAquagoldArrow(World::ModelEffect& effect, WorldState& world, CrtRan
     CopyTheOwnCount(effect, world, random);
 }
 
+// 51a2bd..51a417: el punto de partida usa los ángulos originales; después escribe los del caller, no los del efecto.
+Core::Expected<void, std::string> BeginCelestialArrow(World::ModelEffect& effect, WorldState& world, CrtRandom& random,
+                                                      glm::vec3* callerAngles)
+{
+    constexpr glm::vec3 Muzzle{-10.0f, -100.0f, 15.0f};
+    effect.velocity = {0.0f, -60.0f, 0.0f};
+    effect.start = effect.transform.position;
+    AddRotated(effect.start, Render::Models::OriginalVectorRotate(
+                                 Muzzle, Render::Models::OriginalAngleMatrix(effect.transform.angles)));
+    if (callerAngles != nullptr)
+        *callerAngles = {0.0f, 0.0f, effect.transform.angles.z};
+    if (HasJointRoom(world))
+    {
+        if (effect.subtype == 1)
+            return Core::Unexpected(std::string("0x51a3b7: el joint 0x60f/0x25 de la flecha 0xf8 sigue en CL11"));
+        return Core::Unexpected(std::string("0x51a405: el joint 0x60f/0xb de la flecha 0xf8 sigue en CL11"));
+    }
+    CopyTheOwnCount(effect, world, random);
+    return {};
+}
+
+// 51a10f/51a1e6/51a2bd/51be81: prefijos y colas que el allocator de joints lleno también alcanza.
+Core::Expected<void, std::string> BeginAdvancedArrow(World::ModelEffect& effect, WorldState& world, CrtRandom& random,
+                                                     glm::vec3* callerAngles)
+{
+    if (effect.type == ReignArrow && effect.subtype != 0 && effect.subtype != 2)
+        return {};
+    constexpr std::int32_t ArrowLife = 30;
+    constexpr float MuzzleLift = 130.0f;
+    effect.life = ArrowLife;
+    effect.objectState.blendMesh = -2;
+    effect.transform.scale = 1.0f;
+    effect.transform.position.z = F32(D(effect.transform.position.z) + D(MuzzleLift));
+    if (effect.type == CelestialArrow)
+        return BeginCelestialArrow(effect, world, random, callerAngles);
+    if (effect.type == ReignArrow)
+    {
+        effect.turnDirection = -10.0f;
+        if (effect.subtype == 2)
+        {
+            if (auto trail = CreateTheArrowTrail(effect, world); !trail.HasValue())
+                return trail;
+            effect.dword100 = 0;
+            effect.state = 1;
+        }
+    }
+    effect.velocity = {0.0f, -70.0f, 0.0f};
+    effect.point40 = effect.transform.position;
+    if (HasJointRoom(world))
+    {
+        const auto address = effect.type == SaintArrow ? 0x51a24au : effect.type == ReignArrow ? 0x51bf35u : 0x51a173u;
+        return Core::Unexpected(
+            std::format("{:#x}: el joint 0x618/5 de la flecha {:#x} sigue en CL11", address, effect.type));
+    }
+    if (effect.type != ReignArrow && effect.subtype != 0)
+    {
+        if (auto trail = CreateTheArrowTrail(effect, world); !trail.HasValue())
+            return trail;
+        effect.dword100 = 0;
+        effect.state = 1;
+    }
+    CopyTheOwnCount(effect, world, random);
+    return {};
+}
+
 // 0x518cf0(tipo, o+0x10, o+0x1c, o+0xf4, subtipo, o, o+0x8a, lugar, bandera, 0, 0), como lo llama 0x53d9a0.
 Core::Expected<void, std::string> CreateTheArrow(std::int16_t type, ActorState& owner, std::int32_t subtype,
                                                  std::int32_t skillIndex, std::uint8_t flag,
@@ -294,7 +386,7 @@ Core::Expected<void, std::string> CreateTheArrow(std::int16_t type, ActorState& 
                                                 .byte88 = flag,
                                                 .byte1bd = 0,
                                                 .scale = 0.0f};
-    return CreateTheArrowEffect(arguments, context.world, context.random);
+    return CreateTheArrowEffect(arguments, context.world, context.random, &owner.angles);
 }
 
 // 0x53deff..0x53df2a: 0x518cf0(0x13a, o+0x10, o+0x1c, o+0xf4, 0, el blanco, o+0x8a, lugar, bandera, 0, 0), el tiro de
@@ -332,6 +424,11 @@ Core::Expected<void, std::string> CreateTheBlast(ActorState& owner, ActorState* 
     AddRotated(blast.transform.position, Render::Models::OriginalVectorRotate(
                                              Muzzle, Render::Models::OriginalAngleMatrix(blast.transform.angles)));
     blast.transform.angles.x = -30.0f;
+    if (!HasJointRoom(context.world))
+    {
+        CopyTheOwnCount(blast, context.world, context.random);
+        return {};
+    }
     return Core::Unexpected(std::string("0x51e01a: el joint 0x632/4 del efecto 0x13a de la skill 0x2e (0x530860), sin "
                                         "portar (CL11)"));
 }
@@ -561,6 +658,8 @@ Core::Expected<void, std::string> HitWithTheMarkedArrow(World::ModelEffect& effe
                 (effect.type == CelestialArrow && effect.life > CelestialLife) || effect.type == AquagoldArrow
                     ? LongPause
                     : ShortPause;
+            if (!HasJointRoom(context.world))
+                return {};
             return Core::Unexpected(std::string("0x52055f: el joint 0x60f/6 de la flecha de la skill 0x34 que "
                                                 "atraviesa (0x530860), sin portar (CL11)"));
         }
@@ -618,8 +717,12 @@ Core::Expected<void, std::string> HitWithTheArrow(World::ModelEffect& effect, co
     {
         // 0x52081b..0x52085c: con el subtipo 2, el joint 0x60f/6 y sigue viva.
         if (effect.subtype == 2)
-            return Core::Unexpected(std::string("0x52083f: el joint 0x60f/6 de la flecha de la skill 0x34 "
-                                                "(0x530860), sin portar (CL11)"));
+        {
+            if (HasJointRoom(context.world))
+                return Core::Unexpected(std::string("0x52083f: el joint 0x60f/6 de la flecha de la skill 0x34 "
+                                                    "(0x530860), sin portar (CL11)"));
+            return {};
+        }
         effect.alive = false;
         return BurstAt(effect.transform.position, context);
     }
@@ -803,8 +906,14 @@ Core::Expected<void, std::string> StepTheFortressArrow(World::ModelEffect& effec
     constexpr std::int32_t SparklingLife = 25;
     if (effect.life > SparklingLife && effect.life % 2 == 0)
     {
-        static_cast<void>(ScatteredPoint(effect.transform.position, context.random, {31, 63, 31}, {16, 32, 16}));
-        return Core::Unexpected(std::string("0x526961: la 0x60f/5 de la flecha 0xe1/1 (0x53fe70), sin portar (CL11)"));
+        constexpr int SparkCount = 2;
+        for (int index = 0; index < SparkCount; ++index)
+        {
+            static_cast<void>(ScatteredPoint(effect.transform.position, context.random, {31, 63, 31}, {16, 32, 16}));
+            if (HasParticleRoom(context))
+                return Core::Unexpected(
+                    std::string("0x526961: la 0x60f/5 de la flecha 0xe1/1 (0x53fe70), sin portar (CL11)"));
+        }
     }
     return HitWithTheArrow(effect, context);
 }
@@ -926,8 +1035,16 @@ Core::Expected<void, std::string> StepAquagoldArrow(World::ModelEffect& effect, 
             return Core::Unexpected(std::string("0x5243d3: el héroe publicado ([0x743a170]) no está en el pool"));
         constexpr std::int32_t MarkedSubtype = 0x63;
         if (effect.ownerContext == &context.world.Actors()[runtime.hero] && effect.subtype != MarkedSubtype)
-            return Core::Unexpected(std::string("0x524405: 0x517a20 en la última vida de la flecha 0xe2 del héroe, del "
-                                                "hito 4"));
+        {
+            const SkillHitsRequest hits{.skillIndex = effect.byte89,
+                                        .point = position,
+                                        .radius = 100.0f,
+                                        .volley = static_cast<std::uint8_t>(effect.word8c),
+                                        .key = static_cast<std::uint16_t>(effect.disturbanceState),
+                                        .extra = 0};
+            if (auto hit = HitTheTargetsAround(hits, context.world, context.random, context.send); !hit.HasValue())
+                return Core::Unexpected(hit.Error());
+        }
     }
     // 0x52440d..0x52443f: la luz (luz · 0,6f; · 0,8f; · 0,8f) y el choque.
     if (auto lit = GreenLight(effect, luminosity, context, "0x52443a"); !lit.HasValue())
@@ -936,19 +1053,162 @@ Core::Expected<void, std::string> StepAquagoldArrow(World::ModelEffect& effect, 
 }
 
 // 0x526aef..0x526c51: la flecha 0x11c (su alta corta antes, en 0x51c713).
-Core::Expected<void, std::string> StepTwentiethArrow(World::ModelEffect& effect, const ArrowStepContext& context)
+Core::Expected<void, std::string> StepTwentiethArrow(World::ModelEffect& effect, float luminosity,
+                                                     const ArrowStepContext& context)
 {
     constexpr double Turn = 60.0; // 0x6b86cc
     effect.transform.angles.y = F32(D(effect.transform.angles.y) + Turn);
     if (effect.life % 2 == 0)
     {
-        static_cast<void>(ScatteredPoint(effect.transform.position, context.random, {31, 63, 31}, {16, 32, 16}));
-        return Core::Unexpected(std::string("0x526bc2: la 0x60f/5 de la flecha 0x11c (0x53fe70), sin portar (CL11)"));
+        constexpr int SparkCount = 3;
+        for (int index = 0; index < SparkCount; ++index)
+        {
+            static_cast<void>(ScatteredPoint(effect.transform.position, context.random, {31, 63, 31}, {16, 32, 16}));
+            if (HasParticleRoom(context))
+                return Core::Unexpected(
+                    std::string("0x526bc2: la 0x60f/5 de la flecha 0x11c (0x53fe70), sin portar (CL11)"));
+        }
     }
-    return Core::Unexpected(std::string("0x526c05: el efecto 0x114 de la flecha 0x11c (0x518cf0), sin portar (CL11)"));
+    effect.point40 = effect.transform.position;
+    if (HasEffectRoom(context.world))
+        return Core::Unexpected(
+            std::string("0x526c05: el efecto 0x114 de la flecha 0x11c (0x518cf0), sin portar (CL11)"));
+    constexpr glm::vec3 Tint{0.6f, 0.2f, 0.8f};
+    glm::vec3 color{};
+    for (int axis = 0; axis < 3; ++axis)
+        color[axis] = F32(D(luminosity) * D(Tint[axis]));
+    if (auto lit = World::AddDynamicLight(context.lighting, effect.transform.position, color, 2, "0x526c44");
+        !lit.HasValue())
+        return lit;
+    return HitWithTheArrow(effect, context);
+}
+
+Core::Expected<void, std::string> ArrowLightAt(const glm::vec3& position, float luminosity, const glm::vec3& tint,
+                                               const ArrowStepContext& context, std::string_view address)
+{
+    glm::vec3 color{};
+    for (int axis = 0; axis < 3; ++axis)
+        color[axis] = F32(D(luminosity) * D(tint[axis]));
+    constexpr int Radius = 2;
+    return World::AddDynamicLight(context.lighting, position, color, Radius, address);
+}
+
+// 523f33..524067: la /1 hace Hit; las otras iluminan start y salen sin choque.
+Core::Expected<void, std::string> StepCelestialArrow(World::ModelEffect& effect, float luminosity,
+                                                     const ArrowStepContext& context)
+{
+    constexpr glm::vec3 Pink{0.9f, 0.4f, 0.6f}, Blue{0.2f, 0.4f, 1.0f};
+    const bool single = effect.subtype == 1;
+    effect.transform.angles.y = F32(D(effect.transform.angles.y) + (single ? 60.0 : 30.0));
+    if (single)
+    {
+        if (effect.life == 13 && HasEffectRoom(context.world))
+            return Core::Unexpected(std::string("0x523f72: el efecto 0x105/3 de la flecha 0xf8 sigue en CL11"));
+        if (auto hit = HitWithTheArrow(effect, context); !hit.HasValue())
+            return hit;
+        return ArrowLightAt(effect.transform.position, luminosity, Pink, context, "0x523fca");
+    }
+    if (auto lit = ArrowLightAt(effect.start, luminosity, Blue, context, "0x524015"); !lit.HasValue())
+        return lit;
+    if (effect.subtype == 0)
+        return {};
+    if (effect.life == 13)
+        return CreateTheArrowTrail(effect, context.world);
+    if (effect.life == 30)
+    {
+        effect.dword100 = 0;
+        effect.state = 1;
+    }
+    return {};
+}
+
+// 52593c..525a5f: tres partículas 5f2/13 y el estallido terminal; con P lleno, el resto continúa.
+Core::Expected<void, std::string> StepReignArrow(World::ModelEffect& effect, float luminosity,
+                                                 const ArrowStepContext& context)
+{
+    if (effect.subtype != 0 && effect.subtype != 2)
+        return {};
+    effect.transform.angles.y = F32(D(effect.transform.angles.y) + 30.0);
+    if (HasParticleRoom(context))
+        return Core::Unexpected(std::string("0x525972: la partícula 0x5f2/13 de la flecha 0x111 sigue en CL11"));
+    if (effect.life == 1)
+    {
+        if (auto burst = BurstAt(effect.transform.position, context); !burst.HasValue())
+            return burst;
+    }
+    effect.point40 = effect.transform.position;
+    AddRotated(effect.point40, Render::Models::OriginalVectorRotate(
+                                   effect.velocity, Render::Models::OriginalAngleMatrix(effect.transform.angles)));
+    constexpr glm::vec3 Orange{1.0f, 0.4f, 0.2f};
+    if (auto lit = ArrowLightAt(effect.transform.position, luminosity, Orange, context, "0x525a54"); !lit.HasValue())
+        return lit;
+    return HitWithTheArrow(effect, context);
+}
+
+Core::Expected<void, std::string> StepAdvancedArrow(World::ModelEffect& effect, float luminosity,
+                                                    const ArrowStepContext& context)
+{
+    if (effect.type == CelestialArrow)
+        return StepCelestialArrow(effect, luminosity, context);
+    if (effect.type == ReignArrow)
+        return StepReignArrow(effect, luminosity, context);
+    if (effect.type == ViperArrow)
+    {
+        effect.transform.angles.y = F32(D(effect.transform.angles.y) + 35.0);
+        return HitWithTheArrow(effect, context);
+    }
+    const bool archangel = effect.type == ArchangelArrow;
+    if (archangel)
+    {
+        constexpr double GlowStep = static_cast<double>(0.025f);
+        effect.objectState.light = effect.life > 25 ? F32(static_cast<double>(30 - effect.life) * GlowStep) : 1.0f;
+    }
+    const double turn = archangel ? static_cast<double>(context.random.Next() % 60 + 30) : 30.0;
+    effect.transform.angles.y = F32(D(effect.transform.angles.y) + turn);
+    effect.point40 = effect.transform.position;
+    if (archangel)
+        AddRotated(effect.point40, Render::Models::OriginalVectorRotate(
+                                       effect.velocity, Render::Models::OriginalAngleMatrix(effect.transform.angles)));
+    constexpr glm::vec3 Orange{1.0f, 0.4f, 0.2f}, Blue{0.2f, 0.4f, 1.0f};
+    if (auto lit = ArrowLightAt(effect.transform.position, luminosity, archangel ? Orange : Blue, context, "0x523ec4");
+        !lit.HasValue())
+        return lit;
+    return HitWithTheArrow(effect, context);
 }
 
 } // namespace
+
+Core::Expected<void, std::string> ScatterCombatBurstAt(const glm::vec3& position, const CharacterStepContext& context)
+{
+    constexpr int Groups = 8;
+    constexpr int YawStep = 45;
+    constexpr int SelectorSpan = 2;
+    constexpr std::uint32_t StoneCut = 0x520119;
+    constexpr glm::vec3 Offset{0.0f, -220.0f, 0.0f};
+    for (int group = 0; group < Groups; ++group)
+    {
+        const glm::vec3 angles{0.0f, 0.0f, static_cast<float>(group * YawStep)};
+        const glm::vec3 rotated =
+            Render::Models::OriginalVectorRotate(Offset, Render::Models::OriginalAngleMatrix(angles));
+        glm::vec3 point{};
+        for (int axis = 0; axis < 3; ++axis)
+            point[axis] = static_cast<float>(static_cast<double>(rotated[axis]) + static_cast<double>(position[axis]));
+        if (auto burst = CreateCombatBurstAt(point, context); !burst.HasValue())
+            return Core::Unexpected(burst.Error());
+        static_cast<void>(context.random.Next() % SelectorSpan);
+        const auto& effects = context.world.Map().effects.Effects();
+        const auto freeEffect =
+            std::ranges::find_if(effects, [](const World::ModelEffect& effect) { return !effect.alive; });
+        if (freeEffect != effects.end())
+        {
+            return Core::Unexpected(
+                std::format("{:#x}: el efecto de piedra subtipo1 del grupo disperso sigue en CL11", StoneCut));
+        }
+        // El segundo tipo de piedra también sólo consume el selector cuando el pool de modelos está lleno.
+        static_cast<void>(context.random.Next() % SelectorSpan);
+    }
+    return {};
+}
 
 Core::Expected<void, std::string> CreateAquagoldArrow(ActorState& owner, const glm::vec3& angles,
                                                       const CharacterStepContext& context)
@@ -1002,7 +1262,7 @@ bool IsArrowEffect(std::int16_t type)
 }
 
 Core::Expected<void, std::string> CreateTheArrowEffect(const World::ModelEffectArguments& arguments, WorldState& world,
-                                                       CrtRandom& random)
+                                                       CrtRandom& random, glm::vec3* callerAngles)
 {
     if (!IsArrowEffect(arguments.type))
     {
@@ -1020,21 +1280,10 @@ Core::Expected<void, std::string> CreateTheArrowEffect(const World::ModelEffectA
         BeginTheAquagoldArrow(effect, world, random);
         return {};
     case SaintArrow:
-        // 0x51a1e6..0x51a24a: vida 30, +0x64 en −2, escala 1 y la z 130 más antes del joint.
-        return Core::Unexpected(std::string("0x51a24a: el joint 0x618/5 de la flecha 0xf7 (0x530860), sin portar "
-                                            "(CL11)"));
     case CelestialArrow:
-        return Core::Unexpected(std::string("0x51a405: los cuatro joints 0x60f/0xb de la flecha 0xf8 (0x530860), sin "
-                                            "portar (CL11)"));
     case ArchangelArrow:
-        return Core::Unexpected(std::string("0x51a173: el joint 0x618/5 de la flecha 0x10e (0x530860), sin portar "
-                                            "(CL11)"));
     case ReignArrow:
-        // 0x51be81..0x51be8b: con un subtipo que no es 0 ni 2, sale por 0x51db73 con solo el prefijo.
-        if (arguments.subtype != 0 && arguments.subtype != 2)
-            return {};
-        return Core::Unexpected(std::string("0x51bf35: el joint 0x618/5 de la flecha 0x111 (0x530860), sin portar "
-                                            "(CL11)"));
+        return BeginAdvancedArrow(effect, world, random, callerAngles);
     default:
         return BeginTheArrow(effect, world, random);
     }
@@ -1148,7 +1397,14 @@ Core::Expected<void, std::string> StepArrow(World::ModelEffect& effect, const Re
         stepped = StepAquagoldArrow(effect, luminosity, context);
         break;
     case TwentiethArrow:
-        stepped = StepTwentiethArrow(effect, context);
+        stepped = StepTwentiethArrow(effect, luminosity, context);
+        break;
+    case SaintArrow:
+    case CelestialArrow:
+    case ViperArrow:
+    case ArchangelArrow:
+    case ReignArrow:
+        stepped = StepAdvancedArrow(effect, luminosity, context);
         break;
     default:
         // 0x523ed1 (0xf7), 0x523f33 (0xf8), 0x5241f6 (0xf9), 0x523de1 (0x10e) y 0x52593c (0x111): sus altas cortan.

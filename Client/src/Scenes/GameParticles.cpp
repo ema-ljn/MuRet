@@ -2,7 +2,6 @@
 #include "World/PortableParticleTrigonometry.h"
 
 #include "Core/Expected.h"
-#include "Data/Models/PlayerModels.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
@@ -216,8 +215,6 @@ std::optional<glm::vec3> OwnerBonePointOf(WorldState& world, const World::Partic
     if (particle.typedOwner.kind != World::ParticleOwnerKind::Actor || particle.typedOwner.identity >= actors.size())
         return std::nullopt;
     const ActorState& owner = actors[static_cast<std::size_t>(particle.typedOwner.identity)];
-    if (owner.type != Data::Models::PlayerSkeletonModel)
-        return std::nullopt;
     // 0x53fe20..0x53fe42: el subtipo and 0x80000001 con la corrección del signo.
     const ActorState& hero = actors[world.Runtime().hero];
     std::uint8_t bone = 0;
@@ -236,8 +233,9 @@ std::optional<glm::vec3> OwnerBonePointOf(WorldState& world, const World::Partic
     const glm::vec3 offset =
         particle.type == World::SkillShineParticle || particle.type == ShineOwnerType ? ShineOffset : glm::vec3(0.0f);
     // 0x53fe0b..0x53fe1a: el origen del modelo.
-    SharedModelPlacement& model = world.PlayerModel();
+    SharedModelPlacement model = world.ModelPlacement(owner.type);
     model.origin = owner.position;
+    world.PlaceModel(owner.type, model);
     const Render::Models::BoneTransform matrix =
         bone < owner.bodyPose.size() ? owner.bodyPose[bone] : Render::Models::BoneTransform(0.0f);
     return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), offset, model.scale,

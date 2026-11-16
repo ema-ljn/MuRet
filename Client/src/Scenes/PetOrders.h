@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cstdint>
-
 namespace Client::Protocol::Pet
 {
 struct PetOrder;

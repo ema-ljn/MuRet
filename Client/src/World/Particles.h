@@ -275,7 +275,6 @@ StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random,
                      IParticleTrigonometry& trigonometry, const ParticleTerrainHeight& terrainHeight = {},
                      const ParticleObjectOwners& owners = {}, const ParticleActorActions& actorActions = {},
                      const ParticleTextureHeight& textureHeight = {}, TerrainLighting* lighting = nullptr,
-                     const ParticleActorHands& actorHands = {},
-const ParticleOwnerBones& ownerBones = {});
+                     const ParticleActorHands& actorHands = {}, const ParticleOwnerBones& ownerBones = {});
 
 } // namespace Client::World

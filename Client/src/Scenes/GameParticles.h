@@ -72,8 +72,7 @@ StepGameParticles(World::Particles& particles, Render::Models::CrtRandom& random
                   const std::function<std::optional<float>(std::int32_t)>& textureHeight = {},
                   World::TerrainLighting* lighting = nullptr,
                   const std::function<std::optional<glm::vec3>(std::uint64_t, std::int32_t)>& actorHands = {},
-const std::function<std::optional<glm::vec3>(const World::Particle&)>& ownerBones = {});
-
+                  const std::function<std::optional<glm::vec3>(const World::Particle&)>& ownerBones = {});
 
 // La acción (+0x111) del personaje de un lugar del pool entre `actors`, que tienen que vivir más que el
 // resolvedor: lo que el paso de la órbita 60f/0 lee por el puntero +0x40 (0x54735f).

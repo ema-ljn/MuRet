@@ -11098,7 +11098,7 @@ suma las acciones de Player.bmd, Item.bmd, `GetTickCount` y los servicios del in
   de Skill.bmd (60 `rand()` al cerrarla en 0, `SkillCostOf`). Con el maná del registro propio (`+0x24`) debajo,
   `0x558110(3)` busca una poción de maná (`0x1c04` a `0x1c06`; con 4, las de vida `0x1c00` a `0x1c03`) en la grilla
   del inventario, sin `rand()` (`FindQuickSlotItem`). Sin ella, nada; con ella, `0x5af520` y el `C1 26` son del
-  hito 5 y cortan con la dirección del que llama (`UseAManaPotion`, P-C269).
+  hito 5 y ya se conectan con `UseAManaPotion` (revisión H4 2026-11-16, P-C269): ventanas, espera, aviso y envío sin modificar inventario antes del GS.
 - **`0x559afc`** (`UseTheListedWeaponSkill`): el costo, sin maná la poción y 0; con la stamina de más que `+0x38`, 0;
   sin `0x552c50`, 0; si `0x558bb0` no deja atacar, las opciones; si deja, `0x559510(héroe, héroe, ítem, skill)`.
 - **`0x55a368`** (`UseTheWeaponOptions`): por cada opción igual a la skill del lugar, el costo (sin maná, la poción o
@@ -11139,7 +11139,8 @@ y `0x53fdb0`, sin `rand()`. `0x53fdb0(partícula)` toma el modelo del dueño (`+
 (`+0x6c`) en la posición del dueño y lleva el punto local (0; −120; 0) (con la `0x5fe` y la `0x62d`; cero con las demás)
 por `0x4ec110` con los huesos propios del dueño (`+0x120`) y la escala que quedó en el modelo (`+0x68`). El hueso sale
 del **héroe publicado** (`[0x743a170]`), no del dueño: el byte `+0x2bd + (subtipo % 2, con signo) · 0x20`, la mano
-derecha con el subtipo 0 (`Scenes::OwnerBonePointOf`, con el modelo de Player.bmd de `WorldState::PlayerModel`; antes
+derecha con el subtipo 0 (`Scenes::OwnerBonePointOf`, con `WorldState::ModelPlacement(owner.type)`;
+conserva la escala y la acción compartidas, también transformado, y actualiza sólo el origen. Antes
 del primer dibujo, la matriz en cero, Q-C318). El paso (`0x546d54`) pone la escala en `sin(vida · π/18) · 3`
 (`[0x6ba370]`, `[0x6b86b8]`) y vuelve a llamar a `0x53fdb0`, sin `rand()`; el dibujo es el billboard común (`0x5488f6`,
 el byte 8 de `0x548cf0` → `0x54889a`) con Shiny03 (`0x61d937`).
@@ -11267,10 +11268,10 @@ Después del cierre, el Magic Gladiator sigue en la rama del Wizard (`0x5897b7`)
 `Scenes/Skill551f40` (`SkillEnergyRequirement`), `Skill4e9920` (`RelativeTargetCell`), `Skill4e9c50`
 (`ActionByTheHands`) y `Skill57cf90` (`NextMagicKey`), que llaman también otras ramas; `ChosenKeyOf` con el elegido
 como argumento; `Protocol::Skill::WriteMagicAttack` y `WriteDurationMagic` (`b7` y `b8` son `towards` y `back` de
-`DurationMagicSend`, y `b11` su `magicKey`). Los nuevos globales en `GameMovementState`: `0x5767948` (`lastShotSkill`, el del elfo y del
-Wizard) y `0x77f3bad` (`magicKeyCounter`); `+0x1bd` es `ActorState::magicKey`. `HeroSkillContext` lleva la clave del jugador.
-El Magic Gladiator sigue en `UseTheWizardSkill` (`UseTheClassSkill`). Cortan (P-C223): con una poción, `0x5af520` y el
-`C1 26` (`0x581b9e`, del hito 5, P-C269 b), `0x4ea030` sin el esqueleto y el freno sin el reloj.
+`DurationMagicSend`, y `b11` su `magicKey`). `0x5767948` (`lastShotSkill`, el del elfo y del Wizard) es único en `WorldRuntime`;
+`0x77f3bad` (`magicKeyCounter`) sigue en `GameMovementState`; `+0x1bd` es `ActorState::magicKey`. `HeroSkillContext` lleva la clave del jugador.
+El Magic Gladiator sigue en `UseTheWizardSkill` (`UseTheClassSkill`). La poción `0x5af520` y el
+`C1 26` ya se conectan a H5 (revisión H4 2026-11-16, P-C269 b). Permanecen `0x4ea030` sin el esqueleto y el freno sin el reloj.
 
 ### La rama del Wizard
 
@@ -11385,8 +11386,8 @@ y 70, el alcance 2 la `0x43` y 0 las demás, sin espera y con `+0x31` en 1. La s
    la poción.
 
 **MuRet**: `Scenes/HeroSkillsTail` (`UseTheSharedTail`), desde `UseTheClassSkill` (las clases 1, 4 y 5 a 7),
-`UseTheElfSkill` y `UseTheWizardSkill`, con `SkillCostOf`, `UseAManaPotion` (con la poción corta en `0x580954`, del
-hito 5, 08 P-C269 b), `TryStartSkillDelay`, `SkillEnergyRequirement`, `RelativeTargetCell`, `ChosenKeyOf` con el
+`UseTheElfSkill` y `UseTheWizardSkill`, con `SkillCostOf`, `UseAManaPotion` (conectada a H5,
+08 P-C269 b; la cola sigue después del intento), `TryStartSkillDelay`, `SkillEnergyRequirement`, `RelativeTargetCell`, `ChosenKeyOf` con el
 elegido, `HasTheSilentName`, `PassesTheSkillBrake`, `SendTheSkillPacket`, `RefreshCombatActionSpeeds` y
 `SetTheActorAction`; `0x5ae300` va en el archivo. Un elegido fuera del pool corta donde se lee su clave (corte de
 MuRet, sin contraparte). Los envíos en [04](04-protocolo.md#lo-que-manda-la-cola-de-las-0x43-a-0x48-19-y-1e). Fuera
@@ -12753,3 +12754,7 @@ Tests que fija:
   cámara de Lorencia da `466b446d`, `46313b93` y `447dc000`, y los vectores de `0x635ae0`, bit a
   bit; el camino, el `D3` y el paso entre celdas contra el código real emulado, y los 171 caminos
   del cable, solo con las coordenadas; y los gates de Lorencia con el `Gate.bmd` real.
+
+### Revisión de integración H4 del 2026-11-16
+
+El [contraste de skills, cuervo y mascotas](16-h4-skills-y-mascotas.md) fija el inventario de 56 filas y las ramas por clase, los paquetes y el selector corregidos, las conexiones H3/H5, y las colas de pools llenos. Reemplaza las anotaciones históricas que aún describían cortes globales de H4: un constructor CL11 pendiente sólo bloquea si encuentra hueco. Se preservan las fronteras con capacidad disponible y las dependencias H7/H8/H13; no se certifica fidelidad dinámica completa sin la VM.

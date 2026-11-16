@@ -98,6 +98,7 @@ inline constexpr std::int16_t LightningDecalEffect = 0x14e;
 // segura, 0x5bca46 crea el /1 sobre el héroe, con él de dueño: cada paso suelta tres joints 619/1 que bajan hacia el
 // dueño (0x518900).
 inline constexpr std::int16_t ColoredDecalEffect = 0x61e;
+inline constexpr std::int32_t LevelUpDecalSubtype = 0;
 inline constexpr std::int32_t PetSummonSubtype = 1;
 // El /3, que la 0x1c crea sobre el blanco y las invocaciones 0x1e..0x24 sobre el que las lanza (0x50470f y 0x4fdf1e):
 // su paso suelta tres joints 619/3 (0x518900), que son de la CL11.
@@ -150,7 +151,8 @@ struct ModelEffect
     Render::Models::ObjectState objectState;  // +0x58, +0x64 y +0x68
     std::uint16_t disturbanceState = 0;       // +0x8a, guard de437860 del efecto9
     bool vertexLight = true;                  // +0xe8
-    glm::vec3 start{};                        // +0x17c, la partida
+    glm::vec3 point40{}; // +0x40..+0x48, vector nativo de las estelas, distinto de la interpolación.
+    glm::vec3 start{};   // +0x17c, la partida
     // De MuRet: la posición antes del último paso, para dibujar entre dos pasos (D-C4).
     glm::vec3 previousPosition{};
     std::int32_t textureFrame = 0;           // +0x1c4: selector firmado del calco 0x14e en52d8f2.

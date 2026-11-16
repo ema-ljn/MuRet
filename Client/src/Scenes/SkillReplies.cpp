@@ -18,6 +18,7 @@
 #include "Scenes/ChatReceive.h"
 #include "Scenes/CombatActionSpeeds.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/FaunaJointCreation.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldMap.h"
@@ -27,6 +28,7 @@
 #include "UI/GameUiState.h"
 #include "World/ModelEffects.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <format>
@@ -107,6 +109,12 @@ Core::Expected<void, std::string> AttackAndSettle(ActorState& actor, const World
 void Sound(const WorldEntryResources& resources, std::int32_t id)
 {
     resources.world.Runtime().lastSoundId = id;
+}
+
+// 0x518d0f..0x518d26: sin hueco, 0x518cf0 retorna antes del constructor, incluso para un tipo aún pendiente.
+bool HasFreeEffectSlot(const WorldState& world)
+{
+    return std::ranges::any_of(world.Map().effects.Effects(), [](const auto& effect) { return !effect.alive; });
 }
 
 // 0x4f5290: en un jugador, las velocidades (0x4f3f80) y la acción de golpe por la montura, la clase o un rand(); en
@@ -435,7 +443,8 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
         if (succeeded)
         {
             KillModelEffectsOf(world.Map().effects, 0x628, &target, 0);
-            return Core::Unexpected(std::string("0x4cd664: el efecto 0x628 de 0x518cf0 es de la CL11"));
+            if (HasFreeEffectSlot(world))
+                return Core::Unexpected(std::string("0x4cd664: el efecto 0x628 de 0x518cf0 es de la CL11"));
         }
         if (IsPlayer(source))
             return {};
@@ -448,7 +457,9 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
         if (!succeeded)
             return Settle(cast);
         KillModelEffectsOf(world.Map().effects, 0xc1, &target, 1);
-        return Core::Unexpected(std::string("0x4cd6ff: el efecto 0xc1 de 0x518cf0 es de la CL11"));
+        if (HasFreeEffectSlot(world))
+            return Core::Unexpected(std::string("0x4cd6ff: el efecto 0xc1 de 0x518cf0 es de la CL11"));
+        return Settle(cast);
     }
     case 0x2d:
         if (!cast.sourceIsHero && IsPlayer(source))
@@ -509,7 +520,9 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
         if (!succeeded)
             return Settle(cast);
         source.flags78 |= 0x2000;
-        return Core::Unexpected(std::string("0x4cdb72: el efecto 0x138 de 0x518cf0 es de la CL11"));
+        if (HasFreeEffectSlot(world))
+            return Core::Unexpected(std::string("0x4cdb72: el efecto 0x138 de 0x518cf0 es de la CL11"));
+        return Settle(cast);
     }
     case 0x48:
         if (succeeded)
@@ -567,7 +580,10 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
     }
     // 0x4cddd3: el efecto 0x112 en la fuente (CL11) y el sonido 0x94.
     case 0x3b:
-        return Core::Unexpected(std::string("0x4cddfa: el efecto 0x112 de 0x518cf0 es de la CL11"));
+        if (HasFreeEffectSlot(world))
+            return Core::Unexpected(std::string("0x4cddfa: el efecto 0x112 de 0x518cf0 es de la CL11"));
+        Sound(resources, 0x94);
+        return {};
     case 0x3a:
     {
         if (auto acted = Act(source, 0x44, resources); !acted.HasValue())
@@ -862,11 +878,22 @@ Core::Expected<void, std::string> ApplyActorEffect(const ActorEffect& effect, co
     constexpr std::uint8_t LevelUpKind = 0x10;
     if (resources.world.Actors()[index].byte88 != PlayerObject || effect.kind != LevelUpKind)
         return {};
-    // 0x4dbf9f..0x4dc004: 15 joints 0x60f/0 (0x530860(0x60f, o+0x10, o+0x10, o+0x1c, 0, o, 40, la clave 2, 0, 0, −1),
-    // que MuRet crea: Scenes::CreateFaunaJoint), el calco 0x61e/0 sobre o y el sonido 0x98. El calco con el subtipo 0
-    // tampoco tiene paso en MuRet (0x52b984); el GS 0.97 no manda este paquete (P-C262).
-    return Core::Unexpected(std::string("0x4dbfc5: los 15 joints 0x60f/0 de clave 2 (0x530860) y el calco 0x61e/0 "
-                                        "del level-up de otro jugador no están portados"));
+    // 0x4dbfad..0x4dc004: quince intentos de alta, el calco /0 y el sonido. Los pools llenos omiten sólo el alta.
+    ActorState& actor = resources.world.Actors()[index];
+    constexpr int Sparkles = 15;
+    for (int sparkle = 0; sparkle < Sparkles; ++sparkle)
+    {
+        const auto created =
+            CreateFaunaJoint(resources.world.DrawTail().joints,
+                             {0x60f, actor.position, actor.position, actor.angles, 0, &actor, 40.0f, 2, 0, 0, -1},
+                             resources.cloth.random);
+        if (!created.HasValue())
+            return Core::Unexpected(std::format("0x4dbfc5: {}", created.Error()));
+    }
+    static_cast<void>(resources.world.Map().effects.CreatePetSummon(actor.position, actor.angles, actor.light, &actor,
+                                                                    World::LevelUpDecalSubtype));
+    Sound(resources, 0x98);
+    return {};
 }
 
 Core::Expected<void, std::string> ApplySkillList(const SkillList& list, const WorldEntryResources& resources)

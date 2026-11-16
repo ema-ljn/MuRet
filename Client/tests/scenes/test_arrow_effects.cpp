@@ -1,4 +1,5 @@
 #include "Scenes/ArrowEffects.h"
+#include "Network/Crypto/Xor32.h"
 
 #include "Core/Expected.h"
 #include "Data/Terrain/TerrainAttributes.h"
@@ -195,20 +196,19 @@ struct ArrowWorld
 
     ArrowStepContext StepContext()
     {
-        return ArrowStepContext{.world = world,
-                                .random = random,
-                                .particles = &particles,
-                                .sprites = &sprites,
-                                .lighting = lighting.get(),
-                                .worldClock = 0.0f,
-                                .terrainHeight = terrainHeight ? terrainHeight
-                                                     : ground.has_value()
-                                                           ? std::function<double(float, float)>(
-                                                                 [this](float, float) { return ground.value_or(0.0); })
-                                                           : std::function<double(float, float)>{},
-                                .soundRequest = [this](std::int32_t sound) { sounds.push_back(sound); },
-                                .send = [this](Client::Protocol::Outgoing packet)
-                                { sent.push_back(std::move(packet)); }};
+        return ArrowStepContext{
+            .world = world,
+            .random = random,
+            .particles = &particles,
+            .sprites = &sprites,
+            .lighting = lighting.get(),
+            .worldClock = 0.0f,
+            .terrainHeight = terrainHeight        ? terrainHeight
+                             : ground.has_value() ? std::function<double(float, float)>(
+                                                        [this](float, float) { return ground.value_or(0.0); })
+                                                  : std::function<double(float, float)>{},
+            .soundRequest = [this](std::int32_t sound) { sounds.push_back(sound); },
+            .send = [this](Client::Protocol::Outgoing packet) { sent.push_back(std::move(packet)); }};
     }
 
     // Saca rand() hasta que el que sigue a los próximos `skipped` sea par (o impar con `odd`): el rand() & 1 de
@@ -1001,7 +1001,6 @@ TEST(ArrowEffectsTest, TheSkillOfThePlaceDecidesTheHit)
     }
 }
 
-
 TEST(ArrowEffectsTest, TheFifthSubtypeBurnsBlue)
 {
     for (const std::int32_t map : {0, 2})
@@ -1103,7 +1102,7 @@ TEST(ArrowEffectsTest, TheAquagoldArrowFallsAndBounces)
     const std::array cases{Case{"el terreno abajo", 0.0, 40, 0, true, ""},
                            Case{"el terreno arriba", 200.0, 40, 0, true, ""},
                            Case{"el terreno en la z", 125.0, 40, 0, true, ""},
-                           Case{"la última vida del héroe", 0.0, 1, 0, true, "0x524405"},
+                           Case{"la última vida del héroe", 0.0, 1, 0, true, ""},
                            Case{"la última vida con el subtipo 0x63", 0.0, 1, 0x63, true, ""},
                            Case{"la última vida de otro", 0.0, 1, 0, false, ""},
                            Case{"sin el terreno", std::nullopt, 40, 0, true, "0x524382"}};
@@ -1137,7 +1136,9 @@ TEST(ArrowEffectsTest, TheAquagoldArrowFallsAndBounces)
 
             const bool last = probe.life == 1;
             const bool fell = probe.ground.has_value();
-            EXPECT_EQ(DrawsSince(before.State(), tested.random), StepDraws + (last && fell ? BurstDraws : 0));
+            const int terminal = last && fell && probe.ownedByTheHero && probe.subtype != 0x63 ? OwnRecord : 0;
+            EXPECT_EQ(DrawsSince(before.State(), tested.random),
+                      StepDraws + (last && fell ? BurstDraws : 0) + terminal);
             if (!probe.cut.empty())
             {
                 EXPECT_TRUE(HasError(stepped, probe.cut)) << ErrorOf(stepped);
@@ -1417,4 +1418,142 @@ TEST(ArrowEffectsTest, ArrowHitSearchUsesTheNativePoolBoundAndDistancePredicate)
         EXPECT_EQ(!arrow.alive, test.expectedHit);
     }
 }
+// 524405: el envío terminal sucede antes de la luz/choque, aun cuando las partículas no tengan hueco.
+TEST(ArrowEffectsTest, TheLastAquagoldStepSendsTheNearbySkillHits)
+{
+    ArrowWorld tested(0);
+    auto& hero = tested.Archer(Crossbow, Crossbow.action, NoTarget);
+    auto& target = tested.Target(VictimSlot, true, 50.0f);
+    target.position = {1050.0f, 1000.0f, 0.0f};
+    target.key = 0x1234;
+    tested.world.OwnCharacter().SetSkillAt(2, 0x18);
+    auto& arrow = tested.world.Map().effects.Effects().front();
+    arrow.alive = true;
+    arrow.type = 0xe2;
+    arrow.life = 1;
+    arrow.transform.position = {1000.0f, 1000.0f, 135.0f};
+    arrow.turnDirection = -10.0f;
+    arrow.ownerContext = &hero;
+    arrow.byte89 = 2;
+    arrow.word8c = 7;
+    tested.FillTheParticles();
+    const auto stepped = StepArrow(arrow, nullptr, tested.StepContext());
+    ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
+    ASSERT_EQ(tested.sent.size(), 1u);
+    const auto clear = Client::Network::Crypto::Xor32Decode(tested.sent[0].packet);
+    const std::vector<std::byte> expected{std::byte{0xc1}, std::byte{11},   std::byte{0x10}, std::byte{0x18},
+                                          std::byte{9},    std::byte{9},    std::byte{7},    std::byte{1},
+                                          std::byte{0x12}, std::byte{0x34}, std::byte{0}};
+    EXPECT_TRUE(std::ranges::equal(clear.Bytes(), expected));
+    EXPECT_FALSE(arrow.alive);
+    EXPECT_EQ(arrow.life, 0);
+    EXPECT_EQ(DrawsSince(Seed, tested.random), 1 + 4 * 3 + 2 * 20 * 2 + 2 * OwnRecord + 2);
+}
+
+TEST(ArrowEffectsTest, FullJointsPreserveTheArrowConstructorTails)
+{
+    for (const auto type : {0xf7, 0xf8, 0xf9, 0x10e, 0x111, 0x11c, 0xe1, 0xdb})
+    {
+        SCOPED_TRACE(type);
+        ArrowWorld tested(0);
+        tested.world.OwnCharacter().bytef04 = 9;
+        for (auto& joint : tested.world.DrawTail().joints)
+            joint.alive = true;
+        const std::int32_t subtype = type == 0xe1 ? 1 : 2;
+        const Client::World::ModelEffectArguments args{.type = static_cast<std::int16_t>(type),
+                                                       .position = {100.0f, 200.0f, 300.0f},
+                                                       .angles = {},
+                                                       .light = {1.0f, 1.0f, 1.0f},
+                                                       .subtype = subtype};
+        const auto made = Client::Scenes::CreateTheArrowEffect(args, tested.world, tested.random);
+        ASSERT_TRUE(made.HasValue()) << made.Error();
+        const auto& arrow = tested.world.Map().effects.Effects().front();
+        EXPECT_EQ(arrow.life, 30);
+        EXPECT_EQ(arrow.word8c, 9);
+        EXPECT_EQ(DrawsSince(Seed, tested.random), OwnRecord + (type == 0x11c ? 1 : 0));
+        if (type == 0xf7 || type == 0x10e || type == 0x111 || type == 0xf9 || type == 0xdb)
+        {
+            EXPECT_EQ(arrow.state, 1);
+            EXPECT_EQ(tested.world.Map().effects.Effects()[1].transform.scale, 1.0f);
+        }
+    }
+}
+
+TEST(ArrowEffectsTest, FullPoolsPreserveTheNewlyReachableArrowSteps)
+{
+    for (const auto type : {0xf7, 0xf8, 0xf9, 0x10e, 0x111, 0x11c})
+    {
+        SCOPED_TRACE(type);
+        ArrowWorld tested(0);
+        tested.FillTheParticles();
+        for (auto& effect : tested.world.Map().effects.Effects())
+            effect.alive = true;
+        auto& arrow = tested.world.Map().effects.Effects().front();
+        arrow.type = static_cast<std::int16_t>(type);
+        arrow.life = 20;
+        arrow.transform.position = {1000.0f, 1000.0f, 1000.0f};
+        arrow.velocity = {0.0f, -70.0f, 0.0f};
+        const auto stepped = StepArrow(arrow, nullptr, tested.StepContext());
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(arrow.life, 19);
+        EXPECT_EQ(arrow.transform.position.y, 930.0f);
+        EXPECT_EQ(DrawsSince(Seed, tested.random), type == 0x10e ? 2 : type == 0x11c ? 10 : 1);
+    }
+}
+
+TEST(ArrowEffectsTest, CelestialWritesTheCallerAnglesAfterCopyingThem)
+{
+    ArrowWorld tested(0);
+    for (auto& joint : tested.world.DrawTail().joints)
+        joint.alive = true;
+    glm::vec3 angles{15.0f, 25.0f, 35.0f};
+    const Client::World::ModelEffectArguments args{
+        .type = 0xf8, .position = {10.0f, 20.0f, 30.0f}, .angles = angles, .light = {1.0f, 1.0f, 1.0f}, .subtype = 1};
+    ASSERT_TRUE(Client::Scenes::CreateTheArrowEffect(args, tested.world, tested.random, &angles).HasValue());
+    const auto& effect = tested.world.Map().effects.Effects().front();
+    EXPECT_EQ(angles, (glm::vec3{0.0f, 0.0f, 35.0f}));
+    EXPECT_EQ(effect.transform.angles, (glm::vec3{15.0f, 25.0f, 35.0f}));
+    EXPECT_EQ(effect.transform.position, (glm::vec3{10.0f, 20.0f, 160.0f}));
+    EXPECT_EQ(effect.velocity, (glm::vec3{0.0f, -60.0f, 0.0f}));
+    EXPECT_EQ(DrawsSince(Seed, tested.random), OwnRecord);
+}
+
+TEST(ArrowEffectsTest, AFullParticlePoolReachesTwentiethsEffectFrontier)
+{
+    ArrowWorld tested(0);
+    tested.FillTheParticles();
+    auto& arrow = tested.world.Map().effects.Effects().front();
+    arrow.alive = true;
+    arrow.type = 0x11c;
+    arrow.life = 20;
+    arrow.transform.position = {100.0f, 200.0f, 300.0f};
+    const auto stepped = StepArrow(arrow, nullptr, tested.StepContext());
+    EXPECT_TRUE(HasError(stepped, "0x526c05"));
+    EXPECT_EQ(arrow.point40, arrow.transform.position);
+    EXPECT_EQ(arrow.transform.angles.y, 60.0f);
+    EXPECT_EQ(arrow.life, 20);
+    EXPECT_EQ(DrawsSince(Seed, tested.random), 10);
+}
+
+TEST(ArrowEffectsTest, TheLastFreeEffectSlotStillFinishesAnArrowWithFullJoints)
+{
+    ArrowWorld tested(0);
+    for (auto& joint : tested.world.DrawTail().joints)
+        joint.alive = true;
+    for (auto& effect : tested.world.Map().effects.Effects())
+        effect.alive = true;
+    auto& arrow = tested.world.Map().effects.Effects().front();
+    arrow.alive = false;
+    tested.world.OwnCharacter().bytef04 = 11;
+    const Client::World::ModelEffectArguments args{
+        .type = 0x10e, .position = {10.0f, 20.0f, 30.0f}, .angles = {}, .light = {1.0f, 1.0f, 1.0f}, .subtype = 2};
+    const auto made = Client::Scenes::CreateTheArrowEffect(args, tested.world, tested.random);
+    ASSERT_TRUE(made.HasValue()) << ErrorOf(made);
+    EXPECT_EQ(arrow.point40, (glm::vec3{10.0f, 20.0f, 160.0f}));
+    EXPECT_EQ(arrow.state, 1);
+    EXPECT_EQ(arrow.dword100, 0);
+    EXPECT_EQ(arrow.word8c, 11);
+    EXPECT_EQ(DrawsSince(Seed, tested.random), OwnRecord);
+}
+
 } // namespace

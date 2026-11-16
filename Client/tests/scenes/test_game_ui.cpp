@@ -91,7 +91,8 @@ class SteppingUi
 public:
     Client::Core::Expected<void, std::string> Step(std::int32_t x = 0, std::int32_t y = 0)
     {
-        GameUiContext context{.world = world, .random = random, .input = input, .mouseX = x, .mouseY = y, .inventory = inventory};
+        GameUiContext context{
+            .world = world, .random = random, .input = input, .mouseX = x, .mouseY = y, .inventory = inventory};
         context.skills = skills;
         return Client::Scenes::StepTheGameUi(context);
     }

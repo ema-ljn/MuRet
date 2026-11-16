@@ -11,12 +11,13 @@
 #include "Scenes/AttackStep.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/GameMovementState.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/PlayerActionSpeeds.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/Particles.h"
+#include "World/ModelEffects.h"
 
 #include "support/PlayerActors.h"
 
@@ -620,7 +621,7 @@ TEST(AttackFrameSkillsTest, TheThrowOf37)
             EXPECT_EQ(tested.sounds, probe.sounds);
             EXPECT_EQ(tested.Threshold(), probe.threshold);
             // Sin elegido, 0x558eb0 da −1.
-            EXPECT_EQ(hero.word8a, probe.draws == OwnRecord ? 0xffff : 0x1234);
+            EXPECT_EQ(static_cast<std::uint16_t>(hero.word8a), probe.draws == OwnRecord ? 0xffff : 0x1234);
             EXPECT_EQ(hero.byte381, probe.step);
         }
     }
@@ -699,7 +700,7 @@ TEST(AttackFrameSkillsTest, TheHandBoltsOfTheTail)
         {"el hueso 0", Player, 0, "0x4f8fef"},
         {"el hueso de la cuenta", Player, Bones, "0x4f8fef"},
         {"pasado la cuenta", Player, Bones + 1, ""},
-        {"otro tipo", 0x152, 0, "0x4f8f69"},
+        {"otro tipo", 0x152, 0, "0x4f8fef"},
     };
     for (const std::int32_t map : Maps)
     {
@@ -729,4 +730,85 @@ TEST(AttackFrameSkillsTest, TheHandBoltsOfTheTail)
         }
     }
 }
+// Un pool lleno omite el constructor CL11 y conserva todos los writes, sonidos y rand() de sus callers.
+TEST(AttackFrameSkillsTest, FullPoolsContinueTheNativeFrameTails)
+{
+    struct Case
+    {
+        std::uint8_t skill, action, step;
+        float frame;
+        int draws;
+        std::uint8_t finalStep;
+        int threshold;
+        std::vector<std::int32_t> sounds;
+    };
+    const std::vector<Case> cases{
+        {0x2b, 0x2b, 6, 0.0f, 9, 6, 15, {}},
+        {0x2b, 0x2b, 8, 0.0f, 9, 8, 15, {0x71}},
+        {0x2b, 0x2b, 12, 0.0f, 0, 15, 15, {}},
+        {0x2f, 0x42, 4, 0.0f, 0, 4, 15, {}},
+        {0x2f, 0x42, 8, 0.0f, 0, 8, 15, {}},
+        {0x2f, 0x42, 13, 0.0f, 9, 13, 15, {}},
+        {0x34, 0x2e, 3, 6.0f, 0, 3, 5, {0x81}},
+        {0x37, 0x3d, 1, 2.0f, 0, 1, 15, {}},
+        {0x37, 0x3d, 2, 3.0f, 2 * OwnRecord, 15, 15, {0x72}},
+        {0x38, 0x8d, 2, 0.0f, 0, 15, 15, {0x72}},
+        {0x39, 0x84, 2, 5.1f, 0, 15, 15, {0x270}},
+        {0x39, 0x84, 2, 2.4f, 0, 2, 15, {0x270}},
+    };
+    for (const auto& probe : cases)
+    {
+        SCOPED_TRACE(testing::Message() << int{probe.skill} << "/" << int{probe.step});
+        FrameWorld tested(0);
+        ActorState& actor = tested.Striker(probe.action, probe.frame, probe.step);
+        actor.hands[0].bone = HandBone;
+        actor.bodyPose.assign(Bones, Client::Render::Models::BoneTransform(1.0f));
+        actor.attackTarget = 4;
+        tested.world.Actors()[4].alive = true;
+        tested.world.OwnCharacter().attackSpeed = 123;
+        for (auto& effect : tested.world.Map().effects.Effects())
+            effect.alive = true;
+        for (auto& joint : tested.joints)
+            joint.alive = true;
+        const auto stepped = tested.Step(actor, probe.skill);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_TRUE(stepped.Value());
+        EXPECT_EQ(DrawsSince(Seed, tested.random), probe.draws);
+        EXPECT_EQ(actor.byte381, probe.finalStep);
+        EXPECT_EQ(tested.Threshold(), probe.threshold);
+        EXPECT_EQ(tested.sounds, probe.sounds);
+        if (probe.skill == 0x2b && probe.step >= 10)
+        {
+            EXPECT_EQ(tested.world.Actors()[4].byte1a0, 0x23);
+        }
+        if (probe.skill == 0x37 && probe.frame >= 3.0f)
+        {
+            const float product = static_cast<float>(123.0 * static_cast<double>(0.004f));
+            const float speed = static_cast<float>(static_cast<double>(product) + static_cast<double>(0.54f));
+            EXPECT_EQ(tested.world.ActionSpeeds().Speed(0x3d, -1.0f), speed);
+        }
+    }
+}
+
+TEST(AttackFrameSkillsTest, Skill2bReadsThePlacementPublishedBeforeTheActorMoves)
+{
+    FrameWorld tested(0);
+    auto& actor = tested.Striker(0x2b, 0.0f, 6);
+    actor.hands[0].bone = HandBone;
+    actor.position = {10.0f, 20.0f, 30.0f};
+    actor.scale = 0.5f;
+    actor.bodyPose.assign(Bones, Client::Render::Models::BoneTransform(1.0f));
+    actor.bodyPose[HandBone][3] = {1.0f, 2.0f, 3.0f};
+    tested.world.PlaceModel(actor.type, {.scale = 2.0f, .origin = {100.0f, 200.0f, 300.0f}});
+    for (auto& joint : tested.joints)
+        joint.alive = true;
+    for (auto& effect : tested.world.Map().effects.Effects())
+        effect.alive = true;
+    const auto stepped = tested.Step(actor, 0x2b);
+    ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
+    EXPECT_EQ(actor.skillHandPoint, (glm::vec3{102.0f, -96.0f, 306.0f}));
+    EXPECT_EQ(actor.position, (glm::vec3{10.0f, 20.0f, 30.0f}));
+    EXPECT_EQ(DrawsSince(Seed, tested.random), 9);
+}
+
 } // namespace

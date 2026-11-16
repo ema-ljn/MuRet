@@ -142,6 +142,8 @@ Core::Expected<void, std::string> WalkToward(ActorState& hero, std::int32_t goal
                                              bool withType, const HeroSkillContext& context, std::string_view where)
 {
     const SkillCell start = ReadTheHeroCell(hero, context);
+    if (auto altar = CheckTheCrywolfAltar(context.world, where); !altar.HasValue())
+        return altar;
     constexpr std::int32_t LastCell = 0xff;
     if (!InRange(goalX, 0, LastCell) || !InRange(goalY, 0, LastCell))
         return {};

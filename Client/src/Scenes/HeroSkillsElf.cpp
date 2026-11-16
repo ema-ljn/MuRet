@@ -298,6 +298,8 @@ Core::Expected<void, std::string> ElfBranch::WalkToward(std::int32_t goalX, std:
                                                         bool withType, std::string_view where)
 {
     const SkillCell start = ReadTheHeroCell(m_hero, m_context);
+    if (auto altar = CheckTheCrywolfAltar(m_world, where); !altar.HasValue())
+        return altar;
     constexpr std::int32_t LastCell = 0xff;
     if (!InRange(goalX, 0, LastCell) || !InRange(goalY, 0, LastCell))
         return {};

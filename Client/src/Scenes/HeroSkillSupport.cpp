@@ -62,7 +62,7 @@ ActorCombatContext CombatContextOf(const HeroSkillContext& context)
     return ActorCombatContext{.world = context.world,
                               .random = context.random,
                               .playerSkeleton = context.playerSkeleton,
-                              .models = nullptr,
+                              .models = context.models,
                               .items = context.items};
 }
 

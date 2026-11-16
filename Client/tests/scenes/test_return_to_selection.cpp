@@ -261,7 +261,8 @@ TEST(ReturnToSelectionWithoutDataTest, TheReturnForgetsThePets)
     runtime.pets[1].level = 30;
     runtime.pets[0].experience = 12;
 
-    ApplyReturnToSelection(tested->Resources());
+    const auto returned = ApplyReturnToSelection(tested->Resources());
+    ASSERT_TRUE(returned.HasValue()) << returned.Error();
 
     EXPECT_EQ(runtime.petTab, 0);
     EXPECT_EQ(runtime.panels.delegated.pet, 0);

@@ -14,6 +14,7 @@
 
 #include <array>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <string>
@@ -28,6 +29,7 @@ constexpr std::int32_t CastleSiegeMap = 30;
 constexpr double CellsPerUnit = static_cast<double>(0.01f); // 0x6b86c0
 constexpr std::uint8_t MonsterKind = 2;
 constexpr std::uint8_t PlayerKind = 1;
+constexpr std::size_t NativeActorSlots = 400;         // 517bf3..517c00: el slot400 de reserva de MuRet no se recorre.
 constexpr std::string_view GameMasterName = "webzen"; // 0x6c8c40
 
 float F32(double value)
@@ -56,7 +58,7 @@ Protocol::Skill::SkillHitsSend CollectTheTargets(const SkillHitsRequest& request
     Protocol::Skill::SkillHitsSend hits{};
     const auto actors = world.Actors();
     const ActorState* hero = &actors[world.Runtime().hero];
-    for (ActorState& actor : actors)
+    for (ActorState& actor : actors.first<NativeActorSlots>())
     {
         // 0x517b54..0x517b73: la distancia se calcula antes de mirar nada.
         const double dx = D(request.point.x) - D(actor.position.x);

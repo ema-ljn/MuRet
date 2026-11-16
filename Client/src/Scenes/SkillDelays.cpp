@@ -8,6 +8,7 @@
 #include "Scenes/WorldState.h"
 
 #include <algorithm>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <format>
@@ -156,7 +157,9 @@ Core::Expected<void, std::string> CountDownSkillDelays(std::int32_t elapsed, con
         std::int32_t& delay = own.skillDelays[slot];
         if (delay <= 0)
             continue;
-        delay -= elapsed;
+        // 0x5530c2..0x5530d3: SUB DWORD y después comparación con signo, incluso al desbordar la resta.
+        const std::uint32_t remaining = std::bit_cast<std::uint32_t>(delay) - std::bit_cast<std::uint32_t>(elapsed);
+        delay = std::bit_cast<std::int32_t>(remaining);
         if (delay < 0)
             delay = 0;
     }

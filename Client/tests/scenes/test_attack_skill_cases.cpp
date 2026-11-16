@@ -15,6 +15,9 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/ModelEffects.h"
+#include "World/KalimaWorld.h"
+#include "World/KalimaWaves.h"
+#include "World/Particles.h"
 #include "World/WorldTerrain.h"
 
 #include "support/PlayerActors.h"
@@ -24,6 +27,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -150,6 +154,7 @@ struct SkillWorld
         return CharacterStepContext{.world = world,
                                     .random = random,
                                     .skills = skills,
+                                    .particles = withParticles ? &world.Particles() : nullptr,
                                     .joints = withJoints ? std::span<JointState>(joints) : std::span<JointState>{},
                                     .soundRequest = [this](std::int32_t sound) { sounds.push_back(sound); },
                                     .controlDown = controlDown};
@@ -173,6 +178,7 @@ struct SkillWorld
     const Client::Data::Tables::SkillTable* skills = nullptr;
     std::vector<JointState> joints = std::vector<JointState>(16);
     bool withJoints = true;
+    bool withParticles = false;
 };
 
 std::vector<const Client::World::ModelEffect*> AliveEffects(const WorldState& world)
@@ -903,9 +909,225 @@ TEST(AttackSkillCasesTest, TheSparkCutsAtItsFirstParticle)
     SkillWorld tested;
     tested.Striker().animation.action = 0x3a;
 
-    const auto sparked = SparkTheTarget(tested.Striker(), tested.Victim(), StrikerSlot);
+    const auto sparked = SparkTheTarget(tested.Striker(), tested.Victim(), StrikerSlot, tested.Context());
 
     EXPECT_TRUE(HasError(sparked, "0x52e77b")) << ErrorOf(sparked);
     EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
 }
+// 501494→51fff0: H3 ya proporciona el estallido que precede a las piedras pendientes.
+TEST(AttackSkillCasesTest, Skill0eRunsTheBurstBeforeTheNextCapability)
+{
+    SkillWorld tested;
+    tested.withParticles = true;
+    const auto used = tested.Head(0x0e);
+    ASSERT_FALSE(used.HasValue());
+    EXPECT_NE(used.Error().find("0x520119"), std::string::npos) << used.Error();
+    EXPECT_TRUE(std::ranges::any_of(tested.world.Particles().All(), [](const auto& p) { return p.alive; }));
+    for (auto& effect : tested.world.Map().effects.Effects())
+        effect.alive = true;
+    for (auto& particle : tested.world.Particles().All())
+        particle.alive = true;
+    const auto before = tested.random.State();
+    const auto full = tested.Head(0x0e);
+    ASSERT_TRUE(full.HasValue()) << full.Error();
+    EXPECT_EQ(DrawsSince(before, tested.random), 8 * (20 * 2 + 2) + OwnRecord);
+}
+
+TEST(AttackSkillCasesTest, TheFullPoolsPreserveEveryHeadTail)
+{
+    struct Case
+    {
+        std::uint8_t skill;
+        int draws, sound;
+        std::uint8_t volley;
+    };
+    const std::vector<Case> cases{{0x30, 0, 127, 0},    {0x43, 0, 614, 0},    {0x44, 0, 615, 0},    {0x45, 0, 616, 0},
+                                  {0x46, 0, 617, 0},    {0x47, 0, 615, 0},    {0x48, 0, 619, 0},    {0x35, 0, 127, 0},
+                                  {0x40, 0, 463, 0},    {0x4b, 0, 626, 0},    {0x3f, 0, 459, 0},    {0x41, 0, 461, 0},
+                                  {0x31, 0, 114, 0},    {0x29, 3848, 115, 0}, {0xa, 3848, 119, 0},  {0x28, 0, 147, 0},
+                                  {0x26, 3848, 142, 1}, {0x27, 3858, 144, 1}, {0x8, 3848, 116, 0},  {0xc, 3848, 122, 0},
+                                  {0xd, 7696, -1, 1},   {0xe, 8032, -1, 1},   {0x9, 19240, 117, 1}, {0x2c, 0, 620, 0}};
+    for (const auto& probe : cases)
+    {
+        SCOPED_TRACE(int{probe.skill});
+        SkillWorld tested;
+        tested.withParticles = true;
+        auto& actor = tested.Hero();
+        actor.skillTarget4c = static_cast<std::int32_t>(VictimSlot);
+        actor.attackTarget = static_cast<std::uint16_t>(VictimSlot);
+        actor.flags78 = probe.skill == 0x48 ? 0x8000u : 0u;
+        for (auto& effect : tested.world.Map().effects.Effects())
+            effect.alive = true;
+        for (auto& joint : tested.joints)
+            joint.alive = true;
+        for (auto& particle : tested.world.Particles().All())
+            particle.alive = true;
+        const auto used = StepTheHeadSkill(actor, HeroSlot, probe.skill, tested.Context());
+        ASSERT_TRUE(used.HasValue()) << used.Error();
+        EXPECT_EQ(DrawsSince(Seed, tested.random), probe.draws);
+        EXPECT_EQ(tested.world.OwnCharacter().bytef04, probe.volley);
+        EXPECT_EQ(tested.sounds,
+                  probe.sound < 0 ? std::vector<std::int32_t>{} : std::vector<std::int32_t>{probe.sound});
+        if (probe.skill == 0x48)
+        {
+            EXPECT_EQ(actor.flags78, 0u);
+        }
+    }
+}
+
+TEST(AttackSkillCasesTest, TheFullPoolsPreserveEveryTargetTail)
+{
+    struct Case
+    {
+        std::uint8_t skill;
+        std::uint32_t flags;
+        int sound;
+    };
+    const std::vector<Case> cases{{1, 1, 0x22},     {7, 2, 0x78},     {0x1b, 8, -1},    {0x10, 0x100, 0x84},
+                                  {2, 0, 0x42},     {4, 0, 0x42},     {0xb, 0, 0x76},   {0x2d, 0, 0x26d},
+                                  {0x49, 0, 0x26f}, {0x4a, 0, 0x271}, {0x3c, 0, 0x1c8}, {0x3d, 0, -1},
+                                  {0x11, 0, 0x76},  {0x1c, 4, -1}};
+    for (const auto& probe : cases)
+    {
+        SCOPED_TRACE(int{probe.skill});
+        SkillWorld tested;
+        tested.withParticles = true;
+        tested.Striker().skillSucceeded = 1;
+        for (auto& effect : tested.world.Map().effects.Effects())
+            effect.alive = true;
+        for (auto& joint : tested.joints)
+            joint.alive = true;
+        for (auto& particle : tested.world.Particles().All())
+            particle.alive = true;
+        const auto used = tested.WithTarget(probe.skill);
+        ASSERT_TRUE(used.HasValue()) << used.Error();
+        EXPECT_EQ(tested.Victim().flags78, probe.flags);
+        EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
+        EXPECT_EQ(tested.sounds,
+                  probe.sound < 0 ? std::vector<std::int32_t>{} : std::vector<std::int32_t>{probe.sound});
+    }
+}
+
+TEST(AttackSkillCasesTest, MixedPoolsStopAtTheFirstConstructorWithRoom)
+{
+    {
+        SkillWorld tested;
+        for (auto& joint : tested.joints)
+            joint.alive = true;
+        EXPECT_TRUE(HasError(tested.Head(0x30), "0x4fe127"));
+        EXPECT_TRUE(tested.sounds.empty());
+        tested.joints.front().alive = false;
+        for (auto& effect : tested.world.Map().effects.Effects())
+            effect.alive = true;
+        EXPECT_TRUE(HasError(tested.Head(0x30), "0x4fe0e4"));
+    }
+    {
+        SkillWorld tested;
+        tested.withParticles = true;
+        for (auto& effect : tested.world.Map().effects.Effects())
+            effect.alive = true;
+        EXPECT_TRUE(HasError(tested.WithTarget(1), "0x50497e"));
+        EXPECT_TRUE(tested.sounds.empty());
+        tested.Striker().skillSucceeded = 1;
+        tested.Striker().type = 0x164;
+        for (auto& effect : tested.world.Map().effects.Effects())
+            effect.alive = false;
+        for (auto& particle : tested.world.Particles().All())
+            particle.alive = true;
+        ASSERT_TRUE(tested.WithTarget(1).HasValue());
+        EXPECT_EQ(tested.Victim().flags78, 1u);
+        EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x22}));
+    }
+}
+
+TEST(AttackSkillCasesTest, KillingABuffJointRestoresTheConstructorFrontier)
+{
+    SkillWorld tested;
+    for (auto& joint : tested.joints)
+        joint.alive = true;
+    auto& killed = tested.joints.front();
+    killed.type = 0x10f;
+    killed.subtype = 0;
+    killed.ownerContext = &tested.Victim();
+    EXPECT_TRUE(HasError(tested.WithTarget(0x10), "0x5048db"));
+    EXPECT_FALSE(killed.alive);
+    EXPECT_EQ(tested.Victim().flags78, 0x100u);
+    EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x84}));
+}
+
+TEST(AttackSkillCasesTest, BindingFlagsPrecedeTheJointAndExistingBindingsSkipIt)
+{
+    SkillWorld tested;
+    tested.Striker().skillSucceeded = 1;
+    for (auto& effect : tested.world.Map().effects.Effects())
+        effect.alive = true;
+    EXPECT_TRUE(HasError(tested.WithTarget(0x1b), "0x5045f9"));
+    EXPECT_EQ(tested.Victim().flags78, 8u);
+    auto& binding = tested.joints.front();
+    binding.alive = true;
+    binding.type = 0x10f;
+    binding.subtype = 9;
+    binding.ownerContext = &tested.Victim();
+    EXPECT_TRUE(tested.WithTarget(0x1b).HasValue());
+    EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
+}
+
+TEST(AttackSkillCasesTest, FullJointsKeepAllStrikeAroundSelectors)
+{
+    const auto skills = SkillsWithRange(10);
+    for (const int count : {0, 1, 10})
+    {
+        SCOPED_TRACE(count);
+        SkillWorld tested;
+        tested.skills = &skills;
+        tested.Hero().alive = false;
+        tested.Victim().alive = false;
+        tested.Striker().byte88 = 0;
+        tested.Striker().skillTarget4c = static_cast<std::int32_t>(VictimSlot);
+        for (int target = 0; target < count; ++target)
+            tested.Monster(static_cast<std::size_t>(100 + target), 50.0f);
+        for (auto& joint : tested.joints)
+            joint.alive = true;
+        const auto used = tested.Head(0x4c);
+        ASSERT_TRUE(used.HasValue()) << ErrorOf(used);
+        EXPECT_EQ(DrawsSince(Seed, tested.random), 23 + count * (4 + SkillEntry));
+    }
+}
+
+TEST(AttackSkillCasesTest, FullParticlesKeepTheFortySparkSelectors)
+{
+    SkillWorld tested;
+    tested.withParticles = true;
+    for (auto& particle : tested.world.Particles().All())
+        particle.alive = true;
+    const auto sparked = SparkTheTarget(tested.Striker(), tested.Victim(), StrikerSlot, tested.Context());
+    ASSERT_TRUE(sparked.HasValue()) << ErrorOf(sparked);
+    EXPECT_EQ(DrawsSince(Seed, tested.random), 40);
+}
+
+TEST(AttackSkillCasesTest, AFullEffectPoolStillDisturbsKalimaWhenItsOwnerExists)
+{
+    for (const bool hasOwner : {false, true})
+    {
+        SCOPED_TRACE(hasOwner);
+        SkillWorld tested(24);
+        tested.Striker().cellX = 64;
+        tested.Striker().cellY = 63;
+        if (hasOwner)
+            tested.world.Map().kalima = std::make_unique<Client::World::KalimaWorld>(24);
+        for (auto& effect : tested.world.Map().effects.Effects())
+            effect.alive = true;
+        const auto used = tested.Head(0x0a);
+        ASSERT_TRUE(used.HasValue()) << ErrorOf(used);
+        EXPECT_EQ(DrawsSince(Seed, tested.random), OwnRecord + 8);
+        EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x77}));
+        if (hasOwner)
+        {
+            const auto& waves = tested.world.Map().kalima->Waves();
+            EXPECT_NE(waves.planes[0][126 * 256 + 128], 0u);
+            EXPECT_EQ(waves.planes[0][0], 0u);
+        }
+    }
+}
+
 } // namespace

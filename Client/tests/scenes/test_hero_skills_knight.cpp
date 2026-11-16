@@ -704,10 +704,15 @@ TEST(HeroSkillsKnightTest, TheCostsGateTheSkill)
         auto& potion = tested->world.Inventory().cells[12];
         potion.id = 0x1c05;
         potion.occupied = 1;
+        const auto potionExpected = Advanced(tested->random, UnpaidDraws + 3);
         const auto result = tested->Use();
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_TRUE(Contains(result.Error(), "0x581b9e")) << result.Error();
-        EXPECT_TRUE(Contains(result.Error(), "hito 5")) << result.Error();
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        ASSERT_EQ(tested->sent.size(), 1u);
+        EXPECT_EQ(tested->Sent(0), (std::vector<std::uint8_t>{0xc1, 6, 0x26, 24, 0, 0}));
+        EXPECT_EQ(tested->random.State(), potionExpected.State());
+        EXPECT_EQ(tested->world.Runtime().ui.field5767954, 10);
+        EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x20);
+        EXPECT_EQ(tested->world.OwnCharacter().mana, 100);
     }
     {
         const auto tested = AKnight(0x29);
@@ -835,3 +840,21 @@ TEST(HeroSkillsKnightHelpersTest, TheEnergyComesFromSkillBmd)
     EXPECT_FALSE(Client::Scenes::SkillEnergyRequirement(0x29, missing).HasValue());
 }
 } // namespace
+
+TEST(HeroSkillsKnightTest, TheApproachChecksTheCrywolfAltarBeforeFindingAPath)
+{
+    auto tested = AKnight(0x4c, Knight, 34);
+    tested->Hero().pet.model = 0x1c37;
+    tested->Movement().selectedSkillRange = 1.0f;
+    tested->world.Runtime().crywolf.stage = 3;
+    tested->world.Runtime().movement.chosenNpc = 30;
+    tested->world.Actors()[30].type = 0x206;
+    const auto expected = Advanced(tested->random, PaidDraws + CellsDraws);
+    const auto used = tested->Use();
+    ASSERT_FALSE(used.HasValue());
+    EXPECT_TRUE(Contains(used.Error(), "0x4eac41")) << used.Error();
+    EXPECT_TRUE(Contains(used.Error(), "0x58975f")) << used.Error();
+    EXPECT_EQ(tested->Hero().movement, 0);
+    EXPECT_EQ(tested->Hero().path.count, 0);
+    EXPECT_EQ(tested->random.State(), expected.State());
+}

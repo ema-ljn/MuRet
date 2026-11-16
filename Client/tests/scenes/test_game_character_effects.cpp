@@ -526,7 +526,23 @@ TEST_F(GameCharacterEffectsTest, ThePetSummonDropsThreeEnergyJointsAroundItsOwne
     EXPECT_EQ(m_random.State(), AfterRandoms(7 * 20));
 }
 
-// Otro efecto no es el 0x61e/1, y sin la tabla de joints corta antes de sacar rand().
+// 0x52b984..0x52bb2c: el /0 no emite joints y va a la cola común, con un solo rand() por paso.
+TEST_F(GameCharacterEffectsTest, TheLevelUpDecalExpiresWithoutAJointTable)
+{
+    ASSERT_TRUE(m_effects.CreatePetSummon(m_actor.position, {}, glm::vec3(0.5f), &m_actor, 0).has_value());
+    Client::World::ModelEffect& decal = m_effects.Effects()[0];
+    for (int step = 1; step <= 20; ++step)
+    {
+        const auto stepped = Client::Scenes::StepPetSummon(decal, {}, m_random);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(decal.life, 20 - step);
+        EXPECT_EQ(decal.alive, step < 20);
+        EXPECT_EQ(decal.transform.position, m_actor.position);
+        EXPECT_EQ(m_random.State(), AfterRandoms(static_cast<std::size_t>(step)));
+    }
+}
+
+// Otro efecto no es el 0x61e/0, /1 ni /3, y sin la tabla de joints el /1 corta antes de sacar rand().
 TEST_F(GameCharacterEffectsTest, ThePetSummonRefusesOtherEffectsAndAMissingJointTable)
 {
     ASSERT_TRUE(m_effects.CreatePetSummon(m_actor.position, {}, glm::vec3(0.5f), &m_actor).has_value());

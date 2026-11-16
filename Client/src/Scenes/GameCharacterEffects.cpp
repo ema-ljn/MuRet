@@ -685,9 +685,17 @@ Core::Expected<void, std::string> StepPetSummon(World::ModelEffect& effect, std:
     if (!effect.alive)
         return {};
     if (effect.type != World::ColoredDecalEffect ||
-        (effect.subtype != World::PetSummonSubtype && effect.subtype != World::SummonDecalSubtype))
+        (effect.subtype != World::LevelUpDecalSubtype && effect.subtype != World::PetSummonSubtype &&
+         effect.subtype != World::SummonDecalSubtype))
         return Core::Unexpected(
-            std::format("0x52b9a6: el efecto {:#x}/{} no es el 0x61e/1 ni el /3", effect.type, effect.subtype));
+            std::format("0x52b9a6: el efecto {:#x}/{} no es el 0x61e/0, /1 ni /3", effect.type, effect.subtype));
+    // 0x52b984 → 0x52b9b8 → 0x52bb29: el /0 no entra en 0x518900, ni consulta joints o dueño.
+    if (effect.subtype == World::LevelUpDecalSubtype)
+    {
+        static_cast<void>(random.Next());
+        World::StepModelEffect(effect, nullptr);
+        return {};
+    }
     if (joints.empty())
         return Core::Unexpected<std::string>("0x5189cc: faltan los joints del paso (0x530860)");
     // 0x5208c5: el primer rand() corre para todo efecto vivo, aunque el 0x61e no use la luz.

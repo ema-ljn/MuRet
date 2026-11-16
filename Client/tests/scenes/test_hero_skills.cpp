@@ -1,4 +1,5 @@
 #include "Scenes/HeroSkills.h"
+#include "Scenes/GameMovement.h"
 
 #include "Core/Expected.h"
 #include "Data/Models/Model.h"
@@ -11,6 +12,7 @@
 #include "Network/Packet.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
@@ -1054,22 +1056,36 @@ TEST(HeroSkillsTest, AWeaponSkillShinesOnTheHero)
 // P-C358: el brillo 0x5fe de un héroe transformado (otro modelo que 0x20a) corta en 0x53fdb0 antes de crearse: su
 // escala sale del modelo compartido de ese tipo, que MuRet todavía no tiene (los anillos de transformación). Antes,
 // el D3 y el 0x4f4a10 del modelo (con su esqueleto) corren como siempre.
-TEST(HeroSkillsTest, TheShineOfATransformedHeroIsACut)
+TEST(HeroSkillsTest, TheShineOfATransformedHeroUsesItsSharedModel)
 {
-    for (const std::int32_t map : {0, 2, 8})
+    for (const bool full : {false, true})
     {
-        SCOPED_TRACE(map);
         const AnyModels library;
-        const auto tested = AHeroClicking(0x31, Knight, map);
+        auto tested = AHeroClicking(0x31, Knight);
         tested->models = &library;
-        tested->Hero().type = 0x28;
-        const auto result = tested->Use();
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_TRUE(Contains(result.Error(), "0x53fdb0")) << result.Error();
-        EXPECT_TRUE(Contains(result.Error(), "anillos de transformación")) << result.Error();
-        EXPECT_FALSE(tested->world.Particles().All()[0].alive);
-        ASSERT_EQ(tested->sent.size(), 1u);
-        EXPECT_EQ(ClearBytesOf(tested->sent[0])[2], 0xd3);
+        auto& hero = tested->Hero();
+        hero.type = 0x28;
+        hero.bodyPose.assign(1, Client::Render::Models::BoneTransform(1.0f));
+        hero.hands[0].bone = 0;
+        hero.bodyPose[0][3] = {3.0f, 4.0f, 5.0f};
+        tested->world.PlaceModel(hero.type, {.scale = 2.5f, .origin = {8000.0f, 9000.0f, 100.0f}});
+        if (full)
+            for (auto& particle : tested->world.Particles().All())
+                particle.alive = true;
+        const auto used = tested->Use();
+        ASSERT_TRUE(used.HasValue()) << used.Error();
+        ASSERT_EQ(tested->sent.size(), 2u);
+        EXPECT_EQ(ClearBytesOf(tested->sent[1])[2], 0x19);
+        EXPECT_TRUE(tested->world.Runtime().lastSoundId == 0x3c || tested->world.Runtime().lastSoundId == 0x3d);
+        if (!full)
+        {
+            const auto& shine = tested->world.Particles().All()[0];
+            EXPECT_TRUE(shine.alive);
+            EXPECT_EQ(shine.type, 0x5fe);
+            EXPECT_EQ(shine.position, hero.position + glm::vec3(7.5f, -290.0f, 12.5f));
+            EXPECT_EQ(tested->world.ModelPlacement(hero.type).origin, hero.position);
+            EXPECT_EQ(tested->world.ModelPlacement(hero.type).scale, 2.5f);
+        }
     }
 }
 
@@ -1099,7 +1115,7 @@ TEST(HeroSkillsTest, TheBrakeAndTheNameHoldTheMagicAttack)
 }
 
 // 0x559b29..0x559b3b: sin maná y sin poción de maná, 0x559890 da 0 y la skill sigue a la rama de la clase; con una
-// poción, 0x5af520 y el C1 26 cortan (hito 5). Nada sale.
+// poción, 0x5af520 manda el C1 26 y la rama de la clase sigue sin maná.
 TEST(HeroSkillsTest, WithoutManaTheListedSkillLooksForAPotion)
 {
     for (const std::int32_t map : {0, 2})
@@ -1115,9 +1131,9 @@ TEST(HeroSkillsTest, WithoutManaTheListedSkillLooksForAPotion)
         potion.occupied = 1;
         tested->Ui().rightClick = true;
         const auto again = tested->Use();
-        ASSERT_FALSE(again.HasValue());
-        EXPECT_TRUE(Contains(again.Error(), "0x559b41")) << again.Error();
-        EXPECT_TRUE(Contains(again.Error(), "hito 5")) << again.Error();
+        ASSERT_TRUE(again.HasValue()) << again.Error();
+        ASSERT_EQ(tested->sent.size(), 1u);
+        EXPECT_EQ(ClearBytesOf(tested->sent[0]), (std::vector<std::uint8_t>{0xc1, 6, 0x26, 24, 0, 0}));
     }
     // Con el maná del registro propio, la 0x3d llega al 19.
     const auto tested = AHeroClicking(0x3d, Knight);
@@ -1315,7 +1331,7 @@ TEST(HeroSkillsTest, TheTransformedElfShootsThroughTheArrowOf53e2b0)
             EXPECT_EQ(tested->random.State(), expected.State());
             ASSERT_EQ(tested->sent.size(), 1u);
             EXPECT_EQ(tested->Hero().animation.action, 1);
-            EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x10);
+            EXPECT_EQ(tested->world.Runtime().lastSoundId, 0xd2);
             EXPECT_EQ(tested->world.Runtime().lastShotSkill, 0u);
             EXPECT_EQ(tested->world.OwnCharacter().bytef04, probe.volleys);
             // Los tres tiros de la bandera en 1 giran el rumbo 15, −30 y 15: vuelve al de 0x5629b6.
@@ -1324,9 +1340,11 @@ TEST(HeroSkillsTest, TheTransformedElfShootsThroughTheArrowOf53e2b0)
     }
     const auto cut = AnElfWithTheOption(0x36);
     cut->Hero().type = TransformedModel;
+    cut->Hero().animation.action = 0;
     const auto result = cut->Use();
-    ASSERT_FALSE(result.HasValue());
-    EXPECT_TRUE(Contains(result.Error(), "0x4ea030")) << result.Error();
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    // H3 conserva el no-op de 0x4ea030 cuando el registro de modelo está sin acciones.
+    EXPECT_EQ(cut->Hero().animation.action, 0);
 }
 
 // 0x56205f..0x562092: sin maná y sin poción, la opción que sigue (y la rama de la clase, que sin maná ni poción no
@@ -1345,8 +1363,64 @@ TEST(HeroSkillsTest, TheElfShotWithoutMana)
         potion.occupied = 1;
         tested->Ui().rightClick = true;
         const auto again = tested->Use();
-        ASSERT_FALSE(again.HasValue());
-        EXPECT_TRUE(Contains(again.Error(), "0x562075")) << again.Error();
-        EXPECT_TRUE(tested->sent.empty());
+        ASSERT_TRUE(again.HasValue()) << again.Error();
+        ASSERT_EQ(tested->sent.size(), 1u);
+        EXPECT_EQ(ClearBytesOf(tested->sent[0]), (std::vector<std::uint8_t>{0xc1, 6, 0x26, 42, 0, 0}));
+        EXPECT_EQ(tested->world.Runtime().ui.field5767954, 10);
     }
+}
+
+// 0x55cdc8 → 0x4f5290 → 0x4ea030: una transformación consulta las acciones de su modelo compartido.
+TEST(HeroSkillsTest, ATransformedWizardUsesItsModelForTheReachedSkill)
+{
+    auto tested = AHeroClicking(0x11, Wizard);
+    AnyModels models;
+    tested->models = &models;
+    tested->Hero().type = 0x28;
+    const auto used = tested->Use();
+    ASSERT_TRUE(used.HasValue()) << used.Error();
+    EXPECT_EQ(tested->Hero().animation.action, 3);
+    EXPECT_EQ(tested->Hero().attackCount, 1);
+    ASSERT_EQ(tested->sent.size(), 2u);
+    EXPECT_EQ(ClearBytesOf(tested->sent[0]), (std::vector<std::uint8_t>{0xc1, 6, 0x19, 0x11, 0, 0}));
+    EXPECT_EQ(tested->sent[1].packet.Opcode(), 0xd3);
+}
+
+// MoveHero (0x59e255) conserva la misma biblioteca de modelos al entrar en 0x57cfc0 y 0x564f2f.
+TEST(HeroSkillsTest, MovementForwardsTheModelOfTheTransformedElfShot)
+{
+    auto tested = AnElfWithTheOption(0x18);
+    AnyModels models;
+    tested->Hero().type = 0x28;
+    tested->Hero().animation.action = 0;
+    Client::Scenes::HeroMovementContext context{.world = tested->world, .random = tested->random};
+    context.input.ticksMs = tested->ticks;
+    context.input.worldTime = tested->worldTime;
+    context.playerSkeleton = &tested->skeleton;
+    context.skills = &tested->skills;
+    context.sendSkill = [&tested](Client::Protocol::Outgoing packet) { tested->sent.push_back(std::move(packet)); };
+    context.models = &models;
+    const auto used = Client::Scenes::StepHeroMovement(context);
+    ASSERT_TRUE(used.HasValue()) << used.Error();
+    EXPECT_EQ(tested->Hero().animation.action, 1);
+    EXPECT_EQ(tested->world.Runtime().lastSoundId, 0xd2);
+    EXPECT_EQ(tested->world.OwnCharacter().bytef04, 1);
+    ASSERT_EQ(tested->sent.size(), 1u);
+    EXPECT_EQ(tested->sent[0].packet.Opcode(), 0x1e);
+}
+
+// 0x4eac00 consulta el altar después de leer las dos celdas, incluso si la meta después se descarta.
+TEST(HeroSkillsTest, TheWeaponApproachChecksTheCrywolfAltar)
+{
+    auto tested = AHeroClicking(0x3c, Knight, 34);
+    tested->world.Actors()[ChosenSlot].position = {19250.0f, 11550.0f, 0.0f};
+    tested->world.Runtime().crywolf.stage = 3;
+    tested->world.Runtime().movement.chosenNpc = 30;
+    tested->world.Actors()[30].type = 0x206;
+    const auto used = tested->Use();
+    ASSERT_FALSE(used.HasValue());
+    EXPECT_TRUE(Contains(used.Error(), "0x4eac41")) << used.Error();
+    EXPECT_TRUE(Contains(used.Error(), "0x55980f")) << used.Error();
+    EXPECT_EQ(tested->Hero().movement, 0);
+    EXPECT_EQ(tested->Hero().path.count, 0);
 }

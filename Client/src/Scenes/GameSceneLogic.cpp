@@ -84,33 +84,33 @@ Core::Expected<void, std::string> GameScene::StepTheCharacters(float worldClock,
     auto& runtime = m_context.world->Runtime();
     const Render::Models::Skeleton* player =
         m_models != nullptr ? m_models->SkeletonOf(Data::Models::PlayerSkeletonModel) : nullptr;
-    if (auto stepped = StepCharacters(
-            CharacterStepContext{.world = *m_context.world,
-                                 .random = m_context.cloth->random,
-                                 .scene = SceneId::Game,
-                                 .playerSkeleton = player,
-                                 .items = m_items,
-                                 .skills = m_skills,
-                                 .models = m_models,
-                                 .terrain = &StepTerrain(),
-                                 .darkSpiritSkeleton = m_models ? m_models->SkeletonOf(DarkSpiritModel) : nullptr,
-                                 .particles = &m_context.world->Particles(),
-                                 .sprites = &m_sprites,
-                                 .joints = m_context.world->DrawTail().joints,
-                                 .worldClock = worldClock,
-                                 .counter = m_context.cloth->logicSteps,
-                                 .actionSpeeds = &m_context.world->ActionSpeeds(),
-                                 .fixedHeight = CameraState().fixedHeight,
-                                 .soundRequest = [&](std::int32_t sound) { runtime.lastSoundId = sound; },
+    if (auto stepped = StepCharacters(CharacterStepContext{
+            .world = *m_context.world,
+            .random = m_context.cloth->random,
+            .scene = SceneId::Game,
+            .playerSkeleton = player,
+            .items = m_items,
+            .skills = m_skills,
+            .models = m_models,
+            .terrain = &StepTerrain(),
+            .darkSpiritSkeleton = m_models ? m_models->SkeletonOf(DarkSpiritModel) : nullptr,
+            .particles = &m_context.world->Particles(),
+            .sprites = &m_sprites,
+            .joints = m_context.world->DrawTail().joints,
+            .worldClock = worldClock,
+            .counter = m_context.cloth->logicSteps,
+            .actionSpeeds = &m_context.world->ActionSpeeds(),
+            .fixedHeight = CameraState().fixedHeight,
+            .soundRequest = [&](std::int32_t sound) { runtime.lastSoundId = sound; },
             .send = m_session != nullptr
                         ? std::function<void(Protocol::Outgoing)>([session = m_session](Protocol::Outgoing packet)
                                                                   { session->SendChat(std::move(packet)); })
                         : std::function<void(Protocol::Outgoing)>{},
-                                 .controlDown = controlDown,
-                                 .texts = m_texts,
-                                 .textMeasure = m_context.textMeasure,
-                                 .screen = m_screen,
-                                 .systemTime = SceneSystemTime(m_context.clock)});
+            .controlDown = controlDown,
+            .texts = m_texts,
+            .textMeasure = m_context.textMeasure,
+            .screen = m_screen,
+            .systemTime = SceneSystemTime(m_context.clock)});
         !stepped.HasValue())
     {
         return stepped;
@@ -192,7 +192,8 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
         // 0x52b9a6: el calco 0x61e/1 de la mascota suelta joints 619/1 con el héroe de dueño, y el /3 de la 0x1c y de
         // las invocaciones, los 619/3 de la CL11, fuera de World.
         if (effect.type == World::ColoredDecalEffect &&
-            (effect.subtype == World::PetSummonSubtype || effect.subtype == World::SummonDecalSubtype))
+            (effect.subtype == World::LevelUpDecalSubtype || effect.subtype == World::PetSummonSubtype ||
+             effect.subtype == World::SummonDecalSubtype))
         {
             if (auto stepped = StepPetSummon(effect, m_context.world->DrawTail().joints, m_context.cloth->random);
                 !stepped.HasValue())
@@ -262,8 +263,7 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
             m_context.world->Particles(), m_context.cloth->random, runtime.map, terrainHeight, worldClock,
             ParticleOwnersAmong(m_context.world->Map().objects), ParticleActorActionsAmong(m_context.world->Actors()),
             ParticleTextureHeightsOf(m_worldModels), &m_context.world->DynamicLighting().Lighting(),
-            ParticleActorHandsAmong(m_context.world->Actors(), runtime.hero),
-            ParticleOwnerBonesOf(*m_context.world));
+            ParticleActorHandsAmong(m_context.world->Actors(), runtime.hero), ParticleOwnerBonesOf(*m_context.world));
         !particles.HasValue())
     {
         return particles;

@@ -811,6 +811,7 @@ Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& co
                                                    .skills = context.skills,
                                                    .playerSkeleton = context.playerSkeleton,
                                                    .items = context.items,
+                                                   .models = context.models,
                                                    .tickCount = [ticks = context.input.ticksMs] { return ticks; },
                                                    .inventory = context.inventory,
                                                    .worldTime = context.input.worldTime,

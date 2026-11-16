@@ -27,9 +27,11 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/AttackStep.h"
 #include "Scenes/CharacterHead.h"
+#include "Scenes/CharacterDrawing.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/DynamicWorldLight.h"
 #include "Scenes/FaunaModels.h"
+#include "Scenes/FaunaJointCreation.h"
 #include "Scenes/HealthBars.h"
 #include "Scenes/ItemSetOptionList.h"
 #include "Scenes/ModelBody.h"
@@ -45,6 +47,7 @@
 #include "Scenes/WorldState.h"
 #include "World/ObjectAlpha.h"
 #include "World/OriginalFtol.h"
+#include "World/IFishStepServices.h"
 #include "World/TerrainCulling.h"
 #include "World/TerrainHeight.h"
 #include "World/TerrainWalls.h"
@@ -64,6 +67,7 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 
 namespace Client::Scenes
 {
@@ -734,6 +738,88 @@ Core::Expected<DarkSpiritTargets, std::string> RavenTargetsOf(const DarkSpirit& 
     return targets;
 }
 
+glm::vec3 OwnBonePoint(const ActorState& actor, std::size_t bone, const glm::vec3& offset);
+
+// El cuerpo publicó el modelo ANTES de mover al moribundo. No sustituir este placement por actor.position actual.
+glm::vec3 SharedBonePoint(const ActorState& actor, std::size_t bone, const glm::vec3& offset, const WorldState& world)
+{
+    const auto placement = world.ModelPlacement(actor.type);
+    const Render::Models::BoneTransform matrix =
+        bone < actor.bodyPose.size() ? actor.bodyPose[bone] : Render::Models::BoneTransform(0.0f);
+    return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), offset, placement.scale,
+                                                     placement.origin);
+}
+
+const Render::Models::Skeleton* BoneEmitterSkeleton(const ActorState& actor, const CharacterStepContext& context)
+{
+    if (actor.type != Data::Models::PlayerSkeletonModel && !IsNewFace(actor.type) && context.models != nullptr)
+    {
+        if (const auto* loaded = context.models->SkeletonOf(actor.type); loaded != nullptr)
+            return loaded;
+    }
+    return ModelSkeletonOf(actor, context);
+}
+
+// 4fd835..4fdada: el contador sólo baja después de recorrer los huesos; J lleno conserva seis selectores por hueso.
+Core::Expected<void, std::string> StepTheBoneEmitter(ActorState& actor, const CharacterStepContext& context)
+{
+    if (context.world.Runtime().map == CastleMap || actor.byte1a0 == 0)
+        return {};
+    const auto* skeleton = BoneEmitterSkeleton(actor, context);
+    if (skeleton == nullptr)
+        return Core::Unexpected(std::string("0x4fd86e: faltan los huesos del modelo para el emisor 0x614/7"));
+    constexpr int OffsetSpan = 41, OffsetCentre = 20;
+    constexpr std::int32_t BoneJoint = 0x614, BoneSubtype = 7;
+    constexpr float Width = 20.0f;
+    for (std::size_t bone = 0; bone < skeleton->bones.size(); ++bone)
+    {
+        const auto& entry = skeleton->bones[bone];
+        if (entry.dummy || entry.parent < 0 || static_cast<std::size_t>(entry.parent) >= skeleton->bones.size())
+            continue;
+        glm::vec3 first = SharedBonePoint(actor, bone, glm::vec3(0.0f), context.world);
+        glm::vec3 second =
+            SharedBonePoint(actor, static_cast<std::size_t>(entry.parent), glm::vec3(0.0f), context.world);
+        for (auto* point : {&first, &second})
+            for (int axis = 0; axis < 3; ++axis)
+                (*point)[axis] =
+                    static_cast<float>(static_cast<double>((*point)[axis]) +
+                                       static_cast<double>(context.random.Next() % OffsetSpan - OffsetCentre));
+        if (context.joints.empty())
+            return Core::Unexpected(std::string("0x4fdabf: falta el pool de joints del emisor 0x614/7"));
+        const World::FishEffectRequest request{.type = BoneJoint,
+                                               .firstPosition = first,
+                                               .secondPosition = second,
+                                               .angles = actor.angles,
+                                               .subtype = BoneSubtype,
+                                               .ownerContext = nullptr,
+                                               .scale = Width,
+                                               .key = -1,
+                                               .skill = 0,
+                                               .skillSerial = 0,
+                                               .target = -1};
+        if (auto joint = CreateFaunaJoint(context.joints, request, context.random); !joint.HasValue())
+            return Core::Unexpected(std::format("0x4fdabf: {}", joint.Error()));
+    }
+    --actor.byte1a0;
+    return {};
+}
+
+Core::Expected<void, std::string> CreateTheActionFlare(ActorState& actor, const CharacterStepContext& context)
+{
+    constexpr std::size_t FlareBone = 42;
+    constexpr std::int32_t FlareType = 0x5ac;
+    constexpr glm::vec3 Light{0.3f, 0.5f, 1.0f};
+    const glm::vec3 point = SharedBonePoint(actor, FlareBone, glm::vec3(0.0f), context.world);
+    if (context.particles == nullptr)
+        return Core::Unexpected(std::string("0x4fdb92: falta el pool de partículas de la acción con 0x5ac/0"));
+    const auto made = context.particles->CreateChecked(FlareType, point, actor.angles, Light, 0, 1.0f,
+                                                       context.worldClock, context.random);
+    if (!made.HasValue())
+        return Core::Unexpected(
+            std::format("0x4fdb92: la partícula 0x5ac/0 falla con error {}", static_cast<unsigned>(made.Error())));
+    return {};
+}
+
 Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slot, bool hero,
                                               const CharacterStepContext& context)
 {
@@ -760,8 +846,15 @@ Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slo
             return timers;
         }
     }
-    // 0x4fd70e: 0x4fb380. +0x398 en 0 (solo lo escriben paquetes que MuRet no aplica) y +0x399 en 0 (0x511290,
-    // 0x511d3e; lo suben los mismos paquetes): no gira ni se corre (*estático*). El 0xf1 cae (0x4fb910).
+    // 4fb38b..4fb3b1: skills8/9 ponen +398; primero gira por el valor ANTERIOR, sin normalizar y sin RNG.
+    if (actor.byte398 != 0)
+    {
+        constexpr double TurnPerCount = 10.0;
+        actor.angles.z =
+            static_cast<float>(static_cast<double>(actor.angles.z) + static_cast<double>(actor.byte398) * TurnPerCount);
+        --actor.byte398;
+    }
+    // 0x4fd70e: 0x4fb380. El 0xf1 cae (0x4fb910).
     if (actor.type == FallingType)
     {
         const std::function<double(float, float)> height = TerrainHeightOf(context);
@@ -803,15 +896,14 @@ Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slo
     }
     // 0x4fd7e4: rand() % 6 sin condición; (r + 2) · 0,1f va a un local que este camino no lee (Q-C247).
     static_cast<void>(context.random.Next());
-    // 0x4fd835..0x4fdada: fuera del mapa 30, con +0x1a0 positivo, seis rand() por hueso y un 0x614. +0x1a0 en 0:
-    // lo pone 0x511290 (0x511c62) y lo sube solo 0x4f97b0 (0x4f9ba2), desde la habilidad de abajo (*estático*).
+    if (auto emitted = StepTheBoneEmitter(actor, context); !emitted.HasValue())
+        return emitted;
     // 0x4fdae0..0x4fdb92: las 0x4d, 0x4f y 0x5a pasado el frame 5,5 sacan la partícula 0x5ac del hueso 42.
     const std::uint8_t action = actor.animation.action;
     if (IsOneOf(ParticleActions, action) && actor.animation.frame > ParticleFrame)
     {
-        return Core::Unexpected(std::format("0x4fdb70: la acción {:#x} del lugar {} saca la partícula 0x5ac en el "
-                                            "hueso 42 (0x4ec110), sin portar",
-                                            action, slot));
+        if (auto flare = CreateTheActionFlare(actor, context); !flare.HasValue())
+            return flare;
     }
     // 0x4fdb9a..0x50539e: con +0x381 distinto de 0, 0x4f97b0 y 0x4f5b70 y +0x381 += 1; desde [0x6c88ac], la habilidad
     // de +0x38e con el blanco de +0x3a4. Lo ponen en 1 el ataque al llegar (0x5653c1, HeroAttack) y el 18 con 0x78 y
@@ -923,6 +1015,100 @@ glm::vec3 OwnBonePoint(const ActorState& actor, std::size_t bone, const glm::vec
         bone < actor.bodyPose.size() ? actor.bodyPose[bone] : Render::Models::BoneTransform(0.0f);
     return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), offset, actor.scale,
                                                      actor.position);
+}
+
+Core::Expected<void, std::string> EmitSkillParticle(std::int32_t type, const glm::vec3& point, ActorState& actor,
+                                                    const glm::vec3& light, std::int32_t subtype, float scale,
+                                                    const CharacterStepContext& context, std::string_view address)
+{
+    if (context.particles == nullptr)
+        return Core::Unexpected(std::format("{}: falta el pool de partículas de la skill", address));
+    const auto made = context.particles->CreateChecked(type, point, actor.angles, light, subtype, scale,
+                                                       context.worldClock, context.random);
+    if (!made.HasValue())
+        return Core::Unexpected(std::format("{}: la partícula {:#x}/{} de la skill falla con error {}", address, type,
+                                            subtype, static_cast<unsigned>(made.Error())));
+    return {};
+}
+
+// 5189f0: tres619/8. Los dos selectores preceden cada intento, también con J lleno.
+Core::Expected<void, std::string> EmitChargedSkillJoints(ActorState& actor, const CharacterStepContext& context)
+{
+    constexpr int Count = 3, PitchSpan = 90, YawSpan = 360;
+    constexpr glm::vec3 Offset{0.0f, -500.0f, 0.0f};
+    constexpr double Lift = 120.0;
+    constexpr std::int32_t Type = 0x619, Subtype = 8;
+    constexpr float Width = 10.0f;
+    for (int index = 0; index < Count; ++index)
+    {
+        glm::vec3 angles{static_cast<float>(context.random.Next() % PitchSpan), 0.0f,
+                         static_cast<float>(context.random.Next() % YawSpan)};
+        const glm::vec3 rotated =
+            Render::Models::OriginalVectorRotate(Offset, Render::Models::OriginalAngleMatrix(angles));
+        glm::vec3 first{};
+        for (int axis = 0; axis < 3; ++axis)
+            first[axis] = static_cast<float>(static_cast<double>(actor.position[axis]) -
+                                             static_cast<double>(rotated[axis]) + (axis == 2 ? Lift : 0.0));
+        if (context.joints.empty())
+            return Core::Unexpected(std::string("0x518aa8: falta el pool de joints619/8 de la skill cargada"));
+        const World::FishEffectRequest request{.type = Type,
+                                               .firstPosition = first,
+                                               .secondPosition = actor.position,
+                                               .angles = angles,
+                                               .subtype = Subtype,
+                                               .ownerContext = &actor,
+                                               .scale = Width,
+                                               .key = -1,
+                                               .skill = 0,
+                                               .skillSerial = 0,
+                                               .target = -1};
+        if (auto joint = CreateFaunaJoint(context.joints, request, context.random); !joint.HasValue())
+            return Core::Unexpected(std::format("0x518aa8: {}", joint.Error()));
+    }
+    return {};
+}
+
+// 506e57..506f5a: la pose sin publicar usa la matriz0 de Q-C318, no equivale a puntero120NULL.
+Core::Expected<void, std::string> EmitChargedSkillFlares(ActorState& actor, const Render::Models::Skeleton& skeleton,
+                                                         const CharacterStepContext& context)
+{
+    constexpr std::size_t PastBone = 40, BoneStep = 2;
+    constexpr glm::vec3 Offset{-15.0f, 0.0f, 0.0f}, Light{0.3f, 0.3f, 1.0f};
+    constexpr std::int32_t Type = 0x5ac, Subtype = 6;
+    constexpr double ScaleStep = static_cast<double>(0.08f), BaseScale = static_cast<double>(1.3f);
+    const float scale = static_cast<float>(static_cast<double>(actor.byte1bc) * ScaleStep + BaseScale);
+    for (std::size_t bone = 0; bone < PastBone && bone < skeleton.bones.size(); bone += BoneStep)
+    {
+        if (skeleton.bones[bone].dummy)
+            continue;
+        const glm::vec3 point = OwnBonePoint(actor, bone, Offset);
+        for (int flare = 0; flare <= static_cast<int>(actor.byte1bc); ++flare)
+        {
+            if (auto made = EmitSkillParticle(Type, point, actor, Light, Subtype, scale, context, "0x506f02");
+                !made.HasValue())
+                return made;
+        }
+    }
+    return EmitChargedSkillJoints(actor, context);
+}
+
+// 506f62..506fc1: diez selecciones de hueso y partículas5d9/0 ya portadas; count0 conserva rand antes del IDIV.
+Core::Expected<void, std::string> EmitRandomBoneFires(ActorState& actor, const Render::Models::Skeleton& skeleton,
+                                                      const CharacterStepContext& context)
+{
+    constexpr int Count = 10;
+    constexpr glm::vec3 Offset{-15.0f, 0.0f, 0.0f}, Light{1.0f, 1.0f, 1.0f};
+    constexpr std::int32_t Type = 0x5d9;
+    for (int index = 0; index < Count; ++index)
+    {
+        const auto selector = static_cast<std::size_t>(context.random.Next());
+        if (skeleton.bones.empty())
+            return Core::Unexpected(std::string("0x506f84: el modelo sin huesos dividiría por cero en la acción0x96"));
+        const glm::vec3 point = OwnBonePoint(actor, selector % skeleton.bones.size(), Offset);
+        if (auto made = EmitSkillParticle(Type, point, actor, Light, 0, 1.0f, context, "0x506fb6"); !made.HasValue())
+            return made;
+    }
+    return {};
 }
 
 // 0x506d0a..0x506d7c: en la escena 5 y el mapa 7, el segundo de cada diez del reloj del mundo (ftol % 10000
@@ -1121,15 +1307,13 @@ Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t 
     const std::uint8_t action = actor.animation.action;
     if (action == FirstEffectAction || action == SecondEffectAction)
     {
-        return Core::Unexpected(std::format("0x506e5d: la acción {:#x} del lugar {} saca los efectos 0x5ac y los de "
-                                            "0x5189f0, que no están portados",
-                                            action, slot));
+        if (auto flared = EmitChargedSkillFlares(actor, *skeleton, context); !flared.HasValue())
+            return flared;
     }
     if (action == BoneEffectAction)
     {
-        return Core::Unexpected(std::format("0x506f62: la acción 0x96 del lugar {} saca diez efectos 0x5d9 en huesos "
-                                            "de rand(), que no están portados",
-                                            slot));
+        if (auto fired = EmitRandomBoneFires(actor, *skeleton, context); !fired.HasValue())
+            return fired;
     }
     // 0x506fc1..0x507001: 0x4ec110 con el hueso de +0x2bd a un local que nadie lee, y a 0x50862f.
     // 0x50862f..0x5086ca: solo con el héroe publicado (0x508641), los pasos: el sonido de 0x505770 con +0x3e0 y

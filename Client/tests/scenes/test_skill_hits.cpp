@@ -241,4 +241,21 @@ TEST(SkillHitsTest, TheSiegeAndTheOutOfRangePointCut)
     EXPECT_NE(outside.Error().find("0x517deb"), std::string::npos) << outside.Error();
     EXPECT_TRUE(far.sent.empty());
 }
+
+// 517bf3..517c00: EBX < 0x190. El slot400 de MuRet es reserva, no uno de los400 actores nativos.
+TEST(SkillHitsTest, OnlyTheFourHundredNativeSlotsCanBeHitOrMarked)
+{
+    for (const std::size_t slot : {399u, 400u})
+    {
+        SCOPED_TRACE(slot);
+        HitsWorld tested(0, 8);
+        auto& target = tested.Put(slot, 2, 0x1234, 10.0f);
+        const auto hit = tested.Hit(Request(100.0f));
+        ASSERT_TRUE(hit.HasValue()) << hit.Error();
+        EXPECT_EQ(hit.Value(), slot == 399u);
+        EXPECT_EQ(tested.sent.size(), slot == 399u ? 1u : 0u);
+        EXPECT_EQ(target.byte398, slot == 399u ? 10 : 0);
+        EXPECT_EQ(DrawsSince(Seed, tested.random), OwnRecord + (slot == 399u ? Delivery : 0));
+    }
+}
 } // namespace

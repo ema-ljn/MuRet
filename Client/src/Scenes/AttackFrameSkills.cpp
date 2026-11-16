@@ -12,10 +12,14 @@
 #include "Scenes/CharacterStep.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/HeroAttack.h"
+#include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/PlayerActionSpeeds.h"
+#include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/IFishStepServices.h"
 #include "World/Particles.h"
+#include "World/ModelEffects.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -35,6 +39,18 @@ namespace Client::Scenes
 {
 namespace
 {
+bool HasFreeEffect(const CharacterStepContext& context)
+{
+    return std::ranges::any_of(context.world.Map().effects.Effects(), [](const auto& effect) { return !effect.alive; });
+}
+
+bool HasFreeJoint(const CharacterStepContext& context)
+{
+    // Una tabla no prestada sigue siendo una capacidad ausente, no una tabla nativa llena.
+    return context.joints.empty() ||
+           std::ranges::any_of(context.joints, [](const auto& joint) { return !joint.alive; });
+}
+
 constexpr std::uint16_t PlayerType = Data::Models::PlayerSkeletonModel;
 // 0x4fab0a, 0x4fab4a y 0x4fb0dc: +0x381 en 15, que la cabeza del paso (0x4fdbda) toma como habilidad terminada.
 constexpr std::uint8_t AttackDone = 15;
@@ -107,12 +123,13 @@ const Render::Models::Skeleton* SkeletonOf(const ActorState& actor, const Charac
 // 0x4ec110(modelo, huesos propios + hueso · 0x30, offset, punto, 1) con la escala y la posición que 0x4fd69b copió del
 // personaje al modelo antes del paso. Sin huesos propios (antes del primer dibujo), la matriz en cero (Q-C318), como
 // OwnBonePoint de CharacterStep.cpp.
-glm::vec3 BonePoint(const ActorState& actor, std::size_t bone, const glm::vec3& offset)
+glm::vec3 BonePoint(const ActorState& actor, std::size_t bone, const glm::vec3& offset, const WorldState& world)
 {
     const Render::Models::BoneTransform matrix =
         bone < actor.bodyPose.size() ? actor.bodyPose[bone] : Render::Models::BoneTransform(0.0f);
-    return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), offset, actor.scale,
-                                                     actor.position);
+    const auto placement = world.ModelPlacement(actor.type);
+    return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), offset, placement.scale,
+                                                     placement.origin);
 }
 
 // Tres rand() por punto del lazo de un caso que corta en su primer efecto: el lazo saca los del primero y corta.
@@ -151,14 +168,19 @@ Core::Expected<void, std::string> StepTheSkill2b(ActorState& actor, std::uint8_t
     constexpr std::uint8_t LastBoltStep = 8;
     if (step >= FirstBoltStep && step <= LastBoltStep)
     {
-        DrawThePoint(context);
-        return CutAt(0x4f99fe, "el primero de los tres joints 0x10f/2 hacia o+0x194 (CL11)", skill, actor, slot);
+        for (int bolt = 0; bolt < 3; ++bolt)
+        {
+            DrawThePoint(context);
+            if (HasFreeJoint(context))
+                return CutAt(0x4f99fe, "el primero de los tres joints 0x10f/2 hacia o+0x194 (CL11)", skill, actor,
+                             slot);
+        }
     }
     // 0x4f9a0d..0x4f9a80: hasta 8, 0x4ec110 con el hueso y (0, 0, 0) a o+0x194; después, o+0x194 más el seno del
     // rumbo (+0x24 · π/180) · 300 y o+0x198 menos el coseno · 300, cada uno en la x87 y guardado en float.
     if (step <= LastBoltStep)
     {
-        const glm::vec3 point = BonePoint(actor, bone, glm::vec3(0.0f));
+        const glm::vec3 point = BonePoint(actor, bone, glm::vec3(0.0f), context.world);
         const double angle = static_cast<double>(actor.angles.z) * Degree;
         actor.skillHandPoint = point;
         actor.skillHandPoint.x =
@@ -173,8 +195,14 @@ Core::Expected<void, std::string> StepTheSkill2b(ActorState& actor, std::uint8_t
     constexpr std::uint8_t LastSparkStep = 12;
     if (step >= FirstSparkStep && step <= LastSparkStep)
     {
-        return CutAt(0x4f9b49, "los dos efectos 0x812/1 delante de la mano (CL11); detrás, +0x1a0 del blanco en 0x23",
-                     skill, actor, slot);
+        if (HasFreeEffect(context))
+            return CutAt(0x4f9b49,
+                         "los dos efectos 0x812/1 delante de la mano (CL11); detrás, +0x1a0 del blanco en 0x23", skill,
+                         actor, slot);
+        const auto actors = context.world.Actors();
+        if (step >= 10 && actor.attackTarget != 0xffff && actor.attackTarget < actors.size() &&
+            actors[actor.attackTarget].alive)
+            actors[actor.attackTarget].byte1a0 = 0x23;
     }
     // 0x4f9ba9..0x4f9bc1: desde 12, +0x381 en el byte de [0x6c88ac].
     if (step >= LastSparkStep)
@@ -257,14 +285,16 @@ Core::Expected<void, std::string> StepTheSkill2f(const ActorState& actor, std::u
     {
         // 0x4f9c0e..0x4f9c8d: 0x4ec110 con el hueso de la mano y 0x518cf0(0x813, punto, o+0x1c, (1; 1; 0,5), el modelo
         // de la mano (MOVSX), o, −1, 0, 0, 0, 0).
-        return CutAt(0x4f9c8d, "el efecto 0x813 en el hueso de la mano, con su modelo de subtipo (CL11)", skill, actor,
-                     slot);
+        if (HasFreeEffect(context))
+            return CutAt(0x4f9c8d, "el efecto 0x813 en el hueso de la mano, con su modelo de subtipo (CL11)", skill,
+                         actor, slot);
     }
     else if (step == SparkStep)
     {
         // 0x4f9ca2..0x4f9d3c: la posición 50 por delante (0x6b86b0) y 110 más arriba (0x6ba184), y dos
         // 0x518cf0(0x812, punto, o+0x1c, (1; 1; 1), 0, o, −1, 0, 0, 0, 0).
-        return CutAt(0x4f9d1c, "los dos efectos 0x812/0 delante del que pega (CL11)", skill, actor, slot);
+        if (HasFreeEffect(context))
+            return CutAt(0x4f9d1c, "los dos efectos 0x812/0 delante del que pega (CL11)", skill, actor, slot);
     }
     // 0x4f9d44..0x4f9e52: en 13 y 14, tres veces la posición 145 por delante (0x6ba180) y 110 más arriba, tres
     // rand() % 60 − 30 (salvo en 11, que no llega), y 0x518cf0(0x10f, punto, o+0x1c, (0,3; 0,3; 0,3), el modelo de la
@@ -273,8 +303,14 @@ Core::Expected<void, std::string> StepTheSkill2f(const ActorState& actor, std::u
     constexpr std::uint8_t LastRockStep = 14;
     if (step < FirstRockStep || step > LastRockStep)
         return {};
-    DrawThePoint(context);
-    return CutAt(0x4f9e49, "el primero de los tres efectos 0x10f delante del que pega (CL11)", skill, actor, slot);
+    for (int rock = 0; rock < 3; ++rock)
+    {
+        DrawThePoint(context);
+        if (HasFreeEffect(context))
+            return CutAt(0x4f9e49, "el primero de los tres efectos 0x10f delante del que pega (CL11)", skill, actor,
+                         slot);
+    }
+    return {};
 }
 
 // 0x4f9e61..0x4f9ef2: la 0x34. El 0x20a de la 0x22 a la 0x97, desde el frame 5, vuelve al 5 (+0x114) con la key
@@ -296,8 +332,11 @@ Core::Expected<void, std::string> StepTheSkill34(ActorState& actor, std::uint8_t
     constexpr std::uint8_t GlowStep = 3;
     if (actor.byte381 == GlowStep)
     {
-        return CutAt(0x4f9ecb, "el efecto 0x621/0 sobre el que tira (CL11); detrás, el sonido 0x81 y [0x6c88ac] en 5",
-                     skill, actor, slot);
+        if (HasFreeEffect(context))
+            return CutAt(0x4f9ecb,
+                         "el efecto 0x621/0 sobre el que tira (CL11); detrás, el sonido 0x81 y [0x6c88ac] en 5", skill,
+                         actor, slot);
+        RequestTheSound(context, 0x81);
     }
     // 0x4f9ee2.
     context.world.Runtime().skillThreshold = ShortThreshold;
@@ -318,7 +357,7 @@ Core::Expected<void, std::string> StepTheSkill37(ActorState& actor, std::uint8_t
     }
     // 0x4f9f0c..0x4f9f3e: en 1 y 2, 0x518cf0(0x621, o+0x10, o+0x1c, o+0xf4, 1, o, −1, 0, 0, 0, 0).
     constexpr std::uint8_t LastGlowStep = 2;
-    if (actor.byte381 >= 1 && actor.byte381 <= LastGlowStep)
+    if (actor.byte381 >= 1 && actor.byte381 <= LastGlowStep && HasFreeEffect(context))
         return CutAt(0x4f9f3e, "el efecto 0x621/1 sobre el que tira (CL11)", skill, actor, slot);
     // 0x4f9f46..0x4f9f57: antes del frame 3, o con NaN, sale.
     if (!(FrameOf(actor) >= ThirdFrame))
@@ -340,14 +379,28 @@ Core::Expected<void, std::string> StepTheSkill37(ActorState& actor, std::uint8_t
     // 0x4f9fae: 0x518cf0(0x5be, o+0x10, o+0x1c, o+0xf4, 0, o, o+0x8a, lugar). Detrás (0x4f9fb3..0x4fa47e): el registro
     // propio abierto y cerrado en línea para fijar la velocidad de la acción 0x3d de Player.bmd (+0x3d4 de las acciones
     // de +0x30 del modelo 0x20a) en +0x4c · 0,004f + 0,54f (0x6b89e8, 0x6ba17c), y +0x381 en 15.
-    return Core::Unexpected(std::format("0x4f9fae: el efecto 0x5be (clave {:#x}, lugar {}) de la habilidad {:#x} del "
-                                        "lugar {}, sin portar (CL11); detrás, la velocidad de la acción 0x3d y +0x381 "
-                                        "en 15",
-                                        actor.word8a, index, skill, slot));
+    if (HasFreeEffect(context))
+        return Core::Unexpected(
+            std::format("0x4f9fae: el efecto 0x5be (clave {:#x}, lugar {}) de la habilidad {:#x} del "
+                        "lugar {}, sin portar (CL11); detrás, la velocidad de la acción 0x3d y +0x381 "
+                        "en 15",
+                        actor.word8a, index, skill, slot));
+    float product = 0.0f;
+    {
+        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
+                                                Render::Models::OwnRecordCloseRandoms);
+        product = static_cast<float>(static_cast<double>(context.world.OwnCharacter().attackSpeed) *
+                                     static_cast<double>(0.004f));
+    }
+    context.world.ActionSpeeds().Set(ThrowAction,
+                                     static_cast<float>(static_cast<double>(product) + static_cast<double>(0.54f)));
+    actor.byte381 = AttackDone;
+    runtime.skillThreshold = FullThreshold;
+    return {};
 }
 
 // 0x4fa4a8..0x4fa5d3: la 0x38, solo el 0x20a en la 0x8d.
-Core::Expected<void, std::string> StepTheSkill38(const ActorState& actor, std::uint8_t skill, std::size_t slot,
+Core::Expected<void, std::string> StepTheSkill38(ActorState& actor, std::uint8_t skill, std::size_t slot,
                                                  const CharacterStepContext& context)
 {
     constexpr std::uint8_t SpinAction = 0x8d;
@@ -355,8 +408,12 @@ Core::Expected<void, std::string> StepTheSkill38(const ActorState& actor, std::u
     {
         // 0x4fa4c1..0x4fa5ba: cinco 0x518cf0(0xce, o+0x10, ángulos con la z 40 menos y 20 más cada vez, o+0xf4, 2, o,
         // −1, 0, 0, 0, 0), 0x41ed10(0x72, 0, 0) y +0x381 en 15.
-        return CutAt(0x4fa4fa, "el primero de los cinco efectos 0xce/2 (CL11); detrás, el sonido 0x72 y +0x381 en 15",
-                     skill, actor, slot);
+        if (HasFreeEffect(context))
+            return CutAt(0x4fa4fa,
+                         "el primero de los cinco efectos 0xce/2 (CL11); detrás, el sonido 0x72 y +0x381 en 15", skill,
+                         actor, slot);
+        RequestTheSound(context, 0x72);
+        actor.byte381 = AttackDone;
     }
     // 0x4fa5c3.
     context.world.Runtime().skillThreshold = FullThreshold;
@@ -364,7 +421,7 @@ Core::Expected<void, std::string> StepTheSkill38(const ActorState& actor, std::u
 }
 
 // 0x4fa994..0x4faaca: la 0x39, de cualquier tipo.
-Core::Expected<void, std::string> StepTheSkill39(const ActorState& actor, std::uint8_t skill, std::size_t slot,
+Core::Expected<void, std::string> StepTheSkill39(ActorState& actor, std::uint8_t skill, std::size_t slot,
                                                  const CharacterStepContext& context)
 {
     const float frame = FrameOf(actor);
@@ -372,16 +429,21 @@ Core::Expected<void, std::string> StepTheSkill39(const ActorState& actor, std::u
     {
         // 0x4fa9ab..0x4faa29: tres 0x530860(0x60f, o+0x10, o+0x10, o+0x1c, 0x17, sin dueño, 40,0f, la clave 0, 1 y 4,
         // 0, 0, −1), +0x381 en 15 y 0x41ed10(0x270, 0, 0).
-        return CutAt(0x4fa9ca,
-                     "los joints 0x60f/0x17 con las claves 0, 1 y 4 (CL11); detrás, +0x381 en 15 y el sonido "
-                     "0x270",
-                     skill, actor, slot);
+        if (HasFreeJoint(context))
+            return CutAt(0x4fa9ca,
+                         "los joints 0x60f/0x17 con las claves 0, 1 y 4 (CL11); detrás, +0x381 en 15 y el sonido "
+                         "0x270",
+                         skill, actor, slot);
+        actor.byte381 = AttackDone;
+        RequestTheSound(context, 0x270);
     }
     if (frame > BoltOpening && frame < BoltClosing)
     {
         // 0x4faa62..0x4faab0: dos 0x530860(0x60f, …, 0x17, …, la clave 2 y 3, …) y 0x41ed10(0x270, 0, 0).
-        return CutAt(0x4faa81, "los joints 0x60f/0x17 con las claves 2 y 3 (CL11); detrás, el sonido 0x270", skill,
-                     actor, slot);
+        if (HasFreeJoint(context))
+            return CutAt(0x4faa81, "los joints 0x60f/0x17 con las claves 2 y 3 (CL11); detrás, el sonido 0x270", skill,
+                         actor, slot);
+        RequestTheSound(context, 0x270);
     }
     // 0x4faaba.
     context.world.Runtime().skillThreshold = FullThreshold;

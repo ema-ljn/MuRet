@@ -36,7 +36,8 @@ struct SkillCost
 // El camino sin maná de las skills (0x559b29, 0x55a398, 0x56205f, 0x57d821, 0x58093e, 0x581b86 y 0x589920): con el
 // maná del registro propio (+0x24) debajo del de la skill, 0x558110(3) busca una poción de maná (0x1c04 a 0x1c06) en
 // el inventario, sin rand(). Sin ella, nada: el que llama sigue con su camino de "no". Con ella, 0x5af520 mira las
-// ventanas y el C1 26 la usa: son del hito 5, y corta con `where`, la dirección de su 0x5af520.
+// ventanas, la espera y el C1 26 la usa mediante el inventario de H5; no modifica maná ni consume el ítem antes de
+// la respuesta del GS. Los errores de capacidades llevan `where`, la dirección del caller.
 [[nodiscard]] Core::Expected<void, std::string> UseAManaPotion(const HeroSkillContext& context, std::string_view where);
 
 // 0x5526f0(skill, c): el alcance (+0x26 de Skill.bmd, con el acceso de la entrada), 2 más con `caster` en el 0x1c16.

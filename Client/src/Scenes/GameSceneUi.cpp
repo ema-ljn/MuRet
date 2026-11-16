@@ -389,6 +389,11 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
         .leftDown = input.MouseMessages().leftDown,
         .controlDown = input.IsDown(Input::Key::Ctrl),
         .chosenServer = m_session != nullptr ? m_session->ChosenServer() : std::nullopt};
+    if (m_session != nullptr)
+    {
+        if (const auto* chosen = m_session->ChosenCharacter(); chosen != nullptr)
+            hud.chosenSlot = chosen->slot;
+    }
     // 0x5ac120: el pase 3D de los ítems de la UI, con los modelos de los ítems, el buffer global de la pose y los
     // contextos de 0x60b3d0 del frame (o sus copias en un dibujo intermedio). Sin la biblioteca, sin dibujo.
     ItemSpecialDrawContext itemSpecial;

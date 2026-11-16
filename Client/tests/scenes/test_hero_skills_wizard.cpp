@@ -285,9 +285,13 @@ TEST(HeroSkillsWizardTest, WithoutManaTheHeadLooksForAPotion)
         auto& potion = tested->world.Inventory().cells[12];
         potion.id = 0x1c05;
         potion.occupied = 1;
+        const auto potionExpected = Advanced(tested->random, OwnDraws + 2 * EntryDraws + 3);
         const auto again = tested->Use();
-        ASSERT_FALSE(again.HasValue());
-        EXPECT_TRUE(Contains(again.Error(), "0x589936")) << again.Error();
+        ASSERT_TRUE(again.HasValue()) << again.Error();
+        ASSERT_EQ(tested->sent.size(), 1u);
+        EXPECT_EQ(tested->Sent(0), (std::vector<std::uint8_t>{0xc1, 6, 0x26, 24, 0, 0}));
+        EXPECT_EQ(tested->random.State(), potionExpected.State());
+        EXPECT_EQ(tested->world.Runtime().ui.field5767954, 10);
         tested->world.OwnCharacter().mana = 5;
         ASSERT_TRUE(tested->Use().HasValue());
         EXPECT_EQ(tested->Movement().targetX, 184u);
@@ -1068,3 +1072,20 @@ TEST(HeroSkillsWizardTest, SomeSkillsDoNothingAfterAiming)
     }
 }
 } // namespace
+
+TEST(HeroSkillsWizardTest, TheApproachChecksTheCrywolfAltarBeforeFindingAPath)
+{
+    auto tested = AWizard(1, Wizard, 34);
+    tested->Movement().selectedSkillRange = 1.0f;
+    tested->world.Runtime().crywolf.stage = 3;
+    tested->world.Runtime().movement.chosenNpc = 30;
+    tested->world.Actors()[30].type = 0x206;
+    const auto expected = Advanced(tested->random, HeadDraws + HeroCellDraws);
+    const auto used = tested->Use();
+    ASSERT_FALSE(used.HasValue());
+    EXPECT_TRUE(Contains(used.Error(), "0x4eac41")) << used.Error();
+    EXPECT_TRUE(Contains(used.Error(), "0x4eac41")) << used.Error();
+    EXPECT_EQ(tested->Hero().movement, 0);
+    EXPECT_EQ(tested->Hero().path.count, 0);
+    EXPECT_EQ(tested->random.State(), expected.State());
+}

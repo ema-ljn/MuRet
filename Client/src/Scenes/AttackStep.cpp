@@ -296,7 +296,7 @@ Core::Expected<void, std::string> StrikeTheTarget(ActorState& actor, std::size_t
     // 0x50429f..0x5042ce: las acciones 0x38 a 0x3c, 0x52e740 (AttackSkillCases.h).
     if (actor.animation.action > 0x37 && actor.animation.action < 0x3d)
     {
-        if (auto sparked = SparkTheTarget(actor, victim, slot); !sparked.HasValue())
+        if (auto sparked = SparkTheTarget(actor, victim, slot, context); !sparked.HasValue())
             return sparked;
     }
     // 0x5042d3..0x50431c: los ángulos con el rumbo de 0x4e93f0 hacia el blanco, que solo leen los casos (sin rand()).

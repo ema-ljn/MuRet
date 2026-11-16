@@ -1,8 +1,14 @@
 #include "Scenes/HeroSkillCasts.h"
 
 #include "Data/Tables/SkillTable.h"
+#include "Core/Expected.h"
+#include "Network/Crypto/Xor32.h"
+#include "Network/Delivery.h"
+#include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/HeroSkills.h"
+#include "Scenes/InventoryMoves.h"
+#include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 
 #include "support/TableFiles.h"
@@ -10,6 +16,7 @@
 #include <gtest/gtest.h>
 
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <span>
 #include <string>
@@ -80,8 +87,7 @@ TEST(HeroSkillCastsTest, TheCostReadsTheManaAndTheStaminaOfTheEntry)
     EXPECT_NE(missing.Error().find("0x559b0b"), std::string::npos) << missing.Error();
 }
 
-// 0x559b29..0x559b41: sin una poción de maná en el inventario, nada (ni rand()); con una, 0x5af520 y el C1 26 cortan
-// con la dirección del que llama y la casilla. Las de vida no cuentan.
+// 0x559b29..0x559b41: sin poción, nada; con ella, 0x5af520 usa el slot real, sin anticipar la respuesta del GS.
 TEST(HeroSkillCastsTest, WithoutManaTheSkillLooksForAPotion)
 {
     const auto tested = std::make_unique<Casting>();
@@ -93,10 +99,54 @@ TEST(HeroSkillCastsTest, WithoutManaTheSkillLooksForAPotion)
     EXPECT_EQ(tested->random.State(), before.State());
     cells[20].id = 0x1c06;
     cells[20].occupied = 1;
-    const auto potion = UseAManaPotion(tested->Context(), "0x559b41");
-    ASSERT_FALSE(potion.HasValue());
-    EXPECT_NE(potion.Error().find("0x559b41"), std::string::npos) << potion.Error();
-    EXPECT_NE(potion.Error().find("20"), std::string::npos) << potion.Error();
-    EXPECT_NE(potion.Error().find("hito 5"), std::string::npos) << potion.Error();
+    auto context = tested->Context();
+    std::vector<Client::Protocol::Outgoing> sent;
+    context.send = [&sent](Client::Protocol::Outgoing packet) { sent.push_back(std::move(packet)); };
+    tested->world.Runtime().ui.field78abb26 = 7;
+    const auto potion = UseAManaPotion(context, "0x559b41");
+    ASSERT_TRUE(potion.HasValue()) << potion.Error();
+    ASSERT_EQ(sent.size(), 1u);
+    EXPECT_EQ(sent[0].delivery, Client::Network::Delivery::Encrypted);
+    const auto packet = Client::Network::Crypto::Xor32Decode(sent[0].packet);
+    const auto bytes = packet.Bytes();
+    ASSERT_EQ(bytes.size(), 6u);
+    EXPECT_EQ(bytes[2], std::byte{0x26});
+    EXPECT_EQ(bytes[3], std::byte{32});
+    EXPECT_EQ(bytes[4], std::byte{0});
+    EXPECT_EQ(bytes[5], std::byte{7});
+    EXPECT_EQ(tested->world.Runtime().ui.field5767954, 10);
+    EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x20);
+    EXPECT_EQ(cells[20].id, 0x1c06);
+    EXPECT_EQ(tested->random.State(), Advanced(before, 3).State());
+    // Con la espera activa, solo se consulta el comercio protegido: ni otro envío ni otro sonido.
+    ASSERT_TRUE(UseAManaPotion(context, "0x559b41").HasValue());
+    EXPECT_EQ(sent.size(), 1u);
+    EXPECT_EQ(tested->random.State(), Advanced(before, 4).State());
+}
+
+TEST(HeroSkillCastsTest, ABlockedManaPotionShowsTheNativeNoticeBeforeTheWait)
+{
+    auto tested = std::make_unique<Casting>();
+    auto& potion = tested->world.Inventory().cells[12];
+    potion.id = 0x1c04;
+    potion.occupied = 1;
+    tested->world.Runtime().panels.warehouse = 1;
+    tested->world.Runtime().ui.field5767954 = 5;
+    std::vector<std::size_t> notices;
+    const Client::Scenes::InventoryServices inventory{
+        .systemMessage = [&notices](std::size_t text, std::int32_t type) -> Client::Core::Expected<void, std::string>
+        {
+            EXPECT_EQ(type, 2);
+            notices.push_back(text);
+            return {};
+        }};
+    auto context = tested->Context();
+    context.inventory = &inventory;
+    const auto before = tested->random.State();
+    const auto used = UseAManaPotion(context, "0x589936");
+    ASSERT_TRUE(used.HasValue()) << used.Error();
+    EXPECT_EQ(notices, std::vector<std::size_t>{474});
+    EXPECT_EQ(tested->world.Runtime().ui.field5767954, 5);
+    EXPECT_EQ(tested->random.State(), before);
 }
 } // namespace

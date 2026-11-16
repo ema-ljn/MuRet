@@ -87,7 +87,6 @@ TEST(SessionEventApplierTest, AppliesAnEmptyCharacterListImmediately)
     EXPECT_TRUE(tested.selection.HasReceivedList());
 }
 
-
 TEST(SessionEventApplierTest, PropagatesTheActualSelectionConstructionFailure)
 {
     Applier tested;
@@ -185,7 +184,6 @@ TEST(SessionEventApplierTest, TheReturnToSelectionGoesToTheNativeApplier)
     EXPECT_EQ(online.session.State(), Client::App::SessionState::Idle);
     EXPECT_FALSE(tested.selection.HasReceivedList());
 }
-
 
 TEST(SessionEventApplierTest, WalkAndDamageReachTheirAppliersWithoutFallingThroughToF303)
 {
@@ -315,7 +313,6 @@ TEST(SessionEventApplierTest, ALogoutResponseReleasesOnlyThePendingRequest)
     EXPECT_EQ(tested->world.Runtime().map, 2);
 }
 
-
 TEST(SessionEventApplierTest, TheServerListCleanupRunsOnlyInTheGameAndDoesNotResetTheSceneYet)
 {
     auto tested = std::make_unique<Applier>();
@@ -340,7 +337,6 @@ TEST(SessionEventApplierTest, TheServerListCleanupRunsOnlyInTheGameAndDoesNotRes
     EXPECT_EQ(tested->cloth.random.State(), random);
 }
 
-
 TEST(SessionEventApplierTest, TheServerListReturnResetsTheWorldAndOrdersTheLogin)
 {
     auto tested = std::make_unique<Applier>();
@@ -361,7 +357,6 @@ TEST(SessionEventApplierTest, TheServerListReturnResetsTheWorldAndOrdersTheLogin
     EXPECT_EQ(tested->cloth.random.State(), Client::Tests::AfterDraws(1, 0xf08).State());
 }
 
-
 TEST(SessionEventApplierTest, TheServerListReturnAlsoKillsSelectionActorsWithoutClearingFloorItems)
 {
     auto tested = std::make_unique<Applier>();
@@ -381,7 +376,6 @@ TEST(SessionEventApplierTest, TheServerListReturnAlsoKillsSelectionActorsWithout
     EXPECT_TRUE(tested->world.Actors()[4].alive);
     EXPECT_TRUE(tested->world.DrawTail().floorItems[0].alive);
 }
-
 
 TEST(SessionEventApplierTest, ALogoutDoesNotSkipACursorReturnFailureBeforeReleasingTheWorld)
 {

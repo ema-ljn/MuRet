@@ -178,6 +178,8 @@ struct ActorState
     // corrido 300 por el rumbo (0x4f9a1e..0x4f9a80, Scenes::StepTheFrameSkill). Lo lee el paso de los joints con este
     // dueño (0x535ea9; el 0x10f/2 de la misma habilidad, CL11). 0x511290 no lo escribe.
     glm::vec3 skillHandPoint{};
+    // +0x1a0: la skill0x2b prende35 pasos de chispas sobre el blanco (4f9ba2); 511c62 lo inicializa en0.
+    std::uint8_t byte1a0 = 0;
     // +0x28 y +0x2c, los ángulos de la cabeza, y +0x34 y +0x38, hacia dónde gira: los mueve 0x505de0
     // (0x5068eb..0x5069ab, Scenes::StepCharacterHead) y los lee la pose (0x4eb860). 0x511290 no los escribe:
     // quedan los de WinMain o los del uso anterior del registro. Del héroe, el blanco lo escribe MoveHero con

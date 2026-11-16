@@ -44,6 +44,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <bit>
 #include <cstddef>
@@ -145,7 +146,6 @@ TEST(CharacterStepTest, TheSelectionPreviewRunsTheCommonBodyOutsideThePool)
     EXPECT_EQ(terrain.attributes->cells[0] & Client::World::CharacterWallBit, 0u);
     EXPECT_FALSE(world.Actors()[0].alive);
 }
-
 
 TEST(CharacterStepTest, TheNewFaceHeadHasItsOwnDrawBeforeTheCommonHeadAndUsesModuloFortyEight)
 {
@@ -321,6 +321,144 @@ struct GameWorld
 
 const TerrainPolygon Everything{.everything = true};
 
+TEST(CharacterStepTest, SkillHitStunTurnsByItsOldCounterWithoutWrapping)
+{
+    for (const std::uint8_t counter : {std::uint8_t{0}, std::uint8_t{1}, std::uint8_t{10}, std::uint8_t{255}})
+    {
+        SCOPED_TRACE(int{counter});
+        GameWorld tested;
+        tested.Hero().byte398 = counter;
+        tested.Hero().angles.z = 350.5f;
+        const auto stepped = tested.Step(Everything);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(tested.Hero().byte398, counter == 0 ? 0 : counter - 1);
+        EXPECT_EQ(tested.Hero().angles.z, 350.5f + static_cast<float>(counter) * 10.0f);
+        EXPECT_EQ(tested.random.State(), Client::Tests::AfterDraws(Seed, SeenHeroDraws).State());
+    }
+}
+
+TEST(CharacterStepTest, FullJointsKeepTheBoneEmitterSelectorsAndDecrementItsByte)
+{
+    for (const std::int32_t map : {0, 30})
+    {
+        SCOPED_TRACE(map);
+        GameWorld tested(map);
+        tested.Hero().byte1a0 = 35;
+        tested.skeleton.bones.resize(5);
+        tested.skeleton.bones[0].parent = 2; // El padre puede venir después.
+        tested.skeleton.bones[1].dummy = true;
+        tested.skeleton.bones[1].parent = 0;
+        tested.skeleton.bones[2].parent = -1;
+        tested.skeleton.bones[3].parent = 5; // Fuera del modelo.
+        tested.skeleton.bones[4].parent = 0;
+        tested.world.Runtime().terrainPolygon = Everything;
+        for (auto& joint : tested.world.DrawTail().joints)
+            joint.alive = true;
+        const auto stepped = StepCharacters({.world = tested.world,
+                                             .random = tested.random,
+                                             .playerSkeleton = &tested.skeleton,
+                                             .joints = tested.world.DrawTail().joints});
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(tested.Hero().byte1a0, map == 30 ? 35 : 34);
+        EXPECT_EQ(tested.random.State(), Client::Tests::AfterDraws(Seed, SeenHeroDraws + (map == 30 ? 0 : 12)).State());
+    }
+}
+
+TEST(CharacterStepTest, TheFlareSkillActionUsesTheExistingParticleAndSkipsItsFullPool)
+{
+    for (const bool full : {false, true})
+    {
+        SCOPED_TRACE(full);
+        GameWorld tested;
+        tested.Hero().animation.action = 0x4d;
+        tested.Hero().animation.frame = 6.0f;
+        tested.Hero().animation.previousAction = 0x4d;
+        tested.world.Runtime().terrainPolygon = Everything;
+        if (full)
+            for (auto& particle : tested.world.Particles().All())
+                particle.alive = true;
+        const auto stepped = StepCharacters({.world = tested.world,
+                                             .random = tested.random,
+                                             .playerSkeleton = &tested.skeleton,
+                                             .particles = &tested.world.Particles()});
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(tested.random.State(),
+                  Client::Tests::AfterDraws(Seed, SeenHeroDraws + TrailDraws + (full ? 0 : 3)).State());
+        if (!full)
+        {
+            const auto& particle = tested.world.Particles().All().front();
+            EXPECT_TRUE(particle.alive);
+            EXPECT_EQ(particle.type, 0x5ac);
+            EXPECT_EQ(particle.subtype, 0);
+            EXPECT_EQ(particle.light, (glm::vec3{0.3f, 0.5f, 1.0f}));
+        }
+    }
+}
+
+TEST(CharacterStepTest, ChargedSkillFlaresAndTheFullJointTailUseTheirNativeBudgets)
+{
+    for (const bool full : {false, true})
+    {
+        SCOPED_TRACE(full);
+        GameWorld tested;
+        tested.Hero().animation.action = 0x44;
+        tested.Hero().animation.previousAction = 0x44;
+        tested.Hero().byte1bc = 1;
+        tested.skeleton.bones.resize(5);
+        tested.skeleton.bones[2].dummy = true;
+        tested.world.Runtime().terrainPolygon = Everything;
+        for (auto& joint : tested.world.DrawTail().joints)
+            joint.alive = true;
+        if (full)
+            for (auto& particle : tested.world.Particles().All())
+                particle.alive = true;
+        const auto stepped = StepCharacters({.world = tested.world,
+                                             .random = tested.random,
+                                             .playerSkeleton = &tested.skeleton,
+                                             .particles = &tested.world.Particles(),
+                                             .joints = tested.world.DrawTail().joints});
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(tested.random.State(), Client::Tests::AfterDraws(Seed, SeenHeroDraws + 6 + (full ? 0 : 12)).State());
+        if (!full)
+        {
+            const auto& all = tested.world.Particles().All();
+            EXPECT_EQ(std::ranges::count_if(all, [](const auto& p) { return p.alive; }), 4);
+            EXPECT_EQ(all.front().type, 0x5ac);
+            EXPECT_EQ(all.front().subtype, 6);
+            EXPECT_EQ(all.front().light, (glm::vec3{0.3f, 0.3f, 1.0f}));
+        }
+    }
+}
+
+TEST(CharacterStepTest, Action96CreatesTenFiresAndFullParticlesKeepItsBoneChoices)
+{
+    for (const bool full : {false, true})
+    {
+        SCOPED_TRACE(full);
+        GameWorld tested;
+        tested.Hero().animation.action = 0x96;
+        tested.Hero().animation.previousAction = 0x96;
+        tested.skeleton.bones.resize(3);
+        tested.world.Runtime().terrainPolygon = Everything;
+        if (full)
+            for (auto& particle : tested.world.Particles().All())
+                particle.alive = true;
+        const auto stepped = StepCharacters({.world = tested.world,
+                                             .random = tested.random,
+                                             .playerSkeleton = &tested.skeleton,
+                                             .particles = &tested.world.Particles()});
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        // 506f7a selector y 541189/5411ce/5413ef, tres del constructor5d9/0 si hay hueco.
+        EXPECT_EQ(tested.random.State(), Client::Tests::AfterDraws(Seed, SeenHeroDraws + 10 * (full ? 1 : 4)).State());
+        if (!full)
+        {
+            const auto& all = tested.world.Particles().All();
+            EXPECT_EQ(std::ranges::count_if(all, [](const auto& p) { return p.alive; }), 10);
+            EXPECT_EQ(all.front().type, 0x5d9);
+            EXPECT_EQ(all.front().light, (glm::vec3{1.0f, 1.0f, 1.0f}));
+        }
+    }
+}
 
 TEST(CharacterStepTest, TheSceneTerrainSuppliesItsWallsAndSafeZone)
 {
@@ -345,7 +483,6 @@ TEST(CharacterStepTest, TheSceneTerrainSuppliesItsWallsAndSafeZone)
     EXPECT_NE(sceneTerrain.attributes->cells[cell] & Client::World::CharacterWallBit, 0);
     EXPECT_FALSE(tested.world.Map().terrain.attributes);
 }
-
 
 TEST(CharacterStepTest, TheRavenRunsInsideTheBodyBeforeTheCellAndHead)
 {
@@ -508,7 +645,6 @@ TEST(CharacterStepTest, TheRavenLooksAtTheAttackTargetOnlyInsideTheFourHundred)
     ASSERT_TRUE(hidden.HasValue()) << hidden.Error();
     EXPECT_EQ(sent.size(), 1u);
 }
-
 
 TEST(CharacterStepTest, AMissingRavenResourceCutsAfterTheBodyRandoms)
 {
@@ -972,7 +1108,7 @@ TEST(CharacterStepTest, TheSpeedOfTheActionGoesThroughItsFactors)
          {Case{3, 0, 1, 0.0f, Speed, ""}, Case{3, 1, 1, 0.0f, Speed * 1.5f, ""}, Case{4, 1, 1, 0.0f, Speed * 1.5f, ""},
           Case{5, 1, 1, 0.0f, Speed, ""}, Case{0x3f, 0, 1, 6.0f, 6.0f + Speed, ""},
           Case{0x3f, 0, 1, 6.5f, 6.5f + (Speed * 0.5f), ""}, Case{0x4d, 0, 1, 5.0f, 5.0f + Speed, ""},
-          Case{0x5a, 0, 1, 5.6f, 5.6f + (Speed * 0.1f), "0x4fdb70"}, Case{0x44, 0, 1, 0.0f, Speed * 0.5f, "0x506e5d"},
+          Case{0x5a, 0, 1, 5.6f, 5.6f + (Speed * 0.1f), "0x4fdb92"}, Case{0x44, 0, 1, 0.0f, Speed * 0.5f, "0x518aa8"},
           Case{0x51, 0, 4, 2.0f, 2.0f, "0x4f969d"}, Case{0x51, 0, 4, 3.5f, 3.5f + Speed, ""},
           Case{0x51, 0, 0x14, 0.5f, 0.5f + Speed, ""}})
     {
@@ -1065,10 +1201,10 @@ TEST(CharacterStepTest, AnEndedActionFortyFourRestartsItsFrame)
 
     const auto stepped = tested.Step(Everything);
 
-    EXPECT_TRUE(HasError(stepped, "0x506e5d")) << ErrorOf(stepped);
+    EXPECT_TRUE(HasError(stepped, "0x518aa8")) << ErrorOf(stepped);
     EXPECT_EQ(hero.animation.action, 0x44);
     EXPECT_EQ(hero.animation.frame, 0.0f);
-    EXPECT_EQ(tested.random.State(), RandomAfter(SeenHeroDraws).State());
+    EXPECT_EQ(tested.random.State(), RandomAfter(SeenHeroDraws + 2).State());
 }
 
 // 0x4fcee0: antes del frame 3, salvo en la 0x8d, copia la posición a +0x17c y sale; si no, con el 0x20a, la estela
@@ -1194,7 +1330,7 @@ TEST(CharacterStepTest, TheBodyStopsWhereMuRetHasNothing)
                  tested.Hero().animation.action = 0x4f;
                  tested.Hero().animation.frame = 5.6f;
              },
-             "0x4fdb70", AfterTheTimers + BodyDraws},
+             "0x4fdb92", AfterTheTimers + BodyDraws},
     };
     for (const Case& probe : cases)
     {
@@ -1404,8 +1540,8 @@ TEST(CharacterStepTest, ThePlayerEffectsAndStepsStopAfterTheRandom)
         std::uint8_t action;
         std::string_view cut;
     };
-    for (const Case& probe : {Case{7, 1, "0x506d77"}, Case{0, 0x44, "0x506e5d"}, Case{0, 0x45, "0x506e5d"},
-                              Case{0, 0x96, "0x506f62"}, Case{0, 0x0d, ""}, Case{0, 0x21, ""}, Case{2, 0x8b, ""},
+    for (const Case& probe : {Case{7, 1, "0x506d77"}, Case{0, 0x44, "0x518aa8"}, Case{0, 0x45, "0x518aa8"},
+                              Case{0, 0x96, "0x506f84"}, Case{0, 0x0d, ""}, Case{0, 0x21, ""}, Case{2, 0x8b, ""},
                               Case{2, 0x8c, ""}, Case{2, 0x4b, ""}, Case{2, 0x0c, ""}, Case{0, 0x22, ""}})
     {
         SCOPED_TRACE(::testing::Message() << "mapa " << probe.map << ", acción " << static_cast<int>(probe.action));
@@ -1422,7 +1558,10 @@ TEST(CharacterStepTest, ThePlayerEffectsAndStepsStopAfterTheRandom)
         {
             EXPECT_TRUE(HasError(stepped, probe.cut)) << ErrorOf(stepped);
         }
-        EXPECT_EQ(tested.random.State(), RandomAfter(SeenHeroDraws).State());
+        EXPECT_EQ(tested.random.State(), RandomAfter(SeenHeroDraws + (probe.action == 0x44 || probe.action == 0x45 ? 2
+                                                                      : probe.action == 0x96                       ? 1
+                                                                                                                   : 0))
+                                             .State());
     }
 }
 
@@ -1636,8 +1775,8 @@ TEST(CharacterStepTest, AfterItsHeadAnotherCharacterTakesThePathOfTheHero)
     };
     constexpr std::uint16_t NoItem = Client::Scenes::NoItemModel;
     for (const Case& probe :
-         {Case{"el mapa 7", 7, 1, NoItem, "0x506d77", true}, Case{"la 0x44", 2, 0x44, NoItem, "0x506e5d", true},
-          Case{"la 0x45", 0, 0x45, NoItem, "0x506e5d", true}, Case{"la 0x96", 2, 0x96, NoItem, "0x506f62", true}})
+         {Case{"el mapa 7", 7, 1, NoItem, "0x506d77", true}, Case{"la 0x44", 2, 0x44, NoItem, "0x518aa8", true},
+          Case{"la 0x45", 0, 0x45, NoItem, "0x518aa8", true}, Case{"la 0x96", 2, 0x96, NoItem, "0x506f84", true}})
     {
         SCOPED_TRACE(probe.name);
         GameWorld tested(probe.map);
@@ -1653,6 +1792,9 @@ TEST(CharacterStepTest, AfterItsHeadAnotherCharacterTakesThePathOfTheHero)
         CharacterHead head;
         StepCharacterHead(head, true, withoutTheRandom);
 
+        const int extra = probe.action == 0x44 || probe.action == 0x45 ? 2 : probe.action == 0x96 ? 1 : 0;
+        Skip(expected, extra);
+        Skip(withoutTheRandom, extra);
         const auto stepped = tested.Step(Everything);
 
         EXPECT_TRUE(HasError(stepped, probe.cut)) << ErrorOf(stepped);
@@ -2148,7 +2290,6 @@ TEST(CharacterStepTest, TheSelectionEndsTheActionTwoFramesEarlier)
 }
 } // namespace
 
-
 TEST(CharacterStepTest, KalimaFootstepCallerCreatesSubtypeOneInTheSharedPool)
 {
     GameWorld tested(24);
@@ -2210,7 +2351,6 @@ TEST(CharacterStepTest, ThePerchedRavenUsesItsOwnersPlacementBeforeDeathMovesThe
     EXPECT_EQ(tested.world.PlayerModel().scale, 1.25f);
     EXPECT_EQ(tested.world.PlayerModel().origin, owner.position);
 }
-
 
 TEST(CharacterStepTest, TheBodyCountsDownTheRemovalWordAndKeepsItsMinus128Sentinel)
 {
@@ -2276,7 +2416,6 @@ TEST(CharacterStepTest, ExpiringOneActorCleansOnlyItsOwnEffectsAndLetsTheBodyFin
     EXPECT_EQ(tested.world.Runtime().namedBones[0].actor, 2u);
     EXPECT_EQ(tested.world.Runtime().namedBones[0].name, "LeftHand");
 }
-
 
 TEST(CharacterStepTest, AnExpiringActorOutsideThePoolStillRunsItsDirectCleanup)
 {

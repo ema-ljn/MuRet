@@ -51,6 +51,7 @@ trazas; el audio, casi nada. Este research lo dice explícitamente en cada tema 
 | 13 | [Actores y picking de H1](13-h1-actores-y-picking.md) | ownership de telas, writers de caja, precisión x87, registro fantasma y contraste de emotes en XP | CL9 |
 | 14 | [Transformación en XP](14-transformacion-en-vmxp.md) | modelo Budge Dragon, bloqueo de movimiento, comparación de equipo y límites del protocolo recibido | CL7, CL9 |
 | 15 | [Combate, daño y muerte de H3](15-h3-combate-y-muerte.md) | contratos ASM, regresiones, capacidad de efectos y combate normal observado en XP | CL9 |
+| 16 | [Skills, cuervo y mascotas de H4](16-h4-skills-y-mascotas.md) | inventario, integración H3/H5, contratos ASM, pools y fronteras reales; casos para VM | CL9 |
 
 Orden de lectura sugerido para aprender: 01 → 03 → 04 → 05 → 02 → 06, y el resto como
 referencia.

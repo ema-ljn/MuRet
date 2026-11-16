@@ -26,11 +26,14 @@
 #include "World/ModelEffects.h"
 
 #include "support/PlayerActors.h"
+#include "support/Bytes.h"
+#include "support/Packets.h"
 #include "support/RecordingSink.h"
 #include "support/TableFiles.h"
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <initializer_list>
@@ -444,6 +447,61 @@ TEST(SkillRepliesTest, TheEffectsOfTheSkillsAreCL11Cuts)
         ASSERT_FALSE(applied.HasValue()) << int{skill};
         EXPECT_NE(applied.Error().find(where), std::string::npos) << applied.Error();
         EXPECT_NE(applied.Error().find("CL11"), std::string::npos) << applied.Error();
+    }
+}
+
+// 0x518d0f..0x518d26 retorna al no hallar hueco, sin ejecutar el constructor pendiente ni consumir su RNG.
+TEST(SkillRepliesTest, AFullEffectPoolDoesNotStopTheMagicReplyTail)
+{
+    for (const auto skill : {std::uint8_t{0x37}, std::uint8_t{0x33}, std::uint8_t{0x45}, std::uint8_t{0x3b}})
+    {
+        SCOPED_TRACE(static_cast<int>(skill));
+        auto tested = std::make_unique<Replies>();
+        ActorState& source = tested->Actor(CasterIndex);
+        source.byte381 = 7;
+        for (auto& effect : tested->world.Map().effects.Effects())
+        {
+            effect.alive = true;
+            effect.type = 0;
+        }
+        const bool prehead = skill != 0x3b;
+        const auto expected = Advanced(tested->cloth.random, prehead ? ActorByteRandoms : 0);
+
+        const auto applied = tested->Attack(skill);
+
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        EXPECT_EQ(tested->cloth.random.State(), expected.State());
+        EXPECT_EQ(source.byte381, skill == 0x33 || skill == 0x45 ? 1 : 7);
+        EXPECT_EQ(source.flags78, skill == 0x45 ? 0x2000u : 0u);
+        EXPECT_EQ(source.byte38e, prehead ? skill : 0);
+        if (skill == 0x3b)
+        {
+            EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x94);
+        }
+        else
+        {
+            EXPECT_FALSE(tested->world.Runtime().lastSoundId.has_value());
+        }
+        EXPECT_TRUE(std::ranges::all_of(tested->world.Map().effects.Effects(),
+                                        [](const auto& effect) { return effect.alive; }));
+    }
+}
+
+TEST(SkillRepliesTest, KillingAMatchingEffectReopensItsConstructorEvenFromAFullPool)
+{
+    for (const auto skill : {std::uint8_t{0x37}, std::uint8_t{0x33}})
+    {
+        auto tested = std::make_unique<Replies>();
+        auto effects = tested->world.Map().effects.Effects();
+        for (auto& effect : effects)
+            effect.alive = true;
+        effects.front().type = skill == 0x37 ? 0x628 : 0xc1;
+        effects.front().subtype = skill == 0x37 ? 0 : 1;
+        effects.front().ownerContext = &tested->Actor(TargetIndex);
+        const auto applied = tested->Attack(skill);
+        ASSERT_FALSE(applied.HasValue());
+        EXPECT_NE(applied.Error().find("CL11"), std::string::npos);
+        EXPECT_FALSE(effects.front().alive);
     }
 }
 
@@ -929,17 +987,76 @@ TEST(SkillRepliesTest, TheSkillTargetOfAnUnknownSourceWritesTheLastActor)
     }
 }
 
-TEST(SkillRepliesTest, TheLevelUpEffectOfAPlayerIsACL11Cut)
+// 0x4dbfad..0x4dc004: los quince intentos no se interrumpen por un pool lleno; el sonido siempre queda al final.
+TEST(SkillRepliesTest, TheLevelUpEffectRespectsBothPoolsAndContinuesToItsSound)
+{
+    for (const int freeJoints : {0, 1, 7, 15, 16})
+    {
+        for (const bool effectsFull : {false, true})
+        {
+            SCOPED_TRACE(testing::Message() << freeJoints << " joints libres; efectos llenos " << effectsFull);
+            auto tested = std::make_unique<Replies>();
+            ActorState& actor = tested->Actor(CasterIndex);
+            actor.byte88 = 1;
+            actor.light = {0.3f, 0.5f, 0.7f};
+            auto& joints = tested->world.DrawTail().joints;
+            for (std::size_t i = 0; i < joints.size(); ++i)
+                joints[i].alive = i >= static_cast<std::size_t>(freeJoints);
+            auto effects = tested->world.Map().effects.Effects();
+            for (auto& effect : effects)
+                effect.alive = effectsFull;
+            const int created = std::min(freeJoints, 15);
+            const auto expected = Advanced(tested->cloth.random, 3 * created);
+
+            const auto applied = Client::Scenes::ApplyActorEffect(ActorEffect{CasterKey, 0x10}, tested->Resources());
+
+            ASSERT_TRUE(applied.HasValue()) << applied.Error();
+            EXPECT_EQ(tested->cloth.random.State(), expected.State());
+            EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x98);
+            for (int i = 0; i < created; ++i)
+            {
+                const auto& joint = joints[static_cast<std::size_t>(i)];
+                EXPECT_TRUE(joint.alive);
+                EXPECT_EQ(joint.type, 0x60f);
+                EXPECT_EQ(joint.subtype, 0);
+                EXPECT_EQ(joint.key, 2);
+                EXPECT_EQ(joint.width, 40.0f);
+                EXPECT_EQ(joint.ownerContext, &actor);
+                EXPECT_EQ(joint.light, actor.light);
+            }
+            if (freeJoints > created)
+            {
+                EXPECT_FALSE(joints[static_cast<std::size_t>(created)].alive);
+            }
+            if (!effectsFull)
+            {
+                const auto& decal = effects.front();
+                EXPECT_TRUE(decal.alive);
+                EXPECT_EQ(decal.type, 0x61e);
+                EXPECT_EQ(decal.subtype, 0);
+                EXPECT_EQ(decal.life, 20);
+                EXPECT_EQ(decal.ownerContext, &actor);
+                EXPECT_EQ(decal.transform.position, actor.position);
+                EXPECT_EQ(decal.transform.angles, actor.angles);
+                EXPECT_EQ(decal.light, actor.light);
+                EXPECT_FALSE(effects[1].alive);
+            }
+        }
+    }
+}
+
+TEST(SkillRepliesTest, TheLevelUpEffectChecksItsActorAndKindBeforeEitherPool)
 {
     auto tested = std::make_unique<Replies>();
     tested->Actor(CasterIndex).byte88 = 1;
-    const auto applied = Client::Scenes::ApplyActorEffect(ActorEffect{CasterKey, 0x10}, tested->Resources());
-    ASSERT_FALSE(applied.HasValue());
-    EXPECT_NE(applied.Error().find("0x4dbfc5"), std::string::npos) << applied.Error();
+    const auto before = tested->cloth.random.State();
     EXPECT_TRUE(Client::Scenes::ApplyActorEffect(ActorEffect{CasterKey, 0x11}, tested->Resources()).HasValue());
     EXPECT_TRUE(Client::Scenes::ApplyActorEffect(ActorEffect{0x0777, 0x10}, tested->Resources()).HasValue());
     tested->Actor(CasterIndex).byte88 = 2;
     EXPECT_TRUE(Client::Scenes::ApplyActorEffect(ActorEffect{CasterKey, 0x10}, tested->Resources()).HasValue());
+    EXPECT_EQ(tested->cloth.random.State(), before);
+    EXPECT_FALSE(tested->world.Map().effects.Effects().front().alive);
+    EXPECT_FALSE(tested->world.DrawTail().joints.front().alive);
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -1026,6 +1143,39 @@ TEST(SkillRepliesTest, TheListTwoClearsTheSlot)
     EXPECT_EQ(own.SkillAt(5), 0);
     EXPECT_EQ(own.SkillAt(6), 0x12);
     EXPECT_EQ(own.byte6a, 1);
+}
+
+// El F3 11 vacío de list=2 conserva los slots y no agrega las órdenes DL, pero recuenta mediante dos accesos.
+TEST(SkillRepliesTest, TheEmptyClearListStillRecountsAndClosesBothAccesses)
+{
+    for (const std::uint8_t depth : {std::uint8_t{0}, std::uint8_t{1}})
+    {
+        auto tested = std::make_unique<Replies>();
+        const auto skills = SkillsHiding({0x12});
+        tested->skills = &skills;
+        tested->Actor(HeroIndex).characterClass = 4;
+        tested->Actor(HeroIndex).skillIndex = 9;
+        auto& own = tested->world.OwnCharacter();
+        own.SetSkillAt(0, 0x12);
+        own.SetSkillAt(64, 0x11);
+        tested->world.Runtime().ownRecordDepth = depth;
+        const auto expected =
+            Advanced(tested->cloth.random, (depth == 0 ? 2 * OwnRecordRandoms : 0) + SkillEntryRandoms);
+        const auto read = Client::Protocol::Skill::ReadSkillList(
+            Client::Tests::PacketOf(Client::Tests::Bytes({0xc1, 6, 0xf3, 0x11, 0, 2})));
+
+        ASSERT_TRUE(read.HasValue());
+        ASSERT_TRUE(Client::Scenes::ApplySkillList(read.Value(), tested->Resources()).HasValue());
+
+        EXPECT_EQ(own.SkillAt(0), 0x12);
+        EXPECT_EQ(own.SkillAt(64), 0x11);
+        EXPECT_EQ(own.SkillAt(0x78), 0);
+        EXPECT_EQ(own.byte6a, 1);
+        EXPECT_EQ(own.byte6b, 1);
+        EXPECT_EQ(tested->Actor(HeroIndex).skillIndex, 0);
+        EXPECT_EQ(tested->world.Runtime().ownRecordDepth, depth);
+        EXPECT_EQ(tested->cloth.random.State(), expected.State());
+    }
 }
 
 TEST(SkillRepliesTest, TheSkillListWithoutSkillBmdIsACut)

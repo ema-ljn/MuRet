@@ -14,6 +14,7 @@
 #include <cstdint>
 #include <initializer_list>
 #include <memory>
+#include <limits>
 #include <span>
 #include <string>
 #include <utility>
@@ -196,6 +197,25 @@ TEST(SkillDelaysTest, TheCountDownLowersTheFirstSlots)
     EXPECT_EQ(own.skillDelays[3], 60);
     EXPECT_EQ(own.skillDelays[4], 100);
     EXPECT_EQ(tested->random.State(), expected.State());
+}
+
+// 5530c2 SUB32 seguido de CMP signed: la resta desborda como DWORD antes de truncar negativos.
+TEST(SkillDelaysTest, TheCountDownWrapsBeforeTheSignedClamp)
+{
+    for (const auto elapsed : {std::numeric_limits<std::int32_t>::min(), std::int32_t{-1}})
+    {
+        auto tested = std::make_unique<Delays>();
+        auto& own = tested->Own();
+        own.byte6a = 1;
+        own.skillDelays[0] = elapsed == -1 ? std::numeric_limits<std::int32_t>::max() : 1;
+        own.skillDelays[1] = -7;
+        own.skillDelays[2] = 0;
+        const auto counted = Client::Scenes::CountDownSkillDelays(elapsed, tested->Context());
+        ASSERT_TRUE(counted.HasValue()) << counted.Error();
+        EXPECT_EQ(own.skillDelays[0], 0);
+        EXPECT_EQ(own.skillDelays[1], -7);
+        EXPECT_EQ(own.skillDelays[2], 0);
+    }
 }
 
 // Con +0x6a en 0xfe o más, el lazo llegaría al lugar 255, que es el equipo (+0xb68): corta.

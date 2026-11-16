@@ -1780,8 +1780,7 @@ StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random, const
                   const std::int32_t* map, IParticleTrigonometry* trigonometry,
                   const ParticleTerrainHeight& terrainHeight, const ParticleObjectOwners& owners,
                   const ParticleActorActions& actorActions, const ParticleTextureHeight& textureHeight,
-                  TerrainLighting* lighting, const ParticleActorHands& actorHands,
-                  const ParticleOwnerBones& ownerBones)
+                  TerrainLighting* lighting, const ParticleActorHands& actorHands, const ParticleOwnerBones& ownerBones)
 {
     // Los punteros privados distinguen exclusivamente legacy de la API pública requerida.
     // El overload vivo siempre proporciona reloj y evaluador; no hay servicio opcional público.
@@ -1998,11 +1997,13 @@ Core::Expected<void, ParticleError> StepParticlesChecked(Particles& particles, R
     return StepParticlesImpl(particles, random, nullptr, map, nullptr, terrainHeight, {}, {}, {}, nullptr, {}, {});
 }
 
-Core::Expected<void, ParticleError> StepParticlesChecked(
-    Particles& particles, Render::Models::CrtRandom& random, std::reference_wrapper<const float> worldClock,
-    const std::int32_t* map, IParticleTrigonometry& trigonometry, const ParticleTerrainHeight& terrainHeight,
-    const ParticleObjectOwners& owners, const ParticleActorActions& actorActions,
-    const ParticleTextureHeight& textureHeight, TerrainLighting* lighting, const ParticleActorHands& actorHands, const ParticleOwnerBones& ownerBones)
+Core::Expected<void, ParticleError>
+StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random,
+                     std::reference_wrapper<const float> worldClock, const std::int32_t* map,
+                     IParticleTrigonometry& trigonometry, const ParticleTerrainHeight& terrainHeight,
+                     const ParticleObjectOwners& owners, const ParticleActorActions& actorActions,
+                     const ParticleTextureHeight& textureHeight, TerrainLighting* lighting,
+                     const ParticleActorHands& actorHands, const ParticleOwnerBones& ownerBones)
 {
     return StepParticlesImpl(particles, random, &worldClock.get(), map, &trigonometry, terrainHeight, owners,
                              actorActions, textureHeight, lighting, actorHands, ownerBones);

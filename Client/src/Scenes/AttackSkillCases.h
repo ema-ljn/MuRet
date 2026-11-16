@@ -32,5 +32,5 @@ StepTheHeadSkill(ActorState& actor, std::size_t slot, std::uint8_t skill, const 
 
 // 0x5042ce: 0x52e740(0, blanco, blanco + 0x10, o + 0x1c), con las acciones 0x38 a 0x3c de o.
 [[nodiscard]] Core::Expected<void, std::string> SparkTheTarget(const ActorState& actor, const ActorState& victim,
-                                                               std::size_t slot);
+                                                               std::size_t slot, const CharacterStepContext& context);
 } // namespace Client::Scenes

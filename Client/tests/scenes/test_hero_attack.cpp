@@ -502,8 +502,8 @@ TEST_F(HeroAttackTest, InChaosCastleEveryoneButTheHeroIsAttackable)
     }
 }
 
-// Un monstruo se puede atacar salvo en la guerra de gremios (0x576796c) sin 0x576796d; un jugador, por el PK de 6 o
-// más, +0x370 en 2 u 8 o con Ctrl abajo, y nunca el héroe.
+// Un monstruo se puede atacar salvo en la guerra de gremios (0x576796c) sin 0x576796d; un jugador por +0x370 en 2/8,
+// PK de 6 o más (también el héroe), guerra de gremios o duelo; fuera de eso, Ctrl y no ser el héroe.
 TEST_F(HeroAttackTest, MonstersAndPlayersFollowTheRules)
 {
     Chosen(TargetIndex);
@@ -532,6 +532,40 @@ TEST_F(HeroAttackTest, MonstersAndPlayersFollowTheRules)
 
     Chosen(HeroIndex);
     EXPECT_FALSE(Client::Scenes::IsAttackable(*m_world, true).Value());
+}
+
+// 0x558e74..0x558e7b: el umbral PK 6 permite al héroe; con 5 no lo permite ni siquiera con Ctrl.
+TEST_F(HeroAttackTest, TheOutlawThresholdAllowsTheHeroAtSixButNotFive)
+{
+    Chosen(HeroIndex);
+    Hero().pk = 5;
+    EXPECT_FALSE(Client::Scenes::IsAttackable(*m_world, false).Value());
+    EXPECT_FALSE(Client::Scenes::IsAttackable(*m_world, true).Value());
+
+    Hero().pk = 6;
+    EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, false).Value());
+    EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, true).Value());
+}
+
+// 0x558d6e..0x558d7e: +0x370 en 2/8 antecede los filtros de gremio, duelo y PK.
+TEST_F(HeroAttackTest, Byte370OverridesGuildDuelAndPkFilters)
+{
+    ActorState& player = Chosen(20);
+    player = Client::Tests::UnarmedPlayer();
+    player.byte88 = 1;
+    player.pk = 6;
+    player.word1f2 = 3;
+    Name(player, "not-rival");
+    Runtime().attackRules.byte576796c = 1;
+    Runtime().attackRules.duelActive = true;
+    Runtime().attackRules.duelKey = 0x7777;
+
+    for (const std::uint8_t byte370 : {std::uint8_t{2}, std::uint8_t{8}})
+    {
+        SCOPED_TRACE(byte370);
+        player.byte370 = byte370;
+        EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, false).Value());
+    }
 }
 
 // En la guerra de gremios cuenta +0x374 en 2; con el PK de 6 y gremio, comparar los nombres de 0x787aa55 es del hito 8:
@@ -593,5 +627,46 @@ TEST_F(HeroAttackTest, InTheSiegeTheSidesDecideByTheShield)
     player.byte360 = 9;
     EXPECT_FALSE(Client::Scenes::IsAttackable(*m_world, false).Value());
     EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, true).Value());
+}
+
+// 0x558c5b..0x558c7e: también el defensor puede atacar al atacante; el escudo 0x4000 del blanco bloquea ambos sentidos.
+TEST_F(HeroAttackTest, InTheSiegeDefendersCanAttackUnshieldedAttackers)
+{
+    Runtime().siegeActive = true;
+    Hero().byte360 = 13;
+    ActorState& player = Chosen(20);
+    player = Client::Tests::UnarmedPlayer();
+    player.byte88 = 1;
+    player.byte360 = 6;
+    EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, false).Value());
+    player.flags78 = 0x4000;
+    EXPECT_FALSE(Client::Scenes::IsAttackable(*m_world, true).Value());
+}
+
+// 0x558cc1..0x558d59: las marcas 0x80000/0x400000/0x800000 comparan blanco sin marcas; si ambos tienen marca, sigue
+// fuera del asedio. El 0x40000 del héroe es una regla aparte cuando no tiene una de esas tres marcas.
+TEST_F(HeroAttackTest, SiegeMarksUseTheShieldAndBothMarkedSidesContinue)
+{
+    Runtime().siegeActive = true;
+    ActorState& player = Chosen(20);
+    player = Client::Tests::UnarmedPlayer();
+    player.byte88 = 1;
+    player.pk = 3;
+    Hero().flags78 = 0x80000;
+    player.flags78 = 0;
+    EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, false).Value());
+    player.flags78 = 0x4000;
+    EXPECT_FALSE(Client::Scenes::IsAttackable(*m_world, true).Value());
+
+    player.pk = 6;
+    player.flags78 = 0x400000 | 0x4000;
+    EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, false).Value());
+
+    Hero().flags78 = 0x40000;
+    player.pk = 3;
+    player.flags78 = 0;
+    EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, false).Value());
+    player.flags78 = 0x4000;
+    EXPECT_FALSE(Client::Scenes::IsAttackable(*m_world, false).Value());
 }
 } // namespace

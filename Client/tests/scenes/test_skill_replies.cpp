@@ -12,6 +12,7 @@
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
+#include "Scenes/ActorActions.h"
 #include "Scenes/ActorFlags.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
@@ -22,6 +23,7 @@
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "Scenes/WorldTransitionSupport.h"
 #include "World/GameCamera.h"
 #include "World/ModelEffects.h"
 
@@ -450,7 +452,9 @@ TEST(SkillRepliesTest, TheEffectsOfTheSkillsAreCL11Cuts)
     }
 }
 
-// 0x518d0f..0x518d26 retorna al no hallar hueco, sin ejecutar el constructor pendiente ni consumir su RNG.
+// 0x518d0f..0x518d26 retorna al no hallar hueco, sin ejecutar el constructor pendiente ni consumir su RNG. Lo que
+// sigue al alta no depende de él: la 0x37 suena 0x85 en el blanco y le prende 0x40 (0x4cd669..0x4cd67e), y la 0x33
+// le prende 0x20 (0x4cd740..0x4cd748), después de pararlo (TheSkill33WithAFullPoolStillStopsTheTarget).
 TEST(SkillRepliesTest, AFullEffectPoolDoesNotStopTheMagicReplyTail)
 {
     for (const auto skill : {std::uint8_t{0x37}, std::uint8_t{0x33}, std::uint8_t{0x45}, std::uint8_t{0x3b}})
@@ -458,6 +462,7 @@ TEST(SkillRepliesTest, AFullEffectPoolDoesNotStopTheMagicReplyTail)
         SCOPED_TRACE(static_cast<int>(skill));
         auto tested = std::make_unique<Replies>();
         ActorState& source = tested->Actor(CasterIndex);
+        const ActorState& target = tested->Actor(TargetIndex);
         source.byte381 = 7;
         for (auto& effect : tested->world.Map().effects.Effects())
         {
@@ -470,13 +475,22 @@ TEST(SkillRepliesTest, AFullEffectPoolDoesNotStopTheMagicReplyTail)
         const auto applied = tested->Attack(skill);
 
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
-        EXPECT_EQ(tested->cloth.random.State(), expected.State());
+        // La 0x33 gasta además el rand() de 0x4f2250: lo mira TheSkill33WithAFullPoolStillStopsTheTarget.
+        if (skill != 0x33)
+        {
+            EXPECT_EQ(tested->cloth.random.State(), expected.State());
+        }
         EXPECT_EQ(source.byte381, skill == 0x33 || skill == 0x45 ? 1 : 7);
         EXPECT_EQ(source.flags78, skill == 0x45 ? 0x2000u : 0u);
+        EXPECT_EQ(target.flags78, skill == 0x37 ? 0x40u : (skill == 0x33 ? 0x20u : 0u));
         EXPECT_EQ(source.byte38e, prehead ? skill : 0);
         if (skill == 0x3b)
         {
             EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x94);
+        }
+        else if (skill == 0x37)
+        {
+            EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x85);
         }
         else
         {
@@ -485,6 +499,43 @@ TEST(SkillRepliesTest, AFullEffectPoolDoesNotStopTheMagicReplyTail)
         EXPECT_TRUE(std::ranges::all_of(tested->world.Map().effects.Effects(),
                                         [](const auto& effect) { return effect.alive; }));
     }
+}
+
+// 0x4cd733..0x4cd748: con la tabla llena, la 0x33 igual deja +0x378 del blanco en 0, lo para (0x4f2250, con su
+// rand()) y le prende 0x20. La referencia hace lo mismo a mano sobre un blanco igual, después del rand() de la cabeza.
+TEST(SkillRepliesTest, TheSkill33WithAFullPoolStillStopsTheTarget)
+{
+    constexpr std::uint8_t BusyAction = 0x22;
+    auto tested = std::make_unique<Replies>();
+    auto reference = std::make_unique<Replies>();
+    for (Replies* replies : {tested.get(), reference.get()})
+    {
+        ActorState& target = replies->Actor(TargetIndex);
+        target.animation.action = BusyAction;
+        target.movement = 1;
+    }
+    for (auto& effect : tested->world.Map().effects.Effects())
+    {
+        effect.alive = true;
+        effect.type = 0;
+    }
+    reference->cloth.random = Advanced(reference->cloth.random, ActorByteRandoms);
+    ActorState& stopped = reference->Actor(TargetIndex);
+    stopped.movement = 0;
+    const auto context = Client::Scenes::TransitionStopContext(stopped, reference->Resources());
+    ASSERT_TRUE(context.HasValue()) << context.Error();
+    const auto stop = Client::Scenes::SetActorStop(stopped, context.Value());
+    ASSERT_TRUE(stop.HasValue()) << stop.Error();
+    ASSERT_NE(stopped.animation.action, BusyAction);
+
+    const auto applied = tested->Attack(0x33);
+
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
+    const ActorState& target = tested->Actor(TargetIndex);
+    EXPECT_EQ(target.movement, 0);
+    EXPECT_EQ(target.animation.action, stopped.animation.action);
+    EXPECT_EQ(target.flags78, 0x20u);
+    EXPECT_EQ(tested->cloth.random.State(), reference->cloth.random.State());
 }
 
 TEST(SkillRepliesTest, KillingAMatchingEffectReopensItsConstructorEvenFromAFullPool)

@@ -6,6 +6,7 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/LogicalAccess.h"
+#include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/AttackStep.h"
@@ -26,7 +27,6 @@
 #include <gtest/gtest.h>
 
 #include <bit>
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -409,8 +409,9 @@ TEST(AttackFrameSkillsTest, TheHandOf2bChargesUntilEight)
     }
 }
 
-// La mano de la 0x2b con el rumbo: + seno · 300 en x y − coseno · 300 en y, en la x87 y guardado en float. Otro tipo
-// toma su esqueleto de la biblioteca de modelos; sin ella, corta (0x4f98e4).
+// La mano de la 0x2b con el rumbo: + seno · 300 en x y − coseno · 300 en y, en la x87 y guardado en float. FSIN y FCOS
+// quedan retenidos y el FMUL por 300 redondea una vez (0x4f9a61..0x4f9a80): el perfil PC53. Otro tipo toma su
+// esqueleto de la biblioteca de modelos; sin ella, corta (0x4f98e4).
 TEST(AttackFrameSkillsTest, TheHandOf2bTurnsWithTheHeading)
 {
     for (const std::int32_t map : Maps)
@@ -428,8 +429,11 @@ TEST(AttackFrameSkillsTest, TheHandOf2bTurnsWithTheHeading)
 
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         const double angle = 30.0 * static_cast<double>(std::bit_cast<float>(0x3c8efa35u));
-        EXPECT_EQ(hero.skillHandPoint.x, static_cast<float>(1000.0 + (std::sin(angle) * 300.0)));
-        EXPECT_EQ(hero.skillHandPoint.y, static_cast<float>(2000.0 - (std::cos(angle) * 300.0)));
+        const auto sine = Client::Render::Models::Detail::SineProductPC53(angle, 300.0f);
+        const auto cosine = Client::Render::Models::Detail::CosineProductPC53(angle, 300.0f);
+        ASSERT_TRUE(sine.has_value() && cosine.has_value());
+        EXPECT_EQ(hero.skillHandPoint.x, static_cast<float>(*sine + 1000.0));
+        EXPECT_EQ(hero.skillHandPoint.y, static_cast<float>(2000.0 - *cosine));
         EXPECT_EQ(hero.skillHandPoint.z, 0.0f);
 
         ActorState& other = tested.Striker(0x2b, 0.0f, 1);

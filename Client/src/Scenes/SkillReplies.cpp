@@ -438,18 +438,23 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
             return acted;
         return Settle(cast);
     }
-    // 0x4cd617: con la skill salida, apaga el 0x628/0 del blanco y crea otro (CL11).
+    // 0x4cd617: con la skill salida, apaga el 0x628/0 del blanco y crea otro (CL11). Con la tabla llena 0x518cf0 no
+    // crea nada y sigue igual: el sonido 0x85 en el blanco (0x4cd669..0x4cd671) y su 0x40 (0x4cd676..0x4cd67e).
     case 0x37:
         if (succeeded)
         {
             KillModelEffectsOf(world.Map().effects, 0x628, &target, 0);
             if (HasFreeEffectSlot(world))
                 return Core::Unexpected(std::string("0x4cd664: el efecto 0x628 de 0x518cf0 es de la CL11"));
+            Sound(resources, 0x85);
+            target.flags78 |= 0x40;
         }
         if (IsPlayer(source))
             return {};
         return AttackAndSettle(source, resources);
-    // 0x4cd6a5: con la skill salida, apaga el 0xc1/1 del blanco y crea el 0xc1/1 y el 0xc1/2 (CL11).
+    // 0x4cd6a5: con la skill salida, apaga el 0xc1/1 del blanco y crea el 0xc1/1 y el 0xc1/2 (CL11). Con la tabla
+    // llena los dos 0x518cf0 no crean nada y sigue igual (0x4cd733..0x4cd748): +0x378 del blanco en 0, 0x4f2250 sobre
+    // él y su 0x20.
     case 0x33:
     {
         if (auto acted = ActByTheHands(source, StaffHands, resources); !acted.HasValue())
@@ -459,6 +464,10 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
         KillModelEffectsOf(world.Map().effects, 0xc1, &target, 1);
         if (HasFreeEffectSlot(world))
             return Core::Unexpected(std::string("0x4cd6ff: el efecto 0xc1 de 0x518cf0 es de la CL11"));
+        target.movement = 0;
+        if (auto stopped = Stop(target, resources); !stopped.HasValue())
+            return stopped;
+        target.flags78 |= 0x20;
         return Settle(cast);
     }
     case 0x2d:

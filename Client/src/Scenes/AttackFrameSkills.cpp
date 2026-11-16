@@ -4,6 +4,7 @@
 #include "Data/Models/PlayerModels.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/LogicalAccess.h"
+#include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
@@ -25,7 +26,6 @@
 
 #include <algorithm>
 #include <bit>
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <format>
@@ -67,7 +67,7 @@ constexpr float BoltOpening = std::bit_cast<float>(0x40133333u);                
 constexpr float BoltClosing = std::bit_cast<float>(0x40266666u);                  // 0x6ba174, 2,6f
 constexpr double Degree = static_cast<double>(std::bit_cast<float>(0x3c8efa35u)); // 0x6b8cf8, π/180
 // 0x2b: la mano corrida 300 por el rumbo (0x6b8900).
-constexpr double HandReach = 300.0;
+constexpr float HandReach = 300.0f;
 
 // La acción (+0x111) y el frame (+0x114) del objeto.
 std::uint8_t ActionOf(const ActorState& actor)
@@ -177,16 +177,20 @@ Core::Expected<void, std::string> StepTheSkill2b(ActorState& actor, std::uint8_t
         }
     }
     // 0x4f9a0d..0x4f9a80: hasta 8, 0x4ec110 con el hueso y (0, 0, 0) a o+0x194; después, o+0x194 más el seno del
-    // rumbo (+0x24 · π/180) · 300 y o+0x198 menos el coseno · 300, cada uno en la x87 y guardado en float.
+    // rumbo (+0x24 · π/180) · 300 y o+0x198 menos el coseno · 300, cada uno en la x87 y guardado en float. FSIN y FCOS
+    // quedan retenidos y el FMUL por 300 redondea una sola vez: el perfil PC53 (0x4f9a61..0x4f9a7a).
     if (step <= LastBoltStep)
     {
         const glm::vec3 point = BonePoint(actor, bone, glm::vec3(0.0f), context.world);
         const double angle = static_cast<double>(actor.angles.z) * Degree;
+        const auto sine = Render::Models::Detail::SineProductPC53(angle, HandReach);
+        const auto cosine = Render::Models::Detail::CosineProductPC53(angle, HandReach);
+        if (!sine || !cosine)
+            return Core::Unexpected(std::format(
+                "0x4f9a63: el rumbo {} de la mano de la {:#x} no cabe en el perfil PC53", actor.angles.z, skill));
         actor.skillHandPoint = point;
-        actor.skillHandPoint.x =
-            static_cast<float>((std::sin(angle) * HandReach) + static_cast<double>(actor.skillHandPoint.x));
-        actor.skillHandPoint.y =
-            static_cast<float>(static_cast<double>(actor.skillHandPoint.y) - (std::cos(angle) * HandReach));
+        actor.skillHandPoint.x = static_cast<float>(*sine + static_cast<double>(actor.skillHandPoint.x));
+        actor.skillHandPoint.y = static_cast<float>(static_cast<double>(actor.skillHandPoint.y) - *cosine);
     }
     // 0x4f9a86..0x4f9ba2: de 6 a 12, 0x4ec110 con el hueso a un punto, corrido (+0x381 − 8) · 10 + 100 por el rumbo, y
     // dos 0x518cf0(0x812, punto, o+0x1c, (1; 1; 1), 1, o, −1, 0, 0, 0, 0); con el blanco de +0x3a4 vivo y +0x381 desde

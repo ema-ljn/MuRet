@@ -351,20 +351,20 @@ TEST(CharacterPickingTest, ThePlayersFindTheirPartySlotsWhilePicking)
         Place(world, 4, 2500.0f, 2);
         Name(world.Actors()[4].name, "Zorzal");
         Party(world, {"Brezal", "Tejon", "Zorzal", "Mirlo"}, -2);
-        EXPECT_EQ(PickTheCharacter(world, Npcs, std::nullopt), NoPick);
+        EXPECT_EQ(PickTheCharacter(world, Npcs, Ray.origin, std::nullopt), NoPick);
         EXPECT_EQ(Indices(world), (std::array<std::int32_t, 4>{3, 0, -1, -1}));
         const auto& slots = world.Runtime().social.party.slots;
         EXPECT_EQ(slots[0].actorFlags, 0x48U);
         EXPECT_EQ(slots[2].actorFlags, 0U);
         // Lo encontrado se queda: solo se busca en −2.
         Name(world.Actors()[3].name, "Otro");
-        EXPECT_EQ(PickTheCharacter(world, Players, Ray), 3);
+        EXPECT_EQ(PickTheCharacter(world, Players, Ray.origin, Ray), 3);
         EXPECT_EQ(Indices(world), (std::array<std::int32_t, 4>{3, 0, -1, -1}));
 
         // El héroe que no se ve.
         Party(world, {"Brezal", "Tejon", "Zorzal", "Mirlo"}, -2);
         world.Actors()[0].seen = false;
-        static_cast<void>(PickTheCharacter(world, Players, Ray));
+        static_cast<void>(PickTheCharacter(world, Players, Ray.origin, Ray));
         EXPECT_EQ(Indices(world), (std::array<std::int32_t, 4>{-1, -3, -1, -1}));
         EXPECT_EQ(slots[1].actorFlags, 0U);
     }

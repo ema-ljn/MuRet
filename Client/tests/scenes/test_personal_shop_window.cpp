@@ -143,6 +143,9 @@ public:
     {
         m_sent.push_back(PlainOf(outgoing));
     }
+    void SendWindowClose() override {}
+    void SendSetQuest(std::uint8_t /*quest*/, std::uint8_t /*state*/) override {}
+    void SendFriendPacket(Client::Protocol::Outgoing /*packet*/) override {}
     Client::Core::Expected<void, std::string> SaveMacros(std::string_view /*content*/) override
     {
         return {};

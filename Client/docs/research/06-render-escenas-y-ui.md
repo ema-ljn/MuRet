@@ -13513,10 +13513,10 @@ los tests dejan su respuesta a mano. Tests: `PersonalShopWindowTest` (en Lorenci
   otro `\n`. Sin el mapa, sin el modo o sin el precio: con la propia, el 1101 en rojo y en negrita y un `\n`; si no,
   nada.
 
-**MuRet**: `Scenes::DrawThePersonalShopWindow` (en `GameInventoryHud`, con `WindowDrawing::DrawCenteredInBox` para la
-caja de `0x554180`), la grilla en `DrawTheGridItems` y `DrawTheGridNumbers`, el `0x9c` en `DrawTheGameDialogs` y el
+**MuRet**: `Scenes::DrawThePersonalShopWindow` (en `GameInventoryHud`, con `WindowDrawing::DrawInBox` del hito 2 para
+la caja de `0x554180`), la grilla en `DrawTheGridItems` y `DrawTheGridNumbers`, el `0x9c` en `DrawTheGameDialogs` y el
 precio en `WriteThePersonalShopPrice` (`ItemTooltipShopPrice.cpp`, desde la ayuda del ítem); el zen con comas es
-`FormatZen` de `GameInventoryHud` (el de `0x5b1130` es la misma cuenta). Tests: `GamePersonalShopWindowTest` (la propia
+`FormatZen` de `Scenes/ZenText.h` (`0x5b1130`; la copia de `0x5f26a7` en `0x5f2340` hace la misma cuenta). Tests: `GamePersonalShopWindowTest` (la propia
 cerrada y abierta, la de otro, sin modo, sin `Text.bmd` y la grilla con sus `rand()`), los tres `ConfirmBox` de
 `GameDialogDrawingTest` y `PersonalShopPriceTest` (los colores, el 423, el 1101, el precio negativo y el acceso del
 registro propio), en Lorencia y Devias.

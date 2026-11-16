@@ -693,7 +693,7 @@ protected:
     static constexpr std::int32_t Place = 2 + 8 + 0x4c;
 
     // El cuerpo sin el registro propio abierto alrededor.
-    Client::Core::Expected<void, std::string> DrawWithTheRecordClosed(const ItemState& item)
+    Client::Core::Expected<void, std::string> DrawWithTheRecordClosed(ItemState& item)
     {
         GameHudContext context = Context();
         return Client::Scenes::DrawTheItemTooltip(

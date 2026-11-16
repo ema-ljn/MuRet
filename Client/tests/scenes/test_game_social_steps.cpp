@@ -58,6 +58,9 @@ public:
             packet.bytes.push_back(std::to_integer<std::uint8_t>(b));
         sent.push_back(std::move(packet));
     }
+    void SendWindowClose() override {}
+    void SendSetQuest(std::uint8_t /*quest*/, std::uint8_t /*state*/) override {}
+    void SendFriendPacket(Client::Protocol::Outgoing /*packet*/) override {}
     Client::Core::Expected<void, std::string> SaveMacros(std::string_view /*content*/) override
     {
         return {};

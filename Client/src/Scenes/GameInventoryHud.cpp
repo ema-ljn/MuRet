@@ -289,21 +289,6 @@ Core::Expected<void, std::string> DrawUiItem(GameHudContext& context, const UiIt
     return DrawUiItemModel(resources, context.random, placement.Value(), excellent, set);
 }
 
-// 0x5f26a7..0x5f2751 (Scenes/ZenText.h en la CL9 hito 6).
-std::string FormatZen(std::uint32_t zen)
-{
-    const std::uint32_t units = zen % 1000u;
-    const std::uint32_t thousands = zen % 1000000u / 1000u;
-    const std::uint32_t millions = zen % 1000000000u / 1000000u;
-    if (zen >= 1000000000u)
-        return std::format("{},{:03},{:03},{:03}", zen / 1000000000u, millions, thousands, units);
-    if (zen >= 1000000u)
-        return std::format("{},{:03},{:03}", millions, thousands, units);
-    if (zen >= 1000u)
-        return std::format("{},{:03}", thousands, units);
-    return std::format("{}", units);
-}
-
 namespace
 {
 // ---------------------------------------------------------------------------------------------------------------
@@ -1143,7 +1128,7 @@ Core::Expected<void, std::string> DrawShopBoxText(GameHudContext& context, std::
     auto text = TextOf(context, index, where);
     if (!text.HasValue())
         return Core::Unexpected(text.Error());
-    WindowDrawing::DrawCenteredInBox(context, x, y, text.Value(), box);
+    WindowDrawing::DrawInBox(context, x, y, text.Value(), box);
     return {};
 }
 
@@ -1189,7 +1174,7 @@ Core::Expected<void, std::string> DrawTheShopName(GameHudContext& context, std::
     std::string_view name = placeholder.Value();
     if (!shops.ownTitle.empty() || shops.mode == OtherShopView)
         name = shops.ownTitle;
-    WindowDrawing::DrawCenteredInBox(context, x + ShopNameLeft, y + ShopNameTop, name, StatusBox);
+    WindowDrawing::DrawInBox(context, x + ShopNameLeft, y + ShopNameTop, name, StatusBox);
     sprites.SetBlend(BlendMode::Opaque);
     return {};
 }

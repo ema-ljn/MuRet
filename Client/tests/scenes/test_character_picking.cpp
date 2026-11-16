@@ -440,6 +440,10 @@ TEST(CharacterPickingTest, TheListOnTheRightPicksAMember)
         Place(world, 3, 2000.0f, Players);
         world.Actors()[3].type = 0x20a;
         world.Actors()[3].position.y = 5000.0f;
+        // La caja que lee el picking es la que publicó el último dibujo (+0x13c..+0x168): la del lugar nuevo.
+        Client::Scenes::PublishPickingBox(
+            world.Actors()[3], world.Actors()[3].position, world.Actors()[3].boundsMin,
+            {world.Actors()[3].boundsMaxX, world.Actors()[3].boundsMaxY, world.Actors()[3].boundsTop});
         Name(world.Actors()[3].name, "Brezal");
         Party(world, {"Mirlo", "Tejon", "Zorzal", "Brezal"}, -1);
         auto& slots = world.Runtime().social.party.slots;

@@ -686,7 +686,7 @@ Core::Expected<void, std::string> StepTheYesNo(const GameUiContext& context, boo
         click = false;
     else if (!escape)
         return {};
-    if (const auto* other = std::ranges::find(OtherNoCases, id, &OtherNoCase::id); other != OtherNoCases.end())
+    if (const auto other = std::ranges::find(OtherNoCases, id, &OtherNoCase::id); other != OtherNoCases.end())
         return Core::Unexpected(
             std::format("0x62c560: el no del diálogo {:#x} ({}) es {} (08 P-C363)", id, other->address, other->owner));
     if (id == PartyRequestDialog || id == UI::ForcedDialog)

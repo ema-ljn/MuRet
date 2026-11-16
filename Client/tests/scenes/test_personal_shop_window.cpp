@@ -576,7 +576,8 @@ TEST_P(PersonalShopWindowTest, TheOtherShopAsksBeforeBuying)
 
     // El no, y el sí sin la clave: nada.
     sent.clear();
-    for (const auto& [answer, key] : {std::pair<std::uint8_t, std::uint16_t>{2, 0x0456}, {1, 0}})
+    for (const auto& [answer, key] : {std::pair<std::uint8_t, std::uint16_t>{std::uint8_t{2}, std::uint16_t{0x0456}},
+                                      std::pair<std::uint8_t, std::uint16_t>{std::uint8_t{1}, std::uint16_t{0}}})
     {
         Shops().ownerKey = key;
         Runtime().social.trade.warningKind = 5;

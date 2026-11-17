@@ -1,5 +1,7 @@
 #include "UI/ChatInput.h"
 
+#include "UI/OldWindowBase.h"
+
 #include <gtest/gtest.h>
 
 #include <optional>
@@ -51,6 +53,19 @@ TEST(ChatInputTest, ResettingTheBuffersLeavesTheWhisperWithoutSecond)
     ResetTheTextBuffers(input, true);
     EXPECT_EQ(CStringOf(input.whisperBuffer), "");
     EXPECT_EQ(input.whisperLength, 0);
+}
+
+// 0x5535bd..0x5535cf: con 0x6c7b8c en 1, el texto del EDIT de [0x5763504] queda vacío, sin tocar su estado ni el foco.
+TEST(ChatInputTest, ResettingTheBuffersEmptiesTheDialogEdit)
+{
+    ChatInputState input;
+    input.dialogEdit.text.SetText("1234");
+    input.dialogEdit.base.state = ShownWindow;
+    input.focus = ChatFocus::Dialog;
+    ResetTheTextBuffers(input, false);
+    EXPECT_EQ(input.dialogEdit.text.Value(), "");
+    EXPECT_EQ(input.dialogEdit.base.state, ShownWindow);
+    EXPECT_EQ(input.focus, ChatFocus::Dialog);
 }
 
 // 0x469450: 3 oculta y devuelve el foco a la ventana del juego; 0 muestra y da el foco al del mensaje; 1 solo muestra.

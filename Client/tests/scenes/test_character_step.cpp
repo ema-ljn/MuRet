@@ -27,6 +27,7 @@
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/SceneCameras.h"
 #include "Scenes/SceneId.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/TerrainCulling.h"
@@ -1153,7 +1154,7 @@ TEST(CharacterStepTest, AOneKeyOrFrozenBodyPreservesTheSharedAnimationMetadata)
 
 // 0x4f9580: la velocidad de la acción (0,4 por paso acá) por 1,5 en las 3 y 4 con +0x3e3, por 0,5 en la 0x3f
 // pasado el frame 6 y en la 0x44, por 0,1f en las 0x4d, 0x4f y 0x5a pasado el 5,5, y de nuevo por 0,5 en la 0x44.
-// En la clase 4, las 0x94, 0x51 y 0x5b entre el frame 1 y el 3 cortan en 0x59e680 sin avanzar.
+// En la clase 4, las 0x94, 0x51 y 0x5b entre el frame 1 y el 3, por 0,5 fuera de la party (0x59e680).
 
 TEST(CharacterStepTest, TheSpeedOfTheActionGoesThroughItsFactors)
 {
@@ -1172,7 +1173,7 @@ TEST(CharacterStepTest, TheSpeedOfTheActionGoesThroughItsFactors)
           Case{5, 1, 1, 0.0f, Speed, ""}, Case{0x3f, 0, 1, 6.0f, 6.0f + Speed, ""},
           Case{0x3f, 0, 1, 6.5f, 6.5f + (Speed * 0.5f), ""}, Case{0x4d, 0, 1, 5.0f, 5.0f + Speed, ""},
           Case{0x5a, 0, 1, 5.6f, 5.6f + (Speed * 0.1f), "0x4fdb92"}, Case{0x44, 0, 1, 0.0f, Speed * 0.5f, "0x518aa8"},
-          Case{0x51, 0, 4, 2.0f, 2.0f, "0x4f969d"}, Case{0x51, 0, 4, 3.5f, 3.5f + Speed, ""},
+          Case{0x51, 0, 4, 2.0f, 2.0f + (Speed * 0.5f), ""}, Case{0x51, 0, 4, 3.5f, 3.5f + Speed, ""},
           Case{0x51, 0, 0x14, 0.5f, 0.5f + Speed, ""}})
     {
         SCOPED_TRACE(::testing::Message() << "acción " << static_cast<int>(probe.action) << ", frame " << probe.frame
@@ -1196,6 +1197,36 @@ TEST(CharacterStepTest, TheSpeedOfTheActionGoesThroughItsFactors)
             EXPECT_TRUE(HasError(stepped, probe.cut)) << ErrorOf(stepped);
         }
         EXPECT_EQ(hero.animation.frame, probe.after);
+    }
+}
+
+// 0x4f969d..0x4f96ba: con el personaje en la party (un lugar de 0x77f3cd0 que empieza con su nombre), las 0x94, 0x51 y
+// 0x5b de la clase 4 entre el frame 1 y el 3 avanzan por 0,125 (0x6ba170).
+TEST(CharacterStepTest, TheLordInThePartySlowsItsActionsToAnEighth)
+{
+    constexpr float Speed = 0.4f;
+    for (const std::uint8_t action : {std::uint8_t{0x94}, std::uint8_t{0x51}, std::uint8_t{0x5b}})
+    {
+        SCOPED_TRACE(static_cast<int>(action));
+        GameWorld tested;
+        tested.skeleton = SkeletonWith(action, 20, Speed);
+        ActorState& hero = tested.Hero();
+        hero.animation.action = action;
+        hero.animation.frame = 1.5f;
+        hero.characterClass = 4;
+        const std::string_view name = "Lord";
+        for (std::size_t at = 0; at < name.size(); ++at)
+            hero.name[at] = static_cast<std::byte>(name[at]);
+        Client::Scenes::PartyState& party = tested.world.Runtime().social.party;
+        const std::string_view member = "Lordes";
+        for (std::size_t at = 0; at < member.size(); ++at)
+            party.slots[1].name[at] = static_cast<std::byte>(member[at]);
+        tested.world.Runtime().hud.partyCount = 2;
+
+        const auto stepped = tested.Step(Everything);
+
+        EXPECT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(hero.animation.frame, 1.5f + (Speed * 0.125f));
     }
 }
 

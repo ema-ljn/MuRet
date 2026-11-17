@@ -531,14 +531,14 @@ TEST(AttackStepTest, TheChosenKeyIsTheHerosOnly)
              [](AttackWorld& tested)
              {
                  tested.Victim().pk = 6;
-                 tested.world.Runtime().attackRules.duelActive = true;
+                 tested.world.Runtime().social.duel.active = 1;
              },
              HeroSlot, -1},
         Case{"el duelo con el rival",
              [](AttackWorld& tested)
              {
-                 tested.world.Runtime().attackRules.duelActive = true;
-                 tested.world.Runtime().attackRules.duelKey = 0x1234;
+                 tested.world.Runtime().social.duel.active = 1;
+                 tested.world.Runtime().social.duel.rivalKey = 0x1234;
              },
              HeroSlot, Key},
     };

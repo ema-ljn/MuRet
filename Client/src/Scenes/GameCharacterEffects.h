@@ -5,6 +5,7 @@
 #include "Render/Models/HalfLifeMath.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/SocialState.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -58,6 +59,9 @@ struct GameCharacterEffectsPass
     std::size_t slot = 0;
     // Lo que devolvió 0x505820 en este dibujo (0x50c904) y lo que dejó en [0x743a178].
     FullSetScan scan;
+    // Los lugares de la party hasta su cuenta (PartyMembers): las acciones 0x51, 0x5b y 0x94 del Dark Lord los leen
+    // con el frame por debajo de 2 (0x50f9c9).
+    std::span<const PartySlot> party{};
     // DAT_05767b88: el reloj del mundo en ms, en float.
     float worldClock = 0.0f;
     std::int32_t map = 0;        // 0x6c9dd0
@@ -71,14 +75,15 @@ struct GameCharacterEffectsPass
 
 // 0x50ea20..0x510ab6 sobre un 0x20a con lo que cuelga ya dibujado, en el orden del ASM: los sprites de la
 // piel especial del mago (0x50ea38, que deja el corrimiento (−4, 11, 0) para las manos, Q-C350), los de la
-// acción 0x94 fuera del Dark Lord y los efectos de las ventanas de las acciones 0x94, 0x51 y 0x5b (0x50f828),
-// los de las banderas +0x78 & 4 o 0x2000000 (0x50fba4); fuera de Chaos Castle, el contador de +0x35c con
-// +0x358 (0x50fd74, con el efecto 0x5ac/3 de cada 100) y, con el conjunto completo de 0x505820, los sprites 0x5ac
-// de las manos, las partículas 0x6f1/3 de las botas de 0x182f a 0x1833 y, por encima de +9, la órbita 0x60f/0 y los
-// joints 0x60f/0, 0x60f/0x12 y 0x610/7 (0x50fddb, con sus rand() en orden); y al final, sólo en la escena 5 (0x510a80),
-// 0x510ef0 con +0x369. No hay otra puerta de escena: lo llaman el juego, el login y la selección. Entre frames, los
-// sprites, el contador y los rand() que eligen sobre la copia del personaje y del rand() que da el caller; lo que
-// nace en las tablas durables, sólo en un frame del original.
+// acción 0x94 fuera del Dark Lord y los efectos de las ventanas de las acciones 0x94, 0x51 y 0x5b (0x50f828; con
+// el frame por debajo de 2, party y el personaje fuera de ella, 0x50f9f8 salta a 0x510a7a), los de las banderas +0x78 &
+// 4 o 0x2000000 (0x50fba4); fuera de Chaos Castle, el contador de +0x35c con +0x358 (0x50fd74, con el efecto 0x5ac/3 de
+// cada 100) y, con el conjunto completo de 0x505820, los sprites 0x5ac de las manos, las partículas 0x6f1/3 de las
+// botas de 0x182f a 0x1833 y, por encima de +9, la órbita 0x60f/0 y los joints 0x60f/0, 0x60f/0x12 y 0x610/7 (0x50fddb,
+// con sus rand() en orden); y al final, sólo en la escena 5 (0x510a80), 0x510ef0 con +0x369. No hay otra puerta de
+// escena: lo llaman el juego, el login y la selección. Entre frames, los sprites, el contador y los rand() que eligen
+// sobre la copia del personaje y del rand() que da el caller; lo que nace en las tablas durables, sólo en un frame del
+// original.
 [[nodiscard]] Core::Expected<void, std::string> DrawGameCharacterEffects(ActorState& actor,
                                                                          const GameCharacterEffectsPass& pass);
 

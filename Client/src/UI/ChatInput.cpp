@@ -81,10 +81,13 @@ void ResetTheTextBuffers(ChatInputState& input, bool second)
     input.field = MessageField;
     input.messageBuffer.fill('\0');
     input.messageLength = 0;
-    if (!second)
-        return;
-    input.whisperBuffer.fill('\0');
-    input.whisperLength = 0;
+    if (second)
+    {
+        input.whisperBuffer.fill('\0');
+        input.whisperLength = 0;
+    }
+    // 0x5535bd..0x5535cf: la vtable + 0x4c (SetText) con 0.
+    input.dialogEdit.text.SetText({});
 }
 
 void ClearTheChatFields(ChatInputState& input)

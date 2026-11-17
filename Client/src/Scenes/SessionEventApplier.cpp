@@ -13,6 +13,7 @@
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
 #include "Protocol/Combat.h"
+#include "Protocol/Duel.h"
 #include "Protocol/Events.h"
 #include "Protocol/FloorItems.h"
 #include "Protocol/Friends.h"
@@ -21,10 +22,13 @@
 #include "Protocol/Movement.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
+#include "Protocol/Party.h"
+#include "Protocol/PersonalShop.h"
 #include "Protocol/Pet/PetInfo.h"
 #include "Protocol/Pet/PetOrders.h"
 #include "Protocol/Quest.h"
 #include "Protocol/Skill.h"
+#include "Protocol/Trade.h"
 #include "Protocol/Viewport.h"
 #include "Protocol/World.h"
 #include "Render/Models/Cloth.h"
@@ -43,6 +47,7 @@
 #include "Scenes/MagicAttackCount.h"
 #include "Scenes/MonsterViewport.h"
 #include "Scenes/MovementReplies.h"
+#include "Scenes/PersonalShopLists.h"
 #include "Scenes/PetOrders.h"
 #include "Scenes/PetStats.h"
 #include "Scenes/QuestReplies.h"
@@ -50,6 +55,7 @@
 #include "Scenes/SceneId.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/SkillReplies.h"
+#include "Scenes/SocialEvents.h"
 #include "Scenes/ViewportPacketRing.h"
 #include "Scenes/ViewportPlayers.h"
 #include "Scenes/WorldEntry.h"
@@ -61,7 +67,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
-#include <utility>
 #include <span>
 #include <string>
 #include <utility>
@@ -85,12 +90,14 @@ void ApplyWeather(const Protocol::World::Weather& received, World::LeafWeather& 
 }
 
 // 0x42a760 manda el B9 02 por el socket del GS al cargar el 30: el de la sesión que aplica la respuesta. Y 0x419900,
-// al cerrar las misiones, y 0x657a90, al cerrar un NPC de evento, el C1 03 31 por la misma sesión.
-WorldEntryResources WithTheSiegeRequest(const WorldEntryResources& resources, App::ServerSession& session)
+// al cerrar las misiones, y 0x657a90, al cerrar un NPC de evento, el C1 03 31 por la misma sesión, como el 3D del
+// comercio (0x657fe1) y el 3F 07 de la tienda de otro (0x5eb17f) que mandan los mismos cierres.
+WorldEntryResources WithTheSession(const WorldEntryResources& resources, App::ServerSession& session)
 {
     WorldEntryResources bound = resources;
     bound.requestCastleSiegeState = [&session] { session.RequestCastleSiegeState(); };
     bound.sendWindowClose = [&session] { session.SendWindowClose(); };
+    bound.sendGamePacket = [&session](Protocol::Outgoing outgoing) { session.SendGamePacket(std::move(outgoing)); };
     return bound;
 }
 
@@ -163,10 +170,10 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorld(const App::Wor
     if (const auto* teleport = std::get_if<Protocol::World::Teleport>(&event))
     {
         SessionPublisher publisher(session);
-        return ApplyTeleport(*teleport, session.PlayerIndex(), WithTheSiegeRequest(m_resources, session), publisher);
+        return ApplyTeleport(*teleport, session.PlayerIndex(), WithTheSession(m_resources, session), publisher);
     }
     if (const auto* regen = std::get_if<Protocol::World::Regen>(&event))
-        return ApplyRegen(*regen, session.PlayerIndex(), WithTheSiegeRequest(m_resources, session));
+        return ApplyRegen(*regen, session.PlayerIndex(), WithTheSession(m_resources, session));
     if (const auto* chat = std::get_if<Protocol::Messages::Chat>(&event))
     {
         // 0x4c6095: en el login, el 00 es el saludo del CS y pide la lista por el socket abierto.
@@ -202,6 +209,120 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorld(const App::Wor
     if (const auto* state = std::get_if<Protocol::Friends::FriendState>(&event))
         return ApplyFriendState(*state, ChatContextOf(m_resources, session));
     return ApplyWorldContent(event, session);
+}
+
+std::optional<Core::Expected<void, std::string>> SessionEventApplier::ApplySocial(const App::WorldEvent& event,
+                                                                                  App::ServerSession& session)
+{
+    WorldState& world = m_resources.world;
+    if (const auto* request = std::get_if<Protocol::Trade::TradeRequest>(&event))
+    {
+        auto reply = ApplyTradeRequest(*request, m_resources);
+        if (!reply.HasValue())
+            return Core::Expected<void, std::string>(Core::Unexpected(std::move(reply).Error()));
+        // 0x4d52bc..0x4d5553: con una tienda personal abierta, el C1 04 37 00 con el XOR32, en claro.
+        if (reply.Value())
+            session.SendGamePacket(std::move(*reply.Value()));
+        return Core::Expected<void, std::string>{};
+    }
+    if (std::holds_alternative<Protocol::Trade::ClearTradeRequest>(event))
+    {
+        session.SendGamePacket(ApplyClearTradeRequest(m_resources.cloth.random));
+        return Core::Expected<void, std::string>{};
+    }
+    if (const auto* response = std::get_if<Protocol::Trade::TradeResponse>(&event))
+        return ApplyTradeResponse(*response, WithTheSession(m_resources, session));
+    if (const auto* removed = std::get_if<Protocol::Trade::TradeItemRemoved>(&event))
+        return ApplyTradeItemRemoved(*removed, m_resources);
+    if (const auto* added = std::get_if<Protocol::Trade::TradeItemAdded>(&event))
+        return ApplyTradeItemAdded(*added, m_resources);
+    if (const auto* money = std::get_if<Protocol::Trade::TradeMoneyResult>(&event))
+    {
+        ApplyTradeMoneyResult(*money, world);
+        return Core::Expected<void, std::string>{};
+    }
+    if (const auto* other = std::get_if<Protocol::Trade::TradeOtherMoney>(&event))
+    {
+        ApplyTradeOtherMoney(*other, world);
+        return Core::Expected<void, std::string>{};
+    }
+    if (const auto* ok = std::get_if<Protocol::Trade::TradeOkState>(&event))
+    {
+        ApplyTradeOkState(*ok, world);
+        return Core::Expected<void, std::string>{};
+    }
+    if (const auto* result = std::get_if<Protocol::Trade::TradeResult>(&event))
+        return ApplyTradeResult(*result, m_resources);
+    if (const auto* invite = std::get_if<Protocol::Party::PartyRequest>(&event))
+    {
+        ApplyPartyRequest(*invite, world);
+        return Core::Expected<void, std::string>{};
+    }
+    if (const auto* answer = std::get_if<Protocol::Party::PartyRequestResult>(&event))
+        return ApplyPartyRequestResult(*answer, m_resources);
+    if (const auto* list = std::get_if<Protocol::Party::PartyList>(&event))
+    {
+        ApplyPartyList(*list, world, m_resources.log);
+        return Core::Expected<void, std::string>{};
+    }
+    if (std::holds_alternative<Protocol::Party::PartyLeft>(event))
+        return ApplyPartyLeft(m_resources);
+    if (const auto* life = std::get_if<Protocol::Party::PartyLife>(&event))
+    {
+        ApplyPartyLife(*life, world, m_resources.log);
+        return Core::Expected<void, std::string>{};
+    }
+    if (const auto* start = std::get_if<Protocol::Duel::DuelStart>(&event))
+        return ApplyDuelStart(*start, m_resources);
+    if (const auto* end = std::get_if<Protocol::Duel::DuelEnd>(&event))
+        return ApplyDuelEnd(*end, m_resources);
+    if (const auto* duel = std::get_if<Protocol::Duel::DuelRequest>(&event))
+    {
+        ApplyDuelRequest(*duel, world);
+        return Core::Expected<void, std::string>{};
+    }
+    if (const auto* score = std::get_if<Protocol::Duel::DuelScore>(&event))
+    {
+        ApplyDuelScore(*score, world);
+        return Core::Expected<void, std::string>{};
+    }
+    // Las tiendas personales (CL9 hito 7, fase 3): los carteles y los avisos del 3F.
+    if (const auto* titles = std::get_if<Protocol::PersonalShop::ShopTitles>(&event))
+    {
+        ApplyShopTitles(*titles, world);
+        return Core::Expected<void, std::string>{};
+    }
+    if (const auto* created = std::get_if<Protocol::PersonalShop::ShopCreated>(&event))
+    {
+        ApplyShopCreated(*created, world);
+        return Core::Expected<void, std::string>{};
+    }
+    if (const auto* closed = std::get_if<Protocol::PersonalShop::ShopClosed>(&event))
+    {
+        ApplyShopClosed(*closed, world);
+        return Core::Expected<void, std::string>{};
+    }
+    if (const auto* notice = std::get_if<Protocol::PersonalShop::ShopNotice>(&event))
+        return ApplyShopNotice(*notice, m_resources);
+    if (const auto* title = std::get_if<Protocol::PersonalShop::ShopTitle>(&event))
+    {
+        ApplyOtherShopTitle(*title, world);
+        return Core::Expected<void, std::string>{};
+    }
+    // Las listas de ítems (fase 4): abrir y cerrar las tiendas manda por la sesión (el F3 10 y el 3F 07).
+    const GamePacketSender send = [&session](Protocol::Outgoing outgoing)
+    { session.SendGamePacket(std::move(outgoing)); };
+    if (std::holds_alternative<Protocol::PersonalShop::ShopOwnerLeft>(event))
+        return ApplyShopOwnerLeft(m_resources, send);
+    if (const auto* price = std::get_if<Protocol::PersonalShop::PriceResult>(&event))
+        return ApplyPriceResult(*price, m_resources, send);
+    if (const auto* list = std::get_if<Protocol::PersonalShop::ShopItemList>(&event))
+        return ApplyShopItemList(*list, WithTheSession(m_resources, session), send);
+    if (const auto* purchase = std::get_if<Protocol::PersonalShop::ShopPurchase>(&event))
+        return ApplyShopPurchase(*purchase, m_resources, send);
+    if (const auto* refresh = std::get_if<Protocol::PersonalShop::ShopRefresh>(&event))
+        return ApplyShopRefresh(*refresh, m_resources);
+    return std::nullopt;
 }
 
 // CL9 hito 4: las skills que llegan (Scenes/SkillReplies.h), las órdenes del cuervo (Scenes/PetOrders.h) y el A9 de
@@ -319,6 +440,8 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
         return ApplyEquipmentChange(*change, m_resources);
     if (const auto* put = std::get_if<Protocol::Inventory::ItemPut>(&event))
         return ApplyItemPut(*put, m_resources);
+    if (auto social = ApplySocial(event, session))
+        return *social;
     // Las misiones (CL9 hito 2).
     if (const auto* flag = std::get_if<Protocol::Quest::QuestFlag>(&event))
     {
@@ -331,9 +454,9 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
         return {};
     }
     if (const auto* state = std::get_if<Protocol::Quest::QuestStateChange>(&event))
-        return ApplyQuestState(*state, WithTheSiegeRequest(m_resources, session));
+        return ApplyQuestState(*state, WithTheSession(m_resources, session));
     if (const auto* set = std::get_if<Protocol::Quest::SetQuestResult>(&event))
-        return ApplySetQuestResult(*set, WithTheSiegeRequest(m_resources, session));
+        return ApplySetQuestResult(*set, WithTheSession(m_resources, session));
     if (const auto* result = std::get_if<Protocol::Quest::QuestResult>(&event))
         return ApplyQuestResult(*result, m_resources);
     // CL9 hito 5.
@@ -403,8 +526,7 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
     }
     const auto& reply = std::get<Protocol::Character::CharacterSelectResult>(event);
     SessionPublisher publisher(session);
-    const auto entered =
-        ApplyWorldEntry(reply, session.PlayerIndex(), WithTheSiegeRequest(m_resources, session), publisher);
+    const auto entered = ApplyWorldEntry(reply, session.PlayerIndex(), WithTheSession(m_resources, session), publisher);
     if (!entered.HasValue())
     {
         return Core::Unexpected(entered.Error());

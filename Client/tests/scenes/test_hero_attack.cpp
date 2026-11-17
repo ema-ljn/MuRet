@@ -12,6 +12,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/AttackRules.h"
 #include "Scenes/GameMovementState.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldState.h"
@@ -554,8 +555,8 @@ TEST_F(HeroAttackTest, Byte370OverridesGuildDuelAndPkFilters)
     player.word1f2 = 3;
     Name(player, "not-rival");
     Runtime().attackRules.byte576796c = 1;
-    Runtime().attackRules.duelActive = true;
-    Runtime().attackRules.duelKey = 0x7777;
+    Runtime().social.duel.active = 1;
+    Runtime().social.duel.rivalKey = 0x7777;
 
     for (const std::uint8_t byte370 : {std::uint8_t{2}, std::uint8_t{8}})
     {
@@ -586,7 +587,8 @@ TEST_F(HeroAttackTest, TheGuildWarLooksAtTheEnemyMark)
     }
 }
 
-// En el duelo (0x78abad8), sólo el rival: la clave de 0x78abadc y el nombre de 0x78abae0.
+// En el duelo (0x78abad8), sólo el rival: la clave de 0x78abadc y el nombre de 0x78abae0, los de SocialState::duel que
+// escriben los paquetes del duelo (08 P-C206 b).
 TEST_F(HeroAttackTest, InADuelOnlyTheRivalIsAttackable)
 {
     ActorState& player = Chosen(20);
@@ -595,14 +597,37 @@ TEST_F(HeroAttackTest, InADuelOnlyTheRivalIsAttackable)
     player.key = 0x77;
     player.pk = 6;
     Name(player, "rival");
-    Client::Scenes::AttackRules& rules = Runtime().attackRules;
-    rules.duelActive = true;
-    rules.duelKey = 0x77;
+    Client::Scenes::DuelState& duel = Runtime().social.duel;
+    duel.active = 1;
+    duel.rivalKey = 0x77;
     for (std::size_t i = 0; i < 5; ++i)
-        rules.duelName[i] = static_cast<std::byte>(std::string_view("rival")[i]);
+        duel.rivalName[i] = static_cast<std::byte>(std::string_view("rival")[i]);
     EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, false).Value());
-    rules.duelKey = 0x78;
+    EXPECT_EQ(Client::Scenes::ChosenKeyOf(*m_world, HeroIndex, false).Value(), 0x77);
+    duel.rivalKey = 0x78;
     EXPECT_FALSE(Client::Scenes::IsAttackable(*m_world, true).Value());
+    EXPECT_EQ(Client::Scenes::ChosenKeyOf(*m_world, HeroIndex, true).Value(), -1);
+}
+
+// 0x558e0f y 0x558f94: la clave del personaje va con MOVSX contra el DWORD de 0x78abadc, que el duelo escribe sin
+// signo: un rival desde 0x8000 nunca coincide, como en el original.
+TEST_F(HeroAttackTest, ARivalKeyFrom0x8000NeverMatches)
+{
+    ActorState& player = Chosen(20);
+    player = Client::Tests::UnarmedPlayer();
+    player.byte88 = 1;
+    player.key = 0x8001;
+    Name(player, "rival");
+    Client::Scenes::DuelState& duel = Runtime().social.duel;
+    duel.active = 1;
+    duel.rivalKey = 0x8001;
+    for (std::size_t i = 0; i < 5; ++i)
+        duel.rivalName[i] = static_cast<std::byte>(std::string_view("rival")[i]);
+    EXPECT_FALSE(Client::Scenes::IsAttackable(*m_world, true).Value());
+    EXPECT_EQ(Client::Scenes::ChosenKeyOf(*m_world, HeroIndex, true).Value(), -1);
+    duel.rivalKey = -0x7fff;
+    EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, false).Value());
+    EXPECT_EQ(Client::Scenes::ChosenKeyOf(*m_world, HeroIndex, false).Value(), -0x7fff);
 }
 
 // 0x558c2a..0x558d6d: en el asedio, un atacante (+0x360 en 6 a 11) contra un defensor (12 o 13) decide por el escudo

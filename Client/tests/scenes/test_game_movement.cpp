@@ -22,6 +22,8 @@
 #include "World/WorldTerrain.h"
 #include "Network/Packet.h"
 #include "Network/Crypto/Xor32.h"
+#include "Network/Delivery.h"
+#include "Protocol/Outgoing.h"
 #include "Protocol/Inventory.h"
 #include "Scenes/EventGlobals.h"
 #include <glm/ext/vector_float2.hpp>
@@ -328,6 +330,45 @@ TEST(GameMovementTest, AWalkWithTheEventWindowOpenLeavesItAndAsksForTheCursor)
         EXPECT_EQ(runtime.chat.input.focus, Client::UI::ChatFocus::Dialog);
         EXPECT_FALSE(runtime.ui.chatOpen);
         EXPECT_FALSE(runtime.events.serialEntry);
+    }
+}
+
+// 0x56b3b2 → 0x65cae0(0x20, 0): caminar con el comercio abierto lo cierra después del D3, con el C1 03 3D en C3 por la
+// sesión (0x657fe1) y el inventario con él. En Lorencia y en Devias.
+TEST(GameMovementTest, AWalkWithTheTradeOpenCancelsItAfterTheD3)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        auto tested = std::make_unique<MovingHero>();
+        tested->world.Runtime().map = map;
+        tested->world.Runtime().movement.mouseUpdateTime = 6;
+        tested->world.Runtime().panels.trade = 1;
+        tested->world.Runtime().panels.inventory = 1;
+        std::vector<std::vector<std::byte>> sent;
+        auto context = tested->Context();
+        context.input.leftPressed = true;
+        context.input.leftDown = true;
+        context.pickTarget = []() -> Client::Core::Expected<std::optional<Client::GameLogic::PathCell>, std::string>
+        { return std::optional{Client::GameLogic::PathCell{179, 116}}; };
+        context.sendWalk = [&sent](auto, auto, float) -> Client::Core::Expected<void, std::string>
+        {
+            sent.push_back({std::byte{0xd3}});
+            return {};
+        };
+        context.sendGamePacket = [&sent](Client::Protocol::Outgoing outgoing)
+        {
+            const auto decoded = Client::Network::Crypto::Xor32Decode(outgoing.packet);
+            EXPECT_EQ(outgoing.delivery, Client::Network::Delivery::Encrypted);
+            sent.emplace_back(decoded.Bytes().begin(), decoded.Bytes().end());
+        };
+        const auto result = StepHeroMovement(context);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        ASSERT_EQ(sent.size(), 2u);
+        EXPECT_EQ(sent[0], (std::vector<std::byte>{std::byte{0xd3}}));
+        EXPECT_EQ(sent[1], (std::vector<std::byte>{std::byte{0xc1}, std::byte{0x03}, std::byte{0x3d}}));
+        EXPECT_EQ(tested->world.Runtime().panels.trade, 0);
+        EXPECT_EQ(tested->world.Runtime().panels.inventory, 0);
     }
 }
 

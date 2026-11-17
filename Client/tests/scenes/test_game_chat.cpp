@@ -44,6 +44,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -225,6 +226,139 @@ TEST_F(GameChat, EnterOpensAndClosesTheEmptyField)
     EXPECT_TRUE(sent.empty());
     EXPECT_EQ(random.State(), before);
 }
+
+// Los casos de Enter con los diálogos del zen y de la tienda personal, en Lorencia y en Devias.
+constexpr std::int32_t Lorencia = 0;
+constexpr std::int32_t Devias = 2;
+// 0x4b54e1: el diálogo del zen del comercio y del almacén.
+constexpr std::int32_t MoneyDialog = 0x73;
+
+class GameChatOnTheMaps : public GameChat, public ::testing::WithParamInterface<std::int32_t>
+{
+protected:
+    GameChatOnTheMaps()
+    {
+        world.Runtime().map = GetParam();
+    }
+};
+
+// 0x4b5515..0x4b554d: abrir el chat deja el largo del campo en 0x2a y apaga el modo del zen (0x77f3b6a).
+TEST_P(GameChatOnTheMaps, OpeningTheChatLeavesTheMoneyMode)
+{
+    world.Runtime().social.moneyField = 1;
+    world.Runtime().social.dialogFieldLimit = 8;
+    ASSERT_TRUE(Type("\r").HasValue());
+    EXPECT_TRUE(world.Runtime().ui.chatOpen);
+    EXPECT_EQ(world.Runtime().social.moneyField, 0);
+    EXPECT_EQ(world.Runtime().social.dialogFieldLimit, 0x2a);
+}
+
+// 0x4b54e1..0x4b5513: con el campo cerrado, el EDIT de [0x5763504] vacío (lo que se lee) y el diálogo 0x73, Enter no
+// abre el chat: le pone el texto en 0 al EDIT y el foco en la ventana del juego (el dibujo del 0x73 se lo devuelve,
+// 0x6308b8).
+TEST_P(GameChatOnTheMaps, TheMoneyDialogEmptiesItsEdit)
+{
+    world.Runtime().dialogs.current = MoneyDialog;
+    Input().focus = Client::UI::ChatFocus::Dialog;
+    const auto before = random.State();
+    ASSERT_TRUE(Type("\r").HasValue());
+    EXPECT_FALSE(world.Runtime().ui.chatOpen);
+    EXPECT_EQ(Input().dialogEdit.text.Value(), "");
+    EXPECT_EQ(Input().focus, Client::UI::ChatFocus::Game);
+    EXPECT_EQ(world.Runtime().dialogs.current, MoneyDialog);
+    EXPECT_TRUE(sent.empty());
+    EXPECT_EQ(random.State(), before);
+}
+
+// 0x4b5397..0x4b5435: con el campo cerrado, lo que se lee es el EDIT del diálogo; con el modo del zen va con atoi.
+TEST_P(GameChatOnTheMaps, TheDialogEditIsReadWithTheFieldClosed)
+{
+    world.Runtime().dialogs.current = MoneyDialog;
+    world.Runtime().social.moneyField = 1;
+    Input().dialogEdit.text.SetText("250");
+    Input().dialogEdit.base.state = Client::UI::ShownWindow;
+    Input().focus = Client::UI::ChatFocus::Dialog;
+    ASSERT_TRUE(Type("\r").HasValue());
+    EXPECT_EQ(world.Runtime().social.typedMoney, 250);
+    EXPECT_EQ(Input().dialogEdit.text.Value(), "");
+    EXPECT_EQ(Input().dialogEdit.base.state, Client::UI::HiddenWindow);
+    EXPECT_EQ(Input().focus, Client::UI::ChatFocus::Game);
+    EXPECT_FALSE(world.Runtime().ui.chatOpen);
+    EXPECT_TRUE(sent.empty());
+}
+
+// 0x4b5563..0x4b55ae: con el modo del zen, lo escrito va con atoi a 0x77f3b6c (los blancos, el signo y las cifras hasta
+// la primera que no lo es) y no se dice; después, el EDIT de [0x5763504] vacío y oculto, y el salto a 0x4b8886, que
+// cierra el campo.
+TEST_P(GameChatOnTheMaps, TheTypedMoneyGoesThroughAtoiAndIsNotSaid)
+{
+    for (const auto& [typed, money] : {std::pair<std::string_view, std::int32_t>{" 1234\r", 1234},
+                                       std::pair<std::string_view, std::int32_t>{"-12zen\r", -12}})
+    {
+        Client::UI::ClearTheChatFields(Input());
+        Client::UI::ResetTheTextBuffers(Input(), false);
+        world.Runtime().ui.chatOpen = false;
+        ASSERT_TRUE(Type("\r").HasValue());
+        world.Runtime().social.moneyField = 1;
+        Input().dialogEdit.text.SetText("7");
+        Input().dialogEdit.base.state = Client::UI::ShownWindow;
+        const auto before = random.State();
+        ASSERT_TRUE(Type(typed).HasValue());
+        EXPECT_EQ(world.Runtime().social.typedMoney, money) << typed;
+        EXPECT_EQ(Input().dialogEdit.text.Value(), "") << typed;
+        EXPECT_EQ(Input().dialogEdit.base.state, Client::UI::HiddenWindow) << typed;
+        EXPECT_FALSE(world.Runtime().ui.chatOpen) << typed;
+        EXPECT_TRUE(sent.empty());
+        EXPECT_EQ(random.State(), before);
+    }
+}
+
+// 0x4b55b3..0x4b560f: con 0x78aba60 en 1, lo escrito es el título de la tienda personal y no se dice: si 0x5ebbd0 lo
+// deja va a 0x78aba64; si no, el aviso 1130 del tipo 1 sin nombre.
+TEST_P(GameChatOnTheMaps, TheShopTitleModeKeepsOrRefusesTheTitle)
+{
+    auto& shop = world.Runtime().social.personalShop;
+    ASSERT_TRUE(Type("\r").HasValue());
+    shop.dialogMode = 1;
+    ASSERT_TRUE(Type("Tienda inventada\r").HasValue());
+    EXPECT_EQ(shop.ownTitle, "Tienda inventada");
+    EXPECT_FALSE(world.Runtime().ui.chatOpen);
+    EXPECT_TRUE(sent.empty());
+
+    // Dos blancos seguidos al final: 0x5ebbd0 no lo deja y el título queda.
+    ASSERT_TRUE(Type("\rOtra  \r").HasValue());
+    EXPECT_EQ(shop.ownTitle, "Tienda inventada");
+    const auto& entries = world.Runtime().chat.log.entries;
+    EXPECT_TRUE(
+        std::ranges::any_of(entries, [](const Client::UI::ChatEntry& entry)
+                            { return entry.text == "aviso titulo" && entry.type == Client::UI::SystemMessage; }));
+    EXPECT_TRUE(sent.empty());
+}
+
+// 0x56d776: "/no ver puestos" apaga los carteles del mapa (+0x14 de 0x7245c8) con el aviso 1139 del tipo 2, y después
+// sale como chat; "/ver puestos" los prende con el 1138 del tipo 1.
+TEST_P(GameChatOnTheMaps, TheSignCommandsReachTheShopSigns)
+{
+    auto& shops = world.Runtime().social.personalShop;
+    const auto& entries = world.Runtime().chat.log.entries;
+    ASSERT_TRUE(Type("\r/no ver puestos\r").HasValue());
+    EXPECT_EQ(shops.signsShown, 0);
+    ASSERT_FALSE(entries.empty());
+    EXPECT_TRUE(
+        std::ranges::any_of(entries, [](const Client::UI::ChatEntry& entry)
+                            { return entry.text == "aviso sin carteles" && entry.type == Client::UI::ErrorMessage; }));
+    ASSERT_EQ(sent.size(), 1u);
+    EXPECT_EQ(Decode(sent[0]).text, "/no ver puestos");
+
+    Input().brake = 0;
+    ASSERT_TRUE(Type("\r/ver puestos\r").HasValue());
+    EXPECT_EQ(shops.signsShown, 1);
+    EXPECT_TRUE(
+        std::ranges::any_of(entries, [](const Client::UI::ChatEntry& entry)
+                            { return entry.text == "aviso carteles" && entry.type == Client::UI::SystemMessage; }));
+}
+
+INSTANTIATE_TEST_SUITE_P(TwoMaps, GameChatOnTheMaps, ::testing::Values(Lorencia, Devias));
 
 // El chat: el C1 00 con el nombre del héroe, el freno, el historial, el área vieja al final y el campo cerrado. No
 // saca ningún rand().
@@ -1009,8 +1143,8 @@ TEST_F(GameChat, TheSerialEditFiltersWhatIsTyped)
     EXPECT_TRUE(sent.empty());
 }
 
-// 0x4b540a: con el campo cerrado, Enter lee el texto del EDIT de [0x5763504]; lo que dejó la X de la ventana de
-// 0x78abb00 (que no lo vacía, Q-C1345) sale como chat, y sale otra vez con el Enter siguiente.
+// 0x4b540a: con el campo cerrado, Enter lee el texto del EDIT de [0x5763504] y, sin el modo del zen ni el del título,
+// lo dice; el salto a 0x4b8886 no vacía el EDIT, y sale otra vez con el Enter siguiente.
 TEST_F(GameChat, WithTheFieldClosedEnterSaysTheSerialEdit)
 {
     Input().dialogEdit.text.SetText("AB12");
@@ -1051,6 +1185,27 @@ TEST_F(GameChat, AHandledCommandOnlyClosesTheField)
     EXPECT_EQ(world.Runtime().chat.area.firstShown, 0);
     EXPECT_FALSE(world.Runtime().ui.chatOpen);
     EXPECT_EQ(world.Runtime().lastSoundId, Client::UI::ChatButtonSound);
+}
+
+// 0x56c68b..0x56cdfc desde el chat: /trade con el elegido al lado manda el C1 05 36 y el aviso 475 sale armado con su
+// nombre (0x69fd9b) en el registro.
+TEST_F(GameChat, TradeWithTheChosenSaysWhoWasAsked)
+{
+    auto& runtime = world.Runtime();
+    runtime.drawingEnabled = true;
+    auto& other = world.Actors()[runtime.hero + 1];
+    other.alive = true;
+    other.byte88 = 1;
+    other.type = 0x20a;
+    other.key = 0x0456;
+    for (std::size_t i = 0; i < 6; ++i)
+        other.name[i] = static_cast<std::byte>("Brezal"[i]);
+    other.cellX = 1;
+    runtime.selectedTargets[2] = static_cast<std::int32_t>(runtime.hero + 1);
+    ASSERT_TRUE(Type("\r/comerciar\r").HasValue());
+    ASSERT_EQ(sent.size(), 1u);
+    EXPECT_EQ(Client::Network::Crypto::Xor32Decode(sent[0].packet).Bytes()[2], std::byte{0x36});
+    EXPECT_EQ(runtime.chat.log.entries.front().text, "pediste comerciar con Brezal");
 }
 
 // 0x5a119f..0x5a2b47: cada macro apretada sale como chat y deja el freno de las macros en 0x64, aunque el freno del

@@ -6,7 +6,9 @@
 #include "Core/Expected.h"
 #include "Input/InputEvent.h"
 #include "Protocol/Chat/ChatSend.h"
+#include "Protocol/Duel.h"
 #include "Protocol/Movement.h"
+#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActionSend.h"
 #include "Scenes/ActorState.h"
@@ -17,6 +19,8 @@
 #include "Scenes/GamePanels.h"
 #include "Scenes/ItemSetState.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/SocialRequests.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatCommands.h"
@@ -29,6 +33,7 @@
 #include "UI/MessageArea.h"
 #include "UI/NameChecks.h"
 #include "UI/OldControls.h"
+#include "UI/OldWindowBase.h"
 #include "UI/OldWindows.h"
 #include "UI/PanelRegistry.h"
 #include "UI/WhisperSenders.h"
@@ -42,6 +47,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace Client::Scenes
 {
@@ -80,6 +86,14 @@ constexpr std::uint16_t FirstMountModel = 0x1c14;
 constexpr std::uint16_t LastMountModel = 0x1c16;
 // 0x4b8874: la vtable + 0x34 de 0x576350c con 100.
 constexpr std::int32_t ScrollAfterSaying = 100;
+// 0x4b54e1: el diálogo del zen, con el campo en el EDIT de [0x5763504].
+constexpr std::int32_t MoneyDialog = 0x73;
+// 0x4b5515: el largo del campo (0x6c8e78) al abrir el chat, el mismo que deja el cierre de los diálogos.
+constexpr std::int32_t ClosedDialogFieldLimit = 0x2a;
+// 0x4b55b3: 0x78aba60 en 1, el diálogo 0x91 del título de la tienda personal (0x5eba70(1)).
+constexpr std::int32_t ShopTitleDialogMode = 1;
+// 0x4b55fd: el título que 0x5ebbd0 no deja (0x770fe14).
+constexpr std::size_t BadShopTitleText = 1130;
 
 Core::Expected<std::string_view, std::string> TextOf(const GameChatContext& context, std::size_t index,
                                                      std::string_view where)
@@ -112,6 +126,26 @@ Core::Expected<void, std::string> AddNotice(const GameChatContext& context, std:
 std::int32_t LengthOf(const UI::ChatBuffer& buffer)
 {
     return static_cast<std::int32_t>(UI::CStringOf(buffer).size());
+}
+
+// La vtable + 0x4c del EDIT de [0x5763504] con 0 y la + 4 con 3 (0x4b558a..0x4b55ab).
+void HideTheDialogEdit(UI::ChatInputState& input)
+{
+    input.dialogEdit.text.SetText({});
+    input.dialogEdit.base.state = UI::HiddenWindow;
+    if (input.focus == UI::ChatFocus::Dialog)
+        input.focus = UI::ChatFocus::Game;
+}
+
+// 0x4b8886..0x4b88e2: con 0x77f3b6b en 0, los 0x100 bytes del campo en uso y su largo en 0, y el chat cerrado; con la
+// entrada del número de serie (0x77f3b6b), nada (0x4b888f).
+void ForgetWhatWasTyped(const WorldRuntime& runtime, UI::ChatInputState& input, UI::GameUiState& ui)
+{
+    if (runtime.events.serialEntry)
+        return;
+    input.messageBuffer.fill('\0');
+    input.messageLength = 0;
+    ui.chatOpen = false;
 }
 
 std::string LegacyControlText(Input::Key key)
@@ -162,6 +196,13 @@ Core::Expected<void, std::string> DoTheEmotes(const GameChatContext& context, st
     return DoTheEmote(*emote, EmoteContext{.hero = hero, .models = *models, .send = send});
 }
 
+// Los pedidos a otro de 0x56c440 (RunTheCommand ya miró Text.bmd).
+SocialRequestContext SocialRequestsOf(const GameChatContext& context)
+{
+    return SocialRequestContext{
+        .world = context.world, .random = context.random, .texts = *context.texts, .send = context.send};
+}
+
 // Lo que 0x56c440 lee y escribe.
 Core::Expected<UI::ChatCommandOutcome, std::string> RunTheCommand(const GameChatContext& context, std::string_view text,
                                                                   bool fromMacro)
@@ -170,23 +211,60 @@ Core::Expected<UI::ChatCommandOutcome, std::string> RunTheCommand(const GameChat
         return Core::Unexpected(std::string("0x56c440: los comandos sin Text.bmd"));
     WorldRuntime& runtime = context.world.Runtime();
     GamePanels panels(context.world, context.random);
-    const UI::ChatCommandContext commands{.texts = *context.texts,
-                                          .items = context.items,
-                                          .setOptions = context.setOptions,
-                                          .map = runtime.map,
-                                          .logoutRequested = runtime.ui.logoutRequested,
-                                          .warehouseOpen = panels.Registry().IsOpen(UI::WarehousePanel),
-                                          .log = runtime.chat.log,
-                                          .macros = runtime.chat.input.macros,
-                                          .overlayMode = runtime.panels.overlayMode,
-                                          .helpItem = runtime.panels.helpItem,
-                                          .setLabel = &context.world.ItemSets().byte9305};
+    const UI::ChatCommandContext commands{
+        .texts = *context.texts,
+        .items = context.items,
+        .setOptions = context.setOptions,
+        .map = runtime.map,
+        .logoutRequested = runtime.ui.logoutRequested,
+        .warehouseOpen = panels.Registry().IsOpen(UI::WarehousePanel),
+        .log = runtime.chat.log,
+        .macros = runtime.chat.input.macros,
+        .overlayMode = runtime.panels.overlayMode,
+        .helpItem = runtime.panels.helpItem,
+        .setLabel = &context.world.ItemSets().byte9305,
+        .signsShown = &runtime.social.personalShop.signsShown,
+        .ownLevel = [&context]() -> std::uint16_t
+        {
+            WorldRuntime& own = context.world.Runtime();
+            const Render::Models::LogicalAccess access(own.ownRecordDepth, context.random,
+                                                       Render::Models::OwnRecordCloseRandoms);
+            return context.world.OwnCharacter().level;
+        },
+        .duelActive = runtime.social.duel.active != 0,
+        .endTheDuel = [&context]() -> Core::Expected<void, std::string>
+        {
+            if (!context.send)
+                return Core::Unexpected(std::string("0x56ea6c: /duelend sin el cable"));
+            // El relleno y el serial del C3.
+            context.random.Discard(2);
+            context.send(Protocol::Duel::WriteDuelEnd());
+            return {};
+        },
+        .requestATrade = [&context]() { return RequestATrade(SocialRequestsOf(context)); },
+        .requestAParty = [&context]() { return RequestAParty(SocialRequestsOf(context)); },
+        .requestADuel = [&context]() { return RequestADuel(SocialRequestsOf(context)); },
+        .trainerOpen = panels.Registry().IsOpen(UI::TrainerPanel),
+        .openThePersonalShop = [&context]() -> Core::Expected<void, std::string>
+        {
+            // 0x65ac3f: abrir la propia cierra lo demás menos el inventario, con el 3D y el 31.
+            GamePanels shops(context.world, context.random);
+            shops.LendTheSession(context.world, context.random, context.send, context.sendWindowClose);
+            auto opened = shops.Registry().Open(UI::PersonalShopPanel);
+            if (!opened.HasValue())
+                return Core::Unexpected(std::move(opened).Error());
+            return {};
+        },
+        .requestShopItems = [&context](std::optional<std::string_view> name)
+        { return RequestTheShopItems(SocialRequestsOf(context), name); }};
     auto outcome = UI::RunTheChatCommand(commands, text, fromMacro);
     if (!outcome.HasValue())
         return outcome;
     for (const UI::ChatCommandNotice& notice : outcome.Value().notices)
     {
-        if (auto added = AddNotice(context, notice.text, notice.type, "0x56c440"); !added.HasValue())
+        auto added = notice.formatted ? AddMessage(context, "", *notice.formatted, notice.type, "0x56c440")
+                                      : AddNotice(context, notice.text, notice.type, "0x56c440");
+        if (!added.HasValue())
             return Core::Unexpected(added.Error());
     }
     if (outcome.Value().sound)
@@ -206,6 +284,26 @@ Core::Expected<std::string, std::string> FilteredOf(const GameChatContext& conte
 }
 
 } // namespace
+
+// 0x6a0c01 (atoi) → 0x6a0b76 (atol de la CRT): los blancos de isspace, un '-' o un '+', y las cifras de isdigit, con la
+// cuenta en 32 bits que da la vuelta sin aviso; con '-', negada. Con el locale "C" (sin setlocale, como el sscanf de
+// 0x574c8c): los blancos son el espacio y de 0x09 a 0x0d, y las cifras de '0' a '9'.
+std::int32_t AtoiLikeTheCrt(std::string_view text)
+{
+    std::size_t at = 0;
+    while (at < text.size() && (text[at] == ' ' || (text[at] >= '\t' && text[at] <= '\r')))
+        ++at;
+    const char sign = at < text.size() ? text[at] : '\0';
+    if (sign == '-' || sign == '+')
+        ++at;
+    std::uint32_t total = 0;
+    constexpr std::uint32_t Ten = 10;
+    for (; at < text.size() && text[at] >= '0' && text[at] <= '9'; ++at)
+        total = total * Ten + static_cast<std::uint32_t>(text[at] - '0');
+    if (sign == '-')
+        total = 0u - total;
+    return static_cast<std::int32_t>(total);
+}
 
 Core::Expected<void, std::string> SayInTheChat(const GameChatContext& context, std::string_view said)
 {
@@ -539,8 +637,8 @@ Core::Expected<void, std::string> PressEnterInTheGame(const GameChatContext& con
     if (!old.boxes.empty() && std::ranges::find(old.boxes, top) != old.boxes.end())
         return {};
     // 0x4b5397..0x4b5435: con el campo cerrado, el texto del EDIT de [0x5763504] (el de la entrada del número de serie,
-    // hito 11; el de los diálogos es del hito 6); con él abierto, los dos EDIT y lo escrito al historial (la vtable +
-    // 8).
+    // hito 11, y el de los diálogos 0x73 y 0x91, hito 7); con él abierto, los dos EDIT y lo escrito al historial (la
+    // vtable + 8).
     if (!ui.chatOpen)
         UI::CopyIntoTheBuffer(input.messageBuffer, input.dialogEdit.text.Value());
     else
@@ -550,27 +648,58 @@ Core::Expected<void, std::string> PressEnterInTheGame(const GameChatContext& con
         input.whisperLength = LengthOf(input.whisperBuffer);
     }
     input.messageLength = LengthOf(input.messageBuffer);
-    // 0x4b5468..0x4b5554: el campo vacío lo abre (con el diálogo 0x73, hito 6, sería su EDIT) o lo cierra, sin vaciar
-    // nada.
+    // 0x4b5468..0x4b5554: el campo vacío lo cierra o, cerrado, lo abre, sin vaciar nada; con el diálogo 0x73, en vez de
+    // abrirlo, vacía el EDIT del diálogo y le da el foco.
     if (input.messageLength == 0 && !input.otherInput)
     {
-        if (!ui.chatOpen)
-        {
-            // 0x4b5515: 0x6c8e78, 0x77f31c0 y 0x77f3b6a son de la entrada sin EDIT (0x6c7b8c en 0) y de los diálogos.
-            input.fieldCount = UI::ChatFieldCount;
-            UI::ShowTheChatFields(input, ShowFocused);
-            ui.chatOpen = true;
-        }
-        else
+        if (ui.chatOpen)
         {
             ui.chatOpen = false;
             UI::ShowTheChatFields(input, Hide);
         }
+        else if (runtime.dialogs.current == MoneyDialog)
+        {
+            // 0x4b54e1..0x4b5513: la vtable + 0x4c del EDIT de [0x5763504] con 0 (vacío) y SetFocus de la ventana del
+            // juego ([0x5763544]). El dibujo del 0x73 le devuelve el foco al EDIT en el frame siguiente (0x6308b8).
+            input.dialogEdit.text.SetText({});
+            input.focus = UI::ChatFocus::Game;
+        }
+        else
+        {
+            // 0x4b5515..0x4b554d: 0x77f31c0 en 0 es de la entrada sin EDIT (0x6c7b8c en 0).
+            runtime.social.dialogFieldLimit = ClosedDialogFieldLimit;
+            input.fieldCount = UI::ChatFieldCount;
+            runtime.social.moneyField = 0;
+            UI::ShowTheChatFields(input, ShowFocused);
+            ui.chatOpen = true;
+        }
         return {};
     }
     input.field = UI::MessageField;
-    // 0x4b555f..0x4b5614: 0x77f3b6a (un número para un diálogo) y 0x78aba60 en 1 (0x5ebbd0, CL9.4) no los prende
-    // MuRet. 0x4b5616 y 0x4b8888: con la entrada del número de serie (0x77f3b6b), nada más: ni se dice, ni se vacía
+    // 0x4b5563..0x4b55ae: con el modo del zen (0x77f3b6a, el diálogo 0x73 o el precio del 0x91), lo escrito es un
+    // número (atoi a 0x77f3b6c) y no se dice; después la vtable + 0x4c del EDIT de [0x5763504] con 0 (vacío), la + 4
+    // con 3 (oculto, ShowWindow(SW_HIDE): con el foco en él, el foco vuelve a la ventana del juego, *inferido* como en
+    // UI::ShowTheChatFields) y el salto a 0x4b8886.
+    if (runtime.social.moneyField != 0)
+    {
+        runtime.social.typedMoney = AtoiLikeTheCrt(UI::CStringOf(input.messageBuffer));
+        HideTheDialogEdit(input);
+        ForgetWhatWasTyped(runtime, input, ui);
+        return {};
+    }
+    // 0x4b55b3..0x4b560f: con 0x78aba60 en 1, lo escrito es el título de la tienda personal y no se dice: con 0x5ebbd0
+    // el strcpy a 0x78aba64; si no, el texto 1130 del tipo 1 sin nombre (0x6e57a4, ""). Después, el salto a 0x4b8886.
+    if (runtime.social.personalShop.dialogMode == ShopTitleDialogMode)
+    {
+        const std::string_view typed = UI::CStringOf(input.messageBuffer);
+        if (UI::IsAShopTitle(typed, context.filter))
+            runtime.social.personalShop.ownTitle = std::string(typed);
+        else if (auto said = AddNotice(context, BadShopTitleText, UI::SystemMessage, "0x4b5607"); !said.HasValue())
+            return said;
+        ForgetWhatWasTyped(runtime, input, ui);
+        return {};
+    }
+    // 0x4b5614..0x4b561e y 0x4b8888: con la entrada del número de serie (0x77f3b6b), nada más: ni se dice, ni se vacía
     // el buffer, ni se cierra el campo.
     if (runtime.events.serialEntry)
         return {};
@@ -583,12 +712,7 @@ Core::Expected<void, std::string> PressEnterInTheGame(const GameChatContext& con
     UI::SetTheChatFields(input, std::string_view{}, std::nullopt);
     UI::ShowTheChatFields(input, Hide);
     UI::ScrollTheLog(runtime.chat.log, ui.chatModes, ScrollAfterSaying);
-    // 0x4b8886..0x4b88e2, con 0x77f3b6b en 0.
-    if (runtime.events.serialEntry)
-        return {};
-    input.messageBuffer.fill('\0');
-    input.messageLength = 0;
-    ui.chatOpen = false;
+    ForgetWhatWasTyped(runtime, input, ui);
     return {};
 }
 

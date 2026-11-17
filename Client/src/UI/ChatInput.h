@@ -112,9 +112,9 @@ struct ChatInputState
 // strcpy: `text` (hasta su '\0') y el '\0', sin tocar lo que queda detrás. Lo que no entra se corta.
 void CopyIntoTheBuffer(ChatBuffer& buffer, std::string_view text);
 
-// 0x553570(segundo): el campo elegido en 0, los buffers 0 y, con `second`, 1 en ceros y sus largos en 0. Los otros
-// ocho, sus largos, las marcas de 0x77f31c0, 0x6c8e74 y los EDIT de [0x5763504] y [0x5763508] (los campos de los
-// diálogos, hito 6) no los tiene MuRet.
+// 0x553570(segundo): el campo elegido en 0, los buffers 0 y, con `second`, 1 en ceros y sus largos en 0, y con
+// 0x6c7b8c en 1 (la .data) el texto del EDIT de [0x5763504] (`dialogEdit`) vacío. Los otros ocho buffers, sus
+// largos, las marcas de 0x77f31c0, 0x6c8e74 y el EDIT de [0x5763508] (el código del borrado) no los tiene MuRet.
 void ResetTheTextBuffers(ChatInputState& input, bool second);
 
 // 0x469420: SetText(0) en los dos EDIT.

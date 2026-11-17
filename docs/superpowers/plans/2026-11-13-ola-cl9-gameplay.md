@@ -490,17 +490,72 @@ byte protegido de `0x10000` con la tienda abierta; el ancho del mundo con cada v
 
 - [ ] **El comercio:** `0x36`..`0x3D` (`0x4d4af0`, `0x4d5570`), la ventana `0x5f3b40` con el byte protegido
       de `0x20`.
+  - [x] Fase 1 (2026-11-13): los paquetes de los dos lados, el byte protegido (`Open` y `Close` del `0x20`, con el
+        `3D` de `0x657fb5`), el anti-estafa (`0x5bc5e0`, `0x5bc470`, `0x5bc300`), el paso de la ventana (`0x5ecde0`),
+        el `+0x44` de sus grillas en `0x5e4ce0` y la cola de `0x5bbe10` en la entrada a la selección.
+  - [x] Fase 2 (2026-11-13): el dibujo `0x5f3b40` con sus grillas (`0x5f76df`, `0x5f79b7`); la marca del gremio
+        espera la tabla del hito 8 (08 P-C207 a).
+  - [x] Fase 2 (2026-11-13): el OK del diálogo `0x73` (`0x626460`, el `3A`); el del almacén (`0x6270ed`) es del
+        hito 6 (08 P-C207 c).
+  - [x] Fase 4 (2026-11-13): levantar y soltar en sus grillas (`0x5c41f4`, `0x5deb1c`, la rama del comercio de
+        `0x5ca250` y la respuesta `0x4d1ce0`) (08 P-C205 a); el clic derecho sobre la propia corta (08 P-C235).
+  - [x] Fase 5 (2026-11-13): el clic derecho sobre la propia (`0x5c5895`, la rama del inventario de `0x5c7b50`
+        con la grilla del comercio; 07 Q-C964) (08 P-C235).
 - [ ] **Las tiendas personales:** el `0x3F` y su segundo nivel (`0x4db120`, `0x4dae80`, `0x4dafe0`,
       `0x4db700`, `0x4db890`, `0x4dbcb0`), las ventanas `0x5f3030`, `0x5eb020` y `0x623750`, y los carteles
-      `[LOJA]` sobre las cabezas (`0x451c20` y su familia).
+      `[LOJA]` sobre las cabezas (`0x451c20` y su familia). Fase 2: necesita los actores del hito 1 (08 P-C204).
+  - [x] Fase 3 (2026-11-13): los `3F` de los carteles y los avisos (`0x4dae80`, `0x4db700`, `0x4dafe0` y los casos
+        `3`, `8` y `0x12` de `0x4e2b10`) y el mapa de `0x7245c8` con sus lectores (el `14`, los globos, el nombre bajo
+        el mouse, `/trade`, `0x451fe0` y `0x451590`). El GS 0.97 no tiene el `3F`: el oráculo es el ASM del cliente.
+  - [x] Fase 4 (2026-11-13): las listas (`01`, `05`, `06`, `0x13`), abrir y cerrar `0x800` y `0x20000` (con
+        `0x5eb020`), `/personalshop` (`0x5766ce`), el `28` desde el `0x4c` y las ramas de la tienda de `0x5be150`.
+  - [x] Fase 5 (2026-11-13): el paso de la ventana (`0x5ea290`, `0x5e4ee2`, la grilla `0x5e58ea`), la caja `0x9c`
+        (`0x4716e0`, `0x471930` y `0x623750`), `0x5c5110`, `0x5c5242`, `0x5dec19` (`0x5d5046`), `0x5cc2cf` y las
+        respuestas de `0x5d8d50` con el precio (`0x5dea3f`), y `/purchase` (`0x574bd6`); 07 Q-C965, Q-C966 y Q-C967
+        (08 P-C208 b, P-C313).
+  - [x] Fase 6a (2026-11-13): el dibujo de las ventanas (`0x5f3030`, con text_button en `0x659`), los ítems y las
+        cifras de su grilla (`0x5f7821`, `0x5f7af9`), la caja `0x9c` (`0x6304e1` → `0x471ae0`) y el precio de la ayuda
+        del ítem (`0x5b2f53..0x5b3716`); 07 Q-C968.
+  - [x] Fase 6b (2026-11-13): los carteles (`0x451c20` con `0x451d60`, `0x452110`, `0x451e40`, `0x452a10` y
+        `0x452e50`; la medida `0x452540`, `0x452f80` y `0x4531b0`), el título corto del globo (`0x4518b0` desde
+        `0x556e26`) y su medida y dibujo (`0x5559c2`, `0x5563a4`); 07 Q-C976, Q-C977 y Q-C978 (08 P-C208 a, P-C342,
+        P-C343).
+  - [x] El paso del `0x91` (`0x6260f6`, con el EDIT de `[0x5763504]`, 08 P-C312), hecho en la auditoría del hito
+        (2026-11-17) junto con el EDIT del `0x73` (P-C362), los avisos `0x94` (la compra y el comercio) y `0x99` (el
+        precio bajo), el reset de las tiendas al volver a la selección (`0x5eb960`), el clic fuera de las grillas con
+        el comercio abierto (`0x5df667`), los envíos de la sesión en cada cierre (`GamePanels::LendTheSession`) y los
+        `A9` del inventario de un Dark Lord (`0x65c039`).
+  - [x] Revisión contra el ASM (2026-11-13): "/ver puestos" y su par (`0x56d6ee..0x56d796`, 08 P-C343 a), la clave
+        de los carteles con `& 0x7fff` y su lugar (`0x4524e0`, `0x4511f0`; 07 Q-C969), el marco del `0x73` y Enter con
+        el modo del zen (el EDIT, 08 P-C362), el no de los diálogos de otros hitos (08 P-C363), y los `38`, `39`, `42`,
+        `44` y `3F` `05`, `06` y `0x13` que el original lleva fuera de sus arreglos, que se descartan enteros con un
+        aviso (07 Q-C200, Q-C960 y Q-C961).
 - [ ] **La party:** `0x40`..`0x44` (`0x4d67e0`), la vida de la party (`0x5a89b0`), la ventana `0x5f0be0`,
       echar a alguien (`0x5e3d03`, `C1 04 43`), la cantidad del grupo (`0x78aba48`, que lee el dibujo en
       `0x59e680`).
+  - [x] Fase 1 (2026-11-13): los paquetes de los dos lados, el diálogo `0x77` (sí y no, `0x62bb1d` y `0x62cd52`),
+        echar (`0x5e3d03`) y la cantidad `0x78aba48`.
+  - [x] Fase 2 (2026-11-13): los dibujos `0x5a89b0` y `0x5f0be0` (con `0x5f0df0` y `0x5f130a`) y el índice del actor
+        de cada miembro (`0x59e3b0`, `0x59e700`, `0x5e4140`).
+  - [x] Fase 2 (2026-11-13): el dibujo de los diálogos `0x77` y `0x78` (`0x62db60`, con el nombre de `0x5110d0`).
 - [ ] **El duelo:** `AA`..`AD` (`0x4dac90`), el marcador (`0x5a6cc0`, `0x5f37f0`, `0x78abad9`) y el color de
       la tela con el nombre del rival (P-C22 e, `0x50c929..0x50cc29`, y qué es `+0x3e3`).
+  - [x] Fase 1 (2026-11-13): los paquetes de los dos lados, los puntos y el paso del pedido (`0x5ebca0`).
+  - [x] Fase 2 (2026-11-13): los dibujos `0x5a6cc0` y `0x5f37f0` (06 § Lo social en pantalla).
+  - [x] Fase 2 (2026-11-13): el color de la tela con el nombre del rival (`0x50cb5c..0x50cc29`); las guerras de
+        gremios de ese mismo bloque son del hito 8 (08 P-C207 b).
 - [ ] **Los comandos sobre otro:** la ventana de comandos (`0x406050`, desde `0x406097`; `0x40a650`) y los
       comandos sociales de `0x56c440` (`/trade`, `/party`, `/guild`, `/GuildWar`, `/BattleSoccer`, que hoy cortan
       con su dirección).
+  - [x] Fase 3 (2026-11-13): el comando sobre el elegido (`0x406050` desde `0x406097`): comercio, tienda personal,
+        party, susurro, seguir y duelo; los cuatro del gremio cortan hacia el hito 8 (08 P-C209).
+  - [x] Fase 1 (2026-11-13): `/trade` hasta el nivel (`0x6c8dc8`), `/duelstart` y `/duelend` con el duelo en curso
+        y Chaos Castle (texto 1150); `/GuildWar` y `/BattleSoccer` solo los usa el filtro de las macros (`0x56c1f0`).
+  - [x] Fase 2 (2026-11-13): lo que busca al otro en `/trade`, `/duelstart` y `/party` (`0x56c68b` y vecinas,
+        `Scenes::SocialRequests`).
+  - [x] Fase 2 (2026-11-13): el cartel del elegido en el dibujo de los comandos (`0x40aa80..0x40abd8`).
+  - [x] Fase 2: la ventana de comandos sobre el elegido (`0x406097`), hecha en la fase 3 (arriba); `/guild`,
+        `/union` y `/rival` son del hito 8.
 
 **Pruebas:** una vuelta entera de comercio con otro jugador (pedido, ítems, zen, OK) byte a byte; abrir una
 tienda personal y ver la de otro; armar una party y echar a alguien; un duelo; cada comando. **Desbloquea:** 8.

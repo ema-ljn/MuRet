@@ -407,7 +407,7 @@ private:
     Applied CloseAllPanels()
     {
         GamePanels panels(m_world, m_context.random);
-        panels.LendTheWindowClose(m_context.sendWindowClose);
+        panels.LendTheSession(m_world, m_context.random, m_context.send, m_context.sendWindowClose);
         return panels.Registry().CloseAll();
     }
 

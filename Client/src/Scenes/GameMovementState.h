@@ -60,8 +60,10 @@ struct GameMovementState
     // CL9 hito 4. 0x77f3ba4 (.bss 0): lo pone en 0 el Aqua Beam del Wizard (0x590afd). Quién más lo escribe y lo lee,
     // sin leer.
     std::int32_t dword77f3ba4 = 0;
-    // 0x6c8e50 (.data −1): el personaje hacia el que camina MoveHero (0x59b94b, sin portar). Lo ponen en −1 0x57cfc0 al
-    // usar una skill (0x57d294), el clic (0x59b8f3, 0x59b972) y otros paquetes (0x4d6977, 0x4e415e), sin portar.
+    // 0x6c8e50 (.data −1): el personaje hacia el que camina MoveHero (0x59b94b, sin portar). Lo pone el comando de
+    // seguir de la ventana D (0x40a3e0, GameCommandsWindow) y lo vuelven a −1 0x57cfc0 al usar una skill (0x57d294),
+    // el 43 que deja la party vacía (0x4e415e), la vuelta a la selección (0x4c254b), el clic (0x59b8f3, 0x59b972) y
+    // el 0x4d6977, estos dos sin portar.
     std::int32_t followTarget = -1;
     WeaponSkillRequest weaponSkill{};
     // 0x77f3bad (.bss 0): el contador de la clave de las magias (0x57cf90, Skill57cf90.h), de 1 a 0x32.

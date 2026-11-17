@@ -289,13 +289,33 @@ TEST(PanelRegistryTest, TheInventoryKeepsTheCharacterOpen)
     EXPECT_EQ(tested.state.overlayMode, 0);
 }
 
-TEST(PanelRegistryTest, TheDarkLordsPetRequestIsACut)
+// 0x65c020..0x65c946 (CL9 hito 7): con un Dark Lord (+0x1d4 & 7 en 4), abrir el inventario lo prende y después pide
+// el cuervo y el caballo, los mismos A9 de la mascota (el gancho). Sin el gancho corta, ya con el inventario prendido.
+// Las otras clases no piden nada.
+TEST(PanelRegistryTest, TheDarkLordsInventoryAsksForBothPets)
 {
     Tested tested;
     tested.context.heroClass = 4;
+    std::vector<std::uint8_t> inventoryWhenAsked;
+    tested.context.petRequests = [&tested, &inventoryWhenAsked]()
+    { inventoryWhenAsked.push_back(tested.state.inventory); };
     const auto opened = tested.panels.Open(InventoryPanel);
-    ASSERT_FALSE(opened.HasValue());
-    EXPECT_NE(opened.Error().find("0x65c039"), std::string::npos);
+    ASSERT_TRUE(opened.HasValue()) << opened.Error();
+    EXPECT_TRUE(opened.Value());
+    EXPECT_EQ(inventoryWhenAsked, (std::vector<std::uint8_t>{1}));
+
+    Tested knight;
+    knight.context.heroClass = 1;
+    knight.context.petRequests = [&inventoryWhenAsked]() { inventoryWhenAsked.push_back(0xff); };
+    ASSERT_TRUE(knight.panels.Open(InventoryPanel).HasValue());
+    EXPECT_EQ(inventoryWhenAsked, (std::vector<std::uint8_t>{1}));
+
+    Tested unhooked;
+    unhooked.context.heroClass = 4;
+    const auto cut = unhooked.panels.Open(InventoryPanel);
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x65c039"), std::string::npos);
+    EXPECT_EQ(unhooked.state.inventory, 1);
 }
 
 TEST(PanelRegistryTest, PanelsOfOtherWavesCutWhenTheyOpen)
@@ -437,7 +457,7 @@ TEST(PanelRegistryTest, ThePetOpensBesideTheCharacterAndAsksForBothPets)
     tested.state.character = 1;
     tested.state.overlayMode = MoveOverlayMode;
     std::vector<std::uint8_t> petWhenAsked;
-    tested.context.petOpened = [&tested, &petWhenAsked]() { petWhenAsked.push_back(tested.state.delegated.pet); };
+    tested.context.petRequests = [&tested, &petWhenAsked]() { petWhenAsked.push_back(tested.state.delegated.pet); };
     const auto opened = tested.panels.Open(PetPanel);
     ASSERT_TRUE(opened.HasValue()) << opened.Error();
     EXPECT_TRUE(opened.Value());
@@ -644,16 +664,59 @@ TEST(PanelRegistryTest, ClosingAnEventNpcSendsTheWindowClose)
 
 TEST(PanelRegistryTest, CloseByMaskFollowsTheFixedOrder)
 {
-    // El personaje es el primero: con el comercio abierto (y sin dueño), corta en el comercio después de cerrarlo.
+    // El personaje es el primero: con el comercio abierto y sin sus grillas, corta en el comercio después de cerrarlo.
     Tested tested;
     tested.state.character = 1;
     tested.state.trade = 1;
     tested.state.inventory = 1;
     const auto closed = tested.panels.CloseByMask(AllPanels);
     ASSERT_FALSE(closed.HasValue());
-    EXPECT_NE(closed.Error().find("0x657ab0(0x20)"), std::string::npos) << closed.Error();
+    EXPECT_NE(closed.Error().find("0x657fb5"), std::string::npos) << closed.Error();
     EXPECT_EQ(tested.state.character, 0);
     EXPECT_EQ(tested.state.inventory, 1);
+}
+
+// 0x659e46..0x659f38: abrir el comercio cierra lo demás, abre el inventario (con sus sonidos) y escribe el byte
+// protegido: su IsOpen, el 0x10000 y el 0x20 de CanOpen, el 0x10000 del cierre, los cuatro del inventario y la
+// escritura (9).
+TEST(PanelRegistryTest, OpeningTheTradeOpensTheInventoryAndWritesTheProtectedByte)
+{
+    Tested tested;
+    const auto opened = tested.panels.Open(TradePanel);
+    ASSERT_TRUE(opened.HasValue()) << opened.Error();
+    EXPECT_TRUE(opened.Value());
+    EXPECT_EQ(tested.state.trade, 1);
+    EXPECT_EQ(tested.state.inventory, 1);
+    EXPECT_EQ(tested.state.tradeDepth, 0);
+    EXPECT_EQ(DrawsSince(tested.random), 9);
+    EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x19, 0x1c, 0x19, 0x1c}));
+}
+
+// 0x65cb5b con el comercio: su IsOpen, el del cierre, el gancho (las grillas y, con aux en 0, el 3D) y la escritura del
+// byte en 0; después el inventario, con el mismo aux.
+TEST(PanelRegistryTest, ClosingTheTradeRunsItsHookBetweenTheQueryAndTheWrite)
+{
+    for (const bool aux : {false, true})
+    {
+        Tested tested;
+        std::vector<bool> hooked;
+        tested.context.tradeClosed = [&tested, &hooked](bool closedAux) -> Client::Core::Expected<void, std::string>
+        {
+            hooked.push_back(closedAux);
+            EXPECT_EQ(DrawsSince(tested.random), 2);
+            if (!closedAux)
+                tested.random.Discard(2);
+            return {};
+        };
+        tested.state.trade = 1;
+        tested.state.inventory = 1;
+        const auto closed = tested.panels.Close(TradePanel, aux);
+        ASSERT_TRUE(closed.HasValue()) << closed.Error();
+        EXPECT_EQ(hooked, (std::vector<bool>{aux}));
+        EXPECT_EQ(tested.state.trade, 0);
+        EXPECT_EQ(tested.state.inventory, 0);
+        EXPECT_EQ(DrawsSince(tested.random), aux ? 3 : 5);
+    }
 }
 
 TEST(PanelRegistryTest, EscapeWithNothingOpenDrawsTwoAndClosesNothing)

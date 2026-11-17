@@ -43,6 +43,7 @@
 #include "Scenes/NpcChatter.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnStatHelpers.h"
+#include "Scenes/PartyActors.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldRuntime.h"
 #include "UI/GameUiState.h"
@@ -90,8 +91,8 @@ constexpr std::int32_t LastCellReportMap = 23;
 constexpr std::uint16_t FallingType = 0xf1;
 // 0x4f9580 con el 0x20a: por 1,5 (0x6b8b94) en las acciones 3 y 4 con +0x3e3; por 0,5 (0x6b882c) en la 0x3f
 // pasado el frame 6 (0x6b87f4) y en la 0x44; por 0,1f (0x6b8a34) en las 0x4d, 0x4f y 0x5a pasado el 5,5
-// (0x6b8a40); en la clase 4, las 0x94, 0x51 y 0x5b entre el frame 1 (0x6b87d4) y el 3 (0x6b86b8) llaman a
-// 0x59e680.
+// (0x6b8a40); en la clase 4, las 0x94, 0x51 y 0x5b entre el frame 1 (0x6b87d4) y el 3 (0x6b86b8): por 0,125
+// (0x6ba170) con el personaje en la party (0x59e680) y por 0,5 (0x6b882c) si no.
 constexpr float FasterFactor = 1.5f;
 constexpr float HalfFactor = 0.5f;
 constexpr float TenthFactor = 0.1f;
@@ -106,6 +107,7 @@ constexpr std::uint8_t ClassFour = 4;
 constexpr std::array<std::uint8_t, 3> ClassFourActions{0x94, 0x51, 0x5b};
 constexpr float ClassFourFirstFrame = 1.0f;
 constexpr float ClassFourLastFrame = 3.0f;
+constexpr float PartyClassFourFactor = 0.125f;
 constexpr std::uint8_t HalvedAction = 0x44;
 // 0x4f973a: con +0x78 & 0x1000 la animación no avanza y 0x4f9580 devuelve 0, "terminó".
 constexpr std::uint32_t FrozenFlag = 0x1000;
@@ -366,9 +368,8 @@ Core::Expected<bool, std::string> AdvanceTheBody(ActorState& actor, std::size_t 
     else if ((actor.characterClass & ClassMask) == ClassFour && IsOneOf(ClassFourActions, action) &&
              frame > ClassFourFirstFrame && frame < ClassFourLastFrame)
     {
-        return Core::Unexpected(std::format("0x4f969d: la acción {:#x} de la clase 4 del lugar {} pide 0x59e680, que "
-                                            "no está portado",
-                                            action, slot));
+        // 0x4f969d..0x4f96ba: 0x59e680 con el personaje.
+        speed *= IsInTheParty(context.world, actor) ? PartyClassFourFactor : HalfFactor;
     }
     if (action == HalvedAction)
     {

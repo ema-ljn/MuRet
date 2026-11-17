@@ -35,7 +35,7 @@ Core::Expected<void, std::string> ShowTheNewState(const WorldEntryResources& res
     WorldState& world = resources.world;
     SetTheQuestState(world, index, state);
     GamePanels panels(world, resources.cloth.random, GamePanelTables{.texts = resources.texts});
-    panels.LendTheWindowClose(resources.sendWindowClose);
+    panels.LendTheSession(world, resources.cloth.random, resources.sendGamePacket, resources.sendWindowClose);
     if (auto closed = panels.Registry().CloseAll(); !closed.HasValue())
         return closed;
     auto opened = OpenTheQuestDialog(

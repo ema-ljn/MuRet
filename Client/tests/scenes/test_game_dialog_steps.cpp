@@ -2,7 +2,12 @@
 
 #include "Core/Expected.h"
 #include "Data/Text/DialogTable.h"
+#include "Input/InputEvent.h"
 #include "Input/InputState.h"
+#include "Input/Key.h"
+#include "Network/Crypto/Xor32.h"
+#include "Network/Delivery.h"
+#include "Network/Packet.h"
 #include "Protocol/Connection/Logout.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
@@ -12,6 +17,8 @@
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/QuestState.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"
@@ -24,20 +31,19 @@
 
 #include "support/SceneDataFiles.h"
 
+#include <gtest/gtest.h>
+
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
-#include <utility>
 #include <array>
-#include <memory>
 #include <format>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
-
-#include <gtest/gtest.h>
 
 // Los diálogos del juego en el paso (CL8 hito 6): el despacho de 0x623f78, el menú de Esc con sus salidas (el F3 30
 // de 0x61c210, Macro.txt y el C3 F1 02), las opciones (0x93), las cajas con botones y el OK genérico. Textos
@@ -103,6 +109,16 @@ public:
     void RequestPartyList() override
     {
         requests.push_back({"42", {}, {}});
+    }
+    // El paquete como sale (sin el XOR32) y si va en C3.
+    void SendGamePacket(Client::Protocol::Outgoing outgoing) override
+    {
+        const Client::Network::Packet decoded = Client::Network::Crypto::Xor32Decode(outgoing.packet);
+        std::vector<std::uint8_t> bytes;
+        for (const std::byte b : decoded.Bytes())
+            bytes.push_back(std::to_integer<std::uint8_t>(b));
+        requests.push_back(
+            {outgoing.delivery == Client::Network::Delivery::Encrypted ? "C3" : "C1", std::move(bytes), {}});
     }
     void SendWindowClose() override
     {
@@ -464,6 +480,284 @@ TEST(GameDialogStepsTest, TheBoxesCloseWithAButtonOrEnter)
     EXPECT_FALSE(runtime.ui.enterPressed);
 }
 
+// 0x62a7f7 y 0x62bb1d: el sí de la invitación a la party (0x77) gasta el clic, manda el C1 05 41 01 con la clave de
+// 0x78aba4c en C3 (dos rand()) y cierra (0x62c4ac).
+TEST(GameDialogStepsTest, YesToThePartyInvitationSendsTheAnswerInC3)
+{
+    SteppingDialogs tested(Lorencia);
+    auto& runtime = tested.world.Runtime();
+    runtime.dialogs.current = 0x77;
+    runtime.social.party.requestKey = 0x1234;
+    const CrtRandom expected = Advanced(tested.random, 2);
+    ASSERT_TRUE(tested.Click(0xea, 0x62).HasValue());
+    ASSERT_EQ(tested.requests.requests.size(), 1u);
+    EXPECT_EQ(tested.requests.requests[0].kind, "C3");
+    EXPECT_EQ(tested.requests.requests[0].bytes, (std::vector<std::uint8_t>{0xc1, 0x06, 0x41, 0x01, 0x12, 0x34}));
+    EXPECT_EQ(tested.random.State(), expected.State());
+    EXPECT_EQ(runtime.dialogs.current, 0);
+    EXPECT_FALSE(runtime.movement.pendingClick);
+    EXPECT_EQ(runtime.movement.mouseUpdateTimeMax, 6);
+    EXPECT_EQ(runtime.lastSoundId, 0x19);
+}
+
+// 0x62c50e y 0x62d4a2: el no del pedido de comercio (0x78) manda el C1 04 37 00 en claro, con el botón o con Esc.
+TEST(GameDialogStepsTest, NoToTheTradeRequestSendsTheRefusalInClear)
+{
+    SteppingDialogs tested(Lorencia);
+    auto& runtime = tested.world.Runtime();
+    runtime.dialogs.current = 0x78;
+    ASSERT_TRUE(tested.Click(0x14e + 0x45, 0x76).HasValue());
+    ASSERT_EQ(tested.requests.requests.size(), 1u);
+    EXPECT_EQ(tested.requests.requests[0].kind, "C1");
+    EXPECT_EQ(tested.requests.requests[0].bytes, (std::vector<std::uint8_t>{0xc1, 0x04, 0x37, 0x00}));
+    EXPECT_EQ(runtime.dialogs.current, 0);
+    EXPECT_EQ(tested.random.State(), CrtRandom().State());
+
+    runtime.dialogs.current = 0x78;
+    tested.input.Apply(
+        Client::Input::InputEvent{.kind = Client::Input::InputEvent::Kind::KeyDown, .key = Client::Input::Key::Escape});
+    ASSERT_TRUE(tested.Dialogs(0, 0).HasValue());
+    ASSERT_EQ(tested.requests.requests.size(), 2u);
+    EXPECT_EQ(tested.requests.requests[1].bytes, (std::vector<std::uint8_t>{0xc1, 0x04, 0x37, 0x00}));
+    EXPECT_EQ(runtime.dialogs.current, 0);
+
+    // El sí, con la invitación esperando: el C1 04 37 01 y la invitación queda abierta, sin que el no la mire.
+    runtime.dialogs.current = 0x78;
+    runtime.dialogs.pending = 0x77;
+    ASSERT_TRUE(tested.Click(0xea + 0x45, 0x62).HasValue());
+    ASSERT_EQ(tested.requests.requests.size(), 3u);
+    EXPECT_EQ(tested.requests.requests[2].bytes, (std::vector<std::uint8_t>{0xc1, 0x04, 0x37, 0x01}));
+    EXPECT_EQ(runtime.dialogs.current, 0x77);
+    // Fuera de los botones, nada.
+    ASSERT_TRUE(tested.Click(0xea + 0x46, 0x62).HasValue());
+    EXPECT_EQ(tested.requests.requests.size(), 3u);
+}
+
+// 0x623f17 → 0x657880(0x1b): Esc sin diálogo cierra la ventana abierta más baja y manda lo suyo por la sesión: las
+// misiones (0x8) el C1 03 31 (0x419900), el comercio (0x20) el C1 03 3D en C3 (0x657fe1) y la tienda de otro (0x800,
+// el mismo byte que 0x20000) el C1 10 3F 07 con la clave y el nombre del dueño (0x5eb17f). Ninguno abre el menú.
+TEST(GameDialogStepsTest, EscapeClosesTheLowestWindowWithWhatItSends)
+{
+    const auto escape = [](SteppingDialogs& tested)
+    {
+        tested.world.Runtime().dialogs.current = 0;
+        tested.input.Apply(Client::Input::InputEvent{.kind = Client::Input::InputEvent::Kind::KeyDown,
+                                                     .key = Client::Input::Key::Escape});
+        return tested.Dialogs(0, 0);
+    };
+    for (const std::int32_t map : {Lorencia, Devias})
+    {
+        {
+            auto tested = std::make_unique<SteppingDialogs>(map);
+            tested->world.Runtime().panels.delegated.quest = Client::Scenes::QuestListWindow;
+            tested->world.Runtime().panels.trade = 1;
+            const auto stepped = escape(*tested);
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+            EXPECT_EQ(tested->requests.Kinds(), (std::vector<std::string>{"31"}));
+            EXPECT_EQ(tested->world.Runtime().panels.delegated.quest, 0);
+            EXPECT_EQ(tested->world.Runtime().dialogs.current, 0);
+        }
+        {
+            auto tested = std::make_unique<SteppingDialogs>(map);
+            tested->world.Runtime().panels.trade = 1;
+            tested->world.Runtime().panels.inventory = 1;
+            const auto stepped = escape(*tested);
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+            ASSERT_EQ(tested->requests.Kinds(), (std::vector<std::string>{"C3"}));
+            EXPECT_EQ(tested->requests.requests[0].bytes, (std::vector<std::uint8_t>{0xc1, 0x03, 0x3d}));
+            EXPECT_EQ(tested->world.Runtime().panels.trade, 0);
+            EXPECT_EQ(tested->world.Runtime().panels.inventory, 0);
+            EXPECT_EQ(tested->world.Runtime().dialogs.current, 0);
+        }
+        {
+            auto tested = std::make_unique<SteppingDialogs>(map);
+            Client::Scenes::PersonalShopState& shop = tested->world.Runtime().social.personalShop;
+            tested->world.Runtime().panels.personalShop = 1;
+            shop.mode = Client::Scenes::OtherShopView;
+            shop.ownerKey = 0x1234;
+            shop.ownerName[0] = std::byte{'C'};
+            shop.ownerName[1] = std::byte{'e'};
+            const auto stepped = escape(*tested);
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+            ASSERT_EQ(tested->requests.Kinds(), (std::vector<std::string>{"C3"}));
+            std::vector<std::uint8_t> expected{0xc1, 0x10, 0x3f, 0x07, 0x12, 0x34, 'C', 'e'};
+            expected.resize(0x10);
+            EXPECT_EQ(tested->requests.requests[0].bytes, expected);
+            EXPECT_EQ(tested->world.Runtime().panels.personalShop, 0);
+            EXPECT_EQ(shop.mode, Client::Scenes::NoShopView);
+            EXPECT_EQ(shop.ownerKey, 0);
+        }
+    }
+}
+
+// 0x62c560: el sí del 0x78 con Esc y un diálogo de otro hito esperando lleva al tramo del no de ese diálogo, que corta
+// con su dirección y su hito (08 P-C363), después del C1 04 37 01. En Lorencia y en Devias.
+TEST(GameDialogStepsTest, TheNoOfTheOtherHitosDialogsCutsWithItsOwner)
+{
+    struct OtherNo
+    {
+        std::int32_t id;
+        std::string_view address;
+        std::string_view owner;
+    };
+    for (const std::int32_t map : {Lorencia, Devias})
+    {
+        for (const OtherNo& other : {OtherNo{0x71, "0x62c58f", "selección"}, OtherNo{0x76, "0x62c880", "hito 8"},
+                                     OtherNo{0x7d, "0x62c567", "hito 8"}, OtherNo{0x7f, "0x62c5c2", "hito 8"},
+                                     OtherNo{0x95, "0x62c567", "hito 6"}})
+        {
+            auto tested = std::make_unique<SteppingDialogs>(map);
+            auto& runtime = tested->world.Runtime();
+            runtime.dialogs.current = 0x78;
+            runtime.dialogs.pending = other.id;
+            tested->input.Apply(Client::Input::InputEvent{.kind = Client::Input::InputEvent::Kind::KeyDown,
+                                                          .key = Client::Input::Key::Escape});
+            const auto stepped = tested->Click(0xea + 0x45, 0x62);
+            ASSERT_FALSE(stepped.HasValue()) << other.id;
+            EXPECT_NE(stepped.Error().find(other.address), std::string::npos) << stepped.Error();
+            EXPECT_NE(stepped.Error().find(other.owner), std::string::npos) << stepped.Error();
+            EXPECT_NE(stepped.Error().find("P-C363"), std::string::npos) << stepped.Error();
+            ASSERT_EQ(tested->requests.requests.size(), 1u);
+            EXPECT_EQ(tested->requests.requests[0].bytes, (std::vector<std::uint8_t>{0xc1, 0x04, 0x37, 0x01}));
+            EXPECT_EQ(runtime.dialogs.current, other.id);
+        }
+    }
+}
+
+// El OK del 0x73 (0x626460), con Enter: el zen escrito para el comercio. Cada caso arranca de Seed en Lorencia y en
+// Devias, con el comercio abierto (el byte de 0x20, un rand() en IsOpen) y 1.000 de zen propio.
+class MoneyOkTest : public ::testing::TestWithParam<std::int32_t>
+{
+protected:
+    static constexpr std::uint32_t Seed = 0x0c0ffee5u;
+    // 0x40b4d0: el registro propio, al cerrarse.
+    static constexpr int OwnRecordRandoms = 3848;
+
+    MoneyOkTest() : m_tested(std::make_unique<SteppingDialogs>(GetParam()))
+    {
+        m_tested->random = CrtRandom(Seed);
+        Client::Scenes::WorldRuntime& runtime = Runtime();
+        runtime.dialogs.current = 0x73;
+        runtime.panels.trade = 1;
+        runtime.social.dialogFieldLimit = 8;
+        runtime.social.moneyField = 1;
+        runtime.chat.input.fieldCount = 1;
+        m_tested->world.OwnCharacter().zen = 1000;
+    }
+
+    Client::Scenes::WorldRuntime& Runtime()
+    {
+        return m_tested->world.Runtime();
+    }
+
+    Client::Core::Expected<void, std::string> Enter(std::int32_t typed)
+    {
+        Runtime().social.typedMoney = typed;
+        Runtime().ui.enterPressed = true;
+        return m_tested->Dialogs(0, 0);
+    }
+
+    // 0x628215..0x6282c3: lo que deja el OK en todos los casos.
+    void ExpectTheDialogFieldsReset()
+    {
+        Client::Scenes::WorldRuntime& runtime = Runtime();
+        EXPECT_FALSE(runtime.ui.enterPressed);
+        EXPECT_EQ(runtime.social.dialogFieldLimit, 0x2a);
+        EXPECT_EQ(runtime.chat.input.fieldCount, 2);
+        EXPECT_EQ(runtime.social.moneyField, 0);
+        EXPECT_FALSE(runtime.ui.chatOpen);
+        EXPECT_EQ(runtime.movement.mouseUpdateTimeMax, 6);
+        EXPECT_EQ(runtime.lastSoundId, 0x19);
+    }
+
+    std::vector<Request>& Sent()
+    {
+        return m_tested->requests.requests;
+    }
+
+    std::unique_ptr<SteppingDialogs> m_tested;
+};
+
+// Más de 100.000.000 (con signo): el 0x75 en su lugar, sin mirar el comercio ni sacar rand().
+TEST_P(MoneyOkTest, TooMuchMoneyOpensTheWarning)
+{
+    ASSERT_TRUE(Enter(100'000'001).HasValue());
+    EXPECT_EQ(Runtime().dialogs.current, 0x75);
+    EXPECT_EQ(Runtime().dialogs.pending, 0);
+    EXPECT_TRUE(Sent().empty());
+    EXPECT_EQ(m_tested->random.State(), CrtRandom(Seed).State());
+    ExpectTheDialogFieldsReset();
+}
+
+// Más que el zen propio más el que ya está en el comercio (sin signo, así que también un negativo): el 0x74. El
+// registro propio se abre y se cierra (3.848 rand() después del de IsOpen).
+TEST_P(MoneyOkTest, MoreThanTheOwnMoneyOpensTheOtherWarning)
+{
+    Runtime().social.trade.ownMoney = 200;
+    for (const std::int32_t typed : {1201, -1})
+    {
+        SCOPED_TRACE(typed);
+        Runtime().dialogs.current = 0x73;
+        const CrtRandom expected = Advanced(m_tested->random, 1 + OwnRecordRandoms);
+        ASSERT_TRUE(Enter(typed).HasValue());
+        EXPECT_EQ(Runtime().dialogs.current, 0x74);
+        EXPECT_TRUE(Sent().empty());
+        EXPECT_EQ(m_tested->random.State(), expected.State());
+        ExpectTheDialogFieldsReset();
+    }
+}
+
+// Con el zen: el OK propio se apaga con el C1 04 3C 00 en C3 (dos rand() antes del cierre del registro), 0x78abac8
+// en 0x96 con zen ya puesto, el zen en 0x57678ac y en el C1 08 3A 00 con el XOR32 y en claro, y el 0x73 se cierra
+// hacia el que espera.
+TEST_P(MoneyOkTest, TheMoneyGoesInTheThreeA)
+{
+    Client::Scenes::TradeState& trade = Runtime().social.trade;
+    trade.ownOk = 1;
+    trade.ownMoney = 200;
+    Runtime().dialogs.pending = 0x77;
+    const CrtRandom expected = Advanced(m_tested->random, 1 + 2 + OwnRecordRandoms);
+    ASSERT_TRUE(Enter(1200).HasValue());
+    ASSERT_EQ(Sent().size(), 2u);
+    EXPECT_EQ(Sent()[0].kind, "C3");
+    EXPECT_EQ(Sent()[0].bytes, (std::vector<std::uint8_t>{0xc1, 0x04, 0x3c, 0x00}));
+    EXPECT_EQ(Sent()[1].kind, "C1");
+    EXPECT_EQ(Sent()[1].bytes, (std::vector<std::uint8_t>{0xc1, 0x08, 0x3a, 0x00, 0xb0, 0x04, 0x00, 0x00}));
+    EXPECT_EQ(m_tested->random.State(), expected.State());
+    EXPECT_EQ(trade.ownOk, 0);
+    EXPECT_EQ(trade.okWait, 0x96);
+    EXPECT_EQ(trade.sentMoney, 1200u);
+    EXPECT_EQ(Runtime().dialogs.current, 0x77);
+    EXPECT_EQ(Runtime().dialogs.pending, 0);
+    ExpectTheDialogFieldsReset();
+
+    // Sin OK propio ni zen puesto: solo el 3A, y la espera queda.
+    trade.ownMoney = 0;
+    trade.okWait = 3;
+    Runtime().dialogs.current = 0x73;
+    const CrtRandom again = Advanced(m_tested->random, 1 + OwnRecordRandoms);
+    ASSERT_TRUE(Enter(0).HasValue());
+    ASSERT_EQ(Sent().size(), 3u);
+    EXPECT_EQ(Sent()[2].bytes, (std::vector<std::uint8_t>{0xc1, 0x08, 0x3a, 0x00, 0x00, 0x00, 0x00, 0x00}));
+    EXPECT_EQ(m_tested->random.State(), again.State());
+    EXPECT_EQ(trade.okWait, 3);
+    EXPECT_EQ(trade.sentMoney, 0u);
+    EXPECT_EQ(Runtime().dialogs.current, 0);
+}
+
+// Sin el comercio, el zen del almacén (0x6270ed, el 81) es del hito 6: corta después del rand() de IsOpen.
+TEST_P(MoneyOkTest, WithoutTheTradeTheWarehouseMoneyCuts)
+{
+    Runtime().panels.trade = 0;
+    const auto stepped = Enter(10);
+    ASSERT_FALSE(stepped.HasValue());
+    EXPECT_NE(stepped.Error().find("0x6270ed"), std::string::npos) << stepped.Error();
+    EXPECT_NE(stepped.Error().find("hito 6"), std::string::npos) << stepped.Error();
+    EXPECT_TRUE(Sent().empty());
+}
+
+INSTANTIATE_TEST_SUITE_P(TwoMaps, MoneyOkTest, ::testing::Values(Lorencia, Devias));
+
 // Dialog.bmd con el diálogo 3 (un renglón y dos respuestas: la primera lleva al 5 y la segunda a ninguno) y el 5, sin
 // respuestas, que lleva al 3.
 Client::Data::Text::DialogTable AnswersTable()
@@ -551,6 +845,93 @@ TEST(GameDialogStepsTest, AnAnswerWithoutItsDialogIsCut)
 }
 
 // Los tramos de otras olas cortan con su dirección; un id que no está en la tabla va al OK genérico.
+// 0x94 abierto por 0x633300(4, 0x173, 0x94), con los botones (1, 0x15, 0x5a, 0x46, 0x15) y (3, 0x78, 0x5a, 0x46, 0x15)
+// y el aviso 3 de 0x78abb14 (el comercio).
+void OpenTheWarning(Client::Scenes::WorldRuntime& runtime, std::int32_t id = 0x94)
+{
+    runtime.dialogs.current = id;
+    runtime.dialogs.pending = 0;
+    runtime.dialogBox.buttons = {Client::UI::DialogButton{1, 0x15, 0x5a, 0x46, 0x15},
+                                 Client::UI::DialogButton{3, 0x78, 0x5a, 0x46, 0x15}};
+    runtime.social.trade.warningKind = 3;
+    runtime.social.trade.warningByte = 0xff;
+}
+
+// 0x6282dc..0x62a7e6: el primero ([0xea, 0x130] × [0xbe, 0xd3], con los bordes) responde 1 y el segundo ([0x14d,
+// 0x193]) 2, los dos con el cierre y el sonido; sin rand(). Con el mouse encima, el estado es 2 o 4, y el clic se
+// apaga siempre.
+TEST(GameDialogStepsTest, TheWarningAnswersWithItsTwoButtons)
+{
+    for (const std::int32_t map : {Lorencia, Devias})
+    {
+        SCOPED_TRACE(map);
+        SteppingDialogs tested(map);
+        auto& runtime = tested.world.Runtime();
+        OpenTheWarning(runtime);
+        runtime.lastSoundId = 0;
+        ASSERT_TRUE(tested.Click(0x15 + 0xd5, 0x5a + 0x64).HasValue());
+        EXPECT_EQ(runtime.social.trade.warningByte, 1);
+        EXPECT_EQ(runtime.dialogs.current, 0);
+        EXPECT_EQ(runtime.lastSoundId, 0x19);
+        EXPECT_EQ(runtime.movement.mouseUpdateTimeMax, 6);
+        EXPECT_FALSE(runtime.movement.pendingClick);
+        EXPECT_EQ(runtime.dialogBox.buttons[0].state, 2);
+        EXPECT_EQ(runtime.dialogBox.buttons[1].state, 3);
+
+        OpenTheWarning(runtime);
+        runtime.dialogs.pending = 0x77;
+        ASSERT_TRUE(tested.Click(0x78 + 0xd5 + 0x46, 0x5a + 0x64 + 0x15).HasValue());
+        EXPECT_EQ(runtime.social.trade.warningByte, 2);
+        EXPECT_EQ(runtime.dialogs.current, 0x77);
+        EXPECT_EQ(runtime.dialogs.pending, 0);
+        EXPECT_EQ(runtime.dialogBox.buttons[1].state, 4);
+
+        // Un píxel afuera: el clic se gasta igual y no hay respuesta.
+        OpenTheWarning(runtime);
+        ASSERT_TRUE(tested.Click(0x78 + 0xd5 + 0x47, 0x5a + 0x64).HasValue());
+        EXPECT_FALSE(runtime.movement.pendingClick);
+        EXPECT_EQ(runtime.social.trade.warningByte, 0xff);
+        EXPECT_EQ(runtime.dialogs.current, 0x94);
+        EXPECT_EQ(runtime.dialogBox.buttons[0].state, 1);
+        EXPECT_EQ(runtime.dialogBox.buttons[1].state, 3);
+        EXPECT_EQ(tested.random.State(), CrtRandom().State());
+        EXPECT_TRUE(tested.requests.requests.empty());
+    }
+}
+
+// 0x62845d: el 0x99 del precio bajo va al mismo final que el 0x94: el primero responde 1 y Esc, 2.
+TEST(GameDialogStepsTest, TheLowPriceWarningAnswersLikeTheWarning)
+{
+    SteppingDialogs tested(Devias);
+    auto& runtime = tested.world.Runtime();
+    OpenTheWarning(runtime, Client::UI::MoneyTextDialog);
+    ASSERT_TRUE(tested.Click(0x15 + 0xd5 + 0x46, 0x5a + 0x64).HasValue());
+    EXPECT_EQ(runtime.social.trade.warningByte, 1);
+    EXPECT_EQ(runtime.dialogs.current, 0);
+
+    OpenTheWarning(runtime, Client::UI::MoneyTextDialog);
+    tested.input.Apply(
+        Client::Input::InputEvent{.kind = Client::Input::InputEvent::Kind::KeyDown, .key = Client::Input::Key::Escape});
+    ASSERT_TRUE(tested.Dialogs(0, 0).HasValue());
+    EXPECT_EQ(runtime.social.trade.warningByte, 2);
+    EXPECT_EQ(runtime.dialogs.current, 0);
+    EXPECT_EQ(tested.random.State(), CrtRandom().State());
+}
+
+// 0x628409..0x628435: Esc elige el segundo botón, 2.
+TEST(GameDialogStepsTest, EscapeAnswersNoToTheWarning)
+{
+    SteppingDialogs tested(Lorencia);
+    auto& runtime = tested.world.Runtime();
+    OpenTheWarning(runtime);
+    tested.input.Apply(
+        Client::Input::InputEvent{.kind = Client::Input::InputEvent::Kind::KeyDown, .key = Client::Input::Key::Escape});
+    ASSERT_TRUE(tested.Dialogs(0, 0).HasValue());
+    EXPECT_EQ(runtime.social.trade.warningByte, 2);
+    EXPECT_EQ(runtime.dialogs.current, 0);
+    EXPECT_TRUE(tested.requests.requests.empty());
+}
+
 TEST(GameDialogStepsTest, TheOtherWavesDialogsAreCut)
 {
     SteppingDialogs tested(Lorencia);

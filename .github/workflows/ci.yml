@@ -64,9 +64,12 @@ jobs:
             precompiled-headers: 'OFF'
             # Los ejecutables de test enlazan ClientLib con toda su información de depuración: los de
             # scenes pesan ~100 MB cada uno y el build entero pasa los 14 GB que GitHub garantiza en
-            # el disco del runner. Comprimidas con zlib, las secciones de depuración pesan menos de la
-            # mitad (medido con test_game_social_steps: 101 MB -> 46 MB) y gdb las sigue leyendo.
-            extra-configure: '-DCMAKE_EXE_LINKER_FLAGS=-Wl,--compress-debug-sections=zlib'
+            # el disco del runner. Comprimidas con zlib no alcanzó: con el hito 8 (#346) el runner se
+            # cayó dos veces seguidas en el mismo enlace (1572 de 1874, los test_game_scene_*) sin
+            # dejar error, como en #361. El enlazador descarta la depuración de los ejecutables
+            # (--strip-debug): los 590 de test pesan 5,2 GB en vez de 27 GB (medido en local con
+            # GCC 13). Los .o y ClientLib la conservan, y un build a mano con el preset la tiene entera.
+            extra-configure: '-DCMAKE_EXE_LINKER_FLAGS=-Wl,--strip-debug'
             font-file: /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
           - name: Windows (MSVC, Debug)
             os: windows-2022

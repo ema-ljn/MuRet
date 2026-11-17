@@ -295,4 +295,8 @@ using GuildPacket =
 // 10 bytes de 0x7798bf8], con el XOR32 y en claro. El GS (0x420bf0, CGGuildDelUser) lee el nombre en +3 y el número en
 // +0xd: el maestro con su propio nombre disuelve el gremio, con otro lo echa; el que no es maestro sale.
 [[nodiscard]] Outgoing WriteLeave(const CharacterName& name, const LeaveNumber& number);
+
+// 0x62b39c (el sí del diálogo 0x7f del juego, el pedido de guerra del 61) y 0x62c5c2 (el no): C1 04 61 [1 o 0], con el
+// XOR32 y en claro por el socket, sin rand(). El GS (CGGuildWarRequestResultRecv, 0x422020) lee la respuesta en pkt[3].
+[[nodiscard]] Outgoing WriteWarAnswer(bool accept);
 } // namespace Client::Protocol::Guild

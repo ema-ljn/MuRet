@@ -15,6 +15,7 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
+#include "Scenes/ActorState.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/GuildState.h"
@@ -612,8 +613,9 @@ TEST(GameDialogStepsTest, TheNoOfTheOtherHitosDialogsCutsWithItsOwner)
     for (const std::int32_t map : {Lorencia, Devias})
     {
         // El 0x7d no está: su no es del hito 8 (LeaveNumberTest.NoClearsTheBufferButNotTheEdit).
-        for (const OtherNo& other : {OtherNo{0x71, "0x62c58f", "selección"}, OtherNo{0x76, "0x62c880", "hito 8"},
-                                     OtherNo{0x7f, "0x62c5c2", "hito 8"}, OtherNo{0x95, "0x62c567", "hito 6"}})
+        // Ni el 0x7f (WarRequestTest).
+        for (const OtherNo& other : {OtherNo{0x71, "0x62c58f", "selección"}, OtherNo{0x76, "0x62c880", "no abre"},
+                                     OtherNo{0x95, "0x62c567", "hito 6"}})
         {
             auto tested = std::make_unique<SteppingDialogs>(map);
             auto& runtime = tested->world.Runtime();
@@ -632,6 +634,134 @@ TEST(GameDialogStepsTest, TheNoOfTheOtherHitosDialogsCutsWithItsOwner)
         }
     }
 }
+
+// El pedido de guerra (0x7f, el 61 de 0x4e4382): el sí (0x62b39c) y el no (0x62c5c2), con los botones de 0x46 del 0x77.
+// El héroe (0) y el 5 son del gremio 1, el 6 del rival (2, marcado en 2 por el 62) y el 7 sin gremio. En Lorencia y en
+// Devias.
+class WarRequestTest : public ::testing::TestWithParam<std::int32_t>
+{
+protected:
+    static constexpr std::int32_t YesX = 0xea;
+    static constexpr std::int32_t NoX = 0x14e + 0x45;
+    static constexpr std::int32_t ButtonY = 0x62;
+
+    WarRequestTest() : m_tested(std::make_unique<SteppingDialogs>(GetParam()))
+    {
+        Client::Scenes::WorldRuntime& runtime = Runtime();
+        runtime.dialogs.current = 0x7f;
+        Client::Scenes::GuildState& guild = runtime.guild;
+        guild.warOn = 0;
+        guild.rivalIndex = 2;
+        guild.rival = {'T', 'e', 'r', 'o', 's', '\0', '\0', '\0', '\0'};
+        const auto mark = [this](std::size_t index, std::uint16_t guildIndex, std::uint8_t byte374)
+        {
+            Client::Scenes::ActorState& actor = m_tested->world.Actors()[index];
+            actor.alive = true;
+            actor.word1f2 = guildIndex;
+            actor.byte374 = byte374;
+        };
+        mark(0, 1, 1);
+        mark(5, 1, 1);
+        mark(6, 2, 2);
+        mark(7, 0xffff, 0);
+    }
+
+    Client::Scenes::WorldRuntime& Runtime()
+    {
+        return m_tested->world.Runtime();
+    }
+    std::uint8_t MarkOf(std::size_t index)
+    {
+        return m_tested->world.Actors()[index].byte374;
+    }
+
+    // El C1 04 61 de Protocol::Guild::WriteWarAnswer, como sale (con el XOR32).
+    static std::vector<std::uint8_t> AnswerBytes(bool accept)
+    {
+        const Client::Protocol::Outgoing packet = Client::Protocol::Guild::WriteWarAnswer(accept);
+        std::vector<std::uint8_t> bytes;
+        for (const std::byte value : packet.packet.Bytes())
+            bytes.push_back(std::to_integer<std::uint8_t>(value));
+        return bytes;
+    }
+
+    // 0x4c1800 no corrió: el rival y las marcas, como estaban.
+    void ExpectTheRivalKept()
+    {
+        EXPECT_EQ(Runtime().guild.rivalIndex, 2);
+        EXPECT_EQ(Runtime().guild.rival[0], 'T');
+        EXPECT_EQ(MarkOf(6), 2);
+    }
+
+    // 0x4c1800: sin guerra ni rival; +0x374 en 1 para el gremio del héroe y en 0 para los demás.
+    void ExpectTheWarCleared()
+    {
+        const Client::Scenes::GuildState& guild = Runtime().guild;
+        EXPECT_EQ(guild.warOn, 0);
+        EXPECT_EQ(guild.rivalIndex, -1);
+        EXPECT_EQ(guild.rival[0], '\0');
+        EXPECT_EQ(guild.rival[1], 'e');
+        EXPECT_EQ(MarkOf(0), 1);
+        EXPECT_EQ(MarkOf(5), 1);
+        EXPECT_EQ(MarkOf(6), 0);
+        EXPECT_EQ(MarkOf(7), 0);
+    }
+
+    std::unique_ptr<SteppingDialogs> m_tested;
+};
+
+// 0x62b39c: el sí gasta el clic, manda el C1 04 61 01 con el XOR32 y en claro (sin rand()) y cierra (0x62c4ac), sin
+// tocar al rival: la guerra la empieza el 62 del GS.
+TEST_P(WarRequestTest, YesSendsTheAcceptanceAndKeepsTheRival)
+{
+    ASSERT_TRUE(m_tested->Click(YesX, ButtonY).HasValue());
+
+    ASSERT_EQ(m_tested->requests.requests.size(), 1u);
+    EXPECT_EQ(m_tested->requests.requests[0].kind, "guild");
+    EXPECT_EQ(m_tested->requests.requests[0].bytes, AnswerBytes(true));
+    EXPECT_EQ(m_tested->random.State(), CrtRandom().State());
+    EXPECT_EQ(Runtime().dialogs.current, 0);
+    EXPECT_FALSE(Runtime().movement.pendingClick);
+    EXPECT_EQ(Runtime().movement.mouseUpdateTimeMax, 6);
+    EXPECT_EQ(Runtime().lastSoundId, 0x19);
+    ExpectTheRivalKept();
+}
+
+// 0x62c5c2..0x62c87b: el no manda el C1 04 61 00 y llama dos veces a 0x4c1800; después, el cierre (0x62da70) con el
+// que espera.
+TEST_P(WarRequestTest, NoSendsTheRefusalAndClearsTheWar)
+{
+    Runtime().dialogs.pending = 0x77;
+    ASSERT_TRUE(m_tested->Click(NoX, ButtonY + 0x14).HasValue());
+
+    ASSERT_EQ(m_tested->requests.requests.size(), 1u);
+    EXPECT_EQ(m_tested->requests.requests[0].kind, "guild");
+    EXPECT_EQ(m_tested->requests.requests[0].bytes, AnswerBytes(false));
+    EXPECT_EQ(m_tested->random.State(), CrtRandom().State());
+    EXPECT_EQ(Runtime().dialogs.current, 0x77);
+    EXPECT_EQ(Runtime().dialogs.pending, 0);
+    EXPECT_EQ(Runtime().lastSoundId, 0x19);
+    ExpectTheWarCleared();
+}
+
+// Esc es el no; fuera de los botones y sin Esc, nada.
+TEST_P(WarRequestTest, EscapeIsTheNoAndOutsideTheButtonsNothing)
+{
+    ASSERT_TRUE(m_tested->Click(YesX + 0x46, ButtonY).HasValue());
+    EXPECT_TRUE(m_tested->requests.requests.empty());
+    EXPECT_EQ(Runtime().dialogs.current, 0x7f);
+    ExpectTheRivalKept();
+
+    m_tested->input.Apply(
+        Client::Input::InputEvent{.kind = Client::Input::InputEvent::Kind::KeyDown, .key = Client::Input::Key::Escape});
+    ASSERT_TRUE(m_tested->Dialogs(0, 0).HasValue());
+    ASSERT_EQ(m_tested->requests.requests.size(), 1u);
+    EXPECT_EQ(m_tested->requests.requests[0].bytes, AnswerBytes(false));
+    EXPECT_EQ(Runtime().dialogs.current, 0);
+    ExpectTheWarCleared();
+}
+
+INSTANTIATE_TEST_SUITE_P(TwoMaps, WarRequestTest, ::testing::Values(Lorencia, Devias));
 
 // El OK del 0x73 (0x626460), con Enter: el zen escrito para el comercio. Cada caso arranca de Seed en Lorencia y en
 // Devias, con el comercio abierto (el byte de 0x20, un rand() en IsOpen) y 1.000 de zen propio.

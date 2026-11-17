@@ -13,6 +13,7 @@
 #include "Scenes/EventMapObject.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/GameMovementState.h"
+#include "Scenes/GuildState.h"
 #include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -170,6 +171,9 @@ public:
         {425, "entrar a la party?"},
         {427, "nro"},
         {428, "seguro?"},
+        {430, "guerra de %s"},
+        {431, "aceptas?"},
+        {432, "aceptas la batalla?"},
         {857, "ganaste"},
         {858, "mision cumplida"},
         {859, "perdiste"},
@@ -486,6 +490,51 @@ TEST(GameDialogDrawingTest, TheTradeRequestNamesTheOther)
         EXPECT_EQ(tested->text.texts[1].y, 75 + 11);
         EXPECT_EQ(tested->text.texts[1].style.font, Client::Render::Text::FontKind::Normal);
         EXPECT_EQ(runtime.hud.dcFont, Client::Render::Text::FontKind::Normal);
+    }
+}
+
+// 0x7f (CL9 hito 8): el marco del OK genérico, el sí y el no (0x6309d4) como el 0x77, y en la fuente del DC (0x63212a)
+// "guerra de %s" con el rival de 0x5767804 (hasta su cero) en 75 − 6 y el 431 en 75 + 6; con el tipo de guerra
+// (0x576796d), el 432. Sin rand().
+TEST(GameDialogDrawingTest, TheWarRequestNamesTheRivalAndAsksByWarType)
+{
+    for (const std::int32_t map : {Lorencia, Devias})
+    {
+        SCOPED_TRACE(map);
+        auto tested = std::make_unique<DrawingDialogs>(map);
+        Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+        runtime.dialogs.current = 0x7f;
+        runtime.guild.rival = {'T', 'e', 'r', 'o', 's', '\0', 'x', 'x', '\0'};
+        tested->mouse = {0xea, 0x62};
+
+        ASSERT_TRUE(tested->Draw().HasValue());
+        const std::vector<DrawnQuad> quads = QuadsOf(tested->sprites);
+        ASSERT_EQ(quads.size(), 3u);
+        EXPECT_EQ(quads[0].slot, 0xf0);
+        EXPECT_EQ(quads[0].x, 213.0f);
+        EXPECT_EQ(quads[0].y, 60.0f);
+        EXPECT_EQ(quads[1].slot, 0xf2);
+        EXPECT_EQ(quads[1].x, 234.0f);
+        EXPECT_EQ(quads[1].y, 98.0f);
+        EXPECT_EQ(quads[2].slot, 0xf3);
+        EXPECT_EQ(quads[2].x, 334.0f);
+        EXPECT_EQ(tested->Texts(), (std::vector<std::string>{"guerra de Teros", "aceptas?"}));
+        EXPECT_EQ(tested->text.texts[0].x, CenteredX("guerra de Teros"));
+        EXPECT_EQ(tested->text.texts[0].y, 75 - 6);
+        EXPECT_EQ(tested->text.texts[0].style.font, Client::Render::Text::FontKind::Normal);
+        EXPECT_EQ(tested->text.texts[1].x, CenteredX("aceptas?"));
+        EXPECT_EQ(tested->text.texts[1].y, 75 + 6);
+        EXPECT_EQ(tested->sprites.Blend(), BlendMode::Alpha);
+
+        runtime.guild.warType = 1;
+        tested->sprites.Begin(Screen640);
+        tested->text.texts.clear();
+        tested->mouse = {0x14e, 0x62};
+        ASSERT_TRUE(tested->Draw().HasValue());
+        EXPECT_EQ(QuadsOf(tested->sprites)[1].slot, 0xf1);
+        EXPECT_EQ(QuadsOf(tested->sprites)[2].slot, 0xf4);
+        EXPECT_EQ(tested->Texts(), (std::vector<std::string>{"guerra de Teros", "aceptas la batalla?"}));
+        EXPECT_EQ(tested->random.State(), Client::Render::Models::CrtRandom{}.State());
     }
 }
 

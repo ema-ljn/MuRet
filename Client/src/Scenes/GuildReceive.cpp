@@ -465,13 +465,9 @@ Core::Expected<void, std::string> ApplyWarRequestResult(const WarRequestResult& 
             !added.HasValue())
             return added;
     }
-    GuildState& guild = context.world.Runtime().guild;
-    if (result.result == WarRequested || guild.warOn != 0)
+    if (result.result == WarRequested || context.world.Runtime().guild.warOn != 0)
         return {};
-    guild.warOn = 0;
-    guild.rivalIndex = -1;
-    guild.rival[0] = '\0';
-    MarkTheGuilds(context.world, std::nullopt);
+    ClearTheWar(context.world);
     return {};
 }
 
@@ -887,6 +883,15 @@ Core::Expected<void, std::string> ApplyUnionListRefresh(const UnionListRefresh& 
     return {};
 }
 } // namespace
+
+void ClearTheWar(WorldState& world)
+{
+    GuildState& guild = world.Runtime().guild;
+    guild.warOn = 0;
+    guild.rivalIndex = -1;
+    guild.rival[0] = '\0';
+    MarkTheGuilds(world, std::nullopt);
+}
 
 Core::Expected<void, std::string> ApplyGuildPacket(const GuildPacket& packet, const GuildReceiveContext& context)
 {

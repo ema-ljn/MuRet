@@ -13,6 +13,7 @@
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameUi.h"
+#include "Scenes/GuildReceive.h"
 #include "Scenes/GuildState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/PersonalShopWindow.h"
@@ -132,8 +133,7 @@ struct OtherNoCase
 };
 constexpr auto OtherNoCases = std::to_array<OtherNoCase>({
     {0x71, "0x62c58f", "del borrado de la selección (0x622fb0, el F3 02), que el juego no abre"},
-    {0x76, "0x62c880", "del gremio (el C1 51), CL9 hito 8"},
-    {0x7f, "0x62c5c2", "de la guerra de gremios (el C1 61), CL9 hito 8"},
+    {0x76, "0x62c880", "del gremio (el C1 51), que el juego no abre"},
     {0x95, "0x62c567", "del almacén (el sí manda el C1 83), CL9 hito 6"},
 });
 // 0x6282dc..0x62839f: el 0x94 y el 0x99 (el precio bajo, que 0x62845d manda al mismo final) corren sus dos botones
@@ -194,7 +194,7 @@ constexpr auto Routes = std::to_array<DialogRoute>({
     {LeaveNumberDialog, DialogStep::YesNo, "0x62a810", ""},
     {0x95, DialogStep::Cut, "0x62a7f7", "CL9.4"},
     {0x76, DialogStep::Cut, "0x62a7f7", "CL9.4"},
-    {UI::IgnoredOverChaosCastle, DialogStep::Cut, "0x62a7f7", "CL9.4"},
+    {UI::IgnoredOverChaosCastle, DialogStep::YesNo, "0x62a7f7", ""},
     {PartyRequestDialog, DialogStep::YesNo, "0x62a7f7", ""},
     {UI::ForcedDialog, DialogStep::YesNo, "0x62a7f7", ""},
     {WarningDialog, DialogStep::Warning, "0x6282dc", ""},
@@ -753,12 +753,25 @@ Core::Expected<void, std::string> SendTheLeave(const GameUiContext& context)
     return {};
 }
 
-// El sí (0x62a86b, la tabla 0x62daf4): la invitación a la party (0x62bb1d), el pedido de comercio (0x62c20a) y el
-// número del 0x7d (0x62a878).
+// 0x62b39c (el sí del 0x7f) y 0x62c5c2 (el no): la respuesta al pedido de guerra del 61, el C1 04 61 [1 o 0] con el
+// XOR32 y en claro por el socket, sin rand().
+Core::Expected<void, std::string> AnswerTheWar(const GameUiContext& context, bool accept)
+{
+    auto requests = RequestsOf(context, accept ? "0x62b39c" : "0x62c5c2");
+    if (!requests.HasValue())
+        return Core::Unexpected(std::move(requests).Error());
+    requests.Value()->SendGuildPacket(Protocol::Guild::WriteWarAnswer(accept));
+    return {};
+}
+
+// El sí (0x62a86b, la tabla 0x62daf4): la invitación a la party (0x62bb1d), el pedido de comercio (0x62c20a), el
+// número del 0x7d (0x62a878) y el pedido de guerra del 0x7f (0x62b39c).
 Core::Expected<void, std::string> AnswerYes(const GameUiContext& context, std::int32_t id)
 {
     if (id == LeaveNumberDialog)
         return SendTheLeave(context);
+    if (id == UI::IgnoredOverChaosCastle)
+        return AnswerTheWar(context, true);
     return Answer(context, id, 1, id == PartyRequestDialog ? "0x62bb1d" : "0x62c20a");
 }
 
@@ -791,6 +804,14 @@ Core::Expected<void, std::string> StepTheYesNo(const GameUiContext& context, boo
     // 0x62c567: el no del 0x7d vacía el número de 0x7798bf8, pero no el EDIT (Q-C1295).
     if (id == LeaveNumberDialog)
         ClearTheTypedNumber(runtime.chat.input);
+    // 0x62c5c2: el no del 0x7f manda el C1 04 61 00 y deja el gremio sin guerra ni rival (0x4c1800, que llama dos veces
+    // en 0x62c854 y 0x62c86a; la segunda no cambia nada).
+    if (id == UI::IgnoredOverChaosCastle)
+    {
+        if (auto said = AnswerTheWar(context, false); !said.HasValue())
+            return said;
+        ClearTheWar(context.world);
+    }
     if (id == PartyRequestDialog || id == UI::ForcedDialog)
     {
         if (auto said = Answer(context, id, 0, id == PartyRequestDialog ? "0x62cd52" : "0x62d4a2"); !said.HasValue())

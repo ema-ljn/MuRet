@@ -16,6 +16,7 @@
 #include "Scenes/GameDialogSteps.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/GameMovementState.h"
+#include "Scenes/GuildState.h"
 #include "Scenes/ITextDrawer.h"
 #include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
@@ -329,6 +330,13 @@ constexpr std::size_t PartyQuestionText = 425;
 constexpr int InvitationRowY = GenericTextTop + 0xf;
 constexpr int PartyRowStep = 6;
 constexpr int TradeRowStep = 0xb;
+// 0x63212a..0x6321f8: el pedido de guerra (0x7f, CL9 hito 8): el 430 (0x76dc9c4) con el rival en 75 − 6 y el 431
+// (0x76dcaf0) sin el tipo de guerra (0x576796d en 0) o el 432 (0x76dcc1c) con él, en 75 + 6.
+constexpr std::int32_t WarRequestDialog = UI::IgnoredOverChaosCastle;
+constexpr std::size_t WarRequestText = 430;
+constexpr std::size_t WarQuestionText = 431;
+constexpr std::size_t TypedWarQuestionText = 432;
+constexpr int WarRowStep = 6;
 // 0x5110d0: los 400 que recorre; sin ninguno, el 400.
 constexpr std::size_t KeySearched = 400;
 
@@ -949,6 +957,24 @@ Core::Expected<void, std::string> DrawTheInvitation(Frame& frame, std::int32_t i
     return {};
 }
 
+// 0x63212a..0x6321f8 (0x7f): sprintf(430, el rival de 0x5767804, hasta su cero) y sprintf(431 o 432), en la fuente que
+// haya y centrados.
+Core::Expected<void, std::string> DrawTheWarRequest(Frame& frame)
+{
+    auto format = TextOf(frame, WarRequestText);
+    if (!format.HasValue())
+        return Core::Unexpected(std::move(format).Error());
+    const GuildState& guild = frame.runtime.guild;
+    const auto end = std::ranges::find(guild.rival, '\0');
+    const std::string_view rival(guild.rival.data(), static_cast<std::size_t>(end - guild.rival.begin()));
+    DrawCentered(frame, InvitationRowY - WarRowStep, UI::Sprintf(format.Value(), rival));
+    auto question = TextOf(frame, guild.warType == 0 ? WarQuestionText : TypedWarQuestionText);
+    if (!question.HasValue())
+        return Core::Unexpected(std::move(question).Error());
+    DrawCentered(frame, InvitationRowY + WarRowStep, UI::Sprintf(question.Value()));
+    return {};
+}
+
 // El corte de un diálogo que no es de la CL8, con la ola de su paso.
 Core::Unexpected<std::string> CutTheDialog(std::int32_t id)
 {
@@ -993,7 +1019,7 @@ Core::Expected<void, std::string> DrawTheGameDialogs(GameHudContext& context)
         DrawTheBox(frame, id);
     else if (generic)
         DrawTheGenericBox(frame);
-    else if (id == PartyInviteDialog || id == TradeInviteDialog)
+    else if (id == PartyInviteDialog || id == TradeInviteDialog || id == WarRequestDialog)
         DrawTheYesNoBox(frame);
     else if (id == NumberDialog)
         DrawTheNumberBox(frame);
@@ -1021,6 +1047,8 @@ Core::Expected<void, std::string> DrawTheGameDialogs(GameHudContext& context)
     }
     else if (id == PartyInviteDialog || id == TradeInviteDialog)
         return DrawTheInvitation(frame, id);
+    else if (id == WarRequestDialog)
+        return DrawTheWarRequest(frame);
     else if (id == NumberDialog)
     {
         context.hud.textColors.text = NumberTextColor;

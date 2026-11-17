@@ -475,4 +475,9 @@ Outgoing WriteLeave(const CharacterName& name, const LeaveNumber& number)
 {
     return Xor32C1(Network::PacketWriter::C1(LeaveResultOpcode).PutBytes(name).PutBytes(number));
 }
+
+Outgoing WriteWarAnswer(bool accept)
+{
+    return Xor32C1(Network::PacketWriter::C1(WarRequestOpcode).PutU8(accept ? std::uint8_t{1} : std::uint8_t{0}));
+}
 } // namespace Client::Protocol::Guild

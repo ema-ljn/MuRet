@@ -58,4 +58,9 @@ struct GuildReceiveContext
 // 66 (0x4e42c7 → 0x447b90), 67 (0x4e44aa), E1 (0x4d9810), E5 (0x6565e0), E6 (0x4d9940), E9 (0x4d9e50) y EB (0x4d9b80).
 [[nodiscard]] Core::Expected<void, std::string> ApplyGuildPacket(const Protocol::Guild::GuildPacket& packet,
                                                                  const GuildReceiveContext& context);
+
+// 0x4c1800: sin guerra (0x576796c en 0), sin rival (0x6c82f0 en −1 y el primer byte de 0x5767804 en 0) y +0x374 de
+// cada personaje vivo en 1 si es del gremio del héroe (con gremio) y en 0 si no. La llaman el 60 sin guerra y el no del
+// diálogo 0x7f (0x62c854 y 0x62c86a, dos veces).
+void ClearTheWar(WorldState& world);
 } // namespace Client::Scenes

@@ -350,4 +350,14 @@ TEST(GuildProtocolTest, TheUnionKickAndTheLeaveCarryTheirNames)
     Append(expected, digits, 10);
     EXPECT_TRUE(SameBytes(PlainOf(Guild::WriteLeave(name, number)), expected));
 }
+
+// 0x62b39c y 0x62c5c2: el sí y el no del pedido de guerra (el diálogo 0x7f), C1 04 61 [1 o 0] con el XOR32, en claro.
+TEST(GuildProtocolTest, TheWarAnswerCarriesYesOrNo)
+{
+    const auto yes = Guild::WriteWarAnswer(true);
+    EXPECT_EQ(yes.delivery, Delivery::Clear);
+    EXPECT_TRUE(SameBytes(PlainOf(yes), Bytes({0xc1, 0x04, 0x61, 0x01})));
+    EXPECT_NE(yes.packet.Bytes()[3], std::byte{0x01});
+    EXPECT_TRUE(SameBytes(PlainOf(Guild::WriteWarAnswer(false)), Bytes({0xc1, 0x04, 0x61, 0x00})));
+}
 } // namespace

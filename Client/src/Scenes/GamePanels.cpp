@@ -113,6 +113,9 @@ void GamePanels::LendTheSession(WorldState& world, Render::Models::CrtRandom& ra
         m_context.tradeClosed = [&world, &random, send](bool aux)
         { return CloseTheTradeGrids(world, random, aux, send); };
         LendThePetRequests(send);
+        // 0x657b50 y 0x657b73: los cierres de las dos ventanas del gremio (la vtable + 0x2c, sin mirar nada) y el
+        // diálogo de los paneles, por el mismo socket.
+        LendTheGuildTo(m_context, world, send);
         LendThePersonalShops(world, random, std::move(send));
     }
     if (sendWindowClose)
@@ -126,6 +129,8 @@ void GamePanels::LendTheSession(WorldState& world, Render::Models::CrtRandom& ra
     LendTheSession(
         world, random, [requests](Protocol::Outgoing outgoing) { requests->SendGamePacket(std::move(outgoing)); },
         [requests]() { requests->SendWindowClose(); });
+    LendTheGuildTo(m_context, world,
+                   [requests](Protocol::Outgoing packet) { requests->SendGuildPacket(std::move(packet)); });
 }
 
 void GamePanels::LendTheWindowClose(std::function<void()> send)

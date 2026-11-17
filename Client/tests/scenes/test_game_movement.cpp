@@ -372,6 +372,46 @@ TEST(GameMovementTest, AWalkWithTheTradeOpenCancelsItAfterTheD3)
     }
 }
 
+// 0x56b3dd → 0x65cae0(0x40000, 0) → 0x657b73 (CL9 hito 8): caminar con la ventana 2 del gremio abierta (la del Guild
+// Master) la cierra después del D3 (0x6570b0): el C1 04 54 00 en claro por la sesión y el sonido 0x1c. En Lorencia y en
+// Devias.
+TEST(GameMovementTest, AWalkWithTheSecondGuildWindowOpenClosesItAfterTheD3)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        auto tested = std::make_unique<MovingHero>();
+        tested->world.Runtime().map = map;
+        tested->world.Runtime().movement.mouseUpdateTime = 6;
+        tested->world.Runtime().panels.delegated.secondGuild = 1;
+        std::vector<std::vector<std::byte>> sent;
+        auto context = tested->Context();
+        context.input.leftPressed = true;
+        context.input.leftDown = true;
+        context.pickTarget = []() -> Client::Core::Expected<std::optional<Client::GameLogic::PathCell>, std::string>
+        { return std::optional{Client::GameLogic::PathCell{179, 116}}; };
+        context.sendWalk = [&sent](auto, auto, float) -> Client::Core::Expected<void, std::string>
+        {
+            sent.push_back({std::byte{0xd3}});
+            return {};
+        };
+        context.sendGamePacket = [&sent](Client::Protocol::Outgoing outgoing)
+        {
+            const auto decoded = Client::Network::Crypto::Xor32Decode(outgoing.packet);
+            EXPECT_EQ(outgoing.delivery, Client::Network::Delivery::Clear);
+            sent.emplace_back(decoded.Bytes().begin(), decoded.Bytes().end());
+        };
+        const auto result = StepHeroMovement(context);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        ASSERT_EQ(sent.size(), 2u);
+        EXPECT_EQ(sent[0], (std::vector<std::byte>{std::byte{0xd3}}));
+        EXPECT_EQ(sent[1],
+                  (std::vector<std::byte>{std::byte{0xc1}, std::byte{0x04}, std::byte{0x54}, std::byte{0x00}}));
+        EXPECT_EQ(tested->world.Runtime().panels.delegated.secondGuild, 0);
+        EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x1c);
+    }
+}
+
 TEST(GameMovementTest, ATransformedHeroUsesItsSevenActionModelFromClickThroughArrival)
 {
     MovingHero tested;

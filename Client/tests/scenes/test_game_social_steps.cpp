@@ -50,14 +50,13 @@ public:
     void SendOptionData(const Client::Protocol::OptionData::OptionBody& /*body*/) override {}
     void RequestLogout(std::uint8_t /*kind*/) override {}
     void RequestPartyList() override {}
-    void SendGuildPacket(Client::Protocol::Outgoing /*packet*/) override {}
+    void SendGuildPacket(Client::Protocol::Outgoing packet) override
+    {
+        guild.push_back(Plain(packet));
+    }
     void SendGamePacket(Client::Protocol::Outgoing outgoing) override
     {
-        const Client::Network::Packet plain = Client::Network::Crypto::Xor32Decode(outgoing.packet);
-        Sent packet{.encrypted = outgoing.delivery == Client::Network::Delivery::Encrypted, .bytes = {}};
-        for (const std::byte b : plain.Bytes())
-            packet.bytes.push_back(std::to_integer<std::uint8_t>(b));
-        sent.push_back(std::move(packet));
+        sent.push_back(Plain(outgoing));
     }
     void SendWindowClose() override {}
     void SendSetQuest(std::uint8_t /*quest*/, std::uint8_t /*state*/) override {}
@@ -68,7 +67,17 @@ public:
     }
     void Log(std::string_view /*line*/) override {}
 
+    static Sent Plain(const Client::Protocol::Outgoing& outgoing)
+    {
+        const Client::Network::Packet plain = Client::Network::Crypto::Xor32Decode(outgoing.packet);
+        Sent packet{.encrypted = outgoing.delivery == Client::Network::Delivery::Encrypted, .bytes = {}};
+        for (const std::byte b : plain.Bytes())
+            packet.bytes.push_back(std::to_integer<std::uint8_t>(b));
+        return packet;
+    }
+
     std::vector<Sent> sent;
+    std::vector<Sent> guild;
 };
 
 // Cada caso en Lorencia y en Devias.
@@ -281,6 +290,31 @@ TEST_P(GameSocialStepsTest, ADarkLordOpeningTheInventoryAsksForBothPets)
     EXPECT_EQ(m_requests.sent[0].bytes, (std::vector<std::uint8_t>{0xc1, 0x06, 0xa9, 0x00, 0x00, 0x01}));
     EXPECT_FALSE(m_requests.sent[1].encrypted);
     EXPECT_EQ(m_requests.sent[1].bytes, (std::vector<std::uint8_t>{0xc1, 0x06, 0xa9, 0x01, 0x00, 0x08}));
+}
+
+// 0x657b50 y 0x657b73 (CL9 hito 8): con la sesión prestada (LendTheSession, la de Esc, caminar, el gate, la muerte, el
+// comercio, las tiendas y los eventos), cerrar las dos ventanas del gremio llama a sus cierres: la primera (0x6522f0)
+// sin envíos y la segunda (0x6570b0) con el C1 04 54 00 en claro por SendGuildPacket, y el sonido 0x1c.
+TEST_P(GameSocialStepsTest, TheSessionClosesBothGuildWindows)
+{
+    Client::UI::DelegatedPanels& delegated = Runtime().panels.delegated;
+    delegated.guild = 1;
+    delegated.secondGuild = 1;
+    Client::Scenes::GamePanels panels(*m_world, m_random);
+    panels.LendTheSession(*m_world, m_random, &m_requests);
+
+    const auto first = panels.Registry().Close(Client::UI::GuildPanel);
+    ASSERT_TRUE(first.HasValue()) << first.Error();
+    EXPECT_EQ(delegated.guild, 0);
+    EXPECT_TRUE(m_requests.guild.empty());
+    const auto second = panels.Registry().Close(Client::UI::SecondGuildPanel);
+    ASSERT_TRUE(second.HasValue()) << second.Error();
+    EXPECT_EQ(delegated.secondGuild, 0);
+    EXPECT_EQ(Runtime().lastSoundId, 0x1c);
+    ASSERT_EQ(m_requests.guild.size(), 1u);
+    EXPECT_FALSE(m_requests.guild[0].encrypted);
+    EXPECT_EQ(m_requests.guild[0].bytes, (std::vector<std::uint8_t>{0xc1, 0x04, 0x54, 0x00}));
+    EXPECT_TRUE(m_requests.sent.empty());
 }
 
 INSTANTIATE_TEST_SUITE_P(TwoMaps, GameSocialStepsTest, ::testing::Values(Lorencia, Devias));

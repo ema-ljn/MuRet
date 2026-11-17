@@ -571,8 +571,8 @@ TEST_P(PersonalShopWindowTest, TheShopDialogOkKeepsTheTitle)
 TEST_P(PersonalShopWindowTest, TheShopDialogOkReadsThePrice)
 {
     for (const auto& [typed, price, answer] :
-         {std::tuple<std::string_view, std::int32_t, std::uint8_t>{"1250", 1250, 1},
-          std::tuple<std::string_view, std::int32_t, std::uint8_t>{"0", 0, 2}})
+         {std::tuple<std::string_view, std::int32_t, std::uint8_t>{"1250", 1250, std::uint8_t{1}},
+          std::tuple<std::string_view, std::int32_t, std::uint8_t>{"0", 0, std::uint8_t{2}}})
     {
         Client::Scenes::OpenTheShopDialog(Runtime(), Client::Scenes::ShopPriceMode);
         Client::UI::TypeInTheEdit(Runtime().chat.input.dialogEdit, typed);
@@ -609,8 +609,8 @@ TEST_P(PersonalShopWindowTest, TheShopDialogCancelAnswersNo)
 // Enter (0x5763588) vale como el OK sin leer el EDIT: el título lo guardó el WndProc (0x4b55db). Sin título, 2.
 TEST_P(PersonalShopWindowTest, EnterAnswersTheShopDialog)
 {
-    for (const auto& [title, answer] :
-         {std::pair<std::string_view, std::uint8_t>{"Del Enter", 1}, std::pair<std::string_view, std::uint8_t>{"", 2}})
+    for (const auto& [title, answer] : {std::pair<std::string_view, std::uint8_t>{"Del Enter", std::uint8_t{1}},
+                                        std::pair<std::string_view, std::uint8_t>{"", std::uint8_t{2}}})
     {
         Client::Scenes::OpenTheShopDialog(Runtime(), Client::Scenes::ShopTitleMode);
         Client::UI::TypeInTheEdit(Runtime().chat.input.dialogEdit, "no se lee");

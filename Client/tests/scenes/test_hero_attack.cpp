@@ -10,8 +10,8 @@
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorCombat.h"
 #include "Scenes/ActorState.h"
-#include "Scenes/AttackRules.h"
 #include "Scenes/GameMovementState.h"
+#include "Scenes/GuildState.h"
 #include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldMap.h"
@@ -139,6 +139,13 @@ protected:
         CrtRandom expected(Seed);
         expected.Discard(count);
         return expected.State();
+    }
+    // El nombre (+0xd) de la entrada `index` de la tabla de los gremios (0x787aa48).
+    void GuildName(std::size_t index, std::string_view name)
+    {
+        auto& text = Runtime().guild.table[index].guildName;
+        text.fill('\0');
+        name.copy(text.data(), text.size() - 1);
     }
     // El elegido de 0x6c8e30 para 0x558bb0.
     ActorState& Chosen(std::size_t index)
@@ -510,11 +517,12 @@ TEST_F(HeroAttackTest, MonstersAndPlayersFollowTheRules)
         Runtime().map = map;
         EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, false).Value());
     }
-    Runtime().attackRules.byte576796c = 1;
+    Runtime().guild.warOn = 1;
     EXPECT_FALSE(Client::Scenes::IsAttackable(*m_world, false).Value());
-    Runtime().attackRules.byte576796d = 1;
+    Runtime().guild.warType = 1;
     EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, false).Value());
-    Runtime().attackRules = {};
+    Runtime().guild.warOn = 0;
+    Runtime().guild.warType = 0;
 
     ActorState& player = Chosen(20);
     player = Client::Tests::UnarmedPlayer();
@@ -554,7 +562,7 @@ TEST_F(HeroAttackTest, Byte370OverridesGuildDuelAndPkFilters)
     player.pk = 6;
     player.word1f2 = 3;
     Name(player, "not-rival");
-    Runtime().attackRules.byte576796c = 1;
+    Runtime().guild.warOn = 1;
     Runtime().social.duel.active = 1;
     Runtime().social.duel.rivalKey = 0x7777;
 
@@ -566,11 +574,11 @@ TEST_F(HeroAttackTest, Byte370OverridesGuildDuelAndPkFilters)
     }
 }
 
-// En la guerra de gremios cuenta +0x374 en 2; con el PK de 6 y gremio, comparar los nombres de 0x787aa55 es del hito 8:
-// hasta entonces no es atacable (0x558da4, P-C250 f), sin cerrar la sesión, aunque tenga el control o la marca.
+// En la guerra de gremios cuenta +0x374 en 2; con el PK de 6 y gremio, si su gremio se llama como el del héroe
+// (strcmp de 0x787aa55 en 0x558da4) no es atacable, aunque tenga el control o la marca; con otro nombre sigue a la marca.
 TEST_F(HeroAttackTest, TheGuildWarLooksAtTheEnemyMark)
 {
-    Runtime().attackRules.byte576796c = 1;
+    Runtime().guild.warOn = 1;
     ActorState& player = Chosen(20);
     player = Client::Tests::UnarmedPlayer();
     player.byte88 = 1;
@@ -579,12 +587,29 @@ TEST_F(HeroAttackTest, TheGuildWarLooksAtTheEnemyMark)
     EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, false).Value());
     player.pk = 6;
     player.word1f2 = 3;
+    Hero().word1f2 = 5;
+    GuildName(3, "Rojos");
+    GuildName(5, "Rojos");
     for (const bool controlDown : {false, true})
     {
         const auto attackable = Client::Scenes::IsAttackable(*m_world, controlDown);
         ASSERT_TRUE(attackable.HasValue()) << attackable.Error();
         EXPECT_FALSE(attackable.Value());
     }
+    GuildName(5, "Azules");
+    EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, false).Value());
+    player.byte374 = 0;
+    EXPECT_FALSE(Client::Scenes::IsAttackable(*m_world, true).Value());
+
+    // Un héroe sin gremio (−1) compara con lo que está antes de la tabla (Q-C1281): el byte 9 del miembro 74.
+    Hero().word1f2 = 0xffff;
+    player.byte374 = 2;
+    EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, false).Value());
+    // Un índice fuera de la tabla leería otra memoria: corta.
+    player.word1f2 = 2000;
+    const auto outside = Client::Scenes::IsAttackable(*m_world, false);
+    ASSERT_FALSE(outside.HasValue());
+    EXPECT_NE(outside.Error().find("0x558da4"), std::string::npos);
 }
 
 // En el duelo (0x78abad8), sólo el rival: la clave de 0x78abadc y el nombre de 0x78abae0, los de SocialState::duel que

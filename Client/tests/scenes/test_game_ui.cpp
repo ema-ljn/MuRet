@@ -279,7 +279,9 @@ TEST(GameUiTest, TheCrywolfResultsTakeEveryClickOnlyInCrywolf)
         {
             SCOPED_TRACE(x);
             SCOPED_TRACE(y);
-            SteppingUi tested;
+            // En el heap: con el de abajo serían dos WorldState en el stack de 1 MB de Windows.
+            const auto owned = std::make_unique<SteppingUi>();
+            SteppingUi& tested = *owned;
             Client::Scenes::WorldRuntime& runtime = tested.world.Runtime();
             runtime.map = map;
             runtime.crywolf.ui.byte723bf9 = 1;

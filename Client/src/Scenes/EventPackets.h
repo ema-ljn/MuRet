@@ -2,6 +2,7 @@
 
 #include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Data/Tables/ItemTable.h"
 #include "Data/Text/TextTable.h"
 #include "Protocol/Events.h"
 #include "Protocol/Outgoing.h"
@@ -31,6 +32,7 @@ class ITextMeasure;
 // que el original hace fuera de sus tablas se descarta (EventPacketResult::discarded).
 namespace Client::Scenes
 {
+class IModelLibrary;
 class WorldState;
 struct EventMapObject;
 struct WorldRuntime;
@@ -42,6 +44,8 @@ struct EventPacketContext
     Render::Models::CrtRandom& random;
     // Text.bmd: sin la tabla, un aviso corta.
     const Data::Text::TextTable* texts = nullptr;
+    // Item.bmd, del que 0x5b1c70 saca el nombre del ítem del 47; sin la tabla, ese aviso corta.
+    const Data::Tables::ItemTable* items = nullptr;
     // El medidor y la pantalla de los mensajes (0x555190); sin medidor, un mensaje corta.
     const Render::Text::ITextMeasure* measure = nullptr;
     App::PixelSize screen{640, 480};
@@ -49,6 +53,9 @@ struct EventPacketContext
     std::uint32_t tickCount = 0;
     // Player.bmd, el esqueleto del 0x20a para 0x4ea030 desde 0x5111a0; sin él, ese caso corta.
     const Render::Models::Skeleton* playerSkeleton = nullptr;
+    // Los modelos por tipo: 0x4ea030 lee las acciones del modelo del tipo del personaje (+2), como la 0xca del héroe
+    // en el BD 03, que con un anillo de transformación no es Player.bmd. Sin ellos, ese caso corta.
+    const IModelLibrary* models = nullptr;
     // El C1 03 31 de cerrar el NPC de evento (0x658a18 y 0x658c0e) desde el 90 y los cierres de todos los paneles.
     // Vacío, cerrarlo corta.
     std::function<void()> sendWindowClose{};

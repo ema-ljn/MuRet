@@ -503,10 +503,12 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
             .world = m_resources.world,
             .random = m_resources.cloth.random,
             .texts = m_resources.texts,
+            .items = m_resources.items,
             .measure = m_resources.textMeasure,
             .screen = m_resources.screen ? m_resources.screen() : App::PixelSize{640, 480},
             .tickCount = m_resources.clock != nullptr ? App::TickCountMs(m_resources.clock->Now()) : 0U,
             .playerSkeleton = m_resources.models.SkeletonOf(Data::Models::PlayerSkeletonModel),
+            .models = &m_resources.models,
             .sendWindowClose = [&session] { session.SendWindowClose(); },
             // SendChat manda cualquier paquete de mundo, como el de los demás pasos.
             .send = [&session](Protocol::Outgoing outgoing) { session.SendChat(std::move(outgoing)); },

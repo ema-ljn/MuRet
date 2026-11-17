@@ -1078,14 +1078,17 @@ TEST_F(GameSceneDrawTest, TheCameraFollowsTheTourWhileItRunsAndThenTheHeroAgain)
             EXPECT_FALSE(scene.HoldsTheLastFrame());
             scene.Render(target.BeginFrame(at), 0.0f);
             EXPECT_FALSE(scene.Failure().has_value()) << scene.Failure().value_or("");
+            // El pase se copia antes de Present(): Sync() agrega eventos al frame y el vector puede moverse.
             const Client::Tests::FrameEvent* models = ModelsOf(target.frames.back());
+            const std::optional<Client::Render::Pass3D> pass =
+                models != nullptr ? models->pass : std::optional<Client::Render::Pass3D>{};
             target.Present();
             Drawn drawn{.pass = {},
                         .polygon = world.Runtime().terrainPolygon,
                         .seen = SeenObjects(world),
                         .random = cloth.random.State()};
-            if (models != nullptr && models->pass)
-                drawn.pass = *models->pass;
+            if (pass)
+                drawn.pass = *pass;
             else
                 ADD_FAILURE() << "sin el pase de los modelos";
             return drawn;

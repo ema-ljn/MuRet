@@ -10,7 +10,9 @@
 #include "Render/Models/Animation.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CharacterDrawing.h"
 #include "Scenes/ChatReceive.h"
+#include "Scenes/ChatBubbles.h"
 #include "Scenes/CrywolfContract.h"
 #include "Scenes/EventChipWindow.h"
 #include "Scenes/EventGlobals.h"
@@ -19,6 +21,7 @@
 #include "Scenes/FaunaState.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GamePanels.h"
+#include "Scenes/ItemNames.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/TerrainMarks.h"
 #include "Scenes/WorldMap.h"
@@ -191,6 +194,26 @@ constexpr std::array<std::uint8_t, 3> ChaosCastleCollapseAreas{0, 3, 6};
 constexpr std::int32_t MutoWindow = 1;
 constexpr std::uint16_t NoMutoNumber = 0xffff;
 constexpr std::uint16_t NoChipCount = 0xffff;
+
+// 0x4d6990: el aviso del 47 con los dos buffers de 100 de la pila en cero, el prefijo de 0x10000 (620, 0x76ea86c) o
+// de 0x20000 (1089, 0x770ce08) con "%s " (0x6c844c y 0x6c8450), el tipo en los 13 bits bajos, lo que agregan 0x2000
+// (176, 0x76ca01c), 0x8000 (177, 0x76ca148) y 0x4000 (178, 0x76ca274) en ese orden, y "%s %s" (0x6c8454) con el 918
+// (0x77005a4).
+constexpr std::size_t ItemNoticeBuffer = 100;
+constexpr std::uint32_t ItemTypeMask = 0x1fff;
+constexpr std::uint32_t FirstPrefixFlag = 0x10000;
+constexpr std::uint32_t SecondPrefixFlag = 0x20000;
+constexpr std::size_t FirstPrefixText = 620;
+constexpr std::size_t SecondPrefixText = 1089;
+constexpr std::string_view ItemPrefixFormat = "%s ";
+struct ItemSuffix
+{
+    std::uint32_t flag;
+    std::size_t text;
+};
+constexpr std::array<ItemSuffix, 3> ItemSuffixes{{{0x2000, 176}, {0x8000, 177}, {0x4000, 178}}};
+constexpr std::size_t ItemAcquiredText = 918;
+constexpr std::string_view ItemNoticeFormat = "%s %s";
 
 // 0x4e4547 y 0x4da540: los resultados del BC 00 y del BC 01.
 constexpr std::size_t JewelMixText = 1801;       // 0x7741068
@@ -566,10 +589,62 @@ private:
     Applied On(const Events::ItemAcquired& packet)
     {
         // 0x4d69ad..0x4d69d1: con la clave del héroe, nada.
-        if (ActorWithKey(m_world, packet.key) == m_runtime.hero)
+        const std::size_t owner = ActorWithKey(m_world, packet.key);
+        if (owner == m_runtime.hero)
             return {};
-        return Core::Unexpected(std::string("0x4d6a54: el aviso del 47 lleva el nombre del ítem (0x5b1c70), que es "
-                                            "de la CL8"));
+        // 0x4d6a09..0x4d6a3e: el prefijo, con sprintf en el primer buffer.
+        std::string line;
+        const std::optional<std::size_t> prefix = (packet.item & FirstPrefixFlag) != 0 ? FirstPrefixText
+                                                  : (packet.item & SecondPrefixFlag) != 0
+                                                      ? SecondPrefixText
+                                                      : std::optional<std::size_t>{};
+        if (prefix)
+        {
+            auto argument = TextArgument(*prefix, "0x4d6a3e");
+            if (!argument.HasValue())
+                return Core::Unexpected(std::move(argument).Error());
+            const std::array<UI::FormatArgument, 1> arguments{argument.Value()};
+            auto formatted =
+                Format(UI::FormatFunction::Sprintf, ItemPrefixFormat, arguments, ItemNoticeBuffer, "0x4d6a3e");
+            if (!formatted.HasValue())
+                return Core::Unexpected(std::move(formatted).Error());
+            line = std::move(formatted).Value();
+        }
+        // 0x4d6a54: 0x5b1c70(tipo, pkt[0xc]) en el segundo buffer, en cero; donde no escribe nada queda vacío.
+        auto name = ItemNameOf(m_context.items, m_context.texts, static_cast<std::uint16_t>(packet.item & ItemTypeMask),
+                               packet.level);
+        if (!name.HasValue())
+            return Core::Unexpected(std::format("0x4d6a54: {}", name.Error()));
+        if (name.Value().size() >= ItemNoticeBuffer)
+            return Core::Unexpected(std::format("0x4d6a54: el nombre del ítem ocupa {} bytes con su '\\0' y el "
+                                                "buffer tiene {}",
+                                                name.Value().size() + 1, ItemNoticeBuffer));
+        // 0x4d6a59..0x4d6b1f: los strcat sobre el primer buffer.
+        line += name.Value();
+        for (const ItemSuffix& suffix : ItemSuffixes)
+        {
+            if ((packet.item & suffix.flag) == 0)
+                continue;
+            auto text = Text(suffix.text, "0x4d6a92");
+            if (!text.HasValue())
+                return Core::Unexpected(std::move(text).Error());
+            line += text.Value();
+        }
+        if (line.size() >= ItemNoticeBuffer)
+            return Core::Unexpected(std::format("0x4d6b1f: el strcat ocupa {} bytes con su '\\0' y el buffer tiene {}",
+                                                line.size() + 1, ItemNoticeBuffer));
+        // 0x4d6b21..0x4d6b4d: sprintf(segundo buffer, "%s %s", el primero, 918) y 0x555190(+0x1d9 del dueño, texto, 1).
+        auto acquired = TextArgument(ItemAcquiredText, "0x4d6b36");
+        if (!acquired.HasValue())
+            return Core::Unexpected(std::move(acquired).Error());
+        const std::array<UI::FormatArgument, 2> arguments{UI::StringArgument{.text = line}, acquired.Value()};
+        auto text = Format(UI::FormatFunction::Sprintf, ItemNoticeFormat, arguments, ItemNoticeBuffer, "0x4d6b36");
+        if (!text.HasValue())
+            return Core::Unexpected(std::move(text).Error());
+        if (m_context.measure == nullptr)
+            return Core::Unexpected(std::string("0x4d6b4d: sin el medidor de los mensajes (0x555190)"));
+        return AddGameMessage(m_runtime, *m_context.measure, m_context.screen, ChatNameOf(m_world.Actors()[owner]),
+                              text.Value(), UI::SystemMessage);
     }
 
     // ----- 90 (0x4e4870).
@@ -1222,10 +1297,13 @@ private:
                                        "0x6c73cc..0x6c73d0 (Q-C1347)",
                                        altar, packet.key));
         hero.flags7c |= SittingFlag;
-        if (m_context.playerSkeleton == nullptr)
-            return Core::Unexpected(std::string("0x4e11d9: 0x4ea030 sienta al héroe (0xca) con el esqueleto de "
-                                                "Player.bmd, que no está cargado"));
-        Render::Models::SetAction(hero.animation, *m_context.playerSkeleton, SittingAction);
+        // 0x4ea036..0x4ea054: las acciones del modelo del tipo del héroe (+2), Player.bmd o el del transformado.
+        const auto* skeleton = m_context.models != nullptr ? m_context.models->SkeletonOf(hero.type) : nullptr;
+        if (skeleton == nullptr)
+            return Core::Unexpected(std::format("0x4e11d9: 0x4ea030 sienta al héroe (0xca) con las acciones del modelo "
+                                                "{:#x}, que no está cargado",
+                                                hero.type));
+        Render::Models::SetAction(hero.animation, *skeleton, SittingAction);
         // 0x4e11e1..0x4e15bd: el C1 05 18 con el rumbo del héroe (+0x24) y 0x82.
         const auto direction = Protocol::Movement::DirectionFromAngle(hero.angles.z);
         if (!direction.HasValue())

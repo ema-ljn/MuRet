@@ -16,8 +16,9 @@
 // 0x4d9b80, y los que el dispatcher atiende en línea (0x54, 0x5D, 0x61, 0x64, 0x66 y 0x67), sin aplicar nada; y los
 // que el cliente manda. El
 // original lee sus campos a desplazamientos fijos sin mirar el largo: acá, un paquete que no trae los campos que se
-// leen es TooShort, y una lista que dice más entradas que las que trae, también. Los bytes sobrantes se ignoran. 0x55 y
-// 0x5C no tienen caso en 0x4e2b10 (van al default): el cliente no los lee.
+// leen es TooShort, y una lista que dice más entradas que las que trae, también, salvo la del E9: MyDll la manda corta
+// y MuRet pone en 0 lo que falta (Q-C1365). Los bytes sobrantes se ignoran. 0x55 y 0x5C no tienen caso en 0x4e2b10 (van
+// al default): el cliente no los lee.
 namespace Client::Protocol::Guild
 {
 inline constexpr std::uint8_t JoinRequestOpcode = 0x50;
@@ -226,7 +227,7 @@ struct UnionEntry
     GuildName name{};
 };
 
-// E9 (0x4d9e50), un C2: la cuenta de pkt[4], el resultado de pkt[5] y las entradas.
+// E9 (0x4d9e50), un C2: la cuenta de pkt[4], el resultado de pkt[5] y las entradas (las que no llegan, en 0: Q-C1365).
 struct UnionList
 {
     std::uint8_t count = 0;

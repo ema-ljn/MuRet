@@ -14,6 +14,7 @@
 #include <optional>
 #include <span>
 #include <utility>
+#include <vector>
 
 namespace Client::Protocol::Guild
 {
@@ -37,6 +38,7 @@ constexpr std::size_t ViewportUnionGuildKey = 4;
 constexpr std::uint8_t ViewportKeyMask = 0x7f;
 // 0x4d9e50: las entradas desde pkt[8], de 0x29 bytes.
 constexpr std::size_t FirstUnionOffset = 8;
+constexpr std::size_t UnionEntrySize = 0x29;
 // EB: solo pkt[3] == 1 lee pkt[4].
 constexpr std::uint8_t RefreshKind = 1;
 
@@ -237,14 +239,22 @@ Core::Expected<GuildPacket, ProtocolError> ReadUnionList(const Network::Packet& 
     // 0x4d9e5f: solo con el resultado en 1 y alguna entrada se leen.
     if (list.result != 1 || list.count == 0)
         return GuildPacket{std::move(list)};
-    auto entries = At(packet, FirstUnionOffset);
-    if (!entries)
-        return Core::Unexpected(ProtocolError::TooShort);
+    // 0x4d9e50 lee `count` entradas sin mirar el largo. MyDll (alliance_list_send) anuncia todos los gremios de la
+    // alianza y escribe solo los que encuentra, con una cola de 8 ceros: las que faltan, el original las lee de la cola
+    // y de lo que siga en el buffer. MuRet toma lo que llegó y pone en 0 lo demás: un nombre vacío, que la lista
+    // (0x46d900) no muestra (Q-C1365).
+    std::vector<std::byte> region(list.count * UnionEntrySize);
+    if (const auto bytes = packet.Bytes(); bytes.size() > FirstUnionOffset)
+    {
+        const auto arrived = bytes.subspan(FirstUnionOffset);
+        std::ranges::copy(arrived.first(std::min(arrived.size(), region.size())), region.begin());
+    }
+    Core::ByteReader entries{std::span<const std::byte>(region)};
     for (std::uint8_t i = 0; i < list.count; ++i)
     {
         UnionEntry entry;
-        const auto first = entries->ReadU8();
-        if (!first || !CopyMark(*entries, entry.mark) || !CopyTo(*entries, entry.name))
+        const auto first = entries.ReadU8();
+        if (!first || !CopyMark(entries, entry.mark) || !CopyTo(entries, entry.name))
             return Core::Unexpected(ProtocolError::TooShort);
         entry.byte0 = *first;
         list.entries.push_back(entry);

@@ -209,6 +209,31 @@ TEST(GuildProtocolTest, TheUnionListReadsItsEntriesOnlyWithResultOne)
     EXPECT_TRUE(refused.entries.empty());
 }
 
+// MyDll (alliance_list_send) anuncia tres gremios, escribe el que encuentra y la cola de 8 ceros: 0x4d9e50 lee las tres
+// sin mirar el largo. MuRet toma la que llegó y pone en 0 lo demás (Q-C1365): dos nombres vacíos que la lista no
+// muestra, en vez de descartar el paquete.
+TEST(GuildProtocolTest, AShortUnionListKeepsTheEntriesThatArrived)
+{
+    std::vector<std::byte> bytes = Bytes({0xc2, 0x00, 0x39, 0xe9, 0x03, 0x01, 0x00, 0x03, 0x07});
+    for (int i = 0; i < 32; ++i)
+        bytes.push_back(static_cast<std::byte>(0x10 + i));
+    Append(bytes, "Ceibos", 8);
+    for (int i = 0; i < 8; ++i)
+        bytes.push_back(std::byte{0});
+    ASSERT_EQ(bytes.size(), 0x39u);
+    const auto list = ReadAs<Guild::UnionList>(bytes);
+    EXPECT_EQ(list.count, 3);
+    ASSERT_EQ(list.entries.size(), 3u);
+    EXPECT_EQ(TextOf(list.entries[0].name), "Ceibos");
+    EXPECT_EQ(list.entries[0].mark[31], 0x2f);
+    for (const std::size_t phantom : {1u, 2u})
+    {
+        EXPECT_EQ(list.entries[phantom].byte0, 0);
+        EXPECT_EQ(list.entries[phantom].mark[0], 0);
+        EXPECT_EQ(TextOf(list.entries[phantom].name), "");
+    }
+}
+
 // 0x4e4486: el EB lee pkt[4] solo con pkt[3] en 1.
 TEST(GuildProtocolTest, TheUnionRefreshReadsTheResultOnlyForKindOne)
 {

@@ -1403,10 +1403,11 @@ Core::Expected<void, std::string> DrawGameMonster(Render::ModelBatch& batch, con
     if (auto decorated = DrawTheDecorations(frame); !decorated.HasValue())
         return decorated;
     // 0x50c972..0x50cc29: con +0x1f2 distinto de 0xffff (un nombre largo de NpcName lo pisa, P-C352), los colores de la
-    // guerra de gremios piden [0x576796d] o [0x576796f], y los del duelo, para todos, [0x78abad8]. Esos globales los
-    // escriben los paquetes de la guerra de gremios y del duelo, que MuRet no modela: en 0 (.bss), el bloque no hace
-    // nada. Con uno de ellos, compararía los nombres de la tabla de gremios por +0x1f2 (0x787aa55 + i · 0x58) y pondría
-    // bVar23 ([EBP+0xf], que prende la tela de 0x50d58b) y su color ([EBP−0x5c..−0x54]): los hitos 7 y 8 lo conectan.
+    // guerra de gremios piden [0x576796d] o [0x576796f], y los del duelo, para todos, [0x78abad8]. Los escriben los
+    // paquetes de la guerra (GuildState, hito 8) y del duelo (SocialState::duel, hito 7), pero acá MuRet no corre el
+    // bloque: el duelo no alcanza a un monstruo (las claves son de otros objetos), y la guerra solo a los NPC con
+    // +0x1f2 pisado, que compararían los nombres de la tabla de gremios por +0x1f2 (0x787aa55 + i · 0x58) y pondrían
+    // bVar23 ([EBP+0xf], que prende la tela de 0x50d58b) y su color ([EBP−0x5c..−0x54]) (08 P-C352).
     // 0x50cc55: la luz del terreno (0x5f99e0) más la propia, en +0x3b4; el 0x189 en 0,6.
     if (pass.dynamicLighting == nullptr)
         return Core::Unexpected<std::string>("0x50cc55: falta el buffer dinámico de luz del terreno para 0x50ba30");

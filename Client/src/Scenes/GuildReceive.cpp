@@ -753,6 +753,7 @@ Core::Expected<void, std::string> ApplyRelationshipRequest(const RelationshipReq
     auto first = Formatted(context, asked, HeroNameOf(context.world.Actors()[index]), RelationLineBytes, "0x656cd2");
     if (!first.HasValue())
         return Core::Unexpected(first.Error());
+    // 0x656d91: el segundo sin argumento; un %s del texto queda escrito (Q-C1368).
     auto second = Formatted(context, detail, {}, RelationLineBytes, "0x656d8a");
     if (!second.HasValue())
         return Core::Unexpected(second.Error());

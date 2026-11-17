@@ -2967,7 +2967,11 @@ guerra (1 del gremio del héroe, 2 del rival, 0 los demás).
   `+0x368 = 0xff`, `+0x369`, `+0x36c` y `+0x370` en 0, y cierra el gremio.
 - `60` (`0x4d8150`): de 0 a 6, el texto 519 + resultado; con un resultado que no es 1 y sin guerra, apaga la guerra,
   el índice del rival en −1, el nombre vacío, y vuelve a marcar `+0x374` de los vivos sin el rival.
-- `61` (`0x4e4382`): copia el rival, `0x6236f0(0x7f)` y, con el tipo 1, `0x576796d = 1`.
+- `61` (`0x4e4382`): copia el rival, `0x6236f0(0x7f)` y, con el tipo 1, `0x576796d = 1`. El diálogo `0x7f`
+  (2026-11-17, `Scenes::StepTheYesNo` y `DrawTheWarRequest`): el sí (`0x62b39c`) manda `C1 04 61 01` y lo cierra; el
+  no o Esc (`0x62c5c2`) manda `C1 04 61 00` y olvida la guerra con `0x4c1800` (la guerra apagada, el rival en −1 y
+  `+0x374` remarcado; `Scenes::ClearTheWar`). Se dibuja con el sí y el no de `0x6309d4` y, en `0x63212a`, el rival
+  hasta su `'\0'` con el 430 en 75 − 6 y el 431 (o el 432 con `0x576796d`) en 75 + 6.
 - `62` (`0x4d8260`): copia el rival, prende la guerra, el aviso (`sprintf` del 526, o del 533 con el tipo ≠ 0, que
   también prende `0x576796d`) resaltado (`0x554610(…, 1)`), el equipo; busca el rival por nombre (`strcmp` de `+0xd`)
   en las entradas 0 a 1.998 (sin encontrarlo queda el índice que había) y, con el índice ≥ 0, marca `+0x374` de los
@@ -10652,8 +10656,8 @@ CL9 hito 3 (2026-11-13), *estático* salvo lo que se marca; los paquetes, en
   en 2) sí, salvo con `0x576796c` y sin `0x576796d` (la guerra de gremios). Un jugador (`+0x88` en
   1): con el asedio (`0x4294b0`), los puestos de `+0x360` enfrentados (6 a 11 contra 12 y 13) o las
   marcas de `+0x78` deciden por el escudo `0x4000` del elegido; si no, `+0x370` en 2 u 8; con
-  `0x576796c`, el PK de 6 o más y gremio compara los nombres de `0x787aa55` (hito 8; MuRet devuelve
-  falso como con los nombres iguales hasta integrarlo, P-C250 f); en el duelo (`0x78abad8`), solo la clave de `0x78abadc` con el nombre de `0x78abae0`
+  `0x576796c`, el PK de 6 o más y gremio compara los nombres de `0x787aa55` con el del héroe: iguales, falso
+  (`0x558da4`; desde el hito 8, `GuildState::warOn`, `warType` y `GuildNameAt`); en el duelo (`0x78abad8`), solo la clave de `0x78abadc` con el nombre de `0x78abae0`
   (`strcmp` contra `+0x1d9`); con `0x576796c`, `+0x374` en 2 y que no sea el héroe; el PK de 6 o más;
   y si no, Ctrl abajo (`GetAsyncKeyState(0x11)`, `0x558e7f`) y que no sea el héroe.
 - **El freno de 300 ms** (`0x576791c`, `0x57f2d1..0x57f2f9`, y el mismo en `0x559890`, `0x55b6f0`,
@@ -10988,7 +10992,7 @@ dos `rand()` del giro de la cabeza, `0x5068fd`, descontados: uno en 32 por paso 
 | los cortes de [Los casos de habilidad del paso del ataque](#los-casos-de-habilidad-del-paso-del-ataque) | los efectos, joints y partículas de los casos de `0x4fdeeb` y `0x504372` sin portar | quien pega con esas skills (CL11, P-C346) |
 | los efectos, joints y partículas de los casos de `0x4f5b70` (fase 2e-B: cada uno en su dirección, en [Los casos de los monstruos](#los-casos-de-los-monstruos-0x4f5b70)) | `0x518cf0`, `0x530860`, `0x51fff0` y las partículas sin portar, con la lógica del caso hecha | los monstruos con caso, en sus mapas (CL11, P-C233); ningún jugador sin transformar |
 | `0x4fb0d1` | las veinte `0x5c6`/12 sin el pool de partículas | nadie en el juego (fase 2d) |
-| `0x558f29` | los nombres de gremio: desde la revisión no corta, da −1 como con los nombres iguales (Q-C1170) | el héroe en la guerra de gremios (hito 8) |
+| `0x558f29` | ~~los nombres de gremio: desde la revisión no corta, da −1 como con los nombres iguales (Q-C1170)~~ portado en el hito 8 (2026-11-17): `strcmp` con el del héroe | ~~el héroe en la guerra de gremios (hito 8)~~ |
 | los cortes de [La flecha](#la-flecha) | las skills de tiro, los joints de las flechas y sus partículas sin portar | el elfo con esas armas o skills (fase 2e) |
 | `0x50419c` | la partícula `0x5e4` sin el pool de partículas | nadie en el juego: `GameScene` pasa el del mundo (fase 2d) |
 | `0x50428c` | `0x42ea00` (el mapa 30, Castle Siege) | nadie: el mapa 30 corta antes (`0x412140`; hito 13) |
@@ -11120,8 +11124,8 @@ registro propio abierto y cerrado: 3.848 en 0) y los de las lecturas de `+0x38e`
 
 **La `0x4c`** (`0x502363..0x502949`). Recorre los 400 lugares hasta juntar diez (`0x502569`): un monstruo vivo
 (`+0x88` en 2) fuera de la acción 6, o un jugador vivo (`+0x88` en 1) fuera de la `0xc3` que `0x5588d0` deja atacar.
-`0x5588d0(blanco)` es `0x558bb0` con el blanco de argumento en vez del elegido (`Scenes::IsAttackableActor`; corta en
-los nombres de gremio, `0x558aa9`, hito 8). De cada uno, la distancia en celdas (Q-C1111) y `0x5526f0(0x4c, 0)`, el
+`0x5588d0(blanco)` es `0x558bb0` con el blanco de argumento en vez del elegido (`Scenes::IsAttackableActor`; los
+nombres de gremio en `0x558aa9`, portados en el hito 8). De cada uno, la distancia en celdas (Q-C1111) y `0x5526f0(0x4c, 0)`, el
 alcance sin el `0x1c16` (con c en 0, Q-C1114) con los `rand()` de su entrada de Skill.bmd; entra si el alcance no es
 menor (`FCOMP`, C0). Después `rand() % 360`, que nadie lee antes de los joints (Q-C1112). Con `+0x434` en −1 o desde
 400 (`JGE` con signo: un negativo lee fuera del pool y MuRet corta en `0x5025b8`), termina; si no, dos vueltas con el

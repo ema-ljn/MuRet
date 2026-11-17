@@ -70,8 +70,8 @@ struct GameCharacterPass;
 //   el 0x2a (0x50c762: el 0xef del hueso 9 y el 0xf0 del 0x3d a 0,9f con la luz en 1) y las estatuas 0x84 a 0x86
 //   (0x50c83b: el 0xc1c, el 0x225 o el 0xa24 del hueso 1 con la bandera), con HangFromTheWingsSlot (GameHanging.h) y
 //   la biblioteca de la fauna; los demás, CheckMonsterDecorations;
-// - el bloque de la guerra de gremios y el duelo (0x50c972..0x50cc29), que con sus globales en 0 no hace nada (sin
-//   cortar con +0x1f2: los hitos 7 y 8 los conectan);
+// - el bloque de la guerra de gremios y el duelo (0x50c972..0x50cc29), que MuRet no corre para estos dibujos: el
+//   duelo no alcanza a un monstruo y la guerra solo a un NPC con +0x1f2 pisado (08 P-C352);
 // - sin +0x3e3, las partes de la 5 a la 0 con 0x60cf70 (0x50d3e3: el contorno de las partes con el modo 1, la pose en
 //   los huesos propios y 0x60b3d0 con el nivel, el excelente y el set de cada una, con la luz de +0x3b4); un modelo
 //   fuera de los registros que 0x60dbe0 pone en 0 corta en 0x50d431, y el Angel de Chaos Castle (+0x88 en 1) en

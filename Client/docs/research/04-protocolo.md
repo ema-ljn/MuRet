@@ -1483,6 +1483,12 @@ Lo que manda el cliente, por el socket del GameServer (`0x6c82a0`) sin la capa d
   Responde `C1 04 53 <resultado>` (3 sin `gGuildDestroy`, 0 con el número mal del maestro).
 - `C1 05 18 <dirección> <acción>` con el XOR32: la guerra (`0x4d8473` con `0x94`, `0x4d8a39` y `0x4d8e1b` con
   `0x8d` y `0x89`), después del de `0x576a60`, que manda el suyo si el héroe está parado (hito 1, `Scenes::PlayTheEmote`).
+- `C1 04 61 <sí>` con el XOR32 (2026-11-17): la respuesta al pedido de guerra del diálogo `0x7f`, 1 con el sí
+  (`0x62b39c`) y 0 con el no o Esc (`0x62c5c2`, que además olvida la guerra con `0x4c1800`).
+- `C1 05 50 <clave:2 BE>` con el XOR32 (2026-11-17): `/guild` (`0x573f49`) y el comando 5 del elegido (`0x4085d1`)
+  piden entrar al gremio de otro.
+- `C1 07 E5 <relación> <pedido> <clave alta> <clave baja>` con el XOR32 (2026-11-17): `/union` (1, 1), `/rival` (2, 1)
+  y `/rivaloff` (2, 2) desde `0x570d48`, y los comandos 6 a 8 del elegido.
 - `C1 08 E6 <relación> <pedido> <resultado> <clave alta> <clave baja>` con el XOR32 (`0x653c00`, y `0x656616` con el
   diálogo ocupado: el 0).
 - `C1 03 E9`, sin campos (`0x4d9bc8`).
@@ -1493,7 +1499,9 @@ Lo que manda el cliente, por el socket del GameServer (`0x6c82a0`) sin la capa d
 Contra el GS 0.97 (08, P-C283): el `52` tiene la cabecera de `0x10` bytes y entradas de `0xc` (`PMSG_GUILDLIST`, sin
 el puesto), y el 1.02 lee una de `0x18` y entradas de `0xd`; el `5C` no tiene handler; la alianza (`E1`..`EB`) no
 existe, y tampoco el `65`, el `66` ni el `67` (el GS 0.97 manda el `5C`, que el cliente ignora): el ASM es el oráculo
-de sus formatos, y que sean C2, *inferido* de dónde leen la cuenta.
+de sus formatos, y que sean C2, *inferido* de dónde leen la cuenta. MyDll (`mydll_siege.cpp`) sí manda el `65`, el
+`66`, el `67`, el `E5`, el `E6` y el `E9`; su `E9` (`alliance_list_send`) anuncia todos los gremios de la alianza y
+escribe solo los que encuentra, con una cola de 8 ceros (07, Q-C1365).
 
 **MuRet**: `Protocol::Guild::ReadGuildPacket` lee los 20 (el `52`, el `65`, el `67` y el `E9` solo en C2) y sus `Write*` arman lo que
 manda; `App::ServerSession` los registra en un bloque (`RegisterGuildHandlers`) y `Scenes::ApplyGuildPacket` los

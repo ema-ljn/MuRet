@@ -562,7 +562,7 @@ Core::Expected<void, std::string> StepTheUnionTab(const GuildWindowStepContext& 
             if (!context.send)
                 return Core::Unexpected(std::string("0x650d35: el C1 07 E5 de salir de la alianza sin el cable"));
             context.send(Protocol::Guild::WriteRelationshipRequest(UnionRelation, BreakRequest, hero.key));
-            // 0x651277..0x651290: sprintf con el 1387 sin argumentos y 0x555190("", texto, 1).
+            // 0x651277..0x651290: sprintf con el 1387 sin argumentos (Q-C1367) y 0x555190("", texto, 1).
             auto format = TextOf(context.texts, UnionLeftText, "0x65127a");
             if (!format.HasValue())
                 return Core::Unexpected(std::move(format).Error());

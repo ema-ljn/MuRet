@@ -376,8 +376,8 @@ Lorencia, Devias y un mapa de evento; el `0x1F` con un tipo `0x98..0x9e`; el cor
       de `0x60dc80`, P-C253 a); el altar de Crywolf de `0x4eac00` también en el clic de ataque (`0x59d653`) y en el
       elfo que se acerca (`0x566272`), que cortan en `0x4eac41` (hito 11, P-C250 h); las celdas fuera de la grilla
       (`0x55886d`, `0x59d653`, `0x566272`) y el puente de Blood Castle en el borde (`0x4d0949`) descartan sin cerrar
-      la sesión (Q-C1179, Q-C1180), y los nombres de gremio (`0x558da4`, `0x558f29`) descartan hasta el hito 8
-      (P-C250 f); las skills de tiro y el abanico de la `0x18` tiran antes de cortar en el registro propio
+      la sesión (Q-C1179, Q-C1180), y los nombres de gremio (`0x558da4`, `0x558f29`) descartaban hasta el hito 8
+      (P-C250 f, hecho en el hito 8 el 2026-11-17); las skills de tiro y el abanico de la `0x18` tiran antes de cortar en el registro propio
       (`0x53e75b`, `0x53e365`, `0x53e4dd`, hito 4; Q-C1181); la caída del `0xe2` (`0x52435d`, P-C230); cada corte
       con su ola o su hito.
 
@@ -646,6 +646,23 @@ byte propio. El diálogo de los paneles ya no recorta los renglones a `0xff`: un
 dirección (Q-C1305). El aviso de `0x6600f9` (los bytes de `0x6d69a8`, tipo 1, y 0 para quien lo abría) está portado en
 `Scenes::PopUpThePanelDialog`, y el botón del cargo le pone los ganchos al diálogo abierto (Q-C1306). Con una flecha
 apretada, el cursor de los `EDIT` no parpadea (Q-C1304, P-C286).
+
+**Fase 8 (2026-11-17):** el merge con main (el squash del hito 7) y una auditoría adversarial contra el ASM con cinco
+revisores. Lo que la auditoría encontró que cerraba el cliente en el juego normal, ahora portado: el diálogo `0x7f` de
+la guerra (el sí `0x62b39c` con `C1 04 61 01`, el no `0x62c5c2` con `C1 04 61 00` y `0x4c1800`, y su dibujo con el 430
+y el 431 o el 432); los cierres de las dos ventanas del gremio en todas las rutas de `GamePanels::LendTheSession`
+(`0x657b50`, `0x657b73`: caminar, el gate, la muerte, el comercio, las tiendas, las misiones y los eventos con la `G`
+abierta); los avisos `0x72`, `0x79`, `0x7a` y `0x7e` del alta como el OK genérico; el renglón del gremio del globo que
+pasa de sus 30 bytes y pisa el título de la tienda (Q-C1283); y `/guild` (`0x573f49`) y `/union`, `/rival` y
+`/rivaloff` (`0x570d48`), con el elegido o el primero de frente. Los desvíos: la guerra del ataque lee
+`GuildState::warOn` y `warType` y compara los nombres de gremio (`0x558da4`, `0x558aa9`, `0x558f29`; Q-C1170 no era un
+bug); la lista `F3 00` apaga la guerra (`0x4c20b3`) y la entrada a la selección los campos del diálogo (`0x634199`);
+ocultar el chat no le saca el foco al `EDIT` del diálogo (`0x469450`); el `E9` corto de MyDll guarda lo que llegó
+(Q-C1365); los renglones de disolver van en sus lugares de `0x32` de la pila (Q-C1366); los `EDIT` de los diálogos dejan
+su id en `0x5762ec0` y pasan el tope por la subclase en cada frame (Q-C1304); el clic en el suelo respeta `0x77f3b69` y
+`0x77f3b6a`. Lo que queda fuera del hito, con su dueño: el tanteador y la tela de Battle Soccer (P-C284 a, hito 11),
+las dos copias de `0x6c649a` (P-C369, CL9.5), el `0x76`, que no abre nadie (P-C363), y lo que se pierde al descartar
+los paquetes que escriben fuera (P-C370).
 
 ### Hito 9: los amigos (CL9.4, ~89 KB)
 

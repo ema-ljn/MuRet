@@ -293,6 +293,7 @@ Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& 
                                        .measure = m_context.textMeasure,
                                        .screen = m_screen,
                                        .chat = &chat,
+                                       .texts = m_texts,
                                        .requests = &requests,
                                        .systemTime = systemTime,
                                        .inventory = &inventory,

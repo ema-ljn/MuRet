@@ -32,12 +32,14 @@
 #include "Scenes/HeroAttack.h"
 #include "Scenes/GamePartyWindow.h"
 #include "Scenes/GamePetWindow.h"
+#include "Scenes/GameSocialDrawing.h"
 #include "Scenes/GameTooltips.h"
 #include "Scenes/HealthBars.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
 #include "Scenes/QuestWindow.h"
+#include "Scenes/ShopSigns.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/UiItemDrawing.h"
 #include "Scenes/WorldRuntime.h"
@@ -863,10 +865,12 @@ Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
     // 0x5f2340, que empieza con su IsOpen.
     if (auto inventory = DrawTheInventory(frame.context, panels); !inventory.HasValue())
         return inventory;
-    if (panels.IsOpen(UI::TradePanel))
-        return cut("0x5f3b40: el comercio es de la CL9.4");
-    if (panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel))
-        return cut("0x5f3030: las tiendas personales son de la CL9.4");
+    // 0x5f3b40, que empieza con su IsOpen.
+    if (auto trade = DrawTheTradeWindow(frame.context, panels); !trade.HasValue())
+        return trade;
+    // 0x5f3030, que empieza con su IsOpen (CL9 hito 7).
+    if (auto shop = DrawThePersonalShopWindow(frame.context, panels); !shop.HasValue())
+        return shop;
     if (panels.IsOpen(UI::NpcShopPanel))
         return cut("0x5f4720: la tienda del NPC es de la CL9.3");
     if (panels.IsOpen(UI::ChaosBoxPanel))
@@ -1570,8 +1574,8 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
         return Core::Unexpected(std::string("0x5a7a0e: el tanteador de Battle Soccer, con la lista de los gremios "
                                             "(0x787aa55), es del hito 8 de la CL9"));
     // 3. 0x5a89b0: las barras de la party.
-    if (hud.partyCount > 0)
-        return Core::Unexpected(std::string("0x5a89b0: las barras de vida de la party son de la CL9.4"));
+    if (auto life = DrawThePartyLife(context); !life.HasValue())
+        return life;
     // 4. 0x5a6fc0: la info de Castle Siege, con el objeto de 0x5767924 (CL9.5): nada.
     // 5. 0x42a4d0: las barras de vida de la cola de 0x7239a8 (Scenes/HealthBars). Un dibujo intermedio vacía una copia.
     {
@@ -1614,11 +1618,25 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
                                   .boxHeight = hud.arrowsTextHeight,
                                   .mouse = context.mouse,
                                   .blink = hud.messageFrame.areaBlink,
-                                  .projecting = context.projecting};
+                                  .projecting = context.projecting,
+                                  .texts = context.texts};
     if (auto drawn = DrawTheChatBubbles(bubbles); !drawn.HasValue())
         return drawn;
-    // 13. 0x451d10 y 0x451c20: los carteles del singleton de 0x7245c8 (CL9.5).
-    // 14. 0x5a6cc0: el marcador del duelo, con 0x78abad8 (CL9.4, P-C59).
+    // 13. 0x451d10 y 0x451c20: los carteles del singleton de 0x7245c8 (Scenes/ShopSigns). Sin ninguno (+0xc en 0),
+    // nada; con alguno, 0x5bb8d0 con sus rand(), su lugar (0x451d60), el reparto para que no se pisen (0x451e40), la
+    // cuenta de +0x10 y cada cartel (0x452a10).
+    ShopSignDrawContext signs{.world = world,
+                              .panels = frame.panels,
+                              .projection = context.projection,
+                              .sprites = context.sprites,
+                              .text = context.text,
+                              .dcFont = hud.dcFont,
+                              .texts = context.texts,
+                              .projecting = context.projecting};
+    if (auto drawn = DrawTheShopSigns(signs); !drawn.HasValue())
+        return drawn;
+    // 14. 0x5a6cc0: el marcador del duelo, con 0x78abad8, que prende el AA (CL9 hito 7).
+    DrawTheDuelScore(context, frame.panels);
     // 15. 0x46b090: el cartel de Slide.bmd ([0x5763528]).
     if (auto slides = UI::DrawTheSlides(hud.slides, UI::SlideDrawContext{.sprites = context.sprites,
                                                                          .text = context.text,

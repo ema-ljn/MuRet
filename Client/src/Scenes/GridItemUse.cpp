@@ -163,23 +163,34 @@ Core::Expected<void, std::string> UseTheFruit(const InventoryMoveContext& contex
                               FruitDialogText, UI::ItemNameDialog);
 }
 
-// 0x5c8e37..0x5c8fb8, desde la grilla del inventario (0x5c8e58). La otra grilla (0x5c8ef8..0x5c8f35, con
-// 0x78a5a10 y 0x78a5a14) no la recorre MuRet.
+// 0x5c8e37..0x5c8fb8: la copia de la casilla `cell` de la grilla al cursor y la grilla en 0x78ab9b8. Desde el
+// inventario (0x5c8e58), 0x78abb28 en 1 y, con el almacén abierto, 0x5c9e10 en su grilla (0x5c8e8f); desde otra
+// (0x5c8ef8, la propia del comercio), sin 0x78abb28 y, con el almacén abierto, 0x5c9e10 en el inventario (0x5c8f09).
 Core::Expected<void, std::string> CopyIntoTheCursor(const InventoryMoveContext& context, UI::PanelRegistry& panels,
-                                                    std::int32_t cell)
+                                                    UsedGrid grid, std::int32_t cell)
 {
     WorldRuntime& runtime = context.world.Runtime();
-    runtime.cursorItem = context.world.Inventory().cells[static_cast<std::size_t>(cell)];
-    runtime.cursorGrid = CursorGrid::Inventory;
+    runtime.cursorItem = grid.cells[static_cast<std::size_t>(cell)];
+    runtime.cursorGrid = grid.grid;
     // 0x5c8e4a..0x5c8e68: el mouse en 0x7d36890 y 0x7d36894, que solo lee 0x5ca250 con 0x7d368a1 (0x5d8ce0): MuRet no
     // lo guarda.
-    runtime.ui.field78abb28 = 1;
+    const bool inventory = grid.grid == CursorGrid::Inventory;
+    if (inventory)
+        runtime.ui.field78abb28 = 1;
     if (panels.IsOpen(UI::WarehousePanel))
-        return Core::Unexpected(std::string("0x5c8e8f: con el almacén abierto, 0x5c9e10 busca lugar para el ítem en su "
-                                            "grilla (0x78a7070, 8 × 15) y, si lo hay, 0x5bd750 lo saca del inventario "
-                                            "con el sonido 0x1d: es del hito 6"));
-    // 0x5c8eb8..0x5c8ebf: sin el almacén, 0x7d368a1 queda como estaba. Solo lo prenden 0x5c8eb3 y 0x5c8f30, con el
-    // almacén abierto, y 0x5d8cf6 lo apaga: en MuRet está en 0, y 0x5c8f9a vacía el cursor (0x12 dwords en 0).
+    {
+        if (inventory)
+            return Core::Unexpected(
+                std::string("0x5c8e8f: con el almacén abierto, 0x5c9e10 busca lugar para el ítem en "
+                            "su grilla (0x78a7070, 8 × 15) y, si lo hay, 0x5bd750 lo saca del "
+                            "inventario con el sonido 0x1d: es del hito 6"));
+        return Core::Unexpected(std::string("0x5c8f09: con el almacén abierto, 0x5c9e10 busca lugar para el ítem de la "
+                                            "grilla del comercio en el inventario y, si lo hay, 0x5bd750 lo saca de su "
+                                            "grilla con el sonido 0x1d: es del hito 6"));
+    }
+    // 0x5c8eb8..0x5c8ebf y 0x5c8f35..0x5c8f3c: sin el almacén, 0x7d368a1 queda como estaba. Solo lo prenden 0x5c8eb3 y
+    // 0x5c8f30, con el almacén abierto, y 0x5d8cf6 lo apaga: en MuRet está en 0, y 0x5c8f9a vacía el cursor (0x12
+    // dwords en 0). La grilla de 0x78ab9b8 queda.
     runtime.cursorItem = ItemState{};
     runtime.cursorItemCount = 0;
     return {};
@@ -209,23 +220,24 @@ Core::Expected<void, std::string> UseTheEventTicket(UI::PanelRegistry& panels, s
 }
 
 Core::Expected<void, std::string> UseTheLaterGridItem(const InventoryMoveContext& context, UI::PanelRegistry& panels,
-                                                      std::size_t index)
+                                                      UsedGrid grid, std::size_t index)
 {
     WorldState& world = context.world;
-    const std::span<ItemState> cells(world.Inventory().cells);
+    const std::span<ItemState> cells = grid.cells;
     if (index >= cells.size())
         return Core::Unexpected(std::format("0x5c7bc6: la casilla {} está fuera de la grilla", index));
     const ItemState& hovered = cells[index];
-    // 0x5c589e..0x5c58b4: la casilla de arriba a la izquierda, en ESI y en [EBP + 0x1c].
+    // 0x5c589e..0x5c58b4: la casilla de arriba a la izquierda con el ancho de la grilla ([EBP + 0x14]), en ESI y en
+    // [EBP + 0x1c].
     const std::int32_t cell = hovered.gridRow * Columns + hovered.gridColumn;
     if (cell >= static_cast<std::int32_t>(cells.size()))
         return Core::Unexpected(std::format("0x5c58aa: el origen {} está fuera de la grilla (Q-C200)", cell));
     const std::int32_t type = std::bit_cast<std::int16_t>(hovered.id);
     if (IsSkillItem(type))
         return UseTheSkillItem(context, panels, hovered, cell);
-    // 0x5c7c1a..0x5c7c2f: también el ítem de esa casilla en la grilla del inventario (0x78a9bb0); desde el inventario,
-    // es el mismo.
-    if (hovered.id == Fruit && cells[static_cast<std::size_t>(cell)].id == Fruit)
+    // 0x5c7c1a..0x5c7c2f: también el ítem de esa casilla en la grilla del inventario (0x78a9bb0), sea cual sea la
+    // grilla (07 Q-C964); desde el inventario, es el mismo.
+    if (hovered.id == Fruit && world.Inventory().cells[static_cast<std::size_t>(cell)].id == Fruit)
         return UseTheFruit(context, hovered, cell);
     if (hovered.id == Item1a0b)
     {
@@ -237,6 +249,6 @@ Core::Expected<void, std::string> UseTheLaterGridItem(const InventoryMoveContext
         return UseInventoryItemOn(context, panels,
                                   InventoryUse{.slot = cell + FirstGridSlot, .where = Item1a0bRefusal});
     }
-    return CopyIntoTheCursor(context, panels, cell);
+    return CopyIntoTheCursor(context, panels, grid, cell);
 }
 } // namespace Client::Scenes

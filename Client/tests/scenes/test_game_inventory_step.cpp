@@ -11,6 +11,8 @@
 #include "Scenes/ItemSetState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
+#include "Scenes/SocialEvents.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/GameUiState.h"
@@ -173,8 +175,8 @@ TEST_F(InventoryStepTest, TheRepairButtonWorksFromLevelFifty)
 }
 
 // Lo que es de otras olas, o lo que pide Item.bmd sin tenerlo, corta con su dirección: un ítem de la grilla bajo el
-// mouse (0x5c420a) y el ítem del cursor sobre un lugar del equipo (0x5bed9e) sin Item.bmd, la tienda personal que abre
-// la S (Open de 0x800, CL9.4) y el comercio abierto.
+// mouse (0x5c420a) y el ítem del cursor sobre un lugar del equipo (0x5bed9e) sin Item.bmd. La S abre la tienda
+// personal (que ya no corta) y el comercio abierto.
 TEST_F(InventoryStepTest, WhatIsStillCutStopsWithItsAddress)
 {
     world.Inventory().cells[0].id = 0x1c00;
@@ -189,10 +191,42 @@ TEST_F(InventoryStepTest, WhatIsStillCutStopsWithItsAddress)
 
     world.OwnCharacter().level = 6;
     input.Apply(InputEvent{.kind = InputEvent::Kind::KeyDown, .key = Key::S});
-    ExpectCut(Step(100, 300), "0x6599a0(0x800)");
+    // La S abre la tienda propia (hito 7, fase 4); el mismo paso sigue con su grilla (0x5e58ea, sin nada bajo el mouse)
+    // y su ventana (0x5ea290, fase 5), que pone su esquina en (0x104, 0).
+    const auto opened = Step(100, 300);
+    ASSERT_TRUE(opened.HasValue()) << opened.Error();
+    EXPECT_EQ(world.Runtime().social.personalShop.windowX, 0x104);
+    EXPECT_EQ(world.Runtime().social.personalShop.windowY, 0);
+    EXPECT_EQ(world.Runtime().panels.personalShop, 1);
+    EXPECT_EQ(world.Runtime().social.personalShop.mode, Client::Scenes::OwnShopView);
+    world.Runtime().panels.personalShop = 0;
+    world.Runtime().social.personalShop.mode = Client::Scenes::NoShopView;
 
+    // El comercio abierto (CL9 hito 7): el mouse sobre su ventana (desde 0x78a5a1c y 0x78a5a18, en 0 antes del
+    // dibujo) es de la UI; un ítem de sus grillas bajo el mouse lee Item.bmd (0x5c420a), que este paso no tiene: corta
+    // ahí. Con él, test_trade_grids.cpp. Las grillas, vacías como las deja la entrada a la selección (0x5bbe10).
+    Client::Scenes::TradeState& trade = world.Runtime().social.trade;
+    Client::Scenes::ClearTheTradeForSelection(trade);
+    // 0x5e513a..0x5e5205: +0x44 en cada casilla de las dos grillas; la del otro conserva el 99 (0x5e5172).
+    trade.otherGrid[3].id = 0x1c00;
+    trade.otherGrid[3].warning = Client::Scenes::ChangedFromTheCopy;
+    trade.otherGrid[4].id = 0x1c00;
+    trade.otherGrid[5].warning = Client::Scenes::ChangedFromTheCopy;
+    trade.ownGrid[2].id = 0x1c00;
+    trade.ownGrid[6].warning = 1;
     world.Runtime().panels.trade = 1;
-    ExpectCut(Step(100, 300), "0x5e4e34");
+    world.Runtime().ui.mouseOnUi = 0;
+    const auto trading = Step(100, 300);
+    ASSERT_TRUE(trading.HasValue()) << trading.Error();
+    EXPECT_EQ(world.Runtime().ui.mouseOnUi, 1);
+    EXPECT_EQ(trade.otherGrid[3].warning, Client::Scenes::ChangedFromTheCopy);
+    EXPECT_EQ(trade.otherGrid[4].warning, 1);
+    EXPECT_EQ(trade.otherGrid[5].warning, 0);
+    EXPECT_EQ(trade.ownGrid[2].warning, 1);
+    EXPECT_EQ(trade.ownGrid[6].warning, 0);
+    // La casilla 21 de la grilla del otro (columna 5, fila 2, desde x + 15 e y + 0x46).
+    trade.otherGrid[21].id = 0x1c00;
+    ExpectCut(Step(15 + 5 * 20 + 5, 0x46 + 2 * 20 + 5), "0x5c420a");
 }
 
 // 0x5c2c56 → 0x5c35ad: el mouse sobre un lugar ocupado, sin el clic, prende 0x78abaac (y 0x5d8d50 no corre), marca el

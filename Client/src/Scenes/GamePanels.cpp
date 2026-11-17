@@ -10,6 +10,8 @@
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnDerivedStats.h"
 #include "Scenes/OwnStatHelpers.h"
+#include "Scenes/PersonalShopLists.h"
+#include "Scenes/SocialEvents.h"
 #include "Scenes/Quests.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -67,6 +69,12 @@ UI::PanelContext ContextOf(WorldState& world, Render::Models::CrtRandom& random,
     context.heroSiegeMark = false;
     context.sound = [&runtime](std::int32_t id) { runtime.lastSoundId = id; };
     context.characterOpened = [&world, &random, tables]() { return OpenTheCharacter(world, random, tables); };
+    // Sin el cable, el cierre con aux en 0 (el que manda el 3D) corta; el 3D del GS cierra con 1 (0x4d5906).
+    context.tradeClosed = [&world, &random](bool aux) { return CloseTheTradeGrids(world, random, aux, {}); };
+    // Sin el cable, los envíos de abrir y cerrar las tiendas personales cortan (LendThePersonalShops).
+    context.personalShopOpened = [&world, &random](UI::PanelId id)
+    { return OpenThePersonalShop(world, random, id, {}); };
+    context.personalShopClosed = [&world, &random]() { return CloseThePersonalShop(world, random, {}); };
     // 0x659c70: 0x419840(−1) sobre [0x710148].
     context.questOpened = [&world, &random, tables]()
     { return OpenTheQuestList(QuestContext{.world = world, .random = random, .texts = tables.texts}, -1); };
@@ -82,6 +90,27 @@ UI::PanelContext ContextOf(WorldState& world, Render::Models::CrtRandom& random,
 GamePanels::GamePanels(WorldState& world, Render::Models::CrtRandom& random, GamePanelTables tables)
     : m_context(ContextOf(world, random, tables)), m_registry(world.Runtime().panels, m_context)
 {
+}
+
+void GamePanels::LendTheTradeCancel(WorldState& world, Render::Models::CrtRandom& random, IGameUiRequests* requests)
+{
+    if (requests == nullptr)
+        return;
+    m_context.tradeClosed = [&world, &random, requests](bool aux)
+    {
+        return CloseTheTradeGrids(world, random, aux, [requests](Protocol::Outgoing outgoing)
+                                  { requests->SendGamePacket(std::move(outgoing)); });
+    };
+}
+
+void GamePanels::LendThePersonalShops(WorldState& world, Render::Models::CrtRandom& random,
+                                      std::function<void(Protocol::Outgoing)> send)
+{
+    if (!send)
+        return;
+    m_context.personalShopOpened = [&world, &random, send](UI::PanelId id)
+    { return OpenThePersonalShop(world, random, id, send); };
+    m_context.personalShopClosed = [&world, &random, send]() { return CloseThePersonalShop(world, random, send); };
 }
 
 void GamePanels::LendTheWindowClose(std::function<void()> send)

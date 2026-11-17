@@ -13,7 +13,9 @@
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/PartyActors.h"
 #include "Scenes/SceneId.h"
+#include "Scenes/SocialState.h"
 #include "World/ChaosCastle.h"
 #include "World/Ftol.h"
 #include "World/ModelEffects.h"
@@ -27,6 +29,7 @@
 
 #include <glm/ext/vector_float3.hpp>
 
+#include <algorithm>
 #include <array>
 #include <bit>
 #include <cstddef>
@@ -72,6 +75,8 @@ constexpr float FirstWindowStart = std::bit_cast<float>(0x3f99999au); // 0x6b8bb
 constexpr float FirstWindowEnd = std::bit_cast<float>(0x3fcccccdu);   // 0x6b8bfc, 1,6f
 constexpr float SecondWindowStart = 7.0f;                             // 0x6b8878
 constexpr float SecondWindowEnd = 8.0f;                               // 0x6b86c4
+// 0x50f9cf (0x6b8818): por debajo, la party (0x50f9e0).
+constexpr float PartyFrameLimit = 2.0f;
 
 // 0x50fba4: las banderas de +0x78 con sprites y joints.
 constexpr std::uint32_t FirstGlowFlag = 0x4;
@@ -257,19 +262,27 @@ float ClockRotation(float clock, bool negated)
     return F32(static_cast<double>(turned) * D(Tenth));
 }
 
+// Lo que sigue a las acciones: el resto de la cola (0x50fba4) o el salto de 0x50f9f8 a 0x510a7a.
+enum class AfterTheActions : std::uint8_t
+{
+    Rest,
+    GuildMark,
+};
+
 // 0x50f828..0x50fba1: las acciones 0x94, 0x51 y 0x5b. Las escriben los paquetes (CL9): lo que crea
 // efectos corta con la condición del ASM.
-Result Actions(Tail& tail)
+Core::Expected<AfterTheActions, std::string> Actions(Tail& tail)
 {
+    using enum AfterTheActions;
     const ActorState& actor = tail.actor;
     const std::uint8_t action = actor.animation.action;
     if (action != LightningAction && action != FirstEffectAction && action != SecondEffectAction)
-        return {};
+        return Rest;
     const float frame = actor.animation.frame;
     if ((actor.characterClass & 7u) != DarkLordClass && action == LightningAction)
     {
         if ((actor.flags78 & HiddenAttachmentFlag) != 0)
-            return {};
+            return Rest;
         const auto point = tail.BodyPoint(actor.hands[0].bone, "0x50f89b");
         if (!point.HasValue())
             return Core::Unexpected(point.Error());
@@ -277,26 +290,40 @@ Result Actions(Tail& tail)
         if (auto first = tail.Sprite("0x50f8e3", Lightning, point.Value(), F32(D(size) * D(FirstLightningScale)),
                                      FirstLightningLight);
             !first.HasValue())
-            return first;
+            return Core::Unexpected(first.Error());
         if (auto second = tail.Sprite("0x50f91f", Lightning, point.Value(), size, actor.light,
                                       ClockRotation(tail.pass.worldClock, true));
             !second.HasValue())
-            return second;
-        return tail.Sprite("0x50f95c", Lightning, point.Value(), F32(D(size) * D(ThirdLightningScale)), actor.light,
-                           ClockRotation(tail.pass.worldClock, false));
+            return Core::Unexpected(second.Error());
+        if (auto third = tail.Sprite("0x50f95c", Lightning, point.Value(), F32(D(size) * D(ThirdLightningScale)),
+                                     actor.light, ClockRotation(tail.pass.worldClock, false));
+            !third.HasValue())
+            return Core::Unexpected(third.Error());
+        return Rest;
     }
-    // 0x50f96c: con el frame en [1,2; 1,6), el efecto 0x621/2 y el sonido 0x1cc. Por debajo de 2, con la
-    // cantidad del grupo (0x78aba48) por encima de 0, 0x59e680 y los joints 0x618: el grupo es de la CL9 y
-    // en MuRet vale 0, como al arrancar. En [7, 8), dos 0x117/2 en la mano derecha.
-    if (!tail.pass.originalFrame)
-        return {};
-    if (!(frame < FirstWindowStart) && frame < FirstWindowEnd)
+    // 0x50f96c: con el frame en [1,2; 1,6), el efecto 0x621/2 y el sonido 0x1cc.
+    const bool original = tail.pass.originalFrame;
+    if (original && !(frame < FirstWindowStart) && frame < FirstWindowEnd)
         return Core::Unexpected(
             std::format("0x50f9b3: el efecto 0x621 y el sonido 0x1cc de la acción {:#x} no están portados", action));
-    if (!(frame < SecondWindowStart) && frame < SecondWindowEnd)
+    // 0x50f9c9: por debajo de 2 (también con NaN, como el fcomp) y con party (0x78aba48 sobre 0), 0x59e680. Fuera de
+    // la party salta a 0x510a7a, sin las banderas, el contador ni el conjunto, también entre frames. En la party, dos
+    // joints 0x618 (/0xc y /0xd, de ancho 20) hacia cada miembro a la vista (+0x1c en 0 o más) que no es él.
+    if (!(frame >= PartyFrameLimit) && !tail.pass.party.empty())
+    {
+        if (!IsInTheParty(tail.pass.party, actor))
+            return GuildMark;
+        const auto other = [&tail](const PartySlot& member)
+        { return member.actorIndex >= 0 && static_cast<std::size_t>(member.actorIndex) != tail.pass.slot; };
+        if (original && std::ranges::any_of(tail.pass.party, other))
+            return Core::Unexpected(
+                std::format("0x50fa74: los joints 0x618 de la acción {:#x} hacia la party no están portados", action));
+    }
+    // 0x50fac5: en [7, 8), dos 0x117/2 en la mano derecha.
+    if (original && !(frame < SecondWindowStart) && frame < SecondWindowEnd)
         return Core::Unexpected(
             std::format("0x50fb64: los efectos 0x117 de la acción {:#x} no están portados", action));
-    return {};
+    return Rest;
 }
 
 // 0x50fba4..0x50fd5e: los sprites de las manos con el color al azar y los cinco joints 0x10f/4. +0x78 sólo lo
@@ -556,8 +583,11 @@ Core::Expected<void, std::string> DrawGameCharacterEffects(ActorState& actor, co
     Tail tail{.actor = actor, .pass = pass};
     if (auto drawn = MageSkin(tail); !drawn.HasValue())
         return drawn;
-    if (auto drawn = Actions(tail); !drawn.HasValue())
-        return drawn;
+    const auto acted = Actions(tail);
+    if (!acted.HasValue())
+        return Core::Unexpected(acted.Error());
+    if (acted.Value() == AfterTheActions::GuildMark)
+        return GuildMark(tail);
     if (auto drawn = Flags(tail); !drawn.HasValue())
         return drawn;
     // 0x50fd61: Chaos Castle salta al final, sin el contador ni el conjunto.

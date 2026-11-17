@@ -12,6 +12,8 @@
 #include "Scenes/ChatBubbles.h"
 #include "Scenes/GameProjection.h"
 #include "Scenes/ITextDrawer.h"
+#include "Scenes/PersonalShopTitles.h"
+#include "Scenes/ShopSigns.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 
@@ -187,7 +189,39 @@ Core::Expected<void, std::string> DrawTheBubble(ChatBubbleDrawContext& context, 
         boxWidth = DibColumns;
         context.boxWidth = DibColumns;
     }
-    // 0x5563a4..0x5565ef: 0x451d10 y 0x451810, el título de una tienda personal, que MuRet no tiene (CL9.4).
+    const bool clampY = context.clampBoxes != 0;
+    // 0x5563a4..0x5565ef: con el cartel del dueño (0x451810, no +0x54), el texto 1104 y el título corto en negrita,
+    // dos renglones más arriba, y los demás, uno (Q-C978).
+    if (HasShopTitle(runtime.social.personalShop, ownerSlot))
+    {
+        const auto header = ShopSignHeader(context.texts, "0x556421");
+        if (!header.HasValue())
+            return Core::Unexpected(header.Error());
+        // 0x5563bc..0x556405: 0x6c8e5c, 0x6c8e60 y 0x6c8e64 con +0x60 del cartel (0x4517c0).
+        const ShopSignColors colors =
+            ShopBubbleColorsOf(owner, ShopSignHovered(runtime.social.personalShop, ownerSlot));
+        const Render::Text::TextStyle style{.font = FontKind::Bold,
+                                            .colors = {.text = colors.name, .background = colors.background}};
+        context.dcFont = FontKind::Bold;
+        y = Subtract(y, Wrapped(Bits(rows) * 2u));
+        // 0x556417..0x556486: el texto 1104 como lo de adelante de 0x553e50, de su ancho, en (x, y).
+        const std::int32_t headerWidth = context.text.Measure(FontKind::Bold, header.Value()).width;
+        context.text.DrawBoxed(
+            x, y, header.Value(), style,
+            Render::Text::BoxShape{
+                .width = headerWidth, .rows = rows, .prefixColumns = headerWidth, .prefixColor = colors.header},
+            clampY);
+        // 0x5564f6..0x556544: el título, a su derecha, con lo que queda del ancho (0x77f31b8 menos el del texto).
+        context.text.DrawBoxed(Add(x, headerWidth), y, CString(bubble.shopTitle), style,
+                               Render::Text::BoxShape{.width = Subtract(boxWidth, headerWidth),
+                                                      .rows = rows,
+                                                      .prefixColumns = 0,
+                                                      .prefixColor = colors.header},
+                               clampY);
+        // 0x556549..0x556567.
+        context.dcFont = FontKind::Normal;
+        y = Add(y, rows);
+    }
     std::uint32_t text = bubble.color < NameColors.size() ? NameColors[bubble.color] : OtherNameColor;
     std::uint32_t background = 0;
     std::uint32_t prefix = 0;
@@ -212,7 +246,6 @@ Core::Expected<void, std::string> DrawTheBubble(ChatBubbleDrawContext& context, 
     {
         std::swap(text, background);
     }
-    const bool clampY = context.clampBoxes != 0;
     const auto line = [&](std::string_view drawn, int prefixColumns)
     {
         context.text.DrawBoxed(
@@ -253,7 +286,7 @@ Core::Expected<void, std::string> DrawTheBubble(ChatBubbleDrawContext& context, 
 } // namespace
 
 Core::Expected<void, std::string> MeasureTheChatBubble(ChatBubble& bubble, const Render::Text::ITextMeasure& measure,
-                                                       int fontStep)
+                                                       int fontStep, const Data::Text::TextTable* texts)
 {
     const auto width = [&](const std::string& text) { return measure.Measure(FontKind::Normal, text).width; };
     const std::int32_t name = Add(width(bubble.name), NameMargin);
@@ -269,8 +302,19 @@ Core::Expected<void, std::string> MeasureTheChatBubble(ChatBubble& bubble, const
         widest = std::max(widest, line1);
     bubble.width = widest;
     bubble.height = Wrapped(Bits(MeasuredTexts) * Bits(fontStep));
-    if (!bubble.shopTitle.empty())
-        return Core::Unexpected(std::string("0x5559dd: el título de la tienda personal del globo es de la CL9.4"));
+    // 0x5559c2..0x555a62: con lstrlen(+0x54) mayor que 0, la negrita; el título y el texto 1104 (0x770df9c), y la
+    // normal al final, la que 0x5a9050 dejó.
+    const std::string_view shopTitle = CString(bubble.shopTitle);
+    if (shopTitle.empty())
+        return {};
+    const auto header = ShopSignHeader(texts, "0x555a0f");
+    if (!header.HasValue())
+        return Core::Unexpected(header.Error());
+    const std::int32_t titled =
+        Add(measure.Measure(FontKind::Bold, shopTitle).width, measure.Measure(FontKind::Bold, header.Value()).width);
+    if (bubble.width < titled)
+        bubble.width = titled;
+    bubble.height = Add(bubble.height, fontStep);
     return {};
 }
 
@@ -309,7 +353,7 @@ Core::Expected<void, std::string> DrawTheChatBubbles(ChatBubbleDrawContext& cont
         const auto projected = ProjectGamePoint(*context.projection, above);
         if (!projected.HasValue())
             return Core::Unexpected(projected.Error());
-        if (auto measured = MeasureTheChatBubble(bubble, context.text, fontStep); !measured.HasValue())
+        if (auto measured = MeasureTheChatBubble(bubble, context.text, fontStep, context.texts); !measured.HasValue())
             return measured;
         // 0x5a90d2..0x5a90f8: la mitad del ancho en 640 × 480, con IDIV y la mitad truncada hacia el 0.
         bubble.x = Subtract(projected.Value().x, Scaled(bubble.width, DesignWidth, screen.width) / 2);

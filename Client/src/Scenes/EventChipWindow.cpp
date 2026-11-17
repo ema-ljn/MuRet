@@ -16,6 +16,7 @@
 #include "Scenes/GameUi.h"
 #include "Scenes/GameWindowDrawing.h"
 #include "Scenes/NpcNames.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/UiItemDrawing.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -86,6 +87,8 @@ constexpr std::int32_t SerialEditWidth = 0x96;
 constexpr std::int32_t SerialEditHeight = 0xe;
 constexpr std::int32_t SerialEditLeft = 0xa;
 constexpr std::int32_t SerialEditTop = 0xf;
+// 0x4dd905: el largo del campo del diálogo (0x6c8e78) con la entrada abierta.
+constexpr std::int32_t SerialFieldLimit = 0xc;
 // 0x5f6b1f..0x5f6b42: el texto del botón de confirmar en (x + 60, y + 5).
 constexpr float ConfirmTextLeft = 60.0f;
 constexpr float ConfirmTextTop = 5.0f;
@@ -254,6 +257,15 @@ Result StepTheSerialNumber(const GameUiContext& context)
     return {};
 }
 
+// 0x4dd8f2..0x4dd8fe, 0x56b719..0x56b725 y 0x5e74a3..0x5e74b0: el modo del zen (0x77f3b6a), el zen escrito
+// (0x77f3b6c) y 0x78abacc en 0.
+void ForgetTheMoneyField(SocialState& social)
+{
+    social.moneyField = 0;
+    social.typedMoney = 0;
+    social.trade.field78abacc = 0;
+}
+
 // 0x5e7255..0x5e74c6: el botón de cerrar.
 Result StepTheCloseButton(const GameUiContext& context, UI::PanelRegistry& panels)
 {
@@ -272,8 +284,9 @@ Result StepTheCloseButton(const GameUiContext& context, UI::PanelRegistry& panel
     if (auto closed = panels.Close(UI::InventoryPanel); !closed.HasValue())
         return Core::Unexpected(std::move(closed).Error());
     UI::ResetTheTextBuffers(runtime.chat.input, false);
-    // 0x5e749c..0x5e74b6: 0x77f3b6a, 0x77f3b6c y 0x78abacc en 0 no los tiene MuRet.
+    // 0x5e749c..0x5e74b6.
     runtime.ui.chatOpen = false;
+    ForgetTheMoneyField(runtime.social);
     runtime.events.serialEntry = false;
     // 0x5e74bf: SetFocus([0x5763544]), con 0x6c7b8c en 1. El texto del EDIT queda.
     runtime.chat.input.focus = UI::ChatFocus::Game;
@@ -511,6 +524,8 @@ void OpenTheSerialEntry(WorldRuntime& runtime)
     runtime.events.serial = {};
     UI::ResetTheTextBuffers(runtime.chat.input, false);
     runtime.ui.chatOpen = false;
+    ForgetTheMoneyField(runtime.social);
+    runtime.social.dialogFieldLimit = SerialFieldLimit;
     runtime.chat.input.fieldCount = 1;
     runtime.events.serialEntry = true;
 }
@@ -523,6 +538,7 @@ void CloseTheSerialEntry(WorldRuntime& runtime)
     input.messageLength = 0;
     input.dialogEdit.text.SetText({});
     runtime.ui.chatOpen = false;
+    ForgetTheMoneyField(runtime.social);
     runtime.events.serialEntry = false;
 }
 

@@ -9,9 +9,11 @@
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
+#include "Scenes/ActorState.h"
 #include "Scenes/EventMapObject.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/GameMovementState.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/Dialogs.h"
@@ -30,6 +32,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -84,6 +87,13 @@ std::vector<DrawnQuad> QuadsOf(const SpriteBatch& sprites)
     return quads;
 }
 
+template <std::size_t Size> void Name(std::array<std::byte, Size>& name, std::string_view text)
+{
+    name = {};
+    for (std::size_t at = 0; at < text.size() && at < Size; ++at)
+        name[at] = static_cast<std::byte>(text[at]);
+}
+
 // x = 0x140 − (cx / 2) de un texto centrado en 640 × 480.
 int CenteredX(const std::string& text)
 {
@@ -134,17 +144,31 @@ public:
     Client::Tests::RecordingTextDrawer text{sprites};
     Client::UI::Point mouse{};
     Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable({
-        {381, "salir"},          {382, "otro servidor"},
-        {383, "otro personaje"}, {384, "cerrar"},
-        {385, "opciones"},       {386, "ataque"},
-        {387, "aviso"},          {388, "listo"},
-        {389, "volumen"},        {401, "uno"},
-        {402, "sin conexion"},   {405, "primero"},
-        {406, "segundo"},        {409, "fin"},
-        {857, "ganaste"},        {858, "mision cumplida"},
-        {859, "perdiste"},       {860, "mision sin cumplir"},
-        {861, "exp %d"},         {863, "puntos %d"},
-        {919, "carteles"},       {1840, "brillo"},
+        {381, "salir"},
+        {382, "otro servidor"},
+        {383, "otro personaje"},
+        {384, "cerrar"},
+        {385, "opciones"},
+        {386, "ataque"},
+        {387, "aviso"},
+        {388, "listo"},
+        {389, "volumen"},
+        {401, "uno"},
+        {402, "sin conexion"},
+        {405, "primero"},
+        {406, "segundo"},
+        {409, "fin"},
+        {418, "de %s"},
+        {419, "comerciar?"},
+        {425, "entrar a la party?"},
+        {857, "ganaste"},
+        {858, "mision cumplida"},
+        {859, "perdiste"},
+        {860, "mision sin cumplir"},
+        {861, "exp %d"},
+        {863, "puntos %d"},
+        {919, "carteles"},
+        {1840, "brillo"},
     });
 };
 
@@ -371,6 +395,227 @@ TEST(GameDialogDrawingTest, TheGenericOkDrawsItsTexts)
     }
 }
 
+// 0x77 (CL9 hito 7, fase 2): el marco del OK genérico, el sí y el no (0x6309d4), y en la fuente del DC "de %s" con el
+// nombre del primero vivo de los 400 con la clave de 0x78aba4c (0x5110d0, con MOVSX) en 75 − 6 y la pregunta en 75 + 6.
+// Sin nadie con la clave, el 400 (sin nombre).
+TEST(GameDialogDrawingTest, ThePartyInvitationNamesWhoInvites)
+{
+    for (const std::int32_t map : {Lorencia, Devias})
+    {
+        SCOPED_TRACE(map);
+        auto tested = std::make_unique<DrawingDialogs>(map);
+        Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+        runtime.dialogs.current = 0x77;
+        Client::Scenes::ActorState& dead = tested->world.Actors()[3];
+        dead.key = 0x8456;
+        Name(dead.name, "Zorzal");
+        Client::Scenes::ActorState& inviter = tested->world.Actors()[7];
+        inviter.alive = true;
+        inviter.key = 0x8456;
+        Name(inviter.name, "Brezal");
+        runtime.social.party.requestKey = static_cast<std::int16_t>(0x8456);
+        tested->mouse = {0x12f, 0x76};
+
+        ASSERT_TRUE(tested->Draw().HasValue());
+        const std::vector<DrawnQuad> quads = QuadsOf(tested->sprites);
+        ASSERT_EQ(quads.size(), 3u);
+        EXPECT_EQ(quads[0].slot, 0xf0);
+        EXPECT_EQ(quads[0].x, 213.0f);
+        EXPECT_EQ(quads[0].y, 60.0f);
+        EXPECT_EQ(quads[1].slot, 0xf2);
+        EXPECT_EQ(quads[1].x, 234.0f);
+        EXPECT_EQ(quads[1].y, 98.0f);
+        EXPECT_EQ(quads[1].blend, BlendMode::Opaque);
+        EXPECT_EQ(quads[2].slot, 0xf3);
+        EXPECT_EQ(quads[2].x, 334.0f);
+        EXPECT_EQ(tested->Texts(), (std::vector<std::string>{"de Brezal", "entrar a la party?"}));
+        EXPECT_EQ(tested->text.texts[0].x, CenteredX("de Brezal"));
+        EXPECT_EQ(tested->text.texts[0].y, 75 - 6);
+        EXPECT_EQ(tested->text.texts[0].style.font, Client::Render::Text::FontKind::Normal);
+        EXPECT_EQ(tested->text.texts[1].y, 75 + 6);
+        EXPECT_EQ(tested->text.texts[1].style.colors.text, 0xffffffffu);
+        EXPECT_EQ(tested->sprites.Blend(), BlendMode::Alpha);
+
+        // La clave del 40 sin signo (0x8456) no es la de nadie: el 400, sin nombre.
+        runtime.social.party.requestKey = 0x8456;
+        tested->sprites.Begin(Screen640);
+        tested->text.texts.clear();
+        tested->mouse = {0x130, 0x76};
+        ASSERT_TRUE(tested->Draw().HasValue());
+        EXPECT_EQ(QuadsOf(tested->sprites)[1].slot, 0xf1);
+        EXPECT_EQ(tested->Texts(), (std::vector<std::string>{"de ", "entrar a la party?"}));
+        EXPECT_EQ(tested->random.State(), Client::Render::Models::CrtRandom{}.State());
+    }
+}
+
+// 0x78: "de %s" con el otro del comercio (0x78aba1c) en la negrita grande en 75 − 11 y la pregunta en la normal en
+// 75 + 11; el no con el mouse en [0x14e, 0x194) × [0x62, 0x77).
+TEST(GameDialogDrawingTest, TheTradeRequestNamesTheOther)
+{
+    for (const std::int32_t map : {Lorencia, Devias})
+    {
+        SCOPED_TRACE(map);
+        auto tested = std::make_unique<DrawingDialogs>(map);
+        Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+        runtime.dialogs.current = 0x78;
+        Name(runtime.social.trade.otherName, "Brezal");
+        tested->mouse = {0x193, 0x62};
+
+        ASSERT_TRUE(tested->Draw().HasValue());
+        const std::vector<DrawnQuad> quads = QuadsOf(tested->sprites);
+        ASSERT_EQ(quads.size(), 3u);
+        EXPECT_EQ(quads[1].slot, 0xf1);
+        EXPECT_EQ(quads[2].slot, 0xf4);
+        ASSERT_EQ(tested->text.texts.size(), 2u);
+        EXPECT_EQ(tested->text.texts[0].text, "de Brezal");
+        EXPECT_EQ(tested->text.texts[0].y, 75 - 11);
+        EXPECT_EQ(tested->text.texts[0].style.font, Client::Render::Text::FontKind::BigBold);
+        EXPECT_EQ(tested->text.texts[1].text, "comerciar?");
+        EXPECT_EQ(tested->text.texts[1].x, CenteredX("comerciar?"));
+        EXPECT_EQ(tested->text.texts[1].y, 75 + 11);
+        EXPECT_EQ(tested->text.texts[1].style.font, Client::Render::Text::FontKind::Normal);
+        EXPECT_EQ(runtime.hud.dcFont, Client::Render::Text::FontKind::Normal);
+    }
+}
+
+// 0x6304e1 → 0x471ae0 (CL9 hito 7): la caja de confirmación 0x9c con dos renglones, de (12 + 2) de alto en 640: el
+// marco (0xfc en y 120, 0xfb desde 125 con h + 40 de alto y 0xfc en h + 165), el sí en (255, h + 140) con el mouse en
+// el borde de abajo y la x del borde derecho (0xf2), el no sin él (0xf3), y los renglones centrados desde 0x87 de 14 en
+// 14. Todo sin mezcla, y la normal al final.
+TEST(GameDialogDrawingTest, TheConfirmBoxDrawsItsTwoButtonsAndItsRows)
+{
+    for (const std::int32_t map : {Lorencia, Devias})
+    {
+        SCOPED_TRACE(map);
+        auto tested = std::make_unique<DrawingDialogs>(map);
+        Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+        runtime.dialogs.current = 0x9c;
+        runtime.social.confirmBox = {.id = 1000, .type = 2, .lines = {"abrir la tienda con", "estos precios"}};
+        constexpr int Height = 2 * (12 + 2);
+        tested->mouse = {0x133, Height + 156};
+
+        ASSERT_TRUE(tested->Draw().HasValue());
+        const std::vector<DrawnQuad> quads = QuadsOf(tested->sprites);
+        ASSERT_EQ(quads.size(), 5u);
+        EXPECT_EQ(quads[0].slot, 0xfc);
+        EXPECT_FLOAT_EQ(quads[0].x, 213.0f);
+        EXPECT_FLOAT_EQ(quads[0].y, 120.0f);
+        EXPECT_EQ(quads[1].slot, 0xfb);
+        EXPECT_FLOAT_EQ(quads[1].y, 125.0f);
+        EXPECT_EQ(quads[2].slot, 0xfc);
+        EXPECT_FLOAT_EQ(quads[2].y, static_cast<float>(Height + 40 + 125));
+        EXPECT_EQ(quads[3].slot, 0xf2);
+        EXPECT_FLOAT_EQ(quads[3].x, 255.0f);
+        EXPECT_FLOAT_EQ(quads[3].y, static_cast<float>(Height + 140));
+        EXPECT_EQ(quads[4].slot, 0xf3);
+        EXPECT_FLOAT_EQ(quads[4].x, 330.0f);
+        EXPECT_FLOAT_EQ(quads[4].y, static_cast<float>(Height + 140));
+        for (const DrawnQuad& quad : quads)
+            EXPECT_EQ(quad.blend, BlendMode::Opaque);
+
+        ASSERT_EQ(tested->Texts(), (std::vector<std::string>{"abrir la tienda con", "estos precios"}));
+        EXPECT_EQ(tested->text.texts[0].x, CenteredX("abrir la tienda con"));
+        EXPECT_EQ(tested->text.texts[0].y, 0x87);
+        EXPECT_EQ(tested->text.texts[1].x, CenteredX("estos precios"));
+        EXPECT_EQ(tested->text.texts[1].y, 0x87 + 14);
+        EXPECT_EQ(tested->text.texts[1].style.font, Client::Render::Text::FontKind::Normal);
+        EXPECT_EQ(tested->text.texts[1].style.colors.text, 0xffffffffu);
+        EXPECT_EQ(tested->sprites.Blend(), BlendMode::Alpha);
+        EXPECT_EQ(runtime.dialogs.current, 0x9c);
+    }
+}
+
+// Los bordes del mouse: el no con la x de 0x17e y la y de h + 140; un píxel más abajo, ninguno.
+TEST(GameDialogDrawingTest, TheConfirmBoxLightsTheButtonUnderTheMouse)
+{
+    for (const std::int32_t map : {Lorencia, Devias})
+    {
+        SCOPED_TRACE(map);
+        auto tested = std::make_unique<DrawingDialogs>(map);
+        Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+        runtime.dialogs.current = 0x9c;
+        runtime.social.confirmBox = {.id = 1000, .type = 2, .lines = {"una"}};
+        constexpr int Height = 12 + 2;
+        tested->mouse = {0x17e, Height + 140};
+        ASSERT_TRUE(tested->Draw().HasValue());
+        std::vector<DrawnQuad> quads = QuadsOf(tested->sprites);
+        ASSERT_EQ(quads.size(), 5u);
+        EXPECT_EQ(quads[3].slot, 0xf1);
+        EXPECT_EQ(quads[4].slot, 0xf4);
+
+        tested->sprites.Begin(Screen640);
+        tested->mouse = {0x17e, Height + 157};
+        ASSERT_TRUE(tested->Draw().HasValue());
+        quads = QuadsOf(tested->sprites);
+        ASSERT_EQ(quads.size(), 5u);
+        EXPECT_EQ(quads[3].slot, 0xf1);
+        EXPECT_EQ(quads[4].slot, 0xf3);
+    }
+}
+
+// Con un botón, el sí en (295, h + 140), con el mouse de 0x127 a 0x15b; con otro tipo, ninguno.
+TEST(GameDialogDrawingTest, TheConfirmBoxWithOneButtonOrNone)
+{
+    for (const std::int32_t map : {Lorencia, Devias})
+    {
+        SCOPED_TRACE(map);
+        auto tested = std::make_unique<DrawingDialogs>(map);
+        Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+        runtime.dialogs.current = 0x9c;
+        runtime.social.confirmBox = {.id = 7, .type = 1, .lines = {"una"}};
+        constexpr int Height = 12 + 2;
+        tested->mouse = {0x127, Height + 150};
+        ASSERT_TRUE(tested->Draw().HasValue());
+        std::vector<DrawnQuad> quads = QuadsOf(tested->sprites);
+        ASSERT_EQ(quads.size(), 4u);
+        EXPECT_EQ(quads[3].slot, 0xf2);
+        EXPECT_FLOAT_EQ(quads[3].x, 295.0f);
+        EXPECT_FLOAT_EQ(quads[3].y, static_cast<float>(Height + 140));
+
+        tested->sprites.Begin(Screen640);
+        tested->mouse = {0x126, Height + 150};
+        ASSERT_TRUE(tested->Draw().HasValue());
+        quads = QuadsOf(tested->sprites);
+        ASSERT_EQ(quads.size(), 4u);
+        EXPECT_EQ(quads[3].slot, 0xf1);
+
+        tested->sprites.Begin(Screen640);
+        tested->text.texts.clear();
+        runtime.social.confirmBox = {.id = 7, .type = 0, .lines = {}};
+        ASSERT_TRUE(tested->Draw().HasValue());
+        quads = QuadsOf(tested->sprites);
+        ASSERT_EQ(quads.size(), 3u);
+        EXPECT_FLOAT_EQ(quads[2].y, 165.0f);
+        EXPECT_TRUE(tested->text.texts.empty());
+    }
+}
+
+// 0x73 (0x630818..0x6308c6): el marco del OK genérico, sin el botón, y el EDIT de [0x5763504] con 0x6c7b8c en 1, que
+// es del hito 6: corta en su primera llamada (0x630876), antes de la cola.
+TEST(GameDialogDrawingTest, TheMoneyDialogDrawsItsFrameAndCutsAtTheEdit)
+{
+    for (const std::int32_t map : {Lorencia, Devias})
+    {
+        SCOPED_TRACE(map);
+        auto tested = std::make_unique<DrawingDialogs>(map);
+        tested->world.Runtime().dialogs.current = 0x73;
+        tested->world.Runtime().social.trade.field78abacc = 2;
+        tested->mouse = {0x11c, 0x76};
+
+        const auto drawn = tested->Draw();
+        ASSERT_FALSE(drawn.HasValue());
+        EXPECT_NE(drawn.Error().find("0x630876"), std::string::npos) << drawn.Error();
+        EXPECT_NE(drawn.Error().find("hito 6"), std::string::npos) << drawn.Error();
+        const std::vector<DrawnQuad> quads = QuadsOf(tested->sprites);
+        ASSERT_EQ(quads.size(), 1u);
+        EXPECT_EQ(quads[0].slot, 0xf0);
+        EXPECT_EQ(quads[0].blend, BlendMode::Opaque);
+        EXPECT_FLOAT_EQ(quads[0].x, 213.0f);
+        EXPECT_FLOAT_EQ(quads[0].y, 60.0f);
+        EXPECT_TRUE(tested->text.texts.empty());
+    }
+}
+
 // Los colores de los textos dibujados, en su orden (los quads de marca de RecordingTextDrawer).
 std::vector<Color> TextColorsOf(const SpriteBatch& sprites)
 {
@@ -462,7 +707,7 @@ TEST(GameDialogDrawingTest, TheOtherDialogsAreCut)
 {
     DrawingDialogs tested(Lorencia);
     for (const auto& [id, wave] :
-         std::to_array<std::pair<std::int32_t, std::string>>({{0x73, "CL9.4"}, {0x8e, "CL9.3"}, {0x15, "CL9"}}))
+         std::to_array<std::pair<std::int32_t, std::string>>({{0x76, "CL9.4"}, {0x8e, "CL9.3"}, {0x15, "CL9"}}))
     {
         tested.world.Runtime().dialogs.current = id;
         const auto drawn = tested.Draw();

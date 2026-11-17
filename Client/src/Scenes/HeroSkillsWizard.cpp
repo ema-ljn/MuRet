@@ -18,6 +18,7 @@
 #include "Scenes/HeroSkills.h"
 #include "Scenes/HeroSkillsTail.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/PartyActors.h"
 #include "Scenes/Skill4e9920.h"
 #include "Scenes/Skill4e9c50.h"
 #include "Scenes/Skill4f5290.h"
@@ -398,15 +399,27 @@ Core::Expected<void, std::string> WizardBranch::RaiseTheSoulBarrier()
             m_runtime.selectedTargets[4] = -1;
             return {};
         }
-        // 0x59e680: el nombre del elegido entre los de la party (0x77f3cd0, de a 0x24); sin party, 0.
-        if (m_runtime.hud.partyCount <= 0)
+        // 0x58b06e: 0x59e680, el nombre del elegido entre los de la party (0x77f3cd0, de a 0x24); fuera de ella o sin
+        // party, nada (0x599d5d).
+        ActorState& member = *target.Value();
+        if (!IsInTheParty(m_world, member))
             return {};
-        return Core::Unexpected(std::format("0x58b06e: 0x59e680 compara el nombre del elegido con los {} de la party "
-                                            "(0x77f3cd0), que son del hito 7",
-                                            m_runtime.hud.partyCount));
-        // Lo que sigue con el elegido en la party (0x58b07e..0x58b9e0), para cuando el hito 7 dé los nombres:
-        // +0x3a4 = elegido; 0x7758580..88 = {1, +0x425 del publicado, elegido}; fuera de alcance, WalkToward(...,
-        // range, con +0x379 en 5) y nada; dentro, SendTheMagicAttack(clave de 0x7758588, "0x58b269") y 0x58c152.
+        // 0x58b07e..0x58b0c7: +0x3a4 con el elegido (WORD) y 0x7758580..88 con 1, el lugar de la skill del héroe
+        // publicado (+0x425, sin el registro propio) y el elegido.
+        m_hero.attackTarget = static_cast<std::uint16_t>(chosen);
+        m_state.weaponSkill.active = 1;
+        m_state.weaponSkill.slot = m_world.Actors()[m_runtime.hero].skillIndex;
+        m_state.weaponSkill.target = chosen;
+        if (!InReach(m_hero, m_state))
+        {
+            // 0x58b11f..0x58b1ff: el camino hasta el alcance, con +0x378 en 1 y +0x379 en 5, y nada más.
+            return WalkToward(m_hero, std::bit_cast<std::int32_t>(m_state.targetX),
+                              std::bit_cast<std::int32_t>(m_state.targetY), m_state.selectedSkillRange, true, m_context,
+                              "0x58b1d1");
+        }
+        // 0x58b200..0x58b50d: el 19 con la clave del personaje de 0x7758588.
+        if (auto sent = SendTheMagicAttack(member.key, "0x58b269"); !sent.HasValue())
+            return sent;
     }
     // 0x58c152..0x58c15b.
     if (auto hit = SetTheHitAction(m_hero, CombatContextOf(m_context)); !hit.HasValue())
@@ -773,12 +786,10 @@ Core::Expected<void, std::string> WizardBranch::TeleportTheAlly()
     }
     else
     {
-        // 0x5926ca..0x592766: el nombre del elegido entre los de la party (0x77f3cd0, strncmp); sin party, nada.
-        if (m_runtime.hud.partyCount <= 0)
+        // 0x5926ca..0x592766: el nombre del elegido entre los de la party (0x77f3cd0, el strncmp de 0x59272c, como
+        // 0x59e680 en línea); fuera de ella o sin party, nada.
+        if (!IsInTheParty(m_world, target))
             return {};
-        return Core::Unexpected(std::format("0x59272c: comparar el nombre del elegido con los {} de la party "
-                                            "(0x77f3cd0) es del hito 7",
-                                            m_runtime.hud.partyCount));
     }
     // 0x592660..0x592799.
     if (m_runtime.cursorItemCount > 0 || CannotTeleport(target))

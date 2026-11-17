@@ -9,12 +9,14 @@
 #include "UI/MessageArea.h"
 #include "UI/NameChecks.h"
 #include "UI/PanelRegistry.h"
+#include "UI/SprintfFormat.h"
 
 #include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include <format>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -75,6 +77,83 @@ SocialCommand(const ChatCommandContext& context, std::string_view address, std::
     if (InChaosCastle(context))
         return ChatCommandOutcome{.handled = false, .notices = {{ChaosCastleCommandText, SystemMessage}}};
     return Core::Unexpected(std::format("{}: {} es de {}", address, what, wave));
+}
+
+// 0x5766ce..0x576890: /personalshop. En Chaos Castle, el aviso 1150 y 0; con el entrenador abierto, el 1121 y 0; si no,
+// el nivel del registro propio (+0xe, abriéndolo y cerrándolo): desde el 6, Open(0x800) y 1; si no, sprintf del texto
+// 1123 con el 6 en los 0x30 bytes de la pila (EBP − 0xf0, en ceros) y 1. Los avisos van con el tipo 1.
+Core::Expected<ChatCommandOutcome, std::string> PersonalShopCommand(const ChatCommandContext& context)
+{
+    constexpr std::size_t LevelTextBufferSize = 0x30;
+    if (InChaosCastle(context))
+        return ChatCommandOutcome{.handled = false, .notices = {{ChaosCastleCommandText, SystemMessage}}};
+    if (context.trainerOpen)
+        return ChatCommandOutcome{.handled = false, .notices = {{ShopTrainerText, SystemMessage}}};
+    if (!context.ownLevel)
+        return Core::Unexpected(std::string("0x57673f: /personalshop sin el registro propio"));
+    if (context.ownLevel() >= ShopLevel)
+    {
+        if (!context.openThePersonalShop)
+            return Core::Unexpected(std::string("0x576822: /personalshop sin abrir la tienda"));
+        if (auto opened = context.openThePersonalShop(); !opened.HasValue())
+            return Core::Unexpected(std::move(opened).Error());
+        return ChatCommandOutcome{.handled = true, .notices = {}};
+    }
+    std::string text = Sprintf(TextAt(context.texts, ShopLevelText), static_cast<std::int32_t>(ShopLevel));
+    if (text.size() >= LevelTextBufferSize)
+        return Core::Unexpected(std::format("0x576866: el texto {} con el nivel pasa los {} bytes de la pila",
+                                            ShopLevelText, LevelTextBufferSize));
+    return ChatCommandOutcome{
+        .handled = true,
+        .notices = {ChatCommandNotice{.text = ShopLevelText, .type = SystemMessage, .formatted = std::move(text)}}};
+}
+
+// 0x574c8c: sscanf(texto, "%s %s", EBP − 0x108, EBP − 0xc0). Cada %s salta los blancos (isspace del locale "C") y lee
+// hasta el siguiente, y el espacio del formato salta los que haya: lo que importa es la segunda palabra, el nombre.
+// Sin ella, el segundo buffer queda con lo que había en la pila (sin valor). Una primera palabra de 0x48 bytes o más
+// pisa el segundo buffer y una segunda de 0x90 o más llega a EBP − 0x30, que 0x575503 pisa: MuRet no lo modela (el
+// campo del chat tiene 0x32 bytes) y devuelve el error.
+Core::Expected<std::optional<std::string_view>, std::string> ScanTheName(std::string_view text)
+{
+    constexpr std::size_t FirstWordBuffer = 0x48;
+    constexpr std::size_t NameBuffer = 0x90;
+    const auto blank = [](char letter) { return letter == ' ' || (letter >= '\t' && letter <= '\r'); };
+    text = text.substr(0, text.find('\0'));
+    std::size_t at = 0;
+    const auto word = [&]()
+    {
+        while (at < text.size() && blank(text[at]))
+            ++at;
+        const std::size_t start = at;
+        while (at < text.size() && !blank(text[at]))
+            ++at;
+        return text.substr(start, at - start);
+    };
+    const std::string_view first = word();
+    const std::string_view second = word();
+    if (first.size() >= FirstWordBuffer || second.size() >= NameBuffer)
+        return Core::Unexpected(
+            std::format("0x574c92: /purchase con una palabra que pasa su buffer de la pila ({} y {} "
+                        "bytes)",
+                        first.size(), second.size()));
+    if (second.empty())
+        return std::optional<std::string_view>{};
+    return std::optional<std::string_view>{second};
+}
+
+// 0x574bd6..0x57694d: /purchase. En Chaos Castle, el aviso 1150 y 0; si no, lo demás (los paneles, el elegido, el
+// nombre que sscanf leyó o el que está enfrente) es del pedido de la escena.
+Core::Expected<ChatCommandOutcome, std::string> PurchaseCommand(const ChatCommandContext& context,
+                                                                std::string_view text)
+{
+    if (InChaosCastle(context))
+        return ChatCommandOutcome{.handled = false, .notices = {{ChaosCastleCommandText, SystemMessage}}};
+    auto name = ScanTheName(text);
+    if (!name.HasValue())
+        return Core::Unexpected(std::move(name).Error());
+    if (!context.requestShopItems)
+        return Core::Unexpected(std::string("0x574c0c: /purchase sin el pedido"));
+    return context.requestShopItems(name.Value());
 }
 
 // 0x56c54d..0x56c690: /trade. Fuera de Chaos Castle, el nivel del registro propio contra 0x6c8dc8: sin alcanzarlo, el
@@ -179,19 +258,36 @@ Core::Expected<ChatCommandOutcome, std::string> RunTheChatCommand(const ChatComm
     if (text == TextAt(texts, MoveCommandText) || EqualsIgnoringCase(text, "/move"))
         context.overlayMode = MoveOverlayMode;
     if (text == TextAt(texts, ShopCommandText) || EqualsIgnoringCase(text, "/personalshop"))
-        return SocialCommand(context, "0x5766ce", "la tienda personal", "la CL9 hito 7, fase 2");
+        return PersonalShopCommand(context);
     if (ContainsLikeTheOriginal(text, TextAt(texts, BuyCommandText)) || ContainsLikeTheOriginal(text, "/purchase"))
-        return SocialCommand(context, "0x574bd6", "comprar en una tienda personal", "la CL9 hito 7, fase 2");
-    if (text == TextAt(texts, ShopViewOnCommandText) || text == TextAt(texts, ShopViewOffCommandText))
-        return Core::Unexpected(
-            std::string("0x56d722: ver las tiendas personales (0x4516a0 y 0x4516b0) es de la CL9.4"));
+        return PurchaseCommand(context, text);
+    // 0x56d6ee..0x56d796: "/ver puestos" (strcmp con el texto 1136) prende los carteles (0x4516a0 sobre 0x451d10) con
+    // el aviso 1138 del tipo 1, y su par (el 1137) los apaga (0x4516b0) con el 1139 del tipo 2. Las dos comparaciones
+    // corren siempre y la cadena sigue.
+    ChatCommandOutcome outcome;
+    if (text == TextAt(texts, ShopViewOnCommandText))
+    {
+        if (context.signsShown == nullptr)
+            return Core::Unexpected(std::string("0x56d722: \"/ver puestos\" sin el mapa de los carteles"));
+        *context.signsShown = 1;
+        outcome.notices.push_back(ChatCommandNotice{.text = ShopViewOnNoticeText, .type = SystemMessage});
+    }
+    if (text == TextAt(texts, ShopViewOffCommandText))
+    {
+        if (context.signsShown == nullptr)
+            return Core::Unexpected(std::string("0x56d776: apagar los carteles sin su mapa"));
+        *context.signsShown = 0;
+        outcome.notices.push_back(ChatCommandNotice{.text = ShopViewOffNoticeText, .type = ErrorMessage});
+    }
     // 0x56d7e0..0x56d82b: /duelstart. Con el duelo en curso, el aviso 915; sin él, el AA al elegido o al que está
     // enfrente. Con o sin él, sigue la cadena (0x56ea05 y 0x56e07c).
-    ChatCommandOutcome outcome;
     if (text == TextAt(texts, DuelStartCommandText) || EqualsIgnoringCase(text, "/duelstart"))
     {
         if (InChaosCastle(context))
-            return ChatCommandOutcome{.handled = false, .notices = {{ChaosCastleCommandText, SystemMessage}}};
+        {
+            outcome.notices.push_back(ChatCommandNotice{ChaosCastleCommandText, SystemMessage});
+            return outcome;
+        }
         if (context.duelActive)
             outcome.notices.push_back(ChatCommandNotice{.text = DuelBusyText, .type = ErrorMessage});
         else if (!context.requestADuel)

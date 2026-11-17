@@ -242,9 +242,9 @@ protected:
             Name(member.name, name);
             list.members.push_back(member);
         }
-        ASSERT_TRUE(Client::Scenes::ApplyPartyList(list, game->world).HasValue());
+        Client::Scenes::ApplyPartyList(list, game->world, game->log);
         const Client::Protocol::Party::PartyLife life{.entries = {0x07, 0x1a, 0x2a}};
-        ASSERT_TRUE(Client::Scenes::ApplyPartyLife(life, game->world).HasValue());
+        Client::Scenes::ApplyPartyLife(life, game->world, game->log);
     }
 
     // 0x59ec80 antes del primer dibujo: sin segmento.

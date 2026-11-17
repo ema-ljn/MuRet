@@ -241,7 +241,7 @@ TEST(DarkSpiritTest, TheConstructorAndTheStepMatchTheBinary)
             ++steps;
             particles->Clear();
             const bool shout =
-                Client::Scenes::StepDarkSpirit(spirit, skeleton, owner, 0x37, *particles, 0.0f, random, counter);
+                Client::Scenes::StepDarkSpirit(spirit, skeleton, owner, 0x37, *particles, 0.0f, random, counter).shouts;
             sparked = true;
             std::string state;
             words >> state;
@@ -438,7 +438,8 @@ TEST(DarkSpiritTest, TheSafeZoneStepMatchesTheBinary)
             ++steps;
             particles->Clear();
             const bool shout =
-                Client::Scenes::StepDarkSpirit(spirit, skeleton, owner, map, *particles, 0.0f, random, 0x12345677);
+                Client::Scenes::StepDarkSpirit(spirit, skeleton, owner, map, *particles, 0.0f, random, 0x12345677)
+                    .shouts;
             std::string state;
             words >> state;
             EXPECT_EQ(random.State(), Hex(state)) << where << ": el rand()";

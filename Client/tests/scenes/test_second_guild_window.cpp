@@ -519,8 +519,8 @@ TEST_P(SecondGuildWindowTest, TheNamePageDrawsTheFieldAndTheEditor)
     Guild().markColor = 6;
     Guild().table[Creating].mark[9] = 4;
     ASSERT_TRUE(Draw().HasValue());
-    EXPECT_TRUE(Input().dialogFieldShown);
-    EXPECT_EQ(Input().focus, Client::UI::ChatFocus::DialogField);
+    EXPECT_EQ(Input().dialogEdit.base.state, Client::UI::ShownWindow);
+    EXPECT_EQ(Input().focus, Client::UI::ChatFocus::Dialog);
     Client::UI::TypeInTheChat(Input(), "Ceibo");
     m_sprites.Begin(Screen640);
     m_text.texts.clear();
@@ -540,7 +540,7 @@ TEST_P(SecondGuildWindowTest, TheNamePageDrawsTheFieldAndTheEditor)
     EXPECT_EQ(quads[7].slot, NoTexture);
     EXPECT_NEAR(quads[7].third.x - quads[7].first.x, 1.0f, Tolerance);
     EXPECT_LT(quads[7].first.x, quads[5].third.x);
-    EXPECT_EQ(Input().dialogField.draws, 2);
+    EXPECT_EQ(Input().dialogEdit.draws, 2);
     // La grilla empieza en el 8: su marco y el cuadrado del 0 (el 9 es el 4).
     ExpectQuadAt(quads[8], 0x116, Left + 50.0f, 100.0f, 15.0f, 15.0f);
     ExpectQuadAt(quads[9], SwatchSlot(0), Left + 51.0f, 101.0f, 13.0f, 13.0f);
@@ -593,13 +593,13 @@ TEST_P(SecondGuildWindowTest, TheNameChecksOpenTheirNotices)
     {
         SCOPED_TRACE(name);
         ASSERT_TRUE(Draw().HasValue());
-        Input().dialogField.text.SetText({});
+        Input().dialogEdit.text.SetText({});
         Client::UI::TypeInTheChat(Input(), name);
         Runtime().dialogs.current = 0;
         Click(Client::Scenes::SecondGuildNextButton);
         EXPECT_EQ(Runtime().dialogs.current, notice);
         EXPECT_EQ(Guild().createStep, 1);
-        EXPECT_TRUE(Input().dialogField.text.Value().empty());
+        EXPECT_TRUE(Input().dialogEdit.text.Value().empty());
     }
 }
 
@@ -619,7 +619,7 @@ TEST_P(SecondGuildWindowTest, BackFromTheNameReturnsToTheQuestion)
     EXPECT_EQ(Hero().word1f2, 0xffff);
     EXPECT_EQ(Input().messageBuffer[0], '\0');
     EXPECT_EQ(Input().messageLength, 0);
-    EXPECT_FALSE(Input().dialogFieldShown);
+    EXPECT_EQ(Input().dialogEdit.base.state, Client::UI::HiddenWindow);
 }
 
 // 0x655c10 (la marca sola, Q-C1288): Próximo con la marca vacía avisa 0x7e; con color, la confirmación; en la
@@ -711,17 +711,17 @@ TEST_P(SecondGuildWindowTest, CreatesAGuildFromTheQuestionToTheCreatePacket)
     Click(Client::Scenes::SecondGuildCreateButton);
     ASSERT_EQ(Guild().createStep, 1);
     ASSERT_EQ(m_sent.size(), 1u);
-    EXPECT_EQ(Input().focus, Client::UI::ChatFocus::DialogField);
+    EXPECT_EQ(Input().focus, Client::UI::ChatFocus::Dialog);
 
     // Los cuadros de la página del nombre: el EDIT cuenta sus dibujos (0x468320) y el WM_CHAR los vuelve a 0
     // (0x467b9d).
     Frame();
     Frame();
-    EXPECT_GE(Input().dialogField.draws, 2);
+    EXPECT_GE(Input().dialogEdit.draws, 2);
     Client::Scenes::GameChatContext chat{.world = *m_world, .random = m_random, .texts = &m_texts};
     ASSERT_TRUE(Client::Scenes::TypeInTheGameChat(chat, "Ceibo\r").HasValue());
-    EXPECT_EQ(Input().dialogField.draws, 0);
-    EXPECT_EQ(Input().dialogField.text.Value(), "Ceibo");
+    EXPECT_EQ(Input().dialogEdit.draws, 0);
+    EXPECT_EQ(Input().dialogEdit.text.Value(), "Ceibo");
     EXPECT_TRUE(Runtime().ui.enterPressed);
     EXPECT_FALSE(Runtime().ui.chatOpen);
 
@@ -736,7 +736,7 @@ TEST_P(SecondGuildWindowTest, CreatesAGuildFromTheQuestionToTheCreatePacket)
     Click(Client::Scenes::SecondGuildNextButton);
     ASSERT_EQ(Guild().createStep, 3);
     EXPECT_EQ(Runtime().dialogs.current, 0);
-    EXPECT_FALSE(Input().dialogFieldShown);
+    EXPECT_EQ(Input().dialogEdit.base.state, Client::UI::HiddenWindow);
     EXPECT_EQ(std::string_view(Guild().table[Creating].guildName.data()), "Ceibo");
     EXPECT_EQ(Client::UI::CStringOf(Input().messageBuffer), "Ceibo");
     Click(Client::Scenes::SecondGuildNextButton);

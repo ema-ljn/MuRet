@@ -42,7 +42,6 @@
 #include <optional>
 #include <string>
 #include <span>
-#include <vector>
 
 // Escena5: entrada F303, espera de gates y ciclos de lógica/dibujo sobre WorldState.
 // La espera retiene la presentación, pero no interrumpe las fases posteriores a MoveHero.
@@ -151,7 +150,8 @@ private:
     // 0x636da3..0x63717f: el paso con el mundo cargado, hasta su primer corte.
     [[nodiscard]] Core::Expected<void, std::string> StepWorld(const Input::InputState& input);
     [[nodiscard]] Core::Expected<void, std::string> StepTheFloorItems(float worldClock);
-    [[nodiscard]] Core::Expected<void, std::string> StepTheCharacters(float worldClock);
+    // `controlDown`: Ctrl, para 0x558eb0 en la habilidad del héroe (CL9 hito 3).
+    [[nodiscard]] Core::Expected<void, std::string> StepTheCharacters(float worldClock, bool controlDown);
     // `terrainHeight` es la altura de 0x5f93c0 que pide la mariposa 0xae del 54 (0x520dad).
     [[nodiscard]] Core::Expected<void, std::string>
     StepTheModelEffects(float worldClock, const std::function<double(float, float)>& terrainHeight);
@@ -236,8 +236,11 @@ private:
     World::GameCameraInput m_localCameraInput;
     // Los frames del original, por los pasos de la escena (#307).
     OriginalFramesOfTheSteps m_cameraFrames;
+    // 0x4eb620: un frame del original empieza con el primer paso después del dibujo que lo fue; el timeGetTime() del
+    // anterior, para la espera de las skills (CL9 hito 4).
+    bool m_frameStarts = true;
+    std::optional<std::uint32_t> m_lastFrameStart;
     GroundEffectFrame m_groundEffects;
-    std::vector<CharacterCloth> m_characterCloths;
     World::FrameSprites m_sprites;
     World::FrameSprites m_spriteReplay;
     bool m_spriteReplayValid = false;

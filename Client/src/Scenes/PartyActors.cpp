@@ -59,12 +59,33 @@ std::string_view NameView(std::span<const std::byte> name)
     return {reinterpret_cast<const char*>(name.data()), static_cast<std::size_t>(end - name.begin())};
 }
 
-// 0x78aba48. Con más de cinco, el 42 ya cortó (0x4d67e0, Q-C960); negativa, los lazos no corren.
+// 0x78aba48. Más de cinco no llega: el 42 que los trae se descarta (0x4d67e0, Q-C960); negativa, los lazos no corren.
 std::size_t Members(const WorldRuntime& runtime)
 {
     return static_cast<std::size_t>(std::clamp<std::int32_t>(runtime.hud.partyCount, 0, PartySlots));
 }
 } // namespace
+
+std::span<const PartySlot> PartyMembers(const WorldRuntime& runtime)
+{
+    return std::span<const PartySlot>(runtime.social.party.slots).first(Members(runtime));
+}
+
+bool IsInTheParty(const WorldState& world, const ActorState& actor)
+{
+    return IsInTheParty(PartyMembers(world.Runtime()), actor);
+}
+
+bool IsInTheParty(std::span<const PartySlot> members, const ActorState& actor)
+{
+    const std::string_view name = NameView(actor.name);
+    return std::ranges::any_of(members,
+                               [name](const PartySlot& slot)
+                               {
+                                   const std::string_view member = NameView(slot.name);
+                                   return name.empty() ? member.empty() : member.starts_with(name);
+                               });
+}
 
 void MatchThePartyMembers(WorldState& world, std::size_t index)
 {

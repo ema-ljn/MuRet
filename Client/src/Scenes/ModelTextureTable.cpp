@@ -17,6 +17,10 @@ void ModelTextureTable::Bind(Render::ITextureStore& store)
 {
     m_store = &store;
 }
+Render::ITextureStore* ModelTextureTable::Store() const
+{
+    return m_store;
+}
 void ModelTextureTable::Seed(const Render::Models::ModelTextureSlots& slots, const IModelLibrary* models)
 {
     if (m_seeded)

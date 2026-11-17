@@ -227,7 +227,7 @@ Core::Expected<void, std::string> DrawTheWarScore(GameHudContext& context, UI::P
     WorldState& world = context.world;
     const GuildState& guild = world.Runtime().guild;
     const auto heroGuild = static_cast<std::int16_t>(world.Actors()[world.Runtime().hero].word1f2);
-    // 0x5a7a01: el segundo marcador, con 0x576796f, que prende el F3 23 (0x4d9f00, hito 11): en MuRet, nunca.
+    // 0x5a7a01: el segundo marcador, con 0x576796f, que prende el F3 23 (0x4d9f62, hito 11), lo corta GameHud.
     if (guild.warOn == 0 || heroGuild == NoGuildIndex)
         return {};
     if (context.guildMarks == nullptr)

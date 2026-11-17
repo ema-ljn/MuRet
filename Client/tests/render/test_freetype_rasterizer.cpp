@@ -270,9 +270,8 @@ TEST_F(FreeTypeRasterizerTest, WithABoldFileThereIsNoSyntheticBold)
     EXPECT_EQ(InkOf(*rasterizer, FontKind::Bold, "abc"), InkOf(*rasterizer, FontKind::Normal, "abc"));
 }
 
-// Cada byte es el carácter de Latin-1 de su número (Q-C67): 0xE9 es la e con tilde, que en estas
-// fuentes avanza como la e y se dibuja distinto.
-TEST_F(FreeTypeRasterizerTest, ReadsEachByteAsLatin1)
+// El byte E9 pertenece a Latin-1 y CP1252; ambos lo representan como e con tilde.
+TEST_F(FreeTypeRasterizerTest, ReadsWesternAccentedByte)
 {
     const auto rasterizer = OpenFont(1024);
     ASSERT_NE(rasterizer, nullptr);
@@ -281,6 +280,30 @@ TEST_F(FreeTypeRasterizerTest, ReadsEachByteAsLatin1)
     EXPECT_NE(InkOf(*rasterizer, FontKind::Normal, "\xE9"), InkOf(*rasterizer, FontKind::Normal, "e"));
     EXPECT_GT(InkCount(InkOf(*rasterizer, FontKind::Normal, "\xE9")),
               InkCount(InkOf(*rasterizer, FontKind::Normal, "e")));
+}
+
+TEST(FreeTypeRasterizerOpenTest, DecodesEuroByteBeforeLoadingTheGlyph)
+{
+    const Client::Tests::TemporaryFolder folder("freetype");
+    const std::filesystem::path font = folder.Path() / "euro.ttf";
+    {
+        const std::vector<std::uint8_t> bytes = Client::Tests::TinyTrueTypeFont(0x20ac);
+        std::ofstream file(font, std::ios::binary);
+        file.write(reinterpret_cast<const char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
+    }
+
+    const auto opened = FreeTypeRasterizer::Open(font, std::nullopt, 640);
+
+    ASSERT_TRUE(opened.HasValue()) << opened.Error();
+    const FreeTypeRasterizer& rasterizer = *opened.Value();
+    const std::string euroByte(1, static_cast<char>(0x80));
+    const std::string undefinedByte(1, static_cast<char>(0x81));
+    const std::vector<std::uint8_t> euroInk = InkOf(rasterizer, FontKind::Normal, euroByte);
+    const std::vector<std::uint8_t> underscoreInk = InkOf(rasterizer, FontKind::Normal, "_");
+    const std::vector<std::uint8_t> undefinedInk = InkOf(rasterizer, FontKind::Normal, undefinedByte);
+    // Compara contra glifos del mismo cmap: el hinting mono puede añadir píxeles a contornos finos.
+    EXPECT_EQ(euroInk, underscoreInk);
+    EXPECT_NE(euroInk, undefinedInk);
 }
 
 // El intérprete v35, el de Windows 98, y no el v40 que FreeType usa por defecto.

@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "session_id": null,
+  "muret_commit": null,
+  "research_commit": "14f0f931f68776dd103927f58c4359dc29ced712",
+  "expected_client_sha256": "c32bbd5f16ca400c7cfc71fa5f4cd573c57f146dd19a6da52fdd1007abaca26a",
+  "guest_client_sha256_observed": null,
+  "loaded_module_base_observed": null,
+  "pid_observed": null,
+  "data_manifest_sha256": null,
+  "tools_manifest_sha256": null,
+  "guest_os_and_architecture": null,
+  "snapshot_before": null,
+  "host_guest_clock_measurement": null,
+  "evidence_copied_before_restore": false,
+  "readers_stopped_and_threads_resumed": null,
+  "archived_regressions": {
+    "memory_profile": "historical_2f16",
+    "graphics_profile": "c32",
+    "wire_profile": "archived_bytes",
+    "passed": null,
+    "failed": null,
+    "skipped": null,
+    "ctest_log_sha256": null
+  },
+  "cases": [
+    {"id": "H1-E1", "status": "UNVERIFIED", "input_and_preconditions": null, "evidence_files_and_hashes": [], "observation_and_limits": null},
+    {"id": "H1-E2", "status": "UNVERIFIED", "input_and_preconditions": null, "evidence_files_and_hashes": [], "observation_and_limits": null},
+    {"id": "H1-E3", "status": "UNVERIFIED", "input_and_preconditions": null, "evidence_files_and_hashes": [], "observation_and_limits": null},
+    {"id": "H9-B1", "status": "UNVERIFIED", "input_and_preconditions": null, "evidence_files_and_hashes": [], "observation_and_limits": null},
+    {"id": "H9-D1", "status": "UNVERIFIED", "input_and_preconditions": null, "evidence_files_and_hashes": [], "observation_and_limits": null},
+    {"id": "H9-Q1", "status": "UNVERIFIED", "input_and_preconditions": null, "evidence_files_and_hashes": [], "observation_and_limits": null},
+    {"id": "H9-U1", "status": "UNVERIFIED", "input_and_preconditions": null, "evidence_files_and_hashes": [], "observation_and_limits": null}
+  ],
+  "raw_evidence_is_private": true,
+  "native_h1_h9_verified": false
+}

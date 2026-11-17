@@ -47,6 +47,7 @@ Devias). Todos trabajan sobre buffers: leer el archivo es tarea del que llama.
 | `credit.bmd` | `0x63ff30`, desde `0x63f020` / sin buscar | 400 × 33 bytes, el XOR3 del login (`0x4c1690`) de una vez sobre los 13.200, sin checksum ([los registros](#creditbmd)) | `+0x610` de la ventana de los créditos (`0x7d53728 + 0x4578`), 0x3390 |
 | `Slide.bmd` | `0x46b3b0`, desde `0x61ccb0` (`0x61ed18`) / sin buscar | 0xa030 bytes con el XOR3 entero (`0x4c1690`, la clave de `0x6c82e4`): el período, la velocidad y 5 tramos de 0x2008 bytes ([los campos](#slidebmd)) | `[0x5763528] + 0x11ac..+0x1218` |
 | `movereq.bmd` | `0x448440`, desde `0x61ccb0` (`0x61ec8f`, por `0x449830`) / sin buscar | la cuenta en claro y cuenta × 0x50 bytes, el XOR3 por registro (`0x449770`, la clave en la pila), sin checksum ([los campos](#movereqbmd)) | la lista de `0x723c68` (+8; la cuenta en +0xc), un bloque de 0x50 por destino |
+| `MonsterSkill.bmd` | `0x54a440`, desde `0x61ccb0` (`0x61ecdf`) / sin buscar | la cuenta en claro y cuenta × 0x1c bytes, el XOR3 por registro (`0x5496c0`), sin checksum ([los campos](#monsterskillbmd)) | `0x7437670 + tipo · 0x18`, seis dwords por tipo |
 
 Si falta un archivo, el original muestra un `MessageBox`, manda `WM_DESTROY` y **sigue cargando**
 las demás tablas.
@@ -231,6 +232,74 @@ que tuviera el bloque nuevo) y un nombre de `+4` sin `\0` antes del final de su 
 (`strlen` seguiría fuera del bloque; uno de 32 letras sigue, como en el original, con el de `+0x24`). Lo que sobra se
 ignora. `Scenes::LoadGameData` lo carga antes de las tablas de los conjuntos (hasta 1 MiB, 13.107 destinos), y uno
 que no está deja la lista vacía; main.cpp la copia a `WorldRuntime::moves`.
+
+### `MonsterSkill.bmd`
+
+Leído en la CL9 (hito 3, fase 2c, 2026-11-13; *estático*, y la forma *verificada* con el archivo real,
+`GoldenMonsterSkillTable`). `0x54a440` (desde `0x61ccb0`, `0x61ecdf`, con `Data\Local\MonsterSkill.bmd`, `0x6d29fc`)
+pone en −1 los seis dwords del tipo 0 (`0x54a44f..0x54a461`); el resto de la tabla es .bss, en 0. Abre el archivo con
+`"rb"`; si no está, arma `%s - File not exist.` (`0x6c6448`), lo deja en el log (`0x41fa40`), lo muestra con un
+`MessageBox` y manda `WM_DESTROY` (`0x54a500..0x54a549`). Pide un bloque de 0x1c con `operator new` (`0x54a47d`), lee
+la cuenta en claro con `fread(&cuenta, 4, 1)` (`0x54a490`) y, mientras el índice es menor (con signo,
+`0x54a49b..0x54a4e8`), lee 0x1c bytes en el bloque, les pasa el XOR3 desde su primer byte (`0x5496c0`, la clave de
+`0x6c8c74`; 0x1c no es múltiplo de 3, así que vuelve a empezar en cada registro) y copia (`0x54a4b5..0x54a4d6`):
+
+| Desplazamiento | Qué | Dónde |
+| --- | --- | --- |
+| `0x0` | el tipo (int32, sin mirar) | el índice: `tipo · 0x18` |
+| `0x4..0x14` | las cinco skills (int32) | `0x7437670 + tipo · 0x18` |
+| `0x18` | un sexto int32 | `0x7437684 + tipo · 0x18`; quién lo lee, sin leer |
+
+Al final libera el bloque y cierra el archivo (`0x54a4eb`, `0x54a4f1`). No mira cuánto leyó `fread` (un archivo corto
+deja en el bloque lo del registro anterior) ni el tipo (uno fuera de la tabla escribe fuera de ella); un tipo repetido
+se queda con el último. Las lee `0x4f92f0`, el ayudante de los monstruos de los mapas 33, 34 y 54 (06 § Pegar al
+llegar).
+
+El real trae 228 bytes, 8 registros y nada más: `0x130` con 4 y 1, `0x131` con 5, `0x135` con 2 y 3, `0x154` con 6, 7
+y 8, `0x155` con 11, `0x158` con 9, `0x159` con 10 y `0x15d` con 12 y 13, el resto de las skills en −1 y el sexto
+int32 en 0 en todos.
+
+MuRet: `Data::Tables::LoadMonsterSkillTable` lee la cuenta de los primeros cuatro bytes (sin ellos,
+`DataError::FileTooShort`); con 0 o menos, ninguno. Un registro que falta es `DataError::FileTooShort` y un tipo fuera
+de `[0, 0xffff]` (lo que cabe en `+0x376`), `DataError::InvalidData`; lo que sobra se ignora. `MonsterSkillTable::Of`
+da lo del archivo, o lo de la .bss: 0, salvo el tipo 0, en −1. `Scenes::LoadGameData` lo carga después de las tablas de
+los conjuntos (hasta 1 MiB), y uno que no está deja la tabla vacía (el original cerraría la ventana); main.cpp la copia
+a `WorldRuntime::monsterSkills`.
+
+### `NpcName(%s).txt`
+
+Leído en la CL9 (hito 2, fase 7, 2026-11-13; *estático*, y la forma *verificada* con los archivos reales,
+`GoldenNpcNames`). `0x54e7f0`, desde `0x61ccb0` (`0x61ed05`, con `Data\Local\NpcName(%s).txt` de `0x6d29e0` y el
+idioma de `[0x5763350]`, P-C352), abre el archivo con `"rb"` (si no está, no hace nada) y lo lee con el tokenizador
+`0x54e8d0`, que comparten los otros `.txt` del cliente. Los nombres quedan en `0x7681eb8`: 512 registros de `0x36`
+bytes, el tipo (un `WORD`) y el nombre (`char[0x34]`), en la `.bss`.
+
+El tokenizador lee de a un byte con `getc` y compara el `char`: el `0xff` (EOF o el byte) es el fin, el token 2.
+Saltea los blancos (`isspace`) y los comentarios `//` hasta el `\n` (un `/` solo se pierde y sigue con el byte que
+viene; un `//` sin `\n` hasta el final no termina nunca, porque el lazo de `0x54e925` mira solo el `\n`). Después,
+con la tabla de `0x54eb54`: `"` es una cadena hasta la otra comilla, sin escapes, en `0x7681db0` (los `0x108` bytes que
+siguen hasta la tabla), token 0; un dígito, `.` o `-` es un número (vuelve con `ungetc`, junta `.`, dígitos y `-` en
+`[ebp − 0x64]`, pierde el byte que lo termina y lo pasa por `atof` a un `float` en `[0x76baac4]`), token 1; una letra
+es un nombre (letras, dígitos, `.` y `_`; el que lo termina vuelve con `ungetc`), también en `0x7681db0`, token 0; `#`,
+`,`, `;`, `{` y `}` son su código, y cualquier otro, `0x3c`. Las preguntas a la CRT van con el `char` con signo: un
+byte de `0x80` a `0xfe` fuera de una cadena o un comentario cae fuera de su tabla.
+
+`0x54e7f0` pide tokens hasta el 2 o el nombre `end` (`0x6c7a60`, también entre comillas); con cualquier otro, un
+registro más (`[0x7758560]`, sin tope) con el tipo en el `ftol` del último número leído, sea cual sea el token, y dos
+tokens más: el nombre es el `strcpy` de lo que dejó el segundo en `0x7681db0` (vacío si no fue una cadena ni un
+nombre). Las líneas del archivo son ` 84 1 "King Orc"`: el tipo, un 1 que nadie mira y el nombre.
+
+Los del laboratorio: `NpcName(Eng).txt` y `NpcName(Chs).txt` son iguales byte a byte, y `NpcName(Kor).txt` da la
+misma tabla con menos comentarios: 287 registros, del 84 (`King Orc`) al 338 (`Relics of KUNDUN`), sin tipos repetidos
+ni `end`; el nombre más largo tiene 34 letras (el 231), y tres pasan las 24 (Q-C847, P-C352). `NpcNameTest(Kor).txt`,
+que nadie pide, trae 299 con los nombres en coreano.
+
+MuRet: `Data::Text::LoadNpcNames` porta las dos funciones sobre los bytes del archivo. Lo que el original no
+terminaría de leer o pisaría es `DataError::InvalidData`: el comentario sin `\n` al final, más de 512 registros, una
+cadena o un nombre de `0x108` bytes o más, un número de `0x64` o más, un nombre de registro que no entra con su `\0`
+en `0x34` bytes, un byte alto donde el tokenizador le pregunta a la CRT y un `ftol` fuera de `int64`. `Scenes::LoadGameData`
+lo lee después de las tablas de los conjuntos, como `0x61ccb0` (hasta 1 MiB), y uno que no está deja la tabla vacía;
+main.cpp copia los registros al principio de `WorldRuntime::npcNames` (`Scenes::NpcNameTableOf`).
 
 ## Terreno de un mundo (`Data\World<N>\`)
 

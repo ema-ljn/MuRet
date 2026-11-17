@@ -1,5 +1,6 @@
 #include "Scenes/CharacterPicking.h"
 
+#include "Scenes/ActorPickingBox.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainMapping.h"
 #include "Render/Models/RayPicking.h"
@@ -16,6 +17,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <span>
 
 namespace Client::Scenes
 {
@@ -34,9 +36,10 @@ bool Visible(const ActorState& actor)
     return actor.alive && actor.seen && actor.alpha > 0.0f;
 }
 
-// 0x59e77d..0x59e7e6: la tabla de 0x59eb70 sobre el WORD de +0x1d6 y el PK.
+// 0x59e737..0x59e7e6: +0xe8 en 1 antes de la tabla de color por el WORD de +0x1d6 y el PK.
 void Tint(ActorState& actor)
 {
+    actor.byteE8 = 1;
     constexpr float Gray = 0.2f;    // 0x3e4ccccd
     constexpr float Dark = -0.4f;   // 0xbecccccd
     constexpr float Darker = -0.6f; // 0xbf19999a
@@ -92,20 +95,23 @@ bool OnTheHeroLayer(const ActorState& actor, const WorldState& world)
     return layer != upper || static_cast<std::int32_t>(layer) == runtime.heroCellLayer;
 }
 
-// 0x59e9ad..0x59e9dc: (dz² + dy²) + dx² en la pila del x87, con 80 bits; MuRet, en double (*inferido* que alcanza).
-double DistanceSquared(const glm::vec3& position, const glm::vec3& camera)
+// 0x59e9ad..0x59e9dc: (dz² + dy²) + dx² en x87 con el PC53 del startup de main.exe (0x6a4b73..0x6adf2c); MuRet
+// conserva el orden de sumas y double, sin suponer PC64.
+double DistanceSquared(const glm::vec3& position, const glm::vec3& distanceOrigin)
 {
-    const double dx = static_cast<double>(position.x) - static_cast<double>(camera.x);
-    const double dy = static_cast<double>(position.y) - static_cast<double>(camera.y);
-    const double dz = static_cast<double>(position.z) - static_cast<double>(camera.z);
+    const double dx = static_cast<double>(position.x) - static_cast<double>(distanceOrigin.x);
+    const double dy = static_cast<double>(position.y) - static_cast<double>(distanceOrigin.y);
+    const double dz = static_cast<double>(position.z) - static_cast<double>(distanceOrigin.z);
     return (dz * dz + dy * dy) + dx * dx;
 }
 } // namespace
 
-std::int32_t PickTheCharacter(WorldState& world, std::uint8_t mask,
-                              const std::optional<World::TerrainPickingSegment>& ray)
+std::int32_t PickTheCharacter(WorldState& world, std::uint8_t mask, const glm::vec3& distanceOrigin,
+                              const std::optional<World::TerrainPickingSegment>& ray,
+                              std::span<const ActorPickingBox> pickingBoxes)
 {
     const auto actors = world.Actors();
+    const std::size_t hero = world.Runtime().hero;
     // 0x59e737..0x59e7f6.
     for (std::size_t slot = 0; slot < PickedActors; ++slot)
     {
@@ -116,7 +122,6 @@ std::int32_t PickTheCharacter(WorldState& world, std::uint8_t mask,
     // 0x59e7fc..0x59ea95. 0x5368d4a5: el mejor de arranque, ~1e12.
     std::int32_t picked = NoPick;
     float best = std::bit_cast<float>(0x5368d4a5u);
-    const std::size_t hero = world.Runtime().hero;
     constexpr std::uint32_t Hidden = 0x10000000;
     constexpr std::uint8_t PlayerKind = 1;
     for (std::size_t slot = 0; slot < PickedActors; ++slot)
@@ -132,11 +137,11 @@ std::int32_t PickTheCharacter(WorldState& world, std::uint8_t mask,
             continue;
         if (slot == hero || actor.byte42c == 0 || !Matches(actor, mask))
             continue;
-        if (!Render::Models::SegmentHitsBox(ray->origin, ray->end, Render::Models::PlayerBoxAt(actor.position)))
+        const ActorPickingBox storedBox = slot < pickingBoxes.size() ? pickingBoxes[slot] : PickingBoxOf(actor);
+        if (!Render::Models::SegmentHitsBox(ray->origin, ray->end, AxisAlignedBoxOf(storedBox)))
             continue;
-        // 0x7d36884: la posición de la cámara; MuRet usa el origen del segmento (0x7d36834), *inferido* el mismo punto.
-        const double distance = DistanceSquared(actor.position, ray->origin);
-        if (!(distance < static_cast<double>(best)) || !OnTheHeroLayer(actor, world))
+        const double distance = DistanceSquared(actor.position, distanceOrigin);
+        if (distance >= static_cast<double>(best) || !OnTheHeroLayer(actor, world))
             continue;
         best = static_cast<float>(distance);
         picked = static_cast<std::int32_t>(slot);

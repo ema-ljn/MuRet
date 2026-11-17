@@ -1,5 +1,6 @@
 #include "Core/Crash/CrashHandler.h"
 
+#include "support/SystemCrashReports.h"
 #include "support/TemporaryFolder.h"
 
 #include <gtest/gtest.h>
@@ -128,6 +129,11 @@ std::string FileText(const fs::path& path)
 // antes falla, sale con un código y el EXPECT_EXIT lo ve.
 void CrashWith(int signal, const fs::path& dump, const std::optional<fs::path>& log)
 {
+    if (!Client::Tests::SuppressSystemCrashReports())
+    {
+        constexpr int CouldNotSuppressSystemReports = 5;
+        std::_Exit(CouldNotSuppressSystemReports);
+    }
     const auto handler = CrashHandler::Install(dump);
     if (!handler.HasValue())
     {

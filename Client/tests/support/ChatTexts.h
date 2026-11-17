@@ -23,6 +23,8 @@ inline constexpr std::size_t ChatTradeRequestedText = 475;
 inline constexpr std::size_t ChatPartyRequestedText = 476;
 inline constexpr std::size_t ChatPersonalShopText = 493;
 inline constexpr std::size_t ChatNotTheLeaderText = 257;
+// El título de la tienda personal que 0x5ebbd0 no deja (0x4b55fd y 0x626241).
+inline constexpr std::size_t ChatBadShopTitleText = 1130;
 
 inline std::map<std::size_t, std::string> ChatTexts()
 {
@@ -41,10 +43,14 @@ inline std::map<std::size_t, std::string> ChatTexts()
         {UI::BuyCommandText, "/adquirir"},
         {UI::ShopViewOnCommandText, "/ver puestos"},
         {UI::ShopViewOffCommandText, "/no ver puestos"},
+        {UI::ShopViewOnNoticeText, "aviso carteles"},
+        {UI::ShopViewOffNoticeText, "aviso sin carteles"},
         {UI::AllianceCommandText, "/aliados"},
         {UI::RivalCommandText, "/rivales"},
         {UI::RivalOffCommandText, "/sin rivales"},
         {UI::ChaosCastleCommandText, "aviso castillo"},
+        {UI::ShopTrainerText, "aviso entrenador"},
+        {UI::ShopLevelText, "desde el nivel %d"},
         {ChatFilteredText, "..."},
         {ChatWhisperOffCommandText, "/callar"},
         {ChatWhisperOnCommandText, "/escuchar"},
@@ -55,6 +61,7 @@ inline std::map<std::size_t, std::string> ChatTexts()
         {ChatPartyRequestedText, "invitaste a %s"},
         {ChatPersonalShopText, "aviso puesto"},
         {ChatNotTheLeaderText, "aviso lider"},
+        {ChatBadShopTitleText, "aviso titulo"},
         {755, "aviso filtro"},
         {756, "aviso sin filtro"},
     };

@@ -417,8 +417,8 @@ Core::Expected<void, std::string> StepThePartyWindow(const GameUiContext& contex
     if (mouseX >= x && mouseX < x + WindowWidth && mouseY >= y && mouseY < y + WindowHeight)
         runtime.ui.mouseOnUi = 1;
     // 0x5e3cf0..0x5e40b6: con miembros, el botón de echar de cada uno, si el héroe es el primero (el jefe) o ese
-    // miembro: el clic lo gasta, suena y manda el C1 04 43 con su número, en claro. La vuelta sigue con el clic
-    // gastado.
+    // miembro: el clic lo gasta, suena y manda el C1 04 43 con su número, con el XOR32 y sin C3. La vuelta sigue con
+    // el clic gastado.
     if (auto kicked = StepTheKickButtons(context); !kicked.HasValue())
         return kicked;
     if (mouseX < x + CloseLeft || mouseX >= x + CloseLeft + CloseSize || mouseY < y + CloseTop ||

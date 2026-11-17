@@ -2,6 +2,7 @@
 
 #include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/Log.h"
 #include "Protocol/Duel.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Party.h"
@@ -11,6 +12,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/GameMessages.h"
+#include "Scenes/GameMovementState.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -91,8 +93,8 @@ constexpr std::int32_t ViewingAnotherShop = 2;
 constexpr std::size_t ShopOwnerLeftText = 1126;
 // 0x4e41a9..0x4e41b6: los décimos del 44, hasta 10.
 constexpr std::uint8_t MaxLifeTenths = 10;
-// 0x4e4d58: el valor de 0x5767814 con que el AB pone 0x5767816 en 0.
-constexpr std::uint8_t DuelEndClearsWord = 2;
+// 0x4e4d58: el tipo del tiempo del F3 22 (0x5767814) con el que el AB lo apaga (0x5767816 en 0).
+constexpr std::uint8_t DuelEndClearsTime = 2;
 // El relleno y el serial de un C3 (0x40b0a0).
 constexpr std::uint32_t C3Randoms = 2;
 // 0x5bc470: 0x5bc260 con 1 (el ítem está como en la copia) o con 99 (cambió), y la lista de su pila, de 10.
@@ -201,10 +203,14 @@ void ClearTheBackup(TradeState& trade)
     ClearTheGrid(trade.backup);
 }
 
+// El aviso de un paquete que el original lleva fuera de lo definido (escribe o lee pasado un arreglo): MuRet lo
+// descarta entero, sin escribir nada, como el D3 (Q-C174) y el 18 (Q-C778). Vacío, el paquete sigue.
+using Discarded = std::optional<std::string>;
+
 // 0x5bc260(lugar, grilla, valor): +0x44 de cada casilla de la huella del ítem de `slot`, desde su columna y su fila,
-// con 8 columnas.
-Core::Expected<void, std::string> MarkTheFootprint(std::span<ItemState> grid, std::size_t slot, std::uint8_t value,
-                                                   const WorldEntryResources& resources)
+// con 8 columnas. Una huella que pasa la grilla la escribe sin tope (Q-C200): el aviso.
+Core::Expected<Discarded, std::string> MarkTheFootprint(std::span<ItemState> grid, std::size_t slot, std::uint8_t value,
+                                                        const WorldEntryResources& resources)
 {
     const ItemState& item = grid[slot];
     const auto footprint = ItemFootprintOf(resources.items, item.id, "0x5bc260");
@@ -216,23 +222,23 @@ Core::Expected<void, std::string> MarkTheFootprint(std::span<ItemState> grid, st
         {
             const std::int32_t cell = column + row * TradeGridColumns;
             if (cell < 0 || cell >= static_cast<std::int32_t>(grid.size()))
-                return Core::Unexpected(
-                    std::format("0x5bc260: la huella del tipo {:#x} pasa la casilla {} de la grilla "
-                                "del comercio (Q-C200)",
-                                item.id, cell));
+                return Discarded{std::format("0x5bc260: la huella del tipo {:#x} escribiría la casilla {}, fuera de "
+                                             "las 32 de 0x78a5a20 (Q-C200)",
+                                             item.id, cell)};
             grid[static_cast<std::size_t>(cell)].warning = value;
         }
     }
-    return {};
+    return Discarded{};
 }
 
 // 0x5bc470(0x78a5a20): 0x78abaa5 en 0, +0x44 en 1 en las 32 casillas y, por cada ítem del otro con una copia del mismo
 // tipo en 0x77f3dc8, la comparación (0x5bc300(copia, ítem)): 1 (la copia era mejor) marca 99 y prende 0x78abaa5 y sigue
-// con la copia que viene; otra cosa marca 1 y termina (con 0, el tipo va a la lista). Al final, si la lista tiene algo,
-// 0x78abaa5 en 0 y los ítems de esos tipos con 1.
-Core::Expected<void, std::string> MarkTheChangedItems(const WorldEntryResources& resources)
+// con la copia que viene; otra cosa marca 1 y termina (con 0, el tipo va a la lista de 10 de la pila). Al final, si la
+// lista tiene algo, 0x78abaa5 en 0 y los ítems de esos tipos con 1. El undécimo tipo se pierde y en su lugar se compara
+// el 1 de la cuenta (Q-C961 b); el duodécimo (0x5bc545) y una huella que pasa la grilla (0x5bc260) dan el aviso: quien
+// la llama lo hace sobre una copia del comercio y la descarta.
+Core::Expected<Discarded, std::string> MarkTheChangedItems(TradeState& trade, const WorldEntryResources& resources)
 {
-    TradeState& trade = resources.world.Runtime().social.trade;
     std::span<ItemState> grid = trade.otherGrid;
     trade.changed = 0;
     for (ItemState& cell : grid)
@@ -254,36 +260,48 @@ Core::Expected<void, std::string> MarkTheChangedItems(const WorldEntryResources&
             {
                 if (compared == 0)
                 {
-                    if (count == same.size())
-                        return Core::Unexpected(std::string("0x5bc52f: más de diez tipos iguales pisan la pila de "
-                                                            "0x5bc470 (Q-C961)"));
-                    same[count++] = SignedType(copy);
+                    // 0x5bc52d..0x5bc54a: el undécimo tipo cae en el puntero de la lista (ebp − 0x14), que se pisa
+                    // enseguida con el lugar que sigue, y se pierde; el duodécimo pisa la cuenta (ebp − 0x10).
+                    if (count > same.size())
+                        return Discarded{std::format("0x5bc545: el ítem del lugar {} sería el duodécimo igual a su "
+                                                     "copia y pisaría la cuenta de la lista de 0x5bc470 con su tipo "
+                                                     "(Q-C961)",
+                                                     slot)};
+                    if (count < same.size())
+                        same[count] = SignedType(copy);
+                    ++count;
                 }
-                if (auto marked = MarkTheFootprint(grid, slot, SameAsTheCopy, resources); !marked.HasValue())
+                auto marked = MarkTheFootprint(grid, slot, SameAsTheCopy, resources);
+                if (!marked.HasValue() || marked.Value())
                     return marked;
                 break;
             }
             trade.changed = 1;
-            if (auto marked = MarkTheFootprint(grid, slot, ChangedFromTheCopy, resources); !marked.HasValue())
+            auto marked = MarkTheFootprint(grid, slot, ChangedFromTheCopy, resources);
+            if (!marked.HasValue() || marked.Value())
                 return marked;
         }
     }
     if (count == 0)
-        return {};
+        return Discarded{};
     trade.changed = 0;
     for (std::size_t at = 0; at < count; ++at)
     {
+        // 0x5bc589..0x5bc5ca: la cuenta que baja vive en ebp − 0x14, el lugar 10 de la lista: con once, el undécimo
+        // tipo que se compara es lo que queda de ella, 1.
+        const std::int32_t type = at < same.size() ? same[at] : static_cast<std::int32_t>(count - at);
         for (std::size_t slot = 0; slot < grid.size(); ++slot)
         {
             const ItemState& item = grid[slot];
-            if (!IsEmpty(item) && SignedType(item) == same[at] && item.occupied != 0)
+            if (!IsEmpty(item) && SignedType(item) == type && item.occupied != 0)
             {
-                if (auto marked = MarkTheFootprint(grid, slot, SameAsTheCopy, resources); !marked.HasValue())
+                auto marked = MarkTheFootprint(grid, slot, SameAsTheCopy, resources);
+                if (!marked.HasValue() || marked.Value())
                     return marked;
             }
         }
     }
-    return {};
+    return Discarded{};
 }
 
 // 0x5bc5e6..0x5bc661: lo que 0x5bc5e0 no guarda, con 0x402b30 (2 o 3 solo los paquetes 0x181e y 0x181f).
@@ -340,19 +358,18 @@ std::int32_t KeepACopy(TradeState& trade, std::size_t slot)
     return compared;
 }
 
-// 0x5bd750(lugar, 0x78a5a20, 8): 0x5bc5e0, y con un ítem, su huella vacía (tipo −1 y +0x3c en 0) y 0x5bc470.
-Core::Expected<void, std::string> RemoveFromTheOtherGrid(std::uint8_t slot, const WorldEntryResources& resources)
+// 0x5bd750(lugar, 0x78a5a20, 8), sobre `trade`: 0x5bc5e0, y con un ítem, su huella vacía (0x5be08c..0x5be128: tipo −1
+// y +0x3c en 0) y 0x5bc470 (0x5be134). Un lugar desde 32 (0x5bc5e0 y 0x5be08f leen fuera de la grilla) o una huella
+// que pasa la casilla 31 (la escribe sin tope, Q-C200) dan el aviso.
+Core::Expected<Discarded, std::string> RemoveFromTheOtherGrid(TradeState& trade, std::uint8_t slot,
+                                                              const WorldEntryResources& resources)
 {
-    constexpr std::uint8_t NoSlot = 0xff;
-    if (slot == NoSlot)
-        return {};
-    TradeState& trade = resources.world.Runtime().social.trade;
     if (slot >= trade.otherGrid.size())
-        return Core::Unexpected(std::format("0x5bd750: el lugar {} pasa las 32 casillas de 0x78a5a20", slot));
+        return Discarded{std::format("0x5bd750: el lugar {} lee fuera de las 32 casillas de 0x78a5a20", slot)};
     static_cast<void>(KeepACopy(trade, slot));
     const ItemState item = trade.otherGrid[slot];
     if (IsEmpty(item))
-        return {};
+        return Discarded{};
     const auto footprint = ItemFootprintOf(resources.items, item.id, "0x5bd750, la grilla de 0x78a5a20");
     if (!footprint.HasValue())
         return Core::Unexpected(footprint.Error());
@@ -362,14 +379,14 @@ Core::Expected<void, std::string> RemoveFromTheOtherGrid(std::uint8_t slot, cons
         {
             const std::int32_t cell = row * TradeGridColumns + column;
             if (cell >= static_cast<std::int32_t>(trade.otherGrid.size()))
-                return Core::Unexpected(std::format("0x5bd750: la huella del tipo {:#x} pasa la casilla {} de "
-                                                    "0x78a5a20 (Q-C200)",
-                                                    item.id, cell));
+                return Discarded{std::format("0x5bd750: la huella del tipo {:#x} escribiría la casilla {}, fuera de "
+                                             "las 32 de 0x78a5a20 (Q-C200)",
+                                             item.id, cell)};
             trade.otherGrid[static_cast<std::size_t>(cell)].id = EmptyOwnItemId;
             trade.otherGrid[static_cast<std::size_t>(cell)].occupied = 0;
         }
     }
-    return MarkTheChangedItems(resources);
+    return MarkTheChangedItems(trade, resources);
 }
 } // namespace
 
@@ -460,6 +477,9 @@ Core::Expected<void, std::string> ApplyTradeResponse(const Protocol::Trade::Trad
         return {};
     WorldState& world = resources.world;
     GamePanels panels(world, resources.cloth.random);
+    // 0x4d55b8 → 0x6599a0(0x20): abrir el comercio cierra lo demás, las misiones con el 31 y la tienda de otro con el
+    // 3F 07.
+    panels.LendTheSession(world, resources.cloth.random, resources.sendGamePacket, resources.sendWindowClose);
     if (auto opened = panels.Registry().Open(UI::TradePanel); !opened.HasValue())
         return Core::Unexpected(std::move(opened).Error());
     TradeState& trade = world.Runtime().social.trade;
@@ -487,28 +507,67 @@ Core::Expected<void, std::string> ApplyTradeResponse(const Protocol::Trade::Trad
 Core::Expected<void, std::string> ApplyTradeItemRemoved(const Protocol::Trade::TradeItemRemoved& removed,
                                                         const WorldEntryResources& resources)
 {
-    if (auto taken = RemoveFromTheOtherGrid(removed.slot, resources); !taken.HasValue())
-        return taken;
-    resources.world.Runtime().lastSoundId = TradeItemSound;
+    constexpr std::uint8_t NoSlot = 0xff;
+    WorldRuntime& runtime = resources.world.Runtime();
+    if (removed.slot != NoSlot)
+    {
+        // Sobre una copia, que reemplaza al comercio solo si todo el paquete queda dentro de lo definido.
+        TradeState trade = runtime.social.trade;
+        auto taken = RemoveFromTheOtherGrid(trade, removed.slot, resources);
+        if (!taken.HasValue())
+            return Core::Unexpected(std::move(taken).Error());
+        if (taken.Value())
+        {
+            resources.log.Warning("se descarta el 38: {}", *taken.Value());
+            return {};
+        }
+        runtime.social.trade = std::move(trade);
+    }
+    runtime.lastSoundId = TradeItemSound;
     return {};
 }
 
 Core::Expected<void, std::string> ApplyTradeItemAdded(const Protocol::Trade::TradeItemAdded& added,
                                                       const WorldEntryResources& resources)
 {
-    TradeState& trade = resources.world.Runtime().social.trade;
+    WorldRuntime& runtime = resources.world.Runtime();
     const InventoryItemBytes bytes(added.item);
-    if (auto placed = PlaceItemInOtherGrid(trade.otherGrid, TradeGridColumns, added.slot, bytes, resources,
-                                           "0x5bc740, la grilla de 0x78a5a20");
+    constexpr std::string_view Where = "0x5bc740, la grilla de 0x78a5a20";
+    // 0x5bd307..0x5bd3ec: la huella que pasa la casilla 31 se escribe sin tope (Q-C200); se mira antes de escribir y de
+    // los rand() de 0x54bf40.
+    auto past = FirstCellPastTheGrid(runtime.social.trade.otherGrid.size(), TradeGridColumns, added.slot, bytes,
+                                     resources, Where);
+    if (!past.HasValue())
+        return Core::Unexpected(std::move(past).Error());
+    if (past.Value())
+    {
+        resources.log.Warning("se descarta el 39: 0x5bc740: el tipo {:#x} desde el lugar {} escribiría la casilla {}, "
+                              "fuera de las 32 de 0x78a5a20 (Q-C200)",
+                              InventoryItemType(bytes), added.slot, *past.Value());
+        return {};
+    }
+    // Sobre una copia, que reemplaza al comercio solo si 0x5bc470 queda dentro de lo definido; si no, también vuelven
+    // los rand() que sacó 0x54bf40 (el Dark Horse).
+    TradeState trade = runtime.social.trade;
+    const Render::Models::CrtRandom random = resources.cloth.random;
+    if (auto placed = PlaceItemInOtherGrid(trade.otherGrid, TradeGridColumns, added.slot, bytes, resources, Where);
         !placed.HasValue())
         return placed;
     // 0x5bd3f2: con 0x78a5a20, 0x5bc470; el último argumento en 1 vuelve ahí. Con el tipo 0x1fff no llega.
     if (InventoryItemType(bytes) != NoInventoryItem)
     {
-        if (auto marked = MarkTheChangedItems(resources); !marked.HasValue())
-            return marked;
+        auto marked = MarkTheChangedItems(trade, resources);
+        if (!marked.HasValue())
+            return Core::Unexpected(std::move(marked).Error());
+        if (marked.Value())
+        {
+            resources.cloth.random = random;
+            resources.log.Warning("se descarta el 39: {}", *marked.Value());
+            return {};
+        }
     }
-    resources.world.Runtime().lastSoundId = TradeItemSound;
+    runtime.social.trade = std::move(trade);
+    runtime.lastSoundId = TradeItemSound;
     return {};
 }
 
@@ -646,13 +705,18 @@ Core::Expected<void, std::string> ApplyPartyRequestResult(const Protocol::Party:
     return {};
 }
 
-Core::Expected<void, std::string> ApplyPartyList(const Protocol::Party::PartyList& list, WorldState& world)
+void ApplyPartyList(const Protocol::Party::PartyList& list, WorldState& world, Core::Log& log)
 {
     WorldRuntime& runtime = world.Runtime();
-    runtime.hud.partyCount = static_cast<std::int32_t>(list.members.size());
+    // 0x4d67f0..0x4d6849: la cuenta va a 0x78aba48 y el bucle escribe tantos lugares como diga, sin tope (Q-C960).
     if (list.members.size() > PartySlots)
-        return Core::Unexpected(
-            std::format("0x4d67e0: {} miembros pasan los cinco lugares de 0x77f3cd0 (Q-C960)", list.members.size()));
+    {
+        log.Warning("se descarta el 42: 0x4d67e0: {} miembros escribirían pasados los cinco lugares de 0x77f3cd0 "
+                    "(Q-C960)",
+                    list.members.size());
+        return;
+    }
+    runtime.hud.partyCount = static_cast<std::int32_t>(list.members.size());
     for (std::size_t at = 0; at < list.members.size(); ++at)
     {
         const Protocol::Party::PartyMember& member = list.members[at];
@@ -666,7 +730,6 @@ Core::Expected<void, std::string> ApplyPartyList(const Protocol::Party::PartyLis
         slot.life = member.life;
         slot.maxLife = member.maxLife;
     }
-    return {};
 }
 
 Core::Expected<void, std::string> ApplyPartyLeft(const WorldEntryResources& resources)
@@ -676,24 +739,30 @@ Core::Expected<void, std::string> ApplyPartyLeft(const WorldEntryResources& reso
     if (auto shown = Message(resources, PartyLeftText, UI::ErrorMessage, "0x4e40b1"); !shown.HasValue())
         return shown;
     // 0x4e40b6..0x4e415e: con la cuenta ya en 0, la búsqueda del nombre no corre y 0x6c8e50 queda en −1.
-    if (runtime.social.party.followTarget >= 0)
-        runtime.social.party.followTarget = -1;
+    if (runtime.movement.followTarget >= 0)
+        runtime.movement.followTarget = -1;
     return {};
 }
 
-Core::Expected<void, std::string> ApplyPartyLife(const Protocol::Party::PartyLife& life, WorldState& world)
+void ApplyPartyLife(const Protocol::Party::PartyLife& life, WorldState& world, Core::Log& log)
 {
     PartyState& party = world.Runtime().social.party;
+    // 0x4e418e..0x4e41c3: el nibble alto es el lugar, de 0 a 15, sin tope (Q-C960); se mira el paquete entero antes de
+    // escribir.
+    const auto outside = std::ranges::find_if(life.entries, [&party](const std::uint8_t entry)
+                                              { return static_cast<std::size_t>(entry >> 4) >= party.slots.size(); });
+    if (outside != life.entries.end())
+    {
+        log.Warning("se descarta el 44: 0x4e41bb: la entrada {:#04x} escribiría el lugar {} de 0x77f3cd0, fuera de los "
+                    "cinco (Q-C960)",
+                    *outside, *outside >> 4);
+        return;
+    }
     for (const std::uint8_t entry : life.entries)
     {
         const auto place = static_cast<std::size_t>(entry >> 4);
-        if (place >= party.slots.size())
-            return Core::Unexpected(std::format("0x4e41bb: el 44 escribe el lugar {} de 0x77f3cd0, fuera de los cinco "
-                                                "(Q-C960)",
-                                                place));
-        party.slots[place].tenths = std::min<std::uint8_t>(entry & 0xf, MaxLifeTenths);
+        party.slots[place].tenths = std::min(static_cast<std::uint8_t>(entry & 0xf), MaxLifeTenths);
     }
-    return {};
 }
 
 Core::Expected<void, std::string> ApplyDuelStart(const Protocol::Duel::DuelStart& start,
@@ -732,8 +801,8 @@ Core::Expected<void, std::string> ApplyDuelEnd(const Protocol::Duel::DuelEnd& en
     duel.rivalName.back() = std::byte{0};
     if (auto shown = Message(resources, DuelEndedText, UI::ErrorMessage, "0x4e4d4b"); !shown.HasValue())
         return shown;
-    if (duel.byte5767814 == DuelEndClearsWord)
-        duel.word5767816 = 0;
+    if (runtime.events.timeKind == DuelEndClearsTime)
+        runtime.events.timeValue = 0;
     return {};
 }
 
@@ -825,12 +894,14 @@ void ApplyOtherShopTitle(const Protocol::PersonalShop::ShopTitle& title, WorldSt
     AddShopTitle(world, title.key, index, title.title);
 }
 
-Core::Expected<void, std::string> ApplyShopOwnerLeft(const WorldEntryResources& resources)
+Core::Expected<void, std::string> ApplyShopOwnerLeft(const WorldEntryResources& resources, const GamePacketSender& send)
 {
     WorldState& world = resources.world;
     if (world.Runtime().social.personalShop.mode != ViewingAnotherShop)
         return {};
+    // El cierre pasa por 0x5eb020, que con la clave del dueño manda el 3F 07.
     GamePanels panels(world, resources.cloth.random);
+    panels.LendThePersonalShops(world, resources.cloth.random, send);
     for (const UI::PanelId id : {UI::PersonalShopPanel, UI::OtherShopPanel})
     {
         auto closed = panels.Registry().Close(id);
@@ -838,6 +909,12 @@ Core::Expected<void, std::string> ApplyShopOwnerLeft(const WorldEntryResources& 
             return Core::Unexpected(std::move(closed).Error());
     }
     return Message(resources, ShopOwnerLeftText, UI::ErrorMessage, "0x4e5009");
+}
+
+Core::Expected<void, std::string> AddSocialNotice(const WorldEntryResources& resources, std::size_t text,
+                                                  std::int32_t type, std::string_view where)
+{
+    return Message(resources, text, type, where);
 }
 
 void ApplyDuelScore(const Protocol::Duel::DuelScore& score, WorldState& world)

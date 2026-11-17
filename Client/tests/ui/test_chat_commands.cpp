@@ -20,6 +20,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -158,6 +159,88 @@ TEST_F(Commands, TradeNeedsTheLevel)
     EXPECT_EQ(reads, 3);
 }
 
+// 0x5766ce..0x576890: /personalshop. Con el entrenador abierto, el aviso 1121 y sale como chat; por debajo del 6, el
+// 1123 armado con el 6 y 1; desde el 6, Open(0x800) y 1. Cada vez que llega al nivel lo lee una vez.
+TEST_F(Commands, PersonalShopNeedsTheLevel)
+{
+    std::uint16_t level = 5;
+    int reads = 0;
+    int opened = 0;
+    ChatCommandContext context = Context();
+    context.ownLevel = [&level, &reads]()
+    {
+        ++reads;
+        return level;
+    };
+    context.trainerOpen = true;
+    const auto trainer = Client::UI::RunTheChatCommand(context, "/personalshop", false);
+    ASSERT_TRUE(trainer.HasValue()) << trainer.Error();
+    EXPECT_FALSE(trainer.Value().handled);
+    EXPECT_EQ(trainer.Value().notices,
+              (std::vector<ChatCommandNotice>{{Client::UI::ShopTrainerText, Client::UI::SystemMessage}}));
+    EXPECT_EQ(reads, 0);
+    context.trainerOpen = false;
+    const auto low = Client::UI::RunTheChatCommand(context, "/puesto", false);
+    ASSERT_TRUE(low.HasValue()) << low.Error();
+    EXPECT_TRUE(low.Value().handled);
+    EXPECT_EQ(low.Value().notices, (std::vector<ChatCommandNotice>{{.text = Client::UI::ShopLevelText,
+                                                                    .type = Client::UI::SystemMessage,
+                                                                    .formatted = "desde el nivel 6"}}));
+    level = 6;
+    const auto unwired = Client::UI::RunTheChatCommand(context, "/PersonalShop", false);
+    ASSERT_FALSE(unwired.HasValue());
+    EXPECT_NE(unwired.Error().find("0x576822"), std::string::npos);
+    context.openThePersonalShop = [&opened]() -> Client::Core::Expected<void, std::string>
+    {
+        ++opened;
+        return {};
+    };
+    const auto enough = Client::UI::RunTheChatCommand(context, "/puesto", false);
+    ASSERT_TRUE(enough.HasValue()) << enough.Error();
+    EXPECT_TRUE(enough.Value().handled);
+    EXPECT_TRUE(enough.Value().notices.empty());
+    EXPECT_EQ(opened, 1);
+    EXPECT_EQ(reads, 3);
+}
+
+// 0x574bd6..0x57694d: /purchase (o el 1118) en cualquier lugar del texto. En Chaos Castle, el aviso 1150 y sale como
+// chat; fuera, sscanf("%s %s") y el pedido recibe la segunda palabra, o nada si no la hay (la pila sin inicializar).
+TEST_F(Commands, PurchaseScansTheNameForTheRequest)
+{
+    std::vector<std::optional<std::string>> names;
+    ChatCommandContext context = Context();
+    const auto unwired = Client::UI::RunTheChatCommand(context, "/purchase", false);
+    ASSERT_FALSE(unwired.HasValue());
+    EXPECT_NE(unwired.Error().find("0x574c0c"), std::string::npos);
+    context.requestShopItems = [&names](std::optional<std::string_view> name)
+        -> Client::Core::Expected<Client::UI::ChatCommandOutcome, std::string>
+    {
+        names.emplace_back(name ? std::optional<std::string>(*name) : std::nullopt);
+        return Client::UI::ChatCommandOutcome{.handled = true, .notices = {}};
+    };
+    for (const std::string_view command :
+         {"/purchase", "/adquirir Brezal", "  /purchase\t Zorzal  extra", "mira /adquirir", "/adquirir \t "})
+    {
+        const auto outcome = Client::UI::RunTheChatCommand(context, command, false);
+        ASSERT_TRUE(outcome.HasValue()) << outcome.Error();
+        EXPECT_TRUE(outcome.Value().handled);
+    }
+    EXPECT_EQ(names,
+              (std::vector<std::optional<std::string>>{std::nullopt, "Brezal", "Zorzal", "/adquirir", std::nullopt}));
+    // Una primera palabra de 0x48 bytes pisa el buffer del nombre: MuRet no lo modela.
+    const auto overflow = Client::UI::RunTheChatCommand(context, std::string(0x48, 'a') + "/purchase", false);
+    ASSERT_FALSE(overflow.HasValue());
+    EXPECT_NE(overflow.Error().find("0x574c92"), std::string::npos);
+    EXPECT_EQ(names.size(), 5U);
+    context.map = 23;
+    const auto inside = Client::UI::RunTheChatCommand(context, "/purchase Brezal", false);
+    ASSERT_TRUE(inside.HasValue()) << inside.Error();
+    EXPECT_FALSE(inside.Value().handled);
+    EXPECT_EQ(inside.Value().notices,
+              (std::vector<ChatCommandNotice>{{Client::UI::ChaosCastleCommandText, Client::UI::SystemMessage}}));
+    EXPECT_EQ(names.size(), 5U);
+}
+
 // 0x56f109..0x56f13f: /party (o /pt) en Chaos Castle avisa 1150 y sale como chat; fuera, el pedido da la salida.
 TEST_F(Commands, PartyAsksOutsideChaosCastle)
 {
@@ -228,6 +311,34 @@ TEST_F(Commands, TheDuelCommandsGoOnAsChat)
 }
 
 // 0x56d624: /move abre la ventana y sigue como chat.
+// 0x56d6ee..0x56d796: "/ver puestos" prende los carteles (0x4516a0) con el aviso 1138 del tipo 1 y su par los apaga
+// (0x4516b0) con el 1139 del tipo 2, también en Chaos Castle; la cadena sigue y sale como chat. Sin el mapa, corta.
+TEST_F(Commands, TheSignCommandsTurnTheShopSignsOnAndOff)
+{
+    for (const std::int32_t where : {0, 2, 18})
+    {
+        map = where;
+        std::uint8_t signs = 1;
+        ChatCommandContext context = Context();
+        context.signsShown = &signs;
+        const auto off = Client::UI::RunTheChatCommand(context, "/no ver puestos", false);
+        ASSERT_TRUE(off.HasValue()) << off.Error();
+        EXPECT_EQ(signs, 0);
+        EXPECT_FALSE(off.Value().handled);
+        EXPECT_EQ(off.Value().notices,
+                  (std::vector<ChatCommandNotice>{{Client::UI::ShopViewOffNoticeText, Client::UI::ErrorMessage}}));
+        const auto on = Client::UI::RunTheChatCommand(context, "/ver puestos", false);
+        ASSERT_TRUE(on.HasValue()) << on.Error();
+        EXPECT_EQ(signs, 1);
+        EXPECT_FALSE(on.Value().handled);
+        EXPECT_EQ(on.Value().notices,
+                  (std::vector<ChatCommandNotice>{{Client::UI::ShopViewOnNoticeText, Client::UI::SystemMessage}}));
+    }
+    const auto cut = Client::UI::RunTheChatCommand(Context(), "/ver puestos", false);
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x56d722"), std::string::npos) << cut.Error();
+}
+
 TEST_F(Commands, MoveOpensTheWindowAndGoesOn)
 {
     const auto outcome = Client::UI::RunTheChatCommand(Context(), "/mover", false);

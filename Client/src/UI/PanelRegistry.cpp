@@ -73,8 +73,6 @@ const char* WaveOf(PanelId id)
     case SecondGuildPanel:
         return "la CL9.4 (hito 8, las ventanas del gremio)";
     case TradePanel:
-    case PersonalShopPanel:
-    case OtherShopPanel:
         return "la CL9.4";
     case WarehousePanel:
     case ChaosBoxPanel:
@@ -225,11 +223,16 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id)
             return closed;
         if (closed.Value())
         {
+            // 0x65c020..0x65c033: 0x7d53708 en 1 y, con un Dark Lord, los pedidos del cuervo y del caballo.
             m_state.inventory = 1;
             if (m_context.heroClass == DarkLordClass)
-                return Core::Unexpected(
-                    std::string("0x65c039: el pedido de la mascota del Dark Lord (C1 A9) al abrir el inventario es de "
-                                "la CL9"));
+            {
+                if (!m_context.petRequests)
+                    return Core::Unexpected(
+                        std::string("0x65c039: abrir el inventario de un Dark Lord pide el cuervo y "
+                                    "el caballo (C1 A9) sin el cable"));
+                m_context.petRequests();
+            }
         }
         break;
     }
@@ -308,17 +311,52 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id)
         }
         break;
     }
+    case PersonalShopPanel:
+    case OtherShopPanel:
+    {
+        // 0x65ac3f..0x65b227 (0x800, que deja el inventario abierto) y 0x65b319..0x65ba41 (0x20000, que lo cierra con
+        // lo demás): con lo que cerró, el inventario (0x6599a0(0x4000000, 0)), lo de la tienda y 0x7d5370f en 1.
+        if (id == PersonalShopPanel)
+            mask ^= InventoryPanel;
+        auto closed = CloseByMask(mask);
+        if (!closed.HasValue())
+            return closed;
+        if (closed.Value())
+        {
+            auto inventory = Open(InventoryPanel);
+            if (!inventory.HasValue())
+                return inventory;
+            if (!m_context.personalShopOpened)
+                return Core::Unexpected(std::format("{:#x}: abrir la tienda personal sin sus mapas", id));
+            if (auto opened = m_context.personalShopOpened(id); !opened.HasValue())
+                return Core::Unexpected(std::move(opened).Error());
+            m_state.personalShop = 1;
+        }
+        break;
+    }
     case QuestPanel:
+    {
+        // 0x659c50..0x659c70: todos menos el personaje y los amigos; con lo que cerró, 0x419840(−1).
+        mask ^= CharacterPanel;
+        auto closed = CloseByMask(mask);
+        if (!closed.HasValue())
+            return closed;
+        if (closed.Value())
+        {
+            if (!m_context.questOpened)
+                return Core::Unexpected(std::string("0x419840: abrir las misiones sin [0x710148]"));
+            if (auto opened = m_context.questOpened(); !opened.HasValue())
+                return Core::Unexpected(std::move(opened).Error());
+        }
+        break;
+    }
     case WarehousePanel:
     case ChaosBoxPanel:
-    case PetPanel:
-    case PersonalShopPanel:
     case EventNpcPanel:
     case Panel2000:
     case SecondEventNpcPanel:
     case TrainerPanel:
     case NpcShopPanel:
-    case OtherShopPanel:
     case CastleSiegePanel:
     case CastleSiegeListPanel:
     case SecondCastleSiegePanel:
@@ -326,6 +364,24 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id)
     case SecondSiegeWeaponPanel:
     case SiegeGatePanel:
         return Core::Unexpected(OpenCut(id));
+    case PetPanel:
+    {
+        // 0x659fd9..0x65a8af: todos menos el personaje y los amigos; con lo que cerró, 0x420cb0 (0x723911 en 2) y los
+        // pedidos del cuervo y del caballo.
+        mask ^= CharacterPanel;
+        auto closed = CloseByMask(mask);
+        if (!closed.HasValue())
+            return closed;
+        if (closed.Value())
+        {
+            m_state.delegated.pet = PetPanelOpen;
+            if (!m_context.petRequests)
+                return Core::Unexpected(std::string("0x659ff6: abrir la mascota pide el cuervo y el caballo (C1 A9) "
+                                                    "sin el cable"));
+            m_context.petRequests();
+        }
+        break;
+    }
     case CharacterPanel:
     {
         // 0x65c94b..0x65ca72: todos menos el inventario y los amigos; con lo que cerró, el personaje.
@@ -473,6 +529,28 @@ Core::Expected<bool, std::string> PanelRegistry::CloseByMask(PanelId mask, bool 
                 return Core::Unexpected(std::move(window).Error());
             break;
         }
+        case PersonalShopPanel:
+        case OtherShopPanel:
+        {
+            // 0x6589b6..0x6589f4: 0x5eb020 y 0x7d5370f en 0. Las dos comparten el byte: la segunda ya no está abierta.
+            if (!m_context.personalShopClosed)
+                return Core::Unexpected(std::string("0x6589cb: cerrar la tienda personal sin 0x5eb020"));
+            if (auto closed = m_context.personalShopClosed(); !closed.HasValue())
+                return Core::Unexpected(std::move(closed).Error());
+            m_state.personalShop = 0;
+            break;
+        }
+        case PetPanel:
+            // 0x6589b1: 0x420ca0, 0x723911 en 0.
+            m_state.delegated.pet = 0;
+            break;
+        case QuestPanel:
+            // 0x657b2b: 0x419900, la ventana en 0 y el C1 03 31.
+            if (!m_context.questClosed)
+                return Core::Unexpected(std::string("0x419900: cerrar las misiones manda el C1 03 31 sin el cable"));
+            m_state.delegated.quest = 0;
+            m_context.questClosed();
+            break;
         case FriendsPanel:
             // 0x6584e5: 0x4914e0.
             if (!m_context.friendsClosed)
@@ -487,6 +565,13 @@ Core::Expected<bool, std::string> PanelRegistry::CloseByMask(PanelId mask, bool 
             m_state.repairMode = 0;
             m_state.field78abb00 = 0;
             m_state.field78abb04 = 0;
+            break;
+        case EventNpcPanel:
+        case SecondEventNpcPanel:
+            if (!m_context.eventNpcClosed)
+                return Core::Unexpected(CloseCut(id));
+            m_context.eventNpcClosed();
+            m_state.eventNpc = 0;
             break;
         default:
             return Core::Unexpected(CloseCut(id));

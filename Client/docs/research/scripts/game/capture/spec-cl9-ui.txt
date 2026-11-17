@@ -1,0 +1,14 @@
+# Perfil c32bbd5f, ImageBase 0x00400000. Verificar SHA del EXE y base cargada antes de usar.
+# s31mem lee estas regiones; no escribe, no fuerza mensajes y no cambia contadores.
+map 0x006C9DD0 0x4
+scene 0x006D5DC8 0x4
+window_manager 0x05763514 0x4
+pressed_button 0x05762EC4 0x4
+hovered_window 0x05762EB8 0x4
+captured_window 0x05762EB4 0x4
+focused_list 0x05762EC0 0x4
+left_held 0x07D36874 0x1
+left_click 0x07D366D4 0x1
+left_release 0x07D366EC 0x1
+right_click 0x07D36880 0x1
+double_click 0x07D36849 0x1

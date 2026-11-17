@@ -4,6 +4,7 @@
 #include "UI/OldControls.h"
 #include "UI/OldWindowBase.h"
 #include "UI/OldWindowDraw.h"
+#include "UI/OldWindows.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -23,6 +24,9 @@ class SpriteBatch;
 // (hito 10). Todo en 640 × 480.
 namespace Client::UI::OldDraw
 {
+// Los mensajes de recolocación pueden crear un EDIT y cambiar el foco dentro de la misma pasada de dibujo.
+[[nodiscard]] OldWindowDrawView WithCurrentFocus(const OldWindowManager& manager, const OldWindowDrawView& view);
+
 // _ftol (0x69fd3c): trunca hacia el 0.
 [[nodiscard]] std::int32_t Truncate(double value);
 

@@ -345,7 +345,7 @@ struct GuildState
     std::uint8_t warTeam = 0;
     // 0x5767804..0x576780c: el nombre del rival (8 bytes y su cero).
     std::array<char, 9> rival{};
-    // 0x5767816 (el WORD que el 63 pone en 0, 0x4d8958) es SocialState::duel.word5767816.
+    // 0x5767816 (el WORD que el 63 pone en 0, 0x4d8958) es EventGlobals::timeValue, el tiempo del F3 22 (08 P-C201).
     // 0x57678b4 y 0x57678b8: los puntajes del 64.
     std::int32_t ourScore = 0;
     std::int32_t theirScore = 0;

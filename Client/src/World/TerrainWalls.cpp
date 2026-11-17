@@ -2,7 +2,9 @@
 
 #include "Data/Terrain/TerrainGrid.h"
 
+#include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
 
 namespace Client::World
@@ -40,6 +42,63 @@ void OpenTheGates(Data::Terrain::TerrainLayer<std::uint16_t>& cells)
             cell = static_cast<std::uint16_t>(cell & ~BlockedWallBit);
         }
     }
+}
+
+std::optional<bool> CanSeeTheCell(const Data::Terrain::TerrainLayer<std::uint16_t>& cells, int x, int y, int targetX,
+                                  int targetY)
+{
+    // 0x55880e..0x558866.
+    constexpr int Row = static_cast<int>(Data::Terrain::TerrainSide);
+    int dx = targetX - x;
+    int dy = targetY - y;
+    int stepX = 1;
+    int stepY = Row;
+    if (dx < 0)
+    {
+        dx = -dx;
+        stepX = -1;
+    }
+    if (dy < 0)
+    {
+        dy = -dy;
+        stepY = -Row;
+    }
+    int major = dy;
+    int minor = dx;
+    int majorStep = stepY;
+    int minorStep = stepX;
+    if (dx > dy)
+    {
+        major = dx;
+        minor = dy;
+        majorStep = stepX;
+        minorStep = stepY;
+    }
+    // 0x55886d..0x5588b1: con el byte bajo de cada WORD.
+    constexpr std::uint16_t LowestWall = 4;
+    constexpr std::uint8_t SeeThroughBits = 0x20 | 0x40 | 0x80;
+    int index = static_cast<int>(Data::Terrain::CellIndex(static_cast<std::uint8_t>(x), static_cast<std::uint8_t>(y)));
+    int error = 0;
+    for (int step = 0; step <= major; ++step)
+    {
+        if (index < 0 || index >= static_cast<int>(Data::Terrain::TerrainCellCount))
+        {
+            return std::nullopt;
+        }
+        const std::uint16_t wall = cells[static_cast<std::size_t>(index)];
+        if (wall >= LowestWall && (static_cast<std::uint8_t>(wall) & SeeThroughBits) == 0)
+        {
+            return false;
+        }
+        error += minor;
+        if (error > major / 2)
+        {
+            index += minorStep;
+            error -= major;
+        }
+        index += majorStep;
+    }
+    return true;
 }
 
 void TerrainWalls::Rebuild(std::span<const TerrainOccupant> occupants)

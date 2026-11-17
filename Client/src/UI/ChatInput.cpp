@@ -24,49 +24,19 @@ constexpr std::size_t GetTextLimit = 0xff;
 // 0x467ee0: SetText solo con menos de 0x100 bytes.
 constexpr std::size_t SetTextLimit = 0x100;
 
-// 0x467bd1..0x467c64: los bits del filtro de la subclase (+0x4c).
-constexpr std::int32_t DigitsFilter = 0x1;
-constexpr std::int32_t LettersFilter = 0x2;
-constexpr char CaseStep = 'a' - 'A';
-
 TextField& FieldOf(ChatInputState& input, ChatFocus focus)
 {
-    if (focus == ChatFocus::DialogField)
-        return input.dialogField.text;
-    if (focus == ChatFocus::NumberField)
-        return input.numberField.text;
     return focus == ChatFocus::Whisper ? input.whisper : input.message;
 }
 
-// El EDIT de los diálogos con el foco, o ninguno.
-const OldEdit* DialogEditOf(const ChatInputState& input)
+// El EDIT de los diálogos con el foco ([0x5763504] o [0x5763508]), o ninguno.
+OldEdit* DialogEditOf(ChatInputState& input)
 {
-    if (input.focus == ChatFocus::DialogField)
-        return &input.dialogField;
+    if (input.focus == ChatFocus::Dialog)
+        return &input.dialogEdit;
     if (input.focus == ChatFocus::NumberField)
         return &input.numberField;
     return nullptr;
-}
-
-// 0x467bd1..0x467c64: lo que la subclase deja pasar al EDIT, en orden.
-std::string Filtered(std::string_view typed, std::int32_t filter)
-{
-    std::string kept;
-    for (const char byte : typed)
-    {
-        const bool digit = byte >= '0' && byte <= '9';
-        if ((filter & DigitsFilter) != 0)
-        {
-            if (digit)
-                kept.push_back(byte);
-            continue;
-        }
-        if ((filter & LettersFilter) == 0 || digit || (byte >= 'A' && byte <= 'Z'))
-            kept.push_back(byte);
-        else if (byte >= 'a' && byte <= 'z')
-            kept.push_back(static_cast<char>(byte - CaseStep));
-    }
-    return kept;
 }
 
 std::int32_t LengthOf(const ChatBuffer& buffer)
@@ -122,12 +92,14 @@ void ResetTheTextBuffers(ChatInputState& input, bool second)
     input.field = MessageField;
     input.messageBuffer.fill('\0');
     input.messageLength = 0;
-    SetTextOf(input.dialogField.text, {});
-    SetTextOf(input.numberField.text, {});
-    if (!second)
-        return;
-    input.whisperBuffer.fill('\0');
-    input.whisperLength = 0;
+    if (second)
+    {
+        input.whisperBuffer.fill('\0');
+        input.whisperLength = 0;
+    }
+    // 0x5535bd..0x5535db: la vtable + 0x4c (SetText) con 0 en los dos.
+    input.dialogEdit.text.SetText({});
+    input.numberField.text.SetText({});
 }
 
 void ClearTheChatFields(ChatInputState& input)
@@ -166,21 +138,20 @@ void ShowTheChatFields(ChatInputState& input, std::int32_t state)
 
 void ShowTheDialogField(ChatInputState& input, std::int32_t state)
 {
-    input.dialogField.base.state = state;
-    input.dialogFieldShown = state != HiddenState;
-    if (!input.dialogFieldShown && input.focus == ChatFocus::DialogField)
+    input.dialogEdit.base.state = state;
+    if (state == HiddenState && input.focus == ChatFocus::Dialog)
         input.focus = ChatFocus::Game;
 }
 
 void FocusTheDialogField(ChatInputState& input)
 {
-    if (input.dialogFieldShown)
-        SetFocusOn(input, ChatFocus::DialogField);
+    if (input.dialogEdit.base.state != HiddenState)
+        SetFocusOn(input, ChatFocus::Dialog);
 }
 
 void ReadTheDialogField(const ChatInputState& input, ChatBuffer& buffer)
 {
-    GetTextInto(buffer, input.dialogField.text);
+    GetTextInto(buffer, input.dialogEdit.text);
 }
 
 void ShowTheNumberField(ChatInputState& input, std::int32_t state)
@@ -324,9 +295,9 @@ void TypeInTheChat(ChatInputState& input, std::string_view typed)
 {
     if (input.focus == ChatFocus::Game || input.focus == ChatFocus::OldWindow || typed.empty())
         return;
-    if (const OldEdit* edit = DialogEditOf(input); edit != nullptr)
+    if (OldEdit* edit = DialogEditOf(input); edit != nullptr)
     {
-        FieldOf(input, input.focus).Type(Filtered(typed, edit->filter));
+        TypeInTheEdit(*edit, typed);
         return;
     }
     FieldOf(input, input.focus).Type(typed);
@@ -336,6 +307,11 @@ void BackspaceInTheChat(ChatInputState& input)
 {
     if (input.focus == ChatFocus::Game || input.focus == ChatFocus::OldWindow)
         return;
+    if (OldEdit* edit = DialogEditOf(input); edit != nullptr)
+    {
+        edit->text.Backspace();
+        return;
+    }
     FieldOf(input, input.focus).Backspace();
 }
 

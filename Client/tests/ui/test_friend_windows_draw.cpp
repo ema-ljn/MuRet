@@ -1,21 +1,29 @@
 #include "UI/FriendWindowsDraw.h"
 
 #include "App/WindowState.h"
+#include "Core/Log.h"
+#include "Core/ILogSink.h"
 #include "Core/Expected.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
+#include "Render/Text/TextBox.h"
+#include "Render/Text/TextCache.h"
 #include "Render/Text/TextStyle.h"
 #include "Render/TextureSlot.h"
 #include "UI/ChatInput.h"
 #include "UI/FriendModel.h"
 #include "UI/FriendWindows.h"
+#include "UI/GameUiState.h"
 #include "UI/OldControls.h"
 #include "UI/OldWindowBase.h"
 #include "UI/OldWindowDraw.h"
 #include "UI/OldWindowDrawParts.h"
 #include "UI/OldWindows.h"
+#include "Scenes/TextCacheDrawer.h"
+#include "support/FakeTextureStore.h"
+#include "support/RecordingSink.h"
 #include "support/RecordingTextDrawer.h"
 
 #include <gtest/gtest.h>
@@ -70,6 +78,7 @@ constexpr TextureSlot CheckSlot{0x64a};
 constexpr std::uint32_t Dim = 0xffc8dce6u;
 constexpr std::uint32_t White = 0xffffffffu;
 constexpr std::uint32_t Black = 0xff000000u;
+constexpr std::uint8_t EnterKey = 0x0d;
 
 class LetterMeasure final : public ITextMeasure
 {
@@ -77,6 +86,49 @@ public:
     [[nodiscard]] TextExtent Measure(FontKind /*font*/, std::string_view text) const override
     {
         return {static_cast<int>(text.size()) * RecordingTextDrawer::LetterWidth, RecordingTextDrawer::Height};
+    }
+};
+
+class PixelCaretRasterizer final : public Client::Render::Text::IGlyphRasterizer
+{
+public:
+    [[nodiscard]] TextExtent Measure(FontKind /*font*/, std::string_view text) const override
+    {
+        int width = 0;
+        for (const char character : text)
+            width += Advance(character);
+        return {width, 13};
+    }
+
+    void DrawInk(FontKind /*font*/, std::string_view text, int firstColumn,
+                 Client::Render::Text::InkMask ink) const override
+    {
+        int glyphLeft = 0;
+        for (const char character : text)
+        {
+            SetInk(ink, glyphLeft - firstColumn, 0);
+            if (character == 'c')
+            {
+                for (int row = 3; row < 6; ++row)
+                    SetInk(ink, glyphLeft + 1 - firstColumn, row);
+            }
+            glyphLeft += Advance(character);
+        }
+    }
+
+private:
+    static int Advance(char character)
+    {
+        return character == 'c' ? 5 : 6;
+    }
+
+    static void SetInk(Client::Render::Text::InkMask ink, int column, int row)
+    {
+        if (column >= 0 && column < Client::Render::Text::TextBoxWidth && row >= 0 &&
+            row < Client::Render::Text::TextBoxHeight)
+        {
+            ink[static_cast<std::size_t>(row * Client::Render::Text::TextBoxWidth + column)] = 0xff;
+        }
     }
 };
 
@@ -157,12 +209,13 @@ protected:
     {
         return OldWindowStepView{.mouseX = 639,
                                  .mouseY = 479,
-                                 .keyEdge = [](std::uint8_t /*key*/) { return false; },
+                                 .keyEdge = [this](std::uint8_t key)
+                                 { return key == EnterKey && Client::UI::LatchTheKey(m_enterLatch, m_enterHeld); },
                                  .keyDown = {},
                                  .chatOpen = false,
                                  .texts = &m_texts,
                                  .measure = &m_measure,
-                                 .send = [](const FriendSend& /*send*/) {},
+                                 .send = [this](const FriendSend& send) { m_sent.push_back(send); },
                                  .whisperTo = {},
                                  .openFriends = {}};
     }
@@ -196,13 +249,17 @@ protected:
     // 0x490390 con la ventana de amigos abierta.
     Client::Core::Expected<void, std::string> Draw(std::int32_t x = 0, std::int32_t y = 0)
     {
+        const OldWindowGlobals globals = Globals();
+        const OldWindowStepView stepView = StepView();
         const OldWindowDrawView view{.mouseX = x,
                                      .mouseY = y,
                                      .leftClick = m_leftClick,
                                      .friendsOpen = true,
                                      .texts = &m_texts,
                                      .focusedList = m_focusedList,
-                                     .focusedEdit = m_focusedEdit};
+                                     .focusedEdit = m_focusedEdit,
+                                     .globals = m_withStepContext ? &globals : nullptr,
+                                     .stepView = m_withStepContext ? &stepView : nullptr};
         return Client::UI::DrawTheOldWindows(m_manager, Context(), view);
     }
 
@@ -246,6 +303,10 @@ protected:
         }
     }
 
+    bool m_withStepContext = false;
+    bool m_enterHeld = false;
+    std::int32_t m_enterLatch = 0;
+    std::vector<FriendSend> m_sent;
     LetterMeasure m_letters;
     const OldWindowTexts m_texts{.notice = "Aviso", .question = "Pregunta", .yes = "Si", .no = "No", .lookup = TextOf};
     const OldWindowMeasure m_measure{.measure = m_letters, .dcFont = FontKind::Normal, .screen = Screen640};
@@ -513,6 +574,100 @@ TEST_F(FriendWindowsDrawTest, TheHeaderUnderTheMouseIsWhite)
                    });
 }
 
+// 0x4a2620 llama 0x45aa50: el paso con 1 atiende la cola funcional antes de recolocar; no difiere el comando.
+TEST_F(FriendWindowsDrawTest, MovingTheWindowProcessesThePendingTabCommandDuringDrawing)
+{
+    m_withStepContext = true;
+    OpenFriends();
+    Friends().base.state = Client::UI::DraggedWindow;
+    Client::UI::PostToTheWindow(m_manager, Friends().tabs[0].base.id, Client::UI::CommandMessage, 4, 0);
+
+    const auto drawn = Draw();
+
+    ASSERT_FALSE(drawn.HasValue());
+    EXPECT_NE(drawn.Error().find("0x49d0b0(4)"), std::string::npos);
+}
+
+// 0x49d422 y 0x49d118: Name y Answer conservan orden, envían durante la pasada real y no vuelven al paso siguiente.
+TEST_F(FriendWindowsDrawTest, DrawingSendsPendingNamesAndDeleteAnswersInOrderOnce)
+{
+    m_withStepContext = true;
+    OpenFriends({{"Tero", 1}});
+    Client::UI::SelectInTheList(FriendList(), 1, 1);
+    Friends().base.state = Client::UI::DraggedWindow;
+    Friends().tabs[0].base.queue.push_back(
+        Client::UI::OldMessage{.type = Client::UI::NameMessage, .a = 0, .b = 1, .text = "Tordo"});
+    Client::UI::PostToTheWindow(m_manager, Friends().tabs[0].base.id, Client::UI::AnswerMessage, 0, 1);
+
+    ASSERT_TRUE(Draw().HasValue());
+
+    EXPECT_EQ(m_sent,
+              (std::vector<FriendSend>{{.kind = Client::UI::FriendSendKind::Add, .value = 0, .name = "Tordo"},
+                                       {.kind = Client::UI::FriendSendKind::Delete, .value = 0, .name = "Tero"}}));
+    EXPECT_TRUE(Friends().tabs[0].base.queue.empty());
+    ASSERT_TRUE(Client::UI::StepTheOldWindows(m_manager, Globals(), StepView()).HasValue());
+    EXPECT_EQ(m_sent.size(), 2u);
+}
+
+// 0x4a43eb consulta Enter incluso con arg1: la pregunta recién creada responde y la pestaña manda C3 en Draw.
+TEST_F(FriendWindowsDrawTest, DrawingADeleteCommandReadsEnterAndKeepsTheManagersClosePending)
+{
+    m_withStepContext = true;
+    OpenFriends({{"Tero", 1}});
+    Client::UI::SelectInTheList(FriendList(), 1, 1);
+    Friends().base.state = Client::UI::DraggedWindow;
+    m_enterHeld = true;
+    Client::UI::PostToTheWindow(m_manager, Friends().tabs[0].base.id, Client::UI::CommandMessage, 2, 0);
+
+    ASSERT_TRUE(Draw().HasValue());
+
+    ASSERT_EQ(m_sent.size(), 1u);
+    EXPECT_EQ(m_sent[0], (FriendSend{.kind = Client::UI::FriendSendKind::Delete, .value = 0, .name = "Tero"}));
+    EXPECT_EQ(m_enterLatch, 1);
+    ASSERT_NE(m_manager.modal, 0);
+    EXPECT_TRUE(m_manager.windows.contains(m_manager.modal));
+    EXPECT_TRUE(
+        std::ranges::any_of(m_manager.queue, [this](const Client::UI::OldMessage& message)
+                            { return message.type == Client::UI::CloseMessage && message.a == m_manager.modal; }));
+    ASSERT_TRUE(Draw().HasValue());
+    EXPECT_EQ(m_sent.size(), 1u);
+}
+
+// 0x490390 avanza la lista después de dibujar: Command1 agrega la caja; el caret vacío queda recortado por el bitmap.
+TEST_F(FriendWindowsDrawTest, DrawingAnAddCommandClipsTheNewEmptyEditCaretInTheSamePass)
+{
+    m_withStepContext = true;
+    OpenFriends();
+    Friends().base.state = Client::UI::DraggedWindow;
+    Client::UI::PostToTheWindow(m_manager, Friends().tabs[0].base.id, Client::UI::CommandMessage, 1, 0);
+
+    ASSERT_TRUE(Draw().HasValue());
+
+    ASSERT_NE(m_manager.letter, 0);
+    const OldEdit& edit = m_manager.windows.at(m_manager.letter).add.edit;
+    EXPECT_EQ(m_focus, ChatFocus::OldWindow);
+    EXPECT_EQ(m_manager.focusedEdit, edit.base.id);
+    EXPECT_EQ(edit.draws, 1);
+    const auto caret = std::ranges::find_if(
+        m_sprites.Vertices(), [](const SpriteVertex& vertex)
+        { return vertex.color == Color{200.0f / 255.0f, 200.0f / 255.0f, 200.0f / 255.0f, 1.0f}; });
+    EXPECT_EQ(caret, m_sprites.Vertices().end());
+}
+
+TEST_F(FriendWindowsDrawTest, AFunctionalDrawMessageWithoutStepServicesIsAnExplicitError)
+{
+    OpenFriends();
+    Friends().base.state = Client::UI::DraggedWindow;
+    Client::UI::PostToTheWindow(m_manager, Friends().tabs[0].base.id, Client::UI::CommandMessage, 1, 0);
+
+    const auto drawn = Draw();
+
+    ASSERT_FALSE(drawn.HasValue());
+    EXPECT_NE(drawn.Error().find("0x45aa50"), std::string::npos);
+    ASSERT_FALSE(Friends().tabs[0].base.queue.empty());
+    EXPECT_EQ(Friends().tabs[0].base.queue.front().type, Client::UI::CommandMessage);
+}
+
 // La pestaña de las cartas (0x4a0a30) es del hito 10: el dibujo corta con la dirección.
 TEST_F(FriendWindowsDrawTest, TheLettersTabIsACut)
 {
@@ -543,6 +698,7 @@ TEST_F(FriendWindowsDrawTest, TheAddBoxDrawsItsEditWithTheCaret)
     ASSERT_EQ(edit.base.x, 35);
     ASSERT_EQ(edit.base.y, 367);
     edit.text.Type("Tero");
+    edit.text.SetCursor(2);
     m_focusedEdit = edit.base.id;
 
     ASSERT_TRUE(Draw().HasValue());
@@ -557,23 +713,326 @@ TEST_F(FriendWindowsDrawTest, TheAddBoxDrawsItsEditWithTheCaret)
             black = i;
     }
     ASSERT_TRUE(black.has_value());
-    ASSERT_GE(commands.size(), *black + 4);
+    ASSERT_GE(commands.size(), *black + 3);
     EXPECT_EQ(commands[*black].blend, BlendMode::Alpha);
     ExpectBox(QuadOf(*black, 0), 35.0f, 367.0f, 115.0f, 380.0f);
     ExpectBox(QuadOf(*black, 1), 35.0f, 367.0f, 62.0f, 381.0f);
     EXPECT_FLOAT_EQ(VertexOf(*black, 1).color.alpha, 0.0f);
-    ExpectBox(QuadOf(*black + 2), 60.0f, 367.0f, 61.0f, 380.0f);
-    EXPECT_FLOAT_EQ(VertexOf(*black + 2).color.red, 200.0f / 255.0f);
-    EXPECT_EQ(commands[*black + 3].texture, TextureSlot{Client::UI::WindowTitleSlot});
-    EXPECT_EQ(commands[*black + 3].blend, BlendMode::Opaque);
+    ASSERT_EQ(commands[*black + 1].texture, TextMarkerSlot);
+    ASSERT_EQ(commands[*black + 1].vertexCount, 18u);
+    ExpectBox(QuadOf(*black + 1, 0), 38.0f, 367.0f, 51.0f, 380.0f);
+    ExpectBox(QuadOf(*black + 1, 1), 52.0f, 367.0f, 62.0f, 380.0f);
+    ExpectBox(QuadOf(*black + 1, 2), 51.0f, 367.0f, 52.0f, 380.0f);
+    EXPECT_EQ(commands[*black + 2].texture, TextureSlot{Client::UI::WindowTitleSlot});
+    EXPECT_EQ(commands[*black + 2].blend, BlendMode::Opaque);
     EXPECT_EQ(edit.draws, 1);
     EXPECT_FLOAT_EQ(edit.caretHeight, 13.0f);
     const auto tero =
         std::find_if(m_text.texts.begin(), m_text.texts.end(), [](const auto& text) { return text.text == "Tero"; });
     ASSERT_NE(tero, m_text.texts.end());
-    EXPECT_EQ(tero->x, 35);
+    EXPECT_EQ(tero->x, 38);
     EXPECT_EQ(tero->y, 367);
+    EXPECT_TRUE(tero->pixelPosition);
     EXPECT_EQ(tero->style.colors, (TextColors{.text = White, .background = 0}));
+    EXPECT_EQ(std::ranges::count_if(m_text.texts, [](const auto& text) { return text.text == "Tero"; }), 3);
+    EXPECT_EQ(tero->firstColumn, 0);
+    EXPECT_EQ(tero->columns, 13);
+    const auto trailing = std::find_if(m_text.texts.begin(), m_text.texts.end(),
+                                       [](const auto& text) { return text.text == "Tero" && text.firstColumn == 14; });
+    ASSERT_NE(trailing, m_text.texts.end());
+    EXPECT_EQ(trailing->x, 52);
+    EXPECT_EQ(trailing->columns, 10);
+    const auto caret = std::find_if(m_text.texts.begin(), m_text.texts.end(),
+                                    [](const auto& text) { return text.text == "Tero" && text.columns == 1; });
+    ASSERT_NE(caret, m_text.texts.end());
+    EXPECT_EQ(caret->x, 51);
+    EXPECT_EQ(caret->firstColumn, 13);
+    EXPECT_EQ(caret->style.colors, (TextColors{.text = edit.backgroundColor, .background = 0xffc8c8c8u}));
+}
+
+TEST(OldEditBitmapIntegrationTest, PixelCaretInvertsTheRasterizedGlyphColumn)
+{
+    using Client::App::PixelSize;
+    using Client::Core::Log;
+    using Client::Core::LogLevel;
+    using Client::Render::SpriteBatch;
+    using Client::Render::TextureSlot;
+    using Client::Render::Text::TextCache;
+    using Client::Scenes::TextCacheDrawer;
+    using Client::Tests::FakeTextureStore;
+    using Client::Tests::RecordingSink;
+
+    SpriteBatch sprites;
+    sprites.Begin(PixelSize{1024, 768});
+    PixelCaretRasterizer rasterizer;
+    FakeTextureStore textures;
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    TextCache cache(rasterizer, textures);
+    TextCacheDrawer text(cache, sprites, log);
+
+    OldEdit edit;
+    edit.base.x = 149;
+    edit.base.y = 40;
+    edit.base.width = 80;
+    edit.base.height = 14;
+    edit.text.SetText("abcd");
+    edit.text.Select(0, 2);
+    edit.textColor = 0xff123456u;
+    edit.backgroundColor = 0x00000000u;
+    FontKind dcFont = FontKind::Normal;
+    TextColors textColors{};
+    const OldWindowDrawContext context{.sprites = sprites, .text = text, .dcFont = dcFont, .textColors = textColors};
+
+    Client::UI::OldDraw::DrawTheOldEdit(context, edit, true);
+
+    const TextureSlot selectedSlot{static_cast<std::uint16_t>(Client::Render::FirstTextTextureSlot.value)};
+    const auto selected = textures.Find(selectedSlot);
+    ASSERT_TRUE(selected.has_value());
+    const auto& selectedPixels = selected->texture.pixels;
+    EXPECT_EQ(selectedPixels[0], 0x56);
+    EXPECT_EQ(selectedPixels[1], 0x34);
+    EXPECT_EQ(selectedPixels[2], 0x12);
+    EXPECT_EQ(selectedPixels[3], 0xff);
+    const std::size_t selectedBackground = 256u * 4u;
+    EXPECT_EQ(selectedPixels[selectedBackground], 0x96);
+    EXPECT_EQ(selectedPixels[selectedBackground + 1], 0x96);
+    EXPECT_EQ(selectedPixels[selectedBackground + 2], 0x96);
+    EXPECT_EQ(selectedPixels[selectedBackground + 3], 0xff);
+    EXPECT_EQ(edit.textColor, 0xff123456u);
+
+    const TextureSlot caretSlot{static_cast<std::uint16_t>(Client::Render::FirstTextTextureSlot.value + 3)};
+    const auto caret = textures.Find(caretSlot);
+    ASSERT_TRUE(caret.has_value());
+    const auto& caretPixels = caret->texture.pixels;
+    std::size_t transparentRows = 0;
+    std::size_t grayRows = 0;
+    for (int row = 0; row < 13; ++row)
+    {
+        const std::size_t pixel = static_cast<std::size_t>(row * 256 * 4);
+        const bool glyphPixel = row >= 3 && row < 6;
+        if (glyphPixel)
+        {
+            EXPECT_EQ(caretPixels[pixel], 0);
+            EXPECT_EQ(caretPixels[pixel + 1], 0);
+            EXPECT_EQ(caretPixels[pixel + 2], 0);
+            EXPECT_EQ(caretPixels[pixel + 3], 0);
+            ++transparentRows;
+        }
+        else
+        {
+            EXPECT_EQ(caretPixels[pixel], 0xc8);
+            EXPECT_EQ(caretPixels[pixel + 1], 0xc8);
+            EXPECT_EQ(caretPixels[pixel + 2], 0xc8);
+            EXPECT_EQ(caretPixels[pixel + 3], 0xff);
+            ++grayRows;
+        }
+    }
+    EXPECT_EQ(transparentRows, 3u);
+    EXPECT_EQ(grayRows, 10u);
+
+    std::vector<const Client::Render::DrawCommand*> caretCommands;
+    for (const Client::Render::DrawCommand& command : sprites.Commands())
+    {
+        if (command.texture == caretSlot)
+            caretCommands.push_back(&command);
+    }
+    ASSERT_EQ(caretCommands.size(), 1u);
+    const Client::Render::DrawCommand& caretCommand = *caretCommands.front();
+    ASSERT_EQ(caretCommand.vertexCount, 6u);
+    const auto vertices = sprites.Vertices();
+    const Client::Render::SpriteVertex& topLeft = vertices[caretCommand.firstVertex];
+    const Client::Render::SpriteVertex& bottomRight = vertices[caretCommand.firstVertex + 2];
+    EXPECT_FLOAT_EQ(topLeft.x, 254.0f);
+    EXPECT_FLOAT_EQ(bottomRight.x, 255.0f);
+    EXPECT_FLOAT_EQ(768.0f - topLeft.y, 64.0f);
+    EXPECT_FLOAT_EQ(768.0f - bottomRight.y, 77.0f);
+
+    for (const Client::Render::DrawCommand& command : sprites.Commands())
+    {
+        if (!command.texture)
+            continue;
+        for (std::size_t first = command.firstVertex; first < command.firstVertex + command.vertexCount; first += 6)
+        {
+            const float left = vertices[first].x;
+            const float right = vertices[first + 2].x;
+            if (left <= 254.0f && right > 254.0f)
+            {
+                EXPECT_EQ(command.texture, std::optional<TextureSlot>{caretSlot});
+            }
+        }
+    }
+    EXPECT_TRUE(sink.lines.empty());
+}
+
+TEST_F(FriendWindowsDrawTest, TheEditDrawsTextAtItsPixelMarginAndCaretAtTheByteCursor)
+{
+    OldEdit edit;
+    edit.base.x = 20;
+    edit.base.y = 40;
+    edit.base.width = 80;
+    edit.base.height = 14;
+    edit.text.SetText("abcd");
+    edit.text.SetCursor(2);
+
+    Client::UI::OldDraw::DrawTheOldEdit(Context(), edit, true);
+
+    ASSERT_EQ(m_text.texts.size(), 3u);
+    EXPECT_EQ(m_text.texts[0].text, "abcd");
+    EXPECT_EQ(m_text.texts[1].text, "abcd");
+    EXPECT_EQ(m_text.texts[2].text, "abcd");
+    EXPECT_TRUE(m_text.texts[0].pixelPosition);
+    EXPECT_TRUE(m_text.texts[1].pixelPosition);
+    EXPECT_TRUE(m_text.texts[2].pixelPosition);
+    EXPECT_EQ(m_text.texts[0].x, 23);
+    EXPECT_EQ(m_text.texts[0].y, 40);
+    EXPECT_EQ(m_text.texts[0].firstColumn, 0);
+    EXPECT_EQ(m_text.texts[0].columns, 13);
+    EXPECT_EQ(m_text.texts[1].x, 37);
+    EXPECT_EQ(m_text.texts[1].firstColumn, 14);
+    EXPECT_EQ(m_text.texts[1].columns, 10);
+    EXPECT_EQ(m_text.texts[2].x, 36);
+    EXPECT_EQ(m_text.texts[2].firstColumn, 13);
+    EXPECT_EQ(m_text.texts[2].columns, 1);
+    EXPECT_EQ(m_text.texts[2].style.colors, (TextColors{.text = Black, .background = 0xffc8c8c8u}));
+    ASSERT_EQ(m_sprites.Commands().size(), 2u);
+    ASSERT_EQ(m_sprites.Vertices().size(), 24u);
+    ExpectBox(QuadOf(1, 2), 36.0f, 40.0f, 37.0f, 53.0f);
+}
+
+TEST_F(FriendWindowsDrawTest, TheEditClipsTheCaretAtTheEndOfText)
+{
+    OldEdit edit;
+    edit.base.x = 20;
+    edit.base.y = 40;
+    edit.base.width = 80;
+    edit.base.height = 14;
+    edit.text.SetText("abcd");
+
+    Client::UI::OldDraw::DrawTheOldEdit(Context(), edit, true);
+
+    ASSERT_EQ(m_text.texts.size(), 1u);
+    EXPECT_EQ(m_sprites.Vertices().size(), 12u);
+}
+
+TEST_F(FriendWindowsDrawTest, TheEditClipsTheCaretForEmptyText)
+{
+    OldEdit edit;
+    edit.base.x = 20;
+    edit.base.y = 40;
+    edit.base.width = 80;
+    edit.base.height = 14;
+
+    Client::UI::OldDraw::DrawTheOldEdit(Context(), edit, true);
+
+    EXPECT_TRUE(m_text.texts.empty());
+    EXPECT_EQ(m_sprites.Vertices().size(), 6u);
+}
+
+TEST_F(FriendWindowsDrawTest, TheEditDrawsSelectionAndCaretFromFullTextColumns)
+{
+    OldEdit edit;
+    edit.base.x = 20;
+    edit.base.y = 40;
+    edit.base.width = 80;
+    edit.base.height = 14;
+    edit.text.SetText("abcd");
+    edit.text.Select(1, 3);
+
+    Client::UI::OldDraw::DrawTheOldEdit(Context(), edit, true);
+
+    ASSERT_EQ(m_text.texts.size(), 5u);
+    EXPECT_EQ(m_text.texts[0].text, "abcd");
+    EXPECT_EQ(m_text.texts[0].x, 23);
+    EXPECT_EQ(m_text.texts[0].firstColumn, 0);
+    EXPECT_EQ(m_text.texts[0].columns, 6);
+    EXPECT_EQ(m_text.texts[0].style.colors, (TextColors{.text = White, .background = 0}));
+    EXPECT_EQ(m_text.texts[1].text, "abcd");
+    EXPECT_EQ(m_text.texts[1].x, 29);
+    EXPECT_EQ(m_text.texts[1].firstColumn, 6);
+    EXPECT_EQ(m_text.texts[1].columns, 12);
+    EXPECT_EQ(m_text.texts[1].style.colors, (TextColors{.text = White, .background = 0xff969696u}));
+    EXPECT_EQ(m_text.texts[2].text, "abcd");
+    EXPECT_EQ(m_text.texts[2].x, 41);
+    EXPECT_EQ(m_text.texts[2].firstColumn, 18);
+    EXPECT_EQ(m_text.texts[2].columns, 1);
+    EXPECT_EQ(m_text.texts[2].style.colors, (TextColors{.text = White, .background = 0}));
+    EXPECT_EQ(m_text.texts[3].x, 43);
+    EXPECT_EQ(m_text.texts[3].firstColumn, 20);
+    EXPECT_EQ(m_text.texts[3].columns, 4);
+    EXPECT_EQ(m_text.texts[3].style.colors, (TextColors{.text = White, .background = 0}));
+    EXPECT_TRUE(m_text.texts[0].pixelPosition);
+    EXPECT_TRUE(m_text.texts[1].pixelPosition);
+    EXPECT_TRUE(m_text.texts[2].pixelPosition);
+    EXPECT_EQ(m_text.texts[4].text, "abcd");
+    EXPECT_EQ(m_text.texts[4].x, 42);
+    EXPECT_EQ(m_text.texts[4].firstColumn, 19);
+    EXPECT_EQ(m_text.texts[4].columns, 1);
+    EXPECT_EQ(m_text.texts[4].style.colors, (TextColors{.text = Black, .background = 0xffc8c8c8u}));
+    EXPECT_TRUE(m_text.texts[4].pixelPosition);
+    ASSERT_EQ(m_sprites.Vertices().size(), 36u);
+    ExpectBox(QuadOf(1, 4), 42.0f, 40.0f, 43.0f, 53.0f);
+}
+
+TEST_F(FriendWindowsDrawTest, TheEditSelectionUsesTheEditTextColor)
+{
+    OldEdit edit;
+    edit.base.x = 20;
+    edit.base.y = 40;
+    edit.base.width = 80;
+    edit.base.height = 14;
+    edit.textColor = 0xff123456u;
+    edit.text.SetText("abcd");
+    edit.text.Select(1, 3);
+
+    Client::UI::OldDraw::DrawTheOldEdit(Context(), edit, true);
+
+    ASSERT_EQ(m_text.texts.size(), 5u);
+    EXPECT_EQ(m_text.texts[0].style.colors.text, 0xff123456u);
+    EXPECT_EQ(m_text.texts[1].style.colors.text, 0xff123456u);
+    EXPECT_EQ(m_text.texts[1].style.colors.background, 0xff969696u);
+    EXPECT_EQ(m_text.texts[2].style.colors.text, 0xff123456u);
+    EXPECT_EQ(m_text.texts[3].style.colors.text, 0xff123456u);
+    EXPECT_EQ(m_text.texts[4].style.colors.text, edit.backgroundColor);
+}
+
+TEST_F(FriendWindowsDrawTest, TheEditUsesTheActiveCaretForReverseSelection)
+{
+    OldEdit edit;
+    edit.base.x = 20;
+    edit.base.y = 40;
+    edit.base.width = 80;
+    edit.base.height = 14;
+    edit.text.SetText("abcd");
+    edit.text.Select(3, 1);
+
+    Client::UI::OldDraw::DrawTheOldEdit(Context(), edit, true);
+
+    ASSERT_EQ(m_text.texts.size(), 5u);
+    EXPECT_EQ(m_text.texts[4].x, 30);
+    EXPECT_EQ(m_text.texts[4].firstColumn, 7);
+    EXPECT_EQ(m_text.texts[4].columns, 1);
+    EXPECT_EQ(m_text.texts[4].style.colors, (TextColors{.text = Black, .background = 0xffc8c8c8u}));
+    ExpectBox(QuadOf(1, 4), 30.0f, 40.0f, 31.0f, 53.0f);
+}
+
+TEST_F(FriendWindowsDrawTest, TheEditHidesSelectionWhenUnfocusedButKeepsItInTheModel)
+{
+    OldEdit edit;
+    edit.base.x = 20;
+    edit.base.y = 40;
+    edit.base.width = 80;
+    edit.base.height = 14;
+    edit.text.SetText("abcd");
+    edit.text.Select(1, 3);
+
+    Client::UI::OldDraw::DrawTheOldEdit(Context(), edit, false);
+
+    ASSERT_EQ(m_text.texts.size(), 1u);
+    EXPECT_TRUE(edit.text.HasSelection());
+    EXPECT_EQ(m_text.texts[0].text, "abcd");
+    EXPECT_EQ(m_text.texts[0].style.colors, (TextColors{.text = White, .background = 0}));
+    EXPECT_EQ(m_sprites.Vertices().size(), 12u);
 }
 
 // 0x4684bc..0x4684e4: el cursor se ve con el foco de Windows y +0x80 % 24 < 12; oculto (la vtable + 4 con el estado
@@ -586,12 +1045,13 @@ TEST_F(FriendWindowsDrawTest, TheEditCaretBlinksAndAHiddenEditDrawsNothing)
     edit.base.width = 80;
     edit.base.height = 14;
     edit.text.Type("ab");
+    edit.text.SetCursor(1);
     const auto quads = [this] { return m_sprites.Vertices().size() / 6; };
 
     edit.draws = 11;
     Client::UI::OldDraw::DrawTheOldEdit(Context(), edit, true);
-    // El bitmap, el texto y el cursor.
-    EXPECT_EQ(quads(), 3u);
+    // El bitmap, los dos tramos de texto y la columna de caret.
+    EXPECT_EQ(quads(), 4u);
     EXPECT_EQ(edit.draws, 12);
 
     m_sprites.Begin(Screen640);

@@ -23,6 +23,7 @@
 #include "Protocol/Character/CharacterSelect.h"
 #include "Protocol/Character/InventoryList.h"
 #include "Protocol/Character/Opcodes.h"
+#include "Protocol/Combat.h"
 #include "Protocol/Connection/Hello.h"
 #include "Protocol/Connection/Keepalive.h"
 #include "Protocol/Connection/Login.h"
@@ -32,6 +33,7 @@
 #include "Protocol/Connection/ServerList.h"
 #include "Protocol/Dispatcher.h"
 #include "Protocol/Duel.h"
+#include "Protocol/Events.h"
 #include "Protocol/FloorItems.h"
 #include "Protocol/Friends.h"
 #include "Protocol/PersonalShop.h"
@@ -43,6 +45,9 @@
 #include "Protocol/Party.h"
 #include "Protocol/ProtocolError.h"
 #include "Protocol/Pet/PetInfo.h"
+#include "Protocol/Pet/PetOrders.h"
+#include "Protocol/Skill.h"
+#include "Protocol/Quest.h"
 #include "Protocol/Trade.h"
 #include "Protocol/Viewport.h"
 #include "Protocol/World.h"
@@ -253,6 +258,15 @@ void ServerSession::RegisterGameServerHandlers()
                         [this](const Network::Packet& packet) { OnEquipmentShown(packet); }) &&
         m_gameServer.On(Protocol::Viewport::PositionOpcode,
                         [this](const Network::Packet& packet) { OnViewportPosition(packet); }) &&
+        m_gameServer.On(Protocol::Viewport::MonstersOpcode,
+                        [this](const Network::Packet& packet) { OnViewportMonsters(packet); }) &&
+        m_gameServer.On(Protocol::Viewport::SummonsOpcode,
+                        [this](const Network::Packet& packet) { OnSummons(packet); }) &&
+        m_gameServer.On(Protocol::Viewport::ObjectsOpcode,
+                        [this](const Network::Packet& packet) { OnViewportObjects(packet); }) &&
+        // CL9 hito 2: el 1A, la skill que pega a varios.
+        m_gameServer.On(Protocol::Viewport::MagicAttackCountOpcode,
+                        [this](const Network::Packet& packet) { OnMagicAttackCount(packet); }) &&
         m_gameServer.On(Protocol::World::TeleportOpcode,
                         [this](const Network::Packet& packet) { OnTeleport(packet); }) &&
         m_gameServer.On(Protocol::World::WorldOpcode, Protocol::World::RegenSubcode,
@@ -298,6 +312,17 @@ void ServerSession::RegisterGameServerHandlers()
         m_gameServer.On(JoinOpcode, LogoutSubcode, [this](const Network::Packet& packet) { OnLogoutResult(packet); }) &&
         m_gameServer.On(Protocol::Connection::MainCheckOpcode,
                         [this](const Network::Packet& packet) { OnMainCheck(packet); }) &&
+        // Las misiones (CL9 hito 2): 0x4e4b3a, 0x4e4b6d, 0x4e4b9f, 0x4e4ba9 y 0x4e4bf2 del dispatcher.
+        m_gameServer.On(Protocol::Quest::QuestFlagOpcode,
+                        [this](const Network::Packet& packet) { OnQuestFlag(packet); }) &&
+        m_gameServer.On(Protocol::Quest::QuestListOpcode,
+                        [this](const Network::Packet& packet) { OnQuestList(packet); }) &&
+        m_gameServer.On(Protocol::Quest::QuestStateOpcode,
+                        [this](const Network::Packet& packet) { OnQuestState(packet); }) &&
+        m_gameServer.On(Protocol::Quest::SetQuestOpcode,
+                        [this](const Network::Packet& packet) { OnSetQuestResult(packet); }) &&
+        m_gameServer.On(Protocol::Quest::QuestResultOpcode,
+                        [this](const Network::Packet& packet) { OnQuestResult(packet); }) &&
         // CL9 hito 9: los amigos.
         m_gameServer.On(Protocol::Friends::FriendListOpcode,
                         [this](const Network::Packet& packet) { OnFriendList(packet); }) &&
@@ -309,8 +334,90 @@ void ServerSession::RegisterGameServerHandlers()
                         [this](const Network::Packet& packet) { OnFriendDeleteResult(packet); }) &&
         m_gameServer.On(Protocol::Friends::FriendStateOpcode,
                         [this](const Network::Packet& packet) { OnFriendState(packet); }) &&
-        RegisterGuildHandlers();
+        RegisterGuildHandlers() &&
+        // CL9 hito 11: los eventos.
+        RegisterTheEventPackets();
     assert(registered && "los handlers del GameServer se registran una vez");
+    // CL9 hito 3 (atacar, el daño y la muerte): el despacho de 0x4e2b10 manda el 0x16 a 0x4cf200 y el 0x9C a 0x4cfce0
+    // (los dos con el flag de descifrado) y el 0x17 a 0x4d0a30. El 0x15 de la GS 0.97 (GCDamageSend) no tiene caso: cae
+    // en el default (0x4e5b4a) y no hace nada, como acá. El D7 que llega ya lo atiende OnDamage.
+    [[maybe_unused]] const bool combatRegistered =
+        m_gameServer.On(Protocol::Combat::KillExperienceOpcode,
+                        [this](const Network::Packet& packet) { OnKillExperience(packet); }) &&
+        m_gameServer.On(Protocol::Combat::ExtendedKillExperienceOpcode,
+                        [this](const Network::Packet& packet) { OnExtendedKillExperience(packet); }) &&
+        m_gameServer.On(Protocol::Combat::DeathOpcode, [this](const Network::Packet& packet) { OnDeath(packet); });
+    assert(combatRegistered && "los handlers del combate se registran una vez");
+    RegisterSkillHandlers();
+}
+
+// CL9 hito 4: las skills que llegan (04 § Las skills) y las órdenes del cuervo (A7 y A8). Los C3 del 19 y el 1E llegan
+// descifrados con el opcode de la tabla (0xa5 → 0x19 y 0xa6 → 0x1e), como los demás.
+void ServerSession::RegisterSkillHandlers()
+{
+    using Protocol::Character::CharacterOpcode;
+    namespace Skill = Protocol::Skill;
+    [[maybe_unused]] const bool registered =
+        m_gameServer.On(Skill::MagicAttackOpcode, [this](const Network::Packet& packet) { OnMagicAttack(packet); }) &&
+        m_gameServer.On(Skill::DurationMagicOpcode,
+                        [this](const Network::Packet& packet) { OnDurationMagic(packet); }) &&
+        m_gameServer.On(Skill::MagicCancelOpcode, [this](const Network::Packet& packet) { OnMagicCancel(packet); }) &&
+        m_gameServer.On(Skill::ActorStateOpcode, [this](const Network::Packet& packet) { OnActorState(packet); }) &&
+        m_gameServer.On(Skill::ActorEffectOpcode, [this](const Network::Packet& packet) { OnActorEffect(packet); }) &&
+        m_gameServer.On(Skill::SkillTargetOpcode, [this](const Network::Packet& packet) { OnSkillTarget(packet); }) &&
+        m_gameServer.On(Skill::Report73Opcode, [this](const Network::Packet& packet) { OnReport73(packet); }) &&
+        m_gameServer.On(CharacterOpcode, Skill::SkillListSubcode,
+                        [this](const Network::Packet& packet) { OnSkillList(packet); }) &&
+        m_gameServer.On(CharacterOpcode, Skill::SummonLifeSubcode,
+                        [this](const Network::Packet& packet) { OnSummonLife(packet); }) &&
+        m_gameServer.On(Protocol::Pet::PetOrderOpcode, [this](const Network::Packet& packet) { OnPetOrder(packet); }) &&
+        m_gameServer.On(Protocol::Pet::PetAttackOpcode,
+                        [this](const Network::Packet& packet) { OnPetAttack(packet); }) &&
+        m_gameServer.On(Protocol::Pet::PetInfoOpcode, [this](const Network::Packet& packet) { OnPetInfo(packet); });
+    assert(registered && "los handlers de las skills se registran una vez");
+}
+
+// CL9 hito 11: los paquetes de los eventos (04 § Los eventos), por opcode o por subcódigo como los despacha 0x4e2b10.
+// El F3 va por subcódigo (CharacterOpcode es el mismo 0xf3), y el AF, el BC y el BD solo con los que el original
+// atiende; los demás quedan sin handler, como antes.
+bool ServerSession::RegisterTheEventPackets()
+{
+    namespace Events = Protocol::Events;
+    const auto handler = [this](const Network::Packet& packet) { OnEventPacket(packet); };
+    constexpr std::array<std::uint8_t, 15> Opcodes{
+        Events::EventStateOpcode,       Events::MapAttributesOpcode, Events::ItemAcquiredOpcode,
+        Events::DevilSquareEntryOpcode, Events::EventOpenTimeOpcode, Events::EventCountdownOpcode,
+        Events::EventResultOpcode,      Events::EventChipInfoOpcode, Events::EventChipCountOpcode,
+        Events::MutoNumbersOpcode,      Events::EventDialogOpcode,   Events::BloodCastleEntryOpcode,
+        Events::EventPlayStateOpcode,   Events::SerialResultOpcode,  Events::EventSoundOpcode};
+    struct WithSubcode
+    {
+        std::uint8_t opcode;
+        std::uint8_t subcode;
+    };
+    constexpr std::array<WithSubcode, 15> Subcodes{{
+        {Events::ChaosCastleOpcode, Events::ChaosCastleEntrySubcode},
+        {Events::JewelMixOpcode, Events::JewelMixSubcode},
+        {Events::JewelMixOpcode, Events::JewelUnmixSubcode},
+        {Events::CrywolfOpcode, Events::CrywolfStateSubcode},
+        {Events::CrywolfOpcode, Events::CrywolfAltarsSubcode},
+        {Events::CrywolfOpcode, Events::CrywolfContractSubcode},
+        {Events::CrywolfOpcode, Events::CrywolfTimerSubcode},
+        {Events::CrywolfOpcode, Events::CrywolfBossSubcode},
+        {Events::CrywolfOpcode, Events::CrywolfRankSubcode},
+        {Events::CrywolfOpcode, Events::CrywolfRankingSubcode},
+        {Events::CrywolfOpcode, Events::CrywolfChaosBoxSubcode},
+        {Events::CrywolfOpcode, Events::CrywolfEffectSubcode},
+        {Events::WorldOpcode, Events::EventTimeSubcode},
+        {Events::WorldOpcode, Events::SoccerScoreSubcode},
+        {Events::WorldOpcode, Events::ServerCommandSubcode},
+    }};
+    bool registered = true;
+    for (const std::uint8_t opcode : Opcodes)
+        registered = m_gameServer.On(opcode, handler) && registered;
+    for (const WithSubcode& entry : Subcodes)
+        registered = m_gameServer.On(entry.opcode, entry.subcode, handler) && registered;
+    return registered;
 }
 
 // CL9 hito 8: el gremio, la alianza y la guerra (0x4e2b10 con 50..54, 56, 5D, 60..67, E1, E5, E6, E9 y EB). El 55 y
@@ -391,8 +498,7 @@ void ServerSession::RegisterSocialHandlers()
                         { ApplyWorldPacket(packet, Duel::ReadDuelRequest, "el pedido de duelo (AC)"); }) &&
         m_gameServer.On(Duel::ScoreOpcode, [this](const Packet& packet)
                         { ApplyWorldPacket(packet, Duel::ReadDuelScore, "los puntos del duelo (AD)"); }) &&
-        // Las tiendas personales (hito 7, fase 3): los carteles y los avisos del 3F. El 1, el 5, el 6 y el 0x13 (las
-        // listas de ítems) siguen sin handler (08 P-C204 a).
+        // Las tiendas personales (hito 7, fases 3 y 4): los carteles, los avisos y las listas de ítems del 3F.
         m_gameServer.On(Shop::Opcode, Shop::TitlesSubcode, [this](const Packet& packet)
                         { ApplyWorldPacket(packet, Shop::ReadShopTitles, "los carteles de las tiendas (3F 00)"); }) &&
         m_gameServer.On(Shop::Opcode, Shop::CreatedSubcode, [this](const Packet& packet)
@@ -406,7 +512,17 @@ void ServerSession::RegisterSocialHandlers()
         m_gameServer.On(Shop::Opcode, Shop::OwnerLeftSubcode,
                         [this](const Packet& packet) {
                             ApplyWorldPacket(packet, Shop::ReadShopOwnerLeft, "la tienda ajena que se cierra (3F 12)");
-                        });
+                        }) &&
+        m_gameServer.On(Shop::Opcode, Shop::PriceResultSubcode, [this](const Packet& packet)
+                        { ApplyWorldPacket(packet, Shop::ReadPriceResult, "el precio que no se puso (3F 01)"); }) &&
+        m_gameServer.On(Shop::Opcode, Shop::ItemListSubcode,
+                        [this](const Packet& packet) {
+                            ApplyWorldPacket(packet, Shop::ReadShopItemList, "la lista de la tienda de otro (3F 05)");
+                        }) &&
+        m_gameServer.On(Shop::Opcode, Shop::PurchaseSubcode, [this](const Packet& packet)
+                        { ApplyWorldPacket(packet, Shop::ReadShopPurchase, "la compra en una tienda (3F 06)"); }) &&
+        m_gameServer.On(Shop::Opcode, Shop::RefreshSubcode, [this](const Packet& packet)
+                        { ApplyWorldPacket(packet, Shop::ReadShopRefresh, "la lista que se renueva (3F 13)"); });
     assert(registered && "los handlers del comercio, la party, el duelo y las tiendas se registran una vez");
 }
 
@@ -1135,6 +1251,21 @@ void ServerSession::OnInventoryReply(const Network::Packet& packet)
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(std::move(reply).Value(), *this)));
 }
 
+// 0x4e2b10 con los opcodes de los eventos: ninguno mira la escena, el estado de la sesión ni el flag de cifrado. El 0B
+// guarda antes su copia en la cola de 0x77f27b4 (0x4e3594..0x4e361c), como el 1C, aunque llegue corto.
+void ServerSession::OnEventPacket(const Network::Packet& packet)
+{
+    if (packet.Opcode() == Protocol::Events::EventStateOpcode)
+        m_eventSink.CopyToPacketRing(packet.Bytes());
+    auto event = Protocol::Events::ReadEventPacket(packet);
+    if (!event.HasValue())
+    {
+        m_log.Warning("se ignora el paquete de evento {:02X}: {}", packet.Opcode().value_or(0), Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(std::move(event).Value(), *this)));
+}
+
 // 0x4e36b5: sin guarda de escena, estado de login ni procedencia cifrada. La Connection ya normalizó C3.
 void ServerSession::OnWeather(const Network::Packet& packet)
 {
@@ -1510,6 +1641,17 @@ void ServerSession::SendAction(std::uint8_t direction, std::uint8_t action)
     static_cast<void>(SendWorldPacket(Protocol::Movement::WriteAction(direction, action)));
 }
 
+Core::Expected<void, std::string> ServerSession::SendAttack(std::uint16_t key, std::uint8_t action,
+                                                            std::uint8_t direction)
+{
+    return SendWorldPacket(Protocol::Combat::WriteAttack(key, action, direction));
+}
+
+Core::Expected<void, std::string> ServerSession::SendElfCell(std::uint8_t x, std::uint8_t y)
+{
+    return SendWorldPacket(Protocol::Combat::WriteElfCell(x, y));
+}
+
 Core::Expected<void, std::string> ServerSession::SendOptionData(const Protocol::OptionData::OptionBody& body)
 {
     return SendWorldPacket(Protocol::OptionData::WriteOptionData(body));
@@ -1550,6 +1692,92 @@ void ServerSession::SendGuildPacket(Protocol::Outgoing packet)
     static_cast<void>(SendWorldPacket(std::move(packet)));
 }
 
+void ServerSession::RequestQuestList()
+{
+    static_cast<void>(SendWorldPacket(Protocol::Quest::WriteQuestListRequest()));
+}
+
+void ServerSession::SendSetQuest(std::uint8_t quest, std::uint8_t state)
+{
+    static_cast<void>(SendWorldPacket(Protocol::Quest::WriteSetQuest(quest, state)));
+}
+
+void ServerSession::SendTalk(std::int16_t key)
+{
+    static_cast<void>(SendWorldPacket(Protocol::Quest::WriteTalk(key)));
+}
+
+void ServerSession::SendWindowClose()
+{
+    static_cast<void>(SendWorldPacket(Protocol::Connection::WriteWindowClose()));
+}
+
+Core::Expected<void, std::string> ServerSession::SendEventWindowLeave()
+{
+    return SendWorldPacket(Protocol::Events::WriteEventWindowLeave());
+}
+
+Core::Expected<void, std::string> ServerSession::SendChaosCastleReposition(std::uint8_t x, std::uint8_t y)
+{
+    return SendWorldPacket(Protocol::Events::WriteChaosCastleReposition(x, y));
+}
+
+// 0x4e4b3a..0x4e4bf2: las misiones, sin guarda de escena ni del flag de cifrado (CL9 hito 2).
+void ServerSession::OnQuestFlag(const Network::Packet& packet)
+{
+    const auto flag = Protocol::Quest::ReadQuestFlag(packet);
+    if (!flag.HasValue())
+    {
+        m_log.Warning("se ignora el 9F de las misiones: {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(flag.Value(), *this)));
+}
+
+void ServerSession::OnQuestList(const Network::Packet& packet)
+{
+    auto list = Protocol::Quest::ReadQuestList(packet);
+    if (!list.HasValue())
+    {
+        m_log.Warning("se ignora la lista de las misiones (A0): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(std::move(list).Value(), *this)));
+}
+
+void ServerSession::OnQuestState(const Network::Packet& packet)
+{
+    const auto state = Protocol::Quest::ReadQuestState(packet);
+    if (!state.HasValue())
+    {
+        m_log.Warning("se ignora el estado de una misión (A1): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(state.Value(), *this)));
+}
+
+void ServerSession::OnSetQuestResult(const Network::Packet& packet)
+{
+    const auto result = Protocol::Quest::ReadSetQuestResult(packet);
+    if (!result.HasValue())
+    {
+        m_log.Warning("se ignora la respuesta del A2: {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(result.Value(), *this)));
+}
+
+void ServerSession::OnQuestResult(const Network::Packet& packet)
+{
+    const auto result = Protocol::Quest::ReadQuestResult(packet);
+    if (!result.HasValue())
+    {
+        m_log.Warning("se ignora el premio de una misión (A3): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(result.Value(), *this)));
+}
+
 void ServerSession::SendFriendPacket(Protocol::Outgoing packet)
 {
     static_cast<void>(SendWorldPacket(std::move(packet)));
@@ -1576,6 +1804,206 @@ void ServerSession::OnDamage(const Network::Packet& packet)
         return;
     }
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(damage.Value(), *this)));
+}
+
+// 0x4cc530: sin el cifrado, el F1 03 con 0x19 y nada más.
+void ServerSession::OnMagicAttack(const Network::Packet& packet)
+{
+    if (!packet.WasDecrypted())
+    {
+        m_log.Warning("la skill (19) no llegó cifrada: se le avisa al GameServer (F1 03)");
+        Protocol::Outgoing report = Protocol::Skill::WriteClearSkillReport(Protocol::Skill::MagicAttackOpcode);
+        m_connection.Send(std::move(report.packet), report.delivery);
+        return;
+    }
+    const auto attack = Protocol::Skill::ReadMagicAttack(packet);
+    if (!attack.HasValue())
+    {
+        m_log.Warning("se ignora la skill (19): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(attack.Value(), *this)));
+}
+
+// 0x4ce000: lo mismo con el 1E.
+void ServerSession::OnDurationMagic(const Network::Packet& packet)
+{
+    if (!packet.WasDecrypted())
+    {
+        m_log.Warning("la skill con duración (1E) no llegó cifrada: se le avisa al GameServer (F1 03)");
+        Protocol::Outgoing report = Protocol::Skill::WriteClearSkillReport(Protocol::Skill::DurationMagicOpcode);
+        m_connection.Send(std::move(report.packet), report.delivery);
+        return;
+    }
+    const auto magic = Protocol::Skill::ReadDurationMagic(packet);
+    if (!magic.HasValue())
+    {
+        m_log.Warning("se ignora la skill con duración (1E): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(magic.Value(), *this)));
+}
+
+void ServerSession::OnMagicCancel(const Network::Packet& packet)
+{
+    const auto cancel = Protocol::Skill::ReadMagicCancel(packet);
+    if (!cancel.HasValue())
+    {
+        m_log.Warning("se ignora el fin de la skill (1B): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(cancel.Value(), *this)));
+}
+
+void ServerSession::OnActorState(const Network::Packet& packet)
+{
+    const auto state = Protocol::Skill::ReadActorState(packet);
+    if (!state.HasValue())
+    {
+        m_log.Warning("se ignora el estado del personaje (07): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(state.Value(), *this)));
+}
+
+void ServerSession::OnActorEffect(const Network::Packet& packet)
+{
+    const auto effect = Protocol::Skill::ReadActorEffect(packet);
+    if (!effect.HasValue())
+    {
+        m_log.Warning("se ignora el efecto del personaje (48): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(effect.Value(), *this)));
+}
+
+void ServerSession::OnSkillTarget(const Network::Packet& packet)
+{
+    const auto target = Protocol::Skill::ReadSkillTarget(packet);
+    if (!target.HasValue())
+    {
+        m_log.Warning("se ignora el blanco de la skill (69): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(target.Value(), *this)));
+}
+
+// 0x4d5b10: cifrado no hace nada; sin el cifrado, el F1 03 con 0xf1 (*estático*, 08, P-C263).
+void ServerSession::OnReport73(const Network::Packet& packet)
+{
+    if (packet.WasDecrypted())
+        return;
+    m_log.Warning("el 73 no llegó cifrado: se le avisa al GameServer (F1 03)");
+    Protocol::Outgoing report = Protocol::Skill::WriteClearSkillReport(Protocol::Skill::Report73Head);
+    m_connection.Send(std::move(report.packet), report.delivery);
+}
+
+void ServerSession::OnSkillList(const Network::Packet& packet)
+{
+    const auto list = Protocol::Skill::ReadSkillList(packet);
+    if (!list.HasValue())
+    {
+        m_log.Warning("se ignora la lista de skills (F3 11): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(list.Value(), *this)));
+}
+
+void ServerSession::OnSummonLife(const Network::Packet& packet)
+{
+    const auto summon = Protocol::Skill::ReadSummonLife(packet);
+    if (!summon.HasValue())
+    {
+        m_log.Warning("se ignora la vida del invocado (F3 20): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(summon.Value(), *this)));
+}
+
+// 0x4e4c0a: la orden del cuervo del héroe, sin mirar el cifrado.
+void ServerSession::OnPetOrder(const Network::Packet& packet)
+{
+    const auto order = Protocol::Pet::ReadPetOrder(packet);
+    if (!order.HasValue())
+    {
+        m_log.Warning("se ignora la orden del cuervo (A7): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(order.Value(), *this)));
+}
+
+// 0x4e4c42: el ataque del cuervo de un Dark Lord, sin mirar el cifrado.
+void ServerSession::OnPetAttack(const Network::Packet& packet)
+{
+    const auto attack = Protocol::Pet::ReadPetAttack(packet);
+    if (!attack.HasValue())
+    {
+        m_log.Warning("se ignora el ataque del cuervo (A8): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(attack.Value(), *this)));
+}
+
+// 0x4e4ca1: la información de una mascota, sin mirar el cifrado.
+void ServerSession::OnPetInfo(const Network::Packet& packet)
+{
+    const auto info = Protocol::Pet::ReadPetInfoReply(packet);
+    if (!info.HasValue())
+    {
+        m_log.Warning("se ignora la información de la mascota (A9): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(info.Value(), *this)));
+}
+
+// CL9 hito 3. 0x4cf200 y 0x4cfce0 miran el flag antes de leer: con 0, el F1 03 con el opcode y nada más.
+void ServerSession::OnKillExperience(const Network::Packet& packet)
+{
+    if (!packet.WasDecrypted())
+    {
+        m_log.Warning("la experiencia (16) no llegó cifrada: se le avisa al GameServer (F1 03)");
+        Protocol::Outgoing report = Protocol::Combat::WriteClearKillReport(Protocol::Combat::KillExperienceOpcode);
+        m_connection.Send(std::move(report.packet), report.delivery);
+        return;
+    }
+    const auto experience = Protocol::Combat::ReadKillExperience(packet);
+    if (!experience.HasValue())
+    {
+        m_log.Warning("se ignora la experiencia (16): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(experience.Value(), *this)));
+}
+
+void ServerSession::OnExtendedKillExperience(const Network::Packet& packet)
+{
+    if (!packet.WasDecrypted())
+    {
+        m_log.Warning("la experiencia (9C) no llegó cifrada: se le avisa al GameServer (F1 03)");
+        Protocol::Outgoing report =
+            Protocol::Combat::WriteClearKillReport(Protocol::Combat::ExtendedKillExperienceOpcode);
+        m_connection.Send(std::move(report.packet), report.delivery);
+        return;
+    }
+    const auto experience = Protocol::Combat::ReadExtendedKillExperience(packet);
+    if (!experience.HasValue())
+    {
+        m_log.Warning("se ignora la experiencia (9C): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(experience.Value(), *this)));
+}
+
+// 0x4d0a30 recibe el paquete y el largo: no mira el flag.
+void ServerSession::OnDeath(const Network::Packet& packet)
+{
+    const auto death = Protocol::Combat::ReadDeath(packet);
+    if (!death.HasValue())
+    {
+        m_log.Warning("se ignora la muerte (17): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(death.Value(), *this)));
 }
 
 // 0x4cb750 (desde 0x4e39ab): la acción de otro, sin guarda de escena ni del flag de cifrado.
@@ -1648,6 +2076,51 @@ void ServerSession::OnViewportPosition(const Network::Packet& packet)
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(position.Value(), *this)));
 }
 
+// 0x4e37d1, 0x4e37e9 y 0x4e4643: el 13, el 1F y el 68, sin guarda de escena ni del flag de cifrado (CL9 hito 2).
+void ServerSession::OnViewportMonsters(const Network::Packet& packet)
+{
+    const auto monsters = Protocol::Viewport::ReadMonsters(packet);
+    if (!monsters.HasValue())
+    {
+        m_log.Warning("se ignoran los monstruos del viewport (13): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(monsters.Value(), *this)));
+}
+
+void ServerSession::OnSummons(const Network::Packet& packet)
+{
+    const auto summons = Protocol::Viewport::ReadSummons(packet);
+    if (!summons.HasValue())
+    {
+        m_log.Warning("se ignoran los invocados del viewport (1F): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(summons.Value(), *this)));
+}
+
+void ServerSession::OnMagicAttackCount(const Network::Packet& packet)
+{
+    const auto attack = Protocol::Viewport::ReadMagicAttackCount(packet);
+    if (!attack.HasValue())
+    {
+        m_log.Warning("se ignora la skill que pega a varios (1A): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(attack.Value(), *this)));
+}
+
+void ServerSession::OnViewportObjects(const Network::Packet& packet)
+{
+    const auto objects = Protocol::Viewport::ReadObjects(packet);
+    if (!objects.HasValue())
+    {
+        m_log.Warning("se ignoran los objetos del viewport (68): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(objects.Value(), *this)));
+}
+
 // P-C33: 0x4c6e32 prueba el flag antes de leer los campos; cero manda el F1 03.
 void ServerSession::OnTeleport(const Network::Packet& packet)
 {
@@ -1695,23 +2168,54 @@ void ServerSession::OnLogoutResult(const Network::Packet& packet)
         m_log.Warning("se ignora la orden de salida del GameServer (F1 02): {}", Unreadable);
         return;
     }
+    m_eventSink.ClearLogoutRequest(); // 0x4c273f, antes del switch y del guard de cifrado.
     if (result.Value() == Protocol::Connection::LogoutReturnsToSelection)
     {
         ReturnToSelection(packet.WasDecrypted());
         return;
     }
+    if (result.Value() == Protocol::Connection::LogoutReturnsToServerList)
+    {
+        ReturnToServerList(packet.WasDecrypted());
+        return;
+    }
     if (result.Value() != Protocol::Connection::LogoutQuitsTheGame)
     {
-        // 2 es la lista, que cambia de escena (Q-C79): la CL9. Con otro, el original no hace nada.
-        m_log.Warning("se ignora la orden de salida del GameServer (F1 02 con {}): MuRet sigue la de "
-                      "cerrar el juego, con 0, y la de volver a la selección, con 1",
-                      result.Value());
+        // Con otro resultado, el original no hace nada.
+        m_log.Warning("se ignora la orden de salida del GameServer (F1 02 con {}): motivo desconocido", result.Value());
         return;
     }
     m_log.Info("el GameServer ordenó cerrar el juego (F1 02 con 0): se cierra la conexión y el juego, sin aviso");
     m_connection.Close();
     ++m_generation;
     SetState(SessionState::QuitOrdered);
+}
+
+void ServerSession::ReturnToServerList(bool encrypted)
+{
+    // 0x4c275c: en escena 5 la limpieza precede incluso al rechazo por falta de cifrado.
+    if (!CheckApplication(m_eventSink.ApplyWorld(ServerListLogoutCleanup{}, *this)))
+        return;
+    if (!encrypted)
+    {
+        m_log.Warning("la orden de volver a los servidores (F1 02 con 2) no llegó cifrada: se avisa al GameServer");
+        Protocol::Outgoing report = Protocol::Connection::WriteClearLogoutReport();
+        m_connection.Send(std::move(report.packet), report.delivery);
+        return;
+    }
+    // 0x4c2f0a: cierre explícito, sin procesar el Closed ni otros paquetes del mismo lote.
+    m_connection.Close();
+    ++m_generation;
+    if (!CheckApplication(m_eventSink.ApplyWorld(ReturnToServerListReceived{}, *this)))
+        return;
+    m_characters.reset();
+    m_chosenSlot.reset();
+    m_createResult.reset();
+    m_deleteResult.reset();
+    m_deletingSlot.reset();
+    m_loginResult.reset();
+    SetState(SessionState::Idle); // 0x4c2f40: estado 0; LoginScene::Enter inicia la conexión al CS.
+    m_log.Info("el GameServer ordenó volver a los servidores (F1 02 con 2): se cierra el GS y se vuelve al login");
 }
 
 // 0x4c2f5b: sin cifrar, el F1 03 00 F1 y nada más (Q-C211). Cifrado, 0x4c3626..0x4c390f: el sink limpia el

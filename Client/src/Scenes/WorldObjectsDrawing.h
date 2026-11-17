@@ -52,16 +52,22 @@ void StepWorldObjects(std::span<World::WorldObject> objects, std::uint8_t map, c
 // 0x6063d0 con cada objeto, después de su 0x604ab0: lo que el mapa hace con él (Icarus).
 using AfterObjectStep = std::function<Core::Expected<void, std::string>(World::WorldObject&)>;
 
+// El recorrido de 0x606560 por los sectores, en World::DrawOrder: en un sector que pasó el último dibujo, `seenStep`
+// (0x604ab0 y 0x6063d0) y `collapse` (0x5ff960) con cada vivo que se vio; en uno que no pasó, `collapse` con cada vivo
+// y +0x16c en 0. Corta en el primero que corta, con los anteriores hechos.
+[[nodiscard]] Core::Expected<void, std::string> WalkTheObjectSectors(std::span<World::WorldObject> objects,
+                                                                     const AfterObjectStep& seenStep,
+                                                                     const AfterObjectStep& collapse);
+
 // 0x606560 en el juego (0x63706a): World::StepWorldObjectChecked sobre los vivos que se vieron en el último
-// dibujo, en World::DrawOrder, con el esqueleto de su tipo y el rand() de la CRT, y `after` (0x6063d0) con
-// cada uno, si está. 0x6061c0 al empezar va antes, en la escena; 0x5ff960 con cada uno y el 0x6c9ddc-- del
-// final no hacen nada fuera de los eventos (06 § Los objetos del juego). Corta en el primer objeto cuyo caso
-// MuRet no tiene, con los anteriores ya avanzados.
-[[nodiscard]] Core::Expected<void, std::string> StepGameWorldObjects(std::span<World::WorldObject> objects,
-                                                                     std::uint8_t map, const IModelLibrary& models,
-                                                                     Render::Models::CrtRandom& random,
-                                                                     const World::ObjectStepGlobals& globals,
-                                                                     const AfterObjectStep& after = {});
+// dibujo, en World::DrawOrder, con el esqueleto de su tipo y el rand() de la CRT, `after` (0x6063d0) con
+// cada uno, si está, y el derrumbe `collapse` (0x5ff960, Scenes/ObjectCollapse.h) también con los vivos de los
+// sectores que no pasaron (WalkTheObjectSectors). 0x6061c0 al empezar va antes, en la escena, y el 0x6c9ddc-- del
+// final también. Corta en el primer objeto cuyo caso MuRet no tiene, con los anteriores ya avanzados.
+[[nodiscard]] Core::Expected<void, std::string>
+StepGameWorldObjects(std::span<World::WorldObject> objects, std::uint8_t map, const IModelLibrary& models,
+                     Render::Models::CrtRandom& random, const World::ObjectStepGlobals& globals,
+                     const AfterObjectStep& after = {}, const AfterObjectStep& collapse = {});
 
 // Lo que 0x602ed0 hace en el frame con cada objeto que llega a él, después de su dibujo (0x604a4d).
 struct ObjectFrameEffects

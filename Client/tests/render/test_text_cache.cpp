@@ -55,6 +55,7 @@ using Client::Tests::FakeGlyphRasterizer;
 using Client::Tests::FakeTextureStore;
 
 constexpr PixelSize Screen{640, 480};
+constexpr PixelSize Screen1024{1024, 768};
 // Los slots de las cachés de estos tests: cuatro desde el primero del texto.
 constexpr TextureSlot First{0x735};
 constexpr std::size_t FourSlots = 4;
@@ -496,6 +497,54 @@ TEST_F(TextCacheTest, AWindowOfColumnsHasTheBackgroundAndTheTextFromItsColumn)
     ASSERT_TRUE(cache.DrawColumns(m_batch, 30, 40, "", Login, 0, 8).HasValue());
     EXPECT_EQ(cache.Size(), 3u);
     EXPECT_EQ(SlotsOf(m_batch).size(), SlotsOf(expected).size() + 1);
+}
+
+// El EDIT conserva el origen en píxeles y el recorte de texto usa el buffer cacheado de texto completo.
+TEST_F(TextCacheTest, DrawColumnsAtPixelsKeepsExactOriginAndUsesTheWindowedFullText)
+{
+    m_batch.Begin(Screen1024);
+    TextCache cache(m_rasterizer, m_store, First, FourSlots);
+
+    const auto drawn = cache.DrawColumnsAtPixels(m_batch, 239, 21, "abcdefghij", Login, -3, 300);
+
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    ASSERT_EQ(cache.Size(), 1u);
+    ASSERT_EQ(SlotsOf(m_batch), (std::vector<std::uint16_t>{First.value, First.value + 1}));
+    ASSERT_EQ(m_batch.Vertices().size(), 12u);
+    EXPECT_FLOAT_EQ(m_batch.Vertices()[0].x, 239.0f);
+    EXPECT_FLOAT_EQ(m_batch.Vertices()[6].x, 495.0f);
+    EXPECT_EQ(m_batch.Vertices()[0].u, 0.0f);
+    EXPECT_EQ(m_batch.Vertices()[6].u, 0.0f);
+    EXPECT_EQ(m_rasterizer.drawCalls, 2);
+}
+
+TEST_F(TextCacheTest, DrawColumnsAtPixelsKeepsBackgroundForEmptyText)
+{
+    m_batch.Begin(Screen1024);
+    TextCache cache(m_rasterizer, m_store, First, FourSlots);
+
+    const auto drawn = cache.DrawColumnsAtPixels(m_batch, 239, 21, "", Login, 0, 8);
+
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    ASSERT_EQ(cache.Size(), 1u);
+    ASSERT_EQ(m_batch.Vertices().size(), 6u);
+    EXPECT_FLOAT_EQ(m_batch.Vertices()[0].x, 239.0f);
+    const auto texture = m_store.Find(First);
+    ASSERT_TRUE(texture.has_value());
+    EXPECT_EQ(texture->texture.pixels[3], 0x80);
+    EXPECT_EQ(m_rasterizer.drawCalls, 1);
+}
+
+TEST_F(TextCacheTest, DrawColumnsAtPixelsRejectsNegativeWidth)
+{
+    m_batch.Begin(Screen1024);
+    TextCache cache(m_rasterizer, m_store, First, FourSlots);
+
+    const auto drawn = cache.DrawColumnsAtPixels(m_batch, 239, 21, "abc", Login, 0, -1);
+
+    ASSERT_FALSE(drawn.HasValue());
+    EXPECT_EQ(m_store.loadCalls, 0);
+    EXPECT_TRUE(m_batch.Vertices().empty());
 }
 
 // El modo 2 de 0x467060 (el título del inventario): "ab" (12 columnas) en una caja de 40 va en la columna 14, y la caja

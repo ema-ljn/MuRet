@@ -62,6 +62,11 @@ jobs:
             build-preset: linux-x64-debug
             test-preset: linux-x64-debug
             precompiled-headers: 'OFF'
+            # Los ejecutables de test enlazan ClientLib con toda su información de depuración: los de
+            # scenes pesan ~100 MB cada uno y el build entero pasa los 14 GB que GitHub garantiza en
+            # el disco del runner. Comprimidas con zlib, las secciones de depuración pesan menos de la
+            # mitad (medido con test_game_social_steps: 101 MB -> 46 MB) y gdb las sigue leyendo.
+            extra-configure: '-DCMAKE_EXE_LINKER_FLAGS=-Wl,--compress-debug-sections=zlib'
             font-file: /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
           - name: Windows (MSVC, Debug)
             os: windows-2022
@@ -69,6 +74,7 @@ jobs:
             build-preset: windows-x64-debug
             test-preset: windows-x64-debug
             precompiled-headers: 'ON'
+            extra-configure: ''
             font-file: 'C:\Windows\Fonts\arial.ttf'
     env:
       VCPKG_DISABLE_METRICS: 1
@@ -78,6 +84,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+
+      - name: Tests de las herramientas de evidencia CL9
+        run: python -m unittest discover -s Client/docs/research/scripts/game/capture -p 'test_*evidence.py' -v
 
       # Lo que el puerto sdl3 de vcpkg pide del sistema para las features x11 y wayland, los
       # headers de OpenGL/EGL, y Xvfb + Mesa (llvmpipe) para abrir la ventana sin pantalla. NASM lo
@@ -109,6 +118,20 @@ jobs:
             sudo apt-get install -y fonts-dejavu-core
           fi
           test -f "$MURET_CLIENT_FONT_FILE"
+
+      # El build de Debug con los ~600 ejecutables de test no entra en el disco libre del runner, y
+      # cuando el disco se llena el runner pierde la conexión sin dejar el log ("The hosted runner lost
+      # communication with the server", 2026-11-17 en #361). Se borran SDKs de la imagen que este job
+      # no usa (Android, .NET, Haskell y CodeQL; el SDK de Android se puede borrar justamente para
+      # esto, actions/runner-images) y se muestra el disco y la memoria antes de compilar.
+      - name: Espacio en disco (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          df -h /
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup \
+            /opt/hostedtoolcache/CodeQL
+          df -h /
+          free -h
 
       # vcpkg clonado entero (con historia: el versionado lo necesita) y parado en la
       # builtin-baseline de vcpkg.json, para que CI use las mismas versiones que todos.
@@ -147,10 +170,21 @@ jobs:
       - name: Configurar
         run: >-
           cmake --preset ${{ matrix.configure-preset }} -DMURET_WARNINGS_AS_ERRORS=ON
-          -DMURET_PRECOMPILED_HEADERS=${{ matrix.precompiled-headers }}
+          -DMURET_PRECOMPILED_HEADERS=${{ matrix.precompiled-headers }} ${{ matrix.extra-configure }}
 
       - name: Compilar
-        run: cmake --build --preset ${{ matrix.build-preset }}
+        # MSBuild puede construir dos proyectos a la vez; se conserva la concurrencia nativa de Ninja en Linux.
+        run: >-
+          cmake --build --preset ${{ matrix.build-preset }}
+          ${{ runner.os == 'Windows' && '--parallel 2' || '' }}
+
+      # Cuánto dejó el build, también si falló, para ver de antemano si el disco vuelve a quedar justo.
+      - name: Disco y memoria después de compilar (Linux)
+        if: always() && runner.os == 'Linux'
+        run: |
+          df -h /
+          free -h
+          du -sh build/${{ matrix.configure-preset }} || true
 
       - name: Tests
         run: ctest --preset ${{ matrix.test-preset }}
@@ -161,7 +195,7 @@ jobs:
         if: runner.os == 'Windows' && hashFiles('Client/src/Render/Models/OriginalRetainedMath.cpp') != ''
         shell: pwsh
         run: |
-          cmake --build build/windows-x64 --config Release --target Main test_original_angles test_original_retained_math
+          cmake --build build/windows-x64 --config Release --parallel 2 --target Main test_original_angles test_original_retained_math
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           ctest --test-dir build/windows-x64 -C Release -R '^(OriginalAnglesTest|OriginalRetainedMathTest)\.' --output-on-failure --no-tests=error
           exit $LASTEXITCODE

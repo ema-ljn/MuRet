@@ -199,4 +199,14 @@ Core::Expected<std::string, std::string> ItemNameOf(const Data::Tables::ItemTabl
         return name;
     return UI::Sprintf("%s +%d", std::string_view(name.Value()), level);
 }
+
+bool ItemNameIsWritten(std::uint16_t type, std::int32_t level)
+{
+    // El 0x180b, las cajas de 0x1c0b del 8 al 12 y el 0x1c0c de nivel 2 (0x5b1d52) escriben antes de la tabla.
+    if (type == Type180b || (type == 0x1c0b && level >= FirstPlusBox && level <= LastPlusBox) ||
+        (type == 0x1c0c && level == 2))
+        return true;
+    const std::optional<NameCase> fixed = FixedCase(type, level);
+    return !fixed || fixed->kind != NameKind::None;
+}
 } // namespace Client::Scenes

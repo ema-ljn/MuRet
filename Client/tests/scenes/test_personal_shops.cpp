@@ -177,10 +177,66 @@ TEST_P(PersonalShopsTest, TheTitlesListReadsItsEntries)
     EXPECT_FALSE(Shop::ReadShopTitles(PacketOf(bytes)).HasValue());
 }
 
+// Las listas (fase 4): 0x4db890 lee el resultado en pkt[5], la clave en pkt[6..7] (BE), el título en pkt[0x12..0x35],
+// la cuenta en pkt[0x36] y las entradas de 0xc bytes desde pkt[0x37] (el lugar, el ítem y el precio LE con signo); el
+// 0x13 (0x4dbb40) lo mismo sin la clave ni el título. 0x4db120 lee pkt[4] y pkt[5]; 0x4dbcb0, pkt[4] y con 1 el ítem de
+// pkt[7..0xd] y el lugar de pkt[0xe]. Sin el resultado 1, las listas solo leen pkt[5].
+TEST_P(PersonalShopsTest, TheItemListsReadTheirEntries)
+{
+    std::vector<std::byte> bytes = Bytes({0xc2, 0x00, 0x00, 0x3f, 0x05, 0x01, 0x02, 0x34});
+    Append(bytes, "", 0x12 - 8);
+    Append(bytes, "Cosas baratas", Shop::TitleSize);
+    bytes.push_back(std::byte{2});
+    for (const auto& [slot, price] : {std::pair<int, std::uint32_t>{0x55, 1500}, {0x4f, 0xfffffffe}})
+    {
+        bytes.push_back(static_cast<std::byte>(slot));
+        Append(bytes, "\x03\x08\x14", 7);
+        for (int shift = 0; shift < 32; shift += 8)
+            bytes.push_back(static_cast<std::byte>((price >> shift) & 0xff));
+    }
+    const auto list = Shop::ReadShopItemList(PacketOf(bytes));
+    ASSERT_TRUE(list.HasValue());
+    EXPECT_EQ(list.Value().result, 1);
+    EXPECT_EQ(list.Value().key, SellerKey);
+    EXPECT_EQ(list.Value().title[0], std::byte{'C'});
+    ASSERT_EQ(list.Value().entries.size(), 2u);
+    EXPECT_EQ(list.Value().entries[0].slot, 0x55);
+    EXPECT_EQ(list.Value().entries[0].item[1], std::byte{0x08});
+    EXPECT_EQ(list.Value().entries[0].price, 1500);
+    EXPECT_EQ(list.Value().entries[1].slot, 0x4f);
+    EXPECT_EQ(list.Value().entries[1].price, -2);
+    bytes[4] = std::byte{0x13};
+    const auto refresh = Shop::ReadShopRefresh(PacketOf(bytes));
+    ASSERT_TRUE(refresh.HasValue());
+    EXPECT_EQ(refresh.Value().entries.size(), 2u);
+    bytes.resize(bytes.size() - 1);
+    EXPECT_FALSE(Shop::ReadShopItemList(PacketOf(bytes)).HasValue());
+    const auto refused = Shop::ReadShopItemList(PacketOf(Bytes({0xc2, 0x00, 0x00, 0x3f, 0x05, 0x03})));
+    ASSERT_TRUE(refused.HasValue());
+    EXPECT_EQ(refused.Value().result, 3);
+
+    const auto price = Shop::ReadPriceResult(PacketOf(Bytes({0xc1, 0x00, 0x3f, 0x01, 0x00, 0x4d})));
+    ASSERT_TRUE(price.HasValue());
+    EXPECT_EQ(price.Value().result, 0);
+    EXPECT_EQ(price.Value().slot, 0x4d);
+    const auto bought = Shop::ReadShopPurchase(
+        PacketOf(Bytes({0xc1, 0x00, 0x3f, 0x06, 0x01, 0x02, 0x34, 0x03, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0x11})));
+    ASSERT_TRUE(bought.HasValue());
+    EXPECT_EQ(bought.Value().result, 1);
+    EXPECT_EQ(bought.Value().item[0], std::byte{0x03});
+    EXPECT_EQ(bought.Value().item[2], std::byte{0x14});
+    EXPECT_EQ(bought.Value().slot, 0x11);
+    const auto failed = Shop::ReadShopPurchase(PacketOf(Bytes({0xc1, 0x00, 0x3f, 0x06, 0x07})));
+    ASSERT_TRUE(failed.HasValue());
+    EXPECT_EQ(failed.Value().result, 7);
+}
+
 // 0x4dae80 y 0x4511f0: un cartel por jugador de la clave (el monstruo, +0x88 en 2, solo va al log; una clave sin nadie,
-// nada), con el nombre de +0x1d9; el DC queda en la negrita (0x452540). 0x451810 lo ve; 0x451770 también, a la vista.
+// nada), con el nombre de +0x1d9; el DC queda en la normal de las líneas (0x4531f7). 0x451810 lo ve; 0x451770 también,
+// a la vista.
 TEST_P(PersonalShopsTest, TheTitlesGoToThePlayersOfTheirKeys)
 {
+    m_world->Runtime().hud.dcFont = Client::Render::Text::FontKind::BigBold;
     Client::Scenes::ApplyShopTitles(
         Shop::ShopTitles{
             {{SellerKey, "Espadas baratas"}, {MonsterKey, "Pieles"}, {0x0777, "Nadie"}, {BuyerKey, "Compro joyas"}}},
@@ -190,7 +246,7 @@ TEST_P(PersonalShopsTest, TheTitlesGoToThePlayersOfTheirKeys)
     EXPECT_EQ(Shops().titles.at(Seller).name, "Brezal");
     EXPECT_EQ(Shops().titles.at(Seller).title, "Espadas baratas");
     EXPECT_EQ(Shops().titles.at(Buyer).title, "Compro joyas");
-    EXPECT_EQ(m_world->Runtime().hud.dcFont, Client::Render::Text::FontKind::Bold);
+    EXPECT_EQ(m_world->Runtime().hud.dcFont, Client::Render::Text::FontKind::Normal);
     EXPECT_TRUE(Client::Scenes::HasShopTitle(Shops(), Seller));
     EXPECT_FALSE(Client::Scenes::HasShopTitle(Shops(), Monster));
     EXPECT_TRUE(Client::Scenes::ShopTitleShown(Shops(), Seller));
@@ -259,6 +315,36 @@ TEST_P(PersonalShopsTest, StaleTitlesLeave)
     EXPECT_FALSE(Client::Scenes::HasShopTitle(Shops(), Buyer));
 }
 
+// 0x4524e0: el alta guarda la clave con & 0x7fff y el lugar en (−1, −1); 0x4511f0 con la misma clave también vuelve el
+// lugar a (−1, −1) (0x4527d0). Con una clave desde 0x8000 (MOVSX, 0x8001 es −32.767), la guardada es 1: la
+// actualización no la iguala y solo va al log, y 0x451fe0 saca el cartel (07 Q-C969).
+TEST_P(PersonalShopsTest, TheStoredKeyLosesItsHighBitAndAnUpdateUnplacesTheSign)
+{
+    Client::Scenes::AddShopTitle(*m_world, SellerKey, Seller, "Arcos");
+    Client::Scenes::ShopTitle& sign = Shops().titles.at(Seller);
+    EXPECT_EQ(sign.x, -1);
+    EXPECT_EQ(sign.y, -1);
+    sign.x = 120;
+    sign.y = 80;
+    Client::Scenes::AddShopTitle(*m_world, SellerKey, Seller, "Escudos");
+    EXPECT_EQ(sign.title, "Escudos");
+    EXPECT_EQ(sign.x, -1);
+    EXPECT_EQ(sign.y, -1);
+
+    m_world->Actors()[Buyer].key = 0x8001;
+    const std::int32_t high = static_cast<std::int16_t>(std::uint16_t{0x8001});
+    Client::Scenes::AddShopTitle(*m_world, high, Buyer, "Joyas");
+    ASSERT_TRUE(Client::Scenes::HasShopTitle(Shops(), Buyer));
+    EXPECT_EQ(Shops().titles.at(Buyer).key, 0x0001);
+    Shops().titles.at(Buyer).x = 33;
+    Client::Scenes::AddShopTitle(*m_world, high, Buyer, "Otra");
+    EXPECT_EQ(Shops().titles.at(Buyer).title, "Joyas");
+    EXPECT_EQ(Shops().titles.at(Buyer).x, 33);
+    Client::Scenes::CheckTheShopKeys(*m_world);
+    EXPECT_FALSE(Client::Scenes::HasShopTitle(Shops(), Buyer));
+    EXPECT_TRUE(Client::Scenes::HasShopTitle(Shops(), Seller));
+}
+
 // 0x451590, detrás de cada 0x510f70 de la clave del jugador (la carga del mapa, el F3 04 y el 1C): solo queda el cartel
 // con la clave del héroe publicado.
 TEST_P(PersonalShopsTest, ALoadKeepsOnlyTheHeroTitle)
@@ -289,20 +375,32 @@ TEST_P(PersonalShopsTest, ABubbleHidesTheTitle)
     EXPECT_TRUE(Client::Scenes::ShopTitleShown(Shops(), Seller));
 }
 
-// 0x556dd0: el globo nuevo de un dueño con cartel (0x451810) pide su título corto (0x4518b0), que corta; sin
-// cartel, el título del globo queda vacío.
-TEST_P(PersonalShopsTest, TheBubbleOfAShopOwnerStopsAtTheShortTitle)
+// 0x556dd0: el globo nuevo de un dueño con cartel (0x451810) lleva su título corto (0x4518b0): con más de 14 bytes,
+// los primeros 12 y ".."; sin cartel, el título del globo queda vacío.
+TEST_P(PersonalShopsTest, TheBubbleOfAShopOwnerTakesTheShortTitle)
 {
-    Client::Scenes::ApplyShopTitles(Shop::ShopTitles{{{SellerKey, "Arcos"}}}, *m_world);
+    Client::Scenes::ApplyShopTitles(Shop::ShopTitles{{{SellerKey, "Arcos y flechas finas"}}}, *m_world);
     const Client::Scenes::ChatBubbleMeasure measure{.measure = m_letters, .screen = Client::App::PixelSize{640, 480}};
-    const auto cut = Client::Scenes::AddChatBubble(*m_world, measure, "Brezal", "hola", Seller,
-                                                   Client::Scenes::ChatBubbleMode::Chat);
-    ASSERT_FALSE(cut.HasValue());
-    EXPECT_NE(cut.Error().find("0x556e26"), std::string::npos) << cut.Error();
-
-    const auto added =
-        Client::Scenes::AddChatBubble(*m_world, measure, "Cardo", "hola", Buyer, Client::Scenes::ChatBubbleMode::Chat);
+    const auto added = Client::Scenes::AddChatBubble(*m_world, measure, "Brezal", "hola", Seller,
+                                                     Client::Scenes::ChatBubbleMode::Chat);
     ASSERT_TRUE(added.HasValue()) << added.Error();
+    const auto bubbleOf = [&](std::size_t owner) -> const Client::Scenes::ChatBubble*
+    {
+        for (const Client::Scenes::ChatBubble& bubble : m_world->Runtime().chat.bubbles)
+        {
+            if (bubble.owner == owner)
+                return &bubble;
+        }
+        return nullptr;
+    };
+    ASSERT_NE(bubbleOf(Seller), nullptr);
+    EXPECT_EQ(bubbleOf(Seller)->shopTitle, "Arcos y flec..");
+
+    const auto other =
+        Client::Scenes::AddChatBubble(*m_world, measure, "Cardo", "hola", Buyer, Client::Scenes::ChatBubbleMode::Chat);
+    ASSERT_TRUE(other.HasValue()) << other.Error();
+    ASSERT_NE(bubbleOf(Buyer), nullptr);
+    EXPECT_EQ(bubbleOf(Buyer)->shopTitle, "");
 }
 
 // 0x4e4f5d (3F 08): sprintf(Text[1122], nombre) con el tipo 1. 0x4e4fcc (3F 12): con 0x6c931c en 2, los cierres y el
@@ -320,10 +418,10 @@ TEST_P(PersonalShopsTest, TheNoticesGoToTheMessages)
     EXPECT_EQ(entries.front().type, Client::UI::SystemMessage);
 
     const std::size_t before = entries.size();
-    ASSERT_TRUE(Client::Scenes::ApplyShopOwnerLeft(Resources()).HasValue());
+    ASSERT_TRUE(Client::Scenes::ApplyShopOwnerLeft(Resources(), {}).HasValue());
     EXPECT_EQ(entries.size(), before);
     Shops().mode = 2;
-    ASSERT_TRUE(Client::Scenes::ApplyShopOwnerLeft(Resources()).HasValue());
+    ASSERT_TRUE(Client::Scenes::ApplyShopOwnerLeft(Resources(), {}).HasValue());
     EXPECT_EQ(entries.front().text, "la tienda se cerro");
     EXPECT_EQ(entries.front().type, Client::UI::ErrorMessage);
 }

@@ -6,6 +6,7 @@
 #include "Scenes/GameMessages.h"
 #include "Scenes/GuildState.h"
 #include "Scenes/PersonalShopTitles.h"
+#include "Scenes/ShopSigns.h"
 #include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -90,16 +91,15 @@ Core::Expected<std::string, std::string> GuildLine(char open, char close, std::s
     return line;
 }
 
-// 0x556dd0(entrada, personaje): sin cartel de tienda (0x451810) el título vacío, y con él el título corto de 0x4518b0,
-// que corta. Con gremio (+0x1f2 no negativo), la alianza (+0x4 de la entrada) en +0x18 si tiene nombre, +0x65 = +0x374
-// y el gremio (+0xd) con el puesto en +0x36; sin gremio, los dos vacíos y +0x65 en 0.
+// 0x556dd0(entrada, personaje): sin cartel de tienda (0x451810) el título vacío (0x556f23), y con él el título corto de
+// 0x4518b0 con strcpy (0x556e26..0x556e60). Después, con gremio (+0x1f2 no negativo), la alianza (+0x4 de la entrada)
+// en +0x18 si tiene nombre, +0x65 = +0x374 y el gremio (+0xd) con el puesto en +0x36; sin gremio, los dos vacíos y
+// +0x65 en 0.
 Core::Expected<void, std::string> FillTheGuild(ChatBubble& bubble, const ActorState& owner, const GuildState& guild,
-                                               const Data::Text::TextTable* texts, bool hasShop)
+                                               const Data::Text::TextTable* texts, const PersonalShopState& shops,
+                                               std::size_t ownerIndex)
 {
-    if (hasShop)
-        return Core::Unexpected(std::string("0x556e26: el título corto de la tienda personal en el globo (0x4518b0) es "
-                                            "del hito 7 (08 P-C208 a)"));
-    bubble.shopTitle.clear();
+    bubble.shopTitle = ShortShopTitle(shops, ownerIndex);
     const auto index = static_cast<std::int16_t>(owner.word1f2);
     if (index < 0)
     {
@@ -222,8 +222,7 @@ Core::Expected<void, std::string> AddChatBubble(WorldState& world, const ChatBub
     }
     bubble->name = std::string(name);
     bubble->color = shown;
-    if (auto guild = FillTheGuild(*bubble, speaker, runtime.guild, measure.texts,
-                                  HasShopTitle(world.Runtime().social.personalShop, owner));
+    if (auto guild = FillTheGuild(*bubble, speaker, runtime.guild, measure.texts, runtime.social.personalShop, owner);
         !guild.HasValue())
         return guild;
     if (text.empty())

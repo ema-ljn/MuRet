@@ -91,22 +91,65 @@ TEST(GameDialogsTest, TheChaosCastleDialogSplitsItsTextsOneAfterTheOther)
     EXPECT_EQ(dialogs.pending, 0);
 }
 
-// Los textos con formato son de la CL9.3, y lo que pasaría los 7 renglones corta.
+// Los textos con formato son de la CL9.3 (el 0x99 lo abre OpenTheMoneyTextDialog), y lo que pasaría los 7 renglones
+// corta.
 TEST(GameDialogsTest, TheFormattedTextsAndTheOverflowsAreCut)
 {
     const auto texts = MakeTextTable({{60, "corto"}});
     DialogBoxState box;
     DialogState dialogs;
-    for (const std::int32_t id : {0x96, 0xa8, 0x99, 0xa3})
+    for (const std::int32_t id : {0x96, 0xa8, 0xa3})
     {
         const auto opened = Client::UI::OpenTextDialog(box, dialogs, &texts, 1, 60, id);
         ASSERT_FALSE(opened.HasValue());
         EXPECT_NE(opened.Error().find("CL9.3"), std::string::npos) << opened.Error();
     }
+    const auto money = Client::UI::OpenTextDialog(box, dialogs, &texts, 1, 60, Client::UI::MoneyTextDialog);
+    ASSERT_FALSE(money.HasValue());
+    EXPECT_NE(money.Error().find("OpenTheMoneyTextDialog"), std::string::npos) << money.Error();
     const auto tooMany = Client::UI::OpenTextDialog(box, dialogs, &texts, 8, 60, 0x8b);
     ASSERT_FALSE(tooMany.HasValue());
     EXPECT_NE(tooMany.Error().find("0x633612"), std::string::npos) << tooMany.Error();
     EXPECT_EQ(dialogs.current, 0);
+}
+
+// 0x63332f..0x6333a3 (CL9 hito 7): el 0x99 escribe el primer renglón con el sprintf de su texto y el zen, sin tope (lo
+// largo sigue abajo y el sprintf del segundo lo pisa), pasa los que siguen por el mismo sprintf sin argumentos (el "%%"
+// sale como "%") y abre con los dos botones. Con un renglón, solo el primero; lo que pasaría los 7 corta, como sin
+// Text.bmd.
+TEST(GameDialogsTest, TheMoneyDialogFormatsItsFirstRow)
+{
+    const auto texts = MakeTextTable({{70, "venta : %s zen, un renglon largo"}, {71, "seguro? 100%%"}});
+    DialogBoxState box;
+    DialogState dialogs;
+    ASSERT_TRUE(Client::UI::OpenTheMoneyTextDialog(box, dialogs, &texts, 2, 70, "1,234,567").HasValue());
+    EXPECT_EQ(box.lineCount, 2);
+    // Sin '\0' en sus 0x26 bytes, el primero se lee hasta el que dejó el segundo.
+    EXPECT_EQ(DialogRow(box, 0), "venta : 1,234,567 zen, un renglon largseguro? 100%");
+    EXPECT_EQ(DialogRow(box, 1), "seguro? 100%");
+    EXPECT_EQ(box.buttons[0].state, 1);
+    EXPECT_EQ(box.buttons[0].x, 0x15);
+    EXPECT_EQ(box.buttons[0].y, 0x5a);
+    EXPECT_EQ(box.buttons[1].state, 3);
+    EXPECT_EQ(box.buttons[1].x, 0x78);
+    EXPECT_EQ(box.buttons[1].y, 0x5a);
+    EXPECT_EQ(dialogs.current, Client::UI::MoneyTextDialog);
+
+    DialogBoxState single;
+    DialogState closed;
+    ASSERT_TRUE(Client::UI::OpenTheMoneyTextDialog(single, closed, &texts, 1, 70, "9").HasValue());
+    EXPECT_EQ(single.lineCount, 1);
+    EXPECT_EQ(DialogRow(single, 0), "venta : 9 zen, un renglon largo");
+    EXPECT_EQ(DialogRow(single, 1), "");
+
+    const std::string wide(7 * 0x26, '9');
+    const auto overflow = Client::UI::OpenTheMoneyTextDialog(single, closed, &texts, 1, 70, wide);
+    ASSERT_FALSE(overflow.HasValue());
+    EXPECT_NE(overflow.Error().find("0x633367"), std::string::npos) << overflow.Error();
+    const auto missing = Client::UI::OpenTheMoneyTextDialog(single, closed, nullptr, 2, 70, "9");
+    ASSERT_FALSE(missing.HasValue());
+    EXPECT_NE(missing.Error().find("0x633367"), std::string::npos) << missing.Error();
+    EXPECT_EQ(closed.current, Client::UI::MoneyTextDialog);
 }
 
 // 0x62d756: el rectángulo corrido (0xd5, 0x3c) con sus bordes; con el clic, elige y apaga el clic y el botón abajo.

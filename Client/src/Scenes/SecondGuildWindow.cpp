@@ -324,7 +324,7 @@ void Notice(WorldRuntime& runtime, std::int32_t dialog)
 // MuRet no tiene) y oculto.
 void HideTheNameField(UI::ChatInputState& input)
 {
-    input.dialogField.text.SetText({});
+    input.dialogEdit.text.SetText({});
     UI::ShowTheDialogField(input, HiddenField);
 }
 
@@ -397,7 +397,7 @@ Core::Expected<void, std::string> StepTheName(const SecondGuildStepContext& cont
         // 0x654fb3..0x654fda: GetText(0x78a597d, 0xff) y GetText(0x7798bf8, 0xff). El nombre tiene 9 bytes hasta la
         // marca (+0x16): el EDIT, con EM_LIMITTEXT 8, no pasa de ahí.
         std::array<char, GuildTableEntry{}.guildName.size()>& name = guild.table[CreatingIndex].guildName;
-        const std::string_view typed = input.dialogField.text.Value();
+        const std::string_view typed = input.dialogEdit.text.Value();
         if (typed.size() >= name.size())
             return Core::Unexpected(std::format("0x654fc5: GetText del nombre del gremio ({} bytes) pisaría la marca "
                                                 "nueva (0x78a5986)",
@@ -687,11 +687,11 @@ Core::Expected<void, std::string> DrawTheName(GameHudContext& context, GuildStat
         return Core::Unexpected(std::move(name).Error());
     DrawText(context, x + PageLeft, y + PageTop, name.Value());
     UI::ChatInputState& input = context.world.Runtime().chat.input;
-    UI::OldEdit& field = input.dialogField;
+    UI::OldEdit& field = input.dialogEdit;
     UI::ShowTheDialogField(input, ShownField);
     field.filter = 0;
     field.backgroundColor = 0;
-    field.text.Limit(GuildNameLimit);
+    field.text.SetLimit(GuildNameLimit);
     field.base.width = FieldWidth;
     field.base.height = FieldHeight;
     field.base.x = x + PageLeft + FieldLeft;
@@ -703,7 +703,7 @@ Core::Expected<void, std::string> DrawTheName(GameHudContext& context, GuildStat
                                                          .dcFont = context.hud.dcFont,
                                                          .textColors = context.hud.textColors,
                                                          .arrowHeld = context.arrowHeld},
-                                field, input.focus == UI::ChatFocus::DialogField);
+                                field, input.focus == UI::ChatFocus::Dialog);
     if (auto uploaded = UploadTheNewMark(context, guild); !uploaded.HasValue())
         return uploaded;
     if (auto editor = DrawTheMarkEditor(context, guild, x, y); !editor.HasValue())

@@ -115,9 +115,105 @@ struct Position
 
 // Ya pasaron por el framing y la decodificación de Network. WrongPacket con otro tipo u opcode; TooShort si falta
 // un campo que el original lee (del último registro, hasta su último byte leído). Los bytes de más se ignoran.
+// Los monstruos y los NPC que entran (CL9 hito 2): el 0x13 (0x4c9c60), el 0x1F (0x4ca0b0) y el 0x68 (0x4e0980), los
+// tres C2 con la cuenta en pkt[4] y los registros desde pkt[5] (04, "Los monstruos y los NPC que entran").
+inline constexpr std::uint8_t MonstersOpcode = 0x13;
+inline constexpr std::uint8_t SummonsOpcode = 0x1f;
+inline constexpr std::uint8_t ObjectsOpcode = 0x68;
+inline constexpr std::size_t MonsterRecordSize = 0x10;
+inline constexpr std::size_t SummonRecordSize = 0x18;
+inline constexpr std::size_t ObjectRecordSize = 0x1c;
+
+// Un registro del 0x13, de 0x10 bytes; el último que lee 0x4c9c60 es +0xc.
+struct MonsterRecord
+{
+    // +0 y +1, el alto primero: la clave sin el bit 15 y el bit 15 (0x4c9cc8), el recién llegado.
+    std::uint16_t key = 0;
+    bool isNew = false;
+    // +2 entero: el bit 7 va a +0x42d y los bits 4..6 a +0x93; los bits 0..1 son el alto del tipo.
+    std::uint8_t typeHigh = 0;
+    // (+2 & 3) << 8 | +3.
+    std::uint16_t type = 0;
+    // +4..+7, el bajo primero (0x4e6380).
+    std::uint32_t effects = 0;
+    std::uint8_t x = 0;       // +8
+    std::uint8_t y = 0;       // +9
+    std::uint8_t targetX = 0; // +0xa
+    std::uint8_t targetY = 0; // +0xb
+    // +0xc: la dirección en el nibble alto (el de abajo no lo lee nadie).
+    std::uint8_t direction = 0;
+};
+
+struct Monsters
+{
+    std::vector<MonsterRecord> records;
+};
+
+// Un registro del 0x1F, de 0x18 bytes; el último que lee 0x4ca0b0 es +0x16.
+struct SummonRecord
+{
+    std::uint16_t key = 0;
+    bool isNew = false;
+    // +2 y +3, el alto primero, los 16 bits: de 0x98 a 0x9e van por 0x517400.
+    std::uint16_t type = 0;
+    std::uint32_t effects = 0; // +4..+7
+    std::uint8_t x = 0;        // +8
+    std::uint8_t y = 0;        // +9
+    std::uint8_t targetX = 0;  // +0xa
+    std::uint8_t targetY = 0;  // +0xb
+    // +0xc: la dirección arriba y el PK abajo.
+    std::uint8_t directionAndPk = 0;
+    // +0xd..+0x16: el nombre del dueño, sin terminador si lo llena.
+    std::array<std::byte, Character::NameSize> owner{};
+};
+
+struct Summons
+{
+    std::vector<SummonRecord> records;
+};
+
+// Un registro del 0x68, de 0x1c bytes: con `kind` 1, un jugador (0x20a) con la clase de +1 y el equipo; con 2 o 3, el
+// monstruo del tipo (+1 << 8 | +2); con otro, nada.
+struct ObjectRecord
+{
+    std::uint8_t kind = 0;            // +0
+    std::uint8_t classOrTypeHigh = 0; // +1
+    std::uint8_t typeLow = 0;         // +2
+    // +3 y +4, el alto primero, sin el bit 15 (0x4e09b3).
+    std::uint16_t key = 0;
+    std::uint8_t x = 0; // +5
+    std::uint8_t y = 0; // +6
+    // +7..+0x17, los 17 bytes del equipo (0x5139f0).
+    std::array<std::byte, Character::EquipmentSize> equipment{};
+    std::uint32_t effects = 0; // +0x18..+0x1b
+};
+
+struct Objects
+{
+    std::vector<ObjectRecord> records;
+};
+
+// La skill que pega a varios (CL9 hito 2): el C1 0x1A (0x4cedd0, PMSG_MAGICATTACK_COUNT_SEND). La clave del que pega en
+// pkt[3..4] (el alto primero, entera), la skill en pkt[5], la celda en pkt[6] y pkt[7] (que 0x4cedd0 no lee), la cuenta
+// en pkt[8] y las claves de los blancos desde pkt[9], de a dos bytes con el alto primero (0x4ceff6..0x4cf009).
+inline constexpr std::uint8_t MagicAttackCountOpcode = 0x1a;
+
+struct MagicAttackCount
+{
+    std::uint16_t key = 0;
+    // pkt[5]: lo que queda en el +0x38e del que pega (0x4ceee4).
+    std::uint8_t magic = 0;
+    std::vector<std::uint16_t> targets;
+};
+
 [[nodiscard]] Core::Expected<Players, ProtocolError> ReadPlayers(const Network::Packet& packet);
 [[nodiscard]] Core::Expected<Leave, ProtocolError> ReadLeave(const Network::Packet& packet);
 [[nodiscard]] Core::Expected<Transformed, ProtocolError> ReadTransformed(const Network::Packet& packet);
 [[nodiscard]] Core::Expected<EquipmentShown, ProtocolError> ReadEquipmentShown(const Network::Packet& packet);
 [[nodiscard]] Core::Expected<Position, ProtocolError> ReadPosition(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<Monsters, ProtocolError> ReadMonsters(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<Summons, ProtocolError> ReadSummons(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<Objects, ProtocolError> ReadObjects(const Network::Packet& packet);
+// TooShort sin la cuenta o sin el último byte de la última clave (pkt[8 + 2 · cuenta]).
+[[nodiscard]] Core::Expected<MagicAttackCount, ProtocolError> ReadMagicAttackCount(const Network::Packet& packet);
 } // namespace Client::Protocol::Viewport

@@ -272,6 +272,37 @@ void WriteTheItemClasses(const GameHudContext& context, TooltipWriter& lines,
     }
 }
 
+Core::Expected<void, std::string> WriteAnOption(GameHudContext& context, TooltipWriter& lines, std::int32_t type,
+                                                std::uint8_t tag, std::uint8_t value)
+{
+    const auto found = std::ranges::find(OptionTexts, tag, &OptionText::tag);
+    if (found == OptionTexts.end())
+        return {};
+    if (tag == LuckOption && type >= FirstQuestItem && type <= LastQuestItem)
+        return {};
+    switch (found->argument)
+    {
+    case OptionArgument::None:
+        lines.PrintText(found->text);
+        break;
+    case OptionArgument::Value:
+        lines.PrintText(found->text, static_cast<std::int32_t>(value));
+        break;
+    case OptionArgument::Mana:
+    {
+        // Con un error ya guardado en el escritor, ese error, sin abrir el acceso.
+        if (lines.Failed())
+            return Core::Unexpected(lines.Error());
+        const auto entry = ReadTheSkillEntry(context, tag, "0x5b2356");
+        if (!entry.HasValue())
+            return Core::Unexpected(entry.Error());
+        lines.PrintText(found->text, static_cast<std::int32_t>(entry.Value().mana));
+        break;
+    }
+    }
+    return {};
+}
+
 namespace
 {
 // Un renglón azul y en negrita después de un "\n" (el 78 y el 93 van sin argumentos).
@@ -328,37 +359,6 @@ void WriteTheSetStat(Frame& frame)
     lines.Next();
 }
 
-// 0x5b2320(tipo, renglón, opción, valor, maná): el texto de la opción en el renglón que sigue, sin su color ni su
-// negrita. Las que leen el maná abren la entrada de la skill de la opción (0x551c70, que pisa el maná del argumento).
-// Una opción que no está en la tabla deja el renglón como estaba.
-Core::Expected<void, std::string> WriteAnOption(Frame& frame, std::int32_t type, std::uint8_t tag, std::uint8_t value)
-{
-    TooltipWriter& lines = frame.lines;
-    const auto found = std::ranges::find(OptionTexts, tag, &OptionText::tag);
-    if (found == OptionTexts.end())
-        return {};
-    if (tag == LuckOption && type >= FirstQuestItem && type <= LastQuestItem)
-        return {};
-    switch (found->argument)
-    {
-    case OptionArgument::None:
-        lines.PrintText(found->text);
-        break;
-    case OptionArgument::Value:
-        lines.PrintText(found->text, static_cast<std::int32_t>(value));
-        break;
-    case OptionArgument::Mana:
-    {
-        const auto entry = ReadTheSkillEntry(frame, tag, "0x5b2356");
-        if (!entry.HasValue())
-            return Core::Unexpected(entry.Error());
-        lines.PrintText(found->text, static_cast<std::int32_t>(entry.Value().mana));
-        break;
-    }
-    }
-    return {};
-}
-
 // 0x5b7c62..0x5b7d9f: cada opción en azul, con el renglón de más de algunas.
 Core::Expected<void, std::string> WriteTheOptionLines(Frame& frame)
 {
@@ -373,7 +373,7 @@ Core::Expected<void, std::string> WriteTheOptionLines(Frame& frame)
                 std::format("0x5b7c8d: la opción {} de {} lee su valor fuera de D+0x2b..D+0x3b", i, item.optionCount));
         const std::uint8_t tag = item.optionBytes[i];
         const std::uint8_t value = item.optionBytes[World::ItemOptionValueOffset + i];
-        if (auto written = WriteAnOption(frame, type, tag, value); !written.HasValue())
+        if (auto written = WriteAnOption(frame.context, frame.lines, type, tag, value); !written.HasValue())
             return written;
         lines.Color(TooltipBlue);
         lines.Bold(0);
@@ -412,7 +412,7 @@ Core::Expected<void, std::string> WriteTheBoxes(Frame& frame)
     else if (type == BlueBox)
     {
         // 0x5b7e49..0x5b7e8b: 0x5b2320(0, renglón, 0x4c, 0, 0), y el renglón suma también un medio.
-        if (auto written = WriteAnOption(frame, 0, BlueBoxOption, 0); !written.HasValue())
+        if (auto written = WriteAnOption(frame.context, frame.lines, 0, BlueBoxOption, 0); !written.HasValue())
             return written;
         lines.Color(TooltipBlue);
         lines.Bold(0);

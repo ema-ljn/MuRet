@@ -9,12 +9,12 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/Emote.h"
+#include "Scenes/EventGlobals.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GuildPanels.h"
 #include "Scenes/GuildState.h"
 #include "Scenes/GuildWindow.h"
-#include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/Dialogs.h"
@@ -536,8 +536,9 @@ Core::Expected<void, std::string> ApplyWarEnd(const WarEnd& end, const GuildRece
         gesture = NoGesture;
     WorldRuntime& runtime = context.world.Runtime();
     GuildState& guild = runtime.guild;
-    // 0x4d8958: MOV word ptr [0x5767816],BX con BX en 0, el WORD que el AB del duelo también pone en 0 (0x4e4d60).
-    runtime.social.duel.word5767816 = 0;
+    // 0x4d8958: MOV word ptr [0x5767816],BX con BX en 0, el tiempo del F3 22 que el AB del duelo también pone en 0
+    // (0x4e4d60, EventGlobals::timeValue).
+    runtime.events.timeValue = 0;
     if (auto noticed = AddHighlightedNotice(context, line); !noticed.HasValue())
         return noticed;
     guild.warOn = 0;

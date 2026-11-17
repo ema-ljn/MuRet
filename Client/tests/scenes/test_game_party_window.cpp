@@ -149,10 +149,6 @@ public:
     {
         requests.emplace_back("guild");
     }
-    void SendFriendPacket(Client::Protocol::Outgoing /*packet*/) override
-    {
-        requests.emplace_back("amigos");
-    }
     // El 43 que echa, como sale: los bytes sin el XOR32.
     void SendGamePacket(Client::Protocol::Outgoing outgoing) override
     {
@@ -161,6 +157,18 @@ public:
         for (const std::byte b : decoded.Bytes())
             bytes += std::format("{:02X} ", std::to_integer<unsigned>(b));
         requests.push_back(bytes);
+    }
+    void SendWindowClose() override
+    {
+        requests.emplace_back("31");
+    }
+    void SendSetQuest(std::uint8_t /*quest*/, std::uint8_t /*state*/) override
+    {
+        requests.emplace_back("A2");
+    }
+    void SendFriendPacket(Client::Protocol::Outgoing /*packet*/) override
+    {
+        requests.emplace_back("amigos");
     }
     Client::Core::Expected<void, std::string> SaveMacros(std::string_view /*content*/) override
     {

@@ -1,5 +1,6 @@
 #include "Scenes/GameScene.h"
 
+#include "App/FaithfulPacer.h"
 #include "App/ServerSession.h"
 #include "Core/Expected.h"
 #include "Core/Log.h"
@@ -7,13 +8,16 @@
 #include "Data/DataPath.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
+#include "Input/MouseMessageState.h"
 #include "Protocol/Character/CharacterList.h"
 #include "Protocol/FloorItems.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/ActorPickingBox.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/EventDrawing.h"
 #include "Scenes/GameChat.h"
 #include "Scenes/GameData.h"
 #include "Scenes/GameDialogDrawing.h"
@@ -22,6 +26,7 @@
 #include "Scenes/GameHud.h"
 #include "Scenes/GameItemSpecialDrawing.h"
 #include "Scenes/GameMessages.h"
+#include "Scenes/GameMovementState.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameProjection.h"
 #include "Scenes/GameSceneFrameProjection.h"
@@ -45,14 +50,17 @@
 #include <array>
 #include <chrono>
 #include <cstdint>
+#include <cstddef>
 #include <filesystem>
 #include <format>
 #include <fstream>
+#include <functional>
 #include <ios>
 #include <optional>
 #include <ratio>
 #include <string>
 #include <string_view>
+#include <span>
 #include <system_error>
 #include <utility>
 
@@ -60,13 +68,56 @@ namespace Client::Scenes
 {
 namespace
 {
-// El WndProc: WM_RBUTTONDOWN prende 0x7d36880 (con 0x7d3685c en 0, que el apretón siempre ve así: lo apagó el
-// WM_RBUTTONUP de antes) y 0x7d3685c, y WM_RBUTTONUP apaga los dos. MuRet ve los mensajes del paso juntos: apretado y
-// soltado en el mismo paso, quedan apagados, como después de los dos.
+class ProjectionTintRestore
+{
+public:
+    ProjectionTintRestore(std::span<ActorState> actors, bool active) : m_actors(actors), m_active(active)
+    {
+        if (!m_active)
+            return;
+        for (std::size_t slot = 0; slot < m_actors.size(); ++slot)
+        {
+            m_byteE8[slot] = m_actors[slot].byteE8;
+            m_light[slot] = m_actors[slot].light;
+        }
+    }
+
+    ~ProjectionTintRestore()
+    {
+        Restore();
+    }
+
+    void Restore()
+    {
+        if (!m_active)
+            return;
+        for (std::size_t slot = 0; slot < m_actors.size(); ++slot)
+        {
+            m_actors[slot].byteE8 = m_byteE8[slot];
+            m_actors[slot].light = m_light[slot];
+        }
+        m_active = false;
+    }
+
+private:
+    std::span<ActorState> m_actors;
+    std::array<std::uint8_t, ActorPoolSize> m_byteE8{};
+    std::array<glm::vec3, ActorPoolSize> m_light{};
+    bool m_active = false;
+};
+
+// El WndProc: WM_RBUTTONDOWN apaga 0x7d36840 y prende 0x7d36880 (con 0x7d3685c en 0, que el apretón siempre ve así:
+// lo apagó el WM_RBUTTONUP de antes) y 0x7d3685c, y WM_RBUTTONUP apaga los dos y, si 0x7d3685c estaba prendido, prende
+// 0x7d36840. MuRet ve los mensajes del paso juntos: apretado y soltado en el mismo paso, quedan apagados y el soltado
+// prendido, como después de los dos.
 void LatchTheRightButton(UI::GameUiState& ui, const Input::InputState& input)
 {
     const bool down = input.IsDown(Input::MouseButton::Right);
     const bool pressed = input.WasPressed(Input::MouseButton::Right);
+    if (pressed)
+        ui.rightReleased = false;
+    if (!down && (ui.rightDown || pressed))
+        ui.rightReleased = true;
     ui.rightClick = down && (ui.rightClick || pressed);
     ui.rightDown = down && (ui.rightDown || pressed);
 }
@@ -130,16 +181,6 @@ public:
         m_session->SendGuildPacket(std::move(packet));
     }
 
-    void SendFriendPacket(Protocol::Outgoing packet) override
-    {
-        if (m_session == nullptr)
-        {
-            m_log.Warning("no se manda el paquete de los amigos: no hay servidor");
-            return;
-        }
-        m_session->SendFriendPacket(std::move(packet));
-    }
-
     void SendGamePacket(Protocol::Outgoing outgoing) override
     {
         if (m_session == nullptr)
@@ -148,6 +189,36 @@ public:
             return;
         }
         m_session->SendGamePacket(std::move(outgoing));
+    }
+
+    void SendWindowClose() override
+    {
+        if (m_session == nullptr)
+        {
+            m_log.Warning("no se cierra la ventana (C1 03 31): no hay servidor");
+            return;
+        }
+        m_session->SendWindowClose();
+    }
+
+    void SendSetQuest(std::uint8_t quest, std::uint8_t state) override
+    {
+        if (m_session == nullptr)
+        {
+            m_log.Warning("no se manda el A2 de la misión {}: no hay servidor", quest);
+            return;
+        }
+        m_session->SendSetQuest(quest, state);
+    }
+
+    void SendFriendPacket(Protocol::Outgoing packet) override
+    {
+        if (m_session == nullptr)
+        {
+            m_log.Warning("no se manda el paquete de los amigos: no hay servidor");
+            return;
+        }
+        m_session->SendFriendPacket(std::move(packet));
     }
 
     // 0x61c170: fopen("wt") crea el archivo o lo vacía. Lo que guardan las macros no va al log.
@@ -198,15 +269,16 @@ Core::Expected<void, std::string> GameScene::StepTheDialogs(const Input::InputSt
     WorldRuntime& runtime = m_context.world->Runtime();
     // Los mensajes del mouse que el WndProc atendió antes de esta vuelta de WinMain.
     const UI::Point mouse = UI::MouseIn640x480(input, m_screen);
-    LatchTheLeftRelease(runtime.movement, input.WasPressed(Input::MouseButton::Left),
-                        input.WasReleased(Input::MouseButton::Left), input.IsDown(Input::MouseButton::Left), mouse.x,
-                        mouse.y);
-    LatchTheLeftButton(runtime.movement, input.WasPressed(Input::MouseButton::Left),
-                       input.IsDown(Input::MouseButton::Left));
+    const Input::MouseMessageState& mouseMessages = input.MouseMessages();
+    LatchTheLeftRelease(runtime.movement, mouseMessages.leftPress, mouseMessages.leftRelease, mouseMessages.leftDown,
+                        mouse.x, mouse.y);
+    LatchTheLeftButton(runtime.movement, mouseMessages.leftPress, mouseMessages.leftDown);
+    if (const std::optional<bool> doubleClick = input.TakeDoubleClickMessage(); doubleClick.has_value())
+        runtime.ui.doubleClick = *doubleClick;
     LatchTheRightButton(runtime.ui, input);
     LatchTheWheel(runtime.ui, input);
-    // Y los WM_CHAR, en su orden: Tab y Enter al WndProc (la entrada del chat) y lo demás al EDIT con el foco.
-    if (auto typed = TypeInTheGameChat(ChatContext(), input.Text()); !typed.HasValue())
+    // Los eventos de texto, edición y composición, en el orden en que los atendió InputState.
+    if (auto typed = TypeTheGameInput(ChatContext(), input.TextInputEvents()); !typed.HasValue())
         return typed;
     // 0x637c4a..0x637c5c: con 0x5762eb4 en 0 (nadie agarró el mouse: el registro del chat o una ventana vieja) y la
     // escena 5, 0x623e70 antes de la lógica de la escena (0x636290), con el mundo cargado o no.
@@ -253,28 +325,34 @@ Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& 
                                        .measure = m_context.textMeasure,
                                        .screen = m_screen,
                                        .chat = &chat,
+                                       .texts = m_texts,
                                        .requests = &requests,
                                        .systemTime = systemTime,
                                        .inventory = &inventory,
-                                       .itemSetTables = m_chatTables.itemSetTables});
+                                       .itemSetTables = m_chatTables.itemSetTables,
+                                       .skills = m_skills});
 }
 
 GameChatContext GameScene::ChatContext()
 {
     App::ServerSession* session = m_session;
-    return GameChatContext{.world = *m_context.world,
-                           .random = m_context.cloth->random,
-                           .texts = m_texts,
-                           .items = m_items,
-                           .setOptions = m_chatTables.setOptions,
-                           .filter = m_chatTables.filter,
-                           .filterName = m_chatTables.filterName,
-                           .measure = m_context.textMeasure,
-                           .screen = m_screen,
-                           .send = session != nullptr ? ChatSender([session](Protocol::Outgoing packet)
-                                                                   { session->SendChat(std::move(packet)); })
-                                                      : ChatSender{},
-                           .models = m_models};
+    return GameChatContext{
+        .world = *m_context.world,
+        .random = m_context.cloth->random,
+        .texts = m_texts,
+        .items = m_items,
+        .setOptions = m_chatTables.setOptions,
+        .filter = m_chatTables.filter,
+        .filterName = m_chatTables.filterName,
+        .measure = m_context.textMeasure,
+        .screen = m_screen,
+        .send = session != nullptr
+                    ? ChatSender([session](Protocol::Outgoing packet) { session->SendChat(std::move(packet)); })
+                    : ChatSender{},
+        .sendWindowClose = session != nullptr ? std::function<void()>([session] { session->SendWindowClose(); })
+                                              : std::function<void()>{},
+        .clipboard = m_context.clipboard,
+        .models = m_models};
 }
 
 InventoryServices GameScene::InventoryContext()
@@ -295,6 +373,8 @@ InventoryServices GameScene::InventoryContext()
         services.sendPickUp = [session](std::uint16_t index) { return session->SendPickUp(index); };
         services.sendUseItem = [session](const Protocol::FloorItems::UseItem& use)
         { return session->SendUseItem(use); };
+        // CL9 hito 7: el 3C del comercio que mandan levantar y soltar en su grilla.
+        services.sendGamePacket = [session](Protocol::Outgoing packet) { session->SendGamePacket(std::move(packet)); };
     }
     services.pickTheGround = [this] { return GroundUnderTheMouse(); };
     return services;
@@ -308,15 +388,19 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
     // 0x637641: 0x59ec80, el picking del frame. Un dibujo intermedio de MuRet lo corre sobre las copias: el rand(), la
     // profundidad del registro propio y los elegidos.
     std::array<std::int32_t, 5> projectedTargets = runtime.selectedTargets;
-    auto picked = PickInTheFrame(
-        FramePickingContext{.world = *m_context.world,
-                            .random = FrameCloth().random,
-                            .ownRecordDepth = m_projectingFrame ? m_projection->ownRecordDepth : runtime.ownRecordDepth,
-                            .targets = m_projectingFrame ? projectedTargets : runtime.selectedTargets,
-                            .altDown = input.IsDown(Input::Key::Alt),
-                            .ray = m_mouseRay,
-                            .mouse = UI::MouseIn640x480(input, canvas.screen),
-                            .floorItems = FrameTail().floorItems});
+    ProjectionTintRestore tintRestore(m_context.world->Actors(), m_projectingFrame);
+    auto picked = PickInTheFrame(FramePickingContext{
+        .world = *m_context.world,
+        .random = FrameCloth().random,
+        .ownRecordDepth = m_projectingFrame ? m_projection->ownRecordDepth : runtime.ownRecordDepth,
+        .targets = m_projectingFrame ? projectedTargets : runtime.selectedTargets,
+        .altDown = input.IsDown(Input::Key::Alt),
+        .ray = m_mouseRay,
+        .mouse = UI::MouseIn640x480(input, canvas.screen),
+        .cameraPosition = m_drawnCamera.position,
+        .pickingBoxes = m_projectingFrame ? std::span(m_projection->actorPickingBoxes) : std::span<ActorPickingBox>{},
+        .floorItems = FrameTail().floorItems});
+    tintRestore.Restore();
     if (!picked.HasValue())
         return picked;
     // 0x637646..0x6376e6: la pasada 2D, en este orden (06 § El dibujo del juego). Un dibujo intermedio de MuRet dibuja
@@ -330,6 +414,7 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
         .cellYDepth = m_projectingFrame ? m_projection->heroYDepth : hero.cellYAccesses,
         .hud = m_projectingFrame ? m_projection->hud : runtime.hud,
         .crywolfSandOverlay = m_projectingFrame ? m_projection->crywolfSandOverlay : runtime.crywolf.sandOverlay,
+        .crywolfInterface = m_projectingFrame ? &m_projection->crywolfInterface : &runtime.crywolf.ui,
         .sound = m_projectingFrame ? m_projection->sound : runtime.lastSoundId,
         .projecting = m_projectingFrame,
         .projection = projection,
@@ -341,11 +426,18 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
         .setOptions = m_chatTables.setOptions,
         .setTypes = m_chatTables.itemSetTables != nullptr ? &m_chatTables.itemSetTables->types : nullptr,
         .worldClock = static_cast<float>(std::chrono::duration<double, std::milli>(canvas.frameClock).count()),
+        .tickCount = App::TickCountMs(canvas.frameClock),
         .mouse = UI::MouseIn640x480(input, canvas.screen),
-        .leftDown = input.IsDown(Input::MouseButton::Left),
+        .leftDown = input.MouseMessages().leftDown,
         .arrowHeld = AnArrowIsDown(input),
+        .controlDown = input.IsDown(Input::Key::Ctrl),
         .chosenServer = m_session != nullptr ? m_session->ChosenServer() : std::nullopt,
         .guildMarks = &m_guildMarks};
+    if (m_session != nullptr)
+    {
+        if (const auto* chosen = m_session->ChosenCharacter(); chosen != nullptr)
+            hud.chosenSlot = chosen->slot;
+    }
     // 0x5ac120: el pase 3D de los ítems de la UI, con los modelos de los ítems, el buffer global de la pose y los
     // contextos de 0x60b3d0 del frame (o sus copias en un dibujo intermedio). Sin la biblioteca, sin dibujo.
     ItemSpecialDrawContext itemSpecial;
@@ -367,6 +459,9 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
                                         .pass = pass.Value()});
         hud.uiItems = &*uiItems;
     }
+    // 0x42403d: el A9 del tooltip de las mascotas sale por la sesión del juego, como el del botón de la mascota.
+    if (App::ServerSession* session = m_session; session != nullptr && !m_projectingFrame)
+        hud.send = [session](Protocol::Outgoing packet) { session->SendChat(std::move(packet)); };
     // 0x637646: 0x6219b0 empieza el 2D (gluOrtho2D y MODELVIEW identidad, con push): el lote de SceneCanvas.
     // 0x63764b: 0x4383f0, los textos 3D.
     WorldTextDrawContext worldTexts{.queue = runtime.worldTexts,
@@ -397,7 +492,9 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
     // 0x637660: 0x5a7320(1), el HUD, con 0x7d36899 en 0.
     if (auto drawn = DrawTheHud(hud); !drawn.HasValue())
         return drawn;
-    // 0x637668: 0x5a7eb0, la cuenta y los resultados de los eventos (CL9.5).
+    // 0x637668: 0x5a7eb0, el tiempo del F3 22 (Scenes/EventDrawing).
+    if (auto drawn = DrawTheEventTime(hud); !drawn.HasValue())
+        return drawn;
     // 0x637673: 0x490390, las ventanas viejas, y 0x637680: la lista de ventanas, siempre. Un dibujo intermedio de MuRet
     // las dibuja sobre su copia.
     UI::OldWindowManager& oldWindows = m_projectingFrame ? m_projection->oldWindows : runtime.oldWindows;
@@ -412,13 +509,50 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
     // Windows (GetFocus() de 0x468320: el de las ventanas viejas, con ChatFocus::OldWindow).
     const UI::OldWindowTexts friendTexts = OldWindowTextsOf(m_texts);
     const bool editFocused = runtime.chat.input.focus == UI::ChatFocus::OldWindow;
+    // Una pasada intermedia parte del mismo estado que su copia del administrador y no publica efectos de red.
+    UI::GameUiState projectedUi = runtime.ui;
+    GameMovementState projectedMovement = runtime.movement;
+    UI::ChatFocus projectedFocus = runtime.chat.input.focus;
+    UI::GameUiState& drawUi = m_projectingFrame ? projectedUi : runtime.ui;
+    GameMovementState& drawMovement = m_projectingFrame ? projectedMovement : runtime.movement;
+    UI::ChatFocus& drawFocus = m_projectingFrame ? projectedFocus : runtime.chat.input.focus;
+    const UI::OldWindowGlobals drawGlobals{.leftHeld = drawMovement.leftHeld,
+                                           .leftClick = drawMovement.pendingClick,
+                                           .releasedClick = drawMovement.releasedClick,
+                                           .mouseOnUi = drawUi.mouseOnUi,
+                                           .hovered = drawUi.hovered,
+                                           .capture = drawUi.capture,
+                                           .pressedButton = drawUi.pressedButton,
+                                           .keyboardFocus = drawFocus,
+                                           .sound = m_projectingFrame ? m_projection->sound : runtime.lastSoundId,
+                                           .focusedList = drawUi.focusedList,
+                                           .wheel = drawUi.wheel,
+                                           .rightClick = drawUi.rightClick,
+                                           .doubleClick = drawUi.doubleClick};
+    const UI::OldWindowMeasure drawMeasure{.measure = canvas.text, .dcFont = hud.hud.dcFont, .screen = canvas.screen};
+    SceneUiRequests drawRequests(m_session, m_context.log, m_context.dataRoot);
+    const UI::OldWindowStepView drawStep{.mouseX = hud.mouse.x,
+                                         .mouseY = hud.mouse.y,
+                                         .keyEdge = [&drawUi, &input](std::uint8_t key)
+                                         { return OldWindowKeyEdge(drawUi, input, key); },
+                                         .chatOpen = drawUi.chatOpen,
+                                         .texts = &friendTexts,
+                                         .measure = &drawMeasure,
+                                         .send =
+                                             [this, &drawRequests](const UI::FriendSend& send)
+                                         {
+                                             if (!m_projectingFrame)
+                                                 drawRequests.SendFriendPacket(FriendPacketOf(send));
+                                         }};
     const UI::OldWindowDrawView windowView{.mouseX = hud.mouse.x,
                                            .mouseY = hud.mouse.y,
                                            .leftClick = runtime.movement.pendingClick,
                                            .friendsOpen = panels.Registry().IsOpen(UI::FriendsPanel),
                                            .texts = &friendTexts,
                                            .focusedList = runtime.ui.focusedList,
-                                           .focusedEdit = editFocused ? oldWindows.focusedEdit : 0};
+                                           .focusedEdit = editFocused ? oldWindows.focusedEdit : 0,
+                                           .globals = &drawGlobals,
+                                           .stepView = &drawStep};
     if (auto windows = UI::DrawTheOldWindows(oldWindows, windowContext, windowView); !windows.HasValue())
         return windows;
     if (auto list = UI::DrawTheWindowList(oldWindows, windowContext, windowView); !list.HasValue())

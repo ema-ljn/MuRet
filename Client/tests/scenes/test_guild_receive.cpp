@@ -15,10 +15,10 @@
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/EventGlobals.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GuildPanels.h"
 #include "Scenes/GuildState.h"
-#include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/MessageArea.h"
@@ -910,12 +910,12 @@ TEST_F(GuildReceiveTest, AWarStartsScoresAndEndsWithTwoActions)
         EXPECT_EQ(GuildOf().ourScore, 3);
         EXPECT_EQ(GuildOf().theirScore, 1);
 
-        // La animación del gesto terminó: el héroe está parado otra vez. 0x4d8958 pone en 0 el WORD 0x5767816, el del
-        // duelo (0x4e4d60).
+        // La animación del gesto terminó: el héroe está parado otra vez. 0x4d8958 pone en 0 el WORD 0x5767816, el
+        // tiempo del F3 22 que el AB del duelo también vacía (0x4e4d60).
         hero.animation.action = Standing;
-        Runtime().social.duel.word5767816 = 0x1234;
+        Runtime().events.timeValue = 0x1234;
         ASSERT_TRUE(Apply(Guild::WarEnd{0}).HasValue());
-        EXPECT_EQ(Runtime().social.duel.word5767816, 0);
+        EXPECT_EQ(Runtime().events.timeValue, 0);
         EXPECT_EQ(LastNotice(), "fin 527");
         EXPECT_EQ(GuildOf().warOn, 0);
         EXPECT_EQ(GuildOf().rivalIndex, -1);
@@ -954,14 +954,14 @@ TEST_F(GuildReceiveTest, TheWarEndGestureDependsOnTheResult)
     GuildOf().warOn = 1;
     GuildOf().rivalIndex = 2;
     Fill(GuildOf().rival, "Teros");
-    Runtime().social.duel.word5767816 = 0x1234;
+    Runtime().events.timeValue = 0x1234;
     const std::string notice = LastNotice();
     const auto applied = Apply(Guild::WarEnd{7});
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(GuildOf().warOn, 1);
     EXPECT_EQ(GuildOf().rivalIndex, 2);
     EXPECT_EQ(TextOf(GuildOf().rival), "Teros");
-    EXPECT_EQ(Runtime().social.duel.word5767816, 0x1234);
+    EXPECT_EQ(Runtime().events.timeValue, 0x1234);
     EXPECT_EQ(LastNotice(), notice);
     EXPECT_EQ(m_sent.size(), 3u);
 }

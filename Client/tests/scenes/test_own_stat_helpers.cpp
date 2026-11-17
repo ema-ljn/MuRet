@@ -918,13 +918,13 @@ TEST(OwnStatHelpersTest, Word62AddsThePetAndTheCapeOfLord)
     }
 }
 
-// Un lugar con durabilidad y el tipo −1 lee fuera de Item.bmd (como Q-C184): error, con +0x62 en la base.
+// Un tipo positivo fuera de la tabla sí puede aportar y necesita la lectura: error con +0x62 en la base.
 TEST(OwnStatHelpersTest, Word62StopsWhereItReadsWhatMuRetLacks)
 {
     const ItemTable items = ItemsWithBaseDurability({});
     OwnCharacterRecord own = EmptyRecord(DarkWizard);
     own.agility = 300;
-    own.equipment[Armor] = Item(EmptyType, 5);
+    own.equipment[Armor] = Item(0x2000, 5);
     ItemSetOptionList setOptions;
 
     auto updated = Client::Scenes::UpdateOwnWord62(own, &items, {}, &setOptions);
@@ -941,6 +941,30 @@ TEST(OwnStatHelpersTest, Word62StopsWhereItReadsWhatMuRetLacks)
     ASSERT_FALSE(updated.HasValue());
     EXPECT_NE(updated.Error().find("0x40e1b0"), std::string::npos);
     EXPECT_EQ(own.word62, 75 + 11); // la armadura suma 0 y el 15 % de 75 es 11
+}
+
+// 0x54e686..0x54e68c devuelve AX=0 antes de mirar opciones para IDffff.
+// 0x550aee..0x550b1b reduce ese 0 por un factor finito: no necesita el byte de base(Item.bmd)-39.
+TEST(OwnStatHelpersTest, EmptySlotsWithDurabilityContributeZeroWithoutReadingResidualOptions)
+{
+    OwnCharacterRecord own = EmptyRecord(DarkWizard);
+    own.agility = 300;
+    for (std::size_t slot = LeftHand; slot <= Wings; ++slot)
+    {
+        own.equipment[slot] = Item(EmptyType, 25);
+        own.equipment[slot].word12 = 99;
+        own.equipment[slot].optionCount = 0xff;
+    }
+    ItemSetOptionList setOptions;
+
+    const auto updated = Client::Scenes::UpdateOwnWord62(own, nullptr, {}, &setOptions);
+
+    ASSERT_TRUE(updated.HasValue()) << updated.Error();
+    EXPECT_EQ(own.word62, 75);
+    EXPECT_EQ(own.equipment[Armor].id, EmptyType);
+    EXPECT_EQ(own.equipment[Armor].durability, 25);
+    EXPECT_EQ(own.equipment[Armor].word12, 99);
+    EXPECT_EQ(own.equipment[Armor].optionCount, 0xff);
 }
 
 // ---- 0x550c30 y 0x550c60 ----

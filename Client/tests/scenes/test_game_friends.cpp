@@ -58,6 +58,13 @@ using Client::UI::OldWindowKind;
 
 constexpr std::uint32_t Seed = 4242;
 constexpr std::uint8_t EnterKey = 0x0d;
+// 0x48ee60: ocupación de las diagonales y filas de la cascada para la caja de 150 × 100 que parte de (0, 332).
+constexpr std::int32_t CascadeStep = 20;
+constexpr std::int32_t DefaultBoxY = 332;
+constexpr std::int32_t LastBlockedX = 460;
+constexpr std::int32_t BlockedRowOffset = 360;
+constexpr std::int32_t FirstCascadeWrap = 3;
+constexpr std::int32_t LastCascadeWrap = 9;
 
 class LetterMeasure final : public ITextMeasure
 {
@@ -175,6 +182,34 @@ protected:
                 lines.push_back(window.box.lines[0]);
         }
         return lines;
+    }
+
+    void BlockTheFactoryCascade()
+    {
+        // 191 marcos con KeepPlace: ocupación fija, sin simular la lógica de búsqueda de la fábrica.
+        const auto block = [this](std::int32_t x, std::int32_t y)
+        {
+            const auto created =
+                Client::UI::CreateTheOldWindow(Manager(),
+                                               Client::UI::OldWindowRequest{.kind = Client::UI::FrameCase,
+                                                                            .x = x,
+                                                                            .y = y,
+                                                                            .data = "obstáculo",
+                                                                            .flags = Client::UI::KeepPlaceFlag},
+                                               m_oldTexts, m_oldMeasure);
+            ASSERT_TRUE(created.HasValue()) << created.Error();
+            ASSERT_NE(created.Value(), 0);
+        };
+        block(CascadeStep, DefaultBoxY + CascadeStep);
+        for (std::int32_t x = 2 * CascadeStep; x <= LastBlockedX; x += CascadeStep)
+            block(x, DefaultBoxY + 2 * CascadeStep);
+        for (std::int32_t rest = FirstCascadeWrap; rest <= LastCascadeWrap; ++rest)
+        {
+            for (std::int32_t offset = 0; offset < BlockedRowOffset; offset += CascadeStep)
+                block(rest + offset, rest + offset);
+            for (std::int32_t offset = BlockedRowOffset; offset <= LastBlockedX; offset += CascadeStep)
+                block(rest + offset, rest + BlockedRowOffset);
+        }
     }
 
     std::unique_ptr<WorldState> m_world;
@@ -307,7 +342,7 @@ TEST_F(GameFriendsTest, TheAddFailuresOpenANoticeBox)
                                 Case{5, "no a uno mismo"}, Case{6, "el otro sin nivel"}, Case{2, ""}})
     {
         SCOPED_TRACE(failure.result);
-        Client::UI::ResetTheOldWindows(Manager());
+        Client::UI::ResetTheOldWindows(Manager(), m_world->Runtime().ui.pressedButton);
         const auto applied = Client::Scenes::ApplyFriendAddResult(
             FriendAddResult{.result = failure.result, .name = "Hornero", .state = 0}, Context());
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
@@ -320,6 +355,33 @@ TEST_F(GameFriendsTest, TheAddFailuresOpenANoticeBox)
         EXPECT_EQ(BoxLines(), std::vector<std::string>{failure.line});
         EXPECT_EQ(Manager().boxes.size(), 1u);
     }
+}
+
+// 0x4dc3d0 → 0x48ee60: el destructor del cuadro recibido que no entró debe escribir el global real del juego.
+TEST_F(GameFriendsTest, AReceivedNoticeReleasesTheReusedButtonWhenItsCascadeAborts)
+{
+    ASSERT_TRUE(
+        Client::Scenes::ApplyFriendAddResult(FriendAddResult{.result = 0, .name = "Hornero", .state = 0}, Context())
+            .HasValue());
+    ASSERT_EQ(Manager().windows.size(), 1u);
+    const std::int32_t firstId = Manager().order.back();
+    const std::int32_t buttonId = Manager().windows.at(firstId).box.buttons.front().base.id;
+    BlockTheFactoryCascade();
+    const std::size_t windowCount = Manager().windows.size();
+    Runtime().ui.pressedButton = buttonId;
+    Manager().lastId = firstId - 1;
+
+    const auto received =
+        Client::Scenes::ApplyFriendAddResult(FriendAddResult{.result = 3, .name = "Hornero", .state = 0}, Context());
+
+    ASSERT_TRUE(received.HasValue()) << received.Error();
+    EXPECT_EQ(Runtime().ui.pressedButton, 0);
+    EXPECT_EQ(Manager().windows.size(), windowCount);
+    EXPECT_EQ(Manager().order.size(), windowCount);
+    EXPECT_EQ(BoxLines(), std::vector<std::string>{"Hornero no existe"});
+    // 0x4917ea → 0x4918a0 deduplica el ID antes del abandono; la fábrica sí consumió los dos IDs de botón.
+    EXPECT_EQ(Manager().boxes.size(), 1u);
+    EXPECT_EQ(Manager().lastId, firstId + 2);
 }
 
 // 0x4dc5b0: "<nombre><1051>" en una caja de dos botones con dueño −1 que guarda el nombre, y el sonido 0x2a; el sí

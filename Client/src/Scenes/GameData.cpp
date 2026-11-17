@@ -7,10 +7,14 @@
 #include "Data/Tables/GateTable.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
+#include "Data/Tables/MonsterSkillTable.h"
+#include "Data/Tables/QuestTable.h"
 #include "Data/Tables/SkillTable.h"
 #include "Data/Text/Credits.h"
+#include "Data/Text/DialogTable.h"
 #include "Data/Text/FilterWords.h"
 #include "Data/Text/MoveRequirements.h"
+#include "Data/Text/NpcNames.h"
 #include "Data/Text/SlideTable.h"
 #include "Data/Text/TextTable.h"
 #include "UI/MacroFile.h"
@@ -233,6 +237,29 @@ Core::Expected<std::optional<Data::Text::SlideTable>, std::string> LoadSlides(co
         return Core::Unexpected(std::format("{}: {}", SlideTableFile, Data::DescribeDataError(table.Error())));
     return std::optional<Data::Text::SlideTable>(std::move(table).Value());
 }
+// 0x54b2b0 y 0x418d10: 200 registros de tamaño fijo. Sin el archivo, `empty`; si no, el loader con el prefijo.
+template <typename Table, typename Loader>
+Core::Expected<Table, std::string> LoadFixedTable(const std::filesystem::path& dataRoot, std::string_view name,
+                                                  std::size_t size, Table empty, Loader load)
+{
+    std::error_code error;
+    const auto path = Data::ResolveDataPath(dataRoot, name, error);
+    if (error)
+    {
+        return Core::Unexpected(
+            std::format("no se pudo buscar {} en {}: {}", name, Core::PathText(dataRoot), error.message()));
+    }
+    if (!path)
+        return empty;
+    const auto file = Data::ReadDataFilePrefix(*path, size);
+    if (!file.HasValue())
+        return Core::Unexpected(std::format("no se pudo leer {}: {}", name, file.Error().message()));
+    auto table = load(std::as_bytes(std::span(file.Value())));
+    if (!table.HasValue())
+        return Core::Unexpected(std::format("{}: {}", name, Data::DescribeDataError(table.Error())));
+    return std::move(table).Value();
+}
+
 // 0x448440 lee la cuenta y cuenta · 0x50 bytes sin tope; MuRet lee hasta 1 MiB (13.107 destinos).
 constexpr std::size_t MaxMoveRequirementsBytes = 1024u * 1024u;
 
@@ -255,6 +282,54 @@ Core::Expected<std::vector<Data::Text::MoveRequirement>, std::string> LoadMoves(
     if (!moves.HasValue())
         return Core::Unexpected(std::format("{}: {}", MoveRequirementsFile, Data::DescribeDataError(moves.Error())));
     return std::move(moves).Value();
+}
+// 0x54a440 lee la cuenta y cuenta · 0x1c bytes sin tope; MuRet lee hasta 1 MiB.
+constexpr std::size_t MaxMonsterSkillBytes = 1024u * 1024u;
+
+// 0x54a440: sin el archivo, la tabla de la .bss.
+Core::Expected<Data::Tables::MonsterSkillTable, std::string> LoadMonsterSkills(const std::filesystem::path& dataRoot)
+{
+    std::error_code error;
+    const auto path = Data::ResolveDataPath(dataRoot, MonsterSkillTableFile, error);
+    if (error)
+    {
+        return Core::Unexpected(std::format("no se pudo buscar {} en {}: {}", MonsterSkillTableFile,
+                                            Core::PathText(dataRoot), error.message()));
+    }
+    if (!path)
+        return Data::Tables::MonsterSkillTable{};
+    const auto file = Data::ReadDataFilePrefix(*path, MaxMonsterSkillBytes);
+    if (!file.HasValue())
+        return Core::Unexpected(std::format("no se pudo leer {}: {}", MonsterSkillTableFile, file.Error().message()));
+    auto table = Data::Tables::LoadMonsterSkillTable(std::as_bytes(std::span(file.Value())));
+    if (!table.HasValue())
+        return Core::Unexpected(std::format("{}: {}", MonsterSkillTableFile, Data::DescribeDataError(table.Error())));
+    return std::move(table).Value();
+}
+
+// 0x54e7f0 lee con getc hasta el final sin tope; MuRet lee hasta 1 MiB (el del laboratorio tiene 10 KB).
+constexpr std::uintmax_t MaxNpcNameFileBytes = 1024u * 1024u;
+
+// 0x54e7f0: sin el archivo (fopen en NULL), la tabla queda como estaba.
+Core::Expected<std::vector<Data::Text::NpcNameRecord>, std::string>
+LoadNpcNameFile(const std::filesystem::path& dataRoot)
+{
+    std::error_code error;
+    const auto path = Data::ResolveDataPath(dataRoot, NpcNameFile, error);
+    if (error)
+    {
+        return Core::Unexpected(
+            std::format("no se pudo buscar {} en {}: {}", NpcNameFile, Core::PathText(dataRoot), error.message()));
+    }
+    if (!path)
+        return std::vector<Data::Text::NpcNameRecord>{};
+    const auto file = Data::ReadDataFile(*path, MaxNpcNameFileBytes);
+    if (!file.HasValue())
+        return Core::Unexpected(std::format("no se pudo leer {}: {}", NpcNameFile, file.Error().message()));
+    auto names = Data::Text::LoadNpcNames(std::as_bytes(std::span(file.Value())));
+    if (!names.HasValue())
+        return Core::Unexpected(std::format("{}: {}", NpcNameFile, Data::DescribeDataError(names.Error())));
+    return std::move(names).Value();
 }
 } // namespace
 
@@ -313,6 +388,20 @@ Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& 
         return Core::Unexpected(std::move(items).Error());
     }
     data.items.emplace(std::move(items).Value());
+    auto dialogs = LoadFixedTable(dataRoot, DialogTableFile, Data::Text::DialogTableSize,
+                                  Data::Text::DialogTable(Data::Text::DialogCount), Data::Text::LoadDialogTable);
+    if (!dialogs.HasValue())
+    {
+        return Core::Unexpected(std::move(dialogs).Error());
+    }
+    data.dialogs = std::move(dialogs).Value();
+    auto quests = LoadFixedTable(dataRoot, QuestTableFile, Data::Tables::QuestTableSize,
+                                 Data::Tables::QuestTable(Data::Tables::QuestCount), Data::Tables::LoadQuestTable);
+    if (!quests.HasValue())
+    {
+        return Core::Unexpected(std::move(quests).Error());
+    }
+    data.quests = std::move(quests).Value();
     auto moves = LoadMoves(dataRoot);
     if (!moves.HasValue())
     {
@@ -325,6 +414,19 @@ Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& 
         return Core::Unexpected(std::move(itemSets).Error());
     }
     data.itemSets.emplace(std::move(itemSets).Value());
+    // 0x61ecdf: MonsterSkill.bmd, después de movereq.bmd (0x61ec8f) y de las tablas de los conjuntos (0x61ecd5).
+    auto monsterSkills = LoadMonsterSkills(dataRoot);
+    if (!monsterSkills.HasValue())
+    {
+        return Core::Unexpected(std::move(monsterSkills).Error());
+    }
+    data.monsterSkills = std::move(monsterSkills).Value();
+    auto npcNames = LoadNpcNameFile(dataRoot);
+    if (!npcNames.HasValue())
+    {
+        return Core::Unexpected(std::move(npcNames).Error());
+    }
+    data.npcNames = std::move(npcNames).Value();
     auto skills = LoadCheckedTable<Data::Tables::SkillTable>(dataRoot, SkillTableFile, Data::Tables::SkillTableSize,
                                                              Data::Tables::LoadSkillTable);
     if (!skills.HasValue())

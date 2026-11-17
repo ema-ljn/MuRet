@@ -32,23 +32,26 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 1> DamageTextureSet
     {"Interface\\FontTest.tga", 0x01, TextureSetsDetail::NearestClamp},
 }};
 
-// Las del HUD del juego que sube 0x61ccb0 (0x61cce0..0x61e5f0, CL8 hito 2), en su orden y con su sampling: los
-// cursores del juego (0x63bd00 con GL_LINEAR y GL_CLAMP), la barra de abajo (GL_NEAREST y GL_CLAMP), el AG, el
-// botón de los comandos, los de la UI vieja que dibuja 0x4a5120, la caja de la entrada del chat (0xef, 0xf8 y 0xf9,
-// que dibuja 0x5aa9a0), los diálogos que dibuja 0x62db60 (0xf0 a 0xf4 y 0xfb, hito 6), el registro del chat (hito 3),
-// el cursor de identificar, el de atacar en el asedio y los íconos de estado; y las de las skills, que sube 0x61ae60
-// desde 0x61ccb0. Las sube GameModels con los modelos, y quedan. El 2 y el 3, Cursor y CursorPush, no: son de
-// WindowTextureSet, que cada escena sube y suelta, y el juego también. La pista del registro, nis_back en 0x640, la
-// pisa Skill\SwordEff.jpg con GL_LINEAR más adelante en la misma función (0x61ccb0, Q-C463): queda la de la skill.
-// Las de las ventanas del paso que son marco (hito 6): win_check en 0x64a (0x61d1f0, con 0x63bd00), la casilla de los
-// comandos; CursorID_Wnd en 0x65b (0x61d3ab), el cartel del personaje elegido. Las de las ventanas viejas (CL9 hito 9,
-// UI/OldWindowDraw.h): win_titlebar, win_button, win_size, win_resize y win_scrollbar en 0x645 a 0x649
-// (0x61d151..0x61d1db, sin filtro y sin repetir), que la CL8 dibujaba sin subirlas. Las del inventario (hito 4):
-// setitem, btn_pshop y btn_pshop2 en 0x652, 0x657 y 0x658 (0x61d319..0x61d354). La del duelo (CL9 hito 7): DuelWindow
-// en 0x650 (0x61d2d6), que dibuja 0x5f37f0. Y las de 0x104 a 0x120 que 0x61ae60 sube después de command.jpg
-// (0x61aec8..0x61b1f2), de los hitos 4 y 6: el fondo de las ventanas, los casilleros del equipo, la plata, la grilla,
-// la línea del comercio y los botones, entre ellos el de cerrar (0x118). La 0x106 no la sube nadie.
-inline constexpr std::array<Data::Textures::TextureSetEntry, 87> HudTextureSet{{
+// Las del HUD del juego que sube 0x61ccb0 (0x61cce0..0x61e5f0, CL8 hito 2), en su orden y con su sampling: los cursores
+// del juego (0x63bd00 con GL_LINEAR y GL_CLAMP), la barra de abajo (GL_NEAREST y GL_CLAMP), el AG, el botón de los
+// comandos, los de la UI vieja que dibuja 0x4a5120, la caja de la entrada del chat (0xef, 0xf8 y 0xf9, que dibuja
+// 0x5aa9a0), los diálogos que dibuja 0x62db60 (0xf0 a 0xf4 y 0xfb, hito 6), el registro del chat (hito 3), el cursor de
+// identificar, el de atacar en el asedio y los íconos de estado; y las de las skills, que sube 0x61ae60 desde 0x61ccb0.
+// Las sube GameModels con los modelos, y quedan. El 2 y el 3, Cursor y CursorPush, no: son de WindowTextureSet, que
+// cada escena sube y suelta, y el juego también. La pista del registro, nis_back en 0x640, la pisa Skill\SwordEff.jpg
+// con GL_LINEAR más adelante en la misma función (0x61ccb0, Q-C463): queda la de la skill. Las de las ventanas del paso
+// que son marco (hito 6): win_check en 0x64a (0x61d1f0, con 0x63bd00), la casilla de los comandos; CursorID_Wnd en
+// 0x65b (0x61d3ab), el cartel del personaje elegido. Las de las ventanas viejas (CL9 hito 9, UI/OldWindowDraw.h):
+// win_titlebar, win_button, win_size, win_resize y win_scrollbar en 0x645 a 0x649 (0x61d151..0x61d1db, sin filtro y sin
+// repetir), que la CL8 dibujaba sin subirlas. Las del inventario (hito 4): setitem, btn_pshop y btn_pshop2 en 0x652,
+// 0x657 y 0x658 (0x61d319..0x61d354); text_button en 0x659 (0x61d370), los botones de la tienda personal propia que
+// dibuja 0x5f3030 (CL9 hito 7). La del duelo (CL9 hito 7): DuelWindow en 0x650 (0x61d2d6), que dibuja 0x5f37f0. Y las
+// de 0x104 a 0x120 que 0x61ae60 sube después de command.jpg (0x61aec8..0x61b1f2), de los hitos 4 y 6: el fondo de las
+// ventanas, los casilleros del equipo, la plata, la grilla, la línea del comercio y los botones, entre ellos el de
+// cerrar (0x118). La 0x106 no la sube nadie. Las de la ventana de la mascota (CL9 hito 4): Level_box en 0xf5 (0x61cf8f,
+// que también usa la ventana del personaje), win_button en 0x646 (0x61d17a, con 0x63bd00; también el botón de la UI
+// vieja) y pet1 y pet2 en 0x65d y 0x65e (0x61d4b0 y 0x61d4cc), el botón de la mascota.
+inline constexpr std::array<Data::Textures::TextureSetEntry, 91> HudTextureSet{{
     {"Interface\\CursorAttack.tga", 0x04, TextureSetsDetail::LinearClamp},
     {"Interface\\CursorGet.tga", 0x05, TextureSetsDetail::LinearClamp},
     {"Interface\\CursorTalk.tga", 0x06, TextureSetsDetail::LinearClamp},
@@ -71,6 +74,7 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 87> HudTextureSet{{
     {"Interface\\ok2.jpg", 0xf2, TextureSetsDetail::NearestClamp},
     {"Interface\\cancel.jpg", 0xf3, TextureSetsDetail::NearestClamp},
     {"Interface\\cancel2.jpg", 0xf4, TextureSetsDetail::NearestClamp},
+    {"Interface\\Level_box.jpg", 0xf5, TextureSetsDetail::NearestClamp},
     {"Interface\\Menu_Green.jpg", 0xf7, TextureSetsDetail::NearestClamp},
     {"Interface\\dialogue1.jpg", 0xf8, TextureSetsDetail::NearestClamp},
     {"Interface\\dialogue2.jpg", 0xf9, TextureSetsDetail::NearestClamp},
@@ -97,10 +101,13 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 87> HudTextureSet{{
     {"Interface\\setitem.jpg", 0x652, TextureSetsDetail::NearestClamp},
     {"Interface\\btn_pshop.jpg", 0x657, TextureSetsDetail::NearestClamp},
     {"Interface\\btn_pshop2.jpg", 0x658, TextureSetsDetail::NearestClamp},
+    {"Interface\\text_button.jpg", 0x659, TextureSetsDetail::NearestClamp},
     {"Interface\\CursorID.tga", 0x65a, TextureSetsDetail::NearestClamp},
     {"Interface\\CursorID_Wnd.jpg", 0x65b, TextureSetsDetail::NearestClamp},
     {"Interface\\menu01_new2.jpg", 0x65c, TextureSetsDetail::NearestClamp},
     {"Interface\\Menu03_new_AG.jpg", 0x101, TextureSetsDetail::NearestClamp},
+    {"Interface\\pet1.jpg", 0x65d, TextureSetsDetail::NearestClamp},
+    {"Interface\\pet2.jpg", 0x65e, TextureSetsDetail::NearestClamp},
     {"Skill\\SwordEff.jpg", 0x640, TextureSetsDetail::LinearClamp},
     {"Interface\\CursorAttack2.tga", 0x68d, TextureSetsDetail::NearestClamp},
     {"Interface\\StatusIcon.jpg", 0x68e, TextureSetsDetail::NearestClamp},
@@ -139,6 +146,57 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 87> HudTextureSet{{
     {"Interface\\accept_box02.jpg", 0x123, TextureSetsDetail::NearestClamp},
 }};
 
+// Las de la interfaz de Crywolf que sube 0x61ccb0 (0x61de5f..0x61e373, CL9 hito 11), de 0x6b6 a 0x6e2 en su orden, con
+// GL_LINEAR y GL_CLAMP: 0x63bd00 las .tga y 0x63b870 in_bar2.jpg. Las dibuja 0x4365c0 (Scenes/CrywolfInterfaceDrawing):
+// el estado, el cartel, el rango y los resultados. Las sube GameModels con las del HUD, y quedan.
+inline constexpr std::array<Data::Textures::TextureSetEntry, 45> CrywolfTextureSet{{
+    {"Interface\\in_bar.tga", 0x6b6, TextureSetsDetail::LinearClamp},
+    {"Interface\\in_bar2.jpg", 0x6b7, TextureSetsDetail::LinearClamp},
+    {"Interface\\in_deco.tga", 0x6b8, TextureSetsDetail::LinearClamp},
+    {"Interface\\in_main.tga", 0x6b9, TextureSetsDetail::LinearClamp},
+    {"Interface\\in_main_icon_bal1.tga", 0x6ba, TextureSetsDetail::LinearClamp},
+    {"Interface\\in_main_icon_dl1.tga", 0x6bb, TextureSetsDetail::LinearClamp},
+    {"Interface\\in_main_icon_dl2.tga", 0x6bc, TextureSetsDetail::LinearClamp},
+    {"Interface\\in_main_number1.tga", 0x6bd, TextureSetsDetail::LinearClamp},
+    {"Interface\\in_main_number2.tga", 0x6be, TextureSetsDetail::LinearClamp},
+    {"Interface\\in_main2.tga", 0x6bf, TextureSetsDetail::LinearClamp},
+    {"Interface\\icon_failure.tga", 0x6c0, TextureSetsDetail::LinearClamp},
+    {"Interface\\icon_success.tga", 0x6c1, TextureSetsDetail::LinearClamp},
+    {"Interface\\t_main.tga", 0x6c2, TextureSetsDetail::LinearClamp},
+    {"Interface\\m_b_no1.tga", 0x6c3, TextureSetsDetail::LinearClamp},
+    {"Interface\\m_b_no2.tga", 0x6c4, TextureSetsDetail::LinearClamp},
+    {"Interface\\m_b_no3.tga", 0x6c5, TextureSetsDetail::LinearClamp},
+    {"Interface\\m_b_ok1.tga", 0x6c6, TextureSetsDetail::LinearClamp},
+    {"Interface\\m_b_ok2.tga", 0x6c7, TextureSetsDetail::LinearClamp},
+    {"Interface\\m_b_ok3.tga", 0x6c8, TextureSetsDetail::LinearClamp},
+    {"Interface\\m_b_yes1.tga", 0x6c9, TextureSetsDetail::LinearClamp},
+    {"Interface\\m_b_yes2.tga", 0x6ca, TextureSetsDetail::LinearClamp},
+    {"Interface\\m_b_yes3.tga", 0x6cb, TextureSetsDetail::LinearClamp},
+    {"Interface\\m_main.tga", 0x6cc, TextureSetsDetail::LinearClamp},
+    {"Interface\\in_main_number1_1.tga", 0x6cd, TextureSetsDetail::LinearClamp},
+    {"Interface\\in_main_number2_1.tga", 0x6ce, TextureSetsDetail::LinearClamp},
+    {"Interface\\in_main_number0_2.tga", 0x6cf, TextureSetsDetail::LinearClamp},
+    {"Interface\\icon_Rank_table.tga", 0x6d0, TextureSetsDetail::LinearClamp},
+    {"Interface\\icon_Rank_rank.tga", 0x6d1, TextureSetsDetail::LinearClamp},
+    {"Interface\\icon_Rank_D.tga", 0x6d2, TextureSetsDetail::LinearClamp},
+    {"Interface\\icon_Rank_C.tga", 0x6d3, TextureSetsDetail::LinearClamp},
+    {"Interface\\icon_Rank_B.tga", 0x6d4, TextureSetsDetail::LinearClamp},
+    {"Interface\\icon_Rank_A.tga", 0x6d5, TextureSetsDetail::LinearClamp},
+    {"Interface\\icon_Rank_S.tga", 0x6d6, TextureSetsDetail::LinearClamp},
+    {"Interface\\icon_Rank_0.tga", 0x6d7, TextureSetsDetail::LinearClamp},
+    {"Interface\\icon_Rank_1.tga", 0x6d8, TextureSetsDetail::LinearClamp},
+    {"Interface\\icon_Rank_2.tga", 0x6d9, TextureSetsDetail::LinearClamp},
+    {"Interface\\icon_Rank_3.tga", 0x6da, TextureSetsDetail::LinearClamp},
+    {"Interface\\icon_Rank_4.tga", 0x6db, TextureSetsDetail::LinearClamp},
+    {"Interface\\icon_Rank_5.tga", 0x6dc, TextureSetsDetail::LinearClamp},
+    {"Interface\\icon_Rank_6.tga", 0x6dd, TextureSetsDetail::LinearClamp},
+    {"Interface\\icon_Rank_7.tga", 0x6de, TextureSetsDetail::LinearClamp},
+    {"Interface\\icon_Rank_8.tga", 0x6df, TextureSetsDetail::LinearClamp},
+    {"Interface\\icon_Rank_9.tga", 0x6e0, TextureSetsDetail::LinearClamp},
+    {"Interface\\icon_Rank_exp.tga", 0x6e1, TextureSetsDetail::LinearClamp},
+    {"Interface\\m_main_rank.tga", 0x6e2, TextureSetsDetail::LinearClamp},
+}};
+
 // Las de los pases de brillo, que 0x61ccb0 sube en su avance 0 y nadie suelta: Shiny01 para el 0x8,
 // Chrome01 para el 0x4 y Chrome02 para el 0x200, el 0x800 y el 0x1000 (06 § Los pases de brillo).
 // No son de una escena: las sube GameModels con los modelos, y quedan.
@@ -161,7 +219,7 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 3> GlowTextureSet{{
 // flareBlue/62b (61dc9d), todos GL_LINEAR/GL_CLAMP; los dos últimos tienen slots físicos propios.
 // Lo que cuelga de un jugador (0x509340 y 0x50ba30) pide además Shiny03 en 0x5fe (61d937) e Impack03 de
 // Object9 en 0x5ad (61e799), del mismo lazo sin ramas de 0x61ccb0 y con el mismo sampling.
-inline constexpr std::array<Data::Textures::TextureSetEntry, 37> EffectTextureSet{{
+inline constexpr std::array<Data::Textures::TextureSetEntry, 39> EffectTextureSet{{
     {"Effect\\Fire01.jpg", 0x5d9, TextureSetsDetail::LinearClamp},
     // 0x61d663: ShockWave en 0x6eb, la onda del galope del caballo en Icarus (0x44431b).
     {"Effect\\ShockWave.jpg", 0x6eb, TextureSetsDetail::LinearClamp},
@@ -180,6 +238,11 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 37> EffectTextureSe
     {"Effect\\smoke02.tga", 0x5f3, TextureSetsDetail::LinearClamp},
     // 0x61d7e5 (0x63b870, GL_LINEAR y GL_CLAMP): Explotion01 en 0x5ed, la explosión 5ed/0 del terremoto 0xfa.
     {"Effect\\Explotion01.jpg", 0x5ed, TextureSetsDetail::LinearClamp},
+    // 0x61d7aa (0x63bd00, GL_LINEAR y GL_CLAMP): blood01.tga en 0x5e3, las dos marcas del suelo que deja el que termina
+    // de morir (0x52e810, CL9 hito 3), que dibuja 0x549130 con los componentes de este slot.
+    {"Effect\\blood01.tga", 0x5e3, TextureSetsDetail::LinearClamp},
+    // 0x61d7c9 (0x63bd00, GL_LINEAR y GL_CLAMP): blood.tga en 0x5e4, la sangre que suelta el golpe con daño (0x50419c).
+    {"Effect\\blood.tga", 0x5e4, TextureSetsDetail::LinearClamp},
     {"Effect\\clouds.jpg", 0x622, TextureSetsDetail::LinearClamp},
     {"Effect\\lightning2.jpg", 0x5d5, TextureSetsDetail::LinearClamp},
     {"Effect\\Spark01.jpg", 0x617, TextureSetsDetail::LinearClamp},

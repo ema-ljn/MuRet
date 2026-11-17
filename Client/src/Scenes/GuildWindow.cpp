@@ -135,6 +135,9 @@ constexpr std::int32_t ScrollToTheEnd = -10000;
 // Confirmar) y el diálogo 0x7d del juego que pide el número (0x64fdb0) con la cuenta de Tab (0x6c8e6c) en 1.
 constexpr std::size_t UnionMasterText = 1270;
 constexpr std::array<std::size_t, 4> DisbandTexts{1363, 1364, 1365, 1366};
+// 0x64fce7..0x64fd8f: los cuatro renglones son lugares de 0x32 bytes seguidos de la pila (ebp−0xfc, −0xca, −0x98 y
+// −0x66).
+constexpr std::size_t DisbandSlot = 0x32;
 constexpr std::int32_t NumberDialog = 0x7d;
 constexpr std::int32_t NumberDialogFields = 1;
 // 0x650c10: el maestro de la alianza (1271), C1 07 E5 01 02 (romper la alianza) con el aviso 1387 del tipo 1, y el
@@ -469,6 +472,35 @@ void OpenTheNumberDialog(WorldRuntime& runtime)
     runtime.chat.input.fieldCount = NumberDialogFields;
 }
 
+// 0x64fce7..0x64fd8f: strcpy de 1363 a 1366 en sus lugares de 0x32 bytes, uno detrás del otro. Un texto de 0x32 bytes
+// o más sigue en el lugar de abajo y el strcpy siguiente le pisa la cola con su 0: el renglón queda sin su 0 y 0x6600d0
+// lo copia hasta el 0 del de abajo (1364 en español: Q-C1366). Pasar del cuarto lugar pisaría otros locales: corta.
+Core::Expected<std::array<std::string, DisbandTexts.size()>, std::string> DisbandLines(
+    const Data::Text::TextTable* texts)
+{
+    std::array<char, DisbandSlot * DisbandTexts.size()> stack{};
+    for (std::size_t line = 0; line < DisbandTexts.size(); ++line)
+    {
+        auto text = TextOf(texts, DisbandTexts[line], "0x64fce7");
+        if (!text.HasValue())
+            return Core::Unexpected(std::move(text).Error());
+        const std::size_t start = line * DisbandSlot;
+        if (start + text.Value().size() >= stack.size())
+            return Core::Unexpected(std::format("0x64fd8f: el texto {} pasa de los cuatro renglones de la pila (0x32 "
+                                                "bytes cada uno, Q-C1366)",
+                                                DisbandTexts[line]));
+        std::ranges::copy(text.Value(), stack.begin() + static_cast<std::ptrdiff_t>(start));
+        stack[start + text.Value().size()] = '\0';
+    }
+    std::array<std::string, DisbandTexts.size()> lines{};
+    for (std::size_t line = 0; line < lines.size(); ++line)
+    {
+        const auto first = stack.begin() + static_cast<std::ptrdiff_t>(line * DisbandSlot);
+        lines[line] = std::string(first, std::find(first, stack.end(), '\0'));
+    }
+    return lines;
+}
+
 // 0x64fc00: la pestaña 0.
 Core::Expected<void, std::string> StepTheNoticeTab(const GuildWindowStepContext& context)
 {
@@ -487,15 +519,10 @@ Core::Expected<void, std::string> StepTheNoticeTab(const GuildWindowStepContext&
             return Core::Unexpected(std::move(names).Error());
         if (names.Value().guild == names.Value().alliance)
             return TellTheMaster(context, UnionMasterText, "0x64fcd5");
-        std::array<std::string, DisbandTexts.size()> lines{};
-        for (std::size_t line = 0; line < lines.size(); ++line)
-        {
-            auto text = TextOf(context.texts, DisbandTexts[line], "0x64fce7");
-            if (!text.HasValue())
-                return Core::Unexpected(std::move(text).Error());
-            lines[line] = std::string(text.Value());
-        }
-        return OpenTheGuildDialog(context, lines, UI::PanelDialogConfirm, UI::PanelDialogOwner::GuildDisband,
+        auto lines = DisbandLines(context.texts);
+        if (!lines.HasValue())
+            return Core::Unexpected(std::move(lines).Error());
+        return OpenTheGuildDialog(context, lines.Value(), UI::PanelDialogConfirm, UI::PanelDialogOwner::GuildDisband,
                                   "0x64fcd5");
     }
     // 0x64fd9c: 0x64faa0 con el nombre del héroe (+0x1d9).

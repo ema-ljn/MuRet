@@ -180,7 +180,7 @@ int Draws(const CrtRandom& random)
     return -1;
 }
 
-Client::Data::Text::TextTable WindowTexts()
+Client::Data::Text::TextTable WindowTexts(const std::map<std::size_t, std::string>& replaced = {})
 {
     std::map<std::size_t, std::string> texts{{180, "Gremio"},
                                              {228, "Aceptar"},
@@ -230,6 +230,8 @@ Client::Data::Text::TextTable WindowTexts()
                                              {1423, "Gremio: %s"}};
     for (std::size_t line = 0; line < 11; ++line)
         texts.emplace(1257 + line, std::format("Sin alianza {}", line));
+    for (const auto& [index, text] : replaced)
+        texts[index] = text;
     auto table = Client::Data::Text::LoadTextTable(Client::Tests::TextTableBytes(texts));
     EXPECT_TRUE(table.HasValue());
     return std::move(table).Value();
@@ -1299,6 +1301,33 @@ TEST_P(GuildWindowTest, TheMasterDisbandsTheGuildThroughTheNumberDialog)
     EXPECT_EQ(Runtime().chat.input.fieldCount, 1);
     EXPECT_TRUE(m_sent.empty());
     EXPECT_EQ(Draws(m_random), 0);
+}
+
+// 0x64fce7..0x64fd8f: los renglones de disolver son lugares de 0x32 bytes seguidos. El 1364 en español (54 bytes) sigue
+// en el de abajo y el strcpy del 1365 le pisa la cola: el renglón 2 son sus 50 primeros bytes y el 1365 (Q-C1366). Un
+// texto que pasa del cuarto lugar corta.
+TEST_P(GuildWindowTest, ALongDisbandLineRunsIntoTheNextOne)
+{
+    const std::string spanish = "Todos los elementos del Baul del gremio desaparecieron";
+    ASSERT_EQ(spanish.size(), 54u);
+    m_texts = WindowTexts({{1364, spanish}, {1365, "Y el Ranking del gremio tambien desaparecio"}});
+    JoinTheGuild("");
+    Hero().guildStatus = MasterStatus;
+    Guild().window.tab = 0;
+    ASSERT_TRUE(ClickTheTabButton(Client::Scenes::GuildLeaveButton).HasValue());
+    const Client::UI::PanelDialogState& dialog = Runtime().panels.delegated.panelDialog;
+    ASSERT_EQ(dialog.lineCount, 4);
+    EXPECT_EQ(dialog.lines[0], "Disolver 1");
+    EXPECT_EQ(dialog.lines[1], spanish.substr(0, 0x32) + "Y el Ranking del gremio tambien desaparecio");
+    EXPECT_EQ(dialog.lines[2], "Y el Ranking del gremio tambien desaparecio");
+    EXPECT_EQ(dialog.lines[3], "Disolver 4");
+
+    Runtime().panels.delegated.panelDialog = {};
+    Guild().window.dialog = 0;
+    m_texts = WindowTexts({{1366, std::string(0x32, 'x')}});
+    const auto cut = ClickTheTabButton(Client::Scenes::GuildLeaveButton);
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x64fd8f"), std::string::npos);
 }
 
 // 0x64fd9c: el que no es maestro sale: su lugar en 0x787a5e8 (0x64faa0 con su nombre) en 0x6d5e2c y el diálogo 0x7d.

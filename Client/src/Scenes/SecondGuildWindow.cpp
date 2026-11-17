@@ -691,12 +691,14 @@ Core::Expected<void, std::string> DrawTheName(GameHudContext& context, GuildStat
     UI::ShowTheDialogField(input, ShownField);
     field.filter = 0;
     field.backgroundColor = 0;
-    field.text.SetLimit(GuildNameLimit);
+    UI::LimitTheEdit(field, GuildNameLimit, context.arrowHeld);
     field.base.width = FieldWidth;
     field.base.height = FieldHeight;
     field.base.x = x + PageLeft + FieldLeft;
     field.base.y = y + PageTop;
+    // 0x655232: la vtable + 0x30 (0x4682a0), el foco y el id del EDIT (7) en 0x5762ec0 (la lista que toma las flechas).
     UI::FocusTheDialogField(input);
+    context.world.Runtime().ui.focusedList = field.base.id;
     // 0x65523d: la vtable + 0x14 del EDIT (0x468320), con el cursor si tiene el foco.
     UI::OldDraw::DrawTheOldEdit(UI::OldWindowDrawContext{.sprites = context.sprites,
                                                          .text = context.text,

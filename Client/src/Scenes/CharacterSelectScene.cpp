@@ -405,11 +405,11 @@ bool CharacterSelectScene::PrepareTheCharacters()
                                                Render::Models::OwnRecordCloseRandoms);
     m_context.world->OwnCharacter().ResetForSelection();
     m_charactersPrepared = true;
-    // 0x634199..0x634227: los campos del diálogo apagados (0x77f3b68 el del alta del gremio, 0x77f3b69 el de los paneles
-    // y 0x77f3b6a el modo del zen, CL9 hito 8), el campo del chat abierto (0x6c8e68), las 120 entradas vacías y, si
-    // alguno de los dos números de pkt[5] de la lista (0x5767958 y 0x576795c, 0x4c20a0) no es 0, el 1240 con ellos, como
-    // sistema y sin nombre (el nombre de 0x7d3a17c nadie lo escribe). El vaciado de los campos (0x553570) es de la
-    // entrada del chat.
+    // 0x634199..0x634227: los campos del diálogo apagados (0x77f3b68 el del alta del gremio, 0x77f3b69 el de los
+    // paneles y 0x77f3b6a el modo del zen, CL9 hito 8), el campo del chat abierto (0x6c8e68), las 120 entradas vacías
+    // y, si alguno de los dos números de pkt[5] de la lista (0x5767958 y 0x576795c, 0x4c20a0) no es 0, el 1240 con
+    // ellos, como sistema y sin nombre (el nombre de 0x7d3a17c nadie lo escribe). El vaciado de los campos (0x553570)
+    // es de la entrada del chat.
     WorldRuntime& runtime = m_context.world->Runtime();
     runtime.chat.input.dialogFieldOn = false;
     runtime.chat.input.otherInput = false;

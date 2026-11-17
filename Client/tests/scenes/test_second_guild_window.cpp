@@ -518,9 +518,12 @@ TEST_P(SecondGuildWindowTest, TheNamePageDrawsTheFieldAndTheEditor)
     Guild().createStep = 1;
     Guild().markColor = 6;
     Guild().table[Creating].mark[9] = 4;
+    Runtime().ui.focusedList = 3;
     ASSERT_TRUE(Draw().HasValue());
     EXPECT_EQ(Input().dialogEdit.base.state, Client::UI::ShownWindow);
     EXPECT_EQ(Input().focus, Client::UI::ChatFocus::Dialog);
+    // 0x655232: el id del EDIT en 0x5762ec0, así las flechas ya no mueven otra lista.
+    EXPECT_EQ(Runtime().ui.focusedList, Client::UI::DialogFieldId);
     Client::UI::TypeInTheChat(Input(), "Ceibo");
     m_sprites.Begin(Screen640);
     m_text.texts.clear();

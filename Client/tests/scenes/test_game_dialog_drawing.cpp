@@ -129,7 +129,8 @@ public:
                                .sprites = sprites,
                                .text = text,
                                .texts = &texts,
-                               .mouse = mouse};
+                               .mouse = mouse,
+                               .arrowHeld = arrowHeld};
         return Client::Scenes::DrawTheGameDialogs(context);
     }
 
@@ -148,6 +149,7 @@ public:
     SpriteBatch sprites;
     Client::Tests::RecordingTextDrawer text{sprites};
     Client::UI::Point mouse{};
+    bool arrowHeld = false;
     Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable({
         {381, "salir"},
         {382, "otro servidor"},
@@ -665,6 +667,39 @@ TEST(GameDialogDrawingTest, TheLeaveNumberDrawsItsEditAndTheNarrowButtons)
     }
 }
 
+// 0x467f30 (EM_LIMITTEXT por SendMessageA) en cada frame del 0x7d y del 0x73 pasa por la subclase 0x467b10: con una
+// flecha abajo, +0x80 en 0 antes de que 0x468320 mire el cursor, que se ve desde el primer frame (con 13, apagado).
+TEST(GameDialogDrawingTest, AHeldArrowLightsTheDialogCaretAtOnce)
+{
+    for (const std::int32_t dialog : {0x7d, 0x73})
+    {
+        SCOPED_TRACE(dialog);
+        auto tested = std::make_unique<DrawingDialogs>(Lorencia);
+        Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+        runtime.dialogs.current = dialog;
+        Client::UI::ChatInputState& input = runtime.chat.input;
+        Client::UI::OldEdit& edit = dialog == 0x7d ? input.numberField : input.dialogEdit;
+        // El cursor al principio: al final del texto quedaría fuera del bitmap.
+        edit.text.Type("12");
+        edit.text.SetCursor(0);
+        edit.draws = 13;
+        tested->arrowHeld = true;
+
+        ASSERT_TRUE(tested->Draw().HasValue());
+        EXPECT_EQ(edit.draws, 1);
+        EXPECT_TRUE(std::ranges::any_of(tested->text.texts, [](const Client::Tests::RecordedText& text)
+                                        { return text.columns == 1 && text.style.colors.background == 0xffc8c8c8u; }));
+
+        tested->sprites.Begin(Screen640);
+        tested->text.texts.clear();
+        edit.draws = 13;
+        tested->arrowHeld = false;
+        ASSERT_TRUE(tested->Draw().HasValue());
+        EXPECT_EQ(edit.draws, 14);
+        EXPECT_FALSE(std::ranges::any_of(tested->text.texts, [](const Client::Tests::RecordedText& text)
+                                         { return text.columns == 1 && text.style.colors.background == 0xffc8c8c8u; }));
+    }
+}
 // 0x6304e1 → 0x471ae0 (CL9 hito 7): la caja de confirmación 0x9c con dos renglones, de (12 + 2) de alto en 640: el
 // marco (0xfc en y 120, 0xfb desde 125 con h + 40 de alto y 0xfc en h + 165), el sí en (255, h + 140) con el mouse en
 // el borde de abajo y la x del borde derecho (0xf2), el no sin él (0xf3), y los renglones centrados desde 0x87 de 14 en
@@ -818,6 +853,7 @@ TEST(GameDialogDrawingTest, TheMoneyDialogDrawsItsFrameItsEditAndItsText)
             EXPECT_EQ(edit.base.height, 0xe);
             EXPECT_EQ(edit.draws, 1);
             EXPECT_EQ(runtime.chat.input.focus, Client::UI::ChatFocus::Dialog);
+            EXPECT_EQ(runtime.ui.focusedList, Client::UI::DialogFieldId);
 
             const std::vector<DrawnQuad> quads = QuadsOf(tested->sprites);
             ASSERT_EQ(quads.size(), 3u);
@@ -893,6 +929,7 @@ TEST(GameDialogDrawingTest, TheShopDialogDrawsItsBoxItsEditAndItsButtons)
 
             ASSERT_TRUE(tested->Draw().HasValue());
             EXPECT_EQ(runtime.chat.input.focus, Client::UI::ChatFocus::Dialog);
+            EXPECT_EQ(runtime.ui.focusedList, Client::UI::DialogFieldId);
             EXPECT_EQ(edit.base.x, 0xfd);
             EXPECT_EQ(edit.draws, 1);
             const std::vector<DrawnQuad> quads = QuadsOf(tested->sprites);

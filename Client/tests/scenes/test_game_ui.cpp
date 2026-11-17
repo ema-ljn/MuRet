@@ -264,6 +264,28 @@ TEST(GameUiTest, TheUnownedClickTakesTheArrowsFromTheChatLog)
     EXPECT_EQ(tested.Ui().focusedList, 0);
 }
 
+// 0x636e8c..0x636ea5: con el campo de los paneles (0x77f3b69), el del alta del gremio (0x77f3b68) o el modo del zen del
+// 0x73 y del precio del 0x91 (0x77f3b6a), el clic sin dueño deja la lista de las flechas y el foco del EDIT.
+TEST(GameUiTest, TheUnownedClickLeavesAnOpenDialogField)
+{
+    for (const int field : {0, 1, 2})
+    {
+        SCOPED_TRACE(field);
+        const auto owned = std::make_unique<SteppingUi>();
+        SteppingUi& tested = *owned;
+        Client::Scenes::WorldRuntime& runtime = tested.world.Runtime();
+        runtime.chat.input.otherInput = field == 0;
+        runtime.chat.input.dialogFieldOn = field == 1;
+        runtime.social.moneyField = field == 2 ? 1 : 0;
+        runtime.chat.input.focus = Client::UI::ChatFocus::Dialog;
+        tested.Ui().focusedList = Client::UI::DialogFieldId;
+        tested.Click();
+        ASSERT_TRUE(tested.Step(320, 240).HasValue());
+        EXPECT_EQ(tested.Ui().focusedList, Client::UI::DialogFieldId);
+        EXPECT_EQ(runtime.chat.input.focus, Client::UI::ChatFocus::Dialog);
+    }
+}
+
 // 0x435bd0, solo en el 34: con los resultados de Crywolf (0x723bf9 en 1), el clic sobre el botón (300, 354) × (300,
 // 330), sin los bordes, deja 0x723bdc en 5, y cualquier clic queda apagado (el botón abajo y el flanco). En Lorencia y
 // en Devias el paso no hace nada y los resultados no se cierran (Q-C1342). Lo mismo con la ventana del contrato.

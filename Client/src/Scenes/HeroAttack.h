@@ -25,8 +25,8 @@ struct InventoryServices;
 // (+0x88 en 2), salvo en la guerra de gremios; un jugador (+0x88 en 1) por el asedio (0x4294b0), +0x370, la guerra
 // de gremios, el duelo, el PK de 6 o más o, si no, con Ctrl abajo (GetAsyncKeyState(0x11) en 0x558e7f, `controlDown`)
 // y que no sea el héroe. En la guerra (GuildState::warOn y warType, 0x576796c y 0x576796d), un jugador con el PK de 6
-// o más y gremio no se ataca si su gremio se llama como el del héroe (strcmp en 0x558da4 sobre 0x787aa55); con un índice
-// fuera de la tabla, corta.
+// o más y gremio no se ataca si su gremio se llama como el del héroe (strcmp en 0x558da4 sobre 0x787aa55); con un
+// índice fuera de la tabla, corta.
 [[nodiscard]] Core::Expected<bool, std::string> IsAttackable(const WorldState& world, bool controlDown);
 // 0x5588d0(blanco): lo mismo con `target` en vez del elegido (sin mirar 0x6c8e30), como la llama el lazo de los blancos
 // de la skill 0x4c del paso del ataque (0x5024c3, CL9 hito 4). Compara los nombres de gremio en 0x558aa9.

@@ -34,10 +34,10 @@ inline constexpr std::int32_t MutoNumberWindow = 4;
 void OpenTheSerialEntry(WorldRuntime& runtime);
 
 // 0x56b6a9..0x56b72a, SendMove con 0x78abb00 en 3 después del 97: el campo elegido en 0, los buffers de 0x7798bf8 en
-// cero con sus largos salvo el del susurro (el segundo, 0x7798cf8), el EDIT de [0x5763504] vacío (la vtable + 0x4c con
-// 0), el chat cerrado y el modo del zen, el zen escrito y 0x78abacc en 0, con 0x77f3b6b en 0. No toca el foco: el EDIT
-// lo sigue teniendo. 0x6c8e74 (−1), las marcas de 0x77f31c0, el EDIT de [0x5763508] y los otros ocho buffers no los
-// tiene MuRet.
+// cero con sus largos salvo el del susurro (el segundo, 0x7798cf8), los EDIT de [0x5763504] y [0x5763508] vacíos (la
+// vtable + 0x4c con 0), el chat cerrado y el modo del zen, el zen escrito y 0x78abacc en 0, con 0x77f3b6b en 0. No toca
+// el foco: el EDIT lo sigue teniendo. 0x6c8e74 (−1), las marcas de 0x77f31c0 y los otros ocho buffers no los tiene
+// MuRet.
 void CloseTheSerialEntry(WorldRuntime& runtime);
 
 // 0x5e6520, desde 0x5ee1ec después del ítem del cursor, con 0x78abb00 distinto de 0. El mouse sobre la ventana es de la

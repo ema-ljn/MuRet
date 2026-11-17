@@ -193,4 +193,10 @@ inline constexpr std::int32_t UppercaseLettersAndDigitsEdit = 2;
 
 // WM_CHAR al EDIT con el foco: cada letra de `typed` por el filtro de +0x4c y lo que pasa al texto, con su tope.
 void TypeInTheEdit(OldEdit& edit, std::string_view typed);
+
+// La vtable + 0x3c del EDIT (0x467f30): EM_LIMITTEXT con SendMessageA, que pasa por la subclase 0x467b10; con una
+// flecha abajo (0x467b35..0x467b69) deja +0x80 en 0. Los dibujos que la llaman en cada frame (el 0x7d en 0x630af0, el
+// 0x73 en 0x6308c6, la ventana 2 del gremio en 0x655130 y el número de serie en 0x5f696d) lo hacen antes de que
+// 0x468320 mire el cursor: con la flecha, el cursor se ve desde el primer frame.
+void LimitTheEdit(OldEdit& edit, std::size_t limit, bool arrowHeld);
 } // namespace Client::UI

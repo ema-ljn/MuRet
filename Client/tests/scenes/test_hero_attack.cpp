@@ -575,7 +575,8 @@ TEST_F(HeroAttackTest, Byte370OverridesGuildDuelAndPkFilters)
 }
 
 // En la guerra de gremios cuenta +0x374 en 2; con el PK de 6 y gremio, si su gremio se llama como el del héroe
-// (strcmp de 0x787aa55 en 0x558da4) no es atacable, aunque tenga el control o la marca; con otro nombre sigue a la marca.
+// (strcmp de 0x787aa55 en 0x558da4) no es atacable, aunque tenga el control o la marca; con otro nombre sigue a la
+// marca.
 TEST_F(HeroAttackTest, TheGuildWarLooksAtTheEnemyMark)
 {
     Runtime().guild.warOn = 1;

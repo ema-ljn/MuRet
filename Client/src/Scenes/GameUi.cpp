@@ -238,16 +238,17 @@ Core::Expected<void, std::string> StepTheChat(const GameUiContext& context)
 
 // 0x636e5d..0x636ed1: con el izquierdo abajo y el mouse fuera de las ventanas (o sobre el registro del chat), el foco
 // del administrador de las ventanas viejas (+0x44 de 0x5763514) en 0 y, con el chat y los otros campos cerrados
-// (0x77f3b69 y 0x77f3b6a, del hito 6, y 0x77f3b68, el del alta del gremio), la lista de las flechas en 0, 0x4a5e10
-// sobre la lista de ventanas y el foco del teclado a la ventana del juego (SetFocus; el IME de 0x467360, MuRet no lo
-// tiene).
+// (0x636e8c..0x636ea5: 0x77f3b69 el de los paneles, 0x77f3b68 el del alta del gremio y 0x77f3b6a el modo del zen del
+// 0x73 y del precio del 0x91), la lista de las flechas en 0, 0x4a5e10 sobre la lista de ventanas y el foco del teclado
+// a la ventana del juego (SetFocus; el IME de 0x467360, MuRet no lo tiene).
 void StepTheUnownedClick(WorldRuntime& runtime)
 {
     UI::GameUiState& ui = runtime.ui;
     if (!runtime.movement.leftHeld || (ui.hovered != 0 && ui.hovered != UI::ChatLogId))
         return;
     runtime.oldWindows.focus = 0;
-    if (ui.chatOpen || runtime.chat.input.dialogFieldOn)
+    if (ui.chatOpen || runtime.chat.input.otherInput || runtime.chat.input.dialogFieldOn ||
+        runtime.social.moneyField != 0)
         return;
     ui.focusedList = 0;
     UI::HideTheWindowList(runtime.oldWindows.windowList);

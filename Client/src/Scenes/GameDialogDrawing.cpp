@@ -686,20 +686,25 @@ void DrawTheGenericBox(Frame& frame)
 }
 
 // La vtable + 0x30 con 0 (0x4682a0, el foco de Windows) y la + 0x14 (0x468320, que lo dibuja con el foco) del EDIT
-// de [0x5763504] (ChatInputState::dialogEdit), después de lo que `setup` le cambia en este frame. Una pasada intermedia
-// trabaja sobre una copia y no mueve el foco.
+// de [0x5763504] (ChatInputState::dialogEdit), después de lo que `setup` le cambia en este frame, con su id en
+// 0x5762ec0. Una pasada intermedia trabaja sobre una copia y no mueve el foco.
 template <typename Setup> void DrawTheDialogEdit(Frame& frame, Setup setup)
 {
     UI::ChatInputState& input = frame.runtime.chat.input;
     UI::OldEdit copy = input.dialogEdit;
     UI::OldEdit& edit = frame.context.projecting ? copy : input.dialogEdit;
     setup(edit);
+    // 0x4682f1..0x4682f7: el foco también deja el id del EDIT (7) en 0x5762ec0, la lista que toma las flechas.
     if (!frame.context.projecting)
+    {
         input.focus = UI::ChatFocus::Dialog;
+        frame.runtime.ui.focusedList = edit.base.id;
+    }
     const UI::OldWindowDrawContext drawing{.sprites = frame.context.sprites,
                                            .text = frame.context.text,
                                            .dcFont = frame.context.hud.dcFont,
-                                           .textColors = frame.context.hud.textColors};
+                                           .textColors = frame.context.hud.textColors,
+                                           .arrowHeld = frame.context.arrowHeld};
     UI::OldDraw::DrawTheOldEdit(drawing, edit, true);
 }
 
@@ -711,11 +716,11 @@ void DrawTheMoneyBox(Frame& frame)
 {
     Quad(frame, MessageBoxSlot, BoxLeft, BoxTop, BoxWidth, GenericBoxHeight, MessageBoxDu, 1.0f);
     DrawTheDialogEdit(frame,
-                      [](UI::OldEdit& edit)
+                      [&frame](UI::OldEdit& edit)
                       {
                           edit.base.state = UI::ShownWindow;
                           edit.filter = MoneyEditFilter;
-                          edit.text.SetLimit(MoneyEditLimit);
+                          UI::LimitTheEdit(edit, MoneyEditLimit, frame.context.arrowHeld);
                           edit.base.width = MoneyEditWidth;
                           edit.base.height = MoneyEditHeight;
                           edit.base.x = MoneyEditX;
@@ -846,7 +851,7 @@ void DrawTheNumberBox(Frame& frame)
     UI::ShowTheNumberField(input, ShownField);
     field.filter = NumberFieldFilter;
     field.backgroundColor = 0;
-    field.text.SetLimit(NumberFieldLimit);
+    UI::LimitTheEdit(field, NumberFieldLimit, frame.context.arrowHeld);
     field.base.width = NumberFieldWidth;
     field.base.height = NumberFieldHeight;
     field.base.x = NumberFieldX;

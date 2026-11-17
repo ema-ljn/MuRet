@@ -492,4 +492,10 @@ void TypeInTheEdit(OldEdit& edit, std::string_view typed)
     }
     edit.text.Type(passed);
 }
+void LimitTheEdit(OldEdit& edit, std::size_t limit, bool arrowHeld)
+{
+    edit.text.SetLimit(limit);
+    if (arrowHeld)
+        edit.draws = 0;
+}
 } // namespace Client::UI

@@ -1275,8 +1275,9 @@ TEST(CharacterSelectSceneTest, TheFirstNativeStepConstructsBothPreviewsAndResets
     EXPECT_EQ(cloth.random.State(), Client::Tests::AfterDraws(1, 3934 + 3848 + 65536).State());
 }
 
-// 0x634199..0x634227: el primer paso con la lista abre el campo del chat, vacía el área vieja con 120 entradas y, con
-// los dos números de pkt[5] (el bajo y el alto), escribe el 1240 como sistema y sin nombre.
+// 0x634199..0x634227: el primer paso con la lista apaga los campos del diálogo (0x77f3b68..0x77f3b6a), abre el campo
+// del chat, vacía el área vieja con 120 entradas y, con los dos números de pkt[5] (el bajo y el alto), escribe el 1240
+// como sistema y sin nombre.
 TEST(CharacterSelectSceneTest, TheFirstStepEmptiesTheMessagesAndWritesTheAccountNotice)
 {
     Client::Scenes::WorldState world;
@@ -1287,12 +1288,18 @@ TEST(CharacterSelectSceneTest, TheFirstStepEmptiesTheMessagesAndWritesTheAccount
     Client::Scenes::WorldRuntime& runtime = world.Runtime();
     runtime.chat.area.rows[3].text = "viejo";
     runtime.chat.area.count = 4;
+    runtime.chat.input.dialogFieldOn = true;
+    runtime.chat.input.otherInput = true;
+    runtime.social.moneyField = 1;
 
     ASSERT_NO_FATAL_FAILURE(tested.Enter());
     tested.online.socket.reads = {Client::Tests::CharacterListBytes({}, 0, 0, 0x21)};
     tested.Step();
 
     ASSERT_FALSE(tested.scene->Failure().has_value()) << *tested.scene->Failure();
+    EXPECT_FALSE(runtime.chat.input.dialogFieldOn);
+    EXPECT_FALSE(runtime.chat.input.otherInput);
+    EXPECT_EQ(runtime.social.moneyField, 0);
     EXPECT_TRUE(runtime.ui.chatOpen);
     const Client::UI::MessageAreaState& area = runtime.chat.area;
     ASSERT_EQ(area.count, static_cast<std::int32_t>(Client::UI::MessageAreaRows));

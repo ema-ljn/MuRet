@@ -25,7 +25,6 @@
 #include <memory>
 #include <string>
 #include <string_view>
-#include <utility>
 #include <vector>
 
 // Scenes/GameSocialSteps (CL9 hito 7): los botones de la ventana del comercio (0x5ecde0) y el pedido de duelo

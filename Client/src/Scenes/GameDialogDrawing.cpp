@@ -230,7 +230,10 @@ constexpr std::int32_t ConfirmTwoButtons = 2;
 constexpr std::int32_t ConfirmOneButton = 1;
 constexpr int ConfirmTextTop = 0x87;
 
-// 0x63140b..0x631d66: los textos de Text.bmd de los del OK genérico que llegan a la CL8, uno o dos renglones.
+// 0x63140b..0x631d66: los textos de Text.bmd de los del OK genérico que llegan a la CL8, uno o dos renglones, y los
+// avisos del alta del gremio (CL9 hito 8, de 0x654f80 y 0x655c10): el nombre filtrado (0x72, 0x6314a3: 392 y 393),
+// corto (0x79, 0x63143f: 390), con un byte malo (0x7a, 0x631471: 391) y la marca vacía (0x7e, 0x631f05: 426). Su marco
+// y su OK son los del genérico (0x630818 y 0x63093e).
 struct GenericText
 {
     std::int32_t id = 0;
@@ -243,6 +246,10 @@ constexpr auto GenericTexts = std::to_array<GenericText>({
     {0x1a, 405, 406},
     {0x1c, 409, std::nullopt},
     {0x8f, 401, std::nullopt},
+    {0x72, 392, 393},
+    {0x79, 390, std::nullopt},
+    {0x7a, 391, std::nullopt},
+    {0x7e, 426, std::nullopt},
 });
 
 // 0x6309d4..0x630aeb: el sí y el no de 0x7f, 0x76, 0x77 y 0x78, de 70 × 21 en y 98 con las UV del OK: el sí, 0xf1

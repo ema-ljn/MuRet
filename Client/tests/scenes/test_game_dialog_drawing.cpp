@@ -158,6 +158,10 @@ public:
         {387, "aviso"},
         {388, "listo"},
         {389, "volumen"},
+        {390, "nombre corto"},
+        {391, "simbolo invalido"},
+        {392, "nombre"},
+        {393, "no permitido"},
         {401, "uno"},
         {402, "sin conexion"},
         {405, "primero"},
@@ -169,6 +173,7 @@ public:
         {421, "zen del almacen"},
         {422, "zen al comercio"},
         {425, "entrar a la party?"},
+        {426, "marca vacia"},
         {427, "nro"},
         {428, "seguro?"},
         {430, "guerra de %s"},
@@ -407,6 +412,45 @@ TEST(GameDialogDrawingTest, TheGenericOkDrawsItsTexts)
         EXPECT_EQ(tested.text.texts[0].y, 0x45);
         EXPECT_EQ(tested.text.texts[1].text, "segundo");
         EXPECT_EQ(tested.text.texts[1].y, 0x51);
+    }
+}
+
+// Los avisos del alta del gremio (CL9 hito 8): el marco y el OK del genérico (0x630818 y 0x63093e) y sus textos, el
+// 0x72 en dos renglones (392 y 393 en 75 − 6 y 75 + 6) y el 0x79, el 0x7a y el 0x7e en uno (390, 391 y 426 en 75).
+TEST(GameDialogDrawingTest, TheGuildCreationNoticesDrawLikeTheGenericOk)
+{
+    for (const std::int32_t map : {Lorencia, Devias})
+    {
+        SCOPED_TRACE(map);
+        DrawingDialogs tested(map);
+        Client::Scenes::WorldRuntime& runtime = tested.world.Runtime();
+        for (const auto& [id, rows] :
+             std::to_array<std::pair<std::int32_t, std::vector<std::string>>>({{0x72, {"nombre", "no permitido"}},
+                                                                               {0x79, {"nombre corto"}},
+                                                                               {0x7a, {"simbolo invalido"}},
+                                                                               {0x7e, {"marca vacia"}}}))
+        {
+            SCOPED_TRACE(id);
+            tested.sprites.Begin(Screen640);
+            tested.text.texts.clear();
+            runtime.dialogs.current = id;
+            tested.mouse = {0x11c, 0x76};
+            const auto drawn = tested.Draw();
+            ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+            const std::vector<DrawnQuad> quads = QuadsOf(tested.sprites);
+            ASSERT_EQ(quads.size(), 2u);
+            EXPECT_EQ(quads[0].slot, 0xf0);
+            EXPECT_EQ(quads[1].slot, 0xf2);
+            EXPECT_FLOAT_EQ(quads[1].x, 284.0f);
+            EXPECT_EQ(tested.Texts(), rows);
+            if (rows.size() == 1)
+                EXPECT_EQ(tested.text.texts[0].y, 75);
+            else
+            {
+                EXPECT_EQ(tested.text.texts[0].y, 75 - 6);
+                EXPECT_EQ(tested.text.texts[1].y, 75 + 6);
+            }
+        }
     }
 }
 

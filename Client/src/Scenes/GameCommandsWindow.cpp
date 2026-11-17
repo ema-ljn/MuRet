@@ -202,6 +202,8 @@ constexpr std::size_t NoGuildText = 1385;
 constexpr std::size_t NotAMasterText = 507;
 constexpr std::size_t HostilityAskedText = 1359;
 constexpr std::size_t HostilityEndedText = 1360;
+// 0x570d8f: /union, /rival o /rivaloff con el héroe sin gremio (0x77205c0).
+constexpr std::size_t HeroWithoutAGuildText = 1355;
 // El E5: la relación (1, la alianza; 2, la rivalidad) y el pedido (1, armarla; 2, romperla).
 constexpr std::uint8_t UnionRelation = 1;
 constexpr std::uint8_t RivalRelation = 2;
@@ -492,28 +494,36 @@ Core::Expected<void, std::string> CommandAHostility(const GameUiContext& context
                                HostilityAskedText, "0x409066");
 }
 
-// 0x409663..0x40a04d, el comando 8: la animación 0xb7 del héroe (0x4ea030, con el modelo de su tipo), el C1 05 18 con
-// la dirección del héroe y la acción 0x92, el C1 07 E5 02 02 con la clave del otro y el aviso 1360 con su nombre.
-Core::Expected<void, std::string> CommandTheEndOfAHostility(const GameUiContext& context, const GameChatContext& chat,
-                                                            std::size_t index)
+// La animación 0xb7 del héroe (0x4ea030(héroe, 0xb7), con el modelo de su tipo) y el C1 05 18 con la dirección del
+// héroe y la acción 0x92: el comando 8 (0x409663) y /rivaloff (0x57106e y 0x5729e1).
+Core::Expected<void, std::string> PlayTheEndOfAHostility(const GameChatContext& chat, std::string_view animation,
+                                                         std::string_view action)
 {
-    ActorState& hero = context.world.Actors()[context.world.Runtime().hero];
+    ActorState& hero = chat.world.Actors()[chat.world.Runtime().hero];
     if (!chat.send)
-        return Core::Unexpected(std::string("0x409677: el C1 18 del comando 8 sin el cable"));
+        return Core::Unexpected(std::format("{}: el C1 18 sin el cable", action));
     if (chat.models == nullptr)
-        return Core::Unexpected(std::string("0x40966f: la animación del héroe sin los modelos (0x4ea030)"));
+        return Core::Unexpected(std::format("{}: la animación del héroe sin los modelos (0x4ea030)", animation));
     const auto* skeleton = chat.models->SkeletonOf(hero.type);
     if (skeleton == nullptr)
         return Core::Unexpected(
-            std::format("0x40966f: sin las acciones del modelo {:#x} del héroe (0x4ea030)", hero.type));
+            std::format("{}: sin las acciones del modelo {:#x} del héroe (0x4ea030)", animation, hero.type));
     Render::Models::SetAction(hero.animation, *skeleton, EndOfHostilityAnimation);
-    const ActionSender sendAction = [&chat](std::uint8_t direction, std::uint8_t action)
+    const ActionSender sendAction = [&chat](std::uint8_t direction, std::uint8_t sent)
     {
         if (chat.send)
-            chat.send(Protocol::Movement::WriteAction(direction, action));
+            chat.send(Protocol::Movement::WriteAction(direction, sent));
     };
-    if (auto sent = SendTheAction(hero.angles.z, EndOfHostilityAction, sendAction, "0x4096f0"); !sent.HasValue())
-        return sent;
+    return SendTheAction(hero.angles.z, EndOfHostilityAction, sendAction, action);
+}
+
+// 0x409663..0x40a04d, el comando 8: la animación 0xb7 del héroe y el C1 05 18 (PlayTheEndOfAHostility), el C1 07 E5 02
+// 02 con la clave del otro y el aviso 1360 con su nombre.
+Core::Expected<void, std::string> CommandTheEndOfAHostility(const GameUiContext& context, const GameChatContext& chat,
+                                                            std::size_t index)
+{
+    if (auto played = PlayTheEndOfAHostility(chat, "0x40966f", "0x4096f0"); !played.HasValue())
+        return played;
     const std::uint16_t key = context.world.Actors()[index].key;
     return SendTheGuildRequest(context, chat,
                                Protocol::Guild::WriteRelationshipRequest(RivalRelation, BreakRelation, key), key,
@@ -830,5 +840,78 @@ Core::Expected<void, std::string> DrawTheCommandsWindow(GameHudContext& context)
     sprites.SetColor(White);
     sprites.SetBlend(BlendMode::Opaque);
     return {};
+}
+// 0x573f85..0x574bd5: con gremio (+0x368 del héroe distinto de 0xff), el aviso 255 con el 1; si no, el elegido o el de
+// enfrente (TheOneToAsk, 0x573fbb y 0x574587); sin él o sin el mundo cargado (0x7d3a101), nada. Con él, 0x78aba40 = su
+// clave (MOVSX), el C1 05 50 en claro y el aviso 477 con su nombre, con el 1. Devuelve 1.
+Core::Expected<UI::ChatCommandOutcome, std::string> RequestAGuildJoin(const GameChatContext& chat)
+{
+    WorldState& world = chat.world;
+    WorldRuntime& runtime = world.Runtime();
+    if (world.Actors()[runtime.hero].guildStatus != NoGuildStatus)
+        return UI::ChatCommandOutcome{.handled = true, .notices = {{InAGuildText, UI::SystemMessage}}};
+    if (chat.texts == nullptr)
+        return Core::Unexpected(std::string("0x573fbb: /guild sin Text.bmd"));
+    const SocialRequestContext requests{.world = world, .random = chat.random, .texts = *chat.texts, .send = chat.send};
+    auto found = TheOneToAsk(requests, "0x573fbb");
+    if (!found.HasValue())
+        return Core::Unexpected(found.Error());
+    if (!found.Value() || !runtime.drawingEnabled)
+        return UI::ChatCommandOutcome{.handled = true, .notices = {}};
+    const std::uint16_t key = world.Actors()[*found.Value()].key;
+    runtime.guild.requester = static_cast<std::int16_t>(key);
+    if (!chat.send)
+        return Core::Unexpected(std::string("0x574179: el C1 05 50 de /guild sin el cable"));
+    chat.send(Protocol::Guild::WriteJoinRequest(key));
+    auto notice = NoticeWithTheName(requests, GuildAskedText, key, "0x574511");
+    if (!notice.HasValue())
+        return Core::Unexpected(std::move(notice).Error());
+    return UI::ChatCommandOutcome{.handled = true, .notices = {std::move(notice).Value()}};
+}
+
+// 0x570d7e..0x573f48: sin gremio (+0x368 del héroe en 0xff), el aviso 1355 con el 1; si no, el elegido o el de enfrente
+// (TheOneToAsk, 0x570db4 y 0x572679), sin mirar su gremio ni el mundo cargado; sin él, nada. Con él, la alianza (C1 07
+// E5 01 01 y el aviso 1358), la rivalidad (E5 02 01 y el 1359) o su fin (la animación 0xb7 y el C1 05 18 del comando 8,
+// E5 02 02 y el 1360), con su clave y el nombre del primero vivo con ella, con el 1. Devuelve 1.
+Core::Expected<UI::ChatCommandOutcome, std::string> RequestAGuildRelation(const GameChatContext& chat,
+                                                                          UI::GuildRelationCommand command)
+{
+    WorldState& world = chat.world;
+    if (world.Actors()[world.Runtime().hero].guildStatus == NoGuildStatus)
+        return UI::ChatCommandOutcome{.handled = true, .notices = {{HeroWithoutAGuildText, UI::SystemMessage}}};
+    if (chat.texts == nullptr)
+        return Core::Unexpected(std::string("0x570db4: /union, /rival o /rivaloff sin Text.bmd"));
+    const SocialRequestContext requests{.world = world, .random = chat.random, .texts = *chat.texts, .send = chat.send};
+    auto found = TheOneToAsk(requests, "0x570db4");
+    if (!found.HasValue())
+        return Core::Unexpected(found.Error());
+    if (!found.Value())
+        return UI::ChatCommandOutcome{.handled = true, .notices = {}};
+    const std::uint16_t key = world.Actors()[*found.Value()].key;
+    std::uint8_t relation = RivalRelation;
+    std::uint8_t change = MakeRelation;
+    std::size_t text = HostilityAskedText;
+    std::string_view where = "0x571a4e";
+    if (command == UI::GuildRelationCommand::Union)
+    {
+        relation = UnionRelation;
+        text = AllianceAskedText;
+        where = "0x572063";
+    }
+    else if (command == UI::GuildRelationCommand::RivalOff)
+    {
+        if (auto played = PlayTheEndOfAHostility(chat, "0x571079", "0x5710fa"); !played.HasValue())
+            return Core::Unexpected(std::move(played).Error());
+        change = BreakRelation;
+        text = HostilityEndedText;
+        where = "0x571432";
+    }
+    if (!chat.send)
+        return Core::Unexpected(std::format("{}: el E5 sin el cable", where));
+    chat.send(Protocol::Guild::WriteRelationshipRequest(relation, change, key));
+    auto notice = NoticeWithTheName(requests, text, key, where);
+    if (!notice.HasValue())
+        return Core::Unexpected(std::move(notice).Error());
+    return UI::ChatCommandOutcome{.handled = true, .notices = {std::move(notice).Value()}};
 }
 } // namespace Client::Scenes

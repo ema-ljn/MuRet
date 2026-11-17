@@ -287,31 +287,38 @@ Core::Expected<UI::ChatCommandOutcome, std::string> RequestATrade(const SocialRe
     return Handled();
 }
 
-Core::Expected<void, std::string> RequestADuel(const SocialRequestContext& context)
+Core::Expected<std::optional<std::size_t>, std::string> TheOneToAsk(const SocialRequestContext& context,
+                                                                    std::string_view where)
 {
-    auto chosen = TheChosen(context.world, "0x56d823");
+    auto chosen = TheChosen(context.world, where);
     if (!chosen.HasValue())
         return Core::Unexpected(chosen.Error());
-    std::optional<std::size_t> other;
     if (const auto picked = chosen.Value())
     {
         if (CanBeAsked(context.world, *picked) && NextToTheHero(context.world, context.random, *picked))
-            other = *picked;
+            return std::optional<std::size_t>{*picked};
+        return std::optional<std::size_t>{};
     }
-    else
+    for (std::size_t index = 0; index < SearchedActors; ++index)
     {
-        // 0x56e0b5..0x56e2da: el primero de los 400 al lado y enfrente.
-        for (std::size_t index = 0; index < SearchedActors && !other; ++index)
-        {
-            if (!CanBeAskedFromTheFront(context, index))
-                continue;
-            auto faces = FacesTheHero(context.world, index);
-            if (!faces.HasValue())
-                return Core::Unexpected(faces.Error());
-            if (faces.Value())
-                other = index;
-        }
+        if (!CanBeAskedFromTheFront(context, index))
+            continue;
+        auto faces = FacesTheHero(context.world, index);
+        if (!faces.HasValue())
+            return Core::Unexpected(faces.Error());
+        if (faces.Value())
+            return std::optional<std::size_t>{index};
     }
+    return std::optional<std::size_t>{};
+}
+
+Core::Expected<void, std::string> RequestADuel(const SocialRequestContext& context)
+{
+    // 0x56d823 y 0x56e0b5..0x56e2da: el elegido o el primero de los 400 al lado y enfrente.
+    auto found = TheOneToAsk(context, "0x56d823");
+    if (!found.HasValue())
+        return Core::Unexpected(found.Error());
+    const std::optional<std::size_t> other = found.Value();
     if (!other)
         return {};
     // 0x56d9b8..0x56e06b y 0x56e2df..0x56e9ec: el AA con la clave y los diez bytes de +0x1d9.

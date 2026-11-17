@@ -15,6 +15,7 @@
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/Emote.h"
 #include "Scenes/FaunaModels.h"
+#include "Scenes/GameCommandsWindow.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/ItemSetState.h"
@@ -256,7 +257,10 @@ Core::Expected<UI::ChatCommandOutcome, std::string> RunTheCommand(const GameChat
             return {};
         },
         .requestShopItems = [&context](std::optional<std::string_view> name)
-        { return RequestTheShopItems(SocialRequestsOf(context), name); }};
+        { return RequestTheShopItems(SocialRequestsOf(context), name); },
+        .requestAGuildJoin = [&context]() { return RequestAGuildJoin(context); },
+        .requestAGuildRelation = [&context](UI::GuildRelationCommand command)
+        { return RequestAGuildRelation(context, command); }};
     auto outcome = UI::RunTheChatCommand(commands, text, fromMacro);
     if (!outcome.HasValue())
         return outcome;

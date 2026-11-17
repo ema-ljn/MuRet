@@ -682,6 +682,7 @@ protected:
         texts[1358] = "alianza con %s";
         texts[1359] = "rivales con %s";
         texts[1360] = "fin con %s";
+        texts[1355] = "no tenes gremio";
         texts[1385] = "sin gremio";
         m_texts = Client::Tests::MakeTextTable(texts);
         Hero().guildStatus = 0xff;
@@ -799,6 +800,98 @@ TEST_P(GuildCommandsTest, TheHostilityCommandsSendTheirRequests)
                                          Client::Tests::Bytes({0xc1, 0x05, 0x18, *direction, 0x92})));
     ExpectSentInTheClear(2, {0xc1, 0x07, 0xe5, 0x02, 0x02, 0x04, 0x56});
     EXPECT_EQ(LastMessage(), "fin con Brezal");
+    EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(Seed, 4 * CellRandoms).State());
+}
+
+// 0x573f85..0x574bd5 (/guild): sin gremio, el elegido al lado: 0x78aba40 con su clave, C1 05 50 04 56 en claro, el
+// aviso 477 con su nombre y solo los rand() de las cuatro celdas. Sin elegido, el de enfrente (Brezal mira al héroe).
+// Sin el mundo cargado, nada. Con gremio, el aviso 255 sin mirar a nadie.
+TEST_P(GuildCommandsTest, TheGuildChatCommandAsksTheChosenOrTheOneInFront)
+{
+    Choose(1);
+    auto asked = Client::Scenes::RequestAGuildJoin(ChatContext());
+    ASSERT_TRUE(asked.HasValue()) << asked.Error();
+    EXPECT_TRUE(asked.Value().handled);
+    ASSERT_EQ(asked.Value().notices.size(), 1U);
+    EXPECT_EQ(asked.Value().notices[0].type, Client::UI::SystemMessage);
+    EXPECT_EQ(asked.Value().notices[0].formatted, "pediste el gremio a Brezal");
+    ASSERT_EQ(m_sent.size(), 1U);
+    ExpectSentInTheClear(0, {0xc1, 0x05, 0x50, 0x04, 0x56});
+    EXPECT_EQ(game->world.Runtime().guild.requester, 0x0456);
+    EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(Seed, 4 * CellRandoms).State());
+
+    Choose(-1);
+    game->world.Runtime().guild.requester = 0;
+    m_random = CrtRandom(Seed);
+    asked = Client::Scenes::RequestAGuildJoin(ChatContext());
+    ASSERT_TRUE(asked.HasValue()) << asked.Error();
+    ASSERT_EQ(m_sent.size(), 2U);
+    ExpectSentInTheClear(1, {0xc1, 0x05, 0x50, 0x04, 0x56});
+    EXPECT_EQ(game->world.Runtime().guild.requester, 0x0456);
+
+    game->world.Runtime().drawingEnabled = false;
+    asked = Client::Scenes::RequestAGuildJoin(ChatContext());
+    ASSERT_TRUE(asked.HasValue()) << asked.Error();
+    EXPECT_TRUE(asked.Value().handled);
+    EXPECT_TRUE(asked.Value().notices.empty());
+    EXPECT_EQ(m_sent.size(), 2U);
+
+    Hero().guildStatus = 0x00;
+    m_random = CrtRandom(Seed);
+    asked = Client::Scenes::RequestAGuildJoin(ChatContext());
+    ASSERT_TRUE(asked.HasValue()) << asked.Error();
+    EXPECT_EQ(asked.Value().notices, (std::vector<Client::UI::ChatCommandNotice>{{255, Client::UI::SystemMessage}}));
+    EXPECT_EQ(m_sent.size(), 2U);
+    EXPECT_EQ(m_random.State(), CrtRandom(Seed).State());
+}
+
+// 0x570d7e..0x573f48 (/union, /rival y /rivaloff): sin gremio, el aviso 1355. Con él, al elegido o al de enfrente sin
+// mirar su gremio: C1 07 E5 01 01 y el 1358, E5 02 01 y el 1359, y la animación 0xb7, el C1 05 18 con la acción 0x92,
+// E5 02 02 y el 1360. Sin los modelos, /rivaloff corta antes de mandar nada.
+TEST_P(GuildCommandsTest, TheRelationChatCommandsSendTheirRequests)
+{
+    using Client::UI::GuildRelationCommand;
+    Choose(1);
+    auto asked = Client::Scenes::RequestAGuildRelation(ChatContext(), GuildRelationCommand::Union);
+    ASSERT_TRUE(asked.HasValue()) << asked.Error();
+    EXPECT_EQ(asked.Value().notices, (std::vector<Client::UI::ChatCommandNotice>{{1355, Client::UI::SystemMessage}}));
+    EXPECT_TRUE(m_sent.empty());
+
+    Hero().guildStatus = 0x00;
+    Hero().word1f2 = 3;
+    asked = Client::Scenes::RequestAGuildRelation(ChatContext(), GuildRelationCommand::Union);
+    ASSERT_TRUE(asked.HasValue()) << asked.Error();
+    ASSERT_EQ(asked.Value().notices.size(), 1U);
+    EXPECT_EQ(asked.Value().notices[0].formatted, "alianza con Brezal");
+    ASSERT_EQ(m_sent.size(), 1U);
+    ExpectSentInTheClear(0, {0xc1, 0x07, 0xe5, 0x01, 0x01, 0x04, 0x56});
+
+    Choose(-1);
+    asked = Client::Scenes::RequestAGuildRelation(ChatContext(), GuildRelationCommand::Rival);
+    ASSERT_TRUE(asked.HasValue()) << asked.Error();
+    EXPECT_EQ(asked.Value().notices[0].formatted, "rivales con Brezal");
+    ASSERT_EQ(m_sent.size(), 2U);
+    ExpectSentInTheClear(1, {0xc1, 0x07, 0xe5, 0x02, 0x01, 0x04, 0x56});
+
+    const auto cut = Client::Scenes::RequestAGuildRelation(ChatContext(), GuildRelationCommand::RivalOff);
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x571079"), std::string::npos) << cut.Error();
+    EXPECT_EQ(m_sent.size(), 2U);
+
+    Choose(1);
+    m_random = CrtRandom(Seed);
+    Client::Scenes::GameChatContext chat = ChatContext();
+    chat.models = &m_models;
+    asked = Client::Scenes::RequestAGuildRelation(chat, GuildRelationCommand::RivalOff);
+    ASSERT_TRUE(asked.HasValue()) << asked.Error();
+    EXPECT_EQ(asked.Value().notices[0].formatted, "fin con Brezal");
+    EXPECT_EQ(Hero().animation.action, 0xb7);
+    ASSERT_EQ(m_sent.size(), 4U);
+    const auto direction = Client::Scenes::ActionDirection(Hero().angles.z);
+    ASSERT_TRUE(direction.has_value());
+    EXPECT_TRUE(Client::Tests::SameBytes(Client::Network::Crypto::Xor32Decode(m_sent[2].packet).Bytes(),
+                                         Client::Tests::Bytes({0xc1, 0x05, 0x18, *direction, 0x92})));
+    ExpectSentInTheClear(3, {0xc1, 0x07, 0xe5, 0x02, 0x02, 0x04, 0x56});
     EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(Seed, 4 * CellRandoms).State());
 }
 

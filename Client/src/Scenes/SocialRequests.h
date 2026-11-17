@@ -100,6 +100,13 @@ struct CellDistance
 // con su clave y el aviso 475 con el nombre del primero vivo con esa clave (0x5110d0), con el 1, y 1.
 [[nodiscard]] Core::Expected<UI::ChatCommandOutcome, std::string> RequestATrade(const SocialRequestContext& context);
 
+// A quién le pide algo un comando del chat: el elegido (0x6c8e30, sin mirar si está vivo) si es alguien a quien pedirle
+// (CanBeAsked) y está al lado (NextToTheHero, sus accesos); sin elegido, el primero de los 400 vivo, alguien a quien
+// pedirle, al lado y enfrente (FacesTheHero), como los lazos de /duelstart (0x56e0b5), /guild (0x574587) y /union
+// (0x572679). Sin ninguno, sin valor; `where` es la dirección del elegido.
+[[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string> TheOneToAsk(const SocialRequestContext& context,
+                                                                                  std::string_view where);
+
 // 0x56d823..0x56e9ec (/duelstart sin duelo): el elegido o el de enfrente, como /trade pero sin la tienda, sin
 // 0x5af560 ni 0x7d3a101 y sin aviso, y el C1 0F AA con su clave y su nombre. Con o sin él, la cadena sigue
 // (0x56e07c).

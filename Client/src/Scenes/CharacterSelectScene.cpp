@@ -58,7 +58,6 @@
 #include "Scenes/SceneTextures.h"
 #include "Scenes/SceneWorlds.h"
 #include "Scenes/SelectionState.h"
-#include "Scenes/SocialEvents.h"
 #include "Scenes/TerrainPolygonFrame.h"
 #include "Scenes/TextureSets.h"
 #include "Scenes/WorldRuntime.h"
@@ -396,10 +395,6 @@ bool CharacterSelectScene::PrepareTheCharacters()
     }
     // 0x633f91: vaciado previo al reset parcial; no es el del F3/10, que toca otros campos y grillas.
     ClearSelectionInventory(*m_context.world, m_context.cloth->random);
-    // 0x5bc107..0x5bc13f, la cola de 0x5bbe10: el comercio (CL9 hito 7). Antes, el almacén (0x78a7070) y la caja del
-    // caos (0x7d2d380), 0x449c40, 0x402e10 y los cierres 0x65cae0(0x400000 y 0x800000) siguen sin portar, como dice 06
-    // § La selección de personaje, "Lo que saca la entrada" (08 P-C205).
-    ClearTheTradeForSelection(m_context.world->Runtime().social.trade);
     // 0x634049..0x634177: el reset parcial, con el cierre del mismo registro de 0x4fc450.
     const Render::Models::LogicalAccess access(m_context.world->Runtime().ownRecordDepth, m_context.cloth->random,
                                                Render::Models::OwnRecordCloseRandoms);

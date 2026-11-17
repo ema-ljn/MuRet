@@ -20,7 +20,6 @@
 #include "Scenes/NpcNames.h"
 #include "Scenes/QuestState.h"
 #include "Scenes/SceneId.h"
-#include "Scenes/SocialState.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/ViewportPacketRing.h"
 #include "Scenes/WorldTexts.h"
@@ -198,10 +197,6 @@ struct HudState
     // abierta, en (0x1c2, 0). La lee su paso (0x5e3c80), que antes del primer dibujo ve los ceros de la .bss (Q-C650).
     std::int32_t partyX = 0;
     std::int32_t partyY = 0;
-    // 0x78a5a1c y 0x78a5a18: la esquina de la ventana del comercio, que pone su dibujo (0x5f3b40) en (0x104, 0). La lee
-    // su paso (0x5ecde0), que antes del primer dibujo ve los ceros de la .bss (Q-C650).
-    std::int32_t tradeX = 0;
-    std::int32_t tradeY = 0;
     // +0xc y +0x10 de [0x6e592c]: la esquina de la ventana de los comandos, que pone su dibujo (0x40a650) con la
     // ventana abierta, en (0x1c2, 0). La lee su paso (0x40a450), que antes del primer dibujo ve los ceros del
     // constructor (*inferido*, Q-C650).
@@ -258,17 +253,12 @@ struct HudState
 };
 
 // 0x78ab9b8, la grilla del ítem del cursor: un puntero en la .bss (0 al arrancar). Lo escriben levantar de una grilla
-// (0x5c52e2, con la que sea) y del equipo y MoveHero (0x5c2d37 y 0x59bf32, con 0x78a9bb0). MuRet levanta del
-// inventario y, desde la fase 4 del hito 7, de las grillas del comercio (0x5c4110); las demás (0x78a7070, 0x7d2d380 y
-// 0x723c80) cortan antes. 0x5be150 vuelve el ítem a la propia del comercio y a la de la tienda (0x5be191 y 0x5be3eb);
-// la del otro (0x78a5a20) no tiene rama y sigue como la del inventario.
+// (0x5c52e2, con la que sea) y del equipo y MoveHero (0x5c2d37 y 0x59bf32, con 0x78a9bb0). MuRet solo levanta del
+// inventario: las otras grillas (0x78a92a8, 0x78a7070, 0x7d2d380, 0x78ab0b8 y 0x723c80) cortan antes.
 enum class CursorGrid : std::uint8_t
 {
-    None,         // 0
-    Inventory,    // 0x78a9bb0
-    OwnTrade,     // 0x78a92a8
-    OtherTrade,   // 0x78a5a20
-    PersonalShop, // 0x78ab0b8
+    None,      // 0
+    Inventory, // 0x78a9bb0
 };
 
 // Las mascotas de 0x723960 (CL9 hito 4): 0x14 bytes por tipo, tres (0x420cd0 pone en 0 quince dwords).
@@ -529,8 +519,6 @@ struct WorldRuntime
     // frame del juego que llega a los personajes (0x6374dd → 0x510d00), que MuRet no dibuja: no se sabe qué
     // dejó, y 0x550990 corta con error si lo lee.
     std::optional<Scan505820> fullSetScan = Scan505820{};
-    // El comercio, la party y el duelo (CL9 hito 7).
-    SocialState social{};
     // [0x78a6758], en la .bss: 0 al arrancar. 0x5bc740, después de poner un ítem en una de las grillas del
     // inventario, lo compara con signo con 12 (0x5bcd0b y 0x5bd08b) y, con menos, abre el registro propio
     // para las velocidades (0x54fe10). Lo escriben quince lugares de la interfaz del inventario y del juego

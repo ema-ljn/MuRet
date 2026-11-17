@@ -154,11 +154,6 @@ protected:
                                           static_cast<std::size_t>(column));
     }
 
-    Scenes::UsedGrid InventoryGrid()
-    {
-        return Scenes::UsedGrid{.cells = world.Inventory().cells, .grid = Scenes::CursorGrid::Inventory};
-    }
-
     static std::size_t Index(std::int32_t column, std::int32_t row)
     {
         return static_cast<std::size_t>(row) * Scenes::InventoryColumns + static_cast<std::size_t>(column);
@@ -167,7 +162,7 @@ protected:
     Expected<void, std::string> RightClick(std::int32_t column, std::int32_t row)
     {
         Scenes::GamePanels panels(world, random);
-        return Scenes::UseTheLaterGridItem(Moves(), panels.Registry(), InventoryGrid(), Index(column, row));
+        return Scenes::UseTheLaterGridItem(Moves(), panels.Registry(), Index(column, row));
     }
 
     // El C1 06 26 que salió, descifrado.
@@ -308,7 +303,7 @@ TEST_F(GridItemUseTest, AnyOtherItemLeavesTheCursorEmptyAndTheWarehouseCuts)
         world.Runtime().ui.field78abb28 = 0;
         const CrtRandom expected = random;
         Scenes::GamePanels panels(world, random);
-        const auto used = Scenes::UseTheLaterGridItem(Moves(), panels.Registry(), InventoryGrid(), index);
+        const auto used = Scenes::UseTheLaterGridItem(Moves(), panels.Registry(), index);
         ASSERT_TRUE(used.HasValue()) << used.Error();
         EXPECT_EQ(random.State(), expected.State());
         EXPECT_EQ(world.Runtime().cursorItem.id, 0);

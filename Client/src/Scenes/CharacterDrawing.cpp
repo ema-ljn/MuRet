@@ -935,17 +935,16 @@ void DrawTheCloth(const CharacterFrame& frame, std::span<const BoneTransform> bo
                                               .angles = character.object.angles,
                                               .scale = character.object.scale,
                                               .position = character.object.position};
-    const bool wears =
-        character.wearsCloth.value_or(WearsACloth(appearance.characterClass, character.map) ||
-                                      (character.monster && WearsTheMonsterCloth(*character.monster, character.map)));
+    const bool wears = WearsACloth(appearance.characterClass, character.map) ||
+                       (character.monster && WearsTheMonsterCloth(*character.monster, character.map));
     if (character.advanceCloth)
     {
         character.cloth->Advance(frame.batch, wearer, clothBody, *character.clothWorld, character.map, frame.clock,
-                                 wears, character.clothColor, character.pace);
+                                 wears, PlainClothColor, character.pace);
     }
     else
     {
-        character.cloth->DrawCurrent(frame.batch, wearer, clothBody, frame.clock, wears, character.clothColor);
+        character.cloth->DrawCurrent(frame.batch, wearer, clothBody, frame.clock, wears);
     }
     // Los destellos del casco blanco (0x455930), aditivos, en la tabla del frame.
     if (character.sprites != nullptr)

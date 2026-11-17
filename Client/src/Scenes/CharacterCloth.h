@@ -35,9 +35,9 @@ struct ClothWearer
     std::uint32_t objectFlags = 0;
 };
 
-// bVar23 para un jugador (0x50c929..) sin mirar +0x3e3: la clase 3 o 4, salvo en los mapas 0x12 a 0x17. El juego
-// la arma entera, con +0x3e3 y el duelo (GameCharacters, DrawnCharacter::wearsCloth); las guerras de gremios son del
-// hito 8 (08 P-C207 b).
+// bVar23 para un jugador (0x50c929..): la clase 3 o 4 con el modelo 0x20a y +0x3e3 en 0, salvo en
+// los mapas 0x12 a 0x17. Lo de los duelos y las guerras de guild, que la prende en cualquier clase,
+// no está en MuRet.
 [[nodiscard]] bool WearsACloth(std::uint8_t characterClass, std::uint8_t map);
 
 // La otra mitad de bVar23 (0x50c951..0x50c96e), con cualquier tipo: el +0x376 0x37, salvo en los mapas 0x12 a 0x17.

@@ -20,7 +20,6 @@
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/Skill55cbc0.h"
 #include "Scenes/Skill55faa0.h"
-#include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldState.h"
@@ -99,7 +98,7 @@ std::string CNameOf(const ActorState& actor)
     return name;
 }
 
-std::string CNameOf(const std::array<std::byte, DuelNameSize>& bytes)
+std::string CNameOf(const std::array<std::byte, DuelNameBytes>& bytes)
 {
     std::string name;
     for (const std::byte letter : bytes)
@@ -483,13 +482,10 @@ Core::Expected<bool, std::string> AttackableTarget(const WorldState& world, cons
         return true;
     if (rules.byte576796c != 0 && target.pk >= MinimumOutlawPk && target.word1f2 != NoGuild)
         return false; // P-C250 f: los nombres y su continuación quedan en H8.
-    // 0x558dff..0x558e3d: con el duelo en curso (el BYTE de 0x78abad8), sólo el rival: la clave con MOVSX contra el
-    // DWORD de 0x78abadc y strcmp de +0x1d9 con 0x78abae0 (SocialState::duel, del hito 7).
-    const DuelState& duel = runtime.social.duel;
-    if (duel.active != 0)
+    if (rules.duelActive)
     {
-        const bool rival = static_cast<std::int32_t>(static_cast<std::int16_t>(target.key)) == duel.rivalKey;
-        return rival && CNameOf(target) == CNameOf(duel.rivalName);
+        const bool rival = static_cast<std::int32_t>(static_cast<std::int16_t>(target.key)) == rules.duelKey;
+        return rival && CNameOf(target) == CNameOf(rules.duelName);
     }
     if (rules.byte576796c != 0)
         return target.byte374 == 2 && !isHero;
@@ -548,9 +544,9 @@ Core::Expected<std::int32_t, std::string> ChosenKeyOf(const WorldState& world, s
     // (08, P-C250 f; Q-C1170).
     if (rules.byte576796c != 0 && target.pk >= MinimumOutlawPk && target.word1f2 != NoGuild)
         return NoKey;
-    // 0x558f84..0x558fed: con el duelo en curso, la clave del rival o −1, sin el nombre.
-    if (const DuelState& duel = runtime.social.duel; duel.active != 0)
-        return key == duel.rivalKey ? key : NoKey;
+    // 0x558f84..0x558fed.
+    if (rules.duelActive)
+        return key == rules.duelKey ? key : NoKey;
     if (target.byte370 == 2 || target.byte370 == 8)
         return key;
     if (rules.byte576796c != 0)

@@ -147,10 +147,6 @@ public:
     {
         requests.emplace_back("42");
     }
-    void SendGamePacket(Client::Protocol::Outgoing /*outgoing*/) override
-    {
-        requests.emplace_back("juego");
-    }
     void SendWindowClose() override
     {
         requests.emplace_back("31");

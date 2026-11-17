@@ -24,8 +24,8 @@ struct ActorState;
 //   de él, el camino hasta el elegido (+0x379 en 5); dentro y con la línea de vista, 0x55cbc0 con un elegido atacable
 //   y, con el blanco, el ángulo y la 5 (Flame), la 8 y la 9, la 0xc (Aqua Beam) y la 0x26 y la 0x27 (el 1E), y del
 //   Wizard la 6 (Teleport, el 1C) y la 0xf (Teleport Ally, el B0). Las 0x12 a 0x17 y la 0x2f, nada.
-// Los envíos van por HeroSkillContext::send; los C3 sacan sus dos rand() antes. La party (0x59e680 y 0x59272c) es
-// Scenes::IsInTheParty y la poción (0x589936), UseAManaPotion.
+// Los envíos van por HeroSkillContext::send; los C3 sacan sus dos rand() antes. Lo que es de otro hito corta con su
+// dirección: los nombres de la party (0x59e680 y 0x59272c, hito 7) y la poción (0x589936, hito 5).
 [[nodiscard]] Core::Expected<void, std::string> UseTheWizardSkill(ActorState& hero, std::uint8_t skill,
                                                                   const HeroSkillContext& context);
 } // namespace Client::Scenes

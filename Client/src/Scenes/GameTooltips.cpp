@@ -20,7 +20,6 @@
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
 #include "Scenes/SkillTooltip.h"
-#include "Scenes/SocialState.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -308,8 +307,7 @@ Core::Expected<void, std::string> DrawTheSetWindow(GameHudContext& context, std:
     return {};
 }
 
-// El ítem de 0x78abaa8: la casilla de la grilla (la del inventario, las del comercio o la de las tiendas personales)
-// o el lugar del equipo.
+// El ítem de 0x78abaa8: la casilla de la grilla o el lugar del equipo.
 World::ItemState* HoveredItemOf(WorldState& world)
 {
     const UI::HoveredItem& hovered = world.Runtime().ui.hoveredItem;
@@ -320,16 +318,6 @@ World::ItemState* HoveredItemOf(WorldState& world)
     case UI::HoveredItem::Place::Equipment:
         return hovered.index < world.OwnCharacter().equipment.size() ? &world.OwnCharacter().equipment[hovered.index]
                                                                      : nullptr;
-    case UI::HoveredItem::Place::OwnTradeCell:
-    case UI::HoveredItem::Place::OtherTradeCell:
-    {
-        TradeState& trade = world.Runtime().social.trade;
-        auto& cells = hovered.place == UI::HoveredItem::Place::OwnTradeCell ? trade.ownGrid : trade.otherGrid;
-        return hovered.index < cells.size() ? &cells[hovered.index] : nullptr;
-    }
-    case UI::HoveredItem::Place::ShopCell:
-        return hovered.index < world.Inventory().secondCells.size() ? &world.Inventory().secondCells[hovered.index]
-                                                                    : nullptr;
     case UI::HoveredItem::Place::None:
         return nullptr;
     }

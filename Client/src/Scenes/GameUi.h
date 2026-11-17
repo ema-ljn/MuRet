@@ -7,7 +7,6 @@
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
 #include "UI/OldWindows.h"
-#include "UI/Widget.h"
 #include "World/TerrainPickingSegment.h"
 
 #include <array>
@@ -83,9 +82,6 @@ public:
     virtual void RequestLogout(std::uint8_t kind) = 0;
     // 0x6599a0(4): el C1 03 42 en claro, el pedido de la lista de la party al abrir su ventana.
     virtual void RequestPartyList() = 0;
-    // Un paquete de mundo que arma Protocol (el comercio, la party y el duelo de la CL9 hito 7: 37, 3A, 3C, 3D, 41, 43
-    // y AC), como sale. Los dos rand() de un C3 los saca el paso antes.
-    virtual void SendGamePacket(Protocol::Outgoing outgoing) = 0;
     // 0x419900: el C1 03 31 en claro, al cerrar la ventana de las misiones (CL9 hito 2).
     virtual void SendWindowClose() = 0;
     // 0x419bd0 y 0x41a9e0: el C3 A2 con la misión y el estado. Los dos rand() del C3 los saca el paso.
@@ -173,8 +169,6 @@ struct FramePickingContext
     bool altDown = false;
     // El segmento del mouse del dibujo (GameScene::MouseRay): la cámara (0x7d36834) y el punto lejano (0x7d366c0).
     std::optional<World::TerrainPickingSegment> ray{};
-    // 0x7d3682c y 0x7d36828: el mouse en 640 × 480, que lee la lista de la party (0x5e4140).
-    UI::Point mouse{};
     // La posición de la cámara del dibujo (0x7d36884), distinta del origen del rayo.
     glm::vec3 cameraPosition{};
     std::span<ActorPickingBox> pickingBoxes{};
@@ -195,9 +189,7 @@ struct FramePickingContext
 // personajes de las máscaras 0x22 y 1 (al revés con la skill 0x1a a 0x1c del Dark Wizard o del Elf, que abre el
 // registro propio) en 0x6c8e30, sin ninguno los de la 4 (los NPC) en 0x6c8e2c (PickTheCharacter, 0x59e700) y, sin
 // NPC, el ítem del piso (0x59e2e0, CL9 hito 5); con Alt, el ítem del piso primero y después la 4, 0x22 y 1. Los
-// objetos (0x59eb90) dejan −1. La party (CL9 hito 7, PartyActors.h): sin Alt, antes de buscar, la lista de la derecha
-// (0x5e4140), que puede elegir a un miembro; con el mouse en la UI, con lo que eligió la lista o con un elegido y
-// 0x6c8e38 puesto, 0x59e3b0 busca a los miembros en el viewport. Al final, sin elegido, 0x6c8e38 en −1 (salvo cuando el
-// segundo intento de personajes acierta: vuelve antes).
+// objetos (0x59eb90) dejan −1. Al final, sin elegido, 0x6c8e38 en −1 (salvo cuando el segundo intento de personajes
+// acierta: vuelve antes).
 [[nodiscard]] Core::Expected<void, std::string> PickInTheFrame(const FramePickingContext& context);
 } // namespace Client::Scenes

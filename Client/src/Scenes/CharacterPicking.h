@@ -29,10 +29,8 @@ class WorldState;
 // +0x13c..+0x168 del último dibujo, publicada desde los bounds +0x124..+0x138 (Q-C100 con el 0x20a). En Lorencia (0) un
 // candidato sobre la capa 4 del .map, y en Devias (2) sobre la 3, cuenta solo si es la capa de la celda del héroe
 // (0x77f36d0). El primero gana empates exactos; best redondeado a float puede dejar pasar al siguiente, y unordered
-// también se acepta (research13). −1 si ninguno. Cada jugador (+0x88 en 1) que pasa las primeras condiciones busca
-// antes su lugar en la party (MatchThePartyMembers) y, al final, los lugares sin personaje quedan en −1 o −3
-// (MarkTheMissingMembers, CL9 hito 7). Sin segmento (antes del primer dibujo), tiñe y busca la party, sin elegir. Sin
-// rand().
+// también se acepta (research13). −1 si ninguno. La party (0x78aba48) está vacía en MuRet (hito 7): sus dos
+// recorridos no hacen nada. Sin segmento (antes del primer dibujo), solo tiñe. Sin rand().
 [[nodiscard]] std::int32_t PickTheCharacter(WorldState& world, std::uint8_t mask, const glm::vec3& distanceOrigin,
                                             const std::optional<World::TerrainPickingSegment>& ray,
                                             std::span<const ActorPickingBox> pickingBoxes = {});

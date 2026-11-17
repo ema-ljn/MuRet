@@ -30,7 +30,6 @@
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameProjection.h"
 #include "Scenes/GameSceneFrameProjection.h"
-#include "Scenes/GameSocialDrawing.h"
 #include "Scenes/GameTooltips.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/InventoryMoves.h"
@@ -160,16 +159,6 @@ public:
             return;
         }
         m_session->RequestPartyList();
-    }
-
-    void SendGamePacket(Protocol::Outgoing outgoing) override
-    {
-        if (m_session == nullptr)
-        {
-            m_log.Warning("no sale el paquete del comercio, la party o el duelo: no hay servidor");
-            return;
-        }
-        m_session->SendGamePacket(std::move(outgoing));
     }
 
     void SendWindowClose() override
@@ -349,8 +338,6 @@ InventoryServices GameScene::InventoryContext()
         services.sendPickUp = [session](std::uint16_t index) { return session->SendPickUp(index); };
         services.sendUseItem = [session](const Protocol::FloorItems::UseItem& use)
         { return session->SendUseItem(use); };
-        // CL9 hito 7: el 3C del comercio que mandan levantar y soltar en su grilla.
-        services.sendGamePacket = [session](Protocol::Outgoing packet) { session->SendGamePacket(std::move(packet)); };
     }
     services.pickTheGround = [this] { return GroundUnderTheMouse(); };
     return services;
@@ -372,7 +359,6 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
         .targets = m_projectingFrame ? projectedTargets : runtime.selectedTargets,
         .altDown = input.IsDown(Input::Key::Alt),
         .ray = m_mouseRay,
-        .mouse = UI::MouseIn640x480(input, canvas.screen),
         .cameraPosition = m_drawnCamera.position,
         .pickingBoxes = m_projectingFrame ? std::span(m_projection->actorPickingBoxes) : std::span<ActorPickingBox>{},
         .floorItems = FrameTail().floorItems});
@@ -527,9 +513,7 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
         return windows;
     if (auto list = UI::DrawTheWindowList(oldWindows, windowContext, windowView); !list.HasValue())
         return list;
-    // 0x637683: 0x5f37f0, el pedido de duelo, con 0x78abad9, que prende el AC (CL9 hito 7).
-    if (auto duel = DrawTheDuelRequest(hud); !duel.HasValue())
-        return duel;
+    // 0x637683: 0x5f37f0, el pedido de duelo, con 0x78abad9 (CL9.4, P-C59).
     // 0x637696: 0x62db60, los diálogos, en la escena 5.
     if (auto dialogs = DrawTheGameDialogs(hud); !dialogs.HasValue())
         return dialogs;

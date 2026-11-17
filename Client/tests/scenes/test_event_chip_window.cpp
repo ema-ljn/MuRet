@@ -20,7 +20,6 @@
 #include "Scenes/GameUi.h"
 #include "Scenes/NpcNames.h"
 #include "Scenes/OwnInventory.h"
-#include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"
@@ -406,8 +405,7 @@ TEST_F(EventChipWindowTest, TheSerialButtonWarnsWithAFullInventory)
 
 // 0x5e7255..0x5e74c6: el clic (0x7d366d4) en el botón de cerrar (0x19, 0x18b de la esquina, 24 × 24) apaga el clic,
 // pone 0x77f3b10 en 0 y 0x6c8dcc en 6, manda el C1 03 97 en claro, 0x78abb00 en 0, cierra el inventario (con los
-// rand() de 0x65cae0), vacía los buffers del chat, lo cierra, pone en 0 el modo del zen, el zen escrito, 0x78abacc y
-// 0x77f3b6b y le da el foco a la ventana del juego;
+// rand() de 0x65cae0), vacía los buffers del chat, lo cierra, apaga 0x77f3b6b y le da el foco a la ventana del juego;
 // el texto del EDIT de [0x5763504] queda. En Lorencia y en Devias, con cada tipo.
 TEST_F(EventChipWindowTest, TheCloseButtonLeavesTheWindow)
 {
@@ -428,9 +426,6 @@ TEST_F(EventChipWindowTest, TheCloseButtonLeavesTheWindow)
             chat.messageBuffer[0] = 'm';
             chat.messageLength = 1;
             Runtime().ui.chatOpen = true;
-            Runtime().social.moneyField = 1;
-            Runtime().social.typedMoney = 500;
-            Runtime().social.trade.field78abacc = 2;
             Runtime().movement.pendingClick = true;
             Runtime().movement.mouseUpdateTime = 3;
             const std::uint32_t closed = AfterClosingTheInventory();
@@ -449,9 +444,6 @@ TEST_F(EventChipWindowTest, TheCloseButtonLeavesTheWindow)
             EXPECT_EQ(Runtime().movement.mouseUpdateTimeMax, 6);
             EXPECT_FALSE(Runtime().ui.chatOpen);
             EXPECT_FALSE(Runtime().events.serialEntry);
-            EXPECT_EQ(Runtime().social.moneyField, 0);
-            EXPECT_EQ(Runtime().social.typedMoney, 0);
-            EXPECT_EQ(Runtime().social.trade.field78abacc, 0);
             EXPECT_EQ(chat.focus, Client::UI::ChatFocus::Game);
             EXPECT_EQ(chat.messageBuffer[0], '\0');
             EXPECT_EQ(chat.messageLength, 0);
@@ -474,10 +466,8 @@ TEST_F(EventChipWindowTest, TheCloseButtonDrawsTheInventoryCloseRandoms)
 // ----- La entrada del número de serie (0x4dd8ce..0x4dd920 y 0x56b6a9..0x56b72a).
 
 // 0x4dd8ce..0x4dd920: el número de serie en cero, 0x553570(0) (el campo elegido y el buffer del mensaje, no el del
-// susurro), el chat cerrado, el modo del zen, el zen escrito y 0x78abacc en 0, el largo del campo en 0xc, un solo campo
-// para el Tab y 0x77f3b6b en 1. 0x56b6a9..0x56b72a: el campo elegido en 0, el buffer del mensaje vacío (el del susurro
-// no), el EDIT vacío, el chat cerrado, el modo del zen, el zen escrito y 0x78abacc en 0 y 0x77f3b6b en 0, sin tocar el
-// foco.
+// susurro), el chat cerrado, un solo campo para el Tab y 0x77f3b6b en 1. 0x56b6a9..0x56b72a: el campo elegido en 0, el
+// buffer del mensaje vacío (el del susurro no), el EDIT vacío, el chat cerrado y 0x77f3b6b en 0, sin tocar el foco.
 TEST_F(EventChipWindowTest, TheSerialEntryOpensAndCloses)
 {
     Client::UI::ChatInputState& chat = Runtime().chat.input;
@@ -487,20 +477,12 @@ TEST_F(EventChipWindowTest, TheSerialEntryOpensAndCloses)
     chat.messageLength = 1;
     chat.whisperBuffer[0] = 'w';
     chat.fieldCount = 2;
-    Client::Scenes::SocialState& social = Runtime().social;
-    social.moneyField = 1;
-    social.typedMoney = 500;
-    social.trade.field78abacc = 2;
     Client::Scenes::OpenTheSerialEntry(Runtime());
     EXPECT_EQ(Runtime().events.serial[0], std::byte{0});
     EXPECT_FALSE(Runtime().ui.chatOpen);
     EXPECT_EQ(chat.messageBuffer[0], '\0');
     EXPECT_EQ(chat.whisperBuffer[0], 'w');
     EXPECT_EQ(chat.fieldCount, 1);
-    EXPECT_EQ(social.moneyField, 0);
-    EXPECT_EQ(social.typedMoney, 0);
-    EXPECT_EQ(social.trade.field78abacc, 0);
-    EXPECT_EQ(social.dialogFieldLimit, 0xc);
     EXPECT_TRUE(Runtime().events.serialEntry);
 
     chat.dialogEdit.text.SetText("AB12");
@@ -509,9 +491,6 @@ TEST_F(EventChipWindowTest, TheSerialEntryOpensAndCloses)
     chat.messageBuffer[0] = 'm';
     chat.whisperBuffer[0] = 'w';
     Runtime().ui.chatOpen = true;
-    social.moneyField = 1;
-    social.typedMoney = 500;
-    social.trade.field78abacc = 2;
     Client::Scenes::CloseTheSerialEntry(Runtime());
     EXPECT_EQ(chat.field, Client::UI::MessageField);
     EXPECT_EQ(chat.messageBuffer[0], '\0');
@@ -519,9 +498,6 @@ TEST_F(EventChipWindowTest, TheSerialEntryOpensAndCloses)
     EXPECT_EQ(chat.dialogEdit.text.Value(), "");
     EXPECT_EQ(chat.focus, Client::UI::ChatFocus::Dialog);
     EXPECT_FALSE(Runtime().ui.chatOpen);
-    EXPECT_EQ(social.moneyField, 0);
-    EXPECT_EQ(social.typedMoney, 0);
-    EXPECT_EQ(social.trade.field78abacc, 0);
     EXPECT_FALSE(Runtime().events.serialEntry);
 }
 

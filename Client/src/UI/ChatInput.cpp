@@ -129,7 +129,10 @@ void ShowTheChatFields(ChatInputState& input, std::int32_t state)
     input.shown = state != HiddenState;
     if (!input.shown)
     {
-        input.focus = ChatFocus::Game;
+        // 0x468260(3) es ShowWindow(SW_HIDE) de los dos EDIT del chat: el foco de otro EDIT (el del diálogo, el del
+        // número o el de una ventana vieja) no cambia.
+        if (input.focus == ChatFocus::Message || input.focus == ChatFocus::Whisper)
+            input.focus = ChatFocus::Game;
         return;
     }
     if (state == FocusedState)

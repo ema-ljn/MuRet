@@ -82,6 +82,26 @@ TEST(ChatInputTest, ShowingAndHidingMovesTheFocus)
     EXPECT_EQ(input.focus, ChatFocus::Game);
 }
 
+// 0x469450(3) oculta sólo los dos del chat: el EDIT del diálogo, el del número o el de una ventana vieja conservan el
+// foco (el campo del nombre del gremio no lo pierde cuando un paquete esconde el chat).
+TEST(ChatInputTest, HidingTheChatKeepsTheFocusOfAnotherEdit)
+{
+    for (const ChatFocus other : {ChatFocus::Dialog, ChatFocus::NumberField, ChatFocus::OldWindow})
+    {
+        ChatInputState input;
+        ShowTheChatFields(input, 1);
+        input.focus = other;
+        ShowTheChatFields(input, 3);
+        EXPECT_FALSE(input.shown);
+        EXPECT_EQ(input.focus, other);
+    }
+    ChatInputState whisper;
+    ShowTheChatFields(whisper, 1);
+    whisper.focus = ChatFocus::Whisper;
+    ShowTheChatFields(whisper, 3);
+    EXPECT_EQ(whisper.focus, ChatFocus::Game);
+}
+
 // 0x469370 no hace nada con los EDIT ocultos; con ellos a la vista, el foco y todo elegido.
 TEST(ChatInputTest, FocusingAFieldSelectsAllOfIt)
 {

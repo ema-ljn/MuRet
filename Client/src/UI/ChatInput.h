@@ -175,8 +175,9 @@ void FocusTheChatField(ChatInputState& input, std::int32_t field);
 void ClickTheChatField(ChatInputState& input, std::int32_t field);
 
 // 0x469450(estado): 3 los oculta; otro los muestra, y 0 además le da el foco al del mensaje (0x4682a0 con 0: sin
-// cambiar lo elegido). Al ocultarlos, el foco del teclado vuelve a la ventana del juego (*inferido*: MuRet no tiene
-// un EDIT oculto que reciba teclas).
+// cambiar lo elegido). Al ocultarlos, si uno de los dos tenía el foco, vuelve a la ventana del juego (*inferido*: MuRet
+// no tiene un EDIT oculto que reciba teclas); el de otro EDIT (el del diálogo, el del número, el de una ventana vieja)
+// queda, porque ShowWindow(SW_HIDE) sólo toca los del chat (0x469450..0x469485).
 void ShowTheChatFields(ChatInputState& input, std::int32_t state);
 
 // 0x469320: el campo elegido en 0, el foco al del mensaje (0x469370), los dos vacíos (0x469420) y el historial

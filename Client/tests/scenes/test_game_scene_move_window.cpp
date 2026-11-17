@@ -5,6 +5,7 @@
 #include "Data/Text/TextTable.h"
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
+#include "Input/Key.h"
 #include "Network/Crypto/Xor32.h"
 #include "Network/PacketSerials.h"
 #include "Render/Models/Cloth.h"

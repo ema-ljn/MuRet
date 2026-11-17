@@ -6,6 +6,7 @@
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GuildState.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"
@@ -223,8 +224,9 @@ TEST_F(ChatBubblesTest, WithoutAUnionOrAGuildTheLinesAreEmpty)
     EXPECT_EQ(Bubbles()[0].guildByte, 0);
 }
 
-// Sin Text.bmd, o con un renglón de 0x1e bytes o más (Q-C1283), corta; fuera de la tabla, también.
-TEST_F(ChatBubblesTest, AGuildLineThatDoesNotFitIsCut)
+// Sin Text.bmd corta; fuera de la tabla, también. Un renglón que llega al color (+0x64, 0x2e bytes desde +0x36) corta
+// (Q-C1283).
+TEST_F(ChatBubblesTest, AGuildLineWithoutItsTextOrPastTheColorIsCut)
 {
     NameTheGuild(*m_world, 3, "", "Horneros");
     ActorState& speaker = Speaker(4, "Tordo");
@@ -233,17 +235,61 @@ TEST_F(ChatBubblesTest, AGuildLineThatDoesNotFitIsCut)
     EXPECT_FALSE(
         Client::Scenes::AddChatBubble(*m_world, Measure(), "Tordo", "hola", 4, ChatBubbleMode::Chat).HasValue());
 
-    const auto longPost =
-        Client::Data::Text::LoadTextTable(Client::Tests::TextTableBytes({{1300, "un puesto largo de mas"}}));
+    const auto longPost = Client::Data::Text::LoadTextTable(
+        Client::Tests::TextTableBytes({{1300, "un puesto tan largo que llega al color"}}));
     ASSERT_TRUE(longPost.HasValue());
     ChatBubbleMeasure measure = Measure();
     measure.texts = &longPost.Value();
     const auto cut = Client::Scenes::AddChatBubble(*m_world, measure, "Tordo", "hola", 4, ChatBubbleMode::Chat);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("Q-C1283"), std::string::npos);
+    EXPECT_NE(cut.Error().find("0x557024"), std::string::npos);
 
     speaker.word1f2 = 2000;
     EXPECT_FALSE(Client::Scenes::AddChatBubble(*m_world, measure, "Tordo", "hola", 4, ChatBubbleMode::Chat).HasValue());
+}
+
+// 0x557024 (Q-C1283): "[%s] %s" va a +0x36 sin tope. Con 8 letras y un puesto de 19 bytes (el 1300 de Text.bmd,
+// "Maestro del gremio "), 30 bytes: su cero cae en +0x54 y el título de la tienda queda vacío. Con el 1301 (32 bytes),
+// la cola queda como título. Con menos, el título no cambia. En Lorencia y en Devias.
+TEST_F(ChatBubblesTest, ALongGuildLineSpillsIntoTheShopTitle)
+{
+    const auto texts = Client::Data::Text::LoadTextTable(Client::Tests::TextTableBytes(
+        {{1300, "Maestro del gremio "}, {1301, "Asistente del maestro del gremio"}, {1330, "socio"}}));
+    ASSERT_TRUE(texts.HasValue());
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        m_world->Runtime().map = map;
+        NameTheGuild(*m_world, 3, "", "Horneros");
+        m_world->Runtime().social.personalShop.titles[4] =
+            Client::Scenes::ShopTitle{.key = 0x0444, .name = "Tordo", .title = "Vendo"};
+        ActorState& speaker = Speaker(4, "Tordo");
+        speaker.word1f2 = 3;
+        ChatBubbleMeasure measure = Measure();
+        measure.texts = &texts.Value();
+        const auto said = [&](std::uint8_t status)
+        {
+            speaker.guildStatus = status;
+            const auto added =
+                Client::Scenes::AddChatBubble(*m_world, measure, "Tordo", "hola", 4, ChatBubbleMode::Chat);
+            EXPECT_TRUE(added.HasValue()) << added.Error();
+            return Bubbles()[0];
+        };
+
+        const Client::Scenes::ChatBubble member = said(0);
+        EXPECT_EQ(member.guildPost, "[Horneros] socio");
+        EXPECT_EQ(member.shopTitle, "Vendo");
+
+        const Client::Scenes::ChatBubble master = said(0x80);
+        EXPECT_EQ(master.guildPost, "[Horneros] Maestro del gremio ");
+        EXPECT_EQ(master.guildPost.size(), 30u);
+        EXPECT_EQ(master.shopTitle, "");
+
+        const Client::Scenes::ChatBubble assistant = said(0x40);
+        EXPECT_EQ(assistant.guildPost, "[Horneros] Asistente del maestro del gremio");
+        EXPECT_EQ(assistant.shopTitle, "ro del gremio");
+    }
 }
 
 // 0x557650: los relojes bajan y, con el dueño muerto, quedan en 0.

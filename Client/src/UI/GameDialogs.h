@@ -9,6 +9,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <span>
 #include <string>
 #include <string_view>
 
@@ -96,6 +97,12 @@ void OpenMessageBox(DialogBoxState& box, DialogState& dialogs, std::string_view 
                                                                const Data::Text::TextTable* texts,
                                                                std::int32_t lineCount, std::int32_t firstText,
                                                                std::int32_t id);
+
+// 0x633300(n, 0x482, 0x9a) con los textos 1154.. ya escritos en la memoria de Text.bmd por quien llama (el 91 con 4,
+// 0x4da8c0, CL9 hito 11): `texts` en el lugar de los n registros, partidos con 0x632c90 uno detrás del otro, los
+// botones del 0x9a y el 0x9a por 0x6236f0.
+[[nodiscard]] Core::Expected<void, std::string> OpenTheChaosCastleDialog(DialogBoxState& box, DialogState& dialogs,
+                                                                         std::span<const std::string_view> texts);
 
 // 0x419710(índice), lo que muestra la ventana de las misiones: [0x6d5e28] = índice, el texto de Dialog.bmd partido en
 // los 7 renglones (0x632c90), las respuestas en 0 y, por cada una, "%d) %s" (wsprintf con 0x6c64b8) en un renglón; sin

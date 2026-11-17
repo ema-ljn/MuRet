@@ -1409,18 +1409,33 @@ TEST(HeroSkillsTest, MovementForwardsTheModelOfTheTransformedElfShot)
     EXPECT_EQ(tested->sent[0].packet.Opcode(), 0x1e);
 }
 
-// 0x4eac00 consulta el altar después de leer las dos celdas, incluso si la meta después se descarta.
-TEST(HeroSkillsTest, TheWeaponApproachChecksTheCrywolfAltar)
+// 0x55980f: con Crywolf en la etapa 3, en el mapa 34 y un altar (0x206) en 0x6c8e54, PathFinding2 le pone la bandera
+// al A* (0x4eac0a..0x4eac41), que con el alcance distinto de 0 no cuenta (0x4eadd4): el camino, los rand() y +0x378
+// son los mismos que con otro NPC (0x203) elegido.
+TEST(HeroSkillsTest, TheWeaponApproachWalksTheSameWithACrywolfAltar)
 {
-    auto tested = AHeroClicking(0x3c, Knight, 34);
-    tested->world.Actors()[ChosenSlot].position = {19250.0f, 11550.0f, 0.0f};
-    tested->world.Runtime().crywolf.stage = 3;
-    tested->world.Runtime().movement.chosenNpc = 30;
-    tested->world.Actors()[30].type = 0x206;
-    const auto used = tested->Use();
-    ASSERT_FALSE(used.HasValue());
-    EXPECT_TRUE(Contains(used.Error(), "0x4eac41")) << used.Error();
-    EXPECT_TRUE(Contains(used.Error(), "0x55980f")) << used.Error();
-    EXPECT_EQ(tested->Hero().movement, 0);
-    EXPECT_EQ(tested->Hero().path.count, 0);
+    const auto approach = [](std::uint16_t chosenType)
+    {
+        auto tested = AHeroClicking(0x3c, Knight, 34);
+        tested->world.Actors()[ChosenSlot].position = {19250.0f, 11550.0f, 0.0f};
+        tested->world.Runtime().crywolf.stage = 3;
+        tested->world.Runtime().movement.chosenNpc = 30;
+        tested->world.Actors()[30].type = chosenType;
+        const auto used = tested->Use();
+        EXPECT_TRUE(used.HasValue()) << used.Error();
+        return tested;
+    };
+    const auto altar = approach(0x206);
+    const auto other = approach(0x203);
+    EXPECT_EQ(altar->Hero().movement, 1);
+    EXPECT_EQ(altar->Hero().movementType, 5);
+    ASSERT_GT(altar->Hero().path.count, 0);
+    EXPECT_EQ(altar->Hero().path.count, other->Hero().path.count);
+    for (std::size_t cell = 0; cell < altar->Hero().path.count; ++cell)
+    {
+        EXPECT_EQ(altar->Hero().path.cells[cell].x, other->Hero().path.cells[cell].x);
+        EXPECT_EQ(altar->Hero().path.cells[cell].y, other->Hero().path.cells[cell].y);
+    }
+    EXPECT_EQ(altar->random.State(), other->random.State());
+    EXPECT_TRUE(altar->sent.empty());
 }

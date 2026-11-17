@@ -2,6 +2,7 @@
 
 #include "Data/Models/Model.h"
 #include "Render/ModelBatch.h"
+#include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/Pose.h"
@@ -969,9 +970,86 @@ TEST_F(GameHangingTest, TheSignFadesInChaosCastleWithTheHerosFlag)
     EXPECT_EQ(m_actor.layer->alpha, faded);
 }
 
+// CL9 hito 11, 0x50de63..0x50defd: en Blood Castle (11 a 17) con +0x360 del 1 al 3, el arma del evento (0xc1c,
+// 0x225 y 0xa24) cuelga a la espalda del lugar de las alas, con el lugar de los ítems (0x509340 con 1) pero con la
+// velocidad de las alas y sin volver el frame; fuera de Blood Castle (Lorencia, Devias) no cuelga nada.
+TEST_F(GameHangingTest, TheBloodCastleWeaponHangsFromTheWingsPlaceOnlyInBloodCastle)
+{
+    constexpr std::array<std::uint16_t, 3> Weapons{0xc1c, 0x225, 0xa24};
+    const ActorState pristine = m_actor;
+    for (const std::int32_t map : {0, 2, 11, 14, 17})
+    {
+        for (std::uint8_t weapon = 1; weapon <= 3; ++weapon)
+        {
+            SCOPED_TRACE(testing::Message() << "mapa " << map << ", arma " << static_cast<int>(weapon));
+            m_actor = pristine;
+            m_batch.Begin(Client::Render::Pass3D{});
+            m_random = Client::Render::Models::CrtRandom{1};
+            const HangingModels models({Weapons[weapon - 1U]});
+            m_actor.safeZone = 1;
+            m_actor.byte360 = weapon;
+            m_actor.wings.animation = {.action = 0, .frame = 7.5f, .previousAction = 9, .previousKey = 5};
+            GameHangingPass pass = Pass(models);
+            pass.map = map;
+
+            const auto result = Client::Scenes::DrawGameHanging(m_actor, pass);
+
+            ASSERT_TRUE(result.HasValue()) << result.Error();
+            if (map < 11)
+            {
+                EXPECT_TRUE(m_batch.Vertices().empty());
+                EXPECT_EQ(m_actor.wings.animation.frame, 7.5f);
+                continue;
+            }
+            EXPECT_EQ(m_actor.wings.bone, 0x2f);
+            EXPECT_EQ(m_actor.wings.speed, Client::Render::Models::WingKeysPerOriginalFrame(0));
+            // Los tres llevan el cromo de las armas (ChromeWeapon): el cuerpo y el cromo de la malla 0, la única del
+            // modelo del test. El 0xc1c y el 0x225 con el lugar de las espadas desde el hueso 0x2f (como la espada
+            // de la espalda); el 0xa24, con el de las ballestas.
+            ASSERT_EQ(m_batch.Vertices().size(), 6u);
+            if (weapon == 3)
+                EXPECT_NE(m_batch.Vertices()[0].position, glm::vec3(130.0f, 155.0f, 97.0f));
+            else
+                EXPECT_EQ(m_batch.Vertices()[0].position, glm::vec3(130.0f, 155.0f, 97.0f));
+        }
+    }
+}
+
+// 0x50de84 con +0x360 en 5 (un GM): el modelo es el que quedó en [ebp-0x18] (0x50dd97), el del lugar que eligió
+// la espalda aunque no colgara. Fuera de la zona segura es la espada de la derecha, que cuelga dos veces: a la
+// espalda y en la mano. Con el lugar vacío corta (Q-C1332).
+TEST_F(GameHangingTest, AGameMasterInBloodCastleHangsTheWeaponLeftInTheBackSlot)
+{
+    {
+        const HangingModels models({Sword, MuSign});
+        m_actor.hands[0].model = Sword;
+        m_actor.byte360 = 5;
+        GameHangingPass pass = Pass(models);
+        pass.map = 11;
+
+        const auto result = Client::Scenes::DrawGameHanging(m_actor, pass);
+
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(m_actor.wings.bone, 0x2f);
+        EXPECT_GE(m_batch.Vertices().size(), 6u);
+    }
+    {
+        m_actor.hands[0].model = 0xffff;
+        m_actor.layer.reset();
+        const HangingModels models({MuSign});
+        GameHangingPass pass = Pass(models);
+        pass.map = 17;
+
+        const auto result = Client::Scenes::DrawGameHanging(m_actor, pass);
+
+        ASSERT_FALSE(result.HasValue());
+        EXPECT_NE(result.Error().find("0x50def8"), std::string::npos) << result.Error();
+        EXPECT_NE(result.Error().find("Q-C1332"), std::string::npos) << result.Error();
+    }
+}
+
 // Lo que todavía corta, con su dirección y después de lo ya dibujado: la capa de un GM por el nombre sin MuSign
-// (0x414470), el arma del evento de Blood Castle (0x50de84), las capas del 6 al 13 (0x4140d5) y lo que no es un
-// jugador (0x50e060).
+// (0x414470), las capas del 6 al 13 (0x4140d5) y lo que no es un jugador (0x50e060).
 TEST_F(GameHangingTest, TheUnportedCasesStopWithTheirAddress)
 {
     {
@@ -988,11 +1066,6 @@ TEST_F(GameHangingTest, TheUnportedCasesStopWithTheirAddress)
     }
     {
         const HangingModels models({MuSign});
-        GameHangingPass pass = Pass(models);
-        pass.map = 11;
-        const auto result = Client::Scenes::DrawGameHanging(m_actor, pass);
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_NE(result.Error().find("0x50de84"), std::string::npos) << result.Error();
         m_actor.layer.reset();
         m_actor.byte360 = 6;
         const auto other = Client::Scenes::DrawGameHanging(m_actor, Pass(models));

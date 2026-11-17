@@ -64,6 +64,10 @@ struct HeroMovementContext
     std::function<void(std::uint8_t)> requestGate{};
     float fixedHeight = 1200.0f;
     std::function<Core::Expected<void, std::string>(std::uint8_t)> sendFacing{};
+    // CL9 hito 11, SendMove con 0x78abb00 (0x56b4db..0x56b78f): el C1 03 97 en claro (sin el servicio, corta), y
+    // SetCursorPos ([0x6b84f4]) con el lugar que calcula el original en la pantalla de `screen` ([0x6d5d60] y
+    // [0x6d5d64]), que queda pedido en GameMovementState::cursorWarpRequest.
+    std::function<Core::Expected<void, std::string>()> sendEventWindowLeave{};
     // El D7 de pegar al llegar (0x5650c0, CL9 hito 3): la clave del blanco, la acción y el rumbo. Vacío, no manda.
     std::function<Core::Expected<void, std::string>(std::uint16_t, std::uint8_t, std::uint8_t)> sendAttack{};
     // El C1 05 DF X Y del elfo que camina con un arma de tiro y hace clic en un atacable (0x59cf88, CL9 hito 3). Vacío,
@@ -74,7 +78,8 @@ struct HeroMovementContext
     // Vestir al héroe y el envío del 24, para pasar el arma de la izquierda a la derecha (0x59bd3e). nullptr: corta
     // donde los pide.
     const InventoryServices* inventory = nullptr;
-    // 0x419900: el C1 03 31 al cerrar las misiones, que caminar cierra (0x56b397..). Sin él, cerrarlas corta.
+    // 0x419900: el C1 03 31 al cerrar las misiones, que caminar cierra (0x56b397..), y el de cerrar el NPC de evento
+    // (0x56b4d6 → 0x65cae0(0x1000), 0x658a18; CL9 hito 11). Sin él, cerrarlos corta.
     std::function<void()> sendWindowClose{};
     // La llegada a un NPC (0x5674c8, Scenes/NpcTalk.h): el C3 A0 sin la clase de las misiones (0x5676a6) y el C3 30
     // (0x567c2d..). Los dos rand() de cada C3 los saca el paso. Sin ellos, la llegada corta donde los manda.
@@ -89,7 +94,8 @@ struct HeroMovementContext
     std::function<void(Protocol::Outgoing)> sendSkill{};
     // La clave del jugador del F1 00 ([0x57678bc]), que las skills mandan en el C1 19 (CL9 hito 4, fase 2c).
     std::uint16_t playerKey = 0;
-    // 0x555190, para esos avisos: el medidor del texto y la pantalla. Sin medidor, cortan.
+    // 0x555190, para esos avisos: el medidor del texto y la pantalla. Sin medidor, cortan. La pantalla es también la
+    // del SetCursorPos de SendMove con 0x78abb00 (CL9 hito 11).
     const Render::Text::ITextMeasure* measure = nullptr;
     App::PixelSize screen{640, 480};
     // La biblioteca base para acciones de personajes transformados que no estén en FaunaResources.

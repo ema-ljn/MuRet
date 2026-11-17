@@ -26,6 +26,7 @@
 #include "Network/PacketSerials.h"
 #include "Network/SocketError.h"
 #include "Protocol/BuildConstants.h"
+#include "Protocol/Events.h"
 #include "Protocol/Combat.h"
 #include "Protocol/FloorItems.h"
 #include "Protocol/Inventory.h"
@@ -4470,6 +4471,24 @@ TEST(ServerSessionTest, AShortViewportPacketOrDurabilityStillTakesItsCopy)
     ASSERT_EQ(tested.eventSink.packetCopies.size(), 2u);
     EXPECT_TRUE(SameBytes(tested.eventSink.packetCopies[0], players));
     EXPECT_TRUE(SameBytes(tested.eventSink.packetCopies[1], durability));
+    EXPECT_NE(tested.session.State(), SessionState::Failed);
+}
+
+// 0x4e3594..0x4e361c: el dispatcher copia el 0B a la cola de 0x77f27b4 antes de su caso (CL9 hito 11), aunque llegue
+// corto y no se pueda leer; el entero sigue al mundo después de la copia.
+TEST(ServerSessionTest, AnEventStateTakesItsCopyEvenShort)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    const auto shortState = Bytes({0xc1, 4, 0x0b, 1});
+    const auto state = Bytes({0xc1, 5, 0x0b, 1, 3});
+    tested.socket.reads = {Join({shortState, state})};
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+    ASSERT_EQ(tested.eventSink.packetCopies.size(), 2u);
+    EXPECT_TRUE(SameBytes(tested.eventSink.packetCopies[0], shortState));
+    EXPECT_TRUE(SameBytes(tested.eventSink.packetCopies[1], state));
+    ASSERT_EQ(tested.eventSink.world.size(), 1u);
+    EXPECT_TRUE(std::holds_alternative<Client::Protocol::Events::EventPacket>(tested.eventSink.world[0]));
     EXPECT_NE(tested.session.State(), SessionState::Failed);
 }
 

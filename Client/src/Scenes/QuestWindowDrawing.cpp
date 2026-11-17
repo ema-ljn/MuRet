@@ -12,7 +12,7 @@
 #include "Scenes/GameInventoryHud.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GameWindowDrawing.h"
-#include "Scenes/HudItems.h"
+#include "Scenes/ItemNames.h"
 #include "Scenes/NpcNames.h"
 #include "Scenes/QuestState.h"
 #include "Scenes/Quests.h"
@@ -65,9 +65,6 @@ constexpr std::size_t ThirdTabCountText = 868;      // 0x76fcb0c
 constexpr std::size_t ThirdTabHeaderText = 869;     // 0x76fcc38
 constexpr std::size_t ThirdTabFirstLineText = 877;  // 0x76fd598
 constexpr std::size_t ThirdTabSecondLineText = 878; // 0x76fd6c4
-// 0x5b1cba y 0x5b1cfc: los nombres de los dos ítems de misión con nivel 1.
-constexpr std::size_t FirstQuestItemLevelOneText = 906;  // 0x76ff794
-constexpr std::size_t SecondQuestItemLevelOneText = 907; // 0x76ff8c0
 // 0x6c64e8: la letra de la ventana, y 0x6c64e0: el título de la pestaña 0.
 constexpr std::string_view QuestKey = "T";
 constexpr std::string_view QuestTitle = "Quest";
@@ -193,37 +190,27 @@ void DrawTheHelp(GameHudContext& context, std::int32_t x, std::int32_t y, std::s
     context.hud.textColors = AfterHelpColors;
 }
 
-// 0x5b1c70(tipo, nivel, buffer), la rama de los ítems de misión (0x5b1c85..0x5b1d38), la única que pide quest.bmd.
+// 0x5b1c70(tipo, nivel, buffer) desde 0x41b924 (Scenes::ItemNameOf, la del hito 5), con el buffer de la pila
+// ([EBP − 0x7c]) sin iniciar: si 0x5b1c70 no escribe nada (el 0x1c17 o el 0x1c18 con un nivel distinto de 0 y 1, y los
+// demás niveles sin nombre), "%s x %d" lo lee igual y MuRet corta (Q-C874). El tipo, grupo · 0x200 + índice, pasa los
+// 0xffff con un grupo de 128 o más y lee fuera de Item.bmd.
 Core::Expected<std::string, std::string> QuestItemNameOf(const GameHudContext& context, std::int32_t type,
                                                          std::int32_t level)
 {
     constexpr std::int32_t FirstQuestItem = 0x1c17;
     constexpr std::int32_t SecondQuestItem = 0x1c18;
-    constexpr std::int32_t LastQuestItem = 0x1c1a;
-    if (type < FirstQuestItem || type > LastQuestItem)
-        return Core::Unexpected(std::format("0x5b1d39: el nombre del tipo {} (0x5b1c70) es del hito 11", type));
-    if ((type == FirstQuestItem || type == SecondQuestItem) && level != 0)
+    constexpr std::int32_t LastType = 0xffff;
+    if (type < 0 || type > LastType)
+        return Core::Unexpected(std::format("0x5b1c76: el tipo {:#x} lee fuera de Item.bmd", type));
+    const auto item = static_cast<std::uint16_t>(type);
+    if (!ItemNameIsWritten(item, level))
     {
-        const bool first = type == FirstQuestItem;
-        if (level != 1)
-        {
-            return Core::Unexpected(std::format("{}: con el nivel {}, 0x5b1c70 no escribe el nombre del {} y 0x41b810 "
-                                                "lo lee de la pila sin iniciar (Q-C874)",
-                                                first ? "0x5b1cb1" : "0x5b1cf3", level, type));
-        }
-        auto text = TextOf(context, first ? FirstQuestItemLevelOneText : SecondQuestItemLevelOneText,
-                           first ? "0x5b1cba" : "0x5b1cfc");
-        if (!text.HasValue())
-            return Core::Unexpected(std::move(text).Error());
-        return std::string(text.Value());
+        const char* where = type == FirstQuestItem ? "0x5b1cb1" : type == SecondQuestItem ? "0x5b1cf3" : "0x41b924";
+        return Core::Unexpected(std::format("{}: con el nivel {}, 0x5b1c70 no escribe el nombre del {:#x} y 0x41b810 "
+                                            "lo lee de la pila sin iniciar (Q-C874)",
+                                            where, level, type));
     }
-    // "%s" del registro de Item.bmd (*[0x7758550] + tipo · 0x54).
-    if (context.items == nullptr)
-        return Core::Unexpected(std::string("0x5b1c76: el nombre del ítem de misión sin Item.bmd"));
-    const auto record = context.items->Record(static_cast<std::size_t>(type));
-    if (!record)
-        return Core::Unexpected(std::format("0x5b1c8d: Item.bmd no tiene el tipo {}", type));
-    return ItemRecordName(*record);
+    return ItemNameOf(context.items, context.texts, item, level);
 }
 
 // 0x41b810(estado, conNombres): los ítems pedidos a la clase en la misión en curso, desde y = 235 (o 240 con los

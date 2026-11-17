@@ -27,11 +27,12 @@ using Client::World::CullingScene;
 using Client::World::GameCamera;
 using Client::World::GameCameraInput;
 using Client::World::GameCameraOf;
+using Client::World::GameCameraTour;
 using Client::World::StepGameCamera;
 
 GameCameraInput Lorencia()
 {
-    return {{14350.0f, 12050.0f, 165.0f}, 0x01, 0, CullingScene::Game, 0.0f, 0.0f, false, {}};
+    return {{14350.0f, 12050.0f, 165.0f}, 0x01, 0, CullingScene::Game, 0.0f, 0.0f, false, {}, {}};
 }
 
 void ExpectBits(float actual, std::uint32_t expected)
@@ -325,6 +326,153 @@ TEST(GameCameraTest, TheRepeatedCameraReadsTheCurrentEffectAndHeight)
     camera = GameCameraOf(state, input);
     EXPECT_EQ(camera.position.z, 2051.0f);
     EXPECT_EQ(state.fixedHeight, 1200.0f);
+}
+
+// El recorrido de la cámara del guion de 0x4035f0 (CL9 hito 11): en la fila 0xe8 de la columna 0x71, la salida del
+// primer tramo de 0x403e00, a la altura de 0x403d90 (la del héroe en la etapa 0, acá otra para ver que no cuenta).
+constexpr GameCameraTour TourAtTheFirstCell{{11350.0f, 23250.0f, 777.0f}, 2};
+
+// Un tercio del camino de D hacia la meta, como 0x63623b..0x63624d (el 1/3 float de 0x6ba2a0).
+float SmoothedDistance(float distance, float target)
+{
+    const double third = std::bit_cast<float>(std::uint32_t{0x3eaaaaab});
+    return static_cast<float>(((static_cast<double>(target) - static_cast<double>(distance)) * third) +
+                              static_cast<double>(distance));
+}
+
+// 0x635ead..0x635efc: con el recorrido andando, la cámara mira su posición en vez del héroe y del desvío de 0x44dc60,
+// con la altura base del héroe en 300 (0x635ec0), igual que si el héroe estuviera ahí; la z del recorrido no cuenta. El
+// nivel queda en su +0x150, que elige la meta de D al final del mismo frame (0x6361d0: 1.200 con el 2) y el far del
+// siguiente (0x635e00). Sin el recorrido la cámara vuelve al héroe, con el desvío, desde la D a la que había llegado,
+// que baja hacia 1.000. En Lorencia, Devias y Crywolf.
+TEST(GameCameraTest, TheTourMovesTheCameraAsIfTheHeroStoodThereAt300)
+{
+    for (const std::uint8_t map : std::array<std::uint8_t, 3>{0, 2, 34})
+    {
+        SCOPED_TRACE(static_cast<int>(map));
+        GameCamera state;
+        auto input = Lorencia();
+        input.map = map;
+        input.effectTarget = {100.0f, 200.0f, 999.0f};
+        input.tour = TourAtTheFirstCell;
+        GameCamera twin;
+        auto standing = Lorencia();
+        standing.map = map;
+        standing.hero = {TourAtTheFirstCell.position.x, TourAtTheFirstCell.position.y, 300.0f};
+        const auto camera = StepGameCamera(state, input);
+        ExpectSameCamera(camera, StepGameCamera(twin, standing));
+        EXPECT_EQ(camera.position.z, 1150.0f);
+        EXPECT_EQ(state.level, 2);
+        EXPECT_EQ(state.targetDistance, 1200.0f);
+        EXPECT_EQ(state.distance, SmoothedDistance(1000.0f, 1200.0f));
+        EXPECT_EQ(twin.distance, 1000.0f);
+        EXPECT_EQ(Client::World::FollowedPointOf(input), TourAtTheFirstCell.position);
+        EXPECT_EQ(Client::World::CameraTargetOf(input), input.effectTarget);
+        // El frame siguiente lee el nivel 2 (2.600), lo vuelve a dejar y se aleja con la D que ya había subido.
+        const float second = state.distance;
+        const auto away = StepGameCamera(state, input);
+        EXPECT_EQ(away.farPlane, 2600.0f);
+        EXPECT_EQ(away.position.z, static_cast<float>((static_cast<double>(second) - 150.0) + 300.0));
+        EXPECT_EQ(state.distance, SmoothedDistance(second, 1200.0f));
+        // Sin el recorrido, el far lee el 2 una vez más, la meta vuelve a 1.000 y la cámara mira el desvío, con la D
+        // del frame anterior.
+        const float third = state.distance;
+        input.tour.reset();
+        const auto back = StepGameCamera(state, input);
+        EXPECT_EQ(back.farPlane, 2600.0f);
+        EXPECT_EQ(state.level, 0);
+        EXPECT_EQ(state.targetDistance, 1000.0f);
+        EXPECT_EQ(state.distance, SmoothedDistance(third, 1000.0f));
+        EXPECT_FLOAT_EQ(back.position.x, 100.0f + (0.70710677f * third));
+        EXPECT_FLOAT_EQ(back.position.y, 200.0f - (0.70710677f * third));
+        EXPECT_EQ(back.position.z, static_cast<float>((static_cast<double>(third) - 150.0) + 165.0));
+        EXPECT_EQ(StepGameCamera(state, input).farPlane, 2000.0f);
+    }
+}
+
+// 0x6361d0..0x63624d: la meta de D es 1.000 + 100 · el word del nivel, que con el recorrido es su +0x150 (0 a 4, de
+// 0x403d40); fuera de 0..4, el JA de 0x6361da sale sin tocar D ni la meta. Los mapas 5, 6 con "webzen" y 30 salen
+// antes y no lo miran.
+TEST(GameCameraTest, TheTourLevelPicksTheDistanceTarget)
+{
+    for (std::int32_t level = 0; level <= 4; ++level)
+    {
+        SCOPED_TRACE(level);
+        GameCamera state;
+        auto input = Lorencia();
+        input.map = 34;
+        input.tour = GameCameraTour{TourAtTheFirstCell.position, level};
+        static_cast<void>(StepGameCamera(state, input));
+        const float target = 1000.0f + (100.0f * static_cast<float>(level));
+        EXPECT_EQ(state.targetDistance, target);
+        EXPECT_EQ(state.distance, SmoothedDistance(1000.0f, target));
+    }
+    GameCamera castle;
+    auto input = Lorencia();
+    input.map = 30;
+    input.tour = GameCameraTour{TourAtTheFirstCell.position, 4};
+    static_cast<void>(StepGameCamera(castle, input));
+    EXPECT_EQ(castle.targetDistance, 1100.0f);
+    EXPECT_EQ(castle.distance, 1100.0f);
+    GameCamera rocking;
+    input.map = 5;
+    static_cast<void>(StepGameCamera(rocking, input));
+    EXPECT_EQ(rocking.targetDistance, 1000.0f);
+    EXPECT_EQ(rocking.distance, 1000.0f);
+}
+
+// 0x635ed2 guarda AX: el +0x150 queda en 16 bits, y 0x635e00 lo lee con MOVSX. Con 0xffff es −1, que el JA de 0x635e0a
+// deja fuera de la tabla del far y el de 0x6361da fuera de la de D: ni el far, ni D ni su meta cambian.
+TEST(GameCameraTest, TheTourLevelIsAWord)
+{
+    GameCamera state;
+    auto input = Lorencia();
+    input.tour = GameCameraTour{TourAtTheFirstCell.position, 0x10003};
+    static_cast<void>(StepGameCamera(state, input));
+    EXPECT_EQ(state.level, 3);
+    EXPECT_EQ(state.targetDistance, 1300.0f);
+    EXPECT_EQ(StepGameCamera(state, input).farPlane, 2950.0f);
+    input.tour->level = 0xffff;
+    const float distance = state.distance;
+    static_cast<void>(StepGameCamera(state, input));
+    EXPECT_EQ(state.level, -1);
+    EXPECT_EQ(state.targetDistance, 1300.0f);
+    EXPECT_EQ(state.distance, distance);
+    EXPECT_EQ(StepGameCamera(state, input).farPlane, 2950.0f);
+    EXPECT_EQ(state.distance, distance);
+}
+
+// En el 30 la altura base es 255 antes que el héroe (0x635f02), también con el recorrido; en el 6 con "webzen" la
+// cámara sale antes de 0x635ead (0x635c4f): ni la posición ni el nivel del recorrido.
+TEST(GameCameraTest, TheTourKeepsTheCastleHeightAndNeverReachesWebzen)
+{
+    GameCamera castle;
+    auto input = Lorencia();
+    input.map = 30;
+    input.tour = TourAtTheFirstCell;
+    EXPECT_EQ(StepGameCamera(castle, input).position.z, 1105.0f);
+    GameCamera tour;
+    GameCamera plain;
+    plain.level = tour.level = 3;
+    input.map = 6;
+    input.webzen = true;
+    const auto camera = StepGameCamera(tour, input);
+    input.tour.reset();
+    ExpectSameCamera(camera, StepGameCamera(plain, input));
+    EXPECT_EQ(tour.level, 3);
+}
+
+// Un dibujo intermedio con el recorrido repite la cámara del último frame, que lo siguió.
+TEST(GameCameraTest, TheRepeatedCameraFollowsTheTour)
+{
+    GameCamera state;
+    auto input = Lorencia();
+    input.map = 34;
+    input.tour = TourAtTheFirstCell;
+    const auto expected = StepGameCamera(state, input);
+    ExpectSameCamera(GameCameraOf(state, input), expected);
+    input.hero = {1.0f, 2.0f, 3.0f};
+    ExpectSameCamera(GameCameraOf(state, input), expected);
 }
 
 float NextFloat(std::istringstream& words)

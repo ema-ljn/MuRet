@@ -24,7 +24,8 @@ inline constexpr std::uint8_t ActionOpcode = 0x18;
 inline constexpr std::uint8_t FacingAction = 0x7a;
 inline constexpr std::uint8_t SittingAction = 0x82;
 // C1 05 18 direction action con el XOR32 y en claro: el giro (59b333..59b83a, con FacingAction), sentarse
-// (0x4f2416..0x4f2bea, con SittingAction) y el emote (0x576a60 y cada caso de 0x576eb0). La dirección va tal cual.
+// (0x4f2416..0x4f2bea, con SittingAction), el emote (0x576a60 y cada caso de 0x576eb0) y el BD 03 con el resultado 1
+// (0x4e11e1..0x4e1467, CL9 hito 11: sentarse en el altar de Crywolf, con SittingAction). La dirección va tal cual.
 [[nodiscard]] Outgoing WriteAction(std::uint8_t direction, std::uint8_t action);
 
 struct Cell
@@ -75,6 +76,10 @@ struct Damage
 [[nodiscard]] Core::Expected<Outgoing, WalkWriteError> WriteWalk(std::span<const Cell> path, Cell target, float angle);
 // El rumbo de 0 a 7 de un ángulo: ftol((ángulo + 22,5) · 0,0222 + 1) & 7, en la x87 sin guardar en float. Es el de
 // SendMove (0x56b0b7..0x56b0cc) y el del D3 y el D7 del ataque al llegar (0x5656e6..0x565715, 0x5659b8..0x5659e2).
+[[nodiscard]] Core::Expected<std::uint8_t, WalkWriteError> DirectionFromAngle(float angle);
+
+// El rumbo de `angle` como 0x56b0b7..0x56b0cc (y 0x4e1260..0x4e128a, que le suma un AND 0xff): (ángulo + 22,5) ·
+// 0x3cb60b61 + 1, el ftol y &7, con los mismos errores que WriteWalk.
 [[nodiscard]] Core::Expected<std::uint8_t, WalkWriteError> DirectionFromAngle(float angle);
 
 // 0x56ad1d..0x56ad4f: cantidad ORIGINAL (1..15), antes del límite wire de 14.

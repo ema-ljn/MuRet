@@ -4,6 +4,8 @@
 
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
+#include "Scenes/CameraTour.h"
+#include "Scenes/EventPackets.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/MapLoad.h"
@@ -40,12 +42,12 @@ void ReleaseTheGame(WorldState& world)
     KillOtherActors(world, NoKey);
 }
 
-// La parte representada de 0x42fdc0. Con 2 precede a 0x61eef0; con 1 va después.
+// 0x42fdc0. Con 2 precede a 0x61eef0; con 1 va después.
 void ResetTheInterface(WorldRuntime& runtime)
 {
-    runtime.crywolf.state = 0;
-    runtime.crywolf.stage = 0;
-    runtime.movement.chosenNpc = -1;
+    // Los globales de la interfaz de Crywolf a su valor inicial, el estado (0x42fe32), la etapa (0x723c05) y
+    // 0x723c08 en 0 y el NPC elegido de la llegada (0x6c8e54, 0x42fdf8) en −1 (CL9 hito 11).
+    ResetTheCrywolfInterface(runtime);
 }
 
 // 0x4c2480, común a los motivos 1 y 2. Los dos 31 sólo los manda la sesión con el GS abierto.
@@ -72,9 +74,12 @@ void ResetAfterLogout(const WorldEntryResources& resources)
     runtime.chat.noticeSound = false;
     UI::ClearTheWhisperSenders(runtime.chat.whisperSenders);
     ResetTheQuests(runtime.quest, runtime.panels.delegated.quest);
-    // 0x4c2650..0x4c26fd: lo demás son globales y objetos que MuRet no tiene, y 0x657670, cuyo 0x4499b0 manda el
+    // 0x4c2650..0x4c26e7: lo demás son globales y objetos que MuRet no tiene, y 0x657670, cuyo 0x4499b0 manda el
     // segundo C1 03 31 (la sesión, Q-C214) y cuyo 0x420cd0 pone en 0 las mascotas (CL9 hito 4).
     ResetThePets(runtime);
+    // 0x4c26ec..0x4c26fd: el recorrido de la cámara, 0x403300 y después 0x403d60 (que con +0x14c recién en 10000 no
+    // borra a nadie).
+    ResetTheCameraTour(runtime.events.cameraTour);
     // MuRet: la cámara copia la posición del héroe publicado, que la selección lee desde acá (Q-C213).
     resources.cameraInput.hero = world.Actors()[runtime.hero].position;
 }

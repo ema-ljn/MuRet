@@ -24,6 +24,7 @@
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"
 #include "UI/GameText.h"
+#include "UI/OriginalFormat.h"
 #include "UI/SprintfFormat.h"
 #include "UI/Widget.h"
 #include "World/ItemState.h"
@@ -483,6 +484,7 @@ protected:
                               .items = &data.items->table,
                               .skills = &*data.skills,
                               .worldClock = worldClock,
+                              .tickCount = tickCount,
                               .mouse = mouse,
                               .leftDown = leftDown,
                               .controlDown = controlDown};
@@ -552,6 +554,7 @@ protected:
     SpriteBatch sprites;
     Client::Tests::RecordingTextDrawer text{sprites};
     float worldClock = 0.0f;
+    std::uint32_t tickCount = 0;
     Client::UI::Point mouse{};
     bool leftDown = false;
     bool controlDown = false;
@@ -948,18 +951,9 @@ TEST_F(GameHudTest, ThePiecesOfOtherWavesStopWithTheirAddress)
         std::string_view address;
         void (*arrange)(WorldState&);
     };
-    const std::array<Case, 6> cases{{
+    const std::array<Case, 4> cases{{
         {"0x5a89b0", [](WorldState& state) { state.Runtime().hud.partyCount = 2; }},
         {"0x5f7180", [](WorldState& state) { state.Runtime().panels.panel2000 = 1; }},
-        {"0x40bab0",
-         [](WorldState& state) { state.Runtime().eventObject = Client::Scenes::EventMapObject{.field08 = 5}; }},
-        {"0x40c2d0",
-         [](WorldState& state)
-         {
-             state.Runtime().map = 11;
-             state.Runtime().eventObject =
-                 Client::Scenes::EventMapObject{.kind = Client::Scenes::EventMapKind::BloodCastle, .field10 = 1};
-         }},
         {"0x4125b0",
          [](WorldState& state)
          {
@@ -1063,6 +1057,126 @@ TEST_F(GameHudTest, TheEventObjectsWithoutTheirPacketsDrawNothing)
         world.Runtime().eventObject = Client::Scenes::EventMapObject{.kind = kind};
         const auto drawn = Hud();
         EXPECT_TRUE(drawn.HasValue()) << drawn.Error();
+    }
+}
+
+// CL9 hito 11, el método +4 (0x40c2d0, 0x405090) en el HUD, con el Text.bmd de la Data: los puntos (864 o 1161), 865
+// y el tiempo en la columna 570. Chaos Castle elige el área de la trampa (0x6c634c) por +0x20; un dibujo intermedio
+// no la escribe. Fuera de sus mapas (Lorencia, Devias) no dibuja.
+TEST_F(GameHudTest, TheCastleObjectsDrawTheirPointsAndTime)
+{
+    struct Case
+    {
+        std::int32_t map;
+        Client::Scenes::EventMapKind kind;
+        std::uint8_t state;
+        std::size_t points;
+        bool draws;
+    };
+    for (const Case& probe : {Case{11, Client::Scenes::EventMapKind::BloodCastle, 1, 864, true},
+                              Case{23, Client::Scenes::EventMapKind::ChaosCastle, 7, 1161, true},
+                              Case{0, Client::Scenes::EventMapKind::BloodCastle, 1, 864, false},
+                              Case{2, Client::Scenes::EventMapKind::ChaosCastle, 7, 1161, false}})
+    {
+        SCOPED_TRACE(probe.map);
+        const std::optional<std::string_view> format = Client::UI::TextAt(&*data.text, probe.points);
+        ASSERT_TRUE(format.has_value());
+        const auto points = Client::UI::FormatOriginal(Client::UI::FormatFunction::Wsprintf, *format,
+                                                       std::vector<Client::UI::FormatArgument>{42, 70}, "test");
+        ASSERT_TRUE(points.HasValue()) << points.Error();
+        for (const bool projecting : {true, false})
+        {
+            SCOPED_TRACE(projecting);
+            world.Runtime() = Client::Scenes::WorldRuntime{};
+            world.Runtime().map = probe.map;
+            world.Runtime().eventObject = Client::Scenes::EventMapObject{
+                .kind = probe.kind, .field10 = probe.state, .field14 = {900, 1000, 70, 42}};
+            text.texts.clear();
+            const auto drawn = Hud(projecting);
+            ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+            const auto line = std::ranges::find(text.texts, points.Value(), &Client::Tests::RecordedText::text);
+            const auto time =
+                std::ranges::find(text.texts, std::string(" 16 : 40"), &Client::Tests::RecordedText::text);
+            if (!probe.draws)
+            {
+                EXPECT_EQ(line, text.texts.end());
+                EXPECT_EQ(time, text.texts.end());
+                EXPECT_EQ(world.Runtime().chaosCastleArea, 0xff);
+                continue;
+            }
+            ASSERT_NE(line, text.texts.end());
+            EXPECT_EQ(line->y, 345);
+            ASSERT_NE(time, text.texts.end());
+            EXPECT_EQ(time->y, 367);
+            const bool writes = probe.kind == Client::Scenes::EventMapKind::ChaosCastle && !projecting;
+            EXPECT_EQ(world.Runtime().chaosCastleArea, writes ? 0 : 0xff);
+        }
+    }
+}
+
+// CL9 hito 11, 0x40bab0: con +8 de 1 a 14, el texto de la entrada con los segundos que faltan de 30 desde +0xc
+// (GetTickCount), en 0xffff8080 sobre 0x80000000 en (10, 0x174). El 12 de Chaos Castle toma el 828 (no el 825).
+// Vencida, el frame del original apaga +8; un dibujo intermedio no. En Lorencia, Devias y los mapas del evento.
+TEST_F(GameHudTest, TheEventCountdownDrawsTheSecondsLeftAndExpires)
+{
+    const std::optional<std::string_view> format = Client::UI::TextAt(&*data.text, 828);
+    const std::optional<std::string_view> name = Client::UI::TextAt(&*data.text, 1147);
+    ASSERT_TRUE(format && name);
+    const std::vector<Client::UI::FormatArgument> arguments{Client::UI::TextArgument{.index = 1147, .text = *name}, 18};
+    const auto expected = Client::UI::FormatOriginal(Client::UI::FormatFunction::Wsprintf, *format, arguments, "test");
+    ASSERT_TRUE(expected.HasValue()) << expected.Error();
+    for (const std::int32_t map : {0, 2, 9, 11, 18})
+    {
+        SCOPED_TRACE(map);
+        world.Runtime() = Client::Scenes::WorldRuntime{};
+        world.Runtime().map = map;
+        world.Runtime().eventObject = Client::Scenes::EventMapObject{.field08 = 12, .field0c = 1000};
+        tickCount = 1000 + 12345;
+        text.texts.clear();
+        ASSERT_TRUE(Hud().HasValue());
+        const auto countdown = std::ranges::find(text.texts, expected.Value(), &Client::Tests::RecordedText::text);
+        ASSERT_NE(countdown, text.texts.end());
+        EXPECT_EQ(countdown->x, 10);
+        EXPECT_EQ(countdown->y, 0x174);
+        EXPECT_EQ(countdown->style.colors.text, 0xffff8080u);
+        EXPECT_EQ(countdown->style.colors.background, 0x80000000u);
+
+        tickCount = 1000 + 30001;
+        ASSERT_TRUE(Hud(true).HasValue());
+        EXPECT_EQ(world.Runtime().eventObject->field08, 12);
+        ASSERT_TRUE(Hud().HasValue());
+        EXPECT_EQ(world.Runtime().eventObject->field08, 0);
+    }
+}
+
+// CL9 hito 11, 0x4365c0: el hijo 21. Con el aviso de Crywolf (0x6c73d1) en 1, que pone el BD 00 con la etapa 5
+// (0x42fec8), el HUD dibuja el cartel 0x6c0 (0x6b6 + 0x6c73dc) y la tabla del rango en cualquier mapa; con −1, nada.
+TEST_F(GameHudTest, TheCrywolfNoticeIsDrawnOnAnyMap)
+{
+    for (const std::int32_t map : {0, 2, 34})
+    {
+        SCOPED_TRACE(map);
+        world.Runtime() = Client::Scenes::WorldRuntime{};
+        world.Runtime().map = map;
+        const auto countOf = [this](std::uint16_t slot)
+        {
+            const std::vector<DrawnQuad> quads = QuadsOf(sprites);
+            return std::count_if(quads.begin(), quads.end(),
+                                 [slot](const DrawnQuad& quad) { return quad.slot == slot; });
+        };
+        sprites.Begin(Screen640);
+        ASSERT_EQ(world.Runtime().crywolf.ui.message, -1);
+        const auto quiet = Hud();
+        ASSERT_TRUE(quiet.HasValue()) << quiet.Error();
+        EXPECT_EQ(countOf(0x6c0), 0);
+        EXPECT_EQ(countOf(0x6d0), 0);
+        sprites.Begin(Screen640);
+        world.Runtime().crywolf.ui.message = 1;
+        const auto drawn = Hud();
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_EQ(countOf(0x6c0), 1);
+        EXPECT_EQ(countOf(0x6d0), 1);
+        EXPECT_EQ(world.Runtime().crywolf.ui.dword6c73d8, 2);
     }
 }
 

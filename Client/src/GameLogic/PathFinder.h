@@ -25,7 +25,9 @@ public:
     // Exacto (500 extracciones), luego el más cercano (50). Cero en x/y del inicio falla
     // (Q-C156), igual que el clic en la propia celda. Con x/y del inicio distintos de 0,
     // clearGoal pone el WORD completo de la meta en 0, incluso si luego no se consigue un camino.
-    // Con x o y del inicio en 0 sale antes de tocar la meta (0x4eadc1..0x4eadce).
+    // Con x o y del inicio en 0 sale antes de tocar la meta (0x4eadc1..0x4eadce). clearGoal es la
+    // bandera +0x20 de 0x4ead70, que 0x4eac00 calcula en 0x4eac0a..0x4eac41 y pasa a las dos pasadas:
+    // un altar de Crywolf elegido con el evento activo (Scenes::CrywolfAltarGoal).
     // Con `distance` distinta de 0 (la comparación de 0x4eadd4 con el 0 de 0x6b86a0), clearGoal no cuenta y la meta son
     // las celdas a menos de `distance` de `goal`: r = ftol(distance); en cada fila dy de −r a r, las de |dx| ≤ r − |dy|
     // siempre y las de afuera si sqrt(dx² + dy²) < distance (FILD, FSQRT y FCOMP con el float); con el paso exacto,

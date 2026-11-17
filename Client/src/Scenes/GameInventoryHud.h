@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <string>
+#include <string_view>
 
 // El inventario en el HUD del juego (06 § El inventario, CL8 hito 4): la ventana (0x5f2340 con 0x5ee220, 0x5e2460,
 // 0x5e3660 y el cartel del set 0x40e720), los ítems 3D de las grillas (0x5f7610 → 0x5e2fc0 y 0x5e3760), las cifras
@@ -30,6 +31,11 @@ struct UiItemBox;
 [[nodiscard]] Core::Expected<void, std::string> DrawUiItem(GameHudContext& context, const UiItemBox& box,
                                                            std::int32_t type, std::uint32_t level,
                                                            std::uint8_t excellent, std::uint8_t set, bool always);
+
+// Item.bmd +0x24 y +0x25 del tipo: las casillas de ancho y de alto, cada una por 20 (0x6b86d0) en la x87 con el fstp,
+// en el ancho y el alto de la caja (la x y la y en 0). Sin Item.bmd o sin el tipo, el error con `where`.
+[[nodiscard]] Core::Expected<UiItemBox, std::string> ItemSizeOf(const GameHudContext& context, std::int32_t type,
+                                                                std::string_view where);
 
 // 0x5f2340: con el inventario abierto, la ventana en (0x1c2, 0), o en (0x104, 0) con el personaje o la party
 // abiertos: el fondo, los lugares del equipo con el color de su aviso, la grilla de 8 × 8, el título, el zen, los

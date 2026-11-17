@@ -11,7 +11,6 @@
 #include <functional>
 #include <span>
 #include <string>
-#include <string_view>
 
 // CL9 hito 3: pegar. Si el personaje elegido se puede atacar (0x558bb0), el freno de 300 ms entre acciones
 // (0x576791c) y lo que hace el héroe al llegar al final del camino (0x5650c0), con el ataque del caso 3.
@@ -52,12 +51,6 @@ struct InventoryServices;
 // pasa, anota en `last` un GetTickCount nuevo (el original lo llama dos veces).
 [[nodiscard]] bool PassesTheActionBrake(std::uint32_t& last, std::int32_t skill,
                                         const std::function<std::uint32_t()>& tickCount);
-
-// 0x4eac0a..0x4eac41, al entrar a PathFinding2 (0x4eac00), que `caller` llama: con Crywolf activo (0x435a00 y el mapa
-// 34) y un altar (0x204..0x208) en el NPC elegido de [0x6c8e54] (GameMovementState::chosenNpc), el A* (0x4ead70) va con
-// una bandera que MuRet no tiene: corta en 0x4eac41, del hito 11. Con el NPC elegido fuera del pool (el −1 que dejan
-// 0x567ae5 y 0x56959b) el original lee fuera de la tabla; MuRet lo toma como sin altar (07, Q-C1182). No saca rand().
-[[nodiscard]] Core::Expected<void, std::string> CheckTheCrywolfAltar(const WorldState& world, std::string_view caller);
 
 // Lo que 0x5650c0 necesita además del mundo: los intentos del D3 de girar (C1 06 D3 X Y rumbo, como el SendMove de un
 // paso) y del D7 de pegar. Son best-effort como el socket original: que el transporte esté cerrado no corta la llegada.

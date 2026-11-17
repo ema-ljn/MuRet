@@ -255,8 +255,14 @@ public:
     void SendSetQuest(std::uint8_t quest, std::uint8_t state);
     // El C3 30 de la llegada a un NPC (0x5650c0, Protocol::Quest::WriteTalk).
     void SendTalk(std::int16_t key);
-    // El C1 03 31 en claro de 0x419900, al cerrar la ventana de las misiones (Protocol::Connection::WriteWindowClose).
+    // El C1 03 31 en claro de 0x419900, al cerrar la ventana de las misiones, y de cerrar un NPC de evento (0x658a18
+    // y 0x658c0e, CL9 hito 11) (Protocol::Connection::WriteWindowClose).
     void SendWindowClose();
+    // CL9 hito 11: el C1 03 97 de SendMove con 0x78abb00 en 1 o 2 (Protocol::Events::WriteEventWindowLeave), en claro,
+    // y el C1 06 AF 02 x y de 0x4fbee8 en Chaos Castle (Protocol::Events::WriteChaosCastleReposition), con el XOR
+    // de 32.
+    [[nodiscard]] Core::Expected<void, std::string> SendEventWindowLeave();
+    [[nodiscard]] Core::Expected<void, std::string> SendChaosCastleReposition(std::uint8_t x, std::uint8_t y);
     // El C0 y los C1..C4 que mandan la ventana de amigos y sus cajas (Protocol::Friends), como los demás de mundo.
     void SendFriendPacket(Protocol::Outgoing packet);
     // 0x4c609f: el 00 con la escena 2 (el login) pide la lista de servidores, C1 04 F4 02, por el socket que esté
@@ -396,6 +402,9 @@ private:
     void OnTeleport(const Network::Packet& packet);
     void OnRegen(const Network::Packet& packet);
     void OnChat(const Network::Packet& packet);
+    // CL9 hito 11, los eventos (04 § Los eventos): los registra juntos y los lee con Protocol::Events::ReadEventPacket.
+    [[nodiscard]] bool RegisterTheEventPackets();
+    void OnEventPacket(const Network::Packet& packet);
     void OnKeyChat(const Network::Packet& packet);
     void OnWhisper(const Network::Packet& packet);
     void OnWhisperResult(const Network::Packet& packet);

@@ -11,6 +11,7 @@
 #include "Scenes/ActorName.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CombatActionSpeeds.h"
+#include "Scenes/CrywolfContract.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/HeroAttack.h"
 #include "Scenes/HeroSkillCasts.h"
@@ -569,15 +570,13 @@ Core::Expected<void, std::string> UseSkillWithTheMagicAttack(ActorState& hero, s
 }
 
 // 0x589744..0x589779: fuera de alcance con un elegido, el camino hasta las celdas a menos de alcance · 1,2 (en float)
-// de la celda del blanco (0x4eac00, sin bClearGoal), con la Y del héroe leída antes que la X. Con camino, +0x378 en 1.
+// de la celda del blanco (0x4eac00), con la Y del héroe leída antes que la X. Con camino, +0x378 en 1.
 // Con la celda del blanco fuera de 0..255, que PathFinding2 (0x58975f) toma como índice lineal, MuRet descarta el
 // camino después de las lecturas, como sin camino (08, P-C256).
 Core::Expected<void, std::string> WalkTowardsTheTarget(ActorState& hero, std::int32_t targetX, std::int32_t targetY,
                                                        const HeroSkillContext& context)
 {
     const Cells cells = ReadTheCells(hero, context.random);
-    if (auto altar = CheckTheCrywolfAltar(context.world, "0x58975f"); !altar.HasValue())
-        return altar;
     const auto reach =
         static_cast<float>(static_cast<double>(context.world.Runtime().movement.selectedSkillRange) * WalkReach);
     if (!InRange(targetX, 0, 0xff) || !InRange(targetY, 0, 0xff))
@@ -585,9 +584,11 @@ Core::Expected<void, std::string> WalkTowardsTheTarget(ActorState& hero, std::in
     World::WorldTerrain& terrain = context.world.Map().terrain;
     if (!terrain.attributes)
         return Core::Unexpected(std::string("0x58975f: falta TerrainWall para acercarse con la 0x4c"));
-    const auto path = GameLogic::PathFinder(terrain.attributes->cells)
-                          .Find({cells.x, cells.y},
-                                {static_cast<std::uint8_t>(targetX), static_cast<std::uint8_t>(targetY)}, false, reach);
+    // 0x4eac0a..0x4eac41: la bandera del altar de Crywolf, que con el alcance distinto de 0 no cuenta (0x4eadd4).
+    const auto path =
+        GameLogic::PathFinder(terrain.attributes->cells)
+            .Find({cells.x, cells.y}, {static_cast<std::uint8_t>(targetX), static_cast<std::uint8_t>(targetY)},
+                  CrywolfAltarGoal(context.world), reach);
     if (!path)
         return {};
     hero.path = *path;

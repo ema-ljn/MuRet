@@ -17,7 +17,12 @@
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatBubbleDraw.h"
+#include "Scenes/CrywolfInterfaceDrawing.h"
 #include "Scenes/EventMapObject.h"
+#include "Scenes/EventChipWindow.h"
+#include "Scenes/EventDrawing.h"
+#include "Scenes/EventNpcWindows.h"
+#include "Scenes/EventPackets.h"
 #include "Scenes/GameCharacterHud.h"
 #include "Scenes/GameCommandsWindow.h"
 #include "Scenes/GameHelps.h"
@@ -62,6 +67,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace Client::Scenes
 {
@@ -800,24 +806,34 @@ Core::Expected<void, std::string> DrawTheDurability(Frame& frame, std::int32_t t
 // ---------------------------------------------------------------------------------------------------------------
 // 11. El objeto del evento ([0x723c60]): 0x40bab0 y su método +4.
 
+// 0x40bafe y 0x40bb08: los colores de la cuenta (0x6c8e5c y 0x6c8e64), y 0x40bbd1: dónde la escribe 0x554180.
+constexpr std::uint32_t EventCountdownTextColor = 0xffff8080u;
+constexpr std::uint32_t EventCountdownBackground = 0x80000000u;
+constexpr int EventCountdownLeft = 10;
+constexpr int EventCountdownTop = 0x174;
+
 Core::Expected<void, std::string> DrawTheEventObject(Frame& frame)
 {
     if (!frame.runtime.eventObject)
         return {};
-    const EventMapObject& event = *frame.runtime.eventObject;
-    const std::int32_t map = frame.runtime.map;
-    // 0x40bab0: la cuenta de 30 segundos con +8 de 1 a 14 (GetTickCount contra +0xc y los textos de la entrada).
-    if (event.field08 >= 1 && event.field08 <= 14)
-        return Core::Unexpected(std::format("0x40bab0: la cuenta del evento ({}) es de la CL9.5", event.field08));
-    // El método +4: el de Blood Castle (0x40c2d0) con +0x10 en los mapas 11 a 17, el de Chaos Castle (0x405090) con
-    // +0x10 en los 18 a 23 y el de Devil Square (0x40bdb0), un ret. Los dos campos los escriben los paquetes de los
-    // eventos: hasta la CL9.5 quedan en 0 y no dibujan nada.
-    const bool bloodCastle = event.kind == EventMapKind::BloodCastle && map > 10 && map < 0x12;
-    const bool chaosCastle = event.kind == EventMapKind::ChaosCastle && map > 0x11 && map < 0x18;
-    if (event.field10 != 0 && (bloodCastle || chaosCastle))
-        return Core::Unexpected(std::format("{}: el tiempo y los puntos del evento son de la CL9.5",
-                                            bloodCastle ? "0x40c2d0" : "0x405090"));
-    return {};
+    EventMapObject& event = *frame.runtime.eventObject;
+    // 0x40bab0: la cuenta de 30 segundos con +8 de 1 a 14 (GetTickCount contra +0xc y los textos de la entrada). Un
+    // dibujo intermedio no apaga la cuenta vencida: el frame siguiente del original lo vuelve a hacer.
+    auto countdown = EventCountdownText(event, frame.context.tickCount, frame.context.texts, !frame.context.projecting);
+    if (!countdown.HasValue())
+        return Core::Unexpected(std::move(countdown).Error());
+    if (countdown.Value())
+    {
+        // 0x40baf2..0x40bbd8: 0x620980 y 0x620a00(0), el texto en 0xffff8080 sobre 0x80000000 y 0x554180(10, 0x174).
+        frame.context.sprites.SetBlend(BlendMode::Opaque);
+        frame.context.sprites.SetBlend(BlendMode::Alpha);
+        frame.context.hud.textColors =
+            Render::Text::TextColors{.text = EventCountdownTextColor, .background = EventCountdownBackground};
+        DrawHudText(frame, EventCountdownLeft, EventCountdownTop, *countdown.Value(), false);
+    }
+    // El método +4: el de Blood Castle (0x40c2d0), el de Chaos Castle (0x405090) y el de Devil Square (0x40bdb0), un
+    // ret. Los campos los escribe el 9B (CL9 hito 11). Un dibujo intermedio no elige el área de la trampa.
+    return DrawTheCastleTimeAndPoints(frame.context, event, !frame.context.projecting);
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -863,10 +879,15 @@ Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
         return cut("0x44ff00: la puerta del asedio es de la CL9.5");
     if (panels.IsOpen(UI::WarehousePanel))
         return cut("0x5f4e30: el almacén es de la CL9.3");
-    if (panels.IsOpen(UI::EventNpcPanel))
-        return cut("0x5f58f0: la ventana del NPC de evento es de la CL9.5");
+    // 0x5f75cb: 0x5f58f0, los NPC de evento (CL9 hito 11), que empieza con sus IsOpen.
+    if (auto events = DrawTheEventNpcWindow(frame.context, panels); !events.HasValue())
+        return events;
+    // 0x5f75d0: 0x5f6550, con 0x78abb00 distinto de 0.
     if (state.field78abb00 != 0)
-        return cut("0x5f6550: la ventana de 0x78abb00 es de la CL9.5");
+    {
+        if (auto chips = DrawTheEventChipWindow(frame.context); !chips.HasValue())
+            return chips;
+    }
     // 0x5f75db (CL9 hito 2): 0x41ca40, la ventana de las misiones y el botón de la del personaje.
     if (auto quest = DrawTheQuestWindow(frame.context, panels); !quest.HasValue())
         return quest;
@@ -1011,8 +1032,10 @@ Core::Expected<void, std::string> DrawTheUi3DItems(Frame& frame)
     // 0x5ac1c7 (CL9 hito 2): 0x41b9e0, los ítems pedidos de la ventana de las misiones.
     if (auto quest = DrawTheQuestItems(frame.context); !quest.HasValue())
         return quest;
-    if (state.field78abb00 != 0 && state.field78abb00 != 3)
-        return Core::Unexpected(std::string("0x5f70a0: los ítems de la ventana de 0x78abb00 son de la CL9.5"));
+    // 0x5ac1cc..0x5ac1df: con 0x78abb00 fuera de 0 y 3, 0x5f70a0 y el salto a 0x5ac269, sin las grillas, el ítem del
+    // cursor ni las ranuras rápidas.
+    if (state.field78abb00 != 0 && state.field78abb00 != SerialNumberWindow)
+        return DrawTheEventChipItems(frame.context);
     // 0x5f7610: los ítems de las grillas abiertas, en su orden, y la caja del entrenador (0x44ad40(0)).
     if (auto grids = DrawTheGridItems(frame.context, frame.panels); !grids.HasValue())
         return grids;
@@ -1540,7 +1563,12 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
     hud.textColors.text = 0xffffffffu;
     // 1. 0x5a7520.
     DrawTheSands(frame);
-    // 2. 0x5a7640: la guerra de gremios, con 0x576796c (CL9.4): nada.
+    // 2. 0x5a7640: la guerra de gremios, con 0x576796c (CL9.4): nada. Con el tanteador de Battle Soccer que deja el
+    // F3 23 (0x576796f, CL9 hito 11), su dibujo (0x5a7a0e) busca los nombres en la lista de gremios de 0x787aa55, del
+    // hito 8.
+    if (runtime.events.soccer.active)
+        return Core::Unexpected(std::string("0x5a7a0e: el tanteador de Battle Soccer, con la lista de los gremios "
+                                            "(0x787aa55), es del hito 8 de la CL9"));
     // 3. 0x5a89b0: las barras de la party.
     if (hud.partyCount > 0)
         return Core::Unexpected(std::string("0x5a89b0: las barras de vida de la party son de la CL9.4"));
@@ -1621,9 +1649,10 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
     // 19. 0x65dd70: la imagen que se desvanece de [0x5763534], con su +0x18 en 0 (hito 6).
     // 20. 0x5a9290.
     DrawTheBottomBar(frame);
-    // 21. 0x4365c0 empieza siempre con 0x620a00(1), y la traza lo muestra antes de la experiencia. La UI de los
-    // eventos, con 0x723bf9 y 0x6c73d1 (.data −1, sale sin dibujar), es de la CL9.5.
-    context.sprites.SetBlend(BlendMode::Alpha);
+    // 21. 0x4365c0: la interfaz de Crywolf (Scenes/CrywolfInterfaceDrawing), que empieza siempre con 0x620a00(1); la
+    // traza lo muestra antes de la experiencia.
+    if (auto crywolf = DrawTheCrywolfInterface(context); !crywolf.HasValue())
+        return crywolf;
     // 22. 0x5aa9a0.
     DrawTheChatInput(frame);
     // 23. y 24. 0x5abcd0 y 0x5a8cc0.
@@ -1634,7 +1663,9 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
     // 25. 0x652c90.
     if (runtime.siegeActive)
         return Core::Unexpected(std::string("0x652c90: las skills de la batalla del asedio son de la CL9.5"));
-    // 26. 0x436240: la confirmación de los eventos (CL9.5).
+    // 26. 0x436240: el color del texto y la ventana del contrato de Crywolf (Scenes/CrywolfInterfaceDrawing).
+    if (auto contract = DrawTheCrywolfContract(context); !contract.HasValue())
+        return contract;
     // 27. y 28. 0x5ac120 y 0x5f7840.
     if (auto ui3D = DrawTheUi3D(frame); !ui3D.HasValue())
         return ui3D;

@@ -1366,12 +1366,11 @@ TEST(CharacterStepTest, TheWeaponTrailDrawsFromFrameThree)
 }
 
 // Lo que el cuerpo (0x4fd5f0) no tiene corta, en su orden y después de los rand() de antes: los mapas 18 a 23 con
-// el héroe 10 s en una celda con el bit 8 (0x4fbe10 manda C1 06 AF 01, CL9.5), el 0xc5 sin Text.bmd (0x4fd63b), el
-// 0xf1 sin las alturas del terreno (0x4fb942), el nombre de 0x6c88b0 sin timeGetTime() (0x4fcd82), otro modelo,
+// el héroe 10 s en una celda con el bit 8 sin la sesión del C1 06 AF 02 (0x4fbee8), el 0xc5 sin Text.bmd (0x4fd63b),
+// el 0xf1 sin las alturas del terreno (0x4fb942), el nombre de 0x6c88b0 sin timeGetTime() (0x4fcd82), otro modelo,
 // Player.bmd sin cargar o una acción fuera de él (0x4f9580, 0x4f95c0), la partícula de las 0x4d, 0x4f y 0x5a
 // (0x4fdb70) y, después de pegar, una habilidad de +0x38e en 0x4f97b0 (0x4f9899, después de leerla; también
 // muriéndose: el paso de morirse, 0x4fb9e0, y el de 0x4fd787 ya pasaron).
-
 TEST(CharacterStepTest, TheBodyStopsWhereMuRetHasNothing)
 {
     struct Case
@@ -1540,6 +1539,51 @@ TEST(CharacterStepTest, ChaosCastleKeepsTheHeroCellAndItsClock)
         EXPECT_EQ(still.world.Runtime().reportedCellTime, 10000.0f);
         EXPECT_EQ(still.random.State(), after(HeroCellReads));
     }
+    for (const std::int32_t map : {18, 21, 23})
+    {
+        SCOPED_TRACE(testing::Message() << "la misma, 10 s después y con el bit 8, en el mapa " << map);
+        // CL9 hito 11, 0x4fbeed..0x4fc39d: el C1 06 AF 02 con el byte bajo de 0x743a180 y 0x743a184, y el reloj.
+        GameWorld reported(map);
+        reported.StandOnTheReportedCell(map);
+        reported.world.Runtime().reportedCellTime = 0.0f;
+        reported.world.Runtime().terrainPolygon = Everything;
+        std::vector<std::pair<std::uint8_t, std::uint8_t>> sent;
+        const auto stepped = StepCharacters(
+            CharacterStepContext{.world = reported.world,
+                                 .random = reported.random,
+                                 .scene = SceneId::Game,
+                                 .playerSkeleton = reported.player,
+                                 .worldClock = 10000.0f,
+                                 .sendChaosCastleReposition =
+                                     [&](std::uint8_t x, std::uint8_t y) -> Client::Core::Expected<void, std::string>
+                                 {
+                                     sent.emplace_back(x, y);
+                                     return {};
+                                 }});
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        ASSERT_EQ(sent.size(), 1u);
+        EXPECT_EQ(sent[0], (std::pair<std::uint8_t, std::uint8_t>{std::uint8_t{5}, std::uint8_t{6}}));
+        EXPECT_EQ(reported.world.Runtime().reportedCellTime, 10000.0f);
+        EXPECT_EQ(reported.random.State(), after(HeroCellReads));
+    }
+    {
+        SCOPED_TRACE("el envío que falla corta con el reloj guardado (0x4fc313)");
+        GameWorld failing(18);
+        failing.StandOnTheReportedCell(18);
+        failing.world.Runtime().reportedCellTime = 0.0f;
+        failing.world.Runtime().terrainPolygon = Everything;
+        const auto stepped = StepCharacters(CharacterStepContext{
+            .world = failing.world,
+            .random = failing.random,
+            .scene = SceneId::Game,
+            .playerSkeleton = failing.player,
+            .worldClock = 10000.0f,
+            .sendChaosCastleReposition = [](std::uint8_t, std::uint8_t) -> Client::Core::Expected<void, std::string>
+            { return Client::Core::Unexpected(std::string("el GameServer no está abierto")); }});
+        ASSERT_FALSE(stepped.HasValue());
+        EXPECT_NE(stepped.Error().find("GameServer"), std::string::npos) << stepped.Error();
+        EXPECT_EQ(failing.world.Runtime().reportedCellTime, 10000.0f);
+    }
 }
 
 // La celda (x, y) del buffer dinámico 0x7b4ccc4.
@@ -1693,6 +1737,34 @@ TEST(CharacterStepTest, AnotherCharacterRunsItsWholeStepBeforeTheHero)
         EXPECT_EQ(other.headTurn.angles, head.angles);
         EXPECT_EQ(other.headTurn.target, head.target);
         EXPECT_EQ(tested.random.State(), expected.State());
+    }
+}
+
+// 0x508e0e → 0x4eac00 (Q-C1351): otro quieto con el blanco lejos de su celda reintenta el camino (0x508c84), y
+// 0x4eac0a..0x4eac41 le pone la bandera si 0x6c8e54 tiene un altar (el registro 9, muerto) con la etapa 4 en el 34: su
+// blanco, de pared, queda en 0 y el camino llega. En Lorencia y Devias la pared queda y el camino para al lado.
+TEST(CharacterStepTest, AnotherCharacterRetriesItsPathWithTheCrywolfAltarFlag)
+{
+    for (const std::int32_t map : {0, 2, 34})
+    {
+        SCOPED_TRACE(::testing::Message() << "mapa " << map);
+        GameWorld tested(map);
+        tested.world.Runtime().crywolf.stage = 4;
+        tested.world.Runtime().movement.chosenNpc = 9;
+        tested.world.Actors()[9].type = 0x205;
+        ActorState& other = tested.Other(3);
+        other.targetX = 7;
+        tested.Cell(7, 4) = Client::World::BlockedWallBit;
+
+        const auto stepped = tested.Step(Everything);
+
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(other.movement, 1);
+        ASSERT_GT(other.path.count, 1);
+        const auto& last = other.path.cells[other.path.count - 1U];
+        EXPECT_EQ(tested.Cell(7, 4), map == 34 ? 0 : Client::World::BlockedWallBit);
+        EXPECT_EQ(last.x, map == 34 ? 7 : 6);
+        EXPECT_EQ(last.y, map == 34 ? 4 : 3);
     }
 }
 

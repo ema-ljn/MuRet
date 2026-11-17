@@ -8,6 +8,9 @@
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/Pose.h"
 #include "Scenes/DynamicWorldLight.h"
+#include "Scenes/EventGlobals.h"
+#include "Scenes/EventPackets.h"
+#include "Scenes/ObjectCollapse.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/SelectionState.h"
@@ -43,6 +46,7 @@
 #include "Render/Pass3D.h"
 #include "Scenes/ActorName.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CameraTour.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/ChatBubbles.h"
@@ -538,9 +542,25 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
             return stepped;
         world.Runtime().objectSelectionCount = 0;
     }
-    // Sin un objeto visto (antes del primer dibujo que llega a 0x6046a0), 0x606560 no toca ninguno.
+    // 0x6065bd y 0x6065da: el derrumbe (0x5ff960, Scenes/ObjectCollapse.h) con cada vivo del recorrido, los vistos de
+    // un sector que pasó después de su paso y todos los de uno que no pasó; la piedra de Chaos Castle sale con la z
+    // del héroe y el temblor es el de la cámara (0x7d325c8).
+    const ObjectCollapseContext collapseContext{.runtime = world.Runtime(),
+                                                .random = m_context.cloth->random,
+                                                .particles = &world.Particles(),
+                                                .worldClock = worldClock,
+                                                .heroZ = world.Actors()[world.Runtime().hero].position.z,
+                                                .cameraShake = &CameraInputState().shake,
+                                                .attributes = world.Map().terrain.attributes.get()};
+    const AfterObjectStep collapse = [&collapseContext](World::WorldObject& object)
+    { return CollapseTheObject(object, collapseContext); };
+    // Sin un objeto visto (antes del primer dibujo que llega a 0x6046a0), 0x606560 no le hace el paso a ninguno: queda
+    // el derrumbe con los vivos y la cuenta (0x606610).
     if (std::ranges::none_of(objects, [](const World::WorldObject& object) { return object.alive && object.seen; }))
     {
+        if (auto walked = WalkTheObjectSectors(objects, {}, collapse); !walked.HasValue())
+            return Core::Unexpected(walked.Error() + ", en el " + MapText(map));
+        CountDownTheObjectCollapse(world.Runtime());
         return {};
     }
     // 0x4250f0 lleva los del 33 y los del 54 (los de la selección, vistos en su dibujo, que siguen durante la
@@ -600,11 +620,13 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
         after = [&](World::WorldObject& object)
         { return World::StepCastleSiegeSeenObject(object, world.Runtime().siegeActive, worldClock); };
     if (auto stepped = StepGameWorldObjects(objects, static_cast<std::uint8_t>(map), m_worldModels,
-                                            m_context.cloth->random, globals, after);
+                                            m_context.cloth->random, globals, after, collapse);
         !stepped.HasValue())
     {
         return Core::Unexpected(stepped.Error() + ", en el " + MapText(map));
     }
+    // 0x606610..0x606618: la cuenta del derrumbe, al final de cada paso.
+    CountDownTheObjectCollapse(world.Runtime());
     return {};
 }
 
@@ -699,12 +721,12 @@ Core::Expected<void, std::string> GameScene::DrawTheFrame(SceneCanvas& canvas)
     m_drawnCamera = camera;
     m_screen = canvas.screen;
     // 0x63726f..0x637337: en el mapa 6 con "webzen" en el nombre (0x576960; la búsqueda de "webzen2" no cambia
-    // nada, Q-C152), el punto fijo (6.400; 15.400) con la z del héroe; si no, el de 0x44dc60. El recorrido de
-    // 0x4033d0 (el BD 00, que MuRet no aplica) no está prendido y no lo cambia.
+    // nada, Q-C152), el punto fijo (6.400; 15.400) con la z del héroe; si no, el de 0x44dc60 y, con el recorrido de
+    // la cámara andando (0x637324, 0x4033d0), su posición (0x4034b0), como la cámara de este frame.
     const World::GameCameraInput& cameraInput = CameraInputState();
     const glm::vec3 target = runtime.map == NamedCameraMap && cameraInput.webzen
                                  ? glm::vec3(SpectatorTargetX, SpectatorTargetY, cameraInput.hero.z)
-                                 : World::CameraTargetOf(cameraInput);
+                                 : World::FollowedPointOf(cameraInput);
     // 0x63733e: 0x5bb8d0, el ancho del mundo, con los rand() del frame (las consultas del comercio y de la tienda
     // con el inventario abierto): 640 sin ventanas, 450 con una y 260 con dos.
     const std::int32_t worldWidth = GamePanels(*m_context.world, FrameCloth().random).Registry().WorldWidth();
@@ -824,6 +846,11 @@ Render::Camera3D GameScene::CameraOfTheFrame(SceneCanvas& canvas, int frames)
     input.webzen = ActorNameContains(hero, "webzen");
     input.worldTime =
         static_cast<float>(std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count());
+    // 0x635ead y 0x637324: 0x4033d0 sobre [0x6e5904] y, verdadero, 0x4034b0. Nada entre la cámara y el centro del
+    // mundo toca el recorrido: los dos lo leen igual.
+    const CameraTour& tour = runtime.events.cameraTour;
+    input.tour =
+        CameraTourRunning(tour) ? std::optional(World::GameCameraTour{tour.position, tour.level}) : std::nullopt;
     if (frames == 0)
     {
         // Un dibujo intermedio de MuRet: consulta la cámara del último frame original, sin gastar rand().
@@ -831,9 +858,15 @@ Render::Camera3D GameScene::CameraOfTheFrame(SceneCanvas& canvas, int frames)
     }
     // Cada frame original termina en el corte de abajo: de los que cuenta el reloj corre el primero y el
     // corte no deja correr los demás.
-    // 0x635b3d..0x635b9e: la rama del mapa 6 con "webzen" no lee la celda del héroe (ni sus rand()).
+    // 0x635b3d..0x635b9e: la rama del mapa 6 con "webzen" no lee la celda del héroe (ni sus rand()) ni el recorrido.
     if (!(input.map == NamedCameraMap && input.webzen))
+    {
         input.cellAttribute = HeroCellAttribute(hero, *world.Map().terrain.attributes, m_context.cloth->random);
+        // 0x635ec0: con el recorrido andando, la z del héroe en 300; queda así para el resto del frame (el dibujo del
+        // héroe) hasta que un paso la vuelva a escribir.
+        if (input.tour)
+            input.hero.z = hero.position.z = World::CameraTourHeroHeight;
+    }
     return World::StepGameCamera(CameraState(), input);
 }
 
@@ -1185,9 +1218,10 @@ bool GameScene::WantsTextInput() const
 {
     if (m_context.world == nullptr)
         return false;
-    // El chat abierto o el EDIT de una ventana vieja con el foco (CL9 hito 9).
+    // El chat abierto, el EDIT de una ventana vieja con el foco (CL9 hito 9) o el de [0x5763504] (hito 11).
     const WorldRuntime& runtime = m_context.world->Runtime();
-    return runtime.ui.chatOpen || runtime.chat.input.focus == UI::ChatFocus::OldWindow;
+    return runtime.ui.chatOpen || runtime.chat.input.focus == UI::ChatFocus::OldWindow ||
+           runtime.chat.input.focus == UI::ChatFocus::Dialog;
 }
 
 bool GameScene::HoldsTheLastFrame() const

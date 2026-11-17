@@ -562,15 +562,59 @@ amigos. **Desbloquea:** 10.
 
 ### Hito 11: los eventos (CL9.5, ~26 KB)
 
-- [ ] **El estado de los eventos:** el `0x0B` (`0x4455c0` y su cola), el `0x46` (`0x4dab90`), el `0x47`
+- [x] **El estado de los eventos:** el `0x0B` (`0x4455c0` y su cola), el `0x46` (`0x4dab90`), el `0x47`
       (`0x4d6990`), `0x90`..`0x96` (`0x4da8c0`, la cuenta mm:ss; `0x4dd8a0`, los chips), `0x99`, `0x9A`
       (`0x4da780`), `0x9B`, `0x9D`, `0x9E`, `AF` (`0x4daa90`), `BC` (`0x4da540`), `F3 23` y `F3 40`.
+      (Fase 1, 2026-11-13: los 21 lectores de `Protocol::Events`, también el `F3 22` y el `BD 00`, y
+      `Scenes::ApplyEventPacket`; 04 § Los eventos, Q-C1320..Q-C1332, P-C290..P-C293.)
 - [ ] **Las ventanas y el HUD de los eventos:** el NPC de evento (`0x5f58f0`), la cuenta y los resultados
       (`0x5a7eb0`, `0x5f6550`), `0x78abb00` (`0x5e5920`, `0x5e6520`), los contadores de Devil Square, Blood
       Castle y Chaos Castle (`0x40bab0`, `0x40c2d0`, `0x405090`), el `C1 03 97` de `SendMove`.
+      (Fase 1: la cuenta de 30 s, `0x40bab0`, y el `C1 03 97` con el cursor, Q-C1330. Las ventanas, `0x40c2d0`,
+      `0x405090` y la interfaz de Crywolf cortan con su dirección para la fase 2, P-C291.)
+      (Fase 2, *estática*: `0x5a7eb0`, `0x40c2d0`, `0x405090` y `0x632a2b`; las ventanas de Devil Square y Blood
+      Castle, `0x5f58f0` y `0x5e5920`, con el `C1 05 90`, el `C1 05 9A` y su cierre con el `C1 03 31`; el
+      `SetCursorPos` del `97` queda pedido. Q-C1333..Q-C1337, P-C294..P-C296. La ventana de `0x78abb00` y el número
+      de serie esperan el EDIT del hito 9; la interfaz de Crywolf y `CCameraMove` siguen cortando, P-C295.)
+      (Fase 3, *estática*: la interfaz de Crywolf, `0x4365c0`, `0x430180`, `0x436240` y el paso `0x435bd0`, con los
+      `BD 02`..`09`; el contrato de los altares, el `BD 03` y el `BD 0C` cortan. De `CCameraMove`, el arranque con el
+      `BD 00` y la etapa 2, lo único que lo empieza; el guion corta en `0x4035da`. Q-C1341..Q-C1343, P-C298,
+      P-C299. La rama `cl9-h9` está juntada con el EDIT; la ventana de `0x78abb00` y el número de serie siguen
+      cortando, con lo que falta medido en P-C295.)
+      (Fase 4, *estática*: la ventana de `0x78abb00`, `0x5f6550`, su paso `0x5e6520` con el `C1 04 98 01`, el
+      `C1 05 95`, el `C1 12 9D` y el `97` de la X, y sus ítems `0x5f70a0`; la entrada del número de serie,
+      `0x4dd8ce..0x4dd920` y `0x56b6a9`, con el EDIT de `[0x5763504]` y los caminos del Enter que miran `0x77f3b6b`.
+      El título, el nombre del NPC 236 de `0x54e7f0`, corta para el hito 2. Q-C1344..Q-C1346, P-C247, P-C248.
+      El contrato de los altares de Crywolf: `0x435b00`, `0x435ad0`, el `BD 03` (`0x4e1010`, con el `C1 05 18 82`), el
+      paso `0x435c5c` con el `C1 06 BD 03` y el dibujo `0x436274`; el clic en un altar, `0x567b00`, es
+      `ClickTheCrywolfAltar` y se cablea en `0x5650c0` al juntarse con el hito 2. El `BD 0C`, leído entero, queda en la
+      CL11. Q-C1347, Q-C1348, P-C249.)
+      (Fase 5: juntado el hito 2 en `f2dd89b`; `0x5650c0` llama a `ClickTheCrywolfAltar` en `0x567b00`, antes del
+      `C1 30`. El camino hasta un altar, la bandera del A* de `0x4eac41`, sigue cortando. P-C249.
+      El guion del recorrido de la cámara: `0x403390`, `0x4035f0` y sus etapas `0x403e00`..`0x404bb0`, la cámara
+      `0x403d90`, `0x4034e0`, `0x403430`, `0x5fc800`, los personajes `0x4039f0` (sobre `0x5141e0`), `0x403760`,
+      `0x4036d0`, `0x403900`, `0x403d40` y `0x403d60`. Cortan las chispas de `0x4039f0` (`0x403b09`: los joints
+      `0x615/7` y `0x614/0x11` y la partícula `0x5f6/1`), el `0xed` (`0x4039a0`, CL11) y la cámara del juego que lo
+      lee (`0x635ead`, `0x637324`). Q-C1349, P-C299.)
+      (Fase 6, *estática*: el camino hasta un altar, `0x4eac0a..0x4eac41` (`Scenes::CrywolfAltarGoal`), en los cinco
+      que llaman a `0x4eac00`: el clic en el suelo, el NPC, el `D3`, los caminos del viewport y el reintento de
+      `0x508e0e`. La cámara del juego y el centro del mundo leen el recorrido (`0x635ead..0x635ed8`, `0x637324`, con
+      `0x4034b0`), con la meta de D por su nivel (`0x6361d0`): `World::GameCameraInput::tour`. Siguen cortando las
+      chispas de `0x403b09` y el `0xed` (CL11), `0x403abe` y `0x43114d`; hasta la CL11 ese corte cierra el cliente
+      unos 5 s después de un `BD 00` con la etapa 2 (en el 34 en `0x43114d`, en los otros en `0x403abe`), y fuera
+      del 34 el original también se cae (P-C299). Q-C1350, Q-C1351, P-C328, P-C329.)
+      (Revisión contra el ASM: lo que el original lee o escribe fuera de sus tablas y sigue ya no cierra la sesión;
+      se descarta el resto del paquete con un aviso (`EventPacketResult::discarded`): el `93` y el `94` cortos,
+      Q-C1324, Q-C1325, Q-C1328, Q-C1341 y Q-C1347. El `F3 40` con 5 abre `0x632f70` (P-C292).)
 - [ ] **Las reglas por mapa:** el arma de Blood Castle (`0x50de84`), las trampas de Chaos Castle (`0x405597`,
-      `0x405d49`), el `AF 01` (`0x4fbee8`), Kalima, y Crywolf (`BD`, `0x42fe80`, `0x42fe50`, `0x430a40`,
-      `0x61a6f4`; P-C58).
+      `0x405d49`), el `AF 02` (`0x4fbee8`; decía `AF 01`), Kalima, y Crywolf (`BD`, `0x42fe80`, `0x42fe50`,
+      `0x430a40`, `0x61a6f4`; P-C58).
+      (Fase 1: el arma de Blood Castle, Q-C1331 y Q-C1332; el `AF 02`; los derrumbes de los rectángulos de Chaos
+      Castle del `9B` y la trampa armada; `0x42fe80` hasta la luz y el `.att`, que cortan en `0x42ff81`. El
+      derrumbe de los objetos, `0x5ff960`, es de la fase 2; los monstruos de Kalima y de Crywolf, del hito 2.)
+      (Fase 3: el derrumbe de los objetos, `0x5ff960`, `0x405630` y los sectores de `0x606560`, *estático*; la piedra
+      `0x5f6` de Chaos Castle corta para la CL11. Q-C1338, Q-C1339, P-C297.)
+      (Fase 3: la luz y el `.att` de Crywolf al cambiar de estado, `0x42ff81`, `0x5f8f40` y `0x5f8390`, Q-C1340.)
 
 **Pruebas:** entrar a Blood Castle, Devil Square y Chaos Castle con vectores de cada paquete; las cuentas;
 los `rand()` de los contadores; Crywolf solo contra el ASM. **Desbloquea:** —.

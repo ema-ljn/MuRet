@@ -71,6 +71,8 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
         context.sendElfCell = [&](std::uint8_t x, std::uint8_t y) { return m_session->SendElfCell(x, y); };
     if (m_session)
     {
+        // CL9 hito 11: el C1 03 97 va por la sesión; SetCursorPos queda pedido en GameMovementState::cursorWarpRequest.
+        context.sendEventWindowLeave = [&]() { return m_session->SendEventWindowLeave(); };
         context.sendWindowClose = [&]() { m_session->SendWindowClose(); };
         context.requestQuestList = [&]() { m_session->RequestQuestList(); };
         context.sendTalk = [&](std::int16_t key) { m_session->SendTalk(key); };

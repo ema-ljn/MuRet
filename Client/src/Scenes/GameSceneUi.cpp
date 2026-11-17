@@ -1,5 +1,6 @@
 #include "Scenes/GameScene.h"
 
+#include "App/FaithfulPacer.h"
 #include "App/ServerSession.h"
 #include "Core/Expected.h"
 #include "Core/Log.h"
@@ -16,6 +17,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/ActorPickingBox.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/EventDrawing.h"
 #include "Scenes/GameChat.h"
 #include "Scenes/GameData.h"
 #include "Scenes/GameDialogDrawing.h"
@@ -374,6 +376,7 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
         .cellYDepth = m_projectingFrame ? m_projection->heroYDepth : hero.cellYAccesses,
         .hud = m_projectingFrame ? m_projection->hud : runtime.hud,
         .crywolfSandOverlay = m_projectingFrame ? m_projection->crywolfSandOverlay : runtime.crywolf.sandOverlay,
+        .crywolfInterface = m_projectingFrame ? &m_projection->crywolfInterface : &runtime.crywolf.ui,
         .sound = m_projectingFrame ? m_projection->sound : runtime.lastSoundId,
         .projecting = m_projectingFrame,
         .projection = projection,
@@ -385,6 +388,7 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
         .setOptions = m_chatTables.setOptions,
         .setTypes = m_chatTables.itemSetTables != nullptr ? &m_chatTables.itemSetTables->types : nullptr,
         .worldClock = static_cast<float>(std::chrono::duration<double, std::milli>(canvas.frameClock).count()),
+        .tickCount = App::TickCountMs(canvas.frameClock),
         .mouse = UI::MouseIn640x480(input, canvas.screen),
         .leftDown = input.MouseMessages().leftDown,
         .controlDown = input.IsDown(Input::Key::Ctrl),
@@ -447,7 +451,9 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
     // 0x637660: 0x5a7320(1), el HUD, con 0x7d36899 en 0.
     if (auto drawn = DrawTheHud(hud); !drawn.HasValue())
         return drawn;
-    // 0x637668: 0x5a7eb0, la cuenta y los resultados de los eventos (CL9.5).
+    // 0x637668: 0x5a7eb0, el tiempo del F3 22 (Scenes/EventDrawing).
+    if (auto drawn = DrawTheEventTime(hud); !drawn.HasValue())
+        return drawn;
     // 0x637673: 0x490390, las ventanas viejas, y 0x637680: la lista de ventanas, siempre. Un dibujo intermedio de MuRet
     // las dibuja sobre su copia.
     UI::OldWindowManager& oldWindows = m_projectingFrame ? m_projection->oldWindows : runtime.oldWindows;

@@ -65,8 +65,9 @@ public:
     // vista y los globales de las ventanas viejas). Lo presta el paso de la UI; sin él, abrirlo corta.
     void LendTheFriends(std::function<Core::Expected<void, std::string>()> opened);
 
-    // 0x419900: cerrar las misiones manda el C1 03 31 con `send`. Lo prestan el paso de la UI y los handlers del A1 y
-    // del A2 (0x657a90); sin él, cerrarlas corta.
+    // 0x419900: cerrar las misiones manda el C1 03 31 con `send`, y también 0x658a18 y 0x658c0e al cerrar un NPC de
+    // evento (0x1000 o 0x4000, CL9 hito 11). Lo prestan el paso de la UI, los handlers del A1 y del A2 (0x657a90) y los
+    // cierres de la entrada al mundo, del teleport, del regen y de los eventos; sin él, cerrarlos corta.
     void LendTheWindowClose(std::function<void()> send);
     // Lo mismo con el C1 03 31 de `requests` (IGameUiRequests::SendWindowClose); con nullptr, sin él.
     void LendTheWindowClose(IGameUiRequests* requests);

@@ -1073,19 +1073,34 @@ TEST(HeroSkillsWizardTest, SomeSkillsDoNothingAfterAiming)
 }
 } // namespace
 
-TEST(HeroSkillsWizardTest, TheApproachChecksTheCrywolfAltarBeforeFindingAPath)
+// 0x58ecff..0x58edff fuera de alcance en el mapa 34, con Crywolf en la etapa 3 y un altar (0x206) en 0x6c8e54:
+// PathFinding2 le pone la bandera al A* (0x4eac0a..0x4eac41), que con la distancia distinta de 0 no cuenta (0x4eadd4).
+// El camino, los rand(), +0x378 y +0x379 son los mismos que con otro NPC (0x203) elegido.
+TEST(HeroSkillsWizardTest, TheApproachWalksTheSameWithACrywolfAltar)
 {
-    auto tested = AWizard(1, Wizard, 34);
-    tested->Movement().selectedSkillRange = 1.0f;
-    tested->world.Runtime().crywolf.stage = 3;
-    tested->world.Runtime().movement.chosenNpc = 30;
-    tested->world.Actors()[30].type = 0x206;
-    const auto expected = Advanced(tested->random, HeadDraws + HeroCellDraws);
-    const auto used = tested->Use();
-    ASSERT_FALSE(used.HasValue());
-    EXPECT_TRUE(Contains(used.Error(), "0x4eac41")) << used.Error();
-    EXPECT_TRUE(Contains(used.Error(), "0x4eac41")) << used.Error();
-    EXPECT_EQ(tested->Hero().movement, 0);
-    EXPECT_EQ(tested->Hero().path.count, 0);
-    EXPECT_EQ(tested->random.State(), expected.State());
+    const auto approach = [](std::uint16_t chosenType)
+    {
+        auto tested = AWizard(1, Wizard, 34);
+        tested->Movement().selectedSkillRange = 1.0f;
+        tested->world.Runtime().crywolf.stage = 3;
+        tested->world.Runtime().movement.chosenNpc = 30;
+        tested->world.Actors()[30].type = chosenType;
+        const auto expected = Advanced(tested->random, HeadDraws + HeroCellDraws);
+        const auto used = tested->Use();
+        EXPECT_TRUE(used.HasValue()) << used.Error();
+        EXPECT_EQ(tested->random.State(), expected.State());
+        return tested;
+    };
+    const auto altar = approach(0x206);
+    const auto other = approach(0x203);
+    EXPECT_EQ(altar->Hero().movement, 1);
+    EXPECT_EQ(altar->Hero().movementType, 5);
+    ASSERT_GT(altar->Hero().path.count, 0);
+    EXPECT_EQ(altar->Hero().path.count, other->Hero().path.count);
+    for (std::size_t cell = 0; cell < altar->Hero().path.count; ++cell)
+    {
+        EXPECT_EQ(altar->Hero().path.cells[cell].x, other->Hero().path.cells[cell].x);
+        EXPECT_EQ(altar->Hero().path.cells[cell].y, other->Hero().path.cells[cell].y);
+    }
+    EXPECT_TRUE(altar->sent.empty());
 }

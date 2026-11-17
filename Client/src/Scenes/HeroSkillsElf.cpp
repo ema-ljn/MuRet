@@ -9,6 +9,7 @@
 #include "Render/Models/OriginalAngles.h"
 #include "Scenes/ActorCombat.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CrywolfContract.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/HeroAttack.h"
 #include "Scenes/HeroSkillCasts.h"
@@ -298,17 +299,17 @@ Core::Expected<void, std::string> ElfBranch::WalkToward(std::int32_t goalX, std:
                                                         bool withType, std::string_view where)
 {
     const SkillCell start = ReadTheHeroCell(m_hero, m_context);
-    if (auto altar = CheckTheCrywolfAltar(m_world, where); !altar.HasValue())
-        return altar;
     constexpr std::int32_t LastCell = 0xff;
     if (!InRange(goalX, 0, LastCell) || !InRange(goalY, 0, LastCell))
         return {};
     const World::WorldTerrain& terrain = m_world.Map().terrain;
     if (!terrain.attributes)
         return Core::Unexpected(std::format("{}: falta TerrainWall para el camino de la skill", where));
-    const auto path = GameLogic::PathFinder(terrain.attributes->cells)
-                          .Find({start.x, start.y},
-                                {static_cast<std::uint8_t>(goalX), static_cast<std::uint8_t>(goalY)}, false, distance);
+    // 0x4eac0a..0x4eac41: la bandera del altar de Crywolf, que con la distancia distinta de 0 no cuenta (0x4eadd4).
+    const auto path =
+        GameLogic::PathFinder(terrain.attributes->cells)
+            .Find({start.x, start.y}, {static_cast<std::uint8_t>(goalX), static_cast<std::uint8_t>(goalY)},
+                  CrywolfAltarGoal(m_world), distance);
     if (!path)
         return {};
     m_hero.path = *path;

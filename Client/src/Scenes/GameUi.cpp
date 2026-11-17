@@ -10,6 +10,10 @@
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterPicking.h"
+#include "Scenes/CameraTour.h"
+#include "Scenes/CrywolfContract.h"
+#include "Scenes/EventChipWindow.h"
+#include "Scenes/EventNpcWindows.h"
 #include "Scenes/FloorItemActions.h"
 #include "Scenes/GameChat.h"
 #include "Scenes/GameCommandsWindow.h"
@@ -46,6 +50,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <format>
+#include <functional>
 #include <optional>
 #include <span>
 #include <string>
@@ -165,11 +170,13 @@ bool KeyEdge(UI::GameUiState& ui, const Input::InputState& input, GameKey key)
 }
 
 // 0x6578e0: hay un campo de texto con el foco (el chat 0x6c8e68, 0x77f3b68, el del diálogo de los paneles) o la
-// ventana del juego no lo tiene. MuRet tiene el del chat (hito 3) y el EDIT de las ventanas viejas (CL9 hito 9, que
-// toma el foco de Windows); los otros son del hito 6, y su ventana es la del juego.
+// ventana del juego no lo tiene. MuRet tiene el del chat (hito 3), el EDIT de las ventanas viejas (CL9 hito 9, que
+// toma el foco de Windows) y el de [0x5763504] que enfoca la entrada del número de serie (hito 11); los otros son del
+// hito 6, y su ventana es la del juego.
 bool TextInputBusy(const WorldRuntime& runtime)
 {
-    return runtime.ui.chatOpen || runtime.chat.input.focus == UI::ChatFocus::OldWindow;
+    return runtime.ui.chatOpen || runtime.chat.input.focus == UI::ChatFocus::OldWindow ||
+           runtime.chat.input.focus == UI::ChatFocus::Dialog;
 }
 
 // 0x636e51..0x636e5a: el registro del chat, 0x45aa80(0) por la vtable + 0x18 de 0x576350c.
@@ -221,6 +228,43 @@ void StepTheUnownedClick(WorldRuntime& runtime)
     ui.focusedList = 0;
     UI::HideTheWindowList(runtime.oldWindows.windowList);
     runtime.chat.input.focus = UI::ChatFocus::Game;
+}
+
+// 0x435bd0: el paso de la interfaz de Crywolf (06 § La interfaz de Crywolf), solo en el mapa 34 (0x4303c0). Con los
+// resultados (0x723bf9 en 1, del BD 08) y el izquierdo abajo (0x7d36874), sobre el botón (300, 354) × (300, 330), sin
+// los bordes, deja 0x723bdc en 5, que el dibujo lee para cerrarlos con el mouse todavía encima (Q-C1342); en cualquier
+// lugar apaga el botón y el flanco (0x435c4e): con los resultados a la vista, la UI se queda con todos los clics.
+// Después, la ventana del contrato (0x723a44 en 1 o 2, 0x435c5c: Scenes/CrywolfContract), con la mascota del héroe
+// (+0x318) y el send() del paso para el Sí.
+Core::Expected<void, std::string> StepTheCrywolfInterface(const GameUiContext& context)
+{
+    constexpr std::int32_t CrywolfMap = 0x22;
+    constexpr std::int32_t ButtonLeft = 0x12c;
+    constexpr std::int32_t ButtonRight = 0x162;
+    constexpr std::int32_t ButtonTop = 0x12c;
+    constexpr std::int32_t ButtonBottom = 0x14a;
+    constexpr std::int32_t ButtonPushed = 5;
+    WorldRuntime& runtime = context.world.Runtime();
+    if (runtime.map != CrywolfMap)
+        return {};
+    const std::int32_t mouseX = context.mouseX;
+    const std::int32_t mouseY = context.mouseY;
+    CrywolfInterface& crywolf = runtime.crywolf.ui;
+    GameMovementState& movement = runtime.movement;
+    if (crywolf.byte723bf9 == 1 && movement.leftHeld)
+    {
+        if (mouseX > ButtonLeft && mouseX < ButtonRight && mouseY > ButtonTop && mouseY < ButtonBottom)
+            crywolf.dwords723bdc[0] = ButtonPushed;
+        movement.leftHeld = false;
+        movement.pendingClick = false;
+    }
+    return StepTheContractWindow(
+        ContractWindowContext{.runtime = runtime,
+                              .texts = context.texts,
+                              .heroPet = context.world.Actors()[runtime.hero].pet.model,
+                              .mouseX = mouseX,
+                              .mouseY = mouseY,
+                              .send = context.chat != nullptr ? context.chat->send : ChatSender{}});
 }
 
 // 0x636f04..0x637056: la esquina del registro del chat (0x45a9d0). Fuera de su ventana, (−10, 0x65); en ella, 0x1a4 de
@@ -911,8 +955,15 @@ Core::Expected<void, std::string> StepTheInventoryWindow(const GameUiContext& co
         return cut("0x5e4dea: 0x6689d0, la marca del asedio del héroe, es de la CL9.5");
     if (panels.IsOpen(UI::TradePanel))
         return cut("0x5e4e34: el comercio con el inventario es de la CL9.4");
+    // 0x5e4e76..0x5e4ed0: con una de los NPC de evento, el mouse sobre su esquina (0x78aba28, que ponen su paso y su
+    // dibujo) es de la UI.
     if (panels.IsOpen(UI::EventNpcPanel) || panels.IsOpen(UI::SecondEventNpcPanel))
-        return cut("0x5e4e81: las ventanas de los NPC de evento (0x1000 y 0x4000) son de la CL9.5");
+    {
+        const std::int32_t npcX = runtime.ui.npcWindowX;
+        const std::int32_t npcY = runtime.ui.npcWindowY;
+        if (InRect(context, npcX, npcY, npcX + 0xbe, npcY + 0x1b1))
+            runtime.ui.mouseOnUi = 1;
+    }
     if (panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel))
         return cut("0x5e4ee2: las tiendas personales con el inventario son de la CL9.4");
     // 0x5e4f31..0x5e5128: los doce lugares del equipo, cada uno con su acceso, y +0x44 en 1 con un tipo.
@@ -949,13 +1000,12 @@ Core::Expected<void, std::string> StepTheInventoryWindow(const GameUiContext& co
 }
 
 // 0x5ee1b1..0x5ee1ca: las seis hermanas de 0x5e4ce0, cada una con su IsOpen.
-Core::Expected<void, std::string> StepTheInventorySiblings(UI::PanelRegistry& panels)
+Core::Expected<void, std::string> StepTheInventorySiblings(const GameUiContext& context, UI::PanelRegistry& panels)
 {
     const auto cut = [](std::string_view what) { return Core::Unexpected(std::string(what)); };
-    if (panels.IsOpen(UI::EventNpcPanel))
-        return cut("0x5e594c: el paso de la ventana del NPC de evento 0x1000 (0x5e5920) es de la CL9.5");
-    if (panels.IsOpen(UI::SecondEventNpcPanel))
-        return cut("0x5e5f2e: el paso de la ventana del NPC de evento 0x4000 (0x5e5920) es de la CL9.5");
+    // 0x5e5920: los NPC de evento (CL9 hito 11).
+    if (auto events = StepTheEventNpcWindow(context, panels); !events.HasValue())
+        return events;
     if (panels.IsOpen(UI::ChaosBoxPanel))
         return cut("0x5fe621: el paso de la caja del caos (0x5fe610) es de la CL9.3");
     if (panels.IsOpen(UI::WarehousePanel))
@@ -1051,7 +1101,7 @@ Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI
     {
         if (auto inventory = StepTheInventoryWindow(context, panels); !inventory.HasValue())
             return inventory;
-        if (auto siblings = StepTheInventorySiblings(panels); !siblings.HasValue())
+        if (auto siblings = StepTheInventorySiblings(context, panels); !siblings.HasValue())
             return siblings;
     }
     // 0x44b4e0: el NPC de la caja con 0x724580 fuera de 0 y 4.
@@ -1066,9 +1116,12 @@ Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI
         if (auto cursor = StepTheCursorItem(context, panels); !cursor.HasValue())
             return cursor;
     }
-    // 0x5e6520, con 0x78abb00 distinto de 0.
+    // 0x5ee1ec: 0x5e6520, con 0x78abb00 distinto de 0.
     if (runtime.panels.field78abb00 != 0)
-        return Core::Unexpected(std::string("0x5e6520: 0x78abb00 es de la CL9.5"));
+    {
+        if (auto chips = StepTheEventChipWindow(context, panels); !chips.HasValue())
+            return chips;
+    }
     // 0x5e74f0, el panel 0x2000.
     if (panels.IsOpen(UI::Panel2000))
         return Core::Unexpected(std::string("0x5e74f0: el paso del panel 0x2000 es de la CL9"));
@@ -1481,8 +1534,8 @@ Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& con
     GameMovementState& movement = runtime.movement;
     const Input::InputState& input = context.input;
     const ActorState& hero = context.world.Actors()[runtime.hero];
-    // 0x59ff3f: con el recorrido de la cámara, nada.
-    if (movement.cameraTour)
+    // 0x59ff32..0x59ff3f: con el recorrido de la cámara (0x4033d0), nada.
+    if (CameraTourRunning(runtime.events.cameraTour))
         return {};
     StepTheOldAreaRows(context);
     // 0x5a00a1..0x5a0124: PgUp y PgDn corren el registro del chat tantos renglones como muestra (la vtable + 0x38 los
@@ -1677,6 +1730,7 @@ Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& con
         return StepTheSiegePanel(context);
     return {};
 }
+
 } // namespace
 
 bool OldWindowKeyEdge(UI::GameUiState& ui, const Input::InputState& input, std::uint8_t virtualKey)
@@ -1751,9 +1805,13 @@ Core::Expected<void, std::string> StepTheGameDialogs(const GameUiContext& contex
     // 0x623e9b..0x623ec2: con la de amigos abierta, Esc es de las ventanas viejas (0x490490).
     if (!panels.Registry().IsOpen(UI::FriendsPanel) && KeyEdge(ui, context.input, EscapeKey))
     {
-        // 0x623ec8: con el recorrido de la cámara, Esc lo corta (+0x158 = 1, 0x403d60) y sale.
-        if (runtime.movement.cameraTour)
-            return Core::Unexpected(std::string("0x623ed7: cortar el recorrido de la cámara con Esc es de la CL9.5"));
+        // 0x623ec8..0x623ee9: con el recorrido de la cámara (0x4033d0), Esc lo corta (+0x158 = 1 y 0x403d60) y sale.
+        if (CameraTourRunning(runtime.events.cameraTour))
+        {
+            runtime.events.cameraTour.skipped = true;
+            RemoveTheCameraTourActors(context.world, runtime.events.cameraTour);
+            return {};
+        }
         if (ui.field78abb39 == 0)
         {
             if (dialogs.current == 0)
@@ -1825,7 +1883,9 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
         return chat;
     StepTheUnownedClick(runtime);
     // 0x636ed6: 0x5ebca0, con 0x78abad9 en 0 no hace nada.
-    // 0x636edb: 0x435bd0 → 0x4303c0, Crywolf, con sus estados (0x723bf9, 0x723a44) que solo escribe su paquete.
+    // 0x636edb.
+    if (auto crywolf = StepTheCrywolfInterface(context); !crywolf.HasValue())
+        return crywolf;
     if (auto stepped = StepThePanels(context, panels); !stepped.HasValue())
         return stepped;
     if (auto keys = StepTheKeysAndButtons(context, panels); !keys.HasValue())

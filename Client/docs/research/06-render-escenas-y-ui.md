@@ -1140,7 +1140,7 @@ los paneles (`0x65feb0`, 0x1064 B, con Sí/No y Confirmar/Cancelar y un campo de
 | `0x200` | comandos (D) | `*(0x6e592c+4)` | CL8 hito 6 (sin `0x406050`, CL9.4) |
 | `0x400` | mascota | `0x420cc0()`: `0x723911 == 2` (`0x424230` lo vuelve a 0 en cada paso con el personaje cerrado) | CL9 hito 4 (abrir y cerrar; [El A9 de las mascotas](#el-a9-de-las-mascotas)) |
 | `0x800` | tienda personal propia (S) | `0x7d5370f` | CL9.4 |
-| `0x1000`, `0x4000` | ventanas con inventario de NPC de evento (`0x7d53712` con `0x7d53714` en 0 o 1; el paso las atiende en `0x5e5920`, que manda `90`/`9A`) *inferido* | | CL9.5 |
+| `0x1000`, `0x4000` | ventanas con inventario de NPC de evento (`0x7d53712` con `0x7d53714` en 0 o 1; el paso las atiende en `0x5e5920`, que manda `90`/`9A`; 06 § Las ventanas de los NPC de evento) *estático* | | CL9 hito 11 |
 | `0x2000` | sin identificar | `0x7d53718` | — |
 | `0x8000` | NPC con la caja `0x723c80` | `0x449bf0()` | CL9.3 |
 | `0x10000` | tienda de NPC (la abre el `30`, `0x4d1e00` en `0x4d288e`) | **byte protegido `0x7d53710`: 1 `rand()`** | CL9.3 |
@@ -1225,7 +1225,7 @@ mapa 30 y `0x637641` corre el picking (`0x59ec80`).
 | `0x63764b` | `0x4383f0` textos 3D | siempre | `glColor3f(1, 1, 1)` (traza 124242+); con textos, mezcla normal |
 | `0x637650` | `0x5bbbc0` hover y ALT | siempre | **opaca** (`0x620980`) y blanco; `0x77f3b66 = 1` |
 | `0x637660` | `0x5a7320(1)` el HUD | `0x7d36899 == 0` (sin vista de arriba); el argumento no se usa | termina con `0x5a9630`, que hace `0x621a90`: **sale del 2D por la pila** (traza 126848..126849) |
-| `0x637668` | `0x5a7eb0` cuenta y resultados de evento | siempre | mezcla y color de lo que dibuje |
+| `0x637668` | `0x5a7eb0` el tiempo del `F3 22` ([Los dibujos de los eventos](#los-dibujos-de-los-eventos)) y la guerra de gremios (`0x5a800e`, hito 8) | siempre | la fuente normal y el texto blanco si dibujó el tiempo |
 | `0x637673` | `0x490390(this = [0x5763514])` ventanas con clase | siempre | dibuja con vfunc +0x14 las de estado ≠ 3 y ≠ 5; después **PROJECTION con identidad y `gluOrtho2D` sin push** ni vuelta a MODELVIEW (traza 126850..126852) |
 | `0x637680` | `[[0x5763524]]+0x14` = `0x492500` (vtable `0x6ba074`) | siempre | la lista de ventanas, aunque esté oculta: sin quads, pero con la mezcla, el color y la textura de `0x492500` y `0x4a5490` (*estático*; esta tabla decía "en la traza, nada", P-C98) |
 | `0x637683` | `0x5f37f0` pedido de duelo | adentro, `0x78abad9` | |
@@ -1464,7 +1464,7 @@ Las texturas nuevas del HUD: `0x104` a `0x120` (sin `0x106`, que no se sube), `0
 | 8 | `0x5ab210(…)` | ayudante (`+0x318` ∈ `0x1c12..0x1c16`, `0x1c37`: Text 354/355/1187/1916, o el nombre de `Item.bmd` en los demás) con `0x5a6af0(ancho − 65, y + 12, 50, 2, durabilidad · 50 / 255)` y **un acceso al registro** (`0x5ab26c`), y vida del invocado (`0x5767960`, Text 356) en (ancho − 200, 16) | por equipo y paquete | nada; la traza tiene un ayudante `0x1c12` (el 13/0 de `Item.bmd`): su nombre (124259) y su barra (124268..124304), con 3.848 r más |
 | 9 | `0x5aac20` | avisos de durabilidad: IsOpen(`0x20`); si no, 12 ranuras de equipo (`0..0x360` de a `0x48`), '%s (%d/%d)' con la máxima de `0x5b1ba0`, y el aviso en D+0x44 (3: sin la fuerza; 7 a 8: gastado o roto) | siempre | 1 + 12 × 3.848 r |
 | 10 | macro | 'Macro Time' y `0x5a6af0(x, 404, 50, 2, …)` | `0x77f3b74 > 0` | nada |
-| 11 | `glColor3f(1,1,1)`; `0x40bab0(this = 0x723c60)` + vfunc +4 | cuenta de DS/BC/CC: `0x40bab0` solo dibuja con +8 en 1..14; la vfunc +4 es un `ret` en DS (`0x40bdb0`) y en BC (`0x40c2d0`) y CC (`0x405090`) dibuja solo con +0x10 ≠ 0 y el mapa en 11..17 o 18..23 | objeto activo | nada (MuRet corta solo cuando dibujaría: CL9.5) |
+| 11 | `glColor3f(1,1,1)`; `0x40bab0(this = 0x723c60)` + vfunc +4 | cuenta de DS/BC/CC: `0x40bab0` solo dibuja con +8 en 1..14; la vfunc +4 es un `ret` en DS (`0x40bdb0`) y en BC (`0x40c2d0`) y CC (`0x405090`) dibuja solo con +0x10 ≠ 0 y el mapa en 11..17 o 18..23 ([Los dibujos de los eventos](#los-dibujos-de-los-eventos)) | objeto activo | nada (CL9 hito 11, *estático*) |
 | 12 | `0x5a9050` | globos y nombres sobre las cabezas (`0x77e1be0`) | entradas vivas | nada |
 | 13 | `0x451d10`/`0x451c20` | carteles [LOJA] | singleton `0x7245c8` | nada |
 | 14 | `0x5a6cc0` | marcador de duelo | `0x78abad8` | nada |
@@ -1530,6 +1530,265 @@ registro del chat (`0x45d8c0`, `0x45a9d0`). **La captura** (PrintScreen, flanco 
 `Screen(%02d_%02d-%02d_%02d)-%04d.jpg` (mes, día, hora, minuto; contador `0x7d368ac` módulo 10.000) y el Text 459;
 después del dibujo de la escena, `0x6202e0` hace `glReadPixels` en RGB y `0x63b150` escribe un JPEG de calidad 100;
 el mensaje va al área de mensajes. No saca `rand()`.
+
+### Los dibujos de los eventos
+
+CL9 hito 11, fase 2 (`Scenes/EventDrawing`). **Todo *estático***: no hay traza de GL de ninguno; lo que la VM tiene
+que confirmar está en 08 (P-C294). `0x554180` es `DrawHudLine` y `0x623690` es `DrawHudCentered` (06 § Texto);
+`[0x6c8e5c]` y `[0x6c8e64]` son los colores del texto y del fondo, y la fuente es la del `SelectObject` de antes.
+
+- **El tiempo del `F3 22`, `0x5a7eb0`** (después del HUD, `0x637668`). Con la palabra `0x5767816` en 1 o más y
+  hasta 10 minutos (`IDIV` por 60 y `JG 10`: hasta 659 s), la fuente `0x576355c`, el texto en `0xff0a0aff` sobre 0
+  y `sprintf` a 28 bytes de la pila: con el tipo `0x5767814` en 3, 1392 con los segundos en `0xff0affff`; si no,
+  1390 (`%d:0%d`, con menos de 10 segundos) o 1391 (`%d:%d`) con minutos y segundos, en `0xff0affff` con menos de
+  60 s. La x es `ftol(float(0x5bb8d0() · 0,5f))`, el ancho del mundo con sus `rand()`: el texto centrado en
+  (x, 350) y otra vez en blanco en (`ftol(x + 1f)`, 351), encima. Termina con la fuente `0x5763554` y el texto
+  blanco. La otra mitad (`0x5a800e`, la guerra de gremios) compara un byte de `0x57678ed` con `0x77f3cc0`: es del
+  hito 8; MuRet no escribe `0x57678ed` y no la alcanza.
+- **El tiempo y los puntos de los castillos**, el método +4 del objeto del evento: `0x40c2d0` (Blood Castle, mapas
+  11 a 17) y `0x405090` (Chaos Castle, 18 a 23), con `+0x10` distinto de 0. En su mapa, **antes de mirar el
+  estado**, `0x620980`, `0x620a00(0)`, `glColor3f(1, 1, 1)` y los colores `0xff0096ff` sobre 0. Después, con
+  `+0x10` en 1, 2 o 5 (BC) o de 6 a 8 (CC) y `+0x18` (el tiempo) en 1 o más: si `+0x1c` no es `0xffff`, los puntos
+  (`wsprintfA` de 864, 866 con el 5, o 1161, con `+0x20` y `+0x1c`) con la fuente `0x5763558`, centrados en
+  (570, 345), y la fila baja a 357; 865 en (570, fila); y `0x40bbf0(570f, fila + 10f, +0x18)`: `" %.2d :"` con los
+  minutos, `" %.2d"` con los segundos (si la resta no da negativa), en `0xff2020ff` con menos de 5 minutos, `": %.2d"`
+  con `ftol(0x5767b88) % 60` con menos de 15, todo con la fuente `0x576355c` y centrado. Chaos Castle, al final,
+  elige el área de la trampa `0x6c634c` por `+0x20`: (40, 46] → 0, (30, 36] → 3, (20, 26] → 6 (Q-C1335). Devil
+  Square (`0x40bdb0`) es un `ret`.
+- **El texto de las cajas de los resultados**, `0x632a2b`: con la caja `0x8b`, `0x97` o `0x9b` y el objeto, su método
+  +0x10 por el tipo del objeto (no por la caja):
+  - Devil Square, `0x40bdd0`: `glColor3f(0,5, 1, 0,5)`, 647 en (`0xe5`, `0x46`) y 648 con el nombre del héroe (`+0x1d9`)
+    en (`0xe5`, `0x56`); `glColor3f(0,5, 0,5, 1)` y los títulos 680, 682, 683 y 684 en la y `0x6e` (el 681 se saltea;
+    el 682 va 10 a la derecha de su columna); las columnas son `0xdb`, `0xeb`, `0x11f`, `0x159` y `0x17f`. En blanco,
+    las filas desde `0x7e` de a 16, con `+0x24` filas: el registro `(fila + 1) % +0x24` de los de 24 bytes de `+0x2c`
+    (Q-C1333), con el puesto (`%2d`) y el nombre (10 bytes) en blanco y `+0xc` (`%10d`, `0xffffd2d2`), `+0x10` (`%6d`,
+    `0xffd2ffd2`) y `+0x14` (`%6d`, `0xffd2d2ff`). La última fila es la propia: `glColor3f(0,9, 0,9, 0)`, 685 en
+    (`0xdb`, `0x11e`), la fila en `0x12e` y el puesto de `+0x28`.
+  - Blood Castle, `0x40c440`: `glColor3f(0,5, 1, 0,5)`, centrados en `0x140`: 857 y 858 si `+0x24` (ganó), 859 y 860
+    si no, en `0x46` y `0x56`. Después, blanco, la fuente `0x5763558` y 861 con `+0x3c` (`0xffd2ffd2`) en `0x6a`, 862 con
+    `+0x40` (`0xffd2d2ff`) en `0x82` solo si ganó, y 863 con `+0x38` (`0xffffd2d2`) en `0x9a` (o `0x82`).
+  - Chaos Castle, `0x405220`: si ganó, 1151 en `0x50` y `"%s %s"` con 1152 y 858 en `0x60`; si no, `"%s %s"` con 1152
+    y 860 en `0x50` y 1153 en `0x60`. Después, blanco, la fuente `0x5763558` y `0xffd2ffd2`: 861 con `+0x3c`, 1162 con
+    `+0x38` y 1163 con `+0x40` en `0x7e`, `0x92` y `0xa6`.
+
+### La interfaz de Crywolf
+
+CL9 hito 11, fase 3 (`Scenes/CrywolfInterfaceDrawing`). **Todo *estático***: GS 0.97 no tiene Crywolf, así que no
+hay ni traza de GL ni paquetes de un servidor; el oráculo es el ASM del cliente, y lo que la VM tiene que confirmar
+está en 08 (P-C298). Es `0x4365c0`, el hijo 21 del HUD (`0x5a74d4`, entre la barra de abajo y la entrada del chat),
+que no mira lo que devuelve su llamador. Las texturas `0x6b6..0x6e2` (`Interface\in_*`, `icon_*`, `m_*`, `t_main`)
+las sube `0x61ccb0` (`0x61de5f..0x61e373`) con `GL_LINEAR` y `GL_CLAMP` (`Scenes::CrywolfTextureSet`). Los quads son
+`0x621b60` con u = v = 0, escalados y sin alfa salvo el cartel; los textos son `0x623690` (centrados) con
+`wsprintfA` (`[0x6b851c]`) a un buffer de 300 bytes de la pila, y los de `0x430180` son `0x554180`. Empieza con
+`0x620a00(1)` y tiene tres partes, en este orden:
+
+1. **Los resultados**, con `0x723bf9` en 1 (lo pone el `BD 08`, 04 § Los eventos): el marco `0x6e2` en (200, 110, 252,
+   240) con du/dv 0,984375/0,630859375; la fuente `0x5763554`, `0xff1594ff` sobre 0 y los títulos `"%s"` de 680, 681,
+   1973 y 1977 en x = `0xf0`, `0x11d`, `0x14d` y `0x183`, y = `0xa0`. En blanco, cinco filas desde y = `0xaf` de a 15:
+   la de puntos (`0x6c73e4 + 4 · i`) en −1 no se dibuja pero cuenta; si no, `"%d"` de i + 1 en `0xf0`, `"%s"` del
+   nombre (`0x7239f8 + 11 · i`) en `0x11d`, la clase (`0x723a30 + i`) en `0x14f` y `"%d"` de los puntos en `0x181`. La
+   clase es el texto 20 + (c & 7) para 0 a 4 y, con algo en c >> 3, 25 a 27 para 0 a 2; con c & 7 de 5 o más el buffer
+   se queda con el nombre y sale otra vez. En `0xffff00ff`, 2000 y 2001 con el aviso (`0x6c73d1`) en 1, y si no 2009 y
+   2010, en (`0x14a`, 260) y (`0x148`, 277) (`17 · 5 + 0xaf` y `+ 0xc0`). El botón (300, 300, 54, 30), du/dv 0,84375/
+   0,9375: `0x6c9` sin el mouse en (300, 354) × (300, 330) (sin los bordes); dentro, `0x6ca`, o `0x6cb` con
+   `0x723bdc` en 5, y entonces `0x723a44`, `0x723bdc` y `0x723bf9` en 0: **la ventana la cierra el dibujo**, con el
+   5 que dejó el clic en el paso y el mouse todavía encima (Q-C1342).
+2. **El aviso** (`0x436b97`). Con `0x6c73d1` en 1, la cuenta `0x6c73d8` sube y en 400 vuelve a 0 con el aviso en 0;
+   con el aviso en −1 (con signo) pasa a la parte 3. El alfa es la ola de `e = (2 · cuenta) % 140` (`IDIV`):
+   `1 − (e − 70) · 0,01f` con e > 70 y si no `e · 0,01f + 0,3f`. `0x6c73f8` baja de a 15 hasta 0. El cartel `0x6b6 +
+   0x6c73dc` (`0x6c0`, `icon_failure`, o `0x6c1`, `icon_success`, con el estado 0 del `BD 00`) en (x, 50, 329, 94),
+   du/dv 0,642578125/0,734375: con 15 · cuenta > 479, x = 150; con el aviso en 0, x = 15 · cuenta + 150 y la cuenta
+   sube, y al pasar 479 la cuenta vuelve a 0, el aviso a −1 y `0x6c73f8` a `0x186`; con otro aviso, x = 15 · cuenta −
+   329. Después la tabla `0x6d0` (230, 150, 196, 141) y el rango `0x6d1` en (`0x6c73f8` + 250, 188, 110, 28); con
+   `0x6c73f8` en 0, la letra `0x6d2 + 0x723bed` (370, 188, 29, 28), el rótulo `0x6e1` (229, 235, 60, 19) y las nueve
+   cifras de `0x723bf0`, `0x6d7` + cifra en x = 409 − 15 · k, y = 235: la cifra k es `(v / 10^k) % 10` mientras v no
+   sea menor que 10^k (con signo; la primera con el divisor en 0 es `v % 10`), y las otras quedan en 0; con v
+   negativa, todas en 0.
+3. **El estado**, con la etapa (`0x723c05`) en 3 o 4 (`0x435a00`) en el mapa 34 (`0x4303c0`); si no, sale con 0 **sin
+   `0x620980`** y la mezcla queda en la normal. El marco `0x6b9` (0, 1, 122, 98), el adorno `0x6b8` en (4, 98 +
+   `0x723a40`), los cinco altares de `0x6c73cc` (`.data` en 2) en (4, 29), (16, 17), (30, 9), (46, 5) y (62, 4), 13 ×
+   13 y 0,8125 de UV (con `0x1?`, `0x6cd`, `0x6ce` u `0x6cf` por el nibble bajo 1, 2 u otro; si no, `0x6bd` o `0x6be`
+   con 1 o 2 y nada con otro), `0x6bb` (o `0x6bc` con `0x723bd8` en 0) en (4, 81), la barra `0x6c2` (240, 396, 156,
+   36), `glColor3f(1; 0,6; 0,3)` y `wsprintfA` del 1948 con `0x723bd8` en (57, 85), `0xff1594ff` sobre 0. **`0x723a40`
+   es un float**: con `0x723a3d` en 1 sube de a 1 mientras sea menor que 21 (o NaN); ya en 21, el fondo `0x6b6` (0,
+   98, 97, 21), el ícono `0x6ba` (4, 101), el 1949 por `wsprintfA` **sin argumentos** en (38, 101) y la barra `0x6b7`
+   (25, 109) de `0x6c73d4 · 0,68f` de ancho y `0x6c73d4 · 0,67f / 128` de UV; con `0x723a3d` en 0 baja de a 1 mientras
+   sea mayor que 0. `0x723bf8` en 1. El reloj: con `0x723be8` (los minutos del `BD 04`) en más de 0, dos
+   `GetTickCount` menos `0x7239f4`: los minutos pasados por el `MUL` por `0x45e7b273` (`>> 46`, la división sin signo
+   por 60.000) y el segundo `_ftol(float(ms) · 1,6666667e-5f · 60f)`; con un segundo nuevo, `0x723bfc` sube (de 0 a
+   59); los que quedan son `0x723be8` − pasados, + 60 si da negativo; sin minutos, 0. Con otros minutos que los de
+   `0x723bf4`, los guarda y `0x723bfc` vuelve a 0. En blanco, o (1; 0,3; 0,3) con la barra, `0x6218f0` de los minutos
+   en (300, 414) y de `60 − 0x723bfc` (0 con 0) en (327, 414), de 14 × 14. La luz `0x6bf` (4, 46) de `0x723c08 ·
+   0,89f` de ancho y `0x723c08 · 0,88f / 128` de UV, alto 30. Después `0x430180` y `0x620980`.
+
+El paso es `0x435bd0` (`0x636edc`, entre `0x5ebca0` y los paneles; `Scenes::StepTheGameUi`), **solo en el 34**
+(`0x4303c0`): con los resultados a la vista y el izquierdo abajo (`0x7d36874`), sobre el botón (300, 354) × (300,
+330), sin los bordes, deja `0x723bdc` en 5, y en cualquier lugar apaga el botón y el flanco (`0x7d366d4`): **en
+Crywolf, con los resultados, la UI se queda con todos los clics**. Fuera del 34 nadie los cierra, y nadie más apaga
+`0x723bf9` (ni `0x42fdc0` ni la vuelta a la selección; Q-C1342). El hijo 26 del HUD (`0x436240`, `0x5a74ed`), con la
+etapa en 3 o 4 en el 34, deja `0xff1594ff` sobre 0 para lo que sigue del HUD y, con `0x723a44` en 1 o 2, dibuja la
+ventana del contrato de los altares; el paso la atiende en `0x435c5c`.
+
+**El contrato de los altares** (fase 4 del hito 11, `Scenes/CrywolfContract`; *estático*, GS 0.97 no tiene Crywolf).
+Una elfa que llega a un altar (los tipos `0x204..0x208` del viewport, el altar 0..4 por tipo − `0x204`) lo contrata:
+el `BD 03` del servidor la sienta.
+
+- **`0x435b00(n, renglón, valor, altar)`**, con la etapa 3 o 4 (`0x435a00`), en el 34 (`0x4303c0`) y sin la salida
+  pedida (`0x576793c`): con `n` = `0x38`, `wsprintfA` en el renglón del texto 2006 con el nibble bajo del altar (los
+  contratos que quedan) y la ventana 1; con otro, la ventana 2, `strcpy` del texto 1950 + `n` y, con `0x39`, la
+  ventana 1. Los renglones son `0x723a48` y `0x723b10`, de 200 bytes; **ni `strcpy` ni `wsprintfA` tienen tope** (un
+  texto de 200 bytes o más pisa el renglón 1 o `0x723bd8`; MuRet corta). Con el renglón 0 vacía el 1; al final,
+  `0x723be0` = valor. `0x435ad0(altar, valor)` escribe `0x6c73cc + altar` con la misma guarda, sin la salida.
+- **El clic en un altar** (`0x567b00..0x567c23`, dentro de la llegada `0x5650c0`, con la etapa 3 o 4 en el 34): sin
+  una elfa (`+0x1d4 & 7` distinto de 2), el `C1 30` de hablar de siempre (`0x567c2d`); con ella, el altar contratado
+  (`0x4365a0`: el nibble alto en 1) da `0x435b00(0x34)`; sin contratos (el bajo en 0), `0x35`; si no, `0x38` con la
+  clave `+0x1f4` del altar (con `MOVSX`) y el altar, y `0x39` en el renglón 1: la pregunta. Después sigue en
+  `0x569573`. MuRet lo tiene en `Scenes::ClickTheCrywolfAltar`, que llama la llegada a un NPC del hito 2
+  (`Scenes::TalkToTheNpc`, el caso 2 de `0x5650c0`) antes del `C1 30`: con `Contract` sigue en `0x569573` sin hablar;
+  con `Talk`, el `30` de `0x567c2d`; con otro blanco, el de `0x568288`. **El camino hasta el altar** (`0x4eac0a..0x4eac41`,
+  fase 6): con la etapa 3 o 4 (`0x435a00`) en el 34 (`0x4303c0`) y el registro de `0x6c8e54` de tipo `0x204..0x208` (el
+  word `+2` de `[0x743a16c] + 0x438 · n`, comparado con signo), `0x4eac00` pasa `bClearGoal` en 1 a las dos pasadas de
+  `0x4ead70`, que ponen en 0 el word de la meta (`0x4eae04`): la celda del altar, ocupada por él (`0x02`), deja de
+  bloquear y el camino llega hasta ella en vez de quedarse en la diagonal. La bandera no mira quién camina ni adónde
+  (Q-C1351), y con `0x6c8e54` en −1 lee el registro −1 (Q-C1350). MuRet: `Scenes::CrywolfAltarGoal`, en los cinco que
+  llaman a `0x4eac00` (`NpcTalkDataTest.OnlyInCrywolfTheWalkReachesTheAltarCell`, con el `.att` de los mapas 0, 2 y 34).
+- **El paso** (`0x435c5c..0x436220`), con el izquierdo abajo y las cajas sin los bordes. La ventana 1: el No en
+  (`0x14a`, `0x180`) × (`0xfa`, `0x118`) deja `0x723bdc` en 1 y llama a `0x435b00(2)` (la ventana 2 con 1952);
+  después el Sí en (`0xfa`, `0x130`) × (`0xfa`, `0x118`): con la mascota `0x1c14`, `0x1c15` o `0x1c37` en `+0x318`
+  del héroe, `0x435b00(6)`; si no, `0x723bdc` en 2 y el `C1 06 BD 03` con la clave de `0x723be0` (04). Con el botón
+  abajo, en cualquier lugar, lo apaga con el flanco: **la ventana 1 se queda con todos los clics**. La ventana 2: el
+  OK en (`0x122`, `0x158`) × (`0xfa`, `0x118`) apaga el botón y el flanco y deja `0x723bdc` en 3; los demás clics
+  siguen.
+- **El dibujo** (`0x436274..0x43656f`): el fondo `0x6cc` (212, 206, 209, 80, UV 0,80859375 × 0,6015625) y los
+  botones de 54 × 30 en la y 250 con UV 0,84375 × 0,9375: con 1, el No (`0x6c3`; con el mouse en su caja, `0x6c4`, o
+  `0x6c5` con `0x723bdc` en 1) en 330 y el Sí (`0x6c9`, `0x6ca`, `0x6cb` con 2) en 250; con 2, el OK (`0x6c6`,
+  `0x6c7`, `0x6c8` con 3) en 290. El botón apretado bajo el mouse **cierra la ventana** (`0x723a44` y `0x723bdc` en
+  0) y el resto se dibuja igual. Los renglones, si no están vacíos, con `0x623690` en la x `0x13d`: el primero en la y
+  `0xe3` con segundo y `0xef` sin él; el segundo en `0xee`.
+- **El `BD 03`** (`0x4e1010`, 04): con 0, el héroe se para (`0x200000` de `+0x7c`) y, con el registro propio
+  abierto, menos de 350 de nivel da `0x36` y `0x37` y 350 o más `0x3a`; con 1, `3` y `4`, `0x435ad0(clave − 0x13c,
+  valor)` **sin tope** (Q-C1347), el héroe sentado (`0x200000` y la acción `0xca`) y el `C1 05 18 rumbo 82`. El
+  héroe, el `rand()` del registro y el `18` no miran el mapa.
+
+Así, un clic en el No pasa a la ventana 2 con `0x723bdc` en 1 (que el dibujo no lee con 2: la cierra el OK); el Sí
+deja 2, que el dibujo del mismo frame lee para cerrar la ventana si el mouse sigue encima, y la respuesta del `BD 03`
+la abre otra vez con la 2.
+
+`0x430180`, con la etapa 3: la fuente `0x5763558`, `glColor3f(1, 1, 1)`, el fondo `0xaa000000` y `0x63b0e3(10000)`
+(un reloj de `timeGetTime` en `0x7d3a0e4`/`0x7d3a0e8`, los dos en la `.bss`: vence cuando inicio + 10.000 ≤ ahora
+con signo y vuelve a empezar en la llamada que sigue, así que **vence en la primera llamada**, Q-C1343); al vencer, el
+consejo `0x6c73e0` sube y en 4 vuelve a 0 (de −1, el valor de la `.data` y de `0x42fdc0`, pasa a 0). Los cuatro
+renglones `0x554180(0xbe, 0x3f + 13 · i, texto 1957 + 4 · consejo + i)`, el primero en `0xffffc864` y los otros en
+`0xffff9664`. MuRet: los dos `GetTickCount` y el `timeGetTime` son el `tickCount` del frame (*emulado*); un dibujo
+intermedio escribe en su copia de los globales (`GameHudContext::crywolfInterface`).
+
+### Las ventanas de los NPC de evento
+
+CL9 hito 11, fase 2 (`Scenes/EventNpcWindows`). **El dibujo es *estático***, sin traza de GL; lo que la VM tiene que
+confirmar está en 08 (P-C294). Son los paneles `0x1000` (Devil Square) y `0x4000` (Blood Castle), en la esquina
+`0x78aba28`/`0x78aba2c`, que su dibujo y su paso ponen en (`0x104`, 0) igual que la tienda, el almacén, la caja del
+caos y el asedio, y que el inventario lee antes (`0x5e4e76..0x5e4ed0`): con uno de los dos abierto, el mouse en
+[x, x + `0xbe`) × [y, y + `0x1b1`) es de la UI (Q-C1337).
+
+- **El dibujo, `0x5f58f0`** (desde `0x5f75cb`, sin condición; empieza con los dos `IsOpen`). El fondo `0x5ee220` en la
+  esquina y la fuente negrita (`0x5763558`); los botones son `Interface\...` `0xf0` (`0x621b60`) de 140 de ancho
+  desde x + 25 con du = 0,83203125, en `glColor3f` blanco con el mouse arriba (x e y por la x87, sin redondear a
+  `float`, y sin ítem en el cursor, `0x7879fbc`).
+  - Devil Square (`0x5f5916..0x5f5de6`): colores `0xc41432ff` sobre `0x101000`; seis botones de 35 de alto desde y +
+    187 de a 40, en (0,9, 0,8, 0,7) sin el mouse. Cada fila copia el `{mínimo, máximo}` de `0x6ba4c8` a `0x78ab9cc` y,
+    **con el registro propio abierto** (su cierre saca los `rand()` de siempre), el de `0x6ba4f8` si la clase (`+0xb`
+    & 7) es 3 o 4: son los niveles que lee el paso (Q-C1336). El renglón es `sprintf` a 64 bytes de 646 (el número y
+    el mínimo) si el máximo pasa de 10000 (ninguno de las tablas) o de 645 (el número, el mínimo y el máximo), en
+    (`ftol(left)` + `0xc`, `ftol(top)` + `0xc`) con la caja `0x74`. Después el título 39 en (x + `0x23`, y + `0xc`),
+    caja `0x78`, en `0xffdcdcdc` sobre `0xff141414` con `glColor3f(1, 1, 1)`; la fuente normal, el texto blanco sobre
+    0, la mezcla normal (`0x620a00`) y los textos 670 a 675 en (x + `0x1e`, y + `0x41` + 20 · i), caja `0x82`; termina
+    con la mezcla opaca (`0x620980`).
+  - Blood Castle (`0x5f5e01..0x5f653f`): colores `0xdcffdcbe` sobre `0x101000`; siete botones de 30 de alto desde
+    y + 170 de a 35. La tabla es `0x6ba528` (siete filas más adelante con la clase 3 o 4 **del héroe**,
+    `[0x743a170] + 0x1d4`) y el nivel (`+0xe`) se lee con el registro propio abierto en cada fila: fuera del rango, el
+    botón va en (0,4, 0,4, 0,5) aunque el mouse esté arriba; si no, blanco o (0,7, 0,7, 0,9). Los renglones son 848 o
+    847 en (+`0xa`, +`0xc`), caja `0x78`; el título 846 como el de Devil Square; y 832 partido por `0x632c90` en a
+    lo sumo 7 renglones de `0x1a` bytes, en (x + `0x1e`, y + `0x40` + 20 · i).
+- **El paso, `0x5e5920`** (la primera de las hermanas del inventario, `0x5ee1a3`: solo con el inventario abierto).
+  Pone la esquina y, sin el flanco del clic (`0x7d366d4`), vuelve. La x del mouse va contra [285, 425) sin la esquina.
+  - Devil Square: la y contra cada fila (187 + 40 · i, 35 de alto); sin fila, vuelve sin tocar el clic. Con una,
+    lo consume, vuelve si hay un ítem en el cursor y abre el registro propio hasta el final: con el nivel arriba del
+    máximo o abajo del mínimo de `0x78ab9cc` (los del dibujo), cierra el inventario (`0x65cae0(0x4000000, 0)`, que
+    cierra también `0x1000` y manda el `C1 03 31`, P-C295), `0x5be150` y el aviso 686 o 687 (`0x632e30`); si no,
+    `0x5583a0(0x1c13, 0)` y, sin ella, `0x5583a0(0x1c13, cuadrado + 1)` (677 sin ninguna), y el `C1 05 90` con el
+    cuadrado (de 0) y la casilla + `0x18`, cifrado con el XOR32 y en claro (04 § Los eventos).
+  - Blood Castle: cada puente abre y cierra el registro propio para comparar el nivel **antes** de mirar el mouse (7
+    cierres sin acierto); solo los de su nivel atienden el clic. Con uno: consume el clic, vuelve con un ítem en el
+    cursor, `0x5583a0(0x1a12, puente)` (de 1 a 7; el 7 acepta también la capa de nivel 6) o el aviso 854, y el
+    `C1 05 9A` con el puente y la casilla + `0xc`.
+- **`0x5583a0(tipo, nivel)`** recorre la grilla del inventario de la columna 7 a la 0 y en cada una de la fila 7 a
+  la 0, y devuelve la primera casilla con ese tipo, `+0x3c` mayor que 0 y `(+4 >> 3) & 0xf` igual al nivel (o
+  cualquiera con −1); −1 sin ninguna. Lo prueban `EventNpcWindowTest` y `EventsTest.WritesTheEventEntriesWithTheXor32`.
+
+### La ventana de los chips
+
+CL9 hito 11, fase 4 (`Scenes/EventChipWindow`). **Todo es *estático***, sin traza de GL; lo que la VM tiene que
+confirmar está en 08 (P-C247, P-C248). La abre el `94` (`0x4dd8a0`): `0x78abb00` = tipo + 1 y `0x78abb04` = la cuenta.
+Con 1, la Rena (el `0x1c15` de nivel 0); con 2, la piedra (el mismo de nivel 1); con 3, la entrada del número de
+serie; con 4, el pedido del número del Muto. Ocupa la esquina del inventario (`0x78a5a14`/`0x78a5a10` en (`0x1c2`,
+0), que escribe el dibujo) y cuenta como un panel en el ancho del mundo (`0x5bb8d0`). MuRet tiene `0x6c7b8c` (`.data`) en 1, el
+modo con EDIT: lo que el original hace con 0 (la entrada sin EDIT, `0x553ae0`, y `0x6c8e78`) no se alcanza.
+
+- **El paso, `0x5e6520`** (desde `0x5ee1ec`, después del ítem del cursor, con `0x78abb00` distinto de 0). El mouse en
+  [`0x1c2`, `0x280`) × [0, `0x1b1`) es de la UI (`0x775857c`). Los botones miran el soltado (`0x7d366ec`):
+  - con 4, [`0x1e5`, `0x25d`) × [`0xdc`, `0xf4`): el `C1 04 98 01` y el soltado apagado;
+  - con 3, el botón de confirmar en (`ftol(0x1c2 + 35)`, `ftol(esquina + 290)`) de 120 × 22: sin casillas libres
+    (`0x558740(−1, −1)` en 0), el aviso 896 (`0x5e6d22`); si no, el `C1 12 9D` con los 12 bytes de GetText del EDIT
+    de `[0x5763504]` (Q-C1344). Después el izquierdo suelto (`0x7d36874`);
+  - con cualquier otro, [`0x1e5`, `0x25d`) × [`0xe7`, `0xfd`): el soltado apagado, `0x5583a0(0x1c15, 1)` con 2 o
+    `(0x1c15, 0)` con los demás y, con una casilla, el `C1 05 95` con `0x78abb00` − 1 y la casilla (04 § Los eventos).
+  Después, el clic (`0x7d366d4`) en el botón de cerrar (x + `0x19`, y + `0x18b` de la esquina del inventario, 24 ×
+  24): el clic apagado, `0x77f3b10` en 0 y `0x6c8dcc` en 6, el `C1 03 97` en claro, `0x78abb00` en 0, el inventario
+  cerrado (`0x65cae0(0x4000000, 0)`, con los `rand()` de sus lecturas protegidas: dos con el inventario abierto, y
+  `0x659250` pone `0x78abb00` y `0x78abb04` en 0), `0x553570(0)`, el chat cerrado (`0x6c8e68`), `0x77f3b6a`,
+  `0x77f3b6c`, `0x78abacc` y `0x77f3b6b` en 0 y `SetFocus` a la ventana del juego. El texto del EDIT queda (Q-C1345).
+  Al final, el soltado apagado (`0x5e74cc`). Lo prueban `EventChipWindowTest` en Lorencia y en Devias.
+- **El dibujo, `0x5f6550`** (desde `0x5f75d0`, después de los NPC de evento). El color blanco, la mezcla normal, la
+  esquina en (`0x1c2`, 0), el fondo (`0x5ee220`) y el título en (x + `0x23`, y + `0xc`) en `0xfff0ff96` sobre 0: el
+  nombre del NPC 236 de `0x54ebb0`, la tabla de `Data\Local\NpcName(%s).txt` que carga `0x54e7f0` (la de
+  `WorldRuntime::npcNames`, CL9 hito 2; sin un registro con ese tipo, `0x54ebb0` da NULL y `0x554180` no dibuja el
+  título, como en las misiones, P-C248). Después la cuenta del `0x1c15`
+  (`0x558740`, de nivel 1 con 2) y el texto en `0xffd2e6ff`.
+  - Con 4, el botón `0xf0` (120 de ancho desde x = 485, du = 0,83203125) en y 220 de 24 de alto con el texto 903
+    centrado en (`0x221`, `0xe1`); con los otros salvo el 3, en 231 de 22 con el 243 (1) o el 818 (2) en (`0x221`,
+    `0xec`), en blanco y negrita si hay ítems y en gris (0,4) con la normal si no. Con el mouse arriba y el clic
+    (`0x7d366d4`), la fuente normal y el gris; con el soltado, el clic y el izquierdo apagados.
+  - Con 3, la entrada: x = 450 + 35 e y = la esquina + 250; los textos 893, 916 y 917 (estos dos en `0xff67bfdf`) y
+    894 en negrita, centrados en x + 56,5, en y − `0x28`, − `0xf`, − 5 y − `0x19`; el marco `0x10f` en (x + 3, y +
+    10) de 113 × 18; el EDIT de `[0x5763504]` reconfigurado en cada frame (`+0x4c` en 2, el fondo en 0, EM_LIMITTEXT
+    12, 150 × 14 en (`ftol(x)` + 10, y + 15), la vtable + `0x30` que le da el foco y su dibujo `0x468320`) y el botón
+    de confirmar 40 más abajo con el 895 en (x + 60, y + 5), en `0xff697370` con el mouse arriba.
+  - El botón de cerrar con su ayuda 1002, la fuente normal y los cuatro textos del tipo centrados en x + 95: 700 a
+    703 (1) u 882 a 885 (2) desde y + 100; 891, 892, 897 y 898 (3) o 900, 706, 901 y 902 (4) desde y + 70, de a 15.
+    Con 3 y el resultado del `9D` (`0x78ab078`, si su primer byte no es 0), su sombra negra en negrita en (+1, +
+    `0x105`) y él en `0xff67d2ff` en `0x104` más abajo, en blanco o en gris (0,6) según el signo de
+    `sin(0x5767b88 · 0,01)`.
+  - Salvo con 3, los rótulos en negrita en x `0x1e5` (245 u 819 en y `0x122`, 246 u 820 en `0x145`, solo con 1 y 2) y
+    `"x%d"` de la cuenta y de `0x78abb04` en la fuente grande en `0xff0096d4`, en x `0x230` e y 300 y 335 (con 5, 290
+    y 325; las tablas `0x5f7078` y `0x5f708c`). No saca `rand()`; un dibujo intermedio no escribe el foco, el EDIT ni
+    el clic.
+- **Los ítems, `0x5f70a0`** (desde el 3D de la UI, `0x5ac1da`, con `0x78abb00` fuera de 0 y 3): el modelo del
+  `0x1c15` (`+4` en 0; en `0xf` con 2 y 4; con 5, el tipo 0) del tamaño de `Item.bmd` en (540, 298), salvo con 4, y
+  en (540, 333), con `0x5e1480` y sus `rand()`. Después `0x5ac1df` salta a `0x5ac269`: sin las grillas (`0x5f7610`),
+  el ítem del cursor ni las ranuras rápidas.
+- **La entrada del número de serie.** La abre el `94` con el tipo 2 (`0x4dd8ce..0x4dd920`): los `0x40` bytes de
+  `0x78ab078` en 0, `0x553570(0)`, el chat cerrado, `0x6c8e6c` en 1 (un solo campo para el Tab) y `0x77f3b6b` en 1
+  (`0x77f3b6a`, `0x77f3b6c`, `0x78abacc` y `0x6c8e78` en `0xc` son del modo sin EDIT). La cierran la X (arriba) y
+  `SendMove` con 3 después del `97` (`0x56b6a9..0x56b72a`): `0x6c8e74` en −1, el campo elegido en 0, los diez
+  buffers de `0x7798bf8` salvo el del susurro con sus largos, la vtable + `0x4c` con 0 en `[0x5763504]` y
+  `[0x5763508]`, el chat cerrado y `0x77f3b6b` en 0, sin `SetFocus`. El WndProc mira `0x77f3b6b` en siete lugares:
+  `0x4b4dbe` y `0x4b4e55`, con `0x6c7b8c` en 0; `0x4b5616` y `0x4b8888`, el Enter con texto, que con él prendido
+  pone el campo en 0 y nada más (Q-C1346); `0x4b8934`, `0x4b89b3` y `0x4b8aa9`, las letras que la ventana del juego
+  escribe en sus buffers (solo letras y cifras, en mayúscula), que MuRet no modela (P-C247). El EDIT con el foco
+  filtra lo tecleado con su subclase `0x467b10` (`UI::FilteredByTheEdit`) y le pasa el Tab y el Enter a la ventana del
+  juego; con el chat cerrado, el Enter lee su texto (`0x4b540a`). Lo prueban `EventChipWindowTest`,
+  `GameChat.TheSerialEditFiltersWhatIsTyped`, `GameChat.AStuckSerialEntrySwallowsEnter` y
+  `GameMovementTest.AWalkWithTheEventWindowOpenLeavesItAndAsksForTheCursor`.
 
 ### La captura de pantalla
 
@@ -5262,8 +5521,7 @@ un error que nombra la dirección, nunca en silencio:
   pasto ([Creación de objetos](#los-objetos-del-juego)). Cortan: el 5 por el archivo que falta
   en `World6`, el 35 por el ATT ausente de `World36`, el 30 con el asedio prendido en `0x61a6ea` (sin él,
   `0x42a760` carga los lanceros, [Los objetos de Castle Siege](#los-objetos-de-castle-siege)), el 34 con el estado de
-  Crywolf en 1 o más en `0x61a6f4` (el `.att` y la luz según `0x42fe50`, antes del `BD`, que por eso no
-  sale) y el 55 en `0x6188ae`. Sin
+  Crywolf en 3 o más en `0x61a74d` (Q-C181; con 1 y 2 carga `EncTerrain351/352.att` y `TerrainLight1/2`) y el 55 en `0x6188ae`. Sin
   `TerrainHeight.OZB`, el error nombra el archivo, con el pasto ya sacado (Q-C180).
 - **Aviso y cierre por datos fatales (CL7b, Q-C180).** MAP/ATT y OBJ se procesan antes de
   alturas/luz, conservando los owners publicados antes del fallo. Un MAP que no abre permite
@@ -5930,7 +6188,7 @@ bloque de la entrada, en orden (*estático*):
 | `0x637123` | `0x53c670` | los joints | no |
 | `0x637128` | **`0x5446e0`** | el viento y las partículas | sí (`StepParticles`) |
 | `0x63712d` | `0x549090` | las marcas del suelo (`0x760cab0`, [Las marcas del suelo](#las-marcas-del-suelo)): les baja la vida | después de la espera, `World::StepGroundMarks` (CL7, hito 1); en la espera, frontera (P-C49 c) |
-| `0x637138` | `0x403590` | `0x4033d0` y compañía (el recorrido de la cámara), sin leer | — |
+| `0x637138` | `0x403590` | el recorrido de la cámara ([El recorrido de la cámara](#el-recorrido-de-la-cámara)) | `Scenes::StepTheCameraTour` (CL9 hito 11) |
 | `0x637144..0x63717a` | `0x5fc0d0` y `0x5fc0b0`, con `0x7d2d35e` | funciones de un `ret` | nada |
 | `0x63717f` | `0x5ac8d0` | F1 a F4 (CL3.3) | CL8 |
 
@@ -6795,7 +7053,7 @@ luces), la tabla de protección (`0x57630c8..0x57630d4`, `0x57630f0` y `0x6c78c8
 | `0x6371a6` | con `0x7d3a101` en 0, devuelve 0 | sin leer el contador | `GameScene::PrepareFrame` |
 | `0x6371b7..0x63722e` | el contador por la tabla de protección, con su cierre (`0x40b800`, `0x637229`); **con más de 30, devuelve 0** (`jle` con signo) | no dibuja ni presenta | `GameScene::PrepareFrame` (T5) |
 | `0x63723a` | `0x7d368a0 = 0` | sin niebla | sí |
-| `0x637241` | **`0x635ae0()`** y, fuera del mapa 6, `0x44dc60(&p)` (`0x4034b0` con el recorrido) | la cámara y el punto del recorte; la rama de `0x63724a` no corre nunca (Q-C189) | [La cámara del juego](#la-cámara-del-juego): `GameScene`, con los dos accesos a la celda del héroe (8 `rand()`) y `World::CameraTargetOf`; en el mapa 6 con "webzen" en el nombre, la cámara de espectador sin esos accesos y el punto (6.400; 15.400) con la z del héroe ([Los objetos de la Arena](#los-objetos-de-la-arena)) |
+| `0x637241` | **`0x635ae0()`** y, fuera del mapa 6, `0x44dc60(&p)` (`0x4034b0` con el recorrido) | la cámara y el punto del recorte; la rama de `0x63724a` no corre nunca (Q-C189) | [La cámara del juego](#la-cámara-del-juego): `GameScene`, con los dos accesos a la celda del héroe (8 `rand()`) y `World::FollowedPointOf` (`World::CameraTargetOf` o, con el recorrido andando, su posición: CL9 hito 11); en el mapa 6 con "webzen" en el nombre, la cámara de espectador sin esos accesos y el punto (6.400; 15.400) con la z del héroe ([Los objetos de la Arena](#los-objetos-de-la-arena)) |
 | `0x63734d` | `0x620db0(0, 0, w, 48)` | la franja, que no dibuja | sí (`MakePass3D`) |
 | `0x637366` | **`0x5fbb00(w / 640, &p)`** | el rango de bloques y el trapecio | sí (`TerrainRangeOf`, `TerrainPolygonOf(Game)`; en el juego, `StepTheTerrainPolygon` con el trapecio y el nivel efectivo globales de `WorldRuntime`, T11b) |
 | `0x637391..0x637404` | `glClearColor` por mapa: en el 0, (0,0390625; 0,078125; 0,0546875) | no se usa (Q-C143) | ver abajo |
@@ -7337,7 +7595,8 @@ entrar a Devias armado). `Scenes::DrawGameHanging` corre, sobre el cuerpo ya dib
   `0x6002e0` hace `RenderBody(2)` con la luz en 1 y `RenderBody(0x44)` con (1; 0,5; 0), con la luz por
   vértice y la pose en el buffer global. Sin `rand()`. `+0x360` queda en 5 en el registro (Q-C301). En
   Chaos Castle corta (`0x5ffe09` lee `+0x1a1` del héroe), y en Blood Castle (`0x50de63`, antes de la capa)
-  el 5 de un GM corta en `0x50de84`, el arma del evento.
+  el 5 de un GM cuelga el arma del lugar de la espalda en el lugar de las alas (`0x50de84`, el arma del evento,
+  CL9 hito 11) y, sin arma, corta en `0x50def8` (Q-C1332).
 - **Las alas y Helper02**, fuera de los mapas 18 a 23: las alas en 47 a (0, 0, 15) y Helper02 en 34 a
   (20, 0, 0) y 0,5 keys por frame, con el excelente del arma de la espalda (Q-C297), y su destello rojo
   `0x5ac` de 1,5 en (20, 0, 15) del hueso 34.
@@ -7385,8 +7644,13 @@ y el lugar de los monstruos `0x84` a `0x86` (`0x5093f3`) están portados con lo 
 fase 8, [El dibujo de los monstruos y los NPC](#el-dibujo-de-los-monstruos-y-los-npc)); con otro modelo en ese lugar,
 la matriz sin iniciar de `0x5095e0` corta. Un modelo cuya acción no está corta en `0x4ec200` si `0x509340` lo avanza
 (Q-C1119). Cortan con su dirección: las capas del 6 al 13 (`0x4140d5`), la de los GM en
-Chaos Castle (`0x5ffe09`), el arma del evento de Blood Castle (`0x50de84`) y el efecto cada 30 pasos de
-`+0x78 & 0x800` (`0x50e0c0`). `GameHangingTest` y `GameCharacterRenderTest` cubren la espalda (hueso 47 y
+Chaos Castle (`0x5ffe09`) y el efecto cada 30 pasos de
+`+0x78 & 0x800` (`0x50e0c0`). **El arma del evento de Blood Castle** (`0x50de84..0x50defd`, CL9 hito 11): en los
+mapas 11 a 17 con `+0x360` distinto de 0 (lo escribe el `9B`, 04), `0x509340(0, 0, 15, c, +0x2f8, modelo, 0, 0, 1,
+1, 0)` en el lugar de las alas (hueso 47, la velocidad de las alas de la acción), con el modelo `0xc1c`, `0x225` o
+`0xa24` para el 1, 2 y 3, y con otro valor el del lugar que eligió la espalda (`[ebp-0x18]`, `0x50dd97`); sin el paso
+de Player.bmd (`0x50de23`) ni la vuelta del frame (`0x50de5a`), y con el excelente de Helper02 en 0 (Q-C1331); con
+el lugar vacío corta (Q-C1332). `GameHangingTest` y `GameCharacterRenderTest` cubren la espalda (hueso 47 y
 su lugar), la mano (hueso 33), las saetas, Helper02, los sprites de `0x21d` y `0xc19`, los joints y las
 partículas de las armas, la luz por nivel, MuSign en el hueso 20 con sus dos pases, las cuentas de `rand()`
 y los cortes; `HangingJointsTest` y `WeaponSparkParticlesTest` cubren la creación y el paso de los joints
@@ -7522,8 +7786,9 @@ lo de cada tipo del 0, en [Lo propio de Lorencia](#lo-propio-de-lorencia). Leíd
 **El paso** (`0x606560`, también en la espera): sector por sector, como el dibujo. Los objetos de un
 sector que no pasó quedan con `+0x16c` en 0 sin avanzar, como en el login ([El mundo del
 login](#el-mundo-del-login)), y los vistos van a `0x604ab0`. `0x6061c0` al empezar, `0x6063d0` y
-`0x5ff960` con cada uno y el `0x6c9ddc--` del final no hacen nada en el 0 ni en el 2. En `0x604ab0`, en
-orden:
+el `0x6c9ddc--` del final no hacen nada en el 0 ni en el 2, y `0x5ff960` (con los vistos de un sector que pasó y
+con todos los vivos de uno que no) solo hace algo con un derrumbe pedido para el mapa en curso ([El derrumbe de los
+objetos](#el-derrumbe-de-los-objetos)). En `0x604ab0`, en orden:
 
 1. **Los techos**, antes del alpha. En el 0, el `0x7d` y el `0x7e` (`HouseWall05` y `06`) llevan la meta
    del alpha (`+0x170`) a 0 con la capa 1 de la celda del héroe (`0x77f36d0`) en 4, y a 1 si no
@@ -8227,7 +8492,8 @@ mapas (`0x60d09f` y `0x60d113`) vale para cualquier `+0x88`: (0,1; 0,01; 0) a 0,
 0,04 / escala + 1,02 − 0,02 (Q-C323). No hay marca del gremio (`0x50d4fb`), capa, alas, mascota ni armas en la
 espalda. El alpha de los objetos baja 0,15f con `+0x1a1` del héroe (`0x5ffdf0`), que sólo escriben los paquetes.
 Al caminar, `0x4fbe10` guarda la celda del héroe y, si se queda 10 s en una celda con el bit 8 del atributo, manda
-`C1 06 AF 01` (CL9.5, corta).
+`C1 06 AF 02 x y` con el XOR32 (`MOV CL,0x2` en `0x4fbf6a`; `0x4fbee8`, CL9 hito 11, por la sesión:
+`CharacterStepContext::sendChaosCastleReposition`).
 
 **En MuRet.** `World::StepChaosCastleCell` desde el dibujo del terreno, `World::StepChaosCastlePrelude` y
 `World::StepChaosCastleSeenObject` (`World/ChaosCastle`) desde `GameScene::StepTheObjects`,
@@ -8237,6 +8503,66 @@ Al caminar, `0x4fbe10` guarda la celda del héroe y, si se queda 10 s en una cel
 se dispara en el primer 3 visto (`GameT16ChaosCastleWalk`). Tests: `ChaosCastleTest` y, del cuerpo,
 `GameCharacterRenderTest.InChaosCastleAPlayerWearsTheAngelAndOnlyTheHeroAddsItsChrome` y
 `TheChaosCastleOutlineScalesWithTheObjectAndHasItsOwnColors`.
+
+### El derrumbe de los objetos
+
+Leído en la fase 3 del hito 11 de la CL9 en el ASM de `c32bbd5f` (*estático*). Lo piden los paquetes de los eventos
+(04 § Los eventos) con `0x5ff930(mapa, tipo, cuenta, demora)`, que escribe `0x6c9dd8`, `0x6c9dd4`, `0x6c9ddc` y la
+demora como float en `0x6c9de0` (`.data` −1, −1, −1 y −1,0f; `0x5ff910` los vuelve a poner así): el `46` con el
+atributo 8 en Blood Castle (mapa, `0x24`, 0, 1), el `9B` de Blood Castle con 3 (mapa, `0x24`, 20, 1) y el `9B` de
+Chaos Castle (mapa, 1, 40, 1).
+
+**El recorrido** (`0x606560`, después de `0x6061c0` y de `0x7d365a0` en 0): los 256 sectores de `0x7d325d4` (16
+bytes cada uno: la lista de sus objetos en `+0` y en `+8` el byte que el dibujo `0x6046a0` deja con lo que dio el
+trapecio, `0x60470b`), y en cada uno su lista por `+0x1d0`. En un sector que pasó, cada objeto vivo con `+0x16c`
+va a `0x604ab0`, `0x6063d0(objeto, &selector, &0x7d365a0)` y `0x5ff960(objeto)`, y los demás quedan como estaban;
+en uno que no pasó, cada vivo va a `0x5ff960` y todos quedan con `+0x16c` en 0. Al final, `0x6c9ddc--` (un `DEC` de
+32 bits: desde −1 sigue bajando y da la vuelta). El pedido es uno solo para todo el recorrido: lo que un objeto hace
+con él lo ven los que siguen (la demora, Q-C1338, y el pedido borrado, Q-C1339).
+
+**`0x5ff960(objeto)`.** Nada si el mapa, el tipo o la cuenta pedidos son negativos o si el mapa pedido no es el
+de ahora (`0x6c9dd0`). Después `0x405630(objeto)`, y con 1 no sigue. Si no:
+
+- El 9 y el 10 (`0x5ff9c2..0x5ffa1e`), con cualquier tipo pedido (también con el 9 o el 10): con la cuenta en 0,
+  `+0x58` en −1 y la palabra `+0x8a` en 4; con otra cuenta, nada.
+- Otro tipo distinto del pedido: nada.
+- El del tipo pedido (la puerta de Blood Castle, `0x24`, `0x5ffa24..0x5ffb59`): con la cuenta en 20, `+0x1c` (el
+  giro en x) en 35, `+0x58` en −1 y el sonido `0x41ed10(0x89, 0, 0)`. Con la cuenta en 0 o más, `+0x1c` = demora +
+  `+0x1c` y la demora sube 1,5 (`0x6b8b94`). Si `+0x1c` queda en 90 (`0x6b8948`) o más (un `FCOMP` con C0: un NaN
+  no entra), le resta la cuenta, la demora queda en 2 y, si el resultado es 80 justo (los bits `0x42a00000`),
+  diez polvos `0x53fe70(0x5f3, local, &+0x1c, &+0xf4, 0, 1, 0)`: cada uno con x = (`rand() % 300` − 150) + x del
+  objeto y después y = y del objeto − (`rand() % 20` + 600), con la z del objeto. Con la cuenta en 0, `+0x58` en
+  −2 (oculto), `+0x1c` en 90, el pedido borrado (`0x5ff910`) y `0x5f8750(13, 70, 3, 6, 8, 0)`: el atributo 8 sale
+  de x 13..15 por y 70..75, el paso de la puerta.
+
+`World12` (los Blood Castle) tiene una sola puerta `0x24`, en la celda (14, 76), y en su sector (0, 4) también los
+dos 9 y los dos 10; `0x606660` agrega cada objeto al final de la lista de su sector, así que van antes que la puerta.
+Con el pedido del `46` (cuenta 0) los cuatro se abren y la puerta cae de golpe en el primer recorrido (`+0x1c` en 90 y oculta). Con el del
+`9B` gira 20 pasos: el giro pasa de 90 con la cuenta en 12, 10, 7, 5, 3, 2, 1 y 0 y, restada la cuenta, queda en 86,
+81,5, 85, 85,5, 88, 88, 89 y 91 (*simulado* en float): nunca da 80, así que la puerta de `World12` no levanta polvo.
+Con más de un objeto del tipo la demora es la misma para todos y sí puede dar 80 (Q-C1338).
+
+**`0x405630(objeto)`, Chaos Castle.** Fuera de los mapas 18 a 23 devuelve 0. En ellos devuelve 1 siempre, así que
+`0x5ff960` no sigue con ningún objeto (ni el 9, ni el 10, ni el tipo pedido). El tipo, sin signo hasta `0x23`,
+elige en `0x40592c` uno de los casos de `0x40591c`: el 0 (tipos 0 a 5 y 13 a 17) espera el área 1 de `0x6c634c` y deja
+la 2, el 1 (24 a 29) espera la 7 y deja la 8, el 2 (30 a 35) espera la 4 y deja la 5, y el 3 (los demás) no hace
+nada. Con el área esperada:
+
+- Cuenta en 30 o más: la piedra `0x53fe70(0x5f6, (x + `rand() % 300` − 150; y; z del héroe [`[0x743a170]` +
+  `0x18`]), &+0x1c, (1; 1; 1), 0, 1,5, 0)` y el temblor de la cámara (`0x7d325c8`) en (`rand() % 3` − 3) · 0,1f.
+- Cuenta en 0 o menos: `+0x58` en −2, el área siguiente y el pedido borrado.
+- Si no: z (`+0x18`) = `+0x184` − (30 − cuenta) · demora, y la demora sube 0,4f (`0x6b87b4`).
+
+**En MuRet.** `Scenes::CollapseTheObject` (`Scenes/ObjectCollapse`) con `ObjectCollapseContext`, desde el recorrido
+`Scenes::WalkTheObjectSectors` (`WorldObjectsDrawing`) en `GameScene::StepTheObjects` y en
+`SelectionWorld::StepObjects`; `Scenes::CountDownTheObjectCollapse` al final. El byte del sector va en cada objeto
+(`WorldObject::sectorPassed`, el mismo para todos los de un sector), escrito por los dos dibujos de los objetos.
+`0x5f8750`, `0x5f8710` y `0x5f8730` son `Scenes::MarkTheTerrainArea` y `MarkTheTerrainCell` (`Scenes/TerrainMarks`),
+que comparten con los paquetes. El sonido `0x89` queda en `WorldRuntime::lastSoundId` (CL10). La piedra `0x5f6/0` no
+está en el pool de MuRet: corta donde la crea cada caso (`0x405899`, `0x4056e5` y `0x4057bf`; la escena de la selección, sin el temblor, cortaría después en `0x4058bf`, `0x40570b` o `0x4057e5`);
+como el pedido de Chaos Castle empieza en 40, el derrumbe de Chaos Castle corta en su primer paso hasta que la CL11
+porte la partícula (P-C297). Tests: `ObjectCollapseTest`, en Lorencia, Devias, Blood Castle (11 y 14) y Chaos Castle
+(18, 20 y 23).
 
 ### Los objetos de Castle Siege
 
@@ -8373,7 +8699,18 @@ MuRet porta ese estado (Q-C340). Lo leen la carga y el dibujo:
 
 - **La carga** (`0x61a6d0`, `0x42fe50` después del `.map`): con 0, `EncTerrain35.att` y `TerrainLight` como los
   demás mapas; con 1 y 2, `EncTerrain351.att`/`EncTerrain352.att` y `TerrainLight1`/`TerrainLight2`; con 3 o más,
-  el `.att` con la ruta del `.map` y la luz de Q-C181. MuRet carga el 0 y corta los otros en `0x61a6f4`.
+  el `.att` con la ruta del `.map` y la luz de Q-C181. MuRet carga el 0, el 1 y el 2 (`TerrainFileNames` en
+  `Scenes/MapLoad`) y corta el 3 o más en `0x61a74d`: la luz de Q-C181 es la anterior sin sombrear, que MuRet no
+  guarda.
+- **El `BD 00` con otro estado** (`0x42ff16..0x42ffe8`, CL9 hito 11, fase 3): vuelve a leer la luz (`0x5f8f40`) y el
+  `.att` (`0x5f8390`) **del mapa en curso, sea cual sea** (Q-C1340), con la carpeta `"World%d"` del mapa + 1 (sin la
+  guarda de `0x61a560`): `TerrainLight`, `TerrainLight1` o `TerrainLight2` por el estado y `EncTerrain<mapa + 1>.att`,
+  `<mapa · 10 + 0xb>` o `<mapa · 10 + 0xc>`. No mira lo que devuelve ninguno de los dos: un archivo que falta deja el
+  aviso fatal (`" - File not exist."` o `" file not found."`) y lo que había; el `.att` no se compara con el mundo.
+  Con 3 o más, la luz es el buffer sin escribir (Q-C1328). MuRet: `World::ReloadWorldTerrainLight` y
+  `ReloadWorldTerrainAttributes` (`World/WorldTerrain`) desde `ApplyEventPacket`, con la carpeta Data de la sesión
+  (`EventPacketContext::dataRoot`). Tests: `EventPacketsTest.TheCrywolfStateReloadsTheLightAndTheAttributes` (34) y
+  `TheCrywolfStateReloadsTheCurrentMapToo` (Lorencia y Devias), `MapLoadTest.CrywolfTakesTheAttributesAndTheLightOfItsState`.
 - **El dibujo**: los sorteos del `0x38` solo con 0; el humo del `0x54` y del `0x4a`, con 1; el `0x51`, con 2.
 
 `0x723c05` y `0x723c08`, que también vuelven a 0 en `0x42fdc0`, solo los escriben paquetes: eligen la música
@@ -8459,7 +8796,7 @@ cuentan con cada frame del original. El paso: `World::StepCrywolfObject` (`World
 `World::ModelEffects::CreateFadingDecal` y su paso en `StepGameModelEffect`. Las burbujas:
 `World::StepCrywolfWaterCell` (`CrywolfWater`), que `GameScene` le pasa a `World::DrawTerrain` como el gancho de la
 celda. El humo `5f2/33` del `0x48`: `World::CrywolfRisingSmokeSubtype` en `Particles`. Corta, con la dirección: la
-carga con el estado en 1 o más (`0x61a6f4`), el `0x51` con el estado en 2 (`0x430a40`) y los casos de monstruos de
+carga con el estado en 3 o más (`0x61a74d`), el `0x51` con el estado en 2 (`0x430a40`) y los casos de monstruos de
 `0x4339d0`. Con la Data del repo, el 34 llega a un cuadro completo y camina (`GameT16SceneMatrix`; `GameT16MapWalk`,
 en (128, 30): suelo libre de `EncTerrain35.att` en la zona segura del fuerte, con tres `0x29`, cuatro `0x38`, el
 `0x49`, el `0x4a` y los `0x52` vistos). `EncTerrain35.obj` no trae ningún `0x48` (*simulado*): su humo no sale en la
@@ -8624,6 +8961,86 @@ Tests: `GroundMarksTest` y `TerrainDecalTest`;
 `ALiveGroundMarkStopsWhereMuRetDoesNotKnowItsTexture` y `TheStepAgesTheGroundMarksAfterTheCharacters`,
 en Lorencia y Devias; y `MapLoadTest.TheGroundMarksSurviveTheMapLoad`.
 
+### El recorrido de la cámara
+
+CL9 hito 11, fase 3 (`Scenes/CameraTour`; *estático*). `CCameraMove` es el objeto de `0x6e57a8` en `[0x6e5904]`
+(`0x403250`, con los valores de `0x403300`: `+0x154` en 0, la espera `+0x6a` en 1, `+0x158` en 0, el reloj `+0x37`
+en 1, `+0x14c` en 10000). Su paso es `0x403590`, desde el paso del juego (`0x637138`, después de las marcas del
+suelo): `0x4033f0` (con `+0x154` en 2 y la espera, `0x404c90(5000)`, un reloj de `timeGetTime` como el de
+`0x63b0e3` que además cuenta en `+0x140`, la apaga; con `+0x154` en 3, `0x403d60` y `0x403300`) y, con `0x4033d0`
+verdadero, `0x403390` (`0x5be150` y `0x657880(0x1b)`) y el guion `0x4035f0` por `+0x144` (`0x403e00`, `0x403e30`,
+`0x4042c0`, `0x404830`, `0x404b70`, `0x404bb0`): el camino de la cámara (`0x403d90`, `0x4034e0`), los personajes de
+las claves 10000 en adelante (`0x4039f0`, que `0x403d60` borra con `0x510ff0`), sus acciones y caminos (`0x403760`,
+`0x403900`) y el efecto `0xed`; al final `+0x158` en 1 (`0x404bc6`). Las ramas de la etapa 5 (`0x403660`, seis
+`ret`) y de otra (`0x403d60` y `0x403300`) no se alcanzan, porque `0x4033d0` pide la 2.
+
+**Lo único que lo empieza es el `BD 00` con la etapa 2** (`0x4e597f` → `0x4033b0(pkt[5])`; también `0x4e0fb0`, que
+nadie llama): ninguna tecla, comando, ventana ni entrada a un mapa escribe `+0x154` (las referencias a `[0x6e5904]`
+son el constructor y el destructor, `0x4c2480` (la vuelta a la selección: `0x403300` y `0x403d60`), `0x4c9790` (lee
+`+0x154` en 3 para unos monstruos), `0x59adf0`, `0x59ff10`, `0x623e70`, `0x635ae0`, `0x6371a0` (leen `0x4033d0`) y
+`0x636290` (el paso)). MuRet pide el estado de Crywolf al entrar al 34 y lee el `BD 00`, así que el arranque es
+alcanzable con un servidor que tenga Crywolf (GS 0.97 no lo tiene): MuRet porta `0x403590`, `0x4033f0`, `0x4033d0`,
+`0x404c90`, `0x403300`, `0x403d60` y Esc (`0x623ec8`: `+0x158` en 1 y `0x403d60`).
+
+**El guion** (fase 5, con el hito 2 juntado; `Scenes/CameraTour`, *estático*). Los campos del objeto, en orden: `+4`
+la posición de la cámara, `+0x10` la salida del tramo, `+0x1c` el destino, `+0x28` el rumbo, `+0x34` el tramo nuevo,
+`+0x35` en camino, `+0x36` llegó, `+0x37` el reloj, `+0x38` (50 bytes) si cada personaje todavía gira, `+0x6a` la
+espera, `+0x6c` lo andado, `+0x70` el largo, `+0x74` lo que anda por paso (100), `+0x78` (50 dwords) las veces que
+cambió la acción de cada personaje, `+0x140` el paso del guion (que es también la cuenta del reloj), `+0x144` la etapa
+del guion, `+0x148` el comienzo del reloj, `+0x14c` la clave siguiente, `+0x150` lo que sube `0x403d40` hasta 4.
+
+- **La cámara.** `0x403d90(x, y, z, velocidad)` pone el destino en el centro de la celda (`· 100 + 50`, en float),
+  `+0x140` en 0, `+0x34` y `+0x35` en 1 y suma la etapa. `0x4034e0`, con `+0x35`: `0x403430` (con `+0x34`: en la
+  etapa 0 sale del héroe, `[0x743a170] + 0x10`, y pasa a la 1; el rumbo destino − salida y el largo `((x² + y²) + z²)`
+  en la x87), apaga `+0x34`, normaliza el rumbo (`0x5fc800`: la suma desde 0, la raíz y, si no es 0 ni NaN, cada
+  componente dividido), la posición en `andado · rumbo + salida` y `+0x6c += +0x74`; con la norma de lo andado (el
+  de antes, `(z² + y²) + x²`) en el largo o más (`FCOMP` sin C0), llega: la posición y la salida en el destino,
+  `+0x36` en 1, `+0x35` y lo andado en 0. Mientras anda, el guion no corre. La etapa 0 (`0x403e00`) es solo el primer
+  tramo, al (`0x71`, `0xe8`) a 300: `0x403d90` y la etapa otra vez en 0, para que `0x403430` salga del héroe.
+- **Las etapas** (`0x4035f0` por `+0x144`, la tabla `0x403644`). Con `+0x36` en 0 cada una sale al tramo siguiente:
+  la 1 al (`0x72`, `0xdc`) a 40, la 2 al (`0x72`, `0xa0`) a 300, la 3 al (`0x79`, `0x4b`) a 300, la 4 al (`0x79`,
+  `0x57`) a 40; la 5, en cambio, borra los personajes (`0x403d60`) y pone `+0x158` en 1: el fin. Con `+0x36` en 1,
+  el guion por `+0x140`, y pasado el último paso, `+0x36` en 0. La 1 (`0x403e30`, 32 pasos): la barrera (349) y dos
+  guardias (340) en la fila `0xee`, con chispas y la velocidad de la acción 2 de su modelo; esperas de 1.000 y `0x294`
+  ms; los tres caminan; los 345, 344 y 341 de a uno (los 341 con `0x403d40`), después de que dos de los guardias
+  terminen la acción 8. La 2 (`0x4042c0`): trece altas en las filas `0xf0`..`0xf4` (la última con chispas), los 28
+  caminan a las filas `0xd9`..`0xe7` y avanza cuando llegan todos; el 10000 hace la 8 y la 9. La 3 (`0x404830`):
+  borra a todos, vuelve a la clave 10000 y da de alta los 27 de los altares, sin chispas; dos avanzan, así que
+  `+0x140` pasa de 1 a 3. La 4 (`0x404b70`): espera 3.000 ms. La 5 (`0x404bb0`): los dos últimos (`0x2729` y
+  `0x272a`) hacen la acción 3 con el efecto `0xed`.
+- **Las altas** (`0x4039f0(tipo, x, y, ángulo, avanza, chispas, velocidad)`): `0x5141e0` con la clave `+0x14c`, que
+  sube; la clave en `+0x1f4` (word), las manos (`+0x2b8`, `+0x2d8`) en `0xffff`, el ángulo en `+0x24`, `+0x174` en 0.
+  Con la velocidad en 0 o más, la escribe en la acción 2 (`+0x30 → +0x24`) del modelo de la tabla `0x403d10` (340 →
+  `0x1ae`, 341 → `0x1b0`, 344 → `0x1ad`, 345 → `0x1af`, 348 → `0x1b5`, 349 → `0x1ab`; los demás tipos usan como
+  modelo el dword de las chispas, `0x403a93`, que ningún guion alcanza). **El modelo es el del caso del 34** (el
+  creador de evento `0x430c90`): fuera del 34 el alta es la del default de `0x5141e0` y el original escribe en un
+  modelo que puede no estar cargado, con el arreglo de acciones vacío; MuRet corta ahí (`0x403abe`). Con las chispas,
+  el sonido `0x243` y once creaciones con un `rand()` antes de cada joint `0x615`: **cortan** en `0x403b09` (P-C299).
+  Con avanza, `+0x140` uno más.
+- **Los caminos** (`0x403760(clave, x, y, ángulo, velocidad)`): en la celda (`ftol(ftol(x) · 0,01f)` y lo mismo con
+  la y), el centro de la celda, `+0x38` en 1, `0x4ea030(0)` y verdadero. Si no, mientras gira: el ángulo a la celda
+  (`0x4036d0`: posición − centro, con la x del centro sin redondear y la y en float, normalizado, `acos(y) ·
+  57,2958279` y, con la x positiva, 360 − eso; el ángulo pedido no se lee) y el de `+0x24`, truncados; con la resta
+  (ángulo − pedido) por encima de 180, 360 menos; con 3 o menos de diferencia deja de girar. Girando, `+0x24 ± 3`
+  (más con la diferencia en (3, 180]) y `0x4ea030(0)`; si no, `+0x386` con la velocidad, `0x4ea030(2)` y `0x508a80`.
+- **Las acciones** (`0x403900(clave, acción, veces, efecto, avanza)`): mientras `+0x78` no llega a las veces, con otra
+  acción en `+0x111`, la pone (`+0x114` en 0) y cuenta; con el efecto, el `0xed` (`0x518cf0`, CL11: corta en
+  `0x4039a0`). Con las veces, avanza vuelve la cuenta a 0 y suma `+0x140`; verdadero con `+0x114` en 8 o más.
+  `0x403900` y `0x403760` buscan la clave entre los 400 vivos y, sin ella, **siguen con el registro 399** (Q-C1349).
+
+**La cámara** (fase 6, *estático*). `0x635ae0` y el centro del mundo de `0x6371a0` leen `0x4033d0` en cada frame del
+original, fuera del mapa 6 con "webzen": la cámara (`0x635ead`) escribe la z del héroe en 300 (`0x635ec0`, Q-C153) y
+`0x4034b0` pisa su objetivo con `+4..+0xc` y le devuelve `+0x150`, que guarda como word en `0x7d3a0ec` (`0x635ed2`); el
+centro (`0x637324`) también lo pisa con `0x4034b0`, sin el nivel. El nivel elige la meta de D en el mismo frame (1.000 +
+100 · nivel, `0x6361d0`), el trapecio (`0x5fb570`) y el far del frame siguiente ([La cámara del
+juego](#la-cámara-del-juego)). Cortado, terminado o con otra etapa, el frame siguiente vuelve al héroe: el nivel a 0, el
+far del nivel una vez más, D baja hacia 1.000 y el trapecio sigue con el nivel hasta que D llega. MuRet:
+`World::GameCameraInput::tour`, que llena `GameScene::CameraOfTheFrame`, y `World::FollowedPointOf`
+(`GameSceneDrawTest.TheCameraFollowsTheTourWhileItRunsAndThenTheHeroAgain`, en los mapas 0, 2 y 34).
+
+Lo que todavía corta (P-C299): las chispas de `0x4039f0` y el `0xed`; en el 34 la primera alta, la barrera 349,
+corta antes, en el joint `0x618` de su caso (`0x43114d`, hito 2).
+
 ### La cámara del juego
 
 La cámara del juego es un solo cálculo, `0x635ae0`, que corre **una vez por frame dibujado**, dentro
@@ -8646,7 +9063,7 @@ no detectaban todas. El pase y las
 copiar su posición de la expectativa. `GameCameraOf` conserva la D usada antes del suavizado, el
 zoom y el far, y reconstruye el dibujo con el héroe del último paso lógico sin otro avance. La
 integración en las escenas es la CL7.3 B; los ocho `rand()` protegidos por frame, la CL7.P. El
-recorrido `CCameraMove` sigue fuera de este valor de cámara.
+recorrido `CCameraMove` entra en la CL9 (hito 11, fase 6): `GameCameraInput::tour`, sin vectores emulados propios.
 
 **Contraste ASM y pseudocódigo (CL7.3 A).** Para `0x5fcc30`, el orden de las dos sumas
 lo fija el ASM, no la expresión reordenada del pseudocódigo de Ghidra. Cada componente conserva
@@ -8667,7 +9084,7 @@ ASM. En el alcance de la CL7.3 A no aparecieron discrepancias de lógica ni de c
 | `0x635f02..0x635feb` | z base 255 en mapa 30 en todas las escenas; `0x40` deja 1.201; las escenas fijas pisan posición/yaw antes del zoom |
 | `0x635fed..0x6360fe` | zoom ±10, hasta 210, con giro fijo −45; también se aplica un zoom negativo distinto de cero |
 | `0x636104..0x63614f` | balanceo del mapa 5, con las tasas float exactas y sin actualizar D ni su meta |
-| `0x636150..0x63624d` | D/meta 3.200 en la rama especial del mapa 6, 1.100 en mapa 30 en cualquier escena, o suavizado de un tercio hacia 1.000 tras el reset |
+| `0x636150..0x63624d` | D/meta 3.200 en la rama especial del mapa 6, 1.100 en mapa 30 en cualquier escena, o suavizado de un tercio hacia 1.000 tras el reset (con el recorrido, hacia 1.000 + 100 · su nivel: CL9 hito 11) |
 | retornos de `0x635ae0` | `AL = 0`; el pseudocódigo no implica que todo EAX valga 0. MuRet devuelve una cámara por su propia interfaz |
 
 El recorrido `CCameraMove`, la vista superior muerta y los accesos protegidos no se incluyeron en
@@ -8757,7 +9174,8 @@ Unicorn/MuRet tanto en PC53 como PC64, restaurando su CW. Esa es evidencia nativ
    inicializadores estáticos): con su estado `+0x154` en 2 y `+0x6a` y `+0x158` en 0 (`0x4033d0`),
    escribe **H.z = 300** (`0x635ec0`, Q-C153), el objetivo pasa a ser el suyo (`+4..+0xc`) y el
    nivel, su `+0x150` (`0x4034b0`); si no, el nivel vuelve a 0 (`0x635eda`). El estado lo pone solo
-   el `BD 00` del servidor ([04](04-protocolo.md#el-clima-y-crywolf-0f-y-bd)).
+   el `BD 00` del servidor ([04](04-protocolo.md#el-clima-y-crywolf-0f-y-bd); [El recorrido de la
+   cámara](#el-recorrido-de-la-cámara)).
 7. **La posición**: x e y, f32(out + objetivo) (`0x635ee3..0x635efc`); z, f32((D − 150) + z0)
    (`0x635f39..0x635f50`, el 150 en `0x6b87ac`), con z0 en 255 en el mapa 30 y si no **H.z**, la
    del héroe y no la del objetivo. Con el bit `0x40` en la celda, `0x6c9d5c` y z0 pasan a 1.201
@@ -8775,8 +9193,8 @@ Unicorn/MuRet tanto en PC53 como PC64, restaurando su CW. Esa es evidencia nativ
 11. **El final** (`0x636104..0x636258`): en el mapa 5, el balanceo `X += 2 · sin(T · 0,0005)` e `Y
     += 2,5 · sin(T · 0,0008)` (T en `0x5767b88`), sin suavizar D; en el 6 con "webzen", D y su meta
     en 3.200; en el 30, en 1.100; en los demás, la meta (`0x6d5ee0`) es 1.000, 1.100, 1.200, 1.300 o
-    1.400 según el nivel ya vuelto a 0, y D = f32((meta − D) · 0,33333334 + D), un tercio por frame
-    (Q-C151). Siempre devuelve `al = 0`: en `0x6371a0`, la rama del objetivo en `H + 0x17c` está
+    1.400 según el nivel ya reescrito (0, o el `+0x150` del recorrido; la tabla `0x636270`), y D = f32((meta − D)
+    · 0,33333334 + D), un tercio por frame (Q-C151); fuera de 0 a 4 (el `ja` de `0x6361da`) no toca D ni la meta. Siempre devuelve `al = 0`: en `0x6371a0`, la rama del objetivo en `H + 0x17c` está
     muerta.
 
 **Lo que queda de una vez a la otra** (*estático*). D arranca en 1.000: lo pone `0x635ad0`, un
@@ -9379,8 +9797,9 @@ de Lorencia verifican el componente; `GameScene`, reglas del clic y caminar sigu
   protegido) y el almacén no; con las dos cerradas, `+0x379 = 2` salvo con el bit `0x10000000` de `+0x7c`, el NPC en
   `0x6c8ebc` y en `0x6c8e54`, su celda (`ftol(posición · 0,01)`) en `0x77e1ba8` y `0x77e1bac`, su tipo (`+2`, MOVSX)
   en `0x7798bf0` y el dword de `+0x24` en `0x77f36cc`; las celdas del héroe (y, después x, 4 `rand()` cada una) y
-  `0x4eac00`, que con Crywolf activo y un altar (`0x204..0x208`) en `0x6c8e54` le pasa una bandera al A* (MuRet
-  corta en `0x4eac41`, hito 11). Con camino, `SendMove`; sin él, `0x5650c0(héroe, héroe, 1)`. La llegada
+  `0x4eac00`, que con Crywolf activo y un altar (`0x204..0x208`) en `0x6c8e54` le pasa `bClearGoal` al A*
+  (`0x4eac0a..0x4eac41`; MuRet: `Scenes::CrywolfAltarGoal`, hito 11, [La interfaz de Crywolf](#la-interfaz-de-crywolf)).
+  Con camino, `SendMove`; sin él, `0x5650c0(héroe, héroe, 1)`. La llegada
   (`0x5650c0`, el caso 2, `0x5674c8..0x5695b3`): `MouseUpdateTimeMax = 12`; fuera de Crywolf activo (etapa 3 o 4 de
   `0x723c05` y el mapa 34), `SetPlayerStop` y `+0x378 = 0`; sin NPC en `0x6c8e54`, nada más. Con `+0x376` < `0xcd`,
   `0x6c8e54 = −1` y sale. Lee el nivel del registro propio (3.848 `rand()`); el `0xee` con nivel < 10 da el texto 663
@@ -9414,8 +9833,12 @@ x y en y; y la lista abierta (la vtable `0x6ba068`, la cantidad y la raíz).
 con enteros salvo la rama de `fDistance`, que caminar no usa: solo el elfo que se acerca, `0x566271`):
 
 - **Sale con falso con `sx == 0` o `sy == 0`** (`0x4eadc1..0x4eadce`, Q-C156; *emulado*).
-- **La meta**: con `bClearGoal` pone `Map[meta] = 0`, **escribe el mapa** (solo el asedio,
-  `0x435a00`, en el mapa 34 con un blanco de tipo `0x204..0x208`); con `bErrorCheck`, una meta con
+- **La meta**: con `bClearGoal` pone `Map[meta] = 0`, **escribe el mapa** (solo con el asedio,
+  `0x435a00`, en el mapa 34 y el registro de `0x6c8e54` de tipo `0x204..0x208`, que `0x4eac00` mira para cualquier
+  camino: Q-C1350 y Q-C1351; de las 19 llamadas a `0x4eac00` (los `CALL` de `.text`; el decompilado lista 15, sin
+  `0x581853`, `0x58975f`, `0x58b1d1` ni `0x58ec65`), las 17 que MuRet porta le pasan a `PathFinder::Find` la bandera
+  de `Scenes::CrywolfAltarGoal`, y las 2 que faltan, `0x58b1d1` (Soul Barrier con el elegido en la party, hito 7) y
+  `0x59ba9c` (MoveHero hacia `0x6c8e50`), tienen que pasarla al portarlas); con `bErrorCheck`, una meta con
   `Map ≥ iWall` sin el `0x20` falla; si no, `NodeFlag[meta] = 4`.
 - **La meta por distancia** (`0x4eae7c..0x4eb054`, CL9 hito 3, fase 2a; `FCOMP` con C3 en `0x4eadd4`: una
   `fDistance` que no es 0, o NaN, va por acá y no lee `bClearGoal`): r = `_ftol(fDistance)`; en cada fila
@@ -10701,7 +11124,7 @@ diez ranuras de `0x100` bytes (los largos en `0x77e1bb0` y la cuenta, un char co
 ranuras 1..9 a 0..8; un paquete de más de `0x100` no entra, pero el corrimiento ya se hizo. El estado 1 del `12` la
 escribe otra vez (paso 5, Q-C801). Nadie la lee: `0x557830` (un volcado) y `0x4c12a0` no tienen llamadores. MuRet: la
 sesión hace la copia (`ISessionEventSink::CopyToPacketRing`) y la cola es `WorldRuntime::viewportPackets`
-(`Scenes::StoreViewportPacket`); el `0x0B` es del hito 11 (P-C162).
+(`Scenes::StoreViewportPacket`); el `0x0B` la copia en `ServerSession::OnEventPacket`, antes del lector (hito 11).
 
 **El `12`, `0x4c8860(paquete, largo)`**, por cada registro:
 

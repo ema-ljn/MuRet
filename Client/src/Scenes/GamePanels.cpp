@@ -86,7 +86,8 @@ GamePanels::GamePanels(WorldState& world, Render::Models::CrtRandom& random, Gam
 
 void GamePanels::LendTheWindowClose(std::function<void()> send)
 {
-    m_context.questClosed = std::move(send);
+    m_context.questClosed = send;
+    m_context.eventNpcClosed = std::move(send);
 }
 
 void GamePanels::LendTheWindowClose(IGameUiRequests* requests)
@@ -94,9 +95,11 @@ void GamePanels::LendTheWindowClose(IGameUiRequests* requests)
     if (requests == nullptr)
     {
         m_context.questClosed = {};
+        m_context.eventNpcClosed = {};
         return;
     }
     m_context.questClosed = [requests]() { requests->SendWindowClose(); };
+    m_context.eventNpcClosed = m_context.questClosed;
 }
 
 void GamePanels::LendThePartyList(WorldState& world, IGameUiRequests* requests)

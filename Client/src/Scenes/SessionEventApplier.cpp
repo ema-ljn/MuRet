@@ -1,39 +1,45 @@
 #include "Scenes/SessionEventApplier.h"
 
 #include "App/CharacterEvent.h"
+#include "App/FaithfulPacer.h"
 #include "App/ServerSession.h"
 #include "App/WindowState.h"
 #include "App/WorldEvent.h"
 #include "Core/Expected.h"
+#include "Core/IClock.h"
+#include "Core/Log.h"
 #include "Data/Models/PlayerModels.h"
 #include "Protocol/Character/CharacterList.h"
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
 #include "Protocol/Combat.h"
+#include "Protocol/Events.h"
 #include "Protocol/FloorItems.h"
 #include "Protocol/Friends.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/Messages.h"
 #include "Protocol/Movement.h"
 #include "Protocol/OptionData.h"
+#include "Protocol/Outgoing.h"
 #include "Protocol/Pet/PetInfo.h"
 #include "Protocol/Pet/PetOrders.h"
-#include "Protocol/Skill.h"
 #include "Protocol/Quest.h"
+#include "Protocol/Skill.h"
 #include "Protocol/Viewport.h"
 #include "Protocol/World.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActionReply.h"
-#include "Scenes/CharacterDrawing.h"
 #include "Scenes/ActorCombat.h"
-#include "Scenes/FloorItemPackets.h"
+#include "Scenes/CharacterDrawing.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/CombatReplies.h"
+#include "Scenes/EventPackets.h"
+#include "Scenes/FloorItemPackets.h"
 #include "Scenes/GameFriends.h"
-#include "Scenes/IWorldEntryPublisher.h"
-#include "Scenes/IWorldTransitionPublisher.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/InventoryReply.h"
+#include "Scenes/IWorldEntryPublisher.h"
+#include "Scenes/IWorldTransitionPublisher.h"
 #include "Scenes/MagicAttackCount.h"
 #include "Scenes/MonsterViewport.h"
 #include "Scenes/MovementReplies.h"
@@ -58,6 +64,7 @@
 #include <utility>
 #include <span>
 #include <string>
+#include <utility>
 #include <variant>
 
 namespace Client::Scenes
@@ -78,7 +85,7 @@ void ApplyWeather(const Protocol::World::Weather& received, World::LeafWeather& 
 }
 
 // 0x42a760 manda el B9 02 por el socket del GS al cargar el 30: el de la sesión que aplica la respuesta. Y 0x419900,
-// al cerrar las misiones, el C1 03 31 por la misma sesión.
+// al cerrar las misiones, y 0x657a90, al cerrar un NPC de evento, el C1 03 31 por la misma sesión.
 WorldEntryResources WithTheSiegeRequest(const WorldEntryResources& resources, App::ServerSession& session)
 {
     WorldEntryResources bound = resources;
@@ -365,6 +372,32 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
         {
             return Core::Unexpected(applied.Error());
         }
+        // Los sonidos que pidió quedan sin tocar: MuRet no tiene audio hasta la CL10.
+        return {};
+    }
+    if (const auto* packet = std::get_if<Protocol::Events::EventPacket>(&event))
+    {
+        // CL9 hito 11: GetTickCount es el reloj de la sesión en ms (App::TickCountMs); sin reloj, 0.
+        const EventPacketContext context{
+            .world = m_resources.world,
+            .random = m_resources.cloth.random,
+            .texts = m_resources.texts,
+            .items = m_resources.items,
+            .measure = m_resources.textMeasure,
+            .screen = m_resources.screen ? m_resources.screen() : App::PixelSize{640, 480},
+            .tickCount = m_resources.clock != nullptr ? App::TickCountMs(m_resources.clock->Now()) : 0U,
+            .playerSkeleton = m_resources.models.SkeletonOf(Data::Models::PlayerSkeletonModel),
+            .models = &m_resources.models,
+            .sendWindowClose = [&session] { session.SendWindowClose(); },
+            // SendChat manda cualquier paquete de mundo, como el de los demás pasos.
+            .send = [&session](Protocol::Outgoing outgoing) { session.SendChat(std::move(outgoing)); },
+            .dataRoot = m_resources.dataRoot};
+        const auto applied = ApplyEventPacket(*packet, context);
+        if (!applied.HasValue())
+            return Core::Unexpected(applied.Error());
+        // Lo que el original hace fuera de sus tablas se descarta con un aviso, y la sesión sigue (Q-C174, Q-C778).
+        if (applied.Value().discarded)
+            m_resources.log.Warning("se descarta el resto del paquete de evento: {}", *applied.Value().discarded);
         // Los sonidos que pidió quedan sin tocar: MuRet no tiene audio hasta la CL10.
         return {};
     }

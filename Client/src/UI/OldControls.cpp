@@ -6,6 +6,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <string>
+#include <string_view>
 
 namespace Client::UI
 {
@@ -456,5 +458,38 @@ bool StepTheListMouse(OldList& list, std::size_t size, const OldListGlobals& glo
         ++at;
     }
     return handled;
+}
+
+std::optional<char> FilteredByTheEdit(std::int32_t filter, char typed)
+{
+    constexpr char Escape = 0x1b;
+    constexpr char FirstIgnored = 0x19;
+    constexpr char LastIgnored = 0x1c;
+    if (typed == Escape || (typed >= FirstIgnored && typed <= LastIgnored))
+        return std::nullopt;
+    const bool digit = typed >= '0' && typed <= '9';
+    if ((filter & DigitsOnlyEdit) != 0)
+        return digit ? std::optional<char>(typed) : std::nullopt;
+    if ((filter & UppercaseLettersAndDigitsEdit) == 0 || digit || (typed >= 'A' && typed <= 'Z'))
+        return typed;
+    if (typed < 'a' || typed > 'z')
+        return std::nullopt;
+    return static_cast<char>(typed - ('a' - 'A'));
+}
+
+void TypeInTheEdit(OldEdit& edit, std::string_view typed)
+{
+    if ((edit.filter & (DigitsOnlyEdit | UppercaseLettersAndDigitsEdit)) == 0)
+    {
+        edit.text.Type(typed);
+        return;
+    }
+    std::string passed;
+    for (const char letter : typed)
+    {
+        if (const std::optional<char> kept = FilteredByTheEdit(edit.filter, letter))
+            passed.push_back(*kept);
+    }
+    edit.text.Type(passed);
 }
 } // namespace Client::UI

@@ -20,8 +20,11 @@
 #include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/Skeleton.h"
+#include "Scenes/CameraTour.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterStep.h"
+#include "Scenes/GamePanels.h"
+#include "Scenes/InventoryMoves.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/GameCharacters.h"
 #include "Scenes/HelperTable.h"
@@ -110,7 +113,14 @@ Core::Expected<void, std::string> GameScene::StepTheCharacters(float worldClock,
             .texts = m_texts,
             .textMeasure = m_context.textMeasure,
             .screen = m_screen,
-            .systemTime = SceneSystemTime(m_context.clock)});
+            .systemTime = SceneSystemTime(m_context.clock),
+            // CL9 hito 11: el AF 02 de 0x4fbee8 por la sesión.
+            .sendChaosCastleReposition = [this](std::uint8_t x, std::uint8_t y) -> Core::Expected<void, std::string>
+            {
+                if (m_session == nullptr)
+                    return Core::Unexpected(std::string("0x4fbee8: no hay sesión para el AF 02"));
+                return m_session->SendChaosCastleReposition(x, y);
+            }});
         !stepped.HasValue())
     {
         return stepped;
@@ -269,7 +279,35 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
         return particles;
     }
     World::StepGroundMarks(runtime.groundMarks);
-    return {};
+    // 0x637132: 0x403590, el recorrido de la cámara, con timeGetTime (0x404c90): el reloj de la escena en ms.
+    const auto now = m_context.clock != nullptr
+                         ? static_cast<std::uint32_t>(
+                               std::chrono::duration_cast<std::chrono::milliseconds>(m_context.clock->Now()).count())
+                         : 0U;
+    // 0x403390, en cada paso del recorrido: el ítem del cursor vuelve a su lugar (0x5be150) y los paneles se cierran
+    // como con Esc (0x657880(0x1b)).
+    const InventoryServices inventory = InventoryContext();
+    const auto releaseTheUi = [&]() -> Core::Expected<void, std::string>
+    {
+        WorldState& world = *m_context.world;
+        if (auto returned = ReturnTheCursorItem(
+                InventoryMoveContext{.world = world, .random = m_context.cloth->random, .services = inventory});
+            !returned.HasValue())
+            return returned;
+        GamePanels panels(world, m_context.cloth->random, GamePanelTables{.items = m_items, .texts = m_texts});
+        if (m_session != nullptr)
+            panels.LendTheWindowClose([this]() { m_session->SendWindowClose(); });
+        auto closed = panels.Registry().PanelKey(0x1b);
+        if (!closed.HasValue())
+            return Core::Unexpected(std::move(closed).Error());
+        return {};
+    };
+    return StepTheCameraTour(CameraTourContext{.world = *m_context.world,
+                                               .random = m_context.cloth->random,
+                                               .now = now,
+                                               .resources = m_context.worldEntry,
+                                               .height = terrainHeight,
+                                               .releaseTheUi = releaseTheUi});
 }
 
 } // namespace Client::Scenes

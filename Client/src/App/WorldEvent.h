@@ -3,18 +3,19 @@
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
 #include "Protocol/Combat.h"
+#include "Protocol/Events.h"
 #include "Protocol/FloorItems.h"
 #include "Protocol/Friends.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/Messages.h"
-#include "Protocol/OptionData.h"
-#include "Protocol/Quest.h"
-#include "Protocol/World.h"
 #include "Protocol/Movement.h"
+#include "Protocol/OptionData.h"
 #include "Protocol/Pet/PetInfo.h"
 #include "Protocol/Pet/PetOrders.h"
+#include "Protocol/Quest.h"
 #include "Protocol/Skill.h"
 #include "Protocol/Viewport.h"
+#include "Protocol/World.h"
 
 #include <variant>
 
@@ -65,5 +66,5 @@ using WorldEvent = std::variant<
     Protocol::Viewport::Summons, Protocol::Viewport::Objects, Protocol::Viewport::MagicAttackCount,
     Protocol::Friends::FriendList, Protocol::Friends::FriendAddResult, Protocol::Friends::FriendRequest,
     Protocol::Friends::FriendDeleteResult, Protocol::Friends::FriendState, Protocol::Combat::KillExperience,
-    Protocol::Combat::Death>;
+    Protocol::Combat::Death, Protocol::Events::EventPacket>;
 } // namespace Client::App

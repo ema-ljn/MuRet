@@ -237,14 +237,15 @@ bool PressTabInTheChat(ChatInputState& input, bool chatOpen)
 
 void TypeInTheChat(ChatInputState& input, std::string_view typed)
 {
-    if (input.focus == ChatFocus::Game || input.focus == ChatFocus::OldWindow || typed.empty())
+    if (input.focus == ChatFocus::Game || input.focus == ChatFocus::OldWindow || input.focus == ChatFocus::Dialog ||
+        typed.empty())
         return;
     FieldOf(input, input.focus).Type(typed);
 }
 
 void BackspaceInTheChat(ChatInputState& input)
 {
-    if (input.focus == ChatFocus::Game || input.focus == ChatFocus::OldWindow)
+    if (input.focus == ChatFocus::Game || input.focus == ChatFocus::OldWindow || input.focus == ChatFocus::Dialog)
         return;
     FieldOf(input, input.focus).Backspace();
 }

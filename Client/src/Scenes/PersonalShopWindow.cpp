@@ -7,6 +7,8 @@
 #include "Protocol/Trade.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Text/FontSet.h"
+#include "Scenes/GameChat.h"
+#include "Scenes/GameMessages.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/InventoryMoves.h"
@@ -15,10 +17,16 @@
 #include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "Scenes/ZenText.h"
 #include "UI/ChatInput.h"
 #include "UI/Dialogs.h"
 #include "UI/GameDialogs.h"
+#include "UI/GameText.h"
 #include "UI/GameUiState.h"
+#include "UI/MessageArea.h"
+#include "UI/NameChecks.h"
+#include "UI/OldControls.h"
+#include "UI/OldWindowBase.h"
 #include "UI/PanelRegistry.h"
 #include "World/ItemState.h"
 
@@ -30,6 +38,7 @@
 #include <format>
 #include <map>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -47,6 +56,29 @@ constexpr std::int32_t ShopDialogId = 0x91;
 // 0x5ebab3 y 0x5ebb5c: el largo del campo (0x6c8e78) del título y del precio.
 constexpr std::int32_t TitleFieldLimit = 0x1c;
 constexpr std::int32_t PriceFieldLimit = 8;
+// 0x5ebac3..0x5ebb1e y 0x5ebb68..0x5ebbbb: el EDIT de [0x5763504] de cada modo. +0x4c en 0xc (el fondo negro del
+// dibujo, 8, y un 4 que la subclase no mira) o 9 (además, solo cifras), el tope (la vtable + 0x3c), el tamaño (+ 8) y
+// el lugar (0x45a9d0).
+constexpr std::int32_t TitleEditFilter = 0xc;
+constexpr std::int32_t PriceEditFilter = 9;
+constexpr std::size_t TitleEditLimit = 0x1c;
+constexpr std::size_t PriceEditLimit = 8;
+constexpr std::int32_t TitleEditWidth = 0x85;
+constexpr std::int32_t PriceEditWidth = 0x3c;
+constexpr std::int32_t ShopEditHeight = 0xa;
+constexpr std::int32_t TitleEditX = 0xfd;
+constexpr std::int32_t PriceEditX = 0x125;
+constexpr std::int32_t ShopEditY = 0x8a;
+// 0x626112..0x626145 y 0x626200..0x626227: el OK y el cancelar del 0x91, de 0xff a 0x133 y de 0x14a a 0x17e en x, y de
+// 0xa0 a 0xb0 en y, con los bordes (jl y jg).
+constexpr std::int32_t ShopOkLeft = 0xff;
+constexpr std::int32_t ShopOkRight = 0x133;
+constexpr std::int32_t ShopCancelLeft = 0x14a;
+constexpr std::int32_t ShopCancelRight = 0x17e;
+constexpr std::int32_t ShopButtonTop = 0xa0;
+constexpr std::int32_t ShopButtonBottom = 0xb0;
+// 0x6261cc: el título que 0x5ebbd0 no deja (0x770fe14), del tipo 1.
+constexpr std::size_t BadTitleText = 1130;
 // 0x471701 y 0x6260d1: la caja de confirmación.
 constexpr std::int32_t ConfirmDialog = 0x9c;
 // 0x4717a8: un pedazo se corta al pasar de 24 bytes.
@@ -103,7 +135,6 @@ constexpr std::int32_t TradeWarningKind = 3;
 // 0x5dc7d5..0x5dc7df: el aviso del precio menor que el valor, 0x633300(2, 1132, 0x99).
 constexpr std::int32_t PriceWarningLines = 2;
 constexpr std::int32_t PriceWarningText = 1132;
-constexpr std::int32_t PriceWarningDialog = 0x99;
 // 0x5dc7ab: 0x54d0f0 con el modo 2.
 constexpr std::int32_t PriceValueMode = 2;
 
@@ -270,8 +301,10 @@ Core::Expected<bool, std::string> AnswerThePriceDialog(const GameUiContext& cont
             return Core::Unexpected(std::move(value).Error());
         if (static_cast<std::uint32_t>(runtime.social.typedMoney) < value.Value())
         {
-            auto warned = UI::OpenTextDialog(runtime.dialogBox, runtime.dialogs, context.texts, PriceWarningLines,
-                                             PriceWarningText, PriceWarningDialog);
+            // 0x5dc7d5: 0x633300(2, 1132, 0x99), con el zen tipeado escrito por 0x5b1130.
+            auto warned = UI::OpenTheMoneyTextDialog(runtime.dialogBox, runtime.dialogs, context.texts,
+                                                     PriceWarningLines, PriceWarningText,
+                                                     FormatZen(static_cast<std::uint32_t>(runtime.social.typedMoney)));
             if (!warned.HasValue())
                 return Core::Unexpected(std::move(warned).Error());
             trade.warningKind = PriceWarningKind;
@@ -338,8 +371,10 @@ Core::Expected<bool, std::string> AnswerTheWarning(const GameUiContext& context,
         return false;
     }
     case 4:
+        // Solo lo abre el botón de 0x5e75fc, el paso del panel 0x2000 (0x5e74f0, CL9.3): el sí baraja las 10 cifras de
+        // 0x7879fc8 con 40 rand() y el no apaga 0x78abb08 (0x5d9c3f), los dos de ese panel.
         return Core::Unexpected(std::format("0x5d9b82: la respuesta {} del aviso 4 de 0x78abb14 (0x7879fc8 y "
-                                            "0x78abb08) es de la CL9.3",
+                                            "0x78abb08, del panel 0x2000) es de la CL9.3",
                                             answer));
     case BuyWarningKind:
     {
@@ -384,6 +419,95 @@ void OpenTheShopDialog(WorldRuntime& runtime, std::int32_t mode)
     runtime.social.moneyField = mode == ShopPriceMode ? 1 : 0;
     UI::ResetTheTextBuffers(runtime.chat.input, false);
     runtime.social.dialogFieldLimit = mode == ShopPriceMode ? PriceFieldLimit : TitleFieldLimit;
+    // Con 0x6c7b8c en 1: la vtable + 4 con 0 (a la vista), +0x4c, la + 0x44 con (0, 0, 0, 0) (el fondo), el tope, el
+    // tamaño y el lugar. El foco y el dibujo son del dibujo del 0x91 (0x6305c9).
+    const bool price = mode == ShopPriceMode;
+    UI::OldEdit& edit = runtime.chat.input.dialogEdit;
+    edit.base.state = UI::ShownWindow;
+    edit.filter = price ? PriceEditFilter : TitleEditFilter;
+    edit.backgroundColor = 0;
+    edit.text.SetLimit(price ? PriceEditLimit : TitleEditLimit);
+    edit.base.width = price ? PriceEditWidth : TitleEditWidth;
+    edit.base.height = ShopEditHeight;
+    edit.base.x = price ? PriceEditX : TitleEditX;
+    edit.base.y = ShopEditY;
+}
+
+Core::Expected<void, std::string> StepTheShopDialog(const GameUiContext& context)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    UI::ChatInputState& input = runtime.chat.input;
+    PersonalShopState& shops = runtime.social.personalShop;
+    SocialState& social = runtime.social;
+    bool& click = runtime.movement.pendingClick;
+    const auto in = [&context](std::int32_t left, std::int32_t right)
+    {
+        return context.mouseX >= left && context.mouseY >= ShopButtonTop && context.mouseX <= right &&
+               context.mouseY <= ShopButtonBottom;
+    };
+    // 0x626102..0x6261f7: el OK con el clic lee el EDIT (la vtable + 0x50, hasta 0xff bytes, y su largo a 0x7758590) y
+    // con el título lo guarda si 0x5ebbd0 lo deja (si no, el 1130 del tipo 1 con el nombre de 0x7d3a15c, una cadena
+    // vacía de la .bss); con el precio, el atoi a 0x77f3b6c.
+    std::int32_t pressed = -1;
+    if (click && in(ShopOkLeft, ShopOkRight))
+    {
+        pressed = 1;
+        click = false;
+        UI::CopyIntoTheBuffer(input.messageBuffer, input.dialogEdit.text.Value());
+        input.messageLength = static_cast<std::int32_t>(UI::CStringOf(input.messageBuffer).size());
+        const std::string_view typed = UI::CStringOf(input.messageBuffer);
+        if (shops.dialogMode == ShopTitleMode)
+        {
+            const std::span<const std::string> filter =
+                context.chat != nullptr ? context.chat->filter : std::span<const std::string>{};
+            if (UI::IsAShopTitle(typed, filter))
+                shops.ownTitle = std::string(typed);
+            else
+            {
+                const std::optional<std::string_view> text = UI::TextAt(context.texts, BadTitleText);
+                if (!text)
+                    return Core::Unexpected(std::format("0x6261cc: sin el texto {} de Text.bmd", BadTitleText));
+                if (context.measure == nullptr)
+                    return Core::Unexpected(std::string("0x6261d6: el mensaje del texto 1130 sin medidor"));
+                if (auto said = AddGameMessage(runtime, *context.measure, context.screen, {}, *text, UI::SystemMessage);
+                    !said.HasValue())
+                    return said;
+            }
+        }
+        else if (shops.dialogMode == ShopPriceMode)
+            social.typedMoney = AtoiLikeTheCrt(typed);
+    }
+    // 0x6261f7..0x626230: el cancelar, con el clic que quede.
+    if (click && in(ShopCancelLeft, ShopCancelRight))
+    {
+        click = false;
+        pressed = 0;
+    }
+    // 0x626232..0x626293: Enter (0x5763588) vale como el OK, sin leer el EDIT (lo leyó el WndProc); si no, sin botón
+    // nada, y el cancelar responde 2.
+    bool ok = pressed == 1;
+    if (runtime.ui.enterPressed)
+    {
+        runtime.ui.enterPressed = false;
+        ok = true;
+    }
+    else if (pressed < 0)
+        return {};
+    // 0x626251..0x626291: el OK responde 1 con un título no vacío (0x78aba64) o un precio mayor que 0 (con signo);
+    // si no, 2. 0x6c932e es la respuesta que miran el paso de la ventana (0x5ea2f1) y el del precio (0x5dc79e).
+    TradeState& trade = social.trade;
+    trade.warningByte = static_cast<std::uint8_t>(No);
+    if (ok && ((shops.dialogMode == ShopTitleMode && !shops.ownTitle.empty()) ||
+               (shops.dialogMode == ShopPriceMode && social.typedMoney > 0)))
+        trade.warningByte = static_cast<std::uint8_t>(Yes);
+    // 0x62629a..0x6262d0: los campos de texto vacíos (0x553570(0), con el EDIT), el campo del chat cerrado, el foco a
+    // la ventana del juego y el diálogo que espera abierto.
+    UI::ResetTheTextBuffers(input, false);
+    runtime.ui.chatOpen = false;
+    input.focus = UI::ChatFocus::Game;
+    runtime.dialogs.current = runtime.dialogs.pending;
+    runtime.dialogs.pending = 0;
+    return {};
 }
 
 bool OpenTheConfirmBox(ConfirmBoxState& box, UI::DialogState& dialogs, std::int32_t id, std::string_view text,
@@ -464,11 +588,9 @@ Core::Expected<void, std::string> AnswerTheConfirmBox(const GameUiContext& conte
         const std::string& title = runtime.social.personalShop.ownTitle;
         if (auto sent = SendInC3(context, Shop::WriteOpenShop(TitleBytes(title)), "0x62378b"); !sent.HasValue())
             return sent;
-        // 0x623daa: 0x657a90, con las tiendas que cierra mandando lo suyo.
+        // 0x623daa: 0x657a90, con lo que cierra mandando lo suyo (el 3D, el 3F 07 y el 31).
         GamePanels panels(context.world, context.random);
-        panels.LendThePersonalShops(context.world, context.random,
-                                    [requests = context.requests](Protocol::Outgoing outgoing)
-                                    { requests->SendGamePacket(std::move(outgoing)); });
+        panels.LendTheSession(context.world, context.random, context.requests);
         if (auto closed = panels.Registry().CloseAll(); !closed.HasValue())
             return closed;
     }

@@ -790,8 +790,8 @@ Core::Expected<bool, std::string> FitsTheSlot(const InventoryMoveContext& contex
 }
 
 // 0x5df58b..0x5df6c8: las ventanas con el mouse sobre ellas y las tiendas personales, que no dejan tirar nada. Las de
-// la derecha comparan con 0x78aba28 y el comercio con 0x78a5a1c, que escriben sus dibujos (0x5f4720, 0x5f4e30,
-// 0x5febf0, 0x5f3b40...): MuRet no abre ninguna, y una abierta corta.
+// la derecha comparan con 0x78aba28, que escriben sus dibujos (0x5f4720, 0x5f4e30, 0x5febf0...), del hito 6: una
+// abierta corta. El comercio compara con 0x78a5a1c (HudState::tradeX, de su dibujo 0x5f3b40), con signo (jl).
 Core::Expected<bool, std::string> WindowKeepsTheItem(const WorldRuntime& runtime, UI::PanelRegistry& panels,
                                                      const GroundDrop& drop)
 {
@@ -805,9 +805,9 @@ Core::Expected<bool, std::string> WindowKeepsTheItem(const WorldRuntime& runtime
         return Core::Unexpected(std::string("0x5df644: la caja del caos abierta lee 0x78aba28 (0x5febf0), del hito 6"));
     if (panels.IsOpen(UI::CastleSiegeListPanel) && runtime.panels.delegated.castleSiegeListMode == CastleSiegeListMode)
         return Core::Unexpected(std::string("0x5df635: 0x6689d0, la marca del asedio del héroe, es del hito 12"));
-    if (panels.IsOpen(UI::TradePanel))
-        return Core::Unexpected(std::string("0x5df667: el comercio abierto lee la x de su ventana (0x78a5a1c), que "
-                                            "escribe su dibujo (0x5f3b40), del hito 7"));
+    // 0x5df651..0x5df671.
+    if (panels.IsOpen(UI::TradePanel) && drop.mouseX >= runtime.hud.tradeX)
+        over = true;
     // 0x5df675..0x5df69d: la tienda personal propia o la ajena, con el mouse donde sea.
     if (panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel))
         over = true;

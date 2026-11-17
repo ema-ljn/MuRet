@@ -190,7 +190,7 @@ Core::Expected<void, std::string> StartTheTeleportAction(ActorState& actor, cons
 Core::Expected<void, std::string> CloseTransitionWindows(const WorldEntryResources& resources)
 {
     GamePanels panels(resources.world, resources.cloth.random);
-    panels.LendTheWindowClose(resources.sendWindowClose);
+    panels.LendTheSession(resources.world, resources.cloth.random, resources.sendGamePacket, resources.sendWindowClose);
     return panels.Registry().CloseAll();
 }
 } // namespace Client::Scenes

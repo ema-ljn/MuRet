@@ -158,6 +158,18 @@ Core::Expected<void, std::string> OpenThePersonalShop(WorldState& world, Render:
     return {};
 }
 
+void ResetThePersonalShops(PersonalShopState& shops)
+{
+    shops.ownOpen = 0;
+    shops.mode = NoShopView;
+    shops.dialogMode = 0;
+    shops.ownTitle.clear();
+    shops.titles.clear();
+    shops.ownPrices.clear();
+    shops.otherPrices.clear();
+    shops.pricesBuilt = false;
+}
+
 Core::Expected<void, std::string> CloseThePersonalShop(WorldState& world, Render::Models::CrtRandom& random,
                                                        const GamePacketSender& send)
 {
@@ -230,7 +242,8 @@ Core::Expected<void, std::string> ApplyShopItemList(const Shop::ShopItemList& li
     WorldState& world = resources.world;
     PersonalShopState& shops = world.Runtime().social.personalShop;
     GamePanels panels(world, resources.cloth.random);
-    panels.LendThePersonalShops(world, resources.cloth.random, send);
+    // Abrir la tienda de otro (0x65b319) cierra lo demás: el comercio con el 3D y las misiones con el 31.
+    panels.LendTheSession(world, resources.cloth.random, send, resources.sendWindowClose);
     UI::PanelRegistry& registry = panels.Registry();
     // 0x4db8a7..0x4db8e8: el almacén y el inventario, si están abiertos (IsOpen de los dos sin rand()).
     for (const UI::PanelId id : {UI::WarehousePanel, UI::InventoryPanel})

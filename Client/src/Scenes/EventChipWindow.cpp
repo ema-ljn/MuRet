@@ -288,7 +288,7 @@ Result StepTheCloseButton(const GameUiContext& context, UI::PanelRegistry& panel
     runtime.ui.chatOpen = false;
     ForgetTheMoneyField(runtime.social);
     runtime.events.serialEntry = false;
-    // 0x5e74bf: SetFocus([0x5763544]), con 0x6c7b8c en 1. El texto del EDIT queda.
+    // 0x5e74bf: SetFocus([0x5763544]), con 0x6c7b8c en 1. El texto del EDIT ya lo vació 0x553570 (0x5535bd).
     runtime.chat.input.focus = UI::ChatFocus::Game;
     return {};
 }

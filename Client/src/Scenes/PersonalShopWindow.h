@@ -31,11 +31,20 @@ inline constexpr std::int32_t ShopPriceMode = 2;
 inline constexpr std::int32_t OpenShopConfirm = 1000;
 
 // 0x5eba70(modo): con 1 o 2, el diálogo 0x91 (0x6236f0), 0x78aba60 en el modo, el campo del chat cerrado (0x6c8e68), el
-// modo del zen (0x77f3b6a) en 0 con el título y en 1 con el precio, los campos de texto vacíos (0x553570(0)) y el largo
-// del campo (0x6c8e78) en 0x1c o en 8. Con 0x6c7b8c en 1 (la .data) arma además el EDIT de [0x5763504] (su largo, su
-// tamaño de 0x85 o 0x3c por 10 y su lugar en (0xfd o 0x125, 0x8a)), que es del hito 6 y MuRet no tiene. Con otro modo,
-// nada. Sin rand().
+// modo del zen (0x77f3b6a) en 0 con el título y en 1 con el precio, los campos de texto vacíos (0x553570(0), con el
+// EDIT de [0x5763504]) y el largo del campo (0x6c8e78) en 0x1c o en 8. Con 0x6c7b8c en 1 (la .data) arma además ese
+// EDIT (ChatInputState::dialogEdit): a la vista, +0x4c en 0xc o 9 (solo cifras), el fondo en 0, el tope de 0x1c o 8, el
+// tamaño de 0x85 o 0x3c por 10 y el lugar en (0xfd o 0x125, 0x8a). Con otro modo, nada. Sin rand().
 void OpenTheShopDialog(WorldRuntime& runtime, std::int32_t mode);
+
+// 0x6260f6..0x6262e8, el paso del 0x91: el OK (x de 0xff a 0x133, y de 0xa0 a 0xb0, con los bordes) con el clic lo
+// gasta, lee el EDIT al buffer del mensaje y, con el título, lo guarda en 0x78aba64 si 0x5ebbd0 lo deja (si no, el
+// texto 1130 del tipo 1), o con el precio guarda su atoi en 0x77f3b6c; el cancelar (x de 0x14a a 0x17e) con el clic que
+// quede lo gasta. Enter (0x5763588, que apaga) vale como el OK aunque se haya apretado el cancelar, sin leer el EDIT;
+// sin Enter ni botón, nada. Después, 0x6c932e en 1 con el OK y un título no vacío o un precio mayor que 0 (con signo),
+// y en 2 si no; los campos de texto vacíos (0x553570(0)), el campo del chat cerrado, el foco a la ventana del juego y
+// el diálogo que espera abierto. Sin rand().
+[[nodiscard]] Core::Expected<void, std::string> StepTheShopDialog(const GameUiContext& context);
 
 // 0x4716e0(id, texto, tipo) sobre 0x575d9d0: con el 0x9c abierto (0x7d3a10c), false. Si no, el 0x9c por 0x6236f0 (con
 // otro abierto, esperando) y, con el tipo fuera de 1..2, false con el diálogo ya pedido. Si no, el id, el tipo y los
@@ -57,7 +66,7 @@ void OpenTheShopDialog(WorldRuntime& runtime, std::int32_t mode);
 [[nodiscard]] Core::Expected<void, std::string> AnswerTheConfirmBox(const GameUiContext& context, std::int32_t id,
                                                                     std::int32_t answer);
 
-// 0x5ea290 (desde 0x5ee1b1): con la tienda propia o la ajena abiertas (0x800 y 0x20000, sin rand()) y 0x6c931c en 1:
+// 0x5ea290 (desde 0x5ee1c5): con la tienda propia o la ajena abiertas (0x800 y 0x20000, sin rand()) y 0x6c931c en 1:
 // - el título respondido (0x78aba60 en 1 con 0x6c932e en 1 o 2) deja los dos en 0 y 0xff;
 // - la esquina de la ventana en (0x104, 0) (0x78aba58 y 0x78aba5c);
 // - el botón de abrir (x de 0x122 a 0x15a e y de 0x18c a 0x1a4, sin los bordes de la derecha y de abajo, con el clic,

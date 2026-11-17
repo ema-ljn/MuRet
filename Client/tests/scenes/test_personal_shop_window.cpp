@@ -12,6 +12,7 @@
 #include "Protocol/PersonalShop.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Text/FontSet.h"
+#include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/InventoryMoves.h"
@@ -21,8 +22,15 @@
 #include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "Scenes/ZenText.h"
+#include "UI/ChatInput.h"
+#include "UI/ChatLog.h"
 #include "UI/Dialogs.h"
+#include "UI/GameDialogs.h"
 #include "UI/GameUiState.h"
+#include "UI/MessageArea.h"
+#include "UI/OldControls.h"
+#include "UI/OldWindowBase.h"
 #include "UI/PanelRegistry.h"
 #include "World/ItemState.h"
 
@@ -31,6 +39,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -40,6 +49,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -83,11 +93,21 @@ constexpr std::int32_t TitleBoxY = 0x41;
 constexpr std::int32_t NowhereX = 10;
 constexpr std::int32_t NowhereY = 300;
 // Los textos de Text.bmd que usa: la pregunta de la compra (1100), el aviso sin precio (1119), la pregunta de abrir
-// (1131, de 47 bytes: dos renglones) y el precio bajo (1132).
+// (1131, de 47 bytes: dos renglones) y el precio bajo (1132, con el %s del precio, y 1133).
 constexpr std::size_t BuyText = 1100;
 constexpr std::size_t MissingPriceText = 1119;
 constexpr std::size_t OpenShopText = 1131;
 constexpr std::size_t LowPriceText = 1132;
+constexpr std::size_t LowPriceQuestionText = 1133;
+// El título que 0x5ebbd0 no deja (0x6261cc).
+constexpr std::size_t BadTitleText = 1130;
+// El OK y el cancelar del 0x91 (0x626112..0x626227): de 0xff a 0x133 y de 0x14a a 0x17e en x, de 0xa0 a 0xb0 en y.
+constexpr std::int32_t ShopOkLeft = 0xff;
+constexpr std::int32_t ShopOkRight = 0x133;
+constexpr std::int32_t ShopCancelLeft = 0x14a;
+constexpr std::int32_t ShopCancelRight = 0x17e;
+constexpr std::int32_t ShopButtonTop = 0xa0;
+constexpr std::int32_t ShopButtonBottom = 0xb0;
 
 // El paso con el inventario y una tienda abiertos, el registro propio abierto (sin los 3.848 de sus cierres) y nada
 // bajo el mouse: los 12 de test_game_inventory_step.cpp con la ventana sola menos uno, porque la búsqueda de cualquier
@@ -113,7 +133,9 @@ std::map<std::size_t, std::string> ShopTexts()
     return {{BuyText, "aviso compra"},
             {MissingPriceText, "aviso sin precio"},
             {OpenShopText, "abrir la tienda con estos precios y este titulo"},
-            {LowPriceText, "aviso precio bajo"}};
+            {LowPriceText, "precio %s zen"},
+            {LowPriceQuestionText, "vender a ese precio"},
+            {BadTitleText, "aviso titulo malo"}};
 }
 
 struct Sent
@@ -167,6 +189,17 @@ int Drawn(CrtRandom from, const CrtRandom& to)
     }
     return -1;
 }
+
+// GetTextExtentPointA: 6 columnas por letra y 13 de alto.
+class LetterMeasure final : public Client::Render::Text::ITextMeasure
+{
+public:
+    [[nodiscard]] Client::Render::Text::TextExtent Measure(Client::Render::Text::FontKind /*font*/,
+                                                           std::string_view text) const override
+    {
+        return {static_cast<int>(text.size()) * 6, 13};
+    }
+};
 
 // El mundo del juego, en el heap.
 struct ShopWorld
@@ -306,8 +339,8 @@ protected:
         return corner + static_cast<std::int32_t>(place) * Cell + Cell / 2;
     }
 
-    // Lo que deja el paso del diálogo 0x91 (0x6260f6, que corta: su campo es el EDIT del hito 6) con el precio escrito
-    // y el OK: el diálogo cerrado, 0x77f3b6c con el precio y 0x6c932e en 1.
+    // Lo que deja el paso del diálogo 0x91 (0x6260f6) con el precio escrito y el OK: el diálogo cerrado, 0x77f3b6c con
+    // el precio y 0x6c932e en 1.
     void ThePriceIsTyped(std::int32_t price)
     {
         Runtime().dialogs.current = 0;
@@ -471,13 +504,147 @@ TEST_P(PersonalShopWindowTest, TheTitleBoxOpensTheTitleDialog)
     EXPECT_FALSE(Runtime().ui.chatOpen);
     EXPECT_TRUE(sent.empty());
 
-    // El 0x91 (que corta) deja la respuesta y se cierra.
-    Runtime().dialogs.current = 0;
-    Runtime().social.trade.warningByte = 2;
+    // El cancelar del 0x91 deja la respuesta en 2 y lo cierra.
+    stepped = Dialogs(ShopCancelLeft, ShopButtonTop, true);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(Runtime().dialogs.current, 0);
+    EXPECT_EQ(Runtime().social.trade.warningByte, 2);
     stepped = Step(NowhereX, NowhereY, false);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(Shops().dialogMode, 0);
     EXPECT_EQ(Runtime().social.trade.warningByte, 0xff);
+}
+
+// 0x5eba70(1): el EDIT de [0x5763504] a la vista con +0x4c en 0xc, el fondo en 0, el tope de 0x1c, 0x85 × 10 en
+// (0xfd, 0x8a), y vacío; con el precio, +0x4c en 9 (solo cifras), el tope de 8 y 0x3c × 10 en (0x125, 0x8a).
+TEST_P(PersonalShopWindowTest, TheShopDialogSetsUpItsEdit)
+{
+    Client::UI::OldEdit& edit = Runtime().chat.input.dialogEdit;
+    edit.text.SetText("viejo");
+    edit.base.state = Client::UI::HiddenWindow;
+    Client::Scenes::OpenTheShopDialog(Runtime(), Client::Scenes::ShopTitleMode);
+    EXPECT_EQ(Runtime().dialogs.current, 0x91);
+    EXPECT_EQ(edit.base.state, Client::UI::ShownWindow);
+    EXPECT_EQ(edit.filter, 0xc);
+    EXPECT_EQ(edit.backgroundColor, 0u);
+    EXPECT_EQ(edit.base.width, 0x85);
+    EXPECT_EQ(edit.base.height, 0xa);
+    EXPECT_EQ(edit.base.x, 0xfd);
+    EXPECT_EQ(edit.base.y, 0x8a);
+    EXPECT_EQ(edit.text.Value(), "");
+    Client::UI::TypeInTheEdit(edit, std::string(0x20, 'a'));
+    EXPECT_EQ(edit.text.Value().size(), 0x1cu);
+
+    Runtime().dialogs.current = 0;
+    Client::Scenes::OpenTheShopDialog(Runtime(), Client::Scenes::ShopPriceMode);
+    EXPECT_EQ(edit.filter, 9);
+    EXPECT_EQ(edit.base.width, 0x3c);
+    EXPECT_EQ(edit.base.x, 0x125);
+    EXPECT_EQ(edit.text.Value(), "");
+    Client::UI::TypeInTheEdit(edit, "12a3456789");
+    EXPECT_EQ(edit.text.Value(), "12345678");
+}
+
+// 0x6260f6: el OK con el clic (en el borde de abajo a la derecha) gasta el clic, lee el EDIT y guarda el título; la
+// respuesta es 1, los campos de texto quedan vacíos (el EDIT también), el foco vuelve al juego y el diálogo se cierra.
+// Sin rand().
+TEST_P(PersonalShopWindowTest, TheShopDialogOkKeepsTheTitle)
+{
+    Client::Scenes::OpenTheShopDialog(Runtime(), Client::Scenes::ShopTitleMode);
+    Client::UI::ChatInputState& chat = Runtime().chat.input;
+    Client::UI::TypeInTheEdit(chat.dialogEdit, "Mi puesto");
+    chat.focus = Client::UI::ChatFocus::Dialog;
+    const auto stepped = Dialogs(ShopOkRight, ShopButtonBottom, true);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(DrawnByTheStep(), DialogStepRandoms);
+    EXPECT_FALSE(Runtime().movement.pendingClick);
+    EXPECT_EQ(Shops().ownTitle, "Mi puesto");
+    EXPECT_EQ(Runtime().social.trade.warningByte, 1);
+    EXPECT_EQ(Runtime().dialogs.current, 0);
+    EXPECT_EQ(chat.dialogEdit.text.Value(), "");
+    EXPECT_EQ(chat.focus, Client::UI::ChatFocus::Game);
+    EXPECT_FALSE(Runtime().ui.chatOpen);
+    EXPECT_TRUE(sent.empty());
+}
+
+// Con el precio, el OK guarda el atoi del EDIT en 0x77f3b6c: mayor que 0 responde 1, y 0 responde 2.
+TEST_P(PersonalShopWindowTest, TheShopDialogOkReadsThePrice)
+{
+    for (const auto& [typed, price, answer] :
+         {std::tuple<std::string_view, std::int32_t, std::uint8_t>{"1250", 1250, 1},
+          std::tuple<std::string_view, std::int32_t, std::uint8_t>{"0", 0, 2}})
+    {
+        Client::Scenes::OpenTheShopDialog(Runtime(), Client::Scenes::ShopPriceMode);
+        Client::UI::TypeInTheEdit(Runtime().chat.input.dialogEdit, typed);
+        const auto stepped = Dialogs(ShopOkLeft, ShopButtonTop, true);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(Runtime().social.typedMoney, price) << typed;
+        EXPECT_EQ(Runtime().social.trade.warningByte, answer) << typed;
+        EXPECT_EQ(Runtime().dialogs.current, 0) << typed;
+    }
+}
+
+// El cancelar gasta el clic y responde 2 sin leer el EDIT; fuera de los dos botones, ni el clic ni el diálogo cambian.
+TEST_P(PersonalShopWindowTest, TheShopDialogCancelAnswersNo)
+{
+    Client::Scenes::OpenTheShopDialog(Runtime(), Client::Scenes::ShopTitleMode);
+    Client::UI::TypeInTheEdit(Runtime().chat.input.dialogEdit, "Otro");
+    Runtime().social.trade.warningByte = 0xff;
+    auto stepped = Dialogs(ShopCancelRight + 1, ShopButtonTop, true);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_TRUE(Runtime().movement.pendingClick);
+    EXPECT_EQ(Runtime().dialogs.current, 0x91);
+    EXPECT_EQ(Runtime().social.trade.warningByte, 0xff);
+
+    Runtime().movement.pendingClick = false;
+    stepped = Dialogs(ShopCancelLeft, ShopButtonBottom, true);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_FALSE(Runtime().movement.pendingClick);
+    EXPECT_EQ(Runtime().dialogs.current, 0);
+    EXPECT_EQ(Runtime().social.trade.warningByte, 2);
+    EXPECT_EQ(Shops().ownTitle, "");
+    EXPECT_EQ(Runtime().chat.input.dialogEdit.text.Value(), "");
+}
+
+// Enter (0x5763588) vale como el OK sin leer el EDIT: el título lo guardó el WndProc (0x4b55db). Sin título, 2.
+TEST_P(PersonalShopWindowTest, EnterAnswersTheShopDialog)
+{
+    for (const auto& [title, answer] :
+         {std::pair<std::string_view, std::uint8_t>{"Del Enter", 1}, std::pair<std::string_view, std::uint8_t>{"", 2}})
+    {
+        Client::Scenes::OpenTheShopDialog(Runtime(), Client::Scenes::ShopTitleMode);
+        Client::UI::TypeInTheEdit(Runtime().chat.input.dialogEdit, "no se lee");
+        Shops().ownTitle = std::string(title);
+        Runtime().ui.enterPressed = true;
+        const auto stepped = Dialogs(NowhereX, NowhereY, false);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_FALSE(Runtime().ui.enterPressed);
+        EXPECT_EQ(Shops().ownTitle, title);
+        EXPECT_EQ(Runtime().social.trade.warningByte, answer) << title;
+        EXPECT_EQ(Runtime().dialogs.current, 0);
+    }
+}
+
+// 0x6261c5..0x6261f2: un título que 0x5ebbd0 no deja (dos blancos al final) no se guarda: el aviso 1130 del tipo 1
+// sin nombre, y la respuesta 2 con el título vacío.
+TEST_P(PersonalShopWindowTest, TheShopDialogRefusesABadTitle)
+{
+    Client::Scenes::OpenTheShopDialog(Runtime(), Client::Scenes::ShopTitleMode);
+    Client::UI::TypeInTheEdit(Runtime().chat.input.dialogEdit, "Mal  ");
+    LetterMeasure letters;
+    Client::Scenes::GameUiContext context = Context(ShopOkLeft, ShopButtonTop);
+    context.measure = &letters;
+    Client::Scenes::LatchTheLeftButton(Runtime().movement, true, true);
+    const auto stepped = Client::Scenes::StepTheGameDialogs(context);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(Shops().ownTitle, "");
+    EXPECT_EQ(Runtime().social.trade.warningByte, 2);
+    const auto& entries = Runtime().chat.log.entries;
+    EXPECT_TRUE(std::ranges::any_of(entries,
+                                    [](const Client::UI::ChatEntry& entry) {
+                                        return entry.text == "aviso titulo malo" &&
+                                               entry.type == Client::UI::SystemMessage && entry.name.empty();
+                                    }));
 }
 
 // 0x5c5110 con la propia: el clic levanta el ítem de cualquiera de las dos grillas (el lugar + 12 o + 0x4c) sin el
@@ -635,8 +802,8 @@ TEST_P(PersonalShopWindowTest, TheRightClickOpensThePriceDialog)
 
 // 0x5d5046 desde el inventario: soltar el bastón en la tienda propia lo copia a 0x78a59c8 y abre el diálogo del precio
 // con el destino en 0x77f3cc8. El precio escrito (0x5dc79e) no menor que su valor: el C1 09 3F 01 con el lugar de
-// origen y el precio, el 24 de la grilla 0 a la 4 y el precio en el mapa en el destino; menor, el aviso 0x99 (que
-// corta, CL9.3). El no vuelve el bastón a su lugar.
+// origen y el precio, el 24 de la grilla 0 a la 4 y el precio en el mapa en el destino; menor, el aviso 0x99 con el
+// precio, y su no vuelve al diálogo del precio. El no del diálogo vuelve el bastón a su lugar.
 TEST_P(PersonalShopWindowTest, DroppingOnTheShopAsksForThePrice)
 {
     OpenTheShop(Client::UI::PersonalShopPanel);
@@ -664,14 +831,30 @@ TEST_P(PersonalShopWindowTest, DroppingOnTheShopAsksForThePrice)
     EXPECT_EQ(Runtime().cursorItemCount, 1);
     EXPECT_TRUE(sent.empty());
 
-    // El precio, menor que el valor: el aviso 0x99 corta.
+    // El precio, menor que el valor: el aviso 0x99 (0x5dc7d5) con el precio escrito por 0x5b1130 en el primer renglón y
+    // el 1133 en el segundo, y el aviso 6 esperando la respuesta.
     const std::uint32_t value = ValueOf(Runtime().dialogItem);
     ASSERT_GT(value, 0U);
     ThePriceIsTyped(static_cast<std::int32_t>(value - 1));
     stepped = Step(NowhereX, NowhereY, false);
-    ASSERT_FALSE(stepped.HasValue());
-    EXPECT_NE(stepped.Error().find("0x63333d"), std::string::npos) << stepped.Error();
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(Runtime().dialogs.current, Client::UI::MoneyTextDialog);
+    EXPECT_EQ(Runtime().dialogBox.lineCount, 2);
+    EXPECT_EQ(Client::UI::DialogRow(Runtime().dialogBox, 0), "precio " + Client::Scenes::FormatZen(value - 1) + " zen");
+    EXPECT_EQ(Client::UI::DialogRow(Runtime().dialogBox, 1), "vender a ese precio");
+    EXPECT_EQ(Runtime().social.trade.warningKind, 6);
+    EXPECT_EQ(Runtime().social.trade.warningByte, 0xff);
     EXPECT_EQ(Shops().dialogMode, 0);
+    EXPECT_TRUE(sent.empty());
+
+    // El no del 0x99 (su paso lo cierra y deja 2): el diálogo del precio otra vez.
+    Runtime().dialogs.current = 0;
+    Runtime().social.trade.warningByte = 2;
+    stepped = Step(NowhereX, NowhereY, false);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(Runtime().dialogs.current, 0x91);
+    EXPECT_EQ(Shops().dialogMode, Client::Scenes::ShopPriceMode);
+    EXPECT_TRUE(sent.empty());
 
     // El precio igual al valor, con la tienda abierta: el 3F 03, el 3F 01 y el 24.
     Shops().dialogMode = Client::Scenes::ShopPriceMode;

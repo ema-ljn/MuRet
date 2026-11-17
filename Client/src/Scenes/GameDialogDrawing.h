@@ -29,7 +29,16 @@ struct GameHudContext;
 //     0x5110d0, o el del otro del comercio, 0x78aba1c, en la negrita grande) y la pregunta (425 o 419);
 //   - la caja de confirmación 0x9c (0x471ae0, CL9 hito 7, fase 6a): el marco (0xfc, 0xfb del alto de los renglones y
 //     0xfc), el sí (0xf1 o 0xf2) y el no (0xf3 o 0xf4), o solo el sí, según el tipo, y los renglones centrados, sin
-//     mezcla.
+//     mezcla;
+//   - el de la plata (0x73): el marco 0xf0, el EDIT de [0x5763504] armado en cada cuadro (filtro 9, límite 8,
+//     0x46 × 0xe en (0x11b, 0x5f)) con el foco y su dibujo, y el texto 420, 421 o 422 según 0x78abacc;
+//   - el del título o el precio de la tienda personal (0x91, 0x6304f2): el marco (0xfc, 2 filas de 0xfb y 0xfc desde
+//     y 100), el EDIT con el foco y su dibujo, sin mezcla, el OK (0xf1 o 0xf2) en (255, 160) y el cancelar (0xf3 o
+//     0xf4) en (330, 160), de 52 × 16, y el texto 1128 o 1129 según el modo;
+//   - el aviso 0x94 de 0x633300 (0x630cbd) y el 0x99 del precio bajo (0x630cc4): el marco (0xfc, 3 filas de 0xfb y
+//     0xfc desde y 100), los botones de 0x7d368b8 con estado de 1 a 4 en (x + 213, y + 100) y, en la cola (0x632637),
+//     los renglones en la negrita, desde y 0x73 y centrados en 0x140 con el aviso 3 de 0x78abb14 (0x1e más abajo con
+//     el 4) o desde 0x82 y centrados en 0x15e con otro, con el color de su aviso. El aviso 2 corta (CL9.3).
 // Los demás cortan con la ola que los trae, como su paso. En un dibujo intermedio de MuRet, la esquina de la barra y
 // el clic no se escriben. Sin Text.bmd, o sin uno de sus textos, corta.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheGameDialogs(GameHudContext& context);

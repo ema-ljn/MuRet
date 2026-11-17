@@ -289,13 +289,33 @@ TEST(PanelRegistryTest, TheInventoryKeepsTheCharacterOpen)
     EXPECT_EQ(tested.state.overlayMode, 0);
 }
 
-TEST(PanelRegistryTest, TheDarkLordsPetRequestIsACut)
+// 0x65c020..0x65c946 (CL9 hito 7): con un Dark Lord (+0x1d4 & 7 en 4), abrir el inventario lo prende y después pide
+// el cuervo y el caballo, los mismos A9 de la mascota (el gancho). Sin el gancho corta, ya con el inventario prendido.
+// Las otras clases no piden nada.
+TEST(PanelRegistryTest, TheDarkLordsInventoryAsksForBothPets)
 {
     Tested tested;
     tested.context.heroClass = 4;
+    std::vector<std::uint8_t> inventoryWhenAsked;
+    tested.context.petRequests = [&tested, &inventoryWhenAsked]()
+    { inventoryWhenAsked.push_back(tested.state.inventory); };
     const auto opened = tested.panels.Open(InventoryPanel);
-    ASSERT_FALSE(opened.HasValue());
-    EXPECT_NE(opened.Error().find("0x65c039"), std::string::npos);
+    ASSERT_TRUE(opened.HasValue()) << opened.Error();
+    EXPECT_TRUE(opened.Value());
+    EXPECT_EQ(inventoryWhenAsked, (std::vector<std::uint8_t>{1}));
+
+    Tested knight;
+    knight.context.heroClass = 1;
+    knight.context.petRequests = [&inventoryWhenAsked]() { inventoryWhenAsked.push_back(0xff); };
+    ASSERT_TRUE(knight.panels.Open(InventoryPanel).HasValue());
+    EXPECT_EQ(inventoryWhenAsked, (std::vector<std::uint8_t>{1}));
+
+    Tested unhooked;
+    unhooked.context.heroClass = 4;
+    const auto cut = unhooked.panels.Open(InventoryPanel);
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x65c039"), std::string::npos);
+    EXPECT_EQ(unhooked.state.inventory, 1);
 }
 
 TEST(PanelRegistryTest, PanelsOfOtherWavesCutWhenTheyOpen)
@@ -437,7 +457,7 @@ TEST(PanelRegistryTest, ThePetOpensBesideTheCharacterAndAsksForBothPets)
     tested.state.character = 1;
     tested.state.overlayMode = MoveOverlayMode;
     std::vector<std::uint8_t> petWhenAsked;
-    tested.context.petOpened = [&tested, &petWhenAsked]() { petWhenAsked.push_back(tested.state.delegated.pet); };
+    tested.context.petRequests = [&tested, &petWhenAsked]() { petWhenAsked.push_back(tested.state.delegated.pet); };
     const auto opened = tested.panels.Open(PetPanel);
     ASSERT_TRUE(opened.HasValue()) << opened.Error();
     EXPECT_TRUE(opened.Value());

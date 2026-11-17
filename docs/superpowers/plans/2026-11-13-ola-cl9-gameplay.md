@@ -520,7 +520,11 @@ byte protegido de `0x10000` con la tienda abierta; el ancho del mundo con cada v
         `0x452e50`; la medida `0x452540`, `0x452f80` y `0x4531b0`), el título corto del globo (`0x4518b0` desde
         `0x556e26`) y su medida y dibujo (`0x5559c2`, `0x5563a4`); 07 Q-C976, Q-C977 y Q-C978 (08 P-C208 a, P-C342,
         P-C343).
-  - [ ] El paso del `0x91` (`0x6260f6`, con el EDIT del hito 6, 08 P-C312).
+  - [x] El paso del `0x91` (`0x6260f6`, con el EDIT de `[0x5763504]`, 08 P-C312), hecho en la auditoría del hito
+        (2026-11-17) junto con el EDIT del `0x73` (P-C362), los avisos `0x94` (la compra y el comercio) y `0x99` (el
+        precio bajo), el reset de las tiendas al volver a la selección (`0x5eb960`), el clic fuera de las grillas con
+        el comercio abierto (`0x5df667`), los envíos de la sesión en cada cierre (`GamePanels::LendTheSession`) y los
+        `A9` del inventario de un Dark Lord (`0x65c039`).
   - [x] Revisión contra el ASM (2026-11-13): "/ver puestos" y su par (`0x56d6ee..0x56d796`, 08 P-C343 a), la clave
         de los carteles con `& 0x7fff` y su lugar (`0x4524e0`, `0x4511f0`; 07 Q-C969), el marco del `0x73` y Enter con
         el modo del zen (el EDIT, 08 P-C362), el no de los diálogos de otros hitos (08 P-C363), y los `38`, `39`, `42`,
@@ -550,7 +554,8 @@ byte protegido de `0x10000` con la tienda abierta; el ancho del mundo con cada v
   - [x] Fase 2 (2026-11-13): lo que busca al otro en `/trade`, `/duelstart` y `/party` (`0x56c68b` y vecinas,
         `Scenes::SocialRequests`).
   - [x] Fase 2 (2026-11-13): el cartel del elegido en el dibujo de los comandos (`0x40aa80..0x40abd8`).
-  - [ ] Fase 2: la ventana de comandos sobre el elegido (`0x406097`); `/guild`, `/union` y `/rival` son del hito 8.
+  - [x] Fase 2: la ventana de comandos sobre el elegido (`0x406097`), hecha en la fase 3 (arriba); `/guild`,
+        `/union` y `/rival` son del hito 8.
 
 **Pruebas:** una vuelta entera de comercio con otro jugador (pedido, ítems, zen, OK) byte a byte; abrir una
 tienda personal y ver la de otro; armar una party y echar a alguien; un duelo; cada comando. **Desbloquea:** 8.

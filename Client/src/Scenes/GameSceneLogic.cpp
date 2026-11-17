@@ -296,7 +296,9 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
             return returned;
         GamePanels panels(world, m_context.cloth->random, GamePanelTables{.items = m_items, .texts = m_texts});
         if (m_session != nullptr)
-            panels.LendTheWindowClose([this]() { m_session->SendWindowClose(); });
+            panels.LendTheSession(
+                world, m_context.cloth->random, [this](Protocol::Outgoing outgoing)
+                { m_session->SendGamePacket(std::move(outgoing)); }, [this]() { m_session->SendWindowClose(); });
         auto closed = panels.Registry().PanelKey(0x1b);
         if (!closed.HasValue())
             return Core::Unexpected(std::move(closed).Error());

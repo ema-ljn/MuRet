@@ -74,6 +74,7 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
         // CL9 hito 11: el C1 03 97 va por la sesión; SetCursorPos queda pedido en GameMovementState::cursorWarpRequest.
         context.sendEventWindowLeave = [&]() { return m_session->SendEventWindowLeave(); };
         context.sendWindowClose = [&]() { m_session->SendWindowClose(); };
+        context.sendGamePacket = [&](Protocol::Outgoing outgoing) { m_session->SendGamePacket(std::move(outgoing)); };
         context.requestQuestList = [&]() { m_session->RequestQuestList(); };
         context.sendTalk = [&](std::int16_t key) { m_session->SendTalk(key); };
         context.sendAction = [&](std::uint8_t direction, std::uint8_t action)

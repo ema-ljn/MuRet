@@ -92,17 +92,6 @@ GamePanels::GamePanels(WorldState& world, Render::Models::CrtRandom& random, Gam
 {
 }
 
-void GamePanels::LendTheTradeCancel(WorldState& world, Render::Models::CrtRandom& random, IGameUiRequests* requests)
-{
-    if (requests == nullptr)
-        return;
-    m_context.tradeClosed = [&world, &random, requests](bool aux)
-    {
-        return CloseTheTradeGrids(world, random, aux, [requests](Protocol::Outgoing outgoing)
-                                  { requests->SendGamePacket(std::move(outgoing)); });
-    };
-}
-
 void GamePanels::LendThePersonalShops(WorldState& world, Render::Models::CrtRandom& random,
                                       std::function<void(Protocol::Outgoing)> send)
 {
@@ -111,6 +100,29 @@ void GamePanels::LendThePersonalShops(WorldState& world, Render::Models::CrtRand
     m_context.personalShopOpened = [&world, &random, send](UI::PanelId id)
     { return OpenThePersonalShop(world, random, id, send); };
     m_context.personalShopClosed = [&world, &random, send]() { return CloseThePersonalShop(world, random, send); };
+}
+
+void GamePanels::LendTheSession(WorldState& world, Render::Models::CrtRandom& random,
+                                std::function<void(Protocol::Outgoing)> send, std::function<void()> sendWindowClose)
+{
+    if (send)
+    {
+        m_context.tradeClosed = [&world, &random, send](bool aux)
+        { return CloseTheTradeGrids(world, random, aux, send); };
+        LendThePetRequests(send);
+        LendThePersonalShops(world, random, std::move(send));
+    }
+    if (sendWindowClose)
+        LendTheWindowClose(std::move(sendWindowClose));
+}
+
+void GamePanels::LendTheSession(WorldState& world, Render::Models::CrtRandom& random, IGameUiRequests* requests)
+{
+    if (requests == nullptr)
+        return;
+    LendTheSession(
+        world, random, [requests](Protocol::Outgoing outgoing) { requests->SendGamePacket(std::move(outgoing)); },
+        [requests]() { requests->SendWindowClose(); });
 }
 
 void GamePanels::LendTheWindowClose(std::function<void()> send)
@@ -145,7 +157,7 @@ void GamePanels::LendThePartyList(WorldState& world, IGameUiRequests* requests)
 
 void GamePanels::LendThePetRequests(std::function<void(Protocol::Outgoing)> send)
 {
-    m_context.petOpened = [send = std::move(send)]()
+    m_context.petRequests = [send = std::move(send)]()
     {
         if (!send)
             return;

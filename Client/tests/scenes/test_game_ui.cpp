@@ -714,6 +714,25 @@ TEST(GameUiTest, TheDigitsDoNotChooseWhileASkillCharges)
     }
 }
 
+// 0x5a10e7..0x5a10f9: con el diálogo del zen (0x73) abierto, lo tecleado es del EDIT de [0x5763504] y los números no
+// eligen skill, sin mirar el foco.
+TEST(GameUiTest, TheDigitsDoNotChooseWithTheMoneyDialog)
+{
+    auto tested = std::make_unique<SteppingUi>();
+    auto& own = tested->world.OwnCharacter();
+    own.SetSkillAt(3, 0x11);
+    auto& keys = own.skillKeys[0];
+    keys.fill(0xff);
+    keys[3] = 3;
+    tested->world.Runtime().dialogs.current = 0x73;
+    Press(tested->input, Key::Digit3);
+    const CrtRandom expected = Advanced(tested->random, BaseStepRandoms);
+    const auto stepped = tested->Step(320, 100);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(tested->random.State(), expected.State());
+    EXPECT_EQ(tested->world.Actors()[0].skillIndex, 0);
+}
+
 TEST(GameUiTest, TheSiegePanelTogglesWithTabAndTakesTheMouse)
 {
     SteppingUi tested;

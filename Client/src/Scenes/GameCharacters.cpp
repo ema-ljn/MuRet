@@ -183,10 +183,11 @@ DrawnCharacter CharacterToDraw(ActorState& actor, std::size_t slot, const GameCh
 
 // 0x50c929..0x50cc29, bVar23 y el color de la tela de un jugador 0x20a: la clase 3 o 4 con +0x3e3 en 0, o el +0x376
 // 0x37 (0x50c951, el monstruo 55, que es un 0x20a), salvo en los mapas 0x12 a 0x17. Con +0x1f2 distinto de −1, las
-// guerras de gremios (0x50c99b..0x50cb5c: 0x576796d y 0x576796f, que solo escriben los paquetes del hito 8 y empiezan
-// en 0) no la prenden (08 P-C207 b). Con el duelo en curso (0x78abad8), el rival (MOVSX de +0x1f4 igual a 0x78abadc y
-// strcmp de +0x1d9 con 0x78abae0) la lleva en (1; 0,2; 0) y el héroe publicado (el WORD de +0x1f4 y strcmp de los
-// nombres), en (0; 0,2; 1), aunque sea de otra clase o esté en esos mapas.
+// guerras de gremios (0x50c99b..0x50cb5c: 0x576796d, que escriben los paquetes del hito 8, y 0x576796f, que escriben
+// 0x4c24e1 y el F3 23 de Battle Soccer, 0x4d9f62, EventGlobals; los dos empiezan en 0) no la prenden: comparan los
+// nombres de la tabla de gremios, que sigue vacía hasta el hito 8 (08 P-C207 b). Con el duelo en curso (0x78abad8), el
+// rival (MOVSX de +0x1f4 igual a 0x78abadc y strcmp de +0x1d9 con 0x78abae0) la lleva en (1; 0,2; 0) y el héroe
+// publicado (el WORD de +0x1f4 y strcmp de los nombres), en (0; 0,2; 1), aunque sea de otra clase o esté en esos mapas.
 struct ClothLook
 {
     bool wears = false;

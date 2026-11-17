@@ -21,6 +21,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/GameChat.h"
 #include "Scenes/GameCommandsWindow.h"
+#include "Scenes/GameMovementState.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/PersonalShopTitles.h"
 #include "Scenes/LoginModels.h"
@@ -601,7 +602,7 @@ TEST_P(CommandsWindowTest, ThePartyCommandsInviteOrFollow)
 {
     ASSERT_TRUE(RightClick(10, 1).HasValue());
     EXPECT_EQ(Window().states[10], 0);
-    EXPECT_EQ(game->world.Runtime().social.party.followTarget, -1);
+    EXPECT_EQ(game->world.Runtime().movement.followTarget, -1);
     ASSERT_TRUE(RightClick(3, 1).HasValue());
     ExpectSent(0, {0xc1, 0x05, 0x40, 0x04, 0x56});
     EXPECT_EQ(LastMessage(), "invitaste a Brezal");
@@ -616,7 +617,7 @@ TEST_P(CommandsWindowTest, ThePartyCommandsInviteOrFollow)
     EXPECT_EQ(Window().states[3], 0);
     EXPECT_EQ(m_sent.size(), 1U);
     ASSERT_TRUE(RightClick(10, 1).HasValue());
-    EXPECT_EQ(runtime.social.party.followTarget, 1);
+    EXPECT_EQ(runtime.movement.followTarget, 1);
 }
 
 // 0x40a04e (el 4): el nombre al EDIT del susurro y el Enter del WndProc, que abre el chat. 0x4079a6 (el 11): sin duelo

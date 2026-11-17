@@ -90,13 +90,22 @@ void OpenMessageBox(DialogBoxState& box, DialogState& dialogs, std::string_view 
 
 // 0x633300(renglones, primerTexto, id): los textos `firstText` .. `firstText + lineCount − 1` de Text.bmd en los
 // renglones, con un strcpy cada uno (0x9a los parte con 0x632c90 uno detrás del otro), los botones (1, 0x15, 0x5a,
-// 0x46, 0x15) y (3, 0x78, 0x5a, 0x46, 0x15), con y = 0x78 en el 0x9a, y el id por 0x6236f0. Los de 0x99, 0xa3, 0x96
-// y 0xa8 arman su texto con un formato y cortan con su dirección (CL9.3). Lo que se escribiría fuera de los 7
-// renglones corta, como un texto que no está.
+// 0x46, 0x15) y (3, 0x78, 0x5a, 0x46, 0x15), con y = 0x78 en el 0x9a, y el id por 0x6236f0. Los de 0xa3, 0x96 y
+// 0xa8 arman su texto con un formato y cortan con su dirección (CL9.3); el 0x99 lo abre OpenTheMoneyTextDialog, y aquí
+// corta. Lo que se escribiría fuera de los 7 renglones corta, como un texto que no está.
 [[nodiscard]] Core::Expected<void, std::string> OpenTextDialog(DialogBoxState& box, DialogState& dialogs,
                                                                const Data::Text::TextTable* texts,
                                                                std::int32_t lineCount, std::int32_t firstText,
                                                                std::int32_t id);
+
+// 0x633300(renglones, primerTexto, 0x99) (CL9 hito 7): el primer renglón es el sprintf del texto `firstText` con
+// `zen`, lo que 0x5b1130 escribe del zen tipeado (0x77f3b6c; quien llama lo arma con Scenes::FormatZen), y los que
+// siguen, los textos `firstText + 1` .. `firstText + lineCount − 1` con el mismo sprintf sin argumentos (un "%%" sale
+// como "%"); la cuenta queda en `lineCount`. Los botones y el id, como OpenTextDialog.
+[[nodiscard]] Core::Expected<void, std::string> OpenTheMoneyTextDialog(DialogBoxState& box, DialogState& dialogs,
+                                                                       const Data::Text::TextTable* texts,
+                                                                       std::int32_t lineCount, std::int32_t firstText,
+                                                                       std::string_view zen);
 
 // 0x633300(n, 0x482, 0x9a) con los textos 1154.. ya escritos en la memoria de Text.bmd por quien llama (el 91 con 4,
 // 0x4da8c0, CL9 hito 11): `texts` en el lugar de los n registros, partidos con 0x632c90 uno detrás del otro, los

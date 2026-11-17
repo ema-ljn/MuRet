@@ -14,14 +14,17 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
+#include "Scenes/GameMovementState.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/QuestState.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/SocialState.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "Scenes/WorldTransitionSupport.h"
 #include "UI/ChatLog.h"
 #include "UI/MessageArea.h"
 #include "UI/PanelRegistry.h"
@@ -307,6 +310,47 @@ TEST_P(SocialEventsTest, TheAcceptedTradeOpensTheWindowAndTheInventory)
     EXPECT_EQ(trade.cursorMoveRequested, 1);
 }
 
+// 0x4d55b8 → 0x6599a0(0x20): abrir el comercio cierra la lista de misiones abierta (el 2 de +0x21383; con el diálogo,
+// el 1, CanOpen no abre nada), con el C1 03 31 (0x419900) por la sesión. Sin el cable, el cierre corta antes de abrir.
+TEST_P(SocialEventsTest, TheAcceptedTradeClosesTheQuestsWithTheWindowClose)
+{
+    auto stage = MakeStage();
+    stage->Runtime().panels.delegated.quest = Client::Scenes::QuestListWindow;
+    const auto cut = Client::Scenes::ApplyTradeResponse({1, NameOf<10>("Brezal"), 50, 7}, stage->Resources());
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x419900"), std::string::npos) << cut.Error();
+
+    auto bound = MakeStage();
+    bound->Runtime().panels.delegated.quest = Client::Scenes::QuestListWindow;
+    int windowCloses = 0;
+    Client::Scenes::WorldEntryResources resources = bound->Resources();
+    resources.sendWindowClose = [&windowCloses]() { ++windowCloses; };
+    const auto opened = Client::Scenes::ApplyTradeResponse({1, NameOf<10>("Brezal"), 50, 7}, resources);
+    ASSERT_TRUE(opened.HasValue()) << opened.Error();
+    EXPECT_EQ(windowCloses, 1);
+    EXPECT_EQ(bound->Runtime().panels.delegated.quest, 0);
+    EXPECT_EQ(bound->Runtime().panels.trade, 1);
+    EXPECT_EQ(bound->Runtime().panels.inventory, 1);
+}
+
+// 0x657a90 desde el teleport, el regen, el 1C y el F3 04 (CloseTransitionWindows): con el comercio abierto, el C1 03 3D
+// en C3 por la sesión (0x657fe1), y las grillas vacías.
+TEST_P(SocialEventsTest, TheTransitionClosesTheTradeWithTheCancel)
+{
+    auto stage = MakeStage();
+    OpenTheTrade(*stage);
+    std::vector<Client::Protocol::Outgoing> sent;
+    Client::Scenes::WorldEntryResources resources = stage->Resources();
+    resources.sendGamePacket = [&sent](Client::Protocol::Outgoing outgoing) { sent.push_back(std::move(outgoing)); };
+    const auto closed = Client::Scenes::CloseTransitionWindows(resources);
+    ASSERT_TRUE(closed.HasValue()) << closed.Error();
+    ASSERT_EQ(sent.size(), 1u);
+    EXPECT_EQ(sent[0].delivery, Client::Network::Delivery::Encrypted);
+    EXPECT_EQ(PlainBytes(sent[0]), (std::vector<std::uint8_t>{0xc1, 0x03, 0x3d}));
+    EXPECT_EQ(stage->Runtime().panels.trade, 0);
+    EXPECT_EQ(stage->Runtime().panels.inventory, 0);
+}
+
 TEST_P(SocialEventsTest, RefusedAndBusyTradesOnlySayIt)
 {
     auto stage = MakeStage();
@@ -405,43 +449,73 @@ TEST_P(SocialEventsTest, APlainItemIsNotWorthACopy)
     EXPECT_EQ(stage->Trade().otherGrid[0].id, Client::Scenes::EmptyOwnItemId);
 }
 
-// 0x5bc52f: la lista de la pila de 0x5bc470 es de 10; el undécimo ítem igual a su copia escribiría pasado ella
-// (Q-C961): el 39 se descarta entero, sin el ítem, sin el sonido y con un aviso.
-TEST_P(SocialEventsTest, ElevenItemsLikeTheirCopiesDiscardTheEleventh)
+// 0x5bc52d..0x5bc54a: la lista de la pila de 0x5bc470 es de 10; el undécimo tipo igual a su copia cae en el puntero de
+// la lista y se pierde, y el segundo recorrido compara en su lugar lo que queda de la cuenta, 1 (Q-C961 b): el bastón
+// (el tipo 1), peor que su copia (99), vuelve a 1. El ítem entra y suena.
+TEST_P(SocialEventsTest, ElevenItemsLikeTheirCopiesLoseTheEleventh)
 {
     auto stage = MakeStage();
     OpenTheAskedTrade(*stage);
-    constexpr std::uint8_t Slots = 11;
-    for (std::uint8_t slot = 0; slot < Slots; ++slot)
+    ASSERT_TRUE(Client::Scenes::ApplyTradeItemAdded({16, ItemBytes(TallType, 5)}, stage->Resources()).HasValue());
+    ASSERT_TRUE(Client::Scenes::ApplyTradeItemRemoved({16}, stage->Resources()).HasValue());
+    ASSERT_TRUE(Client::Scenes::ApplyTradeItemAdded({0, ItemBytes(SmallType, 5)}, stage->Resources()).HasValue());
+    ASSERT_TRUE(Client::Scenes::ApplyTradeItemRemoved({0}, stage->Resources()).HasValue());
+    ASSERT_TRUE(Client::Scenes::ApplyTradeItemAdded({16, ItemBytes(TallType, 4)}, stage->Resources()).HasValue());
+    const Client::Scenes::TradeState& trade = stage->Trade();
+    for (std::uint8_t slot = 0; slot < 10; ++slot)
     {
-        ASSERT_TRUE(
-            Client::Scenes::ApplyTradeItemAdded({slot, ItemBytes(SmallType, 5)}, stage->Resources()).HasValue());
-        ASSERT_TRUE(Client::Scenes::ApplyTradeItemRemoved({slot}, stage->Resources()).HasValue());
+        const auto added = Client::Scenes::ApplyTradeItemAdded({slot, ItemBytes(SmallType, 5)}, stage->Resources());
+        ASSERT_TRUE(added.HasValue()) << added.Error();
     }
+    EXPECT_EQ(trade.otherGrid[16].warning, 99);
+    EXPECT_EQ(trade.otherGrid[24].warning, 99);
+
+    stage->Runtime().lastSoundId = 0;
+    const auto eleventh = Client::Scenes::ApplyTradeItemAdded({10, ItemBytes(SmallType, 5)}, stage->Resources());
+    ASSERT_TRUE(eleventh.HasValue()) << eleventh.Error();
+    EXPECT_EQ(trade.otherGrid[10].id, SmallType);
+    EXPECT_EQ(trade.otherGrid[10].warning, 1);
+    EXPECT_EQ(trade.otherGrid[16].warning, 1);
+    EXPECT_EQ(trade.otherGrid[24].warning, 1);
+    EXPECT_EQ(trade.changed, 0);
+    EXPECT_EQ(stage->Runtime().lastSoundId, 0x1d);
+    EXPECT_FALSE(WarnedWith(*stage, "0x5bc545"));
+}
+
+// 0x5bc545: el duodécimo tipo pisa la cuenta de la lista (ebp − 0x10) y lo que sigue lee la pila: el 39 se descarta
+// entero, sin el ítem, sin el sonido y con un aviso.
+TEST_P(SocialEventsTest, TwelveItemsLikeTheirCopiesDiscardTheTwelfth)
+{
+    auto stage = MakeStage();
+    OpenTheAskedTrade(*stage);
+    ASSERT_TRUE(Client::Scenes::ApplyTradeItemAdded({0, ItemBytes(SmallType, 5)}, stage->Resources()).HasValue());
+    ASSERT_TRUE(Client::Scenes::ApplyTradeItemRemoved({0}, stage->Resources()).HasValue());
+    constexpr std::uint8_t Slots = 12;
     for (std::uint8_t slot = 0; slot + 1 < Slots; ++slot)
     {
         const auto added = Client::Scenes::ApplyTradeItemAdded({slot, ItemBytes(SmallType, 5)}, stage->Resources());
         ASSERT_TRUE(added.HasValue()) << added.Error();
     }
+    EXPECT_FALSE(WarnedWith(*stage, "0x5bc545"));
     stage->Runtime().lastSoundId = 0;
     const TradeGrids before = GridsOf(stage->Trade());
     const CrtRandom random = stage->cloth.random;
-    const auto eleventh = Client::Scenes::ApplyTradeItemAdded({10, ItemBytes(SmallType, 5)}, stage->Resources());
-    ASSERT_TRUE(eleventh.HasValue()) << eleventh.Error();
-    EXPECT_EQ(stage->Trade().otherGrid[10].id, Client::Scenes::EmptyOwnItemId);
+    const auto twelfth = Client::Scenes::ApplyTradeItemAdded({11, ItemBytes(SmallType, 5)}, stage->Resources());
+    ASSERT_TRUE(twelfth.HasValue()) << twelfth.Error();
+    EXPECT_EQ(stage->Trade().otherGrid[11].id, Client::Scenes::EmptyOwnItemId);
     EXPECT_EQ(GridsOf(stage->Trade()), before);
     EXPECT_EQ(stage->cloth.random.State(), random.State());
     EXPECT_EQ(stage->Runtime().lastSoundId, 0);
-    EXPECT_TRUE(WarnedWith(*stage, "0x5bc52f"));
+    EXPECT_TRUE(WarnedWith(*stage, "0x5bc545"));
 }
 
-// El 38 que deja once ítems iguales a la copia nueva (0x5bc5e0 la guarda antes de 0x5bc470) también se descarta: el
-// ítem y la copia quedan como estaban.
-TEST_P(SocialEventsTest, ARemovalThatLeavesElevenLikeTheirCopyIsDiscarded)
+// El 38 que deja doce ítems iguales a la copia nueva (0x5bc5e0 la guarda antes de 0x5bc470) también se descarta: el
+// ítem y la copia quedan como estaban. Con once, pasa.
+TEST_P(SocialEventsTest, ARemovalThatLeavesTwelveLikeTheirCopyIsDiscarded)
 {
     auto stage = MakeStage();
     OpenTheAskedTrade(*stage);
-    constexpr std::uint8_t Slots = 12;
+    constexpr std::uint8_t Slots = 13;
     for (std::uint8_t slot = 0; slot < Slots; ++slot)
     {
         const auto added = Client::Scenes::ApplyTradeItemAdded({slot, ItemBytes(SmallType, 5)}, stage->Resources());
@@ -449,13 +523,23 @@ TEST_P(SocialEventsTest, ARemovalThatLeavesElevenLikeTheirCopyIsDiscarded)
     }
     stage->Runtime().lastSoundId = 0;
     const TradeGrids before = GridsOf(stage->Trade());
-    const auto removed = Client::Scenes::ApplyTradeItemRemoved({11}, stage->Resources());
+    const auto removed = Client::Scenes::ApplyTradeItemRemoved({12}, stage->Resources());
     ASSERT_TRUE(removed.HasValue()) << removed.Error();
-    EXPECT_EQ(stage->Trade().otherGrid[11].id, SmallType);
+    EXPECT_EQ(stage->Trade().otherGrid[12].id, SmallType);
     EXPECT_EQ(stage->Trade().backup[0].id, Client::Scenes::EmptyOwnItemId);
     EXPECT_EQ(GridsOf(stage->Trade()), before);
     EXPECT_EQ(stage->Runtime().lastSoundId, 0);
-    EXPECT_TRUE(WarnedWith(*stage, "0x5bc52f"));
+    EXPECT_TRUE(WarnedWith(*stage, "0x5bc545"));
+
+    auto other = MakeStage();
+    OpenTheAskedTrade(*other);
+    for (std::uint8_t slot = 0; slot < Slots - 1; ++slot)
+        ASSERT_TRUE(
+            Client::Scenes::ApplyTradeItemAdded({slot, ItemBytes(SmallType, 5)}, other->Resources()).HasValue());
+    ASSERT_TRUE(Client::Scenes::ApplyTradeItemRemoved({11}, other->Resources()).HasValue());
+    EXPECT_EQ(other->Trade().otherGrid[11].id, Client::Scenes::EmptyOwnItemId);
+    EXPECT_EQ(other->Trade().backup[0].id, SmallType);
+    EXPECT_FALSE(WarnedWith(*other, "0x5bc545"));
 }
 
 // 0x5bd750 con un lugar desde 32 (que no sea 0xff) lee fuera de la grilla en 0x5bc5e0: el 38 se descarta, sin el
@@ -602,7 +686,7 @@ TEST_P(SocialEventsTest, ClosingTheGridsSendsTheCancelOnlyByHand)
     EXPECT_NE(cut.Error().find("0x657fe1"), std::string::npos);
 }
 
-// Close(0x20) a mano con el comercio abierto y sin el cable (GamePanels sin LendTheTradeCancel): sus dos consultas y el
+// Close(0x20) a mano con el comercio abierto y sin el cable (GamePanels sin LendTheSession): sus dos consultas y el
 // corte antes del 3D, con el byte protegido todavía en 1.
 TEST_P(SocialEventsTest, ClosingTheOpenTradeByHandWithoutTheCableCutsBeforeTheCancel)
 {
@@ -691,11 +775,11 @@ TEST_P(SocialEventsTest, APartyFormsAndBreaks)
     EXPECT_EQ(party.slots[0].tenths, 7);
     EXPECT_TRUE(WarnedWith(*stage, "Q-C960"));
 
-    stage->Runtime().social.party.followTarget = 1;
+    stage->Runtime().movement.followTarget = 1;
     ASSERT_TRUE(Client::Scenes::ApplyPartyLeft(stage->Resources()).HasValue());
     EXPECT_EQ(stage->Runtime().hud.partyCount, 0);
     EXPECT_EQ(stage->LastMessage().text, "dejaste la party");
-    EXPECT_EQ(stage->Runtime().social.party.followTarget, -1);
+    EXPECT_EQ(stage->Runtime().movement.followTarget, -1);
 }
 
 // 0x4d67e0 con seis miembros escribiría pasado el arreglo (Q-C960): el 42 se descarta entero, la cuenta incluida.

@@ -62,9 +62,9 @@ ApplyTradeRequest(const Protocol::Trade::TradeRequest& request, const WorldEntry
                                                                       const WorldEntryResources& resources);
 
 // 0x4e3d99: 0x5bc740(0x78a5a20, 8, 4, lugar, ítem, 1), con 0x5bc470 al final, y el sonido 0x1d. Una huella que pasa la
-// casilla 31 (Q-C200) se descarta antes de escribir y de los rand() de 0x54bf40; un undécimo ítem igual a su copia
-// (0x5bc52f, Q-C961), después de ponerlo en una copia del comercio, que se tira con los rand() que sacó. Los dos, sin
-// sonido y con un aviso en el log.
+// casilla 31 (Q-C200) se descarta antes de escribir y de los rand() de 0x54bf40; un duodécimo ítem igual a su copia
+// (0x5bc545, Q-C961), después de ponerlo en una copia del comercio, que se tira con los rand() que sacó. Los dos, sin
+// sonido y con un aviso en el log. El undécimo se pierde de la lista y en su lugar se compara el 1 de la cuenta.
 [[nodiscard]] Core::Expected<void, std::string> ApplyTradeItemAdded(const Protocol::Trade::TradeItemAdded& added,
                                                                     const WorldEntryResources& resources);
 

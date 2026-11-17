@@ -1779,7 +1779,8 @@ modo con EDIT: lo que el original hace con 0 (la entrada sin EDIT, `0x553ae0`, y
   24): el clic apagado, `0x77f3b10` en 0 y `0x6c8dcc` en 6, el `C1 03 97` en claro, `0x78abb00` en 0, el inventario
   cerrado (`0x65cae0(0x4000000, 0)`, con los `rand()` de sus lecturas protegidas: dos con el inventario abierto, y
   `0x659250` pone `0x78abb00` y `0x78abb04` en 0), `0x553570(0)`, el chat cerrado (`0x6c8e68`), `0x77f3b6a`,
-  `0x77f3b6c`, `0x78abacc` y `0x77f3b6b` en 0 y `SetFocus` a la ventana del juego. El texto del EDIT queda (Q-C1345).
+  `0x77f3b6c`, `0x78abacc` y `0x77f3b6b` en 0 y `SetFocus` a la ventana del juego. `0x553570`, con `0x6c7b8c` en 1,
+  vacía también el texto del EDIT (`0x5535bd`; Q-C1345, corregida).
   Al final, el soltado apagado (`0x5e74cc`). Lo prueban `EventChipWindowTest` en Lorencia y en Devias.
 - **El dibujo, `0x5f6550`** (desde `0x5f75d0`, después de los NPC de evento). El color blanco, la mezcla normal, la
   esquina en (`0x1c2`, 0), el fondo (`0x5ee220`) y el título en (x + `0x23`, y + `0xc`) en `0xfff0ff96` sobre 0: el
@@ -2012,10 +2013,10 @@ viejo; no se declara equivalente al EDIT completo. Los ids de los dos EDIT (1 y 
   abierto lee los EDIT a los buffers y lo escrito al historial; vacío (y sin `0x77f3b69`), Enter cierra el campo o,
   cerrado, lo abre (`0x4b5515..0x4b554d`: el largo `0x6c8e78` en `0x2a`, dos campos, el modo del zen `0x77f3b6a` en 0
   y los EDIT a la vista con el foco en el del mensaje); con el diálogo `0x73`, en vez de abrirlo vacía el EDIT de
-  `[0x5763504]` y le da el foco (`0x4b54e1..0x4b5513`, del hito 6: corta, 08 P-C362). Con algo escrito y el modo del
-  zen, el `atoi` de lo escrito va a `0x77f3b6c` y no se dice (`0x4b5563..0x4b55ae`, y el EDIT, que corta en
-  `0x4b558a`); con `0x78aba60` en 1, lo escrito es el título de la tienda personal (`0x4b55b3..0x4b560f`: corta en
-  `0x4b55bc`, 08 P-C312 y 07 Q-C970). Si no, corre los comandos (`0x56c440`: las
+  `[0x5763504]` y le da el foco (`0x4b54e1..0x4b5513`, portado en el hito 7 de la CL9, 08 P-C362). Con algo escrito y
+  el modo del zen, el `atoi` de lo escrito va a `0x77f3b6c` y no se dice (`0x4b5563..0x4b55ae`, con el EDIT: la vtable
+  + 0x4c con 0 y + 4 con 3 en `0x4b558a`); con `0x78aba60` en 1, lo escrito es el título de la tienda personal
+  (`0x4b55b3..0x4b560f`, 08 P-C312 y 07 Q-C970). Si no, corre los comandos (`0x56c440`: las
   compuertas, `/move`, `/filter`, `/1`../`0` y la cola de los nombres; cada comando social corta con su dirección,
   CL9.4) y el filtro (`0x622b40` con 1: el texto 570). Con `/` adelante, sin nombre o sin el modo de F3, va al chat:
   los emotes (`0x576eb0`, abajo, salvo montado fuera de la zona segura), el freno (`0x5767940`: con más de
@@ -2177,7 +2178,8 @@ DC y los colores del texto en (−1, 0), y termina con `0x620a00(1)`. Los textos
 | `0x8d` | el marco de las cajas con `((renglones + respuestas) · 0x12 + 0x31) / 40` filas, de 4 a 9 (`0x631150`); el texto como el `0x8a`; debajo, cada respuesta en amarillo, o en rojo la del mouse (`(y − tope) / 0x12`, a no más de `0x6a` de x = `0x13f`), y si su primer byte no es 0 su renglón (la y baja solo con las dibujadas); al final, el blanco |
 | OK genérico | `0xf0` de 213 × 64 en (213, 60) y el OK, `0xf1` (`0xf2` con el mouse en `[0x11c, 0x161] × [0x62, 0x76]`) de 70 × 21 en (284, 98); su texto en y = `0x4b`, o en `0x45` y `0x51` los de dos renglones: el `0x70` el 402, el `0x6f` y el `0x1a` el 405 y el 406, el `0x1c` el 409 y el `0x8f` el 401 |
 | `0x77`, `0x78` (CL9 hito 7, fase 2) | el mismo marco (`0x630818`); el sí (`0x6309d4`), `0xf1` (`0xf2` con el mouse en `[0xea, 0x130) × [0x62, 0x77)`) en (234, 98), y el no, `0xf3` (`0xf4` en `[0x14e, 0x194)`) en (334, 98), de 70 × 21 con las UV del OK (también los del `0x7f` y el `0x76`, de otras olas; su no, 08 P-C363). El `0x77` (`0x631e29`): `sprintf(418, nombre)` con el `+0x1d9` del primero vivo de los 400 con la clave de `0x78aba4c` (`0x5110d0`, `MOVSX`; sin ninguno, el 400) en la fuente del DC en y = 75 − 6 y `sprintf(425)` en 75 + 6. El `0x78` (`0x631bb0`): `sprintf(418, 0x78aba1c)` en la negrita grande (`0x576355c`) en 75 − 11 y `sprintf(419)` en la normal en 75 + 11 |
-| `0x73` (CL9 hito 7, revisión contra el ASM) | el marco del OK genérico sin el botón (`0x630818..0x630870`) y, con `0x6c7b8c` en 1 (su valor de la .data), el EDIT de `[0x5763504]` (`0x630876..0x6308c6`: la vtable + 4 con 0, + 0x4c con 9, + 0x3c con 8, + 8 con (0x46, 0xe), `0x45a9d0(0x11b, 0x5f)`, + 0x30 con 0 y + 0x14, que lo dibuja); después, en la cola de `0x63140b` (`0x631c91`), el texto 420, 421 o 422 según `0x78abacc`, en y = `0x4b`. El EDIT es del hito 6: MuRet dibuja el marco y corta en `0x630876` (08 P-C362) |
+| `0x73` (CL9 hito 7, revisión contra el ASM) | el marco del OK genérico sin el botón (`0x630818..0x630870`) y, con `0x6c7b8c` en 1 (su valor de la .data), el EDIT de `[0x5763504]` (`0x630876..0x6308c6`: la vtable + 4 con 0, + 0x4c con 9, + 0x3c con 8, + 8 con (0x46, 0xe), `0x45a9d0(0x11b, 0x5f)`, + 0x30 con 0 y + 0x14, que lo dibuja); después, en la cola de `0x63140b` (`0x631c91`), el texto 420, 421 o 422 según `0x78abacc`, en y = `0x4b`. MuRet rearma `UI::ChatInputState::dialogEdit` con eso en cada cuadro, con su foco, y lo dibuja (08 P-C362) |
+| `0x94`, `0x99` (CL9 hito 7, auditoría) | `0x630cbd` (el `0x94`) y `0x630cc4` (el `0x99`, con `0x96`, `0x98` y `0x9a`; el `0xa3` desde y = `0xd2`): `0xfc` de 213 × 5 en (213, 100), tres `0xfb` de 213 × 40 desde 105 y `0xfc` en 225, sin mezcla; los botones de `0x7d368b8` con estado de 1 a 4, `0xf0` + estado en (x + 213, y + 100, w, h) con las UV (0, 0, w / 128, h / 32), sin el − 1 de las cajas. En la cola (`0x632637`), los renglones de `0x12` en `0x12` en la negrita (`0x5763558`) y (1; 0,7; 0): con el aviso 3 de `0x78abb14` desde y = `0x73` y centrados en `0x140`, con el 4 `0x1e` más abajo, con otro desde `0x82` y centrados en `0x15e`; el renglón 0 con el aviso 1 en (1, 0, 0), el 3 con el aviso 3 en (1; 0,1; 0,1), y con el 6 (el precio bajo) el 0 en (1, 0, 0) y los demás en blanco con la normal (`0x5763554`). El aviso 2 pone antes un renglón de `0x7d2dc98` (CL9.3: corta en `0x632683`). El ítem 3D del diálogo (`0x633110`, con el `0x94` y los avisos 1 o 5, o el `0x99`) no lo dibuja MuRet (P-C90) |
 
 `0x61ccb0` sube `Message_box` (`0xf0`), `ok`, `ok2`, `cancel`, `cancel2` (`0xf1` a
 `0xf4`), `Message_box1` (`0xfb`) y `Message_box2` (`0xfc`); el `bar.jpg` de `0xfd` es de `0x5e9b10`, la caja de la
@@ -11994,6 +11996,14 @@ elegida, entre 67 y 83, la elige (`0x723910`); la elegida, entre 63 y 83, solo s
 (`GameCharacterWindowTest.ThePetWindowOpensChoosesItsTabAndCloses`). El tooltip de las mascotas (`0x422990`) va más
 abajo.
 
+**El inventario de un Dark Lord** (CL9 hito 7, auditoría, 2026-11-17, *estático*). Abrir el inventario
+(`0x65bfe0..0x65c946`), si cerró lo demás, pone `0x7d53708` en 1 y, con la clase del héroe (`+0x1d4 & 7`) en 4, manda
+los mismos dos pedidos que la ventana de la mascota (`A9 00 00 01` y `A9 01 00 08`, con el XOR32 y por `send()`, sin
+`rand()`; el código está repetido y vuelve al final común, `0x65a90a`). Lo hacen también el comercio y las tiendas, que
+abren el inventario. **MuRet**: `UI::PanelContext::petRequests`, que prestan el paso de la UI y
+`GamePanels::LendTheSession` (`PanelRegistryTest.TheDarkLordsInventoryAsksForBothPets`,
+`GameSocialStepsTest.ADarkLordOpeningTheInventoryAsksForBothPets`).
+
 **El dibujo de la ventana de la mascota** (CL9 hito 4, fase 2c, 2026-11-13, *estático*). `0x5f7440` llama siempre a
 `0x424160(héroe)` (`0x5f75e7`, el héroe de `[0x743a170]`), entre la ventana de las misiones y la `0x2000`:
 
@@ -13368,7 +13378,8 @@ casillas de 8 columnas). `0x6c931c` dice cuál se mira (−1 en la `.data`, 1 la
 - `Open(0x800)` (`0x65ac3f..0x65b227`; `CanOpen` pide el inventario abierto) cierra todo menos ella, el inventario y
   los amigos; `Open(0x20000)` (`0x65b319..0x65ba41`) cierra también el inventario. Con lo que cerró, las dos abren el
   inventario (`0x6599a0(0x4000000, 0)`); con `0x6c931c` distinto de −1, el log `0x6d67dc` y el `C1 04 F3 10` en C3; si
-  `0x7245e4` y `0x7245e0` están en 0, los dos `std::map` de 0x10 bytes (del lugar al precio; nadie los suelta); el
+  `0x7245e4` y `0x7245e0` están en 0, los dos `std::map` de 0x10 bytes (del lugar al precio; solo los suelta la vuelta a
+  la selección, `0x5eb960`, abajo); el
   byte en 1 y `0x6c931c` en 1 o 2. `CanOpen` no deja abrir una con la otra abierta (`0x6598a0`).
 - Cerrar cualquiera (`0x6589b6..0x6589f4`, también desde `Close(0x4000000)`, cuyo `0x11d9e0` tiene `0x800`) llama a
   `0x5eb020` y apaga el byte. `0x5eb020`: con `0x6c931c` en 2, la grilla propia vuelve de su copia (`0x78a6768`), el
@@ -13376,6 +13387,12 @@ casillas de 8 columnas). `0x6c931c` dice cuál se mira (−1 en la `.data`, 1 la
   con la clave del dueño (`0x78a6514`, `+0x1f4` de la copia `0x78a6320`) distinta de 0 manda el `3F 07` en C3. Siempre:
   con el diálogo `0x91`, o el `0x94` con `0x78abb14` en 5, el diálogo 0 (`0x6236f0`); `0x6c931c` en −1 y la copia del
   dueño en ceros.
+- La vuelta a la selección (`0x4c26e7`, el `jmp` de `0x657690` al final de `0x657670`) corre `0x5eb960`: `0x78aba50`
+  en 0, `0x6c931c` en −1, `0x78aba60` en 0 y el título (`0x78aba64`) vacío; los carteles (`0x4514a0` sobre `0x7245c8`,
+  que no toca la cuenta del dibujo ni si se dibujan) y los dos mapas de los precios (`0x4c0340` y el `delete` de
+  `0x7245e4` y `0x7245e0`, que quedan en 0: el próximo `Open` los arma otra vez). Sin `rand()`. La copia del dueño
+  (`0x78a6320`), la grilla guardada (`0x78a6768`) y la esquina de las ventanas quedan como estaban
+  (`Scenes::ResetThePersonalShops`, auditoría del hito 7).
 - `/personalshop` (`0x5766ce..0x576890`, el texto 1117 o el literal): en Chaos Castle el aviso 1150 y 0; con el
   entrenador (`0x8000`) el 1121 y 0; si no, el nivel del registro propio (`+0xe`, con su acceso): desde 6,
   `Open(0x800)` y 1; si no, `sprintf` del 1123 con el 6 en los 0x30 bytes de `EBP − 0xf0` y 1, con el tipo 1. La S y el
@@ -13425,11 +13442,13 @@ esquina de las dos ventanas (las escriben en (0x104, 0) el paso, solo con la pro
   `0xa1`, la misma y, con el clic, que gasta): con la tienda abierta, el `3F 03`. El del título (x de x + `0x14` a x +
   `0xaa`, y de y + `0x41` a y + `0x59`, con el clic, que **no** gasta): `0x5eba70(1)`. Sin `rand()` propios.
 - `0x5eba70(modo)`: con 1 o 2, el diálogo `0x91` (`0x6236f0`), `0x78aba60` en el modo, el campo del chat cerrado
-  (`0x6c8e68`), el modo del zen (`0x77f3b6a`) en 0 o 1, los campos de texto vacíos (`0x553570(0)`) y el largo del campo
-  (`0x6c8e78`) en `0x1c` o 8. Con `0x6c7b8c` en 1 (la `.data`) arma además el EDIT de `[0x5763504]`, del hito 6. El
-  paso del `0x91` (`0x6260f6`) lee ese EDIT: con el modo 1 copia el título a `0x78aba64` si `0x5ebbd0` lo valida (si
-  no, el mensaje `0x770fe14`); con el 2, `atoi` al zen escrito (`0x77f3b6c`); el OK (`[0x14a, 0x17e] × [0xa0, 0xb0]` o
-  Enter) deja `0x6c932e` en 1 con un título o un precio de más de 0, si no en 2; cancelar, en 2. Corta (08 P-C312).
+  (`0x6c8e68`), el modo del zen (`0x77f3b6a`) en 0 o 1, los campos de texto vacíos (`0x553570(0)`, que también vacía el
+  EDIT) y el largo del campo (`0x6c8e78`) en `0x1c` o 8. Con `0x6c7b8c` en 1 (la `.data`) arma además el EDIT de
+  `[0x5763504]` (MuRet: `UI::ChatInputState::dialogEdit`). El paso del `0x91` (`0x6260f6`) lee ese EDIT: con el modo 1
+  copia el título a `0x78aba64` si `0x5ebbd0` lo valida (si no, el texto 1130, `0x770fe14`, con el tipo 1); con el 2,
+  `atoi` al zen escrito (`0x77f3b6c`); el OK (`[0xff, 0x133] × [0xa0, 0xb0]`, `0x626112..0x626145`, o Enter) deja
+  `0x6c932e` en 1 con un título o un precio de más de 0, si no en 2; cancelar (`[0x14a, 0x17e]`, la misma y), en 2.
+  Portado en la auditoría del hito 7 (`Scenes::StepTheShopDialog`, 08 P-C312).
 - La caja `0x9c` es el objeto `0x575d9d0` (`0x471e80` lo arma la primera vez con `0x471650`): +0 el id, +4 los botones
   (1 o 2), +8 los renglones (un `std::vector<std::string>`). `0x4716e0(id, texto, tipo)`: con el `0x9c` abierto
   (`0x7d3a10c`), falso; si no, el `0x9c` por `0x6236f0` (con otro abierto, esperando) y, con el tipo fuera de 1..2,
@@ -13460,6 +13479,10 @@ esquina de las dos ventanas (las escriben en (0x104, 0) el paso, solo con la pro
   con el sí pone el precio y con el no `0x5eba70(2)`; el 1, el 2 y el 4 son de las ventanas de NPC (CL9.3). El diálogo
   del precio (`0x5dc79e`): con el sí, el precio escrito (sin signo) contra el valor del ítem de `0x78a59c8`
   (`0x54d0f0` con el modo 2): menor, `0x633300(2, 1132, 0x99)` y el aviso 6; si no, el precio. Con el no, `0x5be150`.
+  El `0x99` (`0x63332f..0x6333a3`) escribe el primer renglón con `sprintf` del 1132 y el zen escrito con las comas de
+  `0x5b1130`, sin tope (lo largo sigue en el renglón de abajo, que pisa el `strcpy` del 1133), y abre con los dos
+  botones; su paso es el del `0x94` (`0x62845d` salta al mismo final, `0x62a779`) y su marco y su texto también
+  (`UI::OpenTheMoneyTextDialog`).
   El precio (`0x5dc807..` y `0x5da5ac..`): con la tienda abierta, el `3F 03`; con un ítem en el cursor, el `3F 01` con
   `[0x78a6758]`, el `24` de la grilla 0 a la 4 (con la traba suelta) y el precio en el mapa en `0x77f3cc8`; sin ítem, el
   `3F 01` y el precio en `[0x78a6758]` (`0x5f7f90`). Al final `0x77f3b6c` en 0.

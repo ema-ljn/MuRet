@@ -221,11 +221,16 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id)
             return closed;
         if (closed.Value())
         {
+            // 0x65c020..0x65c033: 0x7d53708 en 1 y, con un Dark Lord, los pedidos del cuervo y del caballo.
             m_state.inventory = 1;
             if (m_context.heroClass == DarkLordClass)
-                return Core::Unexpected(
-                    std::string("0x65c039: el pedido de la mascota del Dark Lord (C1 A9) al abrir el inventario es de "
-                                "la CL9"));
+            {
+                if (!m_context.petRequests)
+                    return Core::Unexpected(
+                        std::string("0x65c039: abrir el inventario de un Dark Lord pide el cuervo y "
+                                    "el caballo (C1 A9) sin el cable"));
+                m_context.petRequests();
+            }
         }
         break;
     }
@@ -344,10 +349,10 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id)
         if (closed.Value())
         {
             m_state.delegated.pet = PetPanelOpen;
-            if (!m_context.petOpened)
+            if (!m_context.petRequests)
                 return Core::Unexpected(std::string("0x659ff6: abrir la mascota pide el cuervo y el caballo (C1 A9) "
                                                     "sin el cable"));
-            m_context.petOpened();
+            m_context.petRequests();
         }
         break;
     }

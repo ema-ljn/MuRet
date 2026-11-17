@@ -10,6 +10,7 @@
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/MapLoad.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/PersonalShopLists.h"
 #include "Scenes/PetStats.h"
 #include "Scenes/Quests.h"
 #include "Scenes/SceneId.h"
@@ -61,6 +62,8 @@ void ResetAfterLogout(const WorldEntryResources& resources)
     runtime.selectedTargets.fill(-1);
     runtime.ui.autoAttack = true;
     runtime.map = NoMap;
+    // 0x4c254b: el personaje que se sigue (0x6c8e50) en −1.
+    runtime.movement.followTarget = -1;
     {
         // 0x4c2575..0x4c264b: cierre independiente de 3.848 rand() cuando no quedan accesos.
         const Render::Models::LogicalAccess access(runtime.ownRecordDepth, resources.cloth.random,
@@ -75,8 +78,10 @@ void ResetAfterLogout(const WorldEntryResources& resources)
     UI::ClearTheWhisperSenders(runtime.chat.whisperSenders);
     ResetTheQuests(runtime.quest, runtime.panels.delegated.quest);
     // 0x4c2650..0x4c26e7: lo demás son globales y objetos que MuRet no tiene, y 0x657670, cuyo 0x4499b0 manda el
-    // segundo C1 03 31 (la sesión, Q-C214) y cuyo 0x420cd0 pone en 0 las mascotas (CL9 hito 4).
+    // segundo C1 03 31 (la sesión, Q-C214), cuyo 0x420cd0 pone en 0 las mascotas (CL9 hito 4) y cuyo jmp final
+    // (0x657690) vacía las tiendas personales (0x5eb960, CL9 hito 7).
     ResetThePets(runtime);
+    ResetThePersonalShops(runtime.social.personalShop);
     // 0x4c26ec..0x4c26fd: el recorrido de la cámara, 0x403300 y después 0x403d60 (que con +0x14c recién en 10000 no
     // borra a nadie).
     ResetTheCameraTour(runtime.events.cameraTour);

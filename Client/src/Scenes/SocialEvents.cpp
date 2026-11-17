@@ -12,6 +12,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/GameMessages.h"
+#include "Scenes/GameMovementState.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -232,9 +233,10 @@ Core::Expected<Discarded, std::string> MarkTheFootprint(std::span<ItemState> gri
 
 // 0x5bc470(0x78a5a20): 0x78abaa5 en 0, +0x44 en 1 en las 32 casillas y, por cada ítem del otro con una copia del mismo
 // tipo en 0x77f3dc8, la comparación (0x5bc300(copia, ítem)): 1 (la copia era mejor) marca 99 y prende 0x78abaa5 y sigue
-// con la copia que viene; otra cosa marca 1 y termina (con 0, el tipo va a la lista). Al final, si la lista tiene algo,
-// 0x78abaa5 en 0 y los ítems de esos tipos con 1. El undécimo tipo de la lista (0x5bc52f) y una huella que pasa la
-// grilla (0x5bc260) dan el aviso: quien la llama lo hace sobre una copia del comercio y la descarta.
+// con la copia que viene; otra cosa marca 1 y termina (con 0, el tipo va a la lista de 10 de la pila). Al final, si la
+// lista tiene algo, 0x78abaa5 en 0 y los ítems de esos tipos con 1. El undécimo tipo se pierde y en su lugar se compara
+// el 1 de la cuenta (Q-C961 b); el duodécimo (0x5bc545) y una huella que pasa la grilla (0x5bc260) dan el aviso: quien
+// la llama lo hace sobre una copia del comercio y la descarta.
 Core::Expected<Discarded, std::string> MarkTheChangedItems(TradeState& trade, const WorldEntryResources& resources)
 {
     std::span<ItemState> grid = trade.otherGrid;
@@ -258,12 +260,16 @@ Core::Expected<Discarded, std::string> MarkTheChangedItems(TradeState& trade, co
             {
                 if (compared == 0)
                 {
-                    if (count == same.size())
-                        return Discarded{std::format("0x5bc52f: el ítem del lugar {} sería el undécimo igual a su "
-                                                     "copia y pisaría la lista de diez de la pila de 0x5bc470 "
+                    // 0x5bc52d..0x5bc54a: el undécimo tipo cae en el puntero de la lista (ebp − 0x14), que se pisa
+                    // enseguida con el lugar que sigue, y se pierde; el duodécimo pisa la cuenta (ebp − 0x10).
+                    if (count > same.size())
+                        return Discarded{std::format("0x5bc545: el ítem del lugar {} sería el duodécimo igual a su "
+                                                     "copia y pisaría la cuenta de la lista de 0x5bc470 con su tipo "
                                                      "(Q-C961)",
                                                      slot)};
-                    same[count++] = SignedType(copy);
+                    if (count < same.size())
+                        same[count] = SignedType(copy);
+                    ++count;
                 }
                 auto marked = MarkTheFootprint(grid, slot, SameAsTheCopy, resources);
                 if (!marked.HasValue() || marked.Value())
@@ -281,10 +287,13 @@ Core::Expected<Discarded, std::string> MarkTheChangedItems(TradeState& trade, co
     trade.changed = 0;
     for (std::size_t at = 0; at < count; ++at)
     {
+        // 0x5bc589..0x5bc5ca: la cuenta que baja vive en ebp − 0x14, el lugar 10 de la lista: con once, el undécimo
+        // tipo que se compara es lo que queda de ella, 1.
+        const std::int32_t type = at < same.size() ? same[at] : static_cast<std::int32_t>(count - at);
         for (std::size_t slot = 0; slot < grid.size(); ++slot)
         {
             const ItemState& item = grid[slot];
-            if (!IsEmpty(item) && SignedType(item) == same[at] && item.occupied != 0)
+            if (!IsEmpty(item) && SignedType(item) == type && item.occupied != 0)
             {
                 auto marked = MarkTheFootprint(grid, slot, SameAsTheCopy, resources);
                 if (!marked.HasValue() || marked.Value())
@@ -468,6 +477,9 @@ Core::Expected<void, std::string> ApplyTradeResponse(const Protocol::Trade::Trad
         return {};
     WorldState& world = resources.world;
     GamePanels panels(world, resources.cloth.random);
+    // 0x4d55b8 → 0x6599a0(0x20): abrir el comercio cierra lo demás, las misiones con el 31 y la tienda de otro con el
+    // 3F 07.
+    panels.LendTheSession(world, resources.cloth.random, resources.sendGamePacket, resources.sendWindowClose);
     if (auto opened = panels.Registry().Open(UI::TradePanel); !opened.HasValue())
         return Core::Unexpected(std::move(opened).Error());
     TradeState& trade = world.Runtime().social.trade;
@@ -727,8 +739,8 @@ Core::Expected<void, std::string> ApplyPartyLeft(const WorldEntryResources& reso
     if (auto shown = Message(resources, PartyLeftText, UI::ErrorMessage, "0x4e40b1"); !shown.HasValue())
         return shown;
     // 0x4e40b6..0x4e415e: con la cuenta ya en 0, la búsqueda del nombre no corre y 0x6c8e50 queda en −1.
-    if (runtime.social.party.followTarget >= 0)
-        runtime.social.party.followTarget = -1;
+    if (runtime.movement.followTarget >= 0)
+        runtime.movement.followTarget = -1;
     return {};
 }
 

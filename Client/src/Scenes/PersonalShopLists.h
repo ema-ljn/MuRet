@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Protocol/PersonalShop.h"
 #include "Scenes/SocialEvents.h"
+#include "Scenes/SocialState.h"
 #include "UI/PanelRegistry.h"
 
 #include <string>
@@ -25,7 +26,7 @@ struct WorldEntryResources;
 
 // 0x65ac65..0x65b21d (0x800) y 0x65b33a..0x65ba37 (0x20000), después de abrir el inventario: con 0x6c931c distinto de
 // −1, el C1 04 F3 10 en C3 (dos rand(), el relleno y el serial); los dos mapas si ninguno estaba (los arma juntos, y
-// nadie los suelta); 0x6c931c en 1 (la propia) o 2 (la de otro).
+// solo los suelta la vuelta a la selección, ResetThePersonalShops); 0x6c931c en 1 (la propia) o 2 (la de otro).
 [[nodiscard]] Core::Expected<void, std::string>
 OpenThePersonalShop(WorldState& world, Render::Models::CrtRandom& random, UI::PanelId id, const GamePacketSender& send);
 
@@ -35,6 +36,13 @@ OpenThePersonalShop(WorldState& world, Render::Models::CrtRandom& random, UI::Pa
 // 0x94 con 0x78abb14 en 5, el diálogo 0 (0x6236f0); 0x6c931c en −1 y la copia del dueño (0x78a6320) en ceros.
 [[nodiscard]] Core::Expected<void, std::string>
 CloseThePersonalShop(WorldState& world, Render::Models::CrtRandom& random, const GamePacketSender& send);
+
+// 0x5eb960, por el jmp de 0x657690 al final de 0x657670 (la vuelta a la selección, 0x4c26e7): 0x78aba50 en 0, 0x6c931c
+// en −1, 0x78aba60 en 0 y el título (0x78aba64) vacío; los carteles (0x4514a0 sobre 0x7245c8, que no toca la cuenta
+// del dibujo ni si se dibujan) y los dos mapas de los precios (0x4c0340 y el delete de 0x7245e4 y 0x7245e0, que quedan
+// en 0: el próximo Open los vuelve a armar). Sin rand(). La copia del dueño (0x78a6320), la grilla guardada (0x78a6768)
+// y la esquina de las ventanas quedan como estaban.
+void ResetThePersonalShops(PersonalShopState& shops);
 
 // 0x4db120 (3F 01): con un resultado distinto de 1 y 0x6c931c en 1, 0x5be150 con un ítem en el cursor, el lugar
 // sale del mapa de la tienda propia (0x7245e4) y el C1 04 F3 10 en C3. Si no, nada (el log 0x6c84a0 siempre).

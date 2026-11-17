@@ -54,6 +54,7 @@
 #include <filesystem>
 #include <format>
 #include <fstream>
+#include <functional>
 #include <ios>
 #include <optional>
 #include <ratio>
@@ -317,19 +318,22 @@ Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& 
 GameChatContext GameScene::ChatContext()
 {
     App::ServerSession* session = m_session;
-    return GameChatContext{.world = *m_context.world,
-                           .random = m_context.cloth->random,
-                           .texts = m_texts,
-                           .items = m_items,
-                           .setOptions = m_chatTables.setOptions,
-                           .filter = m_chatTables.filter,
-                           .measure = m_context.textMeasure,
-                           .screen = m_screen,
-                           .send = session != nullptr ? ChatSender([session](Protocol::Outgoing packet)
-                                                                   { session->SendChat(std::move(packet)); })
-                                                      : ChatSender{},
-                           .clipboard = m_context.clipboard,
-                           .models = m_models};
+    return GameChatContext{
+        .world = *m_context.world,
+        .random = m_context.cloth->random,
+        .texts = m_texts,
+        .items = m_items,
+        .setOptions = m_chatTables.setOptions,
+        .filter = m_chatTables.filter,
+        .measure = m_context.textMeasure,
+        .screen = m_screen,
+        .send = session != nullptr
+                    ? ChatSender([session](Protocol::Outgoing packet) { session->SendChat(std::move(packet)); })
+                    : ChatSender{},
+        .sendWindowClose = session != nullptr ? std::function<void()>([session] { session->SendWindowClose(); })
+                                              : std::function<void()>{},
+        .clipboard = m_context.clipboard,
+        .models = m_models};
 }
 
 InventoryServices GameScene::InventoryContext()

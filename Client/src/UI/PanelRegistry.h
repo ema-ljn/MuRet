@@ -170,7 +170,8 @@ struct PanelContext
     std::int32_t map = -1;
     // 0x7879fbc: con ítem en el cursor no se cierra el inventario (0x661b90).
     std::int32_t cursorItemCount = 0;
-    // +0x1d4 & 7 del héroe: con 4 (Dark Lord), abrir el inventario pide la mascota (C1 A9, 0x65c039).
+    // +0x1d4 & 7 del héroe: con 4 (Dark Lord), abrir el inventario pide el cuervo y el caballo (petRequests,
+    // 0x65c039).
     std::uint8_t heroClass = 0;
     // 0x576793c: la salida pedida desde el menú de Esc (hito 6). Con 1, Open no abre.
     bool logoutRequested = false;
@@ -200,9 +201,10 @@ struct PanelContext
     // 0x6589cb y 0x6589ef: 0x5eb020 al cerrar cualquiera de las dos, antes de apagar 0x7d5370f
     // (Scenes::CloseThePersonalShop). Sin él, cerrar una tienda corta.
     std::function<Core::Expected<void, std::string>()> personalShopClosed{};
-    // 0x659ff6..0x65a8a3: lo que abrir la mascota hace si cerró lo demás, después de 0x420cb0: los pedidos del cuervo y
-    // del caballo, C1 06 A9 00 00 01 y A9 01 00 08, con el XOR32 y por send() (CL9 hito 4). Sin él, abrirla corta.
-    std::function<void()> petOpened{};
+    // Los pedidos del cuervo y del caballo, C1 06 A9 00 00 01 y A9 01 00 08, con el XOR32 y por send() (CL9 hito 4):
+    // lo que abrir la mascota hace si cerró lo demás, después de 0x420cb0 (0x659ff6..0x65a8a3), y abrir el inventario
+    // de un Dark Lord después de prenderlo (0x65c039..0x65c946, el mismo código repetido). Sin él, los dos cortan.
+    std::function<void()> petRequests{};
     // 0x659c68..0x659c70: abrir las misiones, si cerró lo demás, es 0x419840(−1) sobre [0x710148] (la lista, con su
     // diálogo). Sin él, abrir las misiones corta.
     std::function<Core::Expected<void, std::string>()> questOpened{};

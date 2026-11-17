@@ -97,10 +97,9 @@ struct PartySlot
 struct PartyState
 {
     std::array<PartySlot, PartySlots> slots{};
-    // 0x78aba4c: la clave del que invita (40), que el diálogo 0x77 devuelve en el 41.
+    // 0x78aba4c: la clave del que invita (40), que el diálogo 0x77 devuelve en el 41. El que se sigue (0x6c8e50) es
+    // GameMovementState::followTarget.
     std::int32_t requestKey = 0;
-    // 0x6c8e50 (.data −1): el miembro que se sigue; el 43 lo vuelve a −1.
-    std::int32_t followTarget = -1;
 };
 
 // 0x78abad8, 0x78abadc y 0x78abae0 también los lee el cursor de ataque (0x558bb0, Scenes/HeroAttack): es la única
@@ -163,9 +162,9 @@ struct PersonalShopState
     std::uint8_t signsShown = 1;
     // 0x78aba50: la tienda propia abierta (el 3F 02 con 1; el 3F 03 del héroe la apaga).
     std::uint8_t ownOpen = 0;
-    // 0x78aba64: el título de la ventana, que escribe el paso del diálogo 0x91 (0x6260f6, que corta: su campo es el
-    // EDIT del hito 6) y lee el 3F 02 (0x5ea407 y 0x62378b). El 3F 05 pone el de la tienda que se mira (strncpy de
-    // 0x24, 0x4db92b) y cerrarla vuelve al del cartel del héroe (0x5eb020).
+    // 0x78aba64: el título de la ventana, que escriben el paso del diálogo 0x91 (0x6260f6) y el Enter con el campo
+    // del título abierto (0x4b55db), si pasa 0x5ebbd0, y lee el 3F 02 (0x5ea407 y 0x62378b). El 3F 05 pone el de la
+    // tienda que se mira (strncpy de 0x24, 0x4db92b) y cerrarla vuelve al del cartel del héroe (0x5eb020).
     std::string ownTitle;
     // 0x6c931c (.data −1): Open(0x800) lo pone en 1 (0x65b21d) y Open(0x20000) en 2 (0x65ba37); 0x5eb020, al cerrar
     // cualquiera de las dos, en −1. Lo miran las listas del 3F, el 28 y el 3F 12.

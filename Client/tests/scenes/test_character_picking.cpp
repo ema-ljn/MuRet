@@ -7,6 +7,7 @@
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ActorPickingBox.h"
+#include "Scenes/GameDrawTail.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/PartyActors.h"
 #include "Scenes/SocialState.h"
@@ -420,6 +421,50 @@ TEST(CharacterPickingTest, OverTheUiOnlyThePartyIsLookedFor)
     EXPECT_EQ(Indices(world), (std::array<std::int32_t, 4>{3, -3, -1, 0}));
     EXPECT_EQ(world.Runtime().selectedTargets, (std::array<std::int32_t, 5>{-1, -1, -1, -1, -1}));
     EXPECT_EQ(tested.random.State(), CrtRandom().State());
+}
+
+// 0x59ef46..0x59ef5f: con Alt, el ítem del piso que toca el rayo salta a 0x59f52a, que busca a la party (0x59e3b0)
+// antes de 0x59f52f, sin buscar personajes; sin ítem, los personajes (0x59e700, que también miran la party).
+TEST(CharacterPickingTest, AltOverAFloorItemAlsoLooksForTheParty)
+{
+    for (const bool withItem : {true, false})
+    {
+        SCOPED_TRACE(withItem);
+        Frame tested;
+        WorldState& world = *tested.world;
+        Name(world.Actors()[0].name, "Tejon");
+        Place(world, 3, 2000.0f, Players);
+        Name(world.Actors()[3].name, "Brezal");
+        world.Actors()[3].type = 0x20a;
+        Party(world, {"Brezal", "Tejon"}, -2);
+        auto items = std::make_unique<std::array<Client::Scenes::FloorItemState, 1000>>();
+        if (withItem)
+        {
+            Client::Scenes::FloorItemState& item = (*items)[6];
+            item.alive = true;
+            item.seen = true;
+            item.pickBox =
+                Client::Render::Models::Box{.min = {1500.0f, 970.0f, 30.0f}, .max = {1560.0f, 1030.0f, 90.0f}};
+        }
+        ASSERT_TRUE(Client::Scenes::PickInTheFrame({.world = world,
+                                                    .random = tested.random,
+                                                    .ownRecordDepth = world.Runtime().ownRecordDepth,
+                                                    .targets = world.Runtime().selectedTargets,
+                                                    .altDown = true,
+                                                    .ray = Ray,
+                                                    .mouse = tested.mouse,
+                                                    .floorItems = *items})
+                        .HasValue());
+        if (withItem)
+        {
+            EXPECT_EQ(world.Runtime().selectedTargets[0], 6);
+            EXPECT_EQ(Indices(world)[0], 3);
+            EXPECT_EQ(Indices(world)[1], -3);
+        }
+        else
+            EXPECT_EQ(world.Runtime().selectedTargets[0], -1);
+        EXPECT_EQ(tested.random.State(), CrtRandom().State());
+    }
 }
 
 // 0x5e4140: con la party cerrada, la lista de la derecha (640 − 50, de a 19 desde 5). Con la skill 0x1a, el Elf abre el

@@ -936,8 +936,8 @@ Del GS al cliente (los tamaños son los que lee el cliente):
 | --- | --- | --- | --- |
 | `36` | `C1 0D 36 <nombre:10>` | `0x4d4af0` | Sin cifrar (`[EBP+0xc]` en 0), solo el aviso `C1 06 F1 03 00 36` en C3 (2 `rand()`). Cifrado: con la tienda personal propia o ajena abiertas (`0x800`, `0x20000`, sin `rand()`), el `C1 04 37 00` con el XOR32 en claro y nada más; si no, el nombre en `0x78aba1c` (con su 0 en `0x78aba26`), el diálogo `0x78` y, con un ítem en el cursor, `0x5be150` |
 | `37` | `C1 14 37 <resp> <nombre:10> <nivel:2 LE> <gremio:4 LE>` | `0x4d5570` | 0: texto 492; 2: texto 493 (los dos tipo 2). 1: `Open(0x20)`, el pedido de `SetCursorPos` (08 P-C202), el zen y los OK en 0, `0x5bbdf0` si `0x78abaa5` está en 0 y el nombre cambió (`strcmp`), y el nombre, el gremio (`0x6c9324`) y el nivel (`0x78abab0`) |
-| `38` | `C1 04 38 <lugar>` | `0x4e3d6a` | `0x5bd750(lugar, 0x78a5a20, 8)`: la copia (`0x5bc5e0`), la huella vacía y `0x5bc470`; el sonido `0x1d`. Con 0xff, solo el sonido. Un lugar desde 32 lee fuera de la grilla y un undécimo ítem igual a su copia pisa la pila de `0x5bc470` (07 Q-C200 y Q-C961): MuRet descarta el paquete entero, sin sonido y con un aviso |
-| `39` | `C1 0B 39 <lugar> <ítem:7>` | `0x4e3d99` | `0x5bc740(0x78a5a20, 8, 4, lugar, ítem, 1)` (`0x5bd307..0x5bd3ec`) y `0x5bc470`; el sonido `0x1d`. Una huella que pasa la casilla 31 o un undécimo ítem igual a su copia (07 Q-C200 y Q-C961): MuRet descarta el paquete entero, sin sonido y con un aviso |
+| `38` | `C1 04 38 <lugar>` | `0x4e3d6a` | `0x5bd750(lugar, 0x78a5a20, 8)`: la copia (`0x5bc5e0`), la huella vacía y `0x5bc470`; el sonido `0x1d`. Con 0xff, solo el sonido. Un lugar desde 32 lee fuera de la grilla y un duodécimo ítem igual a su copia pisa la cuenta en la pila de `0x5bc470` (07 Q-C200 y Q-C961; el undécimo solo se pierde): MuRet descarta el paquete entero, sin sonido y con un aviso |
+| `39` | `C1 0B 39 <lugar> <ítem:7>` | `0x4e3d99` | `0x5bc740(0x78a5a20, 8, 4, lugar, ítem, 1)` (`0x5bd307..0x5bd3ec`) y `0x5bc470`; el sonido `0x1d`. Una huella que pasa la casilla 31 o un duodécimo ítem igual a su copia (07 Q-C200 y Q-C961; el undécimo solo se pierde): MuRet descarta el paquete entero, sin sonido y con un aviso |
 | `3A` | `C1 04 3A <sí>` | `0x4e3dd0` | `0x78abab8` con el zen mandado (`0x57678ac`) si es 1, o 0 |
 | `3B` | `C1 08 3B 00 <zen:4 LE>` | `0x4e3df3` | el zen del otro en `0x78abab4` |
 | `3C` | `C1 04 3C <estado>` | `0x4e3e0a` | 0 apaga el OK del otro, 1 lo prende, 2 apaga el propio; siempre el sonido `0x19` |
@@ -948,8 +948,9 @@ el sí y el no del diálogo `0x78`, `0x62c20a` y `0x62d4a2`), el `3A` (`C1 08 3A
 del diálogo `0x73`, `0x626b2a..0x626eaf`), el `3C` (`C1 04 3C <OK>`, C3; `0x5ecde0`) y el `3D` (`C1 03 3D`, C3; el botón de
 cancelar de `0x5ecde0` y `0x657fe1` al cerrar la ventana a mano).
 
-Contra el GameServer 0.97 coinciden todos los tamaños menos uno: el `39` del GS lleva el `ItemInfo` de 8 bytes
-(`PMSG_TRADE_OTHER_ADD`, `C1 0C 39`) y el cliente lee 7 desde `pkt + 4` (08 P-C200). La ventana es la grilla de
+Contra el GameServer 0.97 coinciden todos los tamaños menos uno: el `39` del GS lleva el `ItemInfo` de 4 bytes
+(`PMSG_TRADE_OTHER_ADD`, `C1 08 39`, `GCTradeOtherAdd` `0x41e1a0`) y el cliente lee 7 desde `pkt + 4`; MyDll lo
+reescribe a `C1 0B 39` con los 7 (`mydll_xlat_s2c_tradeadd_39`), como el resto de los ítems (08 P-C200). La ventana es la grilla de
 `0x78a5a20` (la del otro, 8 × 4 de `0x48`) y la de `0x78a92a8` (la propia); `0x77f3dc8` guarda 32 copias de lo que el
 otro sacó o tenía al cancelar, que `0x5bc470` compara (`0x5bc300`) para marcar con 99 lo que volvió peor (el
 "anti-estafa"). Las dos grillas y la copia arrancan vacías: `0x5bbe10`, desde `0x633f20` al entrar a la selección,
@@ -966,9 +967,9 @@ grilla del otro cambiada y el propio apagado abre el aviso `0x633300(4, 0x173, 0
 | --- | --- | --- | --- |
 | `40` | `C1 05 40 <clave BE>` | `0x4e3f41` | la clave en `0x78aba4c` y el diálogo `0x77` |
 | `41` | `C1 04 41 <resultado>` | `0x4e3f6f` | 0 a 5: los textos 497 a 501 y 535 (tipo 2); el diálogo 0 siempre |
-| `42` | `C1 xx 42 <resultado> <cuenta> <miembro:0x18>…` | `0x4d67e0` | la cuenta en `0x78aba48` y cada miembro (nombre, número, mapa, x, y, dos bytes que no lee, vida y vida máxima LE) en su lugar de `0x77f3cd0`, de `0x24`, con 0 en `+0xa` |
+| `42` | `C1 xx 42 <resultado> <cuenta> <miembro:0x18>…` | `0x4d67e0` | la cuenta en `0x78aba48` y cada miembro (nombre, número, mapa, x, y, dos bytes que no lee, vida y vida máxima LE) en su lugar de `0x77f3cd0`, de `0x24`, con 0 en `+0xa`. No mira el largo: con una cuenta que no entra lee pasado el paquete; MuRet devuelve `TooShort` y la sesión lo ignora con un aviso (Q-C42) |
 | `43` | `C1 03 43` | `0x4e409b` | la cuenta en 0, el texto 502 y `0x6c8e50` en −1 si estaba en 0 o más |
-| `44` | `C1 xx 44 <cuenta> <byte>…` | `0x4d6850` | por byte, `+0x18` del lugar del nibble alto con el bajo, hasta 10 |
+| `44` | `C1 xx 44 <cuenta> <byte>…` | `0x4d6850` | por byte, `+0x18` del lugar del nibble alto con el bajo, hasta 10. Tampoco mira el largo: MuRet, `TooShort` como el `42` (Q-C42) |
 
 Del cliente: el `40` (`C1 05 40 <clave BE>`, C3; `0x406050` desde `0x40739b` y `0x56c440`), el `41` (`C1 06 41 <sí>
 <clave BE>`, C3; el diálogo `0x77`, `0x62bb1d` y `0x62cd52`), el `42` (`C1 03 42`, en claro, al abrir la ventana) y
@@ -1249,7 +1250,7 @@ registrados con las skills; `Scenes/PetOrders` los aplica. El `A9` de respuesta 
 <tipo> <clase> <casilla> <nivel> <?> <experiencia: 4, little endian>`, sin mirar el cifrado ni el largo; `pkt[7]` no lo
 lee nadie. **MuRet**: `Protocol::Pet::ReadPetInfoReply` (TooShort sin los 12 bytes) y `Scenes::ApplyPetInfo`
 ([06](06-render-escenas-y-ui.md#el-a9-de-las-mascotas)). Abrir el panel de la mascota manda `A9 00 00 01` y `A9 01 00
-08` (`0x659ff6..0x65a8a3`).
+08` (`0x659ff6..0x65a8a3`), y abrir el inventario con un Dark Lord, los mismos dos (`0x65c039..0x65c946`, CL9 hito 7).
 
 ### Las misiones y los NPC: `9F`, `A0`..`A3` y `30`
 

@@ -20,11 +20,16 @@
 #include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/ChatInput.h"
 #include "UI/Dialogs.h"
 #include "UI/GameDialogs.h"
 #include "UI/GameText.h"
 #include "UI/GameUiState.h"
 #include "UI/HudPrimitives.h"
+#include "UI/OldControls.h"
+#include "UI/OldWindowBase.h"
+#include "UI/OldWindowDraw.h"
+#include "UI/OldWindowDrawParts.h"
 #include "UI/SprintfFormat.h"
 #include "UI/Widget.h"
 
@@ -153,7 +158,7 @@ constexpr int TallBoxRows = 7;
 // 0x631150..0x631182: las del 0x8d, ((renglones + respuestas) · 0x12 + 0x31) / 40, de 4 a 9.
 constexpr int AnswersBoxRowsMaximum = 9;
 constexpr int AnswersBoxRowsRound = 0x31;
-// 0x630f1c..0x630f9b: cada botón con estado, 0xf0 + estado en (x + 213, y + 60, w, h − 1) con las UV (0, 0, w / 128,
+// 0x631205..0x63127c: cada botón con estado, 0xf0 + estado en (x + 213, y + 60, w, h − 1) con las UV (0, 0, w / 128,
 // h / 32) (0x6ba7a8, 0x6b86cc, 0x6b87d4, 0x6b8b08 y 0x6b8880).
 constexpr float ButtonDu = 0.0078125f;
 constexpr float ButtonDv = 0.03125f;
@@ -255,6 +260,66 @@ constexpr std::int32_t PartyInviteDialog = 0x77;
 constexpr std::int32_t TradeInviteDialog = 0x78;
 // El zen del comercio (0x5ece58) y del almacén (0x5ea15f): el marco del OK genérico y el EDIT de [0x5763504].
 constexpr std::int32_t MoneyDialog = 0x73;
+// 0x63086c..0x6308c3: el EDIT del 0x73, +0x4c en 9 (solo cifras, 1, y el fondo negro del dibujo, 8), el tope de 8 (la
+// vtable + 0x3c), 0x46 × 0xe (+ 8) en (0x11b, 0x5f) (0x45a9d0).
+constexpr std::int32_t MoneyEditFilter = 9;
+constexpr std::size_t MoneyEditLimit = 8;
+constexpr std::int32_t MoneyEditWidth = 0x46;
+constexpr std::int32_t MoneyEditHeight = 0xe;
+constexpr std::int32_t MoneyEditX = 0x11b;
+constexpr std::int32_t MoneyEditY = 0x5f;
+// 0x631c91..0x631d27: el texto del 0x73 por 0x78abacc: 420 con 0, 421 con 1 y 422 con otro, en y = 60 + 0xf.
+constexpr std::size_t MoneyZeroText = 420;
+constexpr std::size_t MoneyOneText = 421;
+constexpr std::size_t MoneyOtherText = 422;
+// 0x6304f2..0x630813 (CL9 hito 7): el título o el precio de la tienda personal. El marco, 0xfc de 213 × 5 en (213,
+// 100), dos filas de 0xfb de 213 × 40 en y = 105 y 145 y otra vez 0xfc en (213, 185), con las UV de las cajas; el OK,
+// 0xf1 (0xf2 con el mouse en [0xff, 0x133] × [0xa0, 0xb0], con signo) de 52 × 16 en (255, 160), y el cancelar, 0xf3
+// (0xf4 con el mouse en [0x14a, 0x17e] × [0xa0, 0xb0]) en (330, 160), con las UV del OK. Sus textos (0x631d2f) van en
+// y = 100 + 0xf: el 1128 con el título y el 1129 con el precio (0x78aba60); con otro modo, ninguno.
+constexpr std::int32_t ShopDialog = 0x91;
+constexpr float ShopBoxTop = 100.0f;
+constexpr int ShopFirstRowY = 105;
+constexpr int ShopRows = 2;
+constexpr float ShopButtonY = 160.0f;
+constexpr float ShopButtonWidth = 52.0f;
+constexpr float ShopButtonHeight = 16.0f;
+constexpr float ShopOkX = 255.0f;
+constexpr float ShopCancelX = 330.0f;
+constexpr int ShopOkLeft = 0xff;
+constexpr int ShopOkRight = 0x133;
+constexpr int ShopCancelLeft = 0x14a;
+constexpr int ShopCancelRight = 0x17e;
+constexpr int ShopButtonTop = 0xa0;
+constexpr int ShopButtonBottom = 0xb0;
+constexpr int ShopTextY = 100 + 0xf;
+constexpr std::int32_t ShopTitleMode = 1;
+constexpr std::int32_t ShopPriceMode = 2;
+constexpr std::size_t ShopTitleText = 1128;
+constexpr std::size_t ShopPriceText = 1129;
+// 0x630cbd..0x630fc5 (CL9 hito 7): el aviso 0x94 de 0x633300 y el 0x99 del precio, que entra por 0x630cc4 con la
+// misma y. El marco desde y = 100: 0xfc de 213 × 5, tres filas de
+// 0xfb de 213 × 40 desde 105 y otra vez 0xfc, en 225; los botones con estado de 1 a 4, 0xf0 + estado en (x + 213,
+// y + 100, w, h) con las UV (0, 0, w / 128, h / 32), sin el − 1 de las cajas.
+constexpr std::int32_t WarningDialog = 0x94;
+constexpr float WarningBoxTop = 100.0f;
+constexpr int WarningFirstRowY = 105;
+constexpr int WarningRows = 3;
+constexpr std::int32_t WarningLastState = 4;
+// 0x632637..0x632a24: los renglones de 0x7d36a98, de 0x12 en 0x12. Con el aviso 3 de 0x78abb14 (el comercio), desde
+// y = 100 + 0xf y centrados en 0x140; con el 4, 0x1e más abajo; con otro, desde 100 + 0x1e y centrados en 0x15e. El
+// color de cada uno, (1; 0,7; 0) con la negrita (0x5763558), salvo el renglón 0 con el aviso 1, (1, 0, 0), y el 3 con
+// el aviso 3, (1; 0,1; 0,1); con el aviso 6, el 0 en (1, 0, 0) y los demás en blanco con la normal (0x5763554). El
+// aviso 2 pone antes un renglón de 0x7d2dc98 y los suyos en (0,9; 0,9; 1) (CL9.3).
+constexpr int WarningTextTop = 100 + 0xf;
+constexpr int WarningTextCenter = 0x140;
+constexpr int WarningOtherCenter = 0x15e;
+constexpr int WarningOtherOffset = 0xf;
+constexpr int WarningKind4Offset = 0x1e;
+constexpr Color WarningColor{1.0f, 0.7f, 0.0f, 1.0f};
+constexpr Color WarningRed{1.0f, 0.0f, 0.0f, 1.0f};
+constexpr Color WarningLastRowColor{1.0f, 0.1f, 0.1f, 1.0f};
+constexpr std::size_t WarningRedRow = 3;
 // 0x631e54 y 0x631bbb: el formato del nombre (0x76dbbb4); 0x631ec0 y 0x631c49, la pregunta del 0x77 (0x76dc3e8) y la
 // del 0x78 (0x76dbce0). Cada renglón sale de sprintf.
 constexpr std::size_t InviterText = 418;
@@ -578,16 +643,143 @@ void DrawTheGenericBox(Frame& frame)
     Quad(frame, slot, OkX, OkY, OkWidth, OkHeight, OkDu, OkDv);
 }
 
+// La vtable + 0x30 con 0 (0x4682a0, el foco de Windows) y la + 0x14 (0x468320, que lo dibuja con el foco) del EDIT
+// de [0x5763504] (ChatInputState::dialogEdit), después de lo que `setup` le cambia en este frame. Una pasada intermedia
+// trabaja sobre una copia y no mueve el foco.
+template <typename Setup> void DrawTheDialogEdit(Frame& frame, Setup setup)
+{
+    UI::ChatInputState& input = frame.runtime.chat.input;
+    UI::OldEdit copy = input.dialogEdit;
+    UI::OldEdit& edit = frame.context.projecting ? copy : input.dialogEdit;
+    setup(edit);
+    if (!frame.context.projecting)
+        input.focus = UI::ChatFocus::Dialog;
+    const UI::OldWindowDrawContext drawing{.sprites = frame.context.sprites,
+                                           .text = frame.context.text,
+                                           .dcFont = frame.context.hud.dcFont,
+                                           .textColors = frame.context.hud.textColors};
+    UI::OldDraw::DrawTheOldEdit(drawing, edit, true);
+}
+
 // 0x630818..0x6308c6 (0x73): el marco del OK genérico, sin el botón, y con 0x6c7b8c en 1 (su valor de la .data; con 0,
-// 0x553ae0 en 0x6308cb, que no se alcanza) el EDIT de [0x5763504]: la vtable + 4 con 0, +0x4c en 9, + 0x3c con 8, + 8
-// con (0x46, 0xe), 0x45a9d0(0x11b, 0x5f), + 0x30 con 0 y + 0x14, que lo dibuja. Ese EDIT es del hito 6 (08 P-C362):
-// corta en la primera llamada, antes de la cola de 0x63140b (0x631c91: el texto 420, 421 o 422 según 0x78abacc, en y =
-// 0x4b).
-Core::Unexpected<std::string> DrawTheMoneyBox(Frame& frame)
+// 0x553ae0 en 0x6308cb, que no se alcanza) el EDIT de [0x5763504] rearmado en cada frame, como el del número de serie
+// (0x5f696d) pero sin tocar sus colores: la vtable + 4 con 0 (a la vista), +0x4c en 9, + 0x3c con 8, + 8 con
+// (0x46, 0xe), 0x45a9d0(0x11b, 0x5f), + 0x30 con 0 y + 0x14.
+void DrawTheMoneyBox(Frame& frame)
 {
     Quad(frame, MessageBoxSlot, BoxLeft, BoxTop, BoxWidth, GenericBoxHeight, MessageBoxDu, 1.0f);
-    return Core::Unexpected(std::string("0x630876: el diálogo 0x73 arma y dibuja el EDIT de [0x5763504], que es del "
-                                        "hito 6 (08 P-C362)"));
+    DrawTheDialogEdit(frame,
+                      [](UI::OldEdit& edit)
+                      {
+                          edit.base.state = UI::ShownWindow;
+                          edit.filter = MoneyEditFilter;
+                          edit.text.SetLimit(MoneyEditLimit);
+                          edit.base.width = MoneyEditWidth;
+                          edit.base.height = MoneyEditHeight;
+                          edit.base.x = MoneyEditX;
+                          edit.base.y = MoneyEditY;
+                      });
+}
+
+// 0x6304f2..0x630813: el 0x91. El EDIT lo arma 0x5eba70 al abrirlo; acá solo toma el foco y se dibuja, y después
+// 0x620980 deja la mezcla apagada.
+void DrawTheShopBox(Frame& frame)
+{
+    Quad(frame, BoxEdgeSlot, BoxLeft, ShopBoxTop, BoxWidth, BoxEdgeHeight, MessageBoxDu, BoxDv);
+    int y = ShopFirstRowY;
+    for (int row = 0; row < ShopRows; ++row, y += BoxRowStep)
+        Quad(frame, BoxRowSlot, BoxLeft, static_cast<float>(y), BoxWidth, BoxRowHeight, MessageBoxDu, BoxDv);
+    Quad(frame, BoxEdgeSlot, BoxLeft, static_cast<float>(y), BoxWidth, BoxEdgeHeight, MessageBoxDu, BoxDv);
+    DrawTheDialogEdit(frame, [](UI::OldEdit&) {});
+    frame.context.sprites.SetBlend(BlendMode::Opaque);
+    const bool ok = MouseIn(frame, ShopOkLeft, ShopButtonTop, ShopOkRight, ShopButtonBottom);
+    Quad(frame, ok ? OkHoverSlot : OkSlot, ShopOkX, ShopButtonY, ShopButtonWidth, ShopButtonHeight, OkDu, OkDv);
+    const bool cancel = MouseIn(frame, ShopCancelLeft, ShopButtonTop, ShopCancelRight, ShopButtonBottom);
+    Quad(frame, cancel ? NoHoverSlot : NoSlot, ShopCancelX, ShopButtonY, ShopButtonWidth, ShopButtonHeight, OkDu, OkDv);
+}
+
+// 0x630cbd..0x630fc5: el 0x94 y el 0x99, sin mezcla.
+void DrawTheWarningBox(Frame& frame)
+{
+    Quad(frame, BoxEdgeSlot, BoxLeft, WarningBoxTop, BoxWidth, BoxEdgeHeight, MessageBoxDu, BoxDv);
+    int y = WarningFirstRowY;
+    for (int row = 0; row < WarningRows; ++row, y += BoxRowStep)
+        Quad(frame, BoxRowSlot, BoxLeft, static_cast<float>(y), BoxWidth, BoxRowHeight, MessageBoxDu, BoxDv);
+    Quad(frame, BoxEdgeSlot, BoxLeft, static_cast<float>(y), BoxWidth, BoxEdgeHeight, MessageBoxDu, BoxDv);
+    for (const UI::DialogButton& button : frame.runtime.dialogBox.buttons)
+    {
+        if (button.state < 1 || button.state > WarningLastState)
+            continue;
+        const float width = static_cast<float>(button.width);
+        const float height = static_cast<float>(button.height);
+        Quad(frame, static_cast<std::uint16_t>(MessageBoxSlot + button.state), static_cast<float>(button.x) + BoxLeft,
+             static_cast<float>(button.y) + WarningBoxTop, width, height, width * ButtonDu, height * ButtonDv);
+    }
+}
+
+// 0x632637..0x632a24 (0x94 y 0x99): los renglones del aviso con su color y su fuente.
+Core::Expected<void, std::string> DrawTheWarningText(Frame& frame)
+{
+    const std::int32_t kind = frame.runtime.social.trade.warningKind;
+    if (kind == 2)
+        return Core::Unexpected(std::string("0x632683: el renglón de arriba del aviso 2 de 0x78abb14 (0x7d2dc98) es de "
+                                            "la CL9.3"));
+    int center = WarningOtherCenter;
+    int y = WarningTextTop + WarningOtherOffset;
+    if (kind == 3)
+    {
+        center = WarningTextCenter;
+        y = WarningTextTop;
+    }
+    else if (kind == 4)
+    {
+        center = WarningTextCenter;
+        y = WarningTextTop + WarningKind4Offset;
+    }
+    Render::SpriteBatch& sprites = frame.context.sprites;
+    HudState& hud = frame.context.hud;
+    const UI::DialogBoxState& box = frame.runtime.dialogBox;
+    for (std::int32_t row = 0; row < box.lineCount; ++row, y += UI::DialogLineStep)
+    {
+        sprites.SetColor(WarningColor);
+        hud.dcFont = Render::Text::FontKind::Bold;
+        if (kind == 6)
+        {
+            if (row == 0)
+                sprites.SetColor(WarningRed);
+            else
+            {
+                hud.dcFont = Render::Text::FontKind::Normal;
+                sprites.SetColor(White);
+            }
+        }
+        else if (row == 0 && kind == 1)
+            sprites.SetColor(WarningRed);
+        else if (static_cast<std::size_t>(row) == WarningRedRow && kind == 3)
+            sprites.SetColor(WarningLastRowColor);
+        const std::string_view text = UI::DialogRow(box, static_cast<std::size_t>(row));
+        const Render::Text::TextExtent extent = frame.context.text.Measure(hud.dcFont, text);
+        DrawText(frame, Render::Text::CenteredAt(center, extent, sprites.Screen()), y, text);
+    }
+    return {};
+}
+
+// 0x631c91 (0x73) y 0x631d2f (0x91): sus textos centrados.
+Core::Expected<void, std::string> DrawTheMoneyText(Frame& frame)
+{
+    const std::int32_t mark = frame.runtime.social.trade.field78abacc;
+    const std::size_t index = mark == 0 ? MoneyZeroText : mark == 1 ? MoneyOneText : MoneyOtherText;
+    return DrawCenteredText(frame, GenericTextY, index);
+}
+
+Core::Expected<void, std::string> DrawTheShopText(Frame& frame)
+{
+    const std::int32_t mode = frame.runtime.social.personalShop.dialogMode;
+    if (mode == ShopTitleMode)
+        return DrawCenteredText(frame, ShopTextY, ShopTitleText);
+    if (mode == ShopPriceMode)
+        return DrawCenteredText(frame, ShopTextY, ShopPriceText);
+    return {};
 }
 
 // 0x630818..0x63084c y 0x6309d4..0x630aeb: el marco del OK genérico (0xf0 de 213 × 64 en (213, 60)) y el sí y el no.
@@ -742,7 +934,11 @@ Core::Expected<void, std::string> DrawTheGameDialogs(GameHudContext& context)
     else if (id == ConfirmDialog)
         DrawTheConfirmBox(frame);
     else if (id == MoneyDialog)
-        return DrawTheMoneyBox(frame);
+        DrawTheMoneyBox(frame);
+    else if (id == ShopDialog)
+        DrawTheShopBox(frame);
+    else if (id == WarningDialog || id == UI::MoneyTextDialog)
+        DrawTheWarningBox(frame);
     else if (id != 0)
         return CutTheDialog(id);
     // 0x63140b: la mezcla normal y los textos de la cola.
@@ -759,6 +955,12 @@ Core::Expected<void, std::string> DrawTheGameDialogs(GameHudContext& context)
     }
     else if (id == PartyInviteDialog || id == TradeInviteDialog)
         return DrawTheInvitation(frame, id);
+    else if (id == MoneyDialog)
+        return DrawTheMoneyText(frame);
+    else if (id == ShopDialog)
+        return DrawTheShopText(frame);
+    else if (id == WarningDialog || id == UI::MoneyTextDialog)
+        return DrawTheWarningText(frame);
     else if (generic)
     {
         if (!generic->second)

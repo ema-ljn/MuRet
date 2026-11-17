@@ -104,6 +104,8 @@ constexpr GameKey Digit(int digit)
 
 // 0x41ed10(0x19, 0, 0): el sonido de los botones y de Esc.
 constexpr std::int32_t ButtonSound = 0x19;
+// 0x5a10f0: el diálogo del zen, con el campo en el EDIT de [0x5763504].
+constexpr std::int32_t MoneyDialog = 0x73;
 // 0x5e455a y 0x5e4573: la ventana del personaje, 0xbe × 0x1b1 desde 0x78aba14 y 0x78aba18.
 constexpr std::int32_t CharacterWindowWidth = 0xbe;
 constexpr std::int32_t CharacterWindowHeight = 0x1b1;
@@ -1891,11 +1893,11 @@ Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& con
     }
     if (auto bar = StepTheSkillBar(context); !bar.HasValue())
         return bar;
-    // 0x5a10e7..0x5a116f: los números eligen la skill (0x59f810), con el foco en el juego, sin campos de texto, sin
-    // una skill que se carga (0x5a1115, 0x7d368a4 en 0), sin las órdenes del cuervo (0x420e30, Shift con 1 a 4) y sin
-    // Alt. El diálogo 0x73 (con el que no se mira el foco) es del hito 6.
-    if (runtime.chat.input.focus == UI::ChatFocus::Game && !ui.chatOpen && !runtime.chat.input.otherInput &&
-        ui.rightHoldFrames == 0)
+    // 0x5a10e7..0x5a116f: los números eligen la skill (0x59f810), sin el diálogo 0x73 (0x5a10f0, con 0x6c7b8c en 1:
+    // ni mira el foco), con el foco en el juego, sin campos de texto, sin una skill que se carga (0x5a1115, 0x7d368a4
+    // en 0), sin las órdenes del cuervo (0x420e30, Shift con 1 a 4) y sin Alt.
+    if (runtime.dialogs.current != MoneyDialog && runtime.chat.input.focus == UI::ChatFocus::Game && !ui.chatOpen &&
+        !runtime.chat.input.otherInput && ui.rightHoldFrames == 0)
     {
         if (!StepThePetOrderKeys(context) && !input.IsDown(Key::Alt))
         {
@@ -2119,7 +2121,9 @@ Core::Expected<void, std::string> StepTheGameDialogs(const GameUiContext& contex
     UI::GameUiState& ui = runtime.ui;
     UI::DialogState& dialogs = runtime.dialogs;
     GamePanels panels(context.world, context.random, GamePanelTables{.texts = context.texts});
-    panels.LendTheWindowClose(context.requests);
+    // Esc (0x623f17 → 0x657880) cierra la ventana abierta más baja: el comercio manda el 3D, la tienda de otro el
+    // 3F 07 y las misiones el 31, por la sesión.
+    panels.LendTheSession(context.world, context.random, context.requests);
     // 0x623e9b..0x623ec2: con la de amigos abierta, Esc es de las ventanas viejas (0x490490). Lo leído queda en
     // [EBP−0x7d], que mira el no de 0x62c50e.
     const bool escape = !panels.Registry().IsOpen(UI::FriendsPanel) && KeyEdge(ui, context.input, EscapeKey);
@@ -2178,16 +2182,9 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
                                           .itemSetTables = context.itemSetTables,
                                           .texts = context.texts});
     gamePanels.LendThePartyList(context.world, context.requests);
-    gamePanels.LendTheTradeCancel(context.world, context.random, context.requests);
-    if (context.requests != nullptr)
-    {
-        gamePanels.LendThePersonalShops(context.world, context.random,
-                                        [requests = context.requests](Protocol::Outgoing outgoing)
-                                        { requests->SendGamePacket(std::move(outgoing)); });
-    }
-    if (context.chat != nullptr)
+    gamePanels.LendTheSession(context.world, context.random, context.requests);
+    if (context.chat != nullptr && context.chat->send)
         gamePanels.LendThePetRequests(context.chat->send);
-    gamePanels.LendTheWindowClose(context.requests);
     gamePanels.LendTheFriends([&sight]() { return sight.OpenTheFriendsWindow(); });
     UI::PanelRegistry& panels = gamePanels.Registry();
     // 0x636e24: 0x5ecdc0, la ventana /move, sin nadie que agarró el mouse (0x5ecdd1).
@@ -2391,10 +2388,12 @@ Core::Expected<void, std::string> PickInTheFrame(const FramePickingContext& cont
     };
     if (context.altDown)
     {
-        // 0x59ef46..0x59efb4: el ítem del piso; sin él, los de la máscara 4, los de 0x22 y 1, y los objetos (0x59eb90,
-        // que dejan −1).
+        // 0x59ef46..0x59efb4: el ítem del piso, que salta a 0x59f52a (con 0x59e3b0); sin él, los de la máscara 4, los
+        // de 0x22 y 1, y los objetos (0x59eb90, que dejan −1).
         pickTheFloorItem();
-        if (targets[0] == NoTarget)
+        if (targets[0] != NoTarget)
+            FindThePartyInTheViewport(context.world);
+        else
         {
             targets[1] = pick(4);
             if (targets[1] == NoTarget)

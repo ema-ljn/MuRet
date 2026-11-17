@@ -603,6 +603,48 @@ TEST_F(CursorItemTest, WithoutGroundOrOverTheInventoryNothingIsDropped)
     EXPECT_EQ(Cell(0, 0).id, Potion);
 }
 
+// 0x5df651..0x5df671: con el comercio abierto, el mouse desde la x de su ventana (0x78a5a1c, la de su dibujo en 0x104)
+// no deja tirar; antes de ella sí, pero 0x5dfda8 vuelve a mirar el comercio (otro rand()). Las dos vuelven el ítem a su
+// lugar (0x5be150) sin mandar nada: la de la ventana se ahorra esa consulta.
+TEST_F(CursorItemTest, WithTheTradeOpenTheItemGoesBackWithOrWithoutTheWindow)
+{
+    int sent = 0;
+    services.sendDrop = [&sent](const Drop&)
+    {
+        ++sent;
+        return Expected<void, std::string>{};
+    };
+    services.pickTheGround = [] { return Expected<std::optional<PathCell>, std::string>(PathCell{130, 121}); };
+    world.Runtime().panels.trade = 1;
+    world.Runtime().hud.tradeX = 0x104;
+    Scenes::GamePanels panels(world, random);
+    const auto drawsOf = [this](std::int32_t mouseX, Scenes::GamePanels& registry)
+    {
+        Put(Potion, 0, 0);
+        world.Runtime().movement.pendingClick = true;
+        EXPECT_TRUE(Scenes::PickUpFromTheGrid(Moves(), 0).HasValue());
+        const CrtRandom start = random;
+        const auto dropped =
+            Scenes::DropOnTheGround(Moves(), Scenes::GroundDrop{.mouseX = mouseX, .panels = &registry.Registry()});
+        EXPECT_TRUE(dropped.HasValue()) << dropped.Error();
+        EXPECT_EQ(world.Runtime().cursorItemCount, 0);
+        EXPECT_EQ(Cell(0, 0).id, Potion);
+        CrtRandom probe = start;
+        for (int count = 0; count < 2 * Own; ++count)
+        {
+            if (probe.State() == random.State())
+                return count;
+            static_cast<void>(probe.Next());
+        }
+        return -1;
+    };
+    const int over = drawsOf(0x104, panels);
+    const int before = drawsOf(0x103, panels);
+    EXPECT_EQ(sent, 0);
+    EXPECT_GE(over, 1 + 1 + Own);
+    EXPECT_EQ(before, over + 1);
+}
+
 // 0x5df6c8..0x5dfa52: el anillo del mago de nivel 2 pide el nivel 80 (el aviso 923 con el número, del tipo 1) y vuelve;
 // el de nivel 3 vuelve sin aviso.
 TEST_F(CursorItemTest, TheWizardsRingAsksForItsLevelBeforeBeingDropped)

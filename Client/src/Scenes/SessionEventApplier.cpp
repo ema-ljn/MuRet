@@ -90,12 +90,14 @@ void ApplyWeather(const Protocol::World::Weather& received, World::LeafWeather& 
 }
 
 // 0x42a760 manda el B9 02 por el socket del GS al cargar el 30: el de la sesión que aplica la respuesta. Y 0x419900,
-// al cerrar las misiones, y 0x657a90, al cerrar un NPC de evento, el C1 03 31 por la misma sesión.
-WorldEntryResources WithTheSiegeRequest(const WorldEntryResources& resources, App::ServerSession& session)
+// al cerrar las misiones, y 0x657a90, al cerrar un NPC de evento, el C1 03 31 por la misma sesión, como el 3D del
+// comercio (0x657fe1) y el 3F 07 de la tienda de otro (0x5eb17f) que mandan los mismos cierres.
+WorldEntryResources WithTheSession(const WorldEntryResources& resources, App::ServerSession& session)
 {
     WorldEntryResources bound = resources;
     bound.requestCastleSiegeState = [&session] { session.RequestCastleSiegeState(); };
     bound.sendWindowClose = [&session] { session.SendWindowClose(); };
+    bound.sendGamePacket = [&session](Protocol::Outgoing outgoing) { session.SendGamePacket(std::move(outgoing)); };
     return bound;
 }
 
@@ -168,10 +170,10 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorld(const App::Wor
     if (const auto* teleport = std::get_if<Protocol::World::Teleport>(&event))
     {
         SessionPublisher publisher(session);
-        return ApplyTeleport(*teleport, session.PlayerIndex(), WithTheSiegeRequest(m_resources, session), publisher);
+        return ApplyTeleport(*teleport, session.PlayerIndex(), WithTheSession(m_resources, session), publisher);
     }
     if (const auto* regen = std::get_if<Protocol::World::Regen>(&event))
-        return ApplyRegen(*regen, session.PlayerIndex(), WithTheSiegeRequest(m_resources, session));
+        return ApplyRegen(*regen, session.PlayerIndex(), WithTheSession(m_resources, session));
     if (const auto* chat = std::get_if<Protocol::Messages::Chat>(&event))
     {
         // 0x4c6095: en el login, el 00 es el saludo del CS y pide la lista por el socket abierto.
@@ -229,7 +231,7 @@ std::optional<Core::Expected<void, std::string>> SessionEventApplier::ApplySocia
         return Core::Expected<void, std::string>{};
     }
     if (const auto* response = std::get_if<Protocol::Trade::TradeResponse>(&event))
-        return ApplyTradeResponse(*response, m_resources);
+        return ApplyTradeResponse(*response, WithTheSession(m_resources, session));
     if (const auto* removed = std::get_if<Protocol::Trade::TradeItemRemoved>(&event))
         return ApplyTradeItemRemoved(*removed, m_resources);
     if (const auto* added = std::get_if<Protocol::Trade::TradeItemAdded>(&event))
@@ -315,7 +317,7 @@ std::optional<Core::Expected<void, std::string>> SessionEventApplier::ApplySocia
     if (const auto* price = std::get_if<Protocol::PersonalShop::PriceResult>(&event))
         return ApplyPriceResult(*price, m_resources, send);
     if (const auto* list = std::get_if<Protocol::PersonalShop::ShopItemList>(&event))
-        return ApplyShopItemList(*list, m_resources, send);
+        return ApplyShopItemList(*list, WithTheSession(m_resources, session), send);
     if (const auto* purchase = std::get_if<Protocol::PersonalShop::ShopPurchase>(&event))
         return ApplyShopPurchase(*purchase, m_resources, send);
     if (const auto* refresh = std::get_if<Protocol::PersonalShop::ShopRefresh>(&event))
@@ -452,9 +454,9 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
         return {};
     }
     if (const auto* state = std::get_if<Protocol::Quest::QuestStateChange>(&event))
-        return ApplyQuestState(*state, WithTheSiegeRequest(m_resources, session));
+        return ApplyQuestState(*state, WithTheSession(m_resources, session));
     if (const auto* set = std::get_if<Protocol::Quest::SetQuestResult>(&event))
-        return ApplySetQuestResult(*set, WithTheSiegeRequest(m_resources, session));
+        return ApplySetQuestResult(*set, WithTheSession(m_resources, session));
     if (const auto* result = std::get_if<Protocol::Quest::QuestResult>(&event))
         return ApplyQuestResult(*result, m_resources);
     // CL9 hito 5.
@@ -524,8 +526,7 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
     }
     const auto& reply = std::get<Protocol::Character::CharacterSelectResult>(event);
     SessionPublisher publisher(session);
-    const auto entered =
-        ApplyWorldEntry(reply, session.PlayerIndex(), WithTheSiegeRequest(m_resources, session), publisher);
+    const auto entered = ApplyWorldEntry(reply, session.PlayerIndex(), WithTheSession(m_resources, session), publisher);
     if (!entered.HasValue())
     {
         return Core::Unexpected(entered.Error());

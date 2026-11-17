@@ -263,5 +263,24 @@ TEST_P(GameSocialStepsTest, TheDuelRequestAnswersYesOrNo)
     EXPECT_EQ(Draws(), 4);
 }
 
+// 0x65c039..0x65c946 (CL9 hito 7): con la sesión prestada (LendTheSession), un Dark Lord que abre el inventario, como
+// lo abren el comercio y las tiendas, manda los dos A9 de la mascota en claro: el cuervo de la mano izquierda y el
+// caballo de su lugar.
+TEST_P(GameSocialStepsTest, ADarkLordOpeningTheInventoryAsksForBothPets)
+{
+    Runtime().panels.trade = 0;
+    m_world->Actors()[Runtime().hero].characterClass = 4;
+    Client::Scenes::GamePanels panels(*m_world, m_random);
+    panels.LendTheSession(*m_world, m_random, &m_requests);
+    const auto opened = panels.Registry().Open(Client::UI::InventoryPanel);
+    ASSERT_TRUE(opened.HasValue()) << opened.Error();
+    EXPECT_TRUE(opened.Value());
+    ASSERT_EQ(m_requests.sent.size(), 2u);
+    EXPECT_FALSE(m_requests.sent[0].encrypted);
+    EXPECT_EQ(m_requests.sent[0].bytes, (std::vector<std::uint8_t>{0xc1, 0x06, 0xa9, 0x00, 0x00, 0x01}));
+    EXPECT_FALSE(m_requests.sent[1].encrypted);
+    EXPECT_EQ(m_requests.sent[1].bytes, (std::vector<std::uint8_t>{0xc1, 0x06, 0xa9, 0x01, 0x00, 0x08}));
+}
+
 INSTANTIATE_TEST_SUITE_P(TwoMaps, GameSocialStepsTest, ::testing::Values(Lorencia, Devias));
 } // namespace

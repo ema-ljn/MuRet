@@ -4,6 +4,7 @@
 #include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Tables/SkillTable.h"
+#include "Protocol/Outgoing.h"
 #include "Scenes/SceneId.h"
 
 #include <cstdint>
@@ -102,6 +103,10 @@ struct WorldEntryResources
     // Skill.bmd (0x76bd1d8): el +0x31 de cada skill de la lista que llega (F3 11, 0x4c5070). nullptr si no se cargó:
     // el F3 11 corta con error. Al final, para no correr los que se inicializan por posición.
     const Data::Tables::SkillTable* skills = nullptr;
+    // Lo que los cierres de 0x657a90 y 0x657ab0 mandan además del C1 03 31: el C1 03 3D del comercio (0x657fe1) y el
+    // 3F 07 de la tienda de otro (0x5eb17f), en la entrada, el teleport, el regen, el 37, el 3F 05 y las misiones. Lo
+    // presta el sink con la sesión; sin él, cerrar esas ventanas corta. Al final, como `skills`.
+    std::function<void(Protocol::Outgoing)> sendGamePacket{};
 };
 
 // Lo que la entrada pide afuera y MuRet todavía no hace (sin audio hasta la CL10): los sonidos de

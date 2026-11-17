@@ -16,9 +16,12 @@
 #include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/ChatInput.h"
 #include "UI/Dialogs.h"
 #include "UI/GameDialogs.h"
 #include "UI/GameUiState.h"
+#include "UI/OldControls.h"
+#include "UI/OldWindowBase.h"
 #include "UI/Widget.h"
 
 #include "support/RecordingTextDrawer.h"
@@ -28,11 +31,12 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <string_view>
+#include <iterator>
 #include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -160,6 +164,9 @@ public:
         {409, "fin"},
         {418, "de %s"},
         {419, "comerciar?"},
+        {420, "zen al almacen"},
+        {421, "zen del almacen"},
+        {422, "zen al comercio"},
         {425, "entrar a la party?"},
         {857, "ganaste"},
         {858, "mision cumplida"},
@@ -168,6 +175,8 @@ public:
         {861, "exp %d"},
         {863, "puntos %d"},
         {919, "carteles"},
+        {1128, "titulo de la tienda"},
+        {1129, "precio del item"},
         {1840, "brillo"},
     });
 };
@@ -590,29 +599,188 @@ TEST(GameDialogDrawingTest, TheConfirmBoxWithOneButtonOrNone)
     }
 }
 
-// 0x73 (0x630818..0x6308c6): el marco del OK genérico, sin el botón, y el EDIT de [0x5763504] con 0x6c7b8c en 1, que
-// es del hito 6: corta en su primera llamada (0x630876), antes de la cola.
-TEST(GameDialogDrawingTest, TheMoneyDialogDrawsItsFrameAndCutsAtTheEdit)
+// Los quads sin textura de un lote: los rectángulos de color (el fondo del EDIT, ColorQuad).
+std::vector<DrawnQuad> ColorQuadsOf(const std::vector<DrawnQuad>& quads)
+{
+    std::vector<DrawnQuad> colored;
+    std::ranges::copy_if(quads, std::back_inserter(colored), [](const DrawnQuad& quad) { return !quad.slot; });
+    return colored;
+}
+
+// 0x73 (0x630818..0x6308c6): el marco del OK genérico, sin el botón, y el EDIT de [0x5763504] rearmado en el frame
+// (a la vista, +0x4c en 9, el tope de 8, 0x46 × 0xe en (0x11b, 0x5f)) con el foco y su dibujo: el negro del filtro 8
+// y el fondo. Después, en la cola (0x631c91), el texto por 0x78abacc: 420 con 0, 421 con 1 y 422 con otro, en y =
+// 0x4b.
+TEST(GameDialogDrawingTest, TheMoneyDialogDrawsItsFrameItsEditAndItsText)
 {
     for (const std::int32_t map : {Lorencia, Devias})
     {
         SCOPED_TRACE(map);
-        auto tested = std::make_unique<DrawingDialogs>(map);
-        tested->world.Runtime().dialogs.current = 0x73;
-        tested->world.Runtime().social.trade.field78abacc = 2;
-        tested->mouse = {0x11c, 0x76};
+        for (const auto& [mark, expected] : {std::pair<std::int32_t, std::string>{0, "zen al almacen"},
+                                             std::pair<std::int32_t, std::string>{1, "zen del almacen"},
+                                             std::pair<std::int32_t, std::string>{-1, "zen al comercio"}})
+        {
+            SCOPED_TRACE(mark);
+            auto tested = std::make_unique<DrawingDialogs>(map);
+            Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+            runtime.dialogs.current = 0x73;
+            runtime.social.trade.field78abacc = mark;
+            Client::UI::OldEdit& edit = runtime.chat.input.dialogEdit;
+            edit.text.SetText("150");
+            edit.base.state = Client::UI::HiddenWindow;
+            runtime.chat.input.focus = Client::UI::ChatFocus::Game;
+            tested->mouse = {0x11c, 0x76};
 
-        const auto drawn = tested->Draw();
-        ASSERT_FALSE(drawn.HasValue());
-        EXPECT_NE(drawn.Error().find("0x630876"), std::string::npos) << drawn.Error();
-        EXPECT_NE(drawn.Error().find("hito 6"), std::string::npos) << drawn.Error();
-        const std::vector<DrawnQuad> quads = QuadsOf(tested->sprites);
-        ASSERT_EQ(quads.size(), 1u);
-        EXPECT_EQ(quads[0].slot, 0xf0);
-        EXPECT_EQ(quads[0].blend, BlendMode::Opaque);
-        EXPECT_FLOAT_EQ(quads[0].x, 213.0f);
-        EXPECT_FLOAT_EQ(quads[0].y, 60.0f);
-        EXPECT_TRUE(tested->text.texts.empty());
+            ASSERT_TRUE(tested->Draw().HasValue());
+            EXPECT_EQ(edit.base.state, Client::UI::ShownWindow);
+            EXPECT_EQ(edit.filter, 9);
+            EXPECT_EQ(edit.base.x, 0x11b);
+            EXPECT_EQ(edit.base.y, 0x5f);
+            EXPECT_EQ(edit.base.width, 0x46);
+            EXPECT_EQ(edit.base.height, 0xe);
+            EXPECT_EQ(edit.draws, 1);
+            EXPECT_EQ(runtime.chat.input.focus, Client::UI::ChatFocus::Dialog);
+
+            const std::vector<DrawnQuad> quads = QuadsOf(tested->sprites);
+            ASSERT_EQ(quads.size(), 3u);
+            EXPECT_EQ(quads[0].slot, 0xf0);
+            EXPECT_EQ(quads[0].blend, BlendMode::Opaque);
+            EXPECT_FLOAT_EQ(quads[0].x, 213.0f);
+            EXPECT_FLOAT_EQ(quads[0].y, 60.0f);
+            const std::vector<DrawnQuad> colored = ColorQuadsOf(quads);
+            ASSERT_EQ(colored.size(), 2u);
+            EXPECT_FLOAT_EQ(colored[0].x, static_cast<float>(0x11b));
+            EXPECT_FLOAT_EQ(colored[0].y, static_cast<float>(0x5f));
+
+            ASSERT_FALSE(tested->text.texts.empty());
+            EXPECT_EQ(tested->text.texts.front().text, "150");
+            const Client::Tests::RecordedText& last = tested->text.texts.back();
+            EXPECT_EQ(last.text, expected);
+            EXPECT_EQ(last.x, CenteredX(expected));
+            EXPECT_EQ(last.y, 0x4b);
+            EXPECT_EQ(tested->sprites.Blend(), BlendMode::Alpha);
+
+            // El tope de lo tecleado es 8 (la vtable + 0x3c).
+            edit.text.SetText({});
+            Client::UI::TypeInTheEdit(edit, "1234567890");
+            EXPECT_EQ(edit.text.Value(), "12345678");
+        }
+    }
+}
+
+// En un dibujo intermedio de MuRet, el EDIT se arma y se dibuja sobre una copia: ni su estado ni el foco cambian.
+TEST(GameDialogDrawingTest, TheProjectingPassLeavesTheDialogEdit)
+{
+    auto tested = std::make_unique<DrawingDialogs>(Lorencia);
+    Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+    runtime.dialogs.current = 0x73;
+    Client::UI::OldEdit& edit = runtime.chat.input.dialogEdit;
+    edit.base.state = Client::UI::HiddenWindow;
+    runtime.chat.input.focus = Client::UI::ChatFocus::Game;
+    ASSERT_TRUE(tested->Draw(true).HasValue());
+    EXPECT_EQ(edit.base.state, Client::UI::HiddenWindow);
+    EXPECT_EQ(edit.draws, 0);
+    EXPECT_EQ(runtime.chat.input.focus, Client::UI::ChatFocus::Game);
+}
+
+// 0x91 (0x6304f2..0x630813): el marco (0xfc en (213, 100), 0xfb en 105 y 145, 0xfc en 185), el EDIT que armó
+// 0x5eba70 con el foco y su dibujo, y sin mezcla el OK (0xf2 con el mouse en el borde de abajo a la derecha,
+// (0x133, 0xb0)) en (255, 160) y el cancelar (0xf3) en (330, 160). El texto (0x631d2f): 1128 con el título y 1129 con
+// el precio, en y = 0x73; con otro modo, ninguno.
+TEST(GameDialogDrawingTest, TheShopDialogDrawsItsBoxItsEditAndItsButtons)
+{
+    for (const std::int32_t map : {Lorencia, Devias})
+    {
+        SCOPED_TRACE(map);
+        for (const auto& [mode, expected] :
+             {std::pair<std::int32_t, std::string>{1, "titulo de la tienda"},
+              std::pair<std::int32_t, std::string>{2, "precio del item"}, std::pair<std::int32_t, std::string>{0, ""}})
+        {
+            SCOPED_TRACE(mode);
+            auto tested = std::make_unique<DrawingDialogs>(map);
+            Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+            runtime.dialogs.current = 0x91;
+            runtime.social.personalShop.dialogMode = mode;
+            Client::UI::OldEdit& edit = runtime.chat.input.dialogEdit;
+            edit.base.state = Client::UI::ShownWindow;
+            edit.filter = 0xc;
+            edit.backgroundColor = 0;
+            edit.base.x = 0xfd;
+            edit.base.y = 0x8a;
+            edit.base.width = 0x85;
+            edit.base.height = 0xa;
+            edit.text.SetText("Puesto");
+            runtime.chat.input.focus = Client::UI::ChatFocus::Game;
+            tested->mouse = {0x133, 0xb0};
+
+            ASSERT_TRUE(tested->Draw().HasValue());
+            EXPECT_EQ(runtime.chat.input.focus, Client::UI::ChatFocus::Dialog);
+            EXPECT_EQ(edit.base.x, 0xfd);
+            EXPECT_EQ(edit.draws, 1);
+            const std::vector<DrawnQuad> quads = QuadsOf(tested->sprites);
+            ASSERT_EQ(quads.size(), 8u);
+            EXPECT_EQ(quads[0].slot, 0xfc);
+            EXPECT_FLOAT_EQ(quads[0].x, 213.0f);
+            EXPECT_FLOAT_EQ(quads[0].y, 100.0f);
+            EXPECT_EQ(quads[1].slot, 0xfb);
+            EXPECT_FLOAT_EQ(quads[1].y, 105.0f);
+            EXPECT_EQ(quads[2].slot, 0xfb);
+            EXPECT_FLOAT_EQ(quads[2].y, 145.0f);
+            EXPECT_EQ(quads[3].slot, 0xfc);
+            EXPECT_FLOAT_EQ(quads[3].y, 185.0f);
+            EXPECT_FALSE(quads[4].slot);
+            EXPECT_FLOAT_EQ(quads[4].x, static_cast<float>(0xfd));
+            EXPECT_FLOAT_EQ(quads[4].y, static_cast<float>(0x8a));
+            EXPECT_FALSE(quads[5].slot);
+            EXPECT_EQ(quads[6].slot, 0xf2);
+            EXPECT_FLOAT_EQ(quads[6].x, 255.0f);
+            EXPECT_FLOAT_EQ(quads[6].y, 160.0f);
+            EXPECT_EQ(quads[6].blend, BlendMode::Opaque);
+            EXPECT_EQ(quads[7].slot, 0xf3);
+            EXPECT_FLOAT_EQ(quads[7].x, 330.0f);
+            EXPECT_FLOAT_EQ(quads[7].y, 160.0f);
+            EXPECT_EQ(quads[7].blend, BlendMode::Opaque);
+
+            ASSERT_FALSE(tested->text.texts.empty());
+            EXPECT_EQ(tested->text.texts.front().text, "Puesto");
+            const Client::Tests::RecordedText& last = tested->text.texts.back();
+            if (expected.empty())
+                EXPECT_EQ(last.text, "Puesto");
+            else
+            {
+                EXPECT_EQ(last.text, expected);
+                EXPECT_EQ(last.x, CenteredX(expected));
+                EXPECT_EQ(last.y, 0x73);
+            }
+            EXPECT_EQ(tested->sprites.Blend(), BlendMode::Alpha);
+        }
+    }
+}
+
+// Los bordes del mouse del 0x91: el cancelar con (0x14a, 0xa0) es 0xf4 y el OK, 0xf1; un píxel a la izquierda del
+// cancelar o arriba, ninguno.
+TEST(GameDialogDrawingTest, TheShopDialogLightsTheButtonUnderTheMouse)
+{
+    for (const std::int32_t map : {Lorencia, Devias})
+    {
+        SCOPED_TRACE(map);
+        for (const auto& [mouse, ok, cancel] :
+             {std::tuple<Client::UI::Point, std::uint16_t, std::uint16_t>{{0x14a, 0xa0}, 0xf1, 0xf4},
+              std::tuple<Client::UI::Point, std::uint16_t, std::uint16_t>{{0x149, 0xa0}, 0xf1, 0xf3},
+              std::tuple<Client::UI::Point, std::uint16_t, std::uint16_t>{{0xff, 0x9f}, 0xf1, 0xf3},
+              std::tuple<Client::UI::Point, std::uint16_t, std::uint16_t>{{0xff, 0xa0}, 0xf2, 0xf3}})
+        {
+            auto tested = std::make_unique<DrawingDialogs>(map);
+            Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+            runtime.dialogs.current = 0x91;
+            runtime.chat.input.dialogEdit.base.state = Client::UI::ShownWindow;
+            tested->mouse = mouse;
+            ASSERT_TRUE(tested->Draw().HasValue());
+            const std::vector<DrawnQuad> quads = QuadsOf(tested->sprites);
+            ASSERT_GE(quads.size(), 2u);
+            EXPECT_EQ(quads[quads.size() - 2].slot, ok) << mouse.x << "," << mouse.y;
+            EXPECT_EQ(quads.back().slot, cancel) << mouse.x << "," << mouse.y;
+        }
     }
 }
 
@@ -715,5 +883,136 @@ TEST(GameDialogDrawingTest, TheOtherDialogsAreCut)
         EXPECT_NE(drawn.Error().find("0x62db60"), std::string::npos) << drawn.Error();
         EXPECT_NE(drawn.Error().find(wave), std::string::npos) << drawn.Error();
     }
+}
+
+// Un renglón de 0x7d36a98, como lo copia 0x633300 (strcpy).
+void PutRow(Client::UI::DialogBoxState& box, std::size_t row, std::string_view text)
+{
+    std::ranges::copy(text, box.rows.begin() + static_cast<std::ptrdiff_t>(row * Client::UI::DialogRowBytes));
+    box.rows[row * Client::UI::DialogRowBytes + text.size()] = '\0';
+}
+
+// 0x94 con el aviso 3 (0x630cbd y 0x632637): el marco desde y = 100 (0xfc, tres 0xfb y 0xfc en 225), los botones de
+// 0x7d368b8 en (x + 213, y + 100) con su estado (el primero con el mouse, 0xf2), sin mezcla; los cuatro renglones en la
+// negrita, centrados en 0x140 desde y = 0x73 de 0x12 en 0x12, en (1; 0,7; 0) y el cuarto en (1; 0,1; 0,1).
+TEST(GameDialogDrawingTest, TheTradeWarningDrawsItsBoxAndItsRows)
+{
+    for (const std::int32_t map : {Lorencia, Devias})
+    {
+        SCOPED_TRACE(map);
+        auto tested = std::make_unique<DrawingDialogs>(map);
+        Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+        runtime.dialogs.current = 0x94;
+        runtime.social.trade.warningKind = 3;
+        Client::UI::DialogBoxState& box = runtime.dialogBox;
+        box.buttons = {Client::UI::DialogButton{2, 0x15, 0x5a, 0x46, 0x15},
+                       Client::UI::DialogButton{3, 0x78, 0x5a, 0x46, 0x15}};
+        const std::vector<std::string> rows{"el otro", "cambio", "sus items", "cuidado"};
+        for (std::size_t row = 0; row < rows.size(); ++row)
+            PutRow(box, row, rows[row]);
+        box.lineCount = 4;
+
+        ASSERT_TRUE(tested->Draw().HasValue());
+        const std::vector<DrawnQuad> quads = QuadsOf(tested->sprites);
+        ASSERT_EQ(quads.size(), 7u);
+        EXPECT_EQ(quads[0].slot, 0xfc);
+        EXPECT_FLOAT_EQ(quads[0].x, 213.0f);
+        EXPECT_FLOAT_EQ(quads[0].y, 100.0f);
+        for (std::size_t row = 0; row < 3; ++row)
+        {
+            EXPECT_EQ(quads[1 + row].slot, 0xfb);
+            EXPECT_FLOAT_EQ(quads[1 + row].y, 105.0f + 40.0f * static_cast<float>(row));
+        }
+        EXPECT_EQ(quads[4].slot, 0xfc);
+        EXPECT_FLOAT_EQ(quads[4].y, 225.0f);
+        EXPECT_EQ(quads[5].slot, 0xf2);
+        EXPECT_FLOAT_EQ(quads[5].x, 213.0f + 0x15);
+        EXPECT_FLOAT_EQ(quads[5].y, 100.0f + 0x5a);
+        EXPECT_EQ(quads[6].slot, 0xf3);
+        EXPECT_FLOAT_EQ(quads[6].x, 213.0f + 0x78);
+        for (const DrawnQuad& quad : quads)
+            EXPECT_EQ(quad.blend, BlendMode::Opaque);
+
+        ASSERT_EQ(tested->Texts(), rows);
+        for (std::size_t row = 0; row < rows.size(); ++row)
+        {
+            EXPECT_EQ(tested->text.texts[row].x, CenteredX(rows[row]));
+            EXPECT_EQ(tested->text.texts[row].y, 0x73 + 0x12 * static_cast<int>(row));
+            EXPECT_EQ(tested->text.texts[row].style.font, Client::Render::Text::FontKind::Bold);
+        }
+        const std::vector<Color> colors = TextColorsOf(tested->sprites);
+        ASSERT_EQ(colors.size(), 4u);
+        EXPECT_FLOAT_EQ(colors[0].green, 0.7f);
+        EXPECT_FLOAT_EQ(colors[0].blue, 0.0f);
+        EXPECT_FLOAT_EQ(colors[2].green, 0.7f);
+        EXPECT_FLOAT_EQ(colors[3].red, 1.0f);
+        EXPECT_FLOAT_EQ(colors[3].green, 0.1f);
+        EXPECT_FLOAT_EQ(colors[3].blue, 0.1f);
+        EXPECT_EQ(tested->sprites.Blend(), BlendMode::Alpha);
+    }
+}
+
+// Con el aviso 5 (la compra, 0x633300(1, 1100, 0x94)), el renglón va centrado en 0x15e desde y = 100 + 0x1e; un
+// botón sin estado (0) o con más de 4 no se dibuja. El aviso 2 corta (su renglón de arriba es de la CL9.3).
+TEST(GameDialogDrawingTest, TheBuyWarningCentersItsRowFurtherRight)
+{
+    auto tested = std::make_unique<DrawingDialogs>(Lorencia);
+    Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+    runtime.dialogs.current = 0x94;
+    runtime.social.trade.warningKind = 5;
+    Client::UI::DialogBoxState& box = runtime.dialogBox;
+    box.buttons = {Client::UI::DialogButton{0, 0x15, 0x5a, 0x46, 0x15},
+                   Client::UI::DialogButton{5, 0x78, 0x5a, 0x46, 0x15}};
+    PutRow(box, 0, "comprar?");
+    box.lineCount = 1;
+    ASSERT_TRUE(tested->Draw().HasValue());
+    EXPECT_EQ(QuadsOf(tested->sprites).size(), 5u);
+    ASSERT_EQ(tested->Texts(), (std::vector<std::string>{"comprar?"}));
+    EXPECT_EQ(tested->text.texts[0].x, 0x15e - static_cast<int>(std::string_view("comprar?").size()) * LetterWidth / 2);
+    EXPECT_EQ(tested->text.texts[0].y, 100 + 0x1e);
+
+    runtime.social.trade.warningKind = 2;
+    tested->sprites.Begin(Screen640);
+    const auto drawn = tested->Draw();
+    ASSERT_FALSE(drawn.HasValue());
+    EXPECT_NE(drawn.Error().find("0x632683"), std::string::npos) << drawn.Error();
+}
+
+// El 0x99 del precio bajo (0x630cc4, el mismo marco desde y = 100) con el aviso 6 (0x5dc7e9): sus renglones centrados
+// en 0x15e desde y = 100 + 0x1e, el primero en (1, 0, 0) con la negrita y el otro en blanco con la normal.
+TEST(GameDialogDrawingTest, TheLowPriceWarningDrawsLikeTheWarning)
+{
+    auto tested = std::make_unique<DrawingDialogs>(Devias);
+    Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+    runtime.dialogs.current = Client::UI::MoneyTextDialog;
+    runtime.social.trade.warningKind = 6;
+    Client::UI::DialogBoxState& box = runtime.dialogBox;
+    box.buttons = {Client::UI::DialogButton{1, 0x15, 0x5a, 0x46, 0x15},
+                   Client::UI::DialogButton{3, 0x78, 0x5a, 0x46, 0x15}};
+    const std::vector<std::string> rows{"precio 1,000 zen", "vender?"};
+    for (std::size_t row = 0; row < rows.size(); ++row)
+        PutRow(box, row, rows[row]);
+    box.lineCount = 2;
+    ASSERT_TRUE(tested->Draw().HasValue());
+    const std::vector<DrawnQuad> quads = QuadsOf(tested->sprites);
+    ASSERT_EQ(quads.size(), 7u);
+    EXPECT_FLOAT_EQ(quads[0].y, 100.0f);
+    EXPECT_EQ(quads[5].slot, 0xf1);
+    EXPECT_FLOAT_EQ(quads[5].y, 100.0f + 0x5a);
+    EXPECT_EQ(quads[6].slot, 0xf3);
+    ASSERT_EQ(tested->Texts(), rows);
+    for (std::size_t row = 0; row < rows.size(); ++row)
+    {
+        EXPECT_EQ(tested->text.texts[row].x, 0x15e - static_cast<int>(rows[row].size()) * LetterWidth / 2);
+        EXPECT_EQ(tested->text.texts[row].y, 100 + 0x1e + 0x12 * static_cast<int>(row));
+    }
+    EXPECT_EQ(tested->text.texts[0].style.font, Client::Render::Text::FontKind::Bold);
+    EXPECT_EQ(tested->text.texts[1].style.font, Client::Render::Text::FontKind::Normal);
+    const std::vector<Color> colors = TextColorsOf(tested->sprites);
+    ASSERT_EQ(colors.size(), 2u);
+    EXPECT_FLOAT_EQ(colors[0].red, 1.0f);
+    EXPECT_FLOAT_EQ(colors[0].green, 0.0f);
+    EXPECT_FLOAT_EQ(colors[1].green, 1.0f);
+    EXPECT_FLOAT_EQ(colors[1].blue, 1.0f);
 }
 } // namespace

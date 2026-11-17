@@ -433,7 +433,7 @@ Core::Expected<void, std::string> RunTheCommand(const GameUiContext& context)
     if (command == FollowCommand)
     {
         // 0x40a3e0: 0x6c8e50 = el destino. La ventana queda.
-        runtime.social.party.followTarget = window.target;
+        runtime.movement.followTarget = window.target;
         return {};
     }
     if (command == GuildCommand || command == AllianceCommand || command == HostilityCommand ||

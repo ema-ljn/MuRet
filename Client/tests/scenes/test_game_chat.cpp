@@ -253,21 +253,43 @@ TEST_P(GameChatOnTheMaps, OpeningTheChatLeavesTheMoneyMode)
     EXPECT_EQ(world.Runtime().social.dialogFieldLimit, 0x2a);
 }
 
-// 0x4b54e1..0x4b5513: con el campo cerrado y vacío y el diálogo 0x73, Enter no abre el chat: vacía el EDIT de
-// [0x5763504] y le da el foco, que es del hito 6.
-TEST_P(GameChatOnTheMaps, TheMoneyDialogCutsAtItsEdit)
+// 0x4b54e1..0x4b5513: con el campo cerrado, el EDIT de [0x5763504] vacío (lo que se lee) y el diálogo 0x73, Enter no
+// abre el chat: le pone el texto en 0 al EDIT y el foco en la ventana del juego (el dibujo del 0x73 se lo devuelve,
+// 0x6308b8).
+TEST_P(GameChatOnTheMaps, TheMoneyDialogEmptiesItsEdit)
 {
     world.Runtime().dialogs.current = MoneyDialog;
-    const auto pressed = Type("\r");
-    ASSERT_FALSE(pressed.HasValue());
-    EXPECT_NE(pressed.Error().find("0x4b54f3"), std::string::npos) << pressed.Error();
-    EXPECT_NE(pressed.Error().find("hito 6"), std::string::npos) << pressed.Error();
+    Input().focus = Client::UI::ChatFocus::Dialog;
+    const auto before = random.State();
+    ASSERT_TRUE(Type("\r").HasValue());
+    EXPECT_FALSE(world.Runtime().ui.chatOpen);
+    EXPECT_EQ(Input().dialogEdit.text.Value(), "");
+    EXPECT_EQ(Input().focus, Client::UI::ChatFocus::Game);
+    EXPECT_EQ(world.Runtime().dialogs.current, MoneyDialog);
+    EXPECT_TRUE(sent.empty());
+    EXPECT_EQ(random.State(), before);
+}
+
+// 0x4b5397..0x4b5435: con el campo cerrado, lo que se lee es el EDIT del diálogo; con el modo del zen va con atoi.
+TEST_P(GameChatOnTheMaps, TheDialogEditIsReadWithTheFieldClosed)
+{
+    world.Runtime().dialogs.current = MoneyDialog;
+    world.Runtime().social.moneyField = 1;
+    Input().dialogEdit.text.SetText("250");
+    Input().dialogEdit.base.state = Client::UI::ShownWindow;
+    Input().focus = Client::UI::ChatFocus::Dialog;
+    ASSERT_TRUE(Type("\r").HasValue());
+    EXPECT_EQ(world.Runtime().social.typedMoney, 250);
+    EXPECT_EQ(Input().dialogEdit.text.Value(), "");
+    EXPECT_EQ(Input().dialogEdit.base.state, Client::UI::HiddenWindow);
+    EXPECT_EQ(Input().focus, Client::UI::ChatFocus::Game);
     EXPECT_FALSE(world.Runtime().ui.chatOpen);
     EXPECT_TRUE(sent.empty());
 }
 
-// 0x4b5563..0x4b557c: con el modo del zen, lo escrito va con atoi a 0x77f3b6c (los blancos, el signo y las cifras hasta
-// la primera que no lo es) y no se dice; después, el EDIT de [0x5763504] del hito 6.
+// 0x4b5563..0x4b55ae: con el modo del zen, lo escrito va con atoi a 0x77f3b6c (los blancos, el signo y las cifras hasta
+// la primera que no lo es) y no se dice; después, el EDIT de [0x5763504] vacío y oculto, y el salto a 0x4b8886, que
+// cierra el campo.
 TEST_P(GameChatOnTheMaps, TheTypedMoneyGoesThroughAtoiAndIsNotSaid)
 {
     for (const auto& [typed, money] : {std::pair<std::string_view, std::int32_t>{" 1234\r", 1234},
@@ -278,27 +300,38 @@ TEST_P(GameChatOnTheMaps, TheTypedMoneyGoesThroughAtoiAndIsNotSaid)
         world.Runtime().ui.chatOpen = false;
         ASSERT_TRUE(Type("\r").HasValue());
         world.Runtime().social.moneyField = 1;
+        Input().dialogEdit.text.SetText("7");
+        Input().dialogEdit.base.state = Client::UI::ShownWindow;
         const auto before = random.State();
-        const auto pressed = Type(typed);
-        ASSERT_FALSE(pressed.HasValue());
-        EXPECT_NE(pressed.Error().find("0x4b558a"), std::string::npos) << pressed.Error();
-        EXPECT_NE(pressed.Error().find("hito 6"), std::string::npos) << pressed.Error();
+        ASSERT_TRUE(Type(typed).HasValue());
         EXPECT_EQ(world.Runtime().social.typedMoney, money) << typed;
+        EXPECT_EQ(Input().dialogEdit.text.Value(), "") << typed;
+        EXPECT_EQ(Input().dialogEdit.base.state, Client::UI::HiddenWindow) << typed;
+        EXPECT_FALSE(world.Runtime().ui.chatOpen) << typed;
         EXPECT_TRUE(sent.empty());
         EXPECT_EQ(random.State(), before);
     }
 }
 
-// 0x4b55b3..0x4b560f: con 0x78aba60 en 1, lo escrito es el título de la tienda personal y no se dice; va con el paso
-// del diálogo 0x91 (P-C312).
-TEST_P(GameChatOnTheMaps, TheShopTitleModeCutsWithTheShopDialog)
+// 0x4b55b3..0x4b560f: con 0x78aba60 en 1, lo escrito es el título de la tienda personal y no se dice: si 0x5ebbd0 lo
+// deja va a 0x78aba64; si no, el aviso 1130 del tipo 1 sin nombre.
+TEST_P(GameChatOnTheMaps, TheShopTitleModeKeepsOrRefusesTheTitle)
 {
+    auto& shop = world.Runtime().social.personalShop;
     ASSERT_TRUE(Type("\r").HasValue());
-    world.Runtime().social.personalShop.dialogMode = 1;
-    const auto pressed = Type("Tienda inventada\r");
-    ASSERT_FALSE(pressed.HasValue());
-    EXPECT_NE(pressed.Error().find("0x4b55bc"), std::string::npos) << pressed.Error();
-    EXPECT_NE(pressed.Error().find("P-C312"), std::string::npos) << pressed.Error();
+    shop.dialogMode = 1;
+    ASSERT_TRUE(Type("Tienda inventada\r").HasValue());
+    EXPECT_EQ(shop.ownTitle, "Tienda inventada");
+    EXPECT_FALSE(world.Runtime().ui.chatOpen);
+    EXPECT_TRUE(sent.empty());
+
+    // Dos blancos seguidos al final: 0x5ebbd0 no lo deja y el título queda.
+    ASSERT_TRUE(Type("\rOtra  \r").HasValue());
+    EXPECT_EQ(shop.ownTitle, "Tienda inventada");
+    const auto& entries = world.Runtime().chat.log.entries;
+    EXPECT_TRUE(
+        std::ranges::any_of(entries, [](const Client::UI::ChatEntry& entry)
+                            { return entry.text == "aviso titulo" && entry.type == Client::UI::SystemMessage; }));
     EXPECT_TRUE(sent.empty());
 }
 
@@ -1110,8 +1143,8 @@ TEST_F(GameChat, TheSerialEditFiltersWhatIsTyped)
     EXPECT_TRUE(sent.empty());
 }
 
-// 0x4b540a: con el campo cerrado, Enter lee el texto del EDIT de [0x5763504]; lo que dejó la X de la ventana de
-// 0x78abb00 (que no lo vacía, Q-C1345) sale como chat, y sale otra vez con el Enter siguiente.
+// 0x4b540a: con el campo cerrado, Enter lee el texto del EDIT de [0x5763504] y, sin el modo del zen ni el del título,
+// lo dice; el salto a 0x4b8886 no vacía el EDIT, y sale otra vez con el Enter siguiente.
 TEST_F(GameChat, WithTheFieldClosedEnterSaysTheSerialEdit)
 {
     Input().dialogEdit.text.SetText("AB12");

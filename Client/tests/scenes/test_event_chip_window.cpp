@@ -407,8 +407,8 @@ TEST_F(EventChipWindowTest, TheSerialButtonWarnsWithAFullInventory)
 // 0x5e7255..0x5e74c6: el clic (0x7d366d4) en el botón de cerrar (0x19, 0x18b de la esquina, 24 × 24) apaga el clic,
 // pone 0x77f3b10 en 0 y 0x6c8dcc en 6, manda el C1 03 97 en claro, 0x78abb00 en 0, cierra el inventario (con los
 // rand() de 0x65cae0), vacía los buffers del chat, lo cierra, pone en 0 el modo del zen, el zen escrito, 0x78abacc y
-// 0x77f3b6b y le da el foco a la ventana del juego;
-// el texto del EDIT de [0x5763504] queda. En Lorencia y en Devias, con cada tipo.
+// 0x77f3b6b y le da el foco a la ventana del juego; 0x553570 (con 0x6c7b8c en 1) vacía también el texto del EDIT de
+// [0x5763504]. En Lorencia y en Devias, con cada tipo.
 TEST_F(EventChipWindowTest, TheCloseButtonLeavesTheWindow)
 {
     for (const std::int32_t map : {0, 2})
@@ -455,7 +455,7 @@ TEST_F(EventChipWindowTest, TheCloseButtonLeavesTheWindow)
             EXPECT_EQ(chat.focus, Client::UI::ChatFocus::Game);
             EXPECT_EQ(chat.messageBuffer[0], '\0');
             EXPECT_EQ(chat.messageLength, 0);
-            EXPECT_EQ(chat.dialogEdit.text.Value(), "AB12");
+            EXPECT_EQ(chat.dialogEdit.text.Value(), "");
         }
     }
 }

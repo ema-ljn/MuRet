@@ -39,6 +39,11 @@ enum class DialogStep : std::uint8_t
     // 0x6260d1 (CL9 hito 7): la caja de confirmación 0x9c, 0x471930 sobre 0x575d9d0 (0x471e80, que la construye la
     // primera vez).
     ConfirmBox,
+    // 0x6260f6 (CL9 hito 7): el título o el precio de la tienda personal (0x91), con el EDIT de [0x5763504].
+    ShopDialog,
+    // 0x6282dc..0x62843f y 0x62a779 (CL9 hito 7): el aviso 0x94 de 0x633300 y el 0x99 del precio bajo, sus dos botones
+    // de 0x7d368b8 o Esc, que dejan la respuesta en 0x6c932e.
+    Warning,
     // Un tramo de otra ola: corta con `address` y `wave`.
     Cut,
 };

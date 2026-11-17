@@ -81,6 +81,9 @@ struct HeroMovementContext
     // 0x419900: el C1 03 31 al cerrar las misiones, que caminar cierra (0x56b397..), y el de cerrar el NPC de evento
     // (0x56b4d6 → 0x65cae0(0x1000), 0x658a18; CL9 hito 11). Sin él, cerrarlos corta.
     std::function<void()> sendWindowClose{};
+    // El C1 03 3D que caminar manda al cerrar el comercio (0x56b3b2 → 0x65cae0(0x20) con 0, 0x657fe1). Sin él, caminar
+    // con el comercio abierto corta.
+    std::function<void(Protocol::Outgoing)> sendGamePacket{};
     // La llegada a un NPC (0x5674c8, Scenes/NpcTalk.h): el C3 A0 sin la clase de las misiones (0x5676a6) y el C3 30
     // (0x567c2d..). Los dos rand() de cada C3 los saca el paso. Sin ellos, la llegada corta donde los manda.
     std::function<void()> requestQuestList{};

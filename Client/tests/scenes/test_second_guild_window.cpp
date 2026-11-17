@@ -526,10 +526,11 @@ TEST_P(SecondGuildWindowTest, TheNamePageDrawsTheFieldAndTheEditor)
     m_text.texts.clear();
     ASSERT_TRUE(Draw().HasValue());
     const std::vector<DrawnQuad> quads = QuadsOf(m_sprites);
-    ASSERT_EQ(quads.size(), 176u);
+    ASSERT_EQ(quads.size(), 175u);
     ExpectQuadAt(quads[3], 0x10f, Left + 0x3a, 56.0f, 110.0f, 18.0f);
-    // 0x468320, después de "nombre" (4): la caja del EDIT en el fondo de +0xa0 (0), alta como el EDIT (0xe), el texto
-    // (6) y el cursor del segundo dibujo (+0x80 en 1), una columna al final del texto.
+    // 0x468320, después de "nombre" (4): la caja del EDIT en el fondo de +0xa0 (0), alta como el EDIT (0xe), y el texto
+    // (6). El cursor del segundo dibujo (+0x80 en 1) va en la columna 3 + cx + 1 de un bitmap de ftol(3 + cx): al
+    // final del texto queda recortado (el editor XP de UI::OldDraw::DrawTheOldEdit).
     constexpr float Tolerance = 1e-3f;
     EXPECT_EQ(quads[4].slot, Marker);
     EXPECT_EQ(quads[5].slot, NoTexture);
@@ -537,24 +538,21 @@ TEST_P(SecondGuildWindowTest, TheNamePageDrawsTheFieldAndTheEditor)
     EXPECT_NEAR(quads[5].first.y, 480.0f - 0x3c, Tolerance);
     EXPECT_NEAR(quads[5].third.y, 480.0f - 0x3c - 0xe, Tolerance);
     EXPECT_EQ(quads[6].slot, Marker);
-    EXPECT_EQ(quads[7].slot, NoTexture);
-    EXPECT_NEAR(quads[7].third.x - quads[7].first.x, 1.0f, Tolerance);
-    EXPECT_LT(quads[7].first.x, quads[5].third.x);
     EXPECT_EQ(Input().dialogEdit.draws, 2);
-    // La grilla empieza en el 8: su marco y el cuadrado del 0 (el 9 es el 4).
-    ExpectQuadAt(quads[8], 0x116, Left + 50.0f, 100.0f, 15.0f, 15.0f);
-    ExpectQuadAt(quads[9], SwatchSlot(0), Left + 51.0f, 101.0f, 13.0f, 13.0f);
-    ExpectQuadAt(quads[8 + 2 * 9 + 1], SwatchSlot(4), Left + 51.0f + 15.0f, 101.0f + 15.0f, 13.0f, 13.0f);
-    ExpectQuadAt(quads[8 + 128 + 1], SwatchSlot(0), Left + 16.0f, 261.0f, 18.0f, 18.0f);
-    ExpectQuadAt(quads[8 + 128 + 2 * 15 + 1], SwatchSlot(15), Left + 16.0f + 140.0f, 281.0f, 18.0f, 18.0f);
-    ExpectQuadAt(quads[8 + 160 + 1], SwatchSlot(6), Left + 16.0f, 231.0f, 23.0f, 23.0f);
+    // La grilla empieza en el 7: su marco y el cuadrado del 0 (el 9 es el 4).
+    ExpectQuadAt(quads[7], 0x116, Left + 50.0f, 100.0f, 15.0f, 15.0f);
+    ExpectQuadAt(quads[8], SwatchSlot(0), Left + 51.0f, 101.0f, 13.0f, 13.0f);
+    ExpectQuadAt(quads[7 + 2 * 9 + 1], SwatchSlot(4), Left + 51.0f + 15.0f, 101.0f + 15.0f, 13.0f, 13.0f);
+    ExpectQuadAt(quads[7 + 128 + 1], SwatchSlot(0), Left + 16.0f, 261.0f, 18.0f, 18.0f);
+    ExpectQuadAt(quads[7 + 128 + 2 * 15 + 1], SwatchSlot(15), Left + 16.0f + 140.0f, 281.0f, 18.0f, 18.0f);
+    ExpectQuadAt(quads[7 + 160 + 1], SwatchSlot(6), Left + 16.0f, 231.0f, 23.0f, 23.0f);
     const auto& texts = m_text.texts;
     ASSERT_EQ(texts.size(), 7u);
     EXPECT_EQ(texts[0].text, "Armar gremio");
     EXPECT_EQ(texts[1].text, "nombre");
     EXPECT_EQ(texts[1].style.font, Client::Render::Text::FontKind::Bold);
     EXPECT_EQ(texts[2].text, "Ceibo");
-    EXPECT_EQ(texts[2].x, WindowX + 0x3f);
+    EXPECT_EQ(texts[2].x, WindowX + 0x3f + 3);
     EXPECT_EQ(texts[2].y, 0x3c);
     EXPECT_EQ(texts[2].style.font, Client::Render::Text::FontKind::Normal);
     EXPECT_EQ(texts[2].style.colors.text, 0xffffffffu);

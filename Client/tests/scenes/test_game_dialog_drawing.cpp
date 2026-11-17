@@ -491,9 +491,10 @@ TEST(GameDialogDrawingTest, TheTradeRequestNamesTheOther)
 
 // 0x630818 y 0x630af0..0x630cb8 (el 0x7d, CL9 hito 8): el marco del OK genérico; el EDIT del número ([0x5763508]) a la
 // vista con +0x4c en 9, el fondo en 0, el tope 7, de 0x46 × 0xe en (0xf3, 0x62) y con el foco (0x4682a0: 0x5762ec0 con
-// su id); en la mezcla normal, el cuadro negro de +0x4c, el bitmap, los '*' y el cursor; en la opaca, el sí (0xf1, o
-// 0xf2 con el mouse en [0x143, 0x16b) × [0x62, 0x77)) en 323 y el no (0xf3, o 0xf4 en [0x175, 0x19d)) en 373, de
-// 40 × 21. En la cola (0x631f36), el 427 y el 428 centrados en 75 − 6 y 75 + 6, en rojo, que queda. Sin rand().
+// su id); en la mezcla normal, el cuadro negro de +0x4c, el bitmap y los '*' (el cursor, al final, recortado); en la
+// opaca, el sí (0xf1, o 0xf2 con el mouse en [0x143, 0x16b) × [0x62, 0x77)) en 323 y el no (0xf3, o 0xf4 en [0x175,
+// 0x19d)) en 373, de 40 × 21. En la cola (0x631f36), el 427 y el 428 centrados en 75 − 6 y 75 + 6, en rojo, que queda.
+// Sin rand().
 TEST(GameDialogDrawingTest, TheLeaveNumberDrawsItsEditAndTheNarrowButtons)
 {
     for (const std::int32_t map : {Lorencia, Devias})
@@ -521,7 +522,7 @@ TEST(GameDialogDrawingTest, TheLeaveNumberDrawsItsEditAndTheNarrowButtons)
         EXPECT_EQ(field.draws, 1);
 
         const std::vector<DrawnQuad> quads = QuadsOf(tested->sprites);
-        ASSERT_EQ(quads.size(), 6u);
+        ASSERT_EQ(quads.size(), 5u);
         EXPECT_EQ(quads[0].slot, 0xf0);
         EXPECT_EQ(quads[0].x, 213.0f);
         EXPECT_EQ(quads[0].y, 60.0f);
@@ -532,18 +533,17 @@ TEST(GameDialogDrawingTest, TheLeaveNumberDrawsItsEditAndTheNarrowButtons)
         EXPECT_EQ(quads[1].color, (Color{.red = 0.0f, .green = 0.0f, .blue = 0.0f, .alpha = 1.0f}));
         EXPECT_FALSE(quads[2].slot.has_value());
         EXPECT_EQ(quads[2].color.alpha, 0.0f);
-        // El cursor, después de los dos '*' (12 columnas) más 1.
-        EXPECT_FALSE(quads[3].slot.has_value());
-        EXPECT_EQ(quads[3].x, 243.0f + 13.0f);
-        EXPECT_EQ(quads[4].slot, 0xf2);
-        EXPECT_EQ(quads[4].x, 323.0f);
-        EXPECT_EQ(quads[4].y, 98.0f);
-        EXPECT_EQ(quads[4].blend, BlendMode::Opaque);
-        EXPECT_EQ(quads[5].slot, 0xf3);
-        EXPECT_EQ(quads[5].x, 373.0f);
+        // El cursor va en la columna 3 + 12 + 1 de un bitmap de ftol(3 + 12) = 15: al final del texto queda recortado
+        // (el editor XP de UI::OldDraw::DrawTheOldEdit, con el margen de 3 antes del texto).
+        EXPECT_EQ(quads[3].slot, 0xf2);
+        EXPECT_EQ(quads[3].x, 323.0f);
+        EXPECT_EQ(quads[3].y, 98.0f);
+        EXPECT_EQ(quads[3].blend, BlendMode::Opaque);
+        EXPECT_EQ(quads[4].slot, 0xf3);
+        EXPECT_EQ(quads[4].x, 373.0f);
 
         EXPECT_EQ(tested->Texts(), (std::vector<std::string>{"**", "nro", "seguro?"}));
-        EXPECT_EQ(tested->text.texts[0].x, 0xf3);
+        EXPECT_EQ(tested->text.texts[0].x, 0xf3 + 3);
         EXPECT_EQ(tested->text.texts[1].x, CenteredX("nro"));
         EXPECT_EQ(tested->text.texts[1].y, 75 - 6);
         EXPECT_EQ(tested->text.texts[1].style.colors.text, 0xff0000ffu);
@@ -562,12 +562,12 @@ TEST(GameDialogDrawingTest, TheLeaveNumberDrawsItsEditAndTheNarrowButtons)
         tested->mouse = {0x16b, 0x62};
         ASSERT_TRUE(tested->Draw(true).HasValue());
         EXPECT_EQ(input.numberField.draws, 1);
-        EXPECT_EQ(QuadsOf(tested->sprites)[4].slot, 0xf1);
+        EXPECT_EQ(QuadsOf(tested->sprites)[3].slot, 0xf1);
         tested->sprites.Begin(Screen640);
         tested->mouse = {0x175, 0x62};
         ASSERT_TRUE(tested->Draw().HasValue());
         EXPECT_EQ(input.numberField.draws, 2);
-        EXPECT_EQ(QuadsOf(tested->sprites)[5].slot, 0xf4);
+        EXPECT_EQ(QuadsOf(tested->sprites)[4].slot, 0xf4);
         EXPECT_EQ(tested->random.State(), Client::Render::Models::CrtRandom{}.State());
     }
 }

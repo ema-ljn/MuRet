@@ -611,9 +611,9 @@ TEST(GameDialogStepsTest, TheNoOfTheOtherHitosDialogsCutsWithItsOwner)
     };
     for (const std::int32_t map : {Lorencia, Devias})
     {
+        // El 0x7d no está: su no es del hito 8 (LeaveNumberTest.NoClearsTheBufferButNotTheEdit).
         for (const OtherNo& other : {OtherNo{0x71, "0x62c58f", "selección"}, OtherNo{0x76, "0x62c880", "hito 8"},
-                                     OtherNo{0x7d, "0x62c567", "hito 8"}, OtherNo{0x7f, "0x62c5c2", "hito 8"},
-                                     OtherNo{0x95, "0x62c567", "hito 6"}})
+                                     OtherNo{0x7f, "0x62c5c2", "hito 8"}, OtherNo{0x95, "0x62c567", "hito 6"}})
         {
             auto tested = std::make_unique<SteppingDialogs>(map);
             auto& runtime = tested->world.Runtime();

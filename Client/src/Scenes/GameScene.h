@@ -20,7 +20,6 @@
 #include "Scenes/OriginalFramesOfTheSteps.h"
 #include "Scenes/GroundEffectFrame.h"
 #include "Scenes/GuildMarks.h"
-#include "Scenes/CharacterCloth.h"
 #include "World/Sprites.h"
 #include "World/ModelEffects.h"
 #include "Scenes/SceneCanvas.h"

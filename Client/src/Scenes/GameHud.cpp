@@ -40,7 +40,6 @@
 #include "Scenes/OwnInventory.h"
 #include "Scenes/GuildWindow.h"
 #include "Scenes/SecondGuildWindow.h"
-#include "Scenes/SocialState.h"
 #include "Scenes/QuestWindow.h"
 #include "Scenes/ShopSigns.h"
 #include "Scenes/TooltipLines.h"

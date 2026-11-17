@@ -4,6 +4,7 @@
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
+#include "UI/OldWindowBase.h"
 #include "UI/OldWindows.h"
 
 #include <cstdint>

@@ -13,6 +13,7 @@
 #include "Scenes/GameUi.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/ItemPrice.h"
+#include "Scenes/NpcWindowSteps.h"
 #include "Scenes/OwnItemPlacement.h"
 #include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
@@ -342,17 +343,12 @@ Core::Expected<bool, std::string> AnswerTheWarning(const GameUiContext& context,
     switch (kind)
     {
     case 1:
-        if (answer == Yes)
-            return Core::Unexpected(std::string("0x5d8e0d: el sí del aviso 1 de 0x78abb14 es de la CL9.3"));
-        // 0x5d931f..0x5d9334: 0x5be150.
-        clear();
-        if (auto returned = ReturnTheCursorItem(moves); !returned.HasValue())
-            return Core::Unexpected(std::move(returned).Error());
-        return false;
     case 2:
-        if (answer == Yes)
-            return Core::Unexpected(std::string("0x5d934f: el sí del aviso 2 de 0x78abb14 (0x7d2dc80) es de la CL9.3"));
-        clear();
+    case 4:
+        // La venta (0x5d8e0d y 0x5d931f), la mezcla (0x5d934f) y el del panel 0x2000 (0x5d9b82), de las ventanas de NPC
+        // (CL9 hito 6).
+        if (auto answered = AnswerTheNpcWarning(context, kind); !answered.HasValue())
+            return Core::Unexpected(std::move(answered).Error());
         return false;
     case TradeWarningKind:
     {
@@ -370,12 +366,6 @@ Core::Expected<bool, std::string> AnswerTheWarning(const GameUiContext& context,
             return Core::Unexpected(std::move(sent).Error());
         return false;
     }
-    case 4:
-        // Solo lo abre el botón de 0x5e75fc, el paso del panel 0x2000 (0x5e74f0, CL9.3): el sí baraja las 10 cifras de
-        // 0x7879fc8 con 40 rand() y el no apaga 0x78abb08 (0x5d9c3f), los dos de ese panel.
-        return Core::Unexpected(std::format("0x5d9b82: la respuesta {} del aviso 4 de 0x78abb14 (0x7879fc8 y "
-                                            "0x78abb08, del panel 0x2000) es de la CL9.3",
-                                            answer));
     case BuyWarningKind:
     {
         clear();

@@ -95,15 +95,32 @@ TEST(CharacterAppearanceTest, AnEmptySlotIsTheClassPart)
     EXPECT_FALSE(appearance.pet.has_value());
 }
 
-// Q-C102: el tipo de las manos es de 12 bits y el original compara el vacío con 0x1fff, así que
-// nunca da vacío: queda el modelo 0x1211, que nadie carga. MuRet toma 0xfff como sin ítem
-// (diferencia nombrada): se ve lo mismo.
-TEST(CharacterAppearanceTest, AnEmptyHandIsNoItem)
+// 0x513a35/0x513a79 comparan AX con 0x1fff, después de armar sólo 12 bits. El DWORD bajo más0x212
+// queda en el WORD del modelo: 0xfff produce0x1211, no0xffff.
+TEST(CharacterAppearanceTest, AnEncodedEmptyHandKeepsTheNativeUnloadedModel)
 {
     const CharacterAppearance appearance = AppearanceOf(0, 0, Naked());
+    ASSERT_TRUE(appearance.rightHand.has_value());
+    ASSERT_TRUE(appearance.leftHand.has_value());
+    EXPECT_EQ(appearance.rightHand->model, 0x1211);
+    EXPECT_EQ(appearance.leftHand->model, 0x1211);
+}
 
-    EXPECT_FALSE(appearance.rightHand.has_value());
-    EXPECT_FALSE(appearance.leftHand.has_value());
+TEST(CharacterAppearanceTest, EncodedEmptyHandsKeepTheirLevelAndOptionBits)
+{
+    auto bytes = Naked();
+    bytes[7] = std::byte{0x3f};
+    bytes[9] = std::byte{6};
+    bytes[10] = std::byte{6};
+    const CharacterAppearance appearance = AppearanceOf(0, 0, bytes);
+    ASSERT_TRUE(appearance.rightHand.has_value());
+    ASSERT_TRUE(appearance.leftHand.has_value());
+    EXPECT_EQ(appearance.rightHand->level, 13);
+    EXPECT_EQ(appearance.leftHand->level, 13);
+    EXPECT_TRUE(appearance.rightHand->excellent);
+    EXPECT_TRUE(appearance.leftHand->excellent);
+    EXPECT_TRUE(appearance.rightHand->ancient);
+    EXPECT_TRUE(appearance.leftHand->ancient);
 }
 
 // Cada byte del equipo, por separado, va a su parte (la tabla de 0x5139f0 en 06).

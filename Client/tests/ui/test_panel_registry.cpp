@@ -487,6 +487,42 @@ TEST(PanelRegistryTest, ThePetOpensBesideTheCharacterAndAsksForBothPets)
 // 0x659a82..0x659c44: la party cierra lo demás menos los amigos, pone la cuenta en 0 y pide la lista (el gancho) antes
 // de prenderse, y suena. Los únicos rand() son los de las consultas del comercio y de la tienda, en CanOpen y en lo
 // que cierra.
+// 0x65b240..0x65b260: cerrar la máscara antes de prender el panel y vaciar su aceptación; no abre inventario.
+TEST(PanelRegistryTest, OpeningPanel2000ClosesItsMaskAndResetsAcceptance)
+{
+    for (const std::int32_t map : {0, 2, 3})
+    {
+        Tested tested;
+        tested.context.map = map;
+        tested.state.inventory = 1;
+        tested.state.party = 1;
+        tested.state.field78abb08 = 1;
+        const auto opened = tested.panels.Open(Panel2000);
+        ASSERT_TRUE(opened.HasValue()) << opened.Error();
+        EXPECT_TRUE(opened.Value());
+        EXPECT_EQ(tested.state.panel2000, 1);
+        EXPECT_EQ(tested.state.field78abb08, 0);
+        EXPECT_EQ(tested.state.inventory, 0);
+        EXPECT_EQ(tested.state.party, 0);
+        EXPECT_EQ(DrawsSince(tested.random), 4);
+        EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x19, 0x1c}));
+        EXPECT_EQ(tested.panels.WorldWidth(), OnePanelWorldWidth);
+    }
+}
+
+// 0x658be3..0x658bea: dos bytes, sin paquete ni sonido desde CloseByMask; Close añade sus sonidos comunes.
+TEST(PanelRegistryTest, ClosingPanel2000ClearsBothBytes)
+{
+    Tested tested;
+    tested.state.panel2000 = 1;
+    tested.state.field78abb08 = 1;
+    ASSERT_TRUE(tested.panels.CloseByMask(Panel2000).HasValue());
+    EXPECT_EQ(tested.state.panel2000, 0);
+    EXPECT_EQ(tested.state.field78abb08, 0);
+    EXPECT_TRUE(tested.sounds.empty());
+    EXPECT_EQ(DrawsSince(tested.random), 0);
+}
+
 TEST(PanelRegistryTest, OpeningThePartyAsksForTheListBeforeItsByte)
 {
     Tested tested;

@@ -39,6 +39,7 @@
 #include "Scenes/GameTooltips.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/InventoryMoves.h"
+#include "Scenes/NpcWindows.h"
 #include "Scenes/LetterPortrait.h"
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
@@ -116,8 +117,7 @@ private:
 
 // El WndProc: WM_RBUTTONDOWN apaga 0x7d36840 y prende 0x7d36880 (con 0x7d3685c en 0, que el apretón siempre ve así:
 // lo apagó el WM_RBUTTONUP de antes) y 0x7d3685c, y WM_RBUTTONUP apaga los dos y, si 0x7d3685c estaba prendido, prende
-// 0x7d36840. MuRet ve los mensajes del paso juntos: apretado y soltado en el mismo paso, quedan apagados y el soltado
-// prendido, como después de los dos.
+// 0x7d36840: WM_RBUTTONDOWN/UP del derecho. El 0x7d36849 es el doble clic izquierdo y se publica por separado.
 void LatchTheRightButton(UI::GameUiState& ui, const Input::InputState& input)
 {
     const bool down = input.IsDown(Input::MouseButton::Right);
@@ -311,7 +311,8 @@ Core::Expected<void, std::string> GameScene::StepTheDialogs(const Input::InputSt
                                             .chosenSlot = chosenSlot,
                                             .requests = &requests,
                                             .inventory = &inventory,
-                                            .worldEntry = m_context.worldEntry});
+                                            .worldEntry = m_context.worldEntry,
+                                            .sendNpcWindow = NpcWindowSenderOf(m_session)});
 }
 
 Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& input)
@@ -340,7 +341,15 @@ Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& 
                                        .inventory = &inventory,
                                        .itemSetTables = m_chatTables.itemSetTables,
                                        .skills = m_skills,
-                                       .worldEntry = m_context.worldEntry});
+                                       .worldEntry = m_context.worldEntry,
+                                       .sendNpcWindow = NpcWindowSenderOf(m_session)});
+}
+
+NpcWindowSender GameScene::NpcWindowSenderOf(App::ServerSession* session)
+{
+    if (session == nullptr)
+        return {};
+    return [session](Protocol::Outgoing packet) { return session->SendNpcWindowPacket(std::move(packet)); };
 }
 
 GameChatContext GameScene::ChatContext()

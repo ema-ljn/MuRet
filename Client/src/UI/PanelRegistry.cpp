@@ -62,6 +62,17 @@ bool ReadProtected(const std::uint8_t& value, std::uint8_t& depth, Render::Model
     return value != 0;
 }
 
+// Una escritura de un byte protegido (0x65ba67..0x65bd57 abre la tienda, 0x658e28..0x658fd7 la cierra): el mismo
+// acceso, con su rand() al cerrarlo.
+void WriteProtected(std::uint8_t& value, std::uint8_t& depth, Render::Models::CrtRandom& random, std::uint8_t written)
+{
+    const Render::Models::LogicalAccess access(depth, random, 1);
+    value = written;
+}
+
+// 0x6236f0(0x8e) al abrir la caja del caos (0x65aaf2) y su vuelta a 0 al cerrarla (0x658928..0x658934).
+constexpr std::int32_t ChaosBoxDialog = 0x8e;
+
 // La ola de cada panel que el hito 1 no abre ni cierra (06 § HUD y ventanas, "Los paneles").
 const char* WaveOf(PanelId id)
 {
@@ -225,6 +236,7 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id)
         {
             // 0x65c020..0x65c033: 0x7d53708 en 1 y, con un Dark Lord, los pedidos del cuervo y del caballo.
             m_state.inventory = 1;
+            // 0x65c039: arma el C1 A9 que pide la mascota; el plan pone el A9 en el hito 4 (CL9.2, 08 P-C195).
             if (m_context.heroClass == DarkLordClass)
             {
                 if (!m_context.petRequests)
@@ -259,6 +271,29 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id)
             return closed;
         if (closed.Value())
             m_state.delegated.commands = 1;
+        break;
+    }
+    case WarehousePanel:
+    case ChaosBoxPanel:
+    case NpcShopPanel:
+    {
+        if (auto opened = OpenTheNpcWindow(id, mask); !opened.HasValue())
+            return Core::Unexpected(std::move(opened).Error());
+        break;
+    }
+    case TrainerPanel:
+    {
+        // 0x65be77..0x65be93: con lo que cerró, 0x449940(1), sin abrir el inventario.
+        auto closed = CloseByMask(mask);
+        if (!closed.HasValue())
+            return closed;
+        if (closed.Value())
+        {
+            if (!m_context.npcWindowOpened)
+                return Core::Unexpected(std::string("0x65be8b: abrir el entrenador sin el mundo (0x449940)"));
+            if (auto opened = m_context.npcWindowOpened(id); !opened.HasValue())
+                return Core::Unexpected(std::move(opened).Error());
+        }
         break;
     }
     case GuildPanel:
@@ -350,13 +385,21 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id)
         }
         break;
     }
-    case WarehousePanel:
-    case ChaosBoxPanel:
-    case EventNpcPanel:
     case Panel2000:
+    {
+        // 0x65b240..0x65b259: la máscara se cierra antes de prender los dos bytes de esta ventana.
+        auto closed = CloseByMask(mask);
+        if (!closed.HasValue())
+            return closed;
+        if (closed.Value())
+        {
+            m_state.panel2000 = 1;
+            m_state.field78abb08 = 0;
+        }
+        break;
+    }
+    case EventNpcPanel:
     case SecondEventNpcPanel:
-    case TrainerPanel:
-    case NpcShopPanel:
     case CastleSiegePanel:
     case CastleSiegeListPanel:
     case SecondCastleSiegePanel:
@@ -488,13 +531,26 @@ Core::Expected<bool, std::string> PanelRegistry::CloseByMask(PanelId mask)
 
 Core::Expected<bool, std::string> PanelRegistry::CloseByMask(PanelId mask, bool aux)
 {
-    // [EBP−0xd] arranca en 1 y solo lo bajan el almacén, la caja del caos y el entrenador, que cortan antes.
+    // [EBP−0xd] arranca en 1 y solo lo bajan el almacén y la caja del caos que no cierran (0x658534, 0x658961) y el
+    // entrenador con algo en su caja (0x658df7); los paneles que siguen se cierran igual.
+    bool closedAll = true;
     for (const PanelId id : CloseOrder)
     {
         if ((mask & id) == 0 || !IsOpen(id))
             continue;
         switch (id)
         {
+        case WarehousePanel:
+        case ChaosBoxPanel:
+        case TrainerPanel:
+        case NpcShopPanel:
+        {
+            auto closed = CloseTheNpcWindow(id);
+            if (!closed.HasValue())
+                return closed;
+            closedAll = closedAll && closed.Value();
+            break;
+        }
         case CharacterPanel:
             m_state.character = 0;
             break;
@@ -567,6 +623,11 @@ Core::Expected<bool, std::string> PanelRegistry::CloseByMask(PanelId mask, bool 
             m_state.field78abb00 = 0;
             m_state.field78abb04 = 0;
             break;
+        case Panel2000:
+            // 0x658be3..0x658bea: sin envío; los botones de 0x5e74f0 mandan el C1 03 31 antes de CloseAll.
+            m_state.panel2000 = 0;
+            m_state.field78abb08 = 0;
+            break;
         case EventNpcPanel:
         case SecondEventNpcPanel:
             if (!m_context.eventNpcClosed)
@@ -577,6 +638,64 @@ Core::Expected<bool, std::string> PanelRegistry::CloseByMask(PanelId mask, bool 
         default:
             return Core::Unexpected(CloseCut(id));
         }
+    }
+    return closedAll;
+}
+
+Core::Expected<void, std::string> PanelRegistry::OpenTheNpcWindow(PanelId id, PanelId mask)
+{
+    // 0x659f66, 0x65a93d y 0x65ba46: con lo demás cerrado, sigue; si no, solo los sonidos.
+    auto closed = CloseByMask(mask);
+    if (!closed.HasValue())
+        return Core::Unexpected(std::move(closed).Error());
+    if (!closed.Value())
+        return {};
+    // El cable va antes de abrir el inventario porque el C1 04 BD 09 va antes (0x65a956..0x65ac07). 0x6c932f, 0x78abb20
+    // (0x659f8d..0x659f94) y 0x7d2dc80 (0x65ac28) el original los escribe después, pero 0x6599a0(0x4000000) no los lee.
+    if (id != NpcShopPanel)
+    {
+        if (!m_context.npcWindowOpened)
+            return Core::Unexpected(std::format("0x6599a0({:#x}): abrir la ventana del NPC sin el mundo", id));
+        if (auto opened = m_context.npcWindowOpened(id); !opened.HasValue())
+            return opened;
+    }
+    // 0x659f81, 0x65aac1.. y 0x65ba62: abrir el inventario, sin mirar si abrió.
+    if (auto inventory = Open(InventoryPanel); !inventory.HasValue())
+        return Core::Unexpected(std::move(inventory).Error());
+    switch (id)
+    {
+    case WarehousePanel:
+        m_state.warehouse = 1;
+        break;
+    case ChaosBoxPanel:
+        m_state.chaosBox = 1;
+        PushDialog(m_context.dialogs, ChaosBoxDialog);
+        break;
+    default:
+        WriteProtected(m_state.npcShop, m_state.npcShopDepth, m_context.random, 1);
+        m_state.repairCursor = 0;
+        break;
+    }
+    return {};
+}
+
+Core::Expected<bool, std::string> PanelRegistry::CloseTheNpcWindow(PanelId id)
+{
+    // 0x658e0e..0x658fd7: la tienda pone su byte en 0 antes de mandar el C1 03 31 y vaciar la grilla.
+    if (id == NpcShopPanel)
+        WriteProtected(m_state.npcShop, m_state.npcShopDepth, m_context.random, 0);
+    if (!m_context.npcWindowClosing)
+        return Core::Unexpected(std::format("0x657ab0({:#x}): cerrar la ventana del NPC sin el mundo", id));
+    auto closing = m_context.npcWindowClosing(id);
+    if (!closing.HasValue() || !closing.Value())
+        return closing;
+    if (id == WarehousePanel)
+        m_state.warehouse = 0;
+    if (id == ChaosBoxPanel)
+    {
+        if (m_context.dialogs.current == ChaosBoxDialog)
+            m_context.dialogs.current = 0;
+        m_state.chaosBox = 0;
     }
     return true;
 }

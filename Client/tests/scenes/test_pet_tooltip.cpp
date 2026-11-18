@@ -88,6 +88,8 @@ std::map<std::size_t, std::string> PetTooltipTexts()
             {201, "Exp %u/%u"},
             {203, "Golpe %d~%d (%d)"},
             {368, "Nivel"},
+            {423, "Sin zen"},
+            {1101, "Sin precio"},
             {698, "Mando %d"},
             {744, "Defensa total %d"},
             {959, "Defensa %d"},
@@ -452,20 +454,51 @@ TEST_P(PetTooltipTest, TheRavenLeadershipAddsInSixteenBits)
     EXPECT_EQ(lines.text[10], "\n");
 }
 
-// 0x422a43..0x422a55: con la tienda de NPC abierta, el precio (0x5b1130, CL9.3) corta después de su rand(). La primera
-// pasada no llega a mirarla.
-TEST_P(PetTooltipTest, TheNpcShopPriceCutsAfterItsQuery)
+// 0x422a43..0x422ad4: el precio propio de la mascota, dividido por 3 y truncado a centenas, antes del nombre.
+TEST_P(PetTooltipTest, TheNpcShopShowsThePetPriceBeforeItsName)
 {
-    Runtime().panels.npcShop = 1;
+    for (const bool horse : {true, false})
+    {
+        SCOPED_TRACE(horse);
+        Runtime().panels.npcShop = 1;
+        ItemState item = horse ? TheHorse() : TheRaven();
+        ASSERT_TRUE(Hover(item).HasValue());
+        const CrtRandom expected = Advanced(m_random, OwnRecordCloseRandoms + NpcShopQuery + (horse ? SkillAccess : 0));
+        const auto drawn = Hover(item);
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_EQ(Lines().text[0], horse ? "Precio 2,000,000" : "Precio 666,600");
+        EXPECT_EQ(Lines().colors[0], 0);
+        EXPECT_EQ(Lines().bold[0], 1);
+        EXPECT_EQ(Lines().text[1], "\n");
+        EXPECT_EQ(Lines().text[2], horse ? "Corcel" : "Ave");
+        EXPECT_EQ(Lines().next, 0);
+        EXPECT_EQ(Lines().halves, 0);
+        EXPECT_EQ(m_random.State(), expected.State());
+    }
+}
+
+// 0x422ad9..0x42303d: la mascota usa los mismos mapas del precio personal, con contadores locales.
+TEST_P(PetTooltipTest, TheOtherShopPetPriceWarnsWhenZenIsMissing)
+{
+    Runtime().panels.personalShop = 1;
+    Runtime().social.personalShop.mode = 2;
+    Runtime().social.personalShop.pricesBuilt = true;
+    Runtime().social.personalShop.otherPrices[0x4c] = 1'234'567;
+    Runtime().ui.shopGridHovered = 1;
     ItemState horse = TheHorse();
-    ASSERT_TRUE(Hover(horse).HasValue());
-    const CrtRandom expected = Advanced(m_random, OwnRecordCloseRandoms + NpcShopQuery);
-
-    const auto drawn = Hover(horse);
-
-    ASSERT_FALSE(drawn.HasValue());
-    EXPECT_NE(drawn.Error().find("0x422a55"), std::string::npos) << drawn.Error();
-    EXPECT_EQ(m_random.State(), expected.State());
+    const auto drawn = HoverTwice(horse);
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    EXPECT_EQ(Lines().text[0], "Precio 1,234,567");
+    EXPECT_EQ(Lines().colors[0], 3);
+    EXPECT_EQ(Lines().bold[0], 1);
+    EXPECT_EQ(Lines().text[1], "\n");
+    EXPECT_EQ(Lines().text[2], "Sin zen");
+    EXPECT_EQ(Lines().colors[2], 2);
+    EXPECT_EQ(Lines().bold[2], 1);
+    EXPECT_EQ(Lines().text[3], "\n");
+    EXPECT_EQ(Lines().text[4], "Corcel");
+    EXPECT_EQ(Lines().next, 0);
+    EXPECT_EQ(Lines().halves, 0);
 }
 
 // Un dibujo intermedio de MuRet no anota ni pide, y dibuja sobre copias: la tabla de las mascotas y el ítem quedan.
@@ -517,5 +550,5 @@ TEST_P(PetTooltipTest, AnotherTypeIsNotAPet)
     EXPECT_EQ(Runtime().petTooltipQuery.type, 0);
 }
 
-INSTANTIATE_TEST_SUITE_P(Maps, PetTooltipTest, ::testing::Values(Lorencia, Devias));
+INSTANTIATE_TEST_SUITE_P(Maps, PetTooltipTest, ::testing::Values(Lorencia, Devias, 3));
 } // namespace

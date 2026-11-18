@@ -17,6 +17,7 @@
 #include "Render/Models/ModelTextureSlots.h"
 #include "Render/Pass3D.h"
 #include "Scenes/IScene.h"
+#include "Scenes/NpcWindows.h"
 #include "Scenes/OriginalFramesOfTheSteps.h"
 #include "Scenes/GroundEffectFrame.h"
 #include "Scenes/GuildMarks.h"
@@ -146,6 +147,8 @@ private:
     [[nodiscard]] InventoryServices InventoryContext();
     // 0x5fc260(1) y 0x5fac90 con el rayo del mouse (MoveHero y el C1 23): la celda del terreno bajo el mouse o nada.
     [[nodiscard]] Core::Expected<std::optional<GameLogic::PathCell>, std::string> GroundUnderTheMouse();
+    // El envío de las ventanas de los NPC por la sesión (App::ServerSession::SendNpcWindowPacket); sin ella, vacío.
+    [[nodiscard]] static NpcWindowSender NpcWindowSenderOf(App::ServerSession* session);
     // 0x636da3..0x63717f: el paso con el mundo cargado, hasta su primer corte.
     [[nodiscard]] Core::Expected<void, std::string> StepWorld(const Input::InputState& input);
     [[nodiscard]] Core::Expected<void, std::string> StepTheFloorItems(float worldClock);

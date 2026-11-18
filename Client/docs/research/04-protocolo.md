@@ -242,7 +242,8 @@ mínima (`analysis/foxanti/minimal/src/packet.c`):
   mandarlo, y `0x4499b0` sale sin mandar si la caja de `0x723c80` tiene algo (`0x449c10`) y, si no,
   pone en 0 `0x724580` y `0x724584`. En el GS reconstruido es `CGCloseWindow`
   (`protocol.cpp:443`, `0x42ab20`): MuRet lo llama `WindowClose`. Los llaman también otros lugares de la interfaz (`0x44b5da`,
-  `0x44b9ce`, `0x44c62e` y `0x658dfd` a `0x4499b0`), que MuRet no tiene. Cerrar un NPC de evento (`0x657ab0` con
+  `0x44b9ce`, `0x44c62e` y `0x658dfd` a `0x4499b0`): MuRet tiene los dos del entrenador con `0x724580` en 2
+  (`0x44b9ce` y `0x44c62e`, CL9 hito 6, `Scenes/PetTrainer`). Cerrar un NPC de evento (`0x657ab0` con
   `0x1000` o `0x4000`, `0x658a18` y `0x658c0e`) lo arma en la pila y lo manda, en claro, antes de poner `0x7d53712` en 0
   (CL9 hito 11, fase 2; `UI::PanelContext::eventNpcClosed`, que prestan el paso de la UI, caminar, el `90`, los
   cierres de todos los paneles y la entrada, el teleport y el regen).
@@ -1072,7 +1073,7 @@ nombre del evento (un puntero a su registro, `0x76bd1dc + 300 · índice`) impri
 | `C1 44 9D resultado datos:0x40` | `0x4e4a86` | el aviso 886 + resultado (0..4) o 899 (5) y siempre los `0x40` bytes en `0x78ab078` | no está |
 | `C1 06 9E … sonido:2` | `0x4e4ad4` | con 0, 1 o 2, el sonido `0x5b`, `0x5c` o `0x5d` (CL10) | no está |
 | `C1 05 AF 01 resultado` | `0x4e5032` → `0x4daa90` | como el 9A con Chaos Castle (1147, 100), y 7 → 423 | no está en el 0.97; el oráculo es el cliente |
-| `C1 05 BC 00/01 resultado` | `0x4e4547`, `0x4da540` | el texto de la mezcla (1801/1800 con 1816 y 868, o 1817, 1811, 1812, 1815) en `"%s%s %s"`, `0x6236f0(0)` y `0x6236f0(0xa6)`, y la ventana de la mezcla (`0x402e50`, corta: hito 6) | no está |
+| `C1 05 BC 00/01 resultado` | `0x4e4547`, `0x4da540` | el texto de la mezcla (1801/1800 con 1816 y 868, o 1817, 1811, 1812, 1815) en `"%s%s %s"`, `0x6236f0(0)` y `0x6236f0(0xa6)`, y la ventana de la mezcla (`0x402e50`, del hito 6: `Scenes::ReturnToTheJewelChoice`) | no está |
 | `C1 06 BD 00 estado etapa` | `0x4e5965` | `0x42fe80(estado, etapa)` (la interfaz de Crywolf; con otro estado que el anterior, la luz y el `.att` del mapa en curso, `0x42ff81` y `0x42ffe8`, [06](06-render-escenas-y-ui.md#los-objetos-de-crywolf), Q-C1340) y `0x4033b0(etapa)` en el recorrido de la cámara | no está: el GameServer 0.97 no tiene Crywolf y el oráculo es el ASM del cliente |
 | `C1 0D BD 02 luz:4 a0 a1 a2 a3 a4` | `0x4e5990` → `0x4e0fe0` → `0x430000` | la luz a `0x723c08` y los cinco altares a `0x6c73cc..0x6c73d0` (`.data` en 2), en cualquier mapa | no está (Crywolf) |
 | `C1 08 BD 03 resultado valor clave:2` | `0x4e59a5` → `0x4e1010` | el resultado del contrato de los altares, con la clave big-endian (`pkt[6]·256 + pkt[7]`), en cualquier mapa: con 0, el héroe sin `0x200000` en `+0x7c`, el nivel (`+0xe`) con el registro propio abierto (0xf08 `rand()` al cerrarlo) y `0x435b00(0x36)` + `(0x37)` con menos de 350 o `(0x3a)`; con 1, `0x435b00(3)` + `(4)`, `0x435ad0(clave − 0x13c, valor)` (sin tope, Q-C1347), `0x200000` en `+0x7c`, la acción `0xca` (`0x4ea030`, con las acciones del modelo del tipo del héroe: un héroe transformado cuyo modelo no tiene la `0xca` se queda con la suya) y el `C1 05 18 rumbo 82` de abajo; con otro, nada. `0x435b00` y `0x435ad0` solo hacen algo con la etapa 3 o 4 en el 34 (06 § La interfaz de Crywolf) | no está |
@@ -1645,6 +1646,162 @@ cierre a `Scenes::ApplyChatRoomClosed`; lo que mandan las ventanas lo saca
 `Scenes::FlushTheChatRoomOrders`. El connect no espera, como el del GameServer de MuRet: la sala se anota al empezar y
 el `C1 10 00` sale con el connect. Ni el GameServer 0.97 ni el repo de research tienen un servidor del chat: lo del
 cable es del ASM del cliente (*estático*). Los tests usan nombres y textos inventados.
+### Las ventanas de los NPC: `30` a `34`, `81` a `83`, `86` y `87`
+
+(CL9 hito 6, 2026-11-13, *estático*, contra el GameServer 0.97 reconstruido: `PMSG_TALKRESULT`, `PMSG_SHOPITEMCOUNT`,
+`PMSG_BUYRESULT`, `PMSG_SELLRESULT`, `PMSG_ITEMDURREPAIR_RESULT`, `PMSG_WAREHOUSEMONEYINOUT_RESULT` y
+`PMSG_CHAOSMIXRESULT`.) Los handlers leen por posición, sin mirar si el paquete es C1 o C2; solo el `30` mira si llegó
+cifrado. Abrir y cerrar las ventanas son casos de `0x6599a0` y `0x657ab0` (06 § HUD y ventanas, "Los paneles").
+
+- **`30`** (`0x4d1e00`): sin cifrar, el aviso `C1 06 F1 03 00 30` con el XOR32 y en C3, sin leer nada más. Cifrado:
+  `0x657a90` (cierra todo) y `pkt[3]` por la tabla de `0x4d2914`: 2 el almacén (`0x40`), 3 la caja del caos (`0x100`,
+  y `pkt[4..9]` a los seis int de `0x6c9da8`), 4, 5 y 6 los NPC de evento (`0x1000`, `0x2000`, `0x4000`), 7 el
+  entrenador (`0x8000`), 9 el diálogo `0xa1` con `0x6e5798` en 0, 12 la lista de CS (`0x100000`, con `pkt[4] == 1` en
+  `[0x7d536fc] + 0x3d4`), 13 el `C1 04 B2 00`; los demás (0, 1, 8, 10, 11, 14..) la tienda (`0x10000`, `0x4d288e`).
+  Después, los sonidos `0x19` y `0x1c` y `SetCursorPos(((260 · mx / 640) · ancho) / 640, alto · my / 480)` con el
+  mouse en 640 × 480 (`0x7d3682c`, `0x7d36828`). El GameServer 0.97 lo manda en C3 de 8 bytes, con cuatro tasas: las
+  dos que faltan el original las lee de su buffer (07, Q-C920).
+- **Abrir** (`0x6599a0`, con lo demás cerrado por `0x657ab0`): el almacén (`0x659f66`) abre el inventario y pone
+  `0x7d5370d` en 1 y `0x6c932f` y `0x78abb20` en 0; la caja del caos (`0x65a93d`) pone `0x7d2dc9d` en 0, manda
+  `C1 04 BD 09` con el XOR32 en claro, abre el inventario, pone `0x7d5370e` en 1 y `0x7d2dc80` en 0 y abre el diálogo
+  `0x8e`; la tienda (`0x65ba46`) abre el inventario, escribe 1 en el byte protegido `0x7d53710` (un `rand()`) y pone
+  `0x78abb27` en 0.
+- **Cerrar** (`0x657ab0`): el almacén, con la traba del `24` (`0x78abb39`) no cierra (el resultado queda en 0 y sigue
+  con los demás); si no, vacía las 120 casillas de `0x78a7070` (tipo `0xffff`, `+0x3c` en 0), devuelve el ítem del
+  cursor (`0x5be150`), manda `C1 03 82` en claro y pone `0x7d5370d` y `0x6c932f` en 0. La caja del caos, con algo en
+  su grilla (`0x5e3c20`) o en el cursor, el texto 593 de error y 0; si no, `C1 03 87` en claro, sus 32 casillas
+  vacías, el diálogo `0x8e` en 0 y `0x7d5370e` en 0. La tienda escribe 0 en su byte (un `rand()`), manda `C1 03 31`
+  en claro y vacía `0x78a7070`.
+- **`31`** (`0x4c5f60`): `pkt[4]` la grilla y `pkt[5]` la cuenta, con entradas de 8 bytes desde `pkt[6]` (el lugar y
+  los siete del ítem). La 3 es la caja del caos (`0x7d2dc80` en 2, los sonidos `0x57` y `0x44`, la grilla vacía y
+  `0x5bc740(0x7d2d380, 8, 4, lugar, datos, 1)`), la 5 la caja del entrenador (el texto 1208, `0x449c40` y
+  `0x44ad70`), y otra la tienda o el almacén (`0x78a7070` vacía y `0x5bc150(lugar, datos)`: 8 por fila desde el lugar,
+  sin tope, y `0x54bf40` con B1 y B4 sin bits arriba y B3 con los del tipo). El GameServer 0.97 lo manda en C2 con
+  entradas de 5 bytes (08, P-C190).
+- **`32`** (`0x4e3c2a`): con `pkt[3]` distinto de `0xff`, `0x5bc740(0x78a9bb0, 8, 8, pkt[3], pkt + 4, 0)` y el sonido
+  `0x1d`; siempre, `0x5767950` en 0. **`33`** (`0x4e3c6e`): con 0, `0x5be150`; si no, el cursor vacío y el zen
+  (`pkt[4..7]`) en `+0xecc` del registro propio abierto, y el sonido `0x1d`. **`34`** (`0x4e3cd7`): con zen distinto
+  de 0, en `+0xecc` con el registro abierto, `0x550d10` y el sonido `0x25`.
+- **`81`** (`0x4e4692`): con `pkt[3]` distinto de 0, el zen del almacén (`pkt[4..7]`, `+0xed0`) y el del inventario
+  (`pkt[8..11]`, `+0xecc`). **`82`** y **`87`** (`0x4e4819`): el cursor vacío y, con el diálogo `0x73`, su cierre,
+  `0x553570(0)`, `0x6c8e78` en `0x2a`, los campos de Tab en 2 y `0x77f3b6a` y `0x6c8e68` en 0. **`83`** (`0x4e46df`,
+  las tablas de `0x4e60c0` y `0x4e60dc`): 0 y 1 escriben la traba (`0x6c932f`) y ponen `0x78abb1c` en 0; `0xa`, `0xb`
+  y `0xd` abren los diálogos `0x85`, `0x86` y `0x89`; `0xc`, con la traba y `0x78abb1c` en 0, manda lo que esperaba
+  (`0x78ab9bc` en −1: `0x4e6f80` con el tipo y el zen; si no, `0x449d80` con los cuatro) y deja los dos en 1.
+- **`86`** (`0x4da280`, las tablas de `0x4da38c` y `0x4da3a8`): 0 el texto 594 (error); 1 el texto 595, la caja vacía
+  y el ítem de `pkt[4..10]` en su lugar 0 (`0x5bc740(0x7d2d380, 8, 4, 0, pkt + 4, 1)`) con los sonidos `0x57` y `0x45`;
+  2 y `0xb` el texto 596 con `0x7d2dc80` en 0; 4 y 9 la caja `0x632e30` con los textos 649 y 689; 100 la caja del
+  entrenador (`0x449c40` y `0x44ad70(0, pkt + 4, 1)`: también lee el ítem de `pkt[4..10]`, `0x4da378`, sin tocar
+  `0x7d2dc80`). Salvo 2, `0xb` y 100, todos dejan `0x7d2dc80` en 2,
+  también los que no tienen caso.
+- **Lo que manda el cliente**: comprar `C1 04 32 <lugar>` (`0x5c4bdc`, desde la grilla de la tienda), vender
+  `C1 04 33 <lugar>` (`0x5d8e1a`), reparar `C1 05 34 <lugar> <0x78abb10>` (`0x5c4485`, un ítem de la grilla; `0x5edaa7`,
+  todo con `0xff 00`), la contraseña del almacén `C1 10 83 <tipo> <contraseña:2> <número:10>` (`0x5e7e90`), todos con el
+  XOR32 y en C3; el zen del almacén `C1 08 81 <tipo> <zen:4>` (`0x4e6f80`) y la mezcla `C1 04 86 <0x7d2dc98>`
+  (`0x5d9362`, que el GameServer 0.97 no lee), con el XOR32 en claro.
+
+**MuRet**: `Protocol::NpcWindows` lee y escribe todos; `App::ServerSession` los registra (el `30` con su aviso) y
+`Scenes/NpcWindows.cpp` los aplica sobre `WorldRuntime::npcWindows` (las dos grillas y los globales). `UI::PanelRegistry`
+abre y cierra `0x40`, `0x100` y `0x10000` con los cables de la escena (`PanelContext::npcWindowOpened` y
+`npcWindowClosing`), con el `rand()` del byte protegido. Reparar un ítem desde la grilla del inventario manda su `34`
+(`0x5c4472`). Lo que sigue cortado, con su dirección, está en 08, P-C191. Los tests usan ítems y textos inventados.
+
+**Fase 2: lo que manda el cliente desde las ventanas** (CL9 hito 6, 2026-11-13, *estático*; el GameServer 0.97
+reconstruido es la referencia de cada paquete, `protocol.cpp` y `gs_protocol.h`, y donde no lo lee el oráculo es el
+ASM del cliente):
+
+- **`32`** comprar (`0x5c4b64..0x5c510f`, desde `0x5c4110` con el tipo 1): el clic sobre un ítem de la grilla de la
+  tienda, sin el modo de reparar y sin otra compra esperando (`0x5767950`), manda `C1 04 32 <lugar de la esquina>` y
+  deja en `0x5767950` el precio de `0x54d0f0` en el modo 0. El 0.97 lo lee como `PMSG_BUYREQUEST` (`Pos` en `+3`) y
+  con `DataEncryptCheck`: lo pide en C3, como sale.
+- **`33`** vender (`0x5deca7..0x5df448`, desde `0x5d8d50` con el clic fuera de las grillas): con la tienda abierta (su
+  `rand()`) y el mouse en `[x + 0xf, x + 0xc3) × [y + 0x32, y + 0x172)`, lo que no se vende no hace nada, lo valioso
+  abre el `0x98` con `0x78abb14` en 1 y lo demás sale con `C1 04 33 <0x78a6758>`; el sí del `0x98` (`0x6c932e` en 1)
+  lo manda en el paso siguiente (`0x5d8e1a`) y el no devuelve el ítem (`0x5be150`). `PMSG_SELLREQUEST`, cifrado.
+- **`34`** reparar: la grilla del inventario (`0x5c4485`) y el equipo (`0x5c2dd5`, con el registro de `0x5bec50`)
+  mandan `C1 05 34 <lugar> <0x78abb10>`; el botón de reparar todo de la tienda (`0x5edaa7`, con `0x78abb09`)
+  `C1 05 34 FF 00` sin gastar el clic. `PMSG_ITEMDURREPAIR` (`Position`, `Requestpos`): `0xff` repara todo y
+  `Requestpos` 1 pide nivel 50; el 0.97 no mira si llegó cifrado, el cliente lo manda en C3.
+  El entrenador con `0x724580` en 2 (`0x44b910`, fase 3b) manda `C1 05 34 08 <precio>` (el caballo oscuro, `0x1a04`,
+  en el lugar 8) o `C1 05 34 01 <precio>` (el cuervo, `0x1a05`, en la mano izquierda), con el byte bajo del precio de
+  `0x44b190` como `Requestpos` (07, Q-C948), en C3, y detrás el `C1 03 31` de `0x4499b0` en claro.
+- **`24`** guardar y sacar (`0x5ca250` desde `0x5deb57` y desde la grilla del inventario): `0x449d80` con la grilla
+  del cursor (0 el inventario, 2 el almacén, 3 la caja del caos, 5 la del entrenador) y el lugar de destino, en C3.
+  La caja del entrenador (fase 4b): soltar en ella (`0x44aca9`, `0x5ca250` con el tipo 5) manda `0x449d80(0, lugar,
+  5, fila · 8 + columna)` y soltar lo que sale de ella en el inventario, `0x449d50` (`0x449d80(5, lugar, 0,
+  destino)`); el `24` que vuelve con 5 la pone en la caja (`0x4d1d55`, `0x44ad70` con la cola de `0x5bc740`). Sacar del almacén con
+  la traba (`0x6c932f`) y sin `0x78abb1c` no manda nada: guarda los cuatro valores en `0x78ab9bc..` y abre el
+  teclado (`0x5cb3af..0x5cb455`); el `83` con `0xc` los manda después (`0x4e47c6`). `CGInventoryItemMove`.
+- **`81`** el zen del almacén (`0x6270ed..0x6282c8`, el OK del `0x73` con Enter): más de 100.000.000 abre el `0x75`;
+  con el comercio abierto corta (CL9.4); si no, con el registro propio abierto, meter más que el zen del inventario
+  (sin signo) o sacar más que el del almacén (con signo) abre el `0x74`, y sacar lo que deja el inventario arriba de
+  2.000.000.000 (sin signo) solo cierra el diálogo; sacar con la traba
+  y sin `0x78abb1c` guarda `{−1, 1, zen, 0x77f3cc8}` y abre el teclado (`0x5e7aa0(1)`, sus 40 `rand()` antes de
+  los 3.848 del cierre); si no, `C1 08 81 <tipo> <zen:4>` con el XOR32 en claro (`0x4e6f80`).
+  `PMSG_WAREHOUSEMONEYINOUT` (`Type` 0 meter y 1 sacar, `Money` con signo en `+4`); el 0.97 también rechaza más de
+  100.000.000.
+- **`82`**, **`87`** y **`31`**: cerrar el almacén (el botón de `x + 0xd7`, `0x5ea24d`), la caja del caos (el botón
+  de la esquina del inventario) y la tienda (el mismo) pasan por `0x657ab0`. `CGWarehouseUseEnd`, `CGChaosBoxUseEnd`
+  y `CGCloseWindow` no leen cuerpo.
+- **`86`** la mezcla: el sí del `0x98` con `0x78abb14` en 2 (`0x5d934f..0x5d9633`) pone `0x7d2dc80` en 1 y manda
+  `C1 04 86 <0x7d2dc98>` con el XOR32 en claro. `CGChaosBoxItemMixButtonClick` no lee el tipo: el byte sale como lo
+  arma el cliente (el ASM es el oráculo): el tipo de `0x5fd4f0` filtrado por el modo de la caja (`0x5fd4b0`), que
+  `0x5d8d50` recalcula en cada paso con la caja abierta, y el sí llega del `0x98` que abre el botón de mezclar
+  (`0x5fe690`; 06 § "La caja del caos"). Los tipos que pueden salir: 1 a 8, `0xb`, `0xf` a `0x11` y `0x16` a `0x1c`
+  (el botón no abre el `0x98` con el 0 ni con los negativos). El entrenador en el modo 3 (`0x44d010`, fase 4b) manda
+  `C1 04 86 0D` o `0E` (la mezcla del caballo o la del cuervo, de `0x724584`) con el XOR32 en claro, sin mirar el zen
+  (07, Q-C956). La respuesta `86` con 100 (`0x4da373`) vacía la caja del entrenador y pone el ítem en su lugar 0; el
+  `31` con la grilla 5 (`0x4c5fb4`) avisa con el 1208 y la llena.
+- **`83`** la contraseña (`C1 10 83 <tipo> <contraseña:2> <número:10>`, `PMSG_WAREHOUSEPASSSEND` de `0x10` bytes,
+  con el XOR32 y en C3): la manda el OK de la caja de la contraseña (`0x5e7bf0`, 06 § Los dibujos de las ventanas de
+  los NPC) según su modo. El 1 (abrir la traba, `0x5e931c`) con 0, el `atoi` de las cuatro cifras y los diez primeros
+  bytes del buffer del mensaje del chat (`0x7798bf8`, Q-C924); el 2 (`0x5e7e90`, después de la contraseña nueva dos
+  veces en el 4 y el 5) con 1, esa contraseña (`0x78abb24`) y las siete cifras del número personal; el 3 (`0x5e8c02`,
+  sacar la traba) con 2, 0 y el número. `CGWarehouseCheckPass` hace lo mismo con los tres: 0 compara `Pass` con la
+  contraseña y no mira el número; 1 y 2 comparan el número con `gObjCheckPassword2` y ponen o sacan la contraseña.
+- **`99`** el número personal (`C1 0D 99 <número:10>`, con el XOR32 y en C3): lo manda el modo 6 de la misma caja
+  (el que abre el OK del `0x8f`, `0x628276`), después de un `C1 03 31` en claro y de cerrar todo (`0x657a90`,
+  `0x5e8552..0x5e8bfd`). El GameServer 0.97 despacha el `99` a `CGAttributeMixRequest` (`PMSG_REQ_ATTRMIX`), que no
+  es esto (Q-C925): quién lo atiende en el servidor del 1.02 queda para la VM.
+- **`BC`** la mezcla de joyas (CL9 hito 6, fase 3b; 06 § "El modo de la caja del caos y la mezcla de joyas"): el sí
+  del `0xa3` llama a `0x4029e0`, que con `0x6e5798` en 0 y `0x6e5799` en 0 pone la primera en 1 y, según
+  `0x6e5794`, manda `C1 06 BC 00 <joya> <cuántas / 10 − 1>` (`0x402500`: `0x6c62e0`, y `0x6c62e1` con signo dividido
+  hacia el cero) o `C1 07 BC 01 <joya> <nivel> <lugar>` (`0x401f30`: `0x6c62e0`, `0x6c62dc` y `0x6c62d8` + 12, que
+  queda así en el global, Q-C947). Los dos arman el C1 de a un byte con el XOR32 de cada byte nuevo y lo mandan con
+  `send()` en claro, sin la tabla de protección: sin `rand()`. El GameServer 0.97 no atiende el `BC` (no está en
+  `protocol.cpp`): el ASM es el oráculo. Las respuestas (fase 4b): `C1 05 BC <0 o 1> <resultado>` (con otro pkt[3],
+  nada). Con 0 (juntar, `0x4e4570`, la tabla `0x4e60a8` con pkt[4] de 0 a 5) y con 1 (deshacer, `0x4da540`, la tabla
+  `0x4da620` con pkt[4] de 0 a 8): el 1 abre el `0xa6` (`0x6236f0(0)` y `0x6236f0(0xa6)`); el 0, el 2 y el 3 de juntar
+  y el 0 y el 5 de deshacer muestran "%s%s %s" (`0x6c8490` y `0x6c8498`) con el 1801 o el 1800, el 1816 y el 868 en un
+  buffer de `0x100`; los demás, un texto (juntar: 4 el 1817 y 5 el 1811; deshacer: 2, 3, 4 y 6 el 1812, 7 el 1815 y
+  8 el 1811). Los mensajes son de tipo 1 con el nombre vacío (`0x5767a54..0x5767a6c`, que nadie escribe) y después
+  `0x402e50` vuelve a la elección de la joya. Sin `rand()`. `0x4da460`, el gemelo de juntar como función aparte (la
+  tabla `0x4da524`), no tiene quien la llame (08, P-C341). **MuRet**: `Protocol::JewelMix` (lo que sale); la respuesta
+  llega como `Protocol::Events::JewelMixResult` del hito 11 y `Scenes::ApplyEventPacket` la atiende con
+  `Scenes::ReturnToTheJewelChoice` (`0x402e50`).
+- **`AF 01`** la entrada a Chaos Castle (CL9 hito 6, fase 4a; 06 § "Los diálogos del juego"; *inferido* del diálogo,
+  `UI::ChaosCastleDialog`): el sí del `0x9a` (`0x628582..0x628aaf`) con el dword `0x78a59cc` (el `+4` del ítem de los
+  diálogos de `0x78a59c8`) distinto de `0xff` manda `C1 06 AF 01 <nivel> <lugar>` (`0x628594..0x628947`): el nivel es
+  `(0x78a59cc >> 3) & 0xf` (`0x628702..0x628710`) y el lugar el byte bajo de `0x78a6758` (`0x6287f7`); con `0xff` no
+  hace nada y el diálogo sigue. Después cierra con el sonido `0x19` (`0x628a70..0x628aac`). *Estático*.
+- **`D0 00`** el sí de la pregunta del `F3 40` (CL9 hito 6, fase 4a): el `0xaa`, que abre `0x4da1b9` con el texto
+  2020, manda `C1 04 D0 00` con el sí (`0x62a480..0x62a5e8`); el no solo cierra. *Estático*.
+- Los dos arman el C1 de a un byte con el XOR32 de cada byte nuevo y lo mandan con `send()` en claro, sin la tabla de
+  protección: sin `rand()`. El GameServer 0.97 no los atiende: `ProtocolCore` (`0x414180`) no tiene el caso del `AF`
+  ni del `D0`, y su `default` loguea (`LogAddC`) y cierra la conexión (`CloseClient`). El ASM es el oráculo (CL9.R).
+  **MuRet**: `Protocol::DialogAnswers`.
+
+Los `rand()`: con la tienda abierta, cada `IsOpen(0x10000)` saca uno (también el de `0x5decc1` al vender); con el
+almacén abierto, la cadena de Q, W y E (`0x5a343e`) e `IsOpen(0)` (`0x5a5511`) se paran en `0x40` antes de la tienda:
+uno menos cada una. **MuRet**: `Scenes/NpcWindowSteps.cpp` (los pasos de `0x5ed960`, `0x5b1570`, `0x5ea060`,
+`0x5fe610`, `0x5d8d50` con `0x78abb14` en 1, 2 y 4, vender, el OK del `0x73` y `0x5e7aa0`),
+`Scenes/WarehouseKeypad.cpp` (`0x5e7bf0`, el `83` y el `99`), las grillas de la tienda, del almacén y de la caja del
+caos en `Scenes/GameUi.cpp` y los de sí y no (`0x6282dc`, con el `AF 01` y el `D0 00`) en
+`Scenes/GameDialogSteps.cpp`. Tests: `NpcWindowStepsTest` (comprar en Lorencia, Devias y Noria, vender, reparar,
+guardar, sacar, el zen, la mezcla y el teclado del 4, byte a byte con sus `rand()`), `WarehouseKeypadTest` (los modos
+de la caja, el `83` y el `99` byte a byte con sus `rand()`),
+`NpcWindowRepliesTest.TakingAnItemSends24WhenThePasswordIsAccepted`, `DialogAnswersProtocolTest` y
+`DialogAnswerStepsTest` (el `AF 01` y el `D0 00` byte a byte). Lo que queda, en 08, P-C192, P-C194, P-C338 y P-C339.
 
 ## Qué implica para MuRet
 

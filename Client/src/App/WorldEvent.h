@@ -13,6 +13,7 @@
 #include "Protocol/Inventory.h"
 #include "Protocol/Letters.h"
 #include "Protocol/Messages.h"
+#include "Protocol/NpcWindows.h"
 #include "Protocol/Movement.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/Party.h"
@@ -87,9 +88,12 @@ using WorldEvent = std::variant<
     Protocol::Messages::WhisperResult, Protocol::Messages::Notice, Protocol::OptionData::OptionData,
     Protocol::Inventory::ItemMoveResult, Protocol::Inventory::ItemDelete, Protocol::Inventory::Durability,
     Protocol::Inventory::EquipmentChange, Protocol::Inventory::ItemPut, Protocol::Inventory::LifeRefill,
-    Protocol::Inventory::ManaRefill, Protocol::FloorItems::FloorItemsCreate, Protocol::FloorItems::FloorItemsDelete,
-    Protocol::FloorItems::PickUpResult, Protocol::FloorItems::DropResult, Protocol::FloorItems::StatFruit,
-    Protocol::FloorItems::ShortPickUpResult, Protocol::FloorItems::ShortDropResult,
+    Protocol::Inventory::ManaRefill, Protocol::NpcWindows::TalkResult, Protocol::NpcWindows::ItemList,
+    Protocol::NpcWindows::BuyResult, Protocol::NpcWindows::SellResult, Protocol::NpcWindows::RepairResult,
+    Protocol::NpcWindows::WarehouseMoney, Protocol::NpcWindows::NpcWindowClosed, Protocol::NpcWindows::WarehouseState,
+    Protocol::NpcWindows::ChaosMixResult, Protocol::FloorItems::FloorItemsCreate,
+    Protocol::FloorItems::FloorItemsDelete, Protocol::FloorItems::PickUpResult, Protocol::FloorItems::DropResult,
+    Protocol::FloorItems::StatFruit, Protocol::FloorItems::ShortPickUpResult, Protocol::FloorItems::ShortDropResult,
     Protocol::FloorItems::ShortStatFruit, Protocol::Trade::TradeRequest, Protocol::Trade::ClearTradeRequest,
     Protocol::Trade::TradeResponse, Protocol::Trade::TradeItemRemoved, Protocol::Trade::TradeItemAdded,
     Protocol::Trade::TradeMoneyResult, Protocol::Trade::TradeOtherMoney, Protocol::Trade::TradeOkState,

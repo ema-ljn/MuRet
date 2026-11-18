@@ -52,6 +52,13 @@ inline constexpr std::uint8_t FirstSecondGridSlot = 0x4c;
 [[nodiscard]] Core::Expected<ActorStopResult, std::string>
 PlaceInventoryItem(std::uint8_t slot, InventoryItemBytes bytes, const WorldEntryResources& resources);
 
+// 0x5bc150(lugar, datos), desde el 31 con una grilla que no es la 3 ni la 5 (0x4c6033): el ítem en la grilla de la
+// tienda y del almacén (0x78a7070), de 8 por fila desde el lugar, sin tope, y 0x54bf40 en cada casilla de su huella.
+// No abre el registro propio. Con el tipo 0x1fff, nada.
+[[nodiscard]] Core::Expected<void, std::string> PlaceInTheNpcGrid(std::span<World::ItemState> cells, std::uint8_t slot,
+                                                                  InventoryItemBytes bytes,
+                                                                  const WorldEntryResources& resources);
+
 // 0x5bc740(grilla, columnas, filas, lugar, ítem, …) con una grilla que no es la del inventario (0x5bc766 salta a
 // 0x5bd307..0x5bd3ec): la huella del tipo desde `origin`, fila · `columns` + origen + columna, con la columna (origen %
 // 8) y la fila (origen / 8) del origen en cada casilla, y 0x54bf40 con los 24 bits de arriba de casilla · 9. Con el
@@ -73,6 +80,14 @@ FirstCellPastTheGrid(std::size_t cells, std::int32_t columns, std::int32_t origi
 // aviso, que nombra la grilla y la casilla.
 [[nodiscard]] Core::Expected<std::optional<std::string>, std::string>
 InventoryPlacementPastTheGrid(std::uint8_t slot, InventoryItemBytes bytes, const WorldEntryResources& resources);
+
+// Q-C200: un paquete cuya huella escribe fuera de la grilla se descarta antes de sus efectos. Un error del
+// proveedor no se consume: el camino normal lo devuelve en el punto original.
+[[nodiscard]] bool DiscardGridOverflow(std::size_t cells, std::int32_t columns, std::int32_t origin,
+                                       InventoryItemBytes bytes, const WorldEntryResources& resources,
+                                       std::string_view where);
+[[nodiscard]] bool DiscardInventoryOverflow(std::uint8_t slot, InventoryItemBytes bytes,
+                                            const WorldEntryResources& resources);
 
 // 0x4225d0, la defensa del Dark Horse, que 0x54bf40 llama en 0x54cc5c con el 0x1a04: la opción 0x96 con
 // 5 + la agilidad del registro propio / 20 + 2 · el nivel del caballo (WorldRuntime::pets), en un byte, calculada con

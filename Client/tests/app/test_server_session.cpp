@@ -35,6 +35,7 @@
 #include "Protocol/Inventory.h"
 #include "Protocol/Messages.h"
 #include "Protocol/Movement.h"
+#include "Protocol/NpcWindows.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/Pet/PetInfo.h"
 #include "Protocol/Pet/PetOrders.h"
@@ -4875,6 +4876,55 @@ TEST(ServerSessionTest, TheQuestPacketsReachTheWorld)
     ASSERT_NE(prize, nullptr);
     EXPECT_EQ(prize->key, 0x21);
     EXPECT_EQ(prize->kind, Quest::PointsPrize);
+}
+
+// 0x4e4547: el BC 00 y el BC 01 llegan al mundo como paquetes de evento con pkt[3] y pkt[4]; corto, un aviso y nada
+// (CL9 hitos 6 y 11). Valores inventados.
+TEST(ServerSessionTest, TheJewelMixAnswerReachesTheWorld)
+{
+    namespace Events = Client::Protocol::Events;
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    tested.socket.reads = {
+        Join({Bytes({0xc1, 5, 0xbc, 1, 7}), Bytes({0xc1, 4, 0xbc, 0}), Bytes({0xc1, 5, 0xbc, 0, 4})})};
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+    const auto events = tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 2u);
+    const auto* first = std::get_if<Events::EventPacket>(&events[0]);
+    ASSERT_NE(first, nullptr);
+    const auto* unmixed = std::get_if<Events::JewelMixResult>(first);
+    ASSERT_NE(unmixed, nullptr);
+    EXPECT_EQ(unmixed->subcode, 1);
+    EXPECT_EQ(unmixed->result, 7);
+    const auto* second = std::get_if<Events::EventPacket>(&events[1]);
+    ASSERT_NE(second, nullptr);
+    const auto* mixed = std::get_if<Events::JewelMixResult>(second);
+    ASSERT_NE(mixed, nullptr);
+    EXPECT_EQ(mixed->subcode, 0);
+    EXPECT_EQ(mixed->result, 4);
+}
+
+// 0x4da373: el 86 con 100 (la mezcla del entrenador) llega al mundo con los siete bytes del ítem desde pkt[4], como el
+// 1 (CL9 hito 6). Valores inventados.
+TEST(ServerSessionTest, TheTrainerMixReachesTheWorldWithItsItem)
+{
+    namespace Npc = Client::Protocol::NpcWindows;
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    tested.socket.reads = {
+        Join({Bytes({0xc1, 0x0b, 0x86, 100, 0x0d, 0x08, 0x40, 0, 0, 0, 0x10}), Bytes({0xc1, 0x04, 0x86, 0})})};
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+    const auto events = tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 2u);
+    const auto* trained = std::get_if<Npc::ChaosMixResult>(&events[0]);
+    ASSERT_NE(trained, nullptr);
+    EXPECT_EQ(trained->result, Npc::TrainerMixResult);
+    EXPECT_EQ(trained->item, (Npc::ItemData{std::byte{0x0d}, std::byte{0x08}, std::byte{0x40}, std::byte{0},
+                                            std::byte{0}, std::byte{0}, std::byte{0x10}}));
+    const auto* failed = std::get_if<Npc::ChaosMixResult>(&events[1]);
+    ASSERT_NE(failed, nullptr);
+    EXPECT_EQ(failed->result, 0);
+    EXPECT_EQ(failed->item, Npc::ItemData{});
 }
 
 // El A0, el A2 y el 30 salen con el XOR32 y cifrados como C3; el C1 03 31 de 0x419900, en claro.

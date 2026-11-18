@@ -5,6 +5,7 @@
 #include "Data/Text/TextTable.h"
 #include "UI/Dialogs.h"
 #include "UI/Widget.h"
+#include "World/ItemState.h"
 
 #include <array>
 #include <cstddef>
@@ -30,9 +31,13 @@ inline constexpr std::int32_t PagedDialog = 0x8c;
 // 0x633300: los textos que se arman con su propio formato (0x63330f, 0x633327 y 0x63340d) o con 0x632c90 seguidos
 // (0x6333a8).
 inline constexpr std::int32_t MoneyTextDialog = 0x99;
+// El 0xa3 es la pregunta de la mezcla de joyas (los textos 1809 y 1813 de 0x63340d), con los botones más abajo
+// (0x6282f1); el nombre viene de la CL8.
 inline constexpr std::int32_t ServerTimeDialog = 0xa3;
 inline constexpr std::int32_t ItemNameDialog = 0x96;
 inline constexpr std::int32_t ItemNameWithLuckDialog = 0xa8;
+// 0x4da1b9: la pregunta que abre el F3 40 (0x4da070, hito 11) con el texto 2020 y +5 en 0, con su sí y su no.
+inline constexpr std::int32_t NoticeQuestionDialog = 0xaa;
 // 0x632f70: el diálogo de Dialog.bmd con respuestas (el de los NPC, CL9 hito 2).
 inline constexpr std::int32_t AnswersDialog = 0x8d;
 // 0x7d3691c: las respuestas de 0x419710 y 0x632f70, 10 renglones de 0x26 (0x5f dwords en 0).
@@ -63,6 +68,13 @@ struct DialogBoxState
     std::int32_t pageText = 0;
     std::int8_t page = 0;
     std::int8_t lastPage = 0;
+    // 0x7d3a0dc y 0x7d3a0e0: la casilla de la joya de bendición ([0x78a6758] − 12) y el lugar del 0x1a25 sobre el que
+    // se soltó (0x5d8345 y 0x5d8361, CL9 hito 5). Los lee el diálogo 0xa9 (0x629d0e y 0x629e03, CL9.3).
+    std::int32_t jewelCell = 0;
+    std::int32_t jewelTarget = 0;
+    // 0x7d36908..0x7d36918: el tercer botón, que solo arma el 0xa8 (0x6337c3..0x6337e3) y que leen su paso (0x6283af)
+    // y su dibujo (0x630ff8). Fuera del arreglo de los dos: entre ellos y él están 0x7d368e4 y las respuestas.
+    DialogButton thirdButton{};
     // 0x7d3691c: las respuestas, "%d) %s" partido en un renglón cada una. El de sin respuestas va con strcpy y puede
     // seguir en el siguiente.
     std::array<char, DialogAnswerRows * DialogRowBytes> answers{};
@@ -70,15 +82,23 @@ struct DialogBoxState
     std::int32_t answerCount = 0;
     // 0x6d5e28 (.data, −1): el registro de Dialog.bmd que muestran.
     std::int32_t dialogIndex = -1;
-    // 0x7d3a0dc y 0x7d3a0e0: la casilla de la joya de bendición ([0x78a6758] − 12) y el lugar del 0x1a25 sobre el que
-    // se soltó (0x5d8345 y 0x5d8361, CL9 hito 5). Los lee el diálogo 0xa9 (0x629d0e y 0x629e03, CL9.3).
-    std::int32_t jewelCell = 0;
-    std::int32_t jewelTarget = 0;
 };
 
 // La respuesta `row` como la lee el dibujo: desde su primer byte hasta el primer '\0', que puede estar en la
 // siguiente. MuRet corta al final de las 10.
 [[nodiscard]] std::string_view DialogAnswer(const DialogBoxState& box, std::size_t row);
+
+// Lo que lee el texto con formato del 0xa3 de 0x633300 (0x63340d), de los globales de otras ventanas.
+struct DialogTextArguments
+{
+    // 0xa3, la mezcla de joyas: 0x6e5794 (0 juntar, 1 deshacer), 0x6c62e0 (la joya: 0 bendición y cualquier otro el
+    // alma), 0x6e579a (las contadas), 0x6c62dc (el nivel del paquete, 0x402ae0) y 0x6e579c (el precio).
+    std::int32_t jewelMode = 0;
+    std::uint8_t jewelKind = 0;
+    std::uint8_t jewelCount = 0;
+    std::int32_t jewelLevel = 0;
+    std::int32_t jewelPrice = 0;
+};
 
 // El renglón `row` como lo lee el dibujo: desde su primer byte hasta el primer '\0', que puede estar en el renglón
 // siguiente. Sin '\0' hasta el final de los 7, el original seguiría leyendo la .bss: MuRet corta ahí.
@@ -90,13 +110,21 @@ void OpenMessageBox(DialogBoxState& box, DialogState& dialogs, std::string_view 
 
 // 0x633300(renglones, primerTexto, id): los textos `firstText` .. `firstText + lineCount − 1` de Text.bmd en los
 // renglones, con un strcpy cada uno (0x9a los parte con 0x632c90 uno detrás del otro), los botones (1, 0x15, 0x5a,
-// 0x46, 0x15) y (3, 0x78, 0x5a, 0x46, 0x15), con y = 0x78 en el 0x9a, y el id por 0x6236f0. Los de 0xa3, 0x96 y
-// 0xa8 arman su texto con un formato y cortan con su dirección (CL9.3); el 0x99 lo abre OpenTheMoneyTextDialog, y aquí
-// corta. Lo que se escribiría fuera de los 7 renglones corta, como un texto que no está.
-[[nodiscard]] Core::Expected<void, std::string> OpenTextDialog(DialogBoxState& box, DialogState& dialogs,
-                                                               const Data::Text::TextTable* texts,
-                                                               std::int32_t lineCount, std::int32_t firstText,
-                                                               std::int32_t id);
+// 0x46, 0x15) y (3, 0x78, 0x5a, 0x46, 0x15), con y = 0x78 en el 0x9a, y el id por 0x6236f0. El 0x96 y el 0xa8
+// (0x633644..0x633739) nombran el ítem de los diálogos (`dialogItem`, 0x78a59c8): la fruta (0x1a0f) de nivel 0 a 4
+// con el texto 168, 169, 167, 166 o 1900, cualquier otro con nada, entre "( " y " )" en el primer renglón (con el
+// 1901 detrás en el 0xa8), y debajo `lineCount` veces el texto `firstText`; el 0xa8 con sus tres botones. Sin el ítem
+// cortan. El 0x99 lo abre OpenTheMoneyTextDialog, y aquí corta. El 0xa3 arma su texto con un formato (0x63340d) con
+// lo que trae `arguments`: sin él corta. Lo que se escribiría fuera de los 7 renglones corta, como un texto que no
+// está.
+//   - 0xa3: "%s ... %d" (1809 al juntar, con la joya y las contadas; 1813 al deshacer, con la joya y el nivel + 1),
+//     con la joya del 1806 o del 1807, partido en a lo sumo 2 renglones de 0x1e bytes (0x632c90 en la pila, cuyos
+//     renglones copia con strcpy a los dos primeros), y debajo el precio con el 1810 o el 1814. Sin mirar
+//     `lineCount` ni `firstText`.
+[[nodiscard]] Core::Expected<void, std::string>
+OpenTextDialog(DialogBoxState& box, DialogState& dialogs, const Data::Text::TextTable* texts, std::int32_t lineCount,
+               std::int32_t firstText, std::int32_t id, const World::ItemState* dialogItem = nullptr,
+               const DialogTextArguments* arguments = nullptr);
 
 // 0x633300(renglones, primerTexto, 0x99) (CL9 hito 7): el primer renglón es el sprintf del texto `firstText` con
 // `zen`, lo que 0x5b1130 escribe del zen tipeado (0x77f3b6c; quien llama lo arma con Scenes::FormatZen), y los que

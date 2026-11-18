@@ -336,6 +336,17 @@ World::ItemState* HoveredItemOf(WorldState& world)
     case UI::HoveredItem::Place::ShopCell:
         return hovered.index < world.Inventory().secondCells.size() ? &world.Inventory().secondCells[hovered.index]
                                                                     : nullptr;
+    case UI::HoveredItem::Place::NpcGridCell:
+        return hovered.index < world.Runtime().npcWindows.grid.size() ? &world.Runtime().npcWindows.grid[hovered.index]
+                                                                      : nullptr;
+    case UI::HoveredItem::Place::ChaosBoxCell:
+        return hovered.index < world.Runtime().npcWindows.chaosBox.size()
+                   ? &world.Runtime().npcWindows.chaosBox[hovered.index]
+                   : nullptr;
+    case UI::HoveredItem::Place::TrainerBoxCell:
+        return hovered.index < world.Runtime().npcWindows.trainerBox.size()
+                   ? &world.Runtime().npcWindows.trainerBox[hovered.index]
+                   : nullptr;
     case UI::HoveredItem::Place::None:
         return nullptr;
     }

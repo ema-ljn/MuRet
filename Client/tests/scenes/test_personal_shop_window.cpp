@@ -325,7 +325,12 @@ protected:
                                              .mouseY = y,
                                              .texts = &shop->texts,
                                              .requests = &requests,
-                                             .inventory = &services};
+                                             .inventory = &services,
+                                             .sendNpcWindow = [this](Client::Protocol::Outgoing packet)
+                                             {
+                                                 sent.push_back(PlainOf(packet));
+                                                 return Client::Core::Expected<void, std::string>{};
+                                             }};
     }
 
     // Los rand() del último paso.
@@ -994,7 +999,8 @@ TEST_P(PersonalShopWindowTest, SomeDropsOnTheShopDoNothing)
 }
 
 // Los avisos de 0x78abb14 van antes del ítem del cursor: el 3 (0x5d966b) con el sí da vuelta el OK propio y manda el
-// C1 04 3C con el nuevo en C3; sin respuesta el paso termina sin soltar el ítem; los de las ventanas de NPC cortan.
+// C1 04 3C con el nuevo en C3; sin respuesta el paso termina sin soltar el ítem; los de las ventanas de NPC los atiende
+// Scenes::AnswerTheNpcWarning (hito 6).
 TEST_P(PersonalShopWindowTest, TheWarningsAnswerBeforeTheCursorItem)
 {
     OpenTheShop(Client::UI::PersonalShopPanel);
@@ -1025,21 +1031,30 @@ TEST_P(PersonalShopWindowTest, TheWarningsAnswerBeforeTheCursorItem)
     EXPECT_TRUE(Runtime().movement.pendingClick);
     EXPECT_TRUE(sent.empty());
 
-    // El 1 con el no vuelve el ítem; con el sí, el 2 con el sí y el 4 cortan.
+    // El 1 con el no vuelve el ítem. Con el sí, el 1 manda el C1 04 33 (0x5d8e0d), el 2 el C1 04 86 (0x5d934f) y el 4
+    // abre el teclado del almacén (0x5d9b82), sin paquete.
     trade.warningKind = 1;
     trade.warningByte = 2;
     stepped = Step(NowhereX, NowhereY, false);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(Runtime().cursorItemCount, 0);
     EXPECT_EQ(InventoryCells()[StaffCell].id, StaffType);
-    for (const auto& [kind, address] :
-         {std::pair<std::int32_t, std::string_view>{1, "0x5d8e0d"}, {2, "0x5d934f"}, {4, "0x5d9b82"}})
+    for (const auto& [kind, opcode] : {std::pair<std::int32_t, int>{1, 0x33}, {2, 0x86}, {4, -1}})
     {
+        sent.clear();
         trade.warningKind = kind;
         trade.warningByte = 1;
         stepped = Step(NowhereX, NowhereY, false);
-        ASSERT_FALSE(stepped.HasValue()) << kind;
-        EXPECT_NE(stepped.Error().find(address), std::string::npos) << stepped.Error();
+        ASSERT_TRUE(stepped.HasValue()) << kind << ": " << stepped.Error();
+        EXPECT_EQ(trade.warningKind, 0) << kind;
+        if (opcode < 0)
+        {
+            EXPECT_TRUE(sent.empty()) << kind;
+            continue;
+        }
+        ASSERT_EQ(sent.size(), 1U) << kind;
+        ASSERT_GE(sent[0].bytes.size(), 3U) << kind;
+        EXPECT_EQ(sent[0].bytes[2], opcode) << kind;
     }
 }
 

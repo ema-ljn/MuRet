@@ -946,6 +946,63 @@ TEST_F(GameHudTest, TheEighteenthChildDrawsThePartyAndTheCommands)
     }
 }
 
+// 18. y 30. (CL9 hito 6, fase 3): la tienda (0x5f4720) y el almacén (0x5f4e30) en (0x104, 0) con sus botones, y la
+// caja de la contraseña (0x5e9b10) con la barra y la tecla de borrar, con los textos de Text.bmd. En Lorencia, Devias
+// y Noria.
+TEST_F(GameHudTest, TheNpcWindowsAndTheKeypadAreDrawn)
+{
+    const auto has = [](const std::vector<DrawnQuad>& quads, std::uint16_t slot, float x) {
+        return std::ranges::any_of(quads,
+                                   [&](const DrawnQuad& quad) { return quad.slot == slot && quad.first.x == x; });
+    };
+    for (const std::int32_t map : {0, 2, 3})
+    {
+        SCOPED_TRACE(map);
+        world.Runtime() = Client::Scenes::WorldRuntime{};
+        world.Runtime().map = map;
+        world.Runtime().panels.npcShop = 1;
+        sprites.Begin(Screen640);
+        const auto shop = Hud();
+        ASSERT_TRUE(shop.HasValue()) << shop.Error();
+        std::vector<DrawnQuad> quads = QuadsOf(sprites);
+        EXPECT_TRUE(has(quads, 0x104, 260.0f));
+        EXPECT_TRUE(has(quads, 0x11b, 285.0f));
+        EXPECT_EQ(world.Runtime().ui.npcWindowX, 0x104);
+
+        world.Runtime() = Client::Scenes::WorldRuntime{};
+        world.Runtime().map = map;
+        world.Runtime().panels.warehouse = 1;
+        world.Runtime().ui.field78abb20 = 1;
+        sprites.Begin(Screen640);
+        const auto warehouse = Hud();
+        ASSERT_TRUE(warehouse.HasValue()) << warehouse.Error();
+        quads = QuadsOf(sprites);
+        EXPECT_TRUE(has(quads, 0x126, 260.0f + 0x7e));
+        EXPECT_TRUE(has(quads, 0x127, 260.0f + 0x7e));
+        EXPECT_TRUE(has(quads, 0xfd, 294.0f));
+        EXPECT_TRUE(has(quads, 0xfe, 223.0f));
+    }
+}
+
+// 0x5f75ef→0x5f7180: el HUD llama al dibujo que escribe la esquina 450 y produce la casilla de aceptación.
+TEST_F(GameHudTest, TheHudDrawsThePanel2000ThroughItsWindowPass)
+{
+    for (const std::int32_t map : {0, 2, 3})
+    {
+        SCOPED_TRACE(map);
+        world.Runtime() = Client::Scenes::WorldRuntime{};
+        world.Runtime().map = map;
+        world.Runtime().panels.panel2000 = 1;
+        sprites.Begin(Screen640);
+        const auto drawn = Hud();
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_EQ(world.Runtime().hud.inventoryX, 450);
+        const auto quads = QuadsOf(sprites);
+        EXPECT_TRUE(std::ranges::any_of(quads, [](const DrawnQuad& quad)
+                                        { return quad.slot == 0x122 && quad.first.x == 475.0f; }));
+    }
+}
+
 // Lo que es de otra ola corta con su dirección donde su condición se cumple.
 TEST_F(GameHudTest, ThePiecesOfOtherWavesStopWithTheirAddress)
 {
@@ -954,15 +1011,13 @@ TEST_F(GameHudTest, ThePiecesOfOtherWavesStopWithTheirAddress)
         std::string_view address;
         void (*arrange)(WorldState&);
     };
-    const std::array<Case, 3> cases{{
-        {"0x5f7180", [](WorldState& state) { state.Runtime().panels.panel2000 = 1; }},
+    const std::array<Case, 1> cases{{
         {"0x4125b0",
          [](WorldState& state)
          {
              state.Runtime().map = 30;
              state.Runtime().siegePanelKind = std::uint8_t{0};
          }},
-        {"0x5e9b10", [](WorldState& state) { state.Runtime().ui.field78abb20 = 1; }},
     }};
     for (const Case& probe : cases)
     {

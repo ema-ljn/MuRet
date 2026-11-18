@@ -9,8 +9,8 @@
 #include <string>
 
 // El precio de un ítem (0x54d0f0) y el de repararlo (0x5b13e0), CL8 hito 5 (06 § El precio de un ítem). Son
-// funciones de datos: no abren el registro propio ni sacan rand(). Las usan el cuerpo de reparar (0x5b8150) y, en la
-// CL9.3, el precio de la tienda de NPC del cuerpo del ítem (0x5b2d23, P-C125 (a)).
+// funciones de datos: no abren el registro propio ni sacan rand(). Las usan el cuerpo de reparar (0x5b8150) y el precio
+// de la tienda de NPC del cuerpo del ítem (0x5b2d23, CL9 hito 6).
 namespace Client::Scenes
 {
 // Los modos con que lo llaman: 0 desde la grilla de la tienda de NPC (0x5b2d2e), 1 desde el inventario con la tienda
@@ -27,6 +27,9 @@ struct PetPriceLevels
     std::uint16_t raven = 0; // [0x723968]
     std::uint16_t horse = 0; // [0x72397c]
 };
+
+// 0x422930: el producto DWORD del nivel por el precio de la especie, sin redondear.
+[[nodiscard]] std::uint32_t PetBasePrice(std::uint16_t type, const PetPriceLevels& pets);
 
 // 0x54d0f0(ítem, modo): el dword bajo del precio, que es lo que leen los que llaman. El tipo 0xffff vale 0. Corta con
 // la dirección del original: un tipo fuera de Item.bmd (0x54d133), una opción leída fuera de D+0x2b..D+0x3b, las

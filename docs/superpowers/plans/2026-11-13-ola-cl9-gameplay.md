@@ -476,12 +476,41 @@ de Q/W/E; los `rand()` de la búsqueda del ítem del piso en el picking. **Desbl
 - [ ] **Lo que abre un NPC:** el `0x30` (`0x4d1e00`, que abre la tienda `0x10000` en `0x4d288e` y, según el
       NPC, las demás ventanas), los diálogos de la CL9.3 de P-C90 (`0x8e`, `0xa1`, `0xa2`, `0xa4`, `0xa6`,
       `0x91`, `0x94`, `0x96`, `0x98`, `0x99`, `0x9a`, `0xa3`, `0xa8`, `0xa9`, `0xaa`, el `0x8f` con
-      `0x5e7aa0`) y sus textos (`0x633300`), con los 16 cortes de `0x623e70`.
+      `0x5e7aa0`) y sus textos (`0x633300`), con los 16 cortes de `0x623e70`. (Fase 2, 2026-11-13: el `0x30` en la
+      fase 1; el paso de sí y no `0x6282dc` del `0x94`, `0x96`, `0x98`, `0x99` y `0xa9`, el `0x8f` con `0x5e7aa0`, el
+      OK del `0x73` y el texto `0x63330f`. Lo que queda, en 08, P-C192 y P-C193. Fase 3: el dibujo de esos de sí y
+      no, `0x630cc4`, `0x632637` y `0x632a45`, sin el título de la mezcla; lo que queda, en 08, P-C194. Fase 3b,
+      2026-11-13: el `0x8e` con su dibujo, el paso de la mezcla de joyas (`0xa1`, `0xa2`, `0xa3`, `0xa6`) y los
+      textos `0x63333d` y `0x63340d`; el `0xa4`, el `0x91`, el `0x9a`, el `0xa8`, el `0xaa` y los dibujos de las
+      joyas, en 08, P-C198. Fase 4a, 2026-11-13: los pasos del `0x9a` (el `AF 01`), del `0xa8`, del `0xaa` (el
+      `D0 00`, `Protocol::DialogAnswers`) y del `0x91` sin su OK; los dibujos de las joyas (`0xa1`, `0xa2`, `0xa4`,
+      `0xa5`, `0xa6`) y del `0x91` con sus colas, el de sí y no del `0x9a`, `0xa3`, `0xa8` y `0xaa` y el título de la
+      mezcla; el paso del `0xa4` hasta la lista de `0x6e5660`; `0x5d8d50` con `0x78abb14` en 4. La lista, el EDIT
+      del `0x91` (CL9.4) y el `26` del `0xa8`, en 08, P-C338; el 5 de `0x78abb14` (hito 7), P-C339. Fase 5,
+      2026-11-14: la lista de `0x6e5660` con su paso, su dibujo y el OK y el cancelar del `0xa4`,
+      `Scenes/JewelBundleList`; lo que se infiere, en 08, P-C366. Y el ítem del almacén (con su contraseña), de la
+      caja del caos y de la del entrenador al equipo (`0x5c007c..0x5c1d8a`); el comercio y la tienda personal al
+      equipo (`0x5c1d90`, hito 7), P-C367. El EDIT de los diálogos (`[0x5763504]`, del hito 6): leído y sin portar,
+      con lo que tienen que llamar el `0x91` y los cortes del hito 7, P-C368.)
 - [ ] **Las ventanas:** la tienda (`0x5f4720`), el almacén (`0x5f4e30`, `0x5e7bf0`, `0x5e9b10`, el teclado de
-      `0x78abb20`), la caja del caos (`0x5febf0`, `0x5fe610`), reparar (`0x44b910`, la R de `0x59ff10`), el
-      `BC` (`0x401f30`, `0x402500`) y los precios (`0x5b1200`, `0x5b2d23`).
-- [ ] **Los paquetes:** lo que falta de `31`..`34` (`0x4c5f60`, `0x5bc740` y `0x5be150` están en parte), `81`..`83`,
-      `86`/`87`.
+      `0x78abb20`), la caja del caos (`0x5febf0`, `0x5fe610`), reparar (`0x44b910`, la R de `0x59ff10`), el `BC`
+      (`0x401f30`, `0x402500`) y los precios (`0x5b1200`, `0x5b2d23`). (Fase 2, 2026-11-13: los pasos de la tienda con
+      reparar todo y `0x5b1570`, del almacén y de la caja del caos, sus grillas, comprar, vender, guardar, sacar y el
+      zen del almacén, `Scenes/NpcWindowSteps.cpp`; los dibujos, el teclado, la mezcla y los precios de la ayuda
+      siguen cortados, en 08, P-C192. Fase 3: los dibujos de la tienda, del almacén y de la caja de la contraseña, el
+      paso de la caja con el `83` y el `99` (`0x5e7bf0`), el precio de la ayuda del ítem (`0x5b2d23`, `0x5b1200`) y
+      las grillas de la tienda y del almacén, `Scenes/NpcWindowDrawing.cpp` y `Scenes/WarehouseKeypad.cpp`; lo que
+      queda, en 08, P-C194. La caja del caos entera, con lo que vale, el tipo de la mezcla, el botón de mezclar y el
+      dibujo, `Scenes/ChaosMix.cpp` y `Scenes/ChaosBoxDrawing.cpp`; el 2 desde el nivel 8 corta, P-C197. Fase 3b: el
+      `BC`, `Protocol::JewelMix`; sus respuestas, P-C199; el entrenador con `0x724580` en 2, `0x44b910` con su `34`,
+      `Scenes/PetTrainer`; sus modos 1 y 3 y su dibujo, P-C198. Fase 4b: las respuestas del `BC`,
+      `Scenes/JewelMixAnswers` (sin oráculo de red, P-C341); el entrenador entero, con los modos 1 y 3, abrirlo y
+      cerrarlo, su dibujo `0x44b510` (`Scenes/PetTrainerDrawing`) y su caja (los rellenos `0x4c5fde`, `0x4da373` y
+      `0x4d1d55`, `0x44ad40`, `0x44ad10` y `0x44aca9`); lo que queda, P-C340, y el `A9` del Dark Lord (`0x65c039`),
+      del hito 4, P-C195.)
+- [x] **Los paquetes:** lo que falta de `31`..`34` (`0x4c5f60`, `0x5bc740` y `0x5be150` están en parte), `81`..`83`,
+      `86`/`87`. (Fase 1, 2026-11-13: `Protocol::NpcWindows` y `Scenes/NpcWindows.cpp`; el `30` y abrir y cerrar
+      `0x40`, `0x100` y `0x10000` también. Lo que sigue cortado de las otras dos, en 08, P-C191.)
 
 **Pruebas:** comprar, vender, reparar, guardar y sacar del almacén, una mezcla, byte a byte; el `rand()` del
 byte protegido de `0x10000` con la tienda abierta; el ancho del mundo con cada ventana. **Desbloquea:** —.

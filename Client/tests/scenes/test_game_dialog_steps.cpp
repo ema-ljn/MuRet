@@ -17,6 +17,7 @@
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameMovementState.h"
+#include "Scenes/EventGlobals.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/GuildState.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -614,8 +615,7 @@ TEST(GameDialogStepsTest, TheNoOfTheOtherHitosDialogsCutsWithItsOwner)
     {
         // El 0x7d no está: su no es del hito 8 (LeaveNumberTest.NoClearsTheBufferButNotTheEdit).
         // Ni el 0x7f (WarRequestTest).
-        for (const OtherNo& other : {OtherNo{0x71, "0x62c58f", "selección"}, OtherNo{0x76, "0x62c880", "no abre"},
-                                     OtherNo{0x95, "0x62c567", "hito 6"}})
+        for (const OtherNo& other : {OtherNo{0x71, "0x62c58f", "selección"}, OtherNo{0x76, "0x62c880", "no abre"}})
         {
             auto tested = std::make_unique<SteppingDialogs>(map);
             auto& runtime = tested->world.Runtime();
@@ -884,15 +884,20 @@ TEST_P(MoneyOkTest, TheMoneyGoesInTheThreeA)
     EXPECT_EQ(Runtime().dialogs.current, 0);
 }
 
-// Sin el comercio, el zen del almacén (0x6270ed, el 81) es del hito 6: corta después del rand() de IsOpen.
-TEST_P(MoneyOkTest, WithoutTheTradeTheWarehouseMoneyCuts)
+// Sin el comercio, el zen va al almacén (0x6270ed, Scenes::MoveTheWarehouseMoney, CL9 hito 6): meter más zen que el
+// del inventario abre el 0x74 sin mandar nada, después del rand() de IsOpen y con el registro propio abierto y cerrado;
+// los campos vuelven como con el comercio.
+TEST_P(MoneyOkTest, WithoutTheTradeTheMoneyGoesToTheWarehouse)
 {
     Runtime().panels.trade = 0;
-    const auto stepped = Enter(10);
-    ASSERT_FALSE(stepped.HasValue());
-    EXPECT_NE(stepped.Error().find("0x6270ed"), std::string::npos) << stepped.Error();
-    EXPECT_NE(stepped.Error().find("hito 6"), std::string::npos) << stepped.Error();
+    Runtime().social.trade.field78abacc = 0;
+    const CrtRandom expected = Advanced(m_tested->random, 1 + OwnRecordRandoms);
+    const auto stepped = Enter(1001);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_TRUE(Sent().empty());
+    EXPECT_EQ(m_tested->random.State(), expected.State());
+    EXPECT_EQ(Runtime().dialogs.current, 0x74);
+    ExpectTheDialogFieldsReset();
 }
 
 INSTANTIATE_TEST_SUITE_P(TwoMaps, MoneyOkTest, ::testing::Values(Lorencia, Devias));
@@ -1247,3 +1252,71 @@ TEST(GameDialogStepsTest, TheOtherWavesDialogsAreCut)
     EXPECT_EQ(Client::Scenes::DialogRouteOf(0x40).step, Client::Scenes::DialogStep::GenericOk);
 }
 } // namespace
+
+TEST(GameDialogStepsTest, TheWarehouseConfirmationSendsItsPasswordRequestAndBothAnswersClearTheNumber)
+{
+    for (const bool accept : {false, true})
+    {
+        auto tested = std::make_unique<SteppingDialogs>(Devias);
+        auto& runtime = tested->world.Runtime();
+        runtime.dialogs.current = 0x95;
+        runtime.chat.input.messageBuffer[0] = '1';
+        runtime.chat.input.messageBuffer[1] = '2';
+        runtime.chat.input.messageLength = 2;
+        runtime.npcWindows.typedNumber = {'4', '3', '2', '1'};
+        const auto before = tested->random;
+        const auto stepped = tested->Click(accept ? 0x143 : 0x175, 0x62);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(runtime.dialogs.current, 0);
+        EXPECT_EQ(tested->random.State(), Advanced(before, accept ? 2 : 0).State());
+        if (accept)
+        {
+            ASSERT_EQ(tested->requests.requests.size(), 1u);
+            std::vector<std::uint8_t> expected{0xc1, 0x10, 0x83, 1, 0xe1, 0x10, '1', '2'};
+            expected.resize(0x10);
+            EXPECT_EQ(tested->requests.requests[0].bytes, expected);
+            EXPECT_EQ(tested->requests.requests[0].kind, "C3");
+            EXPECT_EQ(runtime.chat.input.messageLength, 0);
+            EXPECT_EQ(runtime.chat.input.messageBuffer[0], 0);
+        }
+        else
+        {
+            EXPECT_TRUE(tested->requests.requests.empty());
+            EXPECT_EQ(runtime.chat.input.messageLength, 0);
+            EXPECT_EQ(runtime.chat.input.messageBuffer[0], 0);
+        }
+    }
+}
+
+TEST(GameDialogStepsTest, TheA7ClosesOnlyInsideItsInclusiveButtonWithoutConsumingTheClick)
+{
+    auto tested = std::make_unique<SteppingDialogs>(Lorencia);
+    auto& runtime = tested->world.Runtime();
+    runtime.dialogs.current = 0xa7;
+    runtime.dialogs.pending = 0x70;
+    runtime.events.guildWarOutcome.present = 2;
+    runtime.events.guildWarOutcome.firstName.fill('A');
+    runtime.events.guildWarOutcome.secondName.fill('B');
+    runtime.events.guildWarOutcome.firstScore = 4;
+    runtime.events.guildWarOutcome.secondScore = 7;
+    runtime.events.timeValue = 300;
+    runtime.lastSoundId = 55;
+    const auto before = tested->random;
+    const auto outside = tested->Click(0x11c, 0x106);
+    ASSERT_TRUE(outside.HasValue()) << outside.Error();
+    EXPECT_EQ(runtime.dialogs.current, 0xa7);
+    const auto inside = tested->Click(0x163, 0x11a);
+    ASSERT_TRUE(inside.HasValue()) << inside.Error();
+    EXPECT_EQ(runtime.dialogs.current, 0x70);
+    EXPECT_EQ(runtime.events.guildWarOutcome.present, 0);
+    EXPECT_EQ(runtime.events.guildWarOutcome.firstName.back(), 0);
+    EXPECT_EQ(runtime.events.guildWarOutcome.secondName.back(), 0);
+    EXPECT_EQ(runtime.events.guildWarOutcome.firstScore, 0);
+    EXPECT_EQ(runtime.events.guildWarOutcome.secondScore, 0);
+    EXPECT_EQ(runtime.events.timeValue, 0);
+    EXPECT_EQ(runtime.dialogs.pending, 0);
+    EXPECT_TRUE(runtime.movement.pendingClick);
+    EXPECT_EQ(tested->random.State(), before.State());
+    EXPECT_EQ(runtime.lastSoundId, 55);
+    EXPECT_TRUE(tested->requests.requests.empty());
+}

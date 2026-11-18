@@ -56,13 +56,16 @@ struct TradeState
     std::int32_t okWait = 0;
     // 0x78abaa5: algo cambió en la grilla del otro (0x5bc470) o se apretó el OK (0x5ecf95).
     std::uint8_t changed = 0;
-    // 0x78abacc: el botón del zen la pone en 2 (0x5ece9a); la lee el OK del 0x73 sin el comercio abierto (0x6270ed,
-    // el zen del almacén, hito 6). Los demás lectores quedan para la VM (08 P-C203).
+    // 0x78abacc: el botón del zen la pone en 2 (0x5ece9a) y los del almacén en 0 (meter) o 1 (sacar) (0x5ea18f); la
+    // lee el OK del 0x73 sin el comercio abierto (0x6270ed, el zen del almacén, hito 6). Los demás lectores quedan para
+    // la VM (08 P-C203).
     std::int32_t field78abacc = 0;
     // 0x78abb14 y 0x6c932e (.data 0xff): el aviso que espera su respuesta y la respuesta (1, sí; 2, no; 0xff, ninguna).
-    // El OK con la grilla del otro cambiada (0x5ecf67) pone el 3 con 0x633300(4, 0x173, 0x94); comprar en la tienda
-    // de otro (0x5c5181), el 5 con el 0x94; el precio menor que el valor (0x5dc7e9), el 6 con el 0x99. Las respuestas
-    // las escriben los pasos de esos diálogos (0x6282dc, CL9.3) y las lee 0x5d8d50 (0x5d8dee..).
+    // Vender algo valioso (0x5df417) pone el 1 con el 0x98; la mezcla de la caja del caos (0x5fe610), el 2 con el
+    // 0x98; el OK con la grilla del otro cambiada (0x5ecf67), el 3 con 0x633300(4, 0x173, 0x94); el panel 0x2000
+    // (0x5e75fc), el 4; comprar en la tienda de otro (0x5c5181), el 5 con el 0x94; el precio menor que el valor
+    // (0x5dc7e9), el 6 con el 0x99. Las respuestas las escriben los pasos de esos diálogos (0x6282dc) y la pregunta de
+    // la mezcla de joyas (0x62846f), y las lee 0x5d8d50 (0x5d8dee..).
     std::int32_t warningKind = 0;
     std::uint8_t warningByte = 0xff;
     std::array<World::ItemState, TradeGridCells> otherGrid{};

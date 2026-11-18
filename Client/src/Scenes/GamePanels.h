@@ -7,6 +7,8 @@
 #include "Scenes/SecondGuildWindow.h"
 #include "Data/Text/TextTable.h"
 #include "Protocol/Outgoing.h"
+#include "Scenes/InventoryMoves.h"
+#include "Scenes/NpcWindows.h"
 #include "UI/PanelRegistry.h"
 
 #include <cstdint>
@@ -69,6 +71,10 @@ public:
     // 0x659f3d: abrir el panel 1 llama a 0x491080(0x186, 0x106) (Scenes::OpenTheFriends), con lo que lee del paso (la
     // vista y los globales de las ventanas viejas). Lo presta el paso de la UI; sin él, abrirlo corta.
     void LendTheFriends(std::function<Core::Expected<void, std::string>()> opened);
+    // Los cables de las ventanas de los NPC (UI::PanelContext::npcWindowOpened y npcWindowClosing): Scenes/NpcWindows.h
+    // con el mundo, el rand(), los servicios del inventario y el envío.
+    void LendTheNpcWindows(WorldState& world, Render::Models::CrtRandom& random, InventoryServices services,
+                           NpcWindowSender send);
 
     // CL9 hito 8: abrir el gremio pide la lista (C1 03 52), cerrar sus dos ventanas (0x6522f0 y 0x6570b0) y responder
     // al diálogo de los paneles (0x4d6b60 y 0x653c00), con `send`. Sin él, lo que lo usa corta.

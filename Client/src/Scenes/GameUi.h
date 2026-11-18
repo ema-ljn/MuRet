@@ -12,6 +12,7 @@
 
 #include <array>
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <span>
 #include <string>
@@ -147,6 +148,9 @@ struct GameUiContext
     // CL9 hito 10: lo del juego que usa el personaje del retrato de las cartas (Scenes/LetterPortrait), que vive más
     // que el paso. nullptr: el retrato corta (P-C212).
     const WorldEntryResources* worldEntry = nullptr;
+    // El envío de los paquetes de las ventanas de los NPC (App::ServerSession::SendNpcWindowPacket, CL9 hito 6). Vacío
+    // (los tests que no los miran): lo que manda corta.
+    std::function<Core::Expected<void, std::string>(Protocol::Outgoing)> sendNpcWindow{};
 };
 
 // El WndProc: 0x7d366d4 (el flanco del clic, que apagan quien lo usa y el botón suelto) y 0x7d36874 (el botón

@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <string>
+#include <utility>
 
 #include <gtest/gtest.h>
 
@@ -98,11 +99,13 @@ TEST(GameDialogsTest, TheFormattedTextsAndTheOverflowsAreCut)
     const auto texts = MakeTextTable({{60, "corto"}});
     DialogBoxState box;
     DialogState dialogs;
-    for (const std::int32_t id : {0x96, 0xa8, 0xa3})
+    // Sin el ítem (0x96 y 0xa8) o sin lo que lee su formato (0xa3), cortan con su dirección.
+    for (const auto& [id, address] :
+         {std::pair<std::int32_t, std::string>{0x96, "0x63330f"}, {0xa8, "0x63330f"}, {0xa3, "0x63340d"}})
     {
         const auto opened = Client::UI::OpenTextDialog(box, dialogs, &texts, 1, 60, id);
         ASSERT_FALSE(opened.HasValue());
-        EXPECT_NE(opened.Error().find("CL9.3"), std::string::npos) << opened.Error();
+        EXPECT_NE(opened.Error().find(address), std::string::npos) << opened.Error();
     }
     const auto money = Client::UI::OpenTextDialog(box, dialogs, &texts, 1, 60, Client::UI::MoneyTextDialog);
     ASSERT_FALSE(money.HasValue());
@@ -150,6 +153,41 @@ TEST(GameDialogsTest, TheMoneyDialogFormatsItsFirstRow)
     ASSERT_FALSE(missing.HasValue());
     EXPECT_NE(missing.Error().find("0x633367"), std::string::npos) << missing.Error();
     EXPECT_EQ(closed.current, Client::UI::MoneyTextDialog);
+}
+
+// 0x633419..0x633525: la pregunta de la mezcla de joyas partida en dos renglones de 0x1e y el precio debajo; al
+// deshacer, el nivel + 1 y el otro precio.
+TEST(GameDialogsTest, TheJewelMixQuestionSplitsInTwoRowsAndAddsThePrice)
+{
+    const auto texts = MakeTextTable({{1806, "Joya Uno"},
+                                      {1807, "Joya Dos"},
+                                      {1809, "Juntar de verdad %s en una cantidad de %d?"},
+                                      {1810, "Cuesta %d"},
+                                      {1813, "Deshacer %s %d?"},
+                                      {1814, "Deshacer cuesta %d"}});
+    DialogBoxState box;
+    DialogState dialogs;
+    const Client::UI::DialogTextArguments mix{
+        .jewelMode = 0, .jewelKind = 1, .jewelCount = 20, .jewelLevel = -1, .jewelPrice = 1000000};
+    ASSERT_TRUE(
+        Client::UI::OpenTextDialog(box, dialogs, &texts, 0, 0, Client::UI::ServerTimeDialog, nullptr, &mix).HasValue());
+    EXPECT_EQ(box.lineCount, 3);
+    EXPECT_EQ(DialogRow(box, 0), "Juntar de verdad Joya Dos en ");
+    EXPECT_EQ(DialogRow(box, 1), "una cantidad de 20?");
+    EXPECT_EQ(DialogRow(box, 2), "Cuesta 1000000");
+    EXPECT_EQ(box.buttons[0].y, 0x5a);
+    EXPECT_EQ(dialogs.current, Client::UI::ServerTimeDialog);
+
+    DialogBoxState unmixBox;
+    DialogState unmixDialogs;
+    const Client::UI::DialogTextArguments unmix{
+        .jewelMode = 1, .jewelKind = 0, .jewelCount = 1, .jewelLevel = 2, .jewelPrice = 1000000};
+    ASSERT_TRUE(
+        Client::UI::OpenTextDialog(unmixBox, unmixDialogs, &texts, 0, 0, Client::UI::ServerTimeDialog, nullptr, &unmix)
+            .HasValue());
+    EXPECT_EQ(unmixBox.lineCount, 2);
+    EXPECT_EQ(DialogRow(unmixBox, 0), "Deshacer Joya Uno 3?");
+    EXPECT_EQ(DialogRow(unmixBox, 1), "Deshacer cuesta 1000000");
 }
 
 // 0x62d756: el rectángulo corrido (0xd5, 0x3c) con sus bordes; con el clic, elige y apaga el clic y el botón abajo.

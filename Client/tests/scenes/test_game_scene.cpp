@@ -18,6 +18,9 @@
 #include "Data/Terrain/TerrainMapping.h"
 #include "Data/Text/TextTable.h"
 #include "Input/InputState.h"
+#include "Input/InputEvent.h"
+#include "Input/Key.h"
+#include "Network/Crypto/Xor32.h"
 #include "Network/PacketSerials.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/Animation.h"
@@ -70,6 +73,7 @@
 #include "support/RecordingSink.h"
 #include "support/RecordingTextDrawer.h"
 #include "support/ScenePrinters.h"
+#include "support/SameBytes.h"
 #include "support/SessionHarness.h"
 #include "support/TestGameServer.h"
 
@@ -306,6 +310,55 @@ TEST(GameSceneTest, TheFirstStepSendsF303)
     EXPECT_FALSE(std::ranges::any_of(online.sink.lines, [](const std::string& line)
                                      { return line.find("se ignora la entrada al mundo") != std::string::npos; }));
 }
+
+class GameSceneNpcDialogCloseTest : public ::testing::TestWithParam<std::uint8_t>
+{
+};
+
+// 623f17→657880→65cae0: Esc se procesa antes del paso del mundo, con el transporte de la escena.
+// No se presta un sender al helper: así también se prueba el GameUiContext que arma GameScene.
+TEST_P(GameSceneNpcDialogCloseTest, EscapeSendsTheNpcCloseThroughTheSceneSession)
+{
+    const auto online = std::make_unique<LoggedInSession>();
+    ASSERT_NO_FATAL_FAILURE(ChooseSlotThree(*online));
+    const auto tested = std::make_unique<Harness>(online->log, &online->session);
+    ASSERT_TRUE(tested->scene.Enter().HasValue());
+    tested->scene.Step(tested->input);
+    ASSERT_EQ(tested->scene.Failure(), std::nullopt);
+    ASSERT_EQ(online->session.State(), SessionState::EnteringWorld);
+    online->socket.sent.clear();
+
+    auto& runtime = tested->Runtime();
+    const std::uint8_t kind = GetParam();
+    if (kind == 0)
+        runtime.panels.warehouse = 1;
+    else if (kind == 1)
+        runtime.panels.chaosBox = 1;
+    else if (kind == 2)
+        runtime.panels.delegated.trainer = 1;
+    else
+        runtime.panels.npcShop = 1;
+    Client::Input::InputState input;
+    input.Apply({.kind = Client::Input::InputEvent::Kind::KeyDown, .key = Client::Input::Key::Escape});
+
+    tested->scene.Step(input);
+
+    EXPECT_EQ(tested->scene.Failure(), std::nullopt);
+    EXPECT_EQ(runtime.panels.warehouse, 0);
+    EXPECT_EQ(runtime.panels.chaosBox, 0);
+    EXPECT_EQ(runtime.panels.delegated.trainer, 0);
+    EXPECT_EQ(runtime.panels.npcShop, 0);
+    EXPECT_EQ(runtime.dialogs.current, 0);
+    Client::Network::PacketSerials serials;
+    const auto received = Client::Tests::AsTheGameServerReceives(online->socket.sent, serials);
+    ASSERT_EQ(received.packets.size(), 1u);
+    const std::uint8_t opcode = kind == 0 ? 0x82 : kind == 1 ? 0x87 : 0x31;
+    const auto plain = Client::Network::Crypto::Xor32Decode(received.packets[0]);
+    EXPECT_TRUE(Client::Tests::SameBytes(plain.Bytes(), Client::Tests::Bytes({0xc1, 3, opcode})));
+}
+
+INSTANTIATE_TEST_SUITE_P(NpcKinds, GameSceneNpcDialogCloseTest,
+                         ::testing::Values(std::uint8_t{0}, std::uint8_t{1}, std::uint8_t{2}, std::uint8_t{3}));
 
 // 0x63684b..0x6368f4: el primer paso cierra el campo del chat, vacía el área vieja con 120 entradas, el registro y el
 // filtro. Los pasos que siguen no lo repiten.

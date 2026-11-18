@@ -18,6 +18,7 @@
 #include "Scenes/ItemHelpLevels.h"
 #include "Scenes/MonsterSounds.h"
 #include "Scenes/NpcNames.h"
+#include "Scenes/NpcWindowState.h"
 #include "Scenes/QuestState.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SocialState.h"
@@ -259,9 +260,10 @@ struct HudState
 
 // 0x78ab9b8, la grilla del ítem del cursor: un puntero en la .bss (0 al arrancar). Lo escriben levantar de una grilla
 // (0x5c52e2, con la que sea) y del equipo y MoveHero (0x5c2d37 y 0x59bf32, con 0x78a9bb0). MuRet levanta del
-// inventario y, desde la fase 4 del hito 7, de las grillas del comercio (0x5c4110); las demás (0x78a7070, 0x7d2d380 y
-// 0x723c80) cortan antes. 0x5be150 vuelve el ítem a la propia del comercio y a la de la tienda (0x5be191 y 0x5be3eb);
-// la del otro (0x78a5a20) no tiene rama y sigue como la del inventario.
+// inventario, de las grillas del comercio y de la tienda personal (CL9 hito 7, 0x5c4110) y de la grilla de la tienda de
+// NPC y del almacén, de la caja del caos y de la del entrenador (CL9 hito 6). 0x5be150 vuelve el ítem a la propia del
+// comercio y a la de la tienda (0x5be191 y 0x5be3eb); la del otro (0x78a5a20) no tiene rama y sigue como la del
+// inventario.
 enum class CursorGrid : std::uint8_t
 {
     None,         // 0
@@ -269,6 +271,9 @@ enum class CursorGrid : std::uint8_t
     OwnTrade,     // 0x78a92a8
     OtherTrade,   // 0x78a5a20
     PersonalShop, // 0x78ab0b8
+    NpcGrid,      // 0x78a7070
+    ChaosBox,     // 0x7d2d380
+    TrainerBox,   // 0x723c80
 };
 
 // Las mascotas de 0x723960 (CL9 hito 4): 0x14 bytes por tipo, tres (0x420cd0 pone en 0 quince dwords).
@@ -390,6 +395,8 @@ struct WorldRuntime
     // 0x7d36a98, 0x7d368e4, 0x7d368b8 y 0x7d3a0f4..0x7d3a0f9: el texto y los botones de las cajas viejas (hito 6).
     UI::DialogBoxState dialogBox{};
     UI::GameUiState ui{};
+    // Las grillas y los globales de las ventanas de los NPC (CL9 hito 6).
+    NpcWindowState npcWindows{};
     // *(0x5763514), el administrador de las ventanas viejas, y la lista de ventanas de [0x5763524] (hito 7): los arma
     // WinMain y duran todo el juego.
     UI::OldWindowManager oldWindows{};

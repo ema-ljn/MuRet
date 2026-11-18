@@ -582,29 +582,69 @@ TEST_F(GameInventoryHudTest, TheSetPassDrawsItsRandomWhenThePulseIsOff)
     EXPECT_EQ(random.State(), before.State());
 }
 
-// Las alas 0x1806 (el modelo 0x1a18) cortan antes de sus uniones; las otras grillas, con su dirección.
+// Las alas 0x1806 (el modelo 0x1a18) cortan antes de sus uniones, con su dirección. Las grillas de la tienda, del
+// almacén y del entrenador (hito 6) y la del comercio (hito 7) ya no cortan.
 TEST_F(GameInventoryHudTest, WhatBelongsToOtherWavesStopsWithItsAddress)
 {
     PutItem(0, 0x1806, 2, 2);
     auto wings = GridItems();
     ASSERT_FALSE(wings.HasValue());
     EXPECT_NE(wings.Error().find("0x60c3b6"), std::string::npos) << wings.Error();
+}
 
-    world.Inventory().ClearForInventoryReply();
-    world.Runtime().ownRecordDepth = 0;
-    world.Runtime().panels.npcShop = 1;
-    auto shop = GridItems();
-    ASSERT_FALSE(shop.HasValue());
-    EXPECT_NE(shop.Error().find("0x5f769b"), std::string::npos) << shop.Error();
-    auto shopNumbers = GridNumbers();
-    ASSERT_FALSE(shopNumbers.HasValue());
-    EXPECT_NE(shopNumbers.Error().find("0x5f7973"), std::string::npos) << shopNumbers.Error();
+// 0x5f769b y 0x5f7756 (CL9 hito 6): la grilla de la tienda y la del almacén (0x78a7070, 8 × 15) van desde la esquina de
+// la ventana del NPC más (15, 50); la tienda con el rand() de su byte protegido. Un 0xc0e saca los dos de su modelo
+// en cualquiera de las dos.
+TEST_F(GameInventoryHudTest, TheShopAndWarehouseGridsSpendTheRandomsOfTheirItems)
+{
+    world.Runtime().ui.npcWindowX = 0x104;
+    for (const bool shop : {true, false})
+    {
+        SCOPED_TRACE(shop ? "la tienda" : "el almacén");
+        world.Runtime().panels.npcShop = shop ? 1 : 0;
+        world.Runtime().panels.warehouse = shop ? 0 : 1;
+        world.Runtime().npcWindows.grid = {};
+        const CrtRandom before = random;
+        ASSERT_TRUE(GridItems().HasValue());
+        const CrtRandom empty = random;
 
-    world.Runtime().panels.npcShop = 0;
-    world.Runtime().panels.delegated.trainer = 3;
-    auto trainer = GridItems();
-    ASSERT_FALSE(trainer.HasValue());
-    EXPECT_NE(trainer.Error().find("0x5f782b"), std::string::npos) << trainer.Error();
+        ItemState& item = world.Runtime().npcWindows.grid[2 * 8 + 1];
+        item.id = 0x0c0e;
+        item.occupied = 1;
+        random = before;
+        const auto drawn = GridItems();
+
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_EQ(random.State(), Advanced(empty, 2).State());
+    }
+}
+
+// 0x5f7973 y 0x5f7a2e: las cifras de la tienda y del almacén, en la casilla (columna · 20 + x + 15, fila · 20 + y +
+// 50) de la esquina del NPC.
+TEST_F(GameInventoryHudTest, TheShopAndWarehouseNumbersStartAtTheNpcCorner)
+{
+    world.Runtime().panels.inventory = 0;
+    world.Runtime().ui.npcWindowX = 0x104;
+    world.Runtime().ui.npcWindowY = 0;
+    ItemState& potion = world.Runtime().npcWindows.grid[3 * 8 + 2];
+    potion.id = 0x1c00;
+    potion.durability = 3;
+    potion.occupied = 1;
+    for (const bool shop : {true, false})
+    {
+        SCOPED_TRACE(shop ? "la tienda" : "el almacén");
+        world.Runtime().panels.npcShop = shop ? 1 : 0;
+        world.Runtime().panels.warehouse = shop ? 0 : 1;
+        sprites.Begin(Screen640);
+
+        ASSERT_TRUE(GridNumbers().HasValue());
+
+        EXPECT_EQ(SlotsOf(sprites), (std::vector<std::uint16_t>{DigitSlot}));
+        const auto three = NthQuadOf(sprites, DigitSlot, 0);
+        ASSERT_TRUE(three.has_value());
+        EXPECT_FLOAT_EQ(three->first.x, 260.0f + 15.0f + 40.0f + 13.0f - 4.5f);
+        EXPECT_FLOAT_EQ(three->third.y, 480.0f - 50.0f - 60.0f - 10.0f);
+    }
 }
 
 // 0x5f7840: las pociones con 2 o más (9 × 10, 13 a la derecha) y los paquetes de joyas con ((nivel + 1) · 5) · 2
@@ -629,6 +669,83 @@ TEST_F(GameInventoryHudTest, TheNumbersShowThePotionsAndTheJewelBundles)
     ASSERT_TRUE(thirty.has_value());
     EXPECT_FLOAT_EQ(thirty->first.x, 485.0f + 14.0f - 7.0f);
     EXPECT_FLOAT_EQ(thirty->third.y, 480.0f - 208.0f);
+}
+
+// 0x5f77c6 y 0x5f7a9e: con la caja del caos abierta (y el inventario cerrado), su grilla de 8 × 4 desde la esquina
+// de la ventana del NPC más (15, 110): los rand() de los modelos (el 0xe uno, el 0xc0e dos) después de las consultas
+// de la tienda y del comercio, y las cifras de la poción con 3. En Lorencia, Devias y Noria.
+TEST_F(GameInventoryHudTest, TheChaosBoxGridDrawsFromTheNpcWindowCorner)
+{
+    for (const std::int32_t map : {0, 2, 3})
+    {
+        SCOPED_TRACE(map);
+        auto& runtime = world.Runtime();
+        runtime.map = map;
+        runtime.panels.inventory = 0;
+        runtime.panels.chaosBox = 1;
+        runtime.ui.npcWindowX = 0x104;
+        runtime.ui.npcWindowY = 0;
+        auto& box = runtime.npcWindows.chaosBox;
+        for (ItemState& cell : box)
+            cell = ItemState{.id = 0xffff};
+        box[0] = ItemState{.id = 0x000e, .occupied = 1};
+        box[8] = ItemState{.id = 0x000e};
+        box[2] = ItemState{.id = 0x0c0e, .occupied = 1};
+        box[9] = ItemState{.id = 0x1c00, .durability = 3, .occupied = 1};
+        const CrtRandom expected = Advanced(random, 2 + 1 + 2);
+        const auto drawn = GridItems();
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_EQ(random.State(), expected.State());
+
+        sprites.Begin(Screen640);
+        ASSERT_TRUE(GridNumbers().HasValue());
+        const auto three = NthQuadOf(sprites, DigitSlot, 0);
+        ASSERT_TRUE(three.has_value());
+        EXPECT_FLOAT_EQ(three->first.x, 0x104 + 15.0f + 20.0f + 13.0f - 4.5f);
+        EXPECT_FLOAT_EQ(three->third.y, 480.0f - 140.0f);
+        EXPECT_FALSE(NthQuadOf(sprites, DigitSlot, 1).has_value());
+    }
+}
+
+// 0x44ad40: con 0x724580 en 3, la caja del entrenador (0x723c80) en (275, 110), sin mirar la ventana del NPC, y sus
+// cifras (el 0x8000 abierto basta para 0x5f7840). En otro modo, nada.
+TEST_F(GameInventoryHudTest, TheTrainerBoxGridDrawsAtItsFixedCorner)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        auto& runtime = world.Runtime();
+        runtime.map = map;
+        runtime.panels.inventory = 0;
+        runtime.panels.delegated.trainer = 3;
+        runtime.ui.npcWindowX = 0x40;
+        runtime.ui.npcWindowY = 0x20;
+        auto& box = runtime.npcWindows.trainerBox;
+        for (ItemState& cell : box)
+            cell = ItemState{.id = 0xffff};
+        box[0] = ItemState{.id = 0x000e, .occupied = 1};
+        box[8] = ItemState{.id = 0x000e};
+        box[2] = ItemState{.id = 0x0c0e, .occupied = 1};
+        box[9] = ItemState{.id = 0x1c00, .durability = 3, .occupied = 1};
+        const CrtRandom expected = Advanced(random, 2 + 1 + 2);
+        const auto drawn = GridItems();
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_EQ(random.State(), expected.State());
+
+        sprites.Begin(Screen640);
+        ASSERT_TRUE(GridNumbers().HasValue());
+        const auto three = NthQuadOf(sprites, DigitSlot, 0);
+        ASSERT_TRUE(three.has_value());
+        EXPECT_FLOAT_EQ(three->first.x, 275.0f + 20.0f + 13.0f - 4.5f);
+        EXPECT_FLOAT_EQ(three->third.y, 480.0f - 140.0f);
+        EXPECT_FALSE(NthQuadOf(sprites, DigitSlot, 1).has_value());
+
+        // Con el modo 2, solo los rand() de los IsOpen de la tienda y del comercio.
+        runtime.panels.delegated.trainer = 2;
+        const CrtRandom protectedOnly = Advanced(random, 2);
+        ASSERT_TRUE(GridItems().HasValue());
+        EXPECT_EQ(random.State(), protectedOnly.State());
+    }
 }
 
 // 0x5f7b10: el ítem del cursor saca los rand() de su modelo; sin ítem, nada.

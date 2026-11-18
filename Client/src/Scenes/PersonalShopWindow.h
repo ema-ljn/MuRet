@@ -84,8 +84,8 @@ void OpenTheShopDialog(WorldRuntime& runtime, std::int32_t mode);
 // Con 0x78abb14 de 1 a 6 (en ese orden) o, si no, con 0x78aba60 en 2, la respuesta de 0x6c932e: con 1 o 2 la atiende
 // y la borra; con otra el paso termina sin hacer nada más (el aviso sigue esperando). Devuelve si el paso sigue con el
 // ítem del cursor (0x5deac5):
-// - 1, 2 y 4 son de las ventanas de NPC (CL9.3): el 1 con el no vuelve el ítem del cursor (0x5be150), el 2 con el no
-//   solo se borra, y lo demás corta;
+// - 1, 2 y 4 son de las ventanas de NPC (Scenes::AnswerTheNpcWarning, CL9 hito 6): la venta valiosa, la mezcla y el
+//   teclado del almacén;
 // - 3, el aviso del OK del comercio (0x5ecf67): con el sí, el OK propio da vuelta, 0x78abaa5 en 1 y el C1 04 3C con el
 //   OK nuevo en C3; con el no, se borra;
 // - 5, la compra en la tienda de otro (0x5c5181): con el sí y la clave del dueño (0x78a6514), el C1 11 3F 06 con la

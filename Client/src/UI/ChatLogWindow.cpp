@@ -331,38 +331,50 @@ bool MouseInRect(std::int32_t mouseX, std::int32_t mouseY, std::int32_t x, std::
     return y <= mouseY && mouseY < y + height;
 }
 
-void PlaceTheLogBar(const ChatLogState& log, ChatModes modes, ChatLogFrame& frame)
+OldListBar PlaceTheListBar(std::int32_t y, std::int32_t height, std::int32_t barMode, std::int32_t rows,
+                           std::int32_t count, std::int32_t scroll)
 {
-    if (log.barMode == 1)
+    OldListBar bar;
+    if (barMode == 1)
     {
-        frame.barTop = static_cast<float>(frame.y - frame.height + 0xc);
-        frame.barBottom = static_cast<float>(frame.y - 0xc);
+        bar.barTop = static_cast<float>(y - height + 0xc);
+        bar.barBottom = static_cast<float>(y - 0xc);
     }
     else
     {
-        frame.barTop = static_cast<float>(frame.y - frame.height + 0x15);
-        frame.barBottom = static_cast<float>(frame.y - 0x11);
+        bar.barTop = static_cast<float>(y - height + 0x15);
+        bar.barBottom = static_cast<float>(y - 0x11);
     }
-    const std::int32_t visible = VisibleInTheLog(log, modes);
     double ratio = 1.0;
-    if (visible > 0)
+    if (count > 0)
     {
         // FILD de los renglones guardado en float y FDIVR con el FILD de los que se ven.
-        const double shown = static_cast<double>(static_cast<float>(log.rows)) / static_cast<double>(visible);
+        const double shown = static_cast<double>(static_cast<float>(rows)) / static_cast<double>(count);
         if (shown < 1.0)
             ratio = shown;
     }
-    const double thumb = (static_cast<double>(frame.barBottom) - static_cast<double>(frame.barTop)) * ratio;
-    frame.thumbHeight = static_cast<float>(thumb);
+    const double thumb = (static_cast<double>(bar.barBottom) - static_cast<double>(bar.barTop)) * ratio;
+    bar.thumbHeight = static_cast<float>(thumb);
     if (thumb < static_cast<double>(MinThumb))
-        frame.thumbHeight = MinThumb;
+        bar.thumbHeight = MinThumb;
     double scrolled = 0.0;
-    if (visible > 0)
-        scrolled = static_cast<double>(static_cast<float>(log.scroll)) / static_cast<double>(visible);
-    const double small = frame.thumbHeight <= MinThumb ? static_cast<double>(frame.thumbHeight) : 0.0;
-    const double track = static_cast<double>(frame.barBottom) - static_cast<double>(frame.barTop) - small;
-    frame.thumbY = static_cast<float>(static_cast<double>(frame.barBottom) - track * scrolled -
-                                      static_cast<double>(frame.thumbHeight));
+    if (count > 0)
+        scrolled = static_cast<double>(static_cast<float>(scroll)) / static_cast<double>(count);
+    const double small = bar.thumbHeight <= MinThumb ? static_cast<double>(bar.thumbHeight) : 0.0;
+    const double track = static_cast<double>(bar.barBottom) - static_cast<double>(bar.barTop) - small;
+    bar.thumbY = static_cast<float>(static_cast<double>(bar.barBottom) - track * scrolled -
+                                    static_cast<double>(bar.thumbHeight));
+    return bar;
+}
+
+void PlaceTheLogBar(const ChatLogState& log, ChatModes modes, ChatLogFrame& frame)
+{
+    const OldListBar bar =
+        PlaceTheListBar(frame.y, frame.height, log.barMode, log.rows, VisibleInTheLog(log, modes), log.scroll);
+    frame.barTop = bar.barTop;
+    frame.barBottom = bar.barBottom;
+    frame.thumbY = bar.thumbY;
+    frame.thumbHeight = bar.thumbHeight;
 }
 
 ChatLogStepResult StepTheChatLog(ChatLogState& log, ChatLogFrame& frame, const ChatLogGlobals& globals,

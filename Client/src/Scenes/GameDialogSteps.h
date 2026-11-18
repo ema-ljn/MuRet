@@ -41,9 +41,18 @@ enum class DialogStep : std::uint8_t
     ConfirmBox,
     // 0x6260f6 (CL9 hito 7): el título o el precio de la tienda personal (0x91), con el EDIT de [0x5763504].
     ShopDialog,
-    // 0x6282dc..0x62843f y 0x62a779 (CL9 hito 7): el aviso 0x94 de 0x633300 y el 0x99 del precio bajo, sus dos botones
-    // de 0x7d368b8 o Esc, que dejan la respuesta en 0x6c932e.
+    // 0x6282dc..0x62843f y 0x62a779 (CL9 hitos 6 y 7): los dos botones de sí y no (y Esc, el no) de 0x94, 0x96, 0x98,
+    // 0x99, 0x9a, 0xa3, 0xa8 (con su tercero), 0xa9 y 0xaa. El 0x94, el 0x98 y el 0x99 dejan la respuesta en 0x6c932e.
     Warning,
+    // 0x625910: el modo de la caja del caos (0x8e).
+    ChaosMixMode,
+    // 0x6259c6, 0x625b23, 0x625cf4 y 0x625f98: la mezcla de joyas (0xa1, 0xa2, 0xa4 y 0xa6, Scenes/JewelMix.h).
+    JewelMenu,
+    JewelChoice,
+    JewelUnmix,
+    JewelResult,
+    // 0x62601e: cerrar el resultado de guerra sin consumir el clic.
+    WarOutcome,
     // Un tramo de otra ola: corta con `address` y `wave`.
     Cut,
 };
@@ -65,7 +74,7 @@ struct DialogRoute
 [[nodiscard]] DialogRoute DialogRouteOf(std::int32_t id);
 
 // 0x623f78: con un diálogo abierto, su tramo. Sin ninguno, nada. `escape` es [EBP−0x7d] de 0x623e70: Esc leído
-// (0x553520(0x1b)) con la ventana de amigos cerrada, que el no de 0x62c50e también mira.
+// (0x553520(0x1b)) con la ventana de amigos cerrada, que miran el no de 0x62c50e y los de sí y no de 0x628409.
 [[nodiscard]] Core::Expected<void, std::string> StepTheOpenDialog(const GameUiContext& context, bool escape);
 
 // 0x61c210 hasta el paquete: los 24 bytes de su pila. Abre y cierra el registro propio (0xf08 rand() de la tabla de

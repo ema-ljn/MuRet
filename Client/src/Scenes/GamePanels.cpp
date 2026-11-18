@@ -7,7 +7,9 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/GuildPanels.h"
+#include "Scenes/InventoryMoves.h"
 #include "Scenes/ItemSetState.h"
+#include "Scenes/NpcWindows.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnDerivedStats.h"
 #include "Scenes/OwnStatHelpers.h"
@@ -93,6 +95,21 @@ UI::PanelContext ContextOf(WorldState& world, Render::Models::CrtRandom& random,
 GamePanels::GamePanels(WorldState& world, Render::Models::CrtRandom& random, GamePanelTables tables)
     : m_context(ContextOf(world, random, tables)), m_registry(world.Runtime().panels, m_context)
 {
+}
+
+void GamePanels::LendTheNpcWindows(WorldState& world, Render::Models::CrtRandom& random, InventoryServices services,
+                                   NpcWindowSender send)
+{
+    m_context.npcWindowOpened = [&world, &random, services, send](UI::PanelId id) {
+        return NpcWindowOpened(NpcWindowContext{.world = world, .random = random, .services = services, .send = send},
+                               id);
+    };
+    m_context.npcWindowClosing =
+        [&world, &random, services = std::move(services), send = std::move(send)](UI::PanelId id)
+    {
+        return NpcWindowClosing(NpcWindowContext{.world = world, .random = random, .services = services, .send = send},
+                                id);
+    };
 }
 
 void GamePanels::LendThePersonalShops(WorldState& world, Render::Models::CrtRandom& random,

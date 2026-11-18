@@ -1,16 +1,19 @@
 #include "Scenes/GameUi.h"
 
 #include "Core/Expected.h"
+#include "Data/Tables/ItemTable.h"
 #include "Data/Tables/SkillTable.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Protocol/Character/LevelUpPoint.h"
+#include "Protocol/NpcWindows.h"
 #include "Protocol/Letters.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Pet/PetInfo.h"
 #include "Protocol/Trade.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/ChaosMix.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/LetterPortrait.h"
 #include "Scenes/CharacterPicking.h"
@@ -34,10 +37,16 @@
 #include "Scenes/GridItemUse.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/InventoryMoves.h"
+#include "Scenes/ItemPrice.h"
 #include "Scenes/ItemSetState.h"
+#include "Scenes/NpcWindowState.h"
+#include "Scenes/NpcWindowSteps.h"
+#include "Scenes/NpcWindows.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/PartyActors.h"
 #include "Scenes/OwnInventory.h"
+#include "Scenes/PetTrainer.h"
+#include "Scenes/WarehouseKeypad.h"
 #include "Scenes/PersonalShopWindow.h"
 #include "Scenes/QuestWindow.h"
 #include "Scenes/SocialState.h"
@@ -451,12 +460,16 @@ Core::Expected<void, std::string> StepTheOldWindows(const GameUiContext& context
 
 // La lista del asedio en el modo 3, que con 0x6689d0 se suma a las ventanas con grilla.
 constexpr std::int32_t SiegeListWithInventory = 3;
-// 0x449c00: la caja del entrenador.
+// 0x449c00: la caja del entrenador, y su grilla fija de 0x44ad10 y 0x44aca0.
 constexpr std::int32_t TrainerWithBox = 3;
+constexpr std::int32_t TrainerBoxLeft = 0x113;
+constexpr std::int32_t TrainerBoxTop = 0x6e;
 constexpr std::uint16_t RepairButtonLevel = 0x32;
 constexpr std::uint16_t PersonalShopLevel = 6;
 // 0x41ed10(0x1d, 0, 0): el sonido de levantar de la grilla (0x5c587a).
 constexpr std::int32_t ItemMoveSound = 0x1d;
+// El rand() del relleno (0x69fd70) y el del número de serie (0x40b0a0) de un C3.
+constexpr std::size_t C3SendRandoms = 2;
 // 0x5c4298..0x5c42a9 y 0x5aed6c..0x5aed7d: el lugar del ítem del cartel es la casilla + 12; con una tienda personal
 // abierta, + 0x4c (0x5c4353..0x5c4363).
 constexpr std::int32_t FirstGridSlot = 12;
@@ -489,6 +502,9 @@ constexpr std::int32_t OtherShopTooltip = 5;
 
 // 0x5c43f4..0x5c445d: lo que la reparación no mira (las mascotas de 0x1a00 a 0x1a04, 0x1a0a, las flechas, lo de
 // 0x1c00 en adelante, las alas de 0x1807 a 0x1813, de 0x1a0e a 0x1a13, 0x1c15 y el Wizard's Ring), con signo.
+// 0x5c2e4d..0x5c2e5d: el del equipo tampoco repara el Dark Raven.
+constexpr std::uint16_t RavenItem = 0x1a05;
+
 bool IsNotRepaired(std::uint16_t id)
 {
     const auto type = static_cast<std::int32_t>(static_cast<std::int16_t>(id));
@@ -546,7 +562,20 @@ Core::Expected<void, std::string> StepAnEquipmentSlot(const GameUiContext& conte
     // 0x5c2c56..0x5c2c5f.
     runtime.ui.field78abaac = 1;
     if (runtime.movement.pendingClick)
+    {
+        // 0x5c2c65..0x5c2c79 y 0x5c2dd5..0x5c3594: con el modo de reparar (y sin 0x576794c), lo que se repara gasta el
+        // clic y sale el C1 05 34 con el lugar y 0x78abb10, en C3 y con el registro abierto.
+        if (runtime.movement.gateRequestBlocked == 0 && runtime.panels.repairMode != 0)
+        {
+            const std::uint16_t worn = context.world.OwnCharacter().equipment[slot].id;
+            if (IsNotRepaired(worn) || worn == RavenItem)
+                return {};
+            runtime.movement.pendingClick = false;
+            return SendRepair(context.random, context.sendNpcWindow, static_cast<std::uint8_t>(slot & 0xff),
+                              static_cast<std::uint8_t>(runtime.field78abb10 & 0xff));
+        }
         return PickUpFromTheEquipment(MovesOf(context), slot);
+    }
     HoverTheEquipment(MovesOf(context), slot, left, top, width);
     return {};
 }
@@ -605,12 +634,66 @@ enum class GridHover : std::uint8_t
     RightClicked,
 };
 
-// La grilla de 0x5c4110: la del inventario (0x78a9bb0, 8 × 8) o las del comercio (0x78a92a8 y 0x78a5a20, 8 × 4).
+// La grilla de 0x5c4110(x, y, grilla, columnas, filas, tipo), todas de 8 columnas: la del inventario (0x78a9bb0,
+// 8 × 8), las del comercio (0x78a92a8 y 0x78a5a20, 8 × 4), la de la tienda personal y las de las ventanas de NPC (CL9
+// hito 6). Sus casillas, el lugar que anota el ítem bajo el mouse y, en las de NPC, sus filas, el tipo (1 la tienda de
+// NPC, que compra; 0 las demás) y la grilla de donde sale lo que se levanta.
 struct HoverGrid
 {
     std::span<World::ItemState> cells;
     UI::HoveredItem::Place place = UI::HoveredItem::Place::InventoryCell;
+    std::int32_t rows = 0;
+    std::uint8_t kind = 0;
+    CursorGrid grid = CursorGrid::None;
 };
+
+// 0x5c4110 con el tipo 1 (0x5e57af, la tienda): comprar.
+constexpr std::uint8_t ShopGridKind = 1;
+// 0x5aed40: el lugar del ítem para su ayuda en la grilla del almacén (1) y en la caja del caos (4).
+constexpr std::int32_t WarehouseHelpPlace = 1;
+constexpr std::int32_t ChaosBoxHelpPlace = 4;
+// 0x5c4b6e: con la tienda, 0x78abb28 en 6.
+constexpr std::int32_t ShopHelpPlace = 6;
+static_assert(NpcGridColumns == static_cast<std::int32_t>(InventoryColumns));
+
+// 0x5c4b64..0x5c510f: el ítem bajo el mouse en la grilla de la tienda. 0x78abb28 en 6 y 0x78abb2c en la casilla; con
+// el clic, sin el modo de reparar y sin otra compra esperando (0x5767950), el clic gastado, el precio de 0x54d0f0 en
+// el modo 0 del ítem de arriba a la izquierda, el C1 04 32 con su lugar en C3 y el precio en 0x5767950, hasta el 32.
+Core::Expected<GridHover, std::string> BuyTheGridItem(const GameUiContext& context, const HoverGrid& grid,
+                                                      std::size_t index)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    const World::ItemState& hovered = grid.cells[index];
+    runtime.ui.field78abb28 = ShopHelpPlace;
+    runtime.ui.field78abb2c = static_cast<std::int32_t>(index);
+    NpcWindowState& npc = runtime.npcWindows;
+    if (!runtime.movement.pendingClick || runtime.panels.repairMode != 0)
+        return GridHover::Stayed;
+    runtime.movement.pendingClick = false;
+    if (npc.buyLock != 0)
+        return GridHover::Stayed;
+    const std::int32_t topLeft = hovered.gridRow * NpcGridColumns + hovered.gridColumn;
+    if (topLeft >= static_cast<std::int32_t>(grid.cells.size()))
+        return Core::Unexpected(std::format("0x5c4bc4: el ítem de arriba a la izquierda ({}) cae fuera de la grilla de "
+                                            "la tienda",
+                                            topLeft));
+    const Data::Tables::ItemTable* items = ServicesOf(context).items;
+    if (items == nullptr)
+        return Core::Unexpected(std::string("0x5c4bc4: el precio de 0x54d0f0 sin Item.bmd"));
+    const PetPriceLevels pets{.raven = runtime.pets[RavenPetStats].level,
+                              .horse = runtime.pets[DarkHorsePetStats].level};
+    auto price = ItemPrice(grid.cells[static_cast<std::size_t>(topLeft)], *items, ShopGridPrice, pets);
+    if (!price.HasValue())
+        return Core::Unexpected(std::move(price).Error());
+    context.random.Discard(C3SendRandoms);
+    if (!context.sendNpcWindow)
+        return Core::Unexpected(std::string("0x5c4bdc: el C1 04 32 sin la sesión"));
+    if (auto sent = context.sendNpcWindow(Protocol::NpcWindows::WriteBuy(static_cast<std::uint8_t>(topLeft & 0xff)));
+        !sent.HasValue())
+        return Core::Unexpected(std::move(sent).Error());
+    npc.buyLock = static_cast<std::int32_t>(price.Value());
+    return GridHover::Stayed;
+}
 
 // 0x5c5895..0x5c9b0b (CL9 hito 5): el clic derecho sobre el ítem de la casilla `index` de la grilla, consumido, con la
 // casilla de arriba a la izquierda del ítem (con el ancho de la grilla, sin el 12). Los que solo mandan el C1 06 26
@@ -645,8 +728,9 @@ Core::Expected<void, std::string> UseTheGridItem(const GameUiContext& context, U
                         (type == 0x1c14 && levelBits == 0) || type == 0x1c07;
     if (potion)
         return use();
-    const CursorGrid used =
-        grid.place == UI::HoveredItem::Place::OwnTradeCell ? CursorGrid::OwnTrade : CursorGrid::Inventory;
+    const CursorGrid used = grid.place == UI::HoveredItem::Place::OwnTradeCell    ? CursorGrid::OwnTrade
+                            : grid.place == UI::HoveredItem::Place::InventoryCell ? CursorGrid::Inventory
+                                                                                  : grid.grid;
     return UseTheLaterGridItem(MovesOf(context), panels, UsedGrid{.cells = grid.cells, .grid = used}, index);
 }
 
@@ -756,8 +840,8 @@ Core::Expected<void, std::string> RightClickWithTheShopOpen(const GameUiContext&
 
 // 0x5c41f4..0x5c4b3b y 0x5c52b1..0x5c5894: el ítem de la casilla `index` de `grid` bajo el mouse. La marca 2 en su
 // huella (en la del otro del comercio, sin pisar el 99), el ítem del cartel (0x78abaa8, su copia en 0x787a518 y su
-// lugar) y la esquina de su ayuda. Con la grilla del otro, solo 0x5aed40 (0x5c4b2b). Si no, según las tiendas
-// personales, la reparación y los clics, levantarlo, usarlo, 0x5aed40 y Ctrl con Q, W o E.
+// lugar) y la esquina de su ayuda. Con la grilla del otro, solo 0x5aed40 (0x5c4b2b); con la tienda de NPC, comprar. Si
+// no, según las tiendas personales, la reparación y los clics, levantarlo, usarlo, 0x5aed40 y Ctrl con Q, W o E.
 Core::Expected<GridHover, std::string> HoverTheGridItem(const GameUiContext& context, UI::PanelRegistry& panels,
                                                         const HoverGrid& grid, std::size_t index, std::int32_t left,
                                                         std::int32_t top)
@@ -776,7 +860,7 @@ Core::Expected<GridHover, std::string> HoverTheGridItem(const GameUiContext& con
     const std::int32_t column = hovered.gridColumn;
     const std::int32_t row = hovered.gridRow;
     constexpr auto Columns = static_cast<std::int32_t>(InventoryColumns);
-    static_assert(Columns == TradeGridColumns);
+    static_assert(Columns == TradeGridColumns && Columns == NpcGridColumns);
     for (std::int32_t y = row; y < row + footprint.Value().height; ++y)
     {
         for (std::int32_t x = column; x < column + footprint.Value().width; ++x)
@@ -795,7 +879,7 @@ Core::Expected<GridHover, std::string> HoverTheGridItem(const GameUiContext& con
     }
     // 0x5c4286..0x5c4302.
     const auto cell = static_cast<std::int32_t>(index);
-    ui.field78aba27 = 0;
+    ui.field78aba27 = grid.kind;
     ui.hoveredItem = UI::HoveredItem{.place = grid.place, .index = index};
     runtime.hoveredItemCopy = hovered;
     ui.field78abb2c = cell + FirstGridSlot;
@@ -808,6 +892,8 @@ Core::Expected<GridHover, std::string> HoverTheGridItem(const GameUiContext& con
         ui.field78abb2c = cell;
         return GridHover::Stayed;
     }
+    if (grid.kind != 0)
+        return BuyTheGridItem(context, grid, index);
     // 0x5c4319..0x5c4324: la grilla de la tienda personal.
     if (grid.place == UI::HoveredItem::Place::ShopCell)
         ui.shopGridHovered = 1;
@@ -836,14 +922,23 @@ Core::Expected<GridHover, std::string> HoverTheGridItem(const GameUiContext& con
     {
         if (IsNotRepaired(hovered.id) || !runtime.movement.pendingClick)
             return GridHover::Stayed;
-        return Core::Unexpected(
-            std::format("0x5c4470: reparar el {:#x} de la grilla (el C1 .. 34) es de la CL9.3", hovered.id));
+        // 0x5c4472..0x5c4a89: el clic consumido y el C1 05 34 con el lugar de la esquina del ítem (fila · columnas +
+        // columna + 12) y 0x78abb10; después sigue con la casilla de al lado (0x5c4b3b).
+        runtime.movement.pendingClick = false;
+        const auto position = static_cast<std::uint8_t>((row * Columns + column + FirstGridSlot) & 0xff);
+        if (auto sent = SendRepair(context.random, context.sendNpcWindow, position,
+                                   static_cast<std::uint8_t>(runtime.field78abb10 & 0xff));
+            !sent.HasValue())
+            return Core::Unexpected(sent.Error());
+        return GridHover::Stayed;
     }
     // 0x5c4a8e..0x5c4a9f y 0x5c52b1..0x5c5894: levantarlo.
     if (runtime.movement.pendingClick && runtime.movement.gateRequestBlocked == 0)
     {
-        auto picked =
-            ownTrade ? PickUpFromTheTradeGrid(MovesOf(context), index) : PickUpFromTheGrid(MovesOf(context), index);
+        auto picked = ownTrade ? PickUpFromTheTradeGrid(MovesOf(context), index)
+                      : grid.place == UI::HoveredItem::Place::InventoryCell
+                          ? PickUpFromTheGrid(MovesOf(context), index)
+                          : PickUpFromOtherGrid(MovesOf(context), grid.grid, index);
         if (!picked.HasValue())
             return Core::Unexpected(picked.Error());
         if (auto after = AfterThePickUp(context, panels, grid); !after.HasValue())
@@ -859,13 +954,27 @@ Core::Expected<GridHover, std::string> HoverTheGridItem(const GameUiContext& con
     }
     // 0x5c4ab7: 0x5aed40 con la grilla: la del inventario con 0 y la casilla + 12, la propia del comercio con 2 y la
     // casilla; la de la tienda, mirando la de otro (0x5aedee..0x5aee10), con 5 y la casilla + 0x4c, y con la propia
-    // nada (quedan los de 0x5c4353).
+    // nada (quedan los de 0x5c4353); la caja del caos y la del entrenador (0x449c30) con 4 y la casilla, y la del
+    // almacén (con 0x40 abierto, sin rand()) con 1 y la casilla.
     if (grid.place == UI::HoveredItem::Place::ShopCell)
     {
         if (runtime.social.personalShop.mode == OtherShopView)
         {
             ui.field78abb28 = OtherShopTooltip;
             ui.field78abb2c = cell + FirstPersonalShopSlot;
+        }
+    }
+    else if (grid.grid == CursorGrid::ChaosBox || grid.grid == CursorGrid::TrainerBox)
+    {
+        ui.field78abb28 = ChaosBoxHelpPlace;
+        ui.field78abb2c = cell;
+    }
+    else if (grid.grid == CursorGrid::NpcGrid)
+    {
+        if (panels.IsOpen(UI::WarehousePanel))
+        {
+            ui.field78abb28 = WarehouseHelpPlace;
+            ui.field78abb2c = cell;
         }
     }
     else
@@ -885,6 +994,36 @@ Core::Expected<GridHover, std::string> HoverTheGridItem(const GameUiContext& con
         break;
     }
     return GridHover::Stayed;
+}
+
+// 0x5c4110(x, y, grilla, 8, filas, tipo) con las grillas de las ventanas de NPC. Sale con la espera, la traba de C3 24
+// o un ítem en el cursor; si no, 0x78abb38 en 0 (0x5c4163) y recorre las casillas por filas: con el mouse sobre una con
+// un tipo, lo de ese ítem. Levantar o el clic derecho la terminan.
+Core::Expected<void, std::string> StepTheGrid(const GameUiContext& context, UI::PanelRegistry& panels,
+                                              const HoverGrid& grid, std::int32_t left, std::int32_t top)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    if (runtime.ui.field5767954 > 0 || runtime.ui.field78abb39 != 0 || runtime.cursorItemCount > 0)
+        return {};
+    runtime.ui.shopGridHovered = 0;
+    for (std::int32_t row = 0; row < grid.rows; ++row)
+    {
+        const std::int32_t cellTop = top + row * CellSize;
+        for (std::int32_t column = 0; column < NpcGridColumns; ++column)
+        {
+            const std::int32_t cellLeft = left + column * CellSize;
+            const auto index = static_cast<std::size_t>(row * NpcGridColumns + column);
+            if (context.mouseX < cellLeft || context.mouseX >= cellLeft + CellSize || context.mouseY < cellTop ||
+                context.mouseY >= cellTop + CellSize || grid.cells[index].id == EmptyOwnItemId)
+                continue;
+            const auto hovered = HoverTheGridItem(context, panels, grid, index, left, top);
+            if (!hovered.HasValue())
+                return Core::Unexpected(hovered.Error());
+            if (hovered.Value() != GridHover::Stayed)
+                return {};
+        }
+    }
+    return {};
 }
 
 // 0x5c4110(x + 15, y + 200, 0x78a9bb0, 8, 8, 0): la grilla del inventario. Sale con la espera, la traba de C3 24 o
@@ -1210,21 +1349,59 @@ Core::Expected<void, std::string> StepTheOtherGrids(const GameUiContext& context
         if (auto trade = StepTheTradeGrids(context, panels); !trade.HasValue())
             return trade;
     }
+    // 0x5e577d..0x5e589c: 0x5c4110 desde la esquina de la ventana del NPC, la grilla de la tienda con el tipo 1 y la
+    // del almacén con el 0, de 8 × 15 en (x + 0xf, y + 0x32), y la caja del caos de 8 × 4 en (x + 0xf, y + 0x6e)
+    // con la mezcla fuera de 1.
+    NpcWindowState& npc = runtime.npcWindows;
+    const std::int32_t npcLeft = runtime.ui.npcWindowX + 0xf;
+    const HoverGrid npcGrid{.cells = npc.grid,
+                            .place = UI::HoveredItem::Place::NpcGridCell,
+                            .rows = static_cast<std::int32_t>(NpcGridCellCount) / NpcGridColumns,
+                            .kind = 0,
+                            .grid = CursorGrid::NpcGrid};
     if (panels.IsOpen(UI::NpcShopPanel))
-        return cut("0x5e57af: la grilla de la tienda de NPC (0x78a7070) es de la CL9.3");
+    {
+        HoverGrid shop = npcGrid;
+        shop.kind = ShopGridKind;
+        if (auto hovered = StepTheGrid(context, panels, shop, npcLeft, runtime.ui.npcWindowY + 0x32);
+            !hovered.HasValue())
+            return hovered;
+    }
     if (panels.IsOpen(UI::WarehousePanel))
-        return cut("0x5e57e6: la grilla del almacén (0x78a7070) es de la CL9.3");
-    if (panels.IsOpen(UI::ChaosBoxPanel))
-        return cut("0x5e589c: la grilla de la caja del caos (0x7d2d380) es de la CL9.3");
-    if (panels.IsOpen(UI::CastleSiegeListPanel) && state.delegated.castleSiegeListMode == SiegeListWithInventory)
+    {
+        if (auto hovered = StepTheGrid(context, panels, npcGrid, npcLeft, runtime.ui.npcWindowY + 0x32);
+            !hovered.HasValue())
+            return hovered;
+    }
+    if (panels.IsOpen(UI::ChaosBoxPanel) && npc.chaosMixState != 1)
+    {
+        const HoverGrid chaos{.cells = npc.chaosBox,
+                              .place = UI::HoveredItem::Place::ChaosBoxCell,
+                              .rows = ChaosBoxRows,
+                              .kind = 0,
+                              .grid = CursorGrid::ChaosBox};
+        if (auto hovered = StepTheGrid(context, panels, chaos, npcLeft, runtime.ui.npcWindowY + 0x6e);
+            !hovered.HasValue())
+            return hovered;
+    }
+    else if (panels.IsOpen(UI::CastleSiegeListPanel) && state.delegated.castleSiegeListMode == SiegeListWithInventory)
         return cut("0x5e582b: 0x6689d0, la marca del asedio del héroe, es de la CL9.5");
     if (panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel))
     {
         if (auto shop = StepTheShopGrid(context, panels); !shop.HasValue())
             return shop;
     }
+    // 0x5e58f2: 0x44ad10, con 0x724580 en 3, 0x5c4110(0x113, 0x6e, 0x723c80, 8, 4, 0).
     if (state.delegated.trainer == TrainerWithBox)
-        return cut("0x44ad10: la grilla de la caja del entrenador (0x723c80) es de la CL9.3");
+    {
+        const HoverGrid trainer{.cells = npc.trainerBox,
+                                .place = UI::HoveredItem::Place::TrainerBoxCell,
+                                .rows = ChaosBoxRows,
+                                .kind = 0,
+                                .grid = CursorGrid::TrainerBox};
+        if (auto hovered = StepTheGrid(context, panels, trainer, TrainerBoxLeft, TrainerBoxTop); !hovered.HasValue())
+            return hovered;
+    }
     // 0x40e6c0: el mouse sobre el cartel, sin mirar el clic (Q-C472), prende la ventana del set (+0x9304), que dibujan
     // los tooltips (0x40e850), y gasta el flanco del clic.
     const std::int32_t x = runtime.hud.inventoryX;
@@ -1248,16 +1425,24 @@ Core::Expected<void, std::string> StepTheInventoryWindow(const GameUiContext& co
     const std::int32_t x = runtime.hud.inventoryX;
     const std::int32_t y = runtime.hud.inventoryY;
     const auto cut = [](std::string_view what) { return Core::Unexpected(std::string(what)); };
-    // 0x5e4ce0..0x5e4f2c: el mouse sobre la ventana es de la UI.
+    // 0x5e4ce0..0x5e4f2c: el mouse sobre la ventana es de la UI, y sobre la del NPC abierta (la tienda, con su
+    // rand(), el almacén y la caja del caos), en la esquina de 0x78aba28, también.
     if (InRect(context, x, y, x + 0xbe, y + 0x1b1))
         runtime.ui.mouseOnUi = 1;
+    const std::int32_t npcX = runtime.ui.npcWindowX;
+    const std::int32_t npcY = runtime.ui.npcWindowY;
+    const auto overTheNpcWindow = [&context, &runtime, npcX, npcY]
+    {
+        if (InRect(context, npcX, npcY, npcX + 0xbe, npcY + 0x1b1))
+            runtime.ui.mouseOnUi = 1;
+    };
     if (panels.IsOpen(UI::NpcShopPanel))
-        return cut("0x5e4d2a: la tienda de NPC con el inventario es de la CL9.3");
+        overTheNpcWindow();
     if (panels.IsOpen(UI::WarehousePanel))
-        return cut("0x5e4d74: el almacén con el inventario es de la CL9.3");
+        overTheNpcWindow();
     if (panels.IsOpen(UI::ChaosBoxPanel))
-        return cut("0x5e4dc1: la caja del caos con el inventario es de la CL9.3");
-    if (panels.IsOpen(UI::CastleSiegeListPanel) && state.delegated.castleSiegeListMode == SiegeListWithInventory)
+        overTheNpcWindow();
+    else if (panels.IsOpen(UI::CastleSiegeListPanel) && state.delegated.castleSiegeListMode == SiegeListWithInventory)
         return cut("0x5e4dea: 0x6689d0, la marca del asedio del héroe, es de la CL9.5");
     // 0x5e4e34..0x5e4e7b: el mouse sobre la ventana del comercio (0xbe × 0x1b1 desde 0x78a5a1c y 0x78a5a18).
     if (panels.IsOpen(UI::TradePanel) &&
@@ -1266,12 +1451,7 @@ Core::Expected<void, std::string> StepTheInventoryWindow(const GameUiContext& co
     // 0x5e4e76..0x5e4ed0: con una de los NPC de evento, el mouse sobre su esquina (0x78aba28, que ponen su paso y su
     // dibujo) es de la UI.
     if (panels.IsOpen(UI::EventNpcPanel) || panels.IsOpen(UI::SecondEventNpcPanel))
-    {
-        const std::int32_t npcX = runtime.ui.npcWindowX;
-        const std::int32_t npcY = runtime.ui.npcWindowY;
-        if (InRect(context, npcX, npcY, npcX + 0xbe, npcY + 0x1b1))
-            runtime.ui.mouseOnUi = 1;
-    }
+        overTheNpcWindow();
     // 0x5e4ed7..0x5e4f31: el mouse sobre la ventana de las tiendas personales (0xbe × 0x1b1 desde 0x78aba58 y
     // 0x78aba5c).
     const PersonalShopState& shops = runtime.social.personalShop;
@@ -1285,12 +1465,16 @@ Core::Expected<void, std::string> StepTheInventoryWindow(const GameUiContext& co
                                                 Render::Models::OwnRecordCloseRandoms);
         item.warning = item.id == EmptyOwnItemId ? std::uint8_t{0} : std::uint8_t{1};
     }
-    // 0x5e513a..0x5e5205: lo mismo en las grillas: el inventario (0x78a9bb0), la del otro en el comercio (0x78a5a20,
-    // 0x5e515d..0x5e5185, que conserva el 99 de 0x5bc470), la propia (0x78a92a8) y la de las tiendas personales
-    // (0x78ab0b8). De la tienda o el almacén (0x78a7070) y la caja del caos (0x7d2d380) MuRet no tiene nada todavía
-    // (CL9.3); 0x449c60 hace lo mismo con la caja del entrenador (0x723c80, CL9.3).
-    for (World::ItemState& cell : world.Inventory().cells)
-        cell.warning = cell.id == EmptyOwnItemId ? std::uint8_t{0} : std::uint8_t{1};
+    // 0x5e512f..0x5e5207: lo mismo en las grillas: el inventario (0x78a9bb0), la del otro en el comercio (0x78a5a20,
+    // 0x5e515d..0x5e5185, que conserva el 99 de 0x5bc470), la propia (0x78a92a8), la de la tienda y del almacén
+    // (0x78a70b4..), la caja del caos (0x7d2d3c4..) y la de las tiendas personales (0x78ab0b8, CL9 hito 7); 0x449c60
+    // (0x5e5207) hace lo mismo con la caja del entrenador (0x723c80).
+    const auto warn = [](std::span<World::ItemState> cells)
+    {
+        for (World::ItemState& cell : cells)
+            cell.warning = cell.id == EmptyOwnItemId ? std::uint8_t{0} : std::uint8_t{1};
+    };
+    warn(world.Inventory().cells);
     TradeState& trade = runtime.social.trade;
     for (World::ItemState& cell : trade.otherGrid)
     {
@@ -1299,11 +1483,11 @@ Core::Expected<void, std::string> StepTheInventoryWindow(const GameUiContext& co
         else if (cell.warning != ChangedFromTheCopy)
             cell.warning = 1;
     }
-    for (World::ItemState& cell : trade.ownGrid)
-        cell.warning = cell.id == EmptyOwnItemId ? std::uint8_t{0} : std::uint8_t{1};
-    // 0x5e51e7..0x5e5205: la de las tiendas personales (0x78ab0b8, CL9 hito 7).
-    for (World::ItemState& cell : world.Inventory().secondCells)
-        cell.warning = cell.id == EmptyOwnItemId ? std::uint8_t{0} : std::uint8_t{1};
+    warn(trade.ownGrid);
+    warn(runtime.npcWindows.grid);
+    warn(runtime.npcWindows.chaosBox);
+    warn(world.Inventory().secondCells);
+    warn(runtime.npcWindows.trainerBox);
     runtime.ui.field78abaac = 0;
     // 0x5e520c..0x5e5256: arriba de y + 200 (_ftol de y + 200f), el equipo; si no, la grilla.
     if (context.mouseY < y + 200)
@@ -1325,34 +1509,34 @@ Core::Expected<void, std::string> StepTheInventoryWindow(const GameUiContext& co
     return StepTheOtherGrids(context, panels);
 }
 
-// 0x5ee1b1..0x5ee1ca: las seis hermanas de 0x5e4ce0, cada una con su IsOpen.
+// 0x5ee1b1..0x5ee1ca: las seis hermanas de 0x5e4ce0, cada una con su IsOpen: los NPC de evento, la caja del caos
+// (0x5fe610), el almacén (0x5ea060), el comercio, las tiendas personales y la tienda de NPC (0x5ed960, con su rand()).
 Core::Expected<void, std::string> StepTheInventorySiblings(const GameUiContext& context, UI::PanelRegistry& panels)
 {
-    const auto cut = [](std::string_view what) { return Core::Unexpected(std::string(what)); };
     // 0x5e5920: los NPC de evento (CL9 hito 11).
     if (auto events = StepTheEventNpcWindow(context, panels); !events.HasValue())
         return events;
-    if (panels.IsOpen(UI::ChaosBoxPanel))
-        return cut("0x5fe621: el paso de la caja del caos (0x5fe610) es de la CL9.3");
-    if (panels.IsOpen(UI::WarehousePanel))
-        return cut("0x5ea071: el paso del almacén (0x5ea060) es de la CL9.3");
+    if (auto chaos = StepTheChaosBox(context, panels); !chaos.HasValue())
+        return chaos;
+    if (auto warehouse = StepTheWarehouse(context, panels); !warehouse.HasValue())
+        return warehouse;
     if (auto trade = StepTheTradeWindow(context, panels); !trade.HasValue())
         return trade;
     // 0x5ea290, que empieza con sus IsOpen (CL9 hito 7).
     if (auto shop = StepThePersonalShopWindow(context, panels); !shop.HasValue())
         return shop;
-    if (panels.IsOpen(UI::NpcShopPanel))
-        return cut("0x5ed98d: el paso de la tienda de NPC (0x5ed960) es de la CL9.3");
-    return {};
+    return StepTheNpcShop(context, panels);
 }
 
 // 0x5ee140: los paneles con paso propio, sin diálogo y sin el menú de Esc.
-// 0x5d8d50: el ítem del cursor, desde 0x5ee1de con 0x78abaac en 0. La caja del caos y la lista del asedio con el
-// inventario cortan al principio (sin rand(), CL9.3 y CL9.5); con la traba de C3 24, nada. Después las respuestas de
-// los avisos de 0x78abb14 (de 1 a 6) y del diálogo del precio (0x78aba60 en 2), que pueden terminar el paso
-// (StepTheWarningAnswers, CL9 hito 7; los de las ventanas de NPC cortan, CL9.3). Sin ninguno sigue en 0x5deac5 con esi
-// en 6 (0x5da592): con un ítem, soltarlo en la grilla del inventario (0x5ca250), las otras grillas y, con el clic
-// fuera de ellas, la tienda de NPC o el piso.
+// 0x5d8d50: el ítem del cursor, desde 0x5ee1de con 0x78abaac en 0. Con la caja del caos abierta, lo que vale y el
+// tipo de la mezcla (0x5d8db6, Scenes::ScanTheChaosBox); la lista del asedio con el inventario corta al principio
+// (sin rand(), CL9.5); con la traba de C3 24, nada. Después las respuestas de los avisos de 0x78abb14 (de 1 a 6, los
+// de las ventanas de NPC con Scenes::AnswerTheNpcWarning) y del diálogo del precio (0x78aba60 en 2), que pueden
+// terminar el paso (StepTheWarningAnswers, CL9 hito 7). Sin ninguno sigue en 0x5deac5 con esi en 6 (0x5da592): con un
+// ítem, soltarlo en la grilla del inventario (0x5ca250), en la del comercio, en la del almacén, en la caja del caos, en
+// la de la tienda personal o en la del entrenador y, con el clic fuera de ellas, venderlo en la tienda de NPC o tirarlo
+// al piso.
 Core::Expected<void, std::string> StepTheCursorItem(const GameUiContext& context, UI::PanelRegistry& panels)
 {
     WorldRuntime& runtime = context.world.Runtime();
@@ -1360,8 +1544,12 @@ Core::Expected<void, std::string> StepTheCursorItem(const GameUiContext& context
     const auto cut = [](std::string_view what) { return Core::Unexpected(std::string(what)); };
     // 0x5d8d72..0x5d8ddf.
     if (panels.IsOpen(UI::ChaosBoxPanel))
-        return cut("0x5d8db6: la caja del caos en el paso del ítem del cursor (0x5fd120 y 0x5fd4b0) es de la CL9.3");
-    if (panels.IsOpen(UI::CastleSiegeListPanel) && state.delegated.castleSiegeListMode == SiegeListWithInventory)
+    {
+        if (auto scanned = ScanTheChaosBox(context.world, context.random, ServicesOf(context).items);
+            !scanned.HasValue())
+            return scanned;
+    }
+    else if (panels.IsOpen(UI::CastleSiegeListPanel) && state.delegated.castleSiegeListMode == SiegeListWithInventory)
         return cut("0x5d8dad: 0x6689d0, la marca del asedio del héroe, es de la CL9.5");
     // 0x5d8ddf..0x5d8dee.
     if (runtime.ui.field78abb39 != 0)
@@ -1385,7 +1573,7 @@ Core::Expected<void, std::string> StepTheCursorItem(const GameUiContext& context
                                                                .panels = &panels});
     if (!inGrid.HasValue())
         return Core::Unexpected(inGrid.Error());
-    // 0x5deb11..0x5dec41: las otras grillas. La caja del caos y la lista del asedio ya cortaron arriba.
+    // 0x5deb11..0x5dec41: las otras grillas. La lista del asedio ya cortó arriba.
     bool inAGrid = inGrid.Value();
     if (panels.IsOpen(UI::TradePanel))
     {
@@ -1400,8 +1588,33 @@ Core::Expected<void, std::string> StepTheCursorItem(const GameUiContext& context
             return Core::Unexpected(inTrade.Error());
         inAGrid = inAGrid || inTrade.Value();
     }
+    const std::int32_t npcLeft = runtime.ui.npcWindowX + 0xf;
     if (panels.IsOpen(UI::WarehousePanel))
-        return cut("0x5deb57: soltar el ítem del cursor en el almacén (0x78a7070) es de la CL9.3");
+    {
+        // 0x5deb57: 0x5ca250(x + 0xf, y + 0x32, 0x78a7070, 8, 0xf, 2).
+        const auto dropped = DropOnOtherGrid(moves, OtherGridDrop{.mouseX = context.mouseX,
+                                                                  .mouseY = context.mouseY,
+                                                                  .left = npcLeft,
+                                                                  .top = runtime.ui.npcWindowY + 0x32,
+                                                                  .grid = CursorGrid::NpcGrid});
+        if (!dropped.HasValue())
+            return Core::Unexpected(dropped.Error());
+        inAGrid = inAGrid || dropped.Value();
+    }
+    if (panels.IsOpen(UI::ChaosBoxPanel) && runtime.npcWindows.chaosMixState != 1)
+    {
+        // 0x5debe4: 0x5ca250(x + 0xf, y + 0x6e, 0x7d2d380, 8, 4, 3).
+        const auto dropped = DropOnOtherGrid(moves, OtherGridDrop{.mouseX = context.mouseX,
+                                                                  .mouseY = context.mouseY,
+                                                                  .left = npcLeft,
+                                                                  .top = runtime.ui.npcWindowY + 0x6e,
+                                                                  .grid = CursorGrid::ChaosBox});
+        if (!dropped.HasValue())
+            return Core::Unexpected(dropped.Error());
+        inAGrid = inAGrid || dropped.Value();
+    }
+    else if (panels.IsOpen(UI::CastleSiegeListPanel) && state.delegated.castleSiegeListMode == SiegeListWithInventory)
+        return cut("0x5debbc: 0x6689d0, la marca del asedio del héroe, es de la CL9.5");
     if (panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel))
     {
         // 0x5debf0..0x5dec1e: 0x5ca250(x + 15, y + 0x6e, 0x78ab0b8, 8, 4, 4), con bl en lo que devuelve (CL9 hito 7).
@@ -1416,9 +1629,18 @@ Core::Expected<void, std::string> StepTheCursorItem(const GameUiContext& context
             return Core::Unexpected(inShop.Error());
         inAGrid = inAGrid || inShop.Value();
     }
-    // 0x5dec41: 0x44aca0, la caja del entrenador.
+    // 0x5dec41: 0x44aca0, con 0x724580 en 3, 0x5ca250(0x113, 0x6e, 0x723c80, 8, 4, 5).
     if (state.delegated.trainer == TrainerWithBox)
-        return cut("0x44aca9: soltar el ítem del cursor en la caja del entrenador (0x723c80) es de la CL9.3");
+    {
+        const auto dropped = DropOnOtherGrid(moves, OtherGridDrop{.mouseX = context.mouseX,
+                                                                  .mouseY = context.mouseY,
+                                                                  .left = TrainerBoxLeft,
+                                                                  .top = TrainerBoxTop,
+                                                                  .grid = CursorGrid::TrainerBox});
+        if (!dropped.HasValue())
+            return Core::Unexpected(dropped.Error());
+        inAGrid = inAGrid || dropped.Value();
+    }
     // 0x5dec46..0x5deca1: el clic, consumido, y nada más si quedó en una grilla.
     if (!runtime.movement.pendingClick)
         return {};
@@ -1427,9 +1649,12 @@ Core::Expected<void, std::string> StepTheCursorItem(const GameUiContext& context
     runtime.movement.mouseUpdateTimeMax = ButtonMouseUpdateTimeMax;
     if (inAGrid)
         return {};
-    // 0x5deca7..0x5decc8: la tienda de NPC, con su rand(); con el mouse en ella, vender.
-    if (panels.IsOpen(UI::NpcShopPanel))
-        return cut("0x5decce: vender el ítem del cursor en la tienda de NPC (0x78aba28) es de la CL9.3");
+    // 0x5deca7..0x5df448: la tienda de NPC, con su rand(); con el mouse en su grilla, venderlo.
+    const auto sold = SellTheCursorItem(context, panels);
+    if (!sold.HasValue())
+        return Core::Unexpected(sold.Error());
+    if (sold.Value())
+        return {};
     return DropOnTheGround(
         moves,
         GroundDrop{.mouseX = context.mouseX, .inventoryOpen = panels.IsOpen(UI::InventoryPanel), .panels = &panels});
@@ -1442,9 +1667,12 @@ Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI
     const UI::DelegatedPanels& delegated = runtime.panels.delegated;
     if (runtime.dialogs.current == UI::EscapeMenuDialog)
         return {};
-    // 0x5e7bf0: con 0x78abb20 en 0 devuelve 0.
-    if (ui.field78abb20 != 0)
-        return Core::Unexpected(std::string("0x5e7bf0: 0x78abb20 es del teclado del almacén, de la CL9.3"));
+    // 0x5e7bf0: con 0x78abb20 en 0 devuelve 0; si no, la caja de la contraseña y 1, y 0x5ee140 no sigue.
+    auto keypad = StepTheKeypad(context, panels);
+    if (!keypad.HasValue())
+        return Core::Unexpected(std::move(keypad).Error());
+    if (keypad.Value())
+        return {};
     // 0x5ee15a..0x5ee188.
     if (runtime.dialogs.current != 0 || ui.capture != 0 || ui.hovered != 0 || ui.field78abad9 != 0)
         return {};
@@ -1462,9 +1690,9 @@ Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI
         if (auto siblings = StepTheInventorySiblings(context, panels); !siblings.HasValue())
             return siblings;
     }
-    // 0x44b4e0: el NPC de la caja con 0x724580 fuera de 0 y 4.
-    if (delegated.trainer != 0 && delegated.trainer != 4)
-        return Core::Unexpected(std::string("0x44b4e0: el paso del NPC de la caja 0x723c80 es de la CL9.3"));
+    // 0x44b4e0: el entrenador, por 0x724580.
+    if (auto trainer = StepTheTrainer(context, panels); !trainer.HasValue())
+        return trainer;
     // 0x44dd50 y 0x44f810: el arma de asedio y la puerta.
     if (delegated.siegeWeapon != 0 || delegated.siegeGate != 0)
         return Core::Unexpected(std::string("0x44dd50: el paso del arma y de la puerta del asedio es de la CL9.5"));
@@ -1481,8 +1709,8 @@ Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI
             return chips;
     }
     // 0x5e74f0, el panel 0x2000.
-    if (panels.IsOpen(UI::Panel2000))
-        return Core::Unexpected(std::string("0x5e74f0: el paso del panel 0x2000 es de la CL9"));
+    if (auto panel = StepThePanel2000(context, panels); !panel.HasValue())
+        return panel;
     // 0x40a450, los comandos ([0x6e592c]), que empieza con su +4.
     if (auto commands = StepTheCommandsWindow(context); !commands.HasValue())
         return commands;
@@ -2213,6 +2441,9 @@ Core::Expected<void, std::string> StepTheGameDialogs(const GameUiContext& contex
     // 3F 07 y las misiones el 31, por la sesión.
     panels.LendTheSession(context.world, context.random, context.requests);
     panels.LendTheGuild(context.world, GuildSenderOf(context.requests));
+    panels.LendTheNpcWindows(context.world, context.random,
+                             context.inventory != nullptr ? *context.inventory : InventoryServices{},
+                             context.sendNpcWindow);
     // 0x623e9b..0x623ec2: con la de amigos abierta, Esc es de las ventanas viejas (0x490490). Lo leído queda en
     // [EBP−0x7d], que mira el no de 0x62c50e.
     const bool escape = !panels.Registry().IsOpen(UI::FriendsPanel) && KeyEdge(ui, context.input, EscapeKey);
@@ -2271,6 +2502,9 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
                                           .itemSetTables = context.itemSetTables,
                                           .texts = context.texts});
     gamePanels.LendThePartyList(context.world, context.requests);
+    gamePanels.LendTheNpcWindows(context.world, context.random,
+                                 context.inventory != nullptr ? *context.inventory : InventoryServices{},
+                                 context.sendNpcWindow);
     gamePanels.LendTheSession(context.world, context.random, context.requests);
     if (context.chat != nullptr && context.chat->send)
         gamePanels.LendThePetRequests(context.chat->send);

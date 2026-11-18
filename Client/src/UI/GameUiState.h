@@ -46,6 +46,9 @@ struct HoveredItem
         OwnTradeCell,   // 0x78a92a8 + índice · 0x48 (CL9 hito 7)
         OtherTradeCell, // 0x78a5a20 + índice · 0x48
         ShopCell,       // 0x78ab0b8 + índice · 0x48, la grilla de las tiendas personales (CL9 hito 7, fase 5)
+        NpcGridCell,    // 0x78a7070 + índice · 0x48, la tienda y el almacén (CL9 hito 6)
+        ChaosBoxCell,   // 0x7d2d380 + índice · 0x48
+        TrainerBoxCell, // 0x723c80 + índice · 0x48
     };
     Place place = Place::None;
     std::size_t index = 0;
@@ -57,8 +60,10 @@ struct GameUiState
     // (0x59b37a, 0x59b853), 0x57cfc0 (0x57cff2) y el picking (0x59ec80).
     std::uint8_t mouseOnUi = 0;
     // 0x78aba28 y 0x78aba2c (.bss 0): la esquina de las ventanas de NPC de la derecha. La ponen en (0x104, 0) los pasos
-    // y los dibujos de las de los NPC de evento (0x5e5920, 0x5f58f0), de la tienda, del almacén, de la caja del caos y
-    // del asedio, y la lee el inventario (0x5e4e9e) para el mouse sobre la UI.
+    // y los dibujos de las de los NPC de evento (0x5e5920, 0x5f58f0), de la tienda (0x5f4720), del almacén (0x5f4e30),
+    // de la caja del caos (0x5febf0) y del asedio. La leen el inventario (0x5e4e9e) para el mouse sobre la UI, los
+    // ítems 3D y las cifras de las grillas en el mismo frame (0x5f7610, 0x5f7840), los pasos de esas ventanas
+    // (0x5ed960, 0x5ea060 y 0x5fe610), sus grillas en el inventario (0x5e571c) y el ítem del cursor (0x5d8d50).
     std::int32_t npcWindowX = 0;
     std::int32_t npcWindowY = 0;
     // 0x6c9320 (.data −1): el tooltip de la skill del HUD. 0x636dfa lo vuelve a −1 en cada paso.
@@ -118,8 +123,10 @@ struct GameUiState
     // 0x78abaac: con 1, 0x5ee140 no llama a 0x5d8d50 (0x5ee1de). Hito 4: lo ponen en 1 0x5bf1fb y 0x5c2c56 (en
     // 0x5bec50) y en 0 0x5e5212.
     std::uint8_t field78abaac = 0;
-    // 0x78abb20: con 0, 0x5e7bf0 devuelve 0 y 0x5ee140 sigue. Lo saca de 0 solo código de la CL9.3: el teclado
-    // del almacén (0x5c0139, 0x5cb432, 0x5d9c19 y 0x5ea227) y 0x5e7aa0.
+    // 0x78abb20: el modo del teclado del almacén. Con 0, 0x5e7bf0 devuelve 0 y 0x5ee140 sigue. Lo prenden 0x5e7aa0
+    // (Scenes::OpenTheKeypad), soltar en el inventario con la traba (0x5cb432) y el botón 2 del almacén (0x5ea227).
+    // 0x5d9c19 (el sí con 0x78abb14 en 4) también, con 6, y 0x5c0139 (soltar en el equipo un ítem del almacén con la
+    // traba).
     std::int32_t field78abb20 = 0;
     // 0x7d36880: el flanco del clic derecho. Lo prende WM_RBUTTONDOWN si el botón no estaba abajo, lo apaga
     // WM_RBUTTONUP (02, la tabla del WndProc) y lo apaga quien lo usa.
@@ -138,6 +145,11 @@ struct GameUiState
     // lo sube en cada paso con el derecho abajo y lo vuelve a 0 al soltar o con una acción que no deja usar skills
     // (0x57d495).
     std::int32_t rightHoldFrames = 0;
+    // 0x7d368a1: movimiento automático de almacén (0x5c9e10), consumido por 0x5ca250. Las coordenadas
+    // sustituyen temporalmente las del mouse; el mouse físico no cambia.
+    bool automaticMove = false;
+    std::int32_t automaticMouseX = 0;
+    std::int32_t automaticMouseY = 0;
     // 0x6c8e3c (.data 1): el ataque automático. Lo escriben el F3 30 (el bit 0x01, 0x4dd7d7), el menú de Esc
     // (0x625632) y la vuelta a la selección (0x4c2533, en 1). Sus lectores de MuRet: el picking (0x59ee4b), con el
     // elegido de antes (0x6c8e30), y MoveHero (0x59b22f y 0x59b89e) y 0x57cfc0 (0x57d1bc), con 0x6c8e38 distinto de −1,

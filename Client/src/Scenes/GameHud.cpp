@@ -26,6 +26,7 @@
 #include "Scenes/GameCharacterHud.h"
 #include "Scenes/GameCommandsWindow.h"
 #include "Scenes/GameHelps.h"
+#include "Scenes/ChaosBoxDrawing.h"
 #include "Scenes/GameInventoryHud.h"
 #include "Scenes/GameMoveWindow.h"
 #include "Scenes/GamePanels.h"
@@ -36,14 +37,17 @@
 #include "Scenes/GameTooltips.h"
 #include "Scenes/HealthBars.h"
 #include "Scenes/HudItems.h"
+#include "Scenes/NpcWindowDrawing.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
+#include "Scenes/PetTrainerDrawing.h"
 #include "Scenes/GuildWindow.h"
 #include "Scenes/SecondGuildWindow.h"
 #include "Scenes/QuestWindow.h"
 #include "Scenes/ShopSigns.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/UiItemDrawing.h"
+#include "Scenes/WarehouseKeypad.h"
 #include "Scenes/GuildDrawing.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -876,18 +880,22 @@ Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
     // 0x5f3030, que empieza con su IsOpen (CL9 hito 7).
     if (auto shop = DrawThePersonalShopWindow(frame.context, panels); !shop.HasValue())
         return shop;
-    if (panels.IsOpen(UI::NpcShopPanel))
-        return cut("0x5f4720: la tienda del NPC es de la CL9.3");
-    if (panels.IsOpen(UI::ChaosBoxPanel))
-        return cut("0x5febf0: la caja del caos es de la CL9.3");
-    if (state.delegated.trainer != 0 && state.delegated.trainer != 4)
-        return cut("0x44b510: la ventana del entrenador es de la CL9.3");
+    // 0x5f4720, que empieza con su IsOpen (el byte protegido, 1 rand()).
+    if (auto shop = DrawTheNpcShop(frame.context, panels); !shop.HasValue())
+        return shop;
+    // 0x5f75b2: 0x5febf0, que empieza con su IsOpen.
+    if (auto chaos = DrawTheChaosBox(frame.context, panels); !chaos.HasValue())
+        return chaos;
+    // 0x5f75b7: 0x44b510, que mira el modo.
+    if (auto trainer = DrawTheTrainer(frame.context); !trainer.HasValue())
+        return trainer;
     if (state.delegated.siegeWeapon != 0)
         return cut("0x44ea60: el arma del asedio es de la CL9.5");
     if (state.delegated.siegeGate != 0)
         return cut("0x44ff00: la puerta del asedio es de la CL9.5");
-    if (panels.IsOpen(UI::WarehousePanel))
-        return cut("0x5f4e30: el almacén es de la CL9.3");
+    // 0x5f4e30, que empieza con su IsOpen (sin rand()).
+    if (auto warehouse = DrawTheWarehouse(frame.context, panels); !warehouse.HasValue())
+        return warehouse;
     // 0x5f75cb: 0x5f58f0, los NPC de evento (CL9 hito 11), que empieza con sus IsOpen.
     if (auto events = DrawTheEventNpcWindow(frame.context, panels); !events.HasValue())
         return events;
@@ -903,8 +911,8 @@ Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
     // 0x5f75e7: 0x424160 con el héroe, siempre: el botón y la ventana de la mascota y el cartel del cuervo.
     if (auto pet = DrawThePetWindow(frame.context, panels); !pet.HasValue())
         return pet;
-    if (panels.IsOpen(UI::Panel2000))
-        return cut("0x5f7180: la ventana 0x2000 no tiene ola todavía");
+    if (auto panel = DrawThePanel2000(frame.context, panels); !panel.HasValue())
+        return panel;
     // 0x5f75fa: 0x40a650, que empieza con +4 de [0x6e592c].
     if (auto commands = DrawTheCommandsWindow(frame.context); !commands.HasValue())
         return commands;
@@ -1714,9 +1722,9 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
     // 29. 0x5a9630.
     if (auto bar = DrawTheMainBar(frame); !bar.HasValue())
         return bar;
-    // 30. 0x5e9b10.
-    if (runtime.ui.field78abb20 != 0)
-        return Core::Unexpected(std::string("0x5e9b10: la caja de la contraseña es del almacén, de la CL9.3"));
+    // 30. 0x5e9b10, que empieza con el modo del teclado (0x78abb20).
+    if (auto keypad = DrawTheKeypad(frame.context); !keypad.HasValue())
+        return keypad;
     // 31. Sin ninguna ventana, 0x4125b0.
     return DrawTheSiegePanel(frame);
 }

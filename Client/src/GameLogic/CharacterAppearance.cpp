@@ -18,8 +18,8 @@ constexpr std::array<std::uint16_t, BodyPartCount> EquipmentPartBase = {0x1012, 
 
 // El índice que es "vacío" en una parte del cuerpo.
 constexpr std::uint16_t EmptyPartIndex = 0x1ff;
-// El tipo que MuRet toma como "sin ítem" en una mano (Q-C102: el original compara con 0x1fff).
-constexpr std::uint16_t EmptyHandType = 0xfff;
+// 0x513a35/0x513a79: CMP AX,0x1fff. El tipo de doce bits no alcanza este valor (Q-C102).
+constexpr std::uint16_t EmptyHandType = 0x1fff;
 // El primer modelo de un ítem: el tipo va sumado.
 constexpr std::uint16_t FirstItemModel = 0x212;
 

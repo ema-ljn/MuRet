@@ -650,9 +650,7 @@ Core::Expected<std::int64_t, std::string> PetPrice(const World::ItemState& item,
         return Core::Unexpected(std::format("0x54db28: el precio del {:#x} lee el nivel de su mascota (0x422930), que "
                                             "escribe el A9 (P-C126)",
                                             item.id));
-    if (item.id == FirstPet)
-        return std::int64_t{pets->horse * HorsePricePerLevel};
-    return std::int64_t{pets->raven * RavenPricePerLevel};
+    return std::int64_t{PetBasePrice(item.id, *pets)};
 }
 
 // 0x54db3d..0x54dbc0: los que descuentan la durabilidad, solo en el modo 1.
@@ -726,6 +724,11 @@ std::string GoldText(std::uint32_t gold)
     return std::format("{}", units);
 }
 } // namespace
+
+std::uint32_t PetBasePrice(std::uint16_t type, const PetPriceLevels& pets)
+{
+    return type == FirstPet ? pets.horse * HorsePricePerLevel : pets.raven * RavenPricePerLevel;
+}
 
 Core::Expected<std::uint32_t, std::string> ItemPrice(const World::ItemState& item, const Data::Tables::ItemTable& items,
                                                      std::int32_t mode, const std::optional<PetPriceLevels>& pets)

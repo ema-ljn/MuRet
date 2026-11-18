@@ -7,6 +7,7 @@
 #include "Data/Text/TextTable.h"
 #include "Protocol/Events.h"
 #include "Protocol/Movement.h"
+#include "Protocol/Outgoing.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
@@ -22,6 +23,7 @@
 #include "Scenes/GameMessages.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/ItemNames.h"
+#include "Scenes/JewelMix.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/TerrainMarks.h"
 #include "Scenes/WorldMap.h"
@@ -1162,12 +1164,19 @@ private:
         return {};
     }
 
-    // 0x402e50: la ventana de la mezcla de joyas (0x6e5794..0x6e5799 y 0x6c62e0), que MuRet no tiene.
-    static Applied CloseTheJewelWindow()
+    // 0x402e50 (Scenes/JewelMix.h): de vuelta a elegir la joya; con otro modo, 0x402eb0 cierra todo y manda el C1 03 31
+    // en claro por el send() de los paquetes de mundo. Sin él, ese envío corta.
+    Applied CloseTheJewelWindow()
     {
-        return Core::Unexpected(std::string("0x402e50: cerrar la ventana de la mezcla de joyas (0x6e5798, 0x6e5799, "
-                                            "0x6c62e0 y los diálogos 0xa2 y 0xa4, o 0x402eb0) es del hito 6 de la "
-                                            "CL9"));
+        return ReturnToTheJewelChoice(m_world,
+                                      [this](Protocol::Outgoing packet) -> Core::Expected<void, std::string>
+                                      {
+                                          if (!m_context.send)
+                                              return Core::Unexpected(
+                                                  std::string("0x402f91: el C1 03 31 sin la sesión"));
+                                          m_context.send(std::move(packet));
+                                          return {};
+                                      });
     }
 
     // ----- BD 00 (0x4e5965): 0x42fe80(pkt[4], pkt[5]) y 0x4033b0(pkt[5]) sobre [0x6e5904].

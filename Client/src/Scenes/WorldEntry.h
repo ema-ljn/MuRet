@@ -88,6 +88,9 @@ struct WorldEntryResources
     // El B9 02 que 0x42a760 manda al cargar el 30 con el socket del GS abierto: SessionEventApplier lo ata a la
     // sesión que aplica la respuesta. Vacío, como el socket en −1, no sale nada.
     std::function<void()> requestCastleSiegeState{};
+    // Los paquetes de las ventanas de los NPC (CL9 hito 6, Scenes/NpcWindows.h): SessionEventApplier y la escena lo
+    // atan a la sesión (App::ServerSession::SendNpcWindowPacket). Vacío, lo que manda corta con error.
+    std::function<Core::Expected<void, std::string>(Protocol::Outgoing)> sendNpcWindowPacket{};
     // 0x419900, el C1 03 31 en claro que manda cerrar las misiones (0x657a90 desde el A1, el A2 y los cambios de mapa),
     // y el que 0x657a90 manda al cerrar un NPC de evento (0x1000 o 0x4000, 0x658a18 y 0x658c0e; CL9 hito 11) en la
     // entrada, el teleport y el regen. Lo presta el sink con la sesión; sin él, cerrarlos corta.

@@ -8,6 +8,7 @@
 
 #include <gtest/gtest.h>
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
@@ -287,6 +288,82 @@ TEST(TextureSetsTest, TheLoadingSetIsTheOneOf0x622e40)
 }
 } // namespace
 
+// 0x61d784..0x61d78e: material de las partículas del mapa 34, con filtro y sin repetir.
+TEST(TextureSetsTest, TheCrywolfArrivalSmokeUploadsItsRealImage)
+{
+    Client::Tests::FakeTextureStore store;
+    Client::Scenes::SceneTextures textures(store, EffectTextureSet);
+    ASSERT_TRUE(textures.Load(std::filesystem::path{MURET_CLIENT_REPO_DATA_DIR}).HasValue());
+    const auto texture = store.Find(Client::Render::TextureSlot{0x5f6});
+    ASSERT_TRUE(texture.has_value());
+    EXPECT_EQ(texture->sampling.filter, Filter::Linear);
+    EXPECT_EQ(texture->sampling.wrap, Wrap::Clamp);
+    EXPECT_GT(texture->texture.width, 0);
+    EXPECT_GT(texture->texture.height, 0);
+}
+
+// 0x61ccb0: el cráter usa nearest; PoundingBall comparte linear/clamp con fi02.
+TEST(TextureSetsTest, TheCrywolfEffectMaterialsUploadTheirRealImages)
+{
+    Client::Tests::FakeTextureStore store;
+    Client::Scenes::SceneTextures textures(store, EffectTextureSet);
+    ASSERT_TRUE(textures.Load(std::filesystem::path{MURET_CLIENT_REPO_DATA_DIR}).HasValue());
+    for (const std::uint16_t slot : std::array<std::uint16_t, 3>{0x636, 0x637, 0x638})
+    {
+        const auto texture = store.Find(Client::Render::TextureSlot{slot});
+        ASSERT_TRUE(texture.has_value()) << slot;
+        EXPECT_EQ(texture->sampling.filter, Filter::Nearest);
+        EXPECT_EQ(texture->sampling.wrap, Wrap::Clamp);
+        EXPECT_GT(texture->texture.width, 0);
+        EXPECT_GT(texture->texture.height, 0);
+    }
+    const auto ball = store.Find(Client::Render::TextureSlot{0x6ad});
+    ASSERT_TRUE(ball.has_value());
+    EXPECT_EQ(ball->sampling.filter, Filter::Linear);
+    EXPECT_EQ(ball->sampling.wrap, Wrap::Clamp);
+    EXPECT_GT(ball->texture.width, 0);
+    EXPECT_GT(ball->texture.height, 0);
+}
+
+// 0x61e3c0..0x61e46e: materiales de los controles H12/H13 que usa el asedio.
+TEST(TextureSetsTest, TheHudUploadsTheCastleMapGateAndGuardianButtons)
+{
+    Client::Tests::FakeTextureStore store;
+    Client::Scenes::SceneTextures textures(store, Client::Scenes::HudTextureSet);
+    ASSERT_TRUE(textures.Load(std::filesystem::path{MURET_CLIENT_REPO_DATA_DIR}).HasValue());
+    for (const std::uint16_t slot :
+         std::array<std::uint16_t, 20>{0x667, 0x668, 0x660, 0x661, 0x662, 0x663, 0x664, 0x665, 0x666, 0x65f,
+                                       0x69f, 0x6a0, 0x6a1, 0x6a2, 0x6a4, 0x6a5, 0x6a6, 0x6a7, 0x6a3, 0x669})
+    {
+        SCOPED_TRACE(slot);
+        const auto texture = store.Find(Client::Render::TextureSlot{slot});
+        ASSERT_TRUE(texture.has_value());
+        EXPECT_EQ(texture->sampling.filter, Filter::Nearest);
+        EXPECT_EQ(texture->sampling.wrap, Wrap::Clamp);
+        EXPECT_GT(texture->texture.width, 0);
+        EXPECT_GT(texture->texture.height, 0);
+    }
+}
+
+// 0x61b20f, 0x61b286 y 0x61b2a6: las imágenes que consumen las barras y los botones de mezcla.
+TEST(TextureSetsTest, TheHudUploadsTheLevelAndBothMixButtons)
+{
+    Client::Tests::FakeTextureStore store;
+    Client::Scenes::SceneTextures textures(store, Client::Scenes::HudTextureSet);
+    const auto loaded = textures.Load(std::filesystem::path{MURET_CLIENT_REPO_DATA_DIR});
+    ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
+    for (const std::uint16_t slot : std::array<std::uint16_t, 3>{0x121, 0x124, 0x125})
+    {
+        SCOPED_TRACE(slot);
+        const auto texture = store.Find(Client::Render::TextureSlot{slot});
+        ASSERT_TRUE(texture.has_value());
+        EXPECT_EQ(texture->sampling.filter, Filter::Nearest);
+        EXPECT_EQ(texture->sampling.wrap, Wrap::Clamp);
+        EXPECT_GT(texture->texture.width, 0);
+        EXPECT_GT(texture->texture.height, 0);
+    }
+}
+
 // 61da58/61da62: Thunder01 usa GL_LINEAR/GL_REPEAT, a diferencia de los sprites cercanos.
 TEST(TextureSetsTest, HelperThunderUploadsItsRealImageWithLinearRepeat)
 {
@@ -298,6 +375,49 @@ TEST(TextureSetsTest, HelperThunderUploadsItsRealImageWithLinearRepeat)
     ASSERT_TRUE(texture.has_value());
     EXPECT_EQ(texture->sampling.filter, Filter::Linear);
     EXPECT_EQ(texture->sampling.wrap, Wrap::Repeat);
+    EXPECT_GT(texture->texture.width, 0);
+    EXPECT_GT(texture->texture.height, 0);
+}
+
+TEST(TextureSetsTest, TheFireworkTrailUploadsItsRealImage)
+{
+    Client::Tests::FakeTextureStore store;
+    Client::Scenes::SceneTextures textures(store, EffectTextureSet);
+    ASSERT_TRUE(textures.Load(std::filesystem::path{MURET_CLIENT_REPO_DATA_DIR}).HasValue());
+    const auto trail = store.Find(Client::Render::TextureSlot{0x60d});
+    ASSERT_TRUE(trail.has_value());
+    EXPECT_EQ(trail->sampling.filter, Filter::Linear);
+    EXPECT_EQ(trail->sampling.wrap, Wrap::Clamp);
+    EXPECT_GT(trail->texture.width, 0);
+    EXPECT_GT(trail->texture.height, 0);
+}
+
+// 0x61dc0b..0x61dc15: Chrome03 para Crywolf y los brillos de monstruos, sin filtro ni repetición.
+TEST(TextureSetsTest, TheCrywolfChromeUploadsItsRealImage)
+{
+    Client::Tests::FakeTextureStore store;
+    Client::Scenes::SceneTextures textures(store, EffectTextureSet);
+    const auto loaded = textures.Load(std::filesystem::path{MURET_CLIENT_REPO_DATA_DIR});
+    ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
+    const auto texture = store.Find(Client::Render::TextureSlot{0x6b1});
+    ASSERT_TRUE(texture.has_value());
+    EXPECT_EQ(texture->sampling.filter, Filter::Nearest);
+    EXPECT_EQ(texture->sampling.wrap, Wrap::Clamp);
+    EXPECT_GT(texture->texture.width, 0);
+    EXPECT_GT(texture->texture.height, 0);
+}
+
+// 0x61d523..0x61d52d: Fire03 del efecto 0x147/1 usa LINEAR/CLAMP.
+TEST(TextureSetsTest, TheCrywolfFireUploadsItsRealImage)
+{
+    Client::Tests::FakeTextureStore store;
+    Client::Scenes::SceneTextures textures(store, EffectTextureSet);
+    const auto loaded = textures.Load(std::filesystem::path{MURET_CLIENT_REPO_DATA_DIR});
+    ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
+    const auto texture = store.Find(Client::Render::TextureSlot{0x5db});
+    ASSERT_TRUE(texture.has_value());
+    EXPECT_EQ(texture->sampling.filter, Filter::Linear);
+    EXPECT_EQ(texture->sampling.wrap, Wrap::Clamp);
     EXPECT_GT(texture->texture.width, 0);
     EXPECT_GT(texture->texture.height, 0);
 }

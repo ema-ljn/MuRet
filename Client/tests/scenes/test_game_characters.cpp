@@ -24,6 +24,7 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/TerrainLighting.h"
+#include "World/Particles.h"
 #include "World/WorldTerrain.h"
 
 #include "support/FakeTextureStore.h"
@@ -373,21 +374,52 @@ TEST_F(UnarmedGameCharacterTest, WalkingUnarmedClosesBothHandBytesAfterTheBodyRa
     EXPECT_EQ(m_world->Map().terrain.attributes->cells[Client::Data::Terrain::CellIndex(119, 115)], 1);
 }
 
-// 0x510ea9..0x510eb3 y 0x42afe0: después de dibujar el 0x20a, en el 30, con el asedio y con +0x16c, 0x42ddb0
-// (que no está portado); sin el asedio, el personaje se dibuja como en otro mapa.
-TEST_F(UnarmedGameCharacterTest, InTheCastleSiegeOnlyTheSiegeStopsAfterTheCharacter)
+// 510ea9..510eb3 y42afe0: después del0x20a,42ddb0 emite638 en un defensor cerca de una marca cada10pasos.
+// Los tres CRT del cuerpo/manos preceden a los dos del jitter de la bendición (53fe70).
+TEST_F(UnarmedGameCharacterTest, TheCastleSiegeBlessingFollowsTheCompletedCharacterAndItsRandoms)
 {
     m_world->Runtime().map = 30;
-    const auto quiet = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+    Actor().position = {8200.0f, 13000.0f, 10.0f};
+    Actor().flags78 |= 0x40000;
+    auto pass = Pass();
+    pass.particles = &m_world->Particles();
+    const auto quiet = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
     ASSERT_TRUE(quiet.HasValue()) << quiet.Error();
     EXPECT_EQ(m_batch.Vertices().size(), 6u);
+    EXPECT_EQ(m_cloth.random.State(), 0x18be873au);
+    EXPECT_FALSE(m_world->Particles().All().front().alive);
 
     m_world->Runtime().siegeActive = true;
+    m_cloth.random = Client::Render::Models::CrtRandom(1);
     m_batch.Begin({});
-    const auto siege = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
-    ASSERT_FALSE(siege.HasValue());
-    EXPECT_NE(siege.Error().find("0x42b00b"), std::string::npos) << siege.Error();
+    const auto siege = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+    ASSERT_TRUE(siege.HasValue()) << siege.Error();
     EXPECT_EQ(m_batch.Vertices().size(), 6u);
+    const auto& blessing = m_world->Particles().All().front();
+    ASSERT_TRUE(blessing.alive);
+    EXPECT_EQ(blessing.type, Client::World::SiegeBlessingParticle);
+    EXPECT_EQ(blessing.life, 20);
+    EXPECT_EQ(blessing.position, (glm::vec3{8195.0f, 13014.0f, 250.0f}));
+    EXPECT_EQ(blessing.light, Actor().light);
+    Client::Render::Models::CrtRandom expected(1);
+    expected.Discard(5);
+    EXPECT_EQ(m_cloth.random.State(), expected.State());
+    EXPECT_EQ(m_world->Map().terrain.attributes->cells[Client::Data::Terrain::CellIndex(119, 115)], 1);
+}
+
+TEST_F(UnarmedGameCharacterTest, TheCastleSiegeRequiresTheParticlePoolAfterTheBodyPrefix)
+{
+    m_world->Runtime().map = 30;
+    m_world->Runtime().siegeActive = true;
+
+    const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+
+    ASSERT_FALSE(result.HasValue());
+    EXPECT_NE(result.Error().find("0x42de7f"), std::string::npos) << result.Error();
+    EXPECT_EQ(m_batch.Vertices().size(), 6u);
+    EXPECT_EQ(m_cloth.random.State(), 0x18be873au);
+    // No llega a42da60: el bit04 de las puertas sigue cerrado.
+    EXPECT_EQ(m_world->Map().terrain.attributes->cells[Client::Data::Terrain::CellIndex(119, 115)], 5);
 }
 
 TEST_F(UnarmedGameCharacterTest, HeldOrWrappedHandByteDepthDoesNotConsumeClosingRandoms)

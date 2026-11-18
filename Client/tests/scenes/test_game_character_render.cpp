@@ -1013,8 +1013,9 @@ TEST_F(GameCharacterRenderTest, CatchUpKeepsTheFirstFailedFramesShadowPartsCloth
     ActorState& actor = Player(0);
     actor.characterClass = 4;
     actor.hands[0].model = 0x212;
-    // 0x413fe0: +0x360 en 6 pide una capa del 6 al 13 (0x4147c0, sin portar), después del arma a la espalda.
-    actor.byte360 = 6;
+    // 414470: la librería sintética no tiene MuSign. La capa5 falla después de sombra/partes/tela/arma;
+    // las capas de asedio6..13 ya están portadas y no son un punto de fallo válido para esta regresión.
+    actor.byte360 = 5;
     auto referenceWorld = std::make_unique<Client::Scenes::WorldState>();
     referenceWorld->Runtime().map = 0;
     referenceWorld->Actors()[0] = actor;
@@ -1046,7 +1047,7 @@ TEST_F(GameCharacterRenderTest, CatchUpKeepsTheFirstFailedFramesShadowPartsCloth
     referencePass.poseCarry = &referenceCarry;
     const auto reference = Client::Scenes::DrawGameCharacters(referenceBatch, m_models, *referenceWorld, referencePass);
     ASSERT_FALSE(reference.HasValue());
-    ASSERT_NE(reference.Error().find("0x4140d5"), std::string::npos) << reference.Error();
+    ASSERT_NE(reference.Error().find("0x414470"), std::string::npos) << reference.Error();
     ASSERT_GT(referenceBatch.Vertices().size(), 6u); // sombra, partes, tela y el arma a la espalda
     ASSERT_EQ(LiveSprites(referenceSprites).size(), 31u);
 

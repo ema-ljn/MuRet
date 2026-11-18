@@ -557,6 +557,26 @@ TEST_F(NpcWindowStepsTest, StoringAnItemInTheWarehouseSendsTheMove)
     }
 }
 
+// 0x5c8e8f → 0x5ca250 en la misma vuelta: el derecho busca la última huella libre y el 24 sale sin clic izquierdo.
+TEST_F(NpcWindowStepsTest, TheWarehouseRightClickMovesThroughTheWholeUiStep)
+{
+    auto& runtime = world.Runtime();
+    runtime.panels.warehouse = 1;
+    Place(world.Inventory().cells, ItemState{.id = Sword, .scalar1Low = 0x18, .durability = 25}, 1, 1, 1, 3);
+    runtime.ui.rightClick = true;
+    const auto stepped = Step(InventoryX + 15 + 20 + 5, 200 + 20 + 5);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    ASSERT_EQ(sent.size(), 1u);
+    EXPECT_EQ(sent[0].delivery, Delivery::Encrypted);
+    EXPECT_TRUE(SameBytes(Plain(0).Bytes(),
+                          Bytes({0xc1, 0x0e, 0x24, 0x00, 21, 0x01, 0x18, 25, 0x00, 0x00, 0x00, 0x00, 0x02, 103})));
+    EXPECT_EQ(world.Inventory().cells[9].id, EmptyOwnItemId);
+    EXPECT_EQ(runtime.cursorItemCount, 1);
+    EXPECT_EQ(runtime.ui.field78abb39, 1);
+    EXPECT_FALSE(runtime.movement.pendingClick);
+    EXPECT_EQ(runtime.itemMoveTarget, 103);
+}
+
 // Sacar: el clic sobre el arma del almacén la levanta desde su esquina (el lugar 73, sin el 12) con el IsOpen(0x20)
 // de 0x5c5361, y soltarla en la columna 4 y la fila 2 del inventario manda 0x449d80(2, 73, 0, 32). Con la traba del
 // almacén (0x6c932f) y sin 0x78abb1c, en cambio, lo deja esperando la contraseña ({2, 73, 0, 32}), baraja el

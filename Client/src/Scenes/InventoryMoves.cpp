@@ -1056,6 +1056,21 @@ bool TheFootprintIsEmpty(std::span<const ItemState> cells, std::int32_t columns,
 }
 } // namespace
 
+std::optional<GridCell> FindFreeGridCell(std::span<const ItemState> cells, std::int32_t columns, std::int32_t rows,
+                                         ItemFootprint footprint)
+{
+    for (std::int32_t column = columns - footprint.width; column >= 0; --column)
+    {
+        for (std::int32_t row = rows - footprint.height; row >= 0; --row)
+        {
+            const GridCell cell{.column = column, .row = row};
+            if (TheFootprintIsEmpty(cells, columns, rows, cell, footprint))
+                return cell;
+        }
+    }
+    return std::nullopt;
+}
+
 bool ItemFitsInTheGrid(const ItemState& cursor, std::span<const ItemState> cells, std::int32_t columns,
                        std::int32_t rows, GridCell cell, ItemFootprint footprint)
 {
@@ -1643,6 +1658,19 @@ bool MarkTheFootprint(const ItemState& cursor, std::span<ItemState> cells, std::
 }
 } // namespace
 
+namespace
+{
+// 0x5d8cd7..0x5d8cf6: al terminar restaura el mouse físico y consume 0x7d368a1. Una casilla negativa sale antes.
+struct AutomaticMoveReset
+{
+    bool& pending;
+    ~AutomaticMoveReset()
+    {
+        pending = false;
+    }
+};
+} // namespace
+
 Core::Expected<bool, std::string> DropOnTheInventoryGrid(const InventoryMoveContext& context, const GridDrop& drop)
 {
     WorldState& world = context.world;
@@ -1651,15 +1679,18 @@ Core::Expected<bool, std::string> DropOnTheInventoryGrid(const InventoryMoveCont
     const auto footprint = ItemFootprintOf(context.services.items, cursor.id, "0x5ca250 (0x5ca295)");
     if (!footprint.HasValue())
         return Core::Unexpected(footprint.Error());
-    const GridCell cell = CellUnderTheMouse(drop.mouseX, drop.mouseY, drop.left, drop.top, footprint.Value());
+    const GridCell cell = CellUnderTheMouse(runtime.ui.automaticMove ? runtime.ui.automaticMouseX : drop.mouseX,
+                                            runtime.ui.automaticMove ? runtime.ui.automaticMouseY : drop.mouseY,
+                                            drop.left, drop.top, footprint.Value());
     if (cell.column < 0 || cell.row < 0)
         return false;
+    const AutomaticMoveReset reset{runtime.ui.automaticMove};
     // 0x5ca339..0x5ca364: con 0x724580 en 3, 0x44acd0 deja pasar cualquier grilla que no sea la del entrenador.
     std::span<ItemState> cells(world.Inventory().cells);
     const bool fits = ItemFitsInTheGrid(cursor, cells, Columns, Rows, cell, footprint.Value());
     const bool jewelMark = MarkTheFootprint(cursor, cells, Rows, cell, footprint.Value(), fits);
-    // 0x5ca456..0x5ca46c: 0x7d368a1 MuRet no lo pone.
-    if (!runtime.movement.pendingClick)
+    // 0x5ca456..0x5ca46c: el clic o el movimiento automático del almacén.
+    if (!runtime.movement.pendingClick && !runtime.ui.automaticMove)
         return fits;
     if (!fits)
     {
@@ -1773,9 +1804,12 @@ Core::Expected<bool, std::string> DropOnOtherGrid(const InventoryMoveContext& co
     const auto footprint = ItemFootprintOf(context.services.items, cursor.id, "0x5ca250 (0x5ca295)");
     if (!footprint.HasValue())
         return Core::Unexpected(footprint.Error());
-    const GridCell cell = CellUnderTheMouse(drop.mouseX, drop.mouseY, drop.left, drop.top, footprint.Value());
+    const GridCell cell = CellUnderTheMouse(runtime.ui.automaticMove ? runtime.ui.automaticMouseX : drop.mouseX,
+                                            runtime.ui.automaticMove ? runtime.ui.automaticMouseY : drop.mouseY,
+                                            drop.left, drop.top, footprint.Value());
     if (cell.column < 0 || cell.row < 0)
         return false;
+    const AutomaticMoveReset reset{runtime.ui.automaticMove};
     // 0x5ca314..0x5ca364: con 0x724580 en 3, 0x44acd0 con otra grilla que la caja del caos; si no deja, sin 0x5c9b40.
     bool allowed = true;
     if (chaosBox)
@@ -1802,7 +1836,7 @@ Core::Expected<bool, std::string> DropOnOtherGrid(const InventoryMoveContext& co
         }
     }
     // 0x5ca456..0x5ca471: sin el clic, o sin entrar (la joya sobre un ítem es solo del tipo 0, 0x5d8266).
-    if (!runtime.movement.pendingClick)
+    if (!runtime.movement.pendingClick && !runtime.ui.automaticMove)
         return fits;
     if (!fits)
         return false;
@@ -1831,16 +1865,19 @@ Core::Expected<bool, std::string> DropOnTheTradeGrid(const InventoryMoveContext&
     const auto footprint = ItemFootprintOf(context.services.items, cursor.id, "0x5ca250 (0x5ca295)");
     if (!footprint.HasValue())
         return Core::Unexpected(footprint.Error());
-    const GridCell cell = CellUnderTheMouse(drop.mouseX, drop.mouseY, drop.left, drop.top, footprint.Value());
+    const GridCell cell = CellUnderTheMouse(runtime.ui.automaticMove ? runtime.ui.automaticMouseX : drop.mouseX,
+                                            runtime.ui.automaticMove ? runtime.ui.automaticMouseY : drop.mouseY,
+                                            drop.left, drop.top, footprint.Value());
     if (cell.column < 0 || cell.row < 0)
         return false;
+    const AutomaticMoveReset reset{runtime.ui.automaticMove};
     // 0x5ca339..0x5ca364: con 0x724580 en 3, 0x44acd0 deja pasar cualquier grilla que no sea la del entrenador.
     // 0x5c9b40 con 0x78a92a8 (0x5c9c5c): sin apilar.
     const std::span<ItemState> cells(runtime.social.trade.ownGrid);
     const bool fits = TheFootprintIsEmpty(cells, TradeGridColumns, TradeGridRows, cell, footprint.Value());
     static_cast<void>(MarkTheFootprint(cursor, cells, TradeGridRows, cell, footprint.Value(), fits));
-    // 0x5ca456..0x5ca46c: 0x7d368a1 MuRet no lo pone.
-    if (!runtime.movement.pendingClick)
+    // 0x5ca456..0x5ca46c: el clic o el movimiento automático del almacén.
+    if (!runtime.movement.pendingClick && !runtime.ui.automaticMove)
         return fits;
     // 0x5d825b: la joya sobre un ítem es solo del inventario (el último argumento en 0); 0x5d8cd7 da falso.
     if (!fits)
@@ -1886,15 +1923,18 @@ Core::Expected<bool, std::string> DropOnTheShopGrid(const InventoryMoveContext& 
     const auto footprint = ItemFootprintOf(context.services.items, cursor.id, "0x5ca250 (0x5ca295)");
     if (!footprint.HasValue())
         return Core::Unexpected(footprint.Error());
-    const GridCell cell = CellUnderTheMouse(drop.mouseX, drop.mouseY, drop.left, drop.top, footprint.Value());
+    const GridCell cell = CellUnderTheMouse(runtime.ui.automaticMove ? runtime.ui.automaticMouseX : drop.mouseX,
+                                            runtime.ui.automaticMove ? runtime.ui.automaticMouseY : drop.mouseY,
+                                            drop.left, drop.top, footprint.Value());
     if (cell.column < 0 || cell.row < 0)
         return false;
+    const AutomaticMoveReset reset{runtime.ui.automaticMove};
     // 0x5ca339..0x5ca364: con 0x724580 en 3, 0x44acd0 deja pasar cualquier grilla que no sea la del entrenador.
     // 0x5c9b40 con 0x78ab0b8: sin apilar.
     const std::span<ItemState> cells(world.Inventory().secondCells);
     const bool fits = TheFootprintIsEmpty(cells, ShopGridColumns, ShopGridRows, cell, footprint.Value());
     static_cast<void>(MarkTheFootprint(cursor, cells, ShopGridRows, cell, footprint.Value(), fits));
-    if (!runtime.movement.pendingClick)
+    if (!runtime.movement.pendingClick && !runtime.ui.automaticMove)
         return fits;
     // 0x5d825b: la joya sobre un ítem es solo del inventario; 0x5d8cd7 da falso.
     if (!fits)

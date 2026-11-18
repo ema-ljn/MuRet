@@ -103,6 +103,10 @@ struct GridCell
 [[nodiscard]] GridCell CellUnderTheMouse(std::int32_t mouseX, std::int32_t mouseY, std::int32_t left, std::int32_t top,
                                          ItemFootprint footprint);
 
+// 0x5c9e10: columnas de derecha a izquierda, filas de abajo hacia arriba, sin apilar.
+[[nodiscard]] std::optional<GridCell> FindFreeGridCell(std::span<const World::ItemState> cells, std::int32_t columns,
+                                                       std::int32_t rows, ItemFootprint footprint);
+
 // 0x5c9b40 con la grilla del inventario: si el ítem del cursor entra en la casilla `cell`. Cuenta las casillas
 // vacías (tipo 0xffff) de su huella dentro de la grilla; con todas, sí. Si no, con el mismo tipo en la casilla de
 // arriba a la izquierda (fila · columnas + columna, sin mirar si la columna se pasa), los que se apilan:

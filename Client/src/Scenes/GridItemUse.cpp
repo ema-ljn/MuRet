@@ -12,6 +12,7 @@
 #include "UI/GameText.h"
 #include "UI/PanelRegistry.h"
 #include "World/ItemState.h"
+#include "World/Ftol.h"
 
 #include <bit>
 #include <cstddef>
@@ -163,6 +164,38 @@ Core::Expected<void, std::string> UseTheFruit(const InventoryMoveContext& contex
                               FruitDialogText, UI::ItemNameDialog);
 }
 
+// 0x5c9e10: conserva el destino del mouse temporal hasta que 0x5ca250 lo consume.
+Core::Expected<void, std::string> AimTheAutomaticMove(const InventoryMoveContext& context, bool inventory)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    const auto footprint = ItemFootprintOf(context.services.items, runtime.cursorItem.id, "0x5c9e10");
+    if (!footprint.HasValue())
+        return Core::Unexpected(footprint.Error());
+    constexpr std::int32_t WarehouseRows = 15;
+    constexpr std::int32_t InventoryRows = 8;
+    constexpr std::int32_t CellSize = 20;
+    constexpr std::int32_t GridLeft = 15;
+    constexpr std::int32_t WarehouseTop = 50;
+    constexpr std::int32_t InventoryTop = 200;
+    const std::span<const ItemState> destination = inventory
+                                                       ? std::span<const ItemState>(runtime.npcWindows.grid)
+                                                       : std::span<const ItemState>(context.world.Inventory().cells);
+    const auto free =
+        FindFreeGridCell(destination, Columns, inventory ? WarehouseRows : InventoryRows, footprint.Value());
+    runtime.ui.automaticMove = free.has_value();
+    if (free)
+    {
+        const std::int32_t left = (inventory ? runtime.ui.npcWindowX : runtime.hud.inventoryX) + GridLeft;
+        const std::int32_t top =
+            inventory ? runtime.ui.npcWindowY + WarehouseTop : runtime.hud.inventoryY + InventoryTop;
+        runtime.ui.automaticMouseX =
+            World::FtolLow(left + CellSize * (free->column + (footprint.Value().width - 1) * 0.5));
+        runtime.ui.automaticMouseY =
+            World::FtolLow(top + CellSize * (free->row + (footprint.Value().height - 1) * 0.5));
+    }
+    return {};
+}
+
 // 0x5c8e37..0x5c8fb8: la copia de la casilla `cell` de la grilla al cursor y la grilla en 0x78ab9b8. Desde el
 // inventario (0x5c8e58), 0x78abb28 en 1 y, con el almacén abierto, 0x5c9e10 en su grilla (0x5c8e8f); desde otra
 // (0x5c8ef8, la propia del comercio), sin 0x78abb28 y, con el almacén abierto, 0x5c9e10 en el inventario (0x5c8f09).
@@ -172,27 +205,32 @@ Core::Expected<void, std::string> CopyIntoTheCursor(const InventoryMoveContext& 
     WorldRuntime& runtime = context.world.Runtime();
     runtime.cursorItem = grid.cells[static_cast<std::size_t>(cell)];
     runtime.cursorGrid = grid.grid;
-    // 0x5c8e4a..0x5c8e68: el mouse en 0x7d36890 y 0x7d36894, que solo lee 0x5ca250 con 0x7d368a1 (0x5d8ce0): MuRet no
-    // lo guarda.
     const bool inventory = grid.grid == CursorGrid::Inventory;
     if (inventory)
         runtime.ui.field78abb28 = 1;
     if (panels.IsOpen(UI::WarehousePanel))
     {
-        if (inventory)
-            return Core::Unexpected(
-                std::string("0x5c8e8f: con el almacén abierto, 0x5c9e10 busca lugar para el ítem en "
-                            "su grilla (0x78a7070, 8 × 15) y, si lo hay, 0x5bd750 lo saca del "
-                            "inventario con el sonido 0x1d: es del hito 6"));
-        return Core::Unexpected(std::string("0x5c8f09: con el almacén abierto, 0x5c9e10 busca lugar para el ítem de la "
-                                            "grilla del comercio en el inventario y, si lo hay, 0x5bd750 lo saca de su "
-                                            "grilla con el sonido 0x1d: es del hito 6"));
+        if (auto aimed = AimTheAutomaticMove(context, inventory); !aimed.HasValue())
+            return aimed;
     }
-    // 0x5c8eb8..0x5c8ebf y 0x5c8f35..0x5c8f3c: sin el almacén, 0x7d368a1 queda como estaba. Solo lo prenden 0x5c8eb3 y
-    // 0x5c8f30, con el almacén abierto, y 0x5d8cf6 lo apaga: en MuRet está en 0, y 0x5c8f9a vacía el cursor (0x12
-    // dwords en 0). La grilla de 0x78ab9b8 queda.
-    runtime.cursorItem = ItemState{};
-    runtime.cursorItemCount = 0;
+    if (!runtime.ui.automaticMove)
+    {
+        runtime.cursorItem = ItemState{};
+        runtime.cursorItemCount = 0;
+        return {};
+    }
+    const bool pendingClick = runtime.movement.pendingClick;
+    const auto picked = inventory ? PickUpFromTheGrid(context, static_cast<std::size_t>(cell))
+                        : grid.grid == CursorGrid::OwnTrade
+                            ? PickUpFromTheTradeGrid(context, static_cast<std::size_t>(cell))
+                            : PickUpFromOtherGrid(context, grid.grid, static_cast<std::size_t>(cell));
+    runtime.movement.pendingClick = pendingClick;
+    if (inventory)
+        runtime.ui.field78abb28 = 1;
+    if (!picked.HasValue())
+        return picked;
+    constexpr std::int32_t ItemMoveSound = 0x1d; // 0x5c8f7a.
+    runtime.lastSoundId = ItemMoveSound;
     return {};
 }
 } // namespace

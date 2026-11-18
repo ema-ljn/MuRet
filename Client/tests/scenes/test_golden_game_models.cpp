@@ -73,11 +73,15 @@ TEST_F(NativeSkillLoadTest, TheLoadedSkillTexturesFollowEveryReachedNativeCallIn
         std::uint16_t model;
         std::string_view folder;
         Wrap wrap = Wrap::Repeat;
+        bool bmdAvailable = true;
     };
     Client::Render::Models::ModelTextureSlots native(TextureSlot{0x138});
     std::map<std::uint16_t, std::vector<TextureSlot>> bindings;
     const auto query = [&](const Call& call)
     {
+        // 61619f precede al BMD de6161b5: el perfil sin Data2/SMD aún no tiene ese modelo.
+        if (!call.bmdAvailable)
+            return;
         if (const auto* model = game.Find(call.model); model != nullptr)
             bindings[call.model] =
                 native.Assign(*model, call.folder, {Client::Data::Textures::Filter::Nearest, call.wrap});
@@ -94,7 +98,7 @@ TEST_F(NativeSkillLoadTest, TheLoadedSkillTexturesFollowEveryReachedNativeCallIn
                                                  {0x14d, "Effect\\"},
                                                  {0x109, "Skill\\"},
                                                  {0xf9, "Skill\\"},
-                                                 {0x10f, "Skill\\"}}))
+                                                 {0x10f, "Skill\\", Wrap::Repeat, false}}))
         query(call);
     native.SetNext(TextureSlot{0x69});
     for (const std::uint16_t model :
@@ -205,7 +209,8 @@ TEST_F(GoldenGameModels, LoadsEveryModelOfThePlayerLoader)
 }
 
 // 0x616304/0x61631a cargan Gate01/02 de Object12; 0x61634e..0x616370 asigna solo Gate02 desde
-// Monster, en 0x69, antes de volver a 0x3b8. Los dos BMD reales usan doorc01.jpg.
+// Monster, en 0x69, antes de volver a 0x3b8. El barrido616e46 también asigna Gate01: los dos BMD reales
+// usan doorc01.jpg y reutilizan el mismo recurso sin pedirlo desde Skill.
 TEST_F(GoldenGameModels, TheWorldGatesAreGlobalAndTheSecondAssignsItsInitialTexture)
 {
     FakeTextureStore textures;
@@ -223,7 +228,8 @@ TEST_F(GoldenGameModels, TheWorldGatesAreGlobalAndTheSecondAssignsItsInitialText
         ASSERT_NE(models.SkeletonOf(gate), nullptr);
         EXPECT_EQ(models.SkeletonOf(gate)->bones.size(), 1u);
     }
-    EXPECT_TRUE(models.MeshTextures(0x10c).empty());
+    ASSERT_EQ(models.MeshTextures(0x10c).size(), 1u);
+    EXPECT_EQ(models.MeshTextures(0x10c).front(), TextureSlot{0x69});
     ASSERT_EQ(models.MeshTextures(0x10d).size(), 1u);
     EXPECT_EQ(models.MeshTextures(0x10d).front(), TextureSlot{0x69});
     EXPECT_EQ(models.TextureSlots().NameOf(TextureSlot{0x69}), "doorc01.jpg");

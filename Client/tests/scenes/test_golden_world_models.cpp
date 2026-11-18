@@ -5,6 +5,8 @@
 #include "Data/Models/Model.h"
 #include "Data/Terrain/TerrainObjects.h"
 #include "Data/Textures/Sampling.h"
+#include "Data/Textures/Texture.h"
+#include "Data/Textures/TextureSet.h"
 #include "Render/Models/ModelTextureSlots.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/GameModels.h"
@@ -22,6 +24,7 @@
 #include <gtest/gtest.h>
 
 #include <array>
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
@@ -118,9 +121,11 @@ TEST_F(GoldenWorldModels, LorenciaAssignsTheBirdAndFishBeforeTheObjectTextures)
     ASSERT_EQ(game.TextureSlots().NameOf(TextureSlot{0x2b3}), "pot3.tga");
     ASSERT_EQ(game.TextureSlots().NameOf(TextureSlot{0x2b4}), "apple.jpg");
     ASSERT_EQ(game.TextureSlots().NameOf(TextureSlot{0x69}), "doorc01.jpg");
-    ASSERT_TRUE(game.TextureSlots().NameOf(TextureSlot{0x6a}).empty());
+    ASSERT_EQ(game.TextureSlots().NameOf(TextureSlot{0x6a}), "skR.jpg");
+    ASSERT_EQ(game.MeshTextures(0x10a).front(), TextureSlot{0x6a});
+    ASSERT_EQ(game.MeshTextures(0x10b).front(), TextureSlot{0x6a});
     ASSERT_TRUE(store.Find(TextureSlot{0x69}).has_value());
-    ASSERT_FALSE(store.Find(TextureSlot{0x6a}).has_value());
+    ASSERT_TRUE(store.Find(TextureSlot{0x6a}).has_value());
     WorldModels models;
     ASSERT_TRUE(models.Load(m_dataRoot, Lorencia, store, log, &game.TextureSlots()).HasValue());
 
@@ -351,32 +356,78 @@ TEST_F(GoldenWorldModels, TheLogoTexturesFollowTheWorld)
     EXPECT_FALSE(store.Find(TextureSlot{0x41c}).has_value());
 }
 
-// Con la tabla de GameModels, que todavía no tiene las de 0x615700 más allá de las cuatro primeras
-// (Data::Models::SkillTextureCalls), cuatro de los cinco nombres de las habilidades se piden de Object56\:
-// fire02 ya está (lo subieron Stone01 y Stone02 de Skill\, el 0xc8 y el 0xc9 de 0x616e20), los tres del
-// castillo están y suben, fire01 no y se saltea con un aviso, el login sigue y el logo queda cuatro más allá.
-TEST_F(GoldenWorldModels, TwoTexturesFromAnotherFolderAreSkippedWithAWarning)
+// 616c95..616ce9 y el barrido 616e46 abastecen los cinco nombres antes de 61a115/61c7c0.
+// No se fuerza un slot global: la caché nativa reutiliza por nombre y deja 57 nombres nuevos, hasta 455.
+TEST_F(GoldenWorldModels, TheLoginReusesTheFiveNativeGlobalNamesBeforeLoadingTheLogo)
 {
     FakeTextureStore store;
     RecordingSink sink;
     Log log(sink, LogLevel::Debug);
     Client::Scenes::GameModels game;
     ASSERT_TRUE(game.Load(m_dataRoot, store, log).HasValue());
-    WorldModels models;
-    const auto loaded = models.Load(m_dataRoot, Login, store, log, &game.TextureSlots());
-    ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
-    ASSERT_NE(models.TextureSlots(), nullptr);
-    EXPECT_EQ(models.TextureSlots()->Next(), TextureSlot{0x459});
-    std::size_t warnings = 0;
-    for (std::size_t k = 0; k < sink.lines.size(); ++k)
+    struct Global
     {
-        if (sink.levels[k] == LogLevel::Warning && sink.lines[k].find("Object56") != std::string::npos)
-        {
-            ++warnings;
-        }
+        std::string_view name;
+        std::string_view path;
+    };
+    const std::array<Global, 5> globals{{{"castlegate02.jpg", "Object31\\castlegate02.jpg"},
+                                         {"cswalltop.JPG", "Object31\\cswalltop.jpg"},
+                                         {"castlegatehide.jpg", "Object31\\castlegatehide.jpg"},
+                                         {"fire02.jpg", "Skill\\fire02.jpg"},
+                                         {"fire01.jpg", "Skill\\fire01.jpg"}}};
+    std::array<TextureSlot, 5> cached{};
+    for (std::size_t index = 0; index < globals.size(); ++index)
+    {
+        const auto entry = std::ranges::find(game.TextureSlots().ToLoad(), globals[index].path,
+                                             &Client::Data::Textures::TextureSetEntry::path);
+        ASSERT_NE(entry, game.TextureSlots().ToLoad().end());
+        const TextureSlot slot{entry->slot};
+        cached[index] = slot;
+        EXPECT_EQ(game.TextureSlots().NameOf(slot), globals[index].name);
+        const auto image = store.Find(slot);
+        ASSERT_TRUE(image.has_value());
+        EXPECT_EQ(image->texture.format, Client::Data::Textures::PixelFormat::Rgb);
+        EXPECT_EQ(image->sampling.filter, Client::Data::Textures::Filter::Nearest);
+        EXPECT_EQ(image->sampling.wrap, Client::Data::Textures::Wrap::Repeat);
     }
-    EXPECT_EQ(warnings, 1u);
-    ASSERT_FALSE(models.MeshTextures(89).empty()) << "el fuego, Object90.bmd";
+    // Fire01.bmd trae fire02.jpg en la malla 0 y fire01.jpg en la 1; Object90 reutiliza ese mismo par.
+    ASSERT_EQ(game.MeshTextures(0xc2).size(), 2u);
+    EXPECT_EQ(game.MeshTextures(0xc2)[0], cached[3]);
+    EXPECT_EQ(game.MeshTextures(0xc2)[1], cached[4]);
+    const auto prefix = store.loaded.size();
+    WorldModels models;
+    ASSERT_TRUE(models.Load(m_dataRoot, Login, store, log, &game.TextureSlots()).HasValue());
+    ASSERT_NE(models.TextureSlots(), nullptr);
+    EXPECT_EQ(models.TextureSlots()->Next(), TextureSlot{0x455});
+    for (const auto& entry : models.TextureSlots()->ToLoad())
+        for (const auto& global : globals)
+            EXPECT_NE(entry.path.substr(entry.path.find('\\') + 1), global.path.substr(global.path.find('\\') + 1));
+    for (const std::uint16_t id : {std::uint16_t{8}, std::uint16_t{9}, std::uint16_t{21}, std::uint16_t{22}})
+    {
+        ASSERT_FALSE(models.MeshTextures(id).empty());
+        EXPECT_EQ(models.MeshTextures(id).front(), cached[0]);
+    }
+    // Object24.bmd: column2.JPG en la malla 0; cswalltop.JPG en la 1.
+    ASSERT_EQ(models.MeshTextures(23).size(), 2u);
+    EXPECT_EQ(models.MeshTextures(23)[1], cached[1]);
+    const auto fire = models.MeshTextures(89);
+    ASSERT_EQ(fire.size(), 2u);
+    EXPECT_EQ(fire[0], cached[3]);
+    EXPECT_EQ(fire[1], cached[4]);
+    std::vector<std::uint16_t> uploads{0x69, 0x6a, 0x6b};
+    for (std::uint16_t slot = 0x41c; slot < 0x455; ++slot)
+        uploads.push_back(slot);
+    EXPECT_EQ(
+        (std::vector<std::uint16_t>(store.loaded.begin() + static_cast<std::ptrdiff_t>(prefix), store.loaded.end())),
+        uploads);
+    for (std::size_t index = 0; index < sink.lines.size(); ++index)
+        EXPECT_FALSE(sink.levels[index] == LogLevel::Warning && sink.lines[index].find("Object56") != std::string::npos)
+            << sink.lines[index];
+    models.Release();
+    EXPECT_FALSE(store.Find(TextureSlot{0x41c}).has_value());
+    EXPECT_EQ(models.TextureSlots(), nullptr);
+    for (const auto slot : cached)
+        EXPECT_TRUE(store.Find(slot).has_value());
 }
 
 // 0x619bc2 carga SteelWall después de StoneWall, pero 0x619eb7 asigna texturas por ID.

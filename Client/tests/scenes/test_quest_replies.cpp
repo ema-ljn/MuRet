@@ -2,11 +2,13 @@
 
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Data/Models/PlayerModels.h"
 #include "Data/Text/DialogTable.h"
 #include "Data/Text/TextTable.h"
 #include "Protocol/Quest.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/GameDrawTail.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/QuestState.h"
@@ -16,15 +18,18 @@
 #include "Scenes/WorldState.h"
 #include "UI/GameDialogs.h"
 #include "World/GameCamera.h"
+#include "World/ModelEffects.h"
 
 #include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
 #include "support/SceneDataFiles.h"
 
+#include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -45,6 +50,8 @@ struct Replies
     Replies()
     {
         world.Runtime().hero = 7;
+        // 0x4ea030 y 0x4f2250 leen las acciones de Player.bmd (los jugadores de 0x513100).
+        models.Set(Client::Data::Models::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
         Hero().alive = true;
         Hero().key = HeroKey;
         Other().alive = true;
@@ -216,29 +223,77 @@ TEST(QuestRepliesTest, AnA1PastTheTwoHundredWritesTheObject)
     EXPECT_EQ(runtime.panels.delegated.quest, Client::Scenes::QuestDialogWindow);
 }
 
-// 0x4ddbd5..0x4dddf2: 0xc8 suma pkt[6] a los puntos del héroe con el registro propio abierto; corta en los joints.
-TEST(QuestRepliesTest, ThePointsPrizeAddsToTheHeroAndCutsAtTheJoints)
+// Los joints del premio que deja una respuesta, en orden desde el lugar `first`: quince 60f/0 en la posición del
+// personaje con él de dueño, el ancho 40 y la key 2 y, con `falling`, cada uno seguido del 60f/0xa desde 200 más
+// arriba.
+void ExpectThePrizeSparkles(const Replies& tested, const Client::Scenes::ActorState& owner, bool falling,
+                            std::size_t first = 0)
+{
+    const auto& joints = tested.world.DrawTail().joints;
+    const std::size_t count = falling ? 30 : 15;
+    glm::vec3 raised = owner.position;
+    raised.z = static_cast<float>(static_cast<double>(owner.position.z) + 200.0);
+    for (std::size_t i = 0; i < count; ++i)
+    {
+        SCOPED_TRACE(i);
+        const auto& joint = joints[first + i];
+        const bool descending = falling && i % 2 == 1;
+        EXPECT_TRUE(joint.alive);
+        EXPECT_EQ(joint.type, 0x60f);
+        EXPECT_EQ(joint.subtype, descending ? 0xa : 0);
+        EXPECT_EQ(joint.ownerContext, &owner);
+        EXPECT_EQ(joint.width, 40.0f);
+        EXPECT_EQ(joint.key, 2);
+        EXPECT_EQ(joint.life, 50);
+        EXPECT_EQ(joint.position, descending ? raised : owner.position);
+        EXPECT_EQ(joint.targetPosition, descending ? raised : owner.position);
+    }
+    EXPECT_FALSE(joints[first + count].alive);
+}
+
+// El calco 0x61e/0 de 0x518cf0 en el lugar `slot`, con el personaje de dueño.
+void ExpectTheDecal(const Replies& tested, const Client::Scenes::ActorState& owner, std::size_t slot = 0)
+{
+    const auto& decal = tested.world.Map().effects.Effects()[slot];
+    EXPECT_TRUE(decal.alive);
+    EXPECT_EQ(decal.type, Client::World::ColoredDecalEffect);
+    EXPECT_EQ(decal.subtype, Client::World::LevelUpDecalSubtype);
+    EXPECT_EQ(decal.transform.position, owner.position);
+    EXPECT_EQ(decal.ownerContext, &owner);
+}
+
+// 0x4ddbd5..0x4dde65: 0xc8 suma pkt[6] a los puntos del héroe con el registro propio abierto; después, quince 60f/0
+// (tres rand() cada uno: el ancho 40 pasa de 10), el calco 0x61e/0 y el sonido 0x65, sin la acción.
+TEST(QuestRepliesTest, ThePointsPrizeAddsToTheHeroAndSparkles)
 {
     auto tested = MakeReplies();
     tested->world.OwnCharacter().levelUpPoints = 7;
+    tested->Hero().position = {1000.0f, 2000.0f, 150.0f};
+    tested->Hero().animation.action = 0x22;
     const auto applied = Client::Scenes::ApplyQuestResult(
         Quest::QuestResult{Replies::HeroKey, Quest::PointsPrize, 0xfe}, tested->Resources());
-    ASSERT_FALSE(applied.HasValue());
-    EXPECT_NE(applied.Error().find("0x4dde20"), std::string::npos);
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(tested->world.OwnCharacter().levelUpPoints, 7 + 0xfe);
-    EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x66);
-    EXPECT_EQ(tested->cloth.random.State(), Client::Tests::AfterDraws(Seed, OwnRecordClose).State());
+    EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x65);
+    EXPECT_EQ(tested->cloth.random.State(), Client::Tests::AfterDraws(Seed, OwnRecordClose + 15 * 3).State());
+    ExpectThePrizeSparkles(*tested, tested->Hero(), false);
+    ExpectTheDecal(*tested, tested->Hero());
+    EXPECT_EQ(tested->Hero().animation.action, 0x22);
 }
 
+// 0xca de otro personaje: sin el registro propio; treinta joints (noventa rand()), el calco, 0x513100 (que con otro
+// tipo que el 0x20a no hace nada), la acción 0xb8 por el modelo del personaje (que acá no está: nada) y el 0x66.
 TEST(QuestRepliesTest, ThePointsOfAnotherCharacterLeaveTheRecord)
 {
     auto tested = MakeReplies();
     const auto applied = Client::Scenes::ApplyQuestResult(
         Quest::QuestResult{Replies::OtherKey, Quest::ClassPointsPrize, 5}, tested->Resources());
-    ASSERT_FALSE(applied.HasValue());
-    EXPECT_NE(applied.Error().find("0x4de3bc"), std::string::npos);
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(tested->world.OwnCharacter().levelUpPoints, 0);
-    EXPECT_EQ(tested->cloth.random.State(), Client::Render::Models::CrtRandom(Seed).State());
+    EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x66);
+    EXPECT_EQ(tested->cloth.random.State(), Client::Tests::AfterDraws(Seed, 30 * 3).State());
+    ExpectThePrizeSparkles(*tested, tested->Other(), true);
+    ExpectTheDecal(*tested, tested->Other());
 }
 
 TEST(QuestRepliesTest, TheClassPointsOfTheHeroAlsoOpenTheRecord)
@@ -246,56 +301,124 @@ TEST(QuestRepliesTest, TheClassPointsOfTheHeroAlsoOpenTheRecord)
     auto tested = MakeReplies();
     const auto applied = Client::Scenes::ApplyQuestResult(
         Quest::QuestResult{Replies::HeroKey, Quest::ClassPointsPrize, 5}, tested->Resources());
-    ASSERT_FALSE(applied.HasValue());
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(tested->world.OwnCharacter().levelUpPoints, 5);
-    EXPECT_EQ(tested->cloth.random.State(), Client::Tests::AfterDraws(Seed, OwnRecordClose).State());
+    EXPECT_EQ(tested->cloth.random.State(), Client::Tests::AfterDraws(Seed, OwnRecordClose + 30 * 3).State());
 }
 
 // 0x4dde7b..0x4ddf72: la clase ((v & 0x10) | (v >> 4)) >> 1 en el personaje y, si es el héroe, en +0xb del registro.
+// Los joints de la segunda respuesta siguen en el pool después de los de la primera.
 TEST(QuestRepliesTest, TheClassChangeWritesTheActorAndTheHeroRecord)
 {
     auto tested = MakeReplies();
     const auto other = Client::Scenes::ApplyQuestResult(
         Quest::QuestResult{Replies::OtherKey, Quest::ClassChangePrize, 0x30}, tested->Resources());
-    ASSERT_FALSE(other.HasValue());
-    EXPECT_NE(other.Error().find("0x4de0eb"), std::string::npos);
+    ASSERT_TRUE(other.HasValue()) << other.Error();
     EXPECT_EQ(tested->Other().characterClass, 9);
     EXPECT_EQ(tested->world.OwnCharacter().characterClass, 0);
-    EXPECT_EQ(tested->cloth.random.State(), Client::Render::Models::CrtRandom(Seed).State());
+    EXPECT_EQ(tested->cloth.random.State(), Client::Tests::AfterDraws(Seed, 30 * 3).State());
 
     const auto hero = Client::Scenes::ApplyQuestResult(
         Quest::QuestResult{Replies::HeroKey, Quest::ClassChangePrize, 0x21}, tested->Resources());
-    ASSERT_FALSE(hero.HasValue());
+    ASSERT_TRUE(hero.HasValue()) << hero.Error();
     EXPECT_EQ(tested->Hero().characterClass, 1);
     EXPECT_EQ(tested->world.OwnCharacter().characterClass, 1);
-    EXPECT_EQ(tested->cloth.random.State(), Client::Tests::AfterDraws(Seed, OwnRecordClose).State());
+    EXPECT_EQ(tested->cloth.random.State(), Client::Tests::AfterDraws(Seed, 30 * 3 + OwnRecordClose + 30 * 3).State());
+    ExpectThePrizeSparkles(*tested, tested->Hero(), true, 30);
+    ExpectTheDecal(*tested, tested->Hero(), 1);
 }
 
-// Sin nadie con la clave, 0x5110d0 da el 400: la clase va a su +0x1d4, como en el original (Q-C1125). Los joints 0x60f
-// que siguen (0x530860, con sus rand()) también son del 400 y cortan con la CL11 como con cualquiera.
+// Sin nadie con la clave, 0x5110d0 da el 400: la clase va a su +0x1d4, como en el original (Q-C1125), y los joints y
+// el calco lo llevan de dueño.
 TEST(QuestRepliesTest, AnUnknownKeyWritesTheSpareActor)
 {
     auto tested = MakeReplies();
     const auto applied =
         Client::Scenes::ApplyQuestResult(Quest::QuestResult{0x777, Quest::ClassChangePrize, 0x10}, tested->Resources());
-    ASSERT_FALSE(applied.HasValue());
-    EXPECT_NE(applied.Error().find("0x4de0eb"), std::string::npos);
-    EXPECT_NE(applied.Error().find("CL11"), std::string::npos);
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(tested->world.Actors()[400].characterClass, 8);
-    EXPECT_EQ(tested->cloth.random.State(), Client::Render::Models::CrtRandom(Seed).State());
+    EXPECT_EQ(tested->cloth.random.State(), Client::Tests::AfterDraws(Seed, 30 * 3).State());
+    ExpectThePrizeSparkles(*tested, tested->world.Actors()[400], true);
 }
 
-TEST(QuestRepliesTest, TheEffectPrizeCutsAndAnotherKindOnlySounds)
+// 0x4ddb80 con un jugador: después de los joints y el calco, 0x513100 viste la clase nueva (el casco base de la clase 1
+// pasa al de la 9) y 0x4ea030 pone la acción 0xb8 (Player.bmd la tiene). Con la acción 0x22, 0x513100 no llama a
+// 0x4f2250: sólo los rand() del registro y de los joints. El 0x66 otra vez al final.
+TEST(QuestRepliesTest, TheClassChangeDressesAPlayerAndSetsTheAction)
+{
+    auto tested = MakeReplies();
+    auto& hero = tested->Hero();
+    hero.type = Client::Data::Models::PlayerSkeletonModel;
+    hero.characterClass = 1;
+    hero.animation.action = 0x22;
+    hero.position = {1000.0f, 2000.0f, 150.0f};
+    hero.body[0].model = 0x2213;
+    hero.body[0].level = 3;
+    hero.body[1].model = 0x221b;
+    const auto applied = Client::Scenes::ApplyQuestResult(
+        Quest::QuestResult{Replies::HeroKey, Quest::ClassChangePrize, 0x30}, tested->Resources());
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
+    EXPECT_EQ(hero.characterClass, 9);
+    EXPECT_EQ(hero.body[0].model, 0x2218);
+    EXPECT_EQ(hero.body[0].level, 0);
+    // Q-C1024: la armadura compara los pantalones, que no son la armadura base.
+    EXPECT_EQ(hero.body[1].model, 0x221b);
+    EXPECT_EQ(hero.animation.action, 0xb8);
+    EXPECT_EQ(hero.animation.previousAction, 0x22);
+    EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x66);
+    EXPECT_EQ(tested->cloth.random.State(), Client::Tests::AfterDraws(Seed, OwnRecordClose + 30 * 3).State());
+    ExpectThePrizeSparkles(*tested, hero, true);
+    ExpectTheDecal(*tested, hero);
+}
+
+// Sin Player.bmd, un jugador corta antes de 0x513100 (en 0x4de140), con la clase, los joints y el calco ya escritos y
+// la ropa sin tocar.
+TEST(QuestRepliesTest, AClassPrizeWithoutPlayerBmdCutsBeforeTheClothes)
+{
+    auto tested = MakeReplies();
+    tested->models.Clear();
+    auto& hero = tested->Hero();
+    hero.type = Client::Data::Models::PlayerSkeletonModel;
+    hero.animation.action = 0x22;
+    hero.body[0].model = 0x2212;
+    const auto applied = Client::Scenes::ApplyQuestResult(
+        Quest::QuestResult{Replies::HeroKey, Quest::ClassChangePrize, 0x30}, tested->Resources());
+    ASSERT_FALSE(applied.HasValue());
+    EXPECT_NE(applied.Error().find("0x4de140"), std::string::npos) << applied.Error();
+    EXPECT_EQ(hero.characterClass, 9);
+    EXPECT_EQ(hero.body[0].model, 0x2212);
+    EXPECT_EQ(hero.animation.action, 0x22);
+    ExpectThePrizeSparkles(*tested, hero, true);
+    ExpectTheDecal(*tested, hero);
+}
+
+// 0x530860 con el pool de joints lleno no crea ni saca rand(), y las vueltas siguen: el calco y el sonido igual.
+TEST(QuestRepliesTest, AFullJointPoolSkipsOnlyTheSparkles)
+{
+    auto tested = MakeReplies();
+    for (auto& joint : tested->world.DrawTail().joints)
+        joint.alive = true;
+    const auto applied = Client::Scenes::ApplyQuestResult(Quest::QuestResult{Replies::OtherKey, Quest::PointsPrize, 1},
+                                                          tested->Resources());
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
+    EXPECT_EQ(tested->cloth.random.State(), Client::Render::Models::CrtRandom(Seed).State());
+    EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x65);
+    ExpectTheDecal(*tested, tested->Other());
+}
+
+TEST(QuestRepliesTest, TheEffectPrizeSparklesAndAnotherKindOnlySounds)
 {
     auto tested = MakeReplies();
     const auto effect = Client::Scenes::ApplyQuestResult(Quest::QuestResult{Replies::HeroKey, Quest::EffectPrize, 0},
                                                          tested->Resources());
-    ASSERT_FALSE(effect.HasValue());
-    EXPECT_NE(effect.Error().find("0x4de470"), std::string::npos);
+    ASSERT_TRUE(effect.HasValue()) << effect.Error();
+    EXPECT_EQ(tested->cloth.random.State(), Client::Tests::AfterDraws(Seed, 30 * 3).State());
+    ExpectThePrizeSparkles(*tested, tested->Hero(), true);
+    ExpectTheDecal(*tested, tested->Hero());
     tested->world.Runtime().lastSoundId.reset();
     EXPECT_TRUE(Client::Scenes::ApplyQuestResult(Quest::QuestResult{Replies::HeroKey, 0xcc, 0}, tested->Resources())
                     .HasValue());
     EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x66);
-    EXPECT_EQ(tested->cloth.random.State(), Client::Render::Models::CrtRandom(Seed).State());
+    EXPECT_EQ(tested->cloth.random.State(), Client::Tests::AfterDraws(Seed, 30 * 3).State());
 }
 } // namespace

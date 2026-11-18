@@ -1281,8 +1281,11 @@ cifrado, y no miran el largo.
   (`MsgSendV2`). La clave va `& 0x7fff` a `0x5110d0` (el 400 sin nadie). El sonido `0x66` y, por tipo: `0xc8` y
   `0xca` suman `valor` a `+0x68` del registro propio si es el héroe; `0xc9` pone la clase `((v & 0x10) | (v >> 4))
   >> 1` en `+0x1d4` del personaje y, si es el héroe, en `+0xb` del registro; `0xcb` solo el efecto. Los cuatro
-  siguen con quince joints `0x60f` (`0x530860`), el `0x61e` de `0x518cf0` y, salvo `0xc8`, `0x513100` y la acción
-  `0xb8`. Otro tipo: solo el sonido.
+  siguen con quince vueltas de `0x530860` con el personaje de dueño, el ancho 40 y la key 2: el `0x60f`/0 en su
+  posición y, salvo en `0xc8`, el `0x60f`/`0xa` desde la posición con la z + 200 (`0x6b8928`, copiada una vez antes de
+  las vueltas), que gira como el /0 pero baja (`0x53b2d5`). Después el calco `0x61e`/0 de `0x518cf0` (el de subir de
+  nivel). `0xc8` termina con el sonido `0x65`; las otras tres, con `0x513100` (la ropa de la clase, Q-C1024), la acción
+  `0xb8` (`0x4ea030`) y otra vez el `0x66`. Otro tipo: solo el sonido.
 - **`30`** (C→S, `0x567c2d..0x567db5`, y las copias de `0x568288`, `0x568908` y `0x568f54`): `C1 05 30 <claveH>
   <claveL>` con la clave `+0x1f4` del NPC (MOVSX, el alto con SAR), C3. Lo manda la llegada al NPC elegido
   (`0x5650c0` con `+0x379` en 2; 06, "Hablar con un NPC"): cada uno saca el `rand()` del relleno y el del serial.
@@ -1290,8 +1293,9 @@ cifrado, y no miran el largo.
 - **`31`** (C→S, `0x419900`): `C1 03 31` en claro, al cerrar la ventana de las misiones (`CGCloseWindow`).
 
 **MuRet**: `Protocol::Quest` (lectores y escritores), `App::ServerSession` los registra juntos y el sink los aplica
-con `Scenes::ApplyQuest*` (06, "Las misiones"); el `A0` y el `30` de la llegada, `Scenes::TalkToTheNpc`. Un paquete corto se ignora con un aviso. Los joints del `A3` cortan
-(CL11).
+con `Scenes::ApplyQuest*` (06, "Las misiones"); el `A0` y el `30` de la llegada, `Scenes::TalkToTheNpc`. Un paquete corto se ignora con un aviso. El `A3`
+entero (joints `0x60f`/0 y /`0xa`, calco, `0x513100` en `Scenes::ApplyTheClassParts` y la acción) desde el 2026-11-18;
+sin Player.bmd, un jugador corta antes de `0x513100`.
 
 ### Los monstruos y los NPC que entran: `13`, `1F`, `68` y `1A`
 

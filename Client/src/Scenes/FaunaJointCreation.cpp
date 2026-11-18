@@ -392,6 +392,8 @@ void CreateMeteor(JointState& joint, const World::FishEffectRequest& request)
 // ActorState del personaje como dueño (+0x54).
 constexpr std::int32_t SparkleJoint = 0x60f;
 constexpr std::int32_t SparkleSubtype = 0, FallenSparkleSubtype = 1, WideSparkleSubtype = 0x12;
+// El 60f/0xa del premio de una misión (A3 0xc9..0xcb, 0x4de0fe), que nace como el 60f/0 y baja vz en cada paso.
+constexpr std::int32_t FallingSparkleSubtype = 0xa;
 constexpr std::int32_t SetTrailJoint = 0x610, SetTrailSubtype = 7;
 constexpr std::int32_t EnergyJoint = 0x619, SetEnergySubtype = 9;
 // El 619/1 que suelta el calco 0x61e/1 de la mascota (0x518900), con el héroe de dueño (+0x54).
@@ -467,6 +469,8 @@ void FadeJointLight(JointState& joint, std::uint32_t factorBits)
 // 4). La z de la velocidad (rand() % 150) · 0,01f, la y rand() % 500 − 250 y velocidad 40; con el ancho por encima de
 // 10, vida 50 y otra z, (rand() % 250 + 200) · 0,01f. La luz es la del dueño (+0xf4: la del personaje o, con los
 // del caballo oscuro, la del caballo) y el destino el segundo punto. Dos rand(), o tres con el ancho.
+// El 60f/0xa del premio de una misión (0x4de0fe) va por 0x53373a..0x5337da y sigue en 0x53428f: lo mismo en el mismo
+// orden (la velocidad 140 de 0x53378d es sólo de la /0x19), sin la mezcla de la /0x12.
 Core::Expected<void, std::string> CreateSparkle(JointState& joint, const World::FishEffectRequest& request,
                                                 Render::Models::CrtRandom& random)
 {
@@ -662,7 +666,8 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
     }
     if (request.type == 0x610 && request.subtype == 4)
         return CreateSwordTrail(joint, request);
-    if (request.type == SparkleJoint && (request.subtype == SparkleSubtype || request.subtype == WideSparkleSubtype))
+    if (request.type == SparkleJoint && (request.subtype == SparkleSubtype || request.subtype == WideSparkleSubtype ||
+                                         request.subtype == FallingSparkleSubtype))
         return CreateSparkle(joint, request, random);
     if (request.type == SetTrailJoint && request.subtype == SetTrailSubtype)
         return CreateSetTrail(joint, request, random);
@@ -1052,12 +1057,13 @@ std::optional<double> SignedTrigonometricProduct(double argument, float multipli
     return std::signbit(multiplier) ? -*product : *product;
 }
 
-// 0x53b239..0x53b3d1: el 60f/0 y el 60f/0x12, después del avance común. Con la key en −1, el argumento es (vida + vy)
-// · 0,1f, con la vida doble en la /0x12 y negado con el skill 1 (0x6b8b9c); con otra key, (vida + vy) / key. La x es
-// el destino más cos · velocidad y la y el destino menos sen · velocidad. La /0 sube vz; la /0x12 sube vz · 1,1f, y la
-// velocidad 0,1f y el ancho 0,2f más. Con la vida debajo de 10 la luz por 0,7692308f (0x6ba240). Con el ancho debajo
-// de 40 y la acción del dueño (+0x111, la del personaje o la del caballo) en [0xd, 0x21] o [0x38, 0x3c], pasa a la /1:
-// sin cola y la vida en 10 a lo sumo (Q-C383). Con 40 o más no lee al dueño.
+// 0x53b239..0x53b3d1: el 60f/0, el 60f/0xa y el 60f/0x12, después del avance común (0x539f1b). Con la key en −1, el
+// argumento es (vida + vy) · 0,1f, con la vida doble en la /0x12 y negado con el skill 1 (0x6b8b9c); con otra key,
+// (vida + vy) / key. La x es el destino más cos · velocidad y la y el destino menos sen · velocidad. La /0 sube vz; la
+// /0xa la baja (0x53b2d5); la /0x12 sube vz · 1,1f, y la velocidad 0,1f y el ancho 0,2f más. Con la vida debajo de 10
+// la luz por 0,7692308f (0x6ba240). Con el ancho debajo de 40 y la acción del dueño (+0x111, la del personaje o la del
+// caballo) en [0xd, 0x21] o [0x38, 0x3c], pasa a la /1: sin cola y la vida en 10 a lo sumo (Q-C383). Con 40 o más no
+// lee al dueño.
 Core::Expected<void, std::string> StepSparkle(JointState& joint, std::size_t index)
 {
     constexpr std::int16_t NoKey = -1;
@@ -1090,6 +1096,8 @@ Core::Expected<void, std::string> StepSparkle(JointState& joint, std::size_t ind
     joint.position.y = F32(D(joint.targetPosition.y) - *sine);
     if (joint.subtype == SparkleSubtype)
         joint.position.z = F32(D(joint.velocity.z) + D(joint.position.z));
+    else if (joint.subtype == FallingSparkleSubtype)
+        joint.position.z = F32(D(joint.position.z) - D(joint.velocity.z));
     else
     {
         joint.position.z = F32(D(joint.velocity.z) * Climb + D(joint.position.z));
@@ -1398,8 +1406,10 @@ Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints
         const bool staffBeam = joint.type == 0x618 && joint.subtype == 0x11;
         const bool swordTrail = joint.type == 0x610 && joint.subtype == 4;
         // Los del conjunto completo (0x5102c3) y el del 5ac/3 (0x52aa5d), con el ActorState del personaje.
+        // Y los del premio de una misión (0x4ddb80), el 60f/0 y el 60f/0xa.
         const bool sparkle =
-            joint.type == SparkleJoint && (joint.subtype == SparkleSubtype || joint.subtype == WideSparkleSubtype);
+            joint.type == SparkleJoint && (joint.subtype == SparkleSubtype || joint.subtype == WideSparkleSubtype ||
+                                           joint.subtype == FallingSparkleSubtype);
         const bool fallenSparkle = joint.type == SparkleJoint && joint.subtype == FallenSparkleSubtype;
         const bool setTrail = joint.type == SetTrailJoint && joint.subtype == SetTrailSubtype;
         const bool setEnergy = joint.type == EnergyJoint && joint.subtype == SetEnergySubtype;

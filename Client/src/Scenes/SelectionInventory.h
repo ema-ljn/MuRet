@@ -9,7 +9,7 @@ namespace Client::Scenes
 {
 class WorldState;
 
-// 0x633f91 -> 0x5bbe10: vacía el equipo y la mochila antes del reset parcial de selección.
+// 0x633f91 -> 0x5bbe10: vacía el equipo, la mochila y las tres grillas de NPC antes del reset parcial de selección.
 // Conserva los demás bytes de cada ítem y no toca la grilla de 0x78ab0b8.
 void ClearSelectionInventory(WorldState& world, Render::Models::CrtRandom& random);
 } // namespace Client::Scenes

@@ -34,7 +34,6 @@
 #include "Protocol/Guild.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Inventory.h"
-#include "Protocol/JewelMix.h"
 #include "Protocol/Messages.h"
 #include "Protocol/Movement.h"
 #include "Protocol/NpcWindows.h"
@@ -4880,10 +4879,11 @@ TEST(ServerSessionTest, TheQuestPacketsReachTheWorld)
     EXPECT_EQ(prize->kind, Quest::PointsPrize);
 }
 
-// 0x4e4547: el BC llega al mundo con pkt[3] y pkt[4]; corto, un aviso y nada (CL9 hito 6). Valores inventados.
+// 0x4e4547: el BC 00 y el BC 01 llegan al mundo como paquetes de evento con pkt[3] y pkt[4]; corto, un aviso y nada
+// (CL9 hitos 6 y 11). Valores inventados.
 TEST(ServerSessionTest, TheJewelMixAnswerReachesTheWorld)
 {
-    namespace JewelMix = Client::Protocol::JewelMix;
+    namespace Events = Client::Protocol::Events;
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
     tested.socket.reads = {
@@ -4891,11 +4891,15 @@ TEST(ServerSessionTest, TheJewelMixAnswerReachesTheWorld)
     ASSERT_TRUE(tested.session.Poll().HasValue());
     const auto events = tested.eventSink.TakeWorldEvents();
     ASSERT_EQ(events.size(), 2u);
-    const auto* unmixed = std::get_if<JewelMix::JewelMixAnswer>(&events[0]);
+    const auto* first = std::get_if<Events::EventPacket>(&events[0]);
+    ASSERT_NE(first, nullptr);
+    const auto* unmixed = std::get_if<Events::JewelMixResult>(first);
     ASSERT_NE(unmixed, nullptr);
     EXPECT_EQ(unmixed->subcode, 1);
     EXPECT_EQ(unmixed->result, 7);
-    const auto* mixed = std::get_if<JewelMix::JewelMixAnswer>(&events[1]);
+    const auto* second = std::get_if<Events::EventPacket>(&events[1]);
+    ASSERT_NE(second, nullptr);
+    const auto* mixed = std::get_if<Events::JewelMixResult>(second);
     ASSERT_NE(mixed, nullptr);
     EXPECT_EQ(mixed->subcode, 0);
     EXPECT_EQ(mixed->result, 4);
@@ -5228,7 +5232,7 @@ TEST(ServerSessionTest, AShortChatRoomPacketIsIgnoredAndTheSessionGoesOn)
     ASSERT_EQ(events.size(), 1u);
     const auto* packet = std::get_if<Client::App::ChatRoomPacket>(&events[0]);
     ASSERT_NE(packet, nullptr);
-    EXPECT_EQ(packet->packet.Opcode(), std::optional<std::uint8_t>(0x0d));
+    EXPECT_EQ(packet->packet.Opcode(), std::optional<std::uint8_t>{std::uint8_t{0x0d}});
     EXPECT_EQ(rooms.tested.CountLogged(LogLevel::Warning, "de la sala 772 del chat con un amigo"), 5u);
     EXPECT_FALSE(rooms.tested.Logged(LogLevel::Warning, "queso"));
     EXPECT_FALSE(rooms.tested.Logged(LogLevel::Warning, "Hor"));

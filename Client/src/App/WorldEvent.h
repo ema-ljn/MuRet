@@ -12,7 +12,6 @@
 #include "Protocol/Friends.h"
 #include "Protocol/Guild.h"
 #include "Protocol/Inventory.h"
-#include "Protocol/JewelMix.h"
 #include "Protocol/Letters.h"
 #include "Protocol/Messages.h"
 #include "Protocol/NpcWindows.h"
@@ -93,7 +92,7 @@ using WorldEvent = std::variant<
     Protocol::Inventory::ManaRefill, Protocol::NpcWindows::TalkResult, Protocol::NpcWindows::ItemList,
     Protocol::NpcWindows::BuyResult, Protocol::NpcWindows::SellResult, Protocol::NpcWindows::RepairResult,
     Protocol::NpcWindows::WarehouseMoney, Protocol::NpcWindows::NpcWindowClosed, Protocol::NpcWindows::WarehouseState,
-    Protocol::NpcWindows::ChaosMixResult, Protocol::JewelMix::JewelMixAnswer, Protocol::FloorItems::FloorItemsCreate,
+    Protocol::NpcWindows::ChaosMixResult, Protocol::FloorItems::FloorItemsCreate,
     Protocol::FloorItems::FloorItemsDelete, Protocol::FloorItems::PickUpResult, Protocol::FloorItems::DropResult,
     Protocol::FloorItems::StatFruit, Protocol::FloorItems::ShortPickUpResult, Protocol::FloorItems::ShortDropResult,
     Protocol::FloorItems::ShortStatFruit, Protocol::Trade::TradeRequest, Protocol::Trade::ClearTradeRequest,

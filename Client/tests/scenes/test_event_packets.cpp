@@ -1167,19 +1167,23 @@ TEST_F(EventPacketsTest, TheEventSoundPlaysItsSound)
 // ----- BC 00 y BC 01.
 
 // El mensaje "%s%s %s" (mezcla o deshace, 1816 y 868 tal cual) o el aviso, y después la ventana de la mezcla
-// (0x402e50, hito 6), que corta; el 1 abre los diálogos 0 y 0xa6.
-TEST_F(EventPacketsTest, TheJewelResultsSayTheirMessageAndCutTheWindow)
+// (0x402e50, Scenes/JewelMix.h, del hito 6) vuelve a elegir: con el modo 0, el 0xa2, y con el 1, el 0xa4. El 1 abre
+// los diálogos 0 y 0xa6. Las tablas enteras, en test_jewel_mix_answers.
+TEST_F(EventPacketsTest, TheJewelResultsSayTheirMessageAndReturnToTheChoice)
 {
-    const std::string mixed = Cut(Events::JewelMixResult{.subcode = 0, .result = 0});
-    EXPECT_NE(mixed.find("0x402e50"), std::string::npos) << mixed;
+    Applied(Events::JewelMixResult{.subcode = 0, .result = 0});
     ASSERT_FALSE(Runtime().chat.log.entries.empty());
     EXPECT_EQ(Runtime().chat.log.entries.front().text, "mezclapara permitida% d veces");
-    Cut(Events::JewelMixResult{.subcode = 0, .result = 4});
+    EXPECT_EQ(Runtime().dialogs.current, 0xa2);
+    Applied(Events::JewelMixResult{.subcode = 0, .result = 4});
     EXPECT_EQ(Runtime().chat.log.entries.front().text, "faltan");
-    Cut(Events::JewelMixResult{.subcode = 1, .result = 5});
+    Runtime().npcWindows.jewels.mode = 1;
+    Applied(Events::JewelMixResult{.subcode = 1, .result = 5});
     EXPECT_EQ(Runtime().chat.log.entries.front().text, "deshacepara permitida% d veces");
-    Cut(Events::JewelMixResult{.subcode = 1, .result = 7});
+    EXPECT_EQ(Runtime().dialogs.current, 0xa4);
+    Applied(Events::JewelMixResult{.subcode = 1, .result = 7});
     EXPECT_EQ(Runtime().chat.log.entries.front().text, "sin lugar");
+    EXPECT_TRUE(worldPackets.empty());
 
     Runtime().dialogs = {};
     Applied(Events::JewelMixResult{.subcode = 1, .result = 1});

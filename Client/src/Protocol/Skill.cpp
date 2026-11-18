@@ -169,6 +169,30 @@ Core::Expected<SkillList, ProtocolError> ReadSkillList(const Network::Packet& pa
     return read;
 }
 
+Core::Expected<LevelUp, ProtocolError> ReadLevelUp(const Network::Packet& packet)
+{
+    constexpr PacketKind LevelUpKind{Network::PacketType::C1, Character::CharacterOpcode, LevelUpSubcode};
+    auto fields = FieldsAfterSubcode(packet, LevelUpKind);
+    if (!fields.HasValue())
+        return Core::Unexpected(fields.Error());
+    Core::ByteReader& reader = fields.Value();
+    constexpr std::size_t ServerFieldsSize = 14;
+    if (reader.Remaining() < ServerFieldsSize)
+        return Core::Unexpected(ProtocolError::TooShort);
+    LevelUp reply;
+    reply.level = *reader.ReadU16Le();
+    reply.levelUpPoints = *reader.ReadU16Le();
+    reply.maxLife = *reader.ReadU16Le();
+    reply.maxMana = *reader.ReadU16Le();
+    reply.maxBp = *reader.ReadU16Le();
+    reply.addedPoints = *reader.ReadU16Le();
+    reply.maxAddedPoints = *reader.ReadU16Le();
+    // Q-C1369: el emisor 1.02i omite estas dos palabras.
+    reply.word48 = reader.ReadU16Le().value_or(0);
+    reply.word4a = reader.ReadU16Le().value_or(0);
+    return reply;
+}
+
 Core::Expected<SummonLife, ProtocolError> ReadSummonLife(const Network::Packet& packet)
 {
     auto fields = FieldsAfterSubcode(packet, SummonLifeKind);

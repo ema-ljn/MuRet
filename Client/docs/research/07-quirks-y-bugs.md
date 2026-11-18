@@ -833,6 +833,12 @@ Q-C1364 toma el siguiente número libre después de los reservados por las cabez
 | Q-C1367 | salir de la alianza, `0x651277..0x65128b` | el aviso 1387 (tipo 1) sale de `sprintf(buf, texto)` sin argumentos: un `%` en el texto leería la pila. El del repo no tiene `%`. *Estático* | ninguno con el Text.bmd del repo | `UI::Sprintf` sin argumentos: una marca queda escrita como está (`UI::FormatLikeSprintf`) | CL9 H8 |
 | Q-C1368 | el pedido de la alianza, `E5` (`0x656d91`) | el diálogo arma 1281 o 1282 con `sprintf(buf, texto)` sin argumento; un Text.bmd con `%s` en esos textos (el portugués: "Recebido um pedido de inscricao de.%s") lee un lugar de la pila (*inferido*: el `EDI` del que llama). *Estático* | con otros Text.bmd | MuRet deja el `%s` literal (`UI::PlaceArguments` sin argumentos); con el del repo, sin `%s`, es igual | CL9 H8 |
 
+## Subida de nivel
+
+| # | Dónde | Qué pasa | Clase | MuRet | Ola |
+| --- | --- | --- | --- | --- | --- |
+| Q-C1369 | `F3 05` en `0x4d2ed0` | lee los WORD de `pkt[0x12]` y `pkt[0x14]` y los guarda en los offsets `+0x48` y `+0x4a` del registro propio. El emisor 1.02i termina en `0x12` bytes. `0x4e8fa7` agrega un byte FD fuera del frame; el resto no pertenece al wire. *Estático* | lectura fuera del paquete | acepta el frame de 18 bytes y usa cero para cada palabra incompleta, como en Q-C144. [ADR 0022](../../../docs/adr/0022-subida-de-nivel.md) | CL9 y CL10 |
+
 ## Cómo se agrega un quirk
 
 Igual que en el DataServer: número nuevo, dirección del original, evidencia (archivo del repo de

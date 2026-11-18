@@ -407,6 +407,8 @@ void ServerSession::RegisterSkillHandlers()
         m_gameServer.On(Skill::Report73Opcode, [this](const Network::Packet& packet) { OnReport73(packet); }) &&
         m_gameServer.On(CharacterOpcode, Skill::SkillListSubcode,
                         [this](const Network::Packet& packet) { OnSkillList(packet); }) &&
+        m_gameServer.On(CharacterOpcode, Skill::LevelUpSubcode,
+                        [this](const Network::Packet& packet) { OnLevelUp(packet); }) &&
         m_gameServer.On(CharacterOpcode, Skill::SummonLifeSubcode,
                         [this](const Network::Packet& packet) { OnSummonLife(packet); }) &&
         m_gameServer.On(Protocol::Pet::PetOrderOpcode, [this](const Network::Packet& packet) { OnPetOrder(packet); }) &&
@@ -2362,6 +2364,17 @@ void ServerSession::OnSkillList(const Network::Packet& packet)
         return;
     }
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(list.Value(), *this)));
+}
+
+void ServerSession::OnLevelUp(const Network::Packet& packet)
+{
+    const auto reply = Protocol::Skill::ReadLevelUp(packet);
+    if (!reply.HasValue())
+    {
+        m_log.Warning("se ignora la subida de nivel (F3 05): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(reply.Value(), *this)));
 }
 
 void ServerSession::OnSummonLife(const Network::Packet& packet)

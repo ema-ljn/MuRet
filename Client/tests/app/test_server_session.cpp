@@ -1117,6 +1117,24 @@ TEST(ServerSessionTest, TheOtherClearSkillsReachTheWorld)
     EXPECT_EQ(tested.eventSink.TakeWorldEvents().size(), 3u);
 }
 
+TEST(ServerSessionTest, LevelUpReceptionsPreserveRepeatedEventsAndRejectTruncations)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    const auto wire = Bytes({0xc1, 18, 0xf3, 5, 9, 0, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0, 7, 0});
+    tested.socket.reads = {Join({wire, Bytes({0xc1, 5, 0xf3, 5, 9}), wire})};
+    static_cast<void>(tested.session.Poll());
+    const auto events = tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 2u);
+    for (const auto& event : events)
+    {
+        const auto* level = std::get_if<Client::Protocol::Skill::LevelUp>(&event);
+        ASSERT_NE(level, nullptr);
+        EXPECT_EQ(level->level, 9);
+        EXPECT_EQ(level->maxBp, 5);
+    }
+}
+
 // 0x4e4c0a y 0x4e4c42: las órdenes del cuervo entran al mundo sin mirar el cifrado.
 TEST(ServerSessionTest, TheRavenOrdersReachTheWorld)
 {

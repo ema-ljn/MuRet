@@ -425,6 +425,7 @@ está en [06](06-render-escenas-y-ui.md#la-escena-del-juego).
 | `0x1C` | C->S (C3) | `0x599ef0` | pedir un gate (abajo) |
 | `0x1C` | S->C (C3) | `0x4c6e10`, desde `0x4e3f2a` | el warp: el gate, el mapa, la celda y la dirección (abajo) |
 | `F3 04` | S->C (C3) | `0x4c4b80` | revivir (abajo) |
+| `F3 05` | S->C (C1) | `0x4e30b9 → 0x4d2ed0` | [subir de nivel](#subir-de-nivel-f3-05) |
 | `F3 12` | C->S | `0x4c6e10` | "ya está el mapa", después de un `1C` con gate (abajo) |
 | `0x0F` | S->C | `0x4e36b5` | el clima: la meta de la lluvia (abajo) |
 | `0xBD` | C->S y S->C | `0x4c421a`, `0x4c785d`; `0x4e2b10` → `0x4033b0` | el estado de Crywolf; el recorrido de la cámara (abajo) |
@@ -527,6 +528,30 @@ de `0x4c396a` y el cifrado va al aplicador nativo de `0x4c3940`
 `Scenes::ApplyInventory` y el que llega en claro hace la inicialización común en el aplicador
 (`App::ClearInventoryReceived`) y después manda el mismo `C1 06 F1 03 00 F3`
 ([06](06-render-escenas-y-ui.md#el-f3-10-el-inventario)).
+
+### Subir de nivel (F3 05)
+
+`GCLevelUpMsgSend` del GameServer 1.02i (`0x417ab0`) emite `C1 12 F3 05`.
+Desde el offset `0x04` vienen siete palabras little-endian ordenadas por
+nivel, puntos de nivel, máximos de vida, maná y BP, puntos añadidos y máximo
+de puntos añadidos. El cliente descifra el registro propio, actualiza esos
+campos y lleva la vida y el maná actuales a sus respectivos máximos. El BP
+actual y la experiencia actual se conservan. `0x550ca0` calcula la siguiente
+meta en aritmética de 32 bits con `10 · (L + 9) · L²` y, para `L > 255`,
+suma `1000 · (L - 246) · (L - 255)²`. El handler lee además dos palabras
+que el emisor de 18 bytes no manda. MuRet copia cada palabra completa si
+llegó y usa cero si falta. [Q-C1369](07-quirks-y-bugs.md#subida-de-nivel).
+
+El registro se cierra antes de los efectos. El cierre exterior consume
+`0xf08` sorteos. `0x4d319d..0x4d31f4` usa el héroe publicado para intentar
+15 joints `0x60f/0` de ancho 40 y clave 2, con tres sorteos por alta, luego
+un calco `0x61e/0` y el sonido `0x98` sin origen ni bucle. Se pide el
+sonido también cuando los pools están llenos. MuRet comparte este tramo con
+el efecto de actor `48/10`, que conserva sus propias guardas.
+
+La longitud se verificó en el ASM del emisor. La captura histórica no tiene
+una subida de nivel observada. Los tests ejercitan el lector, el despacho
+real de sesión, la actualización de estado, el orden del RNG y el sonido.
 
 ### Caminar y pegar: `D3` y `D7`
 

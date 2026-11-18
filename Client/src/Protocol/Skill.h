@@ -23,6 +23,8 @@ inline constexpr std::uint8_t ActorEffectOpcode = 0x48;
 inline constexpr std::uint8_t SkillTargetOpcode = 0x69;
 inline constexpr std::uint8_t Report73Opcode = 0x73;
 // Del F3 (Character::CharacterOpcode).
+// 0x4e30b9: la subida de nivel del héroe.
+inline constexpr std::uint8_t LevelUpSubcode = 0x05;
 inline constexpr std::uint8_t SkillListSubcode = 0x11;
 inline constexpr std::uint8_t SummonLifeSubcode = 0x20;
 
@@ -100,6 +102,20 @@ inline constexpr std::uint8_t SkillListRemoveOne = 0xff;
 inline constexpr std::uint8_t SkillListAddOne = 0xfe;
 inline constexpr std::uint8_t SkillListClearSlot = 2;
 
+// 0x4d30d0: siete WORD del GS 1.02i; pkt[0x12/0x14] sólo si están completos (Q-C144).
+struct LevelUp
+{
+    std::uint16_t level = 0;
+    std::uint16_t levelUpPoints = 0;
+    std::uint16_t maxLife = 0;
+    std::uint16_t maxMana = 0;
+    std::uint16_t maxBp = 0;
+    std::uint16_t addedPoints = 0;
+    std::uint16_t maxAddedPoints = 0;
+    std::uint16_t word48 = 0;
+    std::uint16_t word4a = 0;
+};
+
 // 0x4e31e1: C1 05 F3 20 [vida], la vida del invocado (0x5767960).
 struct SummonLife
 {
@@ -113,6 +129,7 @@ struct SummonLife
 [[nodiscard]] Core::Expected<ActorEffect, ProtocolError> ReadActorEffect(const Network::Packet& packet);
 [[nodiscard]] Core::Expected<SkillTarget, ProtocolError> ReadSkillTarget(const Network::Packet& packet);
 [[nodiscard]] Core::Expected<SkillList, ProtocolError> ReadSkillList(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<LevelUp, ProtocolError> ReadLevelUp(const Network::Packet& packet);
 [[nodiscard]] Core::Expected<SummonLife, ProtocolError> ReadSummonLife(const Network::Packet& packet);
 
 // El aviso de los que no llegaron cifrados: C1 06 F1 03 00 [cabeza] con el XOR32 y en C3, sin leer el paquete. La

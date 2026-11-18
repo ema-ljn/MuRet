@@ -485,6 +485,8 @@ std::optional<Core::Expected<void, std::string>> SessionEventApplier::ApplySkill
         return ApplySkillTarget(*target, m_resources);
     if (const auto* list = std::get_if<Protocol::Skill::SkillList>(&event))
         return ApplySkillList(*list, m_resources);
+    if (const auto* level = std::get_if<Protocol::Skill::LevelUp>(&event))
+        return ApplyLevelUp(*level, m_resources);
     if (const auto* summon = std::get_if<Protocol::Skill::SummonLife>(&event))
     {
         ApplySummonLife(*summon, m_resources);

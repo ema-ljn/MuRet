@@ -28,6 +28,37 @@ using Client::Tests::PacketOf;
 using Client::Tests::SameBytes;
 namespace Skill = Client::Protocol::Skill;
 
+// 0x4d30d0: el GS manda siete WORD; las dos lecturas fuera del struct son opcionales.
+TEST(SkillProtocolTest, LevelUpReadsTheServerPacketAndOptionalWords)
+{
+    auto wire = Bytes({0xc1, 18, 0xf3, 5, 0x34, 0x12, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0, 7, 0});
+    const auto shortReply = Skill::ReadLevelUp(PacketOf(wire));
+    ASSERT_TRUE(shortReply.HasValue());
+    EXPECT_EQ(shortReply.Value().level, 0x1234);
+    EXPECT_EQ(shortReply.Value().levelUpPoints, 2);
+    EXPECT_EQ(shortReply.Value().maxLife, 3);
+    EXPECT_EQ(shortReply.Value().maxMana, 4);
+    EXPECT_EQ(shortReply.Value().maxBp, 5);
+    EXPECT_EQ(shortReply.Value().addedPoints, 6);
+    EXPECT_EQ(shortReply.Value().maxAddedPoints, 7);
+    EXPECT_EQ(shortReply.Value().word48, 0);
+    EXPECT_EQ(shortReply.Value().word4a, 0);
+    wire.insert(wire.end(), {std::byte{8}, std::byte{0}, std::byte{9}});
+    wire[1] = std::byte{21};
+    const auto partial = Skill::ReadLevelUp(PacketOf(wire));
+    ASSERT_TRUE(partial.HasValue());
+    EXPECT_EQ(partial.Value().word48, 8);
+    EXPECT_EQ(partial.Value().word4a, 0);
+    wire.push_back(std::byte{0});
+    wire[1] = std::byte{22};
+    const auto extended = Skill::ReadLevelUp(PacketOf(wire));
+    ASSERT_TRUE(extended.HasValue());
+    EXPECT_EQ(extended.Value().word4a, 9);
+    wire.resize(17);
+    wire[1] = std::byte{17};
+    EXPECT_EQ(ErrorOf(Skill::ReadLevelUp(PacketOf(wire))), ProtocolError::TooShort);
+}
+
 // 0x4cce2f..0x4cce55: las claves en big endian; el bit 15 del blanco es el éxito y se va del blanco.
 TEST(SkillProtocolTest, TheMagicAttackSplitsTheSuccessBitFromTheTarget)
 {

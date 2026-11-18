@@ -7,6 +7,7 @@
 #include "Data/Text/TextTable.h"
 #include "Protocol/Events.h"
 #include "Protocol/Movement.h"
+#include "Protocol/Outgoing.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"

@@ -5,7 +5,6 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <string>
 #include <vector>
 
 // Las grillas y los globales de las ventanas de los NPC (CL9 hito 6): la tienda y el almacén comparten la grilla de

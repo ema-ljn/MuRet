@@ -1,9 +1,6 @@
 #include "Scenes/SiegeBattleUi.h"
 
 #include "Core/Expected.h"
-#include "Input/InputState.h"
-#include "Input/Key.h"
-#include "Protocol/Outgoing.h"
 #include "Protocol/SiegeControls.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GameUi.h"
@@ -17,7 +14,6 @@
 #include <cstdint>
 #include <bit>
 #include <string>
-#include <utility>
 
 namespace Client::Scenes
 {

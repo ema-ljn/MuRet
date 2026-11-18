@@ -36,17 +36,17 @@ constexpr std::uint16_t FirstCommandSlot = 0x6a0;
 void Quad(Render::SpriteBatch& sprites, std::uint16_t slot, float x, float y, float width, float height, float u = 0.0f,
           float v = 0.0f, float du = 1.0f, float dv = 1.0f)
 {
-    sprites.Quad({.slot = Render::TextureSlot{slot},
-                  .x = x,
-                  .y = y,
-                  .width = width,
-                  .height = height,
-                  .u = u,
-                  .v = v,
-                  .du = du,
-                  .dv = dv,
-                  .scaleSize = true,
-                  .scalePosition = true});
+    sprites.Quad(Render::OriginalQuad{.slot = Render::TextureSlot{slot},
+                                      .x = x,
+                                      .y = y,
+                                      .width = width,
+                                      .height = height,
+                                      .u = u,
+                                      .v = v,
+                                      .du = du,
+                                      .dv = dv,
+                                      .scaleSize = true,
+                                      .scalePosition = true});
 }
 std::int32_t ReadCell(ActorState& actor, Render::Models::CrtRandom& random, bool x, std::uint8_t& depth)
 {

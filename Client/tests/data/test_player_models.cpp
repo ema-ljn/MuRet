@@ -134,7 +134,7 @@ TEST(PlayerModelsTest, TheSkillLoaderKeepsItsNativeOrderAndTheWorldGates)
 {
     const std::span<const ModelFile> files = SkillModelFiles();
 
-    ASSERT_EQ(files.size(), 14u);
+    ASSERT_EQ(files.size(), 15u);
     std::vector<std::uint16_t> models;
     std::vector<std::string_view> names;
     for (const ModelFile& file : files)
@@ -142,9 +142,9 @@ TEST(PlayerModelsTest, TheSkillLoaderKeepsItsNativeOrderAndTheWorldGates)
         models.push_back(file.model);
         names.push_back(file.name);
     }
-    EXPECT_EQ(models, (std::vector<std::uint16_t>{0xc6, 0x110, 0xbf, 0x14a, 0x14b, 0x14c, 0x14d, 0xc0, 0xc5, 0x10c,
-                                                  0x10d, 0x145, 0x146, 0x147}));
-    EXPECT_EQ(names, (std::vector<std::string_view>{"Rider", "Rider", "DarkHorse", "fenril_black", "fenril_red",
+    EXPECT_EQ(models, (std::vector<std::uint16_t>{0xc2, 0xc6, 0x110, 0xbf, 0x14a, 0x14b, 0x14c, 0x14d, 0xc0, 0xc5,
+                                                  0x10c, 0x10d, 0x145, 0x146, 0x147}));
+    EXPECT_EQ(names, (std::vector<std::string_view>{"Fire", "Rider", "Rider", "DarkHorse", "fenril_black", "fenril_red",
                                                     "fenril_blue", "lightning_type01", "DarkSpirit", "HellGate", "Gate",
                                                     "Gate", "elf_skill", "WaveForce", "deathsp_eff"}));
     for (const ModelFile& file : files)
@@ -152,7 +152,7 @@ TEST(PlayerModelsTest, TheSkillLoaderKeepsItsNativeOrderAndTheWorldGates)
         const bool gate = file.model == 0x10c || file.model == 0x10d;
         const std::string_view folder = gate ? "Object12\\" : (file.model == 0x14d ? "Effect\\" : "Skill\\");
         EXPECT_EQ(file.folder, folder) << file.name;
-        const int rider = file.model == 0xc6 ? 1 : (file.model == 0x110 ? 2 : -1);
+        const int rider = file.model == 0xc2 || file.model == 0xc6 ? 1 : (file.model == 0x110 ? 2 : -1);
         EXPECT_EQ(file.number, gate ? static_cast<int>(file.model - 0x10b) : rider) << file.name;
     }
 }

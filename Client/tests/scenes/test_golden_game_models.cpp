@@ -10,6 +10,8 @@
 #include "Data/Textures/Sampling.h"
 #include "Data/Textures/Texture.h"
 #include "Render/Models/Skeleton.h"
+#include "Render/Models/ModelTextureSlots.h"
+#include "Data/Textures/TextureSet.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CreatePreview.h"
 #include "Scenes/TextureSets.h"
@@ -28,6 +30,7 @@
 #include <cstring>
 #include <ios>
 #include <memory>
+#include <map>
 #include <optional>
 #include <set>
 #include <string>
@@ -53,6 +56,118 @@ using Client::Scenes::GlowTextureSet;
 using Client::Tests::FakeTextureStore;
 using Client::Tests::ReadFileBytes;
 using Client::Tests::RecordingSink;
+
+// 615f77..61619f,616370/38d,616953..616e46: replay literal del orden nativo sobre los BMD cargados.
+using NativeSkillLoadTest = Client::Tests::GoldenDataTest;
+TEST_F(NativeSkillLoadTest, TheLoadedSkillTexturesFollowEveryReachedNativeCallInOrder)
+{
+    FakeTextureStore store;
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    GameModels game;
+    ASSERT_TRUE(game.Load(m_dataRoot, store, log).HasValue());
+    ASSERT_NE(game.Find(0xc2), nullptr) << "615d4c: Skill/Fire01.bmd abastece fire01.jpg antes del login";
+    using Client::Data::Textures::Wrap;
+    struct Call
+    {
+        std::uint16_t model;
+        std::string_view folder;
+        Wrap wrap = Wrap::Repeat;
+    };
+    Client::Render::Models::ModelTextureSlots native(TextureSlot{0x138});
+    std::map<std::uint16_t, std::vector<TextureSlot>> bindings;
+    const auto query = [&](const Call& call)
+    {
+        if (const auto* model = game.Find(call.model); model != nullptr)
+            bindings[call.model] =
+                native.Assign(*model, call.folder, {Client::Data::Textures::Filter::Nearest, call.wrap});
+    };
+    for (const auto& call : Client::Data::Models::PlayerTextureCalls())
+        query({call.model, call.folder});
+    native.SetNext(TextureSlot{0x25a});
+    for (const auto& call : Client::Data::Models::ItemTextureCalls())
+        query({call.model, call.folder});
+    ASSERT_EQ(native.Next(), TextureSlot{0x371});
+    for (const Call& call : std::to_array<Call>({{0x14a, "Skill\\"},
+                                                 {0x14b, "Skill\\"},
+                                                 {0x14c, "Skill\\"},
+                                                 {0x14d, "Effect\\"},
+                                                 {0x109, "Skill\\"},
+                                                 {0xf9, "Skill\\"},
+                                                 {0x10f, "Skill\\"}}))
+        query(call);
+    native.SetNext(TextureSlot{0x69});
+    for (const std::uint16_t model :
+         {std::uint16_t{0x10d}, std::uint16_t{0x10a}, std::uint16_t{0x10d}, std::uint16_t{0x10b}})
+        query({model, "Monster\\"});
+    native.SetNext(TextureSlot{0x3b8});
+    const auto skill = std::to_array<Call>({{0x145, "Skill\\"},
+                                            {0x146, "Skill\\"},
+                                            {0x147, "Skill\\"},
+                                            {0xbf, "Skill\\"},
+                                            {0xc0, "Skill\\"},
+                                            {0xc5, "Skill\\"},
+                                            {0x110, "Skill\\"},
+                                            {0xfb, "Skill\\"},
+                                            {0xfc, "Skill\\"},
+                                            {0xfd, "Skill\\"},
+                                            {0xff, "Skill\\"},
+                                            {0x101, "Skill\\"},
+                                            {0x102, "Skill\\"},
+                                            {0x103, "Skill\\"},
+                                            {0x104, "Skill\\"},
+                                            {0x107, "Skill\\"},
+                                            {0x108, "Skill\\"},
+                                            {0x111, "Skill\\"},
+                                            {0x112, "Skill\\"},
+                                            {0x113, "Skill\\", Wrap::Clamp},
+                                            {0x114, "Skill\\"},
+                                            {0x115, "Skill\\"},
+                                            {0x116, "Skill\\"},
+                                            {0x118, "Skill\\"},
+                                            {0x119, "Skill\\"},
+                                            {0x11a, "Skill\\", Wrap::Clamp},
+                                            {0x11b, "Skill\\", Wrap::Clamp},
+                                            {0x129, "Skill\\"},
+                                            {0x12a, "Skill\\"},
+                                            {0x12b, "Npc\\"},
+                                            {0x12c, "Skill\\"},
+                                            {0x12d, "Skill\\"},
+                                            {0x12e, "Skill\\"},
+                                            {0x12f, "Object31\\"},
+                                            {0x130, "Object31\\"},
+                                            {0x131, "Monster\\"},
+                                            {0x132, "Monster\\"},
+                                            {0x133, "Monster\\"},
+                                            {0x134, "Monster\\"},
+                                            {0x135, "Skill\\"},
+                                            {0x13c, "Monster\\"},
+                                            {0x13d, "Skill\\"},
+                                            {0x13e, "Skill\\"},
+                                            {0x137, "Effect\\"},
+                                            {0x140, "Item\\"}});
+    for (const Call& call : skill)
+        query(call);
+    for (std::uint16_t model = 0xbe; model < 0x151; ++model)
+        query({model, "Skill\\"});
+    ASSERT_EQ(native.Next(), game.TextureSlots().Next());
+    const auto expected = native.ToLoad(), actual = game.TextureSlots().ToLoad();
+    ASSERT_EQ(expected.size(), actual.size());
+    for (std::size_t i = 0; i < expected.size(); ++i)
+    {
+        SCOPED_TRACE(i);
+        ASSERT_EQ(actual[i].path, expected[i].path);
+        ASSERT_EQ(actual[i].slot, expected[i].slot);
+        ASSERT_EQ(actual[i].sampling.filter, expected[i].sampling.filter);
+        ASSERT_EQ(actual[i].sampling.wrap, expected[i].sampling.wrap);
+    }
+    for (const auto& [model, expectedSlots] : bindings)
+    {
+        const auto actualSlots = game.MeshTextures(model);
+        ASSERT_EQ(actualSlots.size(), expectedSlots.size()) << model;
+        EXPECT_TRUE(std::equal(actualSlots.begin(), actualSlots.end(), expectedSlots.begin())) << model;
+    }
+}
 
 // Los tres giftbox de 0x60ff50, que el laboratorio no tiene (06).
 constexpr std::size_t MissingInTheLab = 3;

@@ -210,6 +210,10 @@ TEST(KalimaSceneTextureTest, MissingRequiredWaterFailsBeforeAnyPhysicalUpload)
 {
     Client::Tests::TemporaryFolder missing("kalima-missing-water");
     Client::Tests::WriteTextureSet(missing.Path(), Client::World::KalimaTextureSet(), std::uint16_t{0x24});
+    // 616ec0 pide drop01 con sexto 1 antes de llegar a water2: el fixture debe alcanzar esa segunda frontera.
+    const auto drop = Client::World::DropTexture();
+    const std::array<Client::Data::Textures::TextureSetEntry, 1> prefix{{{drop.path, drop.slot, drop.sampling}}};
+    Client::Tests::WriteTextureSet(missing.Path(), prefix);
     SlotFailureStore store;
     TerrainTiles tiles(store);
     std::vector<std::string> skipped;
@@ -230,15 +234,32 @@ TEST(KalimaSceneTextureTest, TheNativeOptionalAlphaWaterMayBeSkippedWhileTheRequ
     const std::array<Client::Data::Textures::TextureSetEntry, 2> entries{
         {{box.path, box.slot, box.sampling}, {drop.path, drop.slot, drop.sampling}}};
     Client::Tests::WriteTextureSet(folder.Path(), entries);
+    // Preparación del epílogo618dd1..618e40: este test sólo deja ausente water1, no 33 archivos ajenos.
+    std::vector<Client::Data::Textures::TextureSetEntry> epilogue;
+    const auto waters = Client::World::CausticTextures(24);
+    for (const auto& water : waters)
+        epilogue.push_back({water.path, water.slot, water.sampling});
+    const auto light = Client::World::ObjectLightTexture();
+    epilogue.push_back({light.path, light.slot, light.sampling});
+    Client::Tests::WriteTextureSet(folder.Path(), epilogue);
     SlotFailureStore store;
     TerrainTiles tiles(store);
     std::vector<std::string> skipped;
     const auto loaded = tiles.Load(folder.Path(), 24, skipped);
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
-    // water1 opcional y las32cáusticas de618e1d faltan en este fixture mínimo.
-    ASSERT_EQ(skipped.size(), 33u);
+    ASSERT_EQ(skipped.size(), 1u);
     EXPECT_NE(skipped[0].find("water1.tga"), std::string::npos);
     EXPECT_FALSE(store.stored.Find(TextureSlot{0x23}));
-    EXPECT_TRUE(store.stored.Find(TextureSlot{0x24}));
+    const auto water2 = store.stored.Find(TextureSlot{0x24});
+    ASSERT_TRUE(water2);
+    EXPECT_EQ(water2->texture.format, Client::Data::Textures::PixelFormat::Rgb);
+    std::vector<std::uint16_t> uploads{0x607, 0x24};
+    for (std::uint16_t slot = 0x41; slot < 0x61; ++slot)
+        uploads.push_back(slot);
+    uploads.push_back(0x68);
+    uploads.push_back(0x122);
+    EXPECT_EQ(store.stored.loaded, uploads);
     tiles.Release();
+    EXPECT_EQ(store.stored.Size(), 0u);
+    EXPECT_EQ(store.stored.released, uploads);
 }

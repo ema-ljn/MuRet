@@ -178,6 +178,9 @@ struct ModelEffect
     std::uint8_t byte1bd = 0;
     std::uint16_t word8c = 0;
     std::int32_t dword100 = 0;
+    // +0x90 y +0x1b0: el umbral del impacto y el destino de los proyectiles del castillo.
+    std::uint8_t byte90 = 0;
+    glm::vec3 siegeTarget{};
 };
 
 // Los once argumentos de 0x518cf0, como los escribe su prefijo (0x518d28..0x518e36): el tipo en +0x2, la posición en

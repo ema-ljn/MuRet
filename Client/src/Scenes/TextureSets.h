@@ -264,8 +264,10 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 3> GlowTextureSet{{
 // flareBlue/62b (61dc9d), todos GL_LINEAR/GL_CLAMP; los dos últimos tienen slots físicos propios.
 // Lo que cuelga de un jugador (0x509340 y 0x50ba30) pide además Shiny03 en 0x5fe (61d937) e Impack03 de
 // Object9 en 0x5ad (61e799), del mismo lazo sin ramas de 0x61ccb0 y con el mismo sampling.
-inline constexpr std::array<Data::Textures::TextureSetEntry, 46> EffectTextureSet{{
+inline constexpr std::array<Data::Textures::TextureSetEntry, 47> EffectTextureSet{{
     {"Effect\\Fire01.jpg", 0x5d9, TextureSetsDetail::LinearClamp},
+    // 0x61d523: Fire03 para la partícula 0x5db/0 del efecto 0x147/1 de Crywolf.
+    {"Effect\\Fire03.jpg", 0x5db, TextureSetsDetail::LinearClamp},
     // 0x61d663: ShockWave en 0x6eb, la onda del galope del caballo en Icarus (0x44431b).
     {"Effect\\ShockWave.jpg", 0x6eb, TextureSetsDetail::LinearClamp},
     // 0x61d67f: Flame01 en 0x5de, de la llama 5de/7 del 0x43 del 54.

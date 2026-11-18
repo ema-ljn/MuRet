@@ -406,3 +406,18 @@ TEST(TextureSetsTest, TheCrywolfChromeUploadsItsRealImage)
     EXPECT_GT(texture->texture.width, 0);
     EXPECT_GT(texture->texture.height, 0);
 }
+
+// 0x61d523..0x61d52d: Fire03 del efecto 0x147/1 usa LINEAR/CLAMP.
+TEST(TextureSetsTest, TheCrywolfFireUploadsItsRealImage)
+{
+    Client::Tests::FakeTextureStore store;
+    Client::Scenes::SceneTextures textures(store, EffectTextureSet);
+    const auto loaded = textures.Load(std::filesystem::path{MURET_CLIENT_REPO_DATA_DIR});
+    ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
+    const auto texture = store.Find(Client::Render::TextureSlot{0x5db});
+    ASSERT_TRUE(texture.has_value());
+    EXPECT_EQ(texture->sampling.filter, Filter::Linear);
+    EXPECT_EQ(texture->sampling.wrap, Wrap::Clamp);
+    EXPECT_GT(texture->texture.width, 0);
+    EXPECT_GT(texture->texture.height, 0);
+}

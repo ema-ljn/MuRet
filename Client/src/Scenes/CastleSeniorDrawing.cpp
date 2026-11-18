@@ -99,10 +99,9 @@ void NpcIcon(GameHudContext& context, const UI::CastleData& data, std::uint32_t 
         sprites.ColorQuad(left, static_cast<float>(y - (statue ? 10 : 5)), 24, 3);
         if (statue)
             sprites.ColorQuad(left, static_cast<float>(y - 5), 24, 3);
-        const double ratio = static_cast<double>(static_cast<float>(Signed(data, at + UI::RecordLife))) /
-                             static_cast<double>(static_cast<float>(maxLife));
+        const float redWidth = UI::NpcLifeBarWidth(Signed(data, at + UI::RecordLife), maxLife, width);
         sprites.SetColor({1, 0, 0, 1});
-        sprites.ColorQuad(left, top, static_cast<float>(static_cast<double>(width) * ratio), 3);
+        sprites.ColorQuad(left, top, redWidth, 3);
         if (!statue)
         {
             sprites.SetColor({0, 0, 0, 1});
@@ -187,7 +186,7 @@ Core::Expected<void, std::string> NpcDetails(GameHudContext& context, UI::Castle
     if (auto line = UpgradeText(context, x + 30, Top + 301, 0x772faac, DefenseDelta(type, defense)); !line.HasValue())
         return line;
     if (statue)
-        return UpgradeText(context, x + 30, Top + 318, 0x772fbd8, recovery >= 0 && recovery <= 2 ? 1 : 0);
+        return UpgradeText(context, x + 30, Top + 318, 0x772fbd8, UI::NpcRecoveryIncrease(type, recovery));
     return {};
 }
 
@@ -270,6 +269,7 @@ Core::Expected<void, std::string> Taxes(GameHudContext& context, UI::CastleSenio
     if (auto button = Button(context, window.buttons[4], x + 70, Top + 116, 0x770e1f4, window.buttons[4].base.state);
         !button.HasValue())
         return button;
+    context.sprites.SetBlend(Render::BlendMode::Alpha); // 0x66875f/0x66893b, después de cada botón.
     WindowDrawing::SelectFont(context, Render::Text::FontKind::Bold);
     context.hud.textColors.text = 0xff947bbbu;
     for (std::int32_t i = 0; i < 6; ++i)
@@ -287,6 +287,7 @@ Core::Expected<void, std::string> Taxes(GameHudContext& context, UI::CastleSenio
     if (auto button = Button(context, window.buttons[5], x + 70, Top + 256, 0x76ce66c, window.buttons[5].base.state);
         !button.HasValue())
         return button;
+    context.sprites.SetBlend(Render::BlendMode::Alpha); // 0x66875f/0x66893b, después de cada botón.
     WindowDrawing::SelectFont(context, Render::Text::FontKind::Bold);
     context.hud.textColors.text = 0xff947bbbu;
     for (std::int32_t i = 0; i < 3; ++i)

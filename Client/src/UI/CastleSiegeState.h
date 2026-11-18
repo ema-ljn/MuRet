@@ -116,6 +116,10 @@ inline constexpr std::uint32_t FirstStatueAt = 0x7d5c520;
 // 0x660d20: la vida máxima de un nivel. Una puerta: 500000, 800000, 1500000 con el 2 y 3000000 con cualquier otro;
 // una estatua: 400000, 750000, 1300000 con el 2 y 2500000 con cualquier otro. Otro tipo, −1.
 [[nodiscard]] std::int32_t MaxLifeOfLevel(std::uint32_t type, std::int32_t level);
+// 0x66205d..0x6620ed: FILD/FIDIV de enteros, FSTP del cociente y del producto de la barra roja.
+[[nodiscard]] float NpcLifeBarWidth(std::int32_t life, std::int32_t maximum, float width);
+// 0x661050: aumento de recuperación según tipo y nivel, incluso en registros alias de la zona plana.
+[[nodiscard]] std::int32_t NpcRecoveryIncrease(std::uint32_t type, std::int32_t recovery);
 
 // Una de las tres fechas de +0xbc..+0xcd: el año en un word (el primero arriba en el paquete) y cuatro bytes.
 struct SiegeDate

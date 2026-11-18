@@ -55,6 +55,7 @@ Core::Expected<void, std::string> Admin(GameHudContext& context, UI::HuntZoneWin
     WindowDrawing::DrawText(context, 485, 133, UI::Sprintf(fee.Value(), std::string_view(FormatZen(window.fee))));
     context.sprites.SetColor({0, 0, 0, 0.3f});
     context.sprites.ColorQuad(470, 185, 90, 30);
+    context.sprites.SetBlend(Render::BlendMode::Alpha); // 0x64a2bb, después del fondo sin textura.
     context.sprites.SetColor({1, 1, 1, 1});
     WindowDrawing::SelectFont(context, Render::Text::FontKind::Bold);
     if (auto line = Text(context, Left, 163, 0x77323b0); !line.HasValue())
@@ -77,10 +78,12 @@ Core::Expected<void, std::string> Admin(GameHudContext& context, UI::HuntZoneWin
         return plus;
     if (auto minus = Button(context, window.minus, 570, 203, 0, window.minus.base.state); !minus.HasValue())
         return minus;
+    context.sprites.SetBlend(Render::BlendMode::Alpha); // 0x64a3b4, después del botón menos.
     UI::OldDraw::Quad(context.sprites, 9, 570, 185, 16, 10, 0, 0.99f, 1, -0.96875f);
     UI::OldDraw::Quad(context.sprites, 9, 570, 206, 16, 10, 0, 0, 1, 1);
     if (auto commit = Button(context, window.commit, 520, 228, 0x7733b20, window.commit.base.state); !commit.HasValue())
         return commit;
+    context.sprites.SetBlend(Render::BlendMode::Alpha); // 0x64a43a, después de aplicar el precio.
     context.hud.textColors = {.text = 0xffffffffu, .background = 0};
     if (auto line = MoneyText(context, Left, 253, 0x77324dc, static_cast<std::uint32_t>(window.max)); !line.HasValue())
         return line;

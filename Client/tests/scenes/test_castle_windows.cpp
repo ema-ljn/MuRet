@@ -1,11 +1,15 @@
 #include "Scenes/CastleWindows.h"
 
 #include "Core/Expected.h"
+#include "Core/ILogSink.h"
+#include "Core/Log.h"
+#include "Core/StderrSink.h"
 #include "Data/Text/TextTable.h"
 #include "Input/InputState.h"
 #include "Network/Crypto/Xor32.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
+#include "Protocol/CastleSiege.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
@@ -13,11 +17,14 @@
 #include "Scenes/GameHud.h"
 #include "Scenes/GameChat.h"
 #include "Scenes/GuildDrawing.h"
+#include "Scenes/CastleSiegeReceive.h"
 #include "Scenes/GuildState.h"
 #include "UI/CastleSiegeState.h"
 #include "UI/PanelDialog.h"
 #include "UI/ChatInput.h"
 #include "Render/SpriteBatch.h"
+#include "Render/SpriteVertex.h"
+#include "Render/TextureSlot.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/OldWindowBase.h"
@@ -84,6 +91,7 @@ Client::Data::Text::TextTable Texts()
     std::map<std::size_t, std::string> texts;
     for (std::size_t id = 0; id < Client::Data::Text::TextCount; ++id)
         texts[id] = "texto " + std::to_string(id);
+    texts[1565] = "recuperación %d"; // 0x772fbd8, argumento de 0x661050.
     return Client::Tests::MakeTextTable(texts);
 }
 
@@ -133,6 +141,41 @@ protected:
                                                .text = m_text,
                                                .texts = &m_texts};
         return Client::Scenes::DrawTheCastleWindows(context);
+    }
+    const Client::Render::DrawCommand* QuadAt(float x, float y) const
+    {
+        const auto vertices = m_sprites.Vertices();
+        for (const auto& command : m_sprites.Commands())
+            for (std::size_t i = command.firstVertex; i < command.firstVertex + command.vertexCount; i += 6)
+                if (vertices[i].x == x && vertices[i].y == 480.0f - y)
+                    return &command;
+        return nullptr;
+    }
+    void ExpectTextRow(std::int32_t y, bool alpha)
+    {
+        std::size_t count = 0;
+        for (const auto& text : m_text.texts)
+            if (text.y == y)
+            {
+                const auto* command = QuadAt(static_cast<float>(text.x), static_cast<float>(text.y));
+                ASSERT_NE(command, nullptr) << text.text;
+                EXPECT_EQ(command->texture, Client::Tests::TextMarkerSlot) << text.text;
+                if (alpha)
+                {
+                    EXPECT_EQ(command->blend, Client::Render::BlendMode::Alpha) << text.text;
+                    EXPECT_TRUE(command->alphaTest) << text.text;
+                }
+                ++count;
+            }
+        EXPECT_GT(count, 0u) << y;
+    }
+    void ExpectTexturedAlphaQuad(float x, float y, std::uint16_t slot)
+    {
+        const auto* command = QuadAt(x, y);
+        ASSERT_NE(command, nullptr);
+        EXPECT_EQ(command->texture, Client::Render::TextureSlot{slot});
+        EXPECT_EQ(command->blend, Client::Render::BlendMode::Alpha);
+        EXPECT_TRUE(command->alphaTest);
     }
     std::unique_ptr<Client::Scenes::WorldState> m_world = std::make_unique<Client::Scenes::WorldState>();
     Client::Render::Models::CrtRandom m_random{4242};
@@ -435,6 +478,84 @@ TEST_F(CastleWindowsTest, SiegeListDrawFiltersGuildsButTheMouseTogglesTheUnfilte
     EXPECT_EQ(window.siegeGuildList.selection, 1);
     EXPECT_FALSE(runtime.movement.pendingClick);
     EXPECT_TRUE(m_requests.sent.empty());
+    ExpectRandoms(0);
+}
+
+TEST_F(CastleWindowsTest, RegistrationRestoresTextureAfterItsTabUnderlinesBeforeDatesAndClose)
+{
+    auto& runtime = m_world->Runtime();
+    runtime.panels.delegated.castleSiege = 1;
+    runtime.castleSiege.registration.state = 1;
+    runtime.castleSiege.registration.tab = 0;
+    const auto drawn = Draw();
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    ExpectTextRow(125, false);
+    ExpectTextRow(139, false);
+    const auto* close = QuadAt(475, 395);
+    ASSERT_NE(close, nullptr);
+    EXPECT_EQ(close->texture, Client::Render::TextureSlot{0x118});
+    ExpectRandoms(0);
+}
+
+TEST_F(CastleWindowsTest, HuntAdminRestoresAlphaAfterTheAmountBackgroundAndBothButtonGroups)
+{
+    auto& runtime = m_world->Runtime();
+    runtime.panels.delegated.secondCastleSiege = 1;
+    runtime.castleSiege.huntZone.mode = 3;
+    const auto drawn = Draw();
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    ExpectTextRow(163, true);
+    ExpectTextRow(195, true);
+    ExpectTexturedAlphaQuad(570, 185, 9);
+    ExpectTexturedAlphaQuad(570, 206, 9);
+    ExpectTextRow(253, true);
+    ExpectTextRow(266, true);
+    ExpectTextRow(279, true);
+    ExpectRandoms(0);
+}
+
+TEST_F(CastleWindowsTest, SeniorTaxesRestoreAlphaForBothInstructionsAndTheBalanceAfterTheirButtons)
+{
+    auto& runtime = m_world->Runtime();
+    runtime.panels.delegated.castleSiegeList = 1;
+    runtime.panels.delegated.castleSiegeListMode = 2;
+    const auto drawn = Draw();
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    ExpectTextRow(201, true);
+    ExpectTexturedAlphaQuad(450, 281, 0x117);
+    ExpectTextRow(301, true);
+    ExpectTextRow(347, true);
+    ExpectTexturedAlphaQuad(475, 395, 0x118);
+    ExpectRandoms(0);
+}
+
+TEST_F(CastleWindowsTest, TheStatueRecoveryGainKeepsTheTypeOfTheGateRecordReceivedThroughItsValidAlias)
+{
+    namespace Castle = Client::Protocol::CastleSiege;
+    Castle::NpcRecord record{};
+    const auto put = [&](std::size_t at, std::uint32_t value)
+    {
+        for (std::size_t i = 0; i < 4; ++i)
+            record[at + i] = static_cast<std::byte>(value >> (i * 8));
+    };
+    put(Client::UI::RecordType, Client::UI::GateType);
+    put(Client::UI::RecordIndex, 0xfffffffdu);
+    put(Client::UI::RecordMaxLife, 500000);
+    put(Client::UI::RecordLife, 9);
+    record[Client::UI::RecordAlive] = std::byte{1};
+    Client::Core::StderrSink sink;
+    Client::Core::Log log(sink, Client::Core::LogLevel::Warning);
+    const Client::Scenes::CastleReceiveContext receive{.world = *m_world, .random = m_random, .log = log};
+    const auto applied =
+        Client::Scenes::ApplyCastleSiegePacket(Castle::NpcList{.result = 1, .records = {record}}, receive);
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
+    auto& runtime = m_world->Runtime();
+    ASSERT_EQ(runtime.castleSiege.data.U32(Client::UI::FirstStatueAt), Client::UI::GateType);
+    runtime.panels.delegated.castleSiegeList = 1;
+    runtime.panels.delegated.castleSiegeListMode = 1;
+    const auto drawn = Draw();
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    EXPECT_TRUE(std::ranges::any_of(m_text.texts, [](const auto& text) { return text.text == "recuperación 0"; }));
     ExpectRandoms(0);
 }
 

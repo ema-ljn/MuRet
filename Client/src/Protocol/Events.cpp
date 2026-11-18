@@ -323,6 +323,10 @@ Read ReadCrywolf(const Fields& fields, std::uint8_t subcode)
                                            static_cast<std::uint16_t>((fields.U8(6) << 8u) | fields.U8(7))}};
     case CrywolfEffectSubcode:
     {
+        // 0x4e15fa lee pkt[9]; sin ese byte falta una coordenada del efecto.
+        constexpr std::size_t CrywolfEffectBytes = 10;
+        if (!fields.Has(CrywolfEffectBytes))
+            return TooShort();
         const auto all = fields.From(0);
         return EventPacket{CrywolfUnported{subcode, std::vector<std::byte>(all.begin(), all.end())}};
     }

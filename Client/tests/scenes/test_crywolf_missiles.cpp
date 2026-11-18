@@ -8,10 +8,11 @@
 #include "World/Particles.h"
 #include "World/ParticleOwner.h"
 #include "World/TerrainLighting.h"
+#include "support/Bytes.h"
+#include "support/Packets.h"
 #include "support/PlayerActors.h"
 #include <gtest/gtest.h>
 #include <algorithm>
-#include <cstddef>
 #include <cstdint>
 #include <vector>
 #include <memory>
@@ -26,14 +27,11 @@ TEST(CrywolfMissilesTest, TheEffectPacketCreatesAllThreeNativeDirections)
         SCOPED_TRACE(direction);
         auto world = std::make_unique<Client::Scenes::WorldState>();
         Client::Render::Models::CrtRandom random(7);
-        std::vector<std::byte> bytes(10);
-        bytes[6] = static_cast<std::byte>(direction);
-        bytes[7] = std::byte{0xff};
-        bytes[8] = std::byte{12};
-        bytes[9] = std::byte{34};
-        const auto applied =
-            Client::Scenes::ApplyEventPacket(Client::Protocol::Events::CrywolfUnported{.subcode = 0xc, .bytes = bytes},
-                                             {.world = *world, .random = random});
+        const auto wire =
+            Client::Tests::PacketOf(Client::Tests::Bytes({0xc1, 0x0a, 0xbd, 0x0c, 0, 0, direction, 0xff, 12, 34}));
+        const auto read = Client::Protocol::Events::ReadEventPacket(wire);
+        ASSERT_TRUE(read.HasValue());
+        const auto applied = Client::Scenes::ApplyEventPacket(read.Value(), {.world = *world, .random = random});
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         const auto& effect = world->Map().effects.Effects()[0];
         EXPECT_EQ(effect.type, 0xee);

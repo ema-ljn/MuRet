@@ -271,14 +271,23 @@ TEST(EventsProtocolTest, ReadsTheCrywolfInterfaceOnes)
     EXPECT_EQ(contract.key, 0x013e);
     EXPECT_EQ(ErrorOf(Events::ReadEventPacket(PacketOf(Bytes({0xC1, 0x07, 0xBD, 0x03, 0x00, 0x00, 0x01})))),
               ProtocolError::TooShort);
-    const auto effects = Read<Events::CrywolfUnported>(Bytes({0xC1, 0x05, 0xBD, 0x0C, 0x00}));
-    EXPECT_EQ(effects.subcode, 0xc);
-    EXPECT_EQ(effects.bytes.size(), 5u);
     for (const std::uint8_t nothing : {std::uint8_t{6}, std::uint8_t{0xa}, std::uint8_t{0xd}})
         EXPECT_EQ(ErrorOf(Events::ReadEventPacket(PacketOf(Bytes({0xC1, 0x06, 0xBD, nothing, 0x02, 0x05})))),
                   ProtocolError::WrongPacket);
     EXPECT_EQ(ErrorOf(Events::ReadEventPacket(PacketOf(Bytes({0xC1, 0x08, 0xBD, 0x05, 0, 0, 0, 0})))),
               ProtocolError::TooShort);
+}
+
+TEST(EventsProtocolTest, TheCrywolfEffectRequiresTheFullPayload)
+{
+    // 0x4e15f0 pasa al efecto los bytes 6..9, incluido el último byte de coordenada.
+    const auto bytes = Bytes({0xc1, 0x0a, 0xbd, 0x0c, 0, 0, 0xb7, 0xff, 12, 34});
+    const auto effects = Read<Events::CrywolfUnported>(bytes);
+    EXPECT_EQ(effects.subcode, 0xc);
+    EXPECT_EQ(effects.bytes, bytes);
+
+    const auto shortPacket = Bytes({0xc1, 9, 0xbd, 0x0c, 0, 0, 0xb7, 0xff, 12});
+    EXPECT_EQ(ErrorOf(Events::ReadEventPacket(PacketOf(shortPacket))), ProtocolError::TooShort);
 }
 
 // F3 22 (0x4e31f8: el byte de pkt[4] y el word de pkt[6], no el de pkt[4] del PMSG_F3_22 del GS), F3 23 (0x4d9f00)

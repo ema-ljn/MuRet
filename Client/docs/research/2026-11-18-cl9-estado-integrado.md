@@ -31,7 +31,7 @@ no se reescribió historia pública y no se cerraron entregas ajenas.
 | Hito | Implementación presente en el conjunto | Condición que impide certificar el cierre total |
 | --- | --- | --- |
 | H1: emote y jugadores | Viewport, estado y acciones; conservación de los arreglos previos de entrada y selección. | Comparación dinámica estricta; efectos externos y precisión original en los casos documentados de H1. |
-| H2: monstruos, NPC y misiones | Altas/bajas, diálogos, premio A3 y cambio de partes de #362. NPC 12/13 conectados con H12. | Familias visuales externas y casos de registro protegido; conservar sus VAs y precondiciones. |
+| H2: monstruos, NPC y misiones | Altas/bajas, diálogos, premio A3 y cambio de partes de #362. NPC 12/13 conectados con H12; joints618 y llegadas Crywolf reutilizan sus kernels existentes. | CastleArrival134 y otras familias externas; casos de registro protegido. Conservar sus VAs y precondiciones. |
 | H3: combate, daño y muerte | Entrega de #342 y fix de ataque #359 conservados; integración con estados del asedio. | Casos nativos indeterminados Q-C1050/Q-C1161 y efectos concretos de CL11; combate XP previo no certifica todos los casos. |
 | H4: skills, cuervo y mascotas | Entrega principal integrada; receptores/equipo y familias necesarias para Siege/Crywolf ampliados. | Efectos de skills que siguen perteneciendo a CL11 y validación de sus recorridos especiales. |
 | H5: ítems | Piso, usar/tirar, inventario y devolución del cursor antes del teleport. | Autoequipación de flechas P-C151/Q-C773: lectura de manos tras el cierre protegido. |
@@ -42,7 +42,7 @@ no se reescribió historia pública y no se cerraron entregas ajenas.
 | H10: chat y cartas | Editor compartido, listas, retrato y multiline; #347 incorpora las reparaciones de H9. | Misma frontera del EDIT y validación del servicio de amigos/cartas. |
 | H11: eventos | Battle Soccer, marcador/telas, F3 24 y resultado incluso con HUD oculto; Crywolf, altas, ataques y cadenas necesarias. | Servidor de laboratorio sin Crywolf; observación original y fronteras de memoria/efectos concretas. |
 | H12: ventanas del castillo | Registro/listas B4/B5, Senior, puertas/estatuas, impuestos, retiro/fabricación y zona de caza, desde NPC/recepción hasta paso/dibujo. | Estados iniciales/bytes residuales del original y comparación visual/servidor en VM. |
-| H13: batalla del castillo | B2/B6/B7/B9/BA/BB, corona/bandos, holders, panel y minimapa, armas/puertas, mapa30, B1 y retorno. | Posiciones de pila sin inicializar, picking de CL7.4 y contraste completo de batalla/cambio de servidor. No se declara completamente jugable mientras esas rutas puedan cortar. |
+| H13: batalla del castillo | B2/B6/B7/B9/BA/BB, corona/bandos, holders, panel y minimapa, armas/puertas, mapa30, B1 y retorno. | Posiciones de pila sin inicializar, picking de CL7.4, familias134/61c/19f de CL11 y contraste completo de batalla/cambio de servidor. No se declara completamente jugable mientras esas rutas puedan cortar. |
 
 ## Contratos reparados en esta integración
 
@@ -69,6 +69,18 @@ Los detalles de familias del asedio están en
 [mapa30](2026-11-18-h13-map-effects.md) y
 [cuerpos y efectos](2026-11-18-h13-siege-body-chain.md).
 
+La pasada final encontró y reparó callers que seguían cortando aunque sus kernels
+ya estaban presentes. No se clasificaron automáticamente como deuda de otra ola:
+
+| Ruta | Reparación contrastada con ASM |
+| --- | --- |
+| Esc desde la escena | `StepTheDialogs` presta el sender de NPC; cuatro regresiones pasan por `GameScene::Step`, sin sender artificial en el helper. El fix también se llevó a las bases H6/H12. |
+| Misiles `432b63` / `42fd37` | ED/1 de Crywolf y E1/1 de fortaleza reciben posición/ángulos/luz, dueño y WORD de key originales; conservan la salida con pool lleno. |
+| Joints618/2,3 | La creación admite los tipos normales de la tabla, además de349; mismo dueño Actor y ancho30, con los dos intentos en orden. |
+| Llegada `4c9883` | Etapa3 pone alpha1 sin altas. El resto pone alpha0 y comparte con CameraTour cuatro615/7, tres5f6/1 y cuatro614/17; los cuatro primeros usan el mismo punto actor+(20,20,0). |
+| Kalima `43bea5` | C5 crea C8 y C9 en posición del actor después del polvo y alcanza la cola del pulso; lleno sólo omite el alta. |
+| Altar Crywolf51, estado2 | Dos pases reales de malla0,44→240, RGB acumulado, escala1.03 después de posar y byte88=0→1→ff; se conserva la precisión de FSIN con el auxiliar PC53. |
+
 ## Evidencia y verificación
 
 Las regresiones de orden de reset y cierres Esc se observaron fallar antes de la
@@ -78,6 +90,13 @@ SessionEventApplier22, ReturnToSelection10, GameDialogClosures3; después de rep
 contratos/fixtures, CastleSiegeReceive102, CastleWindows15 y GameHud35. GameUi60 se
 verificó con el mismo conjunto fijo y el arreglo de Tab. Son resultados focales, no
 un sustituto de la suite completa sobre la cabeza final.
+
+La reinspección R3 confirmó el arreglo de Esc con RED0/4→GREEN4/4 y GameScene
+completo34/34 sin saltos. Los misiles pasaron3/3 y los callers H2, junto con
+CameraTour,55/55. El altar pasó de fallar en430a40 a aprobar su caso discriminante
+y la suite completa CrywolfObjectServices13/13; GameScene34/34 volvió a pasar con
+la biblioteca que contiene ese renderer. Son comprobaciones focales con headers/biblioteca coherentes y
+hashes retenidos; no se les atribuye el resultado del CI de otra cabeza.
 
 La publicación exige compilación completa con warnings como errores, CTest, GL requerido,
 fuente real, formato18 e include-cleaner18, más Linux/Windows en cada cabeza publicada.
@@ -110,6 +129,22 @@ identidades, precondiciones, secuencias, VAs y entrega de evidencia. Casos prior
    del laboratorio no implementa Crywolf. Sin servidor compatible el caso es BLOCKED.
 6. Efectos externos CL11: mantener por familia el tipo, VA, prefijo y capacidad;
    ni su falta ni el audio pendiente de CL10 desaparecen por cerrar la lógica del evento.
+
+Hay **implementaciones concretas todavía pendientes**, además de capturas VM:
+
+| Familia externa | Caller normal que puede quedar bloqueado |
+| --- | --- |
+| CastleArrival134/0 | Altas de los tipos278/283, `42d513` / `42d5af`; key120 y dueño Actor. El Arrival61f existente no implementa134. |
+| Efectos Siege61c /19f | `42dd48` / `42dd9c`, según tipo y paso del actor. |
+| F8/1 | Crywolf `43257a` y fortaleza `42fd76`; descendencia60f/0x25 o0xb y105/3. El arreglo de ED/E1 no los sustituye. |
+| C1A | Ataque Crywolf `4329db` y genérico `4f6780`; no equivale a las piedras C8/C9. |
+
+Estos casos requieren portar constructor, paso, dibujo y descendencia con sus
+contratos; obtener una captura no reemplaza esa implementación. Con espacio en
+los pools pueden seguir cortando una ruta normal, por lo que el conjunto no se
+presenta como Castle Siege/Crywolf universalmente jugables. Otros efectos CL11
+de skills conservan sus límites individuales. La clasificación es una asignación
+del trabajo pendiente, no una exención de su impacto funcional.
 
 Para continuar, revisar primero los checks del PR sobre su SHA, resolver cualquier fallo
 real y ejecutar los casos independientes del runbook. Un caso sin captura se registra

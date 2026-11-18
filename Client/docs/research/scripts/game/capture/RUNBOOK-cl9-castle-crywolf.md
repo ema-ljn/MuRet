@@ -29,6 +29,12 @@ se marcan `BLOCKED: servidor incompatible`, no `PASS`. Para observarlos hace fal
 que los produzca normalmente. Una fixture o un paquete sintético valida el puerto, pero no
 se convierte en una observación del original.
 
+Consultar también los [constructores externos todavía pendientes](../../../2026-11-18-cl9-estado-integrado.md#lo-que-necesita-la-vm-u-otra-ola):
+134/0,61c,19f,F8/1 yC1A pueden bloquear recorridos con espacio en los pools.
+Si el candidato corta ahí, registrar `BLOCKED: implementación pendiente` con VA,
+tipo/subtipo y prefijo observado. No presentarlo como una prueba VM aprobada ni
+como un problema exclusivo del servidor; las capturas sirven para el port posterior.
+
 ## Prioridad 1: la posición indeterminada del polvo
 
 El [research de los cuerpos del asedio](../../../2026-11-18-h13-siege-body-chain.md)

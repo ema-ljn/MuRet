@@ -556,6 +556,9 @@ constexpr std::size_t KeySearched = 400;
 // (0xf2 con el mouse en [0x143, 0x16b) × [0x62, 0x77)) en x 323, y el no, 0xf3 (0xf4 en [0x175, 0x19d)) en x 373, de
 // 40 × 21 con las UV del OK.
 constexpr std::int32_t NumberDialog = 0x7d;
+constexpr std::int32_t WarehouseNumberDialog = 0x95;
+constexpr std::size_t WarehouseNumberFirstText = 443;
+constexpr std::size_t WarehouseNumberSecondText = 444;
 constexpr std::int32_t ShownField = 0;
 constexpr std::int32_t NumberFieldFilter = 9;
 constexpr std::size_t NumberFieldLimit = 7;
@@ -1820,7 +1823,7 @@ Core::Expected<void, std::string> DrawTheGameDialogs(GameHudContext& context)
         DrawTheGenericBox(frame);
     else if (id == PartyInviteDialog || id == TradeInviteDialog || id == WarRequestDialog)
         DrawTheYesNoBox(frame);
-    else if (id == NumberDialog)
+    else if (id == NumberDialog || id == WarehouseNumberDialog)
         DrawTheNumberBox(frame);
     else if (id == ConfirmDialog)
         DrawTheConfirmBox(frame);
@@ -1863,12 +1866,15 @@ Core::Expected<void, std::string> DrawTheGameDialogs(GameHudContext& context)
         return DrawTheInvitation(frame, id);
     else if (id == WarRequestDialog)
         return DrawTheWarRequest(frame);
-    else if (id == NumberDialog)
+    else if (id == NumberDialog || id == WarehouseNumberDialog)
     {
         context.hud.textColors.text = NumberTextColor;
-        if (auto drawn = DrawCenteredText(frame, InvitationRowY - NumberRowStep, NumberFirstText); !drawn.HasValue())
+        if (auto drawn = DrawCenteredText(frame, InvitationRowY - NumberRowStep,
+                                          id == WarehouseNumberDialog ? WarehouseNumberFirstText : NumberFirstText);
+            !drawn.HasValue())
             return drawn;
-        return DrawCenteredText(frame, InvitationRowY + NumberRowStep, NumberSecondText);
+        return DrawCenteredText(frame, InvitationRowY + NumberRowStep,
+                                id == WarehouseNumberDialog ? WarehouseNumberSecondText : NumberSecondText);
     }
     else if (id == MoneyDialog)
         return DrawTheMoneyText(frame);

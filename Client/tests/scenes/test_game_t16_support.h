@@ -64,8 +64,7 @@ inline std::string_view TeleportBoundary(int map)
         return "Data\\World6\\TerrainHeight.OZB no está";
     if (map == 35)
         return "Data\\World36\\EncTerrain36.att no está";
-    if (map >= 18 && map <= 23)
-        return "0x4c7b34";
+    // 4c7b34..4c7b68 ya rearma comandos, viste al héroe y apaga sus ayudantes al entrar/salir de18..23.
     return {};
 }
 

@@ -21,9 +21,17 @@ TEST_P(GameT16SceneMatrix, RealEntryReachesACompleteSceneFrameOrAnExplicitMapBou
 {
     const auto map = static_cast<std::uint8_t>(GetParam());
     const bool kalima = (map >= 24 && map <= 29) || map == 36;
+    const bool chaosCastle = map >= 18 && map <= 23;
     // World25 tiene objetos hasta 12941/12209: Home queda fuera. 64,64 es la entrada poblada.
-    Teleport(map, kalima ? 64 : Client::Tests::T16::HomeX, kalima ? 64 : Client::Tests::T16::HomeY);
-    RecordProperty("entry_cells", kalima ? "64,64" : "135,125");
+    // World19:30,90 está dentro del castillo poblado y de la zona segura, como la caminata de los seis alias.
+    Teleport(map,
+             kalima        ? 64
+             : chaosCastle ? 30
+                           : Client::Tests::T16::HomeX,
+             kalima        ? 64
+             : chaosCastle ? 90
+                           : Client::Tests::T16::HomeY);
+    RecordProperty("entry_cells", kalima ? "64,64" : chaosCastle ? "30,90" : "135,125");
     const auto transition = Client::Tests::T16::TeleportBoundary(map);
     if (!transition.empty())
     {
@@ -53,7 +61,7 @@ TEST_P(GameT16SceneMatrix, RealEntryReachesACompleteSceneFrameOrAnExplicitMapBou
     }
     if (!m_scene->Failure())
     {
-        if (map <= 4 || (map >= 8 && map <= 17) || map == 30 || map == 31 || map == 32 || map == 33 || map == 34 ||
+        if (map <= 4 || (map >= 8 && map <= 23) || map == 30 || map == 31 || map == 32 || map == 33 || map == 34 ||
             kalima)
         {
             ASSERT_NO_FATAL_FAILURE(DrawCompleteFrame());
@@ -94,12 +102,25 @@ TEST_P(GameT16SceneMatrix, RealEntryReachesACompleteSceneFrameOrAnExplicitMapBou
         RecordProperty("blocked_phase", "none on the first populated frames; cycle covered by KalimaLiveObjectsTest");
         return;
     }
-    if (map <= 4 || (map >= 6 && map <= 17) || (map >= 30 && map <= 34))
+    if (map <= 4 || (map >= 6 && map <= 23) || (map >= 30 && map <= 34))
     {
         ASSERT_FALSE(m_scene->Failure().has_value()) << *m_scene->Failure();
         ASSERT_FALSE(m_target.frames.empty());
         EXPECT_TRUE(m_target.frames.back().presented);
         EXPECT_TRUE(m_scene->MouseRay().has_value());
+        if (chaosCastle)
+        {
+            // 618970 y609640: el Angel deWorld19 y su cromo5c0 se dibujan en el frame real, no un mapa vacío.
+            ASSERT_NE(m_world->FaunaResources().Find(0x1f7), nullptr);
+            EXPECT_EQ(Hero().byte88, 1);
+            EXPECT_FALSE(m_world->Map().objects.empty());
+            bool chrome = false;
+            for (const auto& event : m_target.frames.back().events)
+                for (const auto& command : event.modelCommands)
+                    chrome |=
+                        command.vertexCount != 0 && command.state.texture && command.state.texture->value == 0x5c0;
+            EXPECT_TRUE(chrome);
+        }
         RecordProperty("blocked_phase", "none on entry frame; locomotion has separate cases");
         return;
     }

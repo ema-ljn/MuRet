@@ -170,7 +170,8 @@ Core::Expected<void, std::string> LoadWorldTerrainSurface(const std::filesystem:
         [](std::span<const std::byte> bytes) { return Data::Terrain::LoadTerrainLight(bytes); });
     if (!light.HasValue())
         return Core::Unexpected(light.Error());
-    terrain.lighting = ShadeTerrainLight(*light.Value(), *terrain.heights, map);
+    terrain.rawLight = std::move(light).Value();
+    terrain.lighting = ShadeTerrainLight(*terrain.rawLight, *terrain.heights, map);
     return {};
 }
 
@@ -189,8 +190,13 @@ Core::Expected<void, std::string> ReloadWorldTerrainLight(const std::filesystem:
                                                        { return Data::Terrain::LoadTerrainLight(bytes); });
     // 0x5f8f4c: 0x5f8f40 no mira lo que devuelve 0x63b490; sin luz nueva queda la anterior, sombreada otra vez igual.
     if (!light.HasValue())
+    {
+        if (terrain.rawLight)
+            terrain.lighting = ShadeTerrainLight(*terrain.rawLight, *terrain.heights, map);
         return {};
-    terrain.lighting = ShadeTerrainLight(*light.Value(), *terrain.heights, map);
+    }
+    terrain.rawLight = std::move(light).Value();
+    terrain.lighting = ShadeTerrainLight(*terrain.rawLight, *terrain.heights, map);
     return {};
 }
 
@@ -354,5 +360,13 @@ std::vector<WorldTileTexture> IcarusObjectTextures(std::uint8_t map)
         return {};
     constexpr Data::Textures::Sampling Clamp{Data::Textures::Filter::Linear, Data::Textures::Wrap::Clamp};
     return {{"Effect\\cloudLight.jpg", 0x623, Clamp, true}};
+}
+std::vector<WorldTileTexture> CastleSiegeTextures(std::uint8_t map)
+{
+    constexpr std::uint8_t CastleMap = 30;
+    if (map != CastleMap)
+        return {};
+    constexpr Data::Textures::Sampling Clamp{Data::Textures::Filter::Linear, Data::Textures::Wrap::Clamp};
+    return {{"World31\\Map1.jpg", 0x69d, Clamp, true}, {"World31\\Map2.jpg", 0x69e, Clamp, true}};
 }
 } // namespace Client::World

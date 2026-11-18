@@ -42,6 +42,11 @@ struct TerrainLighting
                                                                  const Data::Terrain::TerrainHeights& heights,
                                                                  std::uint8_t map);
 
+// 5f8c10→5f8e40: ventana8×8, centro restringido4..252, normales nuevas y sombra0.5 inclusoen30.
+void ReshadeTerrainLightWindow(TerrainLighting& lighting, const Data::Terrain::TerrainLight& raw,
+                               const Data::Terrain::TerrainHeights& heights, std::int32_t centerX,
+                               std::int32_t centerY);
+
 // 0x5f8f40 con el mundo de `map`: lee TerrainHeight.OZB y TerrainLight.OZJ de su carpeta
 // (Data::WorldFolder) en `dataRoot` y los sombrea con ShadeTerrainLight. Un archivo que falta o que no
 // se lee es un error que lo nombra.

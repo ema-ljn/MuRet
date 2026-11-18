@@ -52,6 +52,8 @@ std::vector<World::WorldTileTexture> WantedTextures(std::uint8_t map, GrassTextu
     wanted.insert(wanted.end(), tarkan.begin(), tarkan.end());
     const auto icarus = World::IcarusObjectTextures(map);
     wanted.insert(wanted.end(), icarus.begin(), icarus.end());
+    const auto castle = World::CastleSiegeTextures(map);
+    wanted.insert(wanted.end(), castle.begin(), castle.end());
     if (grass == GrassTextures::Upload)
     {
         const std::vector<World::WorldTileTexture> grassTextures = World::WorldGrassTextures(map);

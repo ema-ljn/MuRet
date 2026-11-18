@@ -6,14 +6,19 @@
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
+#include "Data/Tables/SkillTable.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Text/NpcNames.h"
 #include "Data/Text/TextTable.h"
+#include "Protocol/CastleBattle.h"
+#include "Protocol/Outgoing.h"
 #include "Protocol/Viewport.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorCreation.h"
+#include "Scenes/ActorPickingBox.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CastleBattleReceive.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/FaunaModels.h"
 #include "Scenes/GameDrawTail.h"
@@ -23,19 +28,24 @@
 #include "Scenes/MonsterKinds.h"
 #include "Scenes/NpcNames.h"
 #include "Scenes/SelectionState.h"
+#include "Scenes/GameMovement.h"
 #include "Scenes/GameMovementState.h"
+#include "Scenes/GameUi.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
 #include "World/ModelEffects.h"
+#include "World/TerrainPickingSegment.h"
 #include "World/TerrainWalls.h"
 #include "World/WorldTerrain.h"
 
+#include "support/Bytes.h"
 #include "support/FakeTextureStore.h"
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"
 #include "support/ItemSetFiles.h"
+#include "support/Packets.h"
 #include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
 #include "support/SceneDataFiles.h"
@@ -209,6 +219,44 @@ protected:
     [[nodiscard]] Client::Core::Expected<void, std::string> Monsters(std::span<const MonsterRecordBytes> records)
     {
         return Client::Scenes::ApplyViewportMonsters(ReadMonsters(records), game->Resources());
+    }
+
+    void ClickVisibleSiegeNpc(const Client::Data::Tables::SkillTable& skills, std::int16_t key)
+    {
+        auto& runtime = game->world.Runtime();
+        auto& npc = Actor(1);
+        auto& hero = Actor(0);
+        hero.position = npc.position;
+        hero.alpha = 1.0f;
+        hero.cellX = npc.cellX;
+        hero.cellY = npc.cellY;
+        // Estado del último dibujo: caja del actor creado y un rayo que la atraviesa.
+        npc.seen = true;
+        npc.alpha = 1;
+        Client::Scenes::PublishPickingBox(npc, npc.position, npc.boundsMin,
+                                          {npc.boundsMaxX, npc.boundsMaxY, npc.boundsTop});
+        const glm::vec3 offset{0, 0, 500};
+        const auto picked = Client::Scenes::PickInTheFrame(
+            {.world = game->world,
+             .random = game->cloth.random,
+             .ownRecordDepth = runtime.ownRecordDepth,
+             .targets = runtime.selectedTargets,
+             .ray = Client::World::TerrainPickingSegment{npc.position + offset, npc.position - offset}});
+        ASSERT_TRUE(picked.HasValue()) << picked.Error();
+        ASSERT_EQ(runtime.selectedTargets[1], 1);
+        ASSERT_EQ(runtime.selectedTargets[3], -1);
+        std::vector<std::int16_t> talkKeys;
+        runtime.movement.mouseUpdateTime = 6;
+        const auto clicked =
+            Client::Scenes::StepHeroMovement({.world = game->world,
+                                              .random = game->cloth.random,
+                                              .playerSkeleton = game->models.SkeletonOf(PlayerSkeletonModel),
+                                              .items = &game->items,
+                                              .skills = &skills,
+                                              .input = {.leftPressed = true, .leftDown = true},
+                                              .sendTalk = [&](std::int16_t talked) { talkKeys.push_back(talked); }});
+        ASSERT_TRUE(clicked.HasValue()) << clicked.Error();
+        ASSERT_EQ(talkKeys, (std::vector<std::int16_t>{key}));
     }
 
     [[nodiscard]] Client::Core::Expected<void, std::string> Summons(std::span<const SummonRecordBytes> records)
@@ -523,6 +571,77 @@ TEST_F(MonsterViewportTest, TheCastleSiegeCreatorDrawsAfterTheCreation)
         EXPECT_EQ(actor.byte88, 4);
         EXPECT_EQ(Client::Scenes::ActorText(actor), "\xb1\xd9\xc0\xa7\xba\xb4");
         EXPECT_EQ(game->cloth.random.State(), AfterDraws(seed, WalkingRecordDraws + 1).State());
+    }
+}
+
+// 0x59e700 elige el interruptor o la catapulta como NPC. El clic de 0x59daaf le habla en 0x568f54;
+// el B2 11 o B7 00 del servidor elige qué puerta o arma abrir (0x44f120 / 0x44dd10).
+TEST_F(MonsterViewportTest, TheSiegeSwitchAndBothCatapultsCanBePickedForTalkAndOpenedByTheServer)
+{
+    constexpr std::uint16_t key = 0x1234;
+    constexpr std::uint16_t gateKey = 0x5678;
+    const auto file = DataFile("Local\\Skill.bmd");
+    ASSERT_TRUE(file.has_value());
+    const auto bytes = Client::Tests::ReadFileBytes(*file);
+    ASSERT_TRUE(bytes.has_value());
+    const auto skills = Client::Data::Tables::LoadSkillTable(std::as_bytes(std::span(*bytes)));
+    ASSERT_TRUE(skills.HasValue());
+    struct Control
+    {
+        std::uint16_t npc;
+        std::uint8_t weaponMode;
+    };
+    for (const auto [type, mode] : std::array{Control{219, 0}, Control{221, 1}, Control{222, 2}})
+    {
+        SCOPED_TRACE(type);
+        Load(30);
+        auto& runtime = game->world.Runtime();
+        runtime.siegeActive = true;
+        runtime.quest.characterClass = 0;
+        const Cell cell = FreeRow();
+        const std::array<MonsterRecordBytes, 1> records{
+            {{.key = key, .typeLow = Byte(type), .x = cell.x, .y = cell.y, .targetX = cell.x, .targetY = cell.y}}};
+        const auto created = Monsters(records);
+        ASSERT_TRUE(created.HasValue()) << created.Error();
+        ASSERT_NO_FATAL_FAILURE(ClickVisibleSiegeNpc(skills.Value(), key));
+        ASSERT_EQ(runtime.panels.delegated.siegeGate, 0);
+        ASSERT_EQ(runtime.panels.delegated.siegeWeapon, 0);
+        if (mode == 0)
+        {
+            const std::uint8_t x = Byte(cell.x + 3);
+            const std::array<MonsterRecordBytes, 1> gate{{{.key = gateKey,
+                                                           .typeHigh = 1,
+                                                           .typeLow = 0x15,
+                                                           .effects = 0x20000,
+                                                           .x = x,
+                                                           .y = cell.y,
+                                                           .targetX = x,
+                                                           .targetY = cell.y}}};
+            const auto placed = Monsters(gate);
+            ASSERT_TRUE(placed.HasValue()) << placed.Error();
+            ASSERT_EQ(Actor(2).key, gateKey);
+        }
+        const auto wire = mode == 0 ? Client::Tests::Bytes({0xc1, 7, 0xb2, 0x11, 1, 0x56, 0x78})
+                                    : Client::Tests::Bytes({0xc1, 8, 0xb7, 0, 1, mode, 0x12, 0x34});
+        const auto reply = Client::Protocol::CastleBattle::ReadCastleBattlePacket(Client::Tests::PacketOf(wire));
+        ASSERT_TRUE(reply.HasValue());
+        std::size_t extraSends = 0;
+        const auto opened = Client::Scenes::ApplyCastleBattlePacket(
+            reply.Value(), {.world = game->world,
+                            .random = game->cloth.random,
+                            .log = game->log,
+                            .send = [&](Client::Protocol::Outgoing) { ++extraSends; }});
+        EXPECT_EQ(extraSends, 0u);
+        ASSERT_TRUE(opened.HasValue()) << opened.Error();
+        EXPECT_EQ(runtime.panels.delegated.siegeGate, mode == 0 ? 1 : 0);
+        EXPECT_EQ(runtime.panels.delegated.siegeWeapon, mode);
+        if (mode == 0)
+        {
+            EXPECT_EQ(runtime.siegeBattleUi.gateKey, gateKey);
+            EXPECT_EQ(runtime.siegeBattleUi.gateState, 0x20000u);
+        }
+        else
+            EXPECT_EQ(runtime.siegeBattleUi.weaponKey, key);
     }
 }
 

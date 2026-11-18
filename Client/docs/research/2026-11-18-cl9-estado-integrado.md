@@ -42,7 +42,7 @@ no se reescribió historia pública y no se cerraron entregas ajenas.
 | H10: chat y cartas | Editor compartido, listas, retrato y multiline; #347 incorpora las reparaciones de H9. | Misma frontera del EDIT y validación del servicio de amigos/cartas. |
 | H11: eventos | Battle Soccer, marcador/telas, F3 24 y resultado incluso con HUD oculto; Crywolf, altas, ataques y cadenas necesarias. | Servidor de laboratorio sin Crywolf; observación original y fronteras de memoria/efectos concretas. |
 | H12: ventanas del castillo | Registro/listas B4/B5, Senior, puertas/estatuas, impuestos, retiro/fabricación y zona de caza, desde NPC/recepción hasta paso/dibujo. | Estados iniciales/bytes residuales del original y comparación visual/servidor en VM. |
-| H13: batalla del castillo | B2/B6/B7/B9/BA/BB, corona/bandos, holders, panel y minimapa, armas/puertas, mapa30, B1 y retorno. | Posiciones de pila sin inicializar, picking de CL7.4, familias134/61c/19f de CL11 y contraste completo de batalla/cambio de servidor. No se declara completamente jugable mientras esas rutas puedan cortar. |
+| H13: batalla del castillo | B2/B6/B7/B9/BA/BB, corona/bandos, holders, panel y minimapa, NPC de armas/puertas, mapa30, B1 y retorno. | Posiciones de pila sin inicializar, familias134/61c/19f de CL11 y contraste completo de batalla/cambio de servidor. La selección de objetos del escenario sigue pendiente en CL7.4. |
 
 ## Contratos reparados en esta integración
 
@@ -72,6 +72,9 @@ no se reescribió historia pública y no se cerraron entregas ajenas.
 - `BD 0C` de Crywolf: `4e15fa` lee hasta `pkt[9]`. El parser rechaza un mensaje
   truncado con `TooShort` antes del despacho. Los mensajes completos conservan los
   mismos datos y la prueba cubre desde los bytes hasta el alta del misil.
+- `B7 01`: `4e0926` pasa el modo de `pkt[4]` y el tipo de `pkt[7]`. Con modo 1
+  y tipo 2, la prueba del paquete completo verifica el proyectil de hielo, su
+  destino, los dos bytes de clave, la animación del actor y el sonido.
 
 Los detalles de familias del asedio están en
 [mapa30](2026-11-18-h13-map-effects.md) y
@@ -135,8 +138,11 @@ identidades, precondiciones, secuencias, VAs y entrega de evidencia. Casos prior
    intermedio desconocido no se presenta como una divergencia visual ya observada.
 2. Autoequipar flechas `561b13`, P-C151/Q-C773: bytes y estado del registro protegido.
 3. EDIT XP: autoscroll horizontal, multiline/caret y conversion/preedit del IME.
-4. Selección interactiva de objetos: productor `59eb90`, CL7.4, que alimenta
-   `selectedTargets[3]`. Escribir el índice en una fixture sólo prueba el consumidor.
+4. Selección interactiva de objetos del escenario: productor `59eb90`, CL7.4, que
+   alimenta `selectedTargets[3]` y devuelve −1 durante el asedio en mapa 30
+   (`59ebd9..59ec4c`). El interruptor 219 y las catapultas 221/222 son actores NPC.
+   Se seleccionan con la máscara 4 y la conversación envía `C1 30` con la clave del actor.
+   `B2 11` y `B7 00` abren el control con la clave recibida del servidor.
 5. Eventos/servicios: Castle Siege requiere `CityWar` y roles configurados; el servidor
    del laboratorio no implementa Crywolf. Sin servidor compatible el caso es BLOCKED.
 6. Efectos externos CL11: mantener por familia el tipo, VA, prefijo y capacidad;

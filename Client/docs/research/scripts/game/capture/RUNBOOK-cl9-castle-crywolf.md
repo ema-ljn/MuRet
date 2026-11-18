@@ -107,7 +107,7 @@ privados. Comparar el mismo estado y secuencia en ambos clientes; no sólo que n
 | Holders | Ocupación y salida del viewport; claves `13d`, otra y `813d` | Un mismo objeto para recepción/HUD; clave completa antes de máscara, limpieza de mitades y última terminación. `4e04e0`, `4ca780`, `5a6fc0`. |
 | Corona/bandos | B2 14/15/16/18/19; éxito, rechazo y cancelación | Nombres, duración unsigned, callback, overwrite/OR/AND de flags y orden del aviso. `4dff10..4e04a5`. |
 | Panel de batalla | Sin gremio, miembro, maestro solo y maestro en alianza | Clase 0/1/2, mapas/puntos, B6 reemplaza incluso count0; BB añade y count0 conserva; paginado y órdenes. `412140`, `411e80`, `411ed0`. |
-| Puertas/armas | Abrir/cerrar puerta; dos modos B7; disparar e impactar; cambio de personaje con arma abierta | Wire y selección, cierre del arma anterior, acción/bone/frame, cantidad/orden de efectos y sonidos. `44dd10`, `44eea0`, `44efc0`, `42e3d0`. |
+| Puertas/armas | Hablar con el interruptor 219 o las catapultas 221/222; abrir/cerrar puerta; disparar, impactar y cambiar de personaje con arma abierta | Selección de NPC y `C1 30`, apertura con `B2 11`/`B7 00`, clave del control y del NPC, `B7 01` con modo y tipo distintos, cierre, acción, hueso, frame, efectos y sonidos. `568f54`, `44dd10`, `44eea0`, `44efc0`, `42e3d0`. |
 | Mapa 30 | Paz→batalla→paz y dueño distinto | `.att` 31/312, luces normal/2, agua/cáusticas, barreras, roles, deformación, sombras y polvo. `4294c0`, `42ab40`, `42ae60`, `5f9580`. |
 | B1/servidor | Cruzar al servidor del mapa y volver; saludo posterior al login | Cierre→opciones/macros→20 ms→conexión; reset, 31 y auth en orden; tick, RNG y limpieza de caché sin borrar nombres/marcas. `412b30`, `412bb0`, `4c1e20`, `447ae0`. |
 | Retorno | Cambiar personaje/servidor; entrenador vacío y ocupado; ventana/corona activa | 31 condicional del entrenador, aviso 1211, reset silencioso de diálogo, pets/tiendas/cámara; sin duplicar callbacks/paquetes. `4c2480`, `657670`, `4499b0`. |
@@ -124,7 +124,8 @@ Registrar inventario, cursor vacío y orden de accesos; seguir los límites del 
 
 La selección de objetos `59eb90` sigue siendo una dependencia de CL7.4 para rutas cuyo
 productor es `selectedTargets[3]`. Probar un consumidor con un índice escrito por una fixture
-no acredita el picking interactivo de esa ruta.
+no acredita el picking interactivo de esa ruta. Durante el asedio del mapa 30, `59ebe9`
+omite esa selección. El interruptor y las catapultas se eligen como actores NPC.
 
 ## Entrega de evidencia
 

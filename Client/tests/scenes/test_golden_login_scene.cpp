@@ -1944,7 +1944,10 @@ TEST_F(GoldenLoginWorld, ARecreatedSlotZeroSuppliesTheFirstLoginEmbersWithoutAno
     Client::Tests::WriteTextureSet(copy.Path(), Client::Scenes::SelectionTextureSet);
     Client::World::GameCamera camera;
     Client::World::GameCameraInput cameraInput;
-    Client::Scenes::WorldState worldState;
+    // En el heap: WorldState pesa unos 900 KB con las ventanas de los NPC (hito 6) y, con la sesión y los dos
+    // destinos del dibujo, el frame no entra en la pila de 1 MB de MSVC.
+    const auto ownedWorld = std::make_unique<Client::Scenes::WorldState>();
+    Client::Scenes::WorldState& worldState = *ownedWorld;
     Client::Scenes::SelectionState state(worldState);
     Client::Render::Models::ClothWorld cloth;
     const SceneContext context{.dataRoot = copy.Path(),

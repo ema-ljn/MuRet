@@ -45,8 +45,8 @@ void ResetTheJewelMix(NpcWindowState& windows);
 // 0x625cf4..0x625f96, el 0xa4: con el clic (leído antes, y que apaga solo si da), las dos joyas (y en [160, 185], x
 // en [235, 315] y [315, 395]) eligen 0x6c62e0 y llenan la lista de 0x6e5660 (0x402a10 y 0x402a20); sin paquetes, el
 // aviso 1818 de error y la vuelta de 0x402e50. Sin joya, x en [279,5; 359,5] e y en [200, 225] con el clic (que no
-// apaga) cierra todo (0x402eb0). Con una, el paso de la lista (0x402af0, que con el derecho suelto sobre una fila la
-// pide con 0x402a90), el OK (x en [234,5; 314,5], y desde 10 debajo de la lista, de 25; con el clic, que apaga, pide
+// apaga) cierra todo (0x402eb0). Con una, el paso de la lista (0x402af0, que con el doble clic izquierdo sobre una fila
+// la pide con 0x402a90), el OK (x en [234,5; 314,5], y desde 10 debajo de la lista, de 25; con el clic, que apaga, pide
 // el elegido con 0x402a90) y el cancelar (x en [324,5; 404,5]; con el clic, que no apaga, 0x402eb0).
 [[nodiscard]] Core::Expected<void, std::string> StepTheJewelUnmix(const GameUiContext& context);
 

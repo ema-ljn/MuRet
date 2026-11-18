@@ -36,7 +36,7 @@
 
 // La lista de 0x6e5660 (CL9 hito 6, fase 5): agregar (0x46e940), vaciar (0x482f80) y el elegido (0x483aa0); su paso
 // (0x402af0 → 0x45aa80 → 0x483bc0) con las flechas del teclado y su cola, la rueda, las flechas y la pista de la barra,
-// el clic y el derecho suelto sobre una fila; y su dibujo (0x4832e0 con 0x46ebe0 y 0x46f020). Ninguno saca rand().
+// el clic y el doble clic sobre una fila; y su dibujo (0x4832e0 con 0x46ebe0 y 0x46f020). Ninguno saca rand().
 // Textos inventados; el mundo, en Lorencia (0), Devias (2) y Noria (3).
 namespace
 {
@@ -344,8 +344,8 @@ TEST(JewelBundleListTest, TheArrowKeysMoveTheChoiceOnTheNextStep)
 }
 
 // 0x46f1a0, en los tres mapas: el clic sobre una fila la elige (el primero que se ve + 1 + la fila), da vuelta su +0
-// y se apaga; el derecho suelto la elige, se apaga y devuelve la fila para 0x402a90, salvo la casilla 0 (07 Q-C1152).
-TEST(JewelBundleListTest, TheRowsTakeTheClickAndTheRightRelease)
+// y se apaga; el doble clic la elige, se apaga y devuelve la fila para 0x402a90, salvo la casilla 0 (07 Q-C1152).
+TEST(JewelBundleListTest, TheRowsTakeTheClickAndTheDoubleClick)
 {
     for (const std::int32_t map : Maps)
     {
@@ -367,19 +367,19 @@ TEST(JewelBundleListTest, TheRowsTakeTheClickAndTheRightRelease)
         static_cast<void>(tested.Click(OutsideX, secondRowY));
         EXPECT_TRUE(runtime.movement.pendingClick);
 
-        runtime.ui.rightUpMessage = true;
+        runtime.ui.doubleClick = true;
         stepped = tested.Step(RowX, 3 * 13 + 230);
         EXPECT_FALSE(stepped.asked.has_value());
         EXPECT_EQ(list.selection, 1);
-        EXPECT_FALSE(runtime.ui.rightUpMessage);
+        EXPECT_FALSE(runtime.ui.doubleClick);
 
-        runtime.ui.rightUpMessage = true;
+        runtime.ui.doubleClick = true;
         stepped = tested.Step(RowX, 13 + 230 + 9);
         ASSERT_TRUE(stepped.asked.has_value());
         EXPECT_EQ(stepped.asked->cell, 9);
         EXPECT_EQ(stepped.asked->level, 9);
         EXPECT_EQ(list.selection, 3);
-        EXPECT_FALSE(runtime.ui.rightUpMessage);
+        EXPECT_FALSE(runtime.ui.doubleClick);
     }
 }
 

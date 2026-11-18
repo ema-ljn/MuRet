@@ -101,6 +101,7 @@ privados. Comparar el mismo estado y secuencia en ambos clientes; no sólo que n
 | --- | --- | --- |
 | Registro H12 | Abrir desde NPC/respuesta; tabs 0/1/2; estados 1/3/5/6; cerrar y reabrir | Paquetes B2/B4/B5, una consulta al abrir, selección/scroll, cierre 31, fechas y textos con textura. VAs `64aca0`, `64d350`, `64dc00`. |
 | Senior H12 | Entrada NPC 12 con byte4 0/1; puertas/estatuas, impuestos, retirar y fabricar | Modo de cierre antes de las tres consultas B3/B2; vida, costes y redondeos; permisos, caja ocupada, callbacks, orden de cierres. `661310`, `6691c0`, `6694c0`. |
+| Retiro H12 | Confirmar un importe válido y luego el campo vacío, tanto con Enter como con Sí | Capturar presencia del `B2 10` y valor enviado en `667a40`. El original toma el DWORD residual si no puede convertir el campo. Registrar estado previo y repeticiones para distinguir un valor retenido de uno fijo. |
 | Zona de caza | Modos 1/2/3; permitido 0/1/2; dinero tarifa−1/igual/+1; editar y confirmar | Igualdad se pinta suficiente pero no habilita entrar; mensajes, B9 y 31, clamp/wrap, tres restauraciones Alpha/textura. `648a30`, `64a060`. |
 | Marca del dueño | Recibir B9 02, repetir los mismos bytes y cambiar la marca | Cada recepción repinta/sube 64×64; marca central 32×32, borde/color/fondo y formato GL. `5f1890`. |
 | Holders | Ocupación y salida del viewport; claves `13d`, otra y `813d` | Un mismo objeto para recepción/HUD; clave completa antes de máscara, limpieza de mitades y última terminación. `4e04e0`, `4ca780`, `5a6fc0`. |

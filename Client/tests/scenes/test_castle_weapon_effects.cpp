@@ -4,11 +4,14 @@
 #include "Data/Models/Model.h"
 #include "Network/Crypto/Xor32.h"
 #include "Network/Packet.h"
+#include "Protocol/CastleBattle.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CastleBattleReceive.h"
+#include "Scenes/CastleSiegeReceive.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/WorldEntry.h"
@@ -17,6 +20,8 @@
 #include "World/GameCamera.h"
 #include "World/ModelEffects.h"
 #include "World/SiegeStoneEffects.h"
+#include "support/Bytes.h"
+#include "support/Packets.h"
 #include "support/RecordingSink.h"
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
@@ -106,6 +111,31 @@ TEST_F(CastleWeaponEffectsTest, AFullPoolStillPlaysTheFiringSoundWithoutConstruc
     ASSERT_TRUE(Client::Scenes::ApplyTheSiegeWeaponFire(0, 2, 0, 0, 0, Resources()).HasValue());
     EXPECT_EQ(world->Runtime().lastSoundId, 0x1ea);
     EXPECT_EQ(cloth.random.State(), 1u);
+}
+TEST_F(CastleWeaponEffectsTest, ThePacketAimsTheIceProjectileAndKeepsBothKeyBytes)
+{
+    auto& source = world->Actors()[7];
+    source.alive = true;
+    source.key = 0x1234;
+    source.type = 0x19c;
+    source.position = {100, 200, 300};
+    const auto wire = Client::Tests::PacketOf(Client::Tests::Bytes({0xc1, 10, 0xb7, 1, 1, 0x12, 0x34, 2, 20, 30}));
+    const auto read = Client::Protocol::CastleBattle::ReadCastleBattlePacket(wire);
+    ASSERT_TRUE(read.HasValue());
+    const auto resources = Resources();
+    const auto applied = Client::Scenes::ApplyCastleBattlePacket(
+        read.Value(), {.world = *world, .random = cloth.random, .log = log, .entryResources = &resources});
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
+
+    const auto& projectile = world->Map().effects.Effects()[0];
+    ASSERT_TRUE(projectile.alive);
+    EXPECT_EQ(projectile.type, Client::World::SiegeIceStoneEffect);
+    EXPECT_EQ(projectile.subtype, 1);
+    EXPECT_EQ(projectile.state, 0x12);
+    EXPECT_EQ(projectile.byte89, 0x34);
+    EXPECT_EQ(projectile.siegeTarget, (glm::vec3{2000, 3000, 100}));
+    EXPECT_EQ(source.animation.action, 1);
+    EXPECT_EQ(world->Runtime().lastSoundId, 0x1ea);
 }
 TEST_F(CastleWeaponEffectsTest, AnUnknownImpactKindStillCreatesItsWaveBeforeTheSound)
 {

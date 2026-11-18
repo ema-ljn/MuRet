@@ -292,9 +292,9 @@ TEST(CastleBattleProtocolTest, WeaponMessagesReadTheirDistinctLayoutsAndRejectio
     EXPECT_EQ(open.mode, 255);
     EXPECT_EQ(open.key, 0x8123);
     const auto fire = std::get<Battle::WeaponFire>(Read(Bytes({0xc1, 10, 0xb7, 1, 2, 0x81, 0x23, 255, 128, 0})));
-    EXPECT_EQ(fire.kind, 2);
+    EXPECT_EQ(fire.kind, 255);
     EXPECT_EQ(fire.key, 0x8123);
-    EXPECT_EQ(fire.mode, 255);
+    EXPECT_EQ(fire.mode, 2);
     EXPECT_EQ(fire.x, 128);
     EXPECT_EQ(fire.y, 0);
     const auto impact = std::get<Battle::WeaponImpact>(Read(Bytes({0xc1, 7, 0xb7, 2, 255, 0, 128})));

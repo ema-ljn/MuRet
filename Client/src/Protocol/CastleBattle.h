@@ -91,7 +91,7 @@ struct SiegeTime
     std::uint8_t hours = 0;
     std::uint8_t minutes = 0;
 };
-// B7 00/01/02: 0x4e08a0, 0x4e08f0 y 0x44efc0. El kind de 01 también decide el rechazo (cero).
+// B7 00/01/02: 0x4e08a0, 0x4e08f0 y 0x44efc0.
 struct WeaponOpen
 {
     std::uint8_t result = 0;
@@ -100,9 +100,9 @@ struct WeaponOpen
 };
 struct WeaponFire
 {
-    std::uint8_t kind = 0;
+    std::uint8_t kind = 0; // pkt[7], tipo de proyectil en 0x44ef0e.
     std::uint16_t key = 0;
-    std::uint8_t mode = 0;
+    std::uint8_t mode = 0; // pkt[4], cero rechaza y uno conserva destino y clave (0x44eed1).
     std::uint8_t x = 0;
     std::uint8_t y = 0;
 };

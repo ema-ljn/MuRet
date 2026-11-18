@@ -334,17 +334,18 @@ Core::Expected<CastleBattlePacket, ProtocolError> ReadWeapon(std::span<const std
     }
     if (subcode == 1)
     {
-        WeaponFire fire{.kind = *result};
-        if (fire.kind != 0)
+        // 0x4e0926: 0x44eea0 recibe clave, modo (pkt[4]), tipo (pkt[7]), X e Y.
+        WeaponFire fire{.mode = *result};
+        if (fire.mode != 0)
         {
             const auto key = KeyAt(bytes, 5);
-            const auto mode = U8(bytes, 7);
+            const auto kind = U8(bytes, 7);
             const auto x = U8(bytes, 8);
             const auto y = U8(bytes, 9);
-            if (!key || !mode || !x || !y)
+            if (!key || !kind || !x || !y)
                 return TooShort();
             fire.key = *key;
-            fire.mode = *mode;
+            fire.kind = *kind;
             fire.x = *x;
             fire.y = *y;
         }

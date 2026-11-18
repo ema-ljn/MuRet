@@ -29,6 +29,11 @@ El pool lleno no consume los sorteos del constructor. El paso global de partícu
 
 `44eea0/44efc0` conservan el dueño **Hero**, incluso si dispara otro actor; sonido 1ea también con tipo desconocido o pool lleno. El impacto remoto siempre crea onda 6eb/6 después del proyectil.
 
+En `B7 01`, `4e0926` llama a `44eea0` con el modo de `pkt[4]` y el tipo de
+proyectil de `pkt[7]`. Modo 0 muestra el fallo (`4e0930`), modo 1 conserva el
+destino y los dos bytes de la clave (`44eed1..44eeeb`). El tipo se decide en
+`44ef0e..44ef32`. La regresión desde el paquete comprueba el modo 1 con tipo 2.
+
 `51cfa4/51d1f0`: el tiro dirigido consume el sorteo inicial de velocidad aunque luego la pise con29. La dirección XY usa diferencia almacenada en float y producto por.001f, sin normalizar. Un lugar sin asignar no consume RNG.
 
 `5208a0` consume un sorteo común por efecto vivo. El vuelo usa Z previa para la emisión y limita la cámara del tiro de Hero a800. La notificación B7 exige **ambos** bytes de key no nulos;12b añade vida < 250 y12c no. Los bytes se limpian después del intento de envío. El contacto asigna15/40 y luego el epílogo deja14/39; no ejecuta el impacto persistente en ese mismo tick.

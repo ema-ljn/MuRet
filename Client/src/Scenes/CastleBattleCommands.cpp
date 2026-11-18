@@ -297,7 +297,7 @@ Core::Expected<void, std::string> ApplyCastleBattleCommand(const Battle::CastleB
             }
             else if constexpr (std::is_same_v<Received, Battle::WeaponFire>)
             {
-                if (received.kind == 0)
+                if (received.mode == 0)
                     return WeaponFailure(context, true);
                 if (context.entryResources == nullptr)
                     return Core::Unexpected(std::string("0x44eea0: faltan los recursos del disparo del castillo"));

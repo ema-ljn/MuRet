@@ -18,6 +18,7 @@
 #include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "Scenes/SelectionInventory.h"
 #include "UI/GameUiState.h"
 #include "UI/PanelRegistry.h"
 #include "World/ItemState.h"
@@ -70,6 +71,7 @@ class InventoryStepTest : public ::testing::Test
 protected:
     void SetUp() override
     {
+        Client::Scenes::ClearSelectionInventory(world, random);
         world.OwnCharacter().ClearEquipmentForEntry();
         world.Inventory().ClearForInventoryReply();
         world.Runtime().panels.inventory = 1;
@@ -161,6 +163,37 @@ TEST_F(InventoryStepTest, TheCloseButtonClosesTheInventory)
     EXPECT_FALSE(world.Runtime().movement.pendingClick);
     EXPECT_EQ(world.Runtime().movement.mouseUpdateTime, 0);
     EXPECT_EQ(world.Runtime().movement.mouseUpdateTimeMax, 6);
+}
+
+// 0x65cbe6→0x661b90 mira el WORD de los 32 lugares, aunque +0x3c esté en cero. El paso real del botón no cierra
+// hasta que la selección (0x5bbe10) devuelve ese tipo a 0xffff; conserva los demás bytes del ítem.
+TEST_F(InventoryStepTest, TheCloseButtonWaitsForTheChaosBoxTypesToBeClearedBySelection)
+{
+    for (const std::size_t cell : {std::size_t{0}, std::size_t{31}})
+    {
+        SCOPED_TRACE(cell);
+        world.Runtime().panels.inventory = 1;
+        auto& item = world.Runtime().npcWindows.chaosBox[cell];
+        item.id = 7;
+        item.occupied = 0;
+        item.scalar1Low = 0x1234;
+        Click();
+        auto stepped = Step(WindowX + 0x14, 0x18b);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(world.Runtime().panels.inventory, 1);
+        EXPECT_EQ(item.id, 7);
+        EXPECT_EQ(item.occupied, 0u);
+        EXPECT_FALSE(world.Runtime().movement.pendingClick);
+
+        Client::Scenes::ClearSelectionInventory(world, random);
+        EXPECT_EQ(item.id, Client::Scenes::EmptyOwnItemId);
+        EXPECT_EQ(item.scalar1Low, 0x1234u);
+        Click();
+        stepped = Step(WindowX + 0x14, 0x18b);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(world.Runtime().panels.inventory, 0);
+        EXPECT_FALSE(world.Runtime().movement.pendingClick);
+    }
 }
 
 // Reparar (x + 0x30) solo desde el nivel 50, que también deja 0x78abb10 en 1; el clic invierte 0x78abb0c.

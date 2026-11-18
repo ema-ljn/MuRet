@@ -23,6 +23,7 @@
 #include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "Scenes/SelectionInventory.h"
 #include "UI/ChatInput.h"
 #include "UI/GameDialogs.h"
 #include "UI/OldControls.h"
@@ -160,6 +161,8 @@ protected:
     void Reset(std::int32_t map)
     {
         world = std::make_unique<WorldState>();
+        // El juego llega después de 0x5bbe10: la caja del caos tiene tipos 0xffff, no el cero de la BSS.
+        Client::Scenes::ClearSelectionInventory(*world, random);
         world->Inventory().ClearForInventoryReply();
         Runtime().map = map;
         Runtime().panels.inventory = 1;
@@ -225,6 +228,8 @@ protected:
     {
         auto other = std::make_unique<WorldState>();
         other->Runtime().panels = Runtime().panels;
+        other->Runtime().cursorItemCount = Runtime().cursorItemCount;
+        other->Runtime().npcWindows.chaosBox = Runtime().npcWindows.chaosBox;
         CrtRandom expected = random;
         Client::Scenes::GamePanels panels(*other, expected);
         EXPECT_TRUE(panels.Registry().Close(Client::UI::InventoryPanel).HasValue());

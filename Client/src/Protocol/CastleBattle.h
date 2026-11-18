@@ -32,6 +32,63 @@ inline constexpr std::uint8_t MinimapMembersOpcode = 0xbb;
 // El B2 20, en la tabla 0x4e6140 del B2 del hito 12.
 inline constexpr std::uint8_t CastleOpcode = 0xb2;
 inline constexpr std::uint8_t SwitchHolderSubcode = 0x20;
+inline constexpr std::array<std::uint8_t, 12> CastleSubcodes{0x11, 0x12, 0x13, 0x14, 0x15, 0x16,
+                                                             0x17, 0x18, 0x19, 0x1d, 0x1e, SwitchHolderSubcode};
+
+// 0x4e55c5..0x4e5776: los casos de batalla de la tabla B2 0x4e6140.
+struct GateOpen
+{
+    std::uint8_t result = 0;
+    std::uint16_t key = 0;
+};
+struct GateCommand
+{
+    std::uint8_t result = 0;
+    std::uint8_t open = 0;
+    std::uint16_t key = 0;
+};
+struct GateState
+{
+    std::uint8_t open = 0;
+    std::uint16_t key = 0;
+};
+struct CrownAccess
+{
+    std::uint16_t firstKey = 0;
+    std::uint16_t secondKey = 0;
+    std::uint8_t status = 0;
+};
+struct CrownRegistration
+{
+    std::uint8_t result = 0;
+    std::uint32_t elapsed = 0;
+};
+struct CrownState
+{
+    std::uint8_t result = 0;
+};
+struct SiegeActivation
+{
+    std::uint8_t active = 0;
+};
+struct CastleOwner
+{
+    std::uint8_t result = 0;
+    std::array<std::uint8_t, 8> guild{};
+};
+struct SiegeSide
+{
+    std::uint8_t side = 0;
+};
+struct PanelStatus
+{
+    std::array<std::uint8_t, 4> bytes{};
+};
+struct SiegeTime
+{
+    std::uint8_t hours = 0;
+    std::uint8_t minutes = 0;
+};
 
 // B9 01 (0x4e0750): la clave (pkt[4] << 8 | pkt[5]) y el byte que va a +0x93 de su personaje (pkt[6]). *Inferido*:
 // el nivel de una puerta o una estatua, que el alta del 13 también escribe (0x4c9ee9) y que los dibujos del asedio
@@ -99,7 +156,9 @@ struct SwitchHolder
 };
 
 using CastleBattlePacket =
-    std::variant<NpcLevel, OwnerMark, HuntZoneInfo, HuntZoneEntryResult, ActorField, MinimapMembers, SwitchHolder>;
+    std::variant<NpcLevel, OwnerMark, HuntZoneInfo, HuntZoneEntryResult, ActorField, MinimapMembers, SwitchHolder,
+                 GateOpen, GateCommand, GateState, CrownAccess, CrownRegistration, CrownState, SiegeActivation,
+                 CastleOwner, SiegeSide, PanelStatus, SiegeTime>;
 
 // El paquete de la batalla que es, por su opcode y, en el B9 y el B2, su subcódigo. Otro opcode, otro subcódigo del B9
 // (el 04 y desde el 06 caen al default, 0x4e58c8) o del B2: WrongPacket.

@@ -206,8 +206,71 @@ TEST(CastleBattleProtocolTest, SwitchHolderWithout1bBytesIsTooShort)
 // Los otros B2 son del hito 12 (Protocol/CastleSiege.h) o no tienen handler: acá son WrongPacket, como otro opcode.
 TEST(CastleBattleProtocolTest, OtherOpcodesAndB2SubcodesAreWrongPackets)
 {
+    EXPECT_EQ(ErrorReading(Bytes({0xc1, 4, 0xb2, 0x1f})), ProtocolError::WrongPacket);
     EXPECT_EQ(ErrorReading(Bytes({0xc1, 5, 0xb2, 0x1f, 0x01})), ProtocolError::WrongPacket);
     EXPECT_EQ(ErrorReading(Bytes({0xc1, 5, 0xb3, 0x20, 0x01})), ProtocolError::WrongPacket);
     EXPECT_EQ(ErrorReading(Bytes({0xc1, 3, 0xb9})), ProtocolError::TooShort);
+}
+
+// Tabla 0x4e6140: todos estos casos tienen lógica de batalla, incluso fuera del mapa 30.
+TEST(CastleBattleProtocolTest, EveryBattleB2EntryReachesItsReader)
+{
+    for (const int subcode : {0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1d, 0x1e})
+    {
+        SCOPED_TRACE(subcode);
+        auto bytes = Bytes({0xc1, 20, 0xb2, subcode});
+        bytes.resize(20, std::byte{0xff});
+        EXPECT_TRUE(Battle::ReadCastleBattlePacket(PacketOf(std::move(bytes))).HasValue());
+    }
+}
+
+// Los rechazos del control de puerta y del dueño no leen los campos que sólo consume el éxito.
+TEST(CastleBattleProtocolTest, RejectedGateAndOwnerMessagesNeedOnlyTheirResult)
+{
+    for (const int subcode : {0x11, 0x12, 0x18})
+    {
+        SCOPED_TRACE(subcode);
+        EXPECT_TRUE(Battle::ReadCastleBattlePacket(PacketOf(Bytes({0xc1, 5, 0xb2, subcode, 0xff}))).HasValue());
+        EXPECT_EQ(ErrorReading(Bytes({0xc1, 5, 0xb2, subcode, 1})), ProtocolError::TooShort);
+    }
+}
+
+TEST(CastleBattleProtocolTest, GateMessagesKeepTheWireKeyAndAllStatusBits)
+{
+    const auto opened = std::get<Battle::GateOpen>(Read(Bytes({0xc1, 7, 0xb2, 0x11, 1, 0x81, 0x3d})));
+    EXPECT_EQ(opened.key, 0x813d);
+    const auto command = std::get<Battle::GateCommand>(Read(Bytes({0xc1, 8, 0xb2, 0x12, 1, 0xff, 0x12, 0x34})));
+    EXPECT_EQ(command.open, 255);
+    EXPECT_EQ(command.key, 0x1234);
+    const auto state = std::get<Battle::GateState>(Read(Bytes({0xc1, 7, 0xb2, 0x13, 0, 0x12, 0x34})));
+    EXPECT_EQ(state.open, 0);
+    EXPECT_EQ(state.key, 0x1234);
+    EXPECT_EQ(ErrorReading(Bytes({0xc1, 6, 0xb2, 0x13, 0, 0x12})), ProtocolError::TooShort);
+}
+
+TEST(CastleBattleProtocolTest, CrownDurationIsReadOnlyForResultsZeroAndTwo)
+{
+    for (const int result : {0, 2})
+    {
+        const auto crown = std::get<Battle::CrownRegistration>(
+            Read(Bytes({0xc1, 12, 0xb2, 0x15, result, 0xaa, 0xbb, 0xcc, 0x10, 0x32, 0x54, 0xfe})));
+        EXPECT_EQ(crown.elapsed, 0xfe543210u);
+        EXPECT_EQ(ErrorReading(Bytes({0xc1, 5, 0xb2, 0x15, result})), ProtocolError::TooShort);
+    }
+    for (const int result : {1, 3, 4, 255})
+        EXPECT_TRUE(Battle::ReadCastleBattlePacket(PacketOf(Bytes({0xc1, 5, 0xb2, 0x15, result}))).HasValue());
+}
+
+TEST(CastleBattleProtocolTest, BattleStatusAndTimePreserveRawBytes)
+{
+    const auto status = std::get<Battle::PanelStatus>(Read(Bytes({0xc1, 8, 0xb2, 0x1d, 6, 0, 255, 7})));
+    EXPECT_EQ(status.bytes, (std::array<std::uint8_t, 4>{6, 0, 255, 7}));
+    const auto clock = std::get<Battle::SiegeTime>(Read(Bytes({0xc1, 6, 0xb2, 0x1e, 255, 255})));
+    EXPECT_EQ(clock.hours, 255);
+    EXPECT_EQ(clock.minutes, 255);
+    // C2: el subcódigo de pkt[4] también es el campo de horas: el handler no desplaza el layout.
+    const auto c2Clock = std::get<Battle::SiegeTime>(Read(Bytes({0xc2, 0, 6, 0xb2, 0x1e, 255})));
+    EXPECT_EQ(c2Clock.hours, 0x1e);
+    EXPECT_EQ(c2Clock.minutes, 255);
 }
 } // namespace

@@ -207,6 +207,110 @@ Core::Expected<CastleBattlePacket, ProtocolError> ReadSwitchHolder(std::span<con
                            [](std::byte b) { return std::to_integer<std::uint8_t>(b); });
     return CastleBattlePacket{holder};
 }
+
+Core::Expected<CastleBattlePacket, ProtocolError> ReadCastle(std::span<const std::byte> bytes, std::uint8_t subcode)
+{
+    if (subcode == SwitchHolderSubcode)
+        return ReadSwitchHolder(bytes);
+    if (std::ranges::find(CastleSubcodes, subcode) == CastleSubcodes.end())
+        return Core::Unexpected(ProtocolError::WrongPacket);
+    const auto value = U8(bytes, 4);
+    if (!value)
+        return TooShort();
+    switch (subcode)
+    {
+    case 0x11:
+    {
+        GateOpen gate{.result = *value};
+        if (gate.result == 1)
+        {
+            const auto key = KeyAt(bytes, 5);
+            if (!key)
+                return TooShort();
+            gate.key = *key;
+        }
+        return CastleBattlePacket{gate};
+    }
+    case 0x12:
+    {
+        GateCommand gate{.result = *value};
+        if (gate.result == 1)
+        {
+            const auto open = U8(bytes, 5);
+            const auto key = KeyAt(bytes, 6);
+            if (!open || !key)
+                return TooShort();
+            gate.open = *open;
+            gate.key = *key;
+        }
+        return CastleBattlePacket{gate};
+    }
+    case 0x13:
+    {
+        const auto key = KeyAt(bytes, 5);
+        if (!key)
+            return TooShort();
+        return CastleBattlePacket{GateState{.open = *value, .key = *key}};
+    }
+    case 0x14:
+    {
+        const auto first = KeyAt(bytes, 4);
+        const auto second = KeyAt(bytes, 6);
+        const auto status = U8(bytes, 8);
+        if (!first || !second || !status)
+            return TooShort();
+        return CastleBattlePacket{CrownAccess{.firstKey = *first, .secondKey = *second, .status = *status}};
+    }
+    case 0x15:
+    {
+        CrownRegistration crown{.result = *value};
+        if (crown.result == 0 || crown.result == 2)
+        {
+            const auto elapsed = U32Le(bytes, 8);
+            if (!elapsed)
+                return TooShort();
+            crown.elapsed = *elapsed;
+        }
+        return CastleBattlePacket{crown};
+    }
+    case 0x16:
+        return CastleBattlePacket{CrownState{.result = *value}};
+    case 0x17:
+        return CastleBattlePacket{SiegeActivation{.active = *value}};
+    case 0x18:
+    {
+        CastleOwner owner{.result = *value};
+        if (owner.result <= 1)
+        {
+            if (bytes.size() < 13)
+                return TooShort();
+            std::ranges::transform(bytes.subspan(5, owner.guild.size()), owner.guild.begin(),
+                                   [](std::byte b) { return std::to_integer<std::uint8_t>(b); });
+        }
+        return CastleBattlePacket{owner};
+    }
+    case 0x19:
+        return CastleBattlePacket{SiegeSide{.side = *value}};
+    case 0x1d:
+    {
+        if (bytes.size() < 8)
+            return TooShort();
+        PanelStatus status;
+        std::ranges::transform(bytes.subspan(4, status.bytes.size()), status.bytes.begin(),
+                               [](std::byte b) { return std::to_integer<std::uint8_t>(b); });
+        return CastleBattlePacket{status};
+    }
+    case 0x1e:
+    {
+        const auto minutes = U8(bytes, 5);
+        if (!minutes)
+            return TooShort();
+        return CastleBattlePacket{SiegeTime{.hours = *value, .minutes = *minutes}};
+    }
+    default:
+        return Core::Unexpected(ProtocolError::WrongPacket);
+    }
+}
 } // namespace
 
 Core::Expected<CastleBattlePacket, ProtocolError> ReadCastleBattlePacket(const Network::Packet& packet)
@@ -231,11 +335,7 @@ Core::Expected<CastleBattlePacket, ProtocolError> ReadCastleBattlePacket(const N
         {
             return ReadBattle(bytes, *subcode);
         }
-        if (*subcode != SwitchHolderSubcode)
-        {
-            return Core::Unexpected(ProtocolError::WrongPacket);
-        }
-        return ReadSwitchHolder(bytes);
+        return ReadCastle(bytes, *subcode);
     }
     case ActorFieldOpcode:
         return ReadActorField(bytes);

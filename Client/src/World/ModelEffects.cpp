@@ -1082,6 +1082,21 @@ std::optional<std::size_t> ModelEffects::Create(std::int16_t type, const glm::ve
     return std::nullopt;
 }
 
+std::optional<std::size_t> ModelEffects::CreateCrywolfTideEffect(const ModelEffectArguments& arguments)
+{
+    if (arguments.type != 0x145 || arguments.subtype != 2)
+        return std::nullopt;
+    const auto slot = Begin(arguments);
+    if (!slot)
+        return std::nullopt;
+    auto& effect = m_effects[*slot];
+    effect.objectState.blendMesh = Render::Models::EveryMeshBlends;
+    effect.life = 30;
+    effect.transform.scale = 0;
+    effect.velocity = {0, -40, 0};
+    return slot;
+}
+
 std::optional<std::size_t> ModelEffects::CreateWaveEffect(const ModelEffectArguments& arguments)
 {
     if (arguments.type != 0x114 || (arguments.subtype != 2 && arguments.subtype != 6))

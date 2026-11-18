@@ -798,10 +798,10 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
         return subtype == 8 || subtype == 9 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     if (type == BreathParticle)
     {
-        return subtype == CrywolfSwingSmokeSubtype || subtype == MissileSmokeSubtype ||
-                       subtype == ExplosionSmokeSubtype || subtype == BreathSubtype || subtype == WorldSmokeSubtype ||
-                       subtype == CrywolfSmokeSubtype || subtype == CrywolfRisingSmokeSubtype ||
-                       subtype == StoneDustSubtype
+        return subtype == CrywolfTideSmokeSubtype || subtype == CrywolfSwingSmokeSubtype ||
+                       subtype == MissileSmokeSubtype || subtype == ExplosionSmokeSubtype || subtype == BreathSubtype ||
+                       subtype == WorldSmokeSubtype || subtype == CrywolfSmokeSubtype ||
+                       subtype == CrywolfRisingSmokeSubtype || subtype == StoneDustSubtype
                    ? std::nullopt
                    : std::optional(ParticleError::UnsupportedSubtype);
     }
@@ -1741,6 +1741,15 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
             CreateTheBubble(particle, random);
             return std::optional(index);
         }
+        if (type == BreathParticle && subtype == CrywolfTideSmokeSubtype)
+        {
+            // 5424bf: misma secuencia de tres CRT que640/0, con vida25 y textura5f2.
+            particle.life = 25;
+            particle.scale = F32(static_cast<double>((random.Next() & 63) + 64) * static_cast<double>(0.01f));
+            particle.rotation = static_cast<float>(random.Next() % 360);
+            particle.verticalSpeed = F32(static_cast<double>((random.Next() & 31) + 60) * static_cast<double>(0.1f));
+            return std::optional(index);
+        }
         if (type == MagicSparkParticle)
         {
             // 0x540260: sortea la vida antes de pisarla con19 y tirar el corrimiento de y.
@@ -2105,6 +2114,11 @@ StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random, const
         else if (IsBreath(particle))
         {
             StepTheBreath(particle);
+        }
+        else if (particle.type == BreathParticle && particle.subtype == CrywolfTideSmokeSubtype)
+        {
+            particle.light = glm::vec3(F32(static_cast<double>(particle.life) * static_cast<double>(0.05f)));
+            particle.scale = F32(static_cast<double>(particle.scale) + static_cast<double>(0.09f));
         }
         else if (particle.type == MagicSparkParticle)
         {

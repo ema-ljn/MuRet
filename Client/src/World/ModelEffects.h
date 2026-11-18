@@ -209,6 +209,8 @@ struct ModelEffectArguments
 class ModelEffects
 {
 public:
+    // 0x51c754: el torbellino145/2 de la estela del1ae, sinRNG.
+    std::optional<std::size_t> CreateCrywolfTideEffect(const ModelEffectArguments& arguments);
     // 0x51c129: ondas114/2 y/6, key firmado como escala, sinRNG; 0x51c8e8:115/1.
     std::optional<std::size_t> CreateWaveEffect(const ModelEffectArguments& arguments);
     std::optional<std::size_t> CreatePiercingEffect(const ModelEffectArguments& arguments);

@@ -1225,8 +1225,8 @@ Core::Expected<void, std::string> StepTheSwingsOf1abTo1b4(ActorState& actor, std
         return EmitSwing(world, actor, swing.Value(), particles, legs, random, worldClock, true, true);
     }
     case 0x1ae:
-        // 0x4330a9: en la 8, el punto de la mano izquierda y su partícula 0x5f2/0x1b (CL11); con la tabla llena, las
-        // dos 0x5ad/2 que siguen tampoco crean nada. En la 4 con el frame en (4,5; 5), el efecto 0x145 antes de posar;
+        // 0x4330a9: en la 8, el punto de la mano izquierda y sus tres partículas. En la 4 con el frame en (4,5; 5),
+        // el efecto 0x145 antes de posar;
         // en la 3 y la 4, la estela.
         if (action == 8)
         {
@@ -1249,8 +1249,12 @@ Core::Expected<void, std::string> StepTheSwingsOf1abTo1b4(ActorState& actor, std
             return {};
         if (action == 4 && frame > 4.5f && frame < 5.0f)
         {
-            if (auto effect = UnportedModelEffect(world, actor, 0x145, 2, 0x433339); !effect.HasValue())
-                return effect;
+            static_cast<void>(world.Map().effects.CreateCrywolfTideEffect({.type = 0x145,
+                                                                           .position = actor.position,
+                                                                           .angles = actor.angles,
+                                                                           .light = actor.light,
+                                                                           .subtype = 2,
+                                                                           .owner = &actor}));
         }
         {
             const auto swing = SwingOf(world, actor, action);

@@ -1343,11 +1343,10 @@ TEST_F(MonsterHelpersTest, OtherSwingsEmitTheirRibbonSamplesAndKeepGenuineCuts)
     };
     for (const Case& value :
          {Case{0x1ab, 3, 4.0f, "", false, 1}, Case{0x1ab, 3, 4.0f, "", true, 1}, Case{0x1ab, 3, 4.5f, "", false, 1},
-          Case{0x1ae, 8, 4.0f, "", false, 0}, Case{0x1ae, 8, 4.0f, "", true, 0},
-          Case{0x1ae, 4, 4.7f, "0x433339", false, 0}, Case{0x1ae, 3, 4.7f, "", false, 1},
-          Case{0x1af, 4, 3.0f, "", false, 1}, Case{0x1af, 4, 4.7f, "0x43365e", false, 1},
-          Case{0x1af, 4, 4.7f, "", false, 1, true}, Case{0x1b1, 4, 3.0f, "", false, 2},
-          Case{0x1b3, 3, 3.0f, "", false, 1}, Case{0x1b4, 3, 3.0f, "", false, 2}})
+          Case{0x1ae, 8, 4.0f, "", false, 0}, Case{0x1ae, 8, 4.0f, "", true, 0}, Case{0x1ae, 4, 4.7f, "", false, 1},
+          Case{0x1ae, 3, 4.7f, "", false, 1}, Case{0x1af, 4, 3.0f, "", false, 1},
+          Case{0x1af, 4, 4.7f, "0x43365e", false, 1}, Case{0x1af, 4, 4.7f, "", false, 1, true},
+          Case{0x1b1, 4, 3.0f, "", false, 2}, Case{0x1b3, 3, 3.0f, "", false, 1}, Case{0x1b4, 3, 3.0f, "", false, 2}})
     {
         SCOPED_TRACE(testing::Message() << value.address << (value.particlePoolFull ? " llena" : ""));
         ClearParticles();
@@ -1369,7 +1368,7 @@ TEST_F(MonsterHelpersTest, OtherSwingsEmitTheirRibbonSamplesAndKeepGenuineCuts)
         const auto stepped =
             Client::Scenes::StepTheSwingsOf1abTo1b4(actor, Slot, *m_world, random, m_particles.get(), 0.0f);
         if (value.address.empty())
-            EXPECT_TRUE(stepped.HasValue()) << stepped.Error();
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         else
             EXPECT_TRUE(CutAt(stepped, value.address)) << (stepped.HasValue() ? "" : stepped.Error());
         const int draws = value.particlePoolFull                     ? 1
@@ -1544,11 +1543,20 @@ TEST_F(MonsterHelpersTest, SwingEffectsCutOnlyWhenTheModelEffectPoolHasRoom)
     ActorState& type1ae = Monster(0x1ae, 4, 4.7f);
     const auto beforePose =
         Client::Scenes::StepTheSwingsOf1abTo1b4(type1ae, Slot, *m_world, fullEffectsRandom, m_particles.get(), 0.0f);
-    EXPECT_TRUE(CutAt(beforePose, "0x433339")) << (beforePose.HasValue() ? "" : beforePose.Error());
-    EXPECT_FALSE(m_world->DrawTail().ribbons[0].alive);
-    EXPECT_EQ(m_world->PoseCarry().models.count(type1ae.type), 0u);
+    ASSERT_TRUE(beforePose.HasValue()) << beforePose.Error();
+    const auto& tide = m_world->Map().effects.Effects()[0];
+    EXPECT_TRUE(tide.alive);
+    EXPECT_EQ(tide.type, 0x145);
+    EXPECT_EQ(tide.subtype, 2);
+    EXPECT_EQ(tide.life, 30);
+    EXPECT_FLOAT_EQ(tide.transform.scale, 0);
+    EXPECT_EQ(tide.ownerContext, &type1ae);
+    EXPECT_EQ(m_world->DrawTail().ribbons[0].count, 10);
+    EXPECT_EQ(m_world->PoseCarry().models.count(type1ae.type), 1u);
 
     FillModelEffects();
+    m_world->DrawTail().ribbons = {};
+    m_world->PoseCarry() = {};
     CrtRandom noEffect(1);
     const auto fullEffectPool =
         Client::Scenes::StepTheSwingsOf1abTo1b4(type1ae, Slot, *m_world, noEffect, m_particles.get(), 0.0f);

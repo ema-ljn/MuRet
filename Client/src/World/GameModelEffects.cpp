@@ -500,6 +500,34 @@ Core::Expected<void, std::string> StepFadingDecal(const ModelEffect& effect, Par
     return {};
 }
 
+Core::Expected<void, std::string> StepCrywolfTide(ModelEffect& effect, Particles& particles, float clock,
+                                                  Render::Models::CrtRandom& random, float luminosity,
+                                                  const ModelEffectStepServices& services)
+{
+    if (effect.subtype != 2)
+        return Core::Unexpected(std::string("0x5263d6: el subtipo de145 no es2"));
+    effect.transform.scale = F32(static_cast<double>(effect.transform.scale) +
+                                 static_cast<double>(effect.transform.scale >= 0.8f ? -0.4f : 0.2f));
+    effect.objectState.light = F32(static_cast<double>(effect.life) * static_cast<double>(0.1f));
+    effect.objectState.uv.x = F32(static_cast<double>(effect.life) * static_cast<double>(-0.2f));
+    glm::vec3 angles = effect.transform.angles;
+    angles.z = F32(static_cast<double>(angles.z) + 7.0);
+    const auto offset = Render::Models::OriginalVectorRotate({0, -500, 0}, Render::Models::OriginalAngleMatrix(angles));
+    glm::vec3 point;
+    for (int axis = 0; axis < 3; ++axis)
+        point[axis] = F32(static_cast<double>(offset[axis]) + static_cast<double>(effect.transform.position[axis]));
+    for (int index = 0; index < 6; ++index)
+    {
+        const auto made = particles.CreateChecked(BreathParticle, point, angles, effect.light, CrywolfTideSmokeSubtype,
+                                                  1, clock, random);
+        if (!made.HasValue())
+            return Core::Unexpected(std::string("0x5264be: el humo5f2/25 de145 no está portado"));
+    }
+    const glm::vec3 light{F32(static_cast<double>(luminosity) * static_cast<double>(0.3f)),
+                          F32(static_cast<double>(luminosity) * static_cast<double>(0.6f)), luminosity};
+    return AddDynamicLight(services.lighting, point, light, 3, "0x5264fa");
+}
+
 Core::Expected<void, std::string> StepWaveEffect(ModelEffect& effect)
 {
     if (effect.subtype != 2 && effect.subtype != 6)
@@ -1440,6 +1468,13 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
     else if (effect.type == FadingDecalEffect)
     {
         if (auto stepped = StepFadingDecal(effect, particles, worldClock, random); !stepped.HasValue())
+            return stepped;
+    }
+    else if (effect.type == 0x145)
+    {
+        if (auto stepped = StepCrywolfTide(effect, particles, worldClock, random,
+                                           StepLuminosity(lightDraw, effect.life), services);
+            !stepped.HasValue())
             return stepped;
     }
     else if (effect.type == 0x114)

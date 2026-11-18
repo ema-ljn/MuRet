@@ -1069,8 +1069,9 @@ TEST_F(ViewportPlayersTest, TheWalkAndTheHitOfTheOthersFindTheCreatedPlayer)
     }
 }
 
-// El 18 con la acción 0x78 de un jugador que dio de alta el 0x12 (0x4cb750 → 0x4f4a10): sin armas, la 0x22 y solo el
-// cierre del registro propio de 0x4f3f80; con una espada de un grupo de 0 a 2 sin la marca +0x1e de Item.bmd en la
+// El 18 con la acción 0x78 de un jugador que dio de alta el 0x12 (0x4cb750 → 0x4f4a10): el FFF codificado
+// conserva1211 y pasa por el sonido aleatorio3c (4f5192); con ambas manosFFFF, solo cierra el registro propio.
+// Con una espada de un grupo de 0 a 2 sin la marca +0x1e de Item.bmd en la
 // derecha, la 0x23 o la 0x24 por +0x38f y el sonido rand() & 1 + 0x3c (0x4f5192). Después, +0x381 en 1, el frame en 0,
 // el blanco con el lugar del héroe y [0x5767964] con el índice.
 TEST_F(ViewportPlayersTest, ACreatedPlayerStrikesWithTheEighteen)
@@ -1100,8 +1101,24 @@ TEST_F(ViewportPlayersTest, ACreatedPlayerStrikesWithTheEighteen)
         EXPECT_EQ(actor.attackCount, 1);
         EXPECT_EQ(actor.attackTarget, 0);
         EXPECT_EQ(game->world.Runtime().lastAttacker, 1);
+        EXPECT_EQ(actor.hands[0].model, 0x1211);
+        EXPECT_EQ(actor.hands[1].model, 0x1211);
+        auto encoded = AfterDraws(created, OwnRecordDraws);
+        const std::int32_t encodedSound = (encoded.Next() & 1) + 0x3c;
+        EXPECT_EQ(game->world.Runtime().lastSoundId, std::optional<std::int32_t>(encodedSound));
+        EXPECT_EQ(game->cloth.random.State(), encoded.State());
+
+        // 4f5181/4f5186: únicamente ambos WORD enFFFF omiten el rand() y el sonido.
+        actor.hands[0].model = Client::Scenes::NoItemModel;
+        actor.hands[1].model = Client::Scenes::NoItemModel;
+        game->world.Runtime().lastSoundId.reset();
+        const auto unarmed = AfterDraws(encoded.State(), OwnRecordDraws);
+        applied = Client::Scenes::ApplyActionReply(
+            Client::Protocol::Movement::Action{.key = 0x0456, .direction = 5, .action = 0x78}, game->Resources(), {});
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        EXPECT_EQ(actor.animation.action, 0x22);
         EXPECT_FALSE(game->world.Runtime().lastSoundId.has_value());
-        EXPECT_EQ(game->cloth.random.State(), AfterDraws(created, OwnRecordDraws).State());
+        EXPECT_EQ(game->cloth.random.State(), unarmed.State());
 
         actor.hands[0].model = Sword;
         actor.animation.action = 0;
@@ -1110,9 +1127,9 @@ TEST_F(ViewportPlayersTest, ACreatedPlayerStrikesWithTheEighteen)
         applied = Client::Scenes::ApplyActionReply(
             Client::Protocol::Movement::Action{.key = 0x0456, .direction = 1, .action = 0x79}, game->Resources(), {});
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
-        // +0x38f en 1: (1 & 1) + 0x23.
-        EXPECT_EQ(actor.animation.action, 0x24);
-        EXPECT_EQ(actor.attackCount, 2);
+        // +0x38f en 2 después de los dos ataques: (2 & 1) + 0x23.
+        EXPECT_EQ(actor.animation.action, 0x23);
+        EXPECT_EQ(actor.attackCount, 3);
         EXPECT_EQ(game->world.Runtime().lastSoundId, std::optional<std::int32_t>(sound));
         EXPECT_EQ(game->cloth.random.State(), expected.State());
     }

@@ -1258,7 +1258,10 @@ TEST(GameUiTest, EscapeReachesTheOldWindowsOnlyWithTheFriendsWindowOpen)
     for (const bool friendsOpen : {false, true})
     {
         SCOPED_TRACE(friendsOpen);
-        SteppingUi tested;
+        // En el heap: el WorldState ocupa unos 867 KB y, con la ventana de amigos del hito 10, el paso no entra en el
+        // stack de 1 MB de Windows.
+        const auto owned = std::make_unique<SteppingUi>();
+        SteppingUi& tested = *owned;
         auto& runtime = tested.world.Runtime();
         if (friendsOpen)
             OpenTheFriendsWindowIn(tested.world);

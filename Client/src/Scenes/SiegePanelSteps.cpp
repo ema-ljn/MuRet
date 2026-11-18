@@ -76,7 +76,8 @@ bool StepBase(const GameUiContext& context)
         panel.alpha = static_cast<float>(sum);
         if (sum > static_cast<double>(1.1f))
             panel.alpha = 0.5f;
-        else if (sum < 0.5)
+        // 40f81a..40f827: FCOMP activaC0 también si el resultado esunordered; en ambos casos vuelve a1.
+        else if (!(sum >= 0.5))
             panel.alpha = 1.0f;
     }
     ConsumeLeft(runtime);

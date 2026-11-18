@@ -14,6 +14,7 @@
 #include "UI/HudPrimitives.h"
 #include "UI/PanelRegistry.h"
 #include "UI/SiegePanelState.h"
+#include "World/OriginalFtol.h"
 
 #include <algorithm>
 #include <array>
@@ -69,7 +70,7 @@ bool InMap(float x, float y, float left, float top)
 }
 
 // 0x40f850: los accesos de cada actor ocurren aunque su punto termine fuera del rectángulo.
-void DrawBase(GameHudContext& context, UI::SiegePanelState& panel, std::uint8_t kind)
+Core::Expected<void, std::string> DrawBase(GameHudContext& context, UI::SiegePanelState& panel, std::uint8_t kind)
 {
     WorldRuntime& runtime = context.world.Runtime();
     ActorState& hero = context.world.Actors()[runtime.hero];
@@ -122,8 +123,14 @@ void DrawBase(GameHudContext& context, UI::SiegePanelState& panel, std::uint8_t 
     if (panel.page == 1)
         Quad(sprites, 0x6a7, static_cast<float>(panel.x + 127), static_cast<float>(panel.y + 13), 24.0f, 22.0f, 0.0f,
              0.0f, 0.75f, 0.6875f);
-    UI::DrawNumber(sprites, static_cast<float>(panel.x + 25), static_cast<float>(panel.y + 32),
-                   static_cast<std::int32_t>(static_cast<double>(panel.alpha) * 100.0), 8.0f, 8.0f);
+    // 410261..410274: _ftol devuelve el dword bajo de un int64, también el0 deNaN (Q-C186).
+    constexpr double PercentScale = 100.0;
+    const auto percentage = World::OriginalFtolLow(static_cast<double>(panel.alpha) * PercentScale);
+    if (!percentage)
+        return Core::Unexpected(std::string("0x410274: el porcentaje del minimapa excede el contrato medido de _ftol"));
+    UI::DrawNumber(sprites, static_cast<float>(panel.x + 25), static_cast<float>(panel.y + 32), *percentage, 8.0f,
+                   8.0f);
+    return {};
 }
 
 Core::Expected<void, std::string> DrawStatus(GameHudContext& context, UI::SiegePanelState& panel,
@@ -264,7 +271,8 @@ Core::Expected<void, std::string> DrawCommands(GameHudContext& context, UI::Sieg
                     const float y = menuY + command * 18.0f;
                     const bool hover =
                         Inside(static_cast<float>(mouse.x), static_cast<float>(mouse.y), menuX, y, 30.0f, 18.0f);
-                    Quad(sprites, hover ? 0x6a5 : 0x6a4, menuX, y, 30.0f, 25.0f, 0.0f, 0.0f, 0.9375f, 0.5625f);
+                    // 411c20/411cf3/411dc6: los tres fondos miden30x18, igual que las filas del paso410773.
+                    Quad(sprites, hover ? 0x6a5 : 0x6a4, menuX, y, 30.0f, 18.0f, 0.0f, 0.0f, 0.9375f, 0.5625f);
                     Quad(sprites, static_cast<std::uint16_t>(FirstCommandSlot + command), menuX + Offsets[command],
                          y + (command == 2 ? 3.0f : 2.0f), Widths[command], Heights[command], 0.0f, 0.0f,
                          Widths[command] / (command == 1 ? 32.0f : 16.0f), Heights[command] / 16.0f);
@@ -292,7 +300,8 @@ Core::Expected<void, std::string> DrawTheBattlePanel(GameHudContext& context)
     if (panel.page <= 0)
         return Core::Unexpected(std::string("0x40fba8: la escala del minimapa dividiría por cero o sería negativa"));
     const std::uint8_t kind = *runtime.siegePanelKind;
-    DrawBase(context, panel, kind);
+    if (auto base = DrawBase(context, panel, kind); !base.HasValue())
+        return base;
     if (kind == 1)
         return DrawStatus(context, panel);
     else if (kind == 2)

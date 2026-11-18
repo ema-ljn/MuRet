@@ -18,6 +18,7 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/PanelRegistry.h"
+#include "UI/HudPrimitives.h"
 #include "UI/SiegePanelState.h"
 
 #include "support/Bytes.h"
@@ -34,6 +35,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <limits>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -571,5 +573,153 @@ TEST_F(SiegeUiTest, AFirstUnrecognizedStatusDoesNotInventUninitializedStackMetri
     EXPECT_NE(drawn.Error().find("stack"), std::string::npos);
     // El número y el parpadeo preceden al primer uso de las métricas no inicializadas.
     EXPECT_EQ(runtime.siegePanel.status[0][4], 1);
+}
+
+// 411c20/411cf3/411dc6: altura18; los tres fondos coinciden con las filas de entrada de410773.
+TEST_F(SiegeUiTest, EveryCommanderMenuBackgroundUsesItsNativeEighteenPixelHeight)
+{
+    auto& runtime = world->Runtime();
+    runtime.siegePanelKind = 2;
+    for (const std::uint8_t row : {std::uint8_t{1}, std::uint8_t{6}, std::uint8_t{7}})
+    {
+        SCOPED_TRACE(row);
+        runtime.siegePanel.selected = row;
+        const auto expected = After(random, 10);
+        auto draw = DrawContext();
+        ASSERT_TRUE(Siege::DrawTheBattlePanel(draw).HasValue());
+        std::size_t backgrounds = 0;
+        for (const auto& command : sprites.Commands())
+        {
+            if (!command.texture || (command.texture->value != 0x6a4 && command.texture->value != 0x6a5))
+                continue;
+            for (std::size_t first = command.firstVertex; first < command.firstVertex + command.vertexCount; first += 6)
+            {
+                const auto& origin = sprites.Vertices()[first];
+                const auto& corner = sprites.Vertices()[first + 2];
+                EXPECT_EQ(corner.x - origin.x, 30.0f);
+                EXPECT_EQ(origin.y - corner.y, 18.0f);
+                EXPECT_EQ(corner.u, 0.9375f);
+                EXPECT_EQ(corner.v, 0.5625f);
+                ++backgrounds;
+            }
+        }
+        EXPECT_EQ(backgrounds, 3u);
+        EXPECT_EQ(random.State(), expected.State());
+    }
+}
+
+// 40f7ff..40f827: unordered pasa la primera prueba, y el C0 de la segunda pone alpha en1.
+TEST_F(SiegeUiTest, TheOpacityClickRestoresOneOnTheNativeUnorderedComparison)
+{
+    auto& runtime = world->Runtime();
+    for (const std::uint8_t kind : {std::uint8_t{0}, std::uint8_t{1}, std::uint8_t{2}})
+    {
+        SCOPED_TRACE(kind);
+        runtime.siegePanelKind = kind;
+        runtime.siegePanel.alpha = std::numeric_limits<float>::quiet_NaN();
+        const auto before = random.State();
+        Click();
+        ASSERT_TRUE(Siege::StepTheBattlePanel(StepContext(494, 287)).HasValue());
+        EXPECT_EQ(runtime.siegePanel.alpha, 1.0f);
+        EXPECT_EQ(runtime.siegePanel.page, 1);
+        EXPECT_FALSE(runtime.movement.pendingClick);
+        EXPECT_FALSE(runtime.movement.leftHeld);
+        EXPECT_TRUE(requests.packets.empty());
+        EXPECT_EQ(random.State(), before);
+    }
+}
+
+// 410261..410274: FISTP m64 deNaN deja su dword bajo en0, como OriginalFtolLow (Q-C186).
+TEST_F(SiegeUiTest, TheOpacityPercentageUsesTheNativeFtolLowDwordForNan)
+{
+    auto& runtime = world->Runtime();
+    runtime.siegePanelKind = 0;
+    runtime.siegePanel.alpha = std::numeric_limits<float>::quiet_NaN();
+    const auto expected = After(random, 10);
+    auto draw = DrawContext();
+    ASSERT_TRUE(Siege::DrawTheBattlePanel(draw).HasValue());
+    std::size_t digitVertices = 0;
+    for (const auto& command : sprites.Commands())
+        if (command.texture == Client::UI::DigitsSlot)
+        {
+            digitVertices += command.vertexCount;
+            EXPECT_EQ(sprites.Vertices()[command.firstVertex].u, 0.0f);
+        }
+    EXPECT_EQ(digitVertices, 6u);
+    EXPECT_EQ(random.State(), expected.State());
+}
+
+TEST_F(SiegeUiTest, AnUnresolvedOpacityFtolKeepsTheBasePrefixAndReportsItsAddress)
+{
+    auto& runtime = world->Runtime();
+    runtime.siegePanelKind = 0;
+    runtime.siegePanel.alpha = std::numeric_limits<float>::infinity();
+    const auto expected = After(random, 10);
+    auto draw = DrawContext();
+    const auto result = Siege::DrawTheBattlePanel(draw);
+    ASSERT_FALSE(result.HasValue());
+    EXPECT_NE(result.Error().find("0x410274"), std::string::npos) << result.Error();
+    bool map = false;
+    bool frame = false;
+    bool zoom = false;
+    for (const auto& command : sprites.Commands())
+    {
+        if (!command.texture)
+            continue;
+        map |= command.texture->value == 0x69d;
+        frame |= command.texture->value == 0x69f;
+        zoom |= command.texture->value == 0x6a7;
+        EXPECT_NE(command.texture, Client::UI::DigitsSlot);
+    }
+    EXPECT_TRUE(map);
+    EXPECT_TRUE(frame);
+    EXPECT_TRUE(zoom);
+    EXPECT_EQ(random.State(), expected.State());
+}
+
+// El preview inicializa ancho/alto, pero no el atlas que el loop lee de[ebp-20] (411aa0).
+TEST_F(SiegeUiTest, TheCommanderPreviewDoesNotInventTheFirstUnknownStatusAtlas)
+{
+    auto& runtime = world->Runtime();
+    runtime.siegePanelKind = 2;
+    auto& hero = world->Actors()[runtime.hero];
+    hero.cellX = 64;
+    hero.cellY = 192;
+    auto& panel = runtime.siegePanel;
+    panel.selected = 1;
+    panel.command = 0;
+    panel.status[0] = {1, 64, 192, 4, 2};
+    auto draw = DrawContext();
+    draw.mouse = {550, 350};
+    const auto result = Siege::DrawTheBattlePanel(draw);
+    ASSERT_FALSE(result.HasValue());
+    EXPECT_NE(result.Error().find("stack"), std::string::npos) << result.Error();
+    EXPECT_EQ(panel.status[0][4], 1);
+    EXPECT_TRUE(std::ranges::any_of(sprites.Commands(), [](const auto& command)
+                                    { return command.texture && command.texture->value == 0x6a0; }));
+    EXPECT_FALSE(std::ranges::any_of(sprites.Commands(), [](const auto& command)
+                                     { return command.texture && command.texture->value == 0x6a4; }));
+}
+
+TEST_F(SiegeUiTest, AStatusOutsideTheCropDoesNotSeedMetricsOrConsumeItsFlashBeforeAnUnknownStatus)
+{
+    auto& runtime = world->Runtime();
+    auto& hero = world->Actors()[runtime.hero];
+    hero.cellX = 64;
+    hero.cellY = 192;
+    for (const std::uint8_t kind : {std::uint8_t{1}, std::uint8_t{2}})
+    {
+        SCOPED_TRACE(kind);
+        runtime.siegePanelKind = kind;
+        runtime.siegePanel.status = {};
+        runtime.siegePanel.status[0] = {1, 0, 0, 0, 2};
+        runtime.siegePanel.status[1] = {2, 64, 192, 4, 2};
+        auto draw = DrawContext();
+        const auto result = Siege::DrawTheBattlePanel(draw);
+        ASSERT_FALSE(result.HasValue());
+        EXPECT_NE(result.Error().find("stack"), std::string::npos) << result.Error();
+        EXPECT_EQ(runtime.siegePanel.status[0][4], 2);
+        EXPECT_EQ(runtime.siegePanel.status[1][4], 1);
+    }
 }
 } // namespace

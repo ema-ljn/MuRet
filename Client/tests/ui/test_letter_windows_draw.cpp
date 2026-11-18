@@ -21,6 +21,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <deque>
@@ -400,7 +401,7 @@ TEST_F(LetterWindowsDrawTest, TheChatDrawsItsLinesItsBottomItsButtonAndItsEdit)
         {std::nullopt, BlendMode::Alpha, 2},   // la raya y el negro de abajo
         {ButtonSlot, BlendMode::Alpha, 1},
         {TextMarkerSlot, BlendMode::Alpha, 1}, // "t993"
-        {std::nullopt, BlendMode::Opaque, 2},  // el bitmap del EDIT y el cursor, sin mezcla
+        {std::nullopt, BlendMode::Opaque, 1},  // el bitmap del EDIT, sin mezcla; el cursor vacío queda recortado
         {TextureSlot{Client::UI::WindowTitleSlot}, BlendMode::Opaque, 1},
     });
     // 0x45fac0: las flechas en (x + w − 12, y − h − 1) y (x + w − 12, y − 12).
@@ -942,15 +943,17 @@ TEST_F(LetterWindowsDrawTest, TheWriteWindowEditsShowTheirTextAndTheFocusedCaret
 
     static_cast<void>(Draw());
 
+    // El texto de cada EDIT, a 3 del borde (el margen del EDIT de XP, 06 § El EDIT).
     ASSERT_GE(m_text.texts.size(), 5u);
     EXPECT_EQ(m_text.texts[2].text, "Tordo");
-    EXPECT_EQ(m_text.texts[2].x, letter.to.base.x);
+    EXPECT_EQ(m_text.texts[2].x, letter.to.base.x + 3);
     EXPECT_EQ(m_text.texts[2].y, letter.to.base.y);
     EXPECT_EQ(m_text.texts[3].text, "Asado");
+    EXPECT_EQ(m_text.texts[3].x, letter.subject.base.x + 3);
     EXPECT_EQ(m_text.texts[3].y, letter.subject.base.y);
     EXPECT_EQ(m_text.texts[4].text, "Hay asado");
     EXPECT_EQ(m_text.texts[4].y, letter.text.base.y);
-    // El cursor va después del texto del asunto, en la columna de su ancho + 1, y se junta con el fondo del cuerpo.
+    // El bitmap de cada uno y su texto. Con el cursor al final del asunto, el recorte del bitmap lo deja afuera.
     ExpectCommands({
         {std::nullopt, BlendMode::Alpha, 6},
         {TextMarkerSlot, BlendMode::Alpha, 2},
@@ -958,14 +961,28 @@ TEST_F(LetterWindowsDrawTest, TheWriteWindowEditsShowTheirTextAndTheFocusedCaret
         {TextMarkerSlot, BlendMode::Alpha, 1},
         {std::nullopt, BlendMode::Alpha, 1},
         {TextMarkerSlot, BlendMode::Alpha, 1},
-        {std::nullopt, BlendMode::Alpha, 2},
+        {std::nullopt, BlendMode::Alpha, 1},
         {TextMarkerSlot, BlendMode::Alpha, 1},
     });
-    const Box caret = QuadOf(6, 0);
-    EXPECT_FLOAT_EQ(caret.left, static_cast<float>(letter.subject.base.x + 31));
-    EXPECT_FLOAT_EQ(caret.right - caret.left, 1.0f);
+    ExpectBox(QuadOf(4), static_cast<float>(letter.subject.base.x), static_cast<float>(letter.subject.base.y),
+              static_cast<float>(letter.subject.base.x + 3 + 30), static_cast<float>(letter.subject.base.y + 14));
+    EXPECT_EQ(std::ranges::count_if(m_text.texts, [](const auto& text) { return text.columns == 1; }), 0);
     EXPECT_EQ(letter.subject.draws, 1);
     EXPECT_EQ(letter.to.draws, 1);
+
+    // Con el cursor en el medio, la columna después del ancho de "As" invierte el texto (el fondo del EDIT sobre
+    // 0xffc8c8c8), como en la caja de agregar un amigo.
+    letter.subject.text.SetCursor(2);
+    letter.subject.draws = 0;
+    m_text.texts.clear();
+    static_cast<void>(Draw());
+
+    const auto caret =
+        std::ranges::find_if(m_text.texts, [](const auto& text) { return text.text == "Asado" && text.columns == 1; });
+    ASSERT_NE(caret, m_text.texts.end());
+    EXPECT_EQ(caret->x, letter.subject.base.x + 3 + 13);
+    EXPECT_EQ(caret->firstColumn, 13);
+    EXPECT_EQ(caret->style.colors, (TextColors{.text = letter.subject.backgroundColor, .background = 0xffc8c8c8u}));
 }
 
 // Arrastrada y cambiando de tamaño, 0x498480 vuelve a ubicar los botones, los EDIT y el retrato (el 8), pero no los

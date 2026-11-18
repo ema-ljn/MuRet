@@ -251,12 +251,12 @@ void DrawOldEditTextSpan(const OldWindowDrawContext& context, std::string_view t
     DrawOldEditTextColumns(context, text, layout, layout.caretTextColumn + 1, columns - beforeCaret - 1, colors);
 }
 
-// Lo elegido de `text`, de `selectionBegin` a `selectionEnd` (en bytes de `text`).
+// Lo elegido de `text`, de `firstByte` a `lastByte` (en bytes de `text`).
 void DrawOldEditSelection(const OldWindowDrawContext& context, const OldEdit& edit, std::string_view text,
-                          const OldEditTextLayout& layout, std::size_t selectionBegin, std::size_t selectionEnd)
+                          const OldEditTextLayout& layout, std::size_t firstByte, std::size_t lastByte)
 {
-    const std::int32_t start = context.text.Measure(context.dcFont, text.substr(0, selectionBegin)).width;
-    const std::int32_t end = context.text.Measure(context.dcFont, text.substr(0, selectionEnd)).width;
+    const std::int32_t start = context.text.Measure(context.dcFont, text.substr(0, firstByte)).width;
+    const std::int32_t end = context.text.Measure(context.dcFont, text.substr(0, lastByte)).width;
     const std::int32_t selectionBegin = std::clamp(start, 0, layout.visibleColumns);
     const std::int32_t selectionEnd = std::clamp(end, selectionBegin, layout.visibleColumns);
     DrawOldEditTextSpan(context, text, layout, 0, selectionBegin,
@@ -917,8 +917,7 @@ void DrawTheOldEdit(const OldWindowDrawContext& context, OldEdit& edit, bool foc
         const std::int32_t caretColumn = EditTextMargin + cursorWidth + 1;
         const OldEditTextLayout textLayout{left, top, visibleTextWidth, caretColumn - EditTextMargin,
                                            caretOn && caretColumn < width};
-        DrawOldEditText(context, edit, text, textLayout, focused, edit.text.SelectionBegin(),
-                        edit.text.SelectionEnd());
+        DrawOldEditText(context, edit, text, textLayout, focused, edit.text.SelectionBegin(), edit.text.SelectionEnd());
         // 0x468320 cambia el color de los píxeles de tinta al fondo y el de los demás a c8.
         DrawOldEditCaret(context, edit, text, textLayout);
     }
@@ -941,10 +940,10 @@ void DrawTheOldEdit(const OldWindowDrawContext& context, OldEdit& edit, bool foc
             const std::int32_t cursorWidth =
                 context.text.Measure(context.dcFont, line.substr(0, relative(edit.text.Cursor()))).width;
             const std::int32_t caretColumn = EditTextMargin + cursorWidth + 1;
-            const OldEditTextLayout lineLayout{
-                left, top + Truncate(static_cast<double>(row) * lineHeight),
-                std::min(lineWidth, std::max(width - EditTextMargin, 0)), caretColumn - EditTextMargin,
-                caretOn && at == caretLine && caretColumn < width};
+            const OldEditTextLayout lineLayout{left, top + Truncate(static_cast<double>(row) * lineHeight),
+                                               std::min(lineWidth, std::max(width - EditTextMargin, 0)),
+                                               caretColumn - EditTextMargin,
+                                               caretOn && at == caretLine && caretColumn < width};
             DrawOldEditText(context, edit, line, lineLayout, focused, relative(edit.text.SelectionBegin()),
                             relative(edit.text.SelectionEnd()));
             DrawOldEditCaret(context, edit, line, lineLayout);

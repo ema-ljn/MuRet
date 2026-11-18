@@ -205,8 +205,8 @@ protected:
                                 .wheel = m_wheel,
                                 .rightClick = m_rightClick,
                                 .doubleClick = m_doubleClick,
-                                .mouseUpdateTime = m_mouseUpdateTime,
-                                .mouseUpdateTimeMax = m_mouseUpdateTimeMax};
+                                .mouseUpdateTime = &m_mouseUpdateTime,
+                                .mouseUpdateTimeMax = &m_mouseUpdateTimeMax};
     }
 
     OldWindowStepView StepView()
@@ -221,7 +221,14 @@ protected:
                                  .measure = &m_measure,
                                  .send = [this](const FriendSend& send) { m_sent.push_back(send); },
                                  .whisperTo = {},
-                                 .openFriends = {}};
+                                 .openFriends = {},
+                                 .portrait = [this](Client::UI::OldPortraitPart& /*part*/,
+                                                    Client::UI::PortraitCallKind call,
+                                                    std::int32_t /*delta*/) -> Client::Core::Expected<void, std::string>
+                                 {
+                                     m_portraitCalls.push_back(call);
+                                     return {};
+                                 }};
     }
 
     // 0x491080 la primera vez, con los amigos en el modelo y copiados a la pestaña (0x49ddd0).
@@ -255,15 +262,21 @@ protected:
     {
         const OldWindowGlobals globals = Globals();
         const OldWindowStepView stepView = StepView();
-        const OldWindowDrawView view{.mouseX = x,
-                                     .mouseY = y,
-                                     .leftClick = m_leftClick,
-                                     .friendsOpen = true,
-                                     .texts = &m_texts,
-                                     .focusedList = m_focusedList,
-                                     .focusedEdit = m_focusedEdit,
-                                     .globals = m_withStepContext ? &globals : nullptr,
-                                     .stepView = m_withStepContext ? &stepView : nullptr};
+        const OldWindowDrawView view{
+            .mouseX = x,
+            .mouseY = y,
+            .leftClick = m_leftClick,
+            .friendsOpen = true,
+            .texts = &m_texts,
+            .focusedList = m_focusedList,
+            .focusedEdit = m_focusedEdit,
+            .portrait = [this](Client::UI::OldPortraitPart& /*part*/) -> Client::Core::Expected<void, std::string>
+            {
+                ++m_portraitDraws;
+                return {};
+            },
+            .globals = m_withStepContext ? &globals : nullptr,
+            .stepView = m_withStepContext ? &stepView : nullptr};
         return Client::UI::DrawTheOldWindows(m_manager, Context(), view);
     }
 
@@ -308,6 +321,8 @@ protected:
     }
 
     bool m_withStepContext = false;
+    std::vector<Client::UI::PortraitCallKind> m_portraitCalls;
+    int m_portraitDraws = 0;
     bool m_enterHeld = false;
     std::int32_t m_enterLatch = 0;
     std::vector<FriendSend> m_sent;
@@ -580,7 +595,8 @@ TEST_F(FriendWindowsDrawTest, TheHeaderUnderTheMouseIsWhite)
                    });
 }
 
-// 0x4a2620 llama 0x45aa50: el paso con 1 atiende la cola funcional antes de recolocar; no difiere el comando.
+// 0x4a2620 llama 0x45aa50: el paso con 1 atiende la cola funcional antes de recolocar; no difiere el comando. El 4
+// (0x49dbd4) abre la de escribir una carta en el mismo dibujo.
 TEST_F(FriendWindowsDrawTest, MovingTheWindowProcessesThePendingTabCommandDuringDrawing)
 {
     m_withStepContext = true;
@@ -590,8 +606,12 @@ TEST_F(FriendWindowsDrawTest, MovingTheWindowProcessesThePendingTabCommandDuring
 
     const auto drawn = Draw();
 
-    ASSERT_FALSE(drawn.HasValue());
-    EXPECT_NE(drawn.Error().find("0x49d0b0(4)"), std::string::npos);
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    EXPECT_TRUE(Friends().tabs[0].base.queue.empty());
+    // 0x497f50: el retrato de la de escribir, con el gancho del juego también en el dibujo.
+    EXPECT_FALSE(m_portraitCalls.empty());
+    EXPECT_TRUE(std::ranges::any_of(m_manager.windows, [](const auto& entry)
+                                    { return entry.second.kind == Client::UI::OldWindowKind::LetterWriteWindow; }));
 }
 
 // 0x49d422 y 0x49d118: Name y Answer conservan orden, envían durante la pasada real y no vuelven al paso siguiente.
@@ -793,9 +813,10 @@ TEST_F(FriendWindowsDrawTest, TheLetterBoxesAreInPixels)
     Friends().friends.currentTab = Client::UI::LettersTabNumber;
     m_sprites.Begin(PixelSize{800, 600});
 
-    Client::UI::DrawTheFriendsWindow(
-        m_manager, Friends(), Context(),
-        OldWindowDrawView{.mouseX = 500, .mouseY = 310, .friendsOpen = true, .texts = &m_texts});
+    ASSERT_TRUE(Client::UI::DrawTheFriendsWindow(
+                    m_manager, Friends(), Context(),
+                    OldWindowDrawView{.mouseX = 500, .mouseY = 310, .friendsOpen = true, .texts = &m_texts})
+                    .HasValue());
 
     ASSERT_GE(m_text.texts.size(), 6u);
     EXPECT_EQ(m_text.texts[0].columns, 43);

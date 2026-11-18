@@ -166,6 +166,15 @@ void LatchTheLeftRelease(GameMovementState& state, bool pressed, bool released, 
 // entrada del chat) y el último sonido.
 [[nodiscard]] UI::OldWindowGlobals OldWindowGlobalsOf(WorldRuntime& runtime);
 
+// Lo que el paso de las ventanas viejas lee del juego, además del mouse, las teclas, los textos y el cable: las flechas
+// (GetAsyncKeyState, 0x47b0f0), el susurro (0x4694c0), las malas palabras (0x622b40 con 0), el nombre del héroe, la
+// carta guardada (0x4dcb70 desde 0x4a11b0), el personaje del retrato (Scenes/LetterPortrait) y 0x78abaac. Lo usan el
+// paso de la UI (0x490490) y el que corre dentro del dibujo (0x45aa50 desde los dibujos de las ventanas viejas,
+// UI::OldWindowDrawView::stepView), que tienen que ver lo mismo. Con `effects` en false (el dibujo intermedio de
+// MuRet, sobre la copia de las ventanas), el susurro, la carta guardada y el retrato no hacen nada. Los ganchos
+// guardan lo de `context` que usan, no `context`.
+void LendTheGameHooks(UI::OldWindowStepView& view, const GameUiContext& context, bool effects);
+
 // 0x637c4a..0x637c5c → 0x623e70: Esc y el diálogo abierto, en cada paso de la escena 5 antes de su lógica.
 [[nodiscard]] Core::Expected<void, std::string> StepTheGameDialogs(const GameUiContext& context);
 

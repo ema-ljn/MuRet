@@ -199,6 +199,10 @@ public:
     void SendOptionData(const Client::Protocol::OptionData::OptionBody& /*body*/) override {}
     void RequestLogout(std::uint8_t /*kind*/) override {}
     void RequestPartyList() override {}
+    void SendGuildPacket(Outgoing /*packet*/) override {}
+    void SendGamePacket(Outgoing /*outgoing*/) override {}
+    void SendWindowClose() override {}
+    void SendSetQuest(std::uint8_t /*quest*/, std::uint8_t /*state*/) override {}
     void SendFriendPacket(Outgoing packet) override
     {
         sent.push_back(BytesOf(packet));
@@ -378,6 +382,7 @@ protected:
     std::vector<PortraitCallKind> m_portraitCalls;
     std::vector<std::vector<std::byte>> m_replayed;
     FakeRooms m_rooms;
+    std::int32_t m_pressedButton = 0;
 };
 
 // El botón 3 con un amigo en línea: C1 0D CA con su nombre, y queda pedido (+0x158): otro 3 no vuelve a mandar. El CA
@@ -659,12 +664,12 @@ TEST_F(GameLettersTest, ARoomThatDoesNotConnectIsForgottenAndTheResetLeavesTheRo
     ASSERT_TRUE(Step().HasValue());
     EXPECT_TRUE(Manager().chatRooms.orders.empty());
 
-    Client::UI::ResetTheOldWindows(Manager());
+    Client::UI::ResetTheOldWindows(Manager(), m_pressedButton);
     Client::UI::ClearTheFriends(Manager().friendModel);
     m_rooms.calls.clear();
     chatId = JoinARoomWithTordo();
     ASSERT_NE(chatId, 0);
-    Client::UI::ResetTheOldWindows(Manager());
+    Client::UI::ResetTheOldWindows(Manager(), m_pressedButton);
     EXPECT_TRUE(Manager().windows.empty());
     EXPECT_EQ(Client::UI::FindTheChatRoom(Manager().chatRooms, 0x0304), nullptr);
     Client::Scenes::FlushTheChatRoomOrders(Manager().chatRooms, &m_rooms);
@@ -900,7 +905,7 @@ TEST_F(GameLettersTest, TheReadWindowDeletesRepliesAndGoesOn)
     ASSERT_NE(question, nullptr);
     EXPECT_EQ(question->box.lines[0], "Borrar la carta?");
     EXPECT_EQ(question->box.owner, readId);
-    ASSERT_TRUE(Client::UI::DestroyTheOldWindow(Manager(), question->base.id).HasValue());
+    ASSERT_TRUE(Client::UI::DestroyTheOldWindow(Manager(), question->base.id, m_pressedButton).HasValue());
     Manager().modal = 0;
 
     // El sí: el C8 y el 4, que el administrador atiende en el mismo paso (la ventana suelta su carta, 0x4916b0).

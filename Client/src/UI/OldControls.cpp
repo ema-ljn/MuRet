@@ -480,6 +480,9 @@ std::optional<char> FilteredByTheEdit(std::int32_t filter, char typed)
 
 void TypeInTheEdit(OldEdit& edit, std::string_view typed)
 {
+    // 0x467b9d: cada WM_CHAR pone +0x80 en 0 antes del filtro. ES_AUTOVSCROLL: el de varios renglones sigue al cursor.
+    edit.draws = 0;
+    edit.followCaret = true;
     if ((edit.filter & (DigitsOnlyEdit | UppercaseLettersAndDigitsEdit)) == 0)
     {
         edit.text.Type(typed);

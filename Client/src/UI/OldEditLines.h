@@ -57,9 +57,8 @@ void ScrollTheEdit(OldEdit& edit, std::int32_t lineCount, std::int32_t code);
 // ES_AUTOVSCROLL: después de un cambio del texto, el renglón del cursor a la vista (sin `caretLine`, el último).
 void FollowTheEditCaret(OldEdit& edit, std::int32_t lineCount, std::int32_t caretLine = -1);
 
-// WM_CHAR con un carácter, con el retroceso o con Enter (0x467b10): +0x80 en 0 (0x467b9d) y, al EDIT de Windows. Enter
-// solo llega con +0xc4 en 1 (0x467c8f), y es un "\r\n" si entra entero.
-void TypeInTheEdit(OldEdit& edit, std::string_view typed);
+// WM_CHAR con el retroceso o con Enter (0x467b10): +0x80 en 0 (0x467b9d) y, al EDIT de Windows. Enter solo llega con
+// +0xc4 en 1 (0x467c8f), y es un "\r\n" si entra entero. Un carácter es UI::TypeInTheEdit (UI/OldControls.h).
 void BackspaceInTheEdit(OldEdit& edit);
 void BreakTheEditLine(OldEdit& edit);
 } // namespace Client::UI

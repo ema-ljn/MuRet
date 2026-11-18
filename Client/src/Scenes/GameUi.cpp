@@ -396,59 +396,21 @@ public:
 
     [[nodiscard]] UI::OldWindowStepView View() const
     {
-        WorldRuntime& runtime = m_context.world.Runtime();
-        UI::GameUiState& ui = runtime.ui;
-        UI::ChatInputState& chat = runtime.chat.input;
+        UI::GameUiState& ui = m_context.world.Runtime().ui;
         const Input::InputState& input = m_context.input;
-        UI::OldWindowStepView view{
-            .mouseX = m_context.mouseX,
-            .mouseY = m_context.mouseY,
-            .keyEdge = [&ui, &input](std::uint8_t virtualKey) { return OldWindowKeyEdge(ui, input, virtualKey); },
-            .keyDown =
-                [&input](std::uint8_t virtualKey)
-            {
-                for (const GameKey& key : OldWindowDownKeys)
-                {
-                    if (key.virtualKey == virtualKey)
-                        return input.IsDown(key.key);
-                }
-                return false;
-            },
-            .chatOpen = ui.chatOpen,
-            .texts = &m_texts,
-            .measure = m_measure ? &*m_measure : nullptr,
-            .send = {},
-            // 0x4694c0(0, 0, 1, nombre).
-            .whisperTo = [&chat](std::string_view name) { UI::SetTheChatFields(chat, std::nullopt, name); },
-            .openFriends = [this]() { return OpenTheFriendsWindow(); }};
+        UI::OldWindowStepView view{.mouseX = m_context.mouseX,
+                                   .mouseY = m_context.mouseY,
+                                   .keyEdge = [&ui, &input](std::uint8_t virtualKey)
+                                   { return OldWindowKeyEdge(ui, input, virtualKey); },
+                                   .chatOpen = ui.chatOpen,
+                                   .texts = &m_texts,
+                                   .measure = m_measure ? &*m_measure : nullptr,
+                                   .send = {},
+                                   .openFriends = [this]() { return OpenTheFriendsWindow(); }};
         if (IGameUiRequests* requests = m_context.requests; requests != nullptr)
             view.send = [requests, &random = m_context.random](const UI::FriendSend& send)
             { SendAFriendPacket(*requests, random, send); };
-        // CL9 hito 10: el filtro de las malas palabras de las cartas y del chat con un amigo (0x622b40 con 0).
-        if (const GameChatContext* chatContext = m_context.chat; chatContext != nullptr)
-            view.badWord = [filter = chatContext->filter](std::string_view text)
-            { return UI::ContainsAFilteredWord(text, filter, false); };
-        view.heroName = std::string(HeroNameOf(m_context.world.Actors()[runtime.hero]));
-        // 0x4a11b0 con el 10 y 2 sobre una carta guardada: 0x4dcb70 con la copia de 0x4a03c0.
-        view.replayLetter = [this](const std::vector<std::byte>& copy) -> Core::Expected<void, std::string>
-        {
-            auto letter = Protocol::Letters::ReadLetterCopy(copy);
-            if (!letter.HasValue())
-                return Core::Unexpected(std::string("0x4a11b0(2): la carta guardada no se lee"));
-            const ChatReceiveContext receive{.world = m_context.world,
-                                             .random = m_context.random,
-                                             .measure = m_context.measure,
-                                             .screen = m_context.screen,
-                                             .scene = std::nullopt,
-                                             .texts = m_context.texts,
-                                             .chosenSlot = m_context.chosenSlot,
-                                             .worldEntry = m_context.worldEntry};
-            return ApplyLetterRead(letter.Value(), receive);
-        };
-        // CL9 hito 10: el personaje del retrato de las cartas (Scenes/LetterPortrait) y 0x78abaac, que lee su paso.
-        if (m_context.worldEntry != nullptr)
-            view.portrait = LetterPortraitHook(*m_context.worldEntry);
-        view.field78abaac = ui.field78abaac;
+        LendTheGameHooks(view, m_context, true);
         return view;
     }
 
@@ -2172,6 +2134,52 @@ void LatchTheLeftRelease(GameMovementState& state, bool pressed, bool released, 
     state.releasedClick = true;
     state.releaseX = mouseX;
     state.releaseY = mouseY;
+}
+
+void LendTheGameHooks(UI::OldWindowStepView& view, const GameUiContext& context, bool effects)
+{
+    WorldState& world = context.world;
+    WorldRuntime& runtime = world.Runtime();
+    view.keyDown = ArrowKeysDown(context.input);
+    // CL9 hito 10: el filtro de las malas palabras de las cartas y del chat con un amigo (0x622b40 con 0).
+    if (const GameChatContext* chatContext = context.chat; chatContext != nullptr)
+        view.badWord = [filter = chatContext->filter](std::string_view text)
+        { return UI::ContainsAFilteredWord(text, filter, false); };
+    view.heroName = std::string(HeroNameOf(world.Actors()[runtime.hero]));
+    view.field78abaac = runtime.ui.field78abaac;
+    if (!effects)
+    {
+        view.whisperTo = [](std::string_view /*name*/) {};
+        view.replayLetter = [](const std::vector<std::byte>& /*copy*/) -> Core::Expected<void, std::string>
+        { return {}; };
+        view.portrait = [](UI::OldPortraitPart& /*part*/, UI::PortraitCallKind /*call*/,
+                           std::int32_t /*delta*/) -> Core::Expected<void, std::string> { return {}; };
+        return;
+    }
+    // 0x4694c0(0, 0, 1, nombre).
+    view.whisperTo = [&chat = runtime.chat.input](std::string_view name)
+    { UI::SetTheChatFields(chat, std::nullopt, name); };
+    // 0x4a11b0 con el 10 y 2 sobre una carta guardada: 0x4dcb70 con la copia de 0x4a03c0.
+    view.replayLetter = [&world, &random = context.random, measure = context.measure, screen = context.screen,
+                         texts = context.texts, chosenSlot = context.chosenSlot, worldEntry = context.worldEntry](
+                            const std::vector<std::byte>& copy) -> Core::Expected<void, std::string>
+    {
+        auto letter = Protocol::Letters::ReadLetterCopy(copy);
+        if (!letter.HasValue())
+            return Core::Unexpected(std::string("0x4a11b0(2): la carta guardada no se lee"));
+        const ChatReceiveContext receive{.world = world,
+                                         .random = random,
+                                         .measure = measure,
+                                         .screen = screen,
+                                         .scene = std::nullopt,
+                                         .texts = texts,
+                                         .chosenSlot = chosenSlot,
+                                         .worldEntry = worldEntry};
+        return ApplyLetterRead(letter.Value(), receive);
+    };
+    // CL9 hito 10: el personaje del retrato de las cartas (Scenes/LetterPortrait), que lee su paso.
+    if (context.worldEntry != nullptr)
+        view.portrait = LetterPortraitHook(*context.worldEntry);
 }
 
 UI::OldWindowGlobals OldWindowGlobalsOf(WorldRuntime& runtime)

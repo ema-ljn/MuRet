@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/Expected.h"
 #include "UI/FriendModel.h"
 #include "UI/OldControls.h"
 #include "UI/OldWindowDraw.h"
@@ -8,6 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <deque>
+#include <string>
 
 // El dibujo de la ventana de amigos y de la caja de agregar un amigo (CL9 hito 9; 06 § HUD y ventanas, "Los amigos"):
 // su vtable + 0x50, que el marco (0x492500) llama con la fuente normal en el DC después de la sombra y antes de la

@@ -109,13 +109,12 @@ struct ActorState
     float floatD4 = 0.0f;
     float floatD8 = 0.0f;
     float floatE4 = 0.0f;
-    // +0x38a (0, 0x511c0c), +0x394 (0, 0x511ceb), +0x3e4 y +0x42d (el bit 7 del tipo alto del 13, 0x4c9ee3): los
-    // escriben las altas de los monstruos. Quién los lee, sin leer. +0x38f (0x42d7f0 lo pone en 0 con el 0x19b) es
-    // attackCount y +0x3a4 (la cola 0x5140c0 le copia el WORD de [0x57678b0], WorldRuntime::heroSlot) es attackTarget,
-    // más abajo.
+    // +0x38a (0, 0x511c0c), +0x394 (0, 0x511ceb) y +0x42d (el bit 7 del tipo alto del 13, 0x4c9ee3): los escriben las
+    // altas de los monstruos. Quién los lee, sin leer. +0x3e4 (que también escriben) es byte3e4, más abajo. +0x38f
+    // (0x42d7f0 lo pone en 0 con el 0x19b) es attackCount y +0x3a4 (la cola 0x5140c0 le copia el WORD de [0x57678b0],
+    // WorldRuntime::heroSlot) es attackTarget, más abajo.
     std::uint8_t byte38a = 0;
     std::int32_t dword394 = 0;
-    std::uint8_t byte3e4 = 0;
     std::uint8_t byte42d = 0;
     // +0x110 (0x511290 lo pone en 0, 0x511c69) y +0x100: 0x42d890 los pone en 1 y en 0x12c cuando el 286 o el 287 del
     // mapa 30 terminan la acción 5 (0x42d8fd y 0x42d904); 0x42da90 los lee y los escribe: abiertas y el tiempo que les

@@ -50,8 +50,8 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 1> DamageTextureSet
 // 0x659 (0x61d370), los botones de la tienda personal propia que dibuja 0x5f3030 (CL9 hito 7). La del duelo (CL9 hito
 // 7): DuelWindow en 0x650 (0x61d2d6), que dibuja 0x5f37f0. Y las de 0x104 a 0x120 que 0x61ae60 sube después de
 // command.jpg (0x61aec8..0x61b1f2), de los hitos 4 y 6: el fondo de las ventanas, los casilleros del equipo, la plata,
-// la grilla, la línea del comercio y los botones, entre ellos el de cerrar (0x118). La 0x106 no la sube nadie. Las de la
-// ventana de la mascota (CL9 hito 4): Level_box en 0xf5 (0x61cf8f, que también usa la ventana del personaje),
+// la grilla, la línea del comercio y los botones, entre ellos el de cerrar (0x118). La 0x106 no la sube nadie. Las de
+// la ventana de la mascota (CL9 hito 4): Level_box en 0xf5 (0x61cf8f, que también usa la ventana del personaje),
 // win_button en 0x646 (0x61d17a, con 0x63bd00; también el botón de la UI vieja) y pet1 y pet2 en 0x65d y 0x65e
 // (0x61d4b0 y 0x61d4cc), el botón de la mascota.
 inline constexpr std::array<Data::Textures::TextureSetEntry, 95> HudTextureSet{{

@@ -284,39 +284,44 @@ TEST_F(OldEditTest, AMultilineEditDrawsItsLinesItsCaretAndItsBar)
     edit.draws = 0;
 
     Draw(edit, Screen640, true);
-
     const std::span<const DrawCommand> commands = m_sprites.Commands();
-    ASSERT_EQ(commands.size(), 6u);
+    ASSERT_EQ(commands.size(), 5u);
     // El fondo (+0xa0, negro) de 238 × 39 en (60, 100).
     EXPECT_FALSE(commands[0].texture.has_value());
     ExpectQuadAt(0, 0, 60.0f, 100.0f, 298.0f, 139.0f);
+    // Los renglones, a 3 del borde (el margen del EDIT de XP), y el cursor en el mismo lote del texto.
     EXPECT_EQ(commands[1].texture, TextMarkerSlot);
-    ASSERT_EQ(m_text.texts.size(), 3u);
+    ASSERT_EQ(m_text.texts.size(), 4u);
     EXPECT_EQ(m_text.texts[0].text, "uno");
+    EXPECT_EQ(m_text.texts[0].x, 63);
     EXPECT_EQ(m_text.texts[1].y, 113);
     EXPECT_EQ(m_text.texts[2].text, "tres");
     EXPECT_EQ(m_text.texts[2].y, 126);
-    // El cursor en la columna 4 · 6 + 1 del tercer renglón.
-    EXPECT_FALSE(commands[2].texture.has_value());
-    ExpectQuadAt(2, 0, 85.0f, 126.0f, 86.0f, 139.0f);
+    // El cursor, la columna 4 · 6 + 1 del tercer renglón invertida (el fondo sobre 0xffc8c8c8), como el de un renglón.
+    EXPECT_EQ(m_text.texts[3].text, "tres");
+    EXPECT_EQ(m_text.texts[3].x, 63 + 25);
+    EXPECT_EQ(m_text.texts[3].y, 126);
+    EXPECT_EQ(m_text.texts[3].firstColumn, 25);
+    EXPECT_EQ(m_text.texts[3].columns, 1);
+    EXPECT_EQ(m_text.texts[3].style.colors.background, 0xffc8c8c8u);
     // Las flechas.
-    EXPECT_EQ(commands[3].texture, ScrollbarSlot);
-    EXPECT_EQ(commands[3].vertexCount, 12u);
-    ExpectQuadAt(3, 0, 283.0f, 96.0f, 296.0f, 109.0f);
-    EXPECT_FLOAT_EQ(VertexOf(3, 0).v, 0.09375f);
-    ExpectQuadAt(3, 1, 283.0f, 226.0f, 296.0f, 239.0f);
-    EXPECT_FLOAT_EQ(VertexOf(3, 1).v, 0.5f);
+    EXPECT_EQ(commands[2].texture, ScrollbarSlot);
+    EXPECT_EQ(commands[2].vertexCount, 12u);
+    ExpectQuadAt(2, 0, 283.0f, 96.0f, 296.0f, 109.0f);
+    EXPECT_FLOAT_EQ(VertexOf(2, 0).v, 0.09375f);
+    ExpectQuadAt(2, 1, 283.0f, 226.0f, 296.0f, 239.0f);
+    EXPECT_FLOAT_EQ(VertexOf(2, 1).v, 0.5f);
     // Los filos de la pista de y + 9 a y + h − 9, en x + w − 15 y x + w − 3.
-    EXPECT_EQ(commands[4].blend, BlendMode::Alpha);
-    ExpectQuadAt(4, 0, 283.0f, 109.0f, 284.0f, 226.0f);
-    ExpectQuadAt(4, 1, 295.0f, 109.0f, 296.0f, 226.0f);
-    EXPECT_EQ(VertexOf(4).color, *Client::UI::OldWindowPalette(2, 1.0f));
+    EXPECT_EQ(commands[3].blend, BlendMode::Alpha);
+    ExpectQuadAt(3, 0, 283.0f, 109.0f, 284.0f, 226.0f);
+    ExpectQuadAt(3, 1, 295.0f, 109.0f, 296.0f, 226.0f);
+    EXPECT_EQ(VertexOf(3).color, *Client::UI::OldWindowPalette(2, 1.0f));
     // El cursor de la barra, de 11 de ancho en x + w − 14, con sus puntas.
-    EXPECT_EQ(commands[5].blend, BlendMode::Opaque);
-    EXPECT_EQ(commands[5].vertexCount, 18u);
-    ExpectQuadAt(5, 0, 284.0f, 109.0f, 295.0f, 226.0f);
-    ExpectQuadAt(5, 1, 284.0f, 109.0f, 295.0f, 110.0f);
-    ExpectQuadAt(5, 2, 284.0f, 225.0f, 295.0f, 226.0f);
+    EXPECT_EQ(commands[4].blend, BlendMode::Opaque);
+    EXPECT_EQ(commands[4].vertexCount, 18u);
+    ExpectQuadAt(4, 0, 284.0f, 109.0f, 295.0f, 226.0f);
+    ExpectQuadAt(4, 1, 284.0f, 109.0f, 295.0f, 110.0f);
+    ExpectQuadAt(4, 2, 284.0f, 225.0f, 295.0f, 226.0f);
     EXPECT_FLOAT_EQ(edit.barWidth, 13.0f);
     EXPECT_FLOAT_EQ(edit.thumbHeight, 117.0f);
     EXPECT_EQ(edit.draws, 1);

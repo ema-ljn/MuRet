@@ -1,6 +1,7 @@
 #include "UI/FriendWindowsDraw.h"
 
 #include "App/WindowState.h"
+#include "Core/Expected.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Render/Text/TextLayout.h"

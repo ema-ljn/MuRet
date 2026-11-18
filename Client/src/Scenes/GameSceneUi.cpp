@@ -600,22 +600,48 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
                                            .focusedList = drawUi.focusedList,
                                            .wheel = drawUi.wheel,
                                            .rightClick = drawUi.rightClick,
-                                           .doubleClick = drawUi.doubleClick};
+                                           .doubleClick = drawUi.doubleClick,
+                                           .mouseUpdateTime = &drawMovement.mouseUpdateTime,
+                                           .mouseUpdateTimeMax = &drawMovement.mouseUpdateTimeMax};
     const UI::OldWindowMeasure drawMeasure{.measure = canvas.text, .dcFont = hud.hud.dcFont, .screen = canvas.screen};
     SceneUiRequests drawRequests(m_session, m_context.log, m_context.dataRoot);
-    const UI::OldWindowStepView drawStep{.mouseX = hud.mouse.x,
-                                         .mouseY = hud.mouse.y,
-                                         .keyEdge = [&drawUi, &input](std::uint8_t key)
-                                         { return OldWindowKeyEdge(drawUi, input, key); },
-                                         .chatOpen = drawUi.chatOpen,
-                                         .texts = &friendTexts,
-                                         .measure = &drawMeasure,
-                                         .send =
-                                             [this, &drawRequests](const UI::FriendSend& send)
-                                         {
-                                             if (!m_projectingFrame)
-                                                 drawRequests.SendFriendPacket(FriendPacketOf(send));
-                                         }};
+    UI::OldWindowStepView drawStep{.mouseX = hud.mouse.x,
+                                   .mouseY = hud.mouse.y,
+                                   .keyEdge = [&drawUi, &input](std::uint8_t key)
+                                   { return OldWindowKeyEdge(drawUi, input, key); },
+                                   .chatOpen = drawUi.chatOpen,
+                                   .texts = &friendTexts,
+                                   .measure = &drawMeasure,
+                                   .send =
+                                       [this, &drawRequests](const UI::FriendSend& send)
+                                   {
+                                       if (!m_projectingFrame)
+                                           drawRequests.SendFriendPacket(FriendPacketOf(send));
+                                   }};
+    // Lo demás que el paso lee del juego, como el de la UI (CL9 hito 10: el retrato, la carta guardada, el filtro):
+    // un comando que llega en el dibujo (0x45aa50) no puede encontrar menos que en el paso.
+    const GameChatContext drawChat = ChatContext();
+    std::optional<std::uint8_t> drawChosenSlot;
+    if (m_session != nullptr)
+    {
+        if (const Protocol::Character::CharacterEntry* chosen = m_session->ChosenCharacter(); chosen != nullptr)
+            drawChosenSlot = chosen->slot;
+    }
+    LendTheGameHooks(drawStep,
+                     GameUiContext{.world = *m_context.world,
+                                   .random = m_context.cloth->random,
+                                   .input = input,
+                                   .mouseX = hud.mouse.x,
+                                   .mouseY = hud.mouse.y,
+                                   .measure = m_context.textMeasure,
+                                   .screen = m_screen,
+                                   .chat = &drawChat,
+                                   .texts = m_texts,
+                                   .chosenSlot = drawChosenSlot,
+                                   .requests = &drawRequests,
+                                   .worldEntry = m_context.worldEntry},
+                     !m_projectingFrame);
+    drawStep.field78abaac = drawUi.field78abaac;
     const UI::OldWindowDrawView windowView{.mouseX = hud.mouse.x,
                                            .mouseY = hud.mouse.y,
                                            .leftClick = runtime.movement.pendingClick,

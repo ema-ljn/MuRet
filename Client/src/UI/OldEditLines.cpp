@@ -191,13 +191,6 @@ void FollowTheEditCaret(OldEdit& edit, std::int32_t lineCount, std::int32_t care
     edit.firstLine = std::clamp(edit.firstLine, 0, MostFirstLine(edit, lineCount));
 }
 
-void TypeInTheEdit(OldEdit& edit, std::string_view typed)
-{
-    edit.draws = 0;
-    edit.text.Type(typed);
-    edit.followCaret = true;
-}
-
 void BackspaceInTheEdit(OldEdit& edit)
 {
     edit.draws = 0;

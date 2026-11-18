@@ -513,26 +513,6 @@ TEST_F(OldWindowsTest, UnknownFactoryKindsReturnZeroWithoutChangingTheManager)
     }
 }
 
-// Los cuatro tipos dentro de0..10 que requieren chat/cartas H10 mantienen el corte explícito con su VA.
-TEST_F(OldWindowsTest, TheFriendChatAndLetterFactoryKindsKeepTheH10Cut)
-{
-    const std::int32_t lastId = m_manager.lastId;
-    for (const std::int32_t kind : {1, 2, 6, 7})
-    {
-        SCOPED_TRACE(kind);
-        const auto opened = Client::UI::CreateTheOldWindow(
-            m_manager, OldWindowRequest{.kind = kind, .x = -1, .y = -1, .data = "hito 10"}, Texts,
-            OldWindowMeasure{.measure = m_text, .dcFont = FontKind::Normal, .screen = Screen640});
-
-        ASSERT_FALSE(opened.HasValue());
-        EXPECT_NE(opened.Error().find("0x48ee60"), std::string::npos);
-        EXPECT_NE(opened.Error().find("hito 10"), std::string::npos);
-        EXPECT_EQ(m_manager.lastId, lastId);
-        EXPECT_TRUE(m_manager.windows.empty());
-        EXPECT_TRUE(m_manager.order.empty());
-    }
-}
-
 // 0x4904bc: Esc cierra la del final de la lista, a la vista; suena y el foco va a la que queda.
 TEST_F(OldWindowsTest, EscapeClosesTheLastWindow)
 {
@@ -898,7 +878,7 @@ TEST_F(OldWindowsTest, F5ShowsTheChatsAndChoosesOne)
     ASSERT_TRUE(Step(0, 0).HasValue());
     EXPECT_EQ(list.list.cursor, 2u);
     list.list.cursor = 0;
-    ASSERT_TRUE(Client::UI::DestroyTheOldWindow(m_manager, first).HasValue());
+    ASSERT_TRUE(Client::UI::DestroyTheOldWindow(m_manager, first, m_pressedButton).HasValue());
     EXPECT_EQ(list.list.chats.size(), 1u);
     EXPECT_EQ(list.list.cursor, 1u);
 

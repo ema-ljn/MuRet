@@ -238,7 +238,8 @@ inline constexpr std::int32_t UppercaseLettersAndDigitsEdit = 2;
 // 0x80 o más es negativo como char y no pasa ninguno de los dos filtros.
 [[nodiscard]] std::optional<char> FilteredByTheEdit(std::int32_t filter, char typed);
 
-// WM_CHAR al EDIT con el foco: cada letra de `typed` por el filtro de +0x4c y lo que pasa al texto, con su tope.
+// WM_CHAR al EDIT con el foco: +0x80 en 0 (0x467b9d) y cada letra de `typed` por el filtro de +0x4c, y lo que pasa
+// al texto, con su tope. En el de varios renglones, el cursor queda a la vista (followCaret, UI/OldEditLines.h).
 void TypeInTheEdit(OldEdit& edit, std::string_view typed);
 
 // La vtable + 0x3c del EDIT (0x467f30): EM_LIMITTEXT con SendMessageA, que pasa por la subclase 0x467b10; con una

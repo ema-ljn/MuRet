@@ -16,8 +16,8 @@ struct ItemTooltipContext;
 //   - si el ítem no es el del último pedido (WorldRuntime::petTooltipQuery: el lugar de la caja, el tipo y D+4), lo
 //     anota y pide su A9 (C1 06 A9, la mascota, 0x78abb28 y 0x78abb2c) por GameHudContext::send, sin dibujar nada;
 //     un dibujo intermedio no anota ni pide;
-//   - si es el mismo, 0x4221d0 con la mascota, el precio (con la tienda de NPC abierta, 1 rand(), corta: el formato de
-//     0x5b1130 es de la CL9.3), el nombre, la experiencia, el nivel, el daño y la velocidad del cuervo, la durabilidad,
+//   - si es el mismo, 0x4221d0 con la mascota, el precio (NPC o tienda personal, con sus consultas y el
+//     formato de 0x5b1130), el nombre, la experiencia, el nivel, el daño y la velocidad del cuervo, la durabilidad,
 //     el nivel pedido del caballo y el liderazgo pedido del cuervo (cada uno con el registro propio abierto y
 //     cerrado), las clases, las opciones (0x4225d0 y 0x5b2320 por cada una) y, en el caballo, la defensa y la skill;
 //     después, la caja (0x5af090) arriba de (x, y) con el alto que cuentan sus renglones enteros y sus medios

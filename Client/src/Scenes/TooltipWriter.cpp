@@ -15,12 +15,18 @@
 namespace Client::Scenes
 {
 TooltipWriter::TooltipWriter(TooltipLines& lines, const Data::Text::TextTable* texts)
-    : m_lines(lines), m_next(lines.next), m_texts(texts)
+    : TooltipWriter(lines, texts, lines.next, lines.halves)
 {
 }
 
 TooltipWriter::TooltipWriter(TooltipLines& lines, const Data::Text::TextTable* texts, std::int32_t& next)
-    : m_lines(lines), m_next(next), m_texts(texts)
+    : TooltipWriter(lines, texts, next, lines.halves)
+{
+}
+
+TooltipWriter::TooltipWriter(TooltipLines& lines, const Data::Text::TextTable* texts, std::int32_t& next,
+                             std::int32_t& halves)
+    : m_lines(lines), m_next(next), m_halves(halves), m_texts(texts)
 {
 }
 
@@ -102,7 +108,7 @@ void TooltipWriter::Back()
 void TooltipWriter::AddHalf()
 {
     if (!Failed())
-        ++m_lines.halves;
+        ++m_halves;
 }
 
 void TooltipWriter::NewLine()
@@ -125,7 +131,7 @@ void TooltipWriter::SetCount(std::int32_t count)
 
 std::int32_t TooltipWriter::Halves() const
 {
-    return m_lines.halves;
+    return m_halves;
 }
 
 TooltipLines& TooltipWriter::Lines()

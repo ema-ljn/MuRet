@@ -25,6 +25,9 @@ public:
     // en un registro (EBX) y no tocan 0x78abb30 ni 0x78abb34.
     TooltipWriter(TooltipLines& lines, const Data::Text::TextTable* texts, std::int32_t& next);
 
+    // Las mascotas cuentan también los medios renglones en un local (0x422990).
+    TooltipWriter(TooltipLines& lines, const Data::Text::TextTable* texts, std::int32_t& next, std::int32_t& halves);
+
     // La dirección de lo que se escribe, para el error.
     void At(std::string_view where);
     [[nodiscard]] bool Failed() const;
@@ -81,6 +84,7 @@ private:
 
     TooltipLines& m_lines;
     std::int32_t& m_next;
+    std::int32_t& m_halves;
     const Data::Text::TextTable* m_texts = nullptr;
     std::string m_where;
     std::string m_error;

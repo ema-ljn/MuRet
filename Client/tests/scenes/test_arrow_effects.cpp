@@ -859,8 +859,8 @@ TEST(ArrowEffectsTest, TheSiegeArrowsAreBornFromTheirRandoms)
 
 // El paso de la flecha 0xdb/3 y /4 (0x52413a), en Lorencia, en Devias y en el 30: con el 3, +0xe4 se suma a la x de los
 // ángulos, que queda en 50 como mucho; con la celda sin el 0x08, el terreno más alto que la z la deja en la altura + 10
-// y frena la flecha (más bajo, nada; con el 0x08, no se pide la altura). El fuego 0x5d9/5 corta (0x5241e9, CL11), sin
-// rand() y sin el choque.
+// y frena la flecha (más bajo, nada; con el 0x08, no se pide la altura). El fuego 0x5d9/5 nace antes de la cola
+// común: tres rand() además del de la luz, sin choque. Después la flecha se mueve y pierde una vida (0x52cb98).
 
 TEST(ArrowEffectsTest, TheSiegeArrowsFallOnTheGround)
 {
@@ -902,18 +902,40 @@ TEST(ArrowEffectsTest, TheSiegeArrowsFallOnTheGround)
             arrow.transform.angles.x = probe.subtype == 3 ? 48.0f : 60.0f;
             arrow.turnDirection = 5.0f;
             const glm::vec3 velocity = arrow.velocity;
+            // CRT1: luz41, velocidad18467, escala6334 y giro26500, en ese orden.
+            tested.random = CrtRandom(1);
             const CrtRandom before = tested.random;
 
             const auto stepped = StepArrow(arrow, nullptr, tested.StepContext());
 
-            EXPECT_TRUE(HasError(stepped, "0x5241e9")) << ErrorOf(stepped);
-            EXPECT_EQ(DrawsSince(before.State(), tested.random), 1);
+            ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
+            EXPECT_EQ(DrawsSince(before.State(), tested.random), 4);
             EXPECT_EQ(arrow.transform.angles.x, probe.pitch);
-            EXPECT_EQ(arrow.transform.position.z, probe.z);
             EXPECT_EQ(arrow.velocity, probe.stopped ? glm::vec3(0.0f) : velocity);
             EXPECT_EQ(heights, (probe.attribute & 0x08) != 0 ? 0 : 1);
             EXPECT_TRUE(arrow.alive);
-            EXPECT_EQ(arrow.life, 40);
+            EXPECT_EQ(arrow.life, 39);
+            const glm::vec3 emittedAt(1990, 2940, probe.z);
+            EXPECT_EQ(arrow.previousPosition, emittedAt);
+            if (probe.stopped)
+                EXPECT_EQ(arrow.transform.position, emittedAt);
+            else
+                EXPECT_LT(arrow.transform.position.z, emittedAt.z);
+            ASSERT_EQ(
+                std::ranges::count_if(tested.particles.All(), [](const auto& particle) { return particle.alive; }), 1);
+            const auto& fire = tested.particles.All()[0];
+            EXPECT_EQ(fire.type, Client::World::FireParticle);
+            EXPECT_EQ(fire.subtype, 5);
+            EXPECT_EQ(fire.position, emittedAt);
+            EXPECT_EQ(fire.angles, arrow.transform.angles);
+            EXPECT_EQ(fire.owner, 0u);
+            EXPECT_EQ(fire.life, 24);
+            EXPECT_FLOAT_EQ(fire.scale, 1.9f);
+            EXPECT_EQ(fire.rotation, 220.0f);
+            EXPECT_EQ(fire.velocity, glm::vec3(0, -3.5f, 0));
+            EXPECT_FLOAT_EQ(fire.light.x, .64f);
+            EXPECT_FLOAT_EQ(fire.light.y, .4f);
+            EXPECT_FLOAT_EQ(fire.light.z, .16f);
         }
     }
 }

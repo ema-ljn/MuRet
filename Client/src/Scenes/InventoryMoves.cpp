@@ -2040,6 +2040,18 @@ Core::Expected<void, std::string> PlaceTheMovedItem(const Protocol::Inventory::I
 Core::Expected<void, std::string> ApplyItemMoveResult(const Protocol::Inventory::ItemMoveResult& result,
                                                       const WorldEntryResources& resources)
 {
+    const InventoryItemBytes bytes(result.item);
+    if (result.result == InventoryMoveGrid && DiscardInventoryOverflow(result.slot, bytes, resources))
+        return {};
+    if (result.result == TradeGridFlag || result.result == WarehouseMoveGrid || result.result == ChaosBoxMoveGrid ||
+        result.result == TrainerBoxMoveGrid)
+    {
+        constexpr std::size_t SmallGrid = 32;
+        constexpr std::size_t WarehouseGrid = 120;
+        const std::size_t cells = result.result == WarehouseMoveGrid ? WarehouseGrid : SmallGrid;
+        if (DiscardGridOverflow(cells, Columns, result.slot, bytes, resources, "24"))
+            return {};
+    }
     resources.world.Runtime().ui.field78abb39 = 0;
     if (auto placed = PlaceTheMovedItem(result, resources); !placed.HasValue())
         return placed;

@@ -81,6 +81,14 @@ FirstCellPastTheGrid(std::size_t cells, std::int32_t columns, std::int32_t origi
 [[nodiscard]] Core::Expected<std::optional<std::string>, std::string>
 InventoryPlacementPastTheGrid(std::uint8_t slot, InventoryItemBytes bytes, const WorldEntryResources& resources);
 
+// Q-C200: un paquete cuya huella escribe fuera de la grilla se descarta antes de sus efectos. Un error del
+// proveedor no se consume: el camino normal lo devuelve en el punto original.
+[[nodiscard]] bool DiscardGridOverflow(std::size_t cells, std::int32_t columns, std::int32_t origin,
+                                       InventoryItemBytes bytes, const WorldEntryResources& resources,
+                                       std::string_view where);
+[[nodiscard]] bool DiscardInventoryOverflow(std::uint8_t slot, InventoryItemBytes bytes,
+                                            const WorldEntryResources& resources);
+
 // 0x4225d0, la defensa del Dark Horse, que 0x54bf40 llama en 0x54cc5c con el 0x1a04: la opción 0x96 con
 // 5 + la agilidad del registro propio / 20 + 2 · el nivel del caballo (WorldRuntime::pets), en un byte, calculada con
 // el registro abierto (3.848 rand() al cerrarlo si queda sin accesos). Si ya tiene una 0x96 desde la segunda opción, le

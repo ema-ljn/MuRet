@@ -64,4 +64,15 @@ TEST(SprintfFormat, AMarkWithoutItsArgumentStaysWritten)
     EXPECT_EQ(Sprintf("%s", 5), "%s");
     EXPECT_EQ(Sprintf("%f %d", 5), "%f 5");
 }
+
+TEST(SprintfFormat, CastleTreasuryConsumesBothWordsOfI64BeforeTheFollowingArgument)
+{
+    // 0x6688bc pasa low/high de 0x7d5c650 al %I64d de Text.bmd[1584], como dos argumentos de la pila x86.
+    EXPECT_EQ(Sprintf("Zen: %I64d / %u", std::uint32_t{0x89abcdef}, std::uint32_t{0x12345678}, 7),
+              "Zen: 1311768467177459183 / 7");
+    EXPECT_EQ(Sprintf("%I64d", std::uint32_t{0}, std::uint32_t{0x80000000}), "-9223372036854775808");
+    EXPECT_EQ(Sprintf("%I64u", std::uint32_t{0xffffffff}, std::uint32_t{0xffffffff}), "18446744073709551615");
+    EXPECT_EQ(Sprintf("[%+024I64d]", std::uint32_t{0xffffffff}, std::uint32_t{0xffffffff}),
+              "[-00000000000000000000001]");
+}
 } // namespace

@@ -31,7 +31,6 @@
 #include <optional>
 #include <string>
 #include <string_view>
-#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -66,6 +65,11 @@ constexpr std::int32_t Silent = -1;
 // 0x5af520: el almacén y la ventana 0x80 sin rand(); el comercio, un byte protegido, con uno (y solo si los dos
 // primeros están cerrados).
 constexpr int TradeQuery = 1;
+// 0x628c11..0x629367 (y el sí): los dos rand() del envío en C3.
+constexpr int SendRandoms = 2;
+constexpr std::uint8_t LuckItemCell = 0x27;
+constexpr std::uint8_t LuckItemSlot = LuckItemCell + 12;
+constexpr std::int32_t UseWait = 10;
 
 class LetterMeasure final : public Client::Render::Text::ITextMeasure
 {
@@ -294,14 +298,14 @@ TEST(DialogAnswerStepsTest, TheLuckThirdButtonAndEscapeSkipTheItem)
 
 // 0x628bdc..0x628c00 y 0x6293b5..0x6293d9: el sí y el no del 0xa8 dejan 0 o 1 en 0x78abb26; con el almacén abierto
 // (0x5af520 en falso con su primer IsOpen, sin rand()), el aviso 474 de error y el cierre con el sonido. Con la espera
-// de 0x5767954 (los tres IsOpen, con el rand() del comercio) cierra sin mandar; sin ella, el C1 06 26 del hito 5
-// corta.
+// de 0x5767954 (los tres IsOpen, con el rand() del comercio) cierra sin mandar; sin ella, espera 10 y manda el
+// C1 06 26 en C3 con la casilla del diálogo + 12, destino 0 y la elección, con dos rand() más. Ambos cierran.
 TEST(DialogAnswerStepsTest, TheLuckAnswersUseTheItemOrSayWhyNot)
 {
     for (const std::int32_t map : Maps)
     {
-        for (const auto& [x, choice, address] : std::to_array<std::tuple<std::int32_t, std::uint8_t, std::string>>(
-                 {{LuckYesX, std::uint8_t{0}, "0x6293ea"}, {LuckNoX, std::uint8_t{1}, "0x628c11"}}))
+        for (const auto& [x, choice] : std::to_array<std::pair<std::int32_t, std::uint8_t>>(
+                 {{LuckYesX, std::uint8_t{0}}, {LuckNoX, std::uint8_t{1}}}))
         {
             SCOPED_TRACE(testing::Message() << "mapa " << map << ", botón " << int{choice});
             AnsweringDialogs refused(map, Client::UI::ItemNameWithLuckDialog);
@@ -313,6 +317,8 @@ TEST(DialogAnswerStepsTest, TheLuckAnswersUseTheItemOrSayWhyNot)
             EXPECT_EQ(refused.random.State(), quiet.State());
             EXPECT_EQ(refused.Runtime().ui.field78abb26, choice);
             EXPECT_EQ(refused.messages, (std::vector<std::pair<std::size_t, std::int32_t>>{{474, 2}}));
+            EXPECT_TRUE(refused.sent.empty());
+            EXPECT_EQ(refused.Runtime().ui.field5767954, 0);
             ExpectClosedWithTheSound(refused);
 
             AnsweringDialogs waiting(map, Client::UI::ItemNameWithLuckDialog);
@@ -321,16 +327,28 @@ TEST(DialogAnswerStepsTest, TheLuckAnswersUseTheItemOrSayWhyNot)
             const CrtRandom waitingQuiet = waiting.QuietStep();
             ASSERT_TRUE(waiting.Click(x, LuckY).HasValue());
             EXPECT_EQ(waiting.random.State(), Advanced(waitingQuiet, TradeQuery).State());
+            EXPECT_EQ(waiting.Runtime().ui.field78abb26, choice);
+            EXPECT_EQ(waiting.Runtime().ui.field5767954, 4);
             EXPECT_TRUE(waiting.sent.empty());
             EXPECT_TRUE(waiting.messages.empty());
             ExpectClosedWithTheSound(waiting);
 
             AnsweringDialogs used(map, Client::UI::ItemNameWithLuckDialog);
             used.OpenWithTheButtons();
-            const auto stepped = used.Click(x, LuckY);
-            ASSERT_FALSE(stepped.HasValue());
-            EXPECT_NE(stepped.Error().find(address), std::string::npos) << stepped.Error();
-            EXPECT_NE(stepped.Error().find("P-C193"), std::string::npos) << stepped.Error();
+            used.Runtime().dialogItemCell = LuckItemCell;
+            used.Runtime().slot78a6758 = 0x73;
+            used.Runtime().ui.field78abb26 = 7;
+            const CrtRandom usedQuiet = used.QuietStep();
+            ASSERT_TRUE(used.Click(x, LuckY).HasValue());
+            EXPECT_EQ(used.random.State(), Advanced(usedQuiet, TradeQuery + SendRandoms).State());
+            EXPECT_EQ(used.Runtime().ui.field78abb26, choice);
+            EXPECT_EQ(used.Runtime().ui.field5767954, UseWait);
+            EXPECT_TRUE(used.messages.empty());
+            ASSERT_EQ(used.sent.size(), 1u);
+            EXPECT_EQ(used.sent[0].delivery, Delivery::Encrypted);
+            EXPECT_TRUE(SameBytes(Xor32Decode(used.sent[0].packet).Bytes(),
+                                  Bytes({0xc1, 0x06, 0x26, LuckItemSlot, 0x00, choice})));
+            ExpectClosedWithTheSound(used);
         }
     }
 }

@@ -939,6 +939,105 @@ TEST_F(MonsterAttackCasesTest, Crywolf17cStepFourteenContinuesPastTheFull18c1aPo
     }
 }
 
+// 432b30..432b63 y42fd04..42fd37: los callers no sortean ni pasan por la cola del ataque.
+TEST_F(MonsterAttackCasesTest, CrywolfAndFortressMissilesPreserveTheirNativeArgumentsAndOwner)
+{
+    struct Missile
+    {
+        std::uint8_t map;
+        std::int32_t kind;
+        std::uint8_t step;
+        std::int16_t effect;
+    };
+    const std::array cases{Missile{34, 0x15c, 15, 0xed}, Missile{35, 0x13c, 14, 0xe1}};
+    for (const auto& missile : cases)
+    {
+        SCOPED_TRACE(missile.map);
+        Load(missile.map, 0);
+        auto& monster = Prepare({.type = missile.kind, .step = missile.step, .skill = 0x11});
+        monster.position = {2100, 3100, 450};
+        monster.angles = {10, 20, 30};
+        monster.light = {.2f, .4f, .6f};
+        monster.word8a = -0x1234;
+        game->world.Map().effects.Clear();
+        for (auto& joint : game->world.DrawTail().joints)
+            joint.alive = false;
+        game->world.OwnCharacter().bytef04 = 0x5a;
+        const auto stepped = Step(monster);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        const auto effects = game->world.Map().effects.Effects();
+        ASSERT_TRUE(effects[0].alive);
+        const auto& effect = effects[0];
+        EXPECT_EQ(effect.type, missile.effect);
+        EXPECT_EQ(effect.subtype, 1);
+        EXPECT_EQ(effect.ownerContext, &monster);
+        EXPECT_EQ(effect.disturbanceState, static_cast<std::uint16_t>(monster.word8a));
+        EXPECT_EQ(effect.word8c, 0x5a);
+        EXPECT_EQ(effect.light, monster.light);
+        EXPECT_EQ(effect.life, 30);
+        const auto offset = Client::Render::Models::OriginalVectorRotate(
+            {-10, -60, 135}, Client::Render::Models::OriginalAngleMatrix(monster.angles));
+        for (int axis = 0; axis < 3; ++axis)
+            EXPECT_FLOAT_EQ(effect.transform.position[axis],
+                            static_cast<float>(static_cast<double>(offset[axis]) + monster.position[axis]));
+        EXPECT_FLOAT_EQ(effect.transform.angles.x, missile.effect == 0xed ? -80.f : 10.f);
+        EXPECT_EQ(effect.byte89, 0);
+        EXPECT_EQ(effect.state, 0);
+        EXPECT_EQ(effect.byte1bd, 0);
+        EXPECT_EQ(Draws(), OwnRecord);
+        EXPECT_EQ(monster.byte38eAccesses, 0);
+        EXPECT_TRUE(sounds.empty());
+        const auto& joint = game->world.DrawTail().joints[0];
+        EXPECT_EQ(joint.alive, missile.effect == 0xe1);
+        if (missile.effect == 0xe1)
+        {
+            EXPECT_EQ(joint.type, 0x610);
+            EXPECT_EQ(joint.subtype, 13);
+            EXPECT_EQ(joint.ownerContext, &effect);
+        }
+    }
+}
+TEST_F(MonsterAttackCasesTest, CrywolfAndFortressMissilesExitBeforeReadingAFullModelPool)
+{
+    for (const bool fortress : {false, true})
+    {
+        Load(fortress ? 35 : 34, 0);
+        auto& monster = Prepare(
+            {.type = fortress ? 0x13c : 0x15c, .step = static_cast<std::uint8_t>(fortress ? 14 : 15), .skill = 0x11});
+        FillModelEffectPoolExceptLast(0);
+        for (auto& joint : game->world.DrawTail().joints)
+            joint.alive = false;
+        const auto stepped = Step(monster);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(Draws(), 0);
+        EXPECT_EQ(monster.byte38eAccesses, 0);
+        EXPECT_FALSE(game->world.DrawTail().joints[0].alive);
+        EXPECT_TRUE(sounds.empty());
+    }
+}
+TEST_F(MonsterAttackCasesTest, CrywolfAndFortressMissilesStillCopyTheCountWithAFullJointPool)
+{
+    for (const bool fortress : {false, true})
+    {
+        Load(fortress ? 35 : 34, 0);
+        auto& monster = Prepare(
+            {.type = fortress ? 0x13c : 0x15c, .step = static_cast<std::uint8_t>(fortress ? 14 : 15), .skill = 0x11});
+        game->world.Map().effects.Clear();
+        for (auto& joint : game->world.DrawTail().joints)
+            joint.alive = true;
+        auto& joint = game->world.DrawTail().joints[0];
+        joint.alive = true;
+        joint.type = 0x777;
+        const auto stepped = Step(monster);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(game->world.Map().effects.Effects()[0].type, fortress ? 0xe1 : 0xed);
+        EXPECT_EQ(joint.type, 0x777);
+        EXPECT_EQ(Draws(), OwnRecord);
+        EXPECT_EQ(monster.byte38eAccesses, 0);
+        EXPECT_TRUE(sounds.empty());
+    }
+}
+
 TEST_F(MonsterAttackCasesTest, CrywolfAttacksSkipTheirFullModelEffectAndExit)
 {
     const std::array cases{Probe{.name = "0x1b2 en 14", .type = 0x138, .step = 14},

@@ -51,6 +51,8 @@ enum class DialogStep : std::uint8_t
     JewelChoice,
     JewelUnmix,
     JewelResult,
+    // 0x62601e: cerrar el resultado de guerra sin consumir el clic.
+    WarOutcome,
     // Un tramo de otra ola: corta con `address` y `wave`.
     Cut,
 };

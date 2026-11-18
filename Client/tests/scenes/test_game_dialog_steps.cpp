@@ -17,6 +17,7 @@
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameMovementState.h"
+#include "Scenes/EventGlobals.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/GuildState.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -1252,3 +1253,36 @@ TEST(GameDialogStepsTest, TheOtherWavesDialogsAreCut)
     EXPECT_EQ(Client::Scenes::DialogRouteOf(0x40).step, Client::Scenes::DialogStep::GenericOk);
 }
 } // namespace
+
+TEST(GameDialogStepsTest, TheA7ClosesOnlyInsideItsInclusiveButtonWithoutConsumingTheClick)
+{
+    auto tested = std::make_unique<SteppingDialogs>(Lorencia);
+    auto& runtime = tested->world.Runtime();
+    runtime.dialogs.current = 0xa7;
+    runtime.dialogs.pending = 0x70;
+    runtime.events.guildWarOutcome.present = 2;
+    runtime.events.guildWarOutcome.firstName.fill('A');
+    runtime.events.guildWarOutcome.secondName.fill('B');
+    runtime.events.guildWarOutcome.firstScore = 4;
+    runtime.events.guildWarOutcome.secondScore = 7;
+    runtime.events.timeValue = 300;
+    runtime.lastSoundId = 55;
+    const auto before = tested->random;
+    const auto outside = tested->Click(0x11c, 0x106);
+    ASSERT_TRUE(outside.HasValue()) << outside.Error();
+    EXPECT_EQ(runtime.dialogs.current, 0xa7);
+    const auto inside = tested->Click(0x163, 0x11a);
+    ASSERT_TRUE(inside.HasValue()) << inside.Error();
+    EXPECT_EQ(runtime.dialogs.current, 0x70);
+    EXPECT_EQ(runtime.events.guildWarOutcome.present, 0);
+    EXPECT_EQ(runtime.events.guildWarOutcome.firstName.back(), 0);
+    EXPECT_EQ(runtime.events.guildWarOutcome.secondName.back(), 0);
+    EXPECT_EQ(runtime.events.guildWarOutcome.firstScore, 0);
+    EXPECT_EQ(runtime.events.guildWarOutcome.secondScore, 0);
+    EXPECT_EQ(runtime.events.timeValue, 0);
+    EXPECT_EQ(runtime.dialogs.pending, 0);
+    EXPECT_TRUE(runtime.movement.pendingClick);
+    EXPECT_EQ(tested->random.State(), before.State());
+    EXPECT_EQ(runtime.lastSoundId, 55);
+    EXPECT_TRUE(tested->requests.requests.empty());
+}

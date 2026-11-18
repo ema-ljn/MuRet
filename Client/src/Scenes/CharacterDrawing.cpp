@@ -1840,7 +1840,8 @@ Core::Expected<void, std::string> DrawCrywolfAltarMeshes(Render::ModelBatch& bat
         meshes = skinned;
     }
     // 430ab5..430b14: el segundo pase lee el RGB que pudo guardar el primero dentro de 0x4ecc30.
-    for (const auto& [selection, flags] : {std::pair<std::int8_t, std::uint32_t>{0, 0x44}, {1, 0x240}})
+    for (const auto& [selection, flags] :
+         {std::pair{std::int8_t{0}, std::uint32_t{0x44}}, std::pair{std::int8_t{1}, std::uint32_t{0x240}}})
     {
         object.unlitMesh = selection;
         if (modelState != nullptr)
@@ -1853,9 +1854,9 @@ Core::Expected<void, std::string> DrawCrywolfAltarMeshes(Render::ModelBatch& bat
                 return drawn;
         }
     }
-    object.unlitMesh = -1;
+    object.unlitMesh = std::int16_t{-1};
     if (modelState != nullptr)
-        modelState->unlitMeshes[static_cast<std::int16_t>(object.model)] = -1;
+        modelState->unlitMeshes[static_cast<std::int16_t>(object.model)] = std::int8_t{-1};
     return {};
 }
 

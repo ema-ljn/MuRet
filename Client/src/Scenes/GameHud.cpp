@@ -1576,7 +1576,9 @@ constexpr int SwitchLineStep = 0xf;
 constexpr std::size_t SwitchHolderText = 1981; // 0x774e358
 // 0x5a7207..0x5a7295: el bando de cada mitad (+7) contra los bits de +0x78 del héroe.
 constexpr std::array<std::pair<std::uint32_t, std::uint8_t>, 3> SwitchSides{
-    {{0x80000, 2}, {0x400000, 3}, {0x800000, 4}}};
+    {{std::uint32_t{0x80000}, std::uint8_t{2}},
+     {std::uint32_t{0x400000}, std::uint8_t{3}},
+     {std::uint32_t{0x800000}, std::uint8_t{4}}}};
 
 // Un %s de sprintf sobre el objeto desde `at`: hasta el primer 0. Sin ninguno antes del final de los 0x36 bytes, el
 // original sigue leyendo el heap que viene después (Q-C1403): std::nullopt.

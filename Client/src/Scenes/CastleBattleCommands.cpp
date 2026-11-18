@@ -276,17 +276,24 @@ Core::Expected<void, std::string> ApplyCastleBattleCommand(const Battle::CastleB
             else if constexpr (std::is_same_v<Received, Battle::CastleOwner>)
                 return CastleOwner(received, context);
             else if constexpr (std::is_same_v<Received, Battle::SiegeSide>)
+            {
                 SiegeSide(received, runtime, world.Actors()[runtime.hero]);
+                return {};
+            }
             else if constexpr (std::is_same_v<Received, Battle::PanelStatus>)
                 return ReceiveSiegePanelStatus(runtime, received.bytes);
             else if constexpr (std::is_same_v<Received, Battle::SiegeTime>)
+            {
                 SetSiegeClock(runtime, received.hours, received.minutes, context.tick);
+                return {};
+            }
             else if constexpr (std::is_same_v<Received, Battle::WeaponOpen>)
             {
                 if (received.result == 1)
                     return ApplySiegeWeaponOpen(context, received.key, received.mode);
                 if (received.result == 0)
                     return WeaponFailure(context, false);
+                return {};
             }
             else if constexpr (std::is_same_v<Received, Battle::WeaponFire>)
             {
@@ -305,7 +312,6 @@ Core::Expected<void, std::string> ApplyCastleBattleCommand(const Battle::CastleB
             }
             else
                 return Core::Unexpected(std::string("el paquete no es una orden B2 de la batalla"));
-            return {};
         },
         packet);
 }

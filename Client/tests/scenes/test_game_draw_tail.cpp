@@ -822,14 +822,14 @@ TEST(GameDrawTailTest, AReusedSiegeCueKeepsItsVisibilityUntilTheModelPass)
     EXPECT_EQ(batch.State().blend, Client::Render::ModelBlend::Additive);
 }
 
-TEST(GameDrawTailTest, CrywolfEffectsDrawWithoutModelsAndSkipTheSecondWorldPass)
+TEST(GameDrawTailTest, BattleEffectsDrawWithoutModelsAndSkipTheSecondWorldPass)
 {
     struct Cue
     {
         std::int16_t type;
         std::int32_t subtype;
     };
-    constexpr std::array cues{Cue{0xf8, 1}, Cue{0x105, 3}, Cue{0xc1a, 0}};
+    constexpr std::array cues{Cue{0xf8, 1}, Cue{0x105, 3}, Cue{0xc1a, 0}, Cue{0xc8, 1}, Cue{0xc9, 1}};
     for (const auto [type, subtype] : cues)
     {
         SCOPED_TRACE(type);

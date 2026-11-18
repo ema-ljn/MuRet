@@ -40,7 +40,7 @@ no se reescribió historia pública y no se cerraron entregas ajenas.
 | H8: gremio, alianza y guerra | Entrega principal integrada; caché canónica y cierres del Guild Master por chat, quest y paneles. | Servicio compatible, roles reales y contraste dinámico de los flujos sociales. |
 | H9: amigos y editor compartido | Edición occidental, cursor/selección, clipboard, foco y latch Tab; guard compartido de entrada. | Perfil XP de autoscroll horizontal, medida/caret e IME completo. Sigue abierto como fidelidad, aunque exista implementación funcional. |
 | H10: chat y cartas | Editor compartido, listas, retrato y multiline; #347 incorpora las reparaciones de H9. | Misma frontera del EDIT y validación del servicio de amigos/cartas. |
-| H11: eventos | Battle Soccer, marcador/telas, F3 24 y resultado incluso con HUD oculto. Crywolf y fortaleza disparan `F8/1`, y el ataque radial `C1A/0` avanza hasta su contacto con el terreno. | Servidor compatible, contraste en VM, rama con pila indeterminada Q-C1050 y dispersión de piedras de la etapa 1. [Decisión de efectos](../../../docs/adr/0020-senales-crywolf.md). |
+| H11: eventos | Battle Soccer, marcador/telas, F3 24 y resultado incluso con HUD oculto. Crywolf y fortaleza disparan `F8/1`. Crywolf ejecuta la descarga `C1A/0` y la dispersión de piedras. El ataque `0x17e` continúa con el pool de partículas lleno. | Servidor compatible y contraste en VM. Con un lugar de partícula libre, Q-C1050 todavía lee una posición de pila indeterminada. [Decisión de efectos](../../../docs/adr/0020-senales-crywolf.md). |
 | H12: ventanas del castillo | Registro/listas B4/B5, Senior, puertas/estatuas, impuestos, retiro/fabricación y zona de caza, desde NPC/recepción hasta paso/dibujo. | Estados iniciales/bytes residuales del original y comparación visual/servidor en VM. |
 | H13: batalla del castillo | B2/B6/B7/B9/BA/BB, corona/bandos, holders, panel y minimapa, NPC de armas/puertas, señales de alta y ataque en mapa 30, B1 y retorno. | Estados de pila sin inicializar y contraste de batalla/cambio de servidor. La selección de objetos del escenario sigue pendiente en CL7.4. |
 
@@ -98,6 +98,8 @@ ya estaban presentes. No se clasificaron automáticamente como deuda de otra ola
 | Misiles `432b63` / `42fd37` | ED/1 de Crywolf y E1/1 de fortaleza reciben posición/ángulos/luz, dueño y WORD de key originales; conservan la salida con pool lleno. |
 | Proyectil `43257a` / `42fd76` | `F8/1` conserva la etapa 14, el dueño y la clave. En vida 13 intenta reservar `105/3` antes de procesar choque y luz. |
 | Descarga `4329db` / `4f6780` | `C1A/0` intenta 18 altas por tanda. En Crywolf se ejecutan ambas tandas; fuera corre la común. Cada fragmento conserva el giro, el avance y la comparación estricta con el terreno. |
+| Dispersión `51fff0` | Ocho grupos con estallido seguido de dos intentos `C8/C9` en orden `/1`, `/0`. Los selectores siempre corren. Las altas efectivas consumen cuatro y cinco sorteos, respectivamente. |
+| Llamas `432acc` | Con partículas llenas, los cuatro intentos conservan sus sorteos y siguen a la cola común. El punto de hueso sólo se usa si se admite el alta (`53fe81..53febb`). |
 | Joints618/2,3 | La creación admite los tipos normales de la tabla, además de349; mismo dueño Actor y ancho30, con los dos intentos en orden. |
 | Llegada `4c9883` | Etapa3 pone alpha1 sin altas. El resto pone alpha0 y comparte con CameraTour cuatro615/7, tres5f6/1 y cuatro614/17; los cuatro primeros usan el mismo punto actor+(20,20,0). |
 | Kalima `43bea5` | C5 crea C8 y C9 en posición del actor después del polvo y alcanza la cola del pulso; lleno sólo omite el alta. |
@@ -125,6 +127,11 @@ de ataques, flechas, efectos, dibujo y escena. Las regresiones nuevas pasaron
 de reproducir los cortes a comprobar ambos llamadores, saturación, vida 13,
 contacto con el terreno y exclusión del segundo pase de dibujo. El CI del PR
 verifica la revisión publicada en Linux y Windows.
+
+La dispersión y la rama de llamas con el pool lleno dieron 356 pruebas focales
+aprobadas en Linux, en 16 binarios y sin saltos. Las regresiones observan el
+orden y el RNG con pools libres, parciales y llenos, la continuación del
+ataque, el paso vertical y el dibujo del subtipo 1.
 
 La regresión de `B1` reprodujo el fallo de sesión con `Macro.txt` inaccesible antes
 del cambio. Con el aplicador recompilado pasaron 23 pruebas de SessionEventApplier
@@ -176,9 +183,9 @@ identidades, precondiciones, secuencias, VAs y entrega de evidencia. Casos prior
 6. Efectos externos CL11: mantener por familia el tipo, VA, prefijo y capacidad;
    ni su falta ni el audio pendiente de CL10 desaparecen por cerrar la lógica del evento.
 
-El ataque de etapa 1 de Crywolf aún puede cortar en `0x520119` cuando tiene un
-lugar de modelo libre para la dispersión de piedras. La rama de `0x432acc`
-(Q-C1050) sigue requiriendo observar el local de pila que lee el original.
+La rama de `0x432acc` (Q-C1050) sigue requiriendo observar el local de pila
+cuando hay un lugar de partícula libre. Fuera de Crywolf, algunos llamadores
+de `0x51fff0` llegan ahora al límite de `F6` de CL11, después de la dispersión.
 Los llamadores de `F8/1` y `C1A/0` continúan con las señales propias de MuRet.
 El ADR 0020 registra las diferencias de trayectoria, emisiones y RNG que hay
 que identificar al contrastar estos ataques. Las demás variantes de CL11

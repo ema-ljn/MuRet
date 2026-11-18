@@ -30,10 +30,9 @@ que los produzca normalmente. Una fixture o un paquete sintético valida el puer
 se convierte en una observación del original.
 
 Consultar las [implementaciones pendientes](../../../2026-11-18-cl9-estado-integrado.md#lo-que-necesita-la-vm-u-otra-ola).
-Si el candidato corta en la dispersión de etapa 1 (`0x520119`), registrar
-`BLOCKED: implementación pendiente` con VA, tipo/subtipo y prefijo observado.
-En `0x432acc` capturar los tres DWORD de `[EBP − 0x30]` que se pasan como vector
-a `0x4ec110`, junto con actor, etapa y estado de la pila (Q-C1050).
+En `0x432acc` con capacidad de partículas, capturar los tres DWORD de `[EBP − 0x30]`
+que se pasan como vector a `0x4ec110`, junto con actor, etapa y estado de la
+pila (Q-C1050). Con el pool lleno, medir la continuación y los diez sorteos.
 
 ## Prioridad 1: la posición indeterminada del polvo
 
@@ -115,6 +114,7 @@ privados. Comparar el mismo estado y secuencia en ambos clientes; no sólo que n
 | Battle Soccer | Partido con score activo, fin por F3 24 y aceptar A7 | Nombres y puntajes compartidos, telas/efectos, reloj y resultado aun con HUD oculto; A7 borra resultado. `50caaa`, `5a7640`, `5a7eb0`, `4deef0`. |
 | Crywolf | Llegada, altares, contrato, ataque de cada familia, BD0C y final de la cámara | Estado persistente, orden de modelos/partículas/joints, RNG, sonido y dibujo incluso con BMD vacío; saturación omite el alta, no el caller. `4039f0`, `432bd0`, `434ecf`, `602596`. |
 | Ataques `F8/1` y `C1A/0` | Provocar el ataque de la etapa 14 en los mapas 34/35. Repetir la descarga radial fuera de Crywolf. | En `43257a`/`42fd76` registrar dueño, clave y salida con pool lleno. En vida 13 registrar el intento `105/3`, sonido `7a` y choque. En `4329db`/`4f6780` contar 36 intentos en Crywolf y 18 fuera, y verificar el contacto estricto con el terreno. Registrar por separado las diferencias de efectos del [ADR 0020](../../../../../../docs/adr/0020-senales-crywolf.md). |
+| Dispersión `C8/C9` y llamas de `17e` | Provocar el paso 1 en Crywolf con capacidad normal y repetir la saturación de los pools. | En `520119`/`520152` registrar subtipo, posición y sorteo de cada intento. En `523985` registrar velocidad vertical y vida del subtipo 1. En `432acc` contrastar el dato de pila cuando `53fe70` puede reservar, y la continuación cuando todos sus lugares están ocupados. |
 | NPC de evento | Hablar resultados 4/6 y usar cada botón, regresar/cerrar | Cierre previo, inventario y panel 1000/4000, diálogos y envíos, sonidos de aperturas anidadas. `4d2577`, `4d258e`, `65b265`, `65b29b`. |
 | Inventario/equipo | Equipo sin mano por F3 13/lista/selección; doble clic joya; clic derecho almacén; tirar ticket | Mano wire `fff` produce modelo `1211` por guard `1fff`, sin geometría pero con sus sorteos; doble clic izquierdo canónico; solicitudes/esperas y restricciones nativas. |
 | EDIT H9/H10 | Selección, cursor, clipboard, flechas de lista, Tab, Enter e IME | Perfil XP, Ctrl+A sin acción, foco y commit/preedit; autoscroll horizontal exacto todavía requiere oráculo original. Ver runbook H1/H9. |

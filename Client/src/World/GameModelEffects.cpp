@@ -229,6 +229,7 @@ Core::Expected<void, std::string> StepFallingStone(ModelEffect& effect, const Mo
     return {};
 }
 
+// 0x523985 con el subtipo 1 de c8/c9: suma la velocidad girada, aplica el arrastre y acelera en Z sin leer el suelo.
 // 0x5239c8..0x523b3a con el subtipo 0 y el 10: la velocidad sin girar sumada y por 0,9f (0x6b8a1c), la caída +0xe4
 // que pierde 3; en el suelo se apoya, rebota a −0,5, pierde 4 de vida y se inclina escala · 128 (si no, ·
 // 32); con el subtipo 0 y rand() % 10 en 0, un fuego 5d9 con el subtipo rand() % 3 + 1. El 10 (el de la piedra
@@ -239,7 +240,8 @@ Core::Expected<void, std::string> StepStoneChip(ModelEffect& effect, Particles& 
                                                 Render::Models::CrtRandom& random,
                                                 const ModelEffectStepServices& services)
 {
-    if (effect.subtype != 0 && effect.subtype != GroundStoneChipSubtype)
+    const bool rising = IsRisingStoneChip(effect.type, effect.subtype);
+    if (!rising && effect.subtype != 0 && effect.subtype != GroundStoneChipSubtype)
         return Core::Unexpected(std::format("{}: el paso de la piedrita {:#x} con el subtipo {} no está portado",
                                             effect.type == IceShardEffect ? "0x523974" : "0x5238be", effect.type,
                                             effect.subtype));
@@ -248,11 +250,21 @@ Core::Expected<void, std::string> StepStoneChip(ModelEffect& effect, Particles& 
     constexpr std::int32_t BounceLife = 4;
     constexpr int FireChance = 10, FireSubtypes = 3;
     glm::vec3& position = effect.transform.position;
+    const glm::vec3 movement =
+        rising ? Render::Models::OriginalVectorRotate(effect.velocity,
+                                                      Render::Models::OriginalAngleMatrix(effect.transform.angles))
+               : effect.velocity;
     for (int axis = 0; axis < 3; ++axis)
-        position[axis] = F32(static_cast<double>(effect.velocity[axis]) + static_cast<double>(position[axis]));
+        position[axis] = F32(static_cast<double>(movement[axis]) + static_cast<double>(position[axis]));
     for (int axis = 0; axis < 3; ++axis)
         effect.velocity[axis] = F32(static_cast<double>(effect.velocity[axis]) * Drag);
     position.z = F32(static_cast<double>(position.z) + static_cast<double>(effect.turnDirection));
+    if (rising)
+    {
+        constexpr double Acceleration = 0.5; // 0x6b882c.
+        effect.turnDirection = F32(static_cast<double>(effect.turnDirection) + Acceleration);
+        return {};
+    }
     effect.turnDirection = F32(static_cast<double>(effect.turnDirection) - Fall);
     if (!services.terrainHeight)
         return Core::Unexpected(std::string("0x523a80: la piedrita pide la altura del terreno (0x5f93c0)"));

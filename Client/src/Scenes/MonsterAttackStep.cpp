@@ -602,7 +602,16 @@ Core::Expected<Helped, std::string> StepCrywolf(ActorState& actor, const KindCas
         // 0x432a7b..0x432a8a: en 1, 0x41ed10(0x75, 0, 0).
         if (actor.byte381 == FirstStep)
             RequestTheSound(context, RoarSound);
-        // 0x432acc: el mismo offset sin escribir, ahora para el punto de las cuatro 0x5d9/0 (Q-C1050).
+        // 0x432acc: el punto sólo sale del marco si 0x53fe70 encuentra lugar. Lleno, quedan los cuatro sorteos de yaw.
+        if (context.particles != nullptr &&
+            std::ranges::all_of(context.particles->All(),
+                                [](const World::Particle& particle) { return particle.alive; }))
+        {
+            constexpr int SuppressedFlames = 4;
+            for (int flame = 0; flame < SuppressedFlames; ++flame)
+                static_cast<void>(context.random.Next());
+            return Helped::Continue;
+        }
         return CutAt(0x432acc,
                      "0x4ec110 con el offset sin escribir de [EBP − 0x30], antes de las 0x5d9/0 (CL9 con el offset que "
                      "mida la VM, Q-C1050)",
@@ -698,8 +707,7 @@ Core::Expected<void, std::string> ScatterAndCut(std::uint32_t address, const Act
     return CutAt(address, "el efecto 0xc2 alrededor del que pega (CL11)", actor, slot);
 }
 
-// 0x51fff0: ocho estallidos alrededor del monstruo. Con un modelo disponible, la primera piedra
-// posterior al selector sigue sin portar; el pool lleno deja que corran los ocho grupos.
+// 0x51fff0: ocho estallidos alrededor del monstruo, cada uno con dos intentos de piedra.
 Core::Expected<void, std::string> ScatterTheBurst(const ActorState& actor, std::size_t slot,
                                                   const CharacterStepContext& context)
 {
@@ -775,6 +783,8 @@ Core::Expected<void, std::string> StepTheKindCase(ActorState& actor, const KindC
         {
             if (auto burst = ScatterTheBurst(actor, slot, context); !burst.HasValue())
                 return burst;
+            if (HasFreeModelEffect(context))
+                return CutAt(0x4f5d5a, "el efecto 0xf6 tras el estallido (CL11)", actor, slot);
         }
         if (ReadTheSkill(actor, context.random) != CaseSkill)
             return {};
@@ -896,7 +906,12 @@ Core::Expected<void, std::string> StepTheKindCase(ActorState& actor, const KindC
     case 0x4f793e:
         // En la 3 o la 4 y en 5, 0x51fff0(c + 0x10, 0) y 0xf6.
         if ((action == FirstAttack || action == SecondAttack) && step == FifthStep)
-            return ScatterTheBurst(actor, slot, context);
+        {
+            if (auto burst = ScatterTheBurst(actor, slot, context); !burst.HasValue())
+                return burst;
+            if (HasFreeModelEffect(context))
+                return CutAt(0x4f7980, "el efecto 0xf6 tras el estallido (CL11)", actor, slot);
+        }
         return {};
     case 0x4f798d:
     {
@@ -910,8 +925,9 @@ Core::Expected<void, std::string> StepTheKindCase(ActorState& actor, const KindC
                 localLight = TrailAttackLight;
                 if (auto burst = ScatterTheBurst(actor, slot, context); !burst.HasValue())
                     return burst;
-                if (!HasFreeModelEffect(context))
-                    SetTheFifthTrailPoint(actor, context.random);
+                if (HasFreeModelEffect(context))
+                    return CutAt(0x4f79d3, "el efecto 0xf6 tras el estallido (CL11)", actor, slot);
+                SetTheFifthTrailPoint(actor, context.random);
             }
             return {};
         }

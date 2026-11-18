@@ -28,6 +28,11 @@ con una luz en el punto de contacto. Su representación reemplaza el cuerpo y
 las emisiones de contacto. El proyectil y el pulso usan geometría propia en
 lugar de las cadenas `60f/19` y `610/0..3`.
 
+La dispersión de `0x51fff0` usa el estallido y el subtipo 0 de piedras que ya
+tiene el motor. El subtipo 1 conserva la reserva y los cuatro sorteos del alta,
+la aceleración vertical y la vida. MuRet lo dibuja con tres triángulos ámbar
+sin textura. La diferencia de geometría conserva el paso y el RNG del subtipo.
+
 ## Consecuencias
 
 El uso de pools y RNG secundarios difiere allí donde cambia la emisión. Las

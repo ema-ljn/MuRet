@@ -52,6 +52,11 @@ inline constexpr std::int16_t FirstDebrisEffect = 0x10a;
 inline constexpr std::int16_t DebrisEffect = 0x10b;
 inline constexpr std::int16_t FirstStoneChipEffect = 0xc8;
 inline constexpr std::int16_t SecondStoneChipEffect = 0xc9;
+inline constexpr std::int32_t RisingStoneChipSubtype = 1;
+[[nodiscard]] constexpr bool IsRisingStoneChip(std::int16_t type, std::int32_t subtype)
+{
+    return subtype == RisingStoneChipSubtype && (type == FirstStoneChipEffect || type == SecondStoneChipEffect);
+}
 // El pedazo de hielo 0xca (Data\Skill\Ice02.bmd, 0x615d36): diez los suelta el monstruo de hielo 0x161 al terminar de
 // morir (0x52e810, CL9 hito 3). Su paso es el de las piedritas (0x523974).
 inline constexpr std::int16_t IceShardEffect = 0xca;
@@ -305,9 +310,12 @@ public:
     // 0x518cf0(0xc8 o 0xc9, …, 0, 0, −1, 0, 0, 0, 0) → 0x51b72b con el subtipo 0: el prefijo común y cinco
     // rand(): el empuje ((& 255) + 64) · 0,1f en y, la vida (& 15) + 32, la escala ((& 3) + 8) · 0,1f, el
     // yaw rand() % 360 y la caída (& 15) + 8 en +0xe4; la velocidad es el empuje girado por los ángulos con
-    // ese yaw. Otro tipo o la tabla llena, ninguno.
+    // ese yaw. La /1 de 0x520119 tiene empuje cero y omite ese primer sorteo. Otro tipo o la tabla llena, ninguno.
     std::optional<std::size_t> CreateStoneChip(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
                                                const glm::vec3& light, Render::Models::CrtRandom& random);
+    std::optional<std::size_t> CreateStoneChip(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
+                                               const glm::vec3& light, Render::Models::CrtRandom& random,
+                                               std::int32_t subtype);
     // 0x518cf0(0xbb o 0x5ac, …, 0, 0, −1, 0, 0, 0, 0) con el subtipo 0. La nube (0x51b968): vida 2, el
     // blendMesh en 0, escala 10, 200 más en y y 190 menos en z, sin luz por vértice; sin rand(). El 0x5ac
     // (0x51e3ec): la luz en 0,3f, s = rand() % 5 + 9 y la velocidad sin girar (sen 30° · cos 70°; cos 30° ·

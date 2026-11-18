@@ -914,9 +914,8 @@ TEST_F(MonsterAttackCasesTest, TheFortressAndCrywolfLookAtTheModel)
                                      {.name = "0x17c en 1",
                                       .type = 3,
                                       .step = 1,
-                                      .cut = "0x520119",
-                                      .draws = 141,
-                                      .sounds = {0x40},
+                                      .draws = 2418,
+                                      .sounds = std::vector<std::int32_t>(16, 0x40),
                                       .kind = std::uint16_t{0x3b},
                                       .model = std::uint16_t{0x17c}},
                                      {.name = "0x17c con '2' en 14",
@@ -1065,23 +1064,94 @@ TEST_F(MonsterAttackCasesTest, Crywolf17cScattersAndContinuesThroughTheCommonKin
     }
 }
 
-TEST_F(MonsterAttackCasesTest, CrywolfScatterReachesTheNativeStoneCutWhenAModelSlotIsFree)
+TEST_F(MonsterAttackCasesTest, CrywolfScattersPairedStonesInSlotOrderBeforeTheCommonTail)
+{
+    struct Capacity
+    {
+        std::size_t freeSlots;
+        int draws;
+    };
+    constexpr std::array capacities{Capacity{0, 674}, Capacity{1, 678}, Capacity{3, 687}, Capacity{32, 818}};
+    constexpr std::array firstTypes{0xc9, 0xc8, 0xc8};
+    constexpr std::array firstLives{34, 35, 38};
+    constexpr std::array firstYaws{120.0f, 35.0f, 151.0f};
+    constexpr std::array firstVerticalSpeeds{18.0f, 17.0f, 11.0f};
+    for (const auto [freeSlots, draws] : capacities)
+    {
+        SCOPED_TRACE(freeSlots);
+        Load(34);
+        ActorState& monster = Prepare(Probe{.type = 3, .step = 1, .target = 0, .kind = 0x3b, .model = 0x17c});
+        monster.position = {1000, 2000, 350};
+        FillModelEffectPoolExceptLast(freeSlots);
+        for (Client::World::Particle& particle : game->particles.All())
+            particle.alive = true;
+        game->cloth.random = CrtRandom(Seed);
+
+        const auto stepped = Step(monster);
+
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(Draws(), draws);
+        EXPECT_TRUE(sounds.empty());
+        const auto effects = game->world.Map().effects.Effects().last(freeSlots);
+        for (std::size_t index = 0; index < effects.size(); ++index)
+        {
+            SCOPED_TRACE(index);
+            const auto& effect = effects[index];
+            ASSERT_TRUE(effect.alive);
+            EXPECT_EQ(effect.subtype, index % 2 == 0 ? 1 : 0);
+            EXPECT_FALSE(effect.hasOwner);
+            EXPECT_EQ(effect.transform.position.z, 350.0f);
+            if (index < firstTypes.size())
+            {
+                EXPECT_EQ(effect.type, firstTypes[index]);
+                EXPECT_EQ(effect.life, firstLives[index]);
+                EXPECT_EQ(effect.transform.angles.z, firstYaws[index]);
+                EXPECT_EQ(effect.turnDirection, firstVerticalSpeeds[index]);
+            }
+            if (index < 2 || index == 16)
+            {
+                EXPECT_EQ(effect.transform.position, (glm::vec3{1000, 1780, 350}));
+            }
+            if (index == 2)
+            {
+                EXPECT_NEAR(effect.transform.position.x, 1155.5635f, 0.001f);
+                EXPECT_NEAR(effect.transform.position.y, 1844.4365f, 0.001f);
+            }
+            if (effect.subtype == 1)
+            {
+                EXPECT_EQ(effect.velocity, glm::vec3(0));
+            }
+        }
+    }
+}
+
+TEST_F(MonsterAttackCasesTest, CrywolfFlamesWithAFullParticlePoolReachTheCommonTail)
 {
     Load(34);
-    ActorState& monster = Prepare(Probe{.name = "0x17c en 1 con piedra libre",
-                                        .type = 3,
-                                        .step = 1,
-                                        .target = 0,
-                                        .kind = std::uint16_t{0x2345},
-                                        .model = std::uint16_t{0x17c}});
-    FillModelEffectPoolExceptLast(1);
-    for (Client::World::Particle& particle : game->particles.All())
-        particle.alive = true;
+    constexpr std::uint16_t NoKind = 0x2345;
+    for (const std::uint8_t step : {std::uint8_t{1}, std::uint8_t{2}})
+    {
+        ActorState& monster = Prepare(Probe{.type = 3, .step = step, .target = 0, .kind = NoKind, .model = 0x17e});
+        for (auto& particle : game->particles.All())
+        {
+            particle.alive = true;
+            particle.type = 0x5c5;
+        }
 
-    const auto stepped = Step(monster);
+        const auto stepped = Step(monster);
 
-    EXPECT_TRUE(!stepped.HasValue() && stepped.Error().starts_with("0x520119")) << stepped.Error();
-    EXPECT_EQ(Draws(), 41);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(Draws(), 6 + 4 + Tail);
+        EXPECT_EQ(sounds.size(), static_cast<std::size_t>(step == 1));
+        if (step == 1)
+        {
+            ASSERT_FALSE(sounds.empty());
+            EXPECT_EQ(sounds.front(), 0x75);
+            EXPECT_EQ(soundDraws.front(), 6);
+        }
+        EXPECT_TRUE(std::ranges::all_of(game->particles.All(),
+                                        [](const auto& particle) { return particle.alive && particle.type == 0x5c5; }));
+    }
 }
 
 TEST_F(MonsterAttackCasesTest, Crywolf17cStepFourteenContinuesPastTheFull18c1aPool)
@@ -1247,9 +1317,9 @@ TEST_F(MonsterAttackCasesTest, TheKindCasesCutAfterTheirDrawsOrGoOnToTheTail)
         {.name = "0x3f en 1",
          .type = 3,
          .step = 1,
-         .cut = "0x520119",
-         .draws = 141,
-         .sounds = {0x40},
+         .cut = "0x4f5d5a",
+         .draws = 1208,
+         .sounds = std::vector<std::int32_t>(8, 0x40),
          .kind = std::uint16_t{0x3f}},
         {.name = "0x3f con '2'",
          .type = 3,
@@ -1269,9 +1339,8 @@ TEST_F(MonsterAttackCasesTest, TheKindCasesCutAfterTheirDrawsOrGoOnToTheTail)
         {.name = "0x35 en 1",
          .type = 3,
          .step = 1,
-         .cut = "0x520119",
-         .draws = 141,
-         .sounds = {0x40},
+         .draws = 1210,
+         .sounds = std::vector<std::int32_t>(8, 0x40),
          .kind = std::uint16_t{0x35}},
         {.name = "0x3b con '2' en 14",
          .type = 3,
@@ -1326,16 +1395,26 @@ TEST_F(MonsterAttackCasesTest, TheKindCasesCutAfterTheirDrawsOrGoOnToTheTail)
          .cut = "0x4f756a",
          .draws = SkillRead + 3},
         {.name = "0x48 con '2' en 13", .type = 0x48, .step = 13, .skill = CaseSkill, .draws = SkillRead + Tail},
-        {.name = "0x47 en la 3 y en 5", .type = 0x47, .step = 5, .cut = "0x520119", .draws = 141, .sounds = {0x40}},
+        {.name = "0x47 en la 3 y en 5",
+         .type = 0x47,
+         .step = 5,
+         .cut = "0x4f7980",
+         .draws = 1208,
+         .sounds = std::vector<std::int32_t>(8, 0x40)},
         {.name = "0x4a en la 4 y en 5",
          .type = 0x4a,
          .step = 5,
          .action = 4,
-         .cut = "0x520119",
-         .draws = 141,
-         .sounds = {0x40}},
+         .cut = "0x4f7980",
+         .draws = 1208,
+         .sounds = std::vector<std::int32_t>(8, 0x40)},
         {.name = "0x12d en la 5 y en 5", .type = 0x12d, .step = 5, .action = 5, .draws = Tail},
-        {.name = "0x49 en la 3 y en 11", .type = 0x49, .step = 11, .cut = "0x520119", .draws = 141, .sounds = {0x40}},
+        {.name = "0x49 en la 3 y en 11",
+         .type = 0x49,
+         .step = 11,
+         .cut = "0x4f79d3",
+         .draws = 1208,
+         .sounds = std::vector<std::int32_t>(8, 0x40)},
         {.name = "0x49 en la 3 y en 13", .type = 0x49, .step = 13, .draws = Tail},
         {.name = "0x4b en la 4 y en 13", .type = 0x4b, .step = 13, .action = 4, .cut = "0x4f80cf"},
         {.name = "0x49 en la 4 y en 9", .type = 0x49, .step = 9, .action = 4, .draws = Tail},
@@ -2626,7 +2705,7 @@ TEST_F(MonsterAttackCasesTest, TheAquagoldCasesCreateTheirArrowsAndContinueTheTa
     }
 }
 
-// 0x51fff0: con modelos llenos el subtipo pendiente no se ejecuta; los ocho bursts y 16 selectores sí.
+// 0x51fff0: con modelos llenos, los ocho estallidos y 16 selectores conservan sus sorteos.
 TEST_F(MonsterAttackCasesTest, TheScatteredBurstSkipsFullModelPoolsAndKeepsAllCallerDraws)
 {
     for (const bool particlesFull : {false, true})
@@ -2659,7 +2738,7 @@ TEST_F(MonsterAttackCasesTest, ACombatBurstWithoutParticlesKeepsItsTwoCallerDraw
     EXPECT_EQ(Draws(), 2);
 }
 
-TEST_F(MonsterAttackCasesTest, TheScatteredBurstReachesItsRealUnsupportedSubtypeAfterTheSupportedPrefix)
+TEST_F(MonsterAttackCasesTest, TheScatteredBurstKeepsItsRngWithAPartialParticlePool)
 {
     for (const int freeParticles : {0, 20, 21})
     {
@@ -2670,9 +2749,8 @@ TEST_F(MonsterAttackCasesTest, TheScatteredBurstReachesItsRealUnsupportedSubtype
         for (std::size_t index = 0; index < particles.size(); ++index)
             particles[index].alive = index >= static_cast<std::size_t>(freeParticles);
         const auto stepped = Step(monster);
-        ASSERT_FALSE(stepped.HasValue());
-        EXPECT_TRUE(stepped.Error().starts_with("0x520119")) << stepped.Error();
-        EXPECT_EQ(Draws(), 41 + 5 * std::min(freeParticles, 20));
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(Draws(), 408 + 5 * std::min(freeParticles, 20));
         EXPECT_EQ(sounds.size(), freeParticles == 21 ? 1u : 0u);
     }
 }

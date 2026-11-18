@@ -38,6 +38,14 @@ Shape ShapeOf(const World::ModelEffect& effect, float progress)
         return {.radius = 42, .width = 7, .length = 7, .rise = 19, .height = 0, .count = 6, .color = Violet};
     if (effect.type == World::CrywolfShardEffect)
         return {.radius = 8, .width = 5, .length = 16, .rise = 8, .height = 0, .count = 1, .color = Blue};
+    if (World::IsRisingStoneChip(effect.type, effect.subtype))
+        return {.radius = 4,
+                .width = 5 * effect.transform.scale,
+                .length = 2,
+                .rise = 9 * effect.transform.scale,
+                .height = 0,
+                .count = 3,
+                .color = Amber};
     if (effect.type == World::SiegeArrivalCue)
         return {.radius = 32.0f * effect.transform.scale,
                 .width = 8,

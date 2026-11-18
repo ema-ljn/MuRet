@@ -338,7 +338,7 @@ TEST(AttackStepTest, TheMapHelpersOfTheMonstersExitOrCut)
         Case{"el 54", 0x36, 0x160, 0x134, 1, "", Helper},
         Case{"el 35 en 14", 0x23, 0x1b2, 3, 14, "", Helper + OwnRecord + SkillWithTarget, {0x47}, true},
         Case{"el 35 en 2", 0x23, 0x1b2, 3, 2, "", CountingStep},
-        Case{"Crywolf 0x17c", 0x22, 0x17c, 3, 1, "0x520119", Helper + 141, {0x40}},
+        Case{"Crywolf 0x17c", 0x22, 0x17c, 3, 1, "", Helper + 1210, std::vector<std::int32_t>(8, 0x40)},
         Case{"Crywolf 0x1ad en 2", 0x22, 0x1ad, 3, 2, "", CountingStep},
         Case{"un caso de +0x376", 0, 0x160, 0x4d, 1, "", CountingStep + SkillRead}};
     for (const Case& probe : cases)

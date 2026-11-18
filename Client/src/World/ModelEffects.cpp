@@ -763,7 +763,15 @@ std::optional<std::size_t> ModelEffects::CreateStoneChip(std::int16_t type, cons
                                                          const glm::vec3& angles, const glm::vec3& light,
                                                          Render::Models::CrtRandom& random)
 {
-    if (type != FirstStoneChipEffect && type != SecondStoneChipEffect)
+    return CreateStoneChip(type, position, angles, light, random, 0);
+}
+
+std::optional<std::size_t> ModelEffects::CreateStoneChip(std::int16_t type, const glm::vec3& position,
+                                                         const glm::vec3& angles, const glm::vec3& light,
+                                                         Render::Models::CrtRandom& random, std::int32_t subtype)
+{
+    if ((type != FirstStoneChipEffect && type != SecondStoneChipEffect) ||
+        (subtype != 0 && subtype != RisingStoneChipSubtype))
         return std::nullopt;
     constexpr int PushMask = 255, PushBase = 64, LifeMask = 15, LifeBase = 32, ScaleMask = 3, ScaleBase = 8;
     constexpr int Degrees = 360, FallMask = 15, FallBase = 8;
@@ -773,13 +781,20 @@ std::optional<std::size_t> ModelEffects::CreateStoneChip(std::int16_t type, cons
         if (effect.alive)
             continue;
         InitializeOwnerlessEffect(effect, type, position, angles, light);
-        const glm::vec3 push{0.0f, F32(static_cast<double>((random.Next() & PushMask) + PushBase) * StoneTenth), 0.0f};
+        effect.subtype = subtype;
+        // 0x51b735: la /1 inicializa a cero, sin llamar a rand() para el empuje.
+        const float impulse = subtype == RisingStoneChipSubtype
+                                  ? 0.0f
+                                  : F32(static_cast<double>((random.Next() & PushMask) + PushBase) * StoneTenth);
+        const glm::vec3 push{0.0f, impulse, 0.0f};
         effect.life = (random.Next() & LifeMask) + LifeBase;
         effect.transform.scale = F32(static_cast<double>((random.Next() & ScaleMask) + ScaleBase) * StoneTenth);
         effect.transform.angles.z = static_cast<float>(random.Next() % Degrees);
         effect.velocity =
             Render::Models::OriginalVectorRotate(push, Render::Models::OriginalAngleMatrix(effect.transform.angles));
         effect.turnDirection = static_cast<float>((random.Next() & FallMask) + FallBase);
+        if (subtype == RisingStoneChipSubtype)
+            effect.copiedAngles = {};
         return slot;
     }
     return std::nullopt;

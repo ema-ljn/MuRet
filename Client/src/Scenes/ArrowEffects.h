@@ -72,8 +72,7 @@ class WorldState;
 [[nodiscard]] Core::Expected<void, std::string> CreateCombatBurstAt(const glm::vec3& position,
                                                                     const CharacterStepContext& context);
 
-// 0x51fff0(posición,0): ocho grupos con 0x51fe10 y dos selectores de piedra. Con hueco, el subtipo1 sigue CL11;
-// sin hueco en efectos, las ocho vueltas conservan los RNG y continúan.
+// 0x51fff0(posición,0): ocho grupos con 0x51fe10 y un selector por intento de piedra c8/c9, primero /1 y después /0.
 [[nodiscard]] Core::Expected<void, std::string> ScatterCombatBurstAt(const glm::vec3& position,
                                                                      const CharacterStepContext& context);
 

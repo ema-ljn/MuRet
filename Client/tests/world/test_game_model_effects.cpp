@@ -599,13 +599,39 @@ TEST(GameModelEffectsTest, TheStoneChipsDragTiltBounceAndSometimesBurn)
         Client::Render::Models::CrtRandom draws = Client::Tests::AfterDraws(burns, 2);
         EXPECT_EQ(fire.subtype, draws.Next() % 3 + 1);
     }
-    Client::World::ModelEffect owned = DungeonEffect(Client::World::FirstStoneChipEffect, 40);
-    owned.subtype = 1;
-    Client::World::Particles particles;
+}
+
+TEST(GameModelEffectsTest, TheRisingStoneChipAcceleratesWithoutTerrainOrFire)
+{
+    auto particles = std::make_unique<Client::World::Particles>();
+    auto chip = DungeonEffect(Client::World::FirstStoneChipEffect, 2);
+    chip.subtype = 1;
+    chip.transform.angles = {0, 0, 90};
+    chip.velocity = {0, 10, 0};
+    chip.turnDirection = 8;
+    const auto start = chip.transform.position;
     Client::Render::Models::CrtRandom random(1);
-    const auto cut = Client::World::StepGameModelEffect(owned, nullptr, particles, 0.0f, random);
-    ASSERT_FALSE(cut.HasValue());
-    EXPECT_NE(cut.Error().find("0x5238be"), std::string::npos) << cut.Error();
+
+    auto result = Client::World::StepGameModelEffect(chip, nullptr, *particles, 0.0f, random);
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_EQ(chip.previousPosition, start);
+    EXPECT_NEAR(chip.transform.position.x, start.x - 19, 0.001f);
+    EXPECT_NEAR(chip.transform.position.y, start.y, 0.001f);
+    EXPECT_EQ(chip.transform.position.z, start.z + 8);
+    EXPECT_EQ(chip.turnDirection, 8.5f);
+    EXPECT_EQ(chip.transform.angles, (glm::vec3{0, 0, 90}));
+    EXPECT_EQ(chip.life, 1);
+    EXPECT_TRUE(chip.alive);
+
+    result = Client::World::StepGameModelEffect(chip, nullptr, *particles, 0.0f, random);
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_EQ(chip.transform.position.z, start.z + 16.5f);
+    EXPECT_EQ(chip.life, 0);
+    EXPECT_FALSE(chip.alive);
+    EXPECT_FALSE(particles->All()[0].alive);
+    EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 2).State());
 }
 
 // El pedazo de hielo 0xca de 0x52e810 entra en 0x523974 con el subtipo 0: el mismo paso que la piedrita (se arrastra,

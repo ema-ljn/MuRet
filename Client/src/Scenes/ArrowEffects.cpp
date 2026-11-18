@@ -1225,9 +1225,9 @@ Core::Expected<void, std::string> ScatterCombatBurstAt(const glm::vec3& position
 {
     constexpr int Groups = 8;
     constexpr int YawStep = 45;
-    constexpr int SelectorSpan = 2;
-    constexpr std::uint32_t StoneCut = 0x520119;
+    constexpr std::array Subtypes{World::RisingStoneChipSubtype, std::int32_t{0}};
     constexpr glm::vec3 Offset{0.0f, -220.0f, 0.0f};
+    auto& effects = context.world.Map().effects;
     for (int group = 0; group < Groups; ++group)
     {
         const glm::vec3 angles{0.0f, 0.0f, static_cast<float>(group * YawStep)};
@@ -1238,17 +1238,12 @@ Core::Expected<void, std::string> ScatterCombatBurstAt(const glm::vec3& position
             point[axis] = static_cast<float>(static_cast<double>(rotated[axis]) + static_cast<double>(position[axis]));
         if (auto burst = CreateCombatBurstAt(point, context); !burst.HasValue())
             return Core::Unexpected(burst.Error());
-        static_cast<void>(context.random.Next() % SelectorSpan);
-        const auto& effects = context.world.Map().effects.Effects();
-        const auto freeEffect =
-            std::ranges::find_if(effects, [](const World::ModelEffect& effect) { return !effect.alive; });
-        if (freeEffect != effects.end())
+        // 0x520119 y 0x520152: cada selector precede a su intento, incluso con el pool lleno.
+        for (const auto subtype : Subtypes)
         {
-            return Core::Unexpected(
-                std::format("{:#x}: el efecto de piedra subtipo1 del grupo disperso sigue en CL11", StoneCut));
+            const auto type = static_cast<std::int16_t>(World::FirstStoneChipEffect + (context.random.Next() & 1));
+            static_cast<void>(effects.CreateStoneChip(type, point, angles, glm::vec3(1.0f), context.random, subtype));
         }
-        // El segundo tipo de piedra también sólo consume el selector cuando el pool de modelos está lleno.
-        static_cast<void>(context.random.Next() % SelectorSpan);
     }
     return {};
 }

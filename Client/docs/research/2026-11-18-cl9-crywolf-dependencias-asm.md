@@ -96,6 +96,19 @@ Hay además un corte artificial del dibujo actual que debe entrar al cierre: `Dr
 
 Los servicios actuales `ModelEffectStepServices` ya prestan effects,terrainHeight,lighting. ModelEffect tiene todo el estado; no hace falta duplicar contador/RNG ni ampliar WorldState. Los dos callers deberían usar un solo constructor C1A canónico, mantener las18tentativas y la lectura protegida previa.
 
+## Dispersión en el primer paso y llamas del tipo 17e
+
+| Bloque ASM | Comportamiento comprobado |
+| --- | --- |
+| `51fff0..520167` | Ocho centros a 220 unidades, con giros de 45°. En cada centro corre `51fe10`, el selector y alta `C8/C9` con subtipo 1 (`520119`), y luego el selector y alta del subtipo 0 (`520152`). Cada selector consume un sorteo aunque el pool esté lleno. `43258b` y `4f6450` comparten este auxiliar; ambos pasan al atacar el tipo `17c` con kind `3b` en el paso 1 de Crywolf. |
+| `51b72b..51b809` | El subtipo 1 empieza con empuje cero. Omite el sorteo del empuje del subtipo 0 y conserva los cuatro de vida, escala, yaw y velocidad vertical. |
+| `523985..523a62`, `52cd89` | El subtipo 1 suma la velocidad girada, aplica arrastre 0,9 y suma la velocidad vertical. Luego la acelera en 0,5. Continúa al movimiento y decremento comunes sin consultar el suelo ni intentar fuego. MuRet lo dibuja con geometría propia. |
+| `432a0c..432b29`, `4ec110`, `53fe81..53febb` | El transformador sólo escribe el punto local. Los seis primeros puntos no tienen lector. Los cuatro siguientes pasan a `53fe70`, que con todos los lugares ocupados sale antes de leerlos. Esa ruta tiene diez sorteos de yaw y solicita `75` tras el sexto en el paso 1. Con un lugar libre, el punto sí se copia desde el cálculo que lee `[EBP − 0x30]` (Q-C1050). |
+
+Las regresiones prueban ambas tandas de piedras, los cuatro y cinco sorteos del
+alta, la saturación y el paso hasta la liberación. Para `17e` conservan el
+diagnóstico cuando el punto importa y comprueban continuidad con el pool lleno.
+
 ## Límites de la evaluación y pruebas necesarias antes de declarar cierre
 
 No se encontró indeterminación en los constructores requeridos. Persisten trabajo de implementación y validación, especialmente los redondeos PC53 de60f/b/19, la metadata realPiercing, el filtro de dibujo modo1 y el wiring del choque desdejoints. No se ejecutó el original para resolver nada.

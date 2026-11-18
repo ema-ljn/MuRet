@@ -984,6 +984,25 @@ TEST_F(GameHudTest, TheNpcWindowsAndTheKeypadAreDrawn)
     }
 }
 
+// 0x5f75ef→0x5f7180: el HUD llama al dibujo que escribe la esquina 450 y produce la casilla de aceptación.
+TEST_F(GameHudTest, TheHudDrawsThePanel2000ThroughItsWindowPass)
+{
+    for (const std::int32_t map : {0, 2, 3})
+    {
+        SCOPED_TRACE(map);
+        world.Runtime() = Client::Scenes::WorldRuntime{};
+        world.Runtime().map = map;
+        world.Runtime().panels.panel2000 = 1;
+        sprites.Begin(Screen640);
+        const auto drawn = Hud();
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_EQ(world.Runtime().hud.inventoryX, 450);
+        const auto quads = QuadsOf(sprites);
+        EXPECT_TRUE(std::ranges::any_of(quads, [](const DrawnQuad& quad)
+                                        { return quad.slot == 0x122 && quad.first.x == 475.0f; }));
+    }
+}
+
 // Lo que es de otra ola corta con su dirección donde su condición se cumple.
 TEST_F(GameHudTest, ThePiecesOfOtherWavesStopWithTheirAddress)
 {
@@ -992,8 +1011,7 @@ TEST_F(GameHudTest, ThePiecesOfOtherWavesStopWithTheirAddress)
         std::string_view address;
         void (*arrange)(WorldState&);
     };
-    const std::array<Case, 2> cases{{
-        {"0x5f7180", [](WorldState& state) { state.Runtime().panels.panel2000 = 1; }},
+    const std::array<Case, 1> cases{{
         {"0x4125b0",
          [](WorldState& state)
          {

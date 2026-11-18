@@ -1709,8 +1709,8 @@ Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI
             return chips;
     }
     // 0x5e74f0, el panel 0x2000.
-    if (panels.IsOpen(UI::Panel2000))
-        return Core::Unexpected(std::string("0x5e74f0: el paso del panel 0x2000 es de la CL9"));
+    if (auto panel = StepThePanel2000(context, panels); !panel.HasValue())
+        return panel;
     // 0x40a450, los comandos ([0x6e592c]), que empieza con su +4.
     if (auto commands = StepTheCommandsWindow(context); !commands.HasValue())
         return commands;
@@ -2441,6 +2441,9 @@ Core::Expected<void, std::string> StepTheGameDialogs(const GameUiContext& contex
     // 3F 07 y las misiones el 31, por la sesión.
     panels.LendTheSession(context.world, context.random, context.requests);
     panels.LendTheGuild(context.world, GuildSenderOf(context.requests));
+    panels.LendTheNpcWindows(context.world, context.random,
+                             context.inventory != nullptr ? *context.inventory : InventoryServices{},
+                             context.sendNpcWindow);
     // 0x623e9b..0x623ec2: con la de amigos abierta, Esc es de las ventanas viejas (0x490490). Lo leído queda en
     // [EBP−0x7d], que mira el no de 0x62c50e.
     const bool escape = !panels.Registry().IsOpen(UI::FriendsPanel) && KeyEdge(ui, context.input, EscapeKey);

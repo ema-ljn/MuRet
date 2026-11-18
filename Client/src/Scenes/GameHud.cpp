@@ -910,8 +910,8 @@ Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
     // 0x5f75e7: 0x424160 con el héroe, siempre: el botón y la ventana de la mascota y el cartel del cuervo.
     if (auto pet = DrawThePetWindow(frame.context, panels); !pet.HasValue())
         return pet;
-    if (panels.IsOpen(UI::Panel2000))
-        return cut("0x5f7180: la ventana 0x2000 no tiene ola todavía");
+    if (auto panel = DrawThePanel2000(frame.context, panels); !panel.HasValue())
+        return panel;
     // 0x5f75fa: 0x40a650, que empieza con +4 de [0x6e592c].
     if (auto commands = DrawTheCommandsWindow(frame.context); !commands.HasValue())
         return commands;

@@ -38,14 +38,15 @@ Core::Expected<void, std::string> DrawTheCastleBlessing(const ActorState& actor,
                 break;
             }
     }
-    else if (markX != 0.0f && markY != 0.0f && heroGuildIndex == actor.word1f2)
+    else if (markX != 0.0f && !std::isnan(markX) && markY != 0.0f && !std::isnan(markY) &&
+             heroGuildIndex == actor.word1f2)
         close = InRange(actor, markX, markY);
     if (!close || logicSteps % 10 != 0)
         return {};
     const auto emitted = particles.CreateChecked(World::SiegeBlessingParticle, actor.position, actor.angles,
                                                  actor.light, 0, 1.0f, 0.0f, random);
     if (!emitted.HasValue())
-        return Core::Unexpected(std::string("0x42de81: falla el alta de la bendición638"));
+        return Core::Unexpected(std::string("0x42de7f: falla el alta de la bendición638"));
     return {};
 }
 } // namespace Client::Scenes

@@ -1,4 +1,6 @@
 #include "Scenes/AttackStep.h"
+#include "Scenes/CastleSiegeAttack.h"
+#include "World/SiegeVertexEffects.h"
 
 #include "Core/Expected.h"
 #include "Data/Models/PlayerModels.h"
@@ -290,8 +292,25 @@ Core::Expected<void, std::string> StrikeTheTarget(ActorState& actor, std::size_t
         // 0x50428c: 0x42ea00(blanco) solo actúa en el mapa 30 con los tipos 0x19b y 0x19c.
         constexpr std::int32_t CastleMap = 30;
         if (runtime.map == CastleMap && (victim.type == 0x19b || victim.type == 0x19c))
-            return Core::Unexpected(
-                std::format("0x50428c: 0x42ea00 con el blanco {:#x}, sin portar (hito 13)", victim.type));
+        {
+            const auto heroFlags = context.world.Actors()[runtime.hero].flags78;
+            if (auto hit = EmitTheCastleAttackHit(
+                    victim, heroFlags, context.random,
+                    [&](const World::ModelEffectArguments& arguments) -> Core::Expected<void, std::string>
+                    {
+                        auto& effects = context.world.Map().effects;
+                        if (arguments.type == 0x114)
+                            static_cast<void>(effects.CreateWaveEffect(arguments));
+                        else if (arguments.type == World::DebrisEffect)
+                            static_cast<void>(effects.CreateDebris(arguments.type, arguments.position, arguments.angles,
+                                                                   arguments.light, context.random));
+                        else
+                            static_cast<void>(World::CreateSiegeVertexEffect(arguments, effects, context.random));
+                        return {};
+                    });
+                !hit.HasValue())
+                return hit;
+        }
     }
     // 0x50429f..0x5042ce: las acciones 0x38 a 0x3c, 0x52e740 (AttackSkillCases.h).
     if (actor.animation.action > 0x37 && actor.animation.action < 0x3d)

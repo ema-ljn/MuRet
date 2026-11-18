@@ -4,7 +4,6 @@
 #include "World/OriginalFtol.h"
 #include "World/WorldObjects.h"
 #include <cmath>
-#include <cstdint>
 #include <span>
 #include <string>
 namespace Client::World

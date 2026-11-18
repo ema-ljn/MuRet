@@ -613,7 +613,7 @@ Core::Expected<void, std::string> DrawThePool(Render::ModelBatch& batch, const I
             world.Runtime().siegeActive && actor.seen && originalFrame)
         {
             if (pass.clothWorld == nullptr || pass.particles == nullptr)
-                return Core::Unexpected(std::string("0x42de81: faltan partículas o CRT para la bendición del asedio"));
+                return Core::Unexpected(std::string("0x42de7f: faltan partículas o CRT para la bendición del asedio"));
             if (auto blessed = DrawTheCastleBlessing(actor, world.Actors()[hero].word1f2, world.Runtime().castleMarkX,
                                                      world.Runtime().castleMarkY, pass.clothWorld->logicSteps,
                                                      *pass.particles, pass.clothWorld->random);

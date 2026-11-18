@@ -2,6 +2,7 @@
 
 #include "App/SessionState.h"
 #include "Core/ILogSink.h"
+#include "Core/Expected.h"
 #include "Core/Log.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemSetTables.h"
@@ -10,6 +11,7 @@
 #include "Data/Terrain/TerrainHeights.h"
 #include "Network/PacketSerials.h"
 #include "Protocol/World.h"
+#include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
@@ -22,6 +24,10 @@
 #include "Scenes/SelectionState.h"
 #include "Scenes/SessionEventApplier.h"
 #include "Scenes/WorldEntry.h"
+#include "Scenes/WorldTransitionSupport.h"
+#include "support/SceneDataFiles.h"
+#include "UI/ChatLog.h"
+#include "UI/MessageArea.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"
@@ -541,6 +547,56 @@ public:
         return {static_cast<int>(text.size()) * 6, 13};
     }
 };
+TEST(WorldTransitionsTest, TransitionClosersKeepSeniorBusyAsALocalWarningWithoutASocket)
+{
+    auto tested = std::make_unique<Transition>();
+    Letters letters;
+    auto texts = Client::Tests::MakeTextTable({{1641, "la caja sigue ocupada"}});
+    auto resources = tested->Resources();
+    resources.textMeasure = &letters;
+    resources.texts = &texts;
+    auto& runtime = tested->world.Runtime();
+    runtime.panels.delegated.castleSiegeList = 1;
+    runtime.npcWindows.chaosBox[0].id = 1;
+    runtime.npcWindows.chaosBox[0].occupied = 0; // 661b90 mira type, no occupied.
+
+    auto result = Client::Scenes::CloseTransitionWindows(resources);
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_EQ(runtime.panels.delegated.castleSiegeList, 1);
+    ASSERT_FALSE(runtime.chat.log.entries.empty());
+    EXPECT_EQ(runtime.chat.log.entries.back().text, "la caja sigue ocupada");
+    EXPECT_EQ(runtime.chat.log.entries.back().type, Client::UI::SystemMessage);
+    EXPECT_EQ(tested->cloth.random.State(), Client::Tests::AfterDraws(1, 2).State());
+}
+
+TEST(WorldTransitionsTest, TransitionClosersPreserveTheNpcTransportsFailureBeforeClearingItsPanel)
+{
+    auto tested = std::make_unique<Transition>();
+    auto resources = tested->Resources();
+    auto& runtime = tested->world.Runtime();
+    runtime.panels.warehouse = 1;
+    runtime.npcWindows.grid[0].id = 1;
+    int npcPackets = 0;
+    int genericPackets = 0;
+    resources.sendGamePacket = [&](Client::Protocol::Outgoing) { ++genericPackets; };
+    resources.sendNpcWindowPacket = [&](Client::Protocol::Outgoing) -> Client::Core::Expected<void, std::string>
+    {
+        ++npcPackets;
+        return Client::Core::Unexpected(std::string("falló el transporte del NPC"));
+    };
+
+    auto result = Client::Scenes::CloseTransitionWindows(resources);
+
+    ASSERT_FALSE(result.HasValue());
+    EXPECT_NE(result.Error().find("falló el transporte del NPC"), std::string::npos) << result.Error();
+    EXPECT_EQ(npcPackets, 1);
+    EXPECT_EQ(genericPackets, 0);
+    EXPECT_EQ(runtime.npcWindows.grid[0].id, 0xffff);
+    EXPECT_EQ(runtime.panels.warehouse, 1);
+    EXPECT_EQ(tested->cloth.random.State(), Client::Tests::AfterDraws(1, 1).State());
+}
+
 // 0x4c7af1..0x4c7b2f: al entrar a Chaos Castle o al salir, el sonido, las ventanas viejas escondidas sin anotarlas
 // (0x4906a0 con 1 y 0, Q-C572), sin foco y con el teclado en el juego, y la de amigos suelta (0x4914e0); después corta
 // en el objeto de los comandos. La caja se abre a mano: en la CL8 no la abre nadie.

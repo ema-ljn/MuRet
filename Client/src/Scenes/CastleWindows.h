@@ -49,6 +49,9 @@ void LendTheCastlePanelServices(GamePanels& panels, WorldState& world, Render::M
                                 const CastleSender& send, const WorldEntryResources* entryResources,
                                 CastleWindowServices services = {});
 void LendTheCastlePanelServices(GamePanels& panels, const CastleReceiveContext& context);
+// Para los cierres de entrada, teleport, misiones, comercio y tiendas: conserva también sus transportes específicos.
+void LendTheCastlePanelServices(GamePanels& panels, const WorldEntryResources& resources,
+                                const CastleSender& send = {});
 [[nodiscard]] Core::Expected<void, std::string> StepTheCastleWindow(const GameUiContext& context, UI::PanelId id);
 [[nodiscard]] Core::Expected<void, std::string> DrawTheCastleWindows(GameHudContext& context);
 [[nodiscard]] Core::Expected<bool, std::string> AnswerTheCastleWindowDialog(WorldState& world, const CastleSender& send,

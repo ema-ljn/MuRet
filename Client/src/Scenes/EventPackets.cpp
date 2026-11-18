@@ -22,6 +22,7 @@
 #include "Scenes/FaunaState.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GamePanels.h"
+#include "Scenes/CastleWindows.h"
 #include "Scenes/ItemNames.h"
 #include "Scenes/JewelMix.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -413,6 +414,11 @@ private:
     {
         GamePanels panels(m_world, m_context.random);
         panels.LendTheSession(m_world, m_context.random, m_context.send, m_context.sendWindowClose);
+        panels.LendTheCastleRequests(m_world, m_context.send,
+                                     CastleWindowServices{.measure = m_context.measure,
+                                                          .texts = m_context.texts,
+                                                          .screen = m_context.screen,
+                                                          .now = m_context.tickCount});
         return panels.Registry().CloseAll();
     }
 

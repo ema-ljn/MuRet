@@ -3,9 +3,13 @@
 #include "Scenes/CastleWindows.h"
 
 #include "Core/Expected.h"
+#include "Core/IClock.h"
+#include "App/FaithfulPacer.h"
+#include "Scenes/WorldEntry.h"
 #include "Protocol/CastleSiege.h"
 #include "Protocol/Connection/Logout.h"
 #include "Protocol/NpcWindows.h"
+#include "Render/Models/Cloth.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameUi.h"
@@ -145,12 +149,9 @@ void LendTheCastlePanelServices(GamePanels& panels, WorldState& world, Render::M
                                 const CastleSender& send, const WorldEntryResources* entryResources,
                                 CastleWindowServices services)
 {
-    panels.LendTheSession(world, random, send,
-                          [send]()
-                          {
-                              if (send)
-                                  send(Protocol::Connection::WriteWindowClose());
-                          });
+    panels.LendTheSession(world, random, send, {});
+    if (send)
+        panels.LendTheWindowClose([send]() { send(Protocol::Connection::WriteWindowClose()); });
     panels.LendTheCastleRequests(world, send, services);
     if (entryResources == nullptr)
         return;
@@ -169,6 +170,21 @@ void LendTheCastlePanelServices(GamePanels& panels, const CastleReceiveContext& 
     LendTheCastlePanelServices(
         panels, context.world, context.random, context.send, context.entryResources,
         {.measure = context.measure, .texts = context.texts, .screen = context.screen, .now = context.tick});
+}
+
+void LendTheCastlePanelServices(GamePanels& panels, const WorldEntryResources& resources, const CastleSender& send)
+{
+    LendTheCastlePanelServices(panels, resources.world, resources.cloth.random, send ? send : resources.sendGamePacket,
+                               &resources,
+                               {.measure = resources.textMeasure,
+                                .texts = resources.texts,
+                                .screen = resources.screen ? resources.screen() : App::PixelSize{640, 480},
+                                .now = resources.clock != nullptr ? App::TickCountMs(resources.clock->Now()) : 0u});
+    // La sesión puede prestar estos dos canales por separado; el de NPC conserva su Expected si send falla.
+    if (resources.sendNpcWindowPacket)
+        LendTheNpcWindows(panels, resources);
+    if (resources.sendWindowClose)
+        panels.LendTheWindowClose(resources.sendWindowClose);
 }
 
 void LendTheCastleWindowStepsTo(UI::PanelContext& panels, const GameUiContext& context)

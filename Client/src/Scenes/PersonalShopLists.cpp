@@ -7,6 +7,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/GamePanels.h"
+#include "Scenes/CastleWindows.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnItemPlacement.h"
@@ -243,7 +244,7 @@ Core::Expected<void, std::string> ApplyShopItemList(const Shop::ShopItemList& li
     PersonalShopState& shops = world.Runtime().social.personalShop;
     GamePanels panels(world, resources.cloth.random);
     // Abrir la tienda de otro (0x65b319) cierra lo demás: el comercio con el 3D y las misiones con el 31.
-    panels.LendTheSession(world, resources.cloth.random, send, resources.sendWindowClose);
+    LendTheCastlePanelServices(panels, resources, send);
     UI::PanelRegistry& registry = panels.Registry();
     // 0x4db8a7..0x4db8e8: el almacén y el inventario, si están abiertos (IsOpen de los dos sin rand()).
     for (const UI::PanelId id : {UI::WarehousePanel, UI::InventoryPanel})

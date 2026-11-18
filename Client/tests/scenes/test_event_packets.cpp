@@ -351,6 +351,24 @@ protected:
     std::vector<Client::Protocol::Outgoing> worldPackets;
 };
 
+TEST_F(EventPacketsTest, ClosingForAnEventKeepsTheSeniorBusyWarningAsALocalContinuation)
+{
+    texts = Client::Tests::MakeTextTable({{1641, "la caja sigue ocupada"}});
+    Runtime().panels.delegated.castleSiegeList = 1;
+    Runtime().npcWindows.chaosBox[0].id = 1;
+
+    auto result = Apply(Events::BloodCastleEntryResult{0});
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_EQ(Runtime().panels.delegated.castleSiegeList, 1);
+    ASSERT_FALSE(Runtime().chat.log.entries.empty());
+    EXPECT_EQ(Runtime().chat.log.entries.back().text, "la caja sigue ocupada");
+    EXPECT_TRUE(worldPackets.empty());
+    CrtRandom expected(1);
+    expected.Discard(2);
+    EXPECT_EQ(random.State(), expected.State());
+}
+
 // ----- 0B (0x4e3594).
 
 // 0x4e3621..0x4e3663: el 1 prende la tormenta (1) y el 3 la fuerte (3), con pkt[3] en 0 la apagan; otro evento no la

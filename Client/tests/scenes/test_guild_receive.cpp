@@ -21,6 +21,12 @@
 #include "Scenes/GuildState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "Scenes/WorldEntry.h"
+#include "Scenes/SelectionState.h"
+#include "World/GameCamera.h"
+#include "Core/Log.h"
+#include "Core/ILogSink.h"
+#include "support/RecordingSink.h"
 #include "UI/MessageArea.h"
 #include "UI/PanelDialog.h"
 #include "UI/PanelRegistry.h"
@@ -281,6 +287,54 @@ protected:
     std::vector<std::vector<std::uint8_t>> m_sent;
     GestureModels m_models;
 };
+
+TEST_F(GuildReceiveTest, TheMasterQuestionBorrowsBothCastleAndTrainerClosersFromTheWorld)
+{
+    for (const bool trainer : {false, true})
+    {
+        Reset(0);
+        Client::Scenes::SelectionState selection(*m_world);
+        Client::Render::Models::ClothWorld cloth;
+        Client::World::GameCamera camera;
+        Client::World::GameCameraInput cameraInput;
+        Client::Tests::RecordingSink sink;
+        Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
+        Client::Scenes::WorldEntryResources resources{.world = *m_world,
+                                                      .selection = selection,
+                                                      .dataRoot = {},
+                                                      .cloth = cloth,
+                                                      .camera = camera,
+                                                      .cameraInput = cameraInput,
+                                                      .models = m_models,
+                                                      .log = log};
+        resources.textMeasure = &m_letters;
+        resources.texts = &m_texts;
+        int npcPackets = 0;
+        resources.sendNpcWindowPacket =
+            [&](Client::Protocol::Outgoing packet) -> Client::Core::Expected<void, std::string>
+        {
+            ++npcPackets;
+            m_sent.push_back(Plain(packet));
+            return {};
+        };
+        if (trainer)
+            Runtime().panels.delegated.trainer = 1;
+        else
+            Runtime().panels.delegated.secondCastleSiege = 1;
+        auto context = Context();
+        context.worldEntry = &resources;
+
+        auto result = Client::Scenes::ApplyGuildPacket(Guild::MasterQuestion{}, context);
+
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(Runtime().panels.delegated.secondGuild, 1);
+        EXPECT_EQ(Runtime().panels.delegated.secondCastleSiege, 0);
+        EXPECT_EQ(Runtime().panels.delegated.trainer, 0);
+        EXPECT_EQ(npcPackets, trainer ? 1 : 0);
+        EXPECT_EQ(m_sent, (std::vector<std::vector<std::uint8_t>>{{0xc1, 3, 0x31}}));
+        EXPECT_EQ(DrawsSince(), 4);
+    }
+}
 
 // 0x4e4279 abre la ventana 2 (0x6599a0 con 0x40000: CanOpen y CloseByMask, cuatro rand()); el 56 con 1 la cierra
 // (0x6570b0: el gremio 1999 vuelve a −1, suena el 0x1c y manda C1 04 54 00) y vacía el mensaje. En Lorencia, en Devias

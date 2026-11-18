@@ -14,9 +14,9 @@
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/GamePanels.h"
+#include "Scenes/CastleWindows.h"
 #include "Scenes/MapLoad.h"
 #include "Scenes/MonsterCreation.h"
-#include "Scenes/NpcWindows.h"
 #include "Scenes/OwnStatHelpers.h"
 #include "Scenes/PersonalShopTitles.h"
 #include "Scenes/SceneId.h"
@@ -191,8 +191,7 @@ Core::Expected<void, std::string> StartTheTeleportAction(ActorState& actor, cons
 Core::Expected<void, std::string> CloseTransitionWindows(const WorldEntryResources& resources)
 {
     GamePanels panels(resources.world, resources.cloth.random);
-    LendTheNpcWindows(panels, resources);
-    panels.LendTheSession(resources.world, resources.cloth.random, resources.sendGamePacket, resources.sendWindowClose);
+    LendTheCastlePanelServices(panels, resources);
     return panels.Registry().CloseAll();
 }
 } // namespace Client::Scenes

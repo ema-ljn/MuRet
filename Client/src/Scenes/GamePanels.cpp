@@ -144,9 +144,10 @@ void GamePanels::LendTheSiegeControls(WorldState& world, std::function<void(Prot
 void GamePanels::LendTheCastleRequests(WorldState& world, std::function<void(Protocol::Outgoing)> send,
                                        CastleWindowServices services)
 {
+    // El aviso local de Senior ocupado necesita los servicios también sin un envío disponible.
+    LendTheCastleLifecycleTo(m_context, world, m_context.random, send, services);
     if (!send)
         return;
-    LendTheCastleLifecycleTo(m_context, world, m_context.random, send, services);
     m_context.castleRegistrationOpened = [&world, send]() -> Core::Expected<void, std::string>
     {
         auto& opened = world.Runtime().panels.delegated.castleSiege;

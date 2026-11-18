@@ -21,6 +21,7 @@
 #include "Scenes/LoginModels.h"
 #include "Scenes/PlayerActionSpeeds.h"
 #include "Scenes/SceneId.h"
+#include "Scenes/SelectionInventory.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/SessionEventApplier.h"
 #include "Scenes/WorldEntry.h"
@@ -555,6 +556,8 @@ TEST(WorldTransitionsTest, TransitionClosersKeepSeniorBusyAsALocalWarningWithout
     auto resources = tested->Resources();
     resources.textMeasure = &letters;
     resources.texts = &texts;
+    Client::Render::Models::CrtRandom setupRandom(1);
+    Client::Scenes::ClearSelectionInventory(tested->world, setupRandom);
     auto& runtime = tested->world.Runtime();
     runtime.panels.delegated.castleSiegeList = 1;
     runtime.npcWindows.chaosBox[0].id = 1;
@@ -566,7 +569,7 @@ TEST(WorldTransitionsTest, TransitionClosersKeepSeniorBusyAsALocalWarningWithout
     EXPECT_EQ(runtime.panels.delegated.castleSiegeList, 1);
     ASSERT_FALSE(runtime.chat.log.entries.empty());
     EXPECT_EQ(runtime.chat.log.entries.back().text, "la caja sigue ocupada");
-    EXPECT_EQ(runtime.chat.log.entries.back().type, Client::UI::SystemMessage);
+    EXPECT_EQ(runtime.chat.log.entries.back().type, Client::UI::ErrorMessage); // 0x65cb89: push 2.
     EXPECT_EQ(tested->cloth.random.State(), Client::Tests::AfterDraws(1, 2).State());
 }
 

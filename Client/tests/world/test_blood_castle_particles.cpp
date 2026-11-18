@@ -54,17 +54,16 @@ Particle Created(std::int32_t type, std::int32_t subtype, CrtRandom& random)
 }
 } // namespace
 
-// Las cuatro de la antorcha y la llama 6ac/2 (la del joint 0x632/6) son de la familia; los otros subtipos de esos
-// tipos, no.
-TEST(BloodCastleParticlesTest, OnlyTheTorchSubtypesBelongToTheFamily)
+// La antorcha comparte la familia de la llama con 6ac/1 de los fragmentos del asedio y 6ac/2 del joint 0x632/6.
+TEST(BloodCastleParticlesTest, TheTorchAndSharedFlameSubtypesBelongToTheFamily)
 {
     EXPECT_TRUE(Client::World::IsBloodCastleParticle(Spark, 0));
     EXPECT_TRUE(Client::World::IsBloodCastleParticle(Spark, 1));
     EXPECT_TRUE(Client::World::IsBloodCastleParticle(Flame, 0));
+    EXPECT_TRUE(Client::World::IsBloodCastleParticle(Flame, 1));
     EXPECT_TRUE(Client::World::IsBloodCastleParticle(Flame, 2));
     EXPECT_TRUE(Client::World::IsBloodCastleParticle(Cloud, 6));
     EXPECT_FALSE(Client::World::IsBloodCastleParticle(Spark, 2));
-    EXPECT_FALSE(Client::World::IsBloodCastleParticle(Flame, 1));
     EXPECT_FALSE(Client::World::IsBloodCastleParticle(Flame, 3));
     EXPECT_FALSE(Client::World::IsBloodCastleParticle(Cloud, 8));
     EXPECT_FALSE(Client::World::IsBloodCastleParticle(Orbit, 4));

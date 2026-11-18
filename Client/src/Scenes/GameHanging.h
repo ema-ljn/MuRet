@@ -37,6 +37,7 @@ class IModelLibrary;
 struct ActorState;
 struct FaunaDrawCarry;
 struct ItemDrawContext;
+struct GuildState;
 
 struct GameHangingPass
 {
@@ -68,6 +69,8 @@ struct GameHangingPass
     std::int32_t logicSteps = 0; // 0x7d3a0f0
     // En un frame del original avanza la animación de lo que cuelga; entre frames, la dibuja como quedó.
     bool originalFrame = true;
+    // 414820 lee los nombres de gremio/alianza sólo para un maestro de rol6/7/8/12.
+    const GuildState* guild = nullptr;
 };
 
 // 0x50db57..0x50e9fa sobre un 0x20a ya dibujado (cuerpo y tela): el rand() de la luz de lo que cuelga,

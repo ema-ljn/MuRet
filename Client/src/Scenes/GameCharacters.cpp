@@ -482,7 +482,8 @@ Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const I
                                       .heroByte1a1 = heroByte1a1,
                                       .siegeActive = world.Runtime().siegeActive,
                                       .logicSteps = pass.clothWorld->logicSteps,
-                                      .originalFrame = originalFrame};
+                                      .originalFrame = originalFrame,
+                                      .guild = &world.Runtime().guild};
     if (auto hung = DrawGameHanging(drawn, hangingPass); !hung.HasValue())
         return hung;
     const GameCharacterEffectsPass effectsPass{.body = body,
@@ -498,7 +499,8 @@ Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const I
                                                .map = map,
                                                .logicSteps = pass.clothWorld->logicSteps,
                                                .gameScene = gameScene,
-                                               .originalFrame = originalFrame};
+                                               .originalFrame = originalFrame,
+                                               .guild = &world.Runtime().guild};
     if (auto effects = DrawGameCharacterEffects(drawn, effectsPass); !effects.HasValue())
         return effects;
     // 0x510abd: 0x420df0, el cuervo, en todas las escenas. Fuera del juego, sin el trapecio, lo dibuja el caller

@@ -12,6 +12,8 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/GameMessages.h"
+#include "Scenes/EventGlobals.h"
+#include "Scenes/GameChat.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameUi.h"
@@ -221,7 +223,7 @@ constexpr auto Routes = std::to_array<DialogRoute>({
     {JewelChoiceDialog, DialogStep::JewelChoice, "0x625b23", ""},
     {JewelUnmixDialog, DialogStep::JewelUnmix, "0x625cf4", ""},
     {JewelResultDialog, DialogStep::JewelResult, "0x625f98", ""},
-    {0xa7, DialogStep::Cut, "0x62601e", "CL9.4"},
+    {0xa7, DialogStep::WarOutcome, "0x62601e", ""},
     {0x9c, DialogStep::ConfirmBox, "0x6260d1", ""},
     {0x91, DialogStep::ShopDialog, "0x6260f6", ""},
     {UI::MessageBoxDialog, DialogStep::Buttons, "0x62d756", ""},
@@ -1072,6 +1074,21 @@ Core::Expected<void, std::string> StepTheYesNo(const GameUiContext& context, boo
     CloseTheDialog(runtime);
     return {};
 }
+// 0x62601e..0x6260d0: bordes inclusivos, sin sonido, MouseUpdateTime ni consumo del clic.
+void StepTheWarOutcome(const GameUiContext& context)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    constexpr std::int32_t Left = 0x11d;
+    constexpr std::int32_t Right = 0x163;
+    constexpr std::int32_t Top = 0x106;
+    constexpr std::int32_t Bottom = 0x11a;
+    if (!runtime.movement.pendingClick || context.mouseX < Left || context.mouseX > Right || context.mouseY < Top ||
+        context.mouseY > Bottom)
+        return;
+    runtime.events.guildWarOutcome = {};
+    runtime.events.timeValue = 0;
+    UI::PushDialog(runtime.dialogs, 0);
+}
 } // namespace
 
 std::span<const DialogRoute> DialogRoutes()
@@ -1121,6 +1138,9 @@ Core::Expected<void, std::string> StepTheOpenDialog(const GameUiContext& context
         return StepTheShopDialog(context);
     case DialogStep::Warning:
         return StepTheWarning(context, escape);
+    case DialogStep::WarOutcome:
+        StepTheWarOutcome(context);
+        return {};
     case DialogStep::Cut:
         break;
     }

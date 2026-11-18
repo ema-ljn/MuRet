@@ -5178,7 +5178,7 @@ TEST(ServerSessionTest, AShortChatRoomPacketIsIgnoredAndTheSessionGoesOn)
     ASSERT_EQ(events.size(), 1u);
     const auto* packet = std::get_if<Client::App::ChatRoomPacket>(&events[0]);
     ASSERT_NE(packet, nullptr);
-    EXPECT_EQ(packet->packet.Opcode(), std::optional<std::uint8_t>(0x0d));
+    EXPECT_EQ(packet->packet.Opcode(), std::optional<std::uint8_t>{std::uint8_t{0x0d}});
     EXPECT_EQ(rooms.tested.CountLogged(LogLevel::Warning, "de la sala 772 del chat con un amigo"), 5u);
     EXPECT_FALSE(rooms.tested.Logged(LogLevel::Warning, "queso"));
     EXPECT_FALSE(rooms.tested.Logged(LogLevel::Warning, "Hor"));

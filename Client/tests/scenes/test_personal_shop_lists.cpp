@@ -25,6 +25,7 @@
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "Scenes/SelectionInventory.h"
 #include "UI/ChatLog.h"
 #include "UI/MessageArea.h"
 #include "UI/PanelRegistry.h"
@@ -114,6 +115,7 @@ protected:
     PersonalShopListsTest()
     {
         WorldState& world = *m_world;
+        Client::Scenes::ClearSelectionInventory(world, m_cloth.random);
         world.Runtime().map = GetParam();
         world.Runtime().hero = Hero;
         Place(Hero, HeroKey, "Tejon");

@@ -13,6 +13,7 @@
 #include "Scenes/GameHud.h"
 #include "Scenes/GameChat.h"
 #include "Scenes/GuildDrawing.h"
+#include "Scenes/GuildState.h"
 #include "UI/CastleSiegeState.h"
 #include "UI/PanelDialog.h"
 #include "UI/ChatInput.h"
@@ -350,6 +351,7 @@ TEST_F(CastleWindowsTest, SeniorMoneyRunsFromItsButtonThroughTheSharedEditAndEnt
     EXPECT_EQ(dialog.opened, 0u);
     EXPECT_TRUE(runtime.chat.input.dialogEdit.text.Value().empty());
     EXPECT_EQ(runtime.chat.input.dialogEdit.base.state, Client::UI::HiddenWindow);
+    EXPECT_EQ(runtime.chat.input.focus, Client::UI::ChatFocus::Game);
     ExpectRandoms(0);
 }
 TEST_F(CastleWindowsTest, RegisteringAMarkUsesTheFirstMatchingSlotEvenWithZeroDurabilityAndWithoutMasterStatus)
@@ -410,8 +412,9 @@ TEST_F(CastleWindowsTest, SiegeListDrawFiltersGuildsButTheMouseTogglesTheUnfilte
 {
     auto& runtime = m_world->Runtime();
     runtime.panels.delegated.castleSiege = 1;
-    m_world->Actors()[0].word1f2 = 0;
-    runtime.guild.table[0].guildName = {'H', 'E', 'R', 'O'};
+    m_world->Actors()[0].word1f2 = 0xffff;
+    // Q-C1281: la alianza de la entrada −1 coincide con el nombre del miembro74, no se rechaza el índice.
+    runtime.guild.members[Client::Scenes::MemberBeforeTheTable].name = {'H', 'E', 'R', 'O'};
     auto& window = runtime.castleSiege.registration;
     window.tab = 2;
     window.state = 3;

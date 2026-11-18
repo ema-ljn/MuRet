@@ -15,6 +15,7 @@
 #include "Scenes/WorldState.h"
 #include "UI/CastleSiegeState.h"
 #include "UI/ChatLogWindow.h"
+#include "UI/ChatInput.h"
 #include "UI/OldControls.h"
 #include "UI/OldWindowBase.h"
 #include "UI/PanelDialog.h"
@@ -455,7 +456,8 @@ Core::Expected<void, std::string> SeniorTaxes(const GameUiContext& context)
             input.dialogEdit.compositionText.clear();
             input.dialogEdit.compositionStart = 0;
             input.dialogEdit.compositionLength = 0;
-            input.dialogEdit.base.state = UI::HiddenWindow;
+            // El helper compartido modela la pérdida de foco al ocultar el HWND; 0x660350 no llama SetFocusGame.
+            UI::ShowTheDialogField(input, UI::HiddenWindow);
             input.messageLength = 0;
             runtime.social.dialogFieldLimit = 10;
         };

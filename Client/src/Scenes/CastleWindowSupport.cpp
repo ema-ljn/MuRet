@@ -6,6 +6,7 @@
 #include "Scenes/CastleSiegeReceive.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/GuildPanels.h"
+#include "Scenes/GuildState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/GameText.h"
@@ -123,11 +124,13 @@ std::int32_t FirstMark(WorldState& world, Render::Models::CrtRandom& random, std
 Core::Expected<std::pair<std::string_view, std::string_view>, std::string> GuildNames(const WorldState& world)
 {
     const auto index = static_cast<std::int16_t>(world.Actors()[world.Runtime().hero].word1f2);
-    if (index < 0 || static_cast<std::size_t>(index) >= world.Runtime().guild.table.size())
+    const auto& state = world.Runtime().guild;
+    const auto guild = GuildNameAt(state, index);
+    const auto alliance = UnionNameAt(state, index);
+    if (!guild || !alliance)
         return Core::Unexpected(std::string("el castillo lee el gremio del héroe fuera de la tabla 0x787aa48"));
-    const auto& guild = world.Runtime().guild.table[static_cast<std::size_t>(index)];
-    return std::pair<std::string_view, std::string_view>{std::string_view(guild.unionName.data()),
-                                                         std::string_view(guild.guildName.data())};
+    // El índice −1 pisa el miembro74 anterior a la tabla; los helpers compartidos conservan ese alias Q-C1281.
+    return std::pair<std::string_view, std::string_view>{*alliance, *guild};
 }
 
 Core::Expected<bool, std::string> HeroCanEditTaxes(const WorldState& world)

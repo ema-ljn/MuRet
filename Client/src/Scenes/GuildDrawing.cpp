@@ -375,7 +375,7 @@ Core::Expected<void, std::string> DrawThePanelDialog(GameHudContext& context, UI
         edit.base.y = static_cast<std::int32_t>(y);
         if (!context.projecting)
         {
-            runtime.chat.input.focus = UI::ChatFocus::Dialog;
+            UI::FocusTheDialogField(runtime.chat.input);
             runtime.ui.focusedList = edit.base.id;
         }
         UI::OldDraw::DrawTheOldEdit({.sprites = sprites,

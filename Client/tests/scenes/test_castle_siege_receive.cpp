@@ -498,13 +498,17 @@ TEST_P(CastleSiegeReceiveTest, MoneyOutWritesTheMoney)
 }
 
 // B2 1A (0x4e54f6): pkt[4] en 1 a 0x78aba34, en 2 a 0x78aba30.
-TEST_P(CastleSiegeReceiveTest, SiegeFlagsWriteTheirGlobal)
+TEST_P(CastleSiegeReceiveTest, SiegeFlagsUpdateTheCanonicalNpcTaxesWithoutChangingTheOtherRate)
 {
+    Runtime().npcWindows.taxRate = 0x1234;
+    Runtime().npcWindows.chaosTaxRate = 0x5678;
     Apply(Castle::SiegeFlags{.which = 1, .value = 0x81});
+    EXPECT_EQ(Runtime().npcWindows.taxRate, 0x1234);
     Apply(Castle::SiegeFlags{.which = 2, .value = 4});
     Apply(Castle::SiegeFlags{.which = 3, .value = 9});
-    EXPECT_EQ(Castle().siegeFlag1, 0x81u);
-    EXPECT_EQ(Castle().siegeFlag2, 4u);
+    EXPECT_EQ(Runtime().npcWindows.chaosTaxRate, 0x81);
+    EXPECT_EQ(Runtime().npcWindows.taxRate, 4);
+    ExpectNoRandom();
 }
 
 // B2 1F (0x4e5532): con 1, SETNZ de pkt[5] en +0x15; con 0 y 2, los diálogos del hito 8.

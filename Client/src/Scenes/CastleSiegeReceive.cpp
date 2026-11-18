@@ -430,15 +430,15 @@ Core::Expected<void, std::string> ApplyMoneyOut(const Castle::MoneyOutResult& ou
 }
 
 // B2 1A, 0x4e54f6.
-void ApplySiegeFlags(const Castle::SiegeFlags& flags, UI::CastleSiegeState& castle)
+void ApplySiegeFlags(const Castle::SiegeFlags& flags, WorldRuntime& runtime)
 {
     if (flags.which == 1)
     {
-        castle.siegeFlag1 = flags.value;
+        runtime.npcWindows.chaosTaxRate = flags.value;
     }
     else if (flags.which == 2)
     {
-        castle.siegeFlag2 = flags.value;
+        runtime.npcWindows.taxRate = flags.value;
     }
 }
 
@@ -639,7 +639,7 @@ Core::Expected<void, std::string> ApplyCastleSiegePacket(const Protocol::CastleS
                 return ApplyMoneyOut(received, context);
             else if constexpr (std::is_same_v<Received, Castle::SiegeFlags>)
             {
-                ApplySiegeFlags(received, CastleOf(context));
+                ApplySiegeFlags(received, context.world.Runtime());
                 return {};
             }
             else if constexpr (std::is_same_v<Received, Castle::HuntZoneGateResult>)

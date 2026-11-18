@@ -1,4 +1,5 @@
 #include "Scenes/GameHud.h"
+#include "Scenes/SiegeBattleUi.h"
 
 #include "App/WindowState.h"
 #include "Core/Expected.h"
@@ -890,10 +891,8 @@ Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
     // 0x5f75b7: 0x44b510, que mira el modo.
     if (auto trainer = DrawTheTrainer(frame.context); !trainer.HasValue())
         return trainer;
-    if (state.delegated.siegeWeapon != 0)
-        return cut("0x44ea60: el arma del asedio es de la CL9.5");
-    if (state.delegated.siegeGate != 0)
-        return cut("0x44ff00: la puerta del asedio es de la CL9.5");
+    if (auto siege = DrawTheSiegeControls(frame.context); !siege.HasValue())
+        return siege;
     // 0x5f4e30, que empieza con su IsOpen (sin rand()).
     if (auto warehouse = DrawTheWarehouse(frame.context, panels); !warehouse.HasValue())
         return warehouse;
@@ -1653,19 +1652,6 @@ Core::Expected<void, std::string> DrawTheSwitchHolders(Frame& frame)
 // ---------------------------------------------------------------------------------------------------------------
 // 31. El panel del asedio (0x4125b0).
 
-Core::Expected<void, std::string> DrawTheSiegePanel(Frame& frame)
-{
-    if (frame.panels.IsOpen(UI::AnyPanel))
-        return {};
-    const std::optional<std::uint8_t> kind = frame.runtime.siegePanelKind;
-    if (!kind)
-        return {};
-    if (*kind == 0 && frame.runtime.siegePanel.visible == 0)
-        return {};
-    return Core::Unexpected(std::format("0x4125b0: el panel del asedio de la clase {} (0x40f850 para la 0, el "
-                                        "minimapa con los personajes) es de la CL9.5",
-                                        *kind));
-}
 } // namespace
 
 Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
@@ -1767,8 +1753,7 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
         !slides.HasValue())
         return slides;
     // 16. 0x413ca0.
-    if (runtime.map == CastleSiegeMap && runtime.siegeActive)
-        return Core::Unexpected(std::string("0x413ca0: la UI de Castle Siege es de la CL9.5"));
+    DrawTheBattleClock(context);
     // 17. [[0x576350c]] + 0x14: el registro del chat (0x479080).
     UI::DrawTheChatLog(
         runtime.chat.log, hud.chatFrame, runtime.ui.chatModes,
@@ -1798,8 +1783,8 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
     if (auto ag = DrawTheAg(frame); !ag.HasValue())
         return ag;
     // 25. 0x652c90.
-    if (runtime.siegeActive)
-        return Core::Unexpected(std::string("0x652c90: las skills de la batalla del asedio son de la CL9.5"));
+    if (auto siege = DrawTheBattleSkill(context); !siege.HasValue())
+        return siege;
     // 26. 0x436240: el color del texto y la ventana del contrato de Crywolf (Scenes/CrywolfInterfaceDrawing).
     if (auto contract = DrawTheCrywolfContract(context); !contract.HasValue())
         return contract;
@@ -1815,7 +1800,7 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
     if (auto keypad = DrawTheKeypad(frame.context); !keypad.HasValue())
         return keypad;
     // 31. Sin ninguna ventana, 0x4125b0.
-    return DrawTheSiegePanel(frame);
+    return DrawTheBattlePanel(context);
 }
 
 Core::Expected<void, std::string> DrawTheOverlays(GameHudContext& context)

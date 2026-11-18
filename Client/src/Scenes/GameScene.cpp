@@ -1,4 +1,5 @@
 #include "Scenes/GameScene.h"
+#include "Scenes/SiegeBattleUi.h"
 #include "Scenes/MonsterSounds.h"
 #include "Scenes/GameSceneFrameProjection.h"
 #include "Scenes/ActorPickingBox.h"
@@ -375,9 +376,9 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
     // float, como el producto exacto en double redondeado una vez.
     World::GameCameraInput& cameraInput = CameraInputState();
     cameraInput.shake = F32(static_cast<double>(cameraInput.shake) * static_cast<double>(ShakeDecay));
-    // 0x636dd4: 0x652940, con el héroe en +0x371 == 'C' (siempre, 0x511290), mira el asedio (0x7239ec) y
-    // el gremio con 0x4294b0. El 0x7239ec solo lo escribe 0x4294c0, desde los paquetes de 0x4e0610 y
-    // 0x4e2b10 que MuRet no aplica: sin asedio, no hace nada (*estático*, 08 P-C41).
+    // 0x636dd4..0x636de3: sólo con el marcador inicial 0x43 busca la primera habilidad del asedio.
+    if (m_context.world->Actors()[runtime.hero].byte371 == 0x43)
+        InitializeTheBattleSkill(*m_context.world, m_context.cloth->random);
     // 0x636de8: 0x5fbf60, la ola de las celdas de la ventana del rango del último dibujo, con el reloj
     // del paso (la rama de 0x723c50, P-C24 c, no se prende en MuRet). La copia de la luz sombreada al
     // buffer dinámico precede las luces de objetos y fauna (06 § Terreno). El rango y las olas

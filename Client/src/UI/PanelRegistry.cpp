@@ -207,7 +207,7 @@ bool PanelRegistry::CanOpen(PanelId id)
     return true;
 }
 
-Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id)
+Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id, std::uint32_t auxiliary)
 {
     if (IsOpen(id) || !CanOpen(id) || m_context.logoutRequested)
         return false;
@@ -390,10 +390,23 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id)
     case SecondEventNpcPanel:
     case CastleSiegeListPanel:
     case SecondCastleSiegePanel:
+        return Core::Unexpected(OpenCut(id));
     case SiegeWeaponPanel:
     case SecondSiegeWeaponPanel:
     case SiegeGatePanel:
-        return Core::Unexpected(OpenCut(id));
+    {
+        auto closed = CloseByMask(mask);
+        if (!closed.HasValue())
+            return closed;
+        if (closed.Value())
+        {
+            if (!m_context.siegeControlOpened)
+                return Core::Unexpected(OpenCut(id));
+            if (auto opened = m_context.siegeControlOpened(id, auxiliary); !opened.HasValue())
+                return Core::Unexpected(std::move(opened).Error());
+        }
+        break;
+    }
     case CastleSiegePanel:
     {
         // 0x65bef0: el mismo mask de todos menos el id y los amigos, con aux en 0.
@@ -631,6 +644,14 @@ Core::Expected<bool, std::string> PanelRegistry::CloseByMask(PanelId mask, bool 
                 return Core::Unexpected(CloseCut(id));
             m_context.eventNpcClosed();
             m_state.eventNpc = 0;
+            break;
+        case SiegeWeaponPanel:
+        case SecondSiegeWeaponPanel:
+        case SiegeGatePanel:
+            if (!m_context.siegeControlClosed)
+                return Core::Unexpected(CloseCut(id));
+            if (auto closed = m_context.siegeControlClosed(id); !closed.HasValue())
+                return Core::Unexpected(std::move(closed).Error());
             break;
         case CastleSiegePanel:
             if (!m_context.castleRegistrationClosed)

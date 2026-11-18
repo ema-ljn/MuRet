@@ -213,6 +213,9 @@ struct PanelContext
     std::function<Core::Expected<void, std::string>()> guildStep{};
     // 0x65bef0..0x65bf0d: con los demás paneles cerrados, 0x64ae10 pide B2 03 y abre el registro del castillo.
     std::function<Core::Expected<void, std::string>()> castleRegistrationOpened{};
+    // 0x44dcf0/0x44f770: los controles de arma y puerta; aux es la clave de la puerta.
+    std::function<Core::Expected<void, std::string>(PanelId, std::uint32_t)> siegeControlOpened{};
+    std::function<Core::Expected<void, std::string>(PanelId)> siegeControlClosed{};
     // 0x657b94: 0x64b200 envía C1 03 31 y después cierra el registro y vuelve a su primera pestaña.
     std::function<Core::Expected<void, std::string>()> castleRegistrationClosed{};
     // 0x65c966..0x65ca6d: lo que abrir el personaje hace fuera de los paneles, cierre o no lo demás: [0x6eed3c] de
@@ -269,7 +272,7 @@ public:
     // 0x659860.
     [[nodiscard]] bool CanOpen(PanelId id);
     // 0x6599a0(id, aux): false si no lo intentó; true con los dos sonidos aunque el caso haya fallado (Q-C445).
-    [[nodiscard]] Core::Expected<bool, std::string> Open(PanelId id);
+    [[nodiscard]] Core::Expected<bool, std::string> Open(PanelId id, std::uint32_t auxiliary = 0);
     // 0x65cae0(id, 0): false si estaba cerrado, sin sonidos.
     [[nodiscard]] Core::Expected<bool, std::string> Close(PanelId id);
     // 0x65cae0(id, aux): `aux` llega a 0x657ab0; solo lo lee el comercio (con 1, sin el 3D: 0x4d5906).

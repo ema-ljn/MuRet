@@ -994,14 +994,8 @@ TEST_F(GameHudTest, ThePiecesOfOtherWavesStopWithTheirAddress)
         std::string_view address;
         void (*arrange)(WorldState&);
     };
-    const std::array<Case, 2> cases{{
+    const std::array<Case, 1> cases{{
         {"0x5f7180", [](WorldState& state) { state.Runtime().panels.panel2000 = 1; }},
-        {"0x4125b0",
-         [](WorldState& state)
-         {
-             state.Runtime().map = 30;
-             state.Runtime().siegePanelKind = std::uint8_t{0};
-         }},
     }};
     for (const Case& probe : cases)
     {

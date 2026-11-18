@@ -1,4 +1,5 @@
 #include "Scenes/GamePanels.h"
+#include "Scenes/SiegeBattleUi.h"
 
 #include "Core/Expected.h"
 #include "Protocol/CastleSiege.h"
@@ -99,6 +100,43 @@ GamePanels::GamePanels(WorldState& world, Render::Models::CrtRandom& random, Gam
 {
 }
 
+void GamePanels::LendTheSiegeControls(WorldState& world, std::function<void(Protocol::Outgoing)> send)
+{
+    m_context.siegeControlOpened = [&world](UI::PanelId id,
+                                            std::uint32_t auxiliary) -> Core::Expected<void, std::string>
+    {
+        if (id == UI::SiegeGatePanel)
+            OpenTheSiegeGate(world, static_cast<std::uint16_t>(auxiliary));
+        else
+        {
+            world.Runtime().panels.delegated.siegeWeapon = id == UI::SiegeWeaponPanel ? 1 : 2;
+            world.Runtime().siegeBattleUi.weaponChoice = 0;
+        }
+        return {};
+    };
+    if (!send)
+        return;
+    m_context.siegeControlClosed = [&world, send = std::move(send)](UI::PanelId id) -> Core::Expected<void, std::string>
+    {
+        WorldRuntime& runtime = world.Runtime();
+        if (id == UI::SiegeGatePanel)
+        {
+            // 0x44f120: primero baja los campos, después sale el 31.
+            runtime.panels.delegated.siegeGate = 0;
+            runtime.siegeBattleUi.gateKey = 0;
+            send(Protocol::Connection::WriteWindowClose());
+        }
+        else
+        {
+            // 0x657ba7..0x657daf y 0x657dc1..0x657f8e: el registro manda el 31 antes de 0x44dcf0.
+            send(Protocol::Connection::WriteWindowClose());
+            runtime.panels.delegated.siegeWeapon = 0;
+            runtime.siegeBattleUi.weaponChoice = 0;
+        }
+        return {};
+    };
+}
+
 void GamePanels::LendTheCastleRequests(WorldState& world, std::function<void(Protocol::Outgoing)> send)
 {
     if (!send)
@@ -162,6 +200,7 @@ void GamePanels::LendTheSession(WorldState& world, Render::Models::CrtRandom& ra
         { return CloseTheTradeGrids(world, random, aux, send); };
         LendThePetRequests(send);
         LendTheCastleRequests(world, send);
+        LendTheSiegeControls(world, send);
         // 0x657b50 y 0x657b73: los cierres de las dos ventanas del gremio (la vtable + 0x2c, sin mirar nada) y el
         // diálogo de los paneles, por el mismo socket.
         LendTheGuildTo(m_context, world, send);

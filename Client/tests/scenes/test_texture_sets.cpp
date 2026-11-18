@@ -391,3 +391,18 @@ TEST(TextureSetsTest, TheFireworkTrailUploadsItsRealImage)
     EXPECT_GT(trail->texture.width, 0);
     EXPECT_GT(trail->texture.height, 0);
 }
+
+// 0x61dc0b..0x61dc15: Chrome03 para Crywolf y los brillos de monstruos, sin filtro ni repetición.
+TEST(TextureSetsTest, TheCrywolfChromeUploadsItsRealImage)
+{
+    Client::Tests::FakeTextureStore store;
+    Client::Scenes::SceneTextures textures(store, EffectTextureSet);
+    const auto loaded = textures.Load(std::filesystem::path{MURET_CLIENT_REPO_DATA_DIR});
+    ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
+    const auto texture = store.Find(Client::Render::TextureSlot{0x6b1});
+    ASSERT_TRUE(texture.has_value());
+    EXPECT_EQ(texture->sampling.filter, Filter::Nearest);
+    EXPECT_EQ(texture->sampling.wrap, Wrap::Clamp);
+    EXPECT_GT(texture->texture.width, 0);
+    EXPECT_GT(texture->texture.height, 0);
+}

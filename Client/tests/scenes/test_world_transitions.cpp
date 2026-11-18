@@ -33,6 +33,9 @@
 #include "support/FakeClock.h"
 #include "support/GoldenDir.h"
 #include "support/ItemSetFiles.h"
+#include "support/ItemFiles.h"
+#include "Scenes/OwnInventory.h"
+#include "World/ItemState.h"
 #include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
 #include "support/SessionHarness.h"
@@ -159,6 +162,69 @@ TEST(WorldTransitionsTest, SameMapGateClearsOthersAndItemsButPreservesTheHeroAnd
     EXPECT_EQ(tested.world.Runtime().storm, 0);
     EXPECT_EQ(tested.world.Runtime().selectedTargets[0], -1);
 }
+TEST(WorldTransitionsTest, TeleportReturnsTheCursorToItsInventoryFootprintBeforeMovingTheHero)
+{
+    auto tested = std::make_unique<Transition>();
+    Publisher publisher;
+    tested->items = Client::Tests::ItemTableOf({{0x1c00, 1, 1, 0}});
+    auto& runtime = tested->world.Runtime();
+    runtime.cursorItemCount = 1;
+    runtime.cursorGrid = Client::Scenes::CursorGrid::Inventory;
+    runtime.slot78a6758 = 12 + 18;
+    runtime.cursorItem.id = 0x1c00;
+    runtime.cursorItem.occupied = 1;
+    runtime.cursorItem.durability = 5;
+    runtime.cursorItem.gridColumn = 2;
+    runtime.cursorItem.gridRow = 2;
+    tested->Hero().cellX = 10;
+    tested->Hero().cellY = 11;
+
+    auto result = Client::Scenes::ApplyTeleport(Client::Protocol::World::Teleport{0, 0, 30, 31, 2},
+                                                Transition::PlayerKey, tested->Resources(), publisher);
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_EQ(runtime.cursorItemCount, 0);
+    EXPECT_EQ(runtime.cursorItem.occupied, 0);
+    EXPECT_EQ(tested->world.Inventory().cells[18].id, 0x1c00);
+    EXPECT_EQ(tested->world.Inventory().cells[18].occupied, 1);
+    EXPECT_EQ(tested->world.Inventory().cells[18].durability, 5);
+    EXPECT_EQ(tested->Hero().cellX, 30);
+    EXPECT_EQ(tested->Hero().cellY, 31);
+    EXPECT_EQ(tested->Hero().byte80, 3);
+    EXPECT_EQ(publisher.confirmations, 0); // El gate0 es Teleport, no el cambio de mapa con F3 12.
+}
+
+TEST(WorldTransitionsTest, CursorDressFailureRetainsTheReturnedItemAndStopsBeforeHeroCellWrites)
+{
+    auto tested = std::make_unique<Transition>();
+    Publisher publisher;
+    tested->items = Client::Tests::ItemTableOf({{0x1c00, 1, 1, 0}});
+    tested->models = Client::Scenes::SingleModelLibrary{}; // Falta Player.bmd justo en el 512a30 del retorno.
+    auto& runtime = tested->world.Runtime();
+    runtime.cursorItemCount = 1;
+    runtime.cursorGrid = Client::Scenes::CursorGrid::Inventory;
+    runtime.slot78a6758 = 12 + 18;
+    runtime.cursorItem.id = 0x1c00;
+    runtime.cursorItem.occupied = 1;
+    runtime.cursorItem.gridColumn = 2;
+    runtime.cursorItem.gridRow = 2;
+    tested->Hero().cellX = 10;
+    tested->Hero().cellY = 11;
+    const auto before = tested->cloth.random.State();
+
+    auto result = Client::Scenes::ApplyTeleport(Client::Protocol::World::Teleport{23, 0, 30, 31, 2},
+                                                Transition::PlayerKey, tested->Resources(), publisher);
+
+    ASSERT_FALSE(result.HasValue());
+    EXPECT_NE(result.Error().find("Player.bmd"), std::string::npos) << result.Error();
+    EXPECT_EQ(runtime.cursorItemCount, 0);
+    EXPECT_EQ(tested->world.Inventory().cells[18].id, 0x1c00);
+    EXPECT_EQ(tested->Hero().cellX, 10);
+    EXPECT_EQ(tested->Hero().cellY, 11);
+    EXPECT_EQ(tested->cloth.random.State(), before);
+    EXPECT_EQ(publisher.confirmations, 0);
+}
+
 TEST(WorldTransitionsTest, AnotherMapFailureRetainsThePrefixBeforeConfirmation)
 {
     Transition tested;

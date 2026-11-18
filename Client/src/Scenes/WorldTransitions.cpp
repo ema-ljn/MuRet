@@ -13,6 +13,7 @@
 #include "Scenes/HelperTable.h"
 #include "Scenes/IWorldTransitionPublisher.h"
 #include "Scenes/MapLoad.h"
+#include "Scenes/InventoryMoves.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -203,8 +204,10 @@ Core::Expected<void, std::string> ApplyTeleport(const Protocol::World::Teleport&
                                                 const WorldEntryResources& resources,
                                                 IWorldTransitionPublisher& publisher)
 {
-    if (resources.world.Runtime().cursorItemCount > 0)
-        return Core::Unexpected(std::string("0x5be150: el ítem en el cursor no está portado"));
+    // 0x4c7523: 0x5be150 va antes de leer/mover al héroe, también con el gate0 de Teleport.
+    const InventoryServices inventory = InventoryServicesOf(resources);
+    if (auto returned = ReturnTheCursorItem({resources.world, resources.cloth.random, inventory}); !returned.HasValue())
+        return returned;
     auto& hero = PublishedHero(resources);
     WriteHeroCells(hero, reply, resources);
     if (auto height = RefreshTransitionHeight(hero, resources); !height.HasValue())

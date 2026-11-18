@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/OriginalRetainedMath.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "Scenes/WorldRuntime.h"
 #include "World/KalimaParticleKernels.h"
@@ -109,6 +110,22 @@ Core::Expected<void, std::string> Glow(const World::WorldObject& object, const G
     static_cast<void>(pass.sprites->Create(GlowTexture, point, GlowScale, White, 0.0f, 0));
     static_cast<void>(pass.sprites->Create(GlowTexture, point, GlowScale, White, crywolf.glowRotation, 0));
     return {};
+}
+// 0x430a40..0x430ac1: PC53 hasta cada FSTP del RGB, incluidos los productos de los dos canales sin seno.
+Core::Expected<glm::vec3, std::string> AltarLight(float worldClock, std::int32_t light)
+{
+    constexpr double Rate = static_cast<double>(std::bit_cast<float>(0x3b83126fu));      // 6b89e8.
+    constexpr double Quiet = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));     // 6b87b8.
+    constexpr double RedStep = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu));   // 6b8ad0.
+    constexpr double GreenStep = static_cast<double>(std::bit_cast<float>(0x3d23d70au)); // 6b8acc.
+    const double factor = light > 10 ? Quiet : 1.0;
+    // FSIN retiene64; 430a72 multiplica por3 antes del primer redondeo PC53.
+    const auto sine = Render::Models::Detail::SineProductPC53(static_cast<double>(worldClock) * Rate, 3.0f);
+    if (!sine)
+        return Core::Unexpected(std::string("0x430a70: el seno del altar Crywolf no cabe en el perfil PC53"));
+    const double red = *sine * factor + 5.0;
+    return glm::vec3(F32(red - static_cast<double>(light) * RedStep), F32(static_cast<double>(light) * GreenStep - 1.0),
+                     F32(static_cast<double>(light) * RedStep - 0.5));
 }
 } // namespace
 
@@ -225,10 +242,14 @@ Core::Expected<void, std::string> CrywolfObjectBody(const World::WorldObject& ob
     }
     case 0x51:
         draw.kind = World::ObjectDrawKind::Hidden;
-        // 0x430a33: con el estado en 2, dos 0x4ecc30 de la malla 0 con la luz de 0x723c08 (CL9.5).
+        // 0x430a33: el caller ejecuta los dos RenderMesh directos, sin el RenderBody genérico.
         if (crywolf.state == 2)
-            return Core::Unexpected(std::string("0x430a40: el 0x51 del 34 con el estado de Crywolf 2 no está "
-                                                "portado"));
+        {
+            const auto color = AltarLight(pass.worldClock, crywolf.ui.light);
+            if (!color.HasValue())
+                return Core::Unexpected(color.Error());
+            draw.color = color.Value();
+        }
         return {};
     case 0xfa:
         // 0x430b23: el color del modelo en (0; 0; 0,9) y RenderBody(2, …).

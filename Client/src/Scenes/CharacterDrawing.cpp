@@ -1,4 +1,5 @@
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/CrywolfAltarDrawing.h"
 #include "World/ModelEffects.h"
 
 #include "Core/IClock.h"
@@ -1825,6 +1826,37 @@ void DrawWaterspout(Render::ModelBatch& batch, const IModelLibrary& models, cons
         draw.scrolls = index == draw.object->blendMesh || draw.role.scrollScript;
         DrawBase(batch, draw);
     }
+}
+
+Core::Expected<void, std::string> DrawCrywolfAltarMeshes(Render::ModelBatch& batch, const IModelLibrary& models,
+                                                         DrawnObject& object, Core::Duration frameClock,
+                                                         World::ObjectModelStepState* modelState)
+{
+    std::vector<Render::Models::SkinnedMesh> skinned;
+    std::span<const Render::Models::SkinnedMesh> meshes = object.retainedMeshes;
+    if (meshes.empty())
+    {
+        static_cast<void>(ObjectMeshDraws(models, object, frameClock, skinned));
+        meshes = skinned;
+    }
+    // 430ab5..430b14: el segundo pase lee el RGB que pudo guardar el primero dentro de 0x4ecc30.
+    for (const auto& [selection, flags] : {std::pair<std::int8_t, std::uint32_t>{0, 0x44}, {1, 0x240}})
+    {
+        object.unlitMesh = selection;
+        if (modelState != nullptr)
+            modelState->unlitMeshes[static_cast<std::int16_t>(object.model)] = selection;
+        if (!meshes.empty())
+        {
+            if (auto drawn =
+                    DrawItemMeshPass(batch, models, object, frameClock, meshes, 0, flags, std::nullopt, &object.color);
+                !drawn.HasValue())
+                return drawn;
+        }
+    }
+    object.unlitMesh = -1;
+    if (modelState != nullptr)
+        modelState->unlitMeshes[static_cast<std::int16_t>(object.model)] = -1;
+    return {};
 }
 
 void DrawTarkanChrome(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,

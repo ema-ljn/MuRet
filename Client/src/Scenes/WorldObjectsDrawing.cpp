@@ -10,6 +10,8 @@
 #include "Scenes/IcarusObjectFrame.h"
 #include "Scenes/TarkanObjectFrame.h"
 #include "Scenes/CrywolfObjectServices.h"
+#include "Scenes/CrywolfAltarDrawing.h"
+#include "Scenes/WorldRuntime.h"
 #include "Scenes/KalimaObjectServices.h"
 #include "Scenes/CastleSiegeObjectServices.h"
 #include "Scenes/LandOfTrialsObjectServices.h"
@@ -645,8 +647,23 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
         // sorteos, antes del rand() común.
         if (pass.map == CrywolfMap && draw.kind == World::ObjectDrawKind::Body)
         {
+            const bool activeAltar = object.type == 0x51 && pass.crywolf != nullptr && pass.crywolf->state == 2;
+            // 0x430a46 viene después de 0x5ffdf0 y antes del RGB: no vuelve a posar el objeto en este frame.
+            if (activeAltar)
+                object.transform.scale = std::bit_cast<float>(0x3f83d70au);
             if (auto body = CrywolfObjectBody(object, draw, pass); !body.HasValue())
                 return body;
+            if (activeAltar)
+            {
+                DrawnObject altar = poseObject;
+                altar.color = draw.color;
+                if (retained != nullptr)
+                    altar.retainedMeshes = retained->meshes;
+                if (auto drawn = DrawCrywolfAltarMeshes(batch, models, altar, frameClock, pass.modelState);
+                    !drawn.HasValue())
+                    return drawn;
+                draw.color = altar.color;
+            }
         }
         const DrawnObject drawn =
             DrawTheObject(batch, models, object, draw, frameClock, 0.0f, pass.modelState, retained);

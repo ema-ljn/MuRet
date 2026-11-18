@@ -134,7 +134,7 @@ struct GameObjectPass
     World::FrameSprites* sprites = nullptr;
     const FaunaDrawCarry* retainedPose = nullptr;
     std::function<Core::Expected<void, std::string>(const World::FishEffectRequest&)> createJoint{};
-    const World::ObjectModelStepState* modelState = nullptr;
+    World::ObjectModelStepState* modelState = nullptr;
     // Publicación sobre scratch de presentación del caller, sin ejecutar602ed0 ni consumir RNG.
     bool publishProjectedPose = false;
     // DAT_07d2d360, prestado por el pulso global637700: sin productor no se inventa un frame0.

@@ -41,4 +41,26 @@ Core::Expected<std::uint32_t, TerrainAttributeQueryError> TerrainAttributeQueryA
     const std::uint16_t word = attributes.cells[cell];
     return (address & HighHalfMask) | word;
 }
+Core::Expected<std::uint32_t, TerrainAttributeQueryError>
+TerrainAttributeQueryAt(const Data::Terrain::TerrainAttributes& attributes, float x, float y)
+{
+    class FixedQuery final : public ITerrainAttributeQuerySource
+    {
+    public:
+        explicit FixedQuery(const Data::Terrain::TerrainAttributes& value) : m_attributes(value) {}
+        float ReadScale() override
+        {
+            return TerrainAttributeQueryScale;
+        }
+        const Data::Terrain::TerrainAttributes& Attributes() override
+        {
+            return m_attributes;
+        }
+
+    private:
+        const Data::Terrain::TerrainAttributes& m_attributes;
+    };
+    FixedQuery source(attributes);
+    return TerrainAttributeQueryAt(source, x, y);
+}
 } // namespace Client::World

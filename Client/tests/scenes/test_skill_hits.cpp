@@ -1,4 +1,6 @@
 #include "Scenes/SkillHits.h"
+#include "Data/Terrain/TerrainAttributes.h"
+#include "World/WorldTerrain.h"
 
 #include "Core/Expected.h"
 #include "Protocol/Outgoing.h"
@@ -215,7 +217,7 @@ TEST(SkillHitsTest, WithoutTheSessionTheDeliveryStillDraws)
 
 // En el mapa 30 con el asedio (0x4294b0), el atributo de la celda del punto corta (0x517b1e, CL9.5), después de leer
 // la skill; sin el asedio, el 30 es como los demás. Un punto que el ftol no representa corta en 0x517deb.
-TEST(SkillHitsTest, TheSiegeAndTheOutOfRangePointCut)
+TEST(SkillHitsTest, TheSiegeRequiresAttributesAndTheOutOfRangePointCuts)
 {
     HitsWorld siege(30, 0x18);
     siege.world.Runtime().siegeActive = true;
@@ -259,3 +261,22 @@ TEST(SkillHitsTest, OnlyTheFourHundredNativeSlotsCanBeHitOrMarked)
     }
 }
 } // namespace
+
+TEST(SkillHitsTest, WarIncludesOtherPlayersAndAttribute100StopsBeforeCollectingTargets)
+{
+    HitsWorld tested(30, 0x18);
+    tested.world.Runtime().siegeActive = true;
+    tested.world.Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+    tested.Put(5, 1, 0x1005, 1.0f);
+    const auto hit = tested.Hit(Request(100.0f));
+    ASSERT_TRUE(hit.HasValue());
+    EXPECT_TRUE(hit.Value());
+    EXPECT_EQ(tested.sent.size(), 1u);
+    // 12345/6789 por−.01f sinstore: índicenativo123+67*256.
+    tested.world.Map().terrain.attributes->cells[123 + 67 * 256] = 0x100;
+    const auto blocked = tested.Hit(Request(100.0f));
+    ASSERT_TRUE(blocked.HasValue());
+    EXPECT_FALSE(blocked.Value());
+    EXPECT_EQ(tested.sent.size(), 1u);
+    EXPECT_EQ(DrawsSince(Seed, tested.random), 2 * OwnRecord + Delivery);
+}

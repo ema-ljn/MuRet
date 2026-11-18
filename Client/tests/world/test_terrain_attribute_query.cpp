@@ -224,3 +224,16 @@ TEST(TerrainAttributeQueryTest, ContinuesAfterMaskedInvalidYConversion)
         EXPECT_EQ(source.events, (std::vector<int>{1, 1, 2}));
     }
 }
+
+TEST(TerrainAttributeQueryTest, TheCanonicalWorldOverloadKeepsNegativeScaleAndNoIntermediateFloatStore)
+{
+    auto attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+    attributes->cells[513] = 0x0100;
+    attributes->cells[256] = 0x8008;
+    const auto middle = Client::World::TerrainAttributeQueryAt(*attributes, 150.0f, 250.0f);
+    ASSERT_TRUE(middle.HasValue());
+    EXPECT_EQ(middle.Value() & 0xffff, 0x100u);
+    const auto boundary = Client::World::TerrainAttributeQueryAt(*attributes, 100.0f, 200.0f);
+    ASSERT_TRUE(boundary.HasValue());
+    EXPECT_EQ(boundary.Value() & 0xffff, 0x8008u);
+}

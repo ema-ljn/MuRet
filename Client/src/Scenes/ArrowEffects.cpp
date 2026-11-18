@@ -1,4 +1,5 @@
 #include "Scenes/ArrowEffects.h"
+#include "World/TerrainAttributeQuery.h"
 
 #include "Core/Expected.h"
 #include "Data/Terrain/TerrainGrid.h"
@@ -692,9 +693,20 @@ Core::Expected<void, std::string> HitWithTheArrow(World::ModelEffect& effect, co
     // 0x520179..0x5201d2: con el asedio (0x4294b0), el bit 0x100 de la celda (0x5f82c0) la frena y le deja media vida.
     if (runtime.siegeActive)
     {
-        return Core::Unexpected(std::format("0x52018d: la flecha {:#x} con el asedio prendido (el atributo de "
-                                            "0x5f82c0), sin portar (CL9.5)",
-                                            effect.type));
+        const auto& attributes = context.world.Map().terrain.attributes;
+        if (!attributes)
+            return Core::Unexpected(std::string("0x52018d: faltan los atributos para el choque de la flecha"));
+        const auto query =
+            World::TerrainAttributeQueryAt(*attributes, effect.transform.position.x, effect.transform.position.y);
+        if (!query.HasValue())
+            return Core::Unexpected(std::string("0x52018d: dirección del atributo fuera de la tabla del mundo"));
+        if ((query.Value() & 0x100) != 0)
+        {
+            effect.speed = 0;
+            effect.velocity = glm::vec3(0);
+            effect.life /= 2;
+            return {};
+        }
     }
     // 0x5201d3..0x5201e7: con +0x88 (la bandera de 0x53d9a0, o el 1 del subtipo 2) y sin el subtipo 0x63, rand() & 1,
     // el dueño héroe, la skill del registro propio y 0x517a20.

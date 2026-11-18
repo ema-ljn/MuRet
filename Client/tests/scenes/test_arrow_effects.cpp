@@ -1595,3 +1595,26 @@ TEST(ArrowEffectsTest, TheTourProjectileCreatesAndStepsWithoutAttackingActors)
     }
 }
 } // namespace
+
+TEST(ArrowEffectsTest, Attribute100StopsTheArrowAndHalvesLifeBeforeTheCommonEpilogue)
+{
+    ArrowWorld tested(0);
+    tested.world.Runtime().siegeActive = true;
+    tested.world.Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+    tested.world.Map().terrain.attributes->cells[513] = 0x100;
+    ModelEffect arrow;
+    arrow.alive = true;
+    arrow.type = 0xdc;
+    arrow.life = 9;
+    arrow.speed = 7;
+    arrow.velocity = {1, 2, 3};
+    arrow.transform.position = {150, 250, 50};
+    const auto stepped = StepArrow(arrow, nullptr, tested.StepContext());
+    ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
+    EXPECT_EQ(arrow.speed, 0);
+    EXPECT_EQ(arrow.velocity, glm::vec3(0));
+    EXPECT_EQ(arrow.life, 3);
+    EXPECT_TRUE(arrow.alive);
+    EXPECT_EQ(arrow.transform.position, (glm::vec3{150, 250, 50}));
+    EXPECT_EQ(DrawsSince(Seed, tested.random), 1);
+}

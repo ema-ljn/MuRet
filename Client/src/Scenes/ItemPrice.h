@@ -28,6 +28,9 @@ struct PetPriceLevels
     std::uint16_t horse = 0; // [0x72397c]
 };
 
+// 0x422930: el producto DWORD del nivel por el precio de la especie, sin redondear.
+[[nodiscard]] std::uint32_t PetBasePrice(std::uint16_t type, const PetPriceLevels& pets);
+
 // 0x54d0f0(ítem, modo): el dword bajo del precio, que es lo que leen los que llaman. El tipo 0xffff vale 0. Corta con
 // la dirección del original: un tipo fuera de Item.bmd (0x54d133), una opción leída fuera de D+0x2b..D+0x3b, las
 // flechas y los virotes de nivel 3 o más (0x54d283, multiplican por la dirección del ítem), una cuenta de la x87

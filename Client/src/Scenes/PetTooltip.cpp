@@ -10,6 +10,8 @@
 #include "Scenes/GameTooltips.h"
 #include "Scenes/ITextDrawer.h"
 #include "Scenes/ItemTooltipParts.h"
+#include "Scenes/ItemPrice.h"
+#include "Scenes/ZenText.h"
 #include "Scenes/ItemTooltips.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnItemPlacement.h"
@@ -239,22 +241,34 @@ Core::Expected<bool, std::string> DrawThePetTooltip(const ItemTooltipContext& co
     PetTable projected = runtime.pets;
     PetTable& pets = hud.projecting ? projected : runtime.pets;
     UpdatePetStats(pet, world, pets, hud.ownRecordDepth, hud.random);
-    // 0x422a3a..0x422b0c: el precio. Con la tienda de NPC abierta (0x10000, 1 rand()), 0x422930 con el formato de
-    // 0x5b1130, de la CL9.3. Con la tienda personal propia (0x800) o la ajena (0x20000), el de 0x78abaa4 (0x422b12, la
-    // CL9.4), que MuRet deja en 0 (Scenes/ItemTooltips.cpp, CheckTheShops): sin precio, N y M quedan en 0.
+    // 0x422a3a..0x42303d: los precios comparten los proveedores del cuerpo del ítem, pero N y M son locales.
+    std::int32_t next = 0;
+    std::int32_t halves = 0;
+    TooltipWriter lines(hud.hud.tooltip, hud.texts, next, halves);
     GamePanels panels(world, hud.random);
     UI::PanelRegistry& registry = panels.Registry();
     if (registry.IsOpen(UI::NpcShopPanel))
-        return Core::Unexpected(
-            std::format("0x422a55: el precio del {:#x} en la tienda de NPC (0x422930 con el formato "
-                        "de 0x5b1130) es de la CL9.3 (P-C246)",
-                        item.id));
-    if (!registry.IsOpen(UI::PersonalShopPanel))
-        static_cast<void>(registry.IsOpen(UI::OtherShopPanel));
-    // N en EBX y M en [EBP−0x24]: 0x422990 no toca 0x78abb30 ni 0x78abb34.
-    std::int32_t next = 0;
-    std::int32_t halves = 0;
-    TooltipWriter lines(hud.hud.tooltip, hud.texts, next);
+    {
+        constexpr std::uint32_t SaleDivisor = 3;
+        constexpr std::uint32_t PriceRounding = 100;
+        constexpr std::size_t PriceText = 63;
+        const PetPriceLevels levels{.raven = pets[Protocol::Pet::DarkRavenPet].level,
+                                    .horse = pets[Protocol::Pet::DarkHorsePet].level};
+        const std::uint32_t price = PetBasePrice(item.id, levels) / SaleDivisor / PriceRounding * PriceRounding;
+        lines.At("0x422a55");
+        lines.PrintText(PriceText, std::string_view(FormatZen(price)));
+        lines.Color(TooltipWhite);
+        lines.Bold(1);
+        lines.Next();
+        lines.NewLine();
+    }
+    else if (registry.IsOpen(UI::PersonalShopPanel) || registry.IsOpen(UI::OtherShopPanel))
+    {
+        if (auto written = WriteThePersonalShopPrice(hud, lines, item); !written.HasValue())
+            return Core::Unexpected(written.Error());
+    }
+    if (lines.Failed())
+        return Core::Unexpected(lines.Error());
     // 0x423040..0x4230f3: el nombre, en azul y en negrita (el color y la negrita van antes de mirar el tipo), y lo que
     // piden: el nivel el caballo, el liderazgo el cuervo.
     lines.At("0x423040");

@@ -136,7 +136,7 @@ Hay **implementaciones concretas todavía pendientes**, además de capturas VM:
 | --- | --- |
 | CastleArrival134/0 | Altas de los tipos278/283, `42d513` / `42d5af`; key120 y dueño Actor. El Arrival61f existente no implementa134. |
 | Efectos Siege61c /19f | `42dd48` / `42dd9c`, según tipo y paso del actor. |
-| F8/1 | Crywolf `43257a` y fortaleza `42fd76`; descendencia60f/0x25 o0xb y105/3. El arreglo de ED/E1 no los sustituye. |
+| F8/1 | Crywolf `43257a` y fortaleza `42fd76`; descendencia60f/0x19 (25decimal) o0xb y105/3. El arreglo de ED/E1 no los sustituye. |
 | C1A | Ataque Crywolf `4329db` y genérico `4f6780`; no equivale a las piedras C8/C9. |
 
 Estos casos requieren portar constructor, paso, dibujo y descendencia con sus

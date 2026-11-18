@@ -582,23 +582,14 @@ TEST_F(GameInventoryHudTest, TheSetPassDrawsItsRandomWhenThePulseIsOff)
     EXPECT_EQ(random.State(), before.State());
 }
 
-// Las alas 0x1806 (el modelo 0x1a18) cortan antes de sus uniones; las otras grillas, con su dirección.
+// Las alas 0x1806 (el modelo 0x1a18) cortan antes de sus uniones, con su dirección. Las grillas de la tienda, del
+// almacén y del entrenador (hito 6) y la del comercio (hito 7) ya no cortan.
 TEST_F(GameInventoryHudTest, WhatBelongsToOtherWavesStopsWithItsAddress)
 {
     PutItem(0, 0x1806, 2, 2);
     auto wings = GridItems();
     ASSERT_FALSE(wings.HasValue());
     EXPECT_NE(wings.Error().find("0x60c3b6"), std::string::npos) << wings.Error();
-
-    world.Inventory().ClearForInventoryReply();
-    world.Runtime().ownRecordDepth = 0;
-    world.Runtime().panels.trade = 1;
-    auto trade = GridItems();
-    ASSERT_FALSE(trade.HasValue());
-    EXPECT_NE(trade.Error().find("0x5f76df"), std::string::npos) << trade.Error();
-    auto tradeNumbers = GridNumbers();
-    ASSERT_FALSE(tradeNumbers.HasValue());
-    EXPECT_NE(tradeNumbers.Error().find("0x5f79b7"), std::string::npos) << tradeNumbers.Error();
 }
 
 // 0x5f769b y 0x5f7756 (CL9 hito 6): la grilla de la tienda y la del almacén (0x78a7070, 8 × 15) van desde la esquina de

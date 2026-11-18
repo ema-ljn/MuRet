@@ -40,7 +40,6 @@
 #include "Protocol/Friends.h"
 #include "Protocol/PersonalShop.h"
 #include "Protocol/Inventory.h"
-#include "Protocol/JewelMix.h"
 #include "Protocol/Letters.h"
 #include "Protocol/Messages.h"
 #include "Protocol/NpcWindows.h"
@@ -318,8 +317,6 @@ void ServerSession::RegisterGameServerHandlers()
         m_gameServer.On(Protocol::NpcWindows::WarehouseStateOpcode, npcWindow) &&
         m_gameServer.On(Protocol::NpcWindows::ChaosMixOpcode, npcWindow) &&
         m_gameServer.On(Protocol::NpcWindows::ChaosBoxCloseOpcode, npcWindow) &&
-        // La respuesta de la mezcla de joyas, el BC (0x4e4547, CL9 hito 6, fase 4b).
-        m_gameServer.On(Protocol::JewelMix::JewelMixOpcode, npcWindow) &&
         // CL9 hito 5: los ítems del piso (0x4d0ba0, 0x4e3849, 0x4d0cc0, 0x4d10d0) y la fruta de stats (0x4de500). El
         // dispatcher (0x4e3831..0x4e3bdb) no mira si llegaron cifrados.
         m_gameServer.On(Protocol::FloorItems::CreateOpcode,
@@ -1594,8 +1591,6 @@ std::optional<WorldEvent> ReadNpcWindowEvent(const Network::Packet& packet)
         return EventOf(Npc::ReadWarehouseState(packet));
     case Npc::ChaosMixOpcode:
         return EventOf(Npc::ReadChaosMixResult(packet));
-    case Protocol::JewelMix::JewelMixOpcode:
-        return EventOf(Protocol::JewelMix::ReadJewelMixAnswer(packet));
     default:
         return EventOf(Npc::ReadNpcWindowClosed(packet));
     }

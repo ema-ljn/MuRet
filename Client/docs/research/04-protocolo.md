@@ -1073,7 +1073,7 @@ nombre del evento (un puntero a su registro, `0x76bd1dc + 300 · índice`) impri
 | `C1 44 9D resultado datos:0x40` | `0x4e4a86` | el aviso 886 + resultado (0..4) o 899 (5) y siempre los `0x40` bytes en `0x78ab078` | no está |
 | `C1 06 9E … sonido:2` | `0x4e4ad4` | con 0, 1 o 2, el sonido `0x5b`, `0x5c` o `0x5d` (CL10) | no está |
 | `C1 05 AF 01 resultado` | `0x4e5032` → `0x4daa90` | como el 9A con Chaos Castle (1147, 100), y 7 → 423 | no está en el 0.97; el oráculo es el cliente |
-| `C1 05 BC 00/01 resultado` | `0x4e4547`, `0x4da540` | el texto de la mezcla (1801/1800 con 1816 y 868, o 1817, 1811, 1812, 1815) en `"%s%s %s"`, `0x6236f0(0)` y `0x6236f0(0xa6)`, y la ventana de la mezcla (`0x402e50`, corta: hito 6) | no está |
+| `C1 05 BC 00/01 resultado` | `0x4e4547`, `0x4da540` | el texto de la mezcla (1801/1800 con 1816 y 868, o 1817, 1811, 1812, 1815) en `"%s%s %s"`, `0x6236f0(0)` y `0x6236f0(0xa6)`, y la ventana de la mezcla (`0x402e50`, del hito 6: `Scenes::ReturnToTheJewelChoice`) | no está |
 | `C1 06 BD 00 estado etapa` | `0x4e5965` | `0x42fe80(estado, etapa)` (la interfaz de Crywolf; con otro estado que el anterior, la luz y el `.att` del mapa en curso, `0x42ff81` y `0x42ffe8`, [06](06-render-escenas-y-ui.md#los-objetos-de-crywolf), Q-C1340) y `0x4033b0(etapa)` en el recorrido de la cámara | no está: el GameServer 0.97 no tiene Crywolf y el oráculo es el ASM del cliente |
 | `C1 0D BD 02 luz:4 a0 a1 a2 a3 a4` | `0x4e5990` → `0x4e0fe0` → `0x430000` | la luz a `0x723c08` y los cinco altares a `0x6c73cc..0x6c73d0` (`.data` en 2), en cualquier mapa | no está (Crywolf) |
 | `C1 08 BD 03 resultado valor clave:2` | `0x4e59a5` → `0x4e1010` | el resultado del contrato de los altares, con la clave big-endian (`pkt[6]·256 + pkt[7]`), en cualquier mapa: con 0, el héroe sin `0x200000` en `+0x7c`, el nivel (`+0xe`) con el registro propio abierto (0xf08 `rand()` al cerrarlo) y `0x435b00(0x36)` + `(0x37)` con menos de 350 o `(0x3a)`; con 1, `0x435b00(3)` + `(4)`, `0x435ad0(clave − 0x13c, valor)` (sin tope, Q-C1347), `0x200000` en `+0x7c`, la acción `0xca` (`0x4ea030`, con las acciones del modelo del tipo del héroe: un héroe transformado cuyo modelo no tiene la `0xca` se queda con la suya) y el `C1 05 18 rumbo 82` de abajo; con otro, nada. `0x435b00` y `0x435ad0` solo hacen algo con la etapa 3 o 4 en el 34 (06 § La interfaz de Crywolf) | no está |
@@ -1776,7 +1776,9 @@ ASM del cliente):
   buffer de `0x100`; los demás, un texto (juntar: 4 el 1817 y 5 el 1811; deshacer: 2, 3, 4 y 6 el 1812, 7 el 1815 y
   8 el 1811). Los mensajes son de tipo 1 con el nombre vacío (`0x5767a54..0x5767a6c`, que nadie escribe) y después
   `0x402e50` vuelve a la elección de la joya. Sin `rand()`. `0x4da460`, el gemelo de juntar como función aparte (la
-  tabla `0x4da524`), no tiene quien la llame (08, P-C341). **MuRet**: `Protocol::JewelMix` y `Scenes/JewelMixAnswers`.
+  tabla `0x4da524`), no tiene quien la llame (08, P-C341). **MuRet**: `Protocol::JewelMix` (lo que sale); la respuesta
+  llega como `Protocol::Events::JewelMixResult` del hito 11 y `Scenes::ApplyEventPacket` la atiende con
+  `Scenes::ReturnToTheJewelChoice` (`0x402e50`).
 - **`AF 01`** la entrada a Chaos Castle (CL9 hito 6, fase 4a; 06 § "Los diálogos del juego"; *inferido* del diálogo,
   `UI::ChaosCastleDialog`): el sí del `0x9a` (`0x628582..0x628aaf`) con el dword `0x78a59cc` (el `+4` del ítem de los
   diálogos de `0x78a59c8`) distinto de `0xff` manda `C1 06 AF 01 <nivel> <lugar>` (`0x628594..0x628947`): el nivel es

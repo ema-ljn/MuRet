@@ -20,7 +20,6 @@
 #include "Protocol/Friends.h"
 #include "Protocol/Guild.h"
 #include "Protocol/Inventory.h"
-#include "Protocol/JewelMix.h"
 #include "Protocol/Letters.h"
 #include "Protocol/Messages.h"
 #include "Protocol/Movement.h"
@@ -49,7 +48,6 @@
 #include "Scenes/GameLetters.h"
 #include "Scenes/IWorldEntryPublisher.h"
 #include "Scenes/IWorldTransitionPublisher.h"
-#include "Scenes/JewelMixAnswers.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/InventoryReply.h"
 #include "Scenes/IWorldEntryPublisher.h"
@@ -126,7 +124,7 @@ template <typename Event> constexpr bool IsNpcWindowEvent(const Event&)
            std::is_same_v<Event, Npc::BuyResult> || std::is_same_v<Event, Npc::SellResult> ||
            std::is_same_v<Event, Npc::RepairResult> || std::is_same_v<Event, Npc::WarehouseMoney> ||
            std::is_same_v<Event, Npc::NpcWindowClosed> || std::is_same_v<Event, Npc::WarehouseState> ||
-           std::is_same_v<Event, Npc::ChaosMixResult> || std::is_same_v<Event, Protocol::JewelMix::JewelMixAnswer>;
+           std::is_same_v<Event, Npc::ChaosMixResult>;
 }
 
 std::optional<Core::Expected<void, std::string>>
@@ -154,8 +152,6 @@ ApplyNpcWindowEvent(const App::WorldEvent& event, const WorldEntryResources& unb
         return ApplyWarehouseState(*state, resources);
     if (const auto* mixed = std::get_if<Npc::ChaosMixResult>(&event))
         return ApplyChaosMixResult(*mixed, resources);
-    if (const auto* jewels = std::get_if<Protocol::JewelMix::JewelMixAnswer>(&event))
-        return ApplyJewelMixAnswer(*jewels, resources);
     return std::nullopt;
 }
 

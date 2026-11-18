@@ -1,26 +1,19 @@
-#include "Scenes/JewelMixAnswers.h"
+#include "Scenes/EventPackets.h"
 
 #include "Core/Expected.h"
-#include "Core/ILogSink.h"
-#include "Core/Log.h"
 #include "Data/Text/TextTable.h"
 #include "Network/Delivery.h"
-#include "Protocol/JewelMix.h"
+#include "Protocol/Events.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
-#include "Scenes/LoginModels.h"
 #include "Scenes/NpcWindowState.h"
-#include "Scenes/SelectionState.h"
-#include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/MessageArea.h"
-#include "World/GameCamera.h"
 
 #include "support/Bytes.h"
-#include "support/RecordingSink.h"
 #include "support/SameBytes.h"
 #include "support/SceneDataFiles.h"
 
@@ -28,24 +21,23 @@
 
 #include <array>
 #include <cstdint>
-#include <filesystem>
 #include <memory>
 #include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
 
-// Las respuestas del BC de la mezcla de joyas (0x4e4547 con 0x4e60a8 y 0x4da540 con 0x4da620, CL9 hito 6, fase 4b):
-// los mensajes de tipo 1, el diálogo 0xa6 y la vuelta de 0x402e50. El GameServer 0.97 no manda el BC; ninguna saca
-// rand(). Textos inventados; el mundo, en Lorencia (0), Devias (2) y Noria (3), el mapa del NPC de las joyas.
+// Las respuestas del BC de la mezcla de joyas (0x4e4547 con 0x4e60a8 y 0x4da540 con 0x4da620, CL9 hitos 6 y 11): los
+// mensajes de tipo 1, el diálogo 0xa6 y la vuelta de 0x402e50, por Scenes::ApplyEventPacket. El GameServer 0.97 no
+// manda el BC; ninguna saca rand(). Textos inventados; el mundo, en Lorencia (0), Devias (2) y Noria (3), el mapa del
+// NPC de las joyas.
 namespace
 {
 using Client::Network::Delivery;
 using Client::Render::Models::CrtRandom;
-using Client::Scenes::WorldEntryResources;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
-namespace JewelMix = Client::Protocol::JewelMix;
+namespace Events = Client::Protocol::Events;
 
 constexpr std::array<std::int32_t, 3> Maps{0, 2, 3};
 constexpr std::uint32_t Seed = 0x2468;
@@ -82,25 +74,19 @@ struct Stage
 
     [[nodiscard]] Client::Core::Expected<void, std::string> Answer(int subcode, int result)
     {
-        WorldEntryResources resources{.world = world,
-                                      .selection = selection,
-                                      .dataRoot = std::filesystem::path{},
-                                      .cloth = cloth,
-                                      .camera = camera,
-                                      .cameraInput = cameraInput,
-                                      .models = models,
-                                      .log = log};
-        resources.textMeasure = &measure;
-        resources.texts = &texts;
-        resources.sendNpcWindowPacket = [this](Client::Protocol::Outgoing packet)
-        {
-            sent.push_back(std::move(packet));
-            return Client::Core::Expected<void, std::string>{};
-        };
-        return Client::Scenes::ApplyJewelMixAnswer(
-            JewelMix::JewelMixAnswer{.subcode = static_cast<std::uint8_t>(subcode),
-                                     .result = static_cast<std::uint8_t>(result)},
-            resources);
+        const Client::Scenes::EventPacketContext context{.world = world,
+                                                         .random = random,
+                                                         .texts = &texts,
+                                                         .measure = &measure,
+                                                         .send = [this](Client::Protocol::Outgoing packet)
+                                                         { sent.push_back(std::move(packet)); }};
+        auto applied =
+            Client::Scenes::ApplyEventPacket(Events::JewelMixResult{.subcode = static_cast<std::uint8_t>(subcode),
+                                                                    .result = static_cast<std::uint8_t>(result)},
+                                             context);
+        if (!applied.HasValue())
+            return Client::Core::Unexpected(std::move(applied).Error());
+        return {};
     }
 
     // Lo que avisó 0x555190 con el tipo 1, en orden.
@@ -121,11 +107,7 @@ struct Stage
     }
 
     Client::Scenes::WorldState world;
-    Client::Scenes::SelectionState selection{world};
-    Client::World::GameCamera camera;
-    Client::World::GameCameraInput cameraInput;
-    Client::Render::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
-    Client::Scenes::SingleModelLibrary models;
+    CrtRandom random{Seed};
     Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable({{868, "zen"},
                                                                         {1800, "no se deshizo"},
                                                                         {1801, "no se junto"},
@@ -135,8 +117,6 @@ struct Stage
                                                                         {1816, ", falta"},
                                                                         {1817, "diecisiete"}});
     LetterMeasure measure;
-    Client::Tests::RecordingSink sink;
-    Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
     std::vector<Client::Protocol::Outgoing> sent;
 };
 
@@ -167,12 +147,12 @@ TEST(JewelMixAnswersTest, TheMixFailuresShowTheSentenceAndReturnToTheChoice)
         for (const std::uint8_t result : {std::uint8_t{0}, std::uint8_t{2}, std::uint8_t{3}})
         {
             auto stage = StageIn(map);
-            const CrtRandom expected = stage->cloth.random;
-            const auto answered = stage->Answer(JewelMix::MixSubcode, result);
+            const CrtRandom expected = stage->random;
+            const auto answered = stage->Answer(Events::JewelMixSubcode, result);
             ASSERT_TRUE(answered.HasValue()) << answered.Error();
             EXPECT_EQ(stage->Messages(), (std::vector<std::string>{"no se junto, falta zen"})) << map;
             ExpectTheChoice(*stage, ChoiceDialog);
-            EXPECT_EQ(stage->cloth.random.State(), expected.State());
+            EXPECT_EQ(stage->random.State(), expected.State());
         }
     }
 }
@@ -186,7 +166,7 @@ TEST(JewelMixAnswersTest, TheOtherMixAnswersShowTheirText)
              {std::pair<int, std::string_view>{4, "diecisiete"}, std::pair<int, std::string_view>{5, "once"}})
         {
             auto stage = StageIn(map);
-            ASSERT_TRUE(stage->Answer(JewelMix::MixSubcode, result).HasValue());
+            ASSERT_TRUE(stage->Answer(Events::JewelMixSubcode, result).HasValue());
             EXPECT_EQ(stage->Messages(), (std::vector<std::string>{std::string(text)})) << map;
             ExpectTheChoice(*stage, ChoiceDialog);
         }
@@ -198,7 +178,7 @@ TEST(JewelMixAnswersTest, TheSuccessOpensTheResultDialog)
 {
     for (const std::int32_t map : Maps)
     {
-        for (const std::uint8_t subcode : {JewelMix::MixSubcode, JewelMix::UnmixSubcode})
+        for (const std::uint8_t subcode : {Events::JewelMixSubcode, Events::JewelUnmixSubcode})
         {
             auto stage = StageIn(map, subcode);
             ASSERT_TRUE(stage->Answer(subcode, 1).HasValue());
@@ -228,7 +208,7 @@ TEST(JewelMixAnswersTest, TheUnmixAnswersFollowTheirTable)
         for (const auto& [result, text] : answers)
         {
             auto stage = StageIn(map, 1);
-            const auto answered = stage->Answer(JewelMix::UnmixSubcode, result);
+            const auto answered = stage->Answer(Events::JewelUnmixSubcode, result);
             ASSERT_TRUE(answered.HasValue()) << answered.Error();
             EXPECT_EQ(stage->Messages(), (std::vector<std::string>{std::string(text)})) << result;
             ExpectTheChoice(*stage, UnmixDialog);
@@ -236,10 +216,11 @@ TEST(JewelMixAnswersTest, TheUnmixAnswersFollowTheirTable)
     }
 }
 
-// Fuera de las tablas (más de 5 con el 0, más de 8 con el 1) o con otro subcódigo, nada.
+// Fuera de las tablas (más de 5 con el 0, más de 8 con el 1), nada. Otro subcódigo no llega: la sesión registra el BC
+// solo con 0 y 1.
 TEST(JewelMixAnswersTest, OutOfTheTablesNothingHappens)
 {
-    for (const auto& [subcode, result] : {std::pair<int, int>{0, 6}, {0, 0xff}, {1, 9}, {2, 0}})
+    for (const auto& [subcode, result] : {std::pair<int, int>{0, 6}, {0, 0xff}, {1, 9}})
     {
         auto stage = StageIn(0);
         ASSERT_TRUE(stage->Answer(subcode, result).HasValue());
@@ -254,7 +235,7 @@ TEST(JewelMixAnswersTest, OutOfTheTablesNothingHappens)
 TEST(JewelMixAnswersTest, WithAnotherModeTheReturnClosesTheMix)
 {
     auto stage = StageIn(2, 7);
-    ASSERT_TRUE(stage->Answer(JewelMix::MixSubcode, 5).HasValue());
+    ASSERT_TRUE(stage->Answer(Events::JewelMixSubcode, 5).HasValue());
     EXPECT_EQ(stage->Messages(), (std::vector<std::string>{"once"}));
     ASSERT_EQ(stage->sent.size(), 1u);
     EXPECT_EQ(stage->sent[0].delivery, Delivery::Clear);
@@ -271,15 +252,15 @@ TEST(JewelMixAnswersTest, ASentenceThatDoesNotFitTheBufferCuts)
     auto stage = StageIn(0);
     stage->texts = Client::Tests::MakeTextTable(
         {{868, std::string(0x80, 'z')}, {1801, std::string(0x7f, 'j')}, {1816, ""}, {1817, "diecisiete"}});
-    const auto overflow = stage->Answer(JewelMix::MixSubcode, 0);
+    const auto overflow = stage->Answer(Events::JewelMixSubcode, 0);
     ASSERT_FALSE(overflow.HasValue());
-    EXPECT_NE(overflow.Error().find("0x4e4570(0)"), std::string::npos) << overflow.Error();
+    EXPECT_NE(overflow.Error().find("0x4e45ad"), std::string::npos) << overflow.Error();
     EXPECT_TRUE(stage->Messages().empty());
 
     stage->texts =
         Client::Tests::MakeTextTable({{868, std::string(0x7f, 'z')}, {1801, std::string(0x7f, 'j')}, {1816, ""}});
     // 0xff letras y el 0 entran justo; el área lo parte en renglones.
-    ASSERT_TRUE(stage->Answer(JewelMix::MixSubcode, 0).HasValue());
+    ASSERT_TRUE(stage->Answer(Events::JewelMixSubcode, 0).HasValue());
     ASSERT_FALSE(stage->Messages().empty());
 }
 } // namespace

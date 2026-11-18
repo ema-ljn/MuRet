@@ -10,6 +10,7 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/SpriteBatch.h"
+#include "Render/SpriteVertex.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/GameUi.h"
@@ -28,6 +29,7 @@
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -470,5 +472,103 @@ TEST_F(SiegeUiTest, TheCommanderWithoutSideBitsUsesTheMapOffsetAsItsFriendlyMask
     ASSERT_TRUE(Siege::DrawTheBattlePanel(draw).HasValue());
     EXPECT_EQ(random.State(), expected.State());
     EXPECT_EQ(runtime.siegePanel.offsetY, 128);
+}
+
+// 0x411c12/0x411ce5/0x411db8: dv=0x3f100000. Los iconos del menú usan sus rectángulos completos.
+TEST_F(SiegeUiTest, TheCommandMenuUsesTheNativeAtlasRectangles)
+{
+    auto& runtime = world->Runtime();
+    runtime.siegePanelKind = 2;
+    runtime.siegePanel.selected = 1;
+    auto draw = DrawContext();
+    ASSERT_TRUE(Siege::DrawTheBattlePanel(draw).HasValue());
+    std::array<bool, 3> seen{};
+    std::size_t backgrounds = 0;
+    for (const auto& command : sprites.Commands())
+    {
+        if (!command.texture)
+            continue;
+        const auto slot = command.texture->value;
+        for (std::size_t first = command.firstVertex; first < command.firstVertex + command.vertexCount; first += 6)
+        {
+            const auto& corner = sprites.Vertices()[first + 2];
+            if (slot == 0x6a4)
+            {
+                EXPECT_EQ(std::bit_cast<std::uint32_t>(corner.u), 0x3f700000u);
+                EXPECT_EQ(std::bit_cast<std::uint32_t>(corner.v), 0x3f100000u);
+                ++backgrounds;
+            }
+            if (slot < 0x6a0 || slot > 0x6a2)
+                continue;
+            const std::size_t index = slot - 0x6a0;
+            constexpr std::array<std::uint32_t, 3> U{0x3f500000, 0x3f100000, 0x3f300000};
+            constexpr std::array<std::uint32_t, 3> V{0x3f500000, 0x3f700000, 0x3f400000};
+            EXPECT_EQ(std::bit_cast<std::uint32_t>(corner.u), U[index]);
+            EXPECT_EQ(std::bit_cast<std::uint32_t>(corner.v), V[index]);
+            seen[index] = true;
+        }
+    }
+    EXPECT_EQ(backgrounds, 3u);
+    EXPECT_EQ(seen, (std::array<bool, 3>{true, true, true}));
+}
+
+// 0x410434..0x410478 y 0x4119a2..0x4119e6: un status sin caso conserva las tres métricas de la fila previa.
+TEST_F(SiegeUiTest, TheStatusMetricsSurviveAnUnrecognizedFollowingStatus)
+{
+    auto& runtime = world->Runtime();
+    auto& hero = world->Actors()[runtime.hero];
+    hero.cellX = 64;
+    hero.cellY = 192;
+    for (const std::uint8_t kind : {std::uint8_t{1}, std::uint8_t{2}})
+    {
+        runtime.siegePanelKind = kind;
+        runtime.siegePanel.status[0] = {1, 64, 192, 0, 0};
+        runtime.siegePanel.status[1] = {2, 65, 191, 4, 0};
+        runtime.siegePanel.selected = 1;
+        auto draw = DrawContext();
+        ASSERT_TRUE(Siege::DrawTheBattlePanel(draw).HasValue());
+        bool foundStatus = false;
+        bool foundHighlight = false;
+        for (const auto& command : sprites.Commands())
+        {
+            if (!command.texture)
+                continue;
+            for (std::size_t first = command.firstVertex; first < command.firstVertex + command.vertexCount; first += 6)
+            {
+                const auto& origin = sprites.Vertices()[first];
+                const auto& corner = sprites.Vertices()[first + 2];
+                if (command.texture->value == 0x6a4 && corner.x - origin.x == 11.0f)
+                {
+                    EXPECT_EQ(std::bit_cast<std::uint32_t>(corner.u), 0x3f400000u);
+                    EXPECT_EQ(std::bit_cast<std::uint32_t>(corner.v), 0x3f400000u);
+                    foundStatus = true;
+                }
+                if (command.texture->value == 0x6a6)
+                {
+                    EXPECT_FLOAT_EQ(corner.x - origin.x, 13.0f);
+                    EXPECT_FLOAT_EQ(origin.y - corner.y, 13.0f);
+                    foundHighlight = true;
+                }
+            }
+        }
+        EXPECT_TRUE(foundStatus);
+        EXPECT_EQ(foundHighlight, kind == 2);
+    }
+}
+
+TEST_F(SiegeUiTest, AFirstUnrecognizedStatusDoesNotInventUninitializedStackMetrics)
+{
+    auto& runtime = world->Runtime();
+    runtime.siegePanelKind = 1;
+    auto& hero = world->Actors()[runtime.hero];
+    hero.cellX = 64;
+    hero.cellY = 192;
+    runtime.siegePanel.status[0] = {1, 64, 192, 4, 2};
+    auto draw = DrawContext();
+    const auto drawn = Siege::DrawTheBattlePanel(draw);
+    ASSERT_FALSE(drawn.HasValue());
+    EXPECT_NE(drawn.Error().find("stack"), std::string::npos);
+    // El número y el parpadeo preceden al primer uso de las métricas no inicializadas.
+    EXPECT_EQ(runtime.siegePanel.status[0][4], 1);
 }
 } // namespace

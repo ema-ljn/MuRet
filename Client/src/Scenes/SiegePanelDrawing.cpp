@@ -20,6 +20,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <string>
 
 namespace Client::Scenes
@@ -125,12 +126,20 @@ void DrawBase(GameHudContext& context, UI::SiegePanelState& panel, std::uint8_t 
                    static_cast<std::int32_t>(static_cast<double>(panel.alpha) * 100.0), 8.0f, 8.0f);
 }
 
-void DrawStatus(GameHudContext& context, UI::SiegePanelState& panel, float* lastWidth = nullptr,
-                float* lastHeight = nullptr)
+Core::Expected<void, std::string> DrawStatus(GameHudContext& context, UI::SiegePanelState& panel,
+                                             float* lastWidth = nullptr, float* lastHeight = nullptr)
 {
     Render::SpriteBatch& sprites = context.sprites;
     const float left = static_cast<float>(panel.x + MapInsetX);
     const float top = static_cast<float>(panel.y + MapInsetY);
+    // Son locales de una llamada, no de cada fila. Los saltos sin caso conservan sus valores anteriores.
+    struct Metrics
+    {
+        float width;
+        float height;
+        float atlasWidth;
+    };
+    std::optional<Metrics> metrics;
     for (auto& status : panel.status)
     {
         if (status[3] == 3 || status[0] == 0 || status[0] >= 8)
@@ -139,26 +148,16 @@ void DrawStatus(GameHudContext& context, UI::SiegePanelState& panel, float* last
         const float y = top + static_cast<float>((256 - status[2]) / panel.page - panel.offsetY);
         if (!InMap(x, y, left, top))
             continue;
-        float uPixels = 19.0f;
-        float vPixels = 18.0f;
-        float atlasWidth = 16.0f;
         if (status[3] == 0)
-            uPixels = vPixels = 13.0f;
+            metrics = Metrics{13.0f, 13.0f, 16.0f};
         else if (status[3] == 1)
-        {
-            uPixels = 18.0f;
-            vPixels = 15.0f;
-            atlasWidth = 32.0f;
-        }
+            metrics = Metrics{18.0f, 15.0f, 32.0f};
         else if (status[3] == 2)
-        {
-            uPixels = 11.0f;
-            vPixels = 12.0f;
-        }
-        if (lastWidth != nullptr)
-            *lastWidth = uPixels;
-        if (lastHeight != nullptr)
-            *lastHeight = vPixels;
+            metrics = Metrics{11.0f, 12.0f, 16.0f};
+        if (metrics && lastWidth != nullptr)
+            *lastWidth = metrics->width;
+        if (metrics && lastHeight != nullptr)
+            *lastHeight = metrics->height;
         float flash = 1.0f;
         if (status[4] != 0)
         {
@@ -167,9 +166,13 @@ void DrawStatus(GameHudContext& context, UI::SiegePanelState& panel, float* last
         }
         sprites.SetColor({1.0f, flash, flash, 1.0f});
         UI::DrawNumber(sprites, x - 10.0f, y - 6.0f, status[0], 8.0f, 8.0f);
+        if (!metrics)
+            return Core::Unexpected(std::string("0x410330/0x411600: la primera marca sin caso usa métricas del stack "
+                                                "sin inicializar; falta el estado original para reconstruirlas"));
         Quad(sprites, static_cast<std::uint16_t>(FirstCommandSlot + status[3]), x - 8.0f, y - 8.0f, 11.0f, 11.0f, 0.0f,
-             0.0f, (uPixels - 1.0f) / atlasWidth, (vPixels - 1.0f) / 16.0f);
+             0.0f, (metrics->width - 1.0f) / metrics->atlasWidth, (metrics->height - 1.0f) / 16.0f);
     }
+    return {};
 }
 
 bool Inside(float x, float y, float left, float top, float width, float height)
@@ -198,7 +201,7 @@ void DrawMemberPoints(GameHudContext& context, const UI::SiegePanelState& panel)
     }
 }
 
-void DrawCommands(GameHudContext& context, UI::SiegePanelState& panel)
+Core::Expected<void, std::string> DrawCommands(GameHudContext& context, UI::SiegePanelState& panel)
 {
     Render::SpriteBatch& sprites = context.sprites;
     float iconWidth = 19.0f;
@@ -234,7 +237,8 @@ void DrawCommands(GameHudContext& context, UI::SiegePanelState& panel)
              static_cast<float>(mouse.y - 8), iconWidth, iconHeight, 0.0f, 0.0f, (iconWidth - 1.0f) / atlasWidth,
              (iconHeight - 1.0f) / 16.0f);
     }
-    DrawStatus(context, panel, &iconWidth, &iconHeight);
+    if (auto status = DrawStatus(context, panel, &iconWidth, &iconHeight); !status.HasValue())
+        return status;
     float rowY = top + 54.0f;
     for (std::uint8_t row = 1; row <= 7; ++row)
     {
@@ -260,10 +264,10 @@ void DrawCommands(GameHudContext& context, UI::SiegePanelState& panel)
                     const float y = menuY + command * 18.0f;
                     const bool hover =
                         Inside(static_cast<float>(mouse.x), static_cast<float>(mouse.y), menuX, y, 30.0f, 18.0f);
-                    Quad(sprites, hover ? 0x6a5 : 0x6a4, menuX, y, 30.0f, 25.0f, 0.0f, 0.0f, 0.9375f, 0.125f);
+                    Quad(sprites, hover ? 0x6a5 : 0x6a4, menuX, y, 30.0f, 25.0f, 0.0f, 0.0f, 0.9375f, 0.5625f);
                     Quad(sprites, static_cast<std::uint16_t>(FirstCommandSlot + command), menuX + Offsets[command],
                          y + (command == 2 ? 3.0f : 2.0f), Widths[command], Heights[command], 0.0f, 0.0f,
-                         (Widths[command] - 1.0f) / (command == 1 ? 32.0f : 16.0f), (Heights[command] - 1.0f) / 16.0f);
+                         Widths[command] / (command == 1 ? 32.0f : 16.0f), Heights[command] / 16.0f);
                 }
             }
         }
@@ -272,6 +276,7 @@ void DrawCommands(GameHudContext& context, UI::SiegePanelState& panel)
         UI::DrawNumber(sprites, left + 12.0f, rowY, row, 8.0f, 8.0f);
         rowY += 17.0f;
     }
+    return {};
 }
 } // namespace
 
@@ -289,11 +294,11 @@ Core::Expected<void, std::string> DrawTheBattlePanel(GameHudContext& context)
     const std::uint8_t kind = *runtime.siegePanelKind;
     DrawBase(context, panel, kind);
     if (kind == 1)
-        DrawStatus(context, panel);
+        return DrawStatus(context, panel);
     else if (kind == 2)
     {
         DrawMemberPoints(context, panel);
-        DrawCommands(context, panel);
+        return DrawCommands(context, panel);
     }
     return {};
 }

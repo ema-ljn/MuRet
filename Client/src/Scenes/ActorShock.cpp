@@ -6,10 +6,16 @@
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/MonsterCreation.h"
+#include "Scenes/MonsterSounds.h"
 #include "Scenes/WorldEntry.h"
+#include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "World/Particles.h"
 
+#include <cstddef>
 #include <cstdint>
+#include <format>
 #include <string>
 
 namespace Client::Scenes
@@ -60,25 +66,60 @@ void PlayerHitSound(const ActorState& actor, const WorldEntryResources& resource
     }
     sound = 0x69 + random.Next() % 3;
 }
-Core::Expected<void, std::string> HitSound(const ActorState& actor, const WorldEntryResources& resources)
+void HitSound(const ActorState& actor, const WorldEntryResources& resources)
 {
     // 0x4f5496 mira C3: unordered también entra en el sonido.
     if (actor.animation.frame < 0.0f || actor.animation.frame > 0.0f)
-        return {};
+        return;
+    auto& sound = resources.world.Runtime().lastSoundId;
     if (actor.subtype >= 209 && actor.subtype <= 211)
     {
-        resources.world.Runtime().lastSoundId = 0x7b;
-        return {};
+        sound = 0x7b;
+        return;
     }
     if (actor.type == Data::Models::PlayerSkeletonModel)
     {
         PlayerHitSound(actor, resources);
-        return {};
+        return;
     }
     constexpr std::uint16_t SilentMonster = 0x160;
     if (actor.type == SilentMonster)
-        return {};
-    return Core::Unexpected(std::string("0x4f5552: el golpe necesita la tabla de sonidos del monstruo"));
+        return;
+    // 0x4f553d..0x4f55a7: el WORD +0xae del modelo (el tercero de los diez de 0x612c80, que carga el alta; en 0 en un
+    // modelo sin tabla o sin cargar); en −1, sin sonido ni rand(). Si no, rand() & 1 elige +0xae o +0xb0, y el sonido
+    // es ese WORD + 0xd2, + 5 con el subtipo 9 (CL10).
+    constexpr std::size_t HitSoundWord = 2;
+    if (const auto drawn = DrawModelSound(WrittenSounds(resources.world.Runtime().modelSounds, actor.type),
+                                          HitSoundWord, actor.subtype, resources.cloth.random))
+        sound = *drawn;
+}
+// 0x4f55bb..0x4f5649: cinco intentos, aun con el pool lleno, y el sonido después de todos ellos.
+Core::Expected<void, std::string> CreateShockDust(const ActorState& actor, const WorldEntryResources& resources)
+{
+    constexpr int Attempts = 5;
+    constexpr int GateSpan = 2;
+    constexpr int HorizontalSpan = 128;
+    constexpr int HorizontalCenter = 64;
+    constexpr int VerticalSpan = 50;
+    constexpr double Rise = 200.0;
+    constexpr std::int32_t DustSound = 0x86;
+    auto& random = resources.cloth.random;
+    for (int attempt = 0; attempt < Attempts; ++attempt)
+    {
+        if (random.Next() % GateSpan != 0)
+            continue;
+        const float x = static_cast<float>(static_cast<double>(actor.position.x) +
+                                           static_cast<double>(random.Next() % HorizontalSpan - HorizontalCenter));
+        const float z = static_cast<float>(
+            (static_cast<double>(actor.position.z) + static_cast<double>(random.Next() % VerticalSpan)) + Rise);
+        const auto created = resources.world.Particles().CreateChecked(
+            World::DustParticle, {x, actor.position.y, z}, actor.angles, actor.light, 0, 1.0f, 0.0f, random);
+        if (!created.HasValue())
+            return Core::Unexpected(
+                std::format("0x4f5635: falla el alta de 0x5f3/0 con error {}", static_cast<unsigned>(created.Error())));
+    }
+    resources.world.Runtime().lastSoundId = DustSound;
+    return {};
 }
 } // namespace
 Core::Expected<void, std::string> SetActorShock(ActorState& actor, std::uint16_t damage,
@@ -86,27 +127,31 @@ Core::Expected<void, std::string> SetActorShock(ActorState& actor, std::uint16_t
 {
     if (IgnoresShock(actor, damage))
         return {};
-    const auto* skeleton = resources.models.SkeletonOf(actor.type);
-    if (skeleton == nullptr)
-        return Core::Unexpected(std::string("0x4f53a0: falta el esqueleto del personaje golpeado"));
     if (actor.type != Data::Models::PlayerSkeletonModel)
     {
+        // 0x4f5475..0x4f5480: 0x4ea030(c, 5) con las acciones del modelo del monstruo (el que cargó su alta, no
+        // Player.bmd); un modelo que no está es el registro sin acciones y no pone nada.
         if (actor.animation.action < 3 || actor.animation.action > 4)
-            Render::Models::SetAction(actor.animation, *skeleton, MonsterShockAction);
+        {
+            if (auto set = SetMonsterAction(actor, MonsterShockAction, 0x4f5480, resources); !set.HasValue())
+                return set;
+        }
     }
     else
     {
+        const auto* skeleton = resources.models.SkeletonOf(actor.type);
+        if (skeleton == nullptr)
+            return Core::Unexpected(std::string("0x4f53a0: falta Player.bmd para el personaje golpeado"));
         const bool fenrir = actor.pet.model == Fenrir;
         Render::Models::SetAction(actor.animation, *skeleton, fenrir ? FenrirAction(actor) : PlayerShockAction);
         if (fenrir && resources.cloth.random.Next() % 3 == 0)
             resources.world.Runtime().lastSoundId = 0x27b + (resources.cloth.random.Next() & 1);
         actor.movement = 0;
     }
-    if (auto sounded = HitSound(actor, resources); !sounded.HasValue())
-        return sounded;
+    HitSound(actor, resources);
     constexpr std::uint16_t SparkMonster = 0x18f;
     if (actor.type == SparkMonster)
-        return Core::Unexpected(std::string("0x4f55bb: las cinco chispas del monstruo no están portadas"));
+        return CreateShockDust(actor, resources);
     return {};
 }
 } // namespace Client::Scenes

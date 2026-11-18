@@ -22,6 +22,9 @@ struct ActorMotionContext
     WorldRuntime& runtime;
     Render::Models::CrtRandom& random;
     std::function<double(float, float)> height;
+    // 0x4eac0a..0x4eac41: la bandera del A* que 0x4eac00 calcula al entrar (Scenes::CrywolfAltarGoal) para el
+    // reintento del camino (0x508e0e). Nada de 0x508ba0 antes del reintento cambia lo que mira.
+    bool altarGoal = false;
 };
 // Los accesos lógicos de MovePath se conservan antes/después de cada store, sin tocar el blanco.
 [[nodiscard]] bool MoveActorPath(ActorState& actor, std::uint8_t rotate, Render::Models::CrtRandom& random);

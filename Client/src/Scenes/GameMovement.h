@@ -8,7 +8,11 @@
 #include "Data/Text/TextTable.h"
 #include "GameLogic/PathCell.h"
 #include "Protocol/Movement.h"
+#include "Protocol/Outgoing.h"
 #include "Scenes/ActionSend.h"
+
+#include <glm/ext/vector_float3.hpp>
+
 #include <cstdint>
 #include <functional>
 #include <optional>
@@ -28,6 +32,7 @@ class ITextMeasure;
 
 namespace Client::Scenes
 {
+class IModelLibrary;
 class WorldState;
 struct InventoryServices;
 struct HeroMovementInput
@@ -39,6 +44,8 @@ struct HeroMovementInput
     bool shiftDown = false;
     float worldTime = 0.0f;
     std::uint32_t ticksMs = 0;
+    // GetAsyncKeyState(0x11), que 0x558bb0 mira en 0x558e7f para atacar a otro jugador desde el clic (CL9 hito 3).
+    bool controlDown = false;
 };
 struct HeroMovementContext
 {
@@ -57,13 +64,26 @@ struct HeroMovementContext
     std::function<void(std::uint8_t)> requestGate{};
     float fixedHeight = 1200.0f;
     std::function<Core::Expected<void, std::string>(std::uint8_t)> sendFacing{};
+    // CL9 hito 11, SendMove con 0x78abb00 (0x56b4db..0x56b78f): el C1 03 97 en claro (sin el servicio, corta), y
+    // SetCursorPos ([0x6b84f4]) con el lugar que calcula el original en la pantalla de `screen` ([0x6d5d60] y
+    // [0x6d5d64]), que queda pedido en GameMovementState::cursorWarpRequest.
+    std::function<Core::Expected<void, std::string>()> sendEventWindowLeave{};
+    // El D7 de pegar al llegar (0x5650c0, CL9 hito 3): la clave del blanco, la acción y el rumbo. Vacío, no manda.
+    std::function<Core::Expected<void, std::string>(std::uint16_t, std::uint8_t, std::uint8_t)> sendAttack{};
+    // El C1 05 DF X Y del elfo que camina con un arma de tiro y hace clic en un atacable (0x59cf88, CL9 hito 3). Vacío,
+    // no manda.
+    std::function<Core::Expected<void, std::string>(std::uint8_t x, std::uint8_t y)> sendElfCell{};
     // El C1 18 de sentarse del héroe (0x4f2250, 0x4f2416..0x4f2bea). Vacío: sentarse corta con error.
     ActionSender sendAction{};
     // Vestir al héroe y el envío del 24, para pasar el arma de la izquierda a la derecha (0x59bd3e). nullptr: corta
     // donde los pide.
     const InventoryServices* inventory = nullptr;
-    // 0x419900: el C1 03 31 al cerrar las misiones, que caminar cierra (0x56b397..). Sin él, cerrarlas corta.
+    // 0x419900: el C1 03 31 al cerrar las misiones, que caminar cierra (0x56b397..), y el de cerrar el NPC de evento
+    // (0x56b4d6 → 0x65cae0(0x1000), 0x658a18; CL9 hito 11). Sin él, cerrarlos corta.
     std::function<void()> sendWindowClose{};
+    // El C1 03 3D que caminar manda al cerrar el comercio (0x56b3b2 → 0x65cae0(0x20) con 0, 0x657fe1). Sin él, caminar
+    // con el comercio abierto corta.
+    std::function<void(Protocol::Outgoing)> sendGamePacket{};
     // La llegada a un NPC (0x5674c8, Scenes/NpcTalk.h): el C3 A0 sin la clase de las misiones (0x5676a6) y el C3 30
     // (0x567c2d..). Los dos rand() de cada C3 los saca el paso. Sin ellos, la llegada corta donde los manda.
     std::function<void()> requestQuestList{};
@@ -71,9 +91,18 @@ struct HeroMovementContext
     // Text.bmd: los textos de los avisos de la llegada a un NPC (el 663 del 0xee, 0x567618, y el 1830 del 0x101,
     // 0x567ad3). nullptr: esos avisos cortan.
     const Data::Text::TextTable* texts = nullptr;
-    // 0x555190, para esos avisos: el medidor del texto y la pantalla. Sin medidor, cortan.
+    // 0x57ceea: el punto del terreno bajo el mouse para una skill sin elegido (0x5fc260(1) y 0x5fac90). Vacío: corta.
+    std::function<Core::Expected<std::optional<glm::vec3>, std::string>()> pickTerrainPoint{};
+    // Lo que manda 0x57cfc0 (las skills, el cuervo y la poción de maná). Vacío, no sale.
+    std::function<void(Protocol::Outgoing)> sendSkill{};
+    // La clave del jugador del F1 00 ([0x57678bc]), que las skills mandan en el C1 19 (CL9 hito 4, fase 2c).
+    std::uint16_t playerKey = 0;
+    // 0x555190, para esos avisos: el medidor del texto y la pantalla. Sin medidor, cortan. La pantalla es también la
+    // del SetCursorPos de SendMove con 0x78abb00 (CL9 hito 11).
     const Render::Text::ITextMeasure* measure = nullptr;
     App::PixelSize screen{640, 480};
+    // La biblioteca base para acciones de personajes transformados que no estén en FaunaResources.
+    const IModelLibrary* models = nullptr;
 };
 [[nodiscard]] Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& context);
 } // namespace Client::Scenes

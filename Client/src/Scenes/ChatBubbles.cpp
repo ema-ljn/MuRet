@@ -4,13 +4,20 @@
 #include "Core/Expected.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameMessages.h"
+#include "Scenes/GuildState.h"
+#include "Scenes/PersonalShopTitles.h"
+#include "Scenes/ShopSigns.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"
 #include "UI/ChatLog.h"
+#include "UI/GameText.h"
 #include "UI/MessageArea.h"
 #include "UI/MessageLog.h"
 
+#include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -40,17 +47,141 @@ std::string_view CString(std::string_view text)
     return end == std::string_view::npos ? text : text.substr(0, end);
 }
 
-// 0x556dd0(entrada, personaje): sin tiendas (0x7245c8, CL9.4) el título vacío; sin gremio (+0x1f2 negativo) el gremio,
-// el puesto y +0x65 en 0.
-Core::Expected<void, std::string> FillTheGuild(ChatBubble& bubble, const ActorState& owner)
+// 0x556dd0: los textos de Text.bmd (la dirección − 0x76bd1dc, / 300). La alianza por +0x370 (4, 2 y 8; 4 y 2 con el
+// Guild Master, +0x368 en 0x80) y el puesto por +0x368 (0 el miembro, 0x80, 0x40 y 0x20).
+constexpr std::size_t UnionMasterTexts[] = {1296, 1298}; // 0x771c09c y 0x771c2f4
+constexpr std::size_t UnionMemberTexts[] = {1295, 1297}; // 0x771bf70 y 0x771c1c8
+constexpr std::size_t UnionKind8Text = 1299;             // 0x771c420
+constexpr std::size_t MemberPostText = 1330;             // 0x771e874
+constexpr std::size_t MasterPostText = 1300;             // 0x771c54c
+constexpr std::size_t AssistantPostText = 1301;          // 0x771c678
+constexpr std::size_t BattlePostText = 1302;             // 0x771c7a4
+constexpr std::uint8_t MasterStatus = 0x80;
+constexpr std::uint8_t AssistantStatus = 0x40;
+constexpr std::uint8_t BattleStatus = 0x20;
+// +0x18..+0x63 de la entrada, desde +0x18: la alianza (+0x18) y el gremio (+0x36), dos buffers de 0x1e bytes, y el
+// título de la tienda (+0x54), de 0x10, hasta el color (+0x64). Los sprintf de 0x556dd0 no tienen tope: un renglón
+// largo sigue en lo que viene después (Q-C1283).
+constexpr std::size_t UnionLineAt = 0;
+constexpr std::size_t GuildPostAt = 0x1e;
+constexpr std::size_t ShopTitleAt = 0x3c;
+using GuildBytes = std::array<char, 0x4c>;
+
+std::string_view NameOf(std::span<const char> name)
 {
-    bubble.shopTitle.clear();
-    if (static_cast<std::int16_t>(owner.word1f2) >= 0)
-        return Core::Unexpected(std::string("0x556e95: el gremio del globo lee la tabla de los gremios (0x787aa4c), "
-                                            "que es de la CL9.4"));
-    bubble.guild.clear();
-    bubble.guildByte = 0;
-    bubble.guildPost.clear();
+    return CString(std::string_view(name.data(), name.size()));
+}
+
+// "<%s> %s" y "[%s] %s" con el texto, o "<%s>" y "[%s]" sin él.
+Core::Expected<std::string, std::string> GuildLine(char open, char close, std::string_view name,
+                                                   std::optional<std::size_t> text, const Data::Text::TextTable* texts,
+                                                   std::string_view where)
+{
+    std::string line;
+    line.push_back(open);
+    line.append(name);
+    line.push_back(close);
+    if (text)
+    {
+        const std::optional<std::string_view> found = UI::TextAt(texts, *text);
+        if (!found)
+            return Core::Unexpected(std::string(where) + ": el texto " + std::to_string(*text) +
+                                    " de Text.bmd no está");
+        line.push_back(' ');
+        line.append(CString(*found));
+    }
+    return line;
+}
+
+// El strcpy o el sprintf en +0x18 + `at`, con su cero: lo que pasa de su buffer queda en el que sigue (Q-C1283). Si
+// llega al color (+0x64), corta.
+Core::Expected<void, std::string> PutAt(GuildBytes& bytes, std::size_t at, std::string_view text,
+                                        std::string_view where)
+{
+    if (at + text.size() >= bytes.size())
+        return Core::Unexpected(std::string(where) +
+                                ": el renglón del gremio pisa el color (+0x64) del globo (Q-C1283)");
+    std::ranges::copy(text, bytes.begin() + static_cast<std::ptrdiff_t>(at));
+    bytes[at + text.size()] = '\0';
+    return {};
+}
+
+// Lo que lee el dibujo desde +0x18 + `at`, hasta el primer cero.
+std::string ReadAt(const GuildBytes& bytes, std::size_t at)
+{
+    return std::string(CString(std::string_view(bytes.data() + at, bytes.size() - at)));
+}
+
+// 0x556dd0(entrada, personaje): sin cartel de tienda (0x451810) el título vacío (0x556f23), y con él el título corto de
+// 0x4518b0 con strcpy (0x556e26..0x556e60). Después, con gremio (+0x1f2 no negativo), la alianza (+0x4 de la entrada)
+// en +0x18 si tiene nombre, +0x65 = +0x374 y el gremio (+0xd) con el puesto en +0x36; sin gremio, los dos vacíos y
+// +0x65 en 0.
+Core::Expected<void, std::string> FillTheGuild(ChatBubble& bubble, const ActorState& owner, const GuildState& guild,
+                                               const Data::Text::TextTable* texts, const PersonalShopState& shops,
+                                               std::size_t ownerIndex)
+{
+    bubble.shopTitle = ShortShopTitle(shops, ownerIndex);
+    GuildBytes bytes{};
+    if (auto title = PutAt(bytes, ShopTitleAt, bubble.shopTitle, "0x556e60"); !title.HasValue())
+        return title;
+    const auto index = static_cast<std::int16_t>(owner.word1f2);
+    if (index < 0)
+    {
+        bubble.guild.clear();
+        bubble.guildByte = 0;
+        bubble.guildPost.clear();
+        return {};
+    }
+    if (static_cast<std::size_t>(index) >= GuildTableSize)
+        return Core::Unexpected(std::string("0x556e95: el índice del gremio cae fuera de la tabla (0x787aa48)"));
+    const GuildTableEntry& entry = guild.table[static_cast<std::size_t>(index)];
+    const bool master = owner.guildStatus == MasterStatus;
+    const std::string_view unionName = NameOf(entry.unionName);
+    // 0x557010: sin alianza, +0x18 en 0.
+    if (!unionName.empty())
+    {
+        // 0x556eb4: con +0x370 en 1, "<%s> %s" con el 1295, que el default de abajo pisa con "<%s>".
+        if (owner.byte370 == 1)
+        {
+            auto first = GuildLine('<', '>', unionName, UnionMemberTexts[0], texts, "0x556ecc");
+            if (!first.HasValue())
+                return Core::Unexpected(first.Error());
+            if (auto put = PutAt(bytes, UnionLineAt, first.Value(), "0x556ecc"); !put.HasValue())
+                return put;
+        }
+        std::optional<std::size_t> text;
+        if (owner.byte370 == 4)
+            text = master ? UnionMasterTexts[0] : UnionMemberTexts[0];
+        else if (owner.byte370 == 2)
+            text = master ? UnionMasterTexts[1] : UnionMemberTexts[1];
+        else if (owner.byte370 == 8)
+            text = UnionKind8Text;
+        auto line = GuildLine('<', '>', unionName, text, texts, "0x556ed1");
+        if (!line.HasValue())
+            return Core::Unexpected(line.Error());
+        if (auto put = PutAt(bytes, UnionLineAt, line.Value(), "0x556ed1"); !put.HasValue())
+            return put;
+    }
+    bubble.guildByte = owner.byte374;
+    std::optional<std::size_t> post;
+    if (owner.guildStatus == 0)
+        post = MemberPostText;
+    else if (owner.guildStatus == MasterStatus)
+        post = MasterPostText;
+    else if (owner.guildStatus == AssistantStatus)
+        post = AssistantPostText;
+    else if (owner.guildStatus == BattleStatus)
+        post = BattlePostText;
+    auto line = GuildLine('[', ']', NameOf(entry.guildName), post, texts, "0x557024");
+    if (!line.HasValue())
+        return Core::Unexpected(line.Error());
+    // Con 0x1e bytes o más, su cero (o su cola) queda en el título de la tienda: con 8 letras y los puestos de 19 bytes
+    // (1300, 1302 y 1330) el título queda vacío, y el 1301 (32) deja ahí su cola.
+    if (auto put = PutAt(bytes, GuildPostAt, line.Value(), "0x557024"); !put.HasValue())
+        return put;
+    bubble.guild = ReadAt(bytes, UnionLineAt);
+    bubble.guildPost = ReadAt(bytes, GuildPostAt);
+    bubble.shopTitle = ReadAt(bytes, ShopTitleAt);
     return {};
 }
 
@@ -121,7 +252,8 @@ Core::Expected<void, std::string> AddChatBubble(WorldState& world, const ChatBub
     }
     bubble->name = std::string(name);
     bubble->color = shown;
-    if (auto guild = FillTheGuild(*bubble, speaker); !guild.HasValue())
+    if (auto guild = FillTheGuild(*bubble, speaker, runtime.guild, measure.texts, runtime.social.personalShop, owner);
+        !guild.HasValue())
         return guild;
     if (text.empty())
     {
@@ -194,7 +326,13 @@ Core::Expected<void, std::string> StepTheChatBubbles(WorldState& world, const Ch
             bubble.time1 = 0;
             bubble.time2 = 0;
         }
-        // 0x557701..0x557722: las tiendas personales (0x451720 y 0x4516d0) no tienen ninguna hasta la CL9.4.
+        // 0x5576a0..0x5576c9: con el globo a la vista (+time1 > 0) el cartel de la tienda del dueño se esconde
+        // (0x451720, que con el dueño en NULL no encuentra nada); con un dueño y +time1 en 0, se muestra (0x4516d0).
+        PersonalShopState& shops = runtime.social.personalShop;
+        if (bubble.time1 > 0 && bubble.owner)
+            HideShopTitle(shops, *bubble.owner);
+        if (bubble.owner && bubble.time1 == 0)
+            ShowShopTitle(shops, *bubble.owner);
         if (input.screen.width <= 0 || input.screen.height <= 0)
             continue;
         // 0x557722..0x557738: el ancho y el alto pasan a 640 × 480 con una división sin signo.

@@ -1,12 +1,16 @@
 #include "Scenes/NpcTalk.h"
 
+#include "Render/Models/LogicalAccess.h"
+
 #include "Core/Expected.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/SkillTable.h"
 #include "Data/Terrain/TerrainAttributes.h"
+#include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "Data/Terrain/TerrainMapping.h"
 #include "Data/Text/TextTable.h"
+#include "GameLogic/Path.h"
 #include "GameLogic/PathCell.h"
 #include "Protocol/Movement.h"
 #include "Render/Models/Cloth.h"
@@ -23,8 +27,10 @@
 #include "Scenes/WorldState.h"
 #include "UI/MessageArea.h"
 #include "UI/PanelRegistry.h"
+#include "World/TerrainWalls.h"
 #include "World/WorldTerrain.h"
 
+#include "support/GoldenDir.h"
 #include "support/SceneDataFiles.h"
 
 #include <algorithm>
@@ -37,12 +43,15 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #include <gtest/gtest.h>
 
 // Hablarle a un NPC (CL9 hito 2): el clic de MoveHero sobre el NPC elegido (0x59da75..0x59dc59) y la llegada
-// (0x5650c0 con +0x379 en 2, 0x5674c8..0x5695b3) con el C1 30. Textos y claves inventados; el mundo en Lorencia.
+// (0x5650c0 con +0x379 en 2, 0x5674c8..0x5695b3) con el C1 30. Textos y claves inventados; el mundo en Lorencia y, en
+// los casos de todos los mapas, también en Devias (fuera de Crywolf, 0x5674d2 y 0x567b00, el mapa no cambia nada). El
+// terreno es uno sin paredes, el mismo en los dos.
 namespace
 {
 using Client::Render::Models::CrtRandom;
@@ -62,6 +71,8 @@ constexpr int C3Randoms = 2;
 // D3 (el comercio y la tienda de NPC de 0x56b397.., el registro propio y Skill.bmd del prefijo de la acción).
 constexpr int BeforeTheClickRandoms = 8 + OwnRecordRandoms;
 constexpr int AfterTheWalkRandoms = 2 + OwnRecordRandoms + 60;
+// Lorencia y Devias.
+constexpr std::array<std::uint8_t, 2> TalkMaps{0, 2};
 
 CrtRandom Advanced(CrtRandom random, int count)
 {
@@ -83,10 +94,10 @@ public:
 class TalkingHero
 {
 public:
-    TalkingHero()
+    explicit TalkingHero(std::uint8_t map = 0)
     {
         Client::Scenes::WorldRuntime& runtime = world.Runtime();
-        runtime.map = 0;
+        runtime.map = map;
         // Las misiones ya tienen la clase: sin el A0.
         runtime.quest.characterClass = 0;
         auto& terrain = world.Map().terrain;
@@ -205,25 +216,29 @@ CrtRandom AfterTheStop(const CrtRandom& start)
 // tienda de NPC saca su rand() antes de las celdas del héroe.
 TEST(NpcTalkTest, AClickOnTheChosenNpcWalksToItsCell)
 {
-    const auto tested = std::make_unique<TalkingHero>();
-    const CrtRandom start = tested->random;
-    const auto clicked = tested->Click();
-    ASSERT_TRUE(clicked.HasValue()) << clicked.Error();
-    EXPECT_EQ(tested->events, (std::vector<std::string>{"D3 185 115"}));
-    ASSERT_TRUE(tested->randomAtTheWalk.has_value());
-    EXPECT_EQ(tested->randomAtTheWalk->State(), Advanced(start, BeforeTheClickRandoms + 1 + 8).State());
-    EXPECT_EQ(tested->random.State(), Advanced(start, BeforeTheClickRandoms + 1 + 8 + AfterTheWalkRandoms).State());
-    const auto& movement = tested->world.Runtime().movement;
-    EXPECT_EQ(tested->Hero().movementType, Client::Scenes::NpcTalkMovement);
-    EXPECT_EQ(tested->Hero().movement, 1);
-    EXPECT_EQ(movement.attackTarget, 7);
-    EXPECT_EQ(movement.chosenNpc, 7);
-    EXPECT_EQ(movement.chosenNpcType, 0xf9);
-    EXPECT_EQ(movement.chosenNpcAngle, 0x42b40000u);
-    EXPECT_EQ(movement.targetX, 185u);
-    EXPECT_EQ(movement.targetY, 115u);
-    // 0x59dc48: sigue en 0x59e248, que suma MouseUpdateTime.
-    EXPECT_EQ(movement.mouseUpdateTime, 1);
+    for (const std::uint8_t map : TalkMaps)
+    {
+        SCOPED_TRACE(map);
+        const auto tested = std::make_unique<TalkingHero>(map);
+        const CrtRandom start = tested->random;
+        const auto clicked = tested->Click();
+        ASSERT_TRUE(clicked.HasValue()) << clicked.Error();
+        EXPECT_EQ(tested->events, (std::vector<std::string>{"D3 185 115"}));
+        ASSERT_TRUE(tested->randomAtTheWalk.has_value());
+        EXPECT_EQ(tested->randomAtTheWalk->State(), Advanced(start, BeforeTheClickRandoms + 1 + 8).State());
+        EXPECT_EQ(tested->random.State(), Advanced(start, BeforeTheClickRandoms + 1 + 8 + AfterTheWalkRandoms).State());
+        const auto& movement = tested->world.Runtime().movement;
+        EXPECT_EQ(tested->Hero().movementType, Client::Scenes::NpcTalkMovement);
+        EXPECT_EQ(tested->Hero().movement, 1);
+        EXPECT_EQ(movement.attackTarget, 7);
+        EXPECT_EQ(movement.chosenNpc, 7);
+        EXPECT_EQ(movement.chosenNpcType, 0xf9);
+        EXPECT_EQ(movement.chosenNpcAngle, 0x42b40000u);
+        EXPECT_EQ(movement.targetX, 185u);
+        EXPECT_EQ(movement.targetY, 115u);
+        // 0x59dc48: sigue en 0x59e248, que suma MouseUpdateTime.
+        EXPECT_EQ(movement.mouseUpdateTime, 1);
+    }
 }
 
 // 0x59dab8: con el bit 0x10000000 de +0x7c el clic camina igual, pero +0x379 queda como estaba.
@@ -272,41 +287,156 @@ TEST(NpcTalkTest, WithoutAPathTheHeroTalksInPlace)
 // 0x59b2f7: el héroe camina hasta el NPC y, al terminar el camino, 0x5650c0 con +0x379 en 2 le habla.
 TEST(NpcTalkTest, TheHeroTalksWhenItArrives)
 {
-    const auto tested = std::make_unique<TalkingHero>();
-    ASSERT_TRUE(tested->Click().HasValue());
-    ActorState& hero = tested->Hero();
-    ASSERT_EQ(hero.movement, 1);
-    constexpr int StepLimit = 100;
-    for (int step = 0; step < StepLimit && hero.movement != 0; ++step)
+    for (const std::uint8_t map : TalkMaps)
     {
-        const auto stepped = Client::Scenes::StepHeroMovement(tested->Context());
-        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        SCOPED_TRACE(map);
+        const auto tested = std::make_unique<TalkingHero>(map);
+        ASSERT_TRUE(tested->Click().HasValue());
+        ActorState& hero = tested->Hero();
+        ASSERT_EQ(hero.movement, 1);
+        constexpr int StepLimit = 100;
+        for (int step = 0; step < StepLimit && hero.movement != 0; ++step)
+        {
+            const auto stepped = Client::Scenes::StepHeroMovement(tested->Context());
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        }
+        EXPECT_EQ(tested->events, (std::vector<std::string>{"D3 185 115", "30 8123"}));
+        EXPECT_EQ(hero.movement, 0);
+        EXPECT_EQ(hero.cellX, 185);
+        EXPECT_EQ(tested->world.Runtime().movement.chosenNpc, -1);
+        EXPECT_EQ(tested->world.Runtime().movement.mouseUpdateTimeMax, 12);
     }
-    EXPECT_EQ(tested->events, (std::vector<std::string>{"D3 185 115", "30 8123"}));
-    EXPECT_EQ(hero.movement, 0);
-    EXPECT_EQ(hero.cellX, 185);
-    EXPECT_EQ(tested->world.Runtime().movement.chosenNpc, -1);
-    EXPECT_EQ(tested->world.Runtime().movement.mouseUpdateTimeMax, 12);
 }
 
-// 0x4eac41 y 0x59dc32: el camino a un altar de Crywolf activo y un NPC fuera del mapa cortan.
-TEST(NpcTalkTest, TheCrywolfAltarAndAnNpcOutsideTheMapAreCut)
+// 0x59dc32: un NPC fuera del mapa corta.
+TEST(NpcTalkTest, AnNpcOutsideTheMapIsCut)
 {
+    const auto tested = std::make_unique<TalkingHero>();
+    tested->Npc().position.x = 25700.0f;
+    const auto clicked = tested->Click();
+    ASSERT_FALSE(clicked.HasValue());
+    EXPECT_NE(clicked.Error().find("0x59dc32"), std::string::npos) << clicked.Error();
+}
+
+// 0x4eac0a..0x4eac41 desde 0x59dc32: con Crywolf activo, el altar recién elegido (0x59db1f) le pone la bandera al A*,
+// que pone en 0 el word de su celda (0x4eae0d) aunque sea pared: el camino llega a la celda del altar. Con la etapa 2
+// la meta queda y el clic va al más cercano.
+TEST(NpcTalkTest, TheWalkToACrywolfAltarClearsItsCell)
+{
+    for (const std::uint8_t stage : {std::uint8_t{2}, std::uint8_t{3}, std::uint8_t{4}})
     {
+        SCOPED_TRACE(stage);
         const auto tested = std::make_unique<TalkingHero>();
         tested->world.Runtime().map = 34;
-        tested->world.Runtime().crywolf.stage = 4;
+        tested->world.Runtime().crywolf.stage = stage;
         tested->Npc().type = 0x205;
+        auto& walls = tested->world.Map().terrain.attributes->cells;
+        const std::size_t altar = Client::Data::Terrain::CellIndex(185, 115);
+        walls[altar] = 0x06;
         const auto clicked = tested->Click();
-        ASSERT_FALSE(clicked.HasValue());
-        EXPECT_NE(clicked.Error().find("0x4eac41"), std::string::npos) << clicked.Error();
+        ASSERT_TRUE(clicked.HasValue()) << clicked.Error();
+        EXPECT_EQ(tested->events, (std::vector<std::string>{"D3 185 115"}));
+        const auto& path = tested->Hero().path;
+        ASSERT_GE(path.count, 2);
+        const Client::GameLogic::PathCell last = path.cells[path.count - 1U];
+        if (stage == 2)
+        {
+            EXPECT_EQ(walls[altar], 0x06);
+            // El más cercano de 0x4eb0f4..0x4eb3fc: el primero con la heurística 4 es la diagonal de arriba.
+            EXPECT_EQ(last, (Client::GameLogic::PathCell{184, 114}));
+        }
+        else
+        {
+            EXPECT_EQ(walls[altar], 0);
+            EXPECT_EQ(last, (Client::GameLogic::PathCell{185, 115}));
+        }
     }
+}
+
+// 0x59e21f → 0x4eac00 (Q-C1351): el clic en el suelo también lleva la bandera si 0x6c8e54 todavía tiene un altar (un
+// camino a un altar que el clic cortó). En el 34 con la etapa 4 la celda de pared del clic queda en 0 y el camino
+// llega; en Lorencia y Devias, el más cercano.
+TEST(NpcTalkTest, AGroundClickWithAChosenAltarAlsoClearsItsCell)
+{
+    for (const std::int32_t map : {0, 2, 34})
     {
+        SCOPED_TRACE(map);
         const auto tested = std::make_unique<TalkingHero>();
-        tested->Npc().position.x = 25700.0f;
-        const auto clicked = tested->Click();
-        ASSERT_FALSE(clicked.HasValue());
-        EXPECT_NE(clicked.Error().find("0x59dc32"), std::string::npos) << clicked.Error();
+        auto& runtime = tested->world.Runtime();
+        runtime.map = map;
+        runtime.crywolf.stage = 4;
+        runtime.movement.chosenNpc = static_cast<std::int32_t>(NpcSlot);
+        tested->Npc().type = 0x205;
+        auto& walls = tested->world.Map().terrain.attributes->cells;
+        const std::size_t clicked = Client::Data::Terrain::CellIndex(186, 115);
+        walls[clicked] = 0x04;
+        runtime.movement.mouseUpdateTime = 6;
+        auto context = tested->Context();
+        context.input.leftPressed = true;
+        context.input.leftDown = true;
+        context.pickTarget = []() -> Client::Core::Expected<std::optional<Client::GameLogic::PathCell>, std::string>
+        { return std::optional<Client::GameLogic::PathCell>{Client::GameLogic::PathCell{186, 115}}; };
+        const auto stepped = Client::Scenes::StepHeroMovement(context);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(tested->events, (std::vector<std::string>{"D3 186 115"}));
+        const auto& path = tested->Hero().path;
+        ASSERT_GE(path.count, 2);
+        const Client::GameLogic::PathCell last = path.cells[path.count - 1U];
+        if (map == 34)
+        {
+            EXPECT_EQ(walls[clicked], 0);
+            EXPECT_EQ(last, (Client::GameLogic::PathCell{186, 115}));
+        }
+        else
+        {
+            EXPECT_EQ(walls[clicked], 0x04);
+            EXPECT_EQ(last, (Client::GameLogic::PathCell{185, 114}));
+        }
+        EXPECT_EQ(runtime.movement.chosenNpc, static_cast<std::int32_t>(NpcSlot));
+    }
+}
+
+// 0x59ddbc → 0x4eac00 (Q-C1351): el camino hasta un ítem del piso (0x59dc5e, hito 5) también lleva la bandera si
+// 0x6c8e54 todavía tiene un altar. En el 34 con la etapa 4 la celda de pared del ítem queda en 0 y el camino llega; en
+// Lorencia y Devias, el más cercano.
+TEST(NpcTalkTest, TheWalkToAFloorItemWithAChosenAltarAlsoClearsItsCell)
+{
+    constexpr std::int32_t FloorItem = 3;
+    for (const std::int32_t map : {0, 2, 34})
+    {
+        SCOPED_TRACE(map);
+        const auto tested = std::make_unique<TalkingHero>();
+        auto& runtime = tested->world.Runtime();
+        runtime.map = map;
+        runtime.crywolf.stage = 4;
+        runtime.movement.chosenNpc = static_cast<std::int32_t>(NpcSlot);
+        tested->Npc().type = 0x205;
+        runtime.selectedTargets[0] = FloorItem;
+        tested->world.DrawTail().floorItems[FloorItem].position = {18650.0f, 11550.0f, 0.0f};
+        auto& walls = tested->world.Map().terrain.attributes->cells;
+        const std::size_t item = Client::Data::Terrain::CellIndex(186, 115);
+        walls[item] = 0x04;
+        runtime.movement.mouseUpdateTime = 6;
+        auto context = tested->Context();
+        context.input.leftPressed = true;
+        context.input.leftDown = true;
+        const auto stepped = Client::Scenes::StepHeroMovement(context);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(tested->events, (std::vector<std::string>{"D3 186 115"}));
+        EXPECT_EQ(runtime.floor.chosen, FloorItem);
+        const auto& path = tested->Hero().path;
+        ASSERT_GE(path.count, 2);
+        const Client::GameLogic::PathCell last = path.cells[path.count - 1U];
+        if (map == 34)
+        {
+            EXPECT_EQ(walls[item], 0);
+            EXPECT_EQ(last, (Client::GameLogic::PathCell{186, 115}));
+        }
+        else
+        {
+            EXPECT_EQ(walls[item], 0x04);
+            EXPECT_EQ(last, (Client::GameLogic::PathCell{185, 114}));
+        }
     }
 }
 
@@ -314,22 +444,26 @@ TEST(NpcTalkTest, TheCrywolfAltarAndAnNpcOutsideTheMapAreCut)
 // MouseUpdateTime en 12 y las banderas de los paneles en 0.
 TEST(NpcTalkTest, TheArrivalStopsTheHeroAndSendsTheTalk)
 {
-    const auto tested = std::make_unique<TalkingHero>();
-    auto& runtime = tested->world.Runtime();
-    runtime.panels.repairMode = 2;
-    runtime.panels.field78abb09 = 1;
-    runtime.byte6eeda8 = 1;
-    const CrtRandom expected = Advanced(AfterTheStop(tested->random), OwnRecordRandoms + C3Randoms);
-    const auto arrived = tested->Arrive();
-    ASSERT_TRUE(arrived.HasValue()) << arrived.Error();
-    EXPECT_EQ(tested->events, (std::vector<std::string>{"30 8123"}));
-    EXPECT_EQ(tested->random.State(), expected.State());
-    EXPECT_EQ(tested->Hero().movement, 0);
-    EXPECT_EQ(runtime.movement.mouseUpdateTimeMax, 12);
-    EXPECT_EQ(runtime.movement.chosenNpc, -1);
-    EXPECT_EQ(runtime.panels.repairMode, 0);
-    EXPECT_EQ(runtime.panels.field78abb09, 0);
-    EXPECT_EQ(runtime.byte6eeda8, 0);
+    for (const std::uint8_t map : TalkMaps)
+    {
+        SCOPED_TRACE(map);
+        const auto tested = std::make_unique<TalkingHero>(map);
+        auto& runtime = tested->world.Runtime();
+        runtime.panels.repairMode = 2;
+        runtime.panels.field78abb09 = 1;
+        runtime.byte6eeda8 = 1;
+        const CrtRandom expected = Advanced(AfterTheStop(tested->random), OwnRecordRandoms + C3Randoms);
+        const auto arrived = tested->Arrive();
+        ASSERT_TRUE(arrived.HasValue()) << arrived.Error();
+        EXPECT_EQ(tested->events, (std::vector<std::string>{"30 8123"}));
+        EXPECT_EQ(tested->random.State(), expected.State());
+        EXPECT_EQ(tested->Hero().movement, 0);
+        EXPECT_EQ(runtime.movement.mouseUpdateTimeMax, 12);
+        EXPECT_EQ(runtime.movement.chosenNpc, -1);
+        EXPECT_EQ(runtime.panels.repairMode, 0);
+        EXPECT_EQ(runtime.panels.field78abb09, 0);
+        EXPECT_EQ(runtime.byte6eeda8, 0);
+    }
 }
 
 // 0x5674f4 y 0x56751b: sin NPC elegido solo para; con un +0x376 de menos de 0xcd, 0x6c8e54 en −1 sin el registro.
@@ -343,6 +477,19 @@ TEST(NpcTalkTest, WithoutANpcOrWithAnotherWordTheArrivalOnlyStops)
         EXPECT_TRUE(tested->events.empty());
         EXPECT_EQ(tested->random.State(), expected.State());
         EXPECT_EQ(tested->Hero().movement, 0);
+    }
+    {
+        const auto tested = std::make_unique<TalkingHero>();
+        tested->Hero().type = 0x154;
+        tested->Hero().animation.action = 2;
+        tested->Hero().movement = 1;
+        const CrtRandom expected = Advanced(tested->random, 2 * Client::Render::Models::SmallLogicalCloseRandoms + 1);
+        const auto stopped = Client::Scenes::TalkToTheNpc(tested->Hero(), tested->Context());
+        ASSERT_TRUE(stopped.HasValue()) << stopped.Error();
+        EXPECT_TRUE(tested->events.empty());
+        EXPECT_EQ(tested->random.State(), expected.State());
+        EXPECT_EQ(tested->Hero().movement, 0);
+        EXPECT_EQ(tested->Hero().animation.action, 2);
     }
     {
         const auto tested = std::make_unique<TalkingHero>();
@@ -415,56 +562,202 @@ TEST(NpcTalkTest, SomeWordsLeaveTheirFlags)
 // antes del 30, cada C3 con sus dos rand().
 TEST(NpcTalkTest, TheQuestWindowClosesAndTheQuestListGoesFirst)
 {
-    const auto tested = std::make_unique<TalkingHero>();
-    auto& runtime = tested->world.Runtime();
-    runtime.panels.delegated.quest = 1;
-    runtime.quest.characterClass = 0xff;
-    const CrtRandom expected = Advanced(AfterTheStop(tested->random), OwnRecordRandoms + C3Randoms + C3Randoms);
-    const auto arrived = tested->Arrive();
-    ASSERT_TRUE(arrived.HasValue()) << arrived.Error();
-    EXPECT_EQ(tested->events, (std::vector<std::string>{"31", "A0", "30 8123"}));
-    EXPECT_EQ(runtime.panels.delegated.quest, 0);
-    EXPECT_EQ(tested->random.State(), expected.State());
+    for (const std::uint8_t map : TalkMaps)
+    {
+        SCOPED_TRACE(map);
+        const auto tested = std::make_unique<TalkingHero>(map);
+        auto& runtime = tested->world.Runtime();
+        runtime.panels.delegated.quest = 1;
+        runtime.quest.characterClass = 0xff;
+        const CrtRandom expected = Advanced(AfterTheStop(tested->random), OwnRecordRandoms + C3Randoms + C3Randoms);
+        const auto arrived = tested->Arrive();
+        ASSERT_TRUE(arrived.HasValue()) << arrived.Error();
+        EXPECT_EQ(tested->events, (std::vector<std::string>{"31", "A0", "30 8123"}));
+        EXPECT_EQ(runtime.panels.delegated.quest, 0);
+        EXPECT_EQ(tested->random.State(), expected.State());
+    }
 }
 
-// 0x5674d2 y 0x567b00..0x5688fd: con Crywolf activo el héroe no se para; el elfo frente a un altar corta (hito 11) y
-// los demás le hablan. En el 34 sin el evento, un altar no habla, pero 0x6c8e54 vuelve a −1.
+// 0x5674d2 y 0x567b00..0x5688fd: con Crywolf activo el héroe no se para; frente a un altar, una elfa no habla (lo que
+// muestra, abajo) y los demás sí. En el 34 sin el evento, un altar no habla, pero 0x6c8e54 vuelve a −1; en Lorencia y
+// en Devias, con cualquier etapa, un modelo de altar es un NPC más.
 TEST(NpcTalkTest, CrywolfAltarsTalkOnlyWhenTheyCan)
 {
     struct Case
     {
+        std::int32_t map = 34;
         std::uint8_t stage = 0;
         std::uint16_t model = 0;
         std::uint8_t characterClass = 0;
         bool talks = false;
-        bool cut = false;
     };
-    for (const Case& tested :
-         {Case{3, 0x204, 2, false, true}, Case{4, 0x208, 0, true, false}, Case{3, 0x1f0, 2, true, false},
-          Case{0, 0x206, 0, false, false}, Case{0, 0x209, 0, true, false}})
+    for (const Case& tested : {Case{34, 3, 0x204, 2, false}, Case{34, 4, 0x208, 0, true}, Case{34, 3, 0x1f0, 2, true},
+                               Case{34, 0, 0x206, 0, false}, Case{34, 0, 0x209, 0, true}, Case{0, 3, 0x204, 2, true},
+                               Case{2, 4, 0x206, 2, true}})
     {
-        SCOPED_TRACE(std::format("{} {:#x} {}", tested.stage, tested.model, tested.characterClass));
+        SCOPED_TRACE(std::format("{} {} {:#x} {}", tested.map, tested.stage, tested.model, tested.characterClass));
         const auto hero = std::make_unique<TalkingHero>();
         auto& runtime = hero->world.Runtime();
-        runtime.map = 34;
+        runtime.map = tested.map;
         runtime.crywolf.stage = tested.stage;
         hero->Npc().type = tested.model;
         hero->Hero().characterClass = tested.characterClass;
+        hero->texts = Client::Tests::MakeTextTable(
+            {{2002, "altar tomado"}, {2003, "altar sin contratos"}, {2006, "quedan %d"}, {2007, "contratar?"}});
         const CrtRandom start = hero->random;
         const auto arrived = hero->Arrive();
-        if (tested.cut)
-        {
-            ASSERT_FALSE(arrived.HasValue());
-            EXPECT_NE(arrived.Error().find("0x567b6d"), std::string::npos) << arrived.Error();
-            continue;
-        }
         ASSERT_TRUE(arrived.HasValue()) << arrived.Error();
         EXPECT_EQ(hero->events, tested.talks ? std::vector<std::string>{"30 8123"} : std::vector<std::string>{});
         EXPECT_EQ(runtime.movement.chosenNpc, -1);
-        EXPECT_EQ(hero->Hero().movement, tested.stage == 0 ? 0 : 1);
-        if (tested.stage != 0)
+        const bool crywolf = tested.map == 34 && tested.stage != 0;
+        EXPECT_EQ(hero->Hero().movement, crywolf ? 1 : 0);
+        if (crywolf)
         {
             EXPECT_EQ(hero->random.State(), Advanced(start, OwnRecordRandoms + (tested.talks ? C3Randoms : 0)).State());
+        }
+    }
+}
+
+// 0x567b4c..0x567c23 (CL9 hito 11): una elfa frente a un altar, con Crywolf activo, no manda el C1 30: con el altar
+// contratado, 0x435b00(0x34); sin contratos, 0x435b00(0x35); si no, 0x435b00(0x38) con los contratos que quedan y la
+// pregunta 0x39 con la clave del altar. Las tres siguen en 0x569573 (0x6eeda8 por el +0x376 y 0x6c8e54 en −1).
+TEST(NpcTalkTest, AnElfAtACrywolfAltarSeesItsStateInsteadOfTalking)
+{
+    struct Case
+    {
+        std::uint8_t altar = 0;
+        std::string_view first;
+        std::string_view second;
+        std::uint8_t window = 0;
+        std::int32_t value = 0;
+    };
+    constexpr std::uint16_t AltarKey = 0x8140;
+    for (const Case& tested : {Case{0x13, "altar tomado", "", 2, 0}, Case{0x20, "altar sin contratos", "", 2, 0},
+                               Case{0x03, "quedan 3", "contratar?", 1, static_cast<std::int16_t>(AltarKey)}})
+    {
+        SCOPED_TRACE(std::format("{:#x}", tested.altar));
+        for (const std::uint8_t stage : {std::uint8_t{3}, std::uint8_t{4}})
+        {
+            SCOPED_TRACE(stage);
+            const auto hero = std::make_unique<TalkingHero>();
+            auto& runtime = hero->world.Runtime();
+            runtime.map = 34;
+            runtime.crywolf.stage = stage;
+            runtime.crywolf.ui.altars[2] = tested.altar;
+            hero->Npc().type = 0x206;
+            hero->Npc().key = AltarKey;
+            hero->Npc().word376 = 0xe5;
+            hero->Hero().characterClass = 2;
+            hero->texts = Client::Tests::MakeTextTable(
+                {{2002, "altar tomado"}, {2003, "altar sin contratos"}, {2006, "quedan %d"}, {2007, "contratar?"}});
+            const CrtRandom start = hero->random;
+            const auto arrived = hero->Arrive();
+            ASSERT_TRUE(arrived.HasValue()) << arrived.Error();
+            EXPECT_TRUE(hero->events.empty());
+            const auto& ui = runtime.crywolf.ui;
+            EXPECT_EQ(std::string_view(ui.contractLines[0].data()), tested.first);
+            EXPECT_EQ(std::string_view(ui.contractLines[1].data()), tested.second);
+            EXPECT_EQ(ui.byte723a44, tested.window);
+            EXPECT_EQ(ui.dwords723bdc[1], tested.value);
+            EXPECT_EQ(runtime.movement.chosenNpc, -1);
+            EXPECT_EQ(runtime.byte6eeda8, 1);
+            EXPECT_EQ(hero->Hero().movement, 1);
+            EXPECT_EQ(hero->random.State(), Advanced(start, OwnRecordRandoms).State());
+        }
+    }
+}
+
+// El camino hasta un altar de Crywolf con el Data del repo (0x59dc32 → 0x4eac00 → 0x4ead70), en Lorencia, Devias y
+// Crywolf, con la etapa 4 en los tres. El altar está en una celda que el .att tiene de pared (0x04, sola entre celdas
+// libres), con el 0x02 de personaje (0x509165), y la elfa cuatro celdas al este. Solo en el 34 la bandera (0x4eac41)
+// pone en 0 la celda del altar: el A* exacto llega a ella y la llegada (0x567b00) muestra la oferta del contrato. En el
+// 0 y el 2 el exacto falla en la meta (0x4eae38), el más cercano para en la diagonal de arriba y la llegada le habla
+// con el C1 30.
+class NpcTalkDataTest : public Client::Tests::GoldenDataTest
+{
+};
+
+TEST_F(NpcTalkDataTest, OnlyInCrywolfTheWalkReachesTheAltarCell)
+{
+    struct Case
+    {
+        std::int32_t map;
+        std::uint8_t altarX;
+        std::uint8_t altarY;
+    };
+    constexpr std::int32_t CrywolfMap = 34;
+    constexpr std::uint8_t Away = 4;
+    for (const Case& probe : {Case{0, 172, 47}, Case{2, 181, 109}, Case{CrywolfMap, 116, 114}})
+    {
+        SCOPED_TRACE(probe.map);
+        const auto tested = std::make_unique<TalkingHero>();
+        auto loaded = Client::World::LoadWorldTerrain(m_dataRoot, static_cast<std::uint8_t>(probe.map));
+        ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
+        tested->world.Map().terrain = std::move(loaded).Value();
+        auto& runtime = tested->world.Runtime();
+        runtime.map = probe.map;
+        runtime.crywolf.stage = 4;
+        const auto heroX = static_cast<std::uint8_t>(probe.altarX + Away);
+        const auto center = [](std::uint8_t cell) { return (static_cast<float>(cell) * 100.0f) + 50.0f; };
+        ActorState& hero = tested->Hero();
+        hero.cellX = hero.targetX = heroX;
+        hero.cellY = hero.targetY = probe.altarY;
+        hero.position = {center(heroX), center(probe.altarY), 0.0f};
+        hero.characterClass = 2;
+        ActorState& altar = tested->Npc();
+        altar.type = 0x206;
+        altar.key = 0x013e;
+        altar.position = {center(probe.altarX), center(probe.altarY), 0.0f};
+        auto& walls = tested->world.Map().terrain.attributes->cells;
+        const std::size_t cell = Client::Data::Terrain::CellIndex(probe.altarX, probe.altarY);
+        ASSERT_EQ(walls[cell], Client::World::BlockedWallBit);
+        for (std::uint8_t x = probe.altarX + 1; x <= heroX; ++x)
+            ASSERT_LT(walls[Client::Data::Terrain::CellIndex(x, probe.altarY)], 2) << int{x};
+        Client::World::MarkCharacterWall(walls, probe.altarX, probe.altarY);
+        tested->texts = Client::Tests::MakeTextTable({{2006, "quedan %d"}, {2007, "contratar?"}});
+
+        const auto clicked = tested->Click();
+        ASSERT_TRUE(clicked.HasValue()) << clicked.Error();
+        const Client::GameLogic::Path path = hero.path;
+        ASSERT_GE(path.count, 2);
+        const Client::GameLogic::PathCell last = path.cells[path.count - 1U];
+        if (probe.map == CrywolfMap)
+        {
+            EXPECT_EQ(walls[cell], 0);
+            EXPECT_EQ(path.count, Away + 1);
+            EXPECT_EQ(last, (Client::GameLogic::PathCell{probe.altarX, probe.altarY}));
+        }
+        else
+        {
+            EXPECT_EQ(walls[cell], Client::World::BlockedWallBit | Client::World::CharacterWallBit);
+            // El más cercano: la diagonal de arriba, como en TheWalkToACrywolfAltarClearsItsCell.
+            EXPECT_EQ(last, (Client::GameLogic::PathCell{static_cast<std::uint8_t>(probe.altarX + 1),
+                                                         static_cast<std::uint8_t>(probe.altarY - 1)}));
+        }
+        constexpr int StepLimit = 100;
+        for (int step = 0; step < StepLimit && hero.movement != 0; ++step)
+        {
+            const auto stepped = Client::Scenes::StepHeroMovement(tested->Context());
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        }
+        EXPECT_EQ(hero.movement, 0);
+        EXPECT_EQ(hero.cellX, last.x);
+        EXPECT_EQ(hero.cellY, last.y);
+        EXPECT_EQ(runtime.movement.chosenNpc, -1);
+        const std::string walk = std::format("D3 {} {}", probe.altarX, probe.altarY);
+        const auto& ui = runtime.crywolf.ui;
+        if (probe.map == CrywolfMap)
+        {
+            EXPECT_EQ(tested->events, (std::vector<std::string>{walk}));
+            EXPECT_EQ(std::string_view(ui.contractLines[0].data()), "quedan 2");
+            EXPECT_EQ(std::string_view(ui.contractLines[1].data()), "contratar?");
+            EXPECT_EQ(ui.byte723a44, 1);
+            EXPECT_EQ(ui.dwords723bdc[1], 0x013e);
+        }
+        else
+        {
+            EXPECT_EQ(tested->events, (std::vector<std::string>{walk, "30 013e"}));
+            EXPECT_EQ(ui.byte723a44, 0);
         }
     }
 }

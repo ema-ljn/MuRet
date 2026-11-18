@@ -1,10 +1,14 @@
 #include "Scenes/NpcTalk.h"
 
 #include "Core/Expected.h"
+#include "Data/Models/PlayerModels.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Render/Models/LogicalAccess.h"
+#include "Render/Models/Skeleton.h"
 #include "Scenes/ActorActions.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CharacterDrawing.h"
+#include "Scenes/CrywolfContract.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GameMovement.h"
 #include "Scenes/GameMovementState.h"
@@ -60,9 +64,6 @@ constexpr std::int16_t LastCrywolfAltar = 0x208;
 constexpr std::int32_t CrywolfMap = 34;
 constexpr std::uint8_t FirstActiveCrywolfStage = 3;
 constexpr std::uint8_t SecondActiveCrywolfStage = 4;
-// 0x567b55..0x567b64: la clase del héroe (+0x1d4) & 7, y el elfo.
-constexpr std::uint8_t ClassMask = 7;
-constexpr std::uint8_t ElfClass = 2;
 
 // 0x435a00 && 0x4303c0.
 bool CrywolfIsActive(const WorldRuntime& runtime)
@@ -117,6 +118,35 @@ Core::Expected<std::string_view, std::string> TextOf(const HeroMovementContext& 
         return Core::Unexpected(std::format("{}: sin el texto {} de Text.bmd", where, index));
     return *text;
 }
+
+Core::Expected<ActorStopContext, std::string> StopContextForHero(const ActorState& hero,
+                                                                 const HeroMovementContext& context)
+{
+    static const Render::Models::Skeleton EmptySkeleton;
+    const bool player = hero.type == Data::Models::PlayerSkeletonModel;
+    if (player && context.playerSkeleton == nullptr)
+        return Core::Unexpected(std::string("0x5674e5: falta Player.bmd"));
+
+    const Render::Models::Skeleton* playerSkeleton =
+        context.playerSkeleton != nullptr ? context.playerSkeleton : &EmptySkeleton;
+    const Render::Models::Skeleton* actorSkeleton = nullptr;
+    if (!player)
+    {
+        actorSkeleton = context.world.FaunaResources().SkeletonOf(hero.type);
+        if (actorSkeleton == nullptr && context.models != nullptr)
+            actorSkeleton = context.models->SkeletonOf(hero.type);
+    }
+    const World::WorldTerrain& terrain = context.world.Map().terrain;
+    return ActorStopContext{.runtime = context.world.Runtime(),
+                            .scene = SceneId::Game,
+                            .playerSkeleton = *playerSkeleton,
+                            .items = context.items,
+                            .random = context.random,
+                            .terrainWalls = terrain.attributes ? &terrain.attributes->cells : nullptr,
+                            .sendAction = context.sendAction,
+                            .actorSkeleton = actorSkeleton,
+                            .modelSounds = context.world.FaunaResources().SoundActions(hero.type)};
+}
 } // namespace
 
 Core::Expected<void, std::string> TalkToTheNpc(ActorState& hero, const HeroMovementContext& context)
@@ -129,14 +159,10 @@ Core::Expected<void, std::string> TalkToTheNpc(ActorState& hero, const HeroMovem
     const bool crywolf = CrywolfIsActive(runtime);
     if (!crywolf)
     {
-        if (context.playerSkeleton == nullptr)
-            return Core::Unexpected(std::string("0x5674e5: falta Player.bmd"));
-        const World::WorldTerrain& terrain = context.world.Map().terrain;
-        const ActorStopContext stop{
-            runtime,           SceneId::Game,  *context.playerSkeleton,
-            context.items,     context.random, terrain.attributes ? &terrain.attributes->cells : nullptr,
-            context.sendAction};
-        const auto stopped = SetActorStop(hero, stop);
+        const auto stop = StopContextForHero(hero, context);
+        if (!stop.HasValue())
+            return Core::Unexpected(stop.Error());
+        const auto stopped = SetActorStop(hero, stop.Value());
         if (!stopped.HasValue())
             return Core::Unexpected(stopped.Error());
         if (stopped.Value().sound)
@@ -204,16 +230,19 @@ Core::Expected<void, std::string> TalkToTheNpc(ActorState& hero, const HeroMovem
         state.chosenNpc = -1;
         return {};
     }
-    const bool elf = (hero.characterClass & ClassMask) == ElfClass;
     if (crywolf)
     {
-        // 0x567b4c..0x567c23: el elfo frente a un altar va a 0x4365a0 y 0x435b00 (la tabla 0x6c73cc), que muestran el
-        // estado del altar en vez de hablar.
-        if (IsACrywolfAltar(npc) && elf)
-            return Core::Unexpected(
-                std::string("0x567b6d: el altar de Crywolf (0x4365a0, 0x435b00 y la tabla 0x6c73cc) es del hito 11"));
-        if (auto sent = SendTheTalk(context, npc, IsACrywolfAltar(npc) ? "0x567c2d" : "0x568288"); !sent.HasValue())
-            return sent;
+        // 0x567b00..0x567c23 (CL9 hito 11): el clic en un altar. Con una elfa, 0x4365a0 y 0x435b00 muestran el estado
+        // del altar y siguen en 0x569573, sin el C1 30; sin elfa, el C1 30 de 0x567c2d; otro blanco, el de 0x568288.
+        const auto click = ClickTheCrywolfAltar(runtime, context.texts, hero, npc);
+        if (!click.HasValue())
+            return Core::Unexpected(click.Error());
+        if (click.Value() != AltarClick::Contract)
+        {
+            const bool altar = click.Value() == AltarClick::Talk;
+            if (auto sent = SendTheTalk(context, npc, altar ? "0x567c2d" : "0x568288"); !sent.HasValue())
+                return sent;
+        }
     }
     else if (runtime.map == CrywolfMap)
     {

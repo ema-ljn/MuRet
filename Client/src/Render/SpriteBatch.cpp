@@ -66,6 +66,15 @@ void SpriteBatch::SetBlend(BlendMode blend)
     m_alphaTest = blend == BlendMode::Alpha;
 }
 
+void SpriteBatch::SetBlendWithoutAlphaTest()
+{
+    // 0x620c10: el modo 6 en 0x7d366dc con los factores de 0x620a00, 0x6208f0, 0x6208b0 (glDepthMask(0), que el 2D no
+    // usa), glDisable(GL_ALPHA_TEST) y glEnable(GL_TEXTURE_2D).
+    m_blend = BlendMode::Alpha;
+    m_textureOn = true;
+    m_alphaTest = false;
+}
+
 BlendMode SpriteBatch::Blend() const
 {
     return m_blend;

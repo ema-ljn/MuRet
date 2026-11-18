@@ -17,7 +17,10 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/ChatReceive.h"
+#include "Scenes/CrywolfContract.h"
 #include "Scenes/DarkHorse.h"
+#include "Scenes/FaunaJointCreation.h"
+#include "Scenes/GameDrawTail.h"
 #include "Scenes/HelperTable.h"
 #include "Scenes/MonsterCreation.h"
 #include "Scenes/OwnItemPlacement.h"
@@ -25,15 +28,19 @@
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "Scenes/PersonalShopTitles.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/WorldTransitionSupport.h"
 #include "UI/NameChecks.h"
 #include "World/GameCamera.h"
 #include "World/ModelEffects.h"
+#include "World/ParticleBurst.h"
 #include "World/TerrainCulling.h"
 
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <format>
 #include <optional>
 #include <span>
 #include <string>
@@ -200,8 +207,7 @@ Core::Expected<void, std::string> ApplyPlayerRecord(const Protocol::Viewport::Pl
         Render::Models::SetAction(actor.animation, *skeleton, *action);
     }
     // 0x4c8adc..0x4c8aec.
-    if (auto flagged = ApplyEffectFlags(actor, record.effects, index == runtime.hero, runtime.lastSoundId);
-        !flagged.HasValue())
+    if (auto flagged = ApplyEffectFlags(actor, record.effects, index == runtime.hero, resources); !flagged.HasValue())
         return flagged;
     WriteTheCells(actor, record.x, record.y, random);
     actor.angles.z = AngleOf(record.directionAndPk);
@@ -216,10 +222,20 @@ Core::Expected<void, std::string> ApplyPlayerRecord(const Protocol::Viewport::Pl
     {
         return walked;
     }
-    // 0x4c91aa..0x4c91e1.
+    // 0x4c91aa..0x4c91e1: en Kalima (24..29 y 36), 0x530860(0x610, posición, posición, ángulos, 8, jugador, 20, −1, 0,
+    // 0, −1), sin rand(): la clase del pez de Atlans con el ActorState de dueño. Con los joints llenos no crea nada y
+    // sigue.
     if (IsKalima(runtime.map))
-        return Core::Unexpected(std::string("0x4c91dc: el joint 0x610/8 (0x530860) del jugador que entra en Kalima es "
-                                            "de la CL11"));
+    {
+        constexpr std::int32_t KalimaBeamJoint = 0x610, KalimaBeamSubtype = 8, NoKey = -1, NoTarget = -1;
+        constexpr float KalimaBeamWidth = 20.0f;
+        const auto beam = CreateFaunaJoint(world.DrawTail().joints,
+                                           {KalimaBeamJoint, actor.position, actor.position, actor.angles,
+                                            KalimaBeamSubtype, &actor, KalimaBeamWidth, NoKey, 0, 0, NoTarget},
+                                           random, JointOwnerKind::Actor);
+        if (!beam.HasValue())
+            return Core::Unexpected(std::format("0x4c91dc: {}", beam.Error()));
+    }
     // 0x4c91e4..0x4c91fa.
     if (auto set = ApplyCharacterSet(ActorWithKey(world, record.key), record.equipment, resources); !set.HasValue())
         return set;
@@ -400,7 +416,8 @@ Core::Expected<void, std::string> WalkToTheTarget(ActorState& actor, std::uint8_
     if (!attributes)
         return Core::Unexpected(std::string("0x4eac00: faltan las paredes vigentes para el camino de otro jugador"));
     GameLogic::PathFinder finder(attributes->cells);
-    const auto path = finder.Find({x, y}, {targetX, targetY});
+    // 0x4eac0a..0x4eac41: con un altar de Crywolf en 0x6c8e54, la bandera del A* también en el camino de otro.
+    const auto path = finder.Find({x, y}, {targetX, targetY}, CrywolfAltarGoal(resources.world));
     if (!path)
         return {};
     actor.path = *path;
@@ -437,7 +454,12 @@ void ApplyViewportLeave(const Protocol::Viewport::Leave& leave, WorldState& worl
                 (*siege)[offset] = 0;
         }
         // 0x4ca7e1..0x4ca7e8.
-        RemoveActor(world, static_cast<std::int32_t>(word & Protocol::Viewport::KeyMask));
+        const auto key = static_cast<std::int32_t>(word & Protocol::Viewport::KeyMask);
+        RemoveActor(world, key);
+        // 0x4ca7f0..0x4ca809: el cartel de la tienda con la clave, si hay (CL9 hito 7, fase 3).
+        PersonalShopState& shops = world.Runtime().social.personalShop;
+        if (const std::optional<std::size_t> owner = ShopTitleWithKey(shops, key))
+            RemoveShopTitle(shops, *owner);
     }
 }
 
@@ -478,8 +500,7 @@ Core::Expected<void, std::string> FinishTheTransformed(std::size_t index,
     actor.byte88 = 1;
     actor.byte3e3 = 1;
     // 0x4c938c..0x4c9396.
-    if (auto flagged = ApplyEffectFlags(actor, record.effects, index == runtime.hero, runtime.lastSoundId);
-        !flagged.HasValue())
+    if (auto flagged = ApplyEffectFlags(actor, record.effects, index == runtime.hero, resources); !flagged.HasValue())
         return flagged;
     ApplyCastleSiegeFlags(actor, record.effects, runtime.map);
     WriteTheCells(actor, record.x, record.y, random);
@@ -577,8 +598,10 @@ Core::Expected<void, std::string> ApplyViewportPosition(const Protocol::Viewport
             static_cast<float>(static_cast<std::int32_t>(y) - static_cast<std::int32_t>(position.y)) * PushScale;
         // (CL10) 0x41ed10(0x1b, 0, 0).
         world.Runtime().lastSoundId = PushSound;
-        return Core::Unexpected(std::string("0x4c6c9d: 0x51fe10, los veinte joints 0x5c5 (0x53fe70) del empujón con "
-                                            "dos rand() cada uno, es de la CL11"));
+        if (auto burst = World::CreatePushBurst(world.Particles(), actor.position, random); !burst.HasValue())
+            return Core::Unexpected(std::format("0x51fe9e: falla la partícula 0x5c5/2 del empujón DF, error {}",
+                                                static_cast<unsigned>(burst.Error())));
+        return {};
     }
     // 0x4c6ca8..0x4c6dfe.
     WriteTheCells(actor, position.x, position.y, resources.cloth.random);

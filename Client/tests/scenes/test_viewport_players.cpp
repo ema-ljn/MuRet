@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "App/WindowState.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
@@ -13,13 +14,17 @@
 #include "Protocol/Viewport.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
+#include "Render/SpriteBatch.h"
+#include "Scenes/ActionReply.h"
 #include "Scenes/ActorConstruction.h"
 #include "Scenes/ActorCreation.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/DarkSpirit.h"
+#include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/HelperTable.h"
+#include "Scenes/FaunaModels.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/MovementReplies.h"
 #include "Scenes/SelectionState.h"
@@ -29,14 +34,22 @@
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
 #include "World/ModelEffects.h"
+#include "World/Particles.h"
 #include "World/TerrainCulling.h"
 #include "World/WorldTerrain.h"
+#include "UI/ChatLog.h"
+#include "UI/MessageArea.h"
 
+#include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
 #include "support/ItemSetFiles.h"
 #include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
+#include "support/RecordingTextDrawer.h"
+#include "support/SceneDataFiles.h"
 #include "support/ViewportPackets.h"
+
+#include <glm/ext/vector_float3.hpp>
 
 #include <gtest/gtest.h>
 
@@ -45,6 +58,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <memory>
+#include <optional>
 #include <span>
 #include <string>
 #include <utility>
@@ -74,6 +88,8 @@ struct Game
 {
     Game()
     {
+        // 0x612d90 y 0x612270 suben las texturas de los modelos que cargan por la tabla que liga el juego.
+        world.FaunaResources().TextureTable().Bind(store);
         models.Set(PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
         ActorState& hero = world.Actors()[0];
         hero = Client::Tests::UnarmedPlayer();
@@ -94,6 +110,8 @@ struct Game
                 .itemSetTables = &sets,
                 .log = log};
     }
+    // Antes que el mundo: FaunaModels suelta sus texturas al destruirse.
+    Client::Tests::FakeTextureStore store;
     Client::Scenes::WorldState world;
     // El Data\ del laboratorio, para los Monster*.bmd que mira el alta de 0x5141e0; vacío fuera de los tests con datos.
     std::filesystem::path dataRoot;
@@ -255,6 +273,90 @@ TEST_F(ViewportPlayersTest, AnOldPlayerWalksTowardsItsTarget)
     }
 }
 
+// 0x4e670f..0x4e67a1 (CL9 hito 4; en el hito 1 cortaban): 0x400 y 0x10 apagan el 0x5ac/2 y /1 del que entra y crean
+// otro con él de dueño, sin rand() y sin mirar si ya tenía el bit; después prenden el bit y siguen (el 0x80, aquí). Con
+// la tabla llena, ninguno y sigue.
+TEST_F(ViewportPlayersTest, TheGuardAndSwellFlagsLightTheirFlaresOnThePlayer)
+{
+    using Client::World::GuardFlareSubtype;
+    using Client::World::SwellFlareSubtype;
+    struct Case
+    {
+        std::uint32_t flags;
+        // Los subtipos de los lugares 0 y 1 de la tabla al final (−1, muerto); el 0 empieza con un /2 viejo del que
+        // entra.
+        std::array<std::int32_t, 2> subtypes;
+        // Si el del lugar 0 es el nuevo (el viejo se apagó y el alta tomó su lugar).
+        bool renewed;
+    };
+    for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
+    {
+        for (const Case& test :
+             {Case{0x400u, {GuardFlareSubtype, -1}, true}, Case{0x10u, {GuardFlareSubtype, SwellFlareSubtype}, false},
+              Case{0x410u, {GuardFlareSubtype, SwellFlareSubtype}, true}})
+        {
+            SCOPED_TRACE(testing::Message() << int{map} << " " << test.flags);
+            Load(map);
+            const Cell cell = FreeRow();
+            auto& effects = game->world.Map().effects;
+            // El que entra va al lugar 1 de los personajes.
+            ASSERT_TRUE(effects.CreateSkillFlare({}, {}, {}, GuardFlareSubtype, &Actor(1)).has_value());
+            const std::array<ViewportPlayerRecord, 1> records{{{.key = 0x0458,
+                                                                .x = cell.x,
+                                                                .y = cell.y,
+                                                                .effects = test.flags | 0x80u,
+                                                                .name = "Chingolo",
+                                                                .targetX = cell.x,
+                                                                .targetY = cell.y}}};
+            const auto applied = Client::Scenes::ApplyViewportPlayers(Read(records), game->Resources());
+            ASSERT_TRUE(applied.HasValue()) << applied.Error();
+
+            const ActorState& actor = Actor(1);
+            EXPECT_EQ(actor.flags78, test.flags | 0x80u);
+            const auto live = effects.Effects();
+            for (std::size_t slot = 0; slot < test.subtypes.size(); ++slot)
+            {
+                SCOPED_TRACE(slot);
+                const auto& effect = live[slot];
+                ASSERT_EQ(effect.alive, test.subtypes[slot] >= 0);
+                if (!effect.alive)
+                    continue;
+                EXPECT_EQ(effect.type, Client::World::IcarusFlareEffect);
+                EXPECT_EQ(effect.subtype, test.subtypes[slot]);
+                EXPECT_EQ(effect.ownerContext, &actor);
+                EXPECT_EQ(effect.life, 1000);
+                const bool fresh = slot > 0 || test.renewed;
+                // El nuevo, donde lo dejó 0x511290 (el registro viejo no lo mueve); el viejo, en el origen.
+                EXPECT_EQ(effect.transform.position == actor.position, fresh);
+            }
+            EXPECT_FALSE(live[2].alive);
+            EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, FreshRecordDraws).State());
+        }
+    }
+}
+
+TEST_F(ViewportPlayersTest, TheFlaresOfTheFlagsWithAFullTableAreNoneAndTheRestFollows)
+{
+    for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
+    {
+        SCOPED_TRACE(map);
+        Load(map);
+        const Cell cell = FreeRow();
+        auto& effects = game->world.Map().effects;
+        while (effects.Create(Client::World::ArrivalEffect, {}, {}, {}, 0.0f))
+        {
+        }
+        const std::array<ViewportPlayerRecord, 1> records{
+            {{.key = 0x0459, .x = cell.x, .y = cell.y, .effects = 0x410u | 0x1000000u, .name = "Chingolo"}}};
+        const auto applied = Client::Scenes::ApplyViewportPlayers(Read(records), game->Resources());
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        EXPECT_EQ(Actor(1).flags78, 0x410u | 0x1000000u);
+        for (const auto& effect : effects.Effects())
+            EXPECT_EQ(effect.type, Client::World::ArrivalEffect);
+        EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, FreshRecordDraws).State());
+    }
+}
+
 // 0x4c88d2 (0x576960 con "webzen", distinguiendo mayúsculas): el registro no hace nada, pero el paquete ya está en la
 // cola.
 TEST_F(ViewportPlayersTest, AWebzenNameIsSkippedAfterThePacketIsStored)
@@ -364,23 +466,94 @@ TEST_F(ViewportPlayersTest, TheStatesTwoToFourPutTheirActions)
     }
 }
 
-// 0x4c91aa..0x4c91e1: en Kalima (24 a 29 y 36) corta antes del equipo y del nombre, con la celda ya escrita.
-TEST_F(ViewportPlayersTest, KalimaCutsBeforeTheEquipment)
+// 0x4c91aa..0x4c91e1: en Kalima (24 a 29 y 36), 0x530860(0x610, posición, posición, ángulos, 8, jugador, 20, −1, 0, 0,
+// −1) con el jugador de dueño, sin rand(): nace en su posición con z = 300 y sus ángulos, vida 100, 20 puntos, ancho
+// 20, mezcla 4. Después sigue: el equipo y el nombre. En Lorencia y Devias, ningún joint.
+TEST_F(ViewportPlayersTest, InKalimaTheEnteringPlayerTakesTheJoint0x610Of8)
 {
-    for (const std::int32_t map : {24, 29, 36})
+    for (const std::int32_t map : {0, 2, 24, 29, 36})
     {
         SCOPED_TRACE(map);
-        Load(0);
+        Load(map == 2 ? std::uint8_t{2} : std::uint8_t{0});
         game->world.Runtime().map = map;
         const Cell cell = FreeRow();
         const std::array<ViewportPlayerRecord, 1> records{
-            {{.key = 0x0040, .isNew = true, .x = cell.x, .y = cell.y, .name = "Hornero"}}};
+            {{.key = 0x0040, .isNew = true, .x = cell.x, .y = cell.y, .name = "Hornero", .directionAndPk = 0x30}}};
         const auto applied = Client::Scenes::ApplyViewportPlayers(Read(records), game->Resources());
-        ASSERT_FALSE(applied.HasValue());
-        EXPECT_NE(applied.Error().find("0x4c91dc"), std::string::npos) << applied.Error();
-        EXPECT_EQ(Actor(1).cellX, cell.x);
-        EXPECT_EQ(std::to_integer<char>(Actor(1).name[0]), '\0');
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, FreshRecordDraws).State());
+        const ActorState& actor = Actor(1);
+        EXPECT_EQ(actor.cellX, cell.x);
+        EXPECT_EQ(std::to_integer<char>(actor.name[0]), 'H');
+
+        const auto& joints = game->world.DrawTail().joints;
+        const bool kalima = map != 0 && map != 2;
+        const Client::Scenes::JointState& joint = joints[0];
+        ASSERT_EQ(joint.alive, kalima);
+        for (std::size_t i = 1; i < joints.size(); ++i)
+            ASSERT_FALSE(joints[i].alive) << i;
+        if (!kalima)
+            continue;
+        EXPECT_EQ(joint.type, 0x610);
+        EXPECT_EQ(joint.subtype, 8);
+        EXPECT_EQ(joint.ownerContext, &actor);
+        EXPECT_EQ(joint.ownerKind, Client::Scenes::JointOwnerKind::Actor);
+        EXPECT_EQ(joint.position, glm::vec3(actor.position.x, actor.position.y, 300.0f));
+        EXPECT_EQ(joint.angles, actor.angles);
+        EXPECT_EQ(joint.targetPosition, actor.position);
+        EXPECT_EQ(joint.life, 100);
+        EXPECT_EQ(joint.maximumCount, 20);
+        EXPECT_EQ(joint.width, 20.0f);
+        EXPECT_EQ(joint.count, -1);
+        EXPECT_EQ(joint.key, 0);
+        EXPECT_EQ(joint.blend, 4);
+        EXPECT_EQ(joint.drawEnabled, 2);
+        EXPECT_EQ(joint.category, 1);
+        EXPECT_EQ(joint.light, glm::vec3(1.0f));
     }
+}
+
+// 0x53801e..0x538055: el paso del 610/8 lee del jugador el byte vivo y la posición (con z = 300); muerto, se apaga.
+TEST_F(ViewportPlayersTest, TheKalimaJointFollowsItsPlayerAndDiesWithIt)
+{
+    Load(0);
+    game->world.Runtime().map = 36;
+    const Cell cell = FreeRow();
+    const std::array<ViewportPlayerRecord, 1> records{
+        {{.key = 0x0041, .isNew = true, .x = cell.x, .y = cell.y, .name = "Hornero"}}};
+    ASSERT_TRUE(Client::Scenes::ApplyViewportPlayers(Read(records), game->Resources()).HasValue());
+    auto& joints = game->world.DrawTail().joints;
+    ActorState& actor = Actor(1);
+    actor.position = {1234.0f, 5678.0f, 90.0f};
+    ASSERT_TRUE(Client::Scenes::StepJoints(joints).HasValue());
+    EXPECT_TRUE(joints[0].alive);
+    EXPECT_EQ(joints[0].position, glm::vec3(1234.0f, 5678.0f, 300.0f));
+    EXPECT_EQ(joints[0].life, 99);
+    actor.alive = false;
+    ASSERT_TRUE(Client::Scenes::StepJoints(joints).HasValue());
+    EXPECT_FALSE(joints[0].alive);
+}
+
+// Con los 500 joints vivos, 0x530860 no crea nada y el 0x12 sigue: el equipo y el nombre, sin rand() de más.
+TEST_F(ViewportPlayersTest, InKalimaWithTheJointsFullThePlayerStillEnters)
+{
+    Load(0);
+    game->world.Runtime().map = 24;
+    auto& joints = game->world.DrawTail().joints;
+    for (auto& joint : joints)
+    {
+        joint.alive = true;
+        joint.type = 0x617;
+    }
+    const Cell cell = FreeRow();
+    const std::array<ViewportPlayerRecord, 1> records{
+        {{.key = 0x0042, .isNew = true, .x = cell.x, .y = cell.y, .name = "Hornero"}}};
+    const auto applied = Client::Scenes::ApplyViewportPlayers(Read(records), game->Resources());
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
+    EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, FreshRecordDraws).State());
+    EXPECT_EQ(std::to_integer<char>(Actor(1).name[0]), 'H');
+    for (const auto& joint : joints)
+        EXPECT_EQ(joint.type, 0x617);
 }
 
 // 0x4c8968 → 0x512870: con los 400 vivos, el alta da el 400 y el registro escribe en ese, el 401 del pool.
@@ -583,6 +756,91 @@ TEST_F(ViewportPlayersTest, FinishingTheTransformedWalksOrCutsWhenItArrives)
     EXPECT_EQ(game->cloth.random.State(), expected.State());
 }
 
+// 0x4e68e1..0x4e68fd: el héroe recibe Text[1828] cada vez, aunque ya tenga la bandera; OR corre después del aviso.
+TEST_F(ViewportPlayersTest, TheHeroesBlessingFlagShowsText1828OnEveryApplication)
+{
+    Load(0);
+    const Cell cell = FreeRow();
+    const auto texts = Client::Tests::MakeTextTable({{1828, "Bendicion"}});
+    Client::Render::SpriteBatch sprites;
+    Client::Tests::RecordingTextDrawer measure{sprites};
+    auto resources = game->Resources();
+    resources.texts = &texts;
+    resources.textMeasure = &measure;
+    resources.screen = [] { return Client::App::PixelSize{640, 480}; };
+    constexpr std::uint32_t BlessingFlag = 0x2000000;
+    const Client::Protocol::Viewport::TransformedRecord record{
+        .key = HeroKey, .x = cell.x, .y = cell.y, .effects = BlessingFlag, .targetX = cell.x, .targetY = cell.y};
+    for (std::size_t count = 1; count <= 2; ++count)
+    {
+        const auto applied = Client::Scenes::FinishTheTransformed(0, record, 0, resources);
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        const auto& entries = game->world.Runtime().chat.log.entries;
+        ASSERT_EQ(entries.size(), count);
+        EXPECT_TRUE(entries.front().name.empty());
+        EXPECT_EQ(entries.front().text, "Bendicion");
+        EXPECT_EQ(entries.front().type, 1);
+        EXPECT_NE(Actor(0).flags78 & BlessingFlag, 0u);
+    }
+}
+
+TEST_F(ViewportPlayersTest, TheBlessingFlagOnAnotherActorNeedsNoMessageResources)
+{
+    Load(0);
+    const Cell cell = FreeRow();
+    Actor(1) = Client::Tests::UnarmedPlayer(1);
+    Actor(1).alive = true;
+    constexpr std::uint32_t BlessingFlag = 0x2000000;
+    const Client::Protocol::Viewport::TransformedRecord record{
+        .key = 0x456, .x = cell.x, .y = cell.y, .effects = BlessingFlag, .targetX = cell.x, .targetY = cell.y};
+    const auto applied = Client::Scenes::FinishTheTransformed(1, record, 0, game->Resources());
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
+    EXPECT_EQ(Actor(1).flags78 & BlessingFlag, BlessingFlag);
+    EXPECT_TRUE(game->world.Runtime().chat.log.entries.empty());
+}
+
+TEST_F(ViewportPlayersTest, AMissingBlessingTextKeepsThePrefixAndLeavesTheFinalFlagUnset)
+{
+    Load(0);
+    const Cell cell = FreeRow();
+    constexpr std::uint32_t BlessingFlag = 0x2000000;
+    const Client::Protocol::Viewport::TransformedRecord record{
+        .key = HeroKey, .x = cell.x, .y = cell.y, .effects = BlessingFlag | 1u, .targetX = cell.x, .targetY = cell.y};
+    const auto applied = Client::Scenes::FinishTheTransformed(0, record, 0, game->Resources());
+    ASSERT_FALSE(applied.HasValue());
+    EXPECT_NE(applied.Error().find("Text.bmd"), std::string::npos) << applied.Error();
+    EXPECT_EQ(Actor(0).flags78 & 1u, 1u);
+    EXPECT_EQ(Actor(0).flags78 & BlessingFlag, 0u);
+    EXPECT_TRUE(game->world.Runtime().chat.log.entries.empty());
+}
+
+// Un Text[1828] vacío sigue pasando por 0x555190: envejece el registro y añade una fila al área vieja.
+TEST_F(ViewportPlayersTest, AnEmptyBlessingTextStillUpdatesTheMessageAreaAndTheLogAge)
+{
+    Load(0);
+    const Cell cell = FreeRow();
+    const auto texts = Client::Tests::MakeTextTable({});
+    Client::Render::SpriteBatch sprites;
+    Client::Tests::RecordingTextDrawer measure{sprites};
+    auto resources = game->Resources();
+    resources.texts = &texts;
+    resources.textMeasure = &measure;
+    auto& chat = game->world.Runtime().chat;
+    chat.log.entries.push_back({.name = "", .text = "previo"});
+    const Client::Protocol::Viewport::TransformedRecord record{
+        .key = HeroKey, .x = cell.x, .y = cell.y, .effects = 0x2000000, .targetX = cell.x, .targetY = cell.y};
+
+    const auto applied = Client::Scenes::FinishTheTransformed(0, record, 0, resources);
+
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
+    ASSERT_EQ(chat.log.entries.size(), 1u);
+    EXPECT_EQ(chat.log.entries.front().age, 1u);
+    ASSERT_EQ(chat.area.count, 1);
+    EXPECT_TRUE(chat.area.rows[0].name.empty());
+    EXPECT_TRUE(chat.area.rows[0].text.empty());
+    EXPECT_EQ(chat.area.clock, Client::UI::MessageClockSteps);
+}
+
 // El 0x25 y el 0xDF sobre un jugador que ya está.
 class ShownEquipmentTest : public ::testing::Test
 {
@@ -692,9 +950,8 @@ TEST_F(ShownEquipmentTest, TheWholeKeyWithTheNewBitFindsNobody)
     EXPECT_EQ(game->world.Actors()[Client::Scenes::CreatedActorSearch].hands[0].model, 0x3 + 0x212);
 }
 
-// 0x4c6ca8..0x4c6dfe: la celda protegida, el blanco y +0x399. El tipo 0xf1 se empuja (+0xe4, +0xd0 y +0xcc, con la
-// celda leída) y pide el sonido 0x1b antes de cortar en 0x51fe10 (CL11).
-TEST_F(ShownEquipmentTest, ThePositionWritesTheCellsAndTheTypeF1IsPushed)
+// 0x4c6ca8..0x4c6dfe: la celda protegida, el blanco y +0x399.
+TEST_F(ShownEquipmentTest, ThePositionWritesTheCells)
 {
     const auto read = Client::Protocol::Viewport::ReadPosition(Client::Tests::PositionPacket(OtherKey, 140, 141));
     ASSERT_TRUE(read.HasValue());
@@ -705,18 +962,81 @@ TEST_F(ShownEquipmentTest, ThePositionWritesTheCellsAndTheTypeF1IsPushed)
     EXPECT_EQ(Other().targetY, 141);
     EXPECT_EQ(Other().byte399, 1);
     EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, CellDraws).State());
+}
+
+// 0x4c6c9d llama 0x51fe10(posición, 0): dos sorteos por intento, cinco por alta efectiva y ninguna 0x5ed.
+TEST_F(ShownEquipmentTest, ThePushedTypeCreatesTwentySparksWithoutMovingItsCell)
+{
+    const auto read = Client::Protocol::Viewport::ReadPosition(Client::Tests::PositionPacket(OtherKey, 140, 141));
+    ASSERT_TRUE(read.HasValue());
     Other().type = 0xf1;
     Other().cellX = 138;
     Other().cellY = 143;
+    Other().position = {12, 34, 56};
     const auto pushed = Client::Scenes::ApplyViewportPosition(read.Value(), game->Resources());
-    ASSERT_FALSE(pushed.HasValue());
-    EXPECT_NE(pushed.Error().find("0x4c6c9d"), std::string::npos) << pushed.Error();
+    ASSERT_TRUE(pushed.HasValue()) << pushed.Error();
     EXPECT_EQ(Other().floatE4, 20.0f);
     EXPECT_EQ(Other().floatD0, 800.0f);
     EXPECT_EQ(Other().floatCC, 800.0f);
     EXPECT_EQ(game->world.Runtime().lastSoundId, 0x1b);
     EXPECT_EQ(Other().cellX, 138);
-    EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, CellDraws + CellDraws).State());
+    EXPECT_EQ(Other().cellY, 143);
+    EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, CellDraws + 20 * 7).State());
+    const auto particles = game->world.Particles().All();
+    for (std::size_t index = 0; index < particles.size(); ++index)
+    {
+        SCOPED_TRACE(index);
+        EXPECT_EQ(particles[index].alive, index < 20);
+        if (index >= 20)
+            continue;
+        EXPECT_EQ(particles[index].type, Client::World::FairySparkParticle);
+        EXPECT_EQ(particles[index].subtype, 2);
+        EXPECT_EQ(particles[index].position, glm::vec3(12, 34, 136));
+        EXPECT_EQ(particles[index].light, glm::vec3(1));
+        EXPECT_GE(particles[index].angles.x, 150.0f);
+        EXPECT_LT(particles[index].angles.x, 210.0f);
+    }
+}
+
+// 0x51fe4b/0x51fe6e preceden la búsqueda de slot 0x53fe70. Llenar el pool no corta los otros intentos.
+TEST_F(ShownEquipmentTest, ThePushedTypeKeepsEveryAttemptWithAPartialOrFullPool)
+{
+    const auto read = Client::Protocol::Viewport::ReadPosition(Client::Tests::PositionPacket(OtherKey, 140, 141));
+    ASSERT_TRUE(read.HasValue());
+    Other().type = 0xf1;
+    Other().cellX = 138;
+    Other().cellY = 143;
+    for (const std::size_t free : {std::size_t{0}, std::size_t{1}, std::size_t{19}})
+    {
+        SCOPED_TRACE(free);
+        auto particles = game->world.Particles().All();
+        for (std::size_t index = 0; index < particles.size(); ++index)
+        {
+            particles[index].alive = index >= free;
+            particles[index].life = 101;
+            particles[index].position = {2, 4, 8};
+        }
+        game->cloth.random = CrtRandom(Seed);
+        const auto pushed = Client::Scenes::ApplyViewportPosition(read.Value(), game->Resources());
+        ASSERT_TRUE(pushed.HasValue()) << pushed.Error();
+        const int draws = CellDraws + 40 + static_cast<int>(free) * 5;
+        EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, draws).State());
+        for (std::size_t index = 0; index < particles.size(); ++index)
+        {
+            SCOPED_TRACE(index);
+            EXPECT_TRUE(particles[index].alive);
+            if (index < free)
+            {
+                EXPECT_EQ(particles[index].type, Client::World::FairySparkParticle);
+                EXPECT_EQ(particles[index].subtype, 2);
+            }
+            else
+            {
+                EXPECT_EQ(particles[index].life, 101);
+                EXPECT_EQ(particles[index].position, glm::vec3(2, 4, 8));
+            }
+        }
+    }
 }
 
 // El D3 y el D7 de otro (0x4c6d60 y 0x4cab40) encuentran al que dio de alta el 0x12.
@@ -746,6 +1066,55 @@ TEST_F(ViewportPlayersTest, TheWalkAndTheHitOfTheOthersFindTheCreatedPlayer)
         EXPECT_EQ(actor.damage, 25);
         EXPECT_EQ(actor.movement, 0);
         EXPECT_TRUE(game->world.DrawTail().damage[0].alive);
+    }
+}
+
+// El 18 con la acción 0x78 de un jugador que dio de alta el 0x12 (0x4cb750 → 0x4f4a10): sin armas, la 0x22 y solo el
+// cierre del registro propio de 0x4f3f80; con una espada de un grupo de 0 a 2 sin la marca +0x1e de Item.bmd en la
+// derecha, la 0x23 o la 0x24 por +0x38f y el sonido rand() & 1 + 0x3c (0x4f5192). Después, +0x381 en 1, el frame en 0,
+// el blanco con el lugar del héroe y [0x5767964] con el índice.
+TEST_F(ViewportPlayersTest, ACreatedPlayerStrikesWithTheEighteen)
+{
+    constexpr int OwnRecordDraws = 0xf08;
+    constexpr std::uint16_t Sword = 0x212;
+    for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
+    {
+        SCOPED_TRACE(map);
+        Load(map);
+        game->world.Runtime().heroSlot = 0;
+        const Cell cell = FreeRow();
+        const std::array<ViewportPlayerRecord, 1> records{
+            {{.key = 0x0456, .isNew = true, .x = cell.x, .y = cell.y, .name = "Hornero"}}};
+        auto applied = Client::Scenes::ApplyViewportPlayers(Read(records), game->Resources());
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        ActorState& actor = Actor(1);
+        const std::uint32_t created = game->cloth.random.State();
+
+        applied = Client::Scenes::ApplyActionReply(
+            Client::Protocol::Movement::Action{.key = 0x0456, .direction = 5, .action = 0x78}, game->Resources(), {});
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        EXPECT_EQ(actor.animation.action, 0x22);
+        EXPECT_EQ(actor.animation.frame, 0.0f);
+        EXPECT_EQ(actor.angles.z, 180.0f);
+        EXPECT_EQ(actor.byte381, 1);
+        EXPECT_EQ(actor.attackCount, 1);
+        EXPECT_EQ(actor.attackTarget, 0);
+        EXPECT_EQ(game->world.Runtime().lastAttacker, 1);
+        EXPECT_FALSE(game->world.Runtime().lastSoundId.has_value());
+        EXPECT_EQ(game->cloth.random.State(), AfterDraws(created, OwnRecordDraws).State());
+
+        actor.hands[0].model = Sword;
+        actor.animation.action = 0;
+        auto expected = AfterDraws(game->cloth.random.State(), OwnRecordDraws);
+        const std::int32_t sound = (expected.Next() & 1) + 0x3c;
+        applied = Client::Scenes::ApplyActionReply(
+            Client::Protocol::Movement::Action{.key = 0x0456, .direction = 1, .action = 0x79}, game->Resources(), {});
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        // +0x38f en 1: (1 & 1) + 0x23.
+        EXPECT_EQ(actor.animation.action, 0x24);
+        EXPECT_EQ(actor.attackCount, 2);
+        EXPECT_EQ(game->world.Runtime().lastSoundId, std::optional<std::int32_t>(sound));
+        EXPECT_EQ(game->cloth.random.State(), expected.State());
     }
 }
 } // namespace

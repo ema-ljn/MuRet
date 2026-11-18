@@ -17,6 +17,7 @@
 
 #include <gtest/gtest.h>
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <initializer_list>
@@ -317,6 +318,35 @@ TEST(OwnDerivedStatsTest, ATypeOutsideItemBmdIsAnExplicitError)
         ASSERT_FALSE(bonus.HasValue());
         EXPECT_NE(bonus.Error().find("Q-C184"), std::string::npos);
         EXPECT_NE(bonus.Error().find(outside.shown), std::string::npos);
+    }
+}
+
+// 0x550d72..0x550da9: con valor 0, cualquiera de los 256 selectores suma 0 o no suma.
+// No se conoce el byte de base(Item.bmd)-16; el consumidor tampoco lo necesita en esta rama.
+TEST(OwnDerivedStatsTest, AnEmptySlotWithZeroBonusPreservesItsResidualDataAndAllStatWords)
+{
+    const auto items = ItemsWithKinds({});
+    constexpr std::array<std::uint8_t, 5> FlagsWithoutBonus{0, 1, 3, 0x10, 0xf3};
+    for (const std::uint8_t flags : FlagsWithoutBonus)
+    {
+        OwnCharacterRecord own;
+        own.word2a = 11;
+        own.word2c = 22;
+        own.word30 = 33;
+        own.word2e = 44;
+        own.equipment[0] = Worn(EmptyType, 0, 25);
+        own.equipment[0].flags1c = flags;
+
+        const auto added = Client::Scenes::AddOwnItemStatBonuses(own, &items);
+
+        ASSERT_TRUE(added.HasValue()) << added.Error();
+        EXPECT_EQ(own.word2a, 11);
+        EXPECT_EQ(own.word2c, 22);
+        EXPECT_EQ(own.word30, 33);
+        EXPECT_EQ(own.word2e, 44);
+        EXPECT_EQ(own.equipment[0].id, EmptyType);
+        EXPECT_EQ(own.equipment[0].durability, 25);
+        EXPECT_EQ(own.equipment[0].flags1c, flags);
     }
 }
 

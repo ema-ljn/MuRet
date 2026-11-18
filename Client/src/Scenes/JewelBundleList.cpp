@@ -523,7 +523,7 @@ BundleListStep StepTheBundleList(const GameUiContext& context)
         ui.mouseOnUi = 1;
     }
     BundleListStep result{};
-    result.asked = HoverTheRows(context, list, click, ui.rightReleased);
+    result.asked = HoverTheRows(context, list, click, ui.rightUpMessage);
     ui.capture = 0;
     return result;
 }

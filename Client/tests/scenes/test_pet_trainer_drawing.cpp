@@ -124,7 +124,7 @@ protected:
     {
         m_sprites.Begin(Screen640);
         m_world->OwnCharacter().ClearEquipmentForEntry();
-        Runtime().darkHorseLevel = 3;
+        Runtime().pets[Client::Scenes::DarkHorsePetStats].level = 3;
         Runtime().field78abb10 = 1;
         auto& name = m_world->Actors()[Runtime().hero].name;
         const std::string_view hero = "Domador";

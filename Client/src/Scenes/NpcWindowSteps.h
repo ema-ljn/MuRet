@@ -57,13 +57,12 @@ PriceTheRepairOfEverything(WorldState& world, Render::Models::CrtRandom& random,
 [[nodiscard]] Core::Expected<void, std::string> StepTheChaosBox(const GameUiContext& context,
                                                                 UI::PanelRegistry& panels);
 
-// 0x5d8dee..0x5d9659, el principio de 0x5d8d50 sin la traba del 24: con 0x78abb14 en 1, la venta que espera el
-// diálogo 0x98 (0x6c932e en 1: el C1 04 33 en C3; en 2, 0x5be150); con 2, la mezcla (en 1: 0x7d2dc80 en 1 y el
-// C1 04 86 en claro; en 2, nada); con 4, el del panel 0x2000 (0x5d9b82: en 1, el teclado del almacén barajado en
-// 6; en 2, 0x78abb08 en 0). En todos, 0x78abb14 en 0 y 0x6c932e en 0xff al contestar. Devuelve verdadero si
-// 0x5d8d50 sale (0x78abb14 de 1 a 6). El 3, el 5 y el 6 son del hito 7: cortan el sí de los tres (0x5d966b, 0x5d9c82,
-// 0x5da5ac) y el no del 6 (0x5dc765); el no del 3 y del 5 es el de la mezcla (0x5d9634).
-[[nodiscard]] Core::Expected<bool, std::string> StepTheCursorChoice(const GameUiContext& context);
+// 0x5d8dee..0x5d9c56, los avisos de 0x78abb14 de las ventanas de NPC con su respuesta (0x6c932e en 1 o 2) ya escrita,
+// desde Scenes::StepTheWarningAnswers: con 1, la venta que espera el diálogo 0x98 (en 1: el C1 04 33 en C3; en 2,
+// 0x5be150); con 2, la mezcla (en 1: 0x7d2dc80 en 1 y el C1 04 86 en claro; en 2, nada); con 4, el del panel 0x2000
+// (0x5d9b82: en 1, el teclado del almacén barajado en 6; en 2, 0x78abb08 en 0). En todos, 0x78abb14 en 0 y 0x6c932e en
+// 0xff antes. Otro aviso corta.
+[[nodiscard]] Core::Expected<void, std::string> AnswerTheNpcWarning(const GameUiContext& context, std::int32_t kind);
 
 // 0x5deca7..0x5df448, con el clic fuera de las grillas: con la tienda abierta (su rand()) y el mouse en su grilla
 // ([x + 0xf, x + 0xc3) × [y + 0x32, y + 0x172)), lo que no se vende no hace nada, lo valioso abre el diálogo 0x98 con
@@ -71,9 +70,9 @@ PriceTheRepairOfEverything(WorldState& world, Render::Models::CrtRandom& random,
 [[nodiscard]] Core::Expected<bool, std::string> SellTheCursorItem(const GameUiContext& context,
                                                                   UI::PanelRegistry& panels);
 
-// 0x626460..0x6282c8, el OK del diálogo 0x73 (con Enter): más de 100.000.000 abre el 0x75; con el comercio abierto (su
-// rand()), el zen del comercio corta (CL9.4); si no, el zen del almacén (0x6270ed): con el registro propio abierto,
-// meter (0x78abacc en 0) o sacar, el C1 08 81 en claro o el 0x74; sacar con la traba espera la contraseña (−1, 1, el
-// zen y 0x77f3cc8) y abre el teclado (0x5e7aa0(1)). Después, los campos de texto como antes del 0x73 y el sonido.
-[[nodiscard]] Core::Expected<void, std::string> ConfirmTheMoneyDialog(const GameUiContext& context);
+// 0x6270ed..0x62820a, el OK del diálogo 0x73 (con Enter, hasta 100.000.000) sin el comercio abierto, desde el paso del
+// 0x73 (Scenes/GameDialogSteps.cpp): el zen del almacén, con el registro propio abierto. Meter (0x78abacc en 0) o
+// sacar, cada uno con el cierre del 0x73 y el C1 08 81 en claro o el 0x74; sacar con la traba espera la contraseña (−1,
+// 1, el zen y 0x77f3cc8) y abre el teclado (0x5e7aa0(1)).
+[[nodiscard]] Core::Expected<void, std::string> MoveTheWarehouseMoney(const GameUiContext& context);
 } // namespace Client::Scenes

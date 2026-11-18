@@ -52,10 +52,11 @@ del último campo vacío en la última fila; al restaurar ese tab coincide con e
 Esto no altera los conteos. Al ejecutar, usar una copia fiel del TSV y registrar su procedencia,
 sin depender de que esa ruta temporal exista en otra sesión.
 
-**Estado (2026-11-13):** la matriz está completa: 5.648 filas, 0 pendientes, el verificador y sus
-controles en verde. El resultado y el método están en
-[10](../../../Client/docs/research/10-cobertura-roadmap.md). Falta la revisión independiente del paso
-4; hasta entonces CL.M no se da por cerrada.
+**Estado (2026-11-13): CL.M terminada.** La matriz está completa: 5.648 filas, 0 pendientes, el
+verificador y sus controles en verde. La revisión independiente del paso 4 se hizo el mismo día
+(27 hallazgos, verificados contra el ASM) y sus correcciones están en el generador y la matriz. El
+resultado, el método y la revisión están en
+[10](../../../Client/docs/research/10-cobertura-roadmap.md#la-revisión-independiente).
 
 **Estado al escribir el plan:** este plan deja pendiente la clasificación y asignación fila por fila. El inventario no
 contiene etiquetas de juego/biblioteca ni olas; 4.403 nombres `FUN_*` no equivale a 4.403 funciones
@@ -141,7 +142,7 @@ denominador de juego. La suma de tamaños se informa como métrica del inventari
   dominio con su evidencia antes de cerrar el mapeo; no inventar su comportamiento. No agregar ni
   quitar una exclusión existente como atajo para alcanzar el 100 %.
 
-- [ ] **Step 4: Publicar el informe y comprobar el cierre.**
+- [x] **Step 4: Publicar el informe y comprobar el cierre.**
 
   Publicar funciones y suma de `size_bytes` por responsable y clasificación; los consumidores se
   cuentan aparte. Mostrar el denominador de juego y las filas sin ola/pendientes, y reproducir o

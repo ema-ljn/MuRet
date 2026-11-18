@@ -6,6 +6,13 @@
 find_package(GTest CONFIG REQUIRED)
 include(GoogleTest)
 
+# MSVC: un archivo de tests grande (test_character_select_scene, con lo que suma el hito 11 de la CL9) pasa el tope de
+# secciones de un .obj (C1128). /bigobj lo sube para todo lo de esta carpeta, también para los precompiled headers
+# que los tests reusan, así las opciones coinciden.
+if(MSVC)
+    add_compile_options(/bigobj)
+endif()
+
 # Lo que comparten los tests (support/): leer archivos, las carpetas golden, el cable. Sus headers
 # se incluyen como "support/...". Usa GoogleTest (GoldenDir marca los tests salteados).
 file(GLOB support_sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/support/*.cpp")

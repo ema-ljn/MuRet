@@ -26,6 +26,7 @@ using Client::Render::Models::BoneKey;
 using Client::Render::Models::BoneTransform;
 using Client::Render::Models::ObjectTransform;
 using Client::Render::Models::PoseSkeleton;
+using Client::Render::Models::PoseWorldSkeleton;
 using Client::Render::Models::QuaternionMatrix;
 using Client::Render::Models::QuaternionSlerp;
 using Client::Render::Models::Skeleton;
@@ -110,6 +111,55 @@ TEST(PoseTest, TheRootTurnsWithTheObjectButDoesNotMoveWithIt)
 
     ExpectNear(bones[0][3], {0, 5, 0});
     ExpectNear(VectorRotate({1, 0, 0}, bones[0]), {0, 1, 0});
+}
+
+// La raíz mundial escala sus nueve componentes de orientación y conserva la posición del objeto sin
+// escalarla; después concatena la pose local antes de posar al hijo.
+TEST(PoseTest, WorldRootScalesAndTranslatesBeforePosingChildren)
+{
+    Skeleton skeleton;
+    skeleton.actions = {ActionInfo{true, 0.0f, 1, false}};
+    SkeletonBone root;
+    root.actions = {{Key({1, 0, 0}, {0, 0, 0})}};
+    SkeletonBone child;
+    child.parent = 0;
+    child.actions = {{Key({1, 2, 3}, {0, 0, 90})}};
+    SkeletonBone dummy;
+    dummy.dummy = true;
+    skeleton.bones = {root, child, dummy};
+    const ObjectTransform object{{10, 20, 30}, {0, 0, 90}, 2.0f, 0.0f};
+    std::vector<BoneTransform> bones(skeleton.bones.size(), BoneTransform(7.0f));
+
+    ASSERT_TRUE(PoseWorldSkeleton(skeleton, AnimationState{}, object, NoHead, bones));
+
+    // Root: object.position + 2 * Rz(90°) * (1, 0, 0).
+    ExpectNear(bones[0][3], {10, 22, 30});
+    ExpectNear(bones[0][0], {0, 2, 0});
+    ExpectNear(bones[0][1], {-2, 0, 0});
+    ExpectNear(bones[0][2], {0, 0, 2});
+    // Child translation: root translation + 2 * Rz(90°) * (1, 2, 3).
+    ExpectNear(bones[1][3], {6, 24, 36});
+    // Its local Rz(90°) is concatenated with the world Rz(90°), including the world scale.
+    ExpectNear(bones[1][0], {-2, 0, 0});
+    ExpectNear(bones[1][1], {0, -2, 0});
+    ExpectNear(bones[1][2], {0, 0, 2});
+    EXPECT_EQ(bones[2], BoneTransform(7.0f));
+}
+
+// lock_positions calcula la posición local del hueso 0 antes de aplicar la transformación mundial.
+TEST(PoseTest, WorldRootAppliesScaleAndPositionToLockedRoot)
+{
+    Skeleton skeleton = SampleSkeleton();
+    const AnimationState animation{1, 1.5f, 1, 0};
+    ObjectTransform object{{100, 200, 300}, {0, 0, 90}, 2.0f, 2.0f};
+    std::vector<BoneTransform> bones(skeleton.bones.size(), BoneTransform(7.0f));
+
+    ASSERT_TRUE(PoseWorldSkeleton(skeleton, animation, object, NoHead, bones));
+
+    // lock_positions conserva x/y de la key cero y suma 2 a z interpolada (seis y medio).
+    // La raíz mundial rota y escala ese vector, y luego suma la posición sin escalar.
+    ExpectNear(bones[0][3], {96.0f, 202.0f, 313.0f});
+    EXPECT_EQ(bones[2], BoneTransform(7.0f));
 }
 
 // Entre la key anterior y la de ahora, con la parte fraccionaria: un cuarto del camino de 0° a 90°

@@ -38,6 +38,7 @@ using Render::BlendMode;
 using Render::Text::FontKind;
 using Render::Text::TextColors;
 using WindowDrawing::DrawCenteredText;
+using WindowDrawing::DrawInBox;
 using WindowDrawing::DrawTitle;
 using WindowDrawing::Quad;
 using WindowDrawing::SelectFont;
@@ -257,7 +258,7 @@ Core::Expected<void, std::string> DrawTheSmallTitle(GameHudContext& context, std
         return Core::Unexpected(title.Error());
     SelectFont(context, FontKind::Bold);
     context.hud.textColors = TitleColors;
-    DrawTitle(context, TitleLeft, TitleTop, title.Value(), TitleBoxDesignWidth);
+    DrawInBox(context, TitleLeft, TitleTop, title.Value(), TitleBoxDesignWidth);
     context.sprites.SetBlend(BlendMode::Alpha);
     SelectFont(context, FontKind::Normal);
     return {};

@@ -679,25 +679,26 @@ TEST_F(WorldEntryTest, TheSettlingFollowsTheNativeOrder)
     }
 }
 
-// 0x4f2250 corta en un personaje que no es jugador: el contador ya quedó en 30 y los dos efectos de
-// llegada están creados.
+// Falta el servicio del C1 18 al sentarse: el contador ya quedó en30 y los dos efectos de llegada están creados.
 TEST_F(WorldEntryTest, AStopFailureKeepsCounterThirtyAndTwoArrivals)
 {
     Entry tested(m_dataRoot, Seed);
     tested.world.Runtime().warpCounter = Client::Scenes::WorldLoadingWait;
     ActorState& hero = tested.DressedHero(PublishedSlot);
-    hero.type = 0xa9;
+    constexpr std::uint32_t Sitting = 0x200000;
+    hero.flags7c |= Sitting;
     RecordingPublisher publisher;
 
     const auto settled = SettleWorldEntry({}, tested.Resources(), publisher);
 
     ASSERT_FALSE(settled.HasValue());
-    EXPECT_NE(settled.Error().find("0x4f2250"), std::string::npos) << settled.Error();
+    EXPECT_NE(settled.Error().find("0x4f2416"), std::string::npos) << settled.Error();
     EXPECT_EQ(publisher.calls, 1);
     EXPECT_EQ(tested.world.Runtime().warpCounter, Client::Scenes::WaitDrawThreshold);
     EXPECT_EQ(tested.AliveArrivals(), 2u);
     EXPECT_EQ(tested.world.Runtime().hero, PublishedSlot);
     EXPECT_EQ(hero.alpha, 0.0f);
+    EXPECT_EQ(hero.animation.action, 0xca);
 }
 
 // 0x4c49d6..0x4c4a11: sin el 0x8b en Blood Castle y sin el 0x99 ni el 0x9e en Chaos Castle.
@@ -1175,9 +1176,10 @@ TEST_F(WorldEntryTest, TheFirstGameStepReadsTheTrapezoidOfTheLastSelectionDraw)
                                        &*frameResources.data.skills);
         ASSERT_TRUE(game.Enter().HasValue());
         Client::Render::Models::ClothWorld reference = tested.cloth;
-        // 0x636920: el cartel del primer paso (0x46b010 y 0x46b0e0, que abre y cierra el registro propio; sin
-        // Slide.bmd no sortea), y la UI del paso.
-        reference.random = Advanced(reference.random, OwnRecordClose + GameUiStepRandoms);
+        // 0x4eb620, al empezar el frame: 0x552f10 (la espera de las skills) abre y cierra el registro propio. 0x636920:
+        // el cartel del primer paso (0x46b010 y 0x46b0e0, que abre y cierra el registro propio; sin Slide.bmd no
+        // sortea), y la UI del paso.
+        reference.random = Advanced(reference.random, OwnRecordClose + OwnRecordClose + GameUiStepRandoms);
         const auto heroBefore = tested.Hero();
         const auto weatherBefore = tested.world.Runtime().leafWeather;
         const auto layerBefore = tested.world.Runtime().heroCellLayer;

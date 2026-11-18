@@ -13,6 +13,7 @@
 #include "Scenes/ItemPrice.h"
 #include "Scenes/ItemTooltipParts.h"
 #include "Scenes/NpcWindowState.h"
+#include "Scenes/PetTooltip.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/TooltipWriter.h"
 #include "Scenes/WorldState.h"
@@ -38,9 +39,6 @@ namespace
 {
 // 0x5b2aae: el ítem vacío.
 constexpr std::uint16_t NoItem = 0xffff;
-// 0x5b2b0d: 0x422990, el tooltip del ángel y el sátiro (y la A9), que devuelve 1 con estos dos.
-constexpr std::uint16_t FirstPet = 0x1a04;
-constexpr std::uint16_t SecondPet = 0x1a05;
 // 0x5b2b3b..0x5b2b54: el nivel, (D+4 >> 3) & 0xf.
 constexpr std::uint32_t LevelShift = 3;
 constexpr std::uint32_t LevelMask = 0xf;
@@ -133,8 +131,7 @@ std::string PriceWithTax(std::uint32_t price, std::int32_t tax)
 // ticket de 1 a 5: desde la grilla de la tienda (0x78aba27 distinto de 0, 0x5b2d2e) el 1620 con el precio de
 // 0x54d0f0 en el modo 0 con el impuesto (0x5b1200) y sin él; si no (0x5b2e46), el 63 con el del modo 1. Los dos con
 // el color del nombre, sin negrita, y un "\n" (0x6c99c8) detrás. Con la tienda personal propia (0x800) o la ajena
-// (0x20000), el de 0x78abaa4, que solo pone en 1 0x5c4110 con la grilla de la tienda personal (0x78ab0b8, la CL9.4):
-// MuRet no la tiene, así que queda en 0 y no hay precio.
+// (0x20000), sin rand(), el de la grilla de la tienda personal (WriteThePersonalShopPrice, CL9 hito 7).
 Core::Expected<void, std::string> WriteTheShopPrice(GameHudContext& context, TooltipWriter& lines,
                                                     const World::ItemState& item, std::int32_t level,
                                                     std::int32_t nameColor, std::uint8_t grid)
@@ -170,9 +167,9 @@ Core::Expected<void, std::string> WriteTheShopPrice(GameHudContext& context, Too
         lines.NewLine();
         return {};
     }
-    if (!registry.IsOpen(UI::PersonalShopPanel))
-        static_cast<void>(registry.IsOpen(UI::OtherShopPanel));
-    return {};
+    if (!registry.IsOpen(UI::PersonalShopPanel) && !registry.IsOpen(UI::OtherShopPanel))
+        return {};
+    return WriteThePersonalShopPrice(context, lines, item);
 }
 
 // 0x5b8160..0x5b821b: los tipos sin tooltip de reparar: salen sin tocar los renglones.
@@ -211,15 +208,17 @@ std::int32_t RepairNameColorOf(const World::ItemState& item, std::int32_t level)
 }
 
 // 0x5b8373..0x5b839b: un ítem gastado pone el modo de reparar en 2 y lleva el precio de 0x54d0f0 en el modo 2 con el
-// formato de 0x5b13e0, que lee [0x78abb10]. El 0x1a04 y el 0x1a05, los únicos que leen las mascotas, salen al
-// principio de 0x5b8150.
+// formato de 0x5b13e0, que lee [0x78abb10]. El 0x1a04 y el 0x1a05, los únicos que leen las mascotas (0x422930, con los
+// niveles del A9), salen al principio de 0x5b8150.
 Core::Expected<RepairPrice, std::string> RepairTheWornItem(GameHudContext& hud, const World::ItemState& item,
                                                            std::uint16_t maximum)
 {
     WorldRuntime& runtime = hud.world.Runtime();
     if (!hud.projecting)
         runtime.panels.repairMode = 2;
-    auto price = ItemPrice(item, *hud.items, RepairPriceMode, std::nullopt);
+    const PetPriceLevels pets{.raven = runtime.pets[RavenPetStats].level,
+                              .horse = runtime.pets[DarkHorsePetStats].level};
+    auto price = ItemPrice(item, *hud.items, RepairPriceMode, pets);
     if (!price.HasValue())
         return Core::Unexpected(std::move(price).Error());
     return RepairPriceOf(price.Value(), item.durability, maximum, runtime.field78abb10);
@@ -277,10 +276,12 @@ Core::Expected<void, std::string> DrawTheItemTooltip(const ItemTooltipContext& c
     tooltip.halves = 0;
     tooltip.ClearColors();
     tooltip.ClearTexts();
-    if (item.id == FirstPet || item.id == SecondPet)
-        return Core::Unexpected(std::format("0x4229d4: el tooltip del {:#x} (0x422990) y la A9 que pide son de la CL9 "
-                                            "(P-C126)",
-                                            item.id));
+    // 0x5b2b0d..0x5b2b17: 0x422990, que con el 0x1a04 y el 0x1a05 es todo el tooltip.
+    auto pet = DrawThePetTooltip(context);
+    if (!pet.HasValue())
+        return Core::Unexpected(std::move(pet).Error());
+    if (pet.Value())
+        return {};
     const auto type = static_cast<std::int16_t>(item.id);
     if (hud.items == nullptr)
         return Core::Unexpected(std::string("0x5b2acc: el tooltip del ítem sin Item.bmd"));

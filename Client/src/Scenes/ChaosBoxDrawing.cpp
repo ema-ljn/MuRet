@@ -404,11 +404,12 @@ Core::Expected<void, std::string> DrawTheChaosBox(GameHudContext& context, UI::P
         return {};
     Render::SpriteBatch& sprites = context.sprites;
     HudState& hud = context.hud;
-    NpcWindowState& npc = context.world.Runtime().npcWindows;
-    hud.npcWindowX = WindowLeft;
-    hud.npcWindowY = WindowTop;
-    const std::int32_t x = hud.npcWindowX;
-    const std::int32_t y = hud.npcWindowY;
+    WorldRuntime& runtime = context.world.Runtime();
+    NpcWindowState& npc = runtime.npcWindows;
+    runtime.ui.npcWindowX = WindowLeft;
+    runtime.ui.npcWindowY = WindowTop;
+    const std::int32_t x = runtime.ui.npcWindowX;
+    const std::int32_t y = runtime.ui.npcWindowY;
     // 0x5fec2c: 0x5ee220(0x104, 0, 0) y la grilla (0x5e3660).
     WindowDrawing::DrawTheWindowBack(sprites, x, y);
     DrawTheGridBoxes(sprites, F32(static_cast<double>(x) + GridLeft), F32(static_cast<double>(y) + GridTop),

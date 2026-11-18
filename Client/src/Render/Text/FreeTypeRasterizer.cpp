@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/PathText.h"
+#include "Core/Windows1252.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Render/Text/TextBox.h"
@@ -156,11 +157,12 @@ struct FreeTypeRasterizer::State
 
 namespace
 {
-// Carga el glifo del byte con la fuente: el de Latin-1 de ese número, con la negrita simulada si
-// corresponde. Devuelve el error de FreeType, o 0.
+// Carga el glifo que corresponde al byte Windows-1252, con la negrita simulada si corresponde.
+// Devuelve el error de FreeType, o 0.
 FT_Error LoadGlyph(const Font& font, unsigned char byte)
 {
-    const FT_Error error = FT_Load_Char(font.face.get(), static_cast<FT_ULong>(byte), LoadFlags);
+    const FT_ULong codePoint = static_cast<FT_ULong>(Core::Windows1252CodePoint(byte));
+    const FT_Error error = FT_Load_Char(font.face.get(), codePoint, LoadFlags);
     if (error != 0)
     {
         return error;

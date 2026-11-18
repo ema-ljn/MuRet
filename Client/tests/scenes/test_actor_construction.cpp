@@ -297,12 +297,12 @@ TEST_F(ActorConstructionTest, TheDefaultCaseAsksTheEventTables)
     EXPECT_EQ(first.hands[1].bone, 0x2au);
 
     ActorState gate;
-    gate.byte38f = 9;
+    gate.attackCount = 9;
     gate.hands[0].bone = 0x77;
     ASSERT_TRUE(ConstructActor(gate, 0x19b, ActorPlacement{133, 127, 0.0f}, Context(), cloth).HasValue());
     EXPECT_EQ(gate.boundsMin, (glm::vec3{-140.0f, -140.0f, 0.0f}));
     EXPECT_EQ(gate.boundsTop, 300.0f);
-    EXPECT_EQ(gate.byte38f, 0u);
+    EXPECT_EQ(gate.attackCount, 0u);
     EXPECT_EQ(gate.hands[0].bone, 0x77u);
 
     ActorState statue;

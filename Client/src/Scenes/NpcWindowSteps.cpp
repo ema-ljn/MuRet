@@ -17,6 +17,7 @@
 #include "Scenes/NpcWindowState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"
@@ -74,11 +75,9 @@ constexpr std::int32_t KeypadButton = 2;
 constexpr std::int32_t CloseWarehouseButton = 3;
 // 0x5ea127 y 0x5ea169: el diálogo del zen del almacén.
 constexpr std::int32_t MoneyDialog = 0x73;
-// 0x5ea150..0x5ea15f y 0x62821f..0x628233: la entrada sin EDIT y los campos con el 0x73 abierto y al cerrarlo.
-constexpr std::int32_t MoneyDialogInputMode = 8;
-constexpr std::int32_t ClosedInputMode = 0x2a;
+// 0x5ea150..0x5ea15f: el largo del campo del diálogo y los campos de Tab con el 0x73 abierto.
+constexpr std::int32_t MoneyDialogFieldLimit = 8;
 constexpr std::int32_t MoneyDialogFieldCount = 1;
-constexpr std::int32_t ClosedFieldCount = 2;
 // 0x5ea1aa..0x5ea1b3: el teclado del botón 2, en 4 sin la traba y en 3 con ella.
 constexpr std::int32_t UnlockedKeypadMode = 4;
 // 0x5cb43c y 0x627c33: el teclado de la contraseña que espera el almacén.
@@ -113,25 +112,18 @@ constexpr std::int32_t ConfirmDialog = 0x98;
 // 0x78abb14: lo que espera el diálogo del ítem del cursor.
 constexpr std::int32_t SellChoice = 1;
 constexpr std::int32_t MixChoice = 2;
-// 0x5d965a: el 3, el OK del comercio (hito 7). 0x5d9b82: el 4 lo deja el paso del panel 0x2000 (0x5e75fc, con el 0x98
-// del texto 0x1c0); el 5, levantar un ítem de la tienda personal propia (0x5c5181, hito 7); el 6, el precio de la
-// tienda personal menor que lo que vale el ítem (0x5da592, hito 7).
-constexpr std::int32_t TradeChoice = 3;
+// 0x5d9b82: el 4 lo deja el paso del panel 0x2000 (0x5e75fc, con el 0x98 del texto 0x1c0). El 3, el 5 y el 6 son del
+// comercio y de las tiendas personales (Scenes/PersonalShopWindow.h).
 constexpr std::int32_t KeypadChoice = 4;
-constexpr std::int32_t PersonalShopChoice = 5;
-constexpr std::int32_t ShopPriceChoice = 6;
 // 0x5d9c19: el teclado del almacén que abre el sí del 4.
 constexpr std::int32_t KeypadChoiceMode = 6;
-// 0x6c932e: las respuestas del 0x98 (0x62a779) y nada.
+// 0x6c932e: el sí del 0x98 (0x62a779) y nada.
 constexpr std::uint8_t YesAnswer = 1;
-constexpr std::uint8_t NoAnswer = 2;
 constexpr std::uint8_t NoAnswerYet = 0xff;
 // 0x5d935c: la mezcla pedida.
 constexpr std::int32_t MixRequested = 1;
-// 0x62646a: más de 100.000.000 abre el 0x75; 0x627bd9 y 0x628004: el zen no pasa de 2.000.000.000.
-constexpr std::int32_t MaxTypedMoney = 100'000'000;
+// 0x627bd9 y 0x628004: el zen no pasa de 2.000.000.000; sin el zen, el 0x74.
 constexpr std::uint32_t MaxZen = 2'000'000'000;
-constexpr std::int32_t TooMuchMoneyDialog = 0x75;
 constexpr std::int32_t NotEnoughMoneyDialog = 0x74;
 // 0x627c13..0x627c2d: lo que espera la contraseña para sacar zen: −1, el tipo 1, el zen y 0x77f3cc8.
 constexpr std::int32_t PendingMoney = -1;
@@ -221,7 +213,8 @@ Core::Expected<void, std::string> AddTheRepairOf(WorldState& world, const World:
     const std::uint16_t maximum = MaxDurability(item, *record, LevelOf(item));
     if (IsLeftOutOfTheRepair(item.id) || item.durability >= maximum)
         return {};
-    const PetPriceLevels pets{.raven = runtime.ravenLevel, .horse = runtime.darkHorseLevel};
+    const PetPriceLevels pets{.raven = runtime.pets[RavenPetStats].level,
+                              .horse = runtime.pets[DarkHorsePetStats].level};
     auto price = ItemPrice(item, items, RepairPriceMode, pets);
     if (!price.HasValue())
         return Core::Unexpected(std::move(price).Error());
@@ -351,8 +344,8 @@ Core::Expected<void, std::string> PressTheMixButton(const GameUiContext& context
         }
         if (runtime.cursorItemCount > 0)
             break;
-        npc.cursorChoice = MixChoice;
-        npc.dialogAnswer = NoAnswerYet;
+        runtime.social.trade.warningKind = MixChoice;
+        runtime.social.trade.warningByte = NoAnswerYet;
         if (auto opened = UI::OpenTextDialog(runtime.dialogBox, runtime.dialogs, context.texts, MixDialogLines,
                                              MixDialogText, ConfirmDialog);
             !opened.HasValue())
@@ -385,8 +378,8 @@ Core::Expected<void, std::string> StepTheNpcShop(const GameUiContext& context, U
         return {};
     if (state.field78abb09 != 0)
     {
-        const std::int32_t x = runtime.hud.npcWindowX;
-        const std::int32_t top = runtime.hud.npcWindowY + RepairButtonsY;
+        const std::int32_t x = runtime.ui.npcWindowX;
+        const std::int32_t top = runtime.ui.npcWindowY + RepairButtonsY;
         // 0x5ed9c1..0x5eda20: el cursor de reparar.
         if (OnButton(context, x + RepairCursorButtonX, top) && movement.pendingClick)
         {
@@ -472,8 +465,8 @@ Core::Expected<void, std::string> StepTheWarehouse(const GameUiContext& context,
     std::optional<std::int32_t> pressed{};
     for (std::size_t button = 0; button < WarehouseButtons.size(); ++button)
     {
-        if (OnButton(context, runtime.hud.npcWindowX + WarehouseButtons[button].x,
-                     runtime.hud.npcWindowY + WarehouseButtons[button].y))
+        if (OnButton(context, runtime.ui.npcWindowX + WarehouseButtons[button].x,
+                     runtime.ui.npcWindowY + WarehouseButtons[button].y))
         {
             pressed = static_cast<std::int32_t>(button);
             break;
@@ -484,6 +477,7 @@ Core::Expected<void, std::string> StepTheWarehouse(const GameUiContext& context,
     movement.pendingClick = false;
     runtime.lastSoundId = ButtonSound;
     NpcWindowState& npc = runtime.npcWindows;
+    SocialState& social = runtime.social;
     switch (*pressed)
     {
     case DepositButton:
@@ -492,11 +486,11 @@ Core::Expected<void, std::string> StepTheWarehouse(const GameUiContext& context,
         UI::PushDialog(runtime.dialogs, MoneyDialog);
         UI::ResetTheTextBuffers(runtime.chat.input, false);
         runtime.ui.chatOpen = false;
-        npc.typedMoney = 0;
-        npc.warehouseMoneyMode = *pressed;
-        npc.inputMode = MoneyDialogInputMode;
+        social.typedMoney = 0;
+        social.trade.field78abacc = *pressed;
+        social.dialogFieldLimit = MoneyDialogFieldLimit;
         runtime.chat.input.fieldCount = MoneyDialogFieldCount;
-        npc.numberField = 1;
+        social.moneyField = 1;
         return {};
     case KeypadButton:
         // 0x5ea1aa..0x5ea24c: el teclado en 4, o en 3 con la traba.
@@ -521,8 +515,8 @@ Core::Expected<void, std::string> StepTheChaosBox(const GameUiContext& context, 
     if (!panels.IsOpen(UI::ChaosBoxPanel))
         return {};
     // 0x5fe62e..0x5fe68a.
-    const std::int32_t left = runtime.hud.npcWindowX + MixButtonX;
-    const std::int32_t top = runtime.hud.npcWindowY + MixButtonY;
+    const std::int32_t left = runtime.ui.npcWindowX + MixButtonX;
+    const std::int32_t top = runtime.ui.npcWindowY + MixButtonY;
     if (runtime.npcWindows.chaosMixState == 0 &&
         InRect(context, left, top, left + MixButtonWidth, top + MixButtonHeight) && movement.pendingClick)
     {
@@ -540,123 +534,67 @@ Core::Expected<void, std::string> StepTheChaosBox(const GameUiContext& context, 
     return {};
 }
 
-Core::Expected<bool, std::string> StepTheCursorChoice(const GameUiContext& context)
+Core::Expected<void, std::string> AnswerTheNpcWarning(const GameUiContext& context, std::int32_t kind)
 {
     WorldRuntime& runtime = context.world.Runtime();
     NpcWindowState& npc = runtime.npcWindows;
-    const std::int32_t choice = npc.cursorChoice;
-    if (choice == SellChoice)
+    TradeState& trade = runtime.social.trade;
+    const bool yes = trade.warningByte == YesAnswer;
+    trade.warningKind = 0;
+    trade.warningByte = NoAnswerYet;
+    if (kind == SellChoice)
     {
-        if (npc.dialogAnswer == YesAnswer)
+        if (yes)
         {
             // 0x5d8e0d..0x5d905d: C1 04 33 con [0x78a6758] en C3.
-            npc.cursorChoice = 0;
-            npc.dialogAnswer = NoAnswerYet;
             if (auto sent = SendInC3(context, Npc::WriteSell(static_cast<std::uint8_t>(runtime.slot78a6758 & 0xff)),
                                      "0x5d8e1a: el C1 04 33");
                 !sent.HasValue())
-                return Core::Unexpected(std::move(sent).Error());
-            return true;
+                return sent;
+            return {};
         }
-        if (npc.dialogAnswer == NoAnswer)
-        {
-            // 0x5d9327..0x5d9334 → 0x5e0709.
-            npc.cursorChoice = 0;
-            npc.dialogAnswer = NoAnswerYet;
-            if (auto returned = ReturnTheCursorItem(MovesOf(context)); !returned.HasValue())
-                return Core::Unexpected(std::move(returned).Error());
-        }
-        return true;
+        // 0x5d9327..0x5d9334 → 0x5e0709.
+        return ReturnTheCursorItem(MovesOf(context));
     }
-    if (choice == MixChoice)
+    if (kind == MixChoice)
     {
-        if (npc.dialogAnswer == YesAnswer)
-        {
-            // 0x5d934f..0x5d9633: la mezcla pedida y el C1 04 86 con el XOR32, en claro.
-            npc.cursorChoice = 0;
-            npc.dialogAnswer = NoAnswerYet;
-            npc.chaosMixState = MixRequested;
-            if (auto sent = Send(context, Npc::WriteChaosMix(static_cast<std::uint8_t>(npc.mixKind & 0xff)),
-                                 "0x5d9362: el C1 04 86");
-                !sent.HasValue())
-                return Core::Unexpected(std::move(sent).Error());
-        }
-        else if (npc.dialogAnswer == NoAnswer)
-        {
-            // 0x5d9634..0x5d9659.
-            npc.cursorChoice = 0;
-            npc.dialogAnswer = NoAnswerYet;
-        }
-        return true;
+        // 0x5d934f..0x5d9633: la mezcla pedida y el C1 04 86 con el XOR32, en claro; el no (0x5d9634..0x5d9659), nada.
+        if (!yes)
+            return {};
+        npc.chaosMixState = MixRequested;
+        return Send(context, Npc::WriteChaosMix(static_cast<std::uint8_t>(npc.mixKind & 0xff)),
+                    "0x5d9362: el C1 04 86");
     }
-    if (choice == KeypadChoice)
+    if (kind == KeypadChoice)
     {
-        if (npc.dialogAnswer == YesAnswer)
-        {
-            // 0x5d9b8f..0x5d9c23: el teclado del almacén barajado (veinte veces dos rand() % 10), lo tecleado
-            // (0x78ab9fc..0x78aba06) en 0 y 0x78abb20 en 6.
-            npc.cursorChoice = 0;
-            npc.dialogAnswer = NoAnswerYet;
+        // 0x5d9b8f..0x5d9c23: el teclado del almacén barajado (veinte veces dos rand() % 10), lo tecleado
+        // (0x78ab9fc..0x78aba06) en 0 y 0x78abb20 en 6. El no (0x5d9c47..0x5d9c56), 0x78abb08, el byte del panel
+        // 0x2000, en 0.
+        if (yes)
             OpenTheKeypad(runtime, context.random, KeypadChoiceMode);
-        }
-        else if (npc.dialogAnswer == NoAnswer)
-        {
-            // 0x5d9c47..0x5d9c56: y 0x78abb08, el byte del panel 0x2000, en 0.
-            npc.cursorChoice = 0;
-            npc.dialogAnswer = NoAnswerYet;
+        else
             runtime.panels.field78abb08 = 0;
-        }
-        return true;
+        return {};
     }
-    if (choice == TradeChoice || choice == PersonalShopChoice)
-    {
-        if (npc.dialogAnswer == YesAnswer)
-        {
-            if (choice == TradeChoice)
-                return Core::Unexpected(std::string("0x5d966b: 0x78abb14 en 3 con el sí, el OK del comercio que da "
-                                                    "vuelta 0x78abac1 y manda el C1 04 3C, es del hito 7 (CL9.4)"));
-            return Core::Unexpected(std::string("0x5d9c82: 0x78abb14 en 5 con el sí, el C1 3F 06 de la tienda "
-                                                "personal, es del hito 7 (CL9.4, 08 P-C339)"));
-        }
-        if (npc.dialogAnswer == NoAnswer)
-        {
-            // 0x5d9634..0x5d9659, como el no de la mezcla.
-            npc.cursorChoice = 0;
-            npc.dialogAnswer = NoAnswerYet;
-        }
-        return true;
-    }
-    if (choice == ShopPriceChoice)
-    {
-        if (npc.dialogAnswer == YesAnswer)
-            return Core::Unexpected(std::string("0x5da5ac: 0x78abb14 en 6 con el sí, el precio de la tienda personal "
-                                                "con su C1 3F, es del hito 7 (CL9.4)"));
-        if (npc.dialogAnswer == NoAnswer)
-            return Core::Unexpected(std::string("0x5dc765..0x5dc778: 0x78abb14 en 6 con el no, 0x78abb14 en 0, la "
-                                                "respuesta en 0xff y 0x5eba70(2), el diálogo del precio de la tienda "
-                                                "personal, es del hito 7 (CL9.4)"));
-        return true;
-    }
-    return false;
+    return Core::Unexpected(std::format("0x5d8dee: el aviso {} de 0x78abb14 no es de las ventanas de NPC", kind));
 }
 
 Core::Expected<bool, std::string> SellTheCursorItem(const GameUiContext& context, UI::PanelRegistry& panels)
 {
     WorldRuntime& runtime = context.world.Runtime();
-    NpcWindowState& npc = runtime.npcWindows;
     const World::ItemState& cursor = runtime.cursorItem;
     // 0x5deca7..0x5ded0e: el nivel se lee antes del IsOpen, que saca su rand().
     if (!panels.IsOpen(UI::NpcShopPanel))
         return false;
-    const std::int32_t x = runtime.hud.npcWindowX;
-    const std::int32_t y = runtime.hud.npcWindowY;
+    const std::int32_t x = runtime.ui.npcWindowX;
+    const std::int32_t y = runtime.ui.npcWindowY;
     if (!InRect(context, x + ShopGridLeft, y + ShopGridTop, x + ShopGridRight, y + ShopGridBottom))
         return false;
     if (IsValuable(cursor))
     {
         // 0x5df417..0x5df430.
-        npc.cursorChoice = SellChoice;
-        npc.dialogAnswer = NoAnswerYet;
+        runtime.social.trade.warningKind = SellChoice;
+        runtime.social.trade.warningByte = NoAnswerYet;
         if (auto opened = UI::OpenTextDialog(runtime.dialogBox, runtime.dialogs, context.texts, SellDialogLines,
                                              SellDialogText, ConfirmDialog);
             !opened.HasValue())
@@ -666,8 +604,8 @@ Core::Expected<bool, std::string> SellTheCursorItem(const GameUiContext& context
     if (IsUnsellable(cursor))
         return true;
     // 0x5dee7f..0x5df416.
-    npc.dialogAnswer = NoAnswerYet;
-    npc.cursorChoice = 0;
+    runtime.social.trade.warningByte = NoAnswerYet;
+    runtime.social.trade.warningKind = 0;
     if (auto sent = SendInC3(context, Npc::WriteSell(static_cast<std::uint8_t>(runtime.slot78a6758 & 0xff)),
                              "0x5dee8e: el C1 04 33");
         !sent.HasValue())
@@ -675,71 +613,48 @@ Core::Expected<bool, std::string> SellTheCursorItem(const GameUiContext& context
     return true;
 }
 
-Core::Expected<void, std::string> ConfirmTheMoneyDialog(const GameUiContext& context)
+Core::Expected<void, std::string> MoveTheWarehouseMoney(const GameUiContext& context)
 {
     WorldState& world = context.world;
     WorldRuntime& runtime = world.Runtime();
     NpcWindowState& npc = runtime.npcWindows;
     UI::DialogState& dialogs = runtime.dialogs;
-    const std::int32_t money = npc.typedMoney;
-    if (money > MaxTypedMoney)
+    const std::int32_t money = runtime.social.typedMoney;
+    // 0x6270ed..0x62820a: con el registro propio abierto, que se cierra al final (3.848 rand()).
+    const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
+                                            Render::Models::OwnRecordCloseRandoms);
+    const OwnCharacterRecord& record = world.OwnCharacter();
+    const auto amount = static_cast<std::uint32_t>(money);
+    if (runtime.social.trade.field78abacc == 0)
     {
-        // 0x62646c..0x626499.
+        // 0x627100..0x6278f3: meter zen. El zen contra el del registro, sin signo.
         CloseTheDialog(dialogs);
-        UI::PushDialog(dialogs, TooMuchMoneyDialog);
+        if (amount > record.zen)
+            UI::PushDialog(dialogs, NotEnoughMoneyDialog);
+        else if (auto sent = Send(context, Npc::WriteWarehouseMoney(DepositType, amount), "0x627229: el C1 08 81");
+                 !sent.HasValue())
+            return sent;
+        return {};
     }
-    else
+    // 0x627bb9..0x628030: sacar zen. Más que el del almacén (con signo) o más de 2.000.000.000 en el inventario (sin
+    // signo) es el error, que solo avisa sin pasar ese tope.
+    const std::uint32_t sum = record.zen + amount;
+    CloseTheDialog(dialogs);
+    if (money > static_cast<std::int32_t>(record.warehouseZen) || sum > MaxZen)
     {
-        GamePanels panels(world, context.random, GamePanelTables{.texts = context.texts});
-        if (panels.Registry().IsOpen(UI::TradePanel))
-            return Core::Unexpected(std::string("0x6264b3: el zen del comercio (0x78a5a1c) es de la CL9.4"));
-        // 0x6270ed..0x62820a: con el registro propio abierto, que se cierra al final (3.848 rand()).
-        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
-                                                Render::Models::OwnRecordCloseRandoms);
-        const OwnCharacterRecord& record = world.OwnCharacter();
-        const auto amount = static_cast<std::uint32_t>(money);
-        if (npc.warehouseMoneyMode == 0)
-        {
-            // 0x627100..0x6278f3: meter zen. El zen contra el del registro, sin signo.
-            CloseTheDialog(dialogs);
-            if (amount > record.zen)
-                UI::PushDialog(dialogs, NotEnoughMoneyDialog);
-            else if (auto sent = Send(context, Npc::WriteWarehouseMoney(DepositType, amount), "0x627229: el C1 08 81");
-                     !sent.HasValue())
-                return sent;
-        }
-        else
-        {
-            // 0x627bb9..0x628030: sacar zen. Más que el del almacén (con signo) o más de 2.000.000.000 en el
-            // inventario (sin signo) es el error, que solo avisa sin pasar ese tope.
-            const std::uint32_t sum = record.zen + amount;
-            CloseTheDialog(dialogs);
-            if (money > static_cast<std::int32_t>(record.warehouseZen) || sum > MaxZen)
-            {
-                if (sum <= MaxZen)
-                    UI::PushDialog(dialogs, NotEnoughMoneyDialog);
-            }
-            else if (npc.warehouseLocked != 0 && npc.field78abb1c == 0)
-            {
-                // 0x627bf7..0x627c33: espera la contraseña.
-                npc.pendingMove = PendingWarehouseMove{
-                    .slot = PendingMoney, .second = WithdrawType, .third = money, .fourth = runtime.itemMoveTarget};
-                OpenTheKeypad(runtime, context.random, PendingKeypadMode);
-            }
-            else if (auto sent = Send(context, Npc::WriteWarehouseMoney(WithdrawType, amount), "0x627c46: el C1 08 81");
-                     !sent.HasValue())
-                return sent;
-        }
+        if (sum <= MaxZen)
+            UI::PushDialog(dialogs, NotEnoughMoneyDialog);
     }
-    // 0x628215..0x6282c8.
-    UI::ResetTheTextBuffers(runtime.chat.input, false);
-    npc.inputMode = ClosedInputMode;
-    runtime.chat.input.fieldCount = ClosedFieldCount;
-    npc.numberField = 0;
-    runtime.ui.chatOpen = false;
-    runtime.movement.mouseUpdateTime = 0;
-    runtime.movement.mouseUpdateTimeMax = ButtonMouseUpdateTimeMax;
-    runtime.lastSoundId = ButtonSound;
+    else if (npc.warehouseLocked != 0 && npc.field78abb1c == 0)
+    {
+        // 0x627bf7..0x627c33: espera la contraseña.
+        npc.pendingMove = PendingWarehouseMove{
+            .slot = PendingMoney, .second = WithdrawType, .third = money, .fourth = runtime.itemMoveTarget};
+        OpenTheKeypad(runtime, context.random, PendingKeypadMode);
+    }
+    else if (auto sent = Send(context, Npc::WriteWarehouseMoney(WithdrawType, amount), "0x627c46: el C1 08 81");
+             !sent.HasValue())
+        return sent;
     return {};
 }
 } // namespace Client::Scenes

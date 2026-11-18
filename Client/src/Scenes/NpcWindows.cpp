@@ -15,6 +15,7 @@
 #include "Scenes/OwnStatHelpers.h"
 #include "Scenes/PetTrainer.h"
 #include "Scenes/WorldEntry.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"
@@ -96,7 +97,7 @@ constexpr std::int32_t PendingMoney = -1;
 constexpr std::int32_t ClosedByTheServerDialog = 0x73;
 constexpr std::int32_t ClosedChatFieldCount = 2;
 // 0x4e483b: 0x6c8e78 en 0x2a.
-constexpr std::int32_t ClosedInputMode = 0x2a;
+constexpr std::int32_t ClosedFieldLimit = 0x2a;
 // 0x4d28a9..0x4d28f6: el mundo de 260 sobre 640 y la pantalla en 640 × 480.
 constexpr std::int32_t TalkWorldWidth = 260;
 constexpr std::int32_t VirtualWidth = 640;
@@ -348,8 +349,8 @@ Core::Expected<void, std::string> ApplyItemList(const Npc::ItemList& list, const
         const InventoryItemBytes bytes(entry.item);
         Core::Expected<void, std::string> placed{};
         if (list.grid == ChaosBoxGrid)
-            placed = PlaceInOtherGrid(npc.chaosBox, NpcGridColumns, entry.slot, bytes, resources,
-                                      "0x4c6029, 0x5bc740(0x7d2d380)");
+            placed = PlaceItemInOtherGrid(npc.chaosBox, NpcGridColumns, entry.slot, bytes, resources,
+                                          "0x4c6029, 0x5bc740(0x7d2d380)");
         // 0x4c6042: 0x44ad70(lugar, datos, 0), 0x5bc740(0x723c80, 8, 4, lugar, datos, 0) con su cola.
         else if (list.grid == TrainerGrid)
             placed = PlaceMovedItemInOtherGrid(npc.trainerBox, NpcGridColumns, entry.slot, entry.item, resources,
@@ -450,9 +451,9 @@ Core::Expected<void, std::string> ApplyNpcWindowClosed(const Npc::NpcWindowClose
     // 0x4e4831..0x4e485d.
     UI::PushDialog(runtime.dialogs, 0);
     UI::ResetTheTextBuffers(runtime.chat.input, false);
-    runtime.npcWindows.inputMode = ClosedInputMode;
+    runtime.social.dialogFieldLimit = ClosedFieldLimit;
     runtime.chat.input.fieldCount = ClosedChatFieldCount;
-    runtime.npcWindows.numberField = 0;
+    runtime.social.moneyField = 0;
     runtime.ui.chatOpen = false;
     return {};
 }
@@ -533,8 +534,8 @@ Core::Expected<void, std::string> ApplyChaosMixResult(const Npc::ChaosMixResult&
             return shown;
         EmptyTheGrid(npc.chaosBox);
         const InventoryItemBytes bytes(result.item);
-        if (auto placed =
-                PlaceInOtherGrid(npc.chaosBox, NpcGridColumns, 0, bytes, resources, "0x4da310, 0x5bc740(0x7d2d380)");
+        if (auto placed = PlaceItemInOtherGrid(npc.chaosBox, NpcGridColumns, 0, bytes, resources,
+                                               "0x4da310, 0x5bc740(0x7d2d380)");
             !placed.HasValue())
             return placed;
         runtime.lastSoundId = ChaosSuccessSound;
@@ -557,7 +558,8 @@ Core::Expected<void, std::string> ApplyChaosMixResult(const Npc::ChaosMixResult&
         // 1), sin la cola de 0x5bc740, sin sonido y sin tocar 0x7d2dc80.
         EmptyTheGrid(npc.trainerBox);
         const InventoryItemBytes bytes(result.item);
-        return PlaceInOtherGrid(npc.trainerBox, NpcGridColumns, 0, bytes, resources, "0x4da380, 0x5bc740(0x723c80)");
+        return PlaceItemInOtherGrid(npc.trainerBox, NpcGridColumns, 0, bytes, resources,
+                                    "0x4da380, 0x5bc740(0x723c80)");
     }
     default:
         npc.chaosMixState = MixReady;

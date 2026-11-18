@@ -356,4 +356,51 @@ TEST(GameCharacterWindowTest, TheCloseButtonClosesTheCharacter)
         EXPECT_EQ(tested.world.Runtime().movement.mouseUpdateTimeMax, 6);
     }
 }
+
+// 0x424230 y 0x659fd9 (CL9 hito 4): el botón de la mascota la abre (0x723911 en 2) y pide el cuervo y el caballo; con
+// la ventana abierta, a 0x104 del personaje, el clic en la otra pestaña la elige, el de la elegida (más arriba) solo se
+// come, y el botón de cerrar la cierra, con lo que el paso siguiente vuelve a pedir el caballo. Sin rand() de más.
+TEST(GameCharacterWindowTest, ThePetWindowOpensChoosesItsTabAndCloses)
+{
+    constexpr std::int32_t Left = 0x104;
+    for (const std::int32_t map : Maps)
+    {
+        SteppingCharacter tested(map);
+        tested.OpenTheWindow();
+        Client::Scenes::WorldRuntime& runtime = tested.world.Runtime();
+        tested.Click();
+        ASSERT_TRUE(tested.Step(0x220, 0x190).HasValue());
+        EXPECT_EQ(runtime.panels.delegated.pet, 2);
+        ASSERT_EQ(tested.sent.size(), 2u);
+        EXPECT_TRUE(SamePacket(tested.sent[0], Client::Protocol::Pet::WritePetInfoRequest(
+                                                   Client::Protocol::Pet::LoginScenePetInfoRequest)));
+        EXPECT_TRUE(SamePacket(tested.sent[1], DarkHorseRequest()));
+
+        tested.Click();
+        // IsOpen(0) (0x5a5511) para en la mascota (0x400) antes de la tienda de NPC (0x10000): un rand() menos.
+        const CrtRandom expected = Advanced(tested.random, BaseStepRandoms - 1 + OwnRecordCloseRandoms);
+        ASSERT_TRUE(tested.Step(Left + 15 + 45, 67).HasValue());
+        EXPECT_EQ(runtime.petTab, 1);
+        EXPECT_FALSE(runtime.movement.pendingClick);
+        EXPECT_EQ(runtime.ui.mouseOnUi, 1);
+        EXPECT_EQ(tested.random.State(), expected.State()) << map;
+
+        tested.Click();
+        ASSERT_TRUE(tested.Step(Left + 15 + 49, 66).HasValue());
+        EXPECT_EQ(runtime.petTab, 1) << "la otra pestaña empieza en 67";
+        tested.Click();
+        ASSERT_TRUE(tested.Step(Left + 15 + 45 + 49, 63).HasValue());
+        EXPECT_EQ(runtime.petTab, 1);
+        EXPECT_FALSE(runtime.movement.pendingClick) << "la elegida se come el clic desde 63";
+
+        tested.Click();
+        ASSERT_TRUE(tested.Step(Left + 20 + 23, 395 + 23).HasValue());
+        EXPECT_EQ(runtime.panels.delegated.pet, 0);
+        EXPECT_EQ(tested.sent.size(), 2u);
+        ASSERT_TRUE(tested.Step(320, 240).HasValue());
+        EXPECT_EQ(runtime.panels.delegated.pet, 1);
+        ASSERT_EQ(tested.sent.size(), 3u);
+        EXPECT_TRUE(SamePacket(tested.sent[2], DarkHorseRequest()));
+    }
+}
 } // namespace

@@ -116,8 +116,8 @@ public:
         runtime.panels.delegated.trainer = mode;
         runtime.panels.delegated.field724584 = 7;
         runtime.field78abb10 = 1;
-        runtime.darkHorseLevel = 3;
-        runtime.ravenLevel = 2;
+        runtime.pets[Client::Scenes::DarkHorsePetStats].level = 3;
+        runtime.pets[Client::Scenes::RavenPetStats].level = 2;
         world->OwnCharacter().ClearEquipmentForEntry();
         world->OwnCharacter().zen = PlentyOfZen;
         services.items = &items;
@@ -203,8 +203,9 @@ public:
         const std::uint16_t maximum = Client::Scenes::MaxDurability(pet, *items.Record(pet.id), 0);
         if (pet.durability >= maximum)
             return 0;
-        const Client::Scenes::PetPriceLevels levels{.raven = world->Runtime().ravenLevel,
-                                                    .horse = world->Runtime().darkHorseLevel};
+        const Client::Scenes::PetPriceLevels levels{.raven = world->Runtime().pets[Client::Scenes::RavenPetStats].level,
+                                                    .horse =
+                                                        world->Runtime().pets[Client::Scenes::DarkHorsePetStats].level};
         const auto price = Client::Scenes::ItemPrice(pet, items, Client::Scenes::RepairPriceMode, levels);
         const auto gold =
             static_cast<std::uint32_t>(Client::Scenes::RepairPriceOf(price.Value(), pet.durability, maximum, 0).gold);

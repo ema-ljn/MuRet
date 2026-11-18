@@ -22,6 +22,8 @@
 #include "Scenes/NpcWindowSteps.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
+#include "Scenes/PersonalShopWindow.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/GameDialogs.h"
@@ -196,7 +198,7 @@ protected:
         auto& runtime = world.Runtime();
         runtime.panels.inventory = 1;
         runtime.hud.inventoryX = InventoryX;
-        runtime.hud.npcWindowX = NpcX;
+        runtime.ui.npcWindowX = NpcX;
         // El registro del chat donde lo deja el paso anterior (0x636f04, fuera de su ventana): en (0xba, 0x1a4), la
         // del primer paso, tapa la ventana del NPC y se queda con el mouse (0x5ee15a).
         runtime.hud.chatFrame.x = -10;
@@ -260,6 +262,20 @@ protected:
     [[nodiscard]] Client::Scenes::NpcWindowState& Npc()
     {
         return world.Runtime().npcWindows;
+    }
+
+    // 0x78abb14 y 0x6c932e, el aviso del ítem del cursor y su respuesta.
+    [[nodiscard]] Client::Scenes::TradeState& Trade()
+    {
+        return world.Runtime().social.trade;
+    }
+
+    // 0x5d8dee..0x5dc798: las respuestas de los avisos, sin el ítem del cursor. Falso: el paso termina ahí.
+    [[nodiscard]] Client::Core::Expected<bool, std::string> AnswerTheWarnings()
+    {
+        return Client::Scenes::StepTheWarningAnswers(
+            Context(0, 0),
+            Client::Scenes::InventoryMoveContext{.world = world, .random = random, .services = services});
     }
 
     // Lo que avisó 0x555190 con el tipo 2, en orden.
@@ -384,8 +400,8 @@ TEST_F(NpcWindowStepsTest, SellingAPlainItemSendsItsPlace)
         ASSERT_EQ(sent.size(), 1u);
         EXPECT_EQ(sent[0].delivery, Delivery::Encrypted);
         EXPECT_TRUE(SameBytes(Plain(0).Bytes(), Bytes({0xc1, 0x04, 0x33, 32})));
-        EXPECT_EQ(Npc().cursorChoice, 0);
-        EXPECT_EQ(Npc().dialogAnswer, 0xff);
+        EXPECT_EQ(Trade().warningKind, 0);
+        EXPECT_EQ(Trade().warningByte, 0xff);
         EXPECT_EQ(runtime.movement.mouseUpdateTimeMax, 6);
     }
 }
@@ -407,14 +423,14 @@ TEST_F(NpcWindowStepsTest, AValuableItemIsSoldAfterTheConfirmation)
     EXPECT_EQ(random.State(), asked.State());
     EXPECT_TRUE(sent.empty());
     EXPECT_EQ(runtime.dialogs.current, 0x98);
-    EXPECT_EQ(Npc().cursorChoice, 1);
+    EXPECT_EQ(Trade().warningKind, 1);
     EXPECT_EQ(Client::UI::DialogRow(runtime.dialogBox, 0), "vender esto");
     EXPECT_EQ(runtime.dialogBox.lineCount, 3);
 
     Click();
     ASSERT_TRUE(Dialogs(0x15 + 0xd5, 0x5a + 0x64).HasValue());
     EXPECT_EQ(runtime.dialogs.current, 0);
-    EXPECT_EQ(Npc().dialogAnswer, 1);
+    EXPECT_EQ(Trade().warningByte, 1);
     EXPECT_EQ(runtime.dialogBox.buttons[0].state, 2);
     EXPECT_FALSE(runtime.movement.pendingClick);
     EXPECT_FALSE(runtime.movement.leftHeld);
@@ -425,8 +441,8 @@ TEST_F(NpcWindowStepsTest, AValuableItemIsSoldAfterTheConfirmation)
     EXPECT_EQ(random.State(), sold.State());
     ASSERT_EQ(sent.size(), 1u);
     EXPECT_TRUE(SameBytes(Plain(0).Bytes(), Bytes({0xc1, 0x04, 0x33, 15})));
-    EXPECT_EQ(Npc().cursorChoice, 0);
-    EXPECT_EQ(Npc().dialogAnswer, 0xff);
+    EXPECT_EQ(Trade().warningKind, 0);
+    EXPECT_EQ(Trade().warningByte, 0xff);
 
     // El no, con Esc.
     Click();
@@ -434,12 +450,12 @@ TEST_F(NpcWindowStepsTest, AValuableItemIsSoldAfterTheConfirmation)
     ASSERT_EQ(runtime.dialogs.current, 0x98);
     input.Apply(InputEvent{.kind = InputEvent::Kind::KeyDown, .key = Key::Escape});
     ASSERT_TRUE(Dialogs(0, 0).HasValue());
-    EXPECT_EQ(Npc().dialogAnswer, 2);
+    EXPECT_EQ(Trade().warningByte, 2);
     ASSERT_TRUE(Step(NpcX + 0x20, 300).HasValue());
     EXPECT_EQ(sent.size(), 1u);
     EXPECT_EQ(runtime.cursorItemCount, 0);
     EXPECT_EQ(world.Inventory().cells[3].id, Jewel);
-    EXPECT_EQ(Npc().cursorChoice, 0);
+    EXPECT_EQ(Trade().warningKind, 0);
 }
 
 // 0x5ed960 con 0x78abb09: el botón de reparar todo manda C1 05 34 FF 00 en C3 sin gastar el clic; 0x5b1570 suma, con
@@ -719,14 +735,14 @@ TEST_F(NpcWindowStepsTest, DepositingZenSends81FromTheMoneyDialog)
     ASSERT_TRUE(Step(NpcX + 0x1a + 5, 0x186 + 5).HasValue());
     EXPECT_EQ(random.State(), opened.State());
     EXPECT_EQ(runtime.dialogs.current, 0x73);
-    EXPECT_EQ(Npc().warehouseMoneyMode, 0);
-    EXPECT_EQ(Npc().inputMode, 8);
-    EXPECT_EQ(Npc().numberField, 1);
+    EXPECT_EQ(Trade().field78abacc, 0);
+    EXPECT_EQ(world.Runtime().social.dialogFieldLimit, 8);
+    EXPECT_EQ(world.Runtime().social.moneyField, 1);
     EXPECT_EQ(runtime.chat.input.fieldCount, 1);
     EXPECT_EQ(runtime.lastSoundId, 0x19);
     EXPECT_FALSE(runtime.movement.pendingClick);
 
-    Npc().typedMoney = 1000;
+    world.Runtime().social.typedMoney = 1000;
     runtime.ui.enterPressed = true;
     const CrtRandom confirmed = Advanced(random, TradeQuery + Own);
     ASSERT_TRUE(Dialogs(0, 0).HasValue());
@@ -735,19 +751,19 @@ TEST_F(NpcWindowStepsTest, DepositingZenSends81FromTheMoneyDialog)
     EXPECT_EQ(sent[0].delivery, Delivery::Clear);
     EXPECT_TRUE(SameBytes(Plain(0).Bytes(), Bytes({0xc1, 0x08, 0x81, 0x00, 0xe8, 0x03, 0x00, 0x00})));
     EXPECT_EQ(runtime.dialogs.current, 0);
-    EXPECT_EQ(Npc().inputMode, 0x2a);
-    EXPECT_EQ(Npc().numberField, 0);
+    EXPECT_EQ(world.Runtime().social.dialogFieldLimit, 0x2a);
+    EXPECT_EQ(world.Runtime().social.moneyField, 0);
     EXPECT_EQ(runtime.chat.input.fieldCount, 2);
 
     runtime.dialogs.current = 0x73;
-    Npc().typedMoney = 6000;
+    world.Runtime().social.typedMoney = 6000;
     runtime.ui.enterPressed = true;
     ASSERT_TRUE(Dialogs(0, 0).HasValue());
     EXPECT_EQ(sent.size(), 1u);
     EXPECT_EQ(runtime.dialogs.current, 0x74);
 
     runtime.dialogs.current = 0x73;
-    Npc().typedMoney = 100'000'001;
+    world.Runtime().social.typedMoney = 100'000'001;
     runtime.ui.enterPressed = true;
     const CrtRandom refused = Advanced(random, 0);
     ASSERT_TRUE(Dialogs(0, 0).HasValue());
@@ -767,21 +783,21 @@ TEST_F(NpcWindowStepsTest, WithdrawingZenSends81OrWaitsForThePassword)
     Click();
     ASSERT_TRUE(Step(NpcX + 0x4c + 5, 0x186 + 5).HasValue());
     ASSERT_EQ(runtime.dialogs.current, 0x73);
-    EXPECT_EQ(Npc().warehouseMoneyMode, 1);
-    Npc().typedMoney = 2000;
+    EXPECT_EQ(Trade().field78abacc, 1);
+    world.Runtime().social.typedMoney = 2000;
     runtime.ui.enterPressed = true;
     ASSERT_TRUE(Dialogs(0, 0).HasValue());
     ASSERT_EQ(sent.size(), 1u);
     EXPECT_TRUE(SameBytes(Plain(0).Bytes(), Bytes({0xc1, 0x08, 0x81, 0x01, 0xd0, 0x07, 0x00, 0x00})));
 
     runtime.dialogs.current = 0x73;
-    Npc().typedMoney = 3001;
+    world.Runtime().social.typedMoney = 3001;
     runtime.ui.enterPressed = true;
     ASSERT_TRUE(Dialogs(0, 0).HasValue());
     EXPECT_EQ(runtime.dialogs.current, 0x74);
 
     runtime.dialogs.current = 0x73;
-    Npc().typedMoney = 2000;
+    world.Runtime().social.typedMoney = 2000;
     Npc().warehouseLocked = 1;
     runtime.itemMoveTarget = 9;
     runtime.ui.enterPressed = true;
@@ -838,33 +854,32 @@ TEST_F(NpcWindowStepsTest, TheWarehouseButtonsOpenTheKeypadAndClose)
 TEST_F(NpcWindowStepsTest, TheMixConfirmationSends86)
 {
     auto& runtime = world.Runtime();
-    Npc().cursorChoice = 2;
-    Npc().dialogAnswer = 1;
+    Trade().warningKind = 2;
+    Trade().warningByte = 1;
     Npc().mixKind = 3;
     const CrtRandom expected = random;
-    const auto chose = Client::Scenes::StepTheCursorChoice(Context(0, 0));
+    const auto chose = AnswerTheWarnings();
     ASSERT_TRUE(chose.HasValue()) << chose.Error();
-    EXPECT_TRUE(chose.Value());
+    EXPECT_FALSE(chose.Value());
     EXPECT_EQ(random.State(), expected.State());
     ASSERT_EQ(sent.size(), 1u);
     EXPECT_EQ(sent[0].delivery, Delivery::Clear);
     EXPECT_TRUE(SameBytes(Plain(0).Bytes(), Bytes({0xc1, 0x04, 0x86, 0x03})));
     EXPECT_EQ(Npc().chaosMixState, 1);
-    EXPECT_EQ(Npc().cursorChoice, 0);
-    EXPECT_EQ(Npc().dialogAnswer, 0xff);
+    EXPECT_EQ(Trade().warningKind, 0);
+    EXPECT_EQ(Trade().warningByte, 0xff);
 
-    Npc().cursorChoice = 2;
-    Npc().dialogAnswer = 2;
-    ASSERT_TRUE(Client::Scenes::StepTheCursorChoice(Context(0, 0)).HasValue());
+    Trade().warningKind = 2;
+    Trade().warningByte = 2;
+    ASSERT_TRUE(AnswerTheWarnings().HasValue());
     EXPECT_EQ(sent.size(), 1u);
-    EXPECT_EQ(Npc().cursorChoice, 0);
+    EXPECT_EQ(Trade().warningKind, 0);
     EXPECT_EQ(runtime.dialogs.current, 0);
 }
 
 // 0x5d9b82..0x5d9c6b, en Lorencia, Devias y Noria: con 0x78abb14 en 4 (el panel 0x2000) y el sí, el teclado del
 // almacén vuelve a 0..9 y se baraja con veinte pares de rand() % 10 (los 40 rand()), lo tecleado queda en 0 y
-// 0x78abb20 en 6; con el no, 0x78abb08 en 0 y sin rand(); sin respuesta, nada. 0x5d9c82: el sí del 5 (la tienda
-// personal) corta hacia el hito 7.
+// 0x78abb20 en 6; con el no, 0x78abb08 en 0 y sin rand(); sin respuesta, nada.
 TEST_F(NpcWindowStepsTest, TheKeypadChoiceShufflesTheWarehouseKeypadInSix)
 {
     for (const std::int32_t map : {0, 2, 3})
@@ -872,14 +887,14 @@ TEST_F(NpcWindowStepsTest, TheKeypadChoiceShufflesTheWarehouseKeypadInSix)
         SCOPED_TRACE(map);
         auto& runtime = world.Runtime();
         runtime.map = map;
-        Npc().cursorChoice = 4;
-        Npc().dialogAnswer = 0xff;
+        Trade().warningKind = 4;
+        Trade().warningByte = 0xff;
         const CrtRandom unchanged = random;
-        ASSERT_TRUE(Client::Scenes::StepTheCursorChoice(Context(0, 0)).Value());
-        EXPECT_EQ(Npc().cursorChoice, 4);
+        ASSERT_FALSE(AnswerTheWarnings().Value());
+        EXPECT_EQ(Trade().warningKind, 4);
         EXPECT_EQ(random.State(), unchanged.State());
 
-        Npc().dialogAnswer = 1;
+        Trade().warningByte = 1;
         Npc().typedNumber.fill(7);
         Npc().keypad.fill(9);
         CrtRandom expectedRandom = random;
@@ -890,83 +905,28 @@ TEST_F(NpcWindowStepsTest, TheKeypadChoiceShufflesTheWarehouseKeypadInSix)
             const auto second = static_cast<std::size_t>(expectedRandom.Next() % 10);
             std::swap(expectedKeys[first], expectedKeys[second]);
         }
-        const auto chose = Client::Scenes::StepTheCursorChoice(Context(0, 0));
+        const auto chose = AnswerTheWarnings();
         ASSERT_TRUE(chose.HasValue()) << chose.Error();
-        EXPECT_TRUE(chose.Value());
+        EXPECT_FALSE(chose.Value());
         EXPECT_EQ(random.State(), expectedRandom.State());
         EXPECT_EQ(Npc().keypad, expectedKeys);
         EXPECT_EQ(Npc().typedNumber, (std::array<std::uint8_t, 11>{}));
         EXPECT_EQ(runtime.ui.field78abb20, 6);
-        EXPECT_EQ(Npc().cursorChoice, 0);
-        EXPECT_EQ(Npc().dialogAnswer, 0xff);
+        EXPECT_EQ(Trade().warningKind, 0);
+        EXPECT_EQ(Trade().warningByte, 0xff);
         EXPECT_TRUE(sent.empty());
 
-        Npc().cursorChoice = 4;
-        Npc().dialogAnswer = 2;
+        Trade().warningKind = 4;
+        Trade().warningByte = 2;
         runtime.panels.field78abb08 = 1;
         runtime.ui.field78abb20 = 0;
         const CrtRandom refused = random;
-        ASSERT_TRUE(Client::Scenes::StepTheCursorChoice(Context(0, 0)).Value());
+        ASSERT_FALSE(AnswerTheWarnings().Value());
         EXPECT_EQ(runtime.panels.field78abb08, 0);
         EXPECT_EQ(runtime.ui.field78abb20, 0);
-        EXPECT_EQ(Npc().cursorChoice, 0);
-        EXPECT_EQ(Npc().dialogAnswer, 0xff);
+        EXPECT_EQ(Trade().warningKind, 0);
+        EXPECT_EQ(Trade().warningByte, 0xff);
         EXPECT_EQ(random.State(), refused.State());
-
-        Npc().cursorChoice = 5;
-        Npc().dialogAnswer = 1;
-        const auto shop = Client::Scenes::StepTheCursorChoice(Context(0, 0));
-        ASSERT_FALSE(shop.HasValue());
-        EXPECT_NE(shop.Error().find("0x5d9c82"), std::string::npos) << shop.Error();
-        EXPECT_NE(shop.Error().find("P-C339"), std::string::npos) << shop.Error();
-    }
-}
-
-// 0x5d965a, 0x5d9c75 y 0x5da592, en Lorencia, Devias y Noria: el 3, el 5 y el 6 de 0x78abb14 (los pone el hito 7)
-// cortan solo con la respuesta que lleva al hito 7: el sí de los tres (0x5d966b, 0x5d9c82 y 0x5da5ac) y el no del 6
-// (0x5dc765, 0x5eba70(2)). El no del 3 y del 5 va a 0x5d9634: 0x78abb14 en 0 y la respuesta en 0xff, sin rand(); sin
-// respuesta, los tres terminan el paso sin tocar nada.
-TEST_F(NpcWindowStepsTest, TheTradeAndShopChoicesCutOnlyOnTheAnswerOfHitoSeven)
-{
-    for (const std::int32_t map : {0, 2, 3})
-    {
-        SCOPED_TRACE(map);
-        world.Runtime().map = map;
-        const CrtRandom unchanged = random;
-        for (const std::int32_t choice : {3, 5, 6})
-        {
-            SCOPED_TRACE(choice);
-            Npc().cursorChoice = choice;
-            Npc().dialogAnswer = 0xff;
-            const auto pending = Client::Scenes::StepTheCursorChoice(Context(0, 0));
-            ASSERT_TRUE(pending.HasValue()) << pending.Error();
-            EXPECT_TRUE(pending.Value());
-            EXPECT_EQ(Npc().cursorChoice, choice);
-            EXPECT_EQ(Npc().dialogAnswer, 0xff);
-
-            Npc().dialogAnswer = 1;
-            const auto yes = Client::Scenes::StepTheCursorChoice(Context(0, 0));
-            ASSERT_FALSE(yes.HasValue());
-            EXPECT_NE(yes.Error().find(choice == 3 ? "0x5d966b" : (choice == 5 ? "0x5d9c82" : "0x5da5ac")),
-                      std::string::npos)
-                << yes.Error();
-            EXPECT_NE(yes.Error().find("hito 7"), std::string::npos) << yes.Error();
-
-            Npc().dialogAnswer = 2;
-            const auto no = Client::Scenes::StepTheCursorChoice(Context(0, 0));
-            if (choice == 6)
-            {
-                ASSERT_FALSE(no.HasValue());
-                EXPECT_NE(no.Error().find("0x5eba70(2)"), std::string::npos) << no.Error();
-                continue;
-            }
-            ASSERT_TRUE(no.HasValue()) << no.Error();
-            EXPECT_TRUE(no.Value());
-            EXPECT_EQ(Npc().cursorChoice, 0);
-            EXPECT_EQ(Npc().dialogAnswer, 0xff);
-        }
-        EXPECT_EQ(random.State(), unchanged.State());
-        EXPECT_TRUE(sent.empty());
     }
 }
 
@@ -1013,15 +973,15 @@ TEST_F(NpcWindowStepsTest, TheMixButtonAsksAndTheYesSends86WithTheKind)
         EXPECT_TRUE(sent.empty());
         EXPECT_EQ(runtime.dialogs.current, 0x98);
         EXPECT_EQ(Client::UI::DialogRow(runtime.dialogBox, 0), "mezclar ya?");
-        EXPECT_EQ(Npc().cursorChoice, 2);
-        EXPECT_EQ(Npc().dialogAnswer, 0xff);
+        EXPECT_EQ(Trade().warningKind, 2);
+        EXPECT_EQ(Trade().warningByte, 0xff);
         EXPECT_FALSE(runtime.movement.pendingClick);
         EXPECT_EQ(runtime.lastSoundId, 0x19);
         EXPECT_TRUE(Errors().empty());
 
         Click();
         ASSERT_TRUE(Dialogs(0x15 + 0xd5, 0x5a + 0x64).HasValue());
-        EXPECT_EQ(Npc().dialogAnswer, 1);
+        EXPECT_EQ(Trade().warningByte, 1);
         const CrtRandom mixed = Advanced(random, ChaosBoxStepRandoms);
         ASSERT_TRUE(Step(NpcX + 0x20, 300).HasValue());
         EXPECT_EQ(random.State(), mixed.State());
@@ -1152,11 +1112,11 @@ TEST_F(NpcWindowStepsTest, TheYesNoDialogsLeaveTheirAnswer)
     ASSERT_TRUE(Dialogs(0, 0).HasValue());
     EXPECT_EQ(runtime.dialogs.current, 0x94);
     EXPECT_FALSE(runtime.movement.pendingClick);
-    EXPECT_EQ(Npc().dialogAnswer, 0xff);
+    EXPECT_EQ(Trade().warningByte, 0xff);
     Click();
     ASSERT_TRUE(Dialogs(0x15 + 0xd5 + 0x46, 0x5a + 0x64 + 0x15).HasValue());
     EXPECT_EQ(runtime.dialogs.current, 0);
-    EXPECT_EQ(Npc().dialogAnswer, 1);
+    EXPECT_EQ(Trade().warningByte, 1);
 
     runtime.dialogs.current = 0xa9;
     runtime.dialogBox.jewelCell = 4;

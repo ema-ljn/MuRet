@@ -32,6 +32,11 @@ struct NameFilters
 // Filter.bmd (`filter`) en el texto sin espacios. El original arma la copia sin espacios en 0x800 bytes de la pila.
 [[nodiscard]] bool ContainsAFilteredWord(std::string_view text, std::span<const std::string> filter, bool skipCommands);
 
+// 0x5ebbd0(título), el de la tienda personal (CL9 hito 7): ninguna palabra de Filter.bmd en el título sin espacios
+// (0x576960, sin saltear los comandos), y ni las dos primeras letras ni las dos últimas o más en espacios. Los espacios
+// seguidos del medio pasan: la cuenta solo se mira en la letra 1 y al final. Vacío, pasa.
+[[nodiscard]] bool IsAShopTitle(std::string_view title, std::span<const std::string> filter);
+
 // 0x622c70: alguna palabra de FilterName.bmd en el nombre sin espacios; alguna de Filter.bmd en el
 // nombre sin espacios, salvo que empiece con '/' (0x622b40 con 1); o, en el nombre tal cual, el
 // espacio, el punto, los de doble byte "\xa1\xa1", "\xa1\xa4" y "\xa1\xad", "Webzen", "WebZen",

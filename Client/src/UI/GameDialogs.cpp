@@ -15,6 +15,7 @@
 #include <cstdint>
 #include <format>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -110,29 +111,6 @@ Core::Expected<void, std::string> PrintIntoRow(DialogBoxState& box, std::size_t 
                                             where, text.size() + 1, row));
     auto out = std::copy(text.begin(), text.end(), box.rows.begin() + static_cast<std::ptrdiff_t>(start));
     *out = '\0';
-    return {};
-}
-
-// 0x63332f..0x6333a3: el número con sus puntos en el texto `firstText`, y los `lineCount − 1` siguientes debajo.
-Core::Expected<void, std::string> WriteTheMoneyText(DialogBoxState& box, const Data::Text::TextTable* texts,
-                                                    std::int32_t lineCount, std::int32_t firstText,
-                                                    std::string_view money)
-{
-    auto format = TextOf(texts, firstText, "0x633367");
-    if (!format.HasValue())
-        return Core::Unexpected(std::move(format).Error());
-    if (auto printed = PrintIntoRow(box, 0, Sprintf(format.Value(), money), "0x633367"); !printed.HasValue())
-        return printed;
-    for (std::int32_t row = 1; row < lineCount; ++row)
-    {
-        auto text = TextOf(texts, static_cast<std::int64_t>(firstText) + row, "0x633387");
-        if (!text.HasValue())
-            return Core::Unexpected(std::move(text).Error());
-        if (auto printed = PrintIntoRow(box, static_cast<std::size_t>(row), Sprintf(text.Value()), "0x633387");
-            !printed.HasValue())
-            return printed;
-    }
-    box.lineCount = lineCount;
     return {};
 }
 
@@ -329,6 +307,52 @@ void OpenMessageBox(DialogBoxState& box, DialogState& dialogs, std::string_view 
     (dialogs.current != 0 ? dialogs.pending : dialogs.current) = MessageBoxDialog;
 }
 
+namespace
+{
+// Los textos `firstText + row` de `fromRow` a `lineCount` − 1, con un strcpy cada uno en su renglón de 0x26 bytes;
+// uno largo sigue en el renglón siguiente. Lo que pasaría los 7 corta, como un texto que no está.
+Core::Expected<void, std::string> CopyTheTexts(DialogBoxState& box, const Data::Text::TextTable* texts,
+                                               std::int32_t firstText, std::int32_t fromRow, std::int32_t lineCount,
+                                               std::string_view where)
+{
+    for (std::int32_t row = fromRow; row < lineCount; ++row)
+    {
+        auto read = TextOf(texts, static_cast<std::int64_t>(firstText) + row, where);
+        if (!read.HasValue())
+            return Core::Unexpected(std::move(read).Error());
+        const std::string_view text = read.Value();
+        const std::size_t start = static_cast<std::size_t>(row) * DialogRowBytes;
+        if (start + text.size() + 1 > box.rows.size())
+            return Core::Unexpected(std::format("{}: el strcpy del texto {} en el renglón {} pasa los 7 de 0x7d36a98",
+                                                where, static_cast<std::int64_t>(firstText) + row, row));
+        auto out = std::copy(text.begin(), text.end(), box.rows.begin() + static_cast<std::ptrdiff_t>(start));
+        *out = '\0';
+    }
+    return {};
+}
+
+// 0x633742..0x633816: los botones en 0, el primero y el segundo (con y = 0x78 en el 0x9a), y desde 0x633818 el id por
+// 0x6236f0, en línea.
+void ShowTheTextDialog(DialogBoxState& box, DialogState& dialogs, std::int32_t id)
+{
+    ResetTheButtons(box);
+    box.buttons[0] = FirstTextButton;
+    box.buttons[1] = SecondTextButton;
+    if (id == ItemNameWithLuckDialog)
+    {
+        box.buttons[0] = LuckFirstButton;
+        box.buttons[1] = LuckSecondButton;
+        box.thirdButton = LuckThirdButton;
+    }
+    else if (id == ChaosCastleDialog)
+    {
+        box.buttons[0].y = ChaosCastleButtonsY;
+        box.buttons[1].y = ChaosCastleButtonsY;
+    }
+    PushDialog(dialogs, id);
+}
+} // namespace
+
 Core::Expected<void, std::string> OpenTextDialog(DialogBoxState& box, DialogState& dialogs,
                                                  const Data::Text::TextTable* texts, std::int32_t lineCount,
                                                  std::int32_t firstText, std::int32_t id,
@@ -344,12 +368,8 @@ Core::Expected<void, std::string> OpenTextDialog(DialogBoxState& box, DialogStat
             return written;
     }
     else if (id == MoneyTextDialog)
-    {
-        if (arguments == nullptr)
-            return Core::Unexpected(std::string("0x63333d: el texto del diálogo 0x99 sin el número de 0x77f3b6c"));
-        if (auto written = WriteTheMoneyText(box, texts, lineCount, firstText, arguments->money); !written.HasValue())
-            return written;
-    }
+        return Core::Unexpected(std::string("0x63333d: el 0x99 escribe el zen tipeado (0x77f3b6c) con 0x5b1130: "
+                                            "lo abre OpenTheMoneyTextDialog"));
     if (id == ServerTimeDialog)
     {
         if (arguments == nullptr)
@@ -374,37 +394,67 @@ Core::Expected<void, std::string> OpenTextDialog(DialogBoxState& box, DialogStat
     else if (id != ItemNameDialog && id != ItemNameWithLuckDialog && id != MoneyTextDialog)
     {
         // 0x633600..0x633638: un strcpy por texto, de a 0x26 bytes; uno largo sigue en el renglón siguiente.
-        for (std::int32_t row = 0; row < lineCount; ++row)
-        {
-            auto read = TextOf(texts, static_cast<std::int64_t>(firstText) + row, "0x633612");
-            if (!read.HasValue())
-                return Core::Unexpected(std::move(read).Error());
-            const std::string_view text = read.Value();
-            const std::size_t start = static_cast<std::size_t>(row) * DialogRowBytes;
-            if (start + text.size() + 1 > box.rows.size())
-                return Core::Unexpected(std::format("0x633612: el strcpy del texto {} en el renglón {} pasa los 7 de "
-                                                    "0x7d36a98",
-                                                    static_cast<std::int64_t>(firstText) + row, row));
-            auto out = std::copy(text.begin(), text.end(), box.rows.begin() + static_cast<std::ptrdiff_t>(start));
-            *out = '\0';
-        }
+        if (auto copied = CopyTheTexts(box, texts, firstText, 0, lineCount, "0x633612"); !copied.HasValue())
+            return copied;
         box.lineCount = lineCount;
+    }
+    ShowTheTextDialog(box, dialogs, id);
+    return {};
+}
+
+Core::Expected<void, std::string> OpenTheMoneyTextDialog(DialogBoxState& box, DialogState& dialogs,
+                                                         const Data::Text::TextTable* texts, std::int32_t lineCount,
+                                                         std::int32_t firstText, std::string_view zen)
+{
+    // 0x633342..0x633367: sprintf(0x7d36a98, el texto, el zen escrito), sin tope: lo largo sigue en los renglones de
+    // abajo, que el strcpy de los que siguen pisa.
+    auto format = TextOf(texts, static_cast<std::int64_t>(firstText), "0x633367");
+    if (!format.HasValue())
+        return Core::Unexpected(std::move(format).Error());
+    const std::string first = Sprintf(format.Value(), zen);
+    if (first.size() + 1 > box.rows.size())
+        return Core::Unexpected(
+            std::format("0x633367: el sprintf del texto {} pasa los 7 renglones de 0x7d36a98", firstText));
+    auto out = std::copy(first.begin(), first.end(), box.rows.begin());
+    *out = '\0';
+    // 0x63336c..0x63339e: con más de un renglón, los textos que siguen desde el segundo, cada uno por el mismo sprintf
+    // sin argumentos (0x633387), y la cuenta.
+    for (std::int32_t row = 1; row < lineCount; ++row)
+    {
+        auto read = TextOf(texts, static_cast<std::int64_t>(firstText) + row, "0x633387");
+        if (!read.HasValue())
+            return Core::Unexpected(std::move(read).Error());
+        const std::string line = Sprintf(read.Value());
+        const std::size_t start = static_cast<std::size_t>(row) * DialogRowBytes;
+        if (start + line.size() + 1 > box.rows.size())
+            return Core::Unexpected(std::format("0x633387: el sprintf del texto {} en el renglón {} pasa los 7 de "
+                                                "0x7d36a98",
+                                                static_cast<std::int64_t>(firstText) + row, row));
+        auto written = std::copy(line.begin(), line.end(), box.rows.begin() + static_cast<std::ptrdiff_t>(start));
+        *written = '\0';
+    }
+    box.lineCount = lineCount;
+    ShowTheTextDialog(box, dialogs, MoneyTextDialog);
+    return {};
+}
+
+Core::Expected<void, std::string> OpenTheChaosCastleDialog(DialogBoxState& box, DialogState& dialogs,
+                                                           std::span<const std::string_view> texts)
+{
+    box.lineCount = 0;
+    for (const std::string_view text : texts)
+    {
+        auto written = SplitIntoRows(box, static_cast<std::size_t>(box.lineCount), text, "0x6333e9");
+        if (!written.HasValue())
+            return Core::Unexpected(std::move(written).Error());
+        box.lineCount += written.Value();
     }
     ResetTheButtons(box);
     box.buttons[0] = FirstTextButton;
     box.buttons[1] = SecondTextButton;
-    if (id == ItemNameWithLuckDialog)
-    {
-        box.buttons[0] = LuckFirstButton;
-        box.buttons[1] = LuckSecondButton;
-        box.thirdButton = LuckThirdButton;
-    }
-    else if (id == ChaosCastleDialog)
-    {
-        box.buttons[0].y = ChaosCastleButtonsY;
-        box.buttons[1].y = ChaosCastleButtonsY;
-    }
-    PushDialog(dialogs, id);
+    box.buttons[0].y = ChaosCastleButtonsY;
+    box.buttons[1].y = ChaosCastleButtonsY;
+    PushDialog(dialogs, ChaosCastleDialog);
     return {};
 }
 

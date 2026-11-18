@@ -4,19 +4,26 @@
 #include "Data/Text/DialogTable.h"
 #include "Protocol/Connection/Logout.h"
 #include "Protocol/DialogAnswers.h"
+#include "Protocol/Guild.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
+#include "Protocol/Party.h"
+#include "Protocol/Trade.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameUi.h"
+#include "Scenes/GuildReceive.h"
+#include "Scenes/GuildState.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/JewelMix.h"
 #include "Scenes/NpcWindowState.h"
 #include "Scenes/NpcWindowSteps.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/PersonalShopWindow.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"
@@ -108,8 +115,7 @@ constexpr std::array<std::int32_t, 4> QuittingDialogs{0x70, 0x6f, 0x1a, 0x1c};
 // 0x62825c: el que cierra y llama a 0x5e7aa0(6).
 constexpr std::int32_t ReopeningDialog = 0x8f;
 constexpr std::int32_t ReopenedKeypadMode = 6;
-// 0x62843f..0x62845d: los de sí y no que solo dejan la respuesta en 0x6c932e (0x62a779).
-constexpr std::int32_t AnswerDialog = 0x94;
+// 0x62843f..0x62845d: el 0x98, otro de los que solo dejan la respuesta en 0x6c932e (0x62a779).
 constexpr std::int32_t ConfirmDialog = 0x98;
 // 0x629c0e: la joya de bendición sobre el 0x1a25 (CL9 hito 5, 0x5d8324).
 constexpr std::int32_t BlessDialog = 0xa9;
@@ -127,13 +133,6 @@ constexpr std::int32_t MixModeFirstTop = 180;
 constexpr std::int32_t MixModeStep = 85;
 constexpr std::int32_t MixModeHeight = 35;
 constexpr std::int32_t MixModes = 2;
-// 0x6282f1..0x628302: la y de los dos botones, 0x64 (0xd2 en el 0xa3), y su x, 0xd5.
-constexpr std::int32_t YesNoButtonsTop = 0x64;
-constexpr std::int32_t ServerTimeButtonsTop = 0xd2;
-constexpr std::int32_t YesNoButtonsLeft = 0xd5;
-// 0x62a79c y 0x62a7b0: las respuestas.
-constexpr std::uint8_t YesAnswer = 1;
-constexpr std::uint8_t NoAnswer = 2;
 // 0x628b32..0x628b49: el sí del 0x96 abre el 0xa8 con 0x633300(1, 0x76e, 0xa8).
 constexpr std::int32_t LuckDialogLines = 1;
 constexpr std::int32_t LuckDialogText = 0x76e;
@@ -147,16 +146,53 @@ constexpr unsigned ItemLevelShift = 3;
 constexpr std::uint32_t ItemLevelMask = 0xf;
 // 0x628bb2..0x628bd7: el tercer botón del 0xa8 (o su Esc) elige 2, que cierra sin el sonido.
 constexpr std::int32_t ThirdChoice = 2;
-// 0x626112..0x626145 y 0x626200..0x626227: el OK y el cancelar del 0x91, con los bordes.
-constexpr std::int32_t TypedOkLeft = 0xff;
-constexpr std::int32_t TypedOkRight = 0x133;
-constexpr std::int32_t TypedCancelLeft = 0x14a;
-constexpr std::int32_t TypedCancelRight = 0x17e;
-constexpr std::int32_t TypedButtonsTop = 0xa0;
-constexpr std::int32_t TypedButtonsBottom = 0xb0;
-// 0x626251..0x626293: lo que pide el 0x91 (0x78aba60).
-constexpr std::int32_t TypedTitle = 1;
-constexpr std::int32_t TypedPrice = 2;
+// 0x62a7f7..0x62c560: sí y no. Los dos botones son de 0x46 × 0x15 en y 0x62; con 0x7d y 0x95 (el sí) o 0x71, 0x7d y
+// 0x95 (el no), de 0x28 en otra x.
+constexpr std::int32_t PartyRequestDialog = 0x77;
+// 0x62a878 y 0x62c567: el diálogo 0x7d (CL9 hito 8), el número del maestro para echar a un miembro, disolver el
+// gremio o salir de él (C1 53).
+constexpr std::int32_t LeaveNumberDialog = 0x7d;
+constexpr std::int32_t YesLeft = 0xea;
+constexpr std::int32_t NoLeft = 0x14e;
+constexpr std::int32_t NarrowYesLeft = 0x143;
+constexpr std::int32_t NarrowNoLeft = 0x175;
+constexpr std::int32_t YesNoWidth = 0x46;
+constexpr std::int32_t NarrowWidth = 0x28;
+constexpr std::int32_t YesNoTop = 0x62;
+constexpr std::int32_t YesNoBottom = 0x77;
+// 0x62c54c..0x62c560: los casos de la tabla del no (0x62db1c) que no son 0x77, 0x78 ni 0x7d, con su tramo y de quién
+// son (08 P-C363); los demás ids van al cierre (0x62d745). Llegan con el diálogo que espera detrás del sí de 0x77 o
+// 0x78. El 0x95 comparte el del 0x7d (0x62c567), pero su paso corta antes.
+struct OtherNoCase
+{
+    std::int32_t id = 0;
+    std::string_view address;
+    std::string_view owner;
+};
+constexpr auto OtherNoCases = std::to_array<OtherNoCase>({
+    {0x71, "0x62c58f", "del borrado de la selección (0x622fb0, el F3 02), que el juego no abre"},
+    {0x76, "0x62c880", "del gremio (el C1 51), que el juego no abre"},
+    {0x95, "0x62c567", "del almacén (el sí manda el C1 83), CL9 hito 6"},
+});
+// 0x6282dc..0x62839f: los de sí y no de 0x94, 0x96, 0x98, 0x99, 0x9a, 0xa3, 0xa8, 0xa9 y 0xaa corren sus dos botones
+// (0xd5, 0x64; 0xd2 en el 0xa3), como 0x62d756 con otra y, y dejan su estado en 1 y 3 (2 y 4 con el mouse encima). En
+// el 0x94, el 0x98 y el 0x99 (el precio bajo, que 0x62845d manda al mismo final) el primero responde 1 y el segundo, o
+// Esc, 2 (0x62a779..0x62a7e6).
+constexpr std::int32_t WarningDialog = 0x94;
+constexpr std::int32_t WarningButtonsX = 0xd5;
+constexpr std::int32_t WarningButtonsY = 0x64;
+constexpr std::int32_t ServerTimeButtonsY = 0xd2;
+constexpr std::uint8_t WarningYes = 1;
+constexpr std::uint8_t WarningNo = 2;
+// El relleno y el serial del C1 05 41 en C3.
+constexpr std::uint32_t C3Randoms = 2;
+// 0x626460: el zen escrito, con signo, hasta 100.000.000 (0x5f5e100); con más, el diálogo 0x75. Sin el zen (el propio
+// más el que ya está en el comercio, sin signo), el 0x74.
+constexpr std::int32_t MaxTypedMoney = 100'000'000;
+constexpr std::int32_t TooMuchMoneyDialog = 0x75;
+constexpr std::int32_t NotEnoughMoneyDialog = 0x74;
+// 0x62821f..0x62823a: lo que deja el cierre del 0x73: el largo del campo, los dos campos de Tab y el modo del zen.
+constexpr std::int32_t ClosedDialogFieldLimit = 0x2a;
 
 // 0x61c2b6..0x61c2c3: los lugares de las teclas que recorre (de 0 a 0x71).
 constexpr std::size_t OptionKeyPlaces = 0x72;
@@ -186,8 +222,8 @@ constexpr auto Routes = std::to_array<DialogRoute>({
     {JewelUnmixDialog, DialogStep::JewelUnmix, "0x625cf4", ""},
     {JewelResultDialog, DialogStep::JewelResult, "0x625f98", ""},
     {0xa7, DialogStep::Cut, "0x62601e", "CL9.4"},
-    {0x9c, DialogStep::Cut, "0x6260d1", "CL9.4"},
-    {0x91, DialogStep::TypedText, "0x6260f6", ""},
+    {0x9c, DialogStep::ConfirmBox, "0x6260d1", ""},
+    {0x91, DialogStep::ShopDialog, "0x6260f6", ""},
     {UI::MessageBoxDialog, DialogStep::Buttons, "0x62d756", ""},
     {UI::AnswersDialog, DialogStep::Buttons, "0x62d756", ""},
     {UI::PagedDialog, DialogStep::Buttons, "0x62d756", ""},
@@ -195,21 +231,21 @@ constexpr auto Routes = std::to_array<DialogRoute>({
     {0x97, DialogStep::Buttons, "0x62d756", ""},
     {0x9b, DialogStep::Buttons, "0x62d756", ""},
     {0x71, DialogStep::Cut, "0x62a810", "CL9.4"},
-    {0x7d, DialogStep::Cut, "0x62a810", "CL9.4"},
+    {LeaveNumberDialog, DialogStep::YesNo, "0x62a810", ""},
     {0x95, DialogStep::Cut, "0x62a7f7", "CL9.4"},
     {0x76, DialogStep::Cut, "0x62a7f7", "CL9.4"},
-    {UI::IgnoredOverChaosCastle, DialogStep::Cut, "0x62a7f7", "CL9.4"},
-    {0x77, DialogStep::Cut, "0x62a7f7", "CL9.4"},
-    {UI::ForcedDialog, DialogStep::Cut, "0x62a7f7", "CL9.4"},
-    {AnswerDialog, DialogStep::YesNo, "0x6282dc", ""},
-    {UI::ItemNameDialog, DialogStep::YesNo, "0x6282dc", ""},
-    {ConfirmDialog, DialogStep::YesNo, "0x6282dc", ""},
-    {UI::MoneyTextDialog, DialogStep::YesNo, "0x6282dc", ""},
-    {UI::ChaosCastleDialog, DialogStep::YesNo, "0x6282dc", ""},
-    {UI::ServerTimeDialog, DialogStep::YesNo, "0x6282dc", ""},
-    {UI::ItemNameWithLuckDialog, DialogStep::YesNo, "0x6282dc", ""},
-    {BlessDialog, DialogStep::YesNo, "0x6282dc", ""},
-    {UI::NoticeQuestionDialog, DialogStep::YesNo, "0x6282dc", ""},
+    {UI::IgnoredOverChaosCastle, DialogStep::YesNo, "0x62a7f7", ""},
+    {PartyRequestDialog, DialogStep::YesNo, "0x62a7f7", ""},
+    {UI::ForcedDialog, DialogStep::YesNo, "0x62a7f7", ""},
+    {WarningDialog, DialogStep::Warning, "0x6282dc", ""},
+    {UI::ItemNameDialog, DialogStep::Warning, "0x6282dc", ""},
+    {ConfirmDialog, DialogStep::Warning, "0x6282dc", ""},
+    {UI::MoneyTextDialog, DialogStep::Warning, "0x6282dc", ""},
+    {UI::ChaosCastleDialog, DialogStep::Warning, "0x6282dc", ""},
+    {UI::ServerTimeDialog, DialogStep::Warning, "0x6282dc", ""},
+    {UI::ItemNameWithLuckDialog, DialogStep::Warning, "0x6282dc", ""},
+    {BlessDialog, DialogStep::Warning, "0x6282dc", ""},
+    {UI::NoticeQuestionDialog, DialogStep::Warning, "0x6282dc", ""},
     {UI::DisconnectDialog, DialogStep::GenericOk, "0x6263df", ""},
     {0x6f, DialogStep::GenericOk, "0x6263df", ""},
     {0x1a, DialogStep::GenericOk, "0x6263df", ""},
@@ -589,6 +625,75 @@ Core::Expected<void, std::string> StepTheChaosMixMode(const GameUiContext& conte
     return {};
 }
 
+// 0x62649e..0x626f06, con el comercio abierto (0x659290(0x20), un rand()): el zen escrito contra el propio (+0xecc del
+// registro propio, abierto en 0x6264b3..0x626784 y cerrado en 0x626f06..0x62820a) más el que ya está en el comercio
+// (0x78abab8), sin signo. Sin él, el 0x74 en lugar del 0x73. Con él: el OK propio, si estaba, se apaga y va el C1 04 3C
+// con 0 en C3 (0x626598..0x626b07, el relleno y el serial); con zen en el comercio (con signo), 0x78abac8 en 0x96; el
+// zen va a 0x57678ac y en el C1 08 3A con el XOR32, sin C3 (0x626b2a..0x626eaf); y el 0x73 se cierra.
+Core::Expected<void, std::string> OfferTheTypedMoney(const GameUiContext& context)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    TradeState& trade = runtime.social.trade;
+    const auto typed = static_cast<std::uint32_t>(runtime.social.typedMoney);
+    const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
+                                            Render::Models::OwnRecordCloseRandoms);
+    if (typed > context.world.OwnCharacter().zen + trade.ownMoney)
+    {
+        UI::PushDialog(runtime.dialogs, 0);
+        UI::PushDialog(runtime.dialogs, NotEnoughMoneyDialog);
+        return {};
+    }
+    auto requests = RequestsOf(context, "0x626b07");
+    if (!requests.HasValue())
+        return Core::Unexpected(std::move(requests).Error());
+    if (trade.ownOk != 0)
+    {
+        trade.ownOk = 0;
+        context.random.Discard(C3Randoms);
+        requests.Value()->SendGamePacket(Protocol::Trade::WriteTradeOkButton(0));
+    }
+    if (static_cast<std::int32_t>(trade.ownMoney) > 0)
+        trade.okWait = TradeOkWait;
+    trade.sentMoney = typed;
+    requests.Value()->SendGamePacket(Protocol::Trade::WriteTradeMoney(typed));
+    UI::PushDialog(runtime.dialogs, 0);
+    return {};
+}
+
+// 0x626460..0x6270ed y 0x628215..0x6282c8: el OK del 0x73 (el zen del comercio), solo con Enter. Con más de
+// 100.000.000, el 0x75 en su lugar (el 0x6236f0(0) y el 0x6236f0(0x75) en línea); si no, con el comercio abierto, el
+// zen; sin el comercio, el del almacén (0x6270ed, el 81 según 0x78abacc, Scenes::MoveTheWarehouseMoney). Al final, los
+// campos de texto vacíos (0x553570(0)), el largo 0x2a, dos campos de Tab, el modo del zen y el campo del chat en 0, y
+// el botón.
+Core::Expected<void, std::string> StepTheMoneyOk(const GameUiContext& context)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    SocialState& social = runtime.social;
+    if (social.typedMoney > MaxTypedMoney)
+    {
+        UI::PushDialog(runtime.dialogs, 0);
+        UI::PushDialog(runtime.dialogs, TooMuchMoneyDialog);
+    }
+    else
+    {
+        GamePanels panels(context.world, context.random);
+        if (panels.Registry().IsOpen(UI::TradePanel))
+        {
+            if (auto offered = OfferTheTypedMoney(context); !offered.HasValue())
+                return offered;
+        }
+        else if (auto moved = MoveTheWarehouseMoney(context); !moved.HasValue())
+            return moved;
+    }
+    UI::ResetTheTextBuffers(runtime.chat.input, false);
+    social.dialogFieldLimit = ClosedDialogFieldLimit;
+    runtime.chat.input.fieldCount = UI::ChatFieldCount;
+    social.moneyField = 0;
+    runtime.ui.chatOpen = false;
+    PressTheButton(runtime);
+    return {};
+}
+
 // 0x6263df..0x62645a y 0x62825c..0x6282c8: el OK genérico.
 Core::Expected<void, std::string> StepTheGenericOk(const GameUiContext& context)
 {
@@ -608,9 +713,9 @@ Core::Expected<void, std::string> StepTheGenericOk(const GameUiContext& context)
         CloseTheDialog(runtime);
         return {};
     }
-    // 0x626460..0x628215: el zen del almacén (Scenes::ConfirmTheMoneyDialog), con su cola.
+    // 0x626460..0x6282c8: el zen del comercio o del almacén, con su cola.
     if (id == EnterOnlyDialog)
-        return ConfirmTheMoneyDialog(context);
+        return StepTheMoneyOk(context);
     if (id == ReopeningDialog)
     {
         // 0x628264..0x62827b: cierra y abre el teclado del almacén en 6.
@@ -624,11 +729,11 @@ Core::Expected<void, std::string> StepTheGenericOk(const GameUiContext& context)
     return {};
 }
 
-// [x + 0xd5, x + w + 0xd5] × [y + arriba, y + h + arriba], con los bordes.
-bool OverTheYesNoButton(const GameUiContext& context, const UI::DialogButton& button, std::int32_t top)
+// [x + 0xd5, x + w + 0xd5] × [y + arriba, y + h + arriba], con signo y los bordes.
+bool OverTheWarningButton(const GameUiContext& context, const UI::DialogButton& button, std::int32_t top)
 {
-    return context.mouseX >= button.x + YesNoButtonsLeft && context.mouseY >= button.y + top &&
-           context.mouseX <= button.x + button.width + YesNoButtonsLeft &&
+    return context.mouseX >= button.x + WarningButtonsX && context.mouseY >= button.y + top &&
+           context.mouseX <= button.x + button.width + WarningButtonsX &&
            context.mouseY <= button.y + button.height + top;
 }
 
@@ -636,24 +741,24 @@ bool OverTheYesNoButton(const GameUiContext& context, const UI::DialogButton& bu
 // y, con el clic, queda elegido. En el 0xa8, el tercero (0x7d36908, sin estado) con el mouse y el clic deja el primero
 // en 2 (0x6283a1..0x628409). Después el clic y el botón abajo en 0 y, con Esc, el segundo en 1 (en 2 en el 0xa8,
 // 0x62841e). Devuelve lo elegido en cada uno: 0 el sí, 1 el no, 2 el tercero del 0xa8 y −1 nada.
-std::array<std::int32_t, 2> StepTheYesNoButtons(const GameUiContext& context, bool escape)
+std::array<std::int32_t, 2> StepTheWarningButtons(const GameUiContext& context, bool escape)
 {
     WorldRuntime& runtime = context.world.Runtime();
     UI::DialogBoxState& box = runtime.dialogBox;
     const std::int32_t id = runtime.dialogs.current;
-    const std::int32_t top = id == UI::ServerTimeDialog ? ServerTimeButtonsTop : YesNoButtonsTop;
+    const std::int32_t top = id == UI::ServerTimeDialog ? ServerTimeButtonsY : WarningButtonsY;
     std::array<std::int32_t, 2> chosen{-1, -1};
     for (std::size_t index = 0; index < chosen.size(); ++index)
     {
         UI::DialogButton& button = box.buttons[index];
         button.state = static_cast<std::int32_t>(1 + 2 * index);
-        if (!OverTheYesNoButton(context, button, top))
+        if (!OverTheWarningButton(context, button, top))
             continue;
         if (runtime.movement.pendingClick)
             chosen[index] = static_cast<std::int32_t>(index);
         ++button.state;
     }
-    if (id == UI::ItemNameWithLuckDialog && OverTheYesNoButton(context, box.thirdButton, top) &&
+    if (id == UI::ItemNameWithLuckDialog && OverTheWarningButton(context, box.thirdButton, top) &&
         runtime.movement.pendingClick)
         chosen[0] = ThirdChoice;
     runtime.movement.pendingClick = false;
@@ -756,12 +861,14 @@ Core::Expected<void, std::string> AnswerTheNotice(const GameUiContext& context, 
     return {};
 }
 
-// 0x6282dc..0x62a7f6: los de sí y no, cada elegido en el orden de los botones.
-Core::Expected<void, std::string> StepTheYesNo(const GameUiContext& context, bool escape)
+// 0x6282dc..0x62a7f6: los de sí y no de 0x6282dc, cada elegido en el orden de los botones. Los del 0x94, el 0x98 y el
+// 0x99 dejan 0x6c932e en 1 con el primero y en 2 con el segundo, cada uno con el cierre (el que espera pasa a abierto)
+// y el sonido; con los dos, los dos en ese orden.
+Core::Expected<void, std::string> StepTheWarning(const GameUiContext& context, bool escape)
 {
     WorldRuntime& runtime = context.world.Runtime();
     const std::int32_t id = runtime.dialogs.current;
-    const std::array<std::int32_t, 2> chosen = StepTheYesNoButtons(context, escape);
+    const std::array<std::int32_t, 2> chosen = StepTheWarningButtons(context, escape);
     for (const std::int32_t entry : chosen)
     {
         if (id == UI::ItemNameWithLuckDialog)
@@ -785,10 +892,10 @@ Core::Expected<void, std::string> StepTheYesNo(const GameUiContext& context, boo
             if (auto answered = AnswerTheNotice(context, entry); !answered.HasValue())
                 return answered;
         }
-        else if (id == AnswerDialog || id == ConfirmDialog || id == UI::MoneyTextDialog)
+        else if (id == WarningDialog || id == ConfirmDialog || id == UI::MoneyTextDialog)
         {
-            // 0x62a779..0x62a7d7.
-            runtime.npcWindows.dialogAnswer = yes ? YesAnswer : NoAnswer;
+            // 0x62a779..0x62a7e6.
+            runtime.social.trade.warningByte = yes ? WarningYes : WarningNo;
             CloseTheDialog(runtime);
         }
         else if (id == UI::ItemNameDialog)
@@ -839,55 +946,130 @@ Core::Expected<void, std::string> StepTheYesNo(const GameUiContext& context, boo
     return {};
 }
 
-// 0x6260f6..0x6262e8: el 0x91, el título o el precio de la tienda personal (0x78aba60, hito 7). El OK (con el clic en
-// [0xff, 0x133] × [0xa0, 0xb0]) lee el EDIT del diálogo y corta; el cancelar ([0x14a, 0x17e] × [0xa0, 0xb0]) contesta
-// 2, y Enter (0x5763588), como el OK sin leer el EDIT, contesta 1 con un título o un precio y 2 sin ellos. Después
-// vacía el campo, cierra el chat, devuelve el foco a la ventana del juego y cierra el diálogo, sin MouseUpdateTime ni
-// sonido.
-Core::Expected<void, std::string> StepTheTypedText(const GameUiContext& context)
+// La respuesta del sí (1) o del no (0) a la invitación (0x77, el C1 05 41 con la clave de 0x78aba4c en C3) o al
+// pedido de comercio (0x78, el C1 04 37 con el XOR32, en claro).
+Core::Expected<void, std::string> Answer(const GameUiContext& context, std::int32_t id, std::uint8_t accepted,
+                                         std::string_view where)
+{
+    auto requests = RequestsOf(context, where);
+    if (!requests.HasValue())
+        return Core::Unexpected(std::move(requests).Error());
+    WorldRuntime& runtime = context.world.Runtime();
+    if (id == PartyRequestDialog)
+    {
+        context.random.Discard(C3Randoms);
+        const auto key = static_cast<std::uint16_t>(runtime.social.party.requestKey & 0xffff);
+        requests.Value()->SendGamePacket(Protocol::Party::WritePartyRequestResult(accepted, key));
+        return {};
+    }
+    requests.Value()->SendGamePacket(Protocol::Trade::WriteTradeResponse(accepted));
+    return {};
+}
+
+// 0x62b372 y 0x62c567: los diez bytes de 0x7798bf8 (dos DWORD y un WORD) y su largo (0x7758590) en 0.
+void ClearTheTypedNumber(UI::ChatInputState& input)
+{
+    std::fill_n(input.messageBuffer.begin(), Protocol::Guild::LeaveNumberSize, '\0');
+    input.messageLength = 0;
+}
+
+// 0x62a878..0x62b38d, el sí del 0x7d: con 0x6c7b8c en 1, GetText del EDIT del número ([0x5763508]) a 0x7798bf8 (0xff)
+// y SetText(0); el C1 17 53 con los diez bytes del lugar 0x6d5e2c de 0x787a5e8 (de 0xe) y los diez de 0x7798bf8, con
+// el XOR32 y en claro por el socket (sin rand()), y esos diez bytes y su largo en 0. El EDIT queda a la vista y con el
+// foco (Q-C1295).
+Core::Expected<void, std::string> SendTheLeave(const GameUiContext& context)
+{
+    auto requests = RequestsOf(context, "0x62a878");
+    if (!requests.HasValue())
+        return Core::Unexpected(std::move(requests).Error());
+    WorldRuntime& runtime = context.world.Runtime();
+    UI::ChatInputState& input = runtime.chat.input;
+    UI::ReadTheNumberField(input, input.messageBuffer);
+    UI::ClearTheNumberField(input);
+    // 0x62a91c: 0x6d5e2c es −1 en la .data y lo pone 0x64faa0 (−1 sin el nombre): fuera de los 80 lugares, el original
+    // lee otra memoria (Q-C1296).
+    const std::int32_t member = runtime.guild.kickMember;
+    if (member < 0 || static_cast<std::size_t>(member) >= GuildMemberSlots)
+        return Core::Unexpected(std::format("0x62a91c: el lugar {} de 0x6d5e2c lee fuera de los {} miembros de "
+                                            "0x787a5e8 (Q-C1296)",
+                                            member, GuildMemberSlots));
+    const GuildMemberSlot& slot = runtime.guild.members[static_cast<std::size_t>(member)];
+    Protocol::Guild::CharacterName name{};
+    for (std::size_t index = 0; index < name.size(); ++index)
+        name[index] = static_cast<std::byte>(slot.name[index]);
+    Protocol::Guild::LeaveNumber number{};
+    for (std::size_t index = 0; index < number.size(); ++index)
+        number[index] = static_cast<std::byte>(input.messageBuffer[index]);
+    requests.Value()->SendGuildPacket(Protocol::Guild::WriteLeave(name, number));
+    ClearTheTypedNumber(input);
+    return {};
+}
+
+// 0x62b39c (el sí del 0x7f) y 0x62c5c2 (el no): la respuesta al pedido de guerra del 61, el C1 04 61 [1 o 0] con el
+// XOR32 y en claro por el socket, sin rand().
+Core::Expected<void, std::string> AnswerTheWar(const GameUiContext& context, bool accept)
+{
+    auto requests = RequestsOf(context, accept ? "0x62b39c" : "0x62c5c2");
+    if (!requests.HasValue())
+        return Core::Unexpected(std::move(requests).Error());
+    requests.Value()->SendGuildPacket(Protocol::Guild::WriteWarAnswer(accept));
+    return {};
+}
+
+// El sí (0x62a86b, la tabla 0x62daf4): la invitación a la party (0x62bb1d), el pedido de comercio (0x62c20a), el
+// número del 0x7d (0x62a878) y el pedido de guerra del 0x7f (0x62b39c).
+Core::Expected<void, std::string> AnswerYes(const GameUiContext& context, std::int32_t id)
+{
+    if (id == LeaveNumberDialog)
+        return SendTheLeave(context);
+    if (id == UI::IgnoredOverChaosCastle)
+        return AnswerTheWar(context, true);
+    return Answer(context, id, 1, id == PartyRequestDialog ? "0x62bb1d" : "0x62c20a");
+}
+
+// 0x62a7f7..0x62d745: el sí, que gasta el clic y cierra (0x62c4ac), y después el no con el diálogo que quedó, que
+// también entra con Esc. Con otro caso de la tabla del no, su tramo corta; sin caso, solo el cierre.
+Core::Expected<void, std::string> StepTheYesNo(const GameUiContext& context, bool escape)
 {
     WorldRuntime& runtime = context.world.Runtime();
-    NpcWindowState& npc = runtime.npcWindows;
     bool& click = runtime.movement.pendingClick;
-    const auto within = [&context](std::int32_t left, std::int32_t right)
+    std::int32_t id = runtime.dialogs.current;
+    const auto inButton = [&context](std::int32_t left, std::int32_t width)
+    { return InBox(context, left, YesNoTop, width, YesNoBottom - YesNoTop); };
+    const auto narrowYes = id == 0x7d || id == 0x95;
+    if (inButton(narrowYes ? NarrowYesLeft : YesLeft, narrowYes ? NarrowWidth : YesNoWidth) && click)
     {
-        return context.mouseX >= left && context.mouseY >= TypedButtonsTop && context.mouseX <= right &&
-               context.mouseY <= TypedButtonsBottom;
-    };
-    std::int32_t chosen = -1;
-    if (click)
-    {
-        if (within(TypedOkLeft, TypedOkRight))
-            return Core::Unexpected(std::string("0x626172: el OK del 0x91 lee el EDIT del diálogo ([0x5763504], la "
-                                                "vtable + 0x50, con 0x6c7b8c en 1) y valida el título con 0x5ebbd0: "
-                                                "son de la CL9.4"));
-        if (within(TypedCancelLeft, TypedCancelRight))
-        {
-            click = false;
-            chosen = 0;
-        }
+        click = false;
+        if (auto said = AnswerYes(context, id); !said.HasValue())
+            return said;
+        CloseTheDialog(runtime);
+        id = runtime.dialogs.current;
     }
-    if (runtime.ui.enterPressed)
-    {
-        runtime.ui.enterPressed = false;
-        chosen = 1;
-    }
-    else if (chosen < 0)
+    const bool narrowNo = id == 0x71 || id == 0x7d || id == 0x95;
+    if (inButton(narrowNo ? NarrowNoLeft : NoLeft, narrowNo ? NarrowWidth : YesNoWidth) && click)
+        click = false;
+    else if (!escape)
         return {};
-    npc.dialogAnswer = NoAnswer;
-    if (chosen == 1)
+    if (const auto other = std::ranges::find(OtherNoCases, id, &OtherNoCase::id); other != OtherNoCases.end())
+        return Core::Unexpected(
+            std::format("0x62c560: el no del diálogo {:#x} ({}) es {} (08 P-C363)", id, other->address, other->owner));
+    // 0x62c567: el no del 0x7d vacía el número de 0x7798bf8, pero no el EDIT (Q-C1295).
+    if (id == LeaveNumberDialog)
+        ClearTheTypedNumber(runtime.chat.input);
+    // 0x62c5c2: el no del 0x7f manda el C1 04 61 00 y deja el gremio sin guerra ni rival (0x4c1800, que llama dos veces
+    // en 0x62c854 y 0x62c86a; la segunda no cambia nada).
+    if (id == UI::IgnoredOverChaosCastle)
     {
-        if (npc.field78aba60 == TypedTitle && !npc.field78aba64.empty())
-            npc.dialogAnswer = YesAnswer;
-        else if (npc.field78aba60 == TypedPrice && npc.typedMoney > 0)
-            npc.dialogAnswer = YesAnswer;
+        if (auto said = AnswerTheWar(context, false); !said.HasValue())
+            return said;
+        ClearTheWar(context.world);
     }
-    // 0x62629a..0x6262d0: 0x553570(0), 0x6c8e68 en 0 y, con 0x6c7b8c en 1, SetFocus([0x5763544]).
-    UI::ResetTheTextBuffers(runtime.chat.input, false);
-    runtime.ui.chatOpen = false;
-    runtime.chat.input.focus = UI::ChatFocus::Game;
-    runtime.dialogs.current = runtime.dialogs.pending;
-    runtime.dialogs.pending = 0;
+    if (id == PartyRequestDialog || id == UI::ForcedDialog)
+    {
+        if (auto said = Answer(context, id, 0, id == PartyRequestDialog ? "0x62cd52" : "0x62d4a2"); !said.HasValue())
+            return said;
+    }
+    CloseTheDialog(runtime);
     return {};
 }
 } // namespace
@@ -933,8 +1115,12 @@ Core::Expected<void, std::string> StepTheOpenDialog(const GameUiContext& context
         return StepTheJewelUnmix(context);
     case DialogStep::JewelResult:
         return StepTheJewelResult(context);
-    case DialogStep::TypedText:
-        return StepTheTypedText(context);
+    case DialogStep::ConfirmBox:
+        return StepTheConfirmBox(context);
+    case DialogStep::ShopDialog:
+        return StepTheShopDialog(context);
+    case DialogStep::Warning:
+        return StepTheWarning(context, escape);
     case DialogStep::Cut:
         break;
     }

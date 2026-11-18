@@ -175,7 +175,8 @@ Core::Expected<std::optional<RepairPrice>, std::string> PriceThePet(const PetQuo
     const std::uint16_t maximum = MaxDurability(item, *record, level);
     if (item.durability >= maximum)
         return std::optional<RepairPrice>{};
-    const PetPriceLevels pets{.raven = runtime.ravenLevel, .horse = runtime.darkHorseLevel};
+    const PetPriceLevels pets{.raven = runtime.pets[RavenPetStats].level,
+                              .horse = runtime.pets[DarkHorsePetStats].level};
     auto price = ItemPrice(item, *context.items, RepairPriceMode, pets);
     if (!price.HasValue())
         return Core::Unexpected(std::move(price).Error());

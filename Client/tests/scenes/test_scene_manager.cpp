@@ -1355,7 +1355,7 @@ TEST(SceneManagerTest, GameSelectionGameHoldsAndReloadsAgain)
         {
             if (std::exchange(returning, false))
             {
-                Client::Scenes::ApplyReturnToSelection(resources);
+                return Client::Scenes::ApplyReturnToSelection(resources);
             }
             return {};
         },

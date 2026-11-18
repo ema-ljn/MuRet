@@ -6,6 +6,7 @@
 #include "Data/Terrain/TerrainHeights.h"
 #include "Protocol/Character/CharacterList.h"
 #include "Render/Models/Cloth.h"
+#include "Scenes/GuildState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/Particles.h"
@@ -108,6 +109,41 @@ TEST_F(SelectionStateTest, ConstructionReadsTheInitialCellBeforePlacingTheSlot)
     EXPECT_EQ(m_input.hero.y, 15046.0f);
     EXPECT_EQ(m_input.hero.z, 100.0f);
     EXPECT_EQ(m_state.Slots()[0].revision, 1u);
+}
+
+// 0x4c20b3..0x4c2101 (CL9 hito 8): la lista apaga la guerra y el rival y vuelve a marcar +0x374 de los vivos por el
+// gremio del héroe publicado, antes de construir los personajes (0x4c1800 en línea).
+TEST_F(SelectionStateTest, TheListEndsTheWarAndMarksTheHerosGuild)
+{
+    Client::Scenes::GuildState& guild = m_world.Runtime().guild;
+    guild.warOn = 1;
+    guild.warType = 1;
+    guild.rivalIndex = 4;
+    guild.rival = {'R', 'i', 'v', 'a', 'l', '\0', '\0', '\0', '\0'};
+    m_world.Runtime().hero = 7;
+    m_world.Actors()[7].alive = true;
+    m_world.Actors()[7].word1f2 = 2;
+    auto& partner = m_world.Actors()[20];
+    partner.alive = true;
+    partner.word1f2 = 2;
+    auto& rival = m_world.Actors()[21];
+    rival.alive = true;
+    rival.word1f2 = 4;
+    rival.byte374 = 2;
+    auto& gone = m_world.Actors()[22];
+    gone.word1f2 = 4;
+    gone.byte374 = 2;
+
+    ASSERT_TRUE(Apply({List({Entry()})}).HasValue());
+
+    EXPECT_EQ(guild.warOn, 0);
+    EXPECT_EQ(guild.warType, 1);
+    EXPECT_EQ(guild.rivalIndex, -1);
+    EXPECT_EQ(guild.rival[0], '\0');
+    EXPECT_EQ(guild.rival[1], 'i');
+    EXPECT_EQ(partner.byte374, 1);
+    EXPECT_EQ(rival.byte374, 0);
+    EXPECT_EQ(gone.byte374, 2);
 }
 
 // 0x4c20a0 → 0x517270: el mismo registro 0x20a que avanza 0x508f00; el constructor

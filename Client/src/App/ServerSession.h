@@ -1,6 +1,7 @@
 #pragma once
 
 #include "App/Credentials.h"
+#include "App/IChatRoomLinks.h"
 #include "App/ServerAddress.h"
 #include "App/SessionState.h"
 #include "Core/Expected.h"
@@ -9,11 +10,14 @@
 #include "Core/Log.h"
 #include "Network/CloseReason.h"
 #include "Network/Connection.h"
+#include "Network/IObfuscation.h"
+#include "Network/ISocket.h"
 #include "Network/Packet.h"
 #include "Protocol/Character/CharacterDelete.h"
 #include "Protocol/Character/CharacterList.h"
 #include "Protocol/Connection/ServerList.h"
 #include "Protocol/Dispatcher.h"
+#include "Protocol/FloorItems.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/Movement.h"
 #include "Protocol/OptionData.h"
@@ -23,6 +27,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <functional>
+#include <map>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string>
@@ -91,6 +98,8 @@
 //   con el GS --F1 02 con 1 cifrado: aplica en el sink la vuelta a la selección y manda F3 00 y dos
 //     C1 03 31--> WaitingCharacterList (Q-C211 a Q-C215)
 //   con el GS --F1 02 con 1 en claro: manda F1 03 00 F1--> el mismo estado (Q-C211)
+//   con el GS --F1 02 con 2: limpia el juego en escena 5; cifrado, cierra el GS y ordena login con
+//     estado Idle. LoginScene::Enter conecta al CS. En claro, sólo reporta F1 03 después de la limpieza.
 //   cualquier Waiting* que espera un servidor --ReplyTimeout sin su respuesta: cierra--> Failed
 //     (NoReply); ChoosingServer, WaitingCredentials y ChoosingCharacter esperan al jugador y no
 //     tienen tope; EnteringWorld tampoco, como el mosaico del original mientras no llega la
@@ -103,7 +112,7 @@
 // manda al final de su cuenta de 5 s (gObjCloseSet) y justo después cierra la conexión: ese cierre
 // ya no es GameServerLost, porque la sesión cerró antes y deja el resto del lote, como el original,
 // que al cerrar vacía su cola de paquetes (0x4e8380). QuitOrdered es el final: ni Start la saca. Con
-// 2 (la lista, Q-C79) se ignora con un aviso hasta la CL9.
+// 2 vuelve a la lista de servidores, por la escena de login (Q-C79).
 //
 // El F1 02 con 1 vuelve a la selección, también en cualquier estado con el GS y sin mirar la escena
 // (0x4c2710). Cifrado, el sink limpia el juego y deja la orden de la escena 4 (Scenes::ApplyReturnToSelection),
@@ -139,6 +148,9 @@ namespace Client::App
 // 04 § El flujo de conexión: el timer 1000 de 20.000 ms del original, y 156 keepalives, uno cada
 // 20 s, en el cable (02 § Una discrepancia entre documentos).
 inline constexpr Core::Duration KeepalivePeriod = std::chrono::seconds{20};
+// El timer 1002 de 15.000 ms (0x48e5a0..0x48e5f7, en el constructor de las ventanas viejas, 0x48e470, que corre en
+// WinMain después del 1000): el de las salas del chat con un amigo (ChatRoomPingDue).
+inline constexpr Core::Duration ChatRoomPingPeriod = std::chrono::seconds{15};
 
 // Lo que espera cada estado Waiting* su respuesta. No sale del original: el research no le vio un
 // tope, y sin uno, un servidor que acepta y no contesta deja la sesión esperando para siempre, sin
@@ -170,7 +182,17 @@ struct SessionSettings
 
 class ISessionEventSink;
 
-class ServerSession
+// Lo que necesitan las conexiones de las salas del chat con un amigo (IChatRoomLinks.h): un socket nuevo por sala y la
+// ofuscación de la conexión del GameServer (la de FoxAnti va en el send y el recv del proceso, *inferido*). Viven más
+// que la sesión.
+struct ChatRoomSockets
+{
+    std::function<std::unique_ptr<Network::ISocket>()> make;
+    const Network::IObfuscation* obfuscation = nullptr;
+    std::uint32_t paddingSeed = 0;
+};
+
+class ServerSession final : public IChatRoomLinks
 {
 public:
     // La conexión, el reloj, el log y el sink son de quien la arma y viven más que ella. El reloj
@@ -182,7 +204,7 @@ public:
     // Los handlers guardan this: no se copia ni se mueve.
     ServerSession(const ServerSession&) = delete;
     ServerSession& operator=(const ServerSession&) = delete;
-    ~ServerSession() = default;
+    ~ServerSession() override = default;
 
     // Conecta al ConnectServer de la config, desde cualquier estado menos QuitOrdered: lo que había
     // se cierra y se olvida (la falla, la lista, la elección, el GameServer y el resultado del
@@ -216,6 +238,11 @@ public:
     [[nodiscard]] Core::Expected<void, std::string> SendWalk(std::span<const Protocol::Movement::Cell> path,
                                                              Protocol::Movement::Cell target, float angle);
     [[nodiscard]] Core::Expected<void, std::string> SendFacing(std::uint8_t direction);
+    // CL9 hito 3: el D7 de pegar (0x5650c0, Protocol::Combat::WriteAttack), XOR32, que FoxAnti saca como A4.
+    [[nodiscard]] Core::Expected<void, std::string> SendAttack(std::uint16_t key, std::uint8_t action,
+                                                               std::uint8_t direction);
+    // CL9 hito 3: el DF de la celda del elfo que camina antes de pegar (0x59cf88, Protocol::Combat::WriteElfCell).
+    [[nodiscard]] Core::Expected<void, std::string> SendElfCell(std::uint8_t x, std::uint8_t y);
     // El C1 18 de sentarse (0x4f2416..0x4f2bea) y del emote (0x576a60 y los casos de 0x576eb0), con
     // Protocol::Movement::WriteAction: como el original con el socket en −1, sin un GameServer abierto un aviso y nada.
     void SendAction(std::uint8_t direction, std::uint8_t action);
@@ -233,8 +260,16 @@ public:
     // El 24 del ítem del cursor (Protocol::Inventory::WriteItemMove), en C3. Los dos rand() del envío los saca la
     // escena antes.
     [[nodiscard]] Core::Expected<void, std::string> SendItemMove(const Protocol::Inventory::ItemMove& move);
+    // CL9 hito 5: el C1 05 22 (0x5650c0), el C1 06 23 (0x5dfe27) y el C1 06 26 (0x59ff10 y 0x5c4110), en C3. Los dos
+    // rand() del envío los saca la escena antes.
+    [[nodiscard]] Core::Expected<void, std::string> SendPickUp(std::uint16_t index);
+    [[nodiscard]] Core::Expected<void, std::string> SendDrop(const Protocol::FloorItems::Drop& drop);
+    [[nodiscard]] Core::Expected<void, std::string> SendUseItem(const Protocol::FloorItems::UseItem& use);
     // El C1 03 42 de 0x6599a0(4), al abrir la ventana de la party (Protocol::Party::WritePartyListRequest), en claro.
     void RequestPartyList();
+    // Los C1 del gremio, de la alianza y de la guerra (Protocol::Guild; CL9 hito 8), como los demás de mundo: sin un
+    // GameServer abierto, un aviso y nada.
+    void SendGuildPacket(Protocol::Outgoing packet);
     // Los paquetes de las ventanas de los NPC (Protocol::NpcWindows, CL9 hito 6), como los demás de mundo. Los rand()
     // del C3 los saca la escena antes.
     [[nodiscard]] Core::Expected<void, std::string> SendNpcWindowPacket(Protocol::Outgoing packet);
@@ -245,8 +280,19 @@ public:
     void SendSetQuest(std::uint8_t quest, std::uint8_t state);
     // El C3 30 de la llegada a un NPC (0x5650c0, Protocol::Quest::WriteTalk).
     void SendTalk(std::int16_t key);
-    // El C1 03 31 en claro de 0x419900, al cerrar la ventana de las misiones (Protocol::Connection::WriteWindowClose).
+    // El C1 03 31 en claro de 0x419900, al cerrar la ventana de las misiones, y de cerrar un NPC de evento (0x658a18
+    // y 0x658c0e, CL9 hito 11) (Protocol::Connection::WriteWindowClose).
     void SendWindowClose();
+    // CL9 hito 11: el C1 03 97 de SendMove con 0x78abb00 en 1 o 2 (Protocol::Events::WriteEventWindowLeave), en claro,
+    // y el C1 06 AF 02 x y de 0x4fbee8 en Chaos Castle (Protocol::Events::WriteChaosCastleReposition), con el XOR
+    // de 32.
+    [[nodiscard]] Core::Expected<void, std::string> SendEventWindowLeave();
+    [[nodiscard]] Core::Expected<void, std::string> SendChaosCastleReposition(std::uint8_t x, std::uint8_t y);
+    // El C0 y los C1..C4 que mandan la ventana de amigos y sus cajas (Protocol::Friends), como los demás de mundo.
+    void SendFriendPacket(Protocol::Outgoing packet);
+    // Los paquetes de mundo que arman los pasos de la UI para el comercio, la party y el duelo (CL9 hito 7), como los
+    // demás de mundo: sin un GameServer abierto, un aviso y nada.
+    void SendGamePacket(Protocol::Outgoing packet);
     // 0x4c609f: el 00 con la escena 2 (el login) pide la lista de servidores, C1 04 F4 02, por el socket que esté
     // abierto, sin mirar cuál es. En el CS es el saludo (OnConnectHello); acá, el que llega por el GS (Q-C511).
     void ResendServerListRequest();
@@ -254,6 +300,21 @@ public:
     // abierto (0x6c82a0, el del ConnectServer mientras se ve la lista), sin mirar cuál es. Cerrado, nada:
     // el original no manda con el socket en −1.
     void SendCreditsNotice();
+
+    // Las salas del chat con un amigo (P-C211). Sin esto (los tests que no las miran, sin red), abrir una deja un aviso
+    // y la sala no se anota: lo que se le manda se descarta con otro.
+    void EnableChatRooms(ChatRoomSockets sockets);
+    // IChatRoomLinks. Cada sala es una Network::Connection con las claves del GameServer (lo que llega por ella pasa
+    // por el mismo camino, 0x4e1d50); Poll las recorre después del GameServer, en el orden de las salas, como 0x49e510
+    // recorre su mapa, y le da al sink un ChatRoomPacket por paquete y un ChatRoomClosed al cerrarse. Un paquete más
+    // corto que lo que lee su handler se ignora con un aviso (Protocol::FriendChat::CheckRoomPacket). Una que no llegó
+    // a abrir se olvida; una abierta que se cerró queda anotada hasta CloseChatRoom (lo que se le manda, se descarta).
+    // Cada ChatRoomPingPeriod desde la construcción, con alguna sala anotada, le da un ChatRoomPingDue.
+    void OpenChatRoom(std::uint32_t room, std::int32_t window, std::string_view address) override;
+    void SendToChatRoom(std::uint32_t room, Protocol::Outgoing packet) override;
+    void CloseChatRoom(std::uint32_t room) override;
+    // Las salas anotadas, para los tests.
+    [[nodiscard]] std::size_t ChatRoomCount() const;
 
     // Cuántas veces se llamó a Start: lo que elige o manda alguien de afuera (el AutoLogin) es de
     // una vuelta, y con un Start empieza otra.
@@ -341,6 +402,12 @@ public:
 private:
     void RegisterConnectServerHandlers();
     void RegisterGameServerHandlers();
+    [[nodiscard]] bool RegisterGuildHandlers();
+    // El comercio, la party y el duelo (CL9 hito 7), aparte para que cada ola sume los suyos sin tocar la cadena.
+    void RegisterSocialHandlers();
+    // Un paquete de mundo que se lee con `read` y se aplica tal cual; `what` es lo que dice el aviso si no se lee.
+    template <typename Read> void ApplyWorldPacket(const Network::Packet& packet, Read read, std::string_view what);
+    void OnTradeRequest(const Network::Packet& packet);
 
     // Los eventos de la conexión, en orden, hasta que un handler cambie o cierre la conexión.
     void HandleEvents();
@@ -365,6 +432,10 @@ private:
     void OnWeather(const Network::Packet& packet);
     void OnWalk(const Network::Packet& packet);
     void OnDamage(const Network::Packet& packet);
+    // CL9 hito 3: el 0x16 (0x4cf200), el 0x9C (0x4cfce0) y el 0x17 (0x4d0a30).
+    void OnKillExperience(const Network::Packet& packet);
+    void OnExtendedKillExperience(const Network::Packet& packet);
+    void OnDeath(const Network::Packet& packet);
     void OnAction(const Network::Packet& packet);
     // Los otros jugadores en el viewport (CL9 hito 1): 0x12, 0x14, 0x45, 0x25 y 0xDF.
     void OnViewportPlayers(const Network::Packet& packet);
@@ -374,10 +445,15 @@ private:
     void OnViewportPosition(const Network::Packet& packet);
     void OnViewportMonsters(const Network::Packet& packet);
     void OnSummons(const Network::Packet& packet);
+    // El 1A (0x4cedd0): la skill que pega a varios.
+    void OnMagicAttackCount(const Network::Packet& packet);
     void OnViewportObjects(const Network::Packet& packet);
     void OnTeleport(const Network::Packet& packet);
     void OnRegen(const Network::Packet& packet);
     void OnChat(const Network::Packet& packet);
+    // CL9 hito 11, los eventos (04 § Los eventos): los registra juntos y los lee con Protocol::Events::ReadEventPacket.
+    [[nodiscard]] bool RegisterTheEventPackets();
+    void OnEventPacket(const Network::Packet& packet);
     void OnKeyChat(const Network::Packet& packet);
     void OnWhisper(const Network::Packet& packet);
     void OnWhisperResult(const Network::Packet& packet);
@@ -390,17 +466,53 @@ private:
     void OnDurability(const Network::Packet& packet);
     void OnEquipmentChange(const Network::Packet& packet);
     void OnItemPut(const Network::Packet& packet);
+    void OnFloorItemsCreate(const Network::Packet& packet);
+    void OnFloorItemsDelete(const Network::Packet& packet);
+    void OnPickUpResult(const Network::Packet& packet);
+    void OnDropResult(const Network::Packet& packet);
+    void OnStatFruit(const Network::Packet& packet);
     // 04 § Las ventanas de los NPC: el 30 (0x4d1e00) y los demás (31..34, 81..83, 86 y 87).
     void OnTalkResult(const Network::Packet& packet);
     void OnNpcWindow(const Network::Packet& packet);
     void OnLogoutResult(const Network::Packet& packet);
+    void ReturnToServerList(bool encrypted);
     void OnMainCheck(const Network::Packet& packet);
+    // CL9 hito 8: los 18 paquetes del gremio, de la alianza y de la guerra (Protocol::Guild::ReadGuildPacket).
+    void OnGuild(const Network::Packet& packet);
+    // CL9 hito 4: las skills (04 § Las skills).
+    void RegisterSkillHandlers();
+    void OnMagicAttack(const Network::Packet& packet);
+    void OnDurationMagic(const Network::Packet& packet);
+    void OnMagicCancel(const Network::Packet& packet);
+    void OnActorState(const Network::Packet& packet);
+    void OnActorEffect(const Network::Packet& packet);
+    void OnSkillTarget(const Network::Packet& packet);
+    void OnReport73(const Network::Packet& packet);
+    void OnSkillList(const Network::Packet& packet);
+    void OnSummonLife(const Network::Packet& packet);
+    void OnPetOrder(const Network::Packet& packet);
+    void OnPetAttack(const Network::Packet& packet);
+    void OnPetInfo(const Network::Packet& packet);
     // Las misiones (CL9 hito 2): 9F, A0, A1, A2 y A3, sin guarda de escena ni del cifrado.
     void OnQuestFlag(const Network::Packet& packet);
     void OnQuestList(const Network::Packet& packet);
     void OnQuestState(const Network::Packet& packet);
     void OnSetQuestResult(const Network::Packet& packet);
     void OnQuestResult(const Network::Packet& packet);
+    // CL9 hito 9: los amigos (C0..C4, 0x4e5a4e..0x4e5aae), sin guarda de escena ni del flag de cifrado.
+    void OnFriendList(const Network::Packet& packet);
+    void OnFriendAddResult(const Network::Packet& packet);
+    void OnFriendRequest(const Network::Packet& packet);
+    void OnFriendDeleteResult(const Network::Packet& packet);
+    void OnFriendState(const Network::Packet& packet);
+    // CL9 hito 10: las cartas y el chat con un amigo (C5..C8, CA y CB, 0x4e5ac6..0x4e5b42), sin guarda de escena ni
+    // del flag de cifrado, como los de los amigos.
+    void OnLetterSendResult(const Network::Packet& packet);
+    void OnLetterRow(const Network::Packet& packet);
+    void OnLetterRead(const Network::Packet& packet);
+    void OnLetterDeleteResult(const Network::Packet& packet);
+    void OnRoomAnswer(const Network::Packet& packet);
+    void OnInviteResult(const Network::Packet& packet);
     // El F1 02 con 1, con `encrypted` en el flag del paquete.
     void ReturnToSelection(bool encrypted);
     // El keepalive con el tick de `now` y las velocidades de SetKeepaliveSpeeds.
@@ -447,9 +559,21 @@ private:
     std::optional<std::uint8_t> m_createResult;
     std::optional<std::uint8_t> m_deleteResult;
     std::optional<std::uint8_t> m_deletingSlot; // el lugar del F3 02 que salió
+    struct ChatRoomLink
+    {
+        std::int32_t window = 0;
+        bool opened = false;
+        std::unique_ptr<Network::ISocket> socket;
+        std::unique_ptr<Network::Connection> connection;
+    };
+    // Lo que llegó por cada sala, en orden.
+    void PollTheChatRooms();
+    ChatRoomSockets m_chatRoomSockets;
+    std::map<std::uint32_t, ChatRoomLink> m_chatRooms;
     // Cambia con cada Connect y cada Fail: Poll deja de recorrer el lote si cambió.
     std::uint32_t m_generation = 0;
     Core::IntervalTimer m_keepalive{KeepalivePeriod};
+    Core::IntervalTimer m_chatRoomPing{ChatRoomPingPeriod};
     KeepaliveSpeeds m_speeds;
 };
 } // namespace Client::App

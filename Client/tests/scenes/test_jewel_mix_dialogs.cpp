@@ -251,7 +251,7 @@ TEST(JewelMixDialogsTest, ChoosingTheSoulAndTwentyAsksAndTheYesSendsBc00)
 
         ASSERT_TRUE(tested.Click(YesX, AnswerY).HasValue());
         EXPECT_EQ(runtime.dialogs.current, 0xa5);
-        EXPECT_EQ(runtime.npcWindows.dialogAnswer, 1);
+        EXPECT_EQ(runtime.social.trade.warningByte, 1);
         EXPECT_EQ(runtime.npcWindows.field6e5798, 1);
         EXPECT_EQ(runtime.lastSoundId, 0x19);
         ASSERT_EQ(tested.sent.size(), 1u);
@@ -284,7 +284,7 @@ TEST(JewelMixDialogsTest, MissingJewelsWarnAndTheNoReturnsToTheChoice)
         EXPECT_EQ(runtime.dialogs.current, Client::UI::ServerTimeDialog);
         EXPECT_EQ(tested.Jewels().price, 500000);
         ASSERT_TRUE(tested.Click(NoX, AnswerY).HasValue());
-        EXPECT_EQ(runtime.npcWindows.dialogAnswer, 2);
+        EXPECT_EQ(runtime.social.trade.warningByte, 2);
         EXPECT_EQ(runtime.dialogs.current, 0xa2);
         EXPECT_TRUE(tested.sent.empty());
 

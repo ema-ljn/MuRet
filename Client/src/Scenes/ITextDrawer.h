@@ -24,6 +24,9 @@ public:
     // y la columna `firstColumn` del texto en su columna 0 (Render::Text::TextCache::DrawColumns).
     virtual void DrawColumns(int x, int y, std::string_view text, const Render::Text::TextStyle& style, int firstColumn,
                              int columns) = 0;
+    // Como DrawColumns, con la x e y directamente en píxeles, sin conversión a 640 × 480.
+    virtual void DrawColumnsAtPixels(int pixelX, int pixelY, std::string_view text,
+                                     const Render::Text::TextStyle& style, int firstColumn, int columns) = 0;
     // 0x553e50 y 0x554000, un renglón de un globo (0x555b00): la caja de `box` en (x, y) de la pantalla en píxeles,
     // corrida por 0x554000 (con 0x77f3b66, `clampY`, también la y). Con el texto vacío, el fondo solo.
     virtual void DrawBoxed(int x, int y, std::string_view text, const Render::Text::TextStyle& style,

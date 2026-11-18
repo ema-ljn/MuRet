@@ -4,6 +4,7 @@
 #include "Data/Models/PlayerModels.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/Skeleton.h"
 #include "Scenes/ActorActions.h"
 #include "Scenes/ActorConstruction.h"
 #include "Scenes/ActorEquipment.h"
@@ -14,8 +15,10 @@
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/MapLoad.h"
+#include "Scenes/MonsterCreation.h"
 #include "Scenes/NpcWindows.h"
 #include "Scenes/OwnStatHelpers.h"
+#include "Scenes/PersonalShopTitles.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/WorldEntry.h"
@@ -36,23 +39,31 @@ ActorState& PublishedHero(const WorldEntryResources& resources)
 {
     return resources.world.Actors()[resources.world.Runtime().hero];
 }
-Core::Expected<ActorStopContext, std::string> TransitionStopContext(const WorldEntryResources& resources)
+Core::Expected<ActorStopContext, std::string> TransitionStopContext(const ActorState& actor,
+                                                                    const WorldEntryResources& resources)
 {
     const auto* player = resources.models.SkeletonOf(Data::Models::PlayerSkeletonModel);
-    if (player == nullptr)
+    const bool isPlayer = actor.type == Data::Models::PlayerSkeletonModel;
+    if (player == nullptr && isPlayer)
         return Core::Unexpected(std::string("0x4f2250: falta Player.bmd en la transición"));
-    return ActorStopContext{resources.world.Runtime(),
-                            SceneId::Game,
-                            *player,
-                            resources.items,
-                            resources.cloth.random,
-                            resources.world.Map().terrain.attributes ? &resources.world.Map().terrain.attributes->cells
-                                                                     : nullptr};
+    static const Render::Models::Skeleton EmptySkeleton;
+    const Render::Models::Skeleton* playerSkeleton = player != nullptr ? player : &EmptySkeleton;
+    const Render::Models::Skeleton* actorSkeleton = isPlayer ? nullptr : MonsterSkeletonOf(resources, actor.type);
+    return ActorStopContext{.runtime = resources.world.Runtime(),
+                            .scene = SceneId::Game,
+                            .playerSkeleton = *playerSkeleton,
+                            .items = resources.items,
+                            .random = resources.cloth.random,
+                            .terrainWalls = resources.world.Map().terrain.attributes
+                                                ? &resources.world.Map().terrain.attributes->cells
+                                                : nullptr,
+                            .actorSkeleton = actorSkeleton,
+                            .modelSounds = resources.world.FaunaResources().SoundActions(actor.type)};
 }
 Core::Expected<void, std::string> StopTransitionHero(ActorState& actor, const WorldEntryResources& resources)
 {
     actor.movement = 0;
-    const auto stop = TransitionStopContext(resources);
+    const auto stop = TransitionStopContext(actor, resources);
     if (!stop.HasValue())
         return Core::Unexpected(stop.Error());
     const auto stopped = SetActorStop(actor, stop.Value());
@@ -65,7 +76,7 @@ Core::Expected<void, std::string> StopTransitionHero(ActorState& actor, const Wo
 Core::Expected<void, std::string> DressTransitionHero(ActorState& actor, const WorldEntryResources& resources)
 {
     auto& world = resources.world;
-    const auto stop = TransitionStopContext(resources);
+    const auto stop = TransitionStopContext(actor, resources);
     if (!stop.HasValue())
         return Core::Unexpected(stop.Error());
     const ActorEquipmentContext context{
@@ -149,6 +160,8 @@ void ClearTransitionActorsAndItems(std::uint16_t playerKey, const WorldEntryReso
     for (auto& item : resources.world.DrawTail().floorItems)
         item.alive = false;
     KillOtherActors(resources.world, static_cast<std::int32_t>(playerKey));
+    // 0x4c4e86..0x4c4e8d y 0x4c77eb..0x4c77f2: 0x451590 deja solo el cartel de la tienda del héroe.
+    KeepTheHeroShopTitle(resources.world);
 }
 void CreateTransitionArrival(ActorState& actor, const WorldEntryResources& resources)
 {
@@ -158,11 +171,14 @@ void CreateTransitionArrival(ActorState& actor, const WorldEntryResources& resou
 Core::Expected<void, std::string> StartTheTeleportAction(ActorState& actor, const WorldEntryResources& resources)
 {
     RefreshCombatActionSpeeds(resources);
-    const auto stop = TransitionStopContext(resources);
+    const auto stop = TransitionStopContext(actor, resources);
     if (!stop.HasValue())
         return Core::Unexpected(stop.Error());
     constexpr std::uint8_t TeleportAction = 0x93;
-    Render::Models::SetAction(actor.animation, stop.Value().playerSkeleton, TeleportAction);
+    if (actor.type == Data::Models::PlayerSkeletonModel)
+        Render::Models::SetAction(actor.animation, stop.Value().playerSkeleton, TeleportAction);
+    else if (stop.Value().actorSkeleton != nullptr)
+        Render::Models::SetAction(actor.animation, *stop.Value().actorSkeleton, TeleportAction);
     actor.animation.frame = 5.0f;
     actor.byte80 = 3;
     actor.alphaTarget = 1.0f;
@@ -176,7 +192,7 @@ Core::Expected<void, std::string> CloseTransitionWindows(const WorldEntryResourc
 {
     GamePanels panels(resources.world, resources.cloth.random);
     LendTheNpcWindows(panels, resources);
-    panels.LendTheWindowClose(resources.sendWindowClose);
+    panels.LendTheSession(resources.world, resources.cloth.random, resources.sendGamePacket, resources.sendWindowClose);
     return panels.Registry().CloseAll();
 }
 } // namespace Client::Scenes

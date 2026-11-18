@@ -10,6 +10,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <span>
 #include <string>
 #include <string_view>
 
@@ -87,11 +88,9 @@ struct DialogBoxState
 // siguiente. MuRet corta al final de las 10.
 [[nodiscard]] std::string_view DialogAnswer(const DialogBoxState& box, std::size_t row);
 
-// Lo que leen los textos con formato de 0x633300 (0x63333d y 0x63340d), de los globales de otras ventanas.
+// Lo que lee el texto con formato del 0xa3 de 0x633300 (0x63340d), de los globales de otras ventanas.
 struct DialogTextArguments
 {
-    // 0x99: el número de 0x77f3b6c ya con sus puntos (0x5b1130).
-    std::string_view money{};
     // 0xa3, la mezcla de joyas: 0x6e5794 (0 juntar, 1 deshacer), 0x6c62e0 (la joya: 0 bendición y cualquier otro el
     // alma), 0x6e579a (las contadas), 0x6c62dc (el nivel del paquete, 0x402ae0) y 0x6e579c (el precio).
     std::int32_t jewelMode = 0;
@@ -115,11 +114,9 @@ void OpenMessageBox(DialogBoxState& box, DialogState& dialogs, std::string_view 
 // (0x633644..0x633739) nombran el ítem de los diálogos (`dialogItem`, 0x78a59c8): la fruta (0x1a0f) de nivel 0 a 4
 // con el texto 168, 169, 167, 166 o 1900, cualquier otro con nada, entre "( " y " )" en el primer renglón (con el
 // 1901 detrás en el 0xa8), y debajo `lineCount` veces el texto `firstText`; el 0xa8 con sus tres botones. Sin el ítem
-// cortan. Los de 0x99 y 0xa3 arman su texto con un formato (0x63333d y 0x63340d) con lo que trae `arguments`: sin
-// él cortan. Lo que se escribiría fuera de los 7 renglones corta, como un texto que no está.
-//   - 0x99: el texto `firstText` como formato con el número de 0x77f3b6c con sus puntos (0x5b1130, que arma quien
-//     llama) en el primer renglón y los siguientes `lineCount − 1` con 0x69fd9b sin argumentos (el texto es el
-//     formato: MuRet lo copia, y un '%' saldría distinto).
+// cortan. El 0x99 lo abre OpenTheMoneyTextDialog, y aquí corta. El 0xa3 arma su texto con un formato (0x63340d) con
+// lo que trae `arguments`: sin él corta. Lo que se escribiría fuera de los 7 renglones corta, como un texto que no
+// está.
 //   - 0xa3: "%s ... %d" (1809 al juntar, con la joya y las contadas; 1813 al deshacer, con la joya y el nivel + 1),
 //     con la joya del 1806 o del 1807, partido en a lo sumo 2 renglones de 0x1e bytes (0x632c90 en la pila, cuyos
 //     renglones copia con strcpy a los dos primeros), y debajo el precio con el 1810 o el 1814. Sin mirar
@@ -128,6 +125,21 @@ void OpenMessageBox(DialogBoxState& box, DialogState& dialogs, std::string_view 
 OpenTextDialog(DialogBoxState& box, DialogState& dialogs, const Data::Text::TextTable* texts, std::int32_t lineCount,
                std::int32_t firstText, std::int32_t id, const World::ItemState* dialogItem = nullptr,
                const DialogTextArguments* arguments = nullptr);
+
+// 0x633300(renglones, primerTexto, 0x99) (CL9 hito 7): el primer renglón es el sprintf del texto `firstText` con
+// `zen`, lo que 0x5b1130 escribe del zen tipeado (0x77f3b6c; quien llama lo arma con Scenes::FormatZen), y los que
+// siguen, los textos `firstText + 1` .. `firstText + lineCount − 1` con el mismo sprintf sin argumentos (un "%%" sale
+// como "%"); la cuenta queda en `lineCount`. Los botones y el id, como OpenTextDialog.
+[[nodiscard]] Core::Expected<void, std::string> OpenTheMoneyTextDialog(DialogBoxState& box, DialogState& dialogs,
+                                                                       const Data::Text::TextTable* texts,
+                                                                       std::int32_t lineCount, std::int32_t firstText,
+                                                                       std::string_view zen);
+
+// 0x633300(n, 0x482, 0x9a) con los textos 1154.. ya escritos en la memoria de Text.bmd por quien llama (el 91 con 4,
+// 0x4da8c0, CL9 hito 11): `texts` en el lugar de los n registros, partidos con 0x632c90 uno detrás del otro, los
+// botones del 0x9a y el 0x9a por 0x6236f0.
+[[nodiscard]] Core::Expected<void, std::string> OpenTheChaosCastleDialog(DialogBoxState& box, DialogState& dialogs,
+                                                                         std::span<const std::string_view> texts);
 
 // 0x419710(índice), lo que muestra la ventana de las misiones: [0x6d5e28] = índice, el texto de Dialog.bmd partido en
 // los 7 renglones (0x632c90), las respuestas en 0 y, por cada una, "%d) %s" (wsprintf con 0x6c64b8) en un renglón; sin

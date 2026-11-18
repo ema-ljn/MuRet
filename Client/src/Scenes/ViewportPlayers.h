@@ -57,7 +57,8 @@ WalkToTheTarget(ActorState& actor, std::uint8_t targetX, std::uint8_t targetY, c
 // 0x4ea030; las banderas (0x4e6380); la celda protegida y +0x39a/+0x39b; el ángulo, (dirección − 1) · 45. Recién
 // llegado (el bit 15): la posición en el centro de la celda, el efecto 0x61f (0x518cf0, sin el dueño en +0x108, como la
 // entrada del héroe) y el alpha en 0. Si no, el camino hasta +0x26/+0x27 (0x4eac00) y, si hay, +0x378 en 1. En Kalima
-// (24 a 29 y 36) corta en 0x4c91dc (el joint 0x610 de 0x530860, CL11). Después, el equipo (ApplyCharacterSet con el
+// (24 a 29 y 36), el joint 0x610/8 con el jugador de dueño (0x4c91dc, la clase de los peces de Atlans con
+// JointOwnerKind::Actor; sin rand(), con los joints llenos nada). Después, el equipo (ApplyCharacterSet con el
 // lugar de 0x5110d0), el nombre y +0x1e3 en 0, con el estado 1 otra vez +0x360 y +0x78, Castle Siege (0x42ab40) y el
 // panel (0x412140). Cada celda escrita o leída gasta 4 rand() al cerrarse; el alta, los 28 de 0x511290 y los de sus
 // ayudantes.
@@ -65,9 +66,8 @@ WalkToTheTarget(ActorState& actor, std::uint8_t targetX, std::uint8_t targetY, c
                                                                      const WorldEntryResources& resources);
 
 // 0x4ca780: por cada clave, con la información del asedio (0x5767924), la entera 0x13d pone sus bytes 4..6 en 0 y
-// cualquier otra los 0x1f..0x21 (Q-C802); 0x510ff0 (RemoveActor) con la clave sin el bit 15; y 0x451630 busca la
-// tienda personal de esa clave en el mapa de 0x7245c8, que solo llena el 0x3F (hito 7): vacío en MuRet, nunca llega a
-// 0x451430.
+// cualquier otra los 0x1f..0x21 (Q-C802); 0x510ff0 (RemoveActor) con la clave sin el bit 15; y 0x451630 busca el
+// cartel de la tienda personal de esa clave en el mapa de 0x7245c8 (el primero en su orden) y 0x451430 lo saca.
 void ApplyViewportLeave(const Protocol::Viewport::Leave& leave, WorldState& world);
 
 // 0x4c92a0: con "webzen" en el nombre, el registro no hace nada. Si no, la clase del héroe publicado (0x4c9328), el
@@ -97,8 +97,9 @@ FinishTheTransformed(std::size_t index, const Protocol::Viewport::TransformedRec
 
 // 0x4c6b40: el personaje de la clave entera (0x5110d0). Con el tipo 0xf1 (el que crea 0x5141e0 para los tipos 160,
 // 180, 188, 196, 266, 274 y 337): +0xe4 en 20, la X y la Y de la celda leídas con su acceso, +0xd0 y +0xcc con las
-// diferencias por 400 y el sonido 0x1b (WorldRuntime::lastSoundId, CL10); corta en 0x4c6c9d (los joints 0x5c5 de
-// 0x51fe10, CL11). Si no, la celda protegida en pkt[5] y pkt[6], +0x39a/+0x39b y +0x399 en 1.
+// diferencias por 400 y el sonido 0x1b (WorldRuntime::lastSoundId, CL10); 0x51fe10(posición, 0) intenta veinte
+// partículas 5c5/2 a Z+80, con dos sorteos por intento aun con el pool lleno y cinco adicionales por alta. Si no, la
+// celda protegida en pkt[5] y pkt[6], +0x39a/+0x39b y +0x399 en 1.
 [[nodiscard]] Core::Expected<void, std::string> ApplyViewportPosition(const Protocol::Viewport::Position& position,
                                                                       const WorldEntryResources& resources);
 } // namespace Client::Scenes

@@ -26,12 +26,21 @@
 #include "Network/PacketSerials.h"
 #include "Network/SocketError.h"
 #include "Protocol/BuildConstants.h"
+#include "Protocol/Combat.h"
+#include "Protocol/Events.h"
+#include "Protocol/FloorItems.h"
+#include "Protocol/FriendChat.h"
+#include "Protocol/Guild.h"
+#include "Protocol/Outgoing.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/JewelMix.h"
 #include "Protocol/Messages.h"
 #include "Protocol/Movement.h"
 #include "Protocol/NpcWindows.h"
 #include "Protocol/OptionData.h"
+#include "Protocol/Pet/PetInfo.h"
+#include "Protocol/Pet/PetOrders.h"
+#include "Protocol/Skill.h"
 #include "Protocol/Quest.h"
 #include "Protocol/Viewport.h"
 #include "Protocol/World.h"
@@ -1030,6 +1039,118 @@ TEST(ServerSessionTest, AClearWorldEntryReplyIsReportedWithF103)
     EXPECT_TRUE(SameBytes(Xor32Decode(received.packets.back()).Bytes(), Bytes({0xC1, 0x06, 0xF1, 0x03, 0x00, 0xF3})));
     EXPECT_TRUE(tested.eventSink.TakeWorldEvents().empty());
     EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
+}
+
+// CL9 hito 4: las skills que llegan cifradas entran al mundo, cada una con su tipo.
+TEST(ServerSessionTest, TheEncryptedSkillsReachTheWorld)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    tested.socket.reads = {Join({
+        FromTheGameServer(Bytes({0xC1, 0x08, 0x19, 0x0D, 0x12, 0x34, 0x80, 0x56}), tested.gameServerSends),
+        FromTheGameServer(Bytes({0xC1, 0x09, 0x1E, 0x0E, 0x12, 0x34, 0x80, 0x81, 0x40}), tested.gameServerSends),
+        FromTheGameServer(Bytes({0xC1, 0x06, 0x1B, 0x1B, 0x12, 0x34}), tested.gameServerSends),
+        FromTheGameServer(Bytes({0xC1, 0x0A, 0x07, 0x01, 0x10, 0x00, 0x00, 0x00, 0x12, 0x34}), tested.gameServerSends),
+        FromTheGameServer(Bytes({0xC1, 0x06, 0x48, 0x12, 0x34, 0x10}), tested.gameServerSends),
+        FromTheGameServer(Bytes({0xC1, 0x08, 0x69, 0x03, 0x34, 0x12, 0x56, 0x00}), tested.gameServerSends),
+        FromTheGameServer(Bytes({0xC1, 0x08, 0xF3, 0x11, 0xFE, 0x00, 0x02, 0x11}), tested.gameServerSends),
+        FromTheGameServer(Bytes({0xC1, 0x05, 0xF3, 0x20, 0x42}), tested.gameServerSends),
+        FromTheGameServer(Bytes({0xC1, 0x04, 0x73, 0x00}), tested.gameServerSends),
+    })};
+    const std::size_t sentBefore = tested.GameServerReads().packets.size();
+    static_cast<void>(tested.session.Poll());
+    const std::vector<WorldEvent> events = tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 8u);
+    const auto* attack = std::get_if<Client::Protocol::Skill::MagicAttack>(&events[0]);
+    ASSERT_NE(attack, nullptr);
+    EXPECT_EQ(attack->source, 0x1234);
+    EXPECT_EQ(attack->target, 0x0056);
+    EXPECT_TRUE(attack->succeeded);
+    EXPECT_NE(std::get_if<Client::Protocol::Skill::DurationMagic>(&events[1]), nullptr);
+    EXPECT_NE(std::get_if<Client::Protocol::Skill::MagicCancel>(&events[2]), nullptr);
+    EXPECT_NE(std::get_if<Client::Protocol::Skill::ActorState>(&events[3]), nullptr);
+    EXPECT_NE(std::get_if<Client::Protocol::Skill::ActorEffect>(&events[4]), nullptr);
+    EXPECT_NE(std::get_if<Client::Protocol::Skill::SkillTarget>(&events[5]), nullptr);
+    const auto* list = std::get_if<Client::Protocol::Skill::SkillList>(&events[6]);
+    ASSERT_NE(list, nullptr);
+    EXPECT_EQ(list->slot, 2);
+    EXPECT_EQ(list->skill, 0x11);
+    const auto* summon = std::get_if<Client::Protocol::Skill::SummonLife>(&events[7]);
+    ASSERT_NE(summon, nullptr);
+    EXPECT_EQ(summon->life, 0x42);
+    // El 73 cifrado no hace nada (0x4d5b10).
+    EXPECT_EQ(tested.GameServerReads().packets.size(), sentBefore);
+    EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
+}
+
+// 0x4cc562, 0x4ce032 y 0x4d5d8c: el 19, el 1E y el 73 sin cifrar no entran y avisan con el F1 03 00 [cabeza].
+TEST(ServerSessionTest, TheClearSkillsAreReportedWithF103)
+{
+    for (const auto& [packet, head] : {std::pair{Bytes({0xC1, 0x08, 0x19, 0x0D, 0x12, 0x34, 0x80, 0x56}), 0x19},
+                                       std::pair{Bytes({0xC1, 0x09, 0x1E, 0x0E, 0x12, 0x34, 0x80, 0x81, 0x40}), 0x1E},
+                                       std::pair{Bytes({0xC1, 0x04, 0x73, 0x00}), 0xF1}})
+    {
+        Harness tested(IdentityObfuscation::Shared());
+        ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+        const std::size_t sentBefore = tested.GameServerReads().packets.size();
+        tested.socket.reads = {packet};
+        static_cast<void>(tested.session.Poll());
+        const GameServerReceived received = tested.GameServerReads();
+        ASSERT_EQ(received.packets.size(), sentBefore + 1) << head;
+        EXPECT_TRUE(
+            SameBytes(Xor32Decode(received.packets.back()).Bytes(), Bytes({0xC1, 0x06, 0xF1, 0x03, 0x00, head})));
+        EXPECT_TRUE(tested.eventSink.TakeWorldEvents().empty());
+        EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
+    }
+}
+
+// Los demás no miran el cifrado (0x4cbe90, 0x4cbe00, 0x4dbf50, 0x4cc290 y 0x4c5070).
+TEST(ServerSessionTest, TheOtherClearSkillsReachTheWorld)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    tested.socket.reads = {
+        Join({Bytes({0xC1, 0x06, 0x1B, 0x1B, 0x12, 0x34}), Bytes({0xC1, 0x08, 0x69, 0x03, 0x34, 0x12, 0x56, 0x00}),
+              Bytes({0xC1, 0x07, 0xF3, 0x11, 0xFF, 0x00, 0x02})})};
+    static_cast<void>(tested.session.Poll());
+    EXPECT_EQ(tested.eventSink.TakeWorldEvents().size(), 3u);
+}
+
+// 0x4e4c0a y 0x4e4c42: las órdenes del cuervo entran al mundo sin mirar el cifrado.
+TEST(ServerSessionTest, TheRavenOrdersReachTheWorld)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    tested.socket.reads = {Join({Bytes({0xC1, 0x07, 0xA7, 0x00, 0x03, 0x12, 0x34}),
+                                 Bytes({0xC1, 0x09, 0xA8, 0x00, 0x01, 0x12, 0x34, 0x05, 0x67})})};
+    static_cast<void>(tested.session.Poll());
+    const std::vector<WorldEvent> events = tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 2u);
+    const auto* order = std::get_if<Client::Protocol::Pet::PetOrder>(&events[0]);
+    ASSERT_NE(order, nullptr);
+    EXPECT_EQ(order->order, 3);
+    EXPECT_EQ(order->key, 0x1234);
+    const auto* attack = std::get_if<Client::Protocol::Pet::PetAttack>(&events[1]);
+    ASSERT_NE(attack, nullptr);
+    EXPECT_EQ(attack->kind, 1);
+    EXPECT_EQ(attack->owner, 0x1234);
+    EXPECT_EQ(attack->target, 0x0567);
+}
+
+// 0x4e4ca1: el A9 de las mascotas entra al mundo sin mirar el cifrado (CL9 hito 4).
+TEST(ServerSessionTest, ThePetInfoReachesTheWorld)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    tested.socket.reads = {Bytes({0xC1, 0x0C, 0xA9, 0x00, 0x00, 0x01, 0x07, 0x00, 0x10, 0x27, 0x00, 0x00})};
+    static_cast<void>(tested.session.Poll());
+    const std::vector<WorldEvent> events = tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 1u);
+    const auto* info = std::get_if<Client::Protocol::Pet::PetInfoReply>(&events[0]);
+    ASSERT_NE(info, nullptr);
+    EXPECT_EQ(info->slot, 1);
+    EXPECT_EQ(info->level, 7);
+    EXPECT_EQ(info->experience, 10000u);
 }
 
 // 0x4c1ec0: el F1 00 aceptado deja la clave del jugador (pkt[5..6], big endian) para el F3 03.
@@ -2316,29 +2437,24 @@ TEST(ServerSessionTest, TheQuitOrderStopsTheKeepalive)
     EXPECT_EQ(tested.session.Failure(), std::nullopt);
 }
 
-// Con 2 (la lista), el original cambia de escena (Q-C79): hasta la CL9, la sesión lo ignora con un aviso
-// y sigue. Con otro que 0, 1 o 2, el original no hace nada, y acá, lo mismo con su aviso. Sin el
-// resultado, no se puede leer.
+// Fuera de 0/1/2 el original no hace nada; sin el resultado, no se puede leer.
 TEST(ServerSessionTest, TheOtherLogoutResultsAreIgnored)
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
 
-    tested.socket.reads = {FromTheGameServer(LogoutResult(2), tested.gameServerSends),
-                           FromTheGameServer(LogoutResult(3), tested.gameServerSends), Bytes({0xC1, 0x04, 0xF1, 0x02})};
+    tested.socket.reads = {FromTheGameServer(LogoutResult(3), tested.gameServerSends), Bytes({0xC1, 0x04, 0xF1, 0x02})};
     static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
     EXPECT_EQ(tested.connection.State(), LinkState::Open);
     const auto ignored = [](int result)
     {
-        return std::format("[warning] se ignora la orden de salida del GameServer (F1 02 con {}): MuRet sigue la de "
-                           "cerrar el juego, con 0, y la de volver a la selección, con 1",
+        return std::format("[warning] se ignora la orden de salida del GameServer (F1 02 con {}): motivo desconocido",
                            result);
     };
     EXPECT_EQ(tested.Warnings(),
-              (Lines{ignored(2), ignored(3),
-                     "[warning] se ignora la orden de salida del GameServer (F1 02): no se puede leer"}));
+              (Lines{ignored(3), "[warning] se ignora la orden de salida del GameServer (F1 02): no se puede leer"}));
     EXPECT_TRUE(tested.eventSink.TakeWorldEvents().empty());
 }
 
@@ -2413,6 +2529,69 @@ TEST(ServerSessionTest, AnEncryptedLogoutWithOneGoesToTheSelection)
 
     EXPECT_EQ(tested.session.State(), SessionState::EnteringWorld);
     EXPECT_EQ(tested.CharacterPacketsSent(SelectSubcode).size(), 2u);
+}
+
+// 0x4c2ef3..0x4c2f51: cierra GS y deja el estado 0, sin error; la escena 2 inicia el CS.
+TEST(ServerSessionTest, AnEncryptedTwoClosesTheOldConnectionWithoutConsumingItsRemainingPackets)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(ReachInWorld(tested));
+    const std::size_t sentBefore = tested.socket.sent.size();
+    tested.socket.reads = {FromTheGameServer(LogoutResult(2), tested.gameServerSends),
+                           CharacterListBytes(TwoCharacters())};
+    tested.socket.peerClosed = true;
+
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+
+    EXPECT_EQ(tested.session.State(), SessionState::Idle);
+    EXPECT_EQ(tested.connection.State(), LinkState::Closed);
+    EXPECT_EQ(tested.session.Failure(), std::nullopt);
+    EXPECT_FALSE(tested.session.Characters().has_value());
+    EXPECT_EQ(tested.session.ChosenCharacter(), nullptr);
+    EXPECT_EQ(tested.eventSink.TakeWorldEvents().size(), 2u);
+    EXPECT_EQ(tested.socket.sent.size(), sentBefore);
+    EXPECT_FALSE(tested.Logged(LogLevel::Error, "se perdió la conexión"));
+    tested.PollEachFrameUntil(seconds{43});
+    EXPECT_EQ(tested.socket.sent.size(), sentBefore);
+    EXPECT_EQ(tested.session.Failure(), std::nullopt);
+    tested.socket.peerClosed = false;
+    tested.session.Start();
+    EXPECT_EQ(tested.session.State(), SessionState::ConnectingConnectServer);
+}
+
+// A diferencia del 1, el 2 limpia el juego ANTES de comprobar el cifrado (0x4c275c..0x4c2781).
+TEST(ServerSessionTest, AClearTwoStillDeliversTheCleanupAndReportsWithoutClosing)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(ReachInWorld(tested));
+    const std::size_t sentBefore = tested.GameServerReads().packets.size();
+    tested.socket.reads = {LogoutResult(2)};
+
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+
+    EXPECT_EQ(tested.session.State(), SessionState::InWorld);
+    EXPECT_EQ(tested.connection.State(), LinkState::Open);
+    EXPECT_EQ(tested.eventSink.TakeWorldEvents().size(), 1u);
+    const auto sent = GameServerPacketsFrom(tested, sentBefore);
+    ASSERT_EQ(sent.size(), 1u);
+    EXPECT_TRUE(SameBytes(sent[0].Bytes(), Bytes({0xC1, 0x06, 0xF1, 0x03, 0x00, 0xF1})));
+}
+
+TEST(ServerSessionTest, EveryReadableLogoutResultReleasesThePendingUiRequest)
+{
+    for (const int result : {0, 1, 2, 3})
+    {
+        SCOPED_TRACE(result);
+        Harness tested(IdentityObfuscation::Shared());
+        ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+        bool requested = true;
+        tested.eventSink.onLogoutResponse = [&] { requested = false; };
+        tested.socket.reads = {LogoutResult(result)};
+
+        ASSERT_TRUE(tested.session.Poll().HasValue());
+
+        EXPECT_FALSE(requested);
+    }
 }
 
 // 0x4c2f5b: sin cifrar, el 1 no limpia ni cambia de escena: solo le avisa al GS con el F1 03 00 F1, para
@@ -4300,6 +4479,24 @@ TEST(ServerSessionTest, AShortViewportPacketOrDurabilityStillTakesItsCopy)
     EXPECT_NE(tested.session.State(), SessionState::Failed);
 }
 
+// 0x4e3594..0x4e361c: el dispatcher copia el 0B a la cola de 0x77f27b4 antes de su caso (CL9 hito 11), aunque llegue
+// corto y no se pueda leer; el entero sigue al mundo después de la copia.
+TEST(ServerSessionTest, AnEventStateTakesItsCopyEvenShort)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    const auto shortState = Bytes({0xc1, 4, 0x0b, 1});
+    const auto state = Bytes({0xc1, 5, 0x0b, 1, 3});
+    tested.socket.reads = {Join({shortState, state})};
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+    ASSERT_EQ(tested.eventSink.packetCopies.size(), 2u);
+    EXPECT_TRUE(SameBytes(tested.eventSink.packetCopies[0], shortState));
+    EXPECT_TRUE(SameBytes(tested.eventSink.packetCopies[1], state));
+    ASSERT_EQ(tested.eventSink.world.size(), 1u);
+    EXPECT_TRUE(std::holds_alternative<Client::Protocol::Events::EventPacket>(tested.eventSink.world[0]));
+    EXPECT_NE(tested.session.State(), SessionState::Failed);
+}
+
 // P-C33: incluso un 1C sin campos pasa por el rechazo antes del lector semántico.
 TEST(ServerSessionTest, UnencryptedTeleportIsAnsweredWithF103BeforeReadingItsFields)
 {
@@ -4398,6 +4595,77 @@ TEST(ServerSessionTest, TheLifeAndTheManaReachTheWorldBeforeTheMap)
     ASSERT_NE(mana, nullptr);
     EXPECT_EQ(mana->place, 0x15);
     EXPECT_EQ(mana->mana, 0x5a);
+}
+
+// 04 § Pegar, el daño y la muerte (CL9 hito 3): el 16 y el 9C cifrados (como los arma la GS: GCKillPlayerExpSend y
+// la recompensa de Blood Castle) y el 17 de 5 bytes llegan al mundo en orden; el 15 de la GS (GCDamageSend) no tiene
+// caso; el 16 y el 9C sin cifrar se contestan con el F1 03 y su opcode, sin leerlos. Las claves son inventadas.
+TEST(ServerSessionTest, TheKillsAndTheDeathReachTheWorldAndTheClearOnesAreReported)
+{
+    namespace Combat = Client::Protocol::Combat;
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    const auto kill = Bytes({0xc1, 9, 0x16, 0x81, 0x2c, 0x03, 0xe8, 0x00, 0x2a});
+    const auto reward = Bytes({0xc1, 0x0c, 0x9c, 0xff, 0xff, 0xcc, 0x01, 0x00, 0x20, 0x4e, 0x00, 0x00});
+    tested.socket.reads = {Join({FromTheGameServer(kill, tested.gameServerSends), Bytes({0xc1, 7, 0x15, 0, 1, 0, 9}),
+                                 FromTheGameServer(reward, tested.gameServerSends), Bytes({0xc1, 5, 0x17, 0, 7})})};
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+    const auto events = tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 3u);
+    const auto* killed = std::get_if<Combat::KillExperience>(&events[0]);
+    ASSERT_NE(killed, nullptr);
+    EXPECT_EQ(killed->key, 0x012c);
+    EXPECT_TRUE(killed->shock);
+    EXPECT_EQ(killed->amount, 1000u);
+    EXPECT_EQ(killed->damage, 42);
+    const auto* rewarded = std::get_if<Combat::KillExperience>(&events[1]);
+    ASSERT_NE(rewarded, nullptr);
+    EXPECT_EQ(rewarded->key, 0x7fff);
+    EXPECT_TRUE(rewarded->shock);
+    EXPECT_EQ(rewarded->amount, 0x10000u + 20000u);
+    const auto* died = std::get_if<Combat::Death>(&events[2]);
+    ASSERT_NE(died, nullptr);
+    EXPECT_EQ(died->key, 7);
+    EXPECT_EQ(died->skill, 0);
+    EXPECT_EQ(died->killer, 0);
+
+    for (const std::uint8_t opcode : {Combat::KillExperienceOpcode, Combat::ExtendedKillExperienceOpcode})
+    {
+        const auto before = tested.GameServerReads().packets.size();
+        tested.socket.reads = {Bytes({0xc1, 9, opcode, 0, 1, 0, 2, 0, 3})};
+        ASSERT_TRUE(tested.session.Poll().HasValue());
+        const auto reported = tested.GameServerReads();
+        ASSERT_EQ(reported.packets.size(), before + 1);
+        EXPECT_TRUE(SameBytes(Xor32Decode(reported.packets.back()).Bytes(), Bytes({0xc1, 6, 0xf1, 3, 0, opcode})));
+        EXPECT_TRUE(reported.packets.back().WasDecrypted());
+        EXPECT_TRUE(tested.eventSink.world.empty());
+    }
+    EXPECT_NE(tested.session.State(), SessionState::Failed);
+}
+
+// 07 Q-C1240: con el GameServer 0.97, el 22 (C3 de 8 bytes), el 23 sin pkt[4] y el 2C de un byte no traen lo que lee
+// el cliente, pero 0x4d0cc0, 0x4d10d0 y 0x4de500 sueltan su espera en todos sus caminos: al mundo llega solo eso. El
+// 20 de entradas de 9 bytes no escribe nada fijo y no llega. Los valores son inventados.
+TEST(ServerSessionTest, TheShortFloorItemRepliesStillReleaseTheirWaits)
+{
+    namespace FloorItems = Client::Protocol::FloorItems;
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    tested.socket.reads = {
+        Join({FromTheGameServer(Bytes({0xc1, 0x08, 0x22, 0x0c, 0x00, 0x18, 0x2c, 0}), tested.gameServerSends),
+              Bytes({0xc1, 0x04, 0x23, 0x01}), Bytes({0xc1, 0x03, 0x23}), Bytes({0xc1, 0x04, 0x2c, 0x23}),
+              Bytes({0xc2, 0x00, 0x0e, 0x20, 1, 0x00, 0x05, 130, 120, 0x00, 0x18, 0x2c, 0, 0})})};
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+    const auto events = tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 4u);
+    EXPECT_TRUE(std::holds_alternative<FloorItems::ShortPickUpResult>(events[0]));
+    const auto* dropped = std::get_if<FloorItems::ShortDropResult>(&events[1]);
+    ASSERT_NE(dropped, nullptr);
+    EXPECT_EQ(dropped->result, std::optional<std::uint8_t>{std::uint8_t{1}});
+    const auto* bare = std::get_if<FloorItems::ShortDropResult>(&events[2]);
+    ASSERT_NE(bare, nullptr);
+    EXPECT_FALSE(bare->result.has_value());
+    EXPECT_TRUE(std::holds_alternative<FloorItems::ShortStatFruit>(events[3]));
 }
 
 // La conexión cifra sólo el gate: los tres C1 de mundo restantes salen con XOR32 sin C3.
@@ -4754,6 +5022,46 @@ TEST(ServerSessionTest, PartyListRequestGoesClearToTheGameServerOnly)
     EXPECT_FALSE(received.packets.back().WasDecrypted());
 }
 
+// CL9 hito 8: los paquetes del gremio (un C1 y el C2 de la lista) llegan al sink como Protocol::Guild::GuildPacket; uno
+// que no se lee se ignora sin cortar la sesión.
+TEST(ServerSessionTest, GuildPacketsReachTheSink)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    const auto join = Bytes({0xc1, 5, 0x50, 0x01, 0x23});
+    const auto list =
+        Bytes({0xc2, 0, 0x18, 0x52, 1, 0, 0, 0, 5, 0, 0, 0, 0, 'T', 'e', 'r', 'o', 's', 0, 0, 0, 0, 0, 0});
+    const auto broken = Bytes({0xc1, 3, 0x51});
+    const auto refresh = Bytes({0xc1, 5, 0xeb, 1, 0});
+    tested.socket.reads = {Join({join, list, broken, refresh})};
+    EXPECT_TRUE(tested.session.Poll().HasValue());
+    ASSERT_EQ(tested.eventSink.world.size(), 3u);
+    const auto* asked = std::get_if<Client::Protocol::Guild::GuildPacket>(&tested.eventSink.world[0]);
+    ASSERT_NE(asked, nullptr);
+    EXPECT_EQ(std::get<Client::Protocol::Guild::JoinRequest>(*asked).key, 0x0123);
+    const auto* listed = std::get_if<Client::Protocol::Guild::GuildPacket>(&tested.eventSink.world[1]);
+    ASSERT_NE(listed, nullptr);
+    EXPECT_EQ(std::get<Client::Protocol::Guild::MemberList>(*listed).score, 5);
+    const auto* refreshed = std::get_if<Client::Protocol::Guild::GuildPacket>(&tested.eventSink.world[2]);
+    ASSERT_NE(refreshed, nullptr);
+    EXPECT_TRUE(std::holds_alternative<Client::Protocol::Guild::UnionListRefresh>(*refreshed));
+    EXPECT_NE(tested.session.State(), SessionState::Failed);
+}
+
+// Lo que mandan las respuestas del gremio va por el GameServer tal cual lo arma Protocol::Guild.
+TEST(ServerSessionTest, GuildPacketsGoToTheGameServer)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    const auto before = tested.GameServerReads().packets.size();
+    tested.session.SendGuildPacket(Client::Protocol::Guild::WriteMemberListRequest());
+    tested.session.SendGuildPacket(Client::Protocol::Guild::WriteJoinAnswer(true, 0x0123));
+    const auto received = tested.GameServerReads();
+    ASSERT_EQ(received.packets.size(), before + 2);
+    EXPECT_TRUE(SameBytes(received.packets[before].Bytes(), Bytes({0xc1, 3, 0x52})));
+    EXPECT_TRUE(SameBytes(Xor32Decode(received.packets[before + 1]).Bytes(), Bytes({0xc1, 6, 0x51, 1, 0x01, 0x23})));
+}
+
 TEST(ServerSessionTest, FacingCannotGoToTheConnectServerOrAClosedConnection)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -4762,5 +5070,148 @@ TEST(ServerSessionTest, FacingCannotGoToTheConnectServerOrAClosedConnection)
     const auto before = tested.socket.sent.size();
     EXPECT_FALSE(tested.session.SendFacing(3).HasValue());
     EXPECT_EQ(tested.socket.sent.size(), before);
+}
+
+// Las salas del chat con un amigo (CL9 hito 10, P-C211): cada una con su socket, que arma la fábrica de
+// EnableChatRooms y queda anotado acá para el guion.
+struct ChatRoomHarness
+{
+    ChatRoomHarness()
+    {
+        tested.session.EnableChatRooms(Client::App::ChatRoomSockets{.make =
+                                                                        [this]
+                                                                    {
+                                                                        auto socket = std::make_unique<FakeSocket>();
+                                                                        socket->pollsUntilConnected = connectingPolls;
+                                                                        socket->connectResult = connectResult;
+                                                                        sockets.push_back(socket.get());
+                                                                        return socket;
+                                                                    },
+                                                                    .obfuscation = &IdentityObfuscation::Shared(),
+                                                                    .paddingSeed = PaddingSeed});
+    }
+
+    Harness tested{IdentityObfuscation::Shared()};
+    std::vector<FakeSocket*> sockets;
+    int connectingPolls = 1;
+    std::optional<SocketError> connectResult;
+};
+
+// 0x49de50 conecta al 55980 de la IP del CA; el C1 10 00 espera al connect (0x493530) y sale tal cual; lo que llega
+// va al sink con la sala y la ventana (0x49e510 → 0x4e1d50 con 1); cada 15 s, con la sala anotada, el ChatRoomPingDue
+// (el timer 1002); el FD_CLOSE de una sala abierta la deja anotada hasta CloseChatRoom (0x49e480 → 0x4e8380).
+TEST(ServerSessionTest, AChatRoomHasItsOwnConnection)
+{
+    ChatRoomHarness rooms;
+    ServerSession& session = rooms.tested.session;
+    rooms.tested.AdvanceTo(std::chrono::seconds{15});
+    ASSERT_TRUE(session.Poll().HasValue());
+    EXPECT_TRUE(rooms.tested.eventSink.TakeWorldEvents().empty());
+
+    session.OpenChatRoom(0x0304, 42, "10.0.0.9");
+    ASSERT_EQ(rooms.sockets.size(), 1u);
+    FakeSocket& socket = *rooms.sockets[0];
+    ASSERT_EQ(socket.connects.size(), 1u);
+    EXPECT_EQ(socket.connects[0].host, "10.0.0.9");
+    EXPECT_EQ(socket.connects[0].port, 55980);
+    EXPECT_EQ(session.ChatRoomCount(), 1u);
+    const Client::Protocol::Outgoing join = Client::Protocol::FriendChat::WriteJoin(0x0304, 77);
+    const ByteVector joinBytes(join.packet.Bytes().begin(), join.packet.Bytes().end());
+    session.SendToChatRoom(0x0304, join);
+    EXPECT_TRUE(socket.sent.empty());
+
+    socket.reads = {Bytes({0xc1, 0x04, 0x00, 0x01})};
+    ASSERT_TRUE(session.Poll().HasValue());
+    ASSERT_TRUE(session.Poll().HasValue());
+    EXPECT_TRUE(SameBytes(socket.sent, joinBytes));
+    std::vector<WorldEvent> events = rooms.tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 1u);
+    const auto* packet = std::get_if<Client::App::ChatRoomPacket>(&events[0]);
+    ASSERT_NE(packet, nullptr);
+    EXPECT_EQ(packet->room, 0x0304u);
+    EXPECT_EQ(packet->window, 42);
+    EXPECT_TRUE(SameBytes(packet->packet.Bytes(), Bytes({0xc1, 0x04, 0x00, 0x01})));
+
+    rooms.tested.AdvanceTo(std::chrono::seconds{30});
+    ASSERT_TRUE(session.Poll().HasValue());
+    events = rooms.tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 1u);
+    EXPECT_TRUE(std::holds_alternative<Client::App::ChatRoomPingDue>(events[0]));
+
+    socket.peerClosed = true;
+    ASSERT_TRUE(session.Poll().HasValue());
+    events = rooms.tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 1u);
+    const auto* closed = std::get_if<Client::App::ChatRoomClosed>(&events[0]);
+    ASSERT_NE(closed, nullptr);
+    EXPECT_EQ(closed->room, 0x0304u);
+    EXPECT_EQ(closed->window, 42);
+    EXPECT_TRUE(closed->opened);
+    EXPECT_EQ(session.ChatRoomCount(), 1u);
+
+    session.CloseChatRoom(0x0304);
+    EXPECT_EQ(session.ChatRoomCount(), 0u);
+    session.SendToChatRoom(0x0304, Client::Protocol::FriendChat::WritePing());
+    EXPECT_TRUE(rooms.tested.Logged(LogLevel::Warning, "no tiene conexión"));
+}
+
+// Los handlers de 0x4e2a60 leen cada paquete de la sala por su lugar sin mirar su largo (Q-C1011): uno más corto que lo
+// que lee su handler se ignora con un aviso sin el texto, uno por opcode (00, 01, 02, 04 y 0D), y la sesión sigue. Un
+// 0D con su
+// '\0' adentro, más corto que pkt[0x68], llega al sink.
+TEST(ServerSessionTest, AShortChatRoomPacketIsIgnoredAndTheSessionGoesOn)
+{
+    ChatRoomHarness rooms;
+    ServerSession& session = rooms.tested.session;
+    session.OpenChatRoom(0x0304, 42, "10.0.0.9");
+    ASSERT_EQ(rooms.sockets.size(), 1u);
+    FakeSocket& socket = *rooms.sockets[0];
+    socket.reads = {Bytes({0xc1, 0x03, 0x00}),
+                    Bytes({0xc1, 0x08, 0x01, 0x00, 0x05, 'H', 'o', 'r'}),
+                    Bytes({0xc1, 0x0b, 0x02, 0x00, 0x00, 0x00, 0x02, 0x00, 0x02, 'H', 'o'}),
+                    Bytes({0xc1, 0x07, 0x04, 0x01, 0x0a, 'h', 'o'}),
+                    Bytes({0xc1, 0x0a, 0x0d, 0x00, 0x00, 'q', 'u', 'e', 's', 'o'}),
+                    Bytes({0xc1, 0x0b, 0x0d, 0x00, 0x00, 'q', 'u', 'e', 's', 'o', 0x00})};
+    for (int poll = 0; poll < 8; ++poll)
+        ASSERT_TRUE(session.Poll().HasValue());
+    const std::vector<WorldEvent> events = rooms.tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 1u);
+    const auto* packet = std::get_if<Client::App::ChatRoomPacket>(&events[0]);
+    ASSERT_NE(packet, nullptr);
+    EXPECT_EQ(packet->packet.Opcode(), std::optional<std::uint8_t>(0x0d));
+    EXPECT_EQ(rooms.tested.CountLogged(LogLevel::Warning, "de la sala 772 del chat con un amigo"), 5u);
+    EXPECT_FALSE(rooms.tested.Logged(LogLevel::Warning, "queso"));
+    EXPECT_FALSE(rooms.tested.Logged(LogLevel::Warning, "Hor"));
+    EXPECT_EQ(session.Failure(), std::nullopt);
+    EXPECT_EQ(session.ChatRoomCount(), 1u);
+}
+
+// El connect que falla: la sala se olvida (0x49de50 no la anota). Una sala que ya tiene la suya no abre otra.
+TEST(ServerSessionTest, AChatRoomThatDoesNotConnectIsForgotten)
+{
+    ChatRoomHarness rooms;
+    rooms.connectResult = SocketError::Refused;
+    ServerSession& session = rooms.tested.session;
+    session.OpenChatRoom(9, 7, "10.0.0.9");
+    session.OpenChatRoom(9, 8, "10.0.0.9");
+    EXPECT_EQ(rooms.sockets.size(), 1u);
+    ASSERT_TRUE(session.Poll().HasValue());
+    ASSERT_TRUE(session.Poll().HasValue());
+    const std::vector<WorldEvent> events = rooms.tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 1u);
+    const auto* closed = std::get_if<Client::App::ChatRoomClosed>(&events[0]);
+    ASSERT_NE(closed, nullptr);
+    EXPECT_EQ(closed->window, 7);
+    EXPECT_FALSE(closed->opened);
+    EXPECT_EQ(session.ChatRoomCount(), 0u);
+}
+
+// Sin EnableChatRooms (sin red), la sala no se abre y avisa.
+TEST(ServerSessionTest, WithoutChatRoomSocketsNoRoomOpens)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    tested.session.OpenChatRoom(9, 7, "10.0.0.9");
+    EXPECT_EQ(tested.session.ChatRoomCount(), 0u);
+    EXPECT_TRUE(tested.Logged(LogLevel::Warning, "no hay red para las salas"));
 }
 } // namespace

@@ -16,6 +16,8 @@ class CrtRandom;
 // jugadores en el viewport". Todo *estático*, del ASM (0x5139f0..0x5140b3).
 namespace Client::Scenes
 {
+struct ActorState;
+struct HelperState;
 class WorldState;
 struct WorldEntryResources;
 
@@ -39,4 +41,13 @@ struct WorldEntryResources;
 // las manos, +0x358 con b[10] & 1, 0x4053f0 y 0x512930. Lo que MuRet no tiene corta con error después de lo de antes.
 [[nodiscard]] Core::Expected<void, std::string> ApplyCharacterSet(std::size_t index, GameLogic::Equipment equipment,
                                                                   const WorldEntryResources& resources);
+
+// 0x5139f0(0, equipo, objeto, ayudante), como lo llama el retrato de las cartas (0x497810): lo mismo sobre un personaje
+// fuera del pool con su ayudante propio. En vez de 0x443d40 apaga ese ayudante (0x513b39), y cada mascota va derecho a
+// 0x443d70 sobre él (0x513b7b..0x513ce5), sin las condiciones de 0x443fa0 (en los mapas 18 a 23 0x443d70 no arma
+// nada): la primera que lo arma lo deja vivo y las de después no lo tocan (Q-C1026). El cuervo (0x420cf0) va al
+// personaje como en el pool.
+[[nodiscard]] Core::Expected<void, std::string> ApplyCharacterSetTo(ActorState& actor, HelperState& helper,
+                                                                    GameLogic::Equipment equipment,
+                                                                    const WorldEntryResources& resources);
 } // namespace Client::Scenes

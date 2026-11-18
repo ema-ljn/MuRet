@@ -199,4 +199,324 @@ TEST(TextFieldTest, DeselectLeavesTheCursorAtTheEnd)
 
     EXPECT_EQ(field.Value(), "abc");
 }
+
+TEST(TextFieldTest, DeselectMovesPartialSelectionCaretToEnd)
+{
+    TextField field(10, false);
+    field.SetText("abcd");
+    field.Select(1, 2);
+
+    field.Deselect();
+
+    EXPECT_EQ(field.Cursor(), field.Size());
+    EXPECT_FALSE(field.HasSelection());
+    field.Type("e");
+    EXPECT_EQ(field.Value(), "abcde");
+}
+
+TEST(TextFieldTest, InsertsAtCursorWithoutChangingLegacyAppend)
+{
+    TextField field(10, false);
+    field.Type("ac");
+    field.SetCursor(1);
+
+    field.Type("b");
+
+    EXPECT_EQ(field.Value(), "abc");
+    EXPECT_EQ(field.Cursor(), 2u);
+    EXPECT_FALSE(field.HasSelection());
+}
+
+TEST(TextFieldTest, SelectsInEitherDirectionAndReportsOrderedRange)
+{
+    TextField field(10, false);
+    field.SetText("abcd");
+
+    field.Select(3, 1);
+
+    EXPECT_TRUE(field.HasSelection());
+    EXPECT_EQ(field.SelectionBegin(), 1u);
+    EXPECT_EQ(field.SelectionEnd(), 3u);
+    EXPECT_EQ(field.Selected(), "bc");
+    EXPECT_EQ(field.Cursor(), 1u);
+
+    field.Select(1, 3);
+    EXPECT_EQ(field.SelectionBegin(), 1u);
+    EXPECT_EQ(field.SelectionEnd(), 3u);
+    EXPECT_EQ(field.Selected(), "bc");
+    EXPECT_EQ(field.Cursor(), 3u);
+}
+
+TEST(TextFieldTest, ShiftMovementExtendsAndContractsSelection)
+{
+    TextField field(10, false);
+    field.SetText("abcd");
+    field.SetCursor(1);
+
+    field.MoveRight(true);
+    field.MoveRight(true);
+    EXPECT_EQ(field.Selected(), "bc");
+    EXPECT_EQ(field.Cursor(), 3u);
+
+    field.MoveLeft(true);
+    EXPECT_EQ(field.Selected(), "b");
+    EXPECT_EQ(field.Cursor(), 2u);
+}
+
+TEST(TextFieldTest, HomeAndEndRespectShiftAndClampPositions)
+{
+    TextField field(10, false);
+    field.SetText("abcd");
+    field.SetCursor(2);
+
+    field.MoveHome(true);
+    EXPECT_EQ(field.Selected(), "ab");
+    EXPECT_EQ(field.Cursor(), 0u);
+
+    field.MoveEnd();
+    EXPECT_EQ(field.Cursor(), 4u);
+    EXPECT_FALSE(field.HasSelection());
+
+    field.SetCursor(100);
+    EXPECT_EQ(field.Cursor(), 4u);
+}
+
+TEST(TextFieldTest, ArrowsMoveFromTheActiveCaretAndClearSelection)
+{
+    TextField field(10, false);
+    field.SetText("abcd");
+    field.Select(1, 3);
+
+    field.MoveLeft();
+    EXPECT_EQ(field.Cursor(), 2u);
+    EXPECT_FALSE(field.HasSelection());
+
+    field.Select(1, 3);
+    field.MoveRight();
+    EXPECT_EQ(field.Cursor(), 4u);
+    EXPECT_FALSE(field.HasSelection());
+
+    field.Select(3, 1);
+    field.MoveLeft();
+    EXPECT_EQ(field.Cursor(), 0u);
+    EXPECT_FALSE(field.HasSelection());
+
+    field.Select(3, 1);
+    field.MoveRight();
+    EXPECT_EQ(field.Cursor(), 2u);
+    EXPECT_FALSE(field.HasSelection());
+}
+
+TEST(TextFieldTest, DeleteAndBackspaceEraseSelectionOrAdjacentByte)
+{
+    TextField field(10, false);
+    field.SetText("abcd");
+    field.SetCursor(2);
+    field.Backspace();
+    EXPECT_EQ(field.Value(), "acd");
+    EXPECT_EQ(field.Cursor(), 1u);
+
+    field.Delete();
+    EXPECT_EQ(field.Value(), "ad");
+    EXPECT_EQ(field.Cursor(), 1u);
+
+    field.Select(0, 2);
+    field.Delete();
+    EXPECT_EQ(field.Value(), "");
+    EXPECT_EQ(field.Cursor(), 0u);
+
+    field.SetText("ab");
+    field.SetCursor(0);
+    field.Backspace();
+    EXPECT_EQ(field.Value(), "ab");
+    field.SetCursor(2);
+    field.Delete();
+    EXPECT_EQ(field.Value(), "ab");
+}
+
+TEST(TextFieldTest, SelectionReplacementUsesResultingLengthForLimit)
+{
+    TextField field(4, false);
+    field.SetText("abcd");
+    field.Select(1, 3);
+
+    field.Type("XYZ");
+
+    EXPECT_EQ(field.Value(), "aXYd");
+    EXPECT_EQ(field.Cursor(), 3u);
+}
+
+TEST(TextFieldTest, RejectedUtf8KeepsSelectionUntilAValidCharacterArrives)
+{
+    TextField field(4, false);
+    field.SetText("abcd");
+    field.Select(1, 3);
+
+    field.Type("\xc3\xa1");
+    EXPECT_EQ(field.Value(), "abcd");
+    EXPECT_EQ(field.Selected(), "bc");
+
+    field.Type("Z");
+    EXPECT_EQ(field.Value(), "aZd");
+}
+
+TEST(TextFieldTest, SetTextBeyondLimitLeavesCursorAtEndAndCanEditThere)
+{
+    TextField field(2, false);
+    field.SetText("long");
+
+    EXPECT_EQ(field.Cursor(), 4u);
+    field.Type("x");
+    EXPECT_EQ(field.Value(), "long");
+    EXPECT_EQ(field.Cursor(), 4u);
+}
+
+TEST(TextFieldTest, SelectionAndCursorResetWithClear)
+{
+    TextField field(10, false);
+    field.SetText("abcd");
+    field.Select(1, 3);
+
+    field.Clear();
+
+    EXPECT_EQ(field.Cursor(), 0u);
+    EXPECT_FALSE(field.HasSelection());
+    EXPECT_TRUE(field.Selected().empty());
+}
+
+TEST(TextFieldTest, Windows1252XpTypingUsesBestFitAndQuestionMarkSubstitution)
+{
+    TextField field(10, false, TextField::Charset::Windows1252Xp);
+
+    field.Type("e\xcc\x81\xe2\x82\xac\xef\xbc\xa1\xce\x91\xf0\x9f\x98\x80");
+
+    EXPECT_EQ(field.Value(), std::string("e\xb4\x80"
+                                         "A???"));
+}
+
+TEST(TextFieldTest, MalformedWindows1252XpTypingKeepsTheSelection)
+{
+    TextField field(10, false, TextField::Charset::Windows1252Xp);
+    field.SetText("abcd");
+    field.Select(1, 3);
+
+    field.Type("X\xc3");
+
+    EXPECT_EQ(field.Value(), "abcd");
+    EXPECT_EQ(field.Selected(), "bc");
+}
+
+TEST(TextFieldTest, InsertBytesPreservesControlBytesAndReplacesSelectionWithinLimit)
+{
+    TextField field(4, false, TextField::Charset::Windows1252Xp);
+    field.SetText("abcd");
+    field.Select(1, 3);
+
+    field.InsertBytes(std::string("\x7f\nZ", 3));
+
+    EXPECT_EQ(field.Value(), std::string("a\x7f\nd", 4));
+    EXPECT_EQ(field.Cursor(), 3u);
+    EXPECT_FALSE(field.HasSelection());
+}
+
+TEST(TextFieldTest, InsertBytesCanReplaceUsingAViewIntoItsOwnSelection)
+{
+    TextField field(10, false, TextField::Charset::Windows1252Xp);
+    field.SetText("abcd");
+    field.Select(1, 3);
+    const std::string_view selected = field.Selected();
+
+    field.InsertBytes(selected);
+
+    EXPECT_EQ(field.Value(), "abcd");
+    EXPECT_EQ(field.Cursor(), 3u);
+    EXPECT_FALSE(field.HasSelection());
+}
+
+TEST(TextFieldTest, InsertBytesWithNoBytesDoesNotReplaceASelection)
+{
+    TextField field(10, false, TextField::Charset::Windows1252Xp);
+    field.SetText("abcd");
+    field.Select(1, 3);
+
+    field.InsertBytes("");
+
+    EXPECT_EQ(field.Value(), "abcd");
+    EXPECT_EQ(field.Selected(), "bc");
+    EXPECT_EQ(field.Cursor(), 3u);
+}
+
+TEST(TextFieldTest, PasteUtf8ConvertsBeforeApplyingTheByteLimit)
+{
+    TextField field(3, false, TextField::Charset::Windows1252Xp);
+    field.SetText("x");
+    field.SelectAll();
+
+    field.PasteUTF8("e\xcc\x81\xe2\x82\xacZ");
+
+    EXPECT_EQ(field.Value(), std::string("e\xb4\x80", 3));
+    EXPECT_EQ(field.Cursor(), 3u);
+}
+
+TEST(TextFieldTest, MalformedWindows1252XpPasteKeepsTheSelection)
+{
+    TextField field(10, false, TextField::Charset::Windows1252Xp);
+    field.SetText("abcd");
+    field.Select(1, 3);
+
+    field.PasteUTF8("X\xf0\x9f");
+
+    EXPECT_EQ(field.Value(), "abcd");
+    EXPECT_EQ(field.Selected(), "bc");
+}
+
+TEST(TextFieldTest, EmptyWindows1252XpPasteErasesTheSelection)
+{
+    TextField field(10, false, TextField::Charset::Windows1252Xp);
+    field.SetText("abcd");
+    field.Select(1, 3);
+
+    field.PasteUTF8("");
+
+    EXPECT_EQ(field.Value(), "ad");
+    EXPECT_EQ(field.Cursor(), 1u);
+    EXPECT_FALSE(field.HasSelection());
+}
+
+TEST(TextFieldTest, Windows1252XpPasteStopsAtCarriageReturnAndKeepsLineFeed)
+{
+    TextField field(10, false, TextField::Charset::Windows1252Xp);
+    field.PasteUTF8("A\nB\rC");
+    EXPECT_EQ(field.Value(), std::string("A\nB", 3));
+
+    field.Clear();
+    field.PasteUTF8("X\rY");
+    EXPECT_EQ(field.Value(), "X");
+}
+
+TEST(TextFieldTest, PasteUTF8StopsAtCarriageReturnAndReplacesTheSelection)
+{
+    TextField field(10, false, TextField::Charset::Windows1252Xp);
+    field.SetText("abcd");
+    field.Select(1, 3);
+
+    field.PasteUTF8("X\rYZ");
+
+    EXPECT_EQ(field.Value(), "aXd");
+    EXPECT_EQ(field.Cursor(), 2u);
+    EXPECT_FALSE(field.HasSelection());
+}
+
+TEST(TextFieldTest, PasteUTF8StopsAtEmbeddedNullAndReplacesTheSelection)
+{
+    TextField field(10, false, TextField::Charset::Windows1252Xp);
+    field.SetText("abcd");
+    field.Select(1, 3);
+
+    field.PasteUTF8(std::string_view("X\0YZ", 4));
+
+    EXPECT_EQ(field.Value(), "aXd");
+    EXPECT_EQ(field.Cursor(), 2u);
+    EXPECT_FALSE(field.HasSelection());
+}
 } // namespace

@@ -185,31 +185,6 @@ struct NpcWindowState
     // 0x78abb3a: la tecla de la caja de la contraseña apretada. La prende el clic en el paso del teclado (0x5e9ab8) y
     // la apaga soltarlo (0x5e9ac9); el dibujo (0x5e9e25) baja un punto el número de la tecla del mouse.
     std::uint8_t keypadPressed = 0;
-    // 0x78abb14: lo que espera el diálogo de sí o no que abrió el ítem del cursor (.bss, 0). 1 la venta valiosa (el
-    // 0x98 de 0x5df417), 2 la mezcla (el 0x98 de 0x5fe610), 4 el teclado del almacén (el 0x98 del panel 0x2000,
-    // 0x5e75fc), 3, 5 y 6 los de la CL9.4. 0x5d8d50 lo vuelve a 0 al leer la respuesta.
-    std::int32_t cursorChoice = 0;
-    // 0x6c932e (.data, 0xff): la respuesta de los diálogos 0x94, 0x98 y 0x99 (0x62a779) y del 0x91
-    // (0x626251..0x626293): 1 sí y 2 no. 0x5d8d50 la vuelve a 0xff al leerla. Hito 7: `trade.warningByte` (el lead los
-    // une al juntar las ramas).
-    std::uint8_t dialogAnswer = 0xff;
-    // 0x78abacc: el botón del almacén que abrió el diálogo 0x73, 0 meter zen y 1 sacarlo (0x5ea18f).
-    std::int32_t warehouseMoneyMode = 0;
-    // 0x77f3b6c: el número del campo del diálogo 0x73, que escribe el atoi del WndProc (0x4af4e0) sobre su EDIT
-    // (0x5763504). MuRet no tiene ese EDIT (06 § El chat): queda en lo que dejó el 0x73 al abrirse. El OK del 0x91 con
-    // el precio también le escribe el atoi (0x6261ea) y su Enter lo lee (0x626281). Hito 7: `typedMoney`.
-    std::int32_t typedMoney = 0;
-    // 0x78aba60: lo que pide el 0x91, 1 el título (el texto 1128) y 2 el precio (el 1129). Lo pone quien lo abre, la
-    // tienda personal del hito 7, que lo une con su campo al juntar las ramas.
-    std::int32_t field78aba60 = 0;
-    // 0x78aba64: el título de la tienda personal; el OK del 0x91 copia ahí lo escrito (0x6261b8) y su Enter mira si
-    // está vacío (0x626262). Hito 7: `personalShop.title`.
-    std::string field78aba64{};
-    // 0x6c8e78 (.data, 10) y 0x77f3b6a: el modo de la entrada sin EDIT y el campo numérico de los diálogos. Abrir el
-    // 0x73 los pone en 8 y 1 (0x5ea1a5) y cerrarlo en 0x2a y 0 (0x62821f, 0x4e4831); los lee el WndProc, que MuRet no
-    // tiene.
-    std::int32_t inputMode = 10;
-    std::uint8_t numberField = 0;
     // 0x7d2dc98: el tipo de la mezcla que manda el C1 04 86 (0x5d93f8). Lo arma 0x5fd4b0 en cada paso con la caja
     // abierta (0x5d8dda, Scenes::ScanTheChaosBox).
     std::int32_t mixKind = 0;

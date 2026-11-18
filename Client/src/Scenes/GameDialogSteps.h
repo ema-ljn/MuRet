@@ -33,9 +33,17 @@ enum class DialogStep : std::uint8_t
     Buttons,
     // 0x6263df: Enter o el botón (0x11c, 0x62, 0x46, 0x15) cierran.
     GenericOk,
-    // 0x6282dc: los dos botones de sí y no (y Esc, el no) de 0x94, 0x96, 0x98, 0x99, 0x9a, 0xa3, 0xa8 (con su tercero),
-    // 0xa9 y 0xaa.
+    // 0x62a7f7: sí (0xea, 0x62, 0x46 × 0x15) y no (0x14e) o Esc, de la invitación a la party (0x77, el C1 05 41 en C3)
+    // y del pedido de comercio (0x78, el C1 04 37 en claro).
     YesNo,
+    // 0x6260d1 (CL9 hito 7): la caja de confirmación 0x9c, 0x471930 sobre 0x575d9d0 (0x471e80, que la construye la
+    // primera vez).
+    ConfirmBox,
+    // 0x6260f6 (CL9 hito 7): el título o el precio de la tienda personal (0x91), con el EDIT de [0x5763504].
+    ShopDialog,
+    // 0x6282dc..0x62843f y 0x62a779 (CL9 hitos 6 y 7): los dos botones de sí y no (y Esc, el no) de 0x94, 0x96, 0x98,
+    // 0x99, 0x9a, 0xa3, 0xa8 (con su tercero), 0xa9 y 0xaa. El 0x94, el 0x98 y el 0x99 dejan la respuesta en 0x6c932e.
+    Warning,
     // 0x625910: el modo de la caja del caos (0x8e).
     ChaosMixMode,
     // 0x6259c6, 0x625b23, 0x625cf4 y 0x625f98: la mezcla de joyas (0xa1, 0xa2, 0xa4 y 0xa6, Scenes/JewelMix.h).
@@ -43,8 +51,6 @@ enum class DialogStep : std::uint8_t
     JewelChoice,
     JewelUnmix,
     JewelResult,
-    // 0x6260f6: el título o el precio de la tienda personal (0x91).
-    TypedText,
     // Un tramo de otra ola: corta con `address` y `wave`.
     Cut,
 };
@@ -65,8 +71,8 @@ struct DialogRoute
 // El tramo de `id`.
 [[nodiscard]] DialogRoute DialogRouteOf(std::int32_t id);
 
-// 0x623f78: con un diálogo abierto, su tramo. Sin ninguno, nada. `escape` es [ebp − 0x7d], el flanco de Esc de
-// 0x623eb5 (falso con la ventana de amigos abierta), que leen los de sí y no (0x628409).
+// 0x623f78: con un diálogo abierto, su tramo. Sin ninguno, nada. `escape` es [EBP−0x7d] de 0x623e70: Esc leído
+// (0x553520(0x1b)) con la ventana de amigos cerrada, que miran el no de 0x62c50e y los de sí y no de 0x628409.
 [[nodiscard]] Core::Expected<void, std::string> StepTheOpenDialog(const GameUiContext& context, bool escape);
 
 // 0x61c210 hasta el paquete: los 24 bytes de su pila. Abre y cierra el registro propio (0xf08 rand() de la tabla de

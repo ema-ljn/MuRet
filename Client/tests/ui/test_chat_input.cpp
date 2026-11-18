@@ -1,5 +1,7 @@
 #include "UI/ChatInput.h"
 
+#include "UI/OldWindowBase.h"
+
 #include <gtest/gtest.h>
 
 #include <optional>
@@ -53,6 +55,19 @@ TEST(ChatInputTest, ResettingTheBuffersLeavesTheWhisperWithoutSecond)
     EXPECT_EQ(input.whisperLength, 0);
 }
 
+// 0x5535bd..0x5535cf: con 0x6c7b8c en 1, el texto del EDIT de [0x5763504] queda vacío, sin tocar su estado ni el foco.
+TEST(ChatInputTest, ResettingTheBuffersEmptiesTheDialogEdit)
+{
+    ChatInputState input;
+    input.dialogEdit.text.SetText("1234");
+    input.dialogEdit.base.state = ShownWindow;
+    input.focus = ChatFocus::Dialog;
+    ResetTheTextBuffers(input, false);
+    EXPECT_EQ(input.dialogEdit.text.Value(), "");
+    EXPECT_EQ(input.dialogEdit.base.state, ShownWindow);
+    EXPECT_EQ(input.focus, ChatFocus::Dialog);
+}
+
 // 0x469450: 3 oculta y devuelve el foco a la ventana del juego; 0 muestra y da el foco al del mensaje; 1 solo muestra.
 TEST(ChatInputTest, ShowingAndHidingMovesTheFocus)
 {
@@ -65,6 +80,26 @@ TEST(ChatInputTest, ShowingAndHidingMovesTheFocus)
     ShowTheChatFields(input, 3);
     EXPECT_FALSE(input.shown);
     EXPECT_EQ(input.focus, ChatFocus::Game);
+}
+
+// 0x469450(3) oculta sólo los dos del chat: el EDIT del diálogo, el del número o el de una ventana vieja conservan el
+// foco (el campo del nombre del gremio no lo pierde cuando un paquete esconde el chat).
+TEST(ChatInputTest, HidingTheChatKeepsTheFocusOfAnotherEdit)
+{
+    for (const ChatFocus other : {ChatFocus::Dialog, ChatFocus::NumberField, ChatFocus::OldWindow})
+    {
+        ChatInputState input;
+        ShowTheChatFields(input, 1);
+        input.focus = other;
+        ShowTheChatFields(input, 3);
+        EXPECT_FALSE(input.shown);
+        EXPECT_EQ(input.focus, other);
+    }
+    ChatInputState whisper;
+    ShowTheChatFields(whisper, 1);
+    whisper.focus = ChatFocus::Whisper;
+    ShowTheChatFields(whisper, 3);
+    EXPECT_EQ(whisper.focus, ChatFocus::Game);
 }
 
 // 0x469370 no hace nada con los EDIT ocultos; con ellos a la vista, el foco y todo elegido.
@@ -107,6 +142,49 @@ TEST(ChatInputTest, TypingStopsAtTheLimitsOfTheEdits)
     FocusTheChatField(input, WhisperField);
     TypeInTheChat(input, "NombreLargoDeMas");
     EXPECT_EQ(input.whisper.Value(), "NombreLarg");
+}
+
+TEST(ChatInputTest, MessageAndWhisperStoreXpWindows1252Bytes)
+{
+    ChatInputState input = OpenInput();
+    TypeInTheChat(input, "€漢😊é");
+    const std::string expected("\x80???e\xb4", 6);
+
+    EXPECT_EQ(input.message.Value().size(), expected.size());
+    EXPECT_TRUE(input.message.Value() == expected);
+
+    input.focus = ChatFocus::Whisper;
+    TypeInTheChat(input, "€漢😊é");
+
+    EXPECT_EQ(input.whisper.Value().size(), expected.size());
+    EXPECT_TRUE(input.whisper.Value() == expected);
+}
+
+TEST(ChatInputTest, MessageAndWhisperLimitsCountEncodedBytesAndReplaceSelection)
+{
+    ChatInputState input = OpenInput();
+    input.message.SetText(std::string(ChatMessageLimit - 1, 'm'));
+    TypeInTheChat(input, "€x");
+    ASSERT_EQ(input.message.Value().size(), ChatMessageLimit);
+    EXPECT_EQ(static_cast<unsigned char>(input.message.Value().back()), 0x80U);
+
+    input.whisper.SetText(std::string(ChatWhisperLimit - 1, 'w'));
+    input.focus = ChatFocus::Whisper;
+    TypeInTheChat(input, "€x");
+    ASSERT_EQ(input.whisper.Value().size(), ChatWhisperLimit);
+    EXPECT_EQ(static_cast<unsigned char>(input.whisper.Value().back()), 0x80U);
+
+    input.message.SetText("antiguo");
+    input.message.SelectAll();
+    input.focus = ChatFocus::Message;
+    TypeInTheChat(input, "€");
+    EXPECT_TRUE(input.message.Value() == std::string("\x80", 1));
+
+    input.whisper.SetText("anterior");
+    input.whisper.SelectAll();
+    input.focus = ChatFocus::Whisper;
+    TypeInTheChat(input, "€");
+    EXPECT_TRUE(input.whisper.Value() == std::string("\x80", 1));
 }
 
 // 0x4693e0 y 0x4694c0: los EDIT a los buffers, y un texto de 0x100 bytes o más no se pone.
@@ -212,6 +290,61 @@ TEST(ChatInputTest, TheArrowsWalkTheWhisperNames)
     EXPECT_TRUE(StepTheWhisperName(input, 1));
     EXPECT_FALSE(StepTheWhisperName(input, 1));
     EXPECT_EQ(input.whisperNameAt, LastWhisperNameSlot);
+}
+
+// [0x5763508] (CL9 hito 8): oculto, con ES_PASSWORD y el tope 9 de WinMain (0x4bbad7); a la vista toma el foco y lo
+// tecleado pasa por el filtro de la subclase (0x467bd1): con el bit 0 (el 9 del diálogo 0x7d) solo los dígitos.
+// GetText llega al buffer y SetText(0) lo vacía; 0x553570 también (con o sin el segundo buffer).
+TEST(ChatInputTest, TheNumberFieldTakesOnlyDigits)
+{
+    ChatInputState input;
+    EXPECT_EQ(input.numberField.base.state, HiddenWindow);
+    EXPECT_EQ(input.numberField.base.id, NumberFieldId);
+    EXPECT_TRUE(input.numberField.text.Masked());
+    FocusTheNumberField(input);
+    EXPECT_EQ(input.focus, ChatFocus::Game);
+
+    ShowTheNumberField(input, 0);
+    FocusTheNumberField(input);
+    EXPECT_EQ(input.focus, ChatFocus::NumberField);
+    input.numberField.filter = 9;
+    TypeInTheChat(input, "12a-B 3456789");
+    EXPECT_EQ(input.numberField.text.Value(), "123456789");
+    EXPECT_EQ(input.numberField.text.Shown(), "*********");
+    BackspaceInTheChat(input);
+    EXPECT_EQ(input.numberField.text.Value(), "12345678");
+    EXPECT_EQ(input.message.Value(), "");
+
+    ReadTheNumberField(input, input.messageBuffer);
+    EXPECT_EQ(CStringOf(input.messageBuffer), "12345678");
+    ClearTheNumberField(input);
+    EXPECT_EQ(input.numberField.text.Value(), "");
+
+    TypeInTheChat(input, "77");
+    ResetTheTextBuffers(input, false);
+    EXPECT_EQ(input.numberField.text.Value(), "");
+
+    // 0x468260 con 3: oculto, el foco vuelve al juego.
+    ShowTheNumberField(input, 3);
+    EXPECT_EQ(input.focus, ChatFocus::Game);
+    TypeInTheChat(input, "5");
+    EXPECT_EQ(input.numberField.text.Value(), "");
+}
+
+// El filtro con el bit 1 (sin el 0): los dígitos y las letras, las minúsculas en mayúsculas; sin bits, todo pasa.
+TEST(ChatInputTest, TheLettersFilterRaisesTheLowercase)
+{
+    ChatInputState input;
+    ShowTheDialogField(input, 0);
+    FocusTheDialogField(input);
+    ASSERT_EQ(input.focus, ChatFocus::Dialog);
+    input.dialogEdit.filter = 2;
+    TypeInTheChat(input, "ab-C 9_z");
+    EXPECT_EQ(input.dialogEdit.text.Value(), "ABC9Z");
+    input.dialogEdit.filter = 0;
+    TypeInTheChat(input, "-x ");
+    EXPECT_EQ(input.dialogEdit.text.Value(), "ABC9Z-x ");
+    EXPECT_EQ(input.dialogEdit.base.id, DialogFieldId);
 }
 
 // 0x469320: el campo 0, los EDIT vacíos y el historial también.

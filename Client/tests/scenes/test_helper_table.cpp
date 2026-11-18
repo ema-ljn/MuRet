@@ -70,11 +70,14 @@ using Client::Render::Models::BoneKey;
 using Client::Render::Models::CrtRandom;
 using Client::Render::Models::Skeleton;
 using Client::Render::Models::SkeletonBone;
+using Client::Scenes::ActorPoolSize;
 using Client::Scenes::ActorState;
+using Client::Scenes::ConstructHelper;
 using Client::Scenes::CreateHelper;
 using Client::Scenes::DarkHorseModel;
 using Client::Scenes::DinorantModel;
 using Client::Scenes::DrawHelpers;
+using Client::Scenes::DrawTheHelperOutsideTheTable;
 using Client::Scenes::GuardianAngelModel;
 using Client::Scenes::HelperCount;
 using Client::Scenes::HelperDrawContext;
@@ -84,6 +87,7 @@ using Client::Scenes::IModelLibrary;
 using Client::Scenes::JointState;
 using Client::Scenes::SceneId;
 using Client::Scenes::StepHelpers;
+using Client::Scenes::StepTheHelperOutsideTheTable;
 using Client::Scenes::TurnOffHelpersOf;
 using Client::Scenes::UniriaModel;
 using Client::Scenes::WorldState;
@@ -1926,6 +1930,108 @@ TEST(HelperTableTest, InTheRidersSafeCellTheRidingHelpersHide)
     ASSERT_NO_FATAL_FAILURE(noMap.Ride(DinorantModel));
     noMap.world.Map().terrain.attributes.reset();
     EXPECT_TRUE(HasError(noMap.Step(), "0x4447e7"));
+}
+
+// 0x444010(ayudante, 1) desde el retrato de las cartas (0x495796): un ayudante fuera de la tabla, con su jinete fuera
+// del pool (el lugar ActorPoolSize), lee la celda segura del jinete pero no se esconde (0x4440eb, 0x4447f9 y
+// 0x444b25): hace lo mismo, con los mismos rand(), que uno de la tabla con su jinete fuera de la celda. La tabla no se
+// toca. Sin el byte vivo, nada (0x444021).
+TEST(HelperTableTest, TheLetterPortraitHelperFollowsItsRiderInTheSafeCell)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        for (const std::uint16_t type : {DarkHorseModel, UniriaModel, DinorantModel, std::uint16_t{0x14a}})
+        {
+            SCOPED_TRACE(testing::Message() << map << " " << type);
+            const std::uint8_t action = type == DarkHorseModel ? GestureRider : std::uint8_t{0x0d};
+            HelperWorld table(map);
+            ASSERT_NO_FATAL_FAILURE(table.Ride(type));
+            table.Rider().position = CellCentre(7, 9);
+            table.Rider().animation.action = action;
+            ASSERT_TRUE(table.Step().HasValue());
+
+            HelperWorld portrait(map);
+            ActorState rider = portrait.Rider();
+            rider.position = CellCentre(7, 9);
+            rider.animation.action = action;
+            portrait.Cell(7, 9) = 1;
+            HelperState helper;
+            const auto built =
+                ConstructHelper(helper, type, portrait.Rider().position, rider, ActorPoolSize, map, &portrait.random);
+            ASSERT_TRUE(built.HasValue()) << built.Error();
+            ASSERT_TRUE(built.Value());
+            const auto stepped = StepTheHelperOutsideTheTable(
+                helper, rider,
+                HelperStepContext{.world = portrait.world, .models = &portrait.models, .random = portrait.random});
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+
+            const HelperState& expected = table.Horse();
+            EXPECT_TRUE(helper.alive);
+            EXPECT_EQ(helper.rider, ActorPoolSize);
+            EXPECT_EQ(helper.position, expected.position);
+            EXPECT_EQ(helper.angles, expected.angles);
+            EXPECT_EQ(helper.horse.alpha, expected.horse.alpha);
+            EXPECT_EQ(helper.horse.animation.action, expected.horse.animation.action);
+            EXPECT_EQ(helper.horse.animation.frame, expected.horse.animation.frame);
+            EXPECT_GT(helper.horse.alpha, 0.0f);
+            EXPECT_EQ(portrait.random.State(), table.random.State());
+            EXPECT_FALSE(portrait.Horse().alive);
+
+            helper.alive = false;
+            const HelperState dead = helper;
+            const auto before = portrait.random.State();
+            ASSERT_TRUE(
+                StepTheHelperOutsideTheTable(
+                    helper, rider,
+                    HelperStepContext{.world = portrait.world, .models = &portrait.models, .random = portrait.random})
+                    .HasValue());
+            EXPECT_EQ(helper.position, dead.position);
+            EXPECT_EQ(helper.horse.animation.frame, dead.horse.animation.frame);
+            EXPECT_EQ(portrait.random.State(), before);
+        }
+    }
+}
+
+// 0x445260(ayudante, 1) desde el retrato de las cartas (0x4959cc): visto sin mirar el trapecio (0x4452a4), con la
+// escala en 0x3f3ae148 sea cual sea el tipo (0x4452d2, Q-C1010), dibujado y con el rand() % 30 + 70 de 0x445336. La
+// tabla no se toca. Sin el byte vivo, nada (0x44526b).
+TEST(HelperTableTest, TheLetterPortraitHelperIsAlwaysSeenAndDrawnAtItsOwnScale)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        for (const std::uint16_t type : {DarkHorseModel, UniriaModel, DinorantModel})
+        {
+            SCOPED_TRACE(testing::Message() << map << " " << type);
+            HelperWorld tested(map);
+            ActorState rider = tested.Rider();
+            HelperState helper;
+            const auto built = ConstructHelper(helper, type, rider.position, rider, ActorPoolSize, map, nullptr);
+            ASSERT_TRUE(built.HasValue()) << built.Error();
+            helper.horse.alpha = 1.0f;
+            tested.world.Runtime().terrainPolygon =
+                Client::World::TerrainPolygonOf(Client::World::CullingScene::Game, 0, CellCentre(200, 200), -45.0f);
+            ModelBatch batch;
+            batch.Begin(Client::Render::Pass3D{});
+
+            const auto drawn = DrawTheHelperOutsideTheTable(helper, rider, tested.DrawContext(batch));
+
+            ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+            EXPECT_TRUE(helper.seen);
+            EXPECT_EQ(std::bit_cast<std::uint32_t>(helper.scale), 0x3f3ae148u);
+            EXPECT_FALSE(batch.Commands().empty());
+            EXPECT_EQ(tested.random.State(), RandomAfter(QuietSeed, 1).State());
+            EXPECT_FALSE(tested.Horse().seen);
+
+            helper.alive = false;
+            helper.seen = false;
+            ModelBatch none;
+            none.Begin(Client::Render::Pass3D{});
+            ASSERT_TRUE(DrawTheHelperOutsideTheTable(helper, rider, tested.DrawContext(none)).HasValue());
+            EXPECT_FALSE(helper.seen);
+            EXPECT_TRUE(none.Commands().empty());
+            EXPECT_EQ(tested.random.State(), RandomAfter(QuietSeed, 1).State());
+        }
+    }
 }
 
 // 0x444ac0: el Uniria y el Dinorant se quedan con el byte vivo del jinete, que en la escena 4 puede estar muerto.

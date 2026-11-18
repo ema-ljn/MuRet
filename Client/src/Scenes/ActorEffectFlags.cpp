@@ -1,12 +1,21 @@
 #include "Scenes/ActorEffectFlags.h"
 
 #include "Core/Expected.h"
+#include "App/WindowState.h"
 #include "Data/Models/PlayerModels.h"
+#include "Scenes/ActorFlags.h"
 #include "Scenes/ActorState.h"
+#include "World/ModelEffects.h"
+#include "Data/Text/TextTable.h"
+#include "Scenes/GameMessages.h"
+#include "Scenes/WorldEntry.h"
+#include "Scenes/WorldRuntime.h"
+#include "Scenes/WorldState.h"
 
+#include <cstddef>
 #include <cstdint>
-#include <optional>
 #include <string>
+#include <utility>
 
 // 0x4e6380, cotejado con el PE (1.418 bytes), y 0x42ab40 (266 bytes).
 namespace Client::Scenes
@@ -17,6 +26,8 @@ constexpr std::uint32_t Bit40000 = 0x40000;
 constexpr std::uint32_t Bit80000 = 0x80000;
 constexpr std::uint32_t Bit400000 = 0x400000;
 constexpr std::uint32_t Bit800000 = 0x800000;
+constexpr std::size_t BlessingNoticeText = 1828; // 0x76bd1dc + 1828 * 300 = 0x774300c.
+constexpr std::int32_t SystemMessage = 1;
 
 bool Has(std::uint32_t flags, std::uint32_t bit)
 {
@@ -51,11 +62,27 @@ Core::Expected<void, std::string> Cut(const char* text)
 {
     return Core::Unexpected(std::string(text));
 }
+
+Core::Expected<void, std::string> ShowTheBlessingNotice(const WorldEntryResources& resources)
+{
+    if (resources.texts == nullptr)
+        return Cut("0x4e68f5: falta Text.bmd para el aviso de la bandera 0x2000000");
+    if (resources.textMeasure == nullptr)
+        return Cut("0x4e68f5: falta el medidor para 0x555190 y el aviso de la bandera 0x2000000");
+    const auto text = resources.texts->Text(BlessingNoticeText);
+    if (!text)
+        return Cut("0x4e68f5: Text.bmd no ofrece el registro 1828 del aviso");
+    const App::PixelSize screen = resources.screen ? resources.screen() : App::PixelSize{640, 480};
+    // 0x5767b6c es una ancla de nombre vacía. Incluso un Text1828 vacío debe envejecer el log y añadir su fila.
+    return AddGameMessage(resources.world.Runtime(), *resources.textMeasure, screen, {}, *text, SystemMessage);
+}
 } // namespace
 
 Core::Expected<void, std::string> ApplyEffectFlags(ActorState& actor, std::uint32_t flags, bool publishedHero,
-                                                   std::optional<std::int32_t>& lastSound)
+                                                   const WorldEntryResources& resources)
 {
+    auto& lastSound = resources.world.Runtime().lastSoundId;
+    auto& effects = resources.world.Map().effects;
     // 0x4e6390..0x4e63b7.
     if (Has(flags, Bit800000))
     {
@@ -139,10 +166,18 @@ Core::Expected<void, std::string> ApplyEffectFlags(ActorState& actor, std::uint3
         if (Has(flags, bit))
             actor.flags78 |= bit;
     }
-    if (Has(flags, 0x400u))
-        return Cut("0x4e6725: 0x518ac0 y el efecto 0x5ac/2 (0x518cf0) de la bandera 0x400 son de la CL11");
-    if (Has(flags, 0x10u))
-        return Cut("0x4e676e: 0x518ac0 y el efecto 0x5ac/1 (0x518cf0) de la bandera 0x10 son de la CL11");
+    // 0x4e670f..0x4e67a1: siempre, sin mirar si ya tenía el bit y sin rand(), apaga su 0x5ac/2 (o /1) y crea otro con
+    // él de dueño (0x518ac0 y 0x518cf0, como la skill 0x35 y la 0x30 de SkillReplies, sin los joints 0x619/9 de la
+    // 0x35); con la tabla llena, ninguno. Después prende el bit y sigue. El paso del /1 corta en 0x52a866 (CL11).
+    for (const auto& [bit, subtype] :
+         {std::pair{0x400u, World::GuardFlareSubtype}, std::pair{0x10u, World::SwellFlareSubtype}})
+    {
+        if (!Has(flags, bit))
+            continue;
+        KillModelEffectsOf(effects, World::IcarusFlareEffect, &actor, subtype);
+        static_cast<void>(effects.CreateSkillFlare(actor.position, actor.angles, actor.light, subtype, &actor));
+        actor.flags78 |= bit;
+    }
     // 0x4e67a6..0x4e6833: con el bit ya prendido en +0x78, solo lo vuelve a prender.
     constexpr std::uint32_t Bit20 = 0x20;
     if (Has(flags, Bit20))
@@ -170,8 +205,10 @@ Core::Expected<void, std::string> ApplyEffectFlags(ActorState& actor, std::uint3
     if (Has(flags, Bit2000000))
     {
         if (publishedHero)
-            return Cut("0x4e68f5: el renglón de 0x555190 con 0x5767b6c y 0x774300c (sin leer) de la bandera 0x2000000 "
-                       "en el héroe está abierto (P-C163)");
+        {
+            if (auto notice = ShowTheBlessingNotice(resources); !notice.HasValue())
+                return notice;
+        }
         actor.flags78 |= Bit2000000;
     }
     return {};

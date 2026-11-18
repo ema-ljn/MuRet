@@ -1,18 +1,26 @@
 #include "Scenes/GamePanels.h"
 
 #include "Core/Expected.h"
+#include "Protocol/Outgoing.h"
+#include "Protocol/Pet/PetInfo.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameUi.h"
+#include "Scenes/GuildPanels.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/ItemSetState.h"
 #include "Scenes/NpcWindows.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnDerivedStats.h"
 #include "Scenes/OwnStatHelpers.h"
+#include "Scenes/GuildWindow.h"
+#include "Scenes/SecondGuildWindow.h"
+#include "Scenes/PersonalShopLists.h"
+#include "Scenes/SocialEvents.h"
 #include "Scenes/Quests.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/OldWindows.h"
 #include "UI/PanelRegistry.h"
 #include "World/ItemState.h"
 
@@ -66,9 +74,20 @@ UI::PanelContext ContextOf(WorldState& world, Render::Models::CrtRandom& random,
     context.heroSiegeMark = false;
     context.sound = [&runtime](std::int32_t id) { runtime.lastSoundId = id; };
     context.characterOpened = [&world, &random, tables]() { return OpenTheCharacter(world, random, tables); };
+    // Sin el cable, el cierre con aux en 0 (el que manda el 3D) corta; el 3D del GS cierra con 1 (0x4d5906).
+    context.tradeClosed = [&world, &random](bool aux) { return CloseTheTradeGrids(world, random, aux, {}); };
+    // Sin el cable, los envíos de abrir y cerrar las tiendas personales cortan (LendThePersonalShops).
+    context.personalShopOpened = [&world, &random](UI::PanelId id)
+    { return OpenThePersonalShop(world, random, id, {}); };
+    context.personalShopClosed = [&world, &random]() { return CloseThePersonalShop(world, random, {}); };
     // 0x659c70: 0x419840(−1) sobre [0x710148].
     context.questOpened = [&world, &random, tables]()
     { return OpenTheQuestList(QuestContext{.world = world, .random = random, .texts = tables.texts}, -1); };
+    // El panel 1, la de amigos (CL9 hito 9): 0x490a00(+0x48) y 0x4914e0 sobre el administrador viejo.
+    UI::OldWindowManager& oldWindows = runtime.oldWindows;
+    context.friendsShown = [&oldWindows]() { return UI::FindTheOldWindow(oldWindows, oldWindows.friends) != nullptr; };
+    context.friendsClosed = [&runtime]()
+    { return UI::DropTheFriendsWindow(runtime.oldWindows, runtime.ui.pressedButton); };
     return context;
 }
 } // namespace
@@ -93,9 +112,48 @@ void GamePanels::LendTheNpcWindows(WorldState& world, Render::Models::CrtRandom&
     };
 }
 
+void GamePanels::LendThePersonalShops(WorldState& world, Render::Models::CrtRandom& random,
+                                      std::function<void(Protocol::Outgoing)> send)
+{
+    if (!send)
+        return;
+    m_context.personalShopOpened = [&world, &random, send](UI::PanelId id)
+    { return OpenThePersonalShop(world, random, id, send); };
+    m_context.personalShopClosed = [&world, &random, send]() { return CloseThePersonalShop(world, random, send); };
+}
+
+void GamePanels::LendTheSession(WorldState& world, Render::Models::CrtRandom& random,
+                                std::function<void(Protocol::Outgoing)> send, std::function<void()> sendWindowClose)
+{
+    if (send)
+    {
+        m_context.tradeClosed = [&world, &random, send](bool aux)
+        { return CloseTheTradeGrids(world, random, aux, send); };
+        LendThePetRequests(send);
+        // 0x657b50 y 0x657b73: los cierres de las dos ventanas del gremio (la vtable + 0x2c, sin mirar nada) y el
+        // diálogo de los paneles, por el mismo socket.
+        LendTheGuildTo(m_context, world, send);
+        LendThePersonalShops(world, random, std::move(send));
+    }
+    if (sendWindowClose)
+        LendTheWindowClose(std::move(sendWindowClose));
+}
+
+void GamePanels::LendTheSession(WorldState& world, Render::Models::CrtRandom& random, IGameUiRequests* requests)
+{
+    if (requests == nullptr)
+        return;
+    LendTheSession(
+        world, random, [requests](Protocol::Outgoing outgoing) { requests->SendGamePacket(std::move(outgoing)); },
+        [requests]() { requests->SendWindowClose(); });
+    LendTheGuildTo(m_context, world,
+                   [requests](Protocol::Outgoing packet) { requests->SendGuildPacket(std::move(packet)); });
+}
+
 void GamePanels::LendTheWindowClose(std::function<void()> send)
 {
-    m_context.questClosed = std::move(send);
+    m_context.questClosed = send;
+    m_context.eventNpcClosed = std::move(send);
 }
 
 void GamePanels::LendTheWindowClose(IGameUiRequests* requests)
@@ -103,9 +161,11 @@ void GamePanels::LendTheWindowClose(IGameUiRequests* requests)
     if (requests == nullptr)
     {
         m_context.questClosed = {};
+        m_context.eventNpcClosed = {};
         return;
     }
     m_context.questClosed = [requests]() { requests->SendWindowClose(); };
+    m_context.eventNpcClosed = m_context.questClosed;
 }
 
 void GamePanels::LendThePartyList(WorldState& world, IGameUiRequests* requests)
@@ -118,5 +178,43 @@ void GamePanels::LendThePartyList(WorldState& world, IGameUiRequests* requests)
         runtime.hud.partyCount = 0;
         requests->RequestPartyList();
     };
+}
+
+void GamePanels::LendTheGuild(WorldState& world, const GuildSender& send)
+{
+    LendTheGuildTo(m_context, world, send);
+}
+
+void GamePanels::LendThePanelDialogStep(WorldState& world, const GuildSender& send, std::int32_t mouseX,
+                                        std::int32_t mouseY, std::uint32_t now)
+{
+    LendThePanelDialogStepTo(m_context, world, send, mouseX, mouseY, now);
+}
+
+void GamePanels::LendTheSecondGuildStep(const SecondGuildStepContext& context)
+{
+    LendTheSecondGuildStepTo(m_context, context);
+}
+
+void GamePanels::LendTheGuildWindowStep(const GuildWindowStepContext& context)
+{
+    LendTheGuildWindowStepTo(m_context, context);
+}
+
+void GamePanels::LendThePetRequests(std::function<void(Protocol::Outgoing)> send)
+{
+    m_context.petRequests = [send = std::move(send)]()
+    {
+        if (!send)
+            return;
+        send(Protocol::Pet::WritePetInfoRequest(Protocol::Pet::LoginScenePetInfoRequest));
+        send(Protocol::Pet::WritePetInfoRequest(
+            {Protocol::Pet::DarkHorsePet, Protocol::Pet::InventoryPlace, Protocol::Pet::PetSlot}));
+    };
+}
+
+void GamePanels::LendTheFriends(std::function<Core::Expected<void, std::string>()> opened)
+{
+    m_context.friendsOpened = std::move(opened);
 }
 } // namespace Client::Scenes

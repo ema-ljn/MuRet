@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "UI/Dialogs.h"
+#include "UI/PanelDialog.h"
 
 #include <array>
 #include <cstddef>
@@ -73,7 +74,8 @@ inline constexpr std::uint8_t CommandReady = 1;
 // +4 (DelegatedPanels::commands). La esquina (+0xc y +0x10) va en Scenes::HudState, como las de las otras ventanas.
 struct CommandsWindowState
 {
-    // +8: a quién va el comando. Lo pone el comando de 0x406050 (0x406097.., CL9.4); MuRet lo deja en −1.
+    // +8: a quién va el comando: 0x406050 lo pone en −1 y, con un jugador a dos celdas o menos, en el elegido
+    // (0x4060d0 y 0x4061a7); lo vuelven a −1 los comandos que cierran la ventana (0x406af7 y 0x4072b8).
     std::int32_t target = -1;
     // +0x14..+0x1f: 0x406050 los pone en 1 en cada paso, antes de mirar el comando elegido. El dibujo (0x40abe5) da un
     // aviso con 0, 0xff o 0xfe. *Inferido*: arrancan en 1, porque la entrada al login (0x634bf0) y a la selección
@@ -88,11 +90,12 @@ struct CommandsWindowState
 // Los ids cuyo estado vive en otro objeto. MuRet no tiene a sus dueños: quedan en 0, cerrados, hasta su ola.
 struct DelegatedPanels
 {
-    // 1: 0x490a00(*(0x5763514)+0x48), la de amigos del administrador viejo (hito 7, CL9.4).
+    // 1: 0x490a00(*(0x5763514)+0x48), la de amigos del administrador viejo. En el juego la mira
+    // PanelContext::friendsShown (CL9 hito 9); sin él, este byte.
     std::uint8_t friends = 0;
     // 8: *(0x710148)+0x21383. IsOpen lo mira distinto de 0 y CanOpen no abre nada con 1.
     std::uint8_t quest = 0;
-    // 0x10: 0x6522e0, el gremio ([0x7d536f0], CL9.4).
+    // 0x10: 0x6522e0, +0x7c del gremio ([0x7d536f0], CL9 hito 8). Lo abren 0x6522d0 y lo cierra 0x6522f0.
     std::uint8_t guild = 0;
     // 0x200: +4 de [0x6e592c], la ventana de los comandos (D, CL8 hito 6). La abre Open y la cierran CloseByMask y su
     // botón de cerrar (0x40a58a).
@@ -106,7 +109,7 @@ struct DelegatedPanels
     // 0x724584 (byte): la mezcla que 0x44ae10 encontró en la caja del entrenador (1 o 2), que leen su modo 3 (0x44d010)
     // y su dibujo (0x44d680); cerrar el entrenador (0x4499b0) lo pone en 0.
     std::uint8_t field724584 = 0;
-    // 0x40000: 0x6570a0, el gremio 2 ([0x7d536f4]).
+    // 0x40000: 0x6570a0, +0x7c del gremio 2 ([0x7d536f4], CL9 hito 8). Lo abren 0x657090 y lo cierra 0x6570b0.
     std::uint8_t secondGuild = 0;
     // 0x80000, 0x100000 y 0x200000: [0x7d536f8]+4, [0x7d536fc]+4 y [0x7d53700]+0x14 (Castle Siege, CL9.5).
     std::uint8_t castleSiege = 0;
@@ -120,9 +123,9 @@ struct DelegatedPanels
     std::uint8_t siegeGate = 0;
     // 0x661b90 sin ítem en el cursor: algún lugar de la grilla de la caja del caos (0x7d2d380) ocupado (CL9.3).
     bool chaosBoxHasItem = false;
-    // [0x7d53704]+0x10: el diálogo de los paneles (0x65feb0; lo abre 0x6600d0 desde los paquetes, CL9.4, P-C90).
-    // 0x657880 le da la tecla primero.
-    std::uint8_t panelDialog = 0;
+    // [0x7d53704]: el diálogo de los paneles (0x65feb0; lo abre 0x6600d0 desde los paquetes, CL9 hito 8). 0x657880 le
+    // da la tecla primero.
+    PanelDialogState panelDialog{};
 };
 
 // Los bytes del registro y los globales que sus funciones escriben, todos en la .bss.
@@ -174,7 +177,8 @@ struct PanelContext
     std::int32_t map = -1;
     // 0x7879fbc: con ítem en el cursor no se cierra el inventario (0x661b90).
     std::int32_t cursorItemCount = 0;
-    // +0x1d4 & 7 del héroe: con 4 (Dark Lord), abrir el inventario pide la mascota (C1 A9, 0x65c039).
+    // +0x1d4 & 7 del héroe: con 4 (Dark Lord), abrir el inventario pide el cuervo y el caballo (petRequests,
+    // 0x65c039).
     std::uint8_t heroClass = 0;
     // 0x576793c: la salida pedida desde el menú de Esc (hito 6). Con 1, Open no abre.
     bool logoutRequested = false;
@@ -183,12 +187,50 @@ struct PanelContext
     // 0x659aa0..0x659c3d: lo que abrir la party hace si cerró lo demás, antes de prenderla: 0x78aba48 (la cuenta de la
     // party) en 0 y el pedido de la lista, C1 03 42. Sin él, abrir la party corta.
     std::function<void()> partyOpened{};
+    // 0x658a18..0x658bc7 y 0x658c0e..0x658dbe: cerrar un NPC de evento (0x1000 o 0x4000) manda el C1 03 31 en claro
+    // antes de poner 0x7d53712 en 0. Sin él, cerrarlos corta.
+    std::function<void()> eventNpcClosed{};
     // 0x41ed10(id, 0, 0): el sonido, gancho de la CL10.
     std::function<void(std::int32_t)> sound{};
+    // 0x659c8c..0x659e3c: lo que abrir el gremio hace si cerró lo demás, antes de abrirlo: el pedido de la lista, C1 03
+    // 52 (Protocol::Guild::WriteMemberListRequest). Sin él, abrir el gremio corta.
+    std::function<void()> guildOpened{};
+    // 0x6522f0 y 0x6570b0, la vtable + 0x2c de las dos ventanas del gremio, que CloseByMask llama con su panel abierto
+    // (Scenes/GuildPanels): el sonido, sus diálogos y, la 2, el C1 04 54 00. Sin ellos, cerrarlas corta.
+    std::function<Core::Expected<void, std::string>()> guildClosed{};
+    std::function<Core::Expected<void, std::string>()> secondGuildClosed{};
+    // La función de quien abrió el diálogo de los paneles (0x4d6b60 o 0x653c00), que llaman 0x6603c0, 0x660410 y
+    // 0x6605b0. Sin ella, responder corta.
+    PanelDialogAnswer panelDialogAnswer{};
+    // 0x6605b0 con el mouse, los globales de la UI vieja y el reloj del paso (Scenes/GuildPanels). Sin él, el paso con
+    // el diálogo abierto corta.
+    std::function<Core::Expected<void, std::string>()> panelDialogStep{};
+    // 0x657930 con [0x7d536f4] abierta: su vtable + 0x18 (0x45aa80(0), que llama a 0x656df0) con el mouse, el reloj y
+    // los filtros del paso (Scenes/SecondGuildWindow). Sin él, el paso con la ventana 2 del gremio abierta corta.
+    std::function<Core::Expected<void, std::string>()> secondGuildStep{};
+    // 0x657977: el paso de la ventana del gremio (0x45aa80(0) y 0x651840, Scenes::StepTheGuildWindow), con el mouse y
+    // el cable del paso. Sin él, con el panel abierto, el paso corta.
+    std::function<Core::Expected<void, std::string>()> guildStep{};
     // 0x65c966..0x65ca6d: lo que abrir el personaje hace fuera de los paneles, cierre o no lo demás: [0x6eed3c] de
     // +0x9304 a +0x9327 en 0, y con el registro propio abierto, 0x550d10 si un lugar del equipo tiene la durabilidad
     // en 0 (0x550cf0). Sin él, abrir el personaje corta.
     std::function<Core::Expected<void, std::string>()> characterOpened{};
+    // 0x657fb5..0x6584a4: lo que cerrar el comercio hace entre la consulta y la escritura del byte protegido: con aux
+    // en 0 el C1 03 3D en C3 (dos rand()), y las dos grillas (0x78a92a8 y 0x78a5a20) vacías, con 0x5bbdf0 en cada
+    // vuelta si 0x78abaa5 está en 1 (Scenes::CloseTheTradeGrids). Sin él, cerrar el comercio corta.
+    std::function<Core::Expected<void, std::string>(bool aux)> tradeClosed{};
+    // 0x65ac65..0x65b21d y 0x65b33a..0x65ba37: lo que abrir una tienda personal (0x800 o 0x20000) hace si cerró lo
+    // demás, después del inventario y antes de prender 0x7d5370f: con 0x6c931c distinto de −1 el C1 04 F3 10 en C3 (dos
+    // rand()), los dos mapas de los precios (0x7245e4 y 0x7245e0) si no estaban y 0x6c931c en 1 o 2
+    // (Scenes::OpenThePersonalShop). Sin él, abrir una tienda corta.
+    std::function<Core::Expected<void, std::string>(PanelId id)> personalShopOpened{};
+    // 0x6589cb y 0x6589ef: 0x5eb020 al cerrar cualquiera de las dos, antes de apagar 0x7d5370f
+    // (Scenes::CloseThePersonalShop). Sin él, cerrar una tienda corta.
+    std::function<Core::Expected<void, std::string>()> personalShopClosed{};
+    // Los pedidos del cuervo y del caballo, C1 06 A9 00 00 01 y A9 01 00 08, con el XOR32 y por send() (CL9 hito 4):
+    // lo que abrir la mascota hace si cerró lo demás, después de 0x420cb0 (0x659ff6..0x65a8a3), y abrir el inventario
+    // de un Dark Lord después de prenderlo (0x65c039..0x65c946, el mismo código repetido). Sin él, los dos cortan.
+    std::function<void()> petRequests{};
     // Lo que abrir y cerrar el almacén (0x40), la caja del caos (0x100), el entrenador (0x8000) y la tienda de NPC
     // (0x10000) hacen fuera de los paneles (CL9 hito 6): las grillas, el ítem del cursor, los envíos y los mensajes
     // (Scenes/NpcWindows.h). Sin ellos, abrirlos y cerrarlos corta.
@@ -205,6 +247,12 @@ struct PanelContext
     // 0x657b2b..0x657b31: cerrar las misiones es 0x419900, que pone la ventana en 0 (lo hace el registro) y manda el
     // C1 03 31 en claro. Sin él, cerrar las misiones corta.
     std::function<void()> questClosed{};
+    // El panel 1, la ventana de amigos del administrador viejo: 0x490a00(+0x48) para saber si está (sin él,
+    // DelegatedPanels::friends), 0x491080(0x186, 0x106) al abrirlo (0x659f3d; sin él, abrirlo corta) y 0x4914e0 al
+    // cerrarlo (0x6584e5; sin él, cerrarlo corta).
+    std::function<bool()> friendsShown{};
+    std::function<Core::Expected<void, std::string>()> friendsOpened{};
+    std::function<Core::Expected<void, std::string>()> friendsClosed{};
 };
 
 class PanelRegistry
@@ -220,8 +268,11 @@ public:
     [[nodiscard]] Core::Expected<bool, std::string> Open(PanelId id);
     // 0x65cae0(id, 0): false si estaba cerrado, sin sonidos.
     [[nodiscard]] Core::Expected<bool, std::string> Close(PanelId id);
+    // 0x65cae0(id, aux): `aux` llega a 0x657ab0; solo lo lee el comercio (con 1, sin el 3D: 0x4d5906).
+    [[nodiscard]] Core::Expected<bool, std::string> Close(PanelId id, bool aux);
     // 0x657ab0(mask, 0): las 26 consultas en su orden fijo, cada una solo si está en la máscara.
     [[nodiscard]] Core::Expected<bool, std::string> CloseByMask(PanelId mask);
+    [[nodiscard]] Core::Expected<bool, std::string> CloseByMask(PanelId mask, bool aux);
     // 0x657880(vk): con Esc cierra el abierto de bit más bajo.
     [[nodiscard]] Core::Expected<bool, std::string> PanelKey(std::int32_t virtualKey);
     // 0x657a90: todos, y el diálogo de los paneles (0x6603c0, que cerrado no hace nada).

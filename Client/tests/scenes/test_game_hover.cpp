@@ -186,7 +186,8 @@ TEST_F(GameHoverTest, AMonsterGetsItsNameAtTheTop)
     EXPECT_EQ(m_random.State(), Seed);
 }
 
-// 0x5bbd31..0x5bbd62: el ítem del piso elegido corta (0x5ba790, CL9.3).
+// 0x5bbd31..0x5bbd62: el nombre del ítem del piso elegido (0x5ba790) sin sus tablas corta. Con ellas, en
+// test_floor_items_scene.
 TEST_F(GameHoverTest, TheFloorItemUnderTheMouseCuts)
 {
     m_targets[0] = 12;
@@ -243,8 +244,8 @@ TEST_F(GameHoverTest, TheAltEdgeTogglesTheFloorNames)
     EXPECT_EQ(m_altNames, 0);
 }
 
-// 0x5bbd86..0x5bbdd2: con los nombres prendidos, un ítem del piso vivo y a la vista corta (0x5ba790, CL9.3); el que
-// no está a la vista no.
+// 0x5bbd86..0x5bbdd2: con los nombres prendidos, el nombre de un ítem del piso vivo y a la vista (0x5ba790) sin sus
+// tablas corta; el que no está a la vista no se nombra.
 TEST_F(GameHoverTest, TheFloorNamesCutOnASeenItem)
 {
     FloorItem(30, false);

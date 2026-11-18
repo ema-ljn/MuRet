@@ -10,6 +10,7 @@
 #include "Scenes/JewelBundleList.h"
 #include "Scenes/NpcWindowState.h"
 #include "Scenes/OwnInventory.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/Dialogs.h"
@@ -543,7 +544,7 @@ Core::Expected<void, std::string> StepTheJewelResult(const GameUiContext& contex
 Core::Expected<void, std::string> AnswerTheJewelMix(const GameUiContext& context, bool yes)
 {
     WorldRuntime& runtime = context.world.Runtime();
-    runtime.npcWindows.dialogAnswer = yes ? YesAnswer : NoAnswer;
+    runtime.social.trade.warningByte = yes ? YesAnswer : NoAnswer;
     LeaveTheMouseTime(runtime);
     runtime.lastSoundId = DialogSound; // (CL10)
     if (!yes)

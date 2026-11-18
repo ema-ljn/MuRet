@@ -153,7 +153,8 @@ Core::Expected<std::uint32_t, std::string> PriceOf(const World::ItemState& item,
 {
     if (items == nullptr)
         return Core::Unexpected(std::format("{}: 0x54d0f0 sin Item.bmd ([0x7758550])", address));
-    const PetPriceLevels pets{.raven = runtime.ravenLevel, .horse = runtime.darkHorseLevel};
+    const PetPriceLevels pets{.raven = runtime.pets[RavenPetStats].level,
+                              .horse = runtime.pets[DarkHorsePetStats].level};
     auto price = ItemPrice(item, *items, mode, pets);
     if (!price.HasValue())
         return Core::Unexpected(std::format("{}: {}", address, price.Error()));
@@ -628,7 +629,8 @@ Core::Expected<void, std::string> ScanTheChaosBox(WorldState& world, Render::Mod
 {
     WorldRuntime& runtime = world.Runtime();
     NpcWindowState& npc = runtime.npcWindows;
-    const PetPriceLevels pets{.raven = runtime.ravenLevel, .horse = runtime.darkHorseLevel};
+    const PetPriceLevels pets{.raven = runtime.pets[RavenPetStats].level,
+                              .horse = runtime.pets[DarkHorsePetStats].level};
     auto value = ChaosBoxValue(npc.chaosBox, items, pets);
     if (!value.HasValue())
         return Core::Unexpected(value.Error());

@@ -303,16 +303,16 @@ TEST(JewelUnmixTest, TheRightReleaseOnARowAsksForItsBundle)
         list.x = 0xe4;
         list.y = 0x6d + 0xf0;
         // Con 2 filas, la fila i en y = (2 − i) · 13 + 230: la 0 en [253, 266) y la 1 en [240, 253).
-        runtime.ui.rightReleased = true;
+        runtime.ui.rightUpMessage = true;
         ASSERT_TRUE(tested.Step(300, 260).HasValue());
         EXPECT_EQ(list.selection, 1);
-        EXPECT_FALSE(runtime.ui.rightReleased);
+        EXPECT_FALSE(runtime.ui.rightUpMessage);
         EXPECT_EQ(runtime.dialogs.current, UnmixDialog);
         EXPECT_EQ(tested.Jewels().cell, -1);
         EXPECT_EQ(runtime.ui.hovered, list.id);
         EXPECT_EQ(runtime.ui.capture, 0);
 
-        runtime.ui.rightReleased = true;
+        runtime.ui.rightUpMessage = true;
         ASSERT_TRUE(tested.Step(300, 245).HasValue());
         EXPECT_EQ(list.selection, 2);
         EXPECT_EQ(tested.Jewels().cell, 3);

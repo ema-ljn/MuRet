@@ -1,0 +1,24 @@
+{
+  "date": "2026-11-16",
+  "purpose": "Own laboratory helpers used with the original client in XP SP3; no game binaries included.",
+  "sources": {
+    "xp-input.c": {
+      "sessionSourceSha256": "26fe82d2bd183359059d93c44d92076807d282c13bd6f91f9d197bfe44089e58",
+      "sessionExecutableSha256": "95acad3a4ed1f004cc19869b31d5f70671b1a895a2ed87ef4b494c61a8fd572e",
+      "observedGuest": "Windows XP SP3 x86",
+      "sourceNormalization": "clang-format only",
+      "repositorySourceSha256": "c1c0e182e2f9a1e7e7f584fd083ab619ce5da84ff17625e6ccdd97cbc9a98fa0",
+      "rebuiltExecutableSha256": "58cb2d336c9d447e5fa698b2f56903d6fb3ecccde2108e0f24447ab93782817a"
+    },
+    "xp-debug-control.c": {
+      "sessionSourceSha256": "bf2720a150e42ceb383127a45a2ac5c64cc7b6c42ba617a10913fa38be07d3ba",
+      "sessionExecutableSha256": "732a7c36278e026fe984234b64759c47e3f75e4a2b2a747234c801997a659338",
+      "observedGuest": "Windows XP SP3 x86",
+      "sourceNormalization": "clang-format only",
+      "repositorySourceSha256": "66ee0bcc9667acd87cc2921092a34dbf3fd2bd7624fa85122080844fd8104d9e",
+      "rebuiltExecutableSha256": "d4baa2631369a8c0967ec682411dede2a5b946614d355e98ae2df4ff65b13d99"
+    }
+  },
+  "rebuildCompiler": "i686-w64-mingw32-gcc (GCC) 16-win32",
+  "rebuildTarget": "PE32 i386, subsystem 5.01; imports inspected"
+}

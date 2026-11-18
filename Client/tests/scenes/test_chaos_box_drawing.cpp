@@ -197,7 +197,7 @@ TEST_F(ChaosBoxDrawingTest, TheUpgradeShowsItsNameRateAndTaxedPrice)
         SCOPED_TRACE(map);
         Restart();
         Runtime().map = map;
-        Runtime().hud.npcWindowX = 0;
+        Runtime().ui.npcWindowX = 0;
         Npc().chaosBox[0] = ItemState{.id = 0x0001, .occupied = 1};
         Npc().chaosBox[8] = ItemState{.id = 0x0001};
         Npc().mixKind = 3;
@@ -209,8 +209,8 @@ TEST_F(ChaosBoxDrawingTest, TheUpgradeShowsItsNameRateAndTaxedPrice)
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
 
         EXPECT_EQ(m_random.State(), Seed);
-        EXPECT_EQ(Runtime().hud.npcWindowX, Left);
-        EXPECT_EQ(Runtime().hud.npcWindowY, 0);
+        EXPECT_EQ(Runtime().ui.npcWindowX, Left);
+        EXPECT_EQ(Runtime().ui.npcWindowY, 0);
         EXPECT_EQ(Npc().mixPrice, 2'000'000u);
         const std::vector<int> slots = SlotsOf(m_sprites);
         ASSERT_GE(slots.size(), 34u);
@@ -387,10 +387,10 @@ TEST_F(ChaosBoxDrawingTest, TheOtherModesAndTheRequestedMix)
 
     Restart();
     Runtime().panels.chaosBox = 0;
-    Runtime().hud.npcWindowX = 7;
+    Runtime().ui.npcWindowX = 7;
     ASSERT_TRUE(Draw().HasValue());
     EXPECT_TRUE(SlotsOf(m_sprites).empty());
-    EXPECT_EQ(Runtime().hud.npcWindowX, 7);
+    EXPECT_EQ(Runtime().ui.npcWindowX, 7);
 }
 
 // 0x5fee3a (P-C197): el 2 de nivel 8 o más lee la tasa después de las seis de 0x6c9da8 y corta; sin Text.bmd corta

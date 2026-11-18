@@ -7,13 +7,18 @@
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatBubbles.h"
+#include "Scenes/GamePanels.h"
+#include "Scenes/GuildState.h"
+#include "Scenes/GuildWindow.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/ChatInput.h"
 #include "UI/GameText.h"
 #include "UI/MessageArea.h"
+#include "UI/PanelRegistry.h"
 #include "UI/SlideBanner.h"
 #include "UI/WhisperSenders.h"
 
@@ -24,6 +29,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace Client::Scenes
 {
@@ -130,6 +136,28 @@ bool IsTheGuildMaster(const ActorState& actor)
     }
     return actor.byte1e3 == GuildMasterName[actor.name.size()];
 }
+
+// 0x4e3450..0x4e34b4: 0x6599a0(0x40000, 0) sin mirar lo que devuelve; 0x77f3b68 en 1 y 0x6c8e68 en 0; 0x553570(0);
+// 0x6c8e78 en 8 (el tope de la entrada sin EDIT, que MuRet no guarda) y 0x6c8e6c en 0; el héroe con +0x1f2 en −1 pasa
+// al gremio nuevo (0x7cf).
+Core::Expected<void, std::string> TalkToTheGuildMaster(const ChatReceiveContext& context)
+{
+    WorldState& world = context.world;
+    WorldRuntime& runtime = world.Runtime();
+    GamePanels panels(world, context.random);
+    panels.LendTheGuild(world, context.guildSend);
+    if (auto opened = panels.Registry().Open(UI::SecondGuildPanel); !opened.HasValue())
+        return Core::Unexpected(std::move(opened).Error());
+    UI::ChatInputState& input = runtime.chat.input;
+    input.dialogFieldOn = true;
+    runtime.ui.chatOpen = false;
+    UI::ResetTheTextBuffers(input, false);
+    input.fieldCount = 0;
+    ActorState& hero = world.Actors()[runtime.hero];
+    if (static_cast<std::int16_t>(hero.word1f2) == NoGuildIndex)
+        hero.word1f2 = static_cast<std::uint16_t>(CreatingGuildIndex);
+    return {};
+}
 } // namespace
 
 // 0x5110d0: el primero de los 400 vivo con la clave (MOVSX de +0x1f4 contra el int del paquete: una clave desde
@@ -154,7 +182,8 @@ Core::Expected<void, std::string> ApplyChat(const Protocol::Messages::Chat& chat
     const std::string name = SpeakerName(chat);
     const std::string_view raw = chat.text;
     const char mark = raw.empty() ? '\0' : raw.front();
-    const ChatBubbleMeasure bubbleMeasure{.measure = *measure.Value(), .screen = context.screen};
+    const ChatBubbleMeasure bubbleMeasure{
+        .measure = *measure.Value(), .screen = context.screen, .texts = context.texts};
     if (mark == PartyMark)
         return AddMessage(context, name, CopiedText(raw, 1, MarkedTextBytes), UI::PartyMessage);
     if (mark == GuildMark)
@@ -181,13 +210,13 @@ Core::Expected<void, std::string> ApplyKeyChat(const Protocol::Messages::KeyChat
     const auto actors = world.Actors();
     const ActorState& speaker = actors[index];
     if (actors[world.Runtime().hero].guildStatus == GuildMasterStatus && IsTheGuildMaster(speaker))
-        return Core::Unexpected(std::string("0x4e3450: el 01 del Guild Master abre la ventana del gremio "
-                                            "(0x6599a0 con 0x40000), que es de la CL9.4"));
+        return TalkToTheGuildMaster(context);
     auto measure = MeasureOf(context, "0x4e34d6");
     if (!measure.HasValue())
         return Core::Unexpected(measure.Error());
-    return AddChatBubble(world, ChatBubbleMeasure{.measure = *measure.Value(), .screen = context.screen},
-                         ChatNameOf(speaker), CString(chat.text), index, ChatBubbleMode::Chat);
+    return AddChatBubble(
+        world, ChatBubbleMeasure{.measure = *measure.Value(), .screen = context.screen, .texts = context.texts},
+        ChatNameOf(speaker), CString(chat.text), index, ChatBubbleMode::Chat);
 }
 
 Core::Expected<void, std::string> ApplyWhisper(const Protocol::Messages::Whisper& whisper,
@@ -260,8 +289,8 @@ Core::Expected<void, std::string> ApplyNotice(const Protocol::Messages::Notice& 
         const std::array<std::string_view, 1> arguments{text};
         const std::string line = UI::PlaceArguments(format.Value(), arguments);
         UI::AddNotice(runtime.chat.area, *measure.Value(), runtime.hud.dcFont, line, 1);
-        return Core::Unexpected(std::string("0x4c665f: 0x651680 guarda el aviso del gremio en su ventana "
-                                            "([0x7d536f0]), que es de la CL9.4"));
+        // 0x4c665f: 0x651680 con el texto del paquete, a la lista del aviso de la ventana del gremio.
+        return AddTheGuildNotice(runtime.guild.window, *measure.Value(), runtime.hud.dcFont, context.screen, text);
     }
     if (notice.type < FirstSlideNotice || notice.type > LastSlideNotice || text.empty())
         return {};

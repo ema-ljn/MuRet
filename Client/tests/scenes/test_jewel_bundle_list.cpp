@@ -367,19 +367,19 @@ TEST(JewelBundleListTest, TheRowsTakeTheClickAndTheRightRelease)
         static_cast<void>(tested.Click(OutsideX, secondRowY));
         EXPECT_TRUE(runtime.movement.pendingClick);
 
-        runtime.ui.rightReleased = true;
+        runtime.ui.rightUpMessage = true;
         stepped = tested.Step(RowX, 3 * 13 + 230);
         EXPECT_FALSE(stepped.asked.has_value());
         EXPECT_EQ(list.selection, 1);
-        EXPECT_FALSE(runtime.ui.rightReleased);
+        EXPECT_FALSE(runtime.ui.rightUpMessage);
 
-        runtime.ui.rightReleased = true;
+        runtime.ui.rightUpMessage = true;
         stepped = tested.Step(RowX, 13 + 230 + 9);
         ASSERT_TRUE(stepped.asked.has_value());
         EXPECT_EQ(stepped.asked->cell, 9);
         EXPECT_EQ(stepped.asked->level, 9);
         EXPECT_EQ(list.selection, 3);
-        EXPECT_FALSE(runtime.ui.rightReleased);
+        EXPECT_FALSE(runtime.ui.rightUpMessage);
     }
 }
 

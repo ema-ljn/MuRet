@@ -1,8 +1,9 @@
 #include "Core/PathText.h"
 
+#include "Core/Utf8.h"
+
 #include <algorithm>
 #include <cstddef>
-#include <cstdint>
 #include <filesystem>
 #include <optional>
 #include <string>
@@ -15,50 +16,13 @@ namespace
 // UTF-8 bien formado, como lo describe PathFromUtf8 en PathText.h.
 bool IsUtf8(std::string_view text)
 {
-    std::size_t i = 0;
-    while (i < text.size())
+    std::size_t offset = 0;
+    while (offset < text.size())
     {
-        const auto first = static_cast<unsigned char>(text[i]);
-        std::size_t length = 1;
-        std::uint32_t codePoint = first;
-        if (first >= 0xC2 && first <= 0xDF)
-        {
-            length = 2;
-            codePoint = first & 0x1Fu;
-        }
-        else if (first >= 0xE0 && first <= 0xEF)
-        {
-            length = 3;
-            codePoint = first & 0x0Fu;
-        }
-        else if (first >= 0xF0 && first <= 0xF4)
-        {
-            length = 4;
-            codePoint = first & 0x07u;
-        }
-        else if (first >= 0x80)
+        if (!ReadUtf8CodePoint(text, offset).has_value())
         {
             return false;
         }
-        if (text.size() - i < length)
-        {
-            return false;
-        }
-        for (std::size_t k = 1; k < length; ++k)
-        {
-            const auto next = static_cast<unsigned char>(text[i + k]);
-            if ((next & 0xC0u) != 0x80u)
-            {
-                return false;
-            }
-            codePoint = (codePoint << 6) | (next & 0x3Fu);
-        }
-        if ((length == 3 && codePoint < 0x800) || (length == 4 && codePoint < 0x10000) ||
-            (codePoint >= 0xD800 && codePoint <= 0xDFFF) || codePoint > 0x10FFFF)
-        {
-            return false;
-        }
-        i += length;
     }
     return true;
 }

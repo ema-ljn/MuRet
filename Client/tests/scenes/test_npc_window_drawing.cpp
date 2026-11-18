@@ -227,14 +227,14 @@ protected:
 // 0x5f4736..0x5f473d: cerrada, solo la consulta del byte protegido (1 rand()); la esquina queda como estaba.
 TEST_P(NpcWindowDrawingTest, TheClosedShopOnlySpendsItsQuery)
 {
-    Runtime().hud.npcWindowX = 7;
+    Runtime().ui.npcWindowX = 7;
     const CrtRandom expected = Advanced(m_random, 1);
 
     ASSERT_TRUE(DrawTheShop(0, 0).HasValue());
 
     EXPECT_EQ(m_random.State(), expected.State());
     EXPECT_TRUE(QuadsOf(m_sprites).empty());
-    EXPECT_EQ(Runtime().hud.npcWindowX, 7);
+    EXPECT_EQ(Runtime().ui.npcWindowX, 7);
 }
 
 // 0x5f4743..0x5f4a40: la esquina (0x104, 0), el fondo, las 120 casillas, el título y el impuesto (sprintf con
@@ -251,8 +251,8 @@ TEST_P(NpcWindowDrawingTest, TheShopDrawsItsBackGridTitleTaxAndTwoButtons)
 
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_EQ(m_random.State(), expected.State());
-    EXPECT_EQ(Runtime().hud.npcWindowX, 0x104);
-    EXPECT_EQ(Runtime().hud.npcWindowY, 0);
+    EXPECT_EQ(Runtime().ui.npcWindowX, 0x104);
+    EXPECT_EQ(Runtime().ui.npcWindowY, 0);
     const std::vector<DrawnQuad> quads = TexturedQuadsOf(m_sprites);
     ASSERT_EQ(quads.size(), 2 + GridCells + 2);
     ExpectQuadAt(quads[0], 0x104, Left, 0.0f, 190.0f, 256.0f);
@@ -437,13 +437,13 @@ TEST_P(NpcWindowDrawingTest, AMissingTextStopsWithItsAddress)
 // 0x5f4e3f..0x5f4e48: el almacén cerrado no dibuja nada ni saca rand() (0x40 es un byte sin protección).
 TEST_P(NpcWindowDrawingTest, TheClosedWarehouseDrawsNothing)
 {
-    Runtime().hud.npcWindowX = 7;
+    Runtime().ui.npcWindowX = 7;
 
     ASSERT_TRUE(DrawTheWarehouse(0, 0).HasValue());
 
     EXPECT_EQ(m_random.State(), Seed);
     EXPECT_TRUE(QuadsOf(m_sprites).empty());
-    EXPECT_EQ(Runtime().hud.npcWindowX, 7);
+    EXPECT_EQ(Runtime().ui.npcWindowX, 7);
 }
 
 // 0x5f4e4e..0x5f58e6: la esquina (0x104, 0), el fondo, las casillas, el título "%s (%s)" con el texto 240, el zen
@@ -459,8 +459,8 @@ TEST_P(NpcWindowDrawingTest, TheWarehouseDrawsItsZenItsFeeAndItsButtons)
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_EQ(m_random.State(), expected.State());
     EXPECT_EQ(Runtime().ownRecordDepth, 0);
-    EXPECT_EQ(Runtime().hud.npcWindowX, 0x104);
-    EXPECT_EQ(Runtime().hud.npcWindowY, 0);
+    EXPECT_EQ(Runtime().ui.npcWindowX, 0x104);
+    EXPECT_EQ(Runtime().ui.npcWindowY, 0);
     const std::vector<DrawnQuad> quads = TexturedQuadsOf(m_sprites);
     ASSERT_EQ(quads.size(), 2 + GridCells + 4);
     ExpectQuadAt(quads[0], 0x104, Left, 0.0f, 190.0f, 256.0f);

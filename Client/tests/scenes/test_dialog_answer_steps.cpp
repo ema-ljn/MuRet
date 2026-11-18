@@ -39,10 +39,10 @@
 
 #include <gtest/gtest.h>
 
-// Los pasos del 0x9a (el AF 01), del 0xa8 (con su tercer botón y Esc), del 0xaa (el D0 00) y del 0x91 (el título o
-// el precio de la tienda personal) en 0x623e70 (CL9 hito 6, fase 4a), con los paquetes byte a byte y los rand() de
-// cada uno contra un paso sin nada elegido. Textos y números inventados; el mundo, en Lorencia (0), Devias (2) y
-// Noria (3).
+// Los pasos del 0x9a (el AF 01), del 0xa8 (con su tercer botón y Esc) y del 0xaa (el D0 00) en 0x623e70 (CL9 hito 6,
+// fase 4a), con los paquetes byte a byte y los rand() de cada uno contra un paso sin nada elegido. El del 0x91 (el
+// título o el precio de la tienda personal) es el del CL9 hito 7 (test_personal_shop_window.cpp). Textos y números
+// inventados; el mundo, en Lorencia (0), Devias (2) y Noria (3).
 namespace
 {
 using Client::Network::Delivery;
@@ -63,10 +63,6 @@ constexpr std::int32_t LuckYesX = 0x16 + 0xd5;
 constexpr std::int32_t LuckNoX = 0x52 + 0xd5;
 constexpr std::int32_t LuckThirdX = 0x8e + 0xd5;
 constexpr std::int32_t LuckY = 0x5c + 0x64;
-// 0x6260f6: el OK y el cancelar del 0x91.
-constexpr std::int32_t TypedOkX = 0xff;
-constexpr std::int32_t TypedCancelX = 0x17e;
-constexpr std::int32_t TypedY = 0xb0;
 // Lo que deja un diálogo que no suena.
 constexpr std::int32_t Silent = -1;
 // 0x5af520: el almacén y la ventana 0x80 sin rand(); el comercio, un byte protegido, con uno (y solo si los dos
@@ -338,85 +334,6 @@ TEST(DialogAnswerStepsTest, TheLuckAnswersUseTheItemOrSayWhyNot)
             EXPECT_NE(stepped.Error().find(address), std::string::npos) << stepped.Error();
             EXPECT_NE(stepped.Error().find("P-C193"), std::string::npos) << stepped.Error();
         }
-    }
-}
-
-// 0x626232..0x6262d6: Enter en el 0x91 contesta 1 con un título (0x78aba60 en 1 y 0x78aba64 escrito) o un precio (en 2
-// y 0x77f3b6c mayor que 0), y 2 sin ellos; el cancelar contesta 2. Después vacía el campo, cierra el chat, devuelve el
-// foco a la ventana del juego y cierra el diálogo, sin MouseUpdateTime ni sonido ni rand().
-TEST(DialogAnswerStepsTest, TheTypedTextAnswersWithEnterOrCancel)
-{
-    struct Case
-    {
-        std::int32_t kind = 0;
-        std::string title;
-        std::int32_t money = 0;
-        bool cancel = false;
-        std::uint8_t answer = 0;
-    };
-    const std::vector<Case> cases{
-        {1, "tienda", 0, false, 1}, {1, "", 50, false, 2},     {2, "", 500, false, 1},     {2, "otra", 0, false, 2},
-        {2, "", -3, false, 2},      {1, "tienda", 0, true, 2}, {3, "tienda", 9, false, 2},
-    };
-    for (const std::int32_t map : Maps)
-    {
-        for (const Case& expected : cases)
-        {
-            SCOPED_TRACE(testing::Message()
-                         << "mapa " << map << ", tipo " << expected.kind << ", cancelar " << expected.cancel);
-            AnsweringDialogs tested(map, 0x91);
-            auto& runtime = tested.Runtime();
-            auto& npc = runtime.npcWindows;
-            npc.field78aba60 = expected.kind;
-            npc.field78aba64 = expected.title;
-            npc.typedMoney = expected.money;
-            runtime.ui.chatOpen = true;
-            runtime.chat.input.focus = Client::UI::ChatFocus::Message;
-            runtime.chat.input.field = 1;
-            const CrtRandom before = tested.random;
-            if (expected.cancel)
-                ASSERT_TRUE(tested.Click(TypedCancelX, TypedY).HasValue());
-            else
-            {
-                runtime.ui.enterPressed = true;
-                ASSERT_TRUE(tested.Step(0, 0).HasValue());
-            }
-            EXPECT_EQ(tested.random.State(), before.State());
-            EXPECT_EQ(npc.dialogAnswer, expected.answer);
-            EXPECT_EQ(runtime.dialogs.current, 0x8a);
-            EXPECT_EQ(runtime.dialogs.pending, 0);
-            EXPECT_FALSE(runtime.ui.chatOpen);
-            EXPECT_FALSE(runtime.ui.enterPressed);
-            EXPECT_FALSE(runtime.movement.pendingClick);
-            EXPECT_EQ(runtime.chat.input.focus, Client::UI::ChatFocus::Game);
-            EXPECT_EQ(runtime.chat.input.field, 0);
-            EXPECT_EQ(runtime.lastSoundId, Silent);
-            EXPECT_EQ(runtime.movement.mouseUpdateTime, 3);
-            EXPECT_EQ(npc.field78aba64, expected.title);
-        }
-    }
-}
-
-// 0x626102..0x62610c y 0x626244: sin clic ni Enter el 0x91 no hace nada; el clic fuera de los botones queda; el OK lee
-// el EDIT del diálogo (0x5763504) de la CL9.4 y corta.
-TEST(DialogAnswerStepsTest, TheTypedTextWaitsAndItsOkIsCut)
-{
-    for (const std::int32_t map : Maps)
-    {
-        SCOPED_TRACE(map);
-        AnsweringDialogs tested(map, 0x91);
-        auto& runtime = tested.Runtime();
-        ASSERT_TRUE(tested.Step(TypedOkX, TypedY).HasValue());
-        EXPECT_EQ(runtime.dialogs.current, 0x91);
-        EXPECT_EQ(runtime.npcWindows.dialogAnswer, 0xff);
-        ASSERT_TRUE(tested.Click(0x140, 0xb1).HasValue());
-        EXPECT_EQ(runtime.dialogs.current, 0x91);
-        EXPECT_TRUE(runtime.movement.pendingClick);
-
-        const auto stepped = tested.Click(TypedOkX, TypedY);
-        ASSERT_FALSE(stepped.HasValue());
-        EXPECT_NE(stepped.Error().find("0x626172"), std::string::npos) << stepped.Error();
-        EXPECT_NE(stepped.Error().find("CL9.4"), std::string::npos) << stepped.Error();
     }
 }
 } // namespace

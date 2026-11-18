@@ -100,6 +100,54 @@ void Quad(Render::SpriteBatch& sprites, std::uint16_t slot, float x, float y, fl
                                       .alpha = 0.0f});
 }
 
+void DrawTheFrame(Render::SpriteBatch& sprites, float x, float y, float width, float height, bool filled)
+{
+    // 0x471532..0x47155e: la caja de glColor4ub(0x92, 0x90, 0x8d, 0xc8) y 0x459ec0.
+    constexpr Render::Color FrameFill{
+        .red = 146.0f / 255.0f, .green = 144.0f / 255.0f, .blue = 141.0f / 255.0f, .alpha = 200.0f / 255.0f};
+    if (filled)
+    {
+        sprites.SetColor(FrameFill);
+        sprites.ColorQuad(x, y, width, height);
+        sprites.SetColor(White);
+        sprites.EnableTexture();
+    }
+    constexpr std::uint16_t FrameRowSlot = 0x117;
+    constexpr std::uint16_t FrameSideSlot = 0x104;
+    constexpr float FrameLine = 2.0f;
+    constexpr float FrameRowU = 0.0390625f;
+    constexpr float FrameRowV = 0.3125f;
+    constexpr float FrameRowDu = 0.6640625f;
+    constexpr float FrameRowDv = 0.125f;
+    constexpr float FrameSideU = 0.00390625f;
+    constexpr float FrameSideV = 0.3125f;
+    constexpr float FrameSideDu = 0.0078125f;
+    constexpr float FrameSideDv = 0.48828125f;
+    const auto quad =
+        [&sprites](std::uint16_t slot, float left, float top, float w, float h, float u, float v, float du, float dv)
+    {
+        sprites.Quad(Render::OriginalQuad{.slot = Render::TextureSlot{slot},
+                                          .x = left,
+                                          .y = top,
+                                          .width = w,
+                                          .height = h,
+                                          .u = u,
+                                          .v = v,
+                                          .du = du,
+                                          .dv = dv,
+                                          .scaleSize = true,
+                                          .scalePosition = true,
+                                          .alpha = 0.0f});
+    };
+    const auto f32 = [](double value) { return static_cast<float>(value); };
+    quad(FrameRowSlot, x, y, width, FrameLine, FrameRowU, FrameRowV, FrameRowDu, FrameRowDv);
+    quad(FrameRowSlot, x, f32(static_cast<double>(y) + static_cast<double>(height)),
+         f32(static_cast<double>(width) + 1.0), FrameLine, FrameRowU, FrameRowV, FrameRowDu, FrameRowDv);
+    quad(FrameSideSlot, x, y, FrameLine, height, FrameSideU, FrameSideV, FrameSideDu, FrameSideDv);
+    quad(FrameSideSlot, f32(static_cast<double>(x) + static_cast<double>(width)), y, FrameLine, height, FrameSideU,
+         FrameSideV, FrameSideDu, FrameSideDv);
+}
+
 void DrawTheWindowBack(Render::SpriteBatch& sprites, std::int32_t x, std::int32_t y)
 {
     const auto left = static_cast<float>(x);
@@ -122,17 +170,15 @@ void DrawText(GameHudContext& context, std::int32_t x, std::int32_t y, std::stri
     KeepTheMeasure(context, text, 0);
 }
 
-void DrawTitle(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text)
+std::int32_t BoxWidth(const GameHudContext& context, std::uint32_t designWidth)
 {
-    DrawTitle(context, x, y, text, TitleBoxDesignWidth);
+    const auto screenWidth = static_cast<std::uint32_t>(context.sprites.Screen().width);
+    return static_cast<std::int32_t>(screenWidth * designWidth / DesignWidth);
 }
 
-void DrawTitle(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text,
-               std::uint32_t designWidth)
+void DrawInBox(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text, std::int32_t box)
 {
     HudState& hud = context.hud;
-    const App::PixelSize screen = context.sprites.Screen();
-    const auto box = static_cast<std::int32_t>(static_cast<std::uint32_t>(screen.width) * designWidth / DesignWidth);
     // 0x554180: 0x465950 con un texto o con caja. 0x467060 en el modo 2 (0x46711b..0x467132): la caja de
     // cx + 2 · ((caja − cx) / 2) columnas desde _ftol(x · rx), con el fondo entero, y el texto corrido (caja − cx) / 2.
     if (!text.empty() || box != 0)
@@ -142,6 +188,36 @@ void DrawTitle(GameHudContext& context, std::int32_t x, std::int32_t y, std::str
                                  -placed.textColumn, placed.width);
     }
     KeepTheMeasure(context, text, box);
+}
+
+void DrawInBox(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text,
+               std::uint32_t designWidth)
+{
+    DrawInBox(context, x, y, text, BoxWidth(context, designWidth));
+}
+
+void DrawClipped(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text, std::int32_t width)
+{
+    HudState& hud = context.hud;
+    const Render::Text::TextStyle style{.font = hud.dcFont, .colors = hud.textColors};
+    if (width <= 0)
+    {
+        if (!text.empty())
+            context.text.Draw(x, y, text, style);
+    }
+    else
+    {
+        // El cx de GetTextExtentPoint32A en 0x467060: un texto vacío mide "0" (0x4670ba..0x4670d0).
+        const std::int32_t measured =
+            context.text.Measure(hud.dcFont, text.empty() ? std::string_view("0") : text).width;
+        context.text.DrawColumns(x, y, text, style, width < measured ? measured - width : 0, width);
+    }
+    KeepTheMeasure(context, text, width);
+}
+
+void DrawTitle(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text)
+{
+    DrawInBox(context, x, y, text, BoxWidth(context, TitleBoxDesignWidth));
 }
 
 void DrawCenteredText(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text)

@@ -137,6 +137,11 @@ Client::Data::Tables::ItemSetTables NoSets()
 // Lo que dura la sesión, con Player.bmd, sin conjuntos y el Item.bmd que pase la prueba.
 struct Stage
 {
+private:
+    // Dos mundos simultáneos exceden la pila de 1 MiB del runner Windows.
+    std::unique_ptr<Client::Scenes::WorldState> m_world = std::make_unique<Client::Scenes::WorldState>();
+
+public:
     Stage(std::filesystem::path root, const Client::Data::Tables::ItemTable* itemTable)
         : dataRoot(std::move(root)), cloth{.random = CrtRandom(Seed)}, items(itemTable)
     {
@@ -175,7 +180,7 @@ struct Stage
     }
 
     std::filesystem::path dataRoot;
-    Client::Scenes::WorldState world;
+    Client::Scenes::WorldState& world = *m_world;
     Client::Scenes::SelectionState selection{world};
     Client::World::GameCamera camera;
     Client::World::GameCameraInput cameraInput;
@@ -207,7 +212,7 @@ protected:
         return Stage(m_dataRoot, &*m_items);
     }
 
-    // En el heap: WorldState pesa unos 350 KB, y tres en la pila pasan el 1 MB de la de Windows.
+    // En el heap: WorldState pesa más de 600 KB y algunas pruebas tienen dos etapas.
     [[nodiscard]] std::unique_ptr<Stage> FreshOnTheHeap() const
     {
         return std::make_unique<Stage>(m_dataRoot, &*m_items);
@@ -328,6 +333,7 @@ TEST_F(InventoryReplyTest, AnEmptiedSlotKeepsItsDurabilityUntilQC184)
     Stage tested = Fresh();
     tested.PublishedHero();
     tested.world.OwnCharacter().equipment[5].durability = 10;
+    tested.world.OwnCharacter().equipment[5].flags1c = 4; // Bono no nulo: Q-C184 sigue necesitando el prefijo.
 
     const auto applied = ApplyInventory(ListOf({Entry(0, Kris)}), tested.Resources());
 
@@ -407,7 +413,8 @@ TEST_F(InventoryReplyTest, AnItemPastTheLastColumnContinuesOnTheNextRow)
 // las de adentro, con su 0x54bf40, y corta en la primera de afuera.
 TEST_F(InventoryReplyTest, AnItemPastTheLastCellIsAnExplicitFrontier)
 {
-    Stage tested = Fresh();
+    const std::unique_ptr<Stage> testedOnHeap = FreshOnTheHeap();
+    Stage& tested = *testedOnHeap;
 
     const auto placed = Client::Scenes::PlaceInventoryItem(12 + 63, ItemBytes(SmallShield), tested.Resources());
 
@@ -449,8 +456,10 @@ TEST_F(InventoryReplyTest, TheSecondGridStartsAtSlot76)
 // con 12 o más no lo toca. Los WORD +0x3e y +0x42 en 0 no llaman a 0x54fe10.
 TEST_F(InventoryReplyTest, AfterTheGridTheRecordClosesOnlyWithSlot78a6758BelowTwelve)
 {
-    Stage closing = Fresh();
-    Stage skipping = Fresh();
+    const std::unique_ptr<Stage> closingOnHeap = FreshOnTheHeap();
+    Stage& closing = *closingOnHeap;
+    const std::unique_ptr<Stage> skippingOnHeap = FreshOnTheHeap();
+    Stage& skipping = *skippingOnHeap;
     skipping.world.Runtime().slot78a6758 = 12;
     constexpr std::uint16_t Untouched = 0x1234;
     closing.world.OwnCharacter().attackSpeed = Untouched;
@@ -484,14 +493,16 @@ TEST_F(InventoryReplyTest, EachNonZeroWord3eOr42RunsTheSpeeds)
 // 0x10 de B3 lee su nivel, que el último cierre dejó en rand() & 0xff. Abierto, es el nivel.
 TEST_F(InventoryReplyTest, ALateWeaponReadsTheLevelOnlyWithTheRecordOpen)
 {
-    Stage closed = Fresh();
+    const std::unique_ptr<Stage> closedOnHeap = FreshOnTheHeap();
+    Stage& closed = *closedOnHeap;
     const auto cut = Client::Scenes::PlaceInventoryItem(12, ItemBytes(Kris, 0, 20, 0x10), closed.Resources());
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("Q-C202"), std::string::npos) << cut.Error();
     EXPECT_EQ(closed.Cell(0).id, Kris);
     EXPECT_EQ(closed.Cell(8).id, 0);
 
-    Stage held = Fresh();
+    const std::unique_ptr<Stage> heldOnHeap = FreshOnTheHeap();
+    Stage& held = *heldOnHeap;
     held.world.Runtime().ownRecordDepth = 1;
     held.world.OwnCharacter().level = 200;
     const auto placed = Client::Scenes::PlaceInventoryItem(12, ItemBytes(Kris, 0, 20, 0x10), held.Resources());
@@ -516,7 +527,7 @@ TEST_F(InventoryReplyTest, TheDarkHorseInTheGridAddsItsDefenseOption)
 {
     Stage grid = Fresh();
     grid.world.OwnCharacter().agility = 205;
-    grid.world.Runtime().darkHorseLevel = 3;
+    grid.world.Runtime().pets[Client::Scenes::DarkHorsePetStats].level = 3;
 
     const auto placed = Client::Scenes::PlaceInventoryItem(12, ItemBytes(DarkHorse), grid.Resources());
 
@@ -560,7 +571,7 @@ TEST_F(InventoryReplyTest, TheDarkHorseOptionSkipsAnEarlierOneInTheFirstPlace)
     Stage tested = Fresh();
     tested.world.Runtime().ownRecordDepth = 1;
     tested.world.OwnCharacter().agility = 0xffff;
-    tested.world.Runtime().darkHorseLevel = 200;
+    tested.world.Runtime().pets[Client::Scenes::DarkHorsePetStats].level = 200;
 
     ItemState second;
     second.id = DarkHorse;
@@ -864,7 +875,8 @@ TEST_F(InventoryReplyTest, TheFiveCableSlotsDressTheHeroInTheSamePoll)
 // lugar.
 TEST_F(InventoryReplyTest, TheItemMoveResultPlacesTheItemOrPutsItBack)
 {
-    Stage tested = Fresh();
+    const std::unique_ptr<Stage> testedOnHeap = FreshOnTheHeap();
+    Stage& tested = *testedOnHeap;
     tested.PublishedHero();
     Client::Scenes::WorldRuntime& runtime = tested.world.Runtime();
     runtime.ui.field78abb39 = 1;
@@ -899,7 +911,7 @@ TEST_F(InventoryReplyTest, TheItemMoveResultPlacesTheItemOrPutsItBack)
     EXPECT_EQ(refused.Cell(1).occupied, 1u);
 }
 
-// 0x4c5ec0 (28): 0x5bd750 con el lugar y, con pkt[4], el fin de la espera; desde el 0x4c, la tienda personal corta.
+// 0x4c5ec0 (28): 0x5bd750 con el lugar y, con pkt[4], el fin de la espera; desde el 0x4c, la grilla de la tienda.
 // 0x4d3cc0 (2A): la durabilidad del lugar del equipo, con su acceso al registro, o de toda la huella de la grilla.
 TEST_F(InventoryReplyTest, TheDeleteAndTheDurabilityTouchTheirPlace)
 {
@@ -935,10 +947,12 @@ TEST_F(InventoryReplyTest, TheDeleteAndTheDurabilityTouchTheirPlace)
     EXPECT_EQ(tested.Cell(6).id, EmptyOwnItemId);
     EXPECT_EQ(runtime.ui.field5767954, 0);
 
+    // Desde el 0x4c, sin mirar la tienda de otro (0x6c931c en −1): la grilla de la tienda (0x78ab0b8).
+    ASSERT_TRUE(Client::Scenes::PlaceInventoryItem(0x4c + 1, ItemBytes(Apple), tested.Resources()).HasValue());
     const auto shop = Client::Scenes::ApplyItemDelete(
-        Client::Protocol::Inventory::ItemDelete{.slot = 0x4c, .endsTheWait = 0}, tested.Resources());
-    ASSERT_FALSE(shop.HasValue());
-    EXPECT_TRUE(shop.Error().starts_with("0x4c5ece:")) << shop.Error();
+        Client::Protocol::Inventory::ItemDelete{.slot = 0x4c + 1, .endsTheWait = 0}, tested.Resources());
+    ASSERT_TRUE(shop.HasValue()) << shop.Error();
+    EXPECT_EQ(tested.world.Inventory().secondCells[1].id, EmptyOwnItemId);
 }
 
 // 0x4d3510 (26): cada uno con el registro propio abierto, 3.848 rand() al cerrarlo; 0xfe la vida máxima, 0xff la vida,

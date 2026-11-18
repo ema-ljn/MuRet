@@ -11,18 +11,17 @@ sobre pseudocódigo. El original no se ejecutó en el host.
 | H9/H10, PR [347](https://github.com/ema-ljn/MuRet/pull/347) | `claude/cl9-hito-10` | `ed24a9e3` |
 | H6, PR [348](https://github.com/ema-ljn/MuRet/pull/348) | `claude/cl9-hito-6` | `eedc3780` |
 | H12, PR [349](https://github.com/ema-ljn/MuRet/pull/349) | `claude/cl9-hito-12` | `38e4e930` |
-| H13 y conexiones finales, PR [363](https://github.com/ema-ljn/MuRet/pull/363) | `codex/cl9-h13-cierre` | código hasta `25c71930`; este documento se añade después |
-| Recursos/Fire: checkpoint WIP, sin otro PR | `codex/cl9-golden-resources` | `26c3ab09` |
+| H13 y conexiones finales, PR [363](https://github.com/ema-ljn/MuRet/pull/363) | `codex/cl9-h13-cierre` | código hasta `c8aaa26e`; este documento se actualiza después |
+| Recursos/Fire: respaldo de la rama de trabajo, sin otro PR | `codex/cl9-golden-resources` | `4368b40e` |
 
 La pila sigue `main` ← 347 ← 348 ← 349 ← 363. Base auditada: `main` en
 `c8d6dbb3`. Se conservaron los cambios remotos por merges normales. No se mergeó
 a main ni se hizo force push.
 
-`26c3ab09` guarda cuatro archivos de tests: recursos del epílogo de agua y el
-oráculo de consultas nativas que pide Fire. **Producción Fire/order todavía no
-está implementada en ese checkpoint.** Sus 22 pruebas ejecutadas son LoadedWorld15
-y Kalima7; el nuevo oráculo Fire/order aún necesita RED y la reparación correspondiente.
-No interpretar esa rama de respaldo como una entrega lista para merge.
+El checkpoint inicial `26c3ab09` guardaba cuatro archivos de tests todavía WIP.
+La corrección final `4368b40e` añade Fire01 y restaura el orden efectivo de consultas
+de texturas. Ambos commits están incorporados en PR363 como `d6d537f2` y `c8aaa26e`.
+La rama de recursos conserva su historia independiente como respaldo, sin abrir otro PR.
 
 ## Correcciones incluidas en el PR363
 
@@ -35,6 +34,11 @@ No interpretar esa rama de respaldo como una entrega lista para merge.
   dibujo fallido y cuadros completos de Chaos Castle18..23. Se conservaron los guards ASM.
 - Fixtures de inventario inicializadas por el reset real de selección; el guard661b90
   sigue mirando los WORD de los 32 slots aunque `occupied=0`.
+- Fire01/C2 y orden nativo de consultas de texturas: 21 consultas explícitas alcanzadas,
+  después el barrido BE..150. El oráculo independiente conserva las 45 consultas
+  explícitas originales para comparar orden, carpetas, sampling y reutilización.
+- Fixtures completas del epílogo de agua y Kalima, sin esconder recursos ausentes con
+  nuevos skips. La caché de los cinco nombres compartidos lleva el logo al slot455.
 
 Las regresiones focales se compilaron por separado con headers y bibliotecas
 coherentes, comprobando hashes antes/después. Entre los resultados registrados:
@@ -42,6 +46,13 @@ GameScene34/34, altar13/13, H2+CameraTour55/55, Luck5/5, entrada1a1d6/6,
 flechas/ataque49/49, chat/diálogos68/68 y T16/dibujo77/77. No sumarlos como si
 fueran una suite completa de una única ejecución. Astra revisó también los cambios
 de oráculos; no encontró un A/B pendiente en esos cambios revisados.
+
+El lote final de recursos pasó **112/112**, sin skips: GameModels20, PlayerModels10,
+WorldModels14, LoginScene46, LoadedWorld15 y Kalima7. Se compilaron los tests actuales
+y las dos unidades productivas cambiadas contra los headers y archives coherentes R4;
+sus hashes se comprobaron antes y después. El oráculo Fire faltante tuvo RED antes de
+la reparación. Formato18 e include-cleaner18 quedaron limpios en los ocho CPP.
+Esto no reemplaza la suite global ni Windows del SHA integrado.
 
 ## Validación completa que falta repetir
 
@@ -74,16 +85,17 @@ verificados, fuera de Git. Se pueden recuperar otra vez con los scripts existent
 Memoria, claves y tráfico privados no se suben al repo. El perfil histórico2f16
 no se transforma por eso en una nueva observación de c32 en VM.
 
-## Recursos y fidelidad pendientes
+## Fidelidad comprobada y fronteras pendientes
 
 Fire01 es modeloC2, `Skill/Fire01.bmd` (615d4c), con textura consultada en el
-barrido616e20..616e46. El trabajo WIP debe registrar ese recurso y ordenar las
+barrido616e20..616e46. El lote final registra ese recurso y ordena las
 consultas alcanzadas del615700. El pedido de texturas10f en61619f ocurre antes
 del alta RidingSpear01.bmd en6161b5: en el perfil BMD sin Data2/SMD actual no
 dispone de esas mallas; su asignación efectiva corresponde al barrido final.
 No anticipar mallas futuras para forzar el resultado de la consulta anterior.
-No fijar slots arbitrarios ni cambiar sólo el conteo del logo: verificar nombres,
-reutilización, sampling y orden. El valor455 nativo y el456 actual no son equivalentes.
+No se anticipan mallas futuras. Los tests verifican nombres, reutilización, sampling,
+orden y liberación; el logo ahora queda455, frente al456 anterior. Este lote no carga
+todas las familias históricas de615700 ni implementa Data2/SMD.
 
 Las dependencias externas determinadas se detallan en los nuevos informes:
 

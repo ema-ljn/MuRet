@@ -4,11 +4,17 @@
 #include "UI/ChatInput.h"
 #include "UI/ChatLog.h"
 #include "UI/ChatLogWindow.h"
+#include "UI/LetterWindows.h"
+#include "UI/OldControls.h"
+#include "UI/OldEditLines.h"
+#include "UI/OldWindowBase.h"
+#include "UI/OldWindowDrawParts.h"
+#include "UI/OldWindowSteps.h"
 
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
-#include <format>
+#include <deque>
 #include <iterator>
 #include <string>
 #include <utility>
@@ -52,6 +58,19 @@ constexpr std::int32_t ClientWidthCut = 10;
 constexpr std::int32_t ClientHeightCut = 0x1a;
 // 0x4930f0: estirada, la ventana va de y = 0 hasta la barra de abajo.
 constexpr std::int32_t StretchedHeight = 0x1b0;
+// 0x468d50: el mouse sobre el EDIT, 4 más arriba y 4 más abajo; las flechas de 13 × 13 en x + w − 0xf, y − 4 e
+// y + h − 9; la barra en x + w − 0xe; las cuentas corren solas después de 15 (como las de la lista); agarrado, el
+// estado en 2; el medio punto de la proporción (0x6b882c); 0x6c8dcc en 6.
+constexpr std::int32_t EditArrowRise = 4;
+constexpr std::int32_t EditMouseSlack = 8;
+constexpr std::int32_t EditArrowInset = 0xf;
+constexpr std::int32_t EditArrowDrop = 9;
+constexpr std::int32_t EditArrowSize = 13;
+constexpr std::int32_t EditBarInset = 0xe;
+constexpr std::int32_t EditRepeatSteps = 0xf;
+constexpr std::int32_t DraggedEdit = 2;
+constexpr double EditDragHalf = 0.5;
+constexpr std::int32_t EditMouseUpdateTimeMax = 6;
 // 0x48ee60: la cascada corre 20 cada vez; sin lugar, vuelve a (r + 1, r + 1) con r = y % 10, y con r = 9 no la arma.
 constexpr std::int32_t CascadeStep = 0x14;
 constexpr std::int32_t CascadeWrap = 10;
@@ -89,9 +108,54 @@ constexpr std::int32_t NoCommand = 2;
 constexpr std::int32_t WindowListX = 0x246;
 constexpr std::int32_t WindowListY = 0x1b3;
 constexpr std::int32_t WindowListWidth = 0x34;
-// 0x4a5e10: oculta, el parpadeo baja de a 0,25.
+// 0x4a5e10: oculta, el parpadeo baja de a 0,25; 0x4a5be0: a la vista, sube.
 constexpr float WindowListBlinkDown = -0.25f;
+constexpr float WindowListBlinkUp = 0.25f;
+// 0x6b8a44: lo que suman al alto del renglón (+0x100) 0x4a4eb0, 0x4a5be0 y 0x4a5490.
+constexpr double WindowListRowMargin = 4.0;
 
+// 0x45ae34..0x45ae47: el destructor de cada botón sólo libera su propia pulsación global.
+// El EDIT de `window` que tiene el foco (y no es ya el huérfano), o nullptr.
+OldEdit* FocusedEditOf(const OldWindowManager& manager, OldWindow& window)
+{
+    if (manager.focusedEditIsOrphan)
+        return nullptr;
+    if (window.kind == OldWindowKind::AddFriendBox && window.add.edit.base.id == manager.focusedEdit)
+        return &window.add.edit;
+    if (window.kind == OldWindowKind::ChatWindow && window.chat.edit.base.id == manager.focusedEdit)
+        return &window.chat.edit;
+    if (window.kind != OldWindowKind::LetterWriteWindow)
+        return nullptr;
+    for (OldEdit* edit : {&window.letter.to, &window.letter.subject, &window.letter.text})
+    {
+        if (edit->base.id == manager.focusedEdit)
+            return edit;
+    }
+    return nullptr;
+}
+
+void ReleaseTheDestroyedButtons(const OldWindow& window, std::int32_t& pressedButton)
+{
+    const auto release = [&pressedButton](const OldButton& button)
+    {
+        if (button.base.id == pressedButton)
+            pressedButton = 0;
+    };
+    if (window.kind == OldWindowKind::MessageBox)
+        std::ranges::for_each(window.box.buttons, release);
+    else if (window.kind == OldWindowKind::AddFriendBox)
+        std::ranges::for_each(window.add.buttons, release);
+    else if (window.kind == OldWindowKind::FriendTab || window.kind == OldWindowKind::WindowsTab ||
+             window.kind == OldWindowKind::LettersTab)
+        std::ranges::for_each(window.tab.buttons, release);
+    for (const OldWindow& tab : window.tabs)
+        ReleaseTheDestroyedButtons(tab, pressedButton);
+}
+
+} // namespace
+
+namespace Steps
+{
 bool MouseIn(const OldWindowStepView& view, std::int32_t x, std::int32_t y, std::int32_t width, std::int32_t height,
              std::int32_t mode)
 {
@@ -105,7 +169,9 @@ bool IsShowing(std::int32_t state)
 
 std::int32_t NextId(OldWindowManager& manager)
 {
-    return ++manager.lastId;
+    // 0x459ef5: INC de un DWORD, incluido el cruce del bit de signo y el wrap a cero.
+    manager.lastId = static_cast<std::int32_t>(static_cast<std::uint32_t>(manager.lastId) + 1u);
+    return manager.lastId;
 }
 
 // 0x45a210.
@@ -130,6 +196,7 @@ OldButton MakeTheButton(OldWindowManager& manager)
 OldWindow MakeTheFrame(OldWindowManager& manager)
 {
     OldWindow window;
+    window.allocationId = ++manager.lastAllocationId;
     window.base = MakeTheBase(manager);
     window.base.flags = AllFrameFlags;
     return window;
@@ -147,25 +214,72 @@ OldWindow MakeTheMessageBox(OldWindowManager& manager, std::int32_t oneButton)
     return window;
 }
 
-// 0x48f890..0x48f8e0: el área de adentro del marco, la vtable + 0x3c..+0x48. Todas las ventanas del mapa son marcos.
-std::int32_t ClientX(const OldWindowBase& base, std::int32_t offset)
+// La vtable + 0x3c..+0x48: 0x48f890..0x48f8e0 en el marco y sus derivadas; 0x48fb40..0x48fb70 en las pestañas de la
+// de amigos, sin borde ni barra.
+bool HasNoInsets(const OldWindow& window)
 {
-    return base.x + offset + ClientLeft;
+    return window.kind == OldWindowKind::FriendTab || window.kind == OldWindowKind::WindowsTab ||
+           window.kind == OldWindowKind::LettersTab;
 }
 
-std::int32_t ClientY(const OldWindowBase& base, std::int32_t offset)
+std::int32_t ClientX(const OldWindow& window, std::int32_t offset)
 {
-    return base.y + offset + ClientTop;
+    return window.base.x + offset + (HasNoInsets(window) ? 0 : ClientLeft);
 }
 
-std::int32_t ClientWidth(const OldWindowBase& base)
+std::int32_t ClientY(const OldWindow& window, std::int32_t offset)
 {
-    return base.width - ClientWidthCut;
+    return window.base.y + offset + (HasNoInsets(window) ? 0 : ClientTop);
 }
 
-std::int32_t ClientHeight(const OldWindowBase& base)
+std::int32_t ClientWidth(const OldWindow& window)
 {
-    return base.height - ClientHeightCut;
+    return window.base.width - (HasNoInsets(window) ? 0 : ClientWidthCut);
+}
+
+std::int32_t ClientHeight(const OldWindow& window)
+{
+    return window.base.height - (HasNoInsets(window) ? 0 : ClientHeightCut);
+}
+
+namespace
+{
+// El 9 de 0x45abc0 sobre el padre ya encontrado: el tamaño según +0x64 (0, el fijo si no es 0x0; 1, el ancho de adentro
+// del padre más +0x70; 2, el alto más +0x74; 3, los dos).
+void SizeAgainst(const OldWindow& p, OldWindowBase& base)
+{
+    switch (base.sizeMode)
+    {
+    case 0:
+        if (base.sizeX == 0 && base.sizeY == 0)
+            return;
+        base.width = base.sizeX;
+        base.height = base.sizeY;
+        return;
+    case 1:
+        base.width = ClientWidth(p) + base.sizeX;
+        base.height = base.sizeY;
+        return;
+    case 2:
+        base.width = base.sizeX;
+        base.height = ClientHeight(p) + base.sizeY;
+        return;
+    case 3:
+        base.height = ClientHeight(p) + base.sizeY;
+        base.width = ClientWidth(p) + base.sizeX;
+        return;
+    default:
+        return;
+    }
+}
+} // namespace
+
+void SizeAgainstTheParent(OldWindowManager& manager, OldWindowBase& base)
+{
+    if (base.parent == 0)
+        return;
+    if (const OldWindow* parent = FindTheOldWindow(manager, base.parent); parent != nullptr)
+        SizeAgainst(*parent, base);
 }
 
 // 0x45abc0, la vtable + 0x24 de todas: el 8 ubica y el 9 mide contra el área de adentro del padre.
@@ -177,7 +291,7 @@ void PlaceAgainstTheParent(OldWindowManager& manager, OldWindowBase& base)
     const OldWindow* parent = FindTheOldWindow(manager, base.parent);
     if (parent == nullptr)
         return;
-    const OldWindowBase& p = parent->base;
+    const OldWindow& p = *parent;
     if (type == PlaceMessage)
     {
         switch (base.placeMode)
@@ -202,29 +316,7 @@ void PlaceAgainstTheParent(OldWindowManager& manager, OldWindowBase& base)
             return;
         }
     }
-    switch (base.sizeMode)
-    {
-    case 0:
-        if (base.sizeX == 0 && base.sizeY == 0)
-            return;
-        base.width = base.sizeX;
-        base.height = base.sizeY;
-        return;
-    case 1:
-        base.width = ClientWidth(p) + base.sizeX;
-        base.height = base.sizeY;
-        return;
-    case 2:
-        base.width = base.sizeX;
-        base.height = ClientHeight(p) + base.sizeY;
-        return;
-    case 3:
-        base.height = ClientHeight(p) + base.sizeY;
-        base.width = ClientWidth(p) + base.sizeX;
-        return;
-    default:
-        return;
-    }
+    SizeAgainst(p, base);
 }
 
 // 0x45aa80 desde la cola hasta el rectángulo: el mouse sobre la ventana la hace la de abajo si no hay otra (y nadie
@@ -322,10 +414,141 @@ void StepTheButton(OldWindowManager& manager, OldButton& button, std::int32_t ar
     StepTheButtonMouse(manager, button, globals, view);
 }
 
+// 0x468d50, la vtable + 0x20 del EDIT (de todos: el original no mira +0xc4). Con el mouse en (x, y − 4, w, h + 8)
+// y el clic con el EDIT quieto: las flechas de la barra (13 × 13 en x + w − 0xf, y − 4 e y + h − 9) corren un renglón,
+// con el 0x19 la primera vez, y con tantos renglones como +0xd0 o más, el cursor se agarra (el estado en 2) y la pista
+// pasa de a páginas, todo con las cuentas de la lista. En un EDIT de una línea, EM_SCROLL no hace nada pero el sonido
+// sale (Q-C1009); su cursor y su pista, sin 0x468970, son de 0 × 0. Después, el mouse es de la UI y el clic le da el
+// foco (la vtable + 0x30 con 1: EM_SETSEL(−2, −1), el cursor al final y nada elegido) y pone 0x77f3b10 en 0 y 0x6c8dcc
+// en 6. Agarrado, el mouse lleva el cursor: EM_LINESCROLL a 0 y al renglón de la proporción; sin el clic, lo suelta.
+void StepTheEditMouse(OldWindowManager& manager, OldEdit& edit, const OldWindowGlobals& globals,
+                      const OldWindowStepView& view)
+{
+    OldWindowBase& base = edit.base;
+    // EM_GETLINECOUNT. Sin la medida (los tests que no la dan), un renglón.
+    const auto lineCount = [&edit, &view]
+    { return view.measure != nullptr ? EditLineCount(edit, view.measure->measure) : 1; };
+    // 0x468e1c y 0x468ff7: sin padre, o con el dibujo hecho (+0x40 del administrador en 1), la cuenta sube.
+    const auto mayCount = [&manager, &base] { return base.parent == 0 || manager.drawn == 1; };
+    const auto repeat = [&](std::int32_t& counter, std::int32_t code, bool sound)
+    {
+        if (counter == 0)
+        {
+            ScrollTheEdit(edit, lineCount(), code);
+            if (sound)
+                globals.sound = ButtonSound;
+            counter = 1;
+        }
+        else if (counter > EditRepeatSteps)
+            ScrollTheEdit(edit, lineCount(), code);
+        else if (mayCount())
+            ++counter;
+    };
+    // 0x468f9d: la pista, sin padre o con el dibujo hecho.
+    const auto trackMayRun = [&manager, &base] { return base.parent == 0 || manager.drawn != 0; };
+    const std::int32_t barX = base.x + base.width - EditBarInset;
+    if (MouseIn(view, base.x, base.y - EditArrowRise, base.width, base.height + EditMouseSlack, TopLeftRect))
+    {
+        if (globals.leftClick && base.state == ShownWindow)
+        {
+            const std::int32_t arrowX = base.x + base.width - EditArrowInset;
+            if (MouseIn(view, arrowX, base.y - EditArrowRise, EditArrowSize, EditArrowSize, TopLeftRect))
+                repeat(edit.arrowRepeat, EditLineUp, true);
+            if (MouseIn(view, arrowX, base.y + base.height - EditArrowDrop, EditArrowSize, EditArrowSize, TopLeftRect))
+                repeat(edit.arrowRepeat, EditLineDown, true);
+            if (lineCount() >= edit.visibleLines)
+            {
+                const double thumbY = static_cast<double>(edit.thumbY);
+                const double thumbBottom = thumbY + static_cast<double>(edit.thumbHeight);
+                const std::int32_t barWidth = OldDraw::Truncate(static_cast<double>(edit.barWidth));
+                if (MouseIn(view, barX, OldDraw::Truncate(thumbY), barWidth,
+                            OldDraw::Truncate(static_cast<double>(edit.thumbHeight)), TopLeftRect))
+                {
+                    if (base.state == ShownWindow && globals.capture == 0)
+                    {
+                        globals.capture = base.id;
+                        base.state = DraggedEdit;
+                        edit.dragOffset = static_cast<float>(static_cast<double>(view.mouseY) - thumbY);
+                    }
+                }
+                else if (MouseIn(view, barX, OldDraw::Truncate(static_cast<double>(edit.barTop)), barWidth,
+                                 OldDraw::Truncate(thumbY - static_cast<double>(edit.barTop)), TopLeftRect))
+                {
+                    if (trackMayRun())
+                        repeat(edit.trackRepeat, EditPageUp, false);
+                }
+                else if (MouseIn(view, barX, OldDraw::Truncate(thumbBottom), barWidth,
+                                 OldDraw::Truncate(static_cast<double>(edit.barBottom) - thumbY -
+                                                   static_cast<double>(edit.thumbHeight)),
+                                 TopLeftRect))
+                {
+                    if (trackMayRun())
+                        repeat(edit.trackRepeat, EditPageDown, false);
+                }
+            }
+        }
+        else
+        {
+            edit.arrowRepeat = 0;
+            edit.trackRepeat = 0;
+        }
+        globals.mouseOnUi = 1;
+        if (globals.leftClick)
+        {
+            // El foco deja de ser del EDIT de una caja ya destruida (el huérfano, CL9 hito 9).
+            manager.orphanedEdit.reset();
+            manager.focusedEditIsOrphan = false;
+            globals.keyboardFocus = ChatFocus::OldWindow;
+            manager.focusedEdit = base.id;
+            globals.focusedList = base.id;
+            edit.text.Deselect();
+            if (globals.mouseUpdateTime != nullptr)
+                *globals.mouseUpdateTime = 0;
+            if (globals.mouseUpdateTimeMax != nullptr)
+                *globals.mouseUpdateTimeMax = EditMouseUpdateTimeMax;
+        }
+    }
+    if (base.state != DraggedEdit)
+        return;
+    if (!globals.leftClick)
+    {
+        base.state = ShownWindow;
+        if (globals.capture == base.id)
+            globals.capture = 0;
+        return;
+    }
+    globals.mouseOnUi = 1;
+    edit.thumbY = static_cast<float>(static_cast<double>(view.mouseY) - static_cast<double>(edit.dragOffset));
+    const std::int32_t lines = lineCount();
+    const double top = static_cast<double>(edit.barTop);
+    const std::int32_t line =
+        OldDraw::Truncate(static_cast<double>(lines) * ((static_cast<double>(edit.thumbY) - top + EditDragHalf) /
+                                                        (static_cast<double>(edit.barBottom) - top)));
+    edit.firstLine = 0;
+    ScrollTheEditLines(edit, lines, line);
+}
+
+// 0x45aa80 sobre un EDIT: la cola (0x45abc0), el mouse y 0x468d50.
+void StepTheEdit(OldWindowManager& manager, OldEdit& edit, std::int32_t arg, const OldWindowGlobals& globals,
+                 const OldWindowStepView& view)
+{
+    while (!edit.base.queue.empty())
+    {
+        edit.base.current = edit.base.queue.front();
+        edit.base.queue.pop_front();
+        PlaceAgainstTheParent(manager, edit.base);
+    }
+    if (arg == 1)
+        return;
+    if (!ClaimTheMouse(manager, edit.base, globals, view))
+        return;
+    StepTheEditMouse(manager, edit, globals, view);
+}
+
 // 0x45aa50 sobre un botón: el mensaje y su paso con 1 (0x45aa80), que atiende la cola y no llega al mouse.
 void PostAndSettle(OldWindowManager& manager, OldButton& button, std::int32_t type)
 {
-    button.base.queue.push_back(OldMessage{.type = type, .a = 0, .b = 0});
+    button.base.queue.push_back(OldMessage{.type = type, .a = 0, .b = 0, .text = {}});
     while (!button.base.queue.empty())
     {
         button.base.current = button.base.queue.front();
@@ -335,16 +558,23 @@ void PostAndSettle(OldWindowManager& manager, OldButton& button, std::int32_t ty
 }
 
 // La vtable + 0x30: 0x48faf0 (nada) en el marco y en la lista, y 0x4a3a50 en la caja: ubica los dos botones (el 8 y
-// su paso con 1) y pone 0x77f3708 en 1, que nadie lee (*estático*; MuRet no lo guarda).
-void SettleTheWindow(OldWindowManager& manager, OldWindow& window)
+// su paso con 1) y pone 0x77f3708 en 1, que nadie lee (*estático*; MuRet no lo guarda). Las de amigos, en
+// UI/FriendWindows.
+Core::Expected<void, std::string> SettleTheWindow(OldWindowManager& manager, OldWindow& window,
+                                                  const OldWindowGlobals& globals, const OldWindowStepView& view)
 {
-    if (window.kind != OldWindowKind::MessageBox)
-        return;
-    SettleTheButtons(manager, window);
+    if (IsAFriendsKind(window.kind))
+        return SettleTheFriendsKinds(manager, window, globals, view);
+    if (IsALetterKind(window.kind))
+        return SettleTheLetterKinds(manager, window, globals, view);
+    if (window.kind == OldWindowKind::MessageBox)
+        SettleTheButtons(manager, window);
+    return {};
 }
 
 // 0x4930f0, la vtable + 0x38 del marco y de la caja: estira la ventana de y = 0 hasta la barra, o la vuelve.
-void StretchTheWindow(OldWindowManager& manager, OldWindow& window)
+Core::Expected<void, std::string> StretchTheWindow(OldWindowManager& manager, OldWindow& window,
+                                                   const OldWindowGlobals& globals, const OldWindowStepView& view)
 {
     OldWindowBase& base = window.base;
     OldFrame& frame = window.frame;
@@ -354,30 +584,39 @@ void StretchTheWindow(OldWindowManager& manager, OldWindow& window)
         frame.savedY = base.y;
         base.y = 0;
         base.height = StretchedHeight;
-        SettleTheWindow(manager, window);
+        if (auto settled = SettleTheWindow(manager, window, globals, view); !settled.HasValue())
+            return settled;
         frame.stretched = 1;
-        return;
+        return {};
     }
     base.height = frame.savedHeight;
     base.y = frame.savedY;
-    SettleTheWindow(manager, window);
+    if (auto settled = SettleTheWindow(manager, window, globals, view); !settled.HasValue())
+        return settled;
     frame.stretched = 0;
+    return {};
 }
 
 // 0x4a3b80, la vtable + 0x28 de la caja: el comando de un botón. El 1 (y el 2 con dos botones) le avisa al dueño
 // (el 12 con el id y 1 o 0) y le pide al administrador que la cierre. Siempre da 0: después corre 0x45abc0.
-Core::Expected<void, std::string> AnswerTheBox(OldWindowManager& manager, OldWindow& window)
+Core::Expected<void, std::string> AnswerTheBox(OldWindowManager& manager, OldWindow& window,
+                                               const OldWindowStepView& view)
 {
     const OldMessage& message = window.base.current;
     if (message.type != CommandMessage)
         return {};
     if (message.a != YesCommand && (message.a != NoCommand || window.box.oneButton != 0))
         return {};
+    // 0x4a3bde y 0x4a3fc8: la respuesta a un pedido de amistad (C1 0E C2, 1 o 0, y el nombre de +0x2b8).
     if (window.box.owner == -1)
-        return Core::Unexpected(std::string(
-            message.a == YesCommand ? "0x4a3bde: la respuesta C1 C2 01 a un pedido de amistad es de la CL9.4"
-                                    : "0x4a3fc8: la respuesta C1 C2 01 a un pedido de amistad es de la CL9.4"));
-    if (window.box.owner != 0)
+    {
+        if (!view.send)
+            return Core::Unexpected(std::string("0x4a3b80: la respuesta a un pedido de amistad (C1 C2) sin el cable"));
+        view.send(FriendSend{.kind = FriendSendKind::Answer,
+                             .value = static_cast<std::uint8_t>(message.a == YesCommand ? 1 : 0),
+                             .name = window.box.friendName});
+    }
+    else if (window.box.owner != 0)
         PostToTheWindow(manager, window.box.owner, AnswerMessage, window.base.id, message.a == YesCommand ? 1 : 0);
     PostToTheManager(manager, CloseMessage, window.base.id, 0);
     return {};
@@ -385,32 +624,97 @@ Core::Expected<void, std::string> AnswerTheBox(OldWindowManager& manager, OldWin
 
 // La vtable + 0x1c: 0x48fb10 (nada) en el marco; 0x4a43c0 en la caja (Enter, siendo la del final de la lista, se
 // manda el 10 con 1; y el paso de los dos botones, también el del que no se usa), y 0x4a4e20 en la lista de ventanas
-// (con +0x150 en 1, Enter la oculta: sin entradas, sin subir ninguna).
-void BeforeTheMouse(OldWindowManager& manager, OldWindow& window, std::int32_t arg, const OldWindowGlobals& globals,
-                    const OldWindowStepView& view)
+// (con +0x150 en 1, Enter la oculta: sin entradas, sin subir ninguna). Las de amigos, en UI/FriendWindows.
+Core::Expected<void, std::string> BeforeTheMouse(OldWindowManager& manager, OldWindow& window, std::int32_t arg,
+                                                 const OldWindowGlobals& globals, const OldWindowStepView& view)
 {
+    if (IsAFriendsKind(window.kind))
+        return StepTheFriendsChildren(manager, window, arg, globals, view);
+    if (IsALetterKind(window.kind))
+        return StepTheLetterKindsChildren(manager, window, arg, globals, view);
     if (window.kind == OldWindowKind::MessageBox)
     {
         if (LastOldWindow(manager) == window.base.id && view.keyEdge && view.keyEdge(EnterKey))
-            window.base.queue.push_back(OldMessage{.type = CommandMessage, .a = YesCommand, .b = 0});
+            window.base.queue.push_back(OldMessage{.type = CommandMessage, .a = YesCommand, .b = 0, .text = {}});
         for (OldButton& button : window.box.buttons)
             StepTheButton(manager, button, arg, globals, view);
-        return;
+        return {};
     }
+    // 0x4a4e20, la vtable + 0x1c de la lista: con +0x150 en 1, Enter sube el elegido (si está y no es el final), la
+    // oculta y apaga +0x150.
     if (window.kind == OldWindowKind::WindowList && window.list.armed == 1 && view.keyEdge && view.keyEdge(EnterKey))
     {
+        const OldWindowListPart& list = window.list;
+        if (list.cursor < list.chats.size() && FindTheOldWindow(manager, list.chats[list.cursor]) != nullptr)
+            PostToTheManager(manager, RaiseMessage, list.chats[list.cursor], 0);
         HideTheWindowList(window);
         window.list.armed = 0;
     }
+    return {};
 }
 
-// La vtable + 0x58: 0x48fb20 y 0x4a4430 (nada) en el marco y en la caja; 0x4a4eb0 en la lista, que solo hace algo a la
-// vista (sus renglones, CL9.4).
-Core::Expected<void, std::string> AfterTheMove(const OldWindow& window)
+// 0x4a4eb0, la vtable + 0x58 de la lista, a la vista: el mouse sobre los renglones (de abajo hacia arriba, desde
+// +0x104) los elige y es de la UI; con el soltado, el foco al juego, el 0x19 y la ventana del renglón: la de arriba se
+// minimiza (y sigue a la vista la lista) y otra se sube. Fuera, sin F5, el elegido va al final.
+Core::Expected<void, std::string> StepTheWindowListRows(OldWindowManager& manager, OldWindow& window,
+                                                        const OldWindowGlobals& globals, const OldWindowStepView& view)
 {
-    if (window.kind == OldWindowKind::WindowList && window.base.state == ShownWindow)
-        return Core::Unexpected(
-            std::string("0x4a4eb0: la lista de ventanas a la vista (sus renglones) es de la CL9.4"));
+    OldWindowListPart& list = window.list;
+    const std::size_t size = list.chats.size();
+    const double step = static_cast<double>(list.rowHeight) + WindowListRowMargin;
+    const std::int32_t height = OldDraw::Truncate(step * static_cast<double>(size));
+    if (window.base.state != ShownWindow)
+        return {};
+    if (!Steps::MouseIn(view, window.base.x, list.bottom - height, window.base.width, height, 1))
+    {
+        if (list.armed == 0)
+            list.cursor = size;
+        return {};
+    }
+    list.armed = 0;
+    manager.focus = window.base.id;
+    // 0x4a4f28..0x4a4f5a: trunc(tamaño − (mouse − (+0x104 − alto)) / (renglón + 4)), y el iterador avanza eso desde el
+    // principio, sin pasar el final.
+    const auto from = static_cast<double>(view.mouseY - list.bottom + height);
+    const std::int32_t row = OldDraw::Truncate(static_cast<double>(size) - from / step);
+    list.cursor = row > 0 ? std::min(static_cast<std::size_t>(row), size) : 0;
+    if (globals.releasedClick && window.base.state == ShownWindow)
+    {
+        // SetFocus([0x5763544]), como FocusTheGame.
+        globals.keyboardFocus = ChatFocus::Game;
+        globals.sound = ButtonSound;
+        globals.releasedClick = false;
+        // Con el elegido en el final (el borde de arriba, 0 de distancia), el original lee la ranura después del último
+        // (Q-C1008): MuRet no encuentra ninguna.
+        const std::int32_t id = list.cursor < size ? list.chats[list.cursor] : 0;
+        if (OldWindow* chosen = id != 0 ? FindTheOldWindow(manager, id) : nullptr; chosen != nullptr)
+        {
+            if (chosen->base.state != HiddenWindow && TopOldWindow(manager) == id)
+            {
+                PostToTheManager(manager, MinimizeMessage, id, 0);
+                HideTheWindowList(window);
+                globals.mouseOnUi = 1;
+                return {};
+            }
+            PostToTheManager(manager, RaiseMessage, id, 0);
+            globals.leftHeld = false;
+        }
+        HideTheWindowList(window);
+    }
+    globals.mouseOnUi = 1;
+    return {};
+}
+
+// La vtable + 0x58: 0x48fb20 y 0x4a4430 (nada) en el marco y en la caja, y 0x495520, 0x49b210 y 0x499830 (ret) en el
+// chat y en las de una carta; 0x4a4eb0 en la lista, que solo hace algo a la vista (sus renglones, P-C215). Las de
+// amigos, en UI/FriendWindows.
+Core::Expected<void, std::string> AfterTheMove(OldWindowManager& manager, OldWindow& window,
+                                               const OldWindowGlobals& globals, const OldWindowStepView& view)
+{
+    if (IsAFriendsKind(window.kind))
+        return AfterTheFriendsMove(manager, window, globals, view);
+    if (window.kind == OldWindowKind::WindowList)
+        return StepTheWindowListRows(manager, window, globals, view);
     return {};
 }
 
@@ -474,15 +778,27 @@ void ResizeFromTheTopLeft(OldWindow& window, const OldWindowStepView& view)
 }
 
 // Un botón de la barra del título bajo el mouse (0x492ac0): con el soltado y el mouse sin dueño en la UI, el mensaje
-// al administrador; la cruz, solo si la ventana se deja cerrar (la vtable + 0x4c, 0x48f8f0, que da 1).
-void PressTheTitleButton(OldWindowManager& manager, OldWindow& window, std::int32_t button, std::int32_t message,
-                         const OldWindowGlobals& globals)
+// al administrador; la cruz, solo si la ventana se deja cerrar (la vtable + 0x4c: 0x48f8f0, que da 1, o 0x499840 en la
+// de escribir una carta).
+Core::Expected<void, std::string> PressTheTitleButton(OldWindowManager& manager, OldWindow& window, std::int32_t button,
+                                                      std::int32_t message, const OldWindowGlobals& globals,
+                                                      const OldWindowStepView& view)
 {
     window.frame.hotButton = button;
     if (globals.mouseOnUi != 0 || !globals.releasedClick)
-        return;
-    PostToTheManager(manager, message, window.base.id, 0);
+        return {};
+    bool may = true;
+    if (message == CloseMessage)
+    {
+        auto asked = MayCloseTheWindow(manager, window, globals, view);
+        if (!asked.HasValue())
+            return Core::Unexpected(std::move(asked).Error());
+        may = asked.Value();
+    }
+    if (may)
+        PostToTheManager(manager, message, window.base.id, 0);
     globals.releasedClick = false;
+    return {};
 }
 
 // Agarrar el mouse para arrastrar (4) o para cambiar el tamaño (1) desde una esquina.
@@ -514,15 +830,16 @@ Core::Expected<void, std::string> StepTheFrameMouse(OldWindowManager& manager, O
     {
         const std::int32_t buttonY = base.y + TitleButtonY;
         const std::int32_t minimizeX = (flags & StretchFlag) != 0 ? MinimizeWithStretchX : MinimizeAloneX;
+        Core::Expected<void, std::string> pressed;
         if ((flags & TitleFlag) != 0 &&
             MouseIn(view, base.x - CloseButtonX + base.width, buttonY, TitleButtonSize, TitleButtonSize, TopLeftRect))
-            PressTheTitleButton(manager, window, 3, CloseMessage, globals);
+            pressed = PressTheTitleButton(manager, window, 3, CloseMessage, globals, view);
         else if ((flags & StretchFlag) != 0 && MouseIn(view, base.x - StretchButtonX + base.width, buttonY,
                                                        TitleButtonSize, TitleButtonSize, TopLeftRect))
-            PressTheTitleButton(manager, window, 2, StretchMessage, globals);
+            pressed = PressTheTitleButton(manager, window, 2, StretchMessage, globals, view);
         else if ((flags & MinimizeFlag) != 0 &&
                  MouseIn(view, base.x - minimizeX + base.width, buttonY, TitleButtonSize, TitleButtonSize, TopLeftRect))
-            PressTheTitleButton(manager, window, 1, MinimizeMessage, globals);
+            pressed = PressTheTitleButton(manager, window, 1, MinimizeMessage, globals, view);
         else if ((flags & ResizeFlag) != 0 && MouseIn(view, base.x, base.y, TopLeftGrip, TopLeftGrip, TopLeftRect))
             Grab(window, ResizedWindow, TopLeftCorner, globals, view);
         else if ((flags & DragFlag) != 0 && (flags & TitleFlag) != 0 &&
@@ -538,6 +855,8 @@ Core::Expected<void, std::string> StepTheFrameMouse(OldWindowManager& manager, O
             globals.leftClick = false;
         }
         globals.mouseOnUi = 1;
+        if (!pressed.HasValue())
+            return pressed;
     }
     if (base.state == DraggedWindow)
     {
@@ -562,19 +881,19 @@ Core::Expected<void, std::string> StepTheFrameMouse(OldWindowManager& manager, O
                 base.y = ScreenHeight - base.height;
             frame.grabX = view.mouseX;
             frame.grabY = view.mouseY;
-            return AfterTheMove(window);
+            return AfterTheMove(manager, window, globals, view);
         }
         base.state = ShownWindow;
         if (globals.capture == base.id)
             globals.capture = 0;
-        return AfterTheMove(window);
+        return AfterTheMove(manager, window, globals, view);
     }
     if (base.state != ResizedWindow)
-        return AfterTheMove(window);
+        return AfterTheMove(manager, window, globals, view);
     if (globals.leftHeld)
     {
         if (frame.resizeCorner != BottomRightCorner && frame.resizeCorner != TopLeftCorner)
-            return AfterTheMove(window);
+            return AfterTheMove(manager, window, globals, view);
         if (globals.hovered == 0)
             globals.hovered = base.id;
         globals.mouseOnUi = 1;
@@ -582,12 +901,12 @@ Core::Expected<void, std::string> StepTheFrameMouse(OldWindowManager& manager, O
             ResizeFromTheBottomRight(window, view);
         else
             ResizeFromTheTopLeft(window, view);
-        return AfterTheMove(window);
+        return AfterTheMove(manager, window, globals, view);
     }
     base.state = ShownWindow;
     if (globals.capture == base.id)
         globals.capture = 0;
-    return AfterTheMove(window);
+    return AfterTheMove(manager, window, globals, view);
 }
 
 // 0x45aa80, la vtable + 0x18 de las tres: la cola (la vtable + 0x28 y, si da 0, 0x45abc0), la vtable + 0x1c, el
@@ -602,12 +921,23 @@ Core::Expected<void, std::string> StepTheWindow(OldWindowManager& manager, OldWi
         base.queue.pop_front();
         if (window.kind == OldWindowKind::MessageBox)
         {
-            if (auto answered = AnswerTheBox(manager, window); !answered.HasValue())
+            if (auto answered = AnswerTheBox(manager, window, view); !answered.HasValue())
                 return answered;
+        }
+        else if (IsAFriendsKind(window.kind))
+        {
+            if (auto handled = HandleTheFriendsMessage(manager, window, globals, view); !handled.HasValue())
+                return handled;
+        }
+        else if (IsALetterKind(window.kind))
+        {
+            if (auto handled = HandleTheLetterKindsMessage(manager, window, globals, view); !handled.HasValue())
+                return handled;
         }
         PlaceAgainstTheParent(manager, base);
     }
-    BeforeTheMouse(manager, window, arg, globals, view);
+    if (auto before = BeforeTheMouse(manager, window, arg, globals, view); !before.HasValue())
+        return before;
     if (arg == 1)
         return {};
     if (!ClaimTheMouse(manager, base, globals, view))
@@ -651,8 +981,17 @@ void FocusTheLast(OldWindowManager& manager, const OldWindowGlobals& globals)
     FocusTheGame(globals);
 }
 
+// 0x45aa50: el mensaje y el paso con 1.
+Core::Expected<void, std::string> PostAndStep(OldWindowManager& manager, OldWindow& window, std::int32_t type,
+                                              const OldWindowGlobals& globals, const OldWindowStepView& view)
+{
+    window.base.queue.push_back(OldMessage{.type = type, .a = 0, .b = 0, .text = {}});
+    return StepTheWindow(manager, window, 1, globals, view);
+}
+
 // 0x490b70: los mensajes del administrador.
-Core::Expected<void, std::string> HandleTheMessage(OldWindowManager& manager, const OldWindowGlobals& globals)
+Core::Expected<void, std::string> HandleTheMessage(OldWindowManager& manager, const OldWindowGlobals& globals,
+                                                   const OldWindowStepView& view)
 {
     const std::int32_t id = manager.current.a;
     switch (manager.current.type)
@@ -674,7 +1013,9 @@ Core::Expected<void, std::string> HandleTheMessage(OldWindowManager& manager, co
             PostToTheWindow(manager, id, RaisedMessage, 0, 0);
         }
         manager.focus = id;
-        // 0x4a60b0(id) sobre la lista de ventanas: sin entradas (CL9.4), nada.
+        // 0x4a60b0(id): deja de esperar en +0x118 de la lista de ventanas; 0x4a5e10.
+        std::deque<std::int32_t>& waiting = manager.windowList.list.waiting;
+        waiting.erase(std::remove(waiting.begin(), waiting.end(), id), waiting.end());
         HideTheWindowList(manager.windowList);
         return {};
     }
@@ -692,7 +1033,8 @@ Core::Expected<void, std::string> HandleTheMessage(OldWindowManager& manager, co
             return {};
         if (OldWindow* window = FindTheOldWindow(manager, id); window != nullptr)
         {
-            StretchTheWindow(manager, *window);
+            if (auto stretched = StretchTheWindow(manager, *window, globals, view); !stretched.HasValue())
+                return stretched;
             globals.sound = ButtonSound;
         }
         return {};
@@ -700,7 +1042,7 @@ Core::Expected<void, std::string> HandleTheMessage(OldWindowManager& manager, co
         if (id == 0)
             return {};
         globals.sound = ButtonSound;
-        if (auto destroyed = DestroyTheOldWindow(manager, id); !destroyed.HasValue())
+        if (auto destroyed = DestroyTheOldWindow(manager, id, globals.pressedButton); !destroyed.HasValue())
             return destroyed;
         FocusTheLast(manager, globals);
         return {};
@@ -714,7 +1056,17 @@ Core::Expected<void, std::string> HandleTheMessage(OldWindowManager& manager, co
         return {};
     }
 }
-} // namespace
+} // namespace Steps
+
+using Steps::ClaimTheMouse;
+using Steps::FocusTheGame;
+using Steps::HandleTheMessage;
+using Steps::IsShowing;
+using Steps::MakeTheFrame;
+using Steps::MakeTheMessageBox;
+using Steps::PostAndSettle;
+using Steps::SettleTheWindow;
+using Steps::StepTheWindow;
 
 OldWindow OldWindowManager::MakeTheWindowList()
 {
@@ -733,8 +1085,40 @@ OldWindow OldWindowManager::MakeTheWindowList()
 
 OldWindow* FindTheOldWindow(OldWindowManager& manager, std::int32_t id)
 {
-    const auto found = manager.windows.find(id);
-    return found != manager.windows.end() ? &found->second : nullptr;
+    if (const auto found = manager.windows.find(id); found != manager.windows.end())
+        return &found->second;
+    const auto tab = manager.tabs.find(id);
+    if (tab == manager.tabs.end())
+        return nullptr;
+    const OldTabReference& reference = tab->second;
+    OldWindow* owner = nullptr;
+    if (const auto found = manager.windows.find(reference.ownerId);
+        found != manager.windows.end() && found->second.allocationId == reference.allocationId)
+        owner = &found->second;
+    else
+    {
+        for (OldWindow& rejected : manager.unregisteredWindows)
+        {
+            if (rejected.base.id == reference.ownerId && rejected.allocationId == reference.allocationId)
+            {
+                owner = &rejected;
+                break;
+            }
+        }
+    }
+    if (owner == nullptr)
+        return nullptr;
+    for (OldWindow& candidate : owner->tabs)
+    {
+        if (candidate.base.id == id)
+            return &candidate;
+    }
+    return nullptr;
+}
+
+std::string OldWindowTexts::At(std::size_t index) const
+{
+    return lookup ? lookup(index) : std::string();
 }
 
 bool HasTheOldWindow(const OldWindowManager& manager, std::int32_t id)
@@ -761,18 +1145,18 @@ std::int32_t LastOldWindow(const OldWindowManager& manager)
 
 void PostToTheManager(OldWindowManager& manager, std::int32_t type, std::int32_t a, std::int32_t b)
 {
-    manager.queue.push_back(OldMessage{.type = type, .a = a, .b = b});
+    manager.queue.push_back(OldMessage{.type = type, .a = a, .b = b, .text = {}});
 }
 
 void PostToTheWindow(OldWindowManager& manager, std::int32_t id, std::int32_t type, std::int32_t a, std::int32_t b)
 {
     if (OldWindow* window = FindTheOldWindow(manager, id); window != nullptr)
-        window->base.queue.push_back(OldMessage{.type = type, .a = a, .b = b});
+        window->base.queue.push_back(OldMessage{.type = type, .a = a, .b = b, .text = {}});
 }
 
-Core::Expected<std::int32_t, std::string> CreateTheOldWindow(OldWindowManager& manager, const OldWindowRequest& request,
-                                                             const OldWindowTexts& texts,
-                                                             const OldWindowMeasure& measure)
+Core::Expected<std::int32_t, std::string>
+CreateTheOldWindow(OldWindowManager& manager, const OldWindowRequest& request, const OldWindowTexts& texts,
+                   const OldWindowMeasure& measure, const OldWindowGlobals* globals, const OldWindowStepView* view)
 {
     // 0x48ee93: con 0x6c7b8c en 0 no arma nada; está en 1 en la .data y nadie lo escribe.
     OldWindow window;
@@ -781,6 +1165,43 @@ Core::Expected<std::int32_t, std::string> CreateTheOldWindow(OldWindowManager& m
     case FrameCase:
         window = MakeTheFrame(manager);
         break;
+    case FriendsCase:
+    {
+        // Una sola: con +0x48 da 0.
+        if (manager.friends != 0)
+            return 0;
+        if (globals == nullptr || view == nullptr)
+            return Core::Unexpected(std::string("0x48ee60(3): la ventana de amigos sin el paso de las ventanas"));
+        auto made = Steps::MakeTheFriendsWindow(manager, request, texts, measure);
+        if (!made.HasValue())
+            return Core::Unexpected(std::move(made).Error());
+        window = std::move(made).Value();
+        manager.friends = window.base.id;
+        // +0xb0: con una carta nueva (+0x144 de la lista de ventanas), la pestaña de las cartas; si no, la de antes.
+        window.friends.currentTab = manager.windowList.list.newLetter == 1 ? 1 : manager.lastTab;
+        // 0x4a6420(0).
+        manager.windowList.list.newLetter = 0;
+        if (manager.listReceived == 0)
+        {
+            if (!view->send)
+                return Core::Unexpected(std::string("0x48ee60(3): el pedido de la lista de amigos (C1 03 C0) sin el "
+                                                    "cable"));
+            view->send(FriendSend{.kind = FriendSendKind::ListRequest, .value = 0, .name = {}});
+        }
+        break;
+    }
+    case AddFriendCase:
+    {
+        if (manager.modal != 0)
+            return 0;
+        if (globals == nullptr || view == nullptr)
+            return Core::Unexpected(
+                std::string("0x48ee60(4): la caja de agregar un amigo sin el paso de las ventanas"));
+        window = Steps::MakeTheAddFriendBox(manager, request, texts);
+        Steps::AddTheWindowRow(manager, window.base.id, request.data);
+        manager.modal = window.base.id;
+        break;
+    }
     case ModalQuestionCase:
     case ModalNoticeCase:
     case QuestionCase:
@@ -791,24 +1212,37 @@ Core::Expected<std::int32_t, std::string> CreateTheOldWindow(OldWindowManager& m
             return 0;
         const bool oneButton = request.kind == ModalNoticeCase || request.kind == NoticeCase;
         window = MakeTheMessageBox(manager, oneButton ? 1 : 0);
-        // 0x49e6e0(id, texto) sobre +0x4d0 de la ventana de amigos: la anota en su lista. No hay ventana de amigos en
-        // la CL8.
-        if (FindTheOldWindow(manager, manager.friends) != nullptr)
-            return Core::Unexpected(std::string("0x49e6e0: anotar la caja en la ventana de amigos es de la CL9.4"));
+        // 0x49e6e0(id, texto) sobre +0x4d0 de la ventana de amigos: la anota en su lista.
+        Steps::AddTheWindowRow(manager, window.base.id, request.data);
         if (modal)
             manager.modal = window.base.id;
         else if (std::ranges::find(manager.boxes, window.base.id) == manager.boxes.end())
             manager.boxes.push_back(window.base.id);
         break;
     }
+    case ChatCase:
+    case CalledChatCase:
+    case LetterReadCase:
+    case LetterWriteCase:
+    {
+        // 0x48eee4, 0x48f41f y 0x48f4ee (la de escribir, sin una caja modal). Las cuatro se anotan en la pestaña de
+        // las ventanas de la de amigos (0x48f5cd).
+        if (request.kind == LetterWriteCase && manager.modal != 0)
+            return 0;
+        auto made = Steps::MakeTheLetterKind(manager, request, texts, measure, view);
+        if (!made.HasValue())
+            return Core::Unexpected(std::move(made).Error());
+        window = std::move(made).Value();
+        Steps::AddTheWindowRow(manager, window.base.id, request.data);
+        break;
+    }
     default:
-        return Core::Unexpected(std::format("0x48ee60: el caso {} de la fábrica de las ventanas viejas (los amigos, "
-                                            "su chat y las cartas) es de la CL9.4",
-                                            request.kind));
+        // 0x48ee98..0x48ee9b: fuera de 0..10 (sin signo), retorna 0 sin construir ni consumir IDs.
+        return 0;
     }
     std::int32_t x = request.x == -1 ? 0 : request.x;
     std::int32_t y = request.y == -1 ? DefaultY : request.y;
-    // La vtable + 0x2c: 0x4920a0 en el marco y 0x4a38f0 en la caja.
+    // La vtable + 0x2c: 0x4920a0 en el marco y 0x4a38f0 en la caja (0x4a2280 y 0x4a35a0, en Steps::MakeThe...).
     OldWindowBase& base = window.base;
     if (window.kind == OldWindowKind::Frame)
     {
@@ -819,7 +1253,7 @@ Core::Expected<std::int32_t, std::string> CreateTheOldWindow(OldWindowManager& m
         base.width = FrameWidth;
         base.height = FrameHeight;
     }
-    else
+    else if (window.kind == OldWindowKind::MessageBox)
     {
         OldMessageBox& box = window.box;
         window.frame.title = box.oneButton == 0 ? texts.question : texts.notice;
@@ -877,7 +1311,12 @@ Core::Expected<std::int32_t, std::string> CreateTheOldWindow(OldWindowManager& m
             {
                 const std::int32_t rest = y % CascadeWrap;
                 if (rest == CascadeGiveUp)
+                {
+                    // 0x48f700..0x48f70a destruye el objeto nuevo, incluido el global de cada botón (0x45adf0).
+                    if (globals != nullptr)
+                        ReleaseTheDestroyedButtons(window, globals->pressedButton);
                     return 0;
+                }
                 y = rest + 1;
                 x = y;
             }
@@ -887,9 +1326,33 @@ Core::Expected<std::int32_t, std::string> CreateTheOldWindow(OldWindowManager& m
     base.x = x;
     base.y = y;
     const std::int32_t id = base.id;
-    OldWindow& placed = manager.windows.insert_or_assign(id, std::move(window)).first->second;
+    const auto [registered, inserted] = manager.windows.try_emplace(id, std::move(window));
+    // 0x48f7b2 conserva el registro anterior sin destruir el nuevo; 0x48f82d asienta siempre el recién construido.
+    // Debe ser encontrable antes de asentar: la lista busca su pestaña en el segundo mapa (0x490a00).
+    if (!inserted)
+        manager.unregisteredWindows.push_back(std::move(window));
+    OldWindow& placed = inserted ? registered->second : manager.unregisteredWindows.back();
     manager.order.push_back(id);
-    SettleTheWindow(manager, placed);
+    if (Steps::IsAFriendsKind(placed.kind))
+    {
+        if (auto settled = SettleTheWindow(manager, placed, *globals, *view); !settled.HasValue())
+            return Core::Unexpected(std::move(settled).Error());
+    }
+    else if (Steps::IsALetterKind(placed.kind))
+    {
+        // 0x48f810..0x48f847: los chats a +0xb4 de la lista de ventanas (0x4a4990), la vtable + 0x30 y, en el 1, el
+        // foco al EDIT.
+        if (request.kind == ChatCase || request.kind == CalledChatCase)
+            AddTheChatToTheList(manager, id);
+        if (globals == nullptr || view == nullptr)
+            return Core::Unexpected(std::string("0x48ee60: el chat o una carta sin el paso de las ventanas"));
+        if (auto settled = SettleTheWindow(manager, placed, *globals, *view); !settled.HasValue())
+            return Core::Unexpected(std::move(settled).Error());
+        if (request.kind == ChatCase || request.kind == LetterWriteCase)
+            Steps::FocusTheChatEdit(manager, placed, *globals);
+    }
+    else if (placed.kind == OldWindowKind::MessageBox)
+        SettleTheButtons(manager, placed);
     return id;
 }
 
@@ -904,27 +1367,44 @@ Core::Expected<void, std::string> StepTheOldWindows(OldWindowManager& manager, c
 {
     if (manager.modal != 0 && FindTheOldWindow(manager, manager.modal) == nullptr)
         manager.modal = 0;
-    // 0x4904bc: el flanco de Esc se lee siempre; cierra la del final de la lista si está a la vista y se deja cerrar.
+    // 0x4904bc: el flanco de Esc se lee siempre; cierra la del final de la lista si está a la vista y se deja cerrar
+    // (la vtable + 0x4c).
     if (view.keyEdge && view.keyEdge(EscapeKey) && !manager.order.empty() && manager.order.back() != 0)
     {
-        const OldWindow* last = FindTheOldWindow(manager, manager.order.back());
+        OldWindow* last = FindTheOldWindow(manager, manager.order.back());
         if (last != nullptr && IsShowing(last->base.state))
-            PostToTheManager(manager, CloseMessage, LastOldWindow(manager), 0);
+        {
+            auto may = Steps::MayCloseTheWindow(manager, *last, globals, view);
+            if (!may.HasValue())
+                return Core::Unexpected(std::move(may).Error());
+            if (may.Value())
+                PostToTheManager(manager, CloseMessage, LastOldWindow(manager), 0);
+        }
     }
-    // 0x490538..0x49055c: F5 con el foco en la ventana del juego, 0x4a5be0(1) sobre la lista de ventanas: sin entradas
-    // (+0xdc, CL9.4), nada.
-    if (globals.keyboardFocus == ChatFocus::Game && view.keyEdge)
-        static_cast<void>(view.keyEdge(F5Key));
+    // 0x490538..0x49055c: F5 con el foco en la ventana del juego, 0x4a5be0(1) sobre la lista de ventanas. Con el foco
+    // en el EDIT de una ventana vieja, su subclase (0x467b10) lo lee igual con cada mensaje que le llega, menos WM_CHAR
+    // y los del IME (0x467d3b), antes del paso (*inferido*: acá, en el lugar del de la ventana del juego). Los dos EDIT
+    // de la entrada del chat tienen otra subclase, que no lo lee.
+    if ((globals.keyboardFocus == ChatFocus::Game || globals.keyboardFocus == ChatFocus::OldWindow) && view.keyEdge &&
+        view.keyEdge(F5Key))
+        ShowTheWindowList(manager, 1);
     // 0x490561..0x4905a2: F6 esconde las ventanas, o las vuelve a mostrar si escondió alguna.
     if (view.keyEdge && view.keyEdge(F6Key) && (manager.hiddenByF6 == 0 || !manager.hidden.empty()))
     {
         manager.hiddenByF6 = (manager.hiddenByF6 + 1) % 2;
-        if (auto hidden = HideTheOldWindows(manager, manager.hiddenByF6, 1, globals); !hidden.HasValue())
+        if (auto hidden = HideTheOldWindows(manager, manager.hiddenByF6, 1, globals, &view); !hidden.HasValue())
             return hidden;
     }
-    // 0x4905a2..0x4905bf: la de amigos oculta se suelta (0x4914e0). No hay ventana de amigos en la CL8.
+    // 0x4905a2..0x4905bf: la de amigos oculta se suelta (0x4914e0); al volver a mostrar, 0x4906a0 la abre (Q-C448).
     if (manager.friends != 0)
-        return Core::Unexpected(std::string("0x4905a2: la ventana de amigos (+0x48) es de la CL9.4"));
+    {
+        const OldWindow* friends = FindTheOldWindow(manager, manager.friends);
+        if (friends != nullptr && friends->base.state == HiddenWindow)
+        {
+            if (auto dropped = DropTheFriendsWindow(manager, globals.pressedButton); !dropped.HasValue())
+                return dropped;
+        }
+    }
     // 0x4905c4: de arriba hacia abajo, cada una a la vista corre su paso con 0 (solo las del primer mapa).
     for (auto it = manager.order.rbegin(); it != manager.order.rend(); ++it)
     {
@@ -938,22 +1418,23 @@ Core::Expected<void, std::string> StepTheOldWindows(OldWindowManager& manager, c
     {
         manager.current = manager.queue.front();
         manager.queue.pop_front();
-        if (auto handled = HandleTheMessage(manager, globals); !handled.HasValue())
+        if (auto handled = HandleTheMessage(manager, globals, view); !handled.HasValue())
             return handled;
     }
     manager.drawn = 0;
     return {};
 }
 
-Core::Expected<void, std::string> DestroyTheOldWindow(OldWindowManager& manager, std::int32_t id)
+Core::Expected<void, std::string> DestroyTheOldWindow(OldWindowManager& manager, std::int32_t id,
+                                                      std::int32_t& pressedButton)
 {
     if (manager.friends == id)
     {
         if (manager.modal != 0)
             return {};
         // 0x49022a..0x490270: guarda el lugar de la ventana de amigos para la próxima.
-        if (FindTheOldWindow(manager, manager.friends) != nullptr)
-            return Core::Unexpected(std::string("0x49022a: soltar la ventana de amigos es de la CL9.4"));
+        if (const OldWindow* friends = FindTheOldWindow(manager, manager.friends); friends != nullptr)
+            Steps::SaveTheFriendsPlace(manager, *friends);
         manager.friends = 0;
     }
     if (manager.letter == id)
@@ -961,22 +1442,40 @@ Core::Expected<void, std::string> DestroyTheOldWindow(OldWindowManager& manager,
     const auto found = manager.windows.find(id);
     if (found == manager.windows.end())
         return {};
-    // 0x491840.
+    // El destructor del EDIT (0x467710) nunca llama a DestroyWindow: el EDIT nativo sobrevive al wrapper, con el foco
+    // si lo tenía. MuRet conserva solo el estado editable del que todavía tiene el foco: el de agregar un amigo, el del
+    // chat con un amigo y los tres de la de escribir una carta.
+    if (OldEdit* focused = FocusedEditOf(manager, found->second); focused != nullptr)
+    {
+        manager.orphanedEdit = *focused;
+        manager.focusedEditIsOrphan = true;
+    }
+    // 0x491840. El destructor del chat sale de la sala (0x493a70) y el de leer suelta su carta (0x4916b0).
     manager.boxes.remove(id);
+    ReleaseTheDestroyedButtons(found->second, pressedButton);
+    if (auto forgotten = Steps::ForgetTheLetterKind(manager, found->second); !forgotten.HasValue())
+        return forgotten;
     manager.windows.erase(found);
     manager.order.remove(id);
     if (manager.order.empty())
         manager.focus = 0;
-    if (manager.friends != 0 && FindTheOldWindow(manager, manager.friends) != nullptr)
-        return Core::Unexpected(std::string("0x49e710: sacarla de la ventana de amigos es de la CL9.4"));
-    // 0x4a4b30(id) sobre la lista de ventanas: sin entradas (CL9.4), nada.
+    // 0x49e710(id) sobre la pestaña de las ventanas de la de amigos.
+    Steps::ForgetTheWindowRow(manager, id);
+    // 0x4a4b30(id): sale de los chats de +0xb4 de la lista de ventanas y, si estaba, el elegido va al final.
+    std::deque<std::int32_t>& chats = manager.windowList.list.chats;
+    if (const auto chat = std::find(chats.begin(), chats.end(), id); chat != chats.end())
+    {
+        chats.erase(chat);
+        manager.windowList.list.cursor = chats.size();
+    }
     if (manager.modal == id)
         manager.modal = 0;
     return {};
 }
 
 Core::Expected<void, std::string> HideTheOldWindows(OldWindowManager& manager, std::int32_t hide,
-                                                    std::int32_t withFriends, const OldWindowGlobals& globals)
+                                                    std::int32_t withFriends, const OldWindowGlobals& globals,
+                                                    const OldWindowStepView* view)
 {
     std::int32_t shown = 0;
     for (auto& [id, window] : manager.windows)
@@ -1009,24 +1508,115 @@ Core::Expected<void, std::string> HideTheOldWindows(OldWindowManager& manager, s
     // 0x490608: quedó en la lista una que ya no está (la de amigos que soltó 0x4914e0, Q-C448): 0x491080 abre otra.
     const auto count = static_cast<std::int32_t>(manager.hidden.size());
     if (count != shown && count - shown >= 0)
-        return Core::Unexpected(std::string("0x491080: abrir la ventana de amigos (0x186, 0x106) es de la CL9.4"));
+    {
+        if (view == nullptr || !view->openFriends)
+            return Core::Unexpected(std::string("0x491080: abrir la ventana de amigos (0x186, 0x106) sin el juego"));
+        if (auto opened = view->openFriends(); !opened.HasValue())
+            return opened;
+    }
     if (shown > 0 && TopOldWindow(manager) != 0)
         PostToTheManager(manager, RaiseMessage, TopOldWindow(manager), 0);
     manager.hidden.clear();
     return {};
 }
 
-Core::Expected<void, std::string> DropTheFriendsWindow(OldWindowManager& manager)
+Core::Expected<void, std::string> DropTheFriendsWindow(OldWindowManager& manager, std::int32_t& pressedButton)
 {
     if (manager.friends == 0)
         return {};
-    return DestroyTheOldWindow(manager, manager.friends);
+    return DestroyTheOldWindow(manager, manager.friends, pressedButton);
+}
+
+void ForgetTheHiddenWindows(OldWindowManager& manager)
+{
+    manager.hiddenByF6 = 0;
+    manager.hidden.clear();
+}
+
+void ResetTheOldWindows(OldWindowManager& manager, std::int32_t& pressedButton)
+{
+    // 0x48ea5f..0x48eb43: +0x48 en 0, el mapa principal (soltando cada ventana con su destructor: el de leer saca su
+    // carta de +0x94; el del chat, 0x493160, sale de su sala con 0x493a70), el mapa de cartas (+0x94), la lista del
+    // orden, 0x4a4480 (los chats de +0xb4 y +0x118 de la lista de ventanas), lo que escondió F6 y las cajas. El segundo
+    // mapa +0x5c no se toca: conserva referencias obsoletas y las pestañas aún vivas de los objetos rechazados por el
+    // mapa principal.
+    manager.friends = 0;
+    for (const auto& [id, window] : manager.windows)
+    {
+        ReleaseTheDestroyedButtons(window, pressedButton);
+        static_cast<void>(Steps::ForgetTheLetterKind(manager, window));
+    }
+    manager.windows.clear();
+    // 0x48eae6..0x48eb07: el mapa de cartas (+0x94) entero, también las que se anotaron (0x491570) y esperan el C7.
+    manager.letterWindows.clear();
+    manager.order.clear();
+    // 0x4a448e: el elegido al final antes de vaciar (el iterador queda en un bloque que se suelta; acá, en 0).
+    manager.windowList.list.chats.clear();
+    manager.windowList.list.cursor = 0;
+    manager.windowList.list.waiting.clear();
+    ForgetTheHiddenWindows(manager);
+    manager.boxes.clear();
+    manager.modal = 0;
+    manager.lastTab = 0;
+    manager.listReceived = 1;
+    manager.titleText = 990;
+    manager.letter = 0;
+    manager.offlineSent = 0;
+    // El reinicio de la escena olvida el identificador lógico del EDIT anterior.
+    manager.focusedEdit = 0;
+    manager.focusedEditIsOrphan = false;
+    manager.orphanedEdit.reset();
+    // 0x48eb7d: +0x48 ya está en 0, así que 0x4a23b0 sobre la de amigos no corre.
 }
 
 void SettleTheButtons(OldWindowManager& manager, OldWindow& box)
 {
     for (OldButton& button : box.box.buttons)
         PostAndSettle(manager, button, PlaceMessage);
+}
+
+void ShowTheWindowList(OldWindowManager& manager, std::int32_t arm)
+{
+    OldWindow& window = manager.windowList;
+    OldWindowListPart& list = window.list;
+    const std::size_t size = list.chats.size();
+    if (size == 0)
+        return;
+    list.armed = arm;
+    if (window.base.state == HiddenWindow)
+    {
+        // 0x4a5c0f..0x4a5c6b: la vtable + 4 con 0; el alto suma y la y resta lo de los renglones.
+        window.base.state = ShownWindow;
+        const double step = static_cast<double>(list.rowHeight) + WindowListRowMargin;
+        const double rows = static_cast<double>(size) * step;
+        window.base.height = OldDraw::Truncate(rows + static_cast<double>(window.base.height));
+        window.base.y = OldDraw::Truncate(static_cast<double>(window.base.y) - rows);
+        list.blinkStep = WindowListBlinkUp;
+        if (arm != 1)
+            return;
+        // 0x4a5c7b..0x4a5d2d: desde el principio, saltea los que son la de arriba (el final de +0x80).
+        list.cursor = 0;
+        if (size <= 1)
+            return;
+        while (list.chats[list.cursor] == LastOldWindow(manager))
+        {
+            ++list.cursor;
+            if (list.cursor == size)
+                return;
+        }
+        return;
+    }
+    if (arm != 1)
+        return;
+    // 0x4a5d37..0x4a5e00: el que sigue, con vuelta al principio.
+    if (list.cursor >= size)
+    {
+        list.cursor = 0;
+        return;
+    }
+    ++list.cursor;
+    if (list.cursor == size)
+        list.cursor = 0;
 }
 
 void HideTheWindowList(OldWindow& list)

@@ -297,7 +297,7 @@ TEST_F(ActorEquipmentTest, AStopErrorStopsBeforeTheClothes)
     actor.flags7c = 0x200000;
     const auto applied = Apply(actor);
     ASSERT_FALSE(applied.HasValue());
-    EXPECT_NE(applied.Error().find("C1 .. 18"), std::string::npos);
+    EXPECT_NE(applied.Error().find("0x4f2416"), std::string::npos);
     EXPECT_EQ(actor.body[0].model, UntouchedModel);
     EXPECT_EQ(m_accesses, 0);
 }

@@ -40,6 +40,7 @@ struct WorldTerrain;
 // caballo oscuro" y "Las mascotas".
 namespace Client::Scenes
 {
+struct ActorState;
 class IModelLibrary;
 class WorldState;
 struct DrawnObject;
@@ -62,9 +63,10 @@ struct HelperState
     // +0xcc..+0xd4: el vuelo del 0x1c12 (0x445052..0x445221). 0x443d70 no la escribe: un lugar que se vuelve a
     // usar se queda con la del ayudante de antes (Q-C420).
     glm::vec3 velocity{};
-    // +0xf4..+0xfc, la luz propia: 3 desde 0x443d70 (0x443e2f..0x443e45), que nadie más escribe. La lee el 60f/0
-    // que el caballo suelta con +8 del jinete en 1 (0x444740 → 0x53429b); el aliento (0x4445b5) y el dibujo la llevan
-    // fija en el 3 (HorseLight en Scenes/HelperTable.cpp).
+    // +0xf4..+0xfc, la luz propia: 3 desde 0x443d70 (0x443e2f..0x443e45), y 1 en el dibujo del retrato de las cartas
+    // (0x495987..0x495993). La leen el 60f/0 que el caballo suelta con +8 del jinete en 1 (0x444740 → 0x53429b) y el
+    // dibujo, que la suma a la del terreno (0x5ffce0, 0x5ffd6a..0x5ffd8b); el aliento (0x4445b5) la lleva fija en el 3
+    // (HorseLight en Scenes/HelperTable.cpp).
     glm::vec3 light{};
     // +0x64: −1 de 0x443d70, y 1 con el 0x1c12 (0x443f1a), que dibuja su malla 1 como blendMesh.
     std::int16_t blendMesh = -1;
@@ -88,6 +90,15 @@ using HelperTable = std::array<HelperState, HelperCount>;
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
 CreateHelper(WorldState& world, std::uint16_t type, const glm::vec3& position, std::size_t rider,
              Render::Models::CrtRandom* random = nullptr);
+
+// 0x443d70(tipo, posición, jinete, lugar, 0, 0) sobre un lugar: en los mapas 18 a 23 (`map`) o con el lugar vivo, nada
+// (false). Si no, lo arma como dice CreateHelper, con el jinete `rider` (su lugar en el pool, `riderSlot`, o
+// ActorPoolSize para un objeto fuera del pool, como el retrato de las cartas) y devuelve true. Los tipos sin portar
+// cortan antes de tocarlo.
+[[nodiscard]] Core::Expected<bool, std::string> ConstructHelper(HelperState& helper, std::uint16_t type,
+                                                                const glm::vec3& position, const ActorState& rider,
+                                                                std::size_t riderSlot, std::int32_t map,
+                                                                Render::Models::CrtRandom* random);
 
 // 0x443d40(jinete): apaga el byte vivo de los lugares vivos de ese jinete. Lo demás queda.
 void TurnOffHelpersOf(HelperTable& helpers, std::size_t rider);
@@ -113,6 +124,9 @@ struct HelperStepContext
     std::int32_t logicSteps = 0;
     // 0x7d325c8, el temblor de la cámara que escribe 0x4453e0 (0x445577). nullptr: corta si la rama lo pide.
     float* cameraShake = nullptr;
+    // El segundo argumento de 0x444010, distinto de 0 desde el retrato de las cartas (StepTheHelperOutsideTheTable):
+    // la celda segura del jinete se lee igual, pero no esconde al ayudante (0x4440eb, 0x4447f9 y 0x444b25).
+    bool ignoresTheSafeCell = false;
 };
 
 // 0x445230: 0x444010(lugar, 0) en los 10, en la escena 5 (0x6370f4) y en la 4 (0x6342f4). En la 5, con el jinete
@@ -136,6 +150,12 @@ struct HelperStepContext
 // conserva, con una partícula, una piedra o una cinta que no se puede crear y sin el temblor de la cámara cuando el
 // terremoto lo pide; también sin el mapa cargado o sin el modelo del tipo. Lo que hizo antes del corte queda.
 [[nodiscard]] Core::Expected<void, std::string> StepHelpers(const HelperStepContext& context);
+
+// 0x444010(ayudante, 1) sobre un ayudante fuera de la tabla, con su jinete fuera del pool: el del retrato de las cartas
+// (0x495796, que lo llama siempre). Sin el byte vivo, nada (0x444021); si no, lo de StepHelpers con un lugar, con
+// `rider` de jinete y sin que la celda segura lo esconda.
+[[nodiscard]] Core::Expected<void, std::string> StepTheHelperOutsideTheTable(HelperState& helper, ActorState& rider,
+                                                                             const HelperStepContext& context);
 
 // Lo que el dibujo de los ayudantes lee y escribe fuera del mundo.
 struct HelperDrawContext
@@ -189,4 +209,11 @@ struct HelperDrawContext
 // rand() del Fenrir). Corta con error sin la luz del terreno o sin la tabla de los sprites cuando los pide, y con un
 // Fenrir sin los efectos, las partículas, timeGetTime() o el buffer global de la pose.
 [[nodiscard]] Core::Expected<void, std::string> DrawHelpers(const HelperDrawContext& context);
+
+// 0x445260(ayudante, 1) sobre un ayudante fuera de la tabla, con su jinete fuera del pool: el del retrato de las cartas
+// (0x4959cc). Sin el byte vivo, nada (0x44526b); si no, lo de DrawHelpers con un lugar, con `rider` de jinete, visto
+// sin el trapecio (0x4452a4) y con la escala en 0x3f3ae148 (0x4452d2, Q-C1010), en un frame del original o entre
+// frames según `context` (sin la copia de DrawHelpers: el caller dibuja una copia entre frames).
+[[nodiscard]] Core::Expected<void, std::string>
+DrawTheHelperOutsideTheTable(HelperState& helper, const ActorState& rider, const HelperDrawContext& context);
 } // namespace Client::Scenes

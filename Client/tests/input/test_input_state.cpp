@@ -1,6 +1,7 @@
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
+#include "Input/TextInputEvent.h"
 
 #include <gtest/gtest.h>
 
@@ -413,26 +414,46 @@ TEST(InputStateTest, FocusLostEmptiesTheText)
     EXPECT_EQ(input.Text(), "");
 }
 
-// Backspace y Tab van también en el texto, como los WM_CHAR 8 y 9 de un EDIT: cada apretón deja su
-// byte en el lugar en que llegó, y la tecla se aprieta igual. Una tecla que ya estaba abajo no es
-// otro apretón y no deja nada (la repetición llega como texto, InputEvents.h).
+// Backspace, Tab y Enter conservan el texto legacy y además entregan un solo evento Key con los
+// modificadores de ese punto del flujo. El adaptador del juego decide si usar el EDIT o el chat.
 TEST(InputStateTest, BackspaceAndTabGoInTheTextInOrder)
 {
     InputState input;
     input.Apply(TextEvent("ab"));
+    input.Apply(KeyEvent(InputEvent::Kind::KeyDown, Key::CtrlLeft));
+    input.Apply(KeyEvent(InputEvent::Kind::KeyDown, Key::ShiftRight));
     input.Apply(KeyEvent(InputEvent::Kind::KeyDown, Key::Backspace));
     input.Apply(TextEvent("c"));
     input.Apply(KeyEvent(InputEvent::Kind::KeyDown, Key::Tab));
     input.Apply(KeyEvent(InputEvent::Kind::KeyDown, Key::Tab));
+    input.Apply(KeyEvent(InputEvent::Kind::KeyUp, Key::ShiftRight));
+    input.Apply(KeyEvent(InputEvent::Kind::KeyDown, Key::Enter));
     input.Apply(TextEvent("d"));
 
-    EXPECT_EQ(input.Text(), "ab\bc\td");
+    EXPECT_EQ(input.Text(), "ab\bc\t\rd");
     EXPECT_TRUE(input.WasPressed(Key::Backspace));
     EXPECT_TRUE(input.WasPressed(Key::Tab));
+    EXPECT_TRUE(input.WasPressed(Key::Enter));
     static_assert(Client::Input::BackspaceChar == '\b' && Client::Input::TabChar == '\t');
+    const auto events = input.TextInputEvents();
+    ASSERT_EQ(events.size(), 6u);
+    EXPECT_EQ(events[0].kind, Client::Input::TextInputEvent::Kind::Text);
+    EXPECT_EQ(events[1].kind, Client::Input::TextInputEvent::Kind::Key);
+    EXPECT_EQ(events[1].key, Key::Backspace);
+    EXPECT_TRUE(events[1].shift);
+    EXPECT_TRUE(events[1].ctrl);
+    EXPECT_EQ(events[2].kind, Client::Input::TextInputEvent::Kind::Text);
+    EXPECT_EQ(events[3].kind, Client::Input::TextInputEvent::Kind::Key);
+    EXPECT_EQ(events[3].key, Key::Tab);
+    EXPECT_TRUE(events[3].shift);
+    EXPECT_TRUE(events[3].ctrl);
+    EXPECT_EQ(events[4].key, Key::Enter);
+    EXPECT_FALSE(events[4].shift);
+    EXPECT_TRUE(events[4].ctrl);
+    EXPECT_EQ(events[5].kind, Client::Input::TextInputEvent::Kind::Text);
 }
 
-// Enter también (CL8 hito 3): el WM_CHAR 0xd que atiende la ventana del juego, en su lugar.
+// Enter también conserva el WM_CHAR legacy, sin duplicarlo en el flujo ordenado.
 TEST(InputStateTest, EnterGoesInTheTextInOrder)
 {
     InputState input;
@@ -443,6 +464,10 @@ TEST(InputStateTest, EnterGoesInTheTextInOrder)
     EXPECT_EQ(input.Text(), "ab\rc");
     EXPECT_TRUE(input.WasPressed(Key::Enter));
     static_assert(Client::Input::EnterChar == '\r');
+    const auto events = input.TextInputEvents();
+    ASSERT_EQ(events.size(), 3u);
+    EXPECT_EQ(events[1].kind, Client::Input::TextInputEvent::Kind::Key);
+    EXPECT_EQ(events[1].key, Key::Enter);
 }
 
 // El texto no es una tecla: no aprieta ninguna.
@@ -453,5 +478,171 @@ TEST(InputStateTest, TheTextPressesNoKey)
 
     EXPECT_FALSE(input.WasPressed(Key::A));
     EXPECT_FALSE(input.IsDown(Key::A));
+}
+
+TEST(InputStateTest, KeepsTextAndEditingKeysInArrivalOrderWithModifierSnapshots)
+{
+    InputState input;
+    input.Apply(TextEvent("a"));
+    input.Apply(KeyEvent(InputEvent::Kind::KeyDown, Key::CtrlLeft));
+    input.Apply(KeyEvent(InputEvent::Kind::KeyDown, Key::ShiftRight));
+    input.Apply(KeyEvent(InputEvent::Kind::KeyDown, Key::Left));
+    input.Apply(TextEvent("b"));
+    input.Apply(KeyEvent(InputEvent::Kind::KeyDown, Key::Delete));
+    input.Apply(KeyEvent(InputEvent::Kind::KeyUp, Key::ShiftRight));
+
+    const auto events = input.TextInputEvents();
+    ASSERT_EQ(events.size(), 4u);
+    EXPECT_EQ(events[0].kind, Client::Input::TextInputEvent::Kind::Text);
+    EXPECT_EQ(events[0].text, "a");
+    EXPECT_EQ(events[1].kind, Client::Input::TextInputEvent::Kind::Key);
+    EXPECT_EQ(events[1].key, Key::Left);
+    EXPECT_TRUE(events[1].shift);
+    EXPECT_TRUE(events[1].ctrl);
+    EXPECT_EQ(events[2].kind, Client::Input::TextInputEvent::Kind::Text);
+    EXPECT_EQ(events[2].text, "b");
+    EXPECT_EQ(events[3].kind, Client::Input::TextInputEvent::Kind::Key);
+    EXPECT_EQ(events[3].key, Key::Delete);
+    EXPECT_TRUE(events[3].shift);
+    EXPECT_TRUE(events[3].ctrl);
+    EXPECT_TRUE(input.IsDown(Key::Ctrl));
+    EXPECT_FALSE(input.IsDown(Key::Shift));
+    EXPECT_TRUE(input.IsDown(Key::Delete));
+    EXPECT_TRUE(input.WasPressed(Key::Delete));
+}
+
+TEST(InputStateTest, RepeatedEditingKeysDoNotCreatePhysicalEdges)
+{
+    InputState input;
+    input.Apply(InputEvent{.kind = InputEvent::Kind::KeyDown, .key = Key::Home, .repeat = true});
+
+    auto events = input.TextInputEvents();
+    ASSERT_EQ(events.size(), 1u);
+    EXPECT_EQ(events[0].kind, Client::Input::TextInputEvent::Kind::Key);
+    EXPECT_EQ(events[0].key, Key::Home);
+    EXPECT_FALSE(input.IsDown(Key::Home));
+    EXPECT_FALSE(input.WasPressed(Key::Home));
+
+    input.Apply(KeyEvent(InputEvent::Kind::KeyDown, Key::Home));
+    input.ConsumeEdges();
+    input.Apply(InputEvent{.kind = InputEvent::Kind::KeyDown, .key = Key::Home, .repeat = true});
+
+    events = input.TextInputEvents();
+    ASSERT_EQ(events.size(), 1u);
+    EXPECT_TRUE(input.IsDown(Key::Home));
+    EXPECT_FALSE(input.WasPressed(Key::Home));
+}
+
+TEST(InputStateTest, RepeatedControlKeysKeepLegacyTextWithoutPhysicalEdges)
+{
+    InputState input;
+    input.Apply(KeyEvent(InputEvent::Kind::KeyDown, Key::CtrlLeft));
+    input.Apply(InputEvent{.kind = InputEvent::Kind::KeyDown, .key = Key::Backspace, .repeat = true});
+    input.Apply(InputEvent{.kind = InputEvent::Kind::KeyDown, .key = Key::Tab, .repeat = true});
+    input.Apply(InputEvent{.kind = InputEvent::Kind::KeyDown, .key = Key::Enter, .repeat = true});
+
+    EXPECT_EQ(input.Text(), "\b\t\r");
+    EXPECT_FALSE(input.WasPressed(Key::Backspace));
+    EXPECT_FALSE(input.WasPressed(Key::Tab));
+    EXPECT_FALSE(input.WasPressed(Key::Enter));
+    const auto events = input.TextInputEvents();
+    ASSERT_EQ(events.size(), 3u);
+    EXPECT_EQ(events[0].kind, Client::Input::TextInputEvent::Kind::Key);
+    EXPECT_EQ(events[0].key, Key::Backspace);
+    EXPECT_TRUE(events[0].ctrl);
+    EXPECT_EQ(events[1].kind, Client::Input::TextInputEvent::Kind::Key);
+    EXPECT_EQ(events[1].key, Key::Tab);
+    EXPECT_EQ(events[2].kind, Client::Input::TextInputEvent::Kind::Key);
+    EXPECT_EQ(events[2].key, Key::Enter);
+}
+
+TEST(InputStateTest, FocusLostDropsPriorTextAndKeepsACompositionCancellation)
+{
+    InputState input;
+    input.Apply(TextEvent("a"));
+    ASSERT_EQ(input.TextInputEvents().size(), 1u);
+    input.Apply(TextEvent("b"));
+    ASSERT_EQ(input.TextInputEvents().size(), 2u);
+
+    input.Apply(InputEvent{.kind = InputEvent::Kind::FocusLost});
+    const auto events = input.TextInputEvents();
+    ASSERT_EQ(events.size(), 1u);
+    EXPECT_EQ(events.front().kind, Client::Input::TextInputEvent::Kind::Composition);
+    EXPECT_TRUE(events.front().text.empty());
+
+    input.Apply(TextEvent("c"));
+    input.ConsumeEdges();
+    EXPECT_TRUE(input.TextInputEvents().empty());
+}
+
+TEST(InputStateTest, CompositionIsOrderedAndDoesNotEnterLegacyText)
+{
+    InputState input;
+    input.Apply(TextEvent("a"));
+    input.Apply(
+        InputEvent{.kind = InputEvent::Kind::Composition, .text = "か", .compositionStart = 1, .compositionLength = 2});
+    input.Apply(TextEvent("b"));
+
+    EXPECT_EQ(input.Text(), "ab");
+    const auto events = input.TextInputEvents();
+    ASSERT_EQ(events.size(), 3u);
+    EXPECT_EQ(events[0].kind, Client::Input::TextInputEvent::Kind::Text);
+    EXPECT_EQ(events[1].kind, Client::Input::TextInputEvent::Kind::Composition);
+    EXPECT_EQ(events[1].text, "か");
+    EXPECT_EQ(events[1].compositionStart, 1);
+    EXPECT_EQ(events[1].compositionLength, 2);
+    EXPECT_EQ(events[2].kind, Client::Input::TextInputEvent::Kind::Text);
+}
+
+TEST(InputStateTest, FocusLostCancelsAnActiveCompositionAfterClearingPriorEvents)
+{
+    InputState input;
+    input.Apply(InputEvent{
+        .kind = InputEvent::Kind::Composition, .text = "preview", .compositionStart = 2, .compositionLength = 3});
+
+    input.Apply(InputEvent{.kind = InputEvent::Kind::FocusLost});
+
+    const auto events = input.TextInputEvents();
+    ASSERT_EQ(events.size(), 1u);
+    EXPECT_EQ(events.front().kind, Client::Input::TextInputEvent::Kind::Composition);
+    EXPECT_TRUE(events.front().text.empty());
+    EXPECT_EQ(input.Text(), "");
+}
+
+TEST(InputStateTest, FocusLostKeepsItsCompositionCancellationWhenItSharesThePump)
+{
+    InputState input;
+    input.Apply(InputEvent{.kind = InputEvent::Kind::Composition, .text = "preview"});
+    input.Apply(InputEvent{.kind = InputEvent::Kind::Composition, .text = ""});
+    input.Apply(InputEvent{.kind = InputEvent::Kind::FocusLost});
+
+    const auto events = input.TextInputEvents();
+    ASSERT_EQ(events.size(), 1u);
+    EXPECT_EQ(events.front().kind, Client::Input::TextInputEvent::Kind::Composition);
+    EXPECT_TRUE(events.front().text.empty());
+}
+
+TEST(InputStateTest, CtrlShortcutKeysAreForwardedWithControlState)
+{
+    InputState input;
+    input.Apply(KeyEvent(InputEvent::Kind::KeyDown, Key::CtrlLeft));
+    for (const Key shortcut : {Key::A, Key::C, Key::X, Key::V})
+    {
+        input.Apply(KeyEvent(InputEvent::Kind::KeyDown, shortcut));
+    }
+    input.Apply(KeyEvent(InputEvent::Kind::KeyUp, Key::CtrlLeft));
+    input.Apply(KeyEvent(InputEvent::Kind::KeyDown, Key::A));
+
+    const auto events = input.TextInputEvents();
+    ASSERT_EQ(events.size(), 4u);
+    EXPECT_EQ(events[0].key, Key::A);
+    EXPECT_EQ(events[1].key, Key::C);
+    EXPECT_EQ(events[2].key, Key::X);
+    EXPECT_EQ(events[3].key, Key::V);
+    for (const auto& event : events)
+    {
+        EXPECT_EQ(event.kind, Client::Input::TextInputEvent::Kind::Key);
+        EXPECT_TRUE(event.ctrl);
+    }
 }
 } // namespace

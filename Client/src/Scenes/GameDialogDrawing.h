@@ -22,8 +22,29 @@ struct GameHudContext;
 //     (0xf0 + estado), las flechas del 0x8c (que gastan el clic, Q-C553) y los renglones del 0x8a y del 0x8c
 //     centrados; los del 0x8b, el 0x97 y el 0x9b los dibuja el objeto del evento ([0x723c60] + 0x10, CL9.5): sin él,
 //     nada, y con él corta;
-//   - los del OK genérico con texto (0x70, 0x6f, 0x1a, 0x1c y 0x8f): el marco 0xf0, el OK (0xf1, o 0xf2 con el mouse)
-//     y sus textos de Text.bmd.
+//   - los del OK genérico con texto (0x70, 0x6f, 0x1a, 0x1c, 0x87, 0x88 y 0x8f): el marco 0xf0, el OK (0xf1, o 0xf2
+//     con el mouse) y sus textos de Text.bmd;
+//   - la invitación a la party (0x77) y el pedido de comercio (0x78) (CL9 hito 7, fase 2): el marco 0xf0, el sí (0xf1
+//     o 0xf2) y el no (0xf3 o 0xf4), el texto 418 con el nombre (el del primero vivo con la clave de 0x78aba4c,
+//     0x5110d0, o el del otro del comercio, 0x78aba1c, en la negrita grande) y la pregunta (425 o 419);
+//   - la caja de confirmación 0x9c (0x471ae0, CL9 hito 7, fase 6a): el marco (0xfc, 0xfb del alto de los renglones y
+//     0xfc), el sí (0xf1 o 0xf2) y el no (0xf3 o 0xf4), o solo el sí, según el tipo, y los renglones centrados, sin
+//     mezcla;
+//   - el de la plata (0x73): el marco 0xf0, el EDIT de [0x5763504] armado en cada cuadro (filtro 9, límite 8,
+//     0x46 × 0xe en (0x11b, 0x5f)) con el foco y su dibujo, y el texto 420, 421 o 422 según 0x78abacc;
+//   - el del título o el precio de la tienda personal (0x91, 0x6304f2): el marco (0xfc, 2 filas de 0xfb y 0xfc desde
+//     y 100), el EDIT con el foco y su dibujo, sin mezcla, el OK (0xf1 o 0xf2) en (255, 160) y el cancelar (0xf3 o
+//     0xf4) en (330, 160), de 52 × 16, y el texto 1128 o 1129 según el modo;
+//   - los de sí y no (0x94, 0x96, 0x98, 0x99, 0x9a, 0xa3, 0xa8, 0xa9 y 0xaa, CL9 hitos 6 y 7; el 0x94 entra por
+//     0x630cbd): el marco en y = 100 (210 el 0xa3; 0xfc, 3 filas de 0xfb, 4 el 0x9a, y 0xfc), los botones de 0x7d368b8
+//     con estado de 1 a 4 en (x + 213, y + 100) (el sí del 0x9a en rojo sin el ítem; los tres del 0xa8 en 0x646 con
+//     sus textos) y los renglones en la fuente gruesa, con la x, la y y los colores que dice el aviso de 0x78abb14
+//     (0x632637), con el título de la mezcla antes si está en 2; o en amarillo los del 0xa9 (0x632a45); o centrados
+//     como los de las cajas los del 0xaa (0x632472);
+//   - el modo de la caja del caos (0x8e) y la mezcla de joyas (0xa1, 0xa2, 0xa4, 0xa5 y 0xa6, CL9 hito 6): el marco
+//     desde y = 120, los botones 0xf0 en blanco con el mouse, la joya elegida en (1; 1; 0,2), los textos de Text.bmd
+//     y el título de la cola (734, 1801 o 1800) en negrita con 0xff0080ff; con una joya elegida el 0xa4 dibuja la
+//     lista de 0x6e5660 (0x62f739, Scenes/JewelBundleList) y su OK y su cancelar.
 // Los demás cortan con la ola que los trae, como su paso. En un dibujo intermedio de MuRet, la esquina de la barra y
 // el clic no se escriben. Sin Text.bmd, o sin uno de sus textos, corta.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheGameDialogs(GameHudContext& context);

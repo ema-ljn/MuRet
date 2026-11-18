@@ -2,31 +2,17 @@
 
 #include "Core/Expected.h"
 #include "Render/Models/OriginalAngles.h"
+#include "Scenes/ActionSend.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameMovementState.h"
 #include "World/OriginalFtol.h"
 
 #include <bit>
 #include <cstdint>
-#include <optional>
 #include <string>
 
 namespace Client::Scenes
 {
-namespace
-{
-constexpr float HalfSector = 22.5f;
-constexpr float SectorReciprocal = 0.02222222276031971f;
-
-std::optional<std::uint8_t> FacingSector(float yaw)
-{
-    const auto whole = World::OriginalFtolLow((static_cast<double>(yaw) + HalfSector) * SectorReciprocal + 1.0);
-    if (!whole)
-        return std::nullopt;
-    return static_cast<std::uint8_t>(static_cast<std::uint32_t>(*whole) & 7u);
-}
-} // namespace
-
 Core::Expected<void, std::string> StepHeroFacing(const HeroFacingContext& context)
 {
     ActorState& hero = context.hero;
@@ -51,8 +37,9 @@ Core::Expected<void, std::string> StepHeroFacing(const HeroFacingContext& contex
         return Core::Unexpected(std::string("0x59b422: ángulo quieto fuera del perfil ftol"));
     const auto shifted = std::bit_cast<std::int32_t>(405u - std::bit_cast<std::uint32_t>(*angle));
     state.arrivalYaw = shifted % 360;
-    const auto oldSector = FacingSector(hero.angles.z);
-    const auto newSector = FacingSector(static_cast<float>(state.arrivalYaw));
+    // 0x59b456: la misma cuenta que el C1 18 del emote y de sentarse.
+    const auto oldSector = ActionDirection(hero.angles.z);
+    const auto newSector = ActionDirection(static_cast<float>(state.arrivalYaw));
     if (!oldSector || !newSector)
         return Core::Unexpected(std::string("0x59b456: sector quieto fuera del perfil ftol"));
     if (*oldSector == *newSector)

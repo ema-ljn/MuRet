@@ -12,10 +12,13 @@
 #include "Scenes/ITextDrawer.h"
 #include "Scenes/ItemPrice.h"
 #include "Scenes/ItemTooltipParts.h"
+#include "Scenes/NpcWindowState.h"
+#include "Scenes/PetTooltip.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/TooltipWriter.h"
 #include "Scenes/WorldState.h"
 #include "Scenes/WorldRuntime.h"
+#include "Scenes/ZenText.h"
 #include "UI/PanelRegistry.h"
 #include "World/ItemState.h"
 #include "World/OriginalFtol.h"
@@ -36,9 +39,6 @@ namespace
 {
 // 0x5b2aae: el ítem vacío.
 constexpr std::uint16_t NoItem = 0xffff;
-// 0x5b2b0d: 0x422990, el tooltip del ángel y el sátiro (y la A9), que devuelve 1 con estos dos.
-constexpr std::uint16_t FirstPet = 0x1a04;
-constexpr std::uint16_t SecondPet = 0x1a05;
 // 0x5b2b3b..0x5b2b54: el nivel, (D+4 >> 3) & 0xf.
 constexpr std::uint32_t LevelShift = 3;
 constexpr std::uint32_t LevelMask = 0xf;
@@ -75,6 +75,9 @@ constexpr std::int32_t CenteredMode = 2;
 // 0x5b8150: el 238 con el precio ("0" sin nada que reparar, 0x6c9be8), el 620 de las excelentes, el 71 de la
 // durabilidad y los 480 de alto de diseño de su caja.
 constexpr std::size_t RepairPriceText = 238;
+// 0x5b2e26 y 0x5b2f19: el precio de compra con y sin el impuesto (0x7733c4c) y el de venta (0x76c1bb0).
+constexpr std::size_t BuyPriceText = 1620;
+constexpr std::size_t SellPriceText = 63;
 constexpr char FullDurabilityPrice[] = "0";
 constexpr std::size_t ExcellentText = 620;
 constexpr std::size_t RepairDurabilityText = 71;
@@ -115,12 +118,23 @@ std::int32_t NameColorOf(const World::ItemState& item, std::int32_t level)
     return color;
 }
 
+// 0x5b1200(precio, buffer): el precio con el impuesto de la tienda (0x78aba30, en por ciento): el impuesto con signo
+// por el precio sin signo en 64 bits (_allmul), dividido por 100 con signo (_alldiv), y su dword bajo sumado al
+// precio; escrito como 0x5b1130 con sus copias de los formatos (0x6c9874..0x6c98a0).
+std::string PriceWithTax(std::uint32_t price, std::int32_t tax)
+{
+    const std::int64_t added = static_cast<std::int64_t>(tax) * static_cast<std::int64_t>(price) / 100;
+    return FormatZen(price + static_cast<std::uint32_t>(static_cast<std::uint64_t>(added) & 0xffffffffu));
+}
+
 // 0x5b2cad..0x5b3716: el precio. Con la tienda de NPC abierta (0x10000, 1 rand()), salvo la caja de la suerte y el
-// ticket de 1 a 5, va el precio de 0x54d0f0 y 0x5b1200, de la CL9.3. Con la tienda personal propia (0x800) o la
-// ajena (0x20000), el de 0x78abaa4, que solo pone en 1 0x5c4110 con la grilla de la tienda personal (0x78ab0b8, la
-// CL9.4): MuRet no la tiene, así que queda en 0 y no hay precio.
-Core::Expected<void, std::string> CheckTheShops(GameHudContext& context, const World::ItemState& item,
-                                                std::int32_t level)
+// ticket de 1 a 5: desde la grilla de la tienda (0x78aba27 distinto de 0, 0x5b2d2e) el 1620 con el precio de
+// 0x54d0f0 en el modo 0 con el impuesto (0x5b1200) y sin él; si no (0x5b2e46), el 63 con el del modo 1. Los dos con
+// el color del nombre, sin negrita, y un "\n" (0x6c99c8) detrás. Con la tienda personal propia (0x800) o la ajena
+// (0x20000), sin rand(), el de la grilla de la tienda personal (WriteThePersonalShopPrice, CL9 hito 7).
+Core::Expected<void, std::string> WriteTheShopPrice(GameHudContext& context, TooltipWriter& lines,
+                                                    const World::ItemState& item, std::int32_t level,
+                                                    std::int32_t nameColor, std::uint8_t grid)
 {
     const std::uint16_t id = item.id;
     if (id == Scroll || (id >= FirstQuestScroll && id <= LastQuestScroll) ||
@@ -130,12 +144,32 @@ Core::Expected<void, std::string> CheckTheShops(GameHudContext& context, const W
     UI::PanelRegistry& registry = panels.Registry();
     if (registry.IsOpen(UI::NpcShopPanel) && id != LuckyBox &&
         !(id == EventTicket && level >= 1 && level <= LastFreeTicketLevel))
-        return Core::Unexpected(std::format("0x5b2d23: el precio del {:#x} en la tienda de NPC (0x54d0f0 y 0x5b1200) "
-                                            "es de la CL9.3",
-                                            id));
-    if (!registry.IsOpen(UI::PersonalShopPanel))
-        static_cast<void>(registry.IsOpen(UI::OtherShopPanel));
-    return {};
+    {
+        lines.At("0x5b2d23");
+        if (grid != 0)
+        {
+            auto price = ItemPrice(item, *context.items, ShopGridPrice, std::nullopt);
+            if (!price.HasValue())
+                return Core::Unexpected(std::move(price).Error());
+            const std::string plain = FormatZen(price.Value());
+            const std::string taxed = PriceWithTax(price.Value(), context.world.Runtime().npcWindows.taxRate);
+            lines.PrintText(BuyPriceText, std::string_view(taxed), std::string_view(plain));
+        }
+        else
+        {
+            auto price = ItemPrice(item, *context.items, InventoryPrice, std::nullopt);
+            if (!price.HasValue())
+                return Core::Unexpected(std::move(price).Error());
+            lines.PrintText(SellPriceText, std::string_view(FormatZen(price.Value())));
+        }
+        lines.Color(nameColor);
+        lines.Next();
+        lines.NewLine();
+        return {};
+    }
+    if (!registry.IsOpen(UI::PersonalShopPanel) && !registry.IsOpen(UI::OtherShopPanel))
+        return {};
+    return WriteThePersonalShopPrice(context, lines, item);
 }
 
 // 0x5b8160..0x5b821b: los tipos sin tooltip de reparar: salen sin tocar los renglones.
@@ -174,15 +208,17 @@ std::int32_t RepairNameColorOf(const World::ItemState& item, std::int32_t level)
 }
 
 // 0x5b8373..0x5b839b: un ítem gastado pone el modo de reparar en 2 y lleva el precio de 0x54d0f0 en el modo 2 con el
-// formato de 0x5b13e0, que lee [0x78abb10]. El 0x1a04 y el 0x1a05, los únicos que leen las mascotas, salen al
-// principio de 0x5b8150.
+// formato de 0x5b13e0, que lee [0x78abb10]. El 0x1a04 y el 0x1a05, los únicos que leen las mascotas (0x422930, con los
+// niveles del A9), salen al principio de 0x5b8150.
 Core::Expected<RepairPrice, std::string> RepairTheWornItem(GameHudContext& hud, const World::ItemState& item,
                                                            std::uint16_t maximum)
 {
     WorldRuntime& runtime = hud.world.Runtime();
     if (!hud.projecting)
         runtime.panels.repairMode = 2;
-    auto price = ItemPrice(item, *hud.items, RepairPriceMode, std::nullopt);
+    const PetPriceLevels pets{.raven = runtime.pets[RavenPetStats].level,
+                              .horse = runtime.pets[DarkHorsePetStats].level};
+    auto price = ItemPrice(item, *hud.items, RepairPriceMode, pets);
     if (!price.HasValue())
         return Core::Unexpected(std::move(price).Error());
     return RepairPriceOf(price.Value(), item.durability, maximum, runtime.field78abb10);
@@ -240,10 +276,12 @@ Core::Expected<void, std::string> DrawTheItemTooltip(const ItemTooltipContext& c
     tooltip.halves = 0;
     tooltip.ClearColors();
     tooltip.ClearTexts();
-    if (item.id == FirstPet || item.id == SecondPet)
-        return Core::Unexpected(std::format("0x4229d4: el tooltip del {:#x} (0x422990) y la A9 que pide son de la CL9 "
-                                            "(P-C126)",
-                                            item.id));
+    // 0x5b2b0d..0x5b2b17: 0x422990, que con el 0x1a04 y el 0x1a05 es todo el tooltip.
+    auto pet = DrawThePetTooltip(context);
+    if (!pet.HasValue())
+        return Core::Unexpected(std::move(pet).Error());
+    if (pet.Value())
+        return {};
     const auto type = static_cast<std::int16_t>(item.id);
     if (hud.items == nullptr)
         return Core::Unexpected(std::string("0x5b2acc: el tooltip del ítem sin Item.bmd"));
@@ -254,14 +292,11 @@ Core::Expected<void, std::string> DrawTheItemTooltip(const ItemTooltipContext& c
     lines.At("0x5b2b22");
     lines.NewLine();
     const auto level = static_cast<std::int32_t>((item.scalar1Low >> LevelShift) & LevelMask);
-    if (auto checked = CheckTheShops(hud, item, level); !checked.HasValue())
-        return checked;
-    ItemTooltipFrame frame{.context = hud,
-                           .lines = lines,
-                           .item = item,
-                           .record = *record,
-                           .level = level,
-                           .nameColor = NameColorOf(item, level)};
+    const std::int32_t nameColor = NameColorOf(item, level);
+    if (auto priced = WriteTheShopPrice(hud, lines, item, level, nameColor, context.grid); !priced.HasValue())
+        return priced;
+    ItemTooltipFrame frame{
+        .context = hud, .lines = lines, .item = item, .record = *record, .level = level, .nameColor = nameColor};
     for (const auto section :
          {WriteTheItemName, WriteTheKindLines, WriteTheStats, WriteTheNotes, WriteTheRequirements, WriteTheOptions})
     {

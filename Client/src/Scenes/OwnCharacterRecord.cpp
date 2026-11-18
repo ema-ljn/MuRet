@@ -25,11 +25,32 @@ std::optional<std::uint8_t> OwnCharacterRecord::SkillAt(std::size_t index) const
 {
     constexpr std::size_t BytesPerWord = 4;
     constexpr std::uint32_t BitsPerByte = 8;
-    if (index >= words6c.size() * BytesPerWord)
-        return std::nullopt;
+    constexpr std::size_t WordBytes = 16 * BytesPerWord;
+    if (index >= WordBytes)
+    {
+        if (index - WordBytes >= skillsAc.size())
+            return std::nullopt;
+        return skillsAc[index - WordBytes];
+    }
     const std::uint32_t word = words6c[index / BytesPerWord];
     return static_cast<std::uint8_t>((word >> (static_cast<std::uint32_t>(index % BytesPerWord) * BitsPerByte)) &
                                      0xffu);
+}
+
+void OwnCharacterRecord::SetSkillAt(std::size_t index, std::uint8_t skill)
+{
+    constexpr std::size_t BytesPerWord = 4;
+    constexpr std::uint32_t BitsPerByte = 8;
+    constexpr std::size_t WordBytes = 16 * BytesPerWord;
+    if (index >= WordBytes)
+    {
+        if (index - WordBytes < skillsAc.size())
+            skillsAc[index - WordBytes] = skill;
+        return;
+    }
+    const std::uint32_t shift = static_cast<std::uint32_t>(index % BytesPerWord) * BitsPerByte;
+    std::uint32_t& word = words6c[index / BytesPerWord];
+    word = (word & ~(0xffu << shift)) | (static_cast<std::uint32_t>(skill) << shift);
 }
 
 void OwnCharacterRecord::ApplyStats(const Protocol::Character::CharacterSelectResult& reply, Core::Log& log)
@@ -89,12 +110,6 @@ void OwnCharacterRecord::ClearEquipmentForInventory()
 
 std::uint8_t OwnSkillByte(const OwnCharacterRecord& own, std::size_t index)
 {
-    constexpr std::size_t BytesPerWord = 4;
-    constexpr std::uint32_t BitsPerByte = 8;
-    if (index >= own.words6c.size() * BytesPerWord)
-        return 0;
-    const std::uint32_t word = own.words6c[index / BytesPerWord];
-    return static_cast<std::uint8_t>((word >> (static_cast<std::uint32_t>(index % BytesPerWord) * BitsPerByte)) &
-                                     0xffu);
+    return own.SkillAt(index).value_or(std::uint8_t{0});
 }
 } // namespace Client::Scenes

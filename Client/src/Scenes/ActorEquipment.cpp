@@ -139,9 +139,36 @@ void ClearCarried(ActorState& actor)
     actor.previousHad1c15 = false;
 }
 
-// 0x4053f0 en los mapas 18 a 23 (en los otros no hace nada): 0x4053a0 y el arma de la clase.
-void ArmForMaps18To23(ActorState& actor)
+// 0x512cc7..0x512ef5: la ropa y lo que sigue.
+Core::Expected<void, std::string> Dress(ActorState& actor, const ActorEquipmentContext& context)
 {
+    ProjectBody(actor, context.own);
+    ArmForTheEventMaps(actor, context.stop.runtime.map);
+    ApplyHeadAndScale(actor);
+    // 0x512eda..0x512eec: lo que devuelve no lo lee nadie. Con otro personaje, 0x550990 lee lo que dejó la
+    // última llamada.
+    if (&actor == &context.publishedHero)
+    {
+        context.fullSetScan =
+            ScanFullSet(ScannedCharacterOf(actor), context.own, context.ownRecordAccesses, context.stop.random).globals;
+    }
+    return RecalculateOwnStats(context.own, {.itemSetTables = context.itemSetTables,
+                                             .itemSets = context.itemSets,
+                                             .items = context.stop.items,
+                                             .publishedHero = context.publishedHero,
+                                             .ownRecordAccesses = context.ownRecordAccesses,
+                                             .random = context.stop.random,
+                                             .held = context.held,
+                                             .scan505820 = context.fullSetScan});
+}
+} // namespace
+
+void ArmForTheEventMaps(ActorState& actor, std::int32_t map)
+{
+    if (!InNoStopMaps(map))
+    {
+        return;
+    }
     ClearCarried(actor);
     ActorItemPart& right = actor.hands[0];
     switch (actor.characterClass & ClassBits)
@@ -163,9 +190,12 @@ void ArmForMaps18To23(ActorState& actor)
     }
 }
 
-// 0x512930, con +0x3e3 en 0 como lo deja la rama que lo llama.
 void ApplyHeadAndScale(ActorState& actor)
 {
+    if (actor.byte3e3 != 0)
+    {
+        return;
+    }
     const auto helm = actor.body[static_cast<std::size_t>(GameLogic::BodyPart::Helm)].model;
     actor.head = GameLogic::HeadUnder(helm, actor.characterClass).value_or(NoItemModel);
     if (const std::optional<float> scale = GameLogic::ClassScale(actor.characterClass, actor.skin))
@@ -173,33 +203,6 @@ void ApplyHeadAndScale(ActorState& actor)
         actor.scale = *scale;
     }
 }
-
-// 0x512cc7..0x512ef5: la ropa y lo que sigue.
-Core::Expected<void, std::string> Dress(ActorState& actor, const ActorEquipmentContext& context)
-{
-    ProjectBody(actor, context.own);
-    if (InNoStopMaps(context.stop.runtime.map))
-    {
-        ArmForMaps18To23(actor);
-    }
-    ApplyHeadAndScale(actor);
-    // 0x512eda..0x512eec: lo que devuelve no lo lee nadie. Con otro personaje, 0x550990 lee lo que dejó la
-    // última llamada.
-    if (&actor == &context.publishedHero)
-    {
-        context.fullSetScan =
-            ScanFullSet(ScannedCharacterOf(actor), context.own, context.ownRecordAccesses, context.stop.random).globals;
-    }
-    return RecalculateOwnStats(context.own, {.itemSetTables = context.itemSetTables,
-                                             .itemSets = context.itemSets,
-                                             .items = context.stop.items,
-                                             .publishedHero = context.publishedHero,
-                                             .ownRecordAccesses = context.ownRecordAccesses,
-                                             .random = context.stop.random,
-                                             .held = context.held,
-                                             .scan505820 = context.fullSetScan});
-}
-} // namespace
 
 Core::Expected<ActorStopResult, std::string> ApplyActorEquipment(ActorState& actor,
                                                                  const ActorEquipmentContext& context)

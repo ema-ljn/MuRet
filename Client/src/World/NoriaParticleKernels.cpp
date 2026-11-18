@@ -25,6 +25,9 @@ constexpr double FlutterFall = static_cast<double>(std::bit_cast<float>(0x3f1999
 constexpr std::int32_t FlutterSparkSubtype = 7;
 // 0x5c5/1, las chispas del bastón 0xc18 (0x50f5a8): vida (rand() & 7) + 8 (0x5403eb..0x5403ff) y el paso del /0.
 constexpr std::int32_t StaffSparkSubtype = 1;
+constexpr std::int32_t PushSparkSubtype = 2;
+constexpr float PushSparkScale = 2.0f;
+constexpr double PushSparkSpeed = 3.0; // 0x5404b8/0x5404c4, 0x6b86b8.
 constexpr float SparkLifeLight = 0.0625f;
 constexpr float ShinyTurn = 12.0f;
 } // namespace
@@ -32,8 +35,8 @@ constexpr float ShinyTurn = 12.0f;
 bool IsNoriaParticle(std::int32_t type, std::int32_t subtype)
 {
     return (type == ShinyParticle && (subtype == 0 || subtype == 1)) ||
-           (type == FairySparkParticle &&
-            (subtype == 0 || subtype == StaffSparkSubtype || subtype == FlutterSparkSubtype));
+           (type == FairySparkParticle && (subtype == 0 || subtype == StaffSparkSubtype ||
+                                           subtype == PushSparkSubtype || subtype == FlutterSparkSubtype));
 }
 
 void CreateNoriaParticle(Particle& particle, Render::Models::CrtRandom& random)
@@ -65,7 +68,13 @@ void CreateNoriaParticle(Particle& particle, Render::Models::CrtRandom& random)
     particle.angles.z = static_cast<float>(random.Next() % 360);
     const auto matrix = Render::Models::OriginalAngleMatrix(particle.angles);
     particle.verticalSpeed = static_cast<float>((random.Next() & 15) + 6);
-    const float forward = static_cast<float>(static_cast<double>(random.Next() % 20 + 20) * SparkScaleStep);
+    float forward = static_cast<float>(static_cast<double>(random.Next() % 20 + 20) * SparkScaleStep);
+    if (particle.subtype == PushSparkSubtype)
+    {
+        // 0x5404ad..0x5404ca: después de los cinco sorteos y de la matriz, antes de girar el vector local.
+        particle.scale *= PushSparkScale;
+        forward = static_cast<float>(static_cast<double>(forward) * PushSparkSpeed);
+    }
     particle.velocity = Render::Models::OriginalVectorRotate(glm::vec3(0.0f, forward, 0.0f), matrix);
 }
 

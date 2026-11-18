@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <string>
+#include <utility>
 
 #include <gtest/gtest.h>
 
@@ -91,22 +92,102 @@ TEST(GameDialogsTest, TheChaosCastleDialogSplitsItsTextsOneAfterTheOther)
     EXPECT_EQ(dialogs.pending, 0);
 }
 
-// Los textos con formato son de la CL9.3, y lo que pasaría los 7 renglones corta.
+// Los textos con formato son de la CL9.3 (el 0x99 lo abre OpenTheMoneyTextDialog), y lo que pasaría los 7 renglones
+// corta.
 TEST(GameDialogsTest, TheFormattedTextsAndTheOverflowsAreCut)
 {
     const auto texts = MakeTextTable({{60, "corto"}});
     DialogBoxState box;
     DialogState dialogs;
-    for (const std::int32_t id : {0x96, 0xa8, 0x99, 0xa3})
+    // Sin el ítem (0x96 y 0xa8) o sin lo que lee su formato (0xa3), cortan con su dirección.
+    for (const auto& [id, address] :
+         {std::pair<std::int32_t, std::string>{0x96, "0x63330f"}, {0xa8, "0x63330f"}, {0xa3, "0x63340d"}})
     {
         const auto opened = Client::UI::OpenTextDialog(box, dialogs, &texts, 1, 60, id);
         ASSERT_FALSE(opened.HasValue());
-        EXPECT_NE(opened.Error().find("CL9.3"), std::string::npos) << opened.Error();
+        EXPECT_NE(opened.Error().find(address), std::string::npos) << opened.Error();
     }
+    const auto money = Client::UI::OpenTextDialog(box, dialogs, &texts, 1, 60, Client::UI::MoneyTextDialog);
+    ASSERT_FALSE(money.HasValue());
+    EXPECT_NE(money.Error().find("OpenTheMoneyTextDialog"), std::string::npos) << money.Error();
     const auto tooMany = Client::UI::OpenTextDialog(box, dialogs, &texts, 8, 60, 0x8b);
     ASSERT_FALSE(tooMany.HasValue());
     EXPECT_NE(tooMany.Error().find("0x633612"), std::string::npos) << tooMany.Error();
     EXPECT_EQ(dialogs.current, 0);
+}
+
+// 0x63332f..0x6333a3 (CL9 hito 7): el 0x99 escribe el primer renglón con el sprintf de su texto y el zen, sin tope (lo
+// largo sigue abajo y el sprintf del segundo lo pisa), pasa los que siguen por el mismo sprintf sin argumentos (el "%%"
+// sale como "%") y abre con los dos botones. Con un renglón, solo el primero; lo que pasaría los 7 corta, como sin
+// Text.bmd.
+TEST(GameDialogsTest, TheMoneyDialogFormatsItsFirstRow)
+{
+    const auto texts = MakeTextTable({{70, "venta : %s zen, un renglon largo"}, {71, "seguro? 100%%"}});
+    DialogBoxState box;
+    DialogState dialogs;
+    ASSERT_TRUE(Client::UI::OpenTheMoneyTextDialog(box, dialogs, &texts, 2, 70, "1,234,567").HasValue());
+    EXPECT_EQ(box.lineCount, 2);
+    // Sin '\0' en sus 0x26 bytes, el primero se lee hasta el que dejó el segundo.
+    EXPECT_EQ(DialogRow(box, 0), "venta : 1,234,567 zen, un renglon largseguro? 100%");
+    EXPECT_EQ(DialogRow(box, 1), "seguro? 100%");
+    EXPECT_EQ(box.buttons[0].state, 1);
+    EXPECT_EQ(box.buttons[0].x, 0x15);
+    EXPECT_EQ(box.buttons[0].y, 0x5a);
+    EXPECT_EQ(box.buttons[1].state, 3);
+    EXPECT_EQ(box.buttons[1].x, 0x78);
+    EXPECT_EQ(box.buttons[1].y, 0x5a);
+    EXPECT_EQ(dialogs.current, Client::UI::MoneyTextDialog);
+
+    DialogBoxState single;
+    DialogState closed;
+    ASSERT_TRUE(Client::UI::OpenTheMoneyTextDialog(single, closed, &texts, 1, 70, "9").HasValue());
+    EXPECT_EQ(single.lineCount, 1);
+    EXPECT_EQ(DialogRow(single, 0), "venta : 9 zen, un renglon largo");
+    EXPECT_EQ(DialogRow(single, 1), "");
+
+    const std::string wide(7 * 0x26, '9');
+    const auto overflow = Client::UI::OpenTheMoneyTextDialog(single, closed, &texts, 1, 70, wide);
+    ASSERT_FALSE(overflow.HasValue());
+    EXPECT_NE(overflow.Error().find("0x633367"), std::string::npos) << overflow.Error();
+    const auto missing = Client::UI::OpenTheMoneyTextDialog(single, closed, nullptr, 2, 70, "9");
+    ASSERT_FALSE(missing.HasValue());
+    EXPECT_NE(missing.Error().find("0x633367"), std::string::npos) << missing.Error();
+    EXPECT_EQ(closed.current, Client::UI::MoneyTextDialog);
+}
+
+// 0x633419..0x633525: la pregunta de la mezcla de joyas partida en dos renglones de 0x1e y el precio debajo; al
+// deshacer, el nivel + 1 y el otro precio.
+TEST(GameDialogsTest, TheJewelMixQuestionSplitsInTwoRowsAndAddsThePrice)
+{
+    const auto texts = MakeTextTable({{1806, "Joya Uno"},
+                                      {1807, "Joya Dos"},
+                                      {1809, "Juntar de verdad %s en una cantidad de %d?"},
+                                      {1810, "Cuesta %d"},
+                                      {1813, "Deshacer %s %d?"},
+                                      {1814, "Deshacer cuesta %d"}});
+    DialogBoxState box;
+    DialogState dialogs;
+    const Client::UI::DialogTextArguments mix{
+        .jewelMode = 0, .jewelKind = 1, .jewelCount = 20, .jewelLevel = -1, .jewelPrice = 1000000};
+    ASSERT_TRUE(
+        Client::UI::OpenTextDialog(box, dialogs, &texts, 0, 0, Client::UI::ServerTimeDialog, nullptr, &mix).HasValue());
+    EXPECT_EQ(box.lineCount, 3);
+    EXPECT_EQ(DialogRow(box, 0), "Juntar de verdad Joya Dos en ");
+    EXPECT_EQ(DialogRow(box, 1), "una cantidad de 20?");
+    EXPECT_EQ(DialogRow(box, 2), "Cuesta 1000000");
+    EXPECT_EQ(box.buttons[0].y, 0x5a);
+    EXPECT_EQ(dialogs.current, Client::UI::ServerTimeDialog);
+
+    DialogBoxState unmixBox;
+    DialogState unmixDialogs;
+    const Client::UI::DialogTextArguments unmix{
+        .jewelMode = 1, .jewelKind = 0, .jewelCount = 1, .jewelLevel = 2, .jewelPrice = 1000000};
+    ASSERT_TRUE(
+        Client::UI::OpenTextDialog(unmixBox, unmixDialogs, &texts, 0, 0, Client::UI::ServerTimeDialog, nullptr, &unmix)
+            .HasValue());
+    EXPECT_EQ(unmixBox.lineCount, 2);
+    EXPECT_EQ(DialogRow(unmixBox, 0), "Deshacer Joya Uno 3?");
+    EXPECT_EQ(DialogRow(unmixBox, 1), "Deshacer cuesta 1000000");
 }
 
 // 0x62d756: el rectángulo corrido (0xd5, 0x3c) con sus bordes; con el clic, elige y apaga el clic y el botón abajo.

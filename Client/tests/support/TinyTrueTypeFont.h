@@ -13,5 +13,6 @@ namespace Client::Tests
 {
 inline constexpr char FlatGlyphLetter = '_';
 
-[[nodiscard]] std::vector<std::uint8_t> TinyTrueTypeFont();
+[[nodiscard]] std::vector<std::uint8_t>
+TinyTrueTypeFont(std::uint16_t extraFlatCodePoint = static_cast<std::uint16_t>(FlatGlyphLetter));
 } // namespace Client::Tests

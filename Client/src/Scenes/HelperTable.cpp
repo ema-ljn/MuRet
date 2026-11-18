@@ -58,6 +58,8 @@ constexpr std::uint16_t RiderlessHelper = GuardianAngelModel;
 constexpr float HorseScale = 1.0f;
 constexpr float RidingHelperScale = 0.9f;
 constexpr float GuardianScale = 0.7f;
+// 0x4452d2: con el segundo argumento de 0x445260 distinto de 0 (el retrato de las cartas), 0x3f3ae148.
+constexpr float PortraitHelperScale = std::bit_cast<float>(0x3f3ae148u);
 
 bool IsFenrir(std::uint16_t type)
 {
@@ -396,7 +398,8 @@ Core::Expected<void, std::string> StepTheDarkHorse(HelperState& helper, ActorSta
     {
         return Core::Unexpected(safe.Error());
     }
-    if (safe.Value())
+    // 0x4440eb: con el segundo argumento distinto de 0 (el retrato de las cartas), la celda no lo esconde.
+    if (safe.Value() && !context.ignoresTheSafeCell)
     {
         // 0x4440f2..0x4440f8: al avance con la acción y la velocidad que tenía.
         helper.horse.alpha = HiddenAlpha;
@@ -472,10 +475,9 @@ Core::Expected<void, std::string> StepTheBody(HelperState& helper, ActorState& r
     return StepRidingHelper(helper, rider, skeleton, context);
 }
 
-// 0x444010(lugar, 0) con un lugar vivo, en la escena 4 o en la 5.
-Core::Expected<void, std::string> StepHelper(HelperState& helper, const HelperStepContext& context)
+// 0x444010(lugar, 0) con un lugar vivo, en la escena 4 o en la 5, con su jinete (+0x108).
+Core::Expected<void, std::string> StepHelper(HelperState& helper, ActorState& rider, const HelperStepContext& context)
 {
-    ActorState& rider = context.world.Actors()[helper.rider];
     // 0x44402a..0x444047: solo en la escena 5, con el jinete muerto o sin el 1 en +0x88.
     if (context.scene == SceneId::Game && (!rider.alive || rider.byte88 != RiderShown))
     {
@@ -544,7 +546,8 @@ DrawnObject DrawnHelper(const HelperState& helper, const Render::Models::Skeleto
     drawn.transform = Render::Models::ObjectTransform{.position = helper.position, .angles = helper.angles};
     drawn.transform.scale = helper.scale;
     drawn.state.blendMesh = helper.blendMesh;
-    drawn.color = terrainLight + HorseLight;
+    // 0x5ffd6a..0x5ffd8b (0x5ffce0): la luz del terreno más la propia (+0xf4..+0xfc).
+    drawn.color = terrainLight + helper.light;
     drawn.alpha = helper.horse.alpha;
     drawn.vertexLight = true;
     return drawn;
@@ -767,17 +770,18 @@ Core::Expected<void, std::string> DrawTheShell(HelperState& helper, const Helper
     return DrawChromeShell(context.batch, context.models, drawn, context.frameClock);
 }
 
-// 0x445260(lugar, 0) con un lugar vivo.
-Core::Expected<void, std::string> DrawHelper(HelperState& helper, const HelperDrawContext& context)
+// 0x445260(lugar, `always`) con un lugar vivo y su jinete (+0x108). Con `always` (el retrato de las cartas), visto sin
+// el trapecio (0x4452a4) y con la escala de 0x4452d2.
+Core::Expected<void, std::string> DrawHelper(HelperState& helper, const ActorState& rider, bool always,
+                                             const HelperDrawContext& context)
 {
     WorldState& world = context.world;
     const WorldRuntime& runtime = world.Runtime();
-    helper.seen = CharacterSeen(runtime.terrainPolygon, helper.position);
+    helper.seen = always || CharacterSeen(runtime.terrainPolygon, helper.position);
     if (!helper.seen)
     {
         return {};
     }
-    const ActorState& rider = world.Actors()[helper.rider];
     if (rider.type != Data::Models::PlayerSkeletonModel && helper.type != RiderlessHelper)
     {
         return {};
@@ -786,7 +790,7 @@ Core::Expected<void, std::string> DrawHelper(HelperState& helper, const HelperDr
     {
         return Core::Unexpected(std::format("0x445260: el dibujo del ayudante {:#x} no está portado", helper.type));
     }
-    helper.scale = DrawScaleOf(helper, context.scene);
+    helper.scale = always ? PortraitHelperScale : DrawScaleOf(helper, context.scene);
     // 0x602e90 → 0x5ffdf0: en los mapas 18 a 23, con +0x1a1 del héroe, el alpha baja 0,15f y queda guardado, una
     // vez por frame del original.
     if (context.originalFrame)
@@ -823,6 +827,59 @@ Core::Expected<void, std::string> DrawHelper(HelperState& helper, const HelperDr
 }
 } // namespace
 
+Core::Expected<bool, std::string> ConstructHelper(HelperState& helper, std::uint16_t type, const glm::vec3& position,
+                                                  const ActorState& rider, std::size_t riderSlot, std::int32_t map,
+                                                  Render::Models::CrtRandom* random)
+{
+    // 0x443d73..0x443d87: en los mapas 18 a 23, nada (devuelve 0).
+    if (InChaosCastle(map))
+    {
+        return false;
+    }
+    // 0x443d8d: el lugar vivo queda como está (devuelve 1: 0x443fa0 prueba el siguiente).
+    if (helper.alive)
+    {
+        return false;
+    }
+    if (type != DarkHorseModel && type != RiderlessHelper && !IsRidingHelper(type))
+    {
+        return Core::Unexpected(std::format("0x443d70: el constructor del ayudante {:#x} no está portado", type));
+    }
+    helper.alive = true;
+    helper.type = type;
+    helper.rider = riderSlot;
+    helper.seen = false;
+    helper.scale = type == DarkHorseModel ? HorseScale : IsRidingHelper(type) ? RidingHelperScale : GuardianScale;
+    helper.position = position;
+    helper.angles = rider.angles;
+    // 0x443e1d y 0x443e23: la key anterior y el frame; +0x111 y +0x112 quedan (Q-C221).
+    helper.horse.animation.previousKey = 0;
+    helper.horse.animation.frame = 0.0f;
+    helper.horse.speed = CreatedSpeed;
+    helper.horse.alpha = CreatedAlpha;
+    helper.light = HorseLight; // 0x443e2f..0x443e45
+    helper.blendMesh = NoBlendMesh;
+    if (type == RiderlessHelper)
+    {
+        helper.blendMesh = GuardianBlendMesh; // 0x443f1a
+        if (random == nullptr)
+        {
+            return Core::Unexpected(std::string("0x443f21: falta el rand() compartido del Guardian Angel"));
+        }
+        constexpr int HorizontalSpan = 512;
+        constexpr int HorizontalCentre = 256;
+        constexpr int VerticalSpan = 128;
+        constexpr int VerticalBase = 128;
+        helper.position.x = static_cast<float>(static_cast<double>(rider.position.x) +
+                                               (random->Next() % HorizontalSpan) - HorizontalCentre);
+        helper.position.y = static_cast<float>(static_cast<double>(rider.position.y) +
+                                               (random->Next() % HorizontalSpan) - HorizontalCentre);
+        helper.position.z =
+            static_cast<float>(static_cast<double>(rider.position.z) + (random->Next() % VerticalSpan) + VerticalBase);
+    }
+    return true;
+}
+
 Core::Expected<std::optional<std::size_t>, std::string> CreateHelper(WorldState& world, std::uint16_t type,
                                                                      const glm::vec3& position, std::size_t rider,
                                                                      Render::Models::CrtRandom* random)
@@ -840,44 +897,15 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateHelper(WorldState&
     HelperTable& helpers = world.Helpers();
     for (std::size_t slot = 0; slot < helpers.size(); ++slot)
     {
-        HelperState& helper = helpers[slot];
-        if (helper.alive)
+        auto built = ConstructHelper(helpers[slot], type, position, riding, rider, map, random);
+        if (!built.HasValue())
         {
-            continue;
+            return Core::Unexpected(built.Error());
         }
-        helper.alive = true;
-        helper.type = type;
-        helper.rider = rider;
-        helper.seen = false;
-        helper.scale = type == DarkHorseModel ? HorseScale : IsRidingHelper(type) ? RidingHelperScale : GuardianScale;
-        helper.position = position;
-        helper.angles = riding.angles;
-        // 0x443e1d y 0x443e23: la key anterior y el frame; +0x111 y +0x112 quedan (Q-C221).
-        helper.horse.animation.previousKey = 0;
-        helper.horse.animation.frame = 0.0f;
-        helper.horse.speed = CreatedSpeed;
-        helper.horse.alpha = CreatedAlpha;
-        helper.light = HorseLight; // 0x443e2f..0x443e45
-        helper.blendMesh = NoBlendMesh;
-        if (type == RiderlessHelper)
+        if (built.Value())
         {
-            helper.blendMesh = GuardianBlendMesh; // 0x443f1a
-            if (random == nullptr)
-            {
-                return Core::Unexpected(std::string("0x443f21: falta el rand() compartido del Guardian Angel"));
-            }
-            constexpr int HorizontalSpan = 512;
-            constexpr int HorizontalCentre = 256;
-            constexpr int VerticalSpan = 128;
-            constexpr int VerticalBase = 128;
-            helper.position.x = static_cast<float>(static_cast<double>(riding.position.x) +
-                                                   (random->Next() % HorizontalSpan) - HorizontalCentre);
-            helper.position.y = static_cast<float>(static_cast<double>(riding.position.y) +
-                                                   (random->Next() % HorizontalSpan) - HorizontalCentre);
-            helper.position.z = static_cast<float>(static_cast<double>(riding.position.z) +
-                                                   (random->Next() % VerticalSpan) + VerticalBase);
+            return std::optional<std::size_t>{slot};
         }
-        return std::optional<std::size_t>{slot};
     }
     return std::optional<std::size_t>{};
 }
@@ -901,12 +929,36 @@ Core::Expected<void, std::string> StepHelpers(const HelperStepContext& context)
         {
             continue;
         }
-        if (auto stepped = StepHelper(helper, context); !stepped.HasValue())
+        if (auto stepped = StepHelper(helper, context.world.Actors()[helper.rider], context); !stepped.HasValue())
         {
             return stepped;
         }
     }
     return {};
+}
+
+Core::Expected<void, std::string> StepTheHelperOutsideTheTable(HelperState& helper, ActorState& rider,
+                                                               const HelperStepContext& context)
+{
+    // 0x444021: sin el byte vivo, nada.
+    if (!helper.alive)
+    {
+        return {};
+    }
+    HelperStepContext anywhere = context;
+    anywhere.ignoresTheSafeCell = true;
+    return StepHelper(helper, rider, anywhere);
+}
+
+Core::Expected<void, std::string> DrawTheHelperOutsideTheTable(HelperState& helper, const ActorState& rider,
+                                                               const HelperDrawContext& context)
+{
+    // 0x44526b: sin el byte vivo, nada.
+    if (!helper.alive)
+    {
+        return {};
+    }
+    return DrawHelper(helper, rider, true, context);
 }
 
 Core::Expected<void, std::string> DrawHelpers(const HelperDrawContext& context)
@@ -937,7 +989,9 @@ Core::Expected<void, std::string> DrawHelpers(const HelperDrawContext& context)
             continue;
         }
         HelperState projectedHelper = helper;
-        auto drawn = context.originalFrame ? DrawHelper(helper, context) : DrawHelper(projectedHelper, projected);
+        const ActorState& rider = context.world.Actors()[helper.rider];
+        auto drawn = context.originalFrame ? DrawHelper(helper, rider, false, context)
+                                           : DrawHelper(projectedHelper, rider, false, projected);
         if (!drawn.HasValue())
         {
             return drawn;

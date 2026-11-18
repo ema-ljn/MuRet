@@ -4,6 +4,9 @@
 #include "World/WorldTerrain.h"
 
 #include "Data/Terrain/TerrainGrid.h"
+#include "Data/Tables/ItemTable.h"
+#include "Data/Tables/SkillTable.h"
+#include "Data/Text/TextTable.h"
 #include "Data/Textures/TextureSet.h"
 #include "App/WindowState.h"
 #include "Render/ModelBatch.h"
@@ -22,6 +25,7 @@
 #include "Scenes/WorldState.h"
 
 #include "support/FakeTextureStore.h"
+#include "support/FileBytes.h"
 #include "support/GlTrace.h"
 #include "support/GoldenDir.h"
 #include "support/RecordingFrameTarget.h"
@@ -39,6 +43,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string>
@@ -371,10 +376,10 @@ std::vector<TerrainCell> OpaqueCellsOf(const Client::Tests::FrameEvent& models)
 // Lo mismo desde la escena del juego (T8): Lorencia cargado en el WorldState, el héroe publicado en la
 // celda (143, 120) con la posición de la traza y el contador en 30. Su primer frame lee la celda por la
 // tabla de protección, arma la cámara de la traza y dibuja las 329 celdas en su orden y los 25 quads del
-// pasto de la traza (06 § El pasto); las marcas del suelo (0x5fc365) no dibujan ninguna, los objetos (0x6374ce),
-// sin el .obj en el WorldState, tampoco, ni los efectos del suelo y los pájaros, sin tablas; el héroe, sin un
-// paso que lo vea, no se dibuja (0x510d00), y corta en los ítems del piso (0x6374fe). Los 120 bloques de los
-// objetos de la traza no se comparan todavía (08 P-C53).
+// pasto de la traza (06 § El pasto). Las marcas, los objetos, los efectos y la fauna están vacíos; el héroe,
+// sin un paso que lo vea, no se dibuja (0x510d00). La cola vacía continúa hasta el HUD, con sus tablas reales;
+// el terreno está en el primer lote, antes de los pases de la cola. Los 120 bloques de los objetos de la
+// traza no se comparan todavía (08 P-C53).
 TEST_F(GoldenTerrainTrace, TheGameSceneDrawsTheCellsOfLorencia)
 {
     const auto path = TraceFile(LorenciaTrace);
@@ -387,7 +392,25 @@ TEST_F(GoldenTerrainTrace, TheGameSceneDrawsTheCellsOfLorencia)
     ASSERT_FALSE(trace.Value().frames.empty());
     auto terrain = Client::World::LoadWorldTerrain(m_dataRoot, Lorencia);
     ASSERT_TRUE(terrain.HasValue()) << terrain.Error();
-    Client::Scenes::WorldState world;
+    const auto itemPath = DataFile("Local\\Item.bmd");
+    const auto skillPath = DataFile("Local\\Skill.bmd");
+    const auto textPath = DataFile("Local\\Text.bmd");
+    ASSERT_TRUE(itemPath && skillPath && textPath);
+    const auto itemFile = Client::Tests::ReadFileBytes(*itemPath);
+    const auto skillFile = Client::Tests::ReadFileBytes(*skillPath);
+    const auto textFile = Client::Tests::ReadFileBytes(*textPath);
+    ASSERT_TRUE(itemFile && skillFile && textFile);
+    const auto items = Client::Data::Tables::LoadItemTable(std::as_bytes(std::span(*itemFile)));
+    const auto skills = Client::Data::Tables::LoadSkillTable(std::as_bytes(std::span(*skillFile)));
+    const auto texts = Client::Data::Text::LoadTextTable(std::as_bytes(std::span(*textFile)));
+    ASSERT_TRUE(items.HasValue());
+    ASSERT_TRUE(skills.HasValue());
+    ASSERT_TRUE(texts.HasValue());
+    Client::Tests::RecordingSink sink;
+    Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
+    Client::Tests::FakeTextureStore store;
+    const auto worldOwner = std::make_unique<Client::Scenes::WorldState>();
+    Client::Scenes::WorldState& world = *worldOwner;
     world.Map().terrain = std::move(terrain).Value();
     // El corrimiento del pasto que llena 0x5f8300 al cargar: la u no cambia qué celdas lo llevan.
     world.Map().grassOffsets.assign(Client::Data::Terrain::TerrainCellCount, 0.0f);
@@ -401,9 +424,6 @@ TEST_F(GoldenTerrainTrace, TheGameSceneDrawsTheCellsOfLorencia)
     world.Runtime().hero = HeroSlot;
     world.Runtime().drawingEnabled = true;
     world.Runtime().warpCounter = Client::Scenes::WaitDrawThreshold;
-    Client::Tests::RecordingSink sink;
-    Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
-    Client::Tests::FakeTextureStore store;
     Client::Render::Models::ClothWorld cloth;
     Client::World::GameCamera cameraState;
     Client::World::GameCameraInput cameraInput;
@@ -414,21 +434,23 @@ TEST_F(GoldenTerrainTrace, TheGameSceneDrawsTheCellsOfLorencia)
                                                                  .camera = &cameraState,
                                                                  .cameraInput = &cameraInput,
                                                                  .world = &world},
-                                    nullptr);
+                                    nullptr, nullptr, &items.Value().table, nullptr, nullptr, &skills.Value(),
+                                    &texts.Value());
     ASSERT_TRUE(scene.Enter().HasValue());
     Client::Tests::RecordingFrameTarget target(Client::App::PixelSize{1024, 768});
 
     scene.PrepareFrame();
     scene.Render(target.BeginFrame({}), 0.0f);
+    target.Present();
 
-    ASSERT_TRUE(scene.Failure().has_value());
-    EXPECT_NE(scene.Failure()->find("0x6374fe"), std::string::npos) << *scene.Failure();
+    ASSERT_EQ(scene.Failure(), std::nullopt) << scene.Failure().value_or("");
     const Client::Tests::FrameEvent* models = nullptr;
     for (const Client::Tests::FrameEvent& event : target.frames.at(0).events)
     {
         if (event.kind == Client::Tests::FrameEvent::Kind::Models)
         {
             models = &event;
+            break;
         }
     }
     ASSERT_NE(models, nullptr);

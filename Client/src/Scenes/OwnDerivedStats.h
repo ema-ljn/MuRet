@@ -87,6 +87,9 @@ struct ItemStatBonus
     std::uint16_t value = 0;
 };
 
+// El WORD escrito por 0x40dc6e, independiente del selector de Item.bmd que lee después.
+[[nodiscard]] std::uint16_t ItemStatBonusValueOf(const World::ItemState& item);
+
 // 0x40dc50. Indexa Item.bmd con el tipo con signo: con uno fuera de la tabla (−1 en un lugar vacío),
 // el original lee memoria que no es de la tabla; MuRet devuelve un error (Q-C184).
 [[nodiscard]] Core::Expected<ItemStatBonus, std::string> ItemStatBonusOf(const World::ItemState& item,
@@ -94,7 +97,8 @@ struct ItemStatBonus
 
 // 0x550d49..0x550db1: por cada uno de los doce lugares con la durabilidad distinta de 0, 0x40dc50, y
 // con el tipo 1, 2, 3 o 4, 5 · valor a +0x2a, +0x2c, +0x30 o +0x2e (16 bits, envuelve). `items` es
-// *[0x7758550], nullptr si no se cargó. Si corta en un lugar, lo de los anteriores queda sumado.
+// *[0x7758550], nullptr si no se cargó. Un IDffff con valor 0 no depende del selector: las cuatro
+// sumas serían 0. Si corta en otro lugar, lo de los anteriores queda sumado.
 [[nodiscard]] Core::Expected<void, std::string> AddOwnItemStatBonuses(OwnCharacterRecord& own,
                                                                       const Data::Tables::ItemTable* items);
 

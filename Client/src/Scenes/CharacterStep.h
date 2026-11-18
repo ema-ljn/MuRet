@@ -1,9 +1,13 @@
 #pragma once
 
+#include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
+#include "Data/Tables/SkillTable.h"
+#include "Protocol/Outgoing.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ActorCooldownServices.h"
+#include "Scenes/GameDrawTail.h"
 #include "Scenes/SceneId.h"
 #include "World/TerrainCulling.h"
 
@@ -11,6 +15,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <span>
 #include <string>
 
 namespace Client::Render::Models
@@ -18,9 +23,18 @@ namespace Client::Render::Models
 class CrtRandom;
 struct Skeleton;
 } // namespace Client::Render::Models
+namespace Client::Render::Text
+{
+class ITextMeasure;
+}
+namespace Client::Data::Text
+{
+class TextTable;
+}
 
 namespace Client::World
 {
+class FrameSprites;
 class Particles;
 struct WorldTerrain;
 } // namespace Client::World
@@ -34,7 +48,9 @@ struct WorldTerrain;
 // (0x505de0)".
 namespace Client::Scenes
 {
+class IModelLibrary;
 class WorldState;
+struct WorldRuntime;
 class PlayerActionSpeeds;
 
 // 0x5fba90 como lo llaman 0x508f00 (0x50916d..0x50918c) y 0x508ea0 (0x508eac..0x508ecb): el lugar del
@@ -67,10 +83,21 @@ struct CharacterStepContext
     // *[0x7758550], Item.bmd en memoria: lo leen los helpers de 0x4fc450 y la acción de parado (0x4f2250)
     // con un arma o un ítem puesto. nullptr si no se cargó: cortan donde lo leen.
     const Data::Tables::ItemTable* items = nullptr;
+    // *[0x76bd1d8], Skill.bmd en memoria: el alcance (0x5526f0) del lazo de la skill 0x4c del paso del ataque
+    // (0x50243d, CL9 hito 4). nullptr: corta ahí con un blanco que mirar.
+    const Data::Tables::SkillTable* skills = nullptr;
+    // Los esqueletos de los demás modelos, para 0x4f5660 (SetActorDie) con el que se muere desde el paso 15 (CL9 hito
+    // 3). nullptr: un modelo que no es el 0x20a corta ahí.
+    const IModelLibrary* models = nullptr;
     // La carga de la escena 2 o 4; vacío, el mapa del juego. El TerrainWall se escribe ahí mismo.
     const World::WorldTerrain* terrain = nullptr;
     const Render::Models::Skeleton* darkSpiritSkeleton = nullptr;
     World::Particles* particles = nullptr;
+    // La tabla de sprites del frame (0x5491e0) que piden los casos de 0x505de0 (el 0x166). Sin ella, cortan ahí.
+    World::FrameSprites* sprites = nullptr;
+    // Los joints del juego (0x74a8d78, GameDrawTailState::joints), para el 0x618/0 y /1 del que mató (0x505169). Vacío,
+    // el paso del ataque corta ahí.
+    std::span<JointState> joints{};
     float worldClock = 0.0f;
     std::int32_t counter = 0;
     // El objeto suelto de 0x7437050 (NewFace 0xa8..0xac), fuera de los 400 del pool.
@@ -81,6 +108,22 @@ struct CharacterStepContext
     ActorCooldownServices cooldown{};
     // Solicitudes de sonido: el consumidor CL10 decide cómo reproducirlas.
     std::function<void(std::int32_t)> soundRequest{};
+    // Lo que el paso manda por send() (el A7 del cuervo, 0x416a20). Vacío, sin la sesión: no sale.
+    std::function<void(Protocol::Outgoing)> send{};
+    // GetAsyncKeyState(0x11) con 0x80 en el byte de arriba: Ctrl abajo, que 0x558eb0 lee en la habilidad del héroe
+    // (0x558fd6, CL9 hito 3).
+    bool controlDown = false;
+    // Lo que dicen los NPC (0x4fc790, 0x4fc8c0 y 0x4fcda2): los textos de Text.bmd y el medidor y la pantalla del globo
+    // (0x557170). Sin ellos, el que tiene que hablar corta.
+    const Data::Text::TextTable* texts = nullptr;
+    const Render::Text::ITextMeasure* textMeasure = nullptr;
+    App::PixelSize screen{640, 480};
+    // timeGetTime() (0x6b8144), en ms, que lee el mensaje del nombre de 0x6c88b0 (0x4fcd82 y 0x4fcd8e). Vacío, el que
+    // tiene ese nombre corta.
+    std::function<std::uint32_t()> systemTime{};
+    // CL9 hito 11: el C1 06 AF 02 x y de 0x4fbee8 (Chaos Castle, el héroe 10 s en una celda con el bit 8), por la
+    // sesión. Vacío, ese envío corta.
+    std::function<Core::Expected<void, std::string>(std::uint8_t, std::uint8_t)> sendChaosCastleReposition{};
 };
 
 // 0x508f00. Corta con error, en el orden del original, en el mapa 30 (0x412140), sin el mapa cargado
@@ -90,6 +133,19 @@ struct CharacterStepContext
 // del corte queda, con los rand() que sacó.
 [[nodiscard]] Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& context);
 
+// 0x412140 (el personaje que recibe no lo mira). Fuera del mapa 30, 0x412560 suelta el panel de 0x5763530 si lo hay.
+// En el 30, con 0x6c649a en 0xff (0x412191 y 0x4123f9), arma el de la clase 0 si no hay panel (0x412195) o si el que
+// hay es de otra clase (0x412402..0x41240f), y deja el que ya es de la clase 0. Los otros puestos (0x80, 0x40, 0x20 y
+// 0) arman los paneles 1 y 2 según el gremio de 0x6c6498, y solo los trae el paquete del gremio (CL9): cortan. Lo
+// llaman el paso de los personajes con el héroe (0x508f06) y el 0x12 con cada uno (0x4c9256).
+[[nodiscard]] Core::Expected<void, std::string> StepTheSiegePanel(WorldRuntime& runtime);
+
 // 0x508ea0 para un objeto fuera del pool: no borra ni marca TerrainWall y nunca es el héroe publicado.
 [[nodiscard]] Core::Expected<void, std::string> StepCharacter(ActorState& actor, const CharacterStepContext& context);
+
+// 0x4fd5f0(objeto, objeto) y 0x505de0(objeto, objeto) seguidos, sin 0x508ea0: no mira el byte vivo ni si se ve (+0x16c
+// queda como está) ni corre 0x508ba0. Lo llama el retrato de las cartas (0x495a20, 0x495dad..0x495db8, y su dibujo,
+// 0x495760), con un personaje fuera del pool que no es el héroe.
+[[nodiscard]] Core::Expected<void, std::string> StepTheBodyAndEffects(ActorState& actor,
+                                                                      const CharacterStepContext& context);
 } // namespace Client::Scenes

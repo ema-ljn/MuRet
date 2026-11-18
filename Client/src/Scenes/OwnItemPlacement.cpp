@@ -5,12 +5,14 @@
 #include "Data/Tables/ItemTable.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
+#include "Render/Models/Skeleton.h"
 #include "Scenes/ActorActions.h"
 #include "Scenes/ActorEquipment.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/DarkHorse.h"
 #include "Scenes/HelperTable.h"
+#include "Scenes/MonsterCreation.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
 #include "Scenes/OwnStatHelpers.h"
@@ -30,6 +32,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace Client::Scenes
 {
@@ -118,38 +121,41 @@ ItemRecordOf(std::uint16_t type, const WorldEntryResources& resources, std::stri
 }
 } // namespace
 
+// 0x4225ec..0x422606: el lazo que busca la 0x96.
+std::uint8_t DarkHorseOptionPlace(const ItemState& item)
+{
+    for (std::uint8_t index = 0; index < item.optionCount; ++index)
+    {
+        if (item.OptionTag(index) == DarkHorseOption)
+            return index != 0 ? index : item.optionCount;
+    }
+    return item.optionCount;
+}
+
+void AddTheDarkHorseOption(ItemState& item, const WorldEntryResources& resources)
+{
+    AddTheDarkHorseOption(item, resources.world, resources.world.Runtime().ownRecordDepth, resources.cloth.random);
+}
+
 // 0x4225d0(item) desde 0x54cc5c, con el Dark Horse (0x4225dc). Busca la opción 0x96 desde la primera; en la
 // primera no la toma (0x422600: con el índice en 0 sigue como si no estuviera, Q-C415). Con ella, le reescribe
 // el valor; sin ella, la agrega al final. El valor, con el registro propio abierto (0x40b240/0x40ad90 y 0x40b440,
 // y lo cierra 0x40b4d0, con sus 3.848 rand() si queda sin accesos): (+0x1a / 20 con signo, sobre el word sin
 // signo) + 2 · el byte de abajo de [0x72397c] + 5, en un byte. El tag va después de cerrar (0x42281c, 0x42291c).
-void AddTheDarkHorseOption(ItemState& item, const WorldEntryResources& resources)
+void AddTheDarkHorseOption(ItemState& item, const WorldState& world, std::uint8_t& ownRecordDepth,
+                           Render::Models::CrtRandom& random)
 {
-    std::optional<std::uint8_t> found;
-    for (std::uint8_t index = 0; index < item.optionCount; ++index)
+    const std::uint8_t index = DarkHorseOptionPlace(item);
+    const bool found = index != item.optionCount;
     {
-        if (item.OptionTag(index) == DarkHorseOption)
-        {
-            if (index != 0)
-            {
-                found = index;
-            }
-            break;
-        }
-    }
-    WorldState& world = resources.world;
-    {
-        const Render::Models::LogicalAccess access(world.Runtime().ownRecordDepth, resources.cloth.random,
-                                                   Render::Models::OwnRecordCloseRandoms);
-        const std::uint8_t index = found.value_or(item.optionCount);
+        const Render::Models::LogicalAccess access(ownRecordDepth, random, Render::Models::OwnRecordCloseRandoms);
         // OptionTag corta con diagnóstico si el índice se pasa de las nueve que guarda ItemState.
         static_cast<void>(item.OptionTag(index));
         const std::uint32_t agility = world.OwnCharacter().agility;
-        const auto level = static_cast<std::uint8_t>(world.Runtime().darkHorseLevel);
+        const auto level = static_cast<std::uint8_t>(world.Runtime().pets[DarkHorsePetStats].level);
         item.optionBytes[World::ItemOptionValueOffset + index] =
             static_cast<std::uint8_t>((agility / AgilityDivisor) + (HorseLevelFactor * level) + DarkHorseOptionBase);
     }
-    const std::uint8_t index = found.value_or(item.optionCount);
     item.optionBytes[index] = DarkHorseOption;
     if (!found)
     {
@@ -295,24 +301,31 @@ PlaceInEquipment(std::uint8_t slot, std::uint16_t type, InventoryItemBytes bytes
     {
         return Core::Unexpected(initialized.Error());
     }
+    ActorState& hero = world.Actors()[runtime.hero];
     const Render::Models::Skeleton* player = resources.models.SkeletonOf(Data::Models::PlayerSkeletonModel);
-    if (player == nullptr)
+    const bool isPlayer = hero.type == Data::Models::PlayerSkeletonModel;
+    if (player == nullptr && isPlayer)
     {
         return Core::Unexpected(std::string("0x5bc740 (0x5bc886): 0x512a30 necesita Player.bmd (0x20a) para 0x4f2250"));
     }
-    ActorState& hero = world.Actors()[runtime.hero];
-    const ActorEquipmentContext equipment{.own = world.OwnCharacter(),
-                                          .ownRecordAccesses = runtime.ownRecordDepth,
-                                          .publishedHero = hero,
-                                          .fullSetScan = runtime.fullSetScan,
-                                          .stop = ActorStopContext{.runtime = runtime,
-                                                                   .scene = SceneId::Game,
-                                                                   .playerSkeleton = *player,
-                                                                   .items = resources.items,
-                                                                   .random = resources.cloth.random},
-                                          .itemSetTables = resources.itemSetTables,
-                                          .itemSets = &world.ItemSets(),
-                                          .held = HeldItemOf(runtime)};
+    static const Render::Models::Skeleton EmptySkeleton;
+    const Render::Models::Skeleton* playerSkeleton = player != nullptr ? player : &EmptySkeleton;
+    const Render::Models::Skeleton* actorSkeleton = isPlayer ? nullptr : MonsterSkeletonOf(resources, hero.type);
+    const ActorEquipmentContext equipment{
+        .own = world.OwnCharacter(),
+        .ownRecordAccesses = runtime.ownRecordDepth,
+        .publishedHero = hero,
+        .fullSetScan = runtime.fullSetScan,
+        .stop = ActorStopContext{.runtime = runtime,
+                                 .scene = SceneId::Game,
+                                 .playerSkeleton = *playerSkeleton,
+                                 .items = resources.items,
+                                 .random = resources.cloth.random,
+                                 .actorSkeleton = actorSkeleton,
+                                 .modelSounds = world.FaunaResources().SoundActions(hero.type)},
+        .itemSetTables = resources.itemSetTables,
+        .itemSets = &world.ItemSets(),
+        .held = HeldItemOf(runtime)};
     const auto dressed = ApplyActorEquipment(hero, equipment);
     if (!dressed.HasValue())
     {
@@ -325,14 +338,45 @@ PlaceInEquipment(std::uint8_t slot, std::uint16_t type, InventoryItemBytes bytes
     return dressed.Value();
 }
 
-// Una de las dos grillas: la primera desde el lugar 12 (0x5bcc1a..0x5bcd05) y la segunda desde el 76
-// (0x5bcf99..0x5bd085). El origen es el lugar menos el primero de la grilla; la columna y la fila, las del
-// origen (% 8 y / 8 fijos, con signo). Cada casilla es fila · 8 + origen + columna, sin tope: un ítem que
-// pasa de la última columna sigue en la fila de abajo (Q-C201), y uno que pasa de la última casilla escribe
-// fuera de la grilla (Q-C200).
-Core::Expected<void, std::string> PlaceInGrid(std::span<ItemState> cells, std::int32_t origin, std::uint16_t type,
-                                              InventoryItemBytes bytes, const WorldEntryResources& resources,
-                                              std::string_view where)
+// Lo que cada camino deja en los 24 bits de arriba de B1, B3 y B4 de 0x54bf40: un registro que el original reusa.
+enum class GridScalars : std::uint8_t
+{
+    // 0x5bcc9c, 0x5bccd5 (las dos grillas del inventario): B1 y B3 con los de fila · 8 + origen, B4 con los del tipo.
+    Inventory,
+    // 0x5bc1ee..0x5bc223 (0x5bc150, la grilla de 0x78a7070): B1 y B4 con los de la fila del lugar, que no pasa de 31,
+    // y B3 con los del tipo.
+    NpcGrid,
+    // 0x5bd378..0x5bd3c7 (0x5bc740 fuera de 0x78a9bb0): B1 y B3 con los de casilla · 9, B4 con los del tipo.
+    Generic,
+};
+
+World::ItemInitializationScalars ScalarsOf(GridScalars kind, std::int32_t rowBase, std::int32_t cell,
+                                           std::uint16_t type, InventoryItemBytes bytes)
+{
+    const std::uint32_t typeUpper = type & UpperBits;
+    switch (kind)
+    {
+    case GridScalars::Inventory:
+    {
+        const auto upper = static_cast<std::uint32_t>(rowBase) & UpperBits;
+        return {.b1 = upper | Byte(bytes, 1), .b3 = upper | Byte(bytes, 3), .b4 = typeUpper | Byte(bytes, 4)};
+    }
+    case GridScalars::NpcGrid:
+        return {.b1 = Byte(bytes, 1), .b3 = typeUpper | Byte(bytes, 3), .b4 = Byte(bytes, 4)};
+    case GridScalars::Generic:
+        break;
+    }
+    const auto upper = (static_cast<std::uint32_t>(cell) * 9u) & UpperBits;
+    return {.b1 = upper | Byte(bytes, 1), .b3 = upper | Byte(bytes, 3), .b4 = typeUpper | Byte(bytes, 4)};
+}
+
+// Una grilla de `columns` por fila desde `origin`: la columna y la fila son las del origen (% 8 y / 8 fijos, con
+// signo, en los tres caminos). Cada casilla es fila · columnas + origen + columna, sin tope: un ítem que pasa de la
+// última columna sigue en la fila de abajo (Q-C201), y uno que pasa de la última casilla escribe fuera de la grilla
+// (Q-C200).
+Core::Expected<void, std::string> PlaceInGrid(std::span<ItemState> cells, std::int32_t columns, std::int32_t origin,
+                                              std::uint16_t type, InventoryItemBytes bytes, GridScalars kind,
+                                              const WorldEntryResources& resources, std::string_view where)
 {
     const auto record = ItemRecordOf(type, resources, where);
     if (!record.HasValue())
@@ -341,12 +385,12 @@ Core::Expected<void, std::string> PlaceInGrid(std::span<ItemState> cells, std::i
     }
     const auto width = std::to_integer<std::int32_t>(record.Value()[ItemWidthOffset]);
     const auto height = std::to_integer<std::int32_t>(record.Value()[ItemHeightOffset]);
-    constexpr auto Columns = static_cast<std::int32_t>(InventoryColumns);
-    const auto column = static_cast<std::uint8_t>(origin % Columns);
-    const auto row = static_cast<std::uint8_t>(origin / Columns);
+    constexpr auto FixedColumns = static_cast<std::int32_t>(InventoryColumns);
+    const auto column = static_cast<std::uint8_t>(origin % FixedColumns);
+    const auto row = static_cast<std::uint8_t>(origin / FixedColumns);
     for (std::int32_t y = 0; y < height; ++y)
     {
-        const std::int32_t rowBase = y * Columns + origin;
+        const std::int32_t rowBase = y * columns + origin;
         for (std::int32_t x = 0; x < width; ++x)
         {
             const std::int32_t cell = rowBase + x;
@@ -365,10 +409,7 @@ Core::Expected<void, std::string> PlaceInGrid(std::span<ItemState> cells, std::i
             item.id = type;
             item.flags1b = static_cast<std::uint8_t>(Byte(bytes, 3));
             item.occupied = y == 0 && x == 0 ? 1u : 0u;
-            // B1 y B3 con los 24 bits de arriba de fila · 8 + origen, y B4 con los del tipo (0x5bcc9c, 0x5bccd5).
-            const auto upper = static_cast<std::uint32_t>(rowBase) & UpperBits;
-            const World::ItemInitializationScalars scalars{
-                .b1 = upper | Byte(bytes, 1), .b3 = upper | Byte(bytes, 3), .b4 = (type & UpperBits) | Byte(bytes, 4)};
+            const World::ItemInitializationScalars scalars = ScalarsOf(kind, rowBase, cell, type, bytes);
             if (auto initialized = InitializeInventoryItem(item, scalars, resources, where); !initialized.HasValue())
             {
                 return initialized;
@@ -408,6 +449,99 @@ Core::Expected<void, std::string> UpdateTheSpeedsAfterTheGrid(const WorldEntryRe
 }
 } // namespace
 
+Core::Expected<void, std::string> PlaceItemInOtherGrid(std::span<ItemState> cells, std::int32_t columns,
+                                                       std::int32_t origin, InventoryItemBytes bytes,
+                                                       const WorldEntryResources& resources, std::string_view where)
+{
+    const std::uint16_t type = InventoryItemType(bytes);
+    if (type == NoInventoryItem)
+        return {};
+    const auto record = ItemRecordOf(type, resources, where);
+    if (!record.HasValue())
+        return Core::Unexpected(record.Error());
+    const auto width = std::to_integer<std::int32_t>(record.Value()[ItemWidthOffset]);
+    const auto height = std::to_integer<std::int32_t>(record.Value()[ItemHeightOffset]);
+    // 0x5bd352..0x5bd36d: la columna y la fila del origen (% 8 y / 8 con signo; el origen no es negativo), con 8 aunque
+    // la grilla tenga otras columnas.
+    const auto column = static_cast<std::uint8_t>(origin & 7);
+    const auto row = static_cast<std::uint8_t>(origin >> 3);
+    for (std::int32_t y = 0; y < height; ++y)
+    {
+        for (std::int32_t x = 0; x < width; ++x)
+        {
+            const std::int32_t cell = y * columns + origin + x;
+            if (cell < 0 || cell >= static_cast<std::int32_t>(cells.size()))
+            {
+                return Core::Unexpected(std::format("{}: el tipo {:#x} ({} por {}) desde el origen {} escribe la "
+                                                    "casilla {}, fuera de las {} de la grilla (Q-C200)",
+                                                    where, type, width, height, origin, cell, cells.size()));
+            }
+            ItemState& item = cells[static_cast<std::size_t>(cell)];
+            item.flags1c = static_cast<std::uint8_t>(Byte(bytes, 4));
+            item.gridColumn = column;
+            item.gridRow = row;
+            item.durability = static_cast<std::uint8_t>(Byte(bytes, 2));
+            item.id = type;
+            item.flags1b = static_cast<std::uint8_t>(Byte(bytes, 3));
+            item.occupied = y == 0 && x == 0 ? 1u : 0u;
+            // 0x5bd376..0x5bd3c5: B1 y B3 con los 24 bits de arriba de casilla · 9 (lo que queda en EAX del índice,
+            // 0x5bd378), y B4 con los del tipo (0x5bd384).
+            const auto upper = static_cast<std::uint32_t>(cell * 9) & UpperBits;
+            const World::ItemInitializationScalars scalars{
+                .b1 = upper | Byte(bytes, 1), .b3 = upper | Byte(bytes, 3), .b4 = (type & UpperBits) | Byte(bytes, 4)};
+            if (auto initialized = InitializeInventoryItem(item, scalars, resources, where); !initialized.HasValue())
+                return initialized;
+        }
+    }
+    return {};
+}
+
+Core::Expected<std::optional<std::int32_t>, std::string>
+FirstCellPastTheGrid(std::size_t cells, std::int32_t columns, std::int32_t origin, InventoryItemBytes bytes,
+                     const WorldEntryResources& resources, std::string_view where)
+{
+    const std::uint16_t type = InventoryItemType(bytes);
+    if (type == NoInventoryItem)
+        return std::optional<std::int32_t>{};
+    const auto record = ItemRecordOf(type, resources, where);
+    if (!record.HasValue())
+        return Core::Unexpected(record.Error());
+    const auto width = std::to_integer<std::int32_t>(record.Value()[ItemWidthOffset]);
+    const auto height = std::to_integer<std::int32_t>(record.Value()[ItemHeightOffset]);
+    for (std::int32_t y = 0; y < height; ++y)
+    {
+        for (std::int32_t x = 0; x < width; ++x)
+        {
+            const std::int32_t cell = y * columns + origin + x;
+            if (cell < 0 || cell >= static_cast<std::int32_t>(cells))
+                return std::optional<std::int32_t>{cell};
+        }
+    }
+    return std::optional<std::int32_t>{};
+}
+
+Core::Expected<std::optional<std::string>, std::string>
+InventoryPlacementPastTheGrid(std::uint8_t slot, InventoryItemBytes bytes, const WorldEntryResources& resources)
+{
+    if (slot < FirstInventoryGridSlot)
+        return std::optional<std::string>{};
+    const OwnInventory& inventory = resources.world.Inventory();
+    const bool first = slot < FirstSecondGridSlot;
+    const std::size_t cells = first ? inventory.cells.size() : inventory.secondCells.size();
+    const std::int32_t origin = first ? slot - FirstInventoryGridSlot : slot - FirstSecondGridSlot;
+    const std::string_view grid = first ? "0x78a9bb0" : "0x78ab0b8";
+    constexpr auto Columns = static_cast<std::int32_t>(InventoryColumns);
+    auto past =
+        FirstCellPastTheGrid(cells, Columns, origin, bytes, resources, std::format("0x5bc740, la grilla de {}", grid));
+    if (!past.HasValue())
+        return Core::Unexpected(std::move(past).Error());
+    if (!past.Value())
+        return std::optional<std::string>{};
+    return std::optional<std::string>{std::format("0x5bc740: el tipo {:#x} desde el lugar {} escribiría la casilla {} "
+                                                  "de {}, fuera de sus {} (Q-C200)",
+                                                  InventoryItemType(bytes), slot, *past.Value(), grid, cells)};
+}
+
 std::uint16_t InventoryItemType(InventoryItemBytes bytes)
 {
     const std::uint32_t highBit = (Byte(bytes, 3) & TypeHighBitMask) << TypeHighBitShift;
@@ -429,10 +563,12 @@ Core::Expected<ActorStopResult, std::string> PlaceInventoryItem(std::uint8_t slo
     }
     OwnInventory& inventory = resources.world.Inventory();
     const bool first = slot < FirstSecondGridSlot;
-    const auto placed = first ? PlaceInGrid(inventory.cells, slot - FirstInventoryGridSlot, type, bytes, resources,
-                                            "0x5bc740, la grilla de 0x78a9bb0 (0x5bcc11)")
-                              : PlaceInGrid(inventory.secondCells, slot - FirstSecondGridSlot, type, bytes, resources,
-                                            "0x5bc740, la grilla de 0x78ab0b8 (0x5bcf99)");
+    constexpr auto Columns = static_cast<std::int32_t>(InventoryColumns);
+    const auto placed =
+        first ? PlaceInGrid(inventory.cells, Columns, slot - FirstInventoryGridSlot, type, bytes,
+                            GridScalars::Inventory, resources, "0x5bc740, la grilla de 0x78a9bb0 (0x5bcc11)")
+              : PlaceInGrid(inventory.secondCells, Columns, slot - FirstSecondGridSlot, type, bytes,
+                            GridScalars::Inventory, resources, "0x5bc740, la grilla de 0x78ab0b8 (0x5bcf99)");
     if (!placed.HasValue())
     {
         return Core::Unexpected(placed.Error());
@@ -442,5 +578,15 @@ Core::Expected<ActorStopResult, std::string> PlaceInventoryItem(std::uint8_t slo
         return Core::Unexpected(speeds.Error());
     }
     return ActorStopResult{};
+}
+
+Core::Expected<void, std::string> PlaceInTheNpcGrid(std::span<World::ItemState> cells, std::uint8_t slot,
+                                                    InventoryItemBytes bytes, const WorldEntryResources& resources)
+{
+    const std::uint16_t type = InventoryItemType(bytes);
+    if (type == NoInventoryItem)
+        return {};
+    return PlaceInGrid(cells, static_cast<std::int32_t>(InventoryColumns), slot, type, bytes, GridScalars::NpcGrid,
+                       resources, "0x5bc150, la grilla de 0x78a7070");
 }
 } // namespace Client::Scenes

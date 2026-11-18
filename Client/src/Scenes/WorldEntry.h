@@ -3,6 +3,8 @@
 #include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
+#include "Data/Tables/SkillTable.h"
+#include "Protocol/Outgoing.h"
 #include "Scenes/SceneId.h"
 
 #include <cstdint>
@@ -86,6 +88,13 @@ struct WorldEntryResources
     // El B9 02 que 0x42a760 manda al cargar el 30 con el socket del GS abierto: SessionEventApplier lo ata a la
     // sesión que aplica la respuesta. Vacío, como el socket en −1, no sale nada.
     std::function<void()> requestCastleSiegeState{};
+    // Los paquetes de las ventanas de los NPC (CL9 hito 6, Scenes/NpcWindows.h): SessionEventApplier y la escena lo
+    // atan a la sesión (App::ServerSession::SendNpcWindowPacket). Vacío, lo que manda corta con error.
+    std::function<Core::Expected<void, std::string>(Protocol::Outgoing)> sendNpcWindowPacket{};
+    // 0x419900, el C1 03 31 en claro que manda cerrar las misiones (0x657a90 desde el A1, el A2 y los cambios de mapa),
+    // y el que 0x657a90 manda al cerrar un NPC de evento (0x1000 o 0x4000, 0x658a18 y 0x658c0e; CL9 hito 11) en la
+    // entrada, el teleport y el regen. Lo presta el sink con la sesión; sin él, cerrarlos corta.
+    std::function<void()> sendWindowClose{};
     // Lo que miden los mensajes que llegan (00, 01, 02, 0C, 0D) al entrar al chat (0x555190, 0x554610, 0x45bb20): el
     // medidor del frame y el tamaño de la ventana. Sin medidor, un mensaje corta con error.
     const Render::Text::ITextMeasure* textMeasure = nullptr;
@@ -94,6 +103,13 @@ struct WorldEntryResources
     std::function<std::optional<SceneId>()> scene{};
     // Text.bmd: el 482 del 0C y el 483 del 0D con 2. nullptr si no se cargó: esos mensajes cortan con error.
     const Data::Text::TextTable* texts = nullptr;
+    // Skill.bmd (0x76bd1d8): el +0x31 de cada skill de la lista que llega (F3 11, 0x4c5070). nullptr si no se cargó:
+    // el F3 11 corta con error. Al final, para no correr los que se inicializan por posición.
+    const Data::Tables::SkillTable* skills = nullptr;
+    // Lo que los cierres de 0x657a90 y 0x657ab0 mandan además del C1 03 31: el C1 03 3D del comercio (0x657fe1) y el
+    // 3F 07 de la tienda de otro (0x5eb17f), en la entrada, el teleport, el regen, el 37, el 3F 05 y las misiones. Lo
+    // presta el sink con la sesión; sin él, cerrar esas ventanas corta. Al final, como `skills`.
+    std::function<void(Protocol::Outgoing)> sendGamePacket{};
 };
 
 // Lo que la entrada pide afuera y MuRet todavía no hace (sin audio hasta la CL10): los sonidos de

@@ -1,5 +1,6 @@
 #include "UI/ChatCommands.h"
 
+#include "Core/Expected.h"
 #include "Core/Xor3.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
@@ -19,6 +20,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -114,7 +116,7 @@ TEST_F(Commands, TheSocialCommandsStopInChaosCastle)
     map = 0;
     const auto trade = Client::UI::RunTheChatCommand(Context(), "/comerciar", false);
     ASSERT_FALSE(trade.HasValue());
-    EXPECT_NE(trade.Error().find("0x56c54d"), std::string::npos);
+    EXPECT_NE(trade.Error().find("0x56c5d0"), std::string::npos);
     // Con el almacén abierto, el comercio no se mira.
     warehouseOpen = true;
     const auto skipped = Client::UI::RunTheChatCommand(Context(), "/comerciar", false);
@@ -122,7 +124,262 @@ TEST_F(Commands, TheSocialCommandsStopInChaosCastle)
     EXPECT_FALSE(skipped.Value().handled);
 }
 
+// 0x56c5d0..0x56c690: /trade lee el nivel del registro propio; por debajo de 0x6c8dc8 (6), el aviso 478 y 1. Con él,
+// el pedido (Scenes::RequestATrade) da la salida; sin pedido, corta.
+TEST_F(Commands, TradeNeedsTheLevel)
+{
+    std::uint16_t level = 5;
+    int reads = 0;
+    ChatCommandContext context = Context();
+    context.ownLevel = [&level, &reads]()
+    {
+        ++reads;
+        return level;
+    };
+    const auto low = Client::UI::RunTheChatCommand(context, "/trade", false);
+    ASSERT_TRUE(low.HasValue()) << low.Error();
+    EXPECT_TRUE(low.Value().handled);
+    EXPECT_EQ(low.Value().notices,
+              (std::vector<ChatCommandNotice>{{Client::UI::TradeLevelText, Client::UI::SystemMessage}}));
+    EXPECT_EQ(reads, 1);
+    level = 6;
+    const auto unwired = Client::UI::RunTheChatCommand(context, "/comerciar", false);
+    ASSERT_FALSE(unwired.HasValue());
+    EXPECT_NE(unwired.Error().find("0x56c68b"), std::string::npos);
+    int asked = 0;
+    context.requestATrade = [&asked]() -> Client::Core::Expected<Client::UI::ChatCommandOutcome, std::string>
+    {
+        ++asked;
+        return Client::UI::ChatCommandOutcome{.handled = true, .notices = {}};
+    };
+    const auto enough = Client::UI::RunTheChatCommand(context, "/comerciar", false);
+    ASSERT_TRUE(enough.HasValue()) << enough.Error();
+    EXPECT_TRUE(enough.Value().handled);
+    EXPECT_EQ(asked, 1);
+    EXPECT_EQ(reads, 3);
+}
+
+// 0x5766ce..0x576890: /personalshop. Con el entrenador abierto, el aviso 1121 y sale como chat; por debajo del 6, el
+// 1123 armado con el 6 y 1; desde el 6, Open(0x800) y 1. Cada vez que llega al nivel lo lee una vez.
+TEST_F(Commands, PersonalShopNeedsTheLevel)
+{
+    std::uint16_t level = 5;
+    int reads = 0;
+    int opened = 0;
+    ChatCommandContext context = Context();
+    context.ownLevel = [&level, &reads]()
+    {
+        ++reads;
+        return level;
+    };
+    context.trainerOpen = true;
+    const auto trainer = Client::UI::RunTheChatCommand(context, "/personalshop", false);
+    ASSERT_TRUE(trainer.HasValue()) << trainer.Error();
+    EXPECT_FALSE(trainer.Value().handled);
+    EXPECT_EQ(trainer.Value().notices,
+              (std::vector<ChatCommandNotice>{{Client::UI::ShopTrainerText, Client::UI::SystemMessage}}));
+    EXPECT_EQ(reads, 0);
+    context.trainerOpen = false;
+    const auto low = Client::UI::RunTheChatCommand(context, "/puesto", false);
+    ASSERT_TRUE(low.HasValue()) << low.Error();
+    EXPECT_TRUE(low.Value().handled);
+    EXPECT_EQ(low.Value().notices, (std::vector<ChatCommandNotice>{{.text = Client::UI::ShopLevelText,
+                                                                    .type = Client::UI::SystemMessage,
+                                                                    .formatted = "desde el nivel 6"}}));
+    level = 6;
+    const auto unwired = Client::UI::RunTheChatCommand(context, "/PersonalShop", false);
+    ASSERT_FALSE(unwired.HasValue());
+    EXPECT_NE(unwired.Error().find("0x576822"), std::string::npos);
+    context.openThePersonalShop = [&opened]() -> Client::Core::Expected<void, std::string>
+    {
+        ++opened;
+        return {};
+    };
+    const auto enough = Client::UI::RunTheChatCommand(context, "/puesto", false);
+    ASSERT_TRUE(enough.HasValue()) << enough.Error();
+    EXPECT_TRUE(enough.Value().handled);
+    EXPECT_TRUE(enough.Value().notices.empty());
+    EXPECT_EQ(opened, 1);
+    EXPECT_EQ(reads, 3);
+}
+
+// 0x574bd6..0x57694d: /purchase (o el 1118) en cualquier lugar del texto. En Chaos Castle, el aviso 1150 y sale como
+// chat; fuera, sscanf("%s %s") y el pedido recibe la segunda palabra, o nada si no la hay (la pila sin inicializar).
+TEST_F(Commands, PurchaseScansTheNameForTheRequest)
+{
+    std::vector<std::optional<std::string>> names;
+    ChatCommandContext context = Context();
+    const auto unwired = Client::UI::RunTheChatCommand(context, "/purchase", false);
+    ASSERT_FALSE(unwired.HasValue());
+    EXPECT_NE(unwired.Error().find("0x574c0c"), std::string::npos);
+    context.requestShopItems = [&names](std::optional<std::string_view> name)
+        -> Client::Core::Expected<Client::UI::ChatCommandOutcome, std::string>
+    {
+        names.emplace_back(name ? std::optional<std::string>(*name) : std::nullopt);
+        return Client::UI::ChatCommandOutcome{.handled = true, .notices = {}};
+    };
+    for (const std::string_view command :
+         {"/purchase", "/adquirir Brezal", "  /purchase\t Zorzal  extra", "mira /adquirir", "/adquirir \t "})
+    {
+        const auto outcome = Client::UI::RunTheChatCommand(context, command, false);
+        ASSERT_TRUE(outcome.HasValue()) << outcome.Error();
+        EXPECT_TRUE(outcome.Value().handled);
+    }
+    EXPECT_EQ(names,
+              (std::vector<std::optional<std::string>>{std::nullopt, "Brezal", "Zorzal", "/adquirir", std::nullopt}));
+    // Una primera palabra de 0x48 bytes pisa el buffer del nombre: MuRet no lo modela.
+    const auto overflow = Client::UI::RunTheChatCommand(context, std::string(0x48, 'a') + "/purchase", false);
+    ASSERT_FALSE(overflow.HasValue());
+    EXPECT_NE(overflow.Error().find("0x574c92"), std::string::npos);
+    EXPECT_EQ(names.size(), 5U);
+    context.map = 23;
+    const auto inside = Client::UI::RunTheChatCommand(context, "/purchase Brezal", false);
+    ASSERT_TRUE(inside.HasValue()) << inside.Error();
+    EXPECT_FALSE(inside.Value().handled);
+    EXPECT_EQ(inside.Value().notices,
+              (std::vector<ChatCommandNotice>{{Client::UI::ChaosCastleCommandText, Client::UI::SystemMessage}}));
+    EXPECT_EQ(names.size(), 5U);
+}
+
+// 0x56f109..0x56f13f: /party (o /pt) en Chaos Castle avisa 1150 y sale como chat; fuera, el pedido da la salida.
+TEST_F(Commands, PartyAsksOutsideChaosCastle)
+{
+    int asked = 0;
+    ChatCommandContext context = Context();
+    context.requestAParty = [&asked]() -> Client::Core::Expected<Client::UI::ChatCommandOutcome, std::string>
+    {
+        ++asked;
+        return Client::UI::ChatCommandOutcome{.handled = true, .notices = {}};
+    };
+    const auto outside = Client::UI::RunTheChatCommand(context, "/PT", false);
+    ASSERT_TRUE(outside.HasValue()) << outside.Error();
+    EXPECT_TRUE(outside.Value().handled);
+    EXPECT_EQ(asked, 1);
+    map = 18;
+    const auto inside = Client::UI::RunTheChatCommand(Context(), "/grupo", false);
+    ASSERT_TRUE(inside.HasValue()) << inside.Error();
+    EXPECT_FALSE(inside.Value().handled);
+    EXPECT_EQ(inside.Value().notices,
+              (std::vector<ChatCommandNotice>{{Client::UI::ChaosCastleCommandText, Client::UI::SystemMessage}}));
+}
+
+// 0x56d816 y 0x56ea5f: con el duelo en curso, /duelstart avisa 915 y sigue la cadena; /duelend manda el AB y sigue.
+// Sin duelo, /duelend solo sigue y /duelstart pide el duelo (Scenes::RequestADuel) y también sigue.
+TEST_F(Commands, TheDuelCommandsGoOnAsChat)
+{
+    int ended = 0;
+    ChatCommandContext context = Context();
+    context.duelActive = true;
+    context.endTheDuel = [&ended]() -> Client::Core::Expected<void, std::string>
+    {
+        ++ended;
+        return {};
+    };
+    const auto busy = Client::UI::RunTheChatCommand(context, "/retar", false);
+    ASSERT_TRUE(busy.HasValue()) << busy.Error();
+    EXPECT_FALSE(busy.Value().handled);
+    EXPECT_EQ(busy.Value().notices,
+              (std::vector<ChatCommandNotice>{{Client::UI::DuelBusyText, Client::UI::ErrorMessage}}));
+    EXPECT_EQ(ended, 0);
+    const auto end = Client::UI::RunTheChatCommand(context, "/DUELEND", false);
+    ASSERT_TRUE(end.HasValue()) << end.Error();
+    EXPECT_FALSE(end.Value().handled);
+    EXPECT_EQ(ended, 1);
+    ASSERT_TRUE(Client::UI::RunTheChatCommand(context, "/noretar", false).HasValue());
+    EXPECT_EQ(ended, 2);
+
+    context.duelActive = false;
+    ASSERT_TRUE(Client::UI::RunTheChatCommand(context, "/noretar", false).HasValue());
+    EXPECT_EQ(ended, 2);
+    const auto unwired = Client::UI::RunTheChatCommand(context, "/duelstart", false);
+    ASSERT_FALSE(unwired.HasValue());
+    EXPECT_NE(unwired.Error().find("0x56d823"), std::string::npos);
+    int asked = 0;
+    context.requestADuel = [&asked]() -> Client::Core::Expected<void, std::string>
+    {
+        ++asked;
+        return {};
+    };
+    const auto start = Client::UI::RunTheChatCommand(context, "/duelstart", false);
+    ASSERT_TRUE(start.HasValue()) << start.Error();
+    EXPECT_FALSE(start.Value().handled);
+    EXPECT_TRUE(start.Value().notices.empty());
+    EXPECT_EQ(asked, 1);
+    const auto guild = Client::UI::RunTheChatCommand(context, "/guild", false);
+    ASSERT_FALSE(guild.HasValue());
+    EXPECT_NE(guild.Error().find("0x573f85"), std::string::npos);
+}
+
+// 0x573f49 y 0x570d48: en Chaos Castle, el aviso 1150 y 0; fuera, /guild pide entrar (Scenes::RequestAGuildJoin) y
+// /union, /rival y /rivaloff (o sus textos 1354, 1356 y 1357; _stricmp con el literal) el E5 de cada uno
+// (Scenes::RequestAGuildRelation). Un texto que solo coincide con el 1357 es el fin de la rivalidad.
+TEST_F(Commands, TheGuildCommandsAskTheScene)
+{
+    int joins = 0;
+    std::vector<Client::UI::GuildRelationCommand> relations;
+    ChatCommandContext context = Context();
+    context.requestAGuildJoin = [&joins]() -> Client::Core::Expected<Client::UI::ChatCommandOutcome, std::string>
+    {
+        ++joins;
+        return Client::UI::ChatCommandOutcome{.handled = true, .notices = {}};
+    };
+    context.requestAGuildRelation = [&relations](Client::UI::GuildRelationCommand command)
+        -> Client::Core::Expected<Client::UI::ChatCommandOutcome, std::string>
+    {
+        relations.push_back(command);
+        return Client::UI::ChatCommandOutcome{.handled = true, .notices = {}};
+    };
+    for (const std::string_view text : {"/GUILD", "/Union", "/rival", "/RIVALOFF"})
+    {
+        const auto ran = Client::UI::RunTheChatCommand(context, text, false);
+        ASSERT_TRUE(ran.HasValue()) << ran.Error();
+        EXPECT_TRUE(ran.Value().handled);
+    }
+    EXPECT_EQ(joins, 1);
+    EXPECT_EQ(relations, (std::vector<Client::UI::GuildRelationCommand>{Client::UI::GuildRelationCommand::Union,
+                                                                        Client::UI::GuildRelationCommand::Rival,
+                                                                        Client::UI::GuildRelationCommand::RivalOff}));
+
+    map = 18;
+    for (const std::string_view text : {"/guild", "/union"})
+    {
+        const auto inside = Client::UI::RunTheChatCommand(Context(), text, false);
+        ASSERT_TRUE(inside.HasValue()) << inside.Error();
+        EXPECT_FALSE(inside.Value().handled);
+        EXPECT_EQ(inside.Value().notices,
+                  (std::vector<ChatCommandNotice>{{Client::UI::ChaosCastleCommandText, Client::UI::SystemMessage}}));
+    }
+}
+
 // 0x56d624: /move abre la ventana y sigue como chat.
+// 0x56d6ee..0x56d796: "/ver puestos" prende los carteles (0x4516a0) con el aviso 1138 del tipo 1 y su par los apaga
+// (0x4516b0) con el 1139 del tipo 2, también en Chaos Castle; la cadena sigue y sale como chat. Sin el mapa, corta.
+TEST_F(Commands, TheSignCommandsTurnTheShopSignsOnAndOff)
+{
+    for (const std::int32_t where : {0, 2, 18})
+    {
+        map = where;
+        std::uint8_t signs = 1;
+        ChatCommandContext context = Context();
+        context.signsShown = &signs;
+        const auto off = Client::UI::RunTheChatCommand(context, "/no ver puestos", false);
+        ASSERT_TRUE(off.HasValue()) << off.Error();
+        EXPECT_EQ(signs, 0);
+        EXPECT_FALSE(off.Value().handled);
+        EXPECT_EQ(off.Value().notices,
+                  (std::vector<ChatCommandNotice>{{Client::UI::ShopViewOffNoticeText, Client::UI::ErrorMessage}}));
+        const auto on = Client::UI::RunTheChatCommand(context, "/ver puestos", false);
+        ASSERT_TRUE(on.HasValue()) << on.Error();
+        EXPECT_EQ(signs, 1);
+        EXPECT_FALSE(on.Value().handled);
+        EXPECT_EQ(on.Value().notices,
+                  (std::vector<ChatCommandNotice>{{Client::UI::ShopViewOnNoticeText, Client::UI::SystemMessage}}));
+    }
+    const auto cut = Client::UI::RunTheChatCommand(Context(), "/ver puestos", false);
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x56d722"), std::string::npos) << cut.Error();
+}
+
 TEST_F(Commands, MoveOpensTheWindowAndGoesOn)
 {
     const auto outcome = Client::UI::RunTheChatCommand(Context(), "/mover", false);
@@ -177,16 +434,6 @@ TEST_F(Commands, TheFilterCommandSetsTheWordsAndWarns)
     ASSERT_EQ(outcome.Value().notices.size(), 1u);
     EXPECT_EQ(outcome.Value().notices[0].type, Client::UI::SystemMessage);
     EXPECT_EQ(log.filter[0], "uno");
-}
-
-// 0x576eb0: un texto de un emote en lo dicho corta (CL9.1); sin ninguno, nada.
-TEST_F(Commands, AnEmoteIsCut)
-{
-    EXPECT_TRUE(Client::UI::CheckTheEmotes(texts, "hola").HasValue());
-    const auto emote = Client::UI::CheckTheEmotes(texts, "ja #e300 ja");
-    ASSERT_FALSE(emote.HasValue());
-    EXPECT_NE(emote.Error().find("CL9.1"), std::string::npos);
-    EXPECT_FALSE(Client::UI::CheckTheEmotes(texts, "#e783").HasValue());
 }
 
 // 0x576894..0x576952: "/" y el nombre de un ítem (con +0x24) apaga el cartel del conjunto, abre la ayuda del ítem (el

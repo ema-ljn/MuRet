@@ -1,0 +1,323 @@
+#include "Protocol/Skill.h"
+
+#include "Network/Crypto/Xor32.h"
+#include "Network/Delivery.h"
+#include "Protocol/ProtocolError.h"
+
+#include "support/Bytes.h"
+#include "support/ExpectedError.h"
+#include "support/Packets.h"
+#include "support/SameBytes.h"
+
+#include <gtest/gtest.h>
+
+#include <cstddef>
+#include <cstdint>
+#include <utility>
+#include <vector>
+
+// Client::Protocol::Skill: lo que llega de las skills (04 § Las skills, CL9 hito 4), con claves inventadas.
+namespace
+{
+using Client::Network::Delivery;
+using Client::Network::Crypto::Xor32Decode;
+using Client::Protocol::ProtocolError;
+using Client::Tests::Bytes;
+using Client::Tests::ErrorOf;
+using Client::Tests::PacketOf;
+using Client::Tests::SameBytes;
+namespace Skill = Client::Protocol::Skill;
+
+// 0x4cce2f..0x4cce55: las claves en big endian; el bit 15 del blanco es el éxito y se va del blanco.
+TEST(SkillProtocolTest, TheMagicAttackSplitsTheSuccessBitFromTheTarget)
+{
+    const auto attack = Skill::ReadMagicAttack(PacketOf(Bytes({0xc1, 8, 0x19, 0x0d, 0x92, 0x34, 0x81, 0x23})));
+    ASSERT_TRUE(attack.HasValue());
+    EXPECT_EQ(attack.Value().skill, 0x0d);
+    EXPECT_EQ(attack.Value().source, 0x9234);
+    EXPECT_EQ(attack.Value().target, 0x0123);
+    EXPECT_TRUE(attack.Value().succeeded);
+    const auto failed = Skill::ReadMagicAttack(PacketOf(Bytes({0xc1, 8, 0x19, 1, 0, 2, 0x7f, 0xff})));
+    ASSERT_TRUE(failed.HasValue());
+    EXPECT_EQ(failed.Value().target, 0x7fff);
+    EXPECT_FALSE(failed.Value().succeeded);
+}
+
+TEST(SkillProtocolTest, TheDurationMagicReadsTheCellAndTheDirection)
+{
+    const auto magic = Skill::ReadDurationMagic(PacketOf(Bytes({0xc1, 9, 0x1e, 0x0e, 0x12, 0x34, 0x80, 0x81, 0xc0})));
+    ASSERT_TRUE(magic.HasValue());
+    EXPECT_EQ(magic.Value().skill, 0x0e);
+    EXPECT_EQ(magic.Value().key, 0x1234);
+    EXPECT_EQ(magic.Value().x, 0x80);
+    EXPECT_EQ(magic.Value().y, 0x81);
+    EXPECT_EQ(magic.Value().direction, 0xc0);
+}
+
+TEST(SkillProtocolTest, TheMagicCancelReadsTheSkillAndTheKey)
+{
+    const auto cancel = Skill::ReadMagicCancel(PacketOf(Bytes({0xc1, 6, 0x1b, 0xc9, 0x81, 0x02})));
+    ASSERT_TRUE(cancel.HasValue());
+    EXPECT_EQ(cancel.Value().skill, 0xc9);
+    EXPECT_EQ(cancel.Value().key, 0x8102);
+}
+
+// 0x4cbe22: la máscara es el DWORD de pkt[4] en little endian; la clave, big endian desde pkt[8].
+TEST(SkillProtocolTest, TheActorStateReadsALittleEndianMask)
+{
+    const auto state = Skill::ReadActorState(PacketOf(Bytes({0xc1, 10, 0x07, 1, 0x00, 0x01, 0x00, 0x10, 0x12, 0x34})));
+    ASSERT_TRUE(state.HasValue());
+    EXPECT_EQ(state.Value().type, 1);
+    EXPECT_EQ(state.Value().mask, 0x10000100u);
+    EXPECT_EQ(state.Value().key, 0x1234);
+}
+
+// 0x4dbf59..0x4dbf61: la clave en pkt[3..4], AH y AL.
+TEST(SkillProtocolTest, TheActorEffectReadsTheKeyFirst)
+{
+    const auto effect = Skill::ReadActorEffect(PacketOf(Bytes({0xc1, 6, 0x48, 0x12, 0x34, 0x10})));
+    ASSERT_TRUE(effect.HasValue());
+    EXPECT_EQ(effect.Value().key, 0x1234);
+    EXPECT_EQ(effect.Value().kind, 0x10);
+}
+
+// 0x4cc29d y 0x4cc2a3: los WORD en little endian, sin la máscara.
+TEST(SkillProtocolTest, TheSkillTargetKeepsLittleEndianKeysWithTheirHighBit)
+{
+    const auto target = Skill::ReadSkillTarget(PacketOf(Bytes({0xc1, 8, 0x69, 3, 0x34, 0x12, 0x02, 0x81})));
+    ASSERT_TRUE(target.HasValue());
+    EXPECT_EQ(target.Value().skill, 3);
+    EXPECT_EQ(target.Value().source, 0x1234);
+    EXPECT_EQ(target.Value().target, 0x8102);
+}
+
+// 0x4c5070: las cuatro formas del F3 11.
+TEST(SkillProtocolTest, TheSkillListReadsItsFourShapes)
+{
+    const auto remove = Skill::ReadSkillList(PacketOf(Bytes({0xc1, 7, 0xf3, 0x11, 0xff, 0, 5})));
+    ASSERT_TRUE(remove.HasValue());
+    EXPECT_EQ(remove.Value().count, Skill::SkillListRemoveOne);
+    EXPECT_EQ(remove.Value().slot, 5);
+    EXPECT_TRUE(remove.Value().entries.empty());
+
+    const auto add = Skill::ReadSkillList(PacketOf(Bytes({0xc1, 8, 0xf3, 0x11, 0xfe, 0, 6, 0x11})));
+    ASSERT_TRUE(add.HasValue());
+    EXPECT_EQ(add.Value().slot, 6);
+    EXPECT_EQ(add.Value().skill, 0x11);
+
+    const auto clear = Skill::ReadSkillList(PacketOf(Bytes({0xc1, 7, 0xf3, 0x11, 3, 2, 9})));
+    ASSERT_TRUE(clear.HasValue());
+    EXPECT_EQ(clear.Value().list, Skill::SkillListClearSlot);
+    EXPECT_EQ(clear.Value().slot, 9);
+    EXPECT_TRUE(clear.Value().entries.empty());
+
+    // De a tres bytes desde pkt[6]: el lugar, la skill y uno que el cliente no lee.
+    const auto whole =
+        Skill::ReadSkillList(PacketOf(Bytes({0xc1, 12, 0xf3, 0x11, 2, 0, 0, 0x11, 0xaa, 1, 0x29, 0xbb})));
+    ASSERT_TRUE(whole.HasValue());
+    ASSERT_EQ(whole.Value().entries.size(), 2u);
+    EXPECT_EQ(whole.Value().entries[0].slot, 0);
+    EXPECT_EQ(whole.Value().entries[0].skill, 0x11);
+    EXPECT_EQ(whole.Value().entries[1].slot, 1);
+    EXPECT_EQ(whole.Value().entries[1].skill, 0x29);
+
+    const auto none = Skill::ReadSkillList(PacketOf(Bytes({0xc1, 6, 0xf3, 0x11, 0, 0})));
+    ASSERT_TRUE(none.HasValue());
+    EXPECT_TRUE(none.Value().entries.empty());
+}
+
+TEST(SkillProtocolTest, TheSkillListWithMissingEntriesIsTooShort)
+{
+    EXPECT_EQ(ErrorOf(Skill::ReadSkillList(PacketOf(Bytes({0xc1, 10, 0xf3, 0x11, 2, 0, 0, 0x11, 0xaa, 1})))),
+              ProtocolError::TooShort);
+    EXPECT_EQ(ErrorOf(Skill::ReadSkillList(PacketOf(Bytes({0xc1, 7, 0xf3, 0x11, 0xfe, 0, 6})))),
+              ProtocolError::TooShort);
+    EXPECT_EQ(ErrorOf(Skill::ReadSkillList(PacketOf(Bytes({0xc1, 6, 0xf3, 0x11, 0xff, 0})))), ProtocolError::TooShort);
+    EXPECT_EQ(ErrorOf(Skill::ReadSkillList(PacketOf(Bytes({0xc1, 5, 0xf3, 0x11, 1})))), ProtocolError::TooShort);
+}
+
+// 0x4c52a6..0x4c52c4: count=0 salta la lectura de pkt[6], sin cambiar la prioridad de FE/FF.
+TEST(SkillProtocolTest, AnEmptyClearListNeedsNoSlot)
+{
+    const auto clear = Skill::ReadSkillList(PacketOf(Bytes({0xc1, 6, 0xf3, 0x11, 0, 2})));
+    ASSERT_TRUE(clear.HasValue());
+    EXPECT_EQ(clear.Value().count, 0);
+    EXPECT_EQ(clear.Value().list, 2);
+    EXPECT_TRUE(clear.Value().entries.empty());
+    EXPECT_EQ(ErrorOf(Skill::ReadSkillList(PacketOf(Bytes({0xc1, 6, 0xf3, 0x11, 1, 2})))), ProtocolError::TooShort);
+    const auto add = Skill::ReadSkillList(PacketOf(Bytes({0xc1, 8, 0xf3, 0x11, 0xfe, 2, 7, 0x12})));
+    ASSERT_TRUE(add.HasValue());
+    EXPECT_EQ(add.Value().slot, 7);
+    EXPECT_EQ(add.Value().skill, 0x12);
+    EXPECT_EQ(ErrorOf(Skill::ReadSkillList(PacketOf(Bytes({0xc1, 6, 0xf3, 0x11, 0xff, 2})))), ProtocolError::TooShort);
+}
+
+// 0x4c5381..0x4c5390 lee dos bytes y avanza tres: nunca lee el padding de la última entrada.
+TEST(SkillProtocolTest, TheLastSkillEntryNeedsOnlyItsTwoReadBytes)
+{
+    for (const std::uint8_t list : {std::uint8_t{0}, std::uint8_t{1}, std::uint8_t{3}})
+    {
+        const auto read =
+            Skill::ReadSkillList(PacketOf(Bytes({0xc1, 11, 0xf3, 0x11, 2, list, 0, 0x11, 0xaa, 63, 0x29})));
+        ASSERT_TRUE(read.HasValue()) << static_cast<int>(list);
+        ASSERT_EQ(read.Value().entries.size(), 2u);
+        EXPECT_EQ(read.Value().entries[0].skill, 0x11);
+        EXPECT_EQ(read.Value().entries[1].slot, 63);
+        EXPECT_EQ(read.Value().entries[1].skill, 0x29);
+    }
+}
+
+TEST(SkillProtocolTest, TheSummonLifeIsOneByte)
+{
+    const auto life = Skill::ReadSummonLife(PacketOf(Bytes({0xc1, 5, 0xf3, 0x20, 0x64})));
+    ASSERT_TRUE(life.HasValue());
+    EXPECT_EQ(life.Value().life, 0x64);
+    EXPECT_EQ(ErrorOf(Skill::ReadSummonLife(PacketOf(Bytes({0xc1, 4, 0xf3, 0x20})))), ProtocolError::TooShort);
+    EXPECT_EQ(ErrorOf(Skill::ReadSummonLife(PacketOf(Bytes({0xc1, 5, 0xf3, 0x11, 0x64})))), ProtocolError::WrongPacket);
+}
+
+TEST(SkillProtocolTest, EveryTruncatedPayloadIsTooShort)
+{
+    const std::vector<std::vector<std::byte>> fulls{
+        Bytes({0xc1, 8, 0x19, 1, 2, 3, 4, 5}), Bytes({0xc1, 9, 0x1e, 1, 2, 3, 4, 5, 6}),
+        Bytes({0xc1, 6, 0x1b, 1, 2, 3}),       Bytes({0xc1, 10, 0x07, 1, 2, 3, 4, 5, 6, 7}),
+        Bytes({0xc1, 6, 0x48, 1, 2, 3}),       Bytes({0xc1, 8, 0x69, 1, 2, 3, 4, 5}),
+    };
+    for (const auto& full : fulls)
+    {
+        for (std::size_t size = 3; size < full.size(); ++size)
+        {
+            std::vector<std::byte> cut(full.begin(), full.begin() + static_cast<std::ptrdiff_t>(size));
+            cut[1] = static_cast<std::byte>(size);
+            const auto packet = PacketOf(std::move(cut));
+            const auto opcode = std::to_integer<int>(full[2]);
+            const auto error = [&]
+            {
+                switch (opcode)
+                {
+                case 0x19:
+                    return ErrorOf(Skill::ReadMagicAttack(packet));
+                case 0x1e:
+                    return ErrorOf(Skill::ReadDurationMagic(packet));
+                case 0x1b:
+                    return ErrorOf(Skill::ReadMagicCancel(packet));
+                case 0x07:
+                    return ErrorOf(Skill::ReadActorState(packet));
+                case 0x48:
+                    return ErrorOf(Skill::ReadActorEffect(packet));
+                default:
+                    return ErrorOf(Skill::ReadSkillTarget(packet));
+                }
+            }();
+            EXPECT_EQ(error, ProtocolError::TooShort) << opcode << " " << size;
+        }
+    }
+}
+
+TEST(SkillProtocolTest, TheReadersRejectOtherPacketKinds)
+{
+    EXPECT_EQ(ErrorOf(Skill::ReadMagicAttack(PacketOf(Bytes({0xc1, 8, 0x1e, 1, 2, 3, 4, 5})))),
+              ProtocolError::WrongPacket);
+    EXPECT_EQ(ErrorOf(Skill::ReadDurationMagic(PacketOf(Bytes({0xc2, 0, 9, 0x1e, 1, 2, 3, 4, 5})))),
+              ProtocolError::WrongPacket);
+    EXPECT_EQ(ErrorOf(Skill::ReadSkillTarget(PacketOf(Bytes({0xc1, 8, 0x19, 1, 2, 3, 4, 5})))),
+              ProtocolError::WrongPacket);
+    EXPECT_TRUE(Skill::ReadMagicCancel(PacketOf(Bytes({0xc1, 7, 0x1b, 1, 2, 3, 0xaa}))).HasValue());
+}
+
+// 0x4cc562..0x4cce21 y 0x4d5d8c: el aviso de los que no llegaron cifrados, C1 06 F1 03 00 [cabeza], para cifrar.
+TEST(SkillProtocolTest, TheClearReportIsF103WithTheHead)
+{
+    for (const auto head : {Skill::MagicAttackOpcode, Skill::DurationMagicOpcode, Skill::Report73Head})
+    {
+        const auto report = Skill::WriteClearSkillReport(head);
+        EXPECT_EQ(report.delivery, Delivery::Encrypted);
+        EXPECT_TRUE(SameBytes(Xor32Decode(report.packet).Bytes(), Bytes({0xc1, 0x06, 0xf1, 0x03, 0x00, head})));
+    }
+}
+
+// 0x55bf36..0x55c622 (0x55b6f0): el 19 del cliente, C1 06 19 [skill] [clave H] [clave L], para cifrar; la clave entera,
+// con su bit 15.
+TEST(SkillProtocolTest, TheMagicAttackGoesOutWithTheBigEndianKey)
+{
+    const auto attack = Skill::WriteMagicAttack(0x3c, 0x8a1b);
+    EXPECT_EQ(attack.delivery, Delivery::Encrypted);
+    EXPECT_TRUE(SameBytes(Xor32Decode(attack.packet).Bytes(), Bytes({0xc1, 0x06, 0x19, 0x3c, 0x8a, 0x1b})));
+}
+
+// 0x517c74..0x5184c7: el 10 de los blancos de una skill, C1 [8 + 3n] 10 [skill] [x] [y] [tanda] [n] y, por blanco,
+// [clave H] [clave L] [extra], para cifrar. Con más de cinco en la cuenta, solo cinco.
+TEST(SkillProtocolTest, TheSkillHitsCarryThreeBytesPerTarget)
+{
+    Skill::SkillHitsSend hits{.skill = 0x34, .x = 0x87, .y = 0x9a, .volley = 0x0c, .hits = 2, .extra = 0x55};
+    hits.keys[0] = 0x8a1b;
+    hits.keys[1] = 0x0203;
+    const auto two = Skill::WriteSkillHits(hits);
+    EXPECT_EQ(two.delivery, Delivery::Encrypted);
+    EXPECT_TRUE(SameBytes(Xor32Decode(two.packet).Bytes(),
+                          Bytes({0xc1, 0x0e, 0x10, 0x34, 0x87, 0x9a, 0x0c, 0x02, 0x8a, 0x1b, 0x55, 0x02, 0x03, 0x55})));
+    const auto none = Skill::WriteSkillHits({.skill = 0x18});
+    EXPECT_TRUE(SameBytes(Xor32Decode(none.packet).Bytes(), Bytes({0xc1, 0x08, 0x10, 0x18, 0x00, 0x00, 0x00, 0x00})));
+    hits.hits = 7;
+    EXPECT_EQ(Xor32Decode(Skill::WriteSkillHits(hits).packet).Bytes().size(), 8u + (3u * Skill::MaxSkillHits));
+}
+
+// 0x58c1b6.. y 0x58dcc4.. (la rama del Wizard): el 1E con pkt[7] en 0, la posición relativa de la 0x4c en pkt[8], la
+// clave 0xffff sin blanco y la clave mágica al final.
+TEST(SkillProtocolTest, TheWizardDurationMagicCarriesTheMagicKey)
+{
+    const auto plain = Skill::WriteDurationMagic(
+        {.skill = 0xa, .x = 0xb6, .y = 0x73, .direction = 0x40, .key = Skill::NoSkillTargetKey});
+    EXPECT_EQ(plain.delivery, Delivery::Encrypted);
+    EXPECT_TRUE(SameBytes(Xor32Decode(plain.packet).Bytes(),
+                          Bytes({0xc1, 0x0c, 0x1e, 0x0a, 0xb6, 0x73, 0x40, 0x00, 0x00, 0xff, 0xff, 0x00})));
+    const auto keyed = Skill::WriteDurationMagic(
+        {.skill = 0x4c, .x = 1, .y = 2, .direction = 3, .back = 0x86, .key = 0x8a1b, .magicKey = 0x32});
+    EXPECT_TRUE(SameBytes(Xor32Decode(keyed.packet).Bytes(),
+                          Bytes({0xc1, 0x0c, 0x1e, 0x4c, 0x01, 0x02, 0x03, 0x00, 0x86, 0x8a, 0x1b, 0x32})));
+}
+
+// 0x593151..0x59350e: el Teleport, C1 06 1C 00 [x] [y], para cifrar.
+TEST(SkillProtocolTest, TheTeleportGoesOutWithAZero)
+{
+    const auto teleport = Skill::WriteTeleportMagic(0xb8, 0x75);
+    EXPECT_EQ(teleport.delivery, Delivery::Encrypted);
+    EXPECT_TRUE(SameBytes(Xor32Decode(teleport.packet).Bytes(), Bytes({0xc1, 0x06, 0x1c, 0x00, 0xb8, 0x75})));
+}
+
+// 0x59293b..0x592d1b: el Teleport Ally, C1 07 B0 [clave L H] [x] [y], para cifrar: la clave en little endian.
+TEST(SkillProtocolTest, TheTargetTeleportGoesOutWithTheLittleEndianKey)
+{
+    const auto ally = Skill::WriteTargetTeleport(0x8a1b, 0xb5, 0x72);
+    EXPECT_EQ(ally.delivery, Delivery::Encrypted);
+    EXPECT_TRUE(SameBytes(Xor32Decode(ally.packet).Bytes(), Bytes({0xc1, 0x07, 0xb0, 0x1b, 0x8a, 0xb5, 0x72})));
+}
+
+// 0x562af5..0x563b78 (0x561f60): el 1E del elfo, C1 0C 1E [skill] [X] [Y] [rumbo] [hacia] [espalda] [clave H] [clave L]
+// 00, para cifrar.
+TEST(SkillProtocolTest, TheDurationMagicGoesOutWithTwelveBytes)
+{
+    const auto shot = Skill::WriteDurationMagic(
+        {.skill = 0x36, .x = 0xb6, .y = 0x73, .direction = 0x5f, .towards = 0xaa, .back = 0xdf, .key = 0x8a1b});
+    EXPECT_EQ(shot.delivery, Delivery::Encrypted);
+    EXPECT_TRUE(SameBytes(Xor32Decode(shot.packet).Bytes(),
+                          Bytes({0xc1, 0x0c, 0x1e, 0x36, 0xb6, 0x73, 0x5f, 0xaa, 0xdf, 0x8a, 0x1b, 0x00})));
+}
+
+// 0x582439..0x582dd1: el 1E de las ramas del caballero, C1 0C 1E con los bytes 7, 8 y 11 por su lugar y la clave en big
+// endian, para cifrar.
+TEST(SkillProtocolTest, TheDurationMagicIs1EWithNineBytes)
+{
+    const auto magic = Skill::WriteDurationMagic({.skill = 0x4c,
+                                                  .x = 0xb6,
+                                                  .y = 0x73,
+                                                  .direction = 0x9f,
+                                                  .towards = 0xaa,
+                                                  .back = 0x77,
+                                                  .key = 0x0a1b,
+                                                  .magicKey = 5});
+    EXPECT_EQ(magic.delivery, Delivery::Encrypted);
+    EXPECT_TRUE(SameBytes(Xor32Decode(magic.packet).Bytes(),
+                          Bytes({0xc1, 0x0c, 0x1e, 0x4c, 0xb6, 0x73, 0x9f, 0xaa, 0x77, 0x0a, 0x1b, 0x05})));
+}
+} // namespace

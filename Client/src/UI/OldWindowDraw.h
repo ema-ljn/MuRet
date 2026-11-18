@@ -4,9 +4,11 @@
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
+#include "UI/OldWindowBase.h"
 #include "UI/OldWindows.h"
 
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <string>
 
@@ -40,6 +42,9 @@ struct OldWindowDrawContext
     Render::Text::FontKind& dcFont;
     // 0x6c8e5c y 0x6c8e64.
     Render::Text::TextColors& textColors;
+    // GetAsyncKeyState de las flechas (0x25..0x28) en el momento del dibujo: lo mira la subclase de los EDIT (0x467b10)
+    // con el WM_GETTEXT que les manda 0x468320.
+    bool arrowHeld = false;
 };
 
 // Lo que el dibujo lee del juego.
@@ -52,11 +57,32 @@ struct OldWindowDrawView
     bool leftClick = false;
     // 0x659290(1): el panel 1, la ventana de amigos. Sin ella, todas se dibujan como si no fueran la de arriba.
     bool friendsOpen = false;
+    // Los textos de Text.bmd de la ventana de amigos (los encabezados de las columnas y el botón del estado). Sin
+    // ellos, vacíos.
+    const OldWindowTexts* texts = nullptr;
+    // 0x5762ec0: la lista que toma las flechas del teclado; su renglón elegido va más claro (0x461cd0).
+    std::int32_t focusedList = 0;
+    // GetFocus() de 0x468320: el id del EDIT con el foco de Windows (OldWindowManager::focusedEdit con
+    // ChatFocus::OldWindow), o 0.
+    std::int32_t focusedEdit = 0;
+    // 0x6c7a88: con 1, el registro del chat en su ventana (ChatModes::placement); los renglones del chat con un amigo
+    // (0x460550) y de la carta (0x465770) dejan sin fondo un texto de fondo negro.
+    std::int32_t chatPlacement = 0;
+    // La vtable + 0x14 del retrato de las cartas (0x497c10), que da el juego (Scenes::DrawTheLetterPortrait): el
+    // personaje es de Scenes. Vacío, el retrato a la vista corta.
+    std::function<Core::Expected<void, std::string>(OldPortraitPart&)> portrait{};
+    // 0x45aa50 también ejecuta mensajes funcionales al recolocar: son los servicios del paso de esta pasada.
+    const OldWindowGlobals* globals = nullptr;
+    const OldWindowStepView* stepView = nullptr;
 };
 
 // 0x491960(índice, alfa): el glColor4ub de cada uno de los 19 colores de las ventanas, con el alfa en ftol(alfa ·
 // 255) (el 3, sombra, en ftol(alfa · 179)). Con otro índice, ninguno.
 [[nodiscard]] std::optional<Render::Color> OldWindowPalette(std::int32_t index, float alpha);
+
+// 0x45b2e0, la vtable + 0x14 del botón, para los que dibujan sus botones sueltos (el diálogo de los paneles, 0x660830):
+// win_button.tga del gris del mouse y el texto centrado; después la mezcla opaca, si no está apagado.
+void DrawTheOldButton(const OldWindowDrawContext& context, const OldButton& button, const OldWindowDrawView& view);
 
 // 0x490390: las ventanas a la vista, de abajo hacia arriba. Después, la proyección (glMatrixMode, glLoadIdentity y
 // gluOrtho2D(0, W, 0, H)), que en MuRet es la del lote, y +0x40 en 1.

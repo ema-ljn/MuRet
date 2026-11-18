@@ -5,6 +5,7 @@
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/Pose.h"
+#include "Render/Models/RayPicking.h"
 #include "Scenes/ModelPoseCallbacks.h"
 #include "World/ModelEffects.h"
 #include "World/SphereFrustum.h"
@@ -67,6 +68,16 @@ struct FloorItemState
     std::int16_t screenY = 0;
     std::int32_t effectCounter = 0; // +4;608780 usa el valor anterior, luego suma uno.
     float dropSpeed = 0;            // +e4;608880 resta6 incluso después de tocar el suelo.
+    // CL9 hito 5: el tipo del ítem (+4 de la entrada de 0x220 bytes, el de 0x54b3a0; `type` es el modelo, +0x4e) y su
+    // durabilidad (+0x1e), que escribe 0x608350.
+    std::int16_t itemType = 0;
+    std::uint8_t durability = 0;
+    // +0x124 y +0x130 del objeto: la caja de (−30, −30, −30) a (30, 30, 30) de 0x608350.
+    glm::vec3 boundingMin{};
+    glm::vec3 boundingMax{};
+    // +0x13c: la caja que 0x60cf70 (0x4ebc80) arma en cada cuerpo dibujado con alpha > 0,01, desde la posición de ese
+    // dibujo; la lee el picking (0x59e2e0). Sin dibujo queda la anterior.
+    Render::Models::Box pickBox{};
 };
 
 struct FloorItemDrawContext
@@ -91,12 +102,18 @@ struct FloorItemDrawContext
 
 // Qué hay detrás de ownerContext. Casi siempre lo dice el tipo del joint (Scenes/FaunaJointCreation.h): un
 // FaunaObject, el ActorState del personaje o un dueño opaco. El 60f/0 que el caballo oscuro suelta a su alrededor
-// (0x444740) lleva en cambio el HelperState del caballo. En el original los dos son el objeto del dueño y el joint lee
-// los mismos offsets: la luz (+0xf4) al nacer y la acción (+0x111) en el paso.
+// (0x444740) lleva en cambio el HelperState del caballo, y los de las órdenes del cuervo (0x418390 y 0x418400, el A9 de
+// Scenes/PetStats) el DarkSpirit del cuervo. En el original todos son el objeto del dueño y el joint lee los mismos
+// offsets: la luz (+0xf4) al nacer y la acción (+0x111) en el paso.
 enum class JointOwnerKind : std::uint8_t
 {
     ByType,
+    // El 610/8, que por el tipo lleva el pez de Atlans (FaunaObject), con el ActorState del jugador que entra al
+    // viewport en Kalima (0x4c91dc): lee del dueño su luz (+0xf4), su posición (+0x10) y sus ángulos (+0x1c) al nacer,
+    // y su byte vivo (+0) y su posición en el paso. Con otro tipo, CreateFaunaJoint corta antes de escribir (0x530860).
+    Actor,
     Helper,
+    Raven,
 };
 
 struct JointState

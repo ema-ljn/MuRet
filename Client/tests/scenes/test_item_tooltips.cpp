@@ -12,12 +12,16 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/GameTooltips.h"
+#include "Scenes/ItemPrice.h"
 #include "Scenes/ItemSetState.h"
+#include "Scenes/NpcWindowState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "Scenes/ZenText.h"
 #include "UI/GameUiState.h"
 #include "UI/Widget.h"
 #include "World/ItemState.h"
@@ -85,6 +89,7 @@ Client::Data::Text::TextTable Texts()
                                          {27, "Clase C2"},
                                          {40, "Golpe"},
                                          {60, "No: %s"},
+                                         {63, "Precio %s"},
                                          {61, "Si: %s"},
                                          {64, "Ritmo %d"},
                                          {65, "Aguante %d"},
@@ -109,7 +114,10 @@ Client::Data::Text::TextTable Texts()
                                          {950, "Stat A +%d"},
                                          {951, "Stat B +%d"},
                                          {970, "Stat C %d"},
+                                         {423, "Te falta zen"},
                                          {1089, "Grupo"},
+                                         {1101, "Sin precio"},
+                                         {1620, "Compra: %s(%s)"},
                                          {1860, "Suerte %d"},
                                          {1863, "Sello uno"},
                                          {1920, "Abrir"},
@@ -263,12 +271,13 @@ protected:
     }
 
     // 0x5f7bc0: el cuerpo con el registro propio abierto alrededor.
-    Client::Core::Expected<void, std::string> Draw(const ItemState& item, std::int32_t x = 320, std::int32_t y = 300)
+    Client::Core::Expected<void, std::string> Draw(ItemState item, std::int32_t x = 320, std::int32_t y = 300,
+                                                   std::uint8_t grid = 0)
     {
         GameHudContext context = Context();
         const Client::Render::Models::LogicalAccess own(world.Runtime().ownRecordDepth, random, OwnRecordCloseRandoms);
         return Client::Scenes::DrawTheItemTooltip(
-            Client::Scenes::ItemTooltipContext{.hud = context, .x = x, .y = y, .item = item});
+            Client::Scenes::ItemTooltipContext{.hud = context, .x = x, .y = y, .item = item, .grid = grid});
     }
 
     void HeroIs(std::uint8_t characterClass)
@@ -296,7 +305,7 @@ protected:
             EXPECT_TRUE(lines.text[i].empty()) << "renglón " << i;
     }
 
-    Client::Core::Expected<void, std::string> Repair(const ItemState& item, std::int32_t x = 320, std::int32_t y = 300)
+    Client::Core::Expected<void, std::string> Repair(ItemState item, std::int32_t x = 320, std::int32_t y = 300)
     {
         GameHudContext context = Context();
         const Client::Render::Models::LogicalAccess own(world.Runtime().ownRecordDepth, random, OwnRecordCloseRandoms);
@@ -595,19 +604,83 @@ TEST_F(ItemTooltipsTest, TheTicketKeepsItsTooltipWithTheNpcShopOpen)
     EXPECT_EQ(Lines().text[1], "Boleto +1");
 }
 
-TEST_F(ItemTooltipsTest, ThePriceOfTheNpcShopCuts)
+// 0x5b2d23..0x5b2e41: desde la grilla de la tienda de NPC (0x78aba27), el 1620 con el precio de 0x54d0f0 en el modo 0
+// con el impuesto (0x5b1200: 3 %, 64 bits y división con signo) y sin él, con el color del nombre y sin escribir la
+// negrita, y un "\n" detrás. En Lorencia, Devias y Noria.
+TEST_F(ItemTooltipsTest, TheNpcShopGridShowsTheBuyingPriceWithTheTax)
 {
-    world.Runtime().panels.npcShop = 1;
-    const CrtRandom expected = Advanced(random, OwnRecordCloseRandoms + NpcShopQuery);
+    for (const std::int32_t map : {0, 2, 3})
+    {
+        SCOPED_TRACE(map);
+        world.Runtime().map = map;
+        world.Runtime().panels.npcShop = 1;
+        world.Runtime().npcWindows.taxRate = 3;
+        const ItemState item = ExcellentWeapon();
+        const auto price = Client::Scenes::ItemPrice(item, items, Client::Scenes::ShopGridPrice, std::nullopt);
+        ASSERT_TRUE(price.HasValue()) << price.Error();
+        const std::uint32_t taxed = price.Value() + static_cast<std::uint32_t>(std::int64_t{3} * price.Value() / 100);
+        const CrtRandom expected = Advanced(random, OwnRecordCloseRandoms + NpcShopQuery + SkillAccess);
 
-    const auto drawn = Draw(ExcellentWeapon());
+        const auto drawn = Draw(item, 320, 300, 1);
 
-    ASSERT_FALSE(drawn.HasValue());
-    EXPECT_NE(drawn.Error().find("0x5b2d23"), std::string::npos) << drawn.Error();
-    EXPECT_EQ(random.State(), expected.State());
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_EQ(random.State(), expected.State());
+        const TooltipLines& lines = Lines();
+        EXPECT_EQ(lines.text[0], "\n");
+        EXPECT_EQ(lines.text[1],
+                  "Compra: " + Client::Scenes::FormatZen(taxed) + "(" + Client::Scenes::FormatZen(price.Value()) + ")");
+        EXPECT_EQ(lines.colors[1], 4);
+        EXPECT_EQ(lines.bold[1], StaleBold);
+        EXPECT_EQ(lines.text[2], "\n");
+        EXPECT_EQ(lines.text[3], "Brillante Hoja Gris +9");
+        EXPECT_EQ(lines.next, 18);
+        EXPECT_EQ(lines.halves, 6);
+    }
 }
 
-TEST_F(ItemTooltipsTest, ThePetTooltipCutsAfterClearingTheLines)
+// 0x5b2e46..0x5b2f34: desde el inventario con la tienda abierta, el 63 con el precio de venta (el modo 1); sin el
+// impuesto. El precio de 1.000 o más lleva las comas de 0x5b1130.
+TEST_F(ItemTooltipsTest, TheInventoryShowsTheSellingPriceWithTheShopOpen)
+{
+    world.Runtime().panels.npcShop = 1;
+    world.Runtime().npcWindows.taxRate = 50;
+    const ItemState item = ExcellentWeapon();
+    const auto price = Client::Scenes::ItemPrice(item, items, Client::Scenes::InventoryPrice, std::nullopt);
+    ASSERT_TRUE(price.HasValue()) << price.Error();
+    ASSERT_GE(price.Value(), 1000u);
+
+    const auto drawn = Draw(item);
+
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    EXPECT_EQ(Lines().text[1], "Precio " + Client::Scenes::FormatZen(price.Value()));
+    EXPECT_NE(Lines().text[1].find(','), std::string::npos);
+    EXPECT_EQ(Lines().colors[1], 4);
+    EXPECT_EQ(Lines().text[2], "\n");
+}
+
+// 0x5b2d03: la caja de la suerte (0x1c0b) no muestra precio con la tienda abierta: el tooltip y los rand() son los
+// mismos que con la tienda cerrada (el IsOpen(0x10000) saca el suyo igual).
+TEST_F(ItemTooltipsTest, TheLuckyBoxHasNoPriceInTheShop)
+{
+    ItemState box;
+    box.id = 0x1c0b;
+    const CrtRandom before = random;
+    ASSERT_TRUE(Draw(box).HasValue());
+    const std::uint32_t closedState = random.State();
+    const auto closedLines = Lines().text;
+
+    random = before;
+    world.Runtime().panels.npcShop = 1;
+    const auto drawn = Draw(box);
+
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    EXPECT_EQ(random.State(), closedState);
+    EXPECT_EQ(Lines().text, closedLines);
+}
+
+// 0x5b2b0d..0x5b2b17: con el 0x1a04, 0x422990 (Scenes/PetTooltip.h) es todo el tooltip. La primera vez pide su A9 y no
+// dibuja nada, con los renglones ya limpios.
+TEST_F(ItemTooltipsTest, ThePetTooltipTakesOverAfterClearingTheLines)
 {
     Lines().text[4] = "viejo";
     ItemState item;
@@ -615,9 +688,11 @@ TEST_F(ItemTooltipsTest, ThePetTooltipCutsAfterClearingTheLines)
 
     const auto drawn = Draw(item);
 
-    ASSERT_FALSE(drawn.HasValue());
-    EXPECT_NE(drawn.Error().find("0x4229d4"), std::string::npos) << drawn.Error();
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_TRUE(Lines().text[4].empty());
+    EXPECT_EQ(Lines().next, 0);
+    EXPECT_EQ(world.Runtime().petTooltipQuery.type, Pet);
+    EXPECT_TRUE(text.texts.empty());
 }
 
 TEST_F(ItemTooltipsTest, TheEmptyItemDrawsNothing)
@@ -656,6 +731,183 @@ TEST_F(ItemTooltipsTest, EveryItemReadsItemSetTypeForItsSetOptions)
     ASSERT_FALSE(drawn.HasValue());
     EXPECT_NE(drawn.Error().find("0x40ef05"), std::string::npos) << drawn.Error();
 }
+// El precio de la tienda personal (0x5b2f7f..0x5b3716, CL9 hito 7, fase 6a) en Lorencia (0) y Devias (2): con el byte
+// de las dos tiendas (0x7d5370f, sin rand()), el ítem de su grilla bajo el mouse (0x78abaa4) y los mapas armados.
+class PersonalShopPriceTest : public ItemTooltipsTest, public ::testing::WithParamInterface<std::uint8_t>
+{
+protected:
+    void SetUp() override
+    {
+        world.Runtime().map = GetParam();
+    }
+
+    // La gema en la casilla (2, 1) de la grilla, con la tienda en `mode` (0x6c931c) y el mouse sobre ella.
+    ItemState OnTheShop(std::int32_t mode)
+    {
+        Client::Scenes::WorldRuntime& runtime = world.Runtime();
+        runtime.panels.personalShop = 1;
+        runtime.social.personalShop.mode = mode;
+        runtime.social.personalShop.pricesBuilt = true;
+        runtime.ui.shopGridHovered = 1;
+        ItemState item;
+        item.id = Jewel;
+        item.gridColumn = 2;
+        item.gridRow = 1;
+        return item;
+    }
+
+    // El lugar de la casilla (2, 1): 2 + 1 · 8 + 0x4c.
+    static constexpr std::int32_t Place = 2 + 8 + 0x4c;
+
+    // El cuerpo sin el registro propio abierto alrededor.
+    Client::Core::Expected<void, std::string> DrawWithTheRecordClosed(ItemState& item)
+    {
+        GameHudContext context = Context();
+        return Client::Scenes::DrawTheItemTooltip(
+            Client::Scenes::ItemTooltipContext{.hud = context, .x = 320, .y = 300, .item = item});
+    }
+};
+
+// La propia: el 63 con el precio de su lugar, dorado desde un millón y en negrita, y un "\n". El zen no alcanza, pero
+// el 423 es solo de la de otro. Sin rand() con el registro abierto alrededor.
+TEST_P(PersonalShopPriceTest, TheOwnShopShowsThePriceOfTheCell)
+{
+    const ItemState item = OnTheShop(Client::Scenes::OwnShopView);
+    world.Runtime().social.personalShop.ownPrices = {{Place - 1, 7}, {Place, 1500000}, {Place + 1, 9}};
+    world.Runtime().social.personalShop.otherPrices = {{Place, 3}};
+    const CrtRandom expected = Advanced(random, OwnRecordCloseRandoms + NpcShopQuery + SkillAccess);
+
+    const auto drawn = Draw(item);
+
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    ExpectLines({{"\n", 0, StaleBold},
+                 {"Precio 1,500,000", 3, 1},
+                 {"\n", 0, StaleBold},
+                 {"Gema Uno", 3, 1},
+                 {"\n", 0, StaleBold},
+                 {"Gema para mejorar", 0, 0},
+                 {"\n", 0, StaleBold}},
+                4);
+    EXPECT_EQ(random.State(), expected.State());
+    EXPECT_EQ(world.Runtime().ownRecordDepth, 0);
+}
+
+// La de otro con menos zen (sin signo): el precio en rojo desde diez millones y el 423 en rojo y en negrita.
+TEST_P(PersonalShopPriceTest, TheOtherShopWarnsWithoutEnoughZen)
+{
+    const ItemState item = OnTheShop(Client::Scenes::OtherShopView);
+    world.Runtime().social.personalShop.otherPrices = {{Place, 25000000}};
+    world.OwnCharacter().zen = 24999999;
+
+    const auto drawn = Draw(item);
+
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    ExpectLines({{"\n", 0, StaleBold},
+                 {"Precio 25,000,000", 2, 1},
+                 {"\n", 0, StaleBold},
+                 {"Te falta zen", 2, 1},
+                 {"\n", 0, StaleBold},
+                 {"Gema Uno", 3, 1},
+                 {"\n", 0, StaleBold},
+                 {"Gema para mejorar", 0, 0},
+                 {"\n", 0, StaleBold}},
+                5);
+}
+
+// Con el zen justo no avisa; el verde desde cien mil, y debajo, sin color.
+TEST_P(PersonalShopPriceTest, TheOtherShopWithEnoughZenOnlyShowsThePrice)
+{
+    const ItemState item = OnTheShop(Client::Scenes::OtherShopView);
+    world.Runtime().social.personalShop.otherPrices = {{Place, 150000}};
+    world.OwnCharacter().zen = 150000;
+
+    ASSERT_TRUE(Draw(item).HasValue());
+    EXPECT_EQ(Lines().text[1], "Precio 150,000");
+    EXPECT_EQ(Lines().colors[1], 4);
+    EXPECT_EQ(Lines().text[3], "Gema Uno");
+
+    world.Runtime().social.personalShop.otherPrices = {{Place, 99999}};
+    ASSERT_TRUE(Draw(item).HasValue());
+    EXPECT_EQ(Lines().text[1], "Precio 99,999");
+    EXPECT_EQ(Lines().colors[1], 0);
+    EXPECT_EQ(Lines().text[3], "Gema Uno");
+}
+
+// Un precio negativo sale sin signo (0x5b3005, DIV) y sin color (0x5b30e4, JL), y el zen siempre es menos.
+TEST_P(PersonalShopPriceTest, ANegativePriceIsWrittenWithoutItsSign)
+{
+    const ItemState item = OnTheShop(Client::Scenes::OtherShopView);
+    world.Runtime().social.personalShop.otherPrices = {{Place, -1}};
+    world.OwnCharacter().zen = 2000000000;
+
+    ASSERT_TRUE(Draw(item).HasValue());
+    EXPECT_EQ(Lines().text[1], "Precio 4,294,967,295");
+    EXPECT_EQ(Lines().colors[1], 0);
+    EXPECT_EQ(Lines().text[3], "Te falta zen");
+}
+
+// Sin precio en su lugar: la propia escribe el 1101 en rojo y en negrita; la de otro, nada.
+TEST_P(PersonalShopPriceTest, WithoutAPriceOnlyTheOwnShopSaysSo)
+{
+    ItemState item = OnTheShop(Client::Scenes::OwnShopView);
+    world.Runtime().social.personalShop.ownPrices = {{Place + 1, 5}};
+
+    ASSERT_TRUE(Draw(item).HasValue());
+    ExpectLines({{"\n", 0, StaleBold},
+                 {"Sin precio", 2, 1},
+                 {"\n", 0, StaleBold},
+                 {"Gema Uno", 3, 1},
+                 {"\n", 0, StaleBold},
+                 {"Gema para mejorar", 0, 0},
+                 {"\n", 0, StaleBold}},
+                4);
+
+    item = OnTheShop(Client::Scenes::OtherShopView);
+    ASSERT_TRUE(Draw(item).HasValue());
+    EXPECT_EQ(Lines().text[1], "Gema Uno");
+
+    // Antes del primer Open, sin los mapas (0x5b2fba), la propia también lo dice.
+    item = OnTheShop(Client::Scenes::OwnShopView);
+    world.Runtime().social.personalShop.pricesBuilt = false;
+    world.Runtime().social.personalShop.ownPrices = {{Place, 5}};
+    ASSERT_TRUE(Draw(item).HasValue());
+    EXPECT_EQ(Lines().text[1], "Sin precio");
+}
+
+// Sin el ítem de la grilla bajo el mouse (desde el inventario, 0x5b2f86) o sin la tienda, no hay precio.
+TEST_P(PersonalShopPriceTest, OnlyTheShopGridHasAPrice)
+{
+    ItemState item = OnTheShop(Client::Scenes::OwnShopView);
+    world.Runtime().social.personalShop.ownPrices = {{Place, 5}};
+    world.Runtime().ui.shopGridHovered = 0;
+    ASSERT_TRUE(Draw(item).HasValue());
+    EXPECT_EQ(Lines().text[1], "Gema Uno");
+
+    item = OnTheShop(Client::Scenes::OwnShopView);
+    world.Runtime().panels.personalShop = 0;
+    ASSERT_TRUE(Draw(item).HasValue());
+    EXPECT_EQ(Lines().text[1], "Gema Uno");
+}
+
+// Con precio, el zen se lee con el acceso del registro propio abierto y cerrado: sin el registro abierto alrededor, su
+// cierre saca los 3.848 rand() de más; sin precio, no lo abre.
+TEST_P(PersonalShopPriceTest, ThePriceOpensTheOwnRecord)
+{
+    ItemState item = OnTheShop(Client::Scenes::OtherShopView);
+    world.Runtime().social.personalShop.otherPrices = {{Place + 1, 5}};
+    const CrtRandom before = random;
+    ASSERT_TRUE(DrawWithTheRecordClosed(item).HasValue());
+    const CrtRandom withoutPrice = random;
+
+    world.Runtime().social.personalShop.otherPrices = {{Place, 5}};
+    random = before;
+    ASSERT_TRUE(DrawWithTheRecordClosed(item).HasValue());
+    EXPECT_EQ(random.State(), Advanced(withoutPrice, OwnRecordCloseRandoms).State());
+    EXPECT_EQ(world.Runtime().ownRecordDepth, 0);
+}
+
+INSTANTIATE_TEST_SUITE_P(Maps, PersonalShopPriceTest, ::testing::Values(std::uint8_t{0}, std::uint8_t{2}));
+
 TEST_F(ItemTooltipsTest, TheRepairTooltipOfAFullWeaponHasNoPrice)
 {
     world.Runtime().panels.repairMode = 2;

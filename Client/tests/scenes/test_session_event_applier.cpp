@@ -8,32 +8,45 @@
 #include "Core/Log.h"
 #include "Data/Models/PlayerModels.h"
 #include "Protocol/CastleSiege.h"
+#include "Network/Crypto/Xor32.h"
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
+#include "Protocol/Events.h"
+#include "Protocol/FloorItems.h"
 #include "Protocol/Messages.h"
 #include "Protocol/Movement.h"
+#include "Protocol/Pet/PetOrders.h"
+#include "Protocol/Skill.h"
 #include "Protocol/World.h"
 #include "Render/Models/Cloth.h"
+#include "Scenes/ActorState.h"
+#include "Scenes/GameDrawTail.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SelectionState.h"
+#include "Scenes/ViewportPacketRing.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
 
+#include "support/Bytes.h"
+#include "support/Packets.h"
 #include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
+#include "support/SameBytes.h"
 #include "support/SessionHarness.h"
 #include "support/SessionPackets.h"
 
 #include <gtest/gtest.h>
 
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -55,6 +68,7 @@ struct Applier
     Client::Scenes::SingleModelLibrary models;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
+    std::optional<Client::Scenes::SceneId> scene;
     Client::Scenes::SessionEventApplier applier{Client::Scenes::WorldEntryResources{.world = world,
                                                                                     .selection = selection,
                                                                                     .dataRoot = {},
@@ -62,7 +76,8 @@ struct Applier
                                                                                     .camera = camera,
                                                                                     .cameraInput = input,
                                                                                     .models = models,
-                                                                                    .log = log}};
+                                                                                    .log = log,
+                                                                                    .scene = [this] { return scene; }}};
 };
 
 TEST(SessionEventApplierTest, AppliesAnEmptyCharacterListImmediately)
@@ -88,6 +103,7 @@ TEST(SessionEventApplierTest, PropagatesTheActualSelectionConstructionFailure)
 
 // El F3 10 va a 0x4c55a0: con la cantidad en 0, la inicialización común vacía el equipo del registro y las
 // dos grillas y cierra el registro con sus 3.848 rand(), sin tocar la sesión ni la selección.
+
 TEST(SessionEventApplierTest, AnEmptyInventoryGoesToTheNativeApplier)
 {
     Applier tested;
@@ -110,6 +126,7 @@ TEST(SessionEventApplierTest, AnEmptyInventoryGoesToTheNativeApplier)
 }
 
 // Sin cifrar, 0x4c55a0 hace lo mismo antes de mirar el flag (0x4c56e2), y nada después en el mundo.
+
 TEST(SessionEventApplierTest, AClearInventoryRunsOnlyTheCommonInitialization)
 {
     Applier tested;
@@ -128,6 +145,7 @@ TEST(SessionEventApplierTest, AClearInventoryRunsOnlyTheCommonInitialization)
 
 // El F3 03 va a 0x4c3940: sin datos, el MAP no abre y la carga alcanza el ATT de World1
 // (Q-C180), después de los stats en el registro propio.
+
 TEST(SessionEventApplierTest, TheWorldEntryGoesToTheNativeApplier)
 {
     Applier tested;
@@ -147,10 +165,13 @@ TEST(SessionEventApplierTest, TheWorldEntryGoesToTheNativeApplier)
 
 // El F1 02 con 1 cifrado va a la vuelta de 0x4c2710: deja la orden de la escena 4 y el mundo en −1, y
 // cierra el registro propio con sus 3.848 rand(), sin tocar la sesión ni la selección.
+
 TEST(SessionEventApplierTest, TheReturnToSelectionGoesToTheNativeApplier)
 {
     Applier tested;
     Client::Tests::LoggedInSession online;
+    ASSERT_TRUE(tested.applier.ApplyCharacter(Client::App::CharacterListReceived{}, online.session).HasValue());
+    ASSERT_TRUE(tested.selection.HasReceivedList());
     tested.world.Runtime().map = 0;
     tested.world.Runtime().drawingEnabled = true;
     const Client::App::WorldEvent event = Client::App::ReturnToSelectionReceived{};
@@ -165,6 +186,7 @@ TEST(SessionEventApplierTest, TheReturnToSelectionGoesToTheNativeApplier)
     EXPECT_EQ(online.session.State(), Client::App::SessionState::Idle);
     EXPECT_FALSE(tested.selection.HasReceivedList());
 }
+
 TEST(SessionEventApplierTest, WalkAndDamageReachTheirAppliersWithoutFallingThroughToF303)
 {
     Applier tested;
@@ -174,7 +196,75 @@ TEST(SessionEventApplierTest, WalkAndDamageReachTheirAppliersWithoutFallingThrou
     EXPECT_TRUE(tested.applier.ApplyWorld(walk, online.session).HasValue());
     EXPECT_TRUE(tested.applier.ApplyWorld(damage, online.session).HasValue());
 }
+// 07 Q-C1240: el 22, el 23 y el 2C cortos llegan a lo que sueltan (0x4d10b9, 0x4d13e5 y 0x4deb0e), sin caer en el
+// F3 03.
+
+TEST(SessionEventApplierTest, TheSkillsReachTheirAppliers)
+{
+    auto tested = std::make_unique<Applier>();
+    Client::Tests::LoggedInSession online;
+    const Client::App::WorldEvent summon = Client::Protocol::Skill::SummonLife{0x42};
+    const Client::App::WorldEvent cancel = Client::Protocol::Skill::MagicCancel{0x1b, 0x0777};
+    const Client::App::WorldEvent attack = Client::Protocol::Skill::MagicAttack{0x13, 0x0777, 0x0888, false};
+    EXPECT_TRUE(tested->applier.ApplyWorld(summon, online.session).HasValue());
+    EXPECT_EQ(tested->world.Runtime().hud.summonLife, 0x42);
+    EXPECT_TRUE(tested->applier.ApplyWorld(cancel, online.session).HasValue());
+    EXPECT_TRUE(tested->applier.ApplyWorld(attack, online.session).HasValue());
+    // El A8 sin el cuervo del dueño no hace nada.
+    const Client::App::WorldEvent raven = Client::Protocol::Pet::PetAttack{1, 0x0777, 0x0888};
+    EXPECT_TRUE(tested->applier.ApplyWorld(raven, online.session).HasValue());
+    // F3 11 sin Skill.bmd corta en la cuenta.
+    const Client::App::WorldEvent list =
+        Client::Protocol::Skill::SkillList{.count = 0xfe, .list = 0, .slot = 0, .skill = 0x11, .entries = {}};
+    const auto counted = tested->applier.ApplyWorld(list, online.session);
+    ASSERT_FALSE(counted.HasValue());
+    EXPECT_NE(counted.Error().find("0x4c54ed"), std::string::npos) << counted.Error();
+}
+
+// 0x4cb750: el 18 de otro llega a ApplyActionReply, y el C1 18 de sentarse que dispara (0x4f2250) sale por la sesión.
+
+TEST(SessionEventApplierTest, TheActionOfAnotherSitsThroughTheSession)
+{
+    auto tested = std::make_unique<Applier>();
+    Client::Tests::LoggedInSession online;
+    ASSERT_NO_FATAL_FAILURE(online.LogIn());
+    Client::Scenes::ActorState& other = tested->world.Actors()[12];
+    other = Client::Tests::UnarmedPlayer();
+    other.alive = true;
+    other.key = 0x1234;
+    other.flags7c = 0x200000;
+    const std::size_t sent = online.socket.sent.size();
+    const Client::App::WorldEvent event =
+        Client::Protocol::Movement::Action{.key = 0x1234, .direction = 3, .action = 0x7a};
+
+    ASSERT_TRUE(tested->applier.ApplyWorld(event, online.session).HasValue());
+    EXPECT_EQ(other.animation.action, 0xca);
+    const std::vector<std::byte> action(online.socket.sent.begin() + static_cast<std::ptrdiff_t>(sent),
+                                        online.socket.sent.end());
+    const auto plain = Client::Network::Crypto::Xor32Decode(Client::Tests::PacketOf(action));
+    EXPECT_TRUE(Client::Tests::SameBytes(plain.Bytes(), Client::Tests::Bytes({0xc1, 5, 0x18, 3, 0x82})));
+}
+// 0x4dd92c: un 94 de tipo 0 sin los números del Muto (el original los lee del buffer de la recepción) se descarta con
+// un aviso en el log, después de lo que el original hizo antes, y la sesión sigue (CL9 hito 11, como Q-C778).
+TEST(SessionEventApplierTest, ADiscardedEventPacketIsLoggedAndTheSessionGoesOn)
+{
+    auto tested = std::make_unique<Applier>();
+    Client::Tests::LoggedInSession online;
+    ASSERT_NO_FATAL_FAILURE(online.LogIn());
+    const Client::App::WorldEvent event =
+        Client::Protocol::Events::EventPacket{Client::Protocol::Events::EventChipInfo{.type = 0, .count = 3}};
+
+    const auto result = tested->applier.ApplyWorld(event, online.session);
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_EQ(tested->world.Runtime().panels.field78abb00, 1);
+    ASSERT_EQ(tested->sink.lines.size(), 1u);
+    EXPECT_EQ(tested->sink.levels[0], Client::Core::LogLevel::Warning);
+    EXPECT_NE(tested->sink.lines[0].find("0x4dd92c"), std::string::npos) << tested->sink.lines[0];
+}
+
 // 0x4c6098: en la escena 2, el 00 pide la lista por el GameServer sin mirar el paquete (CL8 hito 3).
+
 TEST(SessionEventApplierTest, The00InTheLoginAsksForTheListThroughTheGameServer)
 {
     Applier tested;
@@ -232,4 +322,150 @@ TEST(SessionEventApplierTest, TeleportUsesTheCursorGuardBeforeTouchingTheHero)
     ASSERT_FALSE(result.HasValue());
     EXPECT_NE(result.Error().find("0x5be150"), std::string::npos);
 }
+
+// 0x4e3e98..0x4e3f1d: el dispatcher copia el 1C a la cola de 0x77f27b4, la misma de los 12 (Q-C801), antes de mirar el
+// flag de cifrado. Con la sesión de verdad y este aplicador, un 1C sin cifrar, que se rechaza sin leerlo, ocupa una
+// ranura.
+
+TEST(SessionEventApplierTest, ATeleportTakesOneSlotOfThePacketRing)
+{
+    const auto tested = std::make_unique<Applier>();
+    const auto online = std::make_unique<Client::Tests::LoggedInSession>(&tested->applier);
+    ASSERT_NO_FATAL_FAILURE(online->LogIn());
+    const auto teleport = Client::Tests::Bytes({0xc1, 8, 0x1c, 23, 0, 30, 31, 0});
+    online->socket.reads = {teleport};
+    ASSERT_TRUE(online->session.Poll().HasValue());
+    const Client::Scenes::ViewportPacketRing& ring = tested->world.Runtime().viewportPackets;
+    ASSERT_EQ(ring.count, 1);
+    EXPECT_EQ(ring.sizes[0], 8);
+    EXPECT_TRUE(Client::Tests::SameBytes(std::span(ring.slots[0]).first(teleport.size()), teleport));
+    EXPECT_EQ(online->session.State(), Client::App::SessionState::LoggedIn);
+}
+
+TEST(SessionEventApplierTest, ALogoutResponseReleasesOnlyThePendingRequest)
+{
+    auto tested = std::make_unique<Applier>();
+    tested->world.Runtime().ui.logoutRequested = true;
+    tested->world.Runtime().drawingEnabled = true;
+    tested->world.Runtime().map = 2;
+
+    tested->applier.ClearLogoutRequest();
+
+    EXPECT_FALSE(tested->world.Runtime().ui.logoutRequested);
+    EXPECT_TRUE(tested->world.Runtime().drawingEnabled);
+    EXPECT_EQ(tested->world.Runtime().map, 2);
+}
+
+TEST(SessionEventApplierTest, TheServerListCleanupRunsOnlyInTheGameAndDoesNotResetTheSceneYet)
+{
+    auto tested = std::make_unique<Applier>();
+    Client::Tests::LoggedInSession online;
+    tested->world.Runtime().map = 0;
+    tested->world.Runtime().drawingEnabled = true;
+    tested->world.Actors()[5].alive = true;
+    tested->world.Actors()[5].key = 5;
+    const auto random = tested->cloth.random.State();
+    const Client::App::WorldEvent event = Client::App::ServerListLogoutCleanup{};
+    tested->scene = Client::Scenes::SceneId::CharacterSelect;
+    ASSERT_TRUE(tested->applier.ApplyWorld(event, online.session).HasValue());
+    EXPECT_TRUE(tested->world.Actors()[5].alive);
+
+    tested->scene = Client::Scenes::SceneId::Game;
+    ASSERT_TRUE(tested->applier.ApplyWorld(event, online.session).HasValue());
+
+    EXPECT_FALSE(tested->world.Actors()[5].alive);
+    EXPECT_FALSE(tested->world.Runtime().orderedScene.has_value());
+    EXPECT_EQ(tested->world.Runtime().map, 0);
+    EXPECT_TRUE(tested->world.Runtime().drawingEnabled);
+    EXPECT_EQ(tested->cloth.random.State(), random);
+}
+
+TEST(SessionEventApplierTest, TheServerListReturnResetsTheWorldAndOrdersTheLogin)
+{
+    auto tested = std::make_unique<Applier>();
+    Client::Tests::LoggedInSession online;
+    ASSERT_TRUE(tested->applier.ApplyCharacter(Client::App::CharacterListReceived{}, online.session).HasValue());
+    tested->world.Runtime().map = 0;
+    tested->world.Runtime().drawingEnabled = true;
+    tested->world.OwnCharacter().word3e = 9;
+    const Client::App::WorldEvent event = Client::App::ReturnToServerListReceived{};
+
+    ASSERT_TRUE(tested->applier.ApplyWorld(event, online.session).HasValue());
+
+    EXPECT_EQ(tested->world.Runtime().orderedScene, Client::Scenes::SceneId::Login);
+    EXPECT_EQ(tested->world.Runtime().map, -1);
+    EXPECT_FALSE(tested->world.Runtime().drawingEnabled);
+    EXPECT_FALSE(tested->selection.HasReceivedList());
+    EXPECT_EQ(tested->world.OwnCharacter().word3e, 0);
+    EXPECT_EQ(tested->cloth.random.State(), Client::Tests::AfterDraws(1, 0xf08).State());
+}
+
+TEST(SessionEventApplierTest, TheServerListReturnAlsoKillsSelectionActorsWithoutClearingFloorItems)
+{
+    auto tested = std::make_unique<Applier>();
+    Client::Tests::LoggedInSession online;
+    tested->scene = Client::Scenes::SceneId::CharacterSelect;
+    tested->world.Actors()[3].alive = true;
+    tested->world.Actors()[3].key = 3;
+    tested->world.Actors()[4].alive = true;
+    tested->world.Actors()[4].key = 0xffff;
+    tested->world.DrawTail().floorItems[0].alive = true;
+    ASSERT_TRUE(tested->applier.ApplyWorld(Client::App::ServerListLogoutCleanup{}, online.session).HasValue());
+    ASSERT_TRUE(tested->world.Actors()[3].alive);
+
+    ASSERT_TRUE(tested->applier.ApplyWorld(Client::App::ReturnToServerListReceived{}, online.session).HasValue());
+
+    EXPECT_FALSE(tested->world.Actors()[3].alive);
+    EXPECT_TRUE(tested->world.Actors()[4].alive);
+    EXPECT_TRUE(tested->world.DrawTail().floorItems[0].alive);
+}
+
+TEST(SessionEventApplierTest, ALogoutDoesNotSkipACursorReturnFailureBeforeReleasingTheWorld)
+{
+    for (const bool serverList : {false, true})
+    {
+        SCOPED_TRACE(serverList);
+        auto tested = std::make_unique<Applier>();
+        Client::Tests::LoggedInSession online;
+        tested->scene = Client::Scenes::SceneId::Game;
+        tested->world.Runtime().map = 2;
+        tested->world.Actors()[3].alive = true;
+        tested->world.Actors()[3].key = 3;
+        tested->world.Runtime().cursorItemCount = 1;
+        tested->world.Runtime().cursorItem.id = 0;
+        const Client::App::WorldEvent event = serverList
+                                                  ? Client::App::WorldEvent{Client::App::ServerListLogoutCleanup{}}
+                                                  : Client::App::WorldEvent{Client::App::ReturnToSelectionReceived{}};
+
+        const auto applied = tested->applier.ApplyWorld(event, online.session);
+
+        EXPECT_FALSE(applied.HasValue());
+        EXPECT_TRUE(tested->world.Actors()[3].alive);
+        EXPECT_EQ(tested->world.Runtime().cursorItemCount, 1);
+        EXPECT_EQ(tested->world.Runtime().map, 2);
+        EXPECT_FALSE(tested->world.Runtime().orderedScene.has_value());
+    }
+}
+
+TEST(SessionEventApplierTest, TheShortFloorItemRepliesReachTheirReleases)
+{
+    namespace FloorItems = Client::Protocol::FloorItems;
+    const auto tested = std::make_unique<Applier>();
+    Client::Tests::LoggedInSession online;
+    Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+    runtime.floor.pendingPickUp = 5;
+    runtime.floor.pendingDrop = 22;
+    runtime.ui.field5767954 = 10;
+    const Client::App::WorldEvent picked = FloorItems::ShortPickUpResult{};
+    const Client::App::WorldEvent dropped = FloorItems::ShortDropResult{.result = std::uint8_t{0}};
+    const Client::App::WorldEvent fruit = FloorItems::ShortStatFruit{};
+    EXPECT_TRUE(tested->applier.ApplyWorld(picked, online.session).HasValue());
+    EXPECT_TRUE(tested->applier.ApplyWorld(dropped, online.session).HasValue());
+    EXPECT_TRUE(tested->applier.ApplyWorld(fruit, online.session).HasValue());
+    EXPECT_EQ(runtime.floor.pendingPickUp, -1);
+    EXPECT_EQ(runtime.floor.pendingDrop, -1);
+    EXPECT_EQ(runtime.ui.field5767954, 0);
+}
+
+// 0x4cb750: el 18 de otro llega a ApplyActionReply, y el C1 18 de sentarse que dispara (0x4f2250) sale por la sesión.
 } // namespace

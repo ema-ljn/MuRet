@@ -4,8 +4,11 @@
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Terrain/TerrainGrid.h"
+#include "Protocol/Movement.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/LogicalAccess.h"
+#include "Scenes/ActionSend.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldRuntime.h"
@@ -30,6 +33,7 @@ constexpr std::uint16_t Fenrir = 0x1c37;
 constexpr std::uint16_t DarkHorse = 0x1c16;
 constexpr std::array<std::uint16_t, 2> RidingPets = {0x1c14, 0x1c15};
 constexpr std::uint16_t Raven = 0x1c17;
+constexpr std::uint16_t WallCheckedModel = 0x172;
 
 // Las acciones de parado (P-C14 c). Los nombres dicen qué las elige en 0x4f2250, no cómo se ven.
 constexpr std::uint8_t UnarmedStand = 1;
@@ -52,6 +56,8 @@ constexpr std::uint8_t FenrirRightHandStand = 0x78;
 constexpr std::uint8_t FenrirLeftHandStand = 0x79;
 constexpr std::uint8_t MarkedSpecialStand = 0x8a;
 constexpr std::uint8_t SittingAction = 0xca;
+constexpr std::uint8_t DefaultModelStandAction = 0;
+constexpr std::uint8_t WallStandAction = 7;
 
 constexpr std::uint8_t ElfClass = 2;
 constexpr std::uint8_t ClassMask = 7;
@@ -89,6 +95,8 @@ constexpr int SuffixChance = 16;
 // Los subtipos que van a la tabla de sonidos del modelo aunque sean jugadores (0x4f36e2..0x4f36f3).
 constexpr std::int32_t FirstModelSoundSubtype = 209;
 constexpr std::int32_t LastModelSoundSubtype = 211;
+constexpr std::int32_t ModelSoundBase = 0xd2;
+constexpr std::int32_t ModelSoundSubtypeNineOffset = 5;
 
 // 0x4f2250 compara los modelos como WORD con signo.
 int Signed(std::uint16_t model)
@@ -266,8 +274,14 @@ Core::Expected<std::optional<std::uint8_t>, std::string> ChooseStand(ActorState&
             return std::optional<std::uint8_t>{};
         }
         Render::Models::SetAction(actor.animation, context.playerSkeleton, SittingAction);
-        return Core::Unexpected(std::string("0x4f2250: sentarse manda un C1 .. 18 con el XOR32 en línea "
-                                            "(0x4f2416..0x4f2bea, CL9) que MuRet no tiene"));
+        // 0x4f2416..0x4f2bea (0x4f2834..0x4f2bea por el piso): C1 05 18 con la dirección del ángulo del personaje
+        // (+0x24, no el del héroe) y 0x82, y el sufijo (0x4f36be), también si el envío falla.
+        auto sent = SendTheAction(actor.angles.z, Protocol::Movement::SittingAction, context.sendAction, "0x4f2416");
+        if (!sent.HasValue())
+        {
+            return Core::Unexpected(sent.Error());
+        }
+        return std::optional<std::uint8_t>{};
     }
     if (flying.Value())
     {
@@ -282,16 +296,33 @@ Core::Expected<std::optional<std::uint8_t>, std::string> ChooseStand(ActorState&
 }
 
 // 0x4f36be..0x4f37a5: el sufijo, con la acción ya puesta.
-Core::Expected<ActorStopResult, std::string> Suffix(const ActorState& actor, Render::Models::CrtRandom& random)
+Core::Expected<ActorStopResult, std::string> Suffix(const ActorState& actor, const ActorStopContext& context)
 {
+    Render::Models::CrtRandom& random = context.random;
     if (random.Next() % SuffixChance != 0)
     {
         return ActorStopResult{};
     }
-    if (actor.subtype >= FirstModelSoundSubtype && actor.subtype <= LastModelSoundSubtype)
+    const bool modelSoundSubtype = actor.subtype >= FirstModelSoundSubtype && actor.subtype <= LastModelSoundSubtype;
+    if (actor.type != Data::Models::PlayerSkeletonModel || modelSoundSubtype)
     {
-        return Core::Unexpected(std::string("0x4f2250: con el subtipo 209 a 211 el sufijo lee la tabla de "
-                                            "sonidos de los modelos (0x5769ad8 + tipo · 0xe0 + 0xaa)"));
+        if (context.modelSounds.empty())
+        {
+            return Core::Unexpected(std::string("0x4f2250: falta la tabla de sonidos del modelo "
+                                                "(0x5769ad8 + tipo · 0xe0 + 0xaa)"));
+        }
+        if (context.modelSounds.front() == -1)
+        {
+            return ActorStopResult{};
+        }
+        const std::size_t variant = static_cast<std::size_t>(random.Next() & 1);
+        if (variant >= context.modelSounds.size())
+        {
+            return Core::Unexpected(std::string("0x4f2250: la tabla de sonidos del modelo no contiene los dos "
+                                                "WORD del sufijo (0x5769ad8 + tipo · 0xe0 + 0xaa)"));
+        }
+        const std::int32_t subtypeOffset = actor.subtype == 9 ? ModelSoundSubtypeNineOffset : 0;
+        return ActorStopResult{.sound = ModelSoundBase + context.modelSounds[variant] + subtypeOffset};
     }
     if (actor.pet.model != Fenrir || random.Next() % FenrirSoundChance != 0)
     {
@@ -304,20 +335,51 @@ Core::Expected<ActorStopResult, std::string> Suffix(const ActorState& actor, Ren
 Core::Expected<ActorStopResult, std::string> SetActorStop(ActorState& actor, const ActorStopContext& context)
 {
     actor.run = 0;
-    if (actor.type != Data::Models::PlayerSkeletonModel)
+    if (actor.type == Data::Models::PlayerSkeletonModel)
     {
-        return Core::Unexpected(std::string("0x4f2250: el personaje que no es jugador (0x4f2d87..0x4f36b5) lee "
-                                            "sus celdas protegidas y el TerrainWall, sin portar"));
+        const auto stand = ChooseStand(actor, context);
+        if (!stand.HasValue())
+        {
+            return Core::Unexpected(stand.Error());
+        }
+        if (stand.Value())
+        {
+            Render::Models::SetAction(actor.animation, context.playerSkeleton, *stand.Value());
+        }
+        return Suffix(actor, context);
     }
-    const auto stand = ChooseStand(actor, context);
-    if (!stand.HasValue())
+
+    std::uint8_t cellY = 0;
     {
-        return Core::Unexpected(stand.Error());
+        const Render::Models::LogicalAccess access(actor.cellYAccesses, context.random,
+                                                   Render::Models::SmallLogicalCloseRandoms);
+        cellY = actor.cellY;
     }
-    if (stand.Value())
+    std::uint8_t cellX = 0;
     {
-        Render::Models::SetAction(actor.animation, context.playerSkeleton, *stand.Value());
+        const Render::Models::LogicalAccess access(actor.cellXAccesses, context.random,
+                                                   Render::Models::SmallLogicalCloseRandoms);
+        cellX = actor.cellX;
     }
-    return Suffix(actor, context.random);
+
+    std::uint8_t stand = DefaultModelStandAction;
+    if (actor.type == WallCheckedModel)
+    {
+        if (context.terrainWalls == nullptr)
+        {
+            return Core::Unexpected(std::string("0x4f2250: falta TerrainWall para el tipo 0x172 en la celda lógica "
+                                                "(0x5f82a0, 0x4f366e)"));
+        }
+        const std::size_t cell = Data::Terrain::CellIndex(cellX, cellY);
+        if (((*context.terrainWalls)[cell] & World::SafeZoneWallBit) != 0)
+        {
+            stand = WallStandAction;
+        }
+    }
+    if (context.actorSkeleton != nullptr)
+    {
+        Render::Models::SetAction(actor.animation, *context.actorSkeleton, stand);
+    }
+    return Suffix(actor, context);
 }
 } // namespace Client::Scenes

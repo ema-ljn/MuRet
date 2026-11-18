@@ -289,24 +289,100 @@ TEST(PanelRegistryTest, TheInventoryKeepsTheCharacterOpen)
     EXPECT_EQ(tested.state.overlayMode, 0);
 }
 
-TEST(PanelRegistryTest, TheDarkLordsPetRequestIsACut)
+// 0x65c020..0x65c946 (CL9 hito 7): con un Dark Lord (+0x1d4 & 7 en 4), abrir el inventario lo prende y después pide
+// el cuervo y el caballo, los mismos A9 de la mascota (el gancho). Sin el gancho corta, ya con el inventario prendido.
+// Las otras clases no piden nada.
+TEST(PanelRegistryTest, TheDarkLordsInventoryAsksForBothPets)
 {
     Tested tested;
     tested.context.heroClass = 4;
+    std::vector<std::uint8_t> inventoryWhenAsked;
+    tested.context.petRequests = [&tested, &inventoryWhenAsked]()
+    { inventoryWhenAsked.push_back(tested.state.inventory); };
     const auto opened = tested.panels.Open(InventoryPanel);
-    ASSERT_FALSE(opened.HasValue());
-    EXPECT_NE(opened.Error().find("0x65c039"), std::string::npos);
+    ASSERT_TRUE(opened.HasValue()) << opened.Error();
+    EXPECT_TRUE(opened.Value());
+    EXPECT_EQ(inventoryWhenAsked, (std::vector<std::uint8_t>{1}));
+
+    Tested knight;
+    knight.context.heroClass = 1;
+    knight.context.petRequests = [&inventoryWhenAsked]() { inventoryWhenAsked.push_back(0xff); };
+    ASSERT_TRUE(knight.panels.Open(InventoryPanel).HasValue());
+    EXPECT_EQ(inventoryWhenAsked, (std::vector<std::uint8_t>{1}));
+
+    Tested unhooked;
+    unhooked.context.heroClass = 4;
+    const auto cut = unhooked.panels.Open(InventoryPanel);
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x65c039"), std::string::npos);
+    EXPECT_EQ(unhooked.state.inventory, 1);
 }
 
 TEST(PanelRegistryTest, PanelsOfOtherWavesCutWhenTheyOpen)
 {
-    for (const PanelId id : {FriendsPanel, QuestPanel, GuildPanel})
+    for (const PanelId id : {FriendsPanel, GuildPanel})
     {
         Tested tested;
         const auto opened = tested.panels.Open(id);
         ASSERT_FALSE(opened.HasValue()) << std::hex << id;
         EXPECT_NE(opened.Error().find("0x6599a0"), std::string::npos) << opened.Error();
     }
+}
+
+// 0x659c50..0x659c70 (CL9 hito 2): las misiones cierran todo menos el personaje y abren la lista con 0x419840(−1).
+TEST(PanelRegistryTest, TheQuestsKeepTheCharacterOpenAndRunTheirHook)
+{
+    Tested tested;
+    int hooks = 0;
+    tested.context.questOpened = [&hooks, &tested]() -> Client::Core::Expected<void, std::string>
+    {
+        ++hooks;
+        tested.state.delegated.quest = 2;
+        return {};
+    };
+    tested.state.character = 1;
+    tested.state.party = 1;
+    const auto opened = tested.panels.Open(QuestPanel);
+    ASSERT_TRUE(opened.HasValue()) << opened.Error();
+    EXPECT_TRUE(opened.Value());
+    EXPECT_EQ(hooks, 1);
+    EXPECT_EQ(tested.state.character, 1);
+    EXPECT_EQ(tested.state.party, 0);
+    EXPECT_TRUE(tested.panels.IsOpen(QuestPanel));
+}
+
+TEST(PanelRegistryTest, OpeningTheQuestsWithoutTheirObjectCuts)
+{
+    Tested tested;
+    const auto opened = tested.panels.Open(QuestPanel);
+    ASSERT_FALSE(opened.HasValue());
+    EXPECT_NE(opened.Error().find("0x419840"), std::string::npos) << opened.Error();
+}
+
+// 0x657b19..0x657b31: cerrar las misiones es 0x419900, que pone la ventana en 0 y manda el C1 03 31.
+TEST(PanelRegistryTest, ClosingTheQuestsSendsTheWindowClose)
+{
+    Tested tested;
+    int sent = 0;
+    tested.context.questClosed = [&sent]() { ++sent; };
+    tested.state.delegated.quest = 1;
+    const auto closed = tested.panels.CloseByMask(QuestPanel);
+    ASSERT_TRUE(closed.HasValue()) << closed.Error();
+    EXPECT_EQ(tested.state.delegated.quest, 0);
+    EXPECT_EQ(sent, 1);
+    // Cerrada, la consulta da falso y no manda otro.
+    ASSERT_TRUE(tested.panels.CloseByMask(QuestPanel).HasValue());
+    EXPECT_EQ(sent, 1);
+}
+
+TEST(PanelRegistryTest, ClosingTheQuestsWithoutTheCableCuts)
+{
+    Tested tested;
+    tested.state.delegated.quest = 2;
+    const auto closed = tested.panels.CloseByMask(QuestPanel);
+    ASSERT_FALSE(closed.HasValue());
+    EXPECT_NE(closed.Error().find("0x419900"), std::string::npos) << closed.Error();
+    EXPECT_EQ(tested.state.delegated.quest, 2);
 }
 
 TEST(PanelRegistryTest, TheCharacterKeepsTheInventoryOpenAndRunsItsHook)
@@ -332,6 +408,25 @@ TEST(PanelRegistryTest, TheCharacterKeepsTheInventoryOpenAndRunsItsHook)
     EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x19, 0x1c}));
 }
 
+// 0x659f3d: los amigos no cierran nada y corren 0x491080 (CL9 hito 9), que saca sus propios rand(); acá, los 2 de
+// CanOpen.
+TEST(PanelRegistryTest, TheFriendsRunTheirHookWithoutClosingAnything)
+{
+    Tested tested;
+    int hooks = 0;
+    tested.context.friendsOpened = [&hooks]() -> Client::Core::Expected<void, std::string>
+    {
+        ++hooks;
+        return {};
+    };
+    tested.state.inventory = 1;
+    const auto opened = tested.panels.Open(FriendsPanel);
+    ASSERT_TRUE(opened.HasValue()) << opened.Error();
+    EXPECT_EQ(hooks, 1);
+    EXPECT_EQ(tested.state.inventory, 1);
+    EXPECT_EQ(DrawsSince(tested.random), 2);
+}
+
 TEST(PanelRegistryTest, TheCharacterWithoutItsHookIsACut)
 {
     Tested tested;
@@ -351,6 +446,42 @@ TEST(PanelRegistryTest, AnErrorOfTheCharacterHookStopsBeforeTheSounds)
     ASSERT_FALSE(opened.HasValue());
     EXPECT_EQ(opened.Error(), "gancho");
     EXPECT_TRUE(tested.sounds.empty());
+}
+
+// 0x659fd9..0x65a8af (CL9 hito 4): la mascota, con el personaje abierto, cierra lo demás menos el personaje y los
+// amigos, pone 0x723911 en 2 (0x420cb0) y pide el cuervo y el caballo (el gancho); cerrarla, o cerrar el personaje, la
+// vuelve a 0 (0x420ca0). Sin el gancho, abrirla corta después de 0x420cb0.
+TEST(PanelRegistryTest, ThePetOpensBesideTheCharacterAndAsksForBothPets)
+{
+    Tested tested;
+    tested.state.character = 1;
+    tested.state.overlayMode = MoveOverlayMode;
+    std::vector<std::uint8_t> petWhenAsked;
+    tested.context.petRequests = [&tested, &petWhenAsked]() { petWhenAsked.push_back(tested.state.delegated.pet); };
+    const auto opened = tested.panels.Open(PetPanel);
+    ASSERT_TRUE(opened.HasValue()) << opened.Error();
+    EXPECT_TRUE(opened.Value());
+    EXPECT_EQ(petWhenAsked, (std::vector<std::uint8_t>{2}));
+    EXPECT_TRUE(tested.panels.IsOpen(PetPanel));
+    EXPECT_EQ(tested.state.character, 1);
+    EXPECT_EQ(tested.state.overlayMode, 0);
+
+    const auto closed = tested.panels.Close(PetPanel);
+    ASSERT_TRUE(closed.HasValue()) << closed.Error();
+    EXPECT_EQ(tested.state.delegated.pet, 0);
+    EXPECT_EQ(tested.state.character, 1);
+
+    ASSERT_TRUE(tested.panels.Open(PetPanel).HasValue());
+    ASSERT_TRUE(tested.panels.Close(CharacterPanel).HasValue());
+    EXPECT_EQ(tested.state.delegated.pet, 0);
+    EXPECT_EQ(tested.state.character, 0);
+
+    Tested unhooked;
+    unhooked.state.character = 1;
+    const auto cut = unhooked.panels.Open(PetPanel);
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x659ff6"), std::string::npos) << cut.Error();
+    EXPECT_EQ(unhooked.state.delegated.pet, 2);
 }
 
 // 0x659a82..0x659c44: la party cierra lo demás menos los amigos, pone la cuenta en 0 y pide la lista (el gancho) antes
@@ -398,6 +529,40 @@ TEST(PanelRegistryTest, OpeningThePartyWithoutTheListRequestCuts)
     EXPECT_NE(opened.Error().find("0x659aa0"), std::string::npos) << opened.Error();
     EXPECT_EQ(tested.state.party, 0);
     EXPECT_TRUE(tested.sounds.empty());
+}
+
+// 0x659c7a..0x659e41: el gremio pide la lista (el gancho) antes de su byte; 0x65be98: la ventana 2 solo prende el suyo.
+// Los dos sacan los cuatro rand() de CanOpen y de CloseByMask; cerrarlos va por sus ganchos (0x6522f0 y 0x6570b0).
+TEST(PanelRegistryTest, TheGuildWindowsOpenWithTheirHooksAndCloseThroughThem)
+{
+    Tested tested;
+    std::vector<std::uint8_t> guildWhenAsked;
+    tested.context.guildOpened = [&tested, &guildWhenAsked]()
+    { guildWhenAsked.push_back(tested.state.delegated.guild); };
+    int closings = 0;
+    tested.context.guildClosed = [&tested, &closings]() -> Client::Core::Expected<void, std::string>
+    {
+        ++closings;
+        tested.state.delegated.guild = 0;
+        return {};
+    };
+    const auto opened = tested.panels.Open(GuildPanel);
+    ASSERT_TRUE(opened.HasValue()) << opened.Error();
+    EXPECT_TRUE(opened.Value());
+    EXPECT_EQ(guildWhenAsked, (std::vector<std::uint8_t>{0}));
+    EXPECT_EQ(tested.state.delegated.guild, 1);
+    EXPECT_EQ(DrawsSince(tested.random), 4);
+
+    // Abrir la ventana 2 cierra el gremio por su gancho.
+    const auto second = tested.panels.Open(SecondGuildPanel);
+    ASSERT_TRUE(second.HasValue()) << second.Error();
+    EXPECT_TRUE(second.Value());
+    EXPECT_EQ(closings, 1);
+    EXPECT_EQ(tested.state.delegated.secondGuild, 1);
+    EXPECT_EQ(DrawsSince(tested.random), 8);
+
+    // Sin el gancho de la ventana 2, cerrarla corta.
+    EXPECT_FALSE(tested.panels.Close(SecondGuildPanel).HasValue());
 }
 
 // 0x65a91c..0x65a934: los comandos prenden +4 de [0x6e592c]; en Chaos Castle CanOpen no los deja.
@@ -496,18 +661,96 @@ TEST(PanelRegistryTest, CloseByMaskClosesTheOwnPanels)
     EXPECT_TRUE(tested.sounds.empty());
 }
 
+// 0x658a04..0x658bc7 y 0x658bfa..0x658dbe: cerrar un NPC de evento manda el C1 03 31 (el gancho) y pone 0x7d53712 en
+// 0; 0x65cae0(0x1000) cierra después el inventario. Sin el gancho, corta con su dirección.
+TEST(PanelRegistryTest, ClosingAnEventNpcSendsTheWindowClose)
+{
+    for (const std::uint8_t kind : {std::uint8_t{0}, std::uint8_t{1}})
+    {
+        SCOPED_TRACE(kind);
+        Tested tested;
+        int sent = 0;
+        tested.context.eventNpcClosed = [&sent, &tested]()
+        {
+            EXPECT_EQ(tested.state.eventNpc, 1) << "el C1 03 31 sale antes de cerrarlo";
+            ++sent;
+        };
+        tested.state.eventNpc = 1;
+        tested.state.eventNpcKind = kind;
+        tested.state.inventory = 1;
+        const PanelId id = kind == 0 ? EventNpcPanel : SecondEventNpcPanel;
+        const auto closed = tested.panels.Close(id);
+        ASSERT_TRUE(closed.HasValue()) << closed.Error();
+        EXPECT_TRUE(closed.Value());
+        EXPECT_EQ(sent, 1);
+        EXPECT_EQ(tested.state.eventNpc, 0);
+        EXPECT_EQ(tested.state.eventNpcKind, kind);
+        EXPECT_EQ(tested.state.inventory, kind == 0 ? 0 : 1);
+        EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x19, 0x1c}));
+    }
+    Tested tested;
+    tested.state.eventNpc = 1;
+    const auto closed = tested.panels.Close(EventNpcPanel);
+    ASSERT_FALSE(closed.HasValue());
+    EXPECT_NE(closed.Error().find("0x657ab0(0x1000)"), std::string::npos) << closed.Error();
+    EXPECT_EQ(tested.state.eventNpc, 1);
+}
+
 TEST(PanelRegistryTest, CloseByMaskFollowsTheFixedOrder)
 {
-    // El personaje es el primero: con el comercio abierto (y sin dueño), corta en el comercio después de cerrarlo.
+    // El personaje es el primero: con el comercio abierto y sin sus grillas, corta en el comercio después de cerrarlo.
     Tested tested;
     tested.state.character = 1;
     tested.state.trade = 1;
     tested.state.inventory = 1;
     const auto closed = tested.panels.CloseByMask(AllPanels);
     ASSERT_FALSE(closed.HasValue());
-    EXPECT_NE(closed.Error().find("0x657ab0(0x20)"), std::string::npos) << closed.Error();
+    EXPECT_NE(closed.Error().find("0x657fb5"), std::string::npos) << closed.Error();
     EXPECT_EQ(tested.state.character, 0);
     EXPECT_EQ(tested.state.inventory, 1);
+}
+
+// 0x659e46..0x659f38: abrir el comercio cierra lo demás, abre el inventario (con sus sonidos) y escribe el byte
+// protegido: su IsOpen, el 0x10000 y el 0x20 de CanOpen, el 0x10000 del cierre, los cuatro del inventario y la
+// escritura (9).
+TEST(PanelRegistryTest, OpeningTheTradeOpensTheInventoryAndWritesTheProtectedByte)
+{
+    Tested tested;
+    const auto opened = tested.panels.Open(TradePanel);
+    ASSERT_TRUE(opened.HasValue()) << opened.Error();
+    EXPECT_TRUE(opened.Value());
+    EXPECT_EQ(tested.state.trade, 1);
+    EXPECT_EQ(tested.state.inventory, 1);
+    EXPECT_EQ(tested.state.tradeDepth, 0);
+    EXPECT_EQ(DrawsSince(tested.random), 9);
+    EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x19, 0x1c, 0x19, 0x1c}));
+}
+
+// 0x65cb5b con el comercio: su IsOpen, el del cierre, el gancho (las grillas y, con aux en 0, el 3D) y la escritura del
+// byte en 0; después el inventario, con el mismo aux.
+TEST(PanelRegistryTest, ClosingTheTradeRunsItsHookBetweenTheQueryAndTheWrite)
+{
+    for (const bool aux : {false, true})
+    {
+        Tested tested;
+        std::vector<bool> hooked;
+        tested.context.tradeClosed = [&tested, &hooked](bool closedAux) -> Client::Core::Expected<void, std::string>
+        {
+            hooked.push_back(closedAux);
+            EXPECT_EQ(DrawsSince(tested.random), 2);
+            if (!closedAux)
+                tested.random.Discard(2);
+            return {};
+        };
+        tested.state.trade = 1;
+        tested.state.inventory = 1;
+        const auto closed = tested.panels.Close(TradePanel, aux);
+        ASSERT_TRUE(closed.HasValue()) << closed.Error();
+        EXPECT_EQ(hooked, (std::vector<bool>{aux}));
+        EXPECT_EQ(tested.state.trade, 0);
+        EXPECT_EQ(tested.state.inventory, 0);
+        EXPECT_EQ(DrawsSince(tested.random), aux ? 3 : 5);
+    }
 }
 
 TEST(PanelRegistryTest, EscapeWithNothingOpenDrawsTwoAndClosesNothing)
@@ -554,8 +797,13 @@ TEST(PanelRegistryTest, OtherKeysGoOnlyToThePanelDialog)
     EXPECT_FALSE(key.Value());
     EXPECT_EQ(tested.state.inventory, 1);
 
-    tested.state.delegated.panelDialog = 1;
-    EXPECT_FALSE(tested.panels.PanelKey(0x1b).HasValue());
+    // 0x657880: con el diálogo de los paneles abierto (sin quien lo abrió), el Esc lo cierra él y la ventana queda.
+    tested.state.delegated.panelDialog.opened = 1;
+    const auto escape = tested.panels.PanelKey(0x1b);
+    ASSERT_TRUE(escape.HasValue()) << escape.Error();
+    EXPECT_TRUE(escape.Value());
+    EXPECT_EQ(tested.state.delegated.panelDialog.opened, 0);
+    EXPECT_EQ(tested.state.inventory, 1);
 }
 
 TEST(PanelRegistryTest, CloseAllWithNothingOpenDrawsTwo)
@@ -572,6 +820,41 @@ TEST(PanelRegistryTest, TheObjectPanelsStepDoesNotDraw)
     EXPECT_EQ(DrawsSince(tested.random), 0);
     tested.state.delegated.guild = 1;
     EXPECT_FALSE(tested.panels.StepTheObjectPanels().HasValue());
+}
+
+// 0x657930: con [0x7d536f4] abierta, su paso (0x657959) antes de mirar el gremio; sin el gancho, corta.
+TEST(PanelRegistryTest, TheObjectPanelsStepTheSecondGuildWindowFirst)
+{
+    Tested tested;
+    tested.state.delegated.secondGuild = 1;
+    EXPECT_FALSE(tested.panels.StepTheObjectPanels().HasValue());
+    int steps = 0;
+    tested.context.secondGuildStep = [&steps]() -> Client::Core::Expected<void, std::string>
+    {
+        ++steps;
+        return {};
+    };
+    ASSERT_TRUE(tested.panels.StepTheObjectPanels().HasValue());
+    EXPECT_EQ(steps, 1);
+    tested.state.delegated.guild = 1;
+    const auto cut = tested.panels.StepTheObjectPanels();
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x657977"), std::string::npos) << cut.Error();
+    EXPECT_EQ(steps, 2);
+    // 0x657959 y después 0x657977: la ventana 2 y la del gremio.
+    std::string order;
+    tested.context.secondGuildStep = [&order]() -> Client::Core::Expected<void, std::string>
+    {
+        order += "2";
+        return {};
+    };
+    tested.context.guildStep = [&order]() -> Client::Core::Expected<void, std::string>
+    {
+        order += "1";
+        return {};
+    };
+    ASSERT_TRUE(tested.panels.StepTheObjectPanels().HasValue());
+    EXPECT_EQ(order, "21");
 }
 
 TEST(PanelRegistryTest, TheWorldIsFullWidthWithNothingOpenAndDrawsNothing)

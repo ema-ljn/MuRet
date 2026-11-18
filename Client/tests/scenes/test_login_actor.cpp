@@ -4,6 +4,7 @@
 #include "Data/Terrain/TerrainHeights.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorConstruction.h"
+#include "Scenes/ActorCreation.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/MapLoad.h"
 #include "Scenes/WorldRuntime.h"
@@ -59,6 +60,22 @@ TEST(LoginActorTest, MapCleanupReleasesTheGameMasterLayers)
     EXPECT_EQ(world.Actors()[1].byte360, 5);
     EXPECT_TRUE(world.Actors()[400].layer);
     EXPECT_EQ(world.Actors()[400].byte360, 5);
+}
+
+// 0x510f99 (CL9 hito 2): 0x401040 saca los huesos con nombre de los que mueren; los del que sobrevive quedan.
+TEST(LoginActorTest, MapCleanupForgetsTheNamedBonesOfTheKilled)
+{
+    const auto world = std::make_unique<Client::Scenes::WorldState>();
+    world->Actors()[0].alive = true;
+    world->Actors()[0].key = 7;
+    world->Actors()[1].alive = true;
+    world->Actors()[1].key = 8;
+    Client::Scenes::NameABone(world->Runtime(), 0, "Hueso_Uno", 3);
+    Client::Scenes::NameABone(world->Runtime(), 1, "Hueso_Dos", 4);
+    Client::Scenes::KillOtherActors(*world, 7);
+    ASSERT_EQ(world->Runtime().namedBones.size(), 1u);
+    EXPECT_EQ(world->Runtime().namedBones[0].actor, 0u);
+    EXPECT_EQ(world->Runtime().namedBones[0].name, "Hueso_Uno");
 }
 
 TEST(LoginActorTest, MissingWorldDataCutsAfterThePreviousCellRandoms)

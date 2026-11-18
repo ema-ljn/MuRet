@@ -1,0 +1,235 @@
+#pragma once
+
+#include "World/ItemState.h"
+
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <string>
+#include <vector>
+
+// Las grillas y los globales de las ventanas de los NPC (CL9 hito 6): la tienda y el almacén comparten la grilla de
+// 0x78a7070, la caja del caos tiene la suya en 0x7d2d380, y el 30 (0x4d1e00), el 31 (0x4c5f60), el 83 y el 86
+// (0x4da280) escriben el resto. Todo en la .bss, que nadie vacía al cambiar de escena. Contrato:
+// Client/docs/research/04-protocolo.md, "Las ventanas de los NPC".
+namespace Client::Scenes
+{
+// 0x78a7070..0x78a926c: 120 casillas de 0x48 bytes, 8 por fila (0x5bc150 y la vuelta de 0x657ab0(0x40)).
+inline constexpr std::size_t NpcGridCellCount = 120;
+// 0x7d2d380..0x7d2dcbc: 32 casillas, 8 por fila y 4 filas (0x4c5f60 y 0x4da280 la llenan con 0x5bc740(.., 8, 4, ..)).
+inline constexpr std::size_t ChaosBoxCellCount = 32;
+inline constexpr std::int32_t NpcGridColumns = 8;
+inline constexpr std::int32_t ChaosBoxRows = 4;
+// 0x6c9da8..0x6c9dbc: las seis tasas de la caja del caos que copia el 30 con el resultado 3 (0x4d253b..0x4d2566).
+inline constexpr std::size_t ChaosRateCount = 6;
+// 0x723c80..0x724580: la caja del entrenador de las mascotas, 32 casillas de 0x48 bytes, 8 por fila y 4 filas
+// (0x44ad10, 0x44ad40 y 0x44d6c4 la recorren con 8 y 4).
+inline constexpr std::size_t TrainerBoxCellCount = 32;
+
+// 0x449c40: la caja del entrenador vacía, el tipo en 0xffff y +0x3c en 0. Así la dejan la entrada a la selección
+// (0x5bbe10, 0x5bc0db) y abrir el entrenador (0x449940): MuRet arranca así, porque no hay juego sin pasar por la
+// selección antes (*estático*).
+[[nodiscard]] constexpr std::array<World::ItemState, TrainerBoxCellCount> EmptyTrainerBox()
+{
+    std::array<World::ItemState, TrainerBoxCellCount> cells{};
+    for (World::ItemState& cell : cells)
+    {
+        cell.id = 0xffff;
+        cell.occupied = 0;
+    }
+    return cells;
+}
+
+// La lista de 0x6e5660, de los paquetes que se pueden deshacer en el 0xa4 (la clase de 0x46e290, vtable 0x6b85f8;
+// Scenes/JewelBundleList): una ventana vieja (0x45a210) con un std::deque de filas de 0xc bytes. La arma el
+// inicializador estático 0x401ef0 (el tercero de la tabla de 0x6c6004, antes de WinMain) y nadie la destruye ni la
+// vuelve a armar: lo que no vacía 0x482f80 (la cola, el lugar, la barra, el foco) dura de una apertura a la otra. Su
+// estado (+0x48, 0x45a9b0) queda en 0: no tiene borde que agarrar (la vtable + 0x8c es 0x403140) y el cursor de la
+// barra no se agarra nunca (07 Q-C1151), así que el arrastre (+0x11c y las ramas del 1 y el 2 de 0x483bc0) no está.
+struct JewelBundleList
+{
+    // Una fila (0x46e940): +0 lo da vuelta el clic sobre ella (0x46f20a; nadie más lo lee), +4 la casilla del
+    // inventario y +8 el nivel del paquete.
+    struct Row
+    {
+        std::int32_t flag = 0;
+        std::int32_t cell = 0;
+        std::uint8_t level = 0;
+    };
+    // +0x80..+0xa8: el deque y su cuenta. Con +0xc8 en 0 (el constructor; nadie lo cambia en esta clase), la cuenta
+    // de 0x403100 es la del deque.
+    std::vector<Row> rows{};
+    // +0x40: el id del contador 0x5762eb0 (0x459ef0). Es la primera ventana que se arma (los dos inicializadores de
+    // antes no arman ninguna): el 1 (*estático*; 08 P-C366).
+    std::int32_t id = 1;
+    // +0x50..+0x5c: la esquina de abajo a la izquierda (el modo 2 de +0x78) y el tamaño. 0x45a210 y 0x46e290 la dejan
+    // en (0, 0) de 0xb4 × 0x6d; el dibujo del 0xa4 la pone en (0xe4, alto + 0xf0) en cada frame (0x62f734).
+    std::int32_t x = 0;
+    std::int32_t y = 0;
+    std::int32_t width = 0xb4;
+    std::int32_t height = 0x6d;
+    // +0x8..+0x30: la cola de mensajes de la ventana (0x459f70). A esta solo le llegan los suyos, el 0xf y el 0x10 de
+    // las flechas del teclado (0x483c21..0x483c84, sin parámetros), que atiende el paso siguiente (0x45aa8e).
+    std::vector<std::int32_t> messages{};
+    // +0xc0: la repetición de las flechas del teclado.
+    std::int32_t keyRepeat = 0;
+    // +0xc4: el elegido, de 1 en adelante (0: ninguno).
+    std::int32_t selection = 0;
+    // +0x100: el primero que se ve (el de abajo) y +0x104 cuántos se ven (8 del constructor; nadie lo cambia).
+    std::int32_t scroll = 0;
+    std::int32_t shownRows = 8;
+    // +0x108, +0x10c, +0x110 y +0x118: la barra que pone el dibujo (0x484490) y lee el paso del frame siguiente;
+    // +0x114, el ancho del cursor (13 del constructor).
+    float barTop = 0.0f;
+    float barBottom = 0.0f;
+    float thumbY = 0.0f;
+    float thumbWidth = 13.0f;
+    float thumbHeight = 0.0f;
+    // +0x120 y +0x124: la repetición de las flechas de la barra y de la pista.
+    std::int32_t arrowRepeat = 0;
+    std::int32_t trackRepeat = 0;
+    // +0x12c: el modo de la barra (1, del constructor).
+    std::int32_t barMode = 1;
+};
+
+// La mezcla de joyas del NPC del 30 con 9 (los diálogos 0xa1, 0xa2, 0xa3, 0xa4 y 0xa6, y el BC; los textos 1806 a
+// 1815 de Text.bmd, "misturar" y "dissolver"): juntar 10, 20 o 30 joyas de bendición (0x1c0d) o del alma (0x1c0e)
+// en un paquete (0x181e o 0x181f), o deshacer uno. Los globales de 0x6e5794..0x6e57a0 y 0x6c62d8..0x6c62e1; los de
+// 0x6c62xx empiezan en 0xff en la .data, los de 0x6e57xx en 0 en la .bss. 0x402e10 los vuelve a esos valores (salvo
+// 0x6e579c, que deja en −1).
+struct JewelMixState
+{
+    // 0x6e5794: 0 juntar (el 0xa2) y 1 deshacer (el 0xa4). Lo eligen los botones del 0xa1.
+    std::int32_t mode = 0;
+    // 0x6e5799: por qué no se puede (2 faltan joyas, 4 no hay paquete que deshacer, 5 otro caso; 0x402bc0).
+    std::uint8_t refusal = 0;
+    // 0x6e579a: las joyas contadas (0x402bc0), o 1 al deshacer.
+    std::uint8_t counted = 0;
+    // 0x6e579c: el precio (0x402cf0): la cuenta · 50.000 al juntar y 1.000.000 al deshacer.
+    std::int32_t price = 0;
+    // 0x6e57a0: 100 con la mezcla posible (0x402cb2), 0 o el tipo si no. Nadie de los portados lo lee.
+    std::uint8_t field6e57a0 = 0;
+    // 0x6c62d8: la casilla del inventario del paquete a deshacer (0x402a90); el BC 01 le suma 12 (0x401f5a).
+    std::int32_t cell = -1;
+    // 0x6c62dc: el nivel del paquete a deshacer (0x402a90, 0x402ae0).
+    std::int32_t level = -1;
+    // 0x6c62e0: la joya, 0 bendición y 1 alma; 0xff sin elegir.
+    std::uint8_t kind = 0xff;
+    // 0x6c62e1: cuántas juntar (10, 20 o 30; 0xff sin elegir), con signo para el BC 00 (0x40276b).
+    std::uint8_t count = 0xff;
+    // La lista de 0x6e5660. No es de los globales de 0x402e10: la vacían 0x402a10 (0x482f80) y la llenan 0x402a20
+    // desde el paso del 0xa4.
+    JewelBundleList bundles{};
+};
+
+// 0x78ab9bc..0x78ab9c8: lo que el almacén dejó esperando la contraseña, que el 83 con 0xc manda (0x4e4744..). Con el
+// primero en −1, el zen (0x4e6f80 con el segundo y el tercero); si no, un ítem (0x449d80 con los cuatro).
+struct PendingWarehouseMove
+{
+    std::int32_t slot = 0;
+    std::int32_t second = 0;
+    std::int32_t third = 0;
+    std::int32_t fourth = 0;
+};
+
+// El SetCursorPos de 0x4d28a9..0x4d28f6, en píxeles de la pantalla.
+struct CursorWarp
+{
+    std::int32_t x = 0;
+    std::int32_t y = 0;
+};
+
+// 0x7879fc8..0x7879fdc: las diez teclas del teclado del almacén, words con 0 a 9 que se barajan al abrirlo.
+inline constexpr std::size_t WarehouseKeyCount = 10;
+
+struct NpcWindowState
+{
+    // 0x78a7070: la grilla de la tienda de NPC y del almacén.
+    std::array<World::ItemState, NpcGridCellCount> grid{};
+    // 0x7d2d380: la grilla de la caja del caos.
+    std::array<World::ItemState, ChaosBoxCellCount> chaosBox{};
+    // 0x6c9da8 (.data): 75, 70, 65, 60, 55 y 50 hasta que el 30 con el resultado 3 las pisa.
+    std::array<std::int32_t, ChaosRateCount> chaosRates{75, 70, 65, 60, 55, 50};
+    // 0x7d2dc80: el estado de la mezcla. 1 la pide (0x5d9362), 2 la deja lista (0x4c5f60 y 0x4da280) y 0 la apaga
+    // (abrir la caja, 0x65ac28, y el 86 con 2 o 0xb).
+    std::int32_t chaosMixState = 0;
+    // 0x7d2dc9d: lo pone en 0 abrir la caja del caos (0x65a94f) y lo escribe un paquete del asedio (0x4e5a28, CL9.5).
+    // Con algo, el dibujo suma "+ n%" a la chance del 2 y del 8 (0x5ff2f2).
+    std::uint8_t field7d2dc9d = 0;
+    // 0x6c932f: la traba del almacén. La escriben el 83 con 0 y 1 y la apagan abrirlo y cerrarlo.
+    std::uint8_t warehouseLocked = 0;
+    // 0x78abb1c: lo pone en 0 el 83 con 0 y 1, y el 83 con 0xc solo manda con él en 0.
+    std::uint8_t field78abb1c = 0;
+    PendingWarehouseMove pendingMove{};
+    // 0x5767950: el 32 lo vuelve a 0 (0x4e3c58); con otro valor, la tienda no compra (0x5c4b91, 0x5c4bcc). Comprar le
+    // pone el precio de 0x54d0f0 en el modo 0 (0x5c4bc9 y las salidas del envío).
+    std::int32_t buyLock = 0;
+    // 0x78ababc: lo que cuesta reparar todo. 0x5b1570 lo cuenta en cada paso de la tienda con 0x78abb09 y lo dibuja
+    // 0x5f4720.
+    std::int32_t repairAllPrice = 0;
+    // 0x78aba30: el impuesto de la tienda, en por ciento. Lo escribe el B2 1A con +4 en 2 (0x4e5521, el byte de +5;
+    // CL9.5): hasta entonces, el 0 de la .bss. Lo leen el título de la tienda (0x5f4813) y el precio del tooltip
+    // (0x5b1203).
+    std::int32_t taxRate = 0;
+    // 0x7879fc8: el teclado del almacén.
+    std::array<std::uint16_t, WarehouseKeyCount> keypad{};
+    // 0x78ab9fc..0x78aba06: lo que se tecleó, en 0 al barajar (0x5cb43c..0x5cb44f y 0x5ea22d..). El 83 de la
+    // contraseña (0x5e7e90) manda los diez primeros.
+    std::array<std::uint8_t, 11> typedNumber{};
+    // 0x78aba07..0x78aba0a: la contraseña nueva del modo 4, que el OK copia (un dword de lo tecleado, 0x5e7d8b) para
+    // compararla en el 5 (0x5e7e34). Nadie más la lee ni la escribe.
+    std::array<std::uint8_t, 4> newPassword{};
+    // 0x78abb24: la contraseña que el modo 5 aceptó (el atoi de lo tecleado, 0x5e7e56) y que el 2 manda en el 83 con
+    // 1 (0x5e7ffc). Nadie más la lee ni la escribe.
+    std::uint16_t warehousePassword = 0;
+    // 0x78abb3a: la tecla de la caja de la contraseña apretada. La prende el clic en el paso del teclado (0x5e9ab8) y
+    // la apaga soltarlo (0x5e9ac9); el dibujo (0x5e9e25) baja un punto el número de la tecla del mouse.
+    std::uint8_t keypadPressed = 0;
+    // 0x7d2dc98: el tipo de la mezcla que manda el C1 04 86 (0x5d93f8). Lo arma 0x5fd4b0 en cada paso con la caja
+    // abierta (0x5d8dda, Scenes::ScanTheChaosBox).
+    std::int32_t mixKind = 0;
+    // 0x7d2d378: lo que vale la caja (0x5fd120 desde 0x5d8dcd), con lo que el dibujo saca la chance de la mezcla 1.
+    std::int32_t chaosBoxValue = 0;
+    // 0x7d3a114 (.bss, 0): el modo de la caja que elige el diálogo 0x8e (0x62599b, el botón 0 o el 1). 0x5fd4b0 lo
+    // mira y el dibujo pone su título.
+    std::int32_t chaosMixMode = 0;
+    // 0x6c9da0 y 0x6c9da4 (.data, 5 y 4): el ancho y el alto más grandes (Item.bmd +0x24 y +0x25) de lo que hay en la
+    // caja, que 0x5fd4f0 vuelve a 1 antes de contar. Siguen a las tasas (0x6c9da8): el dibujo del 2 las lee en fila.
+    std::int32_t mixWidth = 5;
+    std::int32_t mixHeight = 4;
+    // 0x7d2dc84: la capa del 0x1c, 3 con armas excelentes y 4 con armaduras (0x5fdbe6, 0x5fdc1d).
+    std::int32_t mixCapeKind = 0;
+    // 0x7d2dc88: lo que valen (0x54d0f0 en el modo 1, tope 1.000.000) los ítems de nivel 4 o más con una opción de
+    // 0x50 a 0x53, la chance del 0x1c.
+    std::int32_t mixExcellentValue = 0;
+    // 0x7d2dc8c: el nivel + 1 de los dos ítems del 2 (0x1c11 y 0x1c12) o del 8 (0x1a10 y 0x1a11).
+    std::int32_t mixLevel = 0;
+    // 0x7d2dc90: la opción de las alas (0x50 o 0x51 su valor, 0x55 su valor · 4). Nadie más la lee.
+    std::int32_t mixWingOption = 0;
+    // 0x7d2dc94: la chance de las alas del 7 y la capa del 0x18, tope 90.
+    std::int32_t mixWingRate = 0;
+    // 0x7d2dc9c: la suerte (la opción 0x54) del último ítem de nivel 9 a 12 o de nivel 4 o más que la mira.
+    std::uint8_t mixLuck = 0;
+    // 0x7d2dca0: el precio de la mezcla, que escribe el dibujo (0x5febf0) y lee el botón de mezclar (0x5fe982).
+    std::uint32_t mixPrice = 0;
+    // 0x78aba34: el impuesto de la caja del caos, en por ciento. Lo escribe el B2 1A con +4 en 1 (0x4e5507 y
+    // 0x4dfbb0, el byte de +5; CL9.5): hasta entonces, el 0 de la .bss. Lo leen el título de la caja (0x5fed3e), el
+    // precio con impuesto (0x5b12f0) y el entrenador (0x44d89e).
+    std::int32_t chaosTaxRate = 0;
+    // 0x6e5798: con 0, el 30 con 9 abre el diálogo 0xa1 (0x4d259d). Es la mezcla de joyas mandada (0x4029e0 lo pone
+    // en 1 con el BC; 0x402e50 y 0x402e10 lo vuelven a 0): mientras, el 30 con 9 no abre nada.
+    std::uint8_t field6e5798 = 0;
+    // 0x723c80: la caja del entrenador (Scenes/PetTrainer.h). La llenan el 31 con la grilla 5 (0x4c5fde), el 86 con
+    // 100 (0x4da373) y el 24 con 5 (0x4d1d55); la dibuja 0x44ad40 y sus ítems se levantan con 0x44ad10 y se sueltan
+    // con 0x44aca9 (CursorGrid::TrainerBox).
+    std::array<World::ItemState, TrainerBoxCellCount> trainerBox = EmptyTrainerBox();
+    // 0x724585: 0x44ae10 lo pone en 1 si el zen no alcanza para la mezcla que encontró en la caja. Nadie lo lee
+    // (Q-C956).
+    std::uint8_t trainerZenShort = 0;
+    // La mezcla de joyas (los diálogos 0xa1..0xa6 y el BC, Scenes/JewelMix.h).
+    JewelMixState jewels{};
+    // El SetCursorPos que pidió el último 30 (0x4d28f6), con el mouse que vea la escena: NpcTalkCursorWarp. Aplicarlo
+    // a la ventana es de la plataforma (CL10).
+    bool cursorWarpRequested = false;
+};
+} // namespace Client::Scenes

@@ -8,7 +8,9 @@
 #include "Core/Expected.h"
 #include "Protocol/Character/CharacterSelectResult.h"
 
+#include <cstddef>
 #include <functional>
+#include <span>
 #include <string>
 #include <utility>
 #include <variant>
@@ -41,6 +43,18 @@ public:
         return onWorld ? onWorld(event, session) : Core::Expected<void, std::string>{};
     }
 
+    // La copia del dispatcher a la cola de 0x77f27b4: se guarda aparte, sin entrar en `world` ni en `trace`.
+    void CopyToPacketRing(std::span<const std::byte> packet) override
+    {
+        packetCopies.emplace_back(packet.begin(), packet.end());
+    }
+
+    void ClearLogoutRequest() override
+    {
+        if (onLogoutResponse)
+            onLogoutResponse();
+    }
+
     std::vector<App::CharacterEvent> TakeCharacterEvents()
     {
         return std::exchange(characters, {});
@@ -52,10 +66,12 @@ public:
 
     std::vector<App::CharacterEvent> characters;
     std::vector<App::WorldEvent> world;
+    std::vector<std::vector<std::byte>> packetCopies;
     std::vector<App::SessionState> characterStates;
     std::vector<App::SessionState> worldStates;
     std::vector<std::string> trace;
     std::function<Core::Expected<void, std::string>(const App::CharacterEvent&, const App::ServerSession&)> onCharacter;
     std::function<Core::Expected<void, std::string>(const App::WorldEvent&, App::ServerSession&)> onWorld;
+    std::function<void()> onLogoutResponse;
 };
 } // namespace Client::Tests

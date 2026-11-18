@@ -26,6 +26,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string>
@@ -107,6 +108,11 @@ private:
 // el grupo "Grupo Uno".
 struct Shooting
 {
+private:
+    // El caso con dos capturas no debe reservar dos WorldState en la pila de Windows.
+    std::unique_ptr<Client::Scenes::WorldState> m_world = std::make_unique<Client::Scenes::WorldState>();
+
+public:
     Shooting() : texts(Client::Tests::MakeTextTable({{ScreenshotText, "Guardada %s"}, {FirstGroupText, "Grupo Uno"}}))
     {
         Client::Scenes::ActorState& hero = world.Actors()[world.Runtime().hero];
@@ -149,7 +155,7 @@ struct Shooting
         return lines;
     }
 
-    Client::Scenes::WorldState world;
+    Client::Scenes::WorldState& world = *m_world;
     LetterMeasure measure;
     Client::Data::Text::TextTable texts;
     TemporaryFolder folder{"screenshots"};
@@ -323,7 +329,8 @@ TEST(ScreenshotsTest, WithoutAChosenServerTheGroupIsEmpty)
 TEST(ScreenshotsTest, AHeldFrameWithTheRequestCuts)
 {
     {
-        Shooting shooting;
+        const std::unique_ptr<Shooting> shootingOnHeap = std::make_unique<Shooting>();
+        Shooting& shooting = *shootingOnHeap;
         Screenshots screenshots(ScreenshotState{.requested = true});
         screenshots.FinishTheLoop(true);
         ASSERT_TRUE(shooting.Frame(screenshots).HasValue());
@@ -331,7 +338,8 @@ TEST(ScreenshotsTest, AHeldFrameWithTheRequestCuts)
         screenshots.FinishTheLoop(false);
         EXPECT_TRUE(screenshots.StepTheKey(shooting.ui, shooting.input).HasValue()) << "un frame dibujado no corta";
     }
-    Shooting shooting;
+    const std::unique_ptr<Shooting> shootingOnHeap = std::make_unique<Shooting>();
+    Shooting& shooting = *shootingOnHeap;
     Screenshots screenshots(ScreenshotState{.requested = true});
     screenshots.FinishTheLoop(false);
     const auto step = screenshots.StepTheKey(shooting.ui, shooting.input);

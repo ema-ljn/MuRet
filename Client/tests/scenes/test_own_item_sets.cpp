@@ -614,12 +614,41 @@ TEST_F(OwnItemSetsFixture, AnEmptySlotWithDurabilityStopsTheStatCopies)
 {
     OwnCharacterRecord own = Unequipped();
     own.equipment[4].durability = 1;
+    own.equipment[4].flags1c = 4; // Valor 1: el byte desconocido sí puede cambiar las copias.
     OwnStatCopies copies;
     const auto added = Client::Scenes::AddOwnBonusesToStatCopies(copies, own, Context(nullptr));
     ASSERT_FALSE(added.HasValue());
     EXPECT_NE(added.Error().find("0x40de10, lugar 4"), std::string::npos);
     EXPECT_NE(added.Error().find("Q-C184"), std::string::npos);
     EXPECT_EQ(m_accesses, 1);
+}
+
+// 0x40e033..0x40e075: selector desconocido por valor 0 no cambia ninguna copia.
+// Cada lugar conserva su apertura/cierre, aunque no necesite conocer el selector.
+TEST_F(OwnItemSetsFixture, AnEmptySlotWithZeroBonusPreservesCopiesAndBothLogicalAccessCases)
+{
+    for (const std::uint8_t depth : {std::uint8_t{0}, std::uint8_t{1}})
+    {
+        OwnCharacterRecord own = Unequipped();
+        own.equipment[0].durability = 25;
+        own.equipment[0].flags1c = 0xf3;
+        m_accesses = depth;
+        m_random = CrtRandom(3);
+        OwnStatCopies copies{.strength = 11, .agility = 22, .vitality = 44, .energy = 33};
+
+        const auto added = Client::Scenes::AddOwnBonusesToStatCopies(copies, own, Context(nullptr));
+
+        ASSERT_TRUE(added.HasValue()) << added.Error();
+        EXPECT_EQ(copies.strength, 11);
+        EXPECT_EQ(copies.agility, 22);
+        EXPECT_EQ(copies.energy, 33);
+        EXPECT_EQ(copies.vitality, 44);
+        EXPECT_EQ(m_accesses, depth);
+        EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(3, depth == 0 ? 12 * OwnRecordCloseRandoms : 0).State());
+        EXPECT_EQ(own.equipment[0].id, EmptyType);
+        EXPECT_EQ(own.equipment[0].durability, 25);
+        EXPECT_EQ(own.equipment[0].flags1c, 0xf3);
+    }
 }
 
 // Sin las tablas o sin el estado de [0x6eed3c], 0x40e1b0 corta antes de tocar nada: ni la lista, ni el

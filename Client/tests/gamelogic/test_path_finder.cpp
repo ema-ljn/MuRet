@@ -7,6 +7,7 @@
 #include <gtest/gtest.h>
 
 #include <array>
+#include <cstdlib>
 #include <cstddef>
 #include <cstdint>
 #include <initializer_list>
@@ -364,5 +365,42 @@ TEST(PathFinderTest, TheFiftiethExtractionMayImproveTheNearestButTheFiftyFirstCa
     // Con una extracción muerta más, (12,6) sería la 51.ª: ninguna de las 50 mejora el inicio.
     walls.cells[5 * 256 + 9] = 0;
     EXPECT_FALSE(finder.Find({10, 5}, {12, 4}));
+}
+
+// 0x4eae7c..0x4eb054 (el elfo que se acerca, 0x566271): con distancia, la meta son las celdas a menos de ella. Con 1,8
+// (r = 1) el cuadrado de 3 × 3, porque √2 < 1,8: el camino para una celda antes del blanco. Con 2,0 (r = 2) el rombo
+// |dx| + |dy| ≤ 2, sin (±2, ±1) (√5 ≥ 2): para dos antes. El paso exacto no marca las celdas con muro, y con
+// distancia clearGoal no cuenta.
+TEST(PathFinderTest, TheDistanceGoalStopsWithinTheRange)
+{
+    TerrainWalls walls;
+    PathFinder finder(walls);
+    // Con 1,8 el radio entero es 1, pero las esquinas (104, 99) y (104, 101) también son meta (√2 < 1,8): la búsqueda
+    // llega primero a la de arriba.
+    ExpectCells(finder.Find({100, 100}, {105, 100}, false, 1.8f),
+                {{100, 100}, {101, 99}, {102, 99}, {103, 99}, {104, 99}});
+    ExpectCells(finder.Find({100, 100}, {105, 100}, false, 2.0f), {{100, 100}, {101, 100}, {102, 100}, {103, 100}});
+    // A menos de la distancia de entrada no hay camino de dos celdas: ya está.
+    EXPECT_FALSE(finder.Find({104, 100}, {105, 100}, false, 1.8f));
+    walls.cells[100 * 256 + 103] = 4;
+    walls.cells[100 * 256 + 105] = 4;
+    const auto around = finder.Find({100, 100}, {105, 100}, true, 2.0f);
+    ASSERT_TRUE(around);
+    EXPECT_EQ(walls.cells[100 * 256 + 105], 4);
+    const PathCell last = around->cells[around->count - 1];
+    EXPECT_NE(last, (PathCell{103, 100}));
+    EXPECT_LE(std::abs(last.x - 105) + std::abs(last.y - 100), 2);
+}
+
+// Las celdas de la meta usan el índice lineal: cerca del borde derecho, la fila de al lado.
+TEST(PathFinderTest, TheDistanceGoalWrapsIntoTheNextRow)
+{
+    TerrainWalls walls;
+    PathFinder finder(walls);
+    // r = 1 alrededor de (255, 50): (256, 50) es (0, 51).
+    const auto path = finder.Find({3, 51}, {255, 50}, false, 1.0f);
+    ASSERT_TRUE(path);
+    const PathCell last = path->cells[path->count - 1];
+    EXPECT_EQ(last, (PathCell{0, 51}));
 }
 } // namespace

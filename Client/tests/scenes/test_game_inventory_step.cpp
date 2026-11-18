@@ -1,8 +1,12 @@
 #include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
+#include "GameLogic/PathCell.h"
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
+#include "Network/Crypto/Xor32.h"
+#include "Network/Delivery.h"
+#include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/GameUi.h"
@@ -10,20 +14,26 @@
 #include "Scenes/ItemSetState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
+#include "Scenes/SocialEvents.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/GameUiState.h"
 #include "UI/PanelRegistry.h"
 #include "World/ItemState.h"
 
+#include "support/Bytes.h"
 #include "support/ItemFiles.h"
+#include "support/SameBytes.h"
 
 #include <gtest/gtest.h>
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 // El paso del inventario abierto (0x5ee1ac..0x5ee1ca, CL8 hito 4): 0x5e4ce0 con el equipo (0x5c3d20 → 0x5bec50) o
@@ -124,6 +134,23 @@ TEST_F(InventoryStepTest, TheMouseOverTheWindowBelongsToTheUi)
     EXPECT_EQ(world.Runtime().ui.mouseOnUi, 0);
 }
 
+// Q-C1337: con el NPC de Devil Square abierto, el inventario mira la esquina de las ventanas de NPC (0x5e4e76) antes de
+// que su hermana 0x5e5920 la ponga en (0x104, 0): el primer paso la toma en (0, 0).
+TEST_F(InventoryStepTest, TheEventNpcWindowTakesTheMouseFromItsCornerAfterTheFirstStep)
+{
+    world.Runtime().panels.eventNpc = 1;
+    ASSERT_TRUE(Step(100, 300).HasValue());
+    EXPECT_EQ(world.Runtime().ui.mouseOnUi, 1);
+    EXPECT_EQ(world.Runtime().ui.npcWindowX, 0x104);
+    EXPECT_EQ(world.Runtime().ui.npcWindowY, 0);
+    ASSERT_TRUE(Step(100, 300).HasValue());
+    EXPECT_EQ(world.Runtime().ui.mouseOnUi, 0);
+    ASSERT_TRUE(Step(0x104, 0x1b0 - 1).HasValue());
+    EXPECT_EQ(world.Runtime().ui.mouseOnUi, 1);
+    ASSERT_TRUE(Step(0x103, 300).HasValue());
+    EXPECT_EQ(world.Runtime().ui.mouseOnUi, 0);
+}
+
 // El botón de cerrar (x + 0x14 a x + 0x2c, y + 0x18b a y + 0x1a3) consume el clic y cierra el inventario.
 TEST_F(InventoryStepTest, TheCloseButtonClosesTheInventory)
 {
@@ -154,8 +181,8 @@ TEST_F(InventoryStepTest, TheRepairButtonWorksFromLevelFifty)
 }
 
 // Lo que es de otras olas, o lo que pide Item.bmd sin tenerlo, corta con su dirección: un ítem de la grilla bajo el
-// mouse (0x5c420a) y el ítem del cursor sobre un lugar del equipo (0x5bed9e) sin Item.bmd, la tienda personal que abre
-// la S (Open de 0x800, CL9.4) y el comercio abierto.
+// mouse (0x5c420a) y el ítem del cursor sobre un lugar del equipo (0x5bed9e) sin Item.bmd. La S abre la tienda
+// personal (que ya no corta) y el comercio abierto.
 TEST_F(InventoryStepTest, WhatIsStillCutStopsWithItsAddress)
 {
     world.Inventory().cells[0].id = 0x1c00;
@@ -170,10 +197,42 @@ TEST_F(InventoryStepTest, WhatIsStillCutStopsWithItsAddress)
 
     world.OwnCharacter().level = 6;
     input.Apply(InputEvent{.kind = InputEvent::Kind::KeyDown, .key = Key::S});
-    ExpectCut(Step(100, 300), "0x6599a0(0x800)");
+    // La S abre la tienda propia (hito 7, fase 4); el mismo paso sigue con su grilla (0x5e58ea, sin nada bajo el mouse)
+    // y su ventana (0x5ea290, fase 5), que pone su esquina en (0x104, 0).
+    const auto opened = Step(100, 300);
+    ASSERT_TRUE(opened.HasValue()) << opened.Error();
+    EXPECT_EQ(world.Runtime().social.personalShop.windowX, 0x104);
+    EXPECT_EQ(world.Runtime().social.personalShop.windowY, 0);
+    EXPECT_EQ(world.Runtime().panels.personalShop, 1);
+    EXPECT_EQ(world.Runtime().social.personalShop.mode, Client::Scenes::OwnShopView);
+    world.Runtime().panels.personalShop = 0;
+    world.Runtime().social.personalShop.mode = Client::Scenes::NoShopView;
 
+    // El comercio abierto (CL9 hito 7): el mouse sobre su ventana (desde 0x78a5a1c y 0x78a5a18, en 0 antes del
+    // dibujo) es de la UI; un ítem de sus grillas bajo el mouse lee Item.bmd (0x5c420a), que este paso no tiene: corta
+    // ahí. Con él, test_trade_grids.cpp. Las grillas, vacías como las deja la entrada a la selección (0x5bbe10).
+    Client::Scenes::TradeState& trade = world.Runtime().social.trade;
+    Client::Scenes::ClearTheTradeForSelection(trade);
+    // 0x5e513a..0x5e5205: +0x44 en cada casilla de las dos grillas; la del otro conserva el 99 (0x5e5172).
+    trade.otherGrid[3].id = 0x1c00;
+    trade.otherGrid[3].warning = Client::Scenes::ChangedFromTheCopy;
+    trade.otherGrid[4].id = 0x1c00;
+    trade.otherGrid[5].warning = Client::Scenes::ChangedFromTheCopy;
+    trade.ownGrid[2].id = 0x1c00;
+    trade.ownGrid[6].warning = 1;
     world.Runtime().panels.trade = 1;
-    ExpectCut(Step(100, 300), "0x5e4e34");
+    world.Runtime().ui.mouseOnUi = 0;
+    const auto trading = Step(100, 300);
+    ASSERT_TRUE(trading.HasValue()) << trading.Error();
+    EXPECT_EQ(world.Runtime().ui.mouseOnUi, 1);
+    EXPECT_EQ(trade.otherGrid[3].warning, Client::Scenes::ChangedFromTheCopy);
+    EXPECT_EQ(trade.otherGrid[4].warning, 1);
+    EXPECT_EQ(trade.otherGrid[5].warning, 0);
+    EXPECT_EQ(trade.ownGrid[2].warning, 1);
+    EXPECT_EQ(trade.ownGrid[6].warning, 0);
+    // La casilla 21 de la grilla del otro (columna 5, fila 2, desde x + 15 e y + 0x46).
+    trade.otherGrid[21].id = 0x1c00;
+    ExpectCut(Step(15 + 5 * 20 + 5, 0x46 + 2 * 20 + 5), "0x5c420a");
 }
 
 // 0x5c2c56 → 0x5c35ad: el mouse sobre un lugar ocupado, sin el clic, prende 0x78abaac (y 0x5d8d50 no corre), marca el
@@ -217,10 +276,13 @@ protected:
     }
 
     static constexpr std::uint16_t Potion = 0x1c00;
+    static constexpr std::uint16_t Sword = 0x0001;
+    static constexpr std::uint16_t EventTicket = 0x1a1d;
     static constexpr std::size_t PotionCell = 2 * 8 + 1;
     static constexpr std::int32_t PotionX = WindowX + 15 + 20 + 5;
     static constexpr std::int32_t PotionY = 200 + 40 + 5;
-    Client::Data::Tables::ItemTable items = Client::Tests::ItemTableOf({{Potion, 1, 1, 0xff}, {0x1c0d, 1, 1, 0xff}});
+    Client::Data::Tables::ItemTable items = Client::Tests::ItemTableOf(
+        {{Potion, 1, 1, 0xff}, {0x1c0d, 1, 1, 0xff}, {Sword, 1, 3, 0}, {EventTicket, 1, 1, 0xff}});
     Client::Scenes::InventoryServices services;
     int dressed = 0;
     std::vector<std::size_t> messages;
@@ -279,8 +341,45 @@ TEST_F(InventoryMovesStepTest, AClickPicksTheItemUpAndEscapePutsItBack)
     EXPECT_EQ(dressed, 1);
 }
 
+// CL9 hito 5, fase 2: el clic derecho sobre la casilla de abajo de una espada (0x5c8e37) ya no corta. La copia va
+// al cursor y, sin el almacén ni 0x7d368a1, el cursor queda en ceros: la espada sigue en la grilla, sin rand() de más.
+TEST_F(InventoryMovesStepTest, TheRightClickOnASwordLeavesItInTheGrid)
+{
+    for (std::size_t row = 4; row < 7; ++row)
+    {
+        Client::World::ItemState& part = world.Inventory().cells[row * 8 + 5];
+        part.id = Sword;
+        part.gridColumn = 5;
+        part.gridRow = 4;
+        part.occupied = row == 4 ? 1u : 0u;
+    }
+    world.Runtime().ui.rightClick = true;
+    const CrtRandom expected = Advanced(random, BaseStepRandoms + InventoryStepRandoms);
+    const auto stepped = Step(WindowX + 15 + 5 * 20 + 5, 200 + 6 * 20 + 5, &services);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(random.State(), expected.State());
+    EXPECT_FALSE(world.Runtime().ui.rightClick);
+    EXPECT_EQ(world.Runtime().cursorItemCount, 0);
+    EXPECT_EQ(world.Runtime().cursorItem.id, 0);
+    EXPECT_EQ(world.Runtime().cursorGrid, Client::Scenes::CursorGrid::Inventory);
+    EXPECT_EQ(world.Inventory().cells[4 * 8 + 5].id, Sword);
+    EXPECT_EQ(world.Inventory().cells[6 * 8 + 5].id, Sword);
+}
+
+// 0x5c67e9..0x5c685f: el clic derecho sobre el 0x1a1d con todas las ventanas cerradas llega al 91, que corta en
+// 0x5c6865 (hito 11). Con una de las que mira abierta, 0x5e4ce0 corta antes (0x5e4d2a y las que siguen): esa rama
+// está en GridItemUseTest.TheTicket1a1dLooksAtTheShopFirst.
+TEST_F(InventoryMovesStepTest, TheRightClickOnThe1a1dCutsAtTheEventEntry)
+{
+    world.Inventory().cells[PotionCell].id = EventTicket;
+    world.Runtime().ui.rightClick = true;
+    ExpectCut(Step(PotionX, PotionY, &services), "0x5c6865");
+    EXPECT_FALSE(world.Runtime().ui.rightClick);
+}
+
 // 0x5d8d50 con el ítem en el cursor y el clic fuera de las grillas: consume el clic (MouseUpdateTime en 0 y su máximo
-// en 6) y lo tira al piso. La poción se tira (CL9.3: corta en 0x5df58b); un Jewel of Bless vuelve con el aviso 269.
+// en 6) y lo tira al piso. La poción se tira (CL9 hito 5): sin terreno bajo el mouse (0x5dfdfc) sigue en el cursor; un
+// Jewel of Bless vuelve con el aviso 269.
 TEST_F(InventoryMovesStepTest, AClickOutsideTheGridsDropsTheCursorItem)
 {
     Click();
@@ -288,7 +387,11 @@ TEST_F(InventoryMovesStepTest, AClickOutsideTheGridsDropsTheCursorItem)
     world.Runtime().panels.inventory = 0;
     Click();
     world.Runtime().movement.mouseUpdateTime = 4;
-    ExpectCut(Step(100, 300, &services), "0x5df58b");
+    services.pickTheGround = []
+    { return Client::Core::Expected<std::optional<Client::GameLogic::PathCell>, std::string>(std::nullopt); };
+    const auto dropped = Step(100, 300, &services);
+    ASSERT_TRUE(dropped.HasValue()) << dropped.Error();
+    EXPECT_EQ(world.Runtime().cursorItemCount, 1);
     EXPECT_FALSE(world.Runtime().movement.pendingClick);
     EXPECT_EQ(world.Runtime().movement.mouseUpdateTime, 0);
     EXPECT_EQ(world.Runtime().movement.mouseUpdateTimeMax, 6);
@@ -301,3 +404,42 @@ TEST_F(InventoryMovesStepTest, AClickOutsideTheGridsDropsTheCursorItem)
     EXPECT_EQ(world.Inventory().cells[PotionCell].id, 0x1c0d);
 }
 } // namespace
+
+// 0x5c4472..0x5c4a89, con el modo de reparar: el clic sobre un ítem que se repara manda el C1 05 34 con el lugar de su
+// esquina (fila · 8 + columna + 12) y 0x78abb10, con el XOR32 y en C3 (los dos rand() del envío), y gasta el clic. La
+// poción (0x1c00 en adelante) no se repara: no manda nada.
+TEST_F(InventoryMovesStepTest, RepairModeSendsTheItemsPlaceByteByByte)
+{
+    std::vector<Client::Protocol::Outgoing> sent;
+    const auto step = [this, &sent]
+    {
+        return Client::Scenes::StepTheGameUi(GameUiContext{.world = world,
+                                                           .random = random,
+                                                           .input = input,
+                                                           .mouseX = PotionX,
+                                                           .mouseY = PotionY,
+                                                           .inventory = &services,
+                                                           .sendNpcWindow = [&sent](Client::Protocol::Outgoing packet)
+                                                           {
+                                                               sent.push_back(std::move(packet));
+                                                               return Client::Core::Expected<void, std::string>{};
+                                                           }});
+    };
+    world.Runtime().panels.repairMode = 1;
+    Click();
+    ASSERT_TRUE(step().HasValue());
+    EXPECT_TRUE(sent.empty());
+
+    world.Inventory().cells[PotionCell].id = 0x0001;
+    world.Runtime().field78abb10 = 1;
+    world.Runtime().movement.pendingClick = true;
+    const CrtRandom expected = Advanced(random, BaseStepRandoms + InventoryStepRandoms + 2);
+    const auto stepped = step();
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(random.State(), expected.State());
+    EXPECT_FALSE(world.Runtime().movement.pendingClick);
+    ASSERT_EQ(sent.size(), 1u);
+    EXPECT_EQ(sent[0].delivery, Client::Network::Delivery::Encrypted);
+    EXPECT_TRUE(Client::Tests::SameBytes(Client::Network::Crypto::Xor32Decode(sent[0].packet).Bytes(),
+                                         Client::Tests::Bytes({0xc1, 0x05, 0x34, 2 * 8 + 1 + 12, 0x01})));
+}

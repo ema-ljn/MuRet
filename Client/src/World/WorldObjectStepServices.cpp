@@ -81,7 +81,7 @@ Core::Expected<void, std::string> AddDynamicLight(TerrainLighting* destination, 
 
 namespace
 {
-Core::Expected<void, std::string> EmitParticle(const ObjectStepGlobals& globals, const WorldObject& object,
+Core::Expected<void, std::string> EmitParticle(const ObjectStepGlobals& globals, const glm::vec3& angles,
                                                const glm::vec3& position, const glm::vec3& light, std::int32_t type,
                                                std::int32_t subtype, Render::Models::CrtRandom& random)
 {
@@ -89,8 +89,8 @@ Core::Expected<void, std::string> EmitParticle(const ObjectStepGlobals& globals,
     {
         return Core::Unexpected(std::string("0x53fe70: falta el pool de partículas 0x743a198"));
     }
-    const auto emitted = globals.particles->CreateChecked(type, position, object.transform.angles, light, subtype, 1.0f,
-                                                          globals.worldClock, random, 0);
+    const auto emitted =
+        globals.particles->CreateChecked(type, position, angles, light, subtype, 1.0f, globals.worldClock, random, 0);
     if (!emitted.HasValue())
     {
         return Core::Unexpected(std::format("0x53fe70: creación de partícula {:#x}/{} rechazada ({})", type, subtype,
@@ -153,11 +153,20 @@ Core::Expected<void, std::string> EmitObjectFire(std::int32_t fireClass, const W
                                                  const glm::vec3& offset, Render::Models::CrtRandom& random,
                                                  const ObjectStepGlobals& globals)
 {
-    const auto matrix = Render::Models::OriginalAngleMatrix(object.transform.angles);
+    return EmitObjectFire(fireClass, object.transform.angles, object.transform.position, object.light, offset, random,
+                          globals);
+}
+
+Core::Expected<void, std::string> EmitObjectFire(std::int32_t fireClass, const glm::vec3& angles,
+                                                 const glm::vec3& origin, const glm::vec3& objectLight,
+                                                 const glm::vec3& offset, Render::Models::CrtRandom& random,
+                                                 const ObjectStepGlobals& globals)
+{
+    const auto matrix = Render::Models::OriginalAngleMatrix(angles);
     glm::vec3 position = Render::Models::OriginalVectorRotate(offset, matrix);
     for (int axis = 0; axis < 3; ++axis)
     {
-        position[axis] = static_cast<float>(static_cast<double>(position[axis]) + object.transform.position[axis]);
+        position[axis] = static_cast<float>(static_cast<double>(position[axis]) + origin[axis]);
     }
     // Tres stores separados tras las tres sumas anteriores, en X/Y/Z.
     for (int axis = 0; axis < 3; ++axis)
@@ -171,7 +180,7 @@ Core::Expected<void, std::string> EmitObjectFire(std::int32_t fireClass, const W
         if ((random.Next() & 1) == 0)
         {
             const int subtype = random.Next() & 3;
-            const auto emitted = EmitParticle(globals, object, position, light, FireParticle, subtype, random);
+            const auto emitted = EmitParticle(globals, angles, position, light, FireParticle, subtype, random);
             if (!emitted.HasValue())
             {
                 return emitted;
@@ -181,7 +190,7 @@ Core::Expected<void, std::string> EmitObjectFire(std::int32_t fireClass, const W
     }
     if ((fireClass == 1 || fireClass == 2) && (random.Next() & 1) == 0)
     {
-        return EmitParticle(globals, object, position, object.light, BreathParticle,
+        return EmitParticle(globals, angles, position, objectLight, BreathParticle,
                             fireClass == 1 ? 0 : WorldSmokeSubtype, random);
     }
     return {};

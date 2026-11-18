@@ -50,6 +50,15 @@ struct ActorEquipmentContext
     OwnEquipmentOverride held{};
 };
 
+// 0x4053f0: en los mapas 18 a 23 (`map`), 0x4053a0 (las manos, las alas y la mascota sin ítem, con el nivel en 0) y el
+// arma del evento por la clase (+0x1d4 & 7): el bastón 5 5 en la derecha de la 0, la ballesta 4 19 en la de la 2 y
+// la espada 0 16 en las dos de la 1, la 3 y la 4. En los otros mapas, nada.
+void ArmForTheEventMaps(ActorState& actor, std::int32_t map);
+
+// 0x512930: con +0x3e3 en 0, la cabeza de la clase bajo un casco abierto (+0x1f8) y la escala por la clase y la piel;
+// con +0x3e3 distinto de 0, nada.
+void ApplyHeadAndScale(ActorState& actor);
+
 // 0x512a30 sobre `actor`: con el tipo 0x20a, los modelos, los niveles y los bytes del equipo propio, la
 // acción de parado y, con +0x3e3 en 0, la ropa, las armas de los mapas 18 a 23, la cabeza, la escala, el
 // conjunto completo si es el héroe publicado (0x505820, Scenes/FullSetScan.h) y los stats del registro

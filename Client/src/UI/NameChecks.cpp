@@ -66,6 +66,31 @@ bool ContainsAFilteredWord(std::string_view text, std::span<const std::string> f
     return ContainsAny(WithoutSpaces(text), filter);
 }
 
+bool IsAShopTitle(std::string_view title, std::span<const std::string> filter)
+{
+    // 0x5ebbd0..0x5ebc4c: la copia sin espacios en 0x800 bytes de la pila y las palabras de 0x77531dc.
+    if (ContainsAny(WithoutSpaces(title), filter))
+    {
+        return false;
+    }
+    // 0x5ebc4e..0x5ebc7d: la cuenta de los espacios seguidos.
+    std::size_t spaces = 0;
+    for (std::size_t at = 0; at < title.size(); ++at)
+    {
+        if (title[at] != ' ')
+        {
+            spaces = 0;
+            continue;
+        }
+        ++spaces;
+        if (at == 1 && spaces >= 2)
+        {
+            return false;
+        }
+    }
+    return spaces < 2;
+}
+
 bool IsFilteredName(std::string_view name, const NameFilters& filters)
 {
     if (ContainsAny(WithoutSpaces(name), filters.filterName))

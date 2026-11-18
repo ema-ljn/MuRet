@@ -823,6 +823,21 @@ TEST_F(NpcWindowStepsTest, ThePanel2000CheckboxAndConfirmationReachTheKeypad)
     EXPECT_EQ(runtime.ui.field78abb20, 6);
 }
 
+// 0x5ee1f1: el paso principal debe llegar al panel 2000 con los servicios prestados a su propio registro.
+TEST_F(NpcWindowStepsTest, TheMainUiStepUsesThePanel2000Checkbox)
+{
+    auto& runtime = world.Runtime();
+    runtime.panels.panel2000 = 1;
+    runtime.hud.inventoryX = 450;
+    Click();
+    const auto stepped = Step(475, 240);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(runtime.panels.field78abb08, 1);
+    EXPECT_FALSE(runtime.movement.pendingClick);
+    EXPECT_EQ(runtime.ui.mouseOnUi, 1);
+    EXPECT_TRUE(sent.empty());
+}
+
 // 0x5e7678..0x5e7840 y 0x5e78a2..0x5e7a79: salir manda C1 03 31 y cierra todo; sólo la cruz borra 0x78abb00.
 TEST_F(NpcWindowStepsTest, BothPanel2000ExitButtonsSend31BeforeClosing)
 {

@@ -141,28 +141,34 @@ void LendTheCastleLifecycleTo(UI::PanelContext& panels, WorldState& world, Rende
     panels.castleSeniorBlocked = [&world, services]() { return Warn(world.Runtime(), services, BusySeniorText); };
 }
 
-void LendTheCastlePanelServices(GamePanels& panels, const CastleReceiveContext& context)
+void LendTheCastlePanelServices(GamePanels& panels, WorldState& world, Render::Models::CrtRandom& random,
+                                const CastleSender& send, const WorldEntryResources* entryResources,
+                                CastleWindowServices services)
 {
-    panels.LendTheSession(context.world, context.random, context.send,
-                          [send = context.send]()
+    panels.LendTheSession(world, random, send,
+                          [send]()
                           {
                               if (send)
                                   send(Protocol::Connection::WriteWindowClose());
                           });
-    panels.LendTheCastleRequests(
-        context.world, context.send,
-        {.measure = context.measure, .texts = context.texts, .screen = context.screen, .now = context.tick});
-    if (context.entryResources == nullptr)
+    panels.LendTheCastleRequests(world, send, services);
+    if (entryResources == nullptr)
         return;
-    NpcWindowSender sender = [send = context.send](Protocol::Outgoing packet) -> Core::Expected<void, std::string>
+    NpcWindowSender sender = [send](Protocol::Outgoing packet) -> Core::Expected<void, std::string>
     {
         if (!send)
             return Core::Unexpected(std::string("la ventana del NPC se cierra sin el cable"));
         send(std::move(packet));
         return {};
     };
-    panels.LendTheNpcWindows(context.world, context.random, InventoryServicesOf(*context.entryResources),
-                             std::move(sender));
+    panels.LendTheNpcWindows(world, random, InventoryServicesOf(*entryResources), std::move(sender));
+}
+
+void LendTheCastlePanelServices(GamePanels& panels, const CastleReceiveContext& context)
+{
+    LendTheCastlePanelServices(
+        panels, context.world, context.random, context.send, context.entryResources,
+        {.measure = context.measure, .texts = context.texts, .screen = context.screen, .now = context.tick});
 }
 
 void LendTheCastleWindowStepsTo(UI::PanelContext& panels, const GameUiContext& context)

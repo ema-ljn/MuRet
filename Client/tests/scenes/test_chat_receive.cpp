@@ -15,6 +15,17 @@
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "Scenes/WorldEntry.h"
+#include "Scenes/SelectionState.h"
+#include "Scenes/LoginModels.h"
+#include "World/GameCamera.h"
+#include "Core/Log.h"
+#include "Core/ILogSink.h"
+#include "Protocol/Outgoing.h"
+#include "UI/PanelRegistry.h"
+#include "support/RecordingSink.h"
+#include "support/Bytes.h"
+#include "support/SameBytes.h"
 #include "UI/ChatInput.h"
 #include "UI/MessageArea.h"
 #include "UI/WhisperSenders.h"
@@ -34,6 +45,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 // El chat que llega (CL8 hito 3; 04 § El chat que llega): 0x4c6070, 0x4e33fc, 0x4e34ea, 0x4e366f, 0x4c65b0 y
 // 0x4dd570 sobre el mundo. Los nombres y los textos son inventados.
@@ -286,6 +298,108 @@ TEST_F(ChatReceiveTest, TheGuildMasterKeyChatOpensTheSecondGuildWindow)
     EXPECT_EQ(hero.word1f2, 1999);
     EXPECT_FALSE(Runtime().chat.bubbles[0].owner.has_value());
     EXPECT_EQ(m_random.State(), After(4));
+}
+
+// 0x4e345c → 0x6599a0: abrir el gremio cierra también Senior, Hunt y los tres controles de batalla.
+TEST_F(ChatReceiveTest, TheGuildMasterUsesTheSharedCastleAndBattleClosers)
+{
+    ActorState& master = Player(20, "");
+    constexpr std::array<std::uint8_t, 10> GuildMaster{0xb1, 0xe6, 0xb5, 0xe5, 0x20, 0xb8, 0xb6, 0xbd, 0xba, 0xc5};
+    for (std::size_t i = 0; i < GuildMaster.size(); ++i)
+        master.name[i] = static_cast<std::byte>(GuildMaster[i]);
+    master.byte1e3 = 0xcd;
+    master.key = 0x0042;
+    m_world->Actors()[Runtime().hero].guildStatus = 0x80;
+    for (int kind = 0; kind < 5; ++kind)
+    {
+        auto& delegated = Runtime().panels.delegated;
+        delegated = {};
+        delegated.castleSiegeList = kind == 0 ? 1 : 0;
+        delegated.secondCastleSiege = kind == 1 ? 1 : 0;
+        delegated.siegeWeapon = kind == 2 ? 1 : kind == 3 ? 2 : 0;
+        delegated.siegeGate = kind == 4 ? 1 : 0;
+        Runtime().siegeBattleUi.weaponChoice = 3;
+        Runtime().siegeBattleUi.gateKey = 0x1234;
+        Runtime().castleSiege.senior.closeWith87 = false;
+        std::vector<Client::Protocol::Outgoing> sent;
+        auto context = Context();
+        context.guildSend = [&](Client::Protocol::Outgoing packet)
+        {
+            // Senior baja el flag antes del 31; Hunt y las armas después; puerta limpia también su clave antes.
+            EXPECT_EQ(delegated.castleSiegeList, 0);
+            EXPECT_EQ(delegated.secondCastleSiege, kind == 1 ? 1 : 0);
+            EXPECT_EQ(delegated.siegeWeapon, kind == 2 ? 1 : kind == 3 ? 2 : 0);
+            EXPECT_EQ(delegated.siegeGate, 0);
+            if (kind == 4)
+            {
+                EXPECT_EQ(Runtime().siegeBattleUi.gateKey, 0);
+            }
+            sent.push_back(std::move(packet));
+        };
+        auto expected = m_random;
+        expected.Discard(4); // Los mismos accesos protegidos que al abrir el gremio sin otra ventana.
+
+        auto result = Client::Scenes::ApplyKeyChat(KeyChat{.key = 0x0042, .text = "hola"}, context);
+
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        ASSERT_EQ(sent.size(), 1u);
+        EXPECT_TRUE(Client::Tests::SameBytes(sent.front().packet.Bytes(), Client::Tests::Bytes({0xc1, 3, 0x31})));
+        EXPECT_EQ(delegated.secondGuild, 1);
+        EXPECT_EQ(delegated.castleSiegeList, 0);
+        EXPECT_EQ(delegated.secondCastleSiege, 0);
+        EXPECT_EQ(delegated.siegeWeapon, 0);
+        EXPECT_EQ(delegated.siegeGate, 0);
+        if (kind == 2 || kind == 3)
+        {
+            EXPECT_EQ(Runtime().siegeBattleUi.weaponChoice, 0);
+        }
+        EXPECT_EQ(m_random.State(), expected.State());
+    }
+}
+
+TEST_F(ChatReceiveTest, TheGuildMasterBorrowsTheWarehouseServicesFromWorldEntry)
+{
+    ActorState& master = Player(20, "");
+    constexpr std::array<std::uint8_t, 10> GuildMaster{0xb1, 0xe6, 0xb5, 0xe5, 0x20, 0xb8, 0xb6, 0xbd, 0xba, 0xc5};
+    for (std::size_t i = 0; i < GuildMaster.size(); ++i)
+        master.name[i] = static_cast<std::byte>(GuildMaster[i]);
+    master.byte1e3 = 0xcd;
+    master.key = 0x0042;
+    m_world->Actors()[Runtime().hero].guildStatus = 0x80;
+    Client::Scenes::SelectionState selection(*m_world);
+    Client::Render::Models::ClothWorld cloth;
+    Client::World::GameCamera camera;
+    Client::World::GameCameraInput cameraInput;
+    Client::Scenes::SingleModelLibrary models;
+    Client::Tests::RecordingSink sink;
+    Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
+    Client::Scenes::WorldEntryResources resources{.world = *m_world,
+                                                  .selection = selection,
+                                                  .dataRoot = {},
+                                                  .cloth = cloth,
+                                                  .camera = camera,
+                                                  .cameraInput = cameraInput,
+                                                  .models = models,
+                                                  .log = log};
+    Runtime().panels.warehouse = 1;
+    Runtime().npcWindows.warehouseLocked = 1;
+    Runtime().npcWindows.grid[0].id = 3;
+    Runtime().npcWindows.grid[0].occupied = 1;
+    std::vector<Client::Protocol::Outgoing> sent;
+    auto context = Context();
+    context.worldEntry = &resources;
+    context.guildSend = [&](Client::Protocol::Outgoing packet) { sent.push_back(std::move(packet)); };
+
+    auto result = Client::Scenes::ApplyKeyChat(KeyChat{.key = 0x0042, .text = "hola"}, context);
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    ASSERT_EQ(sent.size(), 1u);
+    EXPECT_TRUE(Client::Tests::SameBytes(sent.front().packet.Bytes(), Client::Tests::Bytes({0xc1, 3, 0x82})));
+    EXPECT_EQ(Runtime().panels.warehouse, 0);
+    EXPECT_EQ(Runtime().npcWindows.warehouseLocked, 0);
+    EXPECT_EQ(Runtime().npcWindows.grid[0].id, 0xffff);
+    EXPECT_EQ(Runtime().npcWindows.grid[0].occupied, 0);
+    EXPECT_EQ(Runtime().panels.delegated.secondGuild, 1);
 }
 
 // 0x4e3492: el héroe con gremio lo conserva.

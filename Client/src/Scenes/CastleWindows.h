@@ -44,6 +44,10 @@ struct CastleWindowServices
 void LendTheCastleLifecycleTo(UI::PanelContext& panels, WorldState& world, Render::Models::CrtRandom& random,
                               const CastleSender& send, CastleWindowServices services = {});
 void LendTheCastleWindowStepsTo(UI::PanelContext& panels, const GameUiContext& context);
+// El mismo préstamo para callers que no reciben un paquete Castle ni tienen un log propio.
+void LendTheCastlePanelServices(GamePanels& panels, WorldState& world, Render::Models::CrtRandom& random,
+                                const CastleSender& send, const WorldEntryResources* entryResources,
+                                CastleWindowServices services = {});
 void LendTheCastlePanelServices(GamePanels& panels, const CastleReceiveContext& context);
 [[nodiscard]] Core::Expected<void, std::string> StepTheCastleWindow(const GameUiContext& context, UI::PanelId id);
 [[nodiscard]] Core::Expected<void, std::string> DrawTheCastleWindows(GameHudContext& context);

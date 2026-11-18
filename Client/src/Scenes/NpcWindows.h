@@ -66,7 +66,7 @@ struct NpcWindowContext
                                                                 const WorldEntryResources& resources);
 
 // El 31 (0x4c5f60): con la grilla 3, 0x7d2dc80 en 2, los sonidos 0x57 y 0x44, la caja del caos vacía y cada entrada
-// con 0x5bc740(0x7d2d380, 8, 4, lugar, datos, 1); con la 5, la caja del entrenador (corta); con otra, la grilla de
+// con 0x5bc740(0x7d2d380, 8, 4, lugar, datos, 1); con la 5, la caja del entrenador; con otra, la grilla de
 // 0x78a7070 vacía y cada entrada con 0x5bc150.
 [[nodiscard]] Core::Expected<void, std::string> ApplyItemList(const Protocol::NpcWindows::ItemList& list,
                                                               const WorldEntryResources& resources);

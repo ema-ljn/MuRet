@@ -11,8 +11,8 @@
 // modo de la caja del caos y la mezcla de joyas"): la clase de 0x46e290 (vtable 0x6b85f8), una lista de las ventanas
 // viejas con filas de 0xc bytes. Su paso (0x483bc0) es el de la lista del registro del chat (0x479960,
 // UI/ChatLogWindow) con otras funciones en su vtable: lee las flechas del teclado (+0xbc en 1), no tiene botones ni
-// borde y cada fila elige con el clic y pide con el derecho suelto. Ninguna saca rand(): el inventario no está en la
-// tabla de protección.
+// borde y cada fila elige con el clic y pide con el doble clic izquierdo. Ninguna saca rand(): el inventario no está en
+// la tabla de protección.
 namespace Client::Scenes
 {
 struct GameHudContext;
@@ -34,7 +34,7 @@ void AddTheBundle(JewelBundleList& list, std::int32_t cell, std::uint8_t level);
 // Lo que deja el paso.
 struct BundleListStep
 {
-    // 0x46f297: la fila del derecho suelto que pasa los chequeos de 0x46f27e..0x46f290, para 0x402a90(casilla,
+    // 0x46f297: la fila del doble clic izquierdo que pasa los chequeos de 0x46f27e..0x46f290, para 0x402a90(casilla,
     // nivel). En el original va en medio de la vuelta por las filas; lo que sigue de la vuelta no lee nada de lo que
     // escribe 0x402a90 (el diálogo, la mezcla y el área de mensajes), así que quien llama la pide al volver.
     std::optional<JewelBundleList::Row> asked{};

@@ -42,7 +42,7 @@ constexpr std::int32_t TopLeftRect = 1;
 constexpr std::int32_t BottomLeftRect = 2;
 // 0x46e940: las casillas que agrega, de 0 a 0x40 con los bordes.
 constexpr std::int32_t LastCell = 0x40;
-// 0x46f289..0x46f290: las que pide el derecho suelto, de 1 a 0x3f (07 Q-C1152).
+// 0x46f289..0x46f290: las que pide el doble clic izquierdo, de 1 a 0x3f (07 Q-C1152).
 constexpr std::int32_t AskedCells = 0x40;
 // 0x4834a0: los mensajes de las flechas del teclado (0x483c21..0x483c84): el siguiente (la vtable + 0x5c) y el
 // anterior (+ 0x60).
@@ -276,8 +276,8 @@ void PressTheBar(const GameUiContext& context, JewelBundleList& list, WorldRunti
 }
 
 // 0x4845d0 (la vtable + 0x74) y el renglón de 0x483bc0 con 0x46f1a0 (la vtable + 0x88), desde el primero que se ve
-// hasta `shownRows` renglones o el final (0x5762ebc es siempre 0). El clic elige y da vuelta +0; el derecho suelto
-// elige y devuelve la fila para 0x402a90 si su nivel no es 0xff y su casilla está en [1, 0x3f].
+// hasta `shownRows` renglones o el final (0x5762ebc es siempre 0). El clic elige y da vuelta +0; el doble clic
+// izquierdo elige y devuelve la fila para 0x402a90 si su nivel no es 0xff y su casilla está en [1, 0x3f].
 std::optional<JewelBundleList::Row> HoverTheRows(const GameUiContext& context, JewelBundleList& list, bool& click,
                                                  bool& rightReleased)
 {
@@ -523,7 +523,7 @@ BundleListStep StepTheBundleList(const GameUiContext& context)
         ui.mouseOnUi = 1;
     }
     BundleListStep result{};
-    result.asked = HoverTheRows(context, list, click, ui.rightUpMessage);
+    result.asked = HoverTheRows(context, list, click, ui.doubleClick);
     ui.capture = 0;
     return result;
 }

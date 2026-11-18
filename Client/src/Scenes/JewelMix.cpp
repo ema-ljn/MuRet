@@ -503,7 +503,7 @@ Core::Expected<void, std::string> StepTheJewelUnmix(const GameUiContext& context
             return CloseTheJewelMix(context);
         return {};
     }
-    // 0x625dbe: el paso de la lista. El derecho suelto sobre una fila pide su paquete desde adentro (0x46f297).
+    // 0x625dbe: el paso de la lista. El doble clic izquierdo sobre una fila pide su paquete desde adentro (0x46f297).
     if (const BundleListStep listed = StepTheBundleList(context); listed.asked)
     {
         if (auto asked = AskForTheBundle(context, listed.asked->cell, static_cast<std::int8_t>(listed.asked->level));

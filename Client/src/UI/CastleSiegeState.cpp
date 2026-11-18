@@ -123,6 +123,21 @@ std::int32_t MaxLifeOfLevel(std::uint32_t type, std::int32_t level)
     return -1;
 }
 
+float NpcLifeBarWidth(std::int32_t life, std::int32_t maximum, float width)
+{
+    const float ratio = static_cast<float>(static_cast<double>(life) / static_cast<double>(maximum));
+    return static_cast<float>(static_cast<double>(width) * static_cast<double>(ratio));
+}
+
+std::int32_t NpcRecoveryIncrease(std::uint32_t type, std::int32_t recovery)
+{
+    if (type == GateType)
+        return 0;
+    if (type != StatueType)
+        return -1;
+    return recovery >= 0 && recovery <= 2 ? 1 : 0;
+}
+
 // LEA [index × 8], SUB index, LEA [× 4 + base]: base + index × 0x1c, que da la vuelta en 32 bits.
 std::uint32_t NpcRecordAddress(std::uint32_t type, std::uint32_t index)
 {

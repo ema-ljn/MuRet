@@ -9,6 +9,7 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/CastleSiegeState.h"
+#include "UI/OldWindowDrawParts.h"
 
 #include <array>
 #include <cstddef>
@@ -172,7 +173,7 @@ Core::Expected<void, std::string> RegistrationTabs(GameHudContext& context, UI::
     for (std::int32_t tab = 0; tab < 3; ++tab)
         if (window.tab != tab)
             context.sprites.ColorQuad(static_cast<float>(Left + 15 + tab * 54), 105, 54, 1);
-    context.sprites.SetColor({1, 1, 1, 1});
+    UI::OldDraw::WhiteWithTexture(context.sprites); // 0x64dd27: 0x459ec0 después de los subrayados.
     return {};
 }
 } // namespace

@@ -341,6 +341,8 @@ std::int32_t HoverTheRow(OldWindowManager& manager, OldWindow& tab, std::int32_t
                          const OldWindowGlobals& globals, const OldWindowStepView& view)
 {
     OldList& list = tab.tab.list;
+    if (tab.kind == OldWindowKind::FriendTab)
+        return Steps::HoverAFriendRow(manager, list, tab.tab.friends, row, at, globals, view);
     const std::size_t size = RowCount(tab);
     const auto width =
         static_cast<std::int32_t>(static_cast<double>(list.base.width) - static_cast<double>(list.thumbWidth) + 1.0);
@@ -382,25 +384,6 @@ std::int32_t HoverTheRow(OldWindowManager& manager, OldWindow& tab, std::int32_t
             globals.leftClick = false;
         }
         return 1;
-    }
-    if (globals.leftClick)
-    {
-        SelectInTheList(list, size, list.scroll + 1 + row);
-        toggle(tab.tab.friends[at].selected);
-        globals.leftClick = false;
-    }
-    if (globals.doubleClick)
-    {
-        PostToTheWindow(manager, list.base.parent, ChosenRowMessage, list.base.id, 0);
-        globals.doubleClick = false;
-    }
-    if (globals.rightClick)
-    {
-        SelectInTheList(list, size, list.scroll + 1 + row);
-        toggle(tab.tab.friends[at].selected);
-        globals.rightClick = false;
-        if (view.whisperTo)
-            view.whisperTo(FriendName(tab.tab.friends[at].name));
     }
     return 1;
 }
@@ -743,6 +726,39 @@ Core::Expected<void, std::string> PlaceTheTabForTheDraw(OldWindowManager& manage
 
 namespace Steps
 {
+std::int32_t HoverAFriendRow(OldWindowManager& manager, OldList& list, std::deque<FriendEntry>& friends,
+                             std::int32_t row, std::size_t at, const OldWindowGlobals& globals,
+                             const OldWindowStepView& view)
+{
+    const std::size_t size = friends.size();
+    const auto width =
+        static_cast<std::int32_t>(static_cast<double>(list.base.width) - static_cast<double>(list.thumbWidth) + 1.0);
+    if (!MouseIn(view, list.base.x, ListRowY(list, size, row) - RowLift, width, RowHeight, TopLeftRect))
+        return 1;
+    // [+0xb4] es el elegido que dejó la vtable + 0x58: inc, and 1.
+    const auto toggle = [](std::int32_t& selected) { selected = (selected + 1) % 2; };
+    if (globals.leftClick)
+    {
+        SelectInTheList(list, size, list.scroll + 1 + row);
+        toggle(friends[at].selected);
+        globals.leftClick = false;
+    }
+    if (globals.doubleClick)
+    {
+        PostToTheWindow(manager, list.base.parent, ChosenRowMessage, list.base.id, 0);
+        globals.doubleClick = false;
+    }
+    if (globals.rightClick)
+    {
+        SelectInTheList(list, size, list.scroll + 1 + row);
+        toggle(friends[at].selected);
+        globals.rightClick = false;
+        if (view.whisperTo)
+            view.whisperTo(FriendName(friends[at].name));
+    }
+    return 1;
+}
+
 bool IsAFriendsKind(OldWindowKind kind)
 {
     return kind == OldWindowKind::FriendsWindow || kind == OldWindowKind::FriendTab ||

@@ -489,8 +489,8 @@ TEST_F(LetterPortraitTest, ANewPetRebuildsTheHelper)
     }
 }
 
-// 0x495a20: los gestos (0x6c7b14) a pie, adelante desde 0x7a la 0x83 con la animación 0x99; atrás, la 0x78, que va a
-// 0x4f4a10 (hito 3) y corta.
+// 0x495a20: los gestos (0x6c7b14) a pie, adelante desde 0x7a la 0x83 con la animación 0x99; atrás, la 0x78
+// (0x495b00..0x495b33): 0x4f4a10 con el mundo en 0 y, después, +0x381 en 1, el frame en 0 y el blanco en 0xffff.
 TEST_F(LetterPortraitTest, TurningWalksTheGestureList)
 {
     for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
@@ -504,9 +504,15 @@ TEST_F(LetterPortraitTest, TurningWalksTheGestureList)
         EXPECT_EQ(game->portrait.shownAction, 0x83);
         EXPECT_EQ(game->portrait.actor.animation.action, 0x99);
         EXPECT_EQ(game->world.Runtime().map, map);
+        game->portrait.actor.animation.frame = 3.0f;
         const auto previous = Client::Scenes::ShowThePortraitAction(game->portrait, 0x7a, -1, resources);
-        ASSERT_FALSE(previous.HasValue());
-        EXPECT_NE(previous.Error().find("0x4f4a10"), std::string::npos);
+        ASSERT_TRUE(previous.HasValue()) << previous.Error();
+        EXPECT_EQ(previous.Value(), 0x78);
+        EXPECT_EQ(game->portrait.shownAction, 0x78);
+        // El 1 de 0x495b19, y el paso de 0x495daf (0x4fd5f0, 0x4fdb9a..0x4fdbd4) lo sube a 2.
+        EXPECT_EQ(game->portrait.actor.byte381, 2);
+        EXPECT_EQ(game->portrait.actor.animation.frame, 0.0f);
+        EXPECT_EQ(game->portrait.actor.attackTarget, 0xffff);
         EXPECT_EQ(game->world.Runtime().map, map);
     }
 }

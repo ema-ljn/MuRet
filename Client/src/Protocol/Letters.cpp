@@ -118,9 +118,9 @@ Core::Expected<LetterRead, ProtocolError> ReadLetterCopy(std::span<const std::by
                       .action = U8At(bytes, 0x1b),
                       .body = {},
                       .copy = {}};
-    // 0x4dcb8a: pkt[0x1c + largo] = 0. Fuera del paquete (o de la copia de 0x404), el original escribe en lo que siga
-    // en su buffer (Q-C1000).
-    if (ReadHeaderSize + letter.length >= bytes.size())
+    // 0x4dcb8a: pkt[0x1c + largo] = 0 sin mirar el tamaño. Un cuerpo que llena justo el paquete (el C5 lo manda sin el
+    // 0) o la copia de 0x404 (una carta de 1000) se lee; uno que pasa del paquete, MuRet lo rechaza (Q-C1000).
+    if (ReadHeaderSize + letter.length > bytes.size())
         return Core::Unexpected(ProtocolError::TooShort);
     std::copy_n(bytes.begin() + 9, PortraitEquipmentSize, letter.equipment.begin());
     letter.copy.assign(bytes.begin(),

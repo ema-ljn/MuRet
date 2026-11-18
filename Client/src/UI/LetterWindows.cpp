@@ -494,10 +494,10 @@ void FocusTheEdit(OldWindowManager& manager, OldEdit& edit, const OldWindowGloba
     globals.focusedList = edit.base.id;
 }
 
-// El mouse de 0x45aa80 sobre una lista de una de estas ventanas, después de su cola. Los renglones (la vtable + 0x88)
-// de las listas del chat y de la carta no hacen nada con el mouse que MuRet necesite.
+// El mouse de 0x45aa80 sobre una lista de una de estas ventanas, después de su cola, con su renglón (la vtable + 0x88).
 void StepTheListMouseAfterTheQueue(OldWindowManager& manager, OldList& list, std::size_t size, std::int32_t arg,
-                                   const OldWindowGlobals& globals, const OldWindowStepView& view)
+                                   const OldWindowGlobals& globals, const OldWindowStepView& view,
+                                   const OldListRowHover& hover)
 {
     if (arg == 1)
         return;
@@ -514,18 +514,21 @@ void StepTheListMouseAfterTheQueue(OldWindowManager& manager, OldList& list, std
     const OldListView listView{.mouseX = view.mouseX, .mouseY = view.mouseY, .keyDown = [&view](std::uint8_t key) {
                                    return view.keyDown && view.keyDown(key);
                                }};
-    static_cast<void>(StepTheListMouse(list, size, listGlobals, listView, [](std::int32_t, std::size_t) { return 1; }));
+    static_cast<void>(StepTheListMouse(list, size, listGlobals, listView, hover));
 }
 
-// 0x45aa80 sobre una lista de una de estas ventanas: la cola y el mouse sobre ella.
-void StepAList(OldWindowManager& manager, OldList& list, std::size_t size, std::int32_t arg,
-               const OldWindowGlobals& globals, const OldWindowStepView& view)
+// 0x45aa80 sobre la lista de los miembros o la de invitar del chat (0x460970): la cola y el mouse, con el renglón de
+// 0x461f00 (el clic elige, el doble clic es el 0xd al chat y el derecho, el susurro).
+void StepAFriendList(OldWindowManager& manager, OldList& list, std::deque<FriendEntry>& friends, std::int32_t arg,
+                     const OldWindowGlobals& globals, const OldWindowStepView& view)
 {
-    DrainTheList(manager, list, size);
-    StepTheListMouseAfterTheQueue(manager, list, size, arg, globals, view);
+    DrainTheList(manager, list, friends.size());
+    StepTheListMouseAfterTheQueue(manager, list, friends.size(), arg, globals, view,
+                                  [&](std::int32_t row, std::size_t at)
+                                  { return Steps::HoverAFriendRow(manager, list, friends, row, at, globals, view); });
 }
 
-// StepAList sobre los renglones del chat o del cuerpo de una carta: su cola (DrainTheWrappedList) y el mouse, que
+// 0x45aa80 sobre los renglones del chat o del cuerpo de una carta: su cola (DrainTheWrappedList) y el mouse, que
 // recorre los renglones que se ven del segundo deque.
 template <typename Part>
 Core::Expected<void, std::string> StepTheWrappedList(OldWindowManager& manager, Part& part, std::int32_t arg,
@@ -533,7 +536,9 @@ Core::Expected<void, std::string> StepTheWrappedList(OldWindowManager& manager, 
 {
     if (auto drained = DrainTheWrappedList(manager, part, view.measure); !drained.HasValue())
         return drained;
-    StepTheListMouseAfterTheQueue(manager, part.lines, part.wrappedRows.size(), arg, globals, view);
+    // 0x45f3e0 y 0x4647d0, la vtable + 0x88 de los renglones del chat y del cuerpo: dan 1 sin mirar el mouse.
+    StepTheListMouseAfterTheQueue(manager, part.lines, part.wrappedRows.size(), arg, globals, view,
+                                  [](std::int32_t, std::size_t) { return 1; });
     return {};
 }
 
@@ -1354,8 +1359,8 @@ Core::Expected<void, std::string> StepTheLetterKindsChildren(OldWindowManager& m
         Steps::StepTheButton(manager, chat.inviteButton, arg, globals, view);
         if (auto stepped = StepTheWrappedList(manager, chat, arg, globals, view); !stepped.HasValue())
             return stepped;
-        StepAList(manager, chat.users, chat.members.size(), arg, globals, view);
-        StepAList(manager, chat.invite, chat.invitable.size(), arg, globals, view);
+        StepAFriendList(manager, chat.users, chat.members, arg, globals, view);
+        StepAFriendList(manager, chat.invite, chat.invitable, arg, globals, view);
         Steps::StepTheEdit(manager, chat.edit, arg, globals, view);
         Steps::StepTheButton(manager, chat.sendButton, arg, globals, view);
         return {};

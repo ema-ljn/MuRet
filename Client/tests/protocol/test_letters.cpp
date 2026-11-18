@@ -15,6 +15,7 @@
 #include <array>
 #include <cstddef>
 #include <span>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -174,10 +175,39 @@ TEST(LettersTest, TheLetterReadsThePortraitAndTheBody)
     EXPECT_EQ(letter.Value().copy[0x1c + 5], std::byte{0});
 }
 
-// Q-C1000: un largo que no entra en el paquete no se lee.
-TEST(LettersTest, ALengthPastThePacketIsRejected)
+// 0x4dcb8a escribe el 0 en pkt[0x1c + largo] sin mirar el tamaño: un cuerpo que llena justo el paquete, sin el 0
+// (así lo manda el C5, 0x498aad..0x498ab9), se lee entero, y la copia queda sin el 0.
+TEST(LettersTest, ABodyThatFillsThePacketIsRead)
 {
     auto bytes = Bytes({0xc2, 0x00, 0x1e, 0xc7, 0x05, 0x00, 0x02, 0x00});
+    bytes.resize(0x1c, std::byte{0});
+    bytes = Joined(bytes, TextOf("ok", 2));
+    const auto letter = Letters::ReadLetterRead(PacketOf(bytes));
+    ASSERT_TRUE(letter.HasValue());
+    EXPECT_EQ(letter.Value().body, "ok");
+    ASSERT_EQ(letter.Value().copy.size(), 0x1eU);
+    EXPECT_EQ(letter.Value().copy[0x1d], std::byte{'k'});
+}
+
+// 0x4a03c0 guarda 0x404 bytes: la de 1000 letras llena la copia justo, y volver a leerla (0x4a11b0 con el 2) da la
+// carta entera.
+TEST(LettersTest, TheCopyOfAThousandLetterLetterReadsAgain)
+{
+    auto bytes = Bytes({0xc2, 0x04, 0x05, 0xc7, 0x05, 0x00, 0xe8, 0x03});
+    bytes.resize(0x1c, std::byte{0});
+    bytes = Joined(bytes, TextOf(std::string(1000, 'a'), 1001));
+    const auto first = Letters::ReadLetterRead(PacketOf(bytes));
+    ASSERT_TRUE(first.HasValue());
+    ASSERT_EQ(first.Value().copy.size(), Letters::LetterCopySize);
+    const auto again = Letters::ReadLetterCopy(first.Value().copy);
+    ASSERT_TRUE(again.HasValue());
+    EXPECT_EQ(again.Value().body, std::string(1000, 'a'));
+}
+
+// Q-C1000: un largo que pasa del paquete no se lee.
+TEST(LettersTest, ALengthPastThePacketIsRejected)
+{
+    auto bytes = Bytes({0xc2, 0x00, 0x1e, 0xc7, 0x05, 0x00, 0x03, 0x00});
     bytes.resize(0x1e, std::byte{0});
     EXPECT_EQ(ErrorOf(Letters::ReadLetterRead(PacketOf(bytes))), ProtocolError::TooShort);
     EXPECT_EQ(ErrorOf(Letters::ReadLetterRead(PacketOf(Bytes({0xc1, 0x04, 0xc7, 0x00})))), ProtocolError::WrongPacket);

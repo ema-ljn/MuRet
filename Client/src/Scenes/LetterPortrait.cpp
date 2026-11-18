@@ -16,6 +16,7 @@
 #include "Scenes/ActionReply.h"
 #include "Scenes/ActorActions.h"
 #include "Scenes/ActorCharacterSet.h"
+#include "Scenes/ActorCombat.h"
 #include "Scenes/ActorConstruction.h"
 #include "Scenes/ActorEquipment.h"
 #include "Scenes/ActorState.h"
@@ -74,6 +75,8 @@ constexpr float PortraitYaw = 60.0f;
 constexpr float HelperScaleFactor = 0.7f;
 // 0x497862: de 0x83 en adelante, con alas, la zona segura.
 constexpr std::int32_t LastGroundAction = 0x82;
+// 0x495b2a: el blanco (+0x3a4) de la acción 0x78.
+constexpr std::uint16_t NoAttackTarget = 0xffff;
 // 0x5130cc..0x513124: 0x513100 no llama a 0x4f2250 con la acción entre 0x22 y 0x97 o entre 0xc5 y 0xcc.
 constexpr std::uint8_t FirstBusyAction = 0x22;
 constexpr std::uint8_t LastBusyAction = 0x97;
@@ -575,10 +578,16 @@ Core::Expected<std::int32_t, std::string> ShowThePortraitAction(LetterPortrait& 
     }
     else if (chosen == StrikeAction)
     {
-        return Core::Unexpected(std::string(
-            "0x495b0b: la acción 0x78 del retrato de las cartas (con un clic: el 4 de la de escribir desde la 0x7a, "
-            "índice −1 más 300 o 2.400) va a SetActorAttack (0x4f4a10) con el mundo en 0 (sin leer, con sus rand()), "
-            "que es del hito 3 de la CL9; después pone +0x381 en 1, el frame (+0x114) en 0 y +0x3a4 en 0xffff"));
+        // 0x495b00..0x495b33: SetActorAttack (0x4f4a10, con sus rand()) con el mundo en 0; con el mundo de vuelta,
+        // +0x381 en 1, el frame (+0x114) en 0 y el blanco (+0x3a4) en 0xffff.
+        {
+            const MapAtZero map(runtime);
+            if (auto attacked = SetActorAttack(actor, CombatContextOf(resources)); !attacked.HasValue())
+                return Core::Unexpected(attacked.Error());
+        }
+        actor.byte381 = 1;
+        actor.animation.frame = 0.0f;
+        actor.attackTarget = NoAttackTarget;
     }
     else if (chosen == WalkAction)
     {

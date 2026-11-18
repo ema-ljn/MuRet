@@ -6,7 +6,9 @@
 #include "UI/OldWindowBase.h"
 #include "UI/OldWindows.h"
 
+#include <cstddef>
 #include <cstdint>
+#include <deque>
 #include <string>
 #include <string_view>
 
@@ -74,6 +76,14 @@ void ShowTheWindow(OldWindowManager& manager, std::int32_t id, bool show);
 
 // La ventana de amigos, sus pestañas y la caja de agregar (UI/FriendWindows.cpp).
 [[nodiscard]] bool IsAFriendsKind(OldWindowKind kind);
+
+// 0x461f00, la vtable + 0x88 de las listas de amigos (0x460970: la pestaña de amigos y, en el chat, la de los miembros
+// y la de invitar). Con el mouse sobre el renglón `row` (el elemento `at`): el clic lo elige y da vuelta su marca, el
+// doble clic es el 0xd al padre (0x490b40) y el derecho lo elige, da vuelta la marca y abre el susurro con el nombre
+// (0x4694c0). Da 1: el paso sigue.
+[[nodiscard]] std::int32_t HoverAFriendRow(OldWindowManager& manager, OldList& list, std::deque<FriendEntry>& friends,
+                                           std::int32_t row, std::size_t at, const OldWindowGlobals& globals,
+                                           const OldWindowStepView& view);
 // La vtable + 0x28 (0x4a2be0, 0x49d0b0, 0x49ea50, 0x4a11b0 y 0x4a3850).
 [[nodiscard]] Core::Expected<void, std::string> HandleTheFriendsMessage(OldWindowManager& manager, OldWindow& window,
                                                                         const OldWindowGlobals& globals,

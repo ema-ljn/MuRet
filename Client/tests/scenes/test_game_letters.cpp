@@ -241,10 +241,10 @@ protected:
 
     // Lo que el juego le da al paso (Scenes/GameUi), con un retrato de prueba: arma el personaje (+0x68c en 1) con el
     // zoom de 0,8 y no saca rand().
-    [[nodiscard]] Client::UI::OldWindowStepView View()
+    [[nodiscard]] Client::UI::OldWindowStepView View(std::int32_t x = 639, std::int32_t y = 479)
     {
-        Client::UI::OldWindowStepView view{.mouseX = 639,
-                                           .mouseY = 479,
+        Client::UI::OldWindowStepView view{.mouseX = x,
+                                           .mouseY = y,
                                            .keyEdge = [](std::uint8_t /*key*/) { return false; },
                                            .keyDown = {},
                                            .chatOpen = false,
@@ -278,9 +278,9 @@ protected:
         return Client::Scenes::OldWindowGlobalsOf(Runtime());
     }
 
-    Client::Core::Expected<void, std::string> Step()
+    Client::Core::Expected<void, std::string> Step(std::int32_t x = 639, std::int32_t y = 479)
     {
-        return Client::UI::StepTheOldWindows(Manager(), Globals(), View());
+        return Client::UI::StepTheOldWindows(Manager(), Globals(), View(x, y));
     }
 
     // La de amigos con tres: dos en línea y uno fuera.
@@ -445,14 +445,26 @@ TEST_F(GameLettersTest, AChatWithAFriendInvitesAnother)
     EXPECT_EQ(chat->chat.mode, 2);
     ASSERT_EQ(chat->chat.invitable.size(), 1u);
     EXPECT_EQ(chat->chat.invitable[0].name, "Calandria");
-    Client::UI::SelectInTheList(chat->chat.invite, chat->chat.invitable.size(), 1);
     // El 6 (subir el chat, 0x49541c) le da el foco al EDIT, como cada clic sobre la ventana: invitar no mira el foco
     // sino +0xb4 del EDIT (0x49455e), que solo prende el chat cerrado.
     Client::UI::PostToTheWindow(Manager(), chatId, Client::UI::RaisedMessage, 0, 0);
     ASSERT_TRUE(Step().HasValue());
     EXPECT_EQ(Runtime().chat.input.focus, Client::UI::ChatFocus::OldWindow);
     EXPECT_EQ(Manager().focusedEdit, chat->chat.edit.base.id);
-    Client::UI::PostToTheWindow(Manager(), chatId, Client::UI::CommandMessage, 2, 0);
+    // 0x461f00 sobre el renglón de Calandria (13 de alto, 3 más arriba que su y): el clic lo elige y el doble clic es
+    // el 0xd al chat, que 0x4944d9 vuelve el 10 con 2.
+    chat = &Manager().windows.at(chatId);
+    const std::int32_t rowX = chat->chat.invite.base.x + 4;
+    const std::int32_t rowY = Client::UI::ListRowY(chat->chat.invite, chat->chat.invitable.size(), 0) + 3;
+    Runtime().movement.pendingClick = true;
+    ASSERT_TRUE(Step(rowX, rowY).HasValue());
+    chat = &Manager().windows.at(chatId);
+    EXPECT_EQ(Client::UI::SelectedInTheList(chat->chat.invite, chat->chat.invitable.size()),
+              std::optional<std::size_t>(0));
+    EXPECT_EQ(chat->chat.invitable[0].selected, 1);
+    EXPECT_EQ(m_sent.size(), 1u);
+    Runtime().ui.doubleClick = true;
+    ASSERT_TRUE(Step(rowX, rowY).HasValue());
     ASSERT_TRUE(Step().HasValue());
     ASSERT_EQ(m_sent.size(), 2u);
     EXPECT_EQ(m_sent[1].kind, FriendSendKind::Invite);

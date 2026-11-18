@@ -65,7 +65,6 @@
 #include <span>
 #include <string>
 #include <string_view>
-#include <span>
 #include <utility>
 
 namespace Client::Scenes
@@ -291,7 +290,8 @@ Core::Expected<void, std::string> GameScene::StepTheDialogs(const Input::InputSt
                                             .chosenSlot = chosenSlot,
                                             .requests = &requests,
                                             .inventory = &inventory,
-                                            .worldEntry = m_context.worldEntry});
+                                            .worldEntry = m_context.worldEntry,
+                                            .sendNpcWindow = NpcWindowSenderOf(m_session)});
 }
 
 Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& input)

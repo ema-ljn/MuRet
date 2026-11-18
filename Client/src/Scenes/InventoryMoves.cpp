@@ -830,30 +830,36 @@ Core::Expected<bool, std::string> FitsTheSlot(const InventoryMoveContext& contex
     return std::to_integer<std::int32_t>(record.Value()[ItemWidthOffset]) < WideItem;
 }
 
-// 0x5df58b..0x5df6c8: las ventanas con el mouse sobre ellas y las tiendas personales, que no dejan tirar nada. Las de
-// la derecha comparan con 0x78aba28, que escriben sus dibujos (0x5f4720, 0x5f4e30, 0x5febf0...), del hito 6: una
-// abierta corta. El comercio compara con 0x78a5a1c (HudState::tradeX, de su dibujo 0x5f3b40), con signo (jl).
-Core::Expected<bool, std::string> WindowKeepsTheItem(const WorldRuntime& runtime, UI::PanelRegistry& panels,
-                                                     const GroundDrop& drop)
+// 0x5df58b..0x5df6c8: las ventanas conservan el ítem cuando el mouse está a su derecha.
+bool WindowKeepsTheItem(const WorldState& world, UI::PanelRegistry& panels, const GroundDrop& drop)
 {
+    const WorldRuntime& runtime = world.Runtime();
     bool over = drop.inventoryOpen && drop.mouseX >= runtime.hud.inventoryX;
-    if (panels.IsOpen(UI::NpcShopPanel))
-        return Core::Unexpected(std::string("0x5df5cf: la tienda de NPC abierta lee la x de la ventana de la derecha "
-                                            "(0x78aba28), que escribe su dibujo (0x5f4720), del hito 6"));
-    if (panels.IsOpen(UI::WarehousePanel))
-        return Core::Unexpected(std::string("0x5df5f4: el almacén abierto lee 0x78aba28 (0x5f4e30), del hito 6"));
+    if (panels.IsOpen(UI::NpcShopPanel) && drop.mouseX >= runtime.ui.npcWindowX)
+        over = true;
+    if (panels.IsOpen(UI::WarehousePanel) && drop.mouseX >= runtime.ui.npcWindowX)
+        over = true;
     if (panels.IsOpen(UI::ChaosBoxPanel))
-        return Core::Unexpected(std::string("0x5df644: la caja del caos abierta lee 0x78aba28 (0x5febf0), del hito 6"));
-    if (panels.IsOpen(UI::CastleSiegeListPanel) && runtime.panels.delegated.castleSiegeListMode == CastleSiegeListMode)
-        return Core::Unexpected(std::string("0x5df635: 0x6689d0, la marca del asedio del héroe, es del hito 12"));
-    // 0x5df651..0x5df671.
+    {
+        if (drop.mouseX >= runtime.ui.npcWindowX)
+            over = true;
+    }
+    else if (panels.IsOpen(UI::CastleSiegeListPanel) &&
+             runtime.panels.delegated.castleSiegeListMode == CastleSiegeListMode)
+    {
+        // 0x6689d0: la marca WORD con signo y el estado de maestro del gremio del héroe publicado.
+        const ActorState& hero = world.Actors()[runtime.hero];
+        constexpr std::uint8_t GuildMaster = 0x80;
+        if (std::bit_cast<std::int16_t>(hero.word1f2) >= 0 && hero.guildStatus == GuildMaster &&
+            drop.mouseX >= runtime.ui.npcWindowX)
+            over = true;
+    }
     if (panels.IsOpen(UI::TradePanel) && drop.mouseX >= runtime.hud.tradeX)
         over = true;
-    // 0x5df675..0x5df69d: la tienda personal propia o la ajena, con el mouse donde sea.
     if (panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel))
         over = true;
-    if (panels.IsOpen(UI::TrainerPanel))
-        return Core::Unexpected(std::string("0x5df6b5: la caja del entrenador abierta lee 0x78aba28, del hito 6"));
+    if (panels.IsOpen(UI::TrainerPanel) && drop.mouseX >= runtime.ui.npcWindowX)
+        over = true;
     return over;
 }
 
@@ -897,23 +903,66 @@ Core::Expected<bool, std::string> CheckTheWizardsRing(const InventoryMoveContext
     return throws;
 }
 
+// 0x4379f0: los límites inferiores DWORD con signo desde 0x6b8b10. El nivel del ítem tiene cuatro bits;
+// los extremos también leen las constantes contiguas de .data, como el original.
+constexpr std::array<std::int32_t, 23> TicketLowerLevels{
+    1101529088, 40,         131,        181,         231,        281,        331,       350,
+    20,         111,        161,        211,         261,        311,        350,       1136197632,
+    1017370378, 1062557013, 1116733440, -1038090240, 1067030938, 1097649357, 1059481190};
+
+Core::Expected<bool, std::string> CheckTheEntryTicket(const InventoryMoveContext& context)
+{
+    WorldState& world = context.world;
+    WorldRuntime& runtime = world.Runtime();
+    if (runtime.cursorItem.id != EventTicket)
+        return true;
+    const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
+                                            Render::Models::OwnRecordCloseRandoms);
+    constexpr std::size_t SpecialClassOffset = 7;
+    constexpr std::int32_t FirstEventMap = 24;
+    constexpr std::int32_t LastEventMap = 29;
+    constexpr std::int32_t FinalEventMap = 36;
+    const std::uint8_t heroClass = world.Actors()[runtime.hero].characterClass & ClassMask;
+    const std::size_t offset = heroClass == 3 || heroClass == 4 ? SpecialClassOffset : 0;
+    const std::int32_t level = world.OwnCharacter().level;
+    if (level < TicketLowerLevels[offset + LevelOf(runtime.cursorItem)] ||
+        InRange(runtime.map, FirstEventMap, LastEventMap) || runtime.map == FinalEventMap)
+        return false;
+    // 0x437a20(1), con el acceso anidado: el cierre no consume rand() mientras sigue el del llamador.
+    const Render::Models::LogicalAccess nested(runtime.ownRecordDepth, context.random,
+                                               Render::Models::OwnRecordCloseRandoms);
+    if (world.Actors()[runtime.hero].safeZone != 0)
+    {
+        if (auto shown = Message(context.services, 1238, UI::ErrorMessage, "0x437b9b"); !shown.HasValue())
+            return Core::Unexpected(shown.Error());
+        return false;
+    }
+    const std::int32_t minimum = TicketLowerLevels[offset + 1];
+    if (level >= minimum)
+        return true;
+    const auto format = UI::TextAt(context.services.texts, 1123);
+    if (!format || !context.services.chatLine)
+        return Core::Unexpected(std::string("0x437c33: falta el aviso del nivel para entrar al evento"));
+    if (auto shown = context.services.chatLine(UI::Sprintf(*format, minimum), UI::ErrorMessage); !shown.HasValue())
+        return Core::Unexpected(shown.Error());
+    return false;
+}
+
 Core::Expected<void, std::string> ThrowToTheGround(const InventoryMoveContext& context, const GroundDrop& drop)
 {
     WorldRuntime& runtime = context.world.Runtime();
     if (drop.panels == nullptr)
         return Core::Unexpected(std::string("0x5df59a: 0x659290 sin el registro de las ventanas"));
     UI::PanelRegistry& panels = *drop.panels;
-    const auto over = WindowKeepsTheItem(runtime, panels, drop);
-    if (!over.HasValue())
-        return Core::Unexpected(over.Error());
+    const bool over = WindowKeepsTheItem(context.world, panels, drop);
     const auto ring = CheckTheWizardsRing(context);
     if (!ring.HasValue())
         return Core::Unexpected(ring.Error());
-    // 0x5dfa55..0x5dfd9a: el 0x1c1c abre el registro propio y llama a 0x4379f0 con la clase del héroe y su nivel.
-    if (runtime.cursorItem.id == EventTicket)
-        return Core::Unexpected(std::string("0x5dfb3e: tirar el 0x1c1c mira 0x4379f0 y 0x437a20, del hito 6"));
+    const auto ticket = CheckTheEntryTicket(context);
+    if (!ticket.HasValue())
+        return Core::Unexpected(ticket.Error());
     // 0x5dfd9d..0x5dfdb7: si no se tira o con el comercio abierto (su rand()), 0x5be150.
-    if (over.Value() || !ring.Value() || panels.IsOpen(UI::TradePanel))
+    if (over || !ring.Value() || !ticket.Value() || panels.IsOpen(UI::TradePanel))
         return ReturnTheCursorItem(context);
     if (!context.services.pickTheGround)
         return Core::Unexpected(std::string("0x5dfdbf: 0x5fc260(1) sin el rayo del mouse"));
@@ -1245,7 +1294,7 @@ Core::Expected<void, std::string> PickUpFromTheEquipment(const InventoryMoveCont
     ItemState& item = world.OwnCharacter().equipment.at(slot);
     if (runtime.panels.repairMode != 0)
         return Core::Unexpected(
-            std::format("0x5c2dd5: reparar el {:#x} del lugar {} del equipo es de la CL9.3", item.id, slot));
+            std::format("0x5c2dd5: el caller debe reparar el {:#x} del lugar {} antes de levantarlo", item.id, slot));
     runtime.movement.pendingClick = false;
     const std::int32_t type = Signed(item.id);
     const auto isWingOrCape = [](std::int32_t id) { return InRange(id, FirstWing, LastWing) || id == CapeOfLord; };

@@ -82,7 +82,19 @@ struct MixQuote
     std::uint32_t price = 0;
     std::string priceText;
 };
-[[nodiscard]] Core::Expected<MixQuote, std::string> MixQuoteOf(const NpcWindowState& npc);
+// Los DWORD vivos después del formato de 0x6c9dc0 que también alcanza la tasa del 2 (Q-C942).
+// Los valores por defecto son los de .data; el dibujo presta los globales del mundo en curso.
+struct MixQuoteData
+{
+    std::int32_t glowDetail = 4; // 0x6c9dcc.
+    std::int32_t map = -1;       // 0x6c9dd0.
+    std::int32_t collapseType = -1;
+    std::int32_t collapseMap = -1;
+    std::int32_t collapseCounter = -1;
+    float collapseDelay = -1.0f;
+};
+[[nodiscard]] Core::Expected<MixQuote, std::string> MixQuoteOf(const NpcWindowState& npc,
+                                                               const MixQuoteData& data = {});
 
 // 0x5b1130(n, buffer): n sin signo con los miles separados por comas ("%d,%03d" y sus hermanos).
 [[nodiscard]] std::string ThousandsText(std::uint32_t value);

@@ -20,12 +20,14 @@
 
 #include <gtest/gtest.h>
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <map>
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -393,15 +395,19 @@ TEST_F(ChaosBoxDrawingTest, TheOtherModesAndTheRequestedMix)
     EXPECT_EQ(Runtime().ui.npcWindowX, 7);
 }
 
-// 0x5fee3a (P-C197): el 2 de nivel 8 o más lee la tasa después de las seis de 0x6c9da8 y corta; sin Text.bmd corta
-// con la dirección del título.
-TEST_F(ChaosBoxDrawingTest, WhatTheOriginalReadsOutOfItsDataCuts)
+// 0x5fee3a: el 2 de nivel 8 lee el primer dword del formato de 0x6c9dc0 y sigue dibujando;
+// sin Text.bmd, el error conserva la dirección del título.
+TEST_F(ChaosBoxDrawingTest, TheNativeDataPastTheRatesStillDrawsItsQuote)
 {
     Npc().mixKind = 2;
     Npc().mixLevel = 8;
     const auto past = Draw();
-    ASSERT_FALSE(past.HasValue());
-    EXPECT_NE(past.Error().find("P-C197"), std::string::npos) << past.Error();
+    ASSERT_TRUE(past.HasValue()) << past.Error();
+    EXPECT_EQ(Npc().mixPrice, 1'600'000u);
+    bool rateDrawn = false;
+    for (const auto& text : m_text.texts)
+        rateDrawn = rateDrawn || text.text == "mezcla: 723546917%";
+    EXPECT_TRUE(rateDrawn);
 
     Restart();
     m_drawnTexts = nullptr;
@@ -410,3 +416,22 @@ TEST_F(ChaosBoxDrawingTest, WhatTheOriginalReadsOutOfItsDataCuts)
     EXPECT_NE(missing.Error().find("0x5fed39"), std::string::npos) << missing.Error();
 }
 } // namespace
+
+TEST_F(ChaosBoxDrawingTest, HighInvitationsReadTheLiveGlowMapAndCollapseGlobals)
+{
+    Runtime().ui.glowDetail = 2;
+    Runtime().map = 3;
+    Runtime().events.objectCollapse = {.map = 18, .type = 77, .counter = 99, .delay = 1.25f};
+    Npc().mixKind = 2;
+    const std::array<std::string_view, 6> expected{"mezcla: 2%",  "mezcla: 3%",  "mezcla: 77%",
+                                                   "mezcla: 18%", "mezcla: 99%", "mezcla: 1067450368%"};
+    for (std::size_t index = 0; index < expected.size(); ++index)
+    {
+        Restart();
+        Npc().mixLevel = 11 + static_cast<std::int32_t>(index);
+        const auto drawn = Draw();
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        ASSERT_GE(Lines().size(), 2u);
+        EXPECT_EQ(Lines()[1].text, expected[index]);
+    }
+}

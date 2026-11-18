@@ -616,7 +616,7 @@ TEST(GameMovementTest, TheRightClickOnTheChosenWritesItsNameAndLeavesTheOldOneIn
         EXPECT_EQ(Client::UI::CStringOf(slot), "Rival01");
         // strcpy: después del 0, el lugar conserva lo que tenía.
         EXPECT_EQ(slot[8], 'y');
-        EXPECT_EQ(input.whisper.Value(), "Viejo07");
+        EXPECT_EQ(input.whisper.text.Value(), "Viejo07");
         EXPECT_EQ(runtime.lastSoundId, 0x19);
     }
 }

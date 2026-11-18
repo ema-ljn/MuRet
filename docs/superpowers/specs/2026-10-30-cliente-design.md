@@ -422,11 +422,14 @@ y cambió la forma de la ola:
 Plan: [`2026-11-13-ola-cl9-gameplay.md`](../plans/2026-11-13-ola-cl9-gameplay.md), con la tabla de
 [funciones](../plans/2026-11-13-ola-cl9-funciones.tsv) y la de [cortes](../plans/2026-11-13-ola-cl9-cortes.tsv).
 
-**Estado por hitos al 2026-11-15:** [tabla y porcentajes actualizados](../plans/2026-11-14-cl9-traspaso.md#estado-por-hito).
-La cobertura por citas suma **82,4 %** entre las ramas de los trece hitos; no mide equivalencia funcional
-ni integración en `main`. El [PR #354](https://github.com/ema-ljn/MuRet/pull/354) entrega las reparaciones
-de H1/H9: H1 queda implementado en el alcance ASM revisado; H9 conserva pendientes propios del editor.
-La validación estricta restante en VM y contra el servidor se hará más adelante.
+**Estado por hitos al 2026-11-18:** [implementación integrada y condiciones de cierre](../../../Client/docs/research/2026-11-18-cl9-estado-integrado.md).
+Sobre `main` en `c8d6dbb3`, la pila pendiente es #347 (H9/H10), #348 (H6), #349 (H12)
+y el cierre H13/eventos. H12/H13 y las cadenas propias de Crywolf están implementados en el
+conjunto candidato; mandan sus checks y las fronteras de fidelidad documentadas, no el conteo
+de citas. EDIT/IME, posiciones nativas de pila, auto-flechas y picking tienen casos precisos
+todavía abiertos. El [traspaso](../plans/2026-11-14-cl9-traspaso.md) conserva las cifras históricas,
+que no representan porcentajes funcionales actuales. La comparación estricta en VM y servidor
+se ejecuta con los runbooks del cierre.
 
 El barrido (2026-11-13) repartió las 1.014 funciones de la CL9 de la matriz (469 KB), las 127 de otras olas sin
 portar que solo llama la CL9 (48 KB) y los 240 cortes de MuRet hacia la CL9:

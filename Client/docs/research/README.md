@@ -56,6 +56,10 @@ trazas; el audio, casi nada. Este research lo dice explícitamente en cada tema 
 Orden de lectura sugerido para aprender: 01 → 03 → 04 → 05 → 02 → 06, y el resto como
 referencia.
 
+Estado de entrega CL9 al 18/11: [implementación integrada, pruebas y fronteras por hito](2026-11-18-cl9-estado-integrado.md).
+La validación pendiente tiene un [runbook Castle Siege/Crywolf](scripts/game/capture/RUNBOOK-cl9-castle-crywolf.md),
+además del [runbook H1/H9 y recuperación de evidencia](scripts/game/capture/RUNBOOK-cl9-vm.md).
+
 ## Niveles de confianza
 
 El repo de research marca cada hallazgo con **C** (confirmado), **I** (inferido) o **D**

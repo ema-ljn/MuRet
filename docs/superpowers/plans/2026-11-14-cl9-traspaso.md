@@ -1,4 +1,29 @@
-# CL9: traspaso para terminar la ola (actualizado 2026-11-16)
+# CL9: traspaso para terminar la ola (actualizado 2026-11-18)
+
+## Estado operativo actual
+
+El [estado integrado del 18/11](../../../Client/docs/research/2026-11-18-cl9-estado-integrado.md)
+reemplaza las instrucciones operativas y porcentajes históricos de este documento.
+Parte de `main` en `c8d6dbb3`, con las entregas principales de H1/H2/H3/H4/H5/H7/H8/H9/H11
+ya integradas. La pila pendiente es `main` ← #347 (H9/H10) ← #348 (H6) ← #349 (H12)
+← `codex/cl9-h13-cierre` (H13 y conexiones de eventos/Crywolf).
+
+H12 ya tiene registro, Senior y zona de caza desde recepción/NPC hasta paso/dibujo;
+H13 ya integra batalla, mapa30, armas, minimapa y cambio de servidor. El cierre global
+todavía requiere los checks de las cabezas publicadas y resolver las fronteras precisas
+de fidelidad. No usar las fases «sin empezar» ni los porcentajes de citas de abajo
+como estado actual.
+
+Continuar por el [plan de cierre](2026-11-18-cl9-cierre-asm.md) y el
+[runbook VM Castle/Crywolf](../../../Client/docs/research/scripts/game/capture/RUNBOOK-cl9-castle-crywolf.md).
+Las 62 referencias históricas y los 51 recursos del manifiesto se recuperaron fuera
+de Git; su disponibilidad no certifica una ejecución nueva del original.
+
+## Fotografía histórica del 16/11
+
+Las secciones restantes conservan el contexto y las cifras del corte anterior.
+Sus SHAs, estados de PR, fases, instrucciones de continuación y pendientes pueden haber
+sido sustituidos por la entrega actual; consultar primero el estado integrado enlazado.
 
 > **Entrega actual: cierre de H3 en [PR #342](https://github.com/ema-ljn/MuRet/pull/342).** #354 y #355
 > ya están en `main`. H1 conserva su alcance ASM revisado; H9 mantiene pendientes propios del editor
@@ -29,7 +54,7 @@ Las revisiones pendientes están en [`2026-11-14-cl9-traspaso/`](2026-11-14-cl9-
 4. Conservar los pendientes de editor de H9, integraciones sociales y Castle Siege (12 y 13).
 5. Completar la comparación estricta pendiente de MuRet con VM y servidor, incluidos casos especiales.
 
-## Estado por hito
+## Estado por hito (histórico, 16/11)
 
 **Cobertura por citas** = bytes de las filas con alguna dirección de su rango citada fuera de una línea
 de corte en `Client/src/`, divididos por los bytes de todas las filas del hito. Se toma la unión de

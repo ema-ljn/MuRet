@@ -999,6 +999,54 @@ TEST_F(CursorItemTest, NpcWindowsKeepTheDropOnlyOnTheirSideOfTheScreen)
     }
 }
 
+// 0x5df635→0x6689d0: sólo modo 3, marca WORD no negativa y maestro 0x80 retienen a la derecha del NPC.
+TEST_F(CursorItemTest, TheSeniorCraftWindowKeepsTheDropWithItsNativeSignedGuildMark)
+{
+    struct Case
+    {
+        std::uint16_t mark;
+        std::uint8_t guildStatus;
+        std::int32_t mode;
+        std::int32_t mouseX;
+        bool kept;
+    };
+    constexpr std::array<Case, 7> cases{{{0, 0x80, 3, 260, true},
+                                         {0x7fff, 0x80, 3, 260, true},
+                                         {0x8000, 0x80, 3, 260, false},
+                                         {0xffff, 0x80, 3, 260, false},
+                                         {0, 0x7f, 3, 260, false},
+                                         {0, 0x80, 2, 260, false},
+                                         {0, 0x80, 3, 259, false}}};
+    for (const Case& given : cases)
+    {
+        auto& runtime = world.Runtime();
+        runtime.cursorItemCount = 0;
+        runtime.ui.field78abb39 = 0;
+        runtime.panels.delegated.castleSiegeList = 1;
+        runtime.panels.delegated.castleSiegeListMode = given.mode;
+        runtime.ui.npcWindowX = 260;
+        auto& hero = world.Actors()[runtime.hero];
+        hero.word1f2 = given.mark;
+        hero.guildStatus = given.guildStatus;
+        Put(Potion, 0, 0);
+        runtime.movement.pendingClick = true;
+        ASSERT_TRUE(Scenes::PickUpFromTheGrid(Moves(), 0).HasValue());
+        std::vector<Drop> sent;
+        services.sendDrop = [&sent](const Drop& drop)
+        {
+            sent.push_back(drop);
+            return Expected<void, std::string>{};
+        };
+        services.pickTheGround = [] { return Expected<std::optional<PathCell>, std::string>(PathCell{130, 121}); };
+        Scenes::GamePanels panels(world, random);
+        const auto dropped =
+            Scenes::DropOnTheGround(Moves(), Scenes::GroundDrop{.mouseX = given.mouseX, .panels = &panels.Registry()});
+        ASSERT_TRUE(dropped.HasValue()) << dropped.Error();
+        EXPECT_EQ(sent.size(), given.kept ? 0u : 1u);
+        EXPECT_EQ(runtime.cursorItemCount, given.kept ? 0 : 1);
+    }
+}
+
 // 0x5dfb3e y 0x4379f0: los dwords de la tabla y el corte de mapas son distintos de la zona segura de 0x437a20.
 TEST_F(CursorItemTest, EntryTicketsRespectTheNativeThresholdMapAndSafeZone)
 {

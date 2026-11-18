@@ -300,7 +300,7 @@ struct OtherGridDrop
 // (0x402b30 y 0x5e06b6: 0x5be150, con el aviso 269 salvo con el inventario abierto y el mouse a su derecha). Lo demás
 // (CL9 hito 5): las siete consultas de las ventanas con el mouse sobre ellas, en su orden (con el rand() de 0x10000 y
 // el de 0x20), el anillo del mago con el registro propio abierto (el aviso 923 con 80 o 40 por el nivel; el nivel 3
-// no se tira), el 0x1c1c (0x4379f0, del hito 6: corta) y, con todo eso y el comercio cerrado (otro rand()), el terreno
+// no se tira), el 0x1c1c (0x4379f0 y 0x437a20) y, con todo eso y el comercio cerrado (otro rand()), el terreno
 // bajo el mouse: si lo hay, los dos rand() del C3 y el C1 06 23 con su celda y el lugar [0x78a6758], que queda en
 // 0x6c82ec, y la espera del mouse (0x77f3b10 en 0 y 0x6c8dcc en 6); si no, nada. Si no se tira, 0x5be150.
 struct GroundDrop

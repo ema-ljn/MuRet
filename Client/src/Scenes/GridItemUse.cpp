@@ -159,7 +159,7 @@ Core::Expected<void, std::string> UseTheFruit(const InventoryMoveContext& contex
     // 0x5c83ad: el nivel lo mira en EBX, la casilla bajo el mouse (0x5c589e), no en la copia de 0x78a59c8.
     if (hovered.scalar1Low == CommandFruitBits && heroClass != CommandFruitClass)
         return Notice(context, FruitClassText, "0x5c83be");
-    // 0x5c83e7..0x5c83f3: el diálogo 0x96 nombra el ítem de 0x78a59c8: corta con la dirección de su texto.
+    // 0x5c83e7..0x5c83f3: el diálogo 0x96 nombra el ítem copiado de 0x78a59c8.
     return UI::OpenTextDialog(runtime.dialogBox, runtime.dialogs, context.services.texts, FruitDialogLines,
                               FruitDialogText, UI::ItemNameDialog, &runtime.dialogItem);
 }

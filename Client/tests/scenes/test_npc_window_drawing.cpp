@@ -497,7 +497,8 @@ TEST_P(NpcWindowDrawingTest, TheWarehouseFeeRoundsByItsSize)
          {std::tuple{std::uint16_t{3}, false, "1"}, std::tuple{std::uint16_t{3}, true, "6"},
           std::tuple{std::uint16_t{30}, false, "36"}, std::tuple{std::uint16_t{60}, true, "260"},
           std::tuple{std::uint16_t{170}, true, "1,400"}, std::tuple{std::uint16_t{200}, false, "1,600"},
-          std::tuple{std::uint16_t{400}, true, "7,200"}})
+          std::tuple{std::uint16_t{400}, true, "7,200"}, std::tuple{std::uint16_t{46341}, false, "1"},
+          std::tuple{std::uint16_t{65535}, true, "125,800"}})
     {
         SCOPED_TRACE(testing::Message() << level << (locked ? " trabado" : ""));
         OpenTheWarehouse(level, 0);

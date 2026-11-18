@@ -1,4 +1,5 @@
 #include "World/CastleSiegeObjectStep.h"
+#include "Core/Expected.h"
 #include "World/ModelEffects.h"
 #include "World/WorldObjects.h"
 #include <gtest/gtest.h>

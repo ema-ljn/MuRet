@@ -129,7 +129,7 @@ TEST_F(CastleSiegePreludeTest, TheSixtiethFrameEmitsTheNativeArgumentsInOrder)
 }
 TEST_F(CastleSiegePreludeTest, BothRockFamiliesKeepTheirStrictLogicalYBounds)
 {
-    for (const auto [y, emits] :
+    for (const auto& [y, emits] :
          std::array<std::pair<std::int32_t, bool>, 4>{{{50, false}, {51, true}, {130, true}, {131, false}}})
     {
         m_y = y;
@@ -138,7 +138,7 @@ TEST_F(CastleSiegePreludeTest, BothRockFamiliesKeepTheirStrictLogicalYBounds)
         ASSERT_TRUE(Client::World::StepCastleSiegePrelude(Prelude(20)).HasValue());
         EXPECT_EQ(std::ranges::any_of(m_emitted, [](const auto& args) { return args.type == 0x12b; }), emits) << y;
     }
-    for (const auto [y, emits] :
+    for (const auto& [y, emits] :
          std::array<std::pair<std::int32_t, bool>, 4>{{{70, false}, {71, true}, {176, true}, {177, false}}})
     {
         m_y = y;

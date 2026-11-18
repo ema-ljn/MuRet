@@ -4,7 +4,9 @@
 #include "World/TerrainLighting.h"
 #include <gtest/gtest.h>
 #include <bit>
+#include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <vector>
 

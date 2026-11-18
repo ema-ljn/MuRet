@@ -4,7 +4,6 @@
 #include "Data/Terrain/TerrainHeights.h"
 #include "Data/Terrain/TerrainLight.h"
 #include <gtest/gtest.h>
-#include <cstdint>
 #include <memory>
 namespace
 {

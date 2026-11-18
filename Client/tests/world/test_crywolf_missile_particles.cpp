@@ -1,8 +1,10 @@
 #include "World/Particles.h"
 #include "Render/Models/Cloth.h"
 #include "support/ParticleDrawRecorder.h"
+#include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
+#include <cstdint>
 #include <memory>
 
 namespace

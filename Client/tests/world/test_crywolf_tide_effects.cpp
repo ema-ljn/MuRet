@@ -6,7 +6,10 @@
 #include "World/TerrainLighting.h"
 #include "support/ParticleDrawRecorder.h"
 #include "support/PlayerActors.h"
+#include <glm/ext/vector_float2.hpp>
 #include <gtest/gtest.h>
+#include <cstddef>
+#include <cstdint>
 #include <memory>
 
 namespace

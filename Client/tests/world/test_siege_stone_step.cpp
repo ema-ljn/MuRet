@@ -1,4 +1,5 @@
 #include "World/SiegeStoneEffects.h"
+#include "Core/Expected.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/TerrainLighting.h"
@@ -7,6 +8,7 @@
 #include <glm/ext/vector_float3.hpp>
 #include <memory>
 #include <cstdint>
+#include <string>
 namespace
 {
 using namespace Client;

@@ -34,6 +34,7 @@
 #include "UI/MessageArea.h"
 #include "UI/NameChecks.h"
 #include "UI/OldControls.h"
+#include "UI/OldEditInput.h"
 #include "UI/OldWindowBase.h"
 #include "UI/OldWindows.h"
 #include "UI/PanelRegistry.h"
@@ -161,6 +162,46 @@ std::string LegacyControlText(Input::Key key)
         return std::string(1, Input::EnterChar);
     default:
         return {};
+    }
+}
+
+std::optional<UI::OldEditKey> EditKeyOf(Input::Key key)
+{
+    using Edit = UI::OldEditKey;
+    switch (key)
+    {
+    case Input::Key::Backspace:
+        return Edit::Backspace;
+    case Input::Key::Delete:
+        return Edit::Delete;
+    case Input::Key::Left:
+        return Edit::Left;
+    case Input::Key::Right:
+        return Edit::Right;
+    case Input::Key::Home:
+        return Edit::Home;
+    case Input::Key::End:
+        return Edit::End;
+    case Input::Key::Up:
+        return Edit::Up;
+    case Input::Key::Down:
+        return Edit::Down;
+    case Input::Key::PageUp:
+        return Edit::PageUp;
+    case Input::Key::PageDown:
+        return Edit::PageDown;
+    case Input::Key::Tab:
+        return Edit::Tab;
+    case Input::Key::C:
+        return Edit::Copy;
+    case Input::Key::X:
+        return Edit::Cut;
+    case Input::Key::V:
+        return Edit::Paste;
+    case Input::Key::A:
+        return Edit::CtrlA;
+    default:
+        return std::nullopt;
     }
 }
 
@@ -470,8 +511,6 @@ Core::Expected<void, std::string> TypeInTheGameChat(const GameChatContext& conte
         {
             if (oldEdit)
                 UI::TypeInTheOldEdit(runtime.oldWindows, run);
-            else if (dialogEdit != nullptr)
-                UI::TypeInTheEdit(*dialogEdit, run);
             else
                 UI::TypeInTheChat(input, run);
         }
@@ -490,6 +529,11 @@ Core::Expected<void, std::string> TypeInTheGameChat(const GameChatContext& conte
                                          context.measure, &runtime.ui.focusedList);
             continue;
         }
+        if (UI::OldEdit* edit = UI::ChatEditWithFocus(input); edit != nullptr && !edit->compositionText.empty())
+        {
+            edit->draws = 0;
+            continue;
+        }
         if (dialogEdit != nullptr)
         {
             // 0x467b5d..0x467c19: sin padre (+0x44 en 0), el Tab y el Enter van como WM_CHAR a la ventana del juego
@@ -497,7 +541,7 @@ Core::Expected<void, std::string> TypeInTheGameChat(const GameChatContext& conte
             // 0x5c, 0x4676d0) o +0xc4 en 1, que nadie prende en este EDIT. El borrar es del EDIT.
             if (pressed == Input::BackspaceChar)
             {
-                dialogEdit->text.Backspace();
+                UI::BackspaceInTheChat(input);
                 continue;
             }
             if (pressed == Input::EnterChar && runtime.oldWindows.windowList.list.armed == 1)
@@ -505,7 +549,7 @@ Core::Expected<void, std::string> TypeInTheGameChat(const GameChatContext& conte
         }
         if (pressed == Input::TabChar)
         {
-            if (UI::PressTabInTheChat(input, runtime.ui.chatOpen))
+            if (UI::PressTabInTheChat(input, runtime.ui.chatOpen, &runtime.ui.focusedList))
                 runtime.lastSoundId = UI::ChatButtonSound;
         }
         else if (pressed == Input::EnterChar)
@@ -532,94 +576,45 @@ Core::Expected<void, std::string> TypeTheGameInput(const GameChatContext& contex
                 return typed;
             continue;
         }
+        const bool oldEdit = UI::HasAnOldEditFocused(runtime.oldWindows, input.focus);
+        UI::OldEdit* chatEdit = UI::ChatEditWithFocus(input);
         if (event.kind == Input::TextInputEvent::Kind::Composition)
         {
-            if (!UI::HasAnOldEditFocused(runtime.oldWindows, input.focus))
-                continue;
-            UI::SetTheOldEditComposition(runtime.oldWindows, event.text, event.compositionStart,
-                                         event.compositionLength);
+            if (oldEdit)
+                UI::SetTheOldEditComposition(runtime.oldWindows, event.text, event.compositionStart,
+                                             event.compositionLength);
+            else if (chatEdit != nullptr)
+                UI::SetTheEditComposition(*chatEdit, event.text, event.compositionStart, event.compositionLength);
             continue;
         }
-        // SDL aún entrega las teclas como Key durante el preedit; no las confirmamos ni enviamos. Falta modelar el
-        // manejo de teclas por un IME genuino como el de EDIT.
-        const bool oldEdit = UI::HasAnOldEditFocused(runtime.oldWindows, input.focus);
-        if (!oldEdit)
+        const auto editKey = EditKeyOf(event.key);
+        if (oldEdit)
         {
-            const std::string control = LegacyControlText(event.key);
-            if (!control.empty())
-            {
-                if (auto typed = TypeInTheGameChat(context, control); !typed.HasValue())
-                    return typed;
-            }
+            if (event.key == Input::Key::Enter)
+                UI::PressEnterInTheOldEdit(runtime.oldWindows);
+            else if (editKey)
+                UI::ApplyKeyToTheOldEdit(runtime.oldWindows, *editKey, event.shift, event.ctrl, context.clipboard,
+                                         context.measure, &runtime.ui.focusedList);
             continue;
         }
-        switch (event.key)
+        // SDL entrega teclas durante el preedit. El mismo guard del EDIT evita editar o enviar antes del commit;
+        // esto no sustituye la traducción de mensajes de un IME de Windows XP.
+        if (chatEdit != nullptr && !chatEdit->compositionText.empty())
         {
-        case Input::Key::Backspace:
-            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Backspace, event.shift, event.ctrl,
-                                     context.clipboard, context.measure, &runtime.ui.focusedList);
-            break;
-        case Input::Key::Tab:
-            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Tab, event.shift, event.ctrl,
-                                     context.clipboard, context.measure, &runtime.ui.focusedList);
-            break;
-        case Input::Key::Delete:
-            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Delete, event.shift, event.ctrl,
-                                     context.clipboard, context.measure, &runtime.ui.focusedList);
-            break;
-        case Input::Key::Left:
-            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Left, event.shift, event.ctrl,
-                                     context.clipboard, context.measure, &runtime.ui.focusedList);
-            break;
-        case Input::Key::Right:
-            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Right, event.shift, event.ctrl,
-                                     context.clipboard, context.measure, &runtime.ui.focusedList);
-            break;
-        case Input::Key::Up:
-            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Up, event.shift, event.ctrl, context.clipboard,
-                                     context.measure, &runtime.ui.focusedList);
-            break;
-        case Input::Key::Down:
-            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Down, event.shift, event.ctrl,
-                                     context.clipboard, context.measure, &runtime.ui.focusedList);
-            break;
-        case Input::Key::Home:
-            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Home, event.shift, event.ctrl,
-                                     context.clipboard, context.measure, &runtime.ui.focusedList);
-            break;
-        case Input::Key::End:
-            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::End, event.shift, event.ctrl,
-                                     context.clipboard, context.measure, &runtime.ui.focusedList);
-            break;
-        case Input::Key::PageUp:
-            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::PageUp, event.shift, event.ctrl,
-                                     context.clipboard, context.measure, &runtime.ui.focusedList);
-            break;
-        case Input::Key::PageDown:
-            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::PageDown, event.shift, event.ctrl,
-                                     context.clipboard, context.measure, &runtime.ui.focusedList);
-            break;
-        case Input::Key::C:
-            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Copy, event.shift, event.ctrl,
-                                     context.clipboard, context.measure, &runtime.ui.focusedList);
-            break;
-        case Input::Key::X:
-            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Cut, event.shift, event.ctrl,
-                                     context.clipboard, context.measure, &runtime.ui.focusedList);
-            break;
-        case Input::Key::V:
-            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Paste, event.shift, event.ctrl,
-                                     context.clipboard, context.measure, &runtime.ui.focusedList);
-            break;
-        case Input::Key::A:
-            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::CtrlA, event.shift, event.ctrl,
-                                     context.clipboard, context.measure, &runtime.ui.focusedList);
-            break;
-        case Input::Key::Enter:
-            UI::PressEnterInTheOldEdit(runtime.oldWindows);
-            break;
-        default:
-            break;
+            if (editKey)
+                UI::ApplyKeyToTheEdit(*chatEdit, *editKey, event.shift, event.ctrl, context.clipboard, context.measure);
+            continue;
+        }
+        if (chatEdit != nullptr && editKey && event.key != Input::Key::Tab)
+        {
+            UI::ApplyKeyToTheEdit(*chatEdit, *editKey, event.shift, event.ctrl, context.clipboard, context.measure);
+            continue;
+        }
+        // Los EDIT sin padre reenvían Tab y Enter a la ventana del juego (0x467b5d..0x467c19).
+        if (const std::string control = LegacyControlText(event.key); !control.empty())
+        {
+            if (auto typed = TypeInTheGameChat(context, control); !typed.HasValue())
+                return typed;
         }
     }
     return {};
@@ -683,7 +678,7 @@ Core::Expected<void, std::string> PressEnterInTheGame(const GameChatContext& con
         if (ui.chatOpen)
         {
             ui.chatOpen = false;
-            UI::ShowTheChatFields(input, Hide);
+            UI::ShowTheChatFields(input, Hide, &runtime.ui.focusedList);
         }
         else if (runtime.dialogs.current == MoneyDialog)
         {
@@ -698,7 +693,7 @@ Core::Expected<void, std::string> PressEnterInTheGame(const GameChatContext& con
             runtime.social.dialogFieldLimit = ClosedDialogFieldLimit;
             input.fieldCount = UI::ChatFieldCount;
             runtime.social.moneyField = 0;
-            UI::ShowTheChatFields(input, ShowFocused);
+            UI::ShowTheChatFields(input, ShowFocused, &runtime.ui.focusedList);
             ui.chatOpen = true;
         }
         return {};
@@ -738,7 +733,7 @@ Core::Expected<void, std::string> PressEnterInTheGame(const GameChatContext& con
         runtime.chat.area.firstShown = UI::FirstShownRow;
     // 0x4b884b..0x4b8883.
     UI::SetTheChatFields(input, std::string_view{}, std::nullopt);
-    UI::ShowTheChatFields(input, Hide);
+    UI::ShowTheChatFields(input, Hide, &runtime.ui.focusedList);
     UI::ScrollTheLog(runtime.chat.log, ui.chatModes, ScrollAfterSaying);
     ForgetWhatWasTyped(runtime, input, ui);
     return {};

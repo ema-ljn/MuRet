@@ -169,7 +169,8 @@ Render::Models::LogicalAccess OwnAccess(GameHudContext& context)
 // 1, desde 1.000 baja a la centena y desde 100 a la decena (la división de C).
 std::int32_t WarehouseFee(std::uint16_t level, bool locked)
 {
-    const std::int32_t squared = static_cast<std::int32_t>(level) * static_cast<std::int32_t>(level);
+    // 0x5f5464: IMUL conserva los 32 bits bajos; FILD los interpreta con signo.
+    const auto squared = std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(level) * level);
     std::int32_t fee = Truncate(static_cast<double>(squared) * static_cast<double>(FeePerSquaredLevel));
     fee += locked ? 2 * static_cast<std::int32_t>(level) : 0;
     if (fee < 1)
@@ -214,6 +215,39 @@ Core::Expected<void, std::string> DrawTheFootButton(GameHudContext& context, std
     if (!MouseOnTheButton(context, left, top))
         return {};
     return DrawTheButtonHelp(context, left, top, help, where);
+}
+Core::Expected<void, std::string> DrawPanel2000Instructions(GameHudContext& context)
+{
+    constexpr std::int32_t Center = 545;
+    constexpr std::size_t FirstInstruction = 462;
+    constexpr std::size_t InstructionCount = 8;
+    for (std::size_t line = 0; line < InstructionCount; ++line)
+    {
+        auto text = TextOf(context, FirstInstruction + line, "0x5f72d3");
+        if (!text.HasValue())
+            return Core::Unexpected(text.Error());
+        WindowDrawing::DrawCenteredText(context, Center, 50 + 20 * static_cast<std::int32_t>(line), text.Value());
+    }
+    return {};
+}
+
+Core::Expected<void, std::string> DrawPanel2000Buttons(GameHudContext& context, bool accepted)
+{
+    auto& sprites = context.sprites;
+    auto& hud = context.hud;
+    SelectFont(context, FontKind::Normal);
+    hud.textColors.text = 0xffd2e6ffu;
+    for (const bool acceptButton : {false, true})
+    {
+        const std::int32_t top = acceptButton ? 320 : 350;
+        sprites.SetColor(acceptButton && !accepted ? Render::Color{0.5f, 0.5f, 0.5f, 1.0f} : White);
+        Quad(sprites, 0xf0, 485, static_cast<float>(top), 120, 24, 0.83203125f, 1.0f);
+        auto text = TextOf(context, acceptButton ? 228 : 229, "0x5f743a");
+        if (!text.HasValue())
+            return Core::Unexpected(text.Error());
+        WindowDrawing::DrawCenteredText(context, 545, top + 5, text.Value());
+    }
+    return {};
 }
 } // namespace
 
@@ -402,6 +436,37 @@ Core::Expected<void, std::string> DrawTheWarehouse(GameHudContext& context, UI::
         if (button == LockButton && runtime.ui.field78abb20 != 0)
             Quad(sprites, WarehousePressedSlots[look], left, buttonTop, ButtonSize, ButtonSize, ButtonUv, ButtonUv);
     }
+    sprites.SetColor(White);
+    return {};
+}
+Core::Expected<void, std::string> DrawThePanel2000(GameHudContext& context, UI::PanelRegistry& panels)
+{
+    if (!panels.IsOpen(UI::Panel2000))
+        return {};
+    // 0x5f7180..0x5f74d9: instrucciones, consentimiento y los dos botones de la ventana 0x2000.
+    constexpr std::int32_t Left = 450;
+    auto& sprites = context.sprites;
+    auto& hud = context.hud;
+    hud.inventoryX = Left;
+    hud.inventoryY = 0;
+    sprites.SetColor(White);
+    sprites.SetBlend(Render::BlendMode::Alpha);
+    sprites.EnableTexture();
+    WindowDrawing::DrawTheWindowBack(sprites, Left, 0);
+    Quad(sprites, 0x117, Left, 225, 190, 10, 0.7421875f, 0.625f);
+    hud.textColors = {.text = 0xffd2e6ffu, .background = 0};
+    SelectFont(context, FontKind::Bold);
+    if (auto written = DrawPanel2000Instructions(context); !written.HasValue())
+        return written;
+    const bool accepted = context.world.Runtime().panels.field78abb08 != 0;
+    Quad(sprites, accepted ? 0x123 : 0x122, Left + 25, 240, 16, 16, 0.75f, 0.75f);
+    hud.textColors.text = accepted ? 0xff0096d4u : 0xff67bfdfu;
+    auto label = TextOf(context, 447, "0x5f7379");
+    if (!label.HasValue())
+        return Core::Unexpected(label.Error());
+    DrawText(context, Left + 44, 245, label.Value());
+    if (auto written = DrawPanel2000Buttons(context, accepted); !written.HasValue())
+        return written;
     sprites.SetColor(White);
     return {};
 }

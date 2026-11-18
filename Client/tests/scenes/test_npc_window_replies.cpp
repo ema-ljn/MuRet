@@ -21,6 +21,7 @@
 #include "Scenes/LoginModels.h"
 #include "Scenes/NpcWindowState.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/OwnInventory.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
@@ -45,6 +46,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <memory>
+#include <span>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -259,6 +261,25 @@ TEST_F(NpcWindowRepliesTest, TheTrainerOpensItsMenuWithoutTheInventory)
     EXPECT_EQ(runtime.lastSoundId, 0x1c);
     EXPECT_TRUE(Npc().cursorWarpRequested);
     EXPECT_TRUE(stage->sent.empty());
+}
+
+// 0x4d257c, 0x65b240: el resultado 5 abre 0x2000 y permite que el paso siguiente atienda su casilla.
+TEST_F(NpcWindowRepliesTest, TheFifthTalkResultOpensPanel2000WithoutTheInventory)
+{
+    for (const std::int32_t map : {0, 2, 3})
+    {
+        stage = std::make_unique<Stage>();
+        stage->world.Runtime().map = map;
+        const auto talked = Talk(5);
+        ASSERT_TRUE(talked.HasValue()) << talked.Error();
+        EXPECT_EQ(stage->world.Runtime().panels.panel2000, 1);
+        EXPECT_EQ(stage->world.Runtime().panels.inventory, 0);
+        EXPECT_EQ(stage->world.Runtime().panels.field78abb08, 0);
+        EXPECT_EQ(stage->world.Runtime().lastSoundId, 0x1c);
+        EXPECT_TRUE(Npc().cursorWarpRequested);
+        EXPECT_TRUE(stage->sent.empty());
+        EXPECT_EQ(stage->cloth.random.State(), Advanced(CrtRandom(Seed), 6).State());
+    }
 }
 
 // Con cada ventana abierta (y el inventario), el mundo es de 260 (0x5bb8e3..0x5bb9a3).
@@ -486,6 +507,106 @@ TEST_F(NpcWindowRepliesTest, TakingAnItemSends24WhenThePasswordIsAccepted)
         EXPECT_EQ(stage->sent[0].delivery, Delivery::Encrypted);
         EXPECT_TRUE(SameBytes(stage->Plain(0).Bytes(),
                               Bytes({0xc1, 0x0e, 0x24, 0x02, 17, 0x00, 0x10, 9, 0x00, 0x00, 0x60, 0x00, 0x00, 30})));
+    }
+}
+
+// Q-C200: las respuestas de red no escriben parcialmente ni cierran la sesión por una huella fuera de la grilla.
+TEST_F(NpcWindowRepliesTest, ListsDiscardOnlyTheEntryPastTheGrid)
+{
+    for (const std::uint8_t grid : std::array<std::uint8_t, 3>{0, 3, 5})
+    {
+        SCOPED_TRACE(grid);
+        const std::uint8_t bad = grid == 0 ? 119 : 31;
+        const auto applied = Client::Scenes::ApplyItemList(
+            {.grid = grid, .items = {{.slot = bad, .item = ItemBytes(Shield)}, {.slot = 0, .item = ItemBytes(Jewel)}}},
+            stage->Resources());
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        const std::span<const Client::World::ItemState> cells =
+            grid == 0   ? std::span<const Client::World::ItemState>(Npc().grid)
+            : grid == 3 ? std::span<const Client::World::ItemState>(Npc().chaosBox)
+                        : std::span<const Client::World::ItemState>(Npc().trainerBox);
+        EXPECT_EQ(cells[bad].id, Client::Scenes::EmptyOwnItemId);
+        EXPECT_EQ(cells[0].id, Jewel);
+        ASSERT_FALSE(stage->sink.lines.empty());
+        EXPECT_NE(stage->sink.lines.back().find("Q-C200"), std::string::npos);
+    }
+}
+
+// Q-C201 conserva el índice lineal nativo: pasar la columna 7 sigue en la fila de abajo, mientras no salga del arreglo.
+TEST_F(NpcWindowRepliesTest, ListsPreserveTheNativeCarryAcrossRows)
+{
+    for (const std::uint8_t grid : std::array<std::uint8_t, 3>{0, 3, 5})
+    {
+        SCOPED_TRACE(grid);
+        const auto applied = Client::Scenes::ApplyItemList(
+            {.grid = grid, .items = {{.slot = 7, .item = ItemBytes(Shield)}}}, stage->Resources());
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        const std::span<const Client::World::ItemState> cells =
+            grid == 0   ? std::span<const Client::World::ItemState>(Npc().grid)
+            : grid == 3 ? std::span<const Client::World::ItemState>(Npc().chaosBox)
+                        : std::span<const Client::World::ItemState>(Npc().trainerBox);
+        for (const std::size_t cell : {7u, 8u, 15u, 16u})
+        {
+            EXPECT_EQ(cells[cell].id, Shield);
+            EXPECT_EQ(cells[cell].gridColumn, 7);
+            EXPECT_EQ(cells[cell].gridRow, 0);
+        }
+    }
+}
+
+TEST_F(NpcWindowRepliesTest, BuyingAnItemPastTheGridDoesNotWriteAPartialFootprint)
+{
+    Npc().buyLock = 1;
+    const auto applied = Client::Scenes::ApplyBuyResult({.slot = 75, .item = ItemBytes(Sword)}, stage->Resources());
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
+    EXPECT_EQ(stage->world.Inventory().cells[63].id, Client::Scenes::EmptyOwnItemId);
+    EXPECT_EQ(Npc().buyLock, 1);
+    ASSERT_FALSE(stage->sink.lines.empty());
+    EXPECT_NE(stage->sink.lines.back().find("Q-C200"), std::string::npos);
+}
+
+TEST_F(NpcWindowRepliesTest, MovingAnItemPastAnyNpcGridDiscardsItsWholeFootprint)
+{
+    for (const std::uint8_t grid : std::array<std::uint8_t, 3>{2, 3, 5})
+    {
+        SCOPED_TRACE(grid);
+        stage->world.Runtime().cursorItemCount = 1;
+        stage->world.Runtime().ui.field78abb39 = 1;
+        const std::uint8_t bad = grid == 2 ? 119 : 31;
+        auto& retained = grid == 2 ? Npc().grid[bad] : grid == 3 ? Npc().chaosBox[bad] : Npc().trainerBox[bad];
+        retained.id = Jewel;
+        const auto applied = Client::Scenes::ApplyItemMoveResult(
+            {.result = grid, .slot = bad, .item = ItemBytes(Shield)}, stage->Resources());
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        const std::span<const Client::World::ItemState> cells =
+            grid == 2   ? std::span<const Client::World::ItemState>(Npc().grid)
+            : grid == 3 ? std::span<const Client::World::ItemState>(Npc().chaosBox)
+                        : std::span<const Client::World::ItemState>(Npc().trainerBox);
+        EXPECT_EQ(cells[bad].id, Jewel);
+        EXPECT_EQ(stage->world.Runtime().cursorItemCount, 1);
+        EXPECT_EQ(stage->world.Runtime().ui.field78abb39, 1);
+        ASSERT_FALSE(stage->sink.lines.empty());
+        EXPECT_NE(stage->sink.lines.back().find("Q-C200"), std::string::npos);
+    }
+}
+
+TEST_F(NpcWindowRepliesTest, MixResultsDiscardAnItemWhoseHeightExceedsTheBox)
+{
+    stage->items = Client::Tests::ItemTableOf({{Sword, 1, 5, 0}});
+    for (const std::uint8_t result : std::array<std::uint8_t, 2>{1, 100})
+    {
+        SCOPED_TRACE(result);
+        Npc().chaosBox[0].id = Jewel;
+        Npc().trainerBox[0].id = Jewel;
+        Npc().chaosMixState = 1;
+        const auto applied =
+            Client::Scenes::ApplyChaosMixResult({.result = result, .item = ItemBytes(Sword)}, stage->Resources());
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        const auto& cells = result == 1 ? Npc().chaosBox : Npc().trainerBox;
+        EXPECT_EQ(cells[0].id, Jewel);
+        EXPECT_EQ(Npc().chaosMixState, 1);
+        ASSERT_FALSE(stage->sink.lines.empty());
+        EXPECT_NE(stage->sink.lines.back().find("Q-C200"), std::string::npos);
     }
 }
 

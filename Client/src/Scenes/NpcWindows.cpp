@@ -347,6 +347,10 @@ Core::Expected<void, std::string> ApplyItemList(const Npc::ItemList& list, const
     for (const Npc::ListedItem& entry : list.items)
     {
         const InventoryItemBytes bytes(entry.item);
+        const std::size_t cells =
+            list.grid == ChaosBoxGrid || list.grid == TrainerGrid ? npc.chaosBox.size() : npc.grid.size();
+        if (DiscardGridOverflow(cells, NpcGridColumns, entry.slot, bytes, resources, "31"))
+            continue;
         Core::Expected<void, std::string> placed{};
         if (list.grid == ChaosBoxGrid)
             placed = PlaceItemInOtherGrid(npc.chaosBox, NpcGridColumns, entry.slot, bytes, resources,
@@ -365,6 +369,9 @@ Core::Expected<void, std::string> ApplyItemList(const Npc::ItemList& list, const
 
 Core::Expected<void, std::string> ApplyBuyResult(const Npc::BuyResult& result, const WorldEntryResources& resources)
 {
+    if (result.slot != Npc::BuyRejected &&
+        DiscardInventoryOverflow(result.slot, InventoryItemBytes(result.item), resources))
+        return {};
     WorldRuntime& runtime = resources.world.Runtime();
     if (result.slot != Npc::BuyRejected)
     {
@@ -519,6 +526,10 @@ Core::Expected<void, std::string> ApplyWarehouseState(const Npc::WarehouseState&
 Core::Expected<void, std::string> ApplyChaosMixResult(const Npc::ChaosMixResult& result,
                                                       const WorldEntryResources& resources)
 {
+    if ((result.result == Npc::ChaosMixSucceeded || result.result == Npc::TrainerMixResult) &&
+        DiscardGridOverflow(resources.world.Runtime().npcWindows.chaosBox.size(), NpcGridColumns, 0,
+                            InventoryItemBytes(result.item), resources, "86"))
+        return {};
     WorldRuntime& runtime = resources.world.Runtime();
     NpcWindowState& npc = runtime.npcWindows;
     const InventoryServices services = InventoryServicesOf(resources);

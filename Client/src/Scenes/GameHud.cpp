@@ -53,6 +53,9 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"
+#include "UI/OldControls.h"
+#include "UI/OldWindowDraw.h"
+#include "UI/OldWindowDrawParts.h"
 #include "UI/ChatLog.h"
 #include "UI/ChatLogDraw.h"
 #include "UI/GameText.h"
@@ -62,7 +65,6 @@
 #include "UI/PanelRegistry.h"
 #include "UI/SlideBanner.h"
 #include "UI/SprintfFormat.h"
-#include "UI/TextField.h"
 #include "UI/Widget.h"
 #include "World/ItemState.h"
 #include "World/OriginalFtol.h"
@@ -152,12 +154,7 @@ constexpr int WhisperNamesStep = 0xf;
 constexpr Render::Text::TextColors WhisperNamesColors{.text = 0xffc8c8c8u, .background = 0x64000000u};
 // 0x4691e0: el color del texto de los EDIT (la vtable + 0x40) y el fondo del del susurro (+ 0x44), con los bytes
 // en el orden de TextColors.
-constexpr Render::Text::TextColors MessageEditColors{.text = 0xffd2e6ffu, .background = 0};
-constexpr Render::Text::TextColors WhisperEditColors{.text = 0xffc8c8c8u, .background = 0x00191919u};
 // La esquina de los dos EDIT (0x45a9d0 en 0x4691e0).
-constexpr int MessageEditLeft = 0xc1;
-constexpr int WhisperEditLeft = 0x178;
-constexpr int ChatEditTop = 0x1a6;
 
 // La x87 de 53 bits y el fstp en float.
 float F32(double value)
@@ -551,16 +548,16 @@ void DrawTheMacroTime(Frame& frame)
                   static_cast<float>(fill), false, true);
 }
 
-// 0x468320 de un EDIT del chat a la vista: lo que tiene, con la fuente normal y sus colores, en su esquina. El
-// original compone la ventana del EDIT en una textura (con el cursor); MuRet dibuja el texto, como el campo del login
-// (sin el cursor).
-void DrawTheChatEdit(Frame& frame, const UI::TextField& field, int left, Render::Text::TextColors colors)
+// 0x469350: los dos EDIT usan la misma vtable +0x14 (0x468320) que amigos, cartas y diálogos.
+void DrawTheChatEdit(Frame& frame, UI::OldEdit& edit, bool focused)
 {
-    const std::string_view value = field.Value();
-    if (value.empty())
-        return;
-    frame.context.text.Draw(left, ChatEditTop, value,
-                            Render::Text::TextStyle{.font = Render::Text::FontKind::Normal, .colors = colors});
+    GameHudContext& context = frame.context;
+    UI::OldDraw::DrawTheOldEdit(UI::OldWindowDrawContext{.sprites = context.sprites,
+                                                         .text = context.text,
+                                                         .dcFont = context.hud.dcFont,
+                                                         .textColors = context.hud.textColors,
+                                                         .arrowHeld = context.arrowHeld},
+                                edit, focused);
 }
 
 // 22. 0x5aa9a0: con el campo del chat abierto (o 0x77f3b69), la caja sin mezcla, los dos EDIT (0x469350), con el
@@ -581,8 +578,12 @@ void DrawTheChatInput(Frame& frame)
     context.sprites.SetBlend(BlendMode::Alpha);
     if (input.shown)
     {
-        DrawTheChatEdit(frame, input.message, MessageEditLeft, MessageEditColors);
-        DrawTheChatEdit(frame, input.whisper, WhisperEditLeft, WhisperEditColors);
+        UI::OldEdit messageCopy;
+        UI::OldEdit whisperCopy;
+        UI::OldEdit& message = context.projecting ? (messageCopy = input.message) : frame.runtime.chat.input.message;
+        UI::OldEdit& whisper = context.projecting ? (whisperCopy = input.whisper) : frame.runtime.chat.input.whisper;
+        DrawTheChatEdit(frame, message, input.focus == UI::ChatFocus::Message);
+        DrawTheChatEdit(frame, whisper, input.focus == UI::ChatFocus::Whisper);
     }
     hud.textColors = WhisperNamesColors;
     if (input.field % 2 == UI::WhisperField)
@@ -911,8 +912,8 @@ Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
     // 0x5f75e7: 0x424160 con el héroe, siempre: el botón y la ventana de la mascota y el cartel del cuervo.
     if (auto pet = DrawThePetWindow(frame.context, panels); !pet.HasValue())
         return pet;
-    if (panels.IsOpen(UI::Panel2000))
-        return cut("0x5f7180: la ventana 0x2000 no tiene ola todavía");
+    if (auto panel = DrawThePanel2000(frame.context, panels); !panel.HasValue())
+        return panel;
     // 0x5f75fa: 0x40a650, que empieza con +4 de [0x6e592c].
     if (auto commands = DrawTheCommandsWindow(frame.context); !commands.HasValue())
         return commands;

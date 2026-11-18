@@ -224,6 +224,49 @@ protected:
     const Client::Data::Text::TextTable* m_drawnTexts = &m_texts;
 };
 
+// 0x5f7180: posición, instrucciones y botones conservados en todos los mapas de la ventana NPC.
+TEST_P(NpcWindowDrawingTest, ThePanel2000DrawsTheAcceptanceAndBothButtons)
+{
+    Runtime().panels.panel2000 = 1;
+    std::map<std::size_t, std::string> texts;
+    for (std::size_t index = 462; index < 470; ++index)
+        texts[index] = "Instruccion";
+    texts[447] = "Acepto";
+    texts[228] = "Continuar";
+    texts[229] = "Volver";
+    const auto table = Client::Tests::MakeTextTable(texts);
+    m_drawnTexts = &table;
+    for (const bool accepted : {false, true})
+    {
+        Runtime().panels.field78abb08 = accepted ? 1 : 0;
+        m_sprites.Begin(Screen640);
+        m_text.texts.clear();
+        GameHudContext context = Context(0, 0, false);
+        Client::Scenes::GamePanels panels(*m_world, m_random);
+        const auto drawn = Client::Scenes::DrawThePanel2000(context, panels.Registry());
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_EQ(Runtime().hud.inventoryX, 450);
+        EXPECT_EQ(Runtime().hud.inventoryY, 0);
+        const auto quads = TexturedQuadsOf(m_sprites);
+        ASSERT_EQ(quads.size(), 6u);
+        ExpectQuadAt(quads[0], 0x104, 450, 0, 190, 256);
+        ExpectQuadAt(quads[2], 0x117, 450, 225, 190, 10);
+        ExpectQuadAt(quads[3], accepted ? 0x123 : 0x122, 475, 240, 16, 16);
+        ExpectQuadAt(quads[4], 0xf0, 485, 350, 120, 24);
+        ExpectQuadAt(quads[5], 0xf0, 485, 320, 120, 24);
+        EXPECT_EQ(quads[5].color, accepted ? White : (Color{0.5f, 0.5f, 0.5f, 1.0f}));
+        ASSERT_EQ(m_text.texts.size(), 11u);
+        EXPECT_EQ(m_text.texts[0].y, 50);
+        EXPECT_EQ(m_text.texts[7].y, 190);
+        EXPECT_EQ(m_text.texts[8].text, "Acepto");
+        EXPECT_EQ(m_text.texts[8].x, 494);
+        EXPECT_EQ(m_text.texts[8].y, 245);
+        EXPECT_EQ(m_text.texts[8].style.colors.text, accepted ? 0xff0096d4u : 0xff67bfdfu);
+        EXPECT_EQ(m_text.texts[10].text, "Continuar");
+        EXPECT_EQ(m_random.State(), Seed);
+    }
+}
+
 // 0x5f4736..0x5f473d: cerrada, solo la consulta del byte protegido (1 rand()); la esquina queda como estaba.
 TEST_P(NpcWindowDrawingTest, TheClosedShopOnlySpendsItsQuery)
 {
@@ -497,7 +540,8 @@ TEST_P(NpcWindowDrawingTest, TheWarehouseFeeRoundsByItsSize)
          {std::tuple{std::uint16_t{3}, false, "1"}, std::tuple{std::uint16_t{3}, true, "6"},
           std::tuple{std::uint16_t{30}, false, "36"}, std::tuple{std::uint16_t{60}, true, "260"},
           std::tuple{std::uint16_t{170}, true, "1,400"}, std::tuple{std::uint16_t{200}, false, "1,600"},
-          std::tuple{std::uint16_t{400}, true, "7,200"}})
+          std::tuple{std::uint16_t{400}, true, "7,200"}, std::tuple{std::uint16_t{46341}, false, "1"},
+          std::tuple{std::uint16_t{65535}, true, "125,800"}})
     {
         SCOPED_TRACE(testing::Message() << level << (locked ? " trabado" : ""));
         OpenTheWarehouse(level, 0);

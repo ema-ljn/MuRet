@@ -332,7 +332,7 @@ TEST_F(ChatBubblesTest, TheRightClickOnABubbleWhispersToItsOwner)
 
     EXPECT_EQ(Client::UI::CStringOf(runtime.chat.input.whisperBuffer), "Tordo");
     EXPECT_EQ(runtime.chat.input.whisperLength, 5);
-    EXPECT_EQ(runtime.chat.input.whisper.Value(), "Tordo");
+    EXPECT_EQ(runtime.chat.input.whisper.text.Value(), "Tordo");
     EXPECT_FALSE(runtime.ui.rightClick);
     EXPECT_EQ(runtime.lastSoundId, 0x19);
 }

@@ -117,11 +117,8 @@ private:
 
 // El WndProc: WM_RBUTTONDOWN apaga 0x7d36840 y prende 0x7d36880 (con 0x7d3685c en 0, que el apretón siempre ve así:
 // lo apagó el WM_RBUTTONUP de antes) y 0x7d3685c, y WM_RBUTTONUP apaga los dos y, si 0x7d3685c estaba prendido, prende
-// 0x7d36840. MuRet ve los mensajes del paso juntos: apretado y soltado en el mismo paso, quedan apagados y el soltado
-// prendido, como después de los dos. WM_RBUTTONUP prende además 0x7d36849, que cualquier mensaje con el foco apaga
-// antes de atenderse (0x4b3444): MuRet lo deja prendido si el soltado fue el último (sin apretón después) y lo apaga
-// con otro botón, la rueda, el texto o el mouse en otro lugar (*inferido*, P-C96 y P-C366).
-void LatchTheRightButton(UI::GameUiState& ui, const Input::InputState& input, UI::Point mouse)
+// 0x7d36840: WM_RBUTTONDOWN/UP del derecho. El 0x7d36849 es el doble clic izquierdo y se publica por separado.
+void LatchTheRightButton(UI::GameUiState& ui, const Input::InputState& input)
 {
     const bool down = input.IsDown(Input::MouseButton::Right);
     const bool pressed = input.WasPressed(Input::MouseButton::Right);
@@ -131,21 +128,6 @@ void LatchTheRightButton(UI::GameUiState& ui, const Input::InputState& input, UI
         ui.rightReleased = true;
     ui.rightClick = down && (ui.rightClick || pressed);
     ui.rightDown = down && (ui.rightDown || pressed);
-    const bool others = input.WasPressed(Input::MouseButton::Left) || input.WasReleased(Input::MouseButton::Left) ||
-                        input.WasPressed(Input::MouseButton::Middle) || input.WasReleased(Input::MouseButton::Middle) ||
-                        input.Wheel() != 0.0f || !input.Text().empty();
-    if (ui.rightUpMessage && (others || ui.rightReleaseX != mouse.x || ui.rightReleaseY != mouse.y))
-        ui.rightUpMessage = false;
-    if (pressed && down)
-    {
-        ui.rightUpMessage = false;
-        return;
-    }
-    if (!input.WasReleased(Input::MouseButton::Right))
-        return;
-    ui.rightUpMessage = true;
-    ui.rightReleaseX = mouse.x;
-    ui.rightReleaseY = mouse.y;
 }
 
 // 0x467b35..0x467b67: GetAsyncKeyState de 0x26, 0x28, 0x25 y 0x27 (el byte alto en 0x80), que la subclase de los EDIT
@@ -301,7 +283,7 @@ Core::Expected<void, std::string> GameScene::StepTheDialogs(const Input::InputSt
     LatchTheLeftButton(runtime.movement, mouseMessages.leftPress, mouseMessages.leftDown);
     if (const std::optional<bool> doubleClick = input.TakeDoubleClickMessage(); doubleClick.has_value())
         runtime.ui.doubleClick = *doubleClick;
-    LatchTheRightButton(runtime.ui, input, mouse);
+    LatchTheRightButton(runtime.ui, input);
     LatchTheWheel(runtime.ui, input);
     // Los eventos de texto, edición y composición, en el orden en que los atendió InputState.
     if (auto typed = TypeTheGameInput(ChatContext(), input.TextInputEvents()); !typed.HasValue())

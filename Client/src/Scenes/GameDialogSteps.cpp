@@ -5,6 +5,8 @@
 #include "Protocol/Connection/Logout.h"
 #include "Protocol/DialogAnswers.h"
 #include "Protocol/Guild.h"
+#include "Protocol/FloorItems.h"
+#include "Protocol/NpcWindows.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Party.h"
@@ -12,6 +14,8 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/GameMessages.h"
+#include "Scenes/EventGlobals.h"
+#include "Scenes/GameChat.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameUi.h"
@@ -22,6 +26,7 @@
 #include "Scenes/NpcWindowState.h"
 #include "Scenes/NpcWindowSteps.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/OwnItemPlacement.h"
 #include "Scenes/PersonalShopWindow.h"
 #include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
@@ -136,9 +141,6 @@ constexpr std::int32_t MixModes = 2;
 // 0x628b32..0x628b49: el sí del 0x96 abre el 0xa8 con 0x633300(1, 0x76e, 0xa8).
 constexpr std::int32_t LuckDialogLines = 1;
 constexpr std::int32_t LuckDialogText = 0x76e;
-// 0x629c60..0x629c6c, 0x628bec..0x628bf8 y 0x6293c5..0x6293d1: 0x5af520 en falso, el aviso 474 (0x76dfd54) de error.
-constexpr std::size_t BlessRefusedText = 474;
-constexpr std::int32_t ErrorMessageType = 2;
 // 0x628582..0x62858e: el sí del 0x9a sin el ítem (el dword 0x78a59cc en 0xff) no hace nada.
 constexpr std::uint32_t NoDialogItem = 0xff;
 // 0x628702..0x628710: el nivel del ítem, (0x78a59cc >> 3) & 0xf.
@@ -172,7 +174,6 @@ struct OtherNoCase
 constexpr auto OtherNoCases = std::to_array<OtherNoCase>({
     {0x71, "0x62c58f", "del borrado de la selección (0x622fb0, el F3 02), que el juego no abre"},
     {0x76, "0x62c880", "del gremio (el C1 51), que el juego no abre"},
-    {0x95, "0x62c567", "del almacén (el sí manda el C1 83), CL9 hito 6"},
 });
 // 0x6282dc..0x62839f: los de sí y no de 0x94, 0x96, 0x98, 0x99, 0x9a, 0xa3, 0xa8, 0xa9 y 0xaa corren sus dos botones
 // (0xd5, 0x64; 0xd2 en el 0xa3), como 0x62d756 con otra y, y dejan su estado en 1 y 3 (2 y 4 con el mouse encima). En
@@ -221,7 +222,7 @@ constexpr auto Routes = std::to_array<DialogRoute>({
     {JewelChoiceDialog, DialogStep::JewelChoice, "0x625b23", ""},
     {JewelUnmixDialog, DialogStep::JewelUnmix, "0x625cf4", ""},
     {JewelResultDialog, DialogStep::JewelResult, "0x625f98", ""},
-    {0xa7, DialogStep::Cut, "0x62601e", "CL9.4"},
+    {0xa7, DialogStep::WarOutcome, "0x62601e", ""},
     {0x9c, DialogStep::ConfirmBox, "0x6260d1", ""},
     {0x91, DialogStep::ShopDialog, "0x6260f6", ""},
     {UI::MessageBoxDialog, DialogStep::Buttons, "0x62d756", ""},
@@ -232,7 +233,7 @@ constexpr auto Routes = std::to_array<DialogRoute>({
     {0x9b, DialogStep::Buttons, "0x62d756", ""},
     {0x71, DialogStep::Cut, "0x62a810", "CL9.4"},
     {LeaveNumberDialog, DialogStep::YesNo, "0x62a810", ""},
-    {0x95, DialogStep::Cut, "0x62a7f7", "CL9.4"},
+    {0x95, DialogStep::YesNo, "0x62a7f7", ""},
     {0x76, DialogStep::Cut, "0x62a7f7", "CL9.4"},
     {UI::IgnoredOverChaosCastle, DialogStep::YesNo, "0x62a7f7", ""},
     {PartyRequestDialog, DialogStep::YesNo, "0x62a7f7", ""},
@@ -768,32 +769,23 @@ std::array<std::int32_t, 2> StepTheWarningButtons(const GameUiContext& context, 
     return chosen;
 }
 
-// 0x5af520: ni el almacén, ni 0x80, ni el comercio abiertos, cortando en el primero abierto. Solo el comercio, un byte
-// protegido (UI::PanelRegistry::IsOpen), saca su rand().
-bool TheItemCanBeUsed(const GameUiContext& context)
+// 0x628c11, 0x6293ea y 0x629c85: el 26 de los diálogos usa los mismos chequeos, espera y C3 del inventario.
+Core::Expected<void, std::string> UseTheDialogItem(const GameUiContext& context, const InventoryUse& use)
 {
-    GamePanels panels(context.world, context.random, GamePanelTables{.texts = context.texts});
-    UI::PanelRegistry& registry = panels.Registry();
-    return !registry.IsOpen(UI::WarehousePanel) && !registry.IsOpen(UI::ClosedPanel) &&
-           !registry.IsOpen(UI::TradePanel);
-}
-
-// El sí del 0xa9 (0x629c57..0x629c85) y los dos botones del 0xa8 (0x628bdc..0x628c11 y 0x6293b5..0x6293ea): con
-// 0x5af520 en falso, el aviso 474 de error; con la espera de 0x5767954, nada; si no, el C1 06 26 del hito 5, que
-// corta. Después cierra, con el sonido.
-Core::Expected<void, std::string> UseTheDialogItem(const GameUiContext& context, std::string_view cut)
-{
-    WorldRuntime& runtime = context.world.Runtime();
-    if (!TheItemCanBeUsed(context))
+    InventoryServices services = context.inventory != nullptr ? *context.inventory : InventoryServices{};
+    services.sendUseItem = [&context, where = use.where](const Protocol::FloorItems::UseItem& item)
     {
-        if (context.inventory == nullptr || !context.inventory->systemMessage)
-            return Core::Unexpected(std::string("0x555190: el aviso 474 sin los mensajes"));
-        if (auto shown = context.inventory->systemMessage(BlessRefusedText, ErrorMessageType); !shown.HasValue())
-            return shown;
-    }
-    else if (runtime.ui.field5767954 <= 0)
-        return Core::Unexpected(std::string(cut));
-    CloseTheDialog(runtime);
+        if (!context.sendNpcWindow)
+            return Core::Expected<void, std::string>(Core::Unexpected(std::format("{}: el 26 sin la sesión", where)));
+        return context.sendNpcWindow(Protocol::FloorItems::WriteUseItem(item));
+    };
+    GamePanels panels(context.world, context.random, GamePanelTables{.texts = context.texts});
+    const auto used =
+        UseInventoryItemOn(InventoryMoveContext{.world = context.world, .random = context.random, .services = services},
+                           panels.Registry(), use);
+    if (!used.HasValue())
+        return used;
+    CloseTheDialog(context.world.Runtime());
     return {};
 }
 
@@ -841,10 +833,8 @@ Core::Expected<void, std::string> AnswerTheLuck(const GameUiContext& context, st
         return {};
     }
     runtime.ui.field78abb26 = static_cast<std::uint8_t>(entry);
-    return UseTheDialogItem(context, std::format("{:#x}: el C1 06 26 del 0xa8 (0x5767954 en 10, 0x78a59d1 + 12, 0 y "
-                                                 "0x78abb26 en C3, con un rand(), y el sonido del ítem, 0x629365) lo "
-                                                 "escribe Protocol::...::WriteUseItem del hito 5 (08 P-C193)",
-                                                 entry == 0 ? 0x6293ea : 0x628c11));
+    return UseTheDialogItem(context, {.slot = runtime.dialogItemCell + FirstInventoryGridSlot,
+                                      .where = entry == 0 ? "0x6293ea" : "0x628c11"});
 }
 
 // 0x62a42b..0x62a771: el 0xaa. El no cierra; el sí manda el D0 00 y cierra.
@@ -923,9 +913,9 @@ Core::Expected<void, std::string> StepTheWarning(const GameUiContext& context, b
         else if (yes)
         {
             // 0x629c57..0x629c85.
-            if (auto used = UseTheDialogItem(context, "0x629c85: el C1 06 26 de la joya de bendición (0x5767954 en "
-                                                      "10, [0x7d3a0dc] + 12, [0x7d3a0e0] y 0x78abb26, en C3) lo "
-                                                      "escribe Protocol::...::WriteUseItem del hito 5 (08 P-C193)");
+            if (auto used = UseTheDialogItem(context, {.slot = runtime.dialogBox.jewelCell + FirstInventoryGridSlot,
+                                                       .target = runtime.dialogBox.jewelTarget,
+                                                       .where = "0x629c85"});
                 !used.HasValue())
                 return used;
         }
@@ -1016,12 +1006,34 @@ Core::Expected<void, std::string> AnswerTheWar(const GameUiContext& context, boo
     return {};
 }
 
+// 0x62aca2..0x62b38d: tipo 1, atoi de 0x78ab9fc y los diez bytes del buffer del chat, con XOR32 y C3.
+Core::Expected<void, std::string> SendTheWarehouseConfirmation(const GameUiContext& context)
+{
+    auto requests = RequestsOf(context, "0x62aca2");
+    if (!requests.HasValue())
+        return Core::Unexpected(requests.Error());
+    const auto& runtime = context.world.Runtime();
+    const auto& typed = runtime.npcWindows.typedNumber;
+    const auto password = static_cast<std::uint16_t>(static_cast<std::uint32_t>(AtoiLikeTheCrt(std::string_view(
+                                                         reinterpret_cast<const char*>(typed.data()), typed.size()))) &
+                                                     0xffff);
+    Protocol::NpcWindows::WarehouseNumber number{};
+    for (std::size_t index = 0; index < number.size(); ++index)
+        number[index] = static_cast<std::byte>(runtime.chat.input.messageBuffer[index]);
+    context.random.Discard(C3Randoms);
+    requests.Value()->SendGamePacket(Protocol::NpcWindows::WriteWarehousePassword(1, password, number));
+    ClearTheTypedNumber(context.world.Runtime().chat.input);
+    return {};
+}
+
 // El sí (0x62a86b, la tabla 0x62daf4): la invitación a la party (0x62bb1d), el pedido de comercio (0x62c20a), el
 // número del 0x7d (0x62a878) y el pedido de guerra del 0x7f (0x62b39c).
 Core::Expected<void, std::string> AnswerYes(const GameUiContext& context, std::int32_t id)
 {
     if (id == LeaveNumberDialog)
         return SendTheLeave(context);
+    if (id == 0x95)
+        return SendTheWarehouseConfirmation(context);
     if (id == UI::IgnoredOverChaosCastle)
         return AnswerTheWar(context, true);
     return Answer(context, id, 1, id == PartyRequestDialog ? "0x62bb1d" : "0x62c20a");
@@ -1054,7 +1066,7 @@ Core::Expected<void, std::string> StepTheYesNo(const GameUiContext& context, boo
         return Core::Unexpected(
             std::format("0x62c560: el no del diálogo {:#x} ({}) es {} (08 P-C363)", id, other->address, other->owner));
     // 0x62c567: el no del 0x7d vacía el número de 0x7798bf8, pero no el EDIT (Q-C1295).
-    if (id == LeaveNumberDialog)
+    if (id == LeaveNumberDialog || id == 0x95)
         ClearTheTypedNumber(runtime.chat.input);
     // 0x62c5c2: el no del 0x7f manda el C1 04 61 00 y deja el gremio sin guerra ni rival (0x4c1800, que llama dos veces
     // en 0x62c854 y 0x62c86a; la segunda no cambia nada).
@@ -1071,6 +1083,21 @@ Core::Expected<void, std::string> StepTheYesNo(const GameUiContext& context, boo
     }
     CloseTheDialog(runtime);
     return {};
+}
+// 0x62601e..0x6260d0: bordes inclusivos, sin sonido, MouseUpdateTime ni consumo del clic.
+void StepTheWarOutcome(const GameUiContext& context)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    constexpr std::int32_t Left = 0x11d;
+    constexpr std::int32_t Right = 0x163;
+    constexpr std::int32_t Top = 0x106;
+    constexpr std::int32_t Bottom = 0x11a;
+    if (!runtime.movement.pendingClick || context.mouseX < Left || context.mouseX > Right || context.mouseY < Top ||
+        context.mouseY > Bottom)
+        return;
+    runtime.events.guildWarOutcome = {};
+    runtime.events.timeValue = 0;
+    UI::PushDialog(runtime.dialogs, 0);
 }
 } // namespace
 
@@ -1121,6 +1148,9 @@ Core::Expected<void, std::string> StepTheOpenDialog(const GameUiContext& context
         return StepTheShopDialog(context);
     case DialogStep::Warning:
         return StepTheWarning(context, escape);
+    case DialogStep::WarOutcome:
+        StepTheWarOutcome(context);
+        return {};
     case DialogStep::Cut:
         break;
     }

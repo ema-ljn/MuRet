@@ -533,7 +533,7 @@ TEST_F(SelectionPipelineTest, MixedWorldFailureBeforeCharacterPreventsTheCharact
 // selección deja en WorldRuntime::fullSetScan lo de 0x505820 con el último, aunque MuRet no supiera qué
 // había (06, "El conjunto completo de 0x505820"). Uno sin equipo lleva las partes de la clase, que no son un
 // conjunto: [0x743a178] en 0 y [0x743a17c] en 1. Sin las acciones de Player.bmd sale antes (0x50ba87). Sin nada
-// que cuelgue: el esqueleto de prueba no tiene los huesos de las manos ni de las alas.
+// que dibuje mallas: las manos FFF conservan1211 (Q-C102), así que también necesitan los huesos de sus anclajes.
 TEST_F(SelectionPipelineTest, TheSelectionDrawingLeavesTheScanOfTheLastCharacter)
 {
     m_world.Runtime().fullSetScan = std::nullopt;
@@ -546,7 +546,17 @@ TEST_F(SelectionPipelineTest, TheSelectionDrawingLeavesTheScanOfTheLastCharacter
     EXPECT_FALSE(m_world.Runtime().fullSetScan.has_value());
 
     // Un frame del original más: el del dibujo sin el esqueleto se perdió.
-    m_models.Set(Client::Data::Models::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
+    auto skeleton = Client::Tests::PlayerActionsSkeleton();
+    for (auto& action : skeleton.actions)
+        action.keyCount = 1;
+    skeleton.bones.resize(64);
+    for (auto& bone : skeleton.bones)
+    {
+        bone.actions.resize(skeleton.actions.size());
+        for (auto& keys : bone.actions)
+            keys.resize(1);
+    }
+    m_models.Set(Client::Data::Models::PlayerSkeletonModel, {}, std::move(skeleton), {});
     m_online.clock.Advance(Client::Render::Models::OriginalFrameTime);
     m_manager->Render(0.0f);
 

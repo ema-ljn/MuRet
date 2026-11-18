@@ -78,7 +78,7 @@ using Equipment = std::span<const std::byte, Protocol::Character::EquipmentSize>
 
 // Y 0x5139f0 con el equipo, campo por campo (06): las manos, las cinco partes (un índice 0x1ff es la
 // de la clase), las alas, la mascota, los niveles y los bits de excelente y de set; después, la
-// cabeza y la escala. Una mano de tipo 0xfff es "sin ítem": el original la compara con 0x1fff y le
-// deja el modelo 0x1211, que nadie carga (Q-C102, diferencia nombrada).
+// cabeza y la escala. Una mano de tipo 0xfff conserva el modelo 0x1211: CMP AX,0x1fff nunca la toma como vacía.
+// Aunque no tenga mallas, el consumidor gasta los rand() de 0x509340 (Q-C102).
 [[nodiscard]] CharacterAppearance AppearanceOf(std::uint8_t characterClass, std::uint8_t skin, Equipment equipment);
 } // namespace Client::GameLogic

@@ -270,8 +270,10 @@ void ScanTheTrainerBox(WorldState& world, Render::Models::CrtRandom& random)
 
 void ForgetThePetTooltipQuery(WorldState& world)
 {
-    // Al juntar el hito 4: world.Runtime().petTooltipQuery en su valor vacío (0x421d90, 0x723918..0x72395f).
-    static_cast<void>(world);
+    // 0x421d90: REP STOSD de 18 DWORD desde 0x723918. La clave 0x723914 y las estadísticas 0x723960 quedan fuera.
+    PetTooltipQuery& query = world.Runtime().petTooltipQuery;
+    query.type = 0;
+    query.scalar = 0;
 }
 
 Core::Expected<PetRecoveryQuote, std::string> QuoteThePetRecovery(const PetQuoteContext& context, std::size_t button)

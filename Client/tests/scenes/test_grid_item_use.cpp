@@ -3,6 +3,7 @@
 #include "Data/Text/TextTable.h"
 #include "Network/Crypto/Xor32.h"
 #include "Protocol/FloorItems.h"
+#include "Protocol/Inventory.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/GamePanels.h"
@@ -200,7 +201,12 @@ protected:
     WorldState world;
     CrtRandom random{0x2b6d1e5u};
     Client::Data::Tables::ItemTable items = MakeItems();
-    Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable({{376, "usar %s?"},
+    Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable({{166, "nieve"},
+                                                                        {167, "sol"},
+                                                                        {168, "cielo"},
+                                                                        {169, "mar"},
+                                                                        {1900, "mando"},
+                                                                        {376, "usar?"},
                                                                         {474, "no se puede usar ahora"},
                                                                         {749, "desde el nivel diez"},
                                                                         {1865, "joya sobre el cuerno"},
@@ -296,7 +302,7 @@ TEST_F(GridItemUseTest, ABookWithTheWarehouseOpenOrTheWaitWarnsOrWaits)
 // 0x5c8e37..0x5c8fb8: una espada (sobre su casilla del medio) y el 0x180f no son de ningún caso: la copia al cursor
 // y, sin el almacén ni 0x7d368a1, el cursor en ceros. Sin rand() (IsOpen(0x40) no
 // saca) y la grilla como estaba. Con el almacén abierto, corta (hito 6).
-TEST_F(GridItemUseTest, AnyOtherItemLeavesTheCursorEmptyAndTheWarehouseCuts)
+TEST_F(GridItemUseTest, AnyOtherItemLeavesTheCursorEmptyWithoutTheWarehouse)
 {
     Put(Sword, 1, 1, 3u << 3);
     Put(Orb180f, 4, 4);
@@ -321,12 +327,123 @@ TEST_F(GridItemUseTest, AnyOtherItemLeavesTheCursorEmptyAndTheWarehouseCuts)
     EXPECT_EQ(Cell(1, 1).id, Sword);
     EXPECT_EQ(Cell(1, 3).id, Sword);
     EXPECT_EQ(Cell(4, 4).id, Orb180f);
+}
 
+// 0x5c9e10 busca columnas y filas descendentes; 0x5c8e8f conserva la copia hasta el envío en 0x5ca250.
+TEST_F(GridItemUseTest, ARightClickWithTheWarehouseMovesToTheLastFreeFootprintWithoutALeftClick)
+{
+    auto& runtime = world.Runtime();
+    runtime.panels.warehouse = 1;
+    runtime.ui.npcWindowX = 260;
+    runtime.ui.npcWindowY = 0;
+    for (auto& item : runtime.npcWindows.grid)
+        item.id = Scenes::EmptyOwnItemId;
+    Put(Sword, 1, 1, 3u << 3);
+    std::vector<Client::Protocol::Inventory::ItemMove> moves;
+    services.sendItemMove = [&moves](const Client::Protocol::Inventory::ItemMove& move)
+    {
+        moves.push_back(move);
+        return Expected<void, std::string>{};
+    };
+    const auto before = random;
+    const auto used = RightClick(1, 2);
+    ASSERT_TRUE(used.HasValue()) << used.Error();
+    EXPECT_EQ(runtime.cursorItemCount, 1);
+    EXPECT_EQ(runtime.cursorItem.id, Sword);
+    EXPECT_EQ(runtime.slot78a6758, 21);
+    EXPECT_EQ(Cell(1, 1).id, Scenes::EmptyOwnItemId);
+    EXPECT_EQ(Cell(1, 3).id, Scenes::EmptyOwnItemId);
+    EXPECT_EQ(runtime.lastSoundId, 0x1d);
+    EXPECT_EQ(random.State(), before.State());
+    EXPECT_FALSE(runtime.movement.pendingClick);
+    const auto dropped = Scenes::DropOnOtherGrid(
+        Moves(), {.mouseX = 100, .mouseY = 100, .left = 275, .top = 50, .grid = Scenes::CursorGrid::NpcGrid});
+    ASSERT_TRUE(dropped.HasValue()) << dropped.Error();
+    EXPECT_TRUE(dropped.Value());
+    ASSERT_EQ(moves.size(), 1u);
+    EXPECT_EQ(moves[0].sourceSlot, 21);
+    EXPECT_EQ(moves[0].targetSlot, 103);
+    EXPECT_EQ(runtime.ui.field78abb39, 1);
+    EXPECT_EQ(random.State(), Advanced(before, 2).State());
+}
+
+TEST_F(GridItemUseTest, AFullWarehouseKeepsTheRightClickedItemInTheInventory)
+{
     world.Runtime().panels.warehouse = 1;
-    const auto cut = RightClick(1, 1);
-    ASSERT_FALSE(cut.HasValue());
-    EXPECT_NE(cut.Error().find("0x5c8e8f"), std::string::npos) << cut.Error();
-    EXPECT_NE(cut.Error().find("hito 6"), std::string::npos) << cut.Error();
+    for (auto& item : world.Runtime().npcWindows.grid)
+        item.id = Potion;
+    Put(Sword, 1, 1);
+    const auto used = RightClick(1, 1);
+    ASSERT_TRUE(used.HasValue()) << used.Error();
+    EXPECT_EQ(world.Runtime().cursorItemCount, 0);
+    EXPECT_EQ(world.Runtime().cursorItem.id, 0);
+    EXPECT_EQ(Cell(1, 1).id, Sword);
+    EXPECT_EQ(Cell(1, 3).id, Sword);
+}
+
+// El destino vuelve al inventario; la contraseña se pide después de sacar el ítem, sin enviar el 24 antes.
+TEST_F(GridItemUseTest, ARightClickFromTheWarehouseWithdrawsOrWaitsForItsPassword)
+{
+    auto& runtime = world.Runtime();
+    runtime.panels.warehouse = 1;
+    runtime.hud.inventoryX = 450;
+    std::vector<Client::Protocol::Inventory::ItemMove> moves;
+    services.sendItemMove = [&moves](const Client::Protocol::Inventory::ItemMove& move)
+    {
+        moves.push_back(move);
+        return Expected<void, std::string>{};
+    };
+    for (const bool locked : {false, true})
+    {
+        world.Inventory().ClearForInventoryReply();
+        for (auto& item : runtime.npcWindows.grid)
+            item.id = Scenes::EmptyOwnItemId;
+        for (const std::size_t index : {9u, 17u, 25u})
+        {
+            auto& cell = runtime.npcWindows.grid[index];
+            cell.id = Sword;
+            cell.gridColumn = 1;
+            cell.gridRow = 1;
+            cell.occupied = index == 9u ? 1u : 0u;
+        }
+        runtime.ui.field78abb39 = 0;
+        runtime.ui.field78abb20 = 0;
+        runtime.npcWindows.warehouseLocked = locked ? 1 : 0;
+        runtime.npcWindows.field78abb1c = 0;
+        runtime.npcWindows.typedNumber[0] = '9';
+        moves.clear();
+        const auto before = random;
+        Scenes::GamePanels panels(world, random);
+        const auto used = Scenes::UseTheLaterGridItem(
+            Moves(), panels.Registry(), {.cells = runtime.npcWindows.grid, .grid = Scenes::CursorGrid::NpcGrid}, 17);
+        ASSERT_TRUE(used.HasValue()) << used.Error();
+        EXPECT_EQ(runtime.npcWindows.grid[9].id, Scenes::EmptyOwnItemId);
+        const auto dropped = Scenes::DropOnTheInventoryGrid(
+            Moves(), {.mouseX = 0, .mouseY = 0, .left = 465, .top = 200, .inventoryOpen = true});
+        ASSERT_TRUE(dropped.HasValue()) << dropped.Error();
+        EXPECT_TRUE(dropped.Value());
+        EXPECT_FALSE(runtime.ui.automaticMove);
+        EXPECT_FALSE(runtime.movement.pendingClick);
+        EXPECT_EQ(random.State(), Advanced(before, locked ? 40 : 2).State());
+        if (locked)
+        {
+            EXPECT_TRUE(moves.empty());
+            EXPECT_EQ(runtime.ui.field78abb20, 1);
+            EXPECT_EQ(runtime.npcWindows.pendingMove.slot, 2);
+            EXPECT_EQ(runtime.npcWindows.pendingMove.second, 9);
+            EXPECT_EQ(runtime.npcWindows.pendingMove.third, 0);
+            EXPECT_EQ(runtime.npcWindows.pendingMove.fourth, 59);
+            EXPECT_EQ(runtime.npcWindows.typedNumber[0], 0);
+        }
+        else
+        {
+            ASSERT_EQ(moves.size(), 1u);
+            EXPECT_EQ(moves[0].sourceFlag, 2);
+            EXPECT_EQ(moves[0].sourceSlot, 9);
+            EXPECT_EQ(moves[0].targetFlag, 0);
+            EXPECT_EQ(moves[0].targetSlot, 59);
+        }
+    }
 }
 
 // 0x5c7c10..0x5c8447: la fruta abre y cierra el registro propio para el nivel (3.848 rand()) y, con menos de 10, avisa
@@ -358,9 +475,9 @@ TEST_F(GridItemUseTest, TheFruitAsksTheLevelAndThenTheEmptyEquipment)
 }
 
 // 0x5c83ad..0x5c83f3: sin equipo, la fruta de nivel 4 (el dword +4 entero en 0x20) sin la clase 4 avisa con el 1905;
-// con la clase 4, o con otro bit en el dword (Q-C1244), sigue al diálogo 0x96, que corta con su texto (0x63330f,
-// CL9.3). Un nivel 0 también.
-TEST_F(GridItemUseTest, TheFourthFruitIsForTheFourthClassAndTheDialogCuts)
+// con la clase 4, o con otro bit en el dword (Q-C1244), sigue al diálogo 0x96 con el nombre de la fruta. Un nivel
+// 0 también.
+TEST_F(GridItemUseTest, TheFourthFruitIsForTheFourthClassAndTheDialogReceivesItsItem)
 {
     world.OwnCharacter().level = 200;
     world.OwnCharacter().characterClass = 1;
@@ -368,20 +485,22 @@ TEST_F(GridItemUseTest, TheFourthFruitIsForTheFourthClassAndTheDialogCuts)
     ASSERT_TRUE(RightClick(0, 7).HasValue());
     EXPECT_EQ(Client::UI::DialogRow(world.Runtime().dialogBox, 0), "solo una clase");
 
-    const auto dialog = [this](std::uint32_t scalar1Low, std::uint8_t heroClass)
+    const auto dialog = [this](std::uint32_t scalar1Low, std::uint8_t heroClass, std::string_view name)
     {
         world.OwnCharacter().characterClass = heroClass;
         Cell(0, 7).scalar1Low = scalar1Low;
         const CrtRandom expected = Advanced(random, 2 * Own);
-        const auto cut = RightClick(0, 7);
-        ASSERT_FALSE(cut.HasValue());
-        EXPECT_NE(cut.Error().find("0x63330f"), std::string::npos) << cut.Error();
+        world.Runtime().dialogs = {};
+        const auto opened = RightClick(0, 7);
+        ASSERT_TRUE(opened.HasValue()) << opened.Error();
+        EXPECT_EQ(world.Runtime().dialogs.current, 0x96);
+        EXPECT_EQ(Client::UI::DialogRow(world.Runtime().dialogBox, 0), name);
         EXPECT_EQ(random.State(), expected.State());
         EXPECT_EQ(world.Runtime().ownRecordDepth, 0);
     };
-    dialog(4u << 3, 4);
-    dialog((4u << 3) | 4u, 1);
-    dialog(0, 1);
+    dialog(4u << 3, 4, "( mando )");
+    dialog((4u << 3) | 4u, 1, "( mando )");
+    dialog(0, 1, "( cielo )");
 }
 
 // 0x5c8448..0x5c8473: el 0x1a0b de nivel 0 se usa; el de nivel 1 no con el héroe maestro del gremio (+0x368 en 0x80);

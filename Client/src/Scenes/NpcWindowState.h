@@ -9,8 +9,8 @@
 
 // Las grillas y los globales de las ventanas de los NPC (CL9 hito 6): la tienda y el almacén comparten la grilla de
 // 0x78a7070, la caja del caos tiene la suya en 0x7d2d380, y el 30 (0x4d1e00), el 31 (0x4c5f60), el 83 y el 86
-// (0x4da280) escriben el resto. Todo en la .bss, que nadie vacía al cambiar de escena. Contrato:
-// Client/docs/research/04-protocolo.md, "Las ventanas de los NPC".
+// (0x4da280) escriben el resto. Los ítems se vacían al entrar a selección (0x5bbe10), conservando sus otros bytes.
+// Contrato: Client/docs/research/04-protocolo.md, "Las ventanas de los NPC".
 namespace Client::Scenes
 {
 // 0x78a7070..0x78a926c: 120 casillas de 0x48 bytes, 8 por fila (0x5bc150 y la vuelta de 0x657ab0(0x40)).

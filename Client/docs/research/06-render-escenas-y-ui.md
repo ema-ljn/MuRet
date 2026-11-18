@@ -2501,7 +2501,7 @@ es ninguno) y el primero que se ve en `+0x100`. Sin `rand()` en nada de lo que s
   pista arriba o abajo del cursor corre 8, sin sonido; el clic no se apaga. El cursor no se agarra (07 Q-C1151).
   Con el mouse encima, `0x5762ef4` en 1. Por último las filas (`0x46f1a0`, la vtable `+0x88`, desde el primero que se
   ve): el mouse en `(x, yᵢ − 3, 168, 13)`, con `yᵢ = (min(8, filas) − i) · 13 − 0x6d − 10 + y`; el clic elige la fila,
-  da vuelta su `+0` (nadie lo lee) y se apaga; el derecho suelto (`0x7d36849`) la elige, se apaga y, con su nivel
+  da vuelta su `+0` (nadie lo lee) y se apaga; el doble clic izquierdo (`0x7d36849`, `WM_LBUTTONDBLCLK`, corrección ASM del 2026-11-18) la elige, se apaga y, con su nivel
   distinto de `0xff` y su casilla en `[1, 0x3f]` (07 Q-C1152), llama a `0x402a90(casilla, nivel)`.
 - El OK y el cancelar (`0x625dc3..0x625f37`), en y `[0x6d + 0xf0 + 10, + 25]`: el OK, x en `[234,5; 314,5]` con el
   clic (que apaga), pide el elegido (la vtable `+0x64`, `0x483aa0`) a `0x402a90` con su nivel con signo; sin elegido,

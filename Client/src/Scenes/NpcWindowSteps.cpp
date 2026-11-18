@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
 #include "Protocol/NpcWindows.h"
+#include "Protocol/Connection/Logout.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
@@ -133,6 +134,20 @@ constexpr std::uint8_t DepositType = 0;
 constexpr std::uint32_t LevelShift = 3;
 constexpr std::uint32_t LevelMask = 0xf;
 constexpr std::int32_t LastCheapLevel = 4;
+
+// 0x5e74f0: el cuerpo usa el margen fijo; los botones leen la esquina retenida de 0x78a5a14/10.
+constexpr std::int32_t Panel2000Left = 450;
+constexpr std::int32_t Panel2000Right = 640;
+constexpr std::int32_t Panel2000Bottom = 433;
+constexpr std::int32_t AcceptanceLeft = 25;
+constexpr std::int32_t AcceptanceTop = 240;
+constexpr std::int32_t AcceptanceSize = 16;
+constexpr std::int32_t Panel2000ButtonLeft = 35;
+constexpr std::int32_t Panel2000ButtonWidth = 120;
+constexpr std::int32_t Panel2000AcceptTop = 320;
+constexpr std::int32_t Panel2000BackTop = 350;
+constexpr std::int32_t Panel2000ButtonHeight = 24;
+constexpr std::int32_t Panel2000QuestionText = 0x1c0;
 
 bool InRect(const GameUiContext& context, std::int32_t left, std::int32_t top, std::int32_t right, std::int32_t bottom)
 {
@@ -655,6 +670,64 @@ Core::Expected<void, std::string> MoveTheWarehouseMoney(const GameUiContext& con
     else if (auto sent = Send(context, Npc::WriteWarehouseMoney(WithdrawType, amount), "0x627c46: el C1 08 81");
              !sent.HasValue())
         return sent;
+    return {};
+}
+namespace
+{
+Core::Expected<void, std::string> LeaveThePanel2000(const GameUiContext& context, UI::PanelRegistry& panels, bool cross)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    runtime.movement.pendingClick = false;
+    if (cross)
+        runtime.panels.field78abb00 = 0;
+    else
+        runtime.movement.leftHeld = false;
+    runtime.movement.mouseUpdateTime = 0;
+    runtime.movement.mouseUpdateTimeMax = ButtonMouseUpdateTimeMax;
+    if (auto sent = Send(context, Protocol::Connection::WriteWindowClose(), "0x5e7738/0x5e7992: el C1 03 31");
+        !sent.HasValue())
+        return sent;
+    return panels.CloseAll();
+}
+} // namespace
+
+Core::Expected<void, std::string> StepThePanel2000(const GameUiContext& context, UI::PanelRegistry& panels)
+{
+    if (!panels.IsOpen(UI::Panel2000))
+        return {};
+    WorldRuntime& runtime = context.world.Runtime();
+    const auto x = runtime.hud.inventoryX;
+    const auto y = runtime.hud.inventoryY;
+    if (InRect(context, Panel2000Left, 0, Panel2000Right, Panel2000Bottom))
+        runtime.ui.mouseOnUi = 1;
+    if (!runtime.movement.pendingClick)
+        return {};
+    if (InRect(context, x + AcceptanceLeft, AcceptanceTop, x + AcceptanceLeft + AcceptanceSize,
+               AcceptanceTop + AcceptanceSize))
+    {
+        runtime.movement.pendingClick = false;
+        runtime.movement.leftHeld = false;
+        runtime.panels.field78abb08 ^= 1;
+        return {};
+    }
+    const auto on = [&](std::int32_t top)
+    {
+        return InRect(context, x + Panel2000ButtonLeft, top, x + Panel2000ButtonLeft + Panel2000ButtonWidth,
+                      top + Panel2000ButtonHeight);
+    };
+    if (runtime.panels.field78abb08 != 0 && on(Panel2000AcceptTop))
+    {
+        runtime.movement.pendingClick = false;
+        runtime.movement.leftHeld = false;
+        runtime.social.trade.warningKind = KeypadChoice;
+        runtime.social.trade.warningByte = NoAnswerYet;
+        return UI::OpenTextDialog(runtime.dialogBox, runtime.dialogs, context.texts, 1, Panel2000QuestionText,
+                                  ConfirmDialog);
+    }
+    if (on(Panel2000BackTop))
+        return LeaveThePanel2000(context, panels, false);
+    if (OnButton(context, x + CloseButtonX, y + CloseButtonY))
+        return LeaveThePanel2000(context, panels, true);
     return {};
 }
 } // namespace Client::Scenes

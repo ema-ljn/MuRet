@@ -2155,3 +2155,31 @@ TEST(GameDialogDrawingTest, TheLowPriceWarningDrawsLikeTheWarning)
     EXPECT_FLOAT_EQ(colors[1].blue, 1.0f);
 }
 } // namespace
+
+TEST(GameDialogDrawingTest, TheWarehouseConfirmationDrawsItsNumberEditAndBothInstructions)
+{
+    for (const std::int32_t map : {Lorencia, Devias, 3})
+    {
+        auto tested = std::make_unique<DrawingDialogs>(map);
+        auto& runtime = tested->world.Runtime();
+        runtime.dialogs.current = 0x95;
+        runtime.chat.input.numberField.text.Type("12");
+        tested->texts = Client::Tests::MakeTextTable({{443, "clave"}, {444, "confirmo"}});
+        const auto before = tested->random;
+        const auto drawn = tested->Draw();
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_EQ(tested->Texts(), (std::vector<std::string>{"**", "clave", "confirmo"}));
+        EXPECT_EQ(tested->text.texts[1].y, 69);
+        EXPECT_EQ(tested->text.texts[2].y, 81);
+        EXPECT_EQ(tested->text.texts[1].style.colors.text, 0xff0000ffu);
+        EXPECT_EQ(runtime.chat.input.numberField.base.x, 243);
+        EXPECT_EQ(runtime.chat.input.numberField.base.y, 98);
+        EXPECT_EQ(runtime.chat.input.numberField.draws, 1);
+        EXPECT_EQ(runtime.ui.focusedList, Client::UI::NumberFieldId);
+        const auto quads = QuadsOf(tested->sprites);
+        ASSERT_EQ(quads.size(), 5u);
+        EXPECT_EQ(quads[3].x, 323);
+        EXPECT_EQ(quads[4].x, 373);
+        EXPECT_EQ(tested->random.State(), before.State());
+    }
+}

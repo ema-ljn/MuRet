@@ -168,22 +168,6 @@ Core::Expected<void, std::string> Send(const GameUiContext& context, Protocol::O
     return Send(context.sendNpcWindow, std::move(packet), what);
 }
 
-// 0x402e10: todo a su valor de arranque.
-void ResetTheJewelMix(NpcWindowState& windows)
-{
-    JewelMixState& jewels = windows.jewels;
-    jewels.mode = MixMode;
-    windows.field6e5798 = 0;
-    jewels.refusal = 0;
-    jewels.kind = Unchosen;
-    jewels.count = Unchosen;
-    jewels.counted = 0;
-    jewels.price = -1;
-    jewels.field6e57a0 = 0;
-    jewels.cell = -1;
-    jewels.level = -1;
-}
-
 // 0x402eb0: 0x402e10, el diálogo cerrado y el C1 03 31 en claro.
 Core::Expected<void, std::string> CloseTheJewelMix(WorldState& world, const JewelMixSender& send)
 {
@@ -368,6 +352,22 @@ Core::Expected<void, std::string> AskForTheBundle(const GameUiContext& context, 
 }
 } // namespace
 
+// 0x402e10: todo a su valor de arranque.
+void ResetTheJewelMix(NpcWindowState& windows)
+{
+    JewelMixState& jewels = windows.jewels;
+    jewels.mode = MixMode;
+    windows.field6e5798 = 0;
+    jewels.refusal = 0;
+    jewels.kind = Unchosen;
+    jewels.count = Unchosen;
+    jewels.counted = 0;
+    jewels.price = -1;
+    jewels.field6e57a0 = 0;
+    jewels.cell = -1;
+    jewels.level = -1;
+}
+
 Core::Expected<void, std::string> ReturnToTheJewelChoice(WorldState& world, const JewelMixSender& send)
 {
     WorldRuntime& runtime = world.Runtime();
@@ -503,7 +503,7 @@ Core::Expected<void, std::string> StepTheJewelUnmix(const GameUiContext& context
             return CloseTheJewelMix(context);
         return {};
     }
-    // 0x625dbe: el paso de la lista. El derecho suelto sobre una fila pide su paquete desde adentro (0x46f297).
+    // 0x625dbe: el paso de la lista. El doble clic izquierdo sobre una fila pide su paquete desde adentro (0x46f297).
     if (const BundleListStep listed = StepTheBundleList(context); listed.asked)
     {
         if (auto asked = AskForTheBundle(context, listed.asked->cell, static_cast<std::int8_t>(listed.asked->level));

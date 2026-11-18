@@ -43,12 +43,13 @@ struct UsedGrid
 //   la grilla del comercio: 07 Q-C964) también la tiene: el nivel desde el registro propio (abrirlo y cerrarlo); con
 //   menos de 10, el aviso 749; si no, el ítem de esa casilla del inventario en 0x78a59c8, y con el registro abierto
 //   otra vez el equipo y la clase: con algo puesto, el aviso 1909; la fruta de nivel 4 (el dword +4 en 0x20) sin la
-//   clase 4, el 1905; si no, el diálogo 0x96 con el texto 376, que corta en 0x63330f (CL9.3);
+//   clase 4, el 1905; si no, el diálogo 0x96 con el texto 376 y el ítem de la copia en 0x78a59c8;
 // - el 0x1a0b (0x5c8448): de nivel 0, o de nivel 1 sin el héroe maestro del gremio (+0x368 en 0x80), lo de
 //   UseInventoryItem; si no, nada;
 // - los demás (0x5c8e37): la copia en el cursor (0x7879f80) con su grilla en 0x78ab9b8 y, la del inventario, 0x78abb28
-//   en 1; con el almacén abierto (IsOpen(0x40), sin rand()) corta en 0x5c8e8f o 0x5c8f09 (hito 6); si no, como
-//   0x7d368a1 está en 0, el cursor vuelve a quedar en ceros.
+//   en 1; con el almacén abierto (IsOpen(0x40), sin rand()), 0x5c9e10 busca una huella vacía de derecha a izquierda
+//   y de abajo hacia arriba. Con lugar, saca el origen, conserva el cursor y deja el destino temporal para
+//   0x5ca250; sin lugar, o con 0x7d368a1 en 0, el cursor vuelve a quedar en ceros.
 // Con la grilla del comercio, todo lo que llega a UseInventoryItem da el aviso 474: el comercio está abierto.
 [[nodiscard]] Core::Expected<void, std::string>
 UseTheLaterGridItem(const InventoryMoveContext& context, UI::PanelRegistry& panels, UsedGrid grid, std::size_t index);

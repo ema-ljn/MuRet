@@ -182,7 +182,7 @@ constexpr std::int32_t ButtonMouseUpdateTimeMax = 6;
 constexpr std::int32_t OldAreaRowHeight = 0xd;
 constexpr std::int32_t OldAreaBottom = 0x4e;
 // 0x4691e0: los dos EDIT del chat, en (0xc1, 0x1a6) de 0xb4 × 0xe y en (0x178, 0x1a6) de 0x32 × 0xe. Sus ids
-// (0x45a210) son *inferidos*: los dos primeros que arma WinMain (0x4bb173 y 0x4bb184), antes de los otros tres
+// (0x45a210) son *inferidos*: los dos primeros que arma WinMain (0x4bb01b y 0x4bb02c), antes de los otros tres
 // objetos de EDIT y del registro del chat (el 9).
 struct ChatEditPlace
 {
@@ -191,8 +191,8 @@ struct ChatEditPlace
     std::int32_t x, y, width, height;
 };
 constexpr std::array<ChatEditPlace, 2> ChatEdits{{
-    {UI::MessageField, 1, 0xc1, 0x1a6, 0xb4, 0xe},
-    {UI::WhisperField, 2, 0x178, 0x1a6, 0x32, 0xe},
+    {UI::MessageField, UI::ChatMessageEditId, 0xc1, 0x1a6, 0xb4, 0xe},
+    {UI::WhisperField, UI::ChatWhisperEditId, 0x178, 0x1a6, 0x32, 0xe},
 }};
 // 0x5a33dc..0x5a343a: el botón de F3, junto al EDIT del susurro.
 constexpr std::int32_t WhisperModeLeft = 0x1b2;
@@ -1711,8 +1711,8 @@ Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI
             return chips;
     }
     // 0x5e74f0, el panel 0x2000.
-    if (panels.IsOpen(UI::Panel2000))
-        return Core::Unexpected(std::string("0x5e74f0: el paso del panel 0x2000 es de la CL9"));
+    if (auto panel = StepThePanel2000(context, panels); !panel.HasValue())
+        return panel;
     // 0x40a450, los comandos ([0x6e592c]), que empieza con su +4.
     if (auto commands = StepTheCommandsWindow(context); !commands.HasValue())
         return commands;
@@ -2034,7 +2034,7 @@ void StepTheArrowKey(const GameUiContext& context, GameKey key, std::int32_t dir
     if ((input.focus == UI::ChatFocus::Message || input.focus == UI::ChatFocus::Whisper) && input.field % 2 == 0)
         sound = UI::RecallFromTheHistory(input, direction);
     else
-        sound = UI::StepTheWhisperName(input, direction);
+        sound = UI::StepTheWhisperName(input, direction, &runtime.ui.focusedList);
     if (sound)
         runtime.lastSoundId = ButtonSound;
 }
@@ -2065,7 +2065,7 @@ bool StepTheChatEdit(const GameUiContext& context, const ChatEditPlace& edit)
     ui.mouseOnUi = 1;
     if (runtime.movement.pendingClick)
     {
-        UI::ClickTheChatField(runtime.chat.input, edit.field);
+        UI::ClickTheChatField(runtime.chat.input, edit.field, &ui.focusedList);
         runtime.movement.mouseUpdateTime = 0;
         runtime.movement.mouseUpdateTimeMax = ButtonMouseUpdateTimeMax;
     }
@@ -2443,6 +2443,9 @@ Core::Expected<void, std::string> StepTheGameDialogs(const GameUiContext& contex
     // 3F 07 y las misiones el 31, por la sesión.
     panels.LendTheSession(context.world, context.random, context.requests);
     panels.LendTheGuild(context.world, GuildSenderOf(context.requests));
+    panels.LendTheNpcWindows(context.world, context.random,
+                             context.inventory != nullptr ? *context.inventory : InventoryServices{},
+                             context.sendNpcWindow);
     // 0x623e9b..0x623ec2: con la de amigos abierta, Esc es de las ventanas viejas (0x490490). Lo leído queda en
     // [EBP−0x7d], que mira el no de 0x62c50e.
     const bool escape = !panels.Registry().IsOpen(UI::FriendsPanel) && KeyEdge(ui, context.input, EscapeKey);

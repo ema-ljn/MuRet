@@ -12,12 +12,18 @@
 #include "Protocol/Character/InventoryList.h"
 #include "Protocol/Inventory.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/DarkHorse.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/HelperTable.h"
 #include "Scenes/InventoryMoves.h"
+#include "Scenes/GameHanging.h"
+#include "Scenes/FaunaDrawing.h"
+#include "Render/ModelBatch.h"
+#include "Render/Models/Pose.h"
+#include "World/Sprites.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
@@ -39,6 +45,7 @@
 #include "support/RecordingSink.h"
 #include "support/SessionHarness.h"
 #include "support/TestGameServer.h"
+#include "support/ViewportPackets.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -1049,8 +1056,39 @@ TEST_F(InventoryReplyTest, TheManaRefillWritesTheManaAndTheBpOrSpendsThePotion)
     EXPECT_EQ(world.Runtime().ui.field5767954, 10);
 }
 
+// 0x4e316e: la clave de 16 bits sin máscara y los 17 bytes llegan al mismo 0x5139f0 que el viewport.
+TEST_F(InventoryReplyTest, TheEquipmentChangeUpdatesPlayersAndTheSentinelOnlyWhenTheirTypeMatches)
+{
+    Stage tested = Fresh();
+    ActorState& hero = tested.PublishedHero();
+    hero.key = 0x1234;
+    hero.byte3e3 = 1;
+    Client::Protocol::Inventory::EquipmentChange change{.key = 0x9234};
+    change.equipment[0] = std::byte{7};
+    change.equipment[4] = std::byte{3}; // Sin mascota ni ayudante.
+    // 0x5110d0 compara MOVSX del WORD de la clave: 0x9234 no coincide con un actor de clave 0x1234.
+    ASSERT_TRUE(Client::Scenes::ApplyEquipmentChange(change, tested.Resources()).HasValue());
+    EXPECT_EQ(hero.hands[0].model, Client::Scenes::NoItemModel);
+    change.key = 0x1234;
+    const auto changed = Client::Scenes::ApplyEquipmentChange(change, tested.Resources());
+    ASSERT_TRUE(changed.HasValue()) << changed.Error();
+    EXPECT_EQ(hero.hands[0].model, 0x219);
+    EXPECT_EQ(hero.pet.model, Client::Scenes::NoItemModel);
+    hero.type = 0;
+    hero.hands[0].model = 99;
+    ASSERT_TRUE(Client::Scenes::ApplyEquipmentChange(change, tested.Resources()).HasValue());
+    EXPECT_EQ(hero.hands[0].model, 99);
+    ActorState& sentinel = tested.world.Actors()[400];
+    sentinel = Client::Tests::UnarmedPlayer();
+    sentinel.byte3e3 = 1;
+    change.key = 0x4321;
+    change.equipment[0] = std::byte{9};
+    ASSERT_TRUE(Client::Scenes::ApplyEquipmentChange(change, tested.Resources()).HasValue());
+    EXPECT_EQ(sentinel.hands[0].model, 0x21b);
+}
+
 // 0x4e31a3 (F3 14): la cuenta del cursor en 0, el ítem en su lugar y el sonido 0x45. 0x4e316e (F3 13): sin un
-// jugador con la clave, 0x5139f0 no hace nada; con él, su equipo es de la CL9.2.
+// jugador con la clave, 0x5139f0 no hace nada; con él, aplica los 17 bytes como el viewport.
 TEST_F(InventoryReplyTest, TheItemPutAndTheEquipmentOfOthers)
 {
     Stage tested = Fresh();
@@ -1070,7 +1108,51 @@ TEST_F(InventoryReplyTest, TheItemPutAndTheEquipmentOfOthers)
     EXPECT_TRUE(nobody.HasValue()) << nobody.Error();
     const auto player = Client::Scenes::ApplyEquipmentChange(
         Client::Protocol::Inventory::EquipmentChange{.key = 0x1234, .equipment = {}}, tested.Resources());
-    ASSERT_FALSE(player.HasValue());
-    EXPECT_TRUE(player.Error().starts_with("0x513a1e:")) << player.Error();
+    ASSERT_TRUE(player.HasValue()) << player.Error();
+    EXPECT_EQ(hero.pet.model, 0x1c12);
+    EXPECT_TRUE(std::ranges::any_of(tested.world.Helpers(), [](const HelperState& helper) { return helper.alive; }));
 }
 } // namespace
+
+// Q-C102: mismos píxeles vacíos, pero dos llamadas a509340 añaden cuatro rand() que el modeloFFFF omite.
+TEST_F(InventoryReplyTest, EncodedEmptyHandsReachTheHangingConsumerWithTheirNativeRandoms)
+{
+    for (const bool upgraded : {false, true})
+    {
+        Stage tested = Fresh();
+        ActorState& hero = tested.PublishedHero();
+        hero.key = 0x1234;
+        Client::Protocol::Inventory::EquipmentChange change{.key = 0x1234};
+        for (std::size_t index = 0; index < change.equipment.size(); ++index)
+            change.equipment[index] = static_cast<std::byte>(Client::Tests::NakedEquipment[index]);
+        if (upgraded)
+        {
+            change.equipment[7] = std::byte{0x3f};
+            change.equipment[9] = std::byte{6};
+            change.equipment[10] = std::byte{6};
+        }
+        const auto changed = Client::Scenes::ApplyEquipmentChange(change, tested.Resources());
+        ASSERT_TRUE(changed.HasValue()) << changed.Error();
+        EXPECT_EQ(hero.hands[0].model, 0x1211);
+        EXPECT_EQ(hero.hands[1].model, 0x1211);
+        EXPECT_EQ(hero.hands[0].level, upgraded ? 13 : 0);
+        ASSERT_EQ(tested.models.Find(0x1211), nullptr);
+        Client::Render::ModelBatch batch;
+        Client::Scenes::FaunaDrawCarry carry;
+        auto sprites = std::make_unique<Client::World::FrameSprites>();
+        std::array<Client::Render::Models::BoneTransform, 64> bones;
+        bones.fill(Client::Render::Models::BoneTransform(1.0f));
+        const auto before = tested.cloth.random;
+        const auto drawn = Client::Scenes::DrawGameHanging(hero, {.batch = batch,
+                                                                  .models = tested.models,
+                                                                  .body = bones,
+                                                                  .random = tested.cloth.random,
+                                                                  .carry = &carry,
+                                                                  .sprites = sprites.get(),
+                                                                  .logicSteps = 1});
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_TRUE(batch.Vertices().empty());
+        EXPECT_EQ(tested.cloth.random.State(), AfterDraws(before.State(), 7).State());
+        EXPECT_FALSE(std::ranges::any_of(sprites->Sprites(), [](const auto& sprite) { return sprite.alive; }));
+    }
+}

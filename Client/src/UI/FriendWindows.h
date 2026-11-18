@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "UI/ChatInput.h"
 #include "UI/OldWindows.h"
+#include "UI/OldEditInput.h" // IWYU pragma: export
 
 #include <cstddef>
 #include <cstdint>
@@ -34,25 +35,6 @@ inline constexpr std::uint16_t FriendsLevel = 6;
 inline constexpr std::size_t FriendsLevelText = 1067;
 // 0x491080: el cartel de ayuda de Text.bmd (0x77183ac) en la cola normal (tipo 2), a 2,5 y en 0xffc8dce6.
 inline constexpr std::size_t FriendsHelpText = 1244;
-
-enum class OldEditKey : std::uint8_t
-{
-    Backspace,
-    Delete,
-    Left,
-    Right,
-    Home,
-    End,
-    Up,
-    Down,
-    Tab,
-    Copy,
-    Cut,
-    Paste,
-    CtrlA,
-    PageUp,
-    PageDown,
-};
 
 // 0x491080 desde el nivel: con la de amigos oculta (3), la muestra (0x490670) con los sonidos 0x19 y 0x1c; a la vista
 // (0), la suelta (0x4914e0); con otro estado, nada; sin ella, la arma (0x48ee60(3)) en (x, y) la primera vez o donde

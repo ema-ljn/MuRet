@@ -1,6 +1,7 @@
 #include "Scenes/OwnItemPlacement.h"
 
 #include "Core/Expected.h"
+#include "Core/Log.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemTable.h"
 #include "Render/Models/Cloth.h"
@@ -588,5 +589,24 @@ Core::Expected<void, std::string> PlaceInTheNpcGrid(std::span<World::ItemState> 
         return {};
     return PlaceInGrid(cells, static_cast<std::int32_t>(InventoryColumns), slot, type, bytes, GridScalars::NpcGrid,
                        resources, "0x5bc150, la grilla de 0x78a7070");
+}
+bool DiscardGridOverflow(std::size_t cells, std::int32_t columns, std::int32_t origin, InventoryItemBytes bytes,
+                         const WorldEntryResources& resources, std::string_view where)
+{
+    const auto past = FirstCellPastTheGrid(cells, columns, origin, bytes, resources, where);
+    if (!past.HasValue() || !past.Value())
+        return false;
+    resources.log.Warning("Q-C200: se descarta el paquete {}: la casilla {} cae fuera de la grilla", where,
+                          *past.Value());
+    return true;
+}
+
+bool DiscardInventoryOverflow(std::uint8_t slot, InventoryItemBytes bytes, const WorldEntryResources& resources)
+{
+    const auto past = InventoryPlacementPastTheGrid(slot, bytes, resources);
+    if (!past.HasValue() || !past.Value())
+        return false;
+    resources.log.Warning("Q-C200: se descarta el paquete de inventario: {}", *past.Value());
+    return true;
 }
 } // namespace Client::Scenes

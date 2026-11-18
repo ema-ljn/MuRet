@@ -319,7 +319,7 @@ void GameScene::StepEntry()
                 m_failure = emptied.Error();
                 return;
             }
-            UI::ResetTheChatInput(input);
+            UI::ResetTheChatInput(input, &runtime.ui.focusedList);
             input.focus = UI::ChatFocus::Game;
             UI::ClearTheLog(runtime.chat.log, runtime.ui.chatModes);
             UI::ClearTheChatFilter(runtime.chat.log);

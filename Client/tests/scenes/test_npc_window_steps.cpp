@@ -14,6 +14,7 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/GameDialogSteps.h"
+#include "Scenes/GamePanels.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/InventoryMoves.h"
@@ -309,6 +310,7 @@ protected:
                                                                         {167, "sol"},
                                                                         {168, "cielo"},
                                                                         {169, "mar"},
+                                                                        {0x1c0, "aceptar?"},
                                                                         {0x178, "comer la fruta?"},
                                                                         {0x218, "vender esto"},
                                                                         {0x219, "que vale"},
@@ -555,6 +557,26 @@ TEST_F(NpcWindowStepsTest, StoringAnItemInTheWarehouseSendsTheMove)
     }
 }
 
+// 0x5c8e8f → 0x5ca250 en la misma vuelta: el derecho busca la última huella libre y el 24 sale sin clic izquierdo.
+TEST_F(NpcWindowStepsTest, TheWarehouseRightClickMovesThroughTheWholeUiStep)
+{
+    auto& runtime = world.Runtime();
+    runtime.panels.warehouse = 1;
+    Place(world.Inventory().cells, ItemState{.id = Sword, .scalar1Low = 0x18, .durability = 25}, 1, 1, 1, 3);
+    runtime.ui.rightClick = true;
+    const auto stepped = Step(InventoryX + 15 + 20 + 5, 200 + 20 + 5);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    ASSERT_EQ(sent.size(), 1u);
+    EXPECT_EQ(sent[0].delivery, Delivery::Encrypted);
+    EXPECT_TRUE(SameBytes(Plain(0).Bytes(),
+                          Bytes({0xc1, 0x0e, 0x24, 0x00, 21, 0x01, 0x18, 25, 0x00, 0x00, 0x00, 0x00, 0x02, 103})));
+    EXPECT_EQ(world.Inventory().cells[9].id, EmptyOwnItemId);
+    EXPECT_EQ(runtime.cursorItemCount, 1);
+    EXPECT_EQ(runtime.ui.field78abb39, 1);
+    EXPECT_FALSE(runtime.movement.pendingClick);
+    EXPECT_EQ(runtime.itemMoveTarget, 103);
+}
+
 // Sacar: el clic sobre el arma del almacén la levanta desde su esquina (el lugar 73, sin el 12) con el IsOpen(0x20)
 // de 0x5c5361, y soltarla en la columna 4 y la fila 2 del inventario manda 0x449d80(2, 73, 0, 32). Con la traba del
 // almacén (0x6c932f) y sin 0x78abb1c, en cambio, lo deja esperando la contraseña ({2, 73, 0, 32}), baraja el
@@ -769,6 +791,79 @@ TEST_F(NpcWindowStepsTest, DepositingZenSends81FromTheMoneyDialog)
     ASSERT_TRUE(Dialogs(0, 0).HasValue());
     EXPECT_EQ(random.State(), refused.State());
     EXPECT_EQ(runtime.dialogs.current, 0x75);
+}
+
+// 0x5e74f0: no hay consulta protegida para 0x2000. Aceptar habilita el aviso, que continúa al teclado en modo 6.
+TEST_F(NpcWindowStepsTest, ThePanel2000CheckboxAndConfirmationReachTheKeypad)
+{
+    auto& runtime = world.Runtime();
+    runtime.panels.panel2000 = 1;
+    runtime.hud.inventoryX = 450;
+    Client::Scenes::GamePanels ownedPanels(world, random);
+    auto& panels = ownedPanels.Registry();
+    Click();
+    auto context = Context(475, 240);
+    auto stepped = Client::Scenes::StepThePanel2000(context, panels);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(runtime.panels.field78abb08, 1);
+    EXPECT_FALSE(runtime.movement.pendingClick);
+    EXPECT_EQ(runtime.ui.mouseOnUi, 1);
+    const auto before = random.State();
+    Click();
+    context.mouseX = 485;
+    context.mouseY = 320;
+    stepped = Client::Scenes::StepThePanel2000(context, panels);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(runtime.social.trade.warningKind, 4);
+    EXPECT_EQ(runtime.social.trade.warningByte, 0xff);
+    EXPECT_EQ(runtime.dialogs.current, 0x98);
+    EXPECT_EQ(random.State(), before);
+    runtime.social.trade.warningByte = 1;
+    ASSERT_TRUE(Client::Scenes::AnswerTheNpcWarning(context, 4).HasValue());
+    EXPECT_EQ(runtime.ui.field78abb20, 6);
+}
+
+// 0x5ee1f1: el paso principal debe llegar al panel 2000 con los servicios prestados a su propio registro.
+TEST_F(NpcWindowStepsTest, TheMainUiStepUsesThePanel2000Checkbox)
+{
+    auto& runtime = world.Runtime();
+    runtime.panels.panel2000 = 1;
+    runtime.hud.inventoryX = 450;
+    Click();
+    const auto stepped = Step(475, 240);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(runtime.panels.field78abb08, 1);
+    EXPECT_FALSE(runtime.movement.pendingClick);
+    EXPECT_EQ(runtime.ui.mouseOnUi, 1);
+    EXPECT_TRUE(sent.empty());
+}
+
+// 0x5e7678..0x5e7840 y 0x5e78a2..0x5e7a79: salir manda C1 03 31 y cierra todo; sólo la cruz borra 0x78abb00.
+TEST_F(NpcWindowStepsTest, BothPanel2000ExitButtonsSend31BeforeClosing)
+{
+    for (const bool cross : {false, true})
+    {
+        auto& runtime = world.Runtime();
+        runtime.panels.panel2000 = 1;
+        runtime.panels.field78abb08 = 1;
+        runtime.panels.field78abb00 = 7;
+        runtime.panels.inventory = 0;
+        runtime.hud.inventoryX = 450;
+        Click();
+        Client::Scenes::GamePanels ownedPanels(world, random);
+        auto context = Context(cross ? 475 : 485, cross ? 395 : 350);
+        const auto before = random;
+        const auto stepped = Client::Scenes::StepThePanel2000(context, ownedPanels.Registry());
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(runtime.panels.panel2000, 0);
+        EXPECT_EQ(runtime.panels.field78abb08, 0);
+        EXPECT_EQ(runtime.panels.field78abb00, cross ? 0 : 7);
+        EXPECT_EQ(runtime.movement.mouseUpdateTime, 0);
+        EXPECT_EQ(runtime.movement.mouseUpdateTimeMax, 6);
+        EXPECT_FALSE(runtime.movement.pendingClick);
+        EXPECT_TRUE(SameBytes(Plain(sent.size() - 1).Bytes(), Bytes({0xc1, 3, 0x31})));
+        EXPECT_EQ(random.State(), Advanced(before, 2).State());
+    }
 }
 
 // Sacar (el botón de x + 0x4c): C1 08 81 01 y el zen. Con la traba del almacén espera la contraseña: {−1, 1, zen,
@@ -1141,3 +1236,56 @@ TEST_F(NpcWindowStepsTest, TheYesNoDialogsLeaveTheirAnswer)
     EXPECT_EQ(runtime.dialogs.current, 0);
 }
 } // namespace
+
+TEST_F(NpcWindowStepsTest, ARightClickedFruitOpensBothNamedConfirmations)
+{
+    auto& runtime = world.Runtime();
+    services.texts = &texts;
+    world.OwnCharacter().level = 200;
+    Place(world.Inventory().cells, ItemState{.id = Fruit, .scalar1Low = 2u << 3}, 1, 1, 1, 1);
+    runtime.ui.rightClick = true;
+    const auto used = Step(InventoryX + 15 + 20 + 5, 200 + 20 + 5);
+    ASSERT_TRUE(used.HasValue()) << used.Error();
+    EXPECT_EQ(runtime.dialogs.current, 0x96);
+    EXPECT_EQ(Client::UI::DialogRow(runtime.dialogBox, 0), "( sol )");
+    EXPECT_EQ(runtime.dialogItemCell, 9);
+    EXPECT_EQ(runtime.dialogItem.id, Fruit);
+    Click();
+    ASSERT_TRUE(Dialogs(234, 190).HasValue());
+    EXPECT_EQ(runtime.dialogs.current, 0xa8);
+    EXPECT_EQ(Client::UI::DialogRow(runtime.dialogBox, 0), "( sol y suerte )");
+}
+
+TEST_F(NpcWindowStepsTest, TheFruitAndJewelConfirmationsSendTheOriginal26)
+{
+    auto& runtime = world.Runtime();
+    for (const std::int32_t choice : {0, 1, 2})
+    {
+        runtime.dialogs = {};
+        runtime.dialogItem = ItemState{.id = Fruit, .scalar1Low = 2u << 3};
+        runtime.dialogItemCell = 5;
+        runtime.dialogBox.jewelCell = 4;
+        runtime.dialogBox.jewelTarget = 25;
+        runtime.ui.field5767954 = 0;
+        runtime.ui.field78abb26 = 9;
+        const std::int32_t id = choice == 2 ? 0xa9 : 0xa8;
+        ASSERT_TRUE(
+            Client::UI::OpenTextDialog(runtime.dialogBox, runtime.dialogs, &texts, 0, 0, id, &runtime.dialogItem)
+                .HasValue());
+        sent.clear();
+        const auto before = random;
+        Click();
+        const auto used = Dialogs(choice == 0 ? 235 : choice == 1 ? 295 : 234, choice == 2 ? 190 : 200);
+        ASSERT_TRUE(used.HasValue()) << used.Error();
+        ASSERT_EQ(sent.size(), 1u);
+        const int slot = choice == 2 ? 16 : 17;
+        const int target = choice == 2 ? 25 : 0;
+        const int kind = choice == 2 ? 9 : choice;
+        EXPECT_TRUE(SameBytes(Plain(0).Bytes(), Bytes({0xc1, 6, 0x26, slot, target, kind})));
+        EXPECT_EQ(sent[0].delivery, Delivery::Encrypted);
+        EXPECT_EQ(runtime.ui.field5767954, 10);
+        EXPECT_EQ(runtime.dialogs.current, 0);
+        EXPECT_EQ(runtime.lastSoundId, 0x19);
+        EXPECT_EQ(random.State(), Advanced(before, 3).State());
+    }
+}

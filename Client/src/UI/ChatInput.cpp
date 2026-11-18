@@ -1,6 +1,8 @@
 #include "UI/ChatInput.h"
 
 #include "UI/OldControls.h"
+#include "UI/OldEditInput.h"
+#include "UI/OldEditLines.h"
 #include "UI/TextField.h"
 
 #include <algorithm>
@@ -26,17 +28,7 @@ constexpr std::size_t SetTextLimit = 0x100;
 
 TextField& FieldOf(ChatInputState& input, ChatFocus focus)
 {
-    return focus == ChatFocus::Whisper ? input.whisper : input.message;
-}
-
-// El EDIT de los diálogos con el foco ([0x5763504] o [0x5763508]), o ninguno.
-OldEdit* DialogEditOf(ChatInputState& input)
-{
-    if (input.focus == ChatFocus::Dialog)
-        return &input.dialogEdit;
-    if (input.focus == ChatFocus::NumberField)
-        return &input.numberField;
-    return nullptr;
+    return focus == ChatFocus::Whisper ? input.whisper.text : input.message.text;
 }
 
 std::int32_t LengthOf(const ChatBuffer& buffer)
@@ -60,9 +52,13 @@ void SetTextOf(TextField& field, std::string_view text)
 }
 
 // 0x4682a0(con selección): el foco al EDIT; con 1, EM_SETSEL(−2, −1) deja el cursor al final.
-void SetFocusOn(ChatInputState& input, ChatFocus focus)
+void SetFocusOn(ChatInputState& input, ChatFocus focus, std::int32_t* focusedList = nullptr)
 {
     input.focus = focus;
+    // 0x4682f1..0x4682f7: tomar el foco mueve también la lista de las flechas, aunque el control sea un EDIT.
+    if (focusedList != nullptr)
+        if (const OldEdit* edit = ChatEditWithFocus(input); edit != nullptr)
+            *focusedList = edit->base.id;
 }
 
 // strncpy(destino, origen, 0xb): los once primeros bytes, con ceros detrás del '\0'.
@@ -73,6 +69,25 @@ void CopyTheName(ChatBuffer& target, const ChatBuffer& source)
     std::fill_n(target.begin() + static_cast<std::ptrdiff_t>(length), WhisperNameCopy - length, '\0');
 }
 } // namespace
+
+OldEdit* ChatEditWithFocus(ChatInputState& input)
+{
+    switch (input.focus)
+    {
+    case ChatFocus::Message:
+        return &input.message;
+    case ChatFocus::Whisper:
+        return &input.whisper;
+    case ChatFocus::Dialog:
+        return &input.dialogEdit;
+    case ChatFocus::NumberField:
+        return &input.numberField;
+    case ChatFocus::Game:
+    case ChatFocus::OldWindow:
+        return nullptr;
+    }
+    return nullptr;
+}
 
 std::string_view CStringOf(const ChatBuffer& buffer)
 {
@@ -104,29 +119,31 @@ void ResetTheTextBuffers(ChatInputState& input, bool second)
 
 void ClearTheChatFields(ChatInputState& input)
 {
-    input.message.Clear();
-    input.whisper.Clear();
+    input.message.text.Clear();
+    input.whisper.text.Clear();
 }
 
-void FocusTheChatField(ChatInputState& input, std::int32_t field)
+void FocusTheChatField(ChatInputState& input, std::int32_t field, std::int32_t* focusedList)
 {
     if (!input.shown)
         return;
     const ChatFocus focus = field == WhisperField ? ChatFocus::Whisper : ChatFocus::Message;
-    SetFocusOn(input, focus);
+    SetFocusOn(input, focus, focusedList);
     FieldOf(input, focus).SelectAll();
 }
 
-void ClickTheChatField(ChatInputState& input, std::int32_t field)
+void ClickTheChatField(ChatInputState& input, std::int32_t field, std::int32_t* focusedList)
 {
     const ChatFocus focus = field == WhisperField ? ChatFocus::Whisper : ChatFocus::Message;
-    SetFocusOn(input, focus);
+    SetFocusOn(input, focus, focusedList);
     FieldOf(input, focus).Deselect();
 }
 
-void ShowTheChatFields(ChatInputState& input, std::int32_t state)
+void ShowTheChatFields(ChatInputState& input, std::int32_t state, std::int32_t* focusedList)
 {
     input.shown = state != HiddenState;
+    input.message.base.state = state;
+    input.whisper.base.state = state;
     if (!input.shown)
     {
         // 0x468260(3) es ShowWindow(SW_HIDE) de los dos EDIT del chat: el foco de otro EDIT (el del diálogo, el del
@@ -136,7 +153,7 @@ void ShowTheChatFields(ChatInputState& input, std::int32_t state)
         return;
     }
     if (state == FocusedState)
-        SetFocusOn(input, ChatFocus::Message);
+        SetFocusOn(input, ChatFocus::Message, focusedList);
 }
 
 void ShowTheDialogField(ChatInputState& input, std::int32_t state)
@@ -180,27 +197,27 @@ void ClearTheNumberField(ChatInputState& input)
     SetTextOf(input.numberField.text, {});
 }
 
-void ResetTheChatInput(ChatInputState& input)
+void ResetTheChatInput(ChatInputState& input, std::int32_t* focusedList)
 {
     input.field = MessageField;
-    FocusTheChatField(input, MessageField);
+    FocusTheChatField(input, MessageField, focusedList);
     ClearTheChatFields(input);
     TrimTheHistory(input.history, true);
 }
 
 void ReadTheChatFields(ChatInputState& input)
 {
-    GetTextInto(input.messageBuffer, input.message);
-    GetTextInto(input.whisperBuffer, input.whisper);
+    GetTextInto(input.messageBuffer, input.message.text);
+    GetTextInto(input.whisperBuffer, input.whisper.text);
 }
 
 void SetTheChatFields(ChatInputState& input, std::optional<std::string_view> message,
                       std::optional<std::string_view> whisper)
 {
     if (message)
-        SetTextOf(input.message, *message);
+        SetTextOf(input.message.text, *message);
     if (whisper)
-        SetTextOf(input.whisper, *whisper);
+        SetTextOf(input.whisper.text, *whisper);
 }
 
 void RememberTheMessage(ChatInputState& input, std::string_view said)
@@ -248,7 +265,7 @@ bool RecallFromTheHistory(ChatInputState& input, std::int32_t steps)
                 continue;
             if (!history.saved)
             {
-                history.typing = std::string(input.message.Value().substr(0, GetTextLimit));
+                history.typing = std::string(input.message.text.Value().substr(0, GetTextLimit));
                 history.saved = true;
             }
             else
@@ -266,27 +283,27 @@ bool RecallFromTheHistory(ChatInputState& input, std::int32_t steps)
             {
                 if (!history.saved)
                     return sound;
-                SetTextOf(input.message, history.typing);
-                input.message.Deselect();
+                SetTextOf(input.message.text, history.typing);
+                input.message.text.Deselect();
                 history.saved = false;
                 return sound;
             }
             --history.at;
         }
     }
-    SetTextOf(input.message, history.said[history.at]);
-    input.message.Deselect();
+    SetTextOf(input.message.text, history.said[history.at]);
+    input.message.text.Deselect();
     return sound;
 }
 
-bool PressTabInTheChat(ChatInputState& input, bool chatOpen)
+bool PressTabInTheChat(ChatInputState& input, bool chatOpen, std::int32_t* focusedList)
 {
     if (!chatOpen)
         return false;
     if (input.fieldCount > 1)
     {
         input.field = (input.field + 1) % input.fieldCount;
-        FocusTheChatField(input, input.field);
+        FocusTheChatField(input, input.field, focusedList);
         return true;
     }
     if ((input.field == MessageField ? input.messageLength : input.whisperLength) == 0)
@@ -296,29 +313,25 @@ bool PressTabInTheChat(ChatInputState& input, bool chatOpen)
 
 void TypeInTheChat(ChatInputState& input, std::string_view typed)
 {
-    if (input.focus == ChatFocus::Game || input.focus == ChatFocus::OldWindow || typed.empty())
+    OldEdit* edit = ChatEditWithFocus(input);
+    if (edit == nullptr || typed.empty())
         return;
-    if (OldEdit* edit = DialogEditOf(input); edit != nullptr)
-    {
-        TypeInTheEdit(*edit, typed);
-        return;
-    }
-    FieldOf(input, input.focus).Type(typed);
+    SetTheEditComposition(*edit, {}, 0, 0);
+    TypeInTheEdit(*edit, typed);
 }
 
 void BackspaceInTheChat(ChatInputState& input)
 {
-    if (input.focus == ChatFocus::Game || input.focus == ChatFocus::OldWindow)
+    OldEdit* edit = ChatEditWithFocus(input);
+    if (edit == nullptr)
         return;
-    if (OldEdit* edit = DialogEditOf(input); edit != nullptr)
-    {
-        edit->text.Backspace();
+    edit->draws = 0;
+    if (!edit->compositionText.empty())
         return;
-    }
-    FieldOf(input, input.focus).Backspace();
+    BackspaceInTheEdit(*edit);
 }
 
-bool StepTheWhisperName(ChatInputState& input, std::int32_t direction)
+bool StepTheWhisperName(ChatInputState& input, std::int32_t direction, std::int32_t* focusedList)
 {
     const std::int32_t next = input.whisperNameAt + direction;
     if (next < 0 || next > LastWhisperNameSlot)
@@ -329,7 +342,7 @@ bool StepTheWhisperName(ChatInputState& input, std::int32_t direction)
     const ChatBuffer& slot = input.whisperNames[static_cast<std::size_t>(next)];
     SetTheChatFields(input, std::nullopt, CStringOf(slot));
     if (input.field % 2 == WhisperField)
-        FocusTheChatField(input, WhisperField);
+        FocusTheChatField(input, WhisperField, focusedList);
     CopyTheName(input.whisperBuffer, slot);
     input.whisperLength = LengthOf(input.whisperBuffer);
     return true;

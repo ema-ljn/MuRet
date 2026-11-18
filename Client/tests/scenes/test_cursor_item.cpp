@@ -75,6 +75,7 @@ constexpr std::uint16_t Bolts = 0x0807;    // 1 × 1
 constexpr std::uint16_t Arrows = 0x080f;   // 1 × 1
 // 1 × 1, la derecha: el Dark Raven con 32 tipos por grupo, que 0x5bf03f compara (en el Item.bmd real, vacío).
 constexpr std::uint16_t OldDarkRaven = 0x01a5;
+constexpr std::uint16_t EntryTicket = 0x1c1c; // 1 × 1, el mapa que mira 0x4379f0.
 constexpr std::uint16_t WizardsRing = 0x1a14; // 1 × 1, el primer anillo
 constexpr std::uint8_t HeadSlot = 2;
 constexpr std::uint8_t WingSlot = 7;
@@ -206,7 +207,8 @@ protected:
                                                          {Bolts, 1, 1, 1},
                                                          {Arrows, 1, 1, 0},
                                                          {OldDarkRaven, 1, 1, 0},
-                                                         {WizardsRing, 1, 1, 10}});
+                                                         {WizardsRing, 1, 1, 10},
+                                                         {EntryTicket, 1, 1, NotWorn}});
     Outside outside;
     InventoryServices services;
 };
@@ -496,7 +498,7 @@ TEST_F(CursorItemTest, TheGridRefusesOccupiedPlacesAndTakesItsOwnPlaceBack)
 // lugar sin el 12 y los dos rand() del envío: el casco del almacén a la cabeza (2), la espada de la caja del caos a la
 // derecha (3) y el escudo de la caja del entrenador a la izquierda (0x449d50 en 0x5c1d80, el 5). Con la traba del
 // almacén, el movimiento espera la contraseña (2, lugar, 0, destino), el teclado se baraja (40 rand()), 0x78abb20 en
-// 1 y lo tecleado en 0, sin mandar nada. Desde otra grilla (el comercio o la tienda personal), corta en 0x5c1d90.
+// 1 y lo tecleado en 0, sin mandar nada. Las demás grillas usan el 1 y esperan el OK antes de la traba del envío.
 TEST_F(CursorItemTest, TheItemOfAnotherGridGoesToTheEquipment)
 {
     for (const std::int32_t map : {0, 2, 3})
@@ -599,11 +601,61 @@ TEST_F(CursorItemTest, TheItemOfAnotherGridGoesToTheEquipment)
         runtime.ui.field78abb39 = 0;
         runtime.movement.pendingClick = true;
         const CrtRandom before = random;
-        const auto cut = Scenes::DropOnTheEquipment(Moves(), 1);
-        ASSERT_FALSE(cut.HasValue());
-        EXPECT_NE(cut.Error().find("0x5c1d90"), std::string::npos) << cut.Error();
-        EXPECT_EQ(random.State(), before.State());
-        EXPECT_EQ(outside.sent.size(), 3u);
+        const auto droppedOther = Scenes::DropOnTheEquipment(Moves(), 1);
+        ASSERT_TRUE(droppedOther.HasValue()) << droppedOther.Error();
+        EXPECT_EQ(random.State(), Advanced(before, SendRandoms).State());
+        ASSERT_EQ(outside.sent.size(), 4u);
+        EXPECT_EQ(outside.sent.back().sourceFlag, 1);
+        EXPECT_EQ(runtime.social.trade.okWait, 150);
+    }
+}
+
+// 0x5c1d90: el fallback también cubre la tienda personal; pone la espera ANTES de probar 0x78abb39.
+TEST_F(CursorItemTest, TradeAndShopItemsUseTheTradeSourceWhenDroppedOnEquipment)
+{
+    for (const auto grid : {Scenes::CursorGrid::OwnTrade, Scenes::CursorGrid::PersonalShop})
+    {
+        for (const std::uint8_t ownOk : std::array<std::uint8_t, 2>{0, 1})
+        {
+            for (const std::uint8_t locked : std::array<std::uint8_t, 2>{0, 1})
+            {
+                Scenes::WorldRuntime& runtime = world.Runtime();
+                runtime.cursorGrid = grid;
+                runtime.cursorItem = Invented(Helm);
+                runtime.slot78a6758 = 0x109;
+                runtime.cursorItemCount = 1;
+                runtime.ui.field78abb39 = locked;
+                runtime.movement.pendingClick = true;
+                runtime.social.trade.ownOk = ownOk;
+                runtime.social.trade.okWait = 7;
+                outside.sent.clear();
+                services.sendItemMove = [&](const Client::Protocol::Inventory::ItemMove& move)
+                {
+                    EXPECT_EQ(runtime.social.trade.okWait, ownOk == 0 ? 150 : 7);
+                    outside.sent.push_back(move);
+                    return Expected<void, std::string>{};
+                };
+                const CrtRandom before = random;
+                const auto dropped = Scenes::DropOnTheEquipment(Moves(), HeadSlot);
+                ASSERT_TRUE(dropped.HasValue()) << dropped.Error();
+                EXPECT_EQ(runtime.social.trade.okWait, ownOk == 0 ? 150 : 7);
+                EXPECT_EQ(random.State(), Advanced(before, locked == 0 ? SendRandoms : 0).State());
+                EXPECT_EQ(runtime.ui.field78abb39, 1);
+                if (locked != 0)
+                {
+                    EXPECT_TRUE(outside.sent.empty());
+                    continue;
+                }
+                ASSERT_EQ(outside.sent.size(), 1u);
+                const auto& move = outside.sent.front();
+                EXPECT_EQ(move.sourceFlag, 1);
+                EXPECT_EQ(move.sourceSlot, 9);
+                EXPECT_EQ(move.targetFlag, 0);
+                EXPECT_EQ(move.targetSlot, HeadSlot);
+                EXPECT_EQ(move.item, (decltype(move.item){std::byte{1}, std::byte{0x0b}, std::byte{0x2c}, std::byte{0},
+                                                          std::byte{0}, std::byte{0x70}, std::byte{0}}));
+            }
+        }
     }
 }
 
@@ -912,6 +964,158 @@ TEST_F(CursorItemTest, TheWizardsRingAsksForItsLevelBeforeBeingDropped)
         EXPECT_EQ(Cell(0, 0).id, WizardsRing);
     }
     EXPECT_EQ(lines, std::vector<std::string>{"hace falta el nivel 80"});
+}
+
+// 0x5df5cf..0x5df6c4: cada ventana lee la x retenida del dibujo, con comparación signed y sin cortar la UI.
+TEST_F(CursorItemTest, NpcWindowsKeepTheDropOnlyOnTheirSideOfTheScreen)
+{
+    for (const int kind : {0, 1, 2, 3})
+    {
+        for (const std::int32_t mouseX : {259, 260})
+        {
+            auto& runtime = world.Runtime();
+            runtime.panels.npcShop = kind == 0 ? 1 : 0;
+            runtime.panels.warehouse = kind == 1 ? 1 : 0;
+            runtime.panels.chaosBox = kind == 2 ? 1 : 0;
+            runtime.panels.delegated.trainer = kind == 3 ? 3 : 0;
+            runtime.ui.npcWindowX = 260;
+            Put(Potion, 0, 0);
+            runtime.movement.pendingClick = true;
+            ASSERT_TRUE(Scenes::PickUpFromTheGrid(Moves(), 0).HasValue());
+            std::vector<Drop> sent;
+            services.sendDrop = [&sent](const Drop& drop)
+            {
+                sent.push_back(drop);
+                return Expected<void, std::string>{};
+            };
+            services.pickTheGround = [] { return Expected<std::optional<PathCell>, std::string>(PathCell{130, 121}); };
+            Scenes::GamePanels panels(world, random);
+            const auto dropped =
+                Scenes::DropOnTheGround(Moves(), Scenes::GroundDrop{.mouseX = mouseX, .panels = &panels.Registry()});
+            ASSERT_TRUE(dropped.HasValue()) << dropped.Error();
+            EXPECT_EQ(sent.size(), mouseX < 260 ? 1u : 0u);
+            EXPECT_EQ(runtime.cursorItemCount, mouseX < 260 ? 1 : 0);
+        }
+    }
+}
+
+// 0x5df635→0x6689d0: sólo modo 3, marca WORD no negativa y maestro 0x80 retienen a la derecha del NPC.
+TEST_F(CursorItemTest, TheSeniorCraftWindowKeepsTheDropWithItsNativeSignedGuildMark)
+{
+    struct Case
+    {
+        std::uint16_t mark;
+        std::uint8_t guildStatus;
+        std::int32_t mode;
+        std::int32_t mouseX;
+        bool kept;
+    };
+    constexpr std::array<Case, 7> cases{{{0, 0x80, 3, 260, true},
+                                         {0x7fff, 0x80, 3, 260, true},
+                                         {0x8000, 0x80, 3, 260, false},
+                                         {0xffff, 0x80, 3, 260, false},
+                                         {0, 0x7f, 3, 260, false},
+                                         {0, 0x80, 2, 260, false},
+                                         {0, 0x80, 3, 259, false}}};
+    for (const Case& given : cases)
+    {
+        auto& runtime = world.Runtime();
+        runtime.cursorItemCount = 0;
+        runtime.ui.field78abb39 = 0;
+        runtime.panels.delegated.castleSiegeList = 1;
+        runtime.panels.delegated.castleSiegeListMode = given.mode;
+        runtime.ui.npcWindowX = 260;
+        auto& hero = world.Actors()[runtime.hero];
+        hero.word1f2 = given.mark;
+        hero.guildStatus = given.guildStatus;
+        Put(Potion, 0, 0);
+        runtime.movement.pendingClick = true;
+        ASSERT_TRUE(Scenes::PickUpFromTheGrid(Moves(), 0).HasValue());
+        std::vector<Drop> sent;
+        services.sendDrop = [&sent](const Drop& drop)
+        {
+            sent.push_back(drop);
+            return Expected<void, std::string>{};
+        };
+        services.pickTheGround = [] { return Expected<std::optional<PathCell>, std::string>(PathCell{130, 121}); };
+        Scenes::GamePanels panels(world, random);
+        const auto dropped =
+            Scenes::DropOnTheGround(Moves(), Scenes::GroundDrop{.mouseX = given.mouseX, .panels = &panels.Registry()});
+        ASSERT_TRUE(dropped.HasValue()) << dropped.Error();
+        EXPECT_EQ(sent.size(), given.kept ? 0u : 1u);
+        EXPECT_EQ(runtime.cursorItemCount, given.kept ? 0 : 1);
+    }
+}
+
+// 0x5dfb3e y 0x4379f0: los dwords de la tabla y el corte de mapas son distintos de la zona segura de 0x437a20.
+TEST_F(CursorItemTest, EntryTicketsRespectTheNativeThresholdMapAndSafeZone)
+{
+    struct Case
+    {
+        std::uint8_t characterClass;
+        std::uint16_t heroLevel;
+        std::uint32_t itemLevel;
+        std::int32_t map;
+        std::uint8_t safeZone;
+        bool sends;
+        bool warns;
+    };
+    constexpr std::array<Case, 9> Cases{{{0, 40, 1, 0, 0, true, false},
+                                         {0, 39, 1, 0, 0, false, false},
+                                         {0, 65535, 0, 0, 0, false, false},
+                                         {3, 350, 0, 0, 0, true, false},
+                                         {4, 20, 1, 0, 0, true, false},
+                                         {0, 40, 1, 24, 0, false, false},
+                                         {0, 40, 1, 36, 0, false, false},
+                                         {0, 40, 1, 0, 1, false, true},
+                                         {4, 19, 12, 0, 0, false, true}}};
+    const auto texts = Client::Tests::MakeTextTable({{1123, "Desde %d"}});
+    services.texts = &texts;
+    std::vector<std::string> lines;
+    services.chatLine = [&lines](std::string_view line, std::int32_t type)
+    {
+        EXPECT_EQ(type, 2);
+        lines.emplace_back(line);
+        return Expected<void, std::string>{};
+    };
+    for (const Case& entry : Cases)
+    {
+        auto& runtime = world.Runtime();
+        runtime.map = entry.map;
+        world.Actors()[runtime.hero].characterClass = entry.characterClass;
+        world.Actors()[runtime.hero].safeZone = entry.safeZone;
+        world.OwnCharacter().level = entry.heroLevel;
+        Put(EntryTicket, 0, 0);
+        Cell(0, 0).scalar1Low = entry.itemLevel << 3;
+        runtime.movement.pendingClick = true;
+        ASSERT_TRUE(Scenes::PickUpFromTheGrid(Moves(), 0).HasValue());
+        std::vector<Drop> sent;
+        services.sendDrop = [&sent](const Drop& drop)
+        {
+            sent.push_back(drop);
+            return Expected<void, std::string>{};
+        };
+        services.pickTheGround = [] { return Expected<std::optional<PathCell>, std::string>(PathCell{130, 121}); };
+        Scenes::GamePanels panels(world, random);
+        const auto before = random;
+        outside.messages.clear();
+        lines.clear();
+        const auto dropped =
+            Scenes::DropOnTheGround(Moves(), Scenes::GroundDrop{.mouseX = 100, .panels = &panels.Registry()});
+        ASSERT_TRUE(dropped.HasValue()) << dropped.Error();
+        EXPECT_EQ(sent.size(), entry.sends ? 1u : 0u);
+        EXPECT_EQ(runtime.cursorItemCount, entry.sends ? 1 : 0);
+        EXPECT_EQ(!outside.messages.empty() || !lines.empty(), entry.warns);
+        EXPECT_EQ(random.State(), Advanced(before, 2 + 2 * Own + (entry.sends ? 3 : 0)).State());
+        if (entry.safeZone != 0)
+        {
+            EXPECT_EQ(outside.messages, std::vector<std::size_t>{1238});
+        }
+        if (entry.characterClass == 4 && entry.heroLevel == 19)
+        {
+            EXPECT_EQ(lines, std::vector<std::string>{"Desde 20"});
+        }
+    }
 }
 
 // 0x59bd3e..0x59bf56: MoveHero pasa el arma de la izquierda al cursor en un acceso al registro propio, viste al héroe y

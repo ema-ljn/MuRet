@@ -58,7 +58,7 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 1> DamageTextureSet
 // fase 3): bar.jpg y back1 a back3 en 0xfd a 0x100 (0x61d3e3..0x61d43a, después de menu01_new2) y lock_01 a lock_04 en
 // 0x126 a 0x129 (0x61b2c3..0x61b31d, después de level_02, accept_box y mix_button de 0x121 a 0x125, que son de la caja
 // del caos).
-inline constexpr std::array<Data::Textures::TextureSetEntry, 103> HudTextureSet{{
+inline constexpr std::array<Data::Textures::TextureSetEntry, 126> HudTextureSet{{
     {"Interface\\CursorAttack.tga", 0x04, TextureSetsDetail::LinearClamp},
     {"Interface\\CursorGet.tga", 0x05, TextureSetsDetail::LinearClamp},
     {"Interface\\CursorTalk.tga", 0x06, TextureSetsDetail::LinearClamp},
@@ -124,8 +124,31 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 103> HudTextureSet{
     {"Interface\\pet1.jpg", 0x65d, TextureSetsDetail::NearestClamp},
     {"Interface\\pet2.jpg", 0x65e, TextureSetsDetail::NearestClamp},
     {"Skill\\SwordEff.jpg", 0x640, TextureSetsDetail::LinearClamp},
+    // 0x61e385..0x61e46e: controles del asedio, NEAREST/CLAMP.
+    {"Interface\\BattleSkill.tga", 0x65f, TextureSetsDetail::NearestClamp},
+    {"Interface\\senatusmap.jpg", 0x660, TextureSetsDetail::NearestClamp},
+    {"Interface\\gate_button2.jpg", 0x661, TextureSetsDetail::NearestClamp},
+    {"Interface\\gate_button1.jpg", 0x662, TextureSetsDetail::NearestClamp},
+    {"Interface\\suho_button2.jpg", 0x663, TextureSetsDetail::NearestClamp},
+    {"Interface\\suho_button1.jpg", 0x664, TextureSetsDetail::NearestClamp},
+    {"Interface\\DoorCL.jpg", 0x665, TextureSetsDetail::NearestClamp},
+    {"Interface\\DoorOP.jpg", 0x666, TextureSetsDetail::NearestClamp},
     {"Interface\\CursorAttack2.tga", 0x68d, TextureSetsDetail::NearestClamp},
     {"Interface\\StatusIcon.jpg", 0x68e, TextureSetsDetail::NearestClamp},
+    // 0x61e678..0x61e77d: órdenes y estados de la batalla, antes de 0x61ae60.
+    // 0x61e605 y 0x61e621: progreso del comando del asedio, NEAREST/CLAMP.
+    {"Interface\\Progress_Back.jpg", 0x667, TextureSetsDetail::NearestClamp},
+    {"Interface\\Progress.jpg", 0x668, TextureSetsDetail::NearestClamp},
+    {"Interface\\frame.tga", 0x69f, TextureSetsDetail::NearestClamp},
+    {"Interface\\i_attack.tga", 0x6a0, TextureSetsDetail::NearestClamp},
+    {"Interface\\i_defense.tga", 0x6a1, TextureSetsDetail::NearestClamp},
+    {"Interface\\i_wait.tga", 0x6a2, TextureSetsDetail::NearestClamp},
+    {"Interface\\b_command01.jpg", 0x6a4, TextureSetsDetail::NearestClamp},
+    {"Interface\\b_command02.jpg", 0x6a5, TextureSetsDetail::NearestClamp},
+    {"Interface\\b_group02.jpg", 0x6a6, TextureSetsDetail::NearestClamp},
+    {"Interface\\b_zoomout01.jpg", 0x6a7, TextureSetsDetail::NearestClamp},
+    {"Interface\\hourglass.tga", 0x6a3, TextureSetsDetail::NearestClamp},
+    {"Interface\\dot.tga", 0x669, TextureSetsDetail::NearestClamp},
     {"Interface\\Skill.jpg", 0x12a, TextureSetsDetail::NearestClamp},
     {"Interface\\Skill2.jpg", 0x12b, TextureSetsDetail::NearestClamp},
     {"Interface\\command.jpg", 0x12c, TextureSetsDetail::NearestClamp},
@@ -157,8 +180,11 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 103> HudTextureSet{
     {"Interface\\repair_01.jpg", 0x11e, TextureSetsDetail::NearestClamp},
     {"Interface\\repair_02.jpg", 0x11f, TextureSetsDetail::NearestClamp},
     {"Interface\\level_01.jpg", 0x120, TextureSetsDetail::NearestClamp},
+    {"Interface\\level_02.jpg", 0x121, TextureSetsDetail::NearestClamp},
     // 0x61ae60: el OK marcado del comercio (0x5f3b40). El 0x122 (accept_box01) lo sube el terreno (AcceptBoxTexture).
     {"Interface\\accept_box02.jpg", 0x123, TextureSetsDetail::NearestClamp},
+    {"Interface\\mix_button1.jpg", 0x124, TextureSetsDetail::NearestClamp},
+    {"Interface\\mix_button2.jpg", 0x125, TextureSetsDetail::NearestClamp},
     {"Interface\\lock_01.jpg", 0x126, TextureSetsDetail::NearestClamp},
     {"Interface\\lock_02.jpg", 0x127, TextureSetsDetail::NearestClamp},
     {"Interface\\lock_03.jpg", 0x128, TextureSetsDetail::NearestClamp},
@@ -238,8 +264,10 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 3> GlowTextureSet{{
 // flareBlue/62b (61dc9d), todos GL_LINEAR/GL_CLAMP; los dos últimos tienen slots físicos propios.
 // Lo que cuelga de un jugador (0x509340 y 0x50ba30) pide además Shiny03 en 0x5fe (61d937) e Impack03 de
 // Object9 en 0x5ad (61e799), del mismo lazo sin ramas de 0x61ccb0 y con el mismo sampling.
-inline constexpr std::array<Data::Textures::TextureSetEntry, 39> EffectTextureSet{{
+inline constexpr std::array<Data::Textures::TextureSetEntry, 47> EffectTextureSet{{
     {"Effect\\Fire01.jpg", 0x5d9, TextureSetsDetail::LinearClamp},
+    // 0x61d523: Fire03 para la partícula 0x5db/0 del efecto 0x147/1 de Crywolf.
+    {"Effect\\Fire03.jpg", 0x5db, TextureSetsDetail::LinearClamp},
     // 0x61d663: ShockWave en 0x6eb, la onda del galope del caballo en Icarus (0x44431b).
     {"Effect\\ShockWave.jpg", 0x6eb, TextureSetsDetail::LinearClamp},
     // 0x61d67f: Flame01 en 0x5de, de la llama 5de/7 del 0x43 del 54.
@@ -255,6 +283,7 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 39> EffectTextureSe
     {"Effect\\Thunder01.jpg", 0x5ca, TextureSetsDetail::LinearRepeat}, // 61da58/61da62.
     {"Effect\\smoke01.jpg", 0x5f2, TextureSetsDetail::LinearClamp},
     {"Effect\\smoke02.tga", 0x5f3, TextureSetsDetail::LinearClamp},
+    {"Effect\\smoke05.tga", 0x5f6, TextureSetsDetail::LinearClamp},
     // 0x61d7e5 (0x63b870, GL_LINEAR y GL_CLAMP): Explotion01 en 0x5ed, la explosión 5ed/0 del terremoto 0xfa.
     {"Effect\\Explotion01.jpg", 0x5ed, TextureSetsDetail::LinearClamp},
     // 0x61d7aa (0x63bd00, GL_LINEAR y GL_CLAMP): blood01.tga en 0x5e3, las dos marcas del suelo que deja el que termina
@@ -277,7 +306,12 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 39> EffectTextureSe
     // 0x60f, también el sprite de su 0xd; LINEAR/CLAMP.
     {"Effect\\fi01.jpg", 0x6ab, TextureSetsDetail::LinearClamp},
     {"Effect\\fi02.tga", 0x6ac, TextureSetsDetail::LinearClamp},
+    {"Effect\\PoundingBall.jpg", 0x6ad, TextureSetsDetail::LinearClamp},
+    // 0x61dbb4: la estela de los fuegos artificiales 0x60e.
+    {"Effect\\Fire04.jpg", 0x60d, TextureSetsDetail::LinearClamp},
     {"Effect\\Flare.jpg", 0x60f, TextureSetsDetail::LinearClamp},
+    // 0x61dc0b: Chrome03 para el rastro de Crywolf y los brillos de monstruos, NEAREST/CLAMP.
+    {"Effect\\Chrome03.jpg", 0x6b1, TextureSetsDetail::NearestClamp},
     // 0x61d5a0 y 0x61d893, LINEAR/CLAMP: la 6ec/5 del 0x39 y el 0x47 de Crywolf y la burbuja 698/0 de su agua.
     {"Effect\\fantaF.jpg", 0x6ec, TextureSetsDetail::LinearClamp},
     {"Effect\\coll.jpg", 0x698, TextureSetsDetail::LinearClamp},
@@ -292,6 +326,10 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 39> EffectTextureSe
     {"Effect\\eff_lightinga03.jpg", 0x692, TextureSetsDetail::NearestClamp},
     {"Effect\\eff_lightinga04.jpg", 0x693, TextureSetsDetail::NearestClamp},
     {"Effect\\eff_lightinga05.jpg", 0x694, TextureSetsDetail::NearestClamp},
+    // 0x61e4eb..0x61e542: el cráter y las marcas del mapa 30, NEAREST/CLAMP.
+    {"Effect\\Cratered.tga", 0x636, TextureSetsDetail::NearestClamp},
+    {"Effect\\FormationMark.tga", 0x637, TextureSetsDetail::NearestClamp},
+    {"Effect\\Plus.tga", 0x638, TextureSetsDetail::NearestClamp},
 }};
 
 // Recursos de los joints que ya crean los peces y pájaros: 61d858/61dab9/61dad8/61dce2. 61d5db sube

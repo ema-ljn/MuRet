@@ -287,9 +287,9 @@ TEST(JewelUnmixTest, TheOkAsksForTheChosenBundle)
     }
 }
 
-// 0x46f1a0 y 0x402a90, en los tres mapas: con la lista en su esquina (0xe4, 0x15d), el derecho suelto sobre una fila
+// 0x46f1a0 y 0x402a90, en los tres mapas: con la lista en su esquina (0xe4, 0x15d), el doble clic sobre una fila
 // la elige y pide su paquete; el de la casilla 0 solo la elige (07 Q-C1152). El OK lo pide igual.
-TEST(JewelUnmixTest, TheRightReleaseOnARowAsksForItsBundle)
+TEST(JewelUnmixTest, TheDoubleClickOnARowAsksForItsBundle)
 {
     for (const std::int32_t map : Maps)
     {
@@ -303,16 +303,16 @@ TEST(JewelUnmixTest, TheRightReleaseOnARowAsksForItsBundle)
         list.x = 0xe4;
         list.y = 0x6d + 0xf0;
         // Con 2 filas, la fila i en y = (2 − i) · 13 + 230: la 0 en [253, 266) y la 1 en [240, 253).
-        runtime.ui.rightUpMessage = true;
+        runtime.ui.doubleClick = true;
         ASSERT_TRUE(tested.Step(300, 260).HasValue());
         EXPECT_EQ(list.selection, 1);
-        EXPECT_FALSE(runtime.ui.rightUpMessage);
+        EXPECT_FALSE(runtime.ui.doubleClick);
         EXPECT_EQ(runtime.dialogs.current, UnmixDialog);
         EXPECT_EQ(tested.Jewels().cell, -1);
         EXPECT_EQ(runtime.ui.hovered, list.id);
         EXPECT_EQ(runtime.ui.capture, 0);
 
-        runtime.ui.rightUpMessage = true;
+        runtime.ui.doubleClick = true;
         ASSERT_TRUE(tested.Step(300, 245).HasValue());
         EXPECT_EQ(list.selection, 2);
         EXPECT_EQ(tested.Jewels().cell, 3);

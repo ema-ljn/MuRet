@@ -169,7 +169,8 @@ Render::Models::LogicalAccess OwnAccess(GameHudContext& context)
 // 1, desde 1.000 baja a la centena y desde 100 a la decena (la división de C).
 std::int32_t WarehouseFee(std::uint16_t level, bool locked)
 {
-    const std::int32_t squared = static_cast<std::int32_t>(level) * static_cast<std::int32_t>(level);
+    // 0x5f5464: IMUL conserva los 32 bits bajos; FILD los interpreta con signo.
+    const auto squared = std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(level) * level);
     std::int32_t fee = Truncate(static_cast<double>(squared) * static_cast<double>(FeePerSquaredLevel));
     fee += locked ? 2 * static_cast<std::int32_t>(level) : 0;
     if (fee < 1)

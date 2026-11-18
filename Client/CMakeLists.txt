@@ -58,6 +58,12 @@ if(MSVC)
     set_source_files_properties(src/Data/Textures/JpegImage.cpp src/Data/Textures/JpegWriter.cpp
         PROPERTIES COMPILE_OPTIONS /wd4611)
 endif()
+# MSVC: App/ServerSession.cpp, con los handlers que suman las ventanas de los NPC (hito 6 de la CL9) y el asedio
+# (hito 12), pasa el tope de secciones de un .obj (C1128). /bigobj para toda la biblioteca, así su precompiled header
+# compila con las mismas opciones que sus archivos, como en tests/.
+if(MSVC)
+    target_compile_options(ClientLib PRIVATE /bigobj)
+endif()
 
 # Platform (CL3.1): lo único que ve SDL3. La ventana, el contexto GL, el loader, el intervalo de
 # swap y la traducción de eventos. Sus tests (tests/platform/) lo enlazan aparte.

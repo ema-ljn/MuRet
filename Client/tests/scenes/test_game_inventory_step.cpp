@@ -399,15 +399,61 @@ TEST_F(InventoryMovesStepTest, TheRightClickOnASwordLeavesItInTheGrid)
     EXPECT_EQ(world.Inventory().cells[6 * 8 + 5].id, Sword);
 }
 
-// 0x5c67e9..0x5c685f: el clic derecho sobre el 0x1a1d con todas las ventanas cerradas llega al 91, que corta en
-// 0x5c6865 (hito 11). Con una de las que mira abierta, 0x5e4ce0 corta antes (0x5e4d2a y las que siguen): esa rama
-// está en GridItemUseTest.TheTicket1a1dLooksAtTheShopFirst.
-TEST_F(InventoryMovesStepTest, TheRightClickOnThe1a1dCutsAtTheEventEntry)
+// 0x5c67e9..0x5c6c25: el clic derecho sobre el 0x1a1d consulta los paneles y manda C1 04 91 04 con XOR32, en claro,
+// sin rand() de envío. Copia el ítem y su lugar +12 para la respuesta; no inicia la espera del 26 ni cierra ventanas.
+// Las dos consultas protegidas (tienda NPC y comercio) agregan dos rand() al paso normal del inventario.
+TEST_F(InventoryMovesStepTest, TheRightClickOnThe1a1dRequestsTheEventAndKeepsTheTicket)
 {
-    world.Inventory().cells[PotionCell].id = EventTicket;
-    world.Runtime().ui.rightClick = true;
-    ExpectCut(Step(PotionX, PotionY, &services), "0x5c6865");
-    EXPECT_FALSE(world.Runtime().ui.rightClick);
+    std::vector<Client::Protocol::Outgoing> sent;
+    services.sendGamePacket = [&sent](Client::Protocol::Outgoing packet) { sent.push_back(std::move(packet)); };
+    Client::World::ItemState& ticket = world.Inventory().cells[PotionCell];
+    ticket.id = EventTicket;
+    ticket.scalar1Low = 0x12345678u;
+    auto& runtime = world.Runtime();
+    runtime.dialogItem.id = 0x4321;
+    runtime.slot78a6758 = 99;
+    runtime.lastSoundId = -1;
+    runtime.ui.rightClick = true;
+    constexpr int TicketPanelRandoms = 2;
+    const CrtRandom expected = Advanced(random, BaseStepRandoms + InventoryStepRandoms + TicketPanelRandoms);
+
+    const auto stepped = Step(PotionX, PotionY, &services);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    ASSERT_EQ(sent.size(), 1u);
+    EXPECT_EQ(sent[0].delivery, Client::Network::Delivery::Clear);
+    EXPECT_TRUE(Client::Tests::SameBytes(Client::Network::Crypto::Xor32Decode(sent[0].packet).Bytes(),
+                                         Client::Tests::Bytes({0xc1, 0x04, 0x91, 0x04})));
+    EXPECT_EQ(random.State(), expected.State());
+    EXPECT_FALSE(runtime.ui.rightClick);
+    EXPECT_EQ(runtime.slot78a6758, static_cast<std::int32_t>(PotionCell) + 12);
+    EXPECT_EQ(runtime.dialogItem.id, EventTicket);
+    EXPECT_EQ(runtime.dialogItem.scalar1Low, ticket.scalar1Low);
+    EXPECT_EQ(runtime.dialogItem.gridColumn, 1);
+    EXPECT_EQ(runtime.dialogItem.gridRow, 2);
+    EXPECT_EQ(ticket.id, EventTicket);
+    EXPECT_EQ(ticket.occupied, 1u);
+    EXPECT_EQ(runtime.cursorItemCount, 0);
+    EXPECT_EQ(runtime.ui.field5767954, 0);
+    EXPECT_EQ(runtime.panels.inventory, 1);
+    EXPECT_EQ(runtime.dialogs.current, 0);
+    EXPECT_EQ(runtime.dialogs.pending, 0);
+    EXPECT_EQ(runtime.lastSoundId, -1);
+    EXPECT_TRUE(messages.empty());
+
+    // 0x5c4132..0x5c413c: la espera sí impide llegar al ítem desde el caller de la grilla.
+    sent.clear();
+    runtime.ui.field5767954 = 4;
+    runtime.ui.rightClick = true;
+    runtime.dialogItem.id = 0x4321;
+    runtime.slot78a6758 = 99;
+    const CrtRandom waiting = Advanced(random, BaseStepRandoms + InventoryStepRandoms);
+    ASSERT_TRUE(Step(PotionX, PotionY, &services).HasValue());
+    EXPECT_EQ(random.State(), waiting.State());
+    EXPECT_TRUE(sent.empty());
+    EXPECT_TRUE(runtime.ui.rightClick);
+    EXPECT_EQ(runtime.ui.field5767954, 4);
+    EXPECT_EQ(runtime.dialogItem.id, 0x4321);
+    EXPECT_EQ(runtime.slot78a6758, 99);
 }
 
 // 0x5d8d50 con el ítem en el cursor y el clic fuera de las grillas: consume el clic (MouseUpdateTime en 0 y su máximo

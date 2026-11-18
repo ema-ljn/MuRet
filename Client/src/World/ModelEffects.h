@@ -178,7 +178,7 @@ struct ModelEffect
     std::uint8_t byte1bd = 0;
     std::uint16_t word8c = 0;
     std::int32_t dword100 = 0;
-    // +0x90 y +0x1b0: el umbral del impacto y el destino de los proyectiles del castillo.
+    // +0x90 y +0x1b0: el umbral del impacto y el destino de los proyectiles del castillo y del 0xee de Crywolf.
     std::uint8_t byte90 = 0;
     glm::vec3 siegeTarget{};
     // +0x78: cola602365 de6002e0. El prefijo518cf0 no lo reinicializa.

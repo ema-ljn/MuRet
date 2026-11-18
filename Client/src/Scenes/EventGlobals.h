@@ -36,6 +36,16 @@ struct SoccerScoreGlobals
     bool active = false;
 };
 
+// 0x57678ec..0x5767905: resultado F3 24 (0x4deef0), mostrado por5a800e y borrado por0xa7.
+struct GuildWarOutcomeState
+{
+    std::uint8_t present = 0;
+    std::array<char, 10> firstName{};
+    std::array<char, 10> secondName{};
+    std::uint16_t firstScore = 0;
+    std::uint16_t secondScore = 0;
+};
+
 // El recorrido de la cámara (CCameraMove, el objeto de 0x6e57a8 en [0x6e5904]) que arma 0x403250 entre los
 // inicializadores estáticos, con los valores de 0x403300 (que también le dan la vuelta a la selección, 0x4c26f2, y la
 // etapa 3). Los campos van en el orden del objeto (Scenes/CameraTour.h).
@@ -97,6 +107,7 @@ struct EventGlobals
 {
     ObjectCollapse objectCollapse{};
     SoccerScoreGlobals soccer{};
+    GuildWarOutcomeState guildWarOutcome{};
     // 0x5767814 y 0x5767816 (.bss 0): el F3 22 (0x4e31f8), que lee 0x5a7eb0.
     std::uint8_t timeKind = 0;
     std::uint16_t timeValue = 0;

@@ -48,6 +48,36 @@ template <typename T> T Read(std::vector<std::byte> bytes)
     return packet != nullptr ? *packet : T{};
 }
 
+TEST(EventsProtocolTest, TheGuildOutcomeKeepsTenByteNamesAndWordScores)
+{
+    const auto ignored = Read<Events::GuildWarOutcome>(Bytes({0xc1, 5, 0xf3, 0x24, 3}));
+    EXPECT_EQ(ignored.present, 3);
+    std::vector<std::byte> bytes(0x1e);
+    bytes[0] = std::byte{0xc1};
+    bytes[1] = std::byte{0x1e};
+    bytes[2] = std::byte{0xf3};
+    bytes[3] = std::byte{0x24};
+    bytes[4] = std::byte{2};
+    for (std::size_t index = 0; index < 10; ++index)
+    {
+        bytes[5 + index] = static_cast<std::byte>('A' + index);
+        bytes[0x12 + index] = static_cast<std::byte>('a' + index);
+    }
+    bytes[0x10] = std::byte{0x34};
+    bytes[0x11] = std::byte{0x12};
+    bytes[0x1c] = std::byte{0x78};
+    bytes[0x1d] = std::byte{0x56};
+    const auto result = Read<Events::GuildWarOutcome>(bytes);
+    EXPECT_EQ(result.present, 2);
+    EXPECT_EQ(std::string(result.firstName.data(), result.firstName.size()), "ABCDEFGHIJ");
+    EXPECT_EQ(std::string(result.secondName.data(), result.secondName.size()), "abcdefghij");
+    EXPECT_EQ(result.firstScore, 0x1234);
+    EXPECT_EQ(result.secondScore, 0x5678);
+    bytes.pop_back();
+    bytes[1] = std::byte{0x1d};
+    EXPECT_EQ(ErrorOf(Events::ReadEventPacket(PacketOf(bytes))), ProtocolError::TooShort);
+}
+
 // 0x4e3594: PMSG_EVENTSTATE, C1 05 0B estado evento.
 TEST(EventsProtocolTest, ReadsTheEventState)
 {

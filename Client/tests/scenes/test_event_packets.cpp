@@ -1572,6 +1572,27 @@ TEST_F(EventPacketsTest, TheSoccerScoreSharesTheWarPointsAndEmitsOnTheRawHeroCel
     EXPECT_FALSE(soccer.active);
 }
 
+TEST_F(EventPacketsTest, TheGuildOutcomePublishesOnlyTheNativeThreeKinds)
+{
+    const Events::GuildWarOutcome outcome{.present = 2,
+                                          .firstName = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'},
+                                          .secondName = {'O', 'm', 'b', 'u'},
+                                          .firstScore = 0x1234,
+                                          .secondScore = 0x5678};
+    const auto before = random.State();
+    Applied(outcome);
+    const auto& kept = Runtime().events.guildWarOutcome;
+    EXPECT_EQ(kept.present, 2);
+    EXPECT_EQ(kept.firstName, outcome.firstName);
+    EXPECT_EQ(kept.secondName, outcome.secondName);
+    EXPECT_EQ(kept.firstScore, 0x1234);
+    EXPECT_EQ(kept.secondScore, 0x5678);
+    for (const auto kind : {std::uint8_t{3}, std::uint8_t{0xff}})
+        Applied(Events::GuildWarOutcome{.present = kind});
+    EXPECT_EQ(kept.firstName, outcome.firstName);
+    EXPECT_EQ(random.State(), before);
+}
+
 // 0x4da070: los avisos por comando y el sonido 0x5a; el efecto (CL11) corta.
 TEST_F(EventPacketsTest, TheServerCommandsShowTheirNotices)
 {

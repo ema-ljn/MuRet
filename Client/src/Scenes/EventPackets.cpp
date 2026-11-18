@@ -1457,6 +1457,18 @@ private:
         return FireworkAt(std::bit_cast<std::int32_t>(hero.cellXLeft), std::bit_cast<std::int32_t>(hero.cellYLeft));
     }
 
+    Applied On(const Events::GuildWarOutcome& packet)
+    {
+        if (packet.present >= 3)
+            return {};
+        m_runtime.events.guildWarOutcome = {.present = packet.present,
+                                            .firstName = packet.firstName,
+                                            .secondName = packet.secondName,
+                                            .firstScore = packet.firstScore,
+                                            .secondScore = packet.secondScore};
+        return {};
+    }
+
     // ----- F3 40 (0x4da070), por pkt[4] de 0 a 0x31 (las tablas 0x4da24c y 0x4da224).
 
     Applied On(const Events::ServerCommand& packet)

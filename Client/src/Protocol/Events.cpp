@@ -165,6 +165,24 @@ Read ReadWorld(const Fields& fields, std::uint8_t subcode)
         return EventPacket{EventTime{fields.U8(4), fields.U16(6)}};
     case SoccerScoreSubcode:
         return ReadSoccerScore(fields);
+    case GuildWarOutcomeSubcode:
+    {
+        if (!fields.Has(5))
+            return TooShort();
+        GuildWarOutcome result{.present = fields.U8(4)};
+        if (result.present >= 3)
+            return EventPacket{result};
+        if (!fields.Has(0x1e))
+            return TooShort();
+        for (std::size_t index = 0; index < result.firstName.size(); ++index)
+        {
+            result.firstName[index] = static_cast<char>(fields.U8(5 + index));
+            result.secondName[index] = static_cast<char>(fields.U8(0x12 + index));
+        }
+        result.firstScore = fields.U16(0x10);
+        result.secondScore = fields.U16(0x1c);
+        return EventPacket{result};
+    }
     case ServerCommandSubcode:
         if (!fields.Has(7))
             return TooShort();

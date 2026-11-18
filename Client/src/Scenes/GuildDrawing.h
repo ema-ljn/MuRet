@@ -28,6 +28,9 @@ struct GameHudContext;
 // guerra y el gremio del héroe; busca ambos nombres actuales en0..1998 y usa los mismos tanteadores.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheWarScore(GameHudContext& context, UI::PanelRegistry& panels);
 
+// 0x5a7eb0, después del HUD aun oculto (0x637668): reloj de eventos y resultado F3 24.
+[[nodiscard]] Core::Expected<void, std::string> DrawTheEventTimeAndOutcome(GameHudContext& context);
+
 // 0x660830, abierto: con el dibujo propio de 0x6602b0 (+0xc), solo ese (DrawTheGuildPositions). Si no, la caja de
 // 0x6576a0 (0x620c10, glColor4f(1, 1, 1, 0,8), Message_box2 (0xfc) de 213 × 5 en
 // (214, y), una fila de Message_box1 (0xfb) de 213 × 40 por cada 40 de (alto − 10), el resto escalado y otra vez la

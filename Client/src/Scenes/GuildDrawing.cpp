@@ -8,6 +8,7 @@
 #include "Render/Text/TextLayout.h"
 #include "Render/Text/TextStyle.h"
 #include "Scenes/GameHud.h"
+#include "Scenes/GamePanels.h"
 #include "Scenes/GameWindowDrawing.h"
 #include "Scenes/GuildMarks.h"
 #include "Scenes/GuildState.h"
@@ -291,6 +292,97 @@ Core::Expected<void, std::string> DrawTheWarScore(GameHudContext& context, UI::P
     if (auto war = DrawTheGuildWarScore(context, panels); !war.HasValue())
         return war;
     return DrawTheSoccerScore(context, panels);
+}
+
+Core::Expected<void, std::string> DrawTheEventTimeAndOutcome(GameHudContext& context)
+{
+    auto& events = context.world.Runtime().events;
+    auto& hud = context.hud;
+    // 0x5a7f1c..0x5a8006: ambos textos usan el mismo ancho de mundo y la fuente grande; el segundo es la sombra.
+    if (events.timeValue != 0 && events.timeValue / 60 <= 10)
+    {
+        SelectFont(context, FontKind::BigBold);
+        hud.textColors.text = 0xff0a0affu;
+        hud.textColors.background = 0;
+        const std::size_t index = events.timeKind == 3 ? 1392 : events.timeValue % 60 < 10 ? 1390 : 1391;
+        auto format = PositionsTextOf(context, index, "0x5a7f9b");
+        if (!format.HasValue())
+            return Core::Unexpected(std::move(format).Error());
+        const std::string text = events.timeKind == 3
+                                     ? UI::Sprintf(format.Value(), events.timeValue % 60)
+                                     : UI::Sprintf(format.Value(), events.timeValue / 60, events.timeValue % 60);
+        if (events.timeKind == 3 || events.timeValue < 60)
+            hud.textColors.text = 0xff0affffu;
+        GamePanels panels(context.world, context.random);
+        const auto center = panels.Registry().WorldWidth() / 2;
+        WindowDrawing::DrawCenteredText(context, center, 350, text);
+        hud.textColors.text = 0xffffffffu;
+        WindowDrawing::DrawCenteredText(context, center + 1, 351, text);
+        SelectFont(context, FontKind::Normal);
+    }
+    const auto& outcome = events.guildWarOutcome;
+    // 0x5a801e: el strcmp compara sólo un byte con el vacío, sin consultar present.
+    if (outcome.firstName[0] == '\0')
+        return {};
+    auto& sprites = context.sprites;
+    Quad(sprites, 0xfc, 170, 120, 300, 5, 0.5859375f, 0.625f);
+    for (int row = 0; row < 5; ++row)
+        Quad(sprites, 0xfb, 170, static_cast<float>(125 + row * 40), 300, 40, 0.83203125f, 0.625f);
+    Quad(sprites, 0xfc, 170, 325, 300, 5, 0.5859375f, 0.625f);
+    sprites.SetBlend(BlendMode::Additive);
+    sprites.SetColor(White);
+    SelectFont(context, FontKind::BigBold);
+    const auto line = [&](std::int32_t x, std::int32_t y, std::size_t index) -> Core::Expected<void, std::string>
+    {
+        auto text = PositionsTextOf(context, index, "0x5a7eb0");
+        if (!text.HasValue())
+            return Core::Unexpected(std::move(text).Error());
+        DrawText(context, x, y, UI::Sprintf(text.Value()));
+        return {};
+    };
+    hud.textColors.text = 0xfffff0c8u;
+    if (auto drawn = line(270, 140, 1393); !drawn.HasValue())
+        return drawn;
+    hud.textColors.text = 0xff0affffu;
+    if (auto drawn = line(307, 170, 1394); !drawn.HasValue())
+        return drawn;
+    hud.textColors.text = 0xffffffffu;
+    const std::string first(NameOf(outcome.firstName));
+    // 0x5767904 sigue inmediatamente al segundo nombre: el sprintf lee sus bytes si falta el cero en los diez.
+    std::array<char, 13> secondBytes{};
+    std::ranges::copy(outcome.secondName, secondBytes.begin());
+    secondBytes[10] = static_cast<char>(outcome.secondScore & 0xffu);
+    secondBytes[11] = static_cast<char>(outcome.secondScore >> 8);
+    const std::string second(NameOf(secondBytes));
+    DrawText(context, 230 - static_cast<std::int32_t>(first.size()) * 5, 170, first);
+    DrawText(context, 400 - static_cast<std::int32_t>(second.size()) * 5, 170, second);
+    DrawText(context, 215, 195, std::format("({})", outcome.firstScore));
+    DrawText(context, 385, 195, std::format("({})", outcome.secondScore));
+    if (outcome.firstScore == outcome.secondScore)
+    {
+        hud.textColors.text = 0xff0affffu;
+        if (auto drawn = line(285, 235, 1395); !drawn.HasValue())
+            return drawn;
+        SelectFont(context, FontKind::Normal);
+        hud.textColors.text = 0xffffffffu;
+    }
+    else
+    {
+        const bool firstWon = outcome.firstScore > outcome.secondScore;
+        hud.textColors.text = 0x0a0affffu;
+        if (auto drawn = line(217, 235, firstWon ? 1396 : 1397); !drawn.HasValue())
+            return drawn;
+        hud.textColors.text = 0xff0a0affu;
+        if (auto drawn = line(388, 235, firstWon ? 1397 : 1396); !drawn.HasValue())
+            return drawn;
+    }
+    SelectFont(context, FontKind::Normal);
+    const bool hover =
+        context.mouse.x >= 285 && context.mouse.x < 355 && context.mouse.y >= 280 && context.mouse.y < 300;
+    Quad(sprites, hover ? 0xf2 : 0xf1, 285, 280, 70, 20, 0.546875f, 0.625f);
+    sprites.SetColor(White);
+    sprites.SetBlend(BlendMode::Opaque);
+    return {};
 }
 
 Core::Expected<void, std::string> DrawTheGuildPositions(GameHudContext& context)

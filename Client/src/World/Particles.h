@@ -35,6 +35,9 @@ struct TerrainLighting;
 struct WorldObject;
 
 inline constexpr std::size_t ParticleCount = 3000;
+// 540260 y542599: las chispas5ad/2 y la niebla5f2/27 de la mano de Crywolf.
+inline constexpr std::int32_t MagicSparkParticle = 0x5ad;
+inline constexpr std::int32_t CrywolfSwingSmokeSubtype = 27;
 inline constexpr std::int32_t MissileFireParticle = 0x5da;
 inline constexpr std::int32_t MissileSmokeSubtype = 38;
 inline constexpr std::int32_t ExplosionSmokeSubtype = 35;

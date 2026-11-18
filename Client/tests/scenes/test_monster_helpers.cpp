@@ -1342,12 +1342,12 @@ TEST_F(MonsterHelpersTest, OtherSwingsEmitTheirRibbonSamplesAndKeepGenuineCuts)
         bool effectPoolFull = false;
     };
     for (const Case& value :
-         {Case{0x1ab, 3, 4.0f, "0x433056", false, 0}, Case{0x1ab, 3, 4.0f, "", true, 1},
-          Case{0x1ab, 3, 4.5f, "", false, 1}, Case{0x1ae, 8, 4.0f, "0x433248", false, 0},
-          Case{0x1ae, 8, 4.0f, "", true, 0}, Case{0x1ae, 4, 4.7f, "0x433339", false, 0},
-          Case{0x1ae, 3, 4.7f, "", false, 1}, Case{0x1af, 4, 3.0f, "", false, 1},
-          Case{0x1af, 4, 4.7f, "0x43365e", false, 1}, Case{0x1af, 4, 4.7f, "", false, 1, true},
-          Case{0x1b1, 4, 3.0f, "", false, 2}, Case{0x1b3, 3, 3.0f, "", false, 1}, Case{0x1b4, 3, 3.0f, "", false, 2}})
+         {Case{0x1ab, 3, 4.0f, "", false, 1}, Case{0x1ab, 3, 4.0f, "", true, 1}, Case{0x1ab, 3, 4.5f, "", false, 1},
+          Case{0x1ae, 8, 4.0f, "", false, 0}, Case{0x1ae, 8, 4.0f, "", true, 0},
+          Case{0x1ae, 4, 4.7f, "0x433339", false, 0}, Case{0x1ae, 3, 4.7f, "", false, 1},
+          Case{0x1af, 4, 3.0f, "", false, 1}, Case{0x1af, 4, 4.7f, "0x43365e", false, 1},
+          Case{0x1af, 4, 4.7f, "", false, 1, true}, Case{0x1b1, 4, 3.0f, "", false, 2},
+          Case{0x1b3, 3, 3.0f, "", false, 1}, Case{0x1b4, 3, 3.0f, "", false, 2}})
     {
         SCOPED_TRACE(testing::Message() << value.address << (value.particlePoolFull ? " llena" : ""));
         ClearParticles();
@@ -1372,7 +1372,35 @@ TEST_F(MonsterHelpersTest, OtherSwingsEmitTheirRibbonSamplesAndKeepGenuineCuts)
             EXPECT_TRUE(stepped.HasValue()) << stepped.Error();
         else
             EXPECT_TRUE(CutAt(stepped, value.address)) << (stepped.HasValue() ? "" : stepped.Error());
-        EXPECT_EQ(random.State(), AfterDraws(1, 1).State());
+        const int draws = value.particlePoolFull                     ? 1
+                          : value.type == 0x1ab && value.frame == 4  ? 31
+                          : value.type == 0x1ae && value.action == 8 ? 6
+                                                                     : 1;
+        EXPECT_EQ(random.State(), AfterDraws(1, draws).State());
+        if (!value.particlePoolFull && value.type == 0x1ab && value.frame == 4)
+        {
+            const auto sparks = LiveParticles();
+            ASSERT_EQ(sparks.size(), 10u);
+            EXPECT_EQ(sparks.front().type, 0x640);
+            EXPECT_EQ(sparks.front().light, glm::vec3(1));
+            EXPECT_EQ(sparks.back().light, (glm::vec3{0, 0, 5}));
+        }
+        if (!value.particlePoolFull && value.type == 0x1ae && value.action == 8)
+        {
+            const auto hand = LiveParticles();
+            ASSERT_EQ(hand.size(), 3u);
+            EXPECT_EQ(hand[0].type, 0x5f2);
+            EXPECT_EQ(hand[0].subtype, 27);
+            EXPECT_EQ(hand[0].texture, 0x6b1);
+            EXPECT_EQ(hand[0].position, (glm::vec3{100, 200, 44}));
+            EXPECT_EQ(hand[0].light, (glm::vec3{0.2f, 0.2f, 0.7f}));
+            EXPECT_EQ(hand[1].type, 0x5ad);
+            EXPECT_EQ(hand[1].subtype, 2);
+            EXPECT_EQ(hand[1].scale, 0.8f);
+            EXPECT_EQ(hand[2].type, 0x5ad);
+            EXPECT_EQ(hand[2].subtype, 2);
+            EXPECT_EQ(hand[2].scale, 0.6f);
+        }
         const bool posed = !(value.type == 0x1ae && value.action == 8) && value.address != "0x433339";
         EXPECT_EQ(m_world->PoseCarry().models.count(value.type), posed ? 1u : 0u);
         std::vector<const Client::Scenes::RibbonState*> ribbons;

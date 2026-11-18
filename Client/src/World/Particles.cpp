@@ -792,13 +792,16 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
                    ? std::nullopt
                    : std::optional(ParticleError::UnsupportedSubtype);
     }
+    if (type == MagicSparkParticle)
+        return subtype == 2 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     if (type == MissileFireParticle)
         return subtype == 8 || subtype == 9 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     if (type == BreathParticle)
     {
-        return subtype == MissileSmokeSubtype || subtype == ExplosionSmokeSubtype || subtype == BreathSubtype ||
-                       subtype == WorldSmokeSubtype || subtype == CrywolfSmokeSubtype ||
-                       subtype == CrywolfRisingSmokeSubtype || subtype == StoneDustSubtype
+        return subtype == CrywolfSwingSmokeSubtype || subtype == MissileSmokeSubtype ||
+                       subtype == ExplosionSmokeSubtype || subtype == BreathSubtype || subtype == WorldSmokeSubtype ||
+                       subtype == CrywolfSmokeSubtype || subtype == CrywolfRisingSmokeSubtype ||
+                       subtype == StoneDustSubtype
                    ? std::nullopt
                    : std::optional(ParticleError::UnsupportedSubtype);
     }
@@ -807,7 +810,7 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
     if (type == FireworkParticle)
         return subtype >= -1 && subtype <= 29 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     if (type == PoundingBallParticle)
-        return subtype == 1 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
+        return subtype == 0 || subtype == 1 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     if (type == ExplosionParticle)
         return subtype >= 0 && subtype <= 2 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     if (type == ArrivalDustParticle)
@@ -1738,6 +1741,22 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
             CreateTheBubble(particle, random);
             return std::optional(index);
         }
+        if (type == MagicSparkParticle)
+        {
+            // 0x540260: sortea la vida antes de pisarla con19 y tirar el corrimiento de y.
+            particle.life = (random.Next() & 7) + 20;
+            particle.life = 19;
+            particle.position.y =
+                F32((static_cast<double>(random.Next() % 60) + static_cast<double>(particle.position.y)) - 30.0);
+            return std::optional(index);
+        }
+        if (type == BreathParticle && subtype == CrywolfSwingSmokeSubtype)
+        {
+            particle.life = 30;
+            particle.texture = 0x6b1;
+            particle.rotation = static_cast<float>(random.Next() % 360);
+            return std::optional(index);
+        }
         if (type == MissileFireParticle)
         {
             // 0x540f7b..0x54108a: /8 tira seis veces y /9 tres; el giro final pisa el anterior.
@@ -1796,8 +1815,11 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
             particle.scale = F32(static_cast<double>((random.Next() & 63) + 64) * static_cast<double>(0.01f));
             particle.rotation = static_cast<float>(random.Next() % 360);
             particle.verticalSpeed = F32(static_cast<double>((random.Next() & 31) + 60) * static_cast<double>(0.1f));
-            particle.texture = 0x6ad;
-            particle.position.z = F32(static_cast<double>(particle.position.z) - 45.0);
+            if (subtype == 1)
+            {
+                particle.texture = 0x6ad;
+                particle.position.z = F32(static_cast<double>(particle.position.z) - 45.0);
+            }
             return std::optional(index);
         }
         if (type == DustParticle || type == ArrivalDustParticle)
@@ -2084,6 +2106,18 @@ StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random, const
         {
             StepTheBreath(particle);
         }
+        else if (particle.type == MagicSparkParticle)
+        {
+            particle.scale =
+                F32(static_cast<double>(particle.scale) * static_cast<double>(std::bit_cast<float>(0x3f6b851fu)));
+        }
+        else if (particle.type == BreathParticle && particle.subtype == CrywolfSwingSmokeSubtype)
+        {
+            for (int channel = 0; channel < 3; ++channel)
+                particle.light[channel] = F32(static_cast<double>(particle.light[channel]) *
+                                              static_cast<double>(std::bit_cast<float>(0x3f6b851fu)));
+            particle.scale = F32(static_cast<double>(particle.scale) - static_cast<double>(0.05f));
+        }
         else if (particle.type == MissileFireParticle)
         {
             particle.scale = F32(static_cast<double>(particle.scale) + static_cast<double>(0.13f));
@@ -2112,8 +2146,10 @@ StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random, const
         else if (particle.type == PoundingBallParticle)
         {
             particle.light = glm::vec3(F32(static_cast<double>(particle.life) * static_cast<double>(0.05f)));
-            particle.scale = F32(static_cast<double>(particle.scale) + static_cast<double>(0.19f));
-            particle.position.z = F32(static_cast<double>(particle.position.z) + 5.0);
+            particle.scale =
+                F32(static_cast<double>(particle.scale) + static_cast<double>(particle.subtype == 1 ? 0.19f : 0.05f));
+            if (particle.subtype == 1)
+                particle.position.z = F32(static_cast<double>(particle.position.z) + 5.0);
         }
         else if (IsDust(particle))
         {

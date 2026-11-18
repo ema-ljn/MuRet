@@ -89,6 +89,8 @@ struct SiegeDate
 // +0xd8 en 0 y los nombres en 0; +0xbc..+0xd0 quedan con lo que dejó new (Q-C1362): MuRet los arranca en 0.
 struct SiegeRegistrationWindow
 {
+    // +0x18: pestaña inicial; 0x64b200 la vuelve a 0 sólo cuando la ventana estaba abierta.
+    std::int32_t tab = 0;
     // +0x1c: el estado del asedio (pkt[5] del B2 00 con MOVSX).
     std::int32_t state = -1;
     // +0xa8 (8 bytes y el 0 de +0xb0) y +0xb1 (10 y el 0 de +0xbb): el gremio dueño y su maestro, con strncpy.

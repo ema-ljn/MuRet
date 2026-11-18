@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Protocol/CastleSiege.h"
+#include "Protocol/Connection/Logout.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Pet/PetInfo.h"
 #include "Render/Models/LogicalAccess.h"
@@ -102,7 +103,7 @@ void GamePanels::LendTheCastleRequests(WorldState& world, std::function<void(Pro
 {
     if (!send)
         return;
-    m_context.castleRegistrationOpened = [&world, send = std::move(send)]() -> Core::Expected<void, std::string>
+    m_context.castleRegistrationOpened = [&world, send]() -> Core::Expected<void, std::string>
     {
         auto& opened = world.Runtime().panels.delegated.castleSiege;
         if (opened == 0)
@@ -110,6 +111,18 @@ void GamePanels::LendTheCastleRequests(WorldState& world, std::function<void(Pro
             // 0x64ae10..0x64b0d9: primero el C1 04 B2 03; el byte +4 queda en 1 después del envío.
             send(Protocol::CastleSiege::WriteRegistrationRequest());
             opened = 1;
+        }
+        return {};
+    };
+    m_context.castleRegistrationClosed = [&world, send = std::move(send)]() -> Core::Expected<void, std::string>
+    {
+        auto& opened = world.Runtime().panels.delegated.castleSiege;
+        if (opened != 0)
+        {
+            // 0x64b200..0x64b3db: el estado se modifica después de intentar el envío.
+            send(Protocol::Connection::WriteWindowClose());
+            opened = 0;
+            world.Runtime().castleSiege.registration.tab = 0;
         }
         return {};
     };

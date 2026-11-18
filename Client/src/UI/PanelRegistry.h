@@ -213,6 +213,8 @@ struct PanelContext
     std::function<Core::Expected<void, std::string>()> guildStep{};
     // 0x65bef0..0x65bf0d: con los demás paneles cerrados, 0x64ae10 pide B2 03 y abre el registro del castillo.
     std::function<Core::Expected<void, std::string>()> castleRegistrationOpened{};
+    // 0x657b94: 0x64b200 envía C1 03 31 y después cierra el registro y vuelve a su primera pestaña.
+    std::function<Core::Expected<void, std::string>()> castleRegistrationClosed{};
     // 0x65c966..0x65ca6d: lo que abrir el personaje hace fuera de los paneles, cierre o no lo demás: [0x6eed3c] de
     // +0x9304 a +0x9327 en 0, y con el registro propio abierto, 0x550d10 si un lugar del equipo tiene la durabilidad
     // en 0 (0x550cf0). Sin él, abrir el personaje corta.

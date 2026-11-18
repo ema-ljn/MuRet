@@ -1,4 +1,5 @@
 #include "Scenes/CastleSiegeReceive.h"
+#include "Scenes/GamePanels.h"
 
 #include "App/WindowState.h"
 #include "Core/ILogSink.h"
@@ -225,6 +226,27 @@ TEST_P(CastleSiegeReceiveTest, StateWithTheRegistrationClosedOpensAndAsksForTheR
     // 0x6599be: ya abierta, la siguiente respuesta no vuelve a pedir la lista.
     Apply(OwnedState(2));
     EXPECT_EQ(m_sent.size(), 1u);
+}
+
+// 0x657b76..0x657b99 llama 0x64b200: C1 03 31 antes de apagar el byte abierto.
+TEST_P(CastleSiegeReceiveTest, ClosingTheRegistrationSendsTheWindowCloseOnlyOnce)
+{
+    Runtime().panels.delegated.castleSiege = 1;
+    Castle().registration.tab = 2;
+    Client::Scenes::GamePanels panels(*m_world, m_random);
+    panels.LendTheCastleRequests(*m_world, Context().send);
+    const auto closed = panels.Registry().CloseByMask(Client::UI::CastleSiegePanel);
+    ASSERT_TRUE(closed.HasValue()) << closed.Error();
+    EXPECT_EQ(Runtime().panels.delegated.castleSiege, 0);
+    EXPECT_EQ(Castle().registration.tab, 0);
+    ASSERT_EQ(m_sent.size(), 1u);
+    EXPECT_TRUE(SameBytes(m_sent[0].packet.Bytes(), Bytes({0xc1, 3, 0x31})));
+    Castle().registration.tab = 3;
+    const auto repeated = panels.Registry().CloseByMask(Client::UI::CastleSiegePanel);
+    ASSERT_TRUE(repeated.HasValue()) << repeated.Error();
+    EXPECT_EQ(m_sent.size(), 1u);
+    EXPECT_EQ(Castle().registration.tab, 3);
+    ExpectNoRandom();
 }
 
 TEST_P(CastleSiegeReceiveTest, StateWithZeroThreeOrFourShowsItsMessage)

@@ -632,6 +632,12 @@ Core::Expected<bool, std::string> PanelRegistry::CloseByMask(PanelId mask, bool 
             m_context.eventNpcClosed();
             m_state.eventNpc = 0;
             break;
+        case CastleSiegePanel:
+            if (!m_context.castleRegistrationClosed)
+                return Core::Unexpected(CloseCut(id));
+            if (auto closed = m_context.castleRegistrationClosed(); !closed.HasValue())
+                return Core::Unexpected(std::move(closed).Error());
+            break;
         default:
             return Core::Unexpected(CloseCut(id));
         }

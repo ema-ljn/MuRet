@@ -355,6 +355,7 @@ struct WorldRuntime
     std::optional<std::string> fatalDataMessage{};
     GameItemRenderState itemRender{};
     bool siegeActive = false; // 07239ec, separado del número de mapa (4294b0).
+    bool previousSiegeActive = false; // 0x7239ed: 0x4294c0 lo copia antes de cada cambio.
     // 0x7239f0 (.bss 0): cuándo 0x42b540 eligió la música del mapa 30, en ms de timeGetTime guardados en float. Lo
     // ponen en 0 la carga del 30 (0x42a795) y 0x4294c0 (los paquetes del asedio, CL9.5).
     float siegeMusicTime = 0.0f;

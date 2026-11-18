@@ -66,7 +66,8 @@ struct ModelEffectStepServices
 // muere y, con dueño, sube y baja con el seno del reloj. El calco 0x61d/3 del 0x38 de Crywolf (0x52b933), con la
 // vida entre 6 y 9, suelta una órbita 60f/10; el /0, el /2 y el /7 cortan en 0x52b8a6. La onda 0x6eb/1 del galope del
 // caballo en Icarus (0x52c5ca) crece y tiembla con tres rand(); la /0 del pisotón se achica 1 por paso, sin rand(); los
-// otros subtipos del 0x6eb cortan. El rayo 0x14d de
+// subtipos5..8 del asedio conservan sus escalas y RGB: el6 emite hijos5 cada8vidas, que el pool ascendente
+// puede avanzar en el mismo paso. El rayo 0x14d de
 // los Fenrir (0x5295a4) se prende de a 0,3f con el subtipo 0 y se apaga con el 1, y gira 0,15f por eje; el calco
 // 0x14e (0x52965a) gira 0,1f en x, se apaga de a 0,05f (la luz según el subtipo) y cambia de cuadro cada 200 ms de
 // timeGetTime(), hasta el quinto. El terremoto 0xfa (0x521c5c): en la vida 11 corre la partida detrás de su dueño, la

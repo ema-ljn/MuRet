@@ -1,5 +1,6 @@
 #include "World/GameModelEffects.h"
 #include "World/SiegeVertexEffects.h"
+#include "World/SiegeGateEffects.h"
 
 #include "Core/Expected.h"
 #include "Render/Models/Cloth.h"
@@ -1354,7 +1355,9 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
         if (auto stepped = StepEarthquakeCrack(effect, luminosity, random, services); !stepped.HasValue())
             return stepped;
     }
-    else if (effect.type != DragonEffect && effect.type != ArrivalEffect && effect.type != IcarusCloudEffect)
+    // Tablas52cef4/52ce14:3d..40saltan52cb98 sincasopropio, conservan el epílogo común.
+    else if (effect.type != DragonEffect && effect.type != ArrivalEffect && effect.type != IcarusCloudEffect &&
+             !IsCastleGateEffect(effect.type))
         return Core::Unexpected(std::string("0x5208a0: el paso del tipo de efecto con modelo no está portado"));
     // 52cbf4..52cc04: sólo los BMD de [ad,151) avanzan la animación común.
     constexpr std::int16_t FirstAnimatedModel = 0xad;

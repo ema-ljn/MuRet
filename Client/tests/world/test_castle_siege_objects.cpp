@@ -252,8 +252,8 @@ TEST(CastleSiegeObjectsTest, TheSeenFlowsScrollTheirVAndTheGatesStopWithTheSiege
         auto object = Object(gate);
         ASSERT_TRUE(Client::World::StepCastleSiegeSeenObject(object, false, Clock).HasValue()) << gate;
         const auto siege = Client::World::StepCastleSiegeSeenObject(object, true, Clock);
-        ASSERT_FALSE(siege.HasValue());
-        EXPECT_NE(siege.Error().find("0x42c596"), std::string::npos) << siege.Error();
+        ASSERT_TRUE(siege.HasValue());
+        EXPECT_EQ(object.state.hiddenMesh, -1);
     }
 }
 

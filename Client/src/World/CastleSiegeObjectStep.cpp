@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "World/CastleSiegeEmission.h"
+#include "World/ModelEffects.h"
 #include "Render/Models/Cloth.h"
 #include "World/WorldObjectMapCreation.h"
 #include "World/WorldObjectStepServices.h"
@@ -134,7 +135,8 @@ Core::Expected<void, std::string> StepCastleSiegeObject(WorldObject& object, Ren
     }
 }
 
-Core::Expected<void, std::string> StepCastleSiegeSeenObject(WorldObject& object, bool siegeActive, float worldClock)
+Core::Expected<void, std::string> StepCastleSiegeSeenObject(WorldObject& object, bool siegeActive, float worldClock,
+                                                            const CastleGateCollapseServices& services)
 {
     // 0x6b8a64 (0,0002f) y 0x6b8a90 (−0,0004f): la V del 0x51 y del 0x53.
     constexpr double SlowScroll = static_cast<double>(std::bit_cast<float>(0x3951b717u));
@@ -150,8 +152,31 @@ Core::Expected<void, std::string> StepCastleSiegeSeenObject(WorldObject& object,
     }
     else if (object.type >= FirstGate && object.type <= LastGate && siegeActive)
     {
-        return Core::Unexpected(std::string("0x42c596: las puertas 0x3d a 0x40 del 30 con el asedio no están "
-                                            "portadas"));
+        if (object.field08 == 0)
+        {
+            object.state.hiddenMesh = -1;
+            ApplyCastleSiegeObjectState(object, 1);
+            return {};
+        }
+        if (object.field08 == 99 && object.seen)
+        {
+            if (object.state.hiddenMesh == -1)
+            {
+                if (!services.emit)
+                    return Core::Unexpected(std::string("0x42c651: falta el alta de la puerta derrumbada"));
+                const ModelEffectArguments effect{.type = object.type,
+                                                  .position = object.transform.position,
+                                                  .angles = object.transform.angles,
+                                                  .light = object.light,
+                                                  .subtype = 1};
+                if (auto emitted = services.emit(effect); !emitted.HasValue())
+                    return emitted;
+                if (services.sound)
+                    services.sound(0x1ec);
+            }
+            // 42c667: cero oculta sólo la malla0; HiddenObject(−2) ocultaría el objeto entero.
+            object.state.hiddenMesh = 0;
+        }
     }
     ApplyCastleSiegeObjectState(object, siegeActive ? 1 : 0);
     return {};

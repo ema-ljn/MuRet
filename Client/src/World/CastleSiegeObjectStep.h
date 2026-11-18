@@ -13,8 +13,8 @@ namespace Client::Render::Models
 class CrtRandom;
 }
 // Los objetos de Castle Siege (el mapa 30) en el paso, fuera del dibujo (06 § Los objetos de Castle Siege). Lo
-// que depende del asedio prendido (el byte 0x7239ec que lee 0x4294b0, que solo escriben los paquetes de 0x4294c0,
-// CL9.5) corta con su dirección; apagado, que es como arranca el original, va entero.
+// que depende del asedio lee el byte7239ec de4294b0, actualizado por los paquetes de4294c0. Los servicios
+// conservan el CRT compartido, los accesos protegidos y las emisiones en orden.
 namespace Client::World
 {
 struct ObjectStepGlobals;
@@ -47,7 +47,8 @@ struct CastleSiegePrelude
 // T en float en 0x7239f0 y elige la música: sin asedio deja charge.mp3 y toca castle.mp3 (0x42b5c3; MuRet todavía
 // no tiene audio, CL10). Después, siempre, el sonido 0x1e2. Sin asedio termina ahí, sin rand(), y 0x6061c0 no
 // sigue. Con el asedio (los rand() de los sonidos 0x1e3 a 0x1e7, las piedras 0x12b/0x12c y los 0xdb sobre el
-// héroe), corta en 0x42b5f8 después del sonido. Un binding ausente corta donde lo pide el ASM.
+// héroe), emite en orden con los accesos protegidos del héroe intercalados. Un binding ausente corta donde lo pide el
+// ASM.
 [[nodiscard]] Core::Expected<void, std::string> StepCastleSiegePrelude(const CastleSiegePrelude& prelude);
 
 // 0x42c850 (0x605a62, después de 0x438a90, que en el 30 no hace nada), con un objeto visto del 30 que pasó el
@@ -58,14 +59,21 @@ struct CastleSiegePrelude
 // - el 0x2a, el 0x34, el 0x35, el 0x36 y el 0x42: +0x58 en −2;
 // - el 0x19f (el lancero de 0x42a760): +0x58 en −1.
 // Con el asedio, el 0 queda con −2 sin luz, el 0x35 suelta la luz del 0, el 0x19f queda en −2 y el 0x42 corta
-// en 0x42c977 (lee 0x7239e4, CL9.5). Sin el byte del asedio en `globals`, corta antes de tocar el objeto.
+// lee 0x7239e4 entero: salvo20000 muestra el marcador y siempre corre su V. Sin el byte del asedio en `globals`,
+// corta antes de tocar el objeto.
 [[nodiscard]] Core::Expected<void, std::string>
 StepCastleSiegeObject(WorldObject& object, Render::Models::CrtRandom& random, const ObjectStepGlobals& globals);
 
 // 0x42c500 (desde 0x6063d0, con 0x4055b0 en 0 fuera de Chaos Castle) con cada objeto visto del 30, después de
 // 0x604ab0. El 0x51 y el 0x53: blendMesh 1, la luz del blendMesh en 1 y la V en T · 0,0002f (el 0x51) o en
-// T · −0,0004f (el 0x53). Del 0x3d al 0x40, sin asedio, nada; con él corta en 0x42c596 (las puertas de +0x8,
-// 0x518cf0 y el sonido 0x1ec, CL9.5). Después, siempre, 0x42b480 (ApplyCastleSiegeObjectState).
-[[nodiscard]] Core::Expected<void, std::string> StepCastleSiegeSeenObject(WorldObject& object, bool siegeActive,
-                                                                          float worldClock);
+// T · −0,0004f (el 0x53). Del3d al40, guerra restaura las puertas intactas y el99 visto emite un fragmento
+// desubtipo1, pide el sonido1ec y oculta la malla0. Después, siempre,42b480(ApplyCastleSiegeObjectState).
+struct CastleGateCollapseServices
+{
+    std::function<Core::Expected<void, std::string>(const ModelEffectArguments&)> emit{};
+    std::function<void(std::int32_t)> sound{};
+};
+[[nodiscard]] Core::Expected<void, std::string>
+StepCastleSiegeSeenObject(WorldObject& object, bool siegeActive, float worldClock,
+                          const CastleGateCollapseServices& services = {});
 } // namespace Client::World

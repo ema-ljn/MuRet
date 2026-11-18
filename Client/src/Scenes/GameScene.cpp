@@ -3,6 +3,7 @@
 #include "Scenes/MonsterSounds.h"
 #include "Scenes/ArrowEffects.h"
 #include "World/SiegeStoneEffects.h"
+#include "World/SiegeGateEffects.h"
 #include "Scenes/GameSceneFrameProjection.h"
 #include "Scenes/ActorPickingBox.h"
 #include "Data/Tables/GateTable.h"
@@ -661,7 +662,19 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
     // 0x6063d0 → 0x42c500 en el 30, con el reloj del paso.
     if (map == CastleMap)
         after = [&](World::WorldObject& object)
-        { return World::StepCastleSiegeSeenObject(object, world.Runtime().siegeActive, worldClock); };
+        {
+            return World::StepCastleSiegeSeenObject(
+                object, world.Runtime().siegeActive, worldClock,
+                World::CastleGateCollapseServices{
+                    .emit = [&world](const World::ModelEffectArguments& arguments) -> Core::Expected<void, std::string>
+                    {
+                        const auto created = World::CreateCastleGateEffect(arguments, world.Map().effects);
+                        if (!created.HasValue())
+                            return Core::Unexpected(created.Error());
+                        return {};
+                    },
+                    .sound = [&world](std::int32_t sound) { world.Runtime().lastSoundId = sound; }});
+        };
     if (auto stepped = StepGameWorldObjects(objects, static_cast<std::uint8_t>(map), m_worldModels,
                                             m_context.cloth->random, globals, after, collapse);
         !stepped.HasValue())

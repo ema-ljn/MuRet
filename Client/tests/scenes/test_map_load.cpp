@@ -495,15 +495,24 @@ TEST_F(MapLoadTest, CastleSiegeAsksForItsStateAndPlacesTheFiveSpearmen)
     EXPECT_TRUE(world.Map().terrain.attributes && world.Map().terrain.heights);
 }
 
-// 0x61a6e1: con el byte prendido (solo lo dejan los paquetes de 0x4294c0, CL9.5), el .att y la luz del asedio no
-// están portados; los lanceros ya están.
-TEST_F(MapLoadTest, CastleSiegeWithTheSiegeOnStopsAtItsAttributes)
+// 0x61a6ea/0x61a8af: en guerra, el ATT312 y TerrainLight2, después de los lanceros.
+TEST_F(MapLoadTest, CastleSiegeWithTheSiegeOnLoadsTheWarAttributesAndLight)
 {
     world.Runtime().siegeActive = true;
     const auto loaded = Load(30);
-
-    ASSERT_FALSE(loaded.HasValue());
-    EXPECT_NE(loaded.Error().find("0x61a6ea"), std::string::npos) << loaded.Error();
+    ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
+    const auto file = Client::Tests::ReadFileBytes(m_dataRoot / "world31" / "EncTerrain312.att");
+    ASSERT_TRUE(file.has_value());
+    const auto attributes = Client::Data::Terrain::LoadTerrainAttributes(std::as_bytes(std::span(*file)), 31);
+    ASSERT_TRUE(attributes.HasValue());
+    ASSERT_NE(world.Map().terrain.attributes, nullptr);
+    EXPECT_EQ(world.Map().terrain.attributes->cells, attributes.Value()->cells);
+    const auto light = Client::Tests::ReadFileBytes(m_dataRoot / "world31" / "TerrainLight2.OZJ");
+    ASSERT_TRUE(light.has_value());
+    const auto decoded = Client::Data::Terrain::LoadTerrainLight(std::as_bytes(std::span(*light)));
+    ASSERT_TRUE(decoded.HasValue());
+    EXPECT_EQ(world.Map().terrain.lighting->cells,
+              Client::World::ShadeTerrainLight(*decoded.Value(), *world.Map().terrain.heights, 30)->cells);
 }
 
 // 0x61a6d0 → 0x42fe50: con el estado de Crywolf de la .bss (0) el 34 toma EncTerrain35.att, el mismo que lee el

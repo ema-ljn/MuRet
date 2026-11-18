@@ -27,6 +27,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include <set>
 #include <span>
 #include <string>
@@ -1085,7 +1086,7 @@ TEST_F(GameHangingTest, AUnionLeaderUsesTheAdditionalAtlasFrame)
     m_actor.guildStatus = 0x80;
     m_actor.word1f2 = 0;
     guild->table[0].guildName = {'P', 'i', 'n', 'o', 's'};
-    for (const std::uint8_t role : {6, 7, 8, 12})
+    for (const std::uint8_t role : std::array<std::uint8_t, 4>{6, 7, 8, 12})
     {
         for (const bool sameName : {false, true})
         {

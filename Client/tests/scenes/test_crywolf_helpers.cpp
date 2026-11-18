@@ -13,6 +13,7 @@
 #include "World/Particles.h"
 #include "World/Sprites.h"
 #include <gtest/gtest.h>
+#include <cstdint>
 #include <memory>
 #include <algorithm>
 

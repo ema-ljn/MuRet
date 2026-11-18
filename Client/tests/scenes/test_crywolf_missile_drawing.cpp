@@ -7,6 +7,8 @@
 #include "World/Sprites.h"
 #include "support/PlayerActors.h"
 #include <gtest/gtest.h>
+#include <cstddef>
+#include <cstdint>
 #include <array>
 #include <bit>
 #include <memory>

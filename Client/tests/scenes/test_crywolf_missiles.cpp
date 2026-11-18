@@ -1,7 +1,6 @@
 #include "Scenes/EventPackets.h"
 #include "Protocol/Events.h"
 #include "Render/Models/Cloth.h"
-#include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "Scenes/WorldMap.h"
 #include "World/ModelEffects.h"
@@ -12,6 +11,8 @@
 #include "support/PlayerActors.h"
 #include <gtest/gtest.h>
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
 #include <vector>
 #include <memory>
 

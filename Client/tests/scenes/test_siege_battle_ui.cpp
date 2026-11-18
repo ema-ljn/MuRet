@@ -1,4 +1,5 @@
 #include "Scenes/SiegeBattleUi.h"
+#include "Protocol/OptionData.h"
 
 #include "Core/Expected.h"
 #include "Data/Tables/SkillTable.h"

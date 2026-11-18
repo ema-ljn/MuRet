@@ -7,6 +7,7 @@
 #include "Data/Terrain/TerrainObjects.h"
 #include "Data/Textures/Sampling.h"
 #include "World/TerrainLighting.h"
+#include "Data/Terrain/TerrainLight.h"
 
 #include <cstdint>
 #include <filesystem>

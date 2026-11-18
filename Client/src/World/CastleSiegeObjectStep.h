@@ -19,6 +19,7 @@ namespace Client::World
 {
 struct ObjectStepGlobals;
 struct WorldObject;
+struct ModelEffectArguments;
 
 // 0x63741d..0x637466, al principio del dibujo del mundo en el 30: el héroe en x de 16.100 a 19.000 y en y de
 // 18.900 a 21.700 (0x6ba704, 0x6ba700, 0x6ba6fc y 0x6ba6f8, con los bordes y sin NaN) prende la niebla negra
@@ -33,6 +34,12 @@ struct CastleSiegePrelude
     float* musicTime = nullptr;
     std::function<std::uint32_t()> systemTime{};
     std::function<void(std::int32_t)> sound{};
+    Render::Models::CrtRandom* random = nullptr;
+    std::int32_t logicSteps = 0;
+    glm::vec3 heroPosition{};
+    // Cada llamada abre y cierra el +0x420 protegido; dos lecturas nativas conservan dos cierres.
+    std::function<std::int32_t()> heroY{};
+    std::function<Core::Expected<void, std::string>(const ModelEffectArguments&)> emit{};
 };
 
 // 0x42b540, el tercer eslabón de 0x6061c0, una vez por paso en el 30, antes de mirar si hay objetos vistos.

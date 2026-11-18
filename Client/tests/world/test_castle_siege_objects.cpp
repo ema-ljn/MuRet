@@ -119,7 +119,7 @@ TEST(CastleSiegeObjectsTest, ThePreludeRefreshesTheMusicTimeAndAlwaysAsksForTheA
     }
 }
 
-// 0x42b5f8: con el asedio, después del sonido, corta; sin los bindings, donde los pide el ASM.
+// 0x42b5fe: con el asedio, después del sonido, corta; sin los bindings, donde los pide el ASM.
 TEST(CastleSiegeObjectsTest, ThePreludeStopsWithTheSiegeOnOrAMissingBinding)
 {
     float music = 0.0f;
@@ -130,7 +130,7 @@ TEST(CastleSiegeObjectsTest, ThePreludeStopsWithTheSiegeOnOrAMissingBinding)
                                .sound = [&sounds](std::int32_t sound) { sounds.push_back(sound); }};
     const auto siege = Client::World::StepCastleSiegePrelude(prelude);
     ASSERT_FALSE(siege.HasValue());
-    EXPECT_NE(siege.Error().find("0x42b5f8"), std::string::npos) << siege.Error();
+    EXPECT_NE(siege.Error().find("0x42b5fe"), std::string::npos) << siege.Error();
     EXPECT_EQ(sounds, std::vector<std::int32_t>{0x1e2});
 
     prelude.siegeActive = false;

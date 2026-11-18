@@ -1,6 +1,7 @@
 #include "World/CastleSiegeObjectStep.h"
 
 #include "Core/Expected.h"
+#include "World/CastleSiegeEmission.h"
 #include "Render/Models/Cloth.h"
 #include "World/WorldObjectMapCreation.h"
 #include "World/WorldObjectStepServices.h"
@@ -66,8 +67,7 @@ Core::Expected<void, std::string> StepCastleSiegePrelude(const CastleSiegePrelud
         return Core::Unexpected(std::string("0x42b5e9: falta el emisor sonoro 0x41ed10 del 0x1e2"));
     prelude.sound(AmbientSound);
     if (prelude.siegeActive)
-        return Core::Unexpected(std::string("0x42b5f8: el preludio del asedio prendido (los sonidos 0x1e3 a 0x1e7 y "
-                                            "las piedras sobre el héroe) no está portado"));
+        return EmitTheCastleBattle(prelude);
     return {};
 }
 
@@ -115,8 +115,15 @@ Core::Expected<void, std::string> StepCastleSiegeObject(WorldObject& object, Ren
         // 0x42c967: el −2 antes de mirar el asedio.
         object.state.hiddenMesh = HiddenObject;
         if (siege)
-            return Core::Unexpected(std::string("0x42c977: el 0x42 del 30 con el asedio lee 0x7239e4, que no está "
-                                                "portado"));
+        {
+            if (globals.siegeCrownFlags == nullptr)
+                return Core::Unexpected(std::string("0x42c977: faltan las banderas de la corona (0x7239e4)"));
+            constexpr std::uint32_t OpenCrown = 0x20000;
+            if (*globals.siegeCrownFlags != OpenCrown)
+                object.state.hiddenMesh = NoHiddenMesh;
+            constexpr double MarkerScroll = static_cast<double>(std::bit_cast<float>(0x3a83126fu));
+            object.state.uv.y = static_cast<float>(static_cast<double>(globals.worldClock) * MarkerScroll);
+        }
         return {};
     case Spearman:
         // 0x42c950.

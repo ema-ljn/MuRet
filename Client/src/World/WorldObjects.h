@@ -215,6 +215,8 @@ struct ObjectStepGlobals
     std::uint32_t* trialsAmbientTime = nullptr;
     // 0x7239ec: el byte del asedio que lee 0x4294b0 en los casos del 30 (0x42c850). Sin él, el 30 corta.
     const bool* siegeActive = nullptr;
+    // 0x7239e4: las banderas del216 para la visibilidad del marcador42 en guerra.
+    const std::uint32_t* siegeCrownFlags = nullptr;
 };
 
 // 0x604ab0 con un objeto visto en el juego, en los mapas 0 a 4, 6 a 17, 30, 31, 33 y 34 (*estático*, 06 § Los

@@ -127,8 +127,10 @@ bool IsCrtSpace(char c)
     return c == ' ' || (c >= '\t' && c <= '\r');
 }
 
-// sscanf("%u") del CRT de VC6 (*inferido*, sin leer su _input): saltea los espacios, toma un signo, y los dígitos con
-// la vuelta de 32 bits; un menos niega. Sin ningún dígito no asigna.
+// 0x667a82 → 0x6a1dd4 → _input(0x6a91fc), formato "%u" en 0x6c7b04. El CRT inicial (mbcurmax=1)
+// usa SPACE={09..0d,20}, DIGIT={30..39} de la tabla apuntada por 0x6e2100. 0x6a990f acepta un signo;
+// 0x6a9aa4/0x6a9aea acumula módulo 2^32 y 0x6a9b1f niega después. Sin dígitos no escribe el destino
+// (0x6a9b2a); no sustituir por strtoul, que puede saturar o tener un unsigned long de 64 bits.
 std::optional<std::uint32_t> ScanUnsigned(std::string_view text)
 {
     std::size_t at = 0;

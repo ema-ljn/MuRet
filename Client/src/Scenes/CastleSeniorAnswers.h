@@ -17,8 +17,8 @@ struct CastleData;
 
 // Las respuestas del diálogo de los paneles ([0x7d53704], hito 8) que abren las ventanas del Castle Senior
 // ([0x7d536fc], el panel 0x100000; CL9 hito 12): cada una mira la elegida y su registro en 0x7d5c504..0x7d5c658 y
-// manda su B2 por el socket del juego. Devuelven 1 al diálogo en el original; acá, nada. La respuesta 8 es la que
-// manda (*inferido*: el sí del diálogo), y en la de la plata, la 2.
+// manda su B2 por el socket del juego. Devuelven 1 al diálogo en el original; acá, nada. Las comparaciones de
+// 0x662403 y 0x666b53 exigen la respuesta 8; la de 0x667a63, la 2 para extraer plata.
 namespace Client::Scenes
 {
 struct CastleAnswerContext

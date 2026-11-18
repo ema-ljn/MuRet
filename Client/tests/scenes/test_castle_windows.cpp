@@ -1,5 +1,6 @@
 #include "Scenes/CastleWindows.h"
 
+#include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
@@ -124,11 +125,11 @@ protected:
             static_cast<void>(expected.Next());
         EXPECT_EQ(m_random.State(), expected.State());
     }
-    Client::Core::Expected<void, std::string> Draw()
+    Client::Core::Expected<void, std::string> Draw(Client::App::PixelSize screen = {640, 480})
     {
         auto& runtime = m_world->Runtime();
         auto& hero = m_world->Actors()[runtime.hero];
-        m_sprites.Begin({640, 480});
+        m_sprites.Begin(screen);
         Client::Scenes::GameHudContext context{.world = *m_world,
                                                .random = m_random,
                                                .ownRecordDepth = runtime.ownRecordDepth,
@@ -483,6 +484,71 @@ TEST_F(CastleWindowsTest, SiegeListDrawFiltersGuildsButTheMouseTogglesTheUnfilte
     EXPECT_EQ(window.siegeGuildList.selection, 1);
     EXPECT_FALSE(runtime.movement.pendingClick);
     EXPECT_TRUE(m_requests.sent.empty());
+    ExpectRandoms(0);
+}
+
+// 470540..470627: nombre en x+6 con modo1; marcas/estado/rango terminan en x+89/+124/+144 con modo4.
+// A 800px, 559−12/1,25 se trunca a549: no es 559−trunc(12/1,25).
+TEST_F(CastleWindowsTest, SiegeGuildColumnsEndAtTheNativeAnchorsAtBothScreenWidths)
+{
+    auto& runtime = m_world->Runtime();
+    runtime.panels.delegated.castleSiege = 1;
+    m_world->Actors()[0].word1f2 = 0xffff;
+    runtime.guild.members[Client::Scenes::MemberBeforeTheTable].name = {'G', 'U', 'I', 'L', 'D'};
+    auto& window = runtime.castleSiege.registration;
+    window.tab = 2;
+    window.state = 3;
+    window.siegeGuilds.push_back({.name = {'G', 'U', 'I', 'L', 'D'}, .marks = 0xffffffffu, .first = 1, .second = 255});
+    for (const int width : {640, 800})
+    {
+        SCOPED_TRACE(width);
+        m_text.texts.clear();
+        const auto drawn = Draw({width, 480});
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        std::vector<Client::Tests::RecordedText> row;
+        for (const auto& text : m_text.texts)
+            if (text.y == 128)
+                row.push_back(text);
+        ASSERT_EQ(row.size(), 4u);
+        EXPECT_EQ(row[0].text, "GUILD");
+        EXPECT_EQ(row[0].x, 476);
+        EXPECT_EQ(row[1].text, "-1");
+        EXPECT_EQ(row[1].x, width == 640 ? 547 : 549);
+        EXPECT_EQ(row[2].text, "texto 1531");
+        EXPECT_EQ(row[2].x, width == 640 ? 534 : 546);
+        EXPECT_EQ(row[3].text, "255");
+        EXPECT_EQ(row[3].x, width == 640 ? 596 : 599);
+    }
+    ExpectRandoms(0);
+}
+
+// 47139b..471465: nombre izquierdo; los dos estados usan modo4 con anclas x+104 y x+141.
+TEST_F(CastleWindowsTest, RegisteredGuildColumnsEndAtTheirOwnNativeAnchors)
+{
+    auto& runtime = m_world->Runtime();
+    runtime.panels.delegated.castleSiege = 1;
+    auto& window = runtime.castleSiege.registration;
+    window.tab = 2;
+    window.state = 5;
+    window.registeredGuilds.push_back({.name = {'W', 'I', 'N', 'N', 'E', 'R'}, .first = 1, .second = 0});
+    for (const int width : {640, 800})
+    {
+        SCOPED_TRACE(width);
+        m_text.texts.clear();
+        const auto drawn = Draw({width, 480});
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        std::vector<Client::Tests::RecordedText> row;
+        for (const auto& text : m_text.texts)
+            if (text.y == 128)
+                row.push_back(text);
+        ASSERT_EQ(row.size(), 3u);
+        EXPECT_EQ(row[0].text, "WINNER");
+        EXPECT_EQ(row[0].x, 476);
+        EXPECT_EQ(row[1].text, "texto 1606");
+        EXPECT_EQ(row[1].x, width == 640 ? 514 : 526);
+        EXPECT_EQ(row[2].text, "texto 1608");
+        EXPECT_EQ(row[2].x, width == 640 ? 551 : 563);
+    }
     ExpectRandoms(0);
 }
 

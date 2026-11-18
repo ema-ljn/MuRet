@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Render/SpriteBatch.h"
+#include "Render/Text/TextLayout.h"
 #include "Scenes/CastleWindowSupport.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/WorldRuntime.h"
@@ -92,26 +93,32 @@ Core::Expected<std::int32_t, std::string> Row(GameHudContext& context, UI::Siege
     else
         context.hud.textColors.text = 0xffc8dce6u;
     context.hud.textColors.background = 0;
-    const auto draw = [&](std::int32_t x, std::string_view text)
-    { static_cast<void>(UI::OldDraw::DrawText(Drawing(context), list.base.x + x, y, text)); };
-    draw(6, name);
+    static_cast<void>(UI::OldDraw::DrawText(Drawing(context), list.base.x + 6, y, name));
+    // 0x47057f/0x4705de/0x470627 y 0x471404/0x471465: modo4 de 0x465950, ancho0.
+    // El nombre anterior usa modo1; las demás columnas terminan en el ancla, incluso con rx fraccionario.
+    const auto drawEndingAt = [&](std::int32_t x, std::string_view text)
+    {
+        const auto left = Render::Text::EndingAt(list.base.x + x, context.text.Measure(context.hud.dcFont, text),
+                                                 context.sprites.Screen());
+        static_cast<void>(UI::OldDraw::DrawText(Drawing(context), left, y, text));
+    };
     auto first = CastleUi::Text(context.texts, registered ? (item.first == 1 ? 0x7732be4 : 0x7732ab8)
                                                           : (item.first == 0 ? 0x772d52c : 0x772d400));
     if (!first.HasValue())
         return Core::Unexpected(std::move(first).Error());
     if (registered)
     {
-        draw(104, first.Value());
+        drawEndingAt(104, first.Value());
         auto second = CastleUi::Text(context.texts, item.second == 1 ? 0x7732d10 : 0x7732e3c);
         if (!second.HasValue())
             return Core::Unexpected(std::move(second).Error());
-        draw(141, second.Value());
+        drawEndingAt(141, second.Value());
     }
     else
     {
-        draw(89, std::to_string(std::bit_cast<std::int32_t>(item.marks)));
-        draw(124, first.Value());
-        draw(144, std::to_string(item.second));
+        drawEndingAt(89, std::to_string(std::bit_cast<std::int32_t>(item.marks)));
+        drawEndingAt(124, first.Value());
+        drawEndingAt(144, std::to_string(item.second));
     }
     return 1;
 }

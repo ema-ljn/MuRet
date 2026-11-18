@@ -12,6 +12,7 @@
 
 #include <gtest/gtest.h>
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -74,6 +75,17 @@ protected:
                 return true;
         }
         return false;
+    }
+
+    void ExpectMoney(std::string_view field, std::uint32_t amount)
+    {
+        Client::Scenes::AnswerTheMoneyDialog(2, field, Context());
+        const auto sent = Sent();
+        ASSERT_EQ(sent.size(), 1u);
+        EXPECT_TRUE(SameBytes(
+            sent.front(),
+            Bytes({0xc1, 8, 0xb2, 0x10, static_cast<int>(amount & 0xffu), static_cast<int>((amount >> 8u) & 0xffu),
+                   static_cast<int>((amount >> 16u) & 0xffu), static_cast<int>(amount >> 24u)})));
     }
 
     CastleData m_data;
@@ -237,5 +249,68 @@ TEST_F(CastleSeniorAnswersTest, TheMoneyAnswerScansTheField)
     EXPECT_TRUE(SameBytes(sent[1], Bytes({0xc1, 8, 0xb2, 0x10, 0xff, 0xff, 0xff, 0xff})));
     EXPECT_TRUE(SameBytes(sent[2], Bytes({0xc1, 8, 0xb2, 0x10, 1, 0, 0, 0})));
     EXPECT_TRUE(Warned("Q-C1363"));
+}
+
+// La tabla original _pctype (6e2100 → 6e210a) marca SPACE sólo en09..0d/20 y DIGIT en30..39;
+// 6a990f acepta +/− antes del bucle decimal. Incluye NUL y todos los bytes Windows-1252 altos.
+TEST_F(CastleSeniorAnswersTest, TheMoneyAnswerUsesTheOriginalCrtClassesForEveryInitialByte)
+{
+    for (std::uint32_t first = 0; first < 256; ++first)
+    {
+        SCOPED_TRACE(first);
+        const std::array<char, 2> bytes{static_cast<char>(first), '7'};
+        const std::string_view field(bytes.data(), bytes.size());
+        if (first == 9 || first == 10 || first == 11 || first == 12 || first == 13 || first == 32 || first == '+')
+            ExpectMoney(field, 7);
+        else if (first == '-')
+            ExpectMoney(field, 0xfffffff9u);
+        else if (first >= '0' && first <= '9')
+            ExpectMoney(field, (first - '0') * 10u + 7u);
+        else
+        {
+            Client::Scenes::AnswerTheMoneyDialog(2, field, Context());
+            EXPECT_TRUE(Sent().empty());
+            EXPECT_TRUE(Warned("Q-C1363"));
+        }
+    }
+}
+
+// 6a9aa4/6a9aea sólo usan el DWORD bajo, sin saturación; 6a9b1f niega ese DWORD ya envuelto.
+TEST_F(CastleSeniorAnswersTest, TheMoneyAnswerWrapsAt32BitsBeforeApplyingTheSign)
+{
+    struct Case
+    {
+        std::string_view field;
+        std::uint32_t amount;
+    };
+    constexpr std::array<Case, 12> Cases{{{"4294967295", 0xffffffffu},
+                                          {"4294967296", 0},
+                                          {"4294967297", 1},
+                                          {"-4294967295", 1},
+                                          {"-4294967296", 0},
+                                          {"-4294967297", 0xffffffffu},
+                                          {"18446744073709551615", 0xffffffffu},
+                                          {"18446744073709551616", 0},
+                                          {"-18446744073709551617", 0xffffffffu},
+                                          {"+00042zen", 42},
+                                          {"077", 77},
+                                          {"0x10", 0}}};
+    for (const auto& test : Cases)
+    {
+        SCOPED_TRACE(test.field);
+        ExpectMoney(test.field, test.amount);
+    }
+}
+
+// El salto de blancos es anterior al signo. No hay un segundo salto ni conversión de un signo solo.
+TEST_F(CastleSeniorAnswersTest, TheMoneyAnswerDoesNotGuessTheDestinationWhenNoDigitWasAssigned)
+{
+    for (const std::string_view field : {"", " \t\r\n", "+", "-", "+ 1", "-\t1", "++1", "--1", "zen"})
+    {
+        SCOPED_TRACE(field);
+        Client::Scenes::AnswerTheMoneyDialog(2, field, Context());
+        EXPECT_TRUE(Sent().empty());
+        EXPECT_TRUE(Warned("Q-C1363"));
+    }
 }
 } // namespace

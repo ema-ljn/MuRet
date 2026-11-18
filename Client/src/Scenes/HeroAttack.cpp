@@ -12,9 +12,9 @@
 #include "Render/Models/OriginalAngles.h"
 #include "Scenes/ActorCombat.h"
 #include "Scenes/ActorState.h"
-#include "Scenes/AttackRules.h"
 #include "Scenes/CrywolfContract.h"
 #include "Scenes/GameMovementState.h"
+#include "Scenes/GuildState.h"
 #include "Scenes/HeroSkillCasts.h"
 #include "Scenes/HeroSkills.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -459,18 +459,34 @@ Core::Expected<void, std::string> AttackOnArrival(ActorState& hero, const HeroAr
     return HitTheTarget(hero, target, context);
 }
 
+// 0x558d97..0x558df3 (0x558aa9 en 0x5588d0, 0x558f29 en 0x558eb0): en la guerra de gremios (0x576796c), un jugador con
+// el PK de 6 o más y gremio (+0x1f2 distinto de 0xffff) compara con strcmp el nombre de su gremio (0x787aa55 + i ·
+// 0x58, el +0xd de la tabla) con el del héroe. El índice del héroe no se mira: con −1 lee lo que está antes de la tabla
+// (GuildNameAt, Q-C1281). Un índice fuera de la tabla leería otra memoria: corta.
+Core::Expected<bool, std::string> SameGuildAsTheHero(const GuildState& guild, const ActorState& hero,
+                                                     const ActorState& target, std::string_view where)
+{
+    const auto theirs = GuildNameAt(guild, static_cast<std::int16_t>(target.word1f2));
+    const auto ours = GuildNameAt(guild, static_cast<std::int16_t>(hero.word1f2));
+    if (!theirs || !ours)
+        return Core::Unexpected(std::format("{}: el gremio de +0x1f2 cae fuera de la tabla (0x787aa48)", where));
+    return *theirs == *ours;
+}
+
 // 0x558bb0 desde el chequeo del cursor con el elegido y 0x5588d0 con su argumento: el mismo código. `guildCompare` es
 // donde cada una compara los nombres de gremio (0x558da4 y 0x558aa9).
-Core::Expected<bool, std::string> AttackableTarget(const WorldState& world, const ActorState& target, bool controlDown)
+Core::Expected<bool, std::string> AttackableTarget(const WorldState& world, const ActorState& target, bool controlDown,
+                                                   std::string_view guildCompare)
 {
     const WorldRuntime& runtime = world.Runtime();
     const ActorState& hero = world.Actors()[runtime.hero];
     const bool isHero = &target == &hero;
-    const AttackRules& rules = runtime.attackRules;
+    const GuildState& guild = runtime.guild;
     if (runtime.map >= FirstChaosCastleMap && runtime.map <= LastChaosCastleMap && !isHero)
         return true;
+    // 0x558c07: en la guerra (0x576796c), un monstruo sólo con 0x576796d (el tipo de la guerra, el 61 y el 62).
     if (target.byte88 == MonsterObject)
-        return rules.byte576796c == 0 || rules.byte576796d != 0;
+        return guild.warOn == 0 || guild.warType != 0;
     if (target.byte88 != PlayerObject)
         return false;
     if (runtime.siegeActive)
@@ -481,8 +497,14 @@ Core::Expected<bool, std::string> AttackableTarget(const WorldState& world, cons
     // 0x558d6e..0x558e9b (0x558a73..0x558ba3 en 0x5588d0).
     if (target.byte370 == 2 || target.byte370 == 8)
         return true;
-    if (rules.byte576796c != 0 && target.pk >= MinimumOutlawPk && target.word1f2 != NoGuild)
-        return false; // P-C250 f: los nombres y su continuación quedan en H8.
+    if (guild.warOn != 0 && target.pk >= MinimumOutlawPk && target.word1f2 != NoGuild)
+    {
+        const auto same = SameGuildAsTheHero(guild, hero, target, guildCompare);
+        if (!same.HasValue())
+            return Core::Unexpected(same.Error());
+        if (same.Value())
+            return false;
+    }
     // 0x558dff..0x558e3d: con el duelo en curso (el BYTE de 0x78abad8), sólo el rival: la clave con MOVSX contra el
     // DWORD de 0x78abadc y strcmp de +0x1d9 con 0x78abae0 (SocialState::duel, del hito 7).
     const DuelState& duel = runtime.social.duel;
@@ -491,7 +513,7 @@ Core::Expected<bool, std::string> AttackableTarget(const WorldState& world, cons
         const bool rival = static_cast<std::int32_t>(static_cast<std::int16_t>(target.key)) == duel.rivalKey;
         return rival && CNameOf(target) == CNameOf(duel.rivalName);
     }
-    if (rules.byte576796c != 0)
+    if (guild.warOn != 0)
         return target.byte374 == 2 && !isHero;
     if (target.pk >= MinimumOutlawPk)
         return true;
@@ -510,14 +532,14 @@ Core::Expected<bool, std::string> IsAttackable(const WorldState& world, bool con
     const auto actors = world.Actors();
     if (chosen < 0 || static_cast<std::size_t>(chosen) >= actors.size())
         return Core::Unexpected(std::format("0x558bce: el elegido {} está fuera del pool", chosen));
-    return AttackableTarget(world, actors[static_cast<std::size_t>(chosen)], controlDown);
+    return AttackableTarget(world, actors[static_cast<std::size_t>(chosen)], controlDown, "0x558da4");
 }
 
 Core::Expected<bool, std::string> IsAttackableActor(const WorldState& world, const ActorState& target, bool controlDown)
 {
     if (world.Runtime().cursorItemCount > 0)
         return false;
-    return AttackableTarget(world, target, controlDown);
+    return AttackableTarget(world, target, controlDown, "0x558aa9");
 }
 
 Core::Expected<std::int32_t, std::string> ChosenKeyOf(const WorldState& world, std::size_t attacker, bool controlDown)
@@ -542,18 +564,22 @@ Core::Expected<std::int32_t, std::string> ChosenKeyOf(const WorldState& world, s
     // 0x558ef0..0x558f08.
     if (runtime.map >= FirstChaosCastleMap && runtime.map <= LastChaosCastleMap)
         return key;
-    const AttackRules& rules = runtime.attackRules;
-    // 0x558f09..0x558f7c.
-    // 0x558f29..0x558f7c: los nombres de gremio, como en 0x558da4; iguales, −1. Sin los nombres hasta el hito 8, −1
-    // (08, P-C250 f; Q-C1170).
-    if (rules.byte576796c != 0 && target.pk >= MinimumOutlawPk && target.word1f2 != NoGuild)
-        return NoKey;
+    const GuildState& guild = runtime.guild;
+    // 0x558f09..0x558f7c: los nombres de gremio, como en 0x558da4; iguales, −1.
+    if (guild.warOn != 0 && target.pk >= MinimumOutlawPk && target.word1f2 != NoGuild)
+    {
+        const auto same = SameGuildAsTheHero(guild, actors[attacker], target, "0x558f29");
+        if (!same.HasValue())
+            return Core::Unexpected(same.Error());
+        if (same.Value())
+            return NoKey;
+    }
     // 0x558f84..0x558fed: con el duelo en curso, la clave del rival o −1, sin el nombre.
     if (const DuelState& duel = runtime.social.duel; duel.active != 0)
         return key == duel.rivalKey ? key : NoKey;
     if (target.byte370 == 2 || target.byte370 == 8)
         return key;
-    if (rules.byte576796c != 0)
+    if (guild.warOn != 0)
         return target.byte374 == 2 && !isHero ? key : NoKey;
     if (target.pk >= MinimumOutlawPk)
         return key;

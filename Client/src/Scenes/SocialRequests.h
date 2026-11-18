@@ -55,6 +55,11 @@ SendATradeRequest(const SocialRequestContext& context, std::size_t index, std::s
 [[nodiscard]] Core::Expected<UI::ChatCommandOutcome, std::string>
 SendAPartyRequest(const SocialRequestContext& context, std::size_t index, std::string_view where);
 
+// 0x5110d0(clave), 0x69fd9b(buffer, texto, nombre) y 0x555190 con el 1: el aviso `text` con el nombre del primero vivo
+// con la clave (los comandos del gremio de la ventana de comandos, 0x4089cd y los otros tres).
+[[nodiscard]] Core::Expected<UI::ChatCommandNotice, std::string>
+NoticeWithTheName(const SocialRequestContext& context, std::size_t text, std::uint16_t key, std::string_view where);
+
 // 0x56f13f..0x56f1b0 y 0x4072df..0x407324: con party (0x78aba48 sobre 0), el primer lugar de 0x77f3cd0 no es el héroe
 // (strcmp con +0x1d9).
 [[nodiscard]] bool AnotherLeadsTheParty(const WorldState& world);
@@ -94,6 +99,13 @@ struct CellDistance
 // Con la tienda personal propia o ajena abierta (0x5af560) o sin el mundo cargado (0x7d3a101), 1. Si no, el C1 05 36
 // con su clave y el aviso 475 con el nombre del primero vivo con esa clave (0x5110d0), con el 1, y 1.
 [[nodiscard]] Core::Expected<UI::ChatCommandOutcome, std::string> RequestATrade(const SocialRequestContext& context);
+
+// A quién le pide algo un comando del chat: el elegido (0x6c8e30, sin mirar si está vivo) si es alguien a quien pedirle
+// (CanBeAsked) y está al lado (NextToTheHero, sus accesos); sin elegido, el primero de los 400 vivo, alguien a quien
+// pedirle, al lado y enfrente (FacesTheHero), como los lazos de /duelstart (0x56e0b5), /guild (0x574587) y /union
+// (0x572679). Sin ninguno, sin valor; `where` es la dirección del elegido.
+[[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string> TheOneToAsk(const SocialRequestContext& context,
+                                                                                  std::string_view where);
 
 // 0x56d823..0x56e9ec (/duelstart sin duelo): el elegido o el de enfrente, como /trade pero sin la tienda, sin
 // 0x5af560 ni 0x7d3a101 y sin aviso, y el C1 0F AA con su clave y su nombre. Con o sin él, la cadena sigue

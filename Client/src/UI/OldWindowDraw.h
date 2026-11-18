@@ -4,6 +4,7 @@
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
+#include "UI/OldWindowBase.h"
 #include "UI/OldWindows.h"
 
 #include <cstdint>
@@ -40,6 +41,9 @@ struct OldWindowDrawContext
     Render::Text::FontKind& dcFont;
     // 0x6c8e5c y 0x6c8e64.
     Render::Text::TextColors& textColors;
+    // GetAsyncKeyState de las flechas (0x25..0x28) en el momento del dibujo: lo mira la subclase de los EDIT (0x467b10)
+    // con el WM_GETTEXT que les manda 0x468320.
+    bool arrowHeld = false;
 };
 
 // Lo que el dibujo lee del juego.
@@ -68,6 +72,10 @@ struct OldWindowDrawView
 // 0x491960(índice, alfa): el glColor4ub de cada uno de los 19 colores de las ventanas, con el alfa en ftol(alfa ·
 // 255) (el 3, sombra, en ftol(alfa · 179)). Con otro índice, ninguno.
 [[nodiscard]] std::optional<Render::Color> OldWindowPalette(std::int32_t index, float alpha);
+
+// 0x45b2e0, la vtable + 0x14 del botón, para los que dibujan sus botones sueltos (el diálogo de los paneles, 0x660830):
+// win_button.tga del gris del mouse y el texto centrado; después la mezcla opaca, si no está apagado.
+void DrawTheOldButton(const OldWindowDrawContext& context, const OldButton& button, const OldWindowDrawView& view);
 
 // 0x490390: las ventanas a la vista, de abajo hacia arriba. Después, la proyección (glMatrixMode, glLoadIdentity y
 // gluOrtho2D(0, W, 0, H)), que en MuRet es la del lote, y +0x40 en 1.

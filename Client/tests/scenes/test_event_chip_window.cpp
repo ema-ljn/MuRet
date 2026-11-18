@@ -504,6 +504,7 @@ TEST_F(EventChipWindowTest, TheSerialEntryOpensAndCloses)
     EXPECT_TRUE(Runtime().events.serialEntry);
 
     chat.dialogEdit.text.SetText("AB12");
+    chat.numberField.text.SetText("1234");
     chat.focus = Client::UI::ChatFocus::Dialog;
     chat.field = 1;
     chat.messageBuffer[0] = 'm';
@@ -517,6 +518,7 @@ TEST_F(EventChipWindowTest, TheSerialEntryOpensAndCloses)
     EXPECT_EQ(chat.messageBuffer[0], '\0');
     EXPECT_EQ(chat.whisperBuffer[0], 'w');
     EXPECT_EQ(chat.dialogEdit.text.Value(), "");
+    EXPECT_EQ(chat.numberField.text.Value(), "");
     EXPECT_EQ(chat.focus, Client::UI::ChatFocus::Dialog);
     EXPECT_FALSE(Runtime().ui.chatOpen);
     EXPECT_EQ(social.moneyField, 0);
@@ -699,6 +701,7 @@ TEST_F(EventChipWindowTest, TheSerialWindowDrawsTheEntry)
     EXPECT_EQ(random.State(), before);
     const Client::UI::OldEdit& edit = Runtime().chat.input.dialogEdit;
     EXPECT_EQ(Runtime().chat.input.focus, Client::UI::ChatFocus::Dialog);
+    EXPECT_EQ(Runtime().ui.focusedList, Client::UI::DialogFieldId);
     EXPECT_EQ(edit.filter, Client::UI::UppercaseLettersAndDigitsEdit);
     EXPECT_EQ(edit.backgroundColor, 0u);
     EXPECT_EQ(edit.base.x, 495);

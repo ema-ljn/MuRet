@@ -271,6 +271,8 @@ struct ActorState
     std::uint8_t targetY = 0;
     std::uint8_t direction = 0;
     std::uint8_t byte369 = 0;
+    // +0x36c: el 5D lo pone en 0 (0x4e4348); qué es, sin leer en el hito 8.
+    std::uint32_t dword36c = 0;
     std::uint8_t byte370 = 0;
     // +0x372: 0x511290 lo pone en 0 (0x511ccf) y el 0x12 de estado 1 lo conserva del registro anterior (0x4c895f,
     // 0x4c89ed). Qué es y quién más lo lee, sin leer.

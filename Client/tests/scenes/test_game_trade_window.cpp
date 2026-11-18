@@ -23,6 +23,8 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/GamePanels.h"
+#include "Scenes/GuildMarks.h"
+#include "Scenes/GuildState.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/SocialEvents.h"
@@ -37,6 +39,7 @@
 #include "World/WorldTerrain.h"
 
 #include "support/ChatTexts.h"
+#include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
 #include "support/ItemFiles.h"
 #include "support/ItemSetFiles.h"
@@ -48,6 +51,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstddef>
@@ -325,7 +329,8 @@ protected:
                               .items = &game->items,
                               .worldClock = worldClock,
                               .mouse = mouse,
-                              .leftDown = leftDown};
+                              .leftDown = leftDown,
+                              .guildMarks = withMarks ? &marks : nullptr};
     }
 
     Client::Core::Expected<void, std::string> Window()
@@ -357,6 +362,9 @@ protected:
     float worldClock = 0.0f;
     Client::UI::Point mouse{};
     bool leftDown = false;
+    Client::Tests::FakeTextureStore store;
+    Client::Scenes::GuildMarkTextures marks{store};
+    bool withMarks = true;
     Client::Data::Text::TextTable chatTexts = Client::Tests::MakeTextTable(Client::Tests::ChatTexts());
     Client::Data::Text::TextTable windowTexts = Client::Tests::MakeTextTable({{224, "Zen"},
                                                                               {226, "Comercio"},
@@ -451,6 +459,44 @@ TEST_P(GameTradeWindowTest, TheOpenTradeDrawsTheWindowOfTheOther)
     EXPECT_EQ(text.texts[0].style.colors.background, 0xff141414u);
     EXPECT_EQ(text.texts[1].style.colors.background, 0x80282828u);
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(Seed, TradeQueryRandoms).State());
+}
+
+// 0x5f3bf9..0x5f3c8a (CL9 hito 8): con el gremio del otro en la tabla (la clave del 37 en 0x6c9324), su marca va
+// con 0x5f16a0(i, 0) en (260 − 32, 40), de 32 × 32, después de las grillas, y su nombre en (260, 30) antes del título,
+// con la fuente y los colores que había. Con la clave 0 del 37 de los otros tests ("sin gremio") y las claves en −1
+// (0x447ae0) no sale nada; sin las marcas, corta. Los gremios son inventados.
+TEST_P(GameTradeWindowTest, TheOthersGuildDrawsItsMarkAndName)
+{
+    TradeWithTheOther();
+    Client::Scenes::GuildState& guild = game->world.Runtime().guild;
+    ASSERT_EQ(Client::Scenes::AddGuild(guild, 0x21), 0);
+    ASSERT_EQ(Client::Scenes::AddGuild(guild, 0x33), 1);
+    guild.table[0].guildName = {'O', 'm', 'b', 'u'};
+    guild.table[1].guildName = {'T', 'a', 'l', 'a', 's'};
+    guild.table[1].mark.fill(5);
+    game->world.Runtime().social.trade.otherGuild = 0x33;
+    ASSERT_TRUE(Window().HasValue());
+
+    const std::uint16_t mark = Client::Scenes::GuildMarkTextures::SlotOf(1, false).value;
+    const std::vector<std::uint16_t> slots = SlotsOf(sprites);
+    ASSERT_GT(slots.size(), 67U);
+    EXPECT_EQ(slots[67], mark);
+    EXPECT_EQ(slots[68], OkOff);
+    EXPECT_EQ(std::ranges::count(slots, mark), 1);
+    ExpectQuad(sprites, mark, 0, Left - 32.0f, 40.0f, 32.0f, 32.0f);
+    EXPECT_EQ(NthQuadOf(sprites, mark)->color, (Color{1.0f, 1.0f, 1.0f, 1.0f}));
+    ASSERT_FALSE(text.texts.empty());
+    EXPECT_EQ(text.texts[0].text, "Talas");
+    EXPECT_EQ(text.texts[0].x, 260);
+    EXPECT_EQ(text.texts[0].y, 30);
+    EXPECT_EQ(text.texts[1].text, "Comercio");
+    EXPECT_EQ(random.State(), Client::Tests::AfterDraws(Seed, TradeQueryRandoms).State());
+
+    // Sin la tabla de las marcas, el lazo corta en 0x5f3c10.
+    withMarks = false;
+    const auto cut = Window();
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x5f3c10"), std::string::npos);
 }
 
 // Con 0x78abac4 y la espera (0x78abac8) sobre 0 los dos OK van en rojo, con la marca si los dos los dieron; el mouse

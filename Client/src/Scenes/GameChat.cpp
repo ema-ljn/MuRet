@@ -15,6 +15,7 @@
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/Emote.h"
 #include "Scenes/FaunaModels.h"
+#include "Scenes/GameCommandsWindow.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/ItemSetState.h"
@@ -256,7 +257,10 @@ Core::Expected<UI::ChatCommandOutcome, std::string> RunTheCommand(const GameChat
             return {};
         },
         .requestShopItems = [&context](std::optional<std::string_view> name)
-        { return RequestTheShopItems(SocialRequestsOf(context), name); }};
+        { return RequestTheShopItems(SocialRequestsOf(context), name); },
+        .requestAGuildJoin = [&context]() { return RequestAGuildJoin(context); },
+        .requestAGuildRelation = [&context](UI::GuildRelationCommand command)
+        { return RequestAGuildRelation(context, command); }};
     auto outcome = UI::RunTheChatCommand(commands, text, fromMacro);
     if (!outcome.HasValue())
         return outcome;
@@ -448,15 +452,25 @@ Core::Expected<void, std::string> TypeInTheGameChat(const GameChatContext& conte
         // El EDIT de una ventana vieja con el foco de Windows (CL9 hito 9) recibe el WM_CHAR, y su subclase (0x467b10)
         // le pasa el Enter a su padre; el Tab no lo mira (P-C181).
         const bool oldEdit = UI::HasAnOldEditFocused(runtime.oldWindows, input.focus);
-        // El EDIT de [0x5763504] con el foco (la entrada del número de serie, hito 11): la misma subclase, con el
-        // filtro de +0x4c.
-        const bool dialogEdit = input.focus == UI::ChatFocus::Dialog;
+        // El EDIT de los diálogos con el foco: el de [0x5763504] (la entrada del número de serie, hito 11; el nombre
+        // del gremio de la ventana 2, CL9 hito 8) o el de [0x5763508] (el número del 0x7d, CL9 hito 8). La misma
+        // subclase, con el filtro de +0x4c.
+        UI::OldEdit* dialogEdit = nullptr;
+        if (input.focus == UI::ChatFocus::Dialog)
+            dialogEdit = &input.dialogEdit;
+        else if (input.focus == UI::ChatFocus::NumberField)
+            dialogEdit = &input.numberField;
+        // 0x467b9d: con el WM_CHAR, la subclase pone en 0 los dibujos del EDIT (+0x80, el cursor prendido). MuRet lo
+        // hace con los dos EDIT de los diálogos (CL9 hito 8, P-C286), los de la escena que se dibujan con 0x468320 y no
+        // son de una ventana vieja.
+        if (dialogEdit != nullptr)
+            dialogEdit->draws = 0;
         if (const std::string_view run = rest.substr(0, key); !run.empty())
         {
             if (oldEdit)
                 UI::TypeInTheOldEdit(runtime.oldWindows, run);
-            else if (dialogEdit)
-                UI::TypeInTheEdit(input.dialogEdit, run);
+            else if (dialogEdit != nullptr)
+                UI::TypeInTheEdit(*dialogEdit, run);
             else
                 UI::TypeInTheChat(input, run);
         }
@@ -474,14 +488,14 @@ Core::Expected<void, std::string> TypeInTheGameChat(const GameChatContext& conte
                 UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Tab, false, false, context.clipboard);
             continue;
         }
-        if (dialogEdit)
+        if (dialogEdit != nullptr)
         {
             // 0x467b5d..0x467c19: sin padre (+0x44 en 0), el Tab y el Enter van como WM_CHAR a la ventana del juego
             // (+0x84); el Enter no con la lista de ventanas armada (+0x150 de [0x5763524]) ni con +0xb4 (la vtable +
             // 0x5c, 0x4676d0) o +0xc4 en 1, que nadie prende en este EDIT. El borrar es del EDIT.
             if (pressed == Input::BackspaceChar)
             {
-                input.dialogEdit.text.Backspace();
+                dialogEdit->text.Backspace();
                 continue;
             }
             if (pressed == Input::EnterChar && runtime.oldWindows.windowList.list.armed == 1)
@@ -608,10 +622,13 @@ Core::Expected<void, std::string> PressEnterInTheGame(const GameChatContext& con
     UI::ChatInputState& input = runtime.chat.input;
     const ActorState& hero = context.world.Actors()[runtime.hero];
     // 0x4b50c0..0x4b5106: en Chaos Castle fuera de la zona segura, nada; si no, 0x5763588 en 1, el Enter que leen los
-    // diálogos (0x6263df y 0x62da58). La escena es la 5 y 0x77f3b68, el campo del diálogo, no se prende (hito 6).
+    // diálogos (0x6263df y 0x62da58). La escena es la 5; con 0x77f3b68, el campo del alta del gremio (CL9 hito 8),
+    // nada más (0x4b5115).
     if (runtime.map >= FirstChaosCastleMap && runtime.map <= LastChaosCastleMap && hero.safeZone == 0)
         return {};
     ui.enterPressed = true;
+    if (input.dialogFieldOn)
+        return {};
     if (std::ranges::find(EnterBlockingDialogs, runtime.dialogs.current) != EnterBlockingDialogs.end())
         return {};
     if (runtime.panels.field78abb00 == EnterBlockingField)

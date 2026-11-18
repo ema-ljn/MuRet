@@ -9,10 +9,13 @@
 #include "Data/Terrain/TerrainGrid.h"
 #include "GameLogic/CharacterAppearance.h"
 #include "Render/ModelBatch.h"
+#include "Render/ModelVertex.h"
+#include "Render/TextureSlot.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/LogicalAccess.h"
+#include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ActorAppearance.h"
@@ -24,6 +27,9 @@
 #include "Scenes/GameCharacterEffects.h"
 #include "Scenes/GameHanging.h"
 #include "Scenes/MonsterDrawing.h"
+#include "Scenes/GameTailDrawingPrimitives.h"
+#include "Scenes/GuildMarks.h"
+#include "Scenes/GuildState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/PartyActors.h"
 #include "Scenes/SocialState.h"
@@ -35,9 +41,11 @@
 #include "World/TerrainWalls.h"
 #include "World/WorldTerrain.h"
 
+#include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
@@ -182,32 +190,60 @@ DrawnCharacter CharacterToDraw(ActorState& actor, std::size_t slot, const GameCh
 }
 
 // 0x50c929..0x50cc29, bVar23 y el color de la tela de un jugador 0x20a: la clase 3 o 4 con +0x3e3 en 0, o el +0x376
-// 0x37 (0x50c951, el monstruo 55, que es un 0x20a), salvo en los mapas 0x12 a 0x17. Con +0x1f2 distinto de −1, las
-// guerras de gremios (0x50c99b..0x50cb5c: 0x576796d, que escriben los paquetes del hito 8, y 0x576796f, que escriben
-// 0x4c24e1 y el F3 23 de Battle Soccer, 0x4d9f62, EventGlobals; los dos empiezan en 0) no la prenden: comparan los
-// nombres de la tabla de gremios, que sigue vacía hasta el hito 8 (08 P-C207 b). Con el duelo en curso (0x78abad8), el
-// rival (MOVSX de +0x1f4 igual a 0x78abadc y strcmp de +0x1d9 con 0x78abae0) la lleva en (1; 0,2; 0) y el héroe
-// publicado (el WORD de +0x1f4 y strcmp de los nombres), en (0; 0,2; 1), aunque sea de otra clase o esté en esos mapas.
+// 0x37 (0x50c951, el monstruo 55, que es un 0x20a), salvo en los mapas 0x12 a 0x17. Después, en cualquier clase y mapa,
+// la guerra de gremios (0x50c972..0x50caaa, CL9 hito 8) y el duelo (0x50cb5c..0x50cc29), que gana: con el duelo en
+// curso (0x78abad8), el rival (MOVSX de +0x1f4 igual a 0x78abadc y strcmp de +0x1d9 con 0x78abae0) la lleva en
+// (1; 0,2; 0) y el héroe publicado (el WORD de +0x1f4 y strcmp de los nombres), en (0; 0,2; 1).
 struct ClothLook
 {
     bool wears = false;
     glm::vec3 color = PlainClothColor;
 };
 
-ClothLook LookOfTheCloth(const WorldState& world, const ActorState& actor, std::int32_t map)
+constexpr glm::vec3 RedCloth{1.0f, 0.2f, 0.0f};
+constexpr glm::vec3 BlueCloth{0.0f, 0.2f, 1.0f};
+// 0x50c972..0x50caaa: con +0x1f2 distinto de −1 y la guerra prendida (0x576796d, el 61 y el 62 del tipo 1), el gremio
+// del personaje (strcmp de +0xd de su entrada) igual al del héroe publicado (su +0x1f2, sin mirar el −1) prende la tela
+// del color del equipo (0x576796e en 0, (1; 0,2; 0); si no, (0; 0,2; 1)), y el del rival (0x5767804), la del otro.
+// Después, 0x50caaa..0x50cb5c: con 0x576796f, los nombres de 0x57678d0 y 0x57678d9 la prenden en (1; 0,2; 0) y en
+// (0; 0,2; 1); 0x576796f lo prenden 0x4c24e1 y el F3 23 de Battle Soccer (0x4d9f62, hito 11,
+// EventGlobals::soccer.active), y esta rama falta (08 P-C284 a).
+Core::Expected<void, std::string> DressForTheWar(const WorldState& world, const ActorState& actor, ClothLook& look)
+{
+    const GuildState& guild = world.Runtime().guild;
+    const auto index = static_cast<std::int16_t>(actor.word1f2);
+    if (index == NoGuildIndex || guild.warType == 0)
+        return {};
+    const auto own = GuildNameAt(guild, index);
+    if (!own)
+        return Core::Unexpected(std::format("0x50c9b8: el gremio {} cae fuera de la tabla (0x787aa48)", index));
+    const auto heroIndex = static_cast<std::int16_t>(world.Actors()[world.Runtime().hero].word1f2);
+    const auto heros = GuildNameAt(guild, heroIndex);
+    if (!heros)
+        return Core::Unexpected(std::format("0x50c9cf: el gremio {} del héroe cae fuera de la tabla", heroIndex));
+    const bool firstTeam = guild.warTeam == 0;
+    if (*heros == *own)
+        look = {.wears = true, .color = firstTeam ? RedCloth : BlueCloth};
+    if (GuildTextOf(guild.rival) == *own)
+        look = {.wears = true, .color = firstTeam ? BlueCloth : RedCloth};
+    return {};
+}
+
+Core::Expected<ClothLook, std::string> LookOfTheCloth(const WorldState& world, const ActorState& actor,
+                                                      std::int32_t map)
 {
     constexpr std::uint8_t MagicGladiator = 3;
     constexpr std::uint8_t DarkLord = 4;
     constexpr std::int32_t FirstClothlessMap = 0x12;
     constexpr std::int32_t LastClothlessMap = 0x17;
-    constexpr glm::vec3 RivalColor{1.0f, 0.2f, 0.0f};
-    constexpr glm::vec3 HeroColor{0.0f, 0.2f, 1.0f};
     ClothLook look;
     const auto base = static_cast<std::uint8_t>(actor.characterClass & 7u);
     constexpr std::uint16_t ClothMonster = 0x37;
     look.wears = ((base == MagicGladiator || base == DarkLord) && actor.byte3e3 == 0) || actor.word376 == ClothMonster;
     if (map >= FirstClothlessMap && map <= LastClothlessMap)
         look.wears = false;
+    if (auto war = DressForTheWar(world, actor, look); !war.HasValue())
+        return Core::Unexpected(std::move(war).Error());
     const DuelState& duel = world.Runtime().social.duel;
     if (duel.active == 0)
         return look;
@@ -216,10 +252,10 @@ ClothLook LookOfTheCloth(const WorldState& world, const ActorState& actor, std::
     const std::string_view rival(reinterpret_cast<const char*>(duel.rivalName.data()),
                                  static_cast<std::size_t>(rivalEnd - duel.rivalName.begin()));
     if (static_cast<std::int32_t>(static_cast<std::int16_t>(actor.key)) == duel.rivalKey && name == rival)
-        look = {.wears = true, .color = RivalColor};
+        look = {.wears = true, .color = RedCloth};
     const ActorState& hero = world.Actors()[world.Runtime().hero];
     if (actor.key == hero.key && name == ChatNameOf(hero))
-        look = {.wears = true, .color = HeroColor};
+        look = {.wears = true, .color = BlueCloth};
     return look;
 }
 
@@ -250,14 +286,103 @@ bool InChaosCastle(std::int32_t map)
     return map >= FirstEventMap && map <= LastEventMap;
 }
 
-// 0x50d4fb..0x50d569: fuera de Chaos Castle, con un gremio (+0x1f2 desde 0, que sólo escriben los paquetes) y el
-// alpha distinto de 0, la marca del gremio: 0x447b30 y, si va, 0x5f16a0 y 0x5091e0. El 0x7cf no pasa por 0x447b30.
-Core::Expected<void, std::string> CheckTheGuildMark(const ActorState& actor, std::int32_t map)
+// 0x5091e0: el hueso 26 (+0x4e0 de los huesos propios, +0x120), el giro del personaje (+0x1c) más (80, 45, 135) y la
+// traslación (20, −5, −10), con z en −18 si la armadura (+0x238) es la 0x1226.
+constexpr std::size_t GuildMarkBone = 0x4e0 / 0x30;
+constexpr float MarkTurnX = 80.0f;
+constexpr float MarkTurnY = 45.0f;
+constexpr float MarkTurnZ = 135.0f;
+constexpr float MarkOffsetX = 20.0f;
+constexpr float MarkOffsetY = -5.0f;
+constexpr float MarkOffsetZ = -10.0f;
+constexpr float LowMarkOffsetZ = -18.0f;
+constexpr std::uint16_t LowMarkArmor = 0x1226;
+// 0x5092a7..0x5092b6: 0x621320(5, 7, matriz).
+constexpr float MarkHalfWidth = 5.0f;
+constexpr float MarkHalfHeight = 7.0f;
+// 0x50d55d: la bandera de +0x78 que esconde la marca.
+constexpr std::uint32_t NoGuildMarkFlag = 0x4000;
+
+float AddX87(float value, float offset)
 {
-    if (InChaosCastle(map) || static_cast<std::int16_t>(actor.word1f2) < 0 || actor.alpha == 0.0f)
+    return static_cast<float>(static_cast<double>(value) + static_cast<double>(offset));
+}
+
+// 0x5091e0(personaje, +0x238), después de 0x5f16a0, en el lote del cuerpo: 0x620a00(1), el culling (0x6208d0),
+// glColor3f(1, 1, 1), el slot de la marca, y el quad de 0x621320 en el mundo: la posición (+0x10, glTranslatef) más
+// R_ConcatTransforms(hueso 26, AngleMatrix(giro) con la traslación) por cada esquina; el culling se apaga (0x6208f0).
+// Los huesos son los del cuerpo de este dibujo, que 0x5ffdf0 ya dejó en +0x120. Sin la escala del cuerpo.
+Core::Expected<void, std::string> DrawTheMarkQuad(Render::ModelBatch& batch, const IModelLibrary& models,
+                                                  const ActorState& actor, const DrawnCharacter& character,
+                                                  Render::TextureSlot slot)
+{
+    const std::vector<Render::Models::BoneTransform> body = PoseCharacterBody(models, character);
+    if (body.size() <= GuildMarkBone)
+        return Core::Unexpected<std::string>("0x50928d: la marca del gremio sin el hueso 26 del cuerpo (+0x120)");
+    TailDrawing::Blend(batch, Render::ModelBlend::Alpha);
+    Render::ModelDrawState state = batch.State();
+    state.cullEnabled = true;
+    batch.ApplyOperation(state, Render::ModelStateOperation::Cull);
+    state.texture = slot;
+    state.rawTextureName.reset();
+    state.space = Render::ModelCoordinateSpace::World;
+    batch.ApplyOperation(state, Render::ModelStateOperation::Binding);
+    const glm::vec3 turn{AddX87(actor.angles.x, MarkTurnX), AddX87(actor.angles.y, MarkTurnY),
+                         AddX87(actor.angles.z, MarkTurnZ)};
+    Render::Models::OriginalMatrix local = Render::Models::OriginalAngleMatrix(turn);
+    constexpr std::size_t Row = 4;
+    constexpr std::size_t Translation = 3;
+    local[Translation] = MarkOffsetX;
+    local[Row + Translation] = MarkOffsetY;
+    local[2 * Row + Translation] =
+        actor.body[static_cast<std::size_t>(GameLogic::BodyPart::Armor)].model == LowMarkArmor ? LowMarkOffsetZ
+                                                                                               : MarkOffsetZ;
+    const Render::Models::OriginalMatrix matrix =
+        Render::Models::OriginalConcatTransforms(Render::Models::OriginalMatrixOf(body[GuildMarkBone]), local);
+    const float a = MarkHalfWidth;
+    const float b = MarkHalfHeight;
+    const std::array<glm::vec3, 4> corners{{{-a, -a, -b}, {a, a, -b}, {a, a, b}, {-a, -a, b}}};
+    const std::array<glm::vec2, 4> uv{{{0, 1}, {1, 1}, {1, 0}, {0, 0}}};
+    std::array<Render::ModelVertex, 4> vertices{};
+    for (std::size_t i = 0; i < vertices.size(); ++i)
+        vertices[i] = {
+            actor.position + Render::Models::OriginalVectorTransform(corners[i], matrix), uv[i], {1, 1, 1, 1}};
+    TailDrawing::Quad(batch, vertices);
+    state = batch.State();
+    state.cullEnabled = false;
+    batch.ApplyOperation(state, Render::ModelStateOperation::Cull);
+    return {};
+}
+
+// 0x50d4fb..0x50d588: fuera de Chaos Castle, con un gremio (+0x1f2 desde 0, que escriben el 65 y el 5D), el 0x20a,
+// el alpha distinto de 0 y, salvo el 0x7cf (el gremio que se crea), la clave de su entrada en la tabla (0x447b30), sin
+// la bandera 0x4000 de +0x78: la marca de 0x5f16a0(+0x1f2, 1) en el quad de 0x5091e0.
+Core::Expected<void, std::string> DrawTheGuildMark(Render::ModelBatch& batch, const IModelLibrary& models,
+                                                   const ActorState& actor, const DrawnCharacter& character,
+                                                   const GameCharacterPass& pass, const GuildState& guild)
+{
+    const auto index = static_cast<std::int16_t>(actor.word1f2);
+    if (InChaosCastle(character.map) || index < 0 || actor.type != Data::Models::PlayerSkeletonModel ||
+        actor.alpha == 0.0f)
         return {};
-    return Core::Unexpected<std::string>(
-        "0x50d533: la marca del gremio (0x447b30, 0x5f16a0 y 0x5091e0) no está portada");
+    if (index != CreatingGuildIndex)
+    {
+        if (static_cast<std::size_t>(index) >= GuildTableSize)
+            return Core::Unexpected(std::format("0x50d543: el gremio {} cae fuera de la tabla", index));
+        const auto found = FindGuild(guild, guild.table[static_cast<std::size_t>(index)].key);
+        if (!found)
+            return Core::Unexpected<std::string>("0x447b00: la búsqueda pasa de las 2.000 entradas de la tabla");
+        if (*found == -1)
+            return {};
+    }
+    if ((actor.flags78 & NoGuildMarkFlag) == NoGuildMarkFlag)
+        return {};
+    if (pass.guildMarks == nullptr)
+        return Core::Unexpected<std::string>("0x50d575: la marca del gremio (0x5f16a0) sin la tabla de las marcas");
+    auto slot = pass.guildMarks->Upload(guild, index, true);
+    if (!slot.HasValue())
+        return Core::Unexpected(std::move(slot).Error());
+    return DrawTheMarkQuad(batch, models, actor, character, slot.Value());
 }
 
 Core::Expected<glm::vec3, std::string> LightTheBody(WorldState& world, std::size_t slot, const GameCharacterPass& pass,
@@ -275,7 +400,7 @@ Core::Expected<glm::vec3, std::string> LightTheBody(WorldState& world, std::size
 
 Core::Expected<void, std::string> DrawTheBody(Render::ModelBatch& batch, const IModelLibrary& models,
                                               const ActorState& actor, const DrawnCharacter& character,
-                                              const GameCharacterPass& pass, bool hero)
+                                              const GameCharacterPass& pass, bool hero, const GuildState& guild)
 {
     if (auto supported = CheckTheBody(actor); !supported.HasValue())
         return supported;
@@ -298,7 +423,7 @@ Core::Expected<void, std::string> DrawTheBody(Render::ModelBatch& batch, const I
         {
             DrawCharacter(batch, models, character, pass.frameClock, CharacterDrawPass::Parts);
         }
-        if (auto marked = CheckTheGuildMark(actor, character.map); !marked.HasValue())
+        if (auto marked = DrawTheGuildMark(batch, models, actor, character, pass, guild); !marked.HasValue())
             return marked;
     }
     // 0x50c929..0x50c96e: bVar23, la clase 3 o 4 o el +0x376 0x37 (el monstruo 55, que es un 0x20a), fuera de
@@ -413,9 +538,11 @@ Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const IMode
     const std::int32_t map = world.Runtime().map;
     DrawnCharacter character = CharacterToDraw(actor, slot, pass, map);
     character.advanceCloth = originalFrame;
-    const ClothLook look = LookOfTheCloth(world, actor, map);
-    character.wearsCloth = look.wears;
-    character.clothColor = look.color;
+    const auto look = LookOfTheCloth(world, actor, map);
+    if (!look.HasValue())
+        return Core::Unexpected(look.Error());
+    character.wearsCloth = look.Value().wears;
+    character.clothColor = look.Value().color;
     // Al buffer global (0x68b181c) sólo va lo que cuelga (0x509340); el cuerpo queda en el propio (DrawTheTail).
     if ((originalFrame || pass.publishProjectedPose) && pass.onPose)
         character.onPose = [global = pass.onPose](std::uint16_t model,
@@ -435,7 +562,8 @@ Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const IMode
     if (!terrainLight.HasValue())
         return Core::Unexpected(terrainLight.Error());
     character.light = actor.drawnLight;
-    if (auto supported = DrawTheBody(batch, models, actor, character, pass, slot == world.Runtime().hero);
+    if (auto supported =
+            DrawTheBody(batch, models, actor, character, pass, slot == world.Runtime().hero, world.Runtime().guild);
         !supported.HasValue())
         return supported;
     // 0x50db94: la luz de lo que cuelga (+0x3b4), la del terreno, el rojo de los PK o la de Blood Castle.

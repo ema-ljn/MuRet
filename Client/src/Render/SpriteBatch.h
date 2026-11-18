@@ -68,6 +68,10 @@ public:
     // original.
     void SetBlend(BlendMode blend);
 
+    // 0x620c10: la mezcla de 0x620a00 (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA) con la textura prendida, pero con el alpha
+    // test apagado: lo de alfa bajo también se mezcla. La caja del diálogo de los paneles (0x6576a0). Blend() da Alpha.
+    void SetBlendWithoutAlphaTest();
+
     // La mezcla que dejó el último SetBlend: la que guarda 0x7d366dc y vuelve a poner la ayuda del HUD (0x554340).
     [[nodiscard]] BlendMode Blend() const;
 

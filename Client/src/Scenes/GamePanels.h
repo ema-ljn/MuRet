@@ -2,10 +2,14 @@
 
 #include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
+#include "Scenes/GuildPanels.h"
+#include "Scenes/GuildWindow.h"
+#include "Scenes/SecondGuildWindow.h"
 #include "Data/Text/TextTable.h"
 #include "Protocol/Outgoing.h"
 #include "UI/PanelRegistry.h"
 
+#include <cstdint>
 #include <functional>
 #include <string>
 
@@ -66,6 +70,20 @@ public:
     // vista y los globales de las ventanas viejas). Lo presta el paso de la UI; sin él, abrirlo corta.
     void LendTheFriends(std::function<Core::Expected<void, std::string>()> opened);
 
+    // CL9 hito 8: abrir el gremio pide la lista (C1 03 52), cerrar sus dos ventanas (0x6522f0 y 0x6570b0) y responder
+    // al diálogo de los paneles (0x4d6b60 y 0x653c00), con `send`. Sin él, lo que lo usa corta.
+    void LendTheGuild(WorldState& world, const GuildSender& send);
+
+    // 0x6605b0 en el paso de la UI, con el mouse en 640 × 480 y el reloj del paso; lo que manda la ventana de los
+    // cargos va por `send`.
+    void LendThePanelDialogStep(WorldState& world, const GuildSender& send, std::int32_t mouseX, std::int32_t mouseY,
+                                std::uint32_t now);
+
+    // 0x657959: el paso de la ventana 2 del gremio ([0x7d536f4]) con el mouse, el reloj, Text.bmd y los filtros.
+    void LendTheSecondGuildStep(const SecondGuildStepContext& context);
+    // 0x657977: el paso de la ventana del gremio (Scenes::LendTheGuildWindowStepTo).
+    void LendTheGuildWindowStep(const GuildWindowStepContext& context);
+
     // 0x419900: cerrar las misiones manda el C1 03 31 con `send`, y también 0x658a18 y 0x658c0e al cerrar un NPC de
     // evento (0x1000 o 0x4000, CL9 hito 11). Lo prestan el paso de la UI, los handlers del A1 y del A2 (0x657a90) y los
     // cierres de la entrada al mundo, del teleport, del regen y de los eventos; sin él, cerrarlos corta.
@@ -81,13 +99,14 @@ public:
 
     // Todo lo que un cierre del original manda al GS desde 0x657a90, 0x657ab0, 0x657880 y 0x65cae0: el C1 03 31 de
     // las misiones y de los NPC de evento (`sendWindowClose`), el C1 03 3D del comercio (0x657fe1), el F3 10 y el
-    // 3F 07 de las tiendas y los A9 del inventario de un Dark Lord (`send`, que el comercio y las tiendas abren). Lo
+    // 3F 07 de las tiendas, los A9 del inventario de un Dark Lord y los cierres de las dos ventanas del gremio con el
+    // diálogo de los paneles (0x657b50 y 0x657b73, LendTheGuild) (`send`, que el comercio y las tiendas abren). Lo
     // prestan los caminos que abren o cierran ventanas fuera del paso de la UI: Esc (0x623f17), caminar (0x56b39d), el
     // 37 (0x659e46), el 3F 05 (0x65b319), la entrada, el teleport, el regen, los eventos, las misiones y la caja 0x9c.
     // Sin `send`, o sin `sendWindowClose`, quedan los cortes de cada uno.
     void LendTheSession(WorldState& world, Render::Models::CrtRandom& random,
                         std::function<void(Protocol::Outgoing)> send, std::function<void()> sendWindowClose);
-    // Lo mismo con `requests` (SendGamePacket y SendWindowClose); con nullptr, nada.
+    // Lo mismo con `requests` (SendGamePacket, SendGuildPacket para el gremio y SendWindowClose); con nullptr, nada.
     void LendTheSession(WorldState& world, Render::Models::CrtRandom& random, IGameUiRequests* requests);
 
 private:

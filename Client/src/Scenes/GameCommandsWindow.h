@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "UI/ChatCommands.h"
 
 #include <string>
 
@@ -11,6 +12,7 @@
 // seguir y el duelo; los cuatro del gremio cortan hacia el hito 8 (08 P-C209).
 namespace Client::Scenes
 {
+struct GameChatContext;
 struct GameHudContext;
 struct GameUiContext;
 
@@ -27,4 +29,15 @@ struct GameUiContext;
 // nombres de los comandos centrados con su casilla (0x463090), la fuente grande, el cartel del jugador elegido con su
 // nombre (0x40aa80..0x40abd8), el aviso del comando elegido según su estado y la mezcla sin alfa al final.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheCommandsWindow(GameHudContext& context);
+
+// 0x573f85..0x574bd5 (/guild fuera de Chaos Castle, CL9 hito 8): con gremio, el aviso 255; si no, el elegido o el de
+// enfrente (Scenes::TheOneToAsk) y, con el mundo cargado, 0x78aba40 con su clave, el C1 05 50 por el cable de `chat` y
+// el aviso 477 con su nombre. Sin Text.bmd o sin el cable cuando hace falta, corta.
+[[nodiscard]] Core::Expected<UI::ChatCommandOutcome, std::string> RequestAGuildJoin(const GameChatContext& chat);
+
+// 0x570d7e..0x573f48 (/union, /rival y /rivaloff fuera de Chaos Castle, CL9 hito 8): sin gremio, el aviso 1355; si no,
+// el elegido o el de enfrente y el E5 de `command` (01 01, 02 01 o, después de la animación 0xb7 y el C1 05 18 del
+// comando 8, 02 02) con su aviso (1358, 1359 o 1360). Sin Text.bmd, sin el cable o sin los modelos (/rivaloff), corta.
+[[nodiscard]] Core::Expected<UI::ChatCommandOutcome, std::string>
+RequestAGuildRelation(const GameChatContext& chat, UI::GuildRelationCommand command);
 } // namespace Client::Scenes

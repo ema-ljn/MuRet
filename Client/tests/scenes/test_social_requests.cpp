@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Data/Models/Model.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
@@ -17,8 +18,11 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Text/FontSet.h"
+#include "Render/TextureSlot.h"
 #include "Render/Text/IGlyphRasterizer.h"
+#include "Scenes/ActionSend.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CharacterDrawing.h"
 #include "Scenes/GameChat.h"
 #include "Scenes/GameCommandsWindow.h"
 #include "Scenes/GameMovementState.h"
@@ -41,6 +45,7 @@
 
 #include "support/Bytes.h"
 #include "support/ChatTexts.h"
+#include "support/PlayerActors.h"
 #include "support/GoldenDir.h"
 #include "support/ItemSetFiles.h"
 #include "support/PlayerActors.h"
@@ -642,29 +647,255 @@ TEST_P(CommandsWindowTest, TheWhisperAndTheDuelCommands)
     EXPECT_EQ(m_sent.size(), 2U);
 }
 
-// 0x40627a..0x406344 (del 5 al 8): los estados del gremio; lo que hacen es del hito 8 y corta, y el 6 con dos maestros
-// lee la tabla de los gremios.
-TEST_P(CommandsWindowTest, TheGuildCommandsStopAtTheirHito)
+// Player.bmd para todos los tipos: la animación del comando 8 (0x4ea030).
+class CommandModels final : public Client::Scenes::IModelLibrary
 {
-    ActorState& hero = game->world.Actors()[0];
+public:
+    const Client::Data::Models::Model* Find(std::uint16_t) const override
+    {
+        return nullptr;
+    }
+    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    {
+        return &player;
+    }
+    std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    {
+        return {};
+    }
+    Client::Render::Models::Skeleton player = Client::Tests::PlayerActionsSkeleton();
+};
+
+// Los comandos del gremio (del 5 al 8, CL9 hito 8): sus avisos inventados y el cable en claro (el XOR32 en línea).
+class GuildCommandsTest : public CommandsWindowTest
+{
+protected:
+    void SetUp() override
+    {
+        CommandsWindowTest::SetUp();
+        if (HasFatalFailure())
+            return;
+        std::map<std::size_t, std::string> texts = Client::Tests::ChatTexts();
+        texts[255] = "ya tenes gremio";
+        texts[477] = "pediste el gremio a %s";
+        texts[507] = "no es maestro";
+        texts[1358] = "alianza con %s";
+        texts[1359] = "rivales con %s";
+        texts[1360] = "fin con %s";
+        texts[1355] = "no tenes gremio";
+        texts[1385] = "sin gremio";
+        m_texts = Client::Tests::MakeTextTable(texts);
+        Hero().guildStatus = 0xff;
+        Hero().word1f2 = 0xffff;
+    }
+
+    ActorState& Hero()
+    {
+        return game->world.Actors()[game->world.Runtime().hero];
+    }
+
+    Client::Core::Expected<void, std::string> RightClickWithModels(std::int32_t command, std::int32_t chosen)
+    {
+        Client::Scenes::WorldRuntime& runtime = game->world.Runtime();
+        runtime.panels.delegated.commandsWindow.chosen = command;
+        Choose(chosen);
+        runtime.ui.rightClick = true;
+        runtime.ui.rightDown = true;
+        Client::Scenes::GameChatContext chat = ChatContext();
+        chat.models = &m_models;
+        return Client::Scenes::StepTheCommandsWindow(Client::Scenes::GameUiContext{
+            .world = game->world, .random = m_random, .input = m_input, .mouseX = 10, .mouseY = 10, .chat = &chat});
+    }
+
+    void ExpectSentInTheClear(std::size_t at, std::initializer_list<int> bytes)
+    {
+        ASSERT_LT(at, m_sent.size());
+        EXPECT_EQ(m_sent[at].delivery, Client::Network::Delivery::Clear);
+        EXPECT_TRUE(Client::Tests::SameBytes(Client::Network::Crypto::Xor32Decode(m_sent[at].packet).Bytes(),
+                                             Client::Tests::Bytes(bytes)));
+    }
+
+    CommandModels m_models;
+};
+
+// 0x40627a..0x4062b1 y 0x4085d1..0x408a23 (el 5): el héroe sin gremio pide entrar al del maestro elegido: 0x78aba40 con
+// su clave, C1 05 50 04 56 en claro y el aviso 477 con su nombre; sin rand() más que los de las cuatro celdas. Con el
+// héroe en un gremio (+0x368 distinto de 0xff, +0x1f2 todavía negativo), el aviso 255 y el comando en −1.
+TEST_P(GuildCommandsTest, TheGuildCommandAsksToJoin)
+{
     ASSERT_TRUE(RightClick(7, 1).HasValue());
     EXPECT_EQ(Window().states[7], 0xfe);
     ASSERT_TRUE(RightClick(5, 1).HasValue());
     EXPECT_EQ(Window().states[5], 0xff);
+    EXPECT_TRUE(m_sent.empty());
 
     Near().word1f2 = 3;
     Near().guildStatus = 0x80;
-    const auto guild = RightClick(5, 1);
-    ASSERT_FALSE(guild.HasValue());
-    EXPECT_NE(guild.Error().find("0x4085d1"), std::string::npos) << guild.Error();
+    m_random = CrtRandom(Seed);
+    const auto asked = RightClick(5, 1);
+    ASSERT_TRUE(asked.HasValue()) << asked.Error();
+    ASSERT_EQ(m_sent.size(), 1U);
+    ExpectSentInTheClear(0, {0xc1, 0x05, 0x50, 0x04, 0x56});
+    EXPECT_EQ(game->world.Runtime().guild.requester, 0x0456);
+    EXPECT_EQ(LastMessage(), "pediste el gremio a Brezal");
+    EXPECT_EQ(Window().chosen, 5);
+    EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(Seed, 4 * CellRandoms).State());
 
-    hero.guildStatus = 0x80;
-    game->world.Runtime().ui.rightClick = false;
-    const auto alliance = RightClick(6, 1);
-    ASSERT_FALSE(alliance.HasValue());
-    EXPECT_NE(alliance.Error().find("0x4062e4"), std::string::npos) << alliance.Error();
+    Hero().guildStatus = 0x00;
+    ASSERT_TRUE(RightClick(5, 1).HasValue());
+    EXPECT_EQ(LastMessage(), "ya tenes gremio");
+    EXPECT_EQ(Window().chosen, -1);
+    EXPECT_EQ(m_sent.size(), 1U);
 }
 
+// 0x4062b6..0x4062f9 y 0x408a24..0x409065 (el 6): con los dos maestros, el estado sale del +4 de la entrada del gremio
+// del héroe en la tabla: sin alianza, C1 07 E5 01 01 04 56 y el aviso 1358; ya con alianza, el estado en 0 y nada.
+TEST_P(GuildCommandsTest, TheAllianceCommandReadsTheGuildTable)
+{
+    Hero().guildStatus = 0x80;
+    Hero().word1f2 = 3;
+    Near().guildStatus = 0x80;
+    Near().word1f2 = 4;
+    const auto asked = RightClick(6, 1);
+    ASSERT_TRUE(asked.HasValue()) << asked.Error();
+    EXPECT_EQ(Window().states[6], 1);
+    ASSERT_EQ(m_sent.size(), 1U);
+    ExpectSentInTheClear(0, {0xc1, 0x07, 0xe5, 0x01, 0x01, 0x04, 0x56});
+    EXPECT_EQ(LastMessage(), "alianza con Brezal");
+
+    auto& unionName = game->world.Runtime().guild.table[3].unionName;
+    unionName[0] = 'C';
+    unionName[1] = 'e';
+    ASSERT_TRUE(RightClick(6, 1).HasValue());
+    EXPECT_EQ(Window().states[6], 0);
+    EXPECT_EQ(m_sent.size(), 1U);
+}
+
+// 0x409066 (el 7): C1 07 E5 02 01 y el aviso 1359. 0x409663 (el 8): la animación 0xb7 del héroe, el C1 05 18 con su
+// dirección y la acción 0x92, C1 07 E5 02 02 y el aviso 1360. Sin los modelos, el 8 corta antes de mandar nada.
+TEST_P(GuildCommandsTest, TheHostilityCommandsSendTheirRequests)
+{
+    Hero().guildStatus = 0x80;
+    Hero().word1f2 = 3;
+    Near().guildStatus = 0x80;
+    Near().word1f2 = 4;
+    ASSERT_TRUE(RightClick(7, 1).HasValue());
+    ASSERT_EQ(m_sent.size(), 1U);
+    ExpectSentInTheClear(0, {0xc1, 0x07, 0xe5, 0x02, 0x01, 0x04, 0x56});
+    EXPECT_EQ(LastMessage(), "rivales con Brezal");
+
+    const auto cut = RightClick(8, 1);
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x40966f"), std::string::npos) << cut.Error();
+    EXPECT_EQ(m_sent.size(), 1U);
+
+    m_random = CrtRandom(Seed);
+    const auto ended = RightClickWithModels(8, 1);
+    ASSERT_TRUE(ended.HasValue()) << ended.Error();
+    EXPECT_EQ(Hero().animation.action, 0xb7);
+    ASSERT_EQ(m_sent.size(), 3U);
+    const auto direction = Client::Scenes::ActionDirection(Hero().angles.z);
+    ASSERT_TRUE(direction.has_value());
+    EXPECT_TRUE(Client::Tests::SameBytes(Client::Network::Crypto::Xor32Decode(m_sent[1].packet).Bytes(),
+                                         Client::Tests::Bytes({0xc1, 0x05, 0x18, *direction, 0x92})));
+    ExpectSentInTheClear(2, {0xc1, 0x07, 0xe5, 0x02, 0x02, 0x04, 0x56});
+    EXPECT_EQ(LastMessage(), "fin con Brezal");
+    EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(Seed, 4 * CellRandoms).State());
+}
+
+// 0x573f85..0x574bd5 (/guild): sin gremio, el elegido al lado: 0x78aba40 con su clave, C1 05 50 04 56 en claro, el
+// aviso 477 con su nombre y solo los rand() de las cuatro celdas. Sin elegido, el de enfrente (Brezal mira al héroe).
+// Sin el mundo cargado, nada. Con gremio, el aviso 255 sin mirar a nadie.
+TEST_P(GuildCommandsTest, TheGuildChatCommandAsksTheChosenOrTheOneInFront)
+{
+    Choose(1);
+    auto asked = Client::Scenes::RequestAGuildJoin(ChatContext());
+    ASSERT_TRUE(asked.HasValue()) << asked.Error();
+    EXPECT_TRUE(asked.Value().handled);
+    ASSERT_EQ(asked.Value().notices.size(), 1U);
+    EXPECT_EQ(asked.Value().notices[0].type, Client::UI::SystemMessage);
+    EXPECT_EQ(asked.Value().notices[0].formatted, "pediste el gremio a Brezal");
+    ASSERT_EQ(m_sent.size(), 1U);
+    ExpectSentInTheClear(0, {0xc1, 0x05, 0x50, 0x04, 0x56});
+    EXPECT_EQ(game->world.Runtime().guild.requester, 0x0456);
+    EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(Seed, 4 * CellRandoms).State());
+
+    Choose(-1);
+    game->world.Runtime().guild.requester = 0;
+    m_random = CrtRandom(Seed);
+    asked = Client::Scenes::RequestAGuildJoin(ChatContext());
+    ASSERT_TRUE(asked.HasValue()) << asked.Error();
+    ASSERT_EQ(m_sent.size(), 2U);
+    ExpectSentInTheClear(1, {0xc1, 0x05, 0x50, 0x04, 0x56});
+    EXPECT_EQ(game->world.Runtime().guild.requester, 0x0456);
+
+    game->world.Runtime().drawingEnabled = false;
+    asked = Client::Scenes::RequestAGuildJoin(ChatContext());
+    ASSERT_TRUE(asked.HasValue()) << asked.Error();
+    EXPECT_TRUE(asked.Value().handled);
+    EXPECT_TRUE(asked.Value().notices.empty());
+    EXPECT_EQ(m_sent.size(), 2U);
+
+    Hero().guildStatus = 0x00;
+    m_random = CrtRandom(Seed);
+    asked = Client::Scenes::RequestAGuildJoin(ChatContext());
+    ASSERT_TRUE(asked.HasValue()) << asked.Error();
+    EXPECT_EQ(asked.Value().notices, (std::vector<Client::UI::ChatCommandNotice>{{255, Client::UI::SystemMessage}}));
+    EXPECT_EQ(m_sent.size(), 2U);
+    EXPECT_EQ(m_random.State(), CrtRandom(Seed).State());
+}
+
+// 0x570d7e..0x573f48 (/union, /rival y /rivaloff): sin gremio, el aviso 1355. Con él, al elegido o al de enfrente sin
+// mirar su gremio: C1 07 E5 01 01 y el 1358, E5 02 01 y el 1359, y la animación 0xb7, el C1 05 18 con la acción 0x92,
+// E5 02 02 y el 1360. Sin los modelos, /rivaloff corta antes de mandar nada.
+TEST_P(GuildCommandsTest, TheRelationChatCommandsSendTheirRequests)
+{
+    using Client::UI::GuildRelationCommand;
+    Choose(1);
+    auto asked = Client::Scenes::RequestAGuildRelation(ChatContext(), GuildRelationCommand::Union);
+    ASSERT_TRUE(asked.HasValue()) << asked.Error();
+    EXPECT_EQ(asked.Value().notices, (std::vector<Client::UI::ChatCommandNotice>{{1355, Client::UI::SystemMessage}}));
+    EXPECT_TRUE(m_sent.empty());
+
+    Hero().guildStatus = 0x00;
+    Hero().word1f2 = 3;
+    asked = Client::Scenes::RequestAGuildRelation(ChatContext(), GuildRelationCommand::Union);
+    ASSERT_TRUE(asked.HasValue()) << asked.Error();
+    ASSERT_EQ(asked.Value().notices.size(), 1U);
+    EXPECT_EQ(asked.Value().notices[0].formatted, "alianza con Brezal");
+    ASSERT_EQ(m_sent.size(), 1U);
+    ExpectSentInTheClear(0, {0xc1, 0x07, 0xe5, 0x01, 0x01, 0x04, 0x56});
+
+    Choose(-1);
+    asked = Client::Scenes::RequestAGuildRelation(ChatContext(), GuildRelationCommand::Rival);
+    ASSERT_TRUE(asked.HasValue()) << asked.Error();
+    EXPECT_EQ(asked.Value().notices[0].formatted, "rivales con Brezal");
+    ASSERT_EQ(m_sent.size(), 2U);
+    ExpectSentInTheClear(1, {0xc1, 0x07, 0xe5, 0x02, 0x01, 0x04, 0x56});
+
+    const auto cut = Client::Scenes::RequestAGuildRelation(ChatContext(), GuildRelationCommand::RivalOff);
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x571079"), std::string::npos) << cut.Error();
+    EXPECT_EQ(m_sent.size(), 2U);
+
+    Choose(1);
+    m_random = CrtRandom(Seed);
+    Client::Scenes::GameChatContext chat = ChatContext();
+    chat.models = &m_models;
+    asked = Client::Scenes::RequestAGuildRelation(chat, GuildRelationCommand::RivalOff);
+    ASSERT_TRUE(asked.HasValue()) << asked.Error();
+    EXPECT_EQ(asked.Value().notices[0].formatted, "fin con Brezal");
+    EXPECT_EQ(Hero().animation.action, 0xb7);
+    ASSERT_EQ(m_sent.size(), 4U);
+    const auto direction = Client::Scenes::ActionDirection(Hero().angles.z);
+    ASSERT_TRUE(direction.has_value());
+    EXPECT_TRUE(Client::Tests::SameBytes(Client::Network::Crypto::Xor32Decode(m_sent[2].packet).Bytes(),
+                                         Client::Tests::Bytes({0xc1, 0x05, 0x18, *direction, 0x92})));
+    ExpectSentInTheClear(3, {0xc1, 0x07, 0xe5, 0x02, 0x02, 0x04, 0x56});
+    EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(Seed, 4 * CellRandoms).State());
+}
+
+INSTANTIATE_TEST_SUITE_P(Maps, GuildCommandsTest, ::testing::Values(std::uint8_t{0}, std::uint8_t{2}));
 INSTANTIATE_TEST_SUITE_P(Maps, SocialRequestsTest, ::testing::Values(std::uint8_t{0}, std::uint8_t{2}));
 INSTANTIATE_TEST_SUITE_P(Maps, CommandsWindowTest, ::testing::Values(std::uint8_t{0}, std::uint8_t{2}));
 } // namespace

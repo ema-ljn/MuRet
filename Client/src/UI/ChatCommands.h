@@ -73,6 +73,15 @@ struct ChatCommandNotice
     friend bool operator==(const ChatCommandNotice&, const ChatCommandNotice&) = default;
 };
 
+// 0x570fca..0x571068: cuál de los tres de 0x570d48 corrió: strcmp con el texto 1354 o _stricmp con "/union", la
+// alianza; con el 1356 o "/rival", la rivalidad; si no, el fin de la rivalidad (/rivaloff o el 1357).
+enum class GuildRelationCommand
+{
+    Union,
+    Rival,
+    RivalOff,
+};
+
 struct ChatCommandOutcome
 {
     // Lo que devuelve: con true el WndProc no manda nada.
@@ -136,6 +145,12 @@ struct ChatCommandContext
     // buffer de sscanf (EBP − 0xc0): la segunda palabra, o sin valor si sscanf no la llenó; lo que devuelve es la
     // salida del comando. Sin él, ese caso corta.
     std::function<Core::Expected<ChatCommandOutcome, std::string>(std::optional<std::string_view>)> requestShopItems{};
+    // 0x573f85..0x574bd5 (/guild fuera de Chaos Castle) y 0x570d7e..0x573f48 (/union, /rival y /rivaloff): el gremio
+    // del héroe, a quién pedirle (el elegido o el de enfrente), el C1 05 50 o el E5 y su aviso
+    // (Scenes::RequestAGuildJoin y RequestAGuildRelation); lo que devuelven es la salida del comando. Sin ellos, esos
+    // casos cortan.
+    std::function<Core::Expected<ChatCommandOutcome, std::string>()> requestAGuildJoin{};
+    std::function<Core::Expected<ChatCommandOutcome, std::string>(GuildRelationCommand)> requestAGuildRelation{};
 };
 
 // 0x56c440(texto, desde una macro).

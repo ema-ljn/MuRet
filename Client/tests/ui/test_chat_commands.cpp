@@ -307,7 +307,48 @@ TEST_F(Commands, TheDuelCommandsGoOnAsChat)
     EXPECT_EQ(asked, 1);
     const auto guild = Client::UI::RunTheChatCommand(context, "/guild", false);
     ASSERT_FALSE(guild.HasValue());
-    EXPECT_NE(guild.Error().find("hito 8"), std::string::npos);
+    EXPECT_NE(guild.Error().find("0x573f85"), std::string::npos);
+}
+
+// 0x573f49 y 0x570d48: en Chaos Castle, el aviso 1150 y 0; fuera, /guild pide entrar (Scenes::RequestAGuildJoin) y
+// /union, /rival y /rivaloff (o sus textos 1354, 1356 y 1357; _stricmp con el literal) el E5 de cada uno
+// (Scenes::RequestAGuildRelation). Un texto que solo coincide con el 1357 es el fin de la rivalidad.
+TEST_F(Commands, TheGuildCommandsAskTheScene)
+{
+    int joins = 0;
+    std::vector<Client::UI::GuildRelationCommand> relations;
+    ChatCommandContext context = Context();
+    context.requestAGuildJoin = [&joins]() -> Client::Core::Expected<Client::UI::ChatCommandOutcome, std::string>
+    {
+        ++joins;
+        return Client::UI::ChatCommandOutcome{.handled = true, .notices = {}};
+    };
+    context.requestAGuildRelation = [&relations](Client::UI::GuildRelationCommand command)
+        -> Client::Core::Expected<Client::UI::ChatCommandOutcome, std::string>
+    {
+        relations.push_back(command);
+        return Client::UI::ChatCommandOutcome{.handled = true, .notices = {}};
+    };
+    for (const std::string_view text : {"/GUILD", "/Union", "/rival", "/RIVALOFF"})
+    {
+        const auto ran = Client::UI::RunTheChatCommand(context, text, false);
+        ASSERT_TRUE(ran.HasValue()) << ran.Error();
+        EXPECT_TRUE(ran.Value().handled);
+    }
+    EXPECT_EQ(joins, 1);
+    EXPECT_EQ(relations, (std::vector<Client::UI::GuildRelationCommand>{Client::UI::GuildRelationCommand::Union,
+                                                                        Client::UI::GuildRelationCommand::Rival,
+                                                                        Client::UI::GuildRelationCommand::RivalOff}));
+
+    map = 18;
+    for (const std::string_view text : {"/guild", "/union"})
+    {
+        const auto inside = Client::UI::RunTheChatCommand(Context(), text, false);
+        ASSERT_TRUE(inside.HasValue()) << inside.Error();
+        EXPECT_FALSE(inside.Value().handled);
+        EXPECT_EQ(inside.Value().notices,
+                  (std::vector<ChatCommandNotice>{{Client::UI::ChaosCastleCommandText, Client::UI::SystemMessage}}));
+    }
 }
 
 // 0x56d624: /move abre la ventana y sigue como chat.

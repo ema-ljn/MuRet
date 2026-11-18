@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Data/Text/DialogTable.h"
 #include "Protocol/Connection/Logout.h"
+#include "Protocol/Guild.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/Party.h"
 #include "Protocol/Trade.h"
@@ -12,6 +13,8 @@
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameUi.h"
+#include "Scenes/GuildReceive.h"
+#include "Scenes/GuildState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/PersonalShopWindow.h"
 #include "Scenes/SocialState.h"
@@ -108,6 +111,9 @@ constexpr std::int32_t ReopeningDialog = 0x8f;
 // 0x62a7f7..0x62c560: sí y no. Los dos botones son de 0x46 × 0x15 en y 0x62; con 0x7d y 0x95 (el sí) o 0x71, 0x7d y
 // 0x95 (el no), de 0x28 en otra x.
 constexpr std::int32_t PartyRequestDialog = 0x77;
+// 0x62a878 y 0x62c567: el diálogo 0x7d (CL9 hito 8), el número del maestro para echar a un miembro, disolver el
+// gremio o salir de él (C1 53).
+constexpr std::int32_t LeaveNumberDialog = 0x7d;
 constexpr std::int32_t YesLeft = 0xea;
 constexpr std::int32_t NoLeft = 0x14e;
 constexpr std::int32_t NarrowYesLeft = 0x143;
@@ -116,8 +122,9 @@ constexpr std::int32_t YesNoWidth = 0x46;
 constexpr std::int32_t NarrowWidth = 0x28;
 constexpr std::int32_t YesNoTop = 0x62;
 constexpr std::int32_t YesNoBottom = 0x77;
-// 0x62c54c..0x62c560: los casos de la tabla del no (0x62db1c) que no son 0x77 ni 0x78, con su tramo y de quién son (08
-// P-C363); los demás ids van al cierre (0x62d745). Llegan con el diálogo que espera detrás del sí de 0x77 o 0x78.
+// 0x62c54c..0x62c560: los casos de la tabla del no (0x62db1c) que no son 0x77, 0x78 ni 0x7d, con su tramo y de quién
+// son (08 P-C363); los demás ids van al cierre (0x62d745). Llegan con el diálogo que espera detrás del sí de 0x77 o
+// 0x78. El 0x95 comparte el del 0x7d (0x62c567), pero su paso corta antes.
 struct OtherNoCase
 {
     std::int32_t id = 0;
@@ -126,9 +133,7 @@ struct OtherNoCase
 };
 constexpr auto OtherNoCases = std::to_array<OtherNoCase>({
     {0x71, "0x62c58f", "del borrado de la selección (0x622fb0, el F3 02), que el juego no abre"},
-    {0x76, "0x62c880", "del gremio (el C1 51), CL9 hito 8"},
-    {0x7d, "0x62c567", "del gremio (el sí manda el C1 53), CL9 hito 8"},
-    {0x7f, "0x62c5c2", "de la guerra de gremios (el C1 61), CL9 hito 8"},
+    {0x76, "0x62c880", "del gremio (el C1 51), que el juego no abre"},
     {0x95, "0x62c567", "del almacén (el sí manda el C1 83), CL9 hito 6"},
 });
 // 0x6282dc..0x62839f: el 0x94 y el 0x99 (el precio bajo, que 0x62845d manda al mismo final) corren sus dos botones
@@ -186,10 +191,10 @@ constexpr auto Routes = std::to_array<DialogRoute>({
     {0x97, DialogStep::Buttons, "0x62d756", ""},
     {0x9b, DialogStep::Buttons, "0x62d756", ""},
     {0x71, DialogStep::Cut, "0x62a810", "CL9.4"},
-    {0x7d, DialogStep::Cut, "0x62a810", "CL9.4"},
+    {LeaveNumberDialog, DialogStep::YesNo, "0x62a810", ""},
     {0x95, DialogStep::Cut, "0x62a7f7", "CL9.4"},
     {0x76, DialogStep::Cut, "0x62a7f7", "CL9.4"},
-    {UI::IgnoredOverChaosCastle, DialogStep::Cut, "0x62a7f7", "CL9.4"},
+    {UI::IgnoredOverChaosCastle, DialogStep::YesNo, "0x62a7f7", ""},
     {PartyRequestDialog, DialogStep::YesNo, "0x62a7f7", ""},
     {UI::ForcedDialog, DialogStep::YesNo, "0x62a7f7", ""},
     {WarningDialog, DialogStep::Warning, "0x6282dc", ""},
@@ -709,6 +714,67 @@ Core::Expected<void, std::string> Answer(const GameUiContext& context, std::int3
     return {};
 }
 
+// 0x62b372 y 0x62c567: los diez bytes de 0x7798bf8 (dos DWORD y un WORD) y su largo (0x7758590) en 0.
+void ClearTheTypedNumber(UI::ChatInputState& input)
+{
+    std::fill_n(input.messageBuffer.begin(), Protocol::Guild::LeaveNumberSize, '\0');
+    input.messageLength = 0;
+}
+
+// 0x62a878..0x62b38d, el sí del 0x7d: con 0x6c7b8c en 1, GetText del EDIT del número ([0x5763508]) a 0x7798bf8 (0xff)
+// y SetText(0); el C1 17 53 con los diez bytes del lugar 0x6d5e2c de 0x787a5e8 (de 0xe) y los diez de 0x7798bf8, con
+// el XOR32 y en claro por el socket (sin rand()), y esos diez bytes y su largo en 0. El EDIT queda a la vista y con el
+// foco (Q-C1295).
+Core::Expected<void, std::string> SendTheLeave(const GameUiContext& context)
+{
+    auto requests = RequestsOf(context, "0x62a878");
+    if (!requests.HasValue())
+        return Core::Unexpected(std::move(requests).Error());
+    WorldRuntime& runtime = context.world.Runtime();
+    UI::ChatInputState& input = runtime.chat.input;
+    UI::ReadTheNumberField(input, input.messageBuffer);
+    UI::ClearTheNumberField(input);
+    // 0x62a91c: 0x6d5e2c es −1 en la .data y lo pone 0x64faa0 (−1 sin el nombre): fuera de los 80 lugares, el original
+    // lee otra memoria (Q-C1296).
+    const std::int32_t member = runtime.guild.kickMember;
+    if (member < 0 || static_cast<std::size_t>(member) >= GuildMemberSlots)
+        return Core::Unexpected(std::format("0x62a91c: el lugar {} de 0x6d5e2c lee fuera de los {} miembros de "
+                                            "0x787a5e8 (Q-C1296)",
+                                            member, GuildMemberSlots));
+    const GuildMemberSlot& slot = runtime.guild.members[static_cast<std::size_t>(member)];
+    Protocol::Guild::CharacterName name{};
+    for (std::size_t index = 0; index < name.size(); ++index)
+        name[index] = static_cast<std::byte>(slot.name[index]);
+    Protocol::Guild::LeaveNumber number{};
+    for (std::size_t index = 0; index < number.size(); ++index)
+        number[index] = static_cast<std::byte>(input.messageBuffer[index]);
+    requests.Value()->SendGuildPacket(Protocol::Guild::WriteLeave(name, number));
+    ClearTheTypedNumber(input);
+    return {};
+}
+
+// 0x62b39c (el sí del 0x7f) y 0x62c5c2 (el no): la respuesta al pedido de guerra del 61, el C1 04 61 [1 o 0] con el
+// XOR32 y en claro por el socket, sin rand().
+Core::Expected<void, std::string> AnswerTheWar(const GameUiContext& context, bool accept)
+{
+    auto requests = RequestsOf(context, accept ? "0x62b39c" : "0x62c5c2");
+    if (!requests.HasValue())
+        return Core::Unexpected(std::move(requests).Error());
+    requests.Value()->SendGuildPacket(Protocol::Guild::WriteWarAnswer(accept));
+    return {};
+}
+
+// El sí (0x62a86b, la tabla 0x62daf4): la invitación a la party (0x62bb1d), el pedido de comercio (0x62c20a), el
+// número del 0x7d (0x62a878) y el pedido de guerra del 0x7f (0x62b39c).
+Core::Expected<void, std::string> AnswerYes(const GameUiContext& context, std::int32_t id)
+{
+    if (id == LeaveNumberDialog)
+        return SendTheLeave(context);
+    if (id == UI::IgnoredOverChaosCastle)
+        return AnswerTheWar(context, true);
+    return Answer(context, id, 1, id == PartyRequestDialog ? "0x62bb1d" : "0x62c20a");
+}
+
 // 0x62a7f7..0x62d745: el sí, que gasta el clic y cierra (0x62c4ac), y después el no con el diálogo que quedó, que
 // también entra con Esc. Con otro caso de la tabla del no, su tramo corta; sin caso, solo el cierre.
 Core::Expected<void, std::string> StepTheYesNo(const GameUiContext& context, bool escape)
@@ -722,7 +788,7 @@ Core::Expected<void, std::string> StepTheYesNo(const GameUiContext& context, boo
     if (inButton(narrowYes ? NarrowYesLeft : YesLeft, narrowYes ? NarrowWidth : YesNoWidth) && click)
     {
         click = false;
-        if (auto said = Answer(context, id, 1, id == PartyRequestDialog ? "0x62bb1d" : "0x62c20a"); !said.HasValue())
+        if (auto said = AnswerYes(context, id); !said.HasValue())
             return said;
         CloseTheDialog(runtime);
         id = runtime.dialogs.current;
@@ -735,6 +801,17 @@ Core::Expected<void, std::string> StepTheYesNo(const GameUiContext& context, boo
     if (const auto other = std::ranges::find(OtherNoCases, id, &OtherNoCase::id); other != OtherNoCases.end())
         return Core::Unexpected(
             std::format("0x62c560: el no del diálogo {:#x} ({}) es {} (08 P-C363)", id, other->address, other->owner));
+    // 0x62c567: el no del 0x7d vacía el número de 0x7798bf8, pero no el EDIT (Q-C1295).
+    if (id == LeaveNumberDialog)
+        ClearTheTypedNumber(runtime.chat.input);
+    // 0x62c5c2: el no del 0x7f manda el C1 04 61 00 y deja el gremio sin guerra ni rival (0x4c1800, que llama dos veces
+    // en 0x62c854 y 0x62c86a; la segunda no cambia nada).
+    if (id == UI::IgnoredOverChaosCastle)
+    {
+        if (auto said = AnswerTheWar(context, false); !said.HasValue())
+            return said;
+        ClearTheWar(context.world);
+    }
     if (id == PartyRequestDialog || id == UI::ForcedDialog)
     {
         if (auto said = Answer(context, id, 0, id == PartyRequestDialog ? "0x62cd52" : "0x62d4a2"); !said.HasValue())

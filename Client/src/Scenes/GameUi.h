@@ -83,6 +83,8 @@ public:
     virtual void RequestLogout(std::uint8_t kind) = 0;
     // 0x6599a0(4): el C1 03 42 en claro, el pedido de la lista de la party al abrir su ventana.
     virtual void RequestPartyList() = 0;
+    // CL9 hito 8: los paquetes del gremio que manda la UI (Protocol::Guild: el 51, el 52, el 54 y el E6), en claro.
+    virtual void SendGuildPacket(Protocol::Outgoing packet) = 0;
     // Un paquete de mundo que arma Protocol (el comercio, la party y el duelo de la CL9 hito 7: 37, 3A, 3C, 3D, 41, 43
     // y AC), como sale. Los dos rand() de un C3 los saca el paso antes.
     virtual void SendGamePacket(Protocol::Outgoing outgoing) = 0;

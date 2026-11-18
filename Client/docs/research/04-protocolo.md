@@ -1439,6 +1439,73 @@ lee el handler); `App::ServerSession` los registra juntos después del `D7` y lo
 `ApplyViewportPosition`). Los tests arman los paquetes con los structs del ASM y nombres inventados
 (`support/ViewportPackets.h`).
 
+### El gremio, la alianza y la guerra: `50`..`67` y `E1`..`EB`
+
+(CL9 hito 8, 2026-11-13, *estático*, contra el GameServer 0.97 reconstruido; la alianza, `E1`..`EB`, no la tiene:
+el ASM del cliente es el oráculo.) `0x4e2b10` los reparte sin mirar la escena ni el flag de cifrado. El `55` y el
+`5C` caen en el `default`: el cliente los ignora (el GS 0.97 manda el `5C`, `GCGuildViewportNowPaint`). Las
+funciones de cada uno y lo que hacen están en [06](06-render-escenas-y-ui.md#el-gremio-la-alianza-y-la-guerra).
+
+| Opcode | Función | Formato (lo que lee) |
+| --- | --- | --- |
+| `50` | `0x4d74b0` | `C1 05 50 <clave:2>`, el byte alto entero (sin `& 0x7f`) |
+| `51`, `53`, `56`, `60` | `0x4d7a20`, `0x4d7c30`, `0x4d7ff0`, `0x4d8150` | `C1 04 <op> <resultado>` |
+| `52` | `0x4d7b60` | C2: `pkt[5]` la cuenta, el DWORD de `pkt[8]` el puntaje (negativo, 0), `pkt[0xd..0x14]` un nombre de gremio y las entradas desde `pkt[0x18]`, de `0xd` bytes: el nombre (10), el número, el servidor (bit 7 conectado, los 7 de abajo; sin él, `0xff`) y el puesto. `pkt[4]` no se lee |
+| `54` | `0x4e4279` | sin campos: abre el panel `0x40000` |
+| `5D` | `0x4e42f0` | `C1 05 5D <clave:2>` con el byte alto `& 0x7f` |
+| `61` | `0x4e4382` | `C1 0C 61 <gremio:8> <tipo>` |
+| `62` | `0x4d8260` | `C1 0D 62 <gremio:8> <tipo> <equipo>` |
+| `63` | `0x4d8870` | `C1 0C 63 <resultado> <gremio:8>`; el nombre no se lee |
+| `64` | `0x4e4400` | `C1 06 64 <nuestro> <suyo> <x>`; `pkt[5]` no se lee |
+| `65` | `0x4e42af` → `0x4d9260` | C2 (*inferido*: lee la cuenta de `pkt[4]`): entradas de `0xc` bytes desde `pkt[5]`: `<gremio:4 LE> <puesto> <+0x369> <relación> <clave:2>`, el byte alto `& 0x7f`; `+9..+0xb` no se leen (fase 2) |
+| `66` | `0x4e42c7` → `0x447b90` | `C1 39 66 x <clave:4 LE> x <alianza:8> <gremio:8> <marca:32>` |
+| `67` | `0x4e44aa` (en línea) | C2 como el `65`: entradas de `0x14` bytes desde `pkt[5]`: `<clave:2>` entera (sin `& 0x7f`), `x x`, `<gremio:4 LE> <relación> <alianza:8>`; `+0x11..+0x13` no se leen (fase 2) |
+| `E1` | `0x4d9810` | `C1 05 E1 <tipo> <resultado>` |
+| `E5` | `0x4e4444` → `0x6565e0` | `C1 07 E5 <relación> <pedido> <clave alta> <clave baja>` |
+| `E6` | `0x4d9940` | `C1 08 E6 <relación> <pedido> <resultado> <clave:2 BE>` |
+| `E9` | `0x4d9e50` | C2: `pkt[4]` la cuenta, `pkt[5]` el resultado; con 1, las entradas desde `pkt[8]`, de `0x29` bytes: un byte, la marca (32) y el nombre (8) |
+| `EB` | `0x4e4486` → `0x4d9b80` | `C1 <op> EB <tipo> [<resultado>]`: `pkt[4]` solo con el tipo 1 |
+
+Lo que manda el cliente, por el socket del GameServer (`0x6c82a0`) sin la capa del `C3`:
+
+- `C1 06 51 <sí> <clave:2>` con el XOR32 (`0x4d6b60`, y `0x4d754d` con el diálogo ocupado: el 0).
+- `C1 03 52`, sin campos (`0x4d7d95`, `0x6599a0(0x10)`).
+- `C1 04 54 <respuesta>` con el XOR32 (`0x655d70` con Crear: el 1; `0x6570b0` al cerrar la ventana 2 y la página 0 y
+  la confirmación antes de cerrarla: el 0, dos seguidos, Q-C1289).
+- `C1 2C 55 00 <gremio:8> <marca:32>` con el XOR32 (`0x6552b0`, el alta: el byte en 0 lo escribe `0x6553bf`; la
+  marca, los 64 nibbles de `0x78a5986` de a dos, el par primero arriba; Q-C1287).
+- `C1 17 53 <nombre:10> <número:10>` con el XOR32 (`0x62a878`, el sí del diálogo `0x7d`, CL9 hito 8, fase 6): los
+  diez bytes del lugar `0x6d5e2c` de `0x787a5e8` y los diez de `0x7798bf8`, donde GetText dejó lo escrito en
+  `[0x5763508]` (hasta 7 dígitos y el `'\0'`; detrás, lo que había en el buffer). Cotejado (CL9.R) con el GS 0.97:
+  `PMSG_GUILDDELUSER` (`0x17` bytes, `Name` en +3 y `JoominNumber` en `+0xd`, `CGGuildDelUser`, `0x420bf0`) copia los
+  10 del número a un buffer de 14 en cero y lo pasa a `gObjCheckPassword`; el maestro con su propio nombre disuelve
+  (`GDGuildDestroySend`), con otro lo echa, y el que no es maestro sale (`GDGuildMemberDel` con el nombre que llega).
+  Responde `C1 04 53 <resultado>` (3 sin `gGuildDestroy`, 0 con el número mal del maestro).
+- `C1 05 18 <dirección> <acción>` con el XOR32: la guerra (`0x4d8473` con `0x94`, `0x4d8a39` y `0x4d8e1b` con
+  `0x8d` y `0x89`), después del de `0x576a60`, que manda el suyo si el héroe está parado (hito 1, `Scenes::PlayTheEmote`).
+- `C1 04 61 <sí>` con el XOR32 (2026-11-17): la respuesta al pedido de guerra del diálogo `0x7f`, 1 con el sí
+  (`0x62b39c`) y 0 con el no o Esc (`0x62c5c2`, que además olvida la guerra con `0x4c1800`).
+- `C1 05 50 <clave:2 BE>` con el XOR32 (2026-11-17): `/guild` (`0x573f49`) y el comando 5 del elegido (`0x4085d1`)
+  piden entrar al gremio de otro.
+- `C1 07 E5 <relación> <pedido> <clave alta> <clave baja>` con el XOR32 (2026-11-17): `/union` (1, 1), `/rival` (2, 1)
+  y `/rivaloff` (2, 2) desde `0x570d48`, y los comandos 6 a 8 del elegido.
+- `C1 08 E6 <relación> <pedido> <resultado> <clave alta> <clave baja>` con el XOR32 (`0x653c00`, y `0x656616` con el
+  diálogo ocupado: el 0).
+- `C1 03 E9`, sin campos (`0x4d9bc8`).
+- `C1 08 66 0 <gremio:4 LE>` con el XOR32 desde `pkt[3]` (`0x4d930f..0x4d9690`): el `65` pide el `66` de cada gremio
+  que la tabla no tiene, antes de agregarlo con `0x447b50` (fase 2). El 0 es el relleno hasta el DWORD, como el
+  `pkt[3]` del `66`.
+
+Contra el GS 0.97 (08, P-C283): el `52` tiene la cabecera de `0x10` bytes y entradas de `0xc` (`PMSG_GUILDLIST`, sin
+el puesto), y el 1.02 lee una de `0x18` y entradas de `0xd`; el `5C` no tiene handler; la alianza (`E1`..`EB`) no
+existe, y tampoco el `65`, el `66` ni el `67` (el GS 0.97 manda el `5C`, que el cliente ignora): el ASM es el oráculo
+de sus formatos, y que sean C2, *inferido* de dónde leen la cuenta. MyDll (`mydll_siege.cpp`) sí manda el `65`, el
+`66`, el `67`, el `E5`, el `E6` y el `E9`; su `E9` (`alliance_list_send`) anuncia todos los gremios de la alianza y
+escribe solo los que encuentra, con una cola de 8 ceros (07, Q-C1365).
+
+**MuRet**: `Protocol::Guild::ReadGuildPacket` lee los 20 (el `52`, el `65`, el `67` y el `E9` solo en C2) y sus `Write*` arman lo que
+manda; `App::ServerSession` los registra en un bloque (`RegisterGuildHandlers`) y `Scenes::ApplyGuildPacket` los
+aplica (06). Los tests usan nombres inventados.
 ### Los amigos: `C0`..`C4`
 
 (CL9 hito 9, 2026-11-13, *estático*.) La reconstrucción del GameServer 0.97 no tiene amigos: el `switch` de

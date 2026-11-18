@@ -5,6 +5,7 @@
 #include "Protocol/Messages.h"
 #include "Protocol/OptionData.h"
 #include "Render/Text/IGlyphRasterizer.h"
+#include "Scenes/GuildPanels.h"
 #include "Scenes/SceneId.h"
 
 #include <cstddef>
@@ -43,6 +44,9 @@ struct ChatReceiveContext
     const Data::Text::TextTable* texts = nullptr;
     // 0x6d5edc: el lugar del elegido en la selección, de 0 a 4. Vacío, el −1.
     std::optional<std::uint8_t> chosenSlot{};
+    // El GameServer de la sesión, para lo que abrir la ventana 2 del gremio cierra (0x4e345c, CL9 hito 8). Sin él,
+    // el 01 del Guild Master corta si hay algo que cerrar con cable.
+    GuildSender guildSend{};
 };
 
 // 0x5110d0: el primero de los 400 vivo con la clave (MOVSX de +0x1f4 contra el int del paquete: una clave desde
@@ -57,7 +61,9 @@ struct ChatReceiveContext
                                                           const ChatReceiveContext& context);
 
 // 0x4e33fc: el personaje de la clave (0x5110d0, el 401 si no hay) y su globo (0x557170 con 0 y sin color). Con el
-// héroe en +0x368 = 0x80 y ese personaje llamado "길드 마스터" (0x6c8404) abre la ventana del gremio: corta (CL9.4).
+// héroe en +0x368 = 0x80 y ese personaje llamado "길드 마스터" (0x6c8404), sin globo, 0x4e3450: abre la ventana 2 del
+// gremio (0x6599a0(0x40000, 0)), prende el campo del alta (0x77f3b68), cierra el del chat (0x6c8e68), vacía los
+// buffers (0x553570(0)), deja la cuenta de Tab (0x6c8e6c) en 0 y, al héroe sin gremio (+0x1f2 en −1), le da el 1999.
 [[nodiscard]] Core::Expected<void, std::string> ApplyKeyChat(const Protocol::Messages::KeyChat& chat,
                                                              const ChatReceiveContext& context);
 

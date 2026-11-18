@@ -19,6 +19,7 @@
 #include "UI/OldWindowBase.h"
 #include "UI/OldWindowDrawParts.h"
 #include "UI/OldWindows.h"
+#include "UI/TextField.h"
 
 #include <algorithm>
 #include <array>
@@ -777,9 +778,25 @@ void DrawTheOldEdit(const OldWindowDrawContext& context, OldEdit& edit, bool foc
     }
     // 0x4684bc..0x4684e4: GetFocus() es el EDIT y +0x80 % 0x18 < 0xc.
     const bool caretOn = focused && edit.draws % BlinkPeriod < BlinkOn;
+    // 0x46854d: GetWindowTextA (la vtable + 0x50, 0x467ec0) le manda WM_GETTEXT al EDIT, que pasa por su subclase
+    // (0x467b10): con una flecha abajo (0x467b35..0x467b69), +0x80 en 0. El INC del final lo deja en 1: con una flecha
+    // apretada, el cursor queda prendido (Q-C1304).
+    if (context.arrowHeld)
+        edit.draws = 0;
+    // 0x468550..0x4685ec: cx del texto en el DC con la fuente que tenga; con ES_PASSWORD (+0xb0, TextField::Masked), el
+    // de tantos '*' como bytes en la negrita (SelectObject con 0x5763558), y el DC queda con la normal (0x5763554). El
+    // EDIT se pinta con su fuente (la normal de WinMain) y '*' por byte (*inferido*: el carácter de ES_PASSWORD de un
+    // EDIT sin el manifiesto de comctl32 6), y su cursor queda al final de eso.
+    const std::string text = edit.text.Shown();
+    std::int32_t textWidth = 0;
+    if (edit.text.Masked())
+    {
+        textWidth = context.text.Measure(Render::Text::FontKind::Bold, text).width;
+        context.dcFont = Render::Text::FontKind::Normal;
+    }
+    else
+        textWidth = context.text.Measure(context.dcFont, text).width;
     // 0x4685ee..0x468622: el ancho del bitmap, ftol(+0xa8 + 1,5 + cx), hasta ftol(w · rx); el alto, ftol(h · ry).
-    const std::string_view text = edit.text.Value();
-    const std::int32_t textWidth = context.text.Measure(context.dcFont, text).width;
     std::int32_t width = Truncate(CaretWidth + BoxSlack + static_cast<double>(textWidth));
     const double edge = static_cast<double>(base.width) * rx;
     if (static_cast<double>(width) > edge)
@@ -793,6 +810,7 @@ void DrawTheOldEdit(const OldWindowDrawContext& context, OldEdit& edit, bool foc
                       F32(static_cast<double>(width) / rx), F32(static_cast<double>(height) / ry));
     WhiteWithTexture(sprites);
     const std::int32_t visibleTextWidth = std::min(textWidth, std::max(width - EditTextMargin, 0));
+    // La columna del cursor (GetCaretPos): con ES_PASSWORD, la de los '*' en la fuente normal que el DC tiene ahora.
     const std::int32_t cursorWidth = context.text.Measure(context.dcFont, text.substr(0, edit.text.Cursor())).width;
     const std::int32_t caretColumn = EditTextMargin + cursorWidth + 1;
     const OldEditTextLayout textLayout{left, top, visibleTextWidth, caretColumn - EditTextMargin,
@@ -803,6 +821,11 @@ void DrawTheOldEdit(const OldWindowDrawContext& context, OldEdit& edit, bool foc
     ++edit.draws;
 }
 } // namespace OldDraw
+
+void DrawTheOldButton(const OldWindowDrawContext& context, const OldButton& button, const OldWindowDrawView& view)
+{
+    OldDraw::DrawTheButton(context, button, view);
+}
 
 std::optional<Render::Color> OldWindowPalette(std::int32_t index, float alpha)
 {

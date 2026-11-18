@@ -17,6 +17,7 @@
 #include "Protocol/Events.h"
 #include "Protocol/FloorItems.h"
 #include "Protocol/Friends.h"
+#include "Protocol/Guild.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/Messages.h"
 #include "Protocol/Movement.h"
@@ -39,6 +40,7 @@
 #include "Scenes/CombatReplies.h"
 #include "Scenes/EventPackets.h"
 #include "Scenes/FloorItemPackets.h"
+#include "Scenes/GuildReceive.h"
 #include "Scenes/GameFriends.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/InventoryReply.h"
@@ -64,6 +66,7 @@
 #include "Scenes/WorldTransitions.h"
 #include "World/LeafWeather.h"
 
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -113,6 +116,27 @@ ChatReceiveContext ChatContextOf(const WorldEntryResources& resources, const App
                               .texts = resources.texts,
                               .chosenSlot =
                                   chosen != nullptr ? std::optional<std::uint8_t>(chosen->slot) : std::nullopt};
+}
+
+// Lo que los paquetes del gremio leen del juego y de la sesión (CL9 hito 8): lo que mandan va por el GameServer de la
+// sesión, también los C1 18 del gesto de la guerra (0x576a60, el emote del hito 1, con los modelos de la escena).
+GuildReceiveContext GuildContextOf(const WorldEntryResources& resources, App::ServerSession& session)
+{
+    const std::uint32_t now =
+        resources.clock != nullptr
+            ? static_cast<std::uint32_t>(
+                  std::chrono::duration_cast<std::chrono::milliseconds>(resources.clock->Now()).count())
+            : 0U;
+    return GuildReceiveContext{.world = resources.world,
+                               .random = resources.cloth.random,
+                               .measure = resources.textMeasure,
+                               .screen = resources.screen ? resources.screen() : App::PixelSize{640, 480},
+                               .texts = resources.texts,
+                               .playerKey = session.PlayerIndex(),
+                               .now = now,
+                               .send = [&session](Protocol::Outgoing packet)
+                               { session.SendGuildPacket(std::move(packet)); },
+                               .models = &resources.models};
 }
 
 // El 0x3d de la respuesta va a la sesión que la está aplicando.
@@ -185,7 +209,12 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorld(const App::Wor
         return ApplyChat(*chat, ChatContextOf(m_resources, session));
     }
     if (const auto* chat = std::get_if<Protocol::Messages::KeyChat>(&event))
-        return ApplyKeyChat(*chat, ChatContextOf(m_resources, session));
+    {
+        // 0x4e345c: el 01 del Guild Master abre la ventana 2 del gremio, y lo que eso cierra manda por el GameServer.
+        ChatReceiveContext context = ChatContextOf(m_resources, session);
+        context.guildSend = [&session](Protocol::Outgoing packet) { session.SendGuildPacket(std::move(packet)); };
+        return ApplyKeyChat(*chat, context);
+    }
     if (const auto* whisper = std::get_if<Protocol::Messages::Whisper>(&event))
         return ApplyWhisper(*whisper, ChatContextOf(m_resources, session));
     if (const auto* result = std::get_if<Protocol::Messages::WhisperResult>(&event))
@@ -194,6 +223,8 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorld(const App::Wor
         return ApplyNotice(*notice, ChatContextOf(m_resources, session));
     if (const auto* options = std::get_if<Protocol::OptionData::OptionData>(&event))
         return ApplyOptionData(*options, ChatContextOf(m_resources, session));
+    if (const auto* guild = std::get_if<Protocol::Guild::GuildPacket>(&event))
+        return ApplyGuildPacket(*guild, GuildContextOf(m_resources, session));
     if (auto skill = ApplySkillEvent(event); skill)
         return std::move(*skill);
     if (auto viewport = ApplyViewport(event))

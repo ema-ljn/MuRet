@@ -167,6 +167,7 @@ public:
     }
     void SendWindowClose() override {}
     void SendSetQuest(std::uint8_t /*quest*/, std::uint8_t /*state*/) override {}
+    void SendGuildPacket(Client::Protocol::Outgoing /*packet*/) override {}
     void SendFriendPacket(Client::Protocol::Outgoing /*packet*/) override {}
     Client::Core::Expected<void, std::string> SaveMacros(std::string_view /*content*/) override
     {

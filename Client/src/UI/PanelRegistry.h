@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "UI/Dialogs.h"
+#include "UI/PanelDialog.h"
 
 #include <array>
 #include <cstddef>
@@ -94,7 +95,7 @@ struct DelegatedPanels
     std::uint8_t friends = 0;
     // 8: *(0x710148)+0x21383. IsOpen lo mira distinto de 0 y CanOpen no abre nada con 1.
     std::uint8_t quest = 0;
-    // 0x10: 0x6522e0, el gremio ([0x7d536f0], CL9.4).
+    // 0x10: 0x6522e0, +0x7c del gremio ([0x7d536f0], CL9 hito 8). Lo abren 0x6522d0 y lo cierra 0x6522f0.
     std::uint8_t guild = 0;
     // 0x200: +4 de [0x6e592c], la ventana de los comandos (D, CL8 hito 6). La abre Open y la cierran CloseByMask y su
     // botón de cerrar (0x40a58a).
@@ -105,7 +106,7 @@ struct DelegatedPanels
     std::uint8_t pet = 0;
     // 0x8000: 0x449bf0, 0x724580 > 0. Con 3 (0x449c00), abrir el inventario no lo cierra.
     std::int32_t trainer = 0;
-    // 0x40000: 0x6570a0, el gremio 2 ([0x7d536f4]).
+    // 0x40000: 0x6570a0, +0x7c del gremio 2 ([0x7d536f4], CL9 hito 8). Lo abren 0x657090 y lo cierra 0x6570b0.
     std::uint8_t secondGuild = 0;
     // 0x80000, 0x100000 y 0x200000: [0x7d536f8]+4, [0x7d536fc]+4 y [0x7d53700]+0x14 (Castle Siege, CL9.5).
     std::uint8_t castleSiege = 0;
@@ -119,9 +120,9 @@ struct DelegatedPanels
     std::uint8_t siegeGate = 0;
     // 0x661b90 sin ítem en el cursor: algún lugar de la grilla de la caja del caos (0x7d2d380) ocupado (CL9.3).
     bool chaosBoxHasItem = false;
-    // [0x7d53704]+0x10: el diálogo de los paneles (0x65feb0; lo abre 0x6600d0 desde los paquetes, CL9.4, P-C90).
-    // 0x657880 le da la tecla primero.
-    std::uint8_t panelDialog = 0;
+    // [0x7d53704]: el diálogo de los paneles (0x65feb0; lo abre 0x6600d0 desde los paquetes, CL9 hito 8). 0x657880 le
+    // da la tecla primero.
+    PanelDialogState panelDialog{};
 };
 
 // Los bytes del registro y los globales que sus funciones escriben, todos en la .bss.
@@ -185,6 +186,25 @@ struct PanelContext
     std::function<void()> eventNpcClosed{};
     // 0x41ed10(id, 0, 0): el sonido, gancho de la CL10.
     std::function<void(std::int32_t)> sound{};
+    // 0x659c8c..0x659e3c: lo que abrir el gremio hace si cerró lo demás, antes de abrirlo: el pedido de la lista, C1 03
+    // 52 (Protocol::Guild::WriteMemberListRequest). Sin él, abrir el gremio corta.
+    std::function<void()> guildOpened{};
+    // 0x6522f0 y 0x6570b0, la vtable + 0x2c de las dos ventanas del gremio, que CloseByMask llama con su panel abierto
+    // (Scenes/GuildPanels): el sonido, sus diálogos y, la 2, el C1 04 54 00. Sin ellos, cerrarlas corta.
+    std::function<Core::Expected<void, std::string>()> guildClosed{};
+    std::function<Core::Expected<void, std::string>()> secondGuildClosed{};
+    // La función de quien abrió el diálogo de los paneles (0x4d6b60 o 0x653c00), que llaman 0x6603c0, 0x660410 y
+    // 0x6605b0. Sin ella, responder corta.
+    PanelDialogAnswer panelDialogAnswer{};
+    // 0x6605b0 con el mouse, los globales de la UI vieja y el reloj del paso (Scenes/GuildPanels). Sin él, el paso con
+    // el diálogo abierto corta.
+    std::function<Core::Expected<void, std::string>()> panelDialogStep{};
+    // 0x657930 con [0x7d536f4] abierta: su vtable + 0x18 (0x45aa80(0), que llama a 0x656df0) con el mouse, el reloj y
+    // los filtros del paso (Scenes/SecondGuildWindow). Sin él, el paso con la ventana 2 del gremio abierta corta.
+    std::function<Core::Expected<void, std::string>()> secondGuildStep{};
+    // 0x657977: el paso de la ventana del gremio (0x45aa80(0) y 0x651840, Scenes::StepTheGuildWindow), con el mouse y
+    // el cable del paso. Sin él, con el panel abierto, el paso corta.
+    std::function<Core::Expected<void, std::string>()> guildStep{};
     // 0x65c966..0x65ca6d: lo que abrir el personaje hace fuera de los paneles, cierre o no lo demás: [0x6eed3c] de
     // +0x9304 a +0x9327 en 0, y con el registro propio abierto, 0x550d10 si un lugar del equipo tiene la durabilidad
     // en 0 (0x550cf0). Sin él, abrir el personaje corta.

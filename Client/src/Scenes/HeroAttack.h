@@ -24,11 +24,12 @@ struct InventoryServices;
 // ([0x7879fbc] > 0, con signo) o sin elegido; verdadero en Chaos Castle (18 a 23) con otro que el héroe. Un monstruo
 // (+0x88 en 2), salvo en la guerra de gremios; un jugador (+0x88 en 1) por el asedio (0x4294b0), +0x370, la guerra
 // de gremios, el duelo, el PK de 6 o más o, si no, con Ctrl abajo (GetAsyncKeyState(0x11) en 0x558e7f, `controlDown`)
-// y que no sea el héroe. Donde compara los nombres de gremio (0x558da4, 0x787aa55) MuRet no los tiene hasta el hito 8:
-// da falso, como con los dos nombres iguales (08, P-C250 f).
+// y que no sea el héroe. En la guerra (GuildState::warOn y warType, 0x576796c y 0x576796d), un jugador con el PK de 6
+// o más y gremio no se ataca si su gremio se llama como el del héroe (strcmp en 0x558da4 sobre 0x787aa55); con un
+// índice fuera de la tabla, corta.
 [[nodiscard]] Core::Expected<bool, std::string> IsAttackable(const WorldState& world, bool controlDown);
 // 0x5588d0(blanco): lo mismo con `target` en vez del elegido (sin mirar 0x6c8e30), como la llama el lazo de los blancos
-// de la skill 0x4c del paso del ataque (0x5024c3, CL9 hito 4). Corta donde compara los nombres de gremio (0x558aa9).
+// de la skill 0x4c del paso del ataque (0x5024c3, CL9 hito 4). Compara los nombres de gremio en 0x558aa9.
 [[nodiscard]] Core::Expected<bool, std::string> IsAttackableActor(const WorldState& world, const ActorState& target,
                                                                   bool controlDown);
 
@@ -37,8 +38,8 @@ struct InventoryServices;
 // `attacker` (el lugar de c) no es el héroe publicado ([0x743a170]). En Chaos Castle (18 a 23), la clave, también la
 // del héroe. Después, como 0x558bb0 sin el asedio ni el tipo del objeto: +0x370 en 2 u 8; fuera de la guerra de
 // gremios, el PK de 6 o más o Ctrl abajo (0x558fd6) con otro que el héroe; en ella, +0x374 en 2 con otro; en el duelo,
-// la clave del rival, sin comparar el nombre. Donde compara los nombres de gremio (0x558f29) MuRet no los tiene hasta
-// el hito 8: da −1, como con los dos nombres iguales (08, P-C250 f). No saca rand().
+// la clave del rival, sin comparar el nombre. Los nombres de gremio (0x558f29), como en 0x558bb0: iguales, −1. No saca
+// rand().
 [[nodiscard]] Core::Expected<std::int32_t, std::string> ChosenKeyOf(const WorldState& world, std::size_t attacker,
                                                                     bool controlDown);
 // 0x558eb0(c, `chosen`): lo mismo con otro elegido, como lo llama el elfo con 0x7758588 (0x562a7f, 0x563ea3) y las

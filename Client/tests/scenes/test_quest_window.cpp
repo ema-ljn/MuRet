@@ -159,6 +159,7 @@ public:
     {
         requests.push_back("A2 " + std::to_string(quest) + " " + std::to_string(state));
     }
+    void SendGuildPacket(Client::Protocol::Outgoing /*packet*/) override {}
     void SendFriendPacket(Client::Protocol::Outgoing /*packet*/) override
     {
         requests.emplace_back("amigos");

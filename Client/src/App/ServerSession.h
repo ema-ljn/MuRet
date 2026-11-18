@@ -248,6 +248,9 @@ public:
     [[nodiscard]] Core::Expected<void, std::string> SendUseItem(const Protocol::FloorItems::UseItem& use);
     // El C1 03 42 de 0x6599a0(4), al abrir la ventana de la party (Protocol::Party::WritePartyListRequest), en claro.
     void RequestPartyList();
+    // Los C1 del gremio, de la alianza y de la guerra (Protocol::Guild; CL9 hito 8), como los demás de mundo: sin un
+    // GameServer abierto, un aviso y nada.
+    void SendGuildPacket(Protocol::Outgoing packet);
     // Las misiones y los NPC (CL9 hito 2), por el GS en el mundo. Los rand() del relleno y del serial de los C3 los
     // saca la escena antes. El C3 A0 de 0x63693a y 0x5676a6 (Protocol::Quest::WriteQuestListRequest).
     void RequestQuestList();
@@ -362,6 +365,7 @@ public:
 private:
     void RegisterConnectServerHandlers();
     void RegisterGameServerHandlers();
+    [[nodiscard]] bool RegisterGuildHandlers();
     // El comercio, la party y el duelo (CL9 hito 7), aparte para que cada ola sume los suyos sin tocar la cadena.
     void RegisterSocialHandlers();
     // Un paquete de mundo que se lee con `read` y se aplica tal cual; `what` es lo que dice el aviso si no se lee.
@@ -433,6 +437,8 @@ private:
     void OnLogoutResult(const Network::Packet& packet);
     void ReturnToServerList(bool encrypted);
     void OnMainCheck(const Network::Packet& packet);
+    // CL9 hito 8: los 18 paquetes del gremio, de la alianza y de la guerra (Protocol::Guild::ReadGuildPacket).
+    void OnGuild(const Network::Packet& packet);
     // CL9 hito 4: las skills (04 § Las skills).
     void RegisterSkillHandlers();
     void OnMagicAttack(const Network::Packet& packet);

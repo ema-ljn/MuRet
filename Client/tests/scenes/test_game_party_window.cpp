@@ -145,6 +145,10 @@ public:
     {
         requests.emplace_back("42");
     }
+    void SendGuildPacket(Client::Protocol::Outgoing /*packet*/) override
+    {
+        requests.emplace_back("guild");
+    }
     // El 43 que echa, como sale: los bytes sin el XOR32.
     void SendGamePacket(Client::Protocol::Outgoing outgoing) override
     {

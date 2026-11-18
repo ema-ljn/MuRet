@@ -7,13 +7,13 @@
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
-#include "Scenes/AttackRules.h"
 #include "Scenes/ChatBubbles.h"
 #include "Scenes/EventGlobals.h"
 #include "Scenes/EventMapObject.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GameItemRenderState.h"
+#include "Scenes/GuildState.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/ItemHelpLevels.h"
 #include "Scenes/MonsterSounds.h"
@@ -384,6 +384,9 @@ struct WorldRuntime
     // escena.
     UI::PanelState panels{};
     UI::DialogState dialogs{};
+    // El gremio, la alianza y la guerra (CL9 hito 8): la tabla de los gremios (0x787aa48), los miembros (0x787a5e8),
+    // los globales de la guerra y lo que los paquetes guardan en las dos ventanas del gremio.
+    GuildState guild{};
     // 0x7d36a98, 0x7d368e4, 0x7d368b8 y 0x7d3a0f4..0x7d3a0f9: el texto y los botones de las cajas viejas (hito 6).
     UI::DialogBoxState dialogBox{};
     UI::GameUiState ui{};
@@ -562,8 +565,6 @@ struct WorldRuntime
     // 0x75fdc38: meta del 0F. 0x75fdc3c es la cuenta actual, que ese paquete no cambia.
     // Estado durable de 0x530490 para el futuro binder de hojas; recibir 0F no crea lluvia.
     World::LeafWeather leafWeather{.firstWave = InitialLeafCount};
-    // CL9 hito 3: lo que mira 0x558bb0 para saber si el personaje elegido se puede atacar (AttackRules.h).
-    AttackRules attackRules{};
     // [0x5767964] (.bss, 0): el lugar del último que pegó. Lo escriben el 18 con las acciones 0x78 y 0x79 (0x4cb849),
     // el 0x19 (0x4cce7d), el 0x69 (0x4cc2e1) y el 0x1A (0x4cedf7, también con el 400 fantasma), y lo lee el D7 que
     // llega con el efecto defensivo (0x4cb32f, que corta). MuRet escribe el del 18 (CL9 hito 3, fase 2a) y el del 1A

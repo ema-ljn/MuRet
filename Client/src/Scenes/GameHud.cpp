@@ -38,10 +38,13 @@
 #include "Scenes/HudItems.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
+#include "Scenes/GuildWindow.h"
+#include "Scenes/SecondGuildWindow.h"
 #include "Scenes/QuestWindow.h"
 #include "Scenes/ShopSigns.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/UiItemDrawing.h"
+#include "Scenes/GuildDrawing.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"
@@ -903,12 +906,23 @@ Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
     // 0x5f75fa: 0x40a650, que empieza con +4 de [0x6e592c].
     if (auto commands = DrawTheCommandsWindow(frame.context); !commands.HasValue())
         return commands;
-    if (panels.IsOpen(UI::SecondGuildPanel) || panels.IsOpen(UI::GuildPanel) || panels.IsOpen(UI::CastleSiegePanel) ||
-        panels.IsOpen(UI::CastleSiegeListPanel) || panels.IsOpen(UI::SecondCastleSiegePanel))
-        return cut("0x6579e0: las ventanas del gremio y del asedio son de la CL9.4 y la CL9.5");
-    if (state.delegated.panelDialog != 0)
-        return cut("0x660830: el diálogo de los paneles (lo abre 0x6600d0 desde los paquetes) es de la CL9.4 (P-C90)");
-    return {};
+    // 0x6579e0: [0x7d536f4] por su vtable + 0x14 (0x656e70) primero.
+    if (panels.IsOpen(UI::SecondGuildPanel))
+    {
+        if (auto second = DrawTheSecondGuildWindow(frame.context); !second.HasValue())
+            return second;
+    }
+    // 0x657a18: [0x7d536f0] por su vtable + 0x14 (0x651c20).
+    if (panels.IsOpen(UI::GuildPanel))
+    {
+        if (auto guild = DrawTheGuildWindow(frame.context); !guild.HasValue())
+            return guild;
+    }
+    if (panels.IsOpen(UI::CastleSiegePanel) || panels.IsOpen(UI::CastleSiegeListPanel) ||
+        panels.IsOpen(UI::SecondCastleSiegePanel))
+        return cut("0x6579e0: las ventanas del asedio son de la CL9.5");
+    // 0x6579e0: 0x660830, el diálogo de los paneles, si está abierto.
+    return DrawThePanelDialog(frame.context, frame.runtime.panels.delegated.panelDialog);
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -1567,12 +1581,14 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
     hud.textColors.text = 0xffffffffu;
     // 1. 0x5a7520.
     DrawTheSands(frame);
-    // 2. 0x5a7640: la guerra de gremios, con 0x576796c (CL9.4): nada. Con el tanteador de Battle Soccer que deja el
-    // F3 23 (0x576796f, CL9 hito 11), su dibujo (0x5a7a0e) busca los nombres en la lista de gremios de 0x787aa55, del
-    // hito 8.
+    // 2. 0x5a7640: el marcador de la guerra de gremios (Scenes/GuildDrawing.h). Después (0x5a7a01), con el tanteador de
+    // Battle Soccer que deja el F3 23 (0x576796f, CL9 hito 11), su dibujo (0x5a7a0e), que busca los nombres en la lista
+    // de gremios de 0x787aa55: falta (08 P-C284 a).
+    if (auto war = DrawTheWarScore(context, frame.panels); !war.HasValue())
+        return war;
     if (runtime.events.soccer.active)
         return Core::Unexpected(std::string("0x5a7a0e: el tanteador de Battle Soccer, con la lista de los gremios "
-                                            "(0x787aa55), es del hito 8 de la CL9"));
+                                            "(0x787aa55), no está portado (08 P-C284 a)"));
     // 3. 0x5a89b0: las barras de la party.
     if (auto life = DrawThePartyLife(context); !life.HasValue())
         return life;

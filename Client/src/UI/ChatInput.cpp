@@ -1,5 +1,6 @@
 #include "UI/ChatInput.h"
 
+#include "UI/OldControls.h"
 #include "UI/TextField.h"
 
 #include <algorithm>
@@ -26,6 +27,16 @@ constexpr std::size_t SetTextLimit = 0x100;
 TextField& FieldOf(ChatInputState& input, ChatFocus focus)
 {
     return focus == ChatFocus::Whisper ? input.whisper : input.message;
+}
+
+// El EDIT de los diálogos con el foco ([0x5763504] o [0x5763508]), o ninguno.
+OldEdit* DialogEditOf(ChatInputState& input)
+{
+    if (input.focus == ChatFocus::Dialog)
+        return &input.dialogEdit;
+    if (input.focus == ChatFocus::NumberField)
+        return &input.numberField;
+    return nullptr;
 }
 
 std::int32_t LengthOf(const ChatBuffer& buffer)
@@ -86,8 +97,9 @@ void ResetTheTextBuffers(ChatInputState& input, bool second)
         input.whisperBuffer.fill('\0');
         input.whisperLength = 0;
     }
-    // 0x5535bd..0x5535cf: la vtable + 0x4c (SetText) con 0.
+    // 0x5535bd..0x5535db: la vtable + 0x4c (SetText) con 0 en los dos.
     input.dialogEdit.text.SetText({});
+    input.numberField.text.SetText({});
 }
 
 void ClearTheChatFields(ChatInputState& input)
@@ -117,11 +129,55 @@ void ShowTheChatFields(ChatInputState& input, std::int32_t state)
     input.shown = state != HiddenState;
     if (!input.shown)
     {
-        input.focus = ChatFocus::Game;
+        // 0x468260(3) es ShowWindow(SW_HIDE) de los dos EDIT del chat: el foco de otro EDIT (el del diálogo, el del
+        // número o el de una ventana vieja) no cambia.
+        if (input.focus == ChatFocus::Message || input.focus == ChatFocus::Whisper)
+            input.focus = ChatFocus::Game;
         return;
     }
     if (state == FocusedState)
         SetFocusOn(input, ChatFocus::Message);
+}
+
+void ShowTheDialogField(ChatInputState& input, std::int32_t state)
+{
+    input.dialogEdit.base.state = state;
+    if (state == HiddenState && input.focus == ChatFocus::Dialog)
+        input.focus = ChatFocus::Game;
+}
+
+void FocusTheDialogField(ChatInputState& input)
+{
+    if (input.dialogEdit.base.state != HiddenState)
+        SetFocusOn(input, ChatFocus::Dialog);
+}
+
+void ReadTheDialogField(const ChatInputState& input, ChatBuffer& buffer)
+{
+    GetTextInto(buffer, input.dialogEdit.text);
+}
+
+void ShowTheNumberField(ChatInputState& input, std::int32_t state)
+{
+    input.numberField.base.state = state;
+    if (state == HiddenState && input.focus == ChatFocus::NumberField)
+        input.focus = ChatFocus::Game;
+}
+
+void FocusTheNumberField(ChatInputState& input)
+{
+    if (input.numberField.base.state != HiddenState)
+        SetFocusOn(input, ChatFocus::NumberField);
+}
+
+void ReadTheNumberField(const ChatInputState& input, ChatBuffer& buffer)
+{
+    GetTextInto(buffer, input.numberField.text);
+}
+
+void ClearTheNumberField(ChatInputState& input)
+{
+    SetTextOf(input.numberField.text, {});
 }
 
 void ResetTheChatInput(ChatInputState& input)
@@ -240,16 +296,25 @@ bool PressTabInTheChat(ChatInputState& input, bool chatOpen)
 
 void TypeInTheChat(ChatInputState& input, std::string_view typed)
 {
-    if (input.focus == ChatFocus::Game || input.focus == ChatFocus::OldWindow || input.focus == ChatFocus::Dialog ||
-        typed.empty())
+    if (input.focus == ChatFocus::Game || input.focus == ChatFocus::OldWindow || typed.empty())
         return;
+    if (OldEdit* edit = DialogEditOf(input); edit != nullptr)
+    {
+        TypeInTheEdit(*edit, typed);
+        return;
+    }
     FieldOf(input, input.focus).Type(typed);
 }
 
 void BackspaceInTheChat(ChatInputState& input)
 {
-    if (input.focus == ChatFocus::Game || input.focus == ChatFocus::OldWindow || input.focus == ChatFocus::Dialog)
+    if (input.focus == ChatFocus::Game || input.focus == ChatFocus::OldWindow)
         return;
+    if (OldEdit* edit = DialogEditOf(input); edit != nullptr)
+    {
+        edit->text.Backspace();
+        return;
+    }
     FieldOf(input, input.focus).Backspace();
 }
 

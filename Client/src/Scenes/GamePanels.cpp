@@ -6,10 +6,13 @@
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameUi.h"
+#include "Scenes/GuildPanels.h"
 #include "Scenes/ItemSetState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnDerivedStats.h"
 #include "Scenes/OwnStatHelpers.h"
+#include "Scenes/GuildWindow.h"
+#include "Scenes/SecondGuildWindow.h"
 #include "Scenes/PersonalShopLists.h"
 #include "Scenes/SocialEvents.h"
 #include "Scenes/Quests.h"
@@ -110,6 +113,9 @@ void GamePanels::LendTheSession(WorldState& world, Render::Models::CrtRandom& ra
         m_context.tradeClosed = [&world, &random, send](bool aux)
         { return CloseTheTradeGrids(world, random, aux, send); };
         LendThePetRequests(send);
+        // 0x657b50 y 0x657b73: los cierres de las dos ventanas del gremio (la vtable + 0x2c, sin mirar nada) y el
+        // diálogo de los paneles, por el mismo socket.
+        LendTheGuildTo(m_context, world, send);
         LendThePersonalShops(world, random, std::move(send));
     }
     if (sendWindowClose)
@@ -123,6 +129,8 @@ void GamePanels::LendTheSession(WorldState& world, Render::Models::CrtRandom& ra
     LendTheSession(
         world, random, [requests](Protocol::Outgoing outgoing) { requests->SendGamePacket(std::move(outgoing)); },
         [requests]() { requests->SendWindowClose(); });
+    LendTheGuildTo(m_context, world,
+                   [requests](Protocol::Outgoing packet) { requests->SendGuildPacket(std::move(packet)); });
 }
 
 void GamePanels::LendTheWindowClose(std::function<void()> send)
@@ -153,6 +161,27 @@ void GamePanels::LendThePartyList(WorldState& world, IGameUiRequests* requests)
         runtime.hud.partyCount = 0;
         requests->RequestPartyList();
     };
+}
+
+void GamePanels::LendTheGuild(WorldState& world, const GuildSender& send)
+{
+    LendTheGuildTo(m_context, world, send);
+}
+
+void GamePanels::LendThePanelDialogStep(WorldState& world, const GuildSender& send, std::int32_t mouseX,
+                                        std::int32_t mouseY, std::uint32_t now)
+{
+    LendThePanelDialogStepTo(m_context, world, send, mouseX, mouseY, now);
+}
+
+void GamePanels::LendTheSecondGuildStep(const SecondGuildStepContext& context)
+{
+    LendTheSecondGuildStepTo(m_context, context);
+}
+
+void GamePanels::LendTheGuildWindowStep(const GuildWindowStepContext& context)
+{
+    LendTheGuildWindowStepTo(m_context, context);
 }
 
 void GamePanels::LendThePetRequests(std::function<void(Protocol::Outgoing)> send)

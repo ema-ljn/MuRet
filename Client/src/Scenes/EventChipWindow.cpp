@@ -301,7 +301,8 @@ void DrawTheSerialEdit(GameHudContext& context, UI::OldEdit& edit, bool focused)
     const UI::OldWindowDrawContext drawing{.sprites = context.sprites,
                                            .text = context.text,
                                            .dcFont = context.hud.dcFont,
-                                           .textColors = context.hud.textColors};
+                                           .textColors = context.hud.textColors,
+                                           .arrowHeld = context.arrowHeld};
     UI::OldDraw::DrawTheOldEdit(drawing, edit, focused);
 }
 
@@ -315,15 +316,18 @@ void DrawTheSerialField(GameHudContext& context, std::int32_t left, std::int32_t
     edit.base.state = UI::ShownWindow;
     edit.filter = UI::UppercaseLettersAndDigitsEdit;
     edit.backgroundColor = 0;
-    edit.text.SetLimit(SerialLimit);
+    UI::LimitTheEdit(edit, SerialLimit, context.arrowHeld);
     // 0x467f50: el ancho hasta 0xee.
     edit.base.width = SerialEditWidth;
     edit.base.height = SerialEditHeight;
     edit.base.x = left + SerialEditLeft;
     edit.base.y = top + SerialEditTop;
-    // 0x4682a0(0): el foco de Windows (y 0x5762ec0, que MuRet no lee para los EDIT).
+    // 0x4682a0(0): el foco de Windows y el id del EDIT (7) en 0x5762ec0, la lista que toma las flechas.
     if (!context.projecting)
+    {
         input.focus = UI::ChatFocus::Dialog;
+        runtime.ui.focusedList = edit.base.id;
+    }
     DrawTheSerialEdit(context, edit, true);
 }
 
@@ -536,7 +540,9 @@ void CloseTheSerialEntry(WorldRuntime& runtime)
     input.field = UI::MessageField;
     input.messageBuffer.fill('\0');
     input.messageLength = 0;
+    // 0x56b6f6..0x56b70d: la vtable + 0x4c con 0 de los dos EDIT, [0x5763504] y [0x5763508].
     input.dialogEdit.text.SetText({});
+    input.numberField.text.SetText({});
     runtime.ui.chatOpen = false;
     ForgetTheMoneyField(runtime.social);
     runtime.events.serialEntry = false;

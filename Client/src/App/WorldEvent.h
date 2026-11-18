@@ -7,6 +7,7 @@
 #include "Protocol/Events.h"
 #include "Protocol/FloorItems.h"
 #include "Protocol/Friends.h"
+#include "Protocol/Guild.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/Messages.h"
 #include "Protocol/Movement.h"
@@ -79,5 +80,5 @@ using WorldEvent = std::variant<
     Protocol::Viewport::Summons, Protocol::Viewport::Objects, Protocol::Viewport::MagicAttackCount,
     Protocol::Friends::FriendList, Protocol::Friends::FriendAddResult, Protocol::Friends::FriendRequest,
     Protocol::Friends::FriendDeleteResult, Protocol::Friends::FriendState, Protocol::Combat::KillExperience,
-    Protocol::Combat::Death, Protocol::Events::EventPacket>;
+    Protocol::Combat::Death, Protocol::Events::EventPacket, Protocol::Guild::GuildPacket>;
 } // namespace Client::App

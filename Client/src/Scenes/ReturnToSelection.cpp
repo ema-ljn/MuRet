@@ -7,6 +7,8 @@
 #include "Scenes/CameraTour.h"
 #include "Scenes/EventPackets.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/GuildState.h"
+#include "Scenes/GuildWindow.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/MapLoad.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -77,9 +79,11 @@ void ResetAfterLogout(const WorldEntryResources& resources)
     runtime.chat.noticeSound = false;
     UI::ClearTheWhisperSenders(runtime.chat.whisperSenders);
     ResetTheQuests(runtime.quest, runtime.panels.delegated.quest);
-    // 0x4c2650..0x4c26e7: lo demás son globales y objetos que MuRet no tiene, y 0x657670, cuyo 0x4499b0 manda el
-    // segundo C1 03 31 (la sesión, Q-C214), cuyo 0x420cd0 pone en 0 las mascotas (CL9 hito 4) y cuyo jmp final
-    // (0x657690) vacía las tiendas personales (0x5eb960, CL9 hito 7).
+    // 0x4c2650..0x4c26e7: lo demás son globales y objetos que MuRet no tiene, y 0x657670, que vacía la lista del aviso
+    // del gremio (0x651790 en 0x657681, CL9 hito 8), cuyo 0x4499b0 manda el segundo C1 03 31 (la sesión, Q-C214),
+    // cuyo 0x420cd0 pone en 0 las mascotas (CL9 hito 4) y cuyo jmp final (0x657690) vacía las tiendas personales
+    // (0x5eb960, CL9 hito 7).
+    ClearTheGuildNotice(runtime.guild.window);
     ResetThePets(runtime);
     ResetThePersonalShops(runtime.social.personalShop);
     // 0x4c26ec..0x4c26fd: el recorrido de la cámara, 0x403300 y después 0x403d60 (que con +0x14c recién en 10000 no

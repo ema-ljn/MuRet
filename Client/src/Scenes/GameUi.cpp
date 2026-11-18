@@ -24,6 +24,7 @@
 #include "Scenes/GameMoveWindow.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GamePanels.h"
+#include "Scenes/GuildPanels.h"
 #include "Scenes/GamePartyWindow.h"
 #include "Scenes/GameSocialSteps.h"
 #include "Scenes/GridItemUse.h"
@@ -36,6 +37,8 @@
 #include "Scenes/PersonalShopWindow.h"
 #include "Scenes/QuestWindow.h"
 #include "Scenes/SocialState.h"
+#include "Scenes/GuildWindow.h"
+#include "Scenes/SecondGuildWindow.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"
@@ -118,6 +121,15 @@ constexpr std::int32_t PetButtonTop = 0x18b;
 constexpr std::int32_t PetButtonBottom = 0x1a3;
 // 0x42474c: 0x723911 en 2, la ventana de la mascota.
 constexpr std::uint8_t PetWindowOpen = 2;
+
+// Los paquetes del gremio que manda la UI (CL9 hito 8) van por las peticiones de la escena; sin ellas, nada.
+GuildSender GuildSenderOf(IGameUiRequests* requests)
+{
+    if (requests == nullptr)
+        return {};
+    return [requests](Protocol::Outgoing packet) { requests->SendGuildPacket(std::move(packet)); };
+}
+
 // 0x42475f..0x424990: la ventana de la mascota y sus botones (0x6b8a08, 0x6b8a04, 0x6b87bc, 0x6b8874, 0x6b8a00,
 // 0x6b89f8, 0x6b89fc, 0x6b86d0, 0x6b8800, 0x6b8804 y 0x6b89f4).
 constexpr std::int32_t PetWindowLeft = 0x1c2;
@@ -178,13 +190,16 @@ bool KeyEdge(UI::GameUiState& ui, const Input::InputState& input, GameKey key)
 }
 
 // 0x6578e0: hay un campo de texto con el foco (el chat 0x6c8e68, 0x77f3b68, el del diálogo de los paneles) o la
-// ventana del juego no lo tiene. MuRet tiene el del chat (hito 3), el EDIT de las ventanas viejas (CL9 hito 9, que
-// toma el foco de Windows) y el de [0x5763504] que enfoca la entrada del número de serie (hito 11); los otros son del
-// hito 6, y su ventana es la del juego.
+// ventana del juego no lo tiene (GetFocus() distinto de [0x5763544]). MuRet tiene el del chat (hito 3), el del alta
+// del gremio (0x77f3b68, CL9 hito 8) y, con el foco de Windows, el EDIT de las ventanas viejas (CL9 hito 9) y los dos
+// de los diálogos: el de [0x5763504] (la entrada del número de serie, hito 11, y el alta del gremio, CL9 hito 8) y el
+// del número del 0x7d (CL9 hito 8); los del gremio se quedan con el foco al cerrar (Q-C1291 y Q-C1295). El del diálogo
+// de los paneles es de la CL9.5 (P-C285), y su ventana es la del juego.
 bool TextInputBusy(const WorldRuntime& runtime)
 {
-    return runtime.ui.chatOpen || runtime.chat.input.focus == UI::ChatFocus::OldWindow ||
-           runtime.chat.input.focus == UI::ChatFocus::Dialog;
+    const UI::ChatFocus focus = runtime.chat.input.focus;
+    return runtime.ui.chatOpen || runtime.chat.input.dialogFieldOn || focus == UI::ChatFocus::OldWindow ||
+           focus == UI::ChatFocus::Dialog || focus == UI::ChatFocus::NumberField;
 }
 
 // 0x636e51..0x636e5a: el registro del chat, 0x45aa80(0) por la vtable + 0x18 de 0x576350c.
@@ -223,15 +238,17 @@ Core::Expected<void, std::string> StepTheChat(const GameUiContext& context)
 
 // 0x636e5d..0x636ed1: con el izquierdo abajo y el mouse fuera de las ventanas (o sobre el registro del chat), el foco
 // del administrador de las ventanas viejas (+0x44 de 0x5763514) en 0 y, con el chat y los otros campos cerrados
-// (0x77f3b69, 0x77f3b68 y 0x77f3b6a, del hito 6), la lista de las flechas en 0, 0x4a5e10 sobre la lista de ventanas y
-// el foco del teclado a la ventana del juego (SetFocus; el IME de 0x467360, MuRet no lo tiene).
+// (0x636e8c..0x636ea5: 0x77f3b69 el de los paneles, 0x77f3b68 el del alta del gremio y 0x77f3b6a el modo del zen del
+// 0x73 y del precio del 0x91), la lista de las flechas en 0, 0x4a5e10 sobre la lista de ventanas y el foco del teclado
+// a la ventana del juego (SetFocus; el IME de 0x467360, MuRet no lo tiene).
 void StepTheUnownedClick(WorldRuntime& runtime)
 {
     UI::GameUiState& ui = runtime.ui;
     if (!runtime.movement.leftHeld || (ui.hovered != 0 && ui.hovered != UI::ChatLogId))
         return;
     runtime.oldWindows.focus = 0;
-    if (ui.chatOpen)
+    if (ui.chatOpen || runtime.chat.input.otherInput || runtime.chat.input.dialogFieldOn ||
+        runtime.social.moneyField != 0)
         return;
     ui.focusedList = 0;
     UI::HideTheWindowList(runtime.oldWindows.windowList);
@@ -325,6 +342,33 @@ Core::Expected<void, std::string> Toggle(UI::PanelRegistry& panels, UI::PanelId 
 // las dos que leen abajo con GetAsyncKeyState (las flechas de las listas, 0x47b0f0).
 constexpr std::array<GameKey, 5> OldWindowEdgeKeys{EscapeKey, F5Key, F6Key, EnterKey, Letter('F')};
 constexpr std::array<GameKey, 2> OldWindowDownKeys{UpKey, DownKey};
+
+// 0x650387 y 0x6503a4: 0x553520 de PgUp y PgDn, que lee la lista de los miembros del gremio.
+std::function<bool(std::uint8_t)> PageKeyEdges(UI::GameUiState& ui, const Input::InputState& input)
+{
+    return [ui = &ui, input = &input](std::uint8_t virtualKey)
+    {
+        if (virtualKey == PageUpKey.virtualKey)
+            return KeyEdge(*ui, *input, PageUpKey);
+        if (virtualKey == PageDownKey.virtualKey)
+            return KeyEdge(*ui, *input, PageDownKey);
+        return false;
+    };
+}
+
+// GetAsyncKeyState de las flechas de una lista vieja (0x47b0f0).
+std::function<bool(std::uint8_t)> ArrowKeysDown(const Input::InputState& input)
+{
+    return [input = &input](std::uint8_t virtualKey)
+    {
+        for (const GameKey& key : OldWindowDownKeys)
+        {
+            if (key.virtualKey == virtualKey)
+                return input->IsDown(key.key);
+        }
+        return false;
+    };
+}
 
 // Lo que las ventanas viejas leen del juego en el paso de la UI (CL9 hito 9): la vista de 0x490490 (el mouse, las
 // teclas, el chat abierto, Text.bmd, la medida del DC, el cable y el EDIT del susurro) y 0x491080, que la usa también
@@ -1940,7 +1984,7 @@ Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& con
         StepTheChatButtons(context);
     // 0x5a343e..0x5a359a: Q, W y E solo sin campo de texto, con todo esto cerrado y el héroe vivo. Las consultas
     // del comercio y de la tienda de NPC sacan un rand() cada una en cada paso. 0x77f3b68, entre 0x40000 y el
-    // diálogo, es un campo de texto que MuRet no tiene.
+    // diálogo (0x5a34c3), ya lo miró 0x6578e0, la primera.
     if (!TextInputBusy(runtime) && !panels.IsOpen(UI::TradePanel) && !panels.IsOpen(UI::WarehousePanel) &&
         !panels.IsOpen(UI::NpcShopPanel) && !panels.IsOpen(UI::ChaosBoxPanel) && !panels.IsOpen(UI::SecondGuildPanel) &&
         runtime.dialogs.current == 0 && runtime.panels.field78abb00 == 0 && !panels.IsOpen(UI::QuestPanel) &&
@@ -2124,6 +2168,7 @@ Core::Expected<void, std::string> StepTheGameDialogs(const GameUiContext& contex
     // Esc (0x623f17 → 0x657880) cierra la ventana abierta más baja: el comercio manda el 3D, la tienda de otro el
     // 3F 07 y las misiones el 31, por la sesión.
     panels.LendTheSession(context.world, context.random, context.requests);
+    panels.LendTheGuild(context.world, GuildSenderOf(context.requests));
     // 0x623e9b..0x623ec2: con la de amigos abierta, Esc es de las ventanas viejas (0x490490). Lo leído queda en
     // [EBP−0x7d], que mira el no de 0x62c50e.
     const bool escape = !panels.Registry().IsOpen(UI::FriendsPanel) && KeyEdge(ui, context.input, EscapeKey);
@@ -2185,6 +2230,30 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
     gamePanels.LendTheSession(context.world, context.random, context.requests);
     if (context.chat != nullptr && context.chat->send)
         gamePanels.LendThePetRequests(context.chat->send);
+    gamePanels.LendTheGuild(context.world, GuildSenderOf(context.requests));
+    gamePanels.LendThePanelDialogStep(context.world, GuildSenderOf(context.requests), context.mouseX, context.mouseY,
+                                      context.systemTime);
+    gamePanels.LendTheSecondGuildStep(SecondGuildStepContext{
+        .world = context.world,
+        .mouseX = context.mouseX,
+        .mouseY = context.mouseY,
+        .now = context.systemTime,
+        .screen = context.screen,
+        .measure = context.measure,
+        .texts = context.texts,
+        .filterName = context.chat != nullptr ? context.chat->filterName : std::span<const std::string>{},
+        .filter = context.chat != nullptr ? context.chat->filter : std::span<const std::string>{},
+        .send = GuildSenderOf(context.requests)});
+    gamePanels.LendTheGuildWindowStep(GuildWindowStepContext{.world = context.world,
+                                                             .mouseX = context.mouseX,
+                                                             .mouseY = context.mouseY,
+                                                             .screen = context.screen,
+                                                             .send = GuildSenderOf(context.requests),
+                                                             .keyEdge = PageKeyEdges(runtime.ui, context.input),
+                                                             .keyDown = ArrowKeysDown(context.input),
+                                                             .now = context.systemTime,
+                                                             .measure = context.measure,
+                                                             .texts = context.texts});
     gamePanels.LendTheFriends([&sight]() { return sight.OpenTheFriendsWindow(); });
     UI::PanelRegistry& panels = gamePanels.Registry();
     // 0x636e24: 0x5ecdc0, la ventana /move, sin nadie que agarró el mouse (0x5ecdd1).

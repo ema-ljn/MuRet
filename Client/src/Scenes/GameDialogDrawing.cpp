@@ -16,6 +16,7 @@
 #include "Scenes/GameDialogSteps.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/GameMovementState.h"
+#include "Scenes/GuildState.h"
 #include "Scenes/ITextDrawer.h"
 #include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
@@ -229,7 +230,10 @@ constexpr std::int32_t ConfirmTwoButtons = 2;
 constexpr std::int32_t ConfirmOneButton = 1;
 constexpr int ConfirmTextTop = 0x87;
 
-// 0x63140b..0x631d66: los textos de Text.bmd de los del OK genérico que llegan a la CL8, uno o dos renglones.
+// 0x63140b..0x631d66: los textos de Text.bmd de los del OK genérico que llegan a la CL8, uno o dos renglones, y los
+// avisos del alta del gremio (CL9 hito 8, de 0x654f80 y 0x655c10): el nombre filtrado (0x72, 0x6314a3: 392 y 393),
+// corto (0x79, 0x63143f: 390), con un byte malo (0x7a, 0x631471: 391) y la marca vacía (0x7e, 0x631f05: 426). Su marco
+// y su OK son los del genérico (0x630818 y 0x63093e).
 struct GenericText
 {
     std::int32_t id = 0;
@@ -242,6 +246,10 @@ constexpr auto GenericTexts = std::to_array<GenericText>({
     {0x1a, 405, 406},
     {0x1c, 409, std::nullopt},
     {0x8f, 401, std::nullopt},
+    {0x72, 392, 393},
+    {0x79, 390, std::nullopt},
+    {0x7a, 391, std::nullopt},
+    {0x7e, 426, std::nullopt},
 });
 
 // 0x6309d4..0x630aeb: el sí y el no de 0x7f, 0x76, 0x77 y 0x78, de 70 × 21 en y 98 con las UV del OK: el sí, 0xf1
@@ -329,8 +337,42 @@ constexpr std::size_t PartyQuestionText = 425;
 constexpr int InvitationRowY = GenericTextTop + 0xf;
 constexpr int PartyRowStep = 6;
 constexpr int TradeRowStep = 0xb;
+// 0x63212a..0x6321f8: el pedido de guerra (0x7f, CL9 hito 8): el 430 (0x76dc9c4) con el rival en 75 − 6 y el 431
+// (0x76dcaf0) sin el tipo de guerra (0x576796d en 0) o el 432 (0x76dcc1c) con él, en 75 + 6.
+constexpr std::int32_t WarRequestDialog = UI::IgnoredOverChaosCastle;
+constexpr std::size_t WarRequestText = 430;
+constexpr std::size_t WarQuestionText = 431;
+constexpr std::size_t TypedWarQuestionText = 432;
+constexpr int WarRowStep = 6;
 // 0x5110d0: los 400 que recorre; sin ninguno, el 400.
 constexpr std::size_t KeySearched = 400;
+
+// 0x630af0..0x630cb8 (el 0x7d, CL9 hito 8; también el 0x71 y el 0x95, de otras olas): el EDIT del número
+// ([0x5763508]) a la vista (+4(0)) con +0x4c en 9 (el negro de 0x468477 y solo dígitos), el fondo en 0 (+0x44(0, 0,
+// 0, 0)), el tope 7 (+0x3c), de 0x46 × 0xe (+8) en (0xf3, 0x62) (0x45a9d0) y con el foco (+0x30(0)); el sí, 0xf1
+// (0xf2 con el mouse en [0x143, 0x16b) × [0x62, 0x77)) en x 323, y el no, 0xf3 (0xf4 en [0x175, 0x19d)) en x 373, de
+// 40 × 21 con las UV del OK.
+constexpr std::int32_t NumberDialog = 0x7d;
+constexpr std::int32_t ShownField = 0;
+constexpr std::int32_t NumberFieldFilter = 9;
+constexpr std::size_t NumberFieldLimit = 7;
+constexpr std::int32_t NumberFieldWidth = 0x46;
+constexpr std::int32_t NumberFieldHeight = 0xe;
+constexpr std::int32_t NumberFieldX = 0xf3;
+constexpr std::int32_t NumberFieldY = 0x62;
+constexpr float NarrowYesX = 323.0f;
+constexpr float NarrowNoX = 373.0f;
+constexpr float NarrowWidth = 40.0f;
+constexpr int NarrowYesLeft = 0x143;
+constexpr int NarrowYesRight = 0x16a;
+constexpr int NarrowNoLeft = 0x175;
+constexpr int NarrowNoRight = 0x19c;
+// 0x631f36..0x631fbd: el texto en rojo (0x6c8e5c = 0xff0000ff, que queda así) y el 427 y el 428 centrados en
+// 0x4b − 6 y 0x4b + 6.
+constexpr std::uint32_t NumberTextColor = 0xff0000ffu;
+constexpr std::size_t NumberFirstText = 427;
+constexpr std::size_t NumberSecondText = 428;
+constexpr int NumberRowStep = 6;
 
 struct Frame
 {
@@ -644,20 +686,25 @@ void DrawTheGenericBox(Frame& frame)
 }
 
 // La vtable + 0x30 con 0 (0x4682a0, el foco de Windows) y la + 0x14 (0x468320, que lo dibuja con el foco) del EDIT
-// de [0x5763504] (ChatInputState::dialogEdit), después de lo que `setup` le cambia en este frame. Una pasada intermedia
-// trabaja sobre una copia y no mueve el foco.
+// de [0x5763504] (ChatInputState::dialogEdit), después de lo que `setup` le cambia en este frame, con su id en
+// 0x5762ec0. Una pasada intermedia trabaja sobre una copia y no mueve el foco.
 template <typename Setup> void DrawTheDialogEdit(Frame& frame, Setup setup)
 {
     UI::ChatInputState& input = frame.runtime.chat.input;
     UI::OldEdit copy = input.dialogEdit;
     UI::OldEdit& edit = frame.context.projecting ? copy : input.dialogEdit;
     setup(edit);
+    // 0x4682f1..0x4682f7: el foco también deja el id del EDIT (7) en 0x5762ec0, la lista que toma las flechas.
     if (!frame.context.projecting)
+    {
         input.focus = UI::ChatFocus::Dialog;
+        frame.runtime.ui.focusedList = edit.base.id;
+    }
     const UI::OldWindowDrawContext drawing{.sprites = frame.context.sprites,
                                            .text = frame.context.text,
                                            .dcFont = frame.context.hud.dcFont,
-                                           .textColors = frame.context.hud.textColors};
+                                           .textColors = frame.context.hud.textColors,
+                                           .arrowHeld = frame.context.arrowHeld};
     UI::OldDraw::DrawTheOldEdit(drawing, edit, true);
 }
 
@@ -669,11 +716,11 @@ void DrawTheMoneyBox(Frame& frame)
 {
     Quad(frame, MessageBoxSlot, BoxLeft, BoxTop, BoxWidth, GenericBoxHeight, MessageBoxDu, 1.0f);
     DrawTheDialogEdit(frame,
-                      [](UI::OldEdit& edit)
+                      [&frame](UI::OldEdit& edit)
                       {
                           edit.base.state = UI::ShownWindow;
                           edit.filter = MoneyEditFilter;
-                          edit.text.SetLimit(MoneyEditLimit);
+                          UI::LimitTheEdit(edit, MoneyEditLimit, frame.context.arrowHeld);
                           edit.base.width = MoneyEditWidth;
                           edit.base.height = MoneyEditHeight;
                           edit.base.x = MoneyEditX;
@@ -792,6 +839,43 @@ void DrawTheYesNoBox(Frame& frame)
     Quad(frame, no, NoX, OkY, OkWidth, OkHeight, OkDu, OkDv);
 }
 
+// 0x630818..0x63084c y 0x630af0..0x630cb8: el marco del OK genérico, el EDIT del número con la mezcla normal
+// (0x620a00(1) y 0x620980 alrededor de su dibujo, 0x468320) y el sí y el no angostos. Lo que el original le pone al
+// EDIT en cada cuadro se escribe también en un dibujo intermedio (son los mismos valores); sus dibujos (+0x80, el
+// parpadeo del cursor) solo cuentan los del original, y 0x5762ec0 queda con su id (0x4682a0).
+void DrawTheNumberBox(Frame& frame)
+{
+    Quad(frame, MessageBoxSlot, BoxLeft, BoxTop, BoxWidth, GenericBoxHeight, MessageBoxDu, 1.0f);
+    UI::ChatInputState& input = frame.runtime.chat.input;
+    UI::OldEdit& field = input.numberField;
+    UI::ShowTheNumberField(input, ShownField);
+    field.filter = NumberFieldFilter;
+    field.backgroundColor = 0;
+    UI::LimitTheEdit(field, NumberFieldLimit, frame.context.arrowHeld);
+    field.base.width = NumberFieldWidth;
+    field.base.height = NumberFieldHeight;
+    field.base.x = NumberFieldX;
+    field.base.y = NumberFieldY;
+    UI::FocusTheNumberField(input);
+    if (input.focus == UI::ChatFocus::NumberField)
+        frame.runtime.ui.focusedList = field.base.id;
+    Render::SpriteBatch& sprites = frame.context.sprites;
+    sprites.SetBlend(BlendMode::Alpha);
+    UI::OldEdit projected = field;
+    UI::OldDraw::DrawTheOldEdit(UI::OldWindowDrawContext{.sprites = sprites,
+                                                         .text = frame.context.text,
+                                                         .dcFont = frame.context.hud.dcFont,
+                                                         .textColors = frame.context.hud.textColors,
+                                                         .arrowHeld = frame.context.arrowHeld},
+                                frame.context.projecting ? projected : field,
+                                input.focus == UI::ChatFocus::NumberField);
+    sprites.SetBlend(BlendMode::Opaque);
+    const std::uint16_t yes = MouseIn(frame, NarrowYesLeft, OkTop, NarrowYesRight, OkBottom) ? OkHoverSlot : OkSlot;
+    Quad(frame, yes, NarrowYesX, OkY, NarrowWidth, OkHeight, OkDu, OkDv);
+    const std::uint16_t no = MouseIn(frame, NarrowNoLeft, OkTop, NarrowNoRight, OkBottom) ? NoHoverSlot : NoSlot;
+    Quad(frame, no, NarrowNoX, OkY, NarrowWidth, OkHeight, OkDu, OkDv);
+}
+
 // 0x471ae0 sobre 0x575d9d0 (0x471e80): vuelve a poner 0x7d3a10c en 0x9c, el marco, los botones según el tipo (+4; con
 // otro que 1 o 2, ninguno) y los renglones (+8), cada uno copiado con strcpy a un buffer de 0x80 bytes de la pila
 // (0x4716e0 los corta en 24). Todo sin mezcla: la normal la pone después 0x63140b, cuyo switch no tiene el 0x9c.
@@ -885,6 +969,24 @@ Core::Expected<void, std::string> DrawTheInvitation(Frame& frame, std::int32_t i
     return {};
 }
 
+// 0x63212a..0x6321f8 (0x7f): sprintf(430, el rival de 0x5767804, hasta su cero) y sprintf(431 o 432), en la fuente que
+// haya y centrados.
+Core::Expected<void, std::string> DrawTheWarRequest(Frame& frame)
+{
+    auto format = TextOf(frame, WarRequestText);
+    if (!format.HasValue())
+        return Core::Unexpected(std::move(format).Error());
+    const GuildState& guild = frame.runtime.guild;
+    const auto end = std::ranges::find(guild.rival, '\0');
+    const std::string_view rival(guild.rival.data(), static_cast<std::size_t>(end - guild.rival.begin()));
+    DrawCentered(frame, InvitationRowY - WarRowStep, UI::Sprintf(format.Value(), rival));
+    auto question = TextOf(frame, guild.warType == 0 ? WarQuestionText : TypedWarQuestionText);
+    if (!question.HasValue())
+        return Core::Unexpected(std::move(question).Error());
+    DrawCentered(frame, InvitationRowY + WarRowStep, UI::Sprintf(question.Value()));
+    return {};
+}
+
 // El corte de un diálogo que no es de la CL8, con la ola de su paso.
 Core::Unexpected<std::string> CutTheDialog(std::int32_t id)
 {
@@ -929,8 +1031,10 @@ Core::Expected<void, std::string> DrawTheGameDialogs(GameHudContext& context)
         DrawTheBox(frame, id);
     else if (generic)
         DrawTheGenericBox(frame);
-    else if (id == PartyInviteDialog || id == TradeInviteDialog)
+    else if (id == PartyInviteDialog || id == TradeInviteDialog || id == WarRequestDialog)
         DrawTheYesNoBox(frame);
+    else if (id == NumberDialog)
+        DrawTheNumberBox(frame);
     else if (id == ConfirmDialog)
         DrawTheConfirmBox(frame);
     else if (id == MoneyDialog)
@@ -955,6 +1059,15 @@ Core::Expected<void, std::string> DrawTheGameDialogs(GameHudContext& context)
     }
     else if (id == PartyInviteDialog || id == TradeInviteDialog)
         return DrawTheInvitation(frame, id);
+    else if (id == WarRequestDialog)
+        return DrawTheWarRequest(frame);
+    else if (id == NumberDialog)
+    {
+        context.hud.textColors.text = NumberTextColor;
+        if (auto drawn = DrawCenteredText(frame, InvitationRowY - NumberRowStep, NumberFirstText); !drawn.HasValue())
+            return drawn;
+        return DrawCenteredText(frame, InvitationRowY + NumberRowStep, NumberSecondText);
+    }
     else if (id == MoneyDialog)
         return DrawTheMoneyText(frame);
     else if (id == ShopDialog)

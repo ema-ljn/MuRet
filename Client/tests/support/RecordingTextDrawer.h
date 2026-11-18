@@ -25,7 +25,8 @@
 namespace Client::Tests
 {
 // El último slot del texto, que ninguna escena usa.
-inline constexpr Render::TextureSlot TextMarkerSlot{static_cast<std::uint16_t>(Render::TextureSlotCount - 1)};
+inline constexpr Render::TextureSlot TextMarkerSlot{
+    static_cast<std::uint16_t>(Render::FirstTextTextureSlot.value + Render::TextTextureSlotCount - 1)};
 
 struct RecordedText
 {

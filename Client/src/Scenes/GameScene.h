@@ -19,6 +19,7 @@
 #include "Scenes/IScene.h"
 #include "Scenes/OriginalFramesOfTheSteps.h"
 #include "Scenes/GroundEffectFrame.h"
+#include "Scenes/GuildMarks.h"
 #include "World/Sprites.h"
 #include "World/ModelEffects.h"
 #include "Scenes/SceneCanvas.h"
@@ -74,6 +75,8 @@ inline constexpr Render::ViewportRect GameWorldViewport{0, 0, 640, 432};
 struct GameChatTables
 {
     std::span<const std::string> filter{};
+    // FilterName.bmd: lo que mira 0x622c70 en el nombre del gremio nuevo (la ventana 2 del gremio, 0x654f80).
+    std::span<const std::string> filterName{};
     const Data::Tables::ItemSetOptionTable* setOptions = nullptr;
     // ItemSetType.bmd e ItemSetOption.bmd enteras (0x40c600): las lee 0x550d10 al abrir el personaje (0x65ca1e) desde
     // el paso de la UI. nullptr si no se cargaron: 0x550d10 corta en 0x40e1b0.
@@ -222,6 +225,8 @@ private:
     // Las texturas de la escena: los cursores 2 y 3 con las ventanas, y las arenas del HUD.
     SceneTextures m_windowTextures;
     SceneTextures m_sandTextures;
+    // Las marcas de los gremios (0x5f16a0), cada una en su slot de la tabla de la escena.
+    GuildMarkTextures m_guildMarks;
     bool m_sent = false;
     bool m_firstStep = true;
     bool m_holdFrame = true;

@@ -41,6 +41,7 @@
 #include "Protocol/Messages.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
+#include "Protocol/Guild.h"
 #include "Protocol/Party.h"
 #include "Protocol/ProtocolError.h"
 #include "Protocol/Pet/PetInfo.h"
@@ -333,6 +334,7 @@ void ServerSession::RegisterGameServerHandlers()
                         [this](const Network::Packet& packet) { OnFriendDeleteResult(packet); }) &&
         m_gameServer.On(Protocol::Friends::FriendStateOpcode,
                         [this](const Network::Packet& packet) { OnFriendState(packet); }) &&
+        RegisterGuildHandlers() &&
         // CL9 hito 11: los eventos.
         RegisterTheEventPackets();
     assert(registered && "los handlers del GameServer se registran una vez");
@@ -416,6 +418,38 @@ bool ServerSession::RegisterTheEventPackets()
     for (const WithSubcode& entry : Subcodes)
         registered = m_gameServer.On(entry.opcode, entry.subcode, handler) && registered;
     return registered;
+}
+
+// CL9 hito 8: el gremio, la alianza y la guerra (0x4e2b10 con 50..54, 56, 5D, 60..67, E1, E5, E6, E9 y EB). El 55 y
+// el 5C caen en el default del original: no se registran.
+bool ServerSession::RegisterGuildHandlers()
+{
+    using namespace Protocol::Guild;
+    for (const std::uint8_t opcode : {JoinRequestOpcode,
+                                      JoinResultOpcode,
+                                      MemberListOpcode,
+                                      LeaveResultOpcode,
+                                      MasterQuestionOpcode,
+                                      CreateResultOpcode,
+                                      ViewportGuildDeleteOpcode,
+                                      WarRequestResultOpcode,
+                                      WarRequestOpcode,
+                                      WarStartOpcode,
+                                      WarEndOpcode,
+                                      WarScoreOpcode,
+                                      ViewportGuildOpcode,
+                                      GuildInfoOpcode,
+                                      ViewportUnionOpcode,
+                                      AssignResultOpcode,
+                                      RelationshipRequestOpcode,
+                                      RelationshipResultOpcode,
+                                      UnionListOpcode,
+                                      UnionListRefreshOpcode})
+    {
+        if (!m_gameServer.On(opcode, [this](const Network::Packet& packet) { OnGuild(packet); }))
+            return false;
+    }
+    return true;
 }
 
 // 04 § El comercio, § La party y § El duelo (CL9 hito 7): los casos de 0x4e2b10 que los leen, sin mirar la escena.
@@ -1290,6 +1324,17 @@ void ServerSession::OnWhisperResult(const Network::Packet& packet)
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(result.Value(), *this)));
 }
 
+void ServerSession::OnGuild(const Network::Packet& packet)
+{
+    auto guild = Protocol::Guild::ReadGuildPacket(packet);
+    if (!guild.HasValue())
+    {
+        m_log.Warning("se ignora el paquete del gremio: {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(std::move(guild).Value(), *this)));
+}
+
 void ServerSession::OnFriendList(const Network::Packet& packet)
 {
     const auto list = Protocol::Friends::ReadFriendList(packet);
@@ -1640,6 +1685,11 @@ void ServerSession::RequestCastleSiegeState()
 void ServerSession::RequestPartyList()
 {
     static_cast<void>(SendWorldPacket(Protocol::Party::WritePartyListRequest()));
+}
+
+void ServerSession::SendGuildPacket(Protocol::Outgoing packet)
+{
+    static_cast<void>(SendWorldPacket(std::move(packet)));
 }
 
 void ServerSession::RequestQuestList()

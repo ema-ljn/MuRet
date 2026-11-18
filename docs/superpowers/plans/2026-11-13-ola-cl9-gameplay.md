@@ -376,8 +376,8 @@ Lorencia, Devias y un mapa de evento; el `0x1F` con un tipo `0x98..0x9e`; el cor
       de `0x60dc80`, P-C253 a); el altar de Crywolf de `0x4eac00` también en el clic de ataque (`0x59d653`) y en el
       elfo que se acerca (`0x566272`), que cortan en `0x4eac41` (hito 11, P-C250 h); las celdas fuera de la grilla
       (`0x55886d`, `0x59d653`, `0x566272`) y el puente de Blood Castle en el borde (`0x4d0949`) descartan sin cerrar
-      la sesión (Q-C1179, Q-C1180), y los nombres de gremio (`0x558da4`, `0x558f29`) descartan hasta el hito 8
-      (P-C250 f); las skills de tiro y el abanico de la `0x18` tiran antes de cortar en el registro propio
+      la sesión (Q-C1179, Q-C1180), y los nombres de gremio (`0x558da4`, `0x558f29`) descartaban hasta el hito 8
+      (P-C250 f, hecho en el hito 8 el 2026-11-17); las skills de tiro y el abanico de la `0x18` tiran antes de cortar en el registro propio
       (`0x53e75b`, `0x53e365`, `0x53e4dd`, hito 4; Q-C1181); la caída del `0xe2` (`0x52435d`, P-C230); cada corte
       con su ola o su hito.
 
@@ -548,7 +548,8 @@ byte protegido de `0x10000` con la tienda abierta; el ancho del mundo con cada v
       comandos sociales de `0x56c440` (`/trade`, `/party`, `/guild`, `/GuildWar`, `/BattleSoccer`, que hoy cortan
       con su dirección).
   - [x] Fase 3 (2026-11-13): el comando sobre el elegido (`0x406050` desde `0x406097`): comercio, tienda personal,
-        party, susurro, seguir y duelo; los cuatro del gremio cortan hacia el hito 8 (08 P-C209).
+        party, susurro, seguir y duelo; los cuatro del gremio cortaban hacia el hito 8 (08 P-C209), que los portó en
+        su fase 4.
   - [x] Fase 1 (2026-11-13): `/trade` hasta el nivel (`0x6c8dc8`), `/duelstart` y `/duelend` con el duelo en curso
         y Chaos Castle (texto 1150); `/GuildWar` y `/BattleSoccer` solo los usa el filtro de las macros (`0x56c1f0`).
   - [x] Fase 2 (2026-11-13): lo que busca al otro en `/trade`, `/duelstart` y `/party` (`0x56c68b` y vecinas,
@@ -562,20 +563,106 @@ tienda personal y ver la de otro; armar una party y echar a alguien; un duelo; c
 
 ### Hito 8: el gremio, la alianza y la guerra de gremios (CL9.4, ~78 KB)
 
-- [ ] **Los paquetes del gremio:** `0x50`..`0x56` (`0x4d74b0`, `0x4d6b60`, `0x4d7a20`, `0x4d7b60`,
+- [x] **Los paquetes del gremio:** `0x50`..`0x56` (`0x4d74b0`, `0x4d6b60`, `0x4d7a20`, `0x4d7b60`,
       `0x4d7c30`), la marca en el viewport (`0x5C`, `0x5D`, `0x50d533`), `0x66` (`0x447b90`), las burbujas
       (`0x556dd0`).
-- [ ] **La ventana del gremio** (el panel `0x10`, `0x64f3e0`, con sus tres pestañas `0x64fdf0`, `0x6507d0` y
+- [x] **La ventana del gremio** (el panel `0x10`, `0x64f3e0`, con sus tres pestañas `0x64fdf0`, `0x6507d0` y
       `0x651400`; el `0x40000`, `0x654900`), crear el gremio (`0x6552b0`, `0x655d70`, `54`/`55`), las clases de
       las listas (`0x46b800`..`0x46d630`) y el diálogo de los paneles (`0x65feb0`, `0x6600d0`, `0x660410`,
-      `0x6605b0`, `0x660830`) que abren los paquetes.
-- [ ] **La alianza y los rivales:** `E1`, `E5`, `E6`, `E9` (`0x4d9810`, `0x6565e0`, `0x4d9940`, `0x4d9e50`),
+      `0x6605b0`, `0x660830`) que abren los paquetes. El campo y el reloj del diálogo de los paneles quedan para la
+      CL9.5 (08 P-C285), que es la que los abre.
+- [x] **La alianza y los rivales:** `E1`, `E5`, `E6`, `E9` (`0x4d9810`, `0x6565e0`, `0x4d9940`, `0x4d9e50`),
       con las ventanas `0x64e600`, `0x64def0`, `0x650c10`, `0x653c00` y `0x650830` (`EB`).
-- [ ] **La guerra de gremios:** `0x60`..`0x64` (`0x4d8150`, `0x4d8260`, `0x4d8870`, con `0x576a60` del hito
+- [x] **La guerra de gremios:** `0x60`..`0x64` (`0x4d8150`, `0x4d8260`, `0x4d8870`, con `0x576a60` del hito
       1), el marcador (`0x5a7640`) y el color de la tela en la guerra (P-C22 e, el resto que deje el hito 7).
 
 **Pruebas:** crear un gremio, sumar a alguien, salir; la marca de otro en el viewport; una alianza; una guerra
 con su marcador y los dos `C1 18`. **Desbloquea:** 12.
+
+**Fase 1 (2026-11-13):** los 18 paquetes que llegan (`50`..`54`, `56`, `5D`, `60`..`64`, `66`, `E1`, `E5`, `E6`,
+`E9`, `EB`) con lo que escriben, sus respuestas (`51`, `52`, `54`, `E6`, `E9`, los `C1 18` de la guerra con
+`0x576a60` del hito 1), el globo (`0x556dd0`), las dos ventanas al cerrarse (`0x6522f0`, `0x6570b0`), abrirlas desde
+el registro, y el diálogo de los paneles (`0x65feb0`..`0x6605b0` y dónde quedan sus botones). Queda para la fase 2
+(08, P-C281): el dibujo y el paso de las ventanas, las listas, el alta (`0x6552b0`, `0x655d70`, `0x4e3450`), las
+ventanas de la alianza que mandan, el dibujo del diálogo, el marcador (`0x5a7640`), la marca en el viewport y el
+color de la tela.
+
+**Fase 2 (2026-11-13):** el `65` y el `67` (el gremio y la alianza de cada personaje; el `5C` del GS no lo atiende el
+1.02), la marca (`0x5f16a0`, cada una en su slot), la marca sobre el personaje (`0x50d533`), el marcador de la guerra
+(`0x5a7640`) y el dibujo del diálogo de los paneles (`0x660830`; el campo y el reloj, P-C285). Queda (08, P-C281): el
+dibujo y el paso de las ventanas con sus pestañas, las listas con `0x480e00` y `0x4824d0`, el alta, las ventanas de la
+alianza que mandan y el color de la tela en la guerra, que espera la parte del duelo del hito 7.
+
+**Fase 3 (2026-11-13):** la ventana 2 (`0x654900`) con sus cuatro páginas y el editor de la marca, el alta
+(`0x6552b0` manda el `C1 55` con el nombre y la marca; `0x655d70`), el `01` del Guild Master (`0x4e3450`, con el
+`EDIT` del diálogo y `0x77f3b68`) y la tabla de los gremios con las claves en −1 (`0x447ae0`); la prueba de crear un
+gremio va de la pregunta del `54` al `C1 55`. Sobre el hito 7 (mergeado): la tela en la guerra (`0x50c972..0x50caaa`,
+P-C22 e y P-C207 b) y la marca del otro en el comercio (`0x5f3bf9..0x5f3c8a`, P-C207 a). Queda: la ventana del gremio
+con sus pestañas y listas (08 P-C287, sobre `UI::OldList` del hito 9) y las ventanas de la alianza que mandan (P-C288).
+
+**Fase 4 (2026-11-13):** el marco de la ventana del gremio (`0x64f3e0`): su paso (`0x651840`: el mouse sobre ella,
+cerrarla, las pestañas, el `C1 03 E9` de la alianza una vez) desde el registro (`0x657977`) y su dibujo (`0x651c20`:
+el título, el puntaje o los tres textos sin gremio, el botón de cerrar y las tres pestañas) desde `0x6579e0`, con el
+nombre del gremio del héroe leído también antes de la tabla (−1). Después, el paso de la pestaña de los miembros
+(`0x650350`) con su lista sobre `UI::OldList` (`0x46c470`: `0x46c930`, `0x47a410`, `0x46d3a0`), PgUp y PgDn, y los
+botones del maestro: quitar el cargo (`0x64def0`: `C1 0F E1 03 00` y el nombre, y `C1 03 52`) y echar (`0x64e550`, que
+abre el diálogo `0x7d` del juego). Queda (08 P-C287 y P-C288): la ventana de los cargos (`0x64e600`, `0x64f1c0`), el
+`C1 53` del diálogo `0x7d` (`0x62a878`), los otros pasos y los dibujos de las pestañas (`0x64fc00`, `0x650c10`,
+`0x64fdf0`, `0x6507d0`, `0x651400`), las otras listas (`0x46b800`, `0x46d440`, `0x46d630`, con `0x480e00`, `0x480520`,
+`0x4824d0`), el dibujo de las listas (`0x47a810`, con `0x46cb20` y `0x46d050`) y `0x650830`. Con el hito 7 mergeado otra vez
+(`0f0b830`), los cuatro comandos del gremio de la ventana de comandos (08 P-C209): pedir entrar (`0x4085d1`, `C1 05 50`),
+la alianza (`0x408a24`, `C1 07 E5 01 01`), la rivalidad y romperla (`0x409066` y `0x409663`, con la animación `0xb7` y
+el `C1 05 18`), y el estado del 6 con los dos maestros, que lee el `+4` de la tabla de los gremios (`0x4062e4`).
+
+**Fase 5 (2026-11-13):** con los hitos 9 y 7 mergeados otra vez, las pestañas 0 y 2 de la ventana del gremio: sus pasos
+(`0x64fc00`: salir o disolver, con `0x64de90` y el diálogo `0x7d`; `0x650c10`: romper la alianza con el `C1 07 E5 01
+02`, echar a un gremio con `0x650830` y el `C1 0C EB 01`) y los tres dibujos (`0x64fdf0`, `0x6507d0`, `0x651400`) con
+las listas del aviso (`0x46b800`, desde el `0D` tipo 2 por `0x651680`) y de la alianza (`0x46d440`, `0x46d900`), su
+paso y su dibujo sobre `UI::OldList` y el `0x47a810` del hito 9, y los botones `+0x42c`, `+0x64c` y `+0x6d4`.
+Después, la ventana de los cargos (`0x64e600` y `0x64f1c0`, colgadas del diálogo de los paneles con `0x6602b0`; el
+`E1` tipo 1 o 2 y el `52`) que abre el botón `0x6504b6`, y el `EDIT` del alta dibujado con `0x468320` (P-C286, con
+la subclase `0x467b10` leída). El hito 11 (`cl9-h11`, sin mergear) no abre el reloj ni el campo del diálogo
+(P-C285). Queda (08 P-C287): el diálogo `0x7d` del juego (`0x62a810`, `0x62a878`, `0x62c567`, el dibujo
+`0x630af0..0x630cb8` y su cola `0x63140b`) con el segundo `EDIT` de los diálogos (`[0x5763508]`), que manda el
+`C1 53` de echar y de salir; por eso la ventana del gremio sigue sin tildar.
+
+**Fase 6 (2026-11-13):** el diálogo `0x7d` del juego con el segundo `EDIT` de los diálogos (`[0x5763508]`,
+`UI::ChatInputState::numberField`: oculto, tope 9 y `ES_PASSWORD` desde WinMain, el filtro de la subclase
+`0x467bd1..0x467c64` y los `*` de `0x468584`): el paso (`0x62a810`; el sí `0x62a878` lee el número y manda el
+`C1 17 53` con el nombre del lugar `0x6d5e2c`, cotejado con `CGGuildDelUser` del GS, `0x420bf0`; el no `0x62c567`),
+el dibujo (`0x630af0..0x630cb8`) y su cola (`0x63140b` por `0x632bf0` y `0x632b14` a `0x631f36`). El `EDIT` queda a la
+vista y con el foco al cerrar (Q-C1295); `0x6d5e2c` en −1 corta (Q-C1296). Las marcas de la lista de la alianza van
+cada una al slot de su renglón (`Render::FirstGuildUnionMarkTextureSlot`, `IGuildMarks::UploadToTheUnionRow`; P-C289).
+Con eso, la ventana del gremio queda tildada; el campo y el reloj del diálogo de los paneles siguen en la CL9.5
+(P-C285) ~~y abrir la ventana de los cargos con otro diálogo de los paneles abierto sigue cortando en `0x6600f9`~~
+(portado en la fase 7).
+
+**Fase 7 (2026-11-13):** los arreglos de la revisión. Los paquetes que en el original leen o escriben fuera de sus
+tablas ya no cierran la sesión: se descartan enteros sin dejar nada a medio escribir, como Q-C174 y Q-C778 (el `50`,
+Q-C1297, con la pregunta del `m_IfState` del GS para la VM; el `5D`, Q-C1298; el `63` con más de 6, Q-C1301; el `E5`
+con otra relación, Q-C1302; el `52` con más de 80, Q-C1303), y el `65` y el `67` descartan la entrada y siguen
+(Q-C1299, Q-C1300). El `63` pone en 0 el WORD del duelo (`SocialState::duel.word5767816`, `0x4d8958`) en lugar de un
+byte propio. El diálogo de los paneles ya no recorta los renglones a `0xff`: uno de `0x100` o más corta con su
+dirección (Q-C1305). El aviso de `0x6600f9` (los bytes de `0x6d69a8`, tipo 1, y 0 para quien lo abría) está portado en
+`Scenes::PopUpThePanelDialog`, y el botón del cargo le pone los ganchos al diálogo abierto (Q-C1306). Con una flecha
+apretada, el cursor de los `EDIT` no parpadea (Q-C1304, P-C286).
+
+**Fase 8 (2026-11-17):** el merge con main (el squash del hito 7) y una auditoría adversarial contra el ASM con cinco
+revisores. Lo que la auditoría encontró que cerraba el cliente en el juego normal, ahora portado: el diálogo `0x7f` de
+la guerra (el sí `0x62b39c` con `C1 04 61 01`, el no `0x62c5c2` con `C1 04 61 00` y `0x4c1800`, y su dibujo con el 430
+y el 431 o el 432); los cierres de las dos ventanas del gremio en todas las rutas de `GamePanels::LendTheSession`
+(`0x657b50`, `0x657b73`: caminar, el gate, la muerte, el comercio, las tiendas, las misiones y los eventos con la `G`
+abierta); los avisos `0x72`, `0x79`, `0x7a` y `0x7e` del alta como el OK genérico; el renglón del gremio del globo que
+pasa de sus 30 bytes y pisa el título de la tienda (Q-C1283); y `/guild` (`0x573f49`) y `/union`, `/rival` y
+`/rivaloff` (`0x570d48`), con el elegido o el primero de frente. Los desvíos: la guerra del ataque lee
+`GuildState::warOn` y `warType` y compara los nombres de gremio (`0x558da4`, `0x558aa9`, `0x558f29`; Q-C1170 no era un
+bug); la lista `F3 00` apaga la guerra (`0x4c20b3`) y la entrada a la selección los campos del diálogo (`0x634199`);
+ocultar el chat no le saca el foco al `EDIT` del diálogo (`0x469450`); el `E9` corto de MyDll guarda lo que llegó
+(Q-C1365); los renglones de disolver van en sus lugares de `0x32` de la pila (Q-C1366); los `EDIT` de los diálogos dejan
+su id en `0x5762ec0` y pasan el tope por la subclase en cada frame (Q-C1304); el clic en el suelo respeta `0x77f3b69` y
+`0x77f3b6a`. Lo que queda fuera del hito, con su dueño: el tanteador y la tela de Battle Soccer (P-C284 a, hito 11),
+las dos copias de `0x6c649a` (P-C369, CL9.5), el `0x76`, que no abre nadie (P-C363), y lo que se pierde al descartar
+los paquetes que escriben fuera (P-C370).
 
 ### Hito 9: los amigos (CL9.4, ~89 KB)
 

@@ -13,6 +13,7 @@
 #include "Scenes/EventMapObject.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/GameMovementState.h"
+#include "Scenes/GuildState.h"
 #include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -128,7 +129,8 @@ public:
                                .sprites = sprites,
                                .text = text,
                                .texts = &texts,
-                               .mouse = mouse};
+                               .mouse = mouse,
+                               .arrowHeld = arrowHeld};
         return Client::Scenes::DrawTheGameDialogs(context);
     }
 
@@ -147,6 +149,7 @@ public:
     SpriteBatch sprites;
     Client::Tests::RecordingTextDrawer text{sprites};
     Client::UI::Point mouse{};
+    bool arrowHeld = false;
     Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable({
         {381, "salir"},
         {382, "otro servidor"},
@@ -157,6 +160,10 @@ public:
         {387, "aviso"},
         {388, "listo"},
         {389, "volumen"},
+        {390, "nombre corto"},
+        {391, "simbolo invalido"},
+        {392, "nombre"},
+        {393, "no permitido"},
         {401, "uno"},
         {402, "sin conexion"},
         {405, "primero"},
@@ -168,6 +175,12 @@ public:
         {421, "zen del almacen"},
         {422, "zen al comercio"},
         {425, "entrar a la party?"},
+        {426, "marca vacia"},
+        {427, "nro"},
+        {428, "seguro?"},
+        {430, "guerra de %s"},
+        {431, "aceptas?"},
+        {432, "aceptas la batalla?"},
         {857, "ganaste"},
         {858, "mision cumplida"},
         {859, "perdiste"},
@@ -404,6 +417,45 @@ TEST(GameDialogDrawingTest, TheGenericOkDrawsItsTexts)
     }
 }
 
+// Los avisos del alta del gremio (CL9 hito 8): el marco y el OK del genérico (0x630818 y 0x63093e) y sus textos, el
+// 0x72 en dos renglones (392 y 393 en 75 − 6 y 75 + 6) y el 0x79, el 0x7a y el 0x7e en uno (390, 391 y 426 en 75).
+TEST(GameDialogDrawingTest, TheGuildCreationNoticesDrawLikeTheGenericOk)
+{
+    for (const std::int32_t map : {Lorencia, Devias})
+    {
+        SCOPED_TRACE(map);
+        DrawingDialogs tested(map);
+        Client::Scenes::WorldRuntime& runtime = tested.world.Runtime();
+        for (const auto& [id, rows] :
+             std::to_array<std::pair<std::int32_t, std::vector<std::string>>>({{0x72, {"nombre", "no permitido"}},
+                                                                               {0x79, {"nombre corto"}},
+                                                                               {0x7a, {"simbolo invalido"}},
+                                                                               {0x7e, {"marca vacia"}}}))
+        {
+            SCOPED_TRACE(id);
+            tested.sprites.Begin(Screen640);
+            tested.text.texts.clear();
+            runtime.dialogs.current = id;
+            tested.mouse = {0x11c, 0x76};
+            const auto drawn = tested.Draw();
+            ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+            const std::vector<DrawnQuad> quads = QuadsOf(tested.sprites);
+            ASSERT_EQ(quads.size(), 2u);
+            EXPECT_EQ(quads[0].slot, 0xf0);
+            EXPECT_EQ(quads[1].slot, 0xf2);
+            EXPECT_FLOAT_EQ(quads[1].x, 284.0f);
+            EXPECT_EQ(tested.Texts(), rows);
+            if (rows.size() == 1)
+                EXPECT_EQ(tested.text.texts[0].y, 75);
+            else
+            {
+                EXPECT_EQ(tested.text.texts[0].y, 75 - 6);
+                EXPECT_EQ(tested.text.texts[1].y, 75 + 6);
+            }
+        }
+    }
+}
+
 // 0x77 (CL9 hito 7, fase 2): el marco del OK genérico, el sí y el no (0x6309d4), y en la fuente del DC "de %s" con el
 // nombre del primero vivo de los 400 con la clave de 0x78aba4c (0x5110d0, con MOVSX) en 75 − 6 y la pregunta en 75 + 6.
 // Sin nadie con la clave, el 400 (sin nombre).
@@ -487,6 +539,167 @@ TEST(GameDialogDrawingTest, TheTradeRequestNamesTheOther)
     }
 }
 
+// 0x7f (CL9 hito 8): el marco del OK genérico, el sí y el no (0x6309d4) como el 0x77, y en la fuente del DC (0x63212a)
+// "guerra de %s" con el rival de 0x5767804 (hasta su cero) en 75 − 6 y el 431 en 75 + 6; con el tipo de guerra
+// (0x576796d), el 432. Sin rand().
+TEST(GameDialogDrawingTest, TheWarRequestNamesTheRivalAndAsksByWarType)
+{
+    for (const std::int32_t map : {Lorencia, Devias})
+    {
+        SCOPED_TRACE(map);
+        auto tested = std::make_unique<DrawingDialogs>(map);
+        Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+        runtime.dialogs.current = 0x7f;
+        runtime.guild.rival = {'T', 'e', 'r', 'o', 's', '\0', 'x', 'x', '\0'};
+        tested->mouse = {0xea, 0x62};
+
+        ASSERT_TRUE(tested->Draw().HasValue());
+        const std::vector<DrawnQuad> quads = QuadsOf(tested->sprites);
+        ASSERT_EQ(quads.size(), 3u);
+        EXPECT_EQ(quads[0].slot, 0xf0);
+        EXPECT_EQ(quads[0].x, 213.0f);
+        EXPECT_EQ(quads[0].y, 60.0f);
+        EXPECT_EQ(quads[1].slot, 0xf2);
+        EXPECT_EQ(quads[1].x, 234.0f);
+        EXPECT_EQ(quads[1].y, 98.0f);
+        EXPECT_EQ(quads[2].slot, 0xf3);
+        EXPECT_EQ(quads[2].x, 334.0f);
+        EXPECT_EQ(tested->Texts(), (std::vector<std::string>{"guerra de Teros", "aceptas?"}));
+        EXPECT_EQ(tested->text.texts[0].x, CenteredX("guerra de Teros"));
+        EXPECT_EQ(tested->text.texts[0].y, 75 - 6);
+        EXPECT_EQ(tested->text.texts[0].style.font, Client::Render::Text::FontKind::Normal);
+        EXPECT_EQ(tested->text.texts[1].x, CenteredX("aceptas?"));
+        EXPECT_EQ(tested->text.texts[1].y, 75 + 6);
+        EXPECT_EQ(tested->sprites.Blend(), BlendMode::Alpha);
+
+        runtime.guild.warType = 1;
+        tested->sprites.Begin(Screen640);
+        tested->text.texts.clear();
+        tested->mouse = {0x14e, 0x62};
+        ASSERT_TRUE(tested->Draw().HasValue());
+        EXPECT_EQ(QuadsOf(tested->sprites)[1].slot, 0xf1);
+        EXPECT_EQ(QuadsOf(tested->sprites)[2].slot, 0xf4);
+        EXPECT_EQ(tested->Texts(), (std::vector<std::string>{"guerra de Teros", "aceptas la batalla?"}));
+        EXPECT_EQ(tested->random.State(), Client::Render::Models::CrtRandom{}.State());
+    }
+}
+
+// 0x630818 y 0x630af0..0x630cb8 (el 0x7d, CL9 hito 8): el marco del OK genérico; el EDIT del número ([0x5763508]) a la
+// vista con +0x4c en 9, el fondo en 0, el tope 7, de 0x46 × 0xe en (0xf3, 0x62) y con el foco (0x4682a0: 0x5762ec0 con
+// su id); en la mezcla normal, el cuadro negro de +0x4c, el bitmap y los '*' (el cursor, al final, recortado); en la
+// opaca, el sí (0xf1, o 0xf2 con el mouse en [0x143, 0x16b) × [0x62, 0x77)) en 323 y el no (0xf3, o 0xf4 en [0x175,
+// 0x19d)) en 373, de 40 × 21. En la cola (0x631f36), el 427 y el 428 centrados en 75 − 6 y 75 + 6, en rojo, que queda.
+// Sin rand().
+TEST(GameDialogDrawingTest, TheLeaveNumberDrawsItsEditAndTheNarrowButtons)
+{
+    for (const std::int32_t map : {Lorencia, Devias})
+    {
+        SCOPED_TRACE(map);
+        auto tested = std::make_unique<DrawingDialogs>(map);
+        Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+        runtime.dialogs.current = 0x7d;
+        runtime.ui.focusedList = -3;
+        Client::UI::ChatInputState& input = runtime.chat.input;
+        input.numberField.text.Type("12");
+        tested->mouse = {0x16a, 0x76};
+
+        ASSERT_TRUE(tested->Draw().HasValue());
+        const Client::UI::OldEdit& field = input.numberField;
+        EXPECT_EQ(field.base.state, 0);
+        EXPECT_EQ(field.filter, 9);
+        EXPECT_EQ(field.backgroundColor, 0u);
+        EXPECT_EQ(field.base.x, 0xf3);
+        EXPECT_EQ(field.base.y, 0x62);
+        EXPECT_EQ(field.base.width, 0x46);
+        EXPECT_EQ(field.base.height, 0xe);
+        EXPECT_EQ(input.focus, Client::UI::ChatFocus::NumberField);
+        EXPECT_EQ(runtime.ui.focusedList, Client::UI::NumberFieldId);
+        EXPECT_EQ(field.draws, 1);
+
+        const std::vector<DrawnQuad> quads = QuadsOf(tested->sprites);
+        ASSERT_EQ(quads.size(), 5u);
+        EXPECT_EQ(quads[0].slot, 0xf0);
+        EXPECT_EQ(quads[0].x, 213.0f);
+        EXPECT_EQ(quads[0].y, 60.0f);
+        EXPECT_FALSE(quads[1].slot.has_value());
+        EXPECT_EQ(quads[1].x, 243.0f);
+        EXPECT_EQ(quads[1].y, 98.0f);
+        EXPECT_EQ(quads[1].blend, BlendMode::Alpha);
+        EXPECT_EQ(quads[1].color, (Color{.red = 0.0f, .green = 0.0f, .blue = 0.0f, .alpha = 1.0f}));
+        EXPECT_FALSE(quads[2].slot.has_value());
+        EXPECT_EQ(quads[2].color.alpha, 0.0f);
+        // El cursor va en la columna 3 + 12 + 1 de un bitmap de ftol(3 + 12) = 15: al final del texto queda recortado
+        // (el editor XP de UI::OldDraw::DrawTheOldEdit, con el margen de 3 antes del texto).
+        EXPECT_EQ(quads[3].slot, 0xf2);
+        EXPECT_EQ(quads[3].x, 323.0f);
+        EXPECT_EQ(quads[3].y, 98.0f);
+        EXPECT_EQ(quads[3].blend, BlendMode::Opaque);
+        EXPECT_EQ(quads[4].slot, 0xf3);
+        EXPECT_EQ(quads[4].x, 373.0f);
+
+        EXPECT_EQ(tested->Texts(), (std::vector<std::string>{"**", "nro", "seguro?"}));
+        EXPECT_EQ(tested->text.texts[0].x, 0xf3 + 3);
+        EXPECT_EQ(tested->text.texts[1].x, CenteredX("nro"));
+        EXPECT_EQ(tested->text.texts[1].y, 75 - 6);
+        EXPECT_EQ(tested->text.texts[1].style.colors.text, 0xff0000ffu);
+        EXPECT_EQ(tested->text.texts[2].x, CenteredX("seguro?"));
+        EXPECT_EQ(tested->text.texts[2].y, 75 + 6);
+        EXPECT_EQ(runtime.hud.textColors.text, 0xff0000ffu);
+        EXPECT_EQ(tested->sprites.Blend(), BlendMode::Alpha);
+
+        // El tope 7 (EM_LIMITTEXT) frena lo que se teclea desde ahora.
+        Client::UI::TypeInTheChat(input, "345678");
+        EXPECT_EQ(input.numberField.text.Value(), "1234567");
+
+        // Un dibujo intermedio no cuenta el parpadeo; fuera del sí (x 0x16b) y en el no, 0xf1 y 0xf4.
+        tested->sprites.Begin(Screen640);
+        tested->text.texts.clear();
+        tested->mouse = {0x16b, 0x62};
+        ASSERT_TRUE(tested->Draw(true).HasValue());
+        EXPECT_EQ(input.numberField.draws, 1);
+        EXPECT_EQ(QuadsOf(tested->sprites)[3].slot, 0xf1);
+        tested->sprites.Begin(Screen640);
+        tested->mouse = {0x175, 0x62};
+        ASSERT_TRUE(tested->Draw().HasValue());
+        EXPECT_EQ(input.numberField.draws, 2);
+        EXPECT_EQ(QuadsOf(tested->sprites)[4].slot, 0xf4);
+        EXPECT_EQ(tested->random.State(), Client::Render::Models::CrtRandom{}.State());
+    }
+}
+
+// 0x467f30 (EM_LIMITTEXT por SendMessageA) en cada frame del 0x7d y del 0x73 pasa por la subclase 0x467b10: con una
+// flecha abajo, +0x80 en 0 antes de que 0x468320 mire el cursor, que se ve desde el primer frame (con 13, apagado).
+TEST(GameDialogDrawingTest, AHeldArrowLightsTheDialogCaretAtOnce)
+{
+    for (const std::int32_t dialog : {0x7d, 0x73})
+    {
+        SCOPED_TRACE(dialog);
+        auto tested = std::make_unique<DrawingDialogs>(Lorencia);
+        Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+        runtime.dialogs.current = dialog;
+        Client::UI::ChatInputState& input = runtime.chat.input;
+        Client::UI::OldEdit& edit = dialog == 0x7d ? input.numberField : input.dialogEdit;
+        // El cursor al principio: al final del texto quedaría fuera del bitmap.
+        edit.text.Type("12");
+        edit.text.SetCursor(0);
+        edit.draws = 13;
+        tested->arrowHeld = true;
+
+        ASSERT_TRUE(tested->Draw().HasValue());
+        EXPECT_EQ(edit.draws, 1);
+        EXPECT_TRUE(std::ranges::any_of(tested->text.texts, [](const Client::Tests::RecordedText& text)
+                                        { return text.columns == 1 && text.style.colors.background == 0xffc8c8c8u; }));
+
+        tested->sprites.Begin(Screen640);
+        tested->text.texts.clear();
+        edit.draws = 13;
+        tested->arrowHeld = false;
+        ASSERT_TRUE(tested->Draw().HasValue());
+        EXPECT_EQ(edit.draws, 14);
+        EXPECT_FALSE(std::ranges::any_of(tested->text.texts, [](const Client::Tests::RecordedText& text)
+                                         { return text.columns == 1 && text.style.colors.background == 0xffc8c8c8u; }));
+    }
+}
 // 0x6304e1 → 0x471ae0 (CL9 hito 7): la caja de confirmación 0x9c con dos renglones, de (12 + 2) de alto en 640: el
 // marco (0xfc en y 120, 0xfb desde 125 con h + 40 de alto y 0xfc en h + 165), el sí en (255, h + 140) con el mouse en
 // el borde de abajo y la x del borde derecho (0xf2), el no sin él (0xf3), y los renglones centrados desde 0x87 de 14 en
@@ -640,6 +853,7 @@ TEST(GameDialogDrawingTest, TheMoneyDialogDrawsItsFrameItsEditAndItsText)
             EXPECT_EQ(edit.base.height, 0xe);
             EXPECT_EQ(edit.draws, 1);
             EXPECT_EQ(runtime.chat.input.focus, Client::UI::ChatFocus::Dialog);
+            EXPECT_EQ(runtime.ui.focusedList, Client::UI::DialogFieldId);
 
             const std::vector<DrawnQuad> quads = QuadsOf(tested->sprites);
             ASSERT_EQ(quads.size(), 3u);
@@ -715,6 +929,7 @@ TEST(GameDialogDrawingTest, TheShopDialogDrawsItsBoxItsEditAndItsButtons)
 
             ASSERT_TRUE(tested->Draw().HasValue());
             EXPECT_EQ(runtime.chat.input.focus, Client::UI::ChatFocus::Dialog);
+            EXPECT_EQ(runtime.ui.focusedList, Client::UI::DialogFieldId);
             EXPECT_EQ(edit.base.x, 0xfd);
             EXPECT_EQ(edit.draws, 1);
             const std::vector<DrawnQuad> quads = QuadsOf(tested->sprites);

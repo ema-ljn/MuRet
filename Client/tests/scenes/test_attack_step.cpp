@@ -10,6 +10,7 @@
 #include "Scenes/HeroAttack.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/GuildState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
@@ -559,17 +560,23 @@ TEST(AttackStepTest, TheChosenKeyIsTheHerosOnly)
 
     AttackWorld guild;
     guild.world.Runtime().selectedTargets[2] = static_cast<std::int32_t>(VictimSlot);
-    guild.world.Runtime().attackRules.byte576796c = 1;
+    guild.world.Runtime().guild.warOn = 1;
     guild.Victim().pk = 6;
     guild.Victim().word1f2 = 2;
     guild.Victim().key = Key;
-    // Comparar los nombres de gremio (0x558f29) es del hito 8: hasta entonces, −1 sin cerrar la sesión (P-C250 f).
+    guild.Victim().byte374 = 2;
+    // 0x558f29: los nombres de gremio (0x787aa55) del elegido y del héroe iguales (los dos vacíos), −1 aunque tenga la
+    // marca; distintos, sigue a la marca (+0x374 en 2) con la clave.
     for (const bool controlDown : {false, true})
     {
         const auto discarded = ChosenKeyOf(guild.world, HeroSlot, controlDown);
         ASSERT_TRUE(discarded.HasValue()) << discarded.Error();
         EXPECT_EQ(discarded.Value(), -1);
     }
+    guild.world.Runtime().guild.table[2].guildName[0] = 'R';
+    const auto marked = ChosenKeyOf(guild.world, HeroSlot, false);
+    ASSERT_TRUE(marked.HasValue()) << marked.Error();
+    EXPECT_EQ(marked.Value(), Key);
 
     // En el paso de la habilidad, la clave va a o+0x8a.
     AttackWorld stepped;

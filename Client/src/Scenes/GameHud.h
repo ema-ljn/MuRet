@@ -27,6 +27,7 @@ class CrtRandom;
 
 namespace Client::Scenes
 {
+class IGuildMarks;
 class WorldState;
 struct CrywolfInterface;
 struct GameProjection;
@@ -77,6 +78,9 @@ struct GameHudContext
     UI::Point mouse{};
     // 0x7d36874: el botón izquierdo abajo.
     bool leftDown = false;
+    // GetAsyncKeyState de las flechas (0x25..0x28) en el momento del dibujo: la subclase de los EDIT (0x467b10) las
+    // mira con el WM_GETTEXT de 0x468320 (UI::OldWindowDrawContext::arrowHeld).
+    bool arrowHeld = false;
     // GetAsyncKeyState(0x11) en el dibujo: Ctrl abajo, que 0x558bb0 mira para atacar a otro jugador (0x558e7f).
     bool controlDown = false;
     // El código del servidor elegido (App::ServerSession::ChosenServer), de donde salen [0x6d5ec4] (el lugar del
@@ -87,6 +91,8 @@ struct GameHudContext
     // Lo que el tramo 3D de 0x5ac120 necesita para dibujar los modelos de los ítems de la UI. Sin él (una escena sin
     // la biblioteca de los modelos, como las de las pruebas), cada ítem saca sus rand() sin dibujar.
     UiItemResources* uiItems = nullptr;
+    // Las marcas de los gremios (0x5f16a0) del marcador de la guerra (0x5a7640); sin ellas, la guerra corta.
+    IGuildMarks* guildMarks = nullptr;
     // El send() de la sesión, el del A9 que pide el tooltip de las mascotas (0x423c87..0x42403d). Sin él (una escena
     // sin sesión, como las de las pruebas), el pedido no sale; un dibujo intermedio no lo llama.
     std::function<void(Protocol::Outgoing)> send{};

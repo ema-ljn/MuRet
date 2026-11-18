@@ -1070,4 +1070,81 @@ TEST_F(FriendWindowsDrawTest, TheEditCaretBlinksAndAHiddenEditDrawsNothing)
     EXPECT_EQ(quads(), 0u);
     EXPECT_EQ(edit.draws, 25);
 }
+
+// 0x46854d: el WM_GETTEXT de GetWindowTextA pasa por la subclase (0x467b10), que con una flecha abajo pone +0x80 en 0
+// después de que el dibujo eligió el cursor; el INC lo deja en 1, y el cursor queda prendido mientras siga abajo.
+// Oculto, el EDIT sale antes (IsWindowVisible) y no cuenta.
+TEST_F(FriendWindowsDrawTest, AHeldArrowKeepsTheEditCaretOn)
+{
+    OldEdit edit;
+    edit.base.x = 20;
+    edit.base.y = 40;
+    edit.base.width = 80;
+    edit.base.height = 14;
+    edit.text.Type("ab");
+    // El cursor al principio: al final del texto quedaría fuera del bitmap.
+    edit.text.SetCursor(0);
+    const auto caretDrawn = [this]
+    {
+        return std::ranges::any_of(m_text.texts, [](const auto& text)
+                                   { return text.columns == 1 && text.style.colors.background == 0xffc8c8c8u; });
+    };
+    OldWindowDrawContext held = Context();
+    held.arrowHeld = true;
+
+    edit.draws = 13;
+    Client::UI::OldDraw::DrawTheOldEdit(held, edit, true);
+    // El bitmap y el texto: el cursor se eligió con 13.
+    EXPECT_FALSE(caretDrawn());
+    EXPECT_EQ(edit.draws, 1);
+
+    m_sprites.Begin(Screen640);
+    m_text.texts.clear();
+    Client::UI::OldDraw::DrawTheOldEdit(held, edit, true);
+    EXPECT_TRUE(caretDrawn());
+    EXPECT_EQ(edit.draws, 1);
+
+    // Sin el foco el WM_GETTEXT llega igual.
+    edit.draws = 20;
+    Client::UI::OldDraw::DrawTheOldEdit(held, edit, false);
+    EXPECT_EQ(edit.draws, 1);
+
+    edit.draws = 20;
+    edit.base.state = Client::UI::HiddenWindow;
+    Client::UI::OldDraw::DrawTheOldEdit(held, edit, true);
+    EXPECT_EQ(edit.draws, 20);
+}
+
+// 0x468584..0x4685ec, el EDIT con ES_PASSWORD (el número del diálogo 0x7d, CL9 hito 8): el texto es un '*' por byte,
+// el bitmap mide los '*' en la negrita y el DC queda con la normal; el cursor, al final de los '*'.
+TEST_F(FriendWindowsDrawTest, AMaskedEditDrawsStarsAndLeavesTheNormalFont)
+{
+    OldEdit edit = Client::UI::NumberFieldEdit();
+    edit.base.state = 0;
+    edit.base.x = 0xf3;
+    edit.base.y = 0x62;
+    edit.base.width = 0x46;
+    edit.base.height = 0xe;
+    edit.text.Type("4321");
+    m_dcFont = FontKind::Bold;
+
+    Client::UI::OldDraw::DrawTheOldEdit(Context(), edit, true);
+
+    EXPECT_EQ(m_dcFont, FontKind::Normal);
+    ASSERT_EQ(m_text.texts.size(), 1u);
+    EXPECT_EQ(m_text.texts[0].text, "****");
+    EXPECT_EQ(m_text.texts[0].x, 0xf3 + 3);
+    EXPECT_EQ(m_text.texts[0].columns, 24);
+    EXPECT_EQ(m_text.texts[0].style.font, FontKind::Normal);
+    EXPECT_EQ(edit.text.Value(), "4321");
+    // El bitmap (ftol(1,5 + 1,5 + 24) = 27 de ancho, medido con los '*' en la negrita) y las 24 columnas del texto 3
+    // más adentro. El cursor, en la columna 3 + 24 + 1 de la normal, queda fuera del bitmap: no se dibuja.
+    const std::span<const SpriteVertex> vertices = m_sprites.Vertices();
+    ASSERT_EQ(vertices.size(), 2u * 6u);
+    EXPECT_FLOAT_EQ(vertices[0].x, 243.0f);
+    const float right = std::max({vertices[0].x, vertices[1].x, vertices[2].x, vertices[3].x});
+    EXPECT_FLOAT_EQ(right, 243.0f + 27.0f);
+    EXPECT_FLOAT_EQ(vertices[6].x, 243.0f + 3.0f);
+    EXPECT_EQ(edit.draws, 1);
+}
 } // namespace

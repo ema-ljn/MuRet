@@ -53,6 +53,7 @@
 #include "Scenes/ChatBubbles.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/GameCharacters.h"
+#include "Scenes/GuildState.h"
 #include "Scenes/HelperTable.h"
 #include "Scenes/ModelTextureTable.h"
 #include "Scenes/SceneCanvas.h"
@@ -202,7 +203,7 @@ GameScene::GameScene(const SceneContext& context, App::ServerSession* session, c
                      const Data::Text::TextTable* texts, GameChatTables chat)
     : m_context(context), m_session(session), m_models(models), m_items(items), m_gameSlots(gameSlots), m_gates(gates),
       m_skills(skills), m_texts(texts), m_chatTables(chat), m_windowTextures(context.textures, WindowTextureSet),
-      m_sandTextures(context.textures, SandTextureSet), m_tiles(context.textures)
+      m_sandTextures(context.textures, SandTextureSet), m_guildMarks(context.textures), m_tiles(context.textures)
 {
 }
 
@@ -331,6 +332,9 @@ void GameScene::StepEntry()
                         : 0U;
                 StartTheSlides(*m_context.world, m_context.cloth->random, now);
             }
+            // 0x636935: la tabla de los gremios (0x447ae0). El F1 00 (0x4c1e54) y la lista de personajes (0x4c1f14)
+            // también la vacían, pero antes de que haya mundo: la entrada al juego deja lo mismo.
+            ResetTheGuildTable(runtime.guild);
         }
     }
     if (m_sent || m_session == nullptr)
@@ -1175,6 +1179,7 @@ Core::Expected<void, std::string> GameScene::DrawTheCharacters(SceneCanvas& canv
                           .worldModels = m_worldModelsMap ? &m_worldModels : nullptr,
                           .polygon = &polygon,
                           .fixedHeight = CameraState().fixedHeight,
+                          .guildMarks = &m_guildMarks,
                           .kalima = FrameKalima(),
                           .cameraShake = m_projectingFrame ? &m_projection->cameraShake : &CameraInputState().shake});
     if (poseFailure)
@@ -1220,10 +1225,13 @@ bool GameScene::WantsTextInput() const
 {
     if (m_context.world == nullptr)
         return false;
-    // El chat abierto, el EDIT de una ventana vieja con el foco (CL9 hito 9) o el de [0x5763504] (hito 11).
+    // El chat abierto, el EDIT de una ventana vieja con el foco (CL9 hito 9) o uno de los dos de los diálogos: el de
+    // [0x5763504] (hito 11 y CL9 hito 8) o el de [0x5763508] (CL9 hito 8). El que tiene el foco de Windows recibe los
+    // WM_CHAR.
     const WorldRuntime& runtime = m_context.world->Runtime();
-    return runtime.ui.chatOpen || runtime.chat.input.focus == UI::ChatFocus::OldWindow ||
-           runtime.chat.input.focus == UI::ChatFocus::Dialog;
+    const UI::ChatFocus focus = runtime.chat.input.focus;
+    return runtime.ui.chatOpen || focus == UI::ChatFocus::OldWindow || focus == UI::ChatFocus::Dialog ||
+           focus == UI::ChatFocus::NumberField;
 }
 
 bool GameScene::HoldsTheLastFrame() const

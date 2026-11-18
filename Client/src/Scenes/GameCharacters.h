@@ -42,6 +42,7 @@ struct WorldTerrain;
 namespace Client::Scenes
 {
 class CharacterCloth;
+class IGuildMarks;
 class IModelLibrary;
 class WorldState;
 struct WorldRuntime;
@@ -89,6 +90,9 @@ struct GameCharacterPass
     float fixedHeight = 1200.0f;
     // El terreno de esa altura; sin él, el del mapa del mundo (WorldState::Map). La selección tiene el suyo.
     const World::WorldTerrain* terrain = nullptr;
+    // Las marcas de los gremios (0x5f16a0) que dibuja 0x50d533 sobre los jugadores con gremio; sin ellas, uno con la
+    // marca corta.
+    IGuildMarks* guildMarks = nullptr;
     // Lo que tocan los helpers de los monstruos (0x43c150, KalimaSiegeHelpers.h): el mundo de Kalima de este frame
     // (0x723c48, que 0x437860 perturba; sin él, no hace nada) y el temblor de la cámara (0x7d325c8). En un dibujo
     // intermedio, los de la proyección.

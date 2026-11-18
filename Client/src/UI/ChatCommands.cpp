@@ -69,14 +69,26 @@ bool InChaosCastle(const ChatCommandContext& context)
     return context.map >= FirstChaosCastleMap && context.map <= LastChaosCastleMap;
 }
 
-// El comienzo de cada comando social: en Chaos Castle, el aviso 1150 y devuelve 0 (el texto sale como chat); si no,
-// lo que sigue es de `wave`.
-Core::Expected<ChatCommandOutcome, std::string>
-SocialCommand(const ChatCommandContext& context, std::string_view address, std::string_view what, std::string_view wave)
+// 0x573f49 (/guild) y 0x570d48 (/union, /rival y /rivaloff): en Chaos Castle, el aviso 1150 y devuelve 0 (el texto
+// sale como chat); si no, el pedido de la escena.
+Core::Expected<ChatCommandOutcome, std::string> GuildCommand(const ChatCommandContext& context, std::string_view text)
 {
     if (InChaosCastle(context))
         return ChatCommandOutcome{.handled = false, .notices = {{ChaosCastleCommandText, SystemMessage}}};
-    return Core::Unexpected(std::format("{}: {} es de {}", address, what, wave));
+    if (text == TextAt(context.texts, GuildCommandText) || EqualsIgnoringCase(text, "/guild"))
+    {
+        if (!context.requestAGuildJoin)
+            return Core::Unexpected(std::string("0x573f85: /guild sin el pedido"));
+        return context.requestAGuildJoin();
+    }
+    if (!context.requestAGuildRelation)
+        return Core::Unexpected(std::string("0x570d7e: /union, /rival o /rivaloff sin el pedido"));
+    GuildRelationCommand command = GuildRelationCommand::RivalOff;
+    if (text == TextAt(context.texts, AllianceCommandText) || EqualsIgnoringCase(text, "/union"))
+        command = GuildRelationCommand::Union;
+    else if (text == TextAt(context.texts, RivalCommandText) || EqualsIgnoringCase(text, "/rival"))
+        command = GuildRelationCommand::Rival;
+    return context.requestAGuildRelation(command);
 }
 
 // 0x5766ce..0x576890: /personalshop. En Chaos Castle, el aviso 1150 y 0; con el entrenador abierto, el 1121 y 0; si no,
@@ -311,12 +323,11 @@ Core::Expected<ChatCommandOutcome, std::string> RunTheChatCommand(const ChatComm
                 return Core::Unexpected(std::move(ended).Error());
         }
     }
-    if (text == TextAt(texts, GuildCommandText) || EqualsIgnoringCase(text, "/guild"))
-        return SocialCommand(context, "0x573f49", "el gremio", "la CL9 hito 8");
-    if (text == TextAt(texts, AllianceCommandText) || EqualsIgnoringCase(text, "/union") ||
+    if (text == TextAt(texts, GuildCommandText) || EqualsIgnoringCase(text, "/guild") ||
+        text == TextAt(texts, AllianceCommandText) || EqualsIgnoringCase(text, "/union") ||
         text == TextAt(texts, RivalCommandText) || EqualsIgnoringCase(text, "/rival") ||
         text == TextAt(texts, RivalOffCommandText) || EqualsIgnoringCase(text, "/rivaloff"))
-        return SocialCommand(context, "0x570d48", "la alianza y la rivalidad de los gremios", "la CL9 hito 8");
+        return GuildCommand(context, text);
     if (text == TextAt(texts, PartyCommandText) || EqualsIgnoringCase(text, "/party") ||
         EqualsIgnoringCase(text, "/pt"))
     {

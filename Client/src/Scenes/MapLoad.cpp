@@ -310,12 +310,12 @@ Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoa
             names.lightName = state == 1 ? "TerrainLight1" : "TerrainLight2";
         }
     }
-    // 0x61a6e1 y 0x61a8a8: en el 30, 0x4294b0 elige el .att y la luz. Con 0x7239ec en 0, el de siempre
-    // (EncTerrain31.att y TerrainLight.jpg); prendido, que solo lo dejan los paquetes de 0x4294c0 (CL9.5), no.
+    // 61a6ea/61a8af: el estado activo elige312 yTerrainLight2; elMAP yOBJ conservan el mundo31.
     if (map == CastleSiegeMap && context.world.Runtime().siegeActive)
     {
-        return Core::Unexpected(std::string("0x61a6ea: el .att 312 y TerrainLight2 del asedio (0x7239ec) no están "
-                                            "portados"));
+        constexpr std::int32_t WarAttributes = 312;
+        names.attributesNumber = WarAttributes;
+        names.lightName = "TerrainLight2";
     }
     if (auto files = LoadTheFiles(context, loaded, map, names); !files.HasValue())
     {

@@ -1,4 +1,5 @@
 #include "Scenes/GameCharacters.h"
+#include "Scenes/CastleSiegeBlessing.h"
 
 #include "Scenes/ActorPickingBox.h"
 
@@ -515,8 +516,7 @@ Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const I
                                                .map = map,
                                                .logicSteps = pass.clothWorld->logicSteps,
                                                .gameScene = gameScene,
-                                               .originalFrame = originalFrame,
-                                               .guild = &world.Runtime().guild};
+                                               .originalFrame = originalFrame};
     if (auto effects = DrawGameCharacterEffects(drawn, effectsPass); !effects.HasValue())
         return effects;
     // 0x510abd: 0x420df0, el cuervo, en todas las escenas. Fuera del juego, sin el trapecio, lo dibuja el caller
@@ -610,9 +610,16 @@ Core::Expected<void, std::string> DrawThePool(Render::ModelBatch& batch, const I
         // 0x510ea9..0x510eb3: con el 0x20a, 0x42afe0, que solo en el 30, con el asedio y con +0x16c llama a
         // 0x42ddb0(personaje, 380); sin el asedio no hace nada.
         if (world.Runtime().map == 30 && actor.type == Data::Models::PlayerSkeletonModel &&
-            world.Runtime().siegeActive && actor.seen)
-            return Core::Unexpected<std::string>("0x42b00b: 0x42ddb0 (el dibujo del asedio sobre el personaje) no "
-                                                 "está portado");
+            world.Runtime().siegeActive && actor.seen && originalFrame)
+        {
+            if (pass.clothWorld == nullptr || pass.particles == nullptr)
+                return Core::Unexpected(std::string("0x42de81: faltan partículas o CRT para la bendición del asedio"));
+            if (auto blessed = DrawTheCastleBlessing(actor, world.Actors()[hero].word1f2, world.Runtime().castleMarkX,
+                                                     world.Runtime().castleMarkY, pass.clothWorld->logicSteps,
+                                                     *pass.particles, pass.clothWorld->random);
+                !blessed.HasValue())
+                return blessed;
+        }
     }
     if (!world.Map().terrain.attributes)
         return Core::Unexpected<std::string>("0x42da60: falta el TerrainWall que abre las puertas");

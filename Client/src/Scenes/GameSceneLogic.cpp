@@ -1,5 +1,7 @@
 #include "Scenes/GameScene.h"
 #include "Scenes/ArrowEffects.h"
+#include "Scenes/CastleWeaponEffects.h"
+#include "World/SiegeStoneEffects.h"
 #include "Scenes/DynamicWorldLight.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/GameParticles.h"
@@ -176,10 +178,14 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
                 return Core::Unexpected(hit.Error());
             return {};
         }};
+    // 52d220: reset44dc40antesdelprimeractivo; el último proyectil seguido vuelveaescribirlo.
+    CameraInputState().effectTarget = glm::vec3(0.0f);
     auto effects = m_context.world->Map().effects.Effects();
     for (std::size_t slot = 0; slot < effects.size(); ++slot)
     {
         auto& effect = effects[slot];
+        if (!effect.alive)
+            continue;
         const auto* skeleton = m_worldModels.SkeletonOf(static_cast<std::uint16_t>(effect.type));
         // 0x52a9ad: el 5ac/3 del conjunto completo lee al personaje dueño y crea joints, fuera de World.
         if (effect.type == World::IcarusFlareEffect && effect.subtype == World::FullSetFlareSubtype)
@@ -213,6 +219,18 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
         // 0x5208a0 sobre las flechas de 0x53d9a0 (CL9 hito 3, fase 2e): su choque lee el pool de personajes y el
         // registro propio, fuera de World. CL9 hito 4: la flecha 0xdb del asedio lee la celda y la altura del terreno,
         // y el choque de las de skill pide un sonido (CL10, en WorldRuntime::lastSoundId) y manda el C1 10 (0x517a20).
+        if (World::IsSiegeStoneEffect(effect.type))
+        {
+            if (m_context.worldEntry == nullptr)
+                return Core::Unexpected(
+                    std::string("0x527dd2: faltan los recursos de entrada para el arma del castillo"));
+            if (auto stepped =
+                    World::StepSiegeStone(effect, skeleton, m_context.world->Particles(), m_context.cloth->random,
+                                          SiegeStoneServicesOf(*m_context.worldEntry));
+                !stepped.HasValue())
+                return stepped;
+            continue;
+        }
         if (IsArrowEffect(effect.type))
         {
             const ArrowStepContext arrows{

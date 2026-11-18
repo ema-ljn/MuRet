@@ -1,6 +1,8 @@
 #include "Scenes/GameScene.h"
 #include "Scenes/SiegeBattleUi.h"
 #include "Scenes/MonsterSounds.h"
+#include "Scenes/ArrowEffects.h"
+#include "World/SiegeStoneEffects.h"
 #include "Scenes/GameSceneFrameProjection.h"
 #include "Scenes/ActorPickingBox.h"
 #include "Data/Tables/GateTable.h"
@@ -544,10 +546,35 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
     if (map == CastleMap)
     {
         // timeGetTime (0x6b8544) es el reloj de la escena en ms; sin reloj, el preludio corta en 0x42b557.
-        World::CastleSiegePrelude prelude{.siegeActive = world.Runtime().siegeActive,
-                                          .musicTime = &world.Runtime().siegeMusicTime,
-                                          // MuRet todavía no tiene audio (CL10): queda el último pedido.
-                                          .sound = [&world](std::int32_t id) { world.Runtime().lastSoundId = id; }};
+        World::CastleSiegePrelude prelude{
+            .siegeActive = world.Runtime().siegeActive,
+            .musicTime = &world.Runtime().siegeMusicTime,
+            // MuRet todavía no tiene audio (CL10): queda el último pedido.
+            .sound = [&world](std::int32_t id) { world.Runtime().lastSoundId = id; },
+            .random = &m_context.cloth->random,
+            .logicSteps = m_context.cloth->logicSteps,
+            .heroPosition = world.Actors()[world.Runtime().hero].position,
+            .heroY =
+                [&world, this]()
+            {
+                auto& actor = world.Actors()[world.Runtime().hero];
+                const Render::Models::LogicalAccess access(actor.cellYAccesses, m_context.cloth->random,
+                                                           Render::Models::SmallLogicalCloseRandoms, actor.cellYLeft);
+                return static_cast<std::int32_t>(actor.cellY);
+            },
+            .emit = [&world, this](const World::ModelEffectArguments& args) -> Core::Expected<void, std::string>
+            {
+                if (World::IsSiegeStoneEffect(args.type))
+                {
+                    const auto created =
+                        World::CreateSiegeStone(args, world.Map().effects,
+                                                world.Actors()[world.Runtime().hero].position, m_context.cloth->random);
+                    if (!created.HasValue())
+                        return Core::Unexpected(created.Error());
+                    return {};
+                }
+                return CreateTheArrowEffect(args, world, m_context.cloth->random);
+            }};
         if (m_context.clock != nullptr)
             prelude.systemTime = [clock = m_context.clock]() {
                 return static_cast<std::uint32_t>(
@@ -618,7 +645,8 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
                        : 0U;
         },
         .trialsAmbientTime = &world.Runtime().trialsAmbientTime,
-        .siegeActive = &world.Runtime().siegeActive};
+        .siegeActive = &world.Runtime().siegeActive,
+        .siegeCrownFlags = &world.Runtime().castleFlags7239e4};
     AfterObjectStep after;
     if (icarus)
         after = [&](World::WorldObject& object)

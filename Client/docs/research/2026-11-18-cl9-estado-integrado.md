@@ -64,6 +64,12 @@ no se reescribió historia pública y no se cerraron entregas ajenas.
   efectos persistentes, texturas, agua/cáusticas, RNG y sonido solicitado. Un pool lleno
   omite el alta de su elemento y continúa el caller; no se convierte en éxito vacío
   cuando falta un constructor con capacidad disponible.
+- Altas del asedio para 278 y 283: `42d513` y `42d5af` recuperan el control cuando
+  `518cf0` no encuentra un slot libre. El camino por el viewport publica el actor y
+  conserva los efectos anteriores y los sorteos. Con espacio sigue pendiente `134/0`.
+- `BD 0C` de Crywolf: `4e15fa` lee hasta `pkt[9]`. El parser rechaza un mensaje
+  truncado con `TooShort` antes del despacho. Los mensajes completos conservan los
+  mismos datos y la prueba cubre desde los bytes hasta el alta del misil.
 
 Los detalles de familias del asedio están en
 [mapa30](2026-11-18-h13-map-effects.md) y
@@ -134,7 +140,7 @@ Hay **implementaciones concretas todavía pendientes**, además de capturas VM:
 
 | Familia externa | Caller normal que puede quedar bloqueado |
 | --- | --- |
-| CastleArrival134/0 | Altas de los tipos278/283, `42d513` / `42d5af`; key120 y dueño Actor. El Arrival61f existente no implementa134. |
+| CastleArrival134/0 | Altas de los tipos278/283 con espacio en el pool, `42d513` / `42d5af`; key120 y dueño Actor. Con el pool lleno ambas altas ya continúan. |
 | Efectos Siege61c /19f | `42dd48` / `42dd9c`, según tipo y paso del actor. |
 | F8/1 | Crywolf `43257a` y fortaleza `42fd76`; descendencia60f/0x19 (25decimal) o0xb y105/3. El arreglo de ED/E1 no los sustituye. |
 | C1A | Ataque Crywolf `4329db` y genérico `4f6780`; no equivale a las piedras C8/C9. |

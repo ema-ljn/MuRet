@@ -23,7 +23,6 @@
 #include "UI/PanelDialog.h"
 #include "UI/ChatInput.h"
 #include "Render/SpriteBatch.h"
-#include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"

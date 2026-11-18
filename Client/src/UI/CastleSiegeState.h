@@ -12,9 +12,9 @@
 
 // Lo que guardan los paquetes del castillo fuera de la batalla (CL9 hito 12; 04 § Castle Siege, las ventanas del
 // castillo): la zona de la .bss 0x7d5c504..0x7d5c658 que llenan el B3 y los B2 05..10, los campos del paquete de la
-// ventana del registro ([0x7d536f8], 0x80000) y de la del guardia de la zona de caza ([0x7d53700], 0x200000), y los dos
-// globales del B2 1A. El byte de abierto de cada ventana vive en DelegatedPanels (castleSiege en +4 y
-// secondCastleSiege en +0x14); los botones, listas y pestañas se conservan aquí entre frames.
+// ventana del registro ([0x7d536f8], 0x80000) y de la del guardia de la zona de caza ([0x7d53700], 0x200000).
+// Los dos globales del B2 1A viven en NpcWindowState (chaosTaxRate/taxRate). El byte abierto vive en
+// DelegatedPanels (castleSiege en +4 y secondCastleSiege en +0x14); los widgets se conservan aquí entre frames.
 namespace Client::UI
 {
 // Los botones reciben ids internos negativos, como los del diálogo y del gremio (P-C280); los nativos son del
@@ -186,9 +186,5 @@ struct CastleSiegeState
     SiegeRegistrationWindow registration{};
     HuntZoneWindow huntZone{};
     CastleSeniorWindow senior{};
-    // 0x78aba34 y 0x78aba30 (.bss 0): el B2 1A con pkt[4] en 1 y en 2, MOVZX de pkt[5]. Los leen 0x44d680, 0x5b1200,
-    // 0x5b12f0, 0x5f4720 y 0x5febf0, la batalla (hito 13).
-    std::uint32_t siegeFlag1 = 0;
-    std::uint32_t siegeFlag2 = 0;
 };
 } // namespace Client::UI

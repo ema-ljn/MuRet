@@ -9,6 +9,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/EventGlobals.h"
 #include "Scenes/FaunaModels.h"
+#include "Scenes/GameDrawTail.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/MonsterCreation.h"
 #include "Scenes/SelectionState.h"
@@ -16,6 +17,9 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
+#include "World/Particles.h"
+#include "Scenes/WorldMap.h"
+#include "World/ModelEffects.h"
 #include "World/WorldTerrain.h"
 
 #include "support/FakeTextureStore.h"
@@ -385,7 +389,7 @@ TEST(CameraTourTest, TheScriptActorsTurnThenWalkToTheirCell)
 
 // 0x403900: la acción cambia una vez por vuelta (+0x111 distinta), con +0x114 en 0, y cuenta en +0x78; con la cuenta
 // pedida y avanza, +0x78 en 0 y +0x140 uno más. Sin la clave entre los vivos usa el registro 399 (Q-C1349). Con el
-// efecto (la etapa 5), el 0xed corta después de contar.
+// efecto (la etapa 5), el 0xed se crea después de contar.
 TEST(CameraTourTest, TheScriptActionsCountOnlyWhenTheyChange)
 {
     for (const bool present : {true, false})
@@ -408,9 +412,9 @@ TEST(CameraTourTest, TheScriptActionsCountOnlyWhenTheyChange)
     ActorState& first = tested->ScriptActor(6, 0x2729, {});
     tested->ScriptActor(7, 0x272a, {});
     tested->Running(5, true, 1);
-    const auto cut = tested->Step();
-    ASSERT_FALSE(cut.HasValue());
-    EXPECT_NE(cut.Error().find("0x4039a0"), std::string::npos) << cut.Error();
+    const auto acted = tested->Step();
+    ASSERT_TRUE(acted.HasValue()) << acted.Error();
+    EXPECT_EQ(tested->world.Map().effects.Effects()[0].type, 0xed);
     EXPECT_EQ(first.animation.action, 3);
     EXPECT_EQ(tested->State().actionCounts[0x19], 1);
 }
@@ -485,11 +489,8 @@ TEST_F(CameraTourActorsTest, TheAltarsComeFromTheMonsterCreation)
     }
 }
 
-// 0x403e30 con las chispas. En el 34, el alta de la barrera (el 349, paso 0) corta adentro de 0x5141e0, en el joint
-// 0x618 de su caso (0x43114d, hito 2); la de un guardia (el 340, paso 1) le pone 0,227f a la acción 2 de su modelo
-// 0x1ae, el sonido 0x243 (CL10) y corta en 0x403b09, antes del primer rand() de las chispas. Fuera del 34 el alta es la
-// del default de 0x5141e0, que no carga 0x1ae: la velocidad corta (0x403abe). La clave ya subió en los dos cortes.
-TEST_F(CameraTourActorsTest, TheSparksOfTheBarrierAreACut)
+// 0x403e30: las altas34 completan sus chispas; fuera del34 sigue faltando el modelo del guion.
+TEST_F(CameraTourActorsTest, TheGuardsCompleteTheirArrivalInCrywolf)
 {
     constexpr std::int32_t CrywolfMap = 34;
     for (const std::int32_t map : Maps)
@@ -500,19 +501,28 @@ TEST_F(CameraTourActorsTest, TheSparksOfTheBarrierAreACut)
         const auto first = barrier->Step();
         if (map == CrywolfMap)
         {
-            ASSERT_FALSE(first.HasValue());
-            EXPECT_NE(first.Error().find("0x43114d"), std::string::npos) << first.Error();
+            ASSERT_TRUE(first.HasValue()) << first.Error();
+            EXPECT_EQ(barrier->State().step, 1);
         }
         auto twin = Load(map);
         ASSERT_TRUE(Client::Scenes::CreateMonster(0x154, 0x71, 0xee, 10000, twin->Resources()).HasValue());
         auto tested = Load(map);
         tested->Running(1, true, 1);
         const auto cut = tested->Step();
-        ASSERT_FALSE(cut.HasValue());
-        EXPECT_NE(cut.Error().find(map == CrywolfMap ? "0x403b09" : "0x403abe"), std::string::npos) << cut.Error();
+        if (map == CrywolfMap)
+        {
+            ASSERT_TRUE(cut.HasValue()) << cut.Error();
+            for (int index = 0; index < 34; ++index)
+                static_cast<void>(twin->cloth.random.Next());
+        }
+        else
+        {
+            ASSERT_FALSE(cut.HasValue());
+            EXPECT_NE(cut.Error().find("0x403abe"), std::string::npos) << cut.Error();
+        }
         EXPECT_EQ(tested->cloth.random.State(), twin->cloth.random.State());
         EXPECT_EQ(tested->State().nextActorKey, 10001);
-        EXPECT_EQ(tested->State().step, 1);
+        EXPECT_EQ(tested->State().step, map == CrywolfMap ? 2 : 1);
         if (map != CrywolfMap)
             continue;
         EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x243);
@@ -520,6 +530,58 @@ TEST_F(CameraTourActorsTest, TheSparksOfTheBarrierAreACut)
         ASSERT_NE(skeleton, nullptr);
         ASSERT_GT(skeleton->actions.size(), 2u);
         EXPECT_EQ(skeleton->actions[2].speed, std::bit_cast<float>(0x3e6872b0u));
+    }
+}
+
+// 0x43114d/0x43116e y 0x403ad5..0x403cfb: con capacidades parciales el alta omitida no termina el caller.
+TEST_F(CameraTourActorsTest, TheBarrierArrivalContinuesAcrossPartialAndFullPools)
+{
+    struct Capacity
+    {
+        std::size_t joints;
+        std::size_t particles;
+        int draws;
+    };
+    for (const Capacity capacity : {Capacity{500, 3000, 34}, Capacity{5, 3000, 28}, Capacity{0, 3000, 22},
+                                    Capacity{500, 0, 16}, Capacity{0, 0, 4}})
+    {
+        SCOPED_TRACE(capacity.joints);
+        SCOPED_TRACE(capacity.particles);
+        auto tested = Load(34);
+        auto twin = Load(34);
+        // La creación del personaje tiene sus propios accesos/RNG; este doble real fija sólo ese prefijo.
+        const auto base = Client::Scenes::CreateMonster(0x15d, 0x72, 0xee, 10000, twin->Resources());
+        ASSERT_TRUE(base.HasValue()) << base.Error();
+        CrtRandom expected(twin->cloth.random.State());
+        for (int draw = 0; draw < capacity.draws; ++draw)
+            static_cast<void>(expected.Next());
+        auto& joints = tested->world.DrawTail().joints;
+        for (std::size_t index = capacity.joints; index < joints.size(); ++index)
+            joints[index].alive = true;
+        auto particles = tested->world.Particles().All();
+        for (std::size_t index = capacity.particles; index < particles.size(); ++index)
+            particles[index].alive = true;
+        tested->Running(1);
+        const auto stepped = tested->Step();
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(tested->State().step, 1);
+        EXPECT_EQ(tested->State().nextActorKey, 10001);
+        EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x243);
+        EXPECT_EQ(tested->cloth.random.State(), expected.State());
+        if (capacity.joints >= 10)
+        {
+            EXPECT_EQ(joints[0].type, 0x618);
+            EXPECT_EQ(joints[1].subtype, 3);
+            EXPECT_EQ(joints[2].type, 0x615);
+            EXPECT_EQ(joints[2].subtype, 7);
+            EXPECT_EQ(joints[6].type, 0x614);
+            EXPECT_EQ(joints[6].subtype, 17);
+        }
+        if (capacity.particles >= 3)
+        {
+            EXPECT_EQ(particles[0].type, 0x5f6);
+            EXPECT_EQ(particles[2].subtype, 1);
+        }
     }
 }
 } // namespace

@@ -34,7 +34,7 @@ struct GameObjectPass;
 // en 0, otro rand() para la luz L = ((rand() & 3) + 3) · 0,1f y el humo 5f2/33 50 más arriba, con luz (L; L · 0,6f;
 // L · 0,2f), su escala y sin dueño; el 0x4a, el humo con el estado en 1; el 0x4d y el 0x4e, con rand() % 6 en 0, la
 // nube 622/9 con su luz; y el 0x49, con el clima en 0, la arena del HUD (0x576353c) en 1. El 0x51 con el estado en 2
-// corta.
+// deja el RGB PC53 de 0x430a40..0x430ac1; el caller conserva la pose previa y ejecuta 0x44→0x240 de la malla 0.
 [[nodiscard]] Core::Expected<void, std::string> CrywolfObjectBody(const World::WorldObject& object,
                                                                   World::ObjectDraw& draw, const GameObjectPass& pass);
 } // namespace Client::Scenes

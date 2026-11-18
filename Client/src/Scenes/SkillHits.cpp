@@ -11,6 +11,8 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/OriginalFtol.h"
+#include "World/TerrainAttributeQuery.h"
+#include "World/WorldTerrain.h"
 
 #include <array>
 #include <cmath>
@@ -53,7 +55,8 @@ void MarkTheStunned(ActorState& actor, std::uint8_t skill)
 }
 
 // 0x517b44..0x517c0b: hasta cinco claves, de los 400 en orden.
-Protocol::Skill::SkillHitsSend CollectTheTargets(const SkillHitsRequest& request, WorldState& world, std::uint8_t skill)
+Protocol::Skill::SkillHitsSend CollectTheTargets(const SkillHitsRequest& request, WorldState& world, std::uint8_t skill,
+                                                 bool siegePlayers)
 {
     Protocol::Skill::SkillHitsSend hits{};
     const auto actors = world.Actors();
@@ -68,7 +71,7 @@ Protocol::Skill::SkillHitsSend CollectTheTargets(const SkillHitsRequest& request
             continue;
         if (distance > request.radius)
             continue;
-        const bool chosen = actor.byte88 == PlayerKind && actor.key == request.key;
+        const bool chosen = actor.byte88 == PlayerKind && (actor.key == request.key || siegePlayers);
         if (actor.byte88 != MonsterKind && !chosen)
             continue;
         MarkTheStunned(actor, skill);
@@ -94,12 +97,20 @@ Core::Expected<bool, std::string> HitTheTargetsAround(const SkillHitsRequest& re
     }
     // 0x517af8..0x517b3f: en el 30 con el asedio (0x4294b0), el bit 0x100 de la celda del punto (0x5f82c0) sale con 0;
     // sin él, un jugador entra aunque no tenga la clave.
+    bool siegePlayers = false;
     if (runtime.map == CastleSiegeMap && runtime.siegeActive)
     {
-        return Core::Unexpected(std::string("0x517b1e: los blancos de la skill en el asedio (el atributo de 0x5f82c0), "
-                                            "sin portar (CL9.5)"));
+        const auto& attributes = world.Map().terrain.attributes;
+        if (!attributes)
+            return Core::Unexpected(std::string("0x517b1e: faltan los atributos del punto de la skill"));
+        const auto query = World::TerrainAttributeQueryAt(*attributes, request.point.x, request.point.y);
+        if (!query.HasValue())
+            return Core::Unexpected(std::string("0x517b1e: dirección de atributo fuera de la tabla del mundo"));
+        if ((query.Value() & 0x100) != 0)
+            return false;
+        siegePlayers = true;
     }
-    Protocol::Skill::SkillHitsSend hits = CollectTheTargets(request, world, skill);
+    Protocol::Skill::SkillHitsSend hits = CollectTheTargets(request, world, skill, siegePlayers);
     if (hits.hits == 0)
         return false;
     // 0x517c11..0x517c72.

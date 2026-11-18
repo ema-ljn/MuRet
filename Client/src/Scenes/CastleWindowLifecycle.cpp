@@ -3,9 +3,13 @@
 #include "Scenes/CastleWindows.h"
 
 #include "Core/Expected.h"
+#include "Core/IClock.h"
+#include "App/FaithfulPacer.h"
+#include "Scenes/WorldEntry.h"
 #include "Protocol/CastleSiege.h"
 #include "Protocol/Connection/Logout.h"
 #include "Protocol/NpcWindows.h"
+#include "Render/Models/Cloth.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameUi.h"
@@ -141,28 +145,46 @@ void LendTheCastleLifecycleTo(UI::PanelContext& panels, WorldState& world, Rende
     panels.castleSeniorBlocked = [&world, services]() { return Warn(world.Runtime(), services, BusySeniorText); };
 }
 
-void LendTheCastlePanelServices(GamePanels& panels, const CastleReceiveContext& context)
+void LendTheCastlePanelServices(GamePanels& panels, WorldState& world, Render::Models::CrtRandom& random,
+                                const CastleSender& send, const WorldEntryResources* entryResources,
+                                CastleWindowServices services)
 {
-    panels.LendTheSession(context.world, context.random, context.send,
-                          [send = context.send]()
-                          {
-                              if (send)
-                                  send(Protocol::Connection::WriteWindowClose());
-                          });
-    panels.LendTheCastleRequests(
-        context.world, context.send,
-        {.measure = context.measure, .texts = context.texts, .screen = context.screen, .now = context.tick});
-    if (context.entryResources == nullptr)
+    panels.LendTheSession(world, random, send, {});
+    if (send)
+        panels.LendTheWindowClose([send]() { send(Protocol::Connection::WriteWindowClose()); });
+    panels.LendTheCastleRequests(world, send, services);
+    if (entryResources == nullptr)
         return;
-    NpcWindowSender sender = [send = context.send](Protocol::Outgoing packet) -> Core::Expected<void, std::string>
+    NpcWindowSender sender = [send](Protocol::Outgoing packet) -> Core::Expected<void, std::string>
     {
         if (!send)
             return Core::Unexpected(std::string("la ventana del NPC se cierra sin el cable"));
         send(std::move(packet));
         return {};
     };
-    panels.LendTheNpcWindows(context.world, context.random, InventoryServicesOf(*context.entryResources),
-                             std::move(sender));
+    panels.LendTheNpcWindows(world, random, InventoryServicesOf(*entryResources), std::move(sender));
+}
+
+void LendTheCastlePanelServices(GamePanels& panels, const CastleReceiveContext& context)
+{
+    LendTheCastlePanelServices(
+        panels, context.world, context.random, context.send, context.entryResources,
+        {.measure = context.measure, .texts = context.texts, .screen = context.screen, .now = context.tick});
+}
+
+void LendTheCastlePanelServices(GamePanels& panels, const WorldEntryResources& resources, const CastleSender& send)
+{
+    LendTheCastlePanelServices(panels, resources.world, resources.cloth.random, send ? send : resources.sendGamePacket,
+                               &resources,
+                               {.measure = resources.textMeasure,
+                                .texts = resources.texts,
+                                .screen = resources.screen ? resources.screen() : App::PixelSize{640, 480},
+                                .now = resources.clock != nullptr ? App::TickCountMs(resources.clock->Now()) : 0u});
+    // La sesión puede prestar estos dos canales por separado; el de NPC conserva su Expected si send falla.
+    if (resources.sendNpcWindowPacket)
+        LendTheNpcWindows(panels, resources);
+    if (resources.sendWindowClose)
+        panels.LendTheWindowClose(resources.sendWindowClose);
 }
 
 void LendTheCastleWindowStepsTo(UI::PanelContext& panels, const GameUiContext& context)

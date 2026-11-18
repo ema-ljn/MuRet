@@ -6529,8 +6529,8 @@ un error que nombra la dirección, nunca en silencio:
   El 3 incorpora en hito 2 el binder síncrono de la torre `0x142` y sus cinco efectos, antes del
   pasto ([Creación de objetos](#los-objetos-del-juego)). Cortan: el 5 por el archivo que falta
   en `World6`, el 35 por el ATT ausente de `World36`, el 30 con el asedio prendido en `0x61a6ea` (sin él,
-  `0x42a760` carga los lanceros, [Los objetos de Castle Siege](#los-objetos-de-castle-siege)), el 34 con el estado de
-  Crywolf en 3 o más en `0x61a74d` (Q-C181; con 1 y 2 carga `EncTerrain351/352.att` y `TerrainLight1/2`) y el 55 en `0x6188ae`. Sin
+  `0x42a760` carga los lanceros, [Los objetos de Castle Siege](#los-objetos-de-castle-siege)) y el 55 en `0x6188ae`.
+  El 34 en estado 3 o más alcanza el aviso de `TerrainHeight.OZJ` ausente con la Data del repo (Q-C181). Sin
   `TerrainHeight.OZB`, el error nombra el archivo, con el pasto ya sacado (Q-C180).
 - **Aviso y cierre por datos fatales (CL7b, Q-C180).** MAP/ATT y OBJ se procesan antes de
   alturas/luz, conservando los owners publicados antes del fallo. Un MAP que no abre permite
@@ -9713,9 +9713,10 @@ MuRet porta ese estado (Q-C340). Lo leen la carga y el dibujo:
 
 - **La carga** (`0x61a6d0`, `0x42fe50` después del `.map`): con 0, `EncTerrain35.att` y `TerrainLight` como los
   demás mapas; con 1 y 2, `EncTerrain351.att`/`EncTerrain352.att` y `TerrainLight1`/`TerrainLight2`; con 3 o más,
-  el `.att` con la ruta del `.map` y la luz de Q-C181. MuRet carga el 0, el 1 y el 2 (`TerrainFileNames` en
-  `Scenes/MapLoad`) y corta el 3 o más en `0x61a74d`: la luz de Q-C181 es la anterior sin sombrear, que MuRet no
-  guarda.
+  el `.att` con la ruta del `.map` y la luz de Q-C181. `0x5f84fc` rechaza el tamaño del `.map` sin cambiar los
+  atributos, y `0x61a760` sigue al OBJ. En modo datos, `0x63b490` abre `TerrainHeight.OZJ` a partir de
+  `TerrainHeight.bmp`. Si el JPEG falla, el cliente vuelve a sombrear la luz retenida. Si falta el archivo, también
+  registra el aviso fatal. `Scenes/MapLoad` conserva las dos tablas y usa las alturas del mapa nuevo para sombrear.
 - **El `BD 00` con otro estado** (`0x42ff16..0x42ffe8`, CL9 hito 11, fase 3): vuelve a leer la luz (`0x5f8f40`) y el
   `.att` (`0x5f8390`) **del mapa en curso, sea cual sea** (Q-C1340), con la carpeta `"World%d"` del mapa + 1 (sin la
   guarda de `0x61a560`): `TerrainLight`, `TerrainLight1` o `TerrainLight2` por el estado y `EncTerrain<mapa + 1>.att`,
@@ -9809,9 +9810,9 @@ cuentan con cada frame del original. El paso: `World::StepCrywolfObject` (`World
 (`CrywolfObjectServices`), que `DrawGameWorldObjects` llama antes del cuerpo. El calco:
 `World::ModelEffects::CreateFadingDecal` y su paso en `StepGameModelEffect`. Las burbujas:
 `World::StepCrywolfWaterCell` (`CrywolfWater`), que `GameScene` le pasa a `World::DrawTerrain` como el gancho de la
-celda. El humo `5f2/33` del `0x48`: `World::CrywolfRisingSmokeSubtype` en `Particles`. Corta, con la dirección: la
-carga con el estado en 3 o más (`0x61a74d`), el `0x51` con el estado en 2 (`0x430a40`) y los casos de monstruos de
-`0x4339d0`. Con la Data del repo, el 34 llega a un cuadro completo y camina (`GameT16SceneMatrix`; `GameT16MapWalk`,
+celda. El humo `5f2/33` del `0x48`: `World::CrywolfRisingSmokeSubtype` en `Particles`. La carga en estado 3 o más
+conserva las tablas según Q-C181 y alcanza el aviso de la luz ausente en la Data del repo. Con esa Data en
+estado 0, el 34 llega a un cuadro completo y camina (`GameT16SceneMatrix`; `GameT16MapWalk`,
 en (128, 30): suelo libre de `EncTerrain35.att` en la zona segura del fuerte, con tres `0x29`, cuatro `0x38`, el
 `0x49`, el `0x4a` y los `0x52` vistos). `EncTerrain35.obj` no trae ningún `0x48` (*simulado*): su humo no sale en la
 caminata y lo cubren `CrywolfObjectServicesTest` y `CrywolfParticlesTest`. Tests: `CrywolfObjectsTest`,

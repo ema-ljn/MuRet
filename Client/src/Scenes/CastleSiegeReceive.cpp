@@ -7,6 +7,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GamePanels.h"
+#include "Scenes/SiegeBattleUi.h"
 #include "Scenes/CastleWindowSupport.h"
 #include "Scenes/CastleWindows.h"
 #include "Scenes/WorldRuntime.h"
@@ -549,15 +550,21 @@ Core::Expected<void, std::string> ApplyRegisteredGuildList(const Castle::Registe
 }
 
 // B6, 0x4e0ed0: solo con el panel del asedio de la clase 2 ([0x5763530], el primer método).
-Core::Expected<void, std::string> ApplyMinimapPoints(const CastleReceiveContext& context)
+Core::Expected<void, std::string> ApplyMinimapPoints(const Castle::MinimapPoints& points,
+                                                     const CastleReceiveContext& context)
 {
     constexpr std::uint8_t MinimapPanelKind = 2;
     if (context.world.Runtime().siegePanelKind != MinimapPanelKind)
     {
         return {};
     }
-    return Core::Unexpected(std::string("0x4e0ee8: los puntos del panel del asedio de la clase 2 (0x411e80, "
-                                        "0x411ed0) son de la batalla, el hito 13 de la CL9 (P-C301)"));
+    // 0x411e80: borra el vector antes del loop, incluso sin puntos; +0x20 vuelve a1.
+    auto& runtime = context.world.Runtime();
+    runtime.siegePanel.members.clear();
+    runtime.siegePanel.membersHidden = 1;
+    for (const auto& point : points.points)
+        AppendSiegePanelMember(runtime, 0, point.x, point.y);
+    return {};
 }
 
 // B8 01, 0x4e0700 sobre el héroe ([0x743a170]).
@@ -651,7 +658,7 @@ Core::Expected<void, std::string> ApplyCastleSiegePacket(const Protocol::CastleS
             else if constexpr (std::is_same_v<Received, Castle::RegisteredGuildList>)
                 return ApplyRegisteredGuildList(received, context);
             else if constexpr (std::is_same_v<Received, Castle::MinimapPoints>)
-                return ApplyMinimapPoints(context);
+                return ApplyMinimapPoints(received, context);
             else
             {
                 static_assert(std::is_same_v<Received, Castle::KillCount>);

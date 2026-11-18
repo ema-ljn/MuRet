@@ -32,6 +32,7 @@ constexpr float CellSize = 100.0f;
 constexpr float CellCenter = 50.0f;
 constexpr float PlayerScale = 0.9f;
 constexpr std::uint8_t ConstructedPk = 3;
+// 0x511c70: +0x93 en 0xa.
 constexpr std::uint16_t NoWord376 = 0xffff;
 constexpr std::uint8_t PlayerStartAction = 1;
 constexpr std::uint16_t ConstructedMovementSpeed = 10;
@@ -344,12 +345,14 @@ void SetTheStartingState(ActorState& actor, std::uint16_t type)
     actor.baseMovementSpeed = ConstructedMovementSpeed; // 0x511d48
     actor.byte369 = 0;
     actor.byte370 = 0;
+    actor.byte371 = 0x43; // 0x511cc1
     actor.byte373 = 0xff; // 0x511cc8
     actor.byte372 = 0;    // 0x511ccf
     actor.byte374 = 0;    // 0x511c13
     actor.byte42c = 1;    // 0x511c92
     actor.byte110 = 0;    // 0x511c69
     actor.byte1a0 = 0;    // 0x511c62
+    actor.byte1bc = 0;    // 0x511ce4
     actor.word1f2 = NoItemModel;
     actor.byte399 = 0;
     actor.byte80 = 0;

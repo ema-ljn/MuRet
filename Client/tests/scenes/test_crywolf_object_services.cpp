@@ -1,7 +1,11 @@
 #include "Scenes/CrywolfObjectServices.h"
 
+#include "Core/Expected.h"
+
 #include "Data/Models/Model.h"
 #include "Render/ModelBatch.h"
+#include "Render/ModelVertex.h"
+#include "Render/Pass3D.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
@@ -10,6 +14,7 @@
 #include "Scenes/WorldRuntime.h"
 #include "World/KalimaParticleKernels.h"
 #include "World/ModelEffects.h"
+#include "World/ObjectModelStepState.h"
 #include "World/ParticleOwner.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
@@ -19,7 +24,9 @@
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
 
+#include <array>
 #include <bit>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <span>
@@ -148,6 +155,45 @@ struct NoModels final : Client::Scenes::IModelLibrary
     {
         return {};
     }
+};
+// Dos mallas: el caso51 sólo debe repetir la0. Cada consulta durante un pase observa model+88.
+struct AltarModels final : Client::Scenes::IModelLibrary
+{
+    explicit AltarModels(Client::World::ObjectModelStepState& state) : shared(state)
+    {
+        Client::Data::Models::Mesh mesh;
+        mesh.vertices = {{0, {0, 0, 0}}, {0, {1, 0, 0}}, {0, {0, 1, 0}}};
+        mesh.normals = {{0, {0, 0, 1}, 0}};
+        mesh.texCoords = {{0.125f, 0.25f}};
+        mesh.triangles = {{3, {0, 1, 2, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}};
+        mesh.textureName = "altar.jpg";
+        model.meshes = {mesh, mesh};
+        Client::Render::Models::SkeletonBone bone;
+        bone.actions = {{Client::Render::Models::BoneKey{}}};
+        skeleton.bones = {bone};
+        skeleton.actions = {Client::Render::Models::ActionInfo{.keyCount = 1}};
+    }
+    const Client::Data::Models::Model* Find(std::uint16_t) const override
+    {
+        const auto selected = shared.unlitMeshes.at(0x51);
+        if (selected == 0 || selected == 1)
+            selections.push_back(selected);
+        return &model;
+    }
+    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    {
+        return &skeleton;
+    }
+    std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    {
+        return textures;
+    }
+    Client::World::ObjectModelStepState& shared;
+    mutable std::vector<std::int8_t> selections;
+    Client::Data::Models::Model model;
+    Client::Render::Models::Skeleton skeleton;
+    std::array<Client::Render::TextureSlot, 2> textures{Client::Render::TextureSlot{0x41c},
+                                                        Client::Render::TextureSlot{0x41d}};
 };
 } // namespace
 
@@ -499,20 +545,14 @@ TEST(CrywolfObjectServicesTest, TheRisingSmokeLeavesOnceInTenFiftyAboveTheObject
     EXPECT_EQ(missing.random.State(), draws.State());
 }
 
-// Lo que no está portado corta con su dirección: el 0x51 con el estado 2 y los casos de monstruos de 0x4339d0. Sin el
-// estado, el dibujo no sigue.
+// Los casos de monstruos de0x4339d0 siguen con su guardia; sin globales no se inventa un estado.
 TEST(CrywolfObjectServicesTest, TheUnportedCasesCutWhereTheBinaryReachesThem)
 {
     Fixture fixture;
     ObjectDraw draw = BodyDraw();
     ASSERT_TRUE(CrywolfObjectBody(ObjectOf(0x51), draw, fixture.Pass()).HasValue());
     EXPECT_EQ(draw.kind, ObjectDrawKind::Hidden);
-    fixture.crywolf.state = 2;
-    auto cut = CrywolfObjectBody(ObjectOf(0x51), draw, fixture.Pass());
-    ASSERT_FALSE(cut.HasValue());
-    EXPECT_NE(cut.Error().find("0x430a40"), std::string::npos) << cut.Error();
-
-    cut = CrywolfObjectBody(ObjectOf(0x171), draw, fixture.Pass());
+    auto cut = CrywolfObjectBody(ObjectOf(0x171), draw, fixture.Pass());
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x4339d0"), std::string::npos) << cut.Error();
 
@@ -549,4 +589,120 @@ TEST(CrywolfObjectServicesTest, TheObjectDrawCountsFromOneToFortyOne)
     pass.originalFrame = false;
     ASSERT_TRUE(Client::Scenes::DrawGameWorldObjects(batch, models, objects, polygon, nullptr, {}, pass).HasValue());
     EXPECT_EQ(fixture.drawCounter, 2);
+}
+
+// 430a40..430b14: dos RenderMesh(0),44→240; el segundo recibe el RGB que el primero multiplicó por alpha.
+TEST(CrywolfObjectServicesTest, TheStateTwoAltarDrawsBothNativePassesAndPublishesTheirStores)
+{
+    struct Case
+    {
+        std::int32_t light;
+        float clock;
+        std::array<std::uint32_t, 3> rgb;
+    };
+    // Valores PC53 de430a5f..430ac1, después de los FSTP; no se recortan canales negativos ni mayores que1.
+    constexpr std::array<Case, 4> cases{{{0, 0.0f, {0x40a00000, 0xbf800000, 0xbf000000}},
+                                         {10, 250.0f, {0x40e0c7fe, 0xbf19999a, 0x32000000}},
+                                         {11, 250.0f, {0x40967a66, 0xbf0f5c29, 0x3d4ccccf}},
+                                         {40, 250.0f, {0x405027ff, 0x3f199999, 0x3fc00000}}}};
+    for (const auto& given : cases)
+    {
+        for (const bool original : {false, true})
+        {
+            SCOPED_TRACE(std::to_string(given.light) + "/" + std::to_string(original));
+            Fixture fixture;
+            fixture.crywolf.state = 2;
+            fixture.crywolf.ui.light = given.light;
+            Client::World::ObjectModelStepState shared;
+            shared.unlitMeshes[0x51] = 7;
+            AltarModels models(shared);
+            std::array objects{ObjectOf(0x51)};
+            objects[0].alpha = 0.2f; // 4304a6, productor nativo del51.
+            objects[0].state.blendMesh = 1;
+            objects[0].state.light = 0.375f;
+            objects[0].state.uv = {0.125f, 0.25f};
+            auto pass = fixture.Pass();
+            pass.worldClock = given.clock;
+            pass.originalFrame = original;
+            pass.publishProjectedPose = true;
+            pass.modelState = &shared;
+            std::vector<float> posedScales;
+            pass.onPose = [&](const Client::Scenes::DrawnObject& object)
+            {
+                posedScales.push_back(object.transform.scale);
+                EXPECT_EQ(shared.unlitMeshes.at(0x51), 7);
+                return Client::Core::Expected<void, std::string>{};
+            };
+            Client::Render::ModelBatch batch;
+            batch.Begin(Client::Render::Pass3D{});
+            const auto seed = fixture.random;
+            const auto drawn = Client::Scenes::DrawGameWorldObjects(
+                batch, models, objects, Client::World::TerrainPolygon{.everything = true}, nullptr, {}, pass);
+            ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+            ASSERT_EQ(posedScales, (std::vector<float>{1.25f}));
+            EXPECT_EQ(objects[0].transform.scale, std::bit_cast<float>(0x3f83d70au));
+            EXPECT_EQ(objects[0].alpha, 0.2f);
+            EXPECT_EQ(shared.unlitMeshes.at(0x51), -1);
+            EXPECT_EQ(models.selections, (std::vector<std::int8_t>{0, 1}));
+            const auto vertices = batch.Vertices();
+            ASSERT_EQ(vertices.size(), 6u) << "sólo la malla0, sin RenderBody extra";
+            std::vector<const Client::Render::ModelDrawCommand*> commands;
+            for (const auto& command : batch.Commands())
+                if (command.operation == Client::Render::ModelStateOperation::Draw && command.vertexCount != 0)
+                    commands.push_back(&command);
+            ASSERT_EQ(commands.size(), 2u);
+            EXPECT_EQ(commands[0]->state.texture, Client::Render::TextureSlot{0x5c0});
+            EXPECT_EQ(commands[1]->state.texture, Client::Render::TextureSlot{0x620});
+            const glm::vec3 color(std::bit_cast<float>(given.rgb[0]), std::bit_cast<float>(given.rgb[1]),
+                                  std::bit_cast<float>(given.rgb[2]));
+            const glm::vec3 first = color * 0.2f;
+            const glm::vec3 second = first * 0.2f;
+            for (std::size_t index = 0; index < vertices.size(); ++index)
+            {
+                const auto& vertex = vertices[index];
+                const auto& expected = index < 3 ? first : second;
+                EXPECT_FLOAT_EQ(vertex.color.red, expected.r);
+                EXPECT_FLOAT_EQ(vertex.color.green, expected.g);
+                EXPECT_FLOAT_EQ(vertex.color.blue, expected.b);
+                EXPECT_FLOAT_EQ(vertex.color.alpha, 1.0f);
+            }
+            for (const auto* command : commands)
+            {
+                EXPECT_EQ(command->state.blend, Client::Render::ModelBlend::Additive);
+                EXPECT_TRUE(command->state.depthTest);
+                EXPECT_EQ(command->vertexCount, 3u);
+            }
+            EXPECT_EQ(vertices[1].position, glm::vec3(12550.0f, 4251.25f, 170.0f));
+            EXPECT_EQ(vertices[4].position, vertices[1].position);
+            auto expectedRandom = seed;
+            if (original)
+                static_cast<void>(expectedRandom.Next()); // Sólo602ef4;430a33 no sortea nada.
+            EXPECT_EQ(fixture.random.State(), expectedRandom.State());
+        }
+    }
+}
+
+TEST(CrywolfObjectServicesTest, OtherAltarStatesStayHiddenWithoutScaleOrModelStores)
+{
+    for (const std::uint8_t state : std::array<std::uint8_t, 3>{0, 1, 3})
+    {
+        Fixture fixture;
+        fixture.crywolf.state = state;
+        Client::World::ObjectModelStepState shared;
+        shared.unlitMeshes[0x51] = 7;
+        AltarModels models(shared);
+        std::array objects{ObjectOf(0x51)};
+        auto pass = fixture.Pass();
+        pass.originalFrame = false;
+        pass.modelState = &shared;
+        Client::Render::ModelBatch batch;
+        batch.Begin(Client::Render::Pass3D{});
+        const auto drawn = Client::Scenes::DrawGameWorldObjects(
+            batch, models, objects, Client::World::TerrainPolygon{.everything = true}, nullptr, {}, pass);
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_TRUE(batch.Vertices().empty());
+        EXPECT_EQ(objects[0].transform.scale, 1.25f);
+        EXPECT_EQ(shared.unlitMeshes.at(0x51), 7);
+        EXPECT_TRUE(models.selections.empty());
+    }
 }

@@ -11,6 +11,7 @@ enum class ParticleOwnerKind : std::uint8_t
     None,
     Actor,
     WorldObject,
+    ModelEffect,
 };
 struct ParticleOwner
 {

@@ -1259,8 +1259,7 @@ constexpr MonsterStep Event42d070Case42d183[]{
      .text = "\xbf\xd5\xb0\xfc \xb9\xdf\xc6\xc7"
              "2"},
     {.kind = K::CopyHeight, .offset = 0xd8, .address = 0x42d23e},
-    {.kind = K::Siege, .address = 0x42d244},
-    {.kind = K::Lower, .value = 0x42c80000, .address = 0x42d25d},
+    {.kind = K::Lower, .when = MonsterStepWhen::SiegeOff, .value = 0x42c80000, .address = 0x42d25d},
 };
 
 // 0x42d1d2: el tipo 218.
@@ -1276,8 +1275,7 @@ constexpr MonsterStep Event42d070Case42d1d2[]{
      .text = "\xbf\xd5\xb0\xfc \xb9\xdf\xc6\xc7"
              "1"},
     {.kind = K::CopyHeight, .offset = 0xd8, .address = 0x42d23e},
-    {.kind = K::Siege, .address = 0x42d244},
-    {.kind = K::Lower, .value = 0x42c80000, .address = 0x42d25d},
+    {.kind = K::Lower, .when = MonsterStepWhen::SiegeOff, .value = 0x42c80000, .address = 0x42d25d},
 };
 
 // 0x42d264: el tipo 219.
@@ -1699,8 +1697,18 @@ constexpr MonsterStep Event42d070Case42d522[]{
     {.kind = K::Write, .size = 1, .offset = 0x92, .value = 0x0, .address = 0x42d564},
     {.kind = K::Write, .size = 2, .offset = 0x2b8, .value = 0xffff, .address = 0x42d56b},
     {.kind = K::Write, .size = 2, .offset = 0x2d8, .value = 0xffff, .address = 0x42d572},
-    {.kind = K::Siege, .address = 0x42d579},
-    {.kind = K::Write, .size = 4, .offset = 0x58, .value = 0xfffffffe, .address = 0x42d587},
+    {.kind = K::Write,
+     .when = MonsterStepWhen::SiegeOn,
+     .size = 4,
+     .offset = 0x58,
+     .value = 0xffffffff,
+     .address = 0x42d582},
+    {.kind = K::Write,
+     .when = MonsterStepWhen::SiegeOff,
+     .size = 4,
+     .offset = 0x58,
+     .value = 0xfffffffe,
+     .address = 0x42d587},
     {.kind = K::Arrival, .offset = 0, .value = 0x134, .address = 0x42d5af},
 };
 
@@ -1746,9 +1754,30 @@ constexpr MonsterStep Event42d070Case42d660[]{
     {.kind = K::Write, .size = 1, .offset = 0x92, .value = 0x0, .address = 0x42d6a2},
     {.kind = K::Write, .size = 2, .offset = 0x2b8, .value = 0xffff, .address = 0x42d6a9},
     {.kind = K::Write, .size = 2, .offset = 0x2d8, .value = 0xffff, .address = 0x42d6b0},
-    {.kind = K::Siege, .address = 0x42d6b7},
-    {.kind = K::Write, .size = 4, .offset = 0x58, .value = 0xfffffffe, .address = 0x42d6cd},
-    {.kind = K::Write, .size = 4, .offset = 0x58, .value = 0xffffffff, .address = 0x42d6d4},
+    {.kind = K::Write,
+     .when = MonsterStepWhen::SiegeOn,
+     .size = 4,
+     .offset = 0x58,
+     .value = 0xffffffff,
+     .address = 0x42d6c0},
+    {.kind = K::Write,
+     .when = MonsterStepWhen::SiegeOn,
+     .size = 4,
+     .offset = 0x58,
+     .value = 0xffffffff,
+     .address = 0x42d6c3},
+    {.kind = K::Write,
+     .when = MonsterStepWhen::SiegeOff,
+     .size = 4,
+     .offset = 0x58,
+     .value = 0xfffffffe,
+     .address = 0x42d6cd},
+    {.kind = K::Write,
+     .when = MonsterStepWhen::SiegeOff,
+     .size = 4,
+     .offset = 0x58,
+     .value = 0xffffffff,
+     .address = 0x42d6d4},
 };
 
 // 0x44056b: el tipo 290.

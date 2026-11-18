@@ -185,17 +185,42 @@ TEST(MonsterKindsTest, TheSiegeCreatorOnlyRunsInMapThirty)
     EXPECT_EQ(MonsterCreationOf(104, Lorencia).kind.address, 0x516e2au);
 }
 
-// 0x42d244: con el asedio prendido (0x7239ec) el 217 sigue otra rama, que corta; apagado, baja 100 la altura.
-TEST(MonsterKindsTest, WithTheSiegeOnTheGateCuts)
+// 0x42d244: la guerra conserva la altura de 217/218; en paz baja100. No pide rand().
+TEST(MonsterKindsTest, TheSiegeGateRetainsItsHeightDuringWar)
 {
-    CrtRandom random(1);
-    const auto creation = MonsterCreationOf(217, CastleSiege);
-    const auto on = ResolveMonsterSteps(creation, MonsterCreationContext{CastleSiege, 0, true}, random);
-    ASSERT_FALSE(on.HasValue());
-    EXPECT_NE(on.Error().find("0x42d244"), std::string::npos);
-    const auto off = Resolve(217, CastleSiege);
-    ASSERT_EQ(off.back().kind, MonsterStepKind::Lower);
-    EXPECT_EQ(off.back().value, Bits(100.0f));
+    for (const std::int32_t type : {217, 218})
+    {
+        CrtRandom random(1);
+        const auto on = ResolveMonsterSteps(MonsterCreationOf(type, CastleSiege),
+                                            MonsterCreationContext{CastleSiege, 0, true}, random);
+        ASSERT_TRUE(on.HasValue()) << on.Error();
+        EXPECT_EQ(Find(on.Value(), MonsterStepKind::Lower), nullptr);
+        EXPECT_EQ(random.State(), 1u);
+        const auto off = Resolve(type, CastleSiege);
+        ASSERT_NE(Find(off, MonsterStepKind::Lower), nullptr);
+        EXPECT_EQ(Find(off, MonsterStepKind::Lower)->value, Bits(100.0f));
+    }
+}
+
+// 0x42d579/0x42d6b7: 283 visible sólo en guerra; 288 termina visible en ambos estados (doble escritura nativa).
+TEST(MonsterKindsTest, TheSiegeMonstersSelectTheirNativeVisibility)
+{
+    for (const bool war : {false, true})
+    {
+        CrtRandom random(1);
+        for (const std::int32_t type : {283, 288})
+        {
+            const auto steps = ResolveMonsterSteps(MonsterCreationOf(type, CastleSiege),
+                                                   MonsterCreationContext{CastleSiege, 0, war}, random);
+            ASSERT_TRUE(steps.HasValue()) << steps.Error();
+            std::uint32_t visibility = 0;
+            for (const auto& step : steps.Value())
+                if (step.kind == MonsterStepKind::Write && step.offset == 0x58)
+                    visibility = step.value;
+            EXPECT_EQ(visibility, (type == 288 || war) ? 0xffffffffu : 0xfffffffeu);
+        }
+        EXPECT_EQ(random.State(), 1u);
+    }
 }
 
 // 0x4313cc..0x4313ee: en Crywolf el 348 mira a 180 al crearse y, con la X en 62 o en 183, gira +0x24 a 90.

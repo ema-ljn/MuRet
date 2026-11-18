@@ -8,6 +8,7 @@
 #include "Scenes/CharacterDrawing.h"
 
 #include <glm/ext/vector_float2.hpp>
+#include <glm/ext/vector_float3.hpp>
 
 #include <cstdint>
 #include <optional>
@@ -20,6 +21,11 @@ namespace Client::Render::Models
 class CrtRandom;
 struct ClothWorld;
 } // namespace Client::Render::Models
+
+namespace Client::World
+{
+class ModelEffects;
+}
 
 namespace Client::Scenes
 {
@@ -55,6 +61,10 @@ struct MonsterBodyModel
     // Las mallas de otro 0x4ebc80 en medio de 0x6002e0 (0x60cd60 desde 0x43fc9d, a otra escala): `meshes` las mira
     // desde ahí, como el original lee 0x5786f9c en lo que sigue.
     std::vector<Render::Models::SkinnedMesh> rescaled{};
+    // RGB de5ffce0 antes de los tintes de6002e0:42e458 lo reconstruye para el proyectil12b.
+    glm::vec3 preludeColor{1.0f};
+    // 6c881c vigente: el accesorio12b de42e3d0 conserva el modo del actor (1,1.2,1.4).
+    float boneScale = 1.0f;
 };
 
 // 0x4ef0c0: RenderBody(flags, args) con el estado del modelo. El pase base (2 con la textura de cada malla) es el de
@@ -89,6 +99,8 @@ struct MonsterBodyFrame
     bool originalFrame = true;
     // 0x7d325c8, el temblor de la cámara (GameCharacterPass::cameraShake). nullptr: corta si un caso lo escribe.
     float* cameraShake = nullptr;
+    // 4ee770 consume el mismo pool de518cf0 que el resto del frame.
+    World::ModelEffects* effects = nullptr;
 };
 
 // 0x41ed10(id, objeto, 0) en un frame del original: lo anota para CL10.

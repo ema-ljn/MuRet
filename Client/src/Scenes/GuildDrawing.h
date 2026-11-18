@@ -24,9 +24,12 @@ struct GameHudContext;
 // "%d") en (_ftol(x) + 13, 4) y el nombre de su gremio (+0xd de la entrada) en (_ftol(x) + 30, 4); el otro color, la
 // marca del rival (la primera entrada de 0 a 1998 con su nombre, 0x5767804; sin ninguna, la 0) en (x, 19), su puntaje
 // (0x57678b8) en (_ftol(x) + 13, 19) y su nombre (0x5542f0) en (_ftol(x) + 30, 19). Cada texto vacío no se dibuja,
-// pero se mide (0x77f31b8). El segundo marcador (0x576796f, el F3 23 de 0x4d9f00, hito 11) no lo prende nadie en MuRet
-// (P-C284). Sin las marcas, la guerra corta.
+// pero se mide (0x77f31b8). El segundo marcador (0x576796f, F3 23 de 0x4d9f00) corre después, independiente de la
+// guerra y el gremio del héroe; busca ambos nombres actuales en0..1998 y usa los mismos tanteadores.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheWarScore(GameHudContext& context, UI::PanelRegistry& panels);
+
+// 0x5a7eb0, después del HUD aun oculto (0x637668): reloj de eventos y resultado F3 24.
+[[nodiscard]] Core::Expected<void, std::string> DrawTheEventTimeAndOutcome(GameHudContext& context);
 
 // 0x660830, abierto: con el dibujo propio de 0x6602b0 (+0xc), solo ese (DrawTheGuildPositions). Si no, la caja de
 // 0x6576a0 (0x620c10, glColor4f(1, 1, 1, 0,8), Message_box2 (0xfc) de 213 × 5 en

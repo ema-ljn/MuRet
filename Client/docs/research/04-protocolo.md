@@ -1906,12 +1906,16 @@ Las tablas, por el tipo de `+0`: `0x660da0` da el nivel de la vida por `+0x10` c
 defensa (`+8` de una puerta o una estatua); `0x661020` la recuperación (0 para una puerta, `+0xc` para una estatua).
 Otro tipo da −1 en las cuatro: la defensa y la recuperación salen en 0, y la vida en −1 (`0x660d20(tipo, 0)`).
 
-**MuRet**: `UI::LifeLevelOf` y `UI::MaxLifeOfLevel` son las dos tablas de la vida, y `Scenes/CastleSeniorAnswers.h`
-las nueve respuestas sobre `UI::CastleData` (el `Answer*Dialog` de cada una). Un registro elegido que cae fuera de la
-zona no manda nada, con un aviso (Q-C1360); la plata sin número tampoco (Q-C1363). `sscanf("%u")` es *inferido* del
-CRT de VC6 (saltea espacios, toma un signo, da la vuelta en 32 bits y un menos niega). Nadie las llama todavía: falta
-el diálogo de los paneles (P-C90) y los pasos de las ventanas que lo abren y ponen las elegidas (`0x6691c0`,
-`0x663b20` las puertas, `0x666190` las estatuas; P-C300). Tests en `tests/scenes/test_castle_senior_answers.cpp`.
+En `0x6a1dd4` se llama a `_input` (`0x6a91fc`). La tabla inicial del CRT (`0x6e2100`)
+marca como espacios `09..0d` y `20`. `0x6a990f` acepta un signo, `0x6a9aa4/0x6a9aea`
+acumula los dígitos módulo 2³² y `0x6a9b1f` niega después si el signo es menos.
+Sin dígitos, la conversión vuelve sin escribir el destino (`0x6a9b2a`).
+
+En MuRet, `CastleWindowAnswers` conecta el diálogo de los paneles con las respuestas de
+`CastleSeniorAnswers`. Las pruebas de `CastleSeniorAnswersTest` cubren la clasificación
+de los 256 bytes iniciales y el desborde del importe. El cliente registra un aviso y
+omite el envío si la selección cae fuera de la zona (Q-C1360) o si no hay dígitos
+(Q-C1363). Queda por capturar el DWORD residual que envía el original en este último caso.
 
 ## Qué implica para MuRet
 

@@ -9,16 +9,21 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/FaunaModels.h"
+#include "Scenes/FaunaJointCreation.h"
+#include "Scenes/GameDrawTail.h"
+#include "World/IFishStepServices.h"
 #include "Scenes/MonsterKinds.h"
 #include "Scenes/NpcNames.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
+#include "World/ModelEffects.h"
 #include "World/TerrainCulling.h"
 #include "World/TerrainHeight.h"
 #include "World/WorldTerrain.h"
 
+#include <algorithm>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
@@ -27,6 +32,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace Client::Scenes
@@ -365,9 +371,40 @@ private:
             m_resources.world.Runtime().lastSoundId = static_cast<std::int32_t>(step.value);
             return {};
         case MonsterStepKind::Joint:
+            // 0x515f9c y los otros casos normales usan el mismo contrato que 349: dueño Actor y 618/2,3.
+            if (m_index && step.value == 0x618 && (step.offset == 2 || step.offset == 3))
+            {
+                ActorState& actor = m_resources.world.Actors()[*m_index];
+                auto created =
+                    CreateFaunaJoint(m_resources.world.DrawTail().joints,
+                                     World::FishEffectRequest{static_cast<std::int32_t>(step.value), actor.position,
+                                                              actor.position, actor.angles, step.offset, &actor,
+                                                              std::bit_cast<float>(step.extra), -1, 0, 0, -1},
+                                     m_resources.cloth.random, JointOwnerKind::Actor);
+                if (!created.HasValue())
+                    return Core::Unexpected(std::move(created).Error());
+                return {};
+            }
             return Core::Unexpected(std::format("{:#x}: el joint {:#x} (0x530860) del tipo {} es de la CL11",
                                                 step.address, step.value, m_type));
         case MonsterStepKind::Arrival:
+            if (m_index && step.value == World::SiegeArrivalCue)
+            {
+                auto& actor = Actor();
+                // 0x42d513 y 0x42d5af prestan el actor y pasan 120 como clave de la señal.
+                constexpr std::uint16_t ArrivalScaleKey = 120;
+                static_cast<void>(m_resources.world.Map().effects.CreateSiegeCue({.type = World::SiegeArrivalCue,
+                                                                                  .position = actor.position,
+                                                                                  .angles = actor.angles,
+                                                                                  .light = actor.light,
+                                                                                  .owner = &actor,
+                                                                                  .key = ArrivalScaleKey},
+                                                                                 m_resources.cloth.random));
+                return {};
+            }
+            // 0x518d0f devuelve el control al caller cuando no hay un lugar libre en el pool.
+            if (std::ranges::all_of(m_resources.world.Map().effects.Effects(), &World::ModelEffect::alive))
+                return {};
             return Core::Unexpected(std::format("{:#x}: el efecto {:#x} (0x518cf0) del tipo {} es de la CL11",
                                                 step.address, step.value, m_type));
         default:

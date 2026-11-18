@@ -1,4 +1,5 @@
 #include "Scenes/GameHanging.h"
+#include "Scenes/GuildState.h"
 
 #include "Data/Models/Model.h"
 #include "Render/ModelBatch.h"
@@ -26,6 +27,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include <set>
 #include <span>
 #include <string>
@@ -906,7 +908,7 @@ TEST_F(GameHangingTest, AGameMasterReplacesALayerOfAnotherKind)
 }
 
 // 0x414310..0x414330: con +0x360 del 6 al 13, 0x4294b0 (el byte del asedio, 0x7239ec) decide; con el 0 del
-// arranque no dibuja la capa, y con el asedio llama al método de +0x364, que no está portado. El 5 y el 14 no lo
+// arranque no dibuja la capa, y con el asedio llama al método de +0x364 y emite el sprite. El 5 y el 14 no lo
 // miran.
 TEST_F(GameHangingTest, TheSiegeLayersAreLeftAloneWithoutTheSiege)
 {
@@ -914,6 +916,7 @@ TEST_F(GameHangingTest, TheSiegeLayersAreLeftAloneWithoutTheSiege)
     for (const std::uint8_t kind : {std::uint8_t{6}, std::uint8_t{13}})
     {
         SCOPED_TRACE(static_cast<int>(kind));
+        m_sprites.Clear();
         m_actor.byte360 = kind;
         m_actor.layer = Client::Scenes::GameMasterLayer{};
         GameHangingPass pass = Pass(models);
@@ -921,9 +924,9 @@ TEST_F(GameHangingTest, TheSiegeLayersAreLeftAloneWithoutTheSiege)
         EXPECT_TRUE(m_batch.Vertices().empty());
 
         pass.siegeActive = true;
-        const auto cut = Client::Scenes::DrawGameHanging(m_actor, pass);
-        ASSERT_FALSE(cut.HasValue());
-        EXPECT_NE(cut.Error().find("0x414330"), std::string::npos) << cut.Error();
+        const auto drawn = Client::Scenes::DrawGameHanging(m_actor, pass);
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_EQ(LiveSprites().size(), 1u);
         EXPECT_TRUE(m_batch.Vertices().empty());
     }
 }
@@ -1048,9 +1051,72 @@ TEST_F(GameHangingTest, AGameMasterInBloodCastleHangsTheWeaponLeftInTheBackSlot)
     }
 }
 
-// Lo que todavía corta, con su dirección y después de lo ya dibujado: la capa de un GM por el nombre sin MuSign
-// (0x414470), las capas del 6 al 13 (0x4140d5) y lo que no es un jugador (0x50e060).
-TEST_F(GameHangingTest, TheUnportedCasesStopWithTheirAddress)
+// 4140d5..4142a5: ocho variantes del atlas637, creado sin azar y dibujado sobreel hueso20.
+TEST_F(GameHangingTest, EverySiegeRoleCreatesItsAtlasLayerAndDrawsItsFrame)
+{
+    const HangingModels models({});
+    m_actor.hands[0].model = 0xffff;
+    for (std::uint8_t role = 6; role <= 13; ++role)
+    {
+        m_actor.byte360 = role;
+        m_actor.layer.reset();
+        m_sprites.Clear();
+        GameHangingPass pass = Pass(models);
+        pass.map = 30;
+        pass.siegeActive = true;
+        const auto drawn = Client::Scenes::DrawGameHanging(m_actor, pass);
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        ASSERT_TRUE(m_actor.layer.has_value());
+        const auto sprites = LiveSprites();
+        ASSERT_EQ(sprites.size(), 1u);
+        EXPECT_EQ(sprites.front().texture, 0x637);
+        EXPECT_EQ(sprites.front().blend, role - 6);
+        EXPECT_EQ(sprites.front().position.x, m_actor.position.x);
+        EXPECT_EQ(sprites.front().position.y, m_actor.position.y);
+        EXPECT_EQ(sprites.front().position.z, 30.0f);
+        EXPECT_EQ(sprites.front().light, glm::vec3(1.0f));
+    }
+}
+
+// 41489c..41494d: sólo maestro(80), con alianza vacía o igual al gremio, usael cuadro de líder.
+TEST_F(GameHangingTest, AUnionLeaderUsesTheAdditionalAtlasFrame)
+{
+    const HangingModels models({});
+    auto guild = std::make_unique<Client::Scenes::GuildState>();
+    m_actor.guildStatus = 0x80;
+    m_actor.word1f2 = 0;
+    guild->table[0].guildName = {'P', 'i', 'n', 'o', 's'};
+    for (const std::uint8_t role : std::array<std::uint8_t, 4>{6, 7, 8, 12})
+    {
+        for (const bool sameName : {false, true})
+        {
+            guild->table[0].unionName = sameName ? guild->table[0].guildName : std::array<char, 9>{};
+            m_actor.byte360 = role;
+            m_actor.layer.reset();
+            m_sprites.Clear();
+            GameHangingPass pass = Pass(models);
+            pass.siegeActive = true;
+            pass.guild = guild.get();
+            ASSERT_TRUE(Client::Scenes::DrawGameHanging(m_actor, pass).HasValue());
+            const auto sprites = LiveSprites();
+            ASSERT_EQ(sprites.size(), 1u);
+            EXPECT_EQ(sprites.front().blend, role - 6 + (role == 12 ? 1 : 3));
+        }
+    }
+    guild->table[0].unionName = {'R', 'o', 'b', 'l', 'e', 's'};
+    m_actor.layer.reset();
+    m_actor.byte360 = 6;
+    m_sprites.Clear();
+    GameHangingPass pass = Pass(models);
+    pass.siegeActive = true;
+    pass.guild = guild.get();
+    ASSERT_TRUE(Client::Scenes::DrawGameHanging(m_actor, pass).HasValue());
+    ASSERT_EQ(LiveSprites().size(), 1u);
+    EXPECT_EQ(LiveSprites().front().blend, 0);
+}
+
+// Sin MuSign, el GM corta en0x414470 después de lo ya dibujado; las capas del asedio no necesitan eseBMD.
+TEST_F(GameHangingTest, AMissingGameMasterModelStopsWithItsAddress)
 {
     {
         const HangingModels models({});
@@ -1069,8 +1135,8 @@ TEST_F(GameHangingTest, TheUnportedCasesStopWithTheirAddress)
         m_actor.layer.reset();
         m_actor.byte360 = 6;
         const auto other = Client::Scenes::DrawGameHanging(m_actor, Pass(models));
-        ASSERT_FALSE(other.HasValue());
-        EXPECT_NE(other.Error().find("0x4140d5"), std::string::npos) << other.Error();
+        ASSERT_TRUE(other.HasValue()) << other.Error();
+        EXPECT_TRUE(m_actor.layer.has_value());
         m_actor.byte360 = 0;
     }
 }

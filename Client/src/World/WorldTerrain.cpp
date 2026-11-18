@@ -12,7 +12,6 @@
 #include "Data/Textures/Sampling.h"
 #include "Data/WorldFolder.h"
 #include "World/TerrainCells.h"
-#include "World/KalimaWorld.h"
 #include "World/TerrainLighting.h"
 #include "World/WorldFiles.h"
 
@@ -124,27 +123,41 @@ LoadFile(const std::filesystem::path& dataRoot, const std::string& relative, Ter
 Core::Expected<void, std::string> LoadWorldTerrainLayout(const std::filesystem::path& dataRoot, std::uint8_t map,
                                                          WorldTerrain& terrain,
                                                          std::optional<std::string>& fatalMessage,
-                                                         std::optional<std::int32_t> attributesNumber)
+                                                         std::optional<std::int32_t> attributesNumber,
+                                                         bool reuseMappingForAttributes)
 {
     const std::string folder = Data::WorldFolder(map) + "\\";
     const auto world = static_cast<std::uint8_t>(Data::WorldFolderNumber(map));
     const std::string number = std::to_string(world);
     const std::string attributesFile = std::to_string(attributesNumber.value_or(world));
+    const std::string mappingPath = folder + "EncTerrain" + number + ".map";
     bool mappingCannotOpen = false;
     auto mapping = LoadFile<Data::Terrain::TerrainMapping>(
-        dataRoot, folder + "EncTerrain" + number + ".map", TerrainFileKind::Mapping, fatalMessage,
-        [world](std::span<const std::byte> bytes) { return Data::Terrain::LoadTerrainMapping(bytes, world); },
-        &mappingCannotOpen);
+        dataRoot, mappingPath, TerrainFileKind::Mapping, fatalMessage, [world](std::span<const std::byte> bytes)
+        { return Data::Terrain::LoadTerrainMapping(bytes, world); }, &mappingCannotOpen);
     if (!mapping.HasValue() && !mappingCannotOpen)
         return Core::Unexpected(mapping.Error());
     if (mapping.HasValue())
         terrain.mapping = std::move(mapping).Value();
+    const std::string attributesPath =
+        reuseMappingForAttributes ? mappingPath : folder + "EncTerrain" + attributesFile + ".att";
     auto attributes = LoadFile<Data::Terrain::TerrainAttributes>(
-        dataRoot, folder + "EncTerrain" + attributesFile + ".att", TerrainFileKind::Attributes, fatalMessage,
-        [world](std::span<const std::byte> bytes) { return Data::Terrain::LoadTerrainAttributes(bytes, world); });
+        dataRoot, attributesPath, TerrainFileKind::Attributes, fatalMessage,
+        [world, reuseMappingForAttributes](std::span<const std::byte> bytes)
+            -> Core::Expected<std::unique_ptr<Data::Terrain::TerrainAttributes>, Data::DataError>
+        {
+            auto decoded = Data::Terrain::LoadTerrainAttributes(bytes, world);
+            // 0x5f84fc devuelve −1 antes de escribir la tabla. 0x61a760 sigue al OBJ.
+            if (reuseMappingForAttributes && !decoded.HasValue() && decoded.Error() == Data::DataError::UnexpectedSize)
+                return std::unique_ptr<Data::Terrain::TerrainAttributes>{};
+            return decoded;
+        });
     if (!attributes.HasValue())
         return Core::Unexpected(attributes.Error());
-    terrain.attributes = std::move(attributes).Value();
+    if (attributes.Value())
+        terrain.attributes = std::move(attributes).Value();
+    else if (!terrain.attributes)
+        terrain.attributes = std::make_unique<Data::Terrain::TerrainAttributes>();
     // Q-C27: el original continúa con defaults si el MAP no abre. MuRet llega al ATT fatal,
     // pero si éste existe conserva el diagnóstico del MAP; nunca fabrica un terreno utilizable.
     if (mappingCannotOpen)
@@ -155,7 +168,7 @@ Core::Expected<void, std::string> LoadWorldTerrainLayout(const std::filesystem::
 Core::Expected<void, std::string> LoadWorldTerrainSurface(const std::filesystem::path& dataRoot, std::uint8_t map,
                                                           WorldTerrain& terrain,
                                                           std::optional<std::string>& fatalMessage,
-                                                          std::string_view lightName)
+                                                          std::string_view lightName, bool retainLightOnFailure)
 {
     const std::string folder = Data::WorldFolder(map) + "\\";
     const auto world = static_cast<std::uint8_t>(Data::WorldFolderNumber(map));
@@ -165,12 +178,20 @@ Core::Expected<void, std::string> LoadWorldTerrainSurface(const std::filesystem:
     if (!heights.HasValue())
         return Core::Unexpected(heights.Error());
     terrain.heights = std::move(heights).Value();
+    bool lightCannotOpen = false;
     auto light = LoadFile<Data::Terrain::TerrainLight>(
         dataRoot, folder + std::string(lightName) + ".OZJ", TerrainFileKind::Light, fatalMessage,
-        [](std::span<const std::byte> bytes) { return Data::Terrain::LoadTerrainLight(bytes); });
-    if (!light.HasValue())
+        [](std::span<const std::byte> bytes) { return Data::Terrain::LoadTerrainLight(bytes); }, &lightCannotOpen);
+    if (!light.HasValue() && !retainLightOnFailure)
         return Core::Unexpected(light.Error());
-    terrain.lighting = ShadeTerrainLight(*light.Value(), *terrain.heights, map);
+    if (light.HasValue())
+        terrain.rawLight = std::move(light).Value();
+    else if (!terrain.rawLight)
+        terrain.rawLight = std::make_unique<Data::Terrain::TerrainLight>();
+    // 0x5f8f40 sombrea la luz retenida con las alturas que se acaban de cargar.
+    terrain.lighting = ShadeTerrainLight(*terrain.rawLight, *terrain.heights, map);
+    if (lightCannotOpen)
+        return Core::Unexpected(light.Error());
     return {};
 }
 
@@ -189,8 +210,13 @@ Core::Expected<void, std::string> ReloadWorldTerrainLight(const std::filesystem:
                                                        { return Data::Terrain::LoadTerrainLight(bytes); });
     // 0x5f8f4c: 0x5f8f40 no mira lo que devuelve 0x63b490; sin luz nueva queda la anterior, sombreada otra vez igual.
     if (!light.HasValue())
+    {
+        if (terrain.rawLight)
+            terrain.lighting = ShadeTerrainLight(*terrain.rawLight, *terrain.heights, map);
         return {};
-    terrain.lighting = ShadeTerrainLight(*light.Value(), *terrain.heights, map);
+    }
+    terrain.rawLight = std::move(light).Value();
+    terrain.lighting = ShadeTerrainLight(*terrain.rawLight, *terrain.heights, map);
     return {};
 }
 
@@ -316,11 +342,10 @@ WorldTileTexture DropTexture()
                             .required = true};
 }
 
-std::vector<WorldTileTexture> CausticTextures(std::uint8_t map)
+std::vector<WorldTileTexture> CausticTextures(std::uint8_t /*map*/)
 {
-    constexpr std::uint8_t AtlansMap = 7;
-    if (map != AtlansMap && !IsKalimaMap(map))
-        return {};
+    // 0x617753..0x617788 en 7; 0x618dd1..0x618e29 en los demás, una sola vez y en el mismo orden.
+    // El caller 0x61a560 recibe el mapa byte de la red o 54/55 desde la escena, nunca el sentinel DWORD −1.
     constexpr std::uint16_t Count = 32;
     constexpr std::uint16_t FirstSlot = 65;
     constexpr Data::Textures::Sampling Sampling{Data::Textures::Filter::Linear, Data::Textures::Wrap::Repeat};
@@ -333,6 +358,14 @@ std::vector<WorldTileTexture> CausticTextures(std::uint8_t map)
             {"Object8\\wt" + number + ".jpg", static_cast<std::uint16_t>(FirstSlot + index), Sampling, false});
     }
     return textures;
+}
+
+WorldTileTexture ObjectLightTexture()
+{
+    return {.path = "Object8\\light01.jpg",
+            .slot = 0x68,
+            .sampling = {Data::Textures::Filter::Linear, Data::Textures::Wrap::Repeat},
+            .required = false};
 }
 
 std::vector<WorldTileTexture> TarkanObjectTextures(std::uint8_t map)
@@ -354,5 +387,13 @@ std::vector<WorldTileTexture> IcarusObjectTextures(std::uint8_t map)
         return {};
     constexpr Data::Textures::Sampling Clamp{Data::Textures::Filter::Linear, Data::Textures::Wrap::Clamp};
     return {{"Effect\\cloudLight.jpg", 0x623, Clamp, true}};
+}
+std::vector<WorldTileTexture> CastleSiegeTextures(std::uint8_t map)
+{
+    constexpr std::uint8_t CastleMap = 30;
+    if (map != CastleMap)
+        return {};
+    constexpr Data::Textures::Sampling Clamp{Data::Textures::Filter::Linear, Data::Textures::Wrap::Clamp};
+    return {{"World31\\Map1.jpg", 0x69d, Clamp, true}, {"World31\\Map2.jpg", 0x69e, Clamp, true}};
 }
 } // namespace Client::World

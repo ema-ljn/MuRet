@@ -1,4 +1,5 @@
 #include "Scenes/ArrowEffects.h"
+#include "World/TerrainAttributeQuery.h"
 
 #include "Core/Expected.h"
 #include "Data/Terrain/TerrainGrid.h"
@@ -23,6 +24,7 @@
 #include "World/ParticleBurst.h"
 #include "World/OriginalFtol.h"
 #include "World/Particles.h"
+#include "World/PortableParticleTrigonometry.h"
 #include "World/Sprites.h"
 #include "World/WorldObjectStepServices.h"
 #include "World/WorldTerrain.h"
@@ -36,6 +38,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <format>
+#include <functional>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -60,6 +63,7 @@ constexpr std::int16_t ArquebusArrow = 0xe0;
 constexpr std::int16_t NatureArrow = 0xe1;
 constexpr std::int16_t AquagoldArrow = 0xe2;
 constexpr std::int16_t BluewingArrow = 0xe3;
+constexpr std::int16_t TourArrow = 0xed;
 constexpr std::int16_t SaintArrow = 0xf7;
 constexpr std::int16_t CelestialArrow = 0xf8;
 constexpr std::int16_t ViperArrow = 0xf9;
@@ -228,7 +232,15 @@ Core::Expected<void, std::string> BeginTheArrow(World::ModelEffect& effect, Worl
     AddRotated(effect.transform.position, Render::Models::OriginalVectorRotate(
                                               Muzzle, Render::Models::OriginalAngleMatrix(effect.transform.angles)));
     // 0x51c4e6..0x51c587: la escala y la y de la velocidad.
-    if (type == BluewingArrow)
+    if (type == TourArrow)
+    {
+        // 0x51c507..0x51c536: el disparo de Crywolf gira después de aplicar la boca del arma.
+        effect.transform.angles.x = F32(D(effect.transform.angles.x) - 90.0);
+        effect.transform.scale = 1.0f;
+        effect.velocity.y = -42.0f;
+        effect.velocity.z = 4.0f;
+    }
+    else if (type == BluewingArrow)
     {
         effect.transform.scale = std::bit_cast<float>(0x3fe66666u);
         effect.velocity.y = -50.0f;
@@ -257,9 +269,15 @@ Core::Expected<void, std::string> BeginTheArrow(World::ModelEffect& effect, Worl
         effect.dword100 = 0;
         effect.state = 1;
     }
-    if (type == NatureArrow && effect.subtype == 1 && HasJointRoom(world))
-        return Core::Unexpected(std::string("0x51c713: el joint 0x610/0xd de la flecha 0xe1/1 (0x530860), sin portar "
-                                            "(CL11)"));
+    if (type == NatureArrow && effect.subtype == 1)
+    {
+        const auto made = CreateFaunaJoint(world.DrawTail().joints,
+                                           {0x610, effect.transform.position, effect.transform.position,
+                                            effect.transform.angles, 13, &effect, 20, 40, 0, 0, -1},
+                                           random, JointOwnerKind::ModelEffect);
+        if (!made.HasValue())
+            return Core::Unexpected(made.Error());
+    }
     if (type == BowArrow && (effect.subtype == 3 || effect.subtype == 4))
     {
         BeginTheSiegeArrow(effect, world, random);
@@ -316,12 +334,10 @@ Core::Expected<void, std::string> BeginCelestialArrow(World::ModelEffect& effect
                                  Muzzle, Render::Models::OriginalAngleMatrix(effect.transform.angles)));
     if (callerAngles != nullptr)
         *callerAngles = {0.0f, 0.0f, effect.transform.angles.z};
-    if (HasJointRoom(world))
-    {
-        if (effect.subtype == 1)
-            return Core::Unexpected(std::string("0x51a3b7: el joint 0x60f/0x25 de la flecha 0xf8 sigue en CL11"));
+    // H11: la /1 usa la señal procedural del proyecto; conserva el prefijo y el motor de trayectoria,
+    // sin reconstruir la cadena visual de joints60f/19 ni consumir sus sorteos.
+    if (effect.subtype != 1 && HasJointRoom(world))
         return Core::Unexpected(std::string("0x51a405: el joint 0x60f/0xb de la flecha 0xf8 sigue en CL11"));
-    }
     CopyTheOwnCount(effect, world, random);
     return {};
 }
@@ -683,9 +699,20 @@ Core::Expected<void, std::string> HitWithTheArrow(World::ModelEffect& effect, co
     // 0x520179..0x5201d2: con el asedio (0x4294b0), el bit 0x100 de la celda (0x5f82c0) la frena y le deja media vida.
     if (runtime.siegeActive)
     {
-        return Core::Unexpected(std::format("0x52018d: la flecha {:#x} con el asedio prendido (el atributo de "
-                                            "0x5f82c0), sin portar (CL9.5)",
-                                            effect.type));
+        const auto& attributes = context.world.Map().terrain.attributes;
+        if (!attributes)
+            return Core::Unexpected(std::string("0x52018d: faltan los atributos para el choque de la flecha"));
+        const auto query =
+            World::TerrainAttributeQueryAt(*attributes, effect.transform.position.x, effect.transform.position.y);
+        if (!query.HasValue())
+            return Core::Unexpected(std::string("0x52018d: dirección del atributo fuera de la tabla del mundo"));
+        if ((query.Value() & 0x100) != 0)
+        {
+            effect.speed = 0;
+            effect.velocity = glm::vec3(0);
+            effect.life /= 2;
+            return {};
+        }
     }
     // 0x5201d3..0x5201e7: con +0x88 (la bandera de 0x53d9a0, o el 1 del subtipo 2) y sin el subtipo 0x63, rand() & 1,
     // el dueño héroe, la skill del registro propio y 0x517a20.
@@ -881,10 +908,10 @@ Core::Expected<void, std::string> StepBowArrow(World::ModelEffect& effect, float
     return HitWithTheArrow(effect, context);
 }
 
-// 0x5267dc..0x526979: la flecha 0xe1/1 (la de la fortaleza y Crywolf). Los dos sprites 0x5d5 con la luz (0,1f; 0,4f;
+// 0x5267dc..0x526979: la flecha0xe1/1 de Crywolf yla fortaleza. Los dos sprites 0x5d5 con la luz (0,1f; 0,4f;
 // 0,1f) y las escalas 0,3f y 0,7f, la luz dinámica (luz · 0,2f; luz · 0,8f; luz · 0,2f), la y de los ángulos 60 más
 // (0x6b86cc) y, con más de 25 de vida y par, dos veces el punto ((& 31) − 16; (& 63) − 32; (& 31) − 16) y
-// 0x53fe70(0x60f, punto, ángulos, (0,4f; 1; 0,2f), 5, 0,2f, 0), que corta en la primera. Después, el choque.
+// 0x53fe70(0x60f, punto, ángulos, (0,4f;1;0,2f),5,0,2f,0). Después, choque ycola comunes.
 Core::Expected<void, std::string> StepTheFortressArrow(World::ModelEffect& effect, float luminosity,
                                                        const ArrowStepContext& context)
 {
@@ -909,10 +936,15 @@ Core::Expected<void, std::string> StepTheFortressArrow(World::ModelEffect& effec
         constexpr int SparkCount = 2;
         for (int index = 0; index < SparkCount; ++index)
         {
-            static_cast<void>(ScatteredPoint(effect.transform.position, context.random, {31, 63, 31}, {16, 32, 16}));
-            if (HasParticleRoom(context))
-                return Core::Unexpected(
-                    std::string("0x526961: la 0x60f/5 de la flecha 0xe1/1 (0x53fe70), sin portar (CL11)"));
+            const auto point = ScatteredPoint(effect.transform.position, context.random, {31, 63, 31}, {16, 32, 16});
+            if (context.particles == nullptr)
+                return Core::Unexpected(std::string("0x526961: falta el pool60f/5 del misilE1/1"));
+            World::PortableParticleTrigonometry trigonometry;
+            const auto created =
+                context.particles->CreateChecked(0x60f, point, effect.transform.angles, {.4f, 1, .2f}, 5, .2f,
+                                                 std::cref(context.worldClock), context.random, 0, trigonometry);
+            if (!created.HasValue())
+                return Core::Unexpected(std::string("0x526961: falló el constructor60f/5"));
         }
     }
     return HitWithTheArrow(effect, context);
@@ -1102,8 +1134,19 @@ Core::Expected<void, std::string> StepCelestialArrow(World::ModelEffect& effect,
     effect.transform.angles.y = F32(D(effect.transform.angles.y) + (single ? 60.0 : 30.0));
     if (single)
     {
-        if (effect.life == 13 && HasEffectRoom(context.world))
-            return Core::Unexpected(std::string("0x523f72: el efecto 0x105/3 de la flecha 0xf8 sigue en CL11"));
+        if (effect.life == 13)
+        {
+            // H11: pulso procedural propio, sin la cadena visual original ni RNG adicional.
+            const auto pulse = context.world.Map().effects.CreateCrywolfEffect({.type = World::CrywolfPulseEffect,
+                                                                                .position = effect.transform.position,
+                                                                                .angles = effect.transform.angles,
+                                                                                .light = effect.light,
+                                                                                .subtype = World::CrywolfPulseSubtype,
+                                                                                .owner = &effect});
+            constexpr std::int32_t PulseSound = 0x7a;
+            if (pulse.has_value() && context.soundRequest)
+                context.soundRequest(PulseSound);
+        }
         if (auto hit = HitWithTheArrow(effect, context); !hit.HasValue())
             return hit;
         return ArrowLightAt(effect.transform.position, luminosity, Pink, context, "0x523fca");
@@ -1182,9 +1225,9 @@ Core::Expected<void, std::string> ScatterCombatBurstAt(const glm::vec3& position
 {
     constexpr int Groups = 8;
     constexpr int YawStep = 45;
-    constexpr int SelectorSpan = 2;
-    constexpr std::uint32_t StoneCut = 0x520119;
+    constexpr std::array Subtypes{World::RisingStoneChipSubtype, std::int32_t{0}};
     constexpr glm::vec3 Offset{0.0f, -220.0f, 0.0f};
+    auto& effects = context.world.Map().effects;
     for (int group = 0; group < Groups; ++group)
     {
         const glm::vec3 angles{0.0f, 0.0f, static_cast<float>(group * YawStep)};
@@ -1195,17 +1238,12 @@ Core::Expected<void, std::string> ScatterCombatBurstAt(const glm::vec3& position
             point[axis] = static_cast<float>(static_cast<double>(rotated[axis]) + static_cast<double>(position[axis]));
         if (auto burst = CreateCombatBurstAt(point, context); !burst.HasValue())
             return Core::Unexpected(burst.Error());
-        static_cast<void>(context.random.Next() % SelectorSpan);
-        const auto& effects = context.world.Map().effects.Effects();
-        const auto freeEffect =
-            std::ranges::find_if(effects, [](const World::ModelEffect& effect) { return !effect.alive; });
-        if (freeEffect != effects.end())
+        // 0x520119 y 0x520152: cada selector precede a su intento, incluso con el pool lleno.
+        for (const auto subtype : Subtypes)
         {
-            return Core::Unexpected(
-                std::format("{:#x}: el efecto de piedra subtipo1 del grupo disperso sigue en CL11", StoneCut));
+            const auto type = static_cast<std::int16_t>(World::FirstStoneChipEffect + (context.random.Next() & 1));
+            static_cast<void>(effects.CreateStoneChip(type, point, angles, glm::vec3(1.0f), context.random, subtype));
         }
-        // El segundo tipo de piedra también sólo consume el selector cuando el pool de modelos está lleno.
-        static_cast<void>(context.random.Next() % SelectorSpan);
     }
     return {};
 }
@@ -1258,7 +1296,7 @@ Core::Expected<void, std::string> CreateCombatBurstAt(const glm::vec3& position,
 bool IsArrowEffect(std::int16_t type)
 {
     return (type >= BowArrow && type <= BluewingArrow) || (type >= SaintArrow && type <= ViperArrow) ||
-           type == ArchangelArrow || type == ReignArrow || type == TwentiethArrow;
+           type == ArchangelArrow || type == ReignArrow || type == TwentiethArrow || type == TourArrow;
 }
 
 Core::Expected<void, std::string> CreateTheArrowEffect(const World::ModelEffectArguments& arguments, WorldState& world,
@@ -1375,6 +1413,11 @@ Core::Expected<void, std::string> StepArrow(World::ModelEffect& effect, const Re
     Core::Expected<void, std::string> stepped;
     switch (effect.type)
     {
+    case TourArrow:
+        // 0x524210 → 0x52c4e9: luz roja y cola común; no pasa por el choque de las flechas.
+        effect.light = {1.0f, 0.0f, 0.0f};
+        stepped = World::AddDynamicLight(context.lighting, effect.transform.position, effect.light, 2, "0x52c4f1");
+        break;
     case BowArrow:
         stepped = StepBowArrow(effect, luminosity, context);
         break;

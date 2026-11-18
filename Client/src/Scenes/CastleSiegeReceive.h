@@ -6,6 +6,7 @@
 #include "Protocol/Outgoing.h"
 
 #include <functional>
+#include <filesystem>
 #include <cstdint>
 #include <string>
 
@@ -54,6 +55,7 @@ struct CastleReceiveContext
     // Text.bmd: 860, 1386, 1500..1527, 1609 y 1616.
     const Data::Text::TextTable* texts = nullptr;
     CastleSender send{};
+    std::filesystem::path dataRoot{};
     std::uint32_t tick = 0;
     const WorldEntryResources* entryResources = nullptr;
 };

@@ -10,7 +10,9 @@
 >
 > **Quién escribe:** Claude o Codex. El modo tutor está apagado (2026-11-10).
 
-**Estado actualizado (2026-11-15):** ver la [tabla por hito y sus porcentajes](2026-11-14-cl9-traspaso.md#estado-por-hito).
+**Estado actualizado (2026-11-18):** ver el [estado integrado por hito y sus fronteras](../../../Client/docs/research/2026-11-18-cl9-estado-integrado.md).
+El [traspaso](2026-11-14-cl9-traspaso.md) conserva los porcentajes históricos de citas,
+que no miden equivalencia funcional ni son el estado del candidato actual.
 El recálculo de cobertura por citas da **82,4 %** entre las ramas; no mide fidelidad ni integración en `main`.
 El [PR #354](https://github.com/ema-ljn/MuRet/pull/354) entrega las reparaciones de H1/H9: H1 está
 implementado en el alcance ASM revisado; H9 conserva pendientes propios del editor. La validación

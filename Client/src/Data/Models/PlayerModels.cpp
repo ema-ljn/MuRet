@@ -485,7 +485,8 @@ constexpr std::array<ModelFile, 243> ItemFiles = {{
 // Las llamadas a 0x60da30 de 0x615700 que MuRet ya hace, en su orden: las monturas de las mascotas (el Uniria, el
 // Dinorant y los tres Fenrir), el caballo, el rayo de los Fenrir (0x14d, de Data\Effect\), el cuervo y HellGate
 // (0xc5), que pide texturas antes que el Dinorant.
-constexpr std::array<ModelFile, 14> SkillFiles = {{
+constexpr std::array<ModelFile, 15> SkillFiles = {{
+    {0xc2, SkillFolder, "Fire", 1},                // 0x615d4c; fire01.jpg queda disponible antes del login
     {0xc6, SkillFolder, "Rider", 1},               // 0x615eca
     {0x110, SkillFolder, "Rider", 2},              // 0x615f30, sin el .smd de 0x615f17 (0x6c9e0c en 1)
     {0xbf, SkillFolder, "DarkHorse", -1},          // 0x615f46

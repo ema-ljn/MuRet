@@ -116,7 +116,11 @@ Core::Expected<void, std::string> SendGate(std::uint8_t index, const Data::Table
     }
     if (destination->map == CastleSiegeMap || destination->map == LandOfTrialMap)
     {
-        return Core::Unexpected(std::string("0x61c210 y 0x61c170: las macros de los mapas 30/31 no están portadas"));
+        if (!context.saveOptionsAndMacros)
+            return Core::Unexpected(
+                std::string("0x61c210/0x61c170: el gate30/31 sin los servicios de opciones y Macro.txt"));
+        if (auto saved = context.saveOptionsAndMacros(); !saved.HasValue())
+            return saved;
     }
     runtime.movement.warpPending = true;
     runtime.selectedTargets.fill(-1);

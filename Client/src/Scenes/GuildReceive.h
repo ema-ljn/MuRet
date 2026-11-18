@@ -30,6 +30,7 @@ namespace Client::Scenes
 {
 class IModelLibrary;
 class WorldState;
+struct WorldEntryResources;
 
 struct GuildReceiveContext
 {
@@ -51,6 +52,8 @@ struct GuildReceiveContext
     // Las acciones de los modelos (0x4ea030) para el gesto de la guerra: el 62 y el 63 llaman a 0x576a60 con el héroe
     // (Scenes::PlayTheEmote, hito 1 de la CL9) antes de su C1 18. Sin ellos, cortan antes del gesto.
     const IModelLibrary* models = nullptr;
+    // El 54 abre creación y cierra ventanas de NPC/castillo/batalla por los servicios canónicos del mundo.
+    const WorldEntryResources* worldEntry = nullptr;
 };
 
 // 0x4e2b10 con un paquete del gremio: 50 (0x4d74b0), 51 (0x4d7a20), 52 (0x4d7b60), 53 (0x4d7c30), 54 (0x4e4279), 56

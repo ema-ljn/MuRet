@@ -1,5 +1,7 @@
 #include "Scenes/GameUi.h"
+#include "Scenes/SiegeBattleUi.h"
 #include "Scenes/CastleWindows.h"
+#include "Scenes/CastleSiegeReceive.h"
 
 #include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
@@ -147,6 +149,22 @@ GuildSender GuildSenderOf(IGameUiRequests* requests)
     return [requests](Protocol::Outgoing packet) { requests->SendGuildPacket(std::move(packet)); };
 }
 
+// El paso de diálogos y el de las ventanas tienen registros distintos; ambos necesitan los cierres completos.
+void LendTheUiPanelCloses(GamePanels& panels, const GameUiContext& context)
+{
+    CastleSender send;
+    if (context.requests != nullptr)
+        send = [requests = context.requests](Protocol::Outgoing packet)
+        { requests->SendGamePacket(std::move(packet)); };
+    LendTheCastlePanelServices(
+        panels, context.world, context.random, send, context.worldEntry,
+        {.measure = context.measure, .texts = context.texts, .screen = context.screen, .now = context.systemTime});
+    panels.LendTheNpcWindows(context.world, context.random,
+                             context.inventory != nullptr ? *context.inventory : InventoryServices{},
+                             context.sendNpcWindow);
+    panels.LendTheGuild(context.world, GuildSenderOf(context.requests));
+}
+
 // 0x42475f..0x424990: la ventana de la mascota y sus botones (0x6b8a08, 0x6b8a04, 0x6b87bc, 0x6b8874, 0x6b8a00,
 // 0x6b89f8, 0x6b89fc, 0x6b86d0, 0x6b8800, 0x6b8804 y 0x6b89f4).
 constexpr std::int32_t PetWindowLeft = 0x1c2;
@@ -218,8 +236,7 @@ bool TextInputBusy(const WorldRuntime& runtime)
     const auto& panelDialog = runtime.panels.delegated.panelDialog;
     const bool panelField =
         UI::PanelDialogHandle(panelDialog) != 0 && (panelDialog.flags & UI::PanelDialogTextField) != 0;
-    return runtime.ui.chatOpen || runtime.chat.input.dialogFieldOn || panelField || focus == UI::ChatFocus::OldWindow ||
-           focus == UI::ChatFocus::Dialog || focus == UI::ChatFocus::NumberField;
+    return runtime.ui.chatOpen || runtime.chat.input.dialogFieldOn || panelField || focus != UI::ChatFocus::Game;
 }
 
 // 0x636e51..0x636e5a: el registro del chat, 0x45aa80(0) por la vtable + 0x18 de 0x576350c.
@@ -360,7 +377,8 @@ Core::Expected<void, std::string> Toggle(UI::PanelRegistry& panels, UI::PanelId 
 
 // Las cinco teclas que leen las ventanas viejas con 0x553520 (Esc, F5, F6, Enter y la F de la de amigos, 0x4a2f70) y
 // las dos que leen abajo con GetAsyncKeyState (las flechas de las listas, 0x47b0f0).
-constexpr std::array<GameKey, 5> OldWindowEdgeKeys{EscapeKey, F5Key, F6Key, EnterKey, Letter('F')};
+// El panel del asedio consulta también 0x553520(9) en 0x40f6e8; comparte el latch con el resto de la UI.
+constexpr std::array<GameKey, 6> OldWindowEdgeKeys{EscapeKey, F5Key, F6Key, EnterKey, Letter('F'), TabKey};
 constexpr std::array<GameKey, 2> OldWindowDownKeys{UpKey, DownKey};
 
 // 0x650387 y 0x6503a4: 0x553520 de PgUp y PgDn, que lee la lista de los miembros del gremio.
@@ -728,7 +746,7 @@ Core::Expected<void, std::string> UseTheGridItem(const GameUiContext& context, U
     if (type == BoxOfLuck && levelBits == UsedBoxLevelBits)
         return use();
     if (IsAnEventTicket(type))
-        return UseTheEventTicket(panels, type);
+        return UseTheEventTicket(MovesOf(context), panels, UsedGrid{.cells = grid.cells, .grid = grid.grid}, index);
     const bool potion = (type >= 0x1c00 && type <= 0x1c06) || type == 0x1c08 || type == 0x1c09 ||
                         (type == 0x1c14 && levelBits == 0) || type == 0x1c07;
     if (potion)
@@ -1666,7 +1684,6 @@ Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI
 {
     WorldRuntime& runtime = context.world.Runtime();
     UI::GameUiState& ui = runtime.ui;
-    const UI::DelegatedPanels& delegated = runtime.panels.delegated;
     if (runtime.dialogs.current == UI::EscapeMenuDialog)
         return {};
     // 0x5e7bf0: con 0x78abb20 en 0 devuelve 0; si no, la caja de la contraseña y 1, y 0x5ee140 no sigue.
@@ -1696,8 +1713,8 @@ Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI
     if (auto trainer = StepTheTrainer(context, panels); !trainer.HasValue())
         return trainer;
     // 0x44dd50 y 0x44f810: el arma de asedio y la puerta.
-    if (delegated.siegeWeapon != 0 || delegated.siegeGate != 0)
-        return Core::Unexpected(std::string("0x44dd50: el paso del arma y de la puerta del asedio es de la CL9.5"));
+    if (auto siege = StepTheSiegeControls(context); !siege.HasValue())
+        return siege;
     // 0x5ee1de: 0x5d8d50, el ítem del cursor.
     if (ui.field78abaac == 0)
     {
@@ -1711,8 +1728,8 @@ Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI
             return chips;
     }
     // 0x5e74f0, el panel 0x2000.
-    if (auto panel = StepThePanel2000(context, panels); !panel.HasValue())
-        return panel;
+    if (auto stepped = StepThePanel2000(context, panels); !stepped.HasValue())
+        return stepped;
     // 0x40a450, los comandos ([0x6e592c]), que empieza con su +4.
     if (auto commands = StepTheCommandsWindow(context); !commands.HasValue())
         return commands;
@@ -1933,60 +1950,10 @@ Core::Expected<void, std::string> StepTheSkillBar(const GameUiContext& context)
         }
     }
     // 0x652330: sin el asedio (0x4294b0) no hace nada.
-    if (runtime.siegeActive)
-        return Core::Unexpected(std::string("0x652330: la skill del asedio en la barra es de la CL9.5"));
+    if (auto siege = StepTheBattleSkill(context); !siege.HasValue())
+        return siege;
     if (ui.skillListOpen != 0)
         return StepTheSkillList(context);
-    return {};
-}
-
-// 0x40f6d0: el paso del panel del asedio de la clase 0 (vtable 0x6b88a8 + 8).
-Core::Expected<void, std::string> StepTheSiegePanel(const GameUiContext& context)
-{
-    WorldRuntime& runtime = context.world.Runtime();
-    if (!runtime.siegePanelKind)
-        return {};
-    if (*runtime.siegePanelKind != 0)
-        return Core::Unexpected(std::string("0x4125a0: el paso del panel del asedio con gremio es de la CL9.5"));
-    UI::GameUiState& ui = runtime.ui;
-    UI::SiegePanelState& panel = runtime.siegePanel;
-    if (!TextInputBusy(runtime) && KeyEdge(ui, context.input, TabKey))
-        panel.visible ^= 1;
-    if (panel.visible == 0)
-        return {};
-    const std::int32_t x = context.mouseX;
-    const std::int32_t y = context.mouseY;
-    if (panel.x < x && x <= panel.x + 0x97 && panel.y < y && y < panel.y + 0xad)
-        ui.mouseOnUi = 1;
-    if (!runtime.movement.pendingClick)
-        return {};
-    // 0x40f74c..0x40f7a0: la flecha de la página, con los float 127, 24, 13 y 22 (0x6b8838, 0x6b8800, 0x6b8834 y
-    // 0x6b8820), que con enteros dan lo mismo.
-    const bool outsideThePage =
-        x < panel.x + 127 || panel.x + 127 + 24 < x || y < panel.y + 13 || panel.y + 13 + 22 < y;
-    if (!outsideThePage)
-    {
-        ++panel.page;
-        if (panel.page >= 3)
-            panel.page = 1;
-        else if (panel.page < 1)
-            panel.page = 2;
-    }
-    else
-    {
-        // 0x40f7cc..0x40f7f4: fuera de los dos, el clic sigue para los demás.
-        if (x < panel.x + 5 || panel.x + 0x2b < x || y < panel.y + 0x1c || panel.y + 0x2c < y)
-            return {};
-        // 0x40f7f6..0x40f827: la suma queda en el registro de la x87 para las comparaciones.
-        const double sum = static_cast<double>(panel.alpha) + static_cast<double>(0.1f);
-        panel.alpha = static_cast<float>(sum);
-        if (sum > static_cast<double>(1.1f))
-            panel.alpha = 0.5f;
-        else if (sum < 0.5)
-            panel.alpha = 1.0f;
-    }
-    runtime.movement.pendingClick = false;
-    runtime.movement.leftHeld = false;
     return {};
 }
 
@@ -2311,15 +2278,20 @@ Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& con
     }
     // 0x5a5504: 0x6529e0, el asedio con la rueda o el mouse en su rectángulo; sin el asedio (0x4294b0) no hace
     // nada.
-    if (runtime.siegeActive)
-        return Core::Unexpected(std::string("0x6529e0: la UI del asedio es de la CL9.5"));
+    if (auto siege = StepTheBattleSkillChoice(context); !siege.HasValue())
+        return siege;
     // 0x5a5511: sin ningún panel abierto, el paso del panel del asedio (0x4125a0). 0x413c90 no hace nada.
     if (!panels.IsOpen(UI::AnyPanel))
-        return StepTheSiegePanel(context);
+        return StepTheBattlePanel(context);
     return {};
 }
 
 } // namespace
+
+bool GameTextInputBusy(const WorldRuntime& runtime)
+{
+    return TextInputBusy(runtime);
+}
 
 bool OldWindowKeyEdge(UI::GameUiState& ui, const Input::InputState& input, std::uint8_t virtualKey)
 {
@@ -2441,11 +2413,7 @@ Core::Expected<void, std::string> StepTheGameDialogs(const GameUiContext& contex
     GamePanels panels(context.world, context.random, GamePanelTables{.texts = context.texts});
     // Esc (0x623f17 → 0x657880) cierra la ventana abierta más baja: el comercio manda el 3D, la tienda de otro el
     // 3F 07 y las misiones el 31, por la sesión.
-    panels.LendTheSession(context.world, context.random, context.requests);
-    panels.LendTheGuild(context.world, GuildSenderOf(context.requests));
-    panels.LendTheNpcWindows(context.world, context.random,
-                             context.inventory != nullptr ? *context.inventory : InventoryServices{},
-                             context.sendNpcWindow);
+    LendTheUiPanelCloses(panels, context);
     // 0x623e9b..0x623ec2: con la de amigos abierta, Esc es de las ventanas viejas (0x490490). Lo leído queda en
     // [EBP−0x7d], que mira el no de 0x62c50e.
     const bool escape = !panels.Registry().IsOpen(UI::FriendsPanel) && KeyEdge(ui, context.input, EscapeKey);
@@ -2504,13 +2472,9 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
                                           .itemSetTables = context.itemSetTables,
                                           .texts = context.texts});
     gamePanels.LendThePartyList(context.world, context.requests);
-    gamePanels.LendTheNpcWindows(context.world, context.random,
-                                 context.inventory != nullptr ? *context.inventory : InventoryServices{},
-                                 context.sendNpcWindow);
-    gamePanels.LendTheSession(context.world, context.random, context.requests);
+    LendTheUiPanelCloses(gamePanels, context);
     if (context.chat != nullptr && context.chat->send)
         gamePanels.LendThePetRequests(context.chat->send);
-    gamePanels.LendTheGuild(context.world, GuildSenderOf(context.requests));
     gamePanels.LendTheCastleWindowSteps(context);
     gamePanels.LendThePanelDialogStep(context.world, GuildSenderOf(context.requests), context.mouseX, context.mouseY,
                                       context.systemTime);

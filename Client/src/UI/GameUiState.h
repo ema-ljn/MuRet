@@ -186,14 +186,4 @@ struct GameUiState
     std::optional<std::int32_t> volumeRequest{};
 };
 
-// El panel del asedio de la clase 0 (sin gremio), el objeto de 0x20 bytes que 0x412195 arma en el mapa 30
-// (vtable 0x6b88a8). Su paso es 0x40f6d0 (vtable + 8) y su dibujo, del HUD.
-struct SiegePanelState
-{
-    std::int32_t x = 0x1e9;   // +0xc
-    std::int32_t y = 0x103;   // +0x10
-    std::int32_t page = 1;    // +0x14, de 1 a 2
-    std::uint8_t visible = 1; // +0x19, Tab lo invierte
-    float alpha = 1.0f;       // +0x1c
-};
 } // namespace Client::UI

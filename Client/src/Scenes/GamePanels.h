@@ -67,6 +67,8 @@ public:
     void LendTheCastleRequests(WorldState& world, std::function<void(Protocol::Outgoing)> send,
                                CastleWindowServices services = {});
     void LendTheCastleWindowSteps(const GameUiContext& context);
+    // Los controles de arma y puerta del asedio.
+    void LendTheSiegeControls(WorldState& world, std::function<void(Protocol::Outgoing)> send);
 
     // 0x659aa0..0x659c3d: con `requests`, abrir la party pone en 0 la cuenta de `world` (HudState::partyCount) y pide
     // la lista (C1 03 42). Lo presta el paso de la UI, el que abre la party; sin él, o con nullptr, abrirla corta.

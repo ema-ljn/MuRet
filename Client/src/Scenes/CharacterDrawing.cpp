@@ -1,4 +1,6 @@
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/CrywolfAltarDrawing.h"
+#include "World/ModelEffects.h"
 
 #include "Core/IClock.h"
 #include "Core/Expected.h"
@@ -42,7 +44,6 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
-#include <format>
 #include <optional>
 #include <random>
 #include <ratio>
@@ -1827,6 +1828,38 @@ void DrawWaterspout(Render::ModelBatch& batch, const IModelLibrary& models, cons
     }
 }
 
+Core::Expected<void, std::string> DrawCrywolfAltarMeshes(Render::ModelBatch& batch, const IModelLibrary& models,
+                                                         DrawnObject& object, Core::Duration frameClock,
+                                                         World::ObjectModelStepState* modelState)
+{
+    std::vector<Render::Models::SkinnedMesh> skinned;
+    std::span<const Render::Models::SkinnedMesh> meshes = object.retainedMeshes;
+    if (meshes.empty())
+    {
+        static_cast<void>(ObjectMeshDraws(models, object, frameClock, skinned));
+        meshes = skinned;
+    }
+    // 430ab5..430b14: el segundo pase lee el RGB que pudo guardar el primero dentro de 0x4ecc30.
+    for (const auto& [selection, flags] :
+         {std::pair{std::int8_t{0}, std::uint32_t{0x44}}, std::pair{std::int8_t{1}, std::uint32_t{0x240}}})
+    {
+        object.unlitMesh = selection;
+        if (modelState != nullptr)
+            modelState->unlitMeshes[static_cast<std::int16_t>(object.model)] = selection;
+        if (!meshes.empty())
+        {
+            if (auto drawn =
+                    DrawItemMeshPass(batch, models, object, frameClock, meshes, 0, flags, std::nullopt, &object.color);
+                !drawn.HasValue())
+                return drawn;
+        }
+    }
+    object.unlitMesh = std::int16_t{-1};
+    if (modelState != nullptr)
+        modelState->unlitMeshes[static_cast<std::int16_t>(object.model)] = std::int8_t{-1};
+    return {};
+}
+
 void DrawTarkanChrome(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
                       Core::Duration frameClock)
 {
@@ -2156,6 +2189,97 @@ Core::Expected<void, std::string> DrawFenrirBody(Render::ModelBatch& batch, cons
     return {};
 }
 
+Core::Expected<void, std::string> DrawCastleWeaponBody(Render::ModelBatch& batch, const IModelLibrary& models,
+                                                       World::ModelEffect& effect, const DrawnObject& input,
+                                                       Core::Duration frameClock, const VertexEffectEmitter& emit)
+{
+    // 602e90→5ffdf0: C0 descarta también alpha NaN antes de la pose y de mutar el objeto.
+    if (!(effect.alpha >= .01f) || input.state.hiddenMesh == -2)
+        return {};
+    const bool stone = effect.type == 0x12b;
+    const bool projectile = stone || effect.type == 0x12c;
+    const bool impact = projectile && effect.objectState.hiddenMesh == 99 && effect.seen;
+    const auto* model = models.Find(input.model);
+    if (model == nullptr || model->meshes.empty())
+    {
+        if (impact)
+            effect.objectState.hiddenMesh = -2;
+        return {};
+    }
+    std::vector<Render::Models::SkinnedMesh> temporary;
+    const auto meshes = PosedMeshesOf(models, input, temporary);
+    DrawnObject object = input;
+    const auto draw = [&](std::uint32_t flags, std::optional<Render::TextureSlot> texture = std::nullopt)
+    { return DrawItemMeshPass(batch, models, object, frameClock, meshes, -1, flags, texture, &object.color); };
+    if (impact)
+    {
+        effect.objectState.hiddenMesh = -2;
+        object.state.hiddenMesh = -2;
+        if (!emit)
+            return Core::Unexpected(std::string("0x601c90: falta4ee770 del impacto del arma"));
+        if (auto emitted = emit(stone ? 0x12d : 0x12e, object, meshes); !emitted.HasValue())
+            return emitted;
+    }
+    else if (effect.type == 0x10a || effect.type == 0x10b)
+    {
+        if (effect.subtype == 2 || effect.subtype == 3)
+        {
+            object.color = effect.subtype == 2 ? glm::vec3{.1f, .3f, .6f} : glm::vec3{.1f, .6f, .3f};
+            if (auto chrome = draw(0x44, ChromeTextureSlot); !chrome.HasValue())
+                return chrome;
+        }
+        else
+        {
+            if (auto base = draw(2); !base.HasValue())
+                return base;
+            object.color = glm::vec3(1);
+            if (auto chrome = draw(0x44, ChromeTextureSlot); !chrome.HasValue())
+                return chrome;
+            object.color = {.3f, .3f, 1};
+            if (auto shiny = draw(0x48, ChromeTextureSlot); !shiny.HasValue())
+                return shiny;
+        }
+    }
+    else
+    {
+        const bool fragment = effect.type == 0x12d || effect.type == 0x12e;
+        const bool fragmentChrome = fragment && effect.subtype == 1;
+        const bool fragmentGreen = fragment && (effect.subtype == 2 || effect.subtype == 3);
+        if (stone || fragmentChrome)
+            object.color = glm::vec3(1);
+        else if (fragmentGreen)
+            object.color = {.5f, 1, .3f};
+        if (auto base = draw(2); !base.HasValue())
+            return base;
+        if ((stone && effect.subtype <= 1) || fragmentChrome)
+        {
+            object.color = {1, .2f, .1f};
+            object.state.light = 1;
+            if (auto chrome = draw(0x44); !chrome.HasValue())
+                return chrome;
+        }
+        if (fragmentChrome || fragmentGreen)
+            object.color = glm::vec3(1);
+    }
+    // 602365: usa el último color, incluso el rojo del12b;12d/e restauran blanco explícitamente.
+    if ((effect.flags78 & 2) != 0)
+    {
+        object.state.blendMesh = -2;
+        object.state.light = 1;
+        if (auto tail = draw(2); !tail.HasValue())
+            return tail;
+    }
+    if (effect.type == 0xed || effect.type == 0xee)
+    {
+        object.color = glm::vec3(1);
+        object.state.blendMesh = -2;
+        object.state.light = 1;
+        if (auto additive = draw(0x42); !additive.HasValue())
+            return additive;
+    }
+    return {};
+}
+
 Core::Expected<bool, std::string> DrawCastleSiegeBody(Render::ModelBatch& batch, const IModelLibrary& models,
                                                       const DrawnObject& object, const CastleSiegeBodyPass& pass,
                                                       Core::Duration frameClock)
@@ -2171,18 +2295,22 @@ Core::Expected<bool, std::string> DrawCastleSiegeBody(Render::ModelBatch& batch,
         // 0x42cfd6: 0x42e3d0 solo tiene casos para tipos de monstruo (0x19b, 0x19c, 0x1a8, 0x1f8 y 0x1ff).
         return false;
     }
-    if (type == Glowing && pass.siegeActive)
-        return Core::Unexpected(std::string("0x42ce09: el 0x13 del 30 con el asedio (0x4ecc30 sobre la malla 3, con "
-                                            "Chrome01) no está portado"));
-    if (gate && pass.field04 != 0)
-        return Core::Unexpected(std::format("0x42cfcb: la puerta {:#x} del 30 con +0x4 en {} (0x4ee770(0, 0x12f, 0, 0, "
-                                            "0)) no está portada",
-                                            static_cast<int>(type), pass.field04));
     const Data::Models::Model* model = models.Find(object.model);
     if (model == nullptr)
         return true;
     constexpr std::uint32_t BaseFlags = 0x2, AdditiveFlags = 0x42, ChromeFlags = 0x44, ShinyFlags = 0x48;
     std::vector<Render::Models::SkinnedMesh> skinned;
+    if (gate && pass.field04 != 0)
+    {
+        if (model->meshes.empty())
+            return true;
+        if (!pass.emitGateVertices)
+            return Core::Unexpected(std::string("0x42cfcb: falta el emisor de vértices12f de la puerta"));
+        const auto meshes = PosedMeshesOf(models, object, skinned);
+        if (auto emitted = pass.emitGateVertices(object, meshes); !emitted.HasValue())
+            return Core::Unexpected(emitted.Error());
+        return true;
+    }
     if (type == Banner)
     {
         // 0x42cc32..0x42cc89: sin RenderBody ni 0x4ecc10; el color del modelo en 1.
@@ -2244,6 +2372,25 @@ Core::Expected<bool, std::string> DrawCastleSiegeBody(Render::ModelBatch& batch,
         if (auto drawn = DrawItemMeshPass(batch, models, chromed, frameClock, meshes, -1, ChromeFlags);
             !drawn.HasValue())
             return Core::Unexpected(drawn.Error());
+        return true;
+    }
+    if (type == Glowing && pass.siegeActive)
+    {
+        // 42ce09..42cec4: guerra dibuja sólo la malla3; conserva el blendMesh del objeto en los tres pases.
+        DrawnObject glow = object;
+        const auto meshes = PosedMeshesOf(models, glow, skinned);
+        if (meshes.empty())
+            return true;
+        if (auto base = DrawItemMeshPass(batch, models, glow, frameClock, meshes, 3, BaseFlags); !base.HasValue())
+            return Core::Unexpected(base.Error());
+        glow.color = glm::vec3(.3f);
+        if (auto chrome = DrawItemMeshPass(batch, models, glow, frameClock, meshes, 3, ChromeFlags, ChromeTextureSlot);
+            !chrome.HasValue())
+            return Core::Unexpected(chrome.Error());
+        glow.color = {.2f, .2f, .5f};
+        if (auto shiny = DrawItemMeshPass(batch, models, glow, frameClock, meshes, 3, ShinyFlags, ChromeTextureSlot);
+            !shiny.HasValue())
+            return Core::Unexpected(shiny.Error());
         return true;
     }
     // RenderBody(2, alpha, blendMesh, luz, U, V, +0x58, −1): el 0x13 (0x42ced0), las puertas (0x42cf8e) y los

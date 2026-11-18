@@ -4,6 +4,7 @@
 #include "Core/Log.h"
 #include "Data/Models/Model.h"
 #include "Data/Models/ModelFiles.h"
+#include "Data/Models/ModelLoadCalls.h"
 #include "Data/Models/ModelTextureCalls.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Textures/Texture.h"
@@ -40,7 +41,6 @@ constexpr Render::TextureSlot SkillTexturesStart{0x3b8};
 constexpr Render::TextureSlot FenrirTexturesStart{0x371};
 // 0x61634e..0x616370: Gate02 antes del bloque 0x3b8; Blood Castle reasigna ambos Gate en el mapa.
 constexpr Render::TextureSlot GateTexturesStart{0x69};
-constexpr std::array<Data::Models::ModelTextureCall, 1> InitialGateTextures{{{0x10d, "Monster\\"}}};
 // 0x6161b5: Data\Skill\RidingSpear01.bmd; el 0x10f del efecto necesita su modelo real. 0x6166fe:
 // Data\Skill\MuSign.bmd, el 0x12a de la capa de los GM (0x414370).
 // 0x615d6a: 0x60da30(0xc8 + k, "Data\\Skill\\", "Stone", k + 1), las piedritas que salta el chorro de Lost
@@ -65,28 +65,15 @@ constexpr std::array<Data::Models::ModelFile, 15> TailModelFiles{{{0x10f, "Skill
                                                                   {0xfe, "Skill\\", "EarthQuake", 4},
                                                                   {0x100, "Skill\\", "EarthQuake", 6},
                                                                   {0x135, "Skill\\", "TowerGatePlane", -1}}};
-// 0x61619f: 0x60d5f0(0x10f, "Skill\\", GL_REPEAT, GL_NEAREST, 1); 0x616c5c, el mismo con el 0x12a; el lazo
-// 0x616e20 de 0xbe a 0x150 con "Skill\\": el Uniria (0xc6, que no tiene otra), el 0xc8, el 0xc9, las grietas
-// 0xfb..0x102 (0x616a11..0x616a9b ya habían pedido seis de ellas), el 0x118 y el 0x119 (que 0x616bd2 y 0x616bed ya
-// habían pedido) y el 0x135 (que 0x616d8e ya había pedido); los pedidos dos veces se quedan con los de esta segunda
-// vez. Van después de las de 0x615700 que MuRet carga, así que sus slots no son los del original (que pasa antes por
-// los modelos de las habilidades que MuRet todavía no lee); ningún slot fijo los pisa.
-constexpr std::array<Data::Models::ModelTextureCall, 16> TailTextureCalls{{{0x10f, "Skill\\"},
-                                                                           {0x12a, "Skill\\"},
-                                                                           {0xc6, "Skill\\"},
-                                                                           {0xc8, "Skill\\"},
-                                                                           {0xc9, "Skill\\"},
-                                                                           {0xfb, "Skill\\"},
-                                                                           {0xfc, "Skill\\"},
-                                                                           {0xfd, "Skill\\"},
-                                                                           {0xfe, "Skill\\"},
-                                                                           {0xff, "Skill\\"},
-                                                                           {0x100, "Skill\\"},
-                                                                           {0x101, "Skill\\"},
-                                                                           {0x102, "Skill\\"},
-                                                                           {0x118, "Skill\\"},
-                                                                           {0x119, "Skill\\"},
-                                                                           {0x135, "Skill\\"}}};
+// 616a11..616d8e: las consultas explícitas de los modelos que carga MuRet, en su orden nativo.
+// Después de éstas, 616e20..616e4f recorre TODOS los IDs be..150 con Skill. No mezclar ese barrido con
+// las consultas Object31/Monster: el primer nombre encontrado fija la carpeta y el slot.
+constexpr std::array<Data::Models::ModelTextureCall, 21> TailTextureCalls{
+    {{0xfb, "Skill\\"},     {0xfc, "Skill\\"},     {0xfd, "Skill\\"},    {0xff, "Skill\\"},    {0x101, "Skill\\"},
+     {0x102, "Skill\\"},    {0x114, "Skill\\"},    {0x115, "Skill\\"},   {0x118, "Skill\\"},   {0x119, "Skill\\"},
+     {0x12a, "Skill\\"},    {0x12b, "Npc\\"},      {0x12c, "Skill\\"},   {0x12d, "Skill\\"},   {0x12e, "Skill\\"},
+     {0x12f, "Object31\\"}, {0x130, "Object31\\"}, {0x131, "Monster\\"}, {0x132, "Monster\\"}, {0x133, "Monster\\"},
+     {0x135, "Skill\\"}}};
 
 // Sube las de `entries` de a una: la que no carga deja su línea en el log, y las demás siguen.
 void UploadEach(const std::filesystem::path& dataRoot, std::span<const Data::Textures::TextureSetEntry> entries,
@@ -125,7 +112,7 @@ Core::Expected<void, std::string> GameModels::Load(const std::filesystem::path& 
 {
     for (const std::span<const Data::Models::ModelFile> table :
          {Data::Models::PlayerModelFiles(), Data::Models::ItemModelFiles(), Data::Models::SkillModelFiles(),
-          std::span<const Data::Models::ModelFile>(TailModelFiles)})
+          std::span<const Data::Models::ModelFile>(TailModelFiles), Data::Models::SiegeModelFiles()})
     {
         for (const Data::Models::ModelFile& file : table)
         {
@@ -155,11 +142,18 @@ Core::Expected<void, std::string> GameModels::Load(const std::filesystem::path& 
     AssignTextures(Data::Models::ItemTextureCalls());
     m_slots.SetNext(FenrirTexturesStart);
     AssignTextures(Data::Models::FenrirTextureCalls());
+    // 61619f consulta 10f antes de cargar su BMD en 6161b5. En el perfil sin Data2/SMD no hay mallas
+    // en ese punto: no asignar ahora el BMD futuro. Su consulta efectiva llega con el barrido de 616e46.
     m_slots.SetNext(GateTexturesStart);
-    AssignTextures(InitialGateTextures);
+    AssignTextures(Data::Models::SiegeBeforeSkillTextureCalls());
     m_slots.SetNext(SkillTexturesStart);
     AssignTextures(Data::Models::SkillTextureCalls());
     AssignTextures(TailTextureCalls);
+    for (std::uint16_t model = 0xbe; model < 0x151; ++model)
+    {
+        const std::array<Data::Models::ModelTextureCall, 1> call{{{model, "Skill\\"}}};
+        AssignTextures(call);
+    }
     UploadEach(dataRoot, DamageTextureSet, textures, log, &m_textureMetadata);
     // 0x61ccb0: las del HUD, antes de las de los efectos (CL8 hito 2).
     UploadEach(dataRoot, HudTextureSet, textures, log);

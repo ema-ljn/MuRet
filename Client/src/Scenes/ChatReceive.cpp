@@ -8,6 +8,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatBubbles.h"
 #include "Scenes/GamePanels.h"
+#include "Scenes/CastleWindows.h"
 #include "Scenes/GuildState.h"
 #include "Scenes/GuildWindow.h"
 #include "Scenes/GameMessages.h"
@@ -145,6 +146,10 @@ Core::Expected<void, std::string> TalkToTheGuildMaster(const ChatReceiveContext&
     WorldState& world = context.world;
     WorldRuntime& runtime = world.Runtime();
     GamePanels panels(world, context.random);
+    // 0x4e345c → 0x6599a0: abrir el gremio pasa por los cierres compartidos de NPC, castillo y batalla.
+    LendTheCastlePanelServices(panels, world, context.random, context.guildSend, context.worldEntry,
+                               {.measure = context.measure, .texts = context.texts, .screen = context.screen});
+    // Conserva el cierre local del gremio también sin socket (LendTheSession sólo presta cables no vacíos).
     panels.LendTheGuild(world, context.guildSend);
     if (auto opened = panels.Registry().Open(UI::SecondGuildPanel); !opened.HasValue())
         return Core::Unexpected(std::move(opened).Error());

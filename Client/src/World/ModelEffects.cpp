@@ -241,6 +241,67 @@ std::optional<std::size_t> ModelEffects::Begin(const ModelEffectArguments& argum
     return std::nullopt;
 }
 
+std::optional<std::size_t> ModelEffects::CreateSiegeCue(const ModelEffectArguments& arguments,
+                                                        Render::Models::CrtRandom& random)
+{
+    if (!IsSiegeCue(arguments.type, arguments.subtype))
+        return std::nullopt;
+    // 0x518d63 limpia +0x16d. El pase de suelo todavía lee el +0x16c anterior.
+    const auto slot = Begin(arguments);
+    if (!slot)
+        return std::nullopt;
+    auto& effect = m_effects[*slot];
+    effect.copiedAngles = {};
+    effect.life = SiegeAttackCueLife;
+    if (effect.type == SiegeArrivalCue)
+    {
+        // 0x51d714: la clave del llamador dimensiona la señal en el lugar del alta.
+        constexpr std::int32_t InitialLife = 100;
+        constexpr double ScalePerUnit = static_cast<double>(0.01f);
+        effect.life = InitialLife;
+        effect.transform.scale = F32(static_cast<double>(std::bit_cast<std::int16_t>(arguments.key)) * ScalePerUnit);
+    }
+    else if (effect.type == SiegePulseCue)
+    {
+        // 0x51f193: se sortea una fase sólo al obtener el lugar.
+        effect.copiedAngles.z = static_cast<float>(random.Next() % static_cast<int>(FullTurn));
+    }
+    return slot;
+}
+
+std::optional<std::size_t> ModelEffects::CreateCrywolfEffect(const ModelEffectArguments& arguments)
+{
+    if (arguments.type == CrywolfArrowEffect || !IsCrywolfCue(arguments.type, arguments.subtype))
+        return std::nullopt;
+    const auto slot = Begin(arguments);
+    if (!slot)
+        return std::nullopt;
+
+    auto& effect = m_effects[*slot];
+    effect.copiedAngles = {};
+    effect.transform.scale = 1.0f;
+    if (arguments.type == CrywolfPulseEffect)
+    {
+        constexpr std::int32_t PulseLife = 100;
+        effect.life = PulseLife;
+        effect.objectState.blendMesh = 0;
+        effect.owner.effect = static_cast<const ModelEffect*>(arguments.owner);
+        return slot;
+    }
+
+    // 0x51f84f..0x51f8a7 fija las entradas al movimiento compartido de los fragmentos.
+    constexpr std::int32_t ShardLife = 30;
+    constexpr double LaunchHeight = 280.0;
+    constexpr double LaunchPitch = 20.0;
+    effect.life = ShardLife;
+    effect.objectState.blendMesh = -2;
+    effect.transform.position.z = F32(static_cast<double>(effect.transform.position.z) + LaunchHeight);
+    effect.transform.angles.x = F32(static_cast<double>(effect.transform.angles.x) + LaunchPitch);
+    effect.velocity = {0, -80, -10};
+    effect.previousPosition = effect.transform.position;
+    return slot;
+}
+
 std::optional<std::size_t> ModelEffects::CreateKalimaEffect(const glm::vec3& position, const glm::vec3& angles,
                                                             const glm::vec3& light, Render::Models::CrtRandom& random)
 {
@@ -702,7 +763,15 @@ std::optional<std::size_t> ModelEffects::CreateStoneChip(std::int16_t type, cons
                                                          const glm::vec3& angles, const glm::vec3& light,
                                                          Render::Models::CrtRandom& random)
 {
-    if (type != FirstStoneChipEffect && type != SecondStoneChipEffect)
+    return CreateStoneChip(type, position, angles, light, random, 0);
+}
+
+std::optional<std::size_t> ModelEffects::CreateStoneChip(std::int16_t type, const glm::vec3& position,
+                                                         const glm::vec3& angles, const glm::vec3& light,
+                                                         Render::Models::CrtRandom& random, std::int32_t subtype)
+{
+    if ((type != FirstStoneChipEffect && type != SecondStoneChipEffect) ||
+        (subtype != 0 && subtype != RisingStoneChipSubtype))
         return std::nullopt;
     constexpr int PushMask = 255, PushBase = 64, LifeMask = 15, LifeBase = 32, ScaleMask = 3, ScaleBase = 8;
     constexpr int Degrees = 360, FallMask = 15, FallBase = 8;
@@ -712,13 +781,20 @@ std::optional<std::size_t> ModelEffects::CreateStoneChip(std::int16_t type, cons
         if (effect.alive)
             continue;
         InitializeOwnerlessEffect(effect, type, position, angles, light);
-        const glm::vec3 push{0.0f, F32(static_cast<double>((random.Next() & PushMask) + PushBase) * StoneTenth), 0.0f};
+        effect.subtype = subtype;
+        // 0x51b735: la /1 inicializa a cero, sin llamar a rand() para el empuje.
+        const float impulse = subtype == RisingStoneChipSubtype
+                                  ? 0.0f
+                                  : F32(static_cast<double>((random.Next() & PushMask) + PushBase) * StoneTenth);
+        const glm::vec3 push{0.0f, impulse, 0.0f};
         effect.life = (random.Next() & LifeMask) + LifeBase;
         effect.transform.scale = F32(static_cast<double>((random.Next() & ScaleMask) + ScaleBase) * StoneTenth);
         effect.transform.angles.z = static_cast<float>(random.Next() % Degrees);
         effect.velocity =
             Render::Models::OriginalVectorRotate(push, Render::Models::OriginalAngleMatrix(effect.transform.angles));
         effect.turnDirection = static_cast<float>((random.Next() & FallMask) + FallBase);
+        if (subtype == RisingStoneChipSubtype)
+            effect.copiedAngles = {};
         return slot;
     }
     return std::nullopt;
@@ -728,7 +804,7 @@ std::optional<std::size_t> ModelEffects::CreateGroundStoneChip(std::int16_t type
                                                                const glm::vec3& angles, const glm::vec3& light,
                                                                Render::Models::CrtRandom& random)
 {
-    if (type != FirstStoneChipEffect && type != SecondStoneChipEffect)
+    if (type != FirstStoneChipEffect && type != SecondStoneChipEffect && type != 0xe5)
         return std::nullopt;
     constexpr int PushMask = 255, PushBase = 64, LifeMask = 15, LifeBase = 32, ScaleMask = 3, ScaleBase = 15;
     constexpr int Degrees = 360, FallMask = 15, FallBase = 28;
@@ -1082,6 +1158,159 @@ std::optional<std::size_t> ModelEffects::Create(std::int16_t type, const glm::ve
     return std::nullopt;
 }
 
+std::optional<std::size_t> ModelEffects::CreateCrywolfTideEffect(const ModelEffectArguments& arguments)
+{
+    if (arguments.type != 0x145 || arguments.subtype != 2)
+        return std::nullopt;
+    const auto slot = Begin(arguments);
+    if (!slot)
+        return std::nullopt;
+    auto& effect = m_effects[*slot];
+    effect.objectState.blendMesh = Render::Models::EveryMeshBlends;
+    effect.life = 30;
+    effect.transform.scale = 0;
+    effect.velocity = {0, -40, 0};
+    return slot;
+}
+
+std::optional<std::size_t> ModelEffects::CreateWaveEffect(const ModelEffectArguments& arguments)
+{
+    if (arguments.type != 0x114 || (arguments.subtype != 2 && arguments.subtype != 6))
+        return std::nullopt;
+    const auto slot = Begin(arguments);
+    if (!slot)
+        return std::nullopt;
+    auto& effect = m_effects[*slot];
+    effect.start = arguments.position;
+    // El store del prefijo +50 precede el−50 del subtipo, incluso si redondea una z grande.
+    effect.transform.position.z =
+        F32(static_cast<double>(F32(static_cast<double>(arguments.position.z) + 50.0)) - 50.0);
+    effect.objectState.blendMesh = Render::Models::EveryMeshBlends;
+    effect.objectState.light = 1;
+    effect.life = effect.subtype == 2 ? 15 : 10;
+    effect.transform.scale =
+        F32(static_cast<double>(std::bit_cast<std::int16_t>(arguments.key)) * static_cast<double>(0.05f));
+    effect.disturbanceState = 0xffff;
+    effect.turnDirection = effect.subtype == 2 ? 0.01f : 0.08f;
+    effect.transform.angles = {effect.subtype == 2 ? 90.0f : -90.0f, 0, arguments.angles.z};
+    return slot;
+}
+
+std::optional<std::size_t> ModelEffects::CreatePiercingEffect(const ModelEffectArguments& arguments)
+{
+    if (arguments.type != 0x115 || arguments.subtype != 1)
+        return std::nullopt;
+    const auto slot = Begin(arguments);
+    if (!slot)
+        return std::nullopt;
+    auto& effect = m_effects[*slot];
+    effect.transform.scale = 2;
+    effect.life = 6;
+    effect.objectState.blendMesh = Render::Models::EveryMeshBlends;
+    effect.velocity = {0, -60, 0};
+    effect.start = arguments.position;
+    effect.transform.position.z = F32(static_cast<double>(effect.transform.position.z) + 130.0);
+    return slot;
+}
+
+std::optional<std::size_t> ModelEffects::CreateCrywolfMissile(const ModelEffectArguments& arguments)
+{
+    const auto slot = Begin(arguments);
+    if (!slot)
+        return std::nullopt;
+    auto& effect = m_effects[*slot];
+    effect.life = 100;
+    effect.transform.scale = 1;
+    effect.light = glm::vec3(1);
+    effect.siegeTarget = arguments.angles;
+    effect.start = arguments.position;
+    if (effect.subtype >= 0 && effect.subtype <= 2)
+    {
+        effect.transform.angles = {40, 0, effect.subtype == 0 ? 90.0f : effect.subtype == 1 ? -90.0f : 0.0f};
+        effect.velocity = {0, -80, 0};
+    }
+    return slot;
+}
+
+std::optional<std::size_t> ModelEffects::CreateFireworkEmitter(const ModelEffectArguments& arguments)
+{
+    const auto slot = Begin(arguments);
+    if (!slot)
+        return std::nullopt;
+    auto& effect = m_effects[*slot];
+    effect.transform.angles = {};
+    effect.transform.position.z = 100;
+    effect.life = 75;
+    return slot;
+}
+
+std::optional<std::size_t> ModelEffects::CreateFireworkFlare(const ModelEffectArguments& arguments,
+                                                             Render::Models::CrtRandom& random)
+{
+    const auto slot = Begin(arguments);
+    if (!slot)
+        return std::nullopt;
+    auto& effect = m_effects[*slot];
+    effect.light = glm::vec3(1);
+    effect.velocity.x = static_cast<float>(random.Next() % 9 - 4);
+    effect.velocity.y = static_cast<float>(random.Next() % 9 - 4);
+    effect.velocity.z = 26;
+    effect.life = 12;
+    return slot;
+}
+
+std::optional<std::size_t> ModelEffects::CreateCraterEffect(const ModelEffectArguments& arguments)
+{
+    const auto slot = Begin(arguments);
+    if (!slot)
+        return std::nullopt;
+    ModelEffect& effect = m_effects[*slot];
+    if (effect.subtype >= 0 && effect.subtype <= 2)
+    {
+        constexpr std::array<std::int32_t, 3> Lives{60, 30, 40};
+        constexpr std::array<float, 3> Sizes{4.5f, 2.5f, 3.0f};
+        const auto subtype = static_cast<std::size_t>(effect.subtype);
+        effect.life = Lives[subtype];
+        effect.start.x = Sizes[subtype];
+        effect.start.y = Sizes[subtype];
+    }
+    effect.light = glm::vec3(1);
+    return slot;
+}
+
+std::optional<std::size_t> ModelEffects::CreateCastleShockWave(const ModelEffectArguments& arguments,
+                                                               Render::Models::CrtRandom& random)
+{
+    const auto slot = Begin(arguments);
+    if (!slot)
+        return std::nullopt;
+    ModelEffect& effect = m_effects[*slot];
+    effect.life = 30;
+    effect.transform.scale = 20.0f;
+    switch (effect.subtype)
+    {
+    case 5:
+        effect.life = 20;
+        effect.transform.scale = 9;
+        break;
+    case 6:
+        effect.life = 50;
+        effect.transform.scale = 9;
+        break;
+    case 7:
+        effect.life = 10;
+        effect.transform.scale = 1;
+        break;
+    case 8:
+        effect.life = 10;
+        effect.transform.scale = F32(static_cast<double>(random.Next() % 10 + 10) * static_cast<double>(0.2f));
+        break;
+    default:
+        break;
+    }
+    return slot;
+}
+
 std::optional<std::size_t> ModelEffects::CreateNoriaEffect(std::int16_t type, const glm::vec3& position,
                                                            const glm::vec3& angles, glm::vec3& sourceLight,
                                                            Render::Models::CrtRandom& random)
@@ -1158,12 +1387,16 @@ void StepModelEffect(ModelEffect& effect, const Render::Models::Skeleton* skelet
     }
     // 0x51fc80(efecto, 1): la velocidad girada por los ángulos, sumada a la posición.
     effect.previousPosition = effect.transform.position;
-    const glm::vec3 step = Render::Models::OriginalVectorRotate(
-        effect.velocity, Render::Models::OriginalAngleMatrix(effect.transform.angles));
-    glm::vec3& position = effect.transform.position;
-    position.x = F32(static_cast<double>(step.x) + static_cast<double>(position.x));
-    position.y = F32(static_cast<double>(step.y) + static_cast<double>(position.y));
-    position.z = F32(static_cast<double>(step.z) + static_cast<double>(position.z));
+    // 52cbea:147 ya hizo su movimiento iterativo y salta directo a52cd94.
+    if (effect.type != 0x147)
+    {
+        const glm::vec3 step = Render::Models::OriginalVectorRotate(
+            effect.velocity, Render::Models::OriginalAngleMatrix(effect.transform.angles));
+        glm::vec3& position = effect.transform.position;
+        position.x = F32(static_cast<double>(step.x) + static_cast<double>(position.x));
+        position.y = F32(static_cast<double>(step.y) + static_cast<double>(position.y));
+        position.z = F32(static_cast<double>(step.z) + static_cast<double>(position.z));
+    }
     --effect.life;
     if (effect.life <= 0)
     {

@@ -101,10 +101,10 @@ TEST(ModelTextureCallsTest, TheHelpersTakeTheirTexturesFromItem)
     }
 }
 
-// Las tablas de llamadas, salvo el esqueleto sin mallas, los Gate01/02 y el Uniria: los Gate se asignan en 0x616370
-// (el segundo, desde 0x69) y 0x6179f0 (ambos, con Blood Castle), y el Uniria (0xc6) solo en el lazo 0x616e20 del
-// final de 0x615700, que Scenes/GameModels.cpp pide aparte.
-TEST(ModelTextureCallsTest, EveryModelButTheSkeletonGetsItsTextures)
+// Las tablas cubren los modelos consultados fuera del barrido final. Gate01/02 tienen su propio flujo
+// en 0x616370 y 0x6179f0. Fire01 (0xc2) y Uniria (0xc6) se consultan en el lazo de 0x616e20 de GameModels.
+// NativeSkillLoadTest comprueba los bindings del barrido con los recursos cargados.
+TEST(ModelTextureCallsTest, TheTablesCoverTheModelsQueriedOutsideTheFinalSweep)
 {
     std::set<std::uint16_t> called;
     for (const std::span<const ModelTextureCall> calls :
@@ -121,7 +121,7 @@ TEST(ModelTextureCallsTest, EveryModelButTheSkeletonGetsItsTextures)
         for (const ModelFile& file : table)
         {
             const bool worldGate = file.model == 0x10c || file.model == 0x10d;
-            const bool loopOnly = file.model == 0xc6;
+            const bool loopOnly = file.model == 0xc2 || file.model == 0xc6;
             EXPECT_EQ(called.contains(file.model), file.model != PlayerSkeletonModel && !worldGate && !loopOnly)
                 << std::hex << file.model;
         }

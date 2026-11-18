@@ -34,6 +34,7 @@
 namespace Client::World
 {
 class FrameSprites;
+struct ModelEffect;
 class ScepterGlowCarry;
 struct ObjectModelStepState;
 struct FishEffectRequest;
@@ -437,6 +438,13 @@ void DrawBloodCastleShadow(Render::ModelBatch& batch, const IModelLibrary& model
                            float groundHeight, Core::Duration frameClock);
 
 // Lo que 0x42cc10 (la cadena de 0x6002e0 en el mapa 30, después de 0x438fe0) lee del objeto y de afuera.
+using VertexEffectEmitter = std::function<Core::Expected<void, std::string>(
+    std::int32_t, const DrawnObject&, std::span<const Render::Models::SkinnedMesh>)>;
+// 601c62..60236f: cuerpos12b/c, fragmentos12d..133 y10a/b, chrome y4ee770 alimpacto.
+[[nodiscard]] Core::Expected<void, std::string>
+DrawCastleWeaponBody(Render::ModelBatch& batch, const IModelLibrary& models, World::ModelEffect& effect,
+                     const DrawnObject& object, Core::Duration frameClock, const VertexEffectEmitter& emit = {});
+
 struct CastleSiegeBodyPass
 {
     // +0x2: el tipo del objeto.
@@ -447,6 +455,9 @@ struct CastleSiegeBodyPass
     bool siegeActive = false;
     // 0x5767b88, el reloj del mundo en ms.
     float worldClock = 0.0f;
+    // 42cfcb: 4ee770(0,12f,0,0,0), sobre los vértices del buffer recién posado.
+    std::function<Core::Expected<void, std::string>(const DrawnObject&, std::span<const Render::Models::SkinnedMesh>)>
+        emitGateVertices{};
 };
 
 // 0x42cc10 con un objeto del mapa 30 que 0x6002e0 dibuja (+0x58 distinto de −2), con `object` como lo dejó

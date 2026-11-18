@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
 #include "Render/Models/LogicalAccess.h"
+#include "Protocol/Events.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
@@ -240,8 +241,13 @@ bool IsAnEventTicket(std::int32_t type)
     return type == EventTicket1a1d || type == EventTicket1c13 || type == EventTicket1a12;
 }
 
-Core::Expected<void, std::string> UseTheEventTicket(UI::PanelRegistry& panels, std::int32_t type)
+Core::Expected<void, std::string> UseTheEventTicket(const InventoryMoveContext& context, UI::PanelRegistry& panels,
+                                                    UsedGrid grid, std::size_t index)
 {
+    if (index >= grid.cells.size())
+        return Core::Unexpected(std::string("0x5c58aa: entrada de evento fuera de la grilla"));
+    const ItemState& item = grid.cells[index];
+    const auto type = std::bit_cast<std::int16_t>(item.id);
     if (type == EventTicket1a1d)
     {
         // 0x5c67f3..0x5c685f: PUSH 0x10000, 0x40, 0x20, 0x1000 y 0x4000, cada uno con su JNZ a 0x5c9b0b.
@@ -252,9 +258,20 @@ Core::Expected<void, std::string> UseTheEventTicket(UI::PanelRegistry& panels, s
                 return {};
         }
     }
-    const std::uint32_t branch = type == EventTicket1a1d ? 0x5c6865u : type == EventTicket1c13 ? 0x5c6c36u : 0x5c7010u;
-    return Core::Unexpected(std::format(
-        "{:#x}: usar el {:#x} de la grilla manda el C1 .. 91, la entrada a un evento, del hito 11", branch, type));
+    const std::uint8_t kind = type == EventTicket1a1d ? 4 : type == EventTicket1c13 ? 1 : 2;
+    if (!context.services.sendGamePacket)
+        return Core::Unexpected(std::string("0x5c6bfa: la entrada de evento sin el envío del juego"));
+    context.services.sendGamePacket(Protocol::Events::WriteEventTimeRequest(kind));
+    if (type == EventTicket1a1d)
+    {
+        const auto cell = static_cast<std::size_t>(item.gridRow) * InventoryColumns + item.gridColumn;
+        if (cell >= grid.cells.size())
+            return Core::Unexpected(std::string("0x5c6c20: el origen de la entrada está fuera de la grilla"));
+        WorldRuntime& runtime = context.world.Runtime();
+        runtime.slot78a6758 = static_cast<std::int32_t>(cell) + FirstGridSlot;
+        runtime.dialogItem = grid.cells[cell];
+    }
+    return {};
 }
 
 Core::Expected<void, std::string> UseTheLaterGridItem(const InventoryMoveContext& context, UI::PanelRegistry& panels,

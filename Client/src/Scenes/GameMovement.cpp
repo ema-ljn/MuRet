@@ -837,8 +837,12 @@ Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& co
         return moved;
     if (context.gates)
     {
-        const auto gate =
-            CheckGameGates({context.world, *context.gates, context.random, context.input.ticksMs, context.requestGate});
+        const auto gate = CheckGameGates({.world = context.world,
+                                          .gates = *context.gates,
+                                          .random = context.random,
+                                          .ticksMs = context.input.ticksMs,
+                                          .requestGate = context.requestGate,
+                                          .saveOptionsAndMacros = context.saveOptionsAndMacros});
         if (!gate.HasValue())
             return Core::Unexpected(gate.Error());
     }

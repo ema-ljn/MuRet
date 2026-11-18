@@ -4,10 +4,14 @@
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Data/Models/ModelTextureCalls.h"
+#include "Data/Models/ModelFiles.h"
+#include "Data/Models/Model.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Textures/Sampling.h"
 #include "Data/Textures/Texture.h"
 #include "Render/Models/Skeleton.h"
+#include "Render/Models/ModelTextureSlots.h"
+#include "Data/Textures/TextureSet.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CreatePreview.h"
 #include "Scenes/TextureSets.h"
@@ -25,6 +29,8 @@
 #include <cstdint>
 #include <cstring>
 #include <ios>
+#include <memory>
+#include <map>
 #include <optional>
 #include <set>
 #include <string>
@@ -51,12 +57,128 @@ using Client::Tests::FakeTextureStore;
 using Client::Tests::ReadFileBytes;
 using Client::Tests::RecordingSink;
 
+// 615f77..61619f,616370/38d,616953..616e46: replay literal del orden nativo sobre los BMD cargados.
+using NativeSkillLoadTest = Client::Tests::GoldenDataTest;
+TEST_F(NativeSkillLoadTest, TheLoadedSkillTexturesFollowEveryReachedNativeCallInOrder)
+{
+    FakeTextureStore store;
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    GameModels game;
+    ASSERT_TRUE(game.Load(m_dataRoot, store, log).HasValue());
+    ASSERT_NE(game.Find(0xc2), nullptr) << "615d4c: Skill/Fire01.bmd abastece fire01.jpg antes del login";
+    using Client::Data::Textures::Wrap;
+    struct Call
+    {
+        std::uint16_t model;
+        std::string_view folder;
+        Wrap wrap = Wrap::Repeat;
+        bool bmdAvailable = true;
+    };
+    Client::Render::Models::ModelTextureSlots native(TextureSlot{0x138});
+    std::map<std::uint16_t, std::vector<TextureSlot>> bindings;
+    const auto query = [&](const Call& call)
+    {
+        // 61619f precede al BMD de6161b5: el perfil sin Data2/SMD aún no tiene ese modelo.
+        if (!call.bmdAvailable)
+            return;
+        if (const auto* model = game.Find(call.model); model != nullptr)
+            bindings[call.model] =
+                native.Assign(*model, call.folder, {Client::Data::Textures::Filter::Nearest, call.wrap});
+    };
+    for (const auto& call : Client::Data::Models::PlayerTextureCalls())
+        query({call.model, call.folder});
+    native.SetNext(TextureSlot{0x25a});
+    for (const auto& call : Client::Data::Models::ItemTextureCalls())
+        query({call.model, call.folder});
+    ASSERT_EQ(native.Next(), TextureSlot{0x371});
+    for (const Call& call : std::to_array<Call>({{0x14a, "Skill\\"},
+                                                 {0x14b, "Skill\\"},
+                                                 {0x14c, "Skill\\"},
+                                                 {0x14d, "Effect\\"},
+                                                 {0x109, "Skill\\"},
+                                                 {0xf9, "Skill\\"},
+                                                 {0x10f, "Skill\\", Wrap::Repeat, false}}))
+        query(call);
+    native.SetNext(TextureSlot{0x69});
+    for (const std::uint16_t model :
+         {std::uint16_t{0x10d}, std::uint16_t{0x10a}, std::uint16_t{0x10d}, std::uint16_t{0x10b}})
+        query({model, "Monster\\"});
+    native.SetNext(TextureSlot{0x3b8});
+    const auto skill = std::to_array<Call>({{0x145, "Skill\\"},
+                                            {0x146, "Skill\\"},
+                                            {0x147, "Skill\\"},
+                                            {0xbf, "Skill\\"},
+                                            {0xc0, "Skill\\"},
+                                            {0xc5, "Skill\\"},
+                                            {0x110, "Skill\\"},
+                                            {0xfb, "Skill\\"},
+                                            {0xfc, "Skill\\"},
+                                            {0xfd, "Skill\\"},
+                                            {0xff, "Skill\\"},
+                                            {0x101, "Skill\\"},
+                                            {0x102, "Skill\\"},
+                                            {0x103, "Skill\\"},
+                                            {0x104, "Skill\\"},
+                                            {0x107, "Skill\\"},
+                                            {0x108, "Skill\\"},
+                                            {0x111, "Skill\\"},
+                                            {0x112, "Skill\\"},
+                                            {0x113, "Skill\\", Wrap::Clamp},
+                                            {0x114, "Skill\\"},
+                                            {0x115, "Skill\\"},
+                                            {0x116, "Skill\\"},
+                                            {0x118, "Skill\\"},
+                                            {0x119, "Skill\\"},
+                                            {0x11a, "Skill\\", Wrap::Clamp},
+                                            {0x11b, "Skill\\", Wrap::Clamp},
+                                            {0x129, "Skill\\"},
+                                            {0x12a, "Skill\\"},
+                                            {0x12b, "Npc\\"},
+                                            {0x12c, "Skill\\"},
+                                            {0x12d, "Skill\\"},
+                                            {0x12e, "Skill\\"},
+                                            {0x12f, "Object31\\"},
+                                            {0x130, "Object31\\"},
+                                            {0x131, "Monster\\"},
+                                            {0x132, "Monster\\"},
+                                            {0x133, "Monster\\"},
+                                            {0x134, "Monster\\"},
+                                            {0x135, "Skill\\"},
+                                            {0x13c, "Monster\\"},
+                                            {0x13d, "Skill\\"},
+                                            {0x13e, "Skill\\"},
+                                            {0x137, "Effect\\"},
+                                            {0x140, "Item\\"}});
+    for (const Call& call : skill)
+        query(call);
+    for (std::uint16_t model = 0xbe; model < 0x151; ++model)
+        query({model, "Skill\\"});
+    ASSERT_EQ(native.Next(), game.TextureSlots().Next());
+    const auto expected = native.ToLoad(), actual = game.TextureSlots().ToLoad();
+    ASSERT_EQ(expected.size(), actual.size());
+    for (std::size_t i = 0; i < expected.size(); ++i)
+    {
+        SCOPED_TRACE(i);
+        ASSERT_EQ(actual[i].path, expected[i].path);
+        ASSERT_EQ(actual[i].slot, expected[i].slot);
+        ASSERT_EQ(actual[i].sampling.filter, expected[i].sampling.filter);
+        ASSERT_EQ(actual[i].sampling.wrap, expected[i].sampling.wrap);
+    }
+    for (const auto& [model, expectedSlots] : bindings)
+    {
+        const auto actualSlots = game.MeshTextures(model);
+        ASSERT_EQ(actualSlots.size(), expectedSlots.size()) << model;
+        EXPECT_TRUE(std::equal(actualSlots.begin(), actualSlots.end(), expectedSlots.begin())) << model;
+    }
+}
+
 // Los tres giftbox de 0x60ff50, que el laboratorio no tiene (06).
 constexpr std::size_t MissingInTheLab = 3;
 // 6161b5 carga RidingSpear01/10f, 0x6166fe MuSign/12a, 0x615d6a Stone01/c8 y Stone02/c9, 0x61641d y 0x616442
 // groundStone/118 y groundStone2/119, 0x6165bc..0x616688 EarthQuake01..08/fb..102 y 0x616880 TowerGatePlane/135
-// aparte de las tablas de jugador, ítems y skills.
-constexpr std::size_t AdditionalTailModels = 15;
+// aparte de las tablas de jugador, ítems y skills; más los 15 de SiegeModelFiles, 0x6161ea..0x616854.
+constexpr std::size_t AdditionalTailModels = 30;
 
 class GoldenGameModels : public Client::Tests::GoldenDataTest
 {
@@ -87,7 +209,8 @@ TEST_F(GoldenGameModels, LoadsEveryModelOfThePlayerLoader)
 }
 
 // 0x616304/0x61631a cargan Gate01/02 de Object12; 0x61634e..0x616370 asigna solo Gate02 desde
-// Monster, en 0x69, antes de volver a 0x3b8. Los dos BMD reales usan doorc01.jpg.
+// Monster, en 0x69, antes de volver a 0x3b8. El barrido616e46 también asigna Gate01: los dos BMD reales
+// usan doorc01.jpg y reutilizan el mismo recurso sin pedirlo desde Skill.
 TEST_F(GoldenGameModels, TheWorldGatesAreGlobalAndTheSecondAssignsItsInitialTexture)
 {
     FakeTextureStore textures;
@@ -105,7 +228,8 @@ TEST_F(GoldenGameModels, TheWorldGatesAreGlobalAndTheSecondAssignsItsInitialText
         ASSERT_NE(models.SkeletonOf(gate), nullptr);
         EXPECT_EQ(models.SkeletonOf(gate)->bones.size(), 1u);
     }
-    EXPECT_TRUE(models.MeshTextures(0x10c).empty());
+    ASSERT_EQ(models.MeshTextures(0x10c).size(), 1u);
+    EXPECT_EQ(models.MeshTextures(0x10c).front(), TextureSlot{0x69});
     ASSERT_EQ(models.MeshTextures(0x10d).size(), 1u);
     EXPECT_EQ(models.MeshTextures(0x10d).front(), TextureSlot{0x69});
     EXPECT_EQ(models.TextureSlots().NameOf(TextureSlot{0x69}), "doorc01.jpg");
@@ -604,3 +728,56 @@ TEST_F(GoldenGameModels, TheSpriteTexturesStayWithTheirSize)
     EXPECT_FALSE(models.TextureSize(TextureSlot{0x123}).has_value());
 }
 } // namespace
+
+// 0x6161ea/0x616333/0x616349/0x6163c2/0x6163d8/0x61679e..0x616854: efectos alcanzados por el asedio y Crywolf.
+TEST_F(GoldenGameModels, EveryReachedSiegeAndCrywolfEffectHasItsRealModelSkeletonAndUploadedMeshTextures)
+{
+    using Client::Data::Models::ModelFile;
+    const std::array<ModelFile, 17> expected{{{0xe5, "Skill\\", "BigStone", 1},
+                                              {0xe6, "Skill\\", "BigStone", 2},
+                                              {0x10a, "Object12\\", "StoneCoffin", 1},
+                                              {0x10b, "Object12\\", "StoneCoffin", 2},
+                                              {0x114, "Skill\\", "m_Waves", -1},
+                                              {0x115, "Skill\\", "m_Piercing", -1},
+                                              {0x12b, "Skill\\", "FlyBigStone1", -1},
+                                              {0x12c, "Skill\\", "FlyBigStone2", -1},
+                                              {0x12d, "Skill\\", "FlySmallStone1", -1},
+                                              {0x12e, "Skill\\", "FlySmallStone2", -1},
+                                              {0x12f, "Skill\\", "WallStone1", -1},
+                                              {0x130, "Skill\\", "WallStone2", -1},
+                                              {0x131, "Skill\\", "GatePart1", -1},
+                                              {0x132, "Skill\\", "GatePart2", -1},
+                                              {0x133, "Skill\\", "GatePart3", -1},
+                                              {0x145, "Skill\\", "elf_skill", -1},
+                                              {0x147, "Skill\\", "deathsp_eff", -1}}};
+    auto textures = std::make_unique<FakeTextureStore>();
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    auto models = std::make_unique<GameModels>();
+    const auto loaded = models->Load(m_dataRoot, *textures, log);
+    ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
+    for (const auto& file : expected)
+    {
+        const auto original = Client::Data::Models::LoadModelFile(m_dataRoot, file);
+        ASSERT_TRUE(original.HasValue()) << file.name;
+        const auto* model = models->Find(file.model);
+        EXPECT_NE(model, nullptr) << std::hex << file.model << " " << file.name;
+        if (model == nullptr)
+            continue;
+        EXPECT_EQ(model->meshes.size(), original.Value().meshes.size()) << file.name;
+        EXPECT_EQ(model->bones.size(), original.Value().bones.size()) << file.name;
+        EXPECT_NE(models->SkeletonOf(file.model), nullptr) << file.name;
+        const auto slots = models->MeshTextures(file.model);
+        ASSERT_EQ(slots.size(), model->meshes.size()) << file.name;
+        for (std::size_t mesh = 0; mesh < slots.size(); ++mesh)
+        {
+            EXPECT_EQ(model->meshes[mesh].textureName, original.Value().meshes[mesh].textureName) << file.name;
+            EXPECT_EQ(models->TextureSlots().NameOf(slots[mesh]), model->meshes[mesh].textureName) << file.name;
+            const auto uploaded = textures->Find(slots[mesh]);
+            ASSERT_TRUE(uploaded.has_value()) << file.name << " " << model->meshes[mesh].textureName;
+            EXPECT_GT(uploaded->texture.width, 0u);
+            EXPECT_GT(uploaded->texture.height, 0u);
+            EXPECT_TRUE(models->TextureMetadataOf(slots[mesh].value).has_value());
+        }
+    }
+}

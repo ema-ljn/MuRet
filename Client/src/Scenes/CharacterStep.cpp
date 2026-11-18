@@ -1,4 +1,5 @@
 #include "Scenes/CharacterStep.h"
+#include "Scenes/SiegeBattleUi.h"
 #include "Protocol/Pet/PetOrders.h"
 
 #include "Scenes/ActorPickingBox.h"
@@ -46,7 +47,6 @@
 #include "Scenes/PartyActors.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldRuntime.h"
-#include "UI/GameUiState.h"
 #include "Scenes/WorldState.h"
 #include "Scenes/WeaponTrail.h"
 #include "World/ObjectAlpha.h"
@@ -1390,34 +1390,11 @@ LogicalCell ReadLogicalCell(ActorState& actor, Render::Models::CrtRandom& random
     return cell;
 }
 
-Core::Expected<void, std::string> StepTheSiegePanel(WorldRuntime& runtime)
-{
-    if (runtime.map != CastleMap)
-    {
-        runtime.siegePanelKind.reset();
-        return {};
-    }
-    constexpr std::uint8_t NoGuild = 0xff;
-    if (runtime.heroGuildPost != NoGuild)
-    {
-        return Core::Unexpected(std::format("0x412193: el panel del asedio con el puesto {:#x} en el gremio "
-                                            "(0x6c649a) no está portado",
-                                            runtime.heroGuildPost));
-    }
-    constexpr std::uint8_t NoGuildPanel = 0;
-    // 0x412195: el panel nuevo sale de su constructor (0x20 bytes): en (0x1e9; 0x103), en la página 1, a la vista y
-    // con el alfa en 1. El de la clase 0 que ya estaba queda como está.
-    if (runtime.siegePanelKind != NoGuildPanel)
-        runtime.siegePanel = UI::SiegePanelState{};
-    runtime.siegePanelKind = NoGuildPanel;
-    return {};
-}
-
 Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& context)
 {
     WorldState& world = context.world;
     // 0x508f06..0x508f0c: 0x412140 con el héroe, antes del lazo.
-    if (auto panel = StepTheSiegePanel(world.Runtime()); !panel.HasValue())
+    if (auto panel = RefreshTheSiegePanel(world.Runtime()); !panel.HasValue())
     {
         return panel;
     }

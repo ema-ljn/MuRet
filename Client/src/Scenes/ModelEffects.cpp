@@ -9,6 +9,10 @@
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/ArrowEffects.h"
+#include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/WorldMap.h"
+#include "World/ModelEffects.h"
 #include "Scenes/DynamicWorldLight.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/FaunaJointCreation.h"
@@ -25,6 +29,7 @@
 
 #include <glm/ext/vector_float3.hpp>
 
+#include <algorithm>
 #include <array>
 #include <bit>
 #include <cstddef>
@@ -752,7 +757,7 @@ CaseResult StepTheKalimaHelper(ModelEffectsPass& pass)
     case 0xc5:
     {
         // 0x43bdfd..0x43bef3: en la 0, dos 0x5f3/0 en rand() % 200 + x − 100 y rand() % 100 + y − 50 con la luz propia
-        // y los efectos 0xc8 y 0xc9 de 0x518cf0 (CL11). Si no, +0x64 en 1 y +0x68 en (sen(T · 0,001f) + 1) · 0,5f.
+        // y los efectos 0xc8/0xc9 en la posición del actor. Ambas ramas alcanzan +0x64 y el pulso de +0x68.
         if (actor.animation.action == 0)
         {
             const float x = F32(static_cast<double>(Roll(pass, 200)) + D(actor.position.x) - 100.0);
@@ -762,7 +767,10 @@ CaseResult StepTheKalimaHelper(ModelEffectsPass& pass)
                 if (auto emitted = Emit(pass, address, World::DustParticle, 0, position, actor.light, actor.angles);
                     !emitted.HasValue())
                     return Core::Unexpected(emitted.Error());
-            return Cut(pass, 0x43bea5, "el efecto 0xc8 (0x518cf0) de la acción 0");
+            // 0x43bea5 y 0x43bec6: el dueño es 0; omitir un alta con el pool lleno no detiene el segundo intento.
+            for (const std::int16_t type : {std::int16_t{0xc8}, std::int16_t{0xc9}})
+                static_cast<void>(pass.world.Map().effects.CreateStoneChip(type, actor.position, actor.angles,
+                                                                           actor.light, pass.random));
         }
         actor.dword64 = 1;
         const auto pulse = Render::Models::Detail::SineSumPC53(clock * rate, 1.0);
@@ -862,35 +870,6 @@ CaseResult StepTheCastleHelper(ModelEffectsPass& pass)
     }
 }
 
-// 0x42f550(c, modelo), solo en el mapa 35 (0x42ee20). Devuelve 0.
-Result StepTheKanturuHelper(ModelEffectsPass& pass)
-{
-    constexpr std::int32_t KanturuMap = 35;
-    if (pass.map != KanturuMap)
-        return {};
-    const ActorState& actor = pass.actor;
-    const float frame = actor.animation.frame;
-    switch (actor.type)
-    {
-    case 0x1b3:
-        // 0x42f5a8..0x42f63b: en la 4 con el frame en [4, 6], el efecto 0x115 de 0x518cf0.
-        if (actor.animation.action == 4 && frame >= 4.0f && frame <= 6.0f)
-            return Cut(pass, 0x42f63b, "el efecto 0x115 (0x518cf0) del ataque");
-        return {};
-    case 0x1b2:
-        // 0x42f656: rand() % 360 y los sprites 0x5ac y 0x5fd de huesos por nombre (0x4292e0).
-        static_cast<void>(Roll(pass, 360));
-        return Cut(pass, 0x42f6ce, "el hueso por nombre (0x4292e0) y los sprites 0x5ac y 0x5fd");
-    case 0x1b1:
-        // 0x42f8fa: fuera de la 6, el sprite 0x5ac de un hueso por nombre; en la 6, nada (no es la 2 ni la 0xa).
-        if (actor.animation.action != 6)
-            return Cut(pass, 0x42f946, "el hueso por nombre (0x4292e0) y el sprite 0x5ac");
-        return {};
-    default:
-        return {};
-    }
-}
-
 // 0x431470 en la 2 y la 0xa: con rand() % 10 en 0, el 0x5f3/0 en la posición con la luz del caso (0x431e86).
 Result KickTheDust(ModelEffectsPass& pass, const glm::vec3* light, std::uint32_t local)
 {
@@ -899,12 +878,134 @@ Result KickTheDust(ModelEffectsPass& pass, const glm::vec3* light, std::uint32_t
         return {};
     if (Roll(pass, 10) != 0)
         return {};
+    if (pass.particles != nullptr &&
+        std::ranges::all_of(pass.particles->All(), [](const World::Particle& particle) { return particle.alive; }))
+        return {};
     if (light == nullptr)
         return Core::Unexpected(std::format("0x431e86: la luz del polvo 0x5f3/0 del modelo {:#x} (lugar {}) es "
                                             "[EBP−{:#x}], que ese camino de 0x431470 no escribe (comportamiento "
                                             "indefinido)",
                                             pass.actor.type, pass.slot, local));
     return Emit(pass, 0x431e86, World::DustParticle, 0, pass.actor.position, *light, pass.actor.angles);
+}
+
+Core::Expected<glm::vec3, std::string> CrywolfNamedPoint(ModelEffectsPass& pass, std::string_view name,
+                                                         std::uint32_t address)
+{
+    const auto& bones = pass.world.Runtime().namedBones;
+    const auto found = std::ranges::find_if(bones, [&](const NamedBone& bone)
+                                            { return bone.actor == pass.slot && bone.name == name; });
+    if (found == bones.end())
+        return Core::Unexpected(
+            std::format("{:#x}: el hueso {} no existe y 0x4010b0 deja el punto sin escribir", address, name));
+    return BonePoint(pass.actor, found->bone, NoOffset);
+}
+
+glm::vec3 CrywolfGlobalPoint(ModelEffectsPass& pass, std::size_t bone)
+{
+    const auto& bones = pass.world.PoseCarry().bones;
+    const auto matrix = bone < bones.size() ? bones[bone] : Render::Models::BoneTransform(0.0f);
+    return Render::Models::OriginalVectorTransform(NoOffset, Render::Models::OriginalMatrixOf(matrix));
+}
+
+void CrywolfStone(ModelEffectsPass& pass, std::int16_t type, const glm::vec3& point)
+{
+    auto& effects = pass.world.Map().effects;
+    if (type == 0xe5)
+        static_cast<void>(effects.CreateGroundStoneChip(type, point, pass.actor.angles, pass.actor.light, pass.random));
+    else
+        static_cast<void>(effects.CreateStoneChip(type, point, pass.actor.angles, pass.actor.light, pass.random));
+}
+
+Result CrywolfHeavyStrike(ModelEffectsPass& pass)
+{
+    const glm::vec3 point = CrywolfGlobalPoint(pass, 33);
+    static_cast<void>(pass.world.Map().effects.CreateCraterEffect(
+        {.type = 0x636, .position = point, .angles = pass.actor.angles, .light = pass.actor.light, .subtype = 2}));
+    if (pass.particles == nullptr)
+        return Core::Unexpected(std::string("0x43197c: falta el pool de la explosión 5ed/2"));
+    const auto burst =
+        pass.particles->CreateChecked(0x5ed, point, pass.actor.angles, White, 2, 1, pass.worldClock, pass.random);
+    if (!burst.HasValue())
+        return Core::Unexpected(std::string("0x43197c: la explosión 5ed/2 no está portada"));
+    if (burst.Value())
+        Sound(pass, 0x40);
+    for (int index = 0; index < 6; ++index)
+        CrywolfStone(pass, 0xe5, point);
+    return {};
+}
+
+Result CrywolfWaveStrike(ModelEffectsPass& pass)
+{
+    const glm::vec3 point = BonePoint(pass.actor, 27, NoOffset);
+    auto& effects = pass.world.Map().effects;
+    static_cast<void>(effects.CreateCraterEffect(
+        {.type = 0x636, .position = point, .angles = pass.actor.angles, .light = pass.actor.light, .subtype = 2}));
+    for (int index = 0; index < 2; ++index)
+        if (auto emitted = Emit(pass, 0x4316f7, 0x640, 1, point, White, pass.actor.angles); !emitted.HasValue())
+            return emitted;
+    for (int index = 0; index < 5; ++index)
+        static_cast<void>(effects.CreateCastleShockWave(
+            {.type = 0x6eb, .position = point, .angles = pass.actor.angles, .light = {1, 0.6f, 0.4f}, .subtype = 8},
+            pass.random));
+    for (int index = 0; index < 4; ++index)
+    {
+        CrywolfStone(pass, 0xe5, point);
+        CrywolfStone(pass, 0xc9, point);
+    }
+    return {};
+}
+
+Result CrywolfHeadSprite(ModelEffectsPass& pass, std::uint32_t address)
+{
+    const auto head = CrywolfNamedPoint(pass, "Monster95_Head", address);
+    if (!head.HasValue())
+        return Core::Unexpected(head.Error());
+    if (pass.sprites == nullptr)
+        return Core::Unexpected(std::string("0x431d84: faltan los sprites del monstruo95"));
+    static_cast<void>(pass.sprites->Create(0x5ac, head.Value(), 3.5f, {0.9f, 0.2f, 0.1f}, 0, 0));
+    return {};
+}
+
+Result CrywolfNamedSprites(ModelEffectsPass& pass, std::uint32_t centerAddress)
+{
+    ActorState& actor = pass.actor;
+    const float rotation = static_cast<float>(Roll(pass, 360));
+    constexpr double Rate = static_cast<double>(std::bit_cast<float>(0x3a9d4952u));
+    const auto sine = Render::Models::Detail::SineProductPC53(D(pass.worldClock) * Rate, 0.8f);
+    if (!sine)
+        return Core::Unexpected(std::string("0x431f72: reloj fuera del dominio FSIN"));
+    const float pulse = F32(*sine + D(Bits(0x3fa66666u)));
+    const float scale = actor.animation.action == 3 || actor.animation.action == 4 ? 0.5f : 1.0f;
+    const auto center = CrywolfNamedPoint(pass, "Monster96_Center", centerAddress);
+    if (!center.HasValue())
+        return Core::Unexpected(center.Error());
+    if (pass.sprites == nullptr)
+        return Core::Unexpected(std::string("0x43208e: faltan los sprites del monstruo96"));
+    const glm::vec3 light{0, F32(D(pulse) * 0.5), F32(D(pulse) * D(Tenth))};
+    static_cast<void>(pass.sprites->Create(0x5ac, center.Value(), scale, light, 0, 0));
+    for (const std::string_view name : {"Monster96_Top", "Monster96_Bottom"})
+    {
+        const auto point = CrywolfNamedPoint(pass, name, 0x43216d);
+        if (!point.HasValue())
+            return Core::Unexpected(point.Error());
+        static_cast<void>(
+            pass.sprites->Create(0x5fd, point.Value(), F32(D(scale) * 0.5), glm::vec3(0.5f), rotation, 0));
+        static_cast<void>(pass.sprites->Create(0x5fd, point.Value(), F32(D(scale) * 0.5), glm::vec3(0.5f),
+                                               F32(360.0 - D(rotation)), 0));
+    }
+    return {};
+}
+
+Result CrywolfPiercingStrike(ModelEffectsPass& pass)
+{
+    // 0x431edc y0x42f5e3 calculan una velocidad girada en un local que luego no se lee.
+    static_cast<void>(pass.world.Map().effects.CreatePiercingEffect({.type = 0x115,
+                                                                     .position = pass.actor.position,
+                                                                     .angles = pass.actor.angles,
+                                                                     .light = {1, 0, 0.5f},
+                                                                     .subtype = 1}));
+    return {};
 }
 
 // 0x431470(c, c, modelo), la tabla 0x432488 desde el 0x1ab. Devuelve 0 salvo el 0x1b5 después de su efecto.
@@ -929,7 +1030,7 @@ Result StepTheCrywolfHelper(ModelEffectsPass& pass)
         if (action == 4)
         {
             if (InTheStrike(frame, speed.Value(), 7.5f))
-                return Cut(pass, 0x43195f, "el efecto 0x636 (0x518cf0) del ataque");
+                return CrywolfHeavyStrike(pass);
             return {};
         }
         return KickTheDust(pass, nullptr, 0x18);
@@ -939,9 +1040,32 @@ Result StepTheCrywolfHelper(ModelEffectsPass& pass)
         // 0x4319f1 y 0x431bdd: la luz (0,9; 0,2; 0,1).
         return KickTheDust(pass, &ember, 0);
     case 0x1ae:
-        // 0x431a3c: con la etapa de Crywolf (0x723c05) en 4 y [0x723bec], que escriben los paquetes de Crywolf (CL9.5)
-        // y MuRet no modela (en 0), sus efectos. Sin eso, nada.
+    {
+        // 0x431a3c..0x431bd2: el aviso se consume antes de todas las altas, también con pools llenos.
+        auto& flag = pass.world.Runtime().crywolf.ui.byte723bec;
+        if (stage != Siege || flag == 0)
+            return {};
+        flag = 0;
+        const glm::vec3 point = BonePoint(actor, 27, NoOffset);
+        auto& effects = pass.world.Map().effects;
+        const World::ModelEffectArguments crater{
+            .type = 0x636, .position = point, .angles = actor.angles, .light = actor.light, .subtype = 2};
+        static_cast<void>(effects.CreateCraterEffect(crater));
+        const glm::vec3 red{1, 0.2f, 0.2f};
+        for (int index = 0; index < 2; ++index)
+        {
+            if (auto particle = Emit(pass, 0x431ae8, 0x640, 1, point, red, actor.angles); !particle.HasValue())
+                return particle;
+        }
+        for (int index = 0; index < 5; ++index)
+            static_cast<void>(effects.CreateCastleShockWave(World::ModelEffectArguments{.type = World::ShockWaveEffect,
+                                                                                        .position = point,
+                                                                                        .angles = actor.angles,
+                                                                                        .light = red,
+                                                                                        .subtype = 8},
+                                                            pass.random));
         return {};
+    }
     case 0x1b0:
     {
         // 0x43161d: en la 3 dentro de [6,5; velocidad + 6,5), los efectos 0x636 y las partículas 0x640.
@@ -951,35 +1075,64 @@ Result StepTheCrywolfHelper(ModelEffectsPass& pass)
         if (action == 3)
         {
             if (InTheStrike(frame, speed.Value(), 6.5f))
-                return Cut(pass, 0x4316db, "el efecto 0x636 (0x518cf0) del ataque");
+                return CrywolfWaveStrike(pass);
             return {};
         }
         return KickTheDust(pass, &White, 0);
     }
     case 0x1b1:
-        // 0x431c28: fuera de la 6, el sprite 0x5ac de un hueso por nombre; en la 6, nada.
+    {
         if (action != 6)
-            return Cut(pass, 0x431d5c, "el hueso por nombre (0x4292e0) y el sprite 0x5ac");
-        return {};
+        {
+            if (auto head = CrywolfHeadSprite(pass, 0x431d5c); !head.HasValue())
+                return head;
+        }
+        if (action == 3)
+        {
+            const auto speed = SpeedOf(pass, 0x431d9e);
+            if (!speed.HasValue())
+                return Core::Unexpected(speed.Error());
+            if (InTheStrike(frame, speed.Value(), 2.5f))
+            {
+                const glm::vec3 point = BonePoint(actor, 20, {0, 0, 100});
+                if (actor.scale > 1.25f)
+                {
+                    const auto created = pass.world.Map().effects.CreateEarthquake(
+                        point, actor.angles, White, 1, {.type = &actor.type, .angles = &actor.angles},
+                        pass.world.Runtime().ownRecordDepth, pass.world.OwnCharacter().bytef04, pass.random);
+                    if (created)
+                        pass.world.Map().effects.Effects()[*created].ownerContext = &actor;
+                }
+            }
+            return {};
+        }
+        return KickTheDust(pass, &White, 0);
+    }
     case 0x1b2:
-        // 0x431f52: rand() % 360 y los sprites 0x5ac y 0x5fd de huesos por nombre.
-        static_cast<void>(Roll(pass, 360));
-        return Cut(pass, 0x431fa4, "el hueso por nombre (0x4292e0) y los sprites 0x5ac y 0x5fd");
+        return CrywolfNamedSprites(pass, 0x431fa4);
     case 0x1b3:
         // 0x431ea1: en la 4 con el frame en [4, 6], el efecto 0x115.
         if (action == 4 && frame >= 4.0f && frame <= 6.0f)
-            return Cut(pass, 0x431f37, "el efecto 0x115 (0x518cf0) del ataque");
+            return CrywolfPiercingStrike(pass);
         return {};
     case 0x1b4:
     {
-        // 0x4314ad: la pose y, en la 4 dentro de [5,5; velocidad + 5,5), seis efectos 0xc9.
+        // 0x4314ad: la pose y, en la 4 dentro de [5,5; velocidad + 5,5), doce efectos 0xc9.
         const auto speed = PoseTheModel(pass, 0x4314f3);
         if (!speed.HasValue())
             return Core::Unexpected(speed.Error());
         if (action == 4)
         {
             if (InTheStrike(frame, speed.Value(), 5.5f))
-                return Cut(pass, 0x4315b4, "el efecto 0xc9 (0x518cf0) del ataque");
+            {
+                const glm::vec3 first = CrywolfGlobalPoint(pass, 24);
+                const glm::vec3 second = CrywolfGlobalPoint(pass, 16);
+                for (int index = 0; index < 6; ++index)
+                {
+                    CrywolfStone(pass, 0xc9, first);
+                    CrywolfStone(pass, 0xc9, second);
+                }
+            }
             return {};
         }
         return KickTheDust(pass, nullptr, 0x24);
@@ -997,11 +1150,54 @@ Result StepTheCrywolfHelper(ModelEffectsPass& pass)
         }
         if (actor.animation.action == 3 && std::bit_cast<std::uint32_t>(actor.movementPhase) == 0x3f800000u &&
             actor.animation.frame >= 5.0f)
-            return Cut(pass, 0x432460, "el efecto 0xed (0x518cf0)");
+        {
+            auto created =
+                CreateTheArrowEffect(World::ModelEffectArguments{.type = 0xed,
+                                                                 .position = actor.position,
+                                                                 .angles = actor.angles,
+                                                                 .light = actor.light,
+                                                                 .subtype = 1,
+                                                                 .owner = &actor,
+                                                                 .key = static_cast<std::uint16_t>(actor.word8a)},
+                                     pass.world, pass.random);
+            if (!created.HasValue())
+                return created;
+            actor.movementPhase = 0.0f;
+        }
         return {};
     }
     default:
         // 0x4315e0: el 0x1ac y los de fuera de la tabla.
+        return {};
+    }
+}
+
+// 0x42f550: el helper de35 termina con0, por lo que después también corre431470.
+Result StepTheKanturuHelper(ModelEffectsPass& pass)
+{
+    if (pass.map != 35)
+        return {};
+    const auto action = pass.actor.animation.action;
+    const float frame = pass.actor.animation.frame;
+    switch (pass.actor.type)
+    {
+    case 0x1b3:
+        if (action == 4 && frame >= 4 && frame <= 6)
+            return CrywolfPiercingStrike(pass);
+        return {};
+    case 0x1b2:
+        return CrywolfNamedSprites(pass, 0x42f6ce);
+    case 0x1b1:
+        if (action != 6)
+        {
+            if (auto head = CrywolfHeadSprite(pass, 0x42f946); !head.HasValue())
+                return head;
+        }
+        {
+            const glm::vec3 ember{0.9f, 0.2f, 0.1f};
+            return KickTheDust(pass, &ember, 0);
+        }
+    default:
         return {};
     }
 }

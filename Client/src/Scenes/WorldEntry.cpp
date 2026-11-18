@@ -12,6 +12,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/GamePanels.h"
+#include "Scenes/CastleWindows.h"
 #include "Scenes/IWorldEntryPublisher.h"
 #include "Scenes/MapLoad.h"
 #include "Scenes/OwnStatHelpers.h"
@@ -215,7 +216,7 @@ void StartTheWait(const WorldEntryResources& resources)
 Core::Expected<void, std::string> CloseTheWindows(const WorldEntryResources& resources)
 {
     GamePanels panels(resources.world, resources.cloth.random);
-    panels.LendTheSession(resources.world, resources.cloth.random, resources.sendGamePacket, resources.sendWindowClose);
+    LendTheCastlePanelServices(panels, resources);
     return panels.Registry().CloseAll();
 }
 

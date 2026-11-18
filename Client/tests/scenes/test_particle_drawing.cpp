@@ -435,7 +435,8 @@ TEST_F(ParticleDrawingTest, MissingInitialMetadataAndUnknownBranchesFailAtTheirO
     EXPECT_EQ(m_events.back(), "additive");
     EXPECT_TRUE(m_backend.selectors.empty());
     m_events.clear();
-    Seed(13, 0x5d9, 5);
+    // El subtipo 5 ya tiene su rama de fuego rotado. El 7 sigue sin implementar.
+    Seed(13, 0x5d9, 7);
     result = Draw();
     ASSERT_FALSE(result.HasValue());
     EXPECT_EQ(result.Error().error.reason, ParticleError::UnsupportedSubtype);
@@ -622,7 +623,7 @@ TEST_F(ParticleDrawingTest, DirectNativeDestinationsDoNotInventASubtypeGuard)
 }
 TEST_F(ParticleDrawingTest, FireDefaultKeepsSignedFramesForEveryNonSpecialSubtype)
 {
-    // 548550 fire-smoke: sólo5/7/8/11/12/13 salen a ramas aún no implementadas.
+    // 548550: 5/7/8/11/12/13 tienen ramas propias fuera del caso común de fuego.
     for (const std::int32_t subtype : {4, 6, 9, 10, -1, std::numeric_limits<std::int32_t>::min()})
     {
         SCOPED_TRACE(subtype);

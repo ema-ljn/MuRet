@@ -165,6 +165,24 @@ Read ReadWorld(const Fields& fields, std::uint8_t subcode)
         return EventPacket{EventTime{fields.U8(4), fields.U16(6)}};
     case SoccerScoreSubcode:
         return ReadSoccerScore(fields);
+    case GuildWarOutcomeSubcode:
+    {
+        if (!fields.Has(5))
+            return TooShort();
+        GuildWarOutcome result{.present = fields.U8(4)};
+        if (result.present >= 3)
+            return EventPacket{result};
+        if (!fields.Has(0x1e))
+            return TooShort();
+        for (std::size_t index = 0; index < result.firstName.size(); ++index)
+        {
+            result.firstName[index] = static_cast<char>(fields.U8(5 + index));
+            result.secondName[index] = static_cast<char>(fields.U8(0x12 + index));
+        }
+        result.firstScore = fields.U16(0x10);
+        result.secondScore = fields.U16(0x1c);
+        return EventPacket{result};
+    }
     case ServerCommandSubcode:
         if (!fields.Has(7))
             return TooShort();
@@ -305,6 +323,10 @@ Read ReadCrywolf(const Fields& fields, std::uint8_t subcode)
                                            static_cast<std::uint16_t>((fields.U8(6) << 8u) | fields.U8(7))}};
     case CrywolfEffectSubcode:
     {
+        // 0x4e15fa lee pkt[9]; sin ese byte falta una coordenada del efecto.
+        constexpr std::size_t CrywolfEffectBytes = 10;
+        if (!fields.Has(CrywolfEffectBytes))
+            return TooShort();
         const auto all = fields.From(0);
         return EventPacket{CrywolfUnported{subcode, std::vector<std::byte>(all.begin(), all.end())}};
     }
@@ -348,6 +370,11 @@ Core::Expected<EventPacket, ProtocolError> ReadEventPacket(const Network::Packet
 Outgoing WriteEventWindowLeave()
 {
     return ClearC1(Network::PacketWriter::C1(EventWindowLeaveOpcode));
+}
+
+Outgoing WriteEventTimeRequest(std::uint8_t kind)
+{
+    return Xor32C1(Network::PacketWriter::C1(EventOpenTimeOpcode).PutU8(kind));
 }
 
 Outgoing WriteMutoNumberRequest()

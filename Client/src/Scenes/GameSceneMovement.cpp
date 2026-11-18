@@ -10,6 +10,11 @@
 #include "Scenes/FaunaEffects.h"
 #include "Scenes/FaunaModels.h"
 #include "Scenes/GameMovement.h"
+#include "Scenes/GameDialogSteps.h"
+#include "Scenes/GameData.h"
+#include "Protocol/Character/CharacterList.h"
+#include "UI/MacroFile.h"
+#include "Core/Log.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/GameLeaves.h"
 #include "Scenes/SelectionState.h"
@@ -52,6 +57,22 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
                   static_cast<float>(ticks), static_cast<std::uint32_t>(ticks), input.IsDown(Input::Key::Ctrl)},
         .fixedHeight = CameraState().fixedHeight,
         .models = m_models};
+    context.saveOptionsAndMacros = [this, &world]() -> Core::Expected<void, std::string>
+    {
+        std::optional<std::uint8_t> chosenSlot;
+        if (m_session != nullptr)
+            if (const auto* chosen = m_session->ChosenCharacter(); chosen != nullptr)
+                chosenSlot = chosen->slot;
+        auto body = OptionBodyOf(world, m_context.cloth->random, chosenSlot);
+        if (!body.HasValue())
+            return Core::Unexpected(std::move(body).Error());
+        // 0x61c210 no usa el retorno de send: aun si falla, 0x59ad45 sigue con Macro.txt.
+        if (m_session == nullptr)
+            m_context.log.Warning("no se manda el F3 30: no hay servidor");
+        else if (auto sent = m_session->SendOptionData(body.Value()); !sent.HasValue())
+            m_context.log.Warning("no se manda el F3 30: {}", sent.Error());
+        return WriteMacroFile(m_context.dataRoot, UI::WrittenMacros(world.Runtime().chat.input.macros));
+    };
     context.pickTarget = [this] { return GroundUnderTheMouse(); };
     context.sendWalk = [&](auto cells, auto target, float angle) -> Core::Expected<void, std::string>
     {

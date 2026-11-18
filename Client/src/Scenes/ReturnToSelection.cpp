@@ -14,8 +14,13 @@
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/PersonalShopLists.h"
 #include "Scenes/PetStats.h"
+#include "Scenes/PetTrainer.h"
+#include "Scenes/NpcWindows.h"
+#include "Protocol/Outgoing.h"
+#include "UI/PanelDialog.h"
 #include "Scenes/Quests.h"
 #include "Scenes/SceneId.h"
+#include "Scenes/SiegeBattleUi.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
@@ -53,17 +58,23 @@ void ResetTheInterface(WorldRuntime& runtime)
     ResetTheCrywolfInterface(runtime);
 }
 
-// 0x4c2480, común a los motivos 1 y 2. Los dos 31 sólo los manda la sesión con el GS abierto.
-void ResetAfterLogout(const WorldEntryResources& resources)
+// 0x4c2480: los callbacks de red observan el estado en sus dos sitios nativos.
+Core::Expected<void, std::string> ResetAfterLogout(const WorldEntryResources& resources)
 {
     WorldState& world = resources.world;
     WorldRuntime& runtime = world.Runtime();
+    ResetSiegeClock(runtime);             // 0x4c2480..0x4c249c: conserva hora, minuto y tick.
+    runtime.events.soccer.active = false; // 0x4c24e1.
     runtime.ui.field5767954 = 0;
     runtime.floor.pendingPickUp = -1;
     resources.camera.level = 0;
     runtime.selectedTargets.fill(-1);
     runtime.ui.autoAttack = true;
     runtime.map = NoMap;
+    // 0x4c2546→0x419900: primero cierra el byte de la misión; el resto del reset todavía no corrió.
+    runtime.panels.delegated.quest = 0;
+    if (resources.sendWindowClose)
+        resources.sendWindowClose();
     // 0x4c254b: el personaje que se sigue (0x6c8e50) en −1.
     runtime.movement.followTarget = -1;
     {
@@ -79,11 +90,21 @@ void ResetAfterLogout(const WorldEntryResources& resources)
     runtime.chat.noticeSound = false;
     UI::ClearTheWhisperSenders(runtime.chat.whisperSenders);
     ResetTheQuests(runtime.quest, runtime.panels.delegated.quest);
-    // 0x4c2650..0x4c26e7: lo demás son globales y objetos que MuRet no tiene, y 0x657670, que vacía la lista del aviso
-    // del gremio (0x651790 en 0x657681, CL9 hito 8), cuyo 0x4499b0 manda el segundo C1 03 31 (la sesión, Q-C214),
-    // cuyo 0x420cd0 pone en 0 las mascotas (CL9 hito 4) y cuyo jmp final (0x657690) vacía las tiendas personales
-    // (0x5eb960, CL9 hito 7).
+    // 0x657670: reset silencioso de660090, sin callback ni cleanup del EDIT.
+    UI::ResetThePanelDialog(runtime.panels.delegated.panelDialog);
     ClearTheGuildNotice(runtime.guild.window);
+    const InventoryServices services = InventoryServicesOf(resources);
+    // 0x4499b0 sólo manda el segundo31 si la caja está vacía. Con socket cerrado se intenta sin salida.
+    const NpcWindowSender send = [&resources](Protocol::Outgoing) -> Core::Expected<void, std::string>
+    {
+        if (resources.sendWindowClose)
+            resources.sendWindowClose();
+        return {};
+    };
+    const auto trainer = CloseTheTrainer(world, &services, send);
+    if (!trainer.HasValue())
+        return Core::Unexpected(trainer.Error());
+    // Un false por caja ocupada conserva al entrenador, pero NO impide la cola.
     ResetThePets(runtime);
     ResetThePersonalShops(runtime.social.personalShop);
     // 0x4c26ec..0x4c26fd: el recorrido de la cámara, 0x403300 y después 0x403d60 (que con +0x14c recién en 10000 no
@@ -91,6 +112,7 @@ void ResetAfterLogout(const WorldEntryResources& resources)
     ResetTheCameraTour(runtime.events.cameraTour);
     // MuRet: la cámara copia la posición del héroe publicado, que la selección lee desde acá (Q-C213).
     resources.cameraInput.hero = world.Actors()[runtime.hero].position;
+    return {};
 }
 
 Core::Expected<void, std::string> RestoreTheCursor(const WorldEntryResources& resources)
@@ -100,7 +122,7 @@ Core::Expected<void, std::string> RestoreTheCursor(const WorldEntryResources& re
 }
 } // namespace
 
-Core::Expected<void, std::string> ApplyReturnToSelection(const WorldEntryResources& resources)
+Core::Expected<void, std::string> PrepareReturnToSelection(const WorldEntryResources& resources)
 {
     // 0x4c3626..0x4c363a: sonidos, cursor vacío, 0x61eef0 y 0x42fdc0.
     if (auto restored = RestoreTheCursor(resources); !restored.HasValue())
@@ -108,11 +130,23 @@ Core::Expected<void, std::string> ApplyReturnToSelection(const WorldEntryResourc
     ReleaseTheGame(resources.world);
     ResetTheInterface(resources.world.Runtime());
     resources.world.Runtime().orderedScene = SceneId::CharacterSelect; // 0x4c363f
-    // 0x4c38eb: antes de recibir la próxima lista, aunque llegue en este mismo Poll.
-    resources.selection.BeginSelection();
-    resources.world.Runtime().drawingEnabled = false; // 0x4c38f9
-    ResetAfterLogout(resources);
     return {};
+}
+
+Core::Expected<void, std::string> CompleteReturnToSelection(const WorldEntryResources& resources)
+{
+    // 0x4c38eb y0x4c38f9: después delF3 00, antes de4c2480.
+    resources.selection.BeginSelection();
+    resources.world.Runtime().drawingEnabled = false;
+    return ResetAfterLogout(resources);
+}
+
+Core::Expected<void, std::string> ApplyReturnToSelection(const WorldEntryResources& resources)
+{
+    auto prepared = PrepareReturnToSelection(resources);
+    if (!prepared.HasValue())
+        return prepared;
+    return CompleteReturnToSelection(resources);
 }
 
 Core::Expected<void, std::string> PrepareReturnToServerList(const WorldEntryResources& resources)
@@ -127,7 +161,7 @@ Core::Expected<void, std::string> PrepareReturnToServerList(const WorldEntryReso
     return {};
 }
 
-void ApplyReturnToServerList(const WorldEntryResources& resources)
+Core::Expected<void, std::string> ApplyReturnToServerList(const WorldEntryResources& resources)
 {
     // 0x4c2f0f -> 0x61cc50: también desde selección. No llama 0x607b40 (ítems del piso).
     ReleaseTheMapObjects(resources.world.Map());
@@ -138,6 +172,10 @@ void ApplyReturnToServerList(const WorldEntryResources& resources)
     resources.world.Runtime().orderedScene = SceneId::Login;
     resources.selection.BeginSelection();
     resources.world.Runtime().drawingEnabled = false;
-    ResetAfterLogout(resources);
+    return ResetAfterLogout(resources);
+}
+Core::Expected<void, std::string> ResetForTheSelection(const WorldEntryResources& resources)
+{
+    return ResetAfterLogout(resources);
 }
 } // namespace Client::Scenes

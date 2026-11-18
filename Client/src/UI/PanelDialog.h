@@ -78,6 +78,7 @@ enum class PanelDialogOwner : std::uint8_t
     CastleStatueRecovery,
     CastleTaxes,
     CastleMoney,
+    CastleCrownRegistration, // 0x4e00a0: Esc conserva el diálogo de la captura de la corona.
 };
 
 // +8 y +0xc: el paso y el dibujo propios que pone 0x6602b0. El paso (0x6605b0) lo llama después del mouse sobre la caja

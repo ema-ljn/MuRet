@@ -1,4 +1,6 @@
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/VertexEffects.h"
+#include "Scenes/CrywolfMissileDrawing.h"
 #include "Scenes/KalimaObjectServices.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "World/KalimaWorld.h"
@@ -21,6 +23,7 @@
 #include "Scenes/GameItemSpecialDrawing.h"
 #include "Scenes/GameTailDrawingPrimitives.h"
 #include "Scenes/ModelPoseCallbacks.h"
+#include "Scenes/SiegeCueDrawing.h"
 #include "World/Leaves.h"
 #include "World/ModelEffects.h"
 #include "World/Sprites.h"
@@ -566,11 +569,10 @@ Core::Expected<void, std::string> DrawItemModelEffect(Render::ModelBatch& batch,
     return {};
 }
 
-Core::Expected<void, std::string> DrawPlainModelEffect(Render::ModelBatch& batch, const World::ModelEffect& effect,
-                                                       const IModelLibrary& models,
-                                                       const World::TerrainLighting* lighting,
-                                                       Core::Duration frameClock, float alpha,
-                                                       const ModelEffectDrawResources* resources)
+Core::Expected<void, std::string>
+DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect, const IModelLibrary& models,
+                     const World::TerrainLighting* lighting, Core::Duration frameClock, float alpha,
+                     const ModelEffectDrawResources* resources, std::uint64_t physicalSlot)
 {
     const auto model = static_cast<std::uint16_t>(effect.type);
     DrawnObject object;
@@ -585,6 +587,73 @@ Core::Expected<void, std::string> DrawPlainModelEffect(Render::ModelBatch& batch
     object.color = terrain + effect.light;
     object.alpha = effect.alpha;
     object.vertexLight = effect.vertexLight;
+    if ((effect.type == 0xe1 && effect.subtype == 1) || effect.type == 0x104 || effect.type == 0x145 ||
+        effect.type == 0x147 || effect.type == 0x10a || effect.type == 0x10b ||
+        (effect.type >= 0x12b && effect.type <= 0x133) ||
+        (effect.type == 0x114 && (effect.subtype == 2 || effect.subtype == 6)) ||
+        (effect.type == 0x115 && effect.subtype == 1) || effect.type == 0xed || effect.type == 0xee)
+    {
+        if (!(effect.alpha >= .01f))
+            return {};
+        if (resources != nullptr && resources->onPose)
+        {
+            if (auto posed = resources->onPose(object); !posed.HasValue())
+                return posed;
+            if (resources->posedMeshes)
+                object.retainedMeshes = resources->posedMeshes();
+        }
+        const auto body = DrawCastleWeaponBody(
+            batch, models, effect, object, frameClock,
+            [&](std::int32_t type, const DrawnObject& owner,
+                std::span<const Render::Models::SkinnedMesh> meshes) -> Core::Expected<void, std::string>
+            {
+                if (resources == nullptr || resources->effects == nullptr || resources->random == nullptr)
+                    return Core::Unexpected(std::string("0x601c90: falta pool o CRT del impacto por vértices"));
+                return EmitVertexEffects(models, owner, meshes, 0, type, 0, *resources->effects, *resources->random);
+            });
+        if (!body.HasValue())
+            return body;
+        if ((effect.type == 0xed || effect.type == 0xee) && effect.objectState.hiddenMesh != World::HiddenObject)
+        {
+            if (resources == nullptr || resources->particles == nullptr || resources->sprites == nullptr ||
+                resources->random == nullptr || !resources->posedBones)
+                return Core::Unexpected(std::string("0x602596: faltan los servicios de la cola del misil de Crywolf"));
+            return DrawCrywolfMissileTail(effect, physicalSlot, *resources->particles, *resources->sprites,
+                                          *resources->random, resources->posedBones(), resources->worldClock);
+        }
+        return {};
+    }
+    const bool castleGate = effect.type >= 0x3d && effect.type <= 0x40 && resources != nullptr &&
+                            resources->kalimaPass != nullptr && resources->kalimaPass->map == 30;
+    if (castleGate && effect.objectState.hiddenMesh != World::HiddenObject && effect.alpha >= .01f)
+    {
+        if (resources->onPose)
+        {
+            if (auto posed = resources->onPose(object); !posed.HasValue())
+                return posed;
+            if (resources->posedMeshes)
+                object.retainedMeshes = resources->posedMeshes();
+        }
+        const auto drawn = DrawCastleSiegeBody(
+            batch, models, object,
+            CastleSiegeBodyPass{
+                .type = effect.type,
+                .field04 = effect.subtype,
+                .siegeActive = resources->siegeActive,
+                .worldClock = resources->worldClock,
+                .emitGateVertices = [&](const DrawnObject& gate, std::span<const Render::Models::SkinnedMesh> meshes)
+                    -> Core::Expected<void, std::string>
+                {
+                    if (resources->effects == nullptr || resources->random == nullptr)
+                        return Core::Unexpected(std::string("0x42cfcb: falta el pool o CRT del fragmento de puerta"));
+                    return EmitVertexEffects(models, gate, meshes, 0, 0x12f, 0, *resources->effects,
+                                             *resources->random);
+                }},
+            frameClock);
+        if (!drawn.HasValue())
+            return Core::Unexpected(drawn.Error());
+        return {};
+    }
     // 0x6004aa: con +0x74 en 0x80 (las grietas 0xfc, 0xff y 0x102 de subtipo 1), 0x6002e0 dibuja el cuerpo por
     // 0x4ef0c0 con 0x82 y sale.
     const auto flagged = [&effect]() -> Core::Expected<void, std::string>
@@ -641,6 +710,13 @@ DrawGameModelEffectsChecked(Render::ModelBatch& batch, const IModelLibrary& mode
         effect.seen = World::SphereVisible(frustum, effect.transform.position, 400);
         if (!effect.seen)
             continue;
+        if (World::IsSiegeCue(effect.type, effect.subtype) || World::IsCrywolfCue(effect.type, effect.subtype) ||
+            World::IsRisingStoneChip(effect.type, effect.subtype))
+        {
+            if (mode == 0 && (effect.type != World::SiegeArrivalCue || resources == nullptr || resources->siegeActive))
+                DrawBattleCue(batch, effect);
+            continue;
+        }
         if (mode != 0)
         {
             const auto blendMesh = effect.objectState.blendMesh;
@@ -663,13 +739,13 @@ DrawGameModelEffectsChecked(Render::ModelBatch& batch, const IModelLibrary& mode
         if (effect.type == 0x135)
         {
             // 52d86a..52d89f: dos cuerpos; el reflejo en +184+200 queda escrito, sin restauración.
-            if (auto drawn = DrawPlainModelEffect(batch, effect, models, lighting, frameClock, alpha, resources);
+            if (auto drawn = DrawPlainModelEffect(batch, effect, models, lighting, frameClock, alpha, resources, i);
                 !drawn.HasValue())
                 return drawn;
             const double plane = static_cast<double>(effect.start.z) + 400.0;
             const double distance = static_cast<double>(effect.transform.position.z) - effect.start.z;
             effect.transform.position.z = F32(plane - distance);
-            if (auto drawn = DrawPlainModelEffect(batch, effect, models, lighting, frameClock, alpha, resources);
+            if (auto drawn = DrawPlainModelEffect(batch, effect, models, lighting, frameClock, alpha, resources, i);
                 !drawn.HasValue())
                 return drawn;
             continue;
@@ -702,7 +778,7 @@ DrawGameModelEffectsChecked(Render::ModelBatch& batch, const IModelLibrary& mode
                                                 i, effect.type, effect.subtype));
         if (GenericEffect(effect.type))
         {
-            if (auto drawn = DrawPlainModelEffect(batch, effect, models, lighting, frameClock, alpha, resources);
+            if (auto drawn = DrawPlainModelEffect(batch, effect, models, lighting, frameClock, alpha, resources, i);
                 !drawn.HasValue())
                 return drawn;
         }

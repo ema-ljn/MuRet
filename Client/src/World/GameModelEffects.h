@@ -57,8 +57,9 @@ struct ModelEffectStepServices
 // Dungeon y Lost Tower: la piedra 0xda que rebota (0x52444d), el chorro 0x5de/0 (0x52ad21: seis llamas
 // 5de/0, a veces una piedrita y su luz, con la luz local del primer rand(); el de la Flame, con el héroe de dueño y la
 // vida múltiplo de 20, manda los blancos a 150 por `skillHits`, 0x52ae2a) y las piedritas 0xc8/0xc9 con el
-// subtipo 0 (0x5238be: rebotan, se inclinan y a veces sueltan un fuego 5d9 de subtipo 1 a 3) y con el 10 (igual, sin
-// el fuego ni su rand()). Esos cuatro dejan en previousPosition la posición de antes del paso entero. Las piedras
+// subtipo 0 (0x5238be: rebotan, se inclinan y a veces sueltan un fuego 5d9 de subtipo 1 a 3), 1 (0x523985: suben
+// sin leer el terreno) y 10 (como el 0, sin el fuego ni su rand()). Dejan en previousPosition la posición de antes del
+// paso entero. Las piedras
 // 0x118/0x119 del pisotón del caballo (0x5275ca), en sus pasos 33 a 36, sueltan el polvo 5f2/11 y una piedrita
 // 0xc8/0xc9 con el subtipo 10 (de la tabla de efectos), con menos de 8 de vida se apagan, y siempre prenden la luz
 // dinámica de radio 2. El 0xb3 de Aida (0x520b77) vaga con sus
@@ -66,7 +67,8 @@ struct ModelEffectStepServices
 // muere y, con dueño, sube y baja con el seno del reloj. El calco 0x61d/3 del 0x38 de Crywolf (0x52b933), con la
 // vida entre 6 y 9, suelta una órbita 60f/10; el /0, el /2 y el /7 cortan en 0x52b8a6. La onda 0x6eb/1 del galope del
 // caballo en Icarus (0x52c5ca) crece y tiembla con tres rand(); la /0 del pisotón se achica 1 por paso, sin rand(); los
-// otros subtipos del 0x6eb cortan. El rayo 0x14d de
+// subtipos5..8 del asedio conservan sus escalas y RGB: el6 emite hijos5 cada8vidas, que el pool ascendente
+// puede avanzar en el mismo paso. El rayo 0x14d de
 // los Fenrir (0x5295a4) se prende de a 0,3f con el subtipo 0 y se apaga con el 1, y gira 0,15f por eje; el calco
 // 0x14e (0x52965a) gira 0,1f en x, se apaga de a 0,05f (la luz según el subtipo) y cambia de cuadro cada 200 ms de
 // timeGetTime(), hasta el quinto. El terremoto 0xfa (0x521c5c): en la vida 11 corre la partida detrás de su dueño, la

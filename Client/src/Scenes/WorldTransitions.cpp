@@ -10,13 +10,16 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/CombatActionSpeeds.h"
 #include "Scenes/GameUi.h"
+#include "Scenes/HelperTable.h"
 #include "Scenes/IWorldTransitionPublisher.h"
 #include "Scenes/MapLoad.h"
+#include "Scenes/InventoryMoves.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "Scenes/WorldTransitionSupport.h"
 #include "UI/OldWindows.h"
+#include "UI/PanelRegistry.h"
 #include "World/GameCamera.h"
 #include "World/TerrainCulling.h"
 
@@ -85,8 +88,12 @@ Core::Expected<void, std::string> ChangeTeleportMap(std::uint8_t map, std::uint1
             return hidden;
         if (auto dropped = UI::DropTheFriendsWindow(runtime.oldWindows, runtime.ui.pressedButton); !dropped.HasValue())
             return dropped;
-        return Core::Unexpected(std::string("0x4c7b34: rearmar el objeto de los comandos (0x6e592c) en la transición "
-                                            "de Chaos Castle es de la CL9.4"));
+        // 4c7b34..4c7b53: mismas escrituras de ResetTheCommands, sin volver a crear el objeto.
+        UI::ResetTheCommands(runtime.panels.delegated);
+        if (auto dressed = DressTransitionHero(PublishedHero(resources), resources); !dressed.HasValue())
+            return dressed;
+        // 4c7b68: apagar los ayudantes del héroe después de publicar su equipo.
+        TurnOffHelpersOf(resources.world.Helpers(), runtime.hero);
     }
     resources.world.Runtime().lastSoundId = 0x9e;
     ArmEventMapObject(loadedMap, resources.world.Runtime());
@@ -197,8 +204,10 @@ Core::Expected<void, std::string> ApplyTeleport(const Protocol::World::Teleport&
                                                 const WorldEntryResources& resources,
                                                 IWorldTransitionPublisher& publisher)
 {
-    if (resources.world.Runtime().cursorItemCount > 0)
-        return Core::Unexpected(std::string("0x5be150: el ítem en el cursor no está portado"));
+    // 0x4c7523: 0x5be150 va antes de leer/mover al héroe, también con el gate0 de Teleport.
+    const InventoryServices inventory = InventoryServicesOf(resources);
+    if (auto returned = ReturnTheCursorItem({resources.world, resources.cloth.random, inventory}); !returned.HasValue())
+        return returned;
     auto& hero = PublishedHero(resources);
     WriteHeroCells(hero, reply, resources);
     if (auto height = RefreshTransitionHeight(hero, resources); !height.HasValue())

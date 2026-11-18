@@ -1,5 +1,6 @@
 #pragma once
 
+#include "UI/CastleBattleState.h"
 #include "UI/CastleSeniorWindow.h"
 #include "UI/OldControls.h"
 #include "UI/OldWindowBase.h"
@@ -186,5 +187,7 @@ struct CastleSiegeState
     SiegeRegistrationWindow registration{};
     HuntZoneWindow huntZone{};
     CastleSeniorWindow senior{};
+    // La marca del dueño de la batalla (hito13); holders tiene dueño canónico enWorldRuntime.
+    CastleBattleState battle{};
 };
 } // namespace Client::UI

@@ -86,10 +86,10 @@ struct MonsterHelperPass
 // 0x432bd0(c, objeto, modelo), desde 0x4fcee0 (0x4fd5d7) con cualquier tipo desde el frame 3 sin estela: el rand() de
 // 0x432bf1 sin condición y, del 0x1ab al 0x1b4 en su acción, las poses de la estela en el buffer global (0x4eb860 en
 // 0x68b181c, WorldState::PoseCarry). El 0x1b0 en la 4 da sus diez vueltas, con dos rand() cada una y, con el frame en
-// (5, 7), la partícula 0x5d9/0 (en `particles`, con `worldClock`) del hueso 16 de cada pose; los demás cortan en su
-// estela (0x52e470) o en su efecto después de la primera pose (el 0x1ab, con su partícula 0x640 antes si la tabla tiene
-// lugar). El 0x1ae en la 8 no posa: su 0x5f2/0x1b corta con lugar. La acción, la escala y la posición del modelo
-// (+0xa0, +0x68 y +0x6c, de su último 0x5ffdf0) son las del personaje (Q-C1102, *inferido*).
+// (5, 7), la partícula 0x5d9/0 (en `particles`, con `worldClock`) del hueso 16 de cada pose. Las estelas usan ribbons
+// reales; el 0x1ab suma 640/0 antes de cada muestra en (3.5,4.5), y el 0x1ae en 8 no posa: crea 5f2/27 y dos 5ad/2.
+// Las reservas de145/2 y147/0/1 respetan el orden y los límites de sus tablas. La acción, la escala y la posición del
+// modelo (+0xa0, +0x68 y +0x6c, de su último 0x5ffdf0) son las del personaje (Q-C1102, *inferido*).
 [[nodiscard]] Core::Expected<void, std::string> StepTheSwingsOf1abTo1b4(ActorState& actor, std::size_t slot,
                                                                         WorldState& world,
                                                                         Render::Models::CrtRandom& random,

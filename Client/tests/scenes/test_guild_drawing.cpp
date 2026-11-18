@@ -9,6 +9,7 @@
 #include "Render/Text/FontSet.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/EventGlobals.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GuildMarks.h"
@@ -128,7 +129,9 @@ int MarkSlot(std::int32_t index)
 // Los textos de los botones del diálogo (0x65feb0), inventados.
 Client::Data::Text::TextTable ButtonTexts()
 {
-    const std::map<std::size_t, std::string> texts{{228, "Dale"}, {229, "Nop"}, {1037, "Va"}, {1038, "Ni ahi"}};
+    const std::map<std::size_t, std::string> texts{
+        {228, "Dale"},     {229, "Nop"},     {1037, "Va"}, {1038, "Ni ahi"}, {1390, "%d:0%d"}, {1391, "%d:%d"},
+        {1392, "Wait %d"}, {1393, "Result"}, {1394, "VS"}, {1395, "Tie"},    {1396, "Won"},    {1397, "Lost"}};
     auto table = Client::Data::Text::LoadTextTable(Client::Tests::TextTableBytes(texts));
     EXPECT_TRUE(table.HasValue());
     return std::move(table).Value();
@@ -184,6 +187,24 @@ protected:
         return Client::Scenes::DrawTheWarScore(context, panels.Registry());
     }
 
+    Client::Core::Expected<void, std::string> EventSummary()
+    {
+        auto& runtime = Runtime();
+        auto& hero = Hero();
+        GameHudContext context{.world = *m_world,
+                               .random = m_random,
+                               .ownRecordDepth = runtime.ownRecordDepth,
+                               .cellXDepth = hero.cellXAccesses,
+                               .cellYDepth = hero.cellYAccesses,
+                               .hud = runtime.hud,
+                               .crywolfSandOverlay = runtime.crywolf.sandOverlay,
+                               .sound = m_sound,
+                               .sprites = m_sprites,
+                               .text = m_text,
+                               .texts = &m_texts};
+        return Client::Scenes::DrawTheEventTimeAndOutcome(context);
+    }
+
     Client::UI::PanelDialogState& PanelDialog()
     {
         return Runtime().panels.delegated.panelDialog;
@@ -233,6 +254,62 @@ protected:
     Client::Tests::FakeTextureStore m_store;
     GuildMarkTextures m_marks{m_store};
 };
+
+TEST_P(GuildDrawingTest, TheEventClockKeepsItsNativeWindowAndShadow)
+{
+    Runtime().events.timeValue = 61;
+    Runtime().events.timeKind = 1;
+    Runtime().panels.inventory = 1;
+    ASSERT_TRUE(EventSummary().HasValue());
+    ASSERT_EQ(m_text.texts.size(), 2u);
+    EXPECT_EQ(m_text.texts[0].text, "1:01");
+    EXPECT_EQ(m_text.texts[0].x, 213);
+    EXPECT_EQ(m_text.texts[0].y, 350);
+    EXPECT_EQ(m_text.texts[0].style.font, Client::Render::Text::FontKind::BigBold);
+    EXPECT_EQ(m_text.texts[0].style.colors.text, 0xff0a0affu);
+    EXPECT_EQ(m_text.texts[1].x, 214);
+    EXPECT_EQ(m_text.texts[1].y, 351);
+    EXPECT_EQ(m_text.texts[1].style.colors.text, 0xffffffffu);
+    EXPECT_EQ(Runtime().hud.dcFont, Client::Render::Text::FontKind::Normal);
+    EXPECT_EQ(Draws(m_random), 2);
+    m_text.texts.clear();
+    Runtime().events.timeValue = 660;
+    ASSERT_TRUE(EventSummary().HasValue());
+    EXPECT_TRUE(m_text.texts.empty());
+    EXPECT_EQ(Draws(m_random), 2);
+}
+
+TEST_P(GuildDrawingTest, TheOutcomeReadsTenBytesAndTheAdjacentSecondScore)
+{
+    auto& outcome = Runtime().events.guildWarOutcome;
+    outcome.present = 0;
+    outcome.firstName = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'};
+    outcome.secondName = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
+    outcome.firstScore = 0x1234;
+    outcome.secondScore = 65;
+    Runtime().hud.textColors.background = 0x80000000u;
+    ASSERT_TRUE(EventSummary().HasValue());
+    ASSERT_EQ(m_text.texts.size(), 8u);
+    EXPECT_EQ(m_text.texts[0].text, "Result");
+    EXPECT_EQ(m_text.texts[2].text, "ABCDEFGHIJ");
+    EXPECT_EQ(m_text.texts[2].x, 180);
+    EXPECT_EQ(m_text.texts[3].text, "0123456789A");
+    EXPECT_EQ(m_text.texts[3].x, 345);
+    EXPECT_EQ(m_text.texts[4].text, "(4660)");
+    EXPECT_EQ(m_text.texts[5].text, "(65)");
+    EXPECT_EQ(m_text.texts[6].text, "Won");
+    EXPECT_EQ(m_text.texts[6].style.colors.text, 0x0a0affffu);
+    EXPECT_EQ(m_text.texts[7].text, "Lost");
+    EXPECT_EQ(m_text.texts[7].style.colors.text, 0xff0a0affu);
+    EXPECT_EQ(Runtime().hud.textColors.background, 0x80000000u);
+    EXPECT_EQ(Runtime().hud.dcFont, Client::Render::Text::FontKind::Normal);
+    EXPECT_EQ(Draws(m_random), 0);
+    const auto quads = QuadsOf(m_sprites);
+    ASSERT_EQ(quads.size(), 16u);
+    ExpectQuadAt(quads[0], 0xfc, 170, 120, 300, 5);
+    ExpectQuadAt(quads[6], 0xfc, 170, 325, 300, 5);
+    ExpectQuadAt(quads.back(), 0xf1, 285, 280, 70, 20);
+}
 
 // 0x5a7649..0x5a7672: sin la guerra, o con el héroe sin gremio, solo la mezcla apagada y el fondo de los textos.
 TEST_P(GuildDrawingTest, WithoutAWarOnlyTheStateChanges)
@@ -335,6 +412,54 @@ TEST_P(GuildDrawingTest, WithoutTheMarksTheWarIsCut)
     const auto cut = Score(false);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x5a76d8"), std::string::npos);
+}
+
+// 0x5a7a01..0x5a7cbd: el F3 23 no pide gremio propio ni la guerra. Los nombres buscan las primeras 1999
+// entradas, aunque tableCount sea menor; el segundo nombre que no existe usa la marca 0.
+TEST_P(GuildDrawingTest, SoccerDrawsTheReceivedTeamsWithoutTheHeroGuild)
+{
+    auto& soccer = Runtime().events.soccer;
+    soccer.active = true;
+    Fill(soccer.firstName, "Teros");
+    Fill(soccer.secondName, "Ausente");
+    Runtime().guild.tableCount = 0;
+    Runtime().guild.ourScore = 27;
+    Runtime().guild.theirScore = 4;
+    Runtime().panels.inventory = 1;
+    ASSERT_TRUE(Score().HasValue());
+    const auto quads = QuadsOf(m_sprites);
+    ASSERT_EQ(quads.size(), 6u);
+    ExpectQuadAt(quads[0], MarkSlot(RivalGuild), 205, 4, 8, 8);
+    ExpectQuadAt(quads[3], MarkSlot(0), 205, 19, 8, 8);
+    ASSERT_EQ(m_text.texts.size(), 4u);
+    const std::array<std::string_view, 4> expected{"27", "Teros", "4", "Ausente"};
+    for (std::size_t index = 0; index < expected.size(); ++index)
+    {
+        EXPECT_EQ(m_text.texts[index].text, expected[index]);
+        EXPECT_EQ(m_text.texts[index].x, index % 2 == 0 ? 218 : 235);
+        EXPECT_EQ(m_text.texts[index].y, index < 2 ? 4 : 19);
+        EXPECT_EQ(m_text.texts[index].style.colors.text, index < 2 ? 0xff003cffu : 0xffff9600u);
+        EXPECT_EQ(m_text.texts[index].style.font, Client::Render::Text::FontKind::Bold);
+    }
+    EXPECT_EQ(Draws(m_random), 2);
+}
+
+TEST_P(GuildDrawingTest, SoccerFollowsTheWarAndDoesNotSearchTheLastGuild)
+{
+    Runtime().guild.warOn = 1;
+    Hero().word1f2 = HeroGuild;
+    auto& soccer = Runtime().events.soccer;
+    soccer.active = true;
+    Fill(soccer.firstName, "Ultimo");
+    Fill(soccer.secondName, "Horneros");
+    Fill(Runtime().guild.table.back().guildName, "Ultimo");
+    Runtime().panels.inventory = 1;
+    ASSERT_TRUE(Score().HasValue());
+    const auto quads = QuadsOf(m_sprites);
+    ASSERT_EQ(quads.size(), 12u);
+    ExpectQuadAt(quads[6], MarkSlot(0), 205, 4, 8, 8);
+    ExpectQuadAt(quads[9], MarkSlot(HeroGuild), 205, 19, 8, 8);
+    EXPECT_EQ(Draws(m_random), 4);
 }
 
 // 0x660830 con Confirmar y Cancelar y dos renglones: alto 2 · (13 + 2) + 0x3f = 93 e y = 0x82 − 46 = 84. La caja

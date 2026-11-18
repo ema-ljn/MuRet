@@ -1,5 +1,8 @@
 #include "Scenes/GameScene.h"
+#include "Scenes/CrywolfDeathSpiritEffects.h"
 #include "Scenes/ArrowEffects.h"
+#include "Scenes/CastleWeaponEffects.h"
+#include "World/SiegeStoneEffects.h"
 #include "Scenes/DynamicWorldLight.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/GameParticles.h"
@@ -20,10 +23,14 @@
 #include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/Skeleton.h"
+#include "Scenes/ActorState.h"
 #include "Scenes/CameraTour.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/GamePanels.h"
+#include "Scenes/CastleWindows.h"
+#include "Scenes/CastleSiegeReceive.h"
+#include "Scenes/NpcWindows.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/GameCharacters.h"
@@ -176,10 +183,20 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
                 return Core::Unexpected(hit.Error());
             return {};
         }};
+    // 52d220: reset44dc40antesdelprimeractivo; el último proyectil seguido vuelveaescribirlo.
+    CameraInputState().effectTarget = glm::vec3(0.0f);
     auto effects = m_context.world->Map().effects.Effects();
     for (std::size_t slot = 0; slot < effects.size(); ++slot)
     {
         auto& effect = effects[slot];
+        if (!effect.alive)
+            continue;
+        if (effect.type == World::SiegeArrivalCue && effect.subtype == 0)
+        {
+            // 0x52952d consulta al actor del alta. Sus lugares viven tanto como el mundo.
+            const auto* owner = static_cast<const ActorState*>(effect.ownerContext);
+            effect.hasOwner = owner != nullptr && owner->alive;
+        }
         const auto* skeleton = m_worldModels.SkeletonOf(static_cast<std::uint16_t>(effect.type));
         // 0x52a9ad: el 5ac/3 del conjunto completo lee al personaje dueño y crea joints, fuera de World.
         if (effect.type == World::IcarusFlareEffect && effect.subtype == World::FullSetFlareSubtype)
@@ -213,6 +230,18 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
         // 0x5208a0 sobre las flechas de 0x53d9a0 (CL9 hito 3, fase 2e): su choque lee el pool de personajes y el
         // registro propio, fuera de World. CL9 hito 4: la flecha 0xdb del asedio lee la celda y la altura del terreno,
         // y el choque de las de skill pide un sonido (CL10, en WorldRuntime::lastSoundId) y manda el C1 10 (0x517a20).
+        if (World::IsSiegeStoneEffect(effect.type))
+        {
+            if (m_context.worldEntry == nullptr)
+                return Core::Unexpected(
+                    std::string("0x527dd2: faltan los recursos de entrada para el arma del castillo"));
+            if (auto stepped =
+                    World::StepSiegeStone(effect, skeleton, m_context.world->Particles(), m_context.cloth->random,
+                                          SiegeStoneServicesOf(*m_context.worldEntry));
+                !stepped.HasValue())
+                return stepped;
+            continue;
+        }
         if (IsArrowEffect(effect.type))
         {
             const ArrowStepContext arrows{
@@ -239,6 +268,23 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
                                                   m_context.world->DynamicLighting().Lighting(), *m_context.cloth);
                 !stepped.HasValue())
                 return stepped;
+            continue;
+        }
+        if (effect.type == 0x147 || effect.type == 0x104)
+        {
+            const auto before = effect.transform.position;
+            // 5208c5: el sorteo común precede también los cuerpos147/104.
+            static_cast<void>(m_context.cloth->random.Next());
+            if (effect.type == 0x147)
+            {
+                if (auto stepped = StepCrywolfDeathSpirit(effect, m_context.cloth->random, services);
+                    !stepped.HasValue())
+                    return stepped;
+            }
+            else
+                StepCrywolfSpiritTrail(effect);
+            World::StepModelEffect(effect, skeleton);
+            effect.previousPosition = before;
             continue;
         }
         if (auto stepped =
@@ -273,7 +319,8 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
             m_context.world->Particles(), m_context.cloth->random, runtime.map, terrainHeight, worldClock,
             ParticleOwnersAmong(m_context.world->Map().objects), ParticleActorActionsAmong(m_context.world->Actors()),
             ParticleTextureHeightsOf(m_worldModels), &m_context.world->DynamicLighting().Lighting(),
-            ParticleActorHandsAmong(m_context.world->Actors(), runtime.hero), ParticleOwnerBonesOf(*m_context.world));
+            ParticleActorHandsAmong(m_context.world->Actors(), runtime.hero), ParticleOwnerBonesOf(*m_context.world),
+            [&](std::int32_t sound) { runtime.lastSoundId = sound; });
         !particles.HasValue())
     {
         return particles;
@@ -295,10 +342,16 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
             !returned.HasValue())
             return returned;
         GamePanels panels(world, m_context.cloth->random, GamePanelTables{.items = m_items, .texts = m_texts});
+        CastleSender send;
         if (m_session != nullptr)
-            panels.LendTheSession(
-                world, m_context.cloth->random, [this](Protocol::Outgoing outgoing)
-                { m_session->SendGamePacket(std::move(outgoing)); }, [this]() { m_session->SendWindowClose(); });
+            send = [this](Protocol::Outgoing outgoing) { m_session->SendGamePacket(std::move(outgoing)); };
+        LendTheCastlePanelServices(
+            panels, world, m_context.cloth->random, send, m_context.worldEntry,
+            {.measure = m_context.textMeasure, .texts = m_texts, .screen = m_screen, .now = now});
+        NpcWindowSender npcSend;
+        if (m_session != nullptr)
+            npcSend = [this](Protocol::Outgoing packet) { return m_session->SendNpcWindowPacket(std::move(packet)); };
+        panels.LendTheNpcWindows(world, m_context.cloth->random, inventory, std::move(npcSend));
         auto closed = panels.Registry().PanelKey(0x1b);
         if (!closed.HasValue())
             return Core::Unexpected(std::move(closed).Error());

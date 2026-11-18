@@ -208,7 +208,7 @@ bool PanelRegistry::CanOpen(PanelId id)
     return true;
 }
 
-Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id)
+Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id, std::uint32_t auxiliary)
 {
     if (IsOpen(id) || !CanOpen(id) || m_context.logoutRequested)
         return false;
@@ -401,10 +401,20 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id)
     }
     case EventNpcPanel:
     case SecondEventNpcPanel:
-    case SiegeWeaponPanel:
-    case SecondSiegeWeaponPanel:
-    case SiegeGatePanel:
-        return Core::Unexpected(OpenCut(id));
+    {
+        // 0x65b265/0x65b29b: el inventario abre antes del byte0x7d53712 y del tipo0x7d53714.
+        auto closed = CloseByMask(mask);
+        if (!closed.HasValue())
+            return closed;
+        if (closed.Value())
+        {
+            if (auto inventory = Open(InventoryPanel); !inventory.HasValue())
+                return inventory;
+            m_state.eventNpc = 1;
+            m_state.eventNpcKind = id == EventNpcPanel ? 0 : 1;
+        }
+        break;
+    }
     case CastleSiegeListPanel:
     case SecondCastleSiegePanel:
     {
@@ -416,6 +426,22 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id)
             if (!m_context.castleWindowOpened)
                 return Core::Unexpected(OpenCut(id));
             if (auto opened = m_context.castleWindowOpened(id); !opened.HasValue())
+                return Core::Unexpected(std::move(opened).Error());
+        }
+        break;
+    }
+    case SiegeWeaponPanel:
+    case SecondSiegeWeaponPanel:
+    case SiegeGatePanel:
+    {
+        auto closed = CloseByMask(mask);
+        if (!closed.HasValue())
+            return closed;
+        if (closed.Value())
+        {
+            if (!m_context.siegeControlOpened)
+                return Core::Unexpected(OpenCut(id));
+            if (auto opened = m_context.siegeControlOpened(id, auxiliary); !opened.HasValue())
                 return Core::Unexpected(std::move(opened).Error());
         }
         break;
@@ -510,7 +536,7 @@ Core::Expected<bool, std::string> PanelRegistry::Close(PanelId id, bool aux)
     }
     case CastleSiegeListPanel:
     {
-        // 0x65cb7a..0x65cb9d: 0x661b90 (cursor o caja), aviso 1642 y los sonidos del wrapper aun si no cierra.
+        // 0x65cb7a..0x65cb9d: 0x661b90 (cursor o caja), aviso 1641 y los sonidos del wrapper aun si no cierra.
         const bool busy = m_context.inventoryBusy ? m_context.inventoryBusy()
                                                   : m_context.cursorItemCount > 0 || m_state.delegated.chaosBoxHasItem;
         if (busy)
@@ -684,6 +710,14 @@ Core::Expected<bool, std::string> PanelRegistry::CloseByMask(PanelId mask, bool 
                 return Core::Unexpected(CloseCut(id));
             m_context.eventNpcClosed();
             m_state.eventNpc = 0;
+            break;
+        case SiegeWeaponPanel:
+        case SecondSiegeWeaponPanel:
+        case SiegeGatePanel:
+            if (!m_context.siegeControlClosed)
+                return Core::Unexpected(CloseCut(id));
+            if (auto closed = m_context.siegeControlClosed(id); !closed.HasValue())
+                return Core::Unexpected(std::move(closed).Error());
             break;
         case CastleSiegePanel:
             if (!m_context.castleRegistrationClosed)

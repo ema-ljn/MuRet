@@ -458,23 +458,25 @@ Core::Expected<Helped, std::string> StepKalima(ActorState& actor, const KindCase
     }
 }
 
-// 0x42dcf0 en el 30: el 0x68 sale (en 5, 0x518cf0(0x19f) sobre el que pega con la z + 0x6b8a98) y el 0x120 suelta
-// 0x518cf0(0x61c) siempre.
-Core::Expected<Helped, std::string> StepTheSiege(const ActorState& actor, const KindCase& found, std::size_t slot,
+// 42dcf0: en30,68 emite en5 conZ+500 y120 siempre. MuRet conserva ese caller y usa sus señales propias.
+Core::Expected<Helped, std::string> StepTheSiege(const ActorState& actor, const KindCase& found,
                                                  const CharacterStepContext& context)
 {
-    if (found.address == 0x42dd23)
+    const bool pulse = found.address == 0x42dd23;
+    if (!pulse && actor.byte381 != FifthStep)
+        return Helped::Exit;
+    World::ModelEffectArguments cue{.type = pulse ? World::SiegePulseCue : World::SiegeStoneCue,
+                                    .position = actor.position,
+                                    .angles = actor.angles,
+                                    .light = actor.light};
+    if (!pulse)
     {
-        if (!HasFreeModelEffect(context))
-            return Helped::Exit;
-        return CutAt(0x42dd48, "el efecto 0x61c (CL11)", actor, slot);
+        // 42dd7a..42dd92: FADDfloat500 yFSTP de laZ local, antes de intentar el alta.
+        constexpr double StoneHeight = 500.0;
+        cue.position.z = static_cast<float>(static_cast<double>(cue.position.z) + StoneHeight);
     }
-    if (actor.byte381 == FifthStep)
-    {
-        if (!HasFreeModelEffect(context))
-            return Helped::Exit;
-        return CutAt(0x42dd9c, "el efecto 0x19f (CL11)", actor, slot);
-    }
+    static_cast<void>(context.world.Map().effects.CreateSiegeCue(cue, context.random));
+    // También con la tabla llena: AL1 impide caer al switch de tipos y a la cola del ataque.
     return Helped::Exit;
 }
 
@@ -518,6 +520,36 @@ Core::Expected<Helped, std::string> StepTheDoppelganger(const ActorState& actor,
 Core::Expected<void, std::string> ScatterTheBurst(const ActorState& actor, std::size_t slot,
                                                   const CharacterStepContext& context);
 
+// 0x43257a y 0x42fd76 comparten los argumentos y salen incluso si el pool está lleno.
+Core::Expected<Helped, std::string> LaunchTheCrywolfArrow(ActorState& actor, const CharacterStepContext& context)
+{
+    const auto created = CreateTheArrowEffect({.type = World::CrywolfArrowEffect,
+                                               .position = actor.position,
+                                               .angles = actor.angles,
+                                               .light = actor.light,
+                                               .subtype = World::CrywolfArrowSubtype,
+                                               .owner = &actor,
+                                               .key = static_cast<std::uint16_t>(actor.word8a)},
+                                              context.world, context.random, &actor.angles);
+    if (!created.HasValue())
+        return Core::Unexpected(created.Error());
+    return Helped::Exit;
+}
+
+// 0x4329db y 0x4f6780: cada giro vuelve a partir del ángulo del actor.
+void LaunchTheRadialVolley(const ActorState& actor, World::ModelEffects& effects)
+{
+    constexpr int Shards = 18;
+    constexpr double DegreesPerShard = 20.0;
+    glm::vec3 angles = actor.angles;
+    for (int shard = 0; shard < Shards; ++shard)
+    {
+        angles.z = static_cast<float>(static_cast<double>(actor.angles.z) + shard * DegreesPerShard);
+        static_cast<void>(effects.CreateCrywolfEffect(
+            {.type = World::CrywolfShardEffect, .position = actor.position, .angles = angles, .light = actor.light}));
+    }
+}
+
 // 0x4324c0 en Crywolf (el 34), por el tipo. Salvo los efectos de los que pegan en 14 y 15, devuelve 0.
 Core::Expected<Helped, std::string> StepCrywolf(ActorState& actor, const KindCase& found, std::size_t slot,
                                                 const CharacterStepContext& context)
@@ -527,18 +559,22 @@ Core::Expected<Helped, std::string> StepCrywolf(ActorState& actor, const KindCas
     case 0x4324fb:
         if (actor.byte381 == FourteenthStep)
         {
-            if (!HasFreeModelEffect(context))
-                return Helped::Exit;
-            return CutAt(0x432532, "el efecto 0xe1/1 con la key de +0x8a (CL11)", actor, slot);
+            const auto created = CreateTheArrowEffect({.type = 0xe1,
+                                                       .position = actor.position,
+                                                       .angles = actor.angles,
+                                                       .light = actor.light,
+                                                       .subtype = 1,
+                                                       .owner = &actor,
+                                                       .key = static_cast<std::uint16_t>(actor.word8a)},
+                                                      context.world, context.random);
+            if (!created.HasValue())
+                return Core::Unexpected(created.Error());
+            return Helped::Exit;
         }
         return Helped::Continue;
     case 0x432543:
         if (actor.byte381 == FourteenthStep)
-        {
-            if (!HasFreeModelEffect(context))
-                return Helped::Exit;
-            return CutAt(0x43257a, "el efecto 0xf8/1 con la key de +0x8a (CL11)", actor, slot);
-        }
+            return LaunchTheCrywolfArrow(actor, context);
         return Helped::Continue;
     case 0x43258b:
     {
@@ -553,10 +589,7 @@ Core::Expected<Helped, std::string> StepCrywolf(ActorState& actor, const KindCas
         constexpr std::uint16_t StoneKind = 0x3b;
         if (actor.byte381 == FourteenthStep && actor.word376 == StoneKind &&
             ReadTheSkill(actor, context.random) == CaseSkill)
-        {
-            if (HasFreeModelEffect(context))
-                return CutAt(0x4329db, "el primero de los dieciocho efectos 0xc1a (CL11)", actor, slot);
-        }
+            LaunchTheRadialVolley(actor, context.world.Map().effects);
         return Helped::Continue;
     }
     case 0x432a0c:
@@ -569,7 +602,16 @@ Core::Expected<Helped, std::string> StepCrywolf(ActorState& actor, const KindCas
         // 0x432a7b..0x432a8a: en 1, 0x41ed10(0x75, 0, 0).
         if (actor.byte381 == FirstStep)
             RequestTheSound(context, RoarSound);
-        // 0x432acc: el mismo offset sin escribir, ahora para el punto de las cuatro 0x5d9/0 (Q-C1050).
+        // 0x432acc: el punto sólo sale del marco si 0x53fe70 encuentra lugar. Lleno, quedan los cuatro sorteos de yaw.
+        if (context.particles != nullptr &&
+            std::ranges::all_of(context.particles->All(),
+                                [](const World::Particle& particle) { return particle.alive; }))
+        {
+            constexpr int SuppressedFlames = 4;
+            for (int flame = 0; flame < SuppressedFlames; ++flame)
+                static_cast<void>(context.random.Next());
+            return Helped::Continue;
+        }
         return CutAt(0x432acc,
                      "0x4ec110 con el offset sin escribir de [EBP − 0x30], antes de las 0x5d9/0 (CL9 con el offset que "
                      "mida la VM, Q-C1050)",
@@ -578,9 +620,18 @@ Core::Expected<Helped, std::string> StepCrywolf(ActorState& actor, const KindCas
     default:
         if (actor.byte381 == FifteenthStep)
         {
-            if (!HasFreeModelEffect(context))
-                return Helped::Exit;
-            return CutAt(0x432b63, "el efecto 0xed/1 con la key de +0x8a (CL11)", actor, slot);
+            // 432b30..432b63: el intento sale con AL1, incluso si518cf0 encuentra el pool lleno.
+            const auto created = CreateTheArrowEffect({.type = 0xed,
+                                                       .position = actor.position,
+                                                       .angles = actor.angles,
+                                                       .light = actor.light,
+                                                       .subtype = 1,
+                                                       .owner = &actor,
+                                                       .key = static_cast<std::uint16_t>(actor.word8a)},
+                                                      context.world, context.random);
+            if (!created.HasValue())
+                return Core::Unexpected(created.Error());
+            return Helped::Exit;
         }
         return Helped::Continue;
     }
@@ -604,7 +655,7 @@ Core::Expected<Helped, std::string> StepTheMapHelpers(ActorState& actor, std::si
     if (map == 0x1e)
     {
         if (const KindCase* found = CaseOf(SiegeCases, actor.word376))
-            return StepTheSiege(actor, *found, slot, context);
+            return StepTheSiege(actor, *found, context);
     }
     // 0x429110 (0x4f5c48): en el 33 y el 54 (0x425070).
     if (map == 0x21 || map == 0x36)
@@ -618,12 +669,22 @@ Core::Expected<Helped, std::string> StepTheMapHelpers(ActorState& actor, std::si
     {
         if (const KindCase* found = CaseOf(FortressCases, actor.type))
         {
-            if (!HasFreeModelEffect(context))
+            if (found->address == 0x42fd04)
+            {
+                // 42fd04..42fd37: mismos once argumentos que el E1/1 de43252d; ningún CRT propio.
+                const auto created = CreateTheArrowEffect({.type = 0xe1,
+                                                           .position = actor.position,
+                                                           .angles = actor.angles,
+                                                           .light = actor.light,
+                                                           .subtype = 1,
+                                                           .owner = &actor,
+                                                           .key = static_cast<std::uint16_t>(actor.word8a)},
+                                                          context.world, context.random);
+                if (!created.HasValue())
+                    return Core::Unexpected(created.Error());
                 return Helped::Exit;
-            return CutAt(found->address == 0x42fd04 ? 0x42fd37 : 0x42fd76,
-                         found->address == 0x42fd04 ? "el efecto 0xe1/1 con la key de +0x8a (CL11)"
-                                                    : "el efecto 0xf8/1 con la key de +0x8a (CL11)",
-                         actor, slot);
+            }
+            return LaunchTheCrywolfArrow(actor, context);
         }
     }
     // 0x4324c0 (0x4f5c6e): en el 34 (0x4303c0).
@@ -646,8 +707,7 @@ Core::Expected<void, std::string> ScatterAndCut(std::uint32_t address, const Act
     return CutAt(address, "el efecto 0xc2 alrededor del que pega (CL11)", actor, slot);
 }
 
-// 0x51fff0: ocho estallidos alrededor del monstruo. Con un modelo disponible, la primera piedra
-// posterior al selector sigue sin portar; el pool lleno deja que corran los ocho grupos.
+// 0x51fff0: ocho estallidos alrededor del monstruo, cada uno con dos intentos de piedra.
 Core::Expected<void, std::string> ScatterTheBurst(const ActorState& actor, std::size_t slot,
                                                   const CharacterStepContext& context)
 {
@@ -723,6 +783,8 @@ Core::Expected<void, std::string> StepTheKindCase(ActorState& actor, const KindC
         {
             if (auto burst = ScatterTheBurst(actor, slot, context); !burst.HasValue())
                 return burst;
+            if (HasFreeModelEffect(context))
+                return CutAt(0x4f5d5a, "el efecto 0xf6 tras el estallido (CL11)", actor, slot);
         }
         if (ReadTheSkill(actor, context.random) != CaseSkill)
             return {};
@@ -744,9 +806,8 @@ Core::Expected<void, std::string> StepTheKindCase(ActorState& actor, const KindC
         constexpr std::uint16_t StoneKind = 0x3b;
         if (step == FirstStep)
             return ScatterTheBurst(actor, slot, context);
-        if (step == FourteenthStep && actor.word376 == StoneKind && ReadTheSkill(actor, context.random) == CaseSkill &&
-            HasFreeModelEffect(context))
-            return CutAt(0x4f6780, "el primero de los dieciocho efectos 0xc1a (CL11)", actor, slot);
+        if (step == FourteenthStep && actor.word376 == StoneKind && ReadTheSkill(actor, context.random) == CaseSkill)
+            LaunchTheRadialVolley(actor, context.world.Map().effects);
         return {};
     }
     case 0x4f67ad:
@@ -845,7 +906,12 @@ Core::Expected<void, std::string> StepTheKindCase(ActorState& actor, const KindC
     case 0x4f793e:
         // En la 3 o la 4 y en 5, 0x51fff0(c + 0x10, 0) y 0xf6.
         if ((action == FirstAttack || action == SecondAttack) && step == FifthStep)
-            return ScatterTheBurst(actor, slot, context);
+        {
+            if (auto burst = ScatterTheBurst(actor, slot, context); !burst.HasValue())
+                return burst;
+            if (HasFreeModelEffect(context))
+                return CutAt(0x4f7980, "el efecto 0xf6 tras el estallido (CL11)", actor, slot);
+        }
         return {};
     case 0x4f798d:
     {
@@ -859,8 +925,9 @@ Core::Expected<void, std::string> StepTheKindCase(ActorState& actor, const KindC
                 localLight = TrailAttackLight;
                 if (auto burst = ScatterTheBurst(actor, slot, context); !burst.HasValue())
                     return burst;
-                if (!HasFreeModelEffect(context))
-                    SetTheFifthTrailPoint(actor, context.random);
+                if (HasFreeModelEffect(context))
+                    return CutAt(0x4f79d3, "el efecto 0xf6 tras el estallido (CL11)", actor, slot);
+                SetTheFifthTrailPoint(actor, context.random);
             }
             return {};
         }

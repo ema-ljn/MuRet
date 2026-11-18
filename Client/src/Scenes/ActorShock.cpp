@@ -122,6 +122,11 @@ Core::Expected<void, std::string> CreateShockDust(const ActorState& actor, const
     return {};
 }
 } // namespace
+std::uint8_t FenrirHitActionOf(const ActorState& actor)
+{
+    return FenrirAction(actor);
+}
+
 Core::Expected<void, std::string> SetActorShock(ActorState& actor, std::uint16_t damage,
                                                 const WorldEntryResources& resources)
 {

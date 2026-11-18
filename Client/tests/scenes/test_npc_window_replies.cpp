@@ -740,4 +740,25 @@ TEST(NpcTalkCursorWarpTest, MovesTheCursorIntoTheWorldOf260)
     EXPECT_EQ(small.x, (259 * 800) / 640);
     EXPECT_EQ(small.y, (600 * 479) / 480);
 }
+// 0x4d2577/0x4d258e, TalkResult 4/6: ambos NPC de eventos tienen ventana y el inventario,
+// con los dos rand de CloseAll y ocho de Open, sin enviar un paquete nuevo al entrar.
+TEST_F(NpcWindowRepliesTest, BothEventTalkResultsOpenTheirNativeWindowWithTheInventory)
+{
+    for (const std::uint8_t result : {std::uint8_t{4}, std::uint8_t{6}})
+    {
+        stage = std::make_unique<Stage>();
+        const CrtRandom expected = Advanced(stage->cloth.random, 10);
+        const auto talked = Talk(result);
+        ASSERT_TRUE(talked.HasValue()) << talked.Error();
+        const auto& runtime = stage->world.Runtime();
+        EXPECT_EQ(runtime.panels.eventNpc, 1);
+        EXPECT_EQ(runtime.panels.eventNpcKind, result == 4 ? 0 : 1);
+        EXPECT_EQ(runtime.panels.inventory, 1);
+        EXPECT_EQ(stage->cloth.random.State(), expected.State());
+        EXPECT_EQ(runtime.lastSoundId, 0x1c);
+        EXPECT_TRUE(Npc().cursorWarpRequested);
+        EXPECT_TRUE(stage->sent.empty());
+    }
+}
+
 } // namespace

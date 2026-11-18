@@ -2,6 +2,7 @@
 
 #include "App/SessionState.h"
 #include "Core/ILogSink.h"
+#include "Core/Expected.h"
 #include "Core/Log.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemSetTables.h"
@@ -10,6 +11,7 @@
 #include "Data/Terrain/TerrainHeights.h"
 #include "Network/PacketSerials.h"
 #include "Protocol/World.h"
+#include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
@@ -19,9 +21,14 @@
 #include "Scenes/LoginModels.h"
 #include "Scenes/PlayerActionSpeeds.h"
 #include "Scenes/SceneId.h"
+#include "Scenes/SelectionInventory.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/SessionEventApplier.h"
 #include "Scenes/WorldEntry.h"
+#include "Scenes/WorldTransitionSupport.h"
+#include "support/SceneDataFiles.h"
+#include "UI/ChatLog.h"
+#include "UI/MessageArea.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"
@@ -33,6 +40,9 @@
 #include "support/FakeClock.h"
 #include "support/GoldenDir.h"
 #include "support/ItemSetFiles.h"
+#include "support/ItemFiles.h"
+#include "Scenes/OwnInventory.h"
+#include "World/ItemState.h"
 #include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
 #include "support/SessionHarness.h"
@@ -159,6 +169,69 @@ TEST(WorldTransitionsTest, SameMapGateClearsOthersAndItemsButPreservesTheHeroAnd
     EXPECT_EQ(tested.world.Runtime().storm, 0);
     EXPECT_EQ(tested.world.Runtime().selectedTargets[0], -1);
 }
+TEST(WorldTransitionsTest, TeleportReturnsTheCursorToItsInventoryFootprintBeforeMovingTheHero)
+{
+    auto tested = std::make_unique<Transition>();
+    Publisher publisher;
+    tested->items = Client::Tests::ItemTableOf({{0x1c00, 1, 1, 0}});
+    auto& runtime = tested->world.Runtime();
+    runtime.cursorItemCount = 1;
+    runtime.cursorGrid = Client::Scenes::CursorGrid::Inventory;
+    runtime.slot78a6758 = 12 + 18;
+    runtime.cursorItem.id = 0x1c00;
+    runtime.cursorItem.occupied = 1;
+    runtime.cursorItem.durability = 5;
+    runtime.cursorItem.gridColumn = 2;
+    runtime.cursorItem.gridRow = 2;
+    tested->Hero().cellX = 10;
+    tested->Hero().cellY = 11;
+
+    auto result = Client::Scenes::ApplyTeleport(Client::Protocol::World::Teleport{0, 0, 30, 31, 2},
+                                                Transition::PlayerKey, tested->Resources(), publisher);
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_EQ(runtime.cursorItemCount, 0);
+    EXPECT_EQ(runtime.cursorItem.occupied, 0);
+    EXPECT_EQ(tested->world.Inventory().cells[18].id, 0x1c00);
+    EXPECT_EQ(tested->world.Inventory().cells[18].occupied, 1);
+    EXPECT_EQ(tested->world.Inventory().cells[18].durability, 5);
+    EXPECT_EQ(tested->Hero().cellX, 30);
+    EXPECT_EQ(tested->Hero().cellY, 31);
+    EXPECT_EQ(tested->Hero().byte80, 3);
+    EXPECT_EQ(publisher.confirmations, 0); // El gate0 es Teleport, no el cambio de mapa con F3 12.
+}
+
+TEST(WorldTransitionsTest, CursorDressFailureRetainsTheReturnedItemAndStopsBeforeHeroCellWrites)
+{
+    auto tested = std::make_unique<Transition>();
+    Publisher publisher;
+    tested->items = Client::Tests::ItemTableOf({{0x1c00, 1, 1, 0}});
+    tested->models = Client::Scenes::SingleModelLibrary{}; // Falta Player.bmd justo en el 512a30 del retorno.
+    auto& runtime = tested->world.Runtime();
+    runtime.cursorItemCount = 1;
+    runtime.cursorGrid = Client::Scenes::CursorGrid::Inventory;
+    runtime.slot78a6758 = 12 + 18;
+    runtime.cursorItem.id = 0x1c00;
+    runtime.cursorItem.occupied = 1;
+    runtime.cursorItem.gridColumn = 2;
+    runtime.cursorItem.gridRow = 2;
+    tested->Hero().cellX = 10;
+    tested->Hero().cellY = 11;
+    const auto before = tested->cloth.random.State();
+
+    auto result = Client::Scenes::ApplyTeleport(Client::Protocol::World::Teleport{23, 0, 30, 31, 2},
+                                                Transition::PlayerKey, tested->Resources(), publisher);
+
+    ASSERT_FALSE(result.HasValue());
+    EXPECT_NE(result.Error().find("Player.bmd"), std::string::npos) << result.Error();
+    EXPECT_EQ(runtime.cursorItemCount, 0);
+    EXPECT_EQ(tested->world.Inventory().cells[18].id, 0x1c00);
+    EXPECT_EQ(tested->Hero().cellX, 10);
+    EXPECT_EQ(tested->Hero().cellY, 11);
+    EXPECT_EQ(tested->cloth.random.State(), before);
+    EXPECT_EQ(publisher.confirmations, 0);
+}
+
 TEST(WorldTransitionsTest, AnotherMapFailureRetainsThePrefixBeforeConfirmation)
 {
     Transition tested;
@@ -424,21 +497,29 @@ TEST(WorldTransitionsTest, UnportedOpenWindowsKeepTheConfirmedWaitPrefixAndStopB
     // Los 20 del prefijo y la consulta del comercio (0x20, 0x657fc1), que 0x657ab0 hace antes que la del 0x1000.
     EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(1, 20 + 1).State());
 }
-TEST_F(WorldTransitionsMapsTest, LeavingChaosCastleStopsAtTheCommandsEvenWithEquipmentAvailable)
+TEST_F(WorldTransitionsMapsTest, LeavingChaosCastleResetsTheCommandsAndContinuesToArrival)
 {
     Transition tested;
     Publisher publisher;
     tested.dataRoot = m_dataRoot;
     tested.world.Runtime().map = 18;
     tested.world.Runtime().warpCounter = 9999999;
+    auto& commands = tested.world.Runtime().panels.delegated;
+    commands.commands = 1;
+    commands.commandsWindow.target = 23;
+    commands.commandsWindow.chosen = 7;
+    commands.commandsWindow.states.fill(0xff);
     auto resources = tested.Resources();
     const auto result = Client::Scenes::ApplyTeleport(Client::Protocol::World::Teleport{23, 0, 133, 127, 0},
                                                       Transition::PlayerKey, resources, publisher);
-    ASSERT_FALSE(result.HasValue());
-    EXPECT_NE(result.Error().find("0x4c7b34"), std::string::npos);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_EQ(commands.commands, 0);
+    EXPECT_EQ(commands.commandsWindow.target, -1);
+    EXPECT_EQ(commands.commandsWindow.chosen, -1);
+    EXPECT_EQ(commands.commandsWindow.states, (std::array<std::uint8_t, 12>{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}));
     EXPECT_EQ(tested.world.Runtime().map, 0);
-    EXPECT_EQ(publisher.confirmations, 0);
-    EXPECT_EQ(tested.world.Runtime().warpCounter, 9999999);
+    EXPECT_EQ(publisher.confirmations, 1);
+    EXPECT_EQ(tested.world.Runtime().warpCounter, 30);
 }
 TEST_F(WorldTransitionsMapsTest, LeavingChaosCastleKeepsTheUiPrefixBeforeAnyEquipmentFailure)
 {
@@ -452,7 +533,7 @@ TEST_F(WorldTransitionsMapsTest, LeavingChaosCastleKeepsTheUiPrefixBeforeAnyEqui
     const auto result = Client::Scenes::ApplyTeleport(Client::Protocol::World::Teleport{23, 0, 133, 127, 0},
                                                       Transition::PlayerKey, resources, publisher);
     ASSERT_FALSE(result.HasValue());
-    EXPECT_NE(result.Error().find("0x4c7b34"), std::string::npos);
+    EXPECT_EQ(result.Error().find("0x4c7b34"), std::string::npos) << result.Error();
     EXPECT_EQ(tested.world.Runtime().lastSoundId, 0x9e);
     EXPECT_EQ(tested.world.Runtime().map, 0);
     EXPECT_EQ(publisher.confirmations, 0);
@@ -467,6 +548,58 @@ public:
         return {static_cast<int>(text.size()) * 6, 13};
     }
 };
+TEST(WorldTransitionsTest, TransitionClosersKeepSeniorBusyAsALocalWarningWithoutASocket)
+{
+    auto tested = std::make_unique<Transition>();
+    Letters letters;
+    auto texts = Client::Tests::MakeTextTable({{1641, "la caja sigue ocupada"}});
+    auto resources = tested->Resources();
+    resources.textMeasure = &letters;
+    resources.texts = &texts;
+    Client::Render::Models::CrtRandom setupRandom(1);
+    Client::Scenes::ClearSelectionInventory(tested->world, setupRandom);
+    auto& runtime = tested->world.Runtime();
+    runtime.panels.delegated.castleSiegeList = 1;
+    runtime.npcWindows.chaosBox[0].id = 1;
+    runtime.npcWindows.chaosBox[0].occupied = 0; // 661b90 mira type, no occupied.
+
+    auto result = Client::Scenes::CloseTransitionWindows(resources);
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_EQ(runtime.panels.delegated.castleSiegeList, 1);
+    ASSERT_FALSE(runtime.chat.log.entries.empty());
+    EXPECT_EQ(runtime.chat.log.entries.back().text, "la caja sigue ocupada");
+    EXPECT_EQ(runtime.chat.log.entries.back().type, Client::UI::ErrorMessage); // 0x65cb89: push 2.
+    EXPECT_EQ(tested->cloth.random.State(), Client::Tests::AfterDraws(1, 2).State());
+}
+
+TEST(WorldTransitionsTest, TransitionClosersPreserveTheNpcTransportsFailureBeforeClearingItsPanel)
+{
+    auto tested = std::make_unique<Transition>();
+    auto resources = tested->Resources();
+    auto& runtime = tested->world.Runtime();
+    runtime.panels.warehouse = 1;
+    runtime.npcWindows.grid[0].id = 1;
+    int npcPackets = 0;
+    int genericPackets = 0;
+    resources.sendGamePacket = [&](Client::Protocol::Outgoing) { ++genericPackets; };
+    resources.sendNpcWindowPacket = [&](Client::Protocol::Outgoing) -> Client::Core::Expected<void, std::string>
+    {
+        ++npcPackets;
+        return Client::Core::Unexpected(std::string("falló el transporte del NPC"));
+    };
+
+    auto result = Client::Scenes::CloseTransitionWindows(resources);
+
+    ASSERT_FALSE(result.HasValue());
+    EXPECT_NE(result.Error().find("falló el transporte del NPC"), std::string::npos) << result.Error();
+    EXPECT_EQ(npcPackets, 1);
+    EXPECT_EQ(genericPackets, 0);
+    EXPECT_EQ(runtime.npcWindows.grid[0].id, 0xffff);
+    EXPECT_EQ(runtime.panels.warehouse, 1);
+    EXPECT_EQ(tested->cloth.random.State(), Client::Tests::AfterDraws(1, 1).State());
+}
+
 // 0x4c7af1..0x4c7b2f: al entrar a Chaos Castle o al salir, el sonido, las ventanas viejas escondidas sin anotarlas
 // (0x4906a0 con 1 y 0, Q-C572), sin foco y con el teclado en el juego, y la de amigos suelta (0x4914e0); después corta
 // en el objeto de los comandos. La caja se abre a mano: en la CL8 no la abre nadie.
@@ -499,8 +632,7 @@ TEST_F(WorldTransitionsMapsTest, TheChaosCastlePrefixHidesTheOldWindowsWithoutNo
         runtime.chat.input.focus = Client::UI::ChatFocus::Message;
         const auto result = Client::Scenes::ApplyTeleport(Client::Protocol::World::Teleport{23, pass.to, 133, 127, 0},
                                                           Transition::PlayerKey, tested.Resources(), publisher);
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_NE(result.Error().find("0x4c7b34"), std::string::npos) << result.Error();
+        ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(runtime.map, pass.to);
         EXPECT_EQ(runtime.lastSoundId, 0x9e);
         EXPECT_EQ(runtime.oldWindows.windows.at(box.Value()).base.state, Client::UI::HiddenWindow);

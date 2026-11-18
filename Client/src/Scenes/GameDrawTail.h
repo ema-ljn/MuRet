@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Render/Models/OriginalRotation.h"
+#include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/Pose.h"
 #include "Render/Models/RayPicking.h"
@@ -32,6 +33,7 @@ class CrtRandom;
 namespace Client::World
 {
 class Leaves;
+class Particles;
 class FrameSprites;
 class ITerrainAttributeQuerySource;
 struct TerrainLighting;
@@ -114,6 +116,7 @@ enum class JointOwnerKind : std::uint8_t
     Actor,
     Helper,
     Raven,
+    ModelEffect, // 619/1 del61e/1 y610/13 delE1/1; sin aliasActorState.
 };
 
 struct JointState
@@ -241,6 +244,10 @@ struct ModelEffectDrawResources
     Render::Models::CrtRandom* random = nullptr; // 607b60 sólo sortea los casos que lo necesitan.
     const ItemDrawContext* itemContext = nullptr;
     const GameObjectPass* kalimaPass = nullptr;
+    // 42cfcb del fragmento3d..40: el mismo pool518cf0 al que emite4ee770.
+    World::ModelEffects* effects = nullptr;
+    World::Particles* particles = nullptr;
+    std::function<std::span<const Render::Models::BoneTransform>()> posedBones{};
 };
 [[nodiscard]] Core::Expected<void, std::string>
 DrawGameModelEffects(Render::ModelBatch& batch, const IModelLibrary& models, std::span<World::ModelEffect> effects,

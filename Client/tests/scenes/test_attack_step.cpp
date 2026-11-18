@@ -308,7 +308,8 @@ TEST(AttackStepTest, AnOrdinaryMonsterCountsAndStrikesLikeAPlayer)
 
 // Los ayudantes de 0x4f5b70, cada uno en sus mapas, después del rand() de 0x4f5b97: los que devuelven 1 salen sin la
 // cola (0x4436f0, los de Kalima y los del 33 y el 54 fuera de su efecto); 0x42fce0 y 0x4324c0 miran el tipo y +0x381 y
-// siguen; los efectos cortan. Los casos uno por uno, en test_monster_attack_cases.cpp.
+// siguen. El E1/1 de la fortaleza ya crea su joint; después el caller llega al umbral15 y ejecuta la habilidad.
+// Los otros cortes y los casos uno por uno están en test_monster_attack_cases.cpp.
 
 TEST(AttackStepTest, TheMapHelpersOfTheMonstersExitOrCut)
 {
@@ -322,21 +323,24 @@ TEST(AttackStepTest, TheMapHelpersOfTheMonstersExitOrCut)
         std::string_view cut;
         int draws;
         std::vector<std::int32_t> sounds{};
+        bool completesAttack = false;
     };
     // La lectura de 0x4f97b0 y el rand() de 0x4f5b97.
     constexpr int Helper = SkillRead + 1;
-    const std::array cases{Case{"Kalima 1", 0x18, 0x160, 0x91, 1, "", Helper + SkillRead},
-                           Case{"Kalima 7", 0x24, 0x160, 0x113, 1, "", Helper + SkillRead},
-                           Case{"Kalima fuera de Kalima", 0, 0x160, 0x91, 1, "", CountingStep},
-                           Case{"el 31", 0x1f, 0x160, 0x123, 1, "", Helper},
-                           Case{"el 31 con otro", 0x1f, 0x160, 0x126, 1, "", CountingStep},
-                           Case{"el asedio", 0x1e, 0x160, 0x120, 1, "0x42dd48", Helper},
-                           Case{"el 54", 0x36, 0x160, 0x134, 1, "", Helper},
-                           Case{"el 35 en 14", 0x23, 0x1b2, 3, 14, "0x42fd37", Helper},
-                           Case{"el 35 en 2", 0x23, 0x1b2, 3, 2, "", CountingStep},
-                           Case{"Crywolf 0x17c", 0x22, 0x17c, 3, 1, "0x520119", Helper + 141, {0x40}},
-                           Case{"Crywolf 0x1ad en 2", 0x22, 0x1ad, 3, 2, "", CountingStep},
-                           Case{"un caso de +0x376", 0, 0x160, 0x4d, 1, "", CountingStep + SkillRead}};
+    const std::array cases{
+        Case{"Kalima 1", 0x18, 0x160, 0x91, 1, "", Helper + SkillRead},
+        Case{"Kalima 7", 0x24, 0x160, 0x113, 1, "", Helper + SkillRead},
+        Case{"Kalima fuera de Kalima", 0, 0x160, 0x91, 1, "", CountingStep},
+        Case{"el 31", 0x1f, 0x160, 0x123, 1, "", Helper},
+        Case{"el 31 con otro", 0x1f, 0x160, 0x126, 1, "", CountingStep},
+        Case{"el pulso del asedio", 0x1e, 0x160, 0x120, 1, "", Helper + 1},
+        Case{"la piedra del asedio en5", 0x1e, 0x160, 0x68, 5, "", Helper},
+        Case{"el 54", 0x36, 0x160, 0x134, 1, "", Helper},
+        Case{"el 35 en 14", 0x23, 0x1b2, 3, 14, "", Helper + OwnRecord + SkillWithTarget, {0x47}, true},
+        Case{"el 35 en 2", 0x23, 0x1b2, 3, 2, "", CountingStep},
+        Case{"Crywolf 0x17c", 0x22, 0x17c, 3, 1, "", Helper + 1210, std::vector<std::int32_t>(8, 0x40)},
+        Case{"Crywolf 0x1ad en 2", 0x22, 0x1ad, 3, 2, "", CountingStep},
+        Case{"un caso de +0x376", 0, 0x160, 0x4d, 1, "", CountingStep + SkillRead}};
     for (const Case& probe : cases)
     {
         SCOPED_TRACE(probe.name);
@@ -344,13 +348,20 @@ TEST(AttackStepTest, TheMapHelpersOfTheMonstersExitOrCut)
         tested.world.Runtime().map = probe.map;
         ActorState& monster = tested.Monster(OtherSlot, probe.type, probe.kind, HeroSlot);
         monster.byte381 = probe.counter;
+        if (probe.completesAttack)
+        {
+            monster.position = {2100, 3100, 450};
+            monster.light = {.2f, .4f, .6f};
+            monster.word8a = -0x1234;
+            tested.world.OwnCharacter().bytef04 = 0x5a;
+        }
 
         const auto stepped = tested.Attack(monster, OtherSlot);
 
         if (probe.cut.empty())
         {
             ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-            EXPECT_EQ(monster.byte381, probe.counter + 1);
+            EXPECT_EQ(monster.byte381, probe.completesAttack ? 0 : probe.counter + 1);
         }
         else
         {
@@ -358,6 +369,39 @@ TEST(AttackStepTest, TheMapHelpersOfTheMonstersExitOrCut)
         }
         EXPECT_EQ(DrawsSince(Seed, tested.random), probe.draws);
         EXPECT_EQ(tested.sounds, probe.sounds);
+        if (probe.map == 30)
+        {
+            const auto effects = tested.world.Map().effects.Effects();
+            ASSERT_EQ(std::ranges::count_if(effects, [](const auto& effect) { return effect.alive; }), 1);
+            EXPECT_EQ(effects[0].type, probe.kind == 0x120 ? 0x61c : 0x19f);
+            EXPECT_EQ(effects[0].subtype, 0);
+            EXPECT_EQ(effects[0].transform.position.x, monster.position.x);
+            EXPECT_EQ(effects[0].transform.position.y, monster.position.y);
+            EXPECT_EQ(effects[0].transform.position.z, monster.position.z + (probe.kind == 0x68 ? 500.0f : 0.0f));
+            EXPECT_FALSE(effects[0].hasOwner);
+        }
+        if (probe.completesAttack)
+        {
+            const auto effects = tested.world.Map().effects.Effects();
+            ASSERT_EQ(std::ranges::count_if(effects, [](const auto& effect) { return effect.alive; }), 1);
+            const auto& arrow = effects[0];
+            EXPECT_EQ(arrow.type, 0xe1);
+            EXPECT_EQ(arrow.subtype, 1);
+            EXPECT_EQ(arrow.life, 30);
+            EXPECT_EQ(arrow.ownerContext, &monster);
+            EXPECT_EQ(arrow.disturbanceState, 0xedcc);
+            EXPECT_EQ(arrow.word8c, 0x5a);
+            EXPECT_EQ(arrow.light, monster.light);
+            EXPECT_EQ(arrow.transform.position, glm::vec3(2090, 3040, 585));
+            const auto& joints = tested.world.DrawTail().joints;
+            ASSERT_EQ(std::ranges::count_if(joints, [](const auto& joint) { return joint.alive; }), 1);
+            EXPECT_EQ(joints[0].type, 0x610);
+            EXPECT_EQ(joints[0].subtype, 13);
+            EXPECT_EQ(joints[0].ownerContext, &arrow);
+            EXPECT_EQ(joints[0].life, 40);
+            EXPECT_EQ(joints[0].width, 20.0f);
+            EXPECT_EQ(monster.byte38eAccesses, 0);
+        }
     }
 }
 

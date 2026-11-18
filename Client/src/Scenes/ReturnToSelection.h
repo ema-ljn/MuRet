@@ -6,8 +6,8 @@
 
 // La vuelta del juego a la selección: el F1 02 con 1 que llega cifrado, 0x4c2710 (0x4c3626..0x4c390f) y
 // 0x4c2480, en lo que MuRet tiene del mundo. Los paquetes que manda (el F3 00 y los dos C1 03 31) son
-// de la sesión. Contrato: Client/docs/research/06-render-escenas-y-ui.md, "La vuelta a la selección", y
-// Q-C211 a Q-C215 en 07-quirks-y-bugs.md.
+// de la sesión, prestados al reset mediante WorldEntryResources. Contrato:
+// Client/docs/research/06-render-escenas-y-ui.md, "La vuelta a la selección", y Q-C211 a Q-C215 en 07-quirks-y-bugs.md.
 namespace Client::Scenes
 {
 struct WorldEntryResources;
@@ -22,8 +22,15 @@ struct WorldEntryResources;
 // el pasto, el héroe publicado (0x743a170) y su lugar quedan.
 [[nodiscard]] Core::Expected<void, std::string> ApplyReturnToSelection(const WorldEntryResources& resources);
 
+// Las dos fases alrededor del F3 00: el sink aplica el prefijo y, después del envío, la terminación.
+[[nodiscard]] Core::Expected<void, std::string> PrepareReturnToSelection(const WorldEntryResources& resources);
+[[nodiscard]] Core::Expected<void, std::string> CompleteReturnToSelection(const WorldEntryResources& resources);
+
 // 0x4c275c..0x4c2779: con motivo 2 limpia sólo si la escena es el juego, incluso sin cifrado.
 [[nodiscard]] Core::Expected<void, std::string> PrepareReturnToServerList(const WorldEntryResources& resources);
 // 0x4c2ef3..0x4c2f51: después del cierre del GS, deja la orden de login y reinicia su estado.
-void ApplyReturnToServerList(const WorldEntryResources& resources);
+[[nodiscard]] Core::Expected<void, std::string> ApplyReturnToServerList(const WorldEntryResources& resources);
+
+// 0x4c2480, compartido con el cambio de servidor.
+[[nodiscard]] Core::Expected<void, std::string> ResetForTheSelection(const WorldEntryResources& resources);
 } // namespace Client::Scenes

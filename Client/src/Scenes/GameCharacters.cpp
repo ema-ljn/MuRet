@@ -1,4 +1,5 @@
 #include "Scenes/GameCharacters.h"
+#include "Scenes/CastleSiegeBlessing.h"
 
 #include "Scenes/ActorPickingBox.h"
 
@@ -211,9 +212,6 @@ constexpr glm::vec3 BlueCloth{0.0f, 0.2f, 1.0f};
 // 0x50c972..0x50caaa: con +0x1f2 distinto de −1 y la guerra prendida (0x576796d, el 61 y el 62 del tipo 1), el gremio
 // del personaje (strcmp de +0xd de su entrada) igual al del héroe publicado (su +0x1f2, sin mirar el −1) prende la tela
 // del color del equipo (0x576796e en 0, (1; 0,2; 0); si no, (0; 0,2; 1)), y el del rival (0x5767804), la del otro.
-// Después, 0x50caaa..0x50cb5c: con 0x576796f, los nombres de 0x57678d0 y 0x57678d9 la prenden en (1; 0,2; 0) y en
-// (0; 0,2; 1); 0x576796f lo prenden 0x4c24e1 y el F3 23 de Battle Soccer (0x4d9f62, hito 11,
-// EventGlobals::soccer.active), y esta rama falta (08 P-C284 a).
 Core::Expected<void, std::string> DressForTheWar(const WorldState& world, const ActorState& actor, ClothLook& look)
 {
     const GuildState& guild = world.Runtime().guild;
@@ -235,6 +233,23 @@ Core::Expected<void, std::string> DressForTheWar(const WorldState& world, const 
     return {};
 }
 
+// 0x50caaa..0x50cb5c: Soccer vuelve a leer el nombre actual; las dos comparaciones son independientes.
+Core::Expected<void, std::string> DressForSoccer(const WorldState& world, const ActorState& actor, ClothLook& look)
+{
+    const auto& soccer = world.Runtime().events.soccer;
+    if (!soccer.active)
+        return {};
+    const auto index = static_cast<std::int16_t>(actor.word1f2);
+    const auto name = GuildNameAt(world.Runtime().guild, index);
+    if (!name)
+        return Core::Unexpected(std::format("0x50cac6: el gremio {} cae fuera de la tabla", index));
+    if (*name == GuildTextOf(soccer.firstName))
+        look = {.wears = true, .color = RedCloth};
+    if (*name == GuildTextOf(soccer.secondName))
+        look = {.wears = true, .color = BlueCloth};
+    return {};
+}
+
 Core::Expected<ClothLook, std::string> LookOfTheCloth(const WorldState& world, const ActorState& actor,
                                                       std::int32_t map)
 {
@@ -250,6 +265,8 @@ Core::Expected<ClothLook, std::string> LookOfTheCloth(const WorldState& world, c
         look.wears = false;
     if (auto war = DressForTheWar(world, actor, look); !war.HasValue())
         return Core::Unexpected(std::move(war).Error());
+    if (auto soccer = DressForSoccer(world, actor, look); !soccer.HasValue())
+        return Core::Unexpected(std::move(soccer).Error());
     const DuelState& duel = world.Runtime().social.duel;
     if (duel.active == 0)
         return look;
@@ -482,7 +499,8 @@ Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const I
                                       .heroByte1a1 = heroByte1a1,
                                       .siegeActive = world.Runtime().siegeActive,
                                       .logicSteps = pass.clothWorld->logicSteps,
-                                      .originalFrame = originalFrame};
+                                      .originalFrame = originalFrame,
+                                      .guild = &world.Runtime().guild};
     if (auto hung = DrawGameHanging(drawn, hangingPass); !hung.HasValue())
         return hung;
     const GameCharacterEffectsPass effectsPass{.body = body,
@@ -592,9 +610,16 @@ Core::Expected<void, std::string> DrawThePool(Render::ModelBatch& batch, const I
         // 0x510ea9..0x510eb3: con el 0x20a, 0x42afe0, que solo en el 30, con el asedio y con +0x16c llama a
         // 0x42ddb0(personaje, 380); sin el asedio no hace nada.
         if (world.Runtime().map == 30 && actor.type == Data::Models::PlayerSkeletonModel &&
-            world.Runtime().siegeActive && actor.seen)
-            return Core::Unexpected<std::string>("0x42b00b: 0x42ddb0 (el dibujo del asedio sobre el personaje) no "
-                                                 "está portado");
+            world.Runtime().siegeActive && actor.seen && originalFrame)
+        {
+            if (pass.clothWorld == nullptr || pass.particles == nullptr)
+                return Core::Unexpected(std::string("0x42de7f: faltan partículas o CRT para la bendición del asedio"));
+            if (auto blessed = DrawTheCastleBlessing(actor, world.Actors()[hero].word1f2, world.Runtime().castleMarkX,
+                                                     world.Runtime().castleMarkY, pass.clothWorld->logicSteps,
+                                                     *pass.particles, pass.clothWorld->random);
+                !blessed.HasValue())
+                return blessed;
+        }
     }
     if (!world.Map().terrain.attributes)
         return Core::Unexpected<std::string>("0x42da60: falta el TerrainWall que abre las puertas");

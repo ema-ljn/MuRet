@@ -999,14 +999,20 @@ TEST_F(MonsterHelpersTest, The1b1And1b2DrawTheirSprites)
     EXPECT_EQ(spinning.State(), AfterDraws(3, 1).State());
 }
 
-// 0x434e3f..0x434ecf: el 0x1b3 en la 4 con el frame de 4 a 6 corta en el efecto 0x115, antes de sonar.
-TEST_F(MonsterHelpersTest, The1b3CutsInItsAttackWindow)
+// 0x434e3f..0x434ecf: el 0x1b3 en la4 y frame[4,6] crea115/1 desde la posición, y luego suena.
+TEST_F(MonsterHelpersTest, The1b3CreatesThePiercingInItsAttackWindowBeforeSounding)
 {
     ActorState& actor = Monster(0x1b3, 4, 6.0f);
     CrtRandom random(1);
     MonsterHelperPass pass = Pass(Crywolf, random);
-    EXPECT_TRUE(CutAt(Client::Scenes::DrawTheCrywolfEffectsOf1abTo208(pass), "0x434ecf"));
-    EXPECT_FALSE(Sound().has_value());
+    ASSERT_TRUE(Client::Scenes::DrawTheCrywolfEffectsOf1abTo208(pass).HasValue());
+    const auto& effect = m_world->Map().effects.Effects()[0];
+    EXPECT_EQ(effect.type, 0x115);
+    EXPECT_EQ(effect.life, 6);
+    EXPECT_EQ(effect.start, actor.position);
+    EXPECT_EQ(effect.transform.position.z, actor.position.z + 130);
+    EXPECT_EQ(effect.light, (glm::vec3{1, 0, 0.5f}));
+    EXPECT_EQ(Sound(), 0x21d);
     actor.animation.frame = 6.5f;
     ASSERT_TRUE(Client::Scenes::DrawTheCrywolfEffectsOf1abTo208(pass).HasValue());
     EXPECT_EQ(Sound(), 0x21d);
@@ -1321,7 +1327,7 @@ TEST_F(MonsterHelpersTest, The1b0SwingSparksInEveryPose)
 }
 
 // 0x432bd0: las estelas publican diez poses y agregan las muestras a las cintas del GameDrawTail.
-TEST_F(MonsterHelpersTest, OtherSwingsEmitTheirRibbonSamplesAndKeepGenuineCuts)
+TEST_F(MonsterHelpersTest, OtherSwingsEmitTheirRibbonSamplesAndKeepPoolLimits)
 {
     Name("Left_Hand", 17);
     m_models.ResizeBones(90);
@@ -1336,12 +1342,11 @@ TEST_F(MonsterHelpersTest, OtherSwingsEmitTheirRibbonSamplesAndKeepGenuineCuts)
         bool effectPoolFull = false;
     };
     for (const Case& value :
-         {Case{0x1ab, 3, 4.0f, "0x433056", false, 0}, Case{0x1ab, 3, 4.0f, "", true, 1},
-          Case{0x1ab, 3, 4.5f, "", false, 1}, Case{0x1ae, 8, 4.0f, "0x433248", false, 0},
-          Case{0x1ae, 8, 4.0f, "", true, 0}, Case{0x1ae, 4, 4.7f, "0x433339", false, 0},
-          Case{0x1ae, 3, 4.7f, "", false, 1}, Case{0x1af, 4, 3.0f, "", false, 1},
-          Case{0x1af, 4, 4.7f, "0x43365e", false, 1}, Case{0x1af, 4, 4.7f, "", false, 1, true},
-          Case{0x1b1, 4, 3.0f, "", false, 2}, Case{0x1b3, 3, 3.0f, "", false, 1}, Case{0x1b4, 3, 3.0f, "", false, 2}})
+         {Case{0x1ab, 3, 4.0f, "", false, 1}, Case{0x1ab, 3, 4.0f, "", true, 1}, Case{0x1ab, 3, 4.5f, "", false, 1},
+          Case{0x1ae, 8, 4.0f, "", false, 0}, Case{0x1ae, 8, 4.0f, "", true, 0}, Case{0x1ae, 4, 4.7f, "", false, 1},
+          Case{0x1ae, 3, 4.7f, "", false, 1}, Case{0x1af, 4, 3.0f, "", false, 1}, Case{0x1af, 4, 4.7f, "", false, 1},
+          Case{0x1af, 4, 4.7f, "", false, 1, true}, Case{0x1b1, 4, 3.0f, "", false, 2},
+          Case{0x1b3, 3, 3.0f, "", false, 1}, Case{0x1b4, 3, 3.0f, "", false, 2}})
     {
         SCOPED_TRACE(testing::Message() << value.address << (value.particlePoolFull ? " llena" : ""));
         ClearParticles();
@@ -1363,11 +1368,40 @@ TEST_F(MonsterHelpersTest, OtherSwingsEmitTheirRibbonSamplesAndKeepGenuineCuts)
         const auto stepped =
             Client::Scenes::StepTheSwingsOf1abTo1b4(actor, Slot, *m_world, random, m_particles.get(), 0.0f);
         if (value.address.empty())
-            EXPECT_TRUE(stepped.HasValue()) << stepped.Error();
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         else
             EXPECT_TRUE(CutAt(stepped, value.address)) << (stepped.HasValue() ? "" : stepped.Error());
-        EXPECT_EQ(random.State(), AfterDraws(1, 1).State());
-        const bool posed = !(value.type == 0x1ae && value.action == 8) && value.address != "0x433339";
+        const int draws = value.particlePoolFull                                                ? 1
+                          : value.type == 0x1ab && value.frame == 4                             ? 31
+                          : value.type == 0x1ae && value.action == 8                            ? 6
+                          : value.type == 0x1af && value.frame == 4.7f && !value.effectPoolFull ? 7
+                                                                                                : 1;
+        EXPECT_EQ(random.State(), AfterDraws(1, draws).State());
+        if (!value.particlePoolFull && value.type == 0x1ab && value.frame == 4)
+        {
+            const auto sparks = LiveParticles();
+            ASSERT_EQ(sparks.size(), 10u);
+            EXPECT_EQ(sparks.front().type, 0x640);
+            EXPECT_EQ(sparks.front().light, glm::vec3(1));
+            EXPECT_EQ(sparks.back().light, (glm::vec3{0, 0, 5}));
+        }
+        if (!value.particlePoolFull && value.type == 0x1ae && value.action == 8)
+        {
+            const auto hand = LiveParticles();
+            ASSERT_EQ(hand.size(), 3u);
+            EXPECT_EQ(hand[0].type, 0x5f2);
+            EXPECT_EQ(hand[0].subtype, 27);
+            EXPECT_EQ(hand[0].texture, 0x6b1);
+            EXPECT_EQ(hand[0].position, (glm::vec3{100, 200, 44}));
+            EXPECT_EQ(hand[0].light, (glm::vec3{0.2f, 0.2f, 0.7f}));
+            EXPECT_EQ(hand[1].type, 0x5ad);
+            EXPECT_EQ(hand[1].subtype, 2);
+            EXPECT_EQ(hand[1].scale, 0.8f);
+            EXPECT_EQ(hand[2].type, 0x5ad);
+            EXPECT_EQ(hand[2].subtype, 2);
+            EXPECT_EQ(hand[2].scale, 0.6f);
+        }
+        const bool posed = !(value.type == 0x1ae && value.action == 8);
         EXPECT_EQ(m_world->PoseCarry().models.count(value.type), posed ? 1u : 0u);
         std::vector<const Client::Scenes::RibbonState*> ribbons;
         for (const auto& ribbon : m_world->DrawTail().ribbons)
@@ -1481,15 +1515,15 @@ TEST_F(MonsterHelpersTest, SwingRibbonPoolFullStillPosesAndMatchingOwnersAppend)
     EXPECT_EQ(own[1]->key, 84);
 }
 
-TEST_F(MonsterHelpersTest, SwingEffectsCutOnlyWhenTheModelEffectPoolHasRoom)
+TEST_F(MonsterHelpersTest, SwingEffectsContinueWithFreeOrFullModelEffectPools)
 {
     m_models.ResizeBones(90);
     ActorState& type1af = Monster(0x1af, 4, 4.7f);
     FillParticles();
     CrtRandom firstRandom(1);
-    const auto cutAfterRibbon =
+    const auto effectAfterRibbon =
         Client::Scenes::StepTheSwingsOf1abTo1b4(type1af, Slot, *m_world, firstRandom, m_particles.get(), 0.0f);
-    EXPECT_TRUE(CutAt(cutAfterRibbon, "0x43365e")) << (cutAfterRibbon.HasValue() ? "" : cutAfterRibbon.Error());
+    ASSERT_TRUE(effectAfterRibbon.HasValue()) << effectAfterRibbon.Error();
     EXPECT_EQ(firstRandom.State(), AfterDraws(1, 1).State());
     ASSERT_EQ(m_world->DrawTail().ribbons[0].count, 10);
 
@@ -1510,11 +1544,20 @@ TEST_F(MonsterHelpersTest, SwingEffectsCutOnlyWhenTheModelEffectPoolHasRoom)
     ActorState& type1ae = Monster(0x1ae, 4, 4.7f);
     const auto beforePose =
         Client::Scenes::StepTheSwingsOf1abTo1b4(type1ae, Slot, *m_world, fullEffectsRandom, m_particles.get(), 0.0f);
-    EXPECT_TRUE(CutAt(beforePose, "0x433339")) << (beforePose.HasValue() ? "" : beforePose.Error());
-    EXPECT_FALSE(m_world->DrawTail().ribbons[0].alive);
-    EXPECT_EQ(m_world->PoseCarry().models.count(type1ae.type), 0u);
+    ASSERT_TRUE(beforePose.HasValue()) << beforePose.Error();
+    const auto& tide = m_world->Map().effects.Effects()[0];
+    EXPECT_TRUE(tide.alive);
+    EXPECT_EQ(tide.type, 0x145);
+    EXPECT_EQ(tide.subtype, 2);
+    EXPECT_EQ(tide.life, 30);
+    EXPECT_FLOAT_EQ(tide.transform.scale, 0);
+    EXPECT_EQ(tide.ownerContext, &type1ae);
+    EXPECT_EQ(m_world->DrawTail().ribbons[0].count, 10);
+    EXPECT_EQ(m_world->PoseCarry().models.count(type1ae.type), 1u);
 
     FillModelEffects();
+    m_world->DrawTail().ribbons = {};
+    m_world->PoseCarry() = {};
     CrtRandom noEffect(1);
     const auto fullEffectPool =
         Client::Scenes::StepTheSwingsOf1abTo1b4(type1ae, Slot, *m_world, noEffect, m_particles.get(), 0.0f);
@@ -1523,5 +1566,83 @@ TEST_F(MonsterHelpersTest, SwingEffectsCutOnlyWhenTheModelEffectPoolHasRoom)
     EXPECT_TRUE(m_world->DrawTail().ribbons[0].alive);
     EXPECT_EQ(m_world->DrawTail().ribbons[0].count, 10);
     EXPECT_EQ(m_world->PoseCarry().models.count(type1ae.type), 1u);
+}
+TEST_F(MonsterHelpersTest, DeathSpiritSwingReadsItsTargetBeforeFourOrderedReservations)
+{
+    m_models.ResizeBones(90);
+    ActorState& actor = Monster(0x1af, 4, 4.7f);
+    actor.angles = {10, 20, 30};
+    actor.scale = 2;
+    actor.attackTarget = 2;
+    auto& target = m_world->Actors()[2];
+    target.boundsTop = 123;
+    target.dword60 = 12;
+    for (const std::size_t capacity : {0u, 1u, 2u, 3u, 4u})
+    {
+        SCOPED_TRACE(capacity);
+        ClearParticles();
+        FillModelEffects();
+        m_world->DrawTail().ribbons = {};
+        for (std::size_t i = 0; i < capacity; ++i)
+            m_world->Map().effects.Effects()[i].alive = false;
+        CrtRandom random(7);
+        const auto result =
+            Client::Scenes::StepTheSwingsOf1abTo1b4(actor, Slot, *m_world, random, m_particles.get(), 0);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(random.State(), AfterDraws(7, static_cast<int>(1 + 3 * (capacity / 2))).State());
+        EXPECT_EQ(m_world->DrawTail().ribbons[0].count, 10);
+        for (std::size_t i = 0; i < capacity; ++i)
+        {
+            const auto& effect = m_world->Map().effects.Effects()[i];
+            EXPECT_EQ(effect.type, 0x147);
+            EXPECT_EQ(effect.subtype, static_cast<int>(i % 2));
+            EXPECT_EQ(effect.ownerContext, &target);
+            EXPECT_EQ(effect.transform.position, (glm::vec3{260, 200, 100}));
+            EXPECT_EQ(effect.transform.angles, (glm::vec3{0, 0, i < 2 ? 120.0f : -60.0f}));
+            EXPECT_EQ(effect.life, i % 2 == 0 ? 30 : 12);
+            if (i % 2 == 0)
+            {
+                EXPECT_EQ(effect.start, (glm::vec3{0, 0, 123}));
+            }
+        }
+        EXPECT_EQ(LiveParticles().size(), capacity / 2);
+    }
+    for (const bool full : {false, true})
+    {
+        ClearModelEffects();
+        if (full)
+            FillModelEffects();
+        actor.attackTarget = 0xffff;
+        m_world->DrawTail().ribbons = {};
+        CrtRandom random(7);
+        const auto result =
+            Client::Scenes::StepTheSwingsOf1abTo1b4(actor, Slot, *m_world, random, m_particles.get(), 0);
+        EXPECT_TRUE(CutAt(result, "0x4335f6"));
+        EXPECT_EQ(random.State(), AfterDraws(7, 1).State());
+        EXPECT_EQ(m_world->DrawTail().ribbons[0].count, 10);
+    }
+}
+TEST_F(MonsterHelpersTest, DeathSpiritSwingUsesBothAttackActionsAndStrictFrameEndpoints)
+{
+    m_models.ResizeBones(90);
+    FillParticles();
+    for (const std::uint8_t action : {std::uint8_t{2}, std::uint8_t{3}, std::uint8_t{4}})
+        for (const float frame : {4.5f, 4.7f, 5.0f})
+        {
+            SCOPED_TRACE(testing::Message() << static_cast<int>(action) << ":" << frame);
+            ClearModelEffects();
+            m_world->DrawTail().ribbons = {};
+            ActorState& actor = Monster(0x1af, action, frame);
+            actor.attackTarget = 2;
+            CrtRandom random(7);
+            const auto result =
+                Client::Scenes::StepTheSwingsOf1abTo1b4(actor, Slot, *m_world, random, m_particles.get(), 0);
+            ASSERT_TRUE(result.HasValue()) << result.Error();
+            const std::size_t expected = action != 2 && frame > 4.5f && frame < 5 ? 4u : 0u;
+            EXPECT_EQ(static_cast<std::size_t>(std::ranges::count_if(m_world->Map().effects.Effects(),
+                                                                     [](const auto& effect) { return effect.alive; })),
+                      expected);
+            EXPECT_EQ(random.State(), AfterDraws(7, 1).State());
+        }
 }
 } // namespace

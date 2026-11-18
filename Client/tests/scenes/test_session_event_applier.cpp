@@ -33,21 +33,29 @@
 #include "World/GameCamera.h"
 
 #include "support/Bytes.h"
+#include "support/FakeClock.h"
+#include "support/FakeSocket.h"
 #include "support/Packets.h"
 #include "support/PlayerActors.h"
+#include "support/RecordingSessionEventSink.h"
 #include "support/RecordingSink.h"
 #include "support/SameBytes.h"
 #include "support/SessionHarness.h"
 #include "support/SessionPackets.h"
+#include "support/TemporaryFolder.h"
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <memory>
 #include <optional>
 #include <span>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace
@@ -55,7 +63,16 @@ namespace
 // El aplicador con lo suyo: sin datos (dataRoot vacío) y con Player.bmd.
 struct Applier
 {
-    Applier()
+    explicit Applier(std::filesystem::path dataRoot = {})
+        : applier(Client::Scenes::WorldEntryResources{.world = world,
+                                                      .selection = selection,
+                                                      .dataRoot = std::move(dataRoot),
+                                                      .cloth = cloth,
+                                                      .camera = camera,
+                                                      .cameraInput = input,
+                                                      .models = models,
+                                                      .log = log,
+                                                      .scene = [this] { return scene; }})
     {
         models.Set(Client::Data::Models::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
     }
@@ -69,20 +86,13 @@ struct Applier
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
     std::optional<Client::Scenes::SceneId> scene;
-    Client::Scenes::SessionEventApplier applier{Client::Scenes::WorldEntryResources{.world = world,
-                                                                                    .selection = selection,
-                                                                                    .dataRoot = {},
-                                                                                    .cloth = cloth,
-                                                                                    .camera = camera,
-                                                                                    .cameraInput = input,
-                                                                                    .models = models,
-                                                                                    .log = log,
-                                                                                    .scene = [this] { return scene; }}};
+    Client::Scenes::SessionEventApplier applier;
 };
 
 TEST(SessionEventApplierTest, AppliesAnEmptyCharacterListImmediately)
 {
-    Applier tested;
+    auto owned = std::make_unique<Applier>();
+    Applier& tested = *owned;
     Client::Tests::LoggedInSession online;
     const Client::App::CharacterEvent event = Client::App::CharacterListReceived{};
     ASSERT_TRUE(tested.applier.ApplyCharacter(event, online.session).HasValue());
@@ -91,7 +101,8 @@ TEST(SessionEventApplierTest, AppliesAnEmptyCharacterListImmediately)
 
 TEST(SessionEventApplierTest, PropagatesTheActualSelectionConstructionFailure)
 {
-    Applier tested;
+    auto owned = std::make_unique<Applier>();
+    Applier& tested = *owned;
     Client::Tests::LoggedInSession online;
     const Client::App::CharacterEvent event = Client::App::CharacterCreated{};
     const auto result = tested.applier.ApplyCharacter(event, online.session);
@@ -106,7 +117,8 @@ TEST(SessionEventApplierTest, PropagatesTheActualSelectionConstructionFailure)
 
 TEST(SessionEventApplierTest, AnEmptyInventoryGoesToTheNativeApplier)
 {
-    Applier tested;
+    auto owned = std::make_unique<Applier>();
+    Applier& tested = *owned;
     Client::Tests::LoggedInSession online;
     tested.world.OwnCharacter().equipment[3].id = 7;
     tested.world.Inventory().cells[5].id = 7;
@@ -129,7 +141,8 @@ TEST(SessionEventApplierTest, AnEmptyInventoryGoesToTheNativeApplier)
 
 TEST(SessionEventApplierTest, AClearInventoryRunsOnlyTheCommonInitialization)
 {
-    Applier tested;
+    auto owned = std::make_unique<Applier>();
+    Applier& tested = *owned;
     Client::Tests::LoggedInSession online;
     tested.world.OwnCharacter().equipment[3].id = 7;
     tested.world.Inventory().cells[5].id = 7;
@@ -148,7 +161,8 @@ TEST(SessionEventApplierTest, AClearInventoryRunsOnlyTheCommonInitialization)
 
 TEST(SessionEventApplierTest, TheWorldEntryGoesToTheNativeApplier)
 {
-    Applier tested;
+    auto owned = std::make_unique<Applier>();
+    Applier& tested = *owned;
     Client::Tests::LoggedInSession online;
     Client::Protocol::Character::CharacterSelectResult reply;
     reply.zen = 1234;
@@ -168,7 +182,8 @@ TEST(SessionEventApplierTest, TheWorldEntryGoesToTheNativeApplier)
 
 TEST(SessionEventApplierTest, TheReturnToSelectionGoesToTheNativeApplier)
 {
-    Applier tested;
+    auto owned = std::make_unique<Applier>();
+    Applier& tested = *owned;
     Client::Tests::LoggedInSession online;
     ASSERT_TRUE(tested.applier.ApplyCharacter(Client::App::CharacterListReceived{}, online.session).HasValue());
     ASSERT_TRUE(tested.selection.HasReceivedList());
@@ -180,6 +195,12 @@ TEST(SessionEventApplierTest, TheReturnToSelectionGoesToTheNativeApplier)
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(tested.world.Runtime().orderedScene, Client::Scenes::SceneId::CharacterSelect);
+    EXPECT_EQ(tested.world.Runtime().map, 0);
+    EXPECT_TRUE(tested.world.Runtime().drawingEnabled);
+    EXPECT_EQ(tested.cloth.random.State(), 1u);
+    EXPECT_TRUE(tested.selection.HasReceivedList());
+    const auto completed = tested.applier.ApplyWorld(Client::App::SelectionWorldReset{}, online.session);
+    ASSERT_TRUE(completed.HasValue()) << completed.Error();
     EXPECT_EQ(tested.world.Runtime().map, -1);
     EXPECT_FALSE(tested.world.Runtime().drawingEnabled);
     EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(1, 0xf08).State());
@@ -189,7 +210,8 @@ TEST(SessionEventApplierTest, TheReturnToSelectionGoesToTheNativeApplier)
 
 TEST(SessionEventApplierTest, WalkAndDamageReachTheirAppliersWithoutFallingThroughToF303)
 {
-    Applier tested;
+    auto owned = std::make_unique<Applier>();
+    Applier& tested = *owned;
     Client::Tests::LoggedInSession online;
     const Client::App::WorldEvent walk = Client::Protocol::Movement::Walk{42, {30, 31}, 15};
     const Client::App::WorldEvent damage = Client::Protocol::Movement::Damage{42, false, 50, 0, false};
@@ -267,7 +289,8 @@ TEST(SessionEventApplierTest, ADiscardedEventPacketIsLoggedAndTheSessionGoesOn)
 
 TEST(SessionEventApplierTest, The00InTheLoginAsksForTheListThroughTheGameServer)
 {
-    Applier tested;
+    auto owned = std::make_unique<Applier>();
+    Applier& tested = *owned;
     Client::Tests::LoggedInSession online;
     ASSERT_NO_FATAL_FAILURE(online.LogIn());
     const std::size_t sent = online.socket.sent.size();
@@ -314,7 +337,8 @@ TEST(SessionEventApplierTest, TheCastlePacketsReachTheirApplierAndSendThroughThe
 
 TEST(SessionEventApplierTest, TeleportUsesTheCursorGuardBeforeTouchingTheHero)
 {
-    Applier tested;
+    auto owned = std::make_unique<Applier>();
+    Applier& tested = *owned;
     Client::Tests::LoggedInSession online;
     tested.world.Runtime().cursorItemCount = 1;
     const Client::App::WorldEvent event = Client::Protocol::World::Teleport{23, 0, 30, 31, 0};
@@ -468,4 +492,89 @@ TEST(SessionEventApplierTest, TheShortFloorItemRepliesReachTheirReleases)
 }
 
 // 0x4cb750: el 18 de otro llega a ApplyActionReply, y el C1 18 de sentarse que dispara (0x4f2250) sale por la sesión.
+TEST(SessionEventApplierTest, EveryPostLoginHelloClearsOnlyGuildKeysAndTheCount)
+{
+    auto owned = std::make_unique<Applier>();
+    auto& tested = *owned;
+    Client::Tests::LoggedInSession online;
+    auto& guild = tested.world.Runtime().guild;
+    guild.tableCount = 2;
+    guild.table[0].key = 42;
+    guild.table[1999].key = 77;
+    guild.table[0].mark[0] = 15;
+    const auto before = tested.cloth.random.State();
+    const auto applied = tested.applier.ApplyWorld(Client::App::GuildTableReset{}, online.session);
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
+    EXPECT_EQ(guild.tableCount, 0);
+    for (const auto& entry : guild.table)
+        EXPECT_EQ(entry.key, -1);
+    EXPECT_EQ(guild.table[0].mark[0], 15);
+    EXPECT_EQ(tested.cloth.random.State(), before);
+}
+
+TEST(SessionEventApplierTest, TheMapSwitchReconnectsWhenTheMacrosCannotBeSaved)
+{
+    Client::Tests::TemporaryFolder data{"map-switch-macro-error"};
+    ASSERT_TRUE(std::filesystem::create_directory(data.Path() / "Macro.txt"));
+    const auto tested = std::make_unique<Applier>(data.Path());
+    Client::Tests::LoggedInSession online;
+    ASSERT_NO_FATAL_FAILURE(online.LogIn());
+    online.session.RequestCharacterList();
+    online.ReceiveTheList({{0, "char0001"}});
+    online.session.ChooseCharacter(std::uint8_t{0});
+    ASSERT_NE(online.session.ChosenCharacter(), nullptr);
+    online.eventSink.onWorld = [&tested](const Client::App::WorldEvent& event, Client::App::ServerSession& session)
+    { return tested->applier.ApplyWorld(event, session); };
+
+    auto wire = Client::Tests::Bytes({0xc1, 0x28, 0xb1, 0, '1', '0', '.', '0', '.', '0', '.', '3'});
+    wire.resize(0x28);
+    wire[20] = std::byte{0x6f};
+    wire[21] = std::byte{0xda};
+    const auto previous = online.socket.connects.size();
+    const auto before = tested->cloth.random.State();
+    online.socket.reads = {std::move(wire)};
+    static_cast<void>(online.session.Poll());
+
+    ASSERT_EQ(online.session.State(), Client::App::SessionState::ConnectingGameServer);
+    ASSERT_EQ(online.socket.connects.size(), previous + 1u);
+    EXPECT_EQ(online.socket.connects.back().host, "10.0.0.3");
+    EXPECT_EQ(online.socket.connects.back().port, 55919);
+    ASSERT_FALSE(online.clock.Sleeps().empty());
+    EXPECT_EQ(online.clock.Sleeps().back(), std::chrono::milliseconds(20));
+    EXPECT_EQ(tested->cloth.random.State(), Client::Tests::AfterDraws(before, 0xf08).State());
+    EXPECT_TRUE(std::ranges::any_of(tested->sink.lines, [](const std::string& line)
+                                    { return line.find("Macro.txt") != std::string::npos; }));
+}
+
+TEST(SessionEventApplierTest, TheMapJoinResetsTheWorldBeforeTheAuthenticationRandoms)
+{
+    auto owned = std::make_unique<Applier>();
+    auto& tested = *owned;
+    Client::Tests::LoggedInSession online;
+    auto& runtime = tested.world.Runtime();
+    runtime.map = 30;
+    runtime.events.soccer.active = true;
+    runtime.siegeBattleUi.clock.hours = 3;
+    runtime.siegeBattleUi.clock.minutes = 7;
+    runtime.siegeBattleUi.clock.tick = 99;
+    tested.world.Actors()[1].alive = true;
+    tested.world.Actors()[1].key = 123;
+    tested.world.Actors()[2].alive = true;
+    tested.world.Actors()[2].key = 0xffff;
+    auto applied = tested.applier.ApplyWorld(Client::App::MapServerJoined{}, online.session);
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
+    EXPECT_FALSE(tested.world.Actors()[1].alive);
+    EXPECT_TRUE(tested.world.Actors()[2].alive);
+    EXPECT_EQ(runtime.map, -1);
+    EXPECT_FALSE(runtime.events.soccer.active);
+    EXPECT_EQ(runtime.siegeBattleUi.clock.blink, 1);
+    EXPECT_EQ(runtime.siegeBattleUi.clock.hours, 3u);
+    EXPECT_EQ(runtime.siegeBattleUi.clock.minutes, 7u);
+    EXPECT_EQ(runtime.siegeBattleUi.clock.tick, 99u);
+    EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(1, 0xf08).State());
+    applied = tested.applier.ApplyWorld(Client::App::MapServerAuthenticationPrepared{}, online.session);
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
+    EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(1, 0xf08 + 2).State());
+}
+
 } // namespace

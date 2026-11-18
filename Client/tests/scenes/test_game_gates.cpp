@@ -9,6 +9,13 @@
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "Scenes/GameDialogSteps.h"
+#include "Protocol/OptionData.h"
+#include "Protocol/Outgoing.h"
+#include "Network/Crypto/Xor32.h"
+#include "UI/MacroFile.h"
+#include "support/Bytes.h"
+#include "support/SameBytes.h"
 #include "support/GateFiles.h"
 #include "support/GoldenDir.h"
 #include "support/FileBytes.h"
@@ -256,6 +263,92 @@ TEST(GameGatesTest, SiegeMacroBoundaryOccursAfterSendAndWaitBeforePendingAndTarg
     EXPECT_EQ(tested.world->Runtime().selectedTargets[0], 9);
     EXPECT_EQ(tested.world->Runtime().movement.movementTarget, 8);
 }
+// 0x59ad2a..0x59ad73: el F3 30 y Macro.txt van después del pedido y la espera, antes de pending/objetivos.
+TEST(GameGatesTest, SiegeDestinationsSaveOptionsAndMacrosBeforeCleaningTheTargets)
+{
+    for (const std::uint8_t map : {std::uint8_t{30}, std::uint8_t{31}})
+    {
+        GateRecord destination{};
+        destination.map = map;
+        Harness tested({{23, Entry}, {2, destination}});
+        auto& world = *tested.world;
+        auto& runtime = world.Runtime();
+        runtime.selectedTargets.fill(9);
+        runtime.movement.movementTarget = 8;
+        world.OwnCharacter().skillKeys[0].fill(0xff);
+        world.OwnCharacter().skillKeys[0][0] = 3;
+        world.OwnCharacter().words6c[0] = 0x44332211u;
+        runtime.ui.autoAttack = false;
+        runtime.chat.noticeSound = true;
+        runtime.chat.slidesOn = false;
+        runtime.hud.quickSlots.types = {0x1c01, 0x1c05, 0x1c09};
+        runtime.ui.chatModes.placement = 1;
+        runtime.chat.log.rows = 9;
+        runtime.chat.log.alpha = 0.5f;
+        runtime.chat.input.macros[0] = "uno";
+        std::vector<Client::Protocol::Outgoing> options;
+        std::string macros;
+        tested.context.saveOptionsAndMacros = [&]() -> Client::Core::Expected<void, std::string>
+        {
+            EXPECT_EQ(tested.sent, (std::vector<std::uint8_t>{23}));
+            EXPECT_EQ(runtime.warpCounter, 9'999'999);
+            EXPECT_EQ(runtime.ownRecordDepth, 1);
+            EXPECT_FALSE(runtime.movement.warpPending);
+            EXPECT_EQ(runtime.selectedTargets[0], 9);
+            EXPECT_EQ(runtime.movement.movementTarget, 8);
+            EXPECT_EQ(tested.random.State(), AfterDraws(1, 28).State());
+            auto body = Client::Scenes::OptionBodyOf(world, tested.random, std::uint8_t{0});
+            if (!body.HasValue())
+                return Client::Core::Unexpected(std::move(body).Error());
+            options.push_back(Client::Protocol::OptionData::WriteOptionData(body.Value()));
+            macros = Client::UI::WrittenMacros(runtime.chat.input.macros);
+            // 61c210 abre/cierra dentro del acceso de599ef0: el cierre interior no consume3.848 rand().
+            EXPECT_EQ(runtime.ownRecordDepth, 1);
+            EXPECT_EQ(tested.random.State(), AfterDraws(1, 28).State());
+            return {};
+        };
+
+        auto result = CheckGameGates(tested.context);
+
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        ASSERT_EQ(options.size(), 1u);
+        EXPECT_TRUE(Client::Tests::SameBytes(
+            Client::Network::Crypto::Xor32Decode(options.front().packet).Bytes(),
+            Client::Tests::Bytes({0xc1, 0x1c, 0xf3, 0x30, 0,    0, 0, 0x11, 0, 0, 0, 0, 0, 0,
+                                  0x16, 1,    5,    9,    0x35, 0, 0, 0,    0, 0, 0, 0, 0, 0})));
+        EXPECT_EQ(macros, "uno\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n");
+        EXPECT_TRUE(runtime.movement.warpPending);
+        EXPECT_EQ(runtime.selectedTargets, (std::array<std::int32_t, 5>{-1, -1, -1, -1, -1}));
+        EXPECT_EQ(runtime.movement.movementTarget, 0);
+        EXPECT_EQ(runtime.ownRecordDepth, 0);
+        EXPECT_EQ(tested.random.State(), AfterDraws(1, 28 + 3848).State());
+    }
+}
+
+TEST(GameGatesTest, AFailedMacroWritePreservesTheNativePrefixBeforeTheTargetCleanup)
+{
+    GateRecord destination{};
+    destination.map = 31;
+    Harness tested({{23, Entry}, {2, destination}});
+    auto& runtime = tested.world->Runtime();
+    runtime.selectedTargets.fill(9);
+    runtime.movement.movementTarget = 8;
+    tested.context.saveOptionsAndMacros = []() -> Client::Core::Expected<void, std::string>
+    { return Client::Core::Unexpected(std::string("Macro.txt no abre")); };
+
+    auto result = CheckGameGates(tested.context);
+
+    ASSERT_FALSE(result.HasValue());
+    EXPECT_EQ(result.Error(), "Macro.txt no abre");
+    EXPECT_EQ(tested.sent, (std::vector<std::uint8_t>{23}));
+    EXPECT_EQ(runtime.warpCounter, 9'999'999);
+    EXPECT_FALSE(runtime.movement.warpPending);
+    EXPECT_EQ(runtime.selectedTargets[0], 9);
+    EXPECT_EQ(runtime.movement.movementTarget, 8);
+    EXPECT_EQ(runtime.ownRecordDepth, 0);
+    EXPECT_EQ(tested.random.State(), AfterDraws(1, 28 + 3848).State());
+}
+
 TEST(GameGatesTest, AtlansChecksTheAlternateMountOnlyWithAPositiveCursorCount)
 {
     Harness inactive({{45, Entry}});

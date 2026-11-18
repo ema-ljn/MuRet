@@ -914,15 +914,18 @@ TEST(AttackSkillCasesTest, TheSparkCutsAtItsFirstParticle)
     EXPECT_TRUE(HasError(sparked, "0x52e77b")) << ErrorOf(sparked);
     EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
 }
-// 501494→51fff0: H3 ya proporciona el estallido que precede a las piedras pendientes.
+// 501494→51fff0: el estallido y las piedras preceden al efecto 0xf6.
 TEST(AttackSkillCasesTest, Skill0eRunsTheBurstBeforeTheNextCapability)
 {
     SkillWorld tested;
     tested.withParticles = true;
     const auto used = tested.Head(0x0e);
     ASSERT_FALSE(used.HasValue());
-    EXPECT_NE(used.Error().find("0x520119"), std::string::npos) << used.Error();
+    EXPECT_NE(used.Error().find("0x5014da"), std::string::npos) << used.Error();
     EXPECT_TRUE(std::ranges::any_of(tested.world.Particles().All(), [](const auto& p) { return p.alive; }));
+    EXPECT_EQ(
+        std::ranges::count_if(tested.world.Map().effects.Effects(), [](const auto& effect) { return effect.alive; }),
+        16);
     for (auto& effect : tested.world.Map().effects.Effects())
         effect.alive = true;
     for (auto& particle : tested.world.Particles().All())

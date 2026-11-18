@@ -5,6 +5,11 @@
 #include <bit>
 #include <cstdint>
 
+namespace Client::Data::Terrain
+{
+struct TerrainAttributes;
+}
+
 namespace Client::World
 {
 class ITerrainAttributeQuerySource;
@@ -24,4 +29,7 @@ enum class TerrainAttributeQueryError
 // El error marca una dirección final fuera de la tabla prestada; no es una guarda nativa.
 [[nodiscard]] Core::Expected<std::uint32_t, TerrainAttributeQueryError>
 TerrainAttributeQueryAt(ITerrainAttributeQuerySource& source, float x, float y);
+// Consulta del mundo canónico con el factor de6ba110, sin proveedor mutable externo.
+[[nodiscard]] Core::Expected<std::uint32_t, TerrainAttributeQueryError>
+TerrainAttributeQueryAt(const Data::Terrain::TerrainAttributes& attributes, float x, float y);
 } // namespace Client::World

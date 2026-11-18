@@ -24,11 +24,11 @@ inline constexpr std::int32_t TorchSmokeSubtype = 6;
 // 0x5436fe (6ab): vida rand() % 5 + 20 y giro 0; con el subtipo 0, la escala (rand() % 10) · 0,02f + 0,5 y la
 // velocidad ((rand() % 10 + 5) · 0,4f; (rand() % 10 − 5) · 0,4f; (rand() % 10 + 5) · 0,2f); con otro, la escala
 // (rand() % 10) · 0,1f + 1 y la velocidad con 0,2f, 0,2f y 0,1f.
-// 0x543a5d (6ac/0 y 6ac/2): vida rand() % 5 + 25, escala 0,5, giro rand() % 360 y velocidad ((rand() % 10 + 5) · 0,4f;
-// 0; (rand() % 10 + 5) · 0,2f); después cae en el caso del 6ec (0x543ae3), que deja la vida en 24 y vuelve a
+// 0x543a5d (6ac/0,6ac/1 y 6ac/2): vida rand() % 5 + 25, escala 0,5, giro rand() % 360 y velocidad ((rand() % 10 + 5) ·
+// 0,4f; 0; (rand() % 10 + 5) · 0,2f); después cae en el caso del 6ec (0x543ae3), que deja la vida en 24 y vuelve a
 // tirar la x ((rand() % 10 − 5) · 0,4f) y la z ((rand() % 10 + 5) · 0,2f); el inicio (+0x6c) queda en la
-// posición. 0x54327b (622/6): vida rand() % 5 + 25, escala 0,2f, giro rand() % 360 y la velocidad de la 6ac
-// antes del 6ec. Cada producto de la x87 se guarda en float.
+// posición. La /1 cambia sólo su escala inicial a argumento·0,5 (0x543a84). 0x54327b (622/6): vida rand() % 5 + 25,
+// escala 0,2f, giro rand() % 360 y la velocidad de la 6ac antes del 6ec. Cada producto de la x87 se guarda en float.
 void CreateBloodCastleParticle(Particle& particle, Render::Models::CrtRandom& random);
 
 // Después de la vida y el movimiento comunes de 0x5446e0, las tres suman la velocidad a la posición y frenan la x

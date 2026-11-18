@@ -6,33 +6,46 @@
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
+#include "Data/Tables/SkillTable.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Text/NpcNames.h"
 #include "Data/Text/TextTable.h"
+#include "Protocol/CastleBattle.h"
+#include "Protocol/Outgoing.h"
 #include "Protocol/Viewport.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorCreation.h"
+#include "Scenes/ActorPickingBox.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CastleBattleReceive.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/FaunaModels.h"
+#include "Scenes/GameDrawTail.h"
+#include "World/Particles.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/MonsterCreation.h"
 #include "Scenes/MonsterKinds.h"
 #include "Scenes/NpcNames.h"
 #include "Scenes/SelectionState.h"
+#include "Scenes/GameMovement.h"
 #include "Scenes/GameMovementState.h"
+#include "Scenes/GameUi.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
+#include "World/ModelEffects.h"
+#include "World/TerrainPickingSegment.h"
 #include "World/TerrainWalls.h"
 #include "World/WorldTerrain.h"
 
+#include "support/Bytes.h"
 #include "support/FakeTextureStore.h"
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"
 #include "support/ItemSetFiles.h"
+#include "support/Packets.h"
 #include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
 #include "support/SceneDataFiles.h"
@@ -206,6 +219,44 @@ protected:
     [[nodiscard]] Client::Core::Expected<void, std::string> Monsters(std::span<const MonsterRecordBytes> records)
     {
         return Client::Scenes::ApplyViewportMonsters(ReadMonsters(records), game->Resources());
+    }
+
+    void ClickVisibleSiegeNpc(const Client::Data::Tables::SkillTable& skills, std::int16_t key)
+    {
+        auto& runtime = game->world.Runtime();
+        auto& npc = Actor(1);
+        auto& hero = Actor(0);
+        hero.position = npc.position;
+        hero.alpha = 1.0f;
+        hero.cellX = npc.cellX;
+        hero.cellY = npc.cellY;
+        // Estado del último dibujo: caja del actor creado y un rayo que la atraviesa.
+        npc.seen = true;
+        npc.alpha = 1;
+        Client::Scenes::PublishPickingBox(npc, npc.position, npc.boundsMin,
+                                          {npc.boundsMaxX, npc.boundsMaxY, npc.boundsTop});
+        const glm::vec3 offset{0, 0, 500};
+        const auto picked = Client::Scenes::PickInTheFrame(
+            {.world = game->world,
+             .random = game->cloth.random,
+             .ownRecordDepth = runtime.ownRecordDepth,
+             .targets = runtime.selectedTargets,
+             .ray = Client::World::TerrainPickingSegment{npc.position + offset, npc.position - offset}});
+        ASSERT_TRUE(picked.HasValue()) << picked.Error();
+        ASSERT_EQ(runtime.selectedTargets[1], 1);
+        ASSERT_EQ(runtime.selectedTargets[3], -1);
+        std::vector<std::int16_t> talkKeys;
+        runtime.movement.mouseUpdateTime = 6;
+        const auto clicked =
+            Client::Scenes::StepHeroMovement({.world = game->world,
+                                              .random = game->cloth.random,
+                                              .playerSkeleton = game->models.SkeletonOf(PlayerSkeletonModel),
+                                              .items = &game->items,
+                                              .skills = &skills,
+                                              .input = {.leftPressed = true, .leftDown = true},
+                                              .sendTalk = [&](std::int16_t talked) { talkKeys.push_back(talked); }});
+        ASSERT_TRUE(clicked.HasValue()) << clicked.Error();
+        ASSERT_EQ(talkKeys, (std::vector<std::int16_t>{key}));
     }
 
     [[nodiscard]] Client::Core::Expected<void, std::string> Summons(std::span<const SummonRecordBytes> records)
@@ -523,6 +574,137 @@ TEST_F(MonsterViewportTest, TheCastleSiegeCreatorDrawsAfterTheCreation)
     }
 }
 
+// 0x59e700 elige el interruptor o la catapulta como NPC. El clic de 0x59daaf le habla en 0x568f54;
+// el B2 11 o B7 00 del servidor elige qué puerta o arma abrir (0x44f120 / 0x44dd10).
+TEST_F(MonsterViewportTest, TheSiegeSwitchAndBothCatapultsCanBePickedForTalkAndOpenedByTheServer)
+{
+    constexpr std::uint16_t key = 0x1234;
+    constexpr std::uint16_t gateKey = 0x5678;
+    const auto file = DataFile("Local\\Skill.bmd");
+    ASSERT_TRUE(file.has_value());
+    const auto bytes = Client::Tests::ReadFileBytes(*file);
+    ASSERT_TRUE(bytes.has_value());
+    const auto skills = Client::Data::Tables::LoadSkillTable(std::as_bytes(std::span(*bytes)));
+    ASSERT_TRUE(skills.HasValue());
+    struct Control
+    {
+        std::uint16_t npc;
+        std::uint8_t weaponMode;
+    };
+    for (const auto [type, mode] : std::array{Control{219, 0}, Control{221, 1}, Control{222, 2}})
+    {
+        SCOPED_TRACE(type);
+        Load(30);
+        auto& runtime = game->world.Runtime();
+        runtime.siegeActive = true;
+        runtime.quest.characterClass = 0;
+        const Cell cell = FreeRow();
+        const std::array<MonsterRecordBytes, 1> records{
+            {{.key = key, .typeLow = Byte(type), .x = cell.x, .y = cell.y, .targetX = cell.x, .targetY = cell.y}}};
+        const auto created = Monsters(records);
+        ASSERT_TRUE(created.HasValue()) << created.Error();
+        ASSERT_NO_FATAL_FAILURE(ClickVisibleSiegeNpc(skills.Value(), key));
+        ASSERT_EQ(runtime.panels.delegated.siegeGate, 0);
+        ASSERT_EQ(runtime.panels.delegated.siegeWeapon, 0);
+        if (mode == 0)
+        {
+            const std::uint8_t x = Byte(cell.x + 3);
+            const std::array<MonsterRecordBytes, 1> gate{{{.key = gateKey,
+                                                           .typeHigh = 1,
+                                                           .typeLow = 0x15,
+                                                           .effects = 0x20000,
+                                                           .x = x,
+                                                           .y = cell.y,
+                                                           .targetX = x,
+                                                           .targetY = cell.y}}};
+            const auto placed = Monsters(gate);
+            ASSERT_TRUE(placed.HasValue()) << placed.Error();
+            ASSERT_EQ(Actor(2).key, gateKey);
+        }
+        const auto wire = mode == 0 ? Client::Tests::Bytes({0xc1, 7, 0xb2, 0x11, 1, 0x56, 0x78})
+                                    : Client::Tests::Bytes({0xc1, 8, 0xb7, 0, 1, mode, 0x12, 0x34});
+        const auto reply = Client::Protocol::CastleBattle::ReadCastleBattlePacket(Client::Tests::PacketOf(wire));
+        ASSERT_TRUE(reply.HasValue());
+        std::size_t extraSends = 0;
+        const auto opened = Client::Scenes::ApplyCastleBattlePacket(
+            reply.Value(), {.world = game->world,
+                            .random = game->cloth.random,
+                            .log = game->log,
+                            .send = [&](Client::Protocol::Outgoing) { ++extraSends; }});
+        EXPECT_EQ(extraSends, 0u);
+        ASSERT_TRUE(opened.HasValue()) << opened.Error();
+        EXPECT_EQ(runtime.panels.delegated.siegeGate, mode == 0 ? 1 : 0);
+        EXPECT_EQ(runtime.panels.delegated.siegeWeapon, mode);
+        if (mode == 0)
+        {
+            EXPECT_EQ(runtime.siegeBattleUi.gateKey, gateKey);
+            EXPECT_EQ(runtime.siegeBattleUi.gateState, 0x20000u);
+        }
+        else
+            EXPECT_EQ(runtime.siegeBattleUi.weaponKey, key);
+    }
+}
+
+// 42d513 y 42d5af publican el actor tanto con espacio para la señal como con el pool lleno.
+TEST_F(MonsterViewportTest, CastleSiegePublishesTheActorsWithOneOrNoFreeArrivalSlots)
+{
+    struct Kind
+    {
+        std::uint16_t wire;
+        std::uint16_t model;
+    };
+    constexpr std::array kinds{Kind{278, 0x1a8}, Kind{283, 0x19c}};
+    constexpr std::uint16_t key = 0x0123;
+    for (const auto& [wire, model] : kinds)
+    {
+        SCOPED_TRACE(wire);
+        // Un solo slot disponible alcanza para que 518cf0 entre al efecto 134/0.
+        Load(30);
+        auto effects = game->world.Map().effects.Effects();
+        for (auto& effect : effects)
+            effect.alive = true;
+        effects.back().alive = false;
+        const Cell cell = FreeRow();
+        const std::array<MonsterRecordBytes, 1> records{{{.key = key,
+                                                          .typeHigh = Byte(wire >> 8),
+                                                          .typeLow = Byte(wire),
+                                                          .x = cell.x,
+                                                          .y = cell.y,
+                                                          .targetX = cell.x,
+                                                          .targetY = cell.y}}};
+        const auto withSpace = Monsters(records);
+        ASSERT_TRUE(withSpace.HasValue()) << withSpace.Error();
+        ASSERT_TRUE(Actor(1).alive);
+        EXPECT_EQ(Actor(1).key, key);
+        EXPECT_EQ(Actor(1).type, model);
+        EXPECT_TRUE(effects.back().alive);
+        EXPECT_EQ(effects.back().type, 0x134);
+        EXPECT_EQ(effects.back().ownerContext, &Actor(1));
+        EXPECT_EQ(effects.back().disturbanceState, 120);
+        EXPECT_EQ(effects.back().transform.position, Actor(1).position);
+        EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, WalkingRecordDraws).State());
+
+        // La misma alta con la tabla llena se completa sin tocar sus entradas vivas.
+        Load(30);
+        effects = game->world.Map().effects.Effects();
+        for (auto& effect : effects)
+        {
+            effect.alive = true;
+            effect.life = 42;
+        }
+
+        const auto applied = Monsters(records);
+
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        EXPECT_TRUE(Actor(1).alive);
+        EXPECT_EQ(Actor(1).key, key);
+        EXPECT_EQ(Actor(1).type, model);
+        EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, WalkingRecordDraws).State());
+        EXPECT_TRUE(std::ranges::all_of(effects, [](const Client::World::ModelEffect& effect)
+                                        { return effect.alive && effect.life == 42; }));
+    }
+}
+
 // 0x51443f, el 163 en Devil Square (9): el rand() del caso sale antes que los del alta y elige el .bmd, el modelo
 // (0x199 o 0x19a, con la caja de 0x5122d4) y el arma.
 TEST_F(MonsterViewportTest, TheRandomOfACaseCanGoBeforeTheCreation)
@@ -643,14 +825,13 @@ TEST_F(MonsterViewportTest, TheCreationLoadsTheModelsOfItsCase)
         std::uint16_t type;
         std::uint16_t model;
         const char* folder;
-        bool cuts;
     };
     const std::array<Case, 5> cases{{
-        {0, 3, 0x15b, "Monster\\", false},
-        {2, 19, 0x15e, "Monster\\", false},
-        {0, 251, 0x1ce, "Npc\\", false},
-        {18, 162, 0x198, "Npc\\", false},
-        {30, 283, 0x19c, "Object31\\", true},
+        {0, 3, 0x15b, "Monster\\"},
+        {2, 19, 0x15e, "Monster\\"},
+        {0, 251, 0x1ce, "Npc\\"},
+        {18, 162, 0x198, "Npc\\"},
+        {30, 283, 0x19c, "Object31\\"},
     }};
     for (const Case& tested : cases)
     {
@@ -665,7 +846,7 @@ TEST_F(MonsterViewportTest, TheCreationLoadsTheModelsOfItsCase)
                                                           .targetX = cell.x,
                                                           .targetY = cell.y}}};
         const auto applied = Monsters(records);
-        ASSERT_EQ(applied.HasValue(), !tested.cuts) << (applied.HasValue() ? "" : applied.Error());
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
         auto& models = game->world.FaunaResources();
         const auto* model = models.Find(tested.model);
         ASSERT_NE(model, nullptr);
@@ -675,10 +856,7 @@ TEST_F(MonsterViewportTest, TheCreationLoadsTheModelsOfItsCase)
         ASSERT_FALSE(requests.empty());
         EXPECT_TRUE(requests.front().path.starts_with(tested.folder)) << requests.front().path;
         EXPECT_GT(game->store.loadCalls, 0);
-        if (!tested.cuts)
-        {
-            EXPECT_EQ(Actor(1).type, tested.model);
-        }
+        EXPECT_EQ(Actor(1).type, tested.model);
         if (tested.model == 0x198)
         {
             // El 0x46 va por 0x613053: las acciones 3 y 4 en 0,5 y la 2 en 0,3; el hueso de la cabeza, 0x14.
@@ -733,7 +911,7 @@ TEST_F(MonsterViewportTest, TheMissingMonsterFileCutsBeforeTheCreation)
 }
 
 // 0x4c9790: el 85 pide el sonido 0x173; el 21 la acción 1 (0x4c97ff) con las acciones de Monster15.bmd, que su caso
-// cargó en el modelo 0x160 (0x612d90(0xe), P-C176), y el sonido 0x13. El 0x35 y el 0x154 cortan en 0x4c982b y 0x4c9883.
+// cargó en el modelo 0x160 (0x612d90(0xe), P-C176), y el sonido 0x13. El 0x35 todavía corta en 0x4c982b.
 TEST_F(MonsterViewportTest, TheNewArrivalsAskForTheirSoundOrAction)
 {
     Load(0);
@@ -767,13 +945,136 @@ TEST_F(MonsterViewportTest, TheNewArrivalsAskForTheirSoundOrAction)
     EXPECT_NE(arrived.Error().find("0x4c982b"), std::string::npos) << arrived.Error();
     arriving.word376 = 0x154;
     arrived = Client::Scenes::ArriveAsNew(arriving, game->Resources());
-    ASSERT_FALSE(arrived.HasValue());
-    EXPECT_NE(arrived.Error().find("0x4c9883"), std::string::npos) << arrived.Error();
+    ASSERT_TRUE(arrived.HasValue()) << arrived.Error();
+    EXPECT_EQ(arriving.alpha, 0.0f);
+}
+
+// 0x515f9c/515fbc y los casos 5147eb..514dcc: el contrato618/2,3 no depende de349 ni del mapa34.
+TEST_F(MonsterViewportTest, OrdinaryMonsterCreationAttachesBothOwnedBeamsInNativeOrder)
+{
+    for (const std::int32_t type : {53, 57, 58, 59, 60, 61, 62, 63, 82, 83, 300})
+    {
+        SCOPED_TRACE(type);
+        Load(0);
+        const Cell cell = FreeRow();
+        const auto created = Client::Scenes::CreateMonster(type, cell.x, cell.y, 100, game->Resources());
+        ASSERT_TRUE(created.HasValue()) << created.Error();
+        ActorState& actor = Actor(created.Value());
+        EXPECT_EQ(actor.word376, type);
+        auto& joints = game->world.DrawTail().joints;
+        for (std::size_t index = 0; index < 2; ++index)
+        {
+            EXPECT_TRUE(joints[index].alive);
+            EXPECT_EQ(joints[index].type, 0x618);
+            EXPECT_EQ(joints[index].subtype, static_cast<int>(index) + 2);
+            EXPECT_EQ(joints[index].ownerContext, &actor);
+            EXPECT_EQ(joints[index].ownerKind, Client::Scenes::JointOwnerKind::Actor);
+            EXPECT_EQ(joints[index].width, 30.0f);
+            EXPECT_EQ(joints[index].life, 999999999);
+        }
+        EXPECT_FALSE(joints[2].alive);
+        EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, ConstructionDraws).State());
+    }
+}
+
+TEST_F(MonsterViewportTest, OrdinaryCreationFinishesItsTailWithOneOrNoJointSlots)
+{
+    for (const std::size_t free : {std::size_t{0}, std::size_t{1}})
+    {
+        SCOPED_TRACE(free);
+        Load(0);
+        auto& joints = game->world.DrawTail().joints;
+        for (std::size_t index = free; index < joints.size(); ++index)
+            joints[index].alive = true;
+        const auto created = Client::Scenes::CreateMonster(53, 120, 120, 100, game->Resources());
+        ASSERT_TRUE(created.HasValue()) << created.Error();
+        EXPECT_EQ(Actor(created.Value()).word376, 53);
+        if (free == 1)
+        {
+            EXPECT_EQ(joints[0].type, 0x618);
+            EXPECT_EQ(joints[0].subtype, 2);
+        }
+        EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, ConstructionDraws).State());
+    }
+}
+
+// 0x4c9883..4c9aca: la etapa3 sólo publica alpha1; las otras completan4×615/7,3×5f6/1,4×614/17.
+TEST_F(MonsterViewportTest, CrywolfArrivalsUseTheTourStageAndPreserveTheJointWidthDraws)
+{
+    for (const std::uint16_t type :
+         {std::uint16_t{0x154}, std::uint16_t{0x155}, std::uint16_t{0x158}, std::uint16_t{0x159}})
+    {
+        SCOPED_TRACE(type);
+        game = std::make_unique<Game>();
+        ActorState& actor = Actor(1);
+        actor.word376 = type;
+        actor.position = {100, 200, 300};
+        game->world.Runtime().events.cameraTour.stage = 3;
+        ASSERT_TRUE(Client::Scenes::ArriveAsNew(actor, game->Resources()).HasValue());
+        EXPECT_EQ(actor.alpha, 1.0f);
+        EXPECT_FALSE(game->world.DrawTail().joints[0].alive);
+        EXPECT_FALSE(game->world.Particles().Any());
+        EXPECT_EQ(game->cloth.random.State(), Seed);
+        game->world.Runtime().events.cameraTour.stage = 2;
+        ASSERT_TRUE(Client::Scenes::ArriveAsNew(actor, game->Resources()).HasValue());
+        EXPECT_EQ(actor.alpha, 0.0f);
+        const auto& joints = game->world.DrawTail().joints;
+        CrtRandom widths(Seed);
+        constexpr std::array<int, 4> bases{60, 50, 50, 60};
+        for (std::size_t index = 0; index < 4; ++index)
+        {
+            EXPECT_EQ(joints[index].type, 0x615);
+            EXPECT_EQ(joints[index].subtype, 7);
+            EXPECT_EQ(joints[index].width, static_cast<float>(widths.Next() % 10 + bases[index]));
+            widths.Discard(2); // 0x531b0c..0x531b57: los dos sorteos del constructor615/7 intercalados.
+            EXPECT_EQ(joints[index].ownerContext, nullptr);
+            EXPECT_EQ(joints[index].targetPosition, (glm::vec3{120, 220, 300}));
+            EXPECT_EQ(joints[index + 4].type, 0x614);
+            EXPECT_EQ(joints[index + 4].subtype, 17);
+            EXPECT_EQ(joints[index + 4].width, 10.0f);
+            EXPECT_EQ(joints[index + 4].targetPosition, (glm::vec3{100, 200, 420}));
+            EXPECT_EQ(joints[index + 4].ownerContext, nullptr);
+        }
+        EXPECT_FALSE(joints[8].alive);
+        const auto particles = game->world.Particles().All();
+        EXPECT_EQ(particles[0].type, 0x5f6);
+        EXPECT_EQ(particles[2].subtype, 1);
+        EXPECT_FALSE(particles[3].alive);
+        EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, 34).State());
+    }
+}
+
+TEST_F(MonsterViewportTest, CrywolfArrivalCompletesWithPartialAndFullEffectPools)
+{
+    struct Capacity
+    {
+        std::size_t joints;
+        std::size_t particles;
+        int draws;
+    };
+    for (const Capacity capacity : {Capacity{8, 3, 34}, Capacity{4, 3, 30}, Capacity{1, 3, 24}, Capacity{0, 3, 22},
+                                    Capacity{8, 0, 16}, Capacity{0, 0, 4}})
+    {
+        SCOPED_TRACE(capacity.joints);
+        SCOPED_TRACE(capacity.particles);
+        game = std::make_unique<Game>();
+        Actor(1).word376 = 0x154;
+        auto& joints = game->world.DrawTail().joints;
+        for (std::size_t index = capacity.joints; index < joints.size(); ++index)
+            joints[index].alive = true;
+        auto particles = game->world.Particles().All();
+        for (std::size_t index = capacity.particles; index < particles.size(); ++index)
+            particles[index].alive = true;
+        const auto arrived = Client::Scenes::ArriveAsNew(Actor(1), game->Resources());
+        ASSERT_TRUE(arrived.HasValue()) << arrived.Error();
+        EXPECT_EQ(Actor(1).alpha, 0.0f);
+        EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, capacity.draws).State());
+    }
 }
 
 // 0x4c9ed2..0x4c9f44 y 0x4e0b96..0x4e0c10: en Castle Siege, la puerta (+0x376 en 0x115, el 0x19b con la caja de
 // 0x42d7f0) con +0x78 en 0 corta en 0x4c9f0f (el 0x13) o en 0x4e0bd1 (el 0x68); con otro estado sigue.
-TEST_F(MonsterViewportTest, TheCastleSiegeGateCutsWhenItIsOpenOrUnmarked)
+TEST_F(MonsterViewportTest, TheCastleSiegeGateAppliesItsActionWhenItIsOpenOrUnmarked)
 {
     Load(30);
     const Cell cell = FreeRow();
@@ -785,8 +1086,7 @@ TEST_F(MonsterViewportTest, TheCastleSiegeGateCutsWhenItIsOpenOrUnmarked)
                                                 .targetX = cell.x,
                                                 .targetY = cell.y}}};
     auto applied = Monsters(records);
-    ASSERT_FALSE(applied.HasValue());
-    EXPECT_NE(applied.Error().find("0x4c9f0f"), std::string::npos) << applied.Error();
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
     const ActorState& gate = Actor(1);
     EXPECT_EQ(gate.type, 0x19b);
     EXPECT_EQ(gate.boundsMin, (glm::vec3{-140.0f, -140.0f, 0.0f}));
@@ -801,8 +1101,7 @@ TEST_F(MonsterViewportTest, TheCastleSiegeGateCutsWhenItIsOpenOrUnmarked)
     const std::array<ObjectRecordBytes, 1> objects{
         {{.kind = 2, .classOrTypeHigh = 1, .typeLow = 0x15, .key = 0x0901, .x = cell.x, .y = cell.y}}};
     applied = Objects(objects);
-    ASSERT_FALSE(applied.HasValue());
-    EXPECT_NE(applied.Error().find("0x4e0bd1"), std::string::npos) << applied.Error();
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
 }
 
 // 0x4ca0b0 con 0x517400: el 0x98 y el 0x9e (nivel tipo − 0x97, el 7 con el subtipo 1), +0x88 en 1, el PK de la

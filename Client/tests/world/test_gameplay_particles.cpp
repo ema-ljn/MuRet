@@ -235,7 +235,8 @@ TEST(GameplayParticlesTest, CheckedCreationReportsUnsupportedBindingsWithoutMuta
     const auto type = particles.CreateChecked(std::numeric_limits<std::int32_t>::max(), {}, {}, {}, 0, 1, 0, random);
     ASSERT_FALSE(type.HasValue());
     EXPECT_EQ(type.Error(), Client::World::ParticleError::UnsupportedType);
-    const auto subtype = particles.CreateChecked(Fire, {}, {}, {}, 5, 1, 0, random);
+    // El 5 ya se crea desde la flecha del asedio. El 7 sigue fuera de la tabla acreditada.
+    const auto subtype = particles.CreateChecked(Fire, {}, {}, {}, 7, 1, 0, random);
     ASSERT_FALSE(subtype.HasValue());
     EXPECT_EQ(subtype.Error(), Client::World::ParticleError::UnsupportedSubtype);
     EXPECT_FALSE(particles.Any());

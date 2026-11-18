@@ -11,6 +11,8 @@
 #include "Scenes/ActorCreation.h"
 #include "Scenes/ActorEffectFlags.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/ArrivalSparks.h"
+#include "Scenes/CastleBattleActors.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/MonsterCreation.h"
@@ -57,14 +59,14 @@ Core::Expected<void, std::string> RiseWithActionOne(ActorState& actor, std::uint
 }
 
 // 0x4c9ed2..0x4c9f44 y 0x4e0b96..0x4e0c10: la puerta de Castle Siege.
-Core::Expected<void, std::string> CheckTheSiegeGate(const ActorState& actor, const WorldRuntime& runtime,
-                                                    std::uint32_t address)
+Core::Expected<void, std::string> CheckTheSiegeGate(ActorState& actor, const WorldEntryResources& resources)
 {
-    if (runtime.map != CastleSiegeMap || actor.word376 != SiegeGateKind)
+    if (resources.world.Runtime().map != CastleSiegeMap || actor.word376 != SiegeGateKind)
         return {};
-    if ((actor.flags78 & GateOpenFlag) == GateOpenFlag || actor.flags78 == 0)
-        return Core::Unexpected(
-            std::format("{:#x}: la puerta del asedio (0x4ea030 y 0x42a110) es de la CL9.5", address));
+    if ((actor.flags78 & GateOpenFlag) == GateOpenFlag)
+        return SetTheCastleGateState(actor, true, resources);
+    if (actor.flags78 == 0)
+        return SetTheCastleGateState(actor, false, resources);
     return {};
 }
 
@@ -108,7 +110,7 @@ Core::Expected<void, std::string> ApplyMonsterRecord(const Protocol::Viewport::M
     constexpr std::uint8_t StanceMask = 7;
     actor.byte42d = record.typeHigh & HighBit;
     actor.byte93 = (record.typeHigh >> DirectionShift) & StanceMask;
-    if (auto gate = CheckTheSiegeGate(actor, runtime, 0x4c9f0f); !gate.HasValue())
+    if (auto gate = CheckTheSiegeGate(actor, resources); !gate.HasValue())
         return gate;
     // 0x4c9f4c..0x4ca07a.
     if (record.isNew)
@@ -343,7 +345,7 @@ Core::Expected<void, std::string> ApplyObjectMonster(const Protocol::Viewport::O
         return flagged;
     WriteTheCells(actor, record.x, record.y, random);
     TurnAtRandom(actor, random);
-    return CheckTheSiegeGate(actor, runtime, 0x4e0bd1);
+    return CheckTheSiegeGate(actor, resources);
 }
 } // namespace
 
@@ -373,8 +375,14 @@ Core::Expected<void, std::string> ArriveAsNew(ActorState& actor, const WorldEntr
     case 0x155:
     case 0x158:
     case 0x159:
-        return Core::Unexpected(std::string("0x4c9883: la llegada lee [0x6e5904] + 0x154 (P-C60 g) y suelta los joints "
-                                            "0x615, 0x614 y 0x5f6 con rand() (CL11)"));
+        // 0x4c9883: la etapa 3 no llega a ningún constructor ni toca el RNG.
+        if (runtime.events.cameraTour.stage == 3)
+        {
+            actor.alpha = 1.0f;
+            return {};
+        }
+        actor.alpha = 0.0f;
+        return CreateArrivalSparks(actor, resources.world, resources.cloth.random);
     default:
         break;
     }

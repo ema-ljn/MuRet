@@ -1,18 +1,18 @@
 #include "Scenes/NpcWindows.h"
 
 #include "Core/Expected.h"
-#include "Scenes/CastleSiegeReceive.h"
-#include "Scenes/CastleWindows.h"
-#include "Protocol/CastleSiege.h"
-#include "App/WindowState.h"
-#include "App/FaithfulPacer.h"
 #include "Core/IClock.h"
+#include "App/FaithfulPacer.h"
+#include "App/WindowState.h"
 #include "Protocol/Connection/Logout.h"
 #include "Protocol/Inventory.h"
+#include "Protocol/CastleSiege.h"
 #include "Protocol/NpcWindows.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/GamePanels.h"
+#include "Scenes/CastleWindows.h"
+#include "Scenes/CastleSiegeReceive.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/NpcWindowState.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -286,6 +286,7 @@ Core::Expected<void, std::string> ApplyTalkResult(const Npc::TalkResult& talk, c
                                       .screen = resources.screen ? resources.screen() : App::PixelSize{640, 480},
                                       .texts = resources.texts,
                                       .send = sender,
+                                      .dataRoot = resources.dataRoot,
                                       .tick =
                                           resources.clock != nullptr ? App::TickCountMs(resources.clock->Now()) : 0u,
                                       .entryResources = &resources};
@@ -331,7 +332,7 @@ Core::Expected<void, std::string> ApplyTalkResult(const Npc::TalkResult& talk, c
             UI::PushDialog(runtime.dialogs, BloodCastleDialog);
         break;
     case TalkCastleSiegeList:
-        // 0x4d25bc: el byte se escribe ANTES del open; sólo el 1 selecciona 87 al cerrar.
+        // 0x4d25bc: el byte se escribe ANTES del open; sólo el1 selecciona87 al cerrar.
         runtime.castleSiege.senior.closeWith87 = talk.rates[0] == 1;
         done = open(UI::CastleSiegeListPanel);
         break;

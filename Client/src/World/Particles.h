@@ -35,6 +35,16 @@ struct TerrainLighting;
 struct WorldObject;
 
 inline constexpr std::size_t ParticleCount = 3000;
+// 540260 y542599: las chispas5ad/2 y la niebla5f2/27 de la mano de Crywolf.
+inline constexpr std::int32_t MagicSparkParticle = 0x5ad;
+inline constexpr std::int32_t CrywolfTideSmokeSubtype = 25;
+inline constexpr std::int32_t CrywolfSwingSmokeSubtype = 27;
+inline constexpr std::int32_t MissileFireParticle = 0x5da;
+inline constexpr std::int32_t DeathSpiritFireParticle = 0x5db;
+inline constexpr std::int32_t MissileSmokeSubtype = 38;
+inline constexpr std::int32_t ExplosionSmokeSubtype = 35;
+inline constexpr std::int32_t FireworkParticle = 0x60d;
+inline constexpr std::int32_t PoundingBallParticle = 0x640;
 inline constexpr std::int32_t ShinyParticle = 0x5fc;
 inline constexpr std::int32_t ThunderParticle = 0x5ca;
 inline constexpr std::int32_t FairySparkParticle = 0x5c5;
@@ -44,6 +54,8 @@ inline constexpr std::int32_t WorldSmokeSubtype = 2;
 inline constexpr std::uint16_t BreathParticle = 0x5f2;
 // La chispa del cuervo (Effect\Spark03.jpg), con el subtipo 5 (06 § El cuervo).
 inline constexpr std::uint16_t SparkParticle = 0x5c6;
+// 0x42ddb0: bendición sobre un personaje cerca de la corona/marca del asedio.
+inline constexpr std::int32_t SiegeBlessingParticle = 0x638;
 inline constexpr std::int32_t TeleportSparkSubtype = 1;
 inline constexpr std::int32_t RavenSparkSubtype = 5;
 inline constexpr std::int32_t MapSparkSubtype = 9;
@@ -84,6 +96,9 @@ inline constexpr std::int32_t BubbleParticle = 0x698;
 // El polvo 5f3/0 (Effect\smoke02.tga) del galope del caballo oscuro fuera de los mapas 2 y 10 (0x4444dd): nace en
 // 0x54271f y su paso (0x546b66) lo deja sobre el terreno con el alto de su textura.
 inline constexpr std::int32_t DustParticle = 0x5f3;
+// El polvo 5f6/1 del recorrido de Crywolf (0x403c0c): comparte el paso de 5f3, pero nace con vida40, velocidad0
+// y seis rand() en 0x54271f..0x542897.
+inline constexpr std::int32_t ArrivalDustParticle = 0x5f6;
 // La explosión 5ed/0 (Effect\Explotion01.jpg, cuatro por cuatro cuadros) que suelta el terremoto 0xfa en su vida 11
 // (0x521dfd): nace en 0x542a60 con vida 20 y su paso (0x5459a4) avanza el cuadro (+0x48) con la vida y prende la luz
 // dinámica. El alta termina con el sonido 0x41ed10(0x40, 0, 0), que Particles no hace: lo hace quien la crea.
@@ -184,8 +199,8 @@ public:
     // 0x53fe70(tipo, posición, ángulos, luz, subtipo, escala, dueño) en el primer lugar libre, con el reloj
     // del mundo (DAT_05767b88, en ms) y el rand() de la CRT. Con los 3.000 llenos no se crea ni saca
     // rand(). Se aceptan5ca/0, 5e4 (cualquier subtipo), 5f2/0,2,11,21,33, 5f3/0, 5ed/0, 5c6/1,5,9,11, 622/6,8,9,10,
-    // 5d9/0..3, 607/0, 67/0,
-    // 68/0, 698/0, 6ab/0,1 y 6ac/0; la órbita 60f/0,3,4,10 pide el overload con la trigonometría. Create es la
+    // 5d9/0..3,5,8, 607/0, 67/0,
+    // 68/0, 698/0, 6ab/0,1 y 6ac/0,1; la órbita 60f/0,3,4,10 pide el overload con la trigonometría. Create es la
     // compatibilidad login; Core usa CreateChecked para distinguir errores de pool lleno. La neblina consume cinco
     // rand() y conserva +0x60 del uso anterior del lugar. 622/8 consume siete rand().
     std::optional<std::size_t> Create(std::int32_t type, const glm::vec3& position, const glm::vec3& angles,
@@ -276,5 +291,13 @@ StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random,
                      const ParticleObjectOwners& owners = {}, const ParticleActorActions& actorActions = {},
                      const ParticleTextureHeight& textureHeight = {}, TerrainLighting* lighting = nullptr,
                      const ParticleActorHands& actorHands = {}, const ParticleOwnerBones& ownerBones = {});
+
+// Igual contrato con los sonidos0x40 de las explosiones1 creadas por5ed/2; no retiene el callback.
+[[nodiscard]] Core::Expected<void, ParticleError> StepParticlesChecked(
+    Particles& particles, Render::Models::CrtRandom& random, std::reference_wrapper<const float> worldClock,
+    const std::int32_t* map, IParticleTrigonometry& trigonometry, const ParticleTerrainHeight& terrainHeight,
+    const ParticleObjectOwners& owners, const ParticleActorActions& actorActions,
+    const ParticleTextureHeight& textureHeight, TerrainLighting* lighting, const ParticleActorHands& actorHands,
+    const ParticleOwnerBones& ownerBones, const std::function<void(std::int32_t)>& sound);
 
 } // namespace Client::World

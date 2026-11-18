@@ -78,6 +78,9 @@ struct InventoryServices;
 struct WorldEntryResources;
 struct WorldRuntime;
 
+// 0x6578e0: campos de chat/gremio/panel y GetFocus distinto de la ventana del juego.
+[[nodiscard]] bool GameTextInputBusy(const WorldRuntime& runtime);
+
 // Lo que los diálogos y los paneles le piden al resto del cliente (el menú de Esc, 0x624036..0x62553f, y la party): el
 // cable, el disco y el log.
 class IGameUiRequests

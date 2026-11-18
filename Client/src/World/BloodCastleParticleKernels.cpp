@@ -86,9 +86,10 @@ void CreateSpark(Particle& p, Render::Models::CrtRandom& random)
 void CreateFlame(Particle& p, Render::Models::CrtRandom& random)
 {
     constexpr int LifeBase = 25;
+    const float argumentScale = p.scale;
     p.life = random.Next() % Spread + LifeBase;
     const int turn = random.Next() % FullTurn;
-    p.scale = FlameScale;
+    p.scale = p.subtype == 1 ? F32(static_cast<double>(argumentScale) * Half) : FlameScale;
     p.rotation = static_cast<float>(turn);
     ForwardSpeed(p, random);
     // 0x543ae3: el caso del 6ec y del 6ed, con un subtipo que no es 7.
@@ -173,7 +174,7 @@ bool IsBloodCastleParticle(std::int32_t type, std::int32_t subtype)
     // 0x543a5d: la 6ac/2 se crea como la /0; de los subtipos de la llama, solo el 1 (la escala, 0x543a84), el 5 y
     // el 6 (la vida, 0x543bc1) y el 7 (0x543ae3) cambian algo.
     return (type == TorchSparkParticle && (subtype == 0 || subtype == 1)) ||
-           (type == TorchFlameParticle && (subtype == 0 || subtype == BrightFlameSubtype)) ||
+           (type == TorchFlameParticle && (subtype == 0 || subtype == 1 || subtype == BrightFlameSubtype)) ||
            (type == CloudParticle && subtype == TorchSmokeSubtype);
 }
 

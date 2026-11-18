@@ -9,6 +9,7 @@
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CrywolfDeathSpiritEffects.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/FaunaModels.h"
 #include "Scenes/GameRibbonCreation.h"
@@ -208,12 +209,32 @@ Result Unported(const MonsterHelperPass& pass, std::int32_t type, std::int32_t s
     return UnportedParticle(pass.particles, pass.actor, type, subtype, call);
 }
 
-Result UnportedModelEffect(WorldState& world, const ActorState& actor, std::int16_t type, std::int32_t subtype,
-                           std::uint32_t call)
+// 4335c7..36dd: incluso con todos los efectos ocupados, primero lee boundsTop del blanco con índice firmado.
+Result EmitDeathSpiritSwing(WorldState& world, ActorState& actor, World::Particles* particles,
+                            Render::Models::CrtRandom& random, float clock)
 {
-    const auto effects = world.Map().effects.Effects();
-    if (std::ranges::any_of(effects, [](const World::ModelEffect& effect) { return !effect.alive; }))
-        return Cut(call, std::format("el efecto {:#x}/{} (0x518cf0)", type, subtype), actor);
+    const auto targetSlot = static_cast<std::int16_t>(actor.attackTarget);
+    if (targetSlot < 0 || targetSlot >= PoolSize)
+        return Core::Unexpected(std::format("0x4335f6: el blanco firmado {} de147 está fuera del pool", targetSlot));
+    ActorState& target = world.Actors()[static_cast<std::size_t>(targetSlot)];
+    const glm::vec3 light{0, 0, target.boundsTop};
+    const BoneTransform bone = actor.bodyPose.empty() ? BoneTransform(0) : actor.bodyPose[0];
+    glm::vec3 point = Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(bone), {80, 0, 20},
+                                                                actor.scale, actor.position);
+    point.z = F32(D(point.z) + 50.0);
+    for (const float yaw : {90.0f, -90.0f})
+        for (const std::int32_t subtype : {0, 1})
+        {
+            const auto created = CreateCrywolfDeathSpirit({.type = 0x147,
+                                                           .position = point,
+                                                           .angles = {0, 0, F32(D(actor.angles.z) + D(yaw))},
+                                                           .light = light,
+                                                           .subtype = subtype,
+                                                           .owner = &target},
+                                                          world.Map().effects, particles, random, clock);
+            if (!created.HasValue())
+                return Core::Unexpected(created.Error());
+        }
     return {};
 }
 
@@ -779,7 +800,9 @@ Handled DrawTheCrywolfCase(MonsterHelperPass& pass)
     else if (type == 0x1b2)
         drawn = DrawThe1b2(pass);
     else if (type == 0x1b3 && action == 4 && actor.animation.frame >= 4.0f && actor.animation.frame <= 6.0f)
-        drawn = Cut(0x434ecf, "el efecto 0x115 (0x518cf0) del ataque, desde el punto girado de +0xcc", actor);
+        // 434e78..e9a gira +cc en un local muerto; 434eb0 pasa la posición del actor al constructor.
+        static_cast<void>(pass.world.Map().effects.CreatePiercingEffect(
+            {.type = 0x115, .position = actor.position, .angles = actor.angles, .light = {1, 0, 0.5f}, .subtype = 1}));
     if (!drawn.HasValue())
         return Core::Unexpected(drawn.Error());
     const std::array<ActionSound, 3> sounds{{{3, voice->idle + 2}, {4, voice->idle + 3}, {6, voice->idle + 4}}};
@@ -1013,19 +1036,16 @@ struct SwingLeg
 };
 
 Result EmitSwing(WorldState& world, const ActorState& actor, const Swing& swing, World::Particles* particles,
-                 std::span<const SwingLeg> legs, bool weaponBone = false, bool particle640 = false)
+                 std::span<const SwingLeg> legs, Render::Models::CrtRandom& random, float worldClock,
+                 bool weaponBone = false, bool particle640 = false)
 {
     const std::uint8_t bone = weaponBone ? actor.hands[0].bone : 0;
     float frame = swing.first;
+    glm::vec3 particleLight(1.0f);
     for (int sample = 0; sample < SwingSampleCount; ++sample)
     {
         if (auto posed = PoseWorldModel(world, actor, *swing.skeleton, frame, actor.angles); !posed.HasValue())
             return posed;
-        if (particle640 && actor.animation.frame > 3.5f && actor.animation.frame < 4.5f)
-        {
-            if (auto made = UnportedParticle(particles, actor, 0x640, 0, 0x433056); !made.HasValue())
-                return made;
-        }
         const auto& bones = world.PoseCarry().bones;
         for (const auto& leg : legs)
         {
@@ -1037,6 +1057,14 @@ Result EmitSwing(WorldState& world, const ActorState& actor, const Swing& swing,
                 Render::Models::OriginalVectorTransform(leg.first, Render::Models::OriginalMatrixOf(firstMatrix));
             const glm::vec3 second =
                 Render::Models::OriginalVectorTransform(leg.second, Render::Models::OriginalMatrixOf(secondMatrix));
+            if (particle640 && actor.animation.frame > 3.5f && actor.animation.frame < 4.5f)
+            {
+                if (auto made = CreateParticle(particles, actor, World::PoundingBallParticle, 0, second, actor.angles,
+                                               particleLight, 1, worldClock, random, 0x433056);
+                    !made.HasValue())
+                    return made;
+            }
+            particleLight = leg.light;
             const auto created = CreateRibbon(world.DrawTail().ribbons, {.ownerContext = &actor,
                                                                          .ownerEquipment = &actor.level,
                                                                          .first = first,
@@ -1208,38 +1236,53 @@ Core::Expected<void, std::string> StepTheSwingsOf1abTo1b4(ActorState& actor, std
     {
     case 0x1ab:
     {
-        // 0x432f19: posa diez veces; el constructor 0x640 sigue sin portar y corta solo si hay lugar.
+        // 0x432f19: diez poses y640/0 antes de cada ribbon; primeraluz blanca y luego(0,0,5).
         if (action != 3)
             return {};
         const auto swing = SwingOf(world, actor, 3);
         if (!swing.HasValue())
             return Core::Unexpected(swing.Error());
         constexpr std::array legs{SwingLeg{0, 0, {0, 0, -60}, {0, 0, -150}, {0, 0, 5}, 80}};
-        return EmitSwing(world, actor, swing.Value(), particles, legs, true, true);
+        return EmitSwing(world, actor, swing.Value(), particles, legs, random, worldClock, true, true);
     }
     case 0x1ae:
-        // 0x4330a9: en la 8, el punto de la mano izquierda y su partícula 0x5f2/0x1b (CL11); con la tabla llena, las
-        // dos 0x5ad/2 que siguen tampoco crean nada. En la 4 con el frame en (4,5; 5), el efecto 0x145 antes de posar;
+        // 0x4330a9: en la 8, el punto de la mano izquierda y sus tres partículas. En la 4 con el frame en (4,5; 5),
+        // el efecto 0x145 antes de posar;
         // en la 3 y la 4, la estela.
         if (action == 8)
         {
-            if (const auto hand = NamedBonePoint(world, actor, slot, "Left_Hand", {}, 0x4331de); !hand.HasValue())
+            const auto hand = NamedBonePoint(world, actor, slot, "Left_Hand", {}, 0x4331de);
+            if (!hand.HasValue())
                 return Core::Unexpected(hand.Error());
-            return UnportedParticle(particles, actor, Breath, 0x1b, 0x433248);
+            if (auto mist =
+                    CreateParticle(particles, actor, World::BreathParticle, World::CrywolfSwingSmokeSubtype,
+                                   hand.Value(), actor.angles, {0.2f, 0.2f, 0.7f}, 1, worldClock, random, 0x433248);
+                !mist.HasValue())
+                return mist;
+            for (const float scale : {0.8f, 0.6f})
+                if (auto spark = CreateParticle(particles, actor, World::MagicSparkParticle, 2, hand.Value(),
+                                                actor.angles, {0.3f, 0.3f, 0.4f}, scale, worldClock, random, 0x43328d);
+                    !spark.HasValue())
+                    return spark;
+            return {};
         }
         if (action != 3 && action != 4)
             return {};
         if (action == 4 && frame > 4.5f && frame < 5.0f)
         {
-            if (auto effect = UnportedModelEffect(world, actor, 0x145, 2, 0x433339); !effect.HasValue())
-                return effect;
+            static_cast<void>(world.Map().effects.CreateCrywolfTideEffect({.type = 0x145,
+                                                                           .position = actor.position,
+                                                                           .angles = actor.angles,
+                                                                           .light = actor.light,
+                                                                           .subtype = 2,
+                                                                           .owner = &actor}));
         }
         {
             const auto swing = SwingOf(world, actor, action);
             if (!swing.HasValue())
                 return Core::Unexpected(swing.Error());
             constexpr std::array legs{SwingLeg{0, 0, {0, 0, -60}, {0, 0, -150}, {1, 1, 1}, 80}};
-            return EmitSwing(world, actor, swing.Value(), particles, legs, true);
+            return EmitSwing(world, actor, swing.Value(), particles, legs, random, worldClock, true);
         }
     case 0x1af:
         // 0x433451: en la 3 y la 4, con la velocidad de la suya.
@@ -1250,16 +1293,11 @@ Core::Expected<void, std::string> StepTheSwingsOf1abTo1b4(ActorState& actor, std
             if (!swing.HasValue())
                 return Core::Unexpected(swing.Error());
             constexpr std::array legs{SwingLeg{27, 27, {0, 250, 0}, {}, {0.2f, 1.0f, 0.4f}, 80}};
-            if (auto emitted = EmitSwing(world, actor, swing.Value(), particles, legs); !emitted.HasValue())
+            if (auto emitted = EmitSwing(world, actor, swing.Value(), particles, legs, random, worldClock);
+                !emitted.HasValue())
                 return emitted;
             if (frame > 4.5f && frame < 5.0f)
-            {
-                for (int effect = 0; effect < 4; ++effect)
-                {
-                    if (auto made = UnportedModelEffect(world, actor, 0x147, effect % 2, 0x43365e); !made.HasValue())
-                        return made;
-                }
-            }
+                return EmitDeathSpiritSwing(world, actor, particles, random, worldClock);
             return {};
         }
     case 0x1b0:
@@ -1275,7 +1313,7 @@ Core::Expected<void, std::string> StepTheSwingsOf1abTo1b4(ActorState& actor, std
                 return Core::Unexpected(swing.Error());
             constexpr std::array legs{SwingLeg{80, 80, {0, 0, -90}, {}, {1, 1, 1}, 80},
                                       SwingLeg{82, 82, {0, 0, 90}, {}, {1, 1, 1}, 84}};
-            return EmitSwing(world, actor, swing.Value(), particles, legs);
+            return EmitSwing(world, actor, swing.Value(), particles, legs, random, worldClock);
         }
     case 0x1b3:
         if (action != 3)
@@ -1285,7 +1323,7 @@ Core::Expected<void, std::string> StepTheSwingsOf1abTo1b4(ActorState& actor, std
             if (!swing.HasValue())
                 return Core::Unexpected(swing.Error());
             constexpr std::array legs{SwingLeg{25, 25, {0, 0, 120}, {}, {1, 1, 1}, 25}};
-            return EmitSwing(world, actor, swing.Value(), particles, legs);
+            return EmitSwing(world, actor, swing.Value(), particles, legs, random, worldClock);
         }
     case 0x1b4:
         if (action != 3)
@@ -1296,7 +1334,7 @@ Core::Expected<void, std::string> StepTheSwingsOf1abTo1b4(ActorState& actor, std
                 return Core::Unexpected(swing.Error());
             constexpr std::array legs{SwingLeg{12, 16, {20, 0, 0}, {60, 0, 0}, {1, 1, 1}, 23},
                                       SwingLeg{20, 24, {20, 0, 0}, {60, 0, 0}, {1, 1, 1}, 24}};
-            return EmitSwing(world, actor, swing.Value(), particles, legs);
+            return EmitSwing(world, actor, swing.Value(), particles, legs, random, worldClock);
         }
     default:
         // 0x432c05: el 0x1ac, el 0x1ad, el 0x1b2 y los de fuera de la tabla, nada más.

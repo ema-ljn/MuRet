@@ -197,6 +197,10 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(SceneCanvas& canvas, co
     effectResources.random = &FrameCloth().random;
     effectResources.itemContext = &itemContext;
     effectResources.kalimaPass = &kalimaPass;
+    effectResources.effects = &FrameEffects();
+    effectResources.particles = &FrameParticles();
+    effectResources.posedBones = [&]()
+    { return std::span<const Render::Models::BoneTransform>(FramePoseCarry().bones); };
     const auto effects = FrameEffects().Effects();
     const GameTailPassCallbacks callbacks{
         [&](GameTailStage stage, std::uint8_t mode) -> Core::Expected<void, std::string>

@@ -7,6 +7,7 @@
 #include "Data/Terrain/TerrainObjects.h"
 #include "Data/Textures/Sampling.h"
 #include "World/TerrainLighting.h"
+#include "Data/Terrain/TerrainLight.h"
 
 #include <cstdint>
 #include <filesystem>
@@ -27,6 +28,8 @@ struct WorldTerrain
     std::unique_ptr<Data::Terrain::TerrainAttributes> attributes;
     std::unique_ptr<Data::Terrain::TerrainHeights> heights;
     std::unique_ptr<TerrainLighting> lighting;
+    // 0x78ecc10: luz RGB sin sombra; 5f8e40 la relee después de deformar alturas.
+    std::unique_ptr<Data::Terrain::TerrainLight> rawLight;
 };
 
 // Los tres archivos y la luz del mapa `map` (el número de la carpeta, Data::WorldFolderNumber). El
@@ -39,14 +42,17 @@ struct WorldTerrain
 // el MAP ausente sólo difiere su diagnóstico hasta comprobar el ATT (Q-C27/Q-C180).
 // `attributesNumber` es el número de EncTerrain<N>.att (el del mundo si falta: Crywolf pide 351 o 352, 0x61a710) y
 // `lightName` el de la luz (TerrainLight1 o TerrainLight2 en Crywolf, 0x61a8dd); la cabecera del .att se compara
-// igual con el mundo.
+// igual con el mundo. `reuseMappingForAttributes` lee el .map como .att y conserva la tabla si su tamaño no sirve.
+// `retainLightOnFailure` vuelve a sombrear la luz retenida cuando no se puede abrir o decodificar la luz pedida.
 [[nodiscard]] Core::Expected<void, std::string>
 LoadWorldTerrainLayout(const std::filesystem::path& dataRoot, std::uint8_t map, WorldTerrain& terrain,
-                       std::optional<std::string>& fatalMessage, std::optional<std::int32_t> attributesNumber = {});
+                       std::optional<std::string>& fatalMessage, std::optional<std::int32_t> attributesNumber = {},
+                       bool reuseMappingForAttributes = false);
 [[nodiscard]] Core::Expected<void, std::string> LoadWorldTerrainSurface(const std::filesystem::path& dataRoot,
                                                                         std::uint8_t map, WorldTerrain& terrain,
                                                                         std::optional<std::string>& fatalMessage,
-                                                                        std::string_view lightName = "TerrainLight");
+                                                                        std::string_view lightName = "TerrainLight",
+                                                                        bool retainLightOnFailure = false);
 
 // 0x5f8f40 con una luz de `folder` (la carpeta como la arma quien llama, "World%d"), fuera de la carga: el BD 00 de
 // Crywolf (0x42ff81). Lee <folder>\<lightName>.OZJ y la sombrea con las alturas cargadas y el mapa `map`. Sin
@@ -101,8 +107,13 @@ struct WorldTileTexture
 
 // Las 32 cáusticas Object8\\wt00..wt31.jpg, slots 65..96 (0x41..0x60), LINEAR/REPEAT, sin aviso: el mapa 7 las
 // sube en su caso de 0x616ec0 (0x617753..0x617788) y los demás en 618dda..618e29, con los mismos argumentos.
-// Aquí se integran sólo el 7 (el agua de 0x5fa4b0) y la familia Kalima 24..29/36.
+// Todos los mapas byte de 0x61a560, incluidas selección 54/55 y el castillo 30 (NpcBarrier1ff, 0x42e626).
+// El caller excluye el sentinel signed −1: la red zero-extiende su byte; las escenas fijan 54/55.
 [[nodiscard]] std::vector<WorldTileTexture> CausticTextures(std::uint8_t map);
+
+// 0x618e2b..0x618e40, después del lazo de las cáusticas: Object8\\light01.jpg en0x68, LINEAR/REPEAT, opcional.
+// La lluvia de0x61ad7a puede reemplazarla más tarde; si falta esa alternativa, este slot sigue vivo.
+[[nodiscard]] WorldTileTexture ObjectLightTexture();
 
 // 0x6177f9..0x61784b, el mapa 8 de 0x616ec0 antes de los Bug: 0x63b870 con GL_LINEAR, sexto 1 (avisa).
 // Object9\sand01 y sand02 en 0x5c2 y 0x5c3, repitiendo (las arenas del HUD de 0x5a7520, CL8), e
@@ -112,6 +123,9 @@ struct WorldTileTexture
 // 0x6178da..0x6178f2, el mapa 10 del segundo switch de 0x616ec0 (el que corre siempre): 0x63b870 con
 // GL_LINEAR, GL_CLAMP y sexto 1. Effect\cloudLight.jpg en 0x623 (el sprite de 0x6063d0). Los demás, ninguna.
 [[nodiscard]] std::vector<WorldTileTexture> IcarusObjectTextures(std::uint8_t map);
+
+// 617ff6/618016: World31\\Map1/2.jpg, los minimapas del castillo, sólo al cargar30.
+[[nodiscard]] std::vector<WorldTileTexture> CastleSiegeTextures(std::uint8_t map);
 
 // El slot 0x122 que pide una capa 2 de 255 (Q-C19): Interface\accept_box01.jpg, que el original sube
 // en la carga (0x61ae60) y queda para siempre; MuRet lo sube con el mundo.

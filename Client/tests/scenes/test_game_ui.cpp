@@ -13,6 +13,7 @@
 #include "Scenes/GameChat.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GameUi.h"
+#include "Scenes/SiegeBattleUi.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/ItemSetState.h"
 #include "Scenes/OwnInventory.h"
@@ -26,6 +27,7 @@
 #include "UI/OldWindowBase.h"
 #include "UI/OldWindows.h"
 #include "UI/PanelRegistry.h"
+#include "UI/PanelDialog.h"
 
 #include "support/Bytes.h"
 #include "support/ChatTexts.h"
@@ -774,6 +776,66 @@ TEST(GameUiTest, TheSiegePanelTogglesWithTabAndTakesTheMouse)
     Press(tested.input, Key::Tab);
     ASSERT_TRUE(tested.Step().HasValue());
     EXPECT_EQ(runtime.siegePanel.visible, 1);
+}
+
+// 0x40f6df → 0x6578e0: un campo activo o cualquier foco ajeno al juego impide hasta consultar 0x553520(Tab).
+TEST(GameUiTest, TheSiegeTabWaitsForTheCanonicalTextInputGateWithoutConsumingItsLatch)
+{
+    for (int blocked = 0; blocked < 8; ++blocked)
+    {
+        auto tested = std::make_unique<SteppingUi>();
+        auto& runtime = tested->world.Runtime();
+        runtime.siegePanelKind = std::uint8_t{0};
+        auto& field = runtime.panels.delegated.panelDialog;
+        if (blocked == 0)
+            runtime.ui.chatOpen = true;
+        else if (blocked == 1)
+            runtime.chat.input.dialogFieldOn = true;
+        else if (blocked == 2)
+        {
+            field.opened = 1;
+            field.flags = Client::UI::PanelDialogTextField;
+        }
+        else
+        {
+            constexpr std::array Focuses{Client::UI::ChatFocus::Message, Client::UI::ChatFocus::Whisper,
+                                         Client::UI::ChatFocus::OldWindow, Client::UI::ChatFocus::Dialog,
+                                         Client::UI::ChatFocus::NumberField};
+            runtime.chat.input.focus = Focuses[static_cast<std::size_t>(blocked - 3)];
+        }
+        Press(tested->input, Key::Tab);
+        GameUiContext context{.world = tested->world, .random = tested->random, .input = tested->input};
+        EXPECT_TRUE(Client::Scenes::GameTextInputBusy(runtime));
+        ASSERT_TRUE(Client::Scenes::StepTheBattlePanel(context).HasValue());
+        EXPECT_EQ(runtime.siegePanel.visible, 1);
+        EXPECT_EQ(runtime.ui.keyLatches[9], 0);
+
+        runtime.ui.chatOpen = false;
+        runtime.chat.input.dialogFieldOn = false;
+        runtime.chat.input.focus = Client::UI::ChatFocus::Game;
+        field.opened = 0;
+        EXPECT_FALSE(Client::Scenes::GameTextInputBusy(runtime));
+        ASSERT_TRUE(Client::Scenes::StepTheBattlePanel(context).HasValue());
+        EXPECT_EQ(runtime.siegePanel.visible, 0);
+        EXPECT_EQ(runtime.ui.keyLatches[9], 1);
+        ASSERT_TRUE(Client::Scenes::StepTheBattlePanel(context).HasValue());
+        EXPECT_EQ(runtime.siegePanel.visible, 0);
+    }
+}
+
+TEST(GameUiTest, APanelDialogWithoutTextStillAllowsTheSiegeTab)
+{
+    auto tested = std::make_unique<SteppingUi>();
+    auto& runtime = tested->world.Runtime();
+    runtime.siegePanelKind = std::uint8_t{0};
+    runtime.panels.delegated.panelDialog.opened = 1;
+    runtime.panels.delegated.panelDialog.flags = Client::UI::PanelDialogTimed;
+    Press(tested->input, Key::Tab);
+    EXPECT_FALSE(Client::Scenes::GameTextInputBusy(runtime));
+    ASSERT_TRUE(
+        Client::Scenes::StepTheBattlePanel({.world = tested->world, .random = tested->random, .input = tested->input})
+            .HasValue());
+    EXPECT_EQ(runtime.siegePanel.visible, 0);
 }
 
 TEST(GameUiTest, TheSiegePanelPagesAndFades)

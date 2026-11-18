@@ -12,6 +12,7 @@
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/GamePanels.h"
+#include "Scenes/CastleWindows.h"
 #include "Scenes/MonsterCreation.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/QuestState.h"
@@ -49,7 +50,7 @@ Core::Expected<void, std::string> ShowTheNewState(const WorldEntryResources& res
     WorldState& world = resources.world;
     SetTheQuestState(world, index, state);
     GamePanels panels(world, resources.cloth.random, GamePanelTables{.texts = resources.texts});
-    panels.LendTheSession(world, resources.cloth.random, resources.sendGamePacket, resources.sendWindowClose);
+    LendTheCastlePanelServices(panels, resources);
     if (auto closed = panels.Registry().CloseAll(); !closed.HasValue())
         return closed;
     auto opened = OpenTheQuestDialog(

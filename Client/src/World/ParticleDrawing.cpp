@@ -11,6 +11,7 @@
 #include "Core/Expected.h"
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -106,15 +107,16 @@ Core::Expected<DrawSelection, ParticleDrawingError> SelectBranch(Particle& p, st
     switch (type)
     {
     case FireParticle:
+    case DeathSpiritFireParticle:
         // 548803..1f: sólo estos seis subtipos salen del default acreditado.
         switch (p.subtype)
         {
-        case 5:
         case 7:
         case 11:
         case 12:
         case 13:
             return Core::Unexpected(BranchError(ParticleError::UnsupportedSubtype));
+        case 5:
         case 8:
             return DrawSelection{ParticleDrawKind::RotatedFire, false};
         default:
@@ -147,11 +149,16 @@ Core::Expected<DrawSelection, ParticleDrawingError> SelectBranch(Particle& p, st
         return DrawSelection{ParticleDrawKind::Explosion, false};
     case BloodParticle: // 0x548644 → 0x5487b9, sin leer el subtipo.
         return DrawSelection{ParticleDrawKind::Blood, false};
-    case TorchSparkParticle: // 0x5488f6: la 6ab va al default, 0x54889a.
-    case SkillShineParticle: // 0x5488f6 → 0x54889a (el byte 8 de 0x548cf0), sin leer el subtipo.
-    case HandShineParticle:  // 0x5488f6: la 5fd también (el byte 8 de 0x548cf7), sin leer el subtipo.
+    case MagicSparkParticle:    // 548644, sin caso propio: billboard común.
+    case MissileFireParticle:   // 548cb1=8 →54889a; /8 y/9 no dividen atlas.
+    case PoundingBallParticle:  // 0x548d3a=8 → 0x54889a, billboard común.
+    case TorchSparkParticle:    // 0x5488f6: la 6ab va al default, 0x54889a.
+    case SkillShineParticle:    // 0x5488f6 → 0x54889a (el byte 8 de 0x548cf0), sin leer el subtipo.
+    case HandShineParticle:     // 0x5488f6: la 5fd también (el byte 8 de 0x548cf7), sin leer el subtipo.
+    case SiegeBlessingParticle: // 5488f6: el billboard común, sin leer el subtipo.
         return DrawSelection{ParticleDrawKind::Common, false};
     case DustParticle:
+    case ArrivalDustParticle:
     {
         // 0x548a51: la 5f3 va a 0x620c10 y al billboard común, sin leer el subtipo.
         const auto blended = services.Blended();
@@ -187,6 +194,40 @@ Core::Expected<DrawSelection, ParticleDrawingError> SelectBranch(Particle& p, st
         return Core::Unexpected(BranchError(ParticleError::UnsupportedType));
     }
 }
+// 0x548a81..0x548bc7: 23+(slot%8) billboards, de la punta a la posición actual, con color cíclico.
+Result DrawFirework(const Particle& p, glm::vec2 extents, std::size_t index, IParticleDrawingServices& services)
+{
+    const int length = static_cast<int>(index % 8) + 22;
+    const int colorPhase = (p.subtype + p.life / 4) / 10;
+    const int colorRest = (p.subtype + p.life / 4) % 10;
+    const auto shape = ParticleDrawParametersOf(p, extents, ParticleDrawKind::Common);
+    for (int segment = 0; segment <= length; ++segment)
+    {
+        glm::vec3 position;
+        glm::vec3 light;
+        for (int axis = 0; axis < 3; ++axis)
+        {
+            position[axis] =
+                static_cast<float>(static_cast<double>(p.position[axis]) -
+                                   (static_cast<double>(length - segment) * static_cast<double>(p.velocity[axis])) *
+                                       static_cast<double>(0.1f));
+            const double first =
+                static_cast<double>(10 - colorRest) * static_cast<double>(p.light[(colorPhase + axis) % 3]);
+            const double second =
+                static_cast<double>(colorRest) * static_cast<double>(p.light[(colorPhase + axis + 1) % 3]);
+            light[axis] = static_cast<float>(
+                ((first + second) * (static_cast<double>(std::min(p.life, 10)) * static_cast<double>(0.001f))) *
+                static_cast<double>(std::min(segment, 10)));
+        }
+        const Render::ParticleBillboardRequest request{p.texture,    std::cref(position), shape.width,
+                                                       shape.height, std::cref(light),    shape.rotation,
+                                                       shape.uv,     shape.uvSize};
+        if (auto drawn = services.Billboard(request); !drawn.HasValue())
+            return drawn;
+    }
+    return {};
+}
+
 Result DrawBranch(Particle& p, glm::vec2 extents, std::size_t index, std::reference_wrapper<const float> clock,
                   IParticleDrawingServices& services)
 {
@@ -201,6 +242,8 @@ Result DrawBranch(Particle& p, glm::vec2 extents, std::size_t index, std::refere
                                                        shape.uv,     shape.uvSize};
         return services.Billboard(request);
     }
+    if (p.type == FireworkParticle)
+        return DrawFirework(p, extents, index, services);
     const auto selected = SelectBranch(p, index, clock, services);
     if (!selected.HasValue())
         return Core::Unexpected(selected.Error());

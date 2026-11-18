@@ -33,6 +33,109 @@
 
 namespace
 {
+TEST(GameModelEffectsTest, AShardRetiresOnlyBelowTheTerrainAfterTheCommonMovement)
+{
+    auto particles = std::make_unique<Client::World::Particles>();
+    auto lighting = std::make_unique<Client::World::TerrainLighting>();
+    Client::World::ModelEffect shard;
+    shard.alive = true;
+    shard.type = 0xc1a;
+    shard.life = 3;
+    shard.transform.position = {1000, 2000, 40};
+    shard.velocity = {0, -80, -10};
+    Client::Render::Models::CrtRandom random(1);
+    const Client::World::ModelEffectStepServices services{.terrainHeight = [](float, float) { return 40.0; },
+                                                          .lighting = lighting.get()};
+
+    auto result = Client::World::StepGameModelEffect(shard, nullptr, *particles, 0, random, nullptr, services);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_TRUE(shard.alive);
+    EXPECT_EQ(shard.transform.position, (glm::vec3{1000, 1920, 30}));
+
+    result = Client::World::StepGameModelEffect(shard, nullptr, *particles, 0, random, nullptr, services);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_FALSE(shard.alive);
+    EXPECT_EQ(shard.transform.position, (glm::vec3{1000, 1840, 20}));
+    EXPECT_EQ(shard.life, 1);
+    EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 2).State());
+}
+
+TEST(GameModelEffectsTest, AVolleyPulseFollowsItsProjectileAndRetiresWhenTheOwnerIsReused)
+{
+    auto particles = std::make_unique<Client::World::Particles>();
+    Client::World::ModelEffect projectile;
+    projectile.alive = true;
+    projectile.type = 0xf8;
+    projectile.subtype = 1;
+    projectile.transform.position = {10, 20, 30};
+    Client::World::ModelEffect pulse;
+    pulse.alive = true;
+    pulse.type = 0x105;
+    pulse.subtype = 3;
+    pulse.life = 10;
+    pulse.owner.effect = &projectile;
+    Client::Render::Models::CrtRandom random(1);
+
+    auto result = Client::World::StepGameModelEffect(pulse, nullptr, *particles, 0, random);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_TRUE(pulse.alive);
+    EXPECT_EQ(pulse.transform.position, projectile.transform.position);
+    projectile.type = 0xc1a;
+    result = Client::World::StepGameModelEffect(pulse, nullptr, *particles, 0, random);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_FALSE(pulse.alive);
+    EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 2).State());
+}
+
+TEST(GameModelEffectsTest, TheSiegeArrivalCueStaysAtTheSpawnUntilItsActorIsGone)
+{
+    auto particles = std::make_unique<Client::World::Particles>();
+    Client::World::ModelEffect effect;
+    effect.alive = true;
+    effect.type = Client::World::SiegeArrivalCue;
+    effect.hasOwner = true;
+    const glm::vec3 position{350, 550, 100};
+    effect.transform.position = position;
+    Client::Render::Models::CrtRandom random(1);
+
+    for (int frame = 0; frame < 3; ++frame)
+    {
+        const auto result = Client::World::StepGameModelEffect(effect, nullptr, *particles, 0, random);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_TRUE(effect.alive);
+        EXPECT_EQ(effect.transform.position, position);
+    }
+
+    effect.hasOwner = false;
+    const auto result = Client::World::StepGameModelEffect(effect, nullptr, *particles, 0, random);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_FALSE(effect.alive);
+    EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 4).State());
+}
+
+TEST(GameModelEffectsTest, SiegeAttackCuesExpireWithoutKeepingTheSlotAlive)
+{
+    auto particles = std::make_unique<Client::World::Particles>();
+    for (const std::int16_t type : {std::int16_t{0x19f}, std::int16_t{0x61c}})
+    {
+        SCOPED_TRACE(type);
+        Client::World::ModelEffect effect;
+        effect.alive = true;
+        effect.type = type;
+        effect.life = 2;
+        Client::Render::Models::CrtRandom random(1);
+        auto result = Client::World::StepGameModelEffect(effect, nullptr, *particles, 0, random);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_TRUE(effect.alive);
+        EXPECT_EQ(effect.life, 1);
+        EXPECT_LT(effect.alpha, 1.0f);
+        result = Client::World::StepGameModelEffect(effect, nullptr, *particles, 0, random);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_FALSE(effect.alive);
+        EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 2).State());
+    }
+}
+
 TEST(GameModelEffectsTest, NoriaUpdatesLightAndPitchThenTheCommonLifeWithOneRandom)
 {
     Client::World::ModelEffect effect;
@@ -496,13 +599,39 @@ TEST(GameModelEffectsTest, TheStoneChipsDragTiltBounceAndSometimesBurn)
         Client::Render::Models::CrtRandom draws = Client::Tests::AfterDraws(burns, 2);
         EXPECT_EQ(fire.subtype, draws.Next() % 3 + 1);
     }
-    Client::World::ModelEffect owned = DungeonEffect(Client::World::FirstStoneChipEffect, 40);
-    owned.subtype = 1;
-    Client::World::Particles particles;
+}
+
+TEST(GameModelEffectsTest, TheRisingStoneChipAcceleratesWithoutTerrainOrFire)
+{
+    auto particles = std::make_unique<Client::World::Particles>();
+    auto chip = DungeonEffect(Client::World::FirstStoneChipEffect, 2);
+    chip.subtype = 1;
+    chip.transform.angles = {0, 0, 90};
+    chip.velocity = {0, 10, 0};
+    chip.turnDirection = 8;
+    const auto start = chip.transform.position;
     Client::Render::Models::CrtRandom random(1);
-    const auto cut = Client::World::StepGameModelEffect(owned, nullptr, particles, 0.0f, random);
-    ASSERT_FALSE(cut.HasValue());
-    EXPECT_NE(cut.Error().find("0x5238be"), std::string::npos) << cut.Error();
+
+    auto result = Client::World::StepGameModelEffect(chip, nullptr, *particles, 0.0f, random);
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_EQ(chip.previousPosition, start);
+    EXPECT_NEAR(chip.transform.position.x, start.x - 19, 0.001f);
+    EXPECT_NEAR(chip.transform.position.y, start.y, 0.001f);
+    EXPECT_EQ(chip.transform.position.z, start.z + 8);
+    EXPECT_EQ(chip.turnDirection, 8.5f);
+    EXPECT_EQ(chip.transform.angles, (glm::vec3{0, 0, 90}));
+    EXPECT_EQ(chip.life, 1);
+    EXPECT_TRUE(chip.alive);
+
+    result = Client::World::StepGameModelEffect(chip, nullptr, *particles, 0.0f, random);
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_EQ(chip.transform.position.z, start.z + 16.5f);
+    EXPECT_EQ(chip.life, 0);
+    EXPECT_FALSE(chip.alive);
+    EXPECT_FALSE(particles->All()[0].alive);
+    EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 2).State());
 }
 
 // El pedazo de hielo 0xca de 0x52e810 entra en 0x523974 con el subtipo 0: el mismo paso que la piedrita (se arrastra,

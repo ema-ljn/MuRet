@@ -44,6 +44,10 @@
 #include "Scenes/GameData.h"
 #include "Scenes/GameItemSpecialDrawing.h"
 #include "Scenes/GameMessages.h"
+#include "Scenes/GamePanels.h"
+#include "Scenes/WorldEntry.h"
+#include "Protocol/Outgoing.h"
+#include "UI/PanelRegistry.h"
 #include "Scenes/ItemDrawResources.h"
 #include "Scenes/OptionsSettings.h"
 #include "Scenes/SceneCameras.h"
@@ -396,9 +400,25 @@ bool CharacterSelectScene::PrepareTheCharacters()
     }
     // 0x633f91: vaciado previo al reset parcial; no es el del F3/10, que toca otros campos y grillas.
     ClearSelectionInventory(*m_context.world, m_context.cloth->random);
-    // 0x5bc107..0x5bc13f, la cola de 0x5bbe10: el comercio (CL9 hito 7). Antes, el almacén (0x78a7070) y la caja del
-    // caos (0x7d2d380), 0x449c40, 0x402e10 y los cierres 0x65cae0(0x400000 y 0x800000) siguen sin portar, como dice 06
-    // § La selección de personaje, "Lo que saca la entrada" (08 P-C205).
+    // 0x5bc0e5..0x5bc102: primero cierra 0x400000, después 0x800000, con aux0; el comercio se vacía recién después.
+    // Las dos ventanas comparten el modo 1/2 y su cierre manda el 31 antes de bajar ese modo (0x657ba7/0x657dc1).
+    std::function<void(Protocol::Outgoing)> send;
+    if (m_context.worldEntry != nullptr)
+        send = m_context.worldEntry->sendGamePacket;
+    if (!send && m_session != nullptr)
+        send = [session = m_session](Protocol::Outgoing packet) { session->SendGamePacket(std::move(packet)); };
+    GamePanels panels(*m_context.world, m_context.cloth->random);
+    panels.LendTheSiegeControls(*m_context.world, std::move(send));
+    for (const auto id : {UI::SiegeWeaponPanel, UI::SecondSiegeWeaponPanel})
+    {
+        auto closed = panels.Registry().Close(id, false);
+        if (!closed.HasValue())
+        {
+            m_failure = std::move(closed).Error();
+            return false;
+        }
+    }
+    // 0x5bc107..0x5bc13f: después vacía el comercio.
     ClearTheTradeForSelection(m_context.world->Runtime().social.trade);
     // 0x634049..0x634177: el reset parcial, con el cierre del mismo registro de 0x4fc450.
     const Render::Models::LogicalAccess access(m_context.world->Runtime().ownRecordDepth, m_context.cloth->random,

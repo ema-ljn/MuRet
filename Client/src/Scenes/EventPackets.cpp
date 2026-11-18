@@ -22,6 +22,7 @@
 #include "Scenes/FaunaState.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GamePanels.h"
+#include "Scenes/CastleWindows.h"
 #include "Scenes/ItemNames.h"
 #include "Scenes/JewelMix.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -37,8 +38,11 @@
 #include "UI/OriginalFormat.h"
 #include "UI/PanelRegistry.h"
 #include "World/WorldTerrain.h"
+#include "World/ModelEffects.h"
+#include "World/TerrainHeight.h"
 
 #include <algorithm>
+#include <bit>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -410,6 +414,11 @@ private:
     {
         GamePanels panels(m_world, m_context.random);
         panels.LendTheSession(m_world, m_context.random, m_context.send, m_context.sendWindowClose);
+        panels.LendTheCastleRequests(m_world, m_context.send,
+                                     CastleWindowServices{.measure = m_context.measure,
+                                                          .texts = m_context.texts,
+                                                          .screen = m_context.screen,
+                                                          .now = m_context.tickCount});
         return panels.Registry().CloseAll();
     }
 
@@ -1325,13 +1334,30 @@ private:
 
     // ----- BD 0C (0x4e59d6 → 0x4e15f0 → 0x430040).
 
-    Applied On(const Events::CrywolfUnported& /*packet*/)
+    Applied On(const Events::CrywolfUnported& packet)
     {
-        // 0x430040 (fase 4: leído entero) no escribe estado ni saca rand() fuera de 0x518cf0: un solo 0xee en
-        // (pkt[8] · 100, pkt[9] · 100, 100) con el héroe de dueño, el caso 2 con pkt[6] en 0x7a o 0x74, el 1 con 0xb7
-        // y el 0 con cualquier otro, y un segundo punto corrido en x o y con z 800.
-        return Core::Unexpected(std::string("0x430040: el efecto 0xee de Crywolf (0x518cf0 con los casos 0, 1 y 2 "
-                                            "por pkt[6]) es de la CL11"));
+        if (packet.bytes.size() < 10)
+            return Discard("0x4e15f0: BD0C lee pkt6..9 fuera del paquete");
+        const auto selector = std::to_integer<std::uint8_t>(packet.bytes[6]);
+        const auto x = std::to_integer<std::uint8_t>(packet.bytes[8]);
+        const auto y = std::to_integer<std::uint8_t>(packet.bytes[9]);
+        const std::int32_t subtype = selector == 0x7a || selector == 0x74 ? 2 : selector == 0xb7 ? 1 : 0;
+        const glm::vec3 target{static_cast<float>(x) * 100.0f, static_cast<float>(y) * 100.0f, 100};
+        glm::vec3 position = target;
+        position.z = 800;
+        if (subtype == 0)
+            position.x -= 800;
+        else if (subtype == 1)
+            position.x += 800;
+        else
+            position.y += 800;
+        static_cast<void>(m_world.Map().effects.CreateCrywolfMissile({.type = 0xee,
+                                                                      .position = position,
+                                                                      .angles = target,
+                                                                      .light = m_world.Actors()[m_runtime.hero].light,
+                                                                      .subtype = subtype,
+                                                                      .owner = &m_world.Actors()[m_runtime.hero]}));
+        return {};
     }
 
     // ----- BD 04 (0x4e59ba → 0x435a20): con la etapa 4 en el 34, pkt[4], los minutos y GetTickCount.
@@ -1420,6 +1446,20 @@ private:
         return {};
     }
 
+    Applied FireworkAt(std::int32_t cellX, std::int32_t cellY)
+    {
+        const auto& terrain = m_world.Map().terrain;
+        if (!terrain.heights || !terrain.attributes)
+            return Core::Unexpected(std::string("0x4d9fb1/0x4da0e4: el fuego artificial sin el terreno"));
+        glm::vec3 position{static_cast<float>((static_cast<double>(cellX) + 0.5) * 100.0),
+                           static_cast<float>((static_cast<double>(cellY) + 0.5) * 100.0), 0};
+        position.z =
+            static_cast<float>(World::TerrainHeightAt(*terrain.heights, *terrain.attributes, position.x, position.y));
+        static_cast<void>(m_world.Map().effects.CreateFireworkEmitter(
+            World::ModelEffectArguments{.type = 0x60e, .position = position, .angles = {}, .light = glm::vec3(1)}));
+        return {};
+    }
+
     // ----- F3 23 (0x4d9f00).
 
     Applied On(const Events::SoccerScore& packet)
@@ -1433,10 +1473,23 @@ private:
             soccer.secondName[index] = packet.secondName[index];
         }
         soccer.active = packet.firstScore != NoSoccerScore;
-        soccer.firstScore = packet.firstScore;
-        soccer.secondScore = packet.secondScore;
-        return Core::Unexpected(std::string("0x4d9ff2: el efecto 0x60e (0x518cf0) sobre la celda del héroe es de la "
-                                            "CL11"));
+        m_runtime.guild.ourScore = packet.firstScore;
+        m_runtime.guild.theirScore = packet.secondScore;
+        const ActorState& hero = m_world.Actors()[m_runtime.hero];
+        // 0x4d9f78/94: FILD directo, sin abrir las dos entradas protegidas.
+        return FireworkAt(std::bit_cast<std::int32_t>(hero.cellXLeft), std::bit_cast<std::int32_t>(hero.cellYLeft));
+    }
+
+    Applied On(const Events::GuildWarOutcome& packet)
+    {
+        if (packet.present >= 3)
+            return {};
+        m_runtime.events.guildWarOutcome = {.present = packet.present,
+                                            .firstName = packet.firstName,
+                                            .secondName = packet.secondName,
+                                            .firstScore = packet.firstScore,
+                                            .secondScore = packet.secondScore};
+        return {};
     }
 
     // ----- F3 40 (0x4da070), por pkt[4] de 0 a 0x31 (las tablas 0x4da24c y 0x4da224).
@@ -1449,8 +1502,7 @@ private:
         switch (command)
         {
         case CommandEffect:
-            return Core::Unexpected(std::string("0x4da125: el efecto 0x60e (0x518cf0) en la celda del F3 40 es de la "
-                                                "CL11"));
+            return FireworkAt(packet.value5, packet.value6);
         case CommandNotice:
         {
             const std::size_t base = packet.value5 >= HighNoticeFrom ? HighNoticeBase : LowNoticeBase;

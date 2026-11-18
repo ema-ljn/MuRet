@@ -26,6 +26,7 @@
 #include "Network/PacketSerials.h"
 #include "Network/SocketError.h"
 #include "Protocol/BuildConstants.h"
+#include "Protocol/CastleBattle.h"
 #include "Protocol/CastleSiege.h"
 #include "Protocol/Combat.h"
 #include "Protocol/Events.h"
@@ -2270,7 +2271,7 @@ TEST(ServerSessionTest, AnotherUndecryptablePacketSendsNoReport)
 }
 
 // Un saludo de más, ya mandado el login, no manda otro.
-TEST(ServerSessionTest, AGameHelloOutOfTurnIsIgnored)
+TEST(ServerSessionTest, AHelloAfterTheLoginDoesNotSendAnotherLogin)
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoginResult());
@@ -2281,7 +2282,10 @@ TEST(ServerSessionTest, AGameHelloOutOfTurnIsIgnored)
 
     EXPECT_EQ(tested.session.State(), SessionState::WaitingLoginResult);
     EXPECT_EQ(tested.socket.sent.size(), sentBefore);
-    EXPECT_EQ(tested.Warnings(), Lines{"[warning] se ignora el saludo del GameServer (F1 00): llegó fuera de turno"});
+    EXPECT_TRUE(tested.Warnings().empty());
+    const auto events = tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 1u);
+    EXPECT_TRUE(std::holds_alternative<Client::App::GuildTableReset>(events[0]));
 }
 
 // Un resultado antes del saludo no es el del login.
@@ -2470,6 +2474,19 @@ std::vector<Packet> GameServerPacketsFrom(const Harness& tested, std::size_t fro
     return packets;
 }
 
+// El recorder no implementa el mundo. Estos casos de wire simulan explícitamente una caja vacía;
+// la condición y la intercalación reales se prueban con SessionEventApplier/ReturnToSelection.
+Client::Core::Expected<void, std::string> ApplyAnEmptyWorldReset(const WorldEvent& event, ServerSession& session)
+{
+    if (std::holds_alternative<Client::App::SelectionWorldReset>(event) ||
+        std::holds_alternative<Client::App::MapServerJoined>(event))
+    {
+        session.SendWindowClose();
+        session.SendWindowClose();
+    }
+    return {};
+}
+
 // En el mundo, con el F3 03 publicado por el sink.
 void ReachInWorld(Harness& tested)
 {
@@ -2481,7 +2498,7 @@ void ReachInWorld(Harness& tested)
         {
             session.PublishWorldEntry();
         }
-        return {};
+        return ApplyAnEmptyWorldReset(event, session);
     };
     tested.socket.reads = {FromTheGameServer(WorldEntryReply(), tested.gameServerSends)};
     ASSERT_TRUE(tested.session.Poll().HasValue());
@@ -2503,9 +2520,11 @@ TEST(ServerSessionTest, AnEncryptedLogoutWithOneGoesToTheSelection)
     ASSERT_TRUE(tested.session.Poll().HasValue());
 
     const std::vector<WorldEvent> events = tested.eventSink.TakeWorldEvents();
-    ASSERT_EQ(events.size(), 1u);
+    ASSERT_EQ(events.size(), 2u);
     EXPECT_TRUE(std::holds_alternative<Client::App::ReturnToSelectionReceived>(events[0]));
-    EXPECT_EQ(tested.eventSink.worldStates.back(), SessionState::InWorld);
+    EXPECT_TRUE(std::holds_alternative<Client::App::SelectionWorldReset>(events[1]));
+    EXPECT_EQ(tested.eventSink.worldStates[tested.eventSink.worldStates.size() - 2], SessionState::InWorld);
+    EXPECT_EQ(tested.eventSink.worldStates.back(), SessionState::WaitingCharacterList);
     EXPECT_EQ(tested.session.State(), SessionState::WaitingCharacterList);
     EXPECT_FALSE(tested.session.JoinedWorld());
     EXPECT_FALSE(tested.session.Characters().has_value());
@@ -5028,9 +5047,9 @@ TEST(ServerSessionTest, PartyListRequestGoesClearToTheGameServerOnly)
 }
 
 // CL9 hito 12: los paquetes del castillo fuera de la batalla llegan al mundo. El B2 19 que el laboratorio manda después
-// de cada /move es de la batalla (hito 13) y sigue sin handler, igual que un B8 con otro subcódigo; un B2 05 que no
+// de cada /move llega también al mundo (hito 13); el B8 con otro subcódigo sigue sin handler. Un B2 05 que no
 // trae lo que lee se ignora con un aviso, sin cerrar la sesión. Los valores son inventados.
-TEST(ServerSessionTest, TheCastlePacketsReachTheWorldAndTheFightOnesStayUnknown)
+TEST(ServerSessionTest, TheCastleAndBattlePacketsReachTheWorld)
 {
     namespace Castle = Client::Protocol::CastleSiege;
     Harness tested(IdentityObfuscation::Shared());
@@ -5041,18 +5060,166 @@ TEST(ServerSessionTest, TheCastlePacketsReachTheWorldAndTheFightOnesStayUnknown)
               Bytes({0xc1, 5, 0xb2, 0x05, 1}), Bytes({0xc1, 6, 0xb2, 0x1a, 1, 7}), Bytes({0xc1, 5, 0xb5, 0, 2})})};
     ASSERT_TRUE(tested.session.Poll().HasValue());
     const auto events = tested.eventSink.TakeWorldEvents();
-    ASSERT_EQ(events.size(), 5u);
+    ASSERT_EQ(events.size(), 6u);
     const auto* registered = std::get_if<Castle::CastleSiegePacket>(&events[0]);
     ASSERT_NE(registered, nullptr);
     EXPECT_EQ(std::get<Castle::RegisterResult>(*registered).result, 3);
-    EXPECT_EQ(std::get<Castle::KillCount>(std::get<Castle::CastleSiegePacket>(events[1])).value, 4);
-    EXPECT_TRUE(std::get<Castle::NpcList>(std::get<Castle::CastleSiegePacket>(events[2])).records.empty());
-    EXPECT_EQ(std::get<Castle::SiegeFlags>(std::get<Castle::CastleSiegePacket>(events[3])).value, 7);
-    EXPECT_EQ(std::get<Castle::RegisteredGuildList>(std::get<Castle::CastleSiegePacket>(events[4])).result, 2);
-    EXPECT_TRUE(tested.Logged(LogLevel::Warning, "el opcode B2 y el subcódigo 19 no tiene handler"));
+    EXPECT_EQ(std::get<Client::Protocol::CastleBattle::SiegeSide>(
+                  std::get<Client::Protocol::CastleBattle::CastleBattlePacket>(events[1]))
+                  .side,
+              0);
+    EXPECT_EQ(std::get<Castle::KillCount>(std::get<Castle::CastleSiegePacket>(events[2])).value, 4);
+    EXPECT_TRUE(std::get<Castle::NpcList>(std::get<Castle::CastleSiegePacket>(events[3])).records.empty());
+    EXPECT_EQ(std::get<Castle::SiegeFlags>(std::get<Castle::CastleSiegePacket>(events[4])).value, 7);
+    EXPECT_EQ(std::get<Castle::RegisteredGuildList>(std::get<Castle::CastleSiegePacket>(events[5])).result, 2);
+    EXPECT_FALSE(tested.Logged(LogLevel::Warning, "el opcode B2 y el subcódigo 19 no tiene handler"));
     EXPECT_TRUE(tested.Logged(LogLevel::Warning, "el opcode B8 y el subcódigo 02 no tiene handler"));
     EXPECT_TRUE(tested.Logged(LogLevel::Warning, "se ignora el paquete del castillo"));
     EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
+}
+
+// CL9 hito 13: los paquetes de la batalla llegan al mundo. El B9 04 cae al default del original (0x4e58c8) y sigue sin
+// handler; un BA que no trae lo que lee se ignora con un aviso, sin cerrar la sesión. Los valores son inventados.
+TEST(ServerSessionTest, TheCastleBattlePacketsReachTheWorld)
+{
+    namespace Battle = Client::Protocol::CastleBattle;
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    std::vector<std::byte> holder = Bytes({0xc1, 0x1b, 0xb2, 0x20, 0x01, 0x3d});
+    holder.resize(0x1b);
+    tested.socket.reads = {Join({Bytes({0xc1, 7, 0xb9, 0x01, 0x00, 0x05, 3}), Bytes({0xc1, 5, 0xb9, 0x04, 1}),
+                                 Bytes({0xc1, 5, 0xb9, 0x05, 1}), Bytes({0xc1, 7, 0xba, 0x00, 0x05, 0x28, 2}),
+                                 Bytes({0xc1, 5, 0xba, 0x00, 0x05}), Bytes({0xc1, 5, 0xbb, 0x00, 0x00}), holder})};
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+    const auto events = tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 5u);
+    EXPECT_EQ(std::get<Battle::NpcLevel>(std::get<Battle::CastleBattlePacket>(events[0])).level, 3);
+    EXPECT_EQ(std::get<Battle::HuntZoneEntryResult>(std::get<Battle::CastleBattlePacket>(events[1])).result, 1);
+    EXPECT_EQ(std::get<Battle::ActorField>(std::get<Battle::CastleBattlePacket>(events[2])).value, 2);
+    EXPECT_TRUE(std::get<Battle::MinimapMembers>(std::get<Battle::CastleBattlePacket>(events[3])).members.empty());
+    EXPECT_EQ(std::get<Battle::SwitchHolder>(std::get<Battle::CastleBattlePacket>(events[4])).key, 0x013d);
+    EXPECT_TRUE(tested.Logged(LogLevel::Warning, "el opcode B9 y el subcódigo 04 no tiene handler"));
+    EXPECT_TRUE(tested.Logged(LogLevel::Warning, "se ignora el paquete de la batalla del castillo"));
+    EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
+}
+
+// CL9 hito 13: el B1 00 (0x4e5056 → 0x412b30) con un host, un puerto y los códigos inventados.
+constexpr std::string_view MapServerHost = "10.0.0.3";
+constexpr std::uint16_t MapServerPort = 55919;
+
+ByteVector MapServerMovePacket(std::string_view host)
+{
+    ByteVector bytes = Bytes({0xc1, 0x28, 0xb1, 0x00});
+    ByteVector field(16);
+    for (std::size_t i = 0; i < host.size() && i < field.size(); ++i)
+        field[i] = static_cast<std::byte>(host[i]);
+    bytes.insert(bytes.end(), field.begin(), field.end());
+    const ByteVector rest = Bytes({MapServerPort & 0xff,
+                                   MapServerPort >> 8,
+                                   0,
+                                   0,
+                                   0x31,
+                                   0x32,
+                                   0x33,
+                                   0x34,
+                                   0x35,
+                                   0x36,
+                                   0x37,
+                                   0x38,
+                                   0x39,
+                                   0x3a,
+                                   0x3b,
+                                   0x3c,
+                                   0x3d,
+                                   0x3e,
+                                   0x3f,
+                                   0x40});
+    bytes.insert(bytes.end(), rest.begin(), rest.end());
+    return bytes;
+}
+
+// Con el login mandado: el mundo de 0x412b30 (MapServerLeft), el GameServer cerrado y el nuevo abierto con el host y
+// el puerto del paquete. Su saludo, sin mirar el resultado ni la versión, guarda la clave y, con el movimiento
+// pendiente, aplica el mundo de 0x412bb0 (MapServerJoined) y manda los dos C1 03 31 de 0x4c2480 y el B1 01 cifrado.
+TEST(ServerSessionTest, TheMapServerMoveReconnectsAndPresentsTheCharacter)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    tested.eventSink.onWorld = ApplyAnEmptyWorldReset;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachEnteringWorld());
+    static_cast<void>(tested.eventSink.TakeWorldEvents());
+    const std::size_t connectsBefore = tested.socket.connects.size();
+    tested.socket.reads = {MapServerMovePacket(MapServerHost)};
+    static_cast<void>(tested.session.Poll());
+
+    auto events = tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 1u);
+    EXPECT_TRUE(std::holds_alternative<Client::App::MapServerLeft>(events[0]));
+    ASSERT_EQ(tested.socket.connects.size(), connectsBefore + 1);
+    EXPECT_EQ(tested.socket.connects.back().host, MapServerHost);
+    EXPECT_EQ(tested.socket.connects.back().port, MapServerPort);
+    EXPECT_EQ(tested.session.State(), SessionState::ConnectingGameServer);
+    EXPECT_TRUE(tested.LinesWithAnAddress().empty());
+
+    tested.gameServerStart = tested.socket.sent.size();
+    static_cast<void>(tested.session.Poll());
+    ASSERT_EQ(tested.session.State(), SessionState::WaitingGameHello);
+    PacketSerials newServerSends;
+    tested.socket.reads = {
+        FromTheGameServer(Bytes({0xC1, 0x0C, 0xF1, 0x00, 0x00, 0x01, 0x23, '0', '9', '9', '0', '8'}), newServerSends)};
+    static_cast<void>(tested.session.Poll());
+
+    events = tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 3u);
+    EXPECT_TRUE(std::holds_alternative<Client::App::MapServerJoined>(events[0]));
+    EXPECT_TRUE(std::holds_alternative<Client::App::MapServerAuthenticationPrepared>(events[1]));
+    EXPECT_TRUE(std::holds_alternative<Client::App::GuildTableReset>(events[2]));
+    EXPECT_EQ(tested.session.PlayerIndex(), 0x0123);
+    EXPECT_EQ(tested.session.State(), SessionState::EnteringWorld);
+    const auto received = tested.GameServerReads();
+    ASSERT_EQ(received.packets.size(), 3u);
+    EXPECT_TRUE(SameBytes(received.packets[0].Bytes(), Bytes({0xc1, 3, 0x31})));
+    EXPECT_TRUE(SameBytes(received.packets[1].Bytes(), Bytes({0xc1, 3, 0x31})));
+    EXPECT_TRUE(received.packets[2].WasDecrypted());
+    const ByteVector moveBytes = MapServerMovePacket(MapServerHost);
+    const Packet auth = Xor32Decode(received.packets[2]);
+    ASSERT_EQ(auth.Bytes().size(), 0x45u);
+    EXPECT_TRUE(SameBytes(auth.Bytes().first(4), Bytes({0xc1, 0x45, 0xb1, 0x01})));
+    // El nombre del elegido (el lugar 0) y los códigos del B1 00.
+    EXPECT_TRUE(SameBytes(auth.Bytes().subspan(16, 12), Bytes({'c', 'h', 'a', 'r', '0', '0', '0', '1', 0, 0, 0, 0})));
+    EXPECT_TRUE(SameBytes(auth.Bytes().subspan(28, 16), std::span<const std::byte>(moveBytes).subspan(24, 16)));
+    EXPECT_FALSE(tested.LoggedTheCredentials());
+}
+
+// Antes del login, 0x412b30 solo guarda el movimiento ([0x5767928] en 0): no cierra ni conecta, y el saludo sigue el
+// camino del login.
+TEST(ServerSessionTest, AMapServerMoveBeforeTheLoginIsOnlyKept)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachGameHello());
+    const std::size_t connectsBefore = tested.socket.connects.size();
+    tested.socket.reads = {MapServerMovePacket(MapServerHost),
+                           FromTheGameServer(GameHello(1, ClientVersion), tested.gameServerSends)};
+    static_cast<void>(tested.session.Poll());
+    EXPECT_EQ(tested.socket.connects.size(), connectsBefore);
+    EXPECT_TRUE(tested.eventSink.TakeWorldEvents().empty());
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingCredentials);
+}
+
+// Un host sin 0 en los 0x24 bytes (Q-C1402): el GameServer ya se cerró, como en el original, y no se conecta a otro.
+TEST(ServerSessionTest, AMapServerMoveWithAnOpenHostDoesNotConnect)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    const std::size_t connectsBefore = tested.socket.connects.size();
+    ByteVector open = MapServerMovePacket("abcdefghijklmnop");
+    for (std::size_t at = 20; at < open.size(); ++at)
+        open[at] = std::byte{0x41};
+    tested.socket.reads = {open};
+    static_cast<void>(tested.session.Poll());
+    EXPECT_EQ(tested.socket.connects.size(), connectsBefore);
+    EXPECT_EQ(tested.session.State(), SessionState::Failed);
+    EXPECT_EQ(tested.session.Failure(), SessionFailure::GameServerLost);
+    EXPECT_TRUE(tested.Logged(LogLevel::Warning, "Q-C1402"));
 }
 
 // Lo que mandan las ventanas del castillo va por el GameServer con XOR32 y sin C3, y nada sin él abierto.
@@ -5268,4 +5435,67 @@ TEST(ServerSessionTest, WithoutChatRoomSocketsNoRoomOpens)
     EXPECT_EQ(tested.session.ChatRoomCount(), 0u);
     EXPECT_TRUE(tested.Logged(LogLevel::Warning, "no hay red para las salas"));
 }
+// 0x4c1e2c: tras mandar el login sólo se lee la clave; no se requiere resultado ni versión.
+TEST(ServerSessionTest, AHelloAfterLoginUsesTheKeyWithoutRequiringTheVersion)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    static_cast<void>(tested.eventSink.TakeWorldEvents());
+    const auto before = tested.socket.sent.size();
+    tested.socket.reads = {FromTheGameServer(Bytes({0xc1, 7, 0xf1, 0, 0, 0x81, 0x23}), tested.gameServerSends)};
+    static_cast<void>(tested.session.Poll());
+    EXPECT_EQ(tested.session.PlayerIndex(), 0x8123);
+    EXPECT_EQ(tested.eventSink.TakeWorldEvents().size(), 1u);
+    EXPECT_EQ(tested.socket.sent.size(), before);
+    EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
+}
+
+// 0x4133cb lee el tick después de 0x4c2480; una aplicación del mundo puede avanzar el reloj.
+TEST(ServerSessionTest, TheMapServerAuthenticationReadsItsTickAfterTheWorldReset)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachEnteringWorld());
+    static_cast<void>(tested.eventSink.TakeWorldEvents());
+    tested.eventSink.onWorld = [&tested](const WorldEvent& event,
+                                         ServerSession& session) -> Client::Core::Expected<void, std::string>
+    {
+        if (std::holds_alternative<Client::App::MapServerJoined>(event))
+            tested.clock.Advance(std::chrono::milliseconds(17));
+        return ApplyAnEmptyWorldReset(event, session);
+    };
+    tested.socket.reads = {MapServerMovePacket(MapServerHost)};
+    static_cast<void>(tested.session.Poll());
+    tested.gameServerStart = tested.socket.sent.size();
+    static_cast<void>(tested.session.Poll());
+    ASSERT_EQ(tested.session.State(), SessionState::WaitingGameHello);
+    PacketSerials serial;
+    tested.socket.reads = {FromTheGameServer(GameHello(1, ClientVersion), serial)};
+    static_cast<void>(tested.session.Poll());
+    const auto received = tested.GameServerReads();
+    ASSERT_EQ(received.packets.size(), 3u);
+    const auto auth = Xor32Decode(received.packets[2]);
+    const auto bytes = auth.Bytes();
+    const auto tick = std::to_integer<std::uint32_t>(bytes[44]) | (std::to_integer<std::uint32_t>(bytes[45]) << 8u) |
+                      (std::to_integer<std::uint32_t>(bytes[46]) << 16u) |
+                      (std::to_integer<std::uint32_t>(bytes[47]) << 24u);
+    EXPECT_EQ(tick, Client::App::TickCountMs(tested.clock.Now()));
+}
+
 } // namespace
+
+// 0x4deef0, registro del F3 24: el resultado debe alcanzar el consumidor y no caer en opcode desconocido.
+TEST(ServerSessionTest, GuildWarOutcomeReachesTheWorldWithItsRawPresentByte)
+{
+    namespace Events = Client::Protocol::Events;
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    tested.socket.reads = {Bytes({0xc1, 5, 0xf3, 0x24, 255})};
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+    const auto events = tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 1u);
+    const auto* packet = std::get_if<Events::EventPacket>(&events[0]);
+    ASSERT_NE(packet, nullptr);
+    const auto* outcome = std::get_if<Events::GuildWarOutcome>(packet);
+    ASSERT_NE(outcome, nullptr);
+    EXPECT_EQ(outcome->present, 255);
+}

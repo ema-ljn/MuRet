@@ -44,6 +44,8 @@
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "Scenes/WorldEntry.h"
+#include "Protocol/Outgoing.h"
 #include "Scenes/TextureMetadata.h"
 #include "Scenes/TextureSets.h"
 #include "UI/CreateCharacterWindow.h"
@@ -270,7 +272,8 @@ struct Harness
     explicit Harness(bool withSession = true, bool withWings = false, bool withTheMouse = false,
                      Client::Scenes::SelectionState* selectionState = nullptr,
                      Client::Scenes::WorldState* worldState = nullptr,
-                     Client::Render::Models::ClothWorld* sharedCloth = nullptr, bool withItemTable = true)
+                     Client::Render::Models::ClothWorld* sharedCloth = nullptr, bool withItemTable = true,
+                     const Client::Scenes::WorldEntryResources* worldEntry = nullptr)
         : log(sink, Client::Core::LogLevel::Debug), models(withWings), selection(selectionState),
           sharedRandom(sharedCloth)
     {
@@ -326,7 +329,8 @@ struct Harness
                          .cameraInput = selection != nullptr || worldState != nullptr ? &cameraInput : nullptr,
                          .selection = selection,
                          .world = worldState,
-                         .textMeasure = &letters},
+                         .textMeasure = &letters,
+                         .worldEntry = worldEntry},
             data, models, withSession ? &online.session : nullptr);
     }
 
@@ -1273,6 +1277,66 @@ TEST(CharacterSelectSceneTest, TheFirstNativeStepConstructsBothPreviewsAndResets
     // Constructores56, vaciado3848, propio3848, preview19, partículas2 y finalmente tela9; antes, los 65.536 del pasto
     // (0x5f8300) de la carga del 54 (0x61a560), que no crea objetos con rand().
     EXPECT_EQ(cloth.random.State(), Client::Tests::AfterDraws(1, 3934 + 3848 + 65536).State());
+}
+
+// 0x5bc0f1/0x5bc102: ambas máscaras se consultan en orden; el único modo activo manda un 31 antes del comercio.
+TEST(CharacterSelectSceneTest, TheFirstStepClosesEitherSiegeWeaponBetweenInventoryAndTradeReset)
+{
+    for (const std::uint8_t mode : {std::uint8_t{1}, std::uint8_t{2}})
+    {
+        auto world = std::make_unique<Client::Scenes::WorldState>();
+        Client::Scenes::SelectionState selection(*world);
+        Client::Render::Models::ClothWorld cloth;
+        ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
+        FlatModels models;
+        Client::World::GameCamera camera;
+        Client::World::GameCameraInput cameraInput;
+        Client::Tests::RecordingSink sink;
+        Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
+        Client::Scenes::WorldEntryResources resources{.world = *world,
+                                                      .selection = selection,
+                                                      .dataRoot = {},
+                                                      .cloth = cloth,
+                                                      .camera = camera,
+                                                      .cameraInput = cameraInput,
+                                                      .models = models,
+                                                      .log = log};
+        auto& runtime = world->Runtime();
+        runtime.panels.delegated.siegeWeapon = mode;
+        runtime.panels.delegated.siegeGate = 1;
+        runtime.siegeBattleUi.weaponChoice = 2;
+        runtime.social.trade.changed = 1;
+        runtime.social.trade.ownGrid[0].id = 7;
+        runtime.social.trade.ownGrid[0].occupied = 1;
+        world->Inventory().cells[0].id = 9;
+        world->Inventory().cells[0].occupied = 1;
+        world->OwnCharacter().equipment[0].scalar1Low = 31;
+        std::vector<Client::Protocol::Outgoing> sent;
+        resources.sendGamePacket = [&](Client::Protocol::Outgoing packet)
+        {
+            EXPECT_EQ(runtime.panels.delegated.siegeWeapon, mode); // El 31 precede a 0x44dcf0.
+            EXPECT_EQ(world->Inventory().cells[0].id, Client::Scenes::EmptyOwnItemId);
+            EXPECT_EQ(world->Inventory().cells[0].occupied, 0);
+            EXPECT_EQ(runtime.social.trade.changed, 1);
+            EXPECT_EQ(runtime.social.trade.ownGrid[0].id, 7);
+            EXPECT_EQ(world->OwnCharacter().equipment[0].scalar1Low, 31u); // El reset propio viene después.
+            sent.push_back(std::move(packet));
+        };
+        Harness tested(true, false, false, &selection, world.get(), &cloth, true, &resources);
+
+        ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({}));
+
+        ASSERT_FALSE(tested.scene->Failure().has_value());
+        ASSERT_EQ(sent.size(), 1u);
+        EXPECT_TRUE(Client::Tests::SameBytes(sent.front().packet.Bytes(), Client::Tests::Bytes({0xc1, 3, 0x31})));
+        EXPECT_EQ(runtime.panels.delegated.siegeWeapon, 0);
+        EXPECT_EQ(runtime.siegeBattleUi.weaponChoice, 0);
+        EXPECT_EQ(runtime.panels.delegated.siegeGate, 1); // 0x5bbe10 sólo consulta las dos armas.
+        EXPECT_EQ(runtime.social.trade.changed, 0);
+        EXPECT_EQ(runtime.social.trade.ownGrid[0].id, Client::Scenes::EmptyOwnItemId);
+        EXPECT_EQ(world->OwnCharacter().equipment[0].scalar1Low, 0u);
+        EXPECT_EQ(cloth.random.State(), Client::Tests::AfterDraws(1, 3934 + 3848 + 65536).State());
+    }
 }
 
 // 0x634199..0x634227: el primer paso con la lista apaga los campos del diálogo (0x77f3b68..0x77f3b6a), abre el campo

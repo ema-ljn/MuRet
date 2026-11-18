@@ -598,7 +598,7 @@ TEST_P(CastleSiegeReceiveTest, SuccessfulGuildListsClearTheEntriesAndSelectionBu
     ExpectNoRandom();
 }
 
-// B6 (0x4e0ed0): sin panel del asedio o con uno de otra clase, nada; con la clase 2, la batalla (hito 13).
+// B6 (0x4e0ed0): sólo clase2; vacía el vector y añade los puntos con índice0, también con cuenta0.
 TEST_P(CastleSiegeReceiveTest, MinimapPointsOnlyCountWithTheKindTwoPanel)
 {
     const Castle::MinimapPoints points{.points = {{.x = 1, .y = 2}}};
@@ -608,7 +608,15 @@ TEST_P(CastleSiegeReceiveTest, MinimapPointsOnlyCountWithTheKindTwoPanel)
     Runtime().siegePanelKind = std::uint8_t{1};
     Apply(points);
     Runtime().siegePanelKind = std::uint8_t{2};
-    EXPECT_NE(CutOf(points).find("hito 13"), std::string::npos);
+    Runtime().siegePanel.members.push_back({7, 8, 9});
+    Apply(points);
+    ASSERT_EQ(Runtime().siegePanel.members.size(), 1u);
+    EXPECT_EQ(Runtime().siegePanel.members[0], (std::array<std::uint8_t, 3>{0, 1, 2}));
+    EXPECT_EQ(Runtime().siegePanel.membersHidden, 0);
+    Apply(Castle::MinimapPoints{.points = {}});
+    EXPECT_TRUE(Runtime().siegePanel.members.empty());
+    EXPECT_EQ(Runtime().siegePanel.membersHidden, 1);
+    ExpectNoRandom();
 }
 
 // B8 01 (0x4e0700) sobre el héroe: otro valor a +0x372; 0 devuelve la habilidad guardada (+0x373) a +0x425.
@@ -709,7 +717,7 @@ TEST_P(CastleSiegeReceiveTest, HuntInformationNormalizesAccessAndCopiesTheSigned
     EXPECT_EQ(hunt.step, 7);
     EXPECT_EQ(Runtime().panels.delegated.secondCastleSiege, 1);
     EXPECT_TRUE(m_sent.empty());
-    // 0x659860 y 0x657ab0 consultan comercio y tienda NPC: dos consultas protegidas en cada uno.
+    // 659860 y657ab0 consultan comercio y tienda NPC: dos cierres protegidos en cada uno.
     CrtRandom expected(Seed);
     expected.Discard(4);
     EXPECT_EQ(m_random.State(), expected.State());
@@ -735,7 +743,6 @@ TEST_P(CastleSiegeReceiveTest, BusySeniorCloseReturnsTrueButKeepsTheWindowAndUse
     EXPECT_TRUE(closed.Value());
     EXPECT_EQ(Runtime().panels.delegated.castleSiegeList, 1);
     EXPECT_EQ(Runtime().panels.delegated.castleSiegeListMode, 3);
-    // 0x65cb89..0x65cb95: tipo 2 y texto (0x77354e8 − 0x76bd1dc) / 300 = 1641.
     EXPECT_EQ(Messages(Client::UI::ErrorMessage), (std::vector<std::string>{Text(1641)}));
     EXPECT_TRUE(m_sent.empty());
     closed = panels.Registry().CloseByMask(Client::UI::CastleSiegeListPanel);

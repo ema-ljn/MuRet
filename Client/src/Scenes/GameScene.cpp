@@ -1,5 +1,9 @@
 #include "Scenes/GameScene.h"
+#include "Scenes/SiegeBattleUi.h"
 #include "Scenes/MonsterSounds.h"
+#include "Scenes/ArrowEffects.h"
+#include "World/SiegeStoneEffects.h"
+#include "World/SiegeGateEffects.h"
 #include "Scenes/GameSceneFrameProjection.h"
 #include "Scenes/ActorPickingBox.h"
 #include "Data/Tables/GateTable.h"
@@ -375,9 +379,9 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
     // float, como el producto exacto en double redondeado una vez.
     World::GameCameraInput& cameraInput = CameraInputState();
     cameraInput.shake = F32(static_cast<double>(cameraInput.shake) * static_cast<double>(ShakeDecay));
-    // 0x636dd4: 0x652940, con el héroe en +0x371 == 'C' (siempre, 0x511290), mira el asedio (0x7239ec) y
-    // el gremio con 0x4294b0. El 0x7239ec solo lo escribe 0x4294c0, desde los paquetes de 0x4e0610 y
-    // 0x4e2b10 que MuRet no aplica: sin asedio, no hace nada (*estático*, 08 P-C41).
+    // 0x636dd4..0x636de3: sólo con el marcador inicial 0x43 busca la primera habilidad del asedio.
+    if (m_context.world->Actors()[runtime.hero].byte371 == 0x43)
+        InitializeTheBattleSkill(*m_context.world, m_context.cloth->random);
     // 0x636de8: 0x5fbf60, la ola de las celdas de la ventana del rango del último dibujo, con el reloj
     // del paso (la rama de 0x723c50, P-C24 c, no se prende en MuRet). La copia de la luz sombreada al
     // buffer dinámico precede las luces de objetos y fauna (06 § Terreno). El rango y las olas
@@ -543,10 +547,35 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
     if (map == CastleMap)
     {
         // timeGetTime (0x6b8544) es el reloj de la escena en ms; sin reloj, el preludio corta en 0x42b557.
-        World::CastleSiegePrelude prelude{.siegeActive = world.Runtime().siegeActive,
-                                          .musicTime = &world.Runtime().siegeMusicTime,
-                                          // MuRet todavía no tiene audio (CL10): queda el último pedido.
-                                          .sound = [&world](std::int32_t id) { world.Runtime().lastSoundId = id; }};
+        World::CastleSiegePrelude prelude{
+            .siegeActive = world.Runtime().siegeActive,
+            .musicTime = &world.Runtime().siegeMusicTime,
+            // MuRet todavía no tiene audio (CL10): queda el último pedido.
+            .sound = [&world](std::int32_t id) { world.Runtime().lastSoundId = id; },
+            .random = &m_context.cloth->random,
+            .logicSteps = m_context.cloth->logicSteps,
+            .heroPosition = world.Actors()[world.Runtime().hero].position,
+            .heroY =
+                [&world, this]()
+            {
+                auto& actor = world.Actors()[world.Runtime().hero];
+                const Render::Models::LogicalAccess access(actor.cellYAccesses, m_context.cloth->random,
+                                                           Render::Models::SmallLogicalCloseRandoms, actor.cellYLeft);
+                return static_cast<std::int32_t>(actor.cellY);
+            },
+            .emit = [&world, this](const World::ModelEffectArguments& args) -> Core::Expected<void, std::string>
+            {
+                if (World::IsSiegeStoneEffect(args.type))
+                {
+                    const auto created =
+                        World::CreateSiegeStone(args, world.Map().effects,
+                                                world.Actors()[world.Runtime().hero].position, m_context.cloth->random);
+                    if (!created.HasValue())
+                        return Core::Unexpected(created.Error());
+                    return {};
+                }
+                return CreateTheArrowEffect(args, world, m_context.cloth->random);
+            }};
         if (m_context.clock != nullptr)
             prelude.systemTime = [clock = m_context.clock]() {
                 return static_cast<std::uint32_t>(
@@ -617,7 +646,8 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
                        : 0U;
         },
         .trialsAmbientTime = &world.Runtime().trialsAmbientTime,
-        .siegeActive = &world.Runtime().siegeActive};
+        .siegeActive = &world.Runtime().siegeActive,
+        .siegeCrownFlags = &world.Runtime().castleFlags7239e4};
     AfterObjectStep after;
     if (icarus)
         after = [&](World::WorldObject& object)
@@ -632,7 +662,19 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
     // 0x6063d0 → 0x42c500 en el 30, con el reloj del paso.
     if (map == CastleMap)
         after = [&](World::WorldObject& object)
-        { return World::StepCastleSiegeSeenObject(object, world.Runtime().siegeActive, worldClock); };
+        {
+            return World::StepCastleSiegeSeenObject(
+                object, world.Runtime().siegeActive, worldClock,
+                World::CastleGateCollapseServices{
+                    .emit = [&world](const World::ModelEffectArguments& arguments) -> Core::Expected<void, std::string>
+                    {
+                        const auto created = World::CreateCastleGateEffect(arguments, world.Map().effects);
+                        if (!created.HasValue())
+                            return Core::Unexpected(created.Error());
+                        return {};
+                    },
+                    .sound = [&world](std::int32_t sound) { world.Runtime().lastSoundId = sound; }});
+        };
     if (auto stepped = StepGameWorldObjects(objects, static_cast<std::uint8_t>(map), m_worldModels,
                                             m_context.cloth->random, globals, after, collapse);
         !stepped.HasValue())

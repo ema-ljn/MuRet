@@ -60,6 +60,7 @@ inline constexpr std::uint8_t CrywolfEffectSubcode = 0x0c;
 inline constexpr std::uint8_t WorldOpcode = 0xf3;
 inline constexpr std::uint8_t EventTimeSubcode = 0x22;
 inline constexpr std::uint8_t SoccerScoreSubcode = 0x23;
+inline constexpr std::uint8_t GuildWarOutcomeSubcode = 0x24;
 inline constexpr std::uint8_t ServerCommandSubcode = 0x40;
 
 // 0x4e3594: C1 05 0B estado evento (PMSG_EVENTSTATE).
@@ -296,6 +297,16 @@ struct SoccerScore
     std::uint8_t secondScore = 0;
 };
 
+// F3 24, 0x4deef0: conpresent<3 copia nombres10 y scoresWORD; otro present no lee el resto.
+struct GuildWarOutcome
+{
+    std::uint8_t present = 0;
+    std::array<char, 10> firstName{};
+    std::array<char, 10> secondName{};
+    std::uint16_t firstScore = 0;
+    std::uint16_t secondScore = 0;
+};
+
 // 0x4da070 (F3 40): pkt[4], pkt[5] y pkt[6] (PMSG_F3_40).
 struct ServerCommand
 {
@@ -309,7 +320,7 @@ using EventPacket =
                  EventResult, EventChipInfo, EventChipCount, MutoNumbers, EventDialog, BloodCastleEntryResult,
                  EventPlayState, SerialResult, EventSound, ChaosCastleEntryResult, JewelMixResult, CrywolfState,
                  CrywolfAltars, CrywolfContract, CrywolfTimer, CrywolfBoss, CrywolfRank, CrywolfRanking,
-                 CrywolfChaosBox, CrywolfUnported, EventTime, SoccerScore, ServerCommand>;
+                 CrywolfChaosBox, CrywolfUnported, EventTime, SoccerScore, GuildWarOutcome, ServerCommand>;
 
 // Uno de los paquetes de arriba por su opcode (y su subcódigo en AF, BC, BD y F3). Otro tipo que C1, otro opcode u
 // otro subcódigo → WrongPacket; sin los bytes que el original lee siempre → TooShort. Los bytes de más se ignoran.
@@ -317,6 +328,9 @@ using EventPacket =
 
 // 0x56b4e8..0x56b5a0: C1 03 97 en claro, sin XOR32 ni cifrado, con send directo.
 [[nodiscard]] Outgoing WriteEventWindowLeave();
+
+// 0x5c6865/0x5c6c36/0x5c7010: C1 04 91 clase, con XOR32 y envío en claro.
+[[nodiscard]] Outgoing WriteEventTimeRequest(std::uint8_t kind);
 
 // 0x5e65da..0x5e6864: C1 04 98 01, con el XOR32 y en claro (el send del paso).
 [[nodiscard]] Outgoing WriteMutoNumberRequest();

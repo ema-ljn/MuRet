@@ -43,8 +43,8 @@ class WorldState;
 // 0x518cf0 con un tipo de flecha: el prefijo (World::ModelEffects::Begin) y el alta del tipo (0x51c43b, 0x51a41e,
 // 0x51a1e6..0x51a405, 0x51be81 y la salida 0x51a1b6, que copia +0xf04 del registro propio a +0x8c). La llama 0x53d9a0
 // por cada mano; la 0xdb con el subtipo 3 o 4 la crea el asedio (0x42c319 y 0x42c4e0, CL9.5) y la 0xe1/1 la fortaleza
-// y Crywolf (0x42fd32 y 0x43252d, cortados). Con el subtipo 2 (la skill 0x34), antes el 0x105 con la flecha de dueño,
-// que corta en su joint (0x51a08a, CL11). Con la tabla llena, nada y sin rand().
+// y Crywolf (0x42fd32 y 0x43252d); su 610/13 conserva al efecto de dueño. Con el subtipo 2 (la skill 0x34), antes el
+// 0x105 con la flecha de dueño, que corta en su joint (0x51a08a, CL11). Con la tabla llena, nada y sin rand().
 [[nodiscard]] Core::Expected<void, std::string> CreateTheArrowEffect(const World::ModelEffectArguments& arguments,
                                                                      WorldState& world,
                                                                      Render::Models::CrtRandom& random,
@@ -72,8 +72,7 @@ class WorldState;
 [[nodiscard]] Core::Expected<void, std::string> CreateCombatBurstAt(const glm::vec3& position,
                                                                     const CharacterStepContext& context);
 
-// 0x51fff0(posición,0): ocho grupos con 0x51fe10 y dos selectores de piedra. Con hueco, el subtipo1 sigue CL11;
-// sin hueco en efectos, las ocho vueltas conservan los RNG y continúan.
+// 0x51fff0(posición,0): ocho grupos con 0x51fe10 y un selector por intento de piedra c8/c9, primero /1 y después /0.
 [[nodiscard]] Core::Expected<void, std::string> ScatterCombatBurstAt(const glm::vec3& position,
                                                                      const CharacterStepContext& context);
 

@@ -966,4 +966,45 @@ TEST(PanelRegistryTest, TheSiegeWeaponAndTheGateTakeOnePanel)
     gate.state.delegated.siegeGate = 1;
     EXPECT_EQ(gate.panels.WorldWidth(), OnePanelWorldWidth);
 }
+// 0x65b265 y 0x65b29b: cerrar los otros paneles, abrir el inventario antes del byte del evento,
+// y conservar el tipo de la ventana. Cada Open emite su pareja de sonidos.
+TEST(PanelRegistryTest, BothEventNpcsOpenTheInventoryBeforePublishingTheirKind)
+{
+    for (const PanelId id : {EventNpcPanel, SecondEventNpcPanel})
+    {
+        Tested tested;
+        const auto opened = tested.panels.Open(id);
+        ASSERT_TRUE(opened.HasValue()) << opened.Error();
+        EXPECT_TRUE(opened.Value());
+        EXPECT_EQ(tested.state.inventory, 1);
+        EXPECT_EQ(tested.state.eventNpc, 1);
+        EXPECT_EQ(tested.state.eventNpcKind, id == EventNpcPanel ? 0 : 1);
+        EXPECT_TRUE(tested.panels.IsOpen(id));
+        EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x19, 0x1c, 0x19, 0x1c}));
+        EXPECT_EQ(DrawsSince(tested.random), 8);
+    }
+}
+
+TEST(PanelRegistryTest, SwitchingTheEventNpcClosesTheOldKindBeforeOpeningTheInventory)
+{
+    Tested tested;
+    tested.state.eventNpc = 1;
+    tested.state.eventNpcKind = 0;
+    tested.state.inventory = 1;
+    int sent = 0;
+    tested.context.eventNpcClosed = [&]()
+    {
+        EXPECT_EQ(tested.state.eventNpcKind, 0);
+        EXPECT_EQ(tested.state.inventory, 1);
+        ++sent;
+    };
+    const auto opened = tested.panels.Open(SecondEventNpcPanel);
+    ASSERT_TRUE(opened.HasValue()) << opened.Error();
+    EXPECT_EQ(sent, 1);
+    EXPECT_EQ(tested.state.eventNpcKind, 1);
+    EXPECT_EQ(tested.state.inventory, 1);
+    EXPECT_EQ(tested.state.eventNpc, 1);
+    EXPECT_EQ(DrawsSince(tested.random), 8);
+}
+
 } // namespace

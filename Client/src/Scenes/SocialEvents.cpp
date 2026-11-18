@@ -14,6 +14,7 @@
 #include "Scenes/GameMessages.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GamePanels.h"
+#include "Scenes/CastleWindows.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnItemPlacement.h"
@@ -479,7 +480,7 @@ Core::Expected<void, std::string> ApplyTradeResponse(const Protocol::Trade::Trad
     GamePanels panels(world, resources.cloth.random);
     // 0x4d55b8 → 0x6599a0(0x20): abrir el comercio cierra lo demás, las misiones con el 31 y la tienda de otro con el
     // 3F 07.
-    panels.LendTheSession(world, resources.cloth.random, resources.sendGamePacket, resources.sendWindowClose);
+    LendTheCastlePanelServices(panels, resources);
     if (auto opened = panels.Registry().Open(UI::TradePanel); !opened.HasValue())
         return Core::Unexpected(std::move(opened).Error());
     TradeState& trade = world.Runtime().social.trade;

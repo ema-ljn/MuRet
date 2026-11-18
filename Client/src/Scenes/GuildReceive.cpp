@@ -12,6 +12,7 @@
 #include "Scenes/EventGlobals.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GamePanels.h"
+#include "Scenes/CastleWindows.h"
 #include "Scenes/GuildPanels.h"
 #include "Scenes/GuildState.h"
 #include "Scenes/GuildWindow.h"
@@ -223,6 +224,12 @@ Core::Expected<GuildTableEntry*, std::string> EntryOf(GuildState& guild, std::in
 Core::Expected<bool, std::string> OpenThePanel(const GuildReceiveContext& context, UI::PanelId id)
 {
     GamePanels panels(context.world, context.random);
+    if (context.worldEntry != nullptr)
+        LendTheCastlePanelServices(panels, *context.worldEntry, context.send);
+    else
+        LendTheCastlePanelServices(
+            panels, context.world, context.random, context.send, nullptr,
+            {.measure = context.measure, .texts = context.texts, .screen = context.screen, .now = context.now});
     panels.LendTheGuild(context.world, context.send);
     return panels.Registry().Open(id);
 }

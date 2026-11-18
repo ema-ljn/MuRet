@@ -52,6 +52,11 @@ inline constexpr std::int16_t FirstDebrisEffect = 0x10a;
 inline constexpr std::int16_t DebrisEffect = 0x10b;
 inline constexpr std::int16_t FirstStoneChipEffect = 0xc8;
 inline constexpr std::int16_t SecondStoneChipEffect = 0xc9;
+inline constexpr std::int32_t RisingStoneChipSubtype = 1;
+[[nodiscard]] constexpr bool IsRisingStoneChip(std::int16_t type, std::int32_t subtype)
+{
+    return subtype == RisingStoneChipSubtype && (type == FirstStoneChipEffect || type == SecondStoneChipEffect);
+}
 // El pedazo de hielo 0xca (Data\Skill\Ice02.bmd, 0x615d36): diez los suelta el monstruo de hielo 0x161 al terminar de
 // morir (0x52e810, CL9 hito 3). Su paso es el de las piedritas (0x523974).
 inline constexpr std::int16_t IceShardEffect = 0xca;
@@ -74,6 +79,29 @@ inline constexpr std::int16_t AidaWispEffect = 0xb3;
 // El de Castle Siege (0x42c6b0): el objeto 79 del mapa 30 crea el 0x135 (Skill\TowerGatePlane), un plano
 // que sube y baja con el reloj y se dibuja dos veces, la segunda reflejada.
 inline constexpr std::int16_t GatePlaneEffect = 0x135;
+// Señales procedurales de MuRet para los tres llamadores del mapa 30.
+inline constexpr std::int16_t SiegeArrivalCue = 0x134;
+inline constexpr std::int16_t SiegeStoneCue = 0x19f;
+inline constexpr std::int16_t SiegePulseCue = 0x61c;
+inline constexpr std::int32_t SiegeAttackCueLife = 20;
+inline constexpr std::int16_t CrywolfArrowEffect = 0xf8;
+inline constexpr std::int16_t CrywolfPulseEffect = 0x105;
+inline constexpr std::int16_t CrywolfShardEffect = 0xc1a;
+inline constexpr std::int32_t CrywolfArrowSubtype = 1;
+inline constexpr std::int32_t CrywolfPulseSubtype = 3;
+
+[[nodiscard]] constexpr bool IsSiegeCue(std::int16_t type, std::int32_t subtype)
+{
+    return subtype == 0 && (type == SiegeArrivalCue || type == SiegeStoneCue || type == SiegePulseCue);
+}
+
+[[nodiscard]] constexpr bool IsCrywolfCue(std::int16_t type, std::int32_t subtype)
+{
+    return (type == CrywolfArrowEffect && subtype == CrywolfArrowSubtype) ||
+           (type == CrywolfPulseEffect && subtype == CrywolfPulseSubtype) ||
+           (type == CrywolfShardEffect && subtype == 0);
+}
+
 // El calco que se apaga (0x61d, sin modelo: solo el pase del suelo dibuja la /1). El 0x38 de Crywolf crea el /3, que
 // suelta órbitas 60f/10 (0x52b933).
 inline constexpr std::int16_t FadingDecalEffect = 0x61d;
@@ -178,6 +206,11 @@ struct ModelEffect
     std::uint8_t byte1bd = 0;
     std::uint16_t word8c = 0;
     std::int32_t dword100 = 0;
+    // +0x90 y +0x1b0: el umbral del impacto y el destino de los proyectiles del castillo y del 0xee de Crywolf.
+    std::uint8_t byte90 = 0;
+    glm::vec3 siegeTarget{};
+    // +0x78: cola602365 de6002e0. El prefijo518cf0 no lo reinicializa.
+    std::uint32_t flags78 = 0;
 };
 
 // Los once argumentos de 0x518cf0, como los escribe su prefijo (0x518d28..0x518e36): el tipo en +0x2, la posición en
@@ -204,6 +237,26 @@ struct ModelEffectArguments
 class ModelEffects
 {
 public:
+    // El caller presta el actor durable de llegada. Sólo el pulso consume RNG al obtener un lugar.
+    std::optional<std::size_t> CreateSiegeCue(const ModelEffectArguments& arguments, Render::Models::CrtRandom& random);
+    // Fragmento radial o pulso. El dueño del pulso es una flecha durable del mismo pool.
+    std::optional<std::size_t> CreateCrywolfEffect(const ModelEffectArguments& arguments);
+    // 0x51c754: el torbellino145/2 de la estela del1ae, sinRNG.
+    std::optional<std::size_t> CreateCrywolfTideEffect(const ModelEffectArguments& arguments);
+    // 0x51c129: ondas114/2 y/6, key firmado como escala, sinRNG; 0x51c8e8:115/1.
+    std::optional<std::size_t> CreateWaveEffect(const ModelEffectArguments& arguments);
+    std::optional<std::size_t> CreatePiercingEffect(const ModelEffectArguments& arguments);
+    // 0x51c06c: proyectil0xee de BD0C, sinCRT; +1b0 recibe los ángulos como destino.
+    std::optional<std::size_t> CreateCrywolfMissile(const ModelEffectArguments& arguments);
+    // 0x51edc4/0x51ee54: los fuegos artificiales60d/60e, con pools reales y sin sonidos implícitos.
+    std::optional<std::size_t> CreateFireworkEmitter(const ModelEffectArguments& arguments);
+    std::optional<std::size_t> CreateFireworkFlare(const ModelEffectArguments& arguments,
+                                                   Render::Models::CrtRandom& random);
+    // 0x51f7f9: cráter636, sub0/1/2; no consume RNG y el pool lleno conserva sus argumentos.
+    std::optional<std::size_t> CreateCraterEffect(const ModelEffectArguments& arguments);
+    // 0x51f577..0x51f5fd: ondas6eb/5..8. Sólo /8 consume un rand() al conseguir lugar.
+    std::optional<std::size_t> CreateCastleShockWave(const ModelEffectArguments& arguments,
+                                                     Render::Models::CrtRandom& random);
     // 438a1a→5191be: tipo9/0, ownerNULL, escalaargumento0; primer libre, lleno sinCRT.
     std::optional<std::size_t> CreateKalimaEffect(const glm::vec3& position, const glm::vec3& angles,
                                                   const glm::vec3& light, Render::Models::CrtRandom& random);
@@ -257,9 +310,12 @@ public:
     // 0x518cf0(0xc8 o 0xc9, …, 0, 0, −1, 0, 0, 0, 0) → 0x51b72b con el subtipo 0: el prefijo común y cinco
     // rand(): el empuje ((& 255) + 64) · 0,1f en y, la vida (& 15) + 32, la escala ((& 3) + 8) · 0,1f, el
     // yaw rand() % 360 y la caída (& 15) + 8 en +0xe4; la velocidad es el empuje girado por los ángulos con
-    // ese yaw. Otro tipo o la tabla llena, ninguno.
+    // ese yaw. La /1 de 0x520119 tiene empuje cero y omite ese primer sorteo. Otro tipo o la tabla llena, ninguno.
     std::optional<std::size_t> CreateStoneChip(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
                                                const glm::vec3& light, Render::Models::CrtRandom& random);
+    std::optional<std::size_t> CreateStoneChip(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
+                                               const glm::vec3& light, Render::Models::CrtRandom& random,
+                                               std::int32_t subtype);
     // 0x518cf0(0xbb o 0x5ac, …, 0, 0, −1, 0, 0, 0, 0) con el subtipo 0. La nube (0x51b968): vida 2, el
     // blendMesh en 0, escala 10, 200 más en y y 190 menos en z, sin luz por vértice; sin rand(). El 0x5ac
     // (0x51e3ec): la luz en 0,3f, s = rand() % 5 + 9 y la velocidad sin girar (sen 30° · cos 70°; cos 30° ·

@@ -59,6 +59,7 @@ UseTheLaterGridItem(const InventoryMoveContext& context, UI::PanelRegistry& pane
 
 // El 0x1a1d mira la tienda de NPC, el almacén, el comercio, 0x1000 y 0x4000 (0x5c67f3..0x5c685f), en ese orden y hasta
 // la primera abierta, con el rand() de la tienda y del comercio; con una abierta no hace nada (0x5c9b0b). Si no, y con
-// los otros dos, el C1 .. 91 corta (0x5c6865, 0x5c6c36 y 0x5c7010, hito 11).
-[[nodiscard]] Core::Expected<void, std::string> UseTheEventTicket(UI::PanelRegistry& panels, std::int32_t type);
+// los otros dos, envía C1 04 91 con clase4/1/2; sólo 1a1d conserva la casilla+12 y la copia del ítem.
+[[nodiscard]] Core::Expected<void, std::string>
+UseTheEventTicket(const InventoryMoveContext& context, UI::PanelRegistry& panels, UsedGrid grid, std::size_t index);
 } // namespace Client::Scenes

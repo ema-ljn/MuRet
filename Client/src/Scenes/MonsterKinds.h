@@ -53,6 +53,8 @@ enum class MonsterStepWhen : std::uint8_t
     InWorlds,      // con el mapa de low a high
     OutsideWorlds, // con el mapa fuera de low..high
     AtEitherX,     // con la X de la celda en low o en high
+    SiegeOn,       // 0x4294b0 distinto de 0
+    SiegeOff,      // 0x4294b0 en 0
 };
 
 struct MonsterStep
@@ -112,7 +114,7 @@ struct MonsterCreationContext
 
 // La resolución paso a paso, para sacar cada rand() en su lugar entre los de la creación (0x511290 y sus celdas): el
 // r del último Random y el contexto. `Next` devuelve el paso como corre (el Random con su resto en value, plusRandom
-// con el r sumado) o nullopt si su condición no se cumple; corta en el Siege con el asedio prendido.
+// con el r sumado) o nullopt si su condición no se cumple; selecciona las ramas del estado del asedio.
 class MonsterStepResolver
 {
 public:

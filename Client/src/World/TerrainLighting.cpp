@@ -12,6 +12,7 @@
 
 #include <glm/ext/vector_float3.hpp>
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -123,6 +124,26 @@ std::unique_ptr<TerrainLighting> ShadeTerrainLight(const Data::Terrain::TerrainL
         }
     }
     return lighting;
+}
+
+void ReshadeTerrainLightWindow(TerrainLighting& lighting, const Data::Terrain::TerrainLight& raw,
+                               const Data::Terrain::TerrainHeights& heights, std::int32_t centerX, std::int32_t centerY)
+{
+    centerX = std::clamp(centerX, 4, 252);
+    centerY = std::clamp(centerY, 4, 252);
+    for (int y = centerY - 4; y < centerY + 4; ++y)
+        for (int x = centerX - 4; x < centerX + 4; ++x)
+        {
+            const auto normal = CellNormal(heights, static_cast<std::size_t>(x), static_cast<std::size_t>(y));
+            // 5f8e82..5f8ea8: sumaX+Z antes delproducto, restaY ystorefloatantesdelclamp.
+            const float shade = static_cast<float>((static_cast<double>(normal.x) + normal.z) * .5 -
+                                                   static_cast<double>(normal.y) * .5 + .5);
+            const float clamped = !(shade >= 0) ? 0.0f : std::min(shade, 1.0f);
+            const auto cell = Data::Terrain::CellIndex(static_cast<std::uint8_t>(x), static_cast<std::uint8_t>(y));
+            for (std::size_t channel = 0; channel < Data::Terrain::TerrainLightChannels; ++channel)
+                lighting.cells[cell][channel] =
+                    static_cast<float>(static_cast<double>(clamped) * raw.cells[cell][channel]);
+        }
 }
 
 Core::Expected<std::unique_ptr<TerrainLighting>, std::string> LoadTerrainLighting(const std::filesystem::path& dataRoot,

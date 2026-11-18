@@ -51,6 +51,8 @@
 #include "support/FixedRandom.h"
 #include "Render/ModelBatch.h"
 #include "Data/Textures/Sampling.h"
+#include "Data/Textures/Texture.h"
+#include "Data/Textures/TextureSet.h"
 #include "Input/InputState.h"
 #include "Data/Terrain/TerrainObjects.h"
 #include "World/ScepterGlow.h"
@@ -149,7 +151,9 @@ TEST_F(GoldenLoginScene, EntersWithTheLabData)
     constexpr std::array weatherSlots{TextureSlot{0x64}, TextureSlot{0x65}, TextureSlot{0x66}, TextureSlot{0x67},
                                       TextureSlot{0x68}};
     // 61ac3e..61ad7a: dos hojas del mundo y tres imágenes globales de lluvia; 0x616eeb: la gota (0x607).
-    ASSERT_EQ(store.Size(), LoginTextureSet.size() + WindowTextureSet.size() + 2 + 15 + 1 + weatherSlots.size() + 63);
+    // 0x618dda..0x618e29: las 32 cáusticas también se suben en el mapa 55, antes de los tiles.
+    ASSERT_EQ(store.Size(),
+              LoginTextureSet.size() + WindowTextureSet.size() + 2 + 15 + 1 + 32 + weatherSlots.size() + 63);
     for (const auto slot : weatherSlots)
         EXPECT_TRUE(store.Find(slot).has_value()) << slot.value;
     for (const auto& entry : LoginTextureSet)
@@ -288,11 +292,10 @@ TEST_F(GoldenLoginScene, TheTerrainGoesBeforeTheCharacter)
 }
 
 // CL7.2: con los modelos de la carga (GameModels y su tabla de slots, como en main.cpp), las texturas
-// de los objetos de Object56\ van desde 0x41c y el logo sigue donde termina el mundo: en MuRet, 0x459
-// (0x455 en el original, que ya tiene cinco de esos nombres en la tabla; MuRet, sólo fire02:
-// GoldenWorldModels).
+// de los objetos de Object56\ van desde 0x41c. Los cinco nombres ya globales dejan 57 nuevos y el logo
+// sigue en 0x455, inferido del ASM; GoldenWorldModels comprueba la reutilización de esos nombres.
 constexpr std::uint16_t WorldFirstSlot = 0x41c;
-constexpr std::uint16_t LogoFirstSlot = 0x459;
+constexpr std::uint16_t LogoFirstSlot = 0x455;
 
 bool IsWorldObject(const Client::Render::ModelDrawCommand& command)
 {
@@ -409,11 +412,19 @@ TEST_F(GoldenLoginWorld, TheLogoIsAWorldObject)
     LoginScene scene(SceneContext{m_dataRoot, m_store, m_log}, *m_data, m_models, nullptr, Version, FixedSeed,
                      &m_models.TextureSlots());
     ASSERT_TRUE(scene.Enter().HasValue());
-    for (const std::uint16_t slot : {LogoFirstSlot, static_cast<std::uint16_t>(LogoFirstSlot + 1)})
+    constexpr std::array<std::string_view, 2> paths{"Logo\\logo.jpg", "Logo\\logo2.jpg"};
+    for (std::size_t index = 0; index < paths.size(); ++index)
     {
+        const std::uint16_t slot = static_cast<std::uint16_t>(LogoFirstSlot + index);
         const auto texture = m_store.Find(TextureSlot{slot});
         ASSERT_TRUE(texture.has_value()) << std::hex << slot;
         EXPECT_EQ(texture->sampling.filter, Client::Data::Textures::Filter::Linear) << std::hex << slot;
+        EXPECT_EQ(texture->sampling.wrap, Client::Data::Textures::Wrap::Repeat);
+        EXPECT_EQ(texture->texture.format, Client::Data::Textures::PixelFormat::Rgb);
+        const std::array<Client::Data::Textures::TextureSetEntry, 1> entry{{{paths[index], slot, texture->sampling}}};
+        const auto original = Client::Data::Textures::LoadTextureSet(m_dataRoot, entry);
+        ASSERT_TRUE(original.HasValue());
+        EXPECT_EQ(texture->texture.pixels, original.Value().front().texture.pixels);
     }
     EXPECT_FALSE(m_store.Find(TextureSlot{static_cast<std::uint16_t>(LogoFirstSlot + 2)}).has_value());
 

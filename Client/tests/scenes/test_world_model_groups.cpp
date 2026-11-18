@@ -244,11 +244,11 @@ TEST_F(WorldModelGroupsTest, BloodCastleBorrowsTheModelsAndOverlaysTheirTextureB
         EXPECT_EQ(models.SkeletonOf(gate), m_globals.SkeletonOf(gate));
         ASSERT_EQ(models.MeshTextures(gate).size(), 1u);
         EXPECT_EQ(models.MeshTextures(gate).front(), TextureSlot{0x6a});
+        // 0x616370 y el barrido 0x616e46 dejan ambos modelos globales en doorc01.jpg.
+        ASSERT_EQ(m_globals.MeshTextures(gate).size(), 1u);
+        EXPECT_EQ(m_globals.MeshTextures(gate).front(), TextureSlot{0x69});
     }
     EXPECT_EQ(models.Count(), 2u) << "solo Crow y Object01 son propios del mapa";
-    EXPECT_TRUE(m_globals.MeshTextures(0x10c).empty());
-    ASSERT_EQ(m_globals.MeshTextures(0x10d).size(), 1u);
-    EXPECT_EQ(m_globals.MeshTextures(0x10d).front(), TextureSlot{0x69});
     EXPECT_EQ(models.TextureSlotOf(0x69), TextureSlot{0x69});
     EXPECT_EQ(models.TextureSlotOf(0x6a), TextureSlot{0x6a});
     EXPECT_EQ(models.TextureSlotOf(0x622), m_globals.TextureSlotOf(0x622));

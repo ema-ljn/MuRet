@@ -173,6 +173,8 @@ Core::Expected<bool, std::string> AnswerThePanelDialog(WorldState& world, const 
             return Core::Unexpected(std::move(sent).Error());
         return true;
     }
+    case UI::PanelDialogOwner::CastleCrownRegistration:
+        return (static_cast<std::uint8_t>(reason) & 0x40u) == 0;
     case UI::PanelDialogOwner::None:
         break;
     default:

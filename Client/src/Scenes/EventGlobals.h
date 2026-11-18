@@ -31,13 +31,12 @@ struct SoccerScoreGlobals
     // 0x57678d9: ídem (0x4d9f7e).
     std::array<char, 9> secondName{};
     // 0x57678b4 y 0x57678b8, de pkt[0xc] y pkt[0x15].
-    std::int32_t firstScore = 0;
-    std::int32_t secondScore = 0;
+    // Los tanteadores 0x57678b4/8 son GuildState::ourScore/theirScore, compartidos con la guerra.
     // 0x576796f: pkt[0xc] distinto de 0xff.
     bool active = false;
 };
 
-// 0x57678ec..0x5767905: el resultado de guerra del F3 24 (0x4deef0), que muestra 0x5a800e y borra el 0xa7.
+// 0x57678ec..0x5767905: resultado F3 24 (0x4deef0), mostrado por5a800e y borrado por0xa7.
 struct GuildWarOutcomeState
 {
     std::uint8_t present = 0;

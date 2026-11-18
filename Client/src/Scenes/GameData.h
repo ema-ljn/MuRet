@@ -125,4 +125,9 @@ struct GameData
 // uno que no se lee, de más de 1 MiB o que el original no cargaría sin pisar otra cosa (Data::Text::LoadNpcNames) es
 // un error que lo nombra.
 [[nodiscard]] Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& dataRoot);
+
+// 0x61c170: fopen("wt") de Data\Macro.txt, que lo crea o lo vacía, y `content` (UI::WrittenMacros). Lo que guardan
+// las macros no va al log. La salida del juego (GameSceneUi) y el cambio de servidor (0x412b6d) lo comparten.
+[[nodiscard]] Core::Expected<void, std::string> WriteMacroFile(const std::filesystem::path& dataRoot,
+                                                               std::string_view content);
 } // namespace Client::Scenes

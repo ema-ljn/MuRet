@@ -23,6 +23,7 @@
 #include "Render/ModelBatch.h"
 #include "Render/Models/Skeleton.h"
 #include "World/ModelEffects.h"
+#include "World/GroundEffectDrawing.h"
 #include "World/SphereFrustum.h"
 #include "World/WorldObjects.h"
 
@@ -770,6 +771,85 @@ TEST(GameDrawTailTest, GroundModelEffectsRenderBeforeRestoringOpaqueStateWithout
     EXPECT_EQ(batch.State().alphaTest, false);
     EXPECT_FLOAT_EQ(batch.Vertices()[0].color.red, 0.25f);
     EXPECT_EQ(models.lookups, 0);
+}
+
+TEST(GameDrawTailTest, EachSiegeCueDrawsWithoutModelAssetsAndRestoresTheMaterial)
+{
+    auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+    Client::Scenes::ModelEffectDrawResources resources{*heights, 30};
+    resources.siegeActive = true;
+    for (const std::int16_t type : {std::int16_t{0x134}, std::int16_t{0x19f}, std::int16_t{0x61c}})
+    {
+        SCOPED_TRACE(type);
+        Client::Render::ModelBatch batch;
+        const Client::Render::ModelDrawState material{.texture = Client::Render::TextureSlot{0x400}};
+        batch.SetState(material);
+        LookupCounter models;
+        Client::World::ModelEffect effect;
+        effect.alive = true;
+        effect.type = type;
+        effect.transform.position = {1000, 2000, 300};
+        const auto drawn = Client::Scenes::DrawGameModelEffects(
+            batch, models, std::span(&effect, 1), Client::World::SphereFrustum{}, nullptr, {}, 0, resources);
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_TRUE(effect.seen);
+        EXPECT_EQ(models.lookups, 0);
+        ASSERT_FALSE(batch.Vertices().empty());
+        ASSERT_FALSE(batch.Commands().empty());
+        EXPECT_FALSE(batch.Commands().front().state.texture.has_value());
+        EXPECT_EQ(batch.Commands().front().state.blend, Client::Render::ModelBlend::Additive);
+        EXPECT_EQ(batch.State(), material);
+    }
+}
+
+TEST(GameDrawTailTest, AReusedSiegeCueKeepsItsVisibilityUntilTheModelPass)
+{
+    auto effects = std::make_unique<Client::World::ModelEffects>();
+    effects->Effects().front().seen = true;
+    Client::Render::Models::CrtRandom random(11);
+    const auto slot = effects->CreateSiegeCue({.type = Client::World::SiegeStoneCue}, random);
+    ASSERT_EQ(slot, 0u);
+
+    auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+    const Client::World::GroundEffectResources resources{.heights = *heights, .random = random, .map = 30};
+    Client::Render::ModelBatch batch;
+    const auto drawn = Client::Scenes::DrawGroundEffects(batch, effects->Effects(), resources);
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+
+    Client::Render::Models::CrtRandom expected(11);
+    static_cast<void>(expected.Next());
+    EXPECT_EQ(random.State(), expected.State());
+    EXPECT_EQ(batch.State().blend, Client::Render::ModelBlend::Additive);
+}
+
+TEST(GameDrawTailTest, BattleEffectsDrawWithoutModelsAndSkipTheSecondWorldPass)
+{
+    struct Cue
+    {
+        std::int16_t type;
+        std::int32_t subtype;
+    };
+    constexpr std::array cues{Cue{0xf8, 1}, Cue{0x105, 3}, Cue{0xc1a, 0}, Cue{0xc8, 1}, Cue{0xc9, 1}};
+    for (const auto [type, subtype] : cues)
+    {
+        SCOPED_TRACE(type);
+        LookupCounter models;
+        Client::World::ModelEffect effect;
+        effect.alive = true;
+        effect.type = type;
+        effect.subtype = subtype;
+        effect.transform.position = {1000, 2000, 300};
+        for (const std::uint8_t mode : {std::uint8_t{0}, std::uint8_t{1}})
+        {
+            Client::Render::ModelBatch batch;
+            const auto drawn = Client::Scenes::DrawGameModelEffects(
+                batch, models, std::span(&effect, 1), Client::World::SphereFrustum{}, nullptr, {}, 0, mode);
+            ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+            EXPECT_TRUE(effect.seen);
+            EXPECT_EQ(batch.Vertices().empty(), mode == 1);
+        }
+        EXPECT_EQ(models.lookups, 0);
+    }
 }
 
 TEST(GameDrawTailTest, NoriaJointConsumesTwoConstructorRandomsAndMovesBeforeGrowingItsTail)

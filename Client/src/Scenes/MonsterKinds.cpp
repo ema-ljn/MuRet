@@ -4,7 +4,6 @@
 #include "Render/Models/Cloth.h"
 
 #include <cstdint>
-#include <format>
 #include <optional>
 #include <string>
 #include <vector>
@@ -29,6 +28,10 @@ bool Runs(const MonsterStep& step, const MonsterCreationContext& context, std::i
         return context.world < step.low || context.world > step.high;
     case MonsterStepWhen::AtEitherX:
         return context.x == step.low || context.x == step.high;
+    case MonsterStepWhen::SiegeOn:
+        return context.siegeActive;
+    case MonsterStepWhen::SiegeOff:
+        return !context.siegeActive;
     }
     return false;
 }
@@ -52,8 +55,8 @@ MonsterCreation MonsterCreationOf(std::int32_t type, std::int32_t world) noexcep
     return {0x5141e0, DefaultMonsterKind()};
 }
 
-Core::Expected<std::optional<MonsterStep>, std::string> MonsterStepResolver::Next(MonsterStep step, std::int32_t type,
-                                                                                  Render::Models::CrtRandom& random)
+Core::Expected<std::optional<MonsterStep>, std::string>
+MonsterStepResolver::Next(MonsterStep step, [[maybe_unused]] std::int32_t type, Render::Models::CrtRandom& random)
 {
     if (!Runs(step, m_context, m_r))
         return std::optional<MonsterStep>{};
@@ -63,10 +66,6 @@ Core::Expected<std::optional<MonsterStep>, std::string> MonsterStepResolver::Nex
         m_r = random.Next() % 2;
         step.value = static_cast<std::uint32_t>(m_r);
     }
-    if (step.kind == MonsterStepKind::Siege && m_context.siegeActive)
-        return Core::Unexpected(std::format("{:#x}: con el asedio prendido (0x7239ec) el tipo {} sigue la rama "
-                                            "del asedio, de la CL9.5",
-                                            step.address, type));
     if (step.plusRandom)
         step.value += static_cast<std::uint32_t>(m_r);
     return std::optional<MonsterStep>{step};

@@ -18,6 +18,7 @@
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameItemSpecialDrawing.h"
+#include "Scenes/GuildState.h"
 #include "World/ChaosCastle.h"
 #include "World/IFishStepServices.h"
 #include "World/Particles.h"
@@ -1149,7 +1150,7 @@ bool NamedLikeAGameMaster(const ActorState& actor)
 
 // 0x413fe0: un GM ("webzen" en el nombre, +0x78 & 0x1000000 o el CtlCode en 0x20 u 8) suelta una capa que
 // no sea la 5 y pone +0x360 en 5. Después, sin capa y con +0x360 del 5 al 13, la crea: con +0x360 en 5, la
-// de MuSign (0x414370); las del 6 al 13 (0x4147c0 con el 0x637) no están portadas. Del 6 al 13 lo escriben solo
+// de MuSign (0x414370); las del 6 al 13 usan el atlas0x637 (0x4147c0). Del 6 al 13 lo escriben solo
 // los paquetes: el 0x12 (0x4c89e1, ViewportPlayers.h) y 0x40c140 (CL9.5) copian un byte, y 0x42ab40
 // (ApplyCastleSiegeFlags), 0x42ad50 y 0x42ae60 (CL9.5) lo eligen por las banderas 0x40000, 0x80000, 0x400000 y
 // 0x800000 de +0x78 (0x42ab40, en el mapa 30); el dibujo de esas capas (0x414820) lee +0x360 y +0x368. +0x360 no lo
@@ -1167,11 +1168,14 @@ Result StepTheLayer(ActorState& actor)
     }
     if (actor.layer.has_value() || actor.byte360 < GameMasterLayerKind || actor.byte360 > LastLayerKind)
         return {};
-    if (actor.byte360 != GameMasterLayerKind)
-        return Core::Unexpected(std::format("0x4140d5: la capa {} (0x4147c0 con el modelo 0x637) no está portada",
-                                            static_cast<int>(actor.byte360)));
-    // 0x414370: la acción, la anterior, el frame y la key anterior en 0.
     actor.layer = GameMasterLayer{};
+    if (actor.byte360 != GameMasterLayerKind)
+    {
+        // El objeto de4147c0 no tiene animación: su +8 es la variante0..7. Se comparte el byte de acción del
+        // estado alternativo MuSign; el tipo de capa del dueño decide cuál de los dos layouts se lee.
+        constexpr std::uint8_t FirstSiegeRole = 6;
+        actor.layer->animation.action = static_cast<std::uint8_t>(actor.byte360 - FirstSiegeRole);
+    }
     return {};
 }
 
@@ -1226,6 +1230,37 @@ Result DrawMuSign(const Frame& frame, GameMasterLayer& layer)
     return DrawItemMeshPass(pass.batch, pass.models, chrome, pass.frameClock, carry.meshes, -1, ChromePass);
 }
 
+// 414820: XY del dueño, Z del hueso20 con desplazamiento(120,0,0), atlas637 sin rand ni animación.
+Result DrawTheSiegeLayer(const Frame& frame)
+{
+    constexpr glm::vec3 Offset{120.0f, 0.0f, 0.0f};
+    const ActorState& actor = frame.actor;
+    const GameHangingPass& pass = frame.pass;
+    if (pass.sprites == nullptr)
+        return Core::Unexpected(std::string("0x41494d: falta la tabla de sprites del asedio"));
+    if (MuSignBone >= pass.body.size())
+        return Core::Unexpected(std::string("0x414848: falta el hueso20 de la capa del asedio"));
+    std::uint8_t variant = actor.layer->animation.action;
+    const bool leaderRole = actor.byte360 == 6 || actor.byte360 == 7 || actor.byte360 == 8 || actor.byte360 == 12;
+    constexpr std::uint8_t Master = 0x80;
+    if (leaderRole && actor.guildStatus == Master)
+    {
+        if (pass.guild == nullptr)
+            return Core::Unexpected(std::string("0x41489c: falta la tabla del gremio para la capa del maestro"));
+        const auto index = static_cast<std::int16_t>(actor.word1f2);
+        const auto unionName = UnionNameAt(*pass.guild, index);
+        const auto guildName = GuildNameAt(*pass.guild, index);
+        if (!unionName || !guildName)
+            return Core::Unexpected(std::string("0x4148aa: el índice de la capa sale de la tabla del gremio"));
+        if (unionName->empty() || *unionName == *guildName)
+            variant = static_cast<std::uint8_t>(variant + (actor.byte360 == 12 ? 1 : 3));
+    }
+    glm::vec3 position = actor.position;
+    position.z = frame.BodyPoint(MuSignBone, Offset).z;
+    static_cast<void>(pass.sprites->Create(World::AtlasSprite, position, 1.0f, glm::vec3(1.0f), 0.0f, variant));
+    return {};
+}
+
 // 0x4142f0: con capa y sin +0x78 & 0x4000, la dibuja; con +0x360 del 6 al 13, solo si 0x4294b0 (el byte del
 // asedio): sin él no dibuja nada.
 Result DrawTheLayer(const Frame& frame)
@@ -1237,8 +1272,7 @@ Result DrawTheLayer(const Frame& frame)
     {
         if (!frame.pass.siegeActive)
             return {};
-        return Core::Unexpected(std::format("0x414330: la capa {} del asedio (el método de +0x364) no está portada",
-                                            static_cast<int>(actor.byte360)));
+        return DrawTheSiegeLayer(frame);
     }
     return DrawMuSign(frame, *actor.layer);
 }

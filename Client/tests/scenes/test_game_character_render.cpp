@@ -17,6 +17,7 @@
 #include "Scenes/CharacterCloth.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/DarkSpirit.h"
+#include "Scenes/EventGlobals.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/GuildMarks.h"
@@ -846,6 +847,56 @@ TEST_F(GameCharacterRenderTest, TheGuildWarDressesBothGuildsInTheirTeamColors)
     }
 }
 
+// 0x50caaa..0x50cb5c: Soccer pisa los colores de la guerra, y el segundo nombre gana si ambos son iguales.
+TEST_F(GameCharacterRenderTest, SoccerDressesTheCurrentGuildNamesAndTheSecondTeamWins)
+{
+    auto& runtime = m_world->Runtime();
+    runtime.map = 0x12;
+    runtime.hero = 5;
+    m_world->Actors()[5].word1f2 = 3;
+    runtime.guild.warType = 1;
+    runtime.guild.warTeam = 1;
+    auto& player = Player(0);
+    player.characterClass = 1;
+    player.word1f2 = 3;
+    runtime.guild.table[3].guildName = {'T', 'a', 'l', 'a', 's'};
+    auto& soccer = runtime.events.soccer;
+    soccer.active = true;
+    soccer.firstName = {'T', 'a', 'l', 'a', 's'};
+    soccer.secondName = {'O', 'm', 'b', 'u'};
+    auto cloths = std::make_unique<std::array<Client::Scenes::CharacterCloth, 401>>();
+    auto store = std::make_unique<Client::Tests::FakeTextureStore>();
+    auto marks = std::make_unique<Client::Scenes::GuildMarkTextures>(*store);
+    GameCharacterPass pass = Pass();
+    pass.cloths = *cloths;
+    pass.guildMarks = marks.get();
+    const auto draw = [&]()
+    {
+        m_batch.Begin(Client::Render::Pass3D{});
+        return Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+    };
+    ASSERT_TRUE(draw().HasValue());
+    EXPECT_GT(ClothVerticesIn(m_batch, {1, 0.2f, 0}), 0u);
+    runtime.guild.table[3].guildName = {'O', 'm', 'b', 'u'};
+    ASSERT_TRUE(draw().HasValue());
+    EXPECT_GT(ClothVerticesIn(m_batch, {0, 0.2f, 1}), 0u);
+    soccer.firstName = soccer.secondName;
+    ASSERT_TRUE(draw().HasValue());
+    EXPECT_GT(ClothVerticesIn(m_batch, {0, 0.2f, 1}), 0u);
+    EXPECT_EQ(ClothVerticesIn(m_batch, {1, 0.2f, 0}), 0u);
+    player.word1f2 = 0xffff;
+    runtime.guild.warType = 0;
+    soccer.firstName = {};
+    soccer.secondName = {};
+    runtime.guild.members[74].name[9] = '\0';
+    ASSERT_TRUE(draw().HasValue());
+    EXPECT_GT(ClothVerticesIn(m_batch, {0, 0.2f, 1}), 0u);
+    player.word1f2 = 2000;
+    const auto cut = draw();
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x50cac6"), std::string::npos);
+}
+
 TEST_F(GameCharacterRenderTest, ZeroOriginalFramesDoNotCreateFirstUseClassThreeOrFourCloths)
 {
     using Client::Render::Models::OriginalFramePace;
@@ -962,8 +1013,9 @@ TEST_F(GameCharacterRenderTest, CatchUpKeepsTheFirstFailedFramesShadowPartsCloth
     ActorState& actor = Player(0);
     actor.characterClass = 4;
     actor.hands[0].model = 0x212;
-    // 0x413fe0: +0x360 en 6 pide una capa del 6 al 13 (0x4147c0, sin portar), después del arma a la espalda.
-    actor.byte360 = 6;
+    // 414470: la librería sintética no tiene MuSign. La capa5 falla después de sombra/partes/tela/arma;
+    // las capas de asedio6..13 ya están portadas y no son un punto de fallo válido para esta regresión.
+    actor.byte360 = 5;
     auto referenceWorld = std::make_unique<Client::Scenes::WorldState>();
     referenceWorld->Runtime().map = 0;
     referenceWorld->Actors()[0] = actor;
@@ -995,7 +1047,7 @@ TEST_F(GameCharacterRenderTest, CatchUpKeepsTheFirstFailedFramesShadowPartsCloth
     referencePass.poseCarry = &referenceCarry;
     const auto reference = Client::Scenes::DrawGameCharacters(referenceBatch, m_models, *referenceWorld, referencePass);
     ASSERT_FALSE(reference.HasValue());
-    ASSERT_NE(reference.Error().find("0x4140d5"), std::string::npos) << reference.Error();
+    ASSERT_NE(reference.Error().find("0x414470"), std::string::npos) << reference.Error();
     ASSERT_GT(referenceBatch.Vertices().size(), 6u); // sombra, partes, tela y el arma a la espalda
     ASSERT_EQ(LiveSprites(referenceSprites).size(), 31u);
 

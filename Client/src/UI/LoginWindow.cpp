@@ -148,8 +148,8 @@ std::optional<LoginRequest> LoginWindow::Step(const Input::InputState& input, Ap
     }
     TypeInOrder(input.Text());
 
-    const bool ok = m_ok.Step(input, mouse);
-    const bool cancel = m_cancel.Step(input, mouse);
+    const bool ok = m_ok.Step(input, mouse, turn.buttonClicked);
+    const bool cancel = m_cancel.Step(input, mouse, turn.buttonClicked);
     if (!turn.logic)
     {
         return std::nullopt;

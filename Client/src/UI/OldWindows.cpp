@@ -380,7 +380,7 @@ void StepTheButtonMouse(OldWindowManager& manager, OldButton& button, const OldW
         {
             PostToTheWindow(manager, base.parent, CommandMessage, button.command, 0);
             globals.releasedClick = false;
-            globals.sound = ButtonSound;
+            globals.RequestSound(ButtonSound);
             button.pressed = 0;
             globals.pressedButton = 0;
         }
@@ -436,7 +436,7 @@ void StepTheEditMouse(OldWindowManager& manager, OldEdit& edit, const OldWindowG
         {
             ScrollTheEdit(edit, lineCount(), code);
             if (sound)
-                globals.sound = ButtonSound;
+                globals.RequestSound(ButtonSound);
             counter = 1;
         }
         else if (counter > EditRepeatSteps)
@@ -682,7 +682,7 @@ Core::Expected<void, std::string> StepTheWindowListRows(OldWindowManager& manage
     {
         // SetFocus([0x5763544]), como FocusTheGame.
         globals.keyboardFocus = ChatFocus::Game;
-        globals.sound = ButtonSound;
+        globals.RequestSound(ButtonSound);
         globals.releasedClick = false;
         // Con el elegido en el final (el borde de arriba, 0 de distancia), el original lee la ranura después del último
         // (Q-C1008): MuRet no encuentra ninguna.
@@ -1022,7 +1022,7 @@ Core::Expected<void, std::string> HandleTheMessage(OldWindowManager& manager, co
     case MinimizeMessage:
         if (id == 0 || (manager.modal != 0 && manager.friends != 0 && id == manager.friends))
             return {};
-        globals.sound = ButtonSound;
+        globals.RequestSound(ButtonSound);
         ShowTheWindow(manager, id, false);
         manager.order.remove(id);
         manager.order.push_front(id);
@@ -1035,13 +1035,13 @@ Core::Expected<void, std::string> HandleTheMessage(OldWindowManager& manager, co
         {
             if (auto stretched = StretchTheWindow(manager, *window, globals, view); !stretched.HasValue())
                 return stretched;
-            globals.sound = ButtonSound;
+            globals.RequestSound(ButtonSound);
         }
         return {};
     case CloseMessage:
         if (id == 0)
             return {};
-        globals.sound = ButtonSound;
+        globals.RequestSound(ButtonSound);
         if (auto destroyed = DestroyTheOldWindow(manager, id, globals.pressedButton); !destroyed.HasValue())
             return destroyed;
         FocusTheLast(manager, globals);

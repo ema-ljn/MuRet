@@ -81,7 +81,14 @@ Result DrawMeshPass(MonsterBodyModel& model, std::int16_t mesh, std::uint32_t fl
 void RequestBodySound(MonsterBodyFrame& frame, std::int32_t sound)
 {
     // 0x41ed10 (CL10): el sonido queda anotado; entre frames del original no se pide.
-    if (frame.originalFrame && frame.lastSoundId != nullptr)
+    if (!frame.originalFrame)
+        return;
+    if (frame.soundRequest)
+    {
+        frame.soundRequest(sound);
+        return;
+    }
+    if (frame.lastSoundId != nullptr)
         *frame.lastSoundId = sound;
 }
 

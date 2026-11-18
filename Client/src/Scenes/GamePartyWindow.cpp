@@ -396,7 +396,7 @@ Core::Expected<void, std::string> StepTheKickButtons(const GameUiContext& contex
             context.mouseY >= top + KickSize || !runtime.movement.pendingClick)
             continue;
         runtime.movement.pendingClick = false;
-        runtime.lastSoundId = KickSound;
+        runtime.RequestSound(KickSound);
         if (context.requests == nullptr)
             return Core::Unexpected(std::string("0x5e3ded: echar de la party (C1 04 43) sin el cable"));
         context.requests->SendGamePacket(Protocol::Party::WritePartyLeave(slot.number));

@@ -349,7 +349,7 @@ Core::Expected<void, std::string> ApplyTalkResult(const Npc::TalkResult& talk, c
     if (sendError)
         return Core::Unexpected(std::move(*sendError));
     // 0x4d2893..0x4d28f6: los dos sonidos y el SetCursorPos.
-    runtime.lastSoundId = SecondTalkSound;
+    runtime.RequestSound(SecondTalkSound);
     runtime.npcWindows.cursorWarpRequested = true;
     return {};
 }
@@ -361,7 +361,7 @@ Core::Expected<void, std::string> ApplyItemList(const Npc::ItemList& list, const
     if (list.grid == ChaosBoxGrid)
     {
         npc.chaosMixState = MixReady;
-        runtime.lastSoundId = ChaosListSound;
+        runtime.RequestSound(ChaosListSound);
         EmptyTheGrid(npc.chaosBox);
     }
     else if (list.grid == TrainerGrid)
@@ -371,7 +371,7 @@ Core::Expected<void, std::string> ApplyItemList(const Npc::ItemList& list, const
         if (auto shown = Message(InventoryServicesOf(resources), TrainerListText, ErrorMessage, "0x4c5fc0");
             !shown.HasValue())
             return shown;
-        runtime.lastSoundId = ChaosListSound;
+        runtime.RequestSound(ChaosListSound);
         EmptyTheGrid(npc.trainerBox);
     }
     else
@@ -413,7 +413,7 @@ Core::Expected<void, std::string> ApplyBuyResult(const Npc::BuyResult& result, c
             runtime.npcWindows.buyLock = 0;
             return placed;
         }
-        runtime.lastSoundId = ItemSound;
+        runtime.RequestSound(ItemSound);
     }
     runtime.npcWindows.buyLock = 0;
     return {};
@@ -434,7 +434,7 @@ Core::Expected<void, std::string> ApplySellResult(const Npc::SellResult& result,
                                                 Render::Models::OwnRecordCloseRandoms);
         resources.world.OwnCharacter().zen = result.money;
     }
-    runtime.lastSoundId = ItemSound;
+    runtime.RequestSound(ItemSound);
     return {};
 }
 
@@ -461,7 +461,7 @@ Core::Expected<void, std::string> ApplyRepairResult(const Npc::RepairResult& res
         if (!recalculated.HasValue())
             return recalculated;
     }
-    runtime.lastSoundId = RepairSound;
+    runtime.RequestSound(RepairSound);
     return {};
 }
 
@@ -581,7 +581,7 @@ Core::Expected<void, std::string> ApplyChaosMixResult(const Npc::ChaosMixResult&
                                                "0x4da310, 0x5bc740(0x7d2d380)");
             !placed.HasValue())
             return placed;
-        runtime.lastSoundId = ChaosSuccessSound;
+        runtime.RequestSound(ChaosSuccessSound);
         return {};
     }
     case MixRefused:

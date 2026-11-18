@@ -81,7 +81,7 @@ Core::Expected<void, std::string> ShowTheBlessingNotice(const WorldEntryResource
 Core::Expected<void, std::string> ApplyEffectFlags(ActorState& actor, std::uint32_t flags, bool publishedHero,
                                                    const WorldEntryResources& resources)
 {
-    auto& lastSound = resources.world.Runtime().lastSoundId;
+    const auto requestSound = [&resources](std::int32_t id) { resources.world.Runtime().RequestSound(id); };
     auto& effects = resources.world.Map().effects;
     // 0x4e6390..0x4e63b7.
     if (Has(flags, Bit800000))
@@ -102,7 +102,7 @@ Core::Expected<void, std::string> ApplyEffectFlags(ActorState& actor, std::uint3
         if (!Has(actor.flags78, Bit100) && actor.type == Data::Models::PlayerSkeletonModel)
         {
             constexpr std::int32_t Bit100Sound = 0x84;
-            lastSound = Bit100Sound;
+            requestSound(Bit100Sound);
             return Cut("0x4e644f: 0x534f90 y los cinco joints 0x10f (0x530860) de la bandera 0x100 son de la CL11");
         }
         actor.flags78 |= Bit100;

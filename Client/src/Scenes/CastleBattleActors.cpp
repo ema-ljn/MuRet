@@ -83,7 +83,7 @@ Core::Expected<void, std::string> SetTheCastleGate(ActorState& cellsActor, Actor
     gate.flags78 = open ? OpenGate : 0;
     if (auto wall = ChangeTheGateWall(cellsActor, open, resources); !wall.HasValue())
         return wall;
-    resources.world.Runtime().lastSoundId = GateSound;
+    resources.world.Runtime().RequestSound(GateSound);
     return {};
 }
 

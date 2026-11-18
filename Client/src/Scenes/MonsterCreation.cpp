@@ -289,6 +289,7 @@ Core::Expected<void, std::string> LoadTheModel(const MonsterStep& step, const Wo
                                             "(GameScene::Enter)",
                                             step.address,
                                             step.kind == MonsterStepKind::LoadMonster ? "0x612d90" : "0x612270"));
+    context->audio = resources.world.Runtime().audio;
     if (step.kind == MonsterStepKind::LoadMonster)
     {
         // 0x613127..0x615232: la tabla de sonidos del modelo (0x612c80, CL9 hito 3, fase 2c) va a
@@ -367,8 +368,8 @@ private:
         case MonsterStepKind::Create:
             return Create(step);
         case MonsterStepKind::Sound:
-            // (CL10) 0x41ed10(id, 0, 0): el sonido queda pedido.
-            m_resources.world.Runtime().lastSoundId = static_cast<std::int32_t>(step.value);
+            // 0x4410eb → 0x41ed10: reproduce el sonido de aparición del monstruo.
+            m_resources.world.Runtime().RequestSound(static_cast<std::int32_t>(step.value));
             return {};
         case MonsterStepKind::Joint:
             // 0x515f9c y los otros casos normales usan el mismo contrato que 349: dueño Actor y 618/2,3.

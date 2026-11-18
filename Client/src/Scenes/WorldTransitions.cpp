@@ -26,6 +26,7 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <string>
 
 namespace Client::Scenes
@@ -82,7 +83,7 @@ Core::Expected<void, std::string> ChangeTeleportMap(std::uint8_t map, std::uint1
         // 4c7af1..4c7b2f: el mismo prefijo corre al entrar y al salir, antes de 512a30: el sonido, las ventanas viejas
         // escondidas sin anotarlas (0x4906a0 con 1 y 0, Q-C572) y la de amigos suelta (0x4914e0).
         WorldRuntime& runtime = resources.world.Runtime();
-        runtime.lastSoundId = 0x9e;
+        runtime.RequestSound(0x9e, std::nullopt, true);
         if (auto hidden = UI::HideTheOldWindows(runtime.oldWindows, 1, 0, OldWindowGlobalsOf(runtime));
             !hidden.HasValue())
             return hidden;
@@ -95,7 +96,13 @@ Core::Expected<void, std::string> ChangeTeleportMap(std::uint8_t map, std::uint1
         // 4c7b68: apagar los ayudantes del héroe después de publicar su equipo.
         TurnOffHelpersOf(resources.world.Helpers(), runtime.hero);
     }
-    resources.world.Runtime().lastSoundId = 0x9e;
+    if (!IsChaosCastle(loadedMap))
+    {
+        WorldRuntime& runtime = resources.world.Runtime();
+        runtime.StopSound(0x99, true);
+        runtime.StopSound(0x9e, true);
+        runtime.lastSoundId = 0x9e;
+    }
     ArmEventMapObject(loadedMap, resources.world.Runtime());
     return RefreshTransitionHeight(PublishedHero(resources), resources);
 }
@@ -196,7 +203,12 @@ Core::Expected<void, std::string> ChangeRegenMap(const Protocol::World::Regen& r
             return dressed;
     }
     if (!IsChaosCastle(resources.world.Runtime().map))
-        resources.world.Runtime().lastSoundId = 0x9e;
+    {
+        WorldRuntime& runtime = resources.world.Runtime();
+        runtime.StopSound(0x99, true);
+        runtime.StopSound(0x9e, true);
+        runtime.lastSoundId = 0x9e;
+    }
     return RefreshTransitionHeight(hero, resources);
 }
 } // namespace

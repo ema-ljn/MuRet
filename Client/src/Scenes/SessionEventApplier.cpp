@@ -661,7 +661,8 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
         {
             return Core::Unexpected(applied.Error());
         }
-        // Los sonidos que pidió quedan sin tocar: MuRet no tiene audio hasta la CL10.
+        for (const std::int32_t sound : applied.Value().sounds)
+            m_resources.world.Runtime().RequestSound(sound);
         return {};
     }
     if (const auto* packet = std::get_if<Protocol::Events::EventPacket>(&event))
@@ -687,7 +688,6 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
         // Lo que el original hace fuera de sus tablas se descarta con un aviso, y la sesión sigue (Q-C174, Q-C778).
         if (applied.Value().discarded)
             m_resources.log.Warning("se descarta el resto del paquete de evento: {}", *applied.Value().discarded);
-        // Los sonidos que pidió quedan sin tocar: MuRet no tiene audio hasta la CL10.
         return {};
     }
     const auto& reply = std::get<Protocol::Character::CharacterSelectResult>(event);
@@ -697,7 +697,7 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
     {
         return Core::Unexpected(entered.Error());
     }
-    // Los sonidos que pidió quedan sin tocar: MuRet no tiene audio hasta la CL10.
+    // ApplyWorldEntry despachó reproducción y detenciones en orden; el vector queda para diagnóstico.
     return {};
 }
 } // namespace Client::Scenes

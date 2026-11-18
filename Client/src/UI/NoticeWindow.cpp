@@ -155,15 +155,23 @@ std::optional<NoticeId> NoticeWindow::Step(const Input::InputState& input, App::
         }
     }
     const std::optional<Point> mouse = MouseOfTheTurn(turn, input, screen);
-    const bool ok = m_ok.Step(input, mouse);
+    const bool ok = m_ok.Step(input, mouse, turn.buttonClicked);
     const bool withCancel = kind == NoticeKind::OkCancel || kind == NoticeKind::Code;
-    const bool cancel = withCancel && m_cancel.Step(input, mouse);
+    const bool cancel = withCancel && m_cancel.Step(input, mouse, turn.buttonClicked);
     if (!turn.logic)
     {
         return std::nullopt;
     }
     const bool escape = input.TakePress(Input::Key::Escape);
-    if (ok || input.TakePress(Input::Key::Enter) || (escape && !withCancel))
+    const bool enter = !ok && input.TakePress(Input::Key::Enter);
+    if (!ok && !cancel && (enter || escape))
+    {
+        if (turn.buttonClicked)
+        {
+            turn.buttonClicked();
+        }
+    }
+    if (ok || enter || (escape && !withCancel))
     {
         const NoticeId closed = *m_notice;
         Close();

@@ -22,6 +22,10 @@
 #include <string_view>
 #include <vector>
 
+namespace Client::Audio
+{
+class IPlayback;
+}
 namespace Client::Core
 {
 class Log;
@@ -46,6 +50,7 @@ struct FaunaModelLoadContext
     // WorldRuntime::modelSounds: 0x612d90 escribe la tabla de sonidos del modelo (0x612c80, 0x613127) después de
     // cargarlo con mallas. nullptr, no la escribe.
     ModelSoundTable* sounds = nullptr;
+    Audio::IPlayback* audio = nullptr;
 };
 struct FaunaResourceSound
 {
@@ -101,6 +106,7 @@ public:
     // El byte `offset` de un modelo que escribió 0x612d90 (el 0x88 del 0x16d, 0x613f97), si lo escribió.
     [[nodiscard]] std::optional<std::uint8_t> ModelByte(std::uint16_t model, std::uint8_t offset) const;
     void Release();
+    void ResetSoundRegistrationStamps();
     [[nodiscard]] ModelTextureTable& TextureTable();
     [[nodiscard]] const Data::Models::Model* Find(std::uint16_t model) const override;
     [[nodiscard]] const Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override;
@@ -140,6 +146,7 @@ private:
                                                                      FaunaModelLoadContext& context);
     [[nodiscard]] Core::Expected<void, std::string> ApplyMonsterTables(std::int32_t number, Entry& entry,
                                                                        FaunaModelLoadContext& context);
+    void RegisterModelSounds(std::uint16_t model, Audio::IPlayback* audio);
     // No se reinicia al salir de un mapa ni al soltar sus texturas.
     ConstructedBmdPrefix m_prefix;
     ModelTextureTable m_textureTable;
@@ -150,6 +157,12 @@ private:
     std::map<std::uint32_t, TextureMetadata> m_metadata;
     std::vector<Render::TextureSlot> m_uploaded;
     std::vector<FaunaResourceSound> m_sounds;
+    struct ModelSoundRegistration
+    {
+        std::vector<FaunaResourceSound> sounds;
+        bool registered = false;
+    };
+    std::map<std::uint16_t, ModelSoundRegistration> m_modelSoundRegistrations;
     struct AnimationMetadata
     {
         float frame = 0.0f;

@@ -72,10 +72,10 @@ void ApplyPetAttack(const Protocol::Pet::PetAttack& attack, const WorldEntryReso
         const int roll = resources.cloth.random.Next() % 10;
         spirit.floatF0 = 0.5f;
         spirit.speed = static_cast<float>(roll) + 20.0f;
-        world.Runtime().lastSoundId = 0x1d2;
+        world.Runtime().RequestSound(0x1d2);
         return;
     }
     if (spirit.state == ShoutingState)
-        world.Runtime().lastSoundId = 0x1d0;
+        world.Runtime().RequestSound(0x1d0);
 }
 } // namespace Client::Scenes

@@ -539,7 +539,7 @@ Core::Expected<void, std::string> UseSkill3eOr41(ActorState& hero, std::uint8_t 
     {
         if (auto put = PutTheAction(hero, 0x53, context); !put.HasValue())
             return put;
-        context.world.Runtime().lastSoundId = 0x1ce; // 0x41ed10(0x1ce, 0, 0) (CL10)
+        context.world.Runtime().RequestSound(0x1ce); // 0x41ed10(0x1ce, 0, 0) (CL10)
         hero.movement = 0;
         return {};
     }

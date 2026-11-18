@@ -14,6 +14,7 @@
 #include "UI/Widget.h"
 
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <string>
 #include <utility>
@@ -68,7 +69,7 @@ Rect Button::Area() const
     return m_area;
 }
 
-bool Button::Step(const Input::InputState& input, std::optional<Point> mouse)
+bool Button::Step(const Input::InputState& input, std::optional<Point> mouse, const std::function<void()>& onClick)
 {
     m_over = mouse.has_value() && m_area.Contains(*mouse);
     if (!m_enabled)
@@ -86,6 +87,10 @@ bool Button::Step(const Input::InputState& input, std::optional<Point> mouse)
     {
         clicked = m_over && m_captured;
         m_captured = false;
+    }
+    if (clicked && onClick)
+    {
+        onClick();
     }
     // Un clic en uno que se marca lo da vuelta (+0xab), como 0x63c490; la ventana después marca
     // el que quiera.

@@ -110,7 +110,7 @@ void RepeatTheArrow(OldList& list, std::size_t size, const OldListGlobals& globa
     if (list.arrowRepeat == 0)
     {
         ScrollTheList(list, size, lines);
-        globals.sound = ButtonSound;
+        globals.RequestSound(ButtonSound);
         list.arrowRepeat = 1;
     }
     else if (list.arrowRepeat > RepeatSteps)

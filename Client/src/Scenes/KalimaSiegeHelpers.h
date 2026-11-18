@@ -6,6 +6,7 @@
 #include <glm/ext/vector_float3.hpp>
 
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <span>
 #include <string>
@@ -61,6 +62,7 @@ struct KalimaSiegeHelperPass
     const Data::Terrain::TerrainHeights* heights = nullptr;
     // 0x41ed10 (CL10): WorldRuntime::lastSoundId en el frame del original; entre frames, nullptr.
     std::optional<std::int32_t>* sound = nullptr;
+    std::function<void(std::int32_t)> soundRequest{};
     // 0x5767b88, en ms.
     float worldClock = 0.0f;
     std::int32_t map = 0;

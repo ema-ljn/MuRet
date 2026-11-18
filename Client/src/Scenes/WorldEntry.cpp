@@ -168,6 +168,7 @@ Core::Expected<void, std::string> DressTheHero(const WorldEntryResources& resour
     }
     if (dressed.Value().sound)
     {
+        resources.world.Runtime().RequestSound(*dressed.Value().sound);
         result.sounds.push_back(*dressed.Value().sound);
     }
     return {};
@@ -220,15 +221,18 @@ Core::Expected<void, std::string> CloseTheWindows(const WorldEntryResources& res
     return panels.Registry().CloseAll();
 }
 
-// 0x4c49ce..0x4c4a16: 0x41ee00(id, 1) fuera de los mapas de evento.
-void AskForTheSounds(std::int32_t map, WorldEntryResult& result)
+// 0x4c49e7..0x4c4a16: detener con rewind las pistas fuera de los mapas de evento.
+void AskForTheSounds(std::int32_t map, WorldRuntime& runtime, WorldEntryResult& result)
 {
     if (map < FirstBloodCastleMap || map > LastBloodCastleMap)
     {
+        runtime.StopSound(OutsideBloodCastleSound, true);
         result.sounds.push_back(OutsideBloodCastleSound);
     }
     if (map < FirstChaosCastleMap || map > LastChaosCastleMap)
     {
+        runtime.StopSound(FirstOutsideChaosCastleSound, true);
+        runtime.StopSound(SecondOutsideChaosCastleSound, true);
         result.sounds.push_back(FirstOutsideChaosCastleSound);
         result.sounds.push_back(SecondOutsideChaosCastleSound);
     }
@@ -255,6 +259,7 @@ Core::Expected<void, std::string> StopTheHero(const WorldEntryResources& resourc
     }
     if (stopped.Value().sound)
     {
+        resources.world.Runtime().RequestSound(*stopped.Value().sound);
         result.sounds.push_back(*stopped.Value().sound);
     }
     return {};
@@ -326,7 +331,7 @@ SettleWorldEntry(WorldEntryResult result, const WorldEntryResources& resources, 
     {
         return Core::Unexpected(stopped.Error());
     }
-    AskForTheSounds(resources.world.Runtime().map, result);
+    AskForTheSounds(resources.world.Runtime().map, resources.world.Runtime(), result);
     // 0x4c4a19..0x4c4b0e, el chequeo de ResourceGuard, no hace nada (Q-C147). 0x65dc30 y el renglón de
     // bienvenida con el nombre del mapa (0x555190) son del área de mensajes (CL9).
     return result;

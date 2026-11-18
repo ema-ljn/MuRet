@@ -48,7 +48,7 @@ Core::Expected<void, std::string> AddGameMessage(WorldRuntime& runtime, const Re
     if (!sound.HasValue())
         return Core::Unexpected(sound.Error());
     if (sound.Value())
-        runtime.lastSoundId = *sound.Value();
+        runtime.RequestSound(*sound.Value());
     return {};
 }
 
@@ -74,7 +74,7 @@ Core::Expected<void, std::string> StepTheMessageClocks(WorldRuntime& runtime, co
     if (!sound.HasValue())
         return Core::Unexpected(sound.Error());
     if (sound.Value())
-        runtime.lastSoundId = *sound.Value();
+        runtime.RequestSound(*sound.Value());
     // 0x637d2c y 0x637d44: el freno del chat y el de las macros, de a uno por paso (el 0x637cfd de PrintScreen, entre
     // los relojes y los frenos, no los mira).
     if (runtime.chat.input.brake > 0)

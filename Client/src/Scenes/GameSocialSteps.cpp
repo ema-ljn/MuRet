@@ -93,7 +93,7 @@ void PressTheMoneyButton(const GameUiContext& context)
     social.moneyField = 1;
     social.typedMoney = 0;
     social.trade.field78abacc = MoneyButtonMark;
-    runtime.lastSoundId = ButtonSound;
+    runtime.RequestSound(ButtonSound);
 }
 
 // 0x5ecf2d..0x5ed476.
@@ -102,7 +102,7 @@ Core::Expected<void, std::string> PressTheOkButton(const GameUiContext& context)
     WorldRuntime& runtime = context.world.Runtime();
     TradeState& trade = runtime.social.trade;
     runtime.movement.pendingClick = false;
-    runtime.lastSoundId = ButtonSound;
+    runtime.RequestSound(ButtonSound);
     if (runtime.cursorItemCount != 0)
         return {};
     if (trade.changed != 0 && trade.ownOk == 0)
@@ -122,7 +122,7 @@ Core::Expected<void, std::string> PressTheCancelButton(const GameUiContext& cont
 {
     WorldRuntime& runtime = context.world.Runtime();
     runtime.movement.pendingClick = false;
-    runtime.lastSoundId = ButtonSound;
+    runtime.RequestSound(ButtonSound);
     if (runtime.cursorItemCount != 0)
         return {};
     runtime.social.trade.changed = 0;

@@ -105,10 +105,10 @@ Core::Expected<void, std::string> AttackAndSettle(ActorState& actor, const World
     return {};
 }
 
-// 0x41ed10(id, …): MuRet no tiene audio (CL10).
+// 0x41ed10(id, …): el caller despacha el sonido tras comprobar el optional.
 void Sound(const WorldEntryResources& resources, std::int32_t id)
 {
-    resources.world.Runtime().lastSoundId = id;
+    resources.world.Runtime().RequestSound(id);
 }
 
 // 0x518d0f..0x518d26: sin hueco, 0x518cf0 retorna antes del constructor, incluso para un tipo aún pendiente.
@@ -216,7 +216,7 @@ Core::Expected<void, std::string> Stop(ActorState& actor, const WorldEntryResour
     if (!stopped.HasValue())
         return Core::Unexpected(stopped.Error());
     if (stopped.Value().sound)
-        resources.world.Runtime().lastSoundId = stopped.Value().sound;
+        resources.world.Runtime().RequestSound(*stopped.Value().sound);
     return {};
 }
 

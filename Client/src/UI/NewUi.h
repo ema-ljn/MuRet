@@ -46,6 +46,7 @@ struct NewUiTurn
     bool buttons = true;
     bool mouse = true;
     bool logic = true;
+    std::function<void()> buttonClicked{};
 };
 
 // El mouse que ven los botones de una ventana en su turno: el de la UI nueva (MouseInPixels), o
@@ -120,7 +121,8 @@ public:
     // botones, cada ventana abierta con `step` (y el arrastre de 0x669f40), el pegado del arrastre
     // (0x65f720) y +0x8de8. Una ventana que se cerró sola en su turno pasa por 0x65f6c0, como las del
     // original, que lo llaman ellas.
-    void Step(const Input::InputState& input, App::PixelSize screen, const StepWindow& step);
+    void Step(const Input::InputState& input, App::PixelSize screen, const StepWindow& step,
+              const std::function<void()>& buttonClicked = {});
 
     // +0x8de8: alguna ventana tiene el mouse (o se está arrastrando) en este paso. Con él, la
     // selección no elige personajes (0x634680).

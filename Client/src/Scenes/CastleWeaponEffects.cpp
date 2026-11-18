@@ -106,7 +106,7 @@ Core::Expected<void, std::string> ApplyTheSiegeWeaponFire(std::uint16_t key, std
                           resources);
         !fired.HasValue())
         return fired;
-    resources.world.Runtime().lastSoundId = 0x1ea;
+    resources.world.Runtime().RequestSound(0x1ea);
     return {};
 }
 Core::Expected<void, std::string> ApplyTheSiegeWeaponImpact(std::uint8_t kind, std::uint8_t x, std::uint8_t y,
@@ -124,7 +124,7 @@ Core::Expected<void, std::string> ApplyTheSiegeWeaponImpact(std::uint8_t kind, s
                                            .light = {1, .3f, .1f},
                                            .subtype = 6};
     static_cast<void>(resources.world.Map().effects.CreateCastleShockWave(wave, resources.cloth.random));
-    resources.world.Runtime().lastSoundId = 0x1ea;
+    resources.world.Runtime().RequestSound(0x1ea);
     return {};
 }
 World::SiegeStoneStepServices SiegeStoneServicesOf(const WorldEntryResources& resources)
@@ -151,7 +151,7 @@ World::SiegeStoneStepServices SiegeStoneServicesOf(const WorldEntryResources& re
         },
         .deform = [&world](float x, float y, std::int32_t tx, std::int32_t ty)
         { return World::DeformTheSiegeTerrain(world.Map().terrain, x, y, tx, ty); },
-        .sound = [&world](std::int32_t sound) { world.Runtime().lastSoundId = sound; }};
+        .sound = [&world](std::int32_t sound) { world.Runtime().RequestSound(sound); }};
     const auto& terrain = world.Map().terrain;
     if (terrain.heights && terrain.attributes)
         services.terrainHeight = [&terrain, &resources](float x, float y)

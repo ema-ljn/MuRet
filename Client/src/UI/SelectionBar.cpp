@@ -144,10 +144,10 @@ std::optional<SelectionBarClick> SelectionBar::Step(const Input::InputState& inp
     }
     Place(screen);
     const std::optional<Point> mouse = MouseOfTheTurn(turn, input, screen);
-    const bool create = m_create.Step(input, mouse);
-    const bool menu = m_menu.Step(input, mouse);
-    const bool connect = m_connect.Step(input, mouse);
-    const bool remove = m_delete.Step(input, mouse);
+    const bool create = m_create.Step(input, mouse, turn.buttonClicked);
+    const bool menu = m_menu.Step(input, mouse, turn.buttonClicked);
+    const bool connect = m_connect.Step(input, mouse, turn.buttonClicked);
+    const bool remove = m_delete.Step(input, mouse, turn.buttonClicked);
     if (!turn.logic)
     {
         return std::nullopt;

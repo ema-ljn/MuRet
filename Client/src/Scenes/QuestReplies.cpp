@@ -121,7 +121,7 @@ Core::Expected<void, std::string> CreateThePrizeSparkles(ActorState& actor, cons
 }
 
 // 0x513100 (llamado en `address`: 0x4de140, 0x4de411 o 0x4de4c5), 0x4ea030(personaje, 0xb8) en 0x4de4d0 y el 0x66 de
-// 0x4de4db. El sonido que pida 0x4f2250 queda en lastSoundId hasta el del final.
+// 0x4de4db. Cada sonido de 0x4f2250 se despacha; el último queda en lastSoundId.
 Core::Expected<void, std::string> DressTheNewClass(ActorState& actor, const WorldEntryResources& resources,
                                                    std::uint32_t address)
 {
@@ -132,10 +132,10 @@ Core::Expected<void, std::string> DressTheNewClass(ActorState& actor, const Worl
     if (!dressed.HasValue())
         return Core::Unexpected(std::format("{:#x}: {}", address, dressed.Error()));
     if (dressed.Value().sound)
-        resources.world.Runtime().lastSoundId = dressed.Value().sound;
+        resources.world.Runtime().RequestSound(*dressed.Value().sound);
     if (auto acted = SetMonsterAction(actor, ClassPrizeAction, 0x4de4d0, resources); !acted.HasValue())
         return acted;
-    resources.world.Runtime().lastSoundId = PrizeSound;
+    resources.world.Runtime().RequestSound(PrizeSound);
     return {};
 }
 } // namespace
@@ -178,7 +178,7 @@ Core::Expected<void, std::string> ApplyQuestResult(const Protocol::Quest::QuestR
     // Con una clave que no está, 0x5110d0 da el 400, como en el 1A (Q-C1125): la clase, los joints, el calco, 0x513100
     // y la acción van a él, como en el original.
     const std::size_t slot = ActorWithKey(world, result.key);
-    runtime.lastSoundId = PrizeSound;
+    runtime.RequestSound(PrizeSound);
     ActorState& actor = world.Actors()[slot];
     const bool isHero = slot == runtime.hero;
     switch (result.kind)
@@ -194,7 +194,7 @@ Core::Expected<void, std::string> ApplyQuestResult(const Protocol::Quest::QuestR
         }
         if (auto created = CreateThePrizeSparkles(actor, resources, false, 0x4dde20); !created.HasValue())
             return created;
-        runtime.lastSoundId = PointsPrizeSound;
+        runtime.RequestSound(PointsPrizeSound);
         return {};
     case Protocol::Quest::ClassChangePrize:
         // 0x4dde7b..0x4dde91: la clase antes de mirar si es el héroe.

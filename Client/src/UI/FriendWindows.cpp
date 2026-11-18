@@ -30,7 +30,7 @@ namespace Client::UI
 namespace
 {
 constexpr std::int32_t TopLeftRect = 1;
-// 0x41ed10(0x19, 0, 0) y 0x41ed10(0x1c, 0, 0): quedan en el último sonido; MuRet no tiene audio hasta la CL10.
+// 0x41ed10(0x19, 0, 0) y 0x41ed10(0x1c, 0, 0): se despachan en ese orden y el último queda en el diagnóstico.
 constexpr std::int32_t ButtonSound = 0x19;
 constexpr std::int32_t OpenSound = 0x1c;
 // Text.bmd.
@@ -393,7 +393,8 @@ void StepTheList(OldWindowManager& manager, OldWindow& tab, std::int32_t arg, co
                                      .mouseOnUi = globals.mouseOnUi,
                                      .sound = globals.sound,
                                      .drawn = manager.drawn == 1,
-                                     .modal = manager.modal};
+                                     .modal = manager.modal,
+                                     .soundRequest = globals.soundRequest};
     const OldListView listView{.mouseX = view.mouseX, .mouseY = view.mouseY, .keyDown = [&view](std::uint8_t key) {
                                    return view.keyDown && view.keyDown(key);
                                }};
@@ -445,7 +446,7 @@ Core::Expected<void, std::string> HandleTheFriendTabMessage(OldWindowManager& ma
     // El doble clic sobre un amigo es el botón del chat.
     if (message.type == ChosenRowMessage)
     {
-        globals.sound = ButtonSound;
+        globals.RequestSound(ButtonSound);
         message.type = CommandMessage;
         message.a = ThirdCommand;
     }
@@ -549,7 +550,7 @@ Core::Expected<void, std::string> HandleTheWindowsTabMessage(OldWindowManager& m
         PostToTheManager(manager, MinimizeMessage, SelectedWindow(tab), 0);
         return {};
     }
-    globals.sound = ButtonSound;
+    globals.RequestSound(ButtonSound);
     PostToTheManager(manager, RaiseMessage, SelectedWindow(tab), 0);
     ForgetTheHiddenWindows(manager);
     globals.leftHeld = false;
@@ -601,7 +602,7 @@ Core::Expected<void, std::string> AfterTheFriendsWindowMove(OldWindowManager& ma
             return {};
         if (!globals.releasedClick)
             return {};
-        globals.sound = ButtonSound;
+        globals.RequestSound(ButtonSound);
         if (manager.offlineSent != 1)
         {
             // "¿Salir de línea?": la respuesta vuelve a la ventana como el 12 (0x4a2be0).
@@ -628,7 +629,7 @@ Core::Expected<void, std::string> AfterTheFriendsWindowMove(OldWindowManager& ma
         return {};
     const bool changed = window.friends.currentTab != *header;
     if (changed)
-        globals.sound = ButtonSound;
+        globals.RequestSound(ButtonSound);
     window.friends.currentTab = *header;
     globals.focusedList = window.tabs[static_cast<std::size_t>(*header)].tab.list.base.id;
     globals.leftHeld = false;
@@ -659,7 +660,7 @@ void AfterTheFriendTabMove(OldWindowManager& manager, OldWindow& tab, const OldW
     {
         if (manager.friendModel.sortMode != ByNameSort)
         {
-            globals.sound = ButtonSound;
+            globals.RequestSound(ButtonSound);
             SortTheFriends(manager.friendModel, ByNameSort);
             RefreshTheTab(manager, tab);
         }
@@ -670,7 +671,7 @@ void AfterTheFriendTabMove(OldWindowManager& manager, OldWindow& tab, const OldW
         return;
     if (manager.friendModel.sortMode != ByStateSort)
     {
-        globals.sound = ButtonSound;
+        globals.RequestSound(ButtonSound);
         SortTheFriends(manager.friendModel, ByNameSort);
         SortTheFriends(manager.friendModel, ByStateSort);
         RefreshTheTab(manager, tab);
@@ -1087,8 +1088,8 @@ Core::Expected<bool, std::string> OpenTheFriendsWindow(OldWindowManager& manager
         {
             Steps::ShowTheWindow(manager, manager.friends, true);
             // 0x41ed10(0x19) y 0x41ed10(0x1c): queda el último.
-            globals.sound = ButtonSound;
-            globals.sound = OpenSound;
+            globals.RequestSound(ButtonSound);
+            globals.RequestSound(OpenSound);
             return false;
         }
         if (state == ShownWindow)
@@ -1115,8 +1116,8 @@ Core::Expected<bool, std::string> OpenTheFriendsWindow(OldWindowManager& manager
     if (first)
     {
         Steps::FillTheWindowsTab(manager);
-        globals.sound = ButtonSound;
-        globals.sound = OpenSound;
+        globals.RequestSound(ButtonSound);
+        globals.RequestSound(OpenSound);
         return true;
     }
     OldWindow* friends = FindTheOldWindow(manager, manager.friends);
@@ -1131,8 +1132,8 @@ Core::Expected<bool, std::string> OpenTheFriendsWindow(OldWindowManager& manager
     Steps::FillTheWindowsTab(manager);
     if (auto settled = Steps::SettleTheWindow(manager, *friends, globals, view); !settled.HasValue())
         return Core::Unexpected(std::move(settled).Error());
-    globals.sound = ButtonSound;
-    globals.sound = OpenSound;
+    globals.RequestSound(ButtonSound);
+    globals.RequestSound(OpenSound);
     if (auto stepped = StepTheOldWindows(manager, globals, view); !stepped.HasValue())
         return Core::Unexpected(std::move(stepped).Error());
     return true;

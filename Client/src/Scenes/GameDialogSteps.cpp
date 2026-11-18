@@ -266,7 +266,7 @@ void PressTheButton(WorldRuntime& runtime)
 {
     runtime.movement.mouseUpdateTime = 0;
     runtime.movement.mouseUpdateTimeMax = DialogMouseUpdateTimeMax;
-    runtime.lastSoundId = DialogSound;
+    runtime.RequestSound(DialogSound);
 }
 
 // 0x62da70 y 0x628280: el que espera pasa a abierto.
@@ -458,7 +458,7 @@ void StepTheVolume(const GameUiContext& context)
         runtime.movement.mouseUpdateTime = 0;
         runtime.movement.mouseUpdateTimeMax = DialogMouseUpdateTimeMax;
         if (wasNotDragging)
-            runtime.lastSoundId = DialogSound;
+            runtime.RequestSound(DialogSound);
         if (onTheBar(true))
             grab();
         else if (ui.volumeDragging != 0)
@@ -485,6 +485,7 @@ void StepTheVolume(const GameUiContext& context)
         return;
     ui.volume = volume;
     ui.volumeRequest = DirectSoundVolume(volume);
+    runtime.SetSoundVolume(static_cast<std::uint8_t>(volume));
 }
 
 // 0x625563..0x62590f: las opciones (el diálogo 0x93).

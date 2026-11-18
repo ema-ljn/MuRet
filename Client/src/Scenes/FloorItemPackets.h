@@ -52,6 +52,7 @@ struct FloorItemCreation
     Core::Duration clock{};
     // 0x41ed10 con el ítem recién caído (CL10): queda el último en lastSoundId.
     std::optional<std::int32_t>* sound = nullptr;
+    std::function<void(std::int32_t, const glm::vec3&)> soundRequest{};
     // 0x518cf0: la tabla de efectos del mapa, donde la medalla recién caída crea sus dos grietas. Sin ella, la medalla
     // corta (falta el servicio, no es la entrada).
     World::ModelEffects* effects = nullptr;

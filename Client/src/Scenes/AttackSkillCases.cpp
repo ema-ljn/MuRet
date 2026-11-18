@@ -430,7 +430,11 @@ Core::Expected<void, std::string> StepTheHeadSkill(ActorState& actor, std::size_
         RequestTheSound(context, 0x77);
         return {};
     case 0x28:
-        return EffectThenSound(0x4ff4ef, "el efecto 0xcb/1 sobre o (0x518cf0)", skill, slot, 0x93, context);
+        if (HasEffectRoom(context))
+            return CutAt(0x4ff4ef, "el efecto 0xcb/1 sobre o (0x518cf0)", skill, slot);
+        context.world.Runtime().StopSound(0x92, true); // 0x4ff4fe: rebobina antes de pedir 0x93.
+        RequestTheSound(context, 0x93);
+        return {};
     case 0x26:
         // 0x4ff51c: el punto de la celda +0x39c/+0x39d con la altura de 0x5f93c0 (sin rand()).
         if (HasEffectRoom(context))

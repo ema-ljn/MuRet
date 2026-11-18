@@ -14,6 +14,8 @@ class CrtRandom;
 // ShowWindow), que MuRet no modela; tampoco el rand() del foco que el WndProc saca por cada mensaje.
 namespace Client::Scenes
 {
+struct ActorState;
+struct WorldRuntime;
 // 0x5763578 y 0x5763574, en la .bss.
 struct WinMainCounters
 {
@@ -30,4 +32,10 @@ void StepTheWinMainLoop(WinMainCounters& counters, Render::Models::CrtRandom& ra
 // 0x63950d..0x63b066: 0x63945d abre y cierra el contador después de 0x637700 (4 rand()). Su rama de más de 31
 // (0x6395e7) no corre: WinMain lo vuelve a 0 en la vuelta 31.
 void CloseTheFrameCounter(Render::Models::CrtRandom& random);
+
+// 0x638ae4..0x6391e4: en Devias, cada comparación del rectángulo abre y cierra la celda por su cuenta.
+[[nodiscard]] bool InTheDeviasChurch(ActorState& hero, Render::Models::CrtRandom& random);
+
+// 0x63869c..0x6388a8: el ambiente y las paradas de la escena del mundo preceden a la selección de música.
+void StepWorldAmbience(WorldRuntime& runtime, Render::Models::CrtRandom& random);
 } // namespace Client::Scenes

@@ -4,6 +4,7 @@
 #include "Scenes/FaunaDrawing.h"
 
 #include "App/LoopTiming.h"
+#include "Audio/Music.h"
 #include "App/ServerAddress.h"
 #include "App/ServerSession.h"
 #include "App/SessionState.h"
@@ -119,6 +120,8 @@ namespace Client::Scenes
 {
 namespace
 {
+constexpr std::int32_t ButtonClickSound = 0x19;
+
 std::string ObjectCreationFailureMessage(const World::WorldObjectCreationFailure& failure)
 {
     const char* reason = "error de creación desconocido";
@@ -419,6 +422,11 @@ Core::Expected<void, std::string> LoginScene::Enter()
     {
         RetainTheTerrain();
         return placed;
+    }
+    if (m_context.world != nullptr)
+    {
+        auto& runtime = m_context.world->Runtime();
+        runtime.music.Play(runtime.audio, "Music\\main_theme.mp3");
     }
     return {};
 }
@@ -723,6 +731,7 @@ void LoginScene::StepTheScene(const Input::InputState& input, bool connecting)
     if (input.TakePress(Input::Key::Escape) && !m_notice.IsOpen() && !m_login.IsOpen() && !m_escape.IsOpen() &&
         !m_options.IsOpen() && !m_credits.IsOpen() && m_menuBar.IsOpen() && m_serverList.IsOpen())
     {
+        CharacterWorld().Runtime().RequestSound(ButtonClickSound);
         OpenTheEscapeWindow();
     }
     // Y lo que cambió con lo que la escena le pidió a la sesión: un login que se rechaza en el
@@ -753,15 +762,17 @@ Core::Expected<void, std::string> LoginScene::StepTheCharacters()
         m_context.clock != nullptr
             ? static_cast<float>(std::chrono::duration<double, std::milli>(m_context.clock->Now()).count())
             : 0.0f;
-    return StepCharacters({.world = CharacterWorld(),
-                           .random = cloth.random,
-                           .scene = SceneId::Login,
-                           .playerSkeleton = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel),
-                           .terrain = m_terrain.Terrain(),
-                           .darkSpiritSkeleton = m_models.SkeletonOf(DarkSpiritModel),
-                           .particles = &CharacterWorld().Particles(),
-                           .worldClock = clock,
-                           .counter = cloth.logicSteps});
+    return StepCharacters(
+        {.world = CharacterWorld(),
+         .random = cloth.random,
+         .scene = SceneId::Login,
+         .playerSkeleton = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel),
+         .terrain = m_terrain.Terrain(),
+         .darkSpiritSkeleton = m_models.SkeletonOf(DarkSpiritModel),
+         .particles = &CharacterWorld().Particles(),
+         .worldClock = clock,
+         .counter = cloth.logicSteps,
+         .soundRequest = [this](std::int32_t sound) { CharacterWorld().Runtime().RequestSound(sound); }});
 }
 
 void LoginScene::StepTheWorld()
@@ -1071,6 +1082,12 @@ void LoginScene::OpenTheCredits()
     // 0x65f690: primero los abre (y con la tabla vacía, o un 0 al principio, 0x63ffe0 ya los cerró con
     // 0x65f6c0) y después 0x65f610, que los pasa arriba solo si siguen abiertos.
     FollowTheCredits(m_credits.Open());
+    if (m_context.world != nullptr)
+    {
+        auto& runtime = m_context.world->Runtime();
+        runtime.music.Stop(runtime.audio, "Music\\main_theme.mp3");
+        runtime.music.Play(runtime.audio, "Music\\Mutheme.mp3");
+    }
     m_ui.Raise(m_credits);
 }
 
@@ -1092,8 +1109,18 @@ void LoginScene::FollowTheCredits(const UI::CreditsStep& step)
     // paso (los cierres antes que la ilustración) no cambia lo que sale.
     for (int close = 0; close < step.closes; ++close)
     {
+        if (step.buttonClickSound && close == step.closes - 1)
+        {
+            CharacterWorld().Runtime().RequestSound(ButtonClickSound);
+        }
         m_ui.Close(m_credits);
         m_session->SendCreditsNotice();
+        if (m_context.world != nullptr)
+        {
+            auto& runtime = m_context.world->Runtime();
+            runtime.music.Stop(runtime.audio, "Music\\Mutheme.mp3");
+            runtime.music.Play(runtime.audio, "Music\\main_theme.mp3");
+        }
     }
 }
 
@@ -1215,13 +1242,17 @@ void LoginScene::StepTheWindows(const Input::InputState& input)
             {
                 FollowTheCredits(m_credits.Step(input, m_screen, StepMs, turn));
             }
-        });
+        },
+        [&] { CharacterWorld().Runtime().RequestSound(ButtonClickSound); });
 }
 
 void LoginScene::OnOptionsEvent(const UI::OptionsEvent& event)
 {
     // El botón de cerrar (sin sonido) y Esc (con el 0x19, de la CL10) ya las cerraron.
-    ApplyOption(CharacterWorld().Runtime(), event);
+    WorldRuntime& runtime = CharacterWorld().Runtime();
+    ApplyOption(runtime, event);
+    if (event.kind == UI::OptionsEvent::Kind::Volume)
+        runtime.SetSoundVolume(static_cast<std::uint8_t>(event.value));
 }
 
 void LoginScene::OnEscapeEvent(const UI::EscapeWindowEvent& event)

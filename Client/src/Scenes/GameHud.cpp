@@ -1457,7 +1457,7 @@ Core::Expected<void, std::string> DrawTheMainBar(Frame& frame)
     const float missingLife = F32(static_cast<double>(maxLife - life) / static_cast<double>(maxLife));
     const float missingMana = F32(static_cast<double>(maxMana - mana) / static_cast<double>(maxMana));
     if (life != 0 && static_cast<double>(life) / static_cast<double>(maxLife) < static_cast<double>(0.2f))
-        frame.context.sound = 0x22;
+        frame.context.RequestSound(0x22);
     // 0x5a97fb: el orbe verde con el veneno (+0x78 & 1).
     DrawOrb(frame, (frame.hero.flags78 & 1u) == 1u ? 0xf7 : 0xea, 97.0f, missingLife);
     if (MouseIn(frame, 97, 432, 150, 480))

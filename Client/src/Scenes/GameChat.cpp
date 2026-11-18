@@ -313,7 +313,7 @@ Core::Expected<UI::ChatCommandOutcome, std::string> RunTheCommand(const GameChat
             return Core::Unexpected(added.Error());
     }
     if (outcome.Value().sound)
-        runtime.lastSoundId = UI::ChatButtonSound;
+        runtime.RequestSound(UI::ChatButtonSound);
     return outcome;
 }
 
@@ -550,7 +550,7 @@ Core::Expected<void, std::string> TypeInTheGameChat(const GameChatContext& conte
         if (pressed == Input::TabChar)
         {
             if (UI::PressTabInTheChat(input, runtime.ui.chatOpen, &runtime.ui.focusedList))
-                runtime.lastSoundId = UI::ChatButtonSound;
+                runtime.RequestSound(UI::ChatButtonSound);
         }
         else if (pressed == Input::EnterChar)
         {

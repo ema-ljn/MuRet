@@ -159,9 +159,9 @@ Core::Expected<void, std::string> StopThePortrait(ActorState& actor, const World
     auto stopped = SetActorStop(actor, StopContextOf(resources, *player));
     if (!stopped.HasValue())
         return Core::Unexpected(stopped.Error());
-    // 0x41ed10 desde 0x4f2250: sin audio hasta la CL10.
+    // 0x41ed10 desde 0x4f2250, con el sonido presente: despacharlo.
     if (stopped.Value().sound)
-        resources.world.Runtime().lastSoundId = stopped.Value().sound;
+        resources.world.Runtime().RequestSound(*stopped.Value().sound);
     return {};
 }
 
@@ -404,7 +404,7 @@ CharacterStepContext StepContextOf(const WorldEntryResources& resources)
                                 .counter = resources.cloth.logicSteps,
                                 .actionSpeeds = &world.ActionSpeeds(),
                                 .fixedHeight = resources.camera.fixedHeight,
-                                .soundRequest = [&runtime](std::int32_t sound) { runtime.lastSoundId = sound; }};
+                                .soundRequest = [&runtime](std::int32_t sound) { runtime.RequestSound(sound); }};
 }
 
 // 0x495796: el paso del ayudante con lo del mundo de `resources`.
@@ -601,9 +601,7 @@ Core::Expected<std::int32_t, std::string> ShowThePortraitAction(LetterPortrait& 
                                                            .actorSkeleton = player});
         if (!walked.HasValue())
             return Core::Unexpected(walked.Error());
-        // 0x41ed10 desde 0x4f37c0: sin audio hasta la CL10.
-        if (walked.Value().sound)
-            runtime.lastSoundId = walked.Value().sound;
+        // StepSound (0x4f37c0) manda cada pedido en el orden original; el resultado conserva solo el último.
     }
     else if (chosen >= FirstGesture && chosen <= LastGesture)
     {

@@ -152,8 +152,8 @@ Result FellTheObject(World::WorldObject& object, const ObjectCollapseContext& co
     {
         angle = FallStartAngle;
         object.state.hiddenMesh = Render::Models::NoHiddenMesh;
-        // 0x41ed10(0x89, 0, 0): MuRet todavía no tiene audio (CL10).
-        context.runtime.lastSoundId = FallSound;
+        // 0x41ed10(0x89, 0, 0): RequestSound despacha el efecto.
+        context.runtime.RequestSound(FallSound);
     }
     if (collapse.counter < 0)
         return {};

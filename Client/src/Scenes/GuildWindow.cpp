@@ -253,7 +253,8 @@ void StepTheGuildList(const GuildWindowStepContext& context, UI::OldList& list, 
                                              .mouseOnUi = globals.mouseOnUi,
                                              .sound = globals.sound,
                                              .drawn = runtime.oldWindows.drawn == 1,
-                                             .modal = runtime.oldWindows.modal};
+                                             .modal = runtime.oldWindows.modal,
+                                             .soundRequest = globals.soundRequest};
         const UI::OldListView view{
             .mouseX = context.mouseX, .mouseY = context.mouseY, .keyDown = [&context](std::uint8_t key) {
                 return context.keyDown && context.keyDown(key);
@@ -686,7 +687,7 @@ Core::Expected<void, std::string> StepTheGuildWindow(const GuildWindowStepContex
         runtime.movement.pendingClick = false;
         runtime.movement.mouseUpdateTime = 0;
         runtime.movement.mouseUpdateTimeMax = CloseMouseUpdateTimeMax;
-        runtime.lastSoundId = ClickSound; // 0x41ed10 (CL10)
+        runtime.RequestSound(ClickSound); // 0x41ed10 (CL10)
         // 0x6518e3: la vtable + 0x2c, 0x6522f0. El paso sigue con la ventana cerrada.
         if (auto closed = CloseTheGuildWindow(context.world, context.send); !closed.HasValue())
             return closed;

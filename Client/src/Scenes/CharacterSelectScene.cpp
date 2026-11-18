@@ -114,6 +114,8 @@ namespace Client::Scenes
 namespace
 {
 
+constexpr std::int32_t ButtonClickSound = 0x19;
+
 // La acción de parado de la selección. La elige 0x4f2250 por la mascota, las alas y el arma; la de
 // la traza es la 3, con un arma de una mano. Las otras, sin leer (P-C14 c): hasta entonces, la 3.
 constexpr std::uint8_t StandingAction = 3;
@@ -484,7 +486,8 @@ CharacterStepContext CharacterSelectScene::CharacterContext()
             .particles = &m_context.world->Particles(),
             .worldClock = clock,
             .counter = m_context.cloth->logicSteps,
-            .newFaceSkeleton = m_selectionModels.SkeletonOf(Preview().type)};
+            .newFaceSkeleton = m_selectionModels.SkeletonOf(Preview().type),
+            .soundRequest = [this](std::int32_t sound) { m_context.world->Runtime().RequestSound(sound); }};
 }
 
 // 0x6342f9, después 0x634303: los 400 registros y el objeto NewFace, antes de la UI.
@@ -501,7 +504,8 @@ void CharacterSelectScene::StepCharacters()
         {
             // 0x6342e1: 0x606560, los objetos del 54 que vio el último dibujo (0x4250f0).
             const auto map = static_cast<std::uint8_t>(m_context.world->Runtime().map);
-            if (auto loaded = m_world.Load(m_context.dataRoot, map, m_gameSlots, &m_models); !loaded.HasValue())
+            if (auto loaded = m_world.Load(*m_context.world, m_context.dataRoot, map, m_gameSlots, &m_models);
+                !loaded.HasValue())
             {
                 m_failure = loaded.Error();
                 return;
@@ -678,7 +682,10 @@ void CharacterSelectScene::OnOptionsEvent(const UI::OptionsEvent& event)
     // El botón de cerrar (sin sonido) y Esc (con el 0x19, de la CL10) ya las cerraron.
     if (m_context.world != nullptr)
     {
-        ApplyOption(m_context.world->Runtime(), event);
+        WorldRuntime& runtime = m_context.world->Runtime();
+        ApplyOption(runtime, event);
+        if (event.kind == UI::OptionsEvent::Kind::Volume)
+            runtime.SetSoundVolume(static_cast<std::uint8_t>(event.value));
         return;
     }
     UI::ApplyOption(m_localOptions, event);
@@ -910,11 +917,19 @@ void CharacterSelectScene::StepTheScene(const Input::InputState& input)
     {
         if (!modal)
         {
+            if (m_session != nullptr && m_session->ChosenCharacter() != nullptr && m_context.world != nullptr)
+            {
+                m_context.world->Runtime().RequestSound(ButtonClickSound);
+            }
             TryToEnter();
         }
     }
     else if (input.TakePress(Input::Key::Escape) && !modal)
     {
+        if (m_context.world != nullptr)
+        {
+            m_context.world->Runtime().RequestSound(ButtonClickSound);
+        }
         OpenTheEscapeWindow();
     }
     const auto now = App::LogicStep * static_cast<std::int64_t>(m_steps);
@@ -945,41 +960,48 @@ void CharacterSelectScene::StepTheWindows(const Input::InputState& input)
 {
     // El original le pasa a cada ventana los milisegundos del frame; MuRet, los del paso (Q-C490).
     constexpr double StepMs = std::chrono::duration<double, std::milli>(App::LogicStep).count();
-    m_ui.Step(input, m_screen,
-              [&](UI::NewUiWindow& window, UI::NewUiTurn turn)
-              {
-                  if (&window == &m_notice)
-                  {
-                      StepTheNotice(input, turn);
-                  }
-                  else if (&window == &m_escape)
-                  {
-                      if (const std::optional<UI::EscapeWindowEvent> event =
-                              m_escape.Step(input, m_screen, StepMs, turn))
-                      {
-                          OnEscapeEvent(*event);
-                      }
-                  }
-                  else if (&window == &m_options)
-                  {
-                      if (const std::optional<UI::OptionsEvent> event =
-                              m_options.Step(input, m_screen, StepMs, CurrentOptions(), turn))
-                      {
-                          OnOptionsEvent(*event);
-                      }
-                  }
-                  else if (&window == &m_bar)
-                  {
-                      if (const std::optional<UI::SelectionBarClick> click = m_bar.Step(input, m_screen, turn))
-                      {
-                          OnTheBar(*click);
-                      }
-                  }
-                  else if (&window == &m_create)
-                  {
-                      StepTheCreateWindow(input, turn);
-                  }
-              });
+    m_ui.Step(
+        input, m_screen,
+        [&](UI::NewUiWindow& window, UI::NewUiTurn turn)
+        {
+            if (&window == &m_notice)
+            {
+                StepTheNotice(input, turn);
+            }
+            else if (&window == &m_escape)
+            {
+                if (const std::optional<UI::EscapeWindowEvent> event = m_escape.Step(input, m_screen, StepMs, turn))
+                {
+                    OnEscapeEvent(*event);
+                }
+            }
+            else if (&window == &m_options)
+            {
+                if (const std::optional<UI::OptionsEvent> event =
+                        m_options.Step(input, m_screen, StepMs, CurrentOptions(), turn))
+                {
+                    OnOptionsEvent(*event);
+                }
+            }
+            else if (&window == &m_bar)
+            {
+                if (const std::optional<UI::SelectionBarClick> click = m_bar.Step(input, m_screen, turn))
+                {
+                    OnTheBar(*click);
+                }
+            }
+            else if (&window == &m_create)
+            {
+                StepTheCreateWindow(input, turn);
+            }
+        },
+        [this]
+        {
+            if (m_context.world != nullptr)
+            {
+                m_context.world->Runtime().RequestSound(ButtonClickSound);
+            }
+        });
 }
 
 void CharacterSelectScene::OnEscapeEvent(const UI::EscapeWindowEvent& event)
@@ -1306,7 +1328,8 @@ void CharacterSelectScene::DrawTheWorldAndTheCharacters(SceneCanvas& canvas, flo
         return;
     }
     WorldState& world = *m_context.world;
-    if (auto loaded = m_world.Load(m_context.dataRoot, map, m_gameSlots, &m_models); !loaded.HasValue())
+    if (auto loaded = m_world.Load(*m_context.world, m_context.dataRoot, map, m_gameSlots, &m_models);
+        !loaded.HasValue())
     {
         m_failure = loaded.Error();
         return;

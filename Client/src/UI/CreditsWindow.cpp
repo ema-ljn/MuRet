@@ -175,14 +175,19 @@ CreditsStep CreditsWindow::Step(const Input::InputState& input, App::PixelSize s
     }
     m_layout = LayoutCredits(screen);
     m_close.MoveTo(Point{m_layout.close.x, m_layout.close.y});
-    const bool clicked = m_close.Step(input, MouseOfTheTurn(turn, input, screen));
+    const bool clicked = m_close.Step(input, MouseOfTheTurn(turn, input, screen), turn.buttonClicked);
     if (!turn.logic)
     {
         return step;
     }
     // 0x63f630: el botón cierra sin sonido; Esc (con el +0x31 del mouse, siempre 0) con el 0x19. Y sigue:
     // los renglones se mueven igual en el paso que los cerró.
-    if (clicked || input.TakePress(Input::Key::Escape))
+    const bool escape = !clicked && input.TakePress(Input::Key::Escape);
+    if (escape && turn.buttonClicked)
+    {
+        turn.buttonClicked();
+    }
+    if (clicked || escape)
     {
         Shut(step);
     }
@@ -321,6 +326,7 @@ void CreditsWindow::NextGroup(CreditsStep& step)
     // 0x63ffe0: con el final, el sonido 0x19 y 0x63f9a0, y sigue leyendo.
     if (KindAt(m_next) == static_cast<std::uint8_t>(CreditKind::End))
     {
+        step.buttonClickSound = true;
         Shut(step);
     }
     if (KindAt(m_next) == static_cast<std::uint8_t>(CreditKind::Title))

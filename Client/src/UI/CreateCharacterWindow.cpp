@@ -289,13 +289,13 @@ std::optional<CreateWindowEvent> CreateCharacterWindow::Step(const Input::InputS
     std::optional<std::uint8_t> clicked;
     for (std::size_t i = 0; i < CreatableClassCount; ++i)
     {
-        if (m_classes[i].Step(input, mouse) && !clicked)
+        if (m_classes[i].Step(input, mouse, turn.buttonClicked) && !clicked)
         {
             clicked = static_cast<std::uint8_t>(i);
         }
     }
-    const bool ok = m_ok.Step(input, mouse);
-    const bool cancel = m_cancel.Step(input, mouse);
+    const bool ok = m_ok.Step(input, mouse, turn.buttonClicked);
+    const bool cancel = m_cancel.Step(input, mouse, turn.buttonClicked);
     if (!turn.logic)
     {
         return std::nullopt;

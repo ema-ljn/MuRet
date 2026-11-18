@@ -524,7 +524,7 @@ Core::Expected<void, std::string> ApplyTradeItemRemoved(const Protocol::Trade::T
         }
         runtime.social.trade = std::move(trade);
     }
-    runtime.lastSoundId = TradeItemSound;
+    runtime.RequestSound(TradeItemSound);
     return {};
 }
 
@@ -568,7 +568,7 @@ Core::Expected<void, std::string> ApplyTradeItemAdded(const Protocol::Trade::Tra
         }
     }
     runtime.social.trade = std::move(trade);
-    runtime.lastSoundId = TradeItemSound;
+    runtime.RequestSound(TradeItemSound);
     return {};
 }
 
@@ -593,7 +593,7 @@ void ApplyTradeOkState(const Protocol::Trade::TradeOkState& state, WorldState& w
         trade.otherOk = 1;
     else if (state.state == OwnOkOff)
         trade.ownOk = 0;
-    runtime.lastSoundId = TradeOkSound;
+    runtime.RequestSound(TradeOkSound);
 }
 
 Core::Expected<void, std::string> ApplyTradeResult(const Protocol::Trade::TradeResult& result,
@@ -788,7 +788,7 @@ Core::Expected<void, std::string> ApplyDuelStart(const Protocol::Duel::DuelStart
         !shown.HasValue())
         return shown;
     if (start.result != 0)
-        runtime.lastSoundId = DuelStartSound;
+        runtime.RequestSound(DuelStartSound);
     return {};
 }
 
@@ -817,7 +817,7 @@ void ApplyDuelRequest(const Protocol::Duel::DuelRequest& request, WorldState& wo
     CopyUpToTheZero(duel.rivalName, request.name);
     duel.rivalName.back() = std::byte{0};
     runtime.ui.field78abad9 = 1;
-    runtime.lastSoundId = DuelRequestSound;
+    runtime.RequestSound(DuelRequestSound);
 }
 
 void ApplyShopTitles(const Protocol::PersonalShop::ShopTitles& titles, WorldState& world)

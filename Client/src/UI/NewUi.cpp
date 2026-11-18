@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <array>
 #include <cstddef>
+#include <functional>
 #include <optional>
 #include <span>
 #include <vector>
@@ -147,7 +148,8 @@ void NewUi::MoveToTheTail(NewUiWindow& window)
     }
 }
 
-void NewUi::Step(const Input::InputState& input, App::PixelSize screen, const StepWindow& step)
+void NewUi::Step(const Input::InputState& input, App::PixelSize screen, const StepWindow& step,
+                 const std::function<void()>& buttonClicked)
 {
     if (m_mode == NewUiMode::None || m_entries.empty())
     {
@@ -210,7 +212,9 @@ void NewUi::Step(const Input::InputState& input, App::PixelSize screen, const St
         {
             Drag(*entry, input, mouse, screen);
         }
-        step(*window, NewUiTurn{.buttons = buttons, .mouse = window == attended, .logic = focused});
+        step(*window,
+             NewUiTurn{
+                 .buttons = buttons, .mouse = window == attended, .logic = focused, .buttonClicked = buttonClicked});
         if (!window->IsOpen())
         {
             MoveToTheTail(*window);

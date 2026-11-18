@@ -39,6 +39,7 @@
 #include "Platform/GlLoader.h"
 #include "Platform/LocalTime.h"
 #include "Platform/SdlClock.h"
+#include "Platform/SdlAudio.h"
 #include "Platform/SdlContext.h"
 #include "Platform/SdlLog.h"
 #include "Platform/SwapInterval.h"
@@ -661,7 +662,21 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     // 0x4bafa6..0x4bafc2: WinMain deja en cero el pool de 401 personajes y el registro propio, que
     // duran hasta el cierre. La selección construye en los cinco primeros registros y escribe el mundo
     // en curso.
+    std::unique_ptr<Platform::SdlAudio> audio;
     Scenes::WorldState world;
+    world.Runtime().music.SetEnabled(startup.config.musicOnOff);
+    auto audioCreated =
+        Platform::SdlAudio::Create(*startup.config.dataPath, startup.config.soundOnOff, startup.config.musicOnOff);
+    if (audioCreated.HasValue())
+    {
+        audio = std::move(audioCreated).Value();
+        world.Runtime().audio = audio.get();
+        world.Runtime().SetSoundVolume(static_cast<std::uint8_t>(world.Runtime().ui.volume));
+    }
+    else
+    {
+        log.Warning("{}", audioCreated.Error());
+    }
     // 0x61ee30 → 0x61c1c0: las macros de Data\Macro.txt, que GameData leyó detrás de Text.bmd, en 0x77f1db0.
     world.Runtime().chat.input.macros = scenes.data.macros;
     // 0x61ec8f: 0x448440 deja los destinos de movereq.bmd en la lista de 0x723c68, que dura hasta el cierre.
@@ -786,6 +801,27 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
         const bool gameScene = sceneManager != nullptr && sceneManager->Current() == Scenes::SceneId::Game;
         for (int i = 0; i < frames; ++i)
         {
+            auto& runtime = world.Runtime();
+            if (gameScene)
+            {
+                Scenes::StepWorldAmbience(runtime, clothWorld.random);
+                auto& hero = world.Actors()[runtime.hero];
+                runtime.music.StepWorld(runtime.audio, runtime.map, hero.safeZone != 0, runtime.heroCellLayer,
+                                        [&hero, &clothWorld]
+                                        { return Scenes::InTheDeviasChurch(hero, clothWorld.random); });
+                if (runtime.map == 34)
+                {
+                    runtime.music.StepCrywolf(runtime.audio, runtime.crywolf.stage);
+                    if (runtime.crywolf.stage == 5)
+                    {
+                        runtime.RequestSound(runtime.crywolf.ui.dword6c73dc == 10 ? 0x245 : 0x244);
+                    }
+                }
+                else
+                {
+                    runtime.music.StopCrywolfBase(runtime.audio);
+                }
+            }
             Scenes::CloseTheFrameCounter(clothWorld.random);
             Scenes::RunTheSlideTimer(world, clothWorld.random, systemTime, gameScene);
             Scenes::StepTheWinMainLoop(winMain, clothWorld.random);

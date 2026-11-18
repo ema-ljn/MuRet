@@ -199,6 +199,11 @@ public:
     // 0x41ed10(id, 0, 0): en WorldRuntime::lastSoundId (CL10), solo en el frame del original.
     void Sound(std::int32_t id) const
     {
+        if (m_pass.soundRequest)
+        {
+            m_pass.soundRequest(id);
+            return;
+        }
         if (m_pass.sound != nullptr)
             *m_pass.sound = id;
     }

@@ -266,7 +266,7 @@ Core::Expected<void, std::string> StepTheChat(const GameUiContext& context)
                                    .dcFont = runtime.hud.dcFont};
     const UI::ChatLogStepResult result = UI::StepTheChatLog(chat.log, runtime.hud.chatFrame, globals, view);
     for (const std::int32_t sound : result.sounds)
-        runtime.lastSoundId = sound;
+        runtime.RequestSound(sound);
     // 0x4694c0(0, 0, 1, nombre): el nombre al EDIT del susurro (SetText), sin tocar su buffer.
     if (result.whisperTo)
         UI::SetTheChatFields(chat.input, std::nullopt, *result.whisperTo);
@@ -773,7 +773,7 @@ Core::Expected<void, std::string> AfterThePickUp(const GameUiContext& context, U
             return Core::Unexpected(std::string("0x5c5396: el C1 04 3C sin la sesión"));
         services.sendGamePacket(Protocol::Trade::WriteTradeOkButton(0));
     }
-    runtime.lastSoundId = ItemMoveSound;
+    runtime.RequestSound(ItemMoveSound);
     return {};
 }
 
@@ -1192,7 +1192,7 @@ Core::Expected<void, std::string> StepTheCharacterWindow(const GameUiContext& co
                         context, Protocol::Character::WriteLevelUpPoint(static_cast<std::uint8_t>(button)), "0x5e494b");
                     !sent.HasValue())
                     return sent;
-                runtime.lastSoundId = ButtonSound;
+                runtime.RequestSound(ButtonSound);
             }
         }
     }
@@ -1756,7 +1756,7 @@ void PointAtTheSkill(const GameUiContext& context, std::uint8_t index, std::int3
     runtime.movement.pendingClick = false;
     context.world.Actors()[runtime.hero].skillIndex = index;
     ui.skillListOpen = 0;
-    runtime.lastSoundId = ButtonSound;
+    runtime.RequestSound(ButtonSound);
     runtime.movement.mouseUpdateTime = 0;
     runtime.movement.mouseUpdateTimeMax = 6;
 }
@@ -1946,7 +1946,7 @@ Core::Expected<void, std::string> StepTheSkillBar(const GameUiContext& context)
         {
             runtime.movement.pendingClick = false;
             ui.skillListOpen = ui.skillListOpen == 0 ? 1 : 0;
-            runtime.lastSoundId = ButtonSound;
+            runtime.RequestSound(ButtonSound);
         }
     }
     // 0x652330: sin el asedio (0x4294b0) no hace nada.
@@ -1985,7 +1985,7 @@ void StepTheOldAreaRows(const GameUiContext& context)
             continue;
         ui.rightClick = false;
         UI::PutTheWhisperName(runtime.chat.input, row.name);
-        runtime.lastSoundId = ButtonSound;
+        runtime.RequestSound(ButtonSound);
     }
 }
 
@@ -2003,7 +2003,7 @@ void StepTheArrowKey(const GameUiContext& context, GameKey key, std::int32_t dir
     else
         sound = UI::StepTheWhisperName(input, direction, &runtime.ui.focusedList);
     if (sound)
-        runtime.lastSoundId = ButtonSound;
+        runtime.RequestSound(ButtonSound);
 }
 
 // 0x45aa80(0) y 0x468d50 sobre un EDIT del chat: el mouse sobre él lo hace la ventana de abajo (si nadie agarró el
@@ -2056,7 +2056,7 @@ void StepTheChatButtons(const GameUiContext& context)
     runtime.chat.input.whisperMode = !runtime.chat.input.whisperMode;
     runtime.movement.mouseUpdateTime = 0;
     runtime.movement.mouseUpdateTimeMax = ButtonMouseUpdateTimeMax;
-    runtime.lastSoundId = ButtonSound;
+    runtime.RequestSound(ButtonSound);
 }
 
 // 0x5a116f..0x5a2b47: con el freno de las macros en 0 (0x77f3b74), fuera de Chaos Castle y con Alt, las macros de
@@ -2402,7 +2402,8 @@ UI::OldWindowGlobals OldWindowGlobalsOf(WorldRuntime& runtime)
                                 .rightClick = ui.rightClick,
                                 .doubleClick = ui.doubleClick,
                                 .mouseUpdateTime = &movement.mouseUpdateTime,
-                                .mouseUpdateTimeMax = &movement.mouseUpdateTimeMax};
+                                .mouseUpdateTimeMax = &movement.mouseUpdateTimeMax,
+                                .soundRequest = [&runtime](std::int32_t sound) { runtime.RequestSound(sound); }};
 }
 
 Core::Expected<void, std::string> StepTheGameDialogs(const GameUiContext& context)
@@ -2448,7 +2449,7 @@ Core::Expected<void, std::string> StepTheGameDialogs(const GameUiContext& contex
                 dialogs.pending = 0;
             }
             // 0x623f6a: suena con cualquier diálogo.
-            runtime.lastSoundId = ButtonSound;
+            runtime.RequestSound(ButtonSound);
         }
     }
     // 0x623f78: el diálogo abierto, por su tramo.
@@ -2562,20 +2563,20 @@ Core::Expected<void, std::string> StepTheFunctionKeys(const GameUiContext& conte
         std::int32_t& mode = runtime.panels.overlayMode;
         mode = mode == UI::ItemHelpMode || mode == UI::MoveOverlayMode ? 0 : (mode + 1) % FunctionHelpModes;
         context.world.ItemSets().byte9305 = 0;
-        runtime.lastSoundId = ButtonSound;
+        runtime.RequestSound(ButtonSound);
     }
     // 0x5aca42..0x5aca86: F2, el chat normal en el registro (0x6c8dd1), y el registro corre 0 (la vtable + 0x34).
     if (KeyEdge(ui, input, F2Key))
     {
         ui.chatModes.showChat = !ui.chatModes.showChat;
-        runtime.lastSoundId = ButtonSound;
+        runtime.RequestSound(ButtonSound);
         UI::ScrollTheLog(runtime.chat.log, ui.chatModes, 0);
     }
     // 0x5aca86..0x5acad0: F3, el modo del susurro (0x6c8dd0).
     if (KeyEdge(ui, input, F3Key))
     {
         runtime.chat.input.whisperMode = !runtime.chat.input.whisperMode;
-        runtime.lastSoundId = ButtonSound;
+        runtime.RequestSound(ButtonSound);
     }
     // 0x5acad0..0x5acbb0: F4, el tamaño del registro (0x45d8c0) y su esquina (0x45a9d0): en su ventana, 0xba salvo con
     // el inventario y el personaje, el comercio, el almacén, la caja del caos, el NPC de los eventos o la tienda de
@@ -2600,7 +2601,7 @@ Core::Expected<void, std::string> StepTheFunctionKeys(const GameUiContext& conte
             frame.x = -10;
             frame.y = 0x51;
         }
-        runtime.lastSoundId = ButtonSound;
+        runtime.RequestSound(ButtonSound);
     }
     return {};
 }

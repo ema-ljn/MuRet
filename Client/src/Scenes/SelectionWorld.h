@@ -97,7 +97,8 @@ public:
 
     // Los tiles con el pasto (0x61a560) y los modelos de Object55 (0x616ec0) del mapa `map`, si no los
     // tiene ya; `globalModels` y `gameSlots` son los de la carga y tienen que vivir hasta Release.
-    [[nodiscard]] Core::Expected<void, std::string> Load(const std::filesystem::path& dataRoot, std::uint8_t map,
+    [[nodiscard]] Core::Expected<void, std::string> Load(WorldState& world, const std::filesystem::path& dataRoot,
+                                                         std::uint8_t map,
                                                          const Render::Models::ModelTextureSlots* gameSlots,
                                                          const IModelLibrary* globalModels);
     void Release();

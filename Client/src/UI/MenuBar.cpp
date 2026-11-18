@@ -98,8 +98,8 @@ std::optional<MenuBarClick> MenuBar::Step(const Input::InputState& input, App::P
     }
     Place(screen);
     const std::optional<Point> mouse = MouseOfTheTurn(turn, input, screen);
-    const bool menu = m_menu.Step(input, mouse);
-    const bool credit = m_credit.Step(input, mouse);
+    const bool menu = m_menu.Step(input, mouse, turn.buttonClicked);
+    const bool credit = m_credit.Step(input, mouse, turn.buttonClicked);
     if (!turn.logic)
     {
         return std::nullopt;

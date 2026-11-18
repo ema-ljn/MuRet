@@ -68,7 +68,7 @@ Core::Expected<void, std::string> ApplyMagicAttackCount(const Protocol::Viewport
     if (auto raised = RaiseTheHandShine(world.Actors(), runtime.hero, casterSlot, world.Particles(), random);
         !raised.HasValue())
         return raised;
-    runtime.lastSoundId = MagicAttackSound;
+    runtime.RequestSound(MagicAttackSound);
     // 0x4cee23: 0x4ea030 lee la cuenta de acciones del modelo del que pega (+0x26 de 0x5769ad8): el de un monstruo o
     // un NPC, el que cargó su alta (el GS 0.97 también manda el 1A de un monstruo, user.cpp:11887). Sin nadie con la
     // clave, el 400 (Q-C1125): su tipo es memoria que MuRet no modela y la acción se descarta, con una línea de

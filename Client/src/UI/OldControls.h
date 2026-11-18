@@ -153,6 +153,15 @@ struct OldListGlobals
     bool drawn = false;
     // 0x5762ebc: la caja modal. Con una, el paso no mira los renglones (0x47b71b).
     std::int32_t modal = 0;
+    std::function<void(std::int32_t)> soundRequest{};
+
+    void RequestSound(std::int32_t id) const
+    {
+        if (soundRequest)
+            soundRequest(id);
+        else
+            sound = id;
+    }
 };
 
 // Lo que el paso lee del juego.

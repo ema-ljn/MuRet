@@ -83,7 +83,7 @@ Core::Expected<bool, std::string> CloseSenior(UI::PanelContext& panels, WorldSta
     }
     auto& window = runtime.castleSiege.senior;
     send(window.closeWith87 ? Protocol::NpcWindows::WriteChaosBoxClose() : Protocol::Connection::WriteWindowClose());
-    runtime.lastSoundId = WindowCloseSound;
+    runtime.RequestSound(WindowCloseSound);
     if (auto cancelled = CancelOwnedDialog(world, send, window.dialogId); !cancelled.HasValue())
         return Core::Unexpected(std::move(cancelled).Error());
     return true;

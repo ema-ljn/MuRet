@@ -1,4 +1,5 @@
 #include "Scenes/LoginScene.h"
+#include "Audio/Playback.h"
 #include "Render/Pass3D.h"
 #include "Scenes/SceneCameras.h"
 
@@ -28,11 +29,13 @@
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneWorlds.h"
 #include "Scenes/TextureSets.h"
+#include "Scenes/WorldState.h"
 #include "support/AppPrinters.h"
 #include "support/FakeClock.h"
 #include "support/FakeSocket.h"
 #include "support/FakeTextureStore.h"
 #include "support/GateFiles.h"
+#include "support/GoldenDir.h"
 #include "support/ItemFiles.h"
 #include "support/ItemSetFiles.h"
 #include "support/RecordingFrameTarget.h"
@@ -50,6 +53,7 @@
 #include "Scenes/LoginModels.h"
 #include "support/FixedRandom.h"
 
+#include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
 
 #include <array>
@@ -247,6 +251,13 @@ struct Harness
         return scene.emplace(SceneContext{folder.Path(), store, log}, data, models, session, Version, FixedSeed);
     }
 
+    LoginScene& MakeWithWorld(Client::Scenes::WorldState& world)
+    {
+        return scene.emplace(
+            SceneContext{.dataRoot = Client::Tests::GoldenDir(), .textures = store, .log = log, .world = &world}, data,
+            models, nullptr, Version, FixedSeed);
+    }
+
     // Y con el mouse de `input` en el contexto, que el cursor lee en el dibujo.
     LoginScene& MakeWithTheMouse()
     {
@@ -272,6 +283,24 @@ struct Harness
     Client::Scenes::SingleModelLibrary models;
     std::optional<LoginScene> scene;
     InputState input;
+};
+
+class RecordingPlayback final : public Client::Audio::IPlayback
+{
+public:
+    void PlaySound(std::int32_t, std::optional<glm::vec3>, bool) override {}
+    void StopSound(std::int32_t, bool) override {}
+    void PlayMusic(std::string_view path, bool loop) override
+    {
+        music.emplace_back(path);
+        loops.push_back(loop);
+    }
+    void StopMusic() override {}
+    void SetEffectsVolume(std::uint8_t) override {}
+    void SetListener(glm::vec3) override {}
+
+    std::vector<std::string> music;
+    std::vector<bool> loops;
 };
 
 // Una sesión que no conectó todavía, sobre un FakeSocket.
@@ -525,6 +554,25 @@ TEST(LoginSceneTest, StartsTheSessionOnEnter)
     EXPECT_EQ(scene.Next(), std::nullopt);
     EXPECT_FALSE(scene.WantsToQuit());
     EXPECT_FALSE(scene.WantsTextInput());
+}
+
+TEST(LoginSceneTest, EnterRequestsTheLoginThemeOnceWithoutLooping)
+{
+    Harness tested;
+    Client::Scenes::WorldState world;
+    RecordingPlayback playback;
+    world.Runtime().audio = &playback;
+    LoginScene& scene = tested.MakeWithWorld(world);
+
+    const auto first = scene.Enter();
+    ASSERT_TRUE(first.HasValue()) << first.Error();
+    const auto second = scene.Enter();
+    ASSERT_TRUE(second.HasValue()) << second.Error();
+
+    ASSERT_EQ(playback.music.size(), 1u);
+    EXPECT_EQ(playback.music.front(), "Music\\main_theme.mp3");
+    ASSERT_EQ(playback.loops.size(), 1u);
+    EXPECT_FALSE(playback.loops.front());
 }
 
 // Sin servidor (Main sin host), la escena dibuja igual y no pide la selección.

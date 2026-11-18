@@ -12,3 +12,4 @@ muret_add_test(NAME test_clipboard SOURCES test_clipboard.cpp LINK_LIBS ClientPl
 # de render_gl/, y enlaza ClientGlTestSupport por la regla de MURET_CLIENT_REQUIRE_GL.
 muret_add_test(NAME test_window SOURCES test_window.cpp LINK_LIBS ClientPlatform ClientGlTestSupport LABEL gl
     TIMEOUT 60)
+muret_add_test(NAME test_sdl_audio SOURCES test_sdl_audio.cpp LINK_LIBS ClientPlatform)

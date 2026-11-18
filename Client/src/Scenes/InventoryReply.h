@@ -17,8 +17,7 @@ namespace Client::Scenes
 {
 struct WorldEntryResources;
 
-// Lo que el F3 10 pide afuera y MuRet todavía no hace (sin audio hasta la CL10): el sonido de Fenrir de cada
-// 0x4f2250 que corre dentro de 0x512a30, en el orden en que los pide.
+// Los sonidos de Fenrir que pide cada 0x4f2250 dentro de 0x512a30, en el orden en que los pide.
 struct InventoryReplyResult
 {
     std::vector<std::int32_t> sounds;

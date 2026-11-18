@@ -74,6 +74,8 @@ TEST(ConfigTest, ReadsTheSections)
     EXPECT_EQ(config.Value().height, 600);
     EXPECT_EQ(config.Value().vsync, VSyncMode::Adaptive);
     EXPECT_EQ(config.Value().pacing, PacingMode::Faithful);
+    EXPECT_TRUE(config.Value().soundOnOff);
+    EXPECT_TRUE(config.Value().musicOnOff);
     EXPECT_EQ(config.Value().logPath, std::filesystem::path("cliente.log"));
 }
 
@@ -86,6 +88,8 @@ TEST(ConfigTest, DefaultsWhenAKeyIsMissing)
     EXPECT_FALSE(empty.Value().server.has_value());
     EXPECT_EQ(empty.Value().width, 640);
     EXPECT_EQ(empty.Value().height, 480);
+    EXPECT_TRUE(empty.Value().soundOnOff);
+    EXPECT_TRUE(empty.Value().musicOnOff);
     EXPECT_FALSE(empty.Value().vsync.has_value());
     EXPECT_EQ(empty.Value().pacing, PacingMode::Decoupled);
     EXPECT_FALSE(empty.Value().logPath.has_value());
@@ -102,6 +106,28 @@ TEST(ConfigTest, DefaultsWhenAKeyIsMissing)
     ASSERT_TRUE(onlyPort.Value().server.has_value());
     EXPECT_TRUE(onlyPort.Value().server->host.empty());
     EXPECT_EQ(onlyPort.Value().server->port, 55901);
+}
+
+TEST(ConfigTest, ReadsIndependentAudioPreferences)
+{
+    const auto config = ParseConfig("[Audio]\nSoundOnOff = 0\nMusicOnOff = 1\n");
+
+    ASSERT_TRUE(config.HasValue());
+    EXPECT_FALSE(config.Value().soundOnOff);
+    EXPECT_TRUE(config.Value().musicOnOff);
+
+    const auto bothOff = ParseConfig("[Audio]\nSoundOnOff = 0\nMusicOnOff = 0\n");
+    ASSERT_TRUE(bothOff.HasValue());
+    EXPECT_FALSE(bothOff.Value().soundOnOff);
+    EXPECT_FALSE(bothOff.Value().musicOnOff);
+}
+
+TEST(ConfigTest, RejectsAnInvalidAudioPreference)
+{
+    const ConfigError error = ErrorOf("[Audio]\nSoundOnOff = true\n");
+
+    EXPECT_EQ(error.line, 2u);
+    EXPECT_EQ(error.message, "[Audio] SoundOnOff: tiene que ser 0 o 1");
 }
 
 TEST(ConfigTest, ReportsTheLineOfAnError)

@@ -318,8 +318,13 @@ Core::Expected<void, std::string> CreateFloorItem(FloorItemState& item, const Pr
         if (dropped)
             sound = IsAJewel(type, false) ? JewelSound : ItemDropSound;
     }
-    if (sound && creation.sound != nullptr)
-        *creation.sound = sound;
+    if (sound)
+    {
+        if (creation.soundRequest)
+            creation.soundRequest(*sound, position);
+        else if (creation.sound != nullptr)
+            *creation.sound = sound;
+    }
     // 0x608414..0x60842a: vivo, el modelo y +4 en 1.
     item.alive = true;
     item.type = ModelOf(type, item.value);
@@ -382,7 +387,8 @@ Core::Expected<void, std::string> ApplyFloorItemsCreate(const Protocol::FloorIte
             return World::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y, fixedHeight);
         },
         .clock = resources.clock != nullptr ? resources.clock->Now() : Core::Duration{},
-        .sound = &world.Runtime().lastSoundId,
+        .soundRequest = [&runtime = world.Runtime()](std::int32_t sound, const glm::vec3& position)
+        { runtime.RequestSound(sound, position); },
         .effects = &world.Map().effects};
     auto& items = world.DrawTail().floorItems;
     for (const Protocol::FloorItems::FloorItemEntry& entry : create.items)
@@ -437,7 +443,7 @@ Core::Expected<void, std::string> ApplyPickUpResult(const Protocol::FloorItems::
             return said;
         // 0x4d1051..0x4d10b1: el sonido por el tipo de los bytes de pkt[4], también con el zen.
         const std::int32_t type = InventoryItemType(InventoryItemBytes(result.item));
-        runtime.lastSoundId = IsAJewel(type, true) ? JewelSound : ItemPickUpSound;
+        runtime.RequestSound(IsAJewel(type, true) ? JewelSound : ItemPickUpSound);
     }
     // 0x4d10b9.
     runtime.floor.pendingPickUp = -1;

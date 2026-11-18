@@ -242,9 +242,9 @@ std::optional<OptionsEvent> OptionsWindow::Step(const Input::InputState& input, 
     std::array<bool, 3> checked{};
     for (std::size_t i = 0; i < m_checks.size(); ++i)
     {
-        checked[i] = m_checks[i].Step(input, mouse);
+        checked[i] = m_checks[i].Step(input, mouse, turn.buttonClicked);
     }
-    const bool closed = m_close.Step(input, mouse);
+    const bool closed = m_close.Step(input, mouse, turn.buttonClicked);
     if (!turn.logic)
     {
         return std::nullopt;
@@ -253,7 +253,7 @@ std::optional<OptionsEvent> OptionsWindow::Step(const Input::InputState& input, 
     const Point raw = MouseInPixels(input, screen);
     for (Slider& slider : m_sliders)
     {
-        slider.Step(input, raw, elapsedMs);
+        slider.Step(input, raw, elapsedMs, turn.buttonClicked);
     }
     // Una casilla que cambió escribe su global y termina el paso.
     constexpr std::array<OptionsEvent::Kind, 3> CheckKinds{
@@ -292,6 +292,10 @@ std::optional<OptionsEvent> OptionsWindow::Step(const Input::InputState& input, 
     // El +0x31 del mouse (0x640850) es siempre 0.
     if (input.TakePress(Input::Key::Escape))
     {
+        if (turn.buttonClicked)
+        {
+            turn.buttonClicked();
+        }
         Close();
         return OptionsEvent{.kind = OptionsEvent::Kind::Closed};
     }

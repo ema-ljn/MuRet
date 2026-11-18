@@ -135,7 +135,7 @@ Result Joint(ModelEffectsPass& pass, std::uint32_t address, std::int32_t type, s
 // 0x41ed10(sonido, 0, 0) (CL10).
 void Sound(ModelEffectsPass& pass, std::int32_t sound)
 {
-    pass.world.Runtime().lastSoundId = sound;
+    pass.world.Runtime().RequestSound(sound);
 }
 
 // FLD del reloj del mundo, _ftol y IDIV: el resto con signo.

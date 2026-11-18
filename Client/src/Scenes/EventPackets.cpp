@@ -422,17 +422,18 @@ private:
         return panels.Registry().CloseAll();
     }
 
-    // 0x41ed10: MuRet todavía no tiene audio (CL10); queda el pedido.
-    void Play(std::int32_t sound)
+    // 0x41ed10: el tercer argumento de la llamada nativa pide la repetición.
+    void Play(std::int32_t sound, bool loop = false)
     {
         m_result.sounds.push_back(sound);
-        m_runtime.lastSoundId = sound;
+        m_runtime.RequestSound(sound, std::nullopt, loop);
     }
 
-    // 0x41ee00: el pedido de apagar (CL10).
+    // 0x41ee00: los eventos detienen la pista y la rebobinan.
     void Stop(std::int32_t sound)
     {
         m_result.stoppedSounds.push_back(sound);
+        m_runtime.StopSound(sound, true);
     }
 
     // 0x5ff930(mapa, tipo, cuenta, demora): el FILD de la demora la guarda como float.
@@ -945,7 +946,7 @@ private:
             // 0x40c165..0x40c178, y sigue en el caso 1.
             if (auto turned = TurnThePlayersToTheGate("0x40c16a"); !turned.HasValue())
                 return turned;
-            Play(BloodCastleMusic);
+            Play(BloodCastleMusic, true);
             [[fallthrough]];
         case 1:
         case 4:
@@ -992,7 +993,7 @@ private:
             if (auto turned = TurnThePlayersToTheGate("0x404e7f"); !turned.HasValue())
                 return turned;
             Stop(ChaosCastleWaitMusic);
-            Play(ChaosCastleMusic);
+            Play(ChaosCastleMusic, true);
             return {};
         }
         case ChaosCastlePlay:
@@ -1007,7 +1008,7 @@ private:
             const std::int32_t map = m_runtime.map;
             if (map >= FirstChaosCastleMap && map <= LastChaosCastleMap)
             {
-                Play(ChaosCastleWaitMusic);
+                Play(ChaosCastleWaitMusic, true);
                 Play(ChaosCastleEndSound);
             }
             return {};

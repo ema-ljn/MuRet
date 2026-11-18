@@ -74,6 +74,41 @@ TEST(ButtonTest, APressAndAReleaseInOneStepAreAClick)
     EXPECT_TRUE(StepOnce(button, input));
 }
 
+TEST(ButtonTest, TheClickCallbackRunsOnlyForACapturedReleaseBeforeTheCheckedToggle)
+{
+    Button button = GroupButton();
+    InputState input;
+    int clicks = 0;
+    const auto onClick = [&]
+    {
+        ++clicks;
+        EXPECT_FALSE(button.Checked());
+    };
+
+    MoveMouse(input, 120, 60);
+    PressLeft(input);
+    EXPECT_FALSE(button.Step(input, MouseInPixels(input, Screen640), onClick));
+    input.ConsumeEdges();
+    ReleaseLeft(input);
+    EXPECT_TRUE(button.Step(input, MouseInPixels(input, Screen640), onClick));
+    EXPECT_TRUE(button.Checked());
+    EXPECT_EQ(clicks, 1);
+    input.ConsumeEdges();
+
+    MoveMouse(input, 10, 10);
+    PressLeft(input);
+    EXPECT_FALSE(button.Step(input, MouseInPixels(input, Screen640), onClick));
+    input.ConsumeEdges();
+    MoveMouse(input, 120, 60);
+    ReleaseLeft(input);
+    EXPECT_FALSE(button.Step(input, MouseInPixels(input, Screen640), onClick));
+    EXPECT_EQ(clicks, 1);
+    button.SetEnabled(false);
+    ClickAt(input, 120, 60);
+    EXPECT_FALSE(button.Step(input, MouseInPixels(input, Screen640), onClick));
+    EXPECT_EQ(clicks, 1);
+}
+
 // 0x63c490 hace clic solo si el botón capturó el apretón: soltar encima de otro lado no cuenta, y
 // soltar afuera lo suelta sin clic.
 TEST(ButtonTest, OnlyTheButtonThatCapturedIsClicked)

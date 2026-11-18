@@ -1,6 +1,7 @@
 #include "Scenes/WinMainLoop.h"
 
 #include "Render/Models/Cloth.h"
+#include "Scenes/ActorState.h"
 
 #include <gtest/gtest.h>
 
@@ -12,6 +13,7 @@ namespace
 {
 using Client::Render::Models::CrtRandom;
 using Client::Scenes::CloseTheFrameCounter;
+using Client::Scenes::InTheDeviasChurch;
 using Client::Scenes::StepTheWinMainLoop;
 using Client::Scenes::WinMainCounters;
 
@@ -24,6 +26,15 @@ CrtRandom After(int draws)
     for (int i = 0; i < draws; ++i)
         static_cast<void>(random.Next());
     return random;
+}
+
+std::uint32_t PackedAfter(int draws)
+{
+    auto random = After(draws);
+    std::uint32_t packed = 0;
+    for (unsigned shift = 0; shift < 32; shift += 8)
+        packed |= (static_cast<std::uint32_t>(random.Next()) & 0xffu) << shift;
+    return packed;
 }
 
 // Cada vuelta abre, sube y cierra el contador (4) y lee el byte del foco (1).
@@ -70,6 +81,47 @@ TEST(WinMainLoopTest, TheFrameClosesTheCounterWithFour)
     CloseTheFrameCounter(random);
 
     EXPECT_EQ(random.State(), After(4).State());
+}
+
+TEST(WinMainLoopTest, DeviasClosesEachReachedCoordinateRead)
+{
+    struct Case
+    {
+        std::uint8_t x;
+        std::uint8_t y;
+        int draws;
+        bool church;
+    };
+    for (const auto [x, y, draws, church] :
+         {Case{204, 13, 4, false}, Case{215, 13, 8, false}, Case{205, 12, 12, false}, Case{205, 13, 16, true},
+          Case{214, 31, 16, true}, Case{214, 32, 16, false}})
+    {
+        Client::Scenes::ActorState hero;
+        hero.cellX = x;
+        hero.cellY = y;
+        CrtRandom random(Seed);
+        EXPECT_EQ(InTheDeviasChurch(hero, random), church);
+        EXPECT_EQ(random.State(), After(draws).State());
+        EXPECT_EQ(hero.cellXAccesses, 0);
+        EXPECT_EQ(hero.cellYAccesses, 0);
+        EXPECT_EQ(hero.cellXLeft, PackedAfter(draws < 8 ? 0 : 4));
+        if (draws > 8)
+        {
+            EXPECT_EQ(hero.cellYLeft, PackedAfter(draws - 4));
+        }
+    }
+    Client::Scenes::ActorState hero;
+    hero.cellX = 205;
+    hero.cellY = 13;
+    hero.cellXAccesses = 1;
+    hero.cellXLeft = 0x12345678;
+    CrtRandom random(Seed);
+    EXPECT_TRUE(InTheDeviasChurch(hero, random));
+    EXPECT_EQ(hero.cellXAccesses, 1);
+    EXPECT_EQ(hero.cellYAccesses, 0);
+    EXPECT_EQ(random.State(), After(8).State());
+    EXPECT_EQ(hero.cellXLeft, 0x12345678u);
+    EXPECT_EQ(hero.cellYLeft, PackedAfter(4));
 }
 
 // Una vuelta entera con su frame: 9, y 25 en la de las rondas.

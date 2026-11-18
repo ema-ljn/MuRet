@@ -231,7 +231,7 @@ Core::Expected<void, std::string> ShootTheArrow(ActorState& caster, std::uint8_t
                                     .playerSkeleton = context.playerSkeleton,
                                     .items = context.items,
                                     .soundRequest = [&world](std::int32_t sound)
-                                    { world.Runtime().lastSoundId = sound; },
+                                    { world.Runtime().RequestSound(sound); },
                                     .controlDown = context.controlDown};
     return FireTheArrow(caster, nullptr, SlotOf(world, caster), static_cast<std::int32_t>(slot), count, 0, shot);
 }
@@ -319,7 +319,7 @@ Core::Expected<void, std::string> ShineOnTheHero(const ActorState& hero, const H
     if (!created.HasValue())
         return Core::Unexpected(std::format("0x55be23: el brillo 0x5fe (0x53fe70) falla con el error {}",
                                             static_cast<unsigned>(created.Error())));
-    world.Runtime().lastSoundId = static_cast<std::int32_t>(context.random.Next() % 2) + FirstShineSound;
+    world.Runtime().RequestSound(static_cast<std::int32_t>(context.random.Next() % 2) + FirstShineSound);
     return {};
 }
 

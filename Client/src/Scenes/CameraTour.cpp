@@ -305,7 +305,7 @@ private:
         if (sparks)
         {
             // 0x403ad5: 0x41ed10(0x243, 0, 0) (CL10).
-            m_context.world.Runtime().lastSoundId = ArrivalSound;
+            m_context.world.Runtime().RequestSound(ArrivalSound);
             if (auto emitted = CreateArrivalSparks(actor, m_context.world, m_context.random); !emitted.HasValue())
                 return emitted;
         }

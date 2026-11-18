@@ -26,6 +26,7 @@ struct TerrainLighting;
 namespace Client::Scenes
 {
 class IModelLibrary;
+struct WorldRuntime;
 // Los servicios opcionales fallan al alcanzarse: no simulan efectos con un éxito vacío.
 struct FaunaStepEffects
 {
@@ -51,6 +52,7 @@ struct FaunaStepContext
     // La ausencia mantiene la frontera de memoria; el binding no fabrica esa precondición.
     const Render::Models::Skeleton* prefixModel = nullptr;
     float fixedHeight = 1200;
+    WorldRuntime* runtime = nullptr;
 };
 // 6370ea/6370ef. Una sola CRT; las vistas apuntan a los slots físicos del dueño.
 [[nodiscard]] Core::Expected<void, std::string> StepGameBirds(FaunaStepContext& context);

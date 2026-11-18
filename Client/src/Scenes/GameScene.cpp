@@ -109,6 +109,7 @@
 #include <functional>
 #include <cstdint>
 #include <optional>
+#include <string_view>
 #include <ratio>
 #include <span>
 #include <string>
@@ -403,6 +404,7 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
     // 0x636ded..0x63705b: la UI del paso, que corre en cada paso desde el primero, también en la espera.
     if (auto ui = StepTheUi(input); !ui.HasValue())
         return ui;
+    m_context.world->Fauna().ClearSounds();
     // 0x63706a: 0x606560, los objetos que vio el último dibujo (0x6046a0), también en la espera.
     if (auto objects = StepTheObjects(); !objects.HasValue())
     {
@@ -550,8 +552,7 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
         World::CastleSiegePrelude prelude{
             .siegeActive = world.Runtime().siegeActive,
             .musicTime = &world.Runtime().siegeMusicTime,
-            // MuRet todavía no tiene audio (CL10): queda el último pedido.
-            .sound = [&world](std::int32_t id) { world.Runtime().lastSoundId = id; },
+            .sound = [&world](std::int32_t id) { world.Runtime().RequestSound(id); },
             .random = &m_context.cloth->random,
             .logicSteps = m_context.cloth->logicSteps,
             .heroPosition = world.Actors()[world.Runtime().hero].position,
@@ -575,6 +576,15 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
                     return {};
                 }
                 return CreateTheArrowEffect(args, world, m_context.cloth->random);
+            },
+            .updateMusic =
+                [&world](bool siegeActive)
+            {
+                auto& runtime = world.Runtime();
+                constexpr std::string_view castle = "Music\\castle.mp3";
+                constexpr std::string_view charge = "Music\\charge.mp3";
+                runtime.music.Stop(runtime.audio, siegeActive ? castle : charge);
+                runtime.music.Play(runtime.audio, siegeActive ? charge : castle);
             }};
         if (m_context.clock != nullptr)
             prelude.systemTime = [clock = m_context.clock]() {
@@ -629,9 +639,9 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
         .dynamicLighting = &world.DynamicLighting().Lighting(),
         .particles = &world.Particles(),
         .heroPosition = &hero.position,
-        .sound = [&](std::int32_t id) { world.Runtime().lastSoundId = id; },
-        // El ambiente del 9 suena en bucle (0x41ed10(1, 0, 1)); MuRet todavía no tiene audio (CL10).
-        .loopedSound = [&](std::int32_t id) { world.Runtime().lastSoundId = id; },
+        .sound = [&](std::int32_t id) { world.Runtime().RequestSound(id); },
+        // El ambiente del 9 suena en bucle (0x41ed10(1, 0, 1)).
+        .loopedSound = [&](std::int32_t id) { world.Runtime().RequestSound(id, std::nullopt, true); },
         .modelState = &world.Runtime().objectModelState,
         .effects = &world.Map().effects,
         .ownRecordDepth = &world.Runtime().ownRecordDepth,
@@ -673,7 +683,7 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
                             return Core::Unexpected(created.Error());
                         return {};
                     },
-                    .sound = [&world](std::int32_t sound) { world.Runtime().lastSoundId = sound; }});
+                    .sound = [&world](std::int32_t sound) { world.Runtime().RequestSound(sound); }});
         };
     if (auto stepped = StepGameWorldObjects(objects, static_cast<std::uint8_t>(map), m_worldModels,
                                             m_context.cloth->random, globals, after, collapse);
@@ -1119,7 +1129,14 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
                     .waterTextureFrame = FrameCloth().waterTextureFrame,
                     .hero = &hero,
                     .kalima = FrameKalima(),
-                    .requestSound = [&](std::int32_t sound) { world.Fauna().Sound(sound, nullptr); },
+                    .requestSound = [&](std::int32_t sound)
+                    {
+                        if (frames > 0 && !m_projectingFrame)
+                        {
+                            world.Fauna().Sound(sound, nullptr);
+                            world.Runtime().RequestSound(sound);
+                        }
+                    },
                     .effects = &FrameEffects(),
                     // Q-C304: el 0x46 de Aida lee timeGetTime (0x6b8544); MuRet le presta el reloj del dibujo.
                     .systemTime =

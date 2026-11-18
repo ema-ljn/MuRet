@@ -112,6 +112,7 @@ function(muret_add_module_tests)
 endfunction()
 
 add_subdirectory(app)
+add_subdirectory(audio)
 add_subdirectory(core)
 add_subdirectory(data)
 add_subdirectory(gamelogic)

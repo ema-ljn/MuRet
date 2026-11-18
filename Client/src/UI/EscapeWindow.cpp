@@ -197,7 +197,7 @@ std::optional<EscapeWindowEvent> EscapeWindow::Step(const Input::InputState& inp
     std::array<bool, 4> clicked{};
     for (std::size_t i = 0; i < m_buttons.size(); ++i)
     {
-        clicked[i] = m_buttons[i].Step(input, mouse);
+        clicked[i] = m_buttons[i].Step(input, mouse, turn.buttonClicked);
     }
     if (!turn.logic)
     {
@@ -238,7 +238,12 @@ std::optional<EscapeWindowEvent> EscapeWindow::Step(const Input::InputState& inp
         return EscapeWindowEvent{.kind = EscapeWindowEvent::Kind::Options};
     }
     // El +0x31 del mouse (0x640850) es siempre 0: Esc vale también con un botón abajo.
-    if (clicked[CloseButton] || input.TakePress(Input::Key::Escape))
+    const bool escape = input.TakePress(Input::Key::Escape);
+    if (escape && turn.buttonClicked)
+    {
+        turn.buttonClicked();
+    }
+    if (clicked[CloseButton] || escape)
     {
         Close();
         return EscapeWindowEvent{.kind = EscapeWindowEvent::Kind::Closed};

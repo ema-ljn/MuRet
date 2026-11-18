@@ -40,9 +40,11 @@ void ApplyQuestList(const Protocol::Quest::QuestList& list, const WorldEntryReso
 // 0x4ddb80: el sonido 0x66 (lastSoundId, CL10) y el personaje de la clave (0x5110d0: el 400 sin ninguno). Con 0xc8 y
 // 0xca, el héroe suma pkt[6] a los puntos de +0x68 del registro propio; con 0xc9, la clase ((pkt[6] & 0x10) | (pkt[6]
 // >> 4)) >> 1 en +0x1d4 del personaje y, si es el héroe, en +0xb del registro propio. Cada acceso al registro propio
-// lo abre y lo cierra (3.848 rand() si lo deja en 0). Las cuatro siguen con los joints 0x60f (0x530860), el efecto
-// 0x61e (0x518cf0), y la 0xc9, la 0xca y la 0xcb con 0x513100 y la acción 0xb8: cortan en el primer joint (CL11).
-// Con otro tipo, nada más.
+// lo abre y lo cierra (3.848 rand() si lo deja en 0). Las cuatro siguen con quince vueltas de joints con el personaje
+// de dueño (0x530860: el 60f/0 en su posición; en la 0xc9, la 0xca y la 0xcb, también el 60f/0xa desde 200 más arriba)
+// y el calco 0x61e/0 (0x518cf0). La 0xc8 termina con el sonido 0x65; las otras tres, con 0x513100
+// (Scenes/ClassParts.h), la acción 0xb8 (0x4ea030) y otra vez el 0x66. Con otro tipo, nada más. Sin Player.bmd, un
+// jugador corta antes de 0x513100.
 [[nodiscard]] Core::Expected<void, std::string> ApplyQuestResult(const Protocol::Quest::QuestResult& result,
                                                                  const WorldEntryResources& resources);
 } // namespace Client::Scenes

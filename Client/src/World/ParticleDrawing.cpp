@@ -110,12 +110,12 @@ Core::Expected<DrawSelection, ParticleDrawingError> SelectBranch(Particle& p, st
         // 548803..1f: sólo estos seis subtipos salen del default acreditado.
         switch (p.subtype)
         {
-        case 5:
         case 7:
         case 11:
         case 12:
         case 13:
             return Core::Unexpected(BranchError(ParticleError::UnsupportedSubtype));
+        case 5:
         case 8:
             return DrawSelection{ParticleDrawKind::RotatedFire, false};
         default:
@@ -152,6 +152,7 @@ Core::Expected<DrawSelection, ParticleDrawingError> SelectBranch(Particle& p, st
     case TorchSparkParticle:   // 0x5488f6: la 6ab va al default, 0x54889a.
     case SkillShineParticle:   // 0x5488f6 → 0x54889a (el byte 8 de 0x548cf0), sin leer el subtipo.
     case HandShineParticle:    // 0x5488f6: la 5fd también (el byte 8 de 0x548cf7), sin leer el subtipo.
+    case SiegeBlessingParticle: // 5488f6: el billboard común, sin leer el subtipo.
         return DrawSelection{ParticleDrawKind::Common, false};
     case DustParticle:
     case ArrivalDustParticle:

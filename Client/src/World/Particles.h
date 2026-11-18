@@ -46,6 +46,8 @@ inline constexpr std::int32_t WorldSmokeSubtype = 2;
 inline constexpr std::uint16_t BreathParticle = 0x5f2;
 // La chispa del cuervo (Effect\Spark03.jpg), con el subtipo 5 (06 § El cuervo).
 inline constexpr std::uint16_t SparkParticle = 0x5c6;
+// 0x42ddb0: bendición sobre un personaje cerca de la corona/marca del asedio.
+inline constexpr std::int32_t SiegeBlessingParticle = 0x638;
 inline constexpr std::int32_t TeleportSparkSubtype = 1;
 inline constexpr std::int32_t RavenSparkSubtype = 5;
 inline constexpr std::int32_t MapSparkSubtype = 9;
@@ -189,8 +191,8 @@ public:
     // 0x53fe70(tipo, posición, ángulos, luz, subtipo, escala, dueño) en el primer lugar libre, con el reloj
     // del mundo (DAT_05767b88, en ms) y el rand() de la CRT. Con los 3.000 llenos no se crea ni saca
     // rand(). Se aceptan5ca/0, 5e4 (cualquier subtipo), 5f2/0,2,11,21,33, 5f3/0, 5ed/0, 5c6/1,5,9,11, 622/6,8,9,10,
-    // 5d9/0..3, 607/0, 67/0,
-    // 68/0, 698/0, 6ab/0,1 y 6ac/0; la órbita 60f/0,3,4,10 pide el overload con la trigonometría. Create es la
+    // 5d9/0..3,5,8, 607/0, 67/0,
+    // 68/0, 698/0, 6ab/0,1 y 6ac/0,1; la órbita 60f/0,3,4,10 pide el overload con la trigonometría. Create es la
     // compatibilidad login; Core usa CreateChecked para distinguir errores de pool lleno. La neblina consume cinco
     // rand() y conserva +0x60 del uso anterior del lugar. 622/8 consume siete rand().
     std::optional<std::size_t> Create(std::int32_t type, const glm::vec3& position, const glm::vec3& angles,

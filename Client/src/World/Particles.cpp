@@ -567,7 +567,8 @@ void StepTheCloud8(Particle& particle)
 
 bool IsFire(const Particle& particle)
 {
-    return particle.type == FireParticle && ((particle.subtype >= 0 && particle.subtype <= 3) || particle.subtype == 8);
+    return particle.type == FireParticle &&
+           ((particle.subtype >= 0 && particle.subtype <= 3) || particle.subtype == 5 || particle.subtype == 8);
 }
 
 // 0x5466c3: la tabla de 0x548310 manda al mismo paso la 5f2/2 y la 5f2/21 de Crywolf.
@@ -754,8 +755,9 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
     }
     if (type == FireParticle)
     {
-        return ((subtype >= 0 && subtype <= 3) || subtype == 8) ? std::nullopt
-                                                                : std::optional(ParticleError::UnsupportedSubtype);
+        return ((subtype >= 0 && subtype <= 3) || subtype == 5 || subtype == 8)
+                   ? std::nullopt
+                   : std::optional(ParticleError::UnsupportedSubtype);
     }
     if (type == BreathParticle)
     {
@@ -773,7 +775,7 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
     if (type == ArrivalDustParticle)
         return subtype == 1 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     // 0x542b3b y 0x546b04: la 5e4 no lee el subtipo.
-    if (type == BloodParticle)
+    if (type == BloodParticle || type == SiegeBlessingParticle)
         return std::nullopt;
     if (type == LightningParticle)
     {
@@ -856,6 +858,12 @@ void CreateTheFire(Particle& particle, Render::Models::CrtRandom& random)
     if (subtype == 0)
     {
         particle.scale = F32(static_cast<double>((random.Next() % FireScaleSpan) + FireScaleBase) * BreathScaleStep);
+    }
+    if (subtype == 5)
+    {
+        const float argumentScale = particle.scale;
+        particle.scale =
+            F32((static_cast<double>(random.Next() % FireScaleSpan + FireScaleBase) * argumentScale) * BreathScaleStep);
     }
     if (particle.subtype == 1) // 005413c2 vuelve a leer el subtipo vivo.
     {
@@ -1166,6 +1174,13 @@ void StepTheFire(Particle& particle)
     if (particle.subtype == 0)
     {
         particle.scale = F32(static_cast<double>(particle.scale) - FireShrink);
+    }
+    else if (particle.subtype == 5)
+    {
+        // 548270[5]→545842: la escala baja.04 y el giro suma5, sin damping de la velocidad.
+        constexpr double Shrink = static_cast<double>(0.04f);
+        particle.scale = F32(static_cast<double>(particle.scale) - Shrink);
+        particle.rotation = F32(static_cast<double>(particle.rotation) + 5.0);
     }
     else if (particle.subtype == 8)
     {
@@ -1592,6 +1607,19 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
             particle.angles.x = HandShineTilt;
             return std::optional(index);
         }
+        if (type == SiegeBlessingParticle)
+        {
+            // 0x53fe70, caso0x638: la vida20 y escalaargumento, X/Y con rand%30−15, Z+240. Cualquier subtipo.
+            constexpr int Jitter = 30;
+            constexpr float HalfJitter = 15.0f;
+            constexpr float Height = 240.0f;
+            particle.life = 20;
+            particle.scale = scale;
+            particle.position.x = F32((static_cast<double>(random.Next() % Jitter) - HalfJitter) + particle.position.x);
+            particle.position.y = F32((static_cast<double>(random.Next() % Jitter) - HalfJitter) + particle.position.y);
+            particle.position.z = F32(static_cast<double>(particle.position.z) + Height);
+            return std::optional(index);
+        }
         if (type == ThunderParticle)
         {
             // 54109f: /0 conserva vida2, RGB y ángulos del prefijo; dos CRT y dos stores.
@@ -1923,7 +1951,18 @@ StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random, const
                 return Core::Unexpected(*error);
             }
         }
-        if (particle.type == ThunderParticle)
+        if (particle.type == SiegeBlessingParticle)
+        {
+            constexpr double Shrink = static_cast<double>(0.01f);
+            constexpr double Fade = static_cast<double>(0.05f);
+            constexpr float Rise = 2.0f;
+            particle.scale = F32(static_cast<double>(particle.scale) - Shrink);
+            particle.position.x = F32(static_cast<double>(particle.position.x) + (random.Next() & 1) - 1);
+            particle.position.y = F32(static_cast<double>(particle.position.y) + (random.Next() & 1) - 1);
+            particle.position.z = F32(static_cast<double>(particle.position.z) + Rise);
+            particle.light = glm::vec3(F32(static_cast<double>(particle.life) * Fade));
+        }
+        else if (particle.type == ThunderParticle)
         {
             // 54573f: se ejecuta incluso después del último movimiento común con alive=0.
             particle.rotation = F32(static_cast<double>(particle.verticalSpeed) + particle.rotation);

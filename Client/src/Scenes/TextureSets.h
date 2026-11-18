@@ -58,7 +58,7 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 1> DamageTextureSet
 // fase 3): bar.jpg y back1 a back3 en 0xfd a 0x100 (0x61d3e3..0x61d43a, después de menu01_new2) y lock_01 a lock_04 en
 // 0x126 a 0x129 (0x61b2c3..0x61b31d, después de level_02, accept_box y mix_button de 0x121 a 0x125, que son de la caja
 // del caos).
-inline constexpr std::array<Data::Textures::TextureSetEntry, 124> HudTextureSet{{
+inline constexpr std::array<Data::Textures::TextureSetEntry, 126> HudTextureSet{{
     {"Interface\\CursorAttack.tga", 0x04, TextureSetsDetail::LinearClamp},
     {"Interface\\CursorGet.tga", 0x05, TextureSetsDetail::LinearClamp},
     {"Interface\\CursorTalk.tga", 0x06, TextureSetsDetail::LinearClamp},
@@ -136,6 +136,9 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 124> HudTextureSet{
     {"Interface\\CursorAttack2.tga", 0x68d, TextureSetsDetail::NearestClamp},
     {"Interface\\StatusIcon.jpg", 0x68e, TextureSetsDetail::NearestClamp},
     // 0x61e678..0x61e77d: órdenes y estados de la batalla, antes de 0x61ae60.
+    // 0x61e605 y 0x61e621: progreso del comando del asedio, NEAREST/CLAMP.
+    {"Interface\\Progress_Back.jpg", 0x667, TextureSetsDetail::NearestClamp},
+    {"Interface\\Progress.jpg", 0x668, TextureSetsDetail::NearestClamp},
     {"Interface\\frame.tga", 0x69f, TextureSetsDetail::NearestClamp},
     {"Interface\\i_attack.tga", 0x6a0, TextureSetsDetail::NearestClamp},
     {"Interface\\i_defense.tga", 0x6a1, TextureSetsDetail::NearestClamp},
@@ -261,7 +264,7 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 3> GlowTextureSet{{
 // flareBlue/62b (61dc9d), todos GL_LINEAR/GL_CLAMP; los dos últimos tienen slots físicos propios.
 // Lo que cuelga de un jugador (0x509340 y 0x50ba30) pide además Shiny03 en 0x5fe (61d937) e Impack03 de
 // Object9 en 0x5ad (61e799), del mismo lazo sin ramas de 0x61ccb0 y con el mismo sampling.
-inline constexpr std::array<Data::Textures::TextureSetEntry, 44> EffectTextureSet{{
+inline constexpr std::array<Data::Textures::TextureSetEntry, 45> EffectTextureSet{{
     {"Effect\\Fire01.jpg", 0x5d9, TextureSetsDetail::LinearClamp},
     // 0x61d663: ShockWave en 0x6eb, la onda del galope del caballo en Icarus (0x44431b).
     {"Effect\\ShockWave.jpg", 0x6eb, TextureSetsDetail::LinearClamp},
@@ -302,6 +305,8 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 44> EffectTextureSe
     {"Effect\\fi01.jpg", 0x6ab, TextureSetsDetail::LinearClamp},
     {"Effect\\fi02.tga", 0x6ac, TextureSetsDetail::LinearClamp},
     {"Effect\\PoundingBall.jpg", 0x6ad, TextureSetsDetail::LinearClamp},
+    // 0x61dbb4: la estela de los fuegos artificiales 0x60e.
+    {"Effect\\Fire04.jpg", 0x60d, TextureSetsDetail::LinearClamp},
     {"Effect\\Flare.jpg", 0x60f, TextureSetsDetail::LinearClamp},
     // 0x61d5a0 y 0x61d893, LINEAR/CLAMP: la 6ec/5 del 0x39 y el 0x47 de Crywolf y la burbuja 698/0 de su agua.
     {"Effect\\fantaF.jpg", 0x6ec, TextureSetsDetail::LinearClamp},

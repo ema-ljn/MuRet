@@ -332,8 +332,8 @@ TEST(TextureSetsTest, TheHudUploadsTheCastleMapGateAndGuardianButtons)
     Client::Scenes::SceneTextures textures(store, Client::Scenes::HudTextureSet);
     ASSERT_TRUE(textures.Load(std::filesystem::path{MURET_CLIENT_REPO_DATA_DIR}).HasValue());
     for (const std::uint16_t slot :
-         std::array<std::uint16_t, 18>{0x660, 0x661, 0x662, 0x663, 0x664, 0x665, 0x666, 0x65f, 0x69f, 0x6a0, 0x6a1,
-                                       0x6a2, 0x6a4, 0x6a5, 0x6a6, 0x6a7, 0x6a3, 0x669})
+         std::array<std::uint16_t, 20>{0x667, 0x668, 0x660, 0x661, 0x662, 0x663, 0x664, 0x665, 0x666, 0x65f,
+                                       0x69f, 0x6a0, 0x6a1, 0x6a2, 0x6a4, 0x6a5, 0x6a6, 0x6a7, 0x6a3, 0x669})
     {
         SCOPED_TRACE(slot);
         const auto texture = store.Find(Client::Render::TextureSlot{slot});
@@ -377,4 +377,17 @@ TEST(TextureSetsTest, HelperThunderUploadsItsRealImageWithLinearRepeat)
     EXPECT_EQ(texture->sampling.wrap, Wrap::Repeat);
     EXPECT_GT(texture->texture.width, 0);
     EXPECT_GT(texture->texture.height, 0);
+}
+
+TEST(TextureSetsTest, TheFireworkTrailUploadsItsRealImage)
+{
+    Client::Tests::FakeTextureStore store;
+    Client::Scenes::SceneTextures textures(store, EffectTextureSet);
+    ASSERT_TRUE(textures.Load(std::filesystem::path{MURET_CLIENT_REPO_DATA_DIR}).HasValue());
+    const auto trail = store.Find(Client::Render::TextureSlot{0x60d});
+    ASSERT_TRUE(trail.has_value());
+    EXPECT_EQ(trail->sampling.filter, Filter::Linear);
+    EXPECT_EQ(trail->sampling.wrap, Wrap::Clamp);
+    EXPECT_GT(trail->texture.width, 0);
+    EXPECT_GT(trail->texture.height, 0);
 }

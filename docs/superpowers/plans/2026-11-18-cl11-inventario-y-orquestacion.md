@@ -34,7 +34,7 @@ Queda verificar las entradas indirectas calculadas de esas funciones.
 
 Los tres sitios del dibujo son `0x63486f`, `0x637525` y `0x6375a1`. Al contar las cinco entradas
 de alta o actualización, el bruto pasa a **1.482**. Salen **1.475 candidatos** si se aplica la
-exclusión histórica de siete. Las 22 llamadas de cinta necesitan comprobar sus ramas y consumidores.
+exclusión histórica de siete. El censo de siete destinos suma **1.486**.
 `0x52e390` es un helper x87 de coseno. En sprites, `0x549471` distingue una textura en el dibujo
 y `0x41496f` pasa la mezcla por un valor dinámico. El campo de subtipo del TSV requiere revisión
 según la firma de cada familia.
@@ -62,9 +62,17 @@ comprobar la rama que llega a cada corte y el resto del ciclo con capacidad disp
 
 - [x] Fijar SHAs y cotejar por VA y destino las 1.463 filas suministradas con el desensamblado.
 - [x] Verificar los límites del cuerpo de `0x5208a0` y los tres puntos de entrada de cintas.
-- [ ] Incorporar el censo reproducible al research a partir de
-  `Client/docs/research/scripts/tools/regen_cache.py`. Reutilizar su lectura de `.text`.
-  Mantener el censo histórico como control y registrar los 22 productores de cintas con su fase.
+- [x] Incorporar el censo reproducible al research a partir de la caché de `regen_cache.py`.
+  El generador verifica el SHA de referencia, la unicidad de VA y el total por destino antes
+  de emitir el TSV. Verificamos que el subconjunto original coincide con las 1.463 filas del
+  informe. [Uso del generador](../../../Client/docs/research/scripts/tools/README.md#el-censo-bruto-de-efectos-cl11r)
+- [x] Revisar las 22 altas de cintas, el paso y los tres dibujos contra `35b6af6f`.
+  Veintiuna altas tienen su recorrido vinculado. En `0x4fd5a0`, el caso `0x194` en acción 3
+  conserva una cinta y dos poses cuando hay espacio para la partícula `0x5dc/12`.
+  El recorrido se detiene al llegar al alta pendiente en `0x4fd580`. Mantener la corrección
+  en el lote de partículas y su consumidor.
+  Queda probar una cinta viva en el pase específico del selector.
+  [Evidencia por dirección](../../../Client/docs/research/coverage/cl11-cintas-c32.tsv)
 - [ ] Indexar bloques de cada raíz por fase y destino de la tabla de salto e indicar las
   entradas que comparten bloque. Para cada llamada externa registrar la VA, la rama y su guarda,
   el tipo, el subtipo, los argumentos que lleguen por registros o memoria y sus posibles valores.
@@ -118,8 +126,13 @@ ya implementado para el tipo `0x104`. El piloto comprueba reutilización del cic
 saturación parcial y continuación hasta el pedido de sonido y el paso común.
 [Research de CL10 y dependencias de CL11](https://github.com/ema-ljn/MuRet/blob/a2d75a456c111f35ee8899e429c6163931fae525/Client/docs/research/2026-11-18-cl10-audio.md#dependencias-de-efectos-visuales)
 
-- [ ] Astra sigue el llamador completo y coteja el contrato del constructor compartido.
-  Relevar qué escenas invocan el paso y dónde se limpia el hijo.
+- [x] Astra cotejó el constructor del hijo `0x5192a3` y su paso `0x5212e7`. El alta usa el primer
+  hueco y conserva el RNG. El paso consume el sorteo común y lo libera tras seis pasos.
+  El juego ya conocía el cuerpo del hijo y el selector usa el despachador común.
+- [x] Ubicar la frontera siguiente. En vida 11 queda `0x521e13`, que requiere joints `0x617/0`,
+  partícula `0x5c5/0` y el modelo `0x103/0`. El constructor y el paso de `0x103/0` siguen
+  pendientes. La tabla de modelos de juego tampoco publica una malla para el hijo `0x104`.
+  El piloto cubre el estado, el pedido de sonido y la continuación con ese recurso ausente.
 - [ ] En `Client/tests/world/test_game_model_effects.cpp` cubrir estado 0 y vida 13 con
   capacidad normal, un hueco y pool lleno. Fijar los dos grupos de intentos, dos sorteos
   intermedios, el pedido `0x96`, el movimiento restante y el decremento.
@@ -132,10 +145,16 @@ saturación parcial y continuación hasta el pedido de sonido y el paso común.
 
 En paralelo, CL11.1 puede investigar la rama de habilidad `0x39` que corta al crear
 `0x60f/0x17`. Los sitios `0x4fa9ca`, `0x4fa9e8`, `0x4faa09`, `0x4faa81` y `0x4faa9f`
-comparten constructor y paso. Revisar `AttackFrameSkills.cpp` con `FaunaJointCreation.cpp`,
-el dibujo, la baja y el sonido `0x270`. Los joints de subida de nivel sirven como control
-del tipo existente con otro subtipo. Las pruebas de capacidad incluyen el caso en que el
-propio llamador libera un hueco antes de intentar el alta.
+comparten constructor y paso. Con `2.3f < frame < 2.6f` se intentan las claves 2 y 3. Con
+`frame > 5.0f` se intentan 0, 1 y 4 y se escribe el estado del ataque antes de pedir
+`0x270`. Ambas ramas piden sonido aunque se llene el pool. El alta de este subtipo
+no consume CRT. El paso del ataque conserva sus sorteos exteriores. MuRet tiene
+pool, cola, dibujo y limpieza compartida. Quedan por implementar el estado específico
+y el recorrido activo de este subtipo. Los joints de subida de nivel sirven como control
+con otro subtipo. El caso que libera un hueco antes del alta pertenece a la habilidad
+`0x10` y queda como control de saturación para otros lotes.
+Usar `test_attack_frame_skills`, `test_game_joint_step` y `test_game_joint_drawing`
+para observar los distintos puntos del recorrido.
 
 ## PRs e integración
 

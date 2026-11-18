@@ -114,6 +114,25 @@ constexpr float WindowListBlinkUp = 0.25f;
 // 0x6b8a44: lo que suman al alto del renglón (+0x100) 0x4a4eb0, 0x4a5be0 y 0x4a5490.
 constexpr double WindowListRowMargin = 4.0;
 
+// 0x45ae34..0x45ae47: el destructor de cada botón sólo libera su propia pulsación global.
+void ReleaseTheDestroyedButtons(const OldWindow& window, std::int32_t& pressedButton)
+{
+    const auto release = [&pressedButton](const OldButton& button)
+    {
+        if (button.base.id == pressedButton)
+            pressedButton = 0;
+    };
+    if (window.kind == OldWindowKind::MessageBox)
+        std::ranges::for_each(window.box.buttons, release);
+    else if (window.kind == OldWindowKind::AddFriendBox)
+        std::ranges::for_each(window.add.buttons, release);
+    else if (window.kind == OldWindowKind::FriendTab || window.kind == OldWindowKind::WindowsTab ||
+             window.kind == OldWindowKind::LettersTab)
+        std::ranges::for_each(window.tab.buttons, release);
+    for (const OldWindow& tab : window.tabs)
+        ReleaseTheDestroyedButtons(tab, pressedButton);
+}
+
 } // namespace
 
 namespace Steps
@@ -131,7 +150,9 @@ bool IsShowing(std::int32_t state)
 
 std::int32_t NextId(OldWindowManager& manager)
 {
-    return ++manager.lastId;
+    // 0x459ef5: INC de un DWORD, incluido el cruce del bit de signo y el wrap a cero.
+    manager.lastId = static_cast<std::int32_t>(static_cast<std::uint32_t>(manager.lastId) + 1u);
+    return manager.lastId;
 }
 
 // 0x45a210.
@@ -156,6 +177,7 @@ OldButton MakeTheButton(OldWindowManager& manager)
 OldWindow MakeTheFrame(OldWindowManager& manager)
 {
     OldWindow window;
+    window.allocationId = ++manager.lastAllocationId;
     window.base = MakeTheBase(manager);
     window.base.flags = AllFrameFlags;
     return window;
@@ -454,12 +476,17 @@ void StepTheEditMouse(OldWindowManager& manager, OldEdit& edit, const OldWindowG
         globals.mouseOnUi = 1;
         if (globals.leftClick)
         {
+            // El foco deja de ser del EDIT de una caja ya destruida (el huérfano, CL9 hito 9).
+            manager.orphanedEdit.reset();
+            manager.focusedEditIsOrphan = false;
             globals.keyboardFocus = ChatFocus::OldWindow;
             manager.focusedEdit = base.id;
             globals.focusedList = base.id;
             edit.text.Deselect();
-            globals.mouseUpdateTime = 0;
-            globals.mouseUpdateTimeMax = EditMouseUpdateTimeMax;
+            if (globals.mouseUpdateTime != nullptr)
+                *globals.mouseUpdateTime = 0;
+            if (globals.mouseUpdateTimeMax != nullptr)
+                *globals.mouseUpdateTimeMax = EditMouseUpdateTimeMax;
         }
     }
     if (base.state != DraggedEdit)
@@ -996,7 +1023,7 @@ Core::Expected<void, std::string> HandleTheMessage(OldWindowManager& manager, co
         if (id == 0)
             return {};
         globals.sound = ButtonSound;
-        if (auto destroyed = DestroyTheOldWindow(manager, id); !destroyed.HasValue())
+        if (auto destroyed = DestroyTheOldWindow(manager, id, globals.pressedButton); !destroyed.HasValue())
             return destroyed;
         FocusTheLast(manager, globals);
         return {};
@@ -1044,10 +1071,25 @@ OldWindow* FindTheOldWindow(OldWindowManager& manager, std::int32_t id)
     const auto tab = manager.tabs.find(id);
     if (tab == manager.tabs.end())
         return nullptr;
-    const auto owner = manager.windows.find(tab->second);
-    if (owner == manager.windows.end())
+    const OldTabReference& reference = tab->second;
+    OldWindow* owner = nullptr;
+    if (const auto found = manager.windows.find(reference.ownerId);
+        found != manager.windows.end() && found->second.allocationId == reference.allocationId)
+        owner = &found->second;
+    else
+    {
+        for (OldWindow& rejected : manager.unregisteredWindows)
+        {
+            if (rejected.base.id == reference.ownerId && rejected.allocationId == reference.allocationId)
+            {
+                owner = &rejected;
+                break;
+            }
+        }
+    }
+    if (owner == nullptr)
         return nullptr;
-    for (OldWindow& candidate : owner->second.tabs)
+    for (OldWindow& candidate : owner->tabs)
     {
         if (candidate.base.id == id)
             return &candidate;
@@ -1176,7 +1218,7 @@ CreateTheOldWindow(OldWindowManager& manager, const OldWindowRequest& request, c
         break;
     }
     default:
-        // 0x48ee9b: más de 10 (sin signo), ninguna.
+        // 0x48ee98..0x48ee9b: fuera de 0..10 (sin signo), retorna 0 sin construir ni consumir IDs.
         return 0;
     }
     std::int32_t x = request.x == -1 ? 0 : request.x;
@@ -1250,7 +1292,12 @@ CreateTheOldWindow(OldWindowManager& manager, const OldWindowRequest& request, c
             {
                 const std::int32_t rest = y % CascadeWrap;
                 if (rest == CascadeGiveUp)
+                {
+                    // 0x48f700..0x48f70a destruye el objeto nuevo, incluido el global de cada botón (0x45adf0).
+                    if (globals != nullptr)
+                        ReleaseTheDestroyedButtons(window, globals->pressedButton);
                     return 0;
+                }
                 y = rest + 1;
                 x = y;
             }
@@ -1260,7 +1307,12 @@ CreateTheOldWindow(OldWindowManager& manager, const OldWindowRequest& request, c
     base.x = x;
     base.y = y;
     const std::int32_t id = base.id;
-    OldWindow& placed = manager.windows.insert_or_assign(id, std::move(window)).first->second;
+    const auto [registered, inserted] = manager.windows.try_emplace(id, std::move(window));
+    // 0x48f7b2 conserva el registro anterior sin destruir el nuevo; 0x48f82d asienta siempre el recién construido.
+    // Debe ser encontrable antes de asentar: la lista busca su pestaña en el segundo mapa (0x490a00).
+    if (!inserted)
+        manager.unregisteredWindows.push_back(std::move(window));
+    OldWindow& placed = inserted ? registered->second : manager.unregisteredWindows.back();
     manager.order.push_back(id);
     if (Steps::IsAFriendsKind(placed.kind))
     {
@@ -1325,12 +1377,12 @@ Core::Expected<void, std::string> StepTheOldWindows(OldWindowManager& manager, c
             return hidden;
     }
     // 0x4905a2..0x4905bf: la de amigos oculta se suelta (0x4914e0); al volver a mostrar, 0x4906a0 la abre (Q-C448).
-    if (manager.friends > 0)
+    if (manager.friends != 0)
     {
         const OldWindow* friends = FindTheOldWindow(manager, manager.friends);
         if (friends != nullptr && friends->base.state == HiddenWindow)
         {
-            if (auto dropped = DropTheFriendsWindow(manager); !dropped.HasValue())
+            if (auto dropped = DropTheFriendsWindow(manager, globals.pressedButton); !dropped.HasValue())
                 return dropped;
         }
     }
@@ -1354,7 +1406,8 @@ Core::Expected<void, std::string> StepTheOldWindows(OldWindowManager& manager, c
     return {};
 }
 
-Core::Expected<void, std::string> DestroyTheOldWindow(OldWindowManager& manager, std::int32_t id)
+Core::Expected<void, std::string> DestroyTheOldWindow(OldWindowManager& manager, std::int32_t id,
+                                                      std::int32_t& pressedButton)
 {
     if (manager.friends == id)
     {
@@ -1370,8 +1423,16 @@ Core::Expected<void, std::string> DestroyTheOldWindow(OldWindowManager& manager,
     const auto found = manager.windows.find(id);
     if (found == manager.windows.end())
         return {};
+    if (found->second.kind == OldWindowKind::AddFriendBox && !manager.focusedEditIsOrphan &&
+        found->second.add.edit.base.id == manager.focusedEdit)
+    {
+        // El EDIT nativo sobrevive al wrapper; MuRet conserva solo el estado editable si todavía tiene el foco.
+        manager.orphanedEdit = found->second.add.edit;
+        manager.focusedEditIsOrphan = true;
+    }
     // 0x491840. El destructor del chat sale de la sala (0x493a70) y el de leer suelta su carta (0x4916b0).
     manager.boxes.remove(id);
+    ReleaseTheDestroyedButtons(found->second, pressedButton);
     if (auto forgotten = Steps::ForgetTheLetterKind(manager, found->second); !forgotten.HasValue())
         return forgotten;
     manager.windows.erase(found);
@@ -1439,11 +1500,11 @@ Core::Expected<void, std::string> HideTheOldWindows(OldWindowManager& manager, s
     return {};
 }
 
-Core::Expected<void, std::string> DropTheFriendsWindow(OldWindowManager& manager)
+Core::Expected<void, std::string> DropTheFriendsWindow(OldWindowManager& manager, std::int32_t& pressedButton)
 {
     if (manager.friends == 0)
         return {};
-    return DestroyTheOldWindow(manager, manager.friends);
+    return DestroyTheOldWindow(manager, manager.friends, pressedButton);
 }
 
 void ForgetTheHiddenWindows(OldWindowManager& manager)
@@ -1452,16 +1513,20 @@ void ForgetTheHiddenWindows(OldWindowManager& manager)
     manager.hidden.clear();
 }
 
-void ResetTheOldWindows(OldWindowManager& manager)
+void ResetTheOldWindows(OldWindowManager& manager, std::int32_t& pressedButton)
 {
-    // 0x48ea5f..0x48eb43: +0x48 en 0, los dos mapas (soltando cada ventana con su destructor: el de leer saca su carta
-    // de +0x94; el del chat, 0x493160, sale de su sala con 0x493a70), la lista del orden, 0x4a4480 (los chats de +0xb4
-    // y +0x118 de la lista de ventanas), lo que escondió F6 y las cajas.
+    // 0x48ea5f..0x48eb43: +0x48 en 0, el mapa principal (soltando cada ventana con su destructor: el de leer saca su
+    // carta de +0x94; el del chat, 0x493160, sale de su sala con 0x493a70), el mapa de cartas (+0x94), la lista del
+    // orden, 0x4a4480 (los chats de +0xb4 y +0x118 de la lista de ventanas), lo que escondió F6 y las cajas. El segundo
+    // mapa +0x5c no se toca: conserva referencias obsoletas y las pestañas aún vivas de los objetos rechazados por el
+    // mapa principal.
     manager.friends = 0;
     for (const auto& [id, window] : manager.windows)
+    {
+        ReleaseTheDestroyedButtons(window, pressedButton);
         static_cast<void>(Steps::ForgetTheLetterKind(manager, window));
+    }
     manager.windows.clear();
-    manager.tabs.clear();
     manager.order.clear();
     // 0x4a448e: el elegido al final antes de vaciar (el iterador queda en un bloque que se suelta; acá, en 0).
     manager.windowList.list.chats.clear();
@@ -1475,8 +1540,10 @@ void ResetTheOldWindows(OldWindowManager& manager)
     manager.titleText = 990;
     manager.letter = 0;
     manager.offlineSent = 0;
-    // Los destructores de las ventanas sueltan sus EDIT, y con ellos el foco.
+    // El reinicio de la escena olvida el identificador lógico del EDIT anterior.
     manager.focusedEdit = 0;
+    manager.focusedEditIsOrphan = false;
+    manager.orphanedEdit.reset();
     // 0x48eb7d: +0x48 ya está en 0, así que 0x4a23b0 sobre la de amigos no corre.
 }
 

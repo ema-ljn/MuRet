@@ -8,9 +8,9 @@
 // Un evento de teclado, de mouse o de foco, ya traducido de SDL por Platform (InputEventFor,
 // CL3.3). InputState::Apply lo suma al estado del frame.
 // Contrato: el plan de la CL3, sub-ola CL3.3, y el de la CL5, sub-ola CL5.5 (el texto). Cada tipo
-// usa solo sus campos: KeyDown y KeyUp la tecla, ButtonDown y ButtonUp el botón y sus apretones, Wheel las
-// muescas, Motion la posición, Text el texto y FocusLost ninguno. Un InputEvent sin llenar no hace
-// nada: es el KeyDown de Key::Count, que no es tecla.
+// usa solo sus campos: KeyDown y KeyUp la tecla, ButtonDown/Up/DoubleClick el botón, Wheel las
+// muescas, Motion la posición, Text el texto y Composition el texto provisional con su rango. Un
+// InputEvent sin llenar no hace nada: es el KeyDown de Key::Count, que no es tecla.
 namespace Client::Input
 {
 struct InputEvent
@@ -27,6 +27,13 @@ struct InputEvent
         // Lo tecleado, de SDL_EVENT_TEXT_INPUT (CL5.5): ya con el layout, Shift y las teclas
         // muertas aplicados, que el campo de texto de la UI no tiene que saber.
         Text,
+        // El texto UTF-8 provisional del IME y su rango en codepoints; -1 significa que no se indicó.
+        // También incluye el texto vacío que cancela una composición.
+        Composition,
+        // WM_LBUTTONDBLCLK del juego: el segundo DOWN izquierdo de SDL, sin otro clic ordinario.
+        ButtonDoubleClick,
+        // Un evento de plataforma sin otra entrada: igual apaga el doble clic del mensaje anterior (0x4b3444).
+        Message,
     };
 
     Kind kind = Kind::KeyDown;
@@ -44,13 +51,14 @@ struct InputEvent
     // queda para la CL8. Con el mouse capturado SDL puede dar negativos o más allá del borde.
     float x = 0.0f;
     float y = 0.0f;
-    // El texto de un Text, en UTF-8 y copiado: el de SDL vive hasta el próximo SDL_PollEvent. Va
-    // después de los demás para que sus inicializadores designados no cambien.
+    // El texto de Text o Composition, copiado en UTF-8 sin conversión ANSI: el de SDL vive hasta
+    // el próximo SDL_PollEvent. Va último para que los inicializadores designados no cambien.
     std::string text{};
-    // Los apretones seguidos de un ButtonDown o un ButtonUp, el `clicks` de SDL (1 el primero, 2 el segundo dentro del
-    // tiempo del doble clic...). Windows manda WM_LBUTTONDBLCLK en lugar del WM_LBUTTONDOWN del segundo, el cuarto...
-    // (CS_DBLCLKS): un par es un doble clic (InputState::LeftPressWasDouble, P-C182 y P-C187). 0 si no es un botón.
-    std::uint8_t clicks = 0;
+    // Repetición de SDL_KEYDOWN: no es un nuevo flanco físico. Backspace, Tab y Enter usan Text.
+    bool repeat = false;
+    // Rango de SDL_TextEditingEvent en codepoints UTF-8, no bytes; -1 indica que no se indicó.
+    std::int32_t compositionStart = 0;
+    std::int32_t compositionLength = 0;
 };
 
 // Los bytes que lleva el texto tecleado por Backspace y por Tab, en el lugar en que llegaron: los

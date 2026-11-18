@@ -19,13 +19,15 @@ namespace Client::UI
 // los encabezados (el 7 de la paleta, 20 de alto), los encabezados (0x4a2460), la raya del 2 desde 0x9f, los títulos de
 // las pestañas centrados en su lugar (en blanco el de la vista o el del mouse), el texto del botón del estado contra el
 // borde derecho y su casilla (0x463090), marcada con +0xe0 del administrador en 1.
-void DrawTheFriendsWindow(OldWindowManager& manager, OldWindow& window, const OldWindowDrawContext& context,
-                          const OldWindowDrawView& view);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheFriendsWindow(OldWindowManager& manager, OldWindow& window,
+                                                                     const OldWindowDrawContext& context,
+                                                                     const OldWindowDrawView& view);
 
 // 0x4a3750: arrastrada o cambiando de tamaño, ubica a sus hijas; los dos botones (0x45b2e0) y, con la mezcla normal,
 // el EDIT (0x468320). Termina sin mezcla (0x620980).
-void DrawTheAddFriendBox(OldWindowManager& manager, OldWindow& box, const OldWindowDrawContext& context,
-                         const OldWindowDrawView& view);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheAddFriendBox(OldWindowManager& manager, OldWindow& box,
+                                                                    const OldWindowDrawContext& context,
+                                                                    const OldWindowDrawView& view);
 
 // 0x461cd0, la vtable + 0x80 de la lista de amigos (0x460970): el renglón (DrawTheChosenRow), el nombre (sprintf
 // "%s", 0x6c7084) y, con +0x130 en 1, el lugar. Da 1.

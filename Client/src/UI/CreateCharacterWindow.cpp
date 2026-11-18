@@ -164,7 +164,7 @@ CreateCharacterWindow::CreateCharacterWindow(TextureSizes sizes, const Data::Tex
                 Button(ClassSlot, ClassWidth, ClassHeight, CheckedFrame, DisabledFrame),
                 Button(ClassSlot, ClassWidth, ClassHeight, CheckedFrame, DisabledFrame)},
       m_ok(OkSlot, ButtonWidth, ButtonHeight), m_cancel(CancelSlot, ButtonWidth, ButtonHeight),
-      m_name(NameBytes, false, TextField::Charset::Latin1)
+      m_name(NameBytes, false, TextField::Charset::Windows1252Xp)
 {
     for (std::size_t i = 0; i < CreatableClassCount; ++i)
     {
@@ -226,17 +226,18 @@ void CreateCharacterWindow::CopyTheName()
 
 void CreateCharacterWindow::TypeInto(const Input::InputState& input)
 {
-    // El subclass del EDIT (0x467b10) descarta Esc y le pasa Enter a la ventana; Tab no es un byte
-    // que el campo tome.
+    // El subclass del EDIT (0x467b10) descarta Esc y le pasa Enter a la ventana; Tab y Enter no son
+    // bytes que el campo tome.
     const std::string_view typed = input.Text();
     std::size_t start = 0;
     for (std::size_t index = 0; index <= typed.size(); ++index)
     {
-        if (index < typed.size() && typed[index] != Input::BackspaceChar && typed[index] != Input::TabChar)
+        if (index < typed.size() && typed[index] != Input::BackspaceChar && typed[index] != Input::TabChar &&
+            typed[index] != Input::EnterChar)
         {
             continue;
         }
-        // Lo de entre dos teclas de control va entero: una letra de Latin-1 llega en dos bytes.
+        // Lo de entre dos teclas de control llega entero al encoder de la página XP.
         m_name.Type(typed.substr(start, index - start));
         if (index < typed.size() && typed[index] == Input::BackspaceChar)
         {

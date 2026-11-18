@@ -9,12 +9,14 @@
 #include "UI/MessageArea.h"
 #include "UI/NameChecks.h"
 #include "UI/PanelRegistry.h"
+#include "UI/SprintfFormat.h"
 
 #include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include <format>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -62,14 +64,123 @@ template <std::size_t Size> std::string NameOf(std::span<const std::byte, Size> 
     return name;
 }
 
-// El comienzo de cada comando social: en Chaos Castle, el aviso 1150 y devuelve 0 (el texto sale como chat); si no,
-// lo que sigue es de su ola.
-Core::Expected<ChatCommandOutcome, std::string> SocialCommand(const ChatCommandContext& context,
-                                                              std::string_view address, std::string_view what)
+bool InChaosCastle(const ChatCommandContext& context)
 {
-    if (context.map >= FirstChaosCastleMap && context.map <= LastChaosCastleMap)
+    return context.map >= FirstChaosCastleMap && context.map <= LastChaosCastleMap;
+}
+
+// 0x573f49 (/guild) y 0x570d48 (/union, /rival y /rivaloff): en Chaos Castle, el aviso 1150 y devuelve 0 (el texto
+// sale como chat); si no, el pedido de la escena.
+Core::Expected<ChatCommandOutcome, std::string> GuildCommand(const ChatCommandContext& context, std::string_view text)
+{
+    if (InChaosCastle(context))
         return ChatCommandOutcome{.handled = false, .notices = {{ChaosCastleCommandText, SystemMessage}}};
-    return Core::Unexpected(std::format("{}: {} es de la CL9.4", address, what));
+    if (text == TextAt(context.texts, GuildCommandText) || EqualsIgnoringCase(text, "/guild"))
+    {
+        if (!context.requestAGuildJoin)
+            return Core::Unexpected(std::string("0x573f85: /guild sin el pedido"));
+        return context.requestAGuildJoin();
+    }
+    if (!context.requestAGuildRelation)
+        return Core::Unexpected(std::string("0x570d7e: /union, /rival o /rivaloff sin el pedido"));
+    GuildRelationCommand command = GuildRelationCommand::RivalOff;
+    if (text == TextAt(context.texts, AllianceCommandText) || EqualsIgnoringCase(text, "/union"))
+        command = GuildRelationCommand::Union;
+    else if (text == TextAt(context.texts, RivalCommandText) || EqualsIgnoringCase(text, "/rival"))
+        command = GuildRelationCommand::Rival;
+    return context.requestAGuildRelation(command);
+}
+
+// 0x5766ce..0x576890: /personalshop. En Chaos Castle, el aviso 1150 y 0; con el entrenador abierto, el 1121 y 0; si no,
+// el nivel del registro propio (+0xe, abriéndolo y cerrándolo): desde el 6, Open(0x800) y 1; si no, sprintf del texto
+// 1123 con el 6 en los 0x30 bytes de la pila (EBP − 0xf0, en ceros) y 1. Los avisos van con el tipo 1.
+Core::Expected<ChatCommandOutcome, std::string> PersonalShopCommand(const ChatCommandContext& context)
+{
+    constexpr std::size_t LevelTextBufferSize = 0x30;
+    if (InChaosCastle(context))
+        return ChatCommandOutcome{.handled = false, .notices = {{ChaosCastleCommandText, SystemMessage}}};
+    if (context.trainerOpen)
+        return ChatCommandOutcome{.handled = false, .notices = {{ShopTrainerText, SystemMessage}}};
+    if (!context.ownLevel)
+        return Core::Unexpected(std::string("0x57673f: /personalshop sin el registro propio"));
+    if (context.ownLevel() >= ShopLevel)
+    {
+        if (!context.openThePersonalShop)
+            return Core::Unexpected(std::string("0x576822: /personalshop sin abrir la tienda"));
+        if (auto opened = context.openThePersonalShop(); !opened.HasValue())
+            return Core::Unexpected(std::move(opened).Error());
+        return ChatCommandOutcome{.handled = true, .notices = {}};
+    }
+    std::string text = Sprintf(TextAt(context.texts, ShopLevelText), static_cast<std::int32_t>(ShopLevel));
+    if (text.size() >= LevelTextBufferSize)
+        return Core::Unexpected(std::format("0x576866: el texto {} con el nivel pasa los {} bytes de la pila",
+                                            ShopLevelText, LevelTextBufferSize));
+    return ChatCommandOutcome{
+        .handled = true,
+        .notices = {ChatCommandNotice{.text = ShopLevelText, .type = SystemMessage, .formatted = std::move(text)}}};
+}
+
+// 0x574c8c: sscanf(texto, "%s %s", EBP − 0x108, EBP − 0xc0). Cada %s salta los blancos (isspace del locale "C") y lee
+// hasta el siguiente, y el espacio del formato salta los que haya: lo que importa es la segunda palabra, el nombre.
+// Sin ella, el segundo buffer queda con lo que había en la pila (sin valor). Una primera palabra de 0x48 bytes o más
+// pisa el segundo buffer y una segunda de 0x90 o más llega a EBP − 0x30, que 0x575503 pisa: MuRet no lo modela (el
+// campo del chat tiene 0x32 bytes) y devuelve el error.
+Core::Expected<std::optional<std::string_view>, std::string> ScanTheName(std::string_view text)
+{
+    constexpr std::size_t FirstWordBuffer = 0x48;
+    constexpr std::size_t NameBuffer = 0x90;
+    const auto blank = [](char letter) { return letter == ' ' || (letter >= '\t' && letter <= '\r'); };
+    text = text.substr(0, text.find('\0'));
+    std::size_t at = 0;
+    const auto word = [&]()
+    {
+        while (at < text.size() && blank(text[at]))
+            ++at;
+        const std::size_t start = at;
+        while (at < text.size() && !blank(text[at]))
+            ++at;
+        return text.substr(start, at - start);
+    };
+    const std::string_view first = word();
+    const std::string_view second = word();
+    if (first.size() >= FirstWordBuffer || second.size() >= NameBuffer)
+        return Core::Unexpected(
+            std::format("0x574c92: /purchase con una palabra que pasa su buffer de la pila ({} y {} "
+                        "bytes)",
+                        first.size(), second.size()));
+    if (second.empty())
+        return std::optional<std::string_view>{};
+    return std::optional<std::string_view>{second};
+}
+
+// 0x574bd6..0x57694d: /purchase. En Chaos Castle, el aviso 1150 y 0; si no, lo demás (los paneles, el elegido, el
+// nombre que sscanf leyó o el que está enfrente) es del pedido de la escena.
+Core::Expected<ChatCommandOutcome, std::string> PurchaseCommand(const ChatCommandContext& context,
+                                                                std::string_view text)
+{
+    if (InChaosCastle(context))
+        return ChatCommandOutcome{.handled = false, .notices = {{ChaosCastleCommandText, SystemMessage}}};
+    auto name = ScanTheName(text);
+    if (!name.HasValue())
+        return Core::Unexpected(std::move(name).Error());
+    if (!context.requestShopItems)
+        return Core::Unexpected(std::string("0x574c0c: /purchase sin el pedido"));
+    return context.requestShopItems(name.Value());
+}
+
+// 0x56c54d..0x56c690: /trade. Fuera de Chaos Castle, el nivel del registro propio contra 0x6c8dc8: sin alcanzarlo, el
+// aviso 478 y 1. Con él, el pedido al elegido (0x6c8e30) o al que está enfrente (0x56ce1e), con el C1 05 36.
+Core::Expected<ChatCommandOutcome, std::string> TradeCommand(const ChatCommandContext& context)
+{
+    if (InChaosCastle(context))
+        return ChatCommandOutcome{.handled = false, .notices = {{ChaosCastleCommandText, SystemMessage}}};
+    if (!context.ownLevel)
+        return Core::Unexpected(std::string("0x56c5d0: /trade sin el registro propio"));
+    if (context.ownLevel() < context.tradeLevel)
+        return ChatCommandOutcome{.handled = true, .notices = {{TradeLevelText, SystemMessage}}};
+    if (!context.requestATrade)
+        return Core::Unexpected(std::string("0x56c68b: /trade sin el pedido"));
+    return context.requestATrade();
 }
 
 // 0x576894..0x576922 y 0x40ebd0: "/" y el nombre de un ítem abre su ayuda; si no, 0x40ebd0 compara con "/" y el
@@ -153,35 +264,83 @@ Core::Expected<ChatCommandOutcome, std::string> RunTheChatCommand(const ChatComm
         const std::string_view word = text.substr(0, std::min({text.find(' '), text.size(), FirstWordLimit}));
         if (word == TextAt(texts, ExchangeCommandText) || word == TextAt(texts, TradeCommandText) ||
             EqualsIgnoringCase(word, "/trade"))
-            return SocialCommand(context, "0x56c54d", "el comercio");
+            return TradeCommand(context);
     }
     // 0x56d624..0x56d66a: /move abre la ventana y sigue.
     if (text == TextAt(texts, MoveCommandText) || EqualsIgnoringCase(text, "/move"))
         context.overlayMode = MoveOverlayMode;
     if (text == TextAt(texts, ShopCommandText) || EqualsIgnoringCase(text, "/personalshop"))
-        return SocialCommand(context, "0x5766ce", "la tienda personal");
+        return PersonalShopCommand(context);
     if (ContainsLikeTheOriginal(text, TextAt(texts, BuyCommandText)) || ContainsLikeTheOriginal(text, "/purchase"))
-        return SocialCommand(context, "0x574bd6", "comprar en una tienda personal");
-    if (text == TextAt(texts, ShopViewOnCommandText) || text == TextAt(texts, ShopViewOffCommandText))
-        return Core::Unexpected(
-            std::string("0x56d722: ver las tiendas personales (0x4516a0 y 0x4516b0) es de la CL9.4"));
+        return PurchaseCommand(context, text);
+    // 0x56d6ee..0x56d796: "/ver puestos" (strcmp con el texto 1136) prende los carteles (0x4516a0 sobre 0x451d10) con
+    // el aviso 1138 del tipo 1, y su par (el 1137) los apaga (0x4516b0) con el 1139 del tipo 2. Las dos comparaciones
+    // corren siempre y la cadena sigue.
+    ChatCommandOutcome outcome;
+    if (text == TextAt(texts, ShopViewOnCommandText))
+    {
+        if (context.signsShown == nullptr)
+            return Core::Unexpected(std::string("0x56d722: \"/ver puestos\" sin el mapa de los carteles"));
+        *context.signsShown = 1;
+        outcome.notices.push_back(ChatCommandNotice{.text = ShopViewOnNoticeText, .type = SystemMessage});
+    }
+    if (text == TextAt(texts, ShopViewOffCommandText))
+    {
+        if (context.signsShown == nullptr)
+            return Core::Unexpected(std::string("0x56d776: apagar los carteles sin su mapa"));
+        *context.signsShown = 0;
+        outcome.notices.push_back(ChatCommandNotice{.text = ShopViewOffNoticeText, .type = ErrorMessage});
+    }
+    // 0x56d7e0..0x56d82b: /duelstart. Con el duelo en curso, el aviso 915; sin él, el AA al elegido o al que está
+    // enfrente. Con o sin él, sigue la cadena (0x56ea05 y 0x56e07c).
     if (text == TextAt(texts, DuelStartCommandText) || EqualsIgnoringCase(text, "/duelstart"))
-        return SocialCommand(context, "0x56d7e0", "el duelo");
+    {
+        if (InChaosCastle(context))
+        {
+            outcome.notices.push_back(ChatCommandNotice{ChaosCastleCommandText, SystemMessage});
+            return outcome;
+        }
+        if (context.duelActive)
+            outcome.notices.push_back(ChatCommandNotice{.text = DuelBusyText, .type = ErrorMessage});
+        else if (!context.requestADuel)
+            return Core::Unexpected(std::string("0x56d823: /duelstart sin el pedido"));
+        else if (auto asked = context.requestADuel(); !asked.HasValue())
+            return Core::Unexpected(std::move(asked).Error());
+    }
+    // 0x56ea29..0x56ee40: /duelend. Con el duelo en curso, el C1 03 AB en C3; con o sin él, sigue la cadena.
     if (text == TextAt(texts, DuelEndCommandText) || EqualsIgnoringCase(text, "/duelend"))
-        return SocialCommand(context, "0x56ea29", "terminar el duelo");
-    if (text == TextAt(texts, GuildCommandText) || EqualsIgnoringCase(text, "/guild"))
-        return SocialCommand(context, "0x573f49", "el gremio");
-    if (text == TextAt(texts, AllianceCommandText) || EqualsIgnoringCase(text, "/union") ||
+    {
+        if (InChaosCastle(context))
+        {
+            outcome.notices.push_back(ChatCommandNotice{ChaosCastleCommandText, SystemMessage});
+            return outcome;
+        }
+        if (context.duelActive)
+        {
+            if (!context.endTheDuel)
+                return Core::Unexpected(std::string("0x56ea6c: /duelend sin el cable"));
+            if (auto ended = context.endTheDuel(); !ended.HasValue())
+                return Core::Unexpected(std::move(ended).Error());
+        }
+    }
+    if (text == TextAt(texts, GuildCommandText) || EqualsIgnoringCase(text, "/guild") ||
+        text == TextAt(texts, AllianceCommandText) || EqualsIgnoringCase(text, "/union") ||
         text == TextAt(texts, RivalCommandText) || EqualsIgnoringCase(text, "/rival") ||
         text == TextAt(texts, RivalOffCommandText) || EqualsIgnoringCase(text, "/rivaloff"))
-        return SocialCommand(context, "0x570d48", "la alianza y la rivalidad de los gremios");
+        return GuildCommand(context, text);
     if (text == TextAt(texts, PartyCommandText) || EqualsIgnoringCase(text, "/party") ||
         EqualsIgnoringCase(text, "/pt"))
-        return SocialCommand(context, "0x56f109", "la party");
+    {
+        // 0x56f109..0x56f13e: en Chaos Castle, el aviso 1150 y 0; si no, el pedido de 0x56f13f.
+        if (InChaosCastle(context))
+            return ChatCommandOutcome{.handled = false, .notices = {{ChaosCastleCommandText, SystemMessage}}};
+        if (!context.requestAParty)
+            return Core::Unexpected(std::string("0x56f13f: /party sin el pedido"));
+        return context.requestAParty();
+    }
     if (const std::size_t macro = MacroOf(text); macro < MacroCount)
         return SetTheMacro(context, text, macro);
     // 0x56f02e..0x56f0ab: "/filter" (el texto 753, si no está vacío, o el literal) y la cola.
-    ChatCommandOutcome outcome;
     const std::string_view filter = TextAt(texts, FilterCommandText);
     if ((!filter.empty() && text.starts_with(filter)) || text.starts_with("/filter"))
     {

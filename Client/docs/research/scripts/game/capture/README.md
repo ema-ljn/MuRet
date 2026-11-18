@@ -8,6 +8,7 @@ Build c32bbd5f del [entorno](../../README.md#el-entorno), SHA-256
 | --- | --- | --- |
 | `passive_camera.cpp` | Una lectura de cámara/estado y posición del héroe, en bits | Secuencial; no prueba una transición |
 | `passive_cl7.cpp` | 2.250 lecturas con agenda de 40 ms, unos 90 s: cámara, héroe, camino, paredes y entidades | No sincroniza pasos ni frames; 25 Hz es el objetivo del lector |
+| `passive_combat.cpp` | Acción/frame del héroe, modelo compartido, huesos de sus manos y sus cintas | Muestreo secuencial de una whitelist; no sincroniza llamadas ni confirma por sí solo un ataque |
 | `compare_lorencia.cpp` | Nueve salidas de cámara contra `StepGameCamera` enlazada desde MuRet | Usa el estado observado como entrada estacionaria; siete checks de ese estado no son predicciones independientes |
 | `fsin_probe.c` | Secuencia x87 aislada del balanceo Y en tres relojes largos, PC53 y PC64 | Programa propio: no lee la CW ni ejecuta la función del proceso original |
 | `read_fpu.cpp` | CW y EIP del hilo que posee la ventana `MU` | Pausa/reanuda un incremento de suspensión; requiere supervisión |
@@ -20,6 +21,27 @@ paso a paso y escrita para que la corra un agente: [RUNBOOK-cl7-vm.md](RUNBOOK-c
 `0x635ae0` y `0x5fcc30` antes de leer una lista cerrada de campos. Son firmas de compatibilidad,
 no el hash completo del proceso. Verificar aparte el SHA del archivo. No escriben en el proceso
 ni lo suspenden, depuran o inyectan código.
+
+## CL9 H1/H9 y las referencias archivadas
+
+El [runbook CL9](RUNBOOK-cl9-vm.md) reúne los insumos para el agente con VM: recuperación del corpus
+de 59 tests con el [helper](recover_cl9_evidence.py), [manifest de hashes](cl9-vm-evidence.json),
+spec de estado UI y casos nuevos de H1/H9. El helper corre en el host moderno, no ejecuta el original
+y mantiene separadas las capturas históricas 2f16 de las observaciones c32.
+
+## Q-C184/Q-C192: cambio de personaje y bytes anteriores a Item.bmd
+
+El [handoff específico para VM](RUNBOOK-qc184-vm.md) explica cómo obtener el selector real, los
+argumentos y el estado FPU/stats sin asumir que una lectura fuera de la tabla vale cero.
+[qc184_evidence.py](qc184_evidence.py) prepara en el host bundles ASCII/CRLF para WinDbg x86
+con cuatro puntos de hardware, un spec pasivo para s31mem y analizadores de consistencia.
+No ejecuta el original ni requiere Python en XP. Ambos modos se ejercitaron con CDB 6.12 x86
+en XP SP3; el handoff conserva resultados y pendientes. CAPTURED no significa fidelidad verificada.
+
+Los [auxiliares de interacción Linux/XP](interactions/README.md) conservan los sources propios
+de teclado/mouse y control CDB, junto con adaptadores Python de los comandos usados. Sirven para
+preparar pruebas funcionales supervisadas; no confunden entrega de eventos con un resultado PASS.
+Las dos repeticiones reales en MuRet Linux están registradas en el [handoff, §8](RUNBOOK-qc184-vm.md#8-repetición-en-muret-linux-2026-11-16).
 
 ## Compilar y ejecutar
 
@@ -130,3 +152,41 @@ lector y evidencia, código de salida y tiempos. Capturas por segundo no son FPS
 Por instrucción de Emanuel, cambios nuevos se contrastan con ASM y evidencia del original;
 sin nuevas emulaciones ni convertir inferencias antiguas en hechos. Los fixtures emulados
 anteriores conservan su procedencia como regresiones.
+
+## CL9 H3: lectura pasiva de combate
+
+`passive_combat.cpp` busca la ventana `MU`, abre sólo con `PROCESS_QUERY_INFORMATION | PROCESS_VM_READ`
+y verifica las dos firmas existentes antes de leer. No pausa, escribe ni instala puntos de ruptura.
+La whitelist incluye escena/mapa, elegidos, acción/frame/posición del héroe, manos y sus dos matrices,
+acción/frame/key del modelo compartido y las cintas vivas cuyo dueño es el héroe. No lee nombres,
+chat, credenciales ni registros ajenos completos. `0x5769ad8` se desreferencia antes de indexar el modelo.
+
+Compilar con los mismos headers y flags del lector CL7, agregando subsistema XP si corresponde:
+
+```bash
+i686-w64-mingw32-g++ -std=c++20 -O2 -Wall -Wextra -Wconversion -Wshadow \
+  -Wold-style-cast -Werror -D_WIN32_WINNT=0x0501 -DWINVER=0x0501 \
+  -D__USE_MINGW_ANSI_STDIO=0 -fno-exceptions -fno-rtti -static -mwindows \
+  -Wl,--major-subsystem-version,5,--minor-subsystem-version,1 \
+  passive_combat.cpp -o "$MURET_LAB_OUTPUT/passive_combat.exe" -luser32
+```
+
+```text
+passive_combat.exe --mu-window --output captura-nueva.txt --samples 500 --interval-ms 20
+```
+
+Usar una salida privada nueva: `CREATE_NEW` rechaza la colisión, y el lector inicializa el descriptor
+de salida del CRT sin consola antes de redirigirlo. Los defaults son 200 muestras/20 ms; acepta
+1..1.000 muestras e intervalos 20..1.000 ms. La agenda usa `GetTickCount`, sin prometer frecuencia real.
+Los números de memoria son bits hexadecimales; índices y cantidades de muestras, decimales.
+
+Exigir exit 0, los 500 `end_sample`, footer `end`, ninguna línea `error` ni truncamiento. El marcador
+`unstable=1` recuerda que todas las muestras son no atómicas. `observedGuardMatch=1` sólo indica
+que coincidieron puntero/escena/mapa/selección y acción/frame/key leídos antes y después; no prueba
+ausencia de mutaciones intermedias. No usar ese flag como certificado de sincronización.
+
+Se recompiló con MinGW-w64 GCC 16-win32 sin red: PE32 i386, subsistema 5.01, imports KERNEL32/MSVCRT/USER32.
+La salida sin consola falló primero sin abrir el proceso; corregido el descriptor, se probaron
+lecturas individuales y una serie de 500 muestras en XP. El
+[resultado de H3](../../../15-h3-combate-y-muerte.md#estelas-de-ataque-auditoría-del-2026-11-16)
+separa lo observado en el original, los tests de MuRet y la comparación estricta pendiente.

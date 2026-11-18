@@ -6,8 +6,10 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 
 // Un ítem del F3 10 en el inventario propio: 0x5bc740 con la grilla 0x78a9bb0, 8 columnas, 8 filas y el
 // último argumento en 1, como la llama 0x4c55a0 (0x4c5e7f..0x4c5e8c), y el tipo de 0x54b3a0. Contrato:
@@ -17,8 +19,14 @@ namespace Client::World
 struct ItemState;
 }
 
+namespace Client::Render::Models
+{
+class CrtRandom;
+}
+
 namespace Client::Scenes
 {
+class WorldState;
 struct WorldEntryResources;
 
 using InventoryItemBytes = std::span<const std::byte, Protocol::Character::InventoryItemDataSize>;
@@ -44,9 +52,38 @@ inline constexpr std::uint8_t FirstSecondGridSlot = 0x4c;
 [[nodiscard]] Core::Expected<ActorStopResult, std::string>
 PlaceInventoryItem(std::uint8_t slot, InventoryItemBytes bytes, const WorldEntryResources& resources);
 
+// 0x5bc740(grilla, columnas, filas, lugar, ítem, …) con una grilla que no es la del inventario (0x5bc766 salta a
+// 0x5bd307..0x5bd3ec): la huella del tipo desde `origin`, fila · `columns` + origen + columna, con la columna (origen %
+// 8) y la fila (origen / 8) del origen en cada casilla, y 0x54bf40 con los 24 bits de arriba de casilla · 9. Con el
+// tipo 0x1fff no toca nada. Lo que sigue en el original (0x5bd3f2: 0x5bc470 con 0x78a5a20 y, con el último argumento
+// en 0, el registro propio) es de quien la llama.
+[[nodiscard]] Core::Expected<void, std::string>
+PlaceItemInOtherGrid(std::span<World::ItemState> cells, std::int32_t columns, std::int32_t origin,
+                     InventoryItemBytes bytes, const WorldEntryResources& resources, std::string_view where);
+
+// La primera casilla de la huella del tipo de `bytes` desde `origin`, en el orden en que 0x5bc740 las escribe (fila ·
+// `columns` + origen + columna), que cae fuera de las `cells` casillas de la grilla, sin escribir nada: la que el
+// original escribiría pasada la grilla (Q-C200). Con el tipo 0x1fff, o con toda la huella adentro, nada.
+[[nodiscard]] Core::Expected<std::optional<std::int32_t>, std::string>
+FirstCellPastTheGrid(std::size_t cells, std::int32_t columns, std::int32_t origin, InventoryItemBytes bytes,
+                     const WorldEntryResources& resources, std::string_view where);
+
+// FirstCellPastTheGrid con el lugar de PlaceInventoryItem: del 0 al 11 (el equipo), nada; del 12 al 75, las 64
+// casillas de 0x78a9bb0 desde el lugar − 12; del 76 en adelante, las 32 de 0x78ab0b8 desde el lugar − 76. Devuelve el
+// aviso, que nombra la grilla y la casilla.
+[[nodiscard]] Core::Expected<std::optional<std::string>, std::string>
+InventoryPlacementPastTheGrid(std::uint8_t slot, InventoryItemBytes bytes, const WorldEntryResources& resources);
+
 // 0x4225d0, la defensa del Dark Horse, que 0x54bf40 llama en 0x54cc5c con el 0x1a04: la opción 0x96 con
-// 5 + la agilidad del registro propio / 20 + 2 · WorldRuntime::darkHorseLevel, en un byte, calculada con el
-// registro abierto (3.848 rand() al cerrarlo si queda sin accesos). Si ya tiene una 0x96 desde la segunda
-// opción, le reescribe el valor; si no, o si es la primera (Q-C415), la agrega al final.
+// 5 + la agilidad del registro propio / 20 + 2 · el nivel del caballo (WorldRuntime::pets), en un byte, calculada con
+// el registro abierto (3.848 rand() al cerrarlo si queda sin accesos). Si ya tiene una 0x96 desde la segunda opción, le
+// reescribe el valor; si no, o si es la primera (Q-C415), la agrega al final.
 void AddTheDarkHorseOption(World::ItemState& item, const WorldEntryResources& resources);
+// Lo mismo con la cuenta de accesos del registro propio y el rand() dados: el tooltip de las mascotas (0x423b07) la
+// llama con el registro abierto alrededor (0x5f7bc0), o con las copias de un dibujo intermedio. No mira el tipo: quien
+// la llama ya sabe que es el 0x1a04 (0x4225dc).
+void AddTheDarkHorseOption(World::ItemState& item, const WorldState& world, std::uint8_t& ownRecordDepth,
+                           Render::Models::CrtRandom& random);
+// Dónde escribe 0x4225d0 su 0x96: el lugar de una 0x96 desde la segunda opción, o el que sigue a la última (Q-C415).
+[[nodiscard]] std::uint8_t DarkHorseOptionPlace(const World::ItemState& item);
 } // namespace Client::Scenes

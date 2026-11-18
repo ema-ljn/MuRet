@@ -136,6 +136,32 @@ TEST(HudItemsTest, ALevelled1c14HasNoRange)
     EXPECT_NE(counted.Error().find("0x558490"), std::string::npos) << counted.Error();
 }
 
+// 0x558119..0x558141 (CL9 hito 4): las skills piden las pociones de maná con 3 (0x1c04 a 0x1c06) y las de vida con 4
+// (0x1c00 a 0x1c03), sin mirar las ranuras, su nivel ni 0x576794c; con 5 el rango sale de locales sin inicializar.
+TEST(HudItemsTest, TheSkillsAskForTheManaAndLifePotionsWith3And4)
+{
+    Cells cells{};
+    Put(cells, 0, 0, 0x1c04);
+    Put(cells, 7, 1, 0x1c05);
+    Put(cells, 1, 6, 0x1c02);
+    Put(cells, 2, 2, 0x1c00);
+    Put(cells, 3, 3, 0x1c08);
+    QuickSlots slots;
+    slots.types = {0x1c14, 0x1c0a, 0x1c08};
+    slots.levels = {3, 3, 3};
+    // La 0x1c05 gana a la 0x1c04 y la 0x1c02 a la 0x1c00, aunque estén después en la grilla.
+    EXPECT_EQ(Found(slots, cells, Client::Scenes::ManaPotionSlot, true), 7u * 8u + 1u);
+    EXPECT_EQ(Found(slots, cells, Client::Scenes::LifePotionSlot, true), 1u * 8u + 6u);
+    cells[7 * 8 + 1].occupied = 0;
+    EXPECT_EQ(Found(slots, cells, Client::Scenes::ManaPotionSlot), 0u);
+    const Cells empty{};
+    EXPECT_EQ(Found(slots, empty, Client::Scenes::ManaPotionSlot), std::nullopt);
+    EXPECT_EQ(Found(slots, empty, Client::Scenes::LifePotionSlot), std::nullopt);
+    const auto fifth = FindQuickSlotItem(slots, cells, 5, false);
+    ASSERT_FALSE(fifth.HasValue());
+    EXPECT_NE(fifth.Error().find("0x558110(5)"), std::string::npos) << fifth.Error();
+}
+
 // 0x558490: las pociones suman D+0x1a en todo su rango; 0x1c09, 0x1c0a y 0x1c14 cuentan casillas.
 TEST(HudItemsTest, TheCountAddsThePotionsAndCountsTheOthers)
 {

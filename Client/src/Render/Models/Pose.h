@@ -57,6 +57,12 @@ struct ObjectTransform
                                 const ObjectTransform& object, const glm::vec2& headAngles,
                                 std::span<BoneTransform> bones);
 
+// La raíz de 0x4eb860 con flags (0, 1): rota y escala su base con el objeto, y toma su posición sin
+// escalarla. El resto de la pose y sus condiciones de error son las de PoseSkeleton.
+[[nodiscard]] bool PoseWorldSkeleton(const Skeleton& skeleton, const AnimationState& animation,
+                                     const ObjectTransform& object, const glm::vec2& headAngles,
+                                     std::span<BoneTransform> bones);
+
 // 0x4eb860 con su séptimo argumento en 1, como posa 0x509340 lo que cuelga del personaje
 // (Attachment.h): los huesos sin padre van con `root`, la que dejó quien llama en 0x68c4a1c, y no
 // con el giro del objeto. Sin ángulos de cabeza y con +0x84 en 0. Devuelve false como

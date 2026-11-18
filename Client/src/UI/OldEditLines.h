@@ -5,6 +5,7 @@
 #include "UI/OldControls.h"
 
 #include <cstdint>
+#include <span>
 #include <string_view>
 #include <vector>
 
@@ -49,9 +50,12 @@ inline constexpr std::int32_t EditPageUp = 2;
 inline constexpr std::int32_t EditPageDown = 3;
 void ScrollTheEdit(OldEdit& edit, std::int32_t lineCount, std::int32_t code);
 
-// ES_AUTOVSCROLL: después de un cambio del texto, el renglón del cursor (el último: el cursor de MuRet está siempre al
-// final) a la vista.
-void FollowTheEditCaret(OldEdit& edit, std::int32_t lineCount);
+// El renglón del cursor (TextField::Cursor): el último que empieza en él o antes. Con el cursor en un corte de
+// renglón, el de abajo (*inferido*, P-C217). `lines` son los de EditLines del mismo texto.
+[[nodiscard]] std::int32_t EditCaretLine(const OldEdit& edit, std::span<const std::string_view> lines);
+
+// ES_AUTOVSCROLL: después de un cambio del texto, el renglón del cursor a la vista (sin `caretLine`, el último).
+void FollowTheEditCaret(OldEdit& edit, std::int32_t lineCount, std::int32_t caretLine = -1);
 
 // WM_CHAR con un carácter, con el retroceso o con Enter (0x467b10): +0x80 en 0 (0x467b9d) y, al EDIT de Windows. Enter
 // solo llega con +0xc4 en 1 (0x467c8f), y es un "\r\n" si entra entero.

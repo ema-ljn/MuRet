@@ -1,7 +1,11 @@
 #include "Core/Expected.h"
+#include "Data/Tables/SkillTable.h"
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
+#include "Input/MouseMessageState.h"
+#include "Network/Crypto/Xor32.h"
+#include "Protocol/FloorItems.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Text/FontSet.h"
@@ -9,6 +13,7 @@
 #include "Scenes/GameChat.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GameUi.h"
+#include "Scenes/InventoryMoves.h"
 #include "Scenes/ItemSetState.h"
 #include "Scenes/OwnInventory.h"
 #include "Scenes/WorldRuntime.h"
@@ -22,14 +27,21 @@
 #include "UI/OldWindows.h"
 #include "UI/PanelRegistry.h"
 
+#include "support/Bytes.h"
 #include "support/ChatTexts.h"
+#include "support/SameBytes.h"
 #include "support/SceneDataFiles.h"
+#include "support/TableFiles.h"
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <initializer_list>
+#include <memory>
+#include <span>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -41,10 +53,14 @@ using Client::Input::InputEvent;
 using Client::Input::InputState;
 using Client::Input::Key;
 using Client::Input::MouseButton;
+using Client::Network::Crypto::Xor32Decode;
+using Client::Protocol::FloorItems::UseItem;
 using Client::Render::Models::CrtRandom;
 using Client::Scenes::FramePickingContext;
 using Client::Scenes::GameUiContext;
 using Client::Scenes::WorldState;
+using Client::Tests::Bytes;
+using Client::Tests::SameBytes;
 
 // 0x5a05e5..0x5a10e2: el registro propio de la barra de skills, abierto y cerrado en cada paso.
 constexpr int SkillBarRandoms = 3848;
@@ -76,8 +92,10 @@ class SteppingUi
 public:
     Client::Core::Expected<void, std::string> Step(std::int32_t x = 0, std::int32_t y = 0)
     {
-        return Client::Scenes::StepTheGameUi(
-            GameUiContext{.world = world, .random = random, .input = input, .mouseX = x, .mouseY = y});
+        GameUiContext context{
+            .world = world, .random = random, .input = input, .mouseX = x, .mouseY = y, .inventory = inventory};
+        context.skills = skills;
+        return Client::Scenes::StepTheGameUi(context);
     }
     Client::Core::Expected<void, std::string> Dialogs(std::int32_t x = 0, std::int32_t y = 0)
     {
@@ -86,7 +104,7 @@ public:
     }
     void Click()
     {
-        Client::Scenes::LatchTheLeftButton(world.Runtime().movement, true, true, false);
+        Client::Scenes::LatchTheLeftButton(world.Runtime().movement, true, true);
     }
     Client::UI::GameUiState& Ui()
     {
@@ -100,6 +118,24 @@ public:
     WorldState world;
     CrtRandom random;
     InputState input;
+    const Client::Data::Tables::SkillTable* skills = nullptr;
+    const Client::Scenes::InventoryServices* inventory = nullptr;
+};
+
+// Los C1 06 26 que piden los pasos (CL9 hito 5).
+struct UseSink
+{
+    UseSink()
+    {
+        services.sendUseItem = [this](const UseItem& use)
+        {
+            sent.push_back(use);
+            return Client::Core::Expected<void, std::string>{};
+        };
+    }
+
+    Client::Scenes::InventoryServices services;
+    std::vector<UseItem> sent;
 };
 
 TEST(GameUiTest, TheBaseStepDrawsTheSkillBarTheSlotGatesAndTheAnyPanelTail)
@@ -228,6 +264,82 @@ TEST(GameUiTest, TheUnownedClickTakesTheArrowsFromTheChatLog)
     EXPECT_EQ(tested.Ui().focusedList, 0);
 }
 
+// 0x636e8c..0x636ea5: con el campo de los paneles (0x77f3b69), el del alta del gremio (0x77f3b68) o el modo del zen del
+// 0x73 y del precio del 0x91 (0x77f3b6a), el clic sin dueño deja la lista de las flechas y el foco del EDIT.
+TEST(GameUiTest, TheUnownedClickLeavesAnOpenDialogField)
+{
+    for (const int field : {0, 1, 2})
+    {
+        SCOPED_TRACE(field);
+        const auto owned = std::make_unique<SteppingUi>();
+        SteppingUi& tested = *owned;
+        Client::Scenes::WorldRuntime& runtime = tested.world.Runtime();
+        runtime.chat.input.otherInput = field == 0;
+        runtime.chat.input.dialogFieldOn = field == 1;
+        runtime.social.moneyField = field == 2 ? 1 : 0;
+        runtime.chat.input.focus = Client::UI::ChatFocus::Dialog;
+        tested.Ui().focusedList = Client::UI::DialogFieldId;
+        tested.Click();
+        ASSERT_TRUE(tested.Step(320, 240).HasValue());
+        EXPECT_EQ(tested.Ui().focusedList, Client::UI::DialogFieldId);
+        EXPECT_EQ(runtime.chat.input.focus, Client::UI::ChatFocus::Dialog);
+    }
+}
+
+// 0x435bd0, solo en el 34: con los resultados de Crywolf (0x723bf9 en 1), el clic sobre el botón (300, 354) × (300,
+// 330), sin los bordes, deja 0x723bdc en 5, y cualquier clic queda apagado (el botón abajo y el flanco). En Lorencia y
+// en Devias el paso no hace nada y los resultados no se cierran (Q-C1342). Lo mismo con la ventana del contrato.
+TEST(GameUiTest, TheCrywolfResultsTakeEveryClickOnlyInCrywolf)
+{
+    constexpr std::int32_t CrywolfMap = 34;
+    for (const std::int32_t map : {0, 2, CrywolfMap})
+    {
+        SCOPED_TRACE(map);
+        for (const auto& [x, y, pushed] :
+             {std::tuple{301, 301, true}, std::tuple{353, 329, true}, std::tuple{300, 310, false},
+              std::tuple{320, 330, false}, std::tuple{100, 100, false}})
+        {
+            SCOPED_TRACE(x);
+            SCOPED_TRACE(y);
+            // En el heap: con el de abajo serían dos WorldState en el stack de 1 MB de Windows.
+            const auto owned = std::make_unique<SteppingUi>();
+            SteppingUi& tested = *owned;
+            Client::Scenes::WorldRuntime& runtime = tested.world.Runtime();
+            runtime.map = map;
+            runtime.crywolf.ui.byte723bf9 = 1;
+            tested.Click();
+            ASSERT_TRUE(tested.Step(x, y).HasValue());
+            const bool crywolf = map == CrywolfMap;
+            EXPECT_EQ(runtime.crywolf.ui.dwords723bdc[0], crywolf && pushed ? 5 : 0);
+            if (crywolf)
+            {
+                EXPECT_FALSE(runtime.movement.leftHeld);
+                EXPECT_FALSE(runtime.movement.pendingClick);
+            }
+            EXPECT_EQ(runtime.crywolf.ui.byte723bf9, 1);
+        }
+    }
+    // Sin los resultados, el clic sigue.
+    SteppingUi tested;
+    tested.world.Runtime().map = CrywolfMap;
+    tested.Click();
+    ASSERT_TRUE(tested.Step(320, 310).HasValue());
+    EXPECT_TRUE(tested.world.Runtime().movement.leftHeld);
+    EXPECT_EQ(tested.world.Runtime().crywolf.ui.dwords723bdc[0], 0);
+    // La ventana 1 del contrato (0x435c5c, Scenes/CrywolfContract) también se queda con el clic, solo en el 34.
+    tested.world.Runtime().crywolf.ui.byte723a44 = 1;
+    tested.Click();
+    ASSERT_TRUE(tested.Step(320, 310).HasValue());
+    EXPECT_FALSE(tested.world.Runtime().movement.leftHeld);
+    EXPECT_EQ(tested.world.Runtime().crywolf.ui.byte723a44, 1);
+    // Otro clic necesita soltar el botón antes (0x4b3ce3).
+    tested.world.Runtime().map = 2;
+    Client::Scenes::LatchTheLeftButton(tested.world.Runtime().movement, false, false);
+    tested.Click();
+    ASSERT_TRUE(tested.Step(320, 310).HasValue());
+    EXPECT_TRUE(tested.world.Runtime().movement.leftHeld);
+}
+
 TEST(GameUiTest, TheInventoryButtonOfTheHudTakesTheClick)
 {
     SteppingUi tested;
@@ -273,21 +385,67 @@ TEST(GameUiTest, TheQuickSlotKeysWithoutTheirItemDoNothing)
     }
 }
 
-// 0x5a35e0: con el ítem, 0x5af520 y el C1 26, de la CL9.3. La poción chica de vida, la de maná y el antídoto.
-TEST(GameUiTest, TheQuickSlotKeysWithTheirItemAreACut)
+// 0x5a35e0.., 0x5a3d64.. y 0x5a44eb.. (CL9 hito 5): con el ítem, 0x5af520 (el rand() de IsOpen(0x20)), 0x5767954 en
+// 10, el C1 06 26 en C3 con la casilla + 12, 0 y [0x78abb26], y el sonido: 0x21 la manzana, 0x20 las demás pociones.
+// Mientras 0x5767954 no vuelva a 0 (las respuestas), la tecla no manda otro.
+TEST(GameUiTest, TheQuickSlotKeysUseTheirPotions)
 {
-    constexpr std::array<std::pair<Key, std::uint16_t>, 3> Slots{
-        {{Key::Q, std::uint16_t{0x1c00}}, {Key::W, std::uint16_t{0x1c04}}, {Key::E, std::uint16_t{0x1c08}}}};
-    for (const auto& [key, type] : Slots)
+    struct Slot
+    {
+        Key key;
+        std::uint16_t type;
+        std::int32_t sound;
+    };
+    constexpr std::array<Slot, 3> Slots{{{Key::Q, 0x1c00, 0x21}, {Key::W, 0x1c04, 0x20}, {Key::E, 0x1c08, 0x20}}};
+    for (const Slot& slot : Slots)
     {
         SteppingUi tested;
-        tested.world.Inventory().cells[9].id = type;
+        UseSink sink;
+        tested.inventory = &sink.services;
+        tested.world.Inventory().cells[9].id = slot.type;
         tested.world.Inventory().cells[9].occupied = 1;
-        Press(tested.input, key);
+        Press(tested.input, slot.key);
+        const CrtRandom expected = Advanced(tested.random, BaseStepRandoms + 1 + 2);
         const auto stepped = tested.Step();
-        ASSERT_FALSE(stepped.HasValue());
-        EXPECT_NE(stepped.Error().find("0x5a35e0"), std::string::npos) << stepped.Error();
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(tested.random.State(), expected.State());
+        ASSERT_EQ(sink.sent.size(), 1u);
+        const auto packet = Client::Protocol::FloorItems::WriteUseItem(sink.sent.front());
+        EXPECT_TRUE(SameBytes(Xor32Decode(packet.packet).Bytes(), Bytes({0xc1, 0x06, 0x26, 9 + 12, 0, 0})));
+        EXPECT_EQ(tested.world.Runtime().lastSoundId, slot.sound);
+        EXPECT_EQ(tested.Ui().field5767954, 10);
+
+        Release(tested.input, slot.key);
+        ASSERT_TRUE(tested.Step().HasValue());
+        Press(tested.input, slot.key);
+        ASSERT_TRUE(tested.Step().HasValue());
+        EXPECT_EQ(sink.sent.size(), 1u);
     }
+}
+
+// 0x5af520: con el almacén abierto (Q, W y E ni llegan: 0x5a343e), el clic derecho en la ranura avisa con el 474 del
+// tipo 2 y no manda nada.
+TEST(GameUiTest, TheRightClickOnAQuickSlotDoesNotUseWithTheWarehouseOpen)
+{
+    SteppingUi tested;
+    UseSink sink;
+    std::vector<std::size_t> messages;
+    sink.services.systemMessage = [&messages](std::size_t text, std::int32_t type)
+    {
+        EXPECT_EQ(type, 2);
+        messages.push_back(text);
+        return Client::Core::Expected<void, std::string>{};
+    };
+    tested.inventory = &sink.services;
+    tested.world.Inventory().cells[9].id = 0x1c00;
+    tested.world.Inventory().cells[9].occupied = 1;
+    tested.Panels().warehouse = 1;
+    tested.Ui().rightClick = true;
+    const auto stepped = tested.Step(0xd0, 0x1c4);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_TRUE(sink.sent.empty());
+    EXPECT_EQ(messages, std::vector<std::size_t>{474});
+    EXPECT_EQ(tested.Ui().field5767954, 0);
 }
 
 // 0x5a2b93: el clic derecho sobre una ranura se gasta aunque esté vacía.
@@ -300,15 +458,20 @@ TEST(GameUiTest, TheRightClickOnAnEmptyQuickSlotIsSpent)
     EXPECT_FALSE(tested.Ui().rightClick);
 }
 
-TEST(GameUiTest, TheRightClickOnAQuickSlotWithItsItemIsACut)
+// 0x5a2bc8..0x5a32cc (CL9 hito 5): el clic derecho sobre la ranura usa su ítem, como Q, W y E.
+TEST(GameUiTest, TheRightClickOnAQuickSlotUsesItsItem)
 {
     SteppingUi tested;
+    UseSink sink;
+    tested.inventory = &sink.services;
     tested.world.Inventory().cells[0].id = 0x1c05;
     tested.world.Inventory().cells[0].occupied = 1;
     tested.Ui().rightClick = true;
     const auto stepped = tested.Step(0xd0 + 0x1f, 0x1c4);
-    ASSERT_FALSE(stepped.HasValue());
-    EXPECT_NE(stepped.Error().find("0x5a2bc8"), std::string::npos) << stepped.Error();
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    ASSERT_EQ(sink.sent.size(), 1u);
+    EXPECT_EQ(sink.sent.front().slot, 12);
+    EXPECT_EQ(tested.world.Runtime().lastSoundId, 0x20);
     EXPECT_FALSE(tested.Ui().rightClick);
 }
 
@@ -324,19 +487,272 @@ TEST(GameUiTest, ADialogClosesTheSlotGateAfterItsTwoQueries)
     EXPECT_EQ(tested.Panels().inventory, 0);
 }
 
-TEST(GameUiTest, TheSkillBarButtonTogglesTheListAndItsListIsACut)
+TEST(GameUiTest, TheSkillBarButtonTogglesTheList)
 {
     SteppingUi tested;
     tested.world.OwnCharacter().byte6a = 1;
     tested.Click();
+    const CrtRandom expected = Advanced(tested.random, BaseStepRandoms);
     const auto stepped = tested.Step(0x140, 0x1c0);
-    ASSERT_FALSE(stepped.HasValue());
-    EXPECT_NE(stepped.Error().find("0x5a070e"), std::string::npos) << stepped.Error();
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    // Sin skills en el registro, la lista no lee Skill.bmd.
+    EXPECT_EQ(tested.random.State(), expected.State());
     EXPECT_EQ(tested.Ui().skillListOpen, 1);
     EXPECT_EQ(tested.Ui().skillTooltipX, 0x140);
     EXPECT_EQ(tested.Ui().skillTooltipY, 0x1bc);
     EXPECT_FALSE(tested.world.Runtime().movement.pendingClick);
     EXPECT_EQ(tested.world.Runtime().ownRecordDepth, 0);
+}
+
+// Skill.bmd inventado: las skills de `hidden` con el +0x31 en 1 (las que la lista no muestra).
+Client::Data::Tables::SkillTable SkillsHiding(std::initializer_list<std::uint8_t> hidden)
+{
+    std::vector<std::byte> plain(Client::Data::Tables::SkillTableSize);
+    for (const std::uint8_t skill : hidden)
+        plain[std::size_t{skill} * Client::Data::Tables::SkillRecordSize + 0x31] = std::byte{1};
+    const std::vector<std::byte> encrypted =
+        Client::Tests::EncryptRecords(std::move(plain), Client::Data::Tables::SkillRecordSize);
+    return Client::Data::Tables::SkillTable(std::span<const std::byte>(encrypted));
+}
+
+// La entrada de Skill.bmd que la lista abre y cierra en 0 (0x40f600).
+constexpr int SkillEntryRandoms = 60;
+// El registro propio que 0x59f810 abre y cierra fuera de la barra.
+constexpr int ChooseByKeyRandoms = 3848;
+
+// 0x5a070e..0x5a1098: la lista abierta lee el +0x31 de cada skill que hay (salvo las 0x43 a 0x48), y las que no lo
+// tienen en 1 van en una fila centrada: con +0x6a 3 y +0x6b 1, de dos, desde x 288.
+TEST(GameUiTest, TheOpenSkillListReadsEachSkillAndCentersTheShownOnes)
+{
+    auto tested = std::make_unique<SteppingUi>();
+    const auto skills = SkillsHiding({9});
+    tested->skills = &skills;
+    auto& own = tested->world.OwnCharacter();
+    own.byte6a = 3;
+    own.byte6b = 1;
+    own.SetSkillAt(0, 5);
+    own.SetSkillAt(1, 0x44); // 0x43 a 0x48: ni la abre
+    own.SetSkillAt(2, 9);    // escondida
+    own.SetSkillAt(3, 0x11);
+    tested->Ui().skillListOpen = 1;
+    const CrtRandom expected = Advanced(tested->random, BaseStepRandoms + 3 * SkillEntryRandoms);
+    // La segunda que se ve, la 0x11 del lugar 3: x 288 + 32 = 320.
+    const auto stepped = tested->Step(320 + 5, 0x172 + 5);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(tested->random.State(), expected.State());
+    EXPECT_EQ(tested->Ui().skillTooltip, 3);
+    EXPECT_EQ(tested->Ui().skillTooltipX, 320 + 0x10);
+    EXPECT_EQ(tested->Ui().skillTooltipY, 0x172);
+    EXPECT_EQ(tested->Ui().mouseOnUi, 1);
+    EXPECT_EQ(tested->Ui().skillListOpen, 1);
+    EXPECT_EQ(tested->world.Runtime().ownRecordDepth, 0);
+}
+
+TEST(GameUiTest, TheOpenSkillListWithoutSkillBmdIsACut)
+{
+    auto tested = std::make_unique<SteppingUi>();
+    tested->world.OwnCharacter().byte6a = 1;
+    tested->world.OwnCharacter().SetSkillAt(0, 5);
+    tested->Ui().skillListOpen = 1;
+    const auto stepped = tested->Step();
+    ASSERT_FALSE(stepped.HasValue());
+    EXPECT_NE(stepped.Error().find("0x5a07a3"), std::string::npos) << stepped.Error();
+}
+
+// 0x5a08c2..0x5a08f3: el clic sobre una skill de la lista se la da al héroe y cierra la lista con el 0x19.
+TEST(GameUiTest, TheClickOnTheListChoosesTheSkillAndClosesIt)
+{
+    auto tested = std::make_unique<SteppingUi>();
+    const auto skills = SkillsHiding({});
+    tested->skills = &skills;
+    auto& own = tested->world.OwnCharacter();
+    own.byte6a = 1;
+    own.SetSkillAt(4, 0x11);
+    tested->Ui().skillListOpen = 1;
+    tested->Click();
+    // Una sola: x 320 − 16 = 304.
+    const auto stepped = tested->Step(304, 0x172);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(tested->world.Actors()[0].skillIndex, 4);
+    EXPECT_EQ(tested->Ui().skillListOpen, 0);
+    EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x19);
+    EXPECT_FALSE(tested->world.Runtime().movement.pendingClick);
+    EXPECT_EQ(tested->world.Runtime().movement.mouseUpdateTimeMax, 6);
+}
+
+// 0x5a08fd..0x5a106e: Ctrl y un número sobre una skill de la lista le dan esa tecla, que deja la que la tenía. Con el
+// registro ya abierto por la barra, su acceso no cierra; el número también elige la skill (0x59f810).
+TEST(GameUiTest, CtrlAndADigitOverTheListGiveTheSkillThatKey)
+{
+    auto tested = std::make_unique<SteppingUi>();
+    const auto skills = SkillsHiding({});
+    tested->skills = &skills;
+    auto& own = tested->world.OwnCharacter();
+    own.byte6a = 1;
+    own.SetSkillAt(2, 0x11);
+    auto& keys = own.skillKeys[0];
+    keys.fill(0xff);
+    keys[7] = 3;
+    tested->Ui().skillListOpen = 1;
+    Press(tested->input, Key::CtrlLeft);
+    Press(tested->input, Key::Digit3);
+    const CrtRandom expected = Advanced(tested->random, BaseStepRandoms + SkillEntryRandoms + ChooseByKeyRandoms);
+    const auto stepped = tested->Step(304, 0x172);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(tested->random.State(), expected.State());
+    EXPECT_EQ(keys[2], 3);
+    EXPECT_EQ(keys[7], 0xff);
+    EXPECT_EQ(tested->world.Actors()[0].skillIndex, 2);
+}
+
+// 0x420e90 (desde 0x5a1084, con la lista abierta y alguna skill): con el cuervo, los cuatro botones de sus órdenes.
+TEST(GameUiTest, TheRavenOrderButtonsSitUnderTheList)
+{
+    auto tested = std::make_unique<SteppingUi>();
+    tested->world.Actors()[0].darkSpirit.emplace();
+    tested->world.OwnCharacter().byte6a = 1;
+    tested->Ui().skillListOpen = 1;
+    tested->Click();
+    ASSERT_TRUE(tested->Step(0x120 + 3, 0x14a + 3).HasValue());
+    EXPECT_EQ(tested->Ui().skillTooltip, 0x79);
+    EXPECT_EQ(tested->Ui().skillTooltipX, 0x130);
+    EXPECT_EQ(tested->Ui().skillTooltipY, 0x14a);
+    EXPECT_EQ(tested->world.Actors()[0].skillIndex, 0x79);
+    EXPECT_EQ(tested->Ui().skillListOpen, 0);
+}
+
+TEST(GameUiTest, WithoutTheRavenTheOrderButtonsAreNotThere)
+{
+    auto tested = std::make_unique<SteppingUi>();
+    tested->world.OwnCharacter().byte6a = 1;
+    tested->Ui().skillListOpen = 1;
+    ASSERT_TRUE(tested->Step(0x120 + 3, 0x14a + 3).HasValue());
+    EXPECT_EQ(tested->Ui().skillTooltip, -1);
+}
+
+// 0x59f810: el número elige la primera de las 64 skills con esa tecla en el lugar del elegido, con el registro
+// abierto y cerrado.
+TEST(GameUiTest, TheDigitsChooseTheSkillWithThatKey)
+{
+    auto tested = std::make_unique<SteppingUi>();
+    auto& own = tested->world.OwnCharacter();
+    own.SetSkillAt(1, 0x45); // de las 0x43 a 0x48: no
+    own.SetSkillAt(3, 0x11);
+    auto& keys = own.skillKeys[2];
+    keys.fill(0xff);
+    keys[1] = 2;
+    keys[3] = 2;
+    keys[5] = 2; // sin skill
+    Press(tested->input, Key::Digit2);
+    const CrtRandom expected = Advanced(tested->random, BaseStepRandoms + ChooseByKeyRandoms);
+    GameUiContext context{
+        .world = tested->world, .random = tested->random, .input = tested->input, .mouseX = 320, .mouseY = 100};
+    context.chosenSlot = std::uint8_t{2};
+    const auto stepped = Client::Scenes::StepTheGameUi(context);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(tested->random.State(), expected.State());
+    EXPECT_EQ(tested->world.Actors()[0].skillIndex, 3);
+}
+
+// 0x59f9c3: sin skill con la tecla, la primera orden del cuervo (0x78 a 0x7b) que la tenga.
+TEST(GameUiTest, WithoutASkillTheDigitChoosesTheRavenOrder)
+{
+    auto tested = std::make_unique<SteppingUi>();
+    auto& keys = tested->world.OwnCharacter().skillKeys[0];
+    keys.fill(0xff);
+    keys[0x7a] = 0;
+    Press(tested->input, Key::Digit0);
+    ASSERT_TRUE(tested->Step(320, 100).HasValue());
+    EXPECT_EQ(tested->world.Actors()[0].skillIndex, 0x7a);
+}
+
+// 0x59f91e..0x59f958: en cada lugar sin elegir, con el ataque automático y la skill del héroe 6 o 0xf, los blancos
+// 0x6c8e30 y 0x6c8e38 vuelven a −1, salvo en los mapas 6 y 18 a 23.
+TEST(GameUiTest, TheDigitsDropTheAutoTargetsOutsideTheArenaMaps)
+{
+    for (const auto& [map, dropped] : {std::pair{0, true}, std::pair{2, true}, std::pair{6, false},
+                                       std::pair{0x12, false}, std::pair{0x17, false}, std::pair{0x18, true}})
+    {
+        auto tested = std::make_unique<SteppingUi>();
+        auto& runtime = tested->world.Runtime();
+        runtime.map = map;
+        tested->Ui().autoAttack = true;
+        tested->world.OwnCharacter().SetSkillAt(0, 6);
+        tested->world.OwnCharacter().skillKeys[0].fill(0xff);
+        runtime.selectedTargets = {1, 2, 3, 4, 5};
+        Press(tested->input, Key::Digit4);
+        ASSERT_TRUE(tested->Step(320, 100).HasValue()) << map;
+        EXPECT_EQ(runtime.selectedTargets[2], dropped ? -1 : 3) << map;
+        EXPECT_EQ(runtime.selectedTargets[4], dropped ? -1 : 5) << map;
+        EXPECT_EQ(runtime.selectedTargets[0], 1) << map;
+    }
+}
+
+// 0x420e30: el Dark Lord con Shift y el 1 al 4 elige la orden del cuervo, y entonces los números no eligen skill.
+TEST(GameUiTest, TheDarkLordShiftDigitsChooseTheRavenOrder)
+{
+    auto tested = std::make_unique<SteppingUi>();
+    tested->world.Actors()[0].characterClass = 4;
+    Press(tested->input, Key::ShiftLeft);
+    Press(tested->input, Key::Digit3);
+    const CrtRandom expected = Advanced(tested->random, BaseStepRandoms);
+    ASSERT_TRUE(tested->Step(320, 100).HasValue());
+    EXPECT_EQ(tested->random.State(), expected.State());
+    EXPECT_EQ(tested->world.Actors()[0].skillIndex, 0x7a);
+
+    // Otra clase: el Shift no cuenta y el 3 va a 0x59f810.
+    auto other = std::make_unique<SteppingUi>();
+    other->world.Actors()[0].characterClass = 1;
+    Press(other->input, Key::ShiftLeft);
+    Press(other->input, Key::Digit3);
+    const CrtRandom chosen = Advanced(other->random, BaseStepRandoms + ChooseByKeyRandoms);
+    ASSERT_TRUE(other->Step(320, 100).HasValue());
+    EXPECT_EQ(other->random.State(), chosen.State());
+}
+
+// 0x5a1115..0x5a111c: con una skill que se carga (0x7d368a4 distinto de 0), ni los números (0x59f810, sin abrir el
+// registro propio) ni el Shift del Dark Lord (0x420e30) cambian la skill.
+TEST(GameUiTest, TheDigitsDoNotChooseWhileASkillCharges)
+{
+    for (const std::uint8_t heroClass : {std::uint8_t{1}, std::uint8_t{4}})
+    {
+        SCOPED_TRACE(int{heroClass});
+        auto tested = std::make_unique<SteppingUi>();
+        tested->world.Actors()[0].characterClass = heroClass;
+        tested->world.Actors()[0].skillIndex = 1;
+        auto& own = tested->world.OwnCharacter();
+        own.SetSkillAt(3, 0x11);
+        auto& keys = own.skillKeys[0];
+        keys.fill(0xff);
+        keys[3] = 3;
+        tested->Ui().rightHoldFrames = 5;
+        Press(tested->input, Key::ShiftLeft);
+        Press(tested->input, Key::Digit3);
+        const CrtRandom expected = Advanced(tested->random, BaseStepRandoms);
+        ASSERT_TRUE(tested->Step(320, 100).HasValue());
+        EXPECT_EQ(tested->random.State(), expected.State());
+        EXPECT_EQ(tested->world.Actors()[0].skillIndex, 1);
+        EXPECT_EQ(tested->Ui().rightHoldFrames, 5);
+    }
+}
+
+// 0x5a10e7..0x5a10f9: con el diálogo del zen (0x73) abierto, lo tecleado es del EDIT de [0x5763504] y los números no
+// eligen skill, sin mirar el foco.
+TEST(GameUiTest, TheDigitsDoNotChooseWithTheMoneyDialog)
+{
+    auto tested = std::make_unique<SteppingUi>();
+    auto& own = tested->world.OwnCharacter();
+    own.SetSkillAt(3, 0x11);
+    auto& keys = own.skillKeys[0];
+    keys.fill(0xff);
+    keys[3] = 3;
+    tested->world.Runtime().dialogs.current = 0x73;
+    Press(tested->input, Key::Digit3);
+    const CrtRandom expected = Advanced(tested->random, BaseStepRandoms);
+    const auto stepped = tested->Step(320, 100);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(tested->random.State(), expected.State());
+    EXPECT_EQ(tested->world.Actors()[0].skillIndex, 0);
 }
 
 TEST(GameUiTest, TheSiegePanelTogglesWithTabAndTakesTheMouse)
@@ -393,30 +809,40 @@ TEST(GameUiTest, TheSiegePanelPagesAndFades)
 TEST(GameUiTest, TheClickLatchKeepsTheEdgeUntilSomeoneUsesIt)
 {
     Client::Scenes::GameMovementState state;
-    Client::Scenes::LatchTheLeftButton(state, true, true, false);
+    Client::Scenes::LatchTheLeftButton(state, true, true);
     EXPECT_TRUE(state.pendingClick);
     EXPECT_TRUE(state.leftHeld);
     state.pendingClick = false;
     state.leftHeld = false;
     // El mismo botón abajo, sin otro WM_LBUTTONDOWN: nada vuelve.
-    Client::Scenes::LatchTheLeftButton(state, false, true, false);
+    Client::Scenes::LatchTheLeftButton(state, false, true);
     EXPECT_FALSE(state.pendingClick);
     EXPECT_FALSE(state.leftHeld);
-    Client::Scenes::LatchTheLeftButton(state, false, false, false);
+    Client::Scenes::LatchTheLeftButton(state, false, false);
     EXPECT_FALSE(state.leftHeld);
 }
 
-// 0x7d36849 (P-C182): lo prende el WM_LBUTTONDBLCLK que fue el último mensaje, lo apaga cualquiera que siga y, sin
-// mensajes, queda.
-TEST(GameUiTest, TheDoubleClickLastsUntilTheNextMessage)
+// El consumidor apagó 0x7d36874; WM_LBUTTONUP seguido de DOWN lo prende de nuevo, aunque se lean en un mismo pump.
+TEST(GameUiTest, AnUpDownBatchRearmsAHeldFlagConsumedByTheUi)
 {
-    Client::UI::GameUiState ui;
-    Client::Scenes::LatchTheDoubleClick(ui, true, true);
-    EXPECT_TRUE(ui.doubleClick);
-    Client::Scenes::LatchTheDoubleClick(ui, false, false);
-    EXPECT_TRUE(ui.doubleClick);
-    Client::Scenes::LatchTheDoubleClick(ui, true, false);
-    EXPECT_FALSE(ui.doubleClick);
+    Client::Input::InputState input;
+    Client::Scenes::GameMovementState state;
+    input.Apply({.kind = Client::Input::InputEvent::Kind::ButtonDown, .button = Client::Input::MouseButton::Left});
+    Client::Scenes::LatchTheLeftButton(state, input.MouseMessages().leftPress, input.MouseMessages().leftDown);
+    ASSERT_TRUE(state.leftHeld);
+    ASSERT_TRUE(state.previousLeftDown);
+    state.leftHeld = false;
+    state.pendingClick = false;
+    input.ConsumeEdges();
+    input.Apply({.kind = Client::Input::InputEvent::Kind::ButtonUp, .button = Client::Input::MouseButton::Left});
+    input.Apply({.kind = Client::Input::InputEvent::Kind::ButtonDown, .button = Client::Input::MouseButton::Left});
+    ASSERT_TRUE(input.MouseMessages().leftPress);
+    ASSERT_TRUE(input.MouseMessages().leftDown);
+
+    Client::Scenes::LatchTheLeftButton(state, input.MouseMessages().leftPress, input.MouseMessages().leftDown);
+
+    EXPECT_TRUE(state.leftHeld);
+    EXPECT_TRUE(state.pendingClick);
 }
 
 // WM_LBUTTONUP apaga el flanco (0x4b3ce3): sin usar, se pierde al soltar, y apretado y soltado en el mismo paso no
@@ -424,10 +850,10 @@ TEST(GameUiTest, TheDoubleClickLastsUntilTheNextMessage)
 TEST(GameUiTest, TheReleasedButtonDropsTheEdge)
 {
     Client::Scenes::GameMovementState state;
-    Client::Scenes::LatchTheLeftButton(state, true, true, false);
-    Client::Scenes::LatchTheLeftButton(state, false, false, false);
+    Client::Scenes::LatchTheLeftButton(state, true, true);
+    Client::Scenes::LatchTheLeftButton(state, false, false);
     EXPECT_FALSE(state.pendingClick);
-    Client::Scenes::LatchTheLeftButton(state, true, false, false);
+    Client::Scenes::LatchTheLeftButton(state, true, false);
     EXPECT_FALSE(state.pendingClick);
     EXPECT_FALSE(state.leftHeld);
 }
@@ -437,32 +863,47 @@ TEST(GameUiTest, TheReleasedButtonDropsTheEdge)
 // juego hasta el próximo WM_LBUTTONDOWN. En el mismo paso que el primer clic y su soltado, tampoco queda.
 TEST(GameUiTest, AHeldDoubleClickLeavesTheButtonUp)
 {
+    using Client::Input::InputEvent;
+    using Client::Input::MouseButton;
+    Client::Input::InputState input;
     Client::Scenes::GameMovementState state;
-    Client::Scenes::LatchTheLeftButton(state, true, true, false);
+    const auto latch = [&input](Client::Scenes::GameMovementState& latched)
+    {
+        Client::Scenes::LatchTheLeftButton(latched, input.MouseMessages().leftPress, input.MouseMessages().leftDown);
+        input.ConsumeEdges();
+    };
+    input.Apply({.kind = InputEvent::Kind::ButtonDown, .button = MouseButton::Left});
+    latch(state);
     EXPECT_TRUE(state.leftHeld);
     state.pendingClick = false;
-    Client::Scenes::LatchTheLeftButton(state, false, false, false);
-    Client::Scenes::LatchTheLeftButton(state, false, true, true);
+    input.Apply({.kind = InputEvent::Kind::ButtonUp, .button = MouseButton::Left});
+    latch(state);
+    input.Apply({.kind = InputEvent::Kind::ButtonDoubleClick, .button = MouseButton::Left});
+    latch(state);
     EXPECT_FALSE(state.leftHeld);
     EXPECT_FALSE(state.pendingClick);
     for (int step = 0; step < 3; ++step)
     {
-        Client::Scenes::LatchTheLeftButton(state, false, true, false);
+        latch(state);
         EXPECT_FALSE(state.leftHeld);
         EXPECT_FALSE(state.pendingClick);
     }
-    Client::Scenes::LatchTheLeftButton(state, false, false, false);
-    Client::Scenes::LatchTheLeftButton(state, true, true, false);
+    input.Apply({.kind = InputEvent::Kind::ButtonUp, .button = MouseButton::Left});
+    latch(state);
+    input.Apply({.kind = InputEvent::Kind::ButtonDown, .button = MouseButton::Left});
+    latch(state);
     EXPECT_TRUE(state.leftHeld);
     EXPECT_TRUE(state.pendingClick);
 
     // Abajo, arriba y el doble en el mismo paso: el WM_LBUTTONUP lo apagó y el WM_LBUTTONDBLCLK no lo prende.
+    Client::Input::InputState batch;
+    batch.Apply({.kind = InputEvent::Kind::ButtonDown, .button = MouseButton::Left});
+    batch.Apply({.kind = InputEvent::Kind::ButtonUp, .button = MouseButton::Left});
+    batch.Apply({.kind = InputEvent::Kind::ButtonDoubleClick, .button = MouseButton::Left});
     Client::Scenes::GameMovementState fast;
-    Client::Scenes::LatchTheLeftButton(fast, false, true, true);
+    Client::Scenes::LatchTheLeftButton(fast, batch.MouseMessages().leftPress, batch.MouseMessages().leftDown);
     EXPECT_FALSE(fast.leftHeld);
     EXPECT_FALSE(fast.pendingClick);
-    Client::Scenes::LatchTheLeftButton(fast, false, true, false);
-    EXPECT_FALSE(fast.leftHeld);
 }
 
 // 0x7d366ec: WM_LBUTTONUP lo prende con el mouse de ese momento y dura mientras el mouse no se mueva; WM_LBUTTONDOWN
@@ -497,7 +938,8 @@ public:
                                                                   .random = random,
                                                                   .ownRecordDepth = world.Runtime().ownRecordDepth,
                                                                   .targets = world.Runtime().selectedTargets,
-                                                                  .altDown = alt});
+                                                                  .altDown = alt,
+                                                                  .cameraPosition = {}});
     }
     WorldState world;
     CrtRandom random;

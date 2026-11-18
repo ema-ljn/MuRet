@@ -25,7 +25,8 @@
 namespace Client::Tests
 {
 // El último slot del texto, que ninguna escena usa.
-inline constexpr Render::TextureSlot TextMarkerSlot{static_cast<std::uint16_t>(Render::TextureSlotCount - 1)};
+inline constexpr Render::TextureSlot TextMarkerSlot{
+    static_cast<std::uint16_t>(Render::FirstTextTextureSlot.value + Render::TextTextureSlotCount - 1)};
 
 struct RecordedText
 {
@@ -40,6 +41,7 @@ struct RecordedText
     bool clampY = false;
     // Si vino por DrawColumns (0x467060 con un ancho): la primera columna del texto y las de la caja.
     bool windowed = false;
+    bool pixelPosition = false;
     int firstColumn = 0;
     int columns = 0;
 };
@@ -104,6 +106,26 @@ public:
                                           .width = static_cast<float>(columns),
                                           .height = static_cast<float>(Height),
                                           .scalePosition = true});
+    }
+
+    void DrawColumnsAtPixels(int pixelX, int pixelY, std::string_view text, const Render::Text::TextStyle& style,
+                             int firstColumn, int columns) override
+    {
+        texts.push_back(RecordedText{.x = pixelX,
+                                     .y = pixelY,
+                                     .text = std::string(text),
+                                     .style = style,
+                                     .windowed = true,
+                                     .pixelPosition = true,
+                                     .firstColumn = firstColumn,
+                                     .columns = columns});
+        if (columns <= 0)
+            return;
+        m_batch.Quad(Render::OriginalQuad{.slot = TextMarkerSlot,
+                                          .x = static_cast<float>(pixelX),
+                                          .y = static_cast<float>(pixelY),
+                                          .width = static_cast<float>(columns),
+                                          .height = static_cast<float>(Height)});
     }
 
     // La marca va donde la deja 0x554000 (BoxedQuad), en píxeles, aunque el texto esté vacío.

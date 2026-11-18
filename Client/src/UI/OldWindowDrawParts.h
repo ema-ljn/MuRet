@@ -4,6 +4,7 @@
 #include "UI/OldControls.h"
 #include "UI/OldWindowBase.h"
 #include "UI/OldWindowDraw.h"
+#include "UI/OldWindows.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -23,6 +24,9 @@ class SpriteBatch;
 // (hito 10). Todo en 640 × 480.
 namespace Client::UI::OldDraw
 {
+// Los mensajes de recolocación pueden crear un EDIT y cambiar el foco dentro de la misma pasada de dibujo.
+[[nodiscard]] OldWindowDrawView WithCurrentFocus(const OldWindowManager& manager, const OldWindowDrawView& view);
+
 // _ftol (0x69fd3c): trunca hacia el 0.
 [[nodiscard]] std::int32_t Truncate(double value);
 
@@ -101,13 +105,14 @@ void DrawTheChosenRow(const OldWindowDrawContext& context, const OldList& list, 
 
 // 0x468320, la vtable + 0x14 del EDIT, con lo que MuRet tiene de él (P-C181): la caja del bitmap del EDIT en el color
 // de +0xa0 (sin +0xc4, el ancho del texto más +0xa8 + 1,5, hasta el del EDIT, y su alto; con +0xc4, todo el ancho y,
-// con menos renglones que +0xd0, el alto de los renglones), el texto en el de +0x9c con la fuente normal (con +0xc4,
-// los renglones de UI/OldEditLines.h desde el primero a la vista), y el cursor: la columna que está más de
-// GetCaretPos y menos de GetCaretPos + +0xa8 (0x468805..0x46881d: con 1,5, una sola) y las filas del alto de "Q"
-// (+0xac), al final del texto, prendido 12 de cada 24 dibujos con el foco de Windows; con +0xc4 en 1, la barra
-// (0x468970) con el mouse de `view`; +0x80 cuenta los dibujos. Con +0x4c & 8, antes, el negro de su ancho y del alto
-// de "Q". Sin la contraseña (+0xb0, con '*' y la fuente 0x5763558), que ninguno de los de las ventanas viejas usa; el
-// bitmap de más de 256 píxeles, que el original parte en dos texturas, es el mismo dibujo.
+// con menos renglones que +0xd0, el alto de los renglones), el texto en el de +0x9c con la fuente normal, 3 píxeles
+// adentro (con +0xc4, los renglones de UI/OldEditLines.h desde el primero a la vista, cada uno con el alto de "Q"), y
+// el cursor: la columna de GetCaretPos (0x468805..0x46881d: con 1,5, una sola) en el renglón del cursor, con la tinta
+// del texto en el fondo y lo demás en 0xffc8c8c8, prendido 12 de cada 24 dibujos con el foco de Windows; con +0xc4 en
+// 1, la barra (0x468970) con el mouse de `view`; +0x80 cuenta los dibujos. Con +0x4c & 8, antes, el negro de su ancho
+// y del alto de "Q". Con la contraseña (+0xb0, TextField::Masked: el segundo EDIT de los diálogos, CL9 hito 8), un '*'
+// por byte, el ancho medido en la negrita (0x5763558) y el DC con la normal después. El bitmap de más de 256 píxeles,
+// que el original parte en dos texturas, es el mismo dibujo.
 void DrawTheOldEdit(const OldWindowDrawContext& context, OldEdit& edit, bool focused,
                     const OldWindowDrawView& view = {});
 

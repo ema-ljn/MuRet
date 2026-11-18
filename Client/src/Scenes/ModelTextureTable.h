@@ -20,6 +20,8 @@ class ModelTextureTable final
 {
 public:
     void Bind(Render::ITextureStore& store);
+    // El backend que ligó Bind; nullptr antes.
+    [[nodiscard]] Render::ITextureStore* Store() const;
     void Seed(const Render::Models::ModelTextureSlots& slots, const IModelLibrary* models);
     [[nodiscard]] Render::Models::ModelTextureSlots& Slots();
     [[nodiscard]] const Render::Models::ModelTextureSlots& Slots() const;

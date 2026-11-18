@@ -456,17 +456,20 @@ void DrawTheFriendList(const OldWindowDrawContext& context, OldList& list, const
                                 .tail = {}});
 }
 
-void DrawTheFriendsWindow(OldWindowManager& manager, OldWindow& window, const OldWindowDrawContext& context,
-                          const OldWindowDrawView& view)
+Core::Expected<void, std::string> DrawTheFriendsWindow(OldWindowManager& manager, OldWindow& window,
+                                                       const OldWindowDrawContext& context,
+                                                       const OldWindowDrawView& view)
 {
-    SettleTheFriendsForTheDraw(manager, window);
+    if (auto settled = SettleTheFriendsForTheDraw(manager, window, view); !settled.HasValue())
+        return settled;
+    const OldWindowDrawView currentView = OldDraw::WithCurrentFocus(manager, view);
     const std::int32_t current = window.friends.currentTab;
     if (current == FriendTabNumber)
-        DrawTheFriendTab(manager, window.tabs[FriendTabNumber], context, view);
+        DrawTheFriendTab(manager, window.tabs[FriendTabNumber], context, currentView);
     else if (current == WindowsTabNumber)
-        DrawTheWindowsTab(window.tabs[WindowsTabNumber], context, view);
+        DrawTheWindowsTab(window.tabs[WindowsTabNumber], context, currentView);
     else if (current == LettersTabNumber)
-        DrawTheLettersTab(manager, window.tabs[LettersTabNumber], context, view);
+        DrawTheLettersTab(manager, window.tabs[LettersTabNumber], context, currentView);
     Render::SpriteBatch& sprites = context.sprites;
     sprites.SetBlend(Render::BlendMode::Alpha);
     SetThePalette(sprites, BlackIndex, 1.0f);
@@ -482,17 +485,23 @@ void DrawTheFriendsWindow(OldWindowManager& manager, OldWindow& window, const Ol
     context.textColors.background = 0;
     DrawTheHeaderTitles(window, context);
     DrawTheStateButton(manager, window, context, view);
+    return {};
 }
 
-void DrawTheAddFriendBox(OldWindowManager& manager, OldWindow& box, const OldWindowDrawContext& context,
-                         const OldWindowDrawView& view)
+Core::Expected<void, std::string> DrawTheAddFriendBox(OldWindowManager& manager, OldWindow& box,
+                                                      const OldWindowDrawContext& context,
+                                                      const OldWindowDrawView& view)
 {
-    SettleTheFriendsForTheDraw(manager, box);
+    if (auto settled = SettleTheFriendsForTheDraw(manager, box, view); !settled.HasValue())
+        return settled;
+    const OldWindowDrawView currentView = OldDraw::WithCurrentFocus(manager, view);
     for (const OldButton& button : box.add.buttons)
         DrawTheButton(context, button, view);
     context.sprites.SetBlend(Render::BlendMode::Alpha);
     OldEdit& edit = box.add.edit;
-    OldDraw::DrawTheOldEdit(context, edit, view.focusedEdit != 0 && view.focusedEdit == edit.base.id, view);
+    OldDraw::DrawTheOldEdit(context, edit, currentView.focusedEdit != 0 && currentView.focusedEdit == edit.base.id,
+                            currentView);
     context.sprites.SetBlend(Render::BlendMode::Opaque);
+    return {};
 }
 } // namespace Client::UI

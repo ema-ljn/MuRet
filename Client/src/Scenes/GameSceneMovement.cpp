@@ -4,6 +4,8 @@
 #include "Data/Models/PlayerModels.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
+#include "Protocol/Outgoing.h"
+#include "Input/MouseMessageState.h"
 #include "Scenes/FaunaStep.h"
 #include "Scenes/FaunaEffects.h"
 #include "Scenes/FaunaModels.h"
@@ -17,14 +19,17 @@
 #include "UI/Widget.h"
 #include "UI/GameCursor.h"
 #include "World/TerrainPicking.h"
+#include "World/TerrainPickingState.h"
 #include "World/TerrainPickingTarget.h"
 #include "World/TerrainCells.h"
 #include "World/WorldTerrain.h"
+#include <glm/ext/vector_float3.hpp>
 #include <chrono>
 #include <cstdint>
 #include <optional>
 #include <ratio>
 #include <string>
+#include <utility>
 
 namespace Client::Scenes
 {
@@ -43,31 +48,11 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
         .items = m_items,
         .skills = m_skills,
         .gates = m_gates,
-        .input = {mouse.x, mouse.y, false, input.IsDown(Input::MouseButton::Left), input.IsDown(Input::Key::Shift),
-                  static_cast<float>(ticks), static_cast<std::uint32_t>(ticks)},
-        .fixedHeight = CameraState().fixedHeight};
-    context.pickTarget = [&]() -> Core::Expected<std::optional<GameLogic::PathCell>, std::string>
-    {
-        if (!m_mouseRay)
-            return std::optional<GameLogic::PathCell>{};
-        const auto& terrain = world.Map().terrain;
-        World::TerrainView view;
-        view.mapping = terrain.mapping.get();
-        view.heights = terrain.heights.get();
-        view.attributes = terrain.attributes.get();
-        view.lighting = &world.DynamicLighting().Lighting();
-        view.map = static_cast<std::uint8_t>(world.Runtime().map);
-        view.fixedHeight = CameraState().fixedHeight;
-        World::TerrainPickingTarget target;
-        const auto picked = World::PickTerrainTarget(m_picking, target, view, m_terrainRange,
-                                                     world.Runtime().terrainPolygon, *m_mouseRay);
-        if (!picked.HasValue())
-            return Core::Unexpected(picked.Error());
-        if (!picked.Value())
-            return std::optional<GameLogic::PathCell>{};
-        return std::optional{
-            GameLogic::PathCell{static_cast<std::uint8_t>(target.x), static_cast<std::uint8_t>(target.y)}};
-    };
+        .input = {mouse.x, mouse.y, false, input.MouseMessages().leftDown, input.IsDown(Input::Key::Shift),
+                  static_cast<float>(ticks), static_cast<std::uint32_t>(ticks), input.IsDown(Input::Key::Ctrl)},
+        .fixedHeight = CameraState().fixedHeight,
+        .models = m_models};
+    context.pickTarget = [this] { return GroundUnderTheMouse(); };
     context.sendWalk = [&](auto cells, auto target, float angle) -> Core::Expected<void, std::string>
     {
         if (!m_session)
@@ -78,12 +63,85 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
         context.requestGate = [&](std::uint8_t gate) { m_session->RequestGate(gate); };
     if (m_session)
         context.sendFacing = [&](std::uint8_t direction) { return m_session->SendFacing(direction); };
+    // El D7 de pegar al llegar (0x5650c0, CL9 hito 3).
     if (m_session)
+        context.sendAttack = [&](std::uint16_t key, std::uint8_t action, std::uint8_t direction)
+        { return m_session->SendAttack(key, action, direction); };
+    if (m_session)
+        context.sendElfCell = [&](std::uint8_t x, std::uint8_t y) { return m_session->SendElfCell(x, y); };
+    if (m_session)
+    {
+        // CL9 hito 11: el C1 03 97 va por la sesión; SetCursorPos queda pedido en GameMovementState::cursorWarpRequest.
+        context.sendEventWindowLeave = [&]() { return m_session->SendEventWindowLeave(); };
+        context.sendWindowClose = [&]() { m_session->SendWindowClose(); };
+        context.sendGamePacket = [&](Protocol::Outgoing outgoing) { m_session->SendGamePacket(std::move(outgoing)); };
+        context.requestQuestList = [&]() { m_session->RequestQuestList(); };
+        context.sendTalk = [&](std::int16_t key) { m_session->SendTalk(key); };
         context.sendAction = [&](std::uint8_t direction, std::uint8_t action)
         { m_session->SendAction(direction, action); };
+    }
+    // 0x57ceea: la skill sin elegido apunta al terreno bajo el mouse: 0x5fc260(1), el barrido, y 0x5fac90, el reintento
+    // sobre la celda elegida; el punto es el que deja el barrido (0x7d366e0..0x7d366e8). *Inferido*: el mismo par que
+    // el clic (PickTerrainTarget) después de un PickTerrain del paso.
+    context.pickTerrainPoint = [&]() -> Core::Expected<std::optional<glm::vec3>, std::string>
+    {
+        if (!m_mouseRay)
+            return std::optional<glm::vec3>{};
+        const auto& terrain = world.Map().terrain;
+        World::TerrainView view;
+        view.mapping = terrain.mapping.get();
+        view.heights = terrain.heights.get();
+        view.attributes = terrain.attributes.get();
+        view.lighting = &world.DynamicLighting().Lighting();
+        view.map = static_cast<std::uint8_t>(world.Runtime().map);
+        view.fixedHeight = CameraState().fixedHeight;
+        if (auto swept =
+                World::PickTerrain(m_picking, view, m_terrainRange, world.Runtime().terrainPolygon, *m_mouseRay);
+            !swept.HasValue())
+            return Core::Unexpected(std::move(swept).Error());
+        World::TerrainPickingTarget target;
+        const auto picked = World::PickTerrainTarget(m_picking, target, view, m_terrainRange,
+                                                     world.Runtime().terrainPolygon, *m_mouseRay);
+        if (!picked.HasValue())
+            return Core::Unexpected(picked.Error());
+        if (!picked.Value())
+            return std::optional<glm::vec3>{};
+        return std::optional{m_picking.hit};
+    };
+    if (m_session)
+    {
+        context.sendSkill = [session = m_session](Protocol::Outgoing packet) { session->SendChat(std::move(packet)); };
+        context.playerKey = m_session->PlayerIndex();
+    }
+    context.texts = m_texts;
+    context.measure = m_context.textMeasure;
+    context.screen = m_screen;
     const InventoryServices inventory = InventoryContext();
     context.inventory = &inventory;
     return StepHeroMovement(context);
+}
+
+Core::Expected<std::optional<GameLogic::PathCell>, std::string> GameScene::GroundUnderTheMouse()
+{
+    if (!m_mouseRay)
+        return std::optional<GameLogic::PathCell>{};
+    WorldState& world = *m_context.world;
+    const auto& terrain = world.Map().terrain;
+    World::TerrainView view;
+    view.mapping = terrain.mapping.get();
+    view.heights = terrain.heights.get();
+    view.attributes = terrain.attributes.get();
+    view.lighting = &world.DynamicLighting().Lighting();
+    view.map = static_cast<std::uint8_t>(world.Runtime().map);
+    view.fixedHeight = CameraState().fixedHeight;
+    World::TerrainPickingTarget target;
+    const auto picked =
+        World::PickTerrainTarget(m_picking, target, view, m_terrainRange, world.Runtime().terrainPolygon, *m_mouseRay);
+    if (!picked.HasValue())
+        return Core::Unexpected(picked.Error());
+    if (!picked.Value())
+        return std::optional<GameLogic::PathCell>{};
+    return std::optional{GameLogic::PathCell{static_cast<std::uint8_t>(target.x), static_cast<std::uint8_t>(target.y)}};
 }
 
 Core::Expected<void, std::string> GameScene::StepTheFauna()
@@ -111,8 +169,9 @@ Core::Expected<void, std::string> GameScene::StepTheFauna()
     auto* slots = m_worldModels.TextureSlots();
     if (!slots)
         return Core::Unexpected(std::string("612d90: falta la tabla de texturas del mundo"));
-    const FaunaModelLoadContext resources{m_context.dataRoot, m_context.textures, m_context.log, *slots,
-                                          &world.FaunaResources().TextureTable()};
+    const FaunaModelLoadContext resources{
+        m_context.dataRoot,          m_context.textures, m_context.log, *slots, &world.FaunaResources().TextureTable(),
+        &world.Runtime().modelSounds};
     context.effects = BindFaunaStepEffects(world.FaunaResources(), resources, world.DrawTail().joints,
                                            world.Map().effects, m_context.cloth->random);
     return StepGameFauna(context);

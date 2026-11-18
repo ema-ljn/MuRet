@@ -6,6 +6,7 @@
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/SkillTable.h"
 #include "Data/Text/TextTable.h"
+#include "GameLogic/PathCell.h"
 #include "Scenes/FaunaDrawing.h"
 #include "World/SphereFrustum.h"
 #include "World/TerrainPickingState.h"
@@ -18,7 +19,7 @@
 #include "Scenes/IScene.h"
 #include "Scenes/OriginalFramesOfTheSteps.h"
 #include "Scenes/GroundEffectFrame.h"
-#include "Scenes/CharacterCloth.h"
+#include "Scenes/GuildMarks.h"
 #include "World/Sprites.h"
 #include "World/ModelEffects.h"
 #include "Scenes/SceneCanvas.h"
@@ -40,7 +41,6 @@
 #include <optional>
 #include <string>
 #include <span>
-#include <vector>
 
 // Escena5: entrada F303, espera de gates y ciclos de lógica/dibujo sobre WorldState.
 // La espera retiene la presentación, pero no interrumpe las fases posteriores a MoveHero.
@@ -75,6 +75,8 @@ inline constexpr Render::ViewportRect GameWorldViewport{0, 0, 640, 432};
 struct GameChatTables
 {
     std::span<const std::string> filter{};
+    // FilterName.bmd: lo que mira 0x622c70 en el nombre del gremio nuevo (la ventana 2 del gremio, 0x654f80).
+    std::span<const std::string> filterName{};
     const Data::Tables::ItemSetOptionTable* setOptions = nullptr;
     // ItemSetType.bmd e ItemSetOption.bmd enteras (0x40c600): las lee 0x550d10 al abrir el personaje (0x65ca1e) desde
     // el paso de la UI. nullptr si no se cargaron: 0x550d10 corta en 0x40e1b0.
@@ -141,11 +143,14 @@ private:
     [[nodiscard]] GameChatContext ChatContext();
     // Lo que levantar, soltar y equipar piden afuera: los de SceneContext::worldEntry y el envío del 24
     // (App::ServerSession::SendItemMove).
-    [[nodiscard]] InventoryServices InventoryContext() const;
+    [[nodiscard]] InventoryServices InventoryContext();
+    // 0x5fc260(1) y 0x5fac90 con el rayo del mouse (MoveHero y el C1 23): la celda del terreno bajo el mouse o nada.
+    [[nodiscard]] Core::Expected<std::optional<GameLogic::PathCell>, std::string> GroundUnderTheMouse();
     // 0x636da3..0x63717f: el paso con el mundo cargado, hasta su primer corte.
     [[nodiscard]] Core::Expected<void, std::string> StepWorld(const Input::InputState& input);
     [[nodiscard]] Core::Expected<void, std::string> StepTheFloorItems(float worldClock);
-    [[nodiscard]] Core::Expected<void, std::string> StepTheCharacters(float worldClock);
+    // `controlDown`: Ctrl, para 0x558eb0 en la habilidad del héroe (CL9 hito 3).
+    [[nodiscard]] Core::Expected<void, std::string> StepTheCharacters(float worldClock, bool controlDown);
     // `terrainHeight` es la altura de 0x5f93c0 que pide la mariposa 0xae del 54 (0x520dad).
     [[nodiscard]] Core::Expected<void, std::string>
     StepTheModelEffects(float worldClock, const std::function<double(float, float)>& terrainHeight);
@@ -220,6 +225,8 @@ private:
     // Las texturas de la escena: los cursores 2 y 3 con las ventanas, y las arenas del HUD.
     SceneTextures m_windowTextures;
     SceneTextures m_sandTextures;
+    // Las marcas de los gremios (0x5f16a0), cada una en su slot de la tabla de la escena.
+    GuildMarkTextures m_guildMarks;
     bool m_sent = false;
     bool m_firstStep = true;
     bool m_holdFrame = true;
@@ -228,8 +235,11 @@ private:
     World::GameCameraInput m_localCameraInput;
     // Los frames del original, por los pasos de la escena (#307).
     OriginalFramesOfTheSteps m_cameraFrames;
+    // 0x4eb620: un frame del original empieza con el primer paso después del dibujo que lo fue; el timeGetTime() del
+    // anterior, para la espera de las skills (CL9 hito 4).
+    bool m_frameStarts = true;
+    std::optional<std::uint32_t> m_lastFrameStart;
     GroundEffectFrame m_groundEffects;
-    std::vector<CharacterCloth> m_characterCloths;
     World::FrameSprites m_sprites;
     World::FrameSprites m_spriteReplay;
     bool m_spriteReplayValid = false;

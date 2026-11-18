@@ -59,8 +59,9 @@ struct ActorPlacement
 // de la celda, la posición en el centro de la celda con la Z de ConstructionHeight, el ángulo, el
 // estado de partida (con +0x358 en 0) y las partes del equipo sin ítem. Cada acceso de la tabla de protección (las dos
 // escrituras de la celda, sus cuatro lecturas y la del contador de pasos) se abre y se cierra, y gasta
-// 4 rand() de `cloth` si queda sin accesos: 28 desde cero. No toca la clave (+0x1f4). También admite
-// los NewFace: conservan la clase y arrancan en la acción 0. Otro tipo corta sin tocar el personaje.
+// 4 rand() de `cloth` si queda sin accesos: 28 desde cero. No toca la clave (+0x1f4). Cualquier tipo (CL9 hito 2):
+// solo el 0x20a arranca en la acción 1 y solo los NewFace conservan la clase; la caja (+0x124..+0x138) y los huesos de
+// las manos (+0x2bd y +0x2dd) van por las tablas del tipo, con 0x43a250 y 0x42d7f0 en el caso 0x5126b2.
 [[nodiscard]] Core::Expected<void, std::string> ConstructActor(ActorState& actor, std::uint16_t type,
                                                                const ActorPlacement& placement,
                                                                const ActorConstructionContext& context,

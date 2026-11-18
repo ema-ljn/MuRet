@@ -30,11 +30,13 @@
 // la vtable es una función de acá con la dirección del método de cada clase. Los std::map, std::list y std::deque de
 // la STL de MSVC6 del original son los de la STL de MuRet, con el mismo orden. Los del hito 9: el std::deque<WindowRow>
 // de la pestaña de las ventanas (el erase y sus iteradores: 0x474070, 0x474460, 0x478640, 0x4786d0, 0x478750, 0x478d00,
-// 0x489d80 y 0x489e20) y los dos std::map del administrador (insert, lower_bound, ++ y erase: 0x4a81f0, 0x4a95e0,
-// 0x4aa0b0, 0x4aa7a0 y 0x4aaf40). Los destructores de la ventana de amigos, la caja de agregar, las pestañas y su
+// 0x489d80 y 0x489e20) y los dos std::map del administrador (0x4a95e0, 0x4aa7a0 y 0x4aaf40). 0x4a81f0 y 0x4aa0b0
+// usan otro mapa, el de cartas/chats del hito 10 (sentinel 0x576308c, frente a 0x5763094 del de ventanas).
+// Los destructores de la ventana de amigos, la caja de agregar, las pestañas y su
 // base, el marco, la lista de amigos, la de ventanas y el EDIT (0x4621e0, 0x467710, 0x488090, 0x488660, 0x488690,
 // 0x48fb30, 0x48fb80, 0x48fbb0, 0x48fc50, 0x48fcf0, 0x48fd60, 0x48fe30, 0x48fe60, 0x48ff00, 0x48ff30, 0x4900b0,
-// 0x4900e0 y 0x491d50) son el de C++ al soltar la ventana (0x490200); el EDIT de MuRet no tiene HWND que destruir.
+// 0x4900e0 y 0x491d50) liberan recursos por valor al soltar la ventana (0x490200). Además se conserva la limpieza del
+// global del botón (0x45adf0); el destructor del EDIT nativo 0x467710 no destruye su HWND ni cambia el foco (H09-U1).
 //
 // La CL9 (hito 9) agrega la ventana de amigos (vtable 0x6b9d6c) con sus tres pestañas (0x6b9e24, la de los amigos;
 // 0x6b9edc, la de las ventanas, y 0x6b9f38, la de las cartas, que es del hito 10) y la caja de agregar un amigo
@@ -348,6 +350,9 @@ enum class OldWindowKind : std::uint8_t
 
 struct OldWindow
 {
+    // Identidad de la asignación, distinta del ID nativo reutilizable. Sustituye los punteros del segundo mapa
+    // sin enlazar una entrada vieja a otra ventana al copiar el administrador o después del wrap del contador.
+    std::uint64_t allocationId = 0;
     OldWindowKind kind = OldWindowKind::Frame;
     OldWindowBase base;
     OldFrame frame;
@@ -362,14 +367,34 @@ struct OldWindow
     OldLetterPart letter;
 };
 
+// 0x48f6f2..0x48f6f5 y 0x49090c..0x49090e: las dos tablas comparan los 32 bits del ID sin signo.
+struct OldWindowIdLess
+{
+    [[nodiscard]] bool operator()(std::int32_t left, std::int32_t right) const
+    {
+        return static_cast<std::uint32_t>(left) < static_cast<std::uint32_t>(right);
+    }
+};
+
+struct OldTabReference
+{
+    std::int32_t ownerId = 0;
+    std::uint64_t allocationId = 0;
+};
+
 // El administrador, *(0x5763514), y los globales de las ventanas viejas que solo usa él.
 struct OldWindowManager
 {
     // +0x4c: las ventanas por id.
-    std::map<std::int32_t, OldWindow> windows;
-    // +0x5c: el segundo mapa, las pestañas de la de amigos (0x4908d0, desde 0x4a2280), con el id de la ventana que las
-    // tiene. Nadie las saca al soltarla (Q-C884): una que ya no está no se encuentra.
-    std::map<std::int32_t, std::int32_t> tabs;
+    std::map<std::int32_t, OldWindow, OldWindowIdLess> windows;
+    // +0x5c: el segundo mapa guarda punteros a las pestañas (0x4908d0). La referencia a la asignación conserva
+    // esa identidad por valor: la primera entrada gana y ni 0x490200 ni Reset (0x48ea50) la borran.
+    std::map<std::int32_t, OldTabReference, OldWindowIdLess> tabs;
+    // 0x48f7b2 rechaza un ID duplicado sin destruir el objeto nuevo; sus pestañas ya están en el segundo mapa.
+    // Se retiene hasta destruir el administrador, también al copiar la proyección del dibujo y al hacer Reset.
+    std::list<OldWindow> unregisteredWindows;
+    // Metadato de ownership de MuRet; no se reinicia con el contador nativo ni con Reset.
+    std::uint64_t lastAllocationId = 0;
     // +0x80: los ids de abajo hacia arriba; la última es la de arriba.
     std::list<std::int32_t> order;
     // +0x08..+0x3c: la cola de mensajes del administrador y el que atiende.
@@ -379,7 +404,7 @@ struct OldWindowManager
     std::int32_t drawn = 0;
     // +0x44: la que tiene el foco.
     std::int32_t focus = 0;
-    // +0x48: la ventana de amigos.
+    // +0x48: el ID de la ventana de amigos (0x48eff1..0x48eff6), no su puntero.
     std::int32_t friends = 0;
     // +0xa8: F6 escondió las ventanas.
     std::int32_t hiddenByF6 = 0;
@@ -421,6 +446,10 @@ struct OldWindowManager
     std::int32_t nextReadY = -1;
     // El EDIT de las ventanas viejas con el foco del teclado (GetFocus, con ChatFocus::OldWindow): su id.
     std::int32_t focusedEdit = 0;
+    // Snapshot de MuRet para el EDIT enfocado cuyo wrapper ya se destruyó; conserva solo el estado del control que
+    // sigue recibiendo entrada, no el HWND filtrado del original.
+    bool focusedEditIsOrphan = false;
+    std::optional<OldEdit> orphanedEdit;
     // 0x5762ebc: la caja modal. Con una, la fábrica no arma otra.
     std::int32_t modal = 0;
     // 0x5762eb0: el último id que dio 0x459ef0.
@@ -449,14 +478,15 @@ struct OldWindowGlobals
     ChatFocus& keyboardFocus;
     std::optional<std::int32_t>& sound;
     // 0x5762ec0 (la lista que toma las flechas), 0x7d366d8 (la rueda), 0x7d36880 (el clic derecho) y 0x7d36849 (el
-    // doble clic, P-C182).
+    // doble clic, alimentado por SDL como el WM_LBUTTONDBLCLK: P-C182/P-C187).
     std::int32_t& focusedList;
     std::int32_t& wheel;
     bool& rightClick;
     bool& doubleClick;
-    // 0x77f3b10 y 0x6c8dcc (Scenes::GameMovementState): el clic sobre un EDIT los pone en 0 y en 6 (0x4690e0).
-    std::int32_t& mouseUpdateTime;
-    std::int32_t& mouseUpdateTimeMax;
+    // 0x77f3b10 y 0x6c8dcc (Scenes::GameMovementState): el clic sobre un EDIT los pone en 0 y en 6 (0x4690e0). Sin
+    // ellos (un paso sin el juego), no se tocan.
+    std::int32_t* mouseUpdateTime = nullptr;
+    std::int32_t* mouseUpdateTimeMax = nullptr;
 };
 
 // Lo que mandan las ventanas de amigos (Protocol/Friends; Scenes lo arma y lo manda por la sesión).
@@ -628,8 +658,10 @@ StepTheWindowList(OldWindowManager& manager, const OldWindowGlobals& globals, co
 [[nodiscard]] Core::Expected<void, std::string>
 StepTheOldWindows(OldWindowManager& manager, const OldWindowGlobals& globals, const OldWindowStepView& view);
 
-// 0x490200: saca la ventana del mapa, de la lista y de las cajas, y la suelta.
-[[nodiscard]] Core::Expected<void, std::string> DestroyTheOldWindow(OldWindowManager& manager, std::int32_t id);
+// 0x490200: saca la ventana del mapa, de la lista y de las cajas, y la suelta; 0x45adf0 libera la pulsación de sus
+// botones, preservando un botón ajeno que siga vivo.
+[[nodiscard]] Core::Expected<void, std::string> DestroyTheOldWindow(OldWindowManager& manager, std::int32_t id,
+                                                                    std::int32_t& pressedButton);
 
 // 0x4906a0(esconder, con la de amigos): esconde (state 3) o vuelve a mostrar las que escondió F6; si una que escondió
 // ya no está (la de amigos que soltó 0x4905a2), abre la de amigos con view->openFriends.
@@ -643,10 +675,11 @@ void ForgetTheHiddenWindows(OldWindowManager& manager);
 
 // 0x48ea50, el primer paso del juego (0x636290): suelta todas las ventanas y vacía las listas, la modal en 0, y +0xe4,
 // +0xe8 (en 1), +0xec (990), +0xf0 y +0xe0. El C4 02 que manda con 0x6c7b8c en 0 no corre nunca (Q-C886).
-void ResetTheOldWindows(OldWindowManager& manager);
+void ResetTheOldWindows(OldWindowManager& manager, std::int32_t& pressedButton);
 
 // 0x4914e0: suelta la ventana de amigos, si hay.
-[[nodiscard]] Core::Expected<void, std::string> DropTheFriendsWindow(OldWindowManager& manager);
+[[nodiscard]] Core::Expected<void, std::string> DropTheFriendsWindow(OldWindowManager& manager,
+                                                                     std::int32_t& pressedButton);
 
 // 0x45aa50(8, 0, 0) sobre los dos botones de una caja: los vuelve a ubicar contra ella (0x4a3a50 y 0x4a3a90).
 void SettleTheButtons(OldWindowManager& manager, OldWindow& box);

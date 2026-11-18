@@ -17,6 +17,7 @@
 #include "Protocol/Character/CharacterList.h"
 #include "Protocol/Connection/ServerList.h"
 #include "Protocol/Dispatcher.h"
+#include "Protocol/FloorItems.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/Movement.h"
 #include "Protocol/OptionData.h"
@@ -97,6 +98,8 @@
 //   con el GS --F1 02 con 1 cifrado: aplica en el sink la vuelta a la selección y manda F3 00 y dos
 //     C1 03 31--> WaitingCharacterList (Q-C211 a Q-C215)
 //   con el GS --F1 02 con 1 en claro: manda F1 03 00 F1--> el mismo estado (Q-C211)
+//   con el GS --F1 02 con 2: limpia el juego en escena 5; cifrado, cierra el GS y ordena login con
+//     estado Idle. LoginScene::Enter conecta al CS. En claro, sólo reporta F1 03 después de la limpieza.
 //   cualquier Waiting* que espera un servidor --ReplyTimeout sin su respuesta: cierra--> Failed
 //     (NoReply); ChoosingServer, WaitingCredentials y ChoosingCharacter esperan al jugador y no
 //     tienen tope; EnteringWorld tampoco, como el mosaico del original mientras no llega la
@@ -109,7 +112,7 @@
 // manda al final de su cuenta de 5 s (gObjCloseSet) y justo después cierra la conexión: ese cierre
 // ya no es GameServerLost, porque la sesión cerró antes y deja el resto del lote, como el original,
 // que al cerrar vacía su cola de paquetes (0x4e8380). QuitOrdered es el final: ni Start la saca. Con
-// 2 (la lista, Q-C79) se ignora con un aviso hasta la CL9.
+// 2 vuelve a la lista de servidores, por la escena de login (Q-C79).
 //
 // El F1 02 con 1 vuelve a la selección, también en cualquier estado con el GS y sin mirar la escena
 // (0x4c2710). Cifrado, el sink limpia el juego y deja la orden de la escena 4 (Scenes::ApplyReturnToSelection),
@@ -235,6 +238,11 @@ public:
     [[nodiscard]] Core::Expected<void, std::string> SendWalk(std::span<const Protocol::Movement::Cell> path,
                                                              Protocol::Movement::Cell target, float angle);
     [[nodiscard]] Core::Expected<void, std::string> SendFacing(std::uint8_t direction);
+    // CL9 hito 3: el D7 de pegar (0x5650c0, Protocol::Combat::WriteAttack), XOR32, que FoxAnti saca como A4.
+    [[nodiscard]] Core::Expected<void, std::string> SendAttack(std::uint16_t key, std::uint8_t action,
+                                                               std::uint8_t direction);
+    // CL9 hito 3: el DF de la celda del elfo que camina antes de pegar (0x59cf88, Protocol::Combat::WriteElfCell).
+    [[nodiscard]] Core::Expected<void, std::string> SendElfCell(std::uint8_t x, std::uint8_t y);
     // El C1 18 de sentarse (0x4f2416..0x4f2bea) y del emote (0x576a60 y los casos de 0x576eb0), con
     // Protocol::Movement::WriteAction: como el original con el socket en −1, sin un GameServer abierto un aviso y nada.
     void SendAction(std::uint8_t direction, std::uint8_t action);
@@ -252,10 +260,36 @@ public:
     // El 24 del ítem del cursor (Protocol::Inventory::WriteItemMove), en C3. Los dos rand() del envío los saca la
     // escena antes.
     [[nodiscard]] Core::Expected<void, std::string> SendItemMove(const Protocol::Inventory::ItemMove& move);
+    // CL9 hito 5: el C1 05 22 (0x5650c0), el C1 06 23 (0x5dfe27) y el C1 06 26 (0x59ff10 y 0x5c4110), en C3. Los dos
+    // rand() del envío los saca la escena antes.
+    [[nodiscard]] Core::Expected<void, std::string> SendPickUp(std::uint16_t index);
+    [[nodiscard]] Core::Expected<void, std::string> SendDrop(const Protocol::FloorItems::Drop& drop);
+    [[nodiscard]] Core::Expected<void, std::string> SendUseItem(const Protocol::FloorItems::UseItem& use);
     // El C1 03 42 de 0x6599a0(4), al abrir la ventana de la party (Protocol::Party::WritePartyListRequest), en claro.
     void RequestPartyList();
+    // Los C1 del gremio, de la alianza y de la guerra (Protocol::Guild; CL9 hito 8), como los demás de mundo: sin un
+    // GameServer abierto, un aviso y nada.
+    void SendGuildPacket(Protocol::Outgoing packet);
+    // Las misiones y los NPC (CL9 hito 2), por el GS en el mundo. Los rand() del relleno y del serial de los C3 los
+    // saca la escena antes. El C3 A0 de 0x63693a y 0x5676a6 (Protocol::Quest::WriteQuestListRequest).
+    void RequestQuestList();
+    // El C3 A2 de 0x419bd0 y 0x41a9e0 (Protocol::Quest::WriteSetQuest).
+    void SendSetQuest(std::uint8_t quest, std::uint8_t state);
+    // El C3 30 de la llegada a un NPC (0x5650c0, Protocol::Quest::WriteTalk).
+    void SendTalk(std::int16_t key);
+    // El C1 03 31 en claro de 0x419900, al cerrar la ventana de las misiones, y de cerrar un NPC de evento (0x658a18
+    // y 0x658c0e, CL9 hito 11) (Protocol::Connection::WriteWindowClose).
+    void SendWindowClose();
+    // CL9 hito 11: el C1 03 97 de SendMove con 0x78abb00 en 1 o 2 (Protocol::Events::WriteEventWindowLeave), en claro,
+    // y el C1 06 AF 02 x y de 0x4fbee8 en Chaos Castle (Protocol::Events::WriteChaosCastleReposition), con el XOR
+    // de 32.
+    [[nodiscard]] Core::Expected<void, std::string> SendEventWindowLeave();
+    [[nodiscard]] Core::Expected<void, std::string> SendChaosCastleReposition(std::uint8_t x, std::uint8_t y);
     // El C0 y los C1..C4 que mandan la ventana de amigos y sus cajas (Protocol::Friends), como los demás de mundo.
     void SendFriendPacket(Protocol::Outgoing packet);
+    // Los paquetes de mundo que arman los pasos de la UI para el comercio, la party y el duelo (CL9 hito 7), como los
+    // demás de mundo: sin un GameServer abierto, un aviso y nada.
+    void SendGamePacket(Protocol::Outgoing packet);
     // 0x4c609f: el 00 con la escena 2 (el login) pide la lista de servidores, C1 04 F4 02, por el socket que esté
     // abierto, sin mirar cuál es. En el CS es el saludo (OnConnectHello); acá, el que llega por el GS (Q-C511).
     void ResendServerListRequest();
@@ -365,6 +399,12 @@ public:
 private:
     void RegisterConnectServerHandlers();
     void RegisterGameServerHandlers();
+    [[nodiscard]] bool RegisterGuildHandlers();
+    // El comercio, la party y el duelo (CL9 hito 7), aparte para que cada ola sume los suyos sin tocar la cadena.
+    void RegisterSocialHandlers();
+    // Un paquete de mundo que se lee con `read` y se aplica tal cual; `what` es lo que dice el aviso si no se lee.
+    template <typename Read> void ApplyWorldPacket(const Network::Packet& packet, Read read, std::string_view what);
+    void OnTradeRequest(const Network::Packet& packet);
 
     // Los eventos de la conexión, en orden, hasta que un handler cambie o cierre la conexión.
     void HandleEvents();
@@ -389,6 +429,10 @@ private:
     void OnWeather(const Network::Packet& packet);
     void OnWalk(const Network::Packet& packet);
     void OnDamage(const Network::Packet& packet);
+    // CL9 hito 3: el 0x16 (0x4cf200), el 0x9C (0x4cfce0) y el 0x17 (0x4d0a30).
+    void OnKillExperience(const Network::Packet& packet);
+    void OnExtendedKillExperience(const Network::Packet& packet);
+    void OnDeath(const Network::Packet& packet);
     void OnAction(const Network::Packet& packet);
     // Los otros jugadores en el viewport (CL9 hito 1): 0x12, 0x14, 0x45, 0x25 y 0xDF.
     void OnViewportPlayers(const Network::Packet& packet);
@@ -396,9 +440,17 @@ private:
     void OnTransformed(const Network::Packet& packet);
     void OnEquipmentShown(const Network::Packet& packet);
     void OnViewportPosition(const Network::Packet& packet);
+    void OnViewportMonsters(const Network::Packet& packet);
+    void OnSummons(const Network::Packet& packet);
+    // El 1A (0x4cedd0): la skill que pega a varios.
+    void OnMagicAttackCount(const Network::Packet& packet);
+    void OnViewportObjects(const Network::Packet& packet);
     void OnTeleport(const Network::Packet& packet);
     void OnRegen(const Network::Packet& packet);
     void OnChat(const Network::Packet& packet);
+    // CL9 hito 11, los eventos (04 § Los eventos): los registra juntos y los lee con Protocol::Events::ReadEventPacket.
+    [[nodiscard]] bool RegisterTheEventPackets();
+    void OnEventPacket(const Network::Packet& packet);
     void OnKeyChat(const Network::Packet& packet);
     void OnWhisper(const Network::Packet& packet);
     void OnWhisperResult(const Network::Packet& packet);
@@ -411,8 +463,36 @@ private:
     void OnDurability(const Network::Packet& packet);
     void OnEquipmentChange(const Network::Packet& packet);
     void OnItemPut(const Network::Packet& packet);
+    void OnFloorItemsCreate(const Network::Packet& packet);
+    void OnFloorItemsDelete(const Network::Packet& packet);
+    void OnPickUpResult(const Network::Packet& packet);
+    void OnDropResult(const Network::Packet& packet);
+    void OnStatFruit(const Network::Packet& packet);
     void OnLogoutResult(const Network::Packet& packet);
+    void ReturnToServerList(bool encrypted);
     void OnMainCheck(const Network::Packet& packet);
+    // CL9 hito 8: los 18 paquetes del gremio, de la alianza y de la guerra (Protocol::Guild::ReadGuildPacket).
+    void OnGuild(const Network::Packet& packet);
+    // CL9 hito 4: las skills (04 § Las skills).
+    void RegisterSkillHandlers();
+    void OnMagicAttack(const Network::Packet& packet);
+    void OnDurationMagic(const Network::Packet& packet);
+    void OnMagicCancel(const Network::Packet& packet);
+    void OnActorState(const Network::Packet& packet);
+    void OnActorEffect(const Network::Packet& packet);
+    void OnSkillTarget(const Network::Packet& packet);
+    void OnReport73(const Network::Packet& packet);
+    void OnSkillList(const Network::Packet& packet);
+    void OnSummonLife(const Network::Packet& packet);
+    void OnPetOrder(const Network::Packet& packet);
+    void OnPetAttack(const Network::Packet& packet);
+    void OnPetInfo(const Network::Packet& packet);
+    // Las misiones (CL9 hito 2): 9F, A0, A1, A2 y A3, sin guarda de escena ni del cifrado.
+    void OnQuestFlag(const Network::Packet& packet);
+    void OnQuestList(const Network::Packet& packet);
+    void OnQuestState(const Network::Packet& packet);
+    void OnSetQuestResult(const Network::Packet& packet);
+    void OnQuestResult(const Network::Packet& packet);
     // CL9 hito 9: los amigos (C0..C4, 0x4e5a4e..0x4e5aae), sin guarda de escena ni del flag de cifrado.
     void OnFriendList(const Network::Packet& packet);
     void OnFriendAddResult(const Network::Packet& packet);

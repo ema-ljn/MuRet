@@ -22,7 +22,8 @@ struct GameHudContext;
 
 // 0x5ee2e0(0x1c2, 0) y el botón de 0x5f7440 (0x5f74a3..0x5f759a), con la ventana del personaje abierta. Corta con su
 // dirección sin el servidor elegido (`chosenServer`, 0x5ee629), sin Text.bmd, Item.bmd o Skill.bmd donde los lee,
-// con el nombre del registro sin su 0 en sus 11 bytes, con la skill del héroe fuera de los 64 bytes de +0x6c que tiene
-// MuRet y con +0x46 en 0 y +0x44 en más de 10 (la división de 0x5f08ac, que en el original es una excepción).
+// con el nombre del registro sin su 0 en sus 11 bytes y con +0x46 en 0 y +0x44 en más de 10 (la división de 0x5f08ac,
+// que en el original es una excepción). La skill del héroe (+0x6c + [+0x425]) está siempre en los 256 bytes del
+// registro: el corte de 0x5f04cd no se alcanza (P-C122).
 [[nodiscard]] Core::Expected<void, std::string> DrawTheCharacterWindow(GameHudContext& context);
 } // namespace Client::Scenes

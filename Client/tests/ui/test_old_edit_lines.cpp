@@ -204,8 +204,8 @@ protected:
                                 .wheel = m_wheel,
                                 .rightClick = m_rightClick,
                                 .doubleClick = m_doubleClick,
-                                .mouseUpdateTime = m_mouseUpdateTime,
-                                .mouseUpdateTimeMax = m_mouseUpdateTimeMax};
+                                .mouseUpdateTime = &m_mouseUpdateTime,
+                                .mouseUpdateTimeMax = &m_mouseUpdateTimeMax};
     }
 
     OldWindowStepView StepView(std::int32_t x, std::int32_t y) const

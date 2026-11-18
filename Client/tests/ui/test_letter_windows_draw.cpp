@@ -167,8 +167,8 @@ protected:
                                 .wheel = m_wheel,
                                 .rightClick = m_rightClick,
                                 .doubleClick = m_doubleClick,
-                                .mouseUpdateTime = m_mouseUpdateTime,
-                                .mouseUpdateTimeMax = m_mouseUpdateTimeMax};
+                                .mouseUpdateTime = &m_mouseUpdateTime,
+                                .mouseUpdateTimeMax = &m_mouseUpdateTimeMax};
     }
 
     // El paso con un retrato de prueba que arma el personaje sin sacar rand().

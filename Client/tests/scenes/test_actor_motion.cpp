@@ -1,5 +1,7 @@
 #include "Scenes/ActorMotion.h"
 
+#include "Render/Models/LogicalAccess.h"
+
 #include "Core/Expected.h"
 #include "GameLogic/Path.h"
 #include "GameLogic/PathFinder.h"
@@ -16,6 +18,7 @@
 
 #include <gtest/gtest.h>
 
+#include <array>
 #include <cstdint>
 #include <memory>
 
@@ -206,4 +209,65 @@ TEST_F(ActorMotionTest, SixStraightCellsUseTwelveUnitsUntilTheFinalSnap)
     EXPECT_FLOAT_EQ(actor.position.y, 2050.0f);
     EXPECT_EQ(actor.cellX, 16);
     EXPECT_EQ(actor.cellY, 20);
+}
+
+TEST_F(ActorMotionTest, ATransformedActorStopsWithItsOwnSkeletonAtArrival)
+{
+    auto actor = Client::Tests::UnarmedPlayer();
+    actor.type = 0x154;
+    // 0x511d48: la construcción deja10 en +0x386; el noPlayer usa esa velocidad, no la de Player.
+    constexpr std::uint16_t ConstructedMovementSpeed = 10;
+    actor.baseMovementSpeed = ConstructedMovementSpeed;
+    actor.movement = 1;
+    actor.position = {1050.0f, 2050.0f, 0.0f};
+    actor.path.count = 2;
+    actor.path.cells[0] = {10, 20};
+    actor.path.cells[1] = {11, 20};
+    actor.cellX = 10;
+    actor.cellY = 20;
+    actor.targetX = 11;
+    actor.targetY = 20;
+    Client::Render::Models::Skeleton transformed;
+    transformed.actions.resize(7);
+    for (auto& action : transformed.actions)
+        action.keyCount = 10;
+    const std::array<std::int16_t, 10> sounds{};
+    const Client::Scenes::ActorWalkContext walk{
+        {m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, m_random},
+        m_speeds,
+        false,
+        &transformed,
+        sounds};
+    Client::Scenes::ActorMotionContext motion{m_runtime, m_random, [](float, float) { return 0.0; }};
+
+    for (int frame = 0; frame < 60 && actor.movement != 0; ++frame)
+    {
+        const auto stepped = Client::Scenes::StepOtherActorMotion(actor, walk, motion, m_walls->cells);
+        ASSERT_TRUE(stepped.HasValue()) << (stepped.HasValue() ? "" : stepped.Error());
+    }
+
+    EXPECT_EQ(actor.movement, 0);
+    EXPECT_EQ(actor.animation.action, 0);
+}
+
+TEST_F(ActorMotionTest, AnIdleTransformedActorReadsYAndXAndPreservesTheTwoCloseRngs)
+{
+    auto actor = Client::Tests::UnarmedPlayer();
+    actor.type = 0x154;
+    actor.movement = 0;
+    actor.cellX = actor.targetX = 10;
+    actor.cellY = actor.targetY = 20;
+    const Client::Scenes::ActorWalkContext walk{
+        {m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, m_random}, m_speeds, false};
+    Client::Render::Models::CrtRandom expected = m_random;
+    for (int access = 0; access < 2 * Client::Render::Models::SmallLogicalCloseRandoms; ++access)
+        static_cast<void>(expected.Next());
+
+    const auto stepped = Client::Scenes::StepOtherActorMotion(actor, walk, {m_runtime, m_random, {}}, m_walls->cells);
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(actor.movement, 0);
+    EXPECT_EQ(actor.cellXAccesses, 0);
+    EXPECT_EQ(actor.cellYAccesses, 0);
+    EXPECT_EQ(m_random.State(), expected.State());
 }

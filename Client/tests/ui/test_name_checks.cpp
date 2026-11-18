@@ -20,6 +20,7 @@ using Client::UI::ContainsAFilteredWord;
 using Client::UI::ContainsLikeTheOriginal;
 using Client::UI::ForbiddenNameNotice;
 using Client::UI::HasForbiddenSymbol;
+using Client::UI::IsAShopTitle;
 using Client::UI::IsFilteredName;
 using Client::UI::NameFilters;
 using Client::UI::NoticeOfNewName;
@@ -121,6 +122,27 @@ TEST(NameChecksTest, TheChatFilterLooksAtTheTextWithoutSpaces)
     EXPECT_TRUE(ContainsAFilteredWord("/xbadx", words, false));
     EXPECT_FALSE(ContainsAFilteredWord("good", words, false));
     EXPECT_FALSE(ContainsAFilteredWord("bad", {}, false));
+}
+
+// 0x5ebbd0, el título de la tienda personal: ninguna palabra de Filter.bmd en el título sin espacios; dos espacios
+// seguidos al principio (la cuenta en la letra 1) o al final no pasan, y los del medio sí. Vacío, pasa.
+TEST(NameChecksTest, TheShopTitleLooksAtTheFilterAndTheSpaces)
+{
+    const std::vector<std::string> words{"bad"};
+    EXPECT_TRUE(IsAShopTitle("Mi puesto", words));
+    EXPECT_TRUE(IsAShopTitle("", words));
+    EXPECT_TRUE(IsAShopTitle("Mi  puesto", words));
+    EXPECT_TRUE(IsAShopTitle(" Mi puesto ", words));
+    EXPECT_TRUE(IsAShopTitle("a ", words));
+    EXPECT_FALSE(IsAShopTitle("  Mi puesto", words));
+    EXPECT_FALSE(IsAShopTitle("Mi puesto  ", words));
+    EXPECT_FALSE(IsAShopTitle("  ", words));
+    EXPECT_FALSE(IsAShopTitle("b a d", words));
+    EXPECT_FALSE(IsAShopTitle("/bad", words));
+    // Tres espacios desde la letra 0: en la 1 la cuenta ya es 2.
+    EXPECT_FALSE(IsAShopTitle("   x", words));
+    // Desde la letra 1, en la 1 la cuenta es 1: pasa.
+    EXPECT_TRUE(IsAShopTitle("x  y", {}));
 }
 
 // Con el texto 457 o el 458 vacíos (otro Text.bmd), 0x576960 los encuentra en cualquier nombre, y

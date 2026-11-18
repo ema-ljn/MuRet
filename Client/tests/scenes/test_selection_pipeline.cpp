@@ -342,6 +342,7 @@ TEST_F(SelectionPipelineTest, RecreatingAndDeletingBeforeAStepSurvivesTheRealLog
 
 TEST_F(SelectionPipelineTest, AListPetReachesTheHelperBoundaryBeforeActorsParticlesAndCloth)
 {
+    constexpr int SelectionItemResetRandoms = 3848; // 0x633f91 -> 0x5bc092, antes del reset parcial.
     ASSERT_NO_FATAL_FAILURE(StartSelect());
     ASSERT_NO_FATAL_FAILURE(ReceiveList({WithHeightOffsetPet(0), WithHeightOffsetPet(PreservedPetSlot)}));
     auto& helpers = m_world.Helpers();
@@ -365,14 +366,16 @@ TEST_F(SelectionPipelineTest, AListPetReachesTheHelperBoundaryBeforeActorsPartic
     EXPECT_FLOAT_EQ(helpers[0].horse.alpha, 0.1f);
     EXPECT_FLOAT_EQ(helpers[1].horse.alpha, 0.0f);
     EXPECT_EQ(m_world.Actors()[0].animation.frame, animation.frame);
-    // Con los 65.536 rand() del pasto (0x5f8300) de la carga del 54 (0x61a560) en este paso.
-    EXPECT_EQ(m_cloth.random.State(), Client::Tests::AfterDraws(Seed, 3904 + 65536).State());
+    // Pasto de la carga del 54, cierre del vaciado de ítems y luego el reset parcial.
+    EXPECT_EQ(m_cloth.random.State(),
+              Client::Tests::AfterDraws(Seed, 3904 + SelectionItemResetRandoms + 65536).State());
     EXPECT_EQ(m_cloth.logicSteps, Counter);
     EXPECT_EQ(m_cloth.wind, wind);
 
     m_manager->Step(Client::Input::InputState{});
     EXPECT_FLOAT_EQ(helpers[0].horse.alpha, 0.1f);
-    EXPECT_EQ(m_cloth.random.State(), Client::Tests::AfterDraws(Seed, 3904 + 65536).State());
+    EXPECT_EQ(m_cloth.random.State(),
+              Client::Tests::AfterDraws(Seed, 3904 + SelectionItemResetRandoms + 65536).State());
 }
 
 TEST_F(SelectionPipelineTest, ANewLoginPreservesAlreadyAppliedEventsAndTheConstructedPool)

@@ -9,7 +9,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
-#include <string>
+#include <span>
 #include <string_view>
 #include <vector>
 
@@ -160,14 +160,30 @@ void ScrollTheEdit(OldEdit& edit, std::int32_t lineCount, std::int32_t code)
     }
 }
 
-void FollowTheEditCaret(OldEdit& edit, std::int32_t lineCount)
+std::int32_t EditCaretLine(const OldEdit& edit, std::span<const std::string_view> lines)
+{
+    const std::string_view text = edit.text.Value();
+    const std::size_t cursor = edit.text.Cursor();
+    std::int32_t caretLine = 0;
+    for (std::size_t at = 0; at < lines.size(); ++at)
+    {
+        const auto start = static_cast<std::size_t>(lines[at].data() - text.data());
+        if (start > cursor)
+            break;
+        caretLine = static_cast<std::int32_t>(at);
+    }
+    return caretLine;
+}
+
+void FollowTheEditCaret(OldEdit& edit, std::int32_t lineCount, std::int32_t caretLine)
 {
     if (!edit.followCaret)
         return;
     edit.followCaret = false;
     if (edit.multiline != 1)
         return;
-    const std::int32_t caretLine = lineCount - 1;
+    if (caretLine < 0)
+        caretLine = lineCount - 1;
     if (caretLine < edit.firstLine)
         edit.firstLine = caretLine;
     else if (caretLine >= edit.firstLine + edit.visibleLines)
@@ -186,13 +202,12 @@ void BackspaceInTheEdit(OldEdit& edit)
 {
     edit.draws = 0;
     edit.followCaret = true;
-    // El EDIT de Windows borra el "\r\n" entero.
+    // El EDIT de Windows borra el "\r\n" entero que está antes del cursor.
     const std::string_view text = edit.text.Value();
-    if (edit.multiline == 1 && !edit.text.AllSelected() && text.ends_with(LineBreak))
-    {
-        edit.text.SetText(std::string(text.substr(0, text.size() - LineBreak.size())));
-        return;
-    }
+    const std::size_t cursor = edit.text.Cursor();
+    if (edit.multiline == 1 && !edit.text.HasSelection() && cursor >= LineBreak.size() &&
+        text.substr(cursor - LineBreak.size(), LineBreak.size()) == LineBreak)
+        edit.text.Backspace();
     edit.text.Backspace();
 }
 

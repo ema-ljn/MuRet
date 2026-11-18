@@ -13,7 +13,9 @@
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/PartyActors.h"
 #include "Scenes/SceneId.h"
+#include "Scenes/SocialState.h"
 #include "World/ChaosCastle.h"
 #include "World/Ftol.h"
 #include "World/ModelEffects.h"
@@ -27,6 +29,7 @@
 
 #include <glm/ext/vector_float3.hpp>
 
+#include <algorithm>
 #include <array>
 #include <bit>
 #include <cstddef>
@@ -72,6 +75,8 @@ constexpr float FirstWindowStart = std::bit_cast<float>(0x3f99999au); // 0x6b8bb
 constexpr float FirstWindowEnd = std::bit_cast<float>(0x3fcccccdu);   // 0x6b8bfc, 1,6f
 constexpr float SecondWindowStart = 7.0f;                             // 0x6b8878
 constexpr float SecondWindowEnd = 8.0f;                               // 0x6b86c4
+// 0x50f9cf (0x6b8818): por debajo, la party (0x50f9e0).
+constexpr float PartyFrameLimit = 2.0f;
 
 // 0x50fba4: las banderas de +0x78 con sprites y joints.
 constexpr std::uint32_t FirstGlowFlag = 0x4;
@@ -115,8 +120,22 @@ constexpr float FlareRadius = 50.0f;
 constexpr std::int32_t EnergyType = 0x619, EnergySubtype = 9;
 constexpr float EnergyWidth = 10.0f;
 
+// 0x52a7b7 y 0x52a8a7: los 5ac/1 y /2 de las skills que llegan viven 10 pasos más mientras el dueño esté vivo con su
+// bandera de +0x78; con 0x4000 en el dueño no hacen nada. El /1 suelta dos 5ac/4 de la luz (1; 0,5f; 0,1f) con las
+// escalas de 0x6c8c38 + rand() % 7 y 0x6c8c3e − ese; el /2, cada 50 de +0xd8, gira 50, se pone a 80 del dueño y 50
+// más arriba, y suelta el joint 619/9 de ancho 15.
+constexpr std::int32_t SkillFlareLife = 10;
+constexpr std::uint32_t SwellFlag = 0x10, GuardFlag = 0x400, QuietOwnerFlag = 0x4000;
+constexpr int SwellScales = 7;
+constexpr std::int32_t GuardPeriod = 50;
+constexpr double GuardTurn = 50.0;   // 0x6b86b0
+constexpr float GuardRadius = 80.0f; // 0x6b9ffc
+constexpr double GuardRise = 50.0;   // 0x6b86b0
+constexpr float GuardWidth = 15.0f;  // 0x41700000
+
 // 0x518900: los tres joints 619 de ancho 5 que suelta el calco 0x61e/1 de la mascota en cada paso, 200 más allá
-// ([ebp−0x20]) y 120 más arriba (0x6b86c8). El subtipo 5 pasaría como 0xb, pero sólo se crea el /1.
+// ([ebp−0x20]) y 120 más arriba (0x6b86c8), con el subtipo del calco. El subtipo 5 pasaría como 0xb, pero MuRet sólo
+// crea el /1 y el /3.
 constexpr int SummonJoints = 3;
 constexpr float SummonWidth = 5.0f;
 constexpr float SummonReach = 200.0f;
@@ -144,6 +163,19 @@ constexpr std::uint32_t RiderFlag = 0x4000;
 // 0x418951: 0x418920 sólo hace algo en los estados 5 y 6.
 constexpr std::uint8_t FirstOrderState = 5;
 constexpr std::uint8_t SecondOrderState = 6;
+// 0x418aae: las juntas del ataque, con +0x38d hasta 2, de rand() % 40 + 20; 0x418b85: el efecto 0x113, con +0x38d
+// impar desde 4 y el cuervo 100 (0x6b86b4) más arriba que el dueño.
+constexpr std::uint8_t LastJointStep = 2;
+constexpr int JointSpan = 40;
+constexpr int JointBase = 20;
+constexpr std::uint8_t LastQuietStep = 3;
+constexpr double AboveTheOwner = 100.0;
+// 0x41896d: el grito, con +0x38d hasta 14, una partícula 0x5ac por hueso de a dos desde rand() & 1, de los 66 primeros;
+// con 15, 0x4ee770 sobre el personaje de +0x3b0.
+constexpr std::uint8_t LastShoutStep = 14;
+constexpr std::uint8_t ShoutEnd = 15;
+constexpr std::size_t ShoutBones = 66;
+constexpr std::uint16_t NoAttackTarget = 0xffff;
 
 float F32(double value)
 {
@@ -230,19 +262,27 @@ float ClockRotation(float clock, bool negated)
     return F32(static_cast<double>(turned) * D(Tenth));
 }
 
+// Lo que sigue a las acciones: el resto de la cola (0x50fba4) o el salto de 0x50f9f8 a 0x510a7a.
+enum class AfterTheActions : std::uint8_t
+{
+    Rest,
+    GuildMark,
+};
+
 // 0x50f828..0x50fba1: las acciones 0x94, 0x51 y 0x5b. Las escriben los paquetes (CL9): lo que crea
 // efectos corta con la condición del ASM.
-Result Actions(Tail& tail)
+Core::Expected<AfterTheActions, std::string> Actions(Tail& tail)
 {
+    using enum AfterTheActions;
     const ActorState& actor = tail.actor;
     const std::uint8_t action = actor.animation.action;
     if (action != LightningAction && action != FirstEffectAction && action != SecondEffectAction)
-        return {};
+        return Rest;
     const float frame = actor.animation.frame;
     if ((actor.characterClass & 7u) != DarkLordClass && action == LightningAction)
     {
         if ((actor.flags78 & HiddenAttachmentFlag) != 0)
-            return {};
+            return Rest;
         const auto point = tail.BodyPoint(actor.hands[0].bone, "0x50f89b");
         if (!point.HasValue())
             return Core::Unexpected(point.Error());
@@ -250,26 +290,40 @@ Result Actions(Tail& tail)
         if (auto first = tail.Sprite("0x50f8e3", Lightning, point.Value(), F32(D(size) * D(FirstLightningScale)),
                                      FirstLightningLight);
             !first.HasValue())
-            return first;
+            return Core::Unexpected(first.Error());
         if (auto second = tail.Sprite("0x50f91f", Lightning, point.Value(), size, actor.light,
                                       ClockRotation(tail.pass.worldClock, true));
             !second.HasValue())
-            return second;
-        return tail.Sprite("0x50f95c", Lightning, point.Value(), F32(D(size) * D(ThirdLightningScale)), actor.light,
-                           ClockRotation(tail.pass.worldClock, false));
+            return Core::Unexpected(second.Error());
+        if (auto third = tail.Sprite("0x50f95c", Lightning, point.Value(), F32(D(size) * D(ThirdLightningScale)),
+                                     actor.light, ClockRotation(tail.pass.worldClock, false));
+            !third.HasValue())
+            return Core::Unexpected(third.Error());
+        return Rest;
     }
-    // 0x50f96c: con el frame en [1,2; 1,6), el efecto 0x621/2 y el sonido 0x1cc. Por debajo de 2, con la
-    // cantidad del grupo (0x78aba48) por encima de 0, 0x59e680 y los joints 0x618: el grupo es de la CL9 y
-    // en MuRet vale 0, como al arrancar. En [7, 8), dos 0x117/2 en la mano derecha.
-    if (!tail.pass.originalFrame)
-        return {};
-    if (!(frame < FirstWindowStart) && frame < FirstWindowEnd)
+    // 0x50f96c: con el frame en [1,2; 1,6), el efecto 0x621/2 y el sonido 0x1cc.
+    const bool original = tail.pass.originalFrame;
+    if (original && !(frame < FirstWindowStart) && frame < FirstWindowEnd)
         return Core::Unexpected(
             std::format("0x50f9b3: el efecto 0x621 y el sonido 0x1cc de la acción {:#x} no están portados", action));
-    if (!(frame < SecondWindowStart) && frame < SecondWindowEnd)
+    // 0x50f9c9: por debajo de 2 (también con NaN, como el fcomp) y con party (0x78aba48 sobre 0), 0x59e680. Fuera de
+    // la party salta a 0x510a7a, sin las banderas, el contador ni el conjunto, también entre frames. En la party, dos
+    // joints 0x618 (/0xc y /0xd, de ancho 20) hacia cada miembro a la vista (+0x1c en 0 o más) que no es él.
+    if (!(frame >= PartyFrameLimit) && !tail.pass.party.empty())
+    {
+        if (!IsInTheParty(tail.pass.party, actor))
+            return GuildMark;
+        const auto other = [&tail](const PartySlot& member)
+        { return member.actorIndex >= 0 && static_cast<std::size_t>(member.actorIndex) != tail.pass.slot; };
+        if (original && std::ranges::any_of(tail.pass.party, other))
+            return Core::Unexpected(
+                std::format("0x50fa74: los joints 0x618 de la acción {:#x} hacia la party no están portados", action));
+    }
+    // 0x50fac5: en [7, 8), dos 0x117/2 en la mano derecha.
+    if (original && !(frame < SecondWindowStart) && frame < SecondWindowEnd)
         return Core::Unexpected(
             std::format("0x50fb64: los efectos 0x117 de la acción {:#x} no están portados", action));
-    return {};
+    return Rest;
 }
 
 // 0x50fba4..0x50fd5e: los sprites de las manos con el color al azar y los cinco joints 0x10f/4. +0x78 sólo lo
@@ -529,8 +583,11 @@ Core::Expected<void, std::string> DrawGameCharacterEffects(ActorState& actor, co
     Tail tail{.actor = actor, .pass = pass};
     if (auto drawn = MageSkin(tail); !drawn.HasValue())
         return drawn;
-    if (auto drawn = Actions(tail); !drawn.HasValue())
-        return drawn;
+    const auto acted = Actions(tail);
+    if (!acted.HasValue())
+        return Core::Unexpected(acted.Error());
+    if (acted.Value() == AfterTheActions::GuildMark)
+        return GuildMark(tail);
     if (auto drawn = Flags(tail); !drawn.HasValue())
         return drawn;
     // 0x50fd61: Chaos Castle salta al final, sin el contador ni el conjunto.
@@ -590,14 +647,85 @@ Core::Expected<void, std::string> StepFullSetFlare(World::ModelEffect& effect, s
     return {};
 }
 
+Core::Expected<void, std::string> StepSkillFlare(World::ModelEffect& effect, std::span<JointState> joints,
+                                                 Render::Models::CrtRandom& random)
+{
+    if (!effect.alive)
+        return {};
+    if (effect.type != World::IcarusFlareEffect ||
+        (effect.subtype != World::SwellFlareSubtype && effect.subtype != World::GuardFlareSubtype))
+        return Core::Unexpected(
+            std::format("0x52a7b7: el efecto {:#x}/{} no es el 0x5ac/1 ni el /2", effect.type, effect.subtype));
+    // 0x5208c5: el primer rand() corre para todo efecto vivo, aunque el 5ac/1 y el /2 no usen la luz.
+    static_cast<void>(random.Next());
+    const bool swell = effect.subtype == World::SwellFlareSubtype;
+    // 0x52a7e6 y 0x52a8dc: +0x78 del dueño se lee aunque +0x108 esté en 0; MuRet los crea siempre con el blanco.
+    if (effect.ownerContext == nullptr)
+        return Core::Unexpected(
+            std::format("{}: el 0x5ac/{} sin dueño lee +0x78 de 0", swell ? "0x52a7ec" : "0x52a8e2", effect.subtype));
+    const auto& owner = *static_cast<const ActorState*>(effect.ownerContext);
+    const std::uint32_t flag = swell ? SwellFlag : GuardFlag;
+    effect.life = owner.alive && (owner.flags78 & flag) == flag ? SkillFlareLife : 0;
+    if ((owner.flags78 & QuietOwnerFlag) != QuietOwnerFlag)
+    {
+        if (swell)
+        {
+            // 0x52a82b..0x52a866: la escala sale de la tabla de 0x6c8c38 con rand() % 7.
+            const int scale = random.Next() % SwellScales;
+            return Core::Unexpected(std::format("0x52a866: las partículas 0x5ac/4 del 0x5ac/1 (0x53fe70, la escala de "
+                                                "0x6c8c38 + {}) son de la CL11",
+                                                scale));
+        }
+        constexpr double Step = 1.0; // 0x6b87d4
+        // 0x52a8f7..0x52a91e: fst deja la suma en la pila para el ftol (0x69fd3c).
+        const double counted = D(effect.speed) + Step;
+        effect.speed = F32(counted);
+        if (World::FtolLow(counted) % GuardPeriod == 0)
+        {
+            glm::vec3& angles = effect.transform.angles;
+            glm::vec3& position = effect.transform.position;
+            // 0x52a92a: fst; el seno sale de la suma sin redondear y el coseno vuelve a cargar el float (Q-C380).
+            const double turned = D(angles.z) + GuardTurn;
+            angles.z = F32(turned);
+            const auto sine = Render::Models::Detail::SineProductPC53(turned * D(Tenth), GuardRadius);
+            const auto cosine = Render::Models::Detail::CosineProductPC53(D(angles.z) * D(Tenth), GuardRadius);
+            if (!sine || !cosine)
+                return Core::Unexpected<std::string>("0x52a950: el giro del 0x5ac/2 excede el perfil matemático");
+            position.x = F32(*sine + D(owner.position.x));
+            position.y = F32(*cosine + D(owner.position.y));
+            position.z = F32(D(owner.position.z) + GuardRise);
+            if (joints.empty())
+                return Core::Unexpected<std::string>("0x52a9a0: faltan los joints del paso (0x530860)");
+            const auto created = CreateFaunaJoint(joints,
+                                                  {EnergyType, position, position, angles, EnergySubtype,
+                                                   effect.ownerContext, GuardWidth, NoKey, 0, 0, NoTarget},
+                                                  random);
+            if (!created.HasValue())
+                return Core::Unexpected(std::format("0x52a9a0: {}", created.Error()));
+        }
+    }
+    // 0x52cb98: el 0x5ac no avanza animación; la velocidad (0) girada y una vida menos.
+    World::StepModelEffect(effect, nullptr);
+    return {};
+}
+
 Core::Expected<void, std::string> StepPetSummon(World::ModelEffect& effect, std::span<JointState> joints,
                                                 Render::Models::CrtRandom& random)
 {
     if (!effect.alive)
         return {};
-    if (effect.type != World::ColoredDecalEffect || effect.subtype != World::PetSummonSubtype)
+    if (effect.type != World::ColoredDecalEffect ||
+        (effect.subtype != World::LevelUpDecalSubtype && effect.subtype != World::PetSummonSubtype &&
+         effect.subtype != World::SummonDecalSubtype))
         return Core::Unexpected(
-            std::format("0x52b9a6: el efecto {:#x}/{} no es el 0x61e/1", effect.type, effect.subtype));
+            std::format("0x52b9a6: el efecto {:#x}/{} no es el 0x61e/0, /1 ni /3", effect.type, effect.subtype));
+    // 0x52b984 → 0x52b9b8 → 0x52bb29: el /0 no entra en 0x518900, ni consulta joints o dueño.
+    if (effect.subtype == World::LevelUpDecalSubtype)
+    {
+        static_cast<void>(random.Next());
+        World::StepModelEffect(effect, nullptr);
+        return {};
+    }
     if (joints.empty())
         return Core::Unexpected<std::string>("0x5189cc: faltan los joints del paso (0x530860)");
     // 0x5208c5: el primer rand() corre para todo efecto vivo, aunque el 0x61e no use la luz.
@@ -621,6 +749,80 @@ Core::Expected<void, std::string> StepPetSummon(World::ModelEffect& effect, std:
     }
     // 0x52cb98: el 0x61e no es un BMD y no avanza animación; la velocidad (0) girada y una vida menos.
     World::StepModelEffect(effect, nullptr);
+    return {};
+}
+
+// 0x418920(CHARACTER, CHARACTER), desde 0x41835a después de 0x602e90, con el cuervo en el trapecio: en el 5 y el 6, los
+// efectos del ataque. Los del 5 (0x530860, 0x518cf0) y el final del 6 (0x4ee770) son de la CL11: cortan con su
+// dirección después de los rand() que saca antes. El grito del 6 suelta las partículas 0x5ac/6 (0x418a26), que MuRet
+// crea. Sin la pose (+0x120 en 0 hasta el primer dibujo), el 6 no hace nada.
+Core::Expected<void, std::string> DrawTheRavenAttack(DarkSpirit& spirit, const ActorState& owner,
+                                                     const Render::Models::Skeleton* skeleton,
+                                                     Render::Models::CrtRandom& random, World::Particles* particles,
+                                                     float worldClock)
+{
+    if (spirit.state == FirstOrderState)
+    {
+        // 0x418aab..0x418b08: con el blanco de +8, que el A8 puso antes del estado 5.
+        if (spirit.byte38d <= LastJointStep)
+        {
+            const int length = (random.Next() % JointSpan) + JointBase;
+            return Core::Unexpected(
+                std::format("0x418aff: las juntas 0x5ac del ataque del cuervo (0x530860, la primera "
+                            "de largo {}) son de la CL11",
+                            length));
+        }
+        // 0x418b7c..0x418c0a: la posición del hueso 6 con (50, 0, 0) no saca rand().
+        if (spirit.byte38d > LastQuietStep && (spirit.byte38d & 1u) != 0 &&
+            static_cast<double>(owner.position.z) + AboveTheOwner < static_cast<double>(spirit.position.z))
+        {
+            return Core::Unexpected(std::string("0x418c0a: el efecto 0x113 del ataque del cuervo (0x518cf0) es de la "
+                                                "CL11"));
+        }
+        return {};
+    }
+    if (spirit.byte38d <= LastShoutStep)
+    {
+        if (spirit.pose.empty())
+            return {};
+        if (skeleton == nullptr)
+            return Core::Unexpected(std::string("0x4189e2: falta el modelo 0xc0 del cuervo para el grito"));
+        // 0x4189ad..0x418a46: rand() & 1 con signo (rand() no es negativo), y los huesos de a dos que no son dummy ni
+        // pasan de los del modelo: 0x4ec110(+0x120 + hueso · 0x30, (0; 0; 0), punto, 0), el hueso en el mundo, y
+        // 0x53fe70(0x5ac, punto, cuervo+0x1c, (1; 0,6f; 0,4f), 6, 1,3f, 0). Con el pool lleno, ninguna y sigue.
+        constexpr glm::vec3 ShoutLight{1.0f, std::bit_cast<float>(0x3f19999au), std::bit_cast<float>(0x3ecccccdu)};
+        constexpr std::int32_t ShoutParticle = 0x5ac, ShoutSubtype = 6;
+        constexpr float ShoutScale = std::bit_cast<float>(0x3fa66666u); // 1,3f
+        const auto first = static_cast<std::size_t>(random.Next() & 1);
+        for (std::size_t bone = first; bone < ShoutBones; bone += 2)
+        {
+            if (bone >= skeleton->bones.size() || skeleton->bones[bone].dummy)
+                continue;
+            if (bone >= spirit.pose.size())
+                return Core::Unexpected(
+                    std::format("0x418a07: el hueso {} del grito del cuervo pasa los de su pose (+0x120)", bone));
+            if (particles == nullptr)
+                return Core::Unexpected(std::string("0x418a26: faltan las partículas del grito del cuervo (0x53fe70)"));
+            const glm::vec3 point = Render::Models::OriginalVectorTransform(glm::vec3(0.0f), spirit.pose[bone]);
+            const auto created = particles->CreateChecked(ShoutParticle, point, spirit.angles, ShoutLight, ShoutSubtype,
+                                                          ShoutScale, worldClock, random);
+            if (!created.HasValue())
+                return Core::Unexpected(std::format("0x418a26: la partícula 0x5ac/6 del hueso {} del cuervo falla con "
+                                                    "el error {}",
+                                                    bone, static_cast<unsigned>(created.Error())));
+        }
+        return {};
+    }
+    if (spirit.byte38d == ShoutEnd)
+    {
+        // 0x418a59..0x418a9b: después de 0x4ee770, 0x4164f0(0); sin el personaje, sólo +0x38d en 0.
+        if (spirit.target3b0 != NoAttackTarget)
+            return Core::Unexpected(
+                std::format("0x418a8c: 0x4ee770 sobre el personaje {} del grito del cuervo es de la "
+                            "CL11",
+                            static_cast<std::int16_t>(spirit.target3b0)));
+        spirit.byte38d = 0;
+    }
     return {};
 }
 
@@ -680,10 +882,14 @@ Core::Expected<void, std::string> DrawGameRaven(ActorState& owner, const GameRav
                                                             ground};
         }
     }
-    // 0x41835a: 0x418920, con las órdenes del A7 (CL9).
-    if (spirit.state == FirstOrderState || spirit.state == SecondOrderState)
-        return Core::Unexpected(
-            std::format("0x418957: el estado {} del cuervo (las órdenes del A7) no está portado", spirit.state));
+    // 0x41835a: 0x418920, en los frames del original.
+    if (pass.originalFrame && (spirit.state == FirstOrderState || spirit.state == SecondOrderState))
+    {
+        if (pass.random == nullptr)
+            return Core::Unexpected(std::string("0x41835a: falta el rand() para el ataque del cuervo"));
+        return DrawTheRavenAttack(spirit, owner, pass.models.SkeletonOf(DarkSpiritModel), *pass.random, pass.particles,
+                                  pass.worldClock);
+    }
     return {};
 }
 } // namespace Client::Scenes

@@ -9,6 +9,7 @@
 #include "Scenes/ActorConstruction.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterSlots.h"
+#include "Scenes/GuildReceive.h"
 #include "Scenes/MapLoad.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneWorlds.h"
@@ -209,6 +210,9 @@ Core::Expected<void, std::string> SelectionState::Apply(std::span<const App::Cha
     {
         if (const auto* list = std::get_if<App::CharacterListReceived>(&event))
         {
+            // 0x4c20b3..0x4c2101: antes de los personajes, sin guerra ni rival (0x576796c, 0x6c82f0 y 0x5767804) y
+            // +0x374 de los 400 por el gremio del héroe publicado, como 0x4c1800 (CL9 hito 8).
+            ClearTheWar(m_world);
             for (const Protocol::Character::CharacterEntry& entry : list->list.characters)
             {
                 const auto constructed = Construct(entry, camera, input, sharedCloth, skeleton);

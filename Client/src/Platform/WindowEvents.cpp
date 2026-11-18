@@ -64,6 +64,8 @@ void PumpEvents(App::WindowState& state, Input::InputState& input, SDL_WindowID 
         {
             input.Apply(*inputEvent);
         }
+        else
+            input.Apply(Input::InputEvent{.kind = Input::InputEvent::Kind::Message});
         const std::optional<App::WindowEvent> windowEvent = WindowEventFor(event, windowId);
         if (!windowEvent)
         {

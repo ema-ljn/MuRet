@@ -75,4 +75,7 @@ PriceTheRepairOfEverything(WorldState& world, Render::Models::CrtRandom& random,
 // sacar, cada uno con el cierre del 0x73 y el C1 08 81 en claro o el 0x74; sacar con la traba espera la contraseña (−1,
 // 1, el zen y 0x77f3cc8) y abre el teclado (0x5e7aa0(1)).
 [[nodiscard]] Core::Expected<void, std::string> MoveTheWarehouseMoney(const GameUiContext& context);
+// 0x5e74f0: el panel 0x2000, su casilla de aceptación, la confirmación y las dos salidas con C1 03 31.
+[[nodiscard]] Core::Expected<void, std::string> StepThePanel2000(const GameUiContext& context,
+                                                                 UI::PanelRegistry& panels);
 } // namespace Client::Scenes

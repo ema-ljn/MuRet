@@ -34,4 +34,6 @@ struct GameHudContext;
 // su ayuda (235, 236 y 242). Abre y cierra dos veces el registro propio (3.848 rand() cada una con la profundidad en
 // 0). Deja la fuente normal o la gruesa y el blanco.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheWarehouse(GameHudContext& context, UI::PanelRegistry& panels);
+// 0x5f7180: las ocho instrucciones, la casilla y los botones del panel 0x2000.
+[[nodiscard]] Core::Expected<void, std::string> DrawThePanel2000(GameHudContext& context, UI::PanelRegistry& panels);
 } // namespace Client::Scenes

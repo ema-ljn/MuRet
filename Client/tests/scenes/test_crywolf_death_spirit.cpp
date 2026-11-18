@@ -129,7 +129,8 @@ TEST(CrywolfDeathSpiritTest, TheFullModelPoolDoesNotReadTheOwnerOrNeedParticles)
     EXPECT_FALSE(result.Value());
     EXPECT_EQ(random.State(), 7u);
 }
-TEST(CrywolfDeathSpiritTest, ARecordedStackPointKeepsTheDecalAndTrailOwnersTyped)
+// El punto es sintético: verifica la propagación, no una captura de la pila del original.
+TEST(CrywolfDeathSpiritTest, AnInjectedStackPointKeepsTheDecalAndTrailOwnersTyped)
 {
     auto effects = std::make_unique<Client::World::ModelEffects>();
     auto& e = effects->Effects()[0];

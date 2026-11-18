@@ -47,7 +47,6 @@
 #include "Scenes/PartyActors.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldRuntime.h"
-#include "UI/GameUiState.h"
 #include "Scenes/WorldState.h"
 #include "Scenes/WeaponTrail.h"
 #include "World/ObjectAlpha.h"

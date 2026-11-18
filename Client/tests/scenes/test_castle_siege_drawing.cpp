@@ -545,7 +545,9 @@ TEST(CastleSiegeDrawingTest, AFragmentEmitsFromItsPosedVerticesInsteadOfDrawingT
             EXPECT_EQ(object.model, SiegeModel);
             EXPECT_EQ(meshes.size(), 1u);
             if (!meshes.empty())
+            {
                 EXPECT_EQ(meshes[0].positions.size(), 3u);
+            }
             return {};
         }};
     const Drawn drawn = DrawBody(models, SiegeObject(), pass);
@@ -576,7 +578,7 @@ TEST(CastleSiegeDrawingTest, TheStoneHasItsWhiteBaseAndRedDefaultChrome)
 TEST(CastleSiegeDrawingTest, TheImpactHidesBeforeEmittingItsNativeVertexFamilyAndDoesNotDrawTheBase)
 {
     const SiegeModels models(1);
-    for (const std::int16_t type : {0x12b, 0x12c})
+    for (const std::int16_t type : std::array<std::int16_t, 2>{0x12b, 0x12c})
     {
         Client::World::ModelEffect effect;
         effect.type = type;

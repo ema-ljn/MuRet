@@ -15,7 +15,6 @@
 #include "World/TerrainWalls.h"
 #include "World/WorldTerrain.h"
 
-#include <cstddef>
 #include <cstdint>
 #include <format>
 #include <string>

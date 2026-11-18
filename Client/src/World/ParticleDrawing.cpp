@@ -149,12 +149,12 @@ Core::Expected<DrawSelection, ParticleDrawingError> SelectBranch(Particle& p, st
         return DrawSelection{ParticleDrawKind::Explosion, false};
     case BloodParticle: // 0x548644 → 0x5487b9, sin leer el subtipo.
         return DrawSelection{ParticleDrawKind::Blood, false};
-    case MagicSparkParticle:   // 548644, sin caso propio: billboard común.
-    case MissileFireParticle:  // 548cb1=8 →54889a; /8 y/9 no dividen atlas.
-    case PoundingBallParticle: // 0x548d3a=8 → 0x54889a, billboard común.
-    case TorchSparkParticle:   // 0x5488f6: la 6ab va al default, 0x54889a.
-    case SkillShineParticle:   // 0x5488f6 → 0x54889a (el byte 8 de 0x548cf0), sin leer el subtipo.
-    case HandShineParticle:    // 0x5488f6: la 5fd también (el byte 8 de 0x548cf7), sin leer el subtipo.
+    case MagicSparkParticle:    // 548644, sin caso propio: billboard común.
+    case MissileFireParticle:   // 548cb1=8 →54889a; /8 y/9 no dividen atlas.
+    case PoundingBallParticle:  // 0x548d3a=8 → 0x54889a, billboard común.
+    case TorchSparkParticle:    // 0x5488f6: la 6ab va al default, 0x54889a.
+    case SkillShineParticle:    // 0x5488f6 → 0x54889a (el byte 8 de 0x548cf0), sin leer el subtipo.
+    case HandShineParticle:     // 0x5488f6: la 5fd también (el byte 8 de 0x548cf7), sin leer el subtipo.
     case SiegeBlessingParticle: // 5488f6: el billboard común, sin leer el subtipo.
         return DrawSelection{ParticleDrawKind::Common, false};
     case DustParticle:

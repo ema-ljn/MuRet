@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Render/Models/OriginalRotation.h"
+#include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/Pose.h"
 #include "Render/Models/RayPicking.h"

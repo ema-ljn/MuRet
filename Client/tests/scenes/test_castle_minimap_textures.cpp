@@ -5,6 +5,7 @@
 #include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
 #include <gtest/gtest.h>
+#include <array>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -20,7 +21,7 @@ TEST_F(CastleMinimapTexturesTest, TheMapLoaderUploadsBothOriginalMapImagesAndRel
     std::vector<std::string> skipped;
     const auto loaded = tiles.Load(m_dataRoot, 30, skipped);
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
-    for (const std::uint16_t slot : {0x69d, 0x69e})
+    for (const std::uint16_t slot : std::array<std::uint16_t, 2>{0x69d, 0x69e})
     {
         const auto image = store.Find(Client::Render::TextureSlot{slot});
         ASSERT_TRUE(image.has_value());

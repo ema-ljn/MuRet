@@ -99,6 +99,7 @@ struct GameKey
     std::uint8_t virtualKey;
 };
 
+constexpr GameKey TabKey{Key::Tab, 0x09};
 constexpr GameKey EscapeKey{Key::Escape, 0x1b};
 constexpr GameKey PageUpKey{Key::PageUp, 0x21};
 constexpr GameKey PageDownKey{Key::PageDown, 0x22};

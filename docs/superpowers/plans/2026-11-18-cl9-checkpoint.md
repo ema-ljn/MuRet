@@ -78,7 +78,10 @@ no se transforma por eso en una nueva observación de c32 en VM.
 
 Fire01 es modeloC2, `Skill/Fire01.bmd` (615d4c), con textura consultada en el
 barrido616e20..616e46. El trabajo WIP debe registrar ese recurso y ordenar las
-consultas alcanzadas del615700, incluido RidingSpear10f antes del reset69.
+consultas alcanzadas del615700. El pedido de texturas10f en61619f ocurre antes
+del alta RidingSpear01.bmd en6161b5: en el perfil BMD sin Data2/SMD actual no
+dispone de esas mallas; su asignación efectiva corresponde al barrido final.
+No anticipar mallas futuras para forzar el resultado de la consulta anterior.
 No fijar slots arbitrarios ni cambiar sólo el conteo del logo: verificar nombres,
 reutilización, sampling y orden. El valor455 nativo y el456 actual no son equivalentes.
 

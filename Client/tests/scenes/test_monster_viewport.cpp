@@ -533,19 +533,19 @@ TEST_F(MonsterViewportTest, CastleSiegePublishesTheActorsWhenTheArrivalEffectPoo
     {
         std::uint16_t wire;
         std::uint16_t model;
+        std::string_view arrival;
     };
-    constexpr std::array kinds{Kind{278, 0x1a8}, Kind{283, 0x19c}};
+    constexpr std::array kinds{Kind{278, 0x1a8, "0x42d513:"}, Kind{283, 0x19c, "0x42d5af:"}};
     constexpr std::uint16_t key = 0x0123;
-    for (const auto& [wire, model] : kinds)
+    for (const auto& [wire, model, arrival] : kinds)
     {
         SCOPED_TRACE(wire);
+        // Un solo slot disponible alcanza para que 518cf0 entre al efecto 134/0.
         Load(30);
-        const auto effects = game->world.Map().effects.Effects();
+        auto effects = game->world.Map().effects.Effects();
         for (auto& effect : effects)
-        {
             effect.alive = true;
-            effect.life = 42;
-        }
+        effects.back().alive = false;
         const Cell cell = FreeRow();
         const std::array<MonsterRecordBytes, 1> records{{{.key = key,
                                                           .typeHigh = Byte(wire >> 8),
@@ -554,6 +554,19 @@ TEST_F(MonsterViewportTest, CastleSiegePublishesTheActorsWhenTheArrivalEffectPoo
                                                           .y = cell.y,
                                                           .targetX = cell.x,
                                                           .targetY = cell.y}}};
+        const auto missingEffect = Monsters(records);
+        ASSERT_FALSE(missingEffect.HasValue());
+        EXPECT_TRUE(missingEffect.Error().starts_with(arrival)) << missingEffect.Error();
+        EXPECT_FALSE(effects.back().alive);
+
+        // La misma alta con la tabla llena se completa sin tocar sus entradas vivas.
+        Load(30);
+        effects = game->world.Map().effects.Effects();
+        for (auto& effect : effects)
+        {
+            effect.alive = true;
+            effect.life = 42;
+        }
 
         const auto applied = Monsters(records);
 

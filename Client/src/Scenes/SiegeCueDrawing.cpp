@@ -31,6 +31,13 @@ Shape ShapeOf(const World::ModelEffect& effect, float progress)
     constexpr Render::Color Cyan{0.1f, 0.45f, 0.45f, 1.0f};
     constexpr Render::Color Amber{0.5f, 0.24f, 0.08f, 1.0f};
     constexpr Render::Color Violet{0.26f, 0.16f, 0.48f, 1.0f};
+    constexpr Render::Color Blue{0.18f, 0.34f, 0.64f, 1.0f};
+    if (effect.type == World::CrywolfArrowEffect)
+        return {.radius = 9, .width = 6, .length = 20, .rise = 10, .height = 0, .count = 3, .color = Cyan};
+    if (effect.type == World::CrywolfPulseEffect)
+        return {.radius = 42, .width = 7, .length = 7, .rise = 19, .height = 0, .count = 6, .color = Violet};
+    if (effect.type == World::CrywolfShardEffect)
+        return {.radius = 8, .width = 5, .length = 16, .rise = 8, .height = 0, .count = 1, .color = Blue};
     if (effect.type == World::SiegeArrivalCue)
         return {.radius = 32.0f * effect.transform.scale,
                 .width = 8,
@@ -57,7 +64,7 @@ Shape ShapeOf(const World::ModelEffect& effect, float progress)
 }
 } // namespace
 
-void DrawSiegeCue(Render::ModelBatch& batch, const World::ModelEffect& effect)
+void DrawBattleCue(Render::ModelBatch& batch, const World::ModelEffect& effect)
 {
     const float intensity = std::clamp(effect.alpha, 0.0f, 1.0f);
     if (!(intensity > 0.0f))

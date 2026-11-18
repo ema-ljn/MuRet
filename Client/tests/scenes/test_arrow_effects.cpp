@@ -1552,8 +1552,7 @@ TEST(ArrowEffectsTest, FullPoolsPreserveTheNewlyReachableArrowSteps)
 TEST(ArrowEffectsTest, CelestialWritesTheCallerAnglesAfterCopyingThem)
 {
     ArrowWorld tested(0);
-    for (auto& joint : tested.world.DrawTail().joints)
-        joint.alive = true;
+    tested.world.OwnCharacter().bytef04 = 9;
     glm::vec3 angles{15.0f, 25.0f, 35.0f};
     const Client::World::ModelEffectArguments args{
         .type = 0xf8, .position = {10.0f, 20.0f, 30.0f}, .angles = angles, .light = {1.0f, 1.0f, 1.0f}, .subtype = 1};
@@ -1563,7 +1562,9 @@ TEST(ArrowEffectsTest, CelestialWritesTheCallerAnglesAfterCopyingThem)
     EXPECT_EQ(effect.transform.angles, (glm::vec3{15.0f, 25.0f, 35.0f}));
     EXPECT_EQ(effect.transform.position, (glm::vec3{10.0f, 20.0f, 160.0f}));
     EXPECT_EQ(effect.velocity, (glm::vec3{0.0f, -60.0f, 0.0f}));
+    EXPECT_EQ(effect.word8c, 9);
     EXPECT_EQ(DrawsSince(Seed, tested.random), OwnRecord);
+    EXPECT_TRUE(std::ranges::none_of(tested.world.DrawTail().joints, [](const auto& joint) { return joint.alive; }));
 }
 
 TEST(ArrowEffectsTest, AFullParticlePoolReachesTwentiethsEffectFrontier)
@@ -1665,4 +1666,96 @@ TEST(ArrowEffectsTest, Attribute100StopsTheArrowAndHalvesLifeBeforeTheCommonEpil
     EXPECT_TRUE(arrow.alive);
     EXPECT_EQ(arrow.transform.position, (glm::vec3{150, 250, 50}));
     EXPECT_EQ(DrawsSince(Seed, tested.random), 1);
+}
+
+// H11: F8/1 conserva el motor de la flecha y usa un pulso procedural propio al llegar a vida13.
+TEST(ArrowEffectsTest, CelestialPulseAtLifeThirteenKeepsCapacitySoundAndTheCommonStep)
+{
+    for (const bool full : {false, true})
+    {
+        for (const bool sound : {false, true})
+        {
+            SCOPED_TRACE(::testing::Message() << "pool lleno " << full << ", sonido " << sound);
+            ArrowWorld tested(34);
+            if (full)
+                for (auto& effect : tested.world.Map().effects.Effects())
+                    effect.alive = true;
+            auto& arrow = tested.world.Map().effects.Effects().front();
+            arrow.alive = true;
+            arrow.type = 0xf8;
+            arrow.subtype = 1;
+            arrow.life = 13;
+            arrow.transform.position = {1000, 1000, 300};
+            arrow.transform.angles = {0, 0, 0};
+            arrow.velocity = {0, -60, 0};
+            arrow.light = {0.2f, 0.3f, 0.4f};
+            auto context = tested.StepContext();
+            if (!sound)
+                context.soundRequest = {};
+            const auto stepped = StepArrow(arrow, nullptr, context);
+            ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
+            EXPECT_TRUE(arrow.alive);
+            EXPECT_EQ(arrow.life, 12);
+            EXPECT_EQ(arrow.previousPosition, (glm::vec3{1000, 1000, 300}));
+            EXPECT_EQ(arrow.transform.position, (glm::vec3{1000, 940, 300}));
+            EXPECT_EQ(arrow.transform.angles.y, 60);
+            EXPECT_EQ(DrawsSince(Seed, tested.random), 1);
+            EXPECT_EQ(tested.sounds, (!full && sound) ? std::vector<std::int32_t>{0x7a} : std::vector<std::int32_t>{});
+            if (!full)
+            {
+                const auto& pulse = tested.world.Map().effects.Effects()[1];
+                ASSERT_TRUE(pulse.alive);
+                EXPECT_EQ(pulse.type, 0x105);
+                EXPECT_EQ(pulse.subtype, 3);
+                EXPECT_EQ(pulse.ownerContext, &arrow);
+                EXPECT_EQ(pulse.transform.position, arrow.previousPosition);
+                EXPECT_EQ(pulse.transform.angles, arrow.transform.angles);
+                EXPECT_EQ(pulse.light, arrow.light);
+            }
+        }
+    }
+}
+
+TEST(ArrowEffectsTest, CelestialProceduralArrowTravelsUntilItsThirtyStepsExpire)
+{
+    ArrowWorld tested(34);
+    const Client::World::ModelEffectArguments args{
+        .type = 0xf8, .position = {1000, 3000, 0}, .angles = {}, .light = {1, 1, 1}, .subtype = 1};
+    const auto created = Client::Scenes::CreateTheArrowEffect(args, tested.world, tested.random);
+    ASSERT_TRUE(created.HasValue()) << ErrorOf(created);
+    auto& arrow = tested.world.Map().effects.Effects().front();
+    for (int step = 1; step <= 30; ++step)
+    {
+        const auto stepped = StepArrow(arrow, nullptr, tested.StepContext());
+        ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
+        EXPECT_EQ(arrow.transform.position, (glm::vec3{1000, 3000 - step * 60, 130}));
+        EXPECT_EQ(arrow.life, 30 - step);
+        EXPECT_EQ(arrow.alive, step < 30);
+    }
+    EXPECT_EQ(DrawsSince(Seed, tested.random), OwnRecord + 30);
+    EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x7a}));
+    EXPECT_EQ(tested.world.Map().effects.Effects()[1].transform.position, (glm::vec3{1000, 1980, 130}));
+}
+
+TEST(ArrowEffectsTest, CelestialPulsePrecedesTheHitAndDoesNotSkipItsLightOrLifetime)
+{
+    ArrowWorld tested(34);
+    auto& target = tested.Target(VictimSlot, true, 0);
+    target.position = {1000, 1000, 0};
+    auto& arrow = tested.world.Map().effects.Effects().front();
+    arrow.alive = true;
+    arrow.type = 0xf8;
+    arrow.subtype = 1;
+    arrow.life = 13;
+    arrow.transform.position = {1000, 1000, 130};
+    arrow.velocity = {0, -60, 0};
+    const auto stepped = StepArrow(arrow, nullptr, tested.StepContext());
+    ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
+    EXPECT_FALSE(arrow.alive);
+    EXPECT_EQ(arrow.life, 12);
+    EXPECT_EQ(arrow.transform.position, (glm::vec3{1000, 940, 130}));
+    EXPECT_TRUE(tested.world.Map().effects.Effects()[1].alive);
+    EXPECT_EQ(DrawsSince(Seed, tested.random), OwnRecord + 1);
+    EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x7a}));
+    EXPECT_TRUE(std::ranges::any_of(tested.lighting->cells, [](const auto& light) { return light[0] > 0; }));
 }

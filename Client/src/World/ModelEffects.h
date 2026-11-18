@@ -79,10 +79,22 @@ inline constexpr std::int16_t SiegeArrivalCue = 0x134;
 inline constexpr std::int16_t SiegeStoneCue = 0x19f;
 inline constexpr std::int16_t SiegePulseCue = 0x61c;
 inline constexpr std::int32_t SiegeAttackCueLife = 20;
+inline constexpr std::int16_t CrywolfArrowEffect = 0xf8;
+inline constexpr std::int16_t CrywolfPulseEffect = 0x105;
+inline constexpr std::int16_t CrywolfShardEffect = 0xc1a;
+inline constexpr std::int32_t CrywolfArrowSubtype = 1;
+inline constexpr std::int32_t CrywolfPulseSubtype = 3;
 
 [[nodiscard]] constexpr bool IsSiegeCue(std::int16_t type, std::int32_t subtype)
 {
     return subtype == 0 && (type == SiegeArrivalCue || type == SiegeStoneCue || type == SiegePulseCue);
+}
+
+[[nodiscard]] constexpr bool IsCrywolfCue(std::int16_t type, std::int32_t subtype)
+{
+    return (type == CrywolfArrowEffect && subtype == CrywolfArrowSubtype) ||
+           (type == CrywolfPulseEffect && subtype == CrywolfPulseSubtype) ||
+           (type == CrywolfShardEffect && subtype == 0);
 }
 
 // El calco que se apaga (0x61d, sin modelo: solo el pase del suelo dibuja la /1). El 0x38 de Crywolf crea el /3, que
@@ -222,6 +234,8 @@ class ModelEffects
 public:
     // El caller presta el actor durable de llegada. Sólo el pulso consume RNG al obtener un lugar.
     std::optional<std::size_t> CreateSiegeCue(const ModelEffectArguments& arguments, Render::Models::CrtRandom& random);
+    // Fragmento radial o pulso. El dueño del pulso es una flecha durable del mismo pool.
+    std::optional<std::size_t> CreateCrywolfEffect(const ModelEffectArguments& arguments);
     // 0x51c754: el torbellino145/2 de la estela del1ae, sinRNG.
     std::optional<std::size_t> CreateCrywolfTideEffect(const ModelEffectArguments& arguments);
     // 0x51c129: ondas114/2 y/6, key firmado como escala, sinRNG; 0x51c8e8:115/1.

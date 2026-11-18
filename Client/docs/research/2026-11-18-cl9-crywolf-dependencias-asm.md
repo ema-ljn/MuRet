@@ -1,6 +1,6 @@
 # CL11 requerida por Crywolf/Fortress: factibilidad de F8 y C1A
 
-2026-11-18. Auditoría estática acotada, interrumpida para atender fallos reales de CI/R4 y retomada después de entregar sus parches. Fuente implementada contrastada: snapshot R4 `f5e8fc45`. **No se implementó ni se compiló F8/C1A; no certifica GREEN ni cierre de CL11.** Los cambios de tests de Luck/entrada/flecha/ataque son entregas independientes y no alteran estas conclusiones.
+2026-11-18. Auditoría estática inicial del snapshot R4 `f5e8fc45`. Las tablas registran el comportamiento del original y las diferencias observadas en R4. La implementación posterior de H11 conectó estos llamadores con señales propias. Los contratos implementados y las diferencias de trayectoria, geometría, emisiones y RNG figuran en el [ADR 0020](../../../docs/adr/0020-senales-crywolf.md).
 
 Fuente nativa: exports `*.asm` de `mainexe-vmxp-c32bbd5f/decompiled/functions`, pseudocódigo sólo como índice. Cuando el export ASM omite bloques intercalados, se desensambló estáticamente el tramo de `main-c32-text.bin`, VA base401000. PE c32 sólo leído como bytes de datos para constantes y tablas; no ejecutado, cargado ni emulado. SHA de referencia: c32bbd5f16ca400c7cfc71fa5f4cd573c57f146dd19a6da52fdd1007abaca26a.
 
@@ -87,7 +87,7 @@ Hay además un corte artificial del dibujo actual que debe entrar al cierre: `Dr
 
 | Etapa | VAs/campos | Estado real |
 | --- | --- | --- |
-| Callers | 4325a6..4329ea;4f6734..4f678f | Primer caller etapa14,WORD376=3b yskillprotegida50; segundo cabezaswitchskill50. Cada loop18 ejecuta todos los intentos, incluso pool lleno. Sin RNG entre ángulos salvo el de las lecturas protegidas ya presentes. Constructor recibe position/angles/light determinados; no pila indeterminada. |
+| Callers | 4325a6..4329ee;4f6734..4f6791 | Ambos comprueban etapa14, WORD376=3b y skill protegida50. El ayudante Crywolf devuelve AL=0 tras su tanda y permite que corra la segunda tanda en el paso común; el salto `4f6791` alcanza la cola de ataque. Cada loop18 ejecuta todos los intentos, incluso con el pool lleno. Sin RNG entre ángulos salvo las lecturas protegidas. Constructor recibe posición, ángulos y luz determinados. |
 | Constructor | 51f84f..51f8a7 | Vida30,blend−2,scale1,z+=280(6b8c78),pitch+=20(6b86d0),velocity(0,−80,−10). **−80 esbitsc2a00000 en51f88e; la lectura preliminar del pseudo −0.3125 era incorrecta.** PrefijoModelEffects::Begin ya pone velocidad0 antes de estas escrituras. Sin RNG propio. |
 | Paso/contacto | 52c9f2..52caa0 | Height5f93c0; estricto height>z, unordered no impacta. Color5ed está inicializado a(1,1,1) en prologo520921..52092f, no es local indeterminado. Posición explosión z+80(6b9ffc). Seis seleccionesrand&1+C8 y seis altas con owner0/key−1; CreateStoneChip existente5RNG por alta efectiva. La selección se consume aun cuando el pool ya está lleno. |
 | Cola posterior | 521216..52124e;52cb98..52cd94 | Colorluminosidad(.2,.4,1), radio2, luminosidad calculada porrand inicial yfadevida. El branchimpacto apagaalive **pero no salta la luz ni el movimiento/decremento de cola**. Un wrapper que salga poralive0 sería distinto. C1A fuera[ad,151) no animaBMD en la cola;sí gira/suma velocidad. |

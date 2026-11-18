@@ -12,6 +12,6 @@ struct ModelEffect;
 
 namespace Client::Scenes
 {
-// Sólo para las señales que reconoce World::IsSiegeCue. Usa triángulos sin textura.
-void DrawSiegeCue(Render::ModelBatch& batch, const World::ModelEffect& effect);
+// Señales de Castle Siege y Crywolf con triángulos sin textura.
+void DrawBattleCue(Render::ModelBatch& batch, const World::ModelEffect& effect);
 } // namespace Client::Scenes

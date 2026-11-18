@@ -78,6 +78,7 @@ merecen un ADR propio y cuáles alcanzan con la fila de 07; hasta entonces, la f
 | [0017](0017-viewport-truncado.md) | Registros de viewport incompletos conservan TooShort, sin inventar los campos faltantes | documenta el lector existente y la prueba de frontera de H1 (2026-11-15) |
 | [0018](0018-macros-en-cambio-de-servidor.md) | El cambio de servidor continúa si falla el guardado de macros | propuesto en H13 (2026-11-18) |
 | [0019](0019-senales-del-asedio.md) | Señales propias para las altas y los ataques del asedio | propuesto en H13 (2026-11-18) |
+| [0020](0020-senales-crywolf.md) | Señales propias para el proyectil y la descarga radial de Crywolf | propuesto en H11 (2026-11-18) |
 
 ## Codificación occidental
 

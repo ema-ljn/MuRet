@@ -269,6 +269,39 @@ std::optional<std::size_t> ModelEffects::CreateSiegeCue(const ModelEffectArgumen
     return slot;
 }
 
+std::optional<std::size_t> ModelEffects::CreateCrywolfEffect(const ModelEffectArguments& arguments)
+{
+    if (arguments.type == CrywolfArrowEffect || !IsCrywolfCue(arguments.type, arguments.subtype))
+        return std::nullopt;
+    const auto slot = Begin(arguments);
+    if (!slot)
+        return std::nullopt;
+
+    auto& effect = m_effects[*slot];
+    effect.copiedAngles = {};
+    effect.transform.scale = 1.0f;
+    if (arguments.type == CrywolfPulseEffect)
+    {
+        constexpr std::int32_t PulseLife = 100;
+        effect.life = PulseLife;
+        effect.objectState.blendMesh = 0;
+        effect.owner.effect = static_cast<const ModelEffect*>(arguments.owner);
+        return slot;
+    }
+
+    // 0x51f84f..0x51f8a7 fija las entradas al movimiento compartido de los fragmentos.
+    constexpr std::int32_t ShardLife = 30;
+    constexpr double LaunchHeight = 280.0;
+    constexpr double LaunchPitch = 20.0;
+    effect.life = ShardLife;
+    effect.objectState.blendMesh = -2;
+    effect.transform.position.z = F32(static_cast<double>(effect.transform.position.z) + LaunchHeight);
+    effect.transform.angles.x = F32(static_cast<double>(effect.transform.angles.x) + LaunchPitch);
+    effect.velocity = {0, -80, -10};
+    effect.previousPosition = effect.transform.position;
+    return slot;
+}
+
 std::optional<std::size_t> ModelEffects::CreateKalimaEffect(const glm::vec3& position, const glm::vec3& angles,
                                                             const glm::vec3& light, Render::Models::CrtRandom& random)
 {

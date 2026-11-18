@@ -710,10 +710,10 @@ DrawGameModelEffectsChecked(Render::ModelBatch& batch, const IModelLibrary& mode
         effect.seen = World::SphereVisible(frustum, effect.transform.position, 400);
         if (!effect.seen)
             continue;
-        if (World::IsSiegeCue(effect.type, effect.subtype))
+        if (World::IsSiegeCue(effect.type, effect.subtype) || World::IsCrywolfCue(effect.type, effect.subtype))
         {
             if (mode == 0 && (effect.type != World::SiegeArrivalCue || resources == nullptr || resources->siegeActive))
-                DrawSiegeCue(batch, effect);
+                DrawBattleCue(batch, effect);
             continue;
         }
         if (mode != 0)

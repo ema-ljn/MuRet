@@ -1404,6 +1404,37 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
     constexpr std::int16_t FirstTower = 322;
     constexpr std::int16_t LastTower = 324;
     constexpr std::int16_t KalimaType = 9;
+    if (effect.type == CrywolfShardEffect && effect.subtype == 0)
+    {
+        if (!services.terrainHeight)
+            return Core::Unexpected(std::string("0x52c9f2: el fragmento radial pide la altura del terreno"));
+        const glm::vec3& position = effect.transform.position;
+        const bool hit = services.terrainHeight(position.x, position.y) > static_cast<double>(position.z);
+        constexpr glm::vec3 Light{0.2f, 0.4f, 1.0f};
+        const float luminosity = StepLuminosity(lightDraw, effect.life);
+        if (auto lit = AddDynamicLight(services.lighting, position, Light * luminosity, 2, "0x521216"); !lit.HasValue())
+            return lit;
+        effect.alpha = std::clamp(luminosity, 0.0f, 1.0f);
+        // 0x52caa0: aun tras el contacto corren el movimiento y el decremento de la cola.
+        StepModelEffect(effect, nullptr);
+        if (hit)
+            effect.alive = false;
+        return {};
+    }
+    if (effect.type == CrywolfPulseEffect && effect.subtype == CrywolfPulseSubtype)
+    {
+        const auto* arrow = effect.owner.effect;
+        if (arrow == nullptr || !arrow->alive || arrow->type != CrywolfArrowEffect ||
+            arrow->subtype != CrywolfArrowSubtype)
+            effect.life = 1;
+        else
+        {
+            effect.transform.position = arrow->transform.position;
+            effect.transform.angles = arrow->transform.angles;
+        }
+        StepModelEffect(effect, nullptr);
+        return {};
+    }
     if (IsSiegeCue(effect.type, effect.subtype))
     {
         if (effect.type == SiegeArrivalCue)

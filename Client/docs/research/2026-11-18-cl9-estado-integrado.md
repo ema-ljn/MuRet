@@ -20,7 +20,7 @@ La entrega pendiente conserva la pila autorizada:
 `main` ← [#347](https://github.com/ema-ljn/MuRet/pull/347) (H9/H10)
 ← [#348](https://github.com/ema-ljn/MuRet/pull/348) (H6)
 ← [#349](https://github.com/ema-ljn/MuRet/pull/349) (H12)
-← `codex/cl9-h13-cierre` (H13 y conexiones finales de eventos).
+← [#363](https://github.com/ema-ljn/MuRet/pull/363) (H13 y conexiones de eventos, incluido H11).
 
 Las tres ramas públicas se actualizaron mediante commits y merges normales, preservando
 el arreglo remoto de pila Windows `4d844638`. No se mergeó ningún PR a `main`,
@@ -31,7 +31,7 @@ no se reescribió historia pública y no se cerraron entregas ajenas.
 | Hito | Implementación presente en el conjunto | Condición que impide certificar el cierre total |
 | --- | --- | --- |
 | H1: emote y jugadores | Viewport, estado y acciones; conservación de los arreglos previos de entrada y selección. | Comparación dinámica estricta; efectos externos y precisión original en los casos documentados de H1. |
-| H2: monstruos, NPC y misiones | Altas/bajas, diálogos, premio A3 y cambio de partes de #362. NPC 12/13 conectados con H12; joints618 y llegadas Crywolf reutilizan sus kernels existentes. | CastleArrival134 y otras familias externas; casos de registro protegido. Conservar sus VAs y precondiciones. |
+| H2: monstruos, NPC y misiones | Altas/bajas, diálogos, premio A3 y cambio de partes de #362. NPC 12/13 conectados con H12. Llegadas en Crywolf, joints618 y señal propia `134/0` en el castillo. | Otras familias externas y casos de registro protegido. |
 | H3: combate, daño y muerte | Entrega de #342 y fix de ataque #359 conservados; integración con estados del asedio. | Casos nativos indeterminados Q-C1050/Q-C1161 y efectos concretos de CL11; combate XP previo no certifica todos los casos. |
 | H4: skills, cuervo y mascotas | Entrega principal integrada; receptores/equipo y familias necesarias para Siege/Crywolf ampliados. | Efectos de skills que siguen perteneciendo a CL11 y validación de sus recorridos especiales. |
 | H5: ítems | Piso, usar/tirar, inventario y devolución del cursor antes del teleport. | Autoequipación de flechas P-C151/Q-C773: lectura de manos tras el cierre protegido. |
@@ -40,7 +40,7 @@ no se reescribió historia pública y no se cerraron entregas ajenas.
 | H8: gremio, alianza y guerra | Entrega principal integrada; caché canónica y cierres del Guild Master por chat, quest y paneles. | Servicio compatible, roles reales y contraste dinámico de los flujos sociales. |
 | H9: amigos y editor compartido | Edición occidental, cursor/selección, clipboard, foco y latch Tab; guard compartido de entrada. | Perfil XP de autoscroll horizontal, medida/caret e IME completo. Sigue abierto como fidelidad, aunque exista implementación funcional. |
 | H10: chat y cartas | Editor compartido, listas, retrato y multiline; #347 incorpora las reparaciones de H9. | Misma frontera del EDIT y validación del servicio de amigos/cartas. |
-| H11: eventos | Battle Soccer, marcador/telas, F3 24 y resultado incluso con HUD oculto; Crywolf, altas, ataques y cadenas necesarias. | Servidor de laboratorio sin Crywolf; observación original y fronteras de memoria/efectos concretas. |
+| H11: eventos | Battle Soccer, marcador/telas, F3 24 y resultado incluso con HUD oculto. Crywolf y fortaleza disparan `F8/1`, y el ataque radial `C1A/0` avanza hasta su contacto con el terreno. | Servidor compatible, contraste en VM, rama con pila indeterminada Q-C1050 y dispersión de piedras de la etapa 1. [Decisión de efectos](../../../docs/adr/0020-senales-crywolf.md). |
 | H12: ventanas del castillo | Registro/listas B4/B5, Senior, puertas/estatuas, impuestos, retiro/fabricación y zona de caza, desde NPC/recepción hasta paso/dibujo. | Estados iniciales/bytes residuales del original y comparación visual/servidor en VM. |
 | H13: batalla del castillo | B2/B6/B7/B9/BA/BB, corona/bandos, holders, panel y minimapa, NPC de armas/puertas, señales de alta y ataque en mapa 30, B1 y retorno. | Estados de pila sin inicializar y contraste de batalla/cambio de servidor. La selección de objetos del escenario sigue pendiente en CL7.4. |
 
@@ -96,6 +96,8 @@ ya estaban presentes. No se clasificaron automáticamente como deuda de otra ola
 | --- | --- |
 | Esc desde la escena | `StepTheDialogs` presta el sender de NPC; cuatro regresiones pasan por `GameScene::Step`, sin sender artificial en el helper. El fix también se llevó a las bases H6/H12. |
 | Misiles `432b63` / `42fd37` | ED/1 de Crywolf y E1/1 de fortaleza reciben posición/ángulos/luz, dueño y WORD de key originales; conservan la salida con pool lleno. |
+| Proyectil `43257a` / `42fd76` | `F8/1` conserva la etapa 14, el dueño y la clave. En vida 13 intenta reservar `105/3` antes de procesar choque y luz. |
+| Descarga `4329db` / `4f6780` | `C1A/0` intenta 18 altas por tanda. En Crywolf se ejecutan ambas tandas; fuera corre la común. Cada fragmento conserva el giro, el avance y la comparación estricta con el terreno. |
 | Joints618/2,3 | La creación admite los tipos normales de la tabla, además de349; mismo dueño Actor y ancho30, con los dos intentos en orden. |
 | Llegada `4c9883` | Etapa3 pone alpha1 sin altas. El resto pone alpha0 y comparte con CameraTour cuatro615/7, tres5f6/1 y cuatro614/17; los cuatro primeros usan el mismo punto actor+(20,20,0). |
 | Kalima `43bea5` | C5 crea C8 y C9 en posición del actor después del polvo y alcanza la cola del pulso; lleno sólo omite el alta. |
@@ -117,6 +119,12 @@ CameraTour,55/55. El altar pasó de fallar en430a40 a aprobar su caso discrimina
 y la suite completa CrywolfObjectServices13/13; GameScene34/34 volvió a pasar con
 la biblioteca que contiene ese renderer. Son comprobaciones focales con headers/biblioteca coherentes y
 hashes retenidos; no se les atribuye el resultado del CI de otra cabeza.
+
+El incremento de H11 dio 292 pruebas focales aprobadas en Linux, en 12 binarios
+de ataques, flechas, efectos, dibujo y escena. Las regresiones nuevas pasaron
+de reproducir los cortes a comprobar ambos llamadores, saturación, vida 13,
+contacto con el terreno y exclusión del segundo pase de dibujo. El CI del PR
+verifica la revisión publicada en Linux y Windows.
 
 La regresión de `B1` reprodujo el fallo de sesión con `Macro.txt` inaccesible antes
 del cambio. Con el aplicador recompilado pasaron 23 pruebas de SessionEventApplier
@@ -168,19 +176,13 @@ identidades, precondiciones, secuencias, VAs y entrega de evidencia. Casos prior
 6. Efectos externos CL11: mantener por familia el tipo, VA, prefijo y capacidad;
    ni su falta ni el audio pendiente de CL10 desaparecen por cerrar la lógica del evento.
 
-Hay **implementaciones concretas todavía pendientes**, además de capturas VM:
-
-| Familia externa | Caller normal que puede quedar bloqueado |
-| --- | --- |
-| F8/1 | Crywolf `43257a` y fortaleza `42fd76`; descendencia60f/0x19 (25decimal) o0xb y105/3. El arreglo de ED/E1 no los sustituye. |
-| C1A | Ataque Crywolf `4329db` y genérico `4f6780`; no equivale a las piedras C8/C9. |
-
-Estos casos requieren portar constructor, paso, dibujo y descendencia con sus
-contratos; obtener una captura no reemplaza esa implementación. Con espacio en
-los pools pueden seguir cortando una ruta normal, por lo que el conjunto no se
-presenta como Castle Siege/Crywolf universalmente jugables. Otros efectos CL11
-de skills conservan sus límites individuales. La clasificación es una asignación
-del trabajo pendiente, no una exención de su impacto funcional.
+El ataque de etapa 1 de Crywolf aún puede cortar en `0x520119` cuando tiene un
+lugar de modelo libre para la dispersión de piedras. La rama de `0x432acc`
+(Q-C1050) sigue requiriendo observar el local de pila que lee el original.
+Los llamadores de `F8/1` y `C1A/0` continúan con las señales propias de MuRet.
+El ADR 0020 registra las diferencias de trayectoria, emisiones y RNG que hay
+que identificar al contrastar estos ataques. Las demás variantes de CL11
+conservan sus límites individuales.
 
 Para continuar, revisar primero los checks del PR sobre su SHA, resolver cualquier fallo
 real y ejecutar los casos independientes del runbook. Un caso sin captura se registra

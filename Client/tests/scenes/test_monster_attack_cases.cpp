@@ -811,6 +811,83 @@ TEST_F(MonsterAttackCasesTest, SiegeCueGatesUseTheMapAndKindFrameWithoutAnAction
             }
 }
 
+// 4329ec devuelve AL=0 después del primer abanico. 4f6442 vuelve a pasar por la rama común.
+TEST_F(MonsterAttackCasesTest, CrywolfRunsItsRadialVolleyBeforeTheCommonVolley)
+{
+    withParticles = false;
+    for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{34}})
+    {
+        Load(map);
+        for (const std::size_t free : {0u, 1u, 40u})
+        {
+            SCOPED_TRACE(testing::Message() << "mapa " << static_cast<int>(map) << ", lugares " << free);
+            auto& actor = Prepare(Probe{.name = "abanico de ataque",
+                                        .type = 3,
+                                        .step = 14,
+                                        .skill = CaseSkill,
+                                        .kind = std::uint16_t{0x3b},
+                                        .model = std::uint16_t{0x17c}});
+            actor.position = {1100, 2100, 40};
+            actor.angles = {3, 5, 10};
+            actor.light = {0.1f, 0.3f, 0.5f};
+            FillModelEffectPoolExceptLast(free);
+
+            const auto result = Step(actor);
+
+            ASSERT_TRUE(result.HasValue()) << result.Error();
+            constexpr std::size_t PerVolley = 18;
+            const std::size_t made = std::min(free, map == 34 ? 2 * PerVolley : PerVolley);
+            const auto effects = game->world.Map().effects.Effects().last(free);
+            for (std::size_t i = 0; i < made; ++i)
+            {
+                const auto& shot = effects[i];
+                EXPECT_TRUE(shot.alive);
+                EXPECT_EQ(shot.type, 0xc1a);
+                EXPECT_EQ(shot.subtype, 0);
+                EXPECT_EQ(shot.transform.position, (glm::vec3{1100, 2100, 320}));
+                EXPECT_EQ(shot.transform.angles, (glm::vec3{23, 5, 10.0f + 20.0f * static_cast<float>(i % PerVolley)}));
+                EXPECT_EQ(shot.light, actor.light);
+                EXPECT_EQ(shot.ownerContext, nullptr);
+                EXPECT_EQ(shot.disturbanceState, 0xffffu);
+            }
+            EXPECT_TRUE(std::ranges::none_of(effects.subspan(made), [](const auto& effect) { return effect.alive; }));
+            EXPECT_EQ(Draws(), (map == 34 ? 2 : 1) * SkillRead + Tail);
+        }
+    }
+}
+
+TEST_F(MonsterAttackCasesTest, CrywolfAndFortressLaunchF8AtFrameFourteenAndPreserveTheOwnerAndKey)
+{
+    withParticles = false;
+    for (const std::uint8_t map : {std::uint8_t{34}, std::uint8_t{35}})
+    {
+        Load(map, map == 35 ? std::uint8_t{0} : map);
+        for (const std::size_t free : {0u, 1u})
+        {
+            SCOPED_TRACE(testing::Message() << "mapa " << static_cast<int>(map) << ", lugares " << free);
+            auto& actor =
+                Prepare(Probe{.name = "flecha de Crywolf o Fortress", .type = map == 34 ? 0x13c : 0x136, .step = 14});
+            actor.angles = {15, 25, 35};
+            actor.word8a = 0x1234;
+            FillModelEffectPoolExceptLast(free);
+            const auto result = Step(actor);
+            ASSERT_TRUE(result.HasValue()) << result.Error();
+            EXPECT_EQ(Draws(), free == 0 ? 0 : OwnRecord);
+            EXPECT_EQ(actor.angles, (free == 0 ? glm::vec3{15, 25, 35} : glm::vec3{0, 0, 35}));
+            if (free == 0)
+                continue;
+            const auto& arrow = game->world.Map().effects.Effects().back();
+            EXPECT_TRUE(arrow.alive);
+            EXPECT_EQ(arrow.type, 0xf8);
+            EXPECT_EQ(arrow.subtype, 1);
+            EXPECT_EQ(arrow.life, 30);
+            EXPECT_EQ(arrow.ownerContext, &actor);
+            EXPECT_EQ(arrow.disturbanceState, 0x1234u);
+            EXPECT_EQ(arrow.transform.angles, (glm::vec3{15, 25, 35}));
+        }
+    }
+}
+
 // 0x42fce0 en el 35 (con el terreno de Lorencia: el Data del repo no tiene el World36) y 0x4324c0 en Crywolf, por el
 // tipo: los efectos en 14 (0x1ad y 0x1b2) y en 15 (0x1b5); si no, siguen a la cola. El 0x17c y el 0x17e los crean los
 // tipos 0x3a, 0x3b, 0x3e, 0x52, 0x53 y 0x12c, que el alta corta: el tipo y el +0x376 van a mano.
@@ -820,7 +897,7 @@ TEST_F(MonsterAttackCasesTest, TheFortressAndCrywolfLookAtTheModel)
     EXPECT_EQ(Create(0x136).type, 0x1ad);
     EXPECT_EQ(Create(0x13c).type, 0x1b2);
     for (const Probe& probe :
-         std::vector<Probe>{{.name = "0x1ad en 14", .type = 0x136, .step = 14, .cut = "0x42fd76"},
+         std::vector<Probe>{{.name = "0x1ad en 14", .type = 0x136, .step = 14, .draws = OwnRecord},
                             {.name = "0x1ad en 13", .type = 0x136, .step = 13, .draws = Tail},
                             {.name = "0x1b2 en 14", .type = 0x13c, .step = 14, .draws = OwnRecord}})
         Expect(probe);
@@ -831,7 +908,7 @@ TEST_F(MonsterAttackCasesTest, TheFortressAndCrywolfLookAtTheModel)
     EXPECT_EQ(Create(0x15c).type, 0x1b5);
     const std::vector<Probe> crywolf{{.name = "0x1b2 en 14", .type = 0x138, .step = 14, .draws = OwnRecord},
                                      {.name = "0x1b2 en 13", .type = 0x138, .step = 13, .draws = Tail},
-                                     {.name = "0x1ad en 14", .type = 0x13c, .step = 14, .cut = "0x43257a"},
+                                     {.name = "0x1ad en 14", .type = 0x13c, .step = 14, .draws = OwnRecord},
                                      {.name = "0x1b5 en 15", .type = 0x15c, .step = 15, .draws = OwnRecord},
                                      {.name = "0x1b5 en 14", .type = 0x15c, .step = 14, .draws = Tail},
                                      {.name = "0x17c en 1",
@@ -846,8 +923,7 @@ TEST_F(MonsterAttackCasesTest, TheFortressAndCrywolfLookAtTheModel)
                                       .type = 3,
                                       .step = 14,
                                       .skill = CaseSkill,
-                                      .cut = "0x4329db",
-                                      .draws = SkillRead,
+                                      .draws = 2 * SkillRead + Tail,
                                       .kind = std::uint16_t{0x3b},
                                       .model = std::uint16_t{0x17c}},
                                      // 0x4324c0 lee +0x38e y sigue; el caso 0x3b de 0x4f5b70 la vuelve a leer en 14.
@@ -902,7 +978,7 @@ TEST_F(MonsterAttackCasesTest, TheSiegeTrialAndFortressHelpersExitWhenTheirModel
     };
     const std::array cases{Case{30, 30, 0x120, 1, 3, ""},          Case{30, 30, 0x68, 5, 3, ""},
                            Case{33, 33, 0x135, 10, 3, "0x42919a"}, Case{54, 54, 0x134, 10, 4, "0x429202"},
-                           Case{33, 33, 0x130, 10, 4, "0x42925a"}, Case{35, 0, 0x136, 14, 3, "0x42fd76"},
+                           Case{33, 33, 0x130, 10, 4, "0x42925a"}, Case{35, 0, 0x136, 14, 3, ""},
                            Case{35, 0, 0x13c, 14, 3, ""}};
     withParticles = false;
     for (const Case& probe : cases)
@@ -1201,8 +1277,7 @@ TEST_F(MonsterAttackCasesTest, TheKindCasesCutAfterTheirDrawsOrGoOnToTheTail)
          .type = 3,
          .step = 14,
          .skill = CaseSkill,
-         .cut = "0x4f6780",
-         .draws = SkillRead,
+         .draws = SkillRead + Tail,
          .kind = std::uint16_t{0x3b}},
         {.name = "0x3a con '2' en 14",
          .type = 3,

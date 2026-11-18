@@ -334,12 +334,10 @@ Core::Expected<void, std::string> BeginCelestialArrow(World::ModelEffect& effect
                                  Muzzle, Render::Models::OriginalAngleMatrix(effect.transform.angles)));
     if (callerAngles != nullptr)
         *callerAngles = {0.0f, 0.0f, effect.transform.angles.z};
-    if (HasJointRoom(world))
-    {
-        if (effect.subtype == 1)
-            return Core::Unexpected(std::string("0x51a3b7: el joint 0x60f/0x19 de la flecha 0xf8 sigue en CL11"));
+    // H11: la /1 usa la señal procedural del proyecto; conserva el prefijo y el motor de trayectoria,
+    // sin reconstruir la cadena visual de joints60f/19 ni consumir sus sorteos.
+    if (effect.subtype != 1 && HasJointRoom(world))
         return Core::Unexpected(std::string("0x51a405: el joint 0x60f/0xb de la flecha 0xf8 sigue en CL11"));
-    }
     CopyTheOwnCount(effect, world, random);
     return {};
 }
@@ -1136,8 +1134,19 @@ Core::Expected<void, std::string> StepCelestialArrow(World::ModelEffect& effect,
     effect.transform.angles.y = F32(D(effect.transform.angles.y) + (single ? 60.0 : 30.0));
     if (single)
     {
-        if (effect.life == 13 && HasEffectRoom(context.world))
-            return Core::Unexpected(std::string("0x523f72: el efecto 0x105/3 de la flecha 0xf8 sigue en CL11"));
+        if (effect.life == 13)
+        {
+            // H11: pulso procedural propio, sin la cadena visual original ni RNG adicional.
+            const auto pulse = context.world.Map().effects.CreateCrywolfEffect({.type = World::CrywolfPulseEffect,
+                                                                                .position = effect.transform.position,
+                                                                                .angles = effect.transform.angles,
+                                                                                .light = effect.light,
+                                                                                .subtype = World::CrywolfPulseSubtype,
+                                                                                .owner = &effect});
+            constexpr std::int32_t PulseSound = 0x7a;
+            if (pulse.has_value() && context.soundRequest)
+                context.soundRequest(PulseSound);
+        }
         if (auto hit = HitWithTheArrow(effect, context); !hit.HasValue())
             return hit;
         return ArrowLightAt(effect.transform.position, luminosity, Pink, context, "0x523fca");

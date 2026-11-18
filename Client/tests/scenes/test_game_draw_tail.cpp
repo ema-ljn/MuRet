@@ -822,6 +822,36 @@ TEST(GameDrawTailTest, AReusedSiegeCueKeepsItsVisibilityUntilTheModelPass)
     EXPECT_EQ(batch.State().blend, Client::Render::ModelBlend::Additive);
 }
 
+TEST(GameDrawTailTest, CrywolfEffectsDrawWithoutModelsAndSkipTheSecondWorldPass)
+{
+    struct Cue
+    {
+        std::int16_t type;
+        std::int32_t subtype;
+    };
+    constexpr std::array cues{Cue{0xf8, 1}, Cue{0x105, 3}, Cue{0xc1a, 0}};
+    for (const auto [type, subtype] : cues)
+    {
+        SCOPED_TRACE(type);
+        LookupCounter models;
+        Client::World::ModelEffect effect;
+        effect.alive = true;
+        effect.type = type;
+        effect.subtype = subtype;
+        effect.transform.position = {1000, 2000, 300};
+        for (const std::uint8_t mode : {std::uint8_t{0}, std::uint8_t{1}})
+        {
+            Client::Render::ModelBatch batch;
+            const auto drawn = Client::Scenes::DrawGameModelEffects(
+                batch, models, std::span(&effect, 1), Client::World::SphereFrustum{}, nullptr, {}, 0, mode);
+            ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+            EXPECT_TRUE(effect.seen);
+            EXPECT_EQ(batch.Vertices().empty(), mode == 1);
+        }
+        EXPECT_EQ(models.lookups, 0);
+    }
+}
+
 TEST(GameDrawTailTest, NoriaJointConsumesTwoConstructorRandomsAndMovesBeforeGrowingItsTail)
 {
     std::array<Client::Scenes::JointState, 1> joints{};

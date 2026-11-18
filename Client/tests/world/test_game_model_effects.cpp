@@ -33,6 +33,60 @@
 
 namespace
 {
+TEST(GameModelEffectsTest, AShardRetiresOnlyBelowTheTerrainAfterTheCommonMovement)
+{
+    auto particles = std::make_unique<Client::World::Particles>();
+    auto lighting = std::make_unique<Client::World::TerrainLighting>();
+    Client::World::ModelEffect shard;
+    shard.alive = true;
+    shard.type = 0xc1a;
+    shard.life = 3;
+    shard.transform.position = {1000, 2000, 40};
+    shard.velocity = {0, -80, -10};
+    Client::Render::Models::CrtRandom random(1);
+    const Client::World::ModelEffectStepServices services{.terrainHeight = [](float, float) { return 40.0; },
+                                                          .lighting = lighting.get()};
+
+    auto result = Client::World::StepGameModelEffect(shard, nullptr, *particles, 0, random, nullptr, services);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_TRUE(shard.alive);
+    EXPECT_EQ(shard.transform.position, (glm::vec3{1000, 1920, 30}));
+
+    result = Client::World::StepGameModelEffect(shard, nullptr, *particles, 0, random, nullptr, services);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_FALSE(shard.alive);
+    EXPECT_EQ(shard.transform.position, (glm::vec3{1000, 1840, 20}));
+    EXPECT_EQ(shard.life, 1);
+    EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 2).State());
+}
+
+TEST(GameModelEffectsTest, AVolleyPulseFollowsItsProjectileAndRetiresWhenTheOwnerIsReused)
+{
+    auto particles = std::make_unique<Client::World::Particles>();
+    Client::World::ModelEffect projectile;
+    projectile.alive = true;
+    projectile.type = 0xf8;
+    projectile.subtype = 1;
+    projectile.transform.position = {10, 20, 30};
+    Client::World::ModelEffect pulse;
+    pulse.alive = true;
+    pulse.type = 0x105;
+    pulse.subtype = 3;
+    pulse.life = 10;
+    pulse.owner.effect = &projectile;
+    Client::Render::Models::CrtRandom random(1);
+
+    auto result = Client::World::StepGameModelEffect(pulse, nullptr, *particles, 0, random);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_TRUE(pulse.alive);
+    EXPECT_EQ(pulse.transform.position, projectile.transform.position);
+    projectile.type = 0xc1a;
+    result = Client::World::StepGameModelEffect(pulse, nullptr, *particles, 0, random);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_FALSE(pulse.alive);
+    EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 2).State());
+}
+
 TEST(GameModelEffectsTest, TheSiegeArrivalCueStaysAtTheSpawnUntilItsActorIsGone)
 {
     auto particles = std::make_unique<Client::World::Particles>();

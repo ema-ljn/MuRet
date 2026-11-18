@@ -13,6 +13,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/MonsterBodyPasses.h"
+#include "World/ModelEffects.h"
 
 #include <gtest/gtest.h>
 
@@ -25,6 +26,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <limits>
 #include <optional>
 #include <span>
 #include <string>
@@ -125,13 +127,14 @@ protected:
         object.model = type;
         object.color = {0.2f, 0.4f, 0.6f};
         object.alpha = m_actor->alpha;
-        m_meshes = Client::Scenes::SkinObjectMeshes(m_models, object, m_bones);
+        m_meshes = Client::Scenes::SkinObjectMeshes(m_models, object, m_bones, m_boneScale);
         Client::Scenes::MonsterBodyModel model{.batch = m_batch,
                                                .models = m_models,
                                                .object = object,
                                                .meshes = m_meshes,
                                                .frameClock = Client::Core::Duration{},
-                                               .worldClock = worldClock};
+                                               .worldClock = worldClock,
+                                               .boneScale = m_boneScale};
         Client::Scenes::MonsterBodyFrame frame{.model = model,
                                                .actor = *m_actor,
                                                .bones = m_bones,
@@ -140,10 +143,11 @@ protected:
                                                .worldClock = worldClock,
                                                .random = m_cloth.random,
                                                .cloth = m_cloth,
-                                               .siegeActive = false,
+                                               .siegeActive = m_siegeActive,
                                                .lastSoundId = &m_sound,
                                                .originalFrame = originalFrame,
-                                               .cameraShake = &m_shake};
+                                               .cameraShake = &m_shake,
+                                               .effects = m_effects.get()};
         auto result = Client::Scenes::DrawMonsterBody(frame);
         m_color = model.object.color;
         return result;
@@ -184,6 +188,9 @@ protected:
     Client::Render::Models::ClothWorld m_cloth;
     std::optional<std::int32_t> m_sound;
     float m_shake = 0.0f;
+    bool m_siegeActive = false;
+    float m_boneScale = 1.0f;
+    std::unique_ptr<Client::World::ModelEffects> m_effects = std::make_unique<Client::World::ModelEffects>();
     std::vector<Client::Render::Models::BoneTransform> m_bones{Client::Render::Models::BoneTransform(1.0f)};
     std::vector<Client::Render::Models::SkinnedMesh> m_meshes;
     glm::vec3 m_color{};
@@ -463,9 +470,9 @@ TEST_F(MonsterBodyTest, TheUnportedBranchesCutWithTheirAddress)
         const char* address;
     };
     // La clase de los bordes del 0x183 después de su malla 0; la cadena; los tipos que ninguna alta da.
-    constexpr std::array cases{Case{0x183, 0, "0x6011f1"}, Case{0x19b, 30, "0x42e3d0"}, Case{0x1ff, 30, "0x42e3d0"},
-                               Case{0x110, 0, "0x6004ed"}, Case{0x69, 0, "0x600a4a"},   Case{0x12a, 2, "0x600654"},
-                               Case{0x111, 0, "0x60246a"}, Case{0x11d, 0, "0x43ed20"},  Case{0x13d, 2, "0x442e10"}};
+    constexpr std::array cases{Case{0x183, 0, "0x6011f1"}, Case{0x110, 0, "0x6004ed"}, Case{0x69, 0, "0x600a4a"},
+                               Case{0x12a, 2, "0x600654"}, Case{0x111, 0, "0x60246a"}, Case{0x11d, 0, "0x43ed20"},
+                               Case{0x13d, 2, "0x442e10"}};
     for (const Case& value : cases)
     {
         SCOPED_TRACE(value.address);
@@ -482,6 +489,148 @@ TEST_F(MonsterBodyTest, TheUnportedBranchesCutWithTheirAddress)
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(m_batch.Vertices().size(), WholeBody);
     }
+}
+
+// 42e701..42e730 vuelve con AL=0: el caller conserva el RenderBody común después del propio.
+TEST_F(MonsterBodyTest, TheCastleStatueDrawsTwiceBecauseItsBodyCaseReturnsFalse)
+{
+    const auto result = Draw(0x19b, 30);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_EQ(m_batch.Vertices().size(), WholeBody * 2);
+}
+
+// 42e731..42e738 y42e966: sin batalla el19c devuelve1 sin tocar el modelo ni dibujar.
+TEST_F(MonsterBodyTest, TheCastleGuardConsumesItsBodyPassOutsideTheBattle)
+{
+    const auto result = Draw(0x19c, 30);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_TRUE(m_batch.Vertices().empty());
+}
+
+TEST_F(MonsterBodyTest, TheCastleLifeModelSelectsMeshesByItsUnsignedByte93)
+{
+    m_actor->byte93 = 4;
+    const auto result = Draw(0x1a8, 30);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    ASSERT_EQ(m_batch.Vertices().size(), Triangle * 3);
+    EXPECT_EQ(TextureAt(0), 0x300);
+    EXPECT_EQ(TextureAt(Triangle), 0x302);
+    EXPECT_EQ(TextureAt(Triangle * 2), 0x301);
+    EXPECT_FLOAT_EQ(m_actor->blendMeshLight, 0.4f);
+    ExpectColor(Triangle * 2, 0.2f, 0.2f, 0.2f);
+}
+
+TEST_F(MonsterBodyTest, TheCastleStatueDeathPreservesItsFalseReturnAfterSoundAndVertexEffects)
+{
+    m_actor->animation.action = 6;
+    for (auto& effect : m_effects->Effects())
+        effect.alive = true;
+    const auto result = Draw(0x19b, 30);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_FALSE(m_actor->alive);
+    EXPECT_EQ(m_sound, 0x87);
+    EXPECT_EQ(m_cloth.random.State(), AfterRandoms(9));
+    EXPECT_EQ(m_batch.Vertices().size(), WholeBody);
+}
+
+TEST_F(MonsterBodyTest, TheCastleGuardDeathEmitsDebrisAndConsumesItsBodyPass)
+{
+    m_siegeActive = true;
+    m_actor->animation.action = 6;
+    for (auto& effect : m_effects->Effects())
+        effect.alive = true;
+    const auto result = Draw(0x19c, 30);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_FALSE(m_actor->alive);
+    EXPECT_EQ(m_sound, 0x1e8);
+    EXPECT_EQ(m_cloth.random.State(), AfterRandoms(6));
+    EXPECT_TRUE(m_batch.Vertices().empty());
+}
+
+TEST_F(MonsterBodyTest, TheCastleWaterUsesTheProtectedFrameThenTheSignedClockRemainder)
+{
+    m_cloth.waterTextureFrame = 7;
+    const auto result = Draw(0x1ff, 30, 0, 1000);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    ASSERT_EQ(m_batch.Vertices().size(), WholeBody * 2);
+    EXPECT_EQ(TextureAt(0), 0x48);
+    // 1000*0.01f =9.999999776..., ftol trunca9.
+    EXPECT_EQ(TextureAt(WholeBody), 0x4a);
+    ExpectColor(0, 0.3f, 0.3f, 1);
+    ExpectColor(WholeBody, 0.3f, 1, 0.3f);
+}
+
+TEST_F(MonsterBodyTest, TheCastleCatapultSelectsTheProjectileBoneByItsFrameWindow)
+{
+    m_bones.resize(45, Client::Render::Models::BoneTransform(1));
+    m_bones[12][3][0] = 10;
+    m_bones[12][3][1] = 20;
+    m_bones[12][3][2] = 30;
+    m_bones[44][3][0] = 40;
+    m_bones[44][3][1] = 50;
+    m_bones[44][3][2] = 60;
+    struct Case
+    {
+        std::uint8_t action;
+        float frame;
+        float projectileX;
+    };
+    const std::array cases{Case{0, 14, 10},
+                           Case{1, 1, 10},
+                           Case{1, 2, 0},
+                           Case{1, 13, 0},
+                           Case{1, 14, 40},
+                           Case{1, 22, 10},
+                           Case{1, std::numeric_limits<float>::quiet_NaN(), 10}};
+    for (const auto& value : cases)
+    {
+        SCOPED_TRACE(value.frame);
+        m_batch.Begin(Client::Render::Pass3D{});
+        m_actor->animation.action = value.action;
+        m_actor->animation.frame = value.frame;
+        const auto result = Draw(0x1f8, 30);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        const bool projectile = value.projectileX != 0;
+        ASSERT_EQ(m_batch.Vertices().size(), WholeBody * (projectile ? 2u : 1u));
+        if (projectile)
+        {
+            EXPECT_EQ(m_batch.Vertices()[WholeBody].position.x, value.projectileX);
+        }
+    }
+}
+
+TEST_F(MonsterBodyTest, TheCastleGuardDrawsItsTwoOverlaysAndRestoresWhite)
+{
+    m_siegeActive = true;
+    const auto result = Draw(0x19c, 30);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    ASSERT_EQ(m_batch.Vertices().size(), WholeBody * 3);
+    ExpectColor(WholeBody, 0.3f, 0.3f, 0.3f);
+    ExpectColor(WholeBody * 2, 0.2f, 0.2f, 0.5f);
+    EXPECT_EQ(m_color, glm::vec3(1));
+    EXPECT_EQ(TextureAt(WholeBody), 0x5c0);
+    EXPECT_EQ(TextureAt(WholeBody * 2), 0x5c0);
+}
+
+TEST_F(MonsterBodyTest, TheCastleProjectileRebuildsItsPreludeColorAfterTheCatapultFlagTint)
+{
+    m_bones.resize(45, Client::Render::Models::BoneTransform(1));
+    m_actor->flags78 = 1;
+    const auto result = Draw(0x1f8, 30);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    ASSERT_EQ(m_batch.Vertices().size(), WholeBody * 2);
+    ExpectColor(0, 0.3f, 1, 0.5f);
+    ExpectColor(WholeBody, 0.2f, 0.4f, 0.6f);
+}
+
+TEST_F(MonsterBodyTest, TheCastleProjectileUsesTheActorsSharedBoneScale)
+{
+    m_bones.resize(45, Client::Render::Models::BoneTransform(1));
+    m_boneScale = 1.2f;
+    const auto result = Draw(0x1f8, 30);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    ASSERT_EQ(m_batch.Vertices().size(), WholeBody * 2);
+    EXPECT_FLOAT_EQ(m_batch.Vertices()[WholeBody + 1].position.x, 1.2f * 1.3f);
 }
 
 TEST_F(MonsterBodyTest, TheEdgeClassOf183OnlyCutsWhenItMarksTheSilhouette)

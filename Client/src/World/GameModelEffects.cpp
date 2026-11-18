@@ -1,4 +1,5 @@
 #include "World/GameModelEffects.h"
+#include "World/SiegeVertexEffects.h"
 
 #include "Core/Expected.h"
 #include "Render/Models/Cloth.h"
@@ -16,6 +17,7 @@
 #include <glm/ext/vector_float3.hpp>
 
 #include <array>
+#include <algorithm>
 #include <bit>
 #include <cstddef>
 #include <cmath>
@@ -1156,8 +1158,8 @@ Core::Expected<void, std::string> StepEarthquakeCrack(ModelEffect& effect, float
 // +0x174 = vida · 0,1f. En 0x5252e6, rand() % 10 y, con 0, 0x53fe70(0x5f3, [EBP − 0x28], ángulos, (1; 1; 1), 0,
 // 1,0f, 0): ese punto es un local de 0x5208a0 que ningún camino escribe (Q-C1176), así que corta ahí, después de ese
 // rand() y antes del polvo y de la cola (P-C232, para la VM).
-Core::Expected<void, std::string> StepDebris(ModelEffect& effect, Render::Models::CrtRandom& random,
-                                             const ModelEffectStepServices& services)
+Core::Expected<void, std::string> StepDebris(ModelEffect& effect, Particles& particles,
+                                             Render::Models::CrtRandom& random, const ModelEffectStepServices& services)
 {
     glm::vec3& position = effect.transform.position;
     for (int axis = 0; axis < 3; ++axis)
@@ -1197,6 +1199,8 @@ Core::Expected<void, std::string> StepDebris(ModelEffect& effect, Render::Models
     // 0x5252e6.
     constexpr int DustChance = 10;
     if (random.Next() % DustChance != 0)
+        return {};
+    if (std::ranges::none_of(particles.All(), [](const Particle& particle) { return !particle.alive; }))
         return {};
     return Core::Unexpected(std::format("0x5252e6: el polvo 0x5f3/0 de la piedra {:#x} va en [EBP − 0x28] de "
                                         "0x5208a0, un local que ningún camino escribe (Q-C1176; la VM, P-C232)",
@@ -1331,10 +1335,16 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
             effect.alive = false;
         return {};
     }
+    else if (IsSiegeVertexEffect(effect.type))
+    {
+        wholeStep = true;
+        if (auto stepped = StepSiegeVertexEffect(effect, particles, random, services); !stepped.HasValue())
+            return stepped;
+    }
     else if (effect.type == FirstDebrisEffect || effect.type == DebrisEffect)
     {
         wholeStep = true;
-        if (auto stepped = StepDebris(effect, random, services); !stepped.HasValue())
+        if (auto stepped = StepDebris(effect, particles, random, services); !stepped.HasValue())
             return stepped;
     }
     else if (effect.type >= FirstEarthquakeCrack && effect.type <= LastEarthquakeCrack)

@@ -401,7 +401,8 @@ Result DrawTheBody(MonsterFrame& frame, const Render::Models::Skeleton& skeleton
                            .object = object,
                            .meshes = meshes,
                            .frameClock = frame.pass.frameClock,
-                           .worldClock = frame.worldClock};
+                           .worldClock = frame.worldClock,
+                           .boneScale = BoneScaleOf(mode)};
     MonsterBodyFrame body{.model = model,
                           .actor = actor,
                           .bones = bones,
@@ -413,7 +414,8 @@ Result DrawTheBody(MonsterFrame& frame, const Render::Models::Skeleton& skeleton
                           .siegeActive = frame.world.Runtime().siegeActive,
                           .lastSoundId = &frame.world.Runtime().lastSoundId,
                           .originalFrame = frame.originalFrame,
-                          .cameraShake = frame.pass.cameraShake};
+                          .cameraShake = frame.pass.cameraShake,
+                          .effects = frame.pass.effects};
     return DrawMonsterBody(body);
 }
 

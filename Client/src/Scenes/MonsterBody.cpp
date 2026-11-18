@@ -482,6 +482,7 @@ Result DrawMonsterBody(MonsterBodyFrame& frame)
 {
     ActorState& actor = frame.actor;
     MonsterBodyModel& model = frame.model;
+    model.preludeColor = model.object.color;
     if (const auto address = UnreachableCaseOf(actor, frame.map))
         return Cut(*address, "el caso de 0x6002e0 de un tipo que no da ninguna alta de monstruo", actor.type);
     model.object.color = EarlyColorOf(actor, frame.map, frame.special, model.object.color);

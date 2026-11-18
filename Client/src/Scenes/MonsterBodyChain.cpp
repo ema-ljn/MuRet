@@ -2,11 +2,16 @@
 
 #include "Core/Expected.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRetainedMath.h"
+#include "Render/Models/OriginalRotation.h"
+#include "Render/Models/Pose.h"
+#include "Render/Models/Skeleton.h"
 #include "Data/Models/Model.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/MonsterBodyPasses.h"
+#include "Scenes/VertexEffects.h"
 #include "World/OriginalFtol.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -20,6 +25,7 @@
 #include <initializer_list>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace Client::Scenes
 {
@@ -464,6 +470,164 @@ Chained DrawTheKalimaCase(MonsterBodyFrame& frame)
     return true;
 }
 
+Result EmitCastleVertices(MonsterBodyFrame& frame, std::int32_t type)
+{
+    if (frame.effects == nullptr)
+        return Core::Unexpected(std::string("0x4ee770: falta el pool de efectos del monstruo del asedio"));
+    return EmitVertexEffects(frame.model.models, frame.model.object, frame.model.meshes, 0, type, 0, *frame.effects,
+                             frame.random);
+}
+
+Chained DrawCastleGuard(MonsterBodyFrame& frame)
+{
+    if (!frame.siegeActive)
+        return true;
+    ActorState& actor = frame.actor;
+    if (actor.animation.action == DeathAction)
+    {
+        actor.alive = false;
+        RequestBodySound(frame, 0x1e8);
+        return Drawn(EmitCastleVertices(frame, 0x10a));
+    }
+    if (auto drawn = DrawBodyPass(frame.model, BaseFlags, ActorPassArgs(actor)); !drawn.HasValue())
+        return Core::Unexpected(drawn.Error());
+    BodyPassArgs chrome = WithTexture(ActorPassArgs(actor), Chrome01);
+    chrome.blendMesh = 0;
+    frame.model.object.color = glm::vec3(ThreeTenths);
+    if (auto drawn = DrawBodyPass(frame.model, ChromeFlags, chrome); !drawn.HasValue())
+        return Core::Unexpected(drawn.Error());
+    frame.model.object.color = {TwoTenths, TwoTenths, Half};
+    if (auto drawn = DrawBodyPass(frame.model, ShinyFlags, chrome); !drawn.HasValue())
+        return Core::Unexpected(drawn.Error());
+    frame.model.object.color = glm::vec3(1.0f);
+    return true;
+}
+
+Chained DrawCastleLife(MonsterBodyFrame& frame)
+{
+    ActorState& actor = frame.actor;
+    MonsterBodyModel& model = frame.model;
+    actor.blendMeshLight = F32(static_cast<double>(actor.byte93) * D(Tenth));
+    model.object.color = glm::vec3(actor.blendMeshLight);
+    const BodyPassArgs args{};
+    if (actor.byte93 >= 2)
+    {
+        if (auto drawn = DrawMeshPass(model, 0, BaseFlags, args); !drawn.HasValue())
+            return Core::Unexpected(drawn.Error());
+    }
+    if (actor.byte93 >= 3)
+    {
+        if (auto drawn = DrawMeshPass(model, 2, AdditiveFlags, args); !drawn.HasValue())
+            return Core::Unexpected(drawn.Error());
+    }
+    if (actor.byte93 >= 4)
+    {
+        model.object.color = glm::vec3(F32(D(actor.blendMeshLight) * D(Half)));
+        if (auto drawn = DrawMeshPass(model, 1, AdditiveFlags, args); !drawn.HasValue())
+            return Core::Unexpected(drawn.Error());
+    }
+    if (actor.byte93 < 5)
+        return true;
+    BodyPassArgs scroll;
+    scroll.blendMesh = 3;
+    scroll.uv.x = F32(D(frame.worldClock) * D(std::bit_cast<float>(0x38d1b717u)));
+    model.object.color = glm::vec3(Half);
+    if (auto drawn = DrawMeshPass(model, 3, AdditiveFlags, scroll); !drawn.HasValue())
+        return Core::Unexpected(drawn.Error());
+    model.object.color = glm::vec3(TwoTenths);
+    return Drawn(DrawMeshPass(model, 4, AdditiveFlags, scroll));
+}
+
+Result DrawCastleStoneAt(MonsterBodyFrame& frame, std::size_t bone)
+{
+    if (bone >= frame.bones.size())
+        return Core::Unexpected(std::format("0x42e4cf: falta el hueso {} de la catapulta", bone));
+    MonsterBodyModel& model = frame.model;
+    constexpr std::uint16_t StoneModel = 0x12b; // 5769ad8+105a0 = modelo12b, stridee0.
+    const auto* skeleton = model.models.SkeletonOf(StoneModel);
+    if (skeleton == nullptr)
+        return Core::Unexpected(std::string("0x42e4fc: falta el esqueleto del proyectil 0x12b"));
+    DrawnObject stone = model.object;
+    stone.model = StoneModel;
+    stone.color = model.preludeColor;
+    stone.unlitMesh.reset();
+    stone.animation = {};
+    stone.transform.position =
+        Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(frame.bones[bone]), {},
+                                                  model.object.transform.scale, model.object.transform.position);
+    stone.transform.scale = Ceiling;
+    stone.transform.lockedRootHeight = 0.0f;
+    std::vector<Render::Models::BoneTransform> posed(skeleton->bones.size(), Render::Models::BoneTransform(1.0f));
+    if (!Render::Models::PoseSkeleton(*skeleton, stone.animation, stone.transform, {}, posed))
+        return Core::Unexpected(std::string("0x42e4fc: no se pudo posar el proyectil 0x12b"));
+    model.rescaled = SkinObjectMeshes(model.models, stone, posed, model.boneScale);
+    model.meshes = model.rescaled;
+    MonsterBodyModel projectile{.batch = model.batch,
+                                .models = model.models,
+                                .object = stone,
+                                .meshes = model.meshes,
+                                .frameClock = model.frameClock,
+                                .worldClock = model.worldClock};
+    return DrawBodyPass(projectile, BaseFlags, ActorPassArgs(frame.actor));
+}
+
+Chained DrawCastleCatapult(MonsterBodyFrame& frame)
+{
+    if (auto drawn = DrawBodyPass(frame.model, BaseFlags, ActorPassArgs(frame.actor)); !drawn.HasValue())
+        return Core::Unexpected(drawn.Error());
+    const float key = frame.actor.animation.frame;
+    // 42e484/42e499: C0 incluye NaN; con NaN y acción!=0 solo se dibuja la piedra del hueso12.
+    if (frame.actor.animation.action == 0 || !(key >= 2.0f) || key >= 22.0f)
+    {
+        if (auto drawn = DrawCastleStoneAt(frame, 12); !drawn.HasValue())
+            return Core::Unexpected(drawn.Error());
+    }
+    if (frame.actor.animation.action == 1 && key > 13.0f && !(key >= 22.0f))
+        return Drawn(DrawCastleStoneAt(frame, 44));
+    return true;
+}
+
+Chained DrawCastleMonster(MonsterBodyFrame& frame)
+{
+    ActorState& actor = frame.actor;
+    switch (actor.type)
+    {
+    case 0x19b:
+        if (actor.animation.action == DeathAction)
+        {
+            actor.alive = false;
+            RequestBodySound(frame, 0x87);
+            if (auto emitted = EmitCastleVertices(frame, 0x131); !emitted.HasValue())
+                return Core::Unexpected(emitted.Error());
+        }
+        else if (auto drawn = DrawBodyPass(frame.model, BaseFlags, ActorPassArgs(actor)); !drawn.HasValue())
+            return Core::Unexpected(drawn.Error());
+        return false; // 42e6f9 y42e729: BL permanece en0.
+    case 0x19c:
+        return DrawCastleGuard(frame);
+    case 0x1a8:
+        return DrawCastleLife(frame);
+    case 0x1f8:
+        return DrawCastleCatapult(frame);
+    case 0x1ff:
+    {
+        frame.model.object.color = {ThreeTenths, ThreeTenths, 1.0f};
+        const auto water = static_cast<std::int32_t>(frame.cloth.waterTextureFrame) + WaterTexture;
+        if (auto drawn = DrawBodyPass(frame.model, AdditiveFlags, WithTexture(ActorPassArgs(actor), water));
+            !drawn.HasValue())
+            return Core::Unexpected(drawn.Error());
+        frame.model.object.color = {ThreeTenths, 1.0f, ThreeTenths};
+        const auto clock = World::OriginalFtolLow(D(frame.worldClock) * D(std::bit_cast<float>(0x3c23d70au)));
+        if (!clock)
+            return Core::Unexpected(std::string("0x42e682: el reloj del agua no cabe en 0x69fd3c"));
+        return Drawn(
+            DrawBodyPass(frame.model, AdditiveFlags, WithTexture(ActorPassArgs(actor), *clock % 32 + WaterTexture)));
+    }
+    default:
+        return false;
+    }
+}
+
 // 0x42cc10: solo en el 30. Los tipos del asedio los dibuja DrawCastleSiegeBody; los de los monstruos, 0x42e3d0.
 Chained DrawTheCastleCase(MonsterBodyFrame& frame)
 {
@@ -489,11 +653,7 @@ Chained DrawTheCastleCase(MonsterBodyFrame& frame)
         return Core::Unexpected(siege.Error());
     if (siege.Value())
         return true;
-    // 0x42e3d0: los monstruos del asedio (solo en el 30, la batalla de Castle Siege): del hito 13 de la CL9.
-    constexpr std::array<std::uint16_t, 5> Monsters{0x19b, 0x19c, 0x1a8, 0x1f8, 0x1ff};
-    if (OneOf(actor.type, Monsters))
-        return Cut("0x42e3d0", "el caso del monstruo del 30 de la cadena de 0x6002e0 (hito 13)", actor.type);
-    return false;
+    return DrawCastleMonster(frame);
 }
 
 // La f de 0x442ee9..0x442f24 y 0x4430c9..0x443104: min(sin(T · 0,0012f) · 0,8f + 1,3f; 1,3f) en la x87 (FCOM y

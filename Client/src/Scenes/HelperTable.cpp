@@ -546,7 +546,8 @@ DrawnObject DrawnHelper(const HelperState& helper, const Render::Models::Skeleto
     drawn.transform = Render::Models::ObjectTransform{.position = helper.position, .angles = helper.angles};
     drawn.transform.scale = helper.scale;
     drawn.state.blendMesh = helper.blendMesh;
-    drawn.color = terrainLight + HorseLight;
+    // 0x5ffd6a..0x5ffd8b (0x5ffce0): la luz del terreno más la propia (+0xf4..+0xfc).
+    drawn.color = terrainLight + helper.light;
     drawn.alpha = helper.horse.alpha;
     drawn.vertexLight = true;
     return drawn;

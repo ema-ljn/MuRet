@@ -203,6 +203,9 @@ struct OldEdit
     // amigo cerrado. Solo la escribe 0x495630 y la leen el 10 y 2 de 0x4944c0 (no invita) y Enter en 0x467b10 (va al
     // EDIT de Windows, sin el 7 al padre). No es el foco ni el estado (+0x48).
     std::int32_t closed = 0;
+    // +0x98 (la vtable + 0x54, 0x4676b0): el id del EDIT al que Tab pasa el foco (0x467d07), o 0. Solo los enlaza la de
+    // escribir una carta (0x49817a..0x498192: para, asunto, cuerpo y otra vez para).
+    std::int32_t next = 0;
     // CL9 hito 10, el EDIT de varios renglones (UI/OldEditLines.h). +0xc4: 1 con ES_MULTILINE | ES_AUTOVSCROLL |
     // WS_VSCROLL (0x4675e0, la vtable + 0x38, antes de crearlo: solo el cuerpo de la carta, 0x4980ef).
     std::int32_t multiline = 0;
@@ -221,8 +224,8 @@ struct OldEdit
     float dragOffset = 0.0f;
     // MuRet: lo que el EDIT de Windows guarda y el original le pide con mensajes. El primer renglón a la vista
     // (GetScrollPos de SB_VERT, EM_SCROLL y EM_LINESCROLL), el ancho del área del texto en píxeles (el de la ventana
-    // de 0x467fe0 menos la barra de Windows, *inferido*) y si el último cambio del texto pide mostrar el cursor
-    // (ES_AUTOVSCROLL).
+    // de 0x467fe0 menos la barra de Windows y los márgenes, *inferido*) y si el último cambio del texto o del cursor
+    // pide mostrar el cursor (ES_AUTOVSCROLL).
     std::int32_t firstLine = 0;
     std::int32_t textWidth = 0;
     bool followCaret = false;

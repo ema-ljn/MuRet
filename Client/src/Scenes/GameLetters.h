@@ -9,6 +9,7 @@
 
 #include <cstdint>
 #include <string>
+#include <string_view>
 
 // Las cartas y el chat con un amigo del juego (CL9 hito 10; 04 § Las cartas y el chat con un amigo, y 06 § HUD y
 // ventanas): los paquetes C5..C8 (0x4dc840..0x4dcd90), el CA y el CB (0x4dce10 y 0x4dd020) y lo que llega por la
@@ -41,6 +42,10 @@ struct ChatReceiveContext;
 // ventana.
 [[nodiscard]] Core::Expected<void, std::string> ApplyLetterRead(const Protocol::Letters::LetterRead& letter,
                                                                 const ChatReceiveContext& context);
+
+// 0x4dccbd..0x4dccd2: _strnicmp(nombre, "webzen", 10) == 0. 0x6a3450 pasa 'A'..'Z' a minúscula y corta en el primer 0
+// de cualquiera de los dos: el nombre tiene que ser "webzen", con mayúsculas o no.
+[[nodiscard]] bool LetterFromWebzen(std::string_view name);
 
 // 0x4dcd90: 0, la caja con el texto 1055; 1, la carta fuera del modelo y su copia (0x49ee20 y 0x4a0500). Después, la
 // pestaña.

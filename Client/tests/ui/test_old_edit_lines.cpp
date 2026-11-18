@@ -13,6 +13,7 @@
 #include "UI/OldWindowDrawParts.h"
 #include "UI/OldWindowSteps.h"
 #include "UI/OldWindows.h"
+#include "UI/TextField.h"
 #include "support/RecordingTextDrawer.h"
 
 #include <gtest/gtest.h>
@@ -89,20 +90,20 @@ std::vector<std::string> LinesOf(const OldEdit& edit)
 }
 
 // 0x467fe0: +0xd0 es ftol(0x87 · ry / 13); la ventana, ftol((0xee + ftol(−5 · rx)) · rx), y el área del texto 16
-// menos.
+// menos y los márgenes de 3 a cada lado.
 TEST(OldEditLinesTest, TheBodyKnowsTheLinesThatFitAndItsTextWidth)
 {
     const OldEdit at640 = TheBody(Screen640);
     EXPECT_EQ(at640.multiline, 1);
     EXPECT_EQ(at640.visibleLines, 10);
-    EXPECT_EQ(at640.textWidth, 0xee - 5 - 16);
+    EXPECT_EQ(at640.textWidth, 0xee - 5 - 16 - 6);
     // 800 × 600: rx = ry = 1,25; ftol(−6,25) = −6, ftol(232 · 1,25) = 290 y ftol(168,75 / 13) = 12.
     const OldEdit at800 = TheBody(Screen800);
     EXPECT_EQ(at800.visibleLines, 12);
-    EXPECT_EQ(at800.textWidth, 290 - 16);
+    EXPECT_EQ(at800.textWidth, 290 - 16 - 6);
 }
 
-// Los renglones: "\r\n" corta; lo que no entra en 217 píxeles (36 letras) se corta en el último espacio que entra, los
+// Los renglones: "\r\n" corta; lo que no entra en 211 píxeles (35 letras) se corta en el último espacio que entra, los
 // espacios de más quedan en el renglón, y una palabra más larga que el renglón se corta en la última letra que entra.
 // Un EDIT de una línea es un renglón; uno vacío o que termina en "\r\n", con el renglón vacío del final.
 TEST(OldEditLinesTest, LinesBreakAtCrLfAndWrapAtTheLastSpace)
@@ -113,11 +114,11 @@ TEST(OldEditLinesTest, LinesBreakAtCrLfAndWrapAtTheLastSpace)
     EXPECT_EQ(LinesOf(edit), (std::vector<std::string>{"hola tero", "", "chau"}));
     edit.text.SetText(std::string(30, 'a') + " " + std::string(10, 'b') + "\r\n");
     EXPECT_EQ(LinesOf(edit), (std::vector<std::string>{std::string(30, 'a') + " ", std::string(10, 'b'), ""}));
-    edit.text.SetText(std::string(36, 'c') + "   d");
-    EXPECT_EQ(LinesOf(edit), (std::vector<std::string>{std::string(36, 'c') + "   ", "d"}));
+    edit.text.SetText(std::string(35, 'c') + "   d");
+    EXPECT_EQ(LinesOf(edit), (std::vector<std::string>{std::string(35, 'c') + "   ", "d"}));
     edit.text.SetText(std::string(80, 'e'));
     EXPECT_EQ(LinesOf(edit),
-              (std::vector<std::string>{std::string(36, 'e'), std::string(36, 'e'), std::string(8, 'e')}));
+              (std::vector<std::string>{std::string(35, 'e'), std::string(35, 'e'), std::string(10, 'e')}));
 
     OldEdit single;
     single.text.Type("uno dos");
@@ -182,6 +183,75 @@ TEST(OldEditLinesTest, EnterBreaksTheLineOnlyInTheMultilineEdit)
     single.text.Type("ab");
     Client::UI::BreakTheEditLine(single);
     EXPECT_EQ(single.text.Value(), "ab");
+}
+
+// El EDIT de Windows con +0xc4 (*inferido*, P-C217): Supr y las flechas de los costados no parten el "\r\n"; las de
+// arriba y abajo van a la letra más cerca de la misma x; Inicio y Fin, a los bordes del renglón; RePág y AvPág corren
+// los que entran. Todo pide mostrar el cursor.
+TEST(OldEditLinesTest, TheCaretMovesByLinesAndSkipsTheWholeBreak)
+{
+    const LetterMeasure measure;
+    using Client::UI::EditCaretKey;
+    OldEdit edit = TheBody(Screen640);
+    edit.text.SetText("ab\r\ncd");
+    edit.text.SetCursor(2);
+    Client::UI::DeleteInTheEdit(edit);
+    EXPECT_EQ(edit.text.Value(), "abcd");
+    EXPECT_TRUE(edit.followCaret);
+
+    edit.text.SetText("abcdef\r\nxy\r\nlarguisimo");
+    edit.text.SetCursor(8);
+    Client::UI::MoveTheEditCaret(edit, measure, EditCaretKey::Left, false);
+    EXPECT_EQ(edit.text.Cursor(), 6u);
+    Client::UI::MoveTheEditCaret(edit, measure, EditCaretKey::Right, false);
+    EXPECT_EQ(edit.text.Cursor(), 8u);
+    edit.text.SetCursor(4);
+    Client::UI::MoveTheEditCaret(edit, measure, EditCaretKey::Down, false);
+    EXPECT_EQ(edit.text.Cursor(), 10u);
+    Client::UI::MoveTheEditCaret(edit, measure, EditCaretKey::Down, true);
+    EXPECT_EQ(edit.text.Cursor(), 14u);
+    EXPECT_EQ(edit.text.SelectionBegin(), 10u);
+    Client::UI::MoveTheEditCaret(edit, measure, EditCaretKey::End, false);
+    EXPECT_EQ(edit.text.Cursor(), edit.text.Size());
+    Client::UI::MoveTheEditCaret(edit, measure, EditCaretKey::Home, false);
+    EXPECT_EQ(edit.text.Cursor(), 12u);
+    Client::UI::MoveTheEditCaret(edit, measure, EditCaretKey::Up, false);
+    Client::UI::MoveTheEditCaret(edit, measure, EditCaretKey::Up, false);
+    Client::UI::MoveTheEditCaret(edit, measure, EditCaretKey::Up, false);
+    EXPECT_EQ(edit.text.Cursor(), 0u);
+
+    std::string many;
+    for (int line = 0; line < 24; ++line)
+        many += "x\r\n";
+    edit.text.SetText(many + "x");
+    edit.text.SetCursor(0);
+    edit.firstLine = 0;
+    Client::UI::MoveTheEditCaret(edit, measure, EditCaretKey::PageDown, false);
+    EXPECT_EQ(edit.text.Cursor(), 30u);
+    EXPECT_EQ(edit.firstLine, 10);
+    Client::UI::MoveTheEditCaret(edit, measure, EditCaretKey::PageUp, false);
+    EXPECT_EQ(edit.text.Cursor(), 0u);
+    EXPECT_EQ(edit.firstLine, 0);
+}
+
+// WM_PASTE con +0xc4: cada fin de renglón entra como "\r\n", hasta el tope, sin dejar un '\r' solo; el de una línea
+// corta en el primer CR.
+TEST(OldEditLinesTest, PastingKeepsTheLinesUpToTheLimit)
+{
+    OldEdit edit = TheBody(Screen640);
+    Client::UI::PasteInTheEdit(edit, "uno\ndos\r\ntres\rcuatro");
+    EXPECT_EQ(edit.text.Value(), "uno\r\ndos\r\ntres\r\ncuatro");
+    EXPECT_TRUE(edit.followCaret);
+    OldEdit tight = TheBody(Screen640, 3);
+    Client::UI::PasteInTheEdit(tight, "ab\ncd");
+    EXPECT_EQ(tight.text.Value(), "ab");
+
+    OldEdit single;
+    Client::UI::PasteInTheEdit(single, "ab\ncd");
+    EXPECT_EQ(single.text.Value(), "ab\ncd");
+    OldEdit cut;
+    Client::UI::PasteInTheEdit(cut, "ab\rcd");
+    EXPECT_EQ(cut.text.Value(), "ab");
 }
 
 class OldEditTest : public ::testing::Test

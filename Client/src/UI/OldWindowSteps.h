@@ -53,6 +53,10 @@ void StepTheEditMouse(OldWindowManager& manager, OldEdit& edit, const OldWindowG
 void StepTheEdit(OldWindowManager& manager, OldEdit& edit, std::int32_t arg, const OldWindowGlobals& globals,
                  const OldWindowStepView& view);
 
+// 0x4682a0(0), la vtable + 0x30 del EDIT: SetFocus (el EDIT huérfano de una caja cerrada deja de tenerlo) y la lista
+// de las flechas en él. El IME de 0x4673a0 (con el foco en la ventana del juego y sin filtro) MuRet no lo tiene.
+void FocusTheEdit(OldWindowManager& manager, OldEdit& edit, const OldWindowGlobals& globals);
+
 // 0x45aa80 sobre un botón y 0x45aa50 sobre un botón.
 void StepTheButton(OldWindowManager& manager, OldButton& button, std::int32_t arg, const OldWindowGlobals& globals,
                    const OldWindowStepView& view);

@@ -800,6 +800,83 @@ TEST_F(GameLettersTest, WritingALetterSendsItByteByByte)
     EXPECT_EQ(Runtime().chat.log.entries.back().text, "Carta mandada, costo 1000");
 }
 
+// 0x49817a..0x498192: Tab pasa el foco de para al asunto, al cuerpo y otra vez a para (0x467d07 y 0x4682a0(1): la
+// lista de las flechas en él y el cursor al final). 0x467710 no destruye el EDIT: al cerrar la de escribir, el que
+// tenía el foco queda huérfano con su texto hasta que otro lo toma (0x4983e0 en la de escribir que sigue). Y 0x48eae6
+// vacía también el mapa de las cartas que esperan el C7.
+TEST_F(GameLettersTest, TabGoesAroundTheWriteEditsAndTheClosedOneKeepsItsFocus)
+{
+    OpenTheFriendsWithThree();
+    ChooseTheFriend("Tordo");
+    const std::int32_t friendTab = Friends().tabs[Client::UI::FriendTabNumber].base.id;
+    Client::UI::PostToTheWindow(Manager(), friendTab, Client::UI::CommandMessage, 4, 0);
+    ASSERT_TRUE(Step().HasValue());
+    OldWindow* write = FirstOfKind(OldWindowKind::LetterWriteWindow);
+    ASSERT_NE(write, nullptr);
+    const std::int32_t writeId = write->base.id;
+    const std::int32_t to = write->letter.to.base.id;
+    const std::int32_t subject = write->letter.subject.base.id;
+    const std::int32_t text = write->letter.text.base.id;
+    EXPECT_EQ(write->letter.to.next, subject);
+    EXPECT_EQ(write->letter.subject.next, text);
+    EXPECT_EQ(write->letter.text.next, to);
+    // 0x4983e0: con el nombre puesto, el foco en el asunto.
+    ASSERT_EQ(Manager().focusedEdit, subject);
+
+    write->letter.text.text.SetText("Linea uno");
+    write->letter.text.text.SetCursor(0);
+    std::int32_t focusedList = 0;
+    Client::UI::ApplyKeyToTheOldEdit(Manager(), Client::UI::OldEditKey::Tab, false, false, nullptr, nullptr,
+                                     &focusedList);
+    EXPECT_EQ(Manager().focusedEdit, text);
+    EXPECT_EQ(focusedList, text);
+    EXPECT_EQ(write->letter.text.text.Cursor(), 9u);
+    Client::UI::ApplyKeyToTheOldEdit(Manager(), Client::UI::OldEditKey::Tab, false, false, nullptr, nullptr,
+                                     &focusedList);
+    EXPECT_EQ(Manager().focusedEdit, to);
+    EXPECT_EQ(write->letter.to.text.Cursor(), 5u);
+    Client::UI::ApplyKeyToTheOldEdit(Manager(), Client::UI::OldEditKey::Tab, false, false, nullptr, nullptr,
+                                     &focusedList);
+    EXPECT_EQ(Manager().focusedEdit, subject);
+    EXPECT_EQ(focusedList, subject);
+
+    write->letter.subject.text.SetText("Sal");
+    ASSERT_TRUE(Client::UI::DestroyTheOldWindow(Manager(), writeId, m_pressedButton).HasValue());
+    EXPECT_EQ(Manager().windows.count(writeId), 0u);
+    EXPECT_TRUE(Manager().focusedEditIsOrphan);
+    ASSERT_TRUE(Manager().orphanedEdit.has_value());
+    EXPECT_EQ(Manager().orphanedEdit->base.id, subject);
+    Client::UI::TypeInTheOldEdit(Manager(), "udos");
+    EXPECT_EQ(Manager().orphanedEdit->text.Value(), "Saludos");
+
+    // Otra de escribir le saca el foco al huérfano.
+    ChooseTheFriend("Calandria");
+    Client::UI::PostToTheWindow(Manager(), friendTab, Client::UI::CommandMessage, 4, 0);
+    ASSERT_TRUE(Step().HasValue());
+    OldWindow* again = FirstOfKind(OldWindowKind::LetterWriteWindow);
+    ASSERT_NE(again, nullptr);
+    EXPECT_FALSE(Manager().focusedEditIsOrphan);
+    EXPECT_FALSE(Manager().orphanedEdit.has_value());
+    EXPECT_EQ(Manager().focusedEdit, again->letter.subject.base.id);
+
+    Manager().letterWindows[7] = 0;
+    Manager().letterWindows[9] = again->base.id;
+    Client::UI::ResetTheOldWindows(Manager(), m_pressedButton);
+    EXPECT_TRUE(Manager().letterWindows.empty());
+}
+
+// 0x4dccbd: _strnicmp(nombre, "webzen", 10), sin importar las mayúsculas; otro nombre que empieza igual no lo es.
+TEST(GameLettersWebzenTest, OnlyWebzenWithAnyCaseIsTheBlankPortrait)
+{
+    EXPECT_TRUE(Client::Scenes::LetterFromWebzen("webzen"));
+    EXPECT_TRUE(Client::Scenes::LetterFromWebzen("WebZen"));
+    EXPECT_TRUE(Client::Scenes::LetterFromWebzen("WEBZEN"));
+    EXPECT_FALSE(Client::Scenes::LetterFromWebzen("webzen2"));
+    EXPECT_FALSE(Client::Scenes::LetterFromWebzen("webze"));
+    EXPECT_FALSE(Client::Scenes::LetterFromWebzen("Tordo"));
+    EXPECT_TRUE(Client::Scenes::LetterFromWebzen(std::string_view("Webzen\0xy", 9)));
+}
+
 // Sin el retrato del juego (P-C212), abrir la de escribir corta.
 TEST_F(GameLettersTest, WithoutThePortraitTheWriteWindowIsACut)
 {

@@ -201,8 +201,6 @@ constexpr std::uint32_t RowTextColor = 0xffc8dce6u;
 // píxeles en 0xffc8c8c8.
 constexpr double CaretWidth = 1.5;
 constexpr double BoxSlack = 1.5;
-// El bitmap del EDIT SBCS observado en XP deja este margen antes del texto.
-constexpr std::int32_t EditTextMargin = 3;
 constexpr std::uint32_t FocusedSelectionBackground = 0xff969696u;
 constexpr std::string_view CaretSample = "Q";
 constexpr std::int32_t BlinkPeriod = 0x18;

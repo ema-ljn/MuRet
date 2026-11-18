@@ -1,15 +1,18 @@
 #include "UI/OldEditLines.h"
 
 #include "App/WindowState.h"
+#include "Core/Windows1252BestFit.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "UI/OldControls.h"
 #include "UI/OldWindowDrawParts.h"
 
 #include <algorithm>
+#include <cstdlib>
 #include <cstddef>
 #include <cstdint>
 #include <span>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -102,7 +105,7 @@ void MakeTheEditMultiline(OldEdit& edit, const Render::Text::ITextMeasure& measu
     const std::int32_t height = measure.Measure(dcFont, LineSample).height;
     edit.visibleLines = height != 0 ? Truncate(static_cast<double>(edit.base.height) * ry / height) : 0;
     const std::int32_t slack = Truncate(WindowSlack * rx);
-    edit.textWidth = Truncate(static_cast<double>(edit.base.width + slack) * rx) - WindowsBarWidth;
+    edit.textWidth = Truncate(static_cast<double>(edit.base.width + slack) * rx) - WindowsBarWidth - 2 * EditTextMargin;
 }
 
 std::vector<std::string_view> EditLines(const OldEdit& edit, const Render::Text::ITextMeasure& measure)
@@ -202,6 +205,118 @@ void BackspaceInTheEdit(OldEdit& edit)
         text.substr(cursor - LineBreak.size(), LineBreak.size()) == LineBreak)
         edit.text.Backspace();
     edit.text.Backspace();
+}
+
+void DeleteInTheEdit(OldEdit& edit)
+{
+    edit.followCaret = true;
+    const std::string_view text = edit.text.Value();
+    const std::size_t cursor = edit.text.Cursor();
+    if (edit.multiline == 1 && !edit.text.HasSelection() && text.substr(cursor, LineBreak.size()) == LineBreak)
+        edit.text.Delete();
+    edit.text.Delete();
+}
+
+void MoveTheEditCaret(OldEdit& edit, const Render::Text::ITextMeasure& measure, EditCaretKey key, bool shift)
+{
+    const std::string_view text = edit.text.Value();
+    // Entre el '\r' y el '\n' de un fin de renglón.
+    const auto insideABreak = [&edit, text]
+    {
+        const std::size_t at = edit.text.Cursor();
+        return at > 0 && at < text.size() && text[at - 1] == '\r' && text[at] == '\n';
+    };
+    edit.followCaret = true;
+    if (key == EditCaretKey::Left)
+    {
+        edit.text.MoveLeft(shift);
+        if (insideABreak())
+            edit.text.MoveLeft(shift);
+        return;
+    }
+    if (key == EditCaretKey::Right)
+    {
+        edit.text.MoveRight(shift);
+        if (insideABreak())
+            edit.text.MoveRight(shift);
+        return;
+    }
+    const std::vector<std::string_view> lines = EditLines(edit, measure);
+    const auto lineCount = static_cast<std::int32_t>(lines.size());
+    const std::int32_t caretLine = EditCaretLine(edit, lines);
+    const auto startOf = [&](std::int32_t line)
+    { return static_cast<std::size_t>(lines[static_cast<std::size_t>(line)].data() - text.data()); };
+    const std::string_view current = lines[static_cast<std::size_t>(caretLine)];
+    if (key == EditCaretKey::Home)
+    {
+        edit.text.SetCursor(startOf(caretLine), shift);
+        return;
+    }
+    if (key == EditCaretKey::End)
+    {
+        edit.text.SetCursor(startOf(caretLine) + current.size(), shift);
+        return;
+    }
+    std::int32_t step = 1;
+    if (key == EditCaretKey::PageUp || key == EditCaretKey::PageDown)
+        step = std::max(edit.visibleLines, 1);
+    if (key == EditCaretKey::Up || key == EditCaretKey::PageUp)
+        step = -step;
+    const std::int32_t target = std::clamp(caretLine + step, 0, lineCount - 1);
+    if (key == EditCaretKey::PageUp || key == EditCaretKey::PageDown)
+        ScrollTheEditLines(edit, lineCount, step);
+    if (target == caretLine)
+        return;
+    // La letra del renglón de destino más cerca de la x del cursor.
+    const std::size_t column = edit.text.Cursor() - startOf(caretLine);
+    const std::int32_t x = measure.Measure(EditFont, current.substr(0, std::min(column, current.size()))).width;
+    const std::string_view line = lines[static_cast<std::size_t>(target)];
+    std::size_t best = 0;
+    std::int32_t bestDistance = x;
+    for (std::size_t at = 1; at <= line.size(); ++at)
+    {
+        const std::int32_t distance = std::abs(measure.Measure(EditFont, line.substr(0, at)).width - x);
+        if (distance < bestDistance)
+        {
+            best = at;
+            bestDistance = distance;
+        }
+    }
+    edit.text.SetCursor(startOf(target) + best, shift);
+}
+
+void PasteInTheEdit(OldEdit& edit, std::string_view utf8)
+{
+    edit.draws = 0;
+    edit.followCaret = true;
+    if (edit.multiline != 1)
+    {
+        edit.text.PasteUTF8(utf8);
+        return;
+    }
+    std::string lines;
+    for (std::size_t at = 0; at < utf8.size(); ++at)
+    {
+        if (utf8[at] == '\0')
+            break;
+        if (utf8[at] == '\r' || utf8[at] == '\n')
+        {
+            lines.append(LineBreak);
+            if (utf8[at] == '\r' && at + 1 < utf8.size() && utf8[at + 1] == '\n')
+                ++at;
+            continue;
+        }
+        lines.push_back(utf8[at]);
+    }
+    const auto encoded = Core::EncodeWindows1252Xp(lines);
+    if (!encoded.has_value())
+        return;
+    edit.text.InsertBytes(*encoded);
+    // Un tope que corta el "\r\n" por la mitad no deja el '\r' solo.
+    const std::string_view text = edit.text.Value();
+    const std::size_t cursor = edit.text.Cursor();
+    if (cursor > 0 && text[cursor - 1] == '\r' && (cursor == text.size() || text[cursor] != '\n'))
+        edit.text.Backspace();
 }
 
 void BreakTheEditLine(OldEdit& edit)

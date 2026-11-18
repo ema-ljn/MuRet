@@ -485,7 +485,8 @@ Core::Expected<void, std::string> TypeInTheGameChat(const GameChatContext& conte
             else if (pressed == Input::BackspaceChar)
                 UI::BackspaceInTheOldEdit(runtime.oldWindows);
             else if (pressed == Input::TabChar)
-                UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Tab, false, false, context.clipboard);
+                UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Tab, false, false, context.clipboard,
+                                         context.measure, &runtime.ui.focusedList);
             continue;
         }
         if (dialogEdit != nullptr)
@@ -555,55 +556,63 @@ Core::Expected<void, std::string> TypeTheGameInput(const GameChatContext& contex
         {
         case Input::Key::Backspace:
             UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Backspace, event.shift, event.ctrl,
-                                     context.clipboard);
+                                     context.clipboard, context.measure, &runtime.ui.focusedList);
             break;
         case Input::Key::Tab:
             UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Tab, event.shift, event.ctrl,
-                                     context.clipboard);
+                                     context.clipboard, context.measure, &runtime.ui.focusedList);
             break;
         case Input::Key::Delete:
             UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Delete, event.shift, event.ctrl,
-                                     context.clipboard);
+                                     context.clipboard, context.measure, &runtime.ui.focusedList);
             break;
         case Input::Key::Left:
             UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Left, event.shift, event.ctrl,
-                                     context.clipboard);
+                                     context.clipboard, context.measure, &runtime.ui.focusedList);
             break;
         case Input::Key::Right:
             UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Right, event.shift, event.ctrl,
-                                     context.clipboard);
+                                     context.clipboard, context.measure, &runtime.ui.focusedList);
             break;
         case Input::Key::Up:
-            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Up, event.shift, event.ctrl,
-                                     context.clipboard);
+            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Up, event.shift, event.ctrl, context.clipboard,
+                                     context.measure, &runtime.ui.focusedList);
             break;
         case Input::Key::Down:
             UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Down, event.shift, event.ctrl,
-                                     context.clipboard);
+                                     context.clipboard, context.measure, &runtime.ui.focusedList);
             break;
         case Input::Key::Home:
             UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Home, event.shift, event.ctrl,
-                                     context.clipboard);
+                                     context.clipboard, context.measure, &runtime.ui.focusedList);
             break;
         case Input::Key::End:
             UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::End, event.shift, event.ctrl,
-                                     context.clipboard);
+                                     context.clipboard, context.measure, &runtime.ui.focusedList);
+            break;
+        case Input::Key::PageUp:
+            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::PageUp, event.shift, event.ctrl,
+                                     context.clipboard, context.measure, &runtime.ui.focusedList);
+            break;
+        case Input::Key::PageDown:
+            UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::PageDown, event.shift, event.ctrl,
+                                     context.clipboard, context.measure, &runtime.ui.focusedList);
             break;
         case Input::Key::C:
             UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Copy, event.shift, event.ctrl,
-                                     context.clipboard);
+                                     context.clipboard, context.measure, &runtime.ui.focusedList);
             break;
         case Input::Key::X:
             UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Cut, event.shift, event.ctrl,
-                                     context.clipboard);
+                                     context.clipboard, context.measure, &runtime.ui.focusedList);
             break;
         case Input::Key::V:
             UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Paste, event.shift, event.ctrl,
-                                     context.clipboard);
+                                     context.clipboard, context.measure, &runtime.ui.focusedList);
             break;
         case Input::Key::A:
             UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::CtrlA, event.shift, event.ctrl,
-                                     context.clipboard);
+                                     context.clipboard, context.measure, &runtime.ui.focusedList);
             break;
         case Input::Key::Enter:
             UI::PressEnterInTheOldEdit(runtime.oldWindows);

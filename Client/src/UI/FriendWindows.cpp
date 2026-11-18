@@ -180,17 +180,6 @@ void PostToTheEdit(OldWindowManager& manager, OldEdit& edit, std::int32_t type)
     }
 }
 
-// 0x4682a0(0), la vtable + 0x30 del EDIT: SetFocus y la lista de las flechas en él. El IME de 0x4673a0 (con el foco en
-// la ventana del juego y sin filtro) MuRet no lo tiene.
-void FocusTheEdit(OldWindowManager& manager, OldEdit& edit, const OldWindowGlobals& globals)
-{
-    manager.orphanedEdit.reset();
-    manager.focusedEditIsOrphan = false;
-    globals.keyboardFocus = ChatFocus::OldWindow;
-    manager.focusedEdit = edit.base.id;
-    globals.focusedList = edit.base.id;
-}
-
 // 0x45a210 de una lista (0x460970, 0x462010 y 0x463190): cuelga de su borde de abajo; lo demás, como OldList.
 OldList MakeTheList(OldWindowManager& manager)
 {
@@ -574,7 +563,7 @@ Core::Expected<void, std::string> HandleTheAddBoxMessage(OldWindowManager& manag
 {
     const OldMessage& message = box.base.current;
     if (message.type == RaisedMessage)
-        FocusTheEdit(manager, box.add.edit, globals);
+        Steps::FocusTheEdit(manager, box.add.edit, globals);
     else if (message.type == EnterMessage || (message.type == CommandMessage && message.a == FirstCommand))
         ConfirmTheName(manager, box);
     else if (message.type == CommandMessage && message.a == SecondCommand)
@@ -726,6 +715,15 @@ Core::Expected<void, std::string> PlaceTheTabForTheDraw(OldWindowManager& manage
 
 namespace Steps
 {
+void FocusTheEdit(OldWindowManager& manager, OldEdit& edit, const OldWindowGlobals& globals)
+{
+    manager.orphanedEdit.reset();
+    manager.focusedEditIsOrphan = false;
+    globals.keyboardFocus = ChatFocus::OldWindow;
+    manager.focusedEdit = edit.base.id;
+    globals.focusedList = edit.base.id;
+}
+
 std::int32_t HoverAFriendRow(OldWindowManager& manager, OldList& list, std::deque<FriendEntry>& friends,
                              std::int32_t row, std::size_t at, const OldWindowGlobals& globals,
                              const OldWindowStepView& view)
@@ -885,7 +883,7 @@ Core::Expected<void, std::string> SettleTheFriendsKinds(OldWindowManager& manage
         for (OldButton& button : window.add.buttons)
             PostAndSettle(manager, button, PlaceMessage);
         PostToTheEdit(manager, window.add.edit, PlaceMessage);
-        FocusTheEdit(manager, window.add.edit, globals);
+        Steps::FocusTheEdit(manager, window.add.edit, globals);
         window.frame.editField = 1;
         return {};
     default:
@@ -1167,26 +1165,32 @@ void RememberTheFriendRequest(OldWindowManager& manager, std::int32_t box, std::
 
 namespace
 {
-OldEdit* FocusedEdit(OldWindowManager& manager)
+// El EDIT de una ventana vieja con el id `id`, o nullptr.
+OldEdit* EditWithId(OldWindowManager& manager, std::int32_t id)
 {
-    if (manager.focusedEditIsOrphan)
-        return manager.orphanedEdit ? &*manager.orphanedEdit : nullptr;
-    for (auto& [id, window] : manager.windows)
+    for (auto& [windowId, window] : manager.windows)
     {
-        if (window.kind == OldWindowKind::AddFriendBox && window.add.edit.base.id == manager.focusedEdit)
+        if (window.kind == OldWindowKind::AddFriendBox && window.add.edit.base.id == id)
             return &window.add.edit;
         // CL9 hito 10: el EDIT del chat con un amigo y los tres de la ventana de escribir una carta.
-        if (window.kind == OldWindowKind::ChatWindow && window.chat.edit.base.id == manager.focusedEdit)
+        if (window.kind == OldWindowKind::ChatWindow && window.chat.edit.base.id == id)
             return &window.chat.edit;
         if (window.kind != OldWindowKind::LetterWriteWindow)
             continue;
         for (OldEdit* edit : {&window.letter.to, &window.letter.subject, &window.letter.text})
         {
-            if (edit->base.id == manager.focusedEdit)
+            if (edit->base.id == id)
                 return edit;
         }
     }
     return nullptr;
+}
+
+OldEdit* FocusedEdit(OldWindowManager& manager)
+{
+    if (manager.focusedEditIsOrphan)
+        return manager.orphanedEdit ? &*manager.orphanedEdit : nullptr;
+    return EditWithId(manager, manager.focusedEdit);
 }
 } // namespace
 
@@ -1236,7 +1240,8 @@ void BackspaceInTheOldEdit(OldWindowManager& manager)
     }
 }
 
-void ApplyKeyToTheOldEdit(OldWindowManager& manager, OldEditKey key, bool shift, bool ctrl, IClipboard* clipboard)
+void ApplyKeyToTheOldEdit(OldWindowManager& manager, OldEditKey key, bool shift, bool ctrl, IClipboard* clipboard,
+                          const Render::Text::ITextMeasure* measure, std::int32_t* focusedList)
 {
     OldEdit* edit = FocusedEdit(manager);
     if (edit == nullptr)
@@ -1258,47 +1263,85 @@ void ApplyKeyToTheOldEdit(OldWindowManager& manager, OldEditKey key, bool shift,
     case OldEditKey::Delete:
     case OldEditKey::Home:
     case OldEditKey::End:
+    case OldEditKey::PageUp:
+    case OldEditKey::PageDown:
         break;
     }
     if (!edit->compositionText.empty())
         return;
+    // CL9 hito 10: el EDIT de varios renglones (el cuerpo de la carta) mueve el cursor por renglones.
+    const bool lines = edit->multiline == 1 && measure != nullptr;
+    const auto moveInTheLines = [&](EditCaretKey move)
+    {
+        if (lines)
+            MoveTheEditCaret(*edit, *measure, move, shift);
+        return lines;
+    };
     switch (key)
     {
     case OldEditKey::Backspace:
         if (ctrl)
             edit->text.InsertBytes(std::string(1, '\x7f'));
         else
-            edit->text.Backspace();
+            BackspaceInTheEdit(*edit);
         break;
     case OldEditKey::Delete:
         // Ctrl+Delete borra hasta el final solo sin selección; con una, EDIT borra únicamente el rango elegido.
         if (ctrl && !edit->text.HasSelection())
             edit->text.Select(edit->text.Cursor(), edit->text.Size());
-        edit->text.Delete();
+        DeleteInTheEdit(*edit);
+        break;
+    case OldEditKey::PageUp:
+        static_cast<void>(moveInTheLines(EditCaretKey::PageUp));
+        break;
+    case OldEditKey::PageDown:
+        static_cast<void>(moveInTheLines(EditCaretKey::PageDown));
         break;
     case OldEditKey::Left:
         if (ctrl)
             edit->text.SetCursor(OldEditWordMovement::CursorAfterCtrlLeft(edit->text.Value(), edit->text.Cursor()),
                                  shift);
-        else
+        else if (!moveInTheLines(EditCaretKey::Left))
             edit->text.MoveLeft(shift);
         break;
     case OldEditKey::Right:
         if (ctrl)
             edit->text.SetCursor(OldEditWordMovement::CursorAfterCtrlRight(edit->text.Value(), edit->text.Cursor()),
                                  shift);
-        else
+        else if (!moveInTheLines(EditCaretKey::Right))
             edit->text.MoveRight(shift);
         break;
     case OldEditKey::Home:
-        edit->text.MoveHome(shift);
+        // Ctrl+Inicio y Ctrl+Fin van al principio y al final de todo el texto.
+        if (ctrl || !moveInTheLines(EditCaretKey::Home))
+            edit->text.MoveHome(shift);
         break;
     case OldEditKey::End:
-        edit->text.MoveEnd(shift);
+        if (ctrl || !moveInTheLines(EditCaretKey::End))
+            edit->text.MoveEnd(shift);
         break;
     case OldEditKey::Up:
+        static_cast<void>(moveInTheLines(EditCaretKey::Up));
+        break;
     case OldEditKey::Down:
+        static_cast<void>(moveInTheLines(EditCaretKey::Down));
+        break;
     case OldEditKey::Tab:
+        // 0x467d07..0x467d28: con padre (+0x44), 0x4682a0(1) sobre el de +0x98 (el foco, la lista de las flechas en él
+        // y EM_SETSEL(−2, −1): el cursor al final y nada elegido) y su +0x80 en 0. Sin padre, Tab no llega acá
+        // (GameChat lo manda al juego).
+        if (edit->base.parent == 0 || edit->next == 0)
+            break;
+        if (OldEdit* next = EditWithId(manager, edit->next); next != nullptr)
+        {
+            manager.orphanedEdit.reset();
+            manager.focusedEditIsOrphan = false;
+            manager.focusedEdit = next->base.id;
+            if (focusedList != nullptr)
+                *focusedList = next->base.id;
+            next->text.SetCursor(next->text.Size());
+            next->draws = 0;
+        }
         break;
     case OldEditKey::Copy:
     case OldEditKey::Cut:
@@ -1315,10 +1358,7 @@ void ApplyKeyToTheOldEdit(OldWindowManager& manager, OldEditKey key, bool shift,
         if (!ctrl || clipboard == nullptr)
             break;
         if (std::optional<std::string> pasted = clipboard->ReadText(); pasted.has_value())
-        {
-            edit->draws = 0;
-            edit->text.PasteUTF8(*pasted);
-        }
+            PasteInTheEdit(*edit, *pasted);
         break;
     case OldEditKey::CtrlA:
         // El Ctrl+A del EDIT XP es no-op: no reemplaza ni mueve una selección existente.

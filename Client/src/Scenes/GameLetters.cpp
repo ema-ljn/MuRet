@@ -24,6 +24,7 @@
 #include "UI/OldWindows.h"
 #include "UI/SprintfFormat.h"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -71,8 +72,10 @@ constexpr std::int32_t ChatPlace = 100;
 constexpr std::int32_t ActionBase = 0x78;
 constexpr std::int32_t AngleUnit = 6;
 constexpr float ZoomUnit = 0.01f;
-// strncmp(nombre, "webzen", 10) (0x6c8610).
+// El nombre de 0x6c8610.
 constexpr std::string_view WebzenName = "webzen";
+// Los que compara _strnicmp (0x4dccbd).
+constexpr std::size_t WebzenCompared = 10;
 // 0x49e280: 0x555190(0x6e57a4, "max chat count over", 1).
 constexpr std::string_view MaxChatCountOver = "max chat count over";
 // 0x4dd3d0: la ventana del chat minimizada (5) u oculta (3).
@@ -348,7 +351,7 @@ Core::Expected<void, std::string> ApplyLetterRead(const Protocol::Letters::Lette
     // 0x491720: la ventana de la carta, si 0x491570 la había anotado.
     if (const auto found = manager.letterWindows.find(shown.index); found != manager.letterWindows.end())
         found->second = id;
-    if (shown.name.substr(0, WebzenName.size() + 1) == WebzenName)
+    if (LetterFromWebzen(shown.name))
     {
         // 0x4dccda: +0x770 de la de leer, que es también +0x6c0 de su retrato (+0xb0): en blanco.
         read->letter.fromWebzen = 1;
@@ -680,4 +683,13 @@ void FlushTheChatRoomOrders(UI::ChatRooms& rooms, App::IChatRoomLinks* links)
         }
     }
 }
+bool LetterFromWebzen(std::string_view name)
+{
+    const std::string_view head = name.substr(0, std::min(name.find('\0'), WebzenCompared));
+    const auto lower = [](char letter)
+    { return letter >= 'A' && letter <= 'Z' ? static_cast<char>(letter - 'A' + 'a') : letter; };
+    return head.size() == WebzenName.size() &&
+           std::ranges::equal(head, WebzenName, [&lower](char a, char b) { return lower(a) == b; });
+}
+
 } // namespace Client::Scenes

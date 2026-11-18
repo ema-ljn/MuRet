@@ -12,6 +12,11 @@
 // La ventana de amigos (CL9 hito 9; 06 § HUD y ventanas, "Los amigos"): lo que el juego y los paquetes C0..C4 le
 // piden al administrador de las ventanas viejas. La ventana, sus pestañas y la caja de agregar un amigo son clases
 // del administrador (OldWindowKind) y corren por su paso (UI/OldWindows); acá está lo que se llama de afuera.
+namespace Client::Render::Text
+{
+class ITextMeasure;
+}
+
 namespace Client::UI
 {
 struct OldWindowDrawView;
@@ -45,6 +50,8 @@ enum class OldEditKey : std::uint8_t
     Cut,
     Paste,
     CtrlA,
+    PageUp,
+    PageDown,
 };
 
 // 0x491080 desde el nivel: con la de amigos oculta (3), la muestra (0x490670) con los sonidos 0x19 y 0x1c; a la vista
@@ -71,8 +78,12 @@ void RememberTheFriendRequest(OldWindowManager& manager, std::int32_t box, std::
 [[nodiscard]] bool HasAnOldEditFocused(const OldWindowManager& manager, ChatFocus focus);
 void TypeInTheOldEdit(OldWindowManager& manager, std::string_view typed);
 void BackspaceInTheOldEdit(OldWindowManager& manager);
+// Con +0xc4 en 1, las flechas, Inicio, Fin, RePág, AvPág, el borrar y el pegar son los del EDIT de varios renglones
+// (UI/OldEditLines.h, con `measure` para los renglones). Tab pasa el foco al EDIT de +0x98 (0x467d07) y deja en él la
+// lista de las flechas (`focusedList`, 0x5762ec0).
 void ApplyKeyToTheOldEdit(OldWindowManager& manager, OldEditKey key, bool shift, bool ctrl,
-                          IClipboard* clipboard = nullptr);
+                          IClipboard* clipboard = nullptr, const Render::Text::ITextMeasure* measure = nullptr,
+                          std::int32_t* focusedList = nullptr);
 void SetTheOldEditComposition(OldWindowManager& manager, std::string_view text, std::int32_t start,
                               std::int32_t length);
 void PressEnterInTheOldEdit(OldWindowManager& manager);

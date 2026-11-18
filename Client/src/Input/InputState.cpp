@@ -63,6 +63,8 @@ bool IsEditingKey(Key key, bool ctrlDown)
     case Key::Right:
     case Key::Home:
     case Key::End:
+    case Key::PageUp:
+    case Key::PageDown:
     case Key::Delete:
     case Key::Backspace:
     case Key::Tab:

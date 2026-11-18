@@ -456,8 +456,8 @@ TEST_F(LetterWindowsDrawTest, TheInvitesShowTheMembersTheirSeparatorsAndTheSendB
         {ScrollbarSlot, BlendMode::Alpha, 5}, // su cursor y las flechas de los miembros
         {std::nullopt, BlendMode::Alpha, 2},
         {ScrollbarSlot, BlendMode::Alpha, 3},
-        {TextMarkerSlot, BlendMode::Alpha, 1}, // "Heroico"
-        {std::nullopt, BlendMode::Alpha, 1},   // la franja de "Tordo", el último (el 0xe de 0x4944c0)
+        {TextMarkerSlot, BlendMode::Alpha, 1}, // "Tordo", el último que entró, adelante (0x460e70)
+        {std::nullopt, BlendMode::Alpha, 1},   // la franja de "Heroico", el último del deque (el 0xe de 0x4944c0)
         {TextMarkerSlot, BlendMode::Alpha, 1},
         {ScrollbarSlot, BlendMode::Opaque, 2}, // los de invitar: 0x461cd0 deja la mezcla opaca
         {std::nullopt, BlendMode::Opaque, 2},
@@ -487,8 +487,8 @@ TEST_F(LetterWindowsDrawTest, TheInvitesShowTheMembersTheirSeparatorsAndTheSendB
     ExpectBox(QuadOf(19), 351.0f, 231.0f, 424.0f, 244.0f);
     // 0x461cd0: los miembros desde x + 3, del primero del deque abajo; sin +0x130, sin el lugar.
     ExpectTexts(0, {
-                       {"Heroico", 273, 117, TextColors{.text = Dim, .background = 0}},
-                       {"Tordo", 273, 104, TextColors{.text = 0xff000000u, .background = 0}},
+                       {"Tordo", 273, 117, TextColors{.text = Dim, .background = 0}},
+                       {"Heroico", 273, 104, TextColors{.text = 0xff000000u, .background = 0}},
                        {"Zorzal", 353, 117, TextColors{.text = Dim, .background = 0}},
                        {"Calandria", 353, 104, TextColors{.text = 0xff000000u, .background = 0}},
                    });
@@ -510,11 +510,16 @@ TEST_F(LetterWindowsDrawTest, ThreeMembersShowTheMembersWithoutTheInvites)
         {ScrollbarSlot, BlendMode::Alpha, 5},
         {std::nullopt, BlendMode::Alpha, 2},
         {ScrollbarSlot, BlendMode::Alpha, 3},
-        {TextMarkerSlot, BlendMode::Alpha, 3}, // los tres miembros, sin elegido
-        {std::nullopt, BlendMode::Opaque, 3},  // la raya de 0x50 sin mezcla (la deja 0x461cd0)
-        {std::nullopt, BlendMode::Alpha, 2},   // la de abajo y el negro
+        // 0x460e70 (0x4610c9..0x4610de) elige el primero en cada alta: la franja de "Zorzal", el último que entró.
+        {std::nullopt, BlendMode::Alpha, 1},
+        {TextMarkerSlot, BlendMode::Alpha, 1},
+        {TextMarkerSlot, BlendMode::Alpha, 2},
+        {std::nullopt, BlendMode::Opaque, 3}, // la raya de 0x50 sin mezcla (la deja 0x461cd0)
+        {std::nullopt, BlendMode::Alpha, 2},  // la de abajo y el negro
     });
-    ExpectBox(QuadOf(7, 0), 265.0f, 101.0f, 266.0f, 229.0f);
+    ExpectBox(QuadOf(9, 0), 265.0f, 101.0f, 266.0f, 229.0f);
+    EXPECT_EQ(Chat().chat.users.selection, 1);
+    EXPECT_EQ(Chat().chat.members.front().name, "Zorzal");
 }
 
 // 0x460550: los colores del nombre y del texto por el tipo (+0x110), sin caso para 6 o más (quedan los de antes); con
@@ -1040,7 +1045,7 @@ TEST_F(LetterWindowsDrawTest, TheWindowListDrawsTheChatsWithTheirBandsAndTheirMa
         {std::nullopt, BlendMode::Alpha, 6},   // el fondo, los cuatro bordes y la franja del primero
         {TextMarkerSlot, BlendMode::Alpha, 1}, // "Tordo"
         {std::nullopt, BlendMode::Alpha, 1},   // la franja del elegido
-        {TextMarkerSlot, BlendMode::Alpha, 1}, // "Mirlo"
+        {TextMarkerSlot, BlendMode::Alpha, 1}, // "Zorzal"
         {mark, BlendMode::Alpha, 1},
     });
     // El renglón mide 13 ("0"), y con el margen 17: 34 de alto desde 0x1b3 − 34, en x = 0x246 de 0x34.
@@ -1064,9 +1069,10 @@ TEST_F(LetterWindowsDrawTest, TheWindowListDrawsTheChatsWithTheirBandsAndTheirMa
     EXPECT_FLOAT_EQ(VertexOf(4, 0, 2).u, 0.5f);
     EXPECT_FLOAT_EQ(VertexOf(4, 0, 2).v, 0.75f);
 
-    // strtok(",") del título: "t994" y los amigos de atrás para adelante; lo que sigue al 994, en x + 2 y 3 más abajo.
+    // strtok(",") del título: "t994" y los amigos de atrás para adelante (0x460e70 los agrega adelante: el primero que
+    // entró, Zorzal); lo que sigue al 994, en x + 2 y 3 más abajo.
     const TextColors black{.text = 0xff000000u, .background = 0};
-    ExpectTexts(0, {{"Tordo", 584, 421, black}, {"Mirlo", 584, 404, black}});
+    ExpectTexts(0, {{"Tordo", 584, 421, black}, {"Zorzal", 584, 404, black}});
     EXPECT_EQ(m_text.texts.size(), 2u);
 }
 

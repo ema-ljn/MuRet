@@ -115,6 +115,25 @@ constexpr float WindowListBlinkUp = 0.25f;
 constexpr double WindowListRowMargin = 4.0;
 
 // 0x45ae34..0x45ae47: el destructor de cada botón sólo libera su propia pulsación global.
+// El EDIT de `window` que tiene el foco (y no es ya el huérfano), o nullptr.
+OldEdit* FocusedEditOf(const OldWindowManager& manager, OldWindow& window)
+{
+    if (manager.focusedEditIsOrphan)
+        return nullptr;
+    if (window.kind == OldWindowKind::AddFriendBox && window.add.edit.base.id == manager.focusedEdit)
+        return &window.add.edit;
+    if (window.kind == OldWindowKind::ChatWindow && window.chat.edit.base.id == manager.focusedEdit)
+        return &window.chat.edit;
+    if (window.kind != OldWindowKind::LetterWriteWindow)
+        return nullptr;
+    for (OldEdit* edit : {&window.letter.to, &window.letter.subject, &window.letter.text})
+    {
+        if (edit->base.id == manager.focusedEdit)
+            return edit;
+    }
+    return nullptr;
+}
+
 void ReleaseTheDestroyedButtons(const OldWindow& window, std::int32_t& pressedButton)
 {
     const auto release = [&pressedButton](const OldButton& button)
@@ -1423,11 +1442,12 @@ Core::Expected<void, std::string> DestroyTheOldWindow(OldWindowManager& manager,
     const auto found = manager.windows.find(id);
     if (found == manager.windows.end())
         return {};
-    if (found->second.kind == OldWindowKind::AddFriendBox && !manager.focusedEditIsOrphan &&
-        found->second.add.edit.base.id == manager.focusedEdit)
+    // El destructor del EDIT (0x467710) nunca llama a DestroyWindow: el EDIT nativo sobrevive al wrapper, con el foco
+    // si lo tenía. MuRet conserva solo el estado editable del que todavía tiene el foco: el de agregar un amigo, el del
+    // chat con un amigo y los tres de la de escribir una carta.
+    if (OldEdit* focused = FocusedEditOf(manager, found->second); focused != nullptr)
     {
-        // El EDIT nativo sobrevive al wrapper; MuRet conserva solo el estado editable si todavía tiene el foco.
-        manager.orphanedEdit = found->second.add.edit;
+        manager.orphanedEdit = *focused;
         manager.focusedEditIsOrphan = true;
     }
     // 0x491840. El destructor del chat sale de la sala (0x493a70) y el de leer suelta su carta (0x4916b0).
@@ -1527,6 +1547,8 @@ void ResetTheOldWindows(OldWindowManager& manager, std::int32_t& pressedButton)
         static_cast<void>(Steps::ForgetTheLetterKind(manager, window));
     }
     manager.windows.clear();
+    // 0x48eae6..0x48eb07: el mapa de cartas (+0x94) entero, también las que se anotaron (0x491570) y esperan el C7.
+    manager.letterWindows.clear();
     manager.order.clear();
     // 0x4a448e: el elegido al final antes de vaciar (el iterador queda en un bloque que se suelta; acá, en 0).
     manager.windowList.list.chats.clear();

@@ -1909,6 +1909,10 @@ void ServerSession::SendToChatRoom(std::uint32_t room, Protocol::Outgoing packet
         m_log.Warning("no se manda a la sala {} del chat con un amigo: no tiene conexión", room);
         return;
     }
+    // La sala que cerró su conexión sigue anotada (el FD_CLOSE de 0x49e480 no la saca) con el socket en −1: el ping de
+    // cada 15 s (0x4a6550) la salta sin decir nada (0x4a66b1), y lo que se le mande se pierde igual.
+    if (found->second.connection->State() == Network::LinkState::Closed)
+        return;
     found->second.connection->Send(std::move(packet.packet), packet.delivery);
 }
 

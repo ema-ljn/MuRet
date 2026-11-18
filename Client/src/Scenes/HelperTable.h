@@ -63,9 +63,10 @@ struct HelperState
     // +0xcc..+0xd4: el vuelo del 0x1c12 (0x445052..0x445221). 0x443d70 no la escribe: un lugar que se vuelve a
     // usar se queda con la del ayudante de antes (Q-C420).
     glm::vec3 velocity{};
-    // +0xf4..+0xfc, la luz propia: 3 desde 0x443d70 (0x443e2f..0x443e45), que nadie más escribe. La lee el 60f/0
-    // que el caballo suelta con +8 del jinete en 1 (0x444740 → 0x53429b); el aliento (0x4445b5) y el dibujo la llevan
-    // fija en el 3 (HorseLight en Scenes/HelperTable.cpp).
+    // +0xf4..+0xfc, la luz propia: 3 desde 0x443d70 (0x443e2f..0x443e45), y 1 en el dibujo del retrato de las cartas
+    // (0x495987..0x495993). La leen el 60f/0 que el caballo suelta con +8 del jinete en 1 (0x444740 → 0x53429b) y el
+    // dibujo, que la suma a la del terreno (0x5ffce0, 0x5ffd6a..0x5ffd8b); el aliento (0x4445b5) la lleva fija en el 3
+    // (HorseLight en Scenes/HelperTable.cpp).
     glm::vec3 light{};
     // +0x64: −1 de 0x443d70, y 1 con el 0x1c12 (0x443f1a), que dibuja su malla 1 como blendMesh.
     std::int16_t blendMesh = -1;

@@ -12,6 +12,7 @@ GL, de los volcados de memoria y del cable.
 | el barrido del login: el mundo 55, el dragón, el cuervo, el recorte del terreno | [`login/`](login/README.md) | CL7.R |
 | las herramientas del binario: desensamblar, el grafo de llamadas, constantes, tablas de saltos | [`tools/`](tools/README.md) | todas |
 | la matriz que asigna cada función del `main.exe` a una ola, su verificador y sus controles | [`tools/`](tools/README.md#la-cobertura-del-roadmap-clm) | CL.M |
+| el censo de llamadas directas a la API de audio | [`tools/audio_sites.py`](tools/audio_sites.py) | CL10 |
 | el barrido de Lorencia: la cámara, la tabla de protección, los objetos, caminar, el cable, los mapas | [`game/`](game/README.md) | CL7 |
 | los paquetes de Python | [`requirements.txt`](requirements.txt) | todas |
 

@@ -406,6 +406,38 @@ TEST_F(MonsterHelpersTest, The1a4CutsInItsParticleOnlyWithRoom)
     EXPECT_EQ(attack.State(), AfterDraws(quiet, 1).State());
 }
 
+// 0x441d7d consume cuarenta rand() aunque no haya slots; 0x441d89 pide 0x208 sin sortear.
+TEST_F(MonsterHelpersTest, The1a4AttackBurstKeepsItsRandomsAndSoundWithTheParticlePoolFull)
+{
+    Name("Monster82_LHand", 34);
+    FillParticles();
+    const std::uint32_t quiet = FirstSeedWhere([](CrtRandom& draw) { return draw.Next() % 20 != 0; });
+    for (const float frame : {4.99f, 5.0f, 5.7f, 5.71f})
+    {
+        SCOPED_TRACE(frame);
+        ActorState& actor = Monster(0x1a4, 4, frame);
+        actor.subtype = 0;
+        m_world->Runtime().lastSoundId.reset();
+        CrtRandom random(quiet);
+        MonsterHelperPass pass = Pass(Lorencia, random);
+        const auto drawn = Client::Scenes::DrawTheEffectsOf1a3To1a9(pass);
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        const bool bursts = frame >= 5.0f && frame <= 5.7f;
+        EXPECT_EQ(actor.subtype, bursts ? 1 : 0);
+        EXPECT_EQ(Sound(), bursts ? std::optional<std::int32_t>(0x208) : std::nullopt);
+        EXPECT_EQ(random.State(), AfterDraws(quiet, bursts ? 41 : 1).State());
+        if (bursts)
+        {
+            const auto again = Client::Scenes::DrawTheEffectsOf1a3To1a9(pass);
+            ASSERT_TRUE(again.HasValue()) << again.Error();
+            CrtRandom expected = AfterDraws(quiet, 41);
+            if (expected.Next() % 20 == 0)
+                static_cast<void>(expected.Next());
+            EXPECT_EQ(random.State(), expected.State());
+        }
+    }
+}
+
 // 0x441d96..0x4420f2: en la 4, el sonido 0x202 más rand() % 2, tres rand() % 12 − 6 para el punto de la cola, un 0x5fd
 // a 2,5 con la mezcla 1 y un 0x61e a 0,8, los dos con la luz propia, y dos 0x5ca/0 con (1; 0,3; 0); después doce
 // vueltas de tres rand() para el punto de la panza, con los mismos dos sprites y una 0x5ca/0. Con la tabla llena, los
@@ -634,6 +666,24 @@ TEST_F(MonsterHelpersTest, The1a9AttackMarksItsFirstFrame)
     FillParticles();
     MonsterHelperPass crowded = Pass(Devias, random);
     ASSERT_TRUE(Client::Scenes::DrawTheEffectsOf1a3To1a9(crowded).HasValue());
+    EXPECT_EQ(random.State(), 1u);
+}
+
+// 0x518cf0 no inicia el efecto con la tabla llena: sigue el sonido de 0x442cc5 y la mano.
+TEST_F(MonsterHelpersTest, The1a9FullEffectPoolStillPlaysItsAttackSound)
+{
+    Name("Monster87_LeftEye", 8);
+    Name("Monster87_RightEye", 9);
+    Name("Monster87_LeftHand", 16);
+    ActorState& actor = Monster(0x1a9, 4);
+    FillModelEffects();
+    FillParticles();
+    CrtRandom random(1);
+    MonsterHelperPass pass = Pass(Lorencia, random);
+    const auto drawn = Client::Scenes::DrawTheEffectsOf1a3To1a9(pass);
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    EXPECT_EQ(actor.subtype, 1);
+    EXPECT_EQ(Sound(), 0x20d);
     EXPECT_EQ(random.State(), 1u);
 }
 

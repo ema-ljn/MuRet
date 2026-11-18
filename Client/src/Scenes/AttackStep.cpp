@@ -170,7 +170,7 @@ Core::Expected<void, std::string> StrikeNothing(ActorState& actor, std::size_t s
 
 // 0x505224..0x50534a: el sonido de pegar, por las manos del registro propio (sea quien sea el que pega) o el ítem del
 // cursor en la suya.
-void PlayTheStrikeSound(const CharacterStepContext& context)
+void PlayTheStrikeSound(const ActorState& actor, const CharacterStepContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
     // 0x50522f y 0x50534a: 0x4e79a0 y 0x40f370, los 3.848 rand() si el cierre lo deja en 0.
@@ -191,7 +191,10 @@ void PlayTheStrikeSound(const CharacterStepContext& context)
     const auto tiro = [](std::int32_t type) { return type >= 0x800 && type < 0xa00; };
     const std::int32_t base = tiro(TypeOf(*right)) && tiro(TypeOf(*left)) ? 0x4b : 0x46;
     const auto sound = static_cast<std::int32_t>(context.random.Next() & 3) + base;
-    if (context.soundRequest)
+    // 0x505312/0x505337: el origen es o, aunque las manos sean del registro propio.
+    if (context.soundAt)
+        context.soundAt(sound, actor.position);
+    else if (context.soundRequest)
         context.soundRequest(sound);
 }
 
@@ -359,7 +362,7 @@ Core::Expected<void, std::string> StrikeTheTarget(ActorState& actor, std::size_t
     const std::uint8_t second = ReadTheSkill(actor, context.random);
     if (IsOneOf(QuietSkills, second) || (actor.word376 >= 0x44 && actor.word376 <= 0x4b))
         return {};
-    PlayTheStrikeSound(context);
+    PlayTheStrikeSound(actor, context);
     return {};
 }
 } // namespace

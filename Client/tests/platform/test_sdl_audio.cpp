@@ -56,13 +56,13 @@ private:
     std::optional<std::string> m_output;
 };
 
-void WriteTestWave(const std::filesystem::path& path)
+constexpr std::uint32_t TestWaveSampleRate = 22050;
+
+void WriteTestWave(const std::filesystem::path& path, std::uint32_t samples = TestWaveSampleRate / 10)
 {
-    constexpr std::uint32_t SampleRate = 22050;
     constexpr std::uint16_t Channels = 1;
     constexpr std::uint16_t BitsPerSample = 16;
-    constexpr std::uint32_t Samples = 2205;
-    constexpr std::uint32_t DataBytes = Samples * Channels * BitsPerSample / 8;
+    const std::uint32_t dataBytes = samples * Channels * BitsPerSample / 8;
     const auto write16 = [](std::ofstream& file, std::uint16_t value)
     {
         file.put(static_cast<char>(value & 0xff));
@@ -78,18 +78,18 @@ void WriteTestWave(const std::filesystem::path& path)
     std::filesystem::create_directories(path.parent_path());
     std::ofstream file(path, std::ios::binary);
     file.write("RIFF", 4);
-    write32(file, 36 + DataBytes);
+    write32(file, 36 + dataBytes);
     file.write("WAVEfmt ", 8);
     write32(file, 16);
     write16(file, 1);
     write16(file, Channels);
-    write32(file, SampleRate);
-    write32(file, SampleRate * Channels * BitsPerSample / 8);
+    write32(file, TestWaveSampleRate);
+    write32(file, TestWaveSampleRate * Channels * BitsPerSample / 8);
     write16(file, Channels * BitsPerSample / 8);
     write16(file, BitsPerSample);
     file.write("data", 4);
-    write32(file, DataBytes);
-    for (std::uint32_t sample = 0; sample < Samples; ++sample)
+    write32(file, dataBytes);
+    for (std::uint32_t sample = 0; sample < samples; ++sample)
     {
         write16(file, 10000);
     }
@@ -130,6 +130,7 @@ TEST(SdlAudioTest, WritesLoopedSyntheticAudioToDiskDriver)
             ADD_FAILURE() << playback.Error();
             return {};
         }
+        EXPECT_EQ(playback.Value()->DriverName(), "disk");
         play(*playback.Value());
         std::this_thread::sleep_for(std::chrono::milliseconds(350));
         playback.Value().reset();
@@ -174,5 +175,21 @@ TEST(SdlAudioTest, WritesLoopedSyntheticAudioToDiskDriver)
                                 });
     EXPECT_GT(failed.size(), 1024U);
     EXPECT_FALSE(std::ranges::any_of(failed, nonzero));
+
+    constexpr auto MusicWave = "Music/finite.wav";
+    WriteTestWave(root / MusicWave, TestWaveSampleRate * 5 / 4);
+    const auto finished = capture("finished.raw",
+                                  [&](Client::Platform::SdlAudio& audio)
+                                  {
+                                      audio.PlayMusic(MusicWave, false);
+                                      std::this_thread::sleep_for(std::chrono::milliseconds(1800));
+                                      EXPECT_EQ(audio.MusicProgressPercent(), 0);
+                                  });
+    EXPECT_GT(finished.size(), 1024U);
+    EXPECT_TRUE(std::ranges::any_of(finished, nonzero));
+
+    const auto disabled = Client::Platform::SdlAudio::Create(root, false, false);
+    ASSERT_TRUE(disabled.HasValue());
+    EXPECT_TRUE(disabled.Value()->DriverName().empty());
     std::filesystem::remove_all(root);
 }

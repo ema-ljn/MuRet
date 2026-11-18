@@ -49,9 +49,11 @@ constexpr std::uint32_t QuietFlag = 0x4000;
 constexpr std::int32_t FlameJoint = 0x10f;
 
 // 0x41ed10(sonido, …): la CL10 decide cómo suena (WorldRuntime::lastSoundId en el juego).
-void RequestTheSound(const CharacterStepContext& context, std::int32_t sound)
+void RequestTheSound(const CharacterStepContext& context, std::int32_t sound, const ActorState* actor = nullptr)
 {
-    if (context.soundRequest)
+    if (actor != nullptr && context.soundAt)
+        context.soundAt(sound, actor->position);
+    else if (context.soundRequest)
         context.soundRequest(sound);
 }
 
@@ -77,12 +79,13 @@ bool HasJointRoom(const CharacterStepContext& context)
 
 Core::Expected<void, std::string> EffectThenSound(std::uint32_t address, std::string_view what, std::uint8_t skill,
                                                   std::size_t slot, std::int32_t sound,
-                                                  const CharacterStepContext& context)
+                                                  const CharacterStepContext& context,
+                                                  const ActorState* actor = nullptr)
 {
     if (HasEffectRoom(context))
         return CutAt(address, what, skill, slot);
     if (sound >= 0)
-        RequestTheSound(context, sound);
+        RequestTheSound(context, sound, actor);
     return {};
 }
 
@@ -266,7 +269,9 @@ Core::Expected<void, std::string> SwingTheHands(const ActorState& actor, std::si
         return CutAt(0x502ae6, "el efecto 0x138 sobre o (0x518cf0)", skill, slot);
     constexpr std::int32_t RaiseSound = 0x1cf;
     constexpr std::int32_t OtherSwingSound = 0x272;
-    RequestTheSound(context, skill == RaiseSkill ? RaiseSound : OtherSwingSound);
+    // 0x4feaae: la 0x40 conserva o como origen.
+    RequestTheSound(context, skill == RaiseSkill ? RaiseSound : OtherSwingSound,
+                    skill == RaiseSkill ? &actor : nullptr);
     return {};
 }
 
@@ -399,10 +404,10 @@ Core::Expected<void, std::string> StepTheHeadSkill(ActorState& actor, std::size_
     case 0x40:
         return SwingTheHands(actor, slot, skill, context, 0x4fea10, 0x4fea9b);
     case 0x3f:
-        return EffectThenSound(0x4feae8, "el efecto 0xcb/2 sobre o (0x518cf0)", skill, slot, 0x1cb, context);
+        return EffectThenSound(0x4feae8, "el efecto 0xcb/2 sobre o (0x518cf0)", skill, slot, 0x1cb, context, &actor);
     case 0x41:
         // 0x4feb3b: el punto de 0x4f5b10(o, 0, −90, −50), más alto en las acciones 0x51 y 0x5b, sin rand().
-        return EffectThenSound(0x4febbb, "el efecto 0x62c (0x518cf0)", skill, slot, 0x1cd, context);
+        return EffectThenSound(0x4febbb, "el efecto 0x62c (0x518cf0)", skill, slot, 0x1cd, context, &actor);
     case 0x31:
         return EffectThenSound(0x4fec15, "el efecto 0x6ac sobre o (0x518cf0)", skill, slot, 0x72, context);
     case 0x29:

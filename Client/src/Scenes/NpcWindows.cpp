@@ -48,6 +48,8 @@ namespace
 namespace Npc = Protocol::NpcWindows;
 
 // 0x41ed10 (CL10): lo que dejan en WorldRuntime::lastSoundId.
+constexpr std::int32_t FirstTalkSound = 0x19;    // 0x4d2899
+constexpr std::int32_t FirstChaosSound = 0x57;   // 0x4c5f7f, 0x4c5fcb y 0x4da31b
 constexpr std::int32_t SecondTalkSound = 0x1c;   // 0x4d28a2, después del 0x19
 constexpr std::int32_t ItemSound = 0x1d;         // 0x4e3c4e y 0x4e3cb0
 constexpr std::int32_t RepairSound = 0x25;       // 0x4e3d1d
@@ -349,6 +351,7 @@ Core::Expected<void, std::string> ApplyTalkResult(const Npc::TalkResult& talk, c
     if (sendError)
         return Core::Unexpected(std::move(*sendError));
     // 0x4d2893..0x4d28f6: los dos sonidos y el SetCursorPos.
+    runtime.RequestSound(FirstTalkSound);
     runtime.RequestSound(SecondTalkSound);
     runtime.npcWindows.cursorWarpRequested = true;
     return {};
@@ -361,6 +364,7 @@ Core::Expected<void, std::string> ApplyItemList(const Npc::ItemList& list, const
     if (list.grid == ChaosBoxGrid)
     {
         npc.chaosMixState = MixReady;
+        runtime.RequestSound(FirstChaosSound);
         runtime.RequestSound(ChaosListSound);
         EmptyTheGrid(npc.chaosBox);
     }
@@ -371,6 +375,7 @@ Core::Expected<void, std::string> ApplyItemList(const Npc::ItemList& list, const
         if (auto shown = Message(InventoryServicesOf(resources), TrainerListText, ErrorMessage, "0x4c5fc0");
             !shown.HasValue())
             return shown;
+        runtime.RequestSound(FirstChaosSound);
         runtime.RequestSound(ChaosListSound);
         EmptyTheGrid(npc.trainerBox);
     }
@@ -581,6 +586,7 @@ Core::Expected<void, std::string> ApplyChaosMixResult(const Npc::ChaosMixResult&
                                                "0x4da310, 0x5bc740(0x7d2d380)");
             !placed.HasValue())
             return placed;
+        runtime.RequestSound(FirstChaosSound);
         runtime.RequestSound(ChaosSuccessSound);
         return {};
     }

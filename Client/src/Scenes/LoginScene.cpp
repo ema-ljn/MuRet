@@ -2,9 +2,11 @@
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/Skinning.h"
 #include "Scenes/FaunaDrawing.h"
+#include "Scenes/FaunaModels.h"
 
 #include "App/LoopTiming.h"
 #include "Audio/Music.h"
+#include "Audio/Playback.h"
 #include "App/ServerAddress.h"
 #include "App/ServerSession.h"
 #include "App/SessionState.h"
@@ -446,6 +448,13 @@ void LoginScene::LoadTheWorld()
     {
         return;
     }
+    // 0x6349bc → 0x61a58c: la carga del mapa del login libera las reservas del mundo anterior.
+    WorldState& world = CharacterWorld();
+    if (world.Runtime().audio != nullptr)
+    {
+        world.Runtime().audio->ReleaseWorldSounds();
+        world.FaunaResources().ResetSoundRegistrationStamps();
+    }
     // Rango inicial de 0x5fbb00 con el pase de entrada (los bloques que empiezan en x 0..128 e y 120..248, 06 §
     // El terreno del login). El trapecio no: es el global, que antes del primer dibujo del login tiene los
     // ceros de la .bss o el que dejó la escena de antes (Q-C217).
@@ -772,7 +781,9 @@ Core::Expected<void, std::string> LoginScene::StepTheCharacters()
          .particles = &CharacterWorld().Particles(),
          .worldClock = clock,
          .counter = cloth.logicSteps,
-         .soundRequest = [this](std::int32_t sound) { CharacterWorld().Runtime().RequestSound(sound); }});
+         .soundRequest = [this](std::int32_t sound) { CharacterWorld().Runtime().RequestSound(sound); },
+         .soundAt = [this](std::int32_t sound, const glm::vec3& origin)
+         { CharacterWorld().Runtime().RequestSound(sound, origin); }});
 }
 
 void LoginScene::StepTheWorld()

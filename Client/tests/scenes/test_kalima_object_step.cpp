@@ -127,3 +127,55 @@ TEST(KalimaObjectStepTest, ASelectedRetainedCountReturnsBeforeTheSpawnGuardAndDo
     }
     EXPECT_TRUE(selected);
 }
+
+// 0x43878a y 0x4387f4: el cierre final deja cuatro bytes de rand() en cada celda; los accesos anidados no escriben.
+TEST(KalimaObjectStepTest, RegionCellClosesStoreTheNativeRandomBytesOnlyAtDepthZero)
+{
+    constexpr std::uint32_t InitialLeft = 0x12345678;
+    for (const std::uint8_t depth : std::array<std::uint8_t, 3>{0, 1, 255})
+    {
+        SCOPED_TRACE(depth);
+        bool selected = false;
+        for (std::uint32_t seed = 1; seed < 200 && !selected; ++seed)
+        {
+            Client::Render::Models::ClothWorld cloth{.random = Client::Render::Models::CrtRandom{seed},
+                                                     .logicSteps = 1};
+            auto expected = cloth.random;
+            const auto close = [&expected, depth]
+            {
+                if (depth != 0)
+                    return InitialLeft;
+                std::uint32_t left = 0;
+                for (unsigned byte = 0; byte < 4; ++byte)
+                    left |= (static_cast<std::uint32_t>(expected.Next()) & 0xffu) << (8u * byte);
+                return left;
+            };
+            const auto expectedX = close();
+            const auto expectedY = close();
+            if (expected.Next() % 10 != 0)
+                continue;
+            const int selector = expected.Next() % 3;
+            auto world = std::make_unique<Client::Scenes::WorldState>();
+            auto& hero = world->Actors()[0];
+            hero.cellX = 40;
+            hero.cellY = 64;
+            hero.cellXAccesses = depth;
+            hero.cellYAccesses = depth;
+            hero.cellXLeft = InitialLeft;
+            hero.cellYLeft = InitialLeft;
+            world->OwnCharacter().level = 0;
+            world->Runtime().ownRecordDepth = 1;
+            world->Runtime().objectSelectionCount = 3;
+            const auto result = Client::Scenes::StepKalimaObjectPrelude(*world, cloth);
+            ASSERT_TRUE(result.HasValue()) << result.Error();
+            EXPECT_EQ(result.Value(), selector);
+            EXPECT_EQ(hero.cellXLeft, expectedX);
+            EXPECT_EQ(hero.cellYLeft, expectedY);
+            EXPECT_EQ(hero.cellXAccesses, depth);
+            EXPECT_EQ(hero.cellYAccesses, depth);
+            EXPECT_EQ(cloth.random.State(), expected.State());
+            selected = true;
+        }
+        EXPECT_TRUE(selected);
+    }
+}

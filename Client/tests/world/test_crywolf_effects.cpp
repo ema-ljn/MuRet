@@ -10,6 +10,7 @@
 #include <gtest/gtest.h>
 
 #include <memory>
+#include <utility>
 #include <vector>
 
 namespace
@@ -74,19 +75,24 @@ TEST(CrywolfEffectsTest, TheFireworkEmitterKeepsCallerAndAllocatedChildRandoms)
         emitter.transform.position = {1000, 2000, 100};
         Client::Render::Models::CrtRandom random(0);
         std::vector<int> sounds;
+        std::vector<std::pair<int, glm::vec3>> soundsAt;
         const auto stepped = Client::World::StepGameModelEffect(
             emitter, nullptr, *particles, 0, random, nullptr,
-            {.effects = effects.get(), .sound = [&sounds](int sound) { sounds.push_back(sound); }});
+            {.effects = effects.get(),
+             .sound = [&sounds](int sound) { sounds.push_back(sound); },
+             .soundAt = [&soundsAt](int sound, const glm::vec3& origin) { soundsAt.emplace_back(sound, origin); }});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(emitter.life, 74);
         EXPECT_EQ(random.State(), full ? 0x1e278e7au : 0x098520c4u);
         if (full)
         {
             EXPECT_TRUE(sounds.empty());
+            EXPECT_TRUE(soundsAt.empty());
         }
         else
         {
-            EXPECT_EQ(sounds, (std::vector<int>{0x58}));
+            EXPECT_TRUE(sounds.empty());
+            EXPECT_EQ(soundsAt, (std::vector<std::pair<int, glm::vec3>>{{0x58, {1000, 2000, 100}}}));
             EXPECT_EQ(effects->Effects()[0].type, 0x60d);
             EXPECT_EQ(effects->Effects()[0].life, 12);
             EXPECT_EQ(effects->Effects()[0].velocity, (glm::vec3{3, 3, 26}));
@@ -108,13 +114,17 @@ TEST(CrywolfEffectsTest, TheLastFireworkStillSoundsAndDiesWithTheParticlesFull)
     firework.transform.position = {1000, 2000, 100};
     Client::Render::Models::CrtRandom random(0);
     std::vector<int> sounds;
+    std::vector<std::pair<int, glm::vec3>> soundsAt;
     const auto stepped = Client::World::StepGameModelEffect(
         firework, nullptr, *particles, 0, random, nullptr,
-        {.lighting = lighting.get(), .sound = [&sounds](int sound) { sounds.push_back(sound); }});
+        {.lighting = lighting.get(),
+         .sound = [&sounds](int sound) { sounds.push_back(sound); },
+         .soundAt = [&soundsAt](int sound, const glm::vec3& origin) { soundsAt.emplace_back(sound, origin); }});
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(random.State(), 0x098520c4u);
     EXPECT_FALSE(firework.alive);
-    EXPECT_EQ(sounds, (std::vector<int>{0x59}));
+    EXPECT_TRUE(sounds.empty());
+    EXPECT_EQ(soundsAt, (std::vector<std::pair<int, glm::vec3>>{{0x59, {1000, 2000, 100}}}));
     auto expectedLighting = std::make_unique<Client::World::TerrainLighting>();
     Client::World::AddTerrainLight(*expectedLighting, 1000, 2000,
                                    {0.040000010281801224f, 0.030000008642673492f, 0.020000005140900612f}, 1);

@@ -262,19 +262,20 @@ bool InBox(const GameUiContext& context, std::int32_t left, std::int32_t top, st
 }
 
 // Lo que dejan los botones: MouseUpdateTime (0x77f3b10) en 0, su máximo en 6 y el sonido.
-void PressTheButton(WorldRuntime& runtime)
+void PressTheButton(WorldRuntime& runtime, bool sound = true)
 {
     runtime.movement.mouseUpdateTime = 0;
     runtime.movement.mouseUpdateTimeMax = DialogMouseUpdateTimeMax;
-    runtime.RequestSound(DialogSound);
+    if (sound)
+        runtime.RequestSound(DialogSound);
 }
 
 // 0x62da70 y 0x628280: el que espera pasa a abierto.
-void CloseTheDialog(WorldRuntime& runtime)
+void CloseTheDialog(WorldRuntime& runtime, bool sound = true)
 {
     runtime.dialogs.current = runtime.dialogs.pending;
     runtime.dialogs.pending = 0;
-    PressTheButton(runtime);
+    PressTheButton(runtime, sound);
 }
 
 Core::Expected<IGameUiRequests*, std::string> RequestsOf(const GameUiContext& context, std::string_view where)
@@ -530,7 +531,10 @@ Core::Expected<void, std::string> StepTheOptions(const GameUiContext& context)
     if (InBox(context, OptionsLeft, CloseRowY, OptionsWidth, OptionsRowHeight) && click)
     {
         click = false;
-        CloseTheDialog(runtime);
+        // 0x6258e7: el sonido precede a la lectura del diálogo pendiente (0x6258ec).
+        PressTheButton(runtime);
+        runtime.dialogs.current = runtime.dialogs.pending;
+        runtime.dialogs.pending = 0;
     }
     return {};
 }
@@ -710,9 +714,9 @@ Core::Expected<void, std::string> StepTheGenericOk(const GameUiContext& context)
         return {};
     if (std::ranges::find(QuittingDialogs, id) != QuittingDialogs.end())
     {
-        // 0x628299: SendMessageA(hWnd, WM_DESTROY, 0, 0), y sigue con el cierre.
+        // 0x628299: WM_DESTROY libera el audio (0x4b32fd..0x4b3307) antes del sonido de 0x6282c3.
         runtime.ui.destroyRequested = true;
-        CloseTheDialog(runtime);
+        CloseTheDialog(runtime, false);
         return {};
     }
     // 0x626460..0x6282c8: el zen del comercio o del almacén, con su cola.

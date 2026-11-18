@@ -382,7 +382,7 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
             return came;
         if (cast.sourceIsHero)
             world.Runtime().movement.gateRequestBlocked = 0;
-        Sound(resources, 0x83);
+        world.Runtime().RequestSound(0x83, source.position); // 0x4cd43a
         return {};
     }
     case 0x6:
@@ -444,7 +444,7 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
             KillModelEffectsOf(world.Map().effects, 0x628, &target, 0);
             if (HasFreeEffectSlot(world))
                 return Core::Unexpected(std::string("0x4cd664: el efecto 0x628 de 0x518cf0 es de la CL11"));
-            Sound(resources, 0x85);
+            world.Runtime().RequestSound(0x85, target.position);
             target.flags78 |= 0x40;
         }
         if (IsPlayer(source))

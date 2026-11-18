@@ -520,12 +520,19 @@ Core::Expected<void, std::string> ShootTheArrows(ActorState& actor, ActorState* 
     if (skill == PiercingSkill)
     {
         subtype = 2;
-        if (context.soundRequest)
+        if (context.soundAt)
+            context.soundAt(PiercingSound, actor.position);
+        else if (context.soundRequest)
             context.soundRequest(PiercingSound);
     }
     runtime.lastShotSkill = skill;
-    if (skill == ArrowRainSkill && context.soundRequest)
-        context.soundRequest(ArrowRainSound);
+    if (skill == ArrowRainSkill)
+    {
+        if (context.soundAt)
+            context.soundAt(ArrowRainSound, actor.position);
+        else if (context.soundRequest)
+            context.soundRequest(ArrowRainSound);
+    }
     constexpr std::uint8_t MarkedFlag = 2;
     constexpr std::int32_t MarkedSubtype = 0x63;
     if (flag == MarkedFlag)

@@ -46,13 +46,13 @@ void RegionSoundOf(WorldState& world, Render::Models::ClothWorld& cloth)
     const auto x = [&]
     {
         const Render::Models::LogicalAccess access(hero.cellXAccesses, cloth.random,
-                                                   Render::Models::SmallLogicalCloseRandoms);
+                                                   Render::Models::SmallLogicalCloseRandoms, hero.cellXLeft);
         return static_cast<std::int32_t>(hero.cellX);
     }();
     const auto y = [&]
     {
         const Render::Models::LogicalAccess access(hero.cellYAccesses, cloth.random,
-                                                   Render::Models::SmallLogicalCloseRandoms);
+                                                   Render::Models::SmallLogicalCloseRandoms, hero.cellYLeft);
         return static_cast<std::int32_t>(hero.cellY);
     }();
     constexpr std::int32_t MinX = 25, MaxX = 51, MinY = 44, MaxY = 119;

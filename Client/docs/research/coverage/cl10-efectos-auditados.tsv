@@ -1,0 +1,226 @@
+va	funcion	veredicto	archivo_cpp_referencia
+00404e8b	00404e20	corresponde	Scenes/EventPackets.cpp:995
+00404e99	00404e20	corresponde	Scenes/EventPackets.cpp:996
+00404ed9	00404e20	corresponde	Scenes/EventPackets.cpp:1007
+00404f01	00404e20	corresponde	Scenes/EventPackets.cpp:1011
+00404f0f	00404e20	corresponde	Scenes/EventPackets.cpp:1012
+00405061	00404e20	corresponde	Scenes/EventPackets.cpp:1038
+00427706	004271d0	corte previo en una rama	Scenes/MonsterHelpers.cpp:862,878
+00427712	004271d0	corte previo en una rama	Scenes/MonsterHelpers.cpp:862,879
+0042775f	004271d0	corte previo en una rama	Scenes/MonsterHelpers.cpp:862,866..883
+00427d7c	004271d0	corte previo en una rama	Scenes/MonsterHelpers.cpp:899..902
+00428196	004271d0	corte previo en una rama	Scenes/MonsterHelpers.cpp:922..925
+004281ba	004271d0	corte previo en una rama	Scenes/MonsterHelpers.cpp:922..925
+004281e2	004271d0	corte previo en una rama	Scenes/MonsterHelpers.cpp:922..925
+0042821d	004271d0	corte previo en una rama	Scenes/MonsterHelpers.cpp:922..925
+00428256	004271d0	alcanza el sonido	Scenes/MonsterHelpers.cpp:1190..1192
+0042827a	004271d0	alcanza el sonido	Scenes/MonsterHelpers.cpp:1190..1192
+004282a2	004271d0	alcanza el sonido	Scenes/MonsterHelpers.cpp:1190..1192
+004282dd	004271d0	alcanza el sonido	Scenes/MonsterHelpers.cpp:1190..1192
+00428368	004271d0	alcanza el sonido	Scenes/MonsterHelpers.cpp:934..947
+00428a15	004271d0	alcanza el sonido	Scenes/MonsterHelpers.cpp:969..987
+00434578	00434180	alcanza el sonido	Scenes/MonsterHelpers.cpp:790
+004345ea	00434180	alcanza el sonido	Scenes/MonsterHelpers.cpp:777
+00434680	00434180	alcanza el sonido	Scenes/MonsterHelpers.cpp:822
+00434b0b	00434180	alcanza el sonido	Scenes/MonsterHelpers.cpp:822
+00434bc3	00434180	alcanza el sonido	Scenes/MonsterHelpers.cpp:822
+00434e0f	00434180	alcanza el sonido	Scenes/MonsterHelpers.cpp:813,822
+00434f5a	00434180	alcanza el sonido	Scenes/MonsterHelpers.cpp:815,822
+00435486	00434180	alcanza el sonido	Scenes/MonsterHelpers.cpp:815,822
+0043553a	00434180	alcanza el sonido	Scenes/MonsterHelpers.cpp:822
+004415ef	00441400	alcanza el sonido	Scenes/MonsterHelpers.cpp:301..315
+00441626	00441400	alcanza el sonido	Scenes/MonsterHelpers.cpp:316..318
+00441646	00441400	alcanza el sonido	Scenes/MonsterHelpers.cpp:319..320,524..525
+00441a34	00441400	corte previo en una rama	Scenes/MonsterHelpers.cpp:332,336,340
+00441c75	00441400	corte previo en una rama	Scenes/MonsterHelpers.cpp:336,345..348
+00441d89	00441400	corte previo en una rama	Scenes/MonsterHelpers.cpp:336,350..355, World/ParticleBurst.cpp:23,
+00441dcc	00441400	alcanza el sonido	Scenes/MonsterHelpers.cpp:367..369
+00441e03	00441400	alcanza el sonido	Scenes/MonsterHelpers.cpp:370..371
+00441e23	00441400	alcanza el sonido	Scenes/MonsterHelpers.cpp:372..373
+00442148	00441400	alcanza el sonido	Scenes/MonsterHelpers.cpp:419..420
+00442174	00441400	corte previo en una rama	Scenes/MonsterHelpers.cpp:421..423
+00442198	00441400	alcanza el sonido	Scenes/MonsterHelpers.cpp:426..445
+004423fb	00441400	alcanza el sonido	Scenes/MonsterHelpers.cpp:450..453
+004429f9	00441400	alcanza el sonido	Scenes/MonsterHelpers.cpp:515..520
+00442a35	00441400	alcanza el sonido	Scenes/MonsterHelpers.cpp:522..523
+00442c60	00441400	alcanza el sonido	Scenes/MonsterHelpers.cpp:548..550
+00442c80	00441400	alcanza el sonido	Scenes/MonsterHelpers.cpp:551..552
+00442cc5	00441400	corte previo en una rama	Scenes/MonsterHelpers.cpp:553..562
+0049133c	00491080	corresponde	UI/FriendWindows.cpp:1091, Scenes/GameFriends.cpp:199-212
+00491347	00491080	corresponde	UI/FriendWindows.cpp:1092, Scenes/GameFriends.cpp:199-212
+004913d8	00491080	corresponde	UI/FriendWindows.cpp:1119, Scenes/GameFriends.cpp:199-212
+004913e3	00491080	corresponde	UI/FriendWindows.cpp:1120, Scenes/GameFriends.cpp:199-212
+00491487	00491080	corresponde	UI/FriendWindows.cpp:1135, Scenes/GameFriends.cpp:199-212
+00491492	00491080	corresponde	UI/FriendWindows.cpp:1136, Scenes/GameFriends.cpp:199-212
+004a20c4	004a2070	corresponde	UI/LetterWindows.cpp:1611
+004a20e0	004a2070	corresponde	UI/LetterWindows.cpp:1611
+004a2149	004a2070	corresponde	UI/LetterWindows.cpp:1628
+004a219c	004a2070	corresponde	UI/LetterWindows.cpp:1628
+004a21fb	004a2070	corresponde	UI/LetterWindows.cpp:1628
+004a2257	004a2070	corresponde	UI/LetterWindows.cpp:1628
+004a30b3	004a3030	corresponde	UI/FriendWindows.cpp:632
+004a3166	004a3030	corresponde	UI/FriendWindows.cpp:632
+004a31cc	004a3030	corresponde	UI/FriendWindows.cpp:632
+004a3292	004a3030	corresponde	UI/FriendWindows.cpp:605
+004c5f7f	004c5f60	corresponde	Scenes/NpcWindows.cpp:367
+004c5f8a	004c5f60	corresponde	Scenes/NpcWindows.cpp:368
+004c5fcb	004c5f60	corresponde	Scenes/NpcWindows.cpp:378
+004c5fd6	004c5f60	corresponde	Scenes/NpcWindows.cpp:379
+004cd379	004cc530	corresponde	Scenes/SkillReplies.cpp:351
+004cd3b3	004cc530	corresponde	Scenes/SkillReplies.cpp:359
+004cd43a	004cc530	corresponde	Scenes/SkillReplies.cpp:385
+004cd4a2	004cc530	corresponde	Scenes/SkillReplies.cpp:391
+004cd4f6	004cc530	corresponde	Scenes/SkillReplies.cpp:398
+004cd523	004cc530	corresponde	Scenes/SkillReplies.cpp:402
+004cd547	004cc530	corresponde	Scenes/SkillReplies.cpp:404
+004cd597	004cc530	corresponde	Scenes/SkillReplies.cpp:412
+004cd671	004cc530	corte previo en una rama	Scenes/SkillReplies.cpp:447
+004cd801	004cc530	corresponde	Scenes/SkillReplies.cpp:393
+004cd88c	004cc530	corresponde	Scenes/SkillReplies.cpp:400
+004cde03	004cc530	corte previo en una rama	Scenes/SkillReplies.cpp:592
+004cde1e	004cc530	corresponde	Scenes/SkillReplies.cpp:598
+004d1cbf	004d1400	corresponde	Scenes/InventoryMoves.cpp:2092-2127
+004d1cec	004d1400	corresponde	Scenes/InventoryMoves.cpp:2092-2127
+004d1d16	004d1400	corresponde	Scenes/InventoryMoves.cpp:2092-2127
+004d1d40	004d1400	corresponde	Scenes/InventoryMoves.cpp:2092-2127
+004d1d61	004d1400	corresponde	Scenes/InventoryMoves.cpp:2092-2127
+004e31cd	004e2b10	corresponde	Scenes/InventoryMoves.cpp:2281
+004e3556	004e2b10	corresponde	Scenes/ChatReceive.cpp:245
+004e3c50	004e2b10	corresponde	Scenes/NpcWindows.cpp:421
+004e3cb2	004e2b10	corresponde	Scenes/NpcWindows.cpp:442
+004e3d1f	004e2b10	corresponde	Scenes/NpcWindows.cpp:469
+004e3d85	004e2b10	corresponde	Scenes/SocialEvents.cpp:527
+004e3dbc	004e2b10	corresponde	Scenes/SocialEvents.cpp:571
+004e3e2a	004e2b10	corresponde	Scenes/SocialEvents.cpp:596
+004e3e4b	004e2b10	corresponde	Scenes/SocialEvents.cpp:596
+004e3e6c	004e2b10	corresponde	Scenes/SocialEvents.cpp:596
+004e4af2	004e2b10	corresponde	Scenes/EventPackets.cpp:1065
+004e4b0c	004e2b10	corresponde	Scenes/EventPackets.cpp:1065
+004e4b26	004e2b10	corresponde	Scenes/EventPackets.cpp:1065
+004e4dbd	004e2b10	corresponde	Scenes/SocialEvents.cpp:820
+004f3d99	004f37c0	corresponde	Scenes/ActorWalk.cpp:268
+004f3ddf	004f37c0	corresponde	Scenes/ActorWalk.cpp:274
+004f3e2d	004f37c0	corresponde	Scenes/ActorWalk.cpp:283
+004f3e71	004f37c0	corresponde	Scenes/ActorWalk.cpp:289
+004f3ef2	004f37c0	corresponde	Scenes/ActorWalk.cpp:305
+004f3f67	004f37c0	corresponde	Scenes/ActorWalk.cpp:317
+004f4f65	004f4a10	corte previo en una rama	Scenes/ActorCombat.cpp:473
+004f4f85	004f4a10	corresponde	Scenes/ActorCombat.cpp:478
+004f4fc4	004f4a10	corte previo en una rama	Scenes/ActorCombat.cpp:485
+004f51e9	004f4a10	corresponde	Scenes/ActorCombat.cpp:415
+004f525d	004f4a10	corresponde	Scenes/ActorCombat.cpp:419
+004f6f4b	004f5b70	corte previo en una rama	Scenes/MonsterAttackStep.cpp:827..845
+004f7067	004f5b70	corte previo en una rama	Scenes/MonsterAttackStep.cpp:847..853
+004f70e4	004f5b70	corte previo en una rama	Scenes/MonsterAttackStep.cpp:856..873
+004f80d8	004f5b70	corte previo en una rama	Scenes/MonsterAttackStep.cpp:843,871,898,938,995
+004f869e	004f5b70	corte previo en una rama	Scenes/MonsterAttackStep.cpp:1093..1105
+004f877d	004f5b70	alcanza el sonido	Scenes/MonsterAttackStep.cpp:1120..1126
+004f8846	004f5b70	alcanza el sonido	Scenes/MonsterAttackStep.cpp:1135..1144
+004f891a	004f5b70	alcanza el sonido	Scenes/MonsterAttackStep.cpp:1154..1162
+004f8a6c	004f5b70	alcanza el sonido	Scenes/MonsterAttackStep.cpp:1184..1192
+004f8c1c	004f5b70	alcanza el sonido	Scenes/MonsterAttackStep.cpp:1215..1225
+004f9910	004f97b0	alcanza el sonido	Scenes/AttackFrameSkills.cpp:150..174
+004f9bf9	004f97b0	alcanza el sonido	Scenes/AttackFrameSkills.cpp:281..292
+004f9ed8	004f97b0	corte previo en una rama	Scenes/AttackFrameSkills.cpp:335..346
+004f9f7a	004f97b0	alcanza el sonido	Scenes/AttackFrameSkills.cpp:362..392
+004fa5af	004f97b0	corte previo en una rama	Scenes/AttackFrameSkills.cpp:412..423
+004faa21	004f97b0	corte previo en una rama	Scenes/AttackFrameSkills.cpp:435..445
+004faab0	004f97b0	corte previo en una rama	Scenes/AttackFrameSkills.cpp:447..454
+004fdfa6	004fd5f0	alcanza el sonido	Scenes/AttackSkillCases.cpp:146..167
+004fe13a	004fd5f0	corte previo en una rama	Scenes/AttackSkillCases.cpp:374..377
+004fe183	004fd5f0	corte previo en una rama	Scenes/AttackSkillCases.cpp:379
+004fe246	004fd5f0	corte previo en una rama	Scenes/AttackSkillCases.cpp:215..227,381
+004fe376	004fd5f0	corte previo en una rama	Scenes/AttackSkillCases.cpp:383..385
+004fe435	004fd5f0	corte previo en una rama	Scenes/AttackSkillCases.cpp:235..245
+004fe4f8	004fd5f0	corte previo en una rama	Scenes/AttackSkillCases.cpp:215..227,389
+004fe788	004fd5f0	corte previo en una rama	Scenes/AttackSkillCases.cpp:390..394
+004fe979	004fd5f0	corte previo en una rama	Scenes/AttackSkillCases.cpp:395..398
+004feaae	004fd5f0	alcanza el sonido	Scenes/AttackSkillCases.cpp:248..269
+004feb2e	004fd5f0	corte previo en una rama	Scenes/AttackSkillCases.cpp:402,78..86
+004febce	004fd5f0	corte previo en una rama	Scenes/AttackSkillCases.cpp:405,78..86
+004fec23	004fd5f0	corte previo en una rama	Scenes/AttackSkillCases.cpp:407
+004feca8	004fd5f0	corte previo en una rama	Scenes/AttackSkillCases.cpp:409..412
+004ff4b6	004fd5f0	corte previo en una rama	Scenes/AttackSkillCases.cpp:414..430
+004ff4fe	004fd5f0	corte previo en una rama	Scenes/AttackSkillCases.cpp:432..436
+004ff50f	004fd5f0	corte previo en una rama	Scenes/AttackSkillCases.cpp:432..436
+004ff5ed	004fd5f0	corte previo en una rama	Scenes/AttackSkillCases.cpp:439..443
+00500489	004fd5f0	corte previo en una rama	Scenes/AttackSkillCases.cpp:446..455
+00500c03	004fd5f0	alcanza el sonido	Scenes/AttackSkillCases.cpp:178..212
+00500c57	004fd5f0	corte previo en una rama	Scenes/AttackSkillCases.cpp:459..461
+00500cc7	004fd5f0	corte previo en una rama	Scenes/AttackSkillCases.cpp:463..465
+00502345	004fd5f0	corte previo en una rama	Scenes/AttackSkillCases.cpp:484..490
+0050235b	004fd5f0	alcanza el sonido	Scenes/AttackSkillCases.cpp:292..303
+00502986	004fd5f0	corte previo en una rama	Scenes/AttackSkillCases.cpp:495
+00502af7	004fd5f0	corte previo en una rama	Scenes/AttackSkillCases.cpp:251..269
+0050427d	004fd5f0	alcanza el sonido	Scenes/AttackStep.cpp:259..290
+005044ac	004fd5f0	corte previo en una rama	Scenes/AttackSkillCases.cpp:529..535
+005047fb	004fd5f0	corte previo en una rama	Scenes/AttackSkillCases.cpp:580..586
+00504860	004fd5f0	alcanza el sonido	Scenes/AttackSkillCases.cpp:590..607
+005049b2	004fd5f0	corte previo en una rama	Scenes/AttackSkillCases.cpp:612..621
+005049fd	004fd5f0	corte previo en una rama	Scenes/AttackSkillCases.cpp:625
+00504aba	004fd5f0	corte previo en una rama	Scenes/AttackSkillCases.cpp:627
+00504b44	004fd5f0	corte previo en una rama	Scenes/AttackSkillCases.cpp:630
+00504b91	004fd5f0	corte previo en una rama	Scenes/AttackSkillCases.cpp:632
+00504bdc	004fd5f0	corte previo en una rama	Scenes/AttackSkillCases.cpp:634
+00504cce	004fd5f0	corte previo en una rama	Scenes/AttackSkillCases.cpp:640..642
+00504d7a	004fd5f0	corte previo en una rama	Scenes/AttackSkillCases.cpp:645
+00505061	004fd5f0	corte previo en una rama	Scenes/AttackSkillCases.cpp:651..661
+00505312	004fd5f0	alcanza el sonido	Scenes/AttackStep.cpp:173..195,357..362
+00505337	004fd5f0	alcanza el sonido	Scenes/AttackStep.cpp:173..195,357..362
+005057ab	00505770	corresponde	Scenes/ActorWalk.cpp:252
+005057cc	00505770	corresponde	Scenes/ActorWalk.cpp:256
+005057f9	00505770	corresponde	Scenes/ActorWalk.cpp:258
+00505808	00505770	corresponde	Scenes/ActorWalk.cpp:258
+0052248b	005208a0	alcanza el sonido	World/GameModelEffects.cpp:1094..1155
+0052266a	005208a0	corte previo en una rama	World/GameModelEffects.cpp:1185
+00524e65	005208a0	corte previo en una rama	World/GameModelEffects.cpp:1623..1627
+005257bc	005208a0	corte previo en una rama	World/GameModelEffects.cpp:1623..1627
+0052743f	005208a0	alcanza el sonido	Scenes/CrywolfDeathSpiritEffects.cpp:101..152
+005284d9	005208a0	alcanza el sonido	World/SiegeStoneStep.cpp:58..72,129
+0052865e	005208a0	alcanza el sonido	World/SiegeStoneStep.cpp:100..112
+00528ebe	005208a0	alcanza el sonido	World/SiegeStoneStep.cpp:58..85,129
+0052b349	005208a0	alcanza el sonido	World/GameModelEffects.cpp:720..743
+0057df2d	0057cfc0	corresponde	Scenes/HeroSkillsElf.cpp:198
+005822ae	0057cfc0	corresponde	Scenes/HeroSkillsKnight.cpp:170
+00587337	0057cfc0	corresponde	Scenes/HeroSkillsKnight.cpp:542
+0058a01b	0057cfc0	corresponde	Scenes/HeroSkillsWizard.cpp:274
+00593fa1	0057cfc0	corresponde	Scenes/HeroSkillsTail.cpp:185
+005a0074	0059ff10	corresponde	Scenes/GameUi.cpp:1988
+005a026a	0059ff10	corresponde	Scenes/GameUi.cpp:2006, UI/ChatInput.cpp:333
+005a03b5	0059ff10	corresponde	Scenes/GameUi.cpp:2006, UI/ChatInput.cpp:333
+005a06f4	0059ff10	corresponde	Scenes/GameUi.cpp:1949
+005a08e1	0059ff10	corresponde	Scenes/GameUi.cpp:1759
+005a32c4	0059ff10	corresponde	Scenes/GameUi.cpp:2164, Scenes/InventoryMoves.cpp:646-650
+005a336f	0059ff10	inactivo en c32	Scenes/GameUi.cpp:2044-2053
+005a33cf	0059ff10	inactivo en c32	Scenes/GameUi.cpp:2044-2053
+005a3432	0059ff10	corresponde	Scenes/GameUi.cpp:2059
+005a3d09	0059ff10	corresponde	Scenes/GameUi.cpp:2200, Scenes/InventoryMoves.cpp:646-650
+005a4490	0059ff10	corresponde	Scenes/GameUi.cpp:2200, Scenes/InventoryMoves.cpp:646-650
+005a4c45	0059ff10	corresponde	Scenes/GameUi.cpp:2200, Scenes/InventoryMoves.cpp:646-650
+00623f70	00623e70	corresponde	Scenes/GameUi.cpp:2452
+006240d9	00623e70	corresponde	Scenes/GameDialogSteps.cpp:419
+006255c5	00623e70	corresponde	Scenes/GameDialogSteps.cpp:509
+00625623	00623e70	corresponde	Scenes/GameDialogSteps.cpp:511
+00625676	00623e70	corresponde	Scenes/GameDialogSteps.cpp:513
+00625702	00623e70	corresponde	Scenes/GameDialogSteps.cpp:461
+00625842	00623e70	corresponde	Scenes/GameDialogSteps.cpp:516
+006258e7	00623e70	orden corregido	Scenes/GameDialogSteps.cpp:533
+006282c3	00623e70	apagado corregido	Scenes/GameDialogSteps.cpp:714-715
+006284a3	00623e70	corresponde	Scenes/JewelMix.cpp:548
+006284c9	00623e70	corresponde	Scenes/JewelMix.cpp:548
+00628575	00623e70	corresponde	Scenes/GameDialogSteps.cpp:807
+00628aa7	00623e70	corresponde	Scenes/GameDialogSteps.cpp:819
+00628b23	00623e70	corresponde	Scenes/GameDialogSteps.cpp:897
+00628b5e	00623e70	corresponde	Scenes/GameDialogSteps.cpp:906
+00629397	00623e70	corresponde	Scenes/GameDialogSteps.cpp:837, Scenes/InventoryMoves.cpp:646-650
+00629ba3	00623e70	corresponde	Scenes/GameDialogSteps.cpp:837, Scenes/InventoryMoves.cpp:646-650
+00629be5	00623e70	corresponde	Scenes/GameDialogSteps.cpp:789
+0062a3ae	00623e70	corresponde	Scenes/GameDialogSteps.cpp:917, Scenes/InventoryMoves.cpp:646-650
+0062a3f0	00623e70	corresponde	Scenes/GameDialogSteps.cpp:789
+0062a473	00623e70	corresponde	Scenes/GameDialogSteps.cpp:851
+0062a748	00623e70	corresponde	Scenes/GameDialogSteps.cpp:851
+0062a7d2	00623e70	corresponde	Scenes/GameDialogSteps.cpp:889-890
+0062c4d2	00623e70	subramas pendientes	Scenes/GameDialogSteps.cpp:1055-1058
+0062c5a9	00623e70	alcance nativo pendiente	Scenes/GameDialogSteps.cpp:234
+0062d9eb	00623e70	corresponde	Scenes/GameDialogSteps.cpp:572
+0062da94	00623e70	subramas pendientes	Scenes/GameDialogSteps.cpp:604

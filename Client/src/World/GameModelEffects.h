@@ -2,6 +2,8 @@
 
 #include "Core/Expected.h"
 
+#include <glm/ext/vector_float3.hpp>
+
 #include <cstdint>
 #include <functional>
 #include <string>
@@ -39,8 +41,9 @@ struct ModelEffectStepServices
     const Data::Terrain::TerrainAttributes* terrainAttributes = nullptr;
     const std::int32_t* map = nullptr;
     float* cameraShake = nullptr;
-    // MuRet todavía no tiene audio (CL10): la escena pasa uno que no hace nada.
     std::function<void(std::int32_t)> sound{};
+    // 0x51ed6a y 0x52b349 piden sonido para el destello 0x60d en su posición.
+    std::function<void(std::int32_t, const glm::vec3&)> soundAt{};
     // 0x52ae2a: el héroe publicado ([0x743a170]), que el chorro 0x5de/0 de la Flame compara con su dueño (+0x108), y
     // 0x517a20(+0x89, la posición, `radius`, el byte +0x8c, +0x8a, 0) sobre ese chorro (Scenes/SkillHits, que lee el
     // pool de personajes y el registro propio y manda el C1 10; CL9 hito 4). Sin `skillHits`, el chorro del héroe corta

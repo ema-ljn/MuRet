@@ -191,7 +191,13 @@ struct ArrowWorld
                                     .random = random,
                                     .playerSkeleton = &skeleton,
                                     .particles = &particles,
-                                    .soundRequest = [this](std::int32_t sound) { sounds.push_back(sound); }};
+                                    .soundRequest = [this](std::int32_t sound) { sounds.push_back(sound); },
+                                    .soundAt =
+                                        [this](std::int32_t sound, const glm::vec3& origin)
+                                    {
+                                        sounds.push_back(sound);
+                                        soundOrigins.push_back(origin);
+                                    }};
     }
 
     ArrowStepContext StepContext()
@@ -274,6 +280,7 @@ struct ArrowWorld
     Client::World::FrameSprites sprites;
     std::unique_ptr<Client::World::TerrainLighting> lighting = std::make_unique<Client::World::TerrainLighting>();
     std::vector<std::int32_t> sounds;
+    std::vector<glm::vec3> soundOrigins;
     std::vector<Client::Protocol::Outgoing> sent;
     std::function<double(float, float)> terrainHeight{};
     // La altura del terreno de 0x5f93c0 en cualquier punto; sin valor, el contexto va sin ella.
@@ -538,6 +545,8 @@ TEST(ArrowEffectsTest, TheArrowRainCountsTheVolley)
             EXPECT_EQ(tested.world.OwnCharacter().bytef04, 10);
             EXPECT_EQ(tested.world.Runtime().lastShotSkill, 0x33u);
             EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x82});
+            ASSERT_EQ(tested.soundOrigins.size(), 1u);
+            EXPECT_EQ(tested.soundOrigins.front(), hero.position);
             const auto arrows = tested.Arrows();
             ASSERT_EQ(arrows.size(), 1u);
             EXPECT_EQ(arrows.front()->type, 0xdb);
@@ -730,6 +739,8 @@ TEST(ArrowEffectsTest, ThePiercingShotLeavesItsTrail)
         EXPECT_TRUE(HasError(fired, "0x51a08a")) << ErrorOf(fired);
         EXPECT_EQ(DrawsSince(Seed, tested.random), OwnRecord);
         EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x55});
+        ASSERT_EQ(tested.soundOrigins.size(), 1u);
+        EXPECT_EQ(tested.soundOrigins.front(), hero.position);
         EXPECT_EQ(tested.world.Runtime().lastShotSkill, 0x34u);
         const auto arrows = tested.Arrows();
         ASSERT_EQ(arrows.size(), 1u);

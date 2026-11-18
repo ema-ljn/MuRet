@@ -368,7 +368,8 @@ Core::Expected<void, std::string> MonsterAttack(ActorState& actor, const ActorCo
 // 0x4f50cf..0x4f51bb: el sonido del jugador por el arma.
 void PlayerAttackSound(const ActorState& actor, const ActorCombatContext& context)
 {
-    const auto requestSound = [&context](std::int32_t id) { context.world.Runtime().RequestSound(id); };
+    const auto requestSound = [&actor, &context](std::int32_t id)
+    { context.world.Runtime().RequestSound(id, actor.position); };
     const int left = Signed(actor.hands[1].model);
     const int right = Signed(actor.hands[0].model);
     if (IsLeftGroup4(left))
@@ -407,7 +408,8 @@ void AttackSound(const ActorState& actor, const ActorCombatContext& context)
         PlayerAttackSound(actor, context);
         return;
     }
-    const auto requestSound = [&context](std::int32_t id) { context.world.Runtime().RequestSound(id); };
+    const auto requestSound = [&actor, &context](std::int32_t id)
+    { context.world.Runtime().RequestSound(id, actor.position); };
     // 0x4f51c0..0x4f51ee: los subtipos 0xd1 a 0xd3, rand() & 1 + 0x3c.
     if (HasModelSoundSubtype(actor))
         requestSound(static_cast<std::int32_t>((context.random.Next() & 1) + 0x3c));
@@ -420,7 +422,8 @@ void AttackSound(const ActorState& actor, const ActorCombatContext& context)
 // 0x4f5a09..0x4f5ae8: el sonido de morir con el frame en 0.
 void DeathSound(const ActorState& actor, const ActorCombatContext& context)
 {
-    const auto requestSound = [&context](std::int32_t id) { context.world.Runtime().RequestSound(id); };
+    // 0x4f5a8b y 0x4f5ae8 reciben el actor como origen.
+    const auto requestSound = [&](std::int32_t id) { context.world.Runtime().RequestSound(id, actor.position); };
     const std::int32_t map = context.world.Runtime().map;
     if (map >= FirstChaosCastleMap && map <= LastChaosCastleMap)
     {
@@ -468,12 +471,12 @@ Core::Expected<void, std::string> SetActorAttack(ActorState& actor, const ActorC
         if (std::ranges::any_of(context.world.Map().effects.Effects(),
                                 [](const World::ModelEffect& effect) { return !effect.alive; }))
             return Core::Unexpected(std::string("0x4f4f5b: el efecto 0xd4 del 0x27 al pegar (0x518cf0) es de la CL11"));
-        context.world.Runtime().RequestSound(0x10);
+        context.world.Runtime().RequestSound(0x10, actor.position);
         break;
     case 0x28:
         if (auto set = SetTheAction(actor, context, 1); !set.HasValue())
             return set;
-        context.world.Runtime().RequestSound(0x10);
+        context.world.Runtime().RequestSound(0x10, actor.position);
         break;
     case 0x33:
         if (std::ranges::any_of(context.world.Map().effects.Effects(),
@@ -529,7 +532,7 @@ Core::Expected<void, std::string> SetActorDie(ActorState& actor, const ActorComb
             return Core::Unexpected(std::format("{}: los efectos de la muerte del modelo {:#x} (0x518cf0) son de "
                                                 "la CL11",
                                                 firstEffectCall, actor.type));
-        context.world.Runtime().RequestSound(0x7c);
+        context.world.Runtime().RequestSound(0x7c, actor.position); // 0x4f59fe
     }
     else if (auto set = SetTheAction(actor, context, 6); !set.HasValue())
     {

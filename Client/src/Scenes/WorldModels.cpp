@@ -252,8 +252,7 @@ Core::Expected<void, std::string> WorldModels::ConfigureActions(std::uint8_t map
 // Data\Monster\Monster78.bmd en el modelo 0x19f; sin mallas, 0x612dee sale sin texturas ni acciones. Con ellas,
 // 0x60d5f0(0x19f, "Monster\\", 0x2901, 0x2600, 1) sigue el cursor global después de los objetos, las siete
 // velocidades de 0x612e5a (0,25; 0,2; 0,34; 0,33; 0,33; 0,5 y 0,55) y la acción 6 que no se repite (+0x60 en 1).
-// Los dos .wav del caso 0x4d (0x1bd y 0x1be) y su tabla de sonidos (0x612c80) son audio, que MuRet todavía no
-// tiene (CL10).
+// GameScene reserva los dos .wav del caso 0x4d y publica la tabla de sonidos tras la carga.
 Core::Expected<void, std::string> WorldModels::LoadTheSpearman(const std::filesystem::path& dataRoot, Core::Log& log,
                                                                std::size_t& missing)
 {

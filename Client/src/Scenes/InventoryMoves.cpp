@@ -1556,7 +1556,7 @@ Core::Expected<void, std::string> UseTheJewel(const InventoryMoveContext& contex
             accepted = false;
         if (type == BlessDialogType && under.durability != BlessDialogDurability)
         {
-            // 0x5d8335..0x5d8372: la casilla de la joya y el destino para el diálogo, que es de la CL9.3 (0x6282dc).
+            // 0x5d8335..0x5d8372: la casilla de la joya y el destino para el diálogo, que usa 0x6282dc.
             runtime.dialogBox.jewelCell = runtime.slot78a6758 - FirstGridSlot;
             runtime.dialogBox.jewelTarget = target;
             return UI::OpenTextDialog(runtime.dialogBox, runtime.dialogs, context.services.texts, 1, BlessDialogText,

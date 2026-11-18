@@ -201,7 +201,12 @@ protected:
     WorldState world;
     CrtRandom random{0x2b6d1e5u};
     Client::Data::Tables::ItemTable items = MakeItems();
-    Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable({{376, "usar %s?"},
+    Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable({{166, "nieve"},
+                                                                        {167, "sol"},
+                                                                        {168, "cielo"},
+                                                                        {169, "mar"},
+                                                                        {1900, "mando"},
+                                                                        {376, "usar?"},
                                                                         {474, "no se puede usar ahora"},
                                                                         {749, "desde el nivel diez"},
                                                                         {1865, "joya sobre el cuerno"},
@@ -470,9 +475,9 @@ TEST_F(GridItemUseTest, TheFruitAsksTheLevelAndThenTheEmptyEquipment)
 }
 
 // 0x5c83ad..0x5c83f3: sin equipo, la fruta de nivel 4 (el dword +4 entero en 0x20) sin la clase 4 avisa con el 1905;
-// con la clase 4, o con otro bit en el dword (Q-C1244), sigue al diálogo 0x96, que corta con su texto (0x63330f,
-// CL9.3). Un nivel 0 también.
-TEST_F(GridItemUseTest, TheFourthFruitIsForTheFourthClassAndTheDialogCuts)
+// con la clase 4, o con otro bit en el dword (Q-C1244), sigue al diálogo 0x96 con el nombre de la fruta. Un nivel
+// 0 también.
+TEST_F(GridItemUseTest, TheFourthFruitIsForTheFourthClassAndTheDialogReceivesItsItem)
 {
     world.OwnCharacter().level = 200;
     world.OwnCharacter().characterClass = 1;
@@ -480,20 +485,22 @@ TEST_F(GridItemUseTest, TheFourthFruitIsForTheFourthClassAndTheDialogCuts)
     ASSERT_TRUE(RightClick(0, 7).HasValue());
     EXPECT_EQ(Client::UI::DialogRow(world.Runtime().dialogBox, 0), "solo una clase");
 
-    const auto dialog = [this](std::uint32_t scalar1Low, std::uint8_t heroClass)
+    const auto dialog = [this](std::uint32_t scalar1Low, std::uint8_t heroClass, std::string_view name)
     {
         world.OwnCharacter().characterClass = heroClass;
         Cell(0, 7).scalar1Low = scalar1Low;
         const CrtRandom expected = Advanced(random, 2 * Own);
-        const auto cut = RightClick(0, 7);
-        ASSERT_FALSE(cut.HasValue());
-        EXPECT_NE(cut.Error().find("0x63330f"), std::string::npos) << cut.Error();
+        world.Runtime().dialogs = {};
+        const auto opened = RightClick(0, 7);
+        ASSERT_TRUE(opened.HasValue()) << opened.Error();
+        EXPECT_EQ(world.Runtime().dialogs.current, 0x96);
+        EXPECT_EQ(Client::UI::DialogRow(world.Runtime().dialogBox, 0), name);
         EXPECT_EQ(random.State(), expected.State());
         EXPECT_EQ(world.Runtime().ownRecordDepth, 0);
     };
-    dialog(4u << 3, 4);
-    dialog((4u << 3) | 4u, 1);
-    dialog(0, 1);
+    dialog(4u << 3, 4, "( mando )");
+    dialog((4u << 3) | 4u, 1, "( mando )");
+    dialog(0, 1, "( cielo )");
 }
 
 // 0x5c8448..0x5c8473: el 0x1a0b de nivel 0 se usa; el de nivel 1 no con el héroe maestro del gremio (+0x368 en 0x80);

@@ -6,7 +6,6 @@
 #include "Scenes/GameUi.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
-#include "UI/ChatInput.h"
 #include "UI/GameUiState.h"
 #include "UI/SiegePanelState.h"
 #include "World/OriginalFtol.h"
@@ -50,10 +49,8 @@ bool StepBase(const GameUiContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
     UI::SiegePanelState& panel = runtime.siegePanel;
-    const auto focus = runtime.chat.input.focus;
-    const bool typing = runtime.ui.chatOpen || runtime.chat.input.dialogFieldOn || focus == UI::ChatFocus::OldWindow ||
-                        focus == UI::ChatFocus::Dialog || focus == UI::ChatFocus::NumberField;
-    if (!typing && OldWindowKeyEdge(runtime.ui, context.input, 9))
+    // 0x40f6df..0x40f6f6: primero 0x6578e0, sólo sin campo/foco ajeno consulta y consume Tab.
+    if (!GameTextInputBusy(runtime) && OldWindowKeyEdge(runtime.ui, context.input, 9))
         panel.visible ^= 1;
     if (panel.visible == 0)
         return false;

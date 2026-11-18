@@ -219,8 +219,7 @@ bool TextInputBusy(const WorldRuntime& runtime)
     const auto& panelDialog = runtime.panels.delegated.panelDialog;
     const bool panelField =
         UI::PanelDialogHandle(panelDialog) != 0 && (panelDialog.flags & UI::PanelDialogTextField) != 0;
-    return runtime.ui.chatOpen || runtime.chat.input.dialogFieldOn || panelField || focus == UI::ChatFocus::OldWindow ||
-           focus == UI::ChatFocus::Dialog || focus == UI::ChatFocus::NumberField;
+    return runtime.ui.chatOpen || runtime.chat.input.dialogFieldOn || panelField || focus != UI::ChatFocus::Game;
 }
 
 // 0x636e51..0x636e5a: el registro del chat, 0x45aa80(0) por la vtable + 0x18 de 0x576350c.
@@ -361,7 +360,8 @@ Core::Expected<void, std::string> Toggle(UI::PanelRegistry& panels, UI::PanelId 
 
 // Las cinco teclas que leen las ventanas viejas con 0x553520 (Esc, F5, F6, Enter y la F de la de amigos, 0x4a2f70) y
 // las dos que leen abajo con GetAsyncKeyState (las flechas de las listas, 0x47b0f0).
-constexpr std::array<GameKey, 5> OldWindowEdgeKeys{EscapeKey, F5Key, F6Key, EnterKey, Letter('F')};
+// El panel del asedio consulta también 0x553520(9) en 0x40f6e8; comparte el latch con el resto de la UI.
+constexpr std::array<GameKey, 6> OldWindowEdgeKeys{EscapeKey, F5Key, F6Key, EnterKey, Letter('F'), TabKey};
 constexpr std::array<GameKey, 2> OldWindowDownKeys{UpKey, DownKey};
 
 // 0x650387 y 0x6503a4: 0x553520 de PgUp y PgDn, que lee la lista de los miembros del gremio.
@@ -2270,6 +2270,11 @@ Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& con
 }
 
 } // namespace
+
+bool GameTextInputBusy(const WorldRuntime& runtime)
+{
+    return TextInputBusy(runtime);
+}
 
 bool OldWindowKeyEdge(UI::GameUiState& ui, const Input::InputState& input, std::uint8_t virtualKey)
 {

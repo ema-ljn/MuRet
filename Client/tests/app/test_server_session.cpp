@@ -5109,8 +5109,9 @@ TEST(ServerSessionTest, AChatRoomHasItsOwnConnection)
     EXPECT_TRUE(rooms.tested.Logged(LogLevel::Warning, "no tiene conexión"));
 }
 
-// 0x4e6240 lee cada paquete de la sala por su lugar sin mirar su largo (Q-C1011): uno más corto que lo que lee su
-// handler se ignora con un aviso sin el texto, uno por opcode (00, 01, 02, 04 y 0D), y la sesión sigue. Un 0D con su
+// Los handlers de 0x4e2a60 leen cada paquete de la sala por su lugar sin mirar su largo (Q-C1011): uno más corto que lo
+// que lee su handler se ignora con un aviso sin el texto, uno por opcode (00, 01, 02, 04 y 0D), y la sesión sigue. Un
+// 0D con su
 // '\0' adentro, más corto que pkt[0x68], llega al sink.
 TEST(ServerSessionTest, AShortChatRoomPacketIsIgnoredAndTheSessionGoesOn)
 {

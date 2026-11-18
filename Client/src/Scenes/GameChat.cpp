@@ -450,7 +450,8 @@ Core::Expected<void, std::string> TypeInTheGameChat(const GameChatContext& conte
     {
         const std::size_t key = rest.find_first_of(Keys);
         // El EDIT de una ventana vieja con el foco de Windows (CL9 hito 9) recibe el WM_CHAR, y su subclase (0x467b10)
-        // le pasa el Enter a su padre; el Tab no lo mira (P-C181).
+        // le pasa el Enter a su padre y, con padre, el Tab al EDIT de +0x98 (0x467cdf..0x467d28; solo los enlaza la de
+        // escribir una carta, CL9 hito 10). Sin el de +0x98, el Tab no hace nada (P-C181).
         const bool oldEdit = UI::HasAnOldEditFocused(runtime.oldWindows, input.focus);
         // El EDIT de los diálogos con el foco: el de [0x5763504] (la entrada del número de serie, hito 11; el nombre
         // del gremio de la ventana 2, CL9 hito 8) o el de [0x5763508] (el número del 0x7d, CL9 hito 8). La misma

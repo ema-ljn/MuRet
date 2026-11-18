@@ -256,8 +256,8 @@ El hito 12 unifica `GuildName`, `0x6600d0` y el `B2 1F` con este hito.
 
 Terminado (`21c7b222`). Al armar la cadena:
 
-- La acción `0x78` (P-C219) llama a `SetActorAttack` del hito 3; hasta entonces un clic en "anterior" de la
-  ventana de escribir llega a ese corte.
+- La acción `0x78` (P-C219) llama a `SetActorAttack` del hito 3 (hecho en la auditoría del 2026-11-18: antes, un
+  clic en "anterior" de la ventana de escribir llegaba a un corte).
 - Otras llamadas a `LatchTheLeftButton` toman un cuarto argumento; `GameHudContext` tiene `oldWindows`.
 - Con el hito 4, la ayuda del botón de amigos (`0x5a9c98..0x5a9dd3`) corre justo antes de los íconos.
 

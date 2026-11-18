@@ -698,10 +698,10 @@ amigos. **Desbloquea:** 10.
 - [x] **El chat entre amigos:** `CA` y `CB` (`0x4dce10`, `0x4dd020`, `0x493530`), la ventana de chat
       (`0x493160`..`0x4942d0`, con el "max chat count over" de `0x49e280`; no `0x496530`, que es del retrato,
       P-C210), invitar (`0x49d0b0`) y `0x4944c0`. La conexión de la sala (P-C211, cerrado: otra
-      `Network::Connection` de la sesión, con el `C1 03 05` del timer 1002); los chats en F5 (P-C215: falta el dibujo).
+      `Network::Connection` de la sesión, con el `C1 03 05` del timer 1002); los chats en F5 (P-C215, cerrado con su dibujo).
 - [x] **Las cartas:** `C5`..`C9` (`0x4dc840`, `0x4dc9e0`, `0x4dcb70`, `0x4dcd90`, `0x49eb60`, `0x49ee20`,
       `0x49f870`), la pestaña de las cartas (`0x4a11b0`) y las ventanas de leer y de escribir (`0x49a1f0`,
-      `0x498820`). Los dibujos del chat, de las cartas y de su pestaña, cortados (P-C213).
+      `0x498820`). Los dibujos del chat, de las cartas y de su pestaña, en P-C213 (cerrado).
 - [x] **Los dibujos** (P-C213 y P-C215, cerrados): el EDIT de varios renglones (`+0xc4` en 1: `EM_GETLINECOUNT`,
       `0x468970` y el cursor y la selección de `0x468d50`; P-C217), el chat (`0x493fc0`, con sus listas `0x45f9c0`,
       `0x460550`, `0x491ba0` y las texturas `0x64b`, `0x64c` y `0x651`), la de leer (`0x499d60`), la de escribir
@@ -712,16 +712,17 @@ amigos. **Desbloquea:** 10.
       con `0x513100`, `0x497810` con `0x5139f0` sobre un objeto, `0x496530`, `0x495a20`, `0x497890`..`0x497910`),
       el paso `0x497970` en `UI/LetterWindows` y el gancho del juego (`LetterPortraitHook`): abrir la de escribir y
       el `C7` ya no cortan. Del dibujo, `0x497c10` y `0x495760` hasta el modelo; el modelo fuera del pool (P-C310),
-      la acción `0x78` (P-C219) y lo de 2D (P-C311), cortados.
+      la acción `0x78` (P-C219) y lo de 2D (P-C311), cerrados después en el mismo hito.
 - [x] **El dibujo del retrato** (fase 4, P-C310 y P-C311 cerrados): `0x497c10` entera desde `0x49a1d0` y `0x498800`
       (`OldWindowDrawView::portrait`): el paso del ayudante vivo (`0x444010(ayudante, 1)`), `0x445260(ayudante, 1)` y
       `0x50ba30` con el personaje fuera del pool (`+0x3e4`), el pase con la profundidad borrada, el retrato en blanco
-      (`0x653`) y la ayuda con la caja de `0x5af090` en el modo 1 (Q-C1010). La acción `0x78` sigue cortada en
-      `SetActorAttack` (`0x4f4a10`, hito 3, P-C219).
+      (`0x653`) y la ayuda con la caja de `0x5af090` en el modo 1 (Q-C1010). La acción `0x78` va a
+      `SetActorAttack` (`0x4f4a10`, hito 3) con el mapa en 0; hasta la auditoría del 2026-11-18 cortaba en
+      `ShowThePortraitAction` (P-C219).
 - [x] **Los renglones partidos** (fase 4, P-C218 cerrado): el segundo deque de los renglones del chat y del cuerpo de
       una carta (`0x45f6f0`, `0x45fea0`, `0x460130`; `0x464ae0`, `0x465270`, `0x465450`), las marcas de `0x45f240` y
       `0x464620`, la cola que parte antes del 9 (`0x479240`, `0x47c150`) y el dibujo por `wrappedRows[at]`. Los
-      pedazos de más (`0x460308`, `0x4654af`), cortados.
+      pedazos de más (`0x460308`, `0x4654af`, donde el original lee fuera de su búfer) se descartan (Q-C1012).
 - [x] **Los íconos de la barra** (fase 4, el hueco de P-C63): `0x4a5120` desde `0x5a9ddb` (`DrawTheMainBar`), con
       `0x4a0310` (alguna carta sin leer) y `0x4a6410` (chats que esperan): el botón apretado con la de amigos
       abierta, el hombre y la carta prendidos 12 de cada 24 dibujos (`+0x148`) y los seis parpadeos de la carta nueva

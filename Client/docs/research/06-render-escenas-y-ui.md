@@ -14244,8 +14244,8 @@ profundidad borrada (`Render::Pass3D::clearDepth`), `DrawTheHelperOutsideTheTabl
 (`0x50ba30` con el personaje fuera del pool: sin contorno, no es el héroe y es el dueño `ActorPoolSize` de lo que
 crea), y cierra el pase aunque corte. Después, la ayuda: el ícono y, con la ayuda a la vista, los textos 997 a 999 en
 la caja de `0x5af090` con el modo 1 de `0x467060` (contra el borde izquierdo, `0x467102..0x467119`). Un dibujo
-intermedio dibuja una copia del retrato con la copia del `rand()` del frame, sin el paso. La acción `0x78` corta en
-`SetActorAttack` (`0x4f4a10`, P-C219). `UI::OldWindowStepView::portrait` es `Scenes::LetterPortraitHook` con los
+intermedio dibuja una copia del retrato con la copia del `rand()` del frame, sin el paso. La acción `0x78` va a
+`SetActorAttack` (`0x4f4a10`) con el mapa en 0, como `0x495b00..0x495b33` (P-C219). `UI::OldWindowStepView::portrait` es `Scenes::LetterPortraitHook` con los
 recursos del mundo (`GameUiContext::worldEntry`, `ChatReceiveContext::worldEntry`): el primer pedido crea el
 `LetterPortrait`.
 

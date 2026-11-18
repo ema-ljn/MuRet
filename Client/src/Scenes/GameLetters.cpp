@@ -529,7 +529,7 @@ Core::Expected<void, std::string> ApplyRoomPacket(std::int32_t window, const Net
             return {};
         if (join.Value().result != 0)
             return {};
-        return Notice(context, JoinFailedText, "0x4e6240(0)");
+        return Notice(context, JoinFailedText, "0x4dd1b0");
     }
     case Chat::MemberOpcode:
     {
@@ -584,7 +584,7 @@ Core::Expected<void, std::string> ApplyRoomPacket(std::int32_t window, const Net
     }
     case Chat::MembersOpcode:
     {
-        // 0x4dd350 (en línea en 0x4e6240): sin mirar que la ventana esté.
+        // 0x4dd350: 0x490a00 y 0x493c90 sin mirar que la ventana esté.
         auto members = Chat::ReadMembers(packet);
         if (!members.HasValue())
             return {};
@@ -592,7 +592,7 @@ Core::Expected<void, std::string> ApplyRoomPacket(std::int32_t window, const Net
         {
             UI::OldWindow* chat = ChatOf(manager, window);
             if (chat == nullptr)
-                return Core::Unexpected(std::string("0x4e6240(2): el chat no está y el original sigue con NULL"));
+                return Core::Unexpected(std::string("0x4dd3a1: el chat no está y el original sigue con NULL"));
             if (auto added = UI::AddAChatMember(manager, *chat, row.name, row.index, 0, windows.Texts(),
                                                 windows.View().heroName, windows.Measure());
                 !added.HasValue())
@@ -627,13 +627,13 @@ Core::Expected<void, std::string> ApplyRoomPacket(std::int32_t window, const Net
     }
     case Chat::NoticeOpcode:
     {
-        // 0x4e6299: pkt[0x68] = 0 y, si hay texto, al chat.
+        // 0x4dd549: pkt[0x68] = 0 y, si hay texto, al chat.
         auto notice = Chat::ReadNotice(packet);
         if (!notice.HasValue())
             return {};
         if (notice.Value().text.empty())
             return {};
-        return SystemMessage(context, notice.Value().text, "0x4e6240(0xd)");
+        return SystemMessage(context, notice.Value().text, "0x4dd540");
     }
     default:
         return {};

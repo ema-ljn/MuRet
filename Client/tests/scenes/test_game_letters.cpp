@@ -264,6 +264,8 @@ protected:
             }
             return {};
         };
+        // Solo anota la copia. El del juego (Scenes::LendTheGameHooks) la lee con ReadLetterCopy, que también lee la
+        // de una carta de 1000 (LettersTest.TheCopyOfAThousandLetterLetterReadsAgain), y la da a ApplyLetterRead.
         view.replayLetter = [this](const std::vector<std::byte>& copy) -> Client::Core::Expected<void, std::string>
         {
             m_replayed.push_back(copy);
@@ -534,7 +536,7 @@ TEST_F(GameLettersTest, TheChatRoomCarriesTheMessagesThePingAndTheLeave)
     EXPECT_EQ(m_random.State(), After(0));
 }
 
-// 0x4e6240 y sus handlers leen cada paquete de la sala por su lugar, sin mirar su largo: uno más corto que lo que lee
+// Los handlers de 0x4e2a60 leen cada paquete de la sala por su lugar, sin mirar su largo: uno más corto que lo que lee
 // su handler (Q-C1011) no hace nada ni corta, uno por opcode. Los textos que terminan adentro del paquete se leen
 // aunque el paquete sea más corto que el lugar fijo: el nombre del 01 y el texto del 0D.
 TEST_F(GameLettersTest, AShortRoomPacketDoesNothing)

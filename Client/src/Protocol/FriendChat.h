@@ -109,7 +109,7 @@ struct Notice
 [[nodiscard]] Core::Expected<Members, ProtocolError> ReadMembers(const Network::Packet& packet);
 [[nodiscard]] Core::Expected<Message, ProtocolError> ReadMessage(const Network::Packet& packet);
 [[nodiscard]] Core::Expected<Notice, ProtocolError> ReadNotice(const Network::Packet& packet);
-// 0x4e6240 y sus handlers leen cada paquete por su lugar sin mirar su largo: con uno más corto que lo que leen (un
+// Los handlers de 0x4e2a60 leen cada paquete por su lugar sin mirar su largo: con uno más corto que lo que leen (un
 // nombre o un texto sin su '\0' adentro, o menos bytes que los del largo del 04), el original sigue en el búfer de
 // recepción (Q-C1011). TooShort con esos; con uno que se lee entero o con otro opcode, nada. Los textos que terminan
 // adentro del paquete se leen aunque sea más corto que el lugar fijo (el 0D de largo 5 + texto + 1).

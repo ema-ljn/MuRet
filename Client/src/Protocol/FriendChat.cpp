@@ -147,7 +147,7 @@ Core::Expected<Member, ProtocolError> ReadMember(const Network::Packet& packet)
 
 Core::Expected<Members, ProtocolError> ReadMembers(const Network::Packet& packet)
 {
-    // 0x4e62b1: pkt[6]; con 0 no lee más. Cada miembro, el nombre (strncpy de 10, 0x4e62d5) y su número (0x4e62e4).
+    // 0x4dd367: pkt[6]; con 0 no lee más. Cada miembro, el nombre (strncpy de 10, 0x4dd382) y su número (0x4dd391).
     auto read = BytesOf(packet, MembersOpcode, MembersCountAt + 1);
     if (!read.HasValue())
         return Core::Unexpected(read.Error());

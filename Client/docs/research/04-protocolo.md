@@ -1580,7 +1580,8 @@ bytes con `strncpy` a un buffer de 11 en cero.
   bytes (`0x4a03c0`, si no había copia), marca la carta leída (`+0x134 = 1`), la pestaña, y arma la de leer
   (`0x48ee60(6)` con `sprintf(1054, asunto)` en (100, 100) o, con `0x5762f0c` distinto de −1, donde quedó la
   anterior con el bit 0 de las banderas), el cuerpo (`0x499cb0`), la ventana en el mapa de las cartas (`0x491720`)
-  y, salvo que el que la manda empiece con `webzen` (`strncmp` de 10), el retrato: la clase (los bits 4..6 y el 4 de
+  y, salvo que el que la manda sea `webzen` (`_strnicmp` de 10, `0x4dccbd..0x4dccd2` con `0x6a3450`: sin importar las
+  mayúsculas, y el 0 del final también se compara, así que tiene que ser el nombre entero), el retrato: la clase (los bits 4..6 y el 4 de
   `pkt[8]`, `0x4977d0`), el equipo (`0x497810`), la acción + `0x78` (`0x4978f0`), el ángulo (los 6 bits de abajo de
   la dirección por 6, con el personaje armado) y el zoom (`((dir >> 6) · 5 + 0x28) · 2 · 0,01`). Por último, el 14 a
   la ventana.
@@ -1619,19 +1620,23 @@ La conexión de la sala (`0x49de50`): un lugar de 256 (`0x49e280`; sin lugar, `"
 socket al puerto 55980 de la IP del `CA` con el mensaje `0x500 + lugar`; por ella, `C1 10 00 <0> <sala:u16>
 <ticket:10>` (el ticket en decimal con `_itoa` y el XOR de 3 bytes `FC CF AB`), los mensajes (`C1 len 04 <0> <largo>
 <texto>`, con el XOR de 3 bytes), la salida (`C1 03 01`, del destructor `0x493a70`) y, cada 15 s, `C1 03 05` (el timer
-1002, `0x4b1a5b` → `0x4a6550`, a la sala de cada chat de la lista de ventanas). Lo que llega (`0x4e1d50`, que
-despacha a `0x4dd1b0..0x4dd540` con la ventana): `00` (`0x4dd1b0`, distinto de 0, la caja del 1058), `01`
-(`0x4dd1e0`, un miembro entra o sale con el 1059 o el 1060), `02` (los miembros, en línea en `0x4e6240`), `04`
+1002, `0x4b1a5b` → `0x4a6550`, a la sala de cada chat de la lista de ventanas). Lo que llega (`0x49e510` →
+`0x4e1d50` con 1, cuyo switch `0x4e2a60` despacha por `pkt[3]` a `0x4dd1b0..0x4dd540` con la ventana): `00`
+(`0x4dd1b0`: con `pkt[3]` en 0, la caja del 1058, `0x4dd1b9`), `01` (`0x4dd1e0`, un miembro entra o sale con el 1059 o
+el 1060), `02` (`0x4dd350`, los miembros: `pkt[6]` y, de a 11 bytes desde `pkt[8]`, el número y el nombre), `04`
 (`0x4dd3d0`, un mensaje de hasta 100: minimizado, el 1063 al chat y la ventana oculta en la lista de ventanas; oculto
-o no arriba, el sonido `0x28` y la ventana en espera, `0x4a5e50`) y `0D` (`pkt[0x68] = 0` y el texto al chat).
+o no arriba, el sonido `0x28` y la ventana en espera, `0x4a5e50`) y `0D` (`0x4dd540`: `pkt[0x68] = 0` y el texto al
+chat). `0x4e6240` es una copia de ese switch con los cinco casos (los tres cortos en línea) que no llama nadie: código
+muerto.
 
 **MuRet** (CL9 hito 10): `Protocol::Letters` y `Protocol::FriendChat` leen y escriben todo lo de arriba (con
-`WrongPacket` y `TooShort`; el largo del `C7` que no entra en el paquete, rechazado: Q-C1000). `App::ServerSession`
+`WrongPacket` y `TooShort`; el `C7` cuyo cuerpo pasa del paquete, rechazado, y el que lo llena justo, sin el 0, se lee:
+Q-C1000). `App::ServerSession`
 registra `C5`..`C8`, `CA` y `CB` juntos y los pasa al mundo (`Scenes::ApplyLetterSendResult`, `ApplyLetterRow`,
 `ApplyLetterRead`, `ApplyLetterDeleteResult`, `ApplyRoomAnswer` y `ApplyInviteResult`); lo que mandan las ventanas
 sale por `Scenes::SendAFriendPacket`, que saca los `rand()` de la carta. La conexión de la sala es otra
 `Network::Connection` de la sesión (`App::IChatRoomLinks`, P-C211): lo que llega por ella va a `Scenes::ApplyRoomPacket`
-(lo de `0x4e6240`; uno más corto que lo que lee su handler se ignora con un aviso y la sesión sigue: Q-C1011) y su
+(lo de `0x4e2a60`; uno más corto que lo que lee su handler se ignora con un aviso y la sesión sigue: Q-C1011) y su
 cierre a `Scenes::ApplyChatRoomClosed`; lo que mandan las ventanas lo saca
 `Scenes::FlushTheChatRoomOrders`. El connect no espera, como el del GameServer de MuRet: la sala se anota al empezar y
 el `C1 10 00` sale con el connect. Ni el GameServer 0.97 ni el repo de research tienen un servidor del chat: lo del

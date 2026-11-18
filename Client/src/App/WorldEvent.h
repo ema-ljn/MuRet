@@ -55,7 +55,8 @@ struct ReturnToServerListReceived
 };
 
 // Lo que llega por la conexión de la sala de un chat con un amigo (IChatRoomLinks.h): 0x49e510 pasa cada paquete de
-// cada sala a 0x4e1d50 con 1 y la ventana del chat, que lo da a 0x4e6240.
+// cada sala a 0x4e1d50 con 1 y la ventana del chat, que lo da por pkt[3] (el switch 0x4e2a60) a 0x4dd1b0 (00), 0x4dd1e0
+// (01), 0x4dd350 (02), 0x4dd3d0 (04) y 0x4dd540 (0D). 0x4e6240, una copia con los mismos casos, no la llama nadie.
 struct ChatRoomPacket
 {
     std::uint32_t room = 0;

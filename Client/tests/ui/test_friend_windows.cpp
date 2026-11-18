@@ -322,7 +322,8 @@ TEST_F(FriendWindowsTest, TheAddBoxSendsTheTypedName)
     ASSERT_TRUE(Client::UI::HasAnOldEditFocused(m_manager, m_focus));
 
     Client::UI::TypeInTheOldEdit(m_manager, "Calandrias");
-    Client::UI::BackspaceInTheOldEdit(m_manager);
+    // El retroceso del juego llega como tecla (SDL no da el '\b' de WM_CHAR).
+    Client::UI::ApplyKeyToTheOldEdit(m_manager, Client::UI::OldEditKey::Backspace, false, false);
     Client::UI::PressEnterInTheOldEdit(m_manager);
     stepped = Step();
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
@@ -350,7 +351,7 @@ TEST_F(FriendWindowsTest, DestroyingTheFocusedAddBoxKeepsItsEditBufferWithoutIts
     EXPECT_TRUE(Client::UI::HasAnOldEditFocused(m_manager, m_focus));
     Client::UI::TypeInTheOldEdit(m_manager, "z");
     Client::UI::ApplyKeyToTheOldEdit(m_manager, Client::UI::OldEditKey::Left, false, false);
-    Client::UI::BackspaceInTheOldEdit(m_manager);
+    Client::UI::ApplyKeyToTheOldEdit(m_manager, Client::UI::OldEditKey::Backspace, false, false);
     EXPECT_EQ(m_manager.orphanedEdit->text.Value(), "abcz");
 
     Client::UI::PressEnterInTheOldEdit(m_manager);

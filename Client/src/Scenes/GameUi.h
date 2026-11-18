@@ -49,6 +49,11 @@ namespace Client::Data::Text
 class TextTable;
 }
 
+namespace Client::UI
+{
+struct GameUiState;
+}
+
 // La UI del juego en el paso y en el frame, lo del hito 1 de la CL8 (06 § HUD y ventanas, "El orden" y "El clic
 // es primero de la UI"): los diálogos antes del paso (0x623e70), el bloque de la UI del paso (0x636ded..0x63705b)
 // con 0x5ee140 y 0x59ff10, y el picking del frame (0x59ec80). Lo que es de otro hito o de otra ola corta con su
@@ -69,6 +74,7 @@ struct FloorItemState;
 struct GameChatContext;
 struct GameMovementState;
 struct InventoryServices;
+struct WorldEntryResources;
 struct WorldRuntime;
 
 // Lo que los diálogos y los paneles le piden al resto del cliente (el menú de Esc, 0x624036..0x62553f, y la party): el
@@ -138,11 +144,15 @@ struct GameUiContext
     // Skill.bmd (0x76bd1d8): el +0x31 de cada skill de la lista de la barra (0x5a07a3). nullptr: la lista abierta
     // corta.
     const Data::Tables::SkillTable* skills = nullptr;
+    // CL9 hito 10: lo del juego que usa el personaje del retrato de las cartas (Scenes/LetterPortrait), que vive más
+    // que el paso. nullptr: el retrato corta (P-C212).
+    const WorldEntryResources* worldEntry = nullptr;
 };
 
 // El WndProc: 0x7d366d4 (el flanco del clic, que apagan quien lo usa y el botón suelto) y 0x7d36874 (el botón
 // abajo), antes de cualquier lógica del paso. GameScene lo llama al empezar cada paso; MoveHero también, para sus
-// pruebas.
+// pruebas, con los flags de los mensajes del mouse (Input::MouseMessageState): el WM_LBUTTONDBLCLK no prende
+// 0x7d36874 (P-C187).
 void LatchTheLeftButton(GameMovementState& state, bool pressed, bool down);
 
 // El WndProc y el soltado del izquierdo: WM_LBUTTONUP prende 0x7d366ec con el mouse de ese momento (0x4b3cea, en
@@ -155,6 +165,15 @@ void LatchTheLeftRelease(GameMovementState& state, bool pressed, bool released, 
 // Los globales de las ventanas viejas sobre los del juego: los del mouse, los de la UI, el foco del teclado (el de la
 // entrada del chat) y el último sonido.
 [[nodiscard]] UI::OldWindowGlobals OldWindowGlobalsOf(WorldRuntime& runtime);
+
+// Lo que el paso de las ventanas viejas lee del juego, además del mouse, las teclas, los textos y el cable: las flechas
+// (GetAsyncKeyState, 0x47b0f0), el susurro (0x4694c0), las malas palabras (0x622b40 con 0), el nombre del héroe, la
+// carta guardada (0x4dcb70 desde 0x4a11b0), el personaje del retrato (Scenes/LetterPortrait) y 0x78abaac. Lo usan el
+// paso de la UI (0x490490) y el que corre dentro del dibujo (0x45aa50 desde los dibujos de las ventanas viejas,
+// UI::OldWindowDrawView::stepView), que tienen que ver lo mismo. Con `effects` en false (el dibujo intermedio de
+// MuRet, sobre la copia de las ventanas), el susurro, la carta guardada y el retrato no hacen nada. Los ganchos
+// guardan lo de `context` que usan, no `context`.
+void LendTheGameHooks(UI::OldWindowStepView& view, const GameUiContext& context, bool effects);
 
 // 0x637c4a..0x637c5c → 0x623e70: Esc y el diálogo abierto, en cada paso de la escena 5 antes de su lógica.
 [[nodiscard]] Core::Expected<void, std::string> StepTheGameDialogs(const GameUiContext& context);

@@ -104,10 +104,7 @@ std::uint8_t AnimationOf(const ActorState& actor, std::uint8_t action)
         return ShieldAnimation;
     if (action == SalutedAction)
         return SalutedAnimation;
-    if (action < FirstTableAction || action > LastTableAction)
-        return action;
-    const TableAnimation& animation = Animations[static_cast<std::size_t>(action - FirstTableAction)];
-    return (actor.characterClass & ClassMask) == ElfClass ? animation.elf : animation.other;
+    return TableAnimationOf(actor.characterClass, action);
 }
 
 Core::Expected<void, std::string> StopTheActor(ActorState& actor, const WorldEntryResources& resources,
@@ -153,6 +150,14 @@ Core::Expected<void, std::string> Strike(ActorState& actor, std::size_t index, c
     return {};
 }
 } // namespace
+
+std::uint8_t TableAnimationOf(std::uint8_t characterClass, std::uint8_t action)
+{
+    if (action < FirstTableAction || action > LastTableAction)
+        return action;
+    const TableAnimation& animation = Animations[static_cast<std::size_t>(action - FirstTableAction)];
+    return (characterClass & ClassMask) == ElfClass ? animation.elf : animation.other;
+}
 
 Core::Expected<void, std::string> ApplyActionReply(const Protocol::Movement::Action& reply,
                                                    const WorldEntryResources& resources, const ActionSender& sendAction)

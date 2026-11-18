@@ -124,8 +124,9 @@ struct GameUiState
     // 0x7d36880: el flanco del clic derecho. Lo prende WM_RBUTTONDOWN si el botón no estaba abajo, lo apaga
     // WM_RBUTTONUP (02, la tabla del WndProc) y lo apaga quien lo usa.
     bool rightClick = false;
-    // 0x7d36849: el doble clic izquierdo (WM_LBUTTONDBLCLK), desde MouseMessageState, sin otro clic ordinario.
-    // Lo consume la lista de amigos (0x461f00); abrir el chat con ese amigo sigue siendo del hito 10.
+    // 0x7d36849: el doble clic izquierdo (WM_LBUTTONDBLCLK, 0x4b47b6), hasta el próximo mensaje (0x4b3444), desde
+    // MouseMessageState (P-C182, StepTheDialogs). Lo leen y apagan las listas de amigos (0x461f00, el chat con un
+    // amigo) y de las cartas (0x464510, leer la carta).
     bool doubleClick = false;
     // 0x7d3685c: el derecho abajo. Lo prende WM_RBUTTONDOWN, lo apaga WM_RBUTTONUP y lo apaga quien lo usa (el
     // registro del chat, 0x45d760).

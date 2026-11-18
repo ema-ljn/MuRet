@@ -20,6 +20,7 @@
 #include "Scenes/FaunaEffects.h"
 #include "Scenes/GameChat.h"
 #include "Scenes/GameFloorItems.h"
+#include "Scenes/GameLetters.h"
 #include "Scenes/GameItemRenderState.h"
 #include "Scenes/GameItemSpecialDrawing.h"
 #include "Scenes/GameMessages.h"
@@ -74,6 +75,7 @@
 #include "UI/FriendModel.h"
 #include "UI/GameCursor.h"
 #include "UI/GameUiState.h"
+#include "UI/LetterModel.h"
 #include "UI/OldWindows.h"
 #include "UI/PanelRegistry.h"
 #include "UI/Widget.h"
@@ -285,6 +287,10 @@ void GameScene::Step(const Input::InputState& input)
     {
         Render::Models::StepTheClothWorld(*m_context.cloth);
     }
+    // Lo que las ventanas del paso dejaron para las salas del chat con un amigo (Enter en un chat, los chats que se
+    // soltaron, también los de 0x48ea50): el original lo manda en el momento, por la conexión de cada sala.
+    if (m_context.world != nullptr)
+        FlushTheChatRoomOrders(m_context.world->Runtime().oldWindows.chatRooms, m_session);
 }
 
 void GameScene::StepEntry()
@@ -313,14 +319,15 @@ void GameScene::StepEntry()
                 m_failure = emptied.Error();
                 return;
             }
-            UI::ResetTheChatInput(input);
+            UI::ResetTheChatInput(input, &runtime.ui.focusedList);
             input.focus = UI::ChatFocus::Game;
             UI::ClearTheLog(runtime.chat.log, runtime.ui.chatModes);
             UI::ClearTheChatFilter(runtime.chat.log);
-            // 0x6368f9..0x636915: las ventanas viejas (0x48ea50), los amigos (0x49bac0) y las cartas (0x49f260, del
-            // hito 10: MuRet no guarda ninguna).
+            // 0x6368f9..0x636915: las ventanas viejas (0x48ea50), los amigos (0x49bac0) y las cartas (0x49f260: la
+            // lista y, con 0x4a0560, las copias de 0x4a03c0).
             UI::ResetTheOldWindows(runtime.oldWindows, runtime.ui.pressedButton);
             UI::ClearTheFriends(runtime.oldWindows.friendModel);
+            UI::ClearTheLetters(runtime.oldWindows.letterModel);
             // 0x636920: 0x46b010, las colas del cartel de Slide.bmd, su timer 0x3eb y 0x46b0e0 (el registro propio y
             // un texto de Slide.bmd, con sus rand()).
             if (m_context.cloth != nullptr)
@@ -450,7 +457,8 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
                                              .screen = m_screen,
                                              .chat = &chat,
                                              .inventory = &inventory,
-                                             .fixedHeight = CameraState().fixedHeight});
+                                             .fixedHeight = CameraState().fixedHeight,
+                                             .worldEntry = m_context.worldEntry});
 }
 
 Core::Expected<void, std::string> GameScene::StepTheObjects()

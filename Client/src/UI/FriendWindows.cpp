@@ -1,14 +1,15 @@
 #include "UI/FriendWindows.h"
 
 #include "Core/Expected.h"
-#include "Core/Windows1252.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Render/Text/TextLayout.h"
 #include "UI/ChatInput.h"
 #include "UI/FriendModel.h"
 #include "UI/IClipboard.h"
+#include "UI/LetterModel.h"
 #include "UI/OldControls.h"
-#include "UI/OldEditWordMovement.h"
+#include "UI/OldEditInput.h"
+#include "UI/OldEditLines.h"
 #include "UI/OldWindowBase.h"
 #include "UI/OldWindowDraw.h"
 #include "UI/OldWindowSteps.h"
@@ -74,6 +75,11 @@ constexpr std::int32_t TabButtonY = 0x11;
 constexpr std::array<std::int32_t, 4> TabButtonX{2, 0x35, 0x68, 0x9b};
 // 0x463190: +0x130 de la lista de las cartas.
 constexpr std::int32_t LetterListHeaders = 0x19;
+constexpr std::size_t SenderColumnText = 1028;
+constexpr std::size_t DateColumnText = 1029;
+constexpr std::size_t SubjectColumnText = 1030;
+// 0x464510: la marca de un renglón de la lista de las cartas.
+constexpr std::int32_t LetterMarkWidth = 0xc;
 // 0x4a3030: los tres encabezados de 0x35 × 0x13 en y + 2 del área de adentro; el botón del estado, con 0x10 más que
 // su texto, a 0x10 del borde derecho y en y + 4, de 0x14 de alto.
 constexpr std::int32_t HeaderWidth = 0x35;
@@ -95,9 +101,6 @@ constexpr std::int32_t EditWidth = 0x50;
 constexpr std::int32_t EditHeight = 0xe;
 constexpr std::int32_t EditX = 0x1e;
 constexpr std::int32_t EditY = 0xe;
-constexpr std::int32_t EditMouseVerticalPadding = 4;
-constexpr std::int32_t EditMouseUpdateTime = 0;
-constexpr std::int32_t EditMouseUpdateTimeMax = 6;
 constexpr std::int32_t AddNameFilter = 8;
 constexpr std::int32_t AddBoxButtonWidth = 0x32;
 constexpr std::int32_t AddBoxButtonHeight = 0x14;
@@ -130,8 +133,7 @@ std::size_t RowCount(const OldWindow& tab)
         return tab.tab.friends.size();
     if (tab.kind == OldWindowKind::WindowsTab)
         return tab.tab.windows.size();
-    // Las cartas son del hito 10: su lista queda vacía.
-    return 0;
+    return tab.tab.letters.size();
 }
 
 // 0x45abc0 y 0x47a9d0 sobre la lista de una pestaña: la cola entera.
@@ -175,17 +177,6 @@ void PostToTheEdit(OldWindowManager& manager, OldEdit& edit, std::int32_t type)
         edit.base.queue.pop_front();
         Steps::PlaceAgainstTheParent(manager, edit.base);
     }
-}
-
-// 0x4682a0(0), la vtable + 0x30 del EDIT: SetFocus y la lista de las flechas en él. El IME de 0x4673a0 (con el foco en
-// la ventana del juego y sin filtro) MuRet no lo tiene.
-void FocusTheEdit(OldWindowManager& manager, OldEdit& edit, const OldWindowGlobals& globals)
-{
-    manager.orphanedEdit.reset();
-    manager.focusedEditIsOrphan = false;
-    globals.keyboardFocus = ChatFocus::OldWindow;
-    manager.focusedEdit = edit.base.id;
-    globals.focusedList = edit.base.id;
 }
 
 // 0x45a210 de una lista (0x460970, 0x462010 y 0x463190): cuelga de su borde de abajo; lo demás, como OldList.
@@ -318,7 +309,7 @@ Core::Expected<void, std::string> Send(const OldWindowStepView& view, FriendSend
     return {};
 }
 
-// 0x49dc37..0x49dc62, la cola de los casos 1, 2 y 4 de 0x49d0b0 (el 4, la carta, es del hito 10): con el id que dio
+// 0x49dc37..0x49dc62, la cola de los casos 1, 2 y 4 de 0x49d0b0 (el 4, la de escribir una carta): con el id que dio
 // 0x48ee60 (0, sin caja), la busca (0x490a00) y le manda el 8 y el 9, cada uno con su paso con 1 (0x45aa50).
 Core::Expected<void, std::string> PlaceTheNewBox(OldWindowManager& manager, std::int32_t id,
                                                  const OldWindowGlobals& globals, const OldWindowStepView& view)
@@ -338,12 +329,39 @@ std::int32_t HoverTheRow(OldWindowManager& manager, OldWindow& tab, std::int32_t
                          const OldWindowGlobals& globals, const OldWindowStepView& view)
 {
     OldList& list = tab.tab.list;
+    if (tab.kind == OldWindowKind::FriendTab)
+        return Steps::HoverAFriendRow(manager, list, tab.tab.friends, row, at, globals, view);
     const std::size_t size = RowCount(tab);
     const auto width =
         static_cast<std::int32_t>(static_cast<double>(list.base.width) - static_cast<double>(list.thumbWidth) + 1.0);
     if (!Steps::MouseIn(view, list.base.x, ListRowY(list, size, row) - RowLift, width, RowHeight, TopLeftRect))
         return 1;
     const auto toggle = [](std::int32_t& selected) { selected = (selected + 1) % 2; };
+    if (tab.kind == OldWindowKind::LettersTab)
+    {
+        // 0x464510, la vtable + 0x88 de la lista de las cartas: el clic en la marca (0xc por 0xd al borde) la da vuelta
+        // en la copia y en la carta del modelo (0x4a01a0); el clic elige el renglón. El doble clic, salvo sobre la
+        // marca, es el 0xd al padre.
+        if (globals.leftClick)
+        {
+            if (Steps::MouseIn(view, list.base.x, ListRowY(list, size, row) - RowLift, LetterMarkWidth, RowHeight,
+                               TopLeftRect))
+            {
+                toggle(tab.tab.letters[at].selected);
+                if (LetterEntry* letter = FindALetter(manager.letterModel, tab.tab.letters[at].index);
+                    letter != nullptr)
+                    letter->selected = tab.tab.letters[at].selected;
+            }
+            SelectInTheList(list, size, list.scroll + 1 + row);
+            globals.leftClick = false;
+        }
+        if (globals.doubleClick && list.base.x + LetterMarkWidth < view.mouseX)
+        {
+            PostToTheWindow(manager, list.base.parent, ChosenRowMessage, list.base.id, 0);
+            globals.doubleClick = false;
+        }
+        return 1;
+    }
     if (tab.kind == OldWindowKind::WindowsTab)
     {
         if (globals.leftClick)
@@ -354,25 +372,6 @@ std::int32_t HoverTheRow(OldWindowManager& manager, OldWindow& tab, std::int32_t
             globals.leftClick = false;
         }
         return 1;
-    }
-    if (globals.leftClick)
-    {
-        SelectInTheList(list, size, list.scroll + 1 + row);
-        toggle(tab.tab.friends[at].selected);
-        globals.leftClick = false;
-    }
-    if (globals.doubleClick)
-    {
-        PostToTheWindow(manager, list.base.parent, ChosenRowMessage, list.base.id, 0);
-        globals.doubleClick = false;
-    }
-    if (globals.rightClick)
-    {
-        SelectInTheList(list, size, list.scroll + 1 + row);
-        toggle(tab.tab.friends[at].selected);
-        globals.rightClick = false;
-        if (view.whisperTo)
-            view.whisperTo(FriendName(tab.tab.friends[at].name));
     }
     return 1;
 }
@@ -400,37 +399,6 @@ void StepTheList(OldWindowManager& manager, OldWindow& tab, std::int32_t arg, co
                                }};
     static_cast<void>(StepTheListMouse(list, RowCount(tab), listGlobals, listView, [&](std::int32_t row, std::size_t at)
                                        { return HoverTheRow(manager, tab, row, at, globals, view); }));
-}
-
-// 0x45aa80 sobre el EDIT: la cola, el mouse y 0x468d50, que es el cursor, la selección y las flechas de un EDIT de
-// varios renglones (P-C181).
-void StepTheEdit(OldWindowManager& manager, OldEdit& edit, std::int32_t arg, const OldWindowGlobals& globals,
-                 const OldWindowStepView& view)
-{
-    while (!edit.base.queue.empty())
-    {
-        edit.base.current = edit.base.queue.front();
-        edit.base.queue.pop_front();
-        Steps::PlaceAgainstTheParent(manager, edit.base);
-    }
-    if (arg == 1)
-        return;
-    if (!Steps::ClaimTheMouse(manager, edit.base, globals, view))
-        return;
-    const bool mouseOverEdit = view.mouseX >= edit.base.x && view.mouseX < edit.base.x + edit.base.width &&
-                               view.mouseY >= edit.base.y - EditMouseVerticalPadding &&
-                               view.mouseY < edit.base.y + edit.base.height + EditMouseVerticalPadding;
-    if (!mouseOverEdit)
-        return;
-    globals.mouseOnUi = 1;
-    if (!globals.leftClick)
-        return;
-    FocusTheEdit(manager, edit, globals);
-    edit.text.Deselect();
-    if (globals.mouseUpdateTime != nullptr)
-        *globals.mouseUpdateTime = EditMouseUpdateTime;
-    if (globals.mouseUpdateTimeMax != nullptr)
-        *globals.mouseUpdateTimeMax = EditMouseUpdateTimeMax;
 }
 
 // 0x4a37e0: el texto del EDIT (GetText de 0xff), el EDIT vacío y, con algo escrito, el 11 a la pestaña con el texto
@@ -536,14 +504,20 @@ Core::Expected<void, std::string> HandleTheFriendTabMessage(OldWindowManager& ma
     }
     case ThirdCommand:
     {
-        // El chat con el elegido, si está en línea (0x4a6430, 0x4a6af0 y 0x4a6910, C1 CA): hito 10.
+        // El chat con el elegido, si está en línea (0x4a6430, 0x4a6af0 y 0x4a6910, C1 CA; UI/LetterWindows).
         const FriendEntry* selected = SelectedFriend(tab);
         if (selected == nullptr || selected->state > LastOnlineState)
             return {};
-        return Cut("0x49d0b0(3): el chat con un amigo es del hito 10");
+        return Steps::ChatWithTheFriend(manager, selected->name, view);
     }
     case FourthCommand:
-        return Cut("0x49d0b0(4): escribir una carta es del hito 10");
+    {
+        // 0x49dbd4: la ventana de escribir con el nombre del elegido (UI/LetterWindows) y la cola 0x49dc37.
+        auto opened = Steps::WriteToTheFriend(manager, SelectedFriend(tab), globals, view);
+        if (!opened.HasValue())
+            return Core::Unexpected(std::move(opened).Error());
+        return PlaceTheNewBox(manager, opened.Value(), globals, view);
+    }
     default:
         return {};
     }
@@ -588,7 +562,7 @@ Core::Expected<void, std::string> HandleTheAddBoxMessage(OldWindowManager& manag
 {
     const OldMessage& message = box.base.current;
     if (message.type == RaisedMessage)
-        FocusTheEdit(manager, box.add.edit, globals);
+        Steps::FocusTheEdit(manager, box.add.edit, globals);
     else if (message.type == EnterMessage || (message.type == CommandMessage && message.a == FirstCommand))
         ConfirmTheName(manager, box);
     else if (message.type == CommandMessage && message.a == SecondCommand)
@@ -652,9 +626,6 @@ Core::Expected<void, std::string> AfterTheFriendsWindowMove(OldWindowManager& ma
     window.friends.hoverTab = *header;
     if (!globals.leftHeld)
         return {};
-    // La pestaña de las cartas (0x4a2010, 0x4a11b0 y 0x4a2070) es del hito 10.
-    if (*header == LettersTabNumber)
-        return Cut("0x4a3030: la pestaña de las cartas es del hito 10");
     const bool changed = window.friends.currentTab != *header;
     if (changed)
         globals.sound = ButtonSound;
@@ -743,6 +714,48 @@ Core::Expected<void, std::string> PlaceTheTabForTheDraw(OldWindowManager& manage
 
 namespace Steps
 {
+void FocusTheEdit(OldWindowManager& manager, OldEdit& edit, const OldWindowGlobals& globals)
+{
+    manager.orphanedEdit.reset();
+    manager.focusedEditIsOrphan = false;
+    globals.keyboardFocus = ChatFocus::OldWindow;
+    manager.focusedEdit = edit.base.id;
+    globals.focusedList = edit.base.id;
+}
+
+std::int32_t HoverAFriendRow(OldWindowManager& manager, OldList& list, std::deque<FriendEntry>& friends,
+                             std::int32_t row, std::size_t at, const OldWindowGlobals& globals,
+                             const OldWindowStepView& view)
+{
+    const std::size_t size = friends.size();
+    const auto width =
+        static_cast<std::int32_t>(static_cast<double>(list.base.width) - static_cast<double>(list.thumbWidth) + 1.0);
+    if (!MouseIn(view, list.base.x, ListRowY(list, size, row) - RowLift, width, RowHeight, TopLeftRect))
+        return 1;
+    // [+0xb4] es el elegido que dejó la vtable + 0x58: inc, and 1.
+    const auto toggle = [](std::int32_t& selected) { selected = (selected + 1) % 2; };
+    if (globals.leftClick)
+    {
+        SelectInTheList(list, size, list.scroll + 1 + row);
+        toggle(friends[at].selected);
+        globals.leftClick = false;
+    }
+    if (globals.doubleClick)
+    {
+        PostToTheWindow(manager, list.base.parent, ChosenRowMessage, list.base.id, 0);
+        globals.doubleClick = false;
+    }
+    if (globals.rightClick)
+    {
+        SelectInTheList(list, size, list.scroll + 1 + row);
+        toggle(friends[at].selected);
+        globals.rightClick = false;
+        if (view.whisperTo)
+            view.whisperTo(FriendName(friends[at].name));
+    }
+    return 1;
+}
+
 bool IsAFriendsKind(OldWindowKind kind)
 {
     return kind == OldWindowKind::FriendsWindow || kind == OldWindowKind::FriendTab ||
@@ -763,12 +776,7 @@ Core::Expected<void, std::string> HandleTheFriendsMessage(OldWindowManager& mana
     case OldWindowKind::WindowsTab:
         return HandleTheWindowsTabMessage(manager, window, globals, view);
     case OldWindowKind::LettersTab:
-    {
-        const std::int32_t type = window.base.current.type;
-        if (type == CommandMessage || type == AnswerMessage || type == ChosenRowMessage)
-            return Cut("0x4a11b0: los botones y la lista de las cartas son del hito 10");
-        return {};
-    }
+        return HandleTheLettersTabMessage(manager, window, globals, view);
     case OldWindowKind::AddFriendBox:
         return HandleTheAddBoxMessage(manager, window, globals);
     default:
@@ -809,9 +817,7 @@ Core::Expected<void, std::string> StepTheFriendsChildren(OldWindowManager& manag
             StepTheButton(manager, button, arg, globals, view);
         return {};
     case OldWindowKind::LettersTab:
-        // 0x4a2010.
-        if (arg != 1)
-            return Cut("0x4a2010: la pestaña de las cartas es del hito 10");
+        // 0x4a2010: la lista y los cuatro botones.
         StepTheList(manager, window, arg, globals, view);
         for (OldButton& button : window.tab.buttons)
             StepTheButton(manager, button, arg, globals, view);
@@ -820,7 +826,7 @@ Core::Expected<void, std::string> StepTheFriendsChildren(OldWindowManager& manag
         // 0x4a38a0: los dos botones y el EDIT.
         for (OldButton& button : window.add.buttons)
             StepTheButton(manager, button, arg, globals, view);
-        StepTheEdit(manager, window.add.edit, arg, globals, view);
+        Steps::StepTheEdit(manager, window.add.edit, arg, globals, view);
         return {};
     default:
         return {};
@@ -832,9 +838,11 @@ Core::Expected<void, std::string> AfterTheFriendsMove(OldWindowManager& manager,
 {
     if (window.kind == OldWindowKind::FriendsWindow)
         return AfterTheFriendsWindowMove(manager, window, globals, view);
-    // 0x49eb50 y 0x4a38e0 no hacen nada; 0x4a2070 es del hito 10 y no llega (0x4a2010 corta antes).
+    // 0x49eb50 y 0x4a38e0 no hacen nada; 0x4a2070, en UI/LetterWindows.
     if (window.kind == OldWindowKind::FriendTab)
         AfterTheFriendTabMove(manager, window, globals, view);
+    if (window.kind == OldWindowKind::LettersTab)
+        AfterTheLettersTabMove(manager, window, globals, view);
     return {};
 }
 
@@ -874,7 +882,7 @@ Core::Expected<void, std::string> SettleTheFriendsKinds(OldWindowManager& manage
         for (OldButton& button : window.add.buttons)
             PostAndSettle(manager, button, PlaceMessage);
         PostToTheEdit(manager, window.add.edit, PlaceMessage);
-        FocusTheEdit(manager, window.add.edit, globals);
+        Steps::FocusTheEdit(manager, window.add.edit, globals);
         window.frame.editField = 1;
         return {};
     default:
@@ -902,7 +910,15 @@ Core::Expected<OldWindow, std::string> MakeTheFriendsWindow(OldWindowManager& ma
     friendList.placeWidth =
         Render::Text::DesignX(measure.measure.Measure(measure.dcFont, texts.At(PlaceText)).width, measure.screen) +
         ColumnMargin;
-    window.tabs[LettersTabNumber].tab.list.headers = LetterListHeaders;
+    // 0x463190: +0x130 (el ancho de la columna de la marca) en 0x19 y +0x134..+0x13c, los anchos de los textos 1028,
+    // 1029 y 1030 como los de 0x460970.
+    OldList& letterList = window.tabs[LettersTabNumber].tab.list;
+    letterList.headers = LetterListHeaders;
+    for (const auto& [width, text] :
+         {std::pair{&letterList.nameWidth, SenderColumnText}, std::pair{&letterList.placeWidth, DateColumnText},
+          std::pair{&letterList.subjectWidth, SubjectColumnText}})
+        *width = Render::Text::DesignX(measure.measure.Measure(measure.dcFont, texts.At(text)).width, measure.screen) +
+                 ColumnMargin;
     // 0x4a2280.
     OldWindowBase& base = window.base;
     window.frame.title = std::string(request.data);
@@ -921,9 +937,10 @@ Core::Expected<OldWindow, std::string> MakeTheFriendsWindow(OldWindowManager& ma
     // 0x49ddd0 desde 0x49c8b0: la lista con el modelo.
     RefreshTheTab(manager, window.tabs[FriendTabNumber]);
     InitTheTab(window.tabs[WindowsTabNumber], texts.At(WindowsTabText), base.id, {WindowsButtonText, 0, 0, 0}, texts);
-    // 0x4a06b0: 0x4a0960 copia las cartas (hito 10: ninguna). Los botones, como los de la de amigos (*inferido*).
+    // 0x4a06b0: 0x4a0960 copia las cartas del modelo. Los botones, como los de la de amigos (*inferido*).
     InitTheTab(window.tabs[LettersTabNumber], texts.At(LettersTabText), base.id,
                {WriteButtonText, SecondLetterButtonText, ThirdLetterButtonText, FourthLetterButtonText}, texts);
+    RefreshTheLetters(manager, window.tabs[LettersTabNumber]);
     for (OldWindow& tab : window.tabs)
     {
         // 0x4908d0: al segundo mapa.
@@ -1147,16 +1164,32 @@ void RememberTheFriendRequest(OldWindowManager& manager, std::int32_t box, std::
 
 namespace
 {
+// El EDIT de una ventana vieja con el id `id`, o nullptr.
+OldEdit* EditWithId(OldWindowManager& manager, std::int32_t id)
+{
+    for (auto& [windowId, window] : manager.windows)
+    {
+        if (window.kind == OldWindowKind::AddFriendBox && window.add.edit.base.id == id)
+            return &window.add.edit;
+        // CL9 hito 10: el EDIT del chat con un amigo y los tres de la ventana de escribir una carta.
+        if (window.kind == OldWindowKind::ChatWindow && window.chat.edit.base.id == id)
+            return &window.chat.edit;
+        if (window.kind != OldWindowKind::LetterWriteWindow)
+            continue;
+        for (OldEdit* edit : {&window.letter.to, &window.letter.subject, &window.letter.text})
+        {
+            if (edit->base.id == id)
+                return edit;
+        }
+    }
+    return nullptr;
+}
+
 OldEdit* FocusedEdit(OldWindowManager& manager)
 {
     if (manager.focusedEditIsOrphan)
         return manager.orphanedEdit ? &*manager.orphanedEdit : nullptr;
-    for (auto& [id, window] : manager.windows)
-    {
-        if (window.kind == OldWindowKind::AddFriendBox && window.add.edit.base.id == manager.focusedEdit)
-            return &window.add.edit;
-    }
-    return nullptr;
+    return EditWithId(manager, manager.focusedEdit);
 }
 } // namespace
 
@@ -1170,6 +1203,13 @@ bool HasAnOldEditFocused(const OldWindowManager& manager, ChatFocus focus)
     {
         if (window.kind == OldWindowKind::AddFriendBox && window.add.edit.base.id == manager.focusedEdit)
             return true;
+        // CL9 hito 10: el EDIT del chat con un amigo y los tres de la ventana de escribir una carta.
+        if (window.kind == OldWindowKind::ChatWindow && window.chat.edit.base.id == manager.focusedEdit)
+            return true;
+        if (window.kind == OldWindowKind::LetterWriteWindow &&
+            (window.letter.to.base.id == manager.focusedEdit || window.letter.subject.base.id == manager.focusedEdit ||
+             window.letter.text.base.id == manager.focusedEdit))
+            return true;
     }
     return false;
 }
@@ -1178,11 +1218,10 @@ void TypeInTheOldEdit(OldWindowManager& manager, std::string_view typed)
 {
     if (OldEdit* edit = FocusedEdit(manager); edit != nullptr)
     {
-        edit->draws = 0;
         edit->compositionText.clear();
         edit->compositionStart = 0;
         edit->compositionLength = 0;
-        edit->text.Type(typed);
+        TypeInTheEdit(*edit, typed);
     }
 }
 
@@ -1196,98 +1235,30 @@ void BackspaceInTheOldEdit(OldWindowManager& manager)
         edit->compositionText.clear();
         edit->compositionStart = 0;
         edit->compositionLength = 0;
-        edit->text.Backspace();
+        BackspaceInTheEdit(*edit);
     }
 }
 
-void ApplyKeyToTheOldEdit(OldWindowManager& manager, OldEditKey key, bool shift, bool ctrl, IClipboard* clipboard)
+void ApplyKeyToTheOldEdit(OldWindowManager& manager, OldEditKey key, bool shift, bool ctrl, IClipboard* clipboard,
+                          const Render::Text::ITextMeasure* measure, std::int32_t* focusedList)
 {
     OldEdit* edit = FocusedEdit(manager);
     if (edit == nullptr)
         return;
-    switch (key)
-    {
-    case OldEditKey::Backspace:
-    case OldEditKey::Left:
-    case OldEditKey::Right:
-    case OldEditKey::Up:
-    case OldEditKey::Down:
-    case OldEditKey::Tab:
-    case OldEditKey::Copy:
-    case OldEditKey::Cut:
-    case OldEditKey::Paste:
-    case OldEditKey::CtrlA:
-        edit->draws = 0;
-        break;
-    case OldEditKey::Delete:
-    case OldEditKey::Home:
-    case OldEditKey::End:
-        break;
-    }
-    if (!edit->compositionText.empty())
-        return;
-    switch (key)
-    {
-    case OldEditKey::Backspace:
-        if (ctrl)
-            edit->text.InsertBytes(std::string(1, '\x7f'));
-        else
-            edit->text.Backspace();
-        break;
-    case OldEditKey::Delete:
-        // Ctrl+Delete borra hasta el final solo sin selección; con una, EDIT borra únicamente el rango elegido.
-        if (ctrl && !edit->text.HasSelection())
-            edit->text.Select(edit->text.Cursor(), edit->text.Size());
-        edit->text.Delete();
-        break;
-    case OldEditKey::Left:
-        if (ctrl)
-            edit->text.SetCursor(OldEditWordMovement::CursorAfterCtrlLeft(edit->text.Value(), edit->text.Cursor()),
-                                 shift);
-        else
-            edit->text.MoveLeft(shift);
-        break;
-    case OldEditKey::Right:
-        if (ctrl)
-            edit->text.SetCursor(OldEditWordMovement::CursorAfterCtrlRight(edit->text.Value(), edit->text.Cursor()),
-                                 shift);
-        else
-            edit->text.MoveRight(shift);
-        break;
-    case OldEditKey::Home:
-        edit->text.MoveHome(shift);
-        break;
-    case OldEditKey::End:
-        edit->text.MoveEnd(shift);
-        break;
-    case OldEditKey::Up:
-    case OldEditKey::Down:
-    case OldEditKey::Tab:
-        break;
-    case OldEditKey::Copy:
-    case OldEditKey::Cut:
-        if (!ctrl || clipboard == nullptr || !edit->text.HasSelection())
-            break;
-        if (const std::string copied = Core::DecodeWindows1252(edit->text.Selected());
-            clipboard->WriteText(copied) && key == OldEditKey::Cut)
-        {
-            edit->draws = 0;
-            edit->text.Backspace();
-        }
-        break;
-    case OldEditKey::Paste:
-        if (!ctrl || clipboard == nullptr)
-            break;
-        if (std::optional<std::string> pasted = clipboard->ReadText(); pasted.has_value())
-        {
-            edit->draws = 0;
-            edit->text.PasteUTF8(*pasted);
-        }
-        break;
-    case OldEditKey::CtrlA:
-        // El Ctrl+A del EDIT XP es no-op: no reemplaza ni mueve una selección existente.
-        break;
-    }
+    ApplyKeyToTheEdit(*edit, key, shift, ctrl, clipboard, measure,
+                      [&manager, focusedList](std::int32_t id)
+                      {
+                          if (OldEdit* next = EditWithId(manager, id); next != nullptr)
+                          {
+                              manager.orphanedEdit.reset();
+                              manager.focusedEditIsOrphan = false;
+                              manager.focusedEdit = next->base.id;
+                              if (focusedList != nullptr)
+                                  *focusedList = next->base.id;
+                              next->text.SetCursor(next->text.Size());
+                              next->draws = 0;
+                          }
+                      });
 }
 
 void SetTheOldEditComposition(OldWindowManager& manager, std::string_view text, std::int32_t start, std::int32_t length)
@@ -1295,9 +1266,7 @@ void SetTheOldEditComposition(OldWindowManager& manager, std::string_view text, 
     OldEdit* edit = FocusedEdit(manager);
     if (edit == nullptr)
         return;
-    edit->compositionText.assign(text);
-    edit->compositionStart = text.empty() ? 0 : start;
-    edit->compositionLength = text.empty() ? 0 : length;
+    SetTheEditComposition(*edit, text, start, length);
 }
 
 void PressEnterInTheOldEdit(OldWindowManager& manager)
@@ -1308,9 +1277,14 @@ void PressEnterInTheOldEdit(OldWindowManager& manager)
     edit->draws = 0;
     if (!edit->compositionText.empty())
         return;
-    // 0x467b10: con +0x150 de la lista de ventanas en 1 (F5), Enter es de ella.
-    if (manager.windowList.list.armed == 1)
+    // 0x467b10: con +0x150 de la lista de ventanas en 1 (F5, que también lo lee), con la vtable + 0x5c en 1 (+0xb4, el
+    // chat con un amigo cerrado, 0x467c83) o con +0xc4 en 1 (0x467c8f), Enter va al EDIT de Windows: en el de varios
+    // renglones corta el renglón y en el de una línea no hace nada. Si no, el 7 al padre.
+    if (manager.windowList.list.armed == 1 || edit->closed == 1 || edit->multiline == 1)
+    {
+        BreakTheEditLine(*edit);
         return;
+    }
     if (manager.focusedEditIsOrphan)
         return;
     PostToTheWindow(manager, edit->base.parent, EnterMessage, 0, 0);

@@ -316,6 +316,37 @@ TEST(GameTooltipsTest, TheModeThreePutsEachLineAgainstTheRightEdge)
     EXPECT_EQ(tested.sprites.Blend(), BlendMode::Opaque);
 }
 
+// 0x5af090 con el modo 1, el de la ayuda del retrato de las cartas (0x497f3f): cada texto contra el borde izquierdo de
+// la caja (0x467102..0x467119), en la columna 0 de una caja de 20 columnas justas, con el marco.
+TEST(GameTooltipsTest, TheModeOnePutsEachLineAgainstTheLeftEdge)
+{
+    Tooltips tested;
+    TooltipLines& lines = tested.Lines();
+    lines.text[0] = "1";
+    lines.text[1] = "100";
+    lines.colors[1] = Client::Scenes::TooltipWhiteOnRed;
+    GameHudContext context = tested.Context();
+    ASSERT_TRUE(Client::Scenes::DrawTheTooltipBox(context, 100, 50, 2, 0, 1, 1).HasValue());
+    // El ancho, 18 + 4, centrado en 100: desde 89, y los textos desde 90 en 20 columnas, en la primera.
+    const auto& texts = tested.text.texts;
+    ASSERT_EQ(texts.size(), 2u);
+    EXPECT_EQ(texts[0].x, 90);
+    EXPECT_EQ(texts[0].y, 50);
+    EXPECT_EQ(texts[0].firstColumn, 0);
+    EXPECT_EQ(texts[0].columns, 20);
+    EXPECT_EQ(texts[1].x, 90);
+    EXPECT_EQ(texts[1].y, 64);
+    EXPECT_EQ(texts[1].firstColumn, 0);
+    EXPECT_EQ(texts[1].columns, 20);
+    EXPECT_EQ(texts[1].style.colors.background, 0xffa00000u);
+    const std::vector<Quad> quads = ColorQuadsOf(tested.sprites);
+    ASSERT_EQ(quads.size(), 5u);
+    ExpectQuad(quads[4], 89.0f, 50.0f, 22.0f, quads[4].bottom - 50.0f);
+    EXPECT_EQ(tested.sprites.Blend(), BlendMode::Opaque);
+    // Otro modo corta antes de dibujar.
+    EXPECT_FALSE(Client::Scenes::DrawTheTooltipBox(context, 100, 50, 2, 0, 4, 1).HasValue());
+}
+
 // En 800 × 600 (rx = 1,25) la caja del texto es de píxeles y la x, la de 640 × 480 sin pasar por la pantalla: con
 // "Uno" (18 píxeles) en x 320, la caja mide 18 / 1,25 + 4 = 18,4 desde 310 y el texto va desde 311, en una caja de
 // _ftol(16,4 · 1,25) = 20 columnas. Con el modo 3, el texto en la columna 20 − 18.

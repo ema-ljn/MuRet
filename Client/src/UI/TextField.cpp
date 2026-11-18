@@ -177,6 +177,15 @@ void TextField::SetText(std::string_view raw)
     m_allSelected = false;
 }
 
+void TextField::Insert(std::string_view raw)
+{
+    // Todo o nada: lo que queda sin lo elegido más `raw` tiene que entrar en el tope.
+    const std::size_t erasedBytes = HasSelection() ? SelectionEnd() - SelectionBegin() : 0;
+    if (raw.empty() || m_value.size() - erasedBytes + raw.size() > m_maxBytes)
+        return;
+    InsertBytes(raw);
+}
+
 void TextField::SetLimit(std::size_t maxBytes)
 {
     m_maxBytes = maxBytes;

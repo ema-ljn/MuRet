@@ -109,13 +109,12 @@ struct ActorState
     float floatD4 = 0.0f;
     float floatD8 = 0.0f;
     float floatE4 = 0.0f;
-    // +0x38a (0, 0x511c0c), +0x394 (0, 0x511ceb), +0x3e4 y +0x42d (el bit 7 del tipo alto del 13, 0x4c9ee3): los
-    // escriben las altas de los monstruos. Quién los lee, sin leer. +0x38f (0x42d7f0 lo pone en 0 con el 0x19b) es
-    // attackCount y +0x3a4 (la cola 0x5140c0 le copia el WORD de [0x57678b0], WorldRuntime::heroSlot) es attackTarget,
-    // más abajo.
+    // +0x38a (0, 0x511c0c), +0x394 (0, 0x511ceb) y +0x42d (el bit 7 del tipo alto del 13, 0x4c9ee3): los escriben las
+    // altas de los monstruos. Quién los lee, sin leer. +0x3e4 (que también escriben) es byte3e4, más abajo. +0x38f
+    // (0x42d7f0 lo pone en 0 con el 0x19b) es attackCount y +0x3a4 (la cola 0x5140c0 le copia el WORD de [0x57678b0],
+    // WorldRuntime::heroSlot) es attackTarget, más abajo.
     std::uint8_t byte38a = 0;
     std::int32_t dword394 = 0;
-    std::uint8_t byte3e4 = 0;
     std::uint8_t byte42d = 0;
     // +0x110 (0x511290 lo pone en 0, 0x511c69) y +0x100: 0x42d890 los pone en 1 y en 0x12c cuando el 286 o el 287 del
     // mapa 30 terminan la acción 5 (0x42d8fd y 0x42d904); 0x42da90 los lee y los escribe: abiertas y el tiempo que les
@@ -376,6 +375,9 @@ struct ActorState
     std::uint8_t safeZone = 0;
     // +0x3e3: distinto de 0, 0x512a30 y 0x512930 no tocan la ropa. 0x511290 lo pone en 0 (0x511d68).
     std::uint8_t byte3e3 = 0;
+    // +0x3e4: 1 en el personaje del retrato de las cartas (0x4959a1), y en 0 los monstruos de 0x5141e0 (0x5143d1).
+    // Distinto de 0, 0x50ba30 no dibuja la sombra (0x50bc16) ni corre 0x505820 (0x50c913).
+    std::uint8_t byte3e4 = 0;
 };
 
 // 0x414340: con una capa en +0x364, la suelta y vuelve +0x360 a 0; sin ella, no toca nada.

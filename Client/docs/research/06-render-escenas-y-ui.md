@@ -995,7 +995,7 @@ como datos (`OldWindowKind`) y despacha con una función por método.
   ventana y cada botón toman el id que sigue de `0x5762eb0` (sumado antes de usarlo); el valor de partida, el que
   sigue al de la lista de ventanas, es *inferido* (P-C97). El 3 (la ventana de amigos) y el 4 (la caja de agregar un
   amigo) son del hito 9 de la CL9 ("Los amigos", abajo); el 1 y el 2 (el chat con un amigo) y el 6 y el 7 (las
-  cartas), del hito 10 (P-C183).
+  cartas), del hito 10 ("Las cartas y el chat con un amigo", abajo).
 - **El paso.** La lista de ventanas (`0x636e43`) y `0x490490`: la modal que ya no está; Esc (`0x4904bc`, Q-C446) le
   pide al administrador que cierre la del final si está a la vista; F5, con el foco del teclado en la ventana del
   juego, va a `0x4a5be0(1)` sobre la lista de ventanas, que sin entradas no hace nada; F6 alterna `+0xa8` y llama a
@@ -1018,7 +1018,7 @@ como datos (`OldWindowKind`) y despacha con una función por método.
   179, en x, y + 5, w × h − 10 con el borde); `0x459ec0` (`glColor4f(1, 1, 1, 1)` y `glEnable(GL_TEXTURE_2D)`); la
   vtable + `0x50` (la caja, `0x4a3a90`: el texto en blanco en (x + 10, y + `0x1d`) y los botones, `0x45b2e0`, que
   dejan la mezcla opaca para la barra del título y los filos, sin diferencia a la vista; la lista, `0x4a5490`: mide
-  el renglón con "0" la primera vez y corre el parpadeo);
+  el renglón con "0" la primera vez, corre el parpadeo y dibuja los chats con un amigo, del hito 10);
   el gris 0,5 salvo la del final con la ventana de amigos abierta (Q-C574); la barra del título (`0x645`), sus filos
   (8 a 13; 10 en lugar de 8 y 9 en gris), el borde (`0x492180`), la raya, el título en negrita (`0xffc8dce6`, o
   `0xff646e73` en gris), los botones de la barra (`0x647`) y la esquina del tamaño (`0x648`).
@@ -1118,6 +1118,159 @@ sin pintar texto debajo. El recorte estricto puede excluir el caret final o vac�
 en píxeles para conservar el origen a 1024 × 768. El ASM, los píxeles visibles del perfil XP y el límite de la
 comparación se documentan en [11-edit-win32](11-edit-win32.md#bitmap-visible-selección-y-caret).
 Preedición visible, scroll y modos IME siguen abiertos en P-C181.
+El alto del cursor es el de "Q" (`0x6c7af4`), no el de "1".
+
+El EDIT de varios renglones (CL9 hito 10, `UI/OldEditLines`; solo el cuerpo de la carta, `0x4980ef`): `0x4675e0(1)`
+pone +`0xc4` antes de crearlo, y `0x467fe0` lo crea con `ES_MULTILINE | ES_AUTOVSCROLL | WS_VSCROLL` y +`0xd0` =
+`ftol(h · ry / cy("1"))`, los renglones que entran. `0x468320` lo dibuja de todo el ancho (`ftol(w · rx)`, en una o
+dos texturas de 256) y, con menos renglones (`EM_GETLINECOUNT`) que +`0xd0`, de `ftol(renglones · +0xac)` de alto, si
+no de `ftol(h · ry)`; después, `0x468970`: +`0xd4` = 13, la pista de y + 9 a y + h − 9 (+`0xd8`, +`0xdc`), el cursor
+de pista · `min(+0xd0 / renglones, 1)` de alto (+`0xe0`) en +`0xd8` + pista · `min(GetScrollPos / renglones, 1)`
+(+`0xe4`); las flechas de `win_scrollbar.jpg` de 13 × 13 en (x + w − 15, y − 4) y (x + w − 15, y + h − 9), de (0,
+0,09375) y (0, 0,5) con 0,8125 × 0,40625, dadas vuelta con el clic y el mouse encima; con la mezcla normal, los
+filos del 2 en x + w − 15 y x + w − 3; y sin mezcla, el cursor en x + w − 14 de 11 de ancho con sus puntas. El paso
+de todos los EDIT (`0x468d50`, la vtable + `0x20`): con el mouse en (x, y − 4, w, h + 8) y el clic con el EDIT
+quieto, las flechas (`EM_SCROLL` de un renglón, con el `0x19` la primera vez) y, con tantos renglones como +`0xd0` o
+más, el cursor (lo agarra: estado 2, `0x5762eb4` y +`0xe8`) o la pista (de a páginas), con las cuentas +`0xc8` y
++`0xcc` de la lista; sin el clic, las cuentas en 0; después el mouse es de la UI y el clic le da el foco con
+`EM_SETSEL(−2, −1)` y pone `0x77f3b10` en 0 y `0x6c8dcc` en 6. Agarrado, el mouse lleva el cursor y el EDIT va a
+`ftol(renglones · ((+0xe4 − +0xd8 + 0,5) / pista))` (`EM_LINESCROLL` a 0 y a ese); sin el clic, lo suelta. No mira
++`0xc4`: en uno de una línea, el clic en su borde derecho suena (Q-C1009). La subclase (`0x467b10`) pone +`0x80` en 0
+con cada `WM_CHAR` y, con +`0xc4` en 1, le deja Enter al EDIT de Windows (un renglón nuevo). Lo que es de Windows
+(los cortes de los renglones, el ancho del texto, los topes del corrimiento) MuRet lo arma y es *inferido* (P-C217).
+
+**Las cartas y el chat con un amigo** (CL9 hito 10, `UI/LetterModel`, `UI/LetterWindows`, `Scenes/GameLetters`;
+*estático*; los paquetes, en [04](04-protocolo.md#las-cartas-y-el-chat-con-un-amigo-c5cb-y-la-conexión-de-la-sala)).
+Las cartas viven en el `std::deque` de `[0x576351c]` (elementos de `0x138`: la marca, el número, el que la manda, el
+asunto, la fecha, la hora y leída en `+0x134`), que ordena `0x49f870` con el `std::sort` de MSVC6 (por leída, por el
+que la manda, por la fecha y la hora o por el asunto, con `0x49c190`), y en un `std::map` de las copias del `C7`
+(`0x4a03c0`); el primer paso del juego vacía los dos (`0x49f260`, `0x4a0560`). Las salas, en `[0x5763520]`: 256
+lugares que `0x49e280` toma desde un cursor con vuelta y las conexiones (las de `App::ServerSession` en MuRet). El administrador guarda el mapa de
+las cartas con ventana de leer (`+0x94`: `0x491570` la anota con 0, `0x491720` le pone la ventana, `0x491780` la da y
+`0x4916b0` la saca) y el lugar de la próxima (`0x5762f0c`, −1 sin lugar); la lista de ventanas, los chats (`+0xb4`),
+los que esperan (`+0x118`) y los amigos con el `CA` pedido (`+0x158`).
+
+- **La pestaña de amigos**, botones 3 y 4 (`0x49d0b0`): el chat con el elegido en línea (`0x4a6430`: lo sube si ya
+  hay; si no y no se pidió, el `C1 CA`) y la de escribir (`0x48ee60(7, 100, 100, sprintf(1071, 1000))`) con su nombre
+  (`0x4983e0`: el foco al asunto y `+0x77c` en 1), con la cola `0x49dc37` (el 8 y el 9).
+- **El chat** (casos 1 y 2, vtable `0x6b9dc8`, `0x493220`): el marco de `0xfa × 0xaa` (mínimo `0x96` de alto), el EDIT
+  de 100 con el filtro 4, la lista de renglones (`0x45f240`, la plantilla del registro del chat con elementos de
+  `0x11c`), la de miembros, la de invitar (oculta) y dos botones con el 993; `+0xb0` en 1. `0x4944c0`: el 6 le da el foco al EDIT y la lista de miembros a las flechas; el 7 (Enter)
+  pasa el texto por el filtro (`0x622b40`, el 570) y, distinto del último, lo manda por la sala (`C1 04`), vacía el
+  EDIT y con menos de 2 miembros lo cierra (`0x495630(1)`: el 995 adelante del título y `+0xb4` del EDIT en 1, la
+  vtable + 0x58, sin tocar su estado, `+0x48`); el 10 y 1 muestra u oculta la de invitar (`+0x50` más de ancho,
+  `0x4942d0`: los amigos menos los miembros y los de desde `0xfd`) y el 10 y 2 (o el doble clic en ella) invita con
+  el chat abierto (`+0xb4` en 0, la vtable + 0x5c, `0x49455e`), tenga el EDIT el foco o no. Con el chat cerrado,
+  Enter en el EDIT (`0x467c83`) va al EDIT de Windows sin el 7 al padre: no manda nada. Los miembros (`0x493c90`,
+  `0x493e90`) rehacen el título (994 y hasta tres nombres de atrás para adelante con `", "`, y `"..."` con el
+  tercero: Q-C1004), la pestaña de las ventanas y el ancho de los renglones con 3 o más. El `C1` y el `C4` de los
+  amigos rehacen las listas de invitar (`0x4a6840`) y cierran o abren el chat con ese amigo (`0x495630`); el `C4`
+  con `0xfc`, todos con el 402 (`0x4a75c0`).
+- **La de leer** (caso 6, vtable `0x6b9c58`, `0x4999d0`): `0xfa × 0xb6` con las banderas `0x1b`, la lista del cuerpo
+  (`0x8b0`, partido por `'\n'` con `strtok`: sin los renglones vacíos, `0x499cb0`), cinco botones (responder,
+  borrar, cerrar, la anterior y la siguiente: el 1010..1013 y el 1002) y el retrato de `0x78` a la derecha
+  ([El retrato de las cartas](#el-retrato-de-las-cartas)).
+  `0x49a1f0`: el 10 y 1 abre la de escribir con el remitente y `sprintf(1016, asunto)` cortado en `0x20`; el 2
+  pregunta con el 1017 (caso 5) y el sí manda el `C8` y la cierra; el 3 la cierra; el 5 y el 6 eligen la que sigue o
+  la de antes en la pestaña, la cierran, sueltan su carta, dejan su lugar a la otra y la leen (Q-C1007).
+- **La de escribir** (caso 7, vtable `0x6b9bfc`, `0x497f50`): `0xfa × 0xd8` con las banderas `0x1b`, los EDIT del
+  nombre (10), del asunto (`0x20`) y del cuerpo (1000), cuatro botones (mandar, cerrar y las acciones del retrato,
+  el 1001..1004) y el retrato copiado del héroe con la acción `0x7a` y el ángulo 90. `0x498820`: el 6 le da el foco
+  al EDIT de `+0x77c` y lo vuelve a 0 (Q-C1006); el 10 y 1 manda el `C5` (Q-C1002, Q-C1003) si no hay uno pendiente
+  (`+0x778`), con la caja modal del 1006, 1007 o 1008 y el foco al EDIT que falta; el 2 la cierra si no hay asunto ni
+  cuerpo, o pregunta con el 1009 (`0x499840`, también la cruz y Esc); el 4 y el 5 cambian la acción del retrato.
+- **La pestaña de las cartas** (`0x4a11b0`): el 13 (doble clic) es el 10 y 2; el 10 y 1, la de escribir; el 2, leer
+  la elegida (`C7`, o la copia, o subir su ventana); el 3, responder; el 4, la pregunta del 1017 con alguna marcada o
+  el aviso del 1031; el 5, el `C9`; el 12 con el sí, un `C8` por marcada. La lista copia el modelo (`0x4a0960`) con
+  la elegida que estaba, y el clic en la columna de la marca da vuelta la carta (`0x464510`).
+
+- **Los dibujos** (`UI/LetterWindowsDraw`, *estático*; la vtable + `0x50`, que el marco `0x492500` llama después de
+  la sombra). Arrastradas o cambiando de tamaño (el estado en 4 o 1), las tres vuelven a ubicar a sus hijas con el 8
+  y, cambiando de tamaño, a medir sus listas con el 9 antes de dibujar. **El chat** (`0x493fc0`): con la mezcla
+  normal, los renglones (`0x45f9c0`, la plantilla `0x47a810` con la barra `0x45fac0` = `0x461890`); cada uno
+  (`0x460550`) en `y − 13 · renglón − 0x10` desde el borde de abajo de la lista, el nombre con `": "` en `x + 8` y el
+  texto después de su ancho en 640 × 480 (`ftol(cx / rx)`), con los colores de su tipo (el 1, del sistema, en
+  `0xff46a5d2`; el nombre de un miembro, 3, en `0xffefdccd` y su texto en `0xffc8dce6`; sin caso para 6 o más) y, con
+  el registro del chat en su ventana (`0x6c7a88`), sin un fondo negro en el texto. `0x5763510 + 8`, que elige los
+  códigos de color de `"%c%c%s"`, es 0 en este main.exe, como en el registro del chat (`0x45cbb0`). Con más de dos
+  miembros o con la lista de invitar (`+0xb0` en 2) se dibujan los miembros (la lista de amigos, `0x47a810` con
+  `0x461cd0`, sin el lugar) y su raya (`0x491ba0`: los filos del 2 en `x` y `x + 4` y el 1 de 3 en el medio, 16 más
+  corta que el área de adentro) a `0x50` del borde derecho; con la de invitar, también ella y su raya a `0xa0`. Abajo,
+  la raya del 2 a 16 del borde y el negro (el 7) de los 15 de abajo; el botón de invitar, el EDIT (sin mezcla: la
+  sacó el botón) y, con la de invitar, el botón de mandar la invitación. **La de leer** (`0x499d60`): el cuerpo
+  (`0x464d90` con la barra `0x464e90`; cada renglón, `0x465770`, en `x + 10` y en la y de `0x465710` = `0x461c70`, en
+  `0xffc8dce6`, que saca la mezcla); abajo, la raya del 2 a 20 del borde y el negro de 18 de los botones y, con
+  `+0x774` en 2 o más (lo pone en 2 `0x48f460` y nadie lo cambia), solo hasta el retrato (`0x78` antes del borde
+  derecho) y con una raya de 19 al costado; arriba, la raya en `y + 0xe` y el negro de 14; el 1014 con el que la
+  manda, la fecha y la hora en `(x + 3, y + 3)` con los colores del último renglón, y los cinco botones. **La de
+  escribir** (`0x498480`): arrastrada o cambiando de tamaño, el 8 a los botones `+0xa44` y `+0xacc`, a los tres EDIT,
+  a los botones `+0xb54` y `+0xbdc` y al retrato, sin el 9; arriba, el negro de 29 de los dos renglones y las rayas
+  del 2 en `y + 0xe` y `y + 0x1d`; abajo, el negro de 19 de los botones y su raya; el 1000 y el 1005 en `(x + 3, y + 3)`
+  y `(x + 3, y + 0x12)`, en `0xffc8dce6` (solo el color del texto) y alineados a la derecha en el ancho del 1000 (el
+  modo 3 de `0x467060`: el texto en la columna caja − cx del DIB); los tres EDIT (`0x468320`, el del cuerpo con su
+  barra `0x468970`); sin mezcla, los botones `+0xa44` y `+0xacc` y, con `+0xb0` en 1, `+0xb54` y `+0xbdc`. **La
+  pestaña de las cartas** (`0x4a0a30`, desde `0x4a2620` en `UI/FriendWindowsDraw`; el 8 y el 9 del principio son los de
+  las otras pestañas): el negro de abajo, la lista sin mezcla (`0x47eed0`, la plantilla `0x47a810` con los elementos de
+  `0x138`; la barra `0x463db0` = `0x461890`), la franja de las columnas como la de amigos, con tres rayas y tres marcas
+  al final de la marca (`+0x130`, `0x19`), del nombre y de la fecha (FILD de x y FIADD de la suma), la casilla de
+  todas (`+0x414`, `0x463090`) en `(x + 1, y + 3)`, `win_mail.tga` (`0x64b`) de 13 × 9 en `(x + 0xb, y + 3)`, los
+  títulos 1028, 1029 y 1030 en `x + 4` después de su columna (en blanco el del mouse, de `0x13` de alto, o el del
+  orden de `[0x576351c]`) y, sin mezcla, los cuatro botones. Cada renglón (`0x4641f0`): el elegido como el de amigos,
+  su casilla (`+0` en 1) en `(x + 1, y − 1)`, el sobre (el de una leída, `+0x134` en 1, de 13 × 10 desde 0,28125 en
+  `y − 2`), y con `0x465950` directo el nombre en `x + 0x19 + 4`, en una caja de `ftol(ancho · rx − 4)` píxeles (el
+  modo 5 de `0x467060`: desde la columna 0 del texto, cortado a la derecha), la fecha sin sus dos primeros caracteres
+  (`+0x115`) centrada en la suya (el modo 2) y el asunto 4 después, en lo que queda hasta la barra. **Los chats en la
+  lista de ventanas de F5** (`0x4a5537..0x4a5739`, en `DrawTheChatsInTheList` desde `0x4a5490`, con la mezcla
+  normal): con chats (`+0xdc`) y la lista a la vista, los que no están minimizados; con alguno, el fondo (el 3, con el
+  alfa · 179 de la sombra) y el borde (el 15) con el parpadeo (`+0x10c`) de `ftol((renglón + 4) · cuántos)` de alto
+  sobre `+0x104`, y los renglones (`0x4a5750`) de abajo hacia arriba, el n en `+0x104 − (renglón + 4) · n` (uno
+  minimizado no cuenta): el elegido (`+0xf0`) o uno que espera (`+0x118`) con su franja (el `0x10` o el `0x11`, desde
+  `x + 1` y 1 más abajo, de `w − 2` × renglón + 3) y el texto en negro con el alfa del parpadeo (`ftol(parpadeo ·
+  255) << 24`); los demás en `0xc8dce6` con ese alfa. El texto (en `x + 2`, 3 más abajo) sale del título de la ventana:
+  `strtok(",")` (`0x6a075e`), y si el primer pedazo es más largo que el 994, lo que sigue al 994 (y al 995 si empieza
+  con él: un chat cerrado) cortado por `0x459c70` en `w − 8` y un renglón; si no, el 995. Con más de dos miembros, la
+  marca de `win_mark.tga` (`0x64c`, 4 × 6) en `x + w − 7` con `glColor3f(255, 0, 0)`. La vtable
+  + `0x54` del marco, al final, dibuja el retrato en la de leer con `+0x774` en 2 o más (`0x49a1d0`) y en la de
+  escribir con `+0xb0` en 1 (`0x498800`): `0x497c10` con el gancho del juego (`OldWindowDrawView::portrait`,
+  [El retrato de las cartas](#el-retrato-de-las-cartas)); sin él, corta. **Los renglones partidos** (P-C218, cerrado
+  en el hito 10): la lista de los renglones del chat (`0x45f240`, vtable `0x6b9030`) y la del cuerpo de una carta
+  (`0x464620`, `0x6b93d4`) tienen `+0xbc` en 0 (sin las flechas), `+0xc8` en 1 (la cuenta es `+0xf8`, el tamaño de un
+  segundo deque en `+0xcc`) y la de la carta, `+0x128` en 1. La + `0x94` (`0x45f6f0` con el nombre y el texto, que no
+  hace nada con los dos vacíos; `0x464ae0` con el texto, `strncpy` `0x3e9`, y la + `0x58` con 0) agrega el renglón
+  adelante del deque de `+0x7c` y llama a la + `0x90` (`0x45fea0`, `0x465270`): el 9 de `0x45abc0` contra el padre sin
+  mirar el mensaje, el segundo deque vacío y la + `0x98` (`0x460130`, `0x465450`) con cada renglón del primero de atrás
+  para adelante (del más viejo al más nuevo). La + `0x98` del chat, con menos de 20 bytes entre el nombre y el texto
+  (sin signo, `0x46019a`), pone el renglón entero adelante del segundo deque; si no, parte el texto con `0x459c70` en el
+  ancho de la lista menos `0x1e`, hasta 10 renglones, con la sangría `ftol((cx + 5) / rx)` (`GetTextExtentPointA` del
+  nombre solo, sin ": "), y pone adelante el primer pedazo con el nombre y los demás sin él, salteando los vacíos. La de
+  la carta, con menos de 20 bytes, el renglón entero; si no, hasta `0x50` sin sangría, en el búfer global `0x575de34`.
+  Con un pedazo de más (11 o `0x51`) el original lee fuera de su búfer (el chat, la pila desde `EBP − 0x14`; la carta,
+  `0x5762e34`): MuRet usa los que pidió y descarta el que sobra (Q-C1012; con la lista angosta de 3 miembros, un texto
+  de `0x100` bytes ya no entra). La cola de estas dos listas (`0x479240`, `0x47c150`) corre la +
+  `0x90` antes del 9, así que cuenta los renglones con el alto ya medido. El dibujo (`0x45f9c0`, `0x464d90`) recorre el
+  segundo deque desde el corrimiento: el más nuevo abajo. MuRet guarda el primero al revés (`lineRows`, el más nuevo
+  al final) y el segundo como el original (`wrappedRows`); durante el dibujo, el 9 mide con el DC del dibujo.
+
+**Los íconos de amigos y cartas de la barra** (`0x4a5120`, CL9 hito 10; cierra el hueco de P-C63; *estático*, sin
+`rand()`). La barra principal (`0x5a9630`) la llama en `0x5a9ddb` con la lista de ventanas (`[0x5763524]`), después de
+la ayuda del botón de los amigos (`0x5a9c98`..`0x5a9dd3`) y antes del botón de los comandos (`0x40a5b0`), en todos los
+mapas. Usa la x (`+0x50`, `0x246`) y el ancho (`+0x58`, `0x34`) de la lista, su borde de abajo (`+0x104`, `0x1b3`) y el
+alto del renglón (`+0x108`, `0x12`). Prendido es `+0x148 % 24 < 12` (`IDIV` con signo); `+0x148` suma 1 en cada
+salida. Con la de amigos abierta (`0x490a00` de `[0x5763514] + 0x48`): `win_push.jpg` (`0x64f`) en (x, y) de w × h con
+`w · 1/64` y `h · 1/32` (`0x6ba064`, `0x6b8880`); con chats que esperan (`0x4a6410`: el tamaño de `+0x118`) y
+prendido, `win_man.jpg` (`0x64e`) en (x + 7, y + 3) de 25 × 14, desde v = 0,4375 con 0,78125 × 0,4375; la carta
+(`win_letter.jpg`, `0x64d`, 15 × 9 con 0,9375 × 0,5625) en (x + `0x24`, y + 7). Sin ella, sin el botón, el hombre en
+(x + 4, y + 2) desde v = 0 y la carta en (x + `0x21`, y + 5). Sin carta nueva (`+0x144` en 0), la carta fija si
+alguna está sin leer (`0x4a0310`: alguna con `+0x134` en 0; recorre las cartas con el iterador de `+0x34` del
+modelo, que MuRet no guarda). Con carta nueva, con la de amigos abierta y ninguna sin leer, `0x4a6420(0)` la apaga
+pero el dibujo sigue; apagado, nada más; prendido, la carta y, en el 11 de cada 24, un parpadeo más (`+0x14c`): con
+más de 5, `+0x14c` en 0 y `0x4a6420(0)`. `0x4a48b0` pone `+0x144`..`+0x150` en 0. Sin color ni mezcla propios
+(`0x621b60` con su escala). MuRet: `UI::DrawTheFriendBarIcons` (`barBlink`, `letterBlinks`) desde
+`DrawTheMainBar`.
+
+El paso y el ubicado de las tres ventanas siguen el orden del ASM. El retrato lo da el juego
+([El retrato de las cartas](#el-retrato-de-las-cartas)); el `CA` arma el chat y abre la conexión de la sala
+(`App::IChatRoomLinks`; 04).
 
 **Los paneles.**
 
@@ -1209,7 +1362,9 @@ los paneles (`0x65feb0`, 0x1064 B, con Sí/No y Confirmar/Cancelar y un campo de
 | F6 para mostrar, si una de las ocultas ya no existe (la de amigos: `0x490490` la destruye al verla oculta) | `0x4906a0` → `0x491080`, sin `CanOpen` (CL9 hito 9) | 3.848 | evento |
 | dibujo del marco viejo | `IsOpen(1)` | 0 | frame |
 | dibujo de CS `0x200000` | `0x64a060` (`0x64a9f0`) | 1+ | **frame**, solo con ese panel (CL9.5) |
-| dibujo del retrato de la carta | `0x497c10` (`0x497cce`) | 1+ | frame, solo con esa ventana (CL9.4) |
+| armar el retrato de una carta | `0x4961d0`: la celda del personaje (2 cierres), la del héroe (2) y `0x511290` | 44 | evento (la de leer y la de escribir, CL9 hito 10) |
+| copiar el héroe en el retrato con `+0x3e3` del héroe distinto de 0 | `0x496530`: un acceso al registro propio para comparar y uno por grupo distinto | 3.848 por acceso, más los de `0x495a20` | evento y, siguiendo al héroe con `0x78abaac` en 1, **por paso** (`0x497970`) |
+| dibujo del retrato de la carta | `0x497c10` (`0x497cce`): con la animación vuelta a empezar y `+0x698` en 0, más los de `0x495a20` | 1+ | frame, solo con esa ventana (CL9 hito 10) |
 | botón Seleccionar servidor del Esc del login | `0x647f60` | 2 | evento (escenas 2 y 4) |
 
 El registro propio gasta 3.848 al cerrarse **si su cuenta de aperturas (`+0xf08`) vuelve a 0**; dentro de otra
@@ -2462,14 +2617,16 @@ negros de 1 con `0x621aa0` y el fondo negro con alfa 0,8 (`0x3f4ccccd`), y vuelv
 (la tabla de `0x5af4f4`): `0x6c8e5c = −1` y un `glColor3f` por índice (0, 5, 7, 8 y 9 blanco; 1 `(0,5, 0,7, 1)`;
 2 `(1, 0,2, 0,1)`; 3 `(1, 0,8, 0,1)`; 4 `(0,1, 1, 0,5)`; 6 `(1, 0,1, 1)`; 10 gris 0,4; más de 10, ninguno) y el
 fondo `0x6c8e64` (5 `0xff0000a0`, 7 `0xffa00000`, 8 `0xff0066a0`, 9 `0xffc83c3c` con el texto `0xff00ff00`, los
-demás 0). Los dos modos de `0x467060` arman una caja de columnas desde `_ftol((x + 1) · rx)` con el fondo en toda
-ella: el 2 (`0x46711b..0x467132`) la hace de cx + 2 · ((caja − cx) / 2) columnas y pone el texto en la (caja − cx) / 2,
+demás 0). Los tres modos de `0x467060` arman una caja de columnas desde `_ftol((x + 1) · rx)` con el fondo en toda
+ella: el 1 (`0x467102..0x467119`) la hace de las `(ancho − 2) · rx` justas y pone el texto en la columna 0, contra el
+borde izquierdo (uno más ancho que la caja solo cambia cuánto borra del bitmap, `[EBP − 0x10]`); el 2 (`0x46711b..0x467132`) la hace de cx + 2 · ((caja − cx) / 2) columnas y pone el texto en la (caja − cx) / 2,
 como el título del inventario (Q-C710); el 3 (`0x467134..0x467144`) la hace de las `(ancho − 2) · rx` justas y pone el
 texto en la columna caja − cx, contra el borde derecho (uno más ancho que la caja empieza antes de ella y `TextOutA`
 corta la izquierda). MuRet: `Render::Text::CenterInBox` e `ITextDrawer::DrawColumns`, con la x de 640 × 480. Termina en
-blanco (`glColor4f(1, 1, 1, 1)`) con `0x620980`. Solo los modos 2 (centrado) y 3 (contra el borde) los usa alguien;
-los otros cortan en `0x5af471`. La usan los cuerpos, la ventana y el cartel del set, la ayuda de los íconos de
-estado y las dos ayudas de F1 (`0x5b0550`, § HUD y ventanas, "Las ayudas de F1").
+blanco (`glColor4f(1, 1, 1, 1)`) con `0x620980`. Solo los modos 1 (la ayuda del retrato de las cartas, `0x497f3f`), 2
+(centrado) y 3 (contra el borde) los usa alguien; los otros cortan en `0x5af471`. La usan los cuerpos, la ventana y el
+cartel del set, la ayuda de los íconos de estado, las dos ayudas de F1 (`0x5b0550`, § HUD y ventanas, "Las ayudas de
+F1") y el retrato de las cartas ([El retrato de las cartas](#el-retrato-de-las-cartas)).
 
 **El orden de `0x5f7bc0`** (`Scenes::DrawTheTooltips`):
 
@@ -13956,6 +14113,141 @@ precio en `WriteThePersonalShopPrice` (`ItemTooltipShopPrice.cpp`, desde la ayud
 cerrada y abierta, la de otro, sin modo, sin `Text.bmd` y la grilla con sus `rand()`), los tres `ConfirmBox` de
 `GameDialogDrawingTest` y `PersonalShopPriceTest` (los colores, el 423, el 1101, el precio negativo y el acceso del
 registro propio), en Lorencia y Devias.
+
+### El retrato de las cartas
+
+(CL9 hito 10, `Scenes/LetterPortrait`, con el paso en `UI/LetterWindows`; *estático*, del ASM.) La ventana de leer
+lleva el retrato en `+0xb0` y la de escribir en `+0xb4`: un objeto de `0x6c4` bytes (vtable `0x6ba008`, armado por
+`0x495e50`, que lo deja en cero salvo el zoom de base y el de ahora en 1 y `+0x4b0` en −1) con un personaje y un
+ayudante propios, fuera del pool y de la tabla de los ayudantes. MuRet parte el objeto en lo de la ventana
+(`UI::OldPortraitPart`) y lo del juego (`Scenes::LetterPortrait`, en `OldPortraitPart::actor`):
+
+| Lugar | Qué | En MuRet |
+| --- | --- | --- |
+| `+0x40`..`+0x5c` | el id, el estado, las banderas (`+0x4c`), el lugar y el tamaño de la base | `OldPortraitPart::base` |
+| `+0x7c` | un personaje de `0x438` bytes, como los del pool | `LetterPortrait::actor` |
+| `+0x4b4` | un ayudante de `0x1d4` bytes, como los de `0x7d335d0`, con el personaje de jinete | `LetterPortrait::helper` |
+| `+0x688` | la escala del ayudante, relativa (Q-C1030) | `LetterPortrait::helperScale` |
+| `+0x68c` | armado: lo pone en 1 `0x4961d0` al final (`0x496415`) | `OldPortraitPart::built` |
+| `+0x690`, `+0x694` | la ayuda y seguir al héroe | `help`, `follow` |
+| `+0x698` | quieto (la acción pedida ya salió) | `LetterPortrait::idle` |
+| `+0x6a0` | la última acción que mostró `0x495a20` | `LetterPortrait::shownAction` |
+| `+0x6a4` | la acción pedida | `OldPortraitPart::action` |
+| `+0x6a8` | el frame entero que guarda el dibujo | `LetterPortrait::frameMark` |
+| `+0x6ac`, `+0x6b0` | el ángulo de base y el de ahora | `baseAngle`, `angle` |
+| `+0x6b4` | la X del mouse con que se lo gira | `dragX` |
+| `+0x6b8`, `+0x6bc` | el zoom de base y el de ahora | `baseZoom`, `zoom` |
+| `+0x6c0` | en blanco: la carta de webzen (Q-C1025) | `blank` |
+
+**La vtable.** `+0x30` es `0x4961d0`: el ayudante en cero; las entradas de la celda lógica del personaje (`+0x41c` y
+`+0x420`) abiertas mientras borra los `0x438` bytes (Q-C1027) y cerradas, la X y después la Y; la celda lógica del héroe
+publicado, la Y y después la X; `0x511290(personaje, 0x20a, X, Y, 0)`; el lugar en (−300, −300, −300); y `+0x68c` en 1.
+Desde cero, **44 `rand()`** (4 + 4, 4 + 4 y los 28 de `0x511290`). `+0x34` es `0x4977d0`: la clase (`+0x1d4`) y
+`0x513100` (Q-C1024), que no llama a `0x4f2250` con la acción entre `0x22` y `0x97` o entre `0xc5` y `0xcc`. `+0x38` es
+`0x497810`: `0x5139f0(0, equipo, personaje, ayudante)`, que con un objeto no mata el ayudante con `0x443d40` (lo pone en
+0) y le pasa cada mascota a `0x443d70` (Q-C1026; `0x443d70` no hace nada en los mapas 18 a 23 ni con el ayudante vivo);
+`+0x688` con la escala del ayudante por 0,7 (`0x6b8a5c`) entre la del héroe publicado; y la zona segura (`+0x3e2`) en 1
+con alas y la acción pedida pasada de `0x82`. `+0x3c` es `0x496530` (abajo). `+0x40` es `0x497890`: los ángulos del
+personaje en (−20, 5, 60) y el de base y el de ahora en el pedido; `+0x44`, `0x4978d0`: el zoom de base y el de ahora;
+`+0x48`, seguir al héroe; `+0x4c`, `0x4978f0`: la acción pedida y `0x495a20(acción, 0)`; `+0x50`, `0x497910`: `+0x6a4`
+con lo que da `0x495a20(+0x6a4, corrimiento)`, `+0x6a8` en 0 y `+0x698` en 1. Las de la clase, el equipo, la copia y el
+ángulo no hacen nada sin armar (`0x4977d9`, `0x49781e`, `0x496548`, `0x49789b`); la de la acción y la de girarla no lo
+miran. La de escribir (`0x497f50`) llama a `+0x30`, `+0x3c`, `+0x48(1)`, `+0x4c(0x7a)` y `+0x40(90)`; el `C7`
+(`0x4dcb70`), a `+0x34`, `+0x38`, `+0x4c`, `+0x40` y `+0x44` con lo de la carta.
+
+**La copia del héroe, `0x496530`.** Con la clase del héroe publicado distinta, la copia y `0x513100`. Después compara
+por grupos (el cuerpo con la cabeza, las manos, las alas y la mascota), según `+0x3e3` del héroe:
+
+- **En 0, contra el héroe** (`0x496595..0x496658`): `0x496430` (el word del modelo, el nivel `+2` y el byte `+3`)
+  sobre la cabeza y las cinco partes del cuerpo, las dos manos, las alas y la mascota, cortando en la primera
+  distinta de cada grupo. La copia (`0x4969b2..0x496a5e`) es de partes enteras de `0x20` bytes: con el cuerpo,
+  `0x4fb1a0(personaje, 0, 0)` (las telas) y las seis partes, con su byte `+0x14` y sus dwords `+0x18` y `+0x1c` en 0.
+- **Distinto de 0, contra el registro propio** (`0x49665d..0x496975`), en un solo acceso (3.848 `rand()` al
+  cerrarlo): `0x496470` sobre los lugares 2 a 6 (sin ítem, el modelo base de la clase), las manos 0 y 1, las alas 7
+  y la mascota 8 (sin ítem, −1). La copia (`0x496a65..0x497636`, con `0x4964f0`: el modelo, el nivel y el byte `+3`;
+  el `+4` queda) abre un acceso por grupo, con sus 3.848 al cerrarlo; la del cuerpo pone la cabeza en el casco de la
+  clase y llama a `0x4fb1a0` antes de abrir.
+
+Sin nada distinto, termina. Con la mascota distinta, `0x495a20(0x7a, 0)`, `+0x6a4` en `0x7a` y el ayudante de nuevo;
+si no, `0x495a20(+0x6a0, 0)` y el ayudante de nuevo solo con las manos distintas (Q-C1029). El ayudante de nuevo
+(`0x497676..0x49777c`): vivo en 0 y, por la mascota (las tablas `0x4977a4` y `0x49778c`), `0x443d70` con `0x1c12`
+(el guardián), `0xc6` (`0x1c14`), `0x110` (`0x1c15`), `0xbf` (`0x1c16`) o, con `0x1c37`, `0x14a`, `0x14c` o `0x14b`
+por el byte `+3` en 1, 2 u otro; después su alpha (`+0x174`) en 0 y `+0x688` con su escala por 0,7 entre la del
+personaje del retrato (Q-C1030). Devuelve si algo difería.
+
+**La acción, `0x495a20(acción, corrimiento)`.** Con el ayudante vivo y montado (`0xc6`, `0x110`, `0xbf` o
+`0x14a..0x14c`), la lista de `0x6c7b08` (`0x7a`, `0x7c`, `0x78`; con el índice negativo suma 300); si no, la de los
+gestos de `0x6c7b14` (24, de `0x7a` a `0x78`, Q-C1028; suma 2.400). El índice es el de la acción (el tamaño si no
+está) más el corrimiento, y el resto es con signo. Por la tabla `0x495dd4`: `0x7a`, `0x4f2250`; `0x78`, `0x4f4a10`
+y `+0x381` en 1, el frame en 0 y `+0x3a4` en `0xffff`; `0x7c`, `0x4f37c0` (los tres con el mundo en 0); y `0x80` a
+`0x94`, `0x4ea030` con la animación de cada gesto (la del elfo con la clase & 7 en 2: la misma tabla que el `0x18`,
+`Scenes::TableAnimationOf`). Después, `0x4fd5f0` y `0x505de0` con el mundo en curso, y `+0x6a0` con la acción, que
+devuelve.
+
+**El paso, `0x497970`** (la vtable + `0x20`, después de la cola y del mouse de `0x45aa80`): en blanco, solo el mouse
+sobre la UI. Si no, con seguir al héroe y `0x78abaac` en 1, la copia (`+0x3c`); `+0x360` del personaje con el del
+héroe; y con `+0x4c` & 1 a la vista, el ícono de la ayuda (16 × 16 en (x + 1; y + alto − `0x11`)) la prende o la
+apaga con el clic, y adentro del retrato el clic apaga la ayuda y lo agarra (sin nadie con el mouse: `0x5762eb4`
+con su id, el estado en 2, `+0x6b4` con la X y `SetCapture`), el derecho vuelve el ángulo y el zoom a los de base y
+la rueda suma 0,02 por paso al zoom, entre 0,8 y 1,1. Girándolo (el estado en 2), el clic suma al ángulo lo que
+corrió la X; sin clic, lo suelta. Sin `+0x4c` & 1, adentro y quieto, el mouse es de la UI y el clic se apaga.
+
+**El dibujo, `0x497c10`** (la vtable + `0x14`). Con el frame del personaje por debajo de `+0x6a8` (la animación
+volvió a empezar): sin `+0x698`, **un `rand()`** (`0x497cce`) y con `rand() % 4 == 0`, `+0x698` en 1 y
+`0x495a20(+0x6a4, 0)`; si no, con `+0x6a4` fuera de `0x7a..0x82`, `+0x698` en 0 y `0x495a20(0x7a, 0)`; y `+0x6a8`
+en 0. Si no, `+0x6a8` con el frame truncado. Con `+0x360` por debajo de 4, `0x414340`; y `0x495760`:
+
+1. Con el mundo en 0, `0x4fd5f0` y `0x505de0` del personaje y `0x444010(ayudante, 1)`.
+2. La proyección: `0x620d10(x · W / 640, y · H / 480, ancho · W / 640, 141 · H / 480)` (`0x6ba004`, truncados) y
+   `0x6203c0(1, ancho · W / 640 entre 141 · H / 480, 2.000, 20.000)`, sin el × 1,4 de `0x620db0`.
+3. La vista: la identidad en `0x7d366f0` (`0x620370`), `glRotatef(−90)` en X y en Z, `glTranslatef(−10.000, 0,
+   −75)` y `glTranslatef(−X, −Y, −Z)` del personaje, con 50 más de bajada (`0x6b86b0`) con el caballo oscuro
+   (`0x1c16`) en `+0x318`.
+4. El estado de GL (sin alpha test, con textura, profundidad, caras y su escritura, `GL_LEQUAL`,
+   `glAlphaFunc(GL_GREATER, 0,25)`, sin niebla y la profundidad borrada; las importaciones, *inferidas* de sus
+   constantes) y el del personaje: los ángulos en (0, 0, `+0x6b0`), la escala en zoom · 0,7, la del ayudante en
+   `+0x688` · zoom, las luces en 1, `+0x3e4` en 1 y la zona segura como en `0x497810`.
+5. `0x445260(ayudante, 1)` y `0x50ba30(personaje, personaje, 0)`; después el viewport de la pantalla entera.
+
+Lo de 2D (en blanco, el cuadro negro y el bitmap `0x653`; el ícono de la ayuda y su caja) va antes y después.
+
+**Con el segundo argumento en 1.** `0x444010(ayudante, 1)` lee la celda segura del jinete igual, pero no esconde al
+ayudante (`0x4440eb` el caballo oscuro, `0x4447f9` el Uniria y el Dinorant, `0x444b25` los Fenrir): lo sigue aunque el
+personaje del retrato esté en (−300, −300, −300), cuya celda puede ser segura. El chequeo de la escena 5 (jinete vivo y
+`+0x88` en 1, `0x44402a`) queda, y el personaje del retrato lo cumple. `0x445260(ayudante, 1)` lo da por visto sin el
+trapecio (`0x4452a4`) y le pone la escala en `0x3f3ae148` (0,73, `0x4452d2`) con cualquier tipo y escena, después de
+mirar que el jinete sea un jugador: la de `+0x688` · zoom que escribe `0x49596f` no se lee nunca (Q-C1010). Después,
+como siempre, `0x602e90` y el `rand() % 30 + 70` de `0x445336`. En `0x50ba30`, `+0x3e4` distinto de 0 saltea la sombra
+(y el ajuste al terreno de los mapas 11 a 17, `0x50bc16..0x50bcfb`) y `0x505820` (`0x50c913`): ni el conjunto completo
+ni sus `rand()`; los globales de `0x505820` quedan los del último personaje, y la cola no los lee sin el conjunto.
+
+**Lo que queda del estado.** La cámara de las billboards (`0x7d366f0`) queda en la identidad hasta el pase del mundo
+siguiente; lo único que la lee antes es `0x633110` (P-C90), y el retrato no dibuja billboards. Las matrices y el
+viewport de la pantalla vuelven en `0x4959dd..0x495a0c`, pero la profundidad, `GL_LEQUAL` y el alpha de 0,25 quedan para
+el 2D que sigue. Ese 2D sí escribe la profundidad (el retrato deja la prueba y la máscara prendidas, `0x4958f3` y
+`0x4958fd`, y los quads en z = 0 del `gluOrtho2D` dan 0,5), pero sin efecto a la vista (*inferido*): con `GL_LEQUAL`
+y la profundidad del retrato limpia, nada del 2D queda detrás. Los cachés de la
+proyección de `0x6203c0` (`0x7d36844..0x7d36858`) y los de `0x620d10` quedan con los del retrato (1°, su viewport)
+hasta el pase del mundo siguiente (P-C73); en MuRet nadie los lee en el medio (cada pase arma su `GameProjection`). Los bytes `+0x14` y los dwords `+0x18` y `+0x1c`
+de las seis partes que `0x496530` pone en 0 son las telas de cada parte, que suelta `0x4fb1a0`: MuRet las lleva en
+`LetterPortrait::cloth`. El destructor (`0x495ef0` → `0x495f20`, al cerrar la ventana) llama a `0x4fb1a0` y cierra las
+entradas de la celda lógica del personaje (`+0x41c` y `+0x420`) en la tabla protegida: en reposo están en 0 y no saca
+`rand()` (la cuenta de esas entradas fuera del pool, con P-C22 c, es de la VM). MuRet suelta el `LetterPortrait` con
+la ventana.
+
+MuRet: `Scenes::DrawTheLetterPortrait` es `0x497c10` entera, desde `UI::DrawTheLetterPortrait` (`0x49a1d0` y `0x498800`)
+con el gancho del juego (`UI::OldWindowDrawView::portrait`, que arma `GameScene` en el 2D después del HUD). En blanco,
+el cuadro y el logo (`Local\Webzenlogo.jpg` en `0x653`, `0x61d2ba`). Si no, `PrepareThePortraitDraw` (el frame, el
+`0x414340`, el paso con el mundo en 0: `StepTheBodyAndEffects` y `StepTheHelperOutsideTheTable`, y `PlaceThePortrait`)
+y `DrawThePortraitModel`: cierra el lote 2D, empieza el pase del retrato con el material de `0x620db0` y la
+profundidad borrada (`Render::Pass3D::clearDepth`), `DrawTheHelperOutsideTheTable` y `DrawCharacterOutsideThePool`
+(`0x50ba30` con el personaje fuera del pool: sin contorno, no es el héroe y es el dueño `ActorPoolSize` de lo que
+crea), y cierra el pase aunque corte. Después, la ayuda: el ícono y, con la ayuda a la vista, los textos 997 a 999 en
+la caja de `0x5af090` con el modo 1 de `0x467060` (contra el borde izquierdo, `0x467102..0x467119`). Un dibujo
+intermedio dibuja una copia del retrato con la copia del `rand()` del frame, sin el paso. La acción `0x78` va a
+`SetActorAttack` (`0x4f4a10`) con el mapa en 0, como `0x495b00..0x495b33` (P-C219). `UI::OldWindowStepView::portrait` es `Scenes::LetterPortraitHook` con los
+recursos del mundo (`GameUiContext::worldEntry`, `ChatReceiveContext::worldEntry`): el primer pedido crea el
+`LetterPortrait`.
 
 ## Lo que no se sabe
 

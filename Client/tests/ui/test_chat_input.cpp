@@ -1,9 +1,12 @@
 #include "UI/ChatInput.h"
 
 #include "UI/OldWindowBase.h"
+#include "UI/OldEditInput.h"
+#include "UI/IClipboard.h"
 
 #include <gtest/gtest.h>
 
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -115,16 +118,16 @@ TEST(ChatInputTest, FocusingAFieldSelectsAllOfIt)
     EXPECT_EQ(input.focus, ChatFocus::Whisper);
     TypeInTheChat(input, "Otro");
     FocusTheChatField(input, MessageField);
-    EXPECT_TRUE(input.message.AllSelected());
+    EXPECT_TRUE(input.message.text.AllSelected());
     TypeInTheChat(input, "x");
-    EXPECT_EQ(input.message.Value(), "x");
-    EXPECT_EQ(input.whisper.Value(), "Otro");
+    EXPECT_EQ(input.message.text.Value(), "x");
+    EXPECT_EQ(input.whisper.text.Value(), "Otro");
 
     // El clic deja el cursor al final.
     ClickTheChatField(input, WhisperField);
     EXPECT_EQ(input.focus, ChatFocus::Whisper);
     TypeInTheChat(input, "s");
-    EXPECT_EQ(input.whisper.Value(), "Otros");
+    EXPECT_EQ(input.whisper.text.Value(), "Otros");
 }
 
 // EM_LIMITTEXT: 0x32 bytes en el mensaje y 10 en el susurro; sin un EDIT con el foco, nada.
@@ -132,16 +135,16 @@ TEST(ChatInputTest, TypingStopsAtTheLimitsOfTheEdits)
 {
     ChatInputState closed;
     TypeInTheChat(closed, "abc");
-    EXPECT_EQ(closed.message.Value(), "");
+    EXPECT_EQ(closed.message.text.Value(), "");
 
     ChatInputState input = OpenInput();
     TypeInTheChat(input, std::string(ChatMessageLimit + 4, 'm'));
-    EXPECT_EQ(input.message.Value().size(), ChatMessageLimit);
+    EXPECT_EQ(input.message.text.Value().size(), ChatMessageLimit);
     BackspaceInTheChat(input);
-    EXPECT_EQ(input.message.Value().size(), ChatMessageLimit - 1);
+    EXPECT_EQ(input.message.text.Value().size(), ChatMessageLimit - 1);
     FocusTheChatField(input, WhisperField);
     TypeInTheChat(input, "NombreLargoDeMas");
-    EXPECT_EQ(input.whisper.Value(), "NombreLarg");
+    EXPECT_EQ(input.whisper.text.Value(), "NombreLarg");
 }
 
 TEST(ChatInputTest, MessageAndWhisperStoreXpWindows1252Bytes)
@@ -150,41 +153,41 @@ TEST(ChatInputTest, MessageAndWhisperStoreXpWindows1252Bytes)
     TypeInTheChat(input, "€漢😊é");
     const std::string expected("\x80???e\xb4", 6);
 
-    EXPECT_EQ(input.message.Value().size(), expected.size());
-    EXPECT_TRUE(input.message.Value() == expected);
+    EXPECT_EQ(input.message.text.Value().size(), expected.size());
+    EXPECT_TRUE(input.message.text.Value() == expected);
 
     input.focus = ChatFocus::Whisper;
     TypeInTheChat(input, "€漢😊é");
 
-    EXPECT_EQ(input.whisper.Value().size(), expected.size());
-    EXPECT_TRUE(input.whisper.Value() == expected);
+    EXPECT_EQ(input.whisper.text.Value().size(), expected.size());
+    EXPECT_TRUE(input.whisper.text.Value() == expected);
 }
 
 TEST(ChatInputTest, MessageAndWhisperLimitsCountEncodedBytesAndReplaceSelection)
 {
     ChatInputState input = OpenInput();
-    input.message.SetText(std::string(ChatMessageLimit - 1, 'm'));
+    input.message.text.SetText(std::string(ChatMessageLimit - 1, 'm'));
     TypeInTheChat(input, "€x");
-    ASSERT_EQ(input.message.Value().size(), ChatMessageLimit);
-    EXPECT_EQ(static_cast<unsigned char>(input.message.Value().back()), 0x80U);
+    ASSERT_EQ(input.message.text.Value().size(), ChatMessageLimit);
+    EXPECT_EQ(static_cast<unsigned char>(input.message.text.Value().back()), 0x80U);
 
-    input.whisper.SetText(std::string(ChatWhisperLimit - 1, 'w'));
+    input.whisper.text.SetText(std::string(ChatWhisperLimit - 1, 'w'));
     input.focus = ChatFocus::Whisper;
     TypeInTheChat(input, "€x");
-    ASSERT_EQ(input.whisper.Value().size(), ChatWhisperLimit);
-    EXPECT_EQ(static_cast<unsigned char>(input.whisper.Value().back()), 0x80U);
+    ASSERT_EQ(input.whisper.text.Value().size(), ChatWhisperLimit);
+    EXPECT_EQ(static_cast<unsigned char>(input.whisper.text.Value().back()), 0x80U);
 
-    input.message.SetText("antiguo");
-    input.message.SelectAll();
+    input.message.text.SetText("antiguo");
+    input.message.text.SelectAll();
     input.focus = ChatFocus::Message;
     TypeInTheChat(input, "€");
-    EXPECT_TRUE(input.message.Value() == std::string("\x80", 1));
+    EXPECT_TRUE(input.message.text.Value() == std::string("\x80", 1));
 
-    input.whisper.SetText("anterior");
-    input.whisper.SelectAll();
+    input.whisper.text.SetText("anterior");
+    input.whisper.text.SelectAll();
     input.focus = ChatFocus::Whisper;
     TypeInTheChat(input, "€");
-    EXPECT_TRUE(input.whisper.Value() == std::string("\x80", 1));
+    EXPECT_TRUE(input.whisper.text.Value() == std::string("\x80", 1));
 }
 
 // 0x4693e0 y 0x4694c0: los EDIT a los buffers, y un texto de 0x100 bytes o más no se pone.
@@ -199,11 +202,11 @@ TEST(ChatInputTest, TheFieldsGoToTheBuffersAndBack)
     EXPECT_EQ(CStringOf(input.whisperBuffer), "Alguien");
 
     SetTheChatFields(input, "chau", std::nullopt);
-    EXPECT_EQ(input.message.Value(), "chau");
-    EXPECT_EQ(input.whisper.Value(), "Alguien");
+    EXPECT_EQ(input.message.text.Value(), "chau");
+    EXPECT_EQ(input.whisper.text.Value(), "Alguien");
     SetTheChatFields(input, std::string(ChatBufferSize, 'x'), "");
-    EXPECT_EQ(input.message.Value(), "chau");
-    EXPECT_EQ(input.whisper.Value(), "");
+    EXPECT_EQ(input.message.text.Value(), "chau");
+    EXPECT_EQ(input.whisper.text.Value(), "");
 }
 
 // 0x469540 y 0x469790: lo más nuevo adelante, diez como mucho; subir guarda lo que se escribía y bajar lo devuelve.
@@ -222,22 +225,22 @@ TEST(ChatInputTest, TheHistoryKeepsTheTenNewestAndWhatWasBeingTyped)
     TypeInTheChat(input, "a medias");
     // El primero solo guarda lo que se escribía y muestra el más nuevo.
     EXPECT_TRUE(RecallFromTheHistory(input, -1));
-    EXPECT_EQ(input.message.Value(), "frase11");
+    EXPECT_EQ(input.message.text.Value(), "frase11");
     EXPECT_TRUE(RecallFromTheHistory(input, -1));
-    EXPECT_EQ(input.message.Value(), "frase10");
+    EXPECT_EQ(input.message.text.Value(), "frase10");
     // Más arriba del más viejo, queda en él.
     EXPECT_TRUE(RecallFromTheHistory(input, -20));
-    EXPECT_EQ(input.message.Value(), "frase2");
+    EXPECT_EQ(input.message.text.Value(), "frase2");
     EXPECT_TRUE(RecallFromTheHistory(input, 8));
-    EXPECT_EQ(input.message.Value(), "frase10");
+    EXPECT_EQ(input.message.text.Value(), "frase10");
     EXPECT_TRUE(RecallFromTheHistory(input, 1));
-    EXPECT_EQ(input.message.Value(), "frase11");
+    EXPECT_EQ(input.message.text.Value(), "frase11");
     EXPECT_TRUE(RecallFromTheHistory(input, 1));
-    EXPECT_EQ(input.message.Value(), "a medias");
+    EXPECT_EQ(input.message.text.Value(), "a medias");
     EXPECT_FALSE(input.history.saved);
     // Sin nada guardado, bajar desde el más nuevo no cambia el campo, pero suena.
     EXPECT_TRUE(RecallFromTheHistory(input, 1));
-    EXPECT_EQ(input.message.Value(), "a medias");
+    EXPECT_EQ(input.message.text.Value(), "a medias");
 }
 
 // 0x4b4f12: Tab con el campo abierto pasa al siguiente; con uno solo y vacío, invierte 0x77f3b69.
@@ -270,7 +273,7 @@ TEST(ChatInputTest, TheArrowsWalkTheWhisperNames)
     PutTheWhisperName(input, "Alguien");
     EXPECT_EQ(input.whisperLength, 7);
     // Q-C530: el EDIT no cambia.
-    EXPECT_EQ(input.whisper.Value(), "");
+    EXPECT_EQ(input.whisper.text.Value(), "");
 
     EXPECT_TRUE(StepTheWhisperName(input, -1));
     EXPECT_EQ(input.whisperNameAt, 1);
@@ -280,7 +283,7 @@ TEST(ChatInputTest, TheArrowsWalkTheWhisperNames)
 
     EXPECT_TRUE(StepTheWhisperName(input, 1));
     EXPECT_EQ(input.whisperNameAt, 2);
-    EXPECT_EQ(input.whisper.Value(), "Alguien");
+    EXPECT_EQ(input.whisper.text.Value(), "Alguien");
     EXPECT_EQ(CStringOf(input.whisperBuffer), "Alguien");
     EXPECT_EQ(input.whisperLength, 7);
     // Con el campo del mensaje, el foco no se mueve.
@@ -313,7 +316,7 @@ TEST(ChatInputTest, TheNumberFieldTakesOnlyDigits)
     EXPECT_EQ(input.numberField.text.Shown(), "*********");
     BackspaceInTheChat(input);
     EXPECT_EQ(input.numberField.text.Value(), "12345678");
-    EXPECT_EQ(input.message.Value(), "");
+    EXPECT_EQ(input.message.text.Value(), "");
 
     ReadTheNumberField(input, input.messageBuffer);
     EXPECT_EQ(CStringOf(input.messageBuffer), "12345678");
@@ -358,7 +361,146 @@ TEST(ChatInputTest, ResettingTheInputEmptiesTheFieldsAndTheHistory)
     ResetTheChatInput(input);
 
     EXPECT_EQ(input.field, MessageField);
-    EXPECT_EQ(input.message.Value(), "");
+    EXPECT_EQ(input.message.text.Value(), "");
     EXPECT_TRUE(input.history.said.empty());
+}
+
+class Clipboard final : public IClipboard
+{
+public:
+    std::optional<std::string> ReadText() override
+    {
+        return content;
+    }
+    bool WriteText(std::string_view text) override
+    {
+        if (failWrite)
+            return false;
+        content = std::string(text);
+        return true;
+    }
+    std::optional<std::string> content{};
+    bool failWrite = false;
+};
+
+TEST(ChatInputTest, TheChatFieldsAreTheSameSingleLineEditAsTheDialogs)
+{
+    ChatInputState input;
+    EXPECT_EQ(input.message.base.x, 193);
+    EXPECT_EQ(input.message.base.y, 422);
+    EXPECT_EQ(input.message.base.width, 180);
+    EXPECT_EQ(input.message.base.height, 14);
+    EXPECT_EQ(input.whisper.base.x, 376);
+    EXPECT_EQ(input.whisper.base.width, 50);
+    EXPECT_EQ(input.message.multiline, 0);
+    EXPECT_EQ(input.message.filter, 0);
+    EXPECT_EQ(input.message.textColor, 0xffd2e6ffu);
+    EXPECT_EQ(input.message.backgroundColor, 0xff000000u);
+    ShowTheChatFields(input, 0);
+    EXPECT_EQ(input.message.base.state, ShownWindow);
+    EXPECT_EQ(input.whisper.base.state, ShownWindow);
+    ShowTheChatFields(input, 3);
+    EXPECT_EQ(input.message.base.state, HiddenWindow);
+    EXPECT_EQ(input.whisper.base.state, HiddenWindow);
+}
+
+TEST(ChatInputTest, BothChatFieldsShareTheEditCaretInsteadOfAppendingAtTheEnd)
+{
+    for (const auto focus : {ChatFocus::Message, ChatFocus::Whisper})
+    {
+        ChatInputState input = OpenInput();
+        input.focus = focus;
+        TypeInTheChat(input, "abcd");
+        OldEdit* edit = ChatEditWithFocus(input);
+        ASSERT_NE(edit, nullptr);
+        ApplyKeyToTheEdit(*edit, OldEditKey::Home, false, false);
+        ApplyKeyToTheEdit(*edit, OldEditKey::Right, false, false);
+        TypeInTheChat(input, "x");
+        EXPECT_EQ(edit->text.Value(), "axbcd");
+        EXPECT_EQ(edit->text.Cursor(), 2u);
+    }
+}
+
+TEST(ChatInputTest, ChatSelectionAndClipboardUseTheSharedWesternEditBehavior)
+{
+    ChatInputState input = OpenInput();
+    TypeInTheChat(input, "uno dos");
+    OldEdit& edit = *ChatEditWithFocus(input);
+    Clipboard clipboard;
+    ApplyKeyToTheEdit(edit, OldEditKey::Home, false, true);
+    ApplyKeyToTheEdit(edit, OldEditKey::Right, false, true);
+    ApplyKeyToTheEdit(edit, OldEditKey::End, true, false);
+    EXPECT_EQ(edit.text.Selected(), "dos");
+    ApplyKeyToTheEdit(edit, OldEditKey::CtrlA, false, true);
+    EXPECT_EQ(edit.text.Selected(), "dos"); // El EDIT XP deja Ctrl+A sin efecto.
+    clipboard.failWrite = true;
+    ApplyKeyToTheEdit(edit, OldEditKey::Cut, false, true, &clipboard);
+    EXPECT_EQ(edit.text.Value(), "uno dos");
+    clipboard.failWrite = false;
+    ApplyKeyToTheEdit(edit, OldEditKey::Cut, false, true, &clipboard);
+    EXPECT_EQ(clipboard.content, std::optional<std::string>{"dos"});
+    EXPECT_EQ(edit.text.Value(), "uno ");
+    clipboard.content = "€";
+    ApplyKeyToTheEdit(edit, OldEditKey::Paste, false, true, &clipboard);
+    EXPECT_EQ(edit.text.Value(), std::string("uno \x80", 5));
+    ApplyKeyToTheEdit(edit, OldEditKey::Left, false, false);
+    ApplyKeyToTheEdit(edit, OldEditKey::Delete, false, false);
+    EXPECT_EQ(edit.text.Value(), "uno ");
+}
+
+TEST(ChatInputTest, TheWhisperPasteRespectsItsByteLimitAndSingleLineProfile)
+{
+    ChatInputState input = OpenInput();
+    input.focus = ChatFocus::Whisper;
+    Clipboard clipboard;
+    clipboard.content = "é123456789XYZ\rsegunda";
+    ApplyKeyToTheEdit(*ChatEditWithFocus(input), OldEditKey::Paste, false, true, &clipboard);
+    EXPECT_EQ(input.whisper.text.Value(), std::string("\xe9"
+                                                      "123456789",
+                                                      10));
+    EXPECT_EQ(input.message.text.Size(), 0u);
+}
+
+// 0x4682f1..0x4682f7: tomar el foco deja el id del EDIT en la lista que recibe las flechas; ocultarlo no la limpia.
+TEST(ChatInputTest, TakingChatFocusReplacesThePreviousListsArrowTarget)
+{
+    ChatInputState input;
+    std::int32_t arrowTarget = 123;
+    ShowTheChatFields(input, 1, &arrowTarget);
+    EXPECT_EQ(arrowTarget, 123);
+    ShowTheChatFields(input, 0, &arrowTarget);
+    EXPECT_EQ(arrowTarget, 1);
+    ClickTheChatField(input, WhisperField, &arrowTarget);
+    EXPECT_EQ(arrowTarget, 2);
+    ShowTheChatFields(input, 3, &arrowTarget);
+    EXPECT_EQ(arrowTarget, 2);
+    EXPECT_EQ(input.focus, ChatFocus::Game);
+    FocusTheChatField(input, MessageField, &arrowTarget);
+    EXPECT_EQ(arrowTarget, 2); // 0x469370: con los dos ocultos, no llama al EDIT.
+    ShowTheChatFields(input, 1, &arrowTarget);
+    FocusTheChatField(input, MessageField, &arrowTarget);
+    EXPECT_EQ(arrowTarget, 1);
+    EXPECT_TRUE(PressTabInTheChat(input, true, &arrowTarget));
+    EXPECT_EQ(arrowTarget, 2);
+    EXPECT_TRUE(PressTabInTheChat(input, true, &arrowTarget));
+    EXPECT_EQ(arrowTarget, 1);
+}
+
+TEST(ChatInputTest, PreeditAndCommittedChatTextRemainSeparate)
+{
+    ChatInputState input = OpenInput();
+    TypeInTheChat(input, "ab");
+    OldEdit& edit = *ChatEditWithFocus(input);
+    edit.draws = 15;
+    SetTheEditComposition(edit, "preview", 1, 2);
+    ApplyKeyToTheEdit(edit, OldEditKey::Left, false, false);
+    EXPECT_EQ(edit.draws, 0);
+    EXPECT_EQ(edit.text.Value(), "ab");
+    EXPECT_EQ(edit.text.Cursor(), 2u);
+    TypeInTheChat(input, "é");
+    EXPECT_EQ(edit.text.Value(), std::string("ab\xe9", 3));
+    EXPECT_TRUE(edit.compositionText.empty());
+    EXPECT_EQ(edit.compositionStart, 0);
+    EXPECT_EQ(edit.compositionLength, 0);
 }
 } // namespace

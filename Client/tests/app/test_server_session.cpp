@@ -26,10 +26,12 @@
 #include "Network/PacketSerials.h"
 #include "Network/SocketError.h"
 #include "Protocol/BuildConstants.h"
-#include "Protocol/Events.h"
 #include "Protocol/Combat.h"
+#include "Protocol/Events.h"
 #include "Protocol/FloorItems.h"
+#include "Protocol/FriendChat.h"
 #include "Protocol/Guild.h"
+#include "Protocol/Outgoing.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/Messages.h"
 #include "Protocol/Movement.h"
@@ -5022,5 +5024,148 @@ TEST(ServerSessionTest, FacingCannotGoToTheConnectServerOrAClosedConnection)
     const auto before = tested.socket.sent.size();
     EXPECT_FALSE(tested.session.SendFacing(3).HasValue());
     EXPECT_EQ(tested.socket.sent.size(), before);
+}
+
+// Las salas del chat con un amigo (CL9 hito 10, P-C211): cada una con su socket, que arma la fábrica de
+// EnableChatRooms y queda anotado acá para el guion.
+struct ChatRoomHarness
+{
+    ChatRoomHarness()
+    {
+        tested.session.EnableChatRooms(Client::App::ChatRoomSockets{.make =
+                                                                        [this]
+                                                                    {
+                                                                        auto socket = std::make_unique<FakeSocket>();
+                                                                        socket->pollsUntilConnected = connectingPolls;
+                                                                        socket->connectResult = connectResult;
+                                                                        sockets.push_back(socket.get());
+                                                                        return socket;
+                                                                    },
+                                                                    .obfuscation = &IdentityObfuscation::Shared(),
+                                                                    .paddingSeed = PaddingSeed});
+    }
+
+    Harness tested{IdentityObfuscation::Shared()};
+    std::vector<FakeSocket*> sockets;
+    int connectingPolls = 1;
+    std::optional<SocketError> connectResult;
+};
+
+// 0x49de50 conecta al 55980 de la IP del CA; el C1 10 00 espera al connect (0x493530) y sale tal cual; lo que llega
+// va al sink con la sala y la ventana (0x49e510 → 0x4e1d50 con 1); cada 15 s, con la sala anotada, el ChatRoomPingDue
+// (el timer 1002); el FD_CLOSE de una sala abierta la deja anotada hasta CloseChatRoom (0x49e480 → 0x4e8380).
+TEST(ServerSessionTest, AChatRoomHasItsOwnConnection)
+{
+    ChatRoomHarness rooms;
+    ServerSession& session = rooms.tested.session;
+    rooms.tested.AdvanceTo(std::chrono::seconds{15});
+    ASSERT_TRUE(session.Poll().HasValue());
+    EXPECT_TRUE(rooms.tested.eventSink.TakeWorldEvents().empty());
+
+    session.OpenChatRoom(0x0304, 42, "10.0.0.9");
+    ASSERT_EQ(rooms.sockets.size(), 1u);
+    FakeSocket& socket = *rooms.sockets[0];
+    ASSERT_EQ(socket.connects.size(), 1u);
+    EXPECT_EQ(socket.connects[0].host, "10.0.0.9");
+    EXPECT_EQ(socket.connects[0].port, 55980);
+    EXPECT_EQ(session.ChatRoomCount(), 1u);
+    const Client::Protocol::Outgoing join = Client::Protocol::FriendChat::WriteJoin(0x0304, 77);
+    const ByteVector joinBytes(join.packet.Bytes().begin(), join.packet.Bytes().end());
+    session.SendToChatRoom(0x0304, join);
+    EXPECT_TRUE(socket.sent.empty());
+
+    socket.reads = {Bytes({0xc1, 0x04, 0x00, 0x01})};
+    ASSERT_TRUE(session.Poll().HasValue());
+    ASSERT_TRUE(session.Poll().HasValue());
+    EXPECT_TRUE(SameBytes(socket.sent, joinBytes));
+    std::vector<WorldEvent> events = rooms.tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 1u);
+    const auto* packet = std::get_if<Client::App::ChatRoomPacket>(&events[0]);
+    ASSERT_NE(packet, nullptr);
+    EXPECT_EQ(packet->room, 0x0304u);
+    EXPECT_EQ(packet->window, 42);
+    EXPECT_TRUE(SameBytes(packet->packet.Bytes(), Bytes({0xc1, 0x04, 0x00, 0x01})));
+
+    rooms.tested.AdvanceTo(std::chrono::seconds{30});
+    ASSERT_TRUE(session.Poll().HasValue());
+    events = rooms.tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 1u);
+    EXPECT_TRUE(std::holds_alternative<Client::App::ChatRoomPingDue>(events[0]));
+
+    socket.peerClosed = true;
+    ASSERT_TRUE(session.Poll().HasValue());
+    events = rooms.tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 1u);
+    const auto* closed = std::get_if<Client::App::ChatRoomClosed>(&events[0]);
+    ASSERT_NE(closed, nullptr);
+    EXPECT_EQ(closed->room, 0x0304u);
+    EXPECT_EQ(closed->window, 42);
+    EXPECT_TRUE(closed->opened);
+    EXPECT_EQ(session.ChatRoomCount(), 1u);
+
+    session.CloseChatRoom(0x0304);
+    EXPECT_EQ(session.ChatRoomCount(), 0u);
+    session.SendToChatRoom(0x0304, Client::Protocol::FriendChat::WritePing());
+    EXPECT_TRUE(rooms.tested.Logged(LogLevel::Warning, "no tiene conexión"));
+}
+
+// Los handlers de 0x4e2a60 leen cada paquete de la sala por su lugar sin mirar su largo (Q-C1011): uno más corto que lo
+// que lee su handler se ignora con un aviso sin el texto, uno por opcode (00, 01, 02, 04 y 0D), y la sesión sigue. Un
+// 0D con su
+// '\0' adentro, más corto que pkt[0x68], llega al sink.
+TEST(ServerSessionTest, AShortChatRoomPacketIsIgnoredAndTheSessionGoesOn)
+{
+    ChatRoomHarness rooms;
+    ServerSession& session = rooms.tested.session;
+    session.OpenChatRoom(0x0304, 42, "10.0.0.9");
+    ASSERT_EQ(rooms.sockets.size(), 1u);
+    FakeSocket& socket = *rooms.sockets[0];
+    socket.reads = {Bytes({0xc1, 0x03, 0x00}),
+                    Bytes({0xc1, 0x08, 0x01, 0x00, 0x05, 'H', 'o', 'r'}),
+                    Bytes({0xc1, 0x0b, 0x02, 0x00, 0x00, 0x00, 0x02, 0x00, 0x02, 'H', 'o'}),
+                    Bytes({0xc1, 0x07, 0x04, 0x01, 0x0a, 'h', 'o'}),
+                    Bytes({0xc1, 0x0a, 0x0d, 0x00, 0x00, 'q', 'u', 'e', 's', 'o'}),
+                    Bytes({0xc1, 0x0b, 0x0d, 0x00, 0x00, 'q', 'u', 'e', 's', 'o', 0x00})};
+    for (int poll = 0; poll < 8; ++poll)
+        ASSERT_TRUE(session.Poll().HasValue());
+    const std::vector<WorldEvent> events = rooms.tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 1u);
+    const auto* packet = std::get_if<Client::App::ChatRoomPacket>(&events[0]);
+    ASSERT_NE(packet, nullptr);
+    EXPECT_EQ(packet->packet.Opcode(), std::optional<std::uint8_t>{std::uint8_t{0x0d}});
+    EXPECT_EQ(rooms.tested.CountLogged(LogLevel::Warning, "de la sala 772 del chat con un amigo"), 5u);
+    EXPECT_FALSE(rooms.tested.Logged(LogLevel::Warning, "queso"));
+    EXPECT_FALSE(rooms.tested.Logged(LogLevel::Warning, "Hor"));
+    EXPECT_EQ(session.Failure(), std::nullopt);
+    EXPECT_EQ(session.ChatRoomCount(), 1u);
+}
+
+// El connect que falla: la sala se olvida (0x49de50 no la anota). Una sala que ya tiene la suya no abre otra.
+TEST(ServerSessionTest, AChatRoomThatDoesNotConnectIsForgotten)
+{
+    ChatRoomHarness rooms;
+    rooms.connectResult = SocketError::Refused;
+    ServerSession& session = rooms.tested.session;
+    session.OpenChatRoom(9, 7, "10.0.0.9");
+    session.OpenChatRoom(9, 8, "10.0.0.9");
+    EXPECT_EQ(rooms.sockets.size(), 1u);
+    ASSERT_TRUE(session.Poll().HasValue());
+    ASSERT_TRUE(session.Poll().HasValue());
+    const std::vector<WorldEvent> events = rooms.tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 1u);
+    const auto* closed = std::get_if<Client::App::ChatRoomClosed>(&events[0]);
+    ASSERT_NE(closed, nullptr);
+    EXPECT_EQ(closed->window, 7);
+    EXPECT_FALSE(closed->opened);
+    EXPECT_EQ(session.ChatRoomCount(), 0u);
+}
+
+// Sin EnableChatRooms (sin red), la sala no se abre y avisa.
+TEST(ServerSessionTest, WithoutChatRoomSocketsNoRoomOpens)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    tested.session.OpenChatRoom(9, 7, "10.0.0.9");
+    EXPECT_EQ(tested.session.ChatRoomCount(), 0u);
+    EXPECT_TRUE(tested.Logged(LogLevel::Warning, "no hay red para las salas"));
 }
 } // namespace

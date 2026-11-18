@@ -216,8 +216,9 @@ TEST_F(GameChat, EnterOpensAndClosesTheEmptyField)
     EXPECT_TRUE(world.Runtime().ui.chatOpen);
     EXPECT_TRUE(Input().shown);
     EXPECT_EQ(Input().focus, Client::UI::ChatFocus::Message);
+    EXPECT_EQ(world.Runtime().ui.focusedList, Client::UI::ChatMessageEditId);
     // Lo de antes de abrir lo descartó la ventana del juego.
-    EXPECT_EQ(Input().message.Value(), "");
+    EXPECT_EQ(Input().message.text.Value(), "");
 
     ASSERT_TRUE(Type("\r").HasValue());
     EXPECT_FALSE(world.Runtime().ui.chatOpen);
@@ -381,7 +382,7 @@ TEST_F(GameChat, EnterSaysWhatWasTyped)
     EXPECT_EQ(world.Runtime().chat.area.firstShown, Client::UI::FirstShownRow);
     EXPECT_FALSE(world.Runtime().ui.chatOpen);
     EXPECT_FALSE(Input().shown);
-    EXPECT_EQ(Input().message.Value(), "");
+    EXPECT_EQ(Input().message.text.Value(), "");
     EXPECT_EQ(Input().messageLength, 0);
 }
 
@@ -394,10 +395,10 @@ TEST_F(GameChat, MessageAndWhisperFieldsUseXpWindows1252BytesOnTheWire)
     ASSERT_TRUE(Type("\r").HasValue());
 
     ASSERT_TRUE(Type("€漢😊é\t€abc").HasValue());
-    EXPECT_EQ(Input().message.Value().size(), messageBytes.size());
-    EXPECT_TRUE(Input().message.Value() == messageBytes);
-    EXPECT_EQ(Input().whisper.Value().size(), whisperBytes.size());
-    EXPECT_TRUE(Input().whisper.Value() == whisperBytes);
+    EXPECT_EQ(Input().message.text.Value().size(), messageBytes.size());
+    EXPECT_TRUE(Input().message.text.Value() == messageBytes);
+    EXPECT_EQ(Input().whisper.text.Value().size(), whisperBytes.size());
+    EXPECT_TRUE(Input().whisper.text.Value() == whisperBytes);
 
     ASSERT_TRUE(Type("\r").HasValue());
 
@@ -406,6 +407,131 @@ TEST_F(GameChat, MessageAndWhisperFieldsUseXpWindows1252BytesOnTheWire)
     EXPECT_EQ(whisper.opcode, 0x02);
     EXPECT_TRUE(whisper.name == whisperBytes);
     EXPECT_TRUE(whisper.text == messageBytes);
+}
+
+// 0x4691e0 → 0x467fe0 → 0x467b10: mensaje y destinatario usan el mismo EDIT; las teclas de navegación
+// pasan al procedimiento anterior del control, no al WndProc del juego que sólo entiende Tab/Enter/Backspace.
+TEST_F(GameChat, OrderedInputEventsMoveAndEditBothChatCarets)
+{
+    ASSERT_TRUE(Type("\r").HasValue());
+    for (const auto field : {Client::UI::MessageField, Client::UI::WhisperField})
+    {
+        Client::UI::FocusTheChatField(Input(), field);
+        const std::array events{
+            Client::Input::TextInputEvent{.kind = Client::Input::TextInputEvent::Kind::Text, .text = "abcd"},
+            Client::Input::TextInputEvent{
+                .kind = Client::Input::TextInputEvent::Kind::Key, .key = Client::Input::Key::Home, .text = {}},
+            Client::Input::TextInputEvent{
+                .kind = Client::Input::TextInputEvent::Kind::Key, .key = Client::Input::Key::Right, .text = {}},
+            Client::Input::TextInputEvent{.kind = Client::Input::TextInputEvent::Kind::Text, .text = "x"},
+        };
+
+        ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), events).HasValue());
+
+        const auto* edit = Client::UI::ChatEditWithFocus(Input());
+        ASSERT_NE(edit, nullptr);
+        EXPECT_EQ(edit->text.Value(), "axbcd");
+        EXPECT_EQ(edit->text.Cursor(), 2u);
+    }
+    EXPECT_TRUE(sent.empty());
+}
+
+TEST_F(GameChat, OrderedChatClipboardAndDeleteUseTheSharedXpEdit)
+{
+    ASSERT_TRUE(Type("\r").HasValue());
+    Input().message.text.SetText(std::string("a\xe9z", 3));
+    const std::array select{
+        Client::Input::TextInputEvent{
+            .kind = Client::Input::TextInputEvent::Kind::Key, .key = Client::Input::Key::Home, .text = {}},
+        Client::Input::TextInputEvent{
+            .kind = Client::Input::TextInputEvent::Kind::Key, .key = Client::Input::Key::Right, .text = {}},
+        Client::Input::TextInputEvent{.kind = Client::Input::TextInputEvent::Kind::Key,
+                                      .key = Client::Input::Key::Right,
+                                      .text = {},
+                                      .shift = true},
+        Client::Input::TextInputEvent{
+            .kind = Client::Input::TextInputEvent::Kind::Key, .key = Client::Input::Key::C, .text = {}, .ctrl = true},
+        Client::Input::TextInputEvent{
+            .kind = Client::Input::TextInputEvent::Kind::Key, .key = Client::Input::Key::X, .text = {}, .ctrl = true},
+    };
+    ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), select).HasValue());
+    EXPECT_EQ(clipboard.contents, std::optional<std::string>("é"));
+    EXPECT_EQ(Input().message.text.Value(), "az");
+    EXPECT_EQ(clipboard.writes, 2);
+
+    clipboard.contents = "€";
+    const std::array paste{
+        Client::Input::TextInputEvent{
+            .kind = Client::Input::TextInputEvent::Kind::Key, .key = Client::Input::Key::V, .text = {}, .ctrl = true},
+        Client::Input::TextInputEvent{
+            .kind = Client::Input::TextInputEvent::Kind::Key, .key = Client::Input::Key::Delete, .text = {}},
+        Client::Input::TextInputEvent{
+            .kind = Client::Input::TextInputEvent::Kind::Key, .key = Client::Input::Key::Enter, .text = {}},
+    };
+    ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), paste).HasValue());
+    ASSERT_EQ(sent.size(), 1u);
+    EXPECT_EQ(Decode(sent.front()).opcode, 0x00);
+    EXPECT_EQ(Decode(sent.front()).text, std::string("a\x80", 2));
+    EXPECT_EQ(clipboard.reads, 1);
+}
+
+TEST_F(GameChat, TabKeepsBothChatTextsAndSelectsTheNewFieldBeforeWhispering)
+{
+    ASSERT_TRUE(Type("\rmensaje\tDestino").HasValue());
+    const std::array tab{Client::Input::TextInputEvent{
+        .kind = Client::Input::TextInputEvent::Kind::Key, .key = Client::Input::Key::Tab, .text = {}}};
+    ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), tab).HasValue());
+    EXPECT_EQ(Input().focus, Client::UI::ChatFocus::Message);
+    EXPECT_EQ(Input().message.text.Selected(), "mensaje");
+    EXPECT_EQ(Input().whisper.text.Value(), "Destino");
+
+    const std::array edited{
+        Client::Input::TextInputEvent{.kind = Client::Input::TextInputEvent::Kind::Text, .text = "nuevo"},
+        Client::Input::TextInputEvent{
+            .kind = Client::Input::TextInputEvent::Kind::Key, .key = Client::Input::Key::Tab, .text = {}},
+    };
+    ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), edited).HasValue());
+    EXPECT_EQ(Input().focus, Client::UI::ChatFocus::Whisper);
+    EXPECT_EQ(Input().whisper.text.Selected(), "Destino");
+    EXPECT_EQ(world.Runtime().ui.focusedList, Client::UI::ChatWhisperEditId);
+    EXPECT_EQ(Input().message.text.Value(), "nuevo");
+    ASSERT_TRUE(Type("\r").HasValue());
+    ASSERT_EQ(sent.size(), 1u);
+    EXPECT_EQ(Decode(sent.front()).opcode, 0x02);
+    EXPECT_EQ(Decode(sent.front()).name, "Destino");
+    EXPECT_EQ(Decode(sent.front()).text, "nuevo");
+}
+
+TEST_F(GameChat, ChatPreeditCannotSendOrChangeFocusBeforeCommittedText)
+{
+    ASSERT_TRUE(Type("\rab").HasValue());
+    const std::array preedit{
+        Client::Input::TextInputEvent{.kind = Client::Input::TextInputEvent::Kind::Composition,
+                                      .text = "preview",
+                                      .compositionStart = 1,
+                                      .compositionLength = 2},
+        Client::Input::TextInputEvent{
+            .kind = Client::Input::TextInputEvent::Kind::Key, .key = Client::Input::Key::Enter, .text = {}},
+        Client::Input::TextInputEvent{
+            .kind = Client::Input::TextInputEvent::Kind::Key, .key = Client::Input::Key::Tab, .text = {}},
+    };
+    ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), preedit).HasValue());
+    EXPECT_TRUE(sent.empty());
+    EXPECT_EQ(Input().focus, Client::UI::ChatFocus::Message);
+    EXPECT_EQ(Input().message.text.Value(), "ab");
+    EXPECT_EQ(Input().message.compositionText, "preview");
+    EXPECT_EQ(Input().message.compositionStart, 1);
+    EXPECT_EQ(Input().message.compositionLength, 2);
+
+    const std::array commit{
+        Client::Input::TextInputEvent{.kind = Client::Input::TextInputEvent::Kind::Text, .text = "é"},
+        Client::Input::TextInputEvent{
+            .kind = Client::Input::TextInputEvent::Kind::Key, .key = Client::Input::Key::Enter, .text = {}},
+    };
+    ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), commit).HasValue());
+    ASSERT_EQ(sent.size(), 1u);
+    EXPECT_EQ(Decode(sent.front()).text, std::string("ab\xe9", 3));
+    EXPECT_TRUE(Input().message.compositionText.empty());
 }
 
 TEST_F(GameChat, OrderedInputEventsEditTheFocusedOldWindowField)
@@ -1136,7 +1262,7 @@ TEST_F(GameChat, TheSerialEditFiltersWhatIsTyped)
     Input().dialogEdit.text.SetLimit(12);
     ASSERT_TRUE(Type("ab-1 c\bz9\r\t").HasValue());
     EXPECT_EQ(Input().dialogEdit.text.Value(), "AB1Z9");
-    EXPECT_EQ(Input().message.Value(), "");
+    EXPECT_EQ(Input().message.text.Value(), "");
     EXPECT_EQ(Input().focus, Client::UI::ChatFocus::Dialog);
     EXPECT_TRUE(world.Runtime().ui.enterPressed);
     EXPECT_FALSE(world.Runtime().ui.chatOpen);
@@ -1171,7 +1297,7 @@ TEST_F(GameChat, AStuckSerialEntrySwallowsEnter)
     EXPECT_EQ(Input().field, Client::UI::MessageField);
     EXPECT_TRUE(world.Runtime().ui.chatOpen);
     EXPECT_EQ(std::string_view(Input().messageBuffer.data()), "hola");
-    EXPECT_EQ(Input().message.Value(), "hola");
+    EXPECT_EQ(Input().message.text.Value(), "hola");
     EXPECT_EQ(random.State(), before);
 }
 

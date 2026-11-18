@@ -322,7 +322,8 @@ TEST_F(FriendWindowsTest, TheAddBoxSendsTheTypedName)
     ASSERT_TRUE(Client::UI::HasAnOldEditFocused(m_manager, m_focus));
 
     Client::UI::TypeInTheOldEdit(m_manager, "Calandrias");
-    Client::UI::BackspaceInTheOldEdit(m_manager);
+    // El retroceso del juego llega como tecla (SDL no da el '\b' de WM_CHAR).
+    Client::UI::ApplyKeyToTheOldEdit(m_manager, Client::UI::OldEditKey::Backspace, false, false);
     Client::UI::PressEnterInTheOldEdit(m_manager);
     stepped = Step();
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
@@ -350,7 +351,7 @@ TEST_F(FriendWindowsTest, DestroyingTheFocusedAddBoxKeepsItsEditBufferWithoutIts
     EXPECT_TRUE(Client::UI::HasAnOldEditFocused(m_manager, m_focus));
     Client::UI::TypeInTheOldEdit(m_manager, "z");
     Client::UI::ApplyKeyToTheOldEdit(m_manager, Client::UI::OldEditKey::Left, false, false);
-    Client::UI::BackspaceInTheOldEdit(m_manager);
+    Client::UI::ApplyKeyToTheOldEdit(m_manager, Client::UI::OldEditKey::Backspace, false, false);
     EXPECT_EQ(m_manager.orphanedEdit->text.Value(), "abcz");
 
     Client::UI::PressEnterInTheOldEdit(m_manager);
@@ -555,19 +556,37 @@ TEST_F(FriendWindowsTest, DeletingAsksAndSendsTheChosenName)
     EXPECT_EQ(m_sent[0].name, "Hornero");
 }
 
-// El chat con un amigo en línea y la carta son del hito 10; con uno fuera de línea (más de 0xfc), el 3 no hace nada.
-TEST_F(FriendWindowsTest, TheChatAndTheLetterAreCuts)
+// El chat con el elegido en línea (0x49d0b0 con el 3) pide la sala con el C1 CA (hito 10); con uno fuera de línea (más
+// de 0xfc), nada. La carta (el 4) arma la de escribir, que sin el retrato del juego corta (P-C212).
+TEST_F(FriendWindowsTest, TheChatAsksForARoomAndTheLetterNeedsThePortrait)
 {
     ASSERT_TRUE(OpenFriends().HasValue());
     Client::UI::AddAFriend(m_manager.friendModel, "Tordo", 0, 0xff);
+    Client::UI::AddAFriend(m_manager.friendModel, "Hornero", 0, 3);
     Client::UI::RefreshTheFriendTab(m_manager);
-    Client::UI::SelectInTheList(FriendTab().tab.list, 1, 1);
+    const auto choose = [this](std::string_view name)
+    {
+        for (std::size_t at = 0; at < FriendTab().tab.friends.size(); ++at)
+        {
+            if (FriendTab().tab.friends[at].name == name)
+                Client::UI::SelectInTheList(FriendTab().tab.list, FriendTab().tab.friends.size(),
+                                            static_cast<std::int32_t>(at + 1));
+        }
+    };
+    choose("Tordo");
     Client::UI::PostToTheWindow(m_manager, FriendTab().base.id, Client::UI::CommandMessage, 3, 0);
     ASSERT_TRUE(Step().HasValue());
+    EXPECT_TRUE(m_sent.empty());
+    choose("Hornero");
+    Client::UI::PostToTheWindow(m_manager, FriendTab().base.id, Client::UI::CommandMessage, 3, 0);
+    ASSERT_TRUE(Step().HasValue());
+    ASSERT_EQ(m_sent.size(), 1u);
+    EXPECT_EQ(m_sent[0].kind, FriendSendKind::RoomRequest);
+    EXPECT_EQ(m_sent[0].name, "Hornero");
     Client::UI::PostToTheWindow(m_manager, FriendTab().base.id, Client::UI::CommandMessage, 4, 0);
     const auto cut = Step();
     ASSERT_FALSE(cut.HasValue());
-    EXPECT_NE(cut.Error().find("hito 10"), std::string::npos);
+    EXPECT_NE(cut.Error().find("P-C212"), std::string::npos);
 }
 
 // 0x4a2be0: el sí a "¿salir de línea?" manda C4 00 una vez (+0xe0).

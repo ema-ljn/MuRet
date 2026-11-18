@@ -787,6 +787,7 @@ Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& co
 {
     WorldRuntime& runtime = context.world.Runtime();
     ActorState& hero = context.world.Actors()[runtime.hero];
+    // En el juego, StepTheDialogs ya lo hizo en este paso: acá no cambia nada.
     LatchTheLeftButton(runtime.movement, context.input.leftPressed, context.input.leftDown);
     // 0x59ae24: 0x4033d0, el recorrido de la cámara (Scenes/CameraTour.h).
     if (CameraTourRunning(runtime.events.cameraTour))

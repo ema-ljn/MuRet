@@ -25,13 +25,20 @@ class CrtRandom;
 namespace Client::Scenes
 {
 class WorldState;
+class IGameUiRequests;
 struct ChatReceiveContext;
 
 // Los textos de Text.bmd de las ventanas viejas: los de la caja (228, 991, 1037 y 1038) y los demás por su índice.
 [[nodiscard]] UI::OldWindowTexts OldWindowTextsOf(const Data::Text::TextTable* texts);
 
-// El paquete de lo que pide una ventana de amigos (Protocol/Friends).
+// El paquete de lo que pide una ventana de amigos (Protocol/Friends, y Protocol/FriendChat y Protocol/Letters del
+// hito 10).
 [[nodiscard]] Protocol::Outgoing FriendPacketOf(const UI::FriendSend& send);
+
+// OldWindowStepView::send del juego: el paquete por la sesión. La carta (C2 C5) sale cifrada como C4
+// (0x4992fe..0x499416, Q-C1002): antes, un rand() del relleno (0x4992fe) y el serial por la tabla de protección
+// (0x5767913), como el C3 F1 02 (0x62449a..0x6244f2). Los demás salen en claro, sin rand().
+void SendAFriendPacket(IGameUiRequests& requests, Render::Models::CrtRandom& random, const UI::FriendSend& send);
 
 // Lo que 0x491080 lee del juego.
 struct FriendsOpenContext

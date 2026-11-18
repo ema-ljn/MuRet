@@ -1,6 +1,7 @@
 #pragma once
 
 #include "App/Credentials.h"
+#include "App/IChatRoomLinks.h"
 #include "App/ServerAddress.h"
 #include "App/SessionState.h"
 #include "Core/Expected.h"
@@ -9,6 +10,8 @@
 #include "Core/Log.h"
 #include "Network/CloseReason.h"
 #include "Network/Connection.h"
+#include "Network/IObfuscation.h"
+#include "Network/ISocket.h"
 #include "Network/Packet.h"
 #include "Protocol/Character/CharacterDelete.h"
 #include "Protocol/Character/CharacterList.h"
@@ -24,6 +27,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <functional>
+#include <map>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string>
@@ -142,6 +148,9 @@ namespace Client::App
 // 04 § El flujo de conexión: el timer 1000 de 20.000 ms del original, y 156 keepalives, uno cada
 // 20 s, en el cable (02 § Una discrepancia entre documentos).
 inline constexpr Core::Duration KeepalivePeriod = std::chrono::seconds{20};
+// El timer 1002 de 15.000 ms (0x48e5a0..0x48e5f7, en el constructor de las ventanas viejas, 0x48e470, que corre en
+// WinMain después del 1000): el de las salas del chat con un amigo (ChatRoomPingDue).
+inline constexpr Core::Duration ChatRoomPingPeriod = std::chrono::seconds{15};
 
 // Lo que espera cada estado Waiting* su respuesta. No sale del original: el research no le vio un
 // tope, y sin uno, un servidor que acepta y no contesta deja la sesión esperando para siempre, sin
@@ -173,7 +182,17 @@ struct SessionSettings
 
 class ISessionEventSink;
 
-class ServerSession
+// Lo que necesitan las conexiones de las salas del chat con un amigo (IChatRoomLinks.h): un socket nuevo por sala y la
+// ofuscación de la conexión del GameServer (la de FoxAnti va en el send y el recv del proceso, *inferido*). Viven más
+// que la sesión.
+struct ChatRoomSockets
+{
+    std::function<std::unique_ptr<Network::ISocket>()> make;
+    const Network::IObfuscation* obfuscation = nullptr;
+    std::uint32_t paddingSeed = 0;
+};
+
+class ServerSession final : public IChatRoomLinks
 {
 public:
     // La conexión, el reloj, el log y el sink son de quien la arma y viven más que ella. El reloj
@@ -185,7 +204,7 @@ public:
     // Los handlers guardan this: no se copia ni se mueve.
     ServerSession(const ServerSession&) = delete;
     ServerSession& operator=(const ServerSession&) = delete;
-    ~ServerSession() = default;
+    ~ServerSession() override = default;
 
     // Conecta al ConnectServer de la config, desde cualquier estado menos QuitOrdered: lo que había
     // se cierra y se olvida (la falla, la lista, la elección, el GameServer y el resultado del
@@ -278,6 +297,21 @@ public:
     // abierto (0x6c82a0, el del ConnectServer mientras se ve la lista), sin mirar cuál es. Cerrado, nada:
     // el original no manda con el socket en −1.
     void SendCreditsNotice();
+
+    // Las salas del chat con un amigo (P-C211). Sin esto (los tests que no las miran, sin red), abrir una deja un aviso
+    // y la sala no se anota: lo que se le manda se descarta con otro.
+    void EnableChatRooms(ChatRoomSockets sockets);
+    // IChatRoomLinks. Cada sala es una Network::Connection con las claves del GameServer (lo que llega por ella pasa
+    // por el mismo camino, 0x4e1d50); Poll las recorre después del GameServer, en el orden de las salas, como 0x49e510
+    // recorre su mapa, y le da al sink un ChatRoomPacket por paquete y un ChatRoomClosed al cerrarse. Un paquete más
+    // corto que lo que lee su handler se ignora con un aviso (Protocol::FriendChat::CheckRoomPacket). Una que no llegó
+    // a abrir se olvida; una abierta que se cerró queda anotada hasta CloseChatRoom (lo que se le manda, se descarta).
+    // Cada ChatRoomPingPeriod desde la construcción, con alguna sala anotada, le da un ChatRoomPingDue.
+    void OpenChatRoom(std::uint32_t room, std::int32_t window, std::string_view address) override;
+    void SendToChatRoom(std::uint32_t room, Protocol::Outgoing packet) override;
+    void CloseChatRoom(std::uint32_t room) override;
+    // Las salas anotadas, para los tests.
+    [[nodiscard]] std::size_t ChatRoomCount() const;
 
     // Cuántas veces se llamó a Start: lo que elige o manda alguien de afuera (el AutoLogin) es de
     // una vuelta, y con un Start empieza otra.
@@ -465,6 +499,14 @@ private:
     void OnFriendRequest(const Network::Packet& packet);
     void OnFriendDeleteResult(const Network::Packet& packet);
     void OnFriendState(const Network::Packet& packet);
+    // CL9 hito 10: las cartas y el chat con un amigo (C5..C8, CA y CB, 0x4e5ac6..0x4e5b42), sin guarda de escena ni
+    // del flag de cifrado, como los de los amigos.
+    void OnLetterSendResult(const Network::Packet& packet);
+    void OnLetterRow(const Network::Packet& packet);
+    void OnLetterRead(const Network::Packet& packet);
+    void OnLetterDeleteResult(const Network::Packet& packet);
+    void OnRoomAnswer(const Network::Packet& packet);
+    void OnInviteResult(const Network::Packet& packet);
     // El F1 02 con 1, con `encrypted` en el flag del paquete.
     void ReturnToSelection(bool encrypted);
     // El keepalive con el tick de `now` y las velocidades de SetKeepaliveSpeeds.
@@ -511,9 +553,21 @@ private:
     std::optional<std::uint8_t> m_createResult;
     std::optional<std::uint8_t> m_deleteResult;
     std::optional<std::uint8_t> m_deletingSlot; // el lugar del F3 02 que salió
+    struct ChatRoomLink
+    {
+        std::int32_t window = 0;
+        bool opened = false;
+        std::unique_ptr<Network::ISocket> socket;
+        std::unique_ptr<Network::Connection> connection;
+    };
+    // Lo que llegó por cada sala, en orden.
+    void PollTheChatRooms();
+    ChatRoomSockets m_chatRoomSockets;
+    std::map<std::uint32_t, ChatRoomLink> m_chatRooms;
     // Cambia con cada Connect y cada Fail: Poll deja de recorrer el lote si cambió.
     std::uint32_t m_generation = 0;
     Core::IntervalTimer m_keepalive{KeepalivePeriod};
+    Core::IntervalTimer m_chatRoomPing{ChatRoomPingPeriod};
     KeepaliveSpeeds m_speeds;
 };
 } // namespace Client::App

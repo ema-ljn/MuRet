@@ -858,6 +858,54 @@ TEST(GameUiTest, TheReleasedButtonDropsTheEdge)
     EXPECT_FALSE(state.leftHeld);
 }
 
+// WM_LBUTTONDBLCLK (0x4b4444..0x4b47b6) no prende 0x7d36874, que solo escriben WM_LBUTTONDOWN (0x4b3961) y
+// WM_LBUTTONUP (0x4b3cf1): el segundo apretón de un doble clic, sostenido varios pasos, deja el botón arriba para el
+// juego hasta el próximo WM_LBUTTONDOWN. En el mismo paso que el primer clic y su soltado, tampoco queda.
+TEST(GameUiTest, AHeldDoubleClickLeavesTheButtonUp)
+{
+    using Client::Input::InputEvent;
+    using Client::Input::MouseButton;
+    Client::Input::InputState input;
+    Client::Scenes::GameMovementState state;
+    const auto latch = [&input](Client::Scenes::GameMovementState& latched)
+    {
+        Client::Scenes::LatchTheLeftButton(latched, input.MouseMessages().leftPress, input.MouseMessages().leftDown);
+        input.ConsumeEdges();
+    };
+    input.Apply({.kind = InputEvent::Kind::ButtonDown, .button = MouseButton::Left});
+    latch(state);
+    EXPECT_TRUE(state.leftHeld);
+    state.pendingClick = false;
+    input.Apply({.kind = InputEvent::Kind::ButtonUp, .button = MouseButton::Left});
+    latch(state);
+    input.Apply({.kind = InputEvent::Kind::ButtonDoubleClick, .button = MouseButton::Left});
+    latch(state);
+    EXPECT_FALSE(state.leftHeld);
+    EXPECT_FALSE(state.pendingClick);
+    for (int step = 0; step < 3; ++step)
+    {
+        latch(state);
+        EXPECT_FALSE(state.leftHeld);
+        EXPECT_FALSE(state.pendingClick);
+    }
+    input.Apply({.kind = InputEvent::Kind::ButtonUp, .button = MouseButton::Left});
+    latch(state);
+    input.Apply({.kind = InputEvent::Kind::ButtonDown, .button = MouseButton::Left});
+    latch(state);
+    EXPECT_TRUE(state.leftHeld);
+    EXPECT_TRUE(state.pendingClick);
+
+    // Abajo, arriba y el doble en el mismo paso: el WM_LBUTTONUP lo apagó y el WM_LBUTTONDBLCLK no lo prende.
+    Client::Input::InputState batch;
+    batch.Apply({.kind = InputEvent::Kind::ButtonDown, .button = MouseButton::Left});
+    batch.Apply({.kind = InputEvent::Kind::ButtonUp, .button = MouseButton::Left});
+    batch.Apply({.kind = InputEvent::Kind::ButtonDoubleClick, .button = MouseButton::Left});
+    Client::Scenes::GameMovementState fast;
+    Client::Scenes::LatchTheLeftButton(fast, batch.MouseMessages().leftPress, batch.MouseMessages().leftDown);
+    EXPECT_FALSE(fast.leftHeld);
+    EXPECT_FALSE(fast.pendingClick);
+}
+
 // 0x7d366ec: WM_LBUTTONUP lo prende con el mouse de ese momento y dura mientras el mouse no se mueva; WM_LBUTTONDOWN
 // lo apaga (0x4b3cea, 0x4b344d y 0x4b3947).
 TEST(GameUiTest, TheReleaseLatchLastsWhileTheMouseStaysStill)
@@ -980,7 +1028,7 @@ TEST(GameUiTest, TheArrowsWalkTheHistoryOrTheWhisperNames)
     Client::UI::RememberTheMessage(input, "dicho");
     Press(tested.input, Key::Up);
     ASSERT_TRUE(tested.Step(320, 100).HasValue());
-    EXPECT_EQ(input.message.Value(), "dicho");
+    EXPECT_EQ(input.message.text.Value(), "dicho");
     EXPECT_EQ(tested.world.Runtime().lastSoundId, 0x19);
 
     Release(tested.input, Key::Up);
@@ -1210,7 +1258,10 @@ TEST(GameUiTest, EscapeReachesTheOldWindowsOnlyWithTheFriendsWindowOpen)
     for (const bool friendsOpen : {false, true})
     {
         SCOPED_TRACE(friendsOpen);
-        SteppingUi tested;
+        // En el heap: el WorldState ocupa unos 867 KB y, con la ventana de amigos del hito 10, el paso no entra en el
+        // stack de 1 MB de Windows.
+        const auto owned = std::make_unique<SteppingUi>();
+        SteppingUi& tested = *owned;
         auto& runtime = tested.world.Runtime();
         if (friendsOpen)
             OpenTheFriendsWindowIn(tested.world);

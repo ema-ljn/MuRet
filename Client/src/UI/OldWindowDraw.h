@@ -8,6 +8,7 @@
 #include "UI/OldWindows.h"
 
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <string>
 
@@ -64,6 +65,12 @@ struct OldWindowDrawView
     // GetFocus() de 0x468320: el id del EDIT con el foco de Windows (OldWindowManager::focusedEdit con
     // ChatFocus::OldWindow), o 0.
     std::int32_t focusedEdit = 0;
+    // 0x6c7a88: con 1, el registro del chat en su ventana (ChatModes::placement); los renglones del chat con un amigo
+    // (0x460550) y de la carta (0x465770) dejan sin fondo un texto de fondo negro.
+    std::int32_t chatPlacement = 0;
+    // La vtable + 0x14 del retrato de las cartas (0x497c10), que da el juego (Scenes::DrawTheLetterPortrait): el
+    // personaje es de Scenes. Vacío, el retrato a la vista corta.
+    std::function<Core::Expected<void, std::string>(OldPortraitPart&)> portrait{};
     // 0x45aa50 también ejecuta mensajes funcionales al recolocar: son los servicios del paso de esta pasada.
     const OldWindowGlobals* globals = nullptr;
     const OldWindowStepView* stepView = nullptr;

@@ -1,10 +1,14 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "UI/FriendModel.h"
+#include "UI/OldControls.h"
 #include "UI/OldWindowBase.h"
 #include "UI/OldWindows.h"
 
+#include <cstddef>
 #include <cstdint>
+#include <deque>
 #include <string>
 #include <string_view>
 
@@ -35,10 +39,23 @@ namespace Client::UI::Steps
 
 // 0x45abc0.
 void PlaceAgainstTheParent(OldWindowManager& manager, OldWindowBase& base);
+// El 9 de 0x45abc0 sin mirar el mensaje: lo que hacen al empezar 0x45fea0 y 0x465270 (la vtable + 0x90 de los
+// renglones del chat y del cuerpo de una carta).
+void SizeAgainstTheParent(OldWindowManager& manager, OldWindowBase& base);
 
 // 0x45aa80 desde la cola hasta el rectángulo (ver OldWindows.cpp).
 [[nodiscard]] bool ClaimTheMouse(OldWindowManager& manager, const OldWindowBase& base, const OldWindowGlobals& globals,
                                  const OldWindowStepView& view);
+
+// 0x468d50, la vtable + 0x20 del EDIT, y 0x45aa80 sobre un EDIT (ver OldWindows.cpp).
+void StepTheEditMouse(OldWindowManager& manager, OldEdit& edit, const OldWindowGlobals& globals,
+                      const OldWindowStepView& view);
+void StepTheEdit(OldWindowManager& manager, OldEdit& edit, std::int32_t arg, const OldWindowGlobals& globals,
+                 const OldWindowStepView& view);
+
+// 0x4682a0(0), la vtable + 0x30 del EDIT: SetFocus (el EDIT huérfano de una caja cerrada deja de tenerlo) y la lista
+// de las flechas en él. El IME de 0x4673a0 (con el foco en la ventana del juego y sin filtro) MuRet no lo tiene.
+void FocusTheEdit(OldWindowManager& manager, OldEdit& edit, const OldWindowGlobals& globals);
 
 // 0x45aa80 sobre un botón y 0x45aa50 sobre un botón.
 void StepTheButton(OldWindowManager& manager, OldButton& button, std::int32_t arg, const OldWindowGlobals& globals,
@@ -63,6 +80,14 @@ void ShowTheWindow(OldWindowManager& manager, std::int32_t id, bool show);
 
 // La ventana de amigos, sus pestañas y la caja de agregar (UI/FriendWindows.cpp).
 [[nodiscard]] bool IsAFriendsKind(OldWindowKind kind);
+
+// 0x461f00, la vtable + 0x88 de las listas de amigos (0x460970: la pestaña de amigos y, en el chat, la de los miembros
+// y la de invitar). Con el mouse sobre el renglón `row` (el elemento `at`): el clic lo elige y da vuelta su marca, el
+// doble clic es el 0xd al padre (0x490b40) y el derecho lo elige, da vuelta la marca y abre el susurro con el nombre
+// (0x4694c0). Da 1: el paso sigue.
+[[nodiscard]] std::int32_t HoverAFriendRow(OldWindowManager& manager, OldList& list, std::deque<FriendEntry>& friends,
+                                           std::int32_t row, std::size_t at, const OldWindowGlobals& globals,
+                                           const OldWindowStepView& view);
 // La vtable + 0x28 (0x4a2be0, 0x49d0b0, 0x49ea50, 0x4a11b0 y 0x4a3850).
 [[nodiscard]] Core::Expected<void, std::string> HandleTheFriendsMessage(OldWindowManager& manager, OldWindow& window,
                                                                         const OldWindowGlobals& globals,
@@ -96,4 +121,54 @@ void ForgetTheWindowRow(OldWindowManager& manager, std::int32_t id);
 void FillTheWindowsTab(OldWindowManager& manager);
 // 0x490200 con la de amigos: guarda su lugar en +0xc4..+0xe4.
 void SaveTheFriendsPlace(OldWindowManager& manager, const OldWindow& window);
+
+// CL9 hito 10: el chat con un amigo y las ventanas de una carta (UI/LetterWindows.cpp).
+[[nodiscard]] bool IsALetterKind(OldWindowKind kind);
+// Los casos 1, 2, 6 y 7 de 0x48ee60: el constructor y el init (0x493220, 0x4999d0 y 0x497f50). La de leer y la de
+// escribir arman el personaje del retrato (OldWindowStepView::portrait); sin él, cortan (P-C212).
+[[nodiscard]] Core::Expected<OldWindow, std::string>
+MakeTheLetterKind(OldWindowManager& manager, const OldWindowRequest& request, const OldWindowTexts& texts,
+                  const OldWindowMeasure& measure, const OldWindowStepView* view);
+// La vtable + 0x28 (0x4944c0, 0x49a1f0 y 0x498820).
+[[nodiscard]] Core::Expected<void, std::string> HandleTheLetterKindsMessage(OldWindowManager& manager,
+                                                                            OldWindow& window,
+                                                                            const OldWindowGlobals& globals,
+                                                                            const OldWindowStepView& view);
+// La vtable + 0x1c (0x495450, 0x49b180 y 0x499780).
+[[nodiscard]] Core::Expected<void, std::string> StepTheLetterKindsChildren(OldWindowManager& manager, OldWindow& window,
+                                                                           std::int32_t arg,
+                                                                           const OldWindowGlobals& globals,
+                                                                           const OldWindowStepView& view);
+// La vtable + 0x30 (0x493410, 0x499c00 y 0x498350).
+[[nodiscard]] Core::Expected<void, std::string> SettleTheLetterKinds(OldWindowManager& manager, OldWindow& window,
+                                                                     const OldWindowGlobals& globals,
+                                                                     const OldWindowStepView& view);
+// El foco del 1 de 0x48ee60 al EDIT del chat (0x48f839) y el de 0x497f50 al del nombre en la de escribir.
+void FocusTheChatEdit(OldWindowManager& manager, OldWindow& window, const OldWindowGlobals& globals);
+// La vtable + 0x4c: 0x499840 en la de escribir (sin asunto ni cuerpo, sí; si no, la caja 5 con el 1009 y no); las
+// demás, 0x48f8f0 (sí).
+[[nodiscard]] Core::Expected<bool, std::string> MayCloseTheWindow(OldWindowManager& manager, OldWindow& window,
+                                                                  const OldWindowGlobals& globals,
+                                                                  const OldWindowStepView& view);
+// Los destructores: el del chat (0x493160) sale de la sala (0x493a70); el de leer (0x499900) suelta su carta de
+// +0x94 (0x4916b0).
+[[nodiscard]] Core::Expected<void, std::string> ForgetTheLetterKind(OldWindowManager& manager, const OldWindow& window);
+// 0x4a11b0, la vtable + 0x28 de la pestaña de las cartas.
+[[nodiscard]] Core::Expected<void, std::string> HandleTheLettersTabMessage(OldWindowManager& manager, OldWindow& tab,
+                                                                           const OldWindowGlobals& globals,
+                                                                           const OldWindowStepView& view);
+// 0x4a2070, la vtable + 0x58 de la pestaña de las cartas: la marca de todas y los encabezados que ordenan.
+void AfterTheLettersTabMove(OldWindowManager& manager, OldWindow& tab, const OldWindowGlobals& globals,
+                            const OldWindowStepView& view);
+// 0x4a0960 sobre la pestaña: la copia del modelo con la elegida que estaba, y 0x4a09d0(0).
+void RefreshTheLetters(OldWindowManager& manager, OldWindow& tab);
+// 0x49d0b0 con el 10 y 3: el chat con el amigo (0x4a6430), o el C1 CA si no hay ni se pidió (0x4a6af0, 0x4a6910).
+[[nodiscard]] Core::Expected<void, std::string> ChatWithTheFriend(OldWindowManager& manager, std::string_view name,
+                                                                  const OldWindowStepView& view);
+// 0x49d0b0 con el 10 y 4 (0x49dbd4): la ventana de escribir con el nombre del elegido (0x49cad0), si hay. Da su id
+// (0 sin ventana) para la cola 0x49dc37 de la pestaña de amigos.
+[[nodiscard]] Core::Expected<std::int32_t, std::string> WriteToTheFriend(OldWindowManager& manager,
+                                                                         const FriendEntry* selected,
+                                                                         const OldWindowGlobals& globals,
+                                                                         const OldWindowStepView& view);
 } // namespace Client::UI::Steps

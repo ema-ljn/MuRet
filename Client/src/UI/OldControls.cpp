@@ -299,7 +299,8 @@ void HandleTheListMessage(OldList& list, std::size_t size)
     {
     case SizeMessage:
     {
-        // La vtable + 0x90 de las listas de la CL9.4 es 0x472130, un ret.
+        // La vtable + 0x90 de las listas de la CL9.4 es 0x472130, un ret; la de los renglones del chat y de una carta
+        // (0x45fea0, 0x465270) la corre antes quien la llama (UI/LetterWindows, DrainTheWrappedList).
         if (list.base.parent == 0)
             return;
         const std::int32_t before = list.rows;
@@ -479,6 +480,9 @@ std::optional<char> FilteredByTheEdit(std::int32_t filter, char typed)
 
 void TypeInTheEdit(OldEdit& edit, std::string_view typed)
 {
+    // 0x467b9d: cada WM_CHAR pone +0x80 en 0 antes del filtro. ES_AUTOVSCROLL: el de varios renglones sigue al cursor.
+    edit.draws = 0;
+    edit.followCaret = true;
     if ((edit.filter & (DigitsOnlyEdit | UppercaseLettersAndDigitsEdit)) == 0)
     {
         edit.text.Type(typed);

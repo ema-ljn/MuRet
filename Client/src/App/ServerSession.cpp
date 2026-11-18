@@ -3,6 +3,7 @@
 #include "App/CharacterEvent.h"
 #include "App/Credentials.h"
 #include "App/FaithfulPacer.h"
+#include "App/IChatRoomLinks.h"
 #include "App/ISessionEventSink.h"
 #include "App/ServerAddress.h"
 #include "App/SessionState.h"
@@ -35,9 +36,11 @@
 #include "Protocol/Duel.h"
 #include "Protocol/Events.h"
 #include "Protocol/FloorItems.h"
+#include "Protocol/FriendChat.h"
 #include "Protocol/Friends.h"
 #include "Protocol/PersonalShop.h"
 #include "Protocol/Inventory.h"
+#include "Protocol/Letters.h"
 #include "Protocol/Messages.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
@@ -63,6 +66,7 @@
 #include <fstream>
 #include <ios>
 #include <iterator>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string>
@@ -198,6 +202,7 @@ ServerSession::ServerSession(Network::Connection& connection, Core::IClock& cloc
     RegisterSocialHandlers();
     // El timer global no depende de abrir una conexión ni de autenticar (04 § El flujo de conexión).
     m_keepalive.Start(m_clock.Now());
+    m_chatRoomPing.Start(m_clock.Now());
 }
 
 void ServerSession::RegisterConnectServerHandlers()
@@ -334,6 +339,19 @@ void ServerSession::RegisterGameServerHandlers()
                         [this](const Network::Packet& packet) { OnFriendDeleteResult(packet); }) &&
         m_gameServer.On(Protocol::Friends::FriendStateOpcode,
                         [this](const Network::Packet& packet) { OnFriendState(packet); }) &&
+        // CL9 hito 10: las cartas y el chat con un amigo.
+        m_gameServer.On(Protocol::Letters::LetterSendOpcode,
+                        [this](const Network::Packet& packet) { OnLetterSendResult(packet); }) &&
+        m_gameServer.On(Protocol::Letters::LetterListOpcode,
+                        [this](const Network::Packet& packet) { OnLetterRow(packet); }) &&
+        m_gameServer.On(Protocol::Letters::LetterReadOpcode,
+                        [this](const Network::Packet& packet) { OnLetterRead(packet); }) &&
+        m_gameServer.On(Protocol::Letters::LetterDeleteOpcode,
+                        [this](const Network::Packet& packet) { OnLetterDeleteResult(packet); }) &&
+        m_gameServer.On(Protocol::FriendChat::RoomRequestOpcode,
+                        [this](const Network::Packet& packet) { OnRoomAnswer(packet); }) &&
+        m_gameServer.On(Protocol::FriendChat::InviteOpcode,
+                        [this](const Network::Packet& packet) { OnInviteResult(packet); }) &&
         RegisterGuildHandlers() &&
         // CL9 hito 11: los eventos.
         RegisterTheEventPackets();
@@ -591,9 +609,15 @@ Core::Expected<void, std::string> ServerSession::Poll()
     {
         return Core::Unexpected(*m_applicationFailure);
     }
+    PollTheChatRooms();
+    if (m_applicationFailure)
+    {
+        return Core::Unexpected(*m_applicationFailure);
+    }
     const Core::Duration now = m_clock.Now();
     // También consume los vencimientos sin GS: no quedan pendientes para la próxima conexión.
     const bool keepaliveDue = m_keepalive.Due(now);
+    const bool chatRoomPingDue = m_chatRoomPing.Due(now);
     const std::string_view awaited = Awaited(m_state);
     if (!awaited.empty() && now - m_stateSince >= ReplyTimeout)
     {
@@ -605,6 +629,10 @@ Core::Expected<void, std::string> ServerSession::Poll()
     if (keepaliveDue && m_connection.State() == Network::LinkState::Open && !WithConnectServer())
     {
         SendKeepalive(now);
+    }
+    if (chatRoomPingDue && !m_chatRooms.empty() && !CheckApplication(m_eventSink.ApplyWorld(ChatRoomPingDue{}, *this)))
+    {
+        return Core::Unexpected(*m_applicationFailure);
     }
     return {};
 }
@@ -1390,6 +1418,72 @@ void ServerSession::OnFriendState(const Network::Packet& packet)
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(state.Value(), *this)));
 }
 
+void ServerSession::OnLetterSendResult(const Network::Packet& packet)
+{
+    const auto read = Protocol::Letters::ReadLetterSendResult(packet);
+    if (!read.HasValue())
+    {
+        m_log.Warning("se ignora el resultado de mandar una carta (C5): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(read.Value(), *this)));
+}
+
+void ServerSession::OnLetterRow(const Network::Packet& packet)
+{
+    const auto read = Protocol::Letters::ReadLetterRow(packet);
+    if (!read.HasValue())
+    {
+        m_log.Warning("se ignora una carta de la lista (C6): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(read.Value(), *this)));
+}
+
+void ServerSession::OnLetterRead(const Network::Packet& packet)
+{
+    const auto read = Protocol::Letters::ReadLetterRead(packet);
+    if (!read.HasValue())
+    {
+        m_log.Warning("se ignora la carta para leer (C7): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(read.Value(), *this)));
+}
+
+void ServerSession::OnLetterDeleteResult(const Network::Packet& packet)
+{
+    const auto read = Protocol::Letters::ReadLetterDeleteResult(packet);
+    if (!read.HasValue())
+    {
+        m_log.Warning("se ignora el resultado de borrar una carta (C8): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(read.Value(), *this)));
+}
+
+void ServerSession::OnRoomAnswer(const Network::Packet& packet)
+{
+    const auto read = Protocol::FriendChat::ReadRoomAnswer(packet);
+    if (!read.HasValue())
+    {
+        m_log.Warning("se ignora la sala del chat con un amigo (CA): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(read.Value(), *this)));
+}
+
+void ServerSession::OnInviteResult(const Network::Packet& packet)
+{
+    const auto read = Protocol::FriendChat::ReadInviteResult(packet);
+    if (!read.HasValue())
+    {
+        m_log.Warning("se ignora el resultado de invitar al chat (CB): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(read.Value(), *this)));
+}
+
 void ServerSession::OnNotice(const Network::Packet& packet)
 {
     const auto notice = Protocol::Messages::ReadNotice(packet);
@@ -1781,6 +1875,110 @@ void ServerSession::OnQuestResult(const Network::Packet& packet)
 void ServerSession::SendFriendPacket(Protocol::Outgoing packet)
 {
     static_cast<void>(SendWorldPacket(std::move(packet)));
+}
+
+void ServerSession::EnableChatRooms(ChatRoomSockets sockets)
+{
+    m_chatRoomSockets = std::move(sockets);
+}
+
+void ServerSession::OpenChatRoom(std::uint32_t room, std::int32_t window, std::string_view address)
+{
+    if (m_chatRooms.contains(room))
+    {
+        m_log.Warning("la sala {} del chat con un amigo ya tiene su conexión", room);
+        return;
+    }
+    if (!m_chatRoomSockets.make || m_chatRoomSockets.obfuscation == nullptr)
+    {
+        m_log.Warning("no se abre la sala {} del chat con un amigo: no hay red para las salas", room);
+        return;
+    }
+    ChatRoomLink link{.window = window, .opened = false, .socket = m_chatRoomSockets.make(), .connection = nullptr};
+    link.connection = std::make_unique<Network::Connection>(*link.socket, *m_chatRoomSockets.obfuscation, m_clock,
+                                                            m_log, m_chatRoomSockets.paddingSeed);
+    link.connection->Open(address, ChatRoomPort, m_keys);
+    m_chatRooms.emplace(room, std::move(link));
+}
+
+void ServerSession::SendToChatRoom(std::uint32_t room, Protocol::Outgoing packet)
+{
+    const auto found = m_chatRooms.find(room);
+    if (found == m_chatRooms.end())
+    {
+        m_log.Warning("no se manda a la sala {} del chat con un amigo: no tiene conexión", room);
+        return;
+    }
+    // La sala que cerró su conexión sigue anotada (el FD_CLOSE de 0x49e480 no la saca) con el socket en −1: el ping de
+    // cada 15 s (0x4a6550) la salta sin decir nada (0x4a66b1), y lo que se le mande se pierde igual.
+    if (found->second.connection->State() == Network::LinkState::Closed)
+        return;
+    found->second.connection->Send(std::move(packet.packet), packet.delivery);
+}
+
+void ServerSession::CloseChatRoom(std::uint32_t room)
+{
+    const auto found = m_chatRooms.find(room);
+    if (found == m_chatRooms.end())
+        return;
+    found->second.connection->Close();
+    m_chatRooms.erase(found);
+}
+
+std::size_t ServerSession::ChatRoomCount() const
+{
+    return m_chatRooms.size();
+}
+
+// 0x49e510: cada sala, en el orden del mapa. Un handler puede cerrar o abrir salas (al soltar un chat): se recorre
+// una copia de las salas y se busca cada una antes de usarla.
+void ServerSession::PollTheChatRooms()
+{
+    std::vector<std::uint32_t> rooms;
+    rooms.reserve(m_chatRooms.size());
+    for (const auto& [room, link] : m_chatRooms)
+        rooms.push_back(room);
+    for (const std::uint32_t room : rooms)
+    {
+        auto found = m_chatRooms.find(room);
+        if (found == m_chatRooms.end())
+            continue;
+        Network::Connection* connection = found->second.connection.get();
+        const std::vector<Network::Event> events = connection->Poll();
+        for (const Network::Event& event : events)
+        {
+            found = m_chatRooms.find(room);
+            if (found == m_chatRooms.end() || found->second.connection.get() != connection)
+                break;
+            ChatRoomLink& link = found->second;
+            if (std::holds_alternative<Network::Opened>(event))
+            {
+                link.opened = true;
+            }
+            else if (const auto* packet = std::get_if<Network::Packet>(&event))
+            {
+                // Los handlers de 0x4e2a60 leen cada paquete por su lugar sin mirar su largo: uno más corto que lo que
+                // lee su handler no se aplica, y la sesión sigue (Q-C1011). El aviso no lleva el texto.
+                if (!Protocol::FriendChat::CheckRoomPacket(*packet).HasValue())
+                {
+                    m_log.Warning("se ignora el {:02X} de la sala {} del chat con un amigo: {}",
+                                  packet->Opcode().value_or(0), room, Unreadable);
+                    continue;
+                }
+                if (!CheckApplication(m_eventSink.ApplyWorld(
+                        ChatRoomPacket{.room = room, .window = link.window, .packet = *packet}, *this)))
+                    return;
+            }
+            else if (std::holds_alternative<Network::Closed>(event))
+            {
+                const ChatRoomClosed closed{.room = room, .window = link.window, .opened = link.opened};
+                if (!link.opened)
+                    m_chatRooms.erase(found);
+                if (!CheckApplication(m_eventSink.ApplyWorld(closed, *this)))
+                    return;
+            }
+        }
+    }
 }
 
 // 06 § Caminar: los ecos y el daño se aplican sin guarda de escena ni del flag de cifrado.

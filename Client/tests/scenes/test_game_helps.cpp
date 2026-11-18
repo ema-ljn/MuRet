@@ -286,12 +286,12 @@ TEST_F(GameHelpsTest, TheItemHelpCutsWhereItDraws)
     EXPECT_NE(fifth.Error().find("0x5b098f"), std::string::npos);
 }
 
-// 0x5af471 y 0x5af0c5: la caja corta con otro modo de 0x467060 que el 2 y el 3, y con más renglones que los 30.
+// 0x5af471 y 0x5af0c5: la caja corta con otro modo de 0x467060 que el 1, el 2 y el 3, y con más renglones que los 30.
 TEST_F(GameHelpsTest, TheBoxCutsWithAnotherModeAndPastItsLines)
 {
     Hud().tooltip.text[0] = "algo";
     GameHudContext context = Context();
-    const auto other = Client::Scenes::DrawTheTooltipBox(context, 1, 1, 1, 0, 1, 1);
+    const auto other = Client::Scenes::DrawTheTooltipBox(context, 1, 1, 1, 0, 4, 1);
     ASSERT_FALSE(other.HasValue());
     EXPECT_NE(other.Error().find("0x5af471"), std::string::npos);
     const auto past = Client::Scenes::DrawTheTooltipBox(

@@ -16,10 +16,25 @@
 //
 // La lista es una plantilla de la STL de MSVC6 con un std::deque de elementos: el registro del chat (0x45b620,
 // elementos de 0x11c, ya portado en UI/ChatLogWindow), la lista de amigos (0x460970, 0x14), la de las ventanas
-// (0x462010, 0x4c), la de las cartas (0x463190, 0x138) y la del chat con un amigo (0x3f0). Las instancias son iguales
-// byte a byte salvo el tamaño del elemento (0x47b0f0, 0x47e010, 0x47f7b0 y 0x47c870 son el mismo paso del mouse;
-// 0x461830 y 0x4625c0, el mismo cambio de renglones). MuRet guarda los elementos en su dueño y la lista recibe cuántos
-// hay; lo que cada instancia hace con un renglón (el clic, el dibujo) es del que la usa.
+// (0x462010, 0x4c), la de las cartas (0x463190, 0x138) y la del cuerpo de una carta (0x464620, 0x3f0). Las instancias
+// son iguales byte a byte salvo el tamaño del elemento (0x47b0f0, 0x47e010, 0x47f7b0 y 0x47c870 son el mismo paso del
+// mouse; 0x461830 y 0x4625c0, el mismo cambio de renglones). MuRet guarda los elementos en su dueño y la lista recibe
+// cuántos hay; lo que cada instancia hace con un renglón (el clic, el dibujo) es del que la usa.
+//
+// Las de la CL9.4 (P-C216, *verificado* contra el ASM: las mismas instrucciones que la de amigos, salvo los
+// desplazamientos y el tamaño del elemento), por el lugar en la vtable. La de las cartas (0x6b92a0 y 0x6b9340): + 0x28
+// 0x47f090 (= 0x47a9d0), + 0x34 0x47efd0 (= 0x47a910), + 0x3c 0x472340 (= 0x4720c0), + 0x40 0x472350 (= 0x4720d0),
+// + 0x44 0x47f060 (= 0x47a9a0), + 0x4c 0x47f2a0 (= 0x47abe0), + 0x50 0x47f350 (= 0x47ac90), + 0x5c 0x47f5e0
+// (= 0x47af20), + 0x60 0x47f640 (= 0x47af80), + 0x64 0x47f690 (= 0x47afd0), + 0x6c 0x47fea0 (= 0x47b7e0) y + 0x70
+// 0x480080 (= 0x47b9c0). La del cuerpo de una carta, de 0x3f0 (0x6b93d4 y 0x6b9474): 0x47c150, 0x47c090, 0x472200,
+// 0x472210, 0x47c120, 0x47c2c0 (+ 0x48, = 0x47ab40), 0x47c360, 0x47c410, 0x472220 (+ 0x54, = 0x4720e0), 0x47c670,
+// 0x47c6a0, 0x47c700, 0x47c750, 0x47cf60 y 0x47d140, en los mismos lugares. Lo propio de cada una (*inferido* por la
+// vtable y lo que llaman, sin compararlo instrucción por instrucción): las cartas, + 0x2c 0x47eac0 y + 0x94..+ 0x98
+// 0x4636b0 y 0x463960 (copiar la deque de las cartas), + 0x40 0x463d50 (los renglones); la del cuerpo, + 0x2c
+// 0x47bba0 (con 0x47bf00, el += de su iterador) y + 0x90..+ 0x98 0x465270, 0x464ae0 y 0x465450 (agregar un renglón y
+// partirlo): están en UI/LetterWindows, sobre los dos std::deque de la ventana (OldLetterPart). Los dibujos (+ 0x14
+// 0x464d90, + 0x7c..+ 0x80 0x464e90 y 0x465770, + 0x9c 0x464190 y 0x465710) están en UI/LetterWindowsDraw y
+// UI/FriendWindowsDraw (P-C213); 0x47bf90 no lo llama nadie.
 namespace Client::UI
 {
 // La lista (0x45e2e0 y sus derivadas), sobre la ventana base: el rectángulo cuelga de su borde de abajo (+0x78 en 2,
@@ -34,7 +49,8 @@ struct OldList
     // +0xc4: el elegido, contando desde 1; 0, ninguno.
     std::int32_t selection = 0;
     // +0xc8 y +0xf8: con 1, la cuenta es +0xf8 y no el tamaño del deque (0x4720e0). Las listas de la CL9.4 los dejan en
-    // 0 (0x460970, 0x462010).
+    // 0 (0x460970, 0x462010); las de los renglones del chat y del cuerpo de una carta ponen +0xc8 en 1 (0x45f240,
+    // 0x464620), y +0xf8 es el tamaño de su segundo deque, el de los renglones partidos (UI/LetterWindows).
     std::int32_t fixedCount = 0;
     std::int32_t fixedCountValue = 0;
     // +0xfc.
@@ -63,6 +79,9 @@ struct OldList
     // +0x134 y +0x138 de la lista de amigos: el ancho de "ZZZZZZZZZZ" y el del texto 1022, + 8 (0x460970).
     std::int32_t nameWidth = 0;
     std::int32_t placeWidth = 0;
+    // +0x13c de la lista de las cartas (0x463190): el ancho del texto 1030, + 8. En ella, +0x130 es el ancho de la
+    // columna de la marca (0x19) y +0x134 y +0x138, los de los textos 1028 y 1029 (CL9 hito 10).
+    std::int32_t subjectWidth = 0;
     // +0x144 de la lista de amigos: 0x49ddd0 la pone en 1 antes de copiar el modelo. Nadie la lee en el hito 9
     // (*estático*: no hay otra escritura ni lectura de +0x144 en la vtable 0x6b90cc).
     std::int32_t refreshed = 0;
@@ -105,8 +124,9 @@ void SelectThePrevious(OldList& list, std::size_t size, std::int32_t steps);
 [[nodiscard]] std::int32_t ListRowY(const OldList& list, std::size_t size, std::int32_t row);
 
 // 0x47a9d0, la vtable + 0x28: el 9 (con padre) vuelve a contar los renglones con el alto de antes de medir
-// (ftol(h · 1/13 − 0,5)), el 0xe va al final (y elige el último con +0xbc), y el 0xf y el 0x10 suben o bajan la
-// elección (con +0xbc) y la dejan a la vista. Siempre da 0: después corre 0x45abc0.
+// (ftol(h · 1/13 − 0,5); las de los renglones del chat y de una carta corren antes su vtable + 0x90, que mide), el 0xe
+// va al final (y elige el último con +0xbc), y el 0xf y el 0x10 suben o bajan la elección (con +0xbc) y la dejan a la
+// vista. Siempre da 0: después corre 0x45abc0.
 void HandleTheListMessage(OldList& list, std::size_t size);
 
 // 0x47b9c0, la vtable + 0x70: los bordes de la pista y el tamaño y el lugar del cursor de la barra, como 0x47a230 del
@@ -179,6 +199,36 @@ struct OldEdit
     std::uint32_t backgroundColor = 0xff000000u;
     // +0xac: el alto de "Q" en píxeles (0x6c7af4), que 0x468320 mide la primera vez (0 hasta entonces).
     float caretHeight = 0.0f;
+    // +0xb4 (la vtable + 0x58, 0x4676c0, y + 0x5c, 0x4676d0; 0 en el constructor, 0x46755f): 1 con el chat con un
+    // amigo cerrado. Solo la escribe 0x495630 y la leen el 10 y 2 de 0x4944c0 (no invita) y Enter en 0x467b10 (va al
+    // EDIT de Windows, sin el 7 al padre). No es el foco ni el estado (+0x48).
+    std::int32_t closed = 0;
+    // +0x98 (la vtable + 0x54, 0x4676b0): el id del EDIT al que Tab pasa el foco (0x467d07), o 0. Solo los enlaza la de
+    // escribir una carta (0x49817a..0x498192: para, asunto, cuerpo y otra vez para).
+    std::int32_t next = 0;
+    // CL9 hito 10, el EDIT de varios renglones (UI/OldEditLines.h). +0xc4: 1 con ES_MULTILINE | ES_AUTOVSCROLL |
+    // WS_VSCROLL (0x4675e0, la vtable + 0x38, antes de crearlo: solo el cuerpo de la carta, 0x4980ef).
+    std::int32_t multiline = 0;
+    // +0xc8 y +0xcc: las cuentas de las flechas y de la pista de 0x468d50, como las de la lista.
+    std::int32_t arrowRepeat = 0;
+    std::int32_t trackRepeat = 0;
+    // +0xd0: los renglones que entran, ftol(h · ry / cy de "1") al crearlo (0x467fe0, con +0xc4 en 1; si no, 0).
+    std::int32_t visibleLines = 0;
+    // +0xd4..+0xe4: la barra de 0x468970 (el ancho, 13; la pista de y + 9 a y + h − 9; el alto y la y del cursor) y
+    // +0xe8, el mouse menos la y del cursor al agarrarlo (0x468d50).
+    float barWidth = 0.0f;
+    float barTop = 0.0f;
+    float barBottom = 0.0f;
+    float thumbHeight = 0.0f;
+    float thumbY = 0.0f;
+    float dragOffset = 0.0f;
+    // MuRet: lo que el EDIT de Windows guarda y el original le pide con mensajes. El primer renglón a la vista
+    // (GetScrollPos de SB_VERT, EM_SCROLL y EM_LINESCROLL), el ancho del área del texto en píxeles (el de la ventana
+    // de 0x467fe0 menos la barra de Windows y los márgenes, *inferido*) y si el último cambio del texto o del cursor
+    // pide mostrar el cursor (ES_AUTOVSCROLL).
+    std::int32_t firstLine = 0;
+    std::int32_t textWidth = 0;
+    bool followCaret = false;
 };
 
 // +0x4c del EDIT: los filtros de su subclase.
@@ -191,7 +241,8 @@ inline constexpr std::int32_t UppercaseLettersAndDigitsEdit = 2;
 // 0x80 o más es negativo como char y no pasa ninguno de los dos filtros.
 [[nodiscard]] std::optional<char> FilteredByTheEdit(std::int32_t filter, char typed);
 
-// WM_CHAR al EDIT con el foco: cada letra de `typed` por el filtro de +0x4c y lo que pasa al texto, con su tope.
+// WM_CHAR al EDIT con el foco: +0x80 en 0 (0x467b9d) y cada letra de `typed` por el filtro de +0x4c, y lo que pasa
+// al texto, con su tope. En el de varios renglones, el cursor queda a la vista (followCaret, UI/OldEditLines.h).
 void TypeInTheEdit(OldEdit& edit, std::string_view typed);
 
 // La vtable + 0x3c del EDIT (0x467f30): EM_LIMITTEXT con SendMessageA, que pasa por la subclase 0x467b10; con una

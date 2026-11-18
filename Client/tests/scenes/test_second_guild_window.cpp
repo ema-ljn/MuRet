@@ -532,8 +532,9 @@ TEST_P(SecondGuildWindowTest, TheNamePageDrawsTheFieldAndTheEditor)
     ASSERT_EQ(quads.size(), 175u);
     ExpectQuadAt(quads[3], 0x10f, Left + 0x3a, 56.0f, 110.0f, 18.0f);
     // 0x468320, después de "nombre" (4): la caja del EDIT en el fondo de +0xa0 (0), alta como el EDIT (0xe), y el texto
-    // (6). El cursor del segundo dibujo (+0x80 en 1) va en la columna 3 + cx + 1 de un bitmap de ftol(3 + cx): al
-    // final del texto queda recortado (el editor XP de UI::OldDraw::DrawTheOldEdit).
+    // (6). Cada WM_CHAR de "Ceibo" pone +0x80 en 0 (la subclase, 0x467b9d), y el cursor del segundo dibujo (+0x80 en 0,
+    // prendido) va en la columna 3 + cx + 1 de un bitmap de ftol(3 + cx): al final del texto queda recortado (el editor
+    // XP de UI::OldDraw::DrawTheOldEdit).
     constexpr float Tolerance = 1e-3f;
     EXPECT_EQ(quads[4].slot, Marker);
     EXPECT_EQ(quads[5].slot, NoTexture);
@@ -541,7 +542,7 @@ TEST_P(SecondGuildWindowTest, TheNamePageDrawsTheFieldAndTheEditor)
     EXPECT_NEAR(quads[5].first.y, 480.0f - 0x3c, Tolerance);
     EXPECT_NEAR(quads[5].third.y, 480.0f - 0x3c - 0xe, Tolerance);
     EXPECT_EQ(quads[6].slot, Marker);
-    EXPECT_EQ(Input().dialogEdit.draws, 2);
+    EXPECT_EQ(Input().dialogEdit.draws, 1);
     // La grilla empieza en el 7: su marco y el cuadrado del 0 (el 9 es el 4).
     ExpectQuadAt(quads[7], 0x116, Left + 50.0f, 100.0f, 15.0f, 15.0f);
     ExpectQuadAt(quads[8], SwatchSlot(0), Left + 51.0f, 101.0f, 13.0f, 13.0f);

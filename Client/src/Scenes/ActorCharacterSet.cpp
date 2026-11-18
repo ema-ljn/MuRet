@@ -61,10 +61,20 @@ PetAndHelper BasePet(GameLogic::Equipment equipment)
     }
 }
 
-Core::Expected<void, std::string> CreatePet(WorldState& world, std::size_t slot, PetAndHelper pet,
+// Dónde van los ayudantes de las mascotas: con `own` en nullptr, al pool con 0x443fa0 y el lugar del personaje; si
+// no, a ese ayudante propio con 0x443d70 (el objeto de 0x5139f0, 0x513b7b..0x513ce5).
+struct PetTarget
+{
+    WorldState& world;
+    ActorState& actor;
+    std::size_t slot = 0;
+    HelperState* own = nullptr;
+};
+
+Core::Expected<void, std::string> CreatePet(const PetTarget& target, PetAndHelper pet,
                                             Render::Models::CrtRandom& random)
 {
-    ActorState& actor = world.Actors()[slot];
+    ActorState& actor = target.actor;
     actor.pet.model = pet.pet;
     actor.previousHad1c15 = pet.pet == HeightOffsetPet;
     if (pet.pet == NoItemModel)
@@ -76,7 +86,13 @@ Core::Expected<void, std::string> CreatePet(WorldState& world, std::size_t slot,
     {
         return {};
     }
-    auto created = CreateHelper(world, pet.helper, actor.position, slot, &random);
+    if (target.own != nullptr)
+    {
+        auto built = ConstructHelper(*target.own, pet.helper, actor.position, actor, ActorPoolSize,
+                                     target.world.Runtime().map, &random);
+        return built.HasValue() ? Core::Expected<void, std::string>{} : Core::Unexpected(built.Error());
+    }
+    auto created = CreateHelper(target.world, pet.helper, actor.position, target.slot, &random);
     return created.HasValue() ? Core::Expected<void, std::string>{} : Core::Unexpected(created.Error());
 }
 
@@ -132,13 +148,11 @@ void PutTheBody(ActorState& actor, const GameLogic::CharacterAppearance& appeara
     actor.hands[1].flags1c = BitOf(ancient, 1);
     actor.byte358 = BitOf(ancient, 0);
 }
-} // namespace
 
-Core::Expected<void, std::string> CreateCharacterSetPets(WorldState& world, std::size_t slot,
-                                                         GameLogic::Equipment equipment,
-                                                         Render::Models::CrtRandom& random)
+Core::Expected<void, std::string> CreatePets(const PetTarget& target, GameLogic::Equipment equipment,
+                                             Render::Models::CrtRandom& random)
 {
-    if (auto base = CreatePet(world, slot, BasePet(equipment), random); !base.HasValue())
+    if (auto base = CreatePet(target, BasePet(equipment), random); !base.HasValue())
     {
         return base;
     }
@@ -146,7 +160,7 @@ Core::Expected<void, std::string> CreateCharacterSetPets(WorldState& world, std:
     constexpr std::uint16_t DarkHorse = 0x1c16;
     if ((flags & 1) != 0)
     {
-        if (auto horse = CreatePet(world, slot, {DarkHorse, DarkHorseModel}, random); !horse.HasValue())
+        if (auto horse = CreatePet(target, {DarkHorse, DarkHorseModel}, random); !horse.HasValue())
         {
             return horse;
         }
@@ -154,22 +168,23 @@ Core::Expected<void, std::string> CreateCharacterSetPets(WorldState& world, std:
     constexpr std::uint16_t Fenrir = 0x1c37;
     if ((flags & 4) != 0)
     {
-        auto& part = world.Actors()[slot].pet;
+        auto& part = target.actor.pet;
         part.flags1b = static_cast<std::uint8_t>(ByteOf(equipment, 15) & 3);
         constexpr std::uint16_t RedFenrir = 0x14a;
         constexpr std::uint16_t BlueFenrir = 0x14c;
         constexpr std::uint16_t OtherFenrir = 0x14b;
         const auto helper = part.flags1b == 1 ? RedFenrir : part.flags1b == 2 ? BlueFenrir : OtherFenrir;
-        return CreatePet(world, slot, {Fenrir, helper}, random);
+        return CreatePet(target, {Fenrir, helper}, random);
     }
     return {};
 }
 
-Core::Expected<void, std::string> ApplyCharacterSet(std::size_t index, GameLogic::Equipment equipment,
-                                                    const WorldEntryResources& resources)
+// 0x5139f0 desde 0x513a12, sobre el personaje de `target`.
+Core::Expected<void, std::string> ApplyTheSet(const PetTarget& target, GameLogic::Equipment equipment,
+                                              const WorldEntryResources& resources)
 {
     WorldState& world = resources.world;
-    ActorState& actor = world.Actors()[index];
+    ActorState& actor = target.actor;
     // 0x513a12: solo los jugadores.
     if (actor.type != Data::Models::PlayerSkeletonModel)
         return {};
@@ -177,9 +192,12 @@ Core::Expected<void, std::string> ApplyCharacterSet(std::size_t index, GameLogic
         GameLogic::AppearanceOf(actor.characterClass, actor.skin, equipment);
     if (auto carried = PutHandsAndWings(actor, appearance, resources); !carried.HasValue())
         return carried;
-    // 0x513b2e: con el cuarto argumento en 0, 0x443d40.
-    TurnOffHelpersOf(world.Helpers(), index);
-    if (auto pets = CreateCharacterSetPets(world, index, equipment, resources.cloth.random); !pets.HasValue())
+    // 0x513b27..0x513b39: con el cuarto argumento en 0, 0x443d40; con un ayudante, su byte vivo en 0.
+    if (target.own != nullptr)
+        target.own->alive = false;
+    else
+        TurnOffHelpersOf(world.Helpers(), target.slot);
+    if (auto pets = CreatePets(target, equipment, resources.cloth.random); !pets.HasValue())
         return pets;
     // 0x513cee.
     ReleaseTheLayer(actor);
@@ -201,5 +219,28 @@ Core::Expected<void, std::string> ApplyCharacterSet(std::size_t index, GameLogic
     ArmForTheEventMaps(actor, world.Runtime().map);
     ApplyHeadAndScale(actor);
     return {};
+}
+} // namespace
+
+Core::Expected<void, std::string> CreateCharacterSetPets(WorldState& world, std::size_t slot,
+                                                         GameLogic::Equipment equipment,
+                                                         Render::Models::CrtRandom& random)
+{
+    return CreatePets({.world = world, .actor = world.Actors()[slot], .slot = slot}, equipment, random);
+}
+
+Core::Expected<void, std::string> ApplyCharacterSet(std::size_t index, GameLogic::Equipment equipment,
+                                                    const WorldEntryResources& resources)
+{
+    WorldState& world = resources.world;
+    return ApplyTheSet({.world = world, .actor = world.Actors()[index], .slot = index}, equipment, resources);
+}
+
+Core::Expected<void, std::string> ApplyCharacterSetTo(ActorState& actor, HelperState& helper,
+                                                      GameLogic::Equipment equipment,
+                                                      const WorldEntryResources& resources)
+{
+    return ApplyTheSet({.world = resources.world, .actor = actor, .slot = ActorPoolSize, .own = &helper}, equipment,
+                       resources);
 }
 } // namespace Client::Scenes

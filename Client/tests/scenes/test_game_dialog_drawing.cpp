@@ -647,21 +647,23 @@ TEST(GameDialogDrawingTest, TheLeaveNumberDrawsItsEditAndTheNarrowButtons)
         EXPECT_EQ(runtime.hud.textColors.text, 0xff0000ffu);
         EXPECT_EQ(tested->sprites.Blend(), BlendMode::Alpha);
 
-        // El tope 7 (EM_LIMITTEXT) frena lo que se teclea desde ahora.
+        // El tope 7 (EM_LIMITTEXT) frena lo que se teclea desde ahora. Cada WM_CHAR pasa por la subclase (0x467b10),
+        // que pone +0x80 en 0 (0x467b9d) antes de dárselo al EDIT.
         Client::UI::TypeInTheChat(input, "345678");
         EXPECT_EQ(input.numberField.text.Value(), "1234567");
+        EXPECT_EQ(input.numberField.draws, 0);
 
         // Un dibujo intermedio no cuenta el parpadeo; fuera del sí (x 0x16b) y en el no, 0xf1 y 0xf4.
         tested->sprites.Begin(Screen640);
         tested->text.texts.clear();
         tested->mouse = {0x16b, 0x62};
         ASSERT_TRUE(tested->Draw(true).HasValue());
-        EXPECT_EQ(input.numberField.draws, 1);
+        EXPECT_EQ(input.numberField.draws, 0);
         EXPECT_EQ(QuadsOf(tested->sprites)[3].slot, 0xf1);
         tested->sprites.Begin(Screen640);
         tested->mouse = {0x175, 0x62};
         ASSERT_TRUE(tested->Draw().HasValue());
-        EXPECT_EQ(input.numberField.draws, 2);
+        EXPECT_EQ(input.numberField.draws, 1);
         EXPECT_EQ(QuadsOf(tested->sprites)[4].slot, 0xf4);
         EXPECT_EQ(tested->random.State(), Client::Render::Models::CrtRandom{}.State());
     }

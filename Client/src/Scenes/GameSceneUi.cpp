@@ -14,10 +14,15 @@
 #include "Protocol/Inventory.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
+#include "Render/Models/Animation.h"
+#include "Render/Models/HalfLifeMath.h"
+#include "Render/Models/Pose.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ActorPickingBox.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/EventDrawing.h"
+#include "Scenes/FaunaDrawing.h"
+#include "Scenes/GameCharacters.h"
 #include "Scenes/GameChat.h"
 #include "Scenes/GameData.h"
 #include "Scenes/GameDialogDrawing.h"
@@ -34,7 +39,9 @@
 #include "Scenes/GameTooltips.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/InventoryMoves.h"
+#include "Scenes/LetterPortrait.h"
 #include "Scenes/SceneCanvas.h"
+#include "Scenes/SceneContext.h"
 #include "Scenes/UiItemDrawing.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -58,6 +65,7 @@
 #include <ios>
 #include <optional>
 #include <ratio>
+#include <span>
 #include <string>
 #include <string_view>
 #include <span>
@@ -302,7 +310,8 @@ Core::Expected<void, std::string> GameScene::StepTheDialogs(const Input::InputSt
                                             .texts = m_texts,
                                             .chosenSlot = chosenSlot,
                                             .requests = &requests,
-                                            .inventory = &inventory});
+                                            .inventory = &inventory,
+                                            .worldEntry = m_context.worldEntry});
 }
 
 Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& input)
@@ -330,7 +339,8 @@ Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& 
                                        .systemTime = systemTime,
                                        .inventory = &inventory,
                                        .itemSetTables = m_chatTables.itemSetTables,
-                                       .skills = m_skills});
+                                       .skills = m_skills,
+                                       .worldEntry = m_context.worldEntry});
 }
 
 GameChatContext GameScene::ChatContext()
@@ -416,6 +426,7 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
         .crywolfSandOverlay = m_projectingFrame ? m_projection->crywolfSandOverlay : runtime.crywolf.sandOverlay,
         .crywolfInterface = m_projectingFrame ? &m_projection->crywolfInterface : &runtime.crywolf.ui,
         .sound = m_projectingFrame ? m_projection->sound : runtime.lastSoundId,
+        .oldWindows = m_projectingFrame ? &m_projection->oldWindows : &runtime.oldWindows,
         .projecting = m_projectingFrame,
         .projection = projection,
         .sprites = canvas.sprites,
@@ -505,10 +516,71 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
                                                  .arrowHeld = hud.arrowHeld};
     // 0x659290(1) no saca rand(): se puede mirar antes de la ventana que la pregunta.
     GamePanels panels(*m_context.world, FrameCloth().random);
-    // Los textos de la ventana de amigos, la lista con las flechas del teclado (0x5762ec0) y el EDIT con el foco de
-    // Windows (GetFocus() de 0x468320: el de las ventanas viejas, con ChatFocus::OldWindow).
+    // Los textos de la ventana de amigos, la lista con las flechas del teclado (0x5762ec0), el EDIT con el foco de
+    // Windows (GetFocus() de 0x468320: el de las ventanas viejas, con ChatFocus::OldWindow) y dónde va el registro del
+    // chat (0x6c7a88).
     const UI::OldWindowTexts friendTexts = OldWindowTextsOf(m_texts);
     const bool editFocused = runtime.chat.input.focus == UI::ChatFocus::OldWindow;
+    // 0x49a1d0 y 0x498800 → 0x497c10: el retrato de las cartas, con el juego de SceneContext::worldEntry, los modelos
+    // (los del personaje y, para el ayudante, los del mundo) y lo del frame, o sus copias en un dibujo intermedio. Sin
+    // el juego o sin los modelos, el retrato a la vista corta.
+    std::optional<std::string> portraitPoseFailure;
+    std::optional<LetterPortraitDraw> portraitDraw;
+    if (m_models != nullptr && m_context.worldEntry != nullptr)
+    {
+        const bool originalFrame = !m_projectingFrame;
+        portraitDraw.emplace(LetterPortraitDraw{
+            .hud = hud,
+            .batch = canvas.models,
+            .flushSprites = canvas.flushSprites,
+            .flushModels = canvas.flushModels,
+            .characters =
+                GameCharacterPass{.dynamicLighting = &FrameLighting(),
+                                  .clothWorld = &FrameCloth(),
+                                  .frameClock = canvas.frameClock,
+                                  .originalFrames = originalFrame ? 1 : 0,
+                                  .sprites = &FrameSpritesForDraw(),
+                                  .poseCarry = &FramePoseCarry(),
+                                  .joints = FrameTail().joints,
+                                  .particles = &FrameParticles(),
+                                  .effects = &FrameEffects(),
+                                  .itemContext = &itemContext,
+                                  .pace = originalFrame ? Render::Models::OriginalFramePace::OncePerDraw
+                                                        : OriginalFramePaceOf(m_context.pacing),
+                                  .onPose =
+                                      [&](std::uint16_t model, std::span<const Render::Models::BoneTransform> bones,
+                                          const Render::Models::ObjectTransform& transform, bool translated)
+                                  {
+                                      const auto published = PublishFaunaPoseRaw(FramePoseCarry(), *m_models, model,
+                                                                                 bones, transform, translated);
+                                      if (!published.HasValue() && !portraitPoseFailure)
+                                          portraitPoseFailure = published.Error();
+                                  },
+                                  .publishProjectedPose = true,
+                                  .poseBones = [&](std::uint16_t)
+                                  { return std::span<const Render::Models::BoneTransform>(FramePoseCarry().bones); },
+                                  .worldModels = m_worldModelsMap ? &m_worldModels : nullptr,
+                                  .fixedHeight = CameraState().fixedHeight},
+            .helperModels = &m_worldModels,
+            .onHelperPose = [&](const DrawnObject& object)
+            { return PublishFaunaPose(FramePoseCarry(), m_worldModels, object, true); },
+            .posedMeshes = [&]() { return std::span<const Render::Models::SkinnedMesh>(FramePoseCarry().meshes); },
+            // timeGetTime (0x6b8544), del calco 0x14e de los Fenrir: el reloj del dibujo en ms.
+            .systemTime = [systemTime = static_cast<std::uint32_t>(
+                               std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count())]()
+            { return systemTime; },
+            .globalPose = [&]() { return std::span<const Render::Models::BoneTransform>(FramePoseCarry().bones); },
+            .originalFrame = originalFrame});
+    }
+    std::function<Core::Expected<void, std::string>(UI::OldPortraitPart&)> drawThePortrait;
+    if (portraitDraw)
+        drawThePortrait = [&](UI::OldPortraitPart& part) -> Core::Expected<void, std::string>
+        {
+            auto drawn = DrawTheLetterPortrait(part, *portraitDraw, *m_context.worldEntry);
+            if (drawn.HasValue() && portraitPoseFailure)
+                return Core::Unexpected(*portraitPoseFailure);
+            return drawn;
+        };
     // Una pasada intermedia parte del mismo estado que su copia del administrador y no publica efectos de red.
     UI::GameUiState projectedUi = runtime.ui;
     GameMovementState projectedMovement = runtime.movement;
@@ -528,22 +600,48 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
                                            .focusedList = drawUi.focusedList,
                                            .wheel = drawUi.wheel,
                                            .rightClick = drawUi.rightClick,
-                                           .doubleClick = drawUi.doubleClick};
+                                           .doubleClick = drawUi.doubleClick,
+                                           .mouseUpdateTime = &drawMovement.mouseUpdateTime,
+                                           .mouseUpdateTimeMax = &drawMovement.mouseUpdateTimeMax};
     const UI::OldWindowMeasure drawMeasure{.measure = canvas.text, .dcFont = hud.hud.dcFont, .screen = canvas.screen};
     SceneUiRequests drawRequests(m_session, m_context.log, m_context.dataRoot);
-    const UI::OldWindowStepView drawStep{.mouseX = hud.mouse.x,
-                                         .mouseY = hud.mouse.y,
-                                         .keyEdge = [&drawUi, &input](std::uint8_t key)
-                                         { return OldWindowKeyEdge(drawUi, input, key); },
-                                         .chatOpen = drawUi.chatOpen,
-                                         .texts = &friendTexts,
-                                         .measure = &drawMeasure,
-                                         .send =
-                                             [this, &drawRequests](const UI::FriendSend& send)
-                                         {
-                                             if (!m_projectingFrame)
-                                                 drawRequests.SendFriendPacket(FriendPacketOf(send));
-                                         }};
+    UI::OldWindowStepView drawStep{.mouseX = hud.mouse.x,
+                                   .mouseY = hud.mouse.y,
+                                   .keyEdge = [&drawUi, &input](std::uint8_t key)
+                                   { return OldWindowKeyEdge(drawUi, input, key); },
+                                   .chatOpen = drawUi.chatOpen,
+                                   .texts = &friendTexts,
+                                   .measure = &drawMeasure,
+                                   .send =
+                                       [this, &drawRequests](const UI::FriendSend& send)
+                                   {
+                                       if (!m_projectingFrame)
+                                           drawRequests.SendFriendPacket(FriendPacketOf(send));
+                                   }};
+    // Lo demás que el paso lee del juego, como el de la UI (CL9 hito 10: el retrato, la carta guardada, el filtro):
+    // un comando que llega en el dibujo (0x45aa50) no puede encontrar menos que en el paso.
+    const GameChatContext drawChat = ChatContext();
+    std::optional<std::uint8_t> drawChosenSlot;
+    if (m_session != nullptr)
+    {
+        if (const Protocol::Character::CharacterEntry* chosen = m_session->ChosenCharacter(); chosen != nullptr)
+            drawChosenSlot = chosen->slot;
+    }
+    LendTheGameHooks(drawStep,
+                     GameUiContext{.world = *m_context.world,
+                                   .random = m_context.cloth->random,
+                                   .input = input,
+                                   .mouseX = hud.mouse.x,
+                                   .mouseY = hud.mouse.y,
+                                   .measure = m_context.textMeasure,
+                                   .screen = m_screen,
+                                   .chat = &drawChat,
+                                   .texts = m_texts,
+                                   .chosenSlot = drawChosenSlot,
+                                   .requests = &drawRequests,
+                                   .worldEntry = m_context.worldEntry},
+                     !m_projectingFrame);
+    drawStep.field78abaac = drawUi.field78abaac;
     const UI::OldWindowDrawView windowView{.mouseX = hud.mouse.x,
                                            .mouseY = hud.mouse.y,
                                            .leftClick = runtime.movement.pendingClick,
@@ -551,6 +649,8 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
                                            .texts = &friendTexts,
                                            .focusedList = runtime.ui.focusedList,
                                            .focusedEdit = editFocused ? oldWindows.focusedEdit : 0,
+                                           .chatPlacement = runtime.ui.chatModes.placement,
+                                           .portrait = drawThePortrait,
                                            .globals = &drawGlobals,
                                            .stepView = &drawStep};
     if (auto windows = UI::DrawTheOldWindows(oldWindows, windowContext, windowView); !windows.HasValue())

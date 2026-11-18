@@ -5,11 +5,14 @@
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Protocol/Character/LevelUpPoint.h"
+#include "Protocol/Letters.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Pet/PetInfo.h"
 #include "Protocol/Trade.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/ChatReceive.h"
+#include "Scenes/LetterPortrait.h"
 #include "Scenes/CharacterPicking.h"
 #include "Scenes/CameraTour.h"
 #include "Scenes/CrywolfContract.h"
@@ -20,6 +23,7 @@
 #include "Scenes/GameCommandsWindow.h"
 #include "Scenes/GameDialogSteps.h"
 #include "Scenes/GameFriends.h"
+#include "Scenes/GameLetters.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GameMoveWindow.h"
 #include "Scenes/GameMovementState.h"
@@ -48,6 +52,7 @@
 #include "UI/GameDialogs.h"
 #include "UI/GameUiState.h"
 #include "UI/MessageArea.h"
+#include "UI/NameChecks.h"
 #include "UI/OldWindows.h"
 #include "UI/PanelRegistry.h"
 #include "UI/SlideBanner.h"
@@ -65,6 +70,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 namespace Client::Scenes
 {
@@ -165,7 +171,7 @@ constexpr std::int32_t ButtonMouseUpdateTimeMax = 6;
 constexpr std::int32_t OldAreaRowHeight = 0xd;
 constexpr std::int32_t OldAreaBottom = 0x4e;
 // 0x4691e0: los dos EDIT del chat, en (0xc1, 0x1a6) de 0xb4 × 0xe y en (0x178, 0x1a6) de 0x32 × 0xe. Sus ids
-// (0x45a210) son *inferidos*: los dos primeros que arma WinMain (0x4bb173 y 0x4bb184), antes de los otros tres
+// (0x45a210) son *inferidos*: los dos primeros que arma WinMain (0x4bb01b y 0x4bb02c), antes de los otros tres
 // objetos de EDIT y del registro del chat (el 9).
 struct ChatEditPlace
 {
@@ -174,8 +180,8 @@ struct ChatEditPlace
     std::int32_t x, y, width, height;
 };
 constexpr std::array<ChatEditPlace, 2> ChatEdits{{
-    {UI::MessageField, 1, 0xc1, 0x1a6, 0xb4, 0xe},
-    {UI::WhisperField, 2, 0x178, 0x1a6, 0x32, 0xe},
+    {UI::MessageField, UI::ChatMessageEditId, 0xc1, 0x1a6, 0xb4, 0xe},
+    {UI::WhisperField, UI::ChatWhisperEditId, 0x178, 0x1a6, 0x32, 0xe},
 }};
 // 0x5a33dc..0x5a343a: el botón de F3, junto al EDIT del susurro.
 constexpr std::int32_t WhisperModeLeft = 0x1b2;
@@ -390,33 +396,21 @@ public:
 
     [[nodiscard]] UI::OldWindowStepView View() const
     {
-        WorldRuntime& runtime = m_context.world.Runtime();
-        UI::GameUiState& ui = runtime.ui;
-        UI::ChatInputState& chat = runtime.chat.input;
+        UI::GameUiState& ui = m_context.world.Runtime().ui;
         const Input::InputState& input = m_context.input;
-        UI::OldWindowStepView view{
-            .mouseX = m_context.mouseX,
-            .mouseY = m_context.mouseY,
-            .keyEdge = [&ui, &input](std::uint8_t virtualKey) { return OldWindowKeyEdge(ui, input, virtualKey); },
-            .keyDown =
-                [&input](std::uint8_t virtualKey)
-            {
-                for (const GameKey& key : OldWindowDownKeys)
-                {
-                    if (key.virtualKey == virtualKey)
-                        return input.IsDown(key.key);
-                }
-                return false;
-            },
-            .chatOpen = ui.chatOpen,
-            .texts = &m_texts,
-            .measure = m_measure ? &*m_measure : nullptr,
-            .send = {},
-            // 0x4694c0(0, 0, 1, nombre).
-            .whisperTo = [&chat](std::string_view name) { UI::SetTheChatFields(chat, std::nullopt, name); },
-            .openFriends = [this]() { return OpenTheFriendsWindow(); }};
+        UI::OldWindowStepView view{.mouseX = m_context.mouseX,
+                                   .mouseY = m_context.mouseY,
+                                   .keyEdge = [&ui, &input](std::uint8_t virtualKey)
+                                   { return OldWindowKeyEdge(ui, input, virtualKey); },
+                                   .chatOpen = ui.chatOpen,
+                                   .texts = &m_texts,
+                                   .measure = m_measure ? &*m_measure : nullptr,
+                                   .send = {},
+                                   .openFriends = [this]() { return OpenTheFriendsWindow(); }};
         if (IGameUiRequests* requests = m_context.requests; requests != nullptr)
-            view.send = [requests](const UI::FriendSend& send) { requests->SendFriendPacket(FriendPacketOf(send)); };
+            view.send = [requests, &random = m_context.random](const UI::FriendSend& send)
+            { SendAFriendPacket(*requests, random, send); };
+        LendTheGameHooks(view, m_context, true);
         return view;
     }
 
@@ -1810,7 +1804,7 @@ void StepTheArrowKey(const GameUiContext& context, GameKey key, std::int32_t dir
     if ((input.focus == UI::ChatFocus::Message || input.focus == UI::ChatFocus::Whisper) && input.field % 2 == 0)
         sound = UI::RecallFromTheHistory(input, direction);
     else
-        sound = UI::StepTheWhisperName(input, direction);
+        sound = UI::StepTheWhisperName(input, direction, &runtime.ui.focusedList);
     if (sound)
         runtime.lastSoundId = ButtonSound;
 }
@@ -1841,7 +1835,7 @@ bool StepTheChatEdit(const GameUiContext& context, const ChatEditPlace& edit)
     ui.mouseOnUi = 1;
     if (runtime.movement.pendingClick)
     {
-        UI::ClickTheChatField(runtime.chat.input, edit.field);
+        UI::ClickTheChatField(runtime.chat.input, edit.field, &ui.focusedList);
         runtime.movement.mouseUpdateTime = 0;
         runtime.movement.mouseUpdateTimeMax = ButtonMouseUpdateTimeMax;
     }
@@ -2110,6 +2104,10 @@ bool OldWindowKeyEdge(UI::GameUiState& ui, const Input::InputState& input, std::
 // 0x4b3961: un DOWN nuevo rearma held aunque la UI lo hubiera consumido y UP+DOWN lleguen en un mismo pump.
 void LatchTheLeftButton(GameMovementState& state, bool pressed, bool down)
 {
+    // WM_LBUTTONDBLCLK no toca 0x7d36874 (0x4b4444..0x4b47b6), que solo escriben WM_LBUTTONDOWN (0x4b3961) y
+    // WM_LBUTTONUP (0x4b3cf1): con el segundo apretón de un doble clic como el último, `down` (el de los mensajes,
+    // Input::MouseMessageState) queda en false y el botón queda arriba para el juego mientras se sostiene, hasta el
+    // próximo WM_LBUTTONDOWN.
     if (!down)
         state.leftHeld = false;
     else if (pressed || !state.previousLeftDown)
@@ -2136,6 +2134,52 @@ void LatchTheLeftRelease(GameMovementState& state, bool pressed, bool released, 
     state.releasedClick = true;
     state.releaseX = mouseX;
     state.releaseY = mouseY;
+}
+
+void LendTheGameHooks(UI::OldWindowStepView& view, const GameUiContext& context, bool effects)
+{
+    WorldState& world = context.world;
+    WorldRuntime& runtime = world.Runtime();
+    view.keyDown = ArrowKeysDown(context.input);
+    // CL9 hito 10: el filtro de las malas palabras de las cartas y del chat con un amigo (0x622b40 con 0).
+    if (const GameChatContext* chatContext = context.chat; chatContext != nullptr)
+        view.badWord = [filter = chatContext->filter](std::string_view text)
+        { return UI::ContainsAFilteredWord(text, filter, false); };
+    view.heroName = std::string(HeroNameOf(world.Actors()[runtime.hero]));
+    view.field78abaac = runtime.ui.field78abaac;
+    if (!effects)
+    {
+        view.whisperTo = [](std::string_view /*name*/) {};
+        view.replayLetter = [](const std::vector<std::byte>& /*copy*/) -> Core::Expected<void, std::string>
+        { return {}; };
+        view.portrait = [](UI::OldPortraitPart& /*part*/, UI::PortraitCallKind /*call*/,
+                           std::int32_t /*delta*/) -> Core::Expected<void, std::string> { return {}; };
+        return;
+    }
+    // 0x4694c0(0, 0, 1, nombre).
+    view.whisperTo = [&chat = runtime.chat.input](std::string_view name)
+    { UI::SetTheChatFields(chat, std::nullopt, name); };
+    // 0x4a11b0 con el 10 y 2 sobre una carta guardada: 0x4dcb70 con la copia de 0x4a03c0.
+    view.replayLetter = [&world, &random = context.random, measure = context.measure, screen = context.screen,
+                         texts = context.texts, chosenSlot = context.chosenSlot, worldEntry = context.worldEntry](
+                            const std::vector<std::byte>& copy) -> Core::Expected<void, std::string>
+    {
+        auto letter = Protocol::Letters::ReadLetterCopy(copy);
+        if (!letter.HasValue())
+            return Core::Unexpected(std::string("0x4a11b0(2): la carta guardada no se lee"));
+        const ChatReceiveContext receive{.world = world,
+                                         .random = random,
+                                         .measure = measure,
+                                         .screen = screen,
+                                         .scene = std::nullopt,
+                                         .texts = texts,
+                                         .chosenSlot = chosenSlot,
+                                         .worldEntry = worldEntry};
+        return ApplyLetterRead(letter.Value(), receive);
+    };
+    // CL9 hito 10: el personaje del retrato de las cartas (Scenes/LetterPortrait), que lee su paso.
+    if (context.worldEntry != nullptr)
+        view.portrait = LetterPortraitHook(*context.worldEntry);
 }
 
 UI::OldWindowGlobals OldWindowGlobalsOf(WorldRuntime& runtime)

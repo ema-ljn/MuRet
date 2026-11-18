@@ -1,5 +1,6 @@
 #pragma once
 
+#include "App/IChatRoomLinks.h"
 #include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Protocol/Messages.h"
@@ -29,6 +30,7 @@ class CrtRandom;
 namespace Client::Scenes
 {
 class WorldState;
+struct WorldEntryResources;
 
 struct ChatReceiveContext
 {
@@ -47,6 +49,11 @@ struct ChatReceiveContext
     // El GameServer de la sesión, para lo que abrir la ventana 2 del gremio cierra (0x4e345c, CL9 hito 8). Sin él,
     // el 01 del Guild Master corta si hay algo que cerrar con cable.
     GuildSender guildSend{};
+    // Las conexiones de las salas del chat con un amigo (la sesión); sin ellas, el CA que entra a una corta.
+    App::IChatRoomLinks* rooms = nullptr;
+    // CL9 hito 10: lo del juego que usa el personaje del retrato de las cartas (Scenes/LetterPortrait), que vive más
+    // que el paquete. nullptr: el C7 corta en 0x4dcd0e (P-C212).
+    const WorldEntryResources* worldEntry = nullptr;
 };
 
 // 0x5110d0: el primero de los 400 vivo con la clave (MOVSX de +0x1f4 contra el int del paquete: una clave desde

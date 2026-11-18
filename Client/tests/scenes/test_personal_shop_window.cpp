@@ -22,6 +22,7 @@
 #include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "Scenes/SelectionInventory.h"
 #include "Scenes/ZenText.h"
 #include "UI/ChatInput.h"
 #include "UI/ChatLog.h"
@@ -218,6 +219,7 @@ protected:
     {
         shop = std::make_unique<ShopWorld>();
         Client::Scenes::WorldState& world = shop->world;
+        Client::Scenes::ClearSelectionInventory(world, random);
         Client::Scenes::WorldRuntime& runtime = world.Runtime();
         runtime.map = GetParam();
         world.OwnCharacter().ClearEquipmentForEntry();

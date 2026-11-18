@@ -17,6 +17,7 @@
 #include "Network/LinkState.h"
 #include "Network/Packet.h"
 #include "Protocol/BuildConstants.h"
+#include "Protocol/CastleSiege.h"
 #include "Protocol/Character/CharacterCreate.h"
 #include "Protocol/Character/CharacterDelete.h"
 #include "Protocol/Character/CharacterList.h"
@@ -369,7 +370,9 @@ void ServerSession::RegisterGameServerHandlers()
                         [this](const Network::Packet& packet) { OnInviteResult(packet); }) &&
         RegisterGuildHandlers() &&
         // CL9 hito 11: los eventos.
-        RegisterTheEventPackets();
+        RegisterTheEventPackets() &&
+        // CL9 hito 12: el castillo fuera de la batalla.
+        RegisterCastleSiegeHandlers();
     assert(registered && "los handlers del GameServer se registran una vez");
     // CL9 hito 3 (atacar, el daño y la muerte): el despacho de 0x4e2b10 manda el 0x16 a 0x4cf200 y el 0x9C a 0x4cfce0
     // (los dos con el flag de descifrado) y el 0x17 a 0x4d0a30. El 0x15 de la GS 0.97 (GCDamageSend) no tiene caso: cae
@@ -587,6 +590,27 @@ void ServerSession::OnTradeRequest(const Network::Packet& packet)
 void ServerSession::SendGamePacket(Protocol::Outgoing packet)
 {
     static_cast<void>(SendWorldPacket(std::move(packet)));
+}
+
+// CL9 hito 12: el castillo fuera de la batalla (0x4e2b10 con B2, B3, B4, B5, B6 y B8). Del B2, los subcódigos de las
+// ventanas (Protocol::CastleSiege::WindowSubcodes); los de la batalla (hito 13) y los del default siguen llegando como
+// Unknown, como el B2 19 que el laboratorio manda después de cada /move. Del B8, solo el 01 (0x4e5894).
+bool ServerSession::RegisterCastleSiegeHandlers()
+{
+    namespace Castle = Protocol::CastleSiege;
+    const auto onCastle = [this](const Network::Packet& packet) { OnCastleSiege(packet); };
+    for (const std::uint8_t subcode : Castle::WindowSubcodes)
+    {
+        if (!m_gameServer.On(Castle::CastleOpcode, subcode, onCastle))
+            return false;
+    }
+    for (const std::uint8_t opcode : {Castle::NpcListOpcode, Castle::SiegeGuildListOpcode,
+                                      Castle::RegisteredGuildListOpcode, Castle::MinimapOpcode})
+    {
+        if (!m_gameServer.On(opcode, onCastle))
+            return false;
+    }
+    return m_gameServer.On(Castle::KillCountOpcode, Castle::KillCountSubcode, onCastle);
 }
 
 void ServerSession::Start()
@@ -1510,6 +1534,17 @@ void ServerSession::OnNotice(const Network::Packet& packet)
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(notice.Value(), *this)));
 }
 
+void ServerSession::OnCastleSiege(const Network::Packet& packet)
+{
+    auto castle = Protocol::CastleSiege::ReadCastleSiegePacket(packet);
+    if (!castle.HasValue())
+    {
+        m_log.Warning("se ignora el paquete del castillo: {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(std::move(castle).Value(), *this)));
+}
+
 void ServerSession::OnOptionData(const Network::Packet& packet)
 {
     const auto options = Protocol::OptionData::ReadOptionData(packet);
@@ -1864,6 +1899,11 @@ Core::Expected<void, std::string> ServerSession::SendNpcWindowPacket(Protocol::O
 void ServerSession::RequestPartyList()
 {
     static_cast<void>(SendWorldPacket(Protocol::Party::WritePartyListRequest()));
+}
+
+void ServerSession::SendCastlePacket(Protocol::Outgoing packet)
+{
+    static_cast<void>(SendWorldPacket(std::move(packet)));
 }
 
 void ServerSession::SendGuildPacket(Protocol::Outgoing packet)

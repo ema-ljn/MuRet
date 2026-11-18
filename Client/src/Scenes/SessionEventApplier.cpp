@@ -9,6 +9,7 @@
 #include "Core/IClock.h"
 #include "Core/Log.h"
 #include "Data/Models/PlayerModels.h"
+#include "Protocol/CastleSiege.h"
 #include "Protocol/Character/CharacterList.h"
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
@@ -38,6 +39,7 @@
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActionReply.h"
 #include "Scenes/ActorCombat.h"
+#include "Scenes/CastleSiegeReceive.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/CombatReplies.h"
@@ -190,6 +192,19 @@ GuildReceiveContext GuildContextOf(const WorldEntryResources& resources, App::Se
                                .send = [&session](Protocol::Outgoing packet)
                                { session.SendGuildPacket(std::move(packet)); },
                                .models = &resources.models};
+}
+
+// Lo que los paquetes del castillo leen del juego (CL9 hito 12); lo que mandan va por el GameServer de la sesión.
+CastleReceiveContext CastleContextOf(const WorldEntryResources& resources, App::ServerSession& session)
+{
+    return CastleReceiveContext{.world = resources.world,
+                                .random = resources.cloth.random,
+                                .log = resources.log,
+                                .measure = resources.textMeasure,
+                                .screen = resources.screen ? resources.screen() : App::PixelSize{640, 480},
+                                .texts = resources.texts,
+                                .send = [&session](Protocol::Outgoing packet)
+                                { session.SendCastlePacket(std::move(packet)); }};
 }
 
 // El 0x3d de la respuesta va a la sesión que la está aplicando.
@@ -542,6 +557,8 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
         ApplyReturnToServerList(m_resources);
         return {};
     }
+    if (const auto* castle = std::get_if<Protocol::CastleSiege::CastleSiegePacket>(&event))
+        return ApplyCastleSiegePacket(*castle, CastleContextOf(m_resources, session));
     if (auto npc = ApplyNpcWindowEvent(event, m_resources, session))
         return *std::move(npc);
     if (const auto* moved = std::get_if<Protocol::Inventory::ItemMoveResult>(&event))

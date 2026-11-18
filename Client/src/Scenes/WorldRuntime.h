@@ -25,6 +25,7 @@
 #include "Scenes/TooltipLines.h"
 #include "Scenes/ViewportPacketRing.h"
 #include "Scenes/WorldTexts.h"
+#include "UI/CastleSiegeState.h"
 #include "UI/ChatInput.h"
 #include "UI/ChatLog.h"
 #include "UI/Dialogs.h"
@@ -389,6 +390,9 @@ struct WorldRuntime
     // escena.
     UI::PanelState panels{};
     UI::DialogState dialogs{};
+    // Lo que guardan los paquetes del castillo fuera de la batalla (CL9 hito 12): la .bss 0x7d5c504..0x7d5c658, los
+    // campos de [0x7d536f8] y [0x7d53700] que escriben y 0x78aba30/0x78aba34.
+    UI::CastleSiegeState castleSiege{};
     // El gremio, la alianza y la guerra (CL9 hito 8): la tabla de los gremios (0x787aa48), los miembros (0x787a5e8),
     // los globales de la guerra y lo que los paquetes guardan en las dos ventanas del gremio.
     GuildState guild{};

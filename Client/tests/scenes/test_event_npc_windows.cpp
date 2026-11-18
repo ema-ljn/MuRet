@@ -20,6 +20,7 @@
 #include "Scenes/OwnInventory.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "Scenes/SelectionInventory.h"
 #include "UI/GameDialogs.h"
 #include "UI/GameText.h"
 #include "UI/Widget.h"
@@ -173,6 +174,8 @@ protected:
 
     void Open(std::uint8_t kind)
     {
+        // Cada mundo sintético ya pasó por la selección (0x5bbe10), igual que el juego real.
+        Client::Scenes::ClearSelectionInventory(*world, random);
         Runtime().panels.eventNpc = 1;
         Runtime().panels.eventNpcKind = kind;
         Runtime().panels.inventory = 1;

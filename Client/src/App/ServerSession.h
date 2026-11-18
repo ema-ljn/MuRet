@@ -267,6 +267,9 @@ public:
     [[nodiscard]] Core::Expected<void, std::string> SendUseItem(const Protocol::FloorItems::UseItem& use);
     // El C1 03 42 de 0x6599a0(4), al abrir la ventana de la party (Protocol::Party::WritePartyListRequest), en claro.
     void RequestPartyList();
+    // Los C1 del castillo (Protocol::CastleSiege; CL9 hito 12), como los demás de mundo: sin un GameServer abierto, un
+    // aviso y nada.
+    void SendCastlePacket(Protocol::Outgoing packet);
     // Los C1 del gremio, de la alianza y de la guerra (Protocol::Guild; CL9 hito 8), como los demás de mundo: sin un
     // GameServer abierto, un aviso y nada.
     void SendGuildPacket(Protocol::Outgoing packet);
@@ -402,6 +405,7 @@ public:
 private:
     void RegisterConnectServerHandlers();
     void RegisterGameServerHandlers();
+    [[nodiscard]] bool RegisterCastleSiegeHandlers();
     [[nodiscard]] bool RegisterGuildHandlers();
     // El comercio, la party y el duelo (CL9 hito 7), aparte para que cada ola sume los suyos sin tocar la cadena.
     void RegisterSocialHandlers();
@@ -458,6 +462,8 @@ private:
     void OnWhisper(const Network::Packet& packet);
     void OnWhisperResult(const Network::Packet& packet);
     void OnNotice(const Network::Packet& packet);
+    // CL9 hito 12: los paquetes del castillo fuera de la batalla (Protocol::CastleSiege::ReadCastleSiegePacket).
+    void OnCastleSiege(const Network::Packet& packet);
     void OnOptionData(const Network::Packet& packet);
     void OnItemMove(const Network::Packet& packet);
     void OnLifeRefill(const Network::Packet& packet);

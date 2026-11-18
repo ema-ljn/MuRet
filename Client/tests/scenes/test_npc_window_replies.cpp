@@ -218,6 +218,45 @@ TEST_F(NpcWindowRepliesTest, TheDefaultOpensTheNpcShopWithTheRandomOfItsProtecte
     EXPECT_EQ(stage->cloth.random.State(), query.State());
 }
 
+// 0x4d25bc..0x4d25dd: modo de cierre antes del open, luego las tres consultas de Senior.
+TEST_F(NpcWindowRepliesTest, SeniorTalkWritesTheCloseModeBeforeOpeningAndRequestingItsData)
+{
+    for (const std::uint8_t mode : {std::uint8_t{0}, std::uint8_t{1}, std::uint8_t{255}})
+    {
+        stage = std::make_unique<Stage>();
+        bool checkedBeforeSend = false;
+        auto resources = stage->Resources();
+        resources.sendNpcWindowPacket = [&](Client::Protocol::Outgoing packet)
+        {
+            EXPECT_EQ(stage->world.Runtime().castleSiege.senior.closeWith87, mode == 1);
+            EXPECT_EQ(stage->world.Runtime().panels.delegated.castleSiegeList, 1);
+            checkedBeforeSend = true;
+            stage->sent.push_back(std::move(packet));
+            return Client::Core::Expected<void, std::string>{};
+        };
+        const auto result = Client::Scenes::ApplyTalkResult(Npc::TalkResult{.result = 12, .rates = {mode}}, resources);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_TRUE(checkedBeforeSend);
+        ASSERT_EQ(stage->sent.size(), 3u);
+        EXPECT_TRUE(SameBytes(stage->Plain(0).Bytes(), Bytes({0xc1, 4, 0xb3, 1})));
+        EXPECT_TRUE(SameBytes(stage->Plain(1).Bytes(), Bytes({0xc1, 4, 0xb3, 2})));
+        EXPECT_TRUE(SameBytes(stage->Plain(2).Bytes(), Bytes({0xc1, 4, 0xb2, 8})));
+        EXPECT_TRUE(Npc().cursorWarpRequested);
+    }
+}
+
+TEST_F(NpcWindowRepliesTest, CastleGuardTalkClosesTheCurrentNpcBeforeRequestingCastleState)
+{
+    ASSERT_TRUE(Talk(0).HasValue());
+    const auto result = Talk(13);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    ASSERT_EQ(stage->sent.size(), 2u);
+    EXPECT_TRUE(SameBytes(stage->Plain(0).Bytes(), Bytes({0xc1, 3, 0x31})));
+    EXPECT_TRUE(SameBytes(stage->Plain(1).Bytes(), Bytes({0xc1, 4, 0xb2, 0})));
+    EXPECT_EQ(stage->world.Runtime().panels.npcShop, 0);
+    EXPECT_EQ(stage->world.Runtime().lastSoundId, 0x1c);
+}
+
 // 0x4d2532 y 0x4d253b: el almacén y la caja del caos, cada uno con el inventario. La caja manda el C1 04 BD 09 (con el
 // XOR32, en claro), abre el diálogo 0x8e y copia las tasas.
 TEST_F(NpcWindowRepliesTest, TheWarehouseAndTheChaosBoxOpenWithTheInventory)

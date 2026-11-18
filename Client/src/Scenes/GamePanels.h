@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
 #include "Scenes/GuildPanels.h"
+#include "Scenes/CastleWindows.h"
 #include "Scenes/GuildWindow.h"
 #include "Scenes/SecondGuildWindow.h"
 #include "Data/Text/TextTable.h"
@@ -29,6 +30,7 @@ namespace Client::Scenes
 {
 class IGameUiRequests;
 class WorldState;
+struct GameUiContext;
 
 // Lo que 0x550d10 lee de la carga cuando abrir el personaje la llama (0x65ca1e): Item.bmd (*[0x7758550]) e
 // ItemSetType.bmd con ItemSetOption.bmd (0x40c600). Solo las presta el paso de la UI, el único que abre el personaje;
@@ -60,6 +62,11 @@ public:
     {
         return m_registry;
     }
+
+    // 0x64ae10: el B2 03 de la apertura del registro del castillo, por el mismo cable del mundo.
+    void LendTheCastleRequests(WorldState& world, std::function<void(Protocol::Outgoing)> send,
+                               CastleWindowServices services = {});
+    void LendTheCastleWindowSteps(const GameUiContext& context);
 
     // 0x659aa0..0x659c3d: con `requests`, abrir la party pone en 0 la cuenta de `world` (HudState::partyCount) y pide
     // la lista (C1 03 42). Lo presta el paso de la UI, el que abre la party; sin él, o con nullptr, abrirla corta.

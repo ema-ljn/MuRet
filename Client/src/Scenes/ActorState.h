@@ -273,9 +273,13 @@ struct ActorState
     // +0x36c: el 5D lo pone en 0 (0x4e4348); qué es, sin leer en el hito 8.
     std::uint32_t dword36c = 0;
     std::uint8_t byte370 = 0;
-    // +0x372: 0x511290 lo pone en 0 (0x511ccf) y el 0x12 de estado 1 lo conserva del registro anterior (0x4c895f,
-    // 0x4c89ed). Qué es y quién más lo lee, sin leer.
+    // +0x372: 0x511290 lo pone en 0 (0x511ccf), el 0x12 de estado 1 lo conserva del registro anterior (0x4c895f,
+    // 0x4c89ed) y el B8 01 (0x4e0700) lo escribe en el héroe con pkt[4]. 0x652330 (la skill del asedio en la barra,
+    // hito 13) lo compara con un tope: *inferido*, la cuenta de muertes del asedio.
     std::uint8_t byte372 = 0;
+    // +0x373: 0x511290 lo pone en 0xff (0x511cc8); el B8 01 con 0 lo devuelve a la habilidad (+0x425) si no es 0xff y
+    // lo deja en 0xff. Lo escribe además 0x652330 (hito 13).
+    std::uint8_t byte373 = 0;
     std::uint8_t byte374 = 0;
     // +0x42c: 0x511290 lo pone en 1 (0x511c92); sin él, el picking de 0x59e700 no lo elige (0x59e95e). En el mapa 30
     // lo apagan y lo prenden 0x42d890, 0x42da90 y 0x42dfe0 en los objetos del asedio.

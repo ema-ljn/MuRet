@@ -68,6 +68,16 @@ enum class PanelDialogOwner : std::uint8_t
     GuildKick,    // 0x64e550, echar a un miembro (la pestaña de los miembros)
     GuildDisband, // 0x64de90, disolver el gremio (la pestaña 0)
     UnionKick,    // 0x650830, echar a un gremio de la alianza (la pestaña de la alianza)
+    CastleGiveUp, // 0x64ccd0
+    CastleGate,
+    CastleGateLife,
+    CastleGateDefense,
+    CastleStatue,
+    CastleStatueLife,
+    CastleStatueDefense,
+    CastleStatueRecovery,
+    CastleTaxes,
+    CastleMoney,
 };
 
 // +8 y +0xc: el paso y el dibujo propios que pone 0x6602b0. El paso (0x6605b0) lo llama después del mouse sobre la caja
@@ -98,6 +108,14 @@ struct PanelDialogState
     std::uint32_t timerStart = 0;               // +0xe34
     std::uint32_t timerEnd = 0;                 // +0xe38
     std::uint32_t timerMs = PanelDialogTimerMs; // +0xe3c
+    // +0x1060, 0x660b41: segundos transcurridos, escritos durante el dibujo con mode&8 y conservados por 0x660090.
+    std::uint32_t elapsedSeconds = 0;
+    // 0x660250, conservados por 0x660090: la configuración del EDIT que aplica el dibujo con el bit 0x10.
+    std::int32_t inputWidth = 0;
+    std::size_t inputMaxChars = 0;
+    std::int32_t inputFilter = 0;
+    // El dueño del EDIT compartido presta su limpieza; se invoca después de la respuesta, nunca durante draw.
+    std::function<void()> closeField{};
     // 0x65feb0: los cuatro botones de 0x32 × 0x12 con su comando (0, 1, 2 y 3). Los ubica el dibujo (0x660830). Sus ids
     // son del contador 0x5762eb0 (P-C97): MuRet les da −1..−4, que no chocan con los de las ventanas viejas (P-C280).
     std::array<OldButton, PanelDialogButtonCount> buttons = DefaultButtons();

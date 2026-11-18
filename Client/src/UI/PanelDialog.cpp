@@ -143,6 +143,7 @@ void ResetThePanelDialog(PanelDialogState& dialog)
     dialog.opened = 0;
     dialog.lineCount = 0;
     dialog.flags = 0;
+    dialog.closeField = {};
     for (std::string& line : dialog.lines)
         line.clear();
 }
@@ -187,9 +188,11 @@ Core::Expected<void, std::string> CloseThePanelDialog(PanelDialogState& dialog)
     if (dialog.opened == 0)
         return {};
     if ((dialog.flags & PanelDialogTextField) != 0)
-        return Core::Unexpected(
-            std::string("0x660350: cerrar el diálogo con el campo de texto vacía el EDIT (0x5763504) "
-                        "o el buffer del chat, que ningún diálogo de MuRet abre"));
+    {
+        if (!dialog.closeField)
+            return Core::Unexpected(std::string("0x660350: el diálogo con campo de texto sin el EDIT compartido"));
+        dialog.closeField();
+    }
     dialog.opened = 0;
     return {};
 }

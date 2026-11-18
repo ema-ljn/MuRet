@@ -27,6 +27,8 @@ TEST(ActorMotionConstructionTest, ResetsWrittenFieldsAndRetainsUnwrittenMotionHi
     actor.damage = 123;
     actor.byte369 = 7;
     actor.byte370 = 8;
+    actor.byte372 = 6;
+    actor.byte373 = 2;
     actor.byte374 = 7;
     actor.word1f2 = 4;
     actor.byte399 = 1;
@@ -53,6 +55,9 @@ TEST(ActorMotionConstructionTest, ResetsWrittenFieldsAndRetainsUnwrittenMotionHi
     EXPECT_EQ(actor.damage, 123);
     EXPECT_EQ(actor.byte369, 0);
     EXPECT_EQ(actor.byte370, 0);
+    // 0x511ccf y 0x511cc8 (CL9 hito 12): la cuenta del B8 en 0 y la habilidad guardada en 0xff.
+    EXPECT_EQ(actor.byte372, 0);
+    EXPECT_EQ(actor.byte373, 0xff);
     EXPECT_EQ(actor.byte374, 0);
     EXPECT_EQ(actor.word1f2, 0xffff);
     EXPECT_EQ(actor.byte399, 0);

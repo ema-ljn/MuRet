@@ -73,6 +73,9 @@ Core::Expected<TalkResult, ProtocolError> ReadTalkResult(const Network::Packet& 
         rate = *value;
         ++talk.ratesInPacket;
     }
+    constexpr std::uint8_t SeniorReply = 12; // 0x4d25bc consume pkt4: no reemplazarlo por un modo inventado.
+    if (talk.result == SeniorReply && talk.ratesInPacket == 0)
+        return Core::Unexpected(ProtocolError::TooShort);
     return talk;
 }
 

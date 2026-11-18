@@ -1609,7 +1609,7 @@ TEST_F(GameHudTest, TheSwitchHoldersMatchEachSideWithItsFlag)
 TEST_F(GameHudTest, TheSwitchHoldersAreFreedOutsideTheZone)
 {
     for (const auto& [x, y] :
-         std::array<std::pair<std::uint8_t, std::uint8_t>, 4>{{{149, 200}, {201, 200}, {170, 179}, {170, 231}}})
+         std::array<std::array<std::uint8_t, 2>, 4>{{{149, 200}, {201, 200}, {170, 179}, {170, 231}}})
     {
         SCOPED_TRACE(static_cast<int>(x) * 1000 + y);
         world.Runtime().castleSiegeInfo = SwitchHolders();

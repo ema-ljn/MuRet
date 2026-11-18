@@ -1029,7 +1029,7 @@ TEST(CharacterStepTest, TheCastleSiegePanelAndAnUnloadedMapComeBeforeTheWalls)
     guild.Cell(5, 5) = Client::World::CharacterWallBit;
     const auto inGuild = guild.Step(Everything);
     ASSERT_TRUE(inGuild.HasValue()) << ErrorOf(inGuild);
-    EXPECT_EQ(guild.world.Runtime().siegePanelKind, std::optional<std::uint8_t>{2});
+    EXPECT_EQ(guild.world.Runtime().siegePanelKind, std::optional<std::uint8_t>{std::uint8_t{2}});
     EXPECT_EQ(guild.Cell(5, 5), castle.Cell(5, 5));
     EXPECT_EQ(guild.random.State(), lorencia.random.State());
 

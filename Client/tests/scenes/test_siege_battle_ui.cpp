@@ -160,7 +160,7 @@ TEST_F(SiegeUiTest, TheGuildPostSelectsAndPreservesTheSamePanelObject)
     auto& runtime = world->Runtime();
     runtime.map = 30;
     runtime.guild.heroGuildIndex = 0;
-    const std::vector<std::pair<std::uint8_t, std::uint8_t>> posts{{0xff, 0}, {0, 1}, {0x20, 1}, {0x40, 1}, {0x80, 2}};
+    constexpr std::array<std::array<std::uint8_t, 2>, 5> posts{{{0xff, 0}, {0, 1}, {0x20, 1}, {0x40, 1}, {0x80, 2}}};
     for (const auto& [post, kind] : posts)
     {
         runtime.guild.heroGuildStatus = post;
@@ -202,7 +202,7 @@ TEST_F(SiegeUiTest, OnlyTheGuildMasterWithoutUnionOrLeadingItsUnionGetsTheComman
 TEST_F(SiegeUiTest, TheStatusTableAndTheMemberVectorHaveIndependentStorage)
 {
     auto& runtime = world->Runtime();
-    runtime.siegePanelKind = 2;
+    runtime.siegePanelKind = std::uint8_t{2};
     Siege::AppendSiegePanelMember(runtime, 255, 11, 12);
     Siege::AppendSiegePanelMember(runtime, 0, 13, 14);
     ASSERT_TRUE(Siege::ReceiveSiegePanelStatus(runtime, {2, 0, 255, 7}).HasValue());
@@ -215,7 +215,7 @@ TEST_F(SiegeUiTest, TheStatusTableAndTheMemberVectorHaveIndependentStorage)
     EXPECT_EQ(runtime.siegePanel.status[2], (std::array<std::uint8_t, 5>{2, 4, 5, 0, 100}));
     EXPECT_EQ(runtime.siegePanel.status[1], (std::array<std::uint8_t, 5>{}));
     EXPECT_FALSE(Siege::ReceiveSiegePanelStatus(runtime, {7, 1, 2, 3}).HasValue());
-    runtime.siegePanelKind = 0;
+    runtime.siegePanelKind = std::uint8_t{0};
     ASSERT_TRUE(Siege::ReceiveSiegePanelStatus(runtime, {255, 1, 2, 3}).HasValue());
     Siege::AppendSiegePanelMember(runtime, 1, 2, 3);
     EXPECT_EQ(runtime.siegePanel.members.size(), 2u);
@@ -294,7 +294,7 @@ TEST_F(SiegeUiTest, OpeningTheGateReadsTheActorAndTheWideActionRectangleUsesStri
 TEST_F(SiegeUiTest, TheCommanderChoosesAnOrderThenSendsCoordinatesFromTheLastMapCrop)
 {
     auto& runtime = world->Runtime();
-    runtime.siegePanelKind = 2;
+    runtime.siegePanelKind = std::uint8_t{2};
     auto& panel = runtime.siegePanel;
     panel.page = 2;
     panel.offsetX = 12;
@@ -319,7 +319,7 @@ TEST_F(SiegeUiTest, TheCommanderChoosesAnOrderThenSendsCoordinatesFromTheLastMap
 TEST_F(SiegeUiTest, ARightClickOnTheCommanderRowCancelsWithoutConsumingTheRightClick)
 {
     auto& runtime = world->Runtime();
-    runtime.siegePanelKind = 2;
+    runtime.siegePanelKind = std::uint8_t{2};
     runtime.siegePanel.selected = 3;
     runtime.siegePanel.command = 0;
     runtime.ui.rightClick = true;
@@ -439,7 +439,7 @@ TEST_F(SiegeUiTest, TheClockUsesOneMinuteBorrowAndTheOriginalTickWrap)
 TEST_F(SiegeUiTest, TheMapReadsEachVisibleActorEvenWhenItsDotEndsOutsideTheMap)
 {
     auto& runtime = world->Runtime();
-    runtime.siegePanelKind = 0;
+    runtime.siegePanelKind = std::uint8_t{0};
     auto& hero = world->Actors()[runtime.hero];
     hero.cellX = 255;
     hero.cellY = 0;
@@ -462,7 +462,7 @@ TEST_F(SiegeUiTest, TheMapReadsEachVisibleActorEvenWhenItsDotEndsOutsideTheMap)
 TEST_F(SiegeUiTest, TheCommanderWithoutSideBitsUsesTheMapOffsetAsItsFriendlyMask)
 {
     auto& runtime = world->Runtime();
-    runtime.siegePanelKind = 2;
+    runtime.siegePanelKind = std::uint8_t{2};
     auto& hero = world->Actors()[runtime.hero];
     hero.cellY = 0;
     hero.flags78 = 0;
@@ -481,7 +481,7 @@ TEST_F(SiegeUiTest, TheCommanderWithoutSideBitsUsesTheMapOffsetAsItsFriendlyMask
 TEST_F(SiegeUiTest, TheCommandMenuUsesTheNativeAtlasRectangles)
 {
     auto& runtime = world->Runtime();
-    runtime.siegePanelKind = 2;
+    runtime.siegePanelKind = std::uint8_t{2};
     runtime.siegePanel.selected = 1;
     auto draw = DrawContext();
     ASSERT_TRUE(Siege::DrawTheBattlePanel(draw).HasValue());
@@ -562,7 +562,7 @@ TEST_F(SiegeUiTest, TheStatusMetricsSurviveAnUnrecognizedFollowingStatus)
 TEST_F(SiegeUiTest, AFirstUnrecognizedStatusDoesNotInventUninitializedStackMetrics)
 {
     auto& runtime = world->Runtime();
-    runtime.siegePanelKind = 1;
+    runtime.siegePanelKind = std::uint8_t{1};
     auto& hero = world->Actors()[runtime.hero];
     hero.cellX = 64;
     hero.cellY = 192;
@@ -579,7 +579,7 @@ TEST_F(SiegeUiTest, AFirstUnrecognizedStatusDoesNotInventUninitializedStackMetri
 TEST_F(SiegeUiTest, EveryCommanderMenuBackgroundUsesItsNativeEighteenPixelHeight)
 {
     auto& runtime = world->Runtime();
-    runtime.siegePanelKind = 2;
+    runtime.siegePanelKind = std::uint8_t{2};
     for (const std::uint8_t row : {std::uint8_t{1}, std::uint8_t{6}, std::uint8_t{7}})
     {
         SCOPED_TRACE(row);
@@ -633,7 +633,7 @@ TEST_F(SiegeUiTest, TheOpacityClickRestoresOneOnTheNativeUnorderedComparison)
 TEST_F(SiegeUiTest, TheOpacityPercentageUsesTheNativeFtolLowDwordForNan)
 {
     auto& runtime = world->Runtime();
-    runtime.siegePanelKind = 0;
+    runtime.siegePanelKind = std::uint8_t{0};
     runtime.siegePanel.alpha = std::numeric_limits<float>::quiet_NaN();
     const auto expected = After(random, 10);
     auto draw = DrawContext();
@@ -652,7 +652,7 @@ TEST_F(SiegeUiTest, TheOpacityPercentageUsesTheNativeFtolLowDwordForNan)
 TEST_F(SiegeUiTest, AnUnresolvedOpacityFtolKeepsTheBasePrefixAndReportsItsAddress)
 {
     auto& runtime = world->Runtime();
-    runtime.siegePanelKind = 0;
+    runtime.siegePanelKind = std::uint8_t{0};
     runtime.siegePanel.alpha = std::numeric_limits<float>::infinity();
     const auto expected = After(random, 10);
     auto draw = DrawContext();
@@ -681,7 +681,7 @@ TEST_F(SiegeUiTest, AnUnresolvedOpacityFtolKeepsTheBasePrefixAndReportsItsAddres
 TEST_F(SiegeUiTest, TheCommanderPreviewDoesNotInventTheFirstUnknownStatusAtlas)
 {
     auto& runtime = world->Runtime();
-    runtime.siegePanelKind = 2;
+    runtime.siegePanelKind = std::uint8_t{2};
     auto& hero = world->Actors()[runtime.hero];
     hero.cellX = 64;
     hero.cellY = 192;

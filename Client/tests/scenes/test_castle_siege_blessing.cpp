@@ -35,7 +35,7 @@ TEST(CastleSiegeBlessingTest, AttackerNeedsBothMarksTheSameGuildAndTheTenthFrame
         ASSERT_TRUE(Client::Scenes::DrawTheCastleBlessing(
                         actor, test == 0 ? 6 : 7,
                         test == 1 ? 0.0f : (test == 4 ? std::numeric_limits<float>::quiet_NaN() : 1000.0f),
-                        test == 2 ? 0 : 2000, test == 3 ? 9 : 10, particles, random)
+                        test == 2 ? 0.0f : 2000.0f, test == 3 ? 9 : 10, particles, random)
                         .HasValue());
         EXPECT_FALSE(particles.All()[0].alive);
         EXPECT_EQ(random.State(), 1u);

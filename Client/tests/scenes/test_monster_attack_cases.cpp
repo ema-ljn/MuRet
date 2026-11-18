@@ -793,7 +793,7 @@ TEST_F(MonsterAttackCasesTest, SiegeCueGatesUseTheMapAndKindFrameWithoutAnAction
                                                     .step = frame,
                                                     .action = 0xff,
                                                     .target = NoTarget,
-                                                    .model = 0x160});
+                                                    .model = std::uint16_t{0x160}});
                 game->world.Map().effects.Clear();
                 game->world.Runtime().map = map;
 
@@ -1080,7 +1080,8 @@ TEST_F(MonsterAttackCasesTest, CrywolfScattersPairedStonesInSlotOrderBeforeTheCo
     {
         SCOPED_TRACE(freeSlots);
         Load(34);
-        ActorState& monster = Prepare(Probe{.type = 3, .step = 1, .target = 0, .kind = 0x3b, .model = 0x17c});
+        ActorState& monster = Prepare(
+            Probe{.type = 3, .step = 1, .target = 0, .kind = std::uint16_t{0x3b}, .model = std::uint16_t{0x17c}});
         monster.position = {1000, 2000, 350};
         FillModelEffectPoolExceptLast(freeSlots);
         for (Client::World::Particle& particle : game->particles.All())
@@ -1131,7 +1132,8 @@ TEST_F(MonsterAttackCasesTest, CrywolfFlamesWithAFullParticlePoolReachTheCommonT
     constexpr std::uint16_t NoKind = 0x2345;
     for (const std::uint8_t step : {std::uint8_t{1}, std::uint8_t{2}})
     {
-        ActorState& monster = Prepare(Probe{.type = 3, .step = step, .target = 0, .kind = NoKind, .model = 0x17e});
+        ActorState& monster =
+            Prepare(Probe{.type = 3, .step = step, .target = 0, .kind = NoKind, .model = std::uint16_t{0x17e}});
         for (auto& particle : game->particles.All())
         {
             particle.alive = true;

@@ -27,8 +27,13 @@ namespace
 TEST(EventTicketsTest, TheRightClickRequestsEachEventAndKeepsOnlyTheChaosTicket)
 {
     const auto items = Client::Tests::ItemTableOf({{0x1a1d, 1, 1, 0xff}, {0x1c13, 1, 1, 0xff}, {0x1a12, 1, 1, 0xff}});
-    for (const auto& [type, kind] :
-         std::array<std::pair<std::uint16_t, std::uint8_t>, 3>{{{0x1a1d, 4}, {0x1c13, 1}, {0x1a12, 2}}})
+    struct Ticket
+    {
+        std::uint16_t type;
+        std::uint8_t kind;
+    };
+    constexpr std::array tickets{Ticket{0x1a1d, 4}, Ticket{0x1c13, 1}, Ticket{0x1a12, 2}};
+    for (const auto& [type, kind] : tickets)
     {
         SCOPED_TRACE(type);
         auto world = std::make_unique<Client::Scenes::WorldState>();

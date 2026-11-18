@@ -225,10 +225,10 @@ TEST_P(CastleBattleReceiveTest, MinimapMembersAppendOnlyToTheClassTwoPanelAndWra
     const Battle::MinimapMembers some{.members = {{.index = 0, .x = 10, .y = 20}}};
     Apply(some);
     auto& runtime = m_world->Runtime();
-    runtime.siegePanelKind = 1;
+    runtime.siegePanelKind = std::uint8_t{1};
     Apply(some);
     EXPECT_TRUE(runtime.siegePanel.members.empty());
-    runtime.siegePanelKind = 2;
+    runtime.siegePanelKind = std::uint8_t{2};
     Apply(some);
     Apply(Battle::MinimapMembers{.members = {{.index = 255, .x = 30, .y = 40}}});
     Apply(Battle::MinimapMembers{});

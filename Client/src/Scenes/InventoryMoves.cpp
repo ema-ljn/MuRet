@@ -1450,7 +1450,7 @@ namespace
 // baraja, 0x78abb20 queda en 1 y lo tecleado en 0 (0x5c0088..0x5c015c); si no, el 24 del almacén al equipo
 // (0x5c0161..0x5c0f61). De la caja del caos (0x7d2d380), el 24 desde el 3 (0x5c0f66..0x5c1d72). De la caja del
 // entrenador, 0x449d50 (0x5c1d80): 0x449d80(5, lugar, 0, destino). El comercio y la tienda personal siguen en
-// 0x5c1d90 (el 24 desde el 1, con 0x78abac8 en 0x96 sin 0x78abac1), del hito 7.
+// 0x5c1d90: el 24 desde el 1, con 0x78abac8 en 0x96 sin 0x78abac1, antes de probar la traba del envío.
 Core::Expected<void, std::string> DropFromOtherGridOnTheEquipment(const InventoryMoveContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
@@ -1479,8 +1479,10 @@ Core::Expected<void, std::string> DropFromOtherGridOnTheEquipment(const Inventor
     case CursorGrid::TrainerBox:
         return SendTheCursorItemBetween(context, TrainerBoxMoveGrid, source, InventoryMoveGrid, target);
     default:
-        return Core::Unexpected(
-            std::string("0x5c1d90: el ítem del comercio o de la tienda personal al equipo es del hito 7 (CL9.4)"));
+        // 0x5c1d90..0x5c1da3: incluso con un envío pendiente, el OK propio decide la espera primero.
+        if (runtime.social.trade.ownOk == 0)
+            runtime.social.trade.okWait = TradeOkWait;
+        return SendTheCursorItemBetween(context, TradeGridFlag, source, InventoryGridFlag, target);
     }
 }
 } // namespace

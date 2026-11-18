@@ -498,7 +498,7 @@ TEST_F(CursorItemTest, TheGridRefusesOccupiedPlacesAndTakesItsOwnPlaceBack)
 // lugar sin el 12 y los dos rand() del envío: el casco del almacén a la cabeza (2), la espada de la caja del caos a la
 // derecha (3) y el escudo de la caja del entrenador a la izquierda (0x449d50 en 0x5c1d80, el 5). Con la traba del
 // almacén, el movimiento espera la contraseña (2, lugar, 0, destino), el teclado se baraja (40 rand()), 0x78abb20 en
-// 1 y lo tecleado en 0, sin mandar nada. Desde otra grilla (el comercio o la tienda personal), corta en 0x5c1d90.
+// 1 y lo tecleado en 0, sin mandar nada. Las demás grillas usan el 1 y esperan el OK antes de la traba del envío.
 TEST_F(CursorItemTest, TheItemOfAnotherGridGoesToTheEquipment)
 {
     for (const std::int32_t map : {0, 2, 3})
@@ -601,11 +601,61 @@ TEST_F(CursorItemTest, TheItemOfAnotherGridGoesToTheEquipment)
         runtime.ui.field78abb39 = 0;
         runtime.movement.pendingClick = true;
         const CrtRandom before = random;
-        const auto cut = Scenes::DropOnTheEquipment(Moves(), 1);
-        ASSERT_FALSE(cut.HasValue());
-        EXPECT_NE(cut.Error().find("0x5c1d90"), std::string::npos) << cut.Error();
-        EXPECT_EQ(random.State(), before.State());
-        EXPECT_EQ(outside.sent.size(), 3u);
+        const auto droppedOther = Scenes::DropOnTheEquipment(Moves(), 1);
+        ASSERT_TRUE(droppedOther.HasValue()) << droppedOther.Error();
+        EXPECT_EQ(random.State(), Advanced(before, SendRandoms).State());
+        ASSERT_EQ(outside.sent.size(), 4u);
+        EXPECT_EQ(outside.sent.back().sourceFlag, 1);
+        EXPECT_EQ(runtime.social.trade.okWait, 150);
+    }
+}
+
+// 0x5c1d90: el fallback también cubre la tienda personal; pone la espera ANTES de probar 0x78abb39.
+TEST_F(CursorItemTest, TradeAndShopItemsUseTheTradeSourceWhenDroppedOnEquipment)
+{
+    for (const auto grid : {Scenes::CursorGrid::OwnTrade, Scenes::CursorGrid::PersonalShop})
+    {
+        for (const std::uint8_t ownOk : std::array<std::uint8_t, 2>{0, 1})
+        {
+            for (const std::uint8_t locked : std::array<std::uint8_t, 2>{0, 1})
+            {
+                Scenes::WorldRuntime& runtime = world.Runtime();
+                runtime.cursorGrid = grid;
+                runtime.cursorItem = Invented(Helm);
+                runtime.slot78a6758 = 0x109;
+                runtime.cursorItemCount = 1;
+                runtime.ui.field78abb39 = locked;
+                runtime.movement.pendingClick = true;
+                runtime.social.trade.ownOk = ownOk;
+                runtime.social.trade.okWait = 7;
+                outside.sent.clear();
+                services.sendItemMove = [&](const Client::Protocol::Inventory::ItemMove& move)
+                {
+                    EXPECT_EQ(runtime.social.trade.okWait, ownOk == 0 ? 150 : 7);
+                    outside.sent.push_back(move);
+                    return Expected<void, std::string>{};
+                };
+                const CrtRandom before = random;
+                const auto dropped = Scenes::DropOnTheEquipment(Moves(), HeadSlot);
+                ASSERT_TRUE(dropped.HasValue()) << dropped.Error();
+                EXPECT_EQ(runtime.social.trade.okWait, ownOk == 0 ? 150 : 7);
+                EXPECT_EQ(random.State(), Advanced(before, locked == 0 ? SendRandoms : 0).State());
+                EXPECT_EQ(runtime.ui.field78abb39, 1);
+                if (locked != 0)
+                {
+                    EXPECT_TRUE(outside.sent.empty());
+                    continue;
+                }
+                ASSERT_EQ(outside.sent.size(), 1u);
+                const auto& move = outside.sent.front();
+                EXPECT_EQ(move.sourceFlag, 1);
+                EXPECT_EQ(move.sourceSlot, 9);
+                EXPECT_EQ(move.targetFlag, 0);
+                EXPECT_EQ(move.targetSlot, HeadSlot);
+                EXPECT_EQ(move.item, (decltype(move.item){std::byte{1}, std::byte{0x0b}, std::byte{0x2c}, std::byte{0},
+                                                          std::byte{0}, std::byte{0x70}, std::byte{0}}));
+            }
+        }
     }
 }
 

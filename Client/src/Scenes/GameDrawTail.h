@@ -115,6 +115,7 @@ enum class JointOwnerKind : std::uint8_t
     Actor,
     Helper,
     Raven,
+    ModelEffect, // 619/1 del61e/1 emitido por147; posición del dueño sin aliasActorState.
 };
 
 struct JointState

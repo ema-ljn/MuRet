@@ -740,10 +740,11 @@ Core::Expected<void, std::string> StepPetSummon(World::ModelEffect& effect, std:
         // 0x51897a..0x5189b4: cada resta se guarda; la z suma 120 antes de guardarse.
         glm::vec3 start{F32(D(position.x) - D(reach.x)), F32(D(position.y) - D(reach.y)),
                         F32(D(position.z) - D(reach.z) + SummonLift)};
-        const auto created = CreateFaunaJoint(joints,
-                                              {EnergyType, start, position, angles, effect.subtype, effect.ownerContext,
-                                               SummonWidth, NoKey, 0, 0, NoTarget},
-                                              random);
+        const auto created = CreateFaunaJoint(
+            joints,
+            {EnergyType, start, position, angles, effect.subtype, effect.ownerContext, SummonWidth, NoKey, 0, 0,
+             NoTarget},
+            random, effect.owner.effect != nullptr ? JointOwnerKind::ModelEffect : JointOwnerKind::ByType);
         if (!created.HasValue())
             return Core::Unexpected(std::format("0x5189cc: {}", created.Error()));
     }

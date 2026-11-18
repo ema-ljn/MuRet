@@ -1311,12 +1311,16 @@ void StepModelEffect(ModelEffect& effect, const Render::Models::Skeleton* skelet
     }
     // 0x51fc80(efecto, 1): la velocidad girada por los ángulos, sumada a la posición.
     effect.previousPosition = effect.transform.position;
-    const glm::vec3 step = Render::Models::OriginalVectorRotate(
-        effect.velocity, Render::Models::OriginalAngleMatrix(effect.transform.angles));
-    glm::vec3& position = effect.transform.position;
-    position.x = F32(static_cast<double>(step.x) + static_cast<double>(position.x));
-    position.y = F32(static_cast<double>(step.y) + static_cast<double>(position.y));
-    position.z = F32(static_cast<double>(step.z) + static_cast<double>(position.z));
+    // 52cbea:147 ya hizo su movimiento iterativo y salta directo a52cd94.
+    if (effect.type != 0x147)
+    {
+        const glm::vec3 step = Render::Models::OriginalVectorRotate(
+            effect.velocity, Render::Models::OriginalAngleMatrix(effect.transform.angles));
+        glm::vec3& position = effect.transform.position;
+        position.x = F32(static_cast<double>(step.x) + static_cast<double>(position.x));
+        position.y = F32(static_cast<double>(step.y) + static_cast<double>(position.y));
+        position.z = F32(static_cast<double>(step.z) + static_cast<double>(position.z));
+    }
     --effect.life;
     if (effect.life <= 0)
     {

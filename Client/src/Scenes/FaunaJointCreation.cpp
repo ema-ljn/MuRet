@@ -9,6 +9,7 @@
 #include "Render/Models/OriginalAngles.h"
 #include "World/KalimaParticleKernels.h"
 #include "World/Particles.h"
+#include "World/ModelEffects.h"
 #include "World/Sprites.h"
 #include <cmath>
 #include "Render/Models/OriginalRetainedMath.h"
@@ -767,6 +768,9 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateFaunaJoint(std::sp
             return Core::Unexpected(
                 std::format("0x530860: el joint {:#x}/{} con el ActorState de dueño fuera de su tipo no está portado",
                             request.type, request.subtype));
+        if (ownerKind == JointOwnerKind::ModelEffect &&
+            !(request.type == EnergyJoint && request.subtype == SummonEnergySubtype))
+            return Core::Unexpected(std::string("0x530860: el dueñoModelEffect sólo está portado para619/1"));
         Prefix(joints[i], request, ownerKind);
         if (auto created = CreateCase(joints[i], request, random); !created.HasValue())
             return Core::Unexpected(created.Error());
@@ -1243,13 +1247,15 @@ Core::Expected<void, std::string> StepSummonEnergy(JointState& joint, std::size_
     if (joint.life == LastLife && (random == nullptr || sprites == nullptr))
         return Core::Unexpected(
             std::format("0x538cce: faltan el RNG o los sprites del joint {} (0x619/1) en su última vida", index));
-    const auto* owner = static_cast<const ActorState*>(joint.ownerContext);
-    if (owner == nullptr)
-        return Core::Unexpected(std::format("0x538b17: falta el personaje dueño del joint {} (0x619/1)", index));
+    if (joint.ownerContext == nullptr)
+        return Core::Unexpected(std::format("0x538b17: falta el dueño del joint {} (0x619/1)", index));
+    const glm::vec3& position = joint.ownerKind == JointOwnerKind::ModelEffect
+                                    ? static_cast<const World::ModelEffect*>(joint.ownerContext)->transform.position
+                                    : static_cast<const ActorState*>(joint.ownerContext)->position;
     constexpr double Climb = 4.0, Lift = 120.0;
     constexpr float TurnStep = 10;
     joint.speed = F32(Climb + D(joint.speed));
-    const glm::vec3 target{owner->position.x, owner->position.y, F32(D(owner->position.z) + Lift)};
+    const glm::vec3 target{position.x, position.y, F32(D(position.z) + Lift)};
     static_cast<void>(SteerJoint(joint, target, TurnStep));
     constexpr float Tenth = std::bit_cast<float>(0x3dcccccdu), Blue = std::bit_cast<float>(0x3ecccccdu),
                     Green = std::bit_cast<float>(0x3f19999au);

@@ -107,6 +107,7 @@ Core::Expected<DrawSelection, ParticleDrawingError> SelectBranch(Particle& p, st
     switch (type)
     {
     case FireParticle:
+    case DeathSpiritFireParticle:
         // 548803..1f: sólo estos seis subtipos salen del default acreditado.
         switch (p.subtype)
         {

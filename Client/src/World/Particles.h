@@ -40,6 +40,7 @@ inline constexpr std::int32_t MagicSparkParticle = 0x5ad;
 inline constexpr std::int32_t CrywolfTideSmokeSubtype = 25;
 inline constexpr std::int32_t CrywolfSwingSmokeSubtype = 27;
 inline constexpr std::int32_t MissileFireParticle = 0x5da;
+inline constexpr std::int32_t DeathSpiritFireParticle = 0x5db;
 inline constexpr std::int32_t MissileSmokeSubtype = 38;
 inline constexpr std::int32_t ExplosionSmokeSubtype = 35;
 inline constexpr std::int32_t FireworkParticle = 0x60d;

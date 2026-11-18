@@ -1,4 +1,5 @@
 #include "Scenes/GameScene.h"
+#include "Scenes/CrywolfDeathSpiritEffects.h"
 #include "Scenes/ArrowEffects.h"
 #include "Scenes/CastleWeaponEffects.h"
 #include "World/SiegeStoneEffects.h"
@@ -257,6 +258,23 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
                                                   m_context.world->DynamicLighting().Lighting(), *m_context.cloth);
                 !stepped.HasValue())
                 return stepped;
+            continue;
+        }
+        if (effect.type == 0x147 || effect.type == 0x104)
+        {
+            const auto before = effect.transform.position;
+            // 5208c5: el sorteo común precede también los cuerpos147/104.
+            static_cast<void>(m_context.cloth->random.Next());
+            if (effect.type == 0x147)
+            {
+                if (auto stepped = StepCrywolfDeathSpirit(effect, m_context.cloth->random, services);
+                    !stepped.HasValue())
+                    return stepped;
+            }
+            else
+                StepCrywolfSpiritTrail(effect);
+            World::StepModelEffect(effect, skeleton);
+            effect.previousPosition = before;
             continue;
         }
         if (auto stepped =

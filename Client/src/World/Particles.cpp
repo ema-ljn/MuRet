@@ -600,7 +600,7 @@ void StepTheCloud8(Particle& particle)
 
 bool IsFire(const Particle& particle)
 {
-    return particle.type == FireParticle &&
+    return (particle.type == FireParticle || (particle.type == DeathSpiritFireParticle && particle.subtype == 0)) &&
            ((particle.subtype >= 0 && particle.subtype <= 3) || particle.subtype == 5 || particle.subtype == 8);
 }
 
@@ -786,6 +786,8 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
     {
         return subtype == 0 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     }
+    if (type == DeathSpiritFireParticle)
+        return subtype == 0 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     if (type == FireParticle)
     {
         return ((subtype >= 0 && subtype <= 3) || subtype == 5 || subtype == 8)
@@ -1706,7 +1708,7 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
             CreateTheDrop(particle, random);
             return std::optional(index);
         }
-        if (type == FireParticle)
+        if (type == FireParticle || type == DeathSpiritFireParticle)
         {
             CreateTheFire(particle, random);
             return std::optional(index);

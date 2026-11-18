@@ -57,9 +57,19 @@ El helper de vértices y los constructores/pasos12d..133 están en el bloque her
 
 Los misilesED/EE conservan el pase42 adicional de6002e0 antes de su cola602596. Ésta usa el índice durable del pool como dueño y vuelve a consultar la pose global **después** de publicarla; no conserva un span que pueda quedar colgando. La ausencia de BMD no elimina las cuatro partículas ni los diez sprites del original. Una matriz nunca publicada conserva el cero de BSS. El helper de esta cola y sus constructores/pasos vienen del bloque hermano de Crywolf.
 
+## Espíritu de muerte de Crywolf
+
+`51c952` crea147/0 con vida30, escala.3, velocidad local(0,−26,0), ritmo10 e iteraciones1. El offset del blanco viene de **la luz del argumento**, que el caller arma como(0,0,boundsTop); no es una copia de su posición. Conserva los ángulos de entrada en+28, y el cuerpo empieza con pitch/roll0 y ese yaw.147/1 copia el DWORD60 del ActorState del blanco, usa escala.2, alpha=(20−vida)×.2 y crea5db/0 de luz(.3,.4,1).5db/0 comparte los tres sorteos, paso y atlas de5d9/0; su material real esEffect\Fire03.jpg.
+
+`52709b` lee la posición viva del blanco más el offset y recorre i=1 mientras i<iteraciones, conservando el sorteo del pitch y4e9810. El ritmo suma.4; con vida<10 suma.1 adicional antes de61e/1. Cada vuelta transforma la velocidad, mueve el espíritu y crea104/0. Después, las iteraciones suman.1 y se pide1ca. El epílogo anima y descuenta vida, pero **147 salta51fc80**: no se mueve otra vez.104/0 nace con vida6, descenso80, RGB.5 y yaw45; su paso resta el descenso, suma60 a éste y fija blendLight=vida×.05.145/147/104 conservan cuerpo2 y la cola602365.
+
+Los61e/1 llevan al147 durable como dueño. `ModelEffect::owner.effect` y `JointOwnerKind::ModelEffect` conservan esa identidad en619/1, que lee su posición viva al girar y emitir el sprite final. No se interpreta el layout de unModelEffect como ActorState.
+
+La primera61e/1 de cada paso con vida<10 recibe **[EBP−28] antes de que5271d3 escriba ese local**. Con el pool lleno,518cf0 no lo lee; con hueco se requiere la captura nativa de ese vector y se informa5271a8 si no está disponible. Las siguientes vueltas usan el vector ya calculado. El cálculo de altura de5273ff es local muerto y no cambia el estado observable del efecto. Esta lectura de pila impide certificar el recorrido completo sin la VM, aunque constructor, cuerpo y dependencias estén implementados.
+
 ## Verificación y límites
 
-Se verificaron por binarios focales GCC14: altas de monstruos15, capas28, preludio/marcador7, partículas5, bendición3, constructor de proyectiles3, vuelo5, colisión/deformación4, ondas2, recursos reales del minimapa1, derrumbe/efecto de puerta3, dibujo21, cola de misiles3, caller del golpe4 y consulta de atributos15. Los tests de dibujo incluyen variantes de guerra, impacto one-shot, alpha NaN, colores de la cola adicional, pose global redimensionada y colaED/EE sin BMD. El caller con constructores reales conserva55 sorteos con cinco fragmentos aceptados y15 con el pool lleno. Estos binarios usaron layouts coherentes por compilación; no acreditan una biblioteca mezclada con headers nuevos.
+Se verificaron por binarios focales GCC14: altas de monstruos15, capas28, preludio/marcador7, partículas5, bendición3, constructor de proyectiles3, vuelo5, colisión/deformación4, ondas2, recursos reales del minimapa1, derrumbe/efecto de puerta3, dibujo21, cola de misiles3, caller del golpe4, consulta de atributos15 y espíritu/trail/owner durable8. Los tests de dibujo incluyen variantes de guerra, impacto one-shot, alpha NaN, colores de la cola adicional, pose global redimensionada y colaED/EE sin BMD. El caller con constructores reales conserva55 sorteos con cinco fragmentos aceptados y15 con el pool lleno. Estos binarios usaron layouts coherentes por compilación; no acreditan una biblioteca mezclada con headers nuevos.
 
 Las nuevas pruebas B7, SkillHits y choque de flecha con `WorldState`, MapLoad, viewport y recarga requieren la compilación integrada estable. Linux/Windows completos, revisión adversarial e interacción real en VM se deben registrar aparte.
 

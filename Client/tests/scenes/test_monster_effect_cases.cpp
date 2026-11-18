@@ -414,8 +414,8 @@ TEST_F(ModelEffectsTest, TheBleedingMonsterMarksTheGround)
 }
 
 // 0x43bdd0: el 0x191 y el 0x196 laten +0x68; del 0x193 al 0x195, nada; el 0xc5 fuera de la 0 pone +0x64 en 1; en la
-// 0, después de sus dos 0x5f3/0, corta en el efecto 0xc8.
-TEST_F(ModelEffectsTest, TheKalimaHelperPulsesAndCutsAtItsEffect)
+// 0 completa dos 0x5f3/0 y C8/C9, y ambas ramas alcanzan el pulso.
+TEST_F(ModelEffectsTest, TheKalimaHelperPulsesAndCompletesItsStoneEffects)
 {
     const auto pulse = Client::Render::Models::Detail::SineProductPC53(
         static_cast<double>(Clock) * static_cast<double>(std::bit_cast<float>(0x3a83126fu)),
@@ -437,8 +437,51 @@ TEST_F(ModelEffectsTest, TheKalimaHelperPulsesAndCutsAtItsEffect)
         Clear();
         m_actor.animation.action = 0;
         CrtRandom gate(Seed);
-        EXPECT_TRUE(CutAt(Step(0xc5, map, gate), "0x43bea5"));
+        ASSERT_TRUE(Step(0xc5, map, gate).HasValue());
         EXPECT_EQ(Alive(Client::World::DustParticle, 0), 2);
+    }
+}
+
+// 0x43be8c..43bed9: los fragmentos usan la posición del actor, no la aleatoria de los dos polvos.
+TEST_F(ModelEffectsTest, TheKalimaHelperKeepsItsStoneOrderAndPulseWhenPoolsFill)
+{
+    struct Capacity
+    {
+        std::size_t effects;
+        std::size_t particles;
+        int draws;
+    };
+    for (const Capacity capacity :
+         {Capacity{2, 2, 21}, Capacity{1, 2, 16}, Capacity{0, 2, 11}, Capacity{2, 0, 13}, Capacity{0, 0, 3}})
+    {
+        SCOPED_TRACE(capacity.effects);
+        SCOPED_TRACE(capacity.particles);
+        Clear();
+        auto effects = m_world->Map().effects.Effects();
+        for (std::size_t index = 0; index < effects.size(); ++index)
+            effects[index].alive = index >= capacity.effects;
+        auto particles = m_world->Particles().All();
+        for (std::size_t index = capacity.particles; index < particles.size(); ++index)
+            particles[index].alive = true;
+        m_actor.animation.action = 0;
+        m_actor.dword64 = 0;
+        CrtRandom random(Seed);
+        const auto stepped = Step(0xc5, 24, random);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(m_actor.dword64, 1);
+        const auto pulse = Client::Render::Models::Detail::SineSumPC53(
+            static_cast<double>(Clock) * static_cast<double>(std::bit_cast<float>(0x3a83126fu)), 1.0);
+        ASSERT_TRUE(pulse.has_value());
+        EXPECT_EQ(m_actor.blendMeshLight, static_cast<float>(*pulse * 0.5));
+        for (std::size_t index = 0; index < capacity.effects; ++index)
+        {
+            EXPECT_EQ(effects[index].type, static_cast<int>(0xc8 + index));
+            EXPECT_EQ(effects[index].subtype, 0);
+            EXPECT_EQ(effects[index].transform.position, m_actor.position);
+            EXPECT_EQ(effects[index].light, m_actor.light);
+            EXPECT_EQ(effects[index].ownerContext, nullptr);
+        }
+        EXPECT_EQ(random.State(), AfterDraws(Seed, capacity.draws).State());
     }
 }
 

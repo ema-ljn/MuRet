@@ -16,6 +16,8 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/FaunaModels.h"
+#include "Scenes/GameDrawTail.h"
+#include "World/Particles.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/MonsterCreation.h"
 #include "Scenes/MonsterKinds.h"
@@ -733,7 +735,7 @@ TEST_F(MonsterViewportTest, TheMissingMonsterFileCutsBeforeTheCreation)
 }
 
 // 0x4c9790: el 85 pide el sonido 0x173; el 21 la acción 1 (0x4c97ff) con las acciones de Monster15.bmd, que su caso
-// cargó en el modelo 0x160 (0x612d90(0xe), P-C176), y el sonido 0x13. El 0x35 y el 0x154 cortan en 0x4c982b y 0x4c9883.
+// cargó en el modelo 0x160 (0x612d90(0xe), P-C176), y el sonido 0x13. El 0x35 todavía corta en 0x4c982b.
 TEST_F(MonsterViewportTest, TheNewArrivalsAskForTheirSoundOrAction)
 {
     Load(0);
@@ -767,8 +769,131 @@ TEST_F(MonsterViewportTest, TheNewArrivalsAskForTheirSoundOrAction)
     EXPECT_NE(arrived.Error().find("0x4c982b"), std::string::npos) << arrived.Error();
     arriving.word376 = 0x154;
     arrived = Client::Scenes::ArriveAsNew(arriving, game->Resources());
-    ASSERT_FALSE(arrived.HasValue());
-    EXPECT_NE(arrived.Error().find("0x4c9883"), std::string::npos) << arrived.Error();
+    ASSERT_TRUE(arrived.HasValue()) << arrived.Error();
+    EXPECT_EQ(arriving.alpha, 0.0f);
+}
+
+// 0x515f9c/515fbc y los casos 5147eb..514dcc: el contrato618/2,3 no depende de349 ni del mapa34.
+TEST_F(MonsterViewportTest, OrdinaryMonsterCreationAttachesBothOwnedBeamsInNativeOrder)
+{
+    for (const std::int32_t type : {53, 57, 58, 59, 60, 61, 62, 63, 82, 83, 300})
+    {
+        SCOPED_TRACE(type);
+        Load(0);
+        const Cell cell = FreeRow();
+        const auto created = Client::Scenes::CreateMonster(type, cell.x, cell.y, 100, game->Resources());
+        ASSERT_TRUE(created.HasValue()) << created.Error();
+        ActorState& actor = Actor(created.Value());
+        EXPECT_EQ(actor.word376, type);
+        auto& joints = game->world.DrawTail().joints;
+        for (std::size_t index = 0; index < 2; ++index)
+        {
+            EXPECT_TRUE(joints[index].alive);
+            EXPECT_EQ(joints[index].type, 0x618);
+            EXPECT_EQ(joints[index].subtype, static_cast<int>(index) + 2);
+            EXPECT_EQ(joints[index].ownerContext, &actor);
+            EXPECT_EQ(joints[index].ownerKind, Client::Scenes::JointOwnerKind::Actor);
+            EXPECT_EQ(joints[index].width, 30.0f);
+            EXPECT_EQ(joints[index].life, 999999999);
+        }
+        EXPECT_FALSE(joints[2].alive);
+        EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, ConstructionDraws).State());
+    }
+}
+
+TEST_F(MonsterViewportTest, OrdinaryCreationFinishesItsTailWithOneOrNoJointSlots)
+{
+    for (const std::size_t free : {std::size_t{0}, std::size_t{1}})
+    {
+        SCOPED_TRACE(free);
+        Load(0);
+        auto& joints = game->world.DrawTail().joints;
+        for (std::size_t index = free; index < joints.size(); ++index)
+            joints[index].alive = true;
+        const auto created = Client::Scenes::CreateMonster(53, 120, 120, 100, game->Resources());
+        ASSERT_TRUE(created.HasValue()) << created.Error();
+        EXPECT_EQ(Actor(created.Value()).word376, 53);
+        if (free == 1)
+        {
+            EXPECT_EQ(joints[0].type, 0x618);
+            EXPECT_EQ(joints[0].subtype, 2);
+        }
+        EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, ConstructionDraws).State());
+    }
+}
+
+// 0x4c9883..4c9aca: la etapa3 sólo publica alpha1; las otras completan4×615/7,3×5f6/1,4×614/17.
+TEST_F(MonsterViewportTest, CrywolfArrivalsUseTheTourStageAndPreserveTheJointWidthDraws)
+{
+    for (const std::uint16_t type :
+         {std::uint16_t{0x154}, std::uint16_t{0x155}, std::uint16_t{0x158}, std::uint16_t{0x159}})
+    {
+        SCOPED_TRACE(type);
+        game = std::make_unique<Game>();
+        ActorState& actor = Actor(1);
+        actor.word376 = type;
+        actor.position = {100, 200, 300};
+        game->world.Runtime().events.cameraTour.stage = 3;
+        ASSERT_TRUE(Client::Scenes::ArriveAsNew(actor, game->Resources()).HasValue());
+        EXPECT_EQ(actor.alpha, 1.0f);
+        EXPECT_FALSE(game->world.DrawTail().joints[0].alive);
+        EXPECT_FALSE(game->world.Particles().Any());
+        EXPECT_EQ(game->cloth.random.State(), Seed);
+        game->world.Runtime().events.cameraTour.stage = 2;
+        ASSERT_TRUE(Client::Scenes::ArriveAsNew(actor, game->Resources()).HasValue());
+        EXPECT_EQ(actor.alpha, 0.0f);
+        const auto& joints = game->world.DrawTail().joints;
+        CrtRandom widths(Seed);
+        constexpr std::array<int, 4> bases{60, 50, 50, 60};
+        for (std::size_t index = 0; index < 4; ++index)
+        {
+            EXPECT_EQ(joints[index].type, 0x615);
+            EXPECT_EQ(joints[index].subtype, 7);
+            EXPECT_EQ(joints[index].width, static_cast<float>(widths.Next() % 10 + bases[index]));
+            widths.Discard(2); // 0x531b0c..0x531b57: los dos sorteos del constructor615/7 intercalados.
+            EXPECT_EQ(joints[index].ownerContext, nullptr);
+            EXPECT_EQ(joints[index].targetPosition, (glm::vec3{120, 220, 300}));
+            EXPECT_EQ(joints[index + 4].type, 0x614);
+            EXPECT_EQ(joints[index + 4].subtype, 17);
+            EXPECT_EQ(joints[index + 4].width, 10.0f);
+            EXPECT_EQ(joints[index + 4].targetPosition, (glm::vec3{100, 200, 420}));
+            EXPECT_EQ(joints[index + 4].ownerContext, nullptr);
+        }
+        EXPECT_FALSE(joints[8].alive);
+        const auto particles = game->world.Particles().All();
+        EXPECT_EQ(particles[0].type, 0x5f6);
+        EXPECT_EQ(particles[2].subtype, 1);
+        EXPECT_FALSE(particles[3].alive);
+        EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, 34).State());
+    }
+}
+
+TEST_F(MonsterViewportTest, CrywolfArrivalCompletesWithPartialAndFullEffectPools)
+{
+    struct Capacity
+    {
+        std::size_t joints;
+        std::size_t particles;
+        int draws;
+    };
+    for (const Capacity capacity : {Capacity{8, 3, 34}, Capacity{4, 3, 30}, Capacity{1, 3, 24}, Capacity{0, 3, 22},
+                                    Capacity{8, 0, 16}, Capacity{0, 0, 4}})
+    {
+        SCOPED_TRACE(capacity.joints);
+        SCOPED_TRACE(capacity.particles);
+        game = std::make_unique<Game>();
+        Actor(1).word376 = 0x154;
+        auto& joints = game->world.DrawTail().joints;
+        for (std::size_t index = capacity.joints; index < joints.size(); ++index)
+            joints[index].alive = true;
+        auto particles = game->world.Particles().All();
+        for (std::size_t index = capacity.particles; index < particles.size(); ++index)
+            particles[index].alive = true;
+        const auto arrived = Client::Scenes::ArriveAsNew(Actor(1), game->Resources());
+        ASSERT_TRUE(arrived.HasValue()) << arrived.Error();
+        EXPECT_EQ(Actor(1).alpha, 0.0f);
+        EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, capacity.draws).State());
+    }
 }
 
 // 0x4c9ed2..0x4c9f44 y 0x4e0b96..0x4e0c10: en Castle Siege, la puerta (+0x376 en 0x115, el 0x19b con la caja de

@@ -5,6 +5,7 @@
 #include "Protocol/Connection/Logout.h"
 #include "Protocol/DialogAnswers.h"
 #include "Protocol/Guild.h"
+#include "Protocol/FloorItems.h"
 #include "Protocol/NpcWindows.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
@@ -140,9 +141,6 @@ constexpr std::int32_t MixModes = 2;
 // 0x628b32..0x628b49: el sí del 0x96 abre el 0xa8 con 0x633300(1, 0x76e, 0xa8).
 constexpr std::int32_t LuckDialogLines = 1;
 constexpr std::int32_t LuckDialogText = 0x76e;
-// 0x629c60..0x629c6c, 0x628bec..0x628bf8 y 0x6293c5..0x6293d1: 0x5af520 en falso, el aviso 474 (0x76dfd54) de error.
-constexpr std::size_t BlessRefusedText = 474;
-constexpr std::int32_t ErrorMessageType = 2;
 // 0x628582..0x62858e: el sí del 0x9a sin el ítem (el dword 0x78a59cc en 0xff) no hace nada.
 constexpr std::uint32_t NoDialogItem = 0xff;
 // 0x628702..0x628710: el nivel del ítem, (0x78a59cc >> 3) & 0xf.
@@ -771,32 +769,23 @@ std::array<std::int32_t, 2> StepTheWarningButtons(const GameUiContext& context, 
     return chosen;
 }
 
-// 0x5af520: ni el almacén, ni 0x80, ni el comercio abiertos, cortando en el primero abierto. Solo el comercio, un byte
-// protegido (UI::PanelRegistry::IsOpen), saca su rand().
-bool TheItemCanBeUsed(const GameUiContext& context)
+// 0x628c11, 0x6293ea y 0x629c85: el 26 de los diálogos usa los mismos chequeos, espera y C3 del inventario.
+Core::Expected<void, std::string> UseTheDialogItem(const GameUiContext& context, const InventoryUse& use)
 {
-    GamePanels panels(context.world, context.random, GamePanelTables{.texts = context.texts});
-    UI::PanelRegistry& registry = panels.Registry();
-    return !registry.IsOpen(UI::WarehousePanel) && !registry.IsOpen(UI::ClosedPanel) &&
-           !registry.IsOpen(UI::TradePanel);
-}
-
-// El sí del 0xa9 (0x629c57..0x629c85) y los dos botones del 0xa8 (0x628bdc..0x628c11 y 0x6293b5..0x6293ea): con
-// 0x5af520 en falso, el aviso 474 de error; con la espera de 0x5767954, nada; si no, el C1 06 26 del hito 5, que
-// corta. Después cierra, con el sonido.
-Core::Expected<void, std::string> UseTheDialogItem(const GameUiContext& context, std::string_view cut)
-{
-    WorldRuntime& runtime = context.world.Runtime();
-    if (!TheItemCanBeUsed(context))
+    InventoryServices services = context.inventory != nullptr ? *context.inventory : InventoryServices{};
+    services.sendUseItem = [&context, where = use.where](const Protocol::FloorItems::UseItem& item)
     {
-        if (context.inventory == nullptr || !context.inventory->systemMessage)
-            return Core::Unexpected(std::string("0x555190: el aviso 474 sin los mensajes"));
-        if (auto shown = context.inventory->systemMessage(BlessRefusedText, ErrorMessageType); !shown.HasValue())
-            return shown;
-    }
-    else if (runtime.ui.field5767954 <= 0)
-        return Core::Unexpected(std::string(cut));
-    CloseTheDialog(runtime);
+        if (!context.sendNpcWindow)
+            return Core::Expected<void, std::string>(Core::Unexpected(std::format("{}: el 26 sin la sesión", where)));
+        return context.sendNpcWindow(Protocol::FloorItems::WriteUseItem(item));
+    };
+    GamePanels panels(context.world, context.random, GamePanelTables{.texts = context.texts});
+    const auto used =
+        UseInventoryItemOn(InventoryMoveContext{.world = context.world, .random = context.random, .services = services},
+                           panels.Registry(), use);
+    if (!used.HasValue())
+        return used;
+    CloseTheDialog(context.world.Runtime());
     return {};
 }
 
@@ -844,10 +833,8 @@ Core::Expected<void, std::string> AnswerTheLuck(const GameUiContext& context, st
         return {};
     }
     runtime.ui.field78abb26 = static_cast<std::uint8_t>(entry);
-    return UseTheDialogItem(context, std::format("{:#x}: el C1 06 26 del 0xa8 (0x5767954 en 10, 0x78a59d1 + 12, 0 y "
-                                                 "0x78abb26 en C3, con un rand(), y el sonido del ítem, 0x629365) lo "
-                                                 "escribe Protocol::...::WriteUseItem del hito 5 (08 P-C193)",
-                                                 entry == 0 ? 0x6293ea : 0x628c11));
+    return UseTheDialogItem(context, {.slot = runtime.dialogItemCell + FirstInventoryGridSlot,
+                                      .where = entry == 0 ? "0x6293ea" : "0x628c11"});
 }
 
 // 0x62a42b..0x62a771: el 0xaa. El no cierra; el sí manda el D0 00 y cierra.
@@ -926,9 +913,9 @@ Core::Expected<void, std::string> StepTheWarning(const GameUiContext& context, b
         else if (yes)
         {
             // 0x629c57..0x629c85.
-            if (auto used = UseTheDialogItem(context, "0x629c85: el C1 06 26 de la joya de bendición (0x5767954 en "
-                                                      "10, [0x7d3a0dc] + 12, [0x7d3a0e0] y 0x78abb26, en C3) lo "
-                                                      "escribe Protocol::...::WriteUseItem del hito 5 (08 P-C193)");
+            if (auto used = UseTheDialogItem(context, {.slot = runtime.dialogBox.jewelCell + FirstInventoryGridSlot,
+                                                       .target = runtime.dialogBox.jewelTarget,
+                                                       .where = "0x629c85"});
                 !used.HasValue())
                 return used;
         }

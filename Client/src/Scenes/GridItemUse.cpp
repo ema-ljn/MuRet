@@ -162,7 +162,7 @@ Core::Expected<void, std::string> UseTheFruit(const InventoryMoveContext& contex
         return Notice(context, FruitClassText, "0x5c83be");
     // 0x5c83e7..0x5c83f3: el diálogo 0x96 nombra el ítem de 0x78a59c8: corta con la dirección de su texto.
     return UI::OpenTextDialog(runtime.dialogBox, runtime.dialogs, context.services.texts, FruitDialogLines,
-                              FruitDialogText, UI::ItemNameDialog);
+                              FruitDialogText, UI::ItemNameDialog, &runtime.dialogItem);
 }
 
 // 0x5c9e10: conserva el destino del mouse temporal hasta que 0x5ca250 lo consume.

@@ -1221,3 +1221,56 @@ TEST_F(NpcWindowStepsTest, TheYesNoDialogsLeaveTheirAnswer)
     EXPECT_EQ(runtime.dialogs.current, 0);
 }
 } // namespace
+
+TEST_F(NpcWindowStepsTest, ARightClickedFruitOpensBothNamedConfirmations)
+{
+    auto& runtime = world.Runtime();
+    services.texts = &texts;
+    world.OwnCharacter().level = 200;
+    Place(world.Inventory().cells, ItemState{.id = Fruit, .scalar1Low = 2u << 3}, 1, 1, 1, 1);
+    runtime.ui.rightClick = true;
+    const auto used = Step(InventoryX + 15 + 20 + 5, 200 + 20 + 5);
+    ASSERT_TRUE(used.HasValue()) << used.Error();
+    EXPECT_EQ(runtime.dialogs.current, 0x96);
+    EXPECT_EQ(Client::UI::DialogRow(runtime.dialogBox, 0), "( sol )");
+    EXPECT_EQ(runtime.dialogItemCell, 9);
+    EXPECT_EQ(runtime.dialogItem.id, Fruit);
+    Click();
+    ASSERT_TRUE(Dialogs(234, 190).HasValue());
+    EXPECT_EQ(runtime.dialogs.current, 0xa8);
+    EXPECT_EQ(Client::UI::DialogRow(runtime.dialogBox, 0), "( sol y suerte )");
+}
+
+TEST_F(NpcWindowStepsTest, TheFruitAndJewelConfirmationsSendTheOriginal26)
+{
+    auto& runtime = world.Runtime();
+    for (const std::int32_t choice : {0, 1, 2})
+    {
+        runtime.dialogs = {};
+        runtime.dialogItem = ItemState{.id = Fruit, .scalar1Low = 2u << 3};
+        runtime.dialogItemCell = 5;
+        runtime.dialogBox.jewelCell = 4;
+        runtime.dialogBox.jewelTarget = 25;
+        runtime.ui.field5767954 = 0;
+        runtime.ui.field78abb26 = 9;
+        const std::int32_t id = choice == 2 ? 0xa9 : 0xa8;
+        ASSERT_TRUE(
+            Client::UI::OpenTextDialog(runtime.dialogBox, runtime.dialogs, &texts, 0, 0, id, &runtime.dialogItem)
+                .HasValue());
+        sent.clear();
+        const auto before = random;
+        Click();
+        const auto used = Dialogs(choice == 0 ? 235 : choice == 1 ? 295 : 234, choice == 2 ? 190 : 200);
+        ASSERT_TRUE(used.HasValue()) << used.Error();
+        ASSERT_EQ(sent.size(), 1u);
+        const int slot = choice == 2 ? 16 : 17;
+        const int target = choice == 2 ? 25 : 0;
+        const int kind = choice == 2 ? 9 : choice;
+        EXPECT_TRUE(SameBytes(Plain(0).Bytes(), Bytes({0xc1, 6, 0x26, slot, target, kind})));
+        EXPECT_EQ(sent[0].delivery, Delivery::Encrypted);
+        EXPECT_EQ(runtime.ui.field5767954, 10);
+        EXPECT_EQ(runtime.dialogs.current, 0);
+        EXPECT_EQ(runtime.lastSoundId, 0x19);
+        EXPECT_EQ(random.State(), Advanced(before, 3).State());
+    }
+}

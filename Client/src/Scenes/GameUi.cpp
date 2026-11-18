@@ -180,7 +180,7 @@ constexpr std::int32_t ButtonMouseUpdateTimeMax = 6;
 constexpr std::int32_t OldAreaRowHeight = 0xd;
 constexpr std::int32_t OldAreaBottom = 0x4e;
 // 0x4691e0: los dos EDIT del chat, en (0xc1, 0x1a6) de 0xb4 × 0xe y en (0x178, 0x1a6) de 0x32 × 0xe. Sus ids
-// (0x45a210) son *inferidos*: los dos primeros que arma WinMain (0x4bb173 y 0x4bb184), antes de los otros tres
+// (0x45a210) son *inferidos*: los dos primeros que arma WinMain (0x4bb01b y 0x4bb02c), antes de los otros tres
 // objetos de EDIT y del registro del chat (el 9).
 struct ChatEditPlace
 {
@@ -189,8 +189,8 @@ struct ChatEditPlace
     std::int32_t x, y, width, height;
 };
 constexpr std::array<ChatEditPlace, 2> ChatEdits{{
-    {UI::MessageField, 1, 0xc1, 0x1a6, 0xb4, 0xe},
-    {UI::WhisperField, 2, 0x178, 0x1a6, 0x32, 0xe},
+    {UI::MessageField, UI::ChatMessageEditId, 0xc1, 0x1a6, 0xb4, 0xe},
+    {UI::WhisperField, UI::ChatWhisperEditId, 0x178, 0x1a6, 0x32, 0xe},
 }};
 // 0x5a33dc..0x5a343a: el botón de F3, junto al EDIT del susurro.
 constexpr std::int32_t WhisperModeLeft = 0x1b2;
@@ -2032,7 +2032,7 @@ void StepTheArrowKey(const GameUiContext& context, GameKey key, std::int32_t dir
     if ((input.focus == UI::ChatFocus::Message || input.focus == UI::ChatFocus::Whisper) && input.field % 2 == 0)
         sound = UI::RecallFromTheHistory(input, direction);
     else
-        sound = UI::StepTheWhisperName(input, direction);
+        sound = UI::StepTheWhisperName(input, direction, &runtime.ui.focusedList);
     if (sound)
         runtime.lastSoundId = ButtonSound;
 }
@@ -2063,7 +2063,7 @@ bool StepTheChatEdit(const GameUiContext& context, const ChatEditPlace& edit)
     ui.mouseOnUi = 1;
     if (runtime.movement.pendingClick)
     {
-        UI::ClickTheChatField(runtime.chat.input, edit.field);
+        UI::ClickTheChatField(runtime.chat.input, edit.field, &ui.focusedList);
         runtime.movement.mouseUpdateTime = 0;
         runtime.movement.mouseUpdateTimeMax = ButtonMouseUpdateTimeMax;
     }

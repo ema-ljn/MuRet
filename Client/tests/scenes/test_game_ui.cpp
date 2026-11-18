@@ -1028,7 +1028,7 @@ TEST(GameUiTest, TheArrowsWalkTheHistoryOrTheWhisperNames)
     Client::UI::RememberTheMessage(input, "dicho");
     Press(tested.input, Key::Up);
     ASSERT_TRUE(tested.Step(320, 100).HasValue());
-    EXPECT_EQ(input.message.Value(), "dicho");
+    EXPECT_EQ(input.message.text.Value(), "dicho");
     EXPECT_EQ(tested.world.Runtime().lastSoundId, 0x19);
 
     Release(tested.input, Key::Up);

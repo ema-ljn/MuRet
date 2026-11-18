@@ -431,7 +431,7 @@ Core::Expected<void, std::string> CommandAWhisper(const GameUiContext& context, 
     UI::ChatInputState& input = context.world.Runtime().chat.input;
     UI::SetTheChatFields(input, std::nullopt, ChatNameOf(context.world.Actors()[index]));
     input.field = UI::MessageField;
-    UI::FocusTheChatField(input, UI::MessageField);
+    UI::FocusTheChatField(input, UI::MessageField, &context.world.Runtime().ui.focusedList);
     return PressEnterInTheGame(chat);
 }
 

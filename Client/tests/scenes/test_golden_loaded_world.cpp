@@ -5,6 +5,8 @@
 #include "Data/Terrain/TerrainHeights.h"
 #include "Data/Terrain/TerrainMapping.h"
 #include "Data/Textures/Sampling.h"
+#include "Data/Textures/Texture.h"
+#include "Data/Textures/TextureSet.h"
 #include "Render/TextureSlot.h"
 #include "World/TerrainHeight.h"
 #include "World/TerrainLighting.h"
@@ -50,7 +52,10 @@ constexpr std::uint16_t LastTile = 0x30;
 constexpr std::uint16_t AcceptBox = 0x122;
 // 61ac3e..61ad7a: 64/65 del World56 y66/67/68 de World1/World10; falta sólo la alternativa JPG64. Con la gota de
 // 0x616ec0 (Object8\drop01, 0x607).
-constexpr std::size_t LoadedLoginTextureCount = 21;
+// 32 cáusticas nuevas; light01 ocupa68 antes de que rain03 reemplace ese mismo slot.
+constexpr std::size_t LoadedLoginTextureCount = 21 + 32;
+constexpr std::uint16_t CausticFirstSlot = 0x41;
+constexpr std::uint16_t CausticCount = 32;
 constexpr std::size_t OptionalLoginWeatherSkips = 1;
 
 std::string Lower(std::string text)
@@ -79,8 +84,12 @@ protected:
                 std::filesystem::copy(entry.path(), m_copy.Path() / "Interface" / entry.path().filename());
             }
         }
-        for (const char* relative :
-             {"World1/rain01.OZT", "World1/rain02.OZT", "World10/rain03.OZT", "Object8/drop01.OZJ"})
+        std::vector<std::string> globalFiles{"World1/rain01.OZT", "World1/rain02.OZT", "World10/rain03.OZT",
+                                             "Object8/drop01.OZJ", "Object8/light01.OZJ"};
+        // 618ddc..618e29: wt00..wt31, antes de light01 (618e40) y de los tiles de61a560.
+        for (std::uint16_t index = 0; index < CausticCount; ++index)
+            globalFiles.push_back("Object8/wt" + std::string(index < 10 ? "0" : "") + std::to_string(index) + ".OZJ");
+        for (const std::string& relative : globalFiles)
         {
             const auto weather = Client::Data::ResolveDataPath(m_dataRoot, relative, error);
             ASSERT_TRUE(weather.has_value()) << relative;
@@ -158,12 +167,43 @@ TEST_F(GoldenLoadedWorld, LoadsTheFourteenTilesAndTheAcceptBox)
     }
     EXPECT_TRUE(m_store.Find(TextureSlot{AcceptBox}).has_value());
     EXPECT_EQ(m_store.Size(), LoadedLoginTextureCount);
+    // La tabla literal del ASM: drop,32 aguas, light01, 14 tiles, cinco texturas de clima y accept_box.
+    std::vector<std::uint16_t> uploads{0x607};
+    for (std::uint16_t index = 0; index < CausticCount; ++index)
+    {
+        const std::uint16_t slot = static_cast<std::uint16_t>(CausticFirstSlot + index);
+        uploads.push_back(slot);
+        const auto actual = m_store.Find(TextureSlot{slot});
+        ASSERT_TRUE(actual.has_value());
+        EXPECT_EQ(actual->sampling.filter, Client::Data::Textures::Filter::Linear);
+        EXPECT_EQ(actual->sampling.wrap, Client::Data::Textures::Wrap::Repeat);
+        EXPECT_EQ(actual->texture.format, Client::Data::Textures::PixelFormat::Rgb);
+        const std::string path = "Object8\\wt" + std::string(index < 10 ? "0" : "") + std::to_string(index) + ".jpg";
+        const std::array<Client::Data::Textures::TextureSetEntry, 1> entry{{{path, slot, actual->sampling}}};
+        const auto original = Client::Data::Textures::LoadTextureSet(m_dataRoot, entry);
+        ASSERT_TRUE(original.HasValue());
+        EXPECT_EQ(actual->texture.pixels, original.Value().front().texture.pixels) << path;
+    }
+    uploads.push_back(0x68);
+    for (std::uint16_t slot = FirstTile; slot <= LastTile; ++slot)
+        uploads.push_back(slot);
+    for (const std::uint16_t slot : {std::uint16_t{0x64}, std::uint16_t{0x65}, std::uint16_t{0x66}, std::uint16_t{0x67},
+                                     std::uint16_t{0x68}, std::uint16_t{0x122}})
+        uploads.push_back(slot);
+    EXPECT_EQ(m_store.loaded, uploads);
+    const auto weather = m_store.Find(TextureSlot{0x68});
+    ASSERT_TRUE(weather.has_value());
+    EXPECT_EQ(weather->sampling.filter, Client::Data::Textures::Filter::Nearest);
+    EXPECT_EQ(weather->sampling.wrap, Client::Data::Textures::Wrap::Clamp);
+    EXPECT_EQ(weather->texture.format, Client::Data::Textures::PixelFormat::Rgba);
 
     world.Release();
     EXPECT_FALSE(world.IsLoaded());
     EXPECT_EQ(world.LoadedMap(), std::nullopt);
     EXPECT_EQ(world.Lighting(), nullptr);
     EXPECT_EQ(m_store.Size(), 0u);
+    EXPECT_EQ(m_store.released.size(), LoadedLoginTextureCount);
+    EXPECT_EQ(std::ranges::count(m_store.released, std::uint16_t{0x68}), 1);
 }
 
 TEST_F(GoldenLoadedWorld, DrawingUsesTheDynamicLightWithoutReplacingItsBase)

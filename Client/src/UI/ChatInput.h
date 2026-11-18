@@ -45,6 +45,10 @@ inline constexpr std::int32_t MacroLockSteps = 0x64;
 // 0x77f3b70: el campo elegido. Tab lo corre entre 0 y 0x6c8e6c − 1; los impares son el del susurro.
 inline constexpr std::int32_t MessageField = 0;
 inline constexpr std::int32_t WhisperField = 1;
+// 0x4bb01b/0x4bb02c → 0x4674c0 → 0x45a210 → 0x459ef0: los dos primeros controles de WinMain.
+// Los ids siguen el mismo orden inferido que DialogFieldId y UI::ChatLogId.
+inline constexpr std::int32_t ChatMessageEditId = 1;
+inline constexpr std::int32_t ChatWhisperEditId = 2;
 // 0x6c8e6c: cuántos campos recorre Tab, 2 desde el primer paso del juego y al abrir.
 inline constexpr std::int32_t ChatFieldCount = 2;
 // [0x5763504] y [0x5763508]: los topes de los dos EDIT de los diálogos antes de que alguien les ponga otro: WinMain los
@@ -112,6 +116,7 @@ struct ChatHistory
 [[nodiscard]] inline OldEdit ChatFieldEdit(bool whisper)
 {
     OldEdit edit;
+    edit.base.id = whisper ? ChatWhisperEditId : ChatMessageEditId;
     edit.text = TextField{whisper ? ChatWhisperLimit : ChatMessageLimit, false, TextField::Charset::Windows1252Xp};
     edit.base.x = whisper ? 376 : 193;
     edit.base.y = 422;
@@ -186,21 +191,21 @@ void ClearTheChatFields(ChatInputState& input);
 
 // 0x469370(campo): con los EDIT a la vista, el foco al del susurro (impar) o al del mensaje, con todo elegido
 // (EM_SETSEL(0, −1)).
-void FocusTheChatField(ChatInputState& input, std::int32_t field);
+void FocusTheChatField(ChatInputState& input, std::int32_t field, std::int32_t* focusedList = nullptr);
 
 // 0x4682a0(1) sobre el EDIT del campo `field` (el clic en él, 0x468d50): el foco y el cursor al final, sin nada
-// elegido (EM_SETSEL(−2, −1)). El original también deja el id del EDIT en 0x5762ec0, que MuRet no lee.
-void ClickTheChatField(ChatInputState& input, std::int32_t field);
+// elegido (EM_SETSEL(−2, −1)). Deja también el id del EDIT en 0x5762ec0 (`focusedList`).
+void ClickTheChatField(ChatInputState& input, std::int32_t field, std::int32_t* focusedList = nullptr);
 
 // 0x469450(estado): 3 los oculta; otro los muestra, y 0 además le da el foco al del mensaje (0x4682a0 con 0: sin
 // cambiar lo elegido). Al ocultarlos, si uno de los dos tenía el foco, vuelve a la ventana del juego (*inferido*: MuRet
 // no tiene un EDIT oculto que reciba teclas); el de otro EDIT (el del diálogo, el del número, el de una ventana vieja)
 // queda, porque ShowWindow(SW_HIDE) sólo toca los del chat (0x469450..0x469485).
-void ShowTheChatFields(ChatInputState& input, std::int32_t state);
+void ShowTheChatFields(ChatInputState& input, std::int32_t state, std::int32_t* focusedList = nullptr);
 
 // 0x469320: el campo elegido en 0, el foco al del mensaje (0x469370), los dos vacíos (0x469420) y el historial
 // vacío (0x469a80(1)).
-void ResetTheChatInput(ChatInputState& input);
+void ResetTheChatInput(ChatInputState& input, std::int32_t* focusedList = nullptr);
 
 // 0x4693e0(0x7798bf8, 0x7798cf8): GetText de los dos EDIT a sus buffers, hasta 0xff bytes.
 void ReadTheChatFields(ChatInputState& input);
@@ -226,7 +231,7 @@ bool RecallFromTheHistory(ChatInputState& input, std::int32_t steps);
 // 0x4b4f12..0x4b4fb2: Tab en la ventana del juego (el WM_CHAR 9 que le pasa la subclase 0x467b10). Con el campo del
 // chat abierto y dos o más campos, pasa al que sigue (0x469370 en el chat; en el EDIT del login, [0x57634fc], que en
 // el juego está oculto, nada); con uno, si su largo es 0, invierte 0x77f3b69. Devuelve si sonó el 0x19.
-bool PressTabInTheChat(ChatInputState& input, bool chatOpen);
+bool PressTabInTheChat(ChatInputState& input, bool chatOpen, std::int32_t* focusedList = nullptr);
 
 // 0x468260(estado) sobre el EDIT de los diálogos (la vtable + 4): 3 lo oculta, y el foco del teclado vuelve a la
 // ventana del juego si lo tenía (*inferido*, como ShowTheChatFields); otro lo muestra.
@@ -259,7 +264,7 @@ void BackspaceInTheChat(ChatInputState& input);
 // lugar de ahora, el buffer se vacía, el lugar se corre (de 0 a LastWhisperNameSlot), el EDIT del susurro toma el
 // nombre del lugar nuevo (y el foco con todo elegido si el campo es el impar) y el buffer también. Fuera de los
 // bordes, nada. Devuelve si sonó el 0x19.
-bool StepTheWhisperName(ChatInputState& input, std::int32_t direction);
+bool StepTheWhisperName(ChatInputState& input, std::int32_t direction, std::int32_t* focusedList = nullptr);
 
 // 0x59ffe0..0x5a0083: strcpy del nombre al buffer del susurro y su largo; el EDIT no cambia (Q-C530).
 void PutTheWhisperName(ChatInputState& input, std::string_view name);

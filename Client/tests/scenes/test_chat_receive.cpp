@@ -15,6 +15,7 @@
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "Scenes/SelectionInventory.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/LoginModels.h"
@@ -303,6 +304,7 @@ TEST_F(ChatReceiveTest, TheGuildMasterKeyChatOpensTheSecondGuildWindow)
 // 0x4e345c → 0x6599a0: abrir el gremio cierra también Senior, Hunt y los tres controles de batalla.
 TEST_F(ChatReceiveTest, TheGuildMasterUsesTheSharedCastleAndBattleClosers)
 {
+    Client::Scenes::ClearSelectionInventory(*m_world, m_random);
     ActorState& master = Player(20, "");
     constexpr std::array<std::uint8_t, 10> GuildMaster{0xb1, 0xe6, 0xb5, 0xe5, 0x20, 0xb8, 0xb6, 0xbd, 0xba, 0xc5};
     for (std::size_t i = 0; i < GuildMaster.size(); ++i)
@@ -355,9 +357,31 @@ TEST_F(ChatReceiveTest, TheGuildMasterUsesTheSharedCastleAndBattleClosers)
         }
         EXPECT_EQ(m_random.State(), expected.State());
     }
+
+    // 0x659933→0x661b90: incluso occupied=0 bloquea CanOpen si el WORD de la caja del Senior no es 0xffff.
+    auto& delegated = Runtime().panels.delegated;
+    delegated = {};
+    delegated.castleSiegeList = 1;
+    auto& ghost = Runtime().npcWindows.chaosBox[31];
+    ghost.id = 7;
+    ghost.occupied = 0;
+    std::vector<Client::Protocol::Outgoing> sent;
+    auto context = Context();
+    context.guildSend = [&](Client::Protocol::Outgoing packet) { sent.push_back(std::move(packet)); };
+    auto expected = m_random;
+    expected.Discard(2); // CanOpen consulta tienda/comercio antes de rechazar; no entra a CloseByMask.
+    const auto result = Client::Scenes::ApplyKeyChat(KeyChat{.key = 0x0042, .text = "hola"}, context);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_TRUE(sent.empty());
+    EXPECT_EQ(delegated.castleSiegeList, 1);
+    EXPECT_EQ(delegated.secondGuild, 0);
+    EXPECT_EQ(ghost.id, 7);
+    EXPECT_EQ(ghost.occupied, 0u);
+    EXPECT_EQ(m_random.State(), expected.State());
 }
 
-TEST_F(ChatReceiveTest, TheGuildMasterBorrowsTheWarehouseServicesFromWorldEntry)
+// 0x659889..0x659894: CanOpen rechaza el almacén antes de los cierres. 0x4e3461 continúa sin mirar el retorno.
+TEST_F(ChatReceiveTest, TheGuildMasterKeepsTheWarehouseWhenTheNativeGuardRefusesTheGuild)
 {
     ActorState& master = Player(20, "");
     constexpr std::array<std::uint8_t, 10> GuildMaster{0xb1, 0xe6, 0xb5, 0xe5, 0x20, 0xb8, 0xb6, 0xbd, 0xba, 0xc5};
@@ -389,17 +413,22 @@ TEST_F(ChatReceiveTest, TheGuildMasterBorrowsTheWarehouseServicesFromWorldEntry)
     auto context = Context();
     context.worldEntry = &resources;
     context.guildSend = [&](Client::Protocol::Outgoing packet) { sent.push_back(std::move(packet)); };
+    auto expected = m_random;
+    expected.Discard(2); // Sólo las consultas protegidas de la tienda del NPC y del comercio.
 
     auto result = Client::Scenes::ApplyKeyChat(KeyChat{.key = 0x0042, .text = "hola"}, context);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
-    ASSERT_EQ(sent.size(), 1u);
-    EXPECT_TRUE(Client::Tests::SameBytes(sent.front().packet.Bytes(), Client::Tests::Bytes({0xc1, 3, 0x82})));
-    EXPECT_EQ(Runtime().panels.warehouse, 0);
-    EXPECT_EQ(Runtime().npcWindows.warehouseLocked, 0);
-    EXPECT_EQ(Runtime().npcWindows.grid[0].id, 0xffff);
-    EXPECT_EQ(Runtime().npcWindows.grid[0].occupied, 0);
-    EXPECT_EQ(Runtime().panels.delegated.secondGuild, 1);
+    EXPECT_TRUE(sent.empty());
+    EXPECT_EQ(Runtime().panels.warehouse, 1);
+    EXPECT_EQ(Runtime().npcWindows.warehouseLocked, 1);
+    EXPECT_EQ(Runtime().npcWindows.grid[0].id, 3);
+    EXPECT_EQ(Runtime().npcWindows.grid[0].occupied, 1u);
+    EXPECT_EQ(Runtime().panels.delegated.secondGuild, 0);
+    EXPECT_TRUE(Runtime().chat.input.dialogFieldOn);
+    EXPECT_FALSE(Runtime().ui.chatOpen);
+    EXPECT_EQ(Runtime().chat.input.fieldCount, 0);
+    EXPECT_EQ(m_random.State(), expected.State());
 }
 
 // 0x4e3492: el héroe con gremio lo conserva.

@@ -42,6 +42,7 @@
 #include <cstdint>
 #include <array>
 #include <format>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -124,6 +125,8 @@ public:
     // El paquete como sale (sin el XOR32) y si va en C3.
     void SendGamePacket(Client::Protocol::Outgoing outgoing) override
     {
+        if (onGamePacket)
+            onGamePacket();
         const Client::Network::Packet decoded = Client::Network::Crypto::Xor32Decode(outgoing.packet);
         std::vector<std::uint8_t> bytes;
         for (const std::byte b : decoded.Bytes())
@@ -169,6 +172,7 @@ public:
     }
 
     std::vector<Request> requests;
+    std::function<void()> onGamePacket;
 };
 
 class SteppingDialogs
@@ -562,11 +566,20 @@ TEST(GameDialogStepsTest, EscapeClosesTheLowestWindowWithWhatItSends)
             auto tested = std::make_unique<SteppingDialogs>(map);
             tested->world.Runtime().panels.delegated.quest = Client::Scenes::QuestListWindow;
             tested->world.Runtime().panels.trade = 1;
+            tested->requests.onGamePacket = [&tested]
+            {
+                EXPECT_EQ(tested->world.Runtime().panels.delegated.quest, 0);
+                EXPECT_EQ(tested->world.Runtime().panels.trade, 1);
+            };
+            const auto expected = tested->random;
             const auto stepped = escape(*tested);
             ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-            EXPECT_EQ(tested->requests.Kinds(), (std::vector<std::string>{"31"}));
+            ASSERT_EQ(tested->requests.Kinds(), (std::vector<std::string>{"C1"}));
+            EXPECT_EQ(tested->requests.requests[0].bytes, (std::vector<std::uint8_t>{0xc1, 3, 0x31}));
             EXPECT_EQ(tested->world.Runtime().panels.delegated.quest, 0);
+            EXPECT_EQ(tested->world.Runtime().panels.trade, 1);
             EXPECT_EQ(tested->world.Runtime().dialogs.current, 0);
+            EXPECT_EQ(tested->random.State(), expected.State());
         }
         {
             auto tested = std::make_unique<SteppingDialogs>(map);

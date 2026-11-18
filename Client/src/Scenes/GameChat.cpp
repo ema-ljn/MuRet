@@ -549,7 +549,7 @@ Core::Expected<void, std::string> TypeInTheGameChat(const GameChatContext& conte
         }
         if (pressed == Input::TabChar)
         {
-            if (UI::PressTabInTheChat(input, runtime.ui.chatOpen))
+            if (UI::PressTabInTheChat(input, runtime.ui.chatOpen, &runtime.ui.focusedList))
                 runtime.lastSoundId = UI::ChatButtonSound;
         }
         else if (pressed == Input::EnterChar)
@@ -677,7 +677,7 @@ Core::Expected<void, std::string> PressEnterInTheGame(const GameChatContext& con
         if (ui.chatOpen)
         {
             ui.chatOpen = false;
-            UI::ShowTheChatFields(input, Hide);
+            UI::ShowTheChatFields(input, Hide, &runtime.ui.focusedList);
         }
         else if (runtime.dialogs.current == MoneyDialog)
         {
@@ -692,7 +692,7 @@ Core::Expected<void, std::string> PressEnterInTheGame(const GameChatContext& con
             runtime.social.dialogFieldLimit = ClosedDialogFieldLimit;
             input.fieldCount = UI::ChatFieldCount;
             runtime.social.moneyField = 0;
-            UI::ShowTheChatFields(input, ShowFocused);
+            UI::ShowTheChatFields(input, ShowFocused, &runtime.ui.focusedList);
             ui.chatOpen = true;
         }
         return {};
@@ -732,7 +732,7 @@ Core::Expected<void, std::string> PressEnterInTheGame(const GameChatContext& con
         runtime.chat.area.firstShown = UI::FirstShownRow;
     // 0x4b884b..0x4b8883.
     UI::SetTheChatFields(input, std::string_view{}, std::nullopt);
-    UI::ShowTheChatFields(input, Hide);
+    UI::ShowTheChatFields(input, Hide, &runtime.ui.focusedList);
     UI::ScrollTheLog(runtime.chat.log, ui.chatModes, ScrollAfterSaying);
     ForgetWhatWasTyped(runtime, input, ui);
     return {};

@@ -460,6 +460,31 @@ TEST(ChatInputTest, TheWhisperPasteRespectsItsByteLimitAndSingleLineProfile)
     EXPECT_EQ(input.message.text.Size(), 0u);
 }
 
+// 0x4682f1..0x4682f7: tomar el foco deja el id del EDIT en la lista que recibe las flechas; ocultarlo no la limpia.
+TEST(ChatInputTest, TakingChatFocusReplacesThePreviousListsArrowTarget)
+{
+    ChatInputState input;
+    std::int32_t arrowTarget = 123;
+    ShowTheChatFields(input, 1, &arrowTarget);
+    EXPECT_EQ(arrowTarget, 123);
+    ShowTheChatFields(input, 0, &arrowTarget);
+    EXPECT_EQ(arrowTarget, 1);
+    ClickTheChatField(input, WhisperField, &arrowTarget);
+    EXPECT_EQ(arrowTarget, 2);
+    ShowTheChatFields(input, 3, &arrowTarget);
+    EXPECT_EQ(arrowTarget, 2);
+    EXPECT_EQ(input.focus, ChatFocus::Game);
+    FocusTheChatField(input, MessageField, &arrowTarget);
+    EXPECT_EQ(arrowTarget, 2); // 0x469370: con los dos ocultos, no llama al EDIT.
+    ShowTheChatFields(input, 1, &arrowTarget);
+    FocusTheChatField(input, MessageField, &arrowTarget);
+    EXPECT_EQ(arrowTarget, 1);
+    EXPECT_TRUE(PressTabInTheChat(input, true, &arrowTarget));
+    EXPECT_EQ(arrowTarget, 2);
+    EXPECT_TRUE(PressTabInTheChat(input, true, &arrowTarget));
+    EXPECT_EQ(arrowTarget, 1);
+}
+
 TEST(ChatInputTest, PreeditAndCommittedChatTextRemainSeparate)
 {
     ChatInputState input = OpenInput();

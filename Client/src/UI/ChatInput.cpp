@@ -52,9 +52,13 @@ void SetTextOf(TextField& field, std::string_view text)
 }
 
 // 0x4682a0(con selección): el foco al EDIT; con 1, EM_SETSEL(−2, −1) deja el cursor al final.
-void SetFocusOn(ChatInputState& input, ChatFocus focus)
+void SetFocusOn(ChatInputState& input, ChatFocus focus, std::int32_t* focusedList = nullptr)
 {
     input.focus = focus;
+    // 0x4682f1..0x4682f7: tomar el foco mueve también la lista de las flechas, aunque el control sea un EDIT.
+    if (focusedList != nullptr)
+        if (const OldEdit* edit = ChatEditWithFocus(input); edit != nullptr)
+            *focusedList = edit->base.id;
 }
 
 // strncpy(destino, origen, 0xb): los once primeros bytes, con ceros detrás del '\0'.
@@ -119,23 +123,23 @@ void ClearTheChatFields(ChatInputState& input)
     input.whisper.text.Clear();
 }
 
-void FocusTheChatField(ChatInputState& input, std::int32_t field)
+void FocusTheChatField(ChatInputState& input, std::int32_t field, std::int32_t* focusedList)
 {
     if (!input.shown)
         return;
     const ChatFocus focus = field == WhisperField ? ChatFocus::Whisper : ChatFocus::Message;
-    SetFocusOn(input, focus);
+    SetFocusOn(input, focus, focusedList);
     FieldOf(input, focus).SelectAll();
 }
 
-void ClickTheChatField(ChatInputState& input, std::int32_t field)
+void ClickTheChatField(ChatInputState& input, std::int32_t field, std::int32_t* focusedList)
 {
     const ChatFocus focus = field == WhisperField ? ChatFocus::Whisper : ChatFocus::Message;
-    SetFocusOn(input, focus);
+    SetFocusOn(input, focus, focusedList);
     FieldOf(input, focus).Deselect();
 }
 
-void ShowTheChatFields(ChatInputState& input, std::int32_t state)
+void ShowTheChatFields(ChatInputState& input, std::int32_t state, std::int32_t* focusedList)
 {
     input.shown = state != HiddenState;
     input.message.base.state = state;
@@ -149,7 +153,7 @@ void ShowTheChatFields(ChatInputState& input, std::int32_t state)
         return;
     }
     if (state == FocusedState)
-        SetFocusOn(input, ChatFocus::Message);
+        SetFocusOn(input, ChatFocus::Message, focusedList);
 }
 
 void ShowTheDialogField(ChatInputState& input, std::int32_t state)
@@ -193,10 +197,10 @@ void ClearTheNumberField(ChatInputState& input)
     SetTextOf(input.numberField.text, {});
 }
 
-void ResetTheChatInput(ChatInputState& input)
+void ResetTheChatInput(ChatInputState& input, std::int32_t* focusedList)
 {
     input.field = MessageField;
-    FocusTheChatField(input, MessageField);
+    FocusTheChatField(input, MessageField, focusedList);
     ClearTheChatFields(input);
     TrimTheHistory(input.history, true);
 }
@@ -292,14 +296,14 @@ bool RecallFromTheHistory(ChatInputState& input, std::int32_t steps)
     return sound;
 }
 
-bool PressTabInTheChat(ChatInputState& input, bool chatOpen)
+bool PressTabInTheChat(ChatInputState& input, bool chatOpen, std::int32_t* focusedList)
 {
     if (!chatOpen)
         return false;
     if (input.fieldCount > 1)
     {
         input.field = (input.field + 1) % input.fieldCount;
-        FocusTheChatField(input, input.field);
+        FocusTheChatField(input, input.field, focusedList);
         return true;
     }
     if ((input.field == MessageField ? input.messageLength : input.whisperLength) == 0)
@@ -327,7 +331,7 @@ void BackspaceInTheChat(ChatInputState& input)
     BackspaceInTheEdit(*edit);
 }
 
-bool StepTheWhisperName(ChatInputState& input, std::int32_t direction)
+bool StepTheWhisperName(ChatInputState& input, std::int32_t direction, std::int32_t* focusedList)
 {
     const std::int32_t next = input.whisperNameAt + direction;
     if (next < 0 || next > LastWhisperNameSlot)
@@ -338,7 +342,7 @@ bool StepTheWhisperName(ChatInputState& input, std::int32_t direction)
     const ChatBuffer& slot = input.whisperNames[static_cast<std::size_t>(next)];
     SetTheChatFields(input, std::nullopt, CStringOf(slot));
     if (input.field % 2 == WhisperField)
-        FocusTheChatField(input, WhisperField);
+        FocusTheChatField(input, WhisperField, focusedList);
     CopyTheName(input.whisperBuffer, slot);
     input.whisperLength = LengthOf(input.whisperBuffer);
     return true;

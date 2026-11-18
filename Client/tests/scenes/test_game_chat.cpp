@@ -216,6 +216,7 @@ TEST_F(GameChat, EnterOpensAndClosesTheEmptyField)
     EXPECT_TRUE(world.Runtime().ui.chatOpen);
     EXPECT_TRUE(Input().shown);
     EXPECT_EQ(Input().focus, Client::UI::ChatFocus::Message);
+    EXPECT_EQ(world.Runtime().ui.focusedList, Client::UI::ChatMessageEditId);
     // Lo de antes de abrir lo descartó la ventana del juego.
     EXPECT_EQ(Input().message.text.Value(), "");
 
@@ -492,6 +493,7 @@ TEST_F(GameChat, TabKeepsBothChatTextsAndSelectsTheNewFieldBeforeWhispering)
     ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), edited).HasValue());
     EXPECT_EQ(Input().focus, Client::UI::ChatFocus::Whisper);
     EXPECT_EQ(Input().whisper.text.Selected(), "Destino");
+    EXPECT_EQ(world.Runtime().ui.focusedList, Client::UI::ChatWhisperEditId);
     EXPECT_EQ(Input().message.text.Value(), "nuevo");
     ASSERT_TRUE(Type("\r").HasValue());
     ASSERT_EQ(sent.size(), 1u);

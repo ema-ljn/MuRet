@@ -91,7 +91,7 @@ Las dependencias externas determinadas se detallan en los nuevos informes:
 - [Crywolf F8/C1A](../../../Client/docs/research/2026-11-18-cl9-crywolf-dependencias-asm.md).
 
 Son trabajo de implementación, no sólo capturas VM. F8 usa60f/**0x19** (25decimal)
-o0xb; el rótulo0x25 que todavía tiene un diagnóstico del código es incorrecto.
+o0xb; el diagnóstico antes rotulado0x25 se corrigió para reflejar el argumento ASM.
 Los informes identifican constructores, pasos, dibujo, recursos, owners y pools.
 
 También permanecen las fronteras de pila nativa, flechas protegidas, EDIT/IME XP

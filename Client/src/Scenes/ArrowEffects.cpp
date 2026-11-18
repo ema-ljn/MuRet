@@ -337,7 +337,7 @@ Core::Expected<void, std::string> BeginCelestialArrow(World::ModelEffect& effect
     if (HasJointRoom(world))
     {
         if (effect.subtype == 1)
-            return Core::Unexpected(std::string("0x51a3b7: el joint 0x60f/0x25 de la flecha 0xf8 sigue en CL11"));
+            return Core::Unexpected(std::string("0x51a3b7: el joint 0x60f/0x19 de la flecha 0xf8 sigue en CL11"));
         return Core::Unexpected(std::string("0x51a405: el joint 0x60f/0xb de la flecha 0xf8 sigue en CL11"));
     }
     CopyTheOwnCount(effect, world, random);

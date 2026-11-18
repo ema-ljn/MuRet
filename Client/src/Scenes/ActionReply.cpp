@@ -21,7 +21,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <format>
-#include <optional>
 #include <string>
 
 namespace Client::Scenes
@@ -131,8 +130,6 @@ Core::Expected<void, std::string> StopTheActor(ActorState& actor, const WorldEnt
     const auto stopped = SetActorStop(actor, context);
     if (!stopped.HasValue())
         return Core::Unexpected(stopped.Error());
-    if (stopped.Value().sound)
-        resources.world.Runtime().RequestSound(*stopped.Value().sound);
     return {};
 }
 // 0x4cb820..0x4cb852: 0x4f4a10 (SetActorAttack, con sus rand() y su sonido) y, después, +0x381 en 1, el frame

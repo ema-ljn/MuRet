@@ -48,8 +48,8 @@ struct ActorStopContext
     std::span<const std::int16_t> modelSounds{};
 };
 
-// Lo que 0x4f2250 pide afuera: el sonido de Fenrir del sufijo, 0x41ed10(id, personaje, 0) en 0x4f37a0.
-// MuRet todavía no tiene audio (CL10): quien llama lo recibe y decide.
+// El ID emitido por 0x41ed10(id, personaje, 0) en el sufijo de 0x4f2250 (0x4f37a0).
+// Queda disponible para el diagnóstico después de que lo despachó SetActorStop.
 struct ActorStopResult
 {
     std::optional<std::int32_t> sound;

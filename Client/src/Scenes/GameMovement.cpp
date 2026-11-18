@@ -698,8 +698,6 @@ Core::Expected<void, std::string> MoveTheHero(ActorState& hero, const HeroMoveme
         const auto stopped = SetActorStop(hero, stop);
         if (!stopped.HasValue())
             return Core::Unexpected(stopped.Error());
-        if (stopped.Value().sound)
-            runtime.RequestSound(*stopped.Value().sound);
         return {};
     }
     const auto walked =
@@ -712,8 +710,6 @@ Core::Expected<void, std::string> MoveTheHero(ActorState& hero, const HeroMoveme
         const auto stopped = SetActorStop(hero, stop);
         if (!stopped.HasValue())
             return Core::Unexpected(stopped.Error());
-        if (stopped.Value().sound)
-            runtime.RequestSound(*stopped.Value().sound);
         const auto yaw = World::OriginalFtolLow(hero.angles.z);
         if (!yaw)
             return Core::Unexpected(std::string("0x59b2d2: ángulo de llegada fuera del perfil ftol"));
@@ -798,8 +794,6 @@ Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& co
         const auto stopped = SetActorStop(hero, stop.Value());
         if (!stopped.HasValue())
             return Core::Unexpected(stopped.Error());
-        if (stopped.Value().sound)
-            runtime.RequestSound(*stopped.Value().sound);
         return {};
     }
     if (runtime.selectedTargets[2] != -1 && (hero.flags7c & 0x200000u) != 0)

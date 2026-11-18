@@ -159,9 +159,6 @@ Core::Expected<void, std::string> StopThePortrait(ActorState& actor, const World
     auto stopped = SetActorStop(actor, StopContextOf(resources, *player));
     if (!stopped.HasValue())
         return Core::Unexpected(stopped.Error());
-    // 0x41ed10 desde 0x4f2250, con el sonido presente: despacharlo.
-    if (stopped.Value().sound)
-        resources.world.Runtime().RequestSound(*stopped.Value().sound);
     return {};
 }
 

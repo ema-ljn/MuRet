@@ -168,7 +168,6 @@ Core::Expected<void, std::string> DressTheHero(const WorldEntryResources& resour
     }
     if (dressed.Value().sound)
     {
-        resources.world.Runtime().RequestSound(*dressed.Value().sound);
         result.sounds.push_back(*dressed.Value().sound);
     }
     return {};
@@ -259,7 +258,6 @@ Core::Expected<void, std::string> StopTheHero(const WorldEntryResources& resourc
     }
     if (stopped.Value().sound)
     {
-        resources.world.Runtime().RequestSound(*stopped.Value().sound);
         result.sounds.push_back(*stopped.Value().sound);
     }
     return {};

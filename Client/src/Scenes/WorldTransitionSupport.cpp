@@ -69,8 +69,6 @@ Core::Expected<void, std::string> StopTransitionHero(ActorState& actor, const Wo
     const auto stopped = SetActorStop(actor, stop.Value());
     if (!stopped.HasValue())
         return Core::Unexpected(stopped.Error());
-    if (stopped.Value().sound)
-        resources.world.Runtime().RequestSound(*stopped.Value().sound);
     return {};
 }
 Core::Expected<void, std::string> DressTransitionHero(ActorState& actor, const WorldEntryResources& resources)
@@ -85,8 +83,6 @@ Core::Expected<void, std::string> DressTransitionHero(ActorState& actor, const W
     const auto dressed = ApplyActorEquipment(actor, context);
     if (!dressed.HasValue())
         return Core::Unexpected(dressed.Error());
-    if (dressed.Value().sound)
-        world.Runtime().RequestSound(*dressed.Value().sound);
     return {};
 }
 Core::Expected<void, std::string> LoadTransitionMap(std::uint8_t map, std::uint16_t playerKey,

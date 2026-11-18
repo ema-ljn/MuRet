@@ -215,8 +215,6 @@ Core::Expected<void, std::string> Stop(ActorState& actor, const WorldEntryResour
     const auto stopped = SetActorStop(actor, context.Value());
     if (!stopped.HasValue())
         return Core::Unexpected(stopped.Error());
-    if (stopped.Value().sound)
-        resources.world.Runtime().RequestSound(*stopped.Value().sound);
     return {};
 }
 

@@ -131,8 +131,6 @@ Core::Expected<void, std::string> DressTheNewClass(ActorState& actor, const Worl
     const auto dressed = ApplyTheClassParts(actor, stop.Value());
     if (!dressed.HasValue())
         return Core::Unexpected(std::format("{:#x}: {}", address, dressed.Error()));
-    if (dressed.Value().sound)
-        resources.world.Runtime().RequestSound(*dressed.Value().sound);
     if (auto acted = SetMonsterAction(actor, ClassPrizeAction, 0x4de4d0, resources); !acted.HasValue())
         return acted;
     resources.world.Runtime().RequestSound(PrizeSound);

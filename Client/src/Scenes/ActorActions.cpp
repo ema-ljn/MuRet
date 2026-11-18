@@ -322,13 +322,17 @@ Core::Expected<ActorStopResult, std::string> Suffix(const ActorState& actor, con
                                                 "WORD del sufijo (0x5769ad8 + tipo · 0xe0 + 0xaa)"));
         }
         const std::int32_t subtypeOffset = actor.subtype == 9 ? ModelSoundSubtypeNineOffset : 0;
-        return ActorStopResult{.sound = ModelSoundBase + context.modelSounds[variant] + subtypeOffset};
+        const std::int32_t sound = ModelSoundBase + context.modelSounds[variant] + subtypeOffset;
+        context.runtime.RequestSound(sound, actor.position);
+        return ActorStopResult{.sound = sound};
     }
     if (actor.pet.model != Fenrir || random.Next() % FenrirSoundChance != 0)
     {
         return ActorStopResult{};
     }
-    return ActorStopResult{.sound = FenrirSoundBase + random.Next() % FenrirSoundVariants};
+    const std::int32_t sound = FenrirSoundBase + random.Next() % FenrirSoundVariants;
+    context.runtime.RequestSound(sound, actor.position);
+    return ActorStopResult{.sound = sound};
 }
 } // namespace
 

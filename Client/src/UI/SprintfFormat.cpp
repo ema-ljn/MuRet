@@ -126,11 +126,12 @@ struct Spec
     bool alternate = false;
     bool zero = false;
     bool shortSize = false;
+    bool wideSize = false;
     int width = 0;
     int precision = -1;
 };
 
-std::string Digits(std::uint32_t number, std::uint32_t radix, int precision, bool upper)
+std::string Digits(std::uint64_t number, std::uint32_t radix, int precision, bool upper)
 {
     std::string reversed;
     const char* const digits = upper ? "0123456789ABCDEF" : "0123456789abcdef";
@@ -159,7 +160,7 @@ void Pad(std::string& out, const Spec& spec, std::string_view prefix, std::strin
 }
 
 // Un tipo con su argumento; false si MuRet deja la marca escrita (sin argumento, o con uno de la otra clase).
-bool Convert(std::string& out, Spec spec, char type, const SprintfArgument* argument)
+bool Convert(std::string& out, Spec spec, char type, const SprintfArgument* argument, const SprintfArgument* high)
 {
     if (argument == nullptr)
         return false;
@@ -175,7 +176,7 @@ bool Convert(std::string& out, Spec spec, char type, const SprintfArgument* argu
     }
     if (argument->IsText())
         return false;
-    std::uint32_t bits = argument->Bits();
+    std::uint64_t bits = argument->Bits();
     if (type == 'c')
     {
         const std::array<char, 1> letter{static_cast<char>(bits & 0xffu)};
@@ -183,10 +184,16 @@ bool Convert(std::string& out, Spec spec, char type, const SprintfArgument* argu
         return true;
     }
     const bool isSigned = type == 'd' || type == 'i';
+    if (spec.wideSize)
+    {
+        if (high == nullptr || high->IsText())
+            return false;
+        bits |= static_cast<std::uint64_t>(high->Bits()) << 32u;
+    }
     if (spec.shortSize)
-        bits = isSigned
-                   ? static_cast<std::uint32_t>(static_cast<std::int32_t>(static_cast<std::int16_t>(bits & 0xffffu)))
-                   : (bits & 0xffffu);
+        bits = isSigned ? static_cast<std::uint64_t>(static_cast<std::uint32_t>(
+                              static_cast<std::int32_t>(static_cast<std::int16_t>(bits & 0xffffu))))
+                        : (bits & 0xffffu);
     std::uint32_t radix = static_cast<std::uint32_t>(Decimal);
     std::string prefix;
     if (type == 'o')
@@ -198,10 +205,11 @@ bool Convert(std::string& out, Spec spec, char type, const SprintfArgument* argu
             prefix = type == 'x' ? "0x" : "0X";
     }
     bool negative = false;
-    if (isSigned && static_cast<std::int32_t>(bits) < 0)
+    if (isSigned && (spec.wideSize ? static_cast<std::int64_t>(bits) < 0 : static_cast<std::int32_t>(bits) < 0))
     {
         negative = true;
-        bits = 0u - bits;
+        bits =
+            spec.wideSize ? std::uint64_t{0} - bits : static_cast<std::uint32_t>(0u - static_cast<std::uint32_t>(bits));
     }
     if (spec.precision < 0)
         spec.precision = 1;
@@ -297,6 +305,12 @@ std::string FormatLikeSprintf(std::string_view format, std::span<const SprintfAr
             break;
         case State::Size:
             spec.shortSize = spec.shortSize || letter == 'h';
+            // _output de VC6 reconoce I64 como una sola marca de tamaño; sus dos DWORD siguen en orden low/high.
+            if (letter == 'I' && format.substr(i + 1, 2) == "64")
+            {
+                spec.wideSize = true;
+                i += 2;
+            }
             break;
         case State::Type:
         {
@@ -307,7 +321,9 @@ std::string FormatLikeSprintf(std::string_view format, std::span<const SprintfAr
                 break;
             }
             const std::size_t before = next;
-            if (!Convert(out, spec, letter, take()))
+            const SprintfArgument* argument = take();
+            const SprintfArgument* high = spec.wideSize && letter != 's' && letter != 'c' ? take() : nullptr;
+            if (!Convert(out, spec, letter, argument, high))
             {
                 next = before;
                 out.append(written);

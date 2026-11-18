@@ -44,6 +44,7 @@ private:
 //   - las banderas '-', '+', ' ', '#' y '0', el ancho (o '*'), la precisión y los tamaños 'h', 'l', 'I' y 'L' (que en
 //     32 bits no cambian nada);
 //   - los tipos d, i, u, o, x, X, c y s, y "%%";
+//   - I64 con enteros consume dos argumentos de 32 bits (low y high), como el tesoro del Castle Senior (0x6688bc);
 //   - un carácter que corta una marca (el ')' de "25%)") sale solo, sin lo que la marca juntó, y una marca que
 //     termina el texto no escribe nada, como el CRT.
 // Donde el original leería de la pila lo que no le pasaron (una marca sin argumento, un %s con un entero, un %d con

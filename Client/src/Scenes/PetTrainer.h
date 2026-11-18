@@ -56,8 +56,8 @@ void ScanTheTrainerBox(WorldState& world, Render::Models::CrtRandom& random);
 [[nodiscard]] std::uint32_t TrainerMixPrice(std::uint8_t kind);
 
 // 0x421d90 (desde 0x44c633): pone en 0 los 0x48 bytes de 0x723918..0x72395f, lo último que pidió el tooltip de las
-// mascotas (0x422990, P-C126). Es WorldRuntime::petTooltipQuery del hito 4, que esta rama no tiene: queda sin hacer
-// nada hasta que la junten (CL9 hito 4).
+// mascotas (0x422990, P-C126): el tipo y D+4 de WorldRuntime::petTooltipQuery. Conserva su clave 0x723914 y las
+// estadísticas de mascotas que empiezan en 0x723960.
 void ForgetThePetTooltipQuery(WorldState& world);
 
 // Lo que 0x44b190 deja en el buffer de quien llama: el texto de Text.bmd y lo que el sprintf le pasa.

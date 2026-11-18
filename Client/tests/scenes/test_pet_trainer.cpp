@@ -240,6 +240,8 @@ TEST(PetTrainerTest, TheHorseButtonSendsTheRepairOfThePetSlotAndClosesTheTrainer
         PetTrainer trainer(map);
         const ItemState horse{.id = Horse, .durability = 100, .occupied = 1};
         trainer.world->OwnCharacter().equipment[HorseSlot] = horse;
+        trainer.Runtime().petTooltipQuery = {.key = 0x12345678, .type = Horse, .scalar = 0x3f};
+        trainer.Runtime().pets[0].experience = 987;
         // El nivel 3 vale 6.000.000 (0x54db28) y recuperarlo, 3 · √p · ∜p · (1 − 100 / 255) + 1, a 100: 221.000 (0x48).
         const std::uint32_t price = trainer.PriceOf(horse);
         ASSERT_EQ(price, 221'000u);
@@ -257,6 +259,10 @@ TEST(PetTrainerTest, TheHorseButtonSendsTheRepairOfThePetSlotAndClosesTheTrainer
         EXPECT_EQ(runtime.panels.delegated.trainer, 0);
         EXPECT_EQ(runtime.panels.delegated.field724584, 0);
         EXPECT_EQ(runtime.field78abb10, 0);
+        EXPECT_EQ(runtime.petTooltipQuery.key, 0x12345678u);
+        EXPECT_EQ(runtime.petTooltipQuery.type, 0);
+        EXPECT_EQ(runtime.petTooltipQuery.scalar, 0u);
+        EXPECT_EQ(runtime.pets[0].experience, 987u);
         EXPECT_EQ(runtime.ui.mouseOnUi, 1);
         EXPECT_FALSE(runtime.movement.pendingClick);
         EXPECT_FALSE(runtime.movement.leftHeld);

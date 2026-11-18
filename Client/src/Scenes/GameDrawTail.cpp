@@ -1,4 +1,5 @@
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/VertexEffects.h"
 #include "Scenes/KalimaObjectServices.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "World/KalimaWorld.h"
@@ -566,7 +567,7 @@ Core::Expected<void, std::string> DrawItemModelEffect(Render::ModelBatch& batch,
     return {};
 }
 
-Core::Expected<void, std::string> DrawPlainModelEffect(Render::ModelBatch& batch, const World::ModelEffect& effect,
+Core::Expected<void, std::string> DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect,
                                                        const IModelLibrary& models,
                                                        const World::TerrainLighting* lighting,
                                                        Core::Duration frameClock, float alpha,
@@ -585,6 +586,58 @@ Core::Expected<void, std::string> DrawPlainModelEffect(Render::ModelBatch& batch
     object.color = terrain + effect.light;
     object.alpha = effect.alpha;
     object.vertexLight = effect.vertexLight;
+    if (effect.type == 0x10a || effect.type == 0x10b || (effect.type >= 0x12b && effect.type <= 0x133))
+    {
+        if (!(effect.alpha >= .01f))
+            return {};
+        if (resources != nullptr && resources->onPose)
+        {
+            if (auto posed = resources->onPose(object); !posed.HasValue())
+                return posed;
+            if (resources->posedMeshes)
+                object.retainedMeshes = resources->posedMeshes();
+        }
+        return DrawCastleWeaponBody(
+            batch, models, effect, object, frameClock,
+            [&](std::int32_t type, const DrawnObject& owner,
+                std::span<const Render::Models::SkinnedMesh> meshes) -> Core::Expected<void, std::string>
+            {
+                if (resources == nullptr || resources->effects == nullptr || resources->random == nullptr)
+                    return Core::Unexpected(std::string("0x601c90: falta pool o CRT del impacto por vértices"));
+                return EmitVertexEffects(models, owner, meshes, 0, type, 0, *resources->effects, *resources->random);
+            });
+    }
+    const bool castleGate = effect.type >= 0x3d && effect.type <= 0x40 && resources != nullptr &&
+                            resources->kalimaPass != nullptr && resources->kalimaPass->map == 30;
+    if (castleGate && effect.objectState.hiddenMesh != World::HiddenObject && effect.alpha >= .01f)
+    {
+        if (resources->onPose)
+        {
+            if (auto posed = resources->onPose(object); !posed.HasValue())
+                return posed;
+            if (resources->posedMeshes)
+                object.retainedMeshes = resources->posedMeshes();
+        }
+        const auto drawn = DrawCastleSiegeBody(
+            batch, models, object,
+            CastleSiegeBodyPass{
+                .type = effect.type,
+                .field04 = effect.subtype,
+                .siegeActive = resources->siegeActive,
+                .worldClock = resources->worldClock,
+                .emitGateVertices = [&](const DrawnObject& gate, std::span<const Render::Models::SkinnedMesh> meshes)
+                    -> Core::Expected<void, std::string>
+                {
+                    if (resources->effects == nullptr || resources->random == nullptr)
+                        return Core::Unexpected(std::string("0x42cfcb: falta el pool o CRT del fragmento de puerta"));
+                    return EmitVertexEffects(models, gate, meshes, 0, 0x12f, 0, *resources->effects,
+                                             *resources->random);
+                }},
+            frameClock);
+        if (!drawn.HasValue())
+            return Core::Unexpected(drawn.Error());
+        return {};
+    }
     // 0x6004aa: con +0x74 en 0x80 (las grietas 0xfc, 0xff y 0x102 de subtipo 1), 0x6002e0 dibuja el cuerpo por
     // 0x4ef0c0 con 0x82 y sale.
     const auto flagged = [&effect]() -> Core::Expected<void, std::string>

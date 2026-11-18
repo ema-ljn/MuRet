@@ -1,4 +1,5 @@
 #include "Scenes/WorldObjectsDrawing.h"
+#include "Scenes/VertexEffects.h"
 
 #include "Scenes/ActorState.h"
 #include "Scenes/FaunaDrawing.h"
@@ -619,12 +620,22 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
             posed.kind = World::ObjectDrawKind::Hidden;
             const DrawnObject body =
                 DrawTheObject(batch, models, object, posed, frameClock, 0.0f, pass.modelState, retained);
-            const auto drew = DrawCastleSiegeBody(batch, models, body,
-                                                  CastleSiegeBodyPass{.type = object.type,
-                                                                      .field04 = object.field04,
-                                                                      .siegeActive = pass.siegeActive,
-                                                                      .worldClock = pass.worldClock},
-                                                  frameClock);
+            const auto drew = DrawCastleSiegeBody(
+                batch, models, body,
+                CastleSiegeBodyPass{
+                    .type = object.type,
+                    .field04 = object.field04,
+                    .siegeActive = pass.siegeActive,
+                    .worldClock = pass.worldClock,
+                    .emitGateVertices =
+                        [&](const DrawnObject& gate,
+                            std::span<const Render::Models::SkinnedMesh> meshes) -> Core::Expected<void, std::string>
+                    {
+                        if (pass.effects == nullptr || pass.random == nullptr)
+                            return Core::Unexpected(std::string("0x42cfcb: falta el pool o CRT para los vértices12f"));
+                        return EmitVertexEffects(models, gate, meshes, 0, 0x12f, 0, *pass.effects, *pass.random);
+                    }},
+                frameClock);
             if (!drew.HasValue())
                 return Core::Unexpected(drew.Error());
             if (drew.Value())

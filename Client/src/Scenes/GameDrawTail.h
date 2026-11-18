@@ -241,6 +241,8 @@ struct ModelEffectDrawResources
     Render::Models::CrtRandom* random = nullptr; // 607b60 sólo sortea los casos que lo necesitan.
     const ItemDrawContext* itemContext = nullptr;
     const GameObjectPass* kalimaPass = nullptr;
+    // 42cfcb del fragmento3d..40: el mismo pool518cf0 al que emite4ee770.
+    World::ModelEffects* effects = nullptr;
 };
 [[nodiscard]] Core::Expected<void, std::string>
 DrawGameModelEffects(Render::ModelBatch& batch, const IModelLibrary& models, std::span<World::ModelEffect> effects,

@@ -181,6 +181,8 @@ struct ModelEffect
     // +0x90 y +0x1b0: el umbral del impacto y el destino de los proyectiles del castillo.
     std::uint8_t byte90 = 0;
     glm::vec3 siegeTarget{};
+    // +0x78: cola602365 de6002e0. El prefijo518cf0 no lo reinicializa.
+    std::uint32_t flags78 = 0;
 };
 
 // Los once argumentos de 0x518cf0, como los escribe su prefijo (0x518d28..0x518e36): el tipo en +0x2, la posición en

@@ -548,7 +548,8 @@ Core::Expected<void, std::string> StepFirework(ModelEffect& effect, float lumino
 // 7) − 4 en x y en y, cada una en la x87 hasta su fstp: tres rand(). Después, una escala negativa vuelve a 0
 // (0x52c74e) y, con el subtipo de 0 a 3, la luz es la vida, o 40 menos la vida pasados los 20, por 0,05f (0x6b8ad0)
 // en los tres canales. Los demás subtipos cortan en su rama.
-Core::Expected<void, std::string> StepShockWave(ModelEffect& effect, Render::Models::CrtRandom& random)
+Core::Expected<void, std::string> StepShockWave(ModelEffect& effect, Render::Models::CrtRandom& random,
+                                                const ModelEffectStepServices& services)
 {
     constexpr int GrowthSpan = 5;
     constexpr double GrowthStep = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b8a34: 0,1f.
@@ -571,6 +572,25 @@ Core::Expected<void, std::string> StepShockWave(ModelEffect& effect, Render::Mod
                 F32((static_cast<double>(shake) - ShakeCentre) + static_cast<double>(effect.transform.position[axis]));
         }
     }
+    else if (effect.subtype == 6)
+    {
+        if (effect.life % 8 == 0)
+        {
+            if (services.effects == nullptr)
+                return Core::Unexpected(std::string("0x52c710: falta el pool para la onda6eb/5"));
+            const ModelEffectArguments child{.type = ShockWaveEffect,
+                                             .position = effect.transform.position,
+                                             .angles = effect.transform.angles,
+                                             .light = effect.light,
+                                             .subtype = 5};
+            static_cast<void>(services.effects->CreateCastleShockWave(child, random));
+        }
+        return {};
+    }
+    else if (effect.subtype == 5)
+        effect.transform.scale = F32(static_cast<double>(effect.transform.scale) - static_cast<double>(.4f));
+    else if (effect.subtype == 7)
+        effect.transform.scale = F32(static_cast<double>(effect.transform.scale) + 2.5);
     else if (effect.subtype == 8)
         effect.transform.scale = F32(static_cast<double>(effect.transform.scale) + 1.0);
     else
@@ -1288,7 +1308,7 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
     }
     else if (effect.type == ShockWaveEffect)
     {
-        if (auto stepped = StepShockWave(effect, random); !stepped.HasValue())
+        if (auto stepped = StepShockWave(effect, random, services); !stepped.HasValue())
             return stepped;
     }
     else if (effect.type == LightningEffect)

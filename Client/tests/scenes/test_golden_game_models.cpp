@@ -612,7 +612,7 @@ TEST_F(GoldenGameModels, TheSpriteTexturesStayWithTheirSize)
 TEST_F(GoldenGameModels, EveryReachedSiegeAndCrywolfEffectHasItsRealModelSkeletonAndUploadedMeshTextures)
 {
     using Client::Data::Models::ModelFile;
-    const std::array<ModelFile, 15> expected{{{0xe5, "Skill\\", "BigStone", 1},
+    const std::array<ModelFile, 17> expected{{{0xe5, "Skill\\", "BigStone", 1},
                                               {0xe6, "Skill\\", "BigStone", 2},
                                               {0x10a, "Object12\\", "StoneCoffin", 1},
                                               {0x10b, "Object12\\", "StoneCoffin", 2},
@@ -626,7 +626,9 @@ TEST_F(GoldenGameModels, EveryReachedSiegeAndCrywolfEffectHasItsRealModelSkeleto
                                               {0x130, "Skill\\", "WallStone2", -1},
                                               {0x131, "Skill\\", "GatePart1", -1},
                                               {0x132, "Skill\\", "GatePart2", -1},
-                                              {0x133, "Skill\\", "GatePart3", -1}}};
+                                              {0x133, "Skill\\", "GatePart3", -1},
+                                              {0x145, "Skill\\", "elf_skill", -1},
+                                              {0x147, "Skill\\", "deathsp_eff", -1}}};
     auto textures = std::make_unique<FakeTextureStore>();
     RecordingSink sink;
     Log log(sink, LogLevel::Debug);

@@ -12,7 +12,6 @@
 #include "Data/Textures/Sampling.h"
 #include "Data/WorldFolder.h"
 #include "World/TerrainCells.h"
-#include "World/KalimaWorld.h"
 #include "World/TerrainLighting.h"
 #include "World/WorldFiles.h"
 
@@ -322,11 +321,10 @@ WorldTileTexture DropTexture()
                             .required = true};
 }
 
-std::vector<WorldTileTexture> CausticTextures(std::uint8_t map)
+std::vector<WorldTileTexture> CausticTextures(std::uint8_t /*map*/)
 {
-    constexpr std::uint8_t AtlansMap = 7;
-    if (map != AtlansMap && !IsKalimaMap(map))
-        return {};
+    // 0x617753..0x617788 en 7; 0x618dd1..0x618e29 en los demás, una sola vez y en el mismo orden.
+    // El caller 0x61a560 recibe el mapa byte de la red o 54/55 desde la escena, nunca el sentinel DWORD −1.
     constexpr std::uint16_t Count = 32;
     constexpr std::uint16_t FirstSlot = 65;
     constexpr Data::Textures::Sampling Sampling{Data::Textures::Filter::Linear, Data::Textures::Wrap::Repeat};
@@ -339,6 +337,14 @@ std::vector<WorldTileTexture> CausticTextures(std::uint8_t map)
             {"Object8\\wt" + number + ".jpg", static_cast<std::uint16_t>(FirstSlot + index), Sampling, false});
     }
     return textures;
+}
+
+WorldTileTexture ObjectLightTexture()
+{
+    return {.path = "Object8\\light01.jpg",
+            .slot = 0x68,
+            .sampling = {Data::Textures::Filter::Linear, Data::Textures::Wrap::Repeat},
+            .required = false};
 }
 
 std::vector<WorldTileTexture> TarkanObjectTextures(std::uint8_t map)

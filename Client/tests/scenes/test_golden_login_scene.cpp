@@ -149,7 +149,9 @@ TEST_F(GoldenLoginScene, EntersWithTheLabData)
     constexpr std::array weatherSlots{TextureSlot{0x64}, TextureSlot{0x65}, TextureSlot{0x66}, TextureSlot{0x67},
                                       TextureSlot{0x68}};
     // 61ac3e..61ad7a: dos hojas del mundo y tres imágenes globales de lluvia; 0x616eeb: la gota (0x607).
-    ASSERT_EQ(store.Size(), LoginTextureSet.size() + WindowTextureSet.size() + 2 + 15 + 1 + weatherSlots.size() + 63);
+    // 0x618dda..0x618e29: las 32 cáusticas también se suben en el mapa 55, antes de los tiles.
+    ASSERT_EQ(store.Size(),
+              LoginTextureSet.size() + WindowTextureSet.size() + 2 + 15 + 1 + 32 + weatherSlots.size() + 63);
     for (const auto slot : weatherSlots)
         EXPECT_TRUE(store.Find(slot).has_value()) << slot.value;
     for (const auto& entry : LoginTextureSet)

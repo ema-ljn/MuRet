@@ -26,11 +26,10 @@ namespace Client::Scenes
 {
 namespace
 {
-// Lo que sube Load: tiles, la gota de 0x616ec0, las cáusticas de Atlans y Kalima, las de los objetos de Tarkan e
-// Icarus, pasto (61abb4..61ac36), meteorología (61ac3e..61ad7a) y el 0x122.
+// 0x616ec0 antes de 0x61a560: gota, rama propia, cáusticas y light01; después tiles, pasto, clima y 0x122.
 std::vector<World::WorldTileTexture> WantedTextures(std::uint8_t map, GrassTextures grass)
 {
-    std::vector<World::WorldTileTexture> wanted;
+    std::vector<World::WorldTileTexture> wanted{World::DropTexture()};
     if (World::IsKalimaMap(map))
     {
         // 6189e9: el agua real vive enObject25, antes del salto de61a92a sobre los tiles ordinarios.
@@ -42,18 +41,20 @@ std::vector<World::WorldTileTexture> WantedTextures(std::uint8_t map, GrassTextu
                 {std::string(texture.path), texture.slot, texture.sampling, texture.slot != OptionalAlphaWaterSlot});
         }
     }
-    else
-        wanted = World::WorldTileTextures(map);
-    // 0x616eeb: 0x616ec0 empieza por la gota, en todos los mapas.
-    wanted.push_back(World::DropTexture());
-    const auto caustics = World::CausticTextures(map);
-    wanted.insert(wanted.end(), caustics.begin(), caustics.end());
     const auto tarkan = World::TarkanObjectTextures(map);
     wanted.insert(wanted.end(), tarkan.begin(), tarkan.end());
     const auto icarus = World::IcarusObjectTextures(map);
     wanted.insert(wanted.end(), icarus.begin(), icarus.end());
     const auto castle = World::CastleSiegeTextures(map);
     wanted.insert(wanted.end(), castle.begin(), castle.end());
+    const auto caustics = World::CausticTextures(map);
+    wanted.insert(wanted.end(), caustics.begin(), caustics.end());
+    wanted.push_back(World::ObjectLightTexture());
+    if (!World::IsKalimaMap(map))
+    {
+        const auto tiles = World::WorldTileTextures(map);
+        wanted.insert(wanted.end(), tiles.begin(), tiles.end());
+    }
     if (grass == GrassTextures::Upload)
     {
         const std::vector<World::WorldTileTexture> grassTextures = World::WorldGrassTextures(map);

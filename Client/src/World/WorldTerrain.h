@@ -103,8 +103,13 @@ struct WorldTileTexture
 
 // Las 32 cáusticas Object8\\wt00..wt31.jpg, slots 65..96 (0x41..0x60), LINEAR/REPEAT, sin aviso: el mapa 7 las
 // sube en su caso de 0x616ec0 (0x617753..0x617788) y los demás en 618dda..618e29, con los mismos argumentos.
-// Aquí se integran sólo el 7 (el agua de 0x5fa4b0) y la familia Kalima 24..29/36.
+// Todos los mapas byte de 0x61a560, incluidas selección 54/55 y el castillo 30 (NpcBarrier1ff, 0x42e626).
+// El caller excluye el sentinel signed −1: la red zero-extiende su byte; las escenas fijan 54/55.
 [[nodiscard]] std::vector<WorldTileTexture> CausticTextures(std::uint8_t map);
+
+// 0x618e2b..0x618e40, después del lazo de las cáusticas: Object8\\light01.jpg en0x68, LINEAR/REPEAT, opcional.
+// La lluvia de0x61ad7a puede reemplazarla más tarde; si falta esa alternativa, este slot sigue vivo.
+[[nodiscard]] WorldTileTexture ObjectLightTexture();
 
 // 0x6177f9..0x61784b, el mapa 8 de 0x616ec0 antes de los Bug: 0x63b870 con GL_LINEAR, sexto 1 (avisa).
 // Object9\sand01 y sand02 en 0x5c2 y 0x5c3, repitiendo (las arenas del HUD de 0x5a7520, CL8), e

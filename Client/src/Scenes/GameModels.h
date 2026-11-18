@@ -33,10 +33,11 @@ namespace Client::Scenes
 class GameModels final : public IModelLibrary
 {
 public:
-    // Lee las 213 filas de PlayerModelFiles, las 243 de ItemModelFiles y las 14 de SkillModelFiles, y
-    // les da a sus mallas las texturas que piden 0x60f7d0, 0x611850 y 0x615700 (PlayerTextureCalls,
-    // ItemTextureCalls y SkillTextureCalls: cada llamada con su carpeta, desde 0x138, 0x25a y 0x3b8,
-    // con ModelTextureSlots), Gate02 desde Monster en 0x69 antes del bloque 0x3b8, y las sube con las fijas de
+    // Lee PlayerModelFiles, ItemModelFiles, SkillModelFiles y los efectos del final de 0x615700, incluidas
+    // las 15 de SiegeModelFiles, y les da a sus mallas las texturas que piden 0x60f7d0, 0x611850 y 0x615700
+    // (PlayerTextureCalls, ItemTextureCalls y SkillTextureCalls: cada llamada con su carpeta, desde 0x138, 0x25a y
+    // 0x3b8, con ModelTextureSlots), Gate02/StoneCoffin desde Monster en 0x69 antes del bloque 0x3b8, las de
+    // SiegeTextureCalls (Npc/Object31/Monster antes de la consulta final Skill), y las sube con las fijas de
     // PlayerFixedTextures, las de los pases de brillo (GlowTextureSet, del avance 0 de 0x61ccb0) y las de
     // los sprites (EffectTextureSet), el atlas de daño (DamageTextureSet, de 0x61bd80) y los joints
     // emitidos por fauna (FaunaJointTextureSet). Un

@@ -4,6 +4,8 @@
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Data/Models/ModelTextureCalls.h"
+#include "Data/Models/ModelFiles.h"
+#include "Data/Models/Model.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Textures/Sampling.h"
 #include "Data/Textures/Texture.h"
@@ -25,6 +27,7 @@
 #include <cstdint>
 #include <cstring>
 #include <ios>
+#include <memory>
 #include <optional>
 #include <set>
 #include <string>
@@ -55,8 +58,8 @@ using Client::Tests::RecordingSink;
 constexpr std::size_t MissingInTheLab = 3;
 // 6161b5 carga RidingSpear01/10f, 0x6166fe MuSign/12a, 0x615d6a Stone01/c8 y Stone02/c9, 0x61641d y 0x616442
 // groundStone/118 y groundStone2/119, 0x6165bc..0x616688 EarthQuake01..08/fb..102 y 0x616880 TowerGatePlane/135
-// aparte de las tablas de jugador, ítems y skills.
-constexpr std::size_t AdditionalTailModels = 15;
+// aparte de las tablas de jugador, ítems y skills; más los 15 de SiegeModelFiles, 0x6161ea..0x616854.
+constexpr std::size_t AdditionalTailModels = 30;
 
 class GoldenGameModels : public Client::Tests::GoldenDataTest
 {
@@ -604,3 +607,54 @@ TEST_F(GoldenGameModels, TheSpriteTexturesStayWithTheirSize)
     EXPECT_FALSE(models.TextureSize(TextureSlot{0x123}).has_value());
 }
 } // namespace
+
+// 0x6161ea/0x616333/0x616349/0x6163c2/0x6163d8/0x61679e..0x616854: efectos alcanzados por el asedio y Crywolf.
+TEST_F(GoldenGameModels, EveryReachedSiegeAndCrywolfEffectHasItsRealModelSkeletonAndUploadedMeshTextures)
+{
+    using Client::Data::Models::ModelFile;
+    const std::array<ModelFile, 15> expected{{{0xe5, "Skill\\", "BigStone", 1},
+                                              {0xe6, "Skill\\", "BigStone", 2},
+                                              {0x10a, "Object12\\", "StoneCoffin", 1},
+                                              {0x10b, "Object12\\", "StoneCoffin", 2},
+                                              {0x114, "Skill\\", "m_Waves", -1},
+                                              {0x115, "Skill\\", "m_Piercing", -1},
+                                              {0x12b, "Skill\\", "FlyBigStone1", -1},
+                                              {0x12c, "Skill\\", "FlyBigStone2", -1},
+                                              {0x12d, "Skill\\", "FlySmallStone1", -1},
+                                              {0x12e, "Skill\\", "FlySmallStone2", -1},
+                                              {0x12f, "Skill\\", "WallStone1", -1},
+                                              {0x130, "Skill\\", "WallStone2", -1},
+                                              {0x131, "Skill\\", "GatePart1", -1},
+                                              {0x132, "Skill\\", "GatePart2", -1},
+                                              {0x133, "Skill\\", "GatePart3", -1}}};
+    auto textures = std::make_unique<FakeTextureStore>();
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    auto models = std::make_unique<GameModels>();
+    const auto loaded = models->Load(m_dataRoot, *textures, log);
+    ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
+    for (const auto& file : expected)
+    {
+        const auto original = Client::Data::Models::LoadModelFile(m_dataRoot, file);
+        ASSERT_TRUE(original.HasValue()) << file.name;
+        const auto* model = models->Find(file.model);
+        EXPECT_NE(model, nullptr) << std::hex << file.model << " " << file.name;
+        if (model == nullptr)
+            continue;
+        EXPECT_EQ(model->meshes.size(), original.Value().meshes.size()) << file.name;
+        EXPECT_EQ(model->bones.size(), original.Value().bones.size()) << file.name;
+        EXPECT_NE(models->SkeletonOf(file.model), nullptr) << file.name;
+        const auto slots = models->MeshTextures(file.model);
+        ASSERT_EQ(slots.size(), model->meshes.size()) << file.name;
+        for (std::size_t mesh = 0; mesh < slots.size(); ++mesh)
+        {
+            EXPECT_EQ(model->meshes[mesh].textureName, original.Value().meshes[mesh].textureName) << file.name;
+            EXPECT_EQ(models->TextureSlots().NameOf(slots[mesh]), model->meshes[mesh].textureName) << file.name;
+            const auto uploaded = textures->Find(slots[mesh]);
+            ASSERT_TRUE(uploaded.has_value()) << file.name << " " << model->meshes[mesh].textureName;
+            EXPECT_GT(uploaded->texture.width, 0u);
+            EXPECT_GT(uploaded->texture.height, 0u);
+            EXPECT_TRUE(models->TextureMetadataOf(slots[mesh].value).has_value());
+        }
+    }
+}

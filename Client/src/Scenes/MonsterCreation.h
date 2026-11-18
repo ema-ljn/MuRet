@@ -62,8 +62,9 @@ inline constexpr std::size_t ActorTextReach = 0x218 - 0x1d9;
 //   (0x5133b0), Ground, Lower y CopyHeight escriben el personaje; MeshFlag y ModelByte quedan en
 //   WorldRuntime::modelPatches; BoneName en WorldRuntime::namedBones (0x401000); Sound en WorldRuntime::lastSoundId
 //   (CL10).
-// - Las escrituras dependientes del asedio usan4294b0. Cortan, con su dirección, los Joint
-//   (0x530860) y los Arrival (0x518cf0) de la CL11. El Action (0x4ea030) usa las acciones del modelo cargado.
+// - Las escrituras dependientes del asedio usan4294b0. Los Joint618/2,3 usan ActorState como dueño en todos los
+//   casos nativos; las otras familias Joint y los Arrival aún cortan con su dirección. El Action (0x4ea030) usa
+//   las acciones del modelo cargado.
 // Después, la cola (MonsterTailOf): el nivel y la escala en los mapas 10 a 17, el nombre del tipo en
 // WorldRuntime::npcNames (0x7681eb8) a +0x1d9 si hay uno (PutActorText, Q-C847), +0x376 con
 // el tipo, +8 en 0, +0x3a4 con WorldRuntime::heroSlot y la clase del objeto. Devuelve el lugar del pool: con los 400

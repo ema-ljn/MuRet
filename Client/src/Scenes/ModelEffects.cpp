@@ -757,7 +757,7 @@ CaseResult StepTheKalimaHelper(ModelEffectsPass& pass)
     case 0xc5:
     {
         // 0x43bdfd..0x43bef3: en la 0, dos 0x5f3/0 en rand() % 200 + x − 100 y rand() % 100 + y − 50 con la luz propia
-        // y los efectos 0xc8 y 0xc9 de 0x518cf0 (CL11). Si no, +0x64 en 1 y +0x68 en (sen(T · 0,001f) + 1) · 0,5f.
+        // y los efectos 0xc8/0xc9 en la posición del actor. Ambas ramas alcanzan +0x64 y el pulso de +0x68.
         if (actor.animation.action == 0)
         {
             const float x = F32(static_cast<double>(Roll(pass, 200)) + D(actor.position.x) - 100.0);
@@ -767,7 +767,10 @@ CaseResult StepTheKalimaHelper(ModelEffectsPass& pass)
                 if (auto emitted = Emit(pass, address, World::DustParticle, 0, position, actor.light, actor.angles);
                     !emitted.HasValue())
                     return Core::Unexpected(emitted.Error());
-            return Cut(pass, 0x43bea5, "el efecto 0xc8 (0x518cf0) de la acción 0");
+            // 0x43bea5 y 0x43bec6: el dueño es 0; omitir un alta con el pool lleno no detiene el segundo intento.
+            for (const std::int16_t type : {std::int16_t{0xc8}, std::int16_t{0xc9}})
+                static_cast<void>(pass.world.Map().effects.CreateStoneChip(type, actor.position, actor.angles,
+                                                                           actor.light, pass.random));
         }
         actor.dword64 = 1;
         const auto pulse = Render::Models::Detail::SineSumPC53(clock * rate, 1.0);

@@ -369,8 +369,8 @@ private:
             m_resources.world.Runtime().lastSoundId = static_cast<std::int32_t>(step.value);
             return {};
         case MonsterStepKind::Joint:
-            if (m_type == 349 && m_resources.world.Runtime().map == 34 && m_index && step.value == 0x618 &&
-                (step.offset == 2 || step.offset == 3))
+            // 0x515f9c y los otros casos normales usan el mismo contrato que 349: dueño Actor y 618/2,3.
+            if (m_index && step.value == 0x618 && (step.offset == 2 || step.offset == 3))
             {
                 ActorState& actor = m_resources.world.Actors()[*m_index];
                 auto created =

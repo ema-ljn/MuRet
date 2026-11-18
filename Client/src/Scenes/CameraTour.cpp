@@ -1,4 +1,5 @@
 #include "Scenes/CameraTour.h"
+#include "Scenes/ArrivalSparks.h"
 
 #include "Core/Expected.h"
 #include "Scenes/ActorCreation.h"
@@ -305,50 +306,11 @@ private:
         {
             // 0x403ad5: 0x41ed10(0x243, 0, 0) (CL10).
             m_context.world.Runtime().lastSoundId = ArrivalSound;
-            if (auto emitted = ArrivalSparks(actor); !emitted.HasValue())
+            if (auto emitted = CreateArrivalSparks(actor, m_context.world, m_context.random); !emitted.HasValue())
                 return emitted;
         }
         if (advance)
             ++m_tour.step;
-        return {};
-    }
-
-    // 0x403ae7..0x403d02: el ancho del caller se sortea incluso con el pool de joints lleno.
-    Result ArrivalSparks(ActorState& actor)
-    {
-        const auto joint = [&](std::int32_t type, glm::vec3& from, glm::vec3& to, std::int32_t subtype, float width)
-        {
-            return CreateFaunaJoint(
-                m_context.world.DrawTail().joints,
-                World::FishEffectRequest{type, from, to, actor.angles, subtype, nullptr, width, -1, 0, 0, -1},
-                m_context.random);
-        };
-        glm::vec3 corner = actor.position;
-        corner.x = F32(static_cast<double>(corner.x) + 20.0);
-        corner.y = F32(static_cast<double>(corner.y) + 20.0);
-        constexpr std::array<int, 4> WidthBases{60, 50, 50, 60};
-        for (const int base : WidthBases)
-        {
-            const float width = static_cast<float>(m_context.random.Next() % 10 + base);
-            auto made = joint(0x615, corner, corner, 7, width);
-            if (!made.HasValue())
-                return Core::Unexpected(std::move(made).Error());
-        }
-        for (int index = 0; index < 3; ++index)
-        {
-            auto made = m_context.world.Particles().CreateChecked(0x5f6, actor.position, actor.angles, actor.light, 1,
-                                                                  5.0f, 0.0f, m_context.random);
-            if (!made.HasValue())
-                return Core::Unexpected(std::string("0x403c37: no se pudo crear el polvo de llegada 0x5f6/1"));
-        }
-        glm::vec3 target = actor.position;
-        target.z = F32(static_cast<double>(target.z) + 120.0);
-        for (int index = 0; index < 4; ++index)
-        {
-            auto made = joint(0x614, actor.position, target, 17, 10.0f);
-            if (!made.HasValue())
-                return Core::Unexpected(std::move(made).Error());
-        }
         return {};
     }
 
@@ -766,6 +728,45 @@ private:
     CameraTour& m_tour;
 };
 } // namespace
+
+// 0x403ae7..0x403d02 y 0x4c98a0..0x4c9ac1: sortear el ancho aunque el pool esté lleno.
+Core::Expected<void, std::string> CreateArrivalSparks(ActorState& actor, WorldState& world,
+                                                      Render::Models::CrtRandom& random)
+{
+    const auto joint = [&](std::int32_t type, glm::vec3& from, glm::vec3& to, std::int32_t subtype, float width)
+    {
+        return CreateFaunaJoint(
+            world.DrawTail().joints,
+            World::FishEffectRequest{type, from, to, actor.angles, subtype, nullptr, width, -1, 0, 0, -1}, random);
+    };
+    glm::vec3 corner = actor.position;
+    corner.x = F32(static_cast<double>(corner.x) + 20.0);
+    corner.y = F32(static_cast<double>(corner.y) + 20.0);
+    constexpr std::array<int, 4> WidthBases{60, 50, 50, 60};
+    for (const int base : WidthBases)
+    {
+        const float width = static_cast<float>(random.Next() % 10 + base);
+        auto made = joint(0x615, corner, corner, 7, width);
+        if (!made.HasValue())
+            return Core::Unexpected(std::move(made).Error());
+    }
+    for (int index = 0; index < 3; ++index)
+    {
+        auto made =
+            world.Particles().CreateChecked(0x5f6, actor.position, actor.angles, actor.light, 1, 5.0f, 0.0f, random);
+        if (!made.HasValue())
+            return Core::Unexpected(std::string("0x403c37/0x4c99e0: no se pudo crear el polvo de llegada 0x5f6/1"));
+    }
+    glm::vec3 target = actor.position;
+    target.z = F32(static_cast<double>(target.z) + 120.0);
+    for (int index = 0; index < 4; ++index)
+    {
+        auto made = joint(0x614, actor.position, target, 17, 10.0f);
+        if (!made.HasValue())
+            return Core::Unexpected(std::move(made).Error());
+    }
+    return {};
+}
 
 bool CameraTourRunning(const CameraTour& tour)
 {

@@ -11,6 +11,7 @@
 #include "Scenes/ActorCreation.h"
 #include "Scenes/ActorEffectFlags.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/ArrivalSparks.h"
 #include "Scenes/CastleBattleActors.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/ChatReceive.h"
@@ -374,8 +375,14 @@ Core::Expected<void, std::string> ArriveAsNew(ActorState& actor, const WorldEntr
     case 0x155:
     case 0x158:
     case 0x159:
-        return Core::Unexpected(std::string("0x4c9883: la llegada lee [0x6e5904] + 0x154 (P-C60 g) y suelta los joints "
-                                            "0x615, 0x614 y 0x5f6 con rand() (CL11)"));
+        // 0x4c9883: la etapa 3 no llega a ningún constructor ni toca el RNG.
+        if (runtime.events.cameraTour.stage == 3)
+        {
+            actor.alpha = 1.0f;
+            return {};
+        }
+        actor.alpha = 0.0f;
+        return CreateArrivalSparks(actor, resources.world, resources.cloth.random);
     default:
         break;
     }

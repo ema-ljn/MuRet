@@ -1,6 +1,7 @@
 #include "Scenes/GamePanels.h"
 
 #include "Core/Expected.h"
+#include "Protocol/CastleSiege.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Pet/PetInfo.h"
 #include "Render/Models/LogicalAccess.h"
@@ -97,6 +98,23 @@ GamePanels::GamePanels(WorldState& world, Render::Models::CrtRandom& random, Gam
 {
 }
 
+void GamePanels::LendTheCastleRequests(WorldState& world, std::function<void(Protocol::Outgoing)> send)
+{
+    if (!send)
+        return;
+    m_context.castleRegistrationOpened = [&world, send = std::move(send)]() -> Core::Expected<void, std::string>
+    {
+        auto& opened = world.Runtime().panels.delegated.castleSiege;
+        if (opened == 0)
+        {
+            // 0x64ae10..0x64b0d9: primero el C1 04 B2 03; el byte +4 queda en 1 después del envío.
+            send(Protocol::CastleSiege::WriteRegistrationRequest());
+            opened = 1;
+        }
+        return {};
+    };
+}
+
 void GamePanels::LendTheNpcWindows(WorldState& world, Render::Models::CrtRandom& random, InventoryServices services,
                                    NpcWindowSender send)
 {
@@ -130,6 +148,7 @@ void GamePanels::LendTheSession(WorldState& world, Render::Models::CrtRandom& ra
         m_context.tradeClosed = [&world, &random, send](bool aux)
         { return CloseTheTradeGrids(world, random, aux, send); };
         LendThePetRequests(send);
+        LendTheCastleRequests(world, send);
         // 0x657b50 y 0x657b73: los cierres de las dos ventanas del gremio (la vtable + 0x2c, sin mirar nada) y el
         // diálogo de los paneles, por el mismo socket.
         LendTheGuildTo(m_context, world, send);

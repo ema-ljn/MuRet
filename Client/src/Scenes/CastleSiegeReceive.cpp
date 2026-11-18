@@ -144,6 +144,7 @@ Core::Expected<void, std::string> ApplyState(const Castle::CastleState& state, c
     {
         // 0x4e50f2: 0x6599a0(0x80000, 0) sin mirar lo que devuelve, y 0x64b0f0.
         GamePanels panels(context.world, context.random);
+        panels.LendTheCastleRequests(context.world, context.send);
         auto opened = panels.Registry().Open(UI::CastleSiegePanel);
         if (!opened.HasValue())
         {

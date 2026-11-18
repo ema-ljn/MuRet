@@ -212,12 +212,19 @@ TEST_P(CastleSiegeReceiveTest, StoreTheCastleStateMarksTheRegistrationOpen)
     EXPECT_EQ(Castle().registration.state, -2);
 }
 
-// Abrir el 0x80000 de verdad (0x64ae10) es de las ventanas: corta antes de 0x64b0f0.
-TEST_P(CastleSiegeReceiveTest, StateWithTheRegistrationClosedCutsAtTheOpen)
+// 0x65bef0..0x65bf0d y 0x64ae10: abrir pide B2 03 antes de guardar el estado de B2 00.
+TEST_P(CastleSiegeReceiveTest, StateWithTheRegistrationClosedOpensAndAsksForTheRegistration)
 {
-    EXPECT_NE(CutOf(OwnedState(1)).find("0x6599a0(0x80000)"), std::string::npos);
-    EXPECT_EQ(Castle().registration.state, -1);
-    EXPECT_EQ(Runtime().panels.delegated.castleSiege, 0);
+    const auto applied = Client::Scenes::ApplyCastleSiegePacket(OwnedState(1), Context());
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
+    EXPECT_EQ(Castle().registration.state, -2);
+    EXPECT_EQ(Runtime().panels.delegated.castleSiege, 1);
+    ASSERT_EQ(m_sent.size(), 1u);
+    EXPECT_TRUE(SameBytes(Xor32Decode(std::move(m_sent[0].packet)).Bytes(), Bytes({0xc1, 4, 0xb2, 3})));
+
+    // 0x6599be: ya abierta, la siguiente respuesta no vuelve a pedir la lista.
+    Apply(OwnedState(2));
+    EXPECT_EQ(m_sent.size(), 1u);
 }
 
 TEST_P(CastleSiegeReceiveTest, StateWithZeroThreeOrFourShowsItsMessage)

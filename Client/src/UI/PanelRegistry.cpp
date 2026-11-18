@@ -388,13 +388,27 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id)
     case EventNpcPanel:
     case Panel2000:
     case SecondEventNpcPanel:
-    case CastleSiegePanel:
     case CastleSiegeListPanel:
     case SecondCastleSiegePanel:
     case SiegeWeaponPanel:
     case SecondSiegeWeaponPanel:
     case SiegeGatePanel:
         return Core::Unexpected(OpenCut(id));
+    case CastleSiegePanel:
+    {
+        // 0x65bef0: el mismo mask de todos menos el id y los amigos, con aux en 0.
+        auto closed = CloseByMask(mask);
+        if (!closed.HasValue())
+            return closed;
+        if (closed.Value())
+        {
+            if (!m_context.castleRegistrationOpened)
+                return Core::Unexpected(OpenCut(id));
+            if (auto opened = m_context.castleRegistrationOpened(); !opened.HasValue())
+                return Core::Unexpected(std::move(opened).Error());
+        }
+        break;
+    }
     case PetPanel:
     {
         // 0x659fd9..0x65a8af: todos menos el personaje y los amigos; con lo que cerró, 0x420cb0 (0x723911 en 2) y los

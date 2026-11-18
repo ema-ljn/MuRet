@@ -61,6 +61,9 @@ public:
         return m_registry;
     }
 
+    // 0x64ae10: el B2 03 de la apertura del registro del castillo, por el mismo cable del mundo.
+    void LendTheCastleRequests(WorldState& world, std::function<void(Protocol::Outgoing)> send);
+
     // 0x659aa0..0x659c3d: con `requests`, abrir la party pone en 0 la cuenta de `world` (HudState::partyCount) y pide
     // la lista (C1 03 42). Lo presta el paso de la UI, el que abre la party; sin él, o con nullptr, abrirla corta.
     void LendThePartyList(WorldState& world, IGameUiRequests* requests);

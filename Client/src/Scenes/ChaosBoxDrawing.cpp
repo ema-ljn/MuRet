@@ -423,7 +423,13 @@ Core::Expected<void, std::string> DrawTheChaosBox(GameHudContext& context, UI::P
     npc.mixPrice = 0;
     if (npc.chaosMixState >= 2)
         return {};
-    auto quote = MixQuoteOf(npc);
+    const auto& collapse = runtime.events.objectCollapse;
+    auto quote = MixQuoteOf(npc, {.glowDetail = runtime.ui.glowDetail,
+                                  .map = runtime.map,
+                                  .collapseType = collapse.type,
+                                  .collapseMap = collapse.map,
+                                  .collapseCounter = collapse.counter,
+                                  .collapseDelay = collapse.delay});
     if (!quote.HasValue())
         return Core::Unexpected(std::move(quote).Error());
     npc.mixPrice = quote.Value().price;

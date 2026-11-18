@@ -13,6 +13,7 @@
 #include "World/ItemState.h"
 
 #include <array>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <format>
@@ -756,7 +757,7 @@ std::string TaxedPriceText(std::uint32_t price, std::int32_t taxRate)
     return ThousandsText(price + tax);
 }
 
-Core::Expected<MixQuote, std::string> MixQuoteOf(const NpcWindowState& npc)
+Core::Expected<MixQuote, std::string> MixQuoteOf(const NpcWindowState& npc, const MixQuoteData& data)
 {
     // 0x5fedac..0x5fede8: la chance de lo que vale la caja (/ 20.000 con signo, tope 100) y su precio.
     std::int32_t rate = npc.chaosBoxValue / 20'000;
@@ -785,12 +786,28 @@ Core::Expected<MixQuote, std::string> MixQuoteOf(const NpcWindowState& npc)
         if (npc.mixLevel != 1)
         {
             const std::int32_t at = npc.mixLevel - 2;
-            if (at >= static_cast<std::int32_t>(npc.chaosRates.size()))
-                return Core::Unexpected(std::format("0x5fee3a: el nivel {} del 2 lee la .data después de las tasas "
-                                                    "(0x6c9da0 + {:#x}: el formato de 0x6c9dc0 y el brillo de "
-                                                    "0x6c9dcc), 08 P-C197",
-                                                    npc.mixLevel, npc.mixLevel * 4));
-            chance = npc.chaosRates[static_cast<std::size_t>(at)];
+            if (at < static_cast<std::int32_t>(npc.chaosRates.size()))
+                chance = npc.chaosRates[static_cast<std::size_t>(at)];
+            else
+            {
+                // 0x6c9dc0..0x6c9de0: tres DWORD del formato y seis globales vivos, cargados con signo.
+                // LevelOf tiene cuatro bits: el nivel de la mezcla llega a 16.
+                const std::array<std::int32_t, 9> ratesPastTheTable{0x2b207325,
+                                                                    0x25642520,
+                                                                    0x25,
+                                                                    data.glowDetail,
+                                                                    data.map,
+                                                                    data.collapseType,
+                                                                    data.collapseMap,
+                                                                    data.collapseCounter,
+                                                                    std::bit_cast<std::int32_t>(data.collapseDelay)};
+                const auto past = static_cast<std::size_t>(at) - npc.chaosRates.size();
+                if (past >= ratesPastTheTable.size())
+                    return Core::Unexpected(std::format("0x5fee3a: nivel de mezcla {} fuera de los cuatro bits del "
+                                                        "ítem que llegan a 0x6c9de0",
+                                                        npc.mixLevel));
+                chance = ratesPastTheTable[past];
+            }
         }
         constexpr std::array<std::uint32_t, 7> Prices{100'000, 100'000,   200'000,  400'000,
                                                       700'000, 1'100'000, 1'600'000};

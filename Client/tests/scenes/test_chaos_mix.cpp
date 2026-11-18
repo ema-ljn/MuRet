@@ -21,7 +21,6 @@
 #include <initializer_list>
 #include <memory>
 #include <span>
-#include <string>
 #include <utility>
 #include <vector>
 
@@ -397,7 +396,7 @@ TEST(ChaosMixKindForModeTest, TheModeFiltersTheChaosWeapon)
 }
 
 // 0x5fedac..0x5ff0c2: sin caso propio, lo que vale / 20.000 (tope 100) y · 10.000; el 2 con la tasa de su nivel (60
-// el 1, las de 0x6c9da8 del 2 al 7) y su tabla de precios; el nivel 8 lee el formato de 0x6c9dc0 y corta (P-C197).
+// el 1, las de 0x6c9da8 del 2 al 7) y su tabla de precios; desde el nivel 8 lee los dwords de la .data contigua.
 TEST(MixQuoteTest, TheQuoteFollowsTheKind)
 {
     auto npc = std::make_unique<NpcWindowState>();
@@ -431,10 +430,6 @@ TEST(MixQuoteTest, TheQuoteFollowsTheKind)
         EXPECT_EQ(ticket.Value().rate, Rates[static_cast<std::size_t>(level - 1)]);
         EXPECT_EQ(ticket.Value().price, Prices[static_cast<std::size_t>(level - 1)]);
     }
-    npc->mixLevel = 8;
-    const auto past = Client::Scenes::MixQuoteOf(*npc);
-    ASSERT_FALSE(past.HasValue());
-    EXPECT_NE(past.Error().find("P-C197"), std::string::npos) << past.Error();
     // Las tasas que manda el 30 con el resultado 3 pisan las de la .data.
     npc->chaosRates = {10, 20, 30, 40, 50, 60};
     npc->mixLevel = 3;
@@ -511,6 +506,24 @@ TEST(MixRoomTest, TheRoomAndTheButton)
 }
 
 // 0x5b1130 y 0x5b12f0: los miles sin signo y el impuesto (con signo, en 64 bits) sumado al precio.
+// 0x5fee3a lee dwords después de las tasas. El nivel del ojo tiene cuatro bits: mixLevel llega a 16.
+TEST(MixQuoteTest, HighInvitationsReadTheNativeDataAfterTheRates)
+{
+    auto npc = std::make_unique<NpcWindowState>();
+    npc->mixKind = 2;
+    constexpr std::array<std::int32_t, 9> Rates{0x2b207325, 0x25642520, 0x25, 4, -1, -1, -1, -1, -1082130432};
+    for (std::size_t i = 0; i < Rates.size(); ++i)
+    {
+        npc->mixLevel = 8 + static_cast<std::int32_t>(i);
+        SCOPED_TRACE(npc->mixLevel);
+        const auto quote = Client::Scenes::MixQuoteOf(*npc);
+        ASSERT_TRUE(quote.HasValue()) << quote.Error();
+        EXPECT_EQ(quote.Value().rate, Rates[i]);
+        EXPECT_EQ(quote.Value().price, 1'600'000u);
+        EXPECT_EQ(quote.Value().priceText, "1,600,000");
+    }
+}
+
 TEST(MixQuoteTest, ThousandsAndTax)
 {
     using Client::Scenes::TaxedPriceText;

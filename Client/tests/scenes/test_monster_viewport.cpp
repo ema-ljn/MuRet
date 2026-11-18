@@ -28,6 +28,7 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
+#include "World/ModelEffects.h"
 #include "World/TerrainWalls.h"
 #include "World/WorldTerrain.h"
 
@@ -522,6 +523,47 @@ TEST_F(MonsterViewportTest, TheCastleSiegeCreatorDrawsAfterTheCreation)
         EXPECT_EQ(actor.byte88, 4);
         EXPECT_EQ(Client::Scenes::ActorText(actor), "\xb1\xd9\xc0\xa7\xba\xb4");
         EXPECT_EQ(game->cloth.random.State(), AfterDraws(seed, WalkingRecordDraws + 1).State());
+    }
+}
+
+// 42d513 y 42d5af vuelven con el actor aunque 518cf0 no encuentre un lugar libre.
+TEST_F(MonsterViewportTest, CastleSiegePublishesTheActorsWhenTheArrivalEffectPoolIsFull)
+{
+    struct Kind
+    {
+        std::uint16_t wire;
+        std::uint16_t model;
+    };
+    constexpr std::array kinds{Kind{278, 0x1a8}, Kind{283, 0x19c}};
+    constexpr std::uint16_t key = 0x0123;
+    for (const auto& [wire, model] : kinds)
+    {
+        SCOPED_TRACE(wire);
+        Load(30);
+        const auto effects = game->world.Map().effects.Effects();
+        for (auto& effect : effects)
+        {
+            effect.alive = true;
+            effect.life = 42;
+        }
+        const Cell cell = FreeRow();
+        const std::array<MonsterRecordBytes, 1> records{{{.key = key,
+                                                          .typeHigh = Byte(wire >> 8),
+                                                          .typeLow = Byte(wire),
+                                                          .x = cell.x,
+                                                          .y = cell.y,
+                                                          .targetX = cell.x,
+                                                          .targetY = cell.y}}};
+
+        const auto applied = Monsters(records);
+
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        EXPECT_TRUE(Actor(1).alive);
+        EXPECT_EQ(Actor(1).key, key);
+        EXPECT_EQ(Actor(1).type, model);
+        EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, WalkingRecordDraws).State());
+        EXPECT_TRUE(std::ranges::all_of(effects, [](const Client::World::ModelEffect& effect)
+                                        { return effect.alive && effect.life == 42; }));
     }
 }
 

@@ -18,10 +18,12 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
+#include "World/ModelEffects.h"
 #include "World/TerrainCulling.h"
 #include "World/TerrainHeight.h"
 #include "World/WorldTerrain.h"
 
+#include <algorithm>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
@@ -386,6 +388,9 @@ private:
             return Core::Unexpected(std::format("{:#x}: el joint {:#x} (0x530860) del tipo {} es de la CL11",
                                                 step.address, step.value, m_type));
         case MonsterStepKind::Arrival:
+            // 0x518d0f devuelve el control al caller cuando no hay un lugar libre en el pool.
+            if (std::ranges::all_of(m_resources.world.Map().effects.Effects(), &World::ModelEffect::alive))
+                return {};
             return Core::Unexpected(std::format("{:#x}: el efecto {:#x} (0x518cf0) del tipo {} es de la CL11",
                                                 step.address, step.value, m_type));
         default:

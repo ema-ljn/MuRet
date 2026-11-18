@@ -779,7 +779,9 @@ Handled DrawTheCrywolfCase(MonsterHelperPass& pass)
     else if (type == 0x1b2)
         drawn = DrawThe1b2(pass);
     else if (type == 0x1b3 && action == 4 && actor.animation.frame >= 4.0f && actor.animation.frame <= 6.0f)
-        drawn = Cut(0x434ecf, "el efecto 0x115 (0x518cf0) del ataque, desde el punto girado de +0xcc", actor);
+        // 434e78..e9a gira +cc en un local muerto; 434eb0 pasa la posición del actor al constructor.
+        static_cast<void>(pass.world.Map().effects.CreatePiercingEffect(
+            {.type = 0x115, .position = actor.position, .angles = actor.angles, .light = {1, 0, 0.5f}, .subtype = 1}));
     if (!drawn.HasValue())
         return Core::Unexpected(drawn.Error());
     const std::array<ActionSound, 3> sounds{{{3, voice->idle + 2}, {4, voice->idle + 3}, {6, voice->idle + 4}}};

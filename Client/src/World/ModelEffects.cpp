@@ -1082,6 +1082,46 @@ std::optional<std::size_t> ModelEffects::Create(std::int16_t type, const glm::ve
     return std::nullopt;
 }
 
+std::optional<std::size_t> ModelEffects::CreateWaveEffect(const ModelEffectArguments& arguments)
+{
+    if (arguments.type != 0x114 || (arguments.subtype != 2 && arguments.subtype != 6))
+        return std::nullopt;
+    const auto slot = Begin(arguments);
+    if (!slot)
+        return std::nullopt;
+    auto& effect = m_effects[*slot];
+    effect.start = arguments.position;
+    // El store del prefijo +50 precede el−50 del subtipo, incluso si redondea una z grande.
+    effect.transform.position.z =
+        F32(static_cast<double>(F32(static_cast<double>(arguments.position.z) + 50.0)) - 50.0);
+    effect.objectState.blendMesh = Render::Models::EveryMeshBlends;
+    effect.objectState.light = 1;
+    effect.life = effect.subtype == 2 ? 15 : 10;
+    effect.transform.scale =
+        F32(static_cast<double>(std::bit_cast<std::int16_t>(arguments.key)) * static_cast<double>(0.05f));
+    effect.disturbanceState = 0xffff;
+    effect.turnDirection = effect.subtype == 2 ? 0.01f : 0.08f;
+    effect.transform.angles = {effect.subtype == 2 ? 90.0f : -90.0f, 0, arguments.angles.z};
+    return slot;
+}
+
+std::optional<std::size_t> ModelEffects::CreatePiercingEffect(const ModelEffectArguments& arguments)
+{
+    if (arguments.type != 0x115 || arguments.subtype != 1)
+        return std::nullopt;
+    const auto slot = Begin(arguments);
+    if (!slot)
+        return std::nullopt;
+    auto& effect = m_effects[*slot];
+    effect.transform.scale = 2;
+    effect.life = 6;
+    effect.objectState.blendMesh = Render::Models::EveryMeshBlends;
+    effect.velocity = {0, -60, 0};
+    effect.start = arguments.position;
+    effect.transform.position.z = F32(static_cast<double>(effect.transform.position.z) + 130.0);
+    return slot;
+}
+
 std::optional<std::size_t> ModelEffects::CreateCrywolfMissile(const ModelEffectArguments& arguments)
 {
     const auto slot = Begin(arguments);

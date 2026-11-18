@@ -999,14 +999,20 @@ TEST_F(MonsterHelpersTest, The1b1And1b2DrawTheirSprites)
     EXPECT_EQ(spinning.State(), AfterDraws(3, 1).State());
 }
 
-// 0x434e3f..0x434ecf: el 0x1b3 en la 4 con el frame de 4 a 6 corta en el efecto 0x115, antes de sonar.
-TEST_F(MonsterHelpersTest, The1b3CutsInItsAttackWindow)
+// 0x434e3f..0x434ecf: el 0x1b3 en la4 y frame[4,6] crea115/1 desde la posición, y luego suena.
+TEST_F(MonsterHelpersTest, The1b3CreatesThePiercingInItsAttackWindowBeforeSounding)
 {
     ActorState& actor = Monster(0x1b3, 4, 6.0f);
     CrtRandom random(1);
     MonsterHelperPass pass = Pass(Crywolf, random);
-    EXPECT_TRUE(CutAt(Client::Scenes::DrawTheCrywolfEffectsOf1abTo208(pass), "0x434ecf"));
-    EXPECT_FALSE(Sound().has_value());
+    ASSERT_TRUE(Client::Scenes::DrawTheCrywolfEffectsOf1abTo208(pass).HasValue());
+    const auto& effect = m_world->Map().effects.Effects()[0];
+    EXPECT_EQ(effect.type, 0x115);
+    EXPECT_EQ(effect.life, 6);
+    EXPECT_EQ(effect.start, actor.position);
+    EXPECT_EQ(effect.transform.position.z, actor.position.z + 130);
+    EXPECT_EQ(effect.light, (glm::vec3{1, 0, 0.5f}));
+    EXPECT_EQ(Sound(), 0x21d);
     actor.animation.frame = 6.5f;
     ASSERT_TRUE(Client::Scenes::DrawTheCrywolfEffectsOf1abTo208(pass).HasValue());
     EXPECT_EQ(Sound(), 0x21d);

@@ -500,6 +500,51 @@ Core::Expected<void, std::string> StepFadingDecal(const ModelEffect& effect, Par
     return {};
 }
 
+Core::Expected<void, std::string> StepWaveEffect(ModelEffect& effect)
+{
+    if (effect.subtype != 2 && effect.subtype != 6)
+        return Core::Unexpected(std::string("0x526de4: subtipo de114 fuera de2/6"));
+    const bool second = effect.subtype == 2;
+    effect.transform.scale =
+        F32(static_cast<double>(effect.transform.scale) + static_cast<double>(effect.turnDirection));
+    effect.turnDirection =
+        F32(static_cast<double>(effect.turnDirection) + static_cast<double>(second ? 0.01f : 0.015f));
+    const float limit = second ? 1.5f : 2.5f;
+    if (effect.transform.scale > limit)
+        effect.transform.scale = limit;
+    const float fade = std::bit_cast<float>(second ? 0x3f2aaaabu : 0x3f44ec4fu);
+    effect.objectState.light = F32(static_cast<double>(effect.objectState.light) * static_cast<double>(fade));
+    if (!second)
+        effect.transform.angles.y = F32(static_cast<double>(effect.transform.angles.y) + 45.0);
+    return {};
+}
+
+Core::Expected<void, std::string> StepPiercingEffect(ModelEffect& effect, const ModelEffectStepServices& services)
+{
+    if (effect.subtype != 1)
+        return Core::Unexpected(std::string("0x527010: subtipo de115 fuera de1"));
+    // 0x526f9d: hay un movimiento explícito ANTES del común de0x51fc80.
+    const auto offset = Render::Models::OriginalVectorRotate(
+        effect.velocity, Render::Models::OriginalAngleMatrix(effect.transform.angles));
+    for (int axis = 0; axis < 3; ++axis)
+        effect.transform.position[axis] =
+            F32(static_cast<double>(offset[axis]) + static_cast<double>(effect.transform.position[axis]));
+    const double next = static_cast<double>(effect.velocity.y) + 12.0;
+    effect.velocity.y = next >= 0.0 ? 0.0f : F32(next);
+    if (effect.life <= 1)
+        return {};
+    effect.objectState.light = F32(static_cast<double>(effect.objectState.light) * 0.625);
+    if (services.effects == nullptr)
+        return Core::Unexpected(std::string("0x52704d: falta el pool de114/2 del115"));
+    static_cast<void>(services.effects->CreateWaveEffect({.type = 0x114,
+                                                          .position = effect.transform.position,
+                                                          .angles = effect.transform.angles,
+                                                          .light = effect.light,
+                                                          .subtype = 2,
+                                                          .key = static_cast<std::uint16_t>(effect.life)}));
+    return {};
+}
+
 Core::Expected<void, std::string> ScatterCrywolfImpact(const glm::vec3& position, Particles& particles,
                                                        float worldClock, Render::Models::CrtRandom& random,
                                                        const ModelEffectStepServices& services)
@@ -1395,6 +1440,16 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
     else if (effect.type == FadingDecalEffect)
     {
         if (auto stepped = StepFadingDecal(effect, particles, worldClock, random); !stepped.HasValue())
+            return stepped;
+    }
+    else if (effect.type == 0x114)
+    {
+        if (auto stepped = StepWaveEffect(effect); !stepped.HasValue())
+            return stepped;
+    }
+    else if (effect.type == 0x115)
+    {
+        if (auto stepped = StepPiercingEffect(effect, services); !stepped.HasValue())
             return stepped;
     }
     else if (effect.type == 0xee)

@@ -401,7 +401,20 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id, std::uint32_t 
     }
     case EventNpcPanel:
     case SecondEventNpcPanel:
-        return Core::Unexpected(OpenCut(id));
+    {
+        // 0x65b265/0x65b29b: el inventario abre antes del byte0x7d53712 y del tipo0x7d53714.
+        auto closed = CloseByMask(mask);
+        if (!closed.HasValue())
+            return closed;
+        if (closed.Value())
+        {
+            if (auto inventory = Open(InventoryPanel); !inventory.HasValue())
+                return inventory;
+            m_state.eventNpc = 1;
+            m_state.eventNpcKind = id == EventNpcPanel ? 0 : 1;
+        }
+        break;
+    }
     case CastleSiegeListPanel:
     case SecondCastleSiegePanel:
     {

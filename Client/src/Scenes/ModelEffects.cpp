@@ -867,35 +867,6 @@ CaseResult StepTheCastleHelper(ModelEffectsPass& pass)
     }
 }
 
-// 0x42f550(c, modelo), solo en el mapa 35 (0x42ee20). Devuelve 0.
-Result StepTheKanturuHelper(ModelEffectsPass& pass)
-{
-    constexpr std::int32_t KanturuMap = 35;
-    if (pass.map != KanturuMap)
-        return {};
-    const ActorState& actor = pass.actor;
-    const float frame = actor.animation.frame;
-    switch (actor.type)
-    {
-    case 0x1b3:
-        // 0x42f5a8..0x42f63b: en la 4 con el frame en [4, 6], el efecto 0x115 de 0x518cf0.
-        if (actor.animation.action == 4 && frame >= 4.0f && frame <= 6.0f)
-            return Cut(pass, 0x42f63b, "el efecto 0x115 (0x518cf0) del ataque");
-        return {};
-    case 0x1b2:
-        // 0x42f656: rand() % 360 y los sprites 0x5ac y 0x5fd de huesos por nombre (0x4292e0).
-        static_cast<void>(Roll(pass, 360));
-        return Cut(pass, 0x42f6ce, "el hueso por nombre (0x4292e0) y los sprites 0x5ac y 0x5fd");
-    case 0x1b1:
-        // 0x42f8fa: fuera de la 6, el sprite 0x5ac de un hueso por nombre; en la 6, nada (no es la 2 ni la 0xa).
-        if (actor.animation.action != 6)
-            return Cut(pass, 0x42f946, "el hueso por nombre (0x4292e0) y el sprite 0x5ac");
-        return {};
-    default:
-        return {};
-    }
-}
-
 // 0x431470 en la 2 y la 0xa: con rand() % 10 en 0, el 0x5f3/0 en la posición con la luz del caso (0x431e86).
 Result KickTheDust(ModelEffectsPass& pass, const glm::vec3* light, std::uint32_t local)
 {
@@ -982,7 +953,18 @@ Result CrywolfWaveStrike(ModelEffectsPass& pass)
     return {};
 }
 
-Result CrywolfNamedSprites(ModelEffectsPass& pass)
+Result CrywolfHeadSprite(ModelEffectsPass& pass, std::uint32_t address)
+{
+    const auto head = CrywolfNamedPoint(pass, "Monster95_Head", address);
+    if (!head.HasValue())
+        return Core::Unexpected(head.Error());
+    if (pass.sprites == nullptr)
+        return Core::Unexpected(std::string("0x431d84: faltan los sprites del monstruo95"));
+    static_cast<void>(pass.sprites->Create(0x5ac, head.Value(), 3.5f, {0.9f, 0.2f, 0.1f}, 0, 0));
+    return {};
+}
+
+Result CrywolfNamedSprites(ModelEffectsPass& pass, std::uint32_t centerAddress)
 {
     ActorState& actor = pass.actor;
     const float rotation = static_cast<float>(Roll(pass, 360));
@@ -992,7 +974,7 @@ Result CrywolfNamedSprites(ModelEffectsPass& pass)
         return Core::Unexpected(std::string("0x431f72: reloj fuera del dominio FSIN"));
     const float pulse = F32(*sine + D(Bits(0x3fa66666u)));
     const float scale = actor.animation.action == 3 || actor.animation.action == 4 ? 0.5f : 1.0f;
-    const auto center = CrywolfNamedPoint(pass, "Monster96_Center", 0x431fa4);
+    const auto center = CrywolfNamedPoint(pass, "Monster96_Center", centerAddress);
     if (!center.HasValue())
         return Core::Unexpected(center.Error());
     if (pass.sprites == nullptr)
@@ -1009,6 +991,17 @@ Result CrywolfNamedSprites(ModelEffectsPass& pass)
         static_cast<void>(pass.sprites->Create(0x5fd, point.Value(), F32(D(scale) * 0.5), glm::vec3(0.5f),
                                                F32(360.0 - D(rotation)), 0));
     }
+    return {};
+}
+
+Result CrywolfPiercingStrike(ModelEffectsPass& pass)
+{
+    // 0x431edc y0x42f5e3 calculan una velocidad girada en un local que luego no se lee.
+    static_cast<void>(pass.world.Map().effects.CreatePiercingEffect({.type = 0x115,
+                                                                     .position = pass.actor.position,
+                                                                     .angles = pass.actor.angles,
+                                                                     .light = {1, 0, 0.5f},
+                                                                     .subtype = 1}));
     return {};
 }
 
@@ -1088,12 +1081,8 @@ Result StepTheCrywolfHelper(ModelEffectsPass& pass)
     {
         if (action != 6)
         {
-            const auto head = CrywolfNamedPoint(pass, "Monster95_Head", 0x431d5c);
-            if (!head.HasValue())
-                return Core::Unexpected(head.Error());
-            if (pass.sprites == nullptr)
-                return Core::Unexpected(std::string("0x431d84: faltan los sprites del monstruo95"));
-            static_cast<void>(pass.sprites->Create(0x5ac, head.Value(), 3.5f, ember, 0, 0));
+            if (auto head = CrywolfHeadSprite(pass, 0x431d5c); !head.HasValue())
+                return head;
         }
         if (action == 3)
         {
@@ -1117,11 +1106,11 @@ Result StepTheCrywolfHelper(ModelEffectsPass& pass)
         return KickTheDust(pass, &White, 0);
     }
     case 0x1b2:
-        return CrywolfNamedSprites(pass);
+        return CrywolfNamedSprites(pass, 0x431fa4);
     case 0x1b3:
         // 0x431ea1: en la 4 con el frame en [4, 6], el efecto 0x115.
         if (action == 4 && frame >= 4.0f && frame <= 6.0f)
-            return Cut(pass, 0x431f37, "el efecto 0x115 (0x518cf0) del ataque");
+            return CrywolfPiercingStrike(pass);
         return {};
     case 0x1b4:
     {
@@ -1176,6 +1165,36 @@ Result StepTheCrywolfHelper(ModelEffectsPass& pass)
     }
     default:
         // 0x4315e0: el 0x1ac y los de fuera de la tabla.
+        return {};
+    }
+}
+
+// 0x42f550: el helper de35 termina con0, por lo que después también corre431470.
+Result StepTheKanturuHelper(ModelEffectsPass& pass)
+{
+    if (pass.map != 35)
+        return {};
+    const auto action = pass.actor.animation.action;
+    const float frame = pass.actor.animation.frame;
+    switch (pass.actor.type)
+    {
+    case 0x1b3:
+        if (action == 4 && frame >= 4 && frame <= 6)
+            return CrywolfPiercingStrike(pass);
+        return {};
+    case 0x1b2:
+        return CrywolfNamedSprites(pass, 0x42f6ce);
+    case 0x1b1:
+        if (action != 6)
+        {
+            if (auto head = CrywolfHeadSprite(pass, 0x42f946); !head.HasValue())
+                return head;
+        }
+        {
+            const glm::vec3 ember{0.9f, 0.2f, 0.1f};
+            return KickTheDust(pass, &ember, 0);
+        }
+    default:
         return {};
     }
 }

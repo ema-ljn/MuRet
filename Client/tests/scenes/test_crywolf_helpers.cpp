@@ -116,44 +116,72 @@ TEST(CrywolfHelpersTest, TheAttackWindowsCreateTheirNativeChildrenOnlyInsideTheH
 
 TEST(CrywolfHelpersTest, TheNamedSpritesReadTheRegisteredActorBonesAndKeepBothRotationDraws)
 {
-    auto world = std::make_unique<Client::Scenes::WorldState>();
-    auto actor = std::make_unique<Client::Scenes::ActorState>();
-    actor->alive = true;
-    actor->type = 0x1b2;
-    actor->scale = 1;
-    actor->position = {1000, 2000, 50};
-    actor->animation.action = 3;
-    actor->bodyPose.assign(3, Client::Render::Models::BoneTransform(1.0f));
-    actor->bodyPose[0][3] = {10, 20, 30};
-    actor->bodyPose[1][3] = {40, 50, 60};
-    actor->bodyPose[2][3] = {70, 80, 90};
-    world->Runtime().namedBones = {{3, "Monster96_Center", 0}, {3, "Monster96_Top", 1}, {3, "Monster96_Bottom", 2}};
-    Client::Render::Models::Skeleton skeleton;
-    Client::World::FrameSprites sprites;
-    Client::Render::Models::CrtRandom random(7);
-    Client::Scenes::ModelEffectsPass pass{.actor = *actor,
-                                          .slot = 3,
-                                          .world = *world,
-                                          .random = random,
-                                          .skeleton = skeleton,
-                                          .sprites = &sprites,
-                                          .map = 34};
-    const auto stepped = Client::Scenes::StepTheModelEffects(pass);
-    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-    EXPECT_EQ(random.State(), Client::Tests::AfterDraws(7, 2).State());
-    const auto out = sprites.Sprites();
-    EXPECT_EQ(std::ranges::count_if(out, [](const auto& s) { return s.alive; }), 5);
-    EXPECT_EQ(out[0].texture, 0x5ac);
-    EXPECT_EQ(out[0].position, (glm::vec3{1010, 2020, 80}));
-    EXPECT_EQ(out[0].scale, 0.5f);
-    EXPECT_FLOAT_EQ(out[0].light.g, 0.65f);
-    EXPECT_FLOAT_EQ(out[0].light.b, 0.13f);
-    EXPECT_EQ(out[1].texture, 0x5fd);
-    EXPECT_EQ(out[1].position, (glm::vec3{1040, 2050, 110}));
-    EXPECT_EQ(out[1].scale, 0.25f);
-    EXPECT_EQ(out[1].rotation, 142);
-    EXPECT_EQ(out[2].rotation, 218);
-    EXPECT_EQ(out[3].position, (glm::vec3{1070, 2080, 140}));
+    for (const int map : {34, 35})
+    {
+        auto world = std::make_unique<Client::Scenes::WorldState>();
+        auto actor = std::make_unique<Client::Scenes::ActorState>();
+        actor->alive = true;
+        actor->type = 0x1b2;
+        actor->scale = 1;
+        actor->position = {1000, 2000, 50};
+        actor->animation.action = 3;
+        actor->bodyPose.assign(3, Client::Render::Models::BoneTransform(1.0f));
+        actor->bodyPose[0][3] = {10, 20, 30};
+        actor->bodyPose[1][3] = {40, 50, 60};
+        actor->bodyPose[2][3] = {70, 80, 90};
+        world->Runtime().namedBones = {{3, "Monster96_Center", 0}, {3, "Monster96_Top", 1}, {3, "Monster96_Bottom", 2}};
+        Client::Render::Models::Skeleton skeleton;
+        Client::World::FrameSprites sprites;
+        Client::Render::Models::CrtRandom random(7);
+        Client::Scenes::ModelEffectsPass pass{.actor = *actor,
+                                              .slot = 3,
+                                              .world = *world,
+                                              .random = random,
+                                              .skeleton = skeleton,
+                                              .sprites = &sprites,
+                                              .map = map};
+        const auto stepped = Client::Scenes::StepTheModelEffects(pass);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(random.State(), Client::Tests::AfterDraws(7, map == 35 ? 3 : 2).State());
+        const auto out = sprites.Sprites();
+        EXPECT_EQ(std::ranges::count_if(out, [](const auto& s) { return s.alive; }), map == 35 ? 10 : 5);
+        EXPECT_EQ(out[0].texture, 0x5ac);
+        EXPECT_EQ(out[0].position, (glm::vec3{1010, 2020, 80}));
+        EXPECT_EQ(out[0].scale, 0.5f);
+        EXPECT_FLOAT_EQ(out[0].light.g, 0.65f);
+        EXPECT_FLOAT_EQ(out[0].light.b, 0.13f);
+        EXPECT_EQ(out[1].texture, 0x5fd);
+        EXPECT_EQ(out[1].position, (glm::vec3{1040, 2050, 110}));
+        EXPECT_EQ(out[1].scale, 0.25f);
+        EXPECT_EQ(out[1].rotation, 142);
+        EXPECT_EQ(out[2].rotation, 218);
+        EXPECT_EQ(out[3].position, (glm::vec3{1070, 2080, 140}));
+    }
+}
+
+TEST(CrywolfHelpersTest, ThePiercingKeepsBothInclusiveFrameEdgesAndBothHelpersInMap35)
+{
+    for (const int map : {34, 35})
+        for (const float frame : {3.99f, 4.0f, 6.0f, 6.01f})
+        {
+            auto world = std::make_unique<Client::Scenes::WorldState>();
+            auto actor = std::make_unique<Client::Scenes::ActorState>();
+            actor->alive = true;
+            actor->type = 0x1b3;
+            actor->animation.action = 4;
+            actor->animation.frame = frame;
+            actor->position = {100, 200, 300};
+            Client::Render::Models::Skeleton skeleton;
+            Client::Render::Models::CrtRandom random(7);
+            Client::Scenes::ModelEffectsPass pass{
+                .actor = *actor, .slot = 3, .world = *world, .random = random, .skeleton = skeleton, .map = map};
+            const auto stepped = Client::Scenes::StepTheModelEffects(pass);
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+            const int expected = frame >= 4 && frame <= 6 ? map == 35 ? 2 : 1 : 0;
+            EXPECT_EQ(std::ranges::count_if(world->Map().effects.Effects(), [](const auto& e) { return e.alive; }),
+                      expected);
+            EXPECT_EQ(random.State(), Client::Tests::AfterDraws(7, 1).State());
+        }
 }
 
 TEST(CrywolfHelpersTest, TheHeadAttackCreatesTheOwnedEarthquakeAboveTheScaleThreshold)

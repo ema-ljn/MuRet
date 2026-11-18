@@ -385,8 +385,20 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id)
         }
         break;
     }
-    case EventNpcPanel:
     case Panel2000:
+    {
+        // 0x65b240..0x65b259: la máscara se cierra antes de prender los dos bytes de esta ventana.
+        auto closed = CloseByMask(mask);
+        if (!closed.HasValue())
+            return closed;
+        if (closed.Value())
+        {
+            m_state.panel2000 = 1;
+            m_state.field78abb08 = 0;
+        }
+        break;
+    }
+    case EventNpcPanel:
     case SecondEventNpcPanel:
     case CastleSiegePanel:
     case CastleSiegeListPanel:
@@ -610,6 +622,11 @@ Core::Expected<bool, std::string> PanelRegistry::CloseByMask(PanelId mask, bool 
             m_state.repairMode = 0;
             m_state.field78abb00 = 0;
             m_state.field78abb04 = 0;
+            break;
+        case Panel2000:
+            // 0x658be3..0x658bea: sin envío; los botones de 0x5e74f0 mandan el C1 03 31 antes de CloseAll.
+            m_state.panel2000 = 0;
+            m_state.field78abb08 = 0;
             break;
         case EventNpcPanel:
         case SecondEventNpcPanel:

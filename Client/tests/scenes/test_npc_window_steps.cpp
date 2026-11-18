@@ -14,6 +14,7 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/GameDialogSteps.h"
+#include "Scenes/GamePanels.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/InventoryMoves.h"
@@ -309,6 +310,7 @@ protected:
                                                                         {167, "sol"},
                                                                         {168, "cielo"},
                                                                         {169, "mar"},
+                                                                        {0x1c0, "aceptar?"},
                                                                         {0x178, "comer la fruta?"},
                                                                         {0x218, "vender esto"},
                                                                         {0x219, "que vale"},
@@ -769,6 +771,64 @@ TEST_F(NpcWindowStepsTest, DepositingZenSends81FromTheMoneyDialog)
     ASSERT_TRUE(Dialogs(0, 0).HasValue());
     EXPECT_EQ(random.State(), refused.State());
     EXPECT_EQ(runtime.dialogs.current, 0x75);
+}
+
+// 0x5e74f0: no hay consulta protegida para 0x2000. Aceptar habilita el aviso, que continúa al teclado en modo 6.
+TEST_F(NpcWindowStepsTest, ThePanel2000CheckboxAndConfirmationReachTheKeypad)
+{
+    auto& runtime = world.Runtime();
+    runtime.panels.panel2000 = 1;
+    runtime.hud.inventoryX = 450;
+    Client::Scenes::GamePanels ownedPanels(world, random);
+    auto& panels = ownedPanels.Registry();
+    Click();
+    auto context = Context(475, 240);
+    auto stepped = Client::Scenes::StepThePanel2000(context, panels);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(runtime.panels.field78abb08, 1);
+    EXPECT_FALSE(runtime.movement.pendingClick);
+    EXPECT_EQ(runtime.ui.mouseOnUi, 1);
+    const auto before = random.State();
+    Click();
+    context.mouseX = 485;
+    context.mouseY = 320;
+    stepped = Client::Scenes::StepThePanel2000(context, panels);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(runtime.social.trade.warningKind, 4);
+    EXPECT_EQ(runtime.social.trade.warningByte, 0xff);
+    EXPECT_EQ(runtime.dialogs.current, 0x98);
+    EXPECT_EQ(random.State(), before);
+    runtime.social.trade.warningByte = 1;
+    ASSERT_TRUE(Client::Scenes::AnswerTheNpcWarning(context, 4).HasValue());
+    EXPECT_EQ(runtime.ui.field78abb20, 6);
+}
+
+// 0x5e7678..0x5e7840 y 0x5e78a2..0x5e7a79: salir manda C1 03 31 y cierra todo; sólo la cruz borra 0x78abb00.
+TEST_F(NpcWindowStepsTest, BothPanel2000ExitButtonsSend31BeforeClosing)
+{
+    for (const bool cross : {false, true})
+    {
+        auto& runtime = world.Runtime();
+        runtime.panels.panel2000 = 1;
+        runtime.panels.field78abb08 = 1;
+        runtime.panels.field78abb00 = 7;
+        runtime.panels.inventory = 0;
+        runtime.hud.inventoryX = 450;
+        Click();
+        Client::Scenes::GamePanels ownedPanels(world, random);
+        auto context = Context(cross ? 475 : 485, cross ? 395 : 350);
+        const auto before = random;
+        const auto stepped = Client::Scenes::StepThePanel2000(context, ownedPanels.Registry());
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(runtime.panels.panel2000, 0);
+        EXPECT_EQ(runtime.panels.field78abb08, 0);
+        EXPECT_EQ(runtime.panels.field78abb00, cross ? 0 : 7);
+        EXPECT_EQ(runtime.movement.mouseUpdateTime, 0);
+        EXPECT_EQ(runtime.movement.mouseUpdateTimeMax, 6);
+        EXPECT_FALSE(runtime.movement.pendingClick);
+        EXPECT_TRUE(SameBytes(Plain(sent.size() - 1).Bytes(), Bytes({0xc1, 3, 0x31})));
+        EXPECT_EQ(random.State(), Advanced(before, 2).State());
+    }
 }
 
 // Sacar (el botón de x + 0x4c): C1 08 81 01 y el zen. Con la traba del almacén espera la contraseña: {−1, 1, zen,

@@ -261,6 +261,25 @@ TEST_F(NpcWindowRepliesTest, TheTrainerOpensItsMenuWithoutTheInventory)
     EXPECT_TRUE(stage->sent.empty());
 }
 
+// 0x4d257c, 0x65b240: el resultado 5 abre 0x2000 y permite que el paso siguiente atienda su casilla.
+TEST_F(NpcWindowRepliesTest, TheFifthTalkResultOpensPanel2000WithoutTheInventory)
+{
+    for (const std::int32_t map : {0, 2, 3})
+    {
+        stage = std::make_unique<Stage>();
+        stage->world.Runtime().map = map;
+        const auto talked = Talk(5);
+        ASSERT_TRUE(talked.HasValue()) << talked.Error();
+        EXPECT_EQ(stage->world.Runtime().panels.panel2000, 1);
+        EXPECT_EQ(stage->world.Runtime().panels.inventory, 0);
+        EXPECT_EQ(stage->world.Runtime().panels.field78abb08, 0);
+        EXPECT_EQ(stage->world.Runtime().lastSoundId, 0x1c);
+        EXPECT_TRUE(Npc().cursorWarpRequested);
+        EXPECT_TRUE(stage->sent.empty());
+        EXPECT_EQ(stage->cloth.random.State(), Advanced(CrtRandom(Seed), 6).State());
+    }
+}
+
 // Con cada ventana abierta (y el inventario), el mundo es de 260 (0x5bb8e3..0x5bb9a3).
 TEST_F(NpcWindowRepliesTest, TheWorldIs260WideWithEachWindowOpen)
 {

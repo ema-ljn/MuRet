@@ -12,6 +12,7 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/ActorCharacterSet.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/HelperTable.h"
@@ -2346,7 +2347,6 @@ Core::Expected<void, std::string> ApplyEquipmentChange(const Protocol::Inventory
     const std::size_t index = ActorWithKey(resources.world, change.key);
     if (resources.world.Actors()[index].type != Data::Models::PlayerSkeletonModel)
         return {};
-    return Core::Unexpected(
-        std::format("0x513a1e: el equipo del jugador {} (0x5139f0, desde 0x4e316e) es de la CL9.2", index));
+    return ApplyCharacterSet(index, change.equipment, resources);
 }
 } // namespace Client::Scenes

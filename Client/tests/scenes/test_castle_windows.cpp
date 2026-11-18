@@ -23,6 +23,7 @@
 #include "UI/PanelDialog.h"
 #include "UI/ChatInput.h"
 #include "Render/SpriteBatch.h"
+#include "Render/ScreenScale.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -143,10 +144,15 @@ protected:
     }
     const Client::Render::DrawCommand* QuadAt(float x, float y) const
     {
+        const auto screen = m_sprites.Screen();
+        const float pixelX = Client::Render::ScaleX(x, screen);
+        // FanCorners conserva las inversas float nativas incluso en 640 × 480: no es simplemente H − y.
+        const float pixelTop = static_cast<float>(static_cast<double>(screen.height) -
+                                                  static_cast<double>(Client::Render::ScaleY(y, screen)));
         const auto vertices = m_sprites.Vertices();
         for (const auto& command : m_sprites.Commands())
             for (std::size_t i = command.firstVertex; i < command.firstVertex + command.vertexCount; i += 6)
-                if (vertices[i].x == x && vertices[i].y == 480.0f - y)
+                if (vertices[i].x == pixelX && vertices[i].y == pixelTop)
                     return &command;
         return nullptr;
     }

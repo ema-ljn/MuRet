@@ -70,7 +70,7 @@ std::map<std::size_t, std::string> CastleTexts()
 {
     std::map<std::size_t, std::string> texts;
     for (const std::size_t id :
-         {std::size_t{860}, std::size_t{1386}, std::size_t{1609}, std::size_t{1616}, std::size_t{1642}})
+         {std::size_t{860}, std::size_t{1386}, std::size_t{1609}, std::size_t{1616}, std::size_t{1641}})
         texts[id] = "aviso " + std::to_string(id);
     for (std::size_t id = 1500; id <= 1527; ++id)
         texts[id] = "aviso " + std::to_string(id);
@@ -130,13 +130,13 @@ protected:
     }
 
     // Los mensajes que llegaron al chat, en el orden en que llegaron (el registro guarda el último adelante).
-    [[nodiscard]] std::vector<std::string> Messages()
+    [[nodiscard]] std::vector<std::string> Messages(std::int32_t type = Client::UI::SystemMessage)
     {
         std::vector<std::string> texts;
         const auto& entries = Runtime().chat.log.entries;
         for (auto entry = entries.rbegin(); entry != entries.rend(); ++entry)
         {
-            EXPECT_EQ(entry->type, Client::UI::SystemMessage);
+            EXPECT_EQ(entry->type, type);
             texts.push_back(entry->text);
         }
         return texts;
@@ -709,12 +709,16 @@ TEST_P(CastleSiegeReceiveTest, HuntInformationNormalizesAccessAndCopiesTheSigned
     EXPECT_EQ(hunt.step, 7);
     EXPECT_EQ(Runtime().panels.delegated.secondCastleSiege, 1);
     EXPECT_TRUE(m_sent.empty());
+    // 0x659860 y 0x657ab0 consultan comercio y tienda NPC: dos consultas protegidas en cada uno.
+    CrtRandom expected(Seed);
+    expected.Discard(4);
+    EXPECT_EQ(m_random.State(), expected.State());
     applied = Client::Scenes::ApplyHuntInformation(0, 0, 0, 0, 0, Context());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(hunt.mode, 3);
     EXPECT_EQ(hunt.fee, 0xffffffffu);
     EXPECT_EQ(Runtime().panels.delegated.panelDialog.lines[0], Text(860));
-    ExpectNoRandom();
+    EXPECT_EQ(m_random.State(), expected.State());
 }
 
 TEST_P(CastleSiegeReceiveTest, BusySeniorCloseReturnsTrueButKeepsTheWindowAndUsesTheSharedBusyWarning)
@@ -731,7 +735,8 @@ TEST_P(CastleSiegeReceiveTest, BusySeniorCloseReturnsTrueButKeepsTheWindowAndUse
     EXPECT_TRUE(closed.Value());
     EXPECT_EQ(Runtime().panels.delegated.castleSiegeList, 1);
     EXPECT_EQ(Runtime().panels.delegated.castleSiegeListMode, 3);
-    EXPECT_EQ(Messages(), (std::vector<std::string>{Text(1642)}));
+    // 0x65cb89..0x65cb95: tipo 2 y texto (0x77354e8 − 0x76bd1dc) / 300 = 1641.
+    EXPECT_EQ(Messages(Client::UI::ErrorMessage), (std::vector<std::string>{Text(1641)}));
     EXPECT_TRUE(m_sent.empty());
     closed = panels.Registry().CloseByMask(Client::UI::CastleSiegeListPanel);
     ASSERT_TRUE(closed.HasValue()) << closed.Error();

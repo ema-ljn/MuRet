@@ -32,6 +32,7 @@ class CrtRandom;
 namespace Client::World
 {
 class Leaves;
+class Particles;
 class FrameSprites;
 class ITerrainAttributeQuerySource;
 struct TerrainLighting;
@@ -243,6 +244,8 @@ struct ModelEffectDrawResources
     const GameObjectPass* kalimaPass = nullptr;
     // 42cfcb del fragmento3d..40: el mismo pool518cf0 al que emite4ee770.
     World::ModelEffects* effects = nullptr;
+    World::Particles* particles = nullptr;
+    std::function<std::span<const Render::Models::BoneTransform>()> posedBones{};
 };
 [[nodiscard]] Core::Expected<void, std::string>
 DrawGameModelEffects(Render::ModelBatch& batch, const IModelLibrary& models, std::span<World::ModelEffect> effects,

@@ -11,6 +11,10 @@
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/GameDrawTail.h"
+#include "Data/Terrain/TerrainHeights.h"
+#include "World/Sprites.h"
+#include "World/SphereFrustum.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "World/KalimaParticleKernels.h"
 #include "World/ParticleOwner.h"
@@ -631,9 +635,11 @@ TEST(CastleSiegeDrawingTest, FragmentColorsAndTheExtraBodyPassFollowTheNativeRes
         std::size_t vertices;
         glm::vec3 last;
     };
-    const std::array cases{Case{0x12d, 1, 9, {1, 1, 1}}, Case{0x12e, 2, 6, {1, 1, 1}},
+    const std::array cases{Case{0x12d, 1, 9, {1, 1, 1}},       Case{0x12e, 2, 6, {1, 1, 1}},
                            Case{0x12f, 0, 6, {.2f, .4f, .6f}}, Case{0x10a, 0, 12, {.3f, .3f, 1}},
-                           Case{0x10b, 2, 6, {.1f, .3f, .6f}}};
+                           Case{0x10b, 2, 6, {.1f, .3f, .6f}}, Case{0x114, 2, 6, {.2f, .4f, .6f}},
+                           Case{0x114, 6, 6, {.2f, .4f, .6f}}, Case{0x115, 1, 6, {.2f, .4f, .6f}},
+                           Case{0xed, 0, 9, {1, 1, 1}},        Case{0xee, 0, 9, {1, 1, 1}}};
     for (const auto& item : cases)
     {
         Client::World::ModelEffect effect;
@@ -650,6 +656,54 @@ TEST(CastleSiegeDrawingTest, FragmentColorsAndTheExtraBodyPassFollowTheNativeRes
         EXPECT_FLOAT_EQ(batch.Vertices().back().color.green, item.last.g);
         EXPECT_FLOAT_EQ(batch.Vertices().back().color.blue, item.last.b);
     }
+}
+
+TEST(CastleSiegeDrawingTest, TheCrywolfMissileTailFetchesTheUpdatedGlobalPoseEvenWithoutAModel)
+{
+    const SiegeModels models(1);
+    auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+    auto particles = std::make_unique<Client::World::Particles>();
+    Client::World::FrameSprites sprites;
+    std::array<Client::World::ModelEffect, 4> effects{};
+    effects[3].alive = true;
+    effects[3].type = 0xee;
+    effects[3].alpha = 1;
+    effects[3].transform.scale = 1;
+    std::vector<Client::Render::Models::BoneTransform> scratch(1, Client::Render::Models::BoneTransform(0));
+    bool posed = false;
+    CrtRandom random(Seed);
+    const Client::Scenes::ModelEffectDrawResources resources{
+        .heights = *heights,
+        .onPose = [&](const DrawnObject&) -> Client::Core::Expected<void, std::string>
+        {
+            scratch.resize(2, Client::Render::Models::BoneTransform(1));
+            scratch[1][3] = {100, 200, 300};
+            posed = true;
+            return {};
+        },
+        .sprites = &sprites,
+        .random = &random,
+        .particles = particles.get(),
+        .posedBones = [&]() -> std::span<const Client::Render::Models::BoneTransform>
+        {
+            EXPECT_TRUE(posed);
+            return scratch;
+        }};
+    ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    const auto result = Client::Scenes::DrawGameModelEffects(batch, models, effects, Client::World::SphereFrustum{},
+                                                             nullptr, {}, 0, resources);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_TRUE(batch.Vertices().empty());
+    EXPECT_TRUE(effects[3].seen);
+    EXPECT_EQ(particles->All()[2].typedOwner,
+              (Client::World::ParticleOwner{Client::World::ParticleOwnerKind::ModelEffect, 3}));
+    EXPECT_EQ(sprites.Sprites()[0].position, (glm::vec3{100, 201.5f, 300}));
+    EXPECT_TRUE(sprites.Sprites()[9].alive);
+    CrtRandom expected(Seed);
+    for (int i = 0; i < 16; ++i)
+        static_cast<void>(expected.Next());
+    EXPECT_EQ(random.State(), expected.State());
 }
 
 // 0x42cf7b..0x42cfcb: las puertas 0x3d a 0x40 van con RenderBody si +0x4 está en 0; si no, corta en 0x4ee770.

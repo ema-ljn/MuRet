@@ -1,5 +1,6 @@
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/VertexEffects.h"
+#include "Scenes/CrywolfMissileDrawing.h"
 #include "Scenes/KalimaObjectServices.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "World/KalimaWorld.h"
@@ -567,11 +568,10 @@ Core::Expected<void, std::string> DrawItemModelEffect(Render::ModelBatch& batch,
     return {};
 }
 
-Core::Expected<void, std::string> DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect,
-                                                       const IModelLibrary& models,
-                                                       const World::TerrainLighting* lighting,
-                                                       Core::Duration frameClock, float alpha,
-                                                       const ModelEffectDrawResources* resources)
+Core::Expected<void, std::string>
+DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect, const IModelLibrary& models,
+                     const World::TerrainLighting* lighting, Core::Duration frameClock, float alpha,
+                     const ModelEffectDrawResources* resources, std::uint64_t physicalSlot)
 {
     const auto model = static_cast<std::uint16_t>(effect.type);
     DrawnObject object;
@@ -586,7 +586,9 @@ Core::Expected<void, std::string> DrawPlainModelEffect(Render::ModelBatch& batch
     object.color = terrain + effect.light;
     object.alpha = effect.alpha;
     object.vertexLight = effect.vertexLight;
-    if (effect.type == 0x10a || effect.type == 0x10b || (effect.type >= 0x12b && effect.type <= 0x133))
+    if (effect.type == 0x10a || effect.type == 0x10b || (effect.type >= 0x12b && effect.type <= 0x133) ||
+        (effect.type == 0x114 && (effect.subtype == 2 || effect.subtype == 6)) ||
+        (effect.type == 0x115 && effect.subtype == 1) || effect.type == 0xed || effect.type == 0xee)
     {
         if (!(effect.alpha >= .01f))
             return {};
@@ -597,7 +599,7 @@ Core::Expected<void, std::string> DrawPlainModelEffect(Render::ModelBatch& batch
             if (resources->posedMeshes)
                 object.retainedMeshes = resources->posedMeshes();
         }
-        return DrawCastleWeaponBody(
+        const auto body = DrawCastleWeaponBody(
             batch, models, effect, object, frameClock,
             [&](std::int32_t type, const DrawnObject& owner,
                 std::span<const Render::Models::SkinnedMesh> meshes) -> Core::Expected<void, std::string>
@@ -606,6 +608,17 @@ Core::Expected<void, std::string> DrawPlainModelEffect(Render::ModelBatch& batch
                     return Core::Unexpected(std::string("0x601c90: falta pool o CRT del impacto por vértices"));
                 return EmitVertexEffects(models, owner, meshes, 0, type, 0, *resources->effects, *resources->random);
             });
+        if (!body.HasValue())
+            return body;
+        if ((effect.type == 0xed || effect.type == 0xee) && effect.objectState.hiddenMesh != World::HiddenObject)
+        {
+            if (resources == nullptr || resources->particles == nullptr || resources->sprites == nullptr ||
+                resources->random == nullptr || !resources->posedBones)
+                return Core::Unexpected(std::string("0x602596: faltan los servicios de la cola del misil de Crywolf"));
+            return DrawCrywolfMissileTail(effect, physicalSlot, *resources->particles, *resources->sprites,
+                                          *resources->random, resources->posedBones(), resources->worldClock);
+        }
+        return {};
     }
     const bool castleGate = effect.type >= 0x3d && effect.type <= 0x40 && resources != nullptr &&
                             resources->kalimaPass != nullptr && resources->kalimaPass->map == 30;
@@ -716,13 +729,13 @@ DrawGameModelEffectsChecked(Render::ModelBatch& batch, const IModelLibrary& mode
         if (effect.type == 0x135)
         {
             // 52d86a..52d89f: dos cuerpos; el reflejo en +184+200 queda escrito, sin restauración.
-            if (auto drawn = DrawPlainModelEffect(batch, effect, models, lighting, frameClock, alpha, resources);
+            if (auto drawn = DrawPlainModelEffect(batch, effect, models, lighting, frameClock, alpha, resources, i);
                 !drawn.HasValue())
                 return drawn;
             const double plane = static_cast<double>(effect.start.z) + 400.0;
             const double distance = static_cast<double>(effect.transform.position.z) - effect.start.z;
             effect.transform.position.z = F32(plane - distance);
-            if (auto drawn = DrawPlainModelEffect(batch, effect, models, lighting, frameClock, alpha, resources);
+            if (auto drawn = DrawPlainModelEffect(batch, effect, models, lighting, frameClock, alpha, resources, i);
                 !drawn.HasValue())
                 return drawn;
             continue;
@@ -755,7 +768,7 @@ DrawGameModelEffectsChecked(Render::ModelBatch& batch, const IModelLibrary& mode
                                                 i, effect.type, effect.subtype));
         if (GenericEffect(effect.type))
         {
-            if (auto drawn = DrawPlainModelEffect(batch, effect, models, lighting, frameClock, alpha, resources);
+            if (auto drawn = DrawPlainModelEffect(batch, effect, models, lighting, frameClock, alpha, resources, i);
                 !drawn.HasValue())
                 return drawn;
         }

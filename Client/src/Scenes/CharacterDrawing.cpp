@@ -2236,6 +2236,14 @@ Core::Expected<void, std::string> DrawCastleWeaponBody(Render::ModelBatch& batch
         if (auto tail = draw(2); !tail.HasValue())
             return tail;
     }
+    if (effect.type == 0xed || effect.type == 0xee)
+    {
+        object.color = glm::vec3(1);
+        object.state.blendMesh = -2;
+        object.state.light = 1;
+        if (auto additive = draw(0x42); !additive.HasValue())
+            return additive;
+    }
     return {};
 }
 

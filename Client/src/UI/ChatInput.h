@@ -21,8 +21,8 @@
 // macros (0x77f1db0). /whisper off y on (0x77f3b98), el último destinatario (0x57678c4) y los que susurraron
 // (0x77997f8) los comparte con el chat que llega y están en ChatRuntime. *Estático*.
 //
-// Los EDIT usan TextField con la página Windows-1252 de XP. La navegación, el portapapeles y la composición IME
-// compartidos con el EDIT viejo siguen pendientes (P-C181). Lo que el jugador escribe no va al log.
+// Los EDIT comparten OldEdit y el perfil occidental Windows-1252 de XP. La conversión, el preedit visible y el
+// desplazamiento horizontal exacto de EDIT todavía requieren contraste XP (P-C181). El texto no va al log.
 namespace Client::UI
 {
 // 0x4691e0: EM_LIMITTEXT del mensaje (0x32) y del susurro (10).
@@ -108,10 +108,25 @@ struct ChatHistory
     std::string typing;
 };
 
+// 0x4691e0: dos instancias de 0x4674c0/0x467fe0, sin filtro ni padre, en sus rectángulos fijos.
+[[nodiscard]] inline OldEdit ChatFieldEdit(bool whisper)
+{
+    OldEdit edit;
+    edit.text = TextField{whisper ? ChatWhisperLimit : ChatMessageLimit, false, TextField::Charset::Windows1252Xp};
+    edit.base.x = whisper ? 376 : 193;
+    edit.base.y = 422;
+    edit.base.width = whisper ? 50 : 180;
+    edit.base.height = 14;
+    edit.base.state = HiddenWindow;
+    edit.textColor = whisper ? 0xffc8c8c8u : 0xffd2e6ffu;
+    edit.backgroundColor = whisper ? 0x00191919u : 0xff000000u;
+    return edit;
+}
+
 struct ChatInputState
 {
-    TextField message{ChatMessageLimit, false, TextField::Charset::Windows1252Xp};
-    TextField whisper{ChatWhisperLimit, false, TextField::Charset::Windows1252Xp};
+    OldEdit message = ChatFieldEdit(false);
+    OldEdit whisper = ChatFieldEdit(true);
     // +0x48 de los dos EDIT: con 3 ocultos (ShowWindow(SW_HIDE), 0x468260). 0x469450 los pone juntos.
     bool shown = false;
     ChatFocus focus = ChatFocus::Game;
@@ -152,6 +167,9 @@ struct ChatInputState
     // 0x77f1db0: las macros, como las dejó Data\Macro.txt (0x61c1c0) y las cambia /1../0 (0x56f0b0).
     std::array<std::string, MacroCount> macros{};
 };
+
+// El EDIT con foco del chat o de sus diálogos; el del administrador viejo se resuelve en FriendWindows.
+[[nodiscard]] OldEdit* ChatEditWithFocus(ChatInputState& input);
 
 // El texto de un buffer hasta su '\0'.
 [[nodiscard]] std::string_view CStringOf(const ChatBuffer& buffer);

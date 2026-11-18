@@ -1,7 +1,6 @@
 #include "UI/FriendWindows.h"
 
 #include "Core/Expected.h"
-#include "Core/Windows1252.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Render/Text/TextLayout.h"
 #include "UI/ChatInput.h"
@@ -9,8 +8,8 @@
 #include "UI/IClipboard.h"
 #include "UI/LetterModel.h"
 #include "UI/OldControls.h"
+#include "UI/OldEditInput.h"
 #include "UI/OldEditLines.h"
-#include "UI/OldEditWordMovement.h"
 #include "UI/OldWindowBase.h"
 #include "UI/OldWindowDraw.h"
 #include "UI/OldWindowSteps.h"
@@ -1246,124 +1245,20 @@ void ApplyKeyToTheOldEdit(OldWindowManager& manager, OldEditKey key, bool shift,
     OldEdit* edit = FocusedEdit(manager);
     if (edit == nullptr)
         return;
-    switch (key)
-    {
-    case OldEditKey::Backspace:
-    case OldEditKey::Left:
-    case OldEditKey::Right:
-    case OldEditKey::Up:
-    case OldEditKey::Down:
-    case OldEditKey::Tab:
-    case OldEditKey::Copy:
-    case OldEditKey::Cut:
-    case OldEditKey::Paste:
-    case OldEditKey::CtrlA:
-        edit->draws = 0;
-        break;
-    case OldEditKey::Delete:
-    case OldEditKey::Home:
-    case OldEditKey::End:
-    case OldEditKey::PageUp:
-    case OldEditKey::PageDown:
-        break;
-    }
-    if (!edit->compositionText.empty())
-        return;
-    // CL9 hito 10: el EDIT de varios renglones (el cuerpo de la carta) mueve el cursor por renglones.
-    const bool lines = edit->multiline == 1 && measure != nullptr;
-    const auto moveInTheLines = [&](EditCaretKey move)
-    {
-        if (lines)
-            MoveTheEditCaret(*edit, *measure, move, shift);
-        return lines;
-    };
-    switch (key)
-    {
-    case OldEditKey::Backspace:
-        if (ctrl)
-            edit->text.InsertBytes(std::string(1, '\x7f'));
-        else
-            BackspaceInTheEdit(*edit);
-        break;
-    case OldEditKey::Delete:
-        // Ctrl+Delete borra hasta el final solo sin selección; con una, EDIT borra únicamente el rango elegido.
-        if (ctrl && !edit->text.HasSelection())
-            edit->text.Select(edit->text.Cursor(), edit->text.Size());
-        DeleteInTheEdit(*edit);
-        break;
-    case OldEditKey::PageUp:
-        static_cast<void>(moveInTheLines(EditCaretKey::PageUp));
-        break;
-    case OldEditKey::PageDown:
-        static_cast<void>(moveInTheLines(EditCaretKey::PageDown));
-        break;
-    case OldEditKey::Left:
-        if (ctrl)
-            edit->text.SetCursor(OldEditWordMovement::CursorAfterCtrlLeft(edit->text.Value(), edit->text.Cursor()),
-                                 shift);
-        else if (!moveInTheLines(EditCaretKey::Left))
-            edit->text.MoveLeft(shift);
-        break;
-    case OldEditKey::Right:
-        if (ctrl)
-            edit->text.SetCursor(OldEditWordMovement::CursorAfterCtrlRight(edit->text.Value(), edit->text.Cursor()),
-                                 shift);
-        else if (!moveInTheLines(EditCaretKey::Right))
-            edit->text.MoveRight(shift);
-        break;
-    case OldEditKey::Home:
-        // Ctrl+Inicio y Ctrl+Fin van al principio y al final de todo el texto.
-        if (ctrl || !moveInTheLines(EditCaretKey::Home))
-            edit->text.MoveHome(shift);
-        break;
-    case OldEditKey::End:
-        if (ctrl || !moveInTheLines(EditCaretKey::End))
-            edit->text.MoveEnd(shift);
-        break;
-    case OldEditKey::Up:
-        static_cast<void>(moveInTheLines(EditCaretKey::Up));
-        break;
-    case OldEditKey::Down:
-        static_cast<void>(moveInTheLines(EditCaretKey::Down));
-        break;
-    case OldEditKey::Tab:
-        // 0x467d07..0x467d28: con padre (+0x44), 0x4682a0(1) sobre el de +0x98 (el foco, la lista de las flechas en él
-        // y EM_SETSEL(−2, −1): el cursor al final y nada elegido) y su +0x80 en 0. Sin padre, Tab no llega acá
-        // (GameChat lo manda al juego).
-        if (edit->base.parent == 0 || edit->next == 0)
-            break;
-        if (OldEdit* next = EditWithId(manager, edit->next); next != nullptr)
-        {
-            manager.orphanedEdit.reset();
-            manager.focusedEditIsOrphan = false;
-            manager.focusedEdit = next->base.id;
-            if (focusedList != nullptr)
-                *focusedList = next->base.id;
-            next->text.SetCursor(next->text.Size());
-            next->draws = 0;
-        }
-        break;
-    case OldEditKey::Copy:
-    case OldEditKey::Cut:
-        if (!ctrl || clipboard == nullptr || !edit->text.HasSelection())
-            break;
-        if (const std::string copied = Core::DecodeWindows1252(edit->text.Selected());
-            clipboard->WriteText(copied) && key == OldEditKey::Cut)
-        {
-            edit->draws = 0;
-            edit->text.Backspace();
-        }
-        break;
-    case OldEditKey::Paste:
-        if (!ctrl || clipboard == nullptr)
-            break;
-        if (std::optional<std::string> pasted = clipboard->ReadText(); pasted.has_value())
-            PasteInTheEdit(*edit, *pasted);
-        break;
-    case OldEditKey::CtrlA:
-        // El Ctrl+A del EDIT XP es no-op: no reemplaza ni mueve una selección existente.
-        break;
-    }
+    ApplyKeyToTheEdit(*edit, key, shift, ctrl, clipboard, measure,
+                      [&manager, focusedList](std::int32_t id)
+                      {
+                          if (OldEdit* next = EditWithId(manager, id); next != nullptr)
+                          {
+                              manager.orphanedEdit.reset();
+                              manager.focusedEditIsOrphan = false;
+                              manager.focusedEdit = next->base.id;
+                              if (focusedList != nullptr)
+                                  *focusedList = next->base.id;
+                              next->text.SetCursor(next->text.Size());
+                              next->draws = 0;
+                          }
+                      });
 }
 
 void SetTheOldEditComposition(OldWindowManager& manager, std::string_view text, std::int32_t start, std::int32_t length)
@@ -1371,9 +1266,7 @@ void SetTheOldEditComposition(OldWindowManager& manager, std::string_view text, 
     OldEdit* edit = FocusedEdit(manager);
     if (edit == nullptr)
         return;
-    edit->compositionText.assign(text);
-    edit->compositionStart = text.empty() ? 0 : start;
-    edit->compositionLength = text.empty() ? 0 : length;
+    SetTheEditComposition(*edit, text, start, length);
 }
 
 void PressEnterInTheOldEdit(OldWindowManager& manager)

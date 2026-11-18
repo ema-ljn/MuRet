@@ -168,22 +168,6 @@ Core::Expected<void, std::string> Send(const GameUiContext& context, Protocol::O
     return Send(context.sendNpcWindow, std::move(packet), what);
 }
 
-// 0x402e10: todo a su valor de arranque.
-void ResetTheJewelMix(NpcWindowState& windows)
-{
-    JewelMixState& jewels = windows.jewels;
-    jewels.mode = MixMode;
-    windows.field6e5798 = 0;
-    jewels.refusal = 0;
-    jewels.kind = Unchosen;
-    jewels.count = Unchosen;
-    jewels.counted = 0;
-    jewels.price = -1;
-    jewels.field6e57a0 = 0;
-    jewels.cell = -1;
-    jewels.level = -1;
-}
-
 // 0x402eb0: 0x402e10, el diálogo cerrado y el C1 03 31 en claro.
 Core::Expected<void, std::string> CloseTheJewelMix(WorldState& world, const JewelMixSender& send)
 {
@@ -367,6 +351,22 @@ Core::Expected<void, std::string> AskForTheBundle(const GameUiContext& context, 
     return AskTheQuestion(context);
 }
 } // namespace
+
+// 0x402e10: todo a su valor de arranque.
+void ResetTheJewelMix(NpcWindowState& windows)
+{
+    JewelMixState& jewels = windows.jewels;
+    jewels.mode = MixMode;
+    windows.field6e5798 = 0;
+    jewels.refusal = 0;
+    jewels.kind = Unchosen;
+    jewels.count = Unchosen;
+    jewels.counted = 0;
+    jewels.price = -1;
+    jewels.field6e57a0 = 0;
+    jewels.cell = -1;
+    jewels.level = -1;
+}
 
 Core::Expected<void, std::string> ReturnToTheJewelChoice(WorldState& world, const JewelMixSender& send)
 {

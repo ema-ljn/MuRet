@@ -3,6 +3,8 @@
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
+#include "Scenes/NpcWindowState.h"
+#include "Scenes/JewelMix.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/ItemState.h"
@@ -33,7 +35,10 @@ void ClearSelectionInventory(WorldState& world, Render::Models::CrtRandom& rando
         Clear(world.OwnCharacter().equipment);
     }
     Clear(world.Inventory().cells);
-    // Las otras seis grillas de 0x5bbe10 no están representadas todavía en main (H6/H7).
+    Clear(world.Runtime().npcWindows.grid);
+    Clear(world.Runtime().npcWindows.chaosBox);
+    Clear(world.Runtime().npcWindows.trainerBox);
+    ResetTheJewelMix(world.Runtime().npcWindows);
     // 0x78ab0b8 sí existe, pero no es una de las que vacía esta función del original.
 }
 } // namespace Client::Scenes

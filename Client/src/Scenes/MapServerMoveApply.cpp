@@ -1,6 +1,7 @@
 #include "Scenes/MapServerMoveApply.h"
 
 #include "Core/Expected.h"
+#include "Core/Log.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/GameData.h"
@@ -32,8 +33,12 @@ Core::Expected<void, std::string> ApplyMapServerLeave(const WorldEntryResources&
     auto body = OptionBodyOf(resources.world, resources.cloth.random, chosenSlot);
     if (!body.HasValue())
         return Core::Unexpected(std::move(body).Error());
-    // 0x412b6d: 0x61c170("Data\\Macro.txt").
-    return WriteMacroFile(resources.dataRoot, UI::WrittenMacros(resources.world.Runtime().chat.input.macros));
+    // 0x412b6d guarda las macros y, al retornar, 0x412b77 espera antes de conectar.
+    const auto saved =
+        WriteMacroFile(resources.dataRoot, UI::WrittenMacros(resources.world.Runtime().chat.input.macros));
+    if (!saved.HasValue())
+        resources.log.Warning("no se pudo guardar Macro.txt durante el cambio de servidor: {}", saved.Error());
+    return {};
 }
 
 Core::Expected<void, std::string> ApplyMapServerJoin(const WorldEntryResources& resources)

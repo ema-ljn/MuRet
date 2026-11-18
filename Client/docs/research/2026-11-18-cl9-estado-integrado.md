@@ -54,8 +54,10 @@ no se reescribió historia pública y no se cerraron entregas ajenas.
   limpieza antes de enmascarar la clave. B6 clase2 limpia incluso con cuenta0 y agrega
   en índice0; BB agrega desde índice+1 y cuenta0 conserva. B9 02 vuelve a pintar/subir
   la marca completa de 64×64 en cada recepción.
-- B1 y retorno: cierre, opciones/macros, espera y conexión en orden. El saludo limpia
-  la caché de gremios incluso sin movimiento pendiente. El reset intercala el primer
+- B1 y retorno: cierre, opciones/macros, espera y conexión en orden. Si falla el guardado
+  de macros, MuRet registra el error local y sigue el cambio de servidor.
+  [ADR 0018](../../../docs/adr/0018-macros-en-cambio-de-servidor.md).
+  El saludo limpia la caché de gremios incluso sin movimiento pendiente. El reset intercala el primer
   `31`, F3 00, diálogo silencioso y entrenador como el ASM: el segundo `31` depende
   de que el entrenador esté vacío; ocupado muestra 1211 y continúa.
 - Esc, CameraTour, selección y entradas indirectas reciben los servicios de mundo,
@@ -103,6 +105,10 @@ CameraTour,55/55. El altar pasó de fallar en430a40 a aprobar su caso discrimina
 y la suite completa CrywolfObjectServices13/13; GameScene34/34 volvió a pasar con
 la biblioteca que contiene ese renderer. Son comprobaciones focales con headers/biblioteca coherentes y
 hashes retenidos; no se les atribuye el resultado del CI de otra cabeza.
+
+La regresión de `B1` reprodujo el fallo de sesión con `Macro.txt` inaccesible antes
+del cambio. Con el aplicador recompilado pasaron 23 pruebas de SessionEventApplier
+y 221 de ServerSession en Linux, sin saltos.
 
 La publicación exige compilación completa con warnings como errores, CTest, GL requerido,
 fuente real, formato18 e include-cleaner18, más Linux/Windows en cada cabeza publicada.

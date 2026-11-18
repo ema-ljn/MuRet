@@ -33,21 +33,29 @@
 #include "World/GameCamera.h"
 
 #include "support/Bytes.h"
+#include "support/FakeClock.h"
+#include "support/FakeSocket.h"
 #include "support/Packets.h"
 #include "support/PlayerActors.h"
+#include "support/RecordingSessionEventSink.h"
 #include "support/RecordingSink.h"
 #include "support/SameBytes.h"
 #include "support/SessionHarness.h"
 #include "support/SessionPackets.h"
+#include "support/TemporaryFolder.h"
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <memory>
 #include <optional>
 #include <span>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace
@@ -55,7 +63,16 @@ namespace
 // El aplicador con lo suyo: sin datos (dataRoot vacío) y con Player.bmd.
 struct Applier
 {
-    Applier()
+    explicit Applier(std::filesystem::path dataRoot = {})
+        : applier(Client::Scenes::WorldEntryResources{.world = world,
+                                                      .selection = selection,
+                                                      .dataRoot = std::move(dataRoot),
+                                                      .cloth = cloth,
+                                                      .camera = camera,
+                                                      .cameraInput = input,
+                                                      .models = models,
+                                                      .log = log,
+                                                      .scene = [this] { return scene; }})
     {
         models.Set(Client::Data::Models::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
     }
@@ -69,15 +86,7 @@ struct Applier
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
     std::optional<Client::Scenes::SceneId> scene;
-    Client::Scenes::SessionEventApplier applier{Client::Scenes::WorldEntryResources{.world = world,
-                                                                                    .selection = selection,
-                                                                                    .dataRoot = {},
-                                                                                    .cloth = cloth,
-                                                                                    .camera = camera,
-                                                                                    .cameraInput = input,
-                                                                                    .models = models,
-                                                                                    .log = log,
-                                                                                    .scene = [this] { return scene; }}};
+    Client::Scenes::SessionEventApplier applier;
 };
 
 TEST(SessionEventApplierTest, AppliesAnEmptyCharacterListImmediately)
@@ -501,6 +510,40 @@ TEST(SessionEventApplierTest, EveryPostLoginHelloClearsOnlyGuildKeysAndTheCount)
         EXPECT_EQ(entry.key, -1);
     EXPECT_EQ(guild.table[0].mark[0], 15);
     EXPECT_EQ(tested.cloth.random.State(), before);
+}
+
+TEST(SessionEventApplierTest, TheMapSwitchReconnectsWhenTheMacrosCannotBeSaved)
+{
+    Client::Tests::TemporaryFolder data{"map-switch-macro-error"};
+    ASSERT_TRUE(std::filesystem::create_directory(data.Path() / "Macro.txt"));
+    const auto tested = std::make_unique<Applier>(data.Path());
+    Client::Tests::LoggedInSession online;
+    ASSERT_NO_FATAL_FAILURE(online.LogIn());
+    online.session.RequestCharacterList();
+    online.ReceiveTheList({{0, "char0001"}});
+    online.session.ChooseCharacter(std::uint8_t{0});
+    ASSERT_NE(online.session.ChosenCharacter(), nullptr);
+    online.eventSink.onWorld = [&tested](const Client::App::WorldEvent& event, Client::App::ServerSession& session)
+    { return tested->applier.ApplyWorld(event, session); };
+
+    auto wire = Client::Tests::Bytes({0xc1, 0x28, 0xb1, 0, '1', '0', '.', '0', '.', '0', '.', '3'});
+    wire.resize(0x28);
+    wire[20] = std::byte{0x6f};
+    wire[21] = std::byte{0xda};
+    const auto previous = online.socket.connects.size();
+    const auto before = tested->cloth.random.State();
+    online.socket.reads = {std::move(wire)};
+    static_cast<void>(online.session.Poll());
+
+    ASSERT_EQ(online.session.State(), Client::App::SessionState::ConnectingGameServer);
+    ASSERT_EQ(online.socket.connects.size(), previous + 1u);
+    EXPECT_EQ(online.socket.connects.back().host, "10.0.0.3");
+    EXPECT_EQ(online.socket.connects.back().port, 55919);
+    ASSERT_FALSE(online.clock.Sleeps().empty());
+    EXPECT_EQ(online.clock.Sleeps().back(), std::chrono::milliseconds(20));
+    EXPECT_EQ(tested->cloth.random.State(), Client::Tests::AfterDraws(before, 0xf08).State());
+    EXPECT_TRUE(std::ranges::any_of(tested->sink.lines, [](const std::string& line)
+                                    { return line.find("Macro.txt") != std::string::npos; }));
 }
 
 TEST(SessionEventApplierTest, TheMapJoinResetsTheWorldBeforeTheAuthenticationRandoms)

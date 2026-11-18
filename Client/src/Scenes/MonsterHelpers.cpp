@@ -9,6 +9,7 @@
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CrywolfDeathSpiritEffects.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/FaunaModels.h"
 #include "Scenes/GameRibbonCreation.h"
@@ -208,12 +209,32 @@ Result Unported(const MonsterHelperPass& pass, std::int32_t type, std::int32_t s
     return UnportedParticle(pass.particles, pass.actor, type, subtype, call);
 }
 
-Result UnportedModelEffect(WorldState& world, const ActorState& actor, std::int16_t type, std::int32_t subtype,
-                           std::uint32_t call)
+// 4335c7..36dd: incluso con todos los efectos ocupados, primero lee boundsTop del blanco con índice firmado.
+Result EmitDeathSpiritSwing(WorldState& world, ActorState& actor, World::Particles* particles,
+                            Render::Models::CrtRandom& random, float clock)
 {
-    const auto effects = world.Map().effects.Effects();
-    if (std::ranges::any_of(effects, [](const World::ModelEffect& effect) { return !effect.alive; }))
-        return Cut(call, std::format("el efecto {:#x}/{} (0x518cf0)", type, subtype), actor);
+    const auto targetSlot = static_cast<std::int16_t>(actor.attackTarget);
+    if (targetSlot < 0 || targetSlot >= PoolSize)
+        return Core::Unexpected(std::format("0x4335f6: el blanco firmado {} de147 está fuera del pool", targetSlot));
+    ActorState& target = world.Actors()[static_cast<std::size_t>(targetSlot)];
+    const glm::vec3 light{0, 0, target.boundsTop};
+    const BoneTransform bone = actor.bodyPose.empty() ? BoneTransform(0) : actor.bodyPose[0];
+    glm::vec3 point = Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(bone), {80, 0, 20},
+                                                                actor.scale, actor.position);
+    point.z = F32(D(point.z) + 50.0);
+    for (const float yaw : {90.0f, -90.0f})
+        for (const std::int32_t subtype : {0, 1})
+        {
+            const auto created = CreateCrywolfDeathSpirit({.type = 0x147,
+                                                           .position = point,
+                                                           .angles = {0, 0, F32(D(actor.angles.z) + D(yaw))},
+                                                           .light = light,
+                                                           .subtype = subtype,
+                                                           .owner = &target},
+                                                          world.Map().effects, particles, random, clock);
+            if (!created.HasValue())
+                return Core::Unexpected(created.Error());
+        }
     return {};
 }
 
@@ -1276,13 +1297,7 @@ Core::Expected<void, std::string> StepTheSwingsOf1abTo1b4(ActorState& actor, std
                 !emitted.HasValue())
                 return emitted;
             if (frame > 4.5f && frame < 5.0f)
-            {
-                for (int effect = 0; effect < 4; ++effect)
-                {
-                    if (auto made = UnportedModelEffect(world, actor, 0x147, effect % 2, 0x43365e); !made.HasValue())
-                        return made;
-                }
-            }
+                return EmitDeathSpiritSwing(world, actor, particles, random, worldClock);
             return {};
         }
     case 0x1b0:

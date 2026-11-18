@@ -6,6 +6,7 @@
 #include "UI/CastleSiegeState.h"
 
 #include <cstddef>
+#include <bit>
 #include <cstdint>
 #include <optional>
 #include <string_view>
@@ -90,13 +91,14 @@ std::int32_t NextValue(const UI::CastleData& data, std::uint32_t record, Upgrade
         return UI::MaxLifeOfLevel(type, UI::LifeLevelOf(type, maxLife) + 1);
     }
     case Upgrade::Defense:
-        return (gateOrStatue ? static_cast<std::int32_t>(data.U32(record + UI::RecordDefense)) : -1) + 1;
+        return std::bit_cast<std::int32_t>((gateOrStatue ? data.U32(record + UI::RecordDefense) : 0xffffffffu) + 1u);
     case Upgrade::Recovery:
         if (type == UI::GateType)
         {
             return 1;
         }
-        return (type == UI::StatueType ? static_cast<std::int32_t>(data.U32(record + UI::RecordRecovery)) : -1) + 1;
+        return std::bit_cast<std::int32_t>(
+            (type == UI::StatueType ? data.U32(record + UI::RecordRecovery) : 0xffffffffu) + 1u);
     }
     return 0;
 }

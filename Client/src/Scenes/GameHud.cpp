@@ -17,6 +17,7 @@
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatBubbleDraw.h"
+#include "Scenes/CastleWindows.h"
 #include "Scenes/CrywolfInterfaceDrawing.h"
 #include "Scenes/EventMapObject.h"
 #include "Scenes/EventChipWindow.h"
@@ -927,9 +928,8 @@ Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
         if (auto guild = DrawTheGuildWindow(frame.context); !guild.HasValue())
             return guild;
     }
-    if (panels.IsOpen(UI::CastleSiegePanel) || panels.IsOpen(UI::CastleSiegeListPanel) ||
-        panels.IsOpen(UI::SecondCastleSiegePanel))
-        return cut("0x6579e0: las ventanas del asedio son de la CL9.5");
+    if (auto castle = DrawTheCastleWindows(frame.context); !castle.HasValue())
+        return castle;
     // 0x6579e0: 0x660830, el diálogo de los paneles, si está abierto.
     return DrawThePanelDialog(frame.context, frame.runtime.panels.delegated.panelDialog);
 }

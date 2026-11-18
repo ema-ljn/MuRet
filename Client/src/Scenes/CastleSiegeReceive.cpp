@@ -2,21 +2,27 @@
 
 #include "Core/Expected.h"
 #include "Core/Log.h"
+#include "Core/Msvc6Sort.h"
 #include "Protocol/CastleSiege.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GamePanels.h"
+#include "Scenes/CastleWindowSupport.h"
+#include "Scenes/CastleWindows.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/CastleSiegeState.h"
 #include "UI/GameText.h"
 #include "UI/MessageArea.h"
 #include "UI/PanelRegistry.h"
+#include "UI/OldControls.h"
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
+#include <deque>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -144,7 +150,7 @@ Core::Expected<void, std::string> ApplyState(const Castle::CastleState& state, c
     {
         // 0x4e50f2: 0x6599a0(0x80000, 0) sin mirar lo que devuelve, y 0x64b0f0.
         GamePanels panels(context.world, context.random);
-        panels.LendTheCastleRequests(context.world, context.send);
+        LendTheCastlePanelServices(panels, context);
         auto opened = panels.Registry().Open(UI::CastleSiegePanel);
         if (!opened.HasValue())
         {
@@ -443,14 +449,12 @@ Core::Expected<void, std::string> ApplyHuntZoneGate(const Castle::HuntZoneGateRe
     switch (gate.result)
     {
     case 0:
-        return Core::Unexpected(std::string("0x4e5594: el B2 1F con 0 cierra el diálogo de los paneles (0x6603c0) y "
-                                            "abre el del texto 860 (0x6600d0): es del hito 8 de la CL9 (P-C90)"));
+        return CastleUi::FailurePopup(context, 0x76fc1ac);
     case 1:
         CastleOf(context).huntZone.allowed = gate.allowed != 0 ? 1 : 0;
         return {};
     case 2:
-        return Core::Unexpected(std::string("0x4e5546: el B2 1F con 2 cierra el diálogo de los paneles (0x6603c0) y "
-                                            "abre el del texto 1386 (0x6600d0): es del hito 8 de la CL9 (P-C90)"));
+        return CastleUi::FailurePopup(context, 0x7722a14);
     default:
         return {};
     }
@@ -472,6 +476,33 @@ Core::Expected<void, std::string> ApplyNpcList(const Castle::NpcList& list, cons
     }
 }
 
+void ClearGuildList(UI::OldList& list, std::deque<UI::CastleGuildRow>& rows)
+{
+    rows.clear();
+    UI::SelectInTheList(list, 0, 0);
+    list.scroll = 0;
+}
+
+void AppendGuild(UI::OldList& list, std::deque<UI::CastleGuildRow>& rows, const Castle::GuildName& name,
+                 std::uint32_t marks, std::uint8_t first, std::uint8_t second)
+{
+    if (name[0] == std::byte{0})
+        return;
+    UI::CastleGuildRow row{.marks = marks, .first = first, .second = second};
+    bool ended = false;
+    for (std::size_t i = 0; i < name.size(); ++i)
+    {
+        ended = ended || name[i] == std::byte{0};
+        row.name[i] = ended ? '\0' : static_cast<char>(std::to_integer<std::uint8_t>(name[i]));
+    }
+    rows.push_front(row);
+    // 0x46f7e0/0x470bb0: v6c recorta el BACK antes de ordenar, y el elegido termina en count.
+    while (rows.size() > static_cast<std::size_t>(list.maxEntries))
+        rows.pop_back();
+    UI::SelectInTheList(list, rows.size(), static_cast<std::int32_t>(rows.size()));
+    UI::ScrollTheList(list, rows.size(), -10000);
+}
+
 // B4, 0x4dfce0.
 Core::Expected<void, std::string> ApplySiegeGuildList(const Castle::SiegeGuildList& list,
                                                       const CastleReceiveContext& context)
@@ -482,9 +513,13 @@ Core::Expected<void, std::string> ApplySiegeGuildList(const Castle::SiegeGuildLi
     }
     if (list.result == Castle::ResultOk)
     {
-        return Core::Unexpected(std::string("0x4dfcfb: vaciar, llenar y ordenar la lista de los gremios del asedio "
-                                            "(0x64d2f0, 0x64d2c0, 0x64d300; la lista 0x46f320) es de las ventanas "
-                                            "del hito 12 de la CL9 (P-C300)"));
+        auto& window = CastleOf(context).registration;
+        ClearGuildList(window.siegeGuildList, window.siegeGuilds);
+        for (const auto& entry : list.entries)
+            AppendGuild(window.siegeGuildList, window.siegeGuilds, entry.name, entry.marks, entry.first, entry.second);
+        Core::Msvc6Sort(window.siegeGuilds, [](const UI::CastleGuildRow& left, const UI::CastleGuildRow& right)
+                        { return std::bit_cast<std::int32_t>(left.marks) < std::bit_cast<std::int32_t>(right.marks); });
+        return {};
     }
     return {};
 }
@@ -498,9 +533,13 @@ Core::Expected<void, std::string> ApplyRegisteredGuildList(const Castle::Registe
     case 0:
         return ShowMessage(context, Text860);
     case 1:
-        return Core::Unexpected(std::string("0x4dfdb5: vaciar y llenar la lista de los gremios registrados "
-                                            "(0x64d340, 0x64d310; la lista 0x4706f0) es de las ventanas del hito 12 "
-                                            "de la CL9 (P-C300)"));
+    {
+        auto& window = CastleOf(context).registration;
+        ClearGuildList(window.registeredGuildList, window.registeredGuilds);
+        for (const auto& entry : list.entries)
+            AppendGuild(window.registeredGuildList, window.registeredGuilds, entry.name, 0, entry.first, entry.second);
+        return {};
+    }
     case 2:
     case 3:
         return ShowMessage(context, Text1609);

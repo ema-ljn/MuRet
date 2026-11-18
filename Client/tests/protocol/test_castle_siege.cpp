@@ -354,6 +354,7 @@ struct Written
 TEST(CastleSiegeProtocolTest, EveryWriterSendsItsBytesWithXor32)
 {
     const std::vector<Written> written{
+        {"0x4d25dd", Castle::WriteStateRequest(), Bytes({0xc1, 4, 0xb2, 0}), Bytes({0xc1, 4, 0xb2, 0x3b})},
         {"0x64c0b0", Castle::WriteRegister(), Bytes({0xc1, 4, 0xb2, 1}), Bytes({0xc1, 4, 0xb2, 0x3a})},
         {"0x64ccd0", Castle::WriteGiveUp(), Bytes({0xc1, 5, 0xb2, 2, 1}), Bytes({0xc1, 5, 0xb2, 0x39, 0x84})},
         {"0x64ae10", Castle::WriteRegistrationRequest(), Bytes({0xc1, 4, 0xb2, 3}), Bytes({0xc1, 4, 0xb2, 0x38})},

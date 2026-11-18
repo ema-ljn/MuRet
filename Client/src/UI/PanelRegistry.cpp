@@ -194,7 +194,8 @@ bool PanelRegistry::CanOpen(PanelId id)
     if (m_state.field78abb00 != 0 || m_state.delegated.quest == BlockingQuestState)
         return false;
     // 0x661b90: un ítem en el cursor o en la caja del caos.
-    const bool busy = m_context.cursorItemCount > 0 || m_state.delegated.chaosBoxHasItem;
+    const bool busy = m_context.inventoryBusy ? m_context.inventoryBusy()
+                                              : m_context.cursorItemCount > 0 || m_state.delegated.chaosBoxHasItem;
     if (IsOpen(CastleSiegeListPanel) && busy)
         return false;
     if (id == PetPanel)
@@ -388,12 +389,25 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id)
     case EventNpcPanel:
     case Panel2000:
     case SecondEventNpcPanel:
-    case CastleSiegeListPanel:
-    case SecondCastleSiegePanel:
     case SiegeWeaponPanel:
     case SecondSiegeWeaponPanel:
     case SiegeGatePanel:
         return Core::Unexpected(OpenCut(id));
+    case CastleSiegeListPanel:
+    case SecondCastleSiegePanel:
+    {
+        auto closed = CloseByMask(mask);
+        if (!closed.HasValue())
+            return closed;
+        if (closed.Value())
+        {
+            if (!m_context.castleWindowOpened)
+                return Core::Unexpected(OpenCut(id));
+            if (auto opened = m_context.castleWindowOpened(id); !opened.HasValue())
+                return Core::Unexpected(std::move(opened).Error());
+        }
+        break;
+    }
     case CastleSiegePanel:
     {
         // 0x65bef0: el mismo mask de todos menos el id y los amigos, con aux en 0.
@@ -483,8 +497,29 @@ Core::Expected<bool, std::string> PanelRegistry::Close(PanelId id, bool aux)
         break;
     }
     case CastleSiegeListPanel:
-        // 0x65cb0d: con el cursor ocupado, el texto 1641; si no, la lista y, en el modo 3, el inventario.
-        return Core::Unexpected(std::string("0x65cae0(0x100000): cerrar la lista de CS es de la CL9.5"));
+    {
+        // 0x65cb7a..0x65cb9d: 0x661b90 (cursor o caja), aviso 1642 y los sonidos del wrapper aun si no cierra.
+        const bool busy = m_context.inventoryBusy ? m_context.inventoryBusy()
+                                                  : m_context.cursorItemCount > 0 || m_state.delegated.chaosBoxHasItem;
+        if (busy)
+        {
+            if (!m_context.castleSeniorBlocked)
+                return Core::Unexpected(CloseCut(id));
+            if (auto warning = m_context.castleSeniorBlocked(); !warning.HasValue())
+                return Core::Unexpected(std::move(warning).Error());
+            break;
+        }
+        auto closed = CloseByMask(id, aux);
+        if (!closed.HasValue())
+            return closed;
+        if (closed.Value() && m_state.delegated.castleSiegeListMode == InventoryCompanionMode)
+        {
+            auto inventory = CloseByMask(InventoryPanel, aux);
+            if (!inventory.HasValue())
+                return inventory;
+        }
+        break;
+    }
     case CharacterPanel:
     {
         auto companions = CloseByMask(ClosedWithTheCharacter);
@@ -501,7 +536,8 @@ Core::Expected<bool, std::string> PanelRegistry::Close(PanelId id, bool aux)
     case InventoryPanel:
     {
         // 0x65cbbb: con un ítem en el cursor o en la caja del caos, solo los sonidos.
-        if (m_context.cursorItemCount > 0 || m_state.delegated.chaosBoxHasItem)
+        if (m_context.inventoryBusy ? m_context.inventoryBusy()
+                                    : m_context.cursorItemCount > 0 || m_state.delegated.chaosBoxHasItem)
             break;
         auto companions = CloseByMask(ClosedWithTheInventory);
         if (!companions.HasValue())
@@ -638,6 +674,17 @@ Core::Expected<bool, std::string> PanelRegistry::CloseByMask(PanelId mask, bool 
             if (auto closed = m_context.castleRegistrationClosed(); !closed.HasValue())
                 return Core::Unexpected(std::move(closed).Error());
             break;
+        case CastleSiegeListPanel:
+        case SecondCastleSiegePanel:
+        {
+            if (!m_context.castleWindowClosing)
+                return Core::Unexpected(CloseCut(id));
+            auto closed = m_context.castleWindowClosing(id);
+            if (!closed.HasValue())
+                return Core::Unexpected(std::move(closed).Error());
+            // 0x657bb7/0x657bda son llamadas void: Senior ocupado no baja el flag de retorno del registro.
+            break;
+        }
         default:
             return Core::Unexpected(CloseCut(id));
         }
@@ -759,7 +806,12 @@ Core::Expected<void, std::string> PanelRegistry::StepTheObjectPanels()
     for (const PanelId id : {CastleSiegePanel, CastleSiegeListPanel, SecondCastleSiegePanel})
     {
         if (IsOpen(id))
-            return Core::Unexpected(std::format("0x657930({:#x}): el paso de este panel es de {}", id, WaveOf(id)));
+        {
+            if (!m_context.castleWindowStep)
+                return Core::Unexpected(std::format("0x657930({:#x}): el paso del castillo sin sus servicios", id));
+            if (auto stepped = m_context.castleWindowStep(id); !stepped.HasValue())
+                return stepped;
+        }
     }
     return {};
 }

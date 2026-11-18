@@ -1,5 +1,6 @@
 #include "Scenes/CastleSiegeReceive.h"
 #include "Scenes/GamePanels.h"
+#include "Scenes/CastleWindows.h"
 
 #include "App/WindowState.h"
 #include "Core/ILogSink.h"
@@ -16,6 +17,7 @@
 #include "Scenes/WorldState.h"
 #include "UI/CastleSiegeState.h"
 #include "UI/MessageArea.h"
+#include "UI/PanelRegistry.h"
 
 #include "support/Bytes.h"
 #include "support/RecordingSink.h"
@@ -67,7 +69,8 @@ constexpr std::uint32_t Seed = 4242;
 std::map<std::size_t, std::string> CastleTexts()
 {
     std::map<std::size_t, std::string> texts;
-    for (const std::size_t id : {std::size_t{860}, std::size_t{1386}, std::size_t{1609}, std::size_t{1616}})
+    for (const std::size_t id :
+         {std::size_t{860}, std::size_t{1386}, std::size_t{1609}, std::size_t{1616}, std::size_t{1642}})
         texts[id] = "aviso " + std::to_string(id);
     for (std::size_t id = 1500; id <= 1527; ++id)
         texts[id] = "aviso " + std::to_string(id);
@@ -95,6 +98,7 @@ protected:
                                      .measure = &m_letters,
                                      .screen = Client::App::PixelSize{640, 480},
                                      .texts = &m_texts};
+        context.tick = 1234;
         if (withSender)
             context.send = [this](Client::Protocol::Outgoing packet) { m_sent.push_back(std::move(packet)); };
         return context;
@@ -247,6 +251,38 @@ TEST_P(CastleSiegeReceiveTest, ClosingTheRegistrationSendsTheWindowCloseOnlyOnce
     EXPECT_EQ(m_sent.size(), 1u);
     EXPECT_EQ(Castle().registration.tab, 3);
     ExpectNoRandom();
+}
+
+TEST_P(CastleSiegeReceiveTest, OpeningTheSeniorRequestsBothNpcListsAndTaxesInOrder)
+{
+    Client::Scenes::GamePanels panels(*m_world, m_random);
+    panels.LendTheCastleRequests(*m_world, Context().send);
+    const auto opened = panels.Registry().Open(Client::UI::CastleSiegeListPanel);
+    ASSERT_TRUE(opened.HasValue()) << opened.Error();
+    EXPECT_EQ(Runtime().panels.delegated.castleSiegeList, 1);
+    EXPECT_EQ(Runtime().panels.delegated.castleSiegeListMode, 0);
+    ASSERT_EQ(m_sent.size(), 3u);
+    EXPECT_TRUE(SameBytes(Xor32Decode(m_sent[0].packet).Bytes(), Bytes({0xc1, 4, 0xb3, 1})));
+    EXPECT_TRUE(SameBytes(Xor32Decode(m_sent[1].packet).Bytes(), Bytes({0xc1, 4, 0xb3, 2})));
+    EXPECT_TRUE(SameBytes(Xor32Decode(m_sent[2].packet).Bytes(), Bytes({0xc1, 4, 0xb2, 8})));
+    const auto repeated = panels.Registry().Open(Client::UI::CastleSiegeListPanel);
+    ASSERT_TRUE(repeated.HasValue()) << repeated.Error();
+    EXPECT_EQ(m_sent.size(), 3u);
+}
+
+TEST_P(CastleSiegeReceiveTest, TheHuntWindowOpensWithoutARequestAndClosesWith31)
+{
+    Client::Scenes::GamePanels panels(*m_world, m_random);
+    panels.LendTheCastleRequests(*m_world, Context().send);
+    const auto opened = panels.Registry().Open(Client::UI::SecondCastleSiegePanel);
+    ASSERT_TRUE(opened.HasValue()) << opened.Error();
+    EXPECT_EQ(Runtime().panels.delegated.secondCastleSiege, 1);
+    EXPECT_TRUE(m_sent.empty());
+    const auto closed = panels.Registry().CloseByMask(Client::UI::SecondCastleSiegePanel);
+    ASSERT_TRUE(closed.HasValue()) << closed.Error();
+    EXPECT_EQ(Runtime().panels.delegated.secondCastleSiege, 0);
+    ASSERT_EQ(m_sent.size(), 1u);
+    EXPECT_TRUE(SameBytes(m_sent[0].packet.Bytes(), Bytes({0xc1, 3, 0x31})));
 }
 
 TEST_P(CastleSiegeReceiveTest, StateWithZeroThreeOrFourShowsItsMessage)
@@ -472,15 +508,17 @@ TEST_P(CastleSiegeReceiveTest, SiegeFlagsWriteTheirGlobal)
 }
 
 // B2 1F (0x4e5532): con 1, SETNZ de pkt[5] en +0x15; con 0 y 2, los diálogos del hito 8.
-TEST_P(CastleSiegeReceiveTest, HuntZoneGateKeepsTheEntryAndCutsTheDialogs)
+TEST_P(CastleSiegeReceiveTest, HuntZoneGateKeepsTheEntryAndReplacesTheFailureDialogs)
 {
     Apply(Castle::HuntZoneGateResult{.result = 1, .allowed = 0x40});
     EXPECT_EQ(Castle().huntZone.allowed, 1);
     Apply(Castle::HuntZoneGateResult{.result = 1, .allowed = 0});
     EXPECT_EQ(Castle().huntZone.allowed, 0);
     Apply(Castle::HuntZoneGateResult{.result = 3});
-    EXPECT_NE(CutOf(Castle::HuntZoneGateResult{.result = 0}).find("P-C90"), std::string::npos);
-    EXPECT_NE(CutOf(Castle::HuntZoneGateResult{.result = 2}).find("P-C90"), std::string::npos);
+    Apply(Castle::HuntZoneGateResult{.result = 0});
+    EXPECT_EQ(Runtime().panels.delegated.panelDialog.lines[0], Text(860));
+    Apply(Castle::HuntZoneGateResult{.result = 2});
+    EXPECT_EQ(Runtime().panels.delegated.panelDialog.lines[0], Text(1386));
 }
 
 Castle::NpcRecord RecordOf(std::uint32_t type, std::uint32_t index, std::uint8_t fill)
@@ -519,17 +557,41 @@ TEST_P(CastleSiegeReceiveTest, NpcListStoresEveryRecordOrNone)
 }
 
 // B4 y B5 con 1: las listas de [0x7d536f8] son de las ventanas (P-C300).
-TEST_P(CastleSiegeReceiveTest, GuildListsShowTheirMessagesAndCutTheLists)
+TEST_P(CastleSiegeReceiveTest, GuildListsShowTheirMessagesAndAcceptEmptyLists)
 {
     Apply(Castle::SiegeGuildList{.result = 0, .entries = {}});
     Apply(Castle::SiegeGuildList{.result = 2, .entries = {}});
-    EXPECT_NE(CutOf(Castle::SiegeGuildList{.result = 1, .entries = {}}).find("0x46f320"), std::string::npos);
+    Apply(Castle::SiegeGuildList{.result = 1, .entries = {}});
     Apply(Castle::RegisteredGuildList{.result = 0, .entries = {}});
     Apply(Castle::RegisteredGuildList{.result = 2, .entries = {}});
     Apply(Castle::RegisteredGuildList{.result = 3, .entries = {}});
     Apply(Castle::RegisteredGuildList{.result = 4, .entries = {}});
-    EXPECT_NE(CutOf(Castle::RegisteredGuildList{.result = 1, .entries = {}}).find("0x4706f0"), std::string::npos);
+    Apply(Castle::RegisteredGuildList{.result = 1, .entries = {}});
     EXPECT_EQ(Messages(), (std::vector<std::string>{Text(860), Text(860), Text(1609), Text(1609)}));
+}
+
+TEST_P(CastleSiegeReceiveTest, SuccessfulGuildListsClearTheEntriesAndSelectionButPreservePageSize)
+{
+    auto& registration = Castle().registration;
+    registration.siegeGuilds.push_back({});
+    registration.siegeGuildList.rows = 9;
+    registration.siegeGuildList.selection = 1;
+    registration.siegeGuildList.scroll = 4;
+    auto applied =
+        Client::Scenes::ApplyCastleSiegePacket(Castle::SiegeGuildList{.result = 1, .entries = {}}, Context());
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
+    EXPECT_TRUE(registration.siegeGuilds.empty());
+    EXPECT_EQ(registration.siegeGuildList.selection, 0);
+    EXPECT_EQ(registration.siegeGuildList.scroll, 0);
+    EXPECT_EQ(registration.siegeGuildList.rows, 9);
+    registration.registeredGuilds.push_back({});
+    registration.registeredGuildList.selection = 1;
+    applied =
+        Client::Scenes::ApplyCastleSiegePacket(Castle::RegisteredGuildList{.result = 1, .entries = {}}, Context());
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
+    EXPECT_TRUE(registration.registeredGuilds.empty());
+    EXPECT_EQ(registration.registeredGuildList.selection, 0);
+    ExpectNoRandom();
 }
 
 // B6 (0x4e0ed0): sin panel del asedio o con uno de otra clase, nada; con la clase 2, la batalla (hito 13).
@@ -576,3 +638,124 @@ TEST_P(CastleSiegeReceiveTest, AMessageWithoutAMeasureCuts)
     ExpectNoRandom();
 }
 } // namespace
+
+TEST_P(CastleSiegeReceiveTest, SiegeMarksAreSortedAsSignedDwordsAfterTheOldestEntryWasDiscarded)
+{
+    Castle::SiegeGuildList packet{.result = 1, .entries = {}};
+    for (std::uint32_t i = 0; i < 151; ++i)
+        packet.entries.push_back({.name = Name<8>("g"), .marks = i == 0 ? 0x80000000u : i});
+    Apply(packet);
+    const auto& window = Castle().registration;
+    ASSERT_EQ(window.siegeGuilds.size(), 150u);
+    EXPECT_EQ(window.siegeGuilds.front().marks, 1u);
+    EXPECT_EQ(window.siegeGuilds.back().marks, 150u);
+    EXPECT_EQ(window.siegeGuildList.selection, 150);
+    EXPECT_EQ(window.siegeGuildList.scroll, 132);
+    Apply(Castle::SiegeGuildList{.result = 1,
+                                 .entries = {{.name = Name<8>("positive"), .marks = 1},
+                                             {.name = Name<8>("negative"), .marks = 0xffffffffu},
+                                             {.name = Name<8>("minimum"), .marks = 0x80000000u}}});
+    EXPECT_EQ(window.siegeGuilds[0].marks, 0x80000000u);
+    EXPECT_EQ(window.siegeGuilds[1].marks, 0xffffffffu);
+    EXPECT_EQ(window.siegeGuilds[2].marks, 1u);
+    ExpectNoRandom();
+}
+
+TEST_P(CastleSiegeReceiveTest, EqualMarksKeepTheVc6SixteenAndSeventeenEntryPartitionBoundary)
+{
+    for (const std::uint8_t count : {std::uint8_t{16}, std::uint8_t{17}})
+    {
+        Castle::SiegeGuildList packet{.result = 1, .entries = {}};
+        for (std::uint8_t i = 0; i < count; ++i)
+            packet.entries.push_back({.name = Name<8>("g"), .marks = 7, .first = i});
+        Apply(packet);
+        const auto& rows = Castle().registration.siegeGuilds;
+        ASSERT_EQ(rows.size(), count);
+        for (std::size_t i = 0; i < rows.size(); ++i)
+            EXPECT_EQ(rows[i].first, count == 16 ? static_cast<std::size_t>(count) - 1u - i : i);
+    }
+    ExpectNoRandom();
+}
+
+TEST_P(CastleSiegeReceiveTest, RegisteredGuildsUsePushFrontWithoutSortingAndIgnoreAnEmptyName)
+{
+    Apply(Castle::RegisteredGuildList{.result = 1,
+                                      .entries = {{.first = 1, .name = Name<8>("first")},
+                                                  {.first = 9, .name = {}},
+                                                  {.first = 2, .name = Name<8>("second")}}});
+    const auto& window = Castle().registration;
+    ASSERT_EQ(window.registeredGuilds.size(), 2u);
+    EXPECT_EQ(window.registeredGuilds[0].first, 2);
+    EXPECT_EQ(window.registeredGuilds[1].first, 1);
+    EXPECT_EQ(window.registeredGuildList.selection, 2);
+    EXPECT_EQ(window.registeredGuildList.scroll, 0);
+    ExpectNoRandom();
+}
+
+TEST_P(CastleSiegeReceiveTest, HuntInformationNormalizesAccessAndCopiesTheSignedFeeFieldsBeforeOpening)
+{
+    auto applied = Client::Scenes::ApplyHuntInformation(3, 0x80, 0xffffffffu, 0x80000000u, 7, Context());
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
+    auto& hunt = Castle().huntZone;
+    EXPECT_EQ(hunt.mode, 3);
+    EXPECT_EQ(hunt.allowed, 1);
+    EXPECT_EQ(hunt.fee, 0xffffffffu);
+    EXPECT_EQ(hunt.editedFee, -1);
+    EXPECT_EQ(hunt.max, (-2147483647 - 1));
+    EXPECT_EQ(hunt.step, 7);
+    EXPECT_EQ(Runtime().panels.delegated.secondCastleSiege, 1);
+    EXPECT_TRUE(m_sent.empty());
+    applied = Client::Scenes::ApplyHuntInformation(0, 0, 0, 0, 0, Context());
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
+    EXPECT_EQ(hunt.mode, 3);
+    EXPECT_EQ(hunt.fee, 0xffffffffu);
+    EXPECT_EQ(Runtime().panels.delegated.panelDialog.lines[0], Text(860));
+    ExpectNoRandom();
+}
+
+TEST_P(CastleSiegeReceiveTest, BusySeniorCloseReturnsTrueButKeepsTheWindowAndUsesTheSharedBusyWarning)
+{
+    for (auto& item : Runtime().npcWindows.chaosBox)
+        item.id = 0xffff;
+    Runtime().npcWindows.chaosBox[31].id = 0;
+    Runtime().panels.delegated.castleSiegeList = 1;
+    Runtime().panels.delegated.castleSiegeListMode = 3;
+    Client::Scenes::GamePanels panels(*m_world, m_random);
+    Client::Scenes::LendTheCastlePanelServices(panels, Context());
+    auto closed = panels.Registry().Close(Client::UI::CastleSiegeListPanel);
+    ASSERT_TRUE(closed.HasValue()) << closed.Error();
+    EXPECT_TRUE(closed.Value());
+    EXPECT_EQ(Runtime().panels.delegated.castleSiegeList, 1);
+    EXPECT_EQ(Runtime().panels.delegated.castleSiegeListMode, 3);
+    EXPECT_EQ(Messages(), (std::vector<std::string>{Text(1642)}));
+    EXPECT_TRUE(m_sent.empty());
+    closed = panels.Registry().CloseByMask(Client::UI::CastleSiegeListPanel);
+    ASSERT_TRUE(closed.HasValue()) << closed.Error();
+    EXPECT_TRUE(closed.Value());
+    EXPECT_EQ(Runtime().panels.delegated.castleSiegeList, 1);
+    ExpectNoRandom();
+}
+
+TEST_P(CastleSiegeReceiveTest, SeniorCloseChooses87Or31AndPreservesTheTabAndAnUnrelatedDialog)
+{
+    for (auto& item : Runtime().npcWindows.chaosBox)
+        item.id = 0xffff;
+    for (const bool close87 : {false, true})
+    {
+        Runtime().panels.delegated.castleSiegeList = 1;
+        Runtime().panels.delegated.castleSiegeListMode = 2;
+        Castle().senior.closeWith87 = close87;
+        auto& dialog = Runtime().panels.delegated.panelDialog;
+        dialog.opened = 18;
+        Castle().senior.dialogId = 17;
+        Client::Scenes::GamePanels panels(*m_world, m_random);
+        Client::Scenes::LendTheCastlePanelServices(panels, Context());
+        const auto closed = panels.Registry().CloseByMask(Client::UI::CastleSiegeListPanel);
+        ASSERT_TRUE(closed.HasValue()) << closed.Error();
+        EXPECT_EQ(Runtime().panels.delegated.castleSiegeList, 0);
+        EXPECT_EQ(Runtime().panels.delegated.castleSiegeListMode, 2);
+        EXPECT_TRUE(SameBytes(m_sent.back().packet.Bytes(), Bytes({0xc1, 3, close87 ? 0x87 : 0x31})));
+        EXPECT_EQ(dialog.opened, 18u);
+    }
+    ExpectNoRandom();
+}

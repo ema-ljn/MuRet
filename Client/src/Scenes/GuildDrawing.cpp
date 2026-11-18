@@ -15,10 +15,14 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/GameText.h"
+#include "UI/ChatInput.h"
+#include "UI/OldControls.h"
 #include "UI/OldWindowBase.h"
 #include "UI/OldWindowDraw.h"
+#include "UI/OldWindowDrawParts.h"
 #include "UI/PanelDialog.h"
 #include "UI/PanelRegistry.h"
+#include "UI/PanelTimerFrame.h"
 #include "UI/SprintfFormat.h"
 #include "UI/Widget.h"
 #include "World/OriginalFtol.h"
@@ -322,14 +326,6 @@ Core::Expected<void, std::string> DrawThePanelDialog(GameHudContext& context, UI
     // 0x660846: +0xc, el dibujo propio que pone 0x6602b0, en lugar de todo.
     if (dialog.hooks == UI::PanelDialogHooks::GuildPositions)
         return DrawTheGuildPositions(context);
-    if ((dialog.flags & UI::PanelDialogTextField) != 0)
-        return Core::Unexpected(
-            std::string("0x66097a: el campo de texto del diálogo de los paneles (0x10, la caja 0x10f, "
-                        "el EDIT o el chat de 0x553ae0): ningún diálogo de MuRet lo abre (P-C285)"));
-    if ((dialog.flags & UI::PanelDialogTimed) != 0)
-        return Core::Unexpected(
-            std::string("0x660ad6: el reloj del diálogo de los paneles (8, las barras 0x667 y 0x668 "
-                        "de 0x61e605): ningún diálogo de MuRet lo abre (P-C285)"));
     for (std::size_t button = 0; button < dialog.buttons.size(); ++button)
     {
         // 0x65feb0 los copia al armarse, después de Text.bmd (0x4b9b9f); MuRet, la primera vez que dibuja.
@@ -359,6 +355,46 @@ Core::Expected<void, std::string> DrawThePanelDialog(GameHudContext& context, UI
             Render::Text::DesignX(context.text.Measure(context.hud.dcFont, text).width, sprites.Screen());
         DrawTheLine(context, DialogCenterX - width / 2, static_cast<std::int32_t>(y), text);
         y = F32(static_cast<double>(y) + static_cast<double>(LineStep));
+    }
+    if ((dialog.flags & UI::PanelDialogTextField) != 0)
+    {
+        const auto width = dialog.inputWidth;
+        Quad(sprites, 0x10f, static_cast<float>(320 - width / 2), y, static_cast<float>(width), 18, 0.8828125f,
+             0.5625f);
+        y = F32(static_cast<double>(y) + 7.0);
+        auto& runtime = context.world.Runtime();
+        UI::OldEdit projected = runtime.chat.input.dialogEdit;
+        auto& edit = context.projecting ? projected : runtime.chat.input.dialogEdit;
+        edit.base.state = UI::ShownWindow;
+        edit.filter = dialog.inputFilter;
+        edit.backgroundColor = 0;
+        edit.text.SetLimit(dialog.inputMaxChars);
+        edit.base.width = width;
+        edit.base.height = 14;
+        edit.base.x = 325 - width / 2;
+        edit.base.y = static_cast<std::int32_t>(y);
+        if (!context.projecting)
+        {
+            runtime.chat.input.focus = UI::ChatFocus::Dialog;
+            runtime.ui.focusedList = edit.base.id;
+        }
+        UI::OldDraw::DrawTheOldEdit({.sprites = sprites,
+                                     .text = context.text,
+                                     .dcFont = context.hud.dcFont,
+                                     .textColors = context.hud.textColors},
+                                    edit, true);
+        y = F32(static_cast<double>(y) + 10.0);
+    }
+    if ((dialog.flags & UI::PanelDialogTimed) != 0)
+    {
+        y = F32(static_cast<double>(y) + 7.0);
+        const auto frame = UI::PanelTimerFrameAt(context.tickCount, dialog.timerStart, dialog.timerEnd);
+        if (!context.projecting)
+            dialog.elapsedSeconds = frame.elapsedSeconds;
+        Quad(sprites, 0x667, 245, y, 150, 12, 0.78125f, 1);
+        sprites.SetBlend(BlendMode::Additive);
+        Quad(sprites, 0x668, 241, y, frame.width, 12, frame.du, 1);
+        sprites.SetBlend(BlendMode::Opaque);
     }
     const UI::OldWindowDrawContext buttons{
         .sprites = sprites, .text = context.text, .dcFont = context.hud.dcFont, .textColors = context.hud.textColors};

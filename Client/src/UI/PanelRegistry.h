@@ -184,6 +184,8 @@ struct PanelContext
     bool logoutRequested = false;
     // 0x6689d0, el héroe con +0x1f2 ≥ 0 y +0x368 en 0x80: solo lo lee el ancho del mundo con la lista de CS abierta.
     bool heroSiegeMark = false;
+    // 0x661b90, cuando se presta el mundo: consulta viva de los 32 tipos WORD y el cursor.
+    std::function<bool()> inventoryBusy{};
     // 0x659aa0..0x659c3d: lo que abrir la party hace si cerró lo demás, antes de prenderla: 0x78aba48 (la cuenta de la
     // party) en 0 y el pedido de la lista, C1 03 42. Sin él, abrir la party corta.
     std::function<void()> partyOpened{};
@@ -215,6 +217,13 @@ struct PanelContext
     std::function<Core::Expected<void, std::string>()> castleRegistrationOpened{};
     // 0x657b94: 0x64b200 envía C1 03 31 y después cierra el registro y vuelve a su primera pestaña.
     std::function<Core::Expected<void, std::string>()> castleRegistrationClosed{};
+    // 0x661310/0x6487c0 y 0x661bc0/0x6487d0. false informa el bloqueo de Senior; CloseByMask no mira ese retorno
+    // (llamada void nativa) ni baja su flag de éxito por este panel.
+    std::function<Core::Expected<void, std::string>(PanelId)> castleWindowOpened{};
+    std::function<Core::Expected<bool, std::string>(PanelId)> castleWindowClosing{};
+    std::function<Core::Expected<void, std::string>()> castleSeniorBlocked{};
+    // El orden de 0x657930: registro, Senior y zona de caza, después de las dos ventanas del gremio.
+    std::function<Core::Expected<void, std::string>(PanelId)> castleWindowStep{};
     // 0x65c966..0x65ca6d: lo que abrir el personaje hace fuera de los paneles, cierre o no lo demás: [0x6eed3c] de
     // +0x9304 a +0x9327 en 0, y con el registro propio abierto, 0x550d10 si un lugar del equipo tiene la durabilidad
     // en 0 (0x550cf0). Sin él, abrir el personaje corta.

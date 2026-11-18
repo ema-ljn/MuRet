@@ -26,6 +26,7 @@
 #include <gtest/gtest.h>
 
 #include <array>
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <map>
@@ -201,7 +202,8 @@ protected:
         ASSERT_EQ(opened, Client::UI::PanelDialogOpening::Opened);
     }
 
-    Client::Core::Expected<void, std::string> Dialog(bool withTexts = true)
+    Client::Core::Expected<void, std::string> Dialog(bool withTexts = true, std::uint32_t tick = 0,
+                                                     bool projecting = false)
     {
         Client::Scenes::WorldRuntime& runtime = Runtime();
         Client::Scenes::ActorState& hero = Hero();
@@ -213,9 +215,11 @@ protected:
                                .hud = runtime.hud,
                                .crywolfSandOverlay = runtime.crywolf.sandOverlay,
                                .sound = m_sound,
+                               .projecting = projecting,
                                .sprites = m_sprites,
                                .text = m_text,
-                               .texts = withTexts ? &m_texts : nullptr};
+                               .texts = withTexts ? &m_texts : nullptr,
+                               .tickCount = tick};
         return Client::Scenes::DrawThePanelDialog(context, PanelDialog());
     }
 
@@ -406,23 +410,48 @@ TEST_P(GuildDrawingTest, AtTheTopWithOneButton)
     EXPECT_EQ(m_text.texts[1].text, "Dale");
 }
 
-// Cerrado no dibuja; el campo de texto y el reloj cortan con su dirección, y sin Text.bmd los botones también.
-TEST_P(GuildDrawingTest, ThePanelDialogCutsWhatMuRetDoesNotOpen)
+// Cerrado no dibuja; los botones todavía necesitan sus textos cuando se copian por primera vez.
+TEST_P(GuildDrawingTest, ThePanelDialogNeedsItsButtonTexts)
 {
     ASSERT_TRUE(Dialog().HasValue());
     EXPECT_TRUE(QuadsOf(m_sprites).empty());
-    Open({"Che"}, Client::UI::PanelDialogConfirm | Client::UI::PanelDialogTimed, 0);
-    auto cut = Dialog();
-    ASSERT_FALSE(cut.HasValue());
-    EXPECT_NE(cut.Error().find("0x660ad6"), std::string::npos);
-    PanelDialog().flags = Client::UI::PanelDialogConfirm | Client::UI::PanelDialogTextField;
-    cut = Dialog();
-    ASSERT_FALSE(cut.HasValue());
-    EXPECT_NE(cut.Error().find("0x66097a"), std::string::npos);
-    PanelDialog().flags = Client::UI::PanelDialogConfirm;
-    cut = Dialog(false);
+    Open({"Che"}, Client::UI::PanelDialogConfirm, 0);
+    auto cut = Dialog(false);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x65ff12"), std::string::npos);
+}
+
+TEST_P(GuildDrawingTest, ThePanelTimerDrawsItsNativeProgressAndUpdatesElapsedSecondsWithoutClamping)
+{
+    Open({"Uno", "Dos"}, Client::UI::PanelDialogConfirm | Client::UI::PanelDialogTimed, 0);
+    ASSERT_TRUE(Dialog(true, 3500).HasValue());
+    const auto quads = QuadsOf(m_sprites);
+    const auto back = std::find_if(quads.begin(), quads.end(), [](const DrawnQuad& q) { return q.slot == 0x667; });
+    const auto progress = std::find_if(quads.begin(), quads.end(), [](const DrawnQuad& q) { return q.slot == 0x668; });
+    ASSERT_NE(back, quads.end());
+    ASSERT_NE(progress, quads.end());
+    ExpectQuadAt(*back, 0x667, 245, 132, 150, 12);
+    ExpectQuadAt(*progress, 0x668, 241, 132, 75, 12);
+    EXPECT_EQ(progress->blend, BlendMode::Additive);
+    EXPECT_FLOAT_EQ(progress->third.u, 75.0f / 256.0f);
+    EXPECT_EQ(PanelDialog().elapsedSeconds, 2u);
+    m_sprites.Begin(Screen640);
+    ASSERT_TRUE(Dialog(true, 8500).HasValue());
+    const auto over = QuadsOf(m_sprites);
+    const auto full = std::find_if(over.begin(), over.end(), [](const DrawnQuad& q) { return q.slot == 0x668; });
+    ASSERT_NE(full, over.end());
+    ExpectQuadAt(*full, 0x668, 241, 132, 225, 12);
+    EXPECT_EQ(PanelDialog().elapsedSeconds, 7u);
+    EXPECT_EQ(m_random.State(), CrtRandom(Seed).State());
+}
+
+TEST_P(GuildDrawingTest, ProjectingThePanelTimerPreservesItsPublishedElapsedSeconds)
+{
+    Open({}, Client::UI::PanelDialogTimed, 0);
+    PanelDialog().elapsedSeconds = 99;
+    ASSERT_TRUE(Dialog(true, 3500, true).HasValue());
+    EXPECT_EQ(PanelDialog().elapsedSeconds, 99u);
+    EXPECT_EQ(m_random.State(), CrtRandom(Seed).State());
 }
 
 INSTANTIATE_TEST_SUITE_P(Maps, GuildDrawingTest, ::testing::Values(0, 2, 6));

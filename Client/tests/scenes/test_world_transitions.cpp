@@ -424,21 +424,29 @@ TEST(WorldTransitionsTest, UnportedOpenWindowsKeepTheConfirmedWaitPrefixAndStopB
     // Los 20 del prefijo y la consulta del comercio (0x20, 0x657fc1), que 0x657ab0 hace antes que la del 0x1000.
     EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(1, 20 + 1).State());
 }
-TEST_F(WorldTransitionsMapsTest, LeavingChaosCastleStopsAtTheCommandsEvenWithEquipmentAvailable)
+TEST_F(WorldTransitionsMapsTest, LeavingChaosCastleResetsTheCommandsAndContinuesToArrival)
 {
     Transition tested;
     Publisher publisher;
     tested.dataRoot = m_dataRoot;
     tested.world.Runtime().map = 18;
     tested.world.Runtime().warpCounter = 9999999;
+    auto& commands = tested.world.Runtime().panels.delegated;
+    commands.commands = 1;
+    commands.commandsWindow.target = 23;
+    commands.commandsWindow.chosen = 7;
+    commands.commandsWindow.states.fill(0xff);
     auto resources = tested.Resources();
     const auto result = Client::Scenes::ApplyTeleport(Client::Protocol::World::Teleport{23, 0, 133, 127, 0},
                                                       Transition::PlayerKey, resources, publisher);
-    ASSERT_FALSE(result.HasValue());
-    EXPECT_NE(result.Error().find("0x4c7b34"), std::string::npos);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_EQ(commands.commands, 0);
+    EXPECT_EQ(commands.commandsWindow.target, -1);
+    EXPECT_EQ(commands.commandsWindow.chosen, -1);
+    EXPECT_EQ(commands.commandsWindow.states, (std::array<std::uint8_t, 12>{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}));
     EXPECT_EQ(tested.world.Runtime().map, 0);
-    EXPECT_EQ(publisher.confirmations, 0);
-    EXPECT_EQ(tested.world.Runtime().warpCounter, 9999999);
+    EXPECT_EQ(publisher.confirmations, 1);
+    EXPECT_EQ(tested.world.Runtime().warpCounter, 30);
 }
 TEST_F(WorldTransitionsMapsTest, LeavingChaosCastleKeepsTheUiPrefixBeforeAnyEquipmentFailure)
 {
@@ -452,7 +460,7 @@ TEST_F(WorldTransitionsMapsTest, LeavingChaosCastleKeepsTheUiPrefixBeforeAnyEqui
     const auto result = Client::Scenes::ApplyTeleport(Client::Protocol::World::Teleport{23, 0, 133, 127, 0},
                                                       Transition::PlayerKey, resources, publisher);
     ASSERT_FALSE(result.HasValue());
-    EXPECT_NE(result.Error().find("0x4c7b34"), std::string::npos);
+    EXPECT_EQ(result.Error().find("0x4c7b34"), std::string::npos) << result.Error();
     EXPECT_EQ(tested.world.Runtime().lastSoundId, 0x9e);
     EXPECT_EQ(tested.world.Runtime().map, 0);
     EXPECT_EQ(publisher.confirmations, 0);
@@ -499,8 +507,7 @@ TEST_F(WorldTransitionsMapsTest, TheChaosCastlePrefixHidesTheOldWindowsWithoutNo
         runtime.chat.input.focus = Client::UI::ChatFocus::Message;
         const auto result = Client::Scenes::ApplyTeleport(Client::Protocol::World::Teleport{23, pass.to, 133, 127, 0},
                                                           Transition::PlayerKey, tested.Resources(), publisher);
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_NE(result.Error().find("0x4c7b34"), std::string::npos) << result.Error();
+        ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(runtime.map, pass.to);
         EXPECT_EQ(runtime.lastSoundId, 0x9e);
         EXPECT_EQ(runtime.oldWindows.windows.at(box.Value()).base.state, Client::UI::HiddenWindow);

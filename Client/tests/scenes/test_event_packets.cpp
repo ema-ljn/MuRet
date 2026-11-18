@@ -7,6 +7,8 @@
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainLight.h"
+#include "Data/Terrain/TerrainHeights.h"
+#include "World/ModelEffects.h"
 #include "Data/Text/DialogTable.h"
 #include "Data/Text/TextTable.h"
 #include "Protocol/Events.h"
@@ -1539,23 +1541,34 @@ TEST_F(EventPacketsTest, TheEventTimeIsKept)
 
 // 0x4d9f00: los dos nombres con su '\0', los puntos y el partido activo con pkt[0xc] distinto de 0xff; después, el
 // efecto 0x60e (CL11) corta.
-TEST_F(EventPacketsTest, TheSoccerScoreIsKeptBeforeTheEffectCut)
+TEST_F(EventPacketsTest, TheSoccerScoreSharesTheWarPointsAndEmitsOnTheRawHeroCell)
 {
     const Events::SoccerScore score{.firstName = {'A', 'z', 'u', 'l', 'e', 's', 'x', 'y'},
                                     .firstScore = 2,
                                     .secondName = {'R', 'o', 'j', 'o', 0, 0, 0, 0},
                                     .secondScore = 1};
-    const std::string cut = Cut(score);
-    EXPECT_NE(cut.find("0x4d9ff2"), std::string::npos) << cut;
+    world.Map().terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+    Hero().cellXLeft = 12;
+    Hero().cellYLeft = 34;
+    Hero().cellX = 99;
+    Hero().cellY = 88;
+    const auto before = random.State();
+    Applied(score);
+    const auto& effect = world.Map().effects.Effects()[0];
+    EXPECT_EQ(effect.type, 0x60e);
+    EXPECT_EQ(effect.transform.position, (glm::vec3{1250, 3450, 100}));
+    EXPECT_EQ(effect.life, 75);
+    EXPECT_EQ(effect.light, glm::vec3(1));
+    EXPECT_EQ(random.State(), before);
     const auto& soccer = Runtime().events.soccer;
     EXPECT_EQ(std::string(soccer.firstName.data()), "Azulesxy");
     EXPECT_EQ(std::string(soccer.secondName.data()), "Rojo");
     EXPECT_TRUE(soccer.active);
-    EXPECT_EQ(soccer.firstScore, 2);
-    EXPECT_EQ(soccer.secondScore, 1);
+    EXPECT_EQ(Runtime().guild.ourScore, 2);
+    EXPECT_EQ(Runtime().guild.theirScore, 1);
     Events::SoccerScore none = score;
     none.firstScore = 0xff;
-    Cut(none);
+    Applied(none);
     EXPECT_FALSE(soccer.active);
 }
 
@@ -1589,7 +1602,9 @@ TEST_F(EventPacketsTest, TheServerCommandsShowTheirNotices)
     Applied(Events::ServerCommand{.command = 7, .value5 = 0, .value6 = 0});
     EXPECT_EQ(Runtime().dialogs.current, 0xaa);
     EXPECT_EQ(Applied(Events::ServerCommand{.command = 2}).sounds, std::vector<std::int32_t>{0x5a});
-    EXPECT_NE(Cut(Events::ServerCommand{.command = 0}).find("0x4da125"), std::string::npos);
+    world.Map().terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+    Applied(Events::ServerCommand{.command = 0, .value5 = 4, .value6 = 7});
+    EXPECT_EQ(world.Map().effects.Effects()[0].transform.position, (glm::vec3{450, 750, 100}));
     ResetTheBox();
     Applied(Events::ServerCommand{.command = 4});
     Applied(Events::ServerCommand{.command = 0x32});

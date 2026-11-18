@@ -724,7 +724,7 @@ Core::Expected<void, std::string> UseTheGridItem(const GameUiContext& context, U
     if (type == BoxOfLuck && levelBits == UsedBoxLevelBits)
         return use();
     if (IsAnEventTicket(type))
-        return UseTheEventTicket(panels, type);
+        return UseTheEventTicket(MovesOf(context), panels, UsedGrid{.cells = grid.cells, .grid = grid.grid}, index);
     const bool potion = (type >= 0x1c00 && type <= 0x1c06) || type == 0x1c08 || type == 0x1c09 ||
                         (type == 0x1c14 && levelBits == 0) || type == 0x1c07;
     if (potion)

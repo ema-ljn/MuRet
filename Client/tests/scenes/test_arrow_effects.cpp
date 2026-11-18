@@ -1556,4 +1556,42 @@ TEST(ArrowEffectsTest, TheLastFreeEffectSlotStillFinishesAnArrowWithFullJoints)
     EXPECT_EQ(DrawsSince(Seed, tested.random), OwnRecord);
 }
 
+// 0x4039a0 usa 0xed/1, el mismo prefijo de las flechas pero con pitch−90, vy−42 y vz4; el paso0x524210 ilumina de
+// rojo y continúa por 0x52cb98 sin el choque de 0x520170.
+TEST(ArrowEffectsTest, TheTourProjectileCreatesAndStepsWithoutAttackingActors)
+{
+    for (const std::uint8_t depth : {std::uint8_t{0}, std::uint8_t{1}})
+    {
+        auto tested = std::make_unique<ArrowWorld>(34);
+        tested->world.Runtime().ownRecordDepth = depth;
+        tested->world.OwnCharacter().bytef04 = 9;
+        const Client::World::ModelEffectArguments arguments{.type = 0xed,
+                                                            .position = {1000, 1000, 0},
+                                                            .angles = {},
+                                                            .light = {2, 3, 4},
+                                                            .subtype = 1,
+                                                            .owner = &tested->Hero()};
+        const auto created = Client::Scenes::CreateTheArrowEffect(arguments, tested->world, tested->random);
+        ASSERT_TRUE(created.HasValue()) << ErrorOf(created);
+        auto& effect = tested->world.Map().effects.Effects()[0];
+        EXPECT_TRUE(effect.alive);
+        EXPECT_EQ(effect.type, 0xed);
+        EXPECT_EQ(effect.life, 30);
+        EXPECT_EQ(effect.transform.position, (glm::vec3{990, 940, 135}));
+        EXPECT_EQ(effect.transform.angles, (glm::vec3{-90, 0, 0}));
+        EXPECT_EQ(effect.transform.scale, 1);
+        EXPECT_EQ(effect.velocity, (glm::vec3{0, -42, 4}));
+        EXPECT_EQ(effect.objectState.blendMesh, -1);
+        EXPECT_EQ(effect.word8c, 9);
+        EXPECT_EQ(DrawsSince(Seed, tested->random), depth == 0 ? OwnRecord : 0);
+        const auto stepped = StepArrow(effect, nullptr, tested->StepContext());
+        ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
+        EXPECT_EQ(effect.life, 29);
+        EXPECT_EQ(effect.light, (glm::vec3{1, 0, 0}));
+        EXPECT_NEAR(effect.transform.position.y, 944, 0.001);
+        EXPECT_NEAR(effect.transform.position.z, 177, 0.001);
+        EXPECT_EQ(DrawsSince(Seed, tested->random), depth == 0 ? OwnRecord + 1 : 1);
+        EXPECT_TRUE(tested->sent.empty());
+    }
+}
 } // namespace

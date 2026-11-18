@@ -9,6 +9,7 @@
 #include "Render/Text/FontSet.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/EventGlobals.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GuildMarks.h"
@@ -331,6 +332,54 @@ TEST_P(GuildDrawingTest, WithoutTheMarksTheWarIsCut)
     const auto cut = Score(false);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x5a76d8"), std::string::npos);
+}
+
+// 0x5a7a01..0x5a7cbd: el F3 23 no pide gremio propio ni la guerra. Los nombres buscan las primeras 1999
+// entradas, aunque tableCount sea menor; el segundo nombre que no existe usa la marca 0.
+TEST_P(GuildDrawingTest, SoccerDrawsTheReceivedTeamsWithoutTheHeroGuild)
+{
+    auto& soccer = Runtime().events.soccer;
+    soccer.active = true;
+    Fill(soccer.firstName, "Teros");
+    Fill(soccer.secondName, "Ausente");
+    Runtime().guild.tableCount = 0;
+    Runtime().guild.ourScore = 27;
+    Runtime().guild.theirScore = 4;
+    Runtime().panels.inventory = 1;
+    ASSERT_TRUE(Score().HasValue());
+    const auto quads = QuadsOf(m_sprites);
+    ASSERT_EQ(quads.size(), 6u);
+    ExpectQuadAt(quads[0], MarkSlot(RivalGuild), 205, 4, 8, 8);
+    ExpectQuadAt(quads[3], MarkSlot(0), 205, 19, 8, 8);
+    ASSERT_EQ(m_text.texts.size(), 4u);
+    const std::array<std::string_view, 4> expected{"27", "Teros", "4", "Ausente"};
+    for (std::size_t index = 0; index < expected.size(); ++index)
+    {
+        EXPECT_EQ(m_text.texts[index].text, expected[index]);
+        EXPECT_EQ(m_text.texts[index].x, index % 2 == 0 ? 218 : 235);
+        EXPECT_EQ(m_text.texts[index].y, index < 2 ? 4 : 19);
+        EXPECT_EQ(m_text.texts[index].style.colors.text, index < 2 ? 0xff003cffu : 0xffff9600u);
+        EXPECT_EQ(m_text.texts[index].style.font, Client::Render::Text::FontKind::Bold);
+    }
+    EXPECT_EQ(Draws(m_random), 2);
+}
+
+TEST_P(GuildDrawingTest, SoccerFollowsTheWarAndDoesNotSearchTheLastGuild)
+{
+    Runtime().guild.warOn = 1;
+    Hero().word1f2 = HeroGuild;
+    auto& soccer = Runtime().events.soccer;
+    soccer.active = true;
+    Fill(soccer.firstName, "Ultimo");
+    Fill(soccer.secondName, "Horneros");
+    Fill(Runtime().guild.table.back().guildName, "Ultimo");
+    Runtime().panels.inventory = 1;
+    ASSERT_TRUE(Score().HasValue());
+    const auto quads = QuadsOf(m_sprites);
+    ASSERT_EQ(quads.size(), 12u);
+    ExpectQuadAt(quads[6], MarkSlot(0), 205, 4, 8, 8);
+    ExpectQuadAt(quads[9], MarkSlot(HeroGuild), 205, 19, 8, 8);
+    EXPECT_EQ(Draws(m_random), 4);
 }
 
 // 0x660830 con Confirmar y Cancelar y dos renglones: alto 2 · (13 + 2) + 0x3f = 93 e y = 0x82 − 46 = 84. La caja

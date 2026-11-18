@@ -9,6 +9,9 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/FaunaModels.h"
+#include "Scenes/FaunaJointCreation.h"
+#include "Scenes/GameDrawTail.h"
+#include "World/IFishStepServices.h"
 #include "Scenes/MonsterKinds.h"
 #include "Scenes/NpcNames.h"
 #include "Scenes/WorldEntry.h"
@@ -27,6 +30,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace Client::Scenes
@@ -365,6 +369,20 @@ private:
             m_resources.world.Runtime().lastSoundId = static_cast<std::int32_t>(step.value);
             return {};
         case MonsterStepKind::Joint:
+            if (m_type == 349 && m_resources.world.Runtime().map == 34 && m_index && step.value == 0x618 &&
+                (step.offset == 2 || step.offset == 3))
+            {
+                ActorState& actor = m_resources.world.Actors()[*m_index];
+                auto created =
+                    CreateFaunaJoint(m_resources.world.DrawTail().joints,
+                                     World::FishEffectRequest{static_cast<std::int32_t>(step.value), actor.position,
+                                                              actor.position, actor.angles, step.offset, &actor,
+                                                              std::bit_cast<float>(step.extra), -1, 0, 0, -1},
+                                     m_resources.cloth.random, JointOwnerKind::Actor);
+                if (!created.HasValue())
+                    return Core::Unexpected(std::move(created).Error());
+                return {};
+            }
             return Core::Unexpected(std::format("{:#x}: el joint {:#x} (0x530860) del tipo {} es de la CL11",
                                                 step.address, step.value, m_type));
         case MonsterStepKind::Arrival:

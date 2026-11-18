@@ -318,6 +318,9 @@ using EventPacket =
 // 0x56b4e8..0x56b5a0: C1 03 97 en claro, sin XOR32 ni cifrado, con send directo.
 [[nodiscard]] Outgoing WriteEventWindowLeave();
 
+// 0x5c6865/0x5c6c36/0x5c7010: C1 04 91 clase, con XOR32 y envío en claro.
+[[nodiscard]] Outgoing WriteEventTimeRequest(std::uint8_t kind);
+
 // 0x5e65da..0x5e6864: C1 04 98 01, con el XOR32 y en claro (el send del paso).
 [[nodiscard]] Outgoing WriteMutoNumberRequest();
 

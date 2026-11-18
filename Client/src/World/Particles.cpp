@@ -224,7 +224,8 @@ bool IsBreath(const Particle& particle)
 
 bool IsDust(const Particle& particle)
 {
-    return particle.type == DustParticle && particle.subtype == 0;
+    return (particle.type == DustParticle && particle.subtype == 0) ||
+           (particle.type == ArrivalDustParticle && particle.subtype == 1);
 }
 
 // 0x542a60..0x542a75 con el subtipo 0: vida 20 (la /2 tiene 30) y la escala del pedido otra vez en +0x10. Sin rand().
@@ -261,8 +262,21 @@ void CreateTheDust(Particle& particle, const glm::vec3& angles, float scale, Ren
     particle.position.y = F32(static_cast<double>(y) + static_cast<double>(particle.position.y));
     const int size = (random.Next() % DustScaleSpan) + DustScaleBase;
     particle.scale = F32((static_cast<double>(size) * static_cast<double>(scale)) * BreathScaleStep);
-    particle.velocity = Render::Models::OriginalVectorRotate(DustPush, Render::Models::OriginalAngleMatrix(angles));
+    const bool arrival = particle.type == ArrivalDustParticle && particle.subtype == 1;
+    if (arrival)
+        particle.angles.z = static_cast<float>(random.Next() % FullTurn);
+    constexpr glm::vec3 ArrivalPush{0, 15, 0};
+    particle.velocity = Render::Models::OriginalVectorRotate(
+        arrival ? ArrivalPush : DustPush, Render::Models::OriginalAngleMatrix(arrival ? particle.angles : angles));
     particle.angles.x = static_cast<float>(random.Next() % FullTurn);
+    if (arrival)
+    {
+        constexpr std::int32_t ArrivalLife = 40;
+        particle.life = ArrivalLife;
+        particle.velocity = {};
+        const int z = (random.Next() % DustOffsetSpan) - DustOffsetCenter;
+        particle.position.z = F32(static_cast<double>(z) + static_cast<double>(particle.position.z));
+    }
 }
 
 // 0x546b66..0x546bfb: después del movimiento común (0x4e98d0, con la velocidad girada), la luz por la vida, la
@@ -752,6 +766,12 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
     }
     if (type == BubbleParticle || type == DustParticle || type == ExplosionParticle)
         return subtype == 0 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
+    if (type == FireworkParticle)
+        return subtype >= -1 && subtype <= 29 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
+    if (type == PoundingBallParticle)
+        return subtype == 1 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
+    if (type == ArrivalDustParticle)
+        return subtype == 1 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     // 0x542b3b y 0x546b04: la 5e4 no lee el subtipo.
     if (type == BloodParticle)
         return std::nullopt;
@@ -1650,7 +1670,38 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
             CreateTheBubble(particle, random);
             return std::optional(index);
         }
-        if (type == DustParticle)
+        if (type == FireworkParticle)
+        {
+            particle.angles = {};
+            particle.rotation = static_cast<float>(random.Next() % 360);
+            if (subtype == -1)
+            {
+                particle.life = 2;
+                particle.scale = 0.25f;
+                return std::optional(index);
+            }
+            const int divisor = subtype + 15;
+            const int half = divisor / 2;
+            for (int axis = 0; axis < 3; ++axis)
+                particle.velocity[axis] =
+                    F32(static_cast<double>(random.Next() % divisor - half) * static_cast<double>(0.15f));
+            particle.velocity.z = F32(static_cast<double>(particle.velocity.z) + 10.0);
+            particle.life = 50;
+            particle.scale = 0.1f;
+            return std::optional(index);
+        }
+        if (type == PoundingBallParticle)
+        {
+            // 0x54308a: el tercer sorteo sigue ocurriendo aunque su velocidad vertical no se usa en /1.
+            particle.life = 30;
+            particle.scale = F32(static_cast<double>((random.Next() & 63) + 64) * static_cast<double>(0.01f));
+            particle.rotation = static_cast<float>(random.Next() % 360);
+            particle.verticalSpeed = F32(static_cast<double>((random.Next() & 31) + 60) * static_cast<double>(0.1f));
+            particle.texture = 0x6ad;
+            particle.position.z = F32(static_cast<double>(particle.position.z) - 45.0);
+            return std::optional(index);
+        }
+        if (type == DustParticle || type == ArrivalDustParticle)
         {
             CreateTheDust(particle, angles, scale, random);
             return std::optional(index);
@@ -1921,6 +1972,16 @@ StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random, const
         else if (IsBreath(particle))
         {
             StepTheBreath(particle);
+        }
+        else if (particle.type == FireworkParticle)
+        {
+            particle.velocity.z = F32(static_cast<double>(particle.velocity.z) - 0.5);
+        }
+        else if (particle.type == PoundingBallParticle)
+        {
+            particle.light = glm::vec3(F32(static_cast<double>(particle.life) * static_cast<double>(0.05f)));
+            particle.scale = F32(static_cast<double>(particle.scale) + static_cast<double>(0.19f));
+            particle.position.z = F32(static_cast<double>(particle.position.z) + 5.0);
         }
         else if (IsDust(particle))
         {

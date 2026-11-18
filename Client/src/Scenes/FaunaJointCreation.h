@@ -27,10 +27,10 @@ struct TerrainLighting;
 // 530860: ownerContext es FaunaObject durable salvo613/4, 614/10 y614/14, donde permanece opaco, y el 618/0x11 y el
 // 610/4 de lo que cuelga de un jugador, el 60f/0, el 60f/0x12 y el 610/7 del conjunto completo, el 60f/0 y el 60f/0xa
 // del premio de una misión (0x4ddb80), el 619/9 de su 5ac/3 y el 619/1 del calco de la mascota (0x518900), donde es el
-// ActorState del personaje. Con `ownerKind` en Helper es el HelperState del caballo oscuro (0x444740), y en Raven el
-// DarkSpirit del cuervo (0x418390 y 0x418400), sólo para el 60f/0 y el 60f/0x12: lee su luz (+0xf4) al nacer y su
-// acción (+0x111) en el paso; con otro tipo corta antes de escribir (0x530860).
-// Se escribe sobre el primer muerto sin reconstruirlo; pool lleno no lee los argumentos ni RNG.
+// ActorState del personaje, al igual que618/2y/3 del altarCrywolf. Con `ownerKind` en Helper es el HelperState del
+// caballo oscuro (0x444740), y en Raven el DarkSpirit del cuervo (0x418390 y 0x418400), sólo para el 60f/0 y el
+// 60f/0x12: lee su luz (+0xf4) al nacer y su acción (+0x111) en el paso; con otro tipo corta antes de escribir
+// (0x530860). Se escribe sobre el primer muerto sin reconstruirlo; pool lleno no lee los argumentos ni RNG.
 namespace Client::Scenes
 {
 // El 618/0 y el 618/1 que el que mató lanza desde el blanco (0x505169, 0x5051a4): con el ActorState del que pega como
@@ -50,7 +50,8 @@ CreateFaunaJoint(std::span<JointState> joints, const World::FishEffectRequest& r
 // acelera y gira hacia el héroe, 120 más arriba, y en su última vida deja el sprite 0x5fd (pide el RNG y los sprites);
 // sólo la llegada con width50 necesita particles, y el humo usa worldClock.
 // El overload sin RNG conserva la frontera535f18 tras movimiento y comprobación del dueño. El 615/2 de Chaos
-// Castle pide los sprites del frame (0x5491e0) y las partículas.
+// Castle pide los sprites del frame (0x5491e0) y las partículas. El615/7 de la llegada comparte geometría sin esas
+// emisiones. Los618/2y/3 siguen los dos puntos del dueño y emiten5d5/0 con el seno del reloj.
 [[nodiscard]] Core::Expected<void, std::string> StepJoints(std::span<JointState> joints);
 // El 618/0 y /1 piden además la luz dinámica (`lighting`, 0x7b4ccc4) y el sonido 0x23 (0x41ed10) al llegar.
 [[nodiscard]] Core::Expected<void, std::string>

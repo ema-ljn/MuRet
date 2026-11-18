@@ -1668,14 +1668,9 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
     hud.textColors.text = 0xffffffffu;
     // 1. 0x5a7520.
     DrawTheSands(frame);
-    // 2. 0x5a7640: el marcador de la guerra de gremios (Scenes/GuildDrawing.h). Después (0x5a7a01), con el tanteador de
-    // Battle Soccer que deja el F3 23 (0x576796f, CL9 hito 11), su dibujo (0x5a7a0e), que busca los nombres en la lista
-    // de gremios de 0x787aa55: falta (08 P-C284 a).
+    // 2. 0x5a7640..0x5a7cbd: los tanteadores de guerra y Battle Soccer.
     if (auto war = DrawTheWarScore(context, frame.panels); !war.HasValue())
         return war;
-    if (runtime.events.soccer.active)
-        return Core::Unexpected(std::string("0x5a7a0e: el tanteador de Battle Soccer, con la lista de los gremios "
-                                            "(0x787aa55), no está portado (08 P-C284 a)"));
     // 3. 0x5a89b0: las barras de la party.
     if (auto life = DrawThePartyLife(context); !life.HasValue())
         return life;

@@ -60,6 +60,7 @@ constexpr std::int16_t ArquebusArrow = 0xe0;
 constexpr std::int16_t NatureArrow = 0xe1;
 constexpr std::int16_t AquagoldArrow = 0xe2;
 constexpr std::int16_t BluewingArrow = 0xe3;
+constexpr std::int16_t TourArrow = 0xed;
 constexpr std::int16_t SaintArrow = 0xf7;
 constexpr std::int16_t CelestialArrow = 0xf8;
 constexpr std::int16_t ViperArrow = 0xf9;
@@ -228,7 +229,15 @@ Core::Expected<void, std::string> BeginTheArrow(World::ModelEffect& effect, Worl
     AddRotated(effect.transform.position, Render::Models::OriginalVectorRotate(
                                               Muzzle, Render::Models::OriginalAngleMatrix(effect.transform.angles)));
     // 0x51c4e6..0x51c587: la escala y la y de la velocidad.
-    if (type == BluewingArrow)
+    if (type == TourArrow)
+    {
+        // 0x51c507..0x51c536: el disparo de Crywolf gira después de aplicar la boca del arma.
+        effect.transform.angles.x = F32(D(effect.transform.angles.x) - 90.0);
+        effect.transform.scale = 1.0f;
+        effect.velocity.y = -42.0f;
+        effect.velocity.z = 4.0f;
+    }
+    else if (type == BluewingArrow)
     {
         effect.transform.scale = std::bit_cast<float>(0x3fe66666u);
         effect.velocity.y = -50.0f;
@@ -1258,7 +1267,7 @@ Core::Expected<void, std::string> CreateCombatBurstAt(const glm::vec3& position,
 bool IsArrowEffect(std::int16_t type)
 {
     return (type >= BowArrow && type <= BluewingArrow) || (type >= SaintArrow && type <= ViperArrow) ||
-           type == ArchangelArrow || type == ReignArrow || type == TwentiethArrow;
+           type == ArchangelArrow || type == ReignArrow || type == TwentiethArrow || type == TourArrow;
 }
 
 Core::Expected<void, std::string> CreateTheArrowEffect(const World::ModelEffectArguments& arguments, WorldState& world,
@@ -1375,6 +1384,11 @@ Core::Expected<void, std::string> StepArrow(World::ModelEffect& effect, const Re
     Core::Expected<void, std::string> stepped;
     switch (effect.type)
     {
+    case TourArrow:
+        // 0x524210 → 0x52c4e9: luz roja y cola común; no pasa por el choque de las flechas.
+        effect.light = {1.0f, 0.0f, 0.0f};
+        stepped = World::AddDynamicLight(context.lighting, effect.transform.position, effect.light, 2, "0x52c4f1");
+        break;
     case BowArrow:
         stepped = StepBowArrow(effect, luminosity, context);
         break;

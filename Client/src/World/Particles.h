@@ -35,6 +35,8 @@ struct TerrainLighting;
 struct WorldObject;
 
 inline constexpr std::size_t ParticleCount = 3000;
+inline constexpr std::int32_t FireworkParticle = 0x60d;
+inline constexpr std::int32_t PoundingBallParticle = 0x640;
 inline constexpr std::int32_t ShinyParticle = 0x5fc;
 inline constexpr std::int32_t ThunderParticle = 0x5ca;
 inline constexpr std::int32_t FairySparkParticle = 0x5c5;
@@ -84,6 +86,9 @@ inline constexpr std::int32_t BubbleParticle = 0x698;
 // El polvo 5f3/0 (Effect\smoke02.tga) del galope del caballo oscuro fuera de los mapas 2 y 10 (0x4444dd): nace en
 // 0x54271f y su paso (0x546b66) lo deja sobre el terreno con el alto de su textura.
 inline constexpr std::int32_t DustParticle = 0x5f3;
+// El polvo 5f6/1 del recorrido de Crywolf (0x403c0c): comparte el paso de 5f3, pero nace con vida40, velocidad0
+// y seis rand() en 0x54271f..0x542897.
+inline constexpr std::int32_t ArrivalDustParticle = 0x5f6;
 // La explosión 5ed/0 (Effect\Explotion01.jpg, cuatro por cuatro cuadros) que suelta el terremoto 0xfa en su vida 11
 // (0x521dfd): nace en 0x542a60 con vida 20 y su paso (0x5459a4) avanza el cuadro (+0x48) con la vida y prende la luz
 // dinámica. El alta termina con el sonido 0x41ed10(0x40, 0, 0), que Particles no hace: lo hace quien la crea.

@@ -37,8 +37,11 @@
 #include "UI/OriginalFormat.h"
 #include "UI/PanelRegistry.h"
 #include "World/WorldTerrain.h"
+#include "World/ModelEffects.h"
+#include "World/TerrainHeight.h"
 
 #include <algorithm>
+#include <bit>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -1420,6 +1423,20 @@ private:
         return {};
     }
 
+    Applied FireworkAt(std::int32_t cellX, std::int32_t cellY)
+    {
+        const auto& terrain = m_world.Map().terrain;
+        if (!terrain.heights || !terrain.attributes)
+            return Core::Unexpected(std::string("0x4d9fb1/0x4da0e4: el fuego artificial sin el terreno"));
+        glm::vec3 position{static_cast<float>((static_cast<double>(cellX) + 0.5) * 100.0),
+                           static_cast<float>((static_cast<double>(cellY) + 0.5) * 100.0), 0};
+        position.z =
+            static_cast<float>(World::TerrainHeightAt(*terrain.heights, *terrain.attributes, position.x, position.y));
+        static_cast<void>(m_world.Map().effects.CreateFireworkEmitter(
+            World::ModelEffectArguments{.type = 0x60e, .position = position, .angles = {}, .light = glm::vec3(1)}));
+        return {};
+    }
+
     // ----- F3 23 (0x4d9f00).
 
     Applied On(const Events::SoccerScore& packet)
@@ -1433,10 +1450,11 @@ private:
             soccer.secondName[index] = packet.secondName[index];
         }
         soccer.active = packet.firstScore != NoSoccerScore;
-        soccer.firstScore = packet.firstScore;
-        soccer.secondScore = packet.secondScore;
-        return Core::Unexpected(std::string("0x4d9ff2: el efecto 0x60e (0x518cf0) sobre la celda del héroe es de la "
-                                            "CL11"));
+        m_runtime.guild.ourScore = packet.firstScore;
+        m_runtime.guild.theirScore = packet.secondScore;
+        const ActorState& hero = m_world.Actors()[m_runtime.hero];
+        // 0x4d9f78/94: FILD directo, sin abrir las dos entradas protegidas.
+        return FireworkAt(std::bit_cast<std::int32_t>(hero.cellXLeft), std::bit_cast<std::int32_t>(hero.cellYLeft));
     }
 
     // ----- F3 40 (0x4da070), por pkt[4] de 0 a 0x31 (las tablas 0x4da24c y 0x4da224).
@@ -1449,8 +1467,7 @@ private:
         switch (command)
         {
         case CommandEffect:
-            return Core::Unexpected(std::string("0x4da125: el efecto 0x60e (0x518cf0) en la celda del F3 40 es de la "
-                                                "CL11"));
+            return FireworkAt(packet.value5, packet.value6);
         case CommandNotice:
         {
             const std::size_t base = packet.value5 >= HighNoticeFrom ? HighNoticeBase : LowNoticeBase;

@@ -17,6 +17,7 @@
 #include "Scenes/CharacterCloth.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/DarkSpirit.h"
+#include "Scenes/EventGlobals.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/GuildMarks.h"
@@ -844,6 +845,56 @@ TEST_F(GameCharacterRenderTest, TheGuildWarDressesBothGuildsInTheirTeamColors)
         EXPECT_NE(heroCut.Error().find("0x50c9cf"), std::string::npos);
         m_world->Actors()[5].word1f2 = 3;
     }
+}
+
+// 0x50caaa..0x50cb5c: Soccer pisa los colores de la guerra, y el segundo nombre gana si ambos son iguales.
+TEST_F(GameCharacterRenderTest, SoccerDressesTheCurrentGuildNamesAndTheSecondTeamWins)
+{
+    auto& runtime = m_world->Runtime();
+    runtime.map = 0x12;
+    runtime.hero = 5;
+    m_world->Actors()[5].word1f2 = 3;
+    runtime.guild.warType = 1;
+    runtime.guild.warTeam = 1;
+    auto& player = Player(0);
+    player.characterClass = 1;
+    player.word1f2 = 3;
+    runtime.guild.table[3].guildName = {'T', 'a', 'l', 'a', 's'};
+    auto& soccer = runtime.events.soccer;
+    soccer.active = true;
+    soccer.firstName = {'T', 'a', 'l', 'a', 's'};
+    soccer.secondName = {'O', 'm', 'b', 'u'};
+    auto cloths = std::make_unique<std::array<Client::Scenes::CharacterCloth, 401>>();
+    auto store = std::make_unique<Client::Tests::FakeTextureStore>();
+    auto marks = std::make_unique<Client::Scenes::GuildMarkTextures>(*store);
+    GameCharacterPass pass = Pass();
+    pass.cloths = *cloths;
+    pass.guildMarks = marks.get();
+    const auto draw = [&]()
+    {
+        m_batch.Begin(Client::Render::Pass3D{});
+        return Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+    };
+    ASSERT_TRUE(draw().HasValue());
+    EXPECT_GT(ClothVerticesIn(m_batch, {1, 0.2f, 0}), 0u);
+    runtime.guild.table[3].guildName = {'O', 'm', 'b', 'u'};
+    ASSERT_TRUE(draw().HasValue());
+    EXPECT_GT(ClothVerticesIn(m_batch, {0, 0.2f, 1}), 0u);
+    soccer.firstName = soccer.secondName;
+    ASSERT_TRUE(draw().HasValue());
+    EXPECT_GT(ClothVerticesIn(m_batch, {0, 0.2f, 1}), 0u);
+    EXPECT_EQ(ClothVerticesIn(m_batch, {1, 0.2f, 0}), 0u);
+    player.word1f2 = 0xffff;
+    runtime.guild.warType = 0;
+    soccer.firstName = {};
+    soccer.secondName = {};
+    runtime.guild.members[74].name[9] = '\0';
+    ASSERT_TRUE(draw().HasValue());
+    EXPECT_GT(ClothVerticesIn(m_batch, {0, 0.2f, 1}), 0u);
+    player.word1f2 = 2000;
+    const auto cut = draw();
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x50cac6"), std::string::npos);
 }
 
 TEST_F(GameCharacterRenderTest, ZeroOriginalFramesDoNotCreateFirstUseClassThreeOrFourCloths)

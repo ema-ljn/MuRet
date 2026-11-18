@@ -8,8 +8,10 @@
 #include "Scenes/FaunaModels.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/WorldRuntime.h"
+#include "Scenes/WorldMap.h"
 #include "Scenes/WorldState.h"
 #include "World/GroundMarks.h"
+#include "World/ModelEffects.h"
 #include "World/OriginalFtol.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
@@ -536,6 +538,47 @@ TEST_F(ModelEffectsTest, TheCrywolfStageCallsTheBalgass)
     m_world->Runtime().crywolf.stage = 0;
 }
 
+// 0x53fe83 busca un muerto antes de leer la luz. El polvo de un camino con luz indeterminada no la lee si el pool
+// está realmente lleno; el sorteo del caller ya ocurrió.
+TEST_F(ModelEffectsTest, TheBarrierDustDoesNotReadItsIndeterminateLightWithAFullPool)
+{
+    const std::uint32_t dust = FirstSeedWhere(
+        [](CrtRandom& random)
+        {
+            static_cast<void>(random.Next());
+            return random.Next() % 10 == 0;
+        });
+    for (auto& particle : m_world->Particles().All())
+        particle.alive = true;
+    m_actor.animation.action = 2;
+    CrtRandom random(dust);
+    const auto stepped = Step(0x1ab, 34, random);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(random.State(), AfterDraws(dust, 2).State());
+}
+
+TEST_F(ModelEffectsTest, TheBalgassLaunchesTheTourProjectileAtTheFrameGate)
+{
+    const std::uint32_t noCall = FirstSeedWhere(
+        [](CrtRandom& random)
+        {
+            static_cast<void>(random.Next());
+            return random.Next() % 100 != 0;
+        });
+    m_world->Runtime().crywolf.stage = 4;
+    m_actor.animation.action = 3;
+    m_actor.animation.frame = 5;
+    m_actor.movementPhase = 1;
+    CrtRandom random(noCall);
+    const auto stepped = Step(0x1b5, 34, random);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    auto effects = m_world->Map().effects.Effects();
+    EXPECT_TRUE(effects[0].alive);
+    EXPECT_EQ(effects[0].type, 0xed);
+    EXPECT_EQ(effects[0].subtype, 1);
+    EXPECT_EQ(m_actor.movementPhase, 0);
+}
+
 // 0x441210 y 0x426ce0: las luces del 0x1a4 y del 0x1bb, sin rand().
 TEST_F(ModelEffectsTest, TheGlowingModelsOnlyLight)
 {
@@ -546,5 +589,29 @@ TEST_F(ModelEffectsTest, TheGlowingModelsOnlyLight)
         ASSERT_TRUE(Step(0x1bb, map, random).HasValue());
         EXPECT_EQ(random.State(), AfterDraws(Seed, 2).State());
     }
+}
+TEST_F(ModelEffectsTest, TheWarningAltarConsumesTheFlagAndRunsWithPartialPools)
+{
+    m_world->Runtime().crywolf.stage = 4;
+    m_world->Runtime().crywolf.ui.byte723bec = 1;
+    for (auto& effect : m_world->Map().effects.Effects())
+        effect.alive = true;
+    m_world->Map().effects.Effects()[0].alive = false;
+    for (auto& particle : m_world->Particles().All())
+        particle.alive = true;
+    m_world->Particles().All()[0].alive = false;
+    CrtRandom random(7);
+    const auto stepped = Step(0x1ae, 34, random);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(m_world->Runtime().crywolf.ui.byte723bec, 0);
+    const auto& crater = m_world->Map().effects.Effects()[0];
+    EXPECT_EQ(crater.type, 0x636);
+    EXPECT_EQ(crater.subtype, 2);
+    EXPECT_EQ(crater.life, 40);
+    EXPECT_EQ(crater.start.x, 3);
+    EXPECT_EQ(crater.start.y, 3);
+    EXPECT_EQ(crater.light, glm::vec3(1));
+    EXPECT_EQ(m_world->Particles().All()[0].type, 0x640);
+    EXPECT_EQ(random.State(), 0x1b8052fbu); // brillo, tres del único constructor aceptado.
 }
 } // namespace

@@ -4,6 +4,13 @@
 #include "Scenes/ActorCreation.h"
 #include "Scenes/ActorMotion.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/ArrowEffects.h"
+#include "Scenes/FaunaJointCreation.h"
+#include "Scenes/GameDrawTail.h"
+#include "Render/Models/Cloth.h"
+#include "World/IFishStepServices.h"
+#include "World/ModelEffects.h"
+#include "World/Particles.h"
 #include "Scenes/EventGlobals.h"
 #include "Scenes/FaunaModels.h"
 #include "Scenes/MonsterCreation.h"
@@ -260,7 +267,7 @@ private:
     // 0x4039f0(tipo, x, y, ángulo, avanza, chispas, velocidad): el alta 0x5141e0 con la clave +0x14c, que sube uno; la
     // clave en +0x1f4 (word), las manos (+0x2b8 y +0x2d8) en 0xffff, el ángulo en +0x24 y +0x174 en 0. Con la
     // velocidad en 0 o más (FCOMP sin C0), la de la acción 2 del modelo de 0x403d10 (+0x30 → +0x24). Con las chispas,
-    // el sonido 0x243 y los joints y las partículas, que cortan. Con avanza, +0x140 uno más.
+    // el sonido 0x243 y los joints y las partículas. Con avanza, +0x140 uno más.
     Result Create(std::int32_t type, std::int32_t x, std::int32_t y, float angle, bool advance, bool sparks,
                   float speed)
     {
@@ -298,13 +305,50 @@ private:
         {
             // 0x403ad5: 0x41ed10(0x243, 0, 0) (CL10).
             m_context.world.Runtime().lastSoundId = ArrivalSound;
-            return Core::Unexpected(std::format(
-                "0x403b09: las chispas del alta del personaje {} del recorrido (cuatro joints 0x615/7 con rand() % 10, "
-                "tres partículas 0x5f6/1 y cuatro joints 0x614/0x11, de 0x530860 y 0x53fe70) no están portadas",
-                key));
+            if (auto emitted = ArrivalSparks(actor); !emitted.HasValue())
+                return emitted;
         }
         if (advance)
             ++m_tour.step;
+        return {};
+    }
+
+    // 0x403ae7..0x403d02: el ancho del caller se sortea incluso con el pool de joints lleno.
+    Result ArrivalSparks(ActorState& actor)
+    {
+        const auto joint = [&](std::int32_t type, glm::vec3& from, glm::vec3& to, std::int32_t subtype, float width)
+        {
+            return CreateFaunaJoint(
+                m_context.world.DrawTail().joints,
+                World::FishEffectRequest{type, from, to, actor.angles, subtype, nullptr, width, -1, 0, 0, -1},
+                m_context.random);
+        };
+        glm::vec3 corner = actor.position;
+        corner.x = F32(static_cast<double>(corner.x) + 20.0);
+        corner.y = F32(static_cast<double>(corner.y) + 20.0);
+        constexpr std::array<int, 4> WidthBases{60, 50, 50, 60};
+        for (const int base : WidthBases)
+        {
+            const float width = static_cast<float>(m_context.random.Next() % 10 + base);
+            auto made = joint(0x615, corner, corner, 7, width);
+            if (!made.HasValue())
+                return Core::Unexpected(std::move(made).Error());
+        }
+        for (int index = 0; index < 3; ++index)
+        {
+            auto made = m_context.world.Particles().CreateChecked(0x5f6, actor.position, actor.angles, actor.light, 1,
+                                                                  5.0f, 0.0f, m_context.random);
+            if (!made.HasValue())
+                return Core::Unexpected(std::string("0x403c37: no se pudo crear el polvo de llegada 0x5f6/1"));
+        }
+        glm::vec3 target = actor.position;
+        target.z = F32(static_cast<double>(target.z) + 120.0);
+        for (int index = 0; index < 4; ++index)
+        {
+            auto made = joint(0x614, actor.position, target, 17, 10.0f);
+            if (!made.HasValue())
+                return Core::Unexpected(std::move(made).Error());
+        }
         return {};
     }
 
@@ -389,7 +433,7 @@ private:
     }
 
     // 0x403900(clave, acción, veces, efecto, avanza): mientras +0x78 no llega a las veces, con otra acción en +0x111,
-    // la pone (+0x114 en 0) y cuenta una vez; con el efecto, el 0xed (0x518cf0), que corta. Falso. Con las veces,
+    // la pone (+0x114 en 0) y cuenta una vez; con el efecto crea el 0xed (0x518cf0). Falso. Con las veces,
     // avanza pone +0x78 en 0 y +0x140 uno más; verdadero con +0x114 en 8 o más.
     Core::Expected<bool, std::string> Act(std::int32_t key, std::uint8_t action, std::int32_t times, bool effect,
                                           bool advance)
@@ -407,9 +451,19 @@ private:
                 actor.animation.action = action;
                 ++count;
                 if (effect)
-                    return Core::Unexpected(std::format("0x4039a0: el efecto 0xed (0x518cf0) del personaje {} del "
-                                                        "recorrido es de la CL11",
-                                                        key));
+                {
+                    auto created = CreateTheArrowEffect(
+                        World::ModelEffectArguments{.type = 0xed,
+                                                    .position = actor.position,
+                                                    .angles = actor.angles,
+                                                    .light = actor.light,
+                                                    .subtype = 1,
+                                                    .owner = &actor,
+                                                    .key = static_cast<std::uint16_t>(actor.word8a)},
+                        m_context.world, m_context.random);
+                    if (!created.HasValue())
+                        return Core::Unexpected(std::move(created).Error());
+                }
             }
             return false;
         }

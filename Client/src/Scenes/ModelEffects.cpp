@@ -9,6 +9,9 @@
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/ArrowEffects.h"
+#include "Scenes/WorldMap.h"
+#include "World/ModelEffects.h"
 #include "Scenes/DynamicWorldLight.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/FaunaJointCreation.h"
@@ -25,6 +28,7 @@
 
 #include <glm/ext/vector_float3.hpp>
 
+#include <algorithm>
 #include <array>
 #include <bit>
 #include <cstddef>
@@ -899,6 +903,9 @@ Result KickTheDust(ModelEffectsPass& pass, const glm::vec3* light, std::uint32_t
         return {};
     if (Roll(pass, 10) != 0)
         return {};
+    if (pass.particles != nullptr &&
+        std::ranges::all_of(pass.particles->All(), [](const World::Particle& particle) { return particle.alive; }))
+        return {};
     if (light == nullptr)
         return Core::Unexpected(std::format("0x431e86: la luz del polvo 0x5f3/0 del modelo {:#x} (lugar {}) es "
                                             "[EBP−{:#x}], que ese camino de 0x431470 no escribe (comportamiento "
@@ -939,9 +946,32 @@ Result StepTheCrywolfHelper(ModelEffectsPass& pass)
         // 0x4319f1 y 0x431bdd: la luz (0,9; 0,2; 0,1).
         return KickTheDust(pass, &ember, 0);
     case 0x1ae:
-        // 0x431a3c: con la etapa de Crywolf (0x723c05) en 4 y [0x723bec], que escriben los paquetes de Crywolf (CL9.5)
-        // y MuRet no modela (en 0), sus efectos. Sin eso, nada.
+    {
+        // 0x431a3c..0x431bd2: el aviso se consume antes de todas las altas, también con pools llenos.
+        auto& flag = pass.world.Runtime().crywolf.ui.byte723bec;
+        if (stage != Siege || flag == 0)
+            return {};
+        flag = 0;
+        const glm::vec3 point = BonePoint(actor, 27, NoOffset);
+        auto& effects = pass.world.Map().effects;
+        const World::ModelEffectArguments crater{
+            .type = 0x636, .position = point, .angles = actor.angles, .light = actor.light, .subtype = 2};
+        static_cast<void>(effects.CreateCraterEffect(crater));
+        const glm::vec3 red{1, 0.2f, 0.2f};
+        for (int index = 0; index < 2; ++index)
+        {
+            if (auto particle = Emit(pass, 0x431ae8, 0x640, 1, point, red, actor.angles); !particle.HasValue())
+                return particle;
+        }
+        for (int index = 0; index < 5; ++index)
+            static_cast<void>(effects.CreateCastleShockWave(World::ModelEffectArguments{.type = World::ShockWaveEffect,
+                                                                                        .position = point,
+                                                                                        .angles = actor.angles,
+                                                                                        .light = red,
+                                                                                        .subtype = 8},
+                                                            pass.random));
         return {};
+    }
     case 0x1b0:
     {
         // 0x43161d: en la 3 dentro de [6,5; velocidad + 6,5), los efectos 0x636 y las partículas 0x640.
@@ -997,7 +1027,20 @@ Result StepTheCrywolfHelper(ModelEffectsPass& pass)
         }
         if (actor.animation.action == 3 && std::bit_cast<std::uint32_t>(actor.movementPhase) == 0x3f800000u &&
             actor.animation.frame >= 5.0f)
-            return Cut(pass, 0x432460, "el efecto 0xed (0x518cf0)");
+        {
+            auto created =
+                CreateTheArrowEffect(World::ModelEffectArguments{.type = 0xed,
+                                                                 .position = actor.position,
+                                                                 .angles = actor.angles,
+                                                                 .light = actor.light,
+                                                                 .subtype = 1,
+                                                                 .owner = &actor,
+                                                                 .key = static_cast<std::uint16_t>(actor.word8a)},
+                                     pass.world, pass.random);
+            if (!created.HasValue())
+                return created;
+            actor.movementPhase = 0.0f;
+        }
         return {};
     }
     default:

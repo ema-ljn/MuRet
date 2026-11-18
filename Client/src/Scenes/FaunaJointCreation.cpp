@@ -352,7 +352,8 @@ Core::Expected<void, std::string> CreateTrapBolt(JointState& joint, const World:
     constexpr std::int32_t Points = 50;
     constexpr std::int32_t Life = 20;
     constexpr int JitterSpan = 10, JitterCenter = 5;
-    constexpr double Rise = static_cast<double>(std::bit_cast<float>(0x44480000u));
+    constexpr double TrapRise = static_cast<double>(std::bit_cast<float>(0x44480000u));
+    constexpr double ArrivalRise = static_cast<double>(std::bit_cast<float>(0x44834000u));
     joint.texture = BoltTexture;
     joint.width = request.scale;
     joint.maximumCount = Points;
@@ -361,7 +362,10 @@ Core::Expected<void, std::string> CreateTrapBolt(JointState& joint, const World:
         static_cast<float>(static_cast<double>(random.Next() % JitterSpan - JitterCenter) + joint.position.x);
     joint.position.y =
         static_cast<float>(static_cast<double>(random.Next() % JitterSpan - JitterCenter) + joint.position.y);
-    joint.position.z = static_cast<float>(static_cast<double>(joint.position.z) + Rise);
+    if (request.subtype == 7)
+        joint.tailEnabled = false; // 0x531b59: la /7 conserva esto también en el paso.
+    joint.position.z =
+        static_cast<float>(static_cast<double>(joint.position.z) + (request.subtype == 7 ? ArrivalRise : TrapRise));
     joint.angles = {};
     joint.targetPosition = request.secondPosition;
     joint.pathIncrement = joint.position;
@@ -629,6 +633,17 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
         joint.targetPosition = request.secondPosition;
         return {};
     }
+    if (request.type == 0x614 && request.subtype == 17)
+    {
+        // 0x5309d6 → 0x530a00: salta 0x530afa, por eso no inicializa el primer quad.
+        constexpr std::int32_t Points = 50, Life = 10;
+        constexpr int SpeedSpan = 10, SpeedBase = 20;
+        joint.width = request.scale;
+        joint.maximumCount = Points;
+        joint.life = Life;
+        joint.speed = static_cast<float>(random.Next() % SpeedSpan + SpeedBase);
+        return {};
+    }
     FirstQuad(joint);
     if ((request.type == 0x613 && request.subtype == 4) || (request.type == 0x614 && request.subtype == 14))
         return CreateHelperBeam(joint, request);
@@ -638,7 +653,7 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
         return CreateSwordBeam(joint, request, random);
     if (request.type == 0x615 && request.subtype == 0)
         return CreateSkyBolt(joint, request, random);
-    if (request.type == 0x615 && request.subtype == 2)
+    if (request.type == 0x615 && (request.subtype == 2 || request.subtype == 7))
         return CreateTrapBolt(joint, request, random);
     if (request.type == 0x6ee && request.subtype == 9)
     {
@@ -659,6 +674,21 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
     }
     if (request.type == 0x618 && request.subtype == 0x11)
         return CreateStaffBeam(joint, request);
+    if (request.type == 0x618 && (request.subtype == 2 || request.subtype == 3))
+    {
+        // 0x532238..0x5322cc y 0x53230e: los dos joints de los huesos de la barrera de Crywolf.
+        const auto* actor = static_cast<const ActorState*>(joint.ownerContext);
+        if (actor == nullptr)
+            return Core::Unexpected(std::string("0x53229c: falta el personaje dueño del joint 0x618/2 o /3"));
+        constexpr std::int32_t Life = 999999999, Points = 20;
+        joint.width = request.scale;
+        joint.speed = 0;
+        joint.life = Life;
+        joint.maximumCount = Points;
+        joint.position = request.subtype == 2 ? actor->effectOrigin : actor->bonePoint4c;
+        joint.light = {0.5f, 0.1f, 1};
+        return {};
+    }
     if (request.type == KillBeamJoint && (request.subtype == 0 || request.subtype == 1))
     {
         CreateKillBeam(joint, request);
@@ -724,6 +754,7 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateFaunaJoint(std::sp
         request.type == SparkleJoint && (request.subtype == SparkleSubtype || request.subtype == WideSparkleSubtype);
     // Y de un personaje fuera de su tipo: la posición, los ángulos, la luz y el byte vivo del 610/8 (0x4c91dc).
     const bool kalimaBeam = request.type == 0x610 && request.subtype == 8;
+    const bool barrierBeam = request.type == 0x618 && (request.subtype == 2 || request.subtype == 3);
     for (std::size_t i = 0; i < joints.size(); ++i)
     {
         if (joints[i].alive)
@@ -732,7 +763,7 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateFaunaJoint(std::sp
             return Core::Unexpected(std::format("0x530860: el joint {:#x}/{} con un ayudante o el cuervo de dueño no "
                                                 "está portado",
                                                 request.type, request.subtype));
-        if (ownerKind == JointOwnerKind::Actor && !kalimaBeam)
+        if (ownerKind == JointOwnerKind::Actor && !kalimaBeam && !barrierBeam)
             return Core::Unexpected(
                 std::format("0x530860: el joint {:#x}/{} con el ActorState de dueño fuera de su tipo no está portado",
                             request.type, request.subtype));
@@ -952,7 +983,7 @@ Core::Expected<void, std::string> StepTrapBolt(JointState& joint, Render::Models
                                                World::FrameSprites* sprites, World::Particles* particles,
                                                float worldClock)
 {
-    if (random == nullptr || sprites == nullptr || particles == nullptr)
+    if (random == nullptr || (joint.subtype == 2 && (sprites == nullptr || particles == nullptr)))
         return Core::Unexpected(std::string("0x53770a: faltan el RNG, los sprites o las partículas del joint 0x615/2"));
     constexpr std::int32_t Approach = 5;
     constexpr int JitterSpan = 20, JitterCenter = 10;
@@ -993,6 +1024,9 @@ Core::Expected<void, std::string> StepTrapBolt(JointState& joint, Render::Models
         joint.light = {static_cast<float>(static_cast<double>(joint.light.x) * Fade),
                        static_cast<float>(static_cast<double>(joint.light.y) * Fade),
                        static_cast<float>(static_cast<double>(joint.light.z) * Fade)};
+    // 0x537881..0x5379d3: sólo /2 emite sprites y la partícula 6ed. /7 conserva la cola apagada del constructor.
+    if (joint.subtype == 7)
+        return {};
     constexpr std::uint16_t ShinyTexture = 0x5fd;
     constexpr float ShinyScale = 1.5f;
     constexpr int FullTurn = 360;
@@ -1395,15 +1429,17 @@ Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints
         const bool spiritBeam = joint.type == 0x613 && joint.subtype == 4;
         // 0x53c478: el 614/10 de la espada 0x224 comparte con el 614/14 la entrada 8 (0x536b24) y el resto del paso
         // (Q-C366).
-        const bool flareBeam = joint.type == 0x614 && (joint.subtype == 14 || joint.subtype == 10);
+        const bool flareBeam =
+            joint.type == 0x614 && (joint.subtype == 14 || joint.subtype == 10 || joint.subtype == 17);
         const bool icarus = joint.type == 0x610 && joint.subtype == 8;
         const bool noria = joint.type == 0x617 && joint.subtype >= 0 && joint.subtype <= 3;
         const bool skyBolt = joint.type == 0x615 && joint.subtype == 0;
         const bool objectBolt = joint.type == 0x614 && joint.subtype == 6;
-        const bool trapBolt = joint.type == 0x615 && joint.subtype == 2;
+        const bool trapBolt = joint.type == 0x615 && (joint.subtype == 2 || joint.subtype == 7);
         const bool meteor = joint.type == 0x6ee && joint.subtype == 9;
         // Los de lo que cuelga de un jugador, con el ActorState del personaje como dueño.
         const bool staffBeam = joint.type == 0x618 && joint.subtype == 0x11;
+        const bool barrierBeam = joint.type == 0x618 && (joint.subtype == 2 || joint.subtype == 3);
         const bool swordTrail = joint.type == 0x610 && joint.subtype == 4;
         // Los del conjunto completo (0x5102c3) y el del 5ac/3 (0x52aa5d), con el ActorState del personaje.
         // Y los del premio de una misión (0x4ddb80), el 60f/0 y el 60f/0xa.
@@ -1420,7 +1456,7 @@ Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints
         const bool killBeam = joint.type == KillBeamJoint && (joint.subtype == 0 || joint.subtype == 1);
         if (!crywolf && !tarkan && !bloodCastle && !fairy && !spiritBeam && !flareBeam && !icarus && !noria &&
             !skyBolt && !objectBolt && !trapBolt && !meteor && !staffBeam && !swordTrail && !fullSet && !summonEnergy &&
-            !killBeam)
+            !killBeam && !barrierBeam)
             return Core::Unexpected(
                 std::format("0x535840: el paso del joint {} ({:#x}/{}) no está portado", i, joint.type, joint.subtype));
         // 0x5358bc: el 60f/1 no se mueve ni calcula la matriz de 0x53590e; con la cola, 0x53c393 usaría la que dejó el
@@ -1471,7 +1507,7 @@ Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints
             if (auto result = StepKillBeam(joint, i, random, particles, worldClock, lighting, soundRequest);
                 !result.HasValue())
                 return result;
-        const bool actorOwned = staffBeam || swordTrail || fullSet || summonEnergy || killBeam;
+        const bool actorOwned = staffBeam || swordTrail || fullSet || summonEnergy || killBeam || barrierBeam;
         const auto* owner = (joint.type == 0x613 || joint.type == 0x614 || joint.type == 0x615 || meteor || actorOwned)
                                 ? nullptr
                                 : static_cast<const FaunaObject*>(joint.ownerContext);
@@ -1494,7 +1530,7 @@ Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints
         }
         if (tarkan)
             joint.position = owner->previousPosition;
-        if (staffBeam)
+        if (staffBeam || barrierBeam)
         {
             // 0x53820e: con el personaje muerto se apaga sin cola ni vida; vivo, sigue su +0x40 (0x53822f).
             const auto* actor = static_cast<const ActorState*>(joint.ownerContext);
@@ -1505,7 +1541,30 @@ Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints
                 joint.alive = false;
                 continue;
             }
-            joint.position = actor->effectOrigin;
+            joint.position = joint.subtype == 3 ? actor->bonePoint4c : actor->effectOrigin;
+            if (barrierBeam)
+            {
+                // 0x538285..0x5382c4 → 0x5386f4: la luz local queda en la x87 entre sus productos.
+                constexpr double Phase = static_cast<double>(std::bit_cast<float>(0x3b03126fu));
+                constexpr float Amplitude = std::bit_cast<float>(0x3e99999au);
+                constexpr double Base = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu));
+                constexpr double Green = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
+                const auto wave =
+                    Render::Models::Detail::SineProductPC53(static_cast<double>(worldClock) * Phase, Amplitude);
+                if (!wave)
+                    return Core::Unexpected(
+                        std::string("0x53829d: el reloj del joint 0x618/2 o /3 excede el seno canónico"));
+                const double glow = *wave + Base;
+                const glm::vec3 color{static_cast<float>(glow * 0.5), static_cast<float>(glow * Green),
+                                      static_cast<float>(glow)};
+                if (particles == nullptr || random == nullptr)
+                    return Core::Unexpected(std::string("0x5386ff: faltan las partículas del joint 0x618/2 o /3"));
+                const auto created =
+                    particles->CreateChecked(World::LightningParticle, joint.position, joint.angles, color,
+                                             World::LightningTrailSubtype, 1, worldClock, *random);
+                if (!created.HasValue())
+                    return Core::Unexpected(std::string("0x5386ff: falló la partícula 0x5d5 del joint 0x618/2 o /3"));
+            }
         }
         if (swordTrail)
             if (auto result = StepSwordTrail(joint, i); !result.HasValue())

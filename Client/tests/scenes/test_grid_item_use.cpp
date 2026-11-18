@@ -417,12 +417,15 @@ TEST_F(GridItemUseTest, The1a0bOfLevelZeroOrOneIsUsed)
 TEST_F(GridItemUseTest, TheTicket1a1dLooksAtTheShopFirst)
 {
     Scenes::GamePanels panels(world, random);
+    Cell(0, 0).id = 0x1a1d;
+    std::vector<Client::Protocol::Outgoing> requests;
+    services.sendGamePacket = [&requests](Client::Protocol::Outgoing packet) { requests.push_back(std::move(packet)); };
     Client::UI::PanelState& state = world.Runtime().panels;
     const auto look = [&](std::uint8_t& open, int randoms)
     {
         open = 1;
         const CrtRandom expected = Advanced(random, randoms);
-        const auto used = Scenes::UseTheEventTicket(panels.Registry(), 0x1a1d);
+        const auto used = Scenes::UseTheEventTicket(Moves(), panels.Registry(), InventoryGrid(), 0);
         ASSERT_TRUE(used.HasValue()) << used.Error();
         EXPECT_EQ(random.State(), expected.State());
         open = 0;
@@ -440,19 +443,22 @@ TEST_F(GridItemUseTest, TheTicket1a1dLooksAtTheShopFirst)
         look(state.trade, 2);
     }
     const CrtRandom expected = Advanced(random, 2);
-    const auto cut = Scenes::UseTheEventTicket(panels.Registry(), 0x1a1d);
-    ASSERT_FALSE(cut.HasValue());
-    EXPECT_NE(cut.Error().find("0x5c6865"), std::string::npos) << cut.Error();
+    const auto used = Scenes::UseTheEventTicket(Moves(), panels.Registry(), InventoryGrid(), 0);
+    ASSERT_TRUE(used.HasValue()) << used.Error();
+    ASSERT_EQ(requests.size(), 1u);
+    EXPECT_TRUE(SameBytes(Xor32Decode(requests.back().packet).Bytes(), Bytes({0xc1, 4, 0x91, 4})));
     EXPECT_EQ(random.State(), expected.State());
     EXPECT_TRUE(sent.empty());
 
     state.npcShop = 1;
-    for (const auto& [type, address] : {std::pair{0x1c13, "0x5c6c36"}, std::pair{0x1a12, "0x5c7010"}})
+    for (const auto& [type, kind] : {std::pair{0x1c13, 1}, std::pair{0x1a12, 2}})
     {
         const CrtRandom unchanged = random;
-        const auto other = Scenes::UseTheEventTicket(panels.Registry(), type);
-        ASSERT_FALSE(other.HasValue());
-        EXPECT_NE(other.Error().find(address), std::string::npos) << other.Error();
+        Cell(0, 0).id = static_cast<std::uint16_t>(type);
+        const auto other = Scenes::UseTheEventTicket(Moves(), panels.Registry(), InventoryGrid(), 0);
+        ASSERT_TRUE(other.HasValue()) << other.Error();
+        EXPECT_TRUE(SameBytes(Xor32Decode(requests.back().packet).Bytes(),
+                              Bytes({0xc1, 4, 0x91, static_cast<std::uint8_t>(kind)})));
         EXPECT_EQ(random.State(), unchanged.State());
         EXPECT_TRUE(Scenes::IsAnEventTicket(type));
     }

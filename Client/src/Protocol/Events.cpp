@@ -350,6 +350,11 @@ Outgoing WriteEventWindowLeave()
     return ClearC1(Network::PacketWriter::C1(EventWindowLeaveOpcode));
 }
 
+Outgoing WriteEventTimeRequest(std::uint8_t kind)
+{
+    return Xor32C1(Network::PacketWriter::C1(EventOpenTimeOpcode).PutU8(kind));
+}
+
 Outgoing WriteMutoNumberRequest()
 {
     return Xor32C1(Network::PacketWriter::C1(MutoNumberRequestOpcode).PutU8(MutoNumberRequestByte));

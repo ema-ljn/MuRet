@@ -494,6 +494,55 @@ Core::Expected<void, std::string> StepFadingDecal(const ModelEffect& effect, Par
     return {};
 }
 
+Core::Expected<void, std::string> StepFirework(ModelEffect& effect, float luminosity, Particles& particles,
+                                               float worldClock, Render::Models::CrtRandom& random,
+                                               const ModelEffectStepServices& services)
+{
+    if (effect.type == 0x60e)
+    {
+        // 0x52b26d: el caller sortea la chance antes de consultar el pool de efectos.
+        if (effect.life % 5 != 0 || random.Next() % 3 != 0)
+            return {};
+        if (services.effects == nullptr)
+            return Core::Unexpected(std::string("0x52b2ac: el emisor60e sin la tabla de efectos"));
+        const auto created =
+            services.effects->CreateFireworkFlare(ModelEffectArguments{.type = 0x60d,
+                                                                       .position = effect.transform.position,
+                                                                       .angles = effect.transform.angles,
+                                                                       .light = effect.light},
+                                                  random);
+        if (created && services.sound)
+            services.sound(0x58);
+        return {};
+    }
+    // 0x52b2b9: tres sorteos del caller para la explosión, incluso con las partículas llenas.
+    if (effect.life == 1)
+    {
+        const int subtype = random.Next() % 30;
+        const float red =
+            F32(static_cast<double>(random.Next() % 3) * static_cast<double>(0.3f) + static_cast<double>(0.4f));
+        const float green = F32(static_cast<double>(random.Next() & 3) * static_cast<double>(0.1f));
+        const glm::vec3 light{red, green, 0};
+        for (int index = 0; index < 80; ++index)
+        {
+            const auto created = particles.CreateChecked(0x60d, effect.transform.position, effect.transform.angles,
+                                                         light, subtype, 1, worldClock, random);
+            if (!created.HasValue())
+                return Core::Unexpected(std::string("0x52b339: el estallido60d sin su partícula"));
+        }
+        if (services.sound)
+            services.sound(0x59);
+    }
+    const auto trail = particles.CreateChecked(0x60d, effect.transform.position, effect.transform.angles, effect.light,
+                                               -1, 1, worldClock, random);
+    if (!trail.HasValue())
+        return Core::Unexpected(std::string("0x52b36e: la estela60d sin su partícula"));
+    const glm::vec3 light{F32(static_cast<double>(luminosity) * static_cast<double>(0.4f)),
+                          F32(static_cast<double>(luminosity) * static_cast<double>(0.3f)),
+                          F32(static_cast<double>(luminosity) * static_cast<double>(0.2f))};
+    return AddDynamicLight(services.lighting, effect.transform.position, light, 1, "0x52b3a9");
+}
+
 // 0x52c5ca..0x52c7a6, la onda 0x6eb. Con el subtipo 0 (la del pisotón del caballo) la escala pierde 1 (0x6b87d4),
 // sin rand(). Con el 1 (la del galope en Icarus) la escala crece (rand() % 5) · 0,1f y la posición tiembla (rand() &
 // 7) − 4 en x y en y, cada una en la x87 hasta su fstp: tres rand(). Después, una escala negativa vuelve a 0
@@ -522,12 +571,24 @@ Core::Expected<void, std::string> StepShockWave(ModelEffect& effect, Render::Mod
                 F32((static_cast<double>(shake) - ShakeCentre) + static_cast<double>(effect.transform.position[axis]));
         }
     }
+    else if (effect.subtype == 8)
+        effect.transform.scale = F32(static_cast<double>(effect.transform.scale) + 1.0);
     else
         return Core::Unexpected(
             std::format("0x52c5ca: el paso del 0x6eb con el subtipo {} no está portado", effect.subtype));
     // fcomp con 0 y C0: también sin orden.
     if (!(effect.transform.scale >= 0.0f))
         effect.transform.scale = 0.0f;
+    if (effect.subtype > 3)
+    {
+        if (effect.life < 6)
+        {
+            constexpr double Fade = static_cast<double>(std::bit_cast<float>(0x3f44ec4fu)); // 0x6ba240.
+            for (int channel = 0; channel < 3; ++channel)
+                effect.light[channel] = F32(static_cast<double>(effect.light[channel]) * Fade);
+        }
+        return {};
+    }
     const std::int32_t fade = effect.life > FadeTurn ? FadeEnd - effect.life : effect.life;
     effect.light = glm::vec3(F32(static_cast<double>(fade) * LightPerLife));
     return {};
@@ -1201,6 +1262,29 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
     {
         if (auto stepped = StepFadingDecal(effect, particles, worldClock, random); !stepped.HasValue())
             return stepped;
+    }
+    else if (effect.type == 0x60d || effect.type == 0x60e)
+    {
+        if (auto stepped =
+                StepFirework(effect, StepLuminosity(lightDraw, effect.life), particles, worldClock, random, services);
+            !stepped.HasValue())
+            return stepped;
+    }
+    else if (effect.type == 0x636)
+    {
+        // 0x52c53c..0x52c5a0: el cráter de Crywolf, con el color y el alfa de la vida ANTES del descenso común.
+        constexpr std::int32_t FadeLife = 10;
+        constexpr double FadeStep = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
+        constexpr glm::vec3 Shadow{-0.5f, -0.5f, -0.5f};
+        if (effect.life < FadeLife)
+        {
+            effect.light = glm::vec3(F32(static_cast<double>(effect.life) * FadeStep));
+            effect.alpha = effect.light.x;
+        }
+        const auto radius = FtolLow(static_cast<double>(effect.start.x) - 1.0);
+        if (auto lit = AddDynamicLight(services.lighting, effect.transform.position, Shadow, radius, "0x528790");
+            !lit.HasValue())
+            return lit;
     }
     else if (effect.type == ShockWaveEffect)
     {

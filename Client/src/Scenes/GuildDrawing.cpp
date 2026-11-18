@@ -157,9 +157,8 @@ void DrawInTheMiddle(GameHudContext& context, std::int32_t x, std::int32_t y, st
 }
 
 // 0x5a7870..0x5a78b8: strcmp de +0xd de cada entrada con el rival; sin ninguna, EAX queda en 0 (0x5a78ba).
-std::int32_t RivalMarkOf(const GuildState& guild)
+std::int32_t MarkOf(const GuildState& guild, std::string_view rival)
 {
-    const std::string_view rival = NameOf(guild.rival);
     for (std::size_t index = 0; index < RivalSearched; ++index)
     {
         if (NameOf(guild.table[index].guildName) == rival)
@@ -219,15 +218,14 @@ void DrawTheLine(GameHudContext& context, std::int32_t x, std::int32_t y, std::s
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawTheWarScore(GameHudContext& context, UI::PanelRegistry& panels)
+namespace
+{
+Core::Expected<void, std::string> DrawTheGuildWarScore(GameHudContext& context, UI::PanelRegistry& panels)
 {
     Render::SpriteBatch& sprites = context.sprites;
-    sprites.SetBlend(BlendMode::Opaque);
-    context.hud.textColors.background = ScoreBackground;
     WorldState& world = context.world;
     const GuildState& guild = world.Runtime().guild;
     const auto heroGuild = static_cast<std::int16_t>(world.Actors()[world.Runtime().hero].word1f2);
-    // 0x5a7a01: el segundo marcador, con 0x576796f, que prende el F3 23 (0x4d9f62, hito 11), lo corta GameHud.
     if (guild.warOn == 0 || heroGuild == NoGuildIndex)
         return {};
     if (context.guildMarks == nullptr)
@@ -246,12 +244,49 @@ Core::Expected<void, std::string> DrawTheWarScore(GameHudContext& context, UI::P
     DrawText(context, left + NameOffset, OursTextTop,
              NameOf(guild.table[static_cast<std::size_t>(heroGuild)].guildName));
     context.hud.textColors.text = team ? RedText : OrangeText;
-    if (auto drawn = DrawTheMark(context, guild, RivalMarkOf(guild), x, TheirsTop); !drawn.HasValue())
+    if (auto drawn = DrawTheMark(context, guild, MarkOf(guild, NameOf(guild.rival)), x, TheirsTop); !drawn.HasValue())
         return drawn;
     DrawText(context, left + ScoreOffset, TheirsTextTop, std::format("{}", guild.theirScore));
     // 0x5a79b0: 0x5542f0(…, 0, 1, 0) es el modo 1 de 0x554180 y mide lo mismo que la medida de 0x5a79ba que sigue.
     DrawText(context, left + NameOffset, TheirsTextTop, NameOf(guild.rival));
     return {};
+}
+
+// 0x5a7a01..0x5a7cbd: los nombres recibidos buscan sus marcas en la tabla actual, incluso sin guerra.
+Core::Expected<void, std::string> DrawTheSoccerScore(GameHudContext& context, UI::PanelRegistry& panels)
+{
+    const auto& soccer = context.world.Runtime().events.soccer;
+    if (!soccer.active)
+        return {};
+    if (context.guildMarks == nullptr)
+        return Core::Unexpected(std::string("0x5a7a81: la marca de Soccer sin la tabla de las marcas"));
+    const GuildState& guild = context.world.Runtime().guild;
+    context.sprites.SetBlend(BlendMode::Alpha);
+    const auto x = static_cast<float>(static_cast<double>(panels.WorldWidth()) * HalfOfTheWorld - ScoreLeft);
+    const auto left = static_cast<std::int32_t>(x);
+    SelectFont(context, FontKind::Bold);
+    context.hud.textColors.text = RedText;
+    if (auto mark = DrawTheMark(context, guild, MarkOf(guild, NameOf(soccer.firstName)), x, OursTop); !mark.HasValue())
+        return mark;
+    DrawText(context, left + ScoreOffset, OursTextTop, std::format("{}", guild.ourScore));
+    DrawText(context, left + NameOffset, OursTextTop, NameOf(soccer.firstName));
+    context.hud.textColors.text = OrangeText;
+    if (auto mark = DrawTheMark(context, guild, MarkOf(guild, NameOf(soccer.secondName)), x, TheirsTop);
+        !mark.HasValue())
+        return mark;
+    DrawText(context, left + ScoreOffset, TheirsTextTop, std::format("{}", guild.theirScore));
+    DrawText(context, left + NameOffset, TheirsTextTop, NameOf(soccer.secondName));
+    return {};
+}
+} // namespace
+
+Core::Expected<void, std::string> DrawTheWarScore(GameHudContext& context, UI::PanelRegistry& panels)
+{
+    context.sprites.SetBlend(BlendMode::Opaque);
+    context.hud.textColors.background = ScoreBackground;
+    if (auto war = DrawTheGuildWarScore(context, panels); !war.HasValue())
+        return war;
+    return DrawTheSoccerScore(context, panels);
 }
 
 Core::Expected<void, std::string> DrawTheGuildPositions(GameHudContext& context)

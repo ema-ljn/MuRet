@@ -207,6 +207,15 @@ struct ModelEffectArguments
 class ModelEffects
 {
 public:
+    // 0x51edc4/0x51ee54: los fuegos artificiales60d/60e, con pools reales y sin sonidos implícitos.
+    std::optional<std::size_t> CreateFireworkEmitter(const ModelEffectArguments& arguments);
+    std::optional<std::size_t> CreateFireworkFlare(const ModelEffectArguments& arguments,
+                                                   Render::Models::CrtRandom& random);
+    // 0x51f7f9: cráter636, sub0/1/2; no consume RNG y el pool lleno conserva sus argumentos.
+    std::optional<std::size_t> CreateCraterEffect(const ModelEffectArguments& arguments);
+    // 0x51f577..0x51f5fd: ondas6eb/5..8. Sólo /8 consume un rand() al conseguir lugar.
+    std::optional<std::size_t> CreateCastleShockWave(const ModelEffectArguments& arguments,
+                                                     Render::Models::CrtRandom& random);
     // 438a1a→5191be: tipo9/0, ownerNULL, escalaargumento0; primer libre, lleno sinCRT.
     std::optional<std::size_t> CreateKalimaEffect(const glm::vec3& position, const glm::vec3& angles,
                                                   const glm::vec3& light, Render::Models::CrtRandom& random);

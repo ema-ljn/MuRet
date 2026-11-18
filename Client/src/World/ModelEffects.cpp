@@ -1082,6 +1082,85 @@ std::optional<std::size_t> ModelEffects::Create(std::int16_t type, const glm::ve
     return std::nullopt;
 }
 
+std::optional<std::size_t> ModelEffects::CreateFireworkEmitter(const ModelEffectArguments& arguments)
+{
+    const auto slot = Begin(arguments);
+    if (!slot)
+        return std::nullopt;
+    auto& effect = m_effects[*slot];
+    effect.transform.angles = {};
+    effect.transform.position.z = 100;
+    effect.life = 75;
+    return slot;
+}
+
+std::optional<std::size_t> ModelEffects::CreateFireworkFlare(const ModelEffectArguments& arguments,
+                                                             Render::Models::CrtRandom& random)
+{
+    const auto slot = Begin(arguments);
+    if (!slot)
+        return std::nullopt;
+    auto& effect = m_effects[*slot];
+    effect.light = glm::vec3(1);
+    effect.velocity.x = static_cast<float>(random.Next() % 9 - 4);
+    effect.velocity.y = static_cast<float>(random.Next() % 9 - 4);
+    effect.velocity.z = 26;
+    effect.life = 12;
+    return slot;
+}
+
+std::optional<std::size_t> ModelEffects::CreateCraterEffect(const ModelEffectArguments& arguments)
+{
+    const auto slot = Begin(arguments);
+    if (!slot)
+        return std::nullopt;
+    ModelEffect& effect = m_effects[*slot];
+    if (effect.subtype >= 0 && effect.subtype <= 2)
+    {
+        constexpr std::array<std::int32_t, 3> Lives{60, 30, 40};
+        constexpr std::array<float, 3> Sizes{4.5f, 2.5f, 3.0f};
+        const auto subtype = static_cast<std::size_t>(effect.subtype);
+        effect.life = Lives[subtype];
+        effect.start.x = Sizes[subtype];
+        effect.start.y = Sizes[subtype];
+    }
+    effect.light = glm::vec3(1);
+    return slot;
+}
+
+std::optional<std::size_t> ModelEffects::CreateCastleShockWave(const ModelEffectArguments& arguments,
+                                                               Render::Models::CrtRandom& random)
+{
+    const auto slot = Begin(arguments);
+    if (!slot)
+        return std::nullopt;
+    ModelEffect& effect = m_effects[*slot];
+    effect.life = 30;
+    effect.transform.scale = 20.0f;
+    switch (effect.subtype)
+    {
+    case 5:
+        effect.life = 20;
+        effect.transform.scale = 9;
+        break;
+    case 6:
+        effect.life = 50;
+        effect.transform.scale = 9;
+        break;
+    case 7:
+        effect.life = 10;
+        effect.transform.scale = 1;
+        break;
+    case 8:
+        effect.life = 10;
+        effect.transform.scale = F32(static_cast<double>(random.Next() % 10 + 10) * static_cast<double>(0.2f));
+        break;
+    default:
+        break;
+    }
+    return slot;
+}
+
 std::optional<std::size_t> ModelEffects::CreateNoriaEffect(std::int16_t type, const glm::vec3& position,
                                                            const glm::vec3& angles, glm::vec3& sourceLight,
                                                            Render::Models::CrtRandom& random)

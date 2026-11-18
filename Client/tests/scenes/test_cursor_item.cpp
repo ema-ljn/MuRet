@@ -75,6 +75,7 @@ constexpr std::uint16_t Bolts = 0x0807;    // 1 × 1
 constexpr std::uint16_t Arrows = 0x080f;   // 1 × 1
 // 1 × 1, la derecha: el Dark Raven con 32 tipos por grupo, que 0x5bf03f compara (en el Item.bmd real, vacío).
 constexpr std::uint16_t OldDarkRaven = 0x01a5;
+constexpr std::uint16_t EntryTicket = 0x1c1c; // 1 × 1, el mapa que mira 0x4379f0.
 constexpr std::uint16_t WizardsRing = 0x1a14; // 1 × 1, el primer anillo
 constexpr std::uint8_t HeadSlot = 2;
 constexpr std::uint8_t WingSlot = 7;
@@ -206,7 +207,8 @@ protected:
                                                          {Bolts, 1, 1, 1},
                                                          {Arrows, 1, 1, 0},
                                                          {OldDarkRaven, 1, 1, 0},
-                                                         {WizardsRing, 1, 1, 10}});
+                                                         {WizardsRing, 1, 1, 10},
+                                                         {EntryTicket, 1, 1, NotWorn}});
     Outside outside;
     InventoryServices services;
 };
@@ -912,6 +914,110 @@ TEST_F(CursorItemTest, TheWizardsRingAsksForItsLevelBeforeBeingDropped)
         EXPECT_EQ(Cell(0, 0).id, WizardsRing);
     }
     EXPECT_EQ(lines, std::vector<std::string>{"hace falta el nivel 80"});
+}
+
+// 0x5df5cf..0x5df6c4: cada ventana lee la x retenida del dibujo, con comparación signed y sin cortar la UI.
+TEST_F(CursorItemTest, NpcWindowsKeepTheDropOnlyOnTheirSideOfTheScreen)
+{
+    for (const int kind : {0, 1, 2, 3})
+    {
+        for (const std::int32_t mouseX : {259, 260})
+        {
+            auto& runtime = world.Runtime();
+            runtime.panels.npcShop = kind == 0 ? 1 : 0;
+            runtime.panels.warehouse = kind == 1 ? 1 : 0;
+            runtime.panels.chaosBox = kind == 2 ? 1 : 0;
+            runtime.panels.delegated.trainer = kind == 3 ? 3 : 0;
+            runtime.ui.npcWindowX = 260;
+            Put(Potion, 0, 0);
+            runtime.movement.pendingClick = true;
+            ASSERT_TRUE(Scenes::PickUpFromTheGrid(Moves(), 0).HasValue());
+            std::vector<Drop> sent;
+            services.sendDrop = [&sent](const Drop& drop)
+            {
+                sent.push_back(drop);
+                return Expected<void, std::string>{};
+            };
+            services.pickTheGround = [] { return Expected<std::optional<PathCell>, std::string>(PathCell{130, 121}); };
+            Scenes::GamePanels panels(world, random);
+            const auto dropped =
+                Scenes::DropOnTheGround(Moves(), Scenes::GroundDrop{.mouseX = mouseX, .panels = &panels.Registry()});
+            ASSERT_TRUE(dropped.HasValue()) << dropped.Error();
+            EXPECT_EQ(sent.size(), mouseX < 260 ? 1u : 0u);
+            EXPECT_EQ(runtime.cursorItemCount, mouseX < 260 ? 1 : 0);
+        }
+    }
+}
+
+// 0x5dfb3e y 0x4379f0: los dwords de la tabla y el corte de mapas son distintos de la zona segura de 0x437a20.
+TEST_F(CursorItemTest, EntryTicketsRespectTheNativeThresholdMapAndSafeZone)
+{
+    struct Case
+    {
+        std::uint8_t characterClass;
+        std::uint16_t heroLevel;
+        std::uint32_t itemLevel;
+        std::int32_t map;
+        std::uint8_t safeZone;
+        bool sends;
+        bool warns;
+    };
+    constexpr std::array<Case, 9> Cases{{{0, 40, 1, 0, 0, true, false},
+                                         {0, 39, 1, 0, 0, false, false},
+                                         {0, 65535, 0, 0, 0, false, false},
+                                         {3, 350, 0, 0, 0, true, false},
+                                         {4, 20, 1, 0, 0, true, false},
+                                         {0, 40, 1, 24, 0, false, false},
+                                         {0, 40, 1, 36, 0, false, false},
+                                         {0, 40, 1, 0, 1, false, true},
+                                         {4, 19, 12, 0, 0, false, true}}};
+    const auto texts = Client::Tests::MakeTextTable({{1123, "Desde %d"}});
+    services.texts = &texts;
+    std::vector<std::string> lines;
+    services.chatLine = [&lines](std::string_view line, std::int32_t type)
+    {
+        EXPECT_EQ(type, 2);
+        lines.emplace_back(line);
+        return Expected<void, std::string>{};
+    };
+    for (const Case& entry : Cases)
+    {
+        auto& runtime = world.Runtime();
+        runtime.map = entry.map;
+        world.Actors()[runtime.hero].characterClass = entry.characterClass;
+        world.Actors()[runtime.hero].safeZone = entry.safeZone;
+        world.OwnCharacter().level = entry.heroLevel;
+        Put(EntryTicket, 0, 0);
+        Cell(0, 0).scalar1Low = entry.itemLevel << 3;
+        runtime.movement.pendingClick = true;
+        ASSERT_TRUE(Scenes::PickUpFromTheGrid(Moves(), 0).HasValue());
+        std::vector<Drop> sent;
+        services.sendDrop = [&sent](const Drop& drop)
+        {
+            sent.push_back(drop);
+            return Expected<void, std::string>{};
+        };
+        services.pickTheGround = [] { return Expected<std::optional<PathCell>, std::string>(PathCell{130, 121}); };
+        Scenes::GamePanels panels(world, random);
+        const auto before = random;
+        outside.messages.clear();
+        lines.clear();
+        const auto dropped =
+            Scenes::DropOnTheGround(Moves(), Scenes::GroundDrop{.mouseX = 100, .panels = &panels.Registry()});
+        ASSERT_TRUE(dropped.HasValue()) << dropped.Error();
+        EXPECT_EQ(sent.size(), entry.sends ? 1u : 0u);
+        EXPECT_EQ(runtime.cursorItemCount, entry.sends ? 1 : 0);
+        EXPECT_EQ(!outside.messages.empty() || !lines.empty(), entry.warns);
+        EXPECT_EQ(random.State(), Advanced(before, 2 + 2 * Own + (entry.sends ? 3 : 0)).State());
+        if (entry.safeZone != 0)
+        {
+            EXPECT_EQ(outside.messages, std::vector<std::size_t>{1238});
+        }
+        if (entry.characterClass == 4 && entry.heroLevel == 19)
+        {
+            EXPECT_EQ(lines, std::vector<std::string>{"Desde 20"});
+        }
+    }
 }
 
 // 0x59bd3e..0x59bf56: MoveHero pasa el arma de la izquierda al cursor en un acceso al registro propio, viste al héroe y

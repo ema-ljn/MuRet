@@ -1328,13 +1328,30 @@ private:
 
     // ----- BD 0C (0x4e59d6 → 0x4e15f0 → 0x430040).
 
-    Applied On(const Events::CrywolfUnported& /*packet*/)
+    Applied On(const Events::CrywolfUnported& packet)
     {
-        // 0x430040 (fase 4: leído entero) no escribe estado ni saca rand() fuera de 0x518cf0: un solo 0xee en
-        // (pkt[8] · 100, pkt[9] · 100, 100) con el héroe de dueño, el caso 2 con pkt[6] en 0x7a o 0x74, el 1 con 0xb7
-        // y el 0 con cualquier otro, y un segundo punto corrido en x o y con z 800.
-        return Core::Unexpected(std::string("0x430040: el efecto 0xee de Crywolf (0x518cf0 con los casos 0, 1 y 2 "
-                                            "por pkt[6]) es de la CL11"));
+        if (packet.bytes.size() < 10)
+            return Discard("0x4e15f0: BD0C lee pkt6..9 fuera del paquete");
+        const auto selector = std::to_integer<std::uint8_t>(packet.bytes[6]);
+        const auto x = std::to_integer<std::uint8_t>(packet.bytes[8]);
+        const auto y = std::to_integer<std::uint8_t>(packet.bytes[9]);
+        const std::int32_t subtype = selector == 0x7a || selector == 0x74 ? 2 : selector == 0xb7 ? 1 : 0;
+        const glm::vec3 target{static_cast<float>(x) * 100.0f, static_cast<float>(y) * 100.0f, 100};
+        glm::vec3 position = target;
+        position.z = 800;
+        if (subtype == 0)
+            position.x -= 800;
+        else if (subtype == 1)
+            position.x += 800;
+        else
+            position.y += 800;
+        static_cast<void>(m_world.Map().effects.CreateCrywolfMissile({.type = 0xee,
+                                                                      .position = position,
+                                                                      .angles = target,
+                                                                      .light = m_world.Actors()[m_runtime.hero].light,
+                                                                      .subtype = subtype,
+                                                                      .owner = &m_world.Actors()[m_runtime.hero]}));
+        return {};
     }
 
     // ----- BD 04 (0x4e59ba → 0x435a20): con la etapa 4 en el 34, pkt[4], los minutos y GetTickCount.

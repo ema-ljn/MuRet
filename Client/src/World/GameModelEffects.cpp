@@ -7,6 +7,8 @@
 #include "Render/Models/OriginalRetainedMath.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
+#include "World/ParticleBurst.h"
+#include "World/ParticleOwner.h"
 #include "World/KalimaWorld.h"
 #include "World/PortableParticleTrigonometry.h"
 #include "World/Ftol.h"
@@ -17,6 +19,7 @@
 
 #include <glm/ext/vector_float3.hpp>
 
+#include <algorithm>
 #include <array>
 #include <algorithm>
 #include <bit>
@@ -495,6 +498,112 @@ Core::Expected<void, std::string> StepFadingDecal(const ModelEffect& effect, Par
         return Core::Unexpected(
             std::format("0x52b954: el alta de 0x60f/10 falla con error {}", static_cast<unsigned>(created.Error())));
     return {};
+}
+
+Core::Expected<void, std::string> ScatterCrywolfImpact(const glm::vec3& position, Particles& particles,
+                                                       float worldClock, Render::Models::CrtRandom& random,
+                                                       const ModelEffectStepServices& services)
+{
+    // 0x51fff0(posición,1): ocho grupos a45grados, dos piedras0 por grupo y los cuarenta sorteos del burst.
+    for (int group = 0; group < 8; ++group)
+    {
+        const glm::vec3 angles{0, 0, static_cast<float>(group * 45)};
+        const auto offset =
+            Render::Models::OriginalVectorRotate({0, -220, 0}, Render::Models::OriginalAngleMatrix(angles));
+        glm::vec3 point;
+        for (int axis = 0; axis < 3; ++axis)
+            point[axis] = F32(static_cast<double>(position[axis]) + static_cast<double>(offset[axis]));
+        const auto burst = CreateParticleBurst(particles, point, random, true, worldClock);
+        if (!burst.HasValue())
+            return Core::Unexpected(std::string("0x520086: burst de impactoCrywolf sin partículas"));
+        if (burst.Value() && services.sound)
+            services.sound(0x40);
+        for (int stone = 0; stone < 2; ++stone)
+        {
+            const auto type = static_cast<std::int16_t>(FirstStoneChipEffect + (random.Next() & 1));
+            if (services.effects == nullptr)
+                return Core::Unexpected(std::string("0x5200c4: falta el pool de piedras del impacto"));
+            static_cast<void>(services.effects->CreateStoneChip(type, point, angles, glm::vec3(1), random));
+        }
+    }
+    return {};
+}
+
+Core::Expected<void, std::string> StepCrywolfMissile(ModelEffect& effect, Particles& particles, float worldClock,
+                                                     Render::Models::CrtRandom& random,
+                                                     const ModelEffectStepServices& services)
+{
+    if (!services.terrainHeight)
+        return Core::Unexpected(std::string("0x525ab1: el0xee sin la altura del terreno"));
+    const double ground = services.terrainHeight(effect.transform.position.x, effect.transform.position.y) + 80.0;
+    if (ground > static_cast<double>(effect.transform.position.z))
+    {
+        if (!(effect.alpha > 0.1f))
+            effect.life = 0;
+        effect.alpha = F32(static_cast<double>(effect.alpha) * static_cast<double>(std::bit_cast<float>(0x3f73cf3eu)));
+        effect.velocity = {0, 0, -30};
+        const auto flame = particles.CreateChecked(0x6ac, effect.transform.position, effect.transform.angles,
+                                                   {1, 0.6f, 0.2f}, 0, 1, worldClock, random);
+        if (!flame.HasValue())
+            return Core::Unexpected(std::string("0x525b3b: falta6ac/0 de la caídaCrywolf"));
+        if (effect.objectState.hiddenMesh != 99)
+        {
+            if (auto burst = ScatterCrywolfImpact(effect.transform.position, particles, worldClock, random, services);
+                !burst.HasValue())
+                return burst;
+            effect.start = effect.transform.position;
+            if (services.effects == nullptr)
+                return Core::Unexpected(std::string("0x525b89: falta el pool del cráterCrywolf"));
+            static_cast<void>(services.effects->CreateCraterEffect({.type = 0x636,
+                                                                    .position = effect.transform.position,
+                                                                    .angles = effect.transform.angles,
+                                                                    .light = effect.light}));
+        }
+        const int shake = (random.Next() & 7) - 8;
+        if (services.cameraShake == nullptr)
+            return Core::Unexpected(std::string("0x525bb7: falta el temblor del impactoCrywolf"));
+        *services.cameraShake = F32((static_cast<double>(shake) * static_cast<double>(0.1f)) * 0.5);
+        effect.objectState.hiddenMesh = 99;
+    }
+    if (effect.objectState.hiddenMesh == 99)
+    {
+        for (int axis = 0; axis < 3; ++axis)
+            effect.transform.position[axis] = F32(static_cast<double>(random.Next() % 100 - 50) +
+                                                  static_cast<double>(effect.transform.position[axis]));
+        effect.transform.scale = 2.2f;
+    }
+    if (effect.seen)
+    {
+        // 0x525c95 transforma el hueso global2 a un local que ninguna continuación lee. No posa ni modifica globales.
+        effect.light = glm::vec3(1);
+        if (services.effects == nullptr)
+            return Core::Unexpected(std::string("0x525cb5: falta el pool durable del dueño0xee"));
+        const auto pool = services.effects->Effects();
+        const auto found =
+            std::ranges::find_if(pool, [&](const ModelEffect& candidate) { return &candidate == &effect; });
+        if (found == pool.end())
+            return Core::Unexpected(std::string("0x525cb5: dueño0xee fuera de su pool durable"));
+        const ParticleOwner owner{ParticleOwnerKind::ModelEffect, static_cast<std::uint64_t>(found - pool.begin())};
+        PortableParticleTrigonometry trig;
+        const auto emit = [&](std::int32_t type, std::int32_t subtype, float scale)
+        {
+            return particles.CreateChecked(type, effect.transform.position, effect.transform.angles, effect.light,
+                                           subtype, scale, std::cref(worldClock), random, 0, trig, owner);
+        };
+        if (!emit(0x5da, 8, F32(static_cast<double>(effect.transform.scale) - static_cast<double>(0.4f))).HasValue())
+            return Core::Unexpected(std::string("0x525cb5: falta5da/8 del0xee"));
+        if (!emit(0x5f2, 38, effect.transform.scale).HasValue())
+            return Core::Unexpected(std::string("0x525ccc: falta5f2/38 del0xee"));
+        effect.light = {1, 0.4f, 0};
+        if (!emit(0x5da, 9, F32(static_cast<double>(effect.transform.scale) - static_cast<double>(0.4f))).HasValue())
+            return Core::Unexpected(std::string("0x525d09: falta5da/9 del0xee"));
+    }
+    if (effect.objectState.hiddenMesh == 99)
+    {
+        effect.transform.scale = 1;
+        effect.transform.position = effect.start;
+    }
+    return AddDynamicLight(services.lighting, effect.transform.position, {1, 0, 0}, 4, "0x525d5f");
 }
 
 Core::Expected<void, std::string> StepFirework(ModelEffect& effect, float luminosity, Particles& particles,
@@ -1249,7 +1358,7 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
             return stepped;
     }
     else if (effect.type == FirstStoneChipEffect || effect.type == SecondStoneChipEffect ||
-             effect.type == IceShardEffect)
+             effect.type == IceShardEffect || (effect.type == 0xe5 && effect.subtype == GroundStoneChipSubtype))
     {
         wholeStep = true;
         if (auto stepped = StepStoneChip(effect, particles, worldClock, random, services); !stepped.HasValue())
@@ -1286,6 +1395,11 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
     else if (effect.type == FadingDecalEffect)
     {
         if (auto stepped = StepFadingDecal(effect, particles, worldClock, random); !stepped.HasValue())
+            return stepped;
+    }
+    else if (effect.type == 0xee)
+    {
+        if (auto stepped = StepCrywolfMissile(effect, particles, worldClock, random, services); !stepped.HasValue())
             return stepped;
     }
     else if (effect.type == 0x60d || effect.type == 0x60e)

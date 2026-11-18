@@ -728,7 +728,7 @@ std::optional<std::size_t> ModelEffects::CreateGroundStoneChip(std::int16_t type
                                                                const glm::vec3& angles, const glm::vec3& light,
                                                                Render::Models::CrtRandom& random)
 {
-    if (type != FirstStoneChipEffect && type != SecondStoneChipEffect)
+    if (type != FirstStoneChipEffect && type != SecondStoneChipEffect && type != 0xe5)
         return std::nullopt;
     constexpr int PushMask = 255, PushBase = 64, LifeMask = 15, LifeBase = 32, ScaleMask = 3, ScaleBase = 15;
     constexpr int Degrees = 360, FallMask = 15, FallBase = 28;
@@ -1080,6 +1080,25 @@ std::optional<std::size_t> ModelEffects::Create(std::int16_t type, const glm::ve
         return k;
     }
     return std::nullopt;
+}
+
+std::optional<std::size_t> ModelEffects::CreateCrywolfMissile(const ModelEffectArguments& arguments)
+{
+    const auto slot = Begin(arguments);
+    if (!slot)
+        return std::nullopt;
+    auto& effect = m_effects[*slot];
+    effect.life = 100;
+    effect.transform.scale = 1;
+    effect.light = glm::vec3(1);
+    effect.siegeTarget = arguments.angles;
+    effect.start = arguments.position;
+    if (effect.subtype >= 0 && effect.subtype <= 2)
+    {
+        effect.transform.angles = {40, 0, effect.subtype == 0 ? 90.0f : effect.subtype == 1 ? -90.0f : 0.0f};
+        effect.velocity = {0, -80, 0};
+    }
+    return slot;
 }
 
 std::optional<std::size_t> ModelEffects::CreateFireworkEmitter(const ModelEffectArguments& arguments)

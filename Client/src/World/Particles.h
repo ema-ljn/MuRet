@@ -35,6 +35,9 @@ struct TerrainLighting;
 struct WorldObject;
 
 inline constexpr std::size_t ParticleCount = 3000;
+inline constexpr std::int32_t MissileFireParticle = 0x5da;
+inline constexpr std::int32_t MissileSmokeSubtype = 38;
+inline constexpr std::int32_t ExplosionSmokeSubtype = 35;
 inline constexpr std::int32_t FireworkParticle = 0x60d;
 inline constexpr std::int32_t PoundingBallParticle = 0x640;
 inline constexpr std::int32_t ShinyParticle = 0x5fc;
@@ -283,5 +286,13 @@ StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random,
                      const ParticleObjectOwners& owners = {}, const ParticleActorActions& actorActions = {},
                      const ParticleTextureHeight& textureHeight = {}, TerrainLighting* lighting = nullptr,
                      const ParticleActorHands& actorHands = {}, const ParticleOwnerBones& ownerBones = {});
+
+// Igual contrato con los sonidos0x40 de las explosiones1 creadas por5ed/2; no retiene el callback.
+[[nodiscard]] Core::Expected<void, ParticleError> StepParticlesChecked(
+    Particles& particles, Render::Models::CrtRandom& random, std::reference_wrapper<const float> worldClock,
+    const std::int32_t* map, IParticleTrigonometry& trigonometry, const ParticleTerrainHeight& terrainHeight,
+    const ParticleObjectOwners& owners, const ParticleActorActions& actorActions,
+    const ParticleTextureHeight& textureHeight, TerrainLighting* lighting, const ParticleActorHands& actorHands,
+    const ParticleOwnerBones& ownerBones, const std::function<void(std::int32_t)>& sound);
 
 } // namespace Client::World

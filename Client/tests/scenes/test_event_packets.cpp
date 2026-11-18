@@ -1523,11 +1523,11 @@ TEST_F(EventPacketsTest, TheSignedCrywolfContractUsesTheActionsOfTheHeroModel)
     EXPECT_TRUE(worldPackets.empty());
 }
 
-// BD 0C (0x430040, los efectos de la CL11) corta con su dirección.
-TEST_F(EventPacketsTest, TheCrywolfEffectsAreCut)
+// 0x4e15f0 entrega pkt6..9 a 0x430040; un paquete truncado no tiene esos campos.
+TEST_F(EventPacketsTest, TheTruncatedCrywolfEffectIsDiscardedBeforeReadingItsDirection)
 {
-    const std::string effects = Cut(Events::CrywolfUnported{.subcode = 0xc, .bytes = {}});
-    EXPECT_NE(effects.find("0x430040"), std::string::npos) << effects;
+    const std::string effects = Discarded(Events::CrywolfUnported{.subcode = 0xc, .bytes = {}});
+    EXPECT_NE(effects.find("0x4e15f0"), std::string::npos) << effects;
 }
 
 // ----- F3 22, F3 23 y F3 40.

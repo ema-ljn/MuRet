@@ -209,6 +209,8 @@ struct ModelEffectArguments
 class ModelEffects
 {
 public:
+    // 0x51c06c: proyectil0xee de BD0C, sinCRT; +1b0 recibe los ángulos como destino.
+    std::optional<std::size_t> CreateCrywolfMissile(const ModelEffectArguments& arguments);
     // 0x51edc4/0x51ee54: los fuegos artificiales60d/60e, con pools reales y sin sonidos implícitos.
     std::optional<std::size_t> CreateFireworkEmitter(const ModelEffectArguments& arguments);
     std::optional<std::size_t> CreateFireworkFlare(const ModelEffectArguments& arguments,

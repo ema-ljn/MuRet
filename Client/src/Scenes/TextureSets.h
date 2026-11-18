@@ -264,7 +264,7 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 3> GlowTextureSet{{
 // flareBlue/62b (61dc9d), todos GL_LINEAR/GL_CLAMP; los dos últimos tienen slots físicos propios.
 // Lo que cuelga de un jugador (0x509340 y 0x50ba30) pide además Shiny03 en 0x5fe (61d937) e Impack03 de
 // Object9 en 0x5ad (61e799), del mismo lazo sin ramas de 0x61ccb0 y con el mismo sampling.
-inline constexpr std::array<Data::Textures::TextureSetEntry, 45> EffectTextureSet{{
+inline constexpr std::array<Data::Textures::TextureSetEntry, 46> EffectTextureSet{{
     {"Effect\\Fire01.jpg", 0x5d9, TextureSetsDetail::LinearClamp},
     // 0x61d663: ShockWave en 0x6eb, la onda del galope del caballo en Icarus (0x44431b).
     {"Effect\\ShockWave.jpg", 0x6eb, TextureSetsDetail::LinearClamp},
@@ -308,6 +308,8 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 45> EffectTextureSe
     // 0x61dbb4: la estela de los fuegos artificiales 0x60e.
     {"Effect\\Fire04.jpg", 0x60d, TextureSetsDetail::LinearClamp},
     {"Effect\\Flare.jpg", 0x60f, TextureSetsDetail::LinearClamp},
+    // 0x61dc0b: Chrome03 para el rastro de Crywolf y los brillos de monstruos, NEAREST/CLAMP.
+    {"Effect\\Chrome03.jpg", 0x6b1, TextureSetsDetail::NearestClamp},
     // 0x61d5a0 y 0x61d893, LINEAR/CLAMP: la 6ec/5 del 0x39 y el 0x47 de Crywolf y la burbuja 698/0 de su agua.
     {"Effect\\fantaF.jpg", 0x6ec, TextureSetsDetail::LinearClamp},
     {"Effect\\coll.jpg", 0x698, TextureSetsDetail::LinearClamp},

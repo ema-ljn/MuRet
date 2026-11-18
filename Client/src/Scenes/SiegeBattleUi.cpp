@@ -1,4 +1,5 @@
 #include "Scenes/SiegeBattleUi.h"
+#include "Scenes/CastleWindows.h"
 
 #include "Core/Expected.h"
 #include "Input/InputState.h"
@@ -286,12 +287,7 @@ Core::Expected<void, std::string> ApplySiegeWeaponOpen(const CastleReceiveContex
     runtime.siegeBattleUi.weaponChoice = 0;
     runtime.siegeBattleUi.weaponKey = key;
     GamePanels panels(context.world, context.random);
-    panels.LendTheSession(context.world, context.random, context.send,
-                          [&context]
-                          {
-                              if (context.send)
-                                  context.send(Protocol::Connection::WriteWindowClose());
-                          });
+    LendTheCastlePanelServices(panels, context);
     if (auto closed = panels.Registry().CloseAll(); !closed.HasValue())
         return closed;
     runtime.panels.delegated.siegeWeapon = mode;

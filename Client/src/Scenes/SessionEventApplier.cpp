@@ -49,6 +49,7 @@
 #include "Scenes/EventPackets.h"
 #include "Scenes/FloorItemPackets.h"
 #include "Scenes/GuildReceive.h"
+#include "Scenes/GuildState.h"
 #include "Scenes/GameFriends.h"
 #include "Scenes/GameLetters.h"
 #include "Scenes/IWorldEntryPublisher.h"
@@ -194,7 +195,8 @@ GuildReceiveContext GuildContextOf(const WorldEntryResources& resources, App::Se
                                .now = now,
                                .send = [&session](Protocol::Outgoing packet)
                                { session.SendGuildPacket(std::move(packet)); },
-                               .models = &resources.models};
+                               .models = &resources.models,
+                               .worldEntry = &resources};
 }
 
 // Lo que los paquetes del castillo leen del juego (CL9 hito 12); lo que mandan va por el GameServer de la sesión.
@@ -207,7 +209,10 @@ CastleReceiveContext CastleContextOf(const WorldEntryResources& resources, App::
                                 .screen = resources.screen ? resources.screen() : App::PixelSize{640, 480},
                                 .texts = resources.texts,
                                 .send = [&session](Protocol::Outgoing packet)
-                                { session.SendCastlePacket(std::move(packet)); }};
+                                { session.SendCastlePacket(std::move(packet)); },
+                                .dataRoot = resources.dataRoot,
+                                .tick = resources.clock != nullptr ? App::TickCountMs(resources.clock->Now()) : 0u,
+                                .entryResources = &resources};
 }
 
 // El 0x3d de la respuesta va a la sesión que la está aplicando.
@@ -549,16 +554,17 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
     }
     if (std::holds_alternative<App::ReturnToSelectionReceived>(event))
     {
-        return ApplyReturnToSelection(m_resources);
+        return PrepareReturnToSelection(WithTheSession(m_resources, session));
     }
+    if (std::holds_alternative<App::SelectionWorldReset>(event))
+        return CompleteReturnToSelection(WithTheSession(m_resources, session));
     if (std::holds_alternative<App::ServerListLogoutCleanup>(event))
     {
         return PrepareReturnToServerList(m_resources);
     }
     if (std::holds_alternative<App::ReturnToServerListReceived>(event))
     {
-        ApplyReturnToServerList(m_resources);
-        return {};
+        return ApplyReturnToServerList(m_resources);
     }
     if (const auto* castle = std::get_if<Protocol::CastleSiege::CastleSiegePacket>(&event))
         return ApplyCastleSiegePacket(*castle, CastleContextOf(m_resources, session));
@@ -572,10 +578,19 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
         return ApplyMapServerLeave(m_resources,
                                    chosen != nullptr ? std::optional<std::uint8_t>(chosen->slot) : std::nullopt);
     }
+    if (std::holds_alternative<App::GuildTableReset>(event))
+    {
+        ResetTheGuildTable(m_resources.world.Runtime().guild);
+        return {};
+    }
+    if (std::holds_alternative<App::MapServerAuthenticationPrepared>(event))
+    {
+        PrepareMapServerAuthentication(m_resources);
+        return {};
+    }
     if (std::holds_alternative<App::MapServerJoined>(event))
     {
-        ApplyMapServerJoin(m_resources);
-        return {};
+        return ApplyMapServerJoin(WithTheSession(m_resources, session));
     }
     if (const auto* moved = std::get_if<Protocol::Inventory::ItemMoveResult>(&event))
         return ApplyItemMoveResult(*moved, m_resources);

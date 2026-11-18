@@ -27,6 +27,9 @@
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/GamePanels.h"
+#include "Scenes/CastleWindows.h"
+#include "Scenes/CastleSiegeReceive.h"
+#include "Scenes/NpcWindows.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/GameCharacters.h"
@@ -309,7 +312,8 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
             m_context.world->Particles(), m_context.cloth->random, runtime.map, terrainHeight, worldClock,
             ParticleOwnersAmong(m_context.world->Map().objects), ParticleActorActionsAmong(m_context.world->Actors()),
             ParticleTextureHeightsOf(m_worldModels), &m_context.world->DynamicLighting().Lighting(),
-            ParticleActorHandsAmong(m_context.world->Actors(), runtime.hero), ParticleOwnerBonesOf(*m_context.world));
+            ParticleActorHandsAmong(m_context.world->Actors(), runtime.hero), ParticleOwnerBonesOf(*m_context.world),
+            [&](std::int32_t sound) { runtime.lastSoundId = sound; });
         !particles.HasValue())
     {
         return particles;
@@ -331,10 +335,16 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
             !returned.HasValue())
             return returned;
         GamePanels panels(world, m_context.cloth->random, GamePanelTables{.items = m_items, .texts = m_texts});
+        CastleSender send;
         if (m_session != nullptr)
-            panels.LendTheSession(
-                world, m_context.cloth->random, [this](Protocol::Outgoing outgoing)
-                { m_session->SendGamePacket(std::move(outgoing)); }, [this]() { m_session->SendWindowClose(); });
+            send = [this](Protocol::Outgoing outgoing) { m_session->SendGamePacket(std::move(outgoing)); };
+        LendTheCastlePanelServices(
+            panels, world, m_context.cloth->random, send, m_context.worldEntry,
+            {.measure = m_context.textMeasure, .texts = m_texts, .screen = m_screen, .now = now});
+        NpcWindowSender npcSend;
+        if (m_session != nullptr)
+            npcSend = [this](Protocol::Outgoing packet) { return m_session->SendNpcWindowPacket(std::move(packet)); };
+        panels.LendTheNpcWindows(world, m_context.cloth->random, inventory, std::move(npcSend));
         auto closed = panels.Registry().PanelKey(0x1b);
         if (!closed.HasValue())
             return Core::Unexpected(std::move(closed).Error());

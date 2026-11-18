@@ -54,7 +54,6 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/CastleBattleState.h"
-#include "UI/CastleSiegeState.h"
 #include "UI/ChatInput.h"
 #include "UI/OldControls.h"
 #include "UI/OldWindowDraw.h"
@@ -865,7 +864,6 @@ Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
     sprites.SetColor(White);
     sprites.SetBlend(BlendMode::Opaque);
     frame.context.hud.textColors.text = 0xffff8080u;
-    const auto cut = [](std::string_view what) { return Core::Unexpected(std::string(what)); };
     // 0x5f7474: 0x5f0be0(0x1c2, 0), que empieza con su IsOpen.
     if (auto party = DrawThePartyWindow(frame.context, panels, PartyWindowLeft, 0); !party.HasValue())
         return party;
@@ -913,8 +911,8 @@ Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
     // 0x5f75e7: 0x424160 con el héroe, siempre: el botón y la ventana de la mascota y el cartel del cuervo.
     if (auto pet = DrawThePetWindow(frame.context, panels); !pet.HasValue())
         return pet;
-    if (panels.IsOpen(UI::Panel2000))
-        return cut("0x5f7180: la ventana 0x2000 no tiene ola todavía");
+    if (auto drawn = DrawThePanel2000(frame.context, panels); !drawn.HasValue())
+        return drawn;
     // 0x5f75fa: 0x40a650, que empieza con +4 de [0x6e592c].
     if (auto commands = DrawTheCommandsWindow(frame.context); !commands.HasValue())
         return commands;
@@ -1596,8 +1594,8 @@ std::optional<std::string> HolderText(const std::array<std::uint8_t, UI::SwitchH
 
 Core::Expected<void, std::string> DrawTheSwitchHolders(Frame& frame)
 {
-    UI::CastleBattleState& battle = frame.runtime.castleSiege.battle;
-    if (!battle.switchHolders)
+    auto& storage = frame.runtime.castleSiegeInfo;
+    if (!storage)
         return {};
     // 0x5a6fdb..0x5a71aa: la X (+0x41c) y la Y (+0x420) del héroe, cada una con su acceso a la tabla de protección.
     std::uint8_t x = 0;
@@ -1617,10 +1615,10 @@ Core::Expected<void, std::string> DrawTheSwitchHolders(Frame& frame)
         // 0x5a730d: 0x4e05f0 libera el objeto. Un dibujo intermedio de MuRet no lo libera: el frame siguiente del
         // original lo hace con sus accesos.
         if (!frame.context.projecting)
-            battle.switchHolders.reset();
+            storage.reset();
         return {};
     }
-    const auto& holders = *battle.switchHolders;
+    const auto& holders = *storage;
     for (std::size_t half = 0; half < 2; ++half)
     {
         const std::size_t base = half * UI::SwitchHolderHalf;

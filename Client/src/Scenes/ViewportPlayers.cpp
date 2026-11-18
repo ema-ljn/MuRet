@@ -1,4 +1,6 @@
 #include "Scenes/ViewportPlayers.h"
+#include "Scenes/CastleBattleReceive.h"
+#include "Scenes/SiegeBattleUi.h"
 
 #include "Core/Expected.h"
 #include "Data/Models/PlayerModels.h"
@@ -249,7 +251,7 @@ Core::Expected<void, std::string> ApplyPlayerRecord(const Protocol::Viewport::Pl
     }
     // 0x4c9249..0x4c9256.
     ApplyCastleSiegeFlags(actor, record.effects, runtime.map);
-    return StepTheSiegePanel(runtime);
+    return RefreshTheSiegePanel(runtime);
 }
 
 // 0x513340 con el nibble entero: de 8 a 15 sale por el JA con 0 (0x51334e).
@@ -442,17 +444,9 @@ Core::Expected<void, std::string> ApplyViewportPlayers(const Protocol::Viewport:
 
 void ApplyViewportLeave(const Protocol::Viewport::Leave& leave, WorldState& world)
 {
-    auto& siege = world.Runtime().castleSiegeInfo;
     for (const std::uint16_t word : leave.keys)
     {
-        // 0x4ca799..0x4ca7cd.
-        if (siege)
-        {
-            constexpr std::uint16_t SiegeKey = 0x13d;
-            const std::size_t first = word == SiegeKey ? 4 : 0x1f;
-            for (std::size_t offset = first; offset < first + 3; ++offset)
-                (*siege)[offset] = 0;
-        }
+        ForgetTheSwitchHolder(world.Runtime(), word);
         // 0x4ca7e1..0x4ca7e8.
         const auto key = static_cast<std::int32_t>(word & Protocol::Viewport::KeyMask);
         RemoveActor(world, key);

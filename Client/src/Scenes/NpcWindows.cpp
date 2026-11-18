@@ -1,12 +1,18 @@
 #include "Scenes/NpcWindows.h"
 
 #include "Core/Expected.h"
+#include "Core/IClock.h"
+#include "App/FaithfulPacer.h"
+#include "App/WindowState.h"
 #include "Protocol/Connection/Logout.h"
 #include "Protocol/Inventory.h"
+#include "Protocol/CastleSiege.h"
 #include "Protocol/NpcWindows.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/GamePanels.h"
+#include "Scenes/CastleWindows.h"
+#include "Scenes/CastleSiegeReceive.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/NpcWindowState.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -264,6 +270,27 @@ Core::Expected<void, std::string> ApplyTalkResult(const Npc::TalkResult& talk, c
     WorldRuntime& runtime = resources.world.Runtime();
     GamePanels panels(resources.world, resources.cloth.random,
                       GamePanelTables{.items = resources.items, .itemSetTables = resources.itemSetTables});
+    std::optional<std::string> sendError;
+    CastleSender sender;
+    if (resources.sendNpcWindowPacket)
+        sender = [&resources, &sendError](Protocol::Outgoing packet)
+        {
+            const auto sent = resources.sendNpcWindowPacket(std::move(packet));
+            if (!sent.HasValue() && !sendError)
+                sendError = sent.Error();
+        };
+    const CastleReceiveContext castle{.world = resources.world,
+                                      .random = resources.cloth.random,
+                                      .log = resources.log,
+                                      .measure = resources.textMeasure,
+                                      .screen = resources.screen ? resources.screen() : App::PixelSize{640, 480},
+                                      .texts = resources.texts,
+                                      .send = sender,
+                                      .dataRoot = resources.dataRoot,
+                                      .tick =
+                                          resources.clock != nullptr ? App::TickCountMs(resources.clock->Now()) : 0u,
+                                      .entryResources = &resources};
+    LendTheCastlePanelServices(panels, castle);
     LendTheNpcWindows(panels, resources);
     UI::PanelRegistry& registry = panels.Registry();
     // 0x4d250c..0x4d2512: 0x657a90.
@@ -305,10 +332,13 @@ Core::Expected<void, std::string> ApplyTalkResult(const Npc::TalkResult& talk, c
             UI::PushDialog(runtime.dialogs, BloodCastleDialog);
         break;
     case TalkCastleSiegeList:
-        return Core::Unexpected(
-            std::string("0x4d25bc: [0x7d536fc] + 0x3d4 y la lista de CS (0x100000) son de la CL9.5"));
+        // 0x4d25bc: el byte se escribe ANTES del open; sólo el1 selecciona87 al cerrar.
+        runtime.castleSiege.senior.closeWith87 = talk.rates[0] == 1;
+        done = open(UI::CastleSiegeListPanel);
+        break;
     case TalkCastleSiegeRequest:
-        return Core::Unexpected(std::string("0x4d25dd: el C1 04 B2 00 es de la CL9.5"));
+        done = Send(resources.sendNpcWindowPacket, Protocol::CastleSiege::WriteStateRequest(), "0x4d25dd: el B2 00");
+        break;
     default:
         // 0x4d2881..0x4d288e: la tienda de NPC (0, 1, 8, 10, 11 y desde 14).
         done = open(UI::NpcShopPanel);
@@ -316,6 +346,8 @@ Core::Expected<void, std::string> ApplyTalkResult(const Npc::TalkResult& talk, c
     }
     if (!done.HasValue())
         return done;
+    if (sendError)
+        return Core::Unexpected(std::move(*sendError));
     // 0x4d2893..0x4d28f6: los dos sonidos y el SetCursorPos.
     runtime.lastSoundId = SecondTalkSound;
     runtime.npcWindows.cursorWarpRequested = true;

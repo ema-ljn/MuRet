@@ -311,6 +311,51 @@ Core::Expected<CastleBattlePacket, ProtocolError> ReadCastle(std::span<const std
         return Core::Unexpected(ProtocolError::WrongPacket);
     }
 }
+Core::Expected<CastleBattlePacket, ProtocolError> ReadWeapon(std::span<const std::byte> bytes, std::uint8_t subcode)
+{
+    if (subcode > 2)
+        return Core::Unexpected(ProtocolError::WrongPacket);
+    const auto result = U8(bytes, 4);
+    if (!result)
+        return TooShort();
+    if (subcode == 0)
+    {
+        WeaponOpen open{.result = *result};
+        if (open.result == 1)
+        {
+            const auto mode = U8(bytes, 5);
+            const auto key = KeyAt(bytes, 6);
+            if (!mode || !key)
+                return TooShort();
+            open.mode = *mode;
+            open.key = *key;
+        }
+        return CastleBattlePacket{open};
+    }
+    if (subcode == 1)
+    {
+        WeaponFire fire{.kind = *result};
+        if (fire.kind != 0)
+        {
+            const auto key = KeyAt(bytes, 5);
+            const auto mode = U8(bytes, 7);
+            const auto x = U8(bytes, 8);
+            const auto y = U8(bytes, 9);
+            if (!key || !mode || !x || !y)
+                return TooShort();
+            fire.key = *key;
+            fire.mode = *mode;
+            fire.x = *x;
+            fire.y = *y;
+        }
+        return CastleBattlePacket{fire};
+    }
+    const auto x = U8(bytes, 5);
+    const auto y = U8(bytes, 6);
+    if (!x || !y)
+        return TooShort();
+    return CastleBattlePacket{WeaponImpact{.kind = *result, .x = *x, .y = *y}};
+}
 } // namespace
 
 Core::Expected<CastleBattlePacket, ProtocolError> ReadCastleBattlePacket(const Network::Packet& packet)
@@ -325,6 +370,7 @@ Core::Expected<CastleBattlePacket, ProtocolError> ReadCastleBattlePacket(const N
     {
     case BattleOpcode:
     case CastleOpcode:
+    case WeaponOpcode:
     {
         const auto subcode = U8(bytes, Network::MinPacketSize(packet.Type()));
         if (!subcode)
@@ -335,6 +381,8 @@ Core::Expected<CastleBattlePacket, ProtocolError> ReadCastleBattlePacket(const N
         {
             return ReadBattle(bytes, *subcode);
         }
+        if (*opcode == WeaponOpcode)
+            return ReadWeapon(bytes, *subcode);
         return ReadCastle(bytes, *subcode);
     }
     case ActorFieldOpcode:

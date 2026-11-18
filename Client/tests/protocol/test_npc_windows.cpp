@@ -136,6 +136,18 @@ TEST(NpcWindowsProtocolTest, ReadsTheTalkResultWithTheRatesItCarries)
     EXPECT_EQ(ErrorOf(NpcWindows::ReadTalkResult(PacketOf(Bytes({0xc1, 0x04, 0x31, 0})))), ProtocolError::WrongPacket);
 }
 
+// 0x4d25bc: Senior consume pkt4; no sustituir un byte ausente por un modo inventado.
+TEST(NpcWindowsProtocolTest, SeniorTalkRequiresItsCloseModeAndPreservesTheRawByte)
+{
+    EXPECT_EQ(ErrorOf(NpcWindows::ReadTalkResult(PacketOf(Bytes({0xc1, 0x04, 0x30, 12})))), ProtocolError::TooShort);
+    for (const std::uint8_t mode : {std::uint8_t{0}, std::uint8_t{1}, std::uint8_t{255}})
+    {
+        const auto result = NpcWindows::ReadTalkResult(PacketOf(Bytes({0xc1, 0x05, 0x30, 12, mode})));
+        ASSERT_TRUE(result.HasValue());
+        EXPECT_EQ(result.Value().rates[0], mode);
+    }
+}
+
 // 0x4c5f60: el C2 31 con la grilla, la cuenta y las entradas de 8 bytes.
 TEST(NpcWindowsProtocolTest, ReadsTheItemList)
 {

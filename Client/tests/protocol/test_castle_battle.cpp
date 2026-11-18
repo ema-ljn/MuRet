@@ -273,4 +273,37 @@ TEST(CastleBattleProtocolTest, BattleStatusAndTimePreserveRawBytes)
     EXPECT_EQ(c2Clock.hours, 0x1e);
     EXPECT_EQ(c2Clock.minutes, 255);
 }
+
+TEST(CastleBattleProtocolTest, TheSiegeWeaponDispatchesAllThreeB7Cases)
+{
+    for (const int subcode : {0, 1, 2})
+    {
+        SCOPED_TRACE(subcode);
+        auto bytes = Bytes({0xc1, 10, 0xb7, subcode, 1, 2, 0x81, 0x23, 255, 0});
+        EXPECT_TRUE(Battle::ReadCastleBattlePacket(PacketOf(std::move(bytes))).HasValue());
+    }
+    EXPECT_TRUE(Battle::ReadCastleBattlePacket(PacketOf(Bytes({0xc1, 5, 0xb7, 0, 0}))).HasValue());
+    EXPECT_TRUE(Battle::ReadCastleBattlePacket(PacketOf(Bytes({0xc1, 5, 0xb7, 1, 0}))).HasValue());
+    EXPECT_EQ(ErrorReading(Bytes({0xc1, 4, 0xb7, 3})), ProtocolError::WrongPacket);
+}
+TEST(CastleBattleProtocolTest, WeaponMessagesReadTheirDistinctLayoutsAndRejectionPrefixes)
+{
+    const auto open = std::get<Battle::WeaponOpen>(Read(Bytes({0xc1, 8, 0xb7, 0, 1, 255, 0x81, 0x23})));
+    EXPECT_EQ(open.mode, 255);
+    EXPECT_EQ(open.key, 0x8123);
+    const auto fire = std::get<Battle::WeaponFire>(Read(Bytes({0xc1, 10, 0xb7, 1, 2, 0x81, 0x23, 255, 128, 0})));
+    EXPECT_EQ(fire.kind, 2);
+    EXPECT_EQ(fire.key, 0x8123);
+    EXPECT_EQ(fire.mode, 255);
+    EXPECT_EQ(fire.x, 128);
+    EXPECT_EQ(fire.y, 0);
+    const auto impact = std::get<Battle::WeaponImpact>(Read(Bytes({0xc1, 7, 0xb7, 2, 255, 0, 128})));
+    EXPECT_EQ(impact.kind, 255);
+    EXPECT_EQ(impact.x, 0);
+    EXPECT_EQ(impact.y, 128);
+    EXPECT_EQ(ErrorReading(Bytes({0xc1, 7, 0xb7, 0, 1, 1, 2})), ProtocolError::TooShort);
+    EXPECT_EQ(ErrorReading(Bytes({0xc1, 9, 0xb7, 1, 1, 1, 2, 3, 4})), ProtocolError::TooShort);
+    EXPECT_EQ(ErrorReading(Bytes({0xc1, 6, 0xb7, 2, 1, 2})), ProtocolError::TooShort);
+    EXPECT_TRUE(Battle::ReadCastleBattlePacket(PacketOf(Bytes({0xc1, 5, 0xb7, 0, 255}))).HasValue());
+}
 } // namespace

@@ -40,9 +40,13 @@ struct ClearInventoryReceived
 {
 };
 
-// El F1 02 con 1 que llegó cifrado: lo que 0x4c2710 limpia del juego (0x4c3626..0x4c363a) y lo que hace
-// 0x4c2480 (0x4c390a), sin los paquetes, que manda la sesión (06, "La vuelta a la selección"). Corre en
-// cualquier escena: el 1 no mira cuál es.
+// 0x4c38eb..0x4c390a: terminación del retorno después de que la sesión mandóF3 00.
+struct SelectionWorldReset
+{
+};
+
+// F1 02 con1 cifrado, prefijo4c3626..4c363f: devuelve cursor y suelta mundo, deja escena4.
+// La sesión mandaF3 00; después SelectionWorldReset completa4c38eb..4c390a.
 struct ReturnToSelectionReceived
 {
 };
@@ -56,6 +60,16 @@ struct MapServerLeft
 // El saludo del GameServer nuevo con el movimiento pendiente: lo del juego de 0x412bb0 antes de armar el B1 01
 // (Scenes::ApplyMapServerJoin).
 struct MapServerJoined
+{
+};
+
+// 0x41372f y el acceso al serial: después del tick del B1 01, antes de enviarlo.
+struct MapServerAuthenticationPrepared
+{
+};
+
+// 0x4c1e54: todo saludo posterior al login limpia la tabla de gremios, incluso sin movimiento pendiente.
+struct GuildTableReset
 {
 };
 
@@ -96,9 +110,9 @@ struct ChatRoomPingDue
 
 using WorldEvent = std::variant<
     Protocol::Character::CharacterSelectResult, Protocol::Character::InventoryList, ClearInventoryReceived,
-    ReturnToSelectionReceived, ServerListLogoutCleanup, ReturnToServerListReceived, Protocol::World::Weather,
-    Protocol::Movement::Walk, Protocol::Movement::Damage, Protocol::World::Teleport, Protocol::World::Regen,
-    Protocol::Messages::Chat, Protocol::Messages::KeyChat, Protocol::Messages::Whisper,
+    ReturnToSelectionReceived, SelectionWorldReset, ServerListLogoutCleanup, ReturnToServerListReceived,
+    Protocol::World::Weather, Protocol::Movement::Walk, Protocol::Movement::Damage, Protocol::World::Teleport,
+    Protocol::World::Regen, Protocol::Messages::Chat, Protocol::Messages::KeyChat, Protocol::Messages::Whisper,
     Protocol::Messages::WhisperResult, Protocol::Messages::Notice, Protocol::OptionData::OptionData,
     Protocol::Inventory::ItemMoveResult, Protocol::Inventory::ItemDelete, Protocol::Inventory::Durability,
     Protocol::Inventory::EquipmentChange, Protocol::Inventory::ItemPut, Protocol::Inventory::LifeRefill,
@@ -130,5 +144,7 @@ using WorldEvent = std::variant<
     Protocol::Combat::Death, Protocol::Events::EventPacket, Protocol::Guild::GuildPacket,
     Protocol::Letters::LetterSendResult, Protocol::Letters::LetterRow, Protocol::Letters::LetterRead,
     Protocol::Letters::LetterDeleteResult, Protocol::FriendChat::RoomAnswer, Protocol::FriendChat::InviteResult,
-    ChatRoomPacket, ChatRoomClosed, ChatRoomPingDue, Protocol::CastleSiege::CastleSiegePacket, Protocol::CastleBattle::CastleBattlePacket, MapServerLeft, MapServerJoined>;
+    ChatRoomPacket, ChatRoomClosed, ChatRoomPingDue, Protocol::CastleSiege::CastleSiegePacket,
+    Protocol::CastleBattle::CastleBattlePacket, MapServerLeft, MapServerJoined, MapServerAuthenticationPrepared,
+    GuildTableReset>;
 } // namespace Client::App

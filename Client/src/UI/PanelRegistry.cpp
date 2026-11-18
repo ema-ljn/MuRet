@@ -536,7 +536,7 @@ Core::Expected<bool, std::string> PanelRegistry::Close(PanelId id, bool aux)
     }
     case CastleSiegeListPanel:
     {
-        // 0x65cb7a..0x65cb9d: 0x661b90 (cursor o caja), aviso 1642 y los sonidos del wrapper aun si no cierra.
+        // 0x65cb7a..0x65cb9d: 0x661b90 (cursor o caja), aviso 1641 y los sonidos del wrapper aun si no cierra.
         const bool busy = m_context.inventoryBusy ? m_context.inventoryBusy()
                                                   : m_context.cursorItemCount > 0 || m_state.delegated.chaosBoxHasItem;
         if (busy)

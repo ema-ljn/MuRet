@@ -434,7 +434,7 @@ bool ServerSession::RegisterTheEventPackets()
         std::uint8_t opcode;
         std::uint8_t subcode;
     };
-    constexpr std::array<WithSubcode, 15> Subcodes{{
+    constexpr std::array<WithSubcode, 16> Subcodes{{
         {Events::ChaosCastleOpcode, Events::ChaosCastleEntrySubcode},
         {Events::JewelMixOpcode, Events::JewelMixSubcode},
         {Events::JewelMixOpcode, Events::JewelUnmixSubcode},
@@ -449,6 +449,7 @@ bool ServerSession::RegisterTheEventPackets()
         {Events::CrywolfOpcode, Events::CrywolfEffectSubcode},
         {Events::WorldOpcode, Events::EventTimeSubcode},
         {Events::WorldOpcode, Events::SoccerScoreSubcode},
+        {Events::WorldOpcode, Events::GuildWarOutcomeSubcode},
         {Events::WorldOpcode, Events::ServerCommandSubcode},
     }};
     bool registered = true;
@@ -629,9 +630,14 @@ bool ServerSession::RegisterCastleBattleHandlers()
         if (!m_gameServer.On(Battle::BattleOpcode, subcode, onBattle))
             return false;
     }
+    for (const std::uint8_t subcode : Battle::CastleSubcodes)
+        if (!m_gameServer.On(Battle::CastleOpcode, subcode, onBattle))
+            return false;
+    for (const std::uint8_t subcode : Battle::WeaponSubcodes)
+        if (!m_gameServer.On(Battle::WeaponOpcode, subcode, onBattle))
+            return false;
     return m_gameServer.On(Battle::ActorFieldOpcode, onBattle) &&
            m_gameServer.On(Battle::MinimapMembersOpcode, onBattle) &&
-           m_gameServer.On(Battle::CastleOpcode, Battle::SwitchHolderSubcode, onBattle) &&
            m_gameServer.On(Protocol::Connection::MapServerOpcode, Protocol::Connection::MapServerMoveSubcode,
                            [this](const Network::Packet& packet) { OnMapServerMove(packet); });
 }
@@ -1148,23 +1154,28 @@ void ServerSession::OnGameHello(const Network::Packet& packet)
 // 0x447ae0. 0x412bb0 sale sin nada si no hay un B1 00 pendiente; con uno, 0x510f70(−1) y 0x4c2480 (el mundo, con sus
 // dos C1 03 31) y el B1 01 con la cuenta, el nombre del elegido (+0xc del objeto de 0x6eed7c, o "" de 0x6b85ec), los
 // códigos y el tick, cifrado como C3. 0x447ae0 vacía las 2000 entradas de la caché de las marcas de los gremios
-// (0x787aa48, de a 0x58) y +4 de 0x723c58: son del hito 8 de la CL9, que MuRet no tiene todavía.
+// (0x787aa48, de a 0x58) y +4 de 0x723c58, conservando los nombres y las marcas.
 void ServerSession::OnGameHelloAfterLogin(const Network::Packet& packet)
 {
-    const auto hello = Protocol::Connection::ReadServerHello(packet);
-    if (!hello.HasValue())
+    // 0x4c1e2c: este camino no lee ni el resultado ni la versión, sólo pkt[5..6].
+    const auto bytes = packet.Bytes();
+    if (bytes.size() < 7)
     {
         m_log.Warning("se ignora el saludo del GameServer (F1 00): {}", Unreadable);
         return;
     }
-    m_playerIndex = hello.Value().playerIndex;
+    m_playerIndex = static_cast<std::uint16_t>((std::to_integer<std::uint16_t>(bytes[5]) << 8u) |
+                                               std::to_integer<std::uint16_t>(bytes[6]));
     if (!m_mapServerMove)
     {
-        m_log.Info("el GameServer saludó con el login ya mandado y sin un cambio de servidor pendiente");
+        static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(GuildTableReset{}, *this)));
         return;
     }
     const Protocol::Character::CharacterEntry* chosen = ChosenCharacter();
     const std::string name = chosen != nullptr ? Protocol::TextField(chosen->name) : std::string{};
+    if (!CheckApplication(m_eventSink.ApplyWorld(MapServerJoined{}, *this)))
+        return;
+    // 0x4133cb: el reloj se lee después del reseteo y sus dos cierres, antes del relleno y el serial.
     auto auth = Protocol::Connection::WriteMapServerAuth(Protocol::Connection::MapServerAuth{
         .account = m_account, .character = name, .codes = m_mapServerMove->codes, .tick = TickCountMs(m_clock.Now())});
     if (!auth.HasValue())
@@ -1173,17 +1184,13 @@ void ServerSession::OnGameHelloAfterLogin(const Network::Packet& packet)
         Fail(SessionFailure::CredentialsTooLong);
         return;
     }
-    if (!CheckApplication(m_eventSink.ApplyWorld(MapServerJoined{}, *this)))
-    {
+    if (!CheckApplication(m_eventSink.ApplyWorld(MapServerAuthenticationPrepared{}, *this)))
         return;
-    }
     m_log.Info("el GameServer nuevo saludó: se le presenta el personaje (B1 01)");
-    Protocol::Outgoing firstClose = Protocol::Connection::WriteWindowClose();
-    m_connection.Send(std::move(firstClose.packet), firstClose.delivery);
-    Protocol::Outgoing secondClose = Protocol::Connection::WriteWindowClose();
-    m_connection.Send(std::move(secondClose.packet), secondClose.delivery);
     Protocol::Outgoing outgoing = std::move(auth).Value();
     m_connection.Send(std::move(outgoing.packet), outgoing.delivery);
+    if (!CheckApplication(m_eventSink.ApplyWorld(GuildTableReset{}, *this)))
+        return;
     SetState(SessionState::EnteringWorld);
 }
 
@@ -1210,6 +1217,7 @@ void ServerSession::OnMapServerMove(const Network::Packet& packet)
     {
         return;
     }
+    m_clock.SleepFor(std::chrono::milliseconds(20)); // 0x412b72: Sleep(20), aun antes de leer el host.
     if (!m_mapServerMove->hostEnds)
     {
         // Sin un 0 en los 0x24 bytes, 0x4c1340 lee el host fuera del objeto (Q-C1402): no se conecta, y el socket ya
@@ -2690,11 +2698,9 @@ void ServerSession::ReturnToSelection(bool encrypted)
     m_chosenSlot.reset();
     Protocol::Outgoing request = Protocol::Character::WriteCharacterListRequest();
     m_connection.Send(std::move(request.packet), request.delivery);
-    Protocol::Outgoing firstClose = Protocol::Connection::WriteWindowClose();
-    m_connection.Send(std::move(firstClose.packet), firstClose.delivery);
-    Protocol::Outgoing secondClose = Protocol::Connection::WriteWindowClose();
-    m_connection.Send(std::move(secondClose.packet), secondClose.delivery);
+    // 0x4c3900 precede al reset; sus envíos31 se producen desde el mundo en sus sitios nativos.
     SetState(SessionState::WaitingCharacterList);
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(SelectionWorldReset{}, *this)));
 }
 
 // 0x4e2b10 → 0x4e16c0, sin guarda de escena, de estado ni del cifrado: la clave, la imagen del

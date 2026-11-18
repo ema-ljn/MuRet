@@ -36,10 +36,14 @@ Core::Expected<void, std::string> ApplyMapServerLeave(const WorldEntryResources&
     return WriteMacroFile(resources.dataRoot, UI::WrittenMacros(resources.world.Runtime().chat.input.macros));
 }
 
-void ApplyMapServerJoin(const WorldEntryResources& resources)
+Core::Expected<void, std::string> ApplyMapServerJoin(const WorldEntryResources& resources)
 {
     KillOtherActors(resources.world, NoKey);
-    ResetForTheSelection(resources);
+    return ResetForTheSelection(resources);
+}
+
+void PrepareMapServerAuthentication(const WorldEntryResources& resources)
+{
     static_cast<void>(resources.cloth.random.Next());
     std::uint8_t serialDepth = 0;
     {

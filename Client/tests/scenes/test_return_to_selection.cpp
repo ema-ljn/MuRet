@@ -2,6 +2,10 @@
 
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Render/Text/FontSet.h"
+#include "Render/Text/IGlyphRasterizer.h"
+#include "UI/PanelDialog.h"
+#include "support/SceneDataFiles.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
@@ -41,6 +45,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <memory>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -382,4 +387,94 @@ TEST(ReturnToSelectionPoolsTest, ReleasesTheLiveFlagsWithoutReplacingRetainedRec
     EXPECT_FALSE(tested.world.DrawTail().joints[4].alive);
     EXPECT_FALSE(tested.world.DrawTail().ribbons[5].alive);
 }
+// 4c2546 y657686: observar el mundo desde el callback de red detecta envíos adelantados/tardíos.
+TEST(ReturnToSelectionWithoutDataTest, TheTwoClosesObserveTheirOwnNativeResetCheckpoints)
+{
+    const auto tested = std::make_unique<Returning>(std::filesystem::path{}, Seed);
+    auto& runtime = tested->world.Runtime();
+    runtime.map = 30;
+    runtime.movement.followTarget = 17;
+    runtime.quest.current = 2;
+    runtime.panels.delegated.quest = Client::Scenes::QuestListWindow;
+    runtime.panels.delegated.trainer = 3;
+    runtime.panels.delegated.field724584 = 9;
+    runtime.pets[1].level = 30;
+    auto& dialog = runtime.panels.delegated.panelDialog;
+    dialog.opened = 77;
+    dialog.owner = Client::UI::PanelDialogOwner::GuildJoin;
+    dialog.timerMs = 777;
+    runtime.chat.input.dialogFieldOn = true;
+    tested->world.OwnCharacter().word3e = 55;
+    auto resources = tested->Resources();
+    std::size_t closes = 0;
+    resources.sendWindowClose = [&]
+    {
+        EXPECT_EQ(runtime.map, -1);
+        EXPECT_EQ(runtime.panels.delegated.quest, 0);
+        EXPECT_EQ(runtime.pets[1].level, 30);
+        if (closes++ == 0)
+        {
+            EXPECT_EQ(runtime.movement.followTarget, 17);
+            EXPECT_EQ(tested->world.OwnCharacter().word3e, 55);
+            EXPECT_EQ(runtime.quest.current, 2);
+            EXPECT_EQ(dialog.opened, 77u);
+            EXPECT_EQ(runtime.panels.delegated.trainer, 3);
+            EXPECT_EQ(tested->cloth.random.State(), CrtRandom(Seed).State());
+        }
+        else
+        {
+            EXPECT_EQ(runtime.movement.followTarget, -1);
+            EXPECT_EQ(tested->world.OwnCharacter().word3e, 0);
+            EXPECT_EQ(runtime.quest.current, 0);
+            EXPECT_EQ(dialog.opened, 0u);
+            EXPECT_EQ(runtime.panels.delegated.trainer, 0);
+            EXPECT_EQ(runtime.panels.delegated.field724584, 0);
+            EXPECT_EQ(tested->cloth.random.State(), Advanced(CrtRandom(Seed), 0xf08).State());
+        }
+    };
+    const auto result = ApplyReturnToSelection(resources);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_EQ(closes, 2u);
+    EXPECT_EQ(runtime.pets[1].level, 0);
+    EXPECT_EQ(dialog.opened, 0u);
+    EXPECT_EQ(dialog.timerMs, 777u);
+    EXPECT_TRUE(runtime.chat.input.dialogFieldOn); // 660090 no llama callback ni hace cleanup delEDIT.
+}
+
+class ResetLetterMeasure final : public Client::Render::Text::ITextMeasure
+{
+public:
+    Client::Render::Text::TextExtent Measure(Client::Render::Text::FontKind, std::string_view text) const override
+    {
+        return {static_cast<int>(text.size()) * 6, 13};
+    }
+};
+
+TEST(ReturnToSelectionWithoutDataTest, AnOccupiedTrainerWarnsSkipsTheSecondCloseAndContinuesTheReset)
+{
+    const auto tested = std::make_unique<Returning>(std::filesystem::path{}, Seed);
+    auto& runtime = tested->world.Runtime();
+    runtime.npcWindows.trainerBox[31].id = 1;
+    runtime.npcWindows.trainerBox[31].occupied = 0; // 449c10 mira eltipo, no occupied.
+    runtime.panels.delegated.trainer = 3;
+    runtime.panels.delegated.field724584 = 9;
+    runtime.pets[1].level = 30;
+    const ResetLetterMeasure measure;
+    const auto texts = Client::Tests::MakeTextTable({{1211, "caja ocupada"}});
+    auto resources = tested->Resources();
+    resources.textMeasure = &measure;
+    resources.texts = &texts;
+    std::size_t closes = 0;
+    resources.sendWindowClose = [&] { ++closes; };
+    const auto result = ApplyReturnToSelection(resources);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_EQ(closes, 1u);
+    EXPECT_EQ(runtime.panels.delegated.trainer, 3);
+    EXPECT_EQ(runtime.panels.delegated.field724584, 9);
+    EXPECT_EQ(runtime.pets[1].level, 0);
+    ASSERT_EQ(runtime.chat.log.entries.size(), 1u);
+    EXPECT_EQ(runtime.chat.log.entries[0].text, "caja ocupada");
+    EXPECT_EQ(runtime.chat.log.entries[0].type, 2);
+}
+
 } // namespace

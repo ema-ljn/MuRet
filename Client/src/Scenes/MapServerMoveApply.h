@@ -19,7 +19,9 @@ struct WorldEntryResources;
 [[nodiscard]] Core::Expected<void, std::string> ApplyMapServerLeave(const WorldEntryResources& resources,
                                                                     std::optional<std::uint8_t> chosenSlot);
 
-// 0x412bb0 hasta el paquete, con el movimiento pendiente: 0x510f70(−1), 0x4c2480 (sin sus dos C1 03 31, de la sesión)
-// y los dos rand() del C3 del B1 01, el relleno (0x41372f) y el cierre del serial (0x5767913).
-void ApplyMapServerJoin(const WorldEntryResources& resources);
+// 0x412bb0 hasta el paquete: 0x510f70(−1), 0x4c2480 con31 y el cierre31 condicional del entrenador
+// antes del tick y del C3 del B1 01. El relleno y el cierre del serial van después, en PrepareMapServerAuthentication.
+[[nodiscard]] Core::Expected<void, std::string> ApplyMapServerJoin(const WorldEntryResources& resources);
+// 0x41372f y el acceso al serial, después del tick.
+void PrepareMapServerAuthentication(const WorldEntryResources& resources);
 } // namespace Client::Scenes

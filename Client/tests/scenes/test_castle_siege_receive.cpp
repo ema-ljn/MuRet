@@ -70,7 +70,7 @@ std::map<std::size_t, std::string> CastleTexts()
 {
     std::map<std::size_t, std::string> texts;
     for (const std::size_t id :
-         {std::size_t{860}, std::size_t{1386}, std::size_t{1609}, std::size_t{1616}, std::size_t{1642}})
+         {std::size_t{860}, std::size_t{1386}, std::size_t{1609}, std::size_t{1616}, std::size_t{1641}})
         texts[id] = "aviso " + std::to_string(id);
     for (std::size_t id = 1500; id <= 1527; ++id)
         texts[id] = "aviso " + std::to_string(id);
@@ -130,13 +130,13 @@ protected:
     }
 
     // Los mensajes que llegaron al chat, en el orden en que llegaron (el registro guarda el último adelante).
-    [[nodiscard]] std::vector<std::string> Messages()
+    [[nodiscard]] std::vector<std::string> Messages(std::int32_t type = Client::UI::SystemMessage)
     {
         std::vector<std::string> texts;
         const auto& entries = Runtime().chat.log.entries;
         for (auto entry = entries.rbegin(); entry != entries.rend(); ++entry)
         {
-            EXPECT_EQ(entry->type, Client::UI::SystemMessage);
+            EXPECT_EQ(entry->type, type);
             texts.push_back(entry->text);
         }
         return texts;
@@ -598,7 +598,7 @@ TEST_P(CastleSiegeReceiveTest, SuccessfulGuildListsClearTheEntriesAndSelectionBu
     ExpectNoRandom();
 }
 
-// B6 (0x4e0ed0): sin panel del asedio o con uno de otra clase, nada; con la clase 2, la batalla (hito 13).
+// B6 (0x4e0ed0): sólo clase2; vacía el vector y añade los puntos con índice0, también con cuenta0.
 TEST_P(CastleSiegeReceiveTest, MinimapPointsOnlyCountWithTheKindTwoPanel)
 {
     const Castle::MinimapPoints points{.points = {{.x = 1, .y = 2}}};
@@ -608,7 +608,15 @@ TEST_P(CastleSiegeReceiveTest, MinimapPointsOnlyCountWithTheKindTwoPanel)
     Runtime().siegePanelKind = std::uint8_t{1};
     Apply(points);
     Runtime().siegePanelKind = std::uint8_t{2};
-    EXPECT_NE(CutOf(points).find("hito 13"), std::string::npos);
+    Runtime().siegePanel.members.push_back({7, 8, 9});
+    Apply(points);
+    ASSERT_EQ(Runtime().siegePanel.members.size(), 1u);
+    EXPECT_EQ(Runtime().siegePanel.members[0], (std::array<std::uint8_t, 3>{0, 1, 2}));
+    EXPECT_EQ(Runtime().siegePanel.membersHidden, 0);
+    Apply(Castle::MinimapPoints{.points = {}});
+    EXPECT_TRUE(Runtime().siegePanel.members.empty());
+    EXPECT_EQ(Runtime().siegePanel.membersHidden, 1);
+    ExpectNoRandom();
 }
 
 // B8 01 (0x4e0700) sobre el héroe: otro valor a +0x372; 0 devuelve la habilidad guardada (+0x373) a +0x425.
@@ -709,12 +717,16 @@ TEST_P(CastleSiegeReceiveTest, HuntInformationNormalizesAccessAndCopiesTheSigned
     EXPECT_EQ(hunt.step, 7);
     EXPECT_EQ(Runtime().panels.delegated.secondCastleSiege, 1);
     EXPECT_TRUE(m_sent.empty());
+    // 659860 y657ab0 consultan comercio y tienda NPC: dos cierres protegidos en cada uno.
+    CrtRandom expected(Seed);
+    expected.Discard(4);
+    EXPECT_EQ(m_random.State(), expected.State());
     applied = Client::Scenes::ApplyHuntInformation(0, 0, 0, 0, 0, Context());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(hunt.mode, 3);
     EXPECT_EQ(hunt.fee, 0xffffffffu);
     EXPECT_EQ(Runtime().panels.delegated.panelDialog.lines[0], Text(860));
-    ExpectNoRandom();
+    EXPECT_EQ(m_random.State(), expected.State());
 }
 
 TEST_P(CastleSiegeReceiveTest, BusySeniorCloseReturnsTrueButKeepsTheWindowAndUsesTheSharedBusyWarning)
@@ -731,7 +743,7 @@ TEST_P(CastleSiegeReceiveTest, BusySeniorCloseReturnsTrueButKeepsTheWindowAndUse
     EXPECT_TRUE(closed.Value());
     EXPECT_EQ(Runtime().panels.delegated.castleSiegeList, 1);
     EXPECT_EQ(Runtime().panels.delegated.castleSiegeListMode, 3);
-    EXPECT_EQ(Messages(), (std::vector<std::string>{Text(1642)}));
+    EXPECT_EQ(Messages(Client::UI::ErrorMessage), (std::vector<std::string>{Text(1641)}));
     EXPECT_TRUE(m_sent.empty());
     closed = panels.Registry().CloseByMask(Client::UI::CastleSiegeListPanel);
     ASSERT_TRUE(closed.HasValue()) << closed.Error();

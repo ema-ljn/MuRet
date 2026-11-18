@@ -29,6 +29,8 @@ inline constexpr std::array<std::uint8_t, 4> BattleSubcodes{NpcLevelSubcode, Own
                                                             HuntZoneEntrySubcode};
 inline constexpr std::uint8_t ActorFieldOpcode = 0xba;
 inline constexpr std::uint8_t MinimapMembersOpcode = 0xbb;
+inline constexpr std::uint8_t WeaponOpcode = 0xb7;
+inline constexpr std::array<std::uint8_t, 3> WeaponSubcodes{0, 1, 2};
 // El B2 20, en la tabla 0x4e6140 del B2 del hito 12.
 inline constexpr std::uint8_t CastleOpcode = 0xb2;
 inline constexpr std::uint8_t SwitchHolderSubcode = 0x20;
@@ -88,6 +90,27 @@ struct SiegeTime
 {
     std::uint8_t hours = 0;
     std::uint8_t minutes = 0;
+};
+// B7 00/01/02: 0x4e08a0, 0x4e08f0 y 0x44efc0. El kind de 01 también decide el rechazo (cero).
+struct WeaponOpen
+{
+    std::uint8_t result = 0;
+    std::uint8_t mode = 0;
+    std::uint16_t key = 0;
+};
+struct WeaponFire
+{
+    std::uint8_t kind = 0;
+    std::uint16_t key = 0;
+    std::uint8_t mode = 0;
+    std::uint8_t x = 0;
+    std::uint8_t y = 0;
+};
+struct WeaponImpact
+{
+    std::uint8_t kind = 0;
+    std::uint8_t x = 0;
+    std::uint8_t y = 0;
 };
 
 // B9 01 (0x4e0750): la clave (pkt[4] << 8 | pkt[5]) y el byte que va a +0x93 de su personaje (pkt[6]). *Inferido*:
@@ -158,7 +181,7 @@ struct SwitchHolder
 using CastleBattlePacket =
     std::variant<NpcLevel, OwnerMark, HuntZoneInfo, HuntZoneEntryResult, ActorField, MinimapMembers, SwitchHolder,
                  GateOpen, GateCommand, GateState, CrownAccess, CrownRegistration, CrownState, SiegeActivation,
-                 CastleOwner, SiegeSide, PanelStatus, SiegeTime>;
+                 CastleOwner, SiegeSide, PanelStatus, SiegeTime, WeaponOpen, WeaponFire, WeaponImpact>;
 
 // El paquete de la batalla que es, por su opcode y, en el B9 y el B2, su subcódigo. Otro opcode, otro subcódigo del B9
 // (el 04 y desde el 06 caen al default, 0x4e58c8) o del B2: WrongPacket.

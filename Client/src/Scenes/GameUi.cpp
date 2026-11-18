@@ -1,6 +1,7 @@
 #include "Scenes/GameUi.h"
 #include "Scenes/SiegeBattleUi.h"
 #include "Scenes/CastleWindows.h"
+#include "Scenes/CastleSiegeReceive.h"
 
 #include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
@@ -98,7 +99,6 @@ struct GameKey
     std::uint8_t virtualKey;
 };
 
-constexpr GameKey TabKey{Key::Tab, 0x09};
 constexpr GameKey EscapeKey{Key::Escape, 0x1b};
 constexpr GameKey PageUpKey{Key::PageUp, 0x21};
 constexpr GameKey PageDownKey{Key::PageDown, 0x22};
@@ -146,6 +146,22 @@ GuildSender GuildSenderOf(IGameUiRequests* requests)
     if (requests == nullptr)
         return {};
     return [requests](Protocol::Outgoing packet) { requests->SendGuildPacket(std::move(packet)); };
+}
+
+// El paso de diálogos y el de las ventanas tienen registros distintos; ambos necesitan los cierres completos.
+void LendTheUiPanelCloses(GamePanels& panels, const GameUiContext& context)
+{
+    CastleSender send;
+    if (context.requests != nullptr)
+        send = [requests = context.requests](Protocol::Outgoing packet)
+        { requests->SendGamePacket(std::move(packet)); };
+    LendTheCastlePanelServices(
+        panels, context.world, context.random, send, context.worldEntry,
+        {.measure = context.measure, .texts = context.texts, .screen = context.screen, .now = context.systemTime});
+    panels.LendTheNpcWindows(context.world, context.random,
+                             context.inventory != nullptr ? *context.inventory : InventoryServices{},
+                             context.sendNpcWindow);
+    panels.LendTheGuild(context.world, GuildSenderOf(context.requests));
 }
 
 // 0x42475f..0x424990: la ventana de la mascota y sus botones (0x6b8a08, 0x6b8a04, 0x6b87bc, 0x6b8874, 0x6b8a00,
@@ -1711,8 +1727,8 @@ Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI
             return chips;
     }
     // 0x5e74f0, el panel 0x2000.
-    if (panels.IsOpen(UI::Panel2000))
-        return Core::Unexpected(std::string("0x5e74f0: el paso del panel 0x2000 es de la CL9"));
+    if (auto stepped = StepThePanel2000(context, panels); !stepped.HasValue())
+        return stepped;
     // 0x40a450, los comandos ([0x6e592c]), que empieza con su +4.
     if (auto commands = StepTheCommandsWindow(context); !commands.HasValue())
         return commands;
@@ -2396,8 +2412,7 @@ Core::Expected<void, std::string> StepTheGameDialogs(const GameUiContext& contex
     GamePanels panels(context.world, context.random, GamePanelTables{.texts = context.texts});
     // Esc (0x623f17 → 0x657880) cierra la ventana abierta más baja: el comercio manda el 3D, la tienda de otro el
     // 3F 07 y las misiones el 31, por la sesión.
-    panels.LendTheSession(context.world, context.random, context.requests);
-    panels.LendTheGuild(context.world, GuildSenderOf(context.requests));
+    LendTheUiPanelCloses(panels, context);
     // 0x623e9b..0x623ec2: con la de amigos abierta, Esc es de las ventanas viejas (0x490490). Lo leído queda en
     // [EBP−0x7d], que mira el no de 0x62c50e.
     const bool escape = !panels.Registry().IsOpen(UI::FriendsPanel) && KeyEdge(ui, context.input, EscapeKey);
@@ -2456,13 +2471,9 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
                                           .itemSetTables = context.itemSetTables,
                                           .texts = context.texts});
     gamePanels.LendThePartyList(context.world, context.requests);
-    gamePanels.LendTheNpcWindows(context.world, context.random,
-                                 context.inventory != nullptr ? *context.inventory : InventoryServices{},
-                                 context.sendNpcWindow);
-    gamePanels.LendTheSession(context.world, context.random, context.requests);
+    LendTheUiPanelCloses(gamePanels, context);
     if (context.chat != nullptr && context.chat->send)
         gamePanels.LendThePetRequests(context.chat->send);
-    gamePanels.LendTheGuild(context.world, GuildSenderOf(context.requests));
     gamePanels.LendTheCastleWindowSteps(context);
     gamePanels.LendThePanelDialogStep(context.world, GuildSenderOf(context.requests), context.mouseX, context.mouseY,
                                       context.systemTime);

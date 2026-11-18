@@ -4,8 +4,6 @@
 #include "App/ServerSession.h"
 #include "Core/Expected.h"
 #include "Core/Log.h"
-#include "Core/PathText.h"
-#include "Data/DataPath.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Input/MouseMessageState.h"
@@ -20,7 +18,6 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/ActorPickingBox.h"
 #include "Scenes/CharacterDrawing.h"
-#include "Scenes/EventDrawing.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/GameCharacters.h"
 #include "Scenes/GameChat.h"
@@ -38,6 +35,7 @@
 #include "Scenes/GameSocialDrawing.h"
 #include "Scenes/GameTooltips.h"
 #include "Scenes/GameUi.h"
+#include "Scenes/GuildDrawing.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/NpcWindows.h"
 #include "Scenes/LetterPortrait.h"
@@ -61,16 +59,13 @@
 #include <cstddef>
 #include <filesystem>
 #include <format>
-#include <fstream>
 #include <functional>
-#include <ios>
 #include <optional>
 #include <ratio>
 #include <span>
 #include <string>
 #include <string_view>
 #include <span>
-#include <system_error>
 #include <utility>
 
 namespace Client::Scenes
@@ -496,8 +491,8 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
     // 0x637660: 0x5a7320(1), el HUD, con 0x7d36899 en 0.
     if (auto drawn = DrawTheHud(hud); !drawn.HasValue())
         return drawn;
-    // 0x637668: 0x5a7eb0, el tiempo del F3 22 (Scenes/EventDrawing).
-    if (auto drawn = DrawTheEventTime(hud); !drawn.HasValue())
+    // 0x637668: 0x5a7eb0, el tiempo y el resultado F3 24, aun con el HUD oculto.
+    if (auto drawn = DrawTheEventTimeAndOutcome(hud); !drawn.HasValue())
         return drawn;
     // 0x637673: 0x490390, las ventanas viejas, y 0x637680: la lista de ventanas, siempre. Un dibujo intermedio de MuRet
     // las dibuja sobre su copia.

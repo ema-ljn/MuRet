@@ -82,7 +82,8 @@ struct Applier
 
 TEST(SessionEventApplierTest, AppliesAnEmptyCharacterListImmediately)
 {
-    Applier tested;
+    auto owned = std::make_unique<Applier>();
+    Applier& tested = *owned;
     Client::Tests::LoggedInSession online;
     const Client::App::CharacterEvent event = Client::App::CharacterListReceived{};
     ASSERT_TRUE(tested.applier.ApplyCharacter(event, online.session).HasValue());
@@ -91,7 +92,8 @@ TEST(SessionEventApplierTest, AppliesAnEmptyCharacterListImmediately)
 
 TEST(SessionEventApplierTest, PropagatesTheActualSelectionConstructionFailure)
 {
-    Applier tested;
+    auto owned = std::make_unique<Applier>();
+    Applier& tested = *owned;
     Client::Tests::LoggedInSession online;
     const Client::App::CharacterEvent event = Client::App::CharacterCreated{};
     const auto result = tested.applier.ApplyCharacter(event, online.session);
@@ -106,7 +108,8 @@ TEST(SessionEventApplierTest, PropagatesTheActualSelectionConstructionFailure)
 
 TEST(SessionEventApplierTest, AnEmptyInventoryGoesToTheNativeApplier)
 {
-    Applier tested;
+    auto owned = std::make_unique<Applier>();
+    Applier& tested = *owned;
     Client::Tests::LoggedInSession online;
     tested.world.OwnCharacter().equipment[3].id = 7;
     tested.world.Inventory().cells[5].id = 7;
@@ -129,7 +132,8 @@ TEST(SessionEventApplierTest, AnEmptyInventoryGoesToTheNativeApplier)
 
 TEST(SessionEventApplierTest, AClearInventoryRunsOnlyTheCommonInitialization)
 {
-    Applier tested;
+    auto owned = std::make_unique<Applier>();
+    Applier& tested = *owned;
     Client::Tests::LoggedInSession online;
     tested.world.OwnCharacter().equipment[3].id = 7;
     tested.world.Inventory().cells[5].id = 7;
@@ -148,7 +152,8 @@ TEST(SessionEventApplierTest, AClearInventoryRunsOnlyTheCommonInitialization)
 
 TEST(SessionEventApplierTest, TheWorldEntryGoesToTheNativeApplier)
 {
-    Applier tested;
+    auto owned = std::make_unique<Applier>();
+    Applier& tested = *owned;
     Client::Tests::LoggedInSession online;
     Client::Protocol::Character::CharacterSelectResult reply;
     reply.zen = 1234;
@@ -168,7 +173,8 @@ TEST(SessionEventApplierTest, TheWorldEntryGoesToTheNativeApplier)
 
 TEST(SessionEventApplierTest, TheReturnToSelectionGoesToTheNativeApplier)
 {
-    Applier tested;
+    auto owned = std::make_unique<Applier>();
+    Applier& tested = *owned;
     Client::Tests::LoggedInSession online;
     ASSERT_TRUE(tested.applier.ApplyCharacter(Client::App::CharacterListReceived{}, online.session).HasValue());
     ASSERT_TRUE(tested.selection.HasReceivedList());
@@ -180,6 +186,12 @@ TEST(SessionEventApplierTest, TheReturnToSelectionGoesToTheNativeApplier)
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(tested.world.Runtime().orderedScene, Client::Scenes::SceneId::CharacterSelect);
+    EXPECT_EQ(tested.world.Runtime().map, 0);
+    EXPECT_TRUE(tested.world.Runtime().drawingEnabled);
+    EXPECT_EQ(tested.cloth.random.State(), 1u);
+    EXPECT_TRUE(tested.selection.HasReceivedList());
+    const auto completed = tested.applier.ApplyWorld(Client::App::SelectionWorldReset{}, online.session);
+    ASSERT_TRUE(completed.HasValue()) << completed.Error();
     EXPECT_EQ(tested.world.Runtime().map, -1);
     EXPECT_FALSE(tested.world.Runtime().drawingEnabled);
     EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(1, 0xf08).State());
@@ -189,7 +201,8 @@ TEST(SessionEventApplierTest, TheReturnToSelectionGoesToTheNativeApplier)
 
 TEST(SessionEventApplierTest, WalkAndDamageReachTheirAppliersWithoutFallingThroughToF303)
 {
-    Applier tested;
+    auto owned = std::make_unique<Applier>();
+    Applier& tested = *owned;
     Client::Tests::LoggedInSession online;
     const Client::App::WorldEvent walk = Client::Protocol::Movement::Walk{42, {30, 31}, 15};
     const Client::App::WorldEvent damage = Client::Protocol::Movement::Damage{42, false, 50, 0, false};
@@ -267,7 +280,8 @@ TEST(SessionEventApplierTest, ADiscardedEventPacketIsLoggedAndTheSessionGoesOn)
 
 TEST(SessionEventApplierTest, The00InTheLoginAsksForTheListThroughTheGameServer)
 {
-    Applier tested;
+    auto owned = std::make_unique<Applier>();
+    Applier& tested = *owned;
     Client::Tests::LoggedInSession online;
     ASSERT_NO_FATAL_FAILURE(online.LogIn());
     const std::size_t sent = online.socket.sent.size();
@@ -314,7 +328,8 @@ TEST(SessionEventApplierTest, TheCastlePacketsReachTheirApplierAndSendThroughThe
 
 TEST(SessionEventApplierTest, TeleportUsesTheCursorGuardBeforeTouchingTheHero)
 {
-    Applier tested;
+    auto owned = std::make_unique<Applier>();
+    Applier& tested = *owned;
     Client::Tests::LoggedInSession online;
     tested.world.Runtime().cursorItemCount = 1;
     const Client::App::WorldEvent event = Client::Protocol::World::Teleport{23, 0, 30, 31, 0};
@@ -468,4 +483,55 @@ TEST(SessionEventApplierTest, TheShortFloorItemRepliesReachTheirReleases)
 }
 
 // 0x4cb750: el 18 de otro llega a ApplyActionReply, y el C1 18 de sentarse que dispara (0x4f2250) sale por la sesión.
+TEST(SessionEventApplierTest, EveryPostLoginHelloClearsOnlyGuildKeysAndTheCount)
+{
+    auto owned = std::make_unique<Applier>();
+    auto& tested = *owned;
+    Client::Tests::LoggedInSession online;
+    auto& guild = tested.world.Runtime().guild;
+    guild.tableCount = 2;
+    guild.table[0].key = 42;
+    guild.table[1999].key = 77;
+    guild.table[0].mark[0] = 15;
+    const auto before = tested.cloth.random.State();
+    const auto applied = tested.applier.ApplyWorld(Client::App::GuildTableReset{}, online.session);
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
+    EXPECT_EQ(guild.tableCount, 0);
+    for (const auto& entry : guild.table)
+        EXPECT_EQ(entry.key, -1);
+    EXPECT_EQ(guild.table[0].mark[0], 15);
+    EXPECT_EQ(tested.cloth.random.State(), before);
+}
+
+TEST(SessionEventApplierTest, TheMapJoinResetsTheWorldBeforeTheAuthenticationRandoms)
+{
+    auto owned = std::make_unique<Applier>();
+    auto& tested = *owned;
+    Client::Tests::LoggedInSession online;
+    auto& runtime = tested.world.Runtime();
+    runtime.map = 30;
+    runtime.events.soccer.active = true;
+    runtime.siegeBattleUi.clock.hours = 3;
+    runtime.siegeBattleUi.clock.minutes = 7;
+    runtime.siegeBattleUi.clock.tick = 99;
+    tested.world.Actors()[1].alive = true;
+    tested.world.Actors()[1].key = 123;
+    tested.world.Actors()[2].alive = true;
+    tested.world.Actors()[2].key = 0xffff;
+    auto applied = tested.applier.ApplyWorld(Client::App::MapServerJoined{}, online.session);
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
+    EXPECT_FALSE(tested.world.Actors()[1].alive);
+    EXPECT_TRUE(tested.world.Actors()[2].alive);
+    EXPECT_EQ(runtime.map, -1);
+    EXPECT_FALSE(runtime.events.soccer.active);
+    EXPECT_EQ(runtime.siegeBattleUi.clock.blink, 1);
+    EXPECT_EQ(runtime.siegeBattleUi.clock.hours, 3u);
+    EXPECT_EQ(runtime.siegeBattleUi.clock.minutes, 7u);
+    EXPECT_EQ(runtime.siegeBattleUi.clock.tick, 99u);
+    EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(1, 0xf08).State());
+    applied = tested.applier.ApplyWorld(Client::App::MapServerAuthenticationPrepared{}, online.session);
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
+    EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(1, 0xf08 + 2).State());
+}
+
 } // namespace

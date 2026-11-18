@@ -323,6 +323,12 @@ La VM queda al final, sin nuevas emulaciones ni sustitución de evidencia nativa
 | P-C302 | **Los paquetes de la batalla del asedio** (CL9 hito 12, 2026-11-14, [04](04-protocolo.md#castle-siege-las-ventanas-del-castillo)). De la tabla `0x4e6140` del `B2`: 0x11 (`0x6599a0(0x1000000, pkt[5] << 8 \| pkt[6])`), 0x12 (`0x44f7b0`), 0x13 (`0x5110d0` y `0x44f340`/`0x44f560`), 0x14 (`0x4dff10`), 0x15 (`0x4e00c0`), 0x16 (`0x4e0240`), 0x17 (`0x4294c0` y la recarga del terreno del 30, `0x4e7390`), 0x18 (`0x4e0650`), 0x19 (`0x4e0340`, los flags `+0x78` del héroe; el `C1 05 B2 19 00` del laboratorio después de cada `/move`), 0x1D (`0x412580`), 0x1E (`0x413c60`) y 0x20 (`0x4e04e0`); el `B7` (`0x4e580d` → `0x44efc0`), el `B9` que llega (`0x4e58b0`: `0x4e0750`, `0x4e0790`, `0x4e07f0`, `0x4e0860`), el `BA` (`0x4cf1b0`) y el `BB` (`0x4e0f30`). Siguen llegando como `Unknown` (un aviso la primera vez). Los dos globales del `B2 1A` (`0x78aba30`, `0x78aba34`) ya se guardan; los leen `0x44d680`, `0x5b1200`, `0x5b12f0`, `0x5f4720` y `0x5febf0` | CL9 hito 13 | portarlos con la batalla del mapa 30 |
 | P-C303 | **Lo del castillo que solo la VM dice** (CL9 hito 12, 2026-11-14). (a) Qué queda en `+0x18`, `+0x19` y `+0x1b` del registro que arma el `B2 05` (Q-C1361); (b) si un servidor real manda índices de registro fuera de `0x7d5c504..0x7d5c658` (Q-C1360) y qué pisa; (c) qué cuenta `+0x372` (el `B8 01`; *inferido*: las muertes del asedio, porque `0x652330` lo compara con un tope); (d) qué valores del estado (`pkt[5]` del `B2 00`) y qué fechas manda el servidor 1.02; (e) qué muestra `+0xbc..+0xd0` antes del primer `B2 00` (Q-C1362) | nada: fidelidad | en la VM con un GameServer con Castle Siege: (a) y (e) un punto de parada en `0x668fd0` y en `0x64b0f0`; (b) a (d) el cable del `B2`, el `B3` y el `B8` con una compra, una reparación y una muerte en el asedio |
 
+**Estado de P-C300 a P-C303 al 2026-11-18.** Los tres flujos de ventanas de P-C300
+están conectados. El panel de clase 2 de P-C301 ya recibe y dibuja sus datos. Los
+paquetes de P-C302 llegan al aplicador de la batalla. Siguen pendientes el contraste
+de P-C303, las métricas de la primera marca sin caso y los efectos que pueden detener
+altas o ataques en mapa 30. [Estado integrado y pruebas](2026-11-18-cl9-estado-integrado.md).
+
 ## Qué no hace falta saber
 
 - Las protecciones de FoxAnti (VMProtect, ASPack, scans, watchdog): fuera de alcance.

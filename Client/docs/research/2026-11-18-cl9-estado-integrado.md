@@ -75,6 +75,14 @@ no se reescribió historia pública y no se cerraron entregas ajenas.
 - `B7 01`: `4e0926` pasa el modo de `pkt[4]` y el tipo de `pkt[7]`. Con modo 1
   y tipo 2, la prueba del paquete completo verifica el proyectil de hielo, su
   destino, los dos bytes de clave, la animación del actor y el sonido.
+- Panel: las tres filas del menú miden 30×18 (`411c20`, `411cf3`, `411dc6`).
+  El control de opacidad vuelve a 1 en el caso no ordenado (`40f81a`) y el
+  porcentaje usa el DWORD bajo de `_ftol` (`410274`). La primera marca sin
+  métricas inicializadas sigue pendiente de captura.
+- Registro y Senior: B4/B5 dibujan las cinco columnas con anclaje derecho
+  (`47057f`, `4705de`, `470627`, `471404`, `471465`). Las pruebas pasan a 640 y
+  800 píxeles. El análisis de `_input` confirma la conversión del importe con
+  dígitos. El campo sin dígitos conserva Q-C1363.
 
 Los detalles de familias del asedio están en
 [mapa30](2026-11-18-h13-map-effects.md) y
@@ -112,6 +120,13 @@ hashes retenidos; no se les atribuye el resultado del CI de otra cabeza.
 La regresión de `B1` reprodujo el fallo de sesión con `Macro.txt` inaccesible antes
 del cambio. Con el aplicador recompilado pasaron 23 pruebas de SessionEventApplier
 y 221 de ServerSession en Linux, sin saltos.
+
+En `4516c8d3` se recompilaron los cambios de código y pruebas respecto de `583643a2`
+y se enlazaron con las bibliotecas verificadas de esa base. Pasaron **622 pruebas
+en 20 suites focales** en Linux, sin saltos. Incluyen el rayo de selección, el clic
+de conversación y los mensajes de apertura de puertas y catapultas. El rayo y la
+visibilidad se preparan en la prueba. El servidor y la comparación visual quedan
+para la VM.
 
 La publicación exige compilación completa con warnings como errores, CTest, GL requerido,
 fuente real, formato18 e include-cleaner18, más Linux/Windows en cada cabeza publicada.

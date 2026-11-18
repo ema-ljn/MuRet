@@ -586,8 +586,9 @@ DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect, cons
     object.color = terrain + effect.light;
     object.alpha = effect.alpha;
     object.vertexLight = effect.vertexLight;
-    if (effect.type == 0x104 || effect.type == 0x145 || effect.type == 0x147 || effect.type == 0x10a ||
-        effect.type == 0x10b || (effect.type >= 0x12b && effect.type <= 0x133) ||
+    if ((effect.type == 0xe1 && effect.subtype == 1) || effect.type == 0x104 || effect.type == 0x145 ||
+        effect.type == 0x147 || effect.type == 0x10a || effect.type == 0x10b ||
+        (effect.type >= 0x12b && effect.type <= 0x133) ||
         (effect.type == 0x114 && (effect.subtype == 2 || effect.subtype == 6)) ||
         (effect.type == 0x115 && effect.subtype == 1) || effect.type == 0xed || effect.type == 0xee)
     {

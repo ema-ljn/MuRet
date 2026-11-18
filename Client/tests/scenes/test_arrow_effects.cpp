@@ -918,9 +918,8 @@ TEST(ArrowEffectsTest, TheSiegeArrowsFallOnTheGround)
     }
 }
 
-// La flecha 0xe1/1 (la de la fortaleza y Crywolf; su alta corta en el joint 0x610/0xd, 0x51c713, con la flecha ya en
-// la tabla), en Lorencia y en Devias: sus dos sprites 0x5d5, la luz dinámica y la y de los ángulos 60 más; con más de
-// 25 de vida y par, los tres rand() del punto y la 0x60f/5 corta (0x526961, CL11); si no, el choque y la cola.
+// E1/1 de Crywolf:610/13 al nacer ydos60f/5 en las vidas pares mayores25, con CRT intercalado.
+// También conserva el recorrido de la fortaleza, que usa el mismo constructor.
 
 TEST(ArrowEffectsTest, TheFortressArrowSparklesOnEvenLives)
 {
@@ -932,9 +931,9 @@ TEST(ArrowEffectsTest, TheFortressArrowSparklesOnEvenLives)
             ArrowWorld tested(map);
             const Client::World::ModelEffectArguments arguments{
                 .type = 0xe1, .position = {2000.0f, 3000.0f, 400.0f}, .light = glm::vec3(1.0f), .subtype = 1};
-            EXPECT_TRUE(
-                HasError(Client::Scenes::CreateTheArrowEffect(arguments, tested.world, tested.random), "0x51c713"));
-            EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
+            ASSERT_TRUE(Client::Scenes::CreateTheArrowEffect(arguments, tested.world, tested.random).HasValue());
+            EXPECT_EQ(DrawsSince(Seed, tested.random), OwnRecord);
+            const auto beforeStep = tested.random.State();
             const auto arrows = tested.Arrows();
             ASSERT_EQ(arrows.size(), 1u);
             ModelEffect& arrow = *arrows.front();
@@ -944,16 +943,43 @@ TEST(ArrowEffectsTest, TheFortressArrowSparklesOnEvenLives)
             const auto stepped = StepArrow(arrow, nullptr, tested.StepContext());
 
             const bool sparkles = life > 25 && life % 2 == 0;
-            if (sparkles)
-                EXPECT_TRUE(HasError(stepped, "0x526961")) << ErrorOf(stepped);
-            else
-                EXPECT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
-            EXPECT_EQ(DrawsSince(Seed, tested.random), sparkles ? 1 + 3 : 1);
+            EXPECT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
+            EXPECT_EQ(DrawsSince(beforeStep, tested.random), sparkles ? 15 : 1);
+            EXPECT_EQ(std::ranges::count_if(tested.particles.All(),
+                                            [](const auto& p) { return p.alive && p.type == 0x60f && p.subtype == 5; }),
+                      sparkles ? 2 : 0);
             EXPECT_EQ(arrow.transform.angles.y, 70.0f);
-            EXPECT_EQ(arrow.life, sparkles ? life : life - 1);
+            EXPECT_EQ(arrow.life, life - 1);
             EXPECT_EQ(std::ranges::count_if(tested.sprites.Sprites(), [](const auto& sprite) { return sprite.alive; }),
                       2);
         }
+    }
+}
+
+TEST(ArrowEffectsTest, TheCrywolfArrowKeepsCallerDrawsWhenParticleCapacityIsPartial)
+{
+    for (int room = 0; room <= 2; ++room)
+    {
+        ArrowWorld tested(34);
+        ASSERT_TRUE(Client::Scenes::CreateTheArrowEffect({.type = 0xe1, .position = {2000, 3000, 400}, .subtype = 1},
+                                                         tested.world, tested.random)
+                        .HasValue());
+        auto arrows = tested.Arrows();
+        ASSERT_EQ(arrows.size(), 1u);
+        auto& arrow = *arrows[0];
+        arrow.life = 26;
+        const auto& joints = tested.world.DrawTail().joints;
+        ASSERT_TRUE(joints[0].alive);
+        EXPECT_EQ(joints[0].ownerContext, &arrow);
+        EXPECT_EQ(joints[0].ownerKind, Client::Scenes::JointOwnerKind::ModelEffect);
+        for (auto& p : tested.particles.All())
+            p.alive = true;
+        for (int i = 0; i < room; ++i)
+            tested.particles.All()[static_cast<std::size_t>(i)].alive = false;
+        const auto before = tested.random.State();
+        ASSERT_TRUE(StepArrow(arrow, nullptr, tested.StepContext()).HasValue());
+        EXPECT_EQ(DrawsSince(before, tested.random), 7 + room * 4);
+        EXPECT_EQ(arrow.life, 25);
     }
 }
 

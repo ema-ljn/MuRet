@@ -1356,7 +1356,7 @@ constexpr std::int32_t FallenOrbitLife = 20;
 bool IsOrbitSubtype(std::int32_t subtype)
 {
     return subtype == SetOrbitSubtype || subtype == OrbitSubtype || subtype == TorchOrbitSubtype ||
-           subtype == AnchoredOrbitSubtype;
+           subtype == AnchoredOrbitSubtype || subtype == 5;
 }
 
 bool IsSteppedOrbitSubtype(std::int32_t subtype)
@@ -1417,10 +1417,11 @@ Core::Expected<void, ParticleError> CreateTheOrbit(Particle& particle, float inp
                                                    IParticleTrigonometry& trigonometry)
 {
     const bool torch = particle.subtype == TorchOrbitSubtype;
-    particle.life = torch ? TorchOrbitLife : OrbitLife;
+    const bool falling = particle.subtype == 5;
+    particle.life = torch || falling ? TorchOrbitLife : OrbitLife;
     const int rise = random.Next() % OrbitSpeedSpan;
     const double riseUnit = static_cast<double>(rise) * static_cast<double>(OrbitUnit);
-    const double riseRange = riseUnit * static_cast<double>(torch ? TorchOrbitRiseRange : OrbitRiseRange);
+    const double riseRange = riseUnit * static_cast<double>(torch || falling ? TorchOrbitRiseRange : OrbitRiseRange);
     particle.verticalSpeed = F32(riseRange + 1.0);
     particle.velocity.x = static_cast<float>((random.Next() % OrbitPhaseSpan) - OrbitPhaseBias);
     const int scaleStep = random.Next() % OrbitScaleSpan;
@@ -1486,7 +1487,10 @@ Core::Expected<void, ParticleError> StepTheOrbit(Particle& particle, IParticleTr
     }
     particle.position.y = F32(static_cast<double>(particle.start.y) - cosine.Value());
     const double rise = particle.verticalSpeed;
-    particle.position.z = F32(rise + static_cast<double>(particle.position.z));
+    const bool falling = particle.subtype == 5;
+    particle.position.z = F32((falling ? -rise : rise) + static_cast<double>(particle.position.z));
+    if (falling)
+        particle.start.x = F32(static_cast<double>(particle.start.x) + 2.5);
     const bool torch = particle.subtype == TorchOrbitSubtype;
     particle.scale =
         F32(static_cast<double>(particle.scale) - static_cast<double>(torch ? TorchOrbitShrink : OrbitShrink));

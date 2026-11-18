@@ -30,7 +30,9 @@ struct TerrainLighting;
 // ActorState del personaje, al igual que618/2y/3 del altarCrywolf. Con `ownerKind` en Helper es el HelperState del
 // caballo oscuro (0x444740), y en Raven el DarkSpirit del cuervo (0x418390 y 0x418400), sólo para el 60f/0 y el
 // 60f/0x12: lee su luz (+0xf4) al nacer y su acción (+0x111) en el paso; con otro tipo corta antes de escribir
-// (0x530860). Se escribe sobre el primer muerto sin reconstruirlo; pool lleno no lee los argumentos ni RNG.
+// (0x530860).
+// ModelEffect identifica al dueño durable de619/1 y610/13, sin aliasActorState.
+// Pool lleno no lee los argumentos ni RNG.
 namespace Client::Scenes
 {
 // El 618/0 y el 618/1 que el que mató lanza desde el blanco (0x505169, 0x5051a4): con el ActorState del que pega como

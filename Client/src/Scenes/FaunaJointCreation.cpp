@@ -695,6 +695,21 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
         CreateKillBeam(joint, request);
         return {};
     }
+    // 531c43..531cc7 y531fc3..53200e: la estela del misilE1/1 de Crywolf.
+    if (request.type == 0x610 && request.subtype == 13)
+    {
+        if (joint.skill == 3 && joint.ownerContext == nullptr)
+            return Core::Unexpected(std::string("0x531c7b: falta la luz del dueño del610/13"));
+        joint.life = joint.key;
+        joint.key = 0;
+        joint.maximumCount = 16;
+        joint.light = {.7f, .7f, .3f};
+        joint.blend = 4;
+        joint.width = request.scale;
+        joint.speed = 70; // 428c0000 en531ff9.
+        joint.targetPosition = request.secondPosition;
+        return {};
+    }
     if (request.type == 0x610 && request.subtype == 4)
         return CreateSwordTrail(joint, request);
     if (request.type == SparkleJoint && (request.subtype == SparkleSubtype || request.subtype == WideSparkleSubtype ||
@@ -769,8 +784,9 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateFaunaJoint(std::sp
                 std::format("0x530860: el joint {:#x}/{} con el ActorState de dueño fuera de su tipo no está portado",
                             request.type, request.subtype));
         if (ownerKind == JointOwnerKind::ModelEffect &&
-            !(request.type == EnergyJoint && request.subtype == SummonEnergySubtype))
-            return Core::Unexpected(std::string("0x530860: el dueñoModelEffect sólo está portado para619/1"));
+            !((request.type == EnergyJoint && request.subtype == SummonEnergySubtype) ||
+              (request.type == 0x610 && request.subtype == 13)))
+            return Core::Unexpected(std::string("0x530860: el dueñoModelEffect sólo está portado para619/1 y610/13"));
         Prefix(joints[i], request, ownerKind);
         if (auto created = CreateCase(joints[i], request, random); !created.HasValue())
             return Core::Unexpected(created.Error());
@@ -1240,6 +1256,29 @@ Core::Expected<void, std::string> StepSetEnergy(JointState& joint, std::size_t i
 // (0x6b86c8); la luz es (12 − vida) · 0,1f por (0,4f; 0,6f; 1), con el producto sin redondear; con la vida en 1, el
 // sprite 0x5fd en ese destino con la luz, el giro rand() % 360 y la escala ((rand() & 7) + 8) · 0,2f. Sigue la cola
 // común (0x53c393).
+Core::Expected<void, std::string> StepCrywolfArrowTrail(JointState& joint, Render::Models::CrtRandom* random,
+                                                        World::TerrainLighting* lighting)
+{
+    if (joint.ownerContext == nullptr)
+    {
+        joint.alive = false;
+        return {};
+    }
+    if (joint.ownerKind != JointOwnerKind::ModelEffect)
+        return Core::Unexpected(std::string("0x537ef8: el dueño610/13 no es un ModelEffect durable"));
+    if (!static_cast<const World::ModelEffect*>(joint.ownerContext)->alive)
+        joint.alive = false; // Aun muerto siguen fade,RNG,luz,cola yvida.
+    if (joint.life < 15)
+        FadeJointLight(joint, 0x3f555555u);
+    if (random == nullptr)
+        return Core::Unexpected(std::string("0x537fc8: falta el CRT del610/13"));
+    const double luminosity =
+        static_cast<double>((random->Next() & 3) + 8) * static_cast<double>(std::bit_cast<float>(0x3cf5c28fu));
+    const glm::vec3 color{F32(luminosity * static_cast<double>(.4f)), F32(luminosity),
+                          F32(luminosity * static_cast<double>(.8f))};
+    return World::AddDynamicLight(lighting, joint.position, color, 2, "0x538011");
+}
+
 Core::Expected<void, std::string> StepSummonEnergy(JointState& joint, std::size_t index,
                                                    Render::Models::CrtRandom* random, World::FrameSprites* sprites)
 {
@@ -1438,6 +1477,7 @@ Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints
         const bool flareBeam =
             joint.type == 0x614 && (joint.subtype == 14 || joint.subtype == 10 || joint.subtype == 17);
         const bool icarus = joint.type == 0x610 && joint.subtype == 8;
+        const bool crywolfArrowTrail = joint.type == 0x610 && joint.subtype == 13;
         const bool noria = joint.type == 0x617 && joint.subtype >= 0 && joint.subtype <= 3;
         const bool skyBolt = joint.type == 0x615 && joint.subtype == 0;
         const bool objectBolt = joint.type == 0x614 && joint.subtype == 6;
@@ -1462,7 +1502,7 @@ Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints
         const bool killBeam = joint.type == KillBeamJoint && (joint.subtype == 0 || joint.subtype == 1);
         if (!crywolf && !tarkan && !bloodCastle && !fairy && !spiritBeam && !flareBeam && !icarus && !noria &&
             !skyBolt && !objectBolt && !trapBolt && !meteor && !staffBeam && !swordTrail && !fullSet && !summonEnergy &&
-            !killBeam && !barrierBeam)
+            !killBeam && !barrierBeam && !crywolfArrowTrail)
             return Core::Unexpected(
                 std::format("0x535840: el paso del joint {} ({:#x}/{}) no está portado", i, joint.type, joint.subtype));
         // 0x5358bc: el 60f/1 no se mueve ni calcula la matriz de 0x53590e; con la cola, 0x53c393 usaría la que dejó el
@@ -1506,6 +1546,9 @@ Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints
         if (setEnergy)
             if (auto result = StepSetEnergy(joint, i); !result.HasValue())
                 return result;
+        if (crywolfArrowTrail)
+            if (auto result = StepCrywolfArrowTrail(joint, random, lighting); !result.HasValue())
+                return result;
         if (summonEnergy)
             if (auto result = StepSummonEnergy(joint, i, random, sprites); !result.HasValue())
                 return result;
@@ -1513,7 +1556,8 @@ Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints
             if (auto result = StepKillBeam(joint, i, random, particles, worldClock, lighting, soundRequest);
                 !result.HasValue())
                 return result;
-        const bool actorOwned = staffBeam || swordTrail || fullSet || summonEnergy || killBeam || barrierBeam;
+        const bool actorOwned =
+            staffBeam || swordTrail || fullSet || summonEnergy || killBeam || barrierBeam || crywolfArrowTrail;
         const auto* owner = (joint.type == 0x613 || joint.type == 0x614 || joint.type == 0x615 || meteor || actorOwned)
                                 ? nullptr
                                 : static_cast<const FaunaObject*>(joint.ownerContext);

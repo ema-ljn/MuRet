@@ -635,11 +635,11 @@ TEST(CastleSiegeDrawingTest, FragmentColorsAndTheExtraBodyPassFollowTheNativeRes
         std::size_t vertices;
         glm::vec3 last;
     };
-    const std::array cases{Case{0x12d, 1, 9, {1, 1, 1}},       Case{0x12e, 2, 6, {1, 1, 1}},
-                           Case{0x12f, 0, 6, {.2f, .4f, .6f}}, Case{0x10a, 0, 12, {.3f, .3f, 1}},
-                           Case{0x10b, 2, 6, {.1f, .3f, .6f}}, Case{0x114, 2, 6, {.2f, .4f, .6f}},
-                           Case{0x114, 6, 6, {.2f, .4f, .6f}}, Case{0x115, 1, 6, {.2f, .4f, .6f}},
-                           Case{0xed, 0, 9, {1, 1, 1}},        Case{0xee, 0, 9, {1, 1, 1}}};
+    const std::array cases{
+        Case{0x12d, 1, 9, {1, 1, 1}},       Case{0x12e, 2, 6, {1, 1, 1}},       Case{0x12f, 0, 6, {.2f, .4f, .6f}},
+        Case{0x10a, 0, 12, {.3f, .3f, 1}},  Case{0x10b, 2, 6, {.1f, .3f, .6f}}, Case{0x114, 2, 6, {.2f, .4f, .6f}},
+        Case{0x114, 6, 6, {.2f, .4f, .6f}}, Case{0x115, 1, 6, {.2f, .4f, .6f}}, Case{0xed, 0, 9, {1, 1, 1}},
+        Case{0xee, 0, 9, {1, 1, 1}},        Case{0xe1, 1, 6, {.2f, .4f, .6f}}};
     for (const auto& item : cases)
     {
         Client::World::ModelEffect effect;

@@ -24,6 +24,7 @@
 #include "World/ParticleBurst.h"
 #include "World/OriginalFtol.h"
 #include "World/Particles.h"
+#include "World/PortableParticleTrigonometry.h"
 #include "World/Sprites.h"
 #include "World/WorldObjectStepServices.h"
 #include "World/WorldTerrain.h"
@@ -37,6 +38,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <format>
+#include <functional>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -267,9 +269,15 @@ Core::Expected<void, std::string> BeginTheArrow(World::ModelEffect& effect, Worl
         effect.dword100 = 0;
         effect.state = 1;
     }
-    if (type == NatureArrow && effect.subtype == 1 && HasJointRoom(world))
-        return Core::Unexpected(std::string("0x51c713: el joint 0x610/0xd de la flecha 0xe1/1 (0x530860), sin portar "
-                                            "(CL11)"));
+    if (type == NatureArrow && effect.subtype == 1)
+    {
+        const auto made = CreateFaunaJoint(world.DrawTail().joints,
+                                           {0x610, effect.transform.position, effect.transform.position,
+                                            effect.transform.angles, 13, &effect, 20, 40, 0, 0, -1},
+                                           random, JointOwnerKind::ModelEffect);
+        if (!made.HasValue())
+            return Core::Unexpected(made.Error());
+    }
     if (type == BowArrow && (effect.subtype == 3 || effect.subtype == 4))
     {
         BeginTheSiegeArrow(effect, world, random);
@@ -902,10 +910,10 @@ Core::Expected<void, std::string> StepBowArrow(World::ModelEffect& effect, float
     return HitWithTheArrow(effect, context);
 }
 
-// 0x5267dc..0x526979: la flecha 0xe1/1 (la de la fortaleza y Crywolf). Los dos sprites 0x5d5 con la luz (0,1f; 0,4f;
+// 0x5267dc..0x526979: la flecha0xe1/1 de Crywolf yla fortaleza. Los dos sprites 0x5d5 con la luz (0,1f; 0,4f;
 // 0,1f) y las escalas 0,3f y 0,7f, la luz dinámica (luz · 0,2f; luz · 0,8f; luz · 0,2f), la y de los ángulos 60 más
 // (0x6b86cc) y, con más de 25 de vida y par, dos veces el punto ((& 31) − 16; (& 63) − 32; (& 31) − 16) y
-// 0x53fe70(0x60f, punto, ángulos, (0,4f; 1; 0,2f), 5, 0,2f, 0), que corta en la primera. Después, el choque.
+// 0x53fe70(0x60f, punto, ángulos, (0,4f;1;0,2f),5,0,2f,0). Después, choque ycola comunes.
 Core::Expected<void, std::string> StepTheFortressArrow(World::ModelEffect& effect, float luminosity,
                                                        const ArrowStepContext& context)
 {
@@ -930,10 +938,15 @@ Core::Expected<void, std::string> StepTheFortressArrow(World::ModelEffect& effec
         constexpr int SparkCount = 2;
         for (int index = 0; index < SparkCount; ++index)
         {
-            static_cast<void>(ScatteredPoint(effect.transform.position, context.random, {31, 63, 31}, {16, 32, 16}));
-            if (HasParticleRoom(context))
-                return Core::Unexpected(
-                    std::string("0x526961: la 0x60f/5 de la flecha 0xe1/1 (0x53fe70), sin portar (CL11)"));
+            const auto point = ScatteredPoint(effect.transform.position, context.random, {31, 63, 31}, {16, 32, 16});
+            if (context.particles == nullptr)
+                return Core::Unexpected(std::string("0x526961: falta el pool60f/5 del misilE1/1"));
+            World::PortableParticleTrigonometry trigonometry;
+            const auto created =
+                context.particles->CreateChecked(0x60f, point, effect.transform.angles, {.4f, 1, .2f}, 5, .2f,
+                                                 std::cref(context.worldClock), context.random, 0, trigonometry);
+            if (!created.HasValue())
+                return Core::Unexpected(std::string("0x526961: falló el constructor60f/5"));
         }
     }
     return HitWithTheArrow(effect, context);

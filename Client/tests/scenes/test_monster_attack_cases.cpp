@@ -6,6 +6,7 @@
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/LogicalAccess.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Skeleton.h"
@@ -63,6 +64,7 @@ constexpr std::uint32_t Seed = 0x0c19;
 constexpr std::int32_t MonsterKey = 0x0456;
 // Una lectura de +0x38e (0x517630 y sus copias en línea): un rand() al cerrarse en 0.
 constexpr int SkillRead = 1;
+constexpr int OwnRecord = Client::Render::Models::OwnRecordCloseRandoms;
 // La cola con el blanco en el pool, sin 0x11 ni 3 en +0x38e: las lecturas de 0x4f811b y 0x4f8a2c.
 constexpr int Tail = 2 * SkillRead;
 // '2' en +0x38e, la habilidad de los casos.
@@ -744,7 +746,7 @@ TEST_F(MonsterAttackCasesTest, TheFortressAndCrywolfLookAtTheModel)
     EXPECT_EQ(Create(0x138).type, 0x1b2);
     EXPECT_EQ(Create(0x13c).type, 0x1ad);
     EXPECT_EQ(Create(0x15c).type, 0x1b5);
-    const std::vector<Probe> crywolf{{.name = "0x1b2 en 14", .type = 0x138, .step = 14, .cut = "0x432532"},
+    const std::vector<Probe> crywolf{{.name = "0x1b2 en 14", .type = 0x138, .step = 14, .draws = OwnRecord},
                                      {.name = "0x1b2 en 13", .type = 0x138, .step = 13, .draws = Tail},
                                      {.name = "0x1ad en 14", .type = 0x13c, .step = 14, .cut = "0x43257a"},
                                      {.name = "0x1b5 en 15", .type = 0x15c, .step = 15, .cut = "0x432b63"},

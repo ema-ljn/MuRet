@@ -527,9 +527,17 @@ Core::Expected<Helped, std::string> StepCrywolf(ActorState& actor, const KindCas
     case 0x4324fb:
         if (actor.byte381 == FourteenthStep)
         {
-            if (!HasFreeModelEffect(context))
-                return Helped::Exit;
-            return CutAt(0x432532, "el efecto 0xe1/1 con la key de +0x8a (CL11)", actor, slot);
+            const auto created = CreateTheArrowEffect({.type = 0xe1,
+                                                       .position = actor.position,
+                                                       .angles = actor.angles,
+                                                       .light = actor.light,
+                                                       .subtype = 1,
+                                                       .owner = &actor,
+                                                       .key = static_cast<std::uint16_t>(actor.word8a)},
+                                                      context.world, context.random);
+            if (!created.HasValue())
+                return Core::Unexpected(created.Error());
+            return Helped::Exit;
         }
         return Helped::Continue;
     case 0x432543:

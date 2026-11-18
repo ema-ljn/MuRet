@@ -1,6 +1,8 @@
 #include "Scenes/GamePanels.h"
 #include "Scenes/SiegeBattleUi.h"
 
+#include "Scenes/CastleWindows.h"
+
 #include "Core/Expected.h"
 #include "Protocol/CastleSiege.h"
 #include "Protocol/Connection/Logout.h"
@@ -73,8 +75,9 @@ UI::PanelContext ContextOf(WorldState& world, Render::Models::CrtRandom& random,
     context.cursorItemCount = runtime.cursorItemCount;
     context.heroClass = static_cast<std::uint8_t>(hero.characterClass & 7u);
     context.logoutRequested = runtime.ui.logoutRequested;
-    // 0x6689d0 solo lo lee el ancho del mundo con la lista de CS abierta, que MuRet no abre (CL9.5).
-    context.heroSiegeMark = false;
+    // 0x6689d0: el ancho del mundo con Senior y su auxiliar abiertos.
+    context.heroSiegeMark = HeroCanCraftAtTheCastle(world);
+    context.inventoryBusy = [&world]() { return CastleSeniorBusy(world); };
     context.sound = [&runtime](std::int32_t id) { runtime.lastSoundId = id; };
     context.characterOpened = [&world, &random, tables]() { return OpenTheCharacter(world, random, tables); };
     // Sin el cable, el cierre con aux en 0 (el que manda el 3D) corta; el 3D del GS cierra con 1 (0x4d5906).
@@ -98,6 +101,7 @@ UI::PanelContext ContextOf(WorldState& world, Render::Models::CrtRandom& random,
 GamePanels::GamePanels(WorldState& world, Render::Models::CrtRandom& random, GamePanelTables tables)
     : m_context(ContextOf(world, random, tables)), m_registry(world.Runtime().panels, m_context)
 {
+    LendTheCastleLifecycleTo(m_context, world, random, {});
 }
 
 void GamePanels::LendTheSiegeControls(WorldState& world, std::function<void(Protocol::Outgoing)> send)
@@ -137,10 +141,12 @@ void GamePanels::LendTheSiegeControls(WorldState& world, std::function<void(Prot
     };
 }
 
-void GamePanels::LendTheCastleRequests(WorldState& world, std::function<void(Protocol::Outgoing)> send)
+void GamePanels::LendTheCastleRequests(WorldState& world, std::function<void(Protocol::Outgoing)> send,
+                                       CastleWindowServices services)
 {
     if (!send)
         return;
+    LendTheCastleLifecycleTo(m_context, world, m_context.random, send, services);
     m_context.castleRegistrationOpened = [&world, send]() -> Core::Expected<void, std::string>
     {
         auto& opened = world.Runtime().panels.delegated.castleSiege;
@@ -164,6 +170,11 @@ void GamePanels::LendTheCastleRequests(WorldState& world, std::function<void(Pro
         }
         return {};
     };
+}
+
+void GamePanels::LendTheCastleWindowSteps(const GameUiContext& context)
+{
+    LendTheCastleWindowStepsTo(m_context, context);
 }
 
 void GamePanels::LendTheNpcWindows(WorldState& world, Render::Models::CrtRandom& random, InventoryServices services,

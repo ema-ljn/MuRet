@@ -620,6 +620,11 @@ Core::Expected<CastleSiegePacket, ProtocolError> ReadCastleSiegePacket(const Net
     }
 }
 
+Outgoing WriteStateRequest()
+{
+    return Xor32C1(Castle(StateSubcode));
+}
+
 Outgoing WriteRegister()
 {
     return Xor32C1(Castle(RegisterSubcode));

@@ -6,6 +6,7 @@
 #include "Protocol/Outgoing.h"
 
 #include <functional>
+#include <cstdint>
 #include <string>
 
 namespace Client::Core
@@ -35,6 +36,7 @@ namespace Client::Scenes
 {
 class WorldState;
 struct WorldRuntime;
+struct WorldEntryResources;
 
 // El GameServer: los C1 que manda el B2 02 con 1 (0x4df1a0).
 using CastleSender = std::function<void(Protocol::Outgoing)>;
@@ -52,6 +54,8 @@ struct CastleReceiveContext
     // Text.bmd: 860, 1386, 1500..1527, 1609 y 1616.
     const Data::Text::TextTable* texts = nullptr;
     CastleSender send{};
+    std::uint32_t tick = 0;
+    const WorldEntryResources* entryResources = nullptr;
 };
 
 // 0x4e2b10 con un paquete del castillo: B2 00 (0x4e50bd), 01 (0x4df080), 02 (0x4df1a0), 03 (0x4e5186), 04

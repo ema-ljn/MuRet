@@ -1,5 +1,6 @@
 #include "Scenes/GameUi.h"
 #include "Scenes/SiegeBattleUi.h"
+#include "Scenes/CastleWindows.h"
 
 #include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
@@ -64,6 +65,7 @@
 #include "UI/MessageArea.h"
 #include "UI/NameChecks.h"
 #include "UI/OldWindows.h"
+#include "UI/PanelDialog.h"
 #include "UI/PanelRegistry.h"
 #include "UI/SlideBanner.h"
 #include "World/ItemState.h"
@@ -214,7 +216,10 @@ bool KeyEdge(UI::GameUiState& ui, const Input::InputState& input, GameKey key)
 bool TextInputBusy(const WorldRuntime& runtime)
 {
     const UI::ChatFocus focus = runtime.chat.input.focus;
-    return runtime.ui.chatOpen || runtime.chat.input.dialogFieldOn || focus == UI::ChatFocus::OldWindow ||
+    const auto& panelDialog = runtime.panels.delegated.panelDialog;
+    const bool panelField =
+        UI::PanelDialogHandle(panelDialog) != 0 && (panelDialog.flags & UI::PanelDialogTextField) != 0;
+    return runtime.ui.chatOpen || runtime.chat.input.dialogFieldOn || panelField || focus == UI::ChatFocus::OldWindow ||
            focus == UI::ChatFocus::Dialog || focus == UI::ChatFocus::NumberField;
 }
 
@@ -1344,7 +1349,6 @@ Core::Expected<void, std::string> StepTheOtherGrids(const GameUiContext& context
 {
     WorldRuntime& runtime = context.world.Runtime();
     const UI::PanelState& state = runtime.panels;
-    const auto cut = [](std::string_view what) { return Core::Unexpected(std::string(what)); };
     if (panels.IsOpen(UI::TradePanel))
     {
         if (auto trade = StepTheTradeGrids(context, panels); !trade.HasValue())
@@ -1374,7 +1378,9 @@ Core::Expected<void, std::string> StepTheOtherGrids(const GameUiContext& context
             !hovered.HasValue())
             return hovered;
     }
-    if (panels.IsOpen(UI::ChaosBoxPanel) && npc.chaosMixState != 1)
+    if ((panels.IsOpen(UI::ChaosBoxPanel) && npc.chaosMixState != 1) ||
+        (panels.IsOpen(UI::CastleSiegeListPanel) && state.delegated.castleSiegeListMode == SiegeListWithInventory &&
+         HeroCanCraftAtTheCastle(context.world)))
     {
         const HoverGrid chaos{.cells = npc.chaosBox,
                               .place = UI::HoveredItem::Place::ChaosBoxCell,
@@ -1385,8 +1391,6 @@ Core::Expected<void, std::string> StepTheOtherGrids(const GameUiContext& context
             !hovered.HasValue())
             return hovered;
     }
-    else if (panels.IsOpen(UI::CastleSiegeListPanel) && state.delegated.castleSiegeListMode == SiegeListWithInventory)
-        return cut("0x5e582b: 0x6689d0, la marca del asedio del héroe, es de la CL9.5");
     if (panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel))
     {
         if (auto shop = StepTheShopGrid(context, panels); !shop.HasValue())
@@ -1425,7 +1429,6 @@ Core::Expected<void, std::string> StepTheInventoryWindow(const GameUiContext& co
     const UI::PanelState& state = runtime.panels;
     const std::int32_t x = runtime.hud.inventoryX;
     const std::int32_t y = runtime.hud.inventoryY;
-    const auto cut = [](std::string_view what) { return Core::Unexpected(std::string(what)); };
     // 0x5e4ce0..0x5e4f2c: el mouse sobre la ventana es de la UI, y sobre la del NPC abierta (la tienda, con su
     // rand(), el almacén y la caja del caos), en la esquina de 0x78aba28, también.
     if (InRect(context, x, y, x + 0xbe, y + 0x1b1))
@@ -1441,10 +1444,10 @@ Core::Expected<void, std::string> StepTheInventoryWindow(const GameUiContext& co
         overTheNpcWindow();
     if (panels.IsOpen(UI::WarehousePanel))
         overTheNpcWindow();
-    if (panels.IsOpen(UI::ChaosBoxPanel))
+    if (panels.IsOpen(UI::ChaosBoxPanel) ||
+        (panels.IsOpen(UI::CastleSiegeListPanel) && state.delegated.castleSiegeListMode == SiegeListWithInventory &&
+         HeroCanCraftAtTheCastle(context.world)))
         overTheNpcWindow();
-    else if (panels.IsOpen(UI::CastleSiegeListPanel) && state.delegated.castleSiegeListMode == SiegeListWithInventory)
-        return cut("0x5e4dea: 0x6689d0, la marca del asedio del héroe, es de la CL9.5");
     // 0x5e4e34..0x5e4e7b: el mouse sobre la ventana del comercio (0xbe × 0x1b1 desde 0x78a5a1c y 0x78a5a18).
     if (panels.IsOpen(UI::TradePanel) &&
         InRect(context, runtime.hud.tradeX, runtime.hud.tradeY, runtime.hud.tradeX + 0xbe, runtime.hud.tradeY + 0x1b1))
@@ -1542,16 +1545,15 @@ Core::Expected<void, std::string> StepTheCursorItem(const GameUiContext& context
 {
     WorldRuntime& runtime = context.world.Runtime();
     const UI::PanelState& state = runtime.panels;
-    const auto cut = [](std::string_view what) { return Core::Unexpected(std::string(what)); };
     // 0x5d8d72..0x5d8ddf.
-    if (panels.IsOpen(UI::ChaosBoxPanel))
+    if (panels.IsOpen(UI::ChaosBoxPanel) ||
+        (panels.IsOpen(UI::CastleSiegeListPanel) && state.delegated.castleSiegeListMode == SiegeListWithInventory &&
+         HeroCanCraftAtTheCastle(context.world)))
     {
         if (auto scanned = ScanTheChaosBox(context.world, context.random, ServicesOf(context).items);
             !scanned.HasValue())
             return scanned;
     }
-    else if (panels.IsOpen(UI::CastleSiegeListPanel) && state.delegated.castleSiegeListMode == SiegeListWithInventory)
-        return cut("0x5d8dad: 0x6689d0, la marca del asedio del héroe, es de la CL9.5");
     // 0x5d8ddf..0x5d8dee.
     if (runtime.ui.field78abb39 != 0)
         return {};
@@ -1602,7 +1604,9 @@ Core::Expected<void, std::string> StepTheCursorItem(const GameUiContext& context
             return Core::Unexpected(dropped.Error());
         inAGrid = inAGrid || dropped.Value();
     }
-    if (panels.IsOpen(UI::ChaosBoxPanel) && runtime.npcWindows.chaosMixState != 1)
+    if ((panels.IsOpen(UI::ChaosBoxPanel) && runtime.npcWindows.chaosMixState != 1) ||
+        (panels.IsOpen(UI::CastleSiegeListPanel) && state.delegated.castleSiegeListMode == SiegeListWithInventory &&
+         HeroCanCraftAtTheCastle(context.world)))
     {
         // 0x5debe4: 0x5ca250(x + 0xf, y + 0x6e, 0x7d2d380, 8, 4, 3).
         const auto dropped = DropOnOtherGrid(moves, OtherGridDrop{.mouseX = context.mouseX,
@@ -1614,8 +1618,6 @@ Core::Expected<void, std::string> StepTheCursorItem(const GameUiContext& context
             return Core::Unexpected(dropped.Error());
         inAGrid = inAGrid || dropped.Value();
     }
-    else if (panels.IsOpen(UI::CastleSiegeListPanel) && state.delegated.castleSiegeListMode == SiegeListWithInventory)
-        return cut("0x5debbc: 0x6689d0, la marca del asedio del héroe, es de la CL9.5");
     if (panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel))
     {
         // 0x5debf0..0x5dec1e: 0x5ca250(x + 15, y + 0x6e, 0x78ab0b8, 8, 4, 4), con bl en lo que devuelve (CL9 hito 7).
@@ -2456,6 +2458,7 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
     if (context.chat != nullptr && context.chat->send)
         gamePanels.LendThePetRequests(context.chat->send);
     gamePanels.LendTheGuild(context.world, GuildSenderOf(context.requests));
+    gamePanels.LendTheCastleWindowSteps(context);
     gamePanels.LendThePanelDialogStep(context.world, GuildSenderOf(context.requests), context.mouseX, context.mouseY,
                                       context.systemTime);
     gamePanels.LendTheSecondGuildStep(SecondGuildStepContext{

@@ -12,5 +12,5 @@ struct PanelTimerFrame
     float du = 0;
 };
 
-[[nodiscard]] PanelTimerFrame PanelTimerFrameAt(std::uint32_t now,std::uint32_t started,std::uint32_t ends);
+[[nodiscard]] PanelTimerFrame PanelTimerFrameAt(std::uint32_t now, std::uint32_t started, std::uint32_t ends);
 } // namespace Client::UI

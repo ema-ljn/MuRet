@@ -197,6 +197,18 @@ TEST_F(CastleSeniorAnswersTest, TheDefenseAndRecoveryAnswersSendTheNextLevel)
     EXPECT_TRUE(SameBytes(sent[4], Bytes({0xc1, 0x14, 0xb2, 7, 0x20, 1, 0, 0, 3, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0})));
 }
 
+TEST_F(CastleSeniorAnswersTest, DefenseAndRecoveryIncrementWithDwordWrap)
+{
+    Record(0x7d5c590, 0x115, 1, 0x7fffffffu, 0, 0, 1);
+    Client::Scenes::AnswerTheGateDefenseDialog(8, Context());
+    Record(0x7d5c520, 0x11b, 3, 0, 0xffffffffu, 0, 1);
+    Client::Scenes::AnswerTheStatueRecoveryDialog(8, Context());
+    const auto sent = Sent();
+    ASSERT_EQ(sent.size(), 2u);
+    EXPECT_TRUE(SameBytes(sent[0], Bytes({0xc1, 0x14, 0xb2, 7, 0x15, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0x80})));
+    EXPECT_TRUE(SameBytes(sent[1], Bytes({0xc1, 0x14, 0xb2, 7, 0x1b, 1, 0, 0, 3, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0})));
+}
+
 // 0x666b30: los dos impuestos que muestra la ventana, en dos B2 09 con el byte de arriba primero.
 TEST_F(CastleSeniorAnswersTest, TheTaxAnswerSendsBothTaxes)
 {

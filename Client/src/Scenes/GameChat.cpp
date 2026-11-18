@@ -645,6 +645,7 @@ Core::Expected<void, std::string> PressEnterInTheGame(const GameChatContext& con
         return {};
     {
         GamePanels panels(context.world, context.random);
+        panels.LendTheSession(context.world, context.random, context.send, context.sendWindowClose);
         auto taken = panels.Registry().PanelKey(EnterVirtualKey);
         if (!taken.HasValue())
             return Core::Unexpected(taken.Error());

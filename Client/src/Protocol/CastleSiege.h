@@ -240,6 +240,8 @@ using CastleSiegePacket =
 
 // Lo que mandan las ventanas: el escritor de 0x6b85f4 en la pila, send() en claro por el socket del juego, y el XOR32
 // desde el byte 3 a medida que pone cada campo.
+// 0x4d25dd (el NPC con el resultado 13): C1 04 B2 00.
+[[nodiscard]] Outgoing WriteStateRequest();
 // 0x64c0b0 (el botón con el estado 1): C1 04 B2 01.
 [[nodiscard]] Outgoing WriteRegister();
 // 0x64ccd0 (la respuesta 8 del diálogo): C1 05 B2 02 01.

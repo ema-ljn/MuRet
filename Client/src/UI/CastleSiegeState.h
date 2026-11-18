@@ -1,20 +1,58 @@
 #pragma once
 
 #include "UI/CastleBattleState.h"
+#include "UI/CastleSeniorWindow.h"
+#include "UI/OldControls.h"
+#include "UI/OldWindowBase.h"
 
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include <span>
+#include <deque>
 
 // Lo que guardan los paquetes del castillo fuera de la batalla (CL9 hito 12; 04 § Castle Siege, las ventanas del
 // castillo): la zona de la .bss 0x7d5c504..0x7d5c658 que llenan el B3 y los B2 05..10, los campos del paquete de la
 // ventana del registro ([0x7d536f8], 0x80000) y de la del guardia de la zona de caza ([0x7d53700], 0x200000), y los dos
 // globales del B2 1A. El byte de abierto de cada ventana vive en DelegatedPanels (castleSiege en +4 y
-// secondCastleSiege en +0x14); lo demás de los tres objetos (botones, listas, pestañas, el dibujo) es de las fases
-// siguientes del hito.
+// secondCastleSiege en +0x14); los botones, listas y pestañas se conservan aquí entre frames.
 namespace Client::UI
 {
+// Los botones reciben ids internos negativos, como los del diálogo y del gremio (P-C280); los nativos son del
+// contador 0x5762eb0. No se usa su valor para el wire.
+[[nodiscard]] inline OldButton CastleButton(std::int32_t id, std::int32_t width, std::int32_t height)
+{
+    OldButton button;
+    button.base.id = id;
+    button.base.width = width;
+    button.base.height = height;
+    return button;
+}
+
+// 0x46f320 y 0x4706f0: listas ancladas abajo, 18 renglones, capacidad 150.
+[[nodiscard]] inline OldList CastleGuildList(std::int32_t id)
+{
+    OldList list;
+    list.base.id = id;
+    list.base.x = 470;
+    list.base.y = 360;
+    list.base.width = 157;
+    list.base.height = 235;
+    list.base.rectMode = 2;
+    list.rows = 18;
+    return list;
+}
+
+// 0x46f7e0 y 0x470bb0: el toggle del renglón, strncpy del nombre y los campos copiados por B4/B5.
+struct CastleGuildRow
+{
+    std::int32_t toggled = 0;
+    std::array<char, 9> name{};
+    std::uint32_t marks = 0;
+    std::uint8_t first = 0;
+    std::uint8_t second = 0;
+};
+
 // 0x7d5c504..0x7d5c658, plana: el servidor elige el índice de cada registro sin que el cliente lo mire (0x668fd0,
 // 0x669030: base + índice × 0x1c, en 32 bits), y los registros se pisan (la estatua 4 es la puerta 0; la puerta 7 cae
 // sobre las elegidas y los impuestos). MuRet guarda los bytes como el original y descarta el paquete que escribiría
@@ -91,6 +129,10 @@ struct SiegeDate
 // +0xd8 en 0 y los nombres en 0; +0xbc..+0xd0 quedan con lo que dejó new (Q-C1362): MuRet los arranca en 0.
 struct SiegeRegistrationWindow
 {
+    std::int32_t x = 0;
+    std::int32_t y = 0;
+    std::int32_t right = 0;
+    std::int32_t bottom = 0;
     // +0x18: pestaña inicial; 0x64b200 la vuelve a 0 sólo cuando la ventana estaba abierta.
     std::int32_t tab = 0;
     // +0x1c: el estado del asedio (pkt[5] del B2 00 con MOVSX).
@@ -106,21 +148,33 @@ struct SiegeRegistrationWindow
     // argumento, en un dword).
     std::uint32_t marks = 0;
     std::uint32_t registered = 0;
+    OldButton button = CastleButton(-300, 50, 18);
+    OldList siegeGuildList = CastleGuildList(-301);
+    OldList registeredGuildList = CastleGuildList(-302);
+    std::deque<CastleGuildRow> siegeGuilds;
+    std::deque<CastleGuildRow> registeredGuilds;
 };
 
 // Los campos de [0x7d53700] (0x6485f0, 0x24c bytes) que escriben los paquetes; el constructor los deja en 0.
 struct HuntZoneWindow
 {
+    std::int32_t x = 0;
+    std::int32_t y = 0;
+    std::int32_t right = 0;
+    std::int32_t bottom = 0;
     // +0x15: la entrada abierta (B2 1F con 1: SETNZ de pkt[5]).
     std::uint8_t allowed = 0;
-    // +0x16: el modo, pkt[4] del B9 03 distinto de 0 (0x4e0830, hito 13).
     std::uint8_t mode = 0;
     // +0x18: el precio (B2 09 con pkt[5] en 3).
     std::uint32_t fee = 0;
-    // +0x1c, +0x20 y +0x24: el B9 03 (0x4e0844..0x4e0856, hito 13) los escribe con el precio, pkt+0x10 y pkt+0xc.
-    std::uint32_t field1c = 0;
-    std::uint32_t field20 = 0;
-    std::uint32_t field24 = 0;
+    std::int32_t editedFee = 0;
+    std::int32_t step = 0;
+    std::int32_t max = 0;
+    std::uint32_t dialogId = 0;
+    OldButton commit = CastleButton(-310, 50, 18);
+    OldButton plus = CastleButton(-311, 16, 16);
+    OldButton minus = CastleButton(-312, 16, 16);
+    OldButton enter = CastleButton(-313, 50, 18);
 };
 
 struct CastleSiegeState
@@ -128,6 +182,7 @@ struct CastleSiegeState
     CastleData data{};
     SiegeRegistrationWindow registration{};
     HuntZoneWindow huntZone{};
+    CastleSeniorWindow senior{};
     // 0x78aba34 y 0x78aba30 (.bss 0): el B2 1A con pkt[4] en 1 y en 2, MOVZX de pkt[5]. Los leen 0x44d680, 0x5b1200,
     // 0x5b12f0, 0x5f4720 y 0x5febf0, la batalla (hito 13).
     std::uint32_t siegeFlag1 = 0;

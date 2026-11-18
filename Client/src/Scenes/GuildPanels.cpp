@@ -1,4 +1,5 @@
 #include "Scenes/GuildPanels.h"
+#include "Scenes/CastleWindows.h"
 
 #include "Core/Expected.h"
 #include "Protocol/Guild.h"
@@ -174,6 +175,8 @@ Core::Expected<bool, std::string> AnswerThePanelDialog(WorldState& world, const 
     }
     case UI::PanelDialogOwner::None:
         break;
+    default:
+        return AnswerTheCastleWindowDialog(world, send, owner, reason);
     }
     return Core::Unexpected(std::string("0x6600d0: el diálogo de los paneles responde sin quien lo abrió"));
 }

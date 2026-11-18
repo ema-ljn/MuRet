@@ -1,4 +1,5 @@
 #include "Scenes/GameInventoryHud.h"
+#include "Scenes/CastleWindows.h"
 
 #include "App/WindowState.h"
 #include "Core/Expected.h"
@@ -723,7 +724,9 @@ Core::Expected<void, std::string> DrawTheGridItems(GameHudContext& context, UI::
             return warehouse;
     }
     // 0x5f77c6: la caja del caos, 0x5e3760(x + 15, y + 110, 0x7d2d380, 8, 4, 0) desde la esquina que dejó su dibujo.
-    if (panels.IsOpen(UI::ChaosBoxPanel))
+    if (panels.IsOpen(UI::ChaosBoxPanel) ||
+        (panels.IsOpen(UI::CastleSiegeListPanel) && delegated.castleSiegeListMode == SiegeListWithInventory &&
+         HeroCanCraftAtTheCastle(context.world)))
     {
         if (auto chaos = DrawTheGridModels(context, ChaosBoxGridLeft(context), ChaosBoxGridTop(context),
                                            runtime.npcWindows.chaosBox, ChaosBoxGridColumns, ChaosBoxGridRows);
@@ -731,8 +734,6 @@ Core::Expected<void, std::string> DrawTheGridItems(GameHudContext& context, UI::
             return chaos;
     }
     // 0x5f7772..0x5f7799: sin la caja, con la lista del asedio, el mismo dibujo si la marca del héroe lo pide.
-    else if (panels.IsOpen(UI::CastleSiegeListPanel) && delegated.castleSiegeListMode == SiegeListWithInventory)
-        return Core::Unexpected(std::string("0x5f7792: 0x6689d0, la marca del asedio del héroe, es de la CL9.5"));
     if (panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel))
     {
         // 0x5f77f6..0x5f7821: la grilla de las tiendas personales (0x78ab0b8) en la esquina (0x78aba58 y 0x78aba5c) más
@@ -759,7 +760,7 @@ Core::Expected<void, std::string> DrawTheGridNumbers(GameHudContext& context, UI
     bool any = panels.IsOpen(UI::InventoryPanel) || panels.IsOpen(UI::NpcShopPanel) ||
                panels.IsOpen(UI::WarehousePanel) || panels.IsOpen(UI::ChaosBoxPanel) || panels.IsOpen(UI::TradePanel);
     if (!any && panels.IsOpen(UI::CastleSiegeListPanel) && delegated.castleSiegeListMode == SiegeListWithInventory)
-        return Core::Unexpected(std::string("0x5f78c2: 0x6689d0, la marca del asedio del héroe, es de la CL9.5"));
+        any = HeroCanCraftAtTheCastle(context.world);
     if (!any)
         any = panels.IsOpen(UI::TrainerPanel);
     if (!any)
@@ -787,11 +788,11 @@ Core::Expected<void, std::string> DrawTheGridNumbers(GameHudContext& context, UI
         DrawTheGridCounts(context.sprites, NpcGridLeft(context), NpcGridTop(context), world.Runtime().npcWindows.grid,
                           NpcWindowGridColumns, NpcWindowGridRows);
     // 0x5f7a9e: la caja del caos, 0x5e3760(x + 15, y + 110, 0x7d2d380, 8, 4, 1).
-    if (panels.IsOpen(UI::ChaosBoxPanel))
+    if (panels.IsOpen(UI::ChaosBoxPanel) ||
+        (panels.IsOpen(UI::CastleSiegeListPanel) && delegated.castleSiegeListMode == SiegeListWithInventory &&
+         HeroCanCraftAtTheCastle(context.world)))
         DrawTheGridCounts(context.sprites, ChaosBoxGridLeft(context), ChaosBoxGridTop(context),
                           world.Runtime().npcWindows.chaosBox, ChaosBoxGridColumns, ChaosBoxGridRows);
-    else if (panels.IsOpen(UI::CastleSiegeListPanel) && delegated.castleSiegeListMode == SiegeListWithInventory)
-        return Core::Unexpected(std::string("0x5f7a6a: 0x6689d0, la marca del asedio del héroe, es de la CL9.5"));
     if (panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel))
     {
         // 0x5f7ace..0x5f7af9: la grilla de las tiendas personales, como sus ítems.

@@ -2,6 +2,10 @@
 
 Fecha: 2026-11-18. Revisión estática de MuRet `f5e8fc45` y del cliente C32 (`c32bbd5f16ca400c7cfc71fa5f4cd573c57f146dd19a6da52fdd1007abaca26a`). No se editó el código, no se ejecutó el original ni se lanzaron builds. Este informe no certifica implementación, pruebas ni cierre de CL11.
 
+La implementación posterior conecta los tres llamadores con señales propias de
+MuRet. Este informe conserva el análisis estático del original como referencia
+del contrato. [Decisión de implementación](../../../docs/adr/0019-senales-del-asedio.md).
+
 ## Decisión
 
 Los tres recorridos parecen reconstruibles con la información estática disponible. No encontré, en los subtipos concretos alcanzados por estos callers, un local de pila sin inicializar comparable con los obstáculos ya documentados de los fragmentos o del 147. Hay que implementarlos y probarlos: las etiquetas «CL11» actuales son cortes de implementación, no evidencia de una dependencia desconocida.

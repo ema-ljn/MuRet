@@ -1404,6 +1404,17 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
     constexpr std::int16_t FirstTower = 322;
     constexpr std::int16_t LastTower = 324;
     constexpr std::int16_t KalimaType = 9;
+    if (IsSiegeCue(effect.type, effect.subtype))
+    {
+        if (effect.type == SiegeArrivalCue)
+            effect.life = effect.hasOwner ? 2 : 1;
+        else
+            effect.alpha =
+                std::clamp(static_cast<float>(effect.life) / static_cast<float>(SiegeAttackCueLife), 0.0f, 1.0f);
+        // La señal no tiene esqueleto. La cola común conserva el paso y la liberación del lugar.
+        StepModelEffect(effect, nullptr);
+        return {};
+    }
     if (effect.type == KalimaType)
     {
         if (auto stepped = StepKalimaEffect(effect, kalima, random); !stepped.HasValue())

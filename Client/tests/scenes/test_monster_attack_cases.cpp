@@ -699,14 +699,14 @@ TEST_F(MonsterAttackCasesTest, TheKalimaWardsSetTheFlagsAndEndTheCount)
     }
 }
 
-// 0x42dcf0 en el 30 (el 0x68 sale fuera del 5; el 0x120 corta siempre) y 0x429110 en el 33 y el 54 (en 10 y en su
-// acción, el efecto; si no, sale).
+// 42dcf0 en30: el68 emite sólo en5 y el120 siempre. Las señales propias conservan ese caller.
+// 429110 en33/54 conserva sus fronteras en10 y en la acción que corresponde.
 TEST_F(MonsterAttackCasesTest, TheSiegeAndTheTrialMonstersLeaveOrCut)
 {
     Load(30);
     for (const Probe& probe : std::vector<Probe>{{.name = "0x68 en 4", .type = 0x68, .step = 4},
-                                                 {.name = "0x68 en 5", .type = 0x68, .step = 5, .cut = "0x42dd9c"},
-                                                 {.name = "0x120", .type = 0x120, .step = 1, .cut = "0x42dd48"}})
+                                                 {.name = "0x68 en 5", .type = 0x68, .step = 5},
+                                                 {.name = "0x120", .type = 0x120, .step = 1, .draws = 1}})
         Expect(probe);
     const std::vector<Probe> trials{
         {.name = "0x135 en la 3 y en 10", .type = 0x135, .step = 10, .cut = "0x42919a"},
@@ -727,6 +727,88 @@ TEST_F(MonsterAttackCasesTest, TheSiegeAndTheTrialMonstersLeaveOrCut)
         SCOPED_TRACE(map);
         ExpectTheTailIn(map, {0x68, 0x120, 0x130, 0x134, 0x135});
     }
+}
+
+// 42dd23..42dda4: entradas completas, dueñoNULL/keyffff y salida antes de la cola del ataque.
+TEST_F(MonsterAttackCasesTest, SiegeCuesKeepTheCallerInputsAndUseTheFirstFreeEffectSlot)
+{
+    Load(30);
+    withParticles = false;
+    for (const std::uint16_t kind : {std::uint16_t{0x68}, std::uint16_t{0x120}})
+    {
+        SCOPED_TRACE(kind);
+        ActorState& monster = Prepare(Probe{.name = "señal del asedio", .type = kind, .step = 5, .target = 0});
+        monster.position = {1125.0f, 2250.0f, 37.25f};
+        monster.angles = {12.0f, 34.0f, 56.0f};
+        monster.light = {.2f, .4f, .6f};
+        monster.flags78 = 0x12345678;
+        FillModelEffectPoolExceptLast(2);
+        auto effects = game->world.Map().effects.Effects();
+        const auto unused = effects.back();
+        const std::size_t firstFree = effects.size() - 2;
+        const auto original = monster.position;
+
+        const auto result = Step(monster);
+
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        const auto& cue = effects[firstFree];
+        EXPECT_TRUE(cue.alive);
+        EXPECT_EQ(cue.type, kind == 0x68 ? 0x19f : 0x61c);
+        EXPECT_EQ(cue.subtype, 0);
+        EXPECT_EQ(cue.transform.position, (glm::vec3{1125.0f, 2250.0f, kind == 0x68 ? 537.25f : 37.25f}));
+        EXPECT_EQ(cue.transform.angles, monster.angles);
+        EXPECT_EQ(cue.light, monster.light);
+        EXPECT_EQ(cue.ownerContext, nullptr);
+        EXPECT_FALSE(cue.hasOwner);
+        EXPECT_EQ(cue.disturbanceState, 0xffff);
+        EXPECT_FALSE(effects.back().alive);
+        EXPECT_EQ(effects.back().type, unused.type);
+        EXPECT_EQ(effects.back().life, unused.life);
+        EXPECT_EQ(effects.back().transform.position, unused.transform.position);
+        EXPECT_EQ(monster.position, original);
+        EXPECT_EQ(monster.flags78, 0x12345678u);
+        EXPECT_EQ(monster.byte381, 5);
+        EXPECT_EQ(Draws(), kind == 0x120 ? 1 : 0);
+        EXPECT_TRUE(sounds.empty());
+        EXPECT_TRUE(game->joints.empty());
+    }
+}
+
+TEST_F(MonsterAttackCasesTest, SiegeCueGatesUseTheMapAndKindFrameWithoutAnActionOrTargetRequirement)
+{
+    Load(30);
+    withParticles = false;
+    for (const std::uint8_t map :
+         {std::uint8_t{0}, std::uint8_t{29}, std::uint8_t{30}, std::uint8_t{31}, std::uint8_t{34}, std::uint8_t{35}})
+        for (const std::uint16_t kind : {std::uint16_t{0x68}, std::uint16_t{0x120}})
+            for (const std::uint8_t frame :
+                 {std::uint8_t{0}, std::uint8_t{4}, std::uint8_t{5}, std::uint8_t{6}, std::uint8_t{255}})
+            {
+                SCOPED_TRACE(testing::Message() << "map=" << static_cast<int>(map) << " kind=" << kind
+                                                << " frame=" << static_cast<int>(frame));
+                // El alta usa el30; este caso varía sólo el gate del caller, sin cargar mundos de otros mapas.
+                game->world.Runtime().map = 30;
+                ActorState& monster = Prepare(Probe{.name = "gate de la señal",
+                                                    .type = kind,
+                                                    .step = frame,
+                                                    .action = 0xff,
+                                                    .target = NoTarget,
+                                                    .model = 0x160});
+                game->world.Map().effects.Clear();
+                game->world.Runtime().map = map;
+
+                const auto result = Step(monster);
+
+                ASSERT_TRUE(result.HasValue()) << result.Error();
+                const bool emitted = map == 30 && (kind == 0x120 || frame == 5);
+                EXPECT_EQ(std::ranges::count_if(game->world.Map().effects.Effects(),
+                                                [](const auto& effect) { return effect.alive; }),
+                          emitted ? 1 : 0);
+                EXPECT_EQ(Draws(), emitted && kind == 0x120 ? 1 : 0);
+                EXPECT_EQ(monster.byte381, frame);
+                EXPECT_EQ(monster.animation.action, 0xff);
+                EXPECT_TRUE(sounds.empty());
+            }
 }
 
 // 0x42fce0 en el 35 (con el terreno de Lorencia: el Data del repo no tiene el World36) y 0x4324c0 en Crywolf, por el
@@ -818,7 +900,7 @@ TEST_F(MonsterAttackCasesTest, TheSiegeTrialAndFortressHelpersExitWhenTheirModel
         std::uint8_t action;
         std::string_view cut;
     };
-    const std::array cases{Case{30, 30, 0x120, 1, 3, "0x42dd48"},  Case{30, 30, 0x68, 5, 3, "0x42dd9c"},
+    const std::array cases{Case{30, 30, 0x120, 1, 3, ""},          Case{30, 30, 0x68, 5, 3, ""},
                            Case{33, 33, 0x135, 10, 3, "0x42919a"}, Case{54, 54, 0x134, 10, 4, "0x429202"},
                            Case{33, 33, 0x130, 10, 4, "0x42925a"}, Case{35, 0, 0x136, 14, 3, "0x42fd76"},
                            Case{35, 0, 0x13c, 14, 3, ""}};
@@ -845,7 +927,15 @@ TEST_F(MonsterAttackCasesTest, TheSiegeTrialAndFortressHelpersExitWhenTheirModel
 
         FillModelEffectPoolExceptLast(1);
         const auto freeSlot = Step(monster);
-        if (probe.cut.empty())
+        if (probe.map == 30)
+        {
+            EXPECT_TRUE(freeSlot.HasValue()) << freeSlot.Error();
+            EXPECT_EQ(Draws(), probe.type == 0x120 ? 1 : 0);
+            const auto& cue = game->world.Map().effects.Effects().back();
+            EXPECT_TRUE(cue.alive);
+            EXPECT_EQ(cue.type, probe.type == 0x120 ? 0x61c : 0x19f);
+        }
+        else if (probe.cut.empty())
         {
             EXPECT_TRUE(freeSlot.HasValue()) << freeSlot.Error();
             EXPECT_EQ(Draws(), OwnRecord);

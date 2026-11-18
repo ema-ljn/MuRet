@@ -645,18 +645,17 @@ TEST_F(MonsterViewportTest, TheSiegeSwitchAndBothCatapultsCanBePickedForTalkAndO
     }
 }
 
-// 42d513 y 42d5af vuelven con el actor aunque 518cf0 no encuentre un lugar libre.
-TEST_F(MonsterViewportTest, CastleSiegePublishesTheActorsWhenTheArrivalEffectPoolIsFull)
+// 42d513 y 42d5af publican el actor tanto con espacio para la señal como con el pool lleno.
+TEST_F(MonsterViewportTest, CastleSiegePublishesTheActorsWithOneOrNoFreeArrivalSlots)
 {
     struct Kind
     {
         std::uint16_t wire;
         std::uint16_t model;
-        std::string_view arrival;
     };
-    constexpr std::array kinds{Kind{278, 0x1a8, "0x42d513:"}, Kind{283, 0x19c, "0x42d5af:"}};
+    constexpr std::array kinds{Kind{278, 0x1a8}, Kind{283, 0x19c}};
     constexpr std::uint16_t key = 0x0123;
-    for (const auto& [wire, model, arrival] : kinds)
+    for (const auto& [wire, model] : kinds)
     {
         SCOPED_TRACE(wire);
         // Un solo slot disponible alcanza para que 518cf0 entre al efecto 134/0.
@@ -673,10 +672,17 @@ TEST_F(MonsterViewportTest, CastleSiegePublishesTheActorsWhenTheArrivalEffectPoo
                                                           .y = cell.y,
                                                           .targetX = cell.x,
                                                           .targetY = cell.y}}};
-        const auto missingEffect = Monsters(records);
-        ASSERT_FALSE(missingEffect.HasValue());
-        EXPECT_TRUE(missingEffect.Error().starts_with(arrival)) << missingEffect.Error();
-        EXPECT_FALSE(effects.back().alive);
+        const auto withSpace = Monsters(records);
+        ASSERT_TRUE(withSpace.HasValue()) << withSpace.Error();
+        ASSERT_TRUE(Actor(1).alive);
+        EXPECT_EQ(Actor(1).key, key);
+        EXPECT_EQ(Actor(1).type, model);
+        EXPECT_TRUE(effects.back().alive);
+        EXPECT_EQ(effects.back().type, 0x134);
+        EXPECT_EQ(effects.back().ownerContext, &Actor(1));
+        EXPECT_EQ(effects.back().disturbanceState, 120);
+        EXPECT_EQ(effects.back().transform.position, Actor(1).position);
+        EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, WalkingRecordDraws).State());
 
         // La misma alta con la tabla llena se completa sin tocar sus entradas vivas.
         Load(30);
@@ -819,14 +825,13 @@ TEST_F(MonsterViewportTest, TheCreationLoadsTheModelsOfItsCase)
         std::uint16_t type;
         std::uint16_t model;
         const char* folder;
-        bool cuts;
     };
     const std::array<Case, 5> cases{{
-        {0, 3, 0x15b, "Monster\\", false},
-        {2, 19, 0x15e, "Monster\\", false},
-        {0, 251, 0x1ce, "Npc\\", false},
-        {18, 162, 0x198, "Npc\\", false},
-        {30, 283, 0x19c, "Object31\\", true},
+        {0, 3, 0x15b, "Monster\\"},
+        {2, 19, 0x15e, "Monster\\"},
+        {0, 251, 0x1ce, "Npc\\"},
+        {18, 162, 0x198, "Npc\\"},
+        {30, 283, 0x19c, "Object31\\"},
     }};
     for (const Case& tested : cases)
     {
@@ -841,7 +846,7 @@ TEST_F(MonsterViewportTest, TheCreationLoadsTheModelsOfItsCase)
                                                           .targetX = cell.x,
                                                           .targetY = cell.y}}};
         const auto applied = Monsters(records);
-        ASSERT_EQ(applied.HasValue(), !tested.cuts) << (applied.HasValue() ? "" : applied.Error());
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
         auto& models = game->world.FaunaResources();
         const auto* model = models.Find(tested.model);
         ASSERT_NE(model, nullptr);
@@ -851,10 +856,7 @@ TEST_F(MonsterViewportTest, TheCreationLoadsTheModelsOfItsCase)
         ASSERT_FALSE(requests.empty());
         EXPECT_TRUE(requests.front().path.starts_with(tested.folder)) << requests.front().path;
         EXPECT_GT(game->store.loadCalls, 0);
-        if (!tested.cuts)
-        {
-            EXPECT_EQ(Actor(1).type, tested.model);
-        }
+        EXPECT_EQ(Actor(1).type, tested.model);
         if (tested.model == 0x198)
         {
             // El 0x46 va por 0x613053: las acciones 3 y 4 en 0,5 y la 2 en 0,3; el hueso de la cabeza, 0x14.

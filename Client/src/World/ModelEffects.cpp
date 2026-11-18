@@ -241,6 +241,34 @@ std::optional<std::size_t> ModelEffects::Begin(const ModelEffectArguments& argum
     return std::nullopt;
 }
 
+std::optional<std::size_t> ModelEffects::CreateSiegeCue(const ModelEffectArguments& arguments,
+                                                        Render::Models::CrtRandom& random)
+{
+    if (!IsSiegeCue(arguments.type, arguments.subtype))
+        return std::nullopt;
+    // 0x518d63 limpia +0x16d. El pase de suelo todavía lee el +0x16c anterior.
+    const auto slot = Begin(arguments);
+    if (!slot)
+        return std::nullopt;
+    auto& effect = m_effects[*slot];
+    effect.copiedAngles = {};
+    effect.life = SiegeAttackCueLife;
+    if (effect.type == SiegeArrivalCue)
+    {
+        // 0x51d714: la clave del llamador dimensiona la señal en el lugar del alta.
+        constexpr std::int32_t InitialLife = 100;
+        constexpr double ScalePerUnit = static_cast<double>(0.01f);
+        effect.life = InitialLife;
+        effect.transform.scale = F32(static_cast<double>(std::bit_cast<std::int16_t>(arguments.key)) * ScalePerUnit);
+    }
+    else if (effect.type == SiegePulseCue)
+    {
+        // 0x51f193: se sortea una fase sólo al obtener el lugar.
+        effect.copiedAngles.z = static_cast<float>(random.Next() % static_cast<int>(FullTurn));
+    }
+    return slot;
+}
+
 std::optional<std::size_t> ModelEffects::CreateKalimaEffect(const glm::vec3& position, const glm::vec3& angles,
                                                             const glm::vec3& light, Render::Models::CrtRandom& random)
 {

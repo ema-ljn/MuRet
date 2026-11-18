@@ -458,23 +458,25 @@ Core::Expected<Helped, std::string> StepKalima(ActorState& actor, const KindCase
     }
 }
 
-// 0x42dcf0 en el 30: el 0x68 sale (en 5, 0x518cf0(0x19f) sobre el que pega con la z + 0x6b8a98) y el 0x120 suelta
-// 0x518cf0(0x61c) siempre.
-Core::Expected<Helped, std::string> StepTheSiege(const ActorState& actor, const KindCase& found, std::size_t slot,
+// 42dcf0: en30,68 emite en5 conZ+500 y120 siempre. MuRet conserva ese caller y usa sus señales propias.
+Core::Expected<Helped, std::string> StepTheSiege(const ActorState& actor, const KindCase& found,
                                                  const CharacterStepContext& context)
 {
-    if (found.address == 0x42dd23)
+    const bool pulse = found.address == 0x42dd23;
+    if (!pulse && actor.byte381 != FifthStep)
+        return Helped::Exit;
+    World::ModelEffectArguments cue{.type = pulse ? World::SiegePulseCue : World::SiegeStoneCue,
+                                    .position = actor.position,
+                                    .angles = actor.angles,
+                                    .light = actor.light};
+    if (!pulse)
     {
-        if (!HasFreeModelEffect(context))
-            return Helped::Exit;
-        return CutAt(0x42dd48, "el efecto 0x61c (CL11)", actor, slot);
+        // 42dd7a..42dd92: FADDfloat500 yFSTP de laZ local, antes de intentar el alta.
+        constexpr double StoneHeight = 500.0;
+        cue.position.z = static_cast<float>(static_cast<double>(cue.position.z) + StoneHeight);
     }
-    if (actor.byte381 == FifthStep)
-    {
-        if (!HasFreeModelEffect(context))
-            return Helped::Exit;
-        return CutAt(0x42dd9c, "el efecto 0x19f (CL11)", actor, slot);
-    }
+    static_cast<void>(context.world.Map().effects.CreateSiegeCue(cue, context.random));
+    // También con la tabla llena: AL1 impide caer al switch de tipos y a la cola del ataque.
     return Helped::Exit;
 }
 
@@ -621,7 +623,7 @@ Core::Expected<Helped, std::string> StepTheMapHelpers(ActorState& actor, std::si
     if (map == 0x1e)
     {
         if (const KindCase* found = CaseOf(SiegeCases, actor.word376))
-            return StepTheSiege(actor, *found, slot, context);
+            return StepTheSiege(actor, *found, context);
     }
     // 0x429110 (0x4f5c48): en el 33 y el 54 (0x425070).
     if (map == 0x21 || map == 0x36)

@@ -325,9 +325,9 @@ La VM queda al final, sin nuevas emulaciones ni sustitución de evidencia nativa
 
 **Estado de P-C300 a P-C303 al 2026-11-18.** Los tres flujos de ventanas de P-C300
 están conectados. El panel de clase 2 de P-C301 ya recibe y dibuja sus datos. Los
-paquetes de P-C302 llegan al aplicador de la batalla. Siguen pendientes el contraste
-de P-C303, las métricas de la primera marca sin caso y los efectos que pueden detener
-altas o ataques en mapa 30. [Estado integrado y pruebas](2026-11-18-cl9-estado-integrado.md).
+paquetes de P-C302 llegan al aplicador de la batalla y las altas y ataques de mapa 30
+usan las señales propias de MuRet. Siguen pendientes el contraste de P-C303 y las
+métricas de la primera marca sin caso. [Estado integrado y pruebas](2026-11-18-cl9-estado-integrado.md).
 
 ## Qué no hace falta saber
 

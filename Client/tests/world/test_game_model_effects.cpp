@@ -33,6 +33,55 @@
 
 namespace
 {
+TEST(GameModelEffectsTest, TheSiegeArrivalCueStaysAtTheSpawnUntilItsActorIsGone)
+{
+    auto particles = std::make_unique<Client::World::Particles>();
+    Client::World::ModelEffect effect;
+    effect.alive = true;
+    effect.type = Client::World::SiegeArrivalCue;
+    effect.hasOwner = true;
+    const glm::vec3 position{350, 550, 100};
+    effect.transform.position = position;
+    Client::Render::Models::CrtRandom random(1);
+
+    for (int frame = 0; frame < 3; ++frame)
+    {
+        const auto result = Client::World::StepGameModelEffect(effect, nullptr, *particles, 0, random);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_TRUE(effect.alive);
+        EXPECT_EQ(effect.transform.position, position);
+    }
+
+    effect.hasOwner = false;
+    const auto result = Client::World::StepGameModelEffect(effect, nullptr, *particles, 0, random);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_FALSE(effect.alive);
+    EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 4).State());
+}
+
+TEST(GameModelEffectsTest, SiegeAttackCuesExpireWithoutKeepingTheSlotAlive)
+{
+    auto particles = std::make_unique<Client::World::Particles>();
+    for (const std::int16_t type : {std::int16_t{0x19f}, std::int16_t{0x61c}})
+    {
+        SCOPED_TRACE(type);
+        Client::World::ModelEffect effect;
+        effect.alive = true;
+        effect.type = type;
+        effect.life = 2;
+        Client::Render::Models::CrtRandom random(1);
+        auto result = Client::World::StepGameModelEffect(effect, nullptr, *particles, 0, random);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_TRUE(effect.alive);
+        EXPECT_EQ(effect.life, 1);
+        EXPECT_LT(effect.alpha, 1.0f);
+        result = Client::World::StepGameModelEffect(effect, nullptr, *particles, 0, random);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_FALSE(effect.alive);
+        EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 2).State());
+    }
+}
+
 TEST(GameModelEffectsTest, NoriaUpdatesLightAndPitchThenTheCommonLifeWithOneRandom)
 {
     Client::World::ModelEffect effect;

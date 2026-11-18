@@ -42,7 +42,7 @@ no se reescribió historia pública y no se cerraron entregas ajenas.
 | H10: chat y cartas | Editor compartido, listas, retrato y multiline; #347 incorpora las reparaciones de H9. | Misma frontera del EDIT y validación del servicio de amigos/cartas. |
 | H11: eventos | Battle Soccer, marcador/telas, F3 24 y resultado incluso con HUD oculto; Crywolf, altas, ataques y cadenas necesarias. | Servidor de laboratorio sin Crywolf; observación original y fronteras de memoria/efectos concretas. |
 | H12: ventanas del castillo | Registro/listas B4/B5, Senior, puertas/estatuas, impuestos, retiro/fabricación y zona de caza, desde NPC/recepción hasta paso/dibujo. | Estados iniciales/bytes residuales del original y comparación visual/servidor en VM. |
-| H13: batalla del castillo | B2/B6/B7/B9/BA/BB, corona/bandos, holders, panel y minimapa, NPC de armas/puertas, mapa30, B1 y retorno. | Posiciones de pila sin inicializar, familias134/61c/19f de CL11 y contraste completo de batalla/cambio de servidor. La selección de objetos del escenario sigue pendiente en CL7.4. |
+| H13: batalla del castillo | B2/B6/B7/B9/BA/BB, corona/bandos, holders, panel y minimapa, NPC de armas/puertas, señales de alta y ataque en mapa 30, B1 y retorno. | Estados de pila sin inicializar y contraste de batalla/cambio de servidor. La selección de objetos del escenario sigue pendiente en CL7.4. |
 
 ## Contratos reparados en esta integración
 
@@ -66,9 +66,10 @@ no se reescribió historia pública y no se cerraron entregas ajenas.
   efectos persistentes, texturas, agua/cáusticas, RNG y sonido solicitado. Un pool lleno
   omite el alta de su elemento y continúa el caller; no se convierte en éxito vacío
   cuando falta un constructor con capacidad disponible.
-- Altas del asedio para 278 y 283: `42d513` y `42d5af` recuperan el control cuando
-  `518cf0` no encuentra un slot libre. El camino por el viewport publica el actor y
-  conserva los efectos anteriores y los sorteos. Con espacio sigue pendiente `134/0`.
+- Altas y ataques del asedio: `42d513` y `42d5af` publican los actores 278 y 283
+  tanto con `134/0` como con el pool lleno. `42dd48` y `42dd9c` completan sus
+  invocaciones de `61c/0` y `19f/0` en el mapa 30. Las señales tienen geometría y
+  emisiones propias de MuRet. [ADR 0019](../../../docs/adr/0019-senales-del-asedio.md).
 - `BD 0C` de Crywolf: `4e15fa` lee hasta `pkt[9]`. El parser rechaza un mensaje
   truncado con `TooShort` antes del despacho. Los mensajes completos conservan los
   mismos datos y la prueba cubre desde los bytes hasta el alta del misil.
@@ -128,6 +129,10 @@ de conversación y los mensajes de apertura de puertas y catapultas. El rayo y l
 visibilidad se preparan en la prueba. El servidor y la comparación visual quedan
 para la VM.
 
+Las tres señales de mapa 30 pasaron **352 pruebas focales en 14 suites de Linux**,
+sin saltos. El lote cubre los llamadores de alta y ataque, la saturación, el paso,
+el dibujo y el sorteo de suelo de un lugar que conserva su visibilidad al reutilizarse.
+
 La publicación exige compilación completa con warnings como errores, CTest, GL requerido,
 fuente real, formato18 e include-cleaner18, más Linux/Windows en cada cabeza publicada.
 Las ejecuciones y posibles saltos se registran en el PR correspondiente; no heredar
@@ -167,8 +172,6 @@ Hay **implementaciones concretas todavía pendientes**, además de capturas VM:
 
 | Familia externa | Caller normal que puede quedar bloqueado |
 | --- | --- |
-| CastleArrival134/0 | Altas de los tipos278/283 con espacio en el pool, `42d513` / `42d5af`; key120 y dueño Actor. Con el pool lleno ambas altas ya continúan. |
-| Efectos Siege61c /19f | `42dd48` / `42dd9c`, según tipo y paso del actor. |
 | F8/1 | Crywolf `43257a` y fortaleza `42fd76`; descendencia60f/0x19 (25decimal) o0xb y105/3. El arreglo de ED/E1 no los sustituye. |
 | C1A | Ataque Crywolf `4329db` y genérico `4f6780`; no equivale a las piedras C8/C9. |
 

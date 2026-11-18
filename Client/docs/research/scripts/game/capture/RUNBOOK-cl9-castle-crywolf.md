@@ -30,7 +30,7 @@ que los produzca normalmente. Una fixture o un paquete sintético valida el puer
 se convierte en una observación del original.
 
 Consultar también los [constructores externos todavía pendientes](../../../2026-11-18-cl9-estado-integrado.md#lo-que-necesita-la-vm-u-otra-ola):
-134/0,61c,19f,F8/1 yC1A pueden bloquear recorridos con espacio en los pools.
+`F8/1` y `C1A` pueden bloquear recorridos con espacio en los pools.
 Si el candidato corta ahí, registrar `BLOCKED: implementación pendiente` con VA,
 tipo/subtipo y prefijo observado. No presentarlo como una prueba VM aprobada ni
 como un problema exclusivo del servidor; las capturas sirven para el port posterior.
@@ -109,6 +109,7 @@ privados. Comparar el mismo estado y secuencia en ambos clientes; no sólo que n
 | Panel de batalla | Sin gremio, miembro, maestro solo y maestro en alianza | Clase 0/1/2, mapas/puntos, B6 reemplaza incluso count0; BB añade y count0 conserva; paginado y órdenes. `412140`, `411e80`, `411ed0`. |
 | Puertas/armas | Hablar con el interruptor 219 o las catapultas 221/222; abrir/cerrar puerta; disparar, impactar y cambiar de personaje con arma abierta | Selección de NPC y `C1 30`, apertura con `B2 11`/`B7 00`, clave del control y del NPC, `B7 01` con modo y tipo distintos, cierre, acción, hueso, frame, efectos y sonidos. `568f54`, `44dd10`, `44eea0`, `44efc0`, `42e3d0`. |
 | Mapa 30 | Paz→batalla→paz y dueño distinto | `.att` 31/312, luces normal/2, agua/cáusticas, barreras, roles, deformación, sombras y polvo. `4294c0`, `42ab40`, `42ae60`, `5f9580`. |
+| Altas y ataques H13 | Entrar al viewport de los actores 278/283 y observar ataques de los tipos `0x68` y `0x120` | Verificar alta, posición, momento del ataque, continuidad y saturación del pool. `42d513`, `42d5af`, `42dd9c`, `42dd48`. MuRet dibuja señales propias para `134/0`, `19f/0` y `61c/0`. |
 | B1/servidor | Cruzar al servidor del mapa y volver; saludo posterior al login | Cierre→opciones/macros→20 ms→conexión; reset, 31 y auth en orden; tick, RNG y limpieza de caché sin borrar nombres/marcas. `412b30`, `412bb0`, `4c1e20`, `447ae0`. |
 | Retorno | Cambiar personaje/servidor; entrenador vacío y ocupado; ventana/corona activa | 31 condicional del entrenador, aviso 1211, reset silencioso de diálogo, pets/tiendas/cámara; sin duplicar callbacks/paquetes. `4c2480`, `657670`, `4499b0`. |
 | Battle Soccer | Partido con score activo, fin por F3 24 y aceptar A7 | Nombres y puntajes compartidos, telas/efectos, reloj y resultado aun con HUD oculto; A7 borra resultado. `50caaa`, `5a7640`, `5a7eb0`, `4deef0`. |

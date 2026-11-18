@@ -74,6 +74,17 @@ inline constexpr std::int16_t AidaWispEffect = 0xb3;
 // El de Castle Siege (0x42c6b0): el objeto 79 del mapa 30 crea el 0x135 (Skill\TowerGatePlane), un plano
 // que sube y baja con el reloj y se dibuja dos veces, la segunda reflejada.
 inline constexpr std::int16_t GatePlaneEffect = 0x135;
+// Señales procedurales de MuRet para los tres llamadores del mapa 30.
+inline constexpr std::int16_t SiegeArrivalCue = 0x134;
+inline constexpr std::int16_t SiegeStoneCue = 0x19f;
+inline constexpr std::int16_t SiegePulseCue = 0x61c;
+inline constexpr std::int32_t SiegeAttackCueLife = 20;
+
+[[nodiscard]] constexpr bool IsSiegeCue(std::int16_t type, std::int32_t subtype)
+{
+    return subtype == 0 && (type == SiegeArrivalCue || type == SiegeStoneCue || type == SiegePulseCue);
+}
+
 // El calco que se apaga (0x61d, sin modelo: solo el pase del suelo dibuja la /1). El 0x38 de Crywolf crea el /3, que
 // suelta órbitas 60f/10 (0x52b933).
 inline constexpr std::int16_t FadingDecalEffect = 0x61d;
@@ -209,6 +220,8 @@ struct ModelEffectArguments
 class ModelEffects
 {
 public:
+    // El caller presta el actor durable de llegada. Sólo el pulso consume RNG al obtener un lugar.
+    std::optional<std::size_t> CreateSiegeCue(const ModelEffectArguments& arguments, Render::Models::CrtRandom& random);
     // 0x51c754: el torbellino145/2 de la estela del1ae, sinRNG.
     std::optional<std::size_t> CreateCrywolfTideEffect(const ModelEffectArguments& arguments);
     // 0x51c129: ondas114/2 y/6, key firmado como escala, sinRNG; 0x51c8e8:115/1.

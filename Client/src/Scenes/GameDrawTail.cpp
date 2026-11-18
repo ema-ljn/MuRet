@@ -23,6 +23,7 @@
 #include "Scenes/GameItemSpecialDrawing.h"
 #include "Scenes/GameTailDrawingPrimitives.h"
 #include "Scenes/ModelPoseCallbacks.h"
+#include "Scenes/SiegeCueDrawing.h"
 #include "World/Leaves.h"
 #include "World/ModelEffects.h"
 #include "World/Sprites.h"
@@ -709,6 +710,12 @@ DrawGameModelEffectsChecked(Render::ModelBatch& batch, const IModelLibrary& mode
         effect.seen = World::SphereVisible(frustum, effect.transform.position, 400);
         if (!effect.seen)
             continue;
+        if (World::IsSiegeCue(effect.type, effect.subtype))
+        {
+            if (mode == 0 && (effect.type != World::SiegeArrivalCue || resources == nullptr || resources->siegeActive))
+                DrawSiegeCue(batch, effect);
+            continue;
+        }
         if (mode != 0)
         {
             const auto blendMesh = effect.objectState.blendMesh;

@@ -23,6 +23,7 @@
 #include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/Skeleton.h"
+#include "Scenes/ActorState.h"
 #include "Scenes/CameraTour.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterStep.h"
@@ -190,6 +191,12 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
         auto& effect = effects[slot];
         if (!effect.alive)
             continue;
+        if (effect.type == World::SiegeArrivalCue && effect.subtype == 0)
+        {
+            // 0x52952d consulta al actor del alta. Sus lugares viven tanto como el mundo.
+            const auto* owner = static_cast<const ActorState*>(effect.ownerContext);
+            effect.hasOwner = owner != nullptr && owner->alive;
+        }
         const auto* skeleton = m_worldModels.SkeletonOf(static_cast<std::uint16_t>(effect.type));
         // 0x52a9ad: el 5ac/3 del conjunto completo lee al personaje dueño y crea joints, fuera de World.
         if (effect.type == World::IcarusFlareEffect && effect.subtype == World::FullSetFlareSubtype)

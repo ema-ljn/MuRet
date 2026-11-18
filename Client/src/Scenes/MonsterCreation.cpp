@@ -388,6 +388,20 @@ private:
             return Core::Unexpected(std::format("{:#x}: el joint {:#x} (0x530860) del tipo {} es de la CL11",
                                                 step.address, step.value, m_type));
         case MonsterStepKind::Arrival:
+            if (m_index && step.value == World::SiegeArrivalCue)
+            {
+                auto& actor = Actor();
+                // 0x42d513 y 0x42d5af prestan el actor y pasan 120 como clave de la señal.
+                constexpr std::uint16_t ArrivalScaleKey = 120;
+                static_cast<void>(m_resources.world.Map().effects.CreateSiegeCue({.type = World::SiegeArrivalCue,
+                                                                                  .position = actor.position,
+                                                                                  .angles = actor.angles,
+                                                                                  .light = actor.light,
+                                                                                  .owner = &actor,
+                                                                                  .key = ArrivalScaleKey},
+                                                                                 m_resources.cloth.random));
+                return {};
+            }
             // 0x518d0f devuelve el control al caller cuando no hay un lugar libre en el pool.
             if (std::ranges::all_of(m_resources.world.Map().effects.Effects(), &World::ModelEffect::alive))
                 return {};

@@ -333,7 +333,8 @@ TEST(AttackStepTest, TheMapHelpersOfTheMonstersExitOrCut)
         Case{"Kalima fuera de Kalima", 0, 0x160, 0x91, 1, "", CountingStep},
         Case{"el 31", 0x1f, 0x160, 0x123, 1, "", Helper},
         Case{"el 31 con otro", 0x1f, 0x160, 0x126, 1, "", CountingStep},
-        Case{"el asedio", 0x1e, 0x160, 0x120, 1, "0x42dd48", Helper},
+        Case{"el pulso del asedio", 0x1e, 0x160, 0x120, 1, "", Helper + 1},
+        Case{"la piedra del asedio en5", 0x1e, 0x160, 0x68, 5, "", Helper},
         Case{"el 54", 0x36, 0x160, 0x134, 1, "", Helper},
         Case{"el 35 en 14", 0x23, 0x1b2, 3, 14, "", Helper + OwnRecord + SkillWithTarget, {0x47}, true},
         Case{"el 35 en 2", 0x23, 0x1b2, 3, 2, "", CountingStep},
@@ -368,6 +369,17 @@ TEST(AttackStepTest, TheMapHelpersOfTheMonstersExitOrCut)
         }
         EXPECT_EQ(DrawsSince(Seed, tested.random), probe.draws);
         EXPECT_EQ(tested.sounds, probe.sounds);
+        if (probe.map == 30)
+        {
+            const auto effects = tested.world.Map().effects.Effects();
+            ASSERT_EQ(std::ranges::count_if(effects, [](const auto& effect) { return effect.alive; }), 1);
+            EXPECT_EQ(effects[0].type, probe.kind == 0x120 ? 0x61c : 0x19f);
+            EXPECT_EQ(effects[0].subtype, 0);
+            EXPECT_EQ(effects[0].transform.position.x, monster.position.x);
+            EXPECT_EQ(effects[0].transform.position.y, monster.position.y);
+            EXPECT_EQ(effects[0].transform.position.z, monster.position.z + (probe.kind == 0x68 ? 500.0f : 0.0f));
+            EXPECT_FALSE(effects[0].hasOwner);
+        }
         if (probe.completesAttack)
         {
             const auto effects = tested.world.Map().effects.Effects();

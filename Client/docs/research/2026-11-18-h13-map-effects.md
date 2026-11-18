@@ -73,6 +73,10 @@ La primera61e/1 de cada paso con vida<10 recibe **[EBP−28] antes de que5271d3 
 
 `526961` emite dos60f/5 en las vidas pares mayores25. Cada grupo conserva tres sorteos del punto antes de los cuatro del constructor. La órbita nace con vida40 y descenso(rand%100×.01×5)+1, gira en radio40, baja por ese descenso y mueve sólo la X de su ancla +2.5; se achica.002 y apaga RGB por3f68ba2e con vida<=20. El billboard se dibuja ya en vida40. Con0/1/2 huecos se conservan7/11/15 sorteos del paso de E1/1, incluido el común. Su BMD ArrowNature conserva cuerpo2 y cola602365.
 
+## Callers compartidos de los misiles
+
+El productor de Crywolf432b30..432b63 (mapa34, modelo1b5, paso15) crea ED/1; el de fortaleza42fd04..42fd37 (mapa35, modelo1b2, paso14) crea E1/1. Ambos pasan posición, ángulos y luz del actor, subtipo1, actor de dueño, su WORD8a como key y cuatro ceros. El caller no sortea y retorna AL1 después del intento, también con el pool de modelos lleno. El constructor aceptado conserva el cierre del registro propio; un pool de joints lleno no omite esa copia. Los tests nuevos verifican argumentos, dueño durable, contador copiado, pools llenos y la salida antes de la cola que lee la skill. Su ejecución RED/GREEN requiere el WorldState de la integración estable y se registra por separado de la sintaxis local.
+
 ## Verificación y límites
 
 Se verificaron por binarios focales GCC14: altas de monstruos15, capas28, preludio/marcador7, partículas5, bendición3, constructor de proyectiles3, vuelo5, colisión/deformación4, ondas2, recursos reales del minimapa1, derrumbe/efecto de puerta3, dibujo21, cola de misiles3, caller del golpe4, consulta de atributos15, espíritu/trail/owner durable8 y dependenciasE1/1 cinco. Los tests de dibujo incluyen variantes de guerra, impacto one-shot, alpha NaN, colores de la cola adicional, pose global redimensionada y colaED/EE sin BMD. El caller con constructores reales conserva55 sorteos con cinco fragmentos aceptados y15 con el pool lleno. Estos binarios usaron layouts coherentes por compilación; no acreditan una biblioteca mezclada con headers nuevos.

@@ -586,9 +586,18 @@ Core::Expected<Helped, std::string> StepCrywolf(ActorState& actor, const KindCas
     default:
         if (actor.byte381 == FifteenthStep)
         {
-            if (!HasFreeModelEffect(context))
-                return Helped::Exit;
-            return CutAt(0x432b63, "el efecto 0xed/1 con la key de +0x8a (CL11)", actor, slot);
+            // 432b30..432b63: el intento sale con AL1, incluso si518cf0 encuentra el pool lleno.
+            const auto created = CreateTheArrowEffect({.type = 0xed,
+                                                       .position = actor.position,
+                                                       .angles = actor.angles,
+                                                       .light = actor.light,
+                                                       .subtype = 1,
+                                                       .owner = &actor,
+                                                       .key = static_cast<std::uint16_t>(actor.word8a)},
+                                                      context.world, context.random);
+            if (!created.HasValue())
+                return Core::Unexpected(created.Error());
+            return Helped::Exit;
         }
         return Helped::Continue;
     }
@@ -626,12 +635,24 @@ Core::Expected<Helped, std::string> StepTheMapHelpers(ActorState& actor, std::si
     {
         if (const KindCase* found = CaseOf(FortressCases, actor.type))
         {
+            if (found->address == 0x42fd04)
+            {
+                // 42fd04..42fd37: mismos once argumentos que el E1/1 de43252d; ningún CRT propio.
+                const auto created = CreateTheArrowEffect({.type = 0xe1,
+                                                           .position = actor.position,
+                                                           .angles = actor.angles,
+                                                           .light = actor.light,
+                                                           .subtype = 1,
+                                                           .owner = &actor,
+                                                           .key = static_cast<std::uint16_t>(actor.word8a)},
+                                                          context.world, context.random);
+                if (!created.HasValue())
+                    return Core::Unexpected(created.Error());
+                return Helped::Exit;
+            }
             if (!HasFreeModelEffect(context))
                 return Helped::Exit;
-            return CutAt(found->address == 0x42fd04 ? 0x42fd37 : 0x42fd76,
-                         found->address == 0x42fd04 ? "el efecto 0xe1/1 con la key de +0x8a (CL11)"
-                                                    : "el efecto 0xf8/1 con la key de +0x8a (CL11)",
-                         actor, slot);
+            return CutAt(0x42fd76, "el efecto 0xf8/1 con la key de +0x8a (CL11)", actor, slot);
         }
     }
     // 0x4324c0 (0x4f5c6e): en el 34 (0x4303c0).

@@ -737,9 +737,10 @@ TEST_F(MonsterAttackCasesTest, TheFortressAndCrywolfLookAtTheModel)
     Load(35, 0);
     EXPECT_EQ(Create(0x136).type, 0x1ad);
     EXPECT_EQ(Create(0x13c).type, 0x1b2);
-    for (const Probe& probe : std::vector<Probe>{{.name = "0x1ad en 14", .type = 0x136, .step = 14, .cut = "0x42fd76"},
-                                                 {.name = "0x1ad en 13", .type = 0x136, .step = 13, .draws = Tail},
-                                                 {.name = "0x1b2 en 14", .type = 0x13c, .step = 14, .cut = "0x42fd37"}})
+    for (const Probe& probe :
+         std::vector<Probe>{{.name = "0x1ad en 14", .type = 0x136, .step = 14, .cut = "0x42fd76"},
+                            {.name = "0x1ad en 13", .type = 0x136, .step = 13, .draws = Tail},
+                            {.name = "0x1b2 en 14", .type = 0x13c, .step = 14, .draws = OwnRecord}})
         Expect(probe);
 
     Load(34);
@@ -749,7 +750,7 @@ TEST_F(MonsterAttackCasesTest, TheFortressAndCrywolfLookAtTheModel)
     const std::vector<Probe> crywolf{{.name = "0x1b2 en 14", .type = 0x138, .step = 14, .draws = OwnRecord},
                                      {.name = "0x1b2 en 13", .type = 0x138, .step = 13, .draws = Tail},
                                      {.name = "0x1ad en 14", .type = 0x13c, .step = 14, .cut = "0x43257a"},
-                                     {.name = "0x1b5 en 15", .type = 0x15c, .step = 15, .cut = "0x432b63"},
+                                     {.name = "0x1b5 en 15", .type = 0x15c, .step = 15, .draws = OwnRecord},
                                      {.name = "0x1b5 en 14", .type = 0x15c, .step = 14, .draws = Tail},
                                      {.name = "0x17c en 1",
                                       .type = 3,
@@ -820,7 +821,7 @@ TEST_F(MonsterAttackCasesTest, TheSiegeTrialAndFortressHelpersExitWhenTheirModel
     const std::array cases{Case{30, 30, 0x120, 1, 3, "0x42dd48"},  Case{30, 30, 0x68, 5, 3, "0x42dd9c"},
                            Case{33, 33, 0x135, 10, 3, "0x42919a"}, Case{54, 54, 0x134, 10, 4, "0x429202"},
                            Case{33, 33, 0x130, 10, 4, "0x42925a"}, Case{35, 0, 0x136, 14, 3, "0x42fd76"},
-                           Case{35, 0, 0x13c, 14, 3, "0x42fd37"}};
+                           Case{35, 0, 0x13c, 14, 3, ""}};
     withParticles = false;
     for (const Case& probe : cases)
     {
@@ -844,8 +845,16 @@ TEST_F(MonsterAttackCasesTest, TheSiegeTrialAndFortressHelpersExitWhenTheirModel
 
         FillModelEffectPoolExceptLast(1);
         const auto freeSlot = Step(monster);
-        EXPECT_TRUE(!freeSlot.HasValue() && freeSlot.Error().starts_with(probe.cut)) << freeSlot.Error();
-        EXPECT_EQ(Draws(), 0);
+        if (probe.cut.empty())
+        {
+            EXPECT_TRUE(freeSlot.HasValue()) << freeSlot.Error();
+            EXPECT_EQ(Draws(), OwnRecord);
+        }
+        else
+        {
+            EXPECT_TRUE(!freeSlot.HasValue() && freeSlot.Error().starts_with(probe.cut)) << freeSlot.Error();
+            EXPECT_EQ(Draws(), 0);
+        }
     }
     withParticles = true;
 }
@@ -997,7 +1006,7 @@ TEST_F(MonsterAttackCasesTest, CrywolfAndFortressMissilesPreserveTheirNativeArgu
         }
     }
 }
-TEST_F(MonsterAttackCasesTest, CrywolfAndFortressMissilesExitBeforeReadingAFullModelPool)
+TEST_F(MonsterAttackCasesTest, CrywolfAndFortressMissilesExitWithoutReadingTheCountWithAFullModelPool)
 {
     for (const bool fortress : {false, true})
     {

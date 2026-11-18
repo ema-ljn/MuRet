@@ -516,8 +516,7 @@ TEST_F(MapLoadTest, CastleSiegeWithTheSiegeOnLoadsTheWarAttributesAndLight)
 }
 
 // 0x61a6d0 → 0x42fe50: con el estado de Crywolf de la .bss (0) el 34 toma EncTerrain35.att, el mismo que lee el
-// cargador del repo, y no EncTerrain351.att. Con 1 y 2, que pone el BD 00, EncTerrain351/352.att y TerrainLight1/2;
-// con 3, los archivos anteriores (Q-C181): corta en 0x61a74d.
+// cargador del repo, y no EncTerrain351.att. Con 1 y 2, que pone el BD 00, EncTerrain351/352.att y TerrainLight1/2.
 TEST_F(MapLoadTest, CrywolfTakesTheAttributesAndTheLightOfItsState)
 {
     ASSERT_EQ(world.Runtime().crywolf.state, 0);
@@ -553,11 +552,68 @@ TEST_F(MapLoadTest, CrywolfTakesTheAttributesAndTheLightOfItsState)
                   Client::World::ShadeTerrainLight(*decoded.Value(), *world.Map().terrain.heights, 34)->cells);
         EXPECT_NE(world.Map().terrain.lighting->cells, plainLight);
     }
-    world.Runtime().crywolf.state = 3;
-    const auto loaded = Load(34);
-    ASSERT_FALSE(loaded.HasValue());
-    EXPECT_NE(loaded.Error().find("0x61a74d"), std::string::npos) << loaded.Error();
-    EXPECT_NE(loaded.Error().find("Q-C181"), std::string::npos) << loaded.Error();
+}
+
+TEST_F(MapLoadTest, CrywolfReusesTerrainTablesAfterTheAttributeReaderRejectsTheMappingFile)
+{
+    const Client::Tests::TemporaryFolder folder("crywolf-map-load");
+    const auto worldFolder = folder.Path() / "World35";
+    std::filesystem::create_directories(worldFolder);
+    for (const std::string_view name : {"EncTerrain35.map", "EncTerrain35.obj", "TerrainHeight.OZB"})
+    {
+        const auto source = DataFile("World35\\" + std::string(name));
+        ASSERT_TRUE(source.has_value());
+        std::filesystem::copy_file(*source, worldFolder / name);
+    }
+    for (const bool aliasExists : {true, false})
+    {
+        SCOPED_TRACE(aliasExists);
+        const auto alias = worldFolder / "TerrainHeight.OZJ";
+        if (aliasExists)
+        {
+            std::filesystem::copy_file(worldFolder / "TerrainHeight.OZB", alias);
+        }
+        else
+        {
+            ASSERT_TRUE(std::filesystem::remove(alias));
+        }
+        ASSERT_TRUE(Load(0).HasValue());
+        const auto* attributes = world.Map().terrain.attributes.get();
+        const auto* retainedLight = world.Map().terrain.rawLight.get();
+        const auto* oldHeights = world.Map().terrain.heights.get();
+        ASSERT_NE(attributes, nullptr);
+        ASSERT_NE(retainedLight, nullptr);
+        ASSERT_NE(oldHeights, nullptr);
+        world.Runtime().crywolf.state = aliasExists ? 3 : 255;
+        world.Runtime().map = 34;
+
+        const auto loaded = LoadMap(34, MapLoadContext{.dataRoot = folder.Path(),
+                                                       .world = world,
+                                                       .scene = SceneId::Game,
+                                                       .playerKey = PlayerKey,
+                                                       .random = random});
+
+        if (aliasExists)
+        {
+            EXPECT_TRUE(loaded.HasValue()) << loaded.Error();
+            EXPECT_FALSE(world.Runtime().fatalDataMessage.has_value());
+        }
+        else
+        {
+            ASSERT_FALSE(loaded.HasValue());
+            EXPECT_NE(loaded.Error().find("TerrainHeight.OZJ"), std::string::npos) << loaded.Error();
+            EXPECT_EQ(world.Runtime().fatalDataMessage, "Data\\World35\\TerrainHeight.OZJ - File not exist.");
+        }
+        const auto& terrain = world.Map().terrain;
+        ASSERT_NE(terrain.mapping, nullptr);
+        EXPECT_FALSE(world.Map().objectRecords.empty());
+        EXPECT_EQ(terrain.attributes.get(), attributes);
+        ASSERT_EQ(terrain.rawLight.get(), retainedLight);
+        ASSERT_NE(terrain.heights, nullptr);
+        ASSERT_NE(terrain.lighting, nullptr);
+        EXPECT_EQ(terrain.lighting->cells,
+                  Client::World::ShadeTerrainLight(*terrain.rawLight, *terrain.heights, 34)->cells);
+    }
 }
 
 // Los mapas con datos en la Data del repo: los que carga y, en los demás, dónde corta.

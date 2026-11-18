@@ -123,27 +123,41 @@ LoadFile(const std::filesystem::path& dataRoot, const std::string& relative, Ter
 Core::Expected<void, std::string> LoadWorldTerrainLayout(const std::filesystem::path& dataRoot, std::uint8_t map,
                                                          WorldTerrain& terrain,
                                                          std::optional<std::string>& fatalMessage,
-                                                         std::optional<std::int32_t> attributesNumber)
+                                                         std::optional<std::int32_t> attributesNumber,
+                                                         bool reuseMappingForAttributes)
 {
     const std::string folder = Data::WorldFolder(map) + "\\";
     const auto world = static_cast<std::uint8_t>(Data::WorldFolderNumber(map));
     const std::string number = std::to_string(world);
     const std::string attributesFile = std::to_string(attributesNumber.value_or(world));
+    const std::string mappingPath = folder + "EncTerrain" + number + ".map";
     bool mappingCannotOpen = false;
     auto mapping = LoadFile<Data::Terrain::TerrainMapping>(
-        dataRoot, folder + "EncTerrain" + number + ".map", TerrainFileKind::Mapping, fatalMessage,
-        [world](std::span<const std::byte> bytes) { return Data::Terrain::LoadTerrainMapping(bytes, world); },
-        &mappingCannotOpen);
+        dataRoot, mappingPath, TerrainFileKind::Mapping, fatalMessage, [world](std::span<const std::byte> bytes)
+        { return Data::Terrain::LoadTerrainMapping(bytes, world); }, &mappingCannotOpen);
     if (!mapping.HasValue() && !mappingCannotOpen)
         return Core::Unexpected(mapping.Error());
     if (mapping.HasValue())
         terrain.mapping = std::move(mapping).Value();
+    const std::string attributesPath =
+        reuseMappingForAttributes ? mappingPath : folder + "EncTerrain" + attributesFile + ".att";
     auto attributes = LoadFile<Data::Terrain::TerrainAttributes>(
-        dataRoot, folder + "EncTerrain" + attributesFile + ".att", TerrainFileKind::Attributes, fatalMessage,
-        [world](std::span<const std::byte> bytes) { return Data::Terrain::LoadTerrainAttributes(bytes, world); });
+        dataRoot, attributesPath, TerrainFileKind::Attributes, fatalMessage,
+        [world, reuseMappingForAttributes](std::span<const std::byte> bytes)
+            -> Core::Expected<std::unique_ptr<Data::Terrain::TerrainAttributes>, Data::DataError>
+        {
+            auto decoded = Data::Terrain::LoadTerrainAttributes(bytes, world);
+            // 0x5f84fc devuelve −1 antes de escribir la tabla. 0x61a760 sigue al OBJ.
+            if (reuseMappingForAttributes && !decoded.HasValue() && decoded.Error() == Data::DataError::UnexpectedSize)
+                return std::unique_ptr<Data::Terrain::TerrainAttributes>{};
+            return decoded;
+        });
     if (!attributes.HasValue())
         return Core::Unexpected(attributes.Error());
-    terrain.attributes = std::move(attributes).Value();
+    if (attributes.Value())
+        terrain.attributes = std::move(attributes).Value();
+    else if (!terrain.attributes)
+        terrain.attributes = std::make_unique<Data::Terrain::TerrainAttributes>();
     // Q-C27: el original continúa con defaults si el MAP no abre. MuRet llega al ATT fatal,
     // pero si éste existe conserva el diagnóstico del MAP; nunca fabrica un terreno utilizable.
     if (mappingCannotOpen)
@@ -154,7 +168,7 @@ Core::Expected<void, std::string> LoadWorldTerrainLayout(const std::filesystem::
 Core::Expected<void, std::string> LoadWorldTerrainSurface(const std::filesystem::path& dataRoot, std::uint8_t map,
                                                           WorldTerrain& terrain,
                                                           std::optional<std::string>& fatalMessage,
-                                                          std::string_view lightName)
+                                                          std::string_view lightName, bool retainLightOnFailure)
 {
     const std::string folder = Data::WorldFolder(map) + "\\";
     const auto world = static_cast<std::uint8_t>(Data::WorldFolderNumber(map));
@@ -164,13 +178,20 @@ Core::Expected<void, std::string> LoadWorldTerrainSurface(const std::filesystem:
     if (!heights.HasValue())
         return Core::Unexpected(heights.Error());
     terrain.heights = std::move(heights).Value();
+    bool lightCannotOpen = false;
     auto light = LoadFile<Data::Terrain::TerrainLight>(
         dataRoot, folder + std::string(lightName) + ".OZJ", TerrainFileKind::Light, fatalMessage,
-        [](std::span<const std::byte> bytes) { return Data::Terrain::LoadTerrainLight(bytes); });
-    if (!light.HasValue())
+        [](std::span<const std::byte> bytes) { return Data::Terrain::LoadTerrainLight(bytes); }, &lightCannotOpen);
+    if (!light.HasValue() && !retainLightOnFailure)
         return Core::Unexpected(light.Error());
-    terrain.rawLight = std::move(light).Value();
+    if (light.HasValue())
+        terrain.rawLight = std::move(light).Value();
+    else if (!terrain.rawLight)
+        terrain.rawLight = std::make_unique<Data::Terrain::TerrainLight>();
+    // 0x5f8f40 sombrea la luz retenida con las alturas que se acaban de cargar.
     terrain.lighting = ShadeTerrainLight(*terrain.rawLight, *terrain.heights, map);
+    if (lightCannotOpen)
+        return Core::Unexpected(light.Error());
     return {};
 }
 

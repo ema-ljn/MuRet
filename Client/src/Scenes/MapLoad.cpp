@@ -28,7 +28,6 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <format>
 #include <memory>
 #include <new>
 #include <optional>
@@ -77,12 +76,17 @@ std::vector<Data::Terrain::TerrainObject> SpecialObjectsOf(std::int32_t map)
     return {};
 }
 
-// Lo que la carga vuelve a llenar: el original lo pisa al cargar, y MuRet lo vacía antes para que una
-// carga que corta no deje el del mapa anterior.
-void ForgetThePreviousTerrain(WorldMap& loaded)
+// Las tablas de atributos y luz cruda sólo sobreviven si Crywolf reutiliza las rutas de carga (Q-C181).
+void ForgetThePreviousTerrain(WorldMap& loaded, bool retainTerrainTables)
 {
     loaded.grassOffsets.clear();
-    loaded.terrain = World::WorldTerrain{};
+    World::WorldTerrain terrain;
+    if (retainTerrainTables)
+    {
+        terrain.attributes = std::move(loaded.terrain.attributes);
+        terrain.rawLight = std::move(loaded.terrain.rawLight);
+    }
+    loaded.terrain = std::move(terrain);
 }
 
 std::string DescribeCreationError(World::WorldObjectCreationError error)
@@ -183,6 +187,7 @@ struct TerrainFileNames
 {
     std::optional<std::int32_t> attributesNumber;
     std::string_view lightName = "TerrainLight";
+    bool reusePreviousPaths = false;
 };
 
 // Lo que no depende de un mapa de frontera: el terreno, el .obj y sus objetos.
@@ -192,7 +197,7 @@ Core::Expected<void, std::string> LoadTheFiles(const MapLoadContext& context, Wo
     const auto folderMap = static_cast<std::uint8_t>(map);
     auto& fatalMessage = context.world.Runtime().fatalDataMessage;
     auto terrain = World::LoadWorldTerrainLayout(context.dataRoot, folderMap, loaded.terrain, fatalMessage,
-                                                 names.attributesNumber);
+                                                 names.attributesNumber, names.reusePreviousPaths);
     if (!terrain.HasValue())
     {
         return Core::Unexpected(terrain.Error());
@@ -206,7 +211,8 @@ Core::Expected<void, std::string> LoadTheFiles(const MapLoadContext& context, Wo
     if (auto created = CreateTheObjects(loaded.objectRecords, "EncTerrain.obj", loaded, map, context);
         !created.HasValue())
         return created;
-    return World::LoadWorldTerrainSurface(context.dataRoot, folderMap, loaded.terrain, fatalMessage, names.lightName);
+    return World::LoadWorldTerrainSurface(context.dataRoot, folderMap, loaded.terrain, fatalMessage, names.lightName,
+                                          names.reusePreviousPaths);
 }
 } // namespace
 
@@ -262,12 +268,14 @@ Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoa
     WorldRuntime& runtime = context.world.Runtime();
     runtime.map = Data::MapAtWorldLoadStart(argumentMap, runtime.map);
     const std::int32_t map = runtime.map;
+    const std::uint8_t crywolfState = runtime.crywolf.state;
+    const bool reusePreviousPaths = map == CrywolfMap && crywolfState > 2;
     WorldMap& loaded = context.world.Map();
     // Invalidación interna por intento, también si falla antes de alcanzar4377a0. No consume CRT.
     ++loaded.loadRevision;
     ReleaseTheMapObjects(loaded);
     ClearWorldTransientPools(context.world);
-    ForgetThePreviousTerrain(loaded);
+    ForgetThePreviousTerrain(loaded, reusePreviousPaths);
     if (context.scene != SceneId::CharacterSelect)
     {
         // El DWORD 0x57678bc lleva la clave sin signo.
@@ -294,20 +302,19 @@ Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoa
     // 0x61a6d0: 0x42fe50 lee el estado de Crywolf después del .map. Con 0 (el de la .bss, Q-C340) el 34 carga
     // EncTerrain35.att y TerrainLight como los demás; con 1 y 2, que pone el BD 00 (0x42fe80), EncTerrain351/352.att
     // (el mundo · 10 + estado, 0x61a706 y 0x61a710) y TerrainLight1/2 (0x61a8d2 y 0x61a8dd). Con 3 o más, el .att con
-    // la ruta del .map y la luz con la de TerrainHeight.bmp, que sombrea la luz anterior con las alturas nuevas
-    // (Q-C181): MuRet no guarda la luz sin sombrear.
+    // la ruta del .map y la luz con la de TerrainHeight.bmp (0x63b490 cambia la extensión a OZJ en modo datos).
     TerrainFileNames names;
     if (map == CrywolfMap)
     {
-        const std::uint8_t state = context.world.Runtime().crywolf.state;
-        if (state > 2)
-            return Core::Unexpected(std::format("0x61a74d: el .att y la luz del mapa 34 con el estado de Crywolf {} "
-                                                "son los archivos anteriores (Q-C181)",
-                                                static_cast<int>(state)));
-        if (state != 0)
+        if (reusePreviousPaths)
         {
-            names.attributesNumber = static_cast<std::int32_t>(Data::WorldFolderNumber(CrywolfMap)) * 10 + state;
-            names.lightName = state == 1 ? "TerrainLight1" : "TerrainLight2";
+            names.reusePreviousPaths = true;
+            names.lightName = "TerrainHeight";
+        }
+        else if (crywolfState != 0)
+        {
+            names.attributesNumber = static_cast<std::int32_t>(Data::WorldFolderNumber(CrywolfMap)) * 10 + crywolfState;
+            names.lightName = crywolfState == 1 ? "TerrainLight1" : "TerrainLight2";
         }
     }
     // 61a6ea/61a8af: el estado activo elige312 yTerrainLight2; elMAP yOBJ conservan el mundo31.

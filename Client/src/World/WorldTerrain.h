@@ -42,14 +42,17 @@ struct WorldTerrain
 // el MAP ausente sólo difiere su diagnóstico hasta comprobar el ATT (Q-C27/Q-C180).
 // `attributesNumber` es el número de EncTerrain<N>.att (el del mundo si falta: Crywolf pide 351 o 352, 0x61a710) y
 // `lightName` el de la luz (TerrainLight1 o TerrainLight2 en Crywolf, 0x61a8dd); la cabecera del .att se compara
-// igual con el mundo.
+// igual con el mundo. `reuseMappingForAttributes` lee el .map como .att y conserva la tabla si su tamaño no sirve.
+// `retainLightOnFailure` vuelve a sombrear la luz retenida cuando no se puede abrir o decodificar la luz pedida.
 [[nodiscard]] Core::Expected<void, std::string>
 LoadWorldTerrainLayout(const std::filesystem::path& dataRoot, std::uint8_t map, WorldTerrain& terrain,
-                       std::optional<std::string>& fatalMessage, std::optional<std::int32_t> attributesNumber = {});
+                       std::optional<std::string>& fatalMessage, std::optional<std::int32_t> attributesNumber = {},
+                       bool reuseMappingForAttributes = false);
 [[nodiscard]] Core::Expected<void, std::string> LoadWorldTerrainSurface(const std::filesystem::path& dataRoot,
                                                                         std::uint8_t map, WorldTerrain& terrain,
                                                                         std::optional<std::string>& fatalMessage,
-                                                                        std::string_view lightName = "TerrainLight");
+                                                                        std::string_view lightName = "TerrainLight",
+                                                                        bool retainLightOnFailure = false);
 
 // 0x5f8f40 con una luz de `folder` (la carpeta como la arma quien llama, "World%d"), fuera de la carga: el BD 00 de
 // Crywolf (0x42ff81). Lee <folder>\<lightName>.OZJ y la sombrea con las alturas cargadas y el mapa `map`. Sin

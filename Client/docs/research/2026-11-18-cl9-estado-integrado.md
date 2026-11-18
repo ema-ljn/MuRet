@@ -40,7 +40,7 @@ no se reescribió historia pública y no se cerraron entregas ajenas.
 | H8: gremio, alianza y guerra | Entrega principal integrada; caché canónica y cierres del Guild Master por chat, quest y paneles. | Servicio compatible, roles reales y contraste dinámico de los flujos sociales. |
 | H9: amigos y editor compartido | Edición occidental, cursor/selección, clipboard, foco y latch Tab; guard compartido de entrada. | Perfil XP de autoscroll horizontal, medida/caret e IME completo. Sigue abierto como fidelidad, aunque exista implementación funcional. |
 | H10: chat y cartas | Editor compartido, listas, retrato y multiline; #347 incorpora las reparaciones de H9. | Misma frontera del EDIT y validación del servicio de amigos/cartas. |
-| H11: eventos | Battle Soccer, marcador/telas, F3 24 y resultado incluso con HUD oculto. Crywolf y fortaleza disparan `F8/1`. Crywolf ejecuta la descarga `C1A/0` y la dispersión de piedras. El ataque `0x17e` continúa con el pool de partículas lleno. | Servidor compatible y contraste en VM. Con un lugar de partícula libre, Q-C1050 todavía lee una posición de pila indeterminada. [Decisión de efectos](../../../docs/adr/0020-senales-crywolf.md). |
+| H11: eventos | Battle Soccer, marcador/telas, F3 24 y resultado incluso con HUD oculto. Crywolf ejecuta `F8/1`, la descarga `C1A/0` y la dispersión. El ataque `0x17e` sigue con el pool lleno. La carga del mapa reproduce la reutilización de tablas de Q-C181. | Servidor compatible y contraste en VM. Q-C1050 con lugar de partícula y Q-C1328 al recibir un `BD 00` fuera de los estados 0–2 leen pila sin inicializar. [Decisión de efectos](../../../docs/adr/0020-senales-crywolf.md). |
 | H12: ventanas del castillo | Registro/listas B4/B5, Senior, puertas/estatuas, impuestos, retiro/fabricación y zona de caza, desde NPC/recepción hasta paso/dibujo. | Estados iniciales/bytes residuales del original y comparación visual/servidor en VM. |
 | H13: batalla del castillo | B2/B6/B7/B9/BA/BB, corona/bandos, holders, panel y minimapa, NPC de armas/puertas, señales de alta y ataque en mapa 30, B1 y retorno. | Estados de pila sin inicializar y contraste de batalla/cambio de servidor. La selección de objetos del escenario sigue pendiente en CL7.4. |
 
@@ -100,6 +100,7 @@ ya estaban presentes. No se clasificaron automáticamente como deuda de otra ola
 | Descarga `4329db` / `4f6780` | `C1A/0` intenta 18 altas por tanda. En Crywolf se ejecutan ambas tandas; fuera corre la común. Cada fragmento conserva el giro, el avance y la comparación estricta con el terreno. |
 | Dispersión `51fff0` | Ocho grupos con estallido seguido de dos intentos `C8/C9` en orden `/1`, `/0`. Los selectores siempre corren. Las altas efectivas consumen cuatro y cinco sorteos, respectivamente. |
 | Llamas `432acc` | Con partículas llenas, los cuatro intentos conservan sus sorteos y siguen a la cola común. El punto de hueso sólo se usa si se admite el alta (`53fe81..53febb`). |
+| Carga `61a74d` / `61a910` | La ruta del `.map` se vuelve a pasar como ATT. El tamaño inválido conserva los atributos; OBJ y alturas siguen cargando. La luz `TerrainHeight.OZJ` deja la luz cruda anterior si falla, y mantiene el aviso fatal si falta. |
 | Joints618/2,3 | La creación admite los tipos normales de la tabla, además de349; mismo dueño Actor y ancho30, con los dos intentos en orden. |
 | Llegada `4c9883` | Etapa3 pone alpha1 sin altas. El resto pone alpha0 y comparte con CameraTour cuatro615/7, tres5f6/1 y cuatro614/17; los cuatro primeros usan el mismo punto actor+(20,20,0). |
 | Kalima `43bea5` | C5 crea C8 y C9 en posición del actor después del polvo y alcanza la cola del pulso; lleno sólo omite el alta. |
@@ -132,6 +133,11 @@ La dispersión y la rama de llamas con el pool lleno dieron 356 pruebas focales
 aprobadas en Linux, en 16 binarios y sin saltos. Las regresiones observan el
 orden y el RNG con pools libres, parciales y llenos, la continuación del
 ataque, el paso vertical y el dibujo del subtipo 1.
+
+La carga de Q-C181 dio 121 pruebas focales aprobadas en Linux en cinco
+binarios. La regresión inicia en otro mapa y verifica atributos, luz cruda,
+objetos y alturas de Crywolf con un `TerrainHeight.OZJ` que no decodifica y
+con el archivo ausente.
 
 La regresión de `B1` reprodujo el fallo de sesión con `Macro.txt` inaccesible antes
 del cambio. Con el aplicador recompilado pasaron 23 pruebas de SessionEventApplier

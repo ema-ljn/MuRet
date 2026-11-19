@@ -52,4 +52,13 @@ inline constexpr std::int32_t DropSubtype = 2;
 inline constexpr std::int32_t DarkDropSubtype = 0x18;
 void CreateDropJoint(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random);
 void StepDropJoint(JointState& joint);
+
+// El 0x10f con un personaje (ActorState) de dueño (AuraJoints.cpp): alta 0x530edd..0x531214 y paso 0x535d4f..0x5366a7.
+// La /1 (el hada) y la /3 (Blood Castle) llevan un FaunaObject y siguen en FaunaJointCreation.cpp. Las /5..7 no hacen
+// el primer tramo (0x530a5c): FaunaJointCreation.cpp las llama antes.
+inline constexpr std::int32_t AuraJoint = 0x10f;
+[[nodiscard]] Core::Expected<void, std::string> CreateAuraJoint(JointState& joint,
+                                                                const World::FishEffectRequest& request);
+[[nodiscard]] Core::Expected<void, std::string> StepAuraJoint(JointState& joint,
+                                                              const JointKernels::StepServices& services);
 } // namespace Client::Scenes::JointFamilies

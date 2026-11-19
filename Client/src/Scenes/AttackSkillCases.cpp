@@ -146,6 +146,34 @@ Core::Expected<void, std::string> CreateTheSpirit(ActorState& actor, const Chara
     return {};
 }
 
+// 0x530860(0x10f, blanco+0x10, blanco+0x10, blanco+0x1c, subtipo, blanco, 20, −1, 0, 0, blanco): cinco joints 0x10f
+// alrededor del blanco (AuraJoints.cpp). Con el pool lleno, los que no entran no están.
+Core::Expected<void, std::string> CreateFiveAuras(std::uint32_t address, ActorState& victim, std::int32_t subtype,
+                                                  std::int32_t target, const CharacterStepContext& context)
+{
+    constexpr float Width = 20;
+    if (context.joints.empty())
+        return Core::Unexpected(std::format("{:#x}: faltan los joints del frame (0x530860)", address));
+    for (int ring = 0; ring < 5; ++ring)
+    {
+        const World::FishEffectRequest request{.type = FlameJoint,
+                                               .firstPosition = victim.position,
+                                               .secondPosition = victim.position,
+                                               .angles = victim.angles,
+                                               .subtype = subtype,
+                                               .ownerContext = &victim,
+                                               .scale = Width,
+                                               .key = -1,
+                                               .skill = 0,
+                                               .skillSerial = 0,
+                                               .target = target};
+        const auto created = CreateFaunaJoint(context.joints, request, context.random, JointOwnerKind::Actor);
+        if (!created.HasValue())
+            return Core::Unexpected(std::format("{:#x}: {}", address, created.Error()));
+    }
+    return {};
+}
+
 // 0x4fe015..0x4fe13f (la 0x30) y 0x4fe253..0x4fe37b (la 0x45): treinta y seis joints 0x613 de ancho 60 colgados de o,
 // 100 más arriba, con los ángulos (−10, 0, 10 · i); en la vuelta 0 y en la 20, el calco 0x61e sobre o. Sin rand().
 struct SpiritRing
@@ -679,9 +707,10 @@ Core::Expected<void, std::string> StepTheTargetSkill(ActorState& actor, ActorSta
                                                                    joint.ownerContext == &victim &&
                                                                    (joint.subtype == 4 || joint.subtype == 9);
                                                         });
+            // 0x5045b7/0x50466e: el blanco de los cinco es el +0x3a4 de c, con signo (movsx).
             if (!alreadyBound || !hasBinding)
-                return JointThenSound(alreadyBound ? 0x5046b0 : 0x5045f9, "el joint 0x10f/4 del calco", skill, slot, -1,
-                                      context);
+                return CreateFiveAuras(alreadyBound ? 0x5046b0 : 0x5045f9, victim, 4,
+                                       std::bit_cast<std::int16_t>(actor.attackTarget), context);
         }
         return {};
     case 0x1c:
@@ -724,8 +753,7 @@ Core::Expected<void, std::string> StepTheTargetSkill(ActorState& actor, ActorSta
         if (context.joints.empty())
             return Core::Unexpected(std::format("0x504876: faltan los joints del juego (0x534f90) del lugar {}", slot));
         KillJointsOf(context.joints, FlameJoint, &victim, 0);
-        return JointThenSound(0x5048db, "el primero de los cinco joints 0x10f/0 sobre el blanco (0x530860)", skill,
-                              slot, -1, context);
+        return CreateFiveAuras(0x5048db, victim, 0, -1, context);
     }
     case 0x01:
     {

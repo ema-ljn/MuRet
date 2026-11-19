@@ -873,12 +873,20 @@ TEST(AttackSkillCasesTest, TheGuardMarksTheTarget)
             joint.ownerContext = &tested.Victim();
         }
 
-        EXPECT_TRUE(HasError(tested.WithTarget(0x10), "0x5048db"));
+        // 0x5048db: apaga el 10f/0 del blanco y crea cinco, de ancho 20, el primero en su lugar.
+        ASSERT_TRUE(tested.WithTarget(0x10).HasValue());
 
         EXPECT_EQ(tested.Victim().flags78, 0x100u);
         EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x84}));
-        EXPECT_FALSE(tested.joints[0].alive);
-        EXPECT_TRUE(tested.joints[1].alive);
+        EXPECT_EQ(tested.joints[1].subtype, 1);
+        EXPECT_EQ(std::ranges::count_if(tested.joints,
+                                        [&tested](const JointState& joint)
+                                        {
+                                            return joint.alive && joint.type == 0x10f && joint.subtype == 0 &&
+                                                   joint.ownerContext == &tested.Victim() && joint.width == 20.0f;
+                                        }),
+                  5);
+        EXPECT_EQ(tested.joints[0].subtype, 0);
         EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
     }
     SkillWorld unjointed;
@@ -1141,8 +1149,11 @@ TEST(AttackSkillCasesTest, KillingABuffJointRestoresTheConstructorFrontier)
     killed.type = 0x10f;
     killed.subtype = 0;
     killed.ownerContext = &tested.Victim();
-    EXPECT_TRUE(HasError(tested.WithTarget(0x10), "0x5048db"));
-    EXPECT_FALSE(killed.alive);
+    // El único lugar que queda es el que apagó: lo toma el primero de los cinco y los demás no entran.
+    ASSERT_TRUE(tested.WithTarget(0x10).HasValue());
+    EXPECT_TRUE(killed.alive);
+    EXPECT_EQ(killed.life, 999999);
+    EXPECT_EQ(killed.width, 20.0f);
     EXPECT_EQ(tested.Victim().flags78, 0x100u);
     EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x84}));
 }
@@ -1153,14 +1164,29 @@ TEST(AttackSkillCasesTest, BindingFlagsPrecedeTheJointAndExistingBindingsSkipIt)
     tested.Striker().skillSucceeded = 1;
     for (auto& effect : tested.world.Map().effects.Effects())
         effect.alive = true;
-    EXPECT_TRUE(HasError(tested.WithTarget(0x1b), "0x5045f9"));
+    tested.Striker().attackTarget = 0xfffe;
+    ASSERT_TRUE(tested.WithTarget(0x1b).HasValue());
     EXPECT_EQ(tested.Victim().flags78, 8u);
+    // 0x5045f9: cinco 10f/4 de ancho 20 con el +0x3a4 de c, con signo, en +0xa0c.
+    const auto bindings = [&tested]
+    {
+        return std::ranges::count_if(tested.joints,
+                                     [&tested](const JointState& joint)
+                                     {
+                                         return joint.alive && joint.type == 0x10f && joint.subtype == 4 &&
+                                                joint.ownerContext == &tested.Victim() && joint.target == -2;
+                                     });
+    };
+    EXPECT_EQ(bindings(), 5);
+    for (auto& joint : tested.joints)
+        joint.alive = false;
     auto& binding = tested.joints.front();
     binding.alive = true;
     binding.type = 0x10f;
     binding.subtype = 9;
     binding.ownerContext = &tested.Victim();
     EXPECT_TRUE(tested.WithTarget(0x1b).HasValue());
+    EXPECT_EQ(bindings(), 0);
     EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
 }
 

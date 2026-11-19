@@ -31,6 +31,7 @@
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
+#include "Render/TextureEnvMode.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/ModelPoseCallbacks.h"
 #include "Scenes/ParticleDrawServices.h"
@@ -918,13 +919,22 @@ Core::Expected<void, World::ParticleDrawingFailure>
 DrawParticles(Render::ModelBatch& batch, World::Particles& particles, const IModelLibrary& textures,
               const Render::Models::OriginalMatrix& view, float worldClock, std::uint8_t mode)
 {
-    // Un adaptador por pase: su primer servicio importa el estado que dejó el lote (los sprites), sin
-    // suponer el de un frame anterior.
-    Render::ModelBatchParticleBackend backend(std::ref(batch), std::cref(textures),
-                                              Render::ModelBatchParticleState::ForModelPass());
-    ParticleDrawServices services(std::cref(textures), std::ref(backend), std::cref(view));
-    // 0x548550(0): el modo 0 no filtra por altura.
-    return World::DrawParticlesChecked(particles, mode, std::cref(worldClock), services);
+    bool restoreTextureEnv = false;
+    const auto drawn = [&]
+    {
+        // Un adaptador por pase importa el material que dejó el lote.
+        Render::ModelBatchParticleBackend backend(std::ref(batch), std::cref(textures),
+                                                  Render::ModelBatchParticleState::ForModelPass());
+        ParticleDrawServices services(std::cref(textures), std::ref(backend), std::cref(view));
+        const auto result = World::DrawParticlesChecked(particles, mode, std::cref(worldClock), services);
+        restoreTextureEnv = !result.HasValue() && services.HasOpenTextureEnvOverride();
+        return result;
+    }();
+    // 0x548a4a restablece GL_MODULATE tras el billboard. Si MuRet interrumpe el pase,
+    // cierra primero el quad incompleto y completa solo esta restauración.
+    if (restoreTextureEnv)
+        batch.SetTextureEnv(Render::TextureEnvMode::Modulate);
+    return drawn;
 }
 
 void DrawLeaves(Render::ModelBatch& batch, const World::Leaves& leaves)

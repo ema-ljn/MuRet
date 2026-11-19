@@ -31,10 +31,12 @@ public:
     [[nodiscard]] Result Type620870() override;
     [[nodiscard]] Result TextureEnv(Render::TextureEnvMode mode) override;
     [[nodiscard]] Result Billboard(Render::ParticleBillboardRequest request) override;
+    [[nodiscard]] bool HasOpenTextureEnvOverride() const;
 
 private:
     const std::reference_wrapper<const IModelLibrary> m_models;
     const std::reference_wrapper<Render::IParticleDrawBackend> m_backend;
     const std::reference_wrapper<const Render::Models::OriginalMatrix> m_view;
+    bool m_textureEnvOverride = false;
 };
 } // namespace Client::Scenes

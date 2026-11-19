@@ -7,8 +7,10 @@
 #include "Render/Gl/GlShader.h"
 #include "Render/Gl/TextureTable.h"
 #include "Render/ModelBatch.h"
+#include "Render/ModelFog.h"
 
 #include <cstdint>
+#include <optional>
 #include <set>
 #include <string>
 
@@ -39,6 +41,8 @@ private:
     struct Uniforms
     {
         GLint viewProjection = -1;
+        GLint eyeDepthAxis = -1;
+        GLint eyeDepthOffset = -1;
         GLint textured = -1;
         GLint alphaTest = -1;
         GLint textureAdd = -1;
@@ -60,6 +64,7 @@ private:
     void SetViewProjection(const ModelBatch& batch, ModelCoordinateSpace space) const;
     // El modo de la textura y la niebla de un tramo que dibuja: no son del material, van en cada comando.
     void SetTextureEnvAndFog(const ModelDrawCommand& command) const;
+    void SetFog(const std::optional<ModelFog>& fog) const;
 
     const Platform::GlFunctions* m_gl;
     GlShader m_shader;

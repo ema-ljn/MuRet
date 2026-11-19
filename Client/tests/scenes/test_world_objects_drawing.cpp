@@ -7,6 +7,8 @@
 #include "Data/Models/Model.h"
 #include "Data/Terrain/TerrainObjects.h"
 #include "Render/ModelBatch.h"
+#include "Render/TextureEnvMode.h"
+#include "World/BloodCastleParticleKernels.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/Skeleton.h"
@@ -1730,6 +1732,8 @@ public:
     {
         if (interrupt && m_batch.HasOpenPrimitive() && ++m_colorQueries == 2)
             return std::nullopt;
+        if (selector == Client::World::TorchFlameParticle)
+            selector = Client::World::BreathParticle;
         return SpriteTextures::TextureMetadataOf(selector);
     }
 
@@ -1804,6 +1808,45 @@ TEST(ParticlesDrawingTest, InterruptedQuadPreservesCompletedGeometryAndAllowsNex
     batch.Begin(Client::Render::Pass3D{});
     ASSERT_TRUE(Client::Scenes::DrawParticles(batch, particles, textures, view).HasValue());
     EXPECT_EQ(batch.Vertices().size(), 12u);
+}
+
+TEST(ParticlesDrawingTest, AnInterruptedTextureOverrideDoesNotAffectTheNextProducer)
+{
+    using Client::Render::TextureEnvMode;
+    for (const bool temporaryOverride : {false, true})
+    {
+        SCOPED_TRACE(temporaryOverride);
+        ModelBatch batch;
+        batch.Begin(Client::Render::Pass3D{});
+        const auto expected = temporaryOverride ? TextureEnvMode::Modulate : TextureEnvMode::Add;
+        batch.SetTextureEnv(expected);
+        InterruptedEffectTextures textures(batch);
+        Client::World::Particles particles;
+        Client::Render::Models::CrtRandom random(1);
+        for (int i = 0; i < 2; ++i)
+            ASSERT_TRUE(
+                particles
+                    .Create(Client::World::BreathParticle, {0, 0, -300}, glm::vec3(0), glm::vec3(1), 0, 1, 0, random)
+                    .has_value());
+        if (temporaryOverride)
+        {
+            auto& second = particles.All()[1];
+            second.type = Client::World::TorchFlameParticle;
+            second.texture = Client::World::TorchFlameParticle;
+            second.subtype = Client::World::BrightFlameSubtype;
+        }
+        const auto result =
+            Client::Scenes::DrawParticles(batch, particles, textures, Client::Render::ViewRows(glm::mat4(1)));
+        ASSERT_FALSE(result.HasValue());
+        EXPECT_EQ(result.Error().slot, 1u);
+        EXPECT_EQ(result.Error().error.phase, Client::World::ParticleDrawingPhase::ColorFlag);
+        EXPECT_FALSE(batch.HasOpenPrimitive());
+        ASSERT_EQ(batch.Vertices().size(), 6u);
+        EXPECT_EQ(batch.TextureEnv(), expected);
+        batch.Triangle({batch.Vertices()[0], batch.Vertices()[1], batch.Vertices()[2]});
+        ASSERT_EQ(batch.Vertices().size(), 9u);
+        EXPECT_EQ(batch.Commands().back().textureEnv, expected);
+    }
 }
 
 // 0x549440(0): cada sprite vivo se dibuja una vez, aditivo, como el cuadrado de 0x621400 con la textura

@@ -48,7 +48,13 @@ void ModelBatch::Triangle(const std::array<ModelVertex, 3>& corners)
 
 void ModelBatch::SetFog(const std::optional<ModelFog>& fog)
 {
+    if (m_fog == fog)
+        return;
     m_fog = fog;
+    // 42b0a0/42b0f0: el toggle existe aunque no siga otro dibujo.
+    ModelDrawCommand command = NewDraw();
+    command.operation = ModelStateOperation::Fog;
+    m_commands.push_back(command);
 }
 
 const std::optional<ModelFog>& ModelBatch::Fog() const

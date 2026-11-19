@@ -90,7 +90,14 @@ World::IParticleDrawingServices::Result ParticleDrawServices::Type620870()
 }
 World::IParticleDrawingServices::Result ParticleDrawServices::TextureEnv(Render::TextureEnvMode mode)
 {
-    return Checked(m_backend.get().TextureEnv(mode), Phase::TextureEnv);
+    const auto changed = Checked(m_backend.get().TextureEnv(mode), Phase::TextureEnv);
+    if (changed.HasValue())
+        m_textureEnvOverride = mode == Render::TextureEnvMode::Add;
+    return changed;
+}
+bool ParticleDrawServices::HasOpenTextureEnvOverride() const
+{
+    return m_textureEnvOverride;
 }
 World::IParticleDrawingServices::Result ParticleDrawServices::Billboard(Render::ParticleBillboardRequest request)
 {

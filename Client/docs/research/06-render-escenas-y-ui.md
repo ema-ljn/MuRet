@@ -9698,9 +9698,11 @@ que `WorldEntry`, `WorldTransitionSupport` y `SessionEventApplier` atan a `App::
 `Scenes::StepCastleSiegeObjectFrame` (`CastleSiegeObjectServices`). El dibujo: `Scenes::DrawCastleSiegeBody`
 (`CharacterDrawing`) desde `DrawGameWorldObjects`, y `Render::Models::ShadowSpreadOf`. El efecto: `StepGatePlane` y
 `ModelEffects::CreateGatePlane`. La niebla: `World::InTheCastleSiegeFog` y `Render::ModelFog`, que
-`GameScene::DrawTheWorldPass` pone en el lote con `ModelBatch::SetFog` y saca después de la cola; cada
-`ModelDrawCommand` lleva la suya, `ModelBatch::Begin` con el material la apaga (`0x620db0`) y `GlModelRenderer` la
-aplica en el fragment shader con la w del clip como |z| del ojo (Q-C391). El panel: `WorldRuntime::siegePanelKind`
+`GameScene::DrawTheWorldPass` pone en el lote con `ModelBatch::SetFog` y saca después de la cola.
+Cada cambio de niebla llega al shader en el orden del lote, incluso si le sigue un pase sin geometría.
+`ModelBatch::Begin` con el material la apaga (`0x620db0`) y `GlModelRenderer` la aplica en el fragment shader
+con |z| del ojo, calculada con la fila z de la vista antes de la proyección (identidad para comandos Eye),
+también en proyección ortográfica (Q-C391). El panel `WorldRuntime::siegePanelKind`
 y `heroGuildPost`. Las partículas: la `6ec/0` y la `6f4/6` en `World::CreateKalimaParticle` y
 `World::StepKalimaParticle` (`KalimaParticleKernels`, con `World::BrazierFallSubtype`), y el humo `5f2/0x15` con el
 de Crywolf (`World::CrywolfSmokeSubtype`); el frame las suelta con `Particles::CreateChecked`. Corta lo del asedio

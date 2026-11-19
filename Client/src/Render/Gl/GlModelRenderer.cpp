@@ -19,6 +19,7 @@
 
 #include <cstddef>
 #include <initializer_list>
+#include <optional>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -69,6 +70,8 @@ Core::Expected<GlModelRenderer, std::string> GlModelRenderer::Create(const Platf
     }
     const GlShader& program = shader.Value();
     const Uniforms uniforms{.viewProjection = program.UniformLocation(ModelViewProjectionUniform),
+                            .eyeDepthAxis = program.UniformLocation(ModelEyeDepthAxisUniform),
+                            .eyeDepthOffset = program.UniformLocation(ModelEyeDepthOffsetUniform),
                             .textured = program.UniformLocation(ModelTexturedUniform),
                             .alphaTest = program.UniformLocation(ModelAlphaTestUniform),
                             .textureAdd = program.UniformLocation(ModelTextureAddUniform),
@@ -78,6 +81,8 @@ Core::Expected<GlModelRenderer, std::string> GlModelRenderer::Create(const Platf
                             .fogEnd = program.UniformLocation(ModelFogEndUniform)};
     for (const auto& [location, name] :
          {std::pair{uniforms.viewProjection, ModelViewProjectionUniform},
+          std::pair{uniforms.eyeDepthAxis, ModelEyeDepthAxisUniform},
+          std::pair{uniforms.eyeDepthOffset, ModelEyeDepthOffsetUniform},
           std::pair{uniforms.textured, ModelTexturedUniform}, std::pair{uniforms.alphaTest, ModelAlphaTestUniform},
           std::pair{uniforms.textureAdd, ModelTextureAddUniform}, std::pair{uniforms.fog, ModelFogUniform},
           std::pair{uniforms.fogColor, ModelFogColorUniform}, std::pair{uniforms.fogStart, ModelFogStartUniform},
@@ -101,8 +106,14 @@ Core::Expected<GlModelRenderer, std::string> GlModelRenderer::Create(const Platf
 void GlModelRenderer::Draw(const ModelBatch& batch, const TextureTable& textures, Core::Log& log)
 {
     BeginPass(batch);
+    auto space = ModelCoordinateSpace::World;
     for (const ModelDrawCommand& command : batch.Commands())
     {
+        if (command.operation == ModelStateOperation::Fog)
+        {
+            SetFog(command.fog);
+            continue;
+        }
         if (command.operation == ModelStateOperation::TextureEnv)
         {
             m_gl->uniform1i(m_uniforms.textureAdd, command.textureEnv == TextureEnvMode::Add ? 1 : 0);
@@ -147,7 +158,11 @@ void GlModelRenderer::Draw(const ModelBatch& batch, const TextureTable& textures
         m_gl->uniform1i(m_uniforms.alphaTest,
                         command.state.alphaTest.value_or(command.state.blend == ModelBlend::Alpha) ? 1 : 0);
         SetTextureEnvAndFog(command);
-        SetViewProjection(batch, command.state.space);
+        if (space != command.state.space)
+        {
+            space = command.state.space;
+            SetViewProjection(batch, space);
+        }
         m_gl->drawArrays(GL_TRIANGLES, static_cast<GLint>(command.firstVertex),
                          static_cast<GLsizei>(command.vertexCount));
     }
@@ -188,6 +203,16 @@ void GlModelRenderer::SetViewProjection(const ModelBatch& batch, ModelCoordinate
     const glm::mat4 matrix = space == ModelCoordinateSpace::Eye ? pass.projection : pass.projection * pass.view;
     // GL_FALSE: GLM es column-major. El espacio pertenece al comando, incluso en World/Eye/World.
     m_gl->uniformMatrix4fv(m_uniforms.viewProjection, 1, GL_FALSE, glm::value_ptr(matrix));
+    // Q-C391: |z| del ojo también en ortográfica, donde clip.w es siempre 1.
+    // GLM indexa columna/fila; el pase Eye ya trae la vista aplicada a sus vértices.
+    if (space == ModelCoordinateSpace::Eye)
+    {
+        m_gl->uniform3f(m_uniforms.eyeDepthAxis, 0.0f, 0.0f, 1.0f);
+        m_gl->uniform1f(m_uniforms.eyeDepthOffset, 0.0f);
+        return;
+    }
+    m_gl->uniform3f(m_uniforms.eyeDepthAxis, pass.view[0][2], pass.view[1][2], pass.view[2][2]);
+    m_gl->uniform1f(m_uniforms.eyeDepthOffset, pass.view[3][2]);
 }
 
 // glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE) y glFog (0x42b0a0) o glDisable(GL_FOG): el comando trae los dos,
@@ -195,16 +220,21 @@ void GlModelRenderer::SetViewProjection(const ModelBatch& batch, ModelCoordinate
 void GlModelRenderer::SetTextureEnvAndFog(const ModelDrawCommand& command) const
 {
     m_gl->uniform1i(m_uniforms.textureAdd, command.textureEnv == TextureEnvMode::Add ? 1 : 0);
-    if (!command.fog.has_value())
+    SetFog(command.fog);
+}
+
+void GlModelRenderer::SetFog(const std::optional<ModelFog>& fog) const
+{
+    if (!fog.has_value())
     {
         m_gl->uniform1i(m_uniforms.fog, 0);
         return;
     }
-    const ModelFog& fog = *command.fog;
+    const ModelFog& enabled = *fog;
     m_gl->uniform1i(m_uniforms.fog, 1);
-    m_gl->uniform3f(m_uniforms.fogColor, fog.color.x, fog.color.y, fog.color.z);
-    m_gl->uniform1f(m_uniforms.fogStart, fog.start);
-    m_gl->uniform1f(m_uniforms.fogEnd, fog.end);
+    m_gl->uniform3f(m_uniforms.fogColor, enabled.color.x, enabled.color.y, enabled.color.z);
+    m_gl->uniform1f(m_uniforms.fogStart, enabled.start);
+    m_gl->uniform1f(m_uniforms.fogEnd, enabled.end);
 }
 
 // 0x620980, 0x620a00(1), 0x620a90, las dos sombras de 0x4eff40, 0x620b10 y 0x620870 con la bandera
@@ -288,6 +318,7 @@ void GlModelRenderer::SetOperation(const ModelDrawState& state, ModelStateOperat
     case ModelStateOperation::Draw:
     case ModelStateOperation::Binding:
     case ModelStateOperation::TextureEnv:
+    case ModelStateOperation::Fog:
         break;
     }
 }

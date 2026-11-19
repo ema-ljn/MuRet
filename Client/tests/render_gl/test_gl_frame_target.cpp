@@ -1,5 +1,6 @@
 #include "Render/Gl/GlFrameTarget.h"
 #include "Render/ModelBatch.h"
+#include "Render/ModelFog.h"
 
 #include "App/WindowState.h"
 #include "Core/Expected.h"
@@ -254,6 +255,39 @@ TEST_F(GlFrameTargetTest, TrailingTextureEnvRestoreReachesGlThroughAnEmptyContin
     Gl().depthMask(GL_FALSE);
     canvas.flushModels();
     EXPECT_EQ(ReadUniform("textureAdd"), 0);
+    GLint value = 0;
+    Gl().getIntegerv(GL_CULL_FACE, &value);
+    EXPECT_EQ(value, GL_FALSE);
+    Gl().getIntegerv(GL_DEPTH_WRITEMASK, &value);
+    EXPECT_EQ(value, GL_FALSE);
+    m_target->Present();
+}
+
+TEST_F(GlFrameTargetTest, TrailingFogChangesReachGlThroughEmptyContinuations)
+{
+    SceneCanvas& canvas = m_target->BeginFrame(std::chrono::milliseconds{40});
+    canvas.models.Begin(Client::Tests::TestPass(m_screen));
+    canvas.models.SetTextureEnv(Client::Render::TextureEnvMode::Add);
+    Client::Tests::AddSquare(canvas.models, canvas.models.State(), 20, {1, 1, 1, 1});
+    canvas.flushModels();
+    ASSERT_EQ(ReadUniform("fog"), 0);
+    ASSERT_EQ(ReadUniform("textureAdd"), 1);
+    ASSERT_FALSE(canvas.models.InitializesMaterial());
+
+    const Client::Render::ModelFog fog{.color = {0.25f, 0.5f, 0.75f}, .start = 10, .end = 30};
+    canvas.models.SetFog(fog);
+    ASSERT_TRUE(canvas.models.Vertices().empty());
+    canvas.flushModels();
+    EXPECT_EQ(ReadUniform("fog"), 1);
+    EXPECT_EQ(ReadUniform("textureAdd"), 1);
+
+    canvas.models.SetFog(std::nullopt);
+    canvas.models.SetFog(std::nullopt);
+    Gl().disable(GL_CULL_FACE);
+    Gl().depthMask(GL_FALSE);
+    canvas.flushModels();
+    EXPECT_EQ(ReadUniform("fog"), 0);
+    EXPECT_EQ(ReadUniform("textureAdd"), 1);
     GLint value = 0;
     Gl().getIntegerv(GL_CULL_FACE, &value);
     EXPECT_EQ(value, GL_FALSE);

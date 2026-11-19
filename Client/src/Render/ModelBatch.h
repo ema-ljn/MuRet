@@ -65,6 +65,7 @@ enum class ModelStateOperation : std::uint8_t
     Texture2d,
     Binding,
     TextureEnv,
+    Fog,
 };
 
 struct ModelDrawState

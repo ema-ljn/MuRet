@@ -65,7 +65,7 @@ void main()
 // 1,34 en la selección, hasta 3,45 con la luz por vértice). Con `textureAdd` la textura se combina
 // como con GL_ADD (la 6ac/2, 0x5489eb): el color es téxel + color recortado a [0, 1] y el alfa,
 // téxel · color. Después va la niebla de GL_LINEAR (Render/ModelFog.h, la de 0x42b0a0): la distancia
-// es |z| del ojo, que con la perspectiva de gluPerspective es la w del clip, interpolada en el
+// es |z| del ojo, calculada con la fila z de la vista e interpolada en el
 // triángulo; el factor (fin − d) / (fin − inicio), recortado a [0, 1], mezcla el color con el de la
 // niebla y deja el alfa. El alpha test no depende de la niebla: la niebla no toca el alfa.
 inline constexpr unsigned ModelPositionLocation = 0;
@@ -73,6 +73,8 @@ inline constexpr unsigned ModelUvLocation = 1;
 inline constexpr unsigned ModelColorLocation = 2;
 
 inline constexpr const char* ModelViewProjectionUniform = "viewProjection";
+inline constexpr const char* ModelEyeDepthAxisUniform = "eyeDepthAxis";
+inline constexpr const char* ModelEyeDepthOffsetUniform = "eyeDepthOffset";
 inline constexpr const char* ModelTexturedUniform = "textured";
 inline constexpr const char* ModelAlphaTestUniform = "alphaTest";
 // Las del modo de la textura y la niebla: la bandera de GL_ADD y la de GL_FOG como int (glUniform1i, 0 o 1), el
@@ -88,6 +90,8 @@ layout(location = 0) in vec3 position;
 layout(location = 1) in vec2 uv;
 layout(location = 2) in vec4 color;
 uniform mat4 viewProjection;
+uniform vec3 eyeDepthAxis;
+uniform float eyeDepthOffset;
 out vec2 fragmentUv;
 out vec4 fragmentColor;
 out float fragmentDistance;
@@ -96,7 +100,7 @@ void main()
     fragmentUv = uv;
     fragmentColor = clamp(color, 0.0, 1.0);
     gl_Position = viewProjection * vec4(position, 1.0);
-    fragmentDistance = abs(gl_Position.w);
+    fragmentDistance = abs(dot(eyeDepthAxis, position) + eyeDepthOffset);
 }
 )";
 

@@ -237,7 +237,8 @@ IParticleDrawBackend::Result ModelBatchParticleBackend::MaterialTail(bool alphaT
         if (!changed.HasValue())
             return changed;
     }
-    // 620a00/620b10 alcanzan fog después de los stores anteriores. No hay fog en este shader.
+    // 620a00/620b10 consultan una política separada de la niebla regional después de estos stores.
+    // Los stores directos de 0x07d368a0 del binario analizado la dejan en cero.
     if (enableFog && m_state.fogPolicy != 0)
         return Unsupported();
     return {};

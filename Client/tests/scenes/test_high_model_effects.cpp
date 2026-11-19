@@ -392,9 +392,12 @@ TEST(HighModelEffectsTest, TheSiegePulseTurnsAndFallsIntoTheFlareStep)
     pulse.type = 0x61c;
     pulse.life = 10;
     pulse.transform.position = {1000, 2000, 300};
-    pulse.velocity = {0, -550, 0};
+    // La z de la velocidad girada y la de la partida no enteras: la suma se guarda en float antes del rand()
+    // (0x52c228). Con −300,1f, guardarla o no cambia el último bit de la z del joint (con el rand() % 400 de esta
+    // semilla, 178).
+    pulse.velocity = {0, -550, 0.3f};
     pulse.copiedAngles = {0, 0, 10};
-    pulse.start = {1000, 2000, 300};
+    pulse.start = {1000, 2000, -300.1f};
     pulse.transform.scale = 1.0f;
     const ModelEffect initial = pulse;
     const auto raised = StepHighModelEffect(pulse, nullptr, tested.StepContext());
@@ -410,12 +413,13 @@ TEST(HighModelEffectsTest, TheSiegePulseTurnsAndFallsIntoTheFlareStep)
     static_cast<void>(expected.Next());
     const int speed = expected.Next() % 20;
     const glm::vec3 reach = Client::Render::Models::OriginalVectorRotate(
-        {0, -550, 0}, Client::Render::Models::OriginalAngleMatrix({0, 0, 82}));
-    const glm::vec3 point{
-        static_cast<float>(static_cast<double>(reach.x) + 1000.0),
-        static_cast<float>(static_cast<double>(reach.y) + 2000.0),
-        static_cast<float>(static_cast<double>(static_cast<float>(static_cast<double>(reach.z) + 300.0)) +
-                           static_cast<double>(rise) + 700.0)};
+        {0, -550, 0.3f}, Client::Render::Models::OriginalAngleMatrix({0, 0, 82}));
+    ASSERT_EQ(reach.z, 0.3f);
+    const glm::vec3 point{static_cast<float>(static_cast<double>(reach.x) + 1000.0),
+                          static_cast<float>(static_cast<double>(reach.y) + 2000.0),
+                          static_cast<float>(static_cast<double>(static_cast<float>(static_cast<double>(reach.z) +
+                                                                                    static_cast<double>(-300.1f))) +
+                                             static_cast<double>(rise) + 700.0)};
     const auto& star = tested.world->DrawTail().joints.front();
     ASSERT_TRUE(star.alive);
     EXPECT_EQ(star.type, 0x632);
@@ -464,19 +468,22 @@ TEST(HighModelEffectsTest, TheSecondSiegePulseDropsTwoBolts)
     pulse.type = 0x61c;
     pulse.subtype = 1;
     pulse.life = 8;
-    pulse.velocity = {0, -250, 0};
+    // La z de la partida y la de la velocidad girada no enteras: los 100 se suman en la x87, sin guardar (0x52c307);
+    // con −300,1f, guardar la suma cambiaría el último bit.
+    pulse.velocity = {0, -250, 0.3f};
     pulse.copiedAngles = {0, 0, 10};
-    pulse.start = {1000, 2000, 300};
+    pulse.start = {1000, 2000, -300.1f};
 
     const auto stepped = StepHighModelEffect(pulse, nullptr, tested.StepContext());
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(tested.Draws(), 1 + 2 + 2);
     const glm::vec3 reach = Client::Render::Models::OriginalVectorRotate(
-        {0, -250, 0}, Client::Render::Models::OriginalAngleMatrix({0, 0, 82}));
+        {0, -250, 0.3f}, Client::Render::Models::OriginalAngleMatrix({0, 0, 82}));
+    ASSERT_EQ(reach.z, 0.3f);
     const glm::vec3 point{static_cast<float>(static_cast<double>(reach.x) + 1000.0),
                           static_cast<float>(static_cast<double>(reach.y) + 2000.0),
-                          static_cast<float>(static_cast<double>(reach.z) + 300.0 + 100.0)};
+                          static_cast<float>(static_cast<double>(reach.z) + static_cast<double>(-300.1f) + 100.0)};
     for (std::size_t slot = 0; slot < 2; ++slot)
     {
         SCOPED_TRACE(slot);

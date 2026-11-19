@@ -852,8 +852,8 @@ Core::Expected<void, std::string> StrikeAround(const ActorState& actor, std::siz
     static_cast<void>(context.random.Next());
     static_cast<void>(context.random.Next());
     if (HasJointRoom(context))
-        return CutAt(0x5026a4, "el primero de los cuatro joints 0x14f hacia el blanco de +0x434 (0x530860)", skill,
-                     slot);
+        return CutAt(0x5026a4, "el subtipo del primero de los cuatro joints 0x14f, de 0x4f2230 (el +0x31b de Fenrir)",
+                     skill, slot);
     // 50261e..5028e4: 2×2 para el blanco principal, N×2×2 para los encontrados y 6×3 para los seis 62c.
     constexpr std::size_t RemainingFixedDraws = 20;
     constexpr std::size_t DrawsPerTarget = 4;

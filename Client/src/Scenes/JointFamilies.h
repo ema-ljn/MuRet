@@ -46,10 +46,13 @@ inline constexpr std::int32_t SecondSpiritJoint = 0x6ee;
                                                                 const JointKernels::StepServices& services);
 
 // El 0x60f/2 y el 0x60f/0x18 (DropJoints.cpp), la gota que el 0x613/2 suelta en su segundo paso (0x5396ff): alta
-// 0x533677 y 0x5340dc, y paso 0x53b156.
+// 0x533677 y 0x5340dc, y paso 0x53b156. La /0x13, que baja (alta 0x533a28 y paso 0x53a12c), la piden las columnas del
+// círculo 0xc3 con el 0x62b (0x5236ce y 0x523898). El 0x62b comparte el alta y el paso.
 inline constexpr std::int32_t DropJoint = 0x60f;
 inline constexpr std::int32_t DropSubtype = 2;
 inline constexpr std::int32_t DarkDropSubtype = 0x18;
+inline constexpr std::int32_t SinkingDropSubtype = 0x13;
+[[nodiscard]] bool IsDrop(std::int32_t type, std::int32_t subtype);
 void CreateDropJoint(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random);
 void StepDropJoint(JointState& joint);
 
@@ -128,5 +131,38 @@ inline constexpr std::int32_t SpiralJoint = 0x62c;
 [[nodiscard]] Core::Expected<void, std::string>
 CreateSpiralJoint(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random);
 [[nodiscard]] Core::Expected<void, std::string> StepSpiralJoint(JointState& joint,
+                                                                const JointKernels::StepServices& services);
+
+// El 0x5ac (FlareJoints.cpp): alta 0x530c93..0x530dd8 y paso 0x5359d7..0x535b32, sin la cola ni el movimiento comunes.
+// Los sesenta /0 del 0x114/0 (0x51c1b8) y del combo de BlastModelEffects (0x51c004), sin dueño.
+inline constexpr std::int32_t FlareJoint = 0x5ac;
+void CreateFlareJoint(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random);
+[[nodiscard]] Core::Expected<void, std::string> StepFlareJoint(JointState& joint);
+
+// El 0x60f y el 0x62b /0x10, /0xe y /0xf (OrbitJoints.cpp): alta 0x5337fa y 0x534132 y paso 0x53a5c7 y 0x53b18a. La
+// /0x10 es la columna de la lluvia de sombras 0xbd (0x51bcb0), con su personaje de dueño; la /0xe y la /0xf las pide el
+// efecto 0x60f (0x52b408 y 0x52b42b, con él de dueño, JointOwnerKind::ModelEffect), que MuRet no crea.
+inline constexpr std::int32_t ColumnSubtype = 0x10;
+inline constexpr std::int32_t WhirlSubtype = 0xe;
+inline constexpr std::int32_t MirroredWhirlSubtype = 0xf;
+[[nodiscard]] bool IsOrbit(std::int32_t type, std::int32_t subtype);
+[[nodiscard]] Core::Expected<void, std::string>
+CreateOrbitJoint(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random);
+[[nodiscard]] Core::Expected<void, std::string> StepOrbitJoint(JointState& joint,
+                                                               const JointKernels::StepServices& services);
+
+// El 0x61c/0 (SweepJoints.cpp): alta 0x5342e4 y paso 0x53b3e1, sin la cola ni el movimiento comunes. Lo pide el paso
+// del efecto 0x5be (0x52a72a), que MuRet no crea (0x4f9fae); con dueño y vida de más de 18, corta en 0x53b548 (el
+// héroe).
+inline constexpr std::int32_t SweepSubtype = 0;
+void CreateSweepJoint(JointState& joint, const World::FishEffectRequest& request);
+[[nodiscard]] Core::Expected<void, std::string> StepSweepJoint(JointState& joint,
+                                                               const JointKernels::StepServices& services);
+
+// El 0x14f (PlasmaJoints.cpp): alta 0x530ddd y paso 0x535b37, una vuelta por punto hacia su personaje dueño (0x4e9810).
+// Su llamador (0x5026a4) sigue cortado: el subtipo sale de 0x4f2230 (el +0x31b de Fenrir, que ActorState no tiene).
+inline constexpr std::int32_t PlasmaJoint = 0x14f;
+void CreatePlasmaJoint(JointState& joint, const World::FishEffectRequest& request);
+[[nodiscard]] Core::Expected<void, std::string> StepPlasmaJoint(JointState& joint,
                                                                 const JointKernels::StepServices& services);
 } // namespace Client::Scenes::JointFamilies

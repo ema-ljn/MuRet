@@ -101,6 +101,8 @@ struct StepServices
     bool* returned = nullptr;
     // La tabla de efectos con modelo (0x7491fd8): el 0x613/0x13 suelta ahí el 0x11b/0 (0x539b08). Sin ella, corta.
     World::ModelEffects* effects = nullptr;
+    // El héroe ([0x743a170]): el 0x61c/0 compara su dueño con él (0x53b548). Sin él, el 0x61c/0 con dueño corta.
+    const ActorState* hero = nullptr;
 };
 
 // El dueño de un joint de las familias de este archivo, cuando es un personaje (ActorState): el objeto del original,

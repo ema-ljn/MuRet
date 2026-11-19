@@ -366,6 +366,19 @@ jobs:
         if: matrix.kind == 'build'
         run: cmake --build --preset ${{ matrix.build-preset }}
 
+      # Los 25 archivos que más tardaron en compilar o enlazar (de .ninja_log), para saber dónde se va
+      # el tiempo. Con la caché llena aparece solo lo que se recompiló. /usr/bin/sort: en Windows,
+      # sort a secas puede ser el de System32. awk y no head: head cortaría el pipe antes de que sort
+      # termine de escribir, y con pipefail el paso fallaría.
+      - name: Lo más lento del build
+        if: always() && matrix.kind == 'build'
+        shell: bash
+        run: |
+          log="build/${{ matrix.configure-preset }}/.ninja_log"
+          [ -f "$log" ] || exit 0
+          awk -F'\t' '!/^#/ { printf "%8.1f s  %s\n", ($2 - $1) / 1000, $4 }' "$log" \
+            | LC_ALL=C /usr/bin/sort -rn | awk 'NR <= 25'
+
       # Cuántos archivos salieron de la caché y cuántos se compilaron, también si el build falló.
       - name: Estadísticas de ccache
         if: always() && steps.ccache.outcome == 'success'

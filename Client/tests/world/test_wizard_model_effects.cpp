@@ -22,6 +22,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <array>
 #include <bit>
 #include <cmath>
 #include <cstddef>
@@ -955,47 +956,64 @@ TEST(WizardModelEffectsTest, TheOuterCircleShakesTheCameraAndGlows)
 // 0x523640..0x52384c: el círculo 0xcc/3 (con más de 30 de vida y rand() & 1 en 0) y el /4 (rand() % 5 en 0 y más de 5
 // de vida) sacan el alcance y el giro y dejan la columna 0x62b/0 de 1 con sus ángulos y su luz (0x523677, 0x52384c;
 // 0x542d01: dos rand() más, vida rand() % 10 + 30, luz 1 y la velocidad (0; 0; (rand() % 100) · 0,02f)); después el
-// joint 0x62b/0x13 600 más arriba. Se repite en un pool gemelo con el mismo CrtRandom.
+// joint 0x62b/0x13 600 más arriba. Con las partículas llenas, el alcance y el giro salen igual (son los argumentos) y
+// el joint también; sólo faltan los dos rand() de la alta. Lo esperado sale de column.py (0x523582..0x523898 y
+// 0x542d01 en una x87 aparte), con la semilla 2 para el /3 y la 4 para el /4.
 TEST(WizardModelEffectsTest, TheOuterCircleRaisesFlareColumns)
 {
-    for (const std::int32_t subtype : {3, 4})
+    struct Column
     {
-        SCOPED_TRACE(subtype);
-        bool found = false;
-        for (std::uint32_t seed = 1; seed < 64 && !found; ++seed)
+        std::int32_t subtype;
+        std::uint32_t seed;
+        std::uint32_t state;
+        std::uint32_t fullState;
+        std::array<std::uint32_t, 2> point; // x e y: (0, alcance, 0) girado por (0, 0, giro), más la posición
+        std::int32_t life;
+        std::uint32_t rise;
+    };
+    constexpr std::array<Column, 2> Columns{{
+        {3, 2, 0x4cc2cb10u, 0xc583c166u, {0x44651495u, 0x44e391a2u}, 34, 0x3f800000u},
+        {4, 4, 0x6b7040c2u, 0x81826208u, {0x447388b6u, 0x45005076u}, 35, 0x3da3d70au},
+    }};
+    for (const Column& expected : Columns)
+    {
+        SCOPED_TRACE(expected.subtype);
+        for (const bool full : {false, true})
         {
+            SCOPED_TRACE(full);
             Harness world;
-            CrtRandom random(seed);
-            ModelEffect& circle = world.At(Create(world, Arguments(0xcc, subtype), random));
+            if (full)
+                for (auto& particle : world.particles->All())
+                    particle.alive = true;
+            CrtRandom random(expected.seed);
+            ModelEffect& circle = world.At(Create(world, Arguments(0xcc, expected.subtype), random));
             circle.life = 100;
-            CrtRandom oracle = random;
-            static_cast<void>(oracle.Next());
-            const bool column = subtype == 3 ? (oracle.Next() & 1) == 0 : oracle.Next() % 5 == 0;
-            if (!column)
-                continue;
-            found = true;
-            static_cast<void>(oracle.Next());
-            static_cast<void>(oracle.Next());
-            auto twin = std::make_unique<Client::World::Particles>();
-            const auto replayed = twin->CreateChecked(0x62b, circle.transform.position, circle.transform.angles,
-                                                      circle.light, 0, 1.0f, 1000.0f, oracle);
-            ASSERT_TRUE(replayed.HasValue() && replayed.Value() == std::optional<std::size_t>{0});
             ASSERT_TRUE(Client::World::StepWizardModelEffect(circle, nullptr, random, world.Services()).HasValue());
-            EXPECT_EQ(random.State(), oracle.State());
-            EXPECT_EQ(world.ParticlesOf(0x62b, 0), 1U);
-            const Client::World::Particle& flare = world.particles->All()[0];
-            const Client::World::Particle& reference = twin->All()[0];
-            EXPECT_EQ(flare.angles, reference.angles);
-            EXPECT_EQ(flare.light, glm::vec3(1.0f));
-            EXPECT_EQ(flare.life, reference.life);
-            EXPECT_EQ(flare.velocity, reference.velocity);
-            EXPECT_EQ(flare.scale, 1.0f);
+            EXPECT_EQ(random.State(), full ? expected.fullState : expected.state);
+            const glm::vec3 point{std::bit_cast<float>(expected.point[0]), std::bit_cast<float>(expected.point[1]),
+                                  300.0f};
             ASSERT_EQ(world.joints.size(), 1U);
             EXPECT_EQ(world.joints[0].type, 0x62b);
             EXPECT_EQ(world.joints[0].subtype, 0x13);
-            EXPECT_EQ(world.joints[0].first.z, F32(static_cast<double>(flare.position.z) + 600.0));
+            EXPECT_EQ(world.joints[0].first, (glm::vec3{point.x, point.y, 900.0f}));
+            EXPECT_EQ(world.joints[0].second, world.joints[0].first);
+            EXPECT_EQ(world.joints[0].angles, (glm::vec3{0.0f, 0.0f, 45.0f}));
+            EXPECT_EQ(world.joints[0].scale, 40.0f);
+            if (full)
+            {
+                EXPECT_TRUE(
+                    std::ranges::all_of(world.particles->All(), [](const auto& made) { return made.type == 0; }));
+                continue;
+            }
+            EXPECT_EQ(world.ParticlesOf(0x62b, 0), 1U);
+            const Client::World::Particle& flare = world.particles->All()[0];
+            EXPECT_EQ(flare.position, point);
+            EXPECT_EQ(flare.angles, (glm::vec3{0.0f, 0.0f, 90.0f}));
+            EXPECT_EQ(flare.light, glm::vec3(1.0f));
+            EXPECT_EQ(flare.life, expected.life);
+            EXPECT_EQ(flare.velocity, (glm::vec3{0.0f, 0.0f, std::bit_cast<float>(expected.rise)}));
+            EXPECT_EQ(flare.scale, 1.0f);
         }
-        EXPECT_TRUE(found);
     }
 }
 

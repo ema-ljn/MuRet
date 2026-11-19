@@ -469,10 +469,26 @@ TEST(ArrowEffectsTest, TheMountedBowsShootLikeOnFoot)
 
 // 0x5269ed..0x526a9a: el arma 4/6 tira la 0xe1, que en cada paso, después del rand() de la luz y de sus dos sprites,
 // saca cuatro veces el punto al azar ((& 31) − 16; (& 63) − 32; (& 31) − 16) y la flor 0x608 + rand() % 3 de 1 con
-// sus ángulos y su luz (0x526a8b; la flor nace con cinco rand() más, 0x542c4b). Cada una se repite en un pool gemelo
-// con el mismo CrtRandom. Con la tabla de partículas llena, los mismos rand() del punto y del tipo.
+// sus ángulos y su luz (0x526a8b; la flor nace con cinco rand() más, 0x542c4b: vida rand() % 10 + 15, escala
+// ((rand() & 7) + 4) · 0,03f, luz 1 y la velocidad ((& 31) − 16; (& 31) − 16; (& 31) − 32) · 0,1f). Con la tabla de
+// partículas llena, los mismos rand() del punto y del tipo. El paso empieza con el CrtRandom en 0x1234; lo esperado
+// sale de arrowflowers.py (0x5269ed..0x526a9a y 0x542c4b en una x87 aparte), no de CreateChecked.
 TEST(ArrowEffectsTest, TheNatureArrowScattersFourFlowers)
 {
+    struct Flower
+    {
+        std::int32_t type;
+        glm::vec3 point;
+        std::int32_t life;
+        std::uint32_t scale;
+        std::array<std::uint32_t, 3> velocity;
+    };
+    constexpr std::array<Flower, 4> Flowers{{
+        {0x608, {1013, 1021, 291}, 19, 0x3e570a3du, {0x0u, 0x3fa66667u, 0xc019999au}},
+        {0x60a, {986, 982, 299}, 21, 0x3df5c28fu, {0x3f666667u, 0x3ecccccdu, 0xc02ccccdu}},
+        {0x609, {1011, 982, 289}, 20, 0x3e8a3d70u, {0xbf19999au, 0x3f800000u, 0xbfc00000u}},
+        {0x609, {987, 1026, 284}, 22, 0x3e3851ebu, {0xbf800000u, 0xbf19999au, 0xc0266667u}},
+    }};
     for (const bool full : {false, true})
     {
         SCOPED_TRACE(full);
@@ -487,48 +503,42 @@ TEST(ArrowEffectsTest, TheNatureArrowScattersFourFlowers)
         ASSERT_EQ(arrow.type, 0xe1);
         arrow.transform.position = {1000.0f, 1000.0f, 300.0f};
         arrow.transform.angles = {0.0f, 15.0f, 0.0f};
-        const glm::vec3 light = arrow.light;
         if (full)
             tested.FillTheParticles();
-        const CrtRandom before = tested.random;
+        tested.random = CrtRandom(0x1234u);
 
         const auto stepped = StepArrow(arrow, nullptr, tested.StepContext());
 
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(std::ranges::count_if(tested.sprites.Sprites(), [](const auto& sprite) { return sprite.alive; }), 2);
-        CrtRandom expected = before;
-        static_cast<void>(expected.Next());
-        auto twin = std::make_unique<Client::World::Particles>();
-        for (std::size_t index = 0; index < 4; ++index)
+        EXPECT_EQ(arrow.transform.angles.y, 45.0f);
+        if (full)
+        {
+            // La luz y los cuatro del punto y del tipo de cada flor: 17.
+            EXPECT_EQ(tested.random.State(), 0x0e390577u);
+            EXPECT_TRUE(std::ranges::none_of(tested.particles.All(), [](const Client::World::Particle& particle)
+                                             { return particle.type >= 0x608 && particle.type <= 0x60a; }));
+            continue;
+        }
+        EXPECT_EQ(tested.random.State(), 0x8946c5bbu);
+        for (std::size_t index = 0; index < Flowers.size(); ++index)
         {
             SCOPED_TRACE(index);
-            glm::vec3 point{static_cast<float>((expected.Next() & 31) - 16),
-                            static_cast<float>((expected.Next() & 63) - 32),
-                            static_cast<float>((expected.Next() & 31) - 16)};
-            point += glm::vec3{1000.0f, 1000.0f, 300.0f};
-            const std::int32_t type = 0x608 + expected.Next() % 3;
-            if (full)
-                continue;
-            const auto replayed = twin->CreateChecked(type, point, {0.0f, 15.0f, 0.0f}, light, 0, 1.0f, 0.0f, expected);
-            ASSERT_TRUE(replayed.HasValue() && replayed.Value() == std::optional<std::size_t>{index});
+            const Flower& expected = Flowers[index];
             const Client::World::Particle& flower = tested.particles.All()[index];
-            const Client::World::Particle& reference = twin->All()[index];
             ASSERT_TRUE(flower.alive);
-            EXPECT_EQ(flower.type, type);
+            EXPECT_EQ(flower.type, expected.type);
             EXPECT_EQ(flower.subtype, 0);
-            EXPECT_EQ(flower.position, point);
-            EXPECT_EQ(flower.angles, reference.angles);
+            EXPECT_EQ(flower.position, expected.point);
+            EXPECT_EQ(flower.angles, (glm::vec3{0.0f, 15.0f, 0.0f}));
             EXPECT_EQ(flower.light, glm::vec3(1.0f));
-            EXPECT_EQ(flower.scale, reference.scale);
-            EXPECT_EQ(flower.life, reference.life);
-            EXPECT_EQ(flower.velocity, reference.velocity);
+            EXPECT_EQ(std::bit_cast<std::uint32_t>(flower.scale), expected.scale);
+            EXPECT_EQ(flower.life, expected.life);
+            EXPECT_EQ(std::bit_cast<std::uint32_t>(flower.velocity.x), expected.velocity[0]);
+            EXPECT_EQ(std::bit_cast<std::uint32_t>(flower.velocity.y), expected.velocity[1]);
+            EXPECT_EQ(std::bit_cast<std::uint32_t>(flower.velocity.z), expected.velocity[2]);
         }
-        if (!full)
-        {
-            EXPECT_FALSE(tested.particles.All()[4].alive);
-        }
-        EXPECT_EQ(arrow.transform.angles.y, 45.0f);
-        EXPECT_EQ(DrawsSince(before.State(), tested.random), DrawsSince(before.State(), expected));
+        EXPECT_FALSE(tested.particles.All()[4].alive);
     }
 }
 

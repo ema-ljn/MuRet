@@ -14643,7 +14643,7 @@ en un lugar de más adelante pasa en la misma vuelta de `0x53c670`.
   en `rand() % 20 + 35`, la luz blanca, vida `rand() % 50 + 25` y el destino en el segundo punto) y paso `0x53b156`
   (con vida de 25 o menos cae sobre el destino con vz + 5; con menos de 10, la luz por 0,7692308f). La /0x13 (sexta
   vuelta, alta `0x533a28`, paso `0x53a12c`) niega vz (`fchs`), no cambia la textura y baja con vz − 5: la piden las
-  columnas del círculo `0xc3` con el `0x62b` (`0x5236ce`, `0x523898`, sin dueño, ancho 40). El `0x62b` comparte el alta
+  columnas del círculo `0xcc` con el `0x62b` (`0x5236ce`, `0x523898`, sin dueño, ancho 40). El `0x62b` comparte el alta
   (`0x533677`) y el paso (`0x539f1b`) del `0x60f`.
 - **`0x10f` con un personaje de dueño** (`AuraJoints.cpp`, segunda vuelta): alta `0x530edd..0x531214` (tabla
   `0x534e38`; el destino es el `+0x10` del dueño). /0: luz entera, vida 999.999, 30 puntos, textura `0x62b`. /4 y /9:

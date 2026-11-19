@@ -1799,10 +1799,11 @@ TEST(HighEffectFamiliesTest, TheFallingKundunPieceDrifts)
 
 // 0x52a26e..0x52a487: a 350 o menos, con la z de la velocidad distinta de −3, el golpe: sin Kalima, cien partículas
 // 0x6f4/2 (0x52a37d: giro, radio y giro de la partícula, tres rand() cada una, y los dos de su alta, 0x543d68) con
-// luz 0,3f, escala 1 y sin dueño, la 0x607/4 (x e y), la velocidad en (0, 0, −3) y el balanceo (rand() % 3 + 1 menos
-// con la x copiada en 0), repetidos en un pool gemelo con el mismo CrtRandom; con las partículas llenas, los
-// trescientos rand() del lazo y los dos de la 0x607/4. Ya en −3, sin golpe; con la x copiada en 1 y la x de los ángulos
-// en 30, la copiada vuelve a 0 sin rand(); con menos de 100 de vida, el alpha 0,1f menos (0x3f666666).
+// luz 0,3f, escala 1 y sin dueño, la 0x607/4 (x e y, y los dos de su alta, 0x542d75), la velocidad en (0, 0, −3) y el
+// balanceo (rand() % 3 + 1 menos con la x copiada en 0); con las partículas llenas, los trescientos rand() del lazo y
+// los dos de la 0x607/4. Ya en −3, sin golpe; con la x copiada en 1 y la x de los ángulos en 30, la copiada vuelve a 0
+// sin rand(); con menos de 100 de vida, el alpha 0,1f menos (0x3f666666). Lo esperado sale de kundun.py (0x52a26e..
+// 0x52a48a, 0x543d68 y 0x542d75 en una x87 aparte, con el FSIN y el FCOS del giro en grados tomados como radianes).
 TEST(HighEffectFamiliesTest, TheKundunPieceStrikesTheGroundOnce)
 {
     {
@@ -1810,73 +1811,77 @@ TEST(HighEffectFamiliesTest, TheKundunPieceStrikesTheGroundOnce)
         ModelEffect& piece = KundunPiece(tested, 3, 300);
         piece.byte89 = 4;
         piece.transform.angles = {0.0f, 0.0f, 12.5f};
-        const ModelEffect before = piece;
+        piece.copiedAngles.x = 0.0f;
+        ASSERT_EQ(piece.transform.position, (glm::vec3{1000.0f, 2000.0f, 300.0f}));
         const auto struck = Client::Scenes::StepHighModelEffect(piece, nullptr, tested.StepContext());
         ASSERT_TRUE(struck.HasValue()) << struck.Error();
-        CrtRandom replay(Seed);
-        static_cast<void>(replay.Next()); // 0x5208c5, la luz local.
-        auto twin = std::make_unique<Client::World::Particles>();
-        const glm::vec3 dim{std::bit_cast<float>(0x3e99999au)};
-        for (int debris = 0; debris < 100; ++debris)
+        // La luz local, cien de cinco, los cuatro de la 0x607/4 y el balanceo: 506.
+        EXPECT_EQ(tested.random.State(), 0xafd45dbbu);
+        EXPECT_EQ(tested.Draws(), 506);
+        EXPECT_EQ(piece.transform.angles.x, -2.0f);
+        EXPECT_EQ(piece.velocity, (glm::vec3{0.0f, 0.0f, -3.0f}));
+        struct Debris
         {
-            glm::vec3 point = before.transform.position;
-            const auto turn = static_cast<double>(replay.Next() % 360);
-            const auto reach = static_cast<float>(replay.Next() % 30 + 30);
-            const auto sine = Client::Render::Models::Detail::SineProductPC53(turn, reach);
-            const auto cosine = Client::Render::Models::Detail::CosineProductPC53(turn, reach);
-            ASSERT_TRUE(sine && cosine);
-            point.x = static_cast<float>(*sine + static_cast<double>(point.x));
-            point.y = static_cast<float>(*cosine + static_cast<double>(point.y));
-            point.z = static_cast<float>(static_cast<double>(point.z) - 30.0);
-            glm::vec3 angles = before.transform.angles;
-            angles.z = static_cast<float>(static_cast<double>(replay.Next() % 180) + static_cast<double>(angles.z));
-            ASSERT_TRUE(twin->CreateChecked(0x6f4, point, angles, dim, 2, 1.0f, tested.clock, replay, 0).HasValue());
-        }
-        glm::vec3 ground = before.transform.position;
-        ground.x = static_cast<float>(static_cast<double>(replay.Next() % 40 - 20) + static_cast<double>(ground.x));
-        ground.y = static_cast<float>(static_cast<double>(replay.Next() % 40 - 20) + static_cast<double>(ground.y));
-        ground.z = static_cast<float>(static_cast<double>(ground.z) - 50.0);
-        ASSERT_TRUE(
-            twin->CreateChecked(0x607, ground, before.transform.angles, before.light, 4, 1.0f, tested.clock, replay, 0)
-                .HasValue());
-        const auto swing = static_cast<float>(replay.Next() % 3 + 1);
-        EXPECT_EQ(tested.random.State(), replay.State());
-        EXPECT_EQ(piece.transform.angles.x, -swing);
-        for (std::size_t slot = 0; slot < 102; ++slot)
+            std::size_t slot;
+            std::array<std::uint32_t, 2> point; // x e y: sen y cos del giro por el radio, más la posición
+            float tilt;                         // 12,5 + rand() % 180
+            float rotation;                     // rand() % 360
+            float rise;                         // rand() % 5 + 10
+        };
+        constexpr std::array<Debris, 4> Expected{{
+            {0, {0x447447e4u, 0x44f733fdu}, 101.5f, 351.0f, 12.0f},
+            {1, {0x447e787fu, 0x44fe0c87u}, 121.5f, 106.0f, 13.0f},
+            {2, {0x4481e7f0u, 0x44f620bbu}, 106.5f, 22.0f, 12.0f},
+            {99, {0x4480dc7fu, 0x44fa534au}, 147.5f, 51.0f, 12.0f},
+        }};
+        const auto particles = tested.world->Particles().All();
+        for (std::size_t slot = 0; slot < 100; ++slot)
         {
             SCOPED_TRACE(slot);
-            const auto& made = tested.world->Particles().All()[slot];
-            const auto& reference = twin->All()[slot];
-            ASSERT_EQ(made.alive, reference.alive);
-            if (!made.alive)
-                continue;
-            EXPECT_EQ(made.type, reference.type);
-            EXPECT_EQ(made.subtype, reference.subtype);
-            EXPECT_EQ(made.position, reference.position);
-            EXPECT_EQ(made.angles, reference.angles);
-            EXPECT_EQ(made.light, reference.light);
-            EXPECT_EQ(made.scale, reference.scale);
-            EXPECT_EQ(made.life, reference.life);
-            EXPECT_EQ(made.rotation, reference.rotation);
-            EXPECT_EQ(made.velocity, reference.velocity);
+            const auto& made = particles[slot];
+            ASSERT_TRUE(made.alive);
+            EXPECT_EQ(made.type, 0x6f4);
+            EXPECT_EQ(made.subtype, 2);
+            EXPECT_EQ(made.life, 20);
+            EXPECT_EQ(made.scale, 0.5f);
+            EXPECT_EQ(made.position.z, 320.0f); // 300 − 30 + 50
+            EXPECT_EQ(made.light, glm::vec3(std::bit_cast<float>(0x3e99999au)));
         }
-        const auto& first = tested.world->Particles().All()[0];
-        EXPECT_EQ(first.type, 0x6f4);
-        EXPECT_EQ(first.life, 20);
-        EXPECT_EQ(first.scale, 0.5f);
+        for (const Debris& debris : Expected)
+        {
+            SCOPED_TRACE(debris.slot);
+            const auto& made = particles[debris.slot];
+            EXPECT_EQ(std::bit_cast<std::uint32_t>(made.position.x), debris.point[0]);
+            EXPECT_EQ(std::bit_cast<std::uint32_t>(made.position.y), debris.point[1]);
+            EXPECT_EQ(made.angles, (glm::vec3{0.0f, 0.0f, debris.tilt}));
+            EXPECT_EQ(made.rotation, debris.rotation);
+            EXPECT_EQ(made.velocity, (glm::vec3{0.0f, 0.0f, debris.rise}));
+        }
+        // 0x52a38c..0x52a400: la 0x607/4 en (x + rand() % 40 − 20; y + rand() % 40 − 20; z − 50), con los ángulos del
+        // pedazo; su alta pisa la luz con 1 y le da vida 33 y escala (1 + 4) · 0,03f (0x3e199999).
+        const auto& dust = particles[100];
+        ASSERT_TRUE(dust.alive);
+        EXPECT_EQ(dust.type, 0x607);
+        EXPECT_EQ(dust.subtype, 4);
+        EXPECT_EQ(dust.position, (glm::vec3{1001.0f, 1988.0f, 250.0f}));
+        EXPECT_EQ(dust.angles, (glm::vec3{0.0f, 0.0f, 12.5f}));
+        EXPECT_EQ(dust.life, 33);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(dust.scale), 0x3e199999u);
+        EXPECT_EQ(dust.light, glm::vec3(1.0f));
+        EXPECT_FALSE(particles[101].alive);
     }
     FamilyWorld tested;
     tested.FillTheParticles();
     ModelEffect& piece = KundunPiece(tested, 3, 300);
     piece.byte89 = 4;
+    piece.transform.angles = {0.0f, 0.0f, 12.5f};
+    piece.copiedAngles.x = 0.0f;
     ASSERT_TRUE(Client::Scenes::StepHighModelEffect(piece, nullptr, tested.StepContext()).HasValue());
-    CrtRandom replay(Seed);
-    for (int draw = 0; draw < 1 + 300 + 2; ++draw)
-        static_cast<void>(replay.Next());
-    const auto swing = static_cast<float>(replay.Next() % 3 + 1);
-    EXPECT_EQ(tested.random.State(), replay.State());
+    // 1 + 300 + 2 y el balanceo (kundun.py).
+    EXPECT_EQ(tested.random.State(), 0x6076eb51u);
+    EXPECT_EQ(tested.Draws(), 1 + 300 + 2 + 1);
     EXPECT_EQ(piece.velocity, (glm::vec3{0.0f, 0.0f, -3.0f}));
-    EXPECT_EQ(piece.transform.angles.x, -swing);
+    EXPECT_EQ(piece.transform.angles.x, -2.0f);
     EXPECT_EQ(piece.alpha, 1.0f);
 
     piece.life = 50;
@@ -1890,8 +1895,8 @@ TEST(HighEffectFamiliesTest, TheKundunPieceStrikesTheGroundOnce)
     EXPECT_EQ(std::bit_cast<std::uint32_t>(piece.alpha), 0x3f666666u);
 
     // 0x52a37d..0x52a400 ya en el suelo (la z de la velocidad en −3), con lugar en el pool: después de la luz local,
-    // rand() % 40 − 20 en x, después en y, la z 50 menos y la 0x607/4 con sus ángulos y su luz (repetida en un pool
-    // gemelo con el mismo CrtRandom); después el balanceo.
+    // rand() % 40 − 20 en x, después en y, la z 50 menos y la 0x607/4 con sus ángulos (vida 39, escala 0x3e570a3d y
+    // luz 1, de su alta); después el balanceo, 3 (kundun.py).
     FamilyWorld landed;
     ModelEffect& rock = KundunPiece(landed, 3, 300);
     rock.byte89 = 4;
@@ -1900,25 +1905,21 @@ TEST(HighEffectFamiliesTest, TheKundunPieceStrikesTheGroundOnce)
     rock.transform.angles = {5.0f, 6.0f, 7.0f};
     rock.light = {0.5f, 0.25f, 1.0f};
     rock.copiedAngles.x = 0.0f;
-    const CrtRandom start = landed.random;
+    ASSERT_EQ(landed.Draws(), 0);
     ASSERT_TRUE(Client::Scenes::StepHighModelEffect(rock, nullptr, landed.StepContext()).HasValue());
-    CrtRandom twin = start;
-    static_cast<void>(twin.Next());
-    const auto dx = static_cast<double>(twin.Next() % 40 - 20);
-    const auto dy = static_cast<double>(twin.Next() % 40 - 20);
-    const glm::vec3 dust{static_cast<float>(dx + 1000.25), static_cast<float>(dy + 2000.5), 250.0f};
-    const glm::vec3 angles{5.0f, 6.0f, 7.0f};
-    const Client::World::Particle expected = TwinParticle(twin, 0x607, 4, dust, angles, rock.light, 1.0f);
-    const auto rocking = static_cast<double>(twin.Next() % 3 + 1);
-    EXPECT_EQ(landed.random.State(), twin.State());
+    EXPECT_EQ(landed.random.State(), 0x5b015a17u);
     const Client::World::Particle& made = landed.world->Particles().All()[0];
     ASSERT_TRUE(made.alive);
     EXPECT_EQ(made.type, 0x607);
     EXPECT_EQ(made.subtype, 4);
-    ExpectSameParticle(made, expected);
+    EXPECT_EQ(made.position, (glm::vec3{985.25f, 1982.5f, 250.0f}));
+    EXPECT_EQ(made.angles, (glm::vec3{5.0f, 6.0f, 7.0f}));
+    EXPECT_EQ(made.life, 39);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(made.scale), 0x3e570a3du);
+    EXPECT_EQ(made.light, glm::vec3(1.0f));
     EXPECT_FALSE(landed.world->Particles().All()[1].alive);
     EXPECT_EQ(rock.velocity, (glm::vec3{0.0f, 0.0f, -3.0f}));
-    EXPECT_EQ(rock.transform.angles.x, static_cast<float>(5.0 - rocking));
+    EXPECT_EQ(rock.transform.angles.x, 2.0f);
 }
 
 // 0x5277ae..0x5277d6: el 0x127 con su 0x128/2 de dueño: con la clave del 0x128 en 0, el frame en 0; si no, se queda

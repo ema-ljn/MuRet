@@ -576,7 +576,7 @@ TEST(CrywolfDecalTest, TheBannerDecalReleasesFourOrbsBeforeItFades)
 
     // 0x52b8ff y 0x52b977: el /0, el /2 y el /7 sueltan la órbita 60f/0 con su posición, sus ángulos, su luz, la escala
     // 0,19 y el efecto de dueño (su lugar en la tabla), después del rand() de la luz del paso; llena, nada. Sin la
-    // tabla de efectos (de donde sale el lugar del dueño) cortan con su dirección.
+    // tabla de efectos (de donde sale el lugar del dueño) cortan con su dirección si la órbita tiene lugar.
     for (const std::int32_t subtype : {0, 2, 7})
     {
         SCOPED_TRACE(subtype);
@@ -589,36 +589,28 @@ TEST(CrywolfDecalTest, TheBannerDecalReleasesFourOrbsBeforeItFades)
         const Client::World::ModelEffect before = owner;
         const Client::World::ModelEffectStepServices services{.effects = table.get()};
         auto spawned = std::make_unique<Particles>();
-        auto twin = std::make_unique<Particles>();
         CrtRandom orbRandom(29);
-        CrtRandom twinRandom(29);
         ASSERT_TRUE(Client::World::StepGameModelEffect(owner, nullptr, *spawned, 2500.0f, orbRandom, nullptr, services)
                         .HasValue());
-        static_cast<void>(twinRandom.Next());
-        const float clock = 2500.0f;
-        Client::World::PortableParticleTrigonometry trigonometry;
         constexpr Client::World::ParticleOwner DecalOwner{Client::World::ParticleOwnerKind::ModelEffect, 1};
-        const auto replayed = twin->CreateChecked(
-            Client::World::OrbitParticle, before.transform.position, before.transform.angles, before.light, 0,
-            std::bit_cast<float>(0x3e428f5cu), std::cref(clock), twinRandom, 0, trigonometry, DecalOwner);
-        ASSERT_TRUE(replayed.HasValue());
-        ASSERT_EQ(replayed.Value(), std::optional<std::size_t>(0));
-        EXPECT_EQ(orbRandom.State(), twinRandom.State());
+        // El rand() de la luz y los cuatro de 0x542f83, 0x542fab, 0x542fc6 y 0x542fe5; los valores, de orbit.py
+        // (0x542ed0..0x54304a en una x87 aparte) y no de CreateChecked.
+        EXPECT_EQ(orbRandom.State(), 0x3309f4f0u);
         EXPECT_EQ(orbRandom.State(), Client::Tests::AfterDraws(29, 5).State());
         const Particle& orb = spawned->All()[0];
-        const Particle& expected = twin->All()[0];
         ASSERT_TRUE(orb.alive);
         EXPECT_EQ(orb.type, Client::World::OrbitParticle);
         EXPECT_EQ(orb.subtype, 0);
         EXPECT_EQ(orb.typedOwner, DecalOwner);
         EXPECT_EQ(orb.light, light);
-        EXPECT_EQ(orb.position, expected.position);
-        EXPECT_EQ(orb.scale, expected.scale);
-        EXPECT_EQ(orb.rotation, expected.rotation);
-        EXPECT_EQ(orb.verticalSpeed, expected.verticalSpeed);
-        EXPECT_EQ(orb.velocity, expected.velocity);
-        EXPECT_EQ(orb.start, expected.start);
-        EXPECT_EQ(orb.life, expected.life);
+        EXPECT_EQ(orb.position, position);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(orb.scale), 0x3e4ccccdu);         // 0,19f + (rand() % 6) · 0,01f
+        EXPECT_EQ(orb.rotation, 105.0f);                                         // rand() % 360
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(orb.verticalSpeed), 0x3fb851ebu); // (rand() % 100) · 0,01f · 4 + 1
+        EXPECT_EQ(orb.velocity, (glm::vec3{-139.0f, 0.0f, 0.0f}));               // rand() % 300 − 150
+        EXPECT_EQ(orb.angles, glm::vec3(0.0f));
+        EXPECT_EQ(orb.start, position);
+        EXPECT_EQ(orb.life, 60);
         EXPECT_FALSE(spawned->All()[1].alive);
 
         auto full = std::make_unique<Particles>();
@@ -639,6 +631,13 @@ TEST(CrywolfDecalTest, TheBannerDecalReleasesFourOrbsBeforeItFades)
 
         if (subtype == 0)
             continue;
+        // Con la tabla de partículas llena la órbita no nace y el dueño no hace falta: sin la tabla de efectos el /2 y
+        // el /7 siguen como el original, con sólo el rand() de la luz.
+        Client::World::ModelEffect unowned = before;
+        CrtRandom unownedRandom(29);
+        ASSERT_TRUE(Client::World::StepGameModelEffect(unowned, nullptr, *full, 2500.0f, unownedRandom).HasValue());
+        EXPECT_EQ(unownedRandom.State(), 0x0085526cu); // 29 · 214013 + 2531011
+        EXPECT_EQ(unownedRandom.State(), Client::Tests::AfterDraws(29, 1).State());
         CrtRandom loneRandom(29);
         const auto lone = Client::World::StepGameModelEffect(again, nullptr, *spawned, 2500.0f, loneRandom);
         ASSERT_FALSE(lone.HasValue());

@@ -26,6 +26,7 @@
 #include <cstdint>
 #include <functional>
 #include <initializer_list>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <string_view>
@@ -746,7 +747,47 @@ TEST(Cl11Particles, TheNatureArrowFlowerLandsOnTheGround)
     EXPECT_EQ(full.State(), CrtRandom(Seed).State());
 }
 
-// 0x542d01..0x542d5f y 0x546f0d..0x546f51: la columna 62b/0 del círculo 0xc3 (0x523677 y 0x52384c). Nace con dos
+// 0x546e29..0x546e9d: la /2 (y cualquier otro subtipo fuera de la /0 y la /1) no deriva: sin rand() propios, la
+// posición más la velocidad otra vez después del movimiento común, y el giro. Con la semilla 0x1234, la 0x609 nace como
+// las de arriba y en un paso queda en (0x447a4000; 0x44f9c666; 0x4394cccc) con el giro en 0 (rand() % 16 de 22672):
+// el viento, el giro y los cinco de la alta, ocho rand() (flower2.py, aparte).
+TEST(Cl11Particles, TheNatureArrowFlowerOfSubtypeTwoDoesNotDrift)
+{
+    auto particles = std::make_unique<Particles>();
+    CrtRandom random(Seed);
+    ASSERT_TRUE(particles->CreateChecked(0x609, {1000.0f, 2000.0f, 300.0f}, {}, glm::vec3(0.5f), 2, 2.0f, 0.0f, random)
+                    .HasValue());
+    Particle& flower = Only(*particles, 0);
+    EXPECT_EQ(flower.subtype, 2);
+    EXPECT_EQ(flower.velocity, Vec(0x3f000000u, 0xbf666667u, 0xbf99999au));
+    ASSERT_TRUE(StepOverGround(*particles, random, 0.0).HasValue());
+    EXPECT_EQ(flower.life, 20);
+    EXPECT_EQ(flower.velocity, Vec(0x3f000000u, 0xbf666667u, 0xbf99999au));
+    EXPECT_EQ(flower.position, Vec(0x447a4000u, 0x44f9c666u, 0x4394ccccu));
+    EXPECT_EQ(flower.rotation, 0.0f);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(flower.field48), 0u);
+    EXPECT_EQ(random.State(), 0x5890c57cu);
+    EXPECT_EQ(random.State(), AfterDraws(Seed, 8).State());
+}
+
+// 0x546ec5..0x546ed0: `fcom` de la altura contra la z y `test ah, 0x41`: con la altura en NaN, C0 y C3 en 1 y la flor
+// no se posa; el giro sale igual. La /0 queda como en TheNatureArrowFlowersDriftAndSway.
+TEST(Cl11Particles, TheNatureArrowFlowerDoesNotLandOnANaNGround)
+{
+    auto particles = std::make_unique<Particles>();
+    CrtRandom random(Seed);
+    ASSERT_TRUE(particles->CreateChecked(0x608, {1000.0f, 2000.0f, 300.0f}, {}, glm::vec3(0.5f), 0, 2.0f, 0.0f, random)
+                    .HasValue());
+    Particle& flower = Only(*particles, 0);
+    ASSERT_TRUE(StepOverGround(*particles, random, std::numeric_limits<double>::quiet_NaN()).HasValue());
+    EXPECT_EQ(flower.position, Vec(0x447a4000u, 0x44f9f000u, 0x43946666u));
+    EXPECT_EQ(flower.velocity, Vec(0x3f000000u, 0x3eccccccu, 0xc0000000u));
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(flower.field48), 0u);
+    EXPECT_EQ(flower.rotation, 2.0f);
+    EXPECT_EQ(random.State(), AfterDraws(Seed, 11).State());
+}
+
+// 0x542d01..0x542d5f y 0x546f0d..0x546f51: la columna 62b/0 del círculo 0xcc (0x523677 y 0x52384c). Nace con dos
 // rand(): vida 36, luz 1 y la velocidad (0; 0; 89 · 0,02f). Su paso la sube con la velocidad (movimiento común), deja
 // la escala en 0,2f y acelera 0,4f hasta 8; con menos de 5 de vida, la luz por 0,8333333f. Los demás subtipos sólo
 // tienen el prefijo (0x54304c) y ningún paso propio, sin rand(). Bits de x87.py.
@@ -777,6 +818,11 @@ TEST(Cl11Particles, TheFlareColumnRisesFasterUpToEight)
     ASSERT_TRUE(drawn.HasValue());
     ASSERT_TRUE(drawn.Value().has_value());
     EXPECT_EQ(drawn.Value()->texture, 0x62b);
+    // 0x546f2b..0x546f3c: `fcomp` de 8 contra la velocidad y `test ah, 1`: un NaN deja C0 en 1 y la velocidad en 8.
+    column.velocity.z = std::numeric_limits<float>::quiet_NaN();
+    column.life = 6;
+    ASSERT_TRUE(Step(*particles, random, 0.0f).HasValue());
+    EXPECT_EQ(column.velocity.z, 8.0f);
 
     auto others = std::make_unique<Particles>();
     CrtRandom quiet(Seed);

@@ -91,8 +91,9 @@ struct ModelEffectStepServices
 // dinámica de radio 2. El 0xb3 de Aida (0x520b77) vaga con sus
 // dos giros sorteados y el seno del reloj, y suelta una 5ac/9 por paso. El 0x135 del 30 (0x52973e) no
 // muere y, con dueño, sube y baja con el seno del reloj. El calco 0x61d/3 del 0x38 de Crywolf (0x52b933), con la
-// vida entre 6 y 9, suelta una órbita 60f/10; el /0 deja el /1 en cada paso y, con el /2 y el /7, corta en su órbita
-// 60f/0 con lugar (0x52b8ff, 0x52b977). La onda 0x6eb/1 del galope del caballo en Icarus (0x52c5ca) crece y tiembla con
+// vida entre 6 y 9, suelta una órbita 60f/10; el /0 deja el /1 en cada paso y, con el /2 y el /7, suelta la 60f/0
+// (0x52b8ff, 0x52b977): sin la tabla de efectos corta sólo si la órbita tiene lugar.
+// La onda 0x6eb/1 del galope del caballo en Icarus (0x52c5ca) crece y tiembla con
 // tres rand() (la /2, igual de a 0,025f); la /0 del pisotón se achica 1 por paso, sin rand(); la /3 y la /4 crecen 2 y
 // 0,3f; los subtipos5..8 del asedio conservan sus escalas y RGB: el6 emite hijos5 cada8vidas, que el pool ascendente
 // puede avanzar en el mismo paso; otro subtipo no toca la escala. El rayo 0x14d de los Fenrir (0x5295a4) se prende de a

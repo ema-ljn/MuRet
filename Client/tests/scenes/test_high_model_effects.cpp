@@ -38,7 +38,7 @@
 #include <span>
 #include <string>
 #include <string_view>
-#include <tuple>
+#include <utility>
 #include <vector>
 
 // Client::Scenes::CreateHighModelEffect y StepHighModelEffect: las altas de 0x518cf0 y los pasos de 0x5208a0 de los
@@ -1925,61 +1925,156 @@ TEST(HighModelEffectsTest, TheThunderShiftsOverItsOwnerAndDropsBoltsAtTheEnd)
 // par (20, se resta después), dos rand() de los ángulos, el joint 0x614/3 (escala 10, clave 10) del punto a la posición
 // y el sprite 0x5fd de escala ((rand() & 7) + 8) · 0,2f, sin la chispa 0x5c6/2; con la vida impar, la chispa antes que
 // el sprite. Sin el servicio de joints corta en 0x52bcc4. El /0 nace en World (vida 10) y su paso es de World.
+// Un joint 0x614/3 de 0x530860 tal como lo pidió el brillo 0x621 (copia: la petición sólo presta sus vectores).
+struct GlowJoint
+{
+    std::int32_t type = 0;
+    std::int32_t subtype = 0;
+    float scale = 0.0f;
+    std::int32_t key = 0;
+    std::int32_t skill = 0;
+    std::int32_t target = 0;
+    glm::vec3 first{};
+    glm::vec3 second{};
+    glm::vec3 angles{};
+};
+
+// El 0x621 de `subtype` con su dueño en el slot 3 (el hueso 33 en (1, 2, 3) sin giro), los sprites y los joints a
+// mano. Con el origen del modelo en (100, 200, 300), el punto (0, 0, 10) del hueso queda en (101, 202, 313).
+struct GlowWorld
+{
+    explicit GlowWorld(std::int32_t subtype)
+    {
+        tested.services.sprites = sprites.get();
+        tested.services.effects = &tested.world->Map().effects;
+        tested.services.joint =
+            [this](const Client::World::FishEffectRequest& request) -> Client::Core::Expected<void, std::string>
+        {
+            joints.push_back({request.type, request.subtype, request.scale, request.key, request.skill, request.target,
+                              request.firstPosition, request.secondPosition, request.angles});
+            return {};
+        };
+        owner.type = 0x4a2;
+        owner.bodyPose.assign(34, Client::Render::Models::BoneTransform(1.0f));
+        owner.bodyPose[33][3] = {1.0f, 2.0f, 3.0f};
+        tested.world->PlaceModel(0x4a2, {.scale = 1.0f, .origin = {7, 8, 9}});
+        created =
+            CreateHighModelEffect({.type = 0x621, .position = {100, 200, 300}, .subtype = subtype, .owner = &owner},
+                                  tested.Context())
+                .HasValue();
+    }
+
+    ModelEffect& Glow()
+    {
+        return tested.Effect(0);
+    }
+
+    HighWorld tested;
+    std::unique_ptr<Client::World::FrameSprites> sprites = std::make_unique<Client::World::FrameSprites>();
+    std::vector<GlowJoint> joints;
+    ActorState& owner = tested.world->Actors()[3];
+    bool created = false;
+};
+
+// Los ángulos (rand() % 360, 0, rand() % 360) y el punto (0, 120, 0) girado más la posición (0x52bbfe..0x52bc84) de
+// las tres emisiones, por glow621.py (x87 aparte, semilla 0x13579bdf) y no por OriginalAngleMatrix.
+std::array<std::uint32_t, 3> BitsOf(const glm::vec3& point)
+{
+    return {std::bit_cast<std::uint32_t>(point.x), std::bit_cast<std::uint32_t>(point.y),
+            std::bit_cast<std::uint32_t>(point.z)};
+}
+
+struct GlowEmission
+{
+    glm::vec3 angles;
+    std::array<std::uint32_t, 3> point;
+};
+
+void ExpectTheJoints(const std::vector<GlowJoint>& joints, std::span<const GlowEmission> emissions)
+{
+    ASSERT_EQ(joints.size(), emissions.size());
+    for (std::size_t index = 0; index < joints.size(); ++index)
+    {
+        const GlowJoint& joint = joints[index];
+        EXPECT_EQ(joint.type, 0x614);
+        EXPECT_EQ(joint.subtype, 3);
+        EXPECT_EQ(joint.scale, 10.0f);
+        EXPECT_EQ(joint.key, 10);
+        EXPECT_EQ(joint.skill, 10);
+        EXPECT_EQ(joint.target, -1);
+        EXPECT_EQ(joint.second, (glm::vec3{101, 202, 313}));
+        EXPECT_EQ(joint.angles, emissions[index].angles) << index;
+        EXPECT_EQ(BitsOf(joint.first), emissions[index].point) << index;
+    }
+}
+
+// Los sprites 0x5fd desde `first`: rotación rand() % 360 y escala ((rand() & 7) + 8) · 0,2f (0x6b8854), en bits.
+void ExpectTheSprites(std::span<const Client::World::Sprite> sprites, std::size_t first,
+                      std::span<const std::pair<float, std::uint32_t>> expected)
+{
+    for (std::size_t index = 0; index < expected.size(); ++index)
+    {
+        const Client::World::Sprite& sprite = sprites[first + index];
+        ASSERT_TRUE(sprite.alive) << index;
+        EXPECT_EQ(sprite.texture, 0x5fd);
+        EXPECT_EQ(sprite.position, (glm::vec3{101, 202, 313}));
+        EXPECT_EQ(sprite.rotation, expected[index].first) << index;
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(sprite.scale), expected[index].second) << index;
+    }
+    EXPECT_FALSE(sprites[first + expected.size()].alive);
+}
+
 TEST(HighModelEffectsTest, TheHeldPiercingGlowFollowsTheOwnersBone)
 {
-    HighWorld tested;
-    auto sprites = std::make_unique<Client::World::FrameSprites>();
-    tested.services.sprites = sprites.get();
-    tested.services.effects = &tested.world->Map().effects;
-    std::vector<std::tuple<std::int32_t, std::int32_t, float, std::int32_t, std::int32_t, std::int32_t, glm::vec3>>
-        joints;
-    tested.services.joint =
-        [&joints](const Client::World::FishEffectRequest& request) -> Client::Core::Expected<void, std::string>
-    {
-        joints.emplace_back(request.type, request.subtype, request.scale, request.key, request.skill, request.target,
-                            request.secondPosition);
-        return {};
-    };
-    ActorState& owner = tested.world->Actors()[3];
-    owner.type = 0x4a2;
-    owner.bodyPose.assign(34, Client::Render::Models::BoneTransform(1.0f));
-    owner.bodyPose[33][3] = {1.0f, 2.0f, 3.0f};
-    tested.world->PlaceModel(0x4a2, {.scale = 1.0f, .origin = {7, 8, 9}});
-    ASSERT_TRUE(CreateHighModelEffect({.type = 0x621, .position = {100, 200, 300}, .subtype = 1, .owner = &owner},
-                                      tested.Context())
-                    .HasValue());
-    ModelEffect& glow = tested.Effect(0);
+    GlowWorld glowing(1);
+    HighWorld& tested = glowing.tested;
+    ASSERT_TRUE(glowing.created);
+    ModelEffect& glow = glowing.Glow();
     EXPECT_EQ(glow.life, 20);
     EXPECT_EQ(glow.start, (glm::vec3{100, 200, 300}));
     EXPECT_TRUE(Client::Scenes::StepsAsHighModelEffect(glow));
     ASSERT_TRUE(StepHighModelEffect(glow, nullptr, tested.StepContext()).HasValue());
     EXPECT_EQ(tested.world->ModelPlacement(0x4a2).origin, (glm::vec3{100, 200, 300}));
-    EXPECT_EQ(glow.transform.position, Client::Scenes::ActorBonePoint(owner, 33, {0.0f, 0.0f, 10.0f}, *tested.world));
+    EXPECT_EQ(glow.transform.position, (glm::vec3{101, 202, 313}));
     EXPECT_EQ(glow.life, 19);
+    // La luz (0x5208c5) y, por emisión, los dos ángulos y la rotación y la escala del sprite.
     EXPECT_EQ(tested.Draws(), 1 + 3 * 4);
-    ASSERT_TRUE(sprites->Sprites()[2].alive);
-    EXPECT_FALSE(sprites->Sprites()[3].alive);
-    ASSERT_EQ(joints.size(), 3u);
-    for (const auto& [type, subtype, scale, key, skill, target, second] : joints)
-    {
-        EXPECT_EQ(type, 0x614);
-        EXPECT_EQ(subtype, 3);
-        EXPECT_EQ(scale, 10.0f);
-        EXPECT_EQ(key, 10);
-        EXPECT_EQ(skill, 10);
-        EXPECT_EQ(target, -1);
-        EXPECT_EQ(second, glow.transform.position);
-    }
+    constexpr std::array<GlowEmission, 3> EvenLife{{
+        {{58, 0, 123}, {0x423eacbau, 0x43275dc2u, 0x43cf6205u}},
+        {{290, 0, 317}, {0x4300fda9u, 0x4368043bu, 0x43483ca4u}},
+        {{232, 0, 100}, {0x432dc1cau, 0x4356d43bu, 0x435a7050u}},
+    }};
+    ExpectTheJoints(glowing.joints, EvenLife);
+    constexpr std::array<std::pair<float, std::uint32_t>, 3> EvenSprites{
+        {{84.0f, 0x3fe66667u}, {18.0f, 0x3fcccccdu}, {13.0f, 0x40333333u}}};
+    ExpectTheSprites(glowing.sprites->Sprites(), 0, EvenSprites);
     EXPECT_FALSE(std::ranges::any_of(tested.world->Particles().All(),
                                      [](const Client::World::Particle& particle) { return particle.alive; }));
-    // Con la vida impar, la chispa 0x5c6/2 antes del sprite: un rand() más por emisión.
+    // Con la vida impar, la chispa 0x5c6/2 de escala (rand() % 50 + 10) · 0,01f (0x6b86c0) antes del sprite: un rand()
+    // más por emisión.
     const int before = tested.Draws();
     ASSERT_TRUE(StepHighModelEffect(glow, nullptr, tested.StepContext()).HasValue());
     EXPECT_EQ(tested.Draws() - before, 1 + 3 * 5);
-    EXPECT_EQ(joints.size(), 3u);
-    EXPECT_EQ(std::ranges::count_if(tested.world->Particles().All(),
-                                    [](const Client::World::Particle& particle) { return particle.alive; }),
-              3);
+    EXPECT_EQ(glowing.joints.size(), 3u);
+    constexpr std::array<std::pair<std::array<std::uint32_t, 3>, std::uint32_t>, 3> Sparks{{
+        {{0x4329fe2eu, 0x433b55cau, 0x43cd0a80u}, 0x3e9eb852u},
+        {{0x42d05244u, 0x42defae3u, 0x43c3dd11u}, 0x3e8f5c29u},
+        {{0x4253125eu, 0x4359abeau, 0x434c3e3au}, 0x3f0f5c29u},
+    }};
+    const auto particles = tested.world->Particles().All();
+    for (std::size_t index = 0; index < Sparks.size(); ++index)
+    {
+        const Client::World::Particle& spark = particles[index];
+        ASSERT_TRUE(spark.alive) << index;
+        EXPECT_EQ(spark.type, 0x5c6);
+        EXPECT_EQ(spark.subtype, 2);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(spark.scale), Sparks[index].second) << index;
+        EXPECT_EQ(BitsOf(spark.position), Sparks[index].first) << index;
+    }
+    EXPECT_FALSE(particles[Sparks.size()].alive);
+    constexpr std::array<std::pair<float, std::uint32_t>, 3> OddSprites{
+        {{60.0f, 0x3fcccccdu}, {219.0f, 0x3fe66667u}, {160.0f, 0x400ccccdu}}};
+    ExpectTheSprites(glowing.sprites->Sprites(), 3, OddSprites);
     tested.services.joint = {};
     ASSERT_FALSE(StepHighModelEffect(glow, nullptr, tested.StepContext()).HasValue());
 
@@ -1987,4 +2082,74 @@ TEST(HighModelEffectsTest, TheHeldPiercingGlowFollowsTheOwnersBone)
     EXPECT_EQ(tested.Effect(1).life, 10);
     EXPECT_FALSE(Client::Scenes::StepsAsHighModelEffect(tested.Effect(1)));
 }
+
+// 0x52bd47..0x52bdd3: el /2 crea el joint 0x614/3 sólo con la vida par (0x52bd61) y siempre el sprite; nunca la
+// chispa. Los dos rand() de los ángulos salen igual.
+TEST(HighModelEffectsTest, TheThrownPiercingGlowJoinsOnlyOnEvenLives)
+{
+    GlowWorld glowing(2);
+    HighWorld& tested = glowing.tested;
+    ASSERT_TRUE(glowing.created);
+    ModelEffect& glow = glowing.Glow();
+    EXPECT_EQ(glow.life, 20);
+    ASSERT_TRUE(StepHighModelEffect(glow, nullptr, tested.StepContext()).HasValue());
+    EXPECT_EQ(glow.transform.position, (glm::vec3{101, 202, 313}));
+    EXPECT_EQ(tested.Draws(), 1 + 3 * 4);
+    constexpr std::array<GlowEmission, 3> EvenLife{{
+        {{58, 0, 123}, {0x423eacbau, 0x43275dc2u, 0x43cf6205u}},
+        {{290, 0, 317}, {0x4300fda9u, 0x4368043bu, 0x43483ca4u}},
+        {{232, 0, 100}, {0x432dc1cau, 0x4356d43bu, 0x435a7050u}},
+    }};
+    ExpectTheJoints(glowing.joints, EvenLife);
+    constexpr std::array<std::pair<float, std::uint32_t>, 3> EvenSprites{
+        {{84.0f, 0x3fe66667u}, {18.0f, 0x3fcccccdu}, {13.0f, 0x40333333u}}};
+    ExpectTheSprites(glowing.sprites->Sprites(), 0, EvenSprites);
+
+    // Vida 19: ni joint ni chispa, sólo el sprite. Sin el servicio de joints no corta: no lo pide.
+    tested.services.joint = {};
+    ASSERT_TRUE(StepHighModelEffect(glow, nullptr, tested.StepContext()).HasValue());
+    EXPECT_EQ(tested.Draws(), 2 * (1 + 3 * 4));
+    EXPECT_EQ(glowing.joints.size(), 3u);
+    constexpr std::array<std::pair<float, std::uint32_t>, 3> OddSprites{
+        {{71.0f, 0x4019999au}, {182.0f, 0x40000000u}, {295.0f, 0x3fcccccdu}}};
+    ExpectTheSprites(glowing.sprites->Sprites(), 3, OddSprites);
+    EXPECT_FALSE(std::ranges::any_of(tested.world->Particles().All(),
+                                     [](const Client::World::Particle& particle) { return particle.alive; }));
+    EXPECT_EQ(glow.life, 18);
+}
+
+// Con los pools llenos, 0x53fe70 y 0x5491e0 no crean pero sus argumentos ya sortearon: la escala de la chispa y la
+// rotación y la escala del sprite salen igual, en el mismo orden.
+TEST(HighModelEffectsTest, TheHeldPiercingGlowDrawsItsRandomsWithFullPools)
+{
+    GlowWorld glowing(1);
+    HighWorld& tested = glowing.tested;
+    ASSERT_TRUE(glowing.created);
+    ModelEffect& glow = glowing.Glow();
+    glow.life = 19;
+    tested.FillTheParticles();
+    ASSERT_TRUE(StepHighModelEffect(glow, nullptr, tested.StepContext()).HasValue());
+    EXPECT_EQ(tested.Draws(), 1 + 3 * 5);
+    EXPECT_TRUE(glowing.joints.empty());
+    // Sin la chispa de 0x52bcce (su rand() % 50 sí salió), el segundo ángulo y los sprites no serían estos.
+    constexpr std::array<std::pair<float, std::uint32_t>, 3> OddSprites{
+        {{9.0f, 0x40000000u}, {232.0f, 0x4019999au}, {126.0f, 0x40333333u}}};
+    ExpectTheSprites(glowing.sprites->Sprites(), 0, OddSprites);
+
+    // Vida 18 con los sprites llenos: los joints de las tres emisiones con sus ángulos de siempre.
+    for (auto& sprite : glowing.sprites->Sprites())
+        sprite.alive = true;
+    glowing.sprites->Sprites()[0].scale = 0.5f;
+    const int before = tested.Draws();
+    ASSERT_TRUE(StepHighModelEffect(glow, nullptr, tested.StepContext()).HasValue());
+    EXPECT_EQ(tested.Draws() - before, 1 + 3 * 4);
+    EXPECT_EQ(glowing.sprites->Sprites()[0].scale, 0.5f);
+    constexpr std::array<GlowEmission, 3> SecondEven{{
+        {{60, 0, 64}, {0x423c4a18u, 0x43644d62u, 0x43d07626u}},
+        {{258, 0, 219}, {0x42aa9900u, 0x435d63abu, 0x43439f4eu}},
+        {{72, 0, 176}, {0x42c4d39au, 0x4325021fu, 0x43d5903au}},
+    }};
+    ExpectTheJoints(glowing.joints, SecondEven);
+}
+
 } // namespace

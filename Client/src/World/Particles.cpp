@@ -10,6 +10,7 @@
 #include "World/TrialsParticleKernels.h"
 #include "World/WeaponSparkKernels.h"
 #include "World/BloodCastleParticleKernels.h"
+#include "World/EffectParticleKernels.h"
 #include "World/KalimaParticleKernels.h"
 #include "World/ParticleOwner.h"
 #include "World/WorldObjectStepServices.h"
@@ -495,35 +496,57 @@ void StepTheBowSpark(Particle& particle, Render::Models::CrtRandom& random)
         particle.alive = false;
 }
 
-// 0x540bbe..0x540bf4 (/0) y 0x540bfe (/1, vida 10 y escala 0): la escala 0,15f en la /0 y la luz del pedido más 0,5 en
-// cada canal. La /0 conserva la vida del prefijo (2). Sin rand().
+// 0x540bb2..0x540c77, la tabla de 0x544428 por el subtipo: /0 escala 0,15f (0x3e19999a); /1 vida 10 y escala 0; /2
+// vida 20 y escala 1; /3 vida 1 y la escala del pedido; /4 escala 0,25f; /5 la escala del pedido. La /4 y la /5
+// conservan la luz del pedido; las demás (y los subtipos de fuera de la tabla) le suman 0,5 en cada canal. La /0 y la
+// /4 conservan la vida del prefijo (2). Sin rand().
 void CreateTheLightning(Particle& particle, const glm::vec3& light)
 {
-    constexpr std::int32_t HitLife = 10;
+    constexpr std::int32_t HitLife = 10, FollowLife = 20, FlashLife = 1;
     constexpr double Lift = 0.5; // 0x6b882c
-    if (particle.subtype == LightningHitSubtype)
+    switch (particle.subtype)
     {
+    case LightningTrailSubtype:
+        particle.scale = std::bit_cast<float>(0x3e19999au);
+        break;
+    case LightningHitSubtype:
         particle.life = HitLife;
         particle.scale = 0.0f;
+        break;
+    case LightningFollowSubtype:
+        particle.life = FollowLife;
+        particle.scale = 1.0f;
+        break;
+    case LightningFlashSubtype:
+        particle.life = FlashLife;
+        break;
+    case LightningPlainSubtype:
+        particle.scale = std::bit_cast<float>(0x3e800000u);
+        return;
+    case LightningPlainScaledSubtype:
+        return;
+    default:
+        break;
     }
-    else
-        particle.scale = std::bit_cast<float>(0x3e19999au);
     for (int axis = 0; axis < 3; ++axis)
         particle.light[axis] = F32(static_cast<double>(light[axis]) + Lift);
 }
 
-// 0x545419..0x545489 con la /0 y la /1, después de la vida y el movimiento comunes: el giro (+0x44) es
+// 0x545419..0x5454c8, con todos los subtipos, después de la vida y el movimiento comunes: el giro (+0x44) es
 // (ftol(reloj) % 1000) · 0,001f y la luz dinámica de radio 3 (0x5f9780) es (v · 0,5f; v; v · 0,8f) con v = vida · 0,1f:
-// el rojo, del producto sin redondear; el azul, del verde ya guardado. Sin rand().
+// el rojo, del producto sin redondear; el azul, del verde ya guardado. La /2 (0x54548f) además crece 0,1f, toma esa
+// misma luz y sigue a su dueño (+0x40 → +0x10), 80 más arriba. Sin rand().
 Core::Expected<void, ParticleError> StepTheLightning(Particle& particle, const float* worldClock,
-                                                     TerrainLighting* lighting)
+                                                     TerrainLighting* lighting, const ParticleOwnerStates& ownerStates)
 {
     constexpr std::int32_t ClockSpan = 1000;
     constexpr std::int32_t LightningLightRadius = 3;
-    constexpr double Milli = static_cast<double>(std::bit_cast<float>(0x3a83126fu)); // 0x6b89c8
-    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b8a34
-    constexpr double Half = static_cast<double>(0.5f);                               // 0x6b882c
-    constexpr double Blue = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu));  // 0x6b8a38
+    constexpr double Milli = static_cast<double>(std::bit_cast<float>(0x3a83126fu));  // 0x6b89c8
+    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));  // 0x6b8a34
+    constexpr double Half = static_cast<double>(0.5f);                                // 0x6b882c
+    constexpr double Blue = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu));   // 0x6b8a38
+    constexpr double Growth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8
+    constexpr double Height = 80.0;                                                   // 0x6b9ffc
     if (worldClock == nullptr)
         return Core::Unexpected(ParticleError::MissingClock);
     particle.rotation = F32(static_cast<double>(FtolLow(static_cast<double>(*worldClock)) % ClockSpan) * Milli);
@@ -532,6 +555,16 @@ Core::Expected<void, ParticleError> StepTheLightning(Particle& particle, const f
     const glm::vec3 color{F32(glow * Half), green, F32(static_cast<double>(green) * Blue)};
     if (!AddDynamicLight(lighting, particle.position, color, LightningLightRadius, "0x54547b").HasValue())
         return Core::Unexpected(ParticleError::MissingDynamicLight);
+    if (particle.subtype != LightningFollowSubtype)
+        return {};
+    particle.scale = F32(static_cast<double>(particle.scale) + Growth);
+    particle.light = color;
+    const auto owner = ownerStates ? ownerStates(particle.typedOwner) : std::nullopt;
+    if (!owner)
+        return Core::Unexpected(ParticleError::MissingOwner);
+    particle.position.x = owner->position.x;
+    particle.position.y = owner->position.y;
+    particle.position.z = F32(static_cast<double>(owner->position.z) + Height);
     return {};
 }
 
@@ -634,11 +667,15 @@ void StepTheCloud8(Particle& particle)
     particle.position.z = F32(static_cast<double>(particle.position.z) - 0.5);
 }
 
+// 0x53ff3a..: 5d9, 5db y 5dc van al mismo caso de 0x53fe70 (0x541172) y de 0x5446e0 (0x5457a5).
+bool IsFireType(std::int32_t type)
+{
+    return type == FireParticle || type == DeathSpiritFireParticle || type == BlueTrailFireParticle;
+}
+
 bool IsFire(const Particle& particle)
 {
-    return (particle.type == BlueTrailFireParticle && particle.subtype == BlueTrailFireSubtype) ||
-           ((particle.type == FireParticle || (particle.type == DeathSpiritFireParticle && particle.subtype == 0)) &&
-            ((particle.subtype >= 0 && particle.subtype <= 3) || particle.subtype == 5 || particle.subtype == 8));
+    return IsFireType(particle.type);
 }
 
 // 0x5466c3: la tabla de 0x548310 manda al mismo paso la 5f2/2 y la 5f2/21 de Crywolf.
@@ -811,10 +848,13 @@ bool IsDrop(const Particle& particle)
 
 std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtype)
 {
+    if (IsEffectParticle(type, subtype))
+        return std::nullopt;
     if (IsSwellLifeParticle(type, subtype))
         return std::nullopt;
+    // 0x54109f y 0x54573f: la 5ca no lee el subtipo.
     if (type == ThunderParticle)
-        return subtype == 0 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
+        return std::nullopt;
     if (type == ShinyParticle || type == FairySparkParticle)
         return IsNoriaParticle(type, subtype) ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     if (type == Particle67 || type == Particle68)
@@ -825,16 +865,9 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
     {
         return subtype == 0 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     }
-    if (type == BlueTrailFireParticle)
-        return subtype == BlueTrailFireSubtype ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
-    if (type == DeathSpiritFireParticle)
-        return subtype == 0 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
-    if (type == FireParticle)
-    {
-        return ((subtype >= 0 && subtype <= 3) || subtype == 5 || subtype == 8)
-                   ? std::nullopt
-                   : std::optional(ParticleError::UnsupportedSubtype);
-    }
+    // 0x541172 y 0x5457a5: el fuego trata cualquier subtipo (los de fuera de sus casos, sin nada propio).
+    if (IsFireType(type))
+        return std::nullopt;
     if (type == MagicSparkParticle)
         return subtype == 2 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     if (type == MissileFireParticle)
@@ -861,12 +894,9 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
     // 0x542b3b y 0x546b04: la 5e4 no lee el subtipo.
     if (type == BloodParticle || type == SiegeBlessingParticle)
         return std::nullopt;
+    // 0x540bb2 y 0x545419: la 5d5 trata cualquier subtipo (los de fuera de la tabla, como la /0 sin su escala).
     if (type == LightningParticle)
-    {
-        return subtype == LightningTrailSubtype || subtype == LightningHitSubtype
-                   ? std::nullopt
-                   : std::optional(ParticleError::UnsupportedSubtype);
-    }
+        return std::nullopt;
     if (type == HandShineParticle)
         return IsHandShine(type, subtype) ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     if (type == SparkParticle)
@@ -931,38 +961,82 @@ void CreateTheTeleportSpark(Particle& particle, Render::Models::CrtRandom& rando
                                                              Render::Models::OriginalAngleMatrix(particle.angles));
 }
 
+// 0x541172..0x54140a, el mismo caso para 5d9, 5db y 5dc: la vida 24, la velocidad (0; ((rand() & 15) + 32) · −0,1f; 0),
+// lo de cada subtipo (leído una vez, después del primer rand(), en 0x541197), la escala de la /1 (0x5413c2 vuelve a
+// leer el subtipo) y el giro final. Los subtipos que no tienen caso (2..4, 6, 8, 10 y los de fuera) sólo hacen lo
+// común.
 void CreateTheFire(Particle& particle, Render::Models::CrtRandom& random)
 {
+    constexpr std::int32_t ShortFireLife = 20;                                               // 0x541253
+    constexpr double FountainStep = static_cast<double>(std::bit_cast<float>(0x3e19999au));  // 0x6b8ae8, 0,15f
+    constexpr double TallScaleStep = static_cast<double>(std::bit_cast<float>(0x3c449ba6u)); // 0x6ba334, 0,012f
+    constexpr double SwayScaleStep = static_cast<double>(std::bit_cast<float>(0x3c03126fu)); // 0x6ba330, 0,008f
+    constexpr int TallScaleSpan = 16, TallScaleBase = 150, FountainSpan = 128, FountainBase = 128;
+    constexpr int SwaySpan = 32, SwayCenter = 16, RingSpan = 60, RingCenter = 30;
+    constexpr double RingTop = 190.0; // 0x6b8a08
+    constexpr double RingSlope = 1.5; // 0x6b8b94
+    const float argumentScale = particle.scale;
     particle.life = FireLife;
     particle.velocity.x = 0.0f;
     const int speed = (random.Next() % FireSpeedSpan) + FireSpeedBase;
     particle.velocity.z = 0.0f;
     const std::int32_t subtype = particle.subtype; // Relectura posterior a R1 (00541197).
     particle.velocity.y = F32(static_cast<double>(speed) * FireSpeed);
-    if (subtype == 0)
+    switch (subtype)
     {
+    case 0:
         particle.scale = F32(static_cast<double>((random.Next() % FireScaleSpan) + FireScaleBase) * BreathScaleStep);
-    }
-    if (subtype == 5)
-    {
-        const float argumentScale = particle.scale;
+        break;
+    case 5:
         particle.scale =
             F32((static_cast<double>(random.Next() % FireScaleSpan + FireScaleBase) * argumentScale) * BreathScaleStep);
+        break;
+    case FireTallSubtype:
+        // 0x54120b: el giro de este rand() lo pisa el del final.
+        particle.rotation = static_cast<float>(random.Next() % FullTurn);
+        particle.scale =
+            F32((static_cast<double>(random.Next() % TallScaleSpan + TallScaleBase) * argumentScale) * TallScaleStep);
+        break;
+    case FireFountainSubtype:
+        // 0x541253..0x5412bf: vida 20, sube recto y no usa la escala del pedido.
+        particle.life = ShortFireLife;
+        particle.velocity.x = 0.0f;
+        particle.velocity.y = 0.0f;
+        particle.velocity.z = F32(static_cast<double>(random.Next() % FountainSpan + FountainBase) * FountainStep);
+        particle.rotation = static_cast<float>(random.Next() % FullTurn);
+        particle.scale = F32(static_cast<double>(random.Next() % TallScaleSpan + TallScaleBase) * TallScaleStep);
+        break;
+    case FireSwaySubtype:
+    case FireLongSwaySubtype:
+        // 0x5412d2 (/7) y 0x54132c (/11, que vuelve a poner la vida 24): la velocidad (0; ((rand() & 31) − 16) ·
+        // −0,1f; 0) y la escala ((rand() & 63) + 128) · 0,008f más la del pedido.
+        particle.life = FireLife;
+        particle.velocity.x = 0.0f;
+        {
+            const int sway = random.Next() % SwaySpan - SwayCenter;
+            particle.velocity.z = 0.0f;
+            particle.velocity.y = F32(static_cast<double>(sway) * FireSpeed);
+        }
+        particle.scale = F32(static_cast<double>(random.Next() % FireScaleSpan + FireScaleBase) * SwayScaleStep +
+                             static_cast<double>(argumentScale));
+        break;
+    case FireRingSubtype:
+    {
+        // 0x54138a..0x5413bf: la partida (+0x6c) es (r; r; 190 − |r| · 1,5) con r = rand() % 60 − 30; el paso le suma
+        // la posición del dueño.
+        const int offset = random.Next() % RingSpan - RingCenter;
+        particle.start.x = static_cast<float>(offset);
+        particle.start.y = static_cast<float>(offset);
+        particle.start.z = F32(RingTop - static_cast<double>(offset < 0 ? -offset : offset) * RingSlope);
+        break;
+    }
+    default:
+        break;
     }
     if (particle.subtype == 1) // 005413c2 vuelve a leer el subtipo vivo.
     {
         particle.scale =
             F32(static_cast<double>((random.Next() % FireSmallScaleSpan) + FireSmallScaleBase) * BreathScaleStep);
-    }
-    if (particle.type == BlueTrailFireParticle)
-    {
-        // 0x541197..0x541403: R2 escribe un giro que R4 pisa; R3 multiplica la escala del pedido.
-        constexpr int ScaleSpan = 16;
-        constexpr int ScaleBase = 150;
-        constexpr double ScaleStep = static_cast<double>(0.012f);
-        particle.rotation = static_cast<float>(random.Next() % FullTurn);
-        particle.scale = F32((static_cast<double>(random.Next() % ScaleSpan + ScaleBase) * particle.scale) * ScaleStep);
-        // 0x53feb3: la textura es el tipo (0x5dc, Effect\Fire05.jpg de 0x61ddac); el caso no la cambia.
     }
     particle.rotation = static_cast<float>(random.Next() % FullTurn);
 }
@@ -1262,49 +1336,87 @@ std::int32_t WrapSubtract(std::int32_t left, std::int32_t right)
     return std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(left) - static_cast<std::uint32_t>(right));
 }
 
-void StepTheFire(Particle& particle, Render::Models::CrtRandom& random)
+// 0x5457a5..0x545982, el paso de 5d9, 5db y 5dc: la subida (+0x50) + 0,004f, el caso del subtipo (la tabla de 0x548270
+// para 0..13; los demás, el de 1..4) y lo común: z + subida · 10 y el cuadro (+0x48) (23 − vida) / 6.
+Core::Expected<void, ParticleError> StepTheFire(Particle& particle, Render::Models::CrtRandom& random,
+                                                const ParticleOwnerStates& ownerStates)
 {
-    particle.verticalSpeed = F32(static_cast<double>(particle.verticalSpeed) + FireRise);
-    if (particle.type == BlueTrailFireParticle && particle.subtype == BlueTrailFireSubtype)
+    constexpr double Fade = static_cast<double>(std::bit_cast<float>(0x3d2aaaabu));       // 0x6ba3c4
+    constexpr double Damp = static_cast<double>(std::bit_cast<float>(0x3f733333u));       // 0x6ba30c, 0,95f
+    constexpr double Turn = 5.0;                                                          // 0x6b87f8
+    constexpr double RingShrink = static_cast<double>(std::bit_cast<float>(0x3c360b61u)); // 0x6ba3c0
+    constexpr int TurnSpan = 10, TurnBase = 10, RingSpan = 60, RingDivisor = 100;
+    constexpr std::int32_t SwayLife = 15, SwaySteps = 6, LongSwayLife = 24, LongSwaySteps = 3, LongSwayStart = 12;
+    const float rise = F32(static_cast<double>(particle.verticalSpeed) + FireRise);
+    particle.verticalSpeed = rise;
+    const float light = F32(static_cast<double>(particle.life) * Fade);
+    switch (particle.subtype)
     {
-        // 0x5457dc: también en el último paso, después de bajar la vida y del movimiento común.
-        constexpr double Fade = static_cast<double>(std::bit_cast<float>(0x3d2aaaabu));
-        constexpr int TurnSpan = 10;
-        constexpr int TurnBase = 10;
-        particle.light = glm::vec3(F32(static_cast<double>(particle.life) * Fade));
+    case 0:
+    case FireSwaySubtype:
+        // 0x545894 (/0) y 0x54587c (/7, que antes deja un cuadro que lo común pisa).
+        if (particle.subtype == FireSwaySubtype)
+            particle.field48 = std::bit_cast<float>(WrapSubtract(SwayLife, particle.life) / SwaySteps);
+        particle.scale = F32(static_cast<double>(particle.scale) - FireShrink);
+        break;
+    case 5:
+    case 6:
+        // 0x545842: la escala baja 0,04f y el giro suma 5, sin frenar la velocidad.
+        particle.scale = F32(static_cast<double>(particle.scale) - FireShrink);
+        particle.rotation = F32(static_cast<double>(particle.rotation) + Turn);
+        break;
+    case 8:
+        // 0x54585f: no frena la velocidad ni suma la subida a la escala.
+        particle.scale = F32(static_cast<double>(particle.scale) * Damp);
+        particle.rotation = F32(static_cast<double>(particle.rotation) + Turn);
+        break;
+    case FireRingSubtype:
+    {
+        // 0x5458d3..0x545926: la posición es la del dueño más la partida; la subida suma (rand() % 60 + 60) / 100,
+        // entera, y la escala baja la suma sin redondear por 0,011111111f.
+        const auto owner = ownerStates ? ownerStates(particle.typedOwner) : std::nullopt;
+        if (!owner)
+            return Core::Unexpected(ParticleError::MissingOwner);
+        for (int axis = 0; axis < 3; ++axis)
+            particle.position[axis] =
+                F32(static_cast<double>(owner->position[axis]) + static_cast<double>(particle.start[axis]));
+        const int step = (random.Next() % RingSpan + RingSpan) / RingDivisor;
+        const double sum = static_cast<double>(step) + static_cast<double>(particle.verticalSpeed);
+        particle.verticalSpeed = F32(sum);
+        particle.scale = F32(static_cast<double>(particle.scale) - sum * RingShrink);
+        break;
+    }
+    case 10:
+        particle.scale = F32(static_cast<double>(particle.scale) * Damp); // 0x545831
+        break;
+    case FireLongSwaySubtype:
+        // 0x5458a5: el cuadro de la /11, que lo común pisa, y la escala crece 0,04f.
+        if (particle.life > LongSwayStart)
+            particle.field48 = std::bit_cast<float>(WrapSubtract(LongSwayLife, particle.life) / LongSwaySteps);
+        particle.scale = F32(static_cast<double>(particle.scale) + FireShrink);
+        break;
+    case FireTallSubtype:
+    case FireFountainSubtype:
+    {
+        // 0x5457dc y 0x5457f1: también en el último paso, después de bajar la vida y del movimiento común.
         const double turn = static_cast<double>(random.Next() % TurnSpan) + TurnBase;
+        particle.light = glm::vec3(light);
         particle.rotation = F32(turn + static_cast<double>(particle.rotation));
         particle.scale = F32(static_cast<double>(particle.scale) - FireShrink);
+        break;
     }
-    else if (particle.subtype == 0)
-    {
-        particle.scale = F32(static_cast<double>(particle.scale) - FireShrink);
-    }
-    else if (particle.subtype == 5)
-    {
-        // 548270[5]→545842: la escala baja.04 y el giro suma5, sin damping de la velocidad.
-        constexpr double Shrink = static_cast<double>(0.04f);
-        particle.scale = F32(static_cast<double>(particle.scale) - Shrink);
-        particle.rotation = F32(static_cast<double>(particle.rotation) + 5.0);
-    }
-    else if (particle.subtype == 8)
-    {
-        // 548270[8]→54585f: no amortigua velocidad ni agrega verticalSpeed a escala.
-        particle.scale = F32(static_cast<double>(particle.scale) * .95f);
-        particle.rotation = F32(static_cast<double>(particle.rotation) + 5);
-    }
-    else
-    {
-        particle.scale = F32(static_cast<double>(particle.verticalSpeed) + static_cast<double>(particle.scale));
+    default:
+        // 0x54592b: 1..4, los mayores que 13 y los negativos.
+        particle.scale = F32(static_cast<double>(rise) + static_cast<double>(particle.scale));
         for (int axis = 0; axis < 3; ++axis)
-        {
             particle.velocity[axis] = F32(static_cast<double>(particle.velocity[axis]) * FireDamping);
-        }
+        break;
     }
     const std::int32_t frame = WrapSubtract(FireLife - 1, particle.life) / FrameSteps;
     particle.position.z =
         F32(static_cast<double>(particle.verticalSpeed) * FireHeightFactor + static_cast<double>(particle.position.z));
     particle.field48 = std::bit_cast<float>(frame);
+    return {};
 }
 
 void StepTheWorldSmoke(Particle& particle)
@@ -1625,6 +1737,16 @@ Particles::CreateOwnedChecked(std::int32_t type, const glm::vec3& position, cons
                       owner);
 }
 
+Core::Expected<std::optional<std::size_t>, ParticleError>
+Particles::CreateTowardChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles,
+                               const glm::vec3& light, std::int32_t subtype, float scale,
+                               std::reference_wrapper<const float> worldClock, Render::Models::CrtRandom& random,
+                               IParticleTrigonometry& trigonometry, ParticleOwner owner, const glm::vec3& ownerPosition)
+{
+    return CreateImpl(type, position, angles, light, subtype, scale, 0.0f, &worldClock.get(), random, 0, &trigonometry,
+                      std::nullopt, owner, &ownerPosition);
+}
+
 std::optional<std::size_t> Particles::CreatePiercingSpark(const glm::vec3& position, float scale, ParticleOwner owner,
                                                           const glm::vec3& center)
 {
@@ -1678,7 +1800,7 @@ Core::Expected<std::optional<std::size_t>, ParticleError>
 Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
                       std::int32_t subtype, float scale, float legacyClock, const float* worldClock,
                       Render::Models::CrtRandom& random, std::uint32_t owner, IParticleTrigonometry* trigonometry,
-                      std::optional<std::int32_t> scene, ParticleOwner typedOwner)
+                      std::optional<std::int32_t> scene, ParticleOwner typedOwner, const glm::vec3* ownerPosition)
 {
     for (std::size_t index = 0; index < m_particles.size(); ++index)
     {
@@ -1701,6 +1823,11 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
         {
             return Core::Unexpected(ParticleError::MissingOwner);
         }
+        // 5c6/4 y 5de/4 leen la posición del dueño al nacer (0x540686 y 0x5417ba): sin ella no hay de dónde.
+        if (ownerPosition == nullptr && NeedsOwnerPosition(type, subtype))
+        {
+            return Core::Unexpected(ParticleError::MissingOwner);
+        }
         if (!kalima && !selection && !trials && !bloodCastle && !orbit &&
             !(worldClock != nullptr && IsMap8Smoke(type, subtype)))
         {
@@ -1710,7 +1837,7 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
             }
         }
         Initialize(particle, type, position, angles, light, subtype, scale, owner);
-        if (typedOwner.kind == ParticleOwnerKind::ModelEffect)
+        if (typedOwner.kind == ParticleOwnerKind::ModelEffect || FollowsItsOwner(type, subtype))
             particle.typedOwner = typedOwner;
         if (kalima)
         {
@@ -1735,6 +1862,13 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
         if (bloodCastle)
         {
             CreateBloodCastleParticle(particle, random);
+            return std::optional(index);
+        }
+        if (IsEffectParticle(type, subtype))
+        {
+            const auto created = CreateEffectParticle(particle, random, {worldClock, trigonometry, ownerPosition});
+            if (!created.HasValue())
+                return Core::Unexpected(created.Error());
             return std::optional(index);
         }
         if (IsSwellLifeParticle(type, subtype))
@@ -2070,7 +2204,7 @@ StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random, const
                   const ParticleTerrainHeight& terrainHeight, const ParticleObjectOwners& owners,
                   const ParticleActorActions& actorActions, const ParticleTextureHeight& textureHeight,
                   TerrainLighting* lighting, const ParticleActorHands& actorHands, const ParticleOwnerBones& ownerBones,
-                  const std::function<void(std::int32_t)>& sound)
+                  const std::function<void(std::int32_t)>& sound, const ParticleOwnerStates& ownerStates)
 {
     // Los punteros privados distinguen exclusivamente legacy de la API pública requerida.
     // El overload vivo siempre proporciona reloj y evaluador; no hay servicio opcional público.
@@ -2119,6 +2253,13 @@ StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random, const
         if (IsBloodCastleParticle(particle.type, particle.subtype))
         {
             StepBloodCastleParticle(particle, random);
+            continue;
+        }
+        if (IsEffectParticle(particle.type, particle.subtype))
+        {
+            const auto stepped = StepEffectParticle(particle, random, trigonometry, ownerStates);
+            if (!stepped.HasValue())
+                return stepped;
             continue;
         }
         if (trigonometry != nullptr && particle.type == OrbitParticle)
@@ -2211,7 +2352,9 @@ StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random, const
         }
         else if (IsFire(particle))
         {
-            StepTheFire(particle, random);
+            const auto stepped = StepTheFire(particle, random, ownerStates);
+            if (!stepped.HasValue())
+                return stepped;
         }
         else if (IsWorldSmoke(particle))
         {
@@ -2333,7 +2476,7 @@ StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random, const
         }
         else if (particle.type == LightningParticle)
         {
-            const auto stepped = StepTheLightning(particle, worldClock, lighting);
+            const auto stepped = StepTheLightning(particle, worldClock, lighting, ownerStates);
             if (!stepped.HasValue())
                 return stepped;
         }
@@ -2373,7 +2516,8 @@ Core::Expected<void, ParticleError> StepParticlesChecked(Particles& particles, R
                                                          const std::int32_t* map,
                                                          const ParticleTerrainHeight& terrainHeight)
 {
-    return StepParticlesImpl(particles, random, nullptr, map, nullptr, terrainHeight, {}, {}, {}, nullptr, {}, {}, {});
+    return StepParticlesImpl(particles, random, nullptr, map, nullptr, terrainHeight, {}, {}, {}, nullptr, {}, {}, {},
+                             {});
 }
 
 Core::Expected<void, ParticleError>
@@ -2385,18 +2529,20 @@ StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random,
                      const ParticleActorHands& actorHands, const ParticleOwnerBones& ownerBones)
 {
     return StepParticlesImpl(particles, random, &worldClock.get(), map, &trigonometry, terrainHeight, owners,
-                             actorActions, textureHeight, lighting, actorHands, ownerBones, {});
+                             actorActions, textureHeight, lighting, actorHands, ownerBones, {}, {});
 }
 
-Core::Expected<void, ParticleError> StepParticlesChecked(
-    Particles& particles, Render::Models::CrtRandom& random, std::reference_wrapper<const float> worldClock,
-    const std::int32_t* map, IParticleTrigonometry& trigonometry, const ParticleTerrainHeight& terrainHeight,
-    const ParticleObjectOwners& owners, const ParticleActorActions& actorActions,
-    const ParticleTextureHeight& textureHeight, TerrainLighting* lighting, const ParticleActorHands& actorHands,
-    const ParticleOwnerBones& ownerBones, const std::function<void(std::int32_t)>& sound)
+Core::Expected<void, ParticleError>
+StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random,
+                     std::reference_wrapper<const float> worldClock, const std::int32_t* map,
+                     IParticleTrigonometry& trigonometry, const ParticleTerrainHeight& terrainHeight,
+                     const ParticleObjectOwners& owners, const ParticleActorActions& actorActions,
+                     const ParticleTextureHeight& textureHeight, TerrainLighting* lighting,
+                     const ParticleActorHands& actorHands, const ParticleOwnerBones& ownerBones,
+                     const std::function<void(std::int32_t)>& sound, const ParticleOwnerStates& ownerStates)
 {
     return StepParticlesImpl(particles, random, &worldClock.get(), map, &trigonometry, terrainHeight, owners,
-                             actorActions, textureHeight, lighting, actorHands, ownerBones, sound);
+                             actorActions, textureHeight, lighting, actorHands, ownerBones, sound, ownerStates);
 }
 
 std::optional<ParticleError> StepParticles(Particles& particles, Render::Models::CrtRandom& random)

@@ -2,6 +2,8 @@
 
 #include "Core/Expected.h"
 #include "Render/Models/OriginalRotation.h"
+#include "World/ParticleOwner.h"
+#include "World/Particles.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -22,8 +24,6 @@ class CrtRandom;
 }
 namespace Client::World
 {
-class Particles;
-struct Particle;
 struct TerrainLighting;
 struct WorldObject;
 } // namespace Client::World
@@ -74,16 +74,16 @@ StepGameParticles(World::Particles& particles, Render::Models::CrtRandom& random
                   const std::function<std::optional<glm::vec3>(std::uint64_t, std::int32_t)>& actorHands = {},
                   const std::function<std::optional<glm::vec3>(const World::Particle&)>& ownerBones = {});
 
-[[nodiscard]] Core::Expected<void, std::string>
-StepGameParticles(World::Particles& particles, Render::Models::CrtRandom& random, const std::int32_t& map,
-                  const std::function<double(float, float)>& terrainHeight, const float& worldClock,
-                  const std::function<World::WorldObject*(std::uint64_t)>& owners,
-                  const std::function<std::optional<std::uint8_t>(std::uint64_t)>& actorActions,
-                  const std::function<std::optional<float>(std::int32_t)>& textureHeight,
-                  World::TerrainLighting* lighting,
-                  const std::function<std::optional<glm::vec3>(std::uint64_t, std::int32_t)>& actorHands,
-                  const std::function<std::optional<glm::vec3>(const World::Particle&)>& ownerBones,
-                  const std::function<void(std::int32_t)>& sound);
+[[nodiscard]] Core::Expected<void, std::string> StepGameParticles(
+    World::Particles& particles, Render::Models::CrtRandom& random, const std::int32_t& map,
+    const std::function<double(float, float)>& terrainHeight, const float& worldClock,
+    const std::function<World::WorldObject*(std::uint64_t)>& owners,
+    const std::function<std::optional<std::uint8_t>(std::uint64_t)>& actorActions,
+    const std::function<std::optional<float>(std::int32_t)>& textureHeight, World::TerrainLighting* lighting,
+    const std::function<std::optional<glm::vec3>(std::uint64_t, std::int32_t)>& actorHands,
+    const std::function<std::optional<glm::vec3>(const World::Particle&)>& ownerBones,
+    const std::function<void(std::int32_t)>& sound,
+    const std::function<std::optional<World::ParticleOwnerState>(const World::ParticleOwner&)>& ownerStates = {});
 
 // La acción (+0x111) del personaje de un lugar del pool entre `actors`, que tienen que vivir más que el
 // resolvedor: lo que el paso de la órbita 60f/0 lee por el puntero +0x40 (0x54735f).
@@ -110,6 +110,11 @@ ParticleOwnersAmong(std::span<World::WorldObject> objects);
 // devuelve como MissingOwner. Es el corte de los anillos de transformación (08, P-C358): la 5fe de 0x55be23 corta antes
 // con su dirección (Scenes::ShineOnTheHero).
 [[nodiscard]] std::optional<glm::vec3> OwnerBonePointOf(WorldState& world, const World::Particle& particle);
+// Lo que el paso lee por +0x40 de las partículas que siguen a su dueño (5c6/4, 5d5/2, el fuego /9 y 5de/4): de un
+// personaje del pool, su byte vivo y su posición; de un efecto con modelo, además su partida (+0x17c). nullopt si la
+// identidad no es de ninguno de los dos pools. `world` tiene que vivir más que el resolvedor.
+[[nodiscard]] std::function<std::optional<World::ParticleOwnerState>(const World::ParticleOwner&)>
+ParticleOwnerStatesOf(WorldState& world);
 // El resolvedor de 0x53fdb0 sobre `world`, que tiene que vivir más que él.
 [[nodiscard]] std::function<std::optional<glm::vec3>(const World::Particle&)> ParticleOwnerBonesOf(WorldState& world);
 

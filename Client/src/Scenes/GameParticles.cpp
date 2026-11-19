@@ -177,21 +177,21 @@ StepGameParticles(World::Particles& particles, Render::Models::CrtRandom& random
     return {};
 }
 
-Core::Expected<void, std::string>
-StepGameParticles(World::Particles& particles, Render::Models::CrtRandom& random, const std::int32_t& map,
-                  const std::function<double(float, float)>& terrainHeight, const float& worldClock,
-                  const std::function<World::WorldObject*(std::uint64_t)>& owners,
-                  const std::function<std::optional<std::uint8_t>(std::uint64_t)>& actorActions,
-                  const std::function<std::optional<float>(std::int32_t)>& textureHeight,
-                  World::TerrainLighting* lighting,
-                  const std::function<std::optional<glm::vec3>(std::uint64_t, std::int32_t)>& actorHands,
-                  const std::function<std::optional<glm::vec3>(const World::Particle&)>& ownerBones,
-                  const std::function<void(std::int32_t)>& sound)
+Core::Expected<void, std::string> StepGameParticles(
+    World::Particles& particles, Render::Models::CrtRandom& random, const std::int32_t& map,
+    const std::function<double(float, float)>& terrainHeight, const float& worldClock,
+    const std::function<World::WorldObject*(std::uint64_t)>& owners,
+    const std::function<std::optional<std::uint8_t>(std::uint64_t)>& actorActions,
+    const std::function<std::optional<float>(std::int32_t)>& textureHeight, World::TerrainLighting* lighting,
+    const std::function<std::optional<glm::vec3>(std::uint64_t, std::int32_t)>& actorHands,
+    const std::function<std::optional<glm::vec3>(const World::Particle&)>& ownerBones,
+    const std::function<void(std::int32_t)>& sound,
+    const std::function<std::optional<World::ParticleOwnerState>(const World::ParticleOwner&)>& ownerStates)
 {
     World::PortableParticleTrigonometry trigonometry;
     const auto stepped =
         World::StepParticlesChecked(particles, random, std::cref(worldClock), &map, trigonometry, terrainHeight, owners,
-                                    actorActions, textureHeight, lighting, actorHands, ownerBones, sound);
+                                    actorActions, textureHeight, lighting, actorHands, ownerBones, sound, ownerStates);
     if (!stepped.HasValue())
     {
         return Core::Unexpected(std::format("0x637128 → 0x5446e0: el paso de las partículas falla con error {}",
@@ -229,6 +229,27 @@ std::function<std::optional<std::uint8_t>(std::uint64_t)> ParticleActorActionsAm
         if (slot >= actors.size())
             return std::nullopt;
         return actors[static_cast<std::size_t>(slot)].animation.action;
+    };
+}
+
+std::function<std::optional<World::ParticleOwnerState>(const World::ParticleOwner&)>
+ParticleOwnerStatesOf(WorldState& world)
+{
+    return [&world](const World::ParticleOwner& owner) -> std::optional<World::ParticleOwnerState>
+    {
+        if (owner.kind == World::ParticleOwnerKind::ModelEffect)
+        {
+            const auto effects = world.Map().effects.Effects();
+            if (owner.identity >= effects.size())
+                return std::nullopt;
+            const auto& effect = effects[static_cast<std::size_t>(owner.identity)];
+            return World::ParticleOwnerState{effect.alive, effect.transform.position, effect.start};
+        }
+        const auto actors = world.Actors();
+        if (owner.kind != World::ParticleOwnerKind::Actor || owner.identity >= actors.size())
+            return std::nullopt;
+        const ActorState& actor = actors[static_cast<std::size_t>(owner.identity)];
+        return World::ParticleOwnerState{actor.alive, actor.position, std::nullopt};
     };
 }
 

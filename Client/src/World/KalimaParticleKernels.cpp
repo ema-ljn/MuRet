@@ -62,6 +62,7 @@ void CreateFlare(Particle& p, Render::Models::CrtRandom& random)
 constexpr std::int32_t ObjectSubtype = 2, SplashObjectSubtype = 4;
 // 0x544088..0x544153 y 0x5480ae..0x5480f0: la 6f1/3 de las botas del conjunto completo (0x50ff37).
 constexpr std::int32_t BootsMistSubtype = 3;
+constexpr double KundunFallTurn = 4.0; // 0x6b8a44
 // 0x544095..0x54414c: después de lo de la neblina, la textura cra_04 (0x5ae), la luz del argumento (pisa la de la
 // escena), vida 12, otro giro, vz 2, la escala (rand() % 3 + 3) · 0,18f y otro corrimiento de ±10, ±10 y ±20. Cinco
 // rand() más: once en total.
@@ -133,6 +134,53 @@ Core::Expected<void, ParticleError> CreateWaterfall(Particle& p, Render::Models:
         p.velocity.z = static_cast<float>(-FallBase - random.Next() % FallSpan);
     }
     p.light = glm::vec3(0.2f);
+    return {};
+}
+// 0x544295..0x544318 (6f2/2, 6f3/2) y 0x543e14..0x543e97 (6f4/4), las salpicaduras del joint de Kundun: la vida 6, la
+// subida (+0x50) ((rand() % 100) · 0,01f · 4 + ángulo x · 1,2f, sumada en la x87 en ese orden), la escala
+// (rand() % 6) · paso + la del pedido, el giro y la partida en la posición. Tres rand().
+void CreateKundunSplash(Particle& p, Render::Models::CrtRandom& random, double scaleStep)
+{
+    constexpr std::int32_t SplashLife = 6;
+    constexpr int RiseSpan = 100, ScaleSpan = 6;
+    constexpr double RiseFactor = 4.0;                                                    // 0x6b8a44
+    constexpr double TiltFactor = static_cast<double>(std::bit_cast<float>(0x3f99999au)); // 0x6b8bb0, 1,2f
+    const float scaleArgument = p.scale;
+    p.life = SplashLife;
+    const double rise = static_cast<double>(random.Next() % RiseSpan) * Hundredth * RiseFactor;
+    p.verticalSpeed = F32(static_cast<double>(p.angles.x) * TiltFactor + rise);
+    p.scale = F32(static_cast<double>(random.Next() % ScaleSpan) * scaleStep + scaleArgument);
+    p.rotation = static_cast<float>(random.Next() % FullTurn);
+    p.start = p.position;
+}
+// 0x5480fd..0x548158 (6f2/2, 6f3/2) y 0x547f6b..0x547fa2 (6f4/4): x += cos(ángulo z) · 20 e y += sin(ángulo z) · 20
+// con fcos/fsin del ángulo crudo (sin pasar a radianes), z += la subida y el giro + 1. La 6f4/4 sigue con el apagado
+// de la 6f4 (0x547fc1); las otras multiplican la luz por 0,9090909f (0x6ba26c). Sin rand().
+Core::Expected<void, ParticleError> StepKundunSplash(Particle& p, IParticleTrigonometry* trigonometry)
+{
+    constexpr float Reach = 20.0f; // 0x6ba2f8 (double)
+    if (trigonometry == nullptr)
+        return Core::Unexpected(ParticleError::MissingClock);
+    const auto cosine = trigonometry->CosineProductPC53(static_cast<double>(p.angles.z), Reach);
+    if (!cosine.HasValue())
+        return Core::Unexpected(cosine.Error());
+    p.position.x = F32(cosine.Value() + static_cast<double>(p.position.x));
+    const auto sine = trigonometry->SineProductPC53(static_cast<double>(p.angles.z), Reach);
+    if (!sine.HasValue())
+        return Core::Unexpected(sine.Error());
+    p.position.y = F32(sine.Value() + static_cast<double>(p.position.y));
+    p.position.z = F32(static_cast<double>(p.verticalSpeed) + static_cast<double>(p.position.z));
+    p.rotation = F32(static_cast<double>(p.rotation) + 1.0);
+    if (p.type != KalimaWaterfallLast)
+    {
+        FadeLight(p, MistFade);
+        return {};
+    }
+    constexpr int LastFade = 8;
+    if (p.life < LastFade)
+        FadeLight(p, Fade);
+    else if (p.life > ShortLife)
+        FadeLight(p, Brighten);
     return {};
 }
 void StepFlareSix(Particle& p, Render::Models::CrtRandom& random)
@@ -275,6 +323,9 @@ void StepWaterfall(Particle& p, Render::Models::CrtRandom& random)
     if (p.type != KalimaWaterfallLast || p.subtype != BrazierFallSubtype)
     {
         p.scale = F32(static_cast<double>(p.scale) - SmallGrowth);
+        // 0x547f58: la 6f4/3 además gira 4 entre la escala y la caída.
+        if (p.type == KalimaWaterfallLast && p.subtype == KundunFallSubtype)
+            p.rotation = F32(static_cast<double>(p.rotation) + KundunFallTurn);
         p.velocity.z = F32(static_cast<double>(p.velocity.z) + Tenth);
     }
     constexpr int FirstFade = 5, LastFade = 8;
@@ -291,7 +342,9 @@ bool IsKalimaParticle(std::int32_t type, std::int32_t subtype)
         ((type == WaterfallSplash || type == WaterfallSplash + 1) && subtype == SplashObjectSubtype);
     const bool fanta = (type == KalimaFanta || type == CrywolfFanta) && (subtype == 0 || subtype == ShortFantaSubtype);
     return objectWaterfall || fanta ||
-           (type == KalimaWaterfallLast && (subtype == 1 || subtype == BrazierFallSubtype)) ||
+           (type == KalimaWaterfallLast && (subtype == 1 || subtype == KundunFallSubtype ||
+                                            subtype == KundunSplashLastSubtype || subtype == BrazierFallSubtype)) ||
+           ((type == WaterfallSplash || type == WaterfallSplash + 1) && subtype == KundunSplashSubtype) ||
            (type == KalimaWaterfallMist && subtype == BootsMistSubtype) ||
            (type == KalimaFlare && (subtype == FlareZero || subtype == FlareTrail || subtype == FlareSix ||
                                     subtype == FlareSeven || subtype == FlareNine)) ||
@@ -325,6 +378,29 @@ Core::Expected<void, ParticleError> CreateKalimaParticle(Particle& p, Render::Mo
         if (p.subtype == ShortFantaSubtype)
             p.life = ShortFantaLife;
         p.start = p.position;
+        return {};
+    }
+    if (p.type == KalimaWaterfallLast && p.subtype == KundunFallSubtype)
+    {
+        // 0x543dc0..0x543e0a: la vida 20, el giro, la escala 1,6f (0x3fcccccd) y la caída −7 − rand() % 5. A
+        // diferencia de la 6f4/0, no toca la luz: queda la del pedido.
+        constexpr int FallSpan = 5, FallBase = 7;
+        p.life = ShortLife;
+        p.rotation = static_cast<float>(random.Next() % FullTurn);
+        p.scale = std::bit_cast<float>(0x3fcccccdu);
+        p.velocity.z = static_cast<float>(-FallBase - random.Next() % FallSpan);
+        return {};
+    }
+    if (p.type == KalimaWaterfallLast && p.subtype == KundunSplashLastSubtype)
+    {
+        // 0x543e14..0x543e97: como la 6f2/2, con la escala de 0,2f (0x6b8854) por paso.
+        CreateKundunSplash(p, random, static_cast<double>(std::bit_cast<float>(0x3e4ccccdu)));
+        return {};
+    }
+    if (p.subtype == KundunSplashSubtype && (p.type == WaterfallSplash || p.type == WaterfallSplash + 1))
+    {
+        // 0x544295..0x544318: la escala de 0,1f (0x6b87b8) por paso.
+        CreateKundunSplash(p, random, Tenth);
         return {};
     }
     if (p.type < WaterfallSplash || p.type == KalimaWaterfallLast)
@@ -372,6 +448,9 @@ Core::Expected<void, ParticleError> StepKalimaParticle(Particle& p, Render::Mode
     }
     else if (p.type == KalimaFanta || p.type == CrywolfFanta)
         StepFanta(p);
+    else if ((p.type == KalimaWaterfallLast && p.subtype == KundunSplashLastSubtype) ||
+             (p.subtype == KundunSplashSubtype && (p.type == WaterfallSplash || p.type == WaterfallSplash + 1)))
+        return StepKundunSplash(p, trigonometry);
     else
         StepWaterfall(p, random);
     return {};

@@ -1034,7 +1034,7 @@ TEST(SkillRepliesTest, TheMonsterCancelSettlesBeforeTheFlag)
     caster.type = MonsterType;
     caster.flags78 = 0x108;
     Client::Scenes::ApplyMagicCancel(MagicCancel{0xc9, CasterKey}, tested->Resources());
-    EXPECT_EQ(caster.state110, 0x21);
+    EXPECT_EQ(caster.byte110, 0x21);
     EXPECT_EQ(caster.flags78, 0u);
 }
 

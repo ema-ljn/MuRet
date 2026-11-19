@@ -61,8 +61,10 @@ La limpieza de un actor independiente también debe desactivarlo aunque no tenga
 
 En `0x4f5660`, las muertes especiales del jugador transformado D1/D2/D3 y de los modelos `0x170`
 y `0x16b` desactivan el actor antes del primer creador. Un pool lleno deja continuar hasta sonido y
-gate de frame. Con capacidad disponible se conserva el límite del efecto CL11 en la CALL real:
-`0x4f58c2`, `0x4f595d` o `0x4f59ca`. El prefijo no cambia la acción. El cierre del registro propio
+gate de frame. ~~Con capacidad disponible se conserva el límite del efecto CL11 en la CALL real:
+`0x4f58c2`, `0x4f595d` o `0x4f59ca`.~~ Ya no corta ninguno (CL11): los huesos de `0x4f58c2` y `0x4f595d`
+(`World::CreateWizardModelEffect`) y los ocho pares `0xe5/0` y `0xe6/0` de `0x4f59ca` (lote de los tipos altos,
+novena vuelta) se crean; con la tabla llena, nada y sin `rand()`. El prefijo no cambia la acción. El cierre del registro propio
 del héroe precede al sorteo del sonido de Chaos Castle.
 
 El retorno del transporte D3/D7 no decide el resto del ataque al llegar: el original continúa después

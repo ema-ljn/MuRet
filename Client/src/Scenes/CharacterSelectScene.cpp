@@ -1499,6 +1499,9 @@ void CharacterSelectScene::DrawTheCharacters(SceneCanvas& canvas, float alpha, s
             drawn.object.scale = actor->scale;
             drawn.alpha = actor->alpha;
             drawn.safeZone = actor->safeZone != 0;
+            // 0x50bbff..0x50bc71: las guardas de la sombra del mismo 0x50ba30 (0x634851 → 0x510d00): el alpha desde
+            // 0,5, sin +0x3e4 y fuera de los mapas sin sombra (el 54 no es ninguno).
+            drawn.castsShadow = CastsShadow(*actor, map);
         }
         const bool isChosen = chosen != nullptr && chosen->slot == character.slot;
         // 0x50ba30: la base del lugar más +0xf4, que el dibujo dejó en 1 para el elegido vivo y en 0 para los
@@ -1559,6 +1562,10 @@ void CharacterSelectScene::DrawTheCharacters(SceneCanvas& canvas, float alpha, s
             }
             drawn.sprites = &m_world.FrameSprites();
             DrawCharacter(canvas.models, m_models, drawn, canvas.frameClock, CharacterDrawPass::Body);
+            // 0x50bcec: la sombra le copia la escala y la posición al 0x20b (WorldState::PlaceShadowModel), sólo en un
+            // frame del original.
+            if (scanFrames > 0 && DrawsTheShadow(drawn))
+                m_context.world->PlaceShadowModel(*actor);
             DrawTheTail(canvas, *actor, character.slot, drawn, *poseCarry, scan, scanFrames > 0);
             if (m_failure)
                 return;
@@ -1573,6 +1580,9 @@ void CharacterSelectScene::DrawTheCharacters(SceneCanvas& canvas, float alpha, s
             actor->bodyPose = PoseCharacterBody(m_models, drawn);
             if (actor->alpha >= PlayerModelAlpha)
                 m_context.world->PlacePlayerModel(*actor);
+            // 0x50bcec: la sombra le copia la escala y la posición al 0x20b (WorldState::PlaceShadowModel).
+            if (DrawsTheShadow(drawn))
+                m_context.world->PlaceShadowModel(*actor);
         }
     }
 }

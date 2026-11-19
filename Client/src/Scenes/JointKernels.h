@@ -35,6 +35,7 @@ struct TerrainAttributes;
 namespace Client::Scenes
 {
 struct ActorState;
+class IModelLibrary;
 struct SkillHitsRequest;
 class WorldState;
 } // namespace Client::Scenes
@@ -121,10 +122,14 @@ struct StepServices
     // El héroe ([0x743a170]): el 0x61c/0 compara su dueño con él (0x53b548). Sin él, el 0x61c/0 con dueño corta.
     const ActorState* hero = nullptr;
     // Los modelos compartidos (0x5769ad8 + tipo · 0xe0, su escala y su posición): el 0x614/0xc se pone en el modelo del
-    // dueño (0x536b1d) y el 0x62c/5..7 con dueño le escribe la posición al suyo (0x53bc42). Sin ellos, cortan.
+    // dueño (0x536b1d), el 0x62c/5..7 con dueño le escribe la posición al suyo (0x53bc42) y el 0x632/0 y /1 con dueño
+    // leen el del 0x20b (0x53c1eb). Sin ellos, cortan.
     WorldState* world = nullptr;
-    // El 0x613/0, /5 y /0x13 de ancho 80 (0x539a50). Sin ellos, cortan ahí.
+    // El 0x613/0, /5 y /0x13 de ancho 80 (0x539a50) y el 0x61c/0 del héroe (0x53b569). Sin ellos, cortan ahí.
     const VolleyServices* volley = nullptr;
+    // Los modelos (0x5769ad8): el 0x632/0 y /1 con dueño posan el 0x20b (Player\Shadow01) al llegar al suelo
+    // (0x53c1eb). Sin ellos, cortan ahí.
+    const IModelLibrary* models = nullptr;
 };
 
 // El dueño de un joint de las familias de este archivo, cuando es un personaje (ActorState): el objeto del original,

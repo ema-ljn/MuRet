@@ -16,9 +16,12 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Render/TextureSlot.h"
+#include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/DarkHorse.h"
+#include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameData.h"
+#include "Scenes/GameDrawTail.h"
 #include "Scenes/LoginActor.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/SceneCanvas.h"
@@ -27,6 +30,7 @@
 #include "Scenes/WorldRuntime.h"
 #include "Data/Terrain/TerrainObjects.h"
 #include "Render/Models/Animation.h"
+#include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/WizardModelEffects.h"
@@ -695,8 +699,10 @@ TEST(LoginSceneModelsTest, NativeLoginPosesUpdateTheDurableCarryAndIntermediateD
     EXPECT_EQ(tested.scene->Failure(), std::nullopt);
 }
 
-// El login de los tests de la pose: el mundo 56 con sus archivos, sin el cuervo, y un paso.
-void EnterTheLoginWithItsWorld(Harness& tested, Client::Scenes::WorldState& world)
+// El login de los tests de la pose: el mundo 56 con sus archivos, sin el cuervo, y un paso. Con `cloth`, el flujo
+// global de la tela: la rama del 0x50ba30 con la tela y Player.bmd.
+void EnterTheLoginWithItsWorld(Harness& tested, Client::Scenes::WorldState& world,
+                               Client::Render::Models::ClothWorld* cloth = nullptr)
 {
     auto attributes = Client::Tests::PlainTerrainAttributes(56, Client::Tests::AttributeCells::Bytes);
     std::fill(attributes.begin() + 4, attributes.end(), std::byte{0});
@@ -710,11 +716,61 @@ void EnterTheLoginWithItsWorld(Harness& tested, Client::Scenes::WorldState& worl
                                   Client::Tests::OzjOf(Client::Tests::ReadJpegVector("baseline-420.jpg")));
     Client::Tests::WriteSceneFile(tested.folder.Path(), "Object8/drop01.OZJ",
                                   Client::Tests::OzjOf(Client::Tests::ReadJpegVector("baseline-420.jpg")));
-    const auto entered = tested.Make(FixedSeed, nullptr, nullptr, &world).Enter();
+    const auto entered = tested.Make(FixedSeed, nullptr, cloth, &world).Enter();
     ASSERT_TRUE(entered.HasValue()) << entered.Error();
     for (auto& actor : world.Actors())
         actor.darkSpirit.reset();
     tested.Steps(1);
+}
+
+// 0x635206 → 0x510d00 → 0x50ba30 con el del login: la rama con la tela y Player.bmd mira las guardas de la sombra
+// (0x50bbff..0x50bc71, CastsShadow: el alpha desde 0,5 y sin +0x3e4; el mundo 56 es el mapa 55, con sombra) y, en un
+// frame del original, 0x60cf70 con el 0x20b (0x50bcec) le copia la escala y la posición del personaje
+// (WorldState::PlaceShadowModel), que la 0x632/0 y /1 leen al llegar al suelo. Con el alpha en 0,4 o con +0x3e4, no; un
+// dibujo intermedio tampoco.
+TEST(LoginSceneModelsTest, TheRealBranchPlacesTheShadowModelBehindItsGuards)
+{
+    constexpr std::uint16_t Shadow = Client::Data::Models::PlayerShadowModel;
+    auto world = std::make_unique<Client::Scenes::WorldState>();
+    Harness tested;
+    Client::Render::Models::ClothWorld cloth;
+    ASSERT_NO_FATAL_FAILURE(EnterTheLoginWithItsWorld(tested, *world, &cloth));
+    ASSERT_EQ(world->Runtime().map, 55);
+    auto& actor = world->Actors()[Client::Scenes::LoginActorSlot];
+    ASSERT_TRUE(actor.alive && actor.seen);
+    // Sin el cetro: su modelo no está en la biblioteca sintética y lo que cuelga cortaría en 0x50a169.
+    for (auto& hand : actor.hands)
+        hand.model = Client::Scenes::NoItemModel;
+    const auto drawAt = [&tested](Client::Core::Duration clock)
+    {
+        tested.scene->Render(tested.target.BeginFrame(clock), 0.0f);
+        tested.target.Present();
+        EXPECT_EQ(tested.scene->Failure(), std::nullopt);
+    };
+    using Client::Render::Models::OriginalFrameTime;
+
+    world->PlaceModel(Shadow, {});
+    drawAt(OriginalFrameTime);
+    EXPECT_EQ(world->ModelPlacement(Shadow).origin, actor.position);
+    EXPECT_EQ(world->ModelPlacement(Shadow).scale, actor.scale);
+
+    world->PlaceModel(Shadow, {});
+    drawAt(OriginalFrameTime);
+    EXPECT_EQ(world->ModelPlacement(Shadow).scale, 0.0f);
+
+    actor.alpha = 0.4f;
+    drawAt(OriginalFrameTime * 2);
+    EXPECT_EQ(world->ModelPlacement(Shadow).scale, 0.0f);
+
+    actor.alpha = 1.0f;
+    actor.byte3e4 = 1;
+    drawAt(OriginalFrameTime * 3);
+    EXPECT_EQ(world->ModelPlacement(Shadow).scale, 0.0f);
+
+    actor.byte3e4 = 0;
+    drawAt(OriginalFrameTime * 4);
+    EXPECT_EQ(world->ModelPlacement(Shadow).origin, actor.position);
+    tested.scene->Leave();
 }
 
 // 0x634b45..0x634b5e: al entrar, 120 mensajes vacíos dejan vacía el área vieja.
@@ -858,6 +914,91 @@ TEST(LoginSceneModelsTest, TheLoginDropsTheMeteorOfTheObject89AndKeepsGoing)
     ASSERT_EQ(tested.scene->Failure(), std::nullopt);
     EXPECT_TRUE(meteor.alive);
     EXPECT_EQ(meteor.life, 569);
+    tested.scene->Leave();
+}
+
+// El login dibuja los joints del mundo (0x635217 → 0x53c6a0(0), después de los objetos y antes de los efectos) y los
+// avanza (0x634d1d → 0x53c670, entre los efectos y las partículas: la cola común le resta 1 a la vida, 0x53c3ba). Un
+// tramo del 0x60f armado a mano sale en el pase de los modelos, con su textura, y un rayo de Kundun (0x613/3, sin
+// dueño, ancho 50) pierde una vida en un paso.
+TEST(LoginSceneModelsTest, TheLoginStepsAndDrawsTheJointsOfTheWorld)
+{
+    auto world = std::make_unique<Client::Scenes::WorldState>();
+    Harness tested;
+    auto attributes = Client::Tests::PlainTerrainAttributes(56, Client::Tests::AttributeCells::Bytes);
+    std::fill(attributes.begin() + 4, attributes.end(), std::byte{0});
+    Client::Tests::WriteSceneFile(tested.folder.Path(), "World56/EncTerrain56.att",
+                                  Client::Tests::EncryptTerrainAttributes(std::move(attributes)));
+    Client::Tests::WriteSceneFile(tested.folder.Path(), "World56/EncTerrain56.map",
+                                  Client::Tests::EncryptK16(Client::Tests::PlainTerrainMapping(56)));
+    const std::vector<std::byte> ozj = Client::Tests::OzjOf(Client::Tests::ReadJpegVector("baseline-420.jpg"));
+    Client::Tests::WriteSceneFile(tested.folder.Path(), "Interface/accept_box01.OZJ", ozj);
+    Client::Tests::WriteSceneFile(tested.folder.Path(), "World56/TileGrass01.OZJ", ozj);
+    Client::Tests::WriteSceneFile(tested.folder.Path(), "Object8/drop01.OZJ", ozj);
+    Client::Tests::WriteSceneFile(tested.folder.Path(), "World56/EncTerrain56.obj",
+                                  Client::Tests::EncryptK16(Client::Tests::PlainTerrainObjects(
+                                      56, 0, std::span<const Client::Data::Terrain::TerrainObject>{})));
+    Client::Render::Models::ClothWorld cloth;
+    const auto entered = tested.Make(FixedSeed, nullptr, &cloth, world.get()).Enter();
+    ASSERT_TRUE(entered.HasValue()) << entered.Error();
+    for (auto& actor : world->Actors())
+        actor.darkSpirit.reset();
+    auto& joints = world->DrawTail().joints;
+    Client::Scenes::JointState& drawn = joints[0];
+    drawn.alive = true;
+    drawn.type = 0x60f;
+    drawn.texture = 0x60f;
+    drawn.count = 1;
+    drawn.maximumCount = 3;
+    drawn.drawEnabled = 1;
+    drawn.blend = 1;
+    drawn.light = glm::vec3(1.0f);
+    drawn.points[0][2] = {11600.0f, 14100.0f, 300.0f};
+    drawn.points[0][3] = {11700.0f, 14100.0f, 300.0f};
+    drawn.points[1][2] = {11600.0f, 14200.0f, 300.0f};
+    drawn.points[1][3] = {11700.0f, 14200.0f, 300.0f};
+
+    tested.scene->Render(tested.target.BeginFrame(Client::Render::Models::OriginalFrameTime), 0.0f);
+    tested.target.Present();
+
+    ASSERT_EQ(tested.scene->Failure(), std::nullopt);
+    const std::vector<FrameEvent>& events = tested.target.frames.back().events;
+    const auto models = std::ranges::find(events, Kind::Models, &FrameEvent::kind);
+    ASSERT_NE(models, events.end());
+    const auto faces =
+        std::ranges::count_if(models->modelCommands,
+                              [&](const auto& command)
+                              {
+                                  return command.vertexCount > 0 && command.state.texture &&
+                                         command.state.texture->value == 0x60f &&
+                                         models->modelVertices.at(command.firstVertex).position == drawn.points[0][2];
+                              });
+    EXPECT_EQ(faces, 1);
+
+    drawn.alive = false;
+    glm::vec3 point{11679.0f, 14191.0f, 533.0f};
+    glm::vec3 angles{-10.0f, 0.0f, 40.0f};
+    const Client::World::FishEffectRequest request{.type = 0x613,
+                                                   .firstPosition = point,
+                                                   .secondPosition = point,
+                                                   .angles = angles,
+                                                   .subtype = 3,
+                                                   .ownerContext = nullptr,
+                                                   .scale = 50.0f,
+                                                   .key = 0,
+                                                   .skill = 0,
+                                                   .skillSerial = 0,
+                                                   .target = -1};
+    ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, cloth.random).HasValue());
+    const Client::Scenes::JointState& ray = joints[0];
+    ASSERT_TRUE(ray.alive);
+    ASSERT_EQ(ray.type, 0x613);
+    const std::int32_t life = ray.life;
+
+    tested.Steps(1);
+
+    ASSERT_EQ(tested.scene->Failure(), std::nullopt);
+    EXPECT_EQ(ray.life, life - 1);
     tested.scene->Leave();
 }
 } // namespace

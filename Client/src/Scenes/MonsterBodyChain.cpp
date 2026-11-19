@@ -108,13 +108,23 @@ Chained Drawn(const Core::Expected<void, std::string>& drawn)
 }
 
 // 0x43ed4a..0x43ed6c y sus copias del 0x193 al 0x197: al morir (+0x111 en 6) con el alpha por debajo de 0,5 (FCOMP con
-// C0: también un NaN), 0x4ee770(0, 0x607), los efectos por vértice de la CL11.
-Result CutWhenFading(const ActorState& actor, std::string_view address)
+// C0: también un NaN), 0x4ee770(0, 0x607, 0, 0, 0) con el modelo del tipo sobre las mallas de 0x5ffdf0 de este dibujo:
+// los 0x607/2 (Scenes/VertexEffects.h), en los frames del original.
+Result EmitWhenFading(MonsterBodyFrame& frame, std::uint32_t address)
 {
-    if (actor.animation.action == DeathAction && !(actor.alpha >= Half))
-        return Core::Unexpected(std::format("{}: los efectos por vértice del tipo {:#x} al morir (0x4ee770(0, 0x607), "
-                                            "CL11) no están portados",
-                                            address, actor.type));
+    constexpr std::int32_t FadingParticles = 0x607;
+    const ActorState& actor = frame.actor;
+    if (actor.animation.action != DeathAction || actor.alpha >= Half || !frame.originalFrame)
+        return {};
+    const MonsterBodyModel& model = frame.model;
+    const auto* found = model.models.Find(model.object.model);
+    if (found == nullptr)
+        return {};
+    if (auto emitted =
+            EmitVertexEffectsOf(*found, model.object.transform.scale, model.meshes, {.type = FadingParticles},
+                                {.particles = frame.particles, .worldClock = frame.worldClock}, frame.random);
+        !emitted.HasValue())
+        return Core::Unexpected(std::format("{:#x}: {}", address, emitted.Error()));
     return {};
 }
 
@@ -154,14 +164,38 @@ Result Shake(MonsterBodyFrame& frame, std::string_view address)
     return {};
 }
 
-// 0x439d90 con un monstruo (el tipo no es el 0x20a): con +0x110 en 0x21 o 0x22, 0x4ee770(6, 0x10a, 1 o 2) (CL11) y
-// después +0x110 en 0 y el sonido 0x88. MuRet solo pone 0 y 1 en +0x110 (las puertas del 30, MonsterStepCases.h).
-Result CutTheStruckGlow(const ActorState& actor)
+// 0x439d90 con un monstruo (el tipo no es el 0x20a): con +0x110 en 0x21 o 0x22, 0x4ee770(6, 0x10a, 1 o 2, 0, 0) con
+// el modelo del tipo sobre las mallas de este dibujo (las piedras 0x10b/2 o /3 de cada esquina de la malla 6, en los
+// frames del original) y después +0x110 en 0 y el sonido 0x88. Esos dos valores los pone 0x439d40 al llegar el 1B con
+// 0xc9 o 0xca (SettleMonsterFlags, ActorFlags.h); las puertas del 30 usan 0 y 1 y 0x42dcb0, 3 (ActorState::byte110).
+Result StrikeTheGlow(MonsterBodyFrame& frame)
 {
-    if (actor.byte110 == 0x21 || actor.byte110 == 0x22)
-        return Core::Unexpected(std::format("0x439dc5: los efectos por vértice del tipo {:#x} con +0x110 en {:#x} "
-                                            "(0x4ee770(6, 0x10a), CL11) no están portados",
-                                            actor.type, actor.byte110));
+    constexpr std::uint8_t BlueStrike = 0x21, GreenStrike = 0x22;
+    constexpr std::int32_t StruckMesh = 6, Stones = 0x10a, BlueStones = 1, GreenStones = 2;
+    constexpr std::int32_t StruckSound = 0x88;
+    ActorState& actor = frame.actor;
+    if (actor.byte110 != BlueStrike && actor.byte110 != GreenStrike)
+        return {};
+    if (frame.originalFrame)
+    {
+        if (frame.effects == nullptr)
+            return Core::Unexpected(std::format("0x439dc5: faltan los efectos con modelo para los vértices del tipo "
+                                                "{:#x}",
+                                                actor.type));
+        MonsterBodyModel& model = frame.model;
+        const auto* found = model.models.Find(model.object.model);
+        if (found != nullptr)
+        {
+            const VertexEffectCall call{
+                .mesh = StruckMesh, .type = Stones, .subtype = actor.byte110 == BlueStrike ? BlueStones : GreenStones};
+            if (auto emitted = EmitVertexEffectsOf(*found, model.object.transform.scale, model.meshes, call,
+                                                   {.effects = frame.effects}, frame.random);
+                !emitted.HasValue())
+                return Core::Unexpected(std::format("0x439dc5: {}", emitted.Error()));
+        }
+    }
+    actor.byte110 = 0;
+    RequestBodySound(frame, StruckSound);
     return {};
 }
 
@@ -191,7 +225,9 @@ constexpr std::array<FallingPiece, 8> FallingPieces{{
 
 // 0x43ee84..0x43f14c: los ocho pedazos (0x518cf0(pedazo, punto del hueso 4, ángulos y luz de Kundun, subtipo,
 // Kundun de dueño, clave, +0x89, 0, 0, 0)) y el 0x128/2 en su posición (0x43f144, sin dueño y con la clave en −1);
-// después, 0x43fc04. Con la tabla llena, cada alta no hace nada ni saca rand().
+// después, 0x43fc04. Con la tabla llena, cada alta no hace nada ni saca rand(). El punto es el de 0x4ec110 con
+// Translate en 1: la escala (+0x68) y el origen (+0x6c) que 0x5ffdf0 copió al modelo compartido en este mismo dibujo,
+// los de `model.object.transform` (MonsterDrawing.cpp los publica con PlaceModel en el frame del original).
 Result ScatterKundun(MonsterBodyFrame& frame)
 {
     ActorState& actor = frame.actor;
@@ -243,10 +279,15 @@ Result DrawKundun(MonsterBodyFrame& frame)
     {
         // 0x43edff..0x43ee38: el sonido 0x1dd, +0x60 en 10 y la malla 0 con 2 y la textura +0x58; 0x43ee3d..0x43ee7e:
         // el temblor; después 0x4ec110 sobre el hueso 0xc0/0x30 y las partículas 0x124, 0x11d y 0x11e de 0x518cf0.
+        // El original dibuja una vez por cuadro, después de 0 a N pasos (ADR 0005): entre frames del original (una
+        // copia proyectada de Kundun) MuRet dibuja la malla, pero no tiembla ni suelta los pedazos ni saca sus rand(),
+        // como los creadores de la tormenta.
         RequestBodySound(frame, 0x1dd);
         actor.dword60 = 10;
         if (auto drawn = DrawMeshPass(model, 0, BaseFlags, MeshArgsOf(actor)); !drawn.HasValue())
             return drawn;
+        if (!frame.originalFrame)
+            return {};
         if (auto shaken = Shake(frame, "0x43ee7e"); !shaken.HasValue())
             return shaken;
         return ScatterKundun(frame);
@@ -256,49 +297,56 @@ Result DrawKundun(MonsterBodyFrame& frame)
         // 0x43f182: +0x60 no es 0x5a, el sonido 0x1de; 0x43f195: +0x60 en 0x5a; 0x43f1a6..0x43f243: 0x56 vueltas,
         // cada una con su rand() % 10, los ángulos (−10, 0, (r + 10) · i) y el punto (x, y, z + 200), los dos de la
         // pila, que reciben el 0x613/3 y el 0x6ee/3 (0x530860(tipo, punto, punto, ángulos, 3, sin dueño, 50, 0, 0, 0,
-        // −1)). Después el temblor (0x43f249..0x43f269) y el cuerpo, que ya tiene +0x60 en 0x5a.
+        // −1)). Después el temblor (0x43f249..0x43f269) y el cuerpo, que ya tiene +0x60 en 0x5a. Como en la rama de
+        // 0x43edff, entre frames del original (la copia proyectada de Kundun, con +0x60 en 0x5a) MuRet dibuja el
+        // cuerpo, pero no suelta los rayos, no tiembla ni saca sus rand(): el original lo hace una vez por cuadro.
         RequestBodySound(frame, 0x1de);
         actor.dword60 = Fallen;
-        if (frame.joints.empty())
-            return Core::Unexpected(std::string("0x43f20d: falta la tabla de joints (0x530860) para Kundun al morir"));
-        constexpr int Rays = 0x56;             // 0x43f23d
-        constexpr std::int32_t Spread = 10;    // 0x43f1ba
-        constexpr double SpreadBase = 10.0;    // 0x6b87a8
-        constexpr double Rise = 200.0;         // 0x6b8928
-        constexpr float Tilt = -10.0f;         // 0x43f1a6: 0xc1200000
-        constexpr float RayWidth = 50.0f;      // 0x43f1cc: 0x42480000
-        constexpr std::int32_t RaySubtype = 3; // 0x43f1d9
-        constexpr std::array<std::int32_t, 2> RayJoints{0x613, 0x6ee};
-        glm::vec3 angles{Tilt, 0.0f, 0.0f};
-        glm::vec3 point{};
-        for (int ray = 0; ray < Rays; ++ray)
+        if (frame.originalFrame)
         {
-            angles.x = Tilt;
-            angles.y = 0.0f;
-            const auto spread = static_cast<std::int32_t>(frame.random.Next() % Spread);
-            point = {actor.position.x, actor.position.y, F32(D(actor.position.z) + Rise)};
-            angles.z = F32((static_cast<double>(spread) + SpreadBase) * static_cast<double>(ray));
-            for (const std::int32_t type : RayJoints)
+            constexpr int Rays = 0x56;             // 0x43f23d
+            constexpr std::int32_t Spread = 10;    // 0x43f1ba
+            constexpr double SpreadBase = 10.0;    // 0x6b87a8
+            constexpr double Rise = 200.0;         // 0x6b8928
+            constexpr float Tilt = -10.0f;         // 0x43f1a6: 0xc1200000
+            constexpr float RayWidth = 50.0f;      // 0x43f1cc: 0x42480000
+            constexpr std::int32_t RaySubtype = 3; // 0x43f1d9
+            constexpr std::array<std::int32_t, 2> RayJoints{0x613, 0x6ee};
+            glm::vec3 angles{Tilt, 0.0f, 0.0f};
+            glm::vec3 point{};
+            for (int ray = 0; ray < Rays; ++ray)
             {
-                const World::FishEffectRequest request{.type = type,
-                                                       .firstPosition = point,
-                                                       .secondPosition = point,
-                                                       .angles = angles,
-                                                       .subtype = RaySubtype,
-                                                       .ownerContext = nullptr,
-                                                       .scale = RayWidth,
-                                                       .key = 0,
-                                                       .skill = 0,
-                                                       .skillSerial = 0,
-                                                       .target = -1};
-                const auto created = CreateFaunaJoint(frame.joints, request, frame.random);
-                if (!created.HasValue())
+                angles.x = Tilt;
+                angles.y = 0.0f;
+                const auto spread = static_cast<std::int32_t>(frame.random.Next() % Spread);
+                // Sin la tabla, corta en la primera 0x530860, después del rand() de 0x43f1b4.
+                if (frame.joints.empty())
                     return Core::Unexpected(
-                        std::format("{}: {}", type == RayJoints[0] ? "0x43f20d" : "0x43f234", created.Error()));
+                        std::string("0x43f20d: falta la tabla de joints (0x530860) para Kundun al morir"));
+                point = {actor.position.x, actor.position.y, F32(D(actor.position.z) + Rise)};
+                angles.z = F32((static_cast<double>(spread) + SpreadBase) * static_cast<double>(ray));
+                for (const std::int32_t type : RayJoints)
+                {
+                    const World::FishEffectRequest request{.type = type,
+                                                           .firstPosition = point,
+                                                           .secondPosition = point,
+                                                           .angles = angles,
+                                                           .subtype = RaySubtype,
+                                                           .ownerContext = nullptr,
+                                                           .scale = RayWidth,
+                                                           .key = 0,
+                                                           .skill = 0,
+                                                           .skillSerial = 0,
+                                                           .target = -1};
+                    const auto created = CreateFaunaJoint(frame.joints, request, frame.random);
+                    if (!created.HasValue())
+                        return Core::Unexpected(
+                            std::format("{}: {}", type == RayJoints[0] ? "0x43f20d" : "0x43f234", created.Error()));
+                }
             }
+            if (auto shaken = Shake(frame, "0x43f269"); !shaken.HasValue())
+                return shaken;
         }
-        if (auto shaken = Shake(frame, "0x43f269"); !shaken.HasValue())
-            return shaken;
     }
     if (actor.dword60 < Fallen)
         return {};
@@ -390,7 +438,7 @@ Result DrawThe197(MonsterBodyFrame& frame)
     if (auto drawn = DrawMeshPass(model, 6, BaseFlags, last); !drawn.HasValue())
         return drawn;
     // 0x43fb97: 0x439d90.
-    return CutTheStruckGlow(actor);
+    return StrikeTheGlow(frame);
 }
 
 // 0x43ed20 con los tipos de 0x191 a 0x197, hasta 0x43fc04.
@@ -402,7 +450,7 @@ Result DrawTheLateChainBody(MonsterBodyFrame& frame)
     {
     case 0x191:
     {
-        if (auto cut = CutWhenFading(actor, "0x43ed6c"); !cut.HasValue())
+        if (auto cut = EmitWhenFading(frame, 0x43ed6c); !cut.HasValue())
             return cut;
         // 0x43ed71..0x43edb7: RenderBody(2) sin la malla oculta y la malla 0 con 0x48 y Chrome01.
         BodyPassArgs args = ActorPassArgs(actor);
@@ -414,7 +462,7 @@ Result DrawTheLateChainBody(MonsterBodyFrame& frame)
     case 0x192:
         return DrawKundun(frame);
     case 0x193:
-        if (auto cut = CutWhenFading(actor, "0x43f514"); !cut.HasValue())
+        if (auto cut = EmitWhenFading(frame, 0x43f514); !cut.HasValue())
             return cut;
         // 0x43f519..0x43f575: RenderBody(2) y (0,5; 0,1; 0) con la malla 0 cromada.
         if (auto drawn = DrawBodyPass(model, BaseFlags, ActorPassArgs(actor)); !drawn.HasValue())
@@ -423,7 +471,7 @@ Result DrawTheLateChainBody(MonsterBodyFrame& frame)
         return DrawMeshPass(model, 0, ChromeFlags, MeshArgsOf(actor));
     case 0x194:
     {
-        if (auto cut = CutWhenFading(actor, "0x43f5b9"); !cut.HasValue())
+        if (auto cut = EmitWhenFading(frame, 0x43f5b9); !cut.HasValue())
             return cut;
         // 0x43f5be..0x43f63e: RenderBody(2) sin la malla oculta y (0,25; 0,2; 0,1) con las mallas 0 y 2 cromadas.
         BodyPassArgs args = ActorPassArgs(actor);
@@ -435,7 +483,7 @@ Result DrawTheLateChainBody(MonsterBodyFrame& frame)
     }
     case 0x195:
     {
-        if (auto cut = CutWhenFading(actor, "0x43f682"); !cut.HasValue())
+        if (auto cut = EmitWhenFading(frame, 0x43f682); !cut.HasValue())
             return cut;
         // 0x43f687..0x43f738: con el subtipo 9, (0,3; 0,1; 0,1); la malla 0 aditiva y las 1 a 3 con 2.
         const bool dark = actor.subtype == 9;
@@ -468,11 +516,11 @@ Result DrawTheLateChainBody(MonsterBodyFrame& frame)
         // 0x43f7df..0x43f836: las mallas 0 y 2 cromadas y, con el subtipo 9, 0x439d90.
         if (auto drawn = DrawMeshes(model, {0, 2}, ChromeFlags, args); !drawn.HasValue())
             return drawn;
-        return dark ? CutTheStruckGlow(actor) : Result{};
+        return dark ? StrikeTheGlow(frame) : Result{};
     }
     case 0x196:
     {
-        if (auto cut = CutWhenFading(actor, "0x43f87d"); !cut.HasValue())
+        if (auto cut = EmitWhenFading(frame, 0x43f87d); !cut.HasValue())
             return cut;
         // 0x43f882..0x43f8ef: RenderBody(2) y (0,5; sin(T · 0,002f) · 0,3f + 0,7f; 0,5) con la malla 0 cromada al
         // alpha 0,8.
@@ -487,7 +535,7 @@ Result DrawTheLateChainBody(MonsterBodyFrame& frame)
         return DrawMeshPass(model, 0, ChromeFlags, args);
     }
     default:
-        if (auto cut = CutWhenFading(actor, "0x43f933"); !cut.HasValue())
+        if (auto cut = EmitWhenFading(frame, 0x43f933); !cut.HasValue())
             return cut;
         return DrawThe197(frame);
     }

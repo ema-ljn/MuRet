@@ -164,12 +164,12 @@ void SettleMonsterFlags(ActorState& actor)
     if ((actor.flags78 & Stunned) == Stunned)
     {
         actor.flags78 -= Stunned;
-        actor.state110 = 0x21;
+        actor.byte110 = 0x21;
     }
     else if ((actor.flags78 & Frozen) == Frozen)
     {
         actor.flags78 -= Frozen;
-        actor.state110 = 0x22;
+        actor.byte110 = 0x22;
     }
 }
 } // namespace Client::Scenes

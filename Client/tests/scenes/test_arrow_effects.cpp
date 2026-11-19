@@ -467,48 +467,78 @@ TEST(ArrowEffectsTest, TheMountedBowsShootLikeOnFoot)
     }
 }
 
-// Las armas cuyas flechas piden algo sin portar cortan en su dirección, con lo de antes: en el paso, la 0xe1 (4/6) en
-// sus partículas 0x608..0x60a, después de sus dos sprites y de los rand() del punto.
-
-TEST(ArrowEffectsTest, TheArrowsOfUnportedEffectsCut)
+// 0x5269ed..0x526a9a: el arma 4/6 tira la 0xe1, que en cada paso, después del rand() de la luz y de sus dos sprites,
+// saca cuatro veces el punto al azar ((& 31) − 16; (& 63) − 32; (& 31) − 16) y la flor 0x608 + rand() % 3 de 1 con
+// sus ángulos y su luz (0x526a8b; la flor nace con cinco rand() más, 0x542c4b: vida rand() % 10 + 15, escala
+// ((rand() & 7) + 4) · 0,03f, luz 1 y la velocidad ((& 31) − 16; (& 31) − 16; (& 31) − 32) · 0,1f). Con la tabla de
+// partículas llena, los mismos rand() del punto y del tipo. El paso empieza con el CrtRandom en 0x1234; lo esperado
+// sale de arrowflowers.py (0x5269ed..0x526a9a y 0x542c4b en una x87 aparte), no de CreateChecked.
+TEST(ArrowEffectsTest, TheNatureArrowScattersFourFlowers)
 {
-    struct Case
+    struct Flower
     {
-        std::string_view name;
-        std::uint16_t right;
-        std::uint16_t left;
-        std::string_view creationCut;
-        int creationDraws;
-        std::string_view stepCut;
-        int stepDraws;
+        std::int32_t type;
+        glm::vec3 point;
+        std::int32_t life;
+        std::uint32_t scale;
+        std::array<std::uint32_t, 3> velocity;
     };
-    const std::array cases{Case{"4/6", 0xffff, 0x806, "", 0, "0x526a8b", 1 + 4}};
-    for (const Case& probe : cases)
+    constexpr std::array<Flower, 4> Flowers{{
+        {0x608, {1013, 1021, 291}, 19, 0x3e570a3du, {0x0u, 0x3fa66667u, 0xc019999au}},
+        {0x60a, {986, 982, 299}, 21, 0x3df5c28fu, {0x3f666667u, 0x3ecccccdu, 0xc02ccccdu}},
+        {0x609, {1011, 982, 289}, 20, 0x3e8a3d70u, {0xbf19999au, 0x3f800000u, 0xbfc00000u}},
+        {0x609, {987, 1026, 284}, 22, 0x3e3851ebu, {0xbf800000u, 0xbf19999au, 0xc0266667u}},
+    }};
+    for (const bool full : {false, true})
     {
-        SCOPED_TRACE(probe.name);
+        SCOPED_TRACE(full);
         ArrowWorld tested(0);
-        const Weapon weapon{probe.name, probe.right, probe.left, 0x2e, 0};
+        const Weapon weapon{"4/6", 0xffff, 0x806, 0x2e, 0};
         ActorState& hero = tested.Archer(weapon, weapon.action, NoTarget);
-
         const auto struck = StepTheAttack(hero, HeroSlot, tested.Context());
-
-        const int beforeTheArrow = CountingWithoutTarget + 2 * SkillRead + ShotReads + OwnRecord;
-        if (!probe.creationCut.empty())
-        {
-            EXPECT_TRUE(HasError(struck, probe.creationCut)) << ErrorOf(struck);
-            EXPECT_EQ(DrawsSince(Seed, tested.random), beforeTheArrow + probe.creationDraws);
-            continue;
-        }
         ASSERT_TRUE(struck.HasValue()) << struck.Error();
         const auto arrows = tested.Arrows();
         ASSERT_EQ(arrows.size(), 1u);
-        const CrtRandom before = tested.random;
+        ModelEffect& arrow = *arrows.front();
+        ASSERT_EQ(arrow.type, 0xe1);
+        arrow.transform.position = {1000.0f, 1000.0f, 300.0f};
+        arrow.transform.angles = {0.0f, 15.0f, 0.0f};
+        if (full)
+            tested.FillTheParticles();
+        tested.random = CrtRandom(0x1234u);
 
-        const auto stepped = StepArrow(*arrows.front(), nullptr, tested.StepContext());
+        const auto stepped = StepArrow(arrow, nullptr, tested.StepContext());
 
-        EXPECT_TRUE(HasError(stepped, probe.stepCut)) << ErrorOf(stepped);
-        EXPECT_EQ(DrawsSince(before.State(), tested.random), probe.stepDraws);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(std::ranges::count_if(tested.sprites.Sprites(), [](const auto& sprite) { return sprite.alive; }), 2);
+        EXPECT_EQ(arrow.transform.angles.y, 45.0f);
+        if (full)
+        {
+            // La luz y los cuatro del punto y del tipo de cada flor: 17.
+            EXPECT_EQ(tested.random.State(), 0x0e390577u);
+            EXPECT_TRUE(std::ranges::none_of(tested.particles.All(), [](const Client::World::Particle& particle)
+                                             { return particle.type >= 0x608 && particle.type <= 0x60a; }));
+            continue;
+        }
+        EXPECT_EQ(tested.random.State(), 0x8946c5bbu);
+        for (std::size_t index = 0; index < Flowers.size(); ++index)
+        {
+            SCOPED_TRACE(index);
+            const Flower& expected = Flowers[index];
+            const Client::World::Particle& flower = tested.particles.All()[index];
+            ASSERT_TRUE(flower.alive);
+            EXPECT_EQ(flower.type, expected.type);
+            EXPECT_EQ(flower.subtype, 0);
+            EXPECT_EQ(flower.position, expected.point);
+            EXPECT_EQ(flower.angles, (glm::vec3{0.0f, 15.0f, 0.0f}));
+            EXPECT_EQ(flower.light, glm::vec3(1.0f));
+            EXPECT_EQ(std::bit_cast<std::uint32_t>(flower.scale), expected.scale);
+            EXPECT_EQ(flower.life, expected.life);
+            EXPECT_EQ(std::bit_cast<std::uint32_t>(flower.velocity.x), expected.velocity[0]);
+            EXPECT_EQ(std::bit_cast<std::uint32_t>(flower.velocity.y), expected.velocity[1]);
+            EXPECT_EQ(std::bit_cast<std::uint32_t>(flower.velocity.z), expected.velocity[2]);
+        }
+        EXPECT_FALSE(tested.particles.All()[4].alive);
     }
 }
 
@@ -872,14 +902,17 @@ TEST(ArrowEffectsTest, TheArrowRainCountsTheVolley)
     }
 }
 
-// La skill 0x2e (0x53df2a), con blanco y sin él, en Lorencia y en Devias: no sale flecha sino el efecto 0x13a con el
-// blanco de dueño, +0x8a del que tira, el lugar y la bandera; vida 20, escala 1,8f, +0x64 en −2, la velocidad (0; −30;
-// 0), la luz (0,3f; 0,8f; 1), la boca (−10; −80; 200) girada y la x de los ángulos en −30. Su joint 0x632/4 corta
-// (0x51e01a, CL11), antes de la cuenta de la tanda.
+// La skill 0x2e (0x53df2a), con blanco y sin él, en Lorencia, en Devias y en Icarus (10): no sale flecha sino el efecto
+// 0x13a con el blanco de dueño, +0x8a del que tira, el lugar y la bandera; vida 20, escala 1,8f, +0x64 en −2, la
+// velocidad (0; −30; 0), la luz (0,3f; 0,8f; 1), la boca (−10; −80; 200) girada y la x de los ángulos en −30. Después,
+// su joint 0x632/4 (0x51e01a: la posición y los ángulos del 0x13a, el efecto de dueño, ancho 40, clave 0x32, sin
+// rand()), la cuenta de la tanda en +0x8c (0x51e01f, con el registro propio) y, de vuelta en 0x53e75b, la tanda uno
+// más. Con blanco, el paso tira dos veces (0x504060 y el caso 0x2e de 0x504453, con el sonido 0x26e): dos 0x13a, cada
+// uno con su joint.
 
-TEST(ArrowEffectsTest, TheBlastSkillLeavesItsEffectAndCuts)
+TEST(ArrowEffectsTest, TheBlastSkillLeavesItsEffectAndItsJoint)
 {
-    for (const std::int32_t map : {0, 2})
+    for (const std::int32_t map : {0, 2, 10})
     {
         for (const bool withTarget : {true, false})
         {
@@ -892,14 +925,44 @@ TEST(ArrowEffectsTest, TheBlastSkillLeavesItsEffectAndCuts)
 
             const auto struck = StepTheAttack(hero, HeroSlot, tested.Context());
 
-            EXPECT_TRUE(HasError(struck, "0x51e01a")) << ErrorOf(struck);
-            const int beforeTheShot =
-                withTarget ? CountingWithTarget + SkillRead : CountingWithoutTarget + 2 * SkillRead;
-            EXPECT_EQ(DrawsSince(Seed, tested.random), beforeTheShot + ShotReads + OwnRecord);
-            EXPECT_EQ(tested.world.OwnCharacter().bytef04, 9);
+            ASSERT_TRUE(struck.HasValue()) << ErrorOf(struck);
+            // Cada tiro: las lecturas, el registro propio de 0x53d9a0, el de la cuenta del 0x13a y el de la tanda.
+            constexpr int BlastShot = ShotReads + OwnRecord + OwnRecord + OwnRecord;
+            const int draws = withTarget ? CountingWithTarget + SkillRead + 2 * BlastShot + AfterTheArrow
+                                         : CountingWithoutTarget + 2 * SkillRead + BlastShot + SkillRead;
+            EXPECT_EQ(DrawsSince(Seed, tested.random), draws);
+            const std::size_t shots = withTarget ? 2 : 1;
+            EXPECT_EQ(tested.world.OwnCharacter().bytef04, static_cast<std::uint8_t>(9 + shots));
             EXPECT_EQ(tested.world.Runtime().lastShotSkill, 0x2eu);
             EXPECT_TRUE(tested.Arrows().empty());
+            // Con blanco, el 0x26e del caso 0x2e (0x5044ad) y el de pegar (0x505224, 0x46 más rand() & 3).
+            ASSERT_EQ(tested.sounds.size(), withTarget ? 2u : 0u);
+            if (withTarget)
+            {
+                EXPECT_EQ(tested.sounds.front(), 0x26e);
+            }
             const auto effects = tested.world.Map().effects.Effects();
+            const auto& joints = tested.world.DrawTail().joints;
+            std::size_t blasts = 0;
+            for (const ModelEffect& effect : effects)
+            {
+                if (!effect.alive || effect.type != 0x13a)
+                    continue;
+                SCOPED_TRACE(blasts);
+                EXPECT_EQ(effect.word8c, static_cast<std::uint16_t>(9 + blasts));
+                const auto& joint = joints[blasts];
+                ASSERT_TRUE(joint.alive);
+                EXPECT_EQ(joint.type, 0x632);
+                EXPECT_EQ(joint.subtype, 4);
+                EXPECT_EQ(joint.ownerContext, &effect);
+                EXPECT_EQ(joint.width, 40.0f);
+                EXPECT_EQ(joint.key, 0x32);
+                EXPECT_EQ(joint.position, effect.transform.position);
+                EXPECT_EQ(joint.angles, effect.transform.angles);
+                ++blasts;
+            }
+            EXPECT_EQ(blasts, shots);
+            EXPECT_FALSE(joints[shots].alive);
             const auto blast = std::ranges::find_if(effects, [](const ModelEffect& effect)
                                                     { return effect.alive && effect.type == 0x13a; });
             ASSERT_NE(blast, effects.end());
@@ -1634,12 +1697,13 @@ TEST(ArrowEffectsTest, TheAquagoldArrowFallsAndBounces)
 
 // Las skills de tiro (0x34, 0x33 y 0x2e) van a 0x53e741: el tiro de 0x53d9a0 (el registro propio del héroe, la skill en
 // [0x5767948], el sonido 0x82 de la 0x33 y una flecha con su alta, que abre y cierra el registro propio otra vez) y
-// cortan en el registro propio de 0x53e75b (hito 4); la 0x2e corta antes, en el efecto 0x13a de 0x53df2a (hito 4), y la
-// 0x34 no llega: corta en 0x4f9899. La bandera de la 0x18 sin blanco tira el abanico de 0x53e2e0: tres flechas con la z
-// de los ángulos del héroe en 0, 15 y −15, que vuelve a 0, y corta en 0x53e365; con la 0xa24 o la 0xa25 en +0x2b8,
-// cuatro en 5, 15, −5 y −15, que queda en 15 (Q-C1181), y corta en 0x53e4dd. Cada tiro saca los 3.848 rand() del
-// registro propio de 0x53d9a0 y otros tantos en la salida del alta. El brillo 0x53e642 de la 0xa25 se cubre con el
-// cuerpo, los pools y el RNG intercalado abajo. En Lorencia, en Devias y en Icarus (10).
+// cortan en el registro propio de 0x53e75b (hito 4); la 0x2e (el efecto 0x13a de 0x53df2a) está en
+// TheBlastSkillLeavesItsEffectAndItsJoint, y la 0x34 no llega: corta en 0x4f9899. La bandera de la 0x18 sin blanco tira
+// el abanico de 0x53e2e0: tres flechas con la z de los ángulos del héroe en 0, 15 y −15, que vuelve a 0, y corta en
+// 0x53e365; con la 0xa24 o la 0xa25 en +0x2b8, cuatro en 5, 15, −5 y −15, que queda en 15 (Q-C1181), y corta en
+// 0x53e4dd. Cada tiro saca los 3.848 rand() del registro propio de 0x53d9a0 y otros tantos en la salida del alta. El
+// brillo 0x53e642 de la 0xa25 se cubre con el cuerpo, los pools y el RNG intercalado abajo. En Lorencia, en Devias y en
+// Icarus (10).
 
 TEST(ArrowEffectsTest, TheSkillShotsAndTheFanContinueAfterShooting)
 {
@@ -1658,7 +1722,6 @@ TEST(ArrowEffectsTest, TheSkillShotsAndTheFanContinueAfterShooting)
     const int withTarget = CountingWithTarget + SkillRead + ShotReads;
     const int withoutTarget = CountingWithoutTarget + 2 * SkillRead + ShotReads;
     const std::array cases{
-        Case{"la 0x2e", 0x2e, VictimSlot, 0xffff, "0x51e01a", {}, 0.0f},
         Case{"la 0x33", 0x33, NoTarget, 0xffff, "", {0.0f}, 0.0f},
         Case{"la 0x18 sin blanco", 0x18, NoTarget, 0xffff, "", {0.0f, 15.0f, -15.0f}, 0.0f},
         Case{"la 0x18 con la 0xa24", 0x18, NoTarget, 0xa24, "", {5.0f, 15.0f, -5.0f, -15.0f}, 15.0f},

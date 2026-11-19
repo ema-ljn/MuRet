@@ -119,7 +119,9 @@ struct ActorState
     // +0x110 (0x511290 lo pone en 0, 0x511c69) y +0x100: 0x42d890 los pone en 1 y en 0x12c cuando el 286 o el 287 del
     // mapa 30 terminan la acción 5 (0x42d8fd y 0x42d904); 0x42da90 los lee y los escribe: abiertas y el tiempo que les
     // queda, que baja 1 en cada paso (StepTheCastleObject, MonsterStepCases.h). 0x42dcb0 pone +0x110 en 3 al pegar el
-    // 0x19e y el 0x19f (CL9 hito 3).
+    // 0x19e y el 0x19f (CL9 hito 3). 0x439d40 (el 1B con 0xc9 o 0xca, 0x4cbfc9 y 0x4cbfde) lo pone en 0x21 o 0x22 si
+    // el tipo no es el 0x20a, y 0x439d90 (0x43f836 y 0x43fb99, el dibujo del 0x195/9 y del 0x197) lo lee con esos dos
+    // valores, suelta las piedras de la malla 6 y lo vuelve a 0 (StrikeTheGlow, MonsterBodyChain.cpp).
     std::uint8_t byte110 = 0;
     std::int32_t dword100 = 0;
     // +0x428: −0x80 desde 0x511290 (0x511c77); el 68 lo pone en 0x96 (0x4e0b8a), y 0x4fd5f0 cuenta hasta bajarlo.
@@ -357,8 +359,6 @@ struct ActorState
     std::uint8_t byte38e = 0;
     // Lo que escriben las skills que llegan (CL9 hito 4, Scenes/SkillReplies.h). Qué pone 0x511290 en cada uno, sin
     // leer: quedan en 0 hasta que llega la primera.
-    // +0x110: el estado del monstruo. 0x439d40 (el 1B con 0xc9 o 0xca) lo pone en 0x21 o 0x22 si no es un 0x20a.
-    std::uint8_t state110 = 0;
     // +0x38d: si salió la última skill de este personaje: el bit 15 del blanco del 19 (0x4cc530) y del 69 (0x4cc290).
     // Lo miran las ramas 0x33, 0x37 y 0x44 a 0x48 de 0x4cc530. El A8 lo pone en 0 en el objeto del cuervo, no acá.
     std::uint8_t skillSucceeded = 0;

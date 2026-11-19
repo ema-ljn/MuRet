@@ -104,9 +104,21 @@ inline constexpr std::int32_t Particle67 = 0x67;
 inline constexpr std::int32_t Particle68 = 0x68;
 // La órbita (0x60f/3): nace con 60 de vida, y 548550 no la dibuja mientras la conserve, salvo la /4 (la de la
 // antorcha de Blood Castle, que nace con 40). La /0 (la del conjunto completo, 0x510339) nace y gira igual que la
-// /3; con su personaje en ciertas acciones pasa a ser la /1, que sólo se apaga (0x54735c).
+// /3; con su dueño (el personaje del conjunto, o el calco 0x61d de 0x52b8ff y 0x52b977) en ciertas acciones pasa a
+// ser la /1, que sólo se apaga (0x54735c).
 inline constexpr std::int32_t OrbitParticle = 0x60f;
 inline constexpr std::int32_t OrbitLife = 60;
+// Las flores 608, 609 y 60a (Skill\flower1..3.tga) de la flecha 0xe1 (0x526a8b): nacen en 0x542c4b sin leer el
+// subtipo y su paso (0x546da6) las deja caer, la /0 y la /1 con su deriva, hasta el terreno (0x5f93c0), girando.
+inline constexpr std::int32_t FirstFlowerParticle = 0x608;
+inline constexpr std::int32_t LastFlowerParticle = 0x60a;
+// La columna 62b/0 (Effect\flareBlue.jpg) del círculo 0xcc/3 y /4 (0x523677 y 0x52384c; la tabla 0x52cef4 lleva el
+// 0xcc a 0x523374): nace en 0x542d01 y sube cada vez más rápido (0x546f0d). Los demás subtipos salen de 0x53fe70 en
+// 0x54304c con sólo el prefijo y no tienen paso propio (0x546f12).
+inline constexpr std::int32_t FlareColumnParticle = 0x62b;
+// El agujero 6ae (Effect\Hole.jpg) de la puerta 0xc5 de Kalima (0x43c20d): nace en 0x543bf1 y gira, se achica y se
+// apaga con la vida (0x547d42), sin leer el subtipo.
+inline constexpr std::int32_t HoleParticle = 0x6ae;
 // Las de los objetos y el agua de Crywolf (el mapa 34): el humo 5f2/21 (0x542370, que pasa por el paso de la 5f2/2,
 // 0x5466c3), la nube 622/9 (0x54330a, con el paso de la 622/8, 0x5476a8), la órbita 60f/10 del efecto 0x61d/3
 // (0x542ed0, que se queda en su partida, 0x547297) y la burbuja 698/0 (Effect\coll.jpg) del agua (0x543152 y
@@ -126,7 +138,8 @@ inline constexpr std::int32_t BubbleParticle = 0x698;
 // 0x54271f y su paso (0x546b66) lo deja sobre el terreno con el alto de su textura.
 inline constexpr std::int32_t DustParticle = 0x5f3;
 // El polvo 5f6/1 del recorrido de Crywolf (0x403c0c): comparte el paso de 5f3, pero nace con vida40, velocidad0
-// y seis rand() en 0x54271f..0x542897.
+// y seis rand() en 0x54271f..0x542897. El alta no separa los dos tipos: la 5f3/1 del freno de +0x3e5 (0x506a73) nace
+// como la 5f6/1, y la 5f6/0 de las piedras de Chaos Castle (0x405630 y 0x405e00), como la 5f3/0.
 inline constexpr std::int32_t ArrivalDustParticle = 0x5f6;
 // La explosión 5ed/0 (Effect\Explotion01.jpg, cuatro por cuatro cuadros) que suelta el terremoto 0xfa en su vida 11
 // (0x521dfd): nace en 0x542a60 con vida 20 y su paso (0x5459a4) avanza el cuadro (+0x48) con la vida y prende la luz
@@ -212,7 +225,8 @@ enum class ParticleError : std::uint8_t
     MissingClock,
     MissingScene,
     // 0x5476f0: el dueño (+0x40) de una 622/1 no está entre los objetos del mapa; 0x54735c: el de una 60f/0 no
-    // es un personaje del pool.
+    // responde (ni un personaje del pool por ParticleActorActions ni un lugar de la tabla de efectos, el calco 0x61d,
+    // por ParticleOwnerStates).
     MissingOwner,
     // 0x545cd6: la 5ed pide la luz dinámica (0x7b4ccc4) y no está, o su centro no cabe en el int32 de 0x5f9780.
     MissingDynamicLight,
@@ -229,7 +243,8 @@ using ParticleTextureHeight = std::function<std::optional<float>(std::int32_t)>;
 // +0x40. nullptr si no está.
 using ParticleObjectOwners = std::function<WorldObject*(std::uint64_t)>;
 // La acción (+0x111) del personaje de una identidad (ParticleOwnerKind::Actor, el lugar del pool): lo que el paso de
-// la órbita 60f/0 lee por el puntero +0x40 (0x54735f). nullopt si no está.
+// la órbita 60f/0 lee por el puntero +0x40 (0x54735f). nullopt si no está. Con un efecto con modelo de dueño, el paso
+// la lee de ParticleOwnerStates.
 using ParticleActorActions = std::function<std::optional<std::uint8_t>(std::uint64_t)>;
 // 0x53fdb0(partícula): el punto en el mundo del hueso que sigue la 5fe, el de su dueño (+0x40, ParticleOwner del pool
 // de personajes) que elige el héroe publicado con el subtipo. También resuelve la 5ac/4 por rotation y pose propia,
@@ -241,8 +256,9 @@ using ParticleOwnerBones = std::function<std::optional<glm::vec3>(const Particle
 using ParticleActorHands = std::function<std::optional<glm::vec3>(std::uint64_t, std::int32_t)>;
 
 // Lo que el paso lee por el puntero +0x40 de las partículas que siguen a su dueño (5c6/4, 5d5/2, el fuego /9 y
-// 5de/4): el byte vivo (+0x0), la posición (+0x10) y, sólo de un efecto con modelo, su partida (+0x17c). De un
-// personaje, también la acción (+0x111), que lee la fanta 6ec/1 y /2 (0x547a54), y sus huesos con nombre:
+// 5de/4): el byte vivo (+0x0), la posición (+0x10) y, sólo de un efecto con modelo, su partida (+0x17c). La acción
+// (+0x111): de un personaje la lee la fanta 6ec/1 y /2 (0x547a54) y la órbita 60f/0 (0x54735f), que también la lee del
+// efecto con modelo 0x61d que la suelta (0x52b8ff, 0x52b977). De un personaje, además, sus huesos con nombre:
 // 0x4010b0(dueño, nombre, punto), sin corrimiento, que lee la 6ec/3 y /4 (0x547c1e); nullopt si 0x4016c0 no lo
 // encuentra (o el dueño no es un personaje).
 struct ParticleOwnerState
@@ -261,11 +277,14 @@ class Particles
 public:
     // 0x53fe70(tipo, posición, ángulos, luz, subtipo, escala, dueño) en el primer lugar libre, con el reloj
     // del mundo (DAT_05767b88, en ms) y el rand() de la CRT. Con los 3.000 llenos no se crea ni saca
-    // rand(). Se aceptan5ca/0, 5e4 (cualquier subtipo), 5f2/0,2,11,21,33, 5f3/0, 5ed/0, 5c6/1,5,9,11, 622/6,8,9,10,
-    // 5d9/0..3,5,8, 5dc/12, 607/0, 67/0,
-    // 68/0, 698/0, 6ab/0,1 y 6ac/0,1; la órbita 60f/0,3,4,10 pide el overload con la trigonometría. Create es la
-    // compatibilidad login; Core usa CreateChecked para distinguir errores de pool lleno. La neblina consume cinco
-    // rand() y conserva +0x60 del uso anterior del lugar. 622/8 consume siete rand().
+    // rand(). Se aceptan, entre otras (la lista entera es la de BindingError más las familias de Kalima, de la
+    // selección, de las pruebas y de Blood Castle), la 5ca, la 5e4, las flores 608..60a, la 62b y el 6ae (cualquier
+    // subtipo; la 62b fuera de la /0 sólo con el prefijo), 5f2/0,2,11,21,25,27,33,34,35,38, 5f3/0,1, 5f6/0,1, 5ed/0,
+    // 5c6/1,5,9,11, 622/6,8,9,10, el fuego 5d9, 5db y 5dc (cualquier subtipo), 607/0..4, 67/0, 68/0, 698/0, 6ab/0,1,
+    // 6ac/0,1 y la 6f4/2 del golpe de Kundun (0x52a37d, de Kalima); la órbita 60f/0,3,4,10 pide el overload con la
+    // trigonometría. Create es la compatibilidad login; Core usa CreateChecked para distinguir errores
+    // de pool lleno. La neblina consume cinco rand() y conserva +0x60 del uso anterior del lugar. 622/8 consume siete
+    // rand().
     std::optional<std::size_t> Create(std::int32_t type, const glm::vec3& position, const glm::vec3& angles,
                                       const glm::vec3& light, std::int32_t subtype, float scale, float worldClock,
                                       Render::Models::CrtRandom& random);

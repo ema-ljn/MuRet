@@ -2573,6 +2573,46 @@ TEST(CharacterSelectSceneTest, TheBodyGoesToItsOwnBonesAndNeverToTheGlobalPose)
     EXPECT_EQ(tested.scene->Failure(), std::nullopt);
 }
 
+// 0x50bc05..0x50bcec en la selección (0x634851 → 0x510d00 → 0x50ba30, con el mundo 54): la sombra de cada personaje de
+// la lista le copia su escala y su posición al 0x20b compartido (0x60cf70), en el orden de la lista: queda la del
+// último. Con el alpha por debajo de 0,5 (0x50bc05) no tiene sombra y no la copia. Un frame intermedio no la toca.
+TEST(CharacterSelectSceneTest, TheShadowsOfTheListPlaceTheSharedShadowModel)
+{
+    using Client::Render::Models::OriginalFrameTime;
+    constexpr std::uint16_t Shadow = Client::Data::Models::PlayerShadowModel;
+    auto world = std::make_unique<Client::Scenes::WorldState>();
+    Client::Scenes::SelectionState selection(*world);
+    Client::Render::Models::ClothWorld cloth;
+    ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
+    Harness tested(true, true, false, &selection, world.get(), &cloth);
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith(TwoWingedCharacters()));
+    ASSERT_EQ(world->Runtime().map, 54);
+    const auto drawAt = [&tested](Client::Core::Duration clock)
+    {
+        auto& canvas = tested.target.BeginFrame(clock);
+        tested.scene->Render(canvas, 0.0f);
+        tested.target.Present();
+        EXPECT_FALSE(tested.scene->Failure().has_value()) << *tested.scene->Failure();
+    };
+
+    drawAt(OriginalFrameTime);
+
+    // El lugar 3 es el último de la lista; su cola (DrawCharacterTail) le dejó la luz de lo que cuelga de la escena 4.
+    EXPECT_EQ(world->Actors()[3].drawnLight, glm::vec3(0.4f));
+    EXPECT_EQ(world->ModelPlacement(Shadow).origin, world->Actors()[3].position);
+    EXPECT_EQ(world->ModelPlacement(Shadow).scale, world->Actors()[3].scale);
+
+    world->PlaceModel(Shadow, {});
+    drawAt(OriginalFrameTime);
+    EXPECT_EQ(world->ModelPlacement(Shadow).scale, 0.0f);
+
+    world->Actors()[3].alpha = 0.4f;
+    drawAt(OriginalFrameTime * 2);
+    ASSERT_NE(world->Actors()[0].position, world->Actors()[3].position);
+    EXPECT_EQ(world->ModelPlacement(Shadow).origin, world->Actors()[0].position);
+    EXPECT_EQ(world->ModelPlacement(Shadow).scale, world->Actors()[0].scale);
+}
+
 // 0x50db57..0x510a7a: con el mundo 54 la lista corre la misma cola de 0x50ba30 que el juego (DrawCharacterTail). La
 // luz de lo que cuelga (+0x3b4, 0x50db94) es [ebp−0x44] más +0xf4: el 0,4 fijo de la escena 4 (0x50cc29), o el 0,5
 // que la rama del color del héroe deja ahí (0x50d231). Un frame intermedio no saca rand().

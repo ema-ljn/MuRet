@@ -2,11 +2,11 @@
 
 #include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Scenes/ActorCooldownServices.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Tables/SkillTable.h"
 #include "Protocol/Outgoing.h"
 #include "Scenes/ActorState.h"
-#include "Scenes/ActorCooldownServices.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/SceneId.h"
 #include "World/TerrainCulling.h"
@@ -104,7 +104,6 @@ struct CharacterStepContext
     // Si está vacío, el overlay durable de world. Lo escribe cada Walk antes de animar ese actor.
     PlayerActionSpeeds* actionSpeeds = nullptr;
     float fixedHeight = 1200.0f;
-    ActorCooldownServices cooldown{};
     // Solicitudes de sonido: el consumidor CL10 decide cómo reproducirlas.
     std::function<void(std::int32_t)> soundRequest{};
     std::function<void(std::int32_t, const glm::vec3&)> soundAt{};
@@ -132,6 +131,11 @@ struct CharacterStepContext
 // de los personajes (0x505de0)"); las luces de las manos van al buffer dinámico de `world`. Lo que hizo antes
 // del corte queda, con los rand() que sacó.
 [[nodiscard]] Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& context);
+
+// 0x5069ae..0x506ac6: los creadores del freno de +0x3e5 (Scenes::StepActorCooldown) con el pool de partículas y la
+// tabla de efectos del contexto: la 5f3/1 (0x506a73) y la piedrita 0xc8/0xc9 /0 sin dueño (0x506ab7). Guardan
+// referencias a `context`.
+[[nodiscard]] ActorCooldownServices CharacterCooldownServices(const CharacterStepContext& context);
 
 // 0x508ea0 para un objeto fuera del pool: no borra ni marca TerrainWall y nunca es el héroe publicado.
 [[nodiscard]] Core::Expected<void, std::string> StepCharacter(ActorState& actor, const CharacterStepContext& context);

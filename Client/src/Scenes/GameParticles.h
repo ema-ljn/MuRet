@@ -115,8 +115,9 @@ ParticleOwnersAmong(std::span<World::WorldObject> objects);
 // con su dirección (Scenes::ShineOnTheHero).
 [[nodiscard]] std::optional<glm::vec3> OwnerBonePointOf(WorldState& world, const World::Particle& particle);
 // Lo que el paso lee por +0x40 de las partículas que siguen a su dueño (5c6/4, 5d5/2, el fuego /9 y 5de/4): de un
-// personaje del pool, su byte vivo y su posición; de un efecto con modelo, además su partida (+0x17c). nullopt si la
-// identidad no es de ninguno de los dos pools. `world` tiene que vivir más que el resolvedor.
+// personaje del pool, su byte vivo y su posición; de un efecto con modelo, además su partida (+0x17c). De los dos, la
+// acción (+0x111), que la órbita 60f/0 lee también del 0x61d que la suelta (0x54735f). nullopt si la identidad no es
+// de ninguno de los dos pools. `world` tiene que vivir más que el resolvedor.
 [[nodiscard]] std::function<std::optional<World::ParticleOwnerState>(const World::ParticleOwner&)>
 ParticleOwnerStatesOf(WorldState& world);
 // El resolvedor de 0x53fdb0 sobre `world`, que tiene que vivir más que él.

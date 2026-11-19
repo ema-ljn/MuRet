@@ -2,9 +2,12 @@
 
 #include "Core/Expected.h"
 #include "Core/IClock.h"
+#include "Core/ILogSink.h"
+#include "Core/Log.h"
 #include "Data/Models/Model.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainHeights.h"
+#include "Protocol/Skill.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
 #include "Render/Models/Attachment.h"
@@ -20,14 +23,21 @@
 #include "Scenes/FaunaModels.h"
 #include "Scenes/GameCharacters.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/SelectionState.h"
+#include "Scenes/SkillReplies.h"
+#include "Scenes/WorldEntry.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "World/GameCamera.h"
+#include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
 #include "World/TerrainCulling.h"
 #include "World/TerrainLighting.h"
 #include "World/WorldTerrain.h"
+
+#include "support/RecordingSink.h"
 
 #include <gtest/gtest.h>
 
@@ -40,11 +50,12 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
-#include <algorithm>
+#include <limits>
 #include <memory>
 #include <span>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <vector>
 
 // El dibujo de los monstruos y los NPC (0x50ba30 con otro tipo que el 0x20a): vectores literales del ASM c32bbd5f, sin
@@ -269,6 +280,195 @@ TEST_F(MonsterDrawingTest, ALorenciaSpiderDrawsItsBodyThenItsShadowWithTheOneAtt
     EXPECT_EQ(spider.bodyPose.size(), 48u);
     // El de 0x50db57 y los dos de +0x38e en el lazo de las manos (0x50e288), sin ninguna mano.
     EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(3));
+}
+
+// 0x50be15..0x50be52: después del cuerpo, en Blood Castle (0xb a 0x11), el que muere empujado (+0x1a1 y +0x389) baja a
+// la altura del terreno (0x5f93c0) y la sombra se aplasta ahí (5 sobre su z). El fcom con `test ah, 1` escribe también
+// con la z o la altura en NaN; con el terreno a la altura de la z o arriba, no: con la z en −0 y el terreno en +0, la z
+// queda en −0 (un `>` la pisaría con +0). Fuera de esos mapas, sin +0x1a1 o sin morirse, la z queda. El suelo va detrás
+// de las guardas de su sombra (0x50bd89..0x50bdfb): con el alpha por debajo de 0,3f (en 0,3f baja), con +0x88 en 8 o
+// con un +0x376 sin sombra (el 0x19), ni sombra ni suelo. Sin las alturas corta en la llamada a 0x5f93c0, después del
+// cuerpo.
+TEST_F(MonsterDrawingTest, TheDyingOfBloodCastleSinkToTheGroundUnderTheirShadow)
+{
+    m_world->Map().terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+    struct Case
+    {
+        std::int32_t map;
+        std::uint8_t byte1a1;
+        std::uint8_t dying;
+        float z;
+        float height;
+        float grounded;
+    };
+    const float nan = std::numeric_limits<float>::quiet_NaN();
+    const std::array cases{Case{0xb, 1, 1, 10.0f, 4.0f, 4.0f},  Case{0x11, 1, 1, 10.0f, 4.0f, 4.0f},
+                           Case{0xb, 1, 1, nan, 4.0f, 4.0f},    Case{0xb, 1, 1, 10.0f, nan, nan},
+                           Case{0xb, 1, 1, 3.0f, 4.0f, 3.0f},   Case{0xb, 1, 1, -0.0f, 0.0f, -0.0f},
+                           Case{2, 1, 1, 10.0f, 4.0f, 10.0f},   Case{0x12, 1, 1, 10.0f, 4.0f, 10.0f},
+                           Case{0xb, 0, 1, 10.0f, 4.0f, 10.0f}, Case{0xb, 1, 0, 10.0f, 4.0f, 10.0f}};
+    for (const Case& probe : cases)
+    {
+        SCOPED_TRACE(::testing::Message() << "mapa " << probe.map << ", +0x1a1 " << int{probe.byte1a1} << ", +0x389 "
+                                          << int{probe.dying} << ", z " << probe.z << ", terreno " << probe.height);
+        m_world->Map().terrain.heights->cells.fill(probe.height);
+        m_world->Runtime().map = probe.map;
+        ActorState& spider = Monster(5, Spider, 3);
+        spider.byte1a1 = probe.byte1a1;
+        spider.dying = probe.dying;
+        spider.position.z = probe.z;
+        m_batch.Begin(Client::Render::Pass3D{});
+
+        const auto result = Draw(Pass());
+
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(spider.position.x, 150.0f);
+        EXPECT_EQ(spider.position.y, 150.0f);
+        if (std::isnan(probe.grounded))
+            EXPECT_TRUE(std::isnan(spider.position.z)) << spider.position.z;
+        else
+            EXPECT_TRUE(spider.position.z == probe.grounded &&
+                        std::signbit(spider.position.z) == std::signbit(probe.grounded))
+                << spider.position.z;
+        ASSERT_EQ(m_batch.Vertices().size(), 6u);
+        const float shadow = m_batch.Vertices()[3].position.z;
+        if (std::isnan(probe.grounded))
+            EXPECT_TRUE(std::isnan(shadow)) << shadow;
+        else
+            EXPECT_FLOAT_EQ(shadow, probe.grounded + 5.0f);
+    }
+
+    // Detrás de las guardas de la sombra: sin ella, la z queda y sólo se dibuja el cuerpo.
+    struct Guard
+    {
+        float alpha;
+        std::uint8_t kind;
+        std::uint16_t monster;
+        float grounded;
+    };
+    const float shadowAlpha = std::bit_cast<float>(0x3e99999au); // 0x6b89dc, 0,3f
+    const std::array guards{Guard{0.29f, 2, 3, 10.0f}, Guard{shadowAlpha, 2, 3, 4.0f}, Guard{1.0f, 8, 3, 10.0f},
+                            Guard{1.0f, 2, 0x19, 10.0f}};
+    m_world->Map().terrain.heights->cells.fill(4.0f);
+    m_world->Runtime().map = 0xb;
+    for (const Guard& guard : guards)
+    {
+        SCOPED_TRACE(::testing::Message()
+                     << "alpha " << guard.alpha << ", +0x88 " << int{guard.kind} << ", +0x376 " << guard.monster);
+        ActorState& spider = Monster(5, Spider, guard.monster);
+        spider.alpha = guard.alpha;
+        spider.byte88 = guard.kind;
+        spider.byte1a1 = 1;
+        spider.dying = 1;
+        m_batch.Begin(Client::Render::Pass3D{});
+
+        const auto result = Draw(Pass());
+
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(spider.position.z, guard.grounded);
+        EXPECT_EQ(m_batch.Vertices().size(), guard.grounded == 4.0f ? 6u : 3u);
+    }
+
+    m_world->Map().terrain.heights.reset();
+    ActorState& blind = Monster(5, Spider, 3);
+    blind.byte1a1 = 1;
+    blind.dying = 1;
+    m_batch.Begin(Client::Render::Pass3D{});
+    const auto cut = Draw(Pass());
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x50be3b"), std::string::npos) << cut.Error();
+    EXPECT_EQ(m_batch.Vertices().size(), 3u);
+}
+
+// 0x5ffdf0 copia la posición al registro del modelo (+0x6c..+0x74, 0x5ffe8b..0x5ffe9a) al posar el cuerpo, antes del
+// suelo de Blood Castle (0x50be4d); después, salvo el 0x18e, el 0x18f y del 0xa8 al 0xac, el 0x60cf70 de la sombra
+// (0x50beb6) la vuelve a copiar ya en el suelo (0x60cfe8..0x60d015), y lo que sigue la lee con 0x4ec110 sobre
+// [ebp−0x14]: el flare01 (0x5ac) del +0x376 0x46 (0x50c0fb..0x50c136) en el hueso 20 (el hueso k está en (0, 0, k))
+// sale desde la araña en 4, en (150, 150, 24). El 0xa8 (un objeto del mundo que ninguna alta de monstruo da: con +0x58
+// en −2 para que 0x6002e0 no corte en 0x6004ed) y el 0x18f no llaman a 0x60cf70 y lo sacan desde la z de antes, 10;
+// el 0x18f, además, 60 más en y (0x5ffea7..0x5ffeef). Entre frames del original, lo mismo, sobre la copia.
+TEST_F(MonsterDrawingTest, TheTailOfTheDyingOfBloodCastleHangsFromTheRegisterOfTheirShadow)
+{
+    m_world->Map().terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+    m_world->Map().terrain.heights->cells.fill(4.0f);
+    m_world->Runtime().map = 0xb;
+    struct Case
+    {
+        std::uint16_t type;
+        std::int32_t hidden;
+        std::size_t vertices;
+        glm::vec3 flare;
+    };
+    const std::array cases{Case{Spider, -1, 6, {150.0f, 150.0f, 24.0f}}, Case{0xa8, -2, 0, {150.0f, 150.0f, 30.0f}},
+                           Case{0x18f, -1, 3, {150.0f, 210.0f, 30.0f}}};
+    for (const int frames : {1, 0})
+    {
+        for (const Case& probe : cases)
+        {
+            SCOPED_TRACE(::testing::Message() << "frames " << frames << ", tipo " << probe.type);
+            ActorState& monster = Monster(5, probe.type, 0x46);
+            monster.byte1a1 = 1;
+            monster.dying = 1;
+            monster.dword58 = probe.hidden;
+            m_sprites.Clear();
+            m_batch.Begin(Client::Render::Pass3D{});
+            GameCharacterPass pass = Pass();
+            pass.originalFrames = frames;
+
+            const auto result = Draw(pass);
+
+            ASSERT_TRUE(result.HasValue()) << result.Error();
+            EXPECT_EQ(monster.position.z, frames > 0 ? 4.0f : 10.0f);
+            ASSERT_EQ(m_batch.Vertices().size(), probe.vertices);
+            if (probe.vertices == 6)
+            {
+                EXPECT_FLOAT_EQ(m_batch.Vertices()[3].position.z, 9.0f);
+            }
+            const auto live = LiveSprites();
+            ASSERT_EQ(live.size(), 1u);
+            EXPECT_EQ(live[0].texture, 0x5ac);
+            EXPECT_EQ(live[0].position, probe.flare);
+        }
+    }
+}
+
+// Los pases de brillo de 0x60b130 (el +0x376 0x26, 0x50c671) dibujan las mallas de 0x5786f9c como las dejó el último
+// 0x4ebc80: en un muerto de Blood Castle con sombra, el de 0x60cf70 (0x60d186), con el origen ya en el suelo (z 4,
+// debajo del cuerpo en 10); el 0x18f no la llama y repite las del cuerpo de 0x5ffdf0, 60 más en y y en la z de antes.
+TEST_F(MonsterDrawingTest, TheShinesOfTheDyingOfBloodCastleRepeatTheMeshesOfTheLastPose)
+{
+    m_world->Map().terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+    m_world->Map().terrain.heights->cells.fill(4.0f);
+    m_world->Runtime().map = 0xb;
+    struct Case
+    {
+        std::uint16_t type;
+        std::size_t first;
+        glm::vec3 body;
+        glm::vec3 shine;
+    };
+    const std::array cases{Case{Spider, 6, {150.0f, 150.0f, 10.0f}, {150.0f, 150.0f, 4.0f}},
+                           Case{0x18f, 3, {150.0f, 210.0f, 10.0f}, {150.0f, 210.0f, 10.0f}}};
+    for (const int frames : {1, 0})
+    {
+        for (const Case& probe : cases)
+        {
+            SCOPED_TRACE(::testing::Message() << "frames " << frames << ", tipo " << probe.type);
+            ActorState& monster = Monster(5, probe.type, 0x26);
+            monster.byte1a1 = 1;
+            monster.dying = 1;
+            m_batch.Begin(Client::Render::Pass3D{});
+            GameCharacterPass pass = Pass();
+            pass.originalFrames = frames;
+
+            const auto result = Draw(pass);
+
+            ASSERT_TRUE(result.HasValue()) << result.Error();
+            ASSERT_EQ(m_batch.Vertices().size(), probe.first + 3);
+            EXPECT_EQ(m_batch.Vertices()[0].position, probe.body);
+            EXPECT_EQ(m_batch.Vertices()[probe.first].position, probe.shine);
+        }
+    }
 }
 
 TEST_F(MonsterDrawingTest, ADeviasYetiWithVertexLightTakesTheWholeTerrainLight)
@@ -643,7 +843,7 @@ TEST_F(MonsterDrawingTest, UnportedBranchesCutWithTheirAddress)
     // lo que cuelga y de su rand() % 30, en el primer hueso con nombre que su alta no registró (0x427291); lo de
     // 0x50bf45, después de la sombra.
     constexpr std::array cases{Case{Spider, 0x59, "0x50bb96", 0, 0}, Case{HelperType, 0x20, "0x427291", 6, 4},
-                               Case{Spider, 0x49, "0x50c595", 9, 0}, Case{0x18e, 0x21, "0x4ee770", 0, 4}};
+                               Case{Spider, 0x49, "0x50c595", 9, 0}};
     for (const Case& value : cases)
     {
         SCOPED_TRACE(value.address);
@@ -658,6 +858,35 @@ TEST_F(MonsterDrawingTest, UnportedBranchesCutWithTheirAddress)
         EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(value.randoms));
         TearDown();
     }
+}
+
+// 0x601bd3..0x601c0d por el dibujo del juego: el 0x18e con menos de 25 pasos no se dibuja y pide 0x4ee770(0, 0x10a, 0,
+// 0, 0) sobre las mallas que posó 0x5ffdf0, después de los cuatro rand() del contador: sus piedras van a la tabla del
+// frame. Sin la tabla, corta.
+TEST_F(MonsterDrawingTest, TheSpiritStatueLeavesItsStonesInTheFrameTable)
+{
+    m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+    Monster(0, 0x18e, 0x21);
+    const auto cut = Draw(Pass());
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x4ee770: faltan los efectos"), std::string::npos) << cut.Error();
+    EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(4));
+
+    TearDown();
+    SetUp();
+    m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+    Monster(0, 0x18e, 0x21);
+    GameCharacterPass pass = Pass();
+    pass.effects = &m_world->Map().effects;
+    const auto drawn = Draw(pass);
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    EXPECT_TRUE(m_batch.Vertices().empty());
+    const auto effects = m_world->Map().effects.Effects();
+    const auto stones =
+        std::ranges::count_if(effects, [](const Client::World::ModelEffect& effect)
+                              { return effect.alive && (effect.type == 0x10a || effect.type == 0x10b); });
+    EXPECT_GT(stones, 0);
+    EXPECT_NE(m_clothWorld.random.State(), AfterRandoms(4));
 }
 
 // 0x50c671, 0x50c71b y 0x50c8ce: después de la sombra, los pases de brillo de 0x60b130 sobre la pose del cuerpo, con
@@ -1410,6 +1639,102 @@ TEST_F(MonsterDrawingTest, BetweenOriginalFramesNothingIsStored)
     EXPECT_FLOAT_EQ(spider.alpha, 1.0f);
     EXPECT_TRUE(spider.bodyPose.empty());
     EXPECT_EQ(m_clothWorld.random.State(), 1u);
+}
+
+// 0x43f182..0x43f269: Kundun cayendo (+0x60 desde 100, la acción 6 desde el frame 8) suelta sus 0x56 vueltas del
+// 0x613/3 y el 0x6ee/3 en la tabla de joints real (0x74a8d78) y tiembla una vez por cuadro del original (ADR 0005).
+// Entre frames del original dibuja el cuerpo de la copia proyectada, pero no toca ninguna tabla de joints, ni la real
+// ni la proyectada, ni saca ningún rand(): el CRT queda como estaba (los de la cola del dibujo, 0x50db57.., también van
+// sobre la copia). En el cuadro del original sí los saca.
+TEST_F(MonsterDrawingTest, KundunFallingBetweenOriginalFramesLeavesTheJointTablesAlone)
+{
+    constexpr std::uint16_t Kundun = 0x192;
+    constexpr std::size_t Rays = 0x56;
+    const auto alive = [](const Client::Scenes::JointState& joint) { return joint.alive; };
+    m_models.SetActionCount(7);
+    ActorState& kundun = Monster(4, Kundun, 0x113);
+    kundun.animation = {.action = 6, .frame = 8.0f};
+    kundun.dword60 = 100;
+    float shake = 0.0f;
+    GameCharacterPass pass = Pass();
+    pass.cameraShake = &shake;
+    pass.originalFrames = 0;
+    const Client::Render::Models::CrtRandom before = m_clothWorld.random;
+
+    const auto between = Draw(pass);
+
+    ASSERT_TRUE(between.HasValue()) << between.Error();
+    EXPECT_FALSE(m_batch.Vertices().empty());
+    EXPECT_TRUE(std::ranges::none_of(m_world->DrawTail().joints, alive));
+    EXPECT_TRUE(std::ranges::none_of(m_joints, alive));
+    EXPECT_EQ(kundun.dword60, 100);
+    EXPECT_EQ(shake, 0.0f);
+    EXPECT_EQ(m_clothWorld.random.State(), before.State());
+
+    pass.originalFrames = 1;
+    m_batch.Begin(Client::Render::Pass3D{});
+    const auto original = Draw(pass);
+
+    ASSERT_TRUE(original.HasValue()) << original.Error();
+    EXPECT_EQ(static_cast<std::size_t>(std::ranges::count_if(m_world->DrawTail().joints, alive)), 2 * Rays);
+    EXPECT_TRUE(std::ranges::none_of(m_joints, alive));
+    EXPECT_EQ(kundun.dword60, 0x5a);
+    EXPECT_NE(shake, 0.0f);
+    EXPECT_NE(m_clothWorld.random.State(), before.State());
+}
+
+// De punta a punta: el 1B con 0xc9 (0x4cbfc9) pasa por 0x439d40, que en el 0x197 con 0x100 lo baja y pone +0x110 en
+// 0x21 (con 0xca y 0x8, 0x22); el dibujo siguiente del 0x197 (0x43fb99) llama a 0x439d90, que suelta en las esquinas
+// de la malla 6 las piedras de 0x4ee770(6, 0x10a, 1 o 2): primero el 0x10b/2 o /3, pide el sonido 0x88 y vuelve +0x110
+// a 0.
+TEST_F(MonsterDrawingTest, TheMagicCancelLeavesThe197sStonesOnItsNextDraw)
+{
+    constexpr std::uint16_t Glow = 0x197;
+    constexpr std::uint16_t GlowKey = 0x1234;
+    for (int mesh = 1; mesh <= 6; ++mesh)
+        m_models.AddMesh();
+    auto selection = std::make_unique<Client::Scenes::SelectionState>(*m_world);
+    Client::World::GameCamera camera;
+    Client::World::GameCameraInput input;
+    Client::Tests::RecordingSink sink;
+    Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
+    const Client::Scenes::WorldEntryResources resources{.world = *m_world,
+                                                        .selection = *selection,
+                                                        .dataRoot = {},
+                                                        .cloth = m_clothWorld,
+                                                        .camera = camera,
+                                                        .cameraInput = input,
+                                                        .models = m_models,
+                                                        .log = log};
+    for (const auto& [skill, flag, strike, stones] : {std::tuple{std::uint8_t{0xc9}, 0x100u, std::uint8_t{0x21}, 2},
+                                                      std::tuple{std::uint8_t{0xca}, 0x8u, std::uint8_t{0x22}, 3}})
+    {
+        SCOPED_TRACE(int{skill});
+        ActorState& glow = Monster(5, Glow, 0x11e);
+        glow.key = GlowKey;
+        glow.flags78 = flag;
+        glow.byte110 = 0;
+        m_world->Map().effects.Clear();
+        m_world->Runtime().lastSoundId.reset();
+
+        Client::Scenes::ApplyMagicCancel(Client::Protocol::Skill::MagicCancel{skill, GlowKey}, resources);
+
+        EXPECT_EQ(glow.byte110, strike);
+        EXPECT_EQ(glow.flags78, 0u);
+        auto particles = std::make_unique<Client::World::Particles>();
+        GameCharacterPass pass = Pass();
+        pass.effects = &m_world->Map().effects;
+        pass.particles = particles.get();
+        m_batch.Begin(Client::Render::Pass3D{});
+        const auto drawn = Draw(pass);
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_EQ(glow.byte110, 0);
+        EXPECT_EQ(m_world->Runtime().lastSoundId, 0x88);
+        const auto& first = m_world->Map().effects.Effects()[0];
+        EXPECT_TRUE(first.alive);
+        EXPECT_EQ(first.type, 0x10b);
+        EXPECT_EQ(first.subtype, stones);
+    }
 }
 
 // 0x5ffe9d..0x5ffeef: 0x18f suma 60 y 0x18e 120 a y antes de copiar escala y origen al modelo compartido; entre frames

@@ -40,7 +40,6 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
-#include <format>
 #include <functional>
 #include <span>
 #include <limits>
@@ -746,6 +745,61 @@ TEST(GameModelEffectsTest, TheStoneChipsDragTiltBounceAndSometimesBurn)
     }
 }
 
+// 0x523980, 0x523a3a y 0x523ad2: la piedrita 0xc8/0xc9 de la columna (subtipo 0xc) cae como la /0 (la velocidad sin
+// girar, el arrastre, la caída, el rebote y la inclinación) y, con rand() % 10 en 0, suelta su fuego 5d9 con el subtipo
+// rand() % 3 + 1 y su luz.
+TEST(GameModelEffectsTest, TheColumnChipFallsAndBurnsLikeTheFirstOne)
+{
+    const std::uint32_t burns = SeedWhereDraw(1, [](int value) { return value % 10 == 0; });
+    const std::uint32_t cold = SeedWhereDraw(1, [](int value) { return value % 10 != 0; });
+    for (const std::int16_t type : {Client::World::FirstStoneChipEffect, Client::World::SecondStoneChipEffect})
+    {
+        SCOPED_TRACE(type);
+        for (const std::uint32_t seed : {cold, burns})
+        {
+            SCOPED_TRACE(seed);
+            // La /0xc y su gemela /0, con la misma semilla, el mismo empuje y el mismo terreno.
+            std::array<Client::World::ModelEffect, 2> chips{DungeonEffect(type, 40), DungeonEffect(type, 40)};
+            std::array<std::unique_ptr<Client::World::Particles>, 2> particles{
+                std::make_unique<Client::World::Particles>(), std::make_unique<Client::World::Particles>()};
+            std::array<Client::Render::Models::CrtRandom, 2> randoms{Client::Render::Models::CrtRandom(seed),
+                                                                     Client::Render::Models::CrtRandom(seed)};
+            chips[0].subtype = Client::World::ColumnStoneChipSubtype;
+            Client::World::ModelEffectStepServices services;
+            services.terrainHeight = [](float, float) { return 0.0; };
+            for (std::size_t twin = 0; twin < chips.size(); ++twin)
+            {
+                chips[twin].velocity = {10.0f, 0.0f, 0.0f};
+                chips[twin].turnDirection = 5.0f;
+                const auto stepped = Client::World::StepGameModelEffect(chips[twin], nullptr, *particles[twin], 0.0f,
+                                                                        randoms[twin], nullptr, services);
+                ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+            }
+            const auto& column = chips[0];
+            EXPECT_EQ(column.velocity.x,
+                      static_cast<float>(10.0 * static_cast<double>(std::bit_cast<float>(0x3f666666u))));
+            EXPECT_EQ(column.turnDirection, 2.0f);
+            EXPECT_EQ(column.transform.angles.x, -32.0f);
+            EXPECT_EQ(column.life, 39);
+            EXPECT_EQ(column.transform.position, chips[1].transform.position);
+            EXPECT_EQ(column.velocity, chips[1].velocity);
+            EXPECT_EQ(randoms[0].State(), randoms[1].State());
+            const auto& fire = particles[0]->All()[0];
+            const auto& twinFire = particles[1]->All()[0];
+            EXPECT_EQ(fire.alive, seed == burns);
+            EXPECT_EQ(twinFire.alive, seed == burns);
+            if (seed == burns)
+            {
+                Client::Render::Models::CrtRandom draws = Client::Tests::AfterDraws(seed, 2);
+                EXPECT_EQ(fire.type, 0x5d9);
+                EXPECT_EQ(fire.subtype, draws.Next() % 3 + 1);
+                EXPECT_EQ(fire.light, column.light);
+                EXPECT_EQ(fire.position, twinFire.position);
+            }
+        }
+    }
+}
+
 // Los pedazos 0xe5 y 0xe6 de la muerte del 0x16b (subtipo 0) entran por 0x523926 → 0x523974 y dan el paso de la
 // piedrita; con rand() % 10 en 0 no sueltan nada (0x523b10): el del prefijo y el % 10.
 TEST(GameModelEffectsTest, TheSplintersStepLikeChipsAndNeverBurn)
@@ -973,10 +1027,10 @@ TEST(GameModelEffectsTest, TheFlameJetSpitsSixFlamesASometimesChipAndItsLight)
 }
 
 // 0x52ae9a..0x52b019, el 0x5de/3 del 0x1a4: tres veces la llama 5de/6 y la brasa 6ec/0 (±5, 40 más arriba, 2,8f); el
-// humo 5f2/0x15 (±5, 40 más abajo, 0,8f), en blanco; el rand() % 2 de la piedrita 0xc8/0xc9 con el subtipo 0xc, que
-// con la tabla llena no hace nada; y la luz (L; L · 0,4f; 0) de radio 3. Con lugar en la tabla, corta en 0x52afe1
-// después de ese rand().
-TEST(GameModelEffectsTest, TheFlameColumnSpitsFlamesEmbersAndSmokeAndCutsAtItsChip)
+// humo 5f2/0x15 (±5, 40 más abajo, 0,8f), en blanco; el rand() % 2 de la piedrita 0xc8/0xc9 con el subtipo 0xc
+// (0x52afe1), en su posición, con sus ángulos y su luz, que con la tabla llena no hace nada ni saca sus cinco rand(); y
+// la luz (L; L · 0,4f; 0) de radio 3.
+TEST(GameModelEffectsTest, TheFlameColumnSpitsFlamesEmbersSmokeAndItsChip)
 {
     for (const bool room : {false, true})
     {
@@ -1025,7 +1079,29 @@ TEST(GameModelEffectsTest, TheFlameColumnSpitsFlamesEmbersAndSmokeAndCutsAtItsCh
         ASSERT_TRUE(twin->CreateChecked(0x5f2, smoke, angles, glm::vec3(1.0f), 0x15, std::bit_cast<float>(0x3f4ccccdu),
                                         0.0f, draws)
                         .HasValue());
-        const auto chip = 0xc8 + draws.Next() % 2;
+        const auto chip = static_cast<std::int16_t>(0xc8 + draws.Next() % 2);
+        auto twinEffects = std::make_unique<Client::World::ModelEffects>();
+        if (room)
+        {
+            ASSERT_TRUE(twinEffects
+                            ->CreateStoneChip(chip, {1000.0f, 1000.0f, 100.0f}, angles, {0.25f, 0.5f, 0.75f}, draws,
+                                              Client::World::ColumnStoneChipSubtype)
+                            .has_value());
+            const auto& made = effects->Effects()[0];
+            const auto& expected = twinEffects->Effects()[0];
+            ASSERT_TRUE(made.alive);
+            EXPECT_EQ(made.type, chip);
+            EXPECT_EQ(made.subtype, 0xc);
+            EXPECT_EQ(made.transform.position, expected.transform.position);
+            EXPECT_EQ(made.transform.angles, expected.transform.angles);
+            EXPECT_EQ(made.transform.scale, expected.transform.scale);
+            EXPECT_EQ(made.light, expected.light);
+            EXPECT_EQ(made.life, expected.life);
+            EXPECT_EQ(made.velocity, expected.velocity);
+            EXPECT_EQ(made.turnDirection, expected.turnDirection);
+            EXPECT_EQ(made.disturbanceState, 0xffff);
+            EXPECT_FALSE(effects->Effects()[1].alive);
+        }
         for (std::size_t slot = 0; slot < 7; ++slot)
         {
             SCOPED_TRACE(slot);
@@ -1041,14 +1117,6 @@ TEST(GameModelEffectsTest, TheFlameColumnSpitsFlamesEmbersAndSmokeAndCutsAtItsCh
         }
         EXPECT_FALSE(particles->All()[7].alive);
         EXPECT_EQ(random.State(), draws.State());
-        if (room)
-        {
-            ASSERT_FALSE(stepped.HasValue());
-            EXPECT_EQ(stepped.Error().rfind("0x52afe1", 0), 0u) << stepped.Error();
-            EXPECT_NE(stepped.Error().find(std::format("{:#x}/0xc", chip)), std::string::npos) << stepped.Error();
-            EXPECT_FALSE(effects->Effects()[0].alive);
-            continue;
-        }
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         auto expectedLighting = std::make_unique<Client::World::TerrainLighting>();
         ASSERT_TRUE(

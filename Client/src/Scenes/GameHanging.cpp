@@ -141,12 +141,18 @@ struct Frame
     // cuerpo, aunque quien llama a 0x509340 haya cambiado la del personaje (0x50c7dd).
     float bodyScale = 0.0f;
 
-    // 0x4ec110 con el jugador (escala y posición del personaje) sobre el hueso `bone` de su pose propia.
+    // +0x6c..+0x74 del modelo del tipo (GameHangingPass::modelOrigin): la del registro, no la del objeto.
+    [[nodiscard]] glm::vec3 ModelOrigin() const
+    {
+        return pass.modelOrigin.value_or(actor.position);
+    }
+
+    // 0x4ec110 con el modelo del tipo (la escala del personaje y ModelOrigin) sobre el hueso `bone` de su pose propia.
     // DrawGameHanging comprueba antes que los huesos de las partes existen.
     [[nodiscard]] glm::vec3 BodyPoint(std::uint8_t bone, const glm::vec3& offset) const
     {
         return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(pass.body[bone]), offset,
-                                                         actor.scale, actor.position);
+                                                         actor.scale, ModelOrigin());
     }
 
     // 0x4ec110 sobre el hueso `bone` del buffer global, con la escala del personaje y `origin`. Un hueso
@@ -165,7 +171,8 @@ struct Frame
         static_cast<void>(pass.sprites->Create(texture, point, scale, light, rotation, 0));
     }
 
-    // 0x5092d0: el sprite en el hueso `bone` del buffer global, con la escala y la posición del personaje.
+    // 0x5092d0: el sprite en el hueso `bone` del buffer global, con la escala del personaje y el origen `origin` del
+    // modelo que recibe.
     void BoneSprite(std::uint16_t texture, std::size_t bone, float scale, const glm::vec3& light,
                     const glm::vec3& origin) const
     {
@@ -906,7 +913,8 @@ Result HandSprites(const Frame& frame, const ActorItemPart& part, glm::vec3 ligh
     const double clock = D(frame.pass.worldClock);
     const float lum = frame.lum;
     Render::Models::CrtRandom& random = frame.pass.random;
-    const glm::vec3& position = frame.actor.position;
+    // 0x50f195 y 0x50f3f9: 0x5092d0 con [ebp−0x14], el modelo del tipo.
+    const glm::vec3 position = frame.ModelOrigin();
     const auto at = [&](const glm::vec3& offset) { return frame.BodyPoint(part.bone, offset); };
     const auto blade = [&](const glm::vec3& offset) -> Result
     {

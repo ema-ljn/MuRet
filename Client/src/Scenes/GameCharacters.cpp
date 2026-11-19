@@ -141,17 +141,6 @@ FullSetScan ScanTheActor(WorldState& world, const ActorState& actor, Render::Mod
     return ScanFullSet(ScannedCharacterOf(actor), world.OwnCharacter(), depth, copy);
 }
 
-bool CastsShadow(const ActorState& actor, std::int32_t map)
-{
-    constexpr std::int32_t NoShadowMap = 10;
-    constexpr std::int32_t FirstKalimaMap = 24;
-    constexpr std::int32_t LastKalimaMap = 29;
-    constexpr std::int32_t SeventhKalimaMap = 36;
-    // 0x50bc16: con +0x3e4 (el retrato de las cartas), sin sombra.
-    return actor.alpha >= ShadowAlphaThreshold && actor.byte3e4 == 0 && map != NoShadowMap &&
-           !(map >= FirstKalimaMap && map <= LastKalimaMap) && map != SeventhKalimaMap;
-}
-
 DrawnCharacter CharacterToDraw(ActorState& actor, std::size_t slot, CharacterCloth* cloth,
                                const GameCharacterPass& pass, std::int32_t map)
 {
@@ -460,11 +449,13 @@ Core::Expected<void, std::string> DrawTheBody(Render::ModelBatch& batch, const I
 
 // 0x50db57..0x510ac2 sobre el cuerpo ya posado: lo que cuelga, los efectos, en el juego (`gameScene`) 0x510ef0, y el
 // cuervo. Entre frames del original, sobre una copia del personaje y del rand(): lo que cuelga y los contadores quedan
-// como los dejó el último frame.
+// como los dejó el último frame. `modelOrigin` es la posición que 0x6001b0 copió al registro del 0x20a (0x600247..
+// 0x600256, en 0x50bbf7), antes de las guardas y del suelo de la sombra (0x50bcaf): nada la vuelve a escribir dentro de
+// 0x50ba30 y la cola la lee con 0x4ec110 sobre [ebp−0x14] (0x50ba7f).
 Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const IModelLibrary& models, WorldState& world,
                                               ActorState& actor, std::size_t slot, const DrawnCharacter& character,
                                               const GameCharacterPass& pass, const FullSetScan& scan,
-                                              bool originalFrame, bool gameScene)
+                                              const glm::vec3& modelOrigin, bool originalFrame, bool gameScene)
 {
     const std::vector<Render::Models::BoneTransform> body = PoseCharacterBody(models, character);
     // 0x509340 posa en los huesos propios (+0x120), que lee el paso siguiente (0x506d25, la burbuja de Atlans).
@@ -474,7 +465,7 @@ Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const I
     {
         actor.bodyPose = body;
         if (actor.alpha >= PlayerModelAlpha)
-            world.PlacePlayerModel(actor);
+            world.PlacePlayerModel(actor, modelOrigin);
     }
     std::optional<ActorState> projectedActor;
     std::optional<Render::Models::CrtRandom> projectedRandom;
@@ -500,7 +491,8 @@ Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const I
                                       .siegeActive = world.Runtime().siegeActive,
                                       .logicSteps = pass.clothWorld->logicSteps,
                                       .originalFrame = originalFrame,
-                                      .guild = &world.Runtime().guild};
+                                      .guild = &world.Runtime().guild,
+                                      .modelOrigin = modelOrigin};
     if (auto hung = DrawGameHanging(drawn, hangingPass); !hung.HasValue())
         return hung;
     const GameCharacterEffectsPass effectsPass{.body = body,
@@ -518,7 +510,8 @@ Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const I
                                                .map = map,
                                                .logicSteps = pass.clothWorld->logicSteps,
                                                .gameScene = gameScene,
-                                               .originalFrame = originalFrame};
+                                               .originalFrame = originalFrame,
+                                               .modelOrigin = modelOrigin};
     if (auto effects = DrawGameCharacterEffects(drawn, effectsPass); !effects.HasValue())
         return effects;
     // 0x510abd: 0x420df0, el cuervo, en todas las escenas. Fuera del juego, sin el trapecio, lo dibuja el caller
@@ -543,6 +536,30 @@ Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const I
                                               .worldClock = worldClock,
                                               .world = &world});
 }
+
+// Entre frames del original, la z del suelo de la sombra (0x50bc77..0x50bcbd) es la del dibujo, pero no queda en el
+// personaje: el paso siguiente lee la que dejó el último frame del original (ADR 0005). La devuelve al salir del
+// dibujo.
+class GroundBetweenFrames
+{
+public:
+    GroundBetweenFrames(ActorState& actor, float z) : m_actor(actor), m_stepped(actor.position.z)
+    {
+        actor.position.z = z;
+    }
+    ~GroundBetweenFrames()
+    {
+        m_actor.position.z = m_stepped;
+    }
+    GroundBetweenFrames(const GroundBetweenFrames&) = delete;
+    GroundBetweenFrames& operator=(const GroundBetweenFrames&) = delete;
+    GroundBetweenFrames(GroundBetweenFrames&&) = delete;
+    GroundBetweenFrames& operator=(GroundBetweenFrames&&) = delete;
+
+private:
+    ActorState& m_actor;
+    float m_stepped;
+};
 
 // `slot` es su lugar en el pool, o ActorPoolSize fuera de él; `cloth`, su tela.
 Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const IModelLibrary& models, WorldState& world,
@@ -579,7 +596,30 @@ Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const IMode
             if (model != Data::Models::PlayerSkeletonModel && model != ChaosCastleBodyModel)
                 global(model, bones, transform, translated);
         };
+    // 0x50bbf7: 0x6001b0 copia la posición al registro del 0x20a (0x600247..0x600256) antes de las guardas de la sombra
+    // y de su suelo; la cola la lee de ahí (DrawTheTail). Entre frames del original, la del paso, antes del préstamo de
+    // GroundBetweenFrames.
+    const glm::vec3 modelOrigin = actor.position;
+    // 0x50bc77..0x50bcbd: con la sombra, en Blood Castle el que muere empujado baja a la altura del terreno antes de
+    // 0x60cf70; la sombra, el cuerpo y lo que cuelga van ahí, y los puntos de los huesos de la cola, desde la de antes.
+    // La escritura queda (0x50bcaf) sólo en un frame del original.
+    std::optional<GroundBetweenFrames> projectedGround;
+    if (DrawsTheShadow(character))
+    {
+        const auto ground = ShadowGroundOf(world, pass, actor, map, 0x50bc9d);
+        if (!ground.HasValue())
+            return Core::Unexpected(ground.Error());
+        character.object.position.z = ground.Value();
+        if (originalFrame)
+            actor.position.z = ground.Value();
+        else
+            projectedGround.emplace(actor, ground.Value());
+    }
     DrawCharacter(batch, models, character, pass.frameClock, CharacterDrawPass::Shadow);
+    // 0x50bcec: 0x60cf70 con el 0x20b le copia la escala y la posición del personaje, ya en el suelo (lo lee el 0x632/0
+    // y /1 en el suelo, 0x53c1eb). Sólo en un frame del original.
+    if (originalFrame && DrawsTheShadow(character))
+        world.PlaceShadowModel(actor);
     if (auto decorated = CheckMonsterDecorations(actor.word376); !decorated.HasValue())
         return decorated;
     if (pass.clothWorld == nullptr)
@@ -595,7 +635,7 @@ Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const IMode
         return supported;
     // 0x50db94: la luz de lo que cuelga (+0x3b4), la del terreno, el rojo de los PK o la de Blood Castle.
     actor.drawnLight = HangingLightOf(actor, terrainLight.Value(), map);
-    return DrawTheTail(batch, models, world, actor, slot, character, pass, scan, originalFrame, true);
+    return DrawTheTail(batch, models, world, actor, slot, character, pass, scan, modelOrigin, originalFrame, true);
 }
 
 Core::Expected<void, std::string> DrawThePool(Render::ModelBatch& batch, const IModelLibrary& models, WorldState& world,
@@ -630,6 +670,17 @@ Core::Expected<void, std::string> DrawThePool(Render::ModelBatch& batch, const I
     return {};
 }
 } // namespace
+
+bool CastsShadow(const ActorState& actor, std::int32_t map)
+{
+    constexpr std::int32_t NoShadowMap = 10;
+    constexpr std::int32_t FirstKalimaMap = 24;
+    constexpr std::int32_t LastKalimaMap = 29;
+    constexpr std::int32_t SeventhKalimaMap = 36;
+    // 0x50bc16: con +0x3e4 (el retrato de las cartas), sin sombra.
+    return actor.alpha >= ShadowAlphaThreshold && actor.byte3e4 == 0 && map != NoShadowMap &&
+           !(map >= FirstKalimaMap && map <= LastKalimaMap) && map != SeventhKalimaMap;
+}
 
 void FinishTheCastleFrame(WorldRuntime* runtime, Data::Terrain::TerrainLayer<std::uint16_t>& walls)
 {
@@ -702,7 +753,9 @@ Core::Expected<void, std::string> DrawCharacterTail(Render::ModelBatch& batch, c
 {
     if (pass.clothWorld == nullptr)
         return Core::Unexpected<std::string>("0x50db57: falta el flujo global de rand de lo que cuelga");
-    return DrawTheTail(batch, models, world, actor, slot, character, pass, scan, originalFrame, false);
+    // El login y la selección no están en Blood Castle: el suelo de la sombra no mueve la z y el registro tiene la
+    // posición del personaje.
+    return DrawTheTail(batch, models, world, actor, slot, character, pass, scan, actor.position, originalFrame, false);
 }
 
 Core::Expected<void, std::string> DrawGameCharacters(std::span<ActorState> actors, std::size_t hero,

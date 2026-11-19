@@ -22,6 +22,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <array>
 #include <bit>
 #include <cmath>
 #include <cstddef>
@@ -736,6 +737,33 @@ TEST(WizardModelEffectsTest, TheTwistingStormDropsARisingDrop)
     EXPECT_GT(drop->verticalSpeed, 0.0f);
 }
 
+// La piedrita /2 de las tormentas (0x5231a9 → 0x52b14d → 0x51b72b), con valores a mano: la semilla 298 da 1011, 32248,
+// 3577, 29880 y 2406. El empuje ((1011 & 255) + 64) · 0,1f = 30,7f (0x41f5999a) en y, girado por los ángulos con la z
+// pisada por 29880 % 360 = 0: sin giro; la vida (32248 & 15) + 32 = 40; la escala ((3577 & 3) + 8) · 0,1f (0x3f666667);
+// la caída (2406 & 15) + 8 = 14. Cinco rand().
+TEST(WizardModelEffectsTest, TheStormChipIsBornWithItsFiveDrawsByHand)
+{
+    for (const std::int16_t type : {std::int16_t{0xc8}, std::int16_t{0xc9}})
+    {
+        SCOPED_TRACE(type);
+        auto effects = std::make_unique<ModelEffects>();
+        CrtRandom random(298);
+        const auto slot = effects->CreateStoneChip(type, {10.0f, 20.0f, 30.0f}, {0.0f, 0.0f, 45.0f}, {0.5f, 0.6f, 0.7f},
+                                                   random, Client::World::SpinningStoneChipSubtype);
+        ASSERT_EQ(slot, std::optional<std::size_t>(0));
+        const ModelEffect& chip = effects->Effects()[0];
+        EXPECT_EQ(chip.type, type);
+        EXPECT_EQ(chip.subtype, 2);
+        EXPECT_EQ(chip.velocity, glm::vec3(0.0f, std::bit_cast<float>(0x41f5999au), 0.0f));
+        EXPECT_EQ(chip.life, 40);
+        EXPECT_EQ(chip.transform.scale, std::bit_cast<float>(0x3f666667u));
+        EXPECT_EQ(chip.transform.angles, glm::vec3(0.0f));
+        EXPECT_EQ(chip.turnDirection, 14.0f);
+        EXPECT_EQ(chip.transform.position, glm::vec3(10.0f, 20.0f, 30.0f));
+        EXPECT_EQ(random.State(), Client::Tests::AfterDraws(298, 5).State());
+    }
+}
+
 // 0x523101..0x52318f: el 0xcf/3..7 tiembla la cámara ((rand() & 7) − 4) · 0,1f y suelta en su punto la niebla 5f2/28,
 // /29 y /30 (0x523144, 0x52315d, 0x523176), con sus ángulos, su luz y la escala 1, que piden la altura del terreno y,
 // la /30, el seno del reloj. Después, con rand() & 1 en 0, la piedrita 0xc8 + (rand() & 1) con el subtipo 2 (0x5231a9
@@ -923,6 +951,70 @@ TEST(WizardModelEffectsTest, TheOuterCircleShakesTheCameraAndGlows)
     EXPECT_EQ(circle.objectState.light, 0.0f);
     EXPECT_EQ(circle.objectState.uv.x, F32(40.0 * static_cast<double>(std::bit_cast<float>(0xbc23d70au))));
     EXPECT_EQ(world.AliveOf(0xc8) + world.AliveOf(0xc9), chip ? 1U : 0U);
+}
+
+// 0x523640..0x52384c: el círculo 0xcc/3 (con más de 30 de vida y rand() & 1 en 0) y el /4 (rand() % 5 en 0 y más de 5
+// de vida) sacan el alcance y el giro y dejan la columna 0x62b/0 de 1 con sus ángulos y su luz (0x523677, 0x52384c;
+// 0x542d01: dos rand() más, vida rand() % 10 + 30, luz 1 y la velocidad (0; 0; (rand() % 100) · 0,02f)); después el
+// joint 0x62b/0x13 600 más arriba. Con las partículas llenas, el alcance y el giro salen igual (son los argumentos) y
+// el joint también; sólo faltan los dos rand() de la alta. Lo esperado sale de column.py (0x523582..0x523898 y
+// 0x542d01 en una x87 aparte), con la semilla 2 para el /3 y la 4 para el /4.
+TEST(WizardModelEffectsTest, TheOuterCircleRaisesFlareColumns)
+{
+    struct Column
+    {
+        std::int32_t subtype;
+        std::uint32_t seed;
+        std::uint32_t state;
+        std::uint32_t fullState;
+        std::array<std::uint32_t, 2> point; // x e y: (0, alcance, 0) girado por (0, 0, giro), más la posición
+        std::int32_t life;
+        std::uint32_t rise;
+    };
+    constexpr std::array<Column, 2> Columns{{
+        {3, 2, 0x4cc2cb10u, 0xc583c166u, {0x44651495u, 0x44e391a2u}, 34, 0x3f800000u},
+        {4, 4, 0x6b7040c2u, 0x81826208u, {0x447388b6u, 0x45005076u}, 35, 0x3da3d70au},
+    }};
+    for (const Column& expected : Columns)
+    {
+        SCOPED_TRACE(expected.subtype);
+        for (const bool full : {false, true})
+        {
+            SCOPED_TRACE(full);
+            Harness world;
+            if (full)
+                for (auto& particle : world.particles->All())
+                    particle.alive = true;
+            CrtRandom random(expected.seed);
+            ModelEffect& circle = world.At(Create(world, Arguments(0xcc, expected.subtype), random));
+            circle.life = 100;
+            ASSERT_TRUE(Client::World::StepWizardModelEffect(circle, nullptr, random, world.Services()).HasValue());
+            EXPECT_EQ(random.State(), full ? expected.fullState : expected.state);
+            const glm::vec3 point{std::bit_cast<float>(expected.point[0]), std::bit_cast<float>(expected.point[1]),
+                                  300.0f};
+            ASSERT_EQ(world.joints.size(), 1U);
+            EXPECT_EQ(world.joints[0].type, 0x62b);
+            EXPECT_EQ(world.joints[0].subtype, 0x13);
+            EXPECT_EQ(world.joints[0].first, (glm::vec3{point.x, point.y, 900.0f}));
+            EXPECT_EQ(world.joints[0].second, world.joints[0].first);
+            EXPECT_EQ(world.joints[0].angles, (glm::vec3{0.0f, 0.0f, 45.0f}));
+            EXPECT_EQ(world.joints[0].scale, 40.0f);
+            if (full)
+            {
+                EXPECT_TRUE(
+                    std::ranges::all_of(world.particles->All(), [](const auto& made) { return made.type == 0; }));
+                continue;
+            }
+            EXPECT_EQ(world.ParticlesOf(0x62b, 0), 1U);
+            const Client::World::Particle& flare = world.particles->All()[0];
+            EXPECT_EQ(flare.position, point);
+            EXPECT_EQ(flare.angles, (glm::vec3{0.0f, 0.0f, 90.0f}));
+            EXPECT_EQ(flare.light, glm::vec3(1.0f));
+            EXPECT_EQ(flare.life, expected.life);
+            EXPECT_EQ(flare.velocity, (glm::vec3{0.0f, 0.0f, std::bit_cast<float>(expected.rise)}));
+            EXPECT_EQ(flare.scale, 1.0f);
+        }
+    }
 }
 
 TEST(WizardModelEffectsTest, TheLightningCircleBrightensAndDims)

@@ -20,11 +20,11 @@ struct ActorState;
 struct WorldEntryResources;
 
 // 0x4c9790, el recién llegado por +0x376: el 0x15 y el 0x2c con la acción 1 (0x4ea030, que necesita el esqueleto del
-// modelo), +0x112 en 1, el alpha en 1 y el sonido 0x13 o 0x14e; el 0x35 y el 0x36 cortan en 0x4c982b (+0x3e5 en 0x3c,
-// el freno con efectos y rand() de 0x505de0, sin portar); el 0x55, 0x5b, 0x61, 0x72, 0x78 y 0x7e piden el sonido 0x173;
-// el 0x154, 0x155, 0x158 y 0x159 cortan en 0x4c9883 (leen [0x6e5904], P-C60 g, y sueltan joints de la CL11). Los demás:
-// con el modelo 0x20a, la acción 0xc1, +0x112 en 0xc1 y el alpha en 1; si no, el alpha en 0. Los sonidos van a
-// WorldRuntime::lastSoundId (CL10).
+// modelo), +0x112 en 1, el alpha en 1 y el sonido 0x13 o 0x14e; el 0x35 y el 0x36, +0x3e5 en 0x3c (0x4c982b, el
+// freno con efectos y rand() de 0x505de0), la acción 1, +0x112 en 1 y el alpha en 1, sin sonido; el 0x55, 0x5b, 0x61,
+// 0x72, 0x78 y 0x7e piden el sonido 0x173; el 0x154, 0x155, 0x158 y 0x159 cortan en 0x4c9883 (leen [0x6e5904], P-C60 g,
+// y sueltan joints de la CL11). Los demás: con el modelo 0x20a, la acción 0xc1, +0x112 en 0xc1 y el alpha en 1; si no,
+// el alpha en 0. Los sonidos van a WorldRuntime::lastSoundId (CL10).
 [[nodiscard]] Core::Expected<void, std::string> ArriveAsNew(ActorState& actor, const WorldEntryResources& resources);
 
 // 0x4c9c60, cada registro: CreateMonster(tipo, X, Y, clave) (un error corta el lazo), los estados (0x4e6380), el

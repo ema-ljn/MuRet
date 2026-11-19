@@ -135,6 +135,13 @@ DrawCharacterTail(Render::ModelBatch& batch, const IModelLibrary& models, WorldS
                   std::size_t slot, const DrawnCharacter& character, const GameCharacterPass& pass,
                   const FullSetScan& scan, bool originalFrame);
 
+// Las guardas de la sombra de 0x50ba30 que miran al objeto y al mapa (0x50bbff..0x50bc71, DrawnCharacter::castsShadow):
+// el alpha (+0x174) desde 0,5 (con NaN, no), sin +0x3e4 (el retrato de las cartas) y fuera del mapa 10, de Kalima (24 a
+// 29) y del 36. Las piden el juego (CharacterToDraw), el login (LoginScene::TheCharacterToDraw, 0x635206 → 0x510d00) y
+// la selección (0x634851 → 0x510d00), con el actor del pool; la de las mascotas que se montan es DrawsTheShadow. Sin el
+// fundido de Chaos Castle de 0x6001bc..0x6001e1 (P-C535).
+[[nodiscard]] bool CastsShadow(const ActorState& actor, std::int32_t map);
+
 // 0x510d00: el bit del CtlCode (+0x1d8) con el que el héroe no se dibuja en la escena 5.
 inline constexpr std::uint8_t UndrawnHeroControlBit = 0x04;
 

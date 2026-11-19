@@ -388,8 +388,21 @@ void StepWaterfall(Particle& p, Render::Models::CrtRandom& random)
             FadeLight(p, Brighten);
         return;
     }
+    if (p.type == KalimaWaterfallLast && p.subtype == KundunDebrisSubtype)
+    {
+        // 0x547ee2..0x547fbe: con la escala debajo de 1 (FCOMP con C0: menor o sin orden), 0,1f más; x e y más
+        // rand() % 10 − 5 (fild, fsub de 5 y fadd) y la subida 1 menos. Después, el apagado de la 6f4 (0x547fc1).
+        constexpr int WalkSpan = 10;
+        constexpr double WalkCenter = 5.0, Sink = 1.0;
+        if (!(static_cast<double>(p.scale) >= 1.0))
+            p.scale = F32(static_cast<double>(p.scale) + Tenth);
+        for (int axis = 0; axis < 2; ++axis)
+            p.position[axis] = F32((static_cast<double>(random.Next() % WalkSpan) - WalkCenter) +
+                                   static_cast<double>(p.position[axis]));
+        p.velocity.z = F32(static_cast<double>(p.velocity.z) - Sink);
+    }
     // 0x547fa4: la 6f4/6 salta a 0x547fc1, sin la escala ni la caída.
-    if (p.type != KalimaWaterfallLast || p.subtype != BrazierFallSubtype)
+    else if (p.type != KalimaWaterfallLast || p.subtype != BrazierFallSubtype)
     {
         p.scale = F32(static_cast<double>(p.scale) - SmallGrowth);
         // 0x547f58: la 6f4/3 además gira 4 entre la escala y la caída.
@@ -412,8 +425,9 @@ bool IsKalimaParticle(std::int32_t type, std::int32_t subtype)
     // 0x543b82 y 0x547a40: todos los subtipos; la /1..4 leen a su dueño en el paso (0x547a4d y 0x547a73).
     const bool fanta = type == KalimaFanta || type == CrywolfFanta;
     return objectWaterfall || fanta ||
-           (type == KalimaWaterfallLast && (subtype == 1 || subtype == KundunFallSubtype ||
-                                            subtype == KundunSplashLastSubtype || subtype == BrazierFallSubtype)) ||
+           (type == KalimaWaterfallLast &&
+            (subtype == 1 || subtype == KundunDebrisSubtype || subtype == KundunFallSubtype ||
+             subtype == KundunSplashLastSubtype || subtype == BrazierFallSubtype)) ||
            ((type == WaterfallSplash || type == WaterfallSplash + 1) && subtype == KundunSplashSubtype) ||
            (type == KalimaWaterfallMist && (subtype == ArmMistSubtype || subtype == BootsMistSubtype)) ||
            (type == KalimaFlare &&
@@ -465,6 +479,19 @@ Core::Expected<void, ParticleError> CreateKalimaParticle(Particle& p, Render::Mo
         else if (p.subtype == LongFantaSubtype)
             p.life = LongFantaLife; // 0x543bdc..0x543be5
         p.start = p.position;
+        return {};
+    }
+    if (p.type == KalimaWaterfallLast && p.subtype == KundunDebrisSubtype)
+    {
+        // 0x543d68..0x543dba: la vida 20, el giro (la escala 0,5 se escribe entre el rand() y su resto), 50 más arriba
+        // (0x6b86b0, fld, fadd y fstp) y la subida rand() % 5 + 10 (fild). No toca la luz: queda la del pedido.
+        constexpr int RiseSpan = 5, RiseBase = 10;
+        constexpr double Lift = 50.0;
+        p.life = ShortLife;
+        p.scale = 0.5f;
+        p.rotation = static_cast<float>(random.Next() % FullTurn);
+        p.position.z = F32(static_cast<double>(p.position.z) + Lift);
+        p.velocity.z = static_cast<float>(random.Next() % RiseSpan + RiseBase);
         return {};
     }
     if (p.type == KalimaWaterfallLast && p.subtype == KundunFallSubtype)

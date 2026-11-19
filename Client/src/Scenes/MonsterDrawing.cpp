@@ -282,6 +282,15 @@ struct MonsterFrame
     bool originalFrame = true;
     // El tercer argumento de 0x50ba30 (0x510ea1: el lugar en 0x6c8e30 o 0x6c8e2c): Outlined o Plain.
     PoseMode outline = PoseMode::Plain;
+    // +0x6c..+0x74 del modelo del tipo ([ebp−0x14], 0x50ba7f): lo que copió el último 0x5ffdf0 de este dibujo
+    // (0x5ffe8b..0x5ffe9a; el 0x18f y el 0x18e, 60 y 120 más en y, 0x5ffea7..0x5ffeef) o, después del suelo de Blood
+    // Castle (0x50be4d), el 0x60cf70 de la sombra (0x50beb6, 0x60cfe8..0x60d015, ya en el suelo; no lo llaman el 0x18e,
+    // el 0x18f ni del 0xa8 al 0xac, que quedan a la z de antes) y los 0x602e90 del 0x4d con el tipo propio (0x50c20b,
+    // 0x50c217; el de 0x50c248 escribe el del tipo + 1). Con él trasladan 0x4ec110 los puntos de los huesos de lo que
+    // sigue (0x50bff8, 0x50c3c1.., 0x50b8bf, 0x50b99a, 0x5107b4, 0x51096d) y se repiten los vértices del cuerpo posado.
+    // Antes de la primera copia (con el alpha por debajo de 0,01 no copia), la posición del personaje: el original lee
+    // la que dejó otro dibujo o el paso en el registro compartido.
+    glm::vec3 modelOrigin{};
 };
 
 void PublishMonsterPickingBox(MonsterFrame& frame, const glm::vec3& position)
@@ -350,6 +359,9 @@ Result DrawTheBody(MonsterFrame& frame, const Render::Models::Skeleton& skeleton
         transform.position.y = F32(D(actor.position.y) + 60.0);
     else if (actor.type == 0x18e)
         transform.position.y = F32(D(actor.position.y) + 120.0);
+    // 0x5ffe8b..0x5ffeef: el origen del registro, el que leen los puntos de los huesos de la cola (también entre frames
+    // del original, sobre la copia).
+    frame.modelOrigin = transform.position;
     // 0x4ec110 copia la escala y el origen del modelo compartido antes de posar; entre frames del original no escribe.
     if (frame.originalFrame)
         frame.world.PlaceModel(actor.type, SharedModelPlacement{.scale = transform.scale,
@@ -432,8 +444,9 @@ Result DrawTheBody(MonsterFrame& frame, const Render::Models::Skeleton& skeleton
                           .originalFrame = frame.originalFrame,
                           .cameraShake = frame.pass.cameraShake,
                           .effects = frame.pass.effects,
+                          .particles = frame.pass.particles,
                           .terrainHeight = BodyTerrainHeight(frame.world, frame.pass),
-                          .joints = frame.world.DrawTail().joints};
+                          .joints = frame.originalFrame ? frame.world.DrawTail().joints : frame.pass.joints};
     return DrawMonsterBody(body);
 }
 
@@ -481,12 +494,14 @@ Result DrawTheFloorMark(MonsterFrame& frame)
     return drawn;
 }
 
-// 0x4ec110(huesos propios + hueso · 0x30, corrimiento, salida, 1) de 0x50ba30.
-glm::vec3 PointOnTheBone(const ActorState& actor, std::size_t bone, const glm::vec3& offset)
+// 0x4ec110(huesos propios + hueso · 0x30, corrimiento, salida, 1) de 0x50ba30 sobre [ebp−0x14]: la escala del personaje
+// y el origen del registro (MonsterFrame::modelOrigin: el de la sombra, ya en el suelo, o el de 0x5ffdf0 sin ella).
+glm::vec3 PointOnTheBone(const MonsterFrame& frame, std::size_t bone, const glm::vec3& offset)
 {
+    const ActorState& actor = frame.actor;
     const BoneTransform matrix = bone < actor.bodyPose.size() ? actor.bodyPose[bone] : BoneTransform(0.0f);
     return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), offset, actor.scale,
-                                                     actor.position);
+                                                     frame.modelOrigin);
 }
 
 // 0x50bf98..0x50c0f0, el +0x376 0x45: x = (rand() % 30 + 70) · 0,01f en la x87; nueve flare01 (0x5ac) de 0,6f con la
@@ -503,8 +518,8 @@ Result DrawTheSparksOf0x45(MonsterFrame& frame)
     constexpr std::int32_t SparkSubtype = 3;
     constexpr int Sparks = 3;
     const ActorState& actor = frame.actor;
-    const auto point = [&actor](std::size_t bone, const glm::vec3& offset)
-    { return PointOnTheBone(actor, bone, offset); };
+    const auto point = [&frame](std::size_t bone, const glm::vec3& offset)
+    { return PointOnTheBone(frame, bone, offset); };
     if (frame.pass.sprites == nullptr)
         return Core::Unexpected<std::string>("0x50c014: falta la tabla de los sprites del frame (0x5491e0)");
     const double x = static_cast<double>(frame.random.Next() % 30 + 70) * D(std::bit_cast<float>(0x3c23d70au));
@@ -549,7 +564,7 @@ Result DrawTheFlareOf0x46(MonsterFrame& frame)
     constexpr float FlareScale = std::bit_cast<float>(0x3f4ccccdu); // 0,8
     if (frame.pass.sprites == nullptr)
         return Core::Unexpected<std::string>("0x50c131: falta la tabla de los sprites del frame (0x5491e0)");
-    static_cast<void>(frame.pass.sprites->Create(Flare, PointOnTheBone(frame.actor, Bone, glm::vec3(0.0f)), FlareScale,
+    static_cast<void>(frame.pass.sprites->Create(Flare, PointOnTheBone(frame, Bone, glm::vec3(0.0f)), FlareScale,
                                                  glm::vec3(1.0f), 0.0f, 0));
     return {};
 }
@@ -611,7 +626,10 @@ PosedBody PosedBodyOf(const MonsterFrame& frame)
     DrawnObject& object = posed.object;
     object.model = actor.type;
     object.animation = actor.animation;
-    object.transform = {.position = actor.position, .angles = actor.angles, .scale = actor.scale};
+    // Los vértices de 0x5786f9c como los dejó el último 0x4ebc80, con el origen del registro (0x4ebeec): el del
+    // 0x60cf70 de la sombra (0x60d186, ya en el suelo) o, si no corre (sus guardas, o el 0x18e, el 0x18f y del 0xa8 al
+    // 0xac), el de 0x5ffdf0.
+    object.transform = {.position = frame.modelOrigin, .angles = actor.angles, .scale = actor.scale};
     object.state = Render::Models::ObjectState{.blendMesh = static_cast<std::int16_t>(actor.dword64),
                                                .light = actor.blendMeshLight,
                                                .uv = {actor.textureU, actor.textureV},
@@ -681,7 +699,7 @@ Result DrawTheChainsOf0x49And0x4b(MonsterFrame& frame)
         glm::vec3 previous{};
         for (std::size_t bone = FirstBone; bone <= LastBone; ++bone)
         {
-            const glm::vec3 point = PointOnTheBone(actor, bone, glm::vec3(0.0f));
+            const glm::vec3 point = PointOnTheBone(frame, bone, glm::vec3(0.0f));
             static_cast<void>(frame.pass.sprites->Create(Flare, point, FlareScale, light, 0.0f, 0));
             const bool linked = (bone >= FirstLink && bone <= LastLink) || bone == LoneLink;
             if (linked && frame.originalFrame)
@@ -710,7 +728,7 @@ Result DrawTheChainsOf0x49And0x4b(MonsterFrame& frame)
         constexpr std::size_t FirstTail = 52;
         constexpr std::size_t LastTail = 58;
         for (std::size_t bone = FirstTail; bone <= LastTail; ++bone)
-            static_cast<void>(frame.pass.sprites->Create(Flare, PointOnTheBone(actor, bone, glm::vec3(0.0f)),
+            static_cast<void>(frame.pass.sprites->Create(Flare, PointOnTheBone(frame, bone, glm::vec3(0.0f)),
                                                          FlareScale, light, 0.0f, 0));
     }
     else if (frame.originalFrame)
@@ -720,7 +738,7 @@ Result DrawTheChainsOf0x49And0x4b(MonsterFrame& frame)
         if (frame.pass.particles == nullptr)
             return Core::Unexpected<std::string>("0x50c3e0: falta el arreglo de las partículas (0x53fe70)");
         const auto created = frame.pass.particles->CreateChecked(
-            World::FireParticle, PointOnTheBone(actor, SparkBone, glm::vec3(0.0f)), actor.angles, glm::vec3(1.0f), 0,
+            World::FireParticle, PointOnTheBone(frame, SparkBone, glm::vec3(0.0f)), actor.angles, glm::vec3(1.0f), 0,
             SparkScale, frame.worldClock, frame.random);
         if (!created.HasValue())
             return Core::Unexpected(std::format("0x50c3e0: la partícula 0x5d9/0 del +0x376 0x4b falla con el error {}",
@@ -863,7 +881,8 @@ GameHangingPass HangingPassOf(MonsterFrame& frame, const IModelLibrary& models)
                            .heroByte1a1 = frame.world.Actors()[frame.world.Runtime().hero].byte1a1,
                            .siegeActive = frame.world.Runtime().siegeActive,
                            .logicSteps = pass.clothWorld->logicSteps,
-                           .originalFrame = frame.originalFrame};
+                           .originalFrame = frame.originalFrame,
+                           .modelOrigin = frame.modelOrigin};
 }
 
 // 0x50c762..0x50c826 y 0x50c845..0x50c857: el lugar de las alas (+0x2f8) con el modelo, el hueso, la acción y la
@@ -952,30 +971,35 @@ Result DrawTheShadow(MonsterFrame& frame)
     if (actor.byte88 == UnwalledKind || OneOf(actor.word376, Unshadowed) || frame.map == NoShadowMap ||
         actor.alpha < ShadowAlpha)
         return {};
-    // 0x50be15..0x50be50: en Blood Castle, con +0x1a1 y muriéndose, la z baja a la del terreno si es menor.
-    if (InBloodCastle(frame.map) && actor.byte1a1 != 0 && actor.dying != 0)
-    {
-        const auto ground = GroundHeight(frame.world, frame.pass, actor.position.x, actor.position.y);
-        if (!ground)
-            return Core::Unexpected<std::string>("0x50be3b: falta el terreno de 0x5f93c0");
-        if (*ground < D(actor.position.z))
-            actor.position.z = F32(*ground);
-    }
+    // 0x50be15..0x50be52: en Blood Castle, con +0x1a1 y muriéndose, la z baja a la del terreno (también con NaN).
+    const auto grounded = ShadowGroundOf(frame.world, frame.pass, actor, frame.map, 0x50be3b);
+    if (!grounded.HasValue())
+        return Core::Unexpected(grounded.Error());
+    actor.position.z = grounded.Value();
     const bool marked = actor.word376 == 0xe8 || actor.word376 == 0xe9;
     if (marked)
         actor.dword58 = 2;
-    // 0x50be6e: sin sombra el 0x18e, el 0x18f y del 0xa8 al 0xac. 0x60cf70 → 0x60b3d0 con +0x98 en 1, sin +0x1bc en
-    // 3 (MuRet no lo tiene: 0, *inferido*), sin +0x78 & 0x4000 y con +0x92.
-    if (actor.type != 0x18e && actor.type != 0x18f && !Within(actor.type, 0xa8, 0xac) &&
-        (actor.flags78 & RiderFlag) == 0 && actor.byte92 != 0 && actor.bodyPose.size() > 0)
+    // 0x50be6e..0x50beb6: sin sombra el 0x18e, el 0x18f y del 0xa8 al 0xac; los demás, 0x60cf70(objeto, tipo, ...) con
+    // +0x98 en 1.
+    if (actor.type != 0x18e && actor.type != 0x18f && !Within(actor.type, 0xa8, 0xac))
     {
-        DrawnObject object;
-        object.model = actor.type;
-        object.transform = {.position = actor.position, .angles = actor.angles, .scale = actor.scale};
-        object.state.blendMesh = static_cast<std::int16_t>(actor.dword64);
-        object.state.hiddenMesh = static_cast<std::int16_t>(actor.dword58);
-        const auto meshes = SkinObjectMeshes(frame.fauna, object, actor.bodyPose);
-        DrawObjectShadow(frame.batch, frame.fauna, object, meshes, frame.map);
+        // 0x60cfe8..0x60d015: antes de 0x60b3d0 y sin mirar sus guardas, la escala (+0xc → +0x68, la del personaje,
+        // la misma que copió 0x5ffdf0) y la posición ya en el suelo (+0x10..+0x18 → +0x6c..+0x74) van al registro del
+        // tipo, el mismo [ebp−0x14] (0x510e9f: el objeto es el personaje), y 0x4ebc80 (0x60d186) vuelve a pasar las
+        // mallas de 0x5786f9c con ese origen: la cola lo lee. Entre frames del original, sobre la copia.
+        frame.modelOrigin = actor.position;
+        // 0x60d44b → 0x60b3d0 con +0x98 en 1, sin +0x1bc en 3 (MuRet no lo tiene: 0, *inferido*), sin +0x78 & 0x4000 y
+        // con +0x92.
+        if ((actor.flags78 & RiderFlag) == 0 && actor.byte92 != 0 && actor.bodyPose.size() > 0)
+        {
+            DrawnObject object;
+            object.model = actor.type;
+            object.transform = {.position = actor.position, .angles = actor.angles, .scale = actor.scale};
+            object.state.blendMesh = static_cast<std::int16_t>(actor.dword64);
+            object.state.hiddenMesh = static_cast<std::int16_t>(actor.dword58);
+            const auto meshes = SkinObjectMeshes(frame.fauna, object, actor.bodyPose);
+            DrawObjectShadow(frame.batch, frame.fauna, object, meshes, frame.map);
+        }
     }
     if (marked)
         return DrawTheFloorMark(frame);
@@ -1155,15 +1179,13 @@ Result RunTheCloth(MonsterFrame& frame)
     return {};
 }
 
-// 0x50b870(objeto, sprite, escala, hueso, x, y, z): el punto del hueso propio con la escala y la posición del modelo y
-// el sprite aditivo con la luz sin(T · 0,002f) · 0,3f + 0,7f, por 0,6f y 0,4f en verde y azul (con la luz en la pila).
+// 0x50b870(objeto, sprite, escala, hueso, x, y, z): el punto del hueso propio con la escala del personaje y la posición
+// del modelo (0x50b8bf, MonsterFrame::modelOrigin) y el sprite aditivo con la luz sin(T · 0,002f) · 0,3f + 0,7f, por
+// 0,6f y 0,4f en verde y azul (con la luz en la pila).
 void BoneSprite(const MonsterFrame& frame, std::uint16_t texture, float scale, std::size_t bone,
                 const glm::vec3& offset)
 {
-    const ActorState& actor = frame.actor;
-    const BoneTransform matrix = bone < actor.bodyPose.size() ? actor.bodyPose[bone] : BoneTransform(0.0f);
-    const glm::vec3 point = Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), offset,
-                                                                      actor.scale, actor.position);
+    const glm::vec3 point = PointOnTheBone(frame, bone, offset);
     const double lum = ClockSine(frame.worldClock, PulseRate, PulseSpan) + D(std::bit_cast<float>(0x3f333333u));
     const glm::vec3 light{F32(lum), F32(lum * D(std::bit_cast<float>(0x3f19999au))),
                           F32(lum * D(std::bit_cast<float>(0x3ecccccdu)))};
@@ -1176,12 +1198,8 @@ void PairOfSprites(MonsterFrame& frame, std::size_t first, std::size_t second, f
 {
     ActorState& actor = frame.actor;
     const float lum = F32(ClockSine(frame.worldClock, PulseRate, PulseSpan) + D(std::bit_cast<float>(0x3f4ccccdu)));
-    const auto at = [&](std::size_t bone, float x)
-    {
-        const BoneTransform matrix = bone < actor.bodyPose.size() ? actor.bodyPose[bone] : BoneTransform(0.0f);
-        return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), {x, 0.0f, 0.0f},
-                                                         actor.scale, actor.position);
-    };
+    // 0x50b99a y 0x50b9f1: 0x4ec110 con el modelo del tipo.
+    const auto at = [&frame](std::size_t bone, float x) { return PointOnTheBone(frame, bone, {x, 0.0f, 0.0f}); };
     constexpr std::uint16_t Glow = 0x5ff;
     static_cast<void>(frame.pass.sprites->Create(Glow, at(first, 5.0f), scale, glm::vec3(lum), 0.0f, 0));
     const glm::vec3 last = at(second, -5.0f);
@@ -1212,9 +1230,8 @@ Result DrawTheFairy(MonsterFrame& frame)
     const ActorState& actor = frame.actor;
     constexpr std::size_t Bone = 20;
     constexpr std::uint16_t Flare = 0x5d5;
-    const BoneTransform matrix = Bone < actor.bodyPose.size() ? actor.bodyPose[Bone] : BoneTransform(0.0f);
-    glm::vec3 point = Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix),
-                                                                {3.5f, -12.0f, 10.0f}, actor.scale, actor.position);
+    // 0x510780..0x5107b4: 0x4ec110 con [ebp−0x14].
+    glm::vec3 point = PointOnTheBone(frame, Bone, {3.5f, -12.0f, 10.0f});
     const float lum = F32(ClockSine(frame.worldClock, PulseRate, std::bit_cast<float>(0x3eb33333u)) +
                           D(std::bit_cast<float>(0x3f266666u)));
     const float spin = std::bit_cast<float>(0x3ca3d70au);
@@ -1270,7 +1287,8 @@ KalimaSiegeHelperPass HelperPassOf(MonsterFrame& frame)
                     : std::function<void(std::int32_t)>{},
             .worldClock = frame.worldClock,
             .map = frame.map,
-            .siegeActive = frame.world.Runtime().siegeActive};
+            .siegeActive = frame.world.Runtime().siegeActive,
+            .modelOrigin = frame.modelOrigin};
 }
 
 // 0x50e9fa..0x510a1e: el switch por modelo (la tabla de 0x510b80 sobre 0x510b50). Devuelve true si el tipo tiene su
@@ -1502,6 +1520,20 @@ glm::vec3 HangingLightOf(const ActorState& actor, const glm::vec3& terrainLight,
     return {F32(static_cast<double>(third) * 0.5), faint, faint};
 }
 
+Core::Expected<float, std::string> ShadowGroundOf(const WorldState& world, const GameCharacterPass& pass,
+                                                  const ActorState& actor, std::int32_t map, std::uint32_t address)
+{
+    if (!InBloodCastle(map) || actor.byte1a1 == 0 || actor.dying == 0)
+        return actor.position.z;
+    const auto ground = GroundHeight(world, pass, actor.position.x, actor.position.y);
+    if (!ground)
+        return Core::Unexpected(std::format("{:#x}: falta el terreno de 0x5f93c0", address));
+    // fcom [z] y `test ah, 1`: con el terreno a la altura de la z o arriba (C0 en 0, ordenados) no escribe.
+    if (*ground >= D(actor.position.z))
+        return actor.position.z;
+    return F32(*ground);
+}
+
 Core::Expected<void, std::string> DrawGameMonster(Render::ModelBatch& batch, const IModelLibrary& models,
                                                   WorldState& world, std::size_t slot, const GameCharacterPass& pass,
                                                   bool originalFrame)
@@ -1530,7 +1562,8 @@ Core::Expected<void, std::string> DrawGameMonster(Render::ModelBatch& batch, con
                        .map = world.Runtime().map,
                        .worldClock =
                            static_cast<float>(std::chrono::duration<double, std::milli>(pass.frameClock).count()),
-                       .originalFrame = originalFrame};
+                       .originalFrame = originalFrame,
+                       .modelOrigin = actor.position};
     const auto slotIndex = static_cast<std::int32_t>(slot);
     frame.outline = slotIndex == pass.hovered || slotIndex == pass.targeted ? PoseMode::Outlined : PoseMode::Plain;
     const std::uint16_t special = WearsClothOnTheMesh(actor.word376) ? 0 : SpecialOf(actor.word376);

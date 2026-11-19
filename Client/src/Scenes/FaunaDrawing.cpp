@@ -276,6 +276,38 @@ Core::Expected<void, std::string> DrawPool(Render::ModelBatch& batch, std::span<
     }
     return {};
 }
+// 0x4ebc80 sobre el scratch (0x5786f9c y 0x68c53bc): sin `world`, por la escala y más el origen del objeto (Translate
+// en 1), las normales sin la escala; con él, `bones` ya en el mundo (Translate en 0), las normales con la escala que
+// traen los huesos.
+void SkinTheScratch(FaunaDrawCarry& carry, const Data::Models::Model& model,
+                    std::span<const Render::Models::BoneTransform> bones,
+                    const Render::Models::ObjectTransform& transform, bool world)
+{
+    if (carry.meshes.size() < model.meshes.size())
+        carry.meshes.resize(model.meshes.size());
+    for (std::size_t i = 0; i < model.meshes.size(); ++i)
+    {
+        Render::Models::SkinnedMesh mesh;
+        auto& output = carry.meshes[i];
+        const bool skinned = world ? Render::Models::SkinMeshInWorld(model.meshes[i], bones, mesh)
+                                   : Render::Models::SkinMesh(model.meshes[i], bones, transform, mesh);
+        if (!skinned)
+        {
+            // Q-C347: un vértice o una normal en un hueso que la malla no tiene (la 1 de Object36.bmd de
+            // Crywolf nombra el −8888) hace leer a 0x4ebc80 fuera de las matrices. Como MeshDrawsOf con las
+            // mallas rotas, esa no queda posada y no se dibuja.
+            output.positions.clear();
+            output.normals.clear();
+            continue;
+        }
+        if (output.positions.size() < mesh.positions.size())
+            output.positions.resize(mesh.positions.size());
+        std::copy(mesh.positions.begin(), mesh.positions.end(), output.positions.begin());
+        if (output.normals.size() < mesh.normals.size())
+            output.normals.resize(mesh.normals.size());
+        std::copy(mesh.normals.begin(), mesh.normals.end(), output.normals.begin());
+    }
+}
 } // namespace
 Core::Expected<void, std::string> PublishFaunaPose(FaunaDrawCarry& carry, const IModelLibrary& models,
                                                    const DrawnObject& object, bool translated)
@@ -291,7 +323,16 @@ Core::Expected<void, std::string> PublishFaunaPose(FaunaDrawCarry& carry, const 
     if (carry.bones.size() < count)
         carry.bones.resize(count, Render::Models::BoneTransform(0));
     auto bones = std::span(carry.bones).first(count);
-    if (!Render::Models::PoseSkeleton(*skeleton, object.animation, object.transform, glm::vec2{}, bones))
+    // 0x5ffdf0 con el segundo argumento en 1 (sin `translated`): 0x4eb860 con la bandera en 0 deja los huesos en el
+    // modelo y 0x4ebc80 corre con Translate en 1 (0x600177). Con el segundo argumento en 0: 0x4eb860 con la bandera en
+    // 1 (0x4ebbda..0x4ebc14) mete la escala (R · s, en float) y el origen en la raíz y arma los huesos en el mundo, y
+    // 0x4ebc80 corre con Translate en 0 (0x6001a1): hueso · v y hueso · n. Las dos saltean los dummy (0x4eb973), que
+    // quedan con lo que tenía el buffer.
+    const bool posed =
+        translated
+            ? Render::Models::PoseWorldSkeleton(*skeleton, object.animation, object.transform, glm::vec2{}, bones)
+            : Render::Models::PoseSkeleton(*skeleton, object.animation, object.transform, glm::vec2{}, bones);
+    if (!posed)
         return Core::Unexpected(std::string("5ffdf0: pose de fauna inválida"));
     return PublishFaunaPoseRaw(carry, models, object.model, bones, object.transform, translated);
 }
@@ -334,46 +375,7 @@ Core::Expected<void, std::string> PublishFaunaPoseRaw(FaunaDrawCarry& carry, con
         return {};
     bones = std::span(carry.bones).first(count);
     if (skin)
-    {
-        if (carry.meshes.size() < model->meshes.size())
-            carry.meshes.resize(model->meshes.size());
-        for (std::size_t i = 0; i < model->meshes.size(); ++i)
-        {
-            Render::Models::SkinnedMesh mesh;
-            auto& output = carry.meshes[i];
-            if (!Render::Models::SkinMesh(model->meshes[i], bones, transform, mesh))
-            {
-                // Q-C347: un vértice o una normal en un hueso que la malla no tiene (la 1 de Object36.bmd de
-                // Crywolf nombra el −8888) hace leer a 0x4ebc80 fuera de las matrices. Como MeshDrawsOf con las
-                // mallas rotas, esa no queda posada y no se dibuja.
-                output.positions.clear();
-                output.normals.clear();
-                continue;
-            }
-            if (output.positions.size() < mesh.positions.size())
-                output.positions.resize(mesh.positions.size());
-            std::copy(mesh.positions.begin(), mesh.positions.end(), output.positions.begin());
-            if (output.normals.size() < mesh.normals.size())
-                output.normals.resize(mesh.normals.size());
-            std::copy(mesh.normals.begin(), mesh.normals.end(), output.normals.begin());
-        }
-    }
-    if (!translated)
-        return {};
-    // 5ffdf0 con argumento0 posa matrices en el mundo; los dummy no se vuelven a escribir.
-    for (std::size_t i = 0; i < count; ++i)
-    {
-        if (skeleton != nullptr && i < skeleton->bones.size() && skeleton->bones[i].dummy)
-            continue;
-        for (int column = 0; column < 4; ++column)
-            for (int row = 0; row < 3; ++row)
-            {
-                auto& value = carry.bones[i][column][row];
-                value = F32(static_cast<double>(value) * transform.scale);
-                if (column == 3)
-                    value = F32(static_cast<double>(value) + transform.position[row]);
-            }
-    }
+        SkinTheScratch(carry, *model, bones, transform, translated);
     return {};
 }
 Core::Expected<void, std::string> DrawGameBirds(Render::ModelBatch& batch, FaunaDrawContext& context)

@@ -47,6 +47,16 @@ struct GameCharacterPass;
 // (mapa − 9) / 3 (con signo) no es 0, (ese cociente · 0,5; 0,1; 0,1).
 [[nodiscard]] glm::vec3 HangingLightOf(const ActorState& actor, const glm::vec3& terrainLight, std::int32_t map);
 
+// El suelo de la sombra de 0x50ba30: 0x50bc77..0x50bcbd con un jugador (el 0x20a, detrás de las guardas de su sombra y
+// antes de 0x60cf70 en 0x50bcec) y 0x50be15..0x50be52 con un monstruo o un NPC (después de las de la suya). En Blood
+// Castle (los mapas 0xb a 0x11), con +0x1a1 del objeto y muriéndose (+0x389), la z que le queda al objeto: la altura
+// del terreno (0x5f93c0 sobre el terreno de `pass` o, sin él, el del mapa del mundo, con su altura fija) guardada en
+// float, salvo con el terreno a la altura de la z o arriba (el fcom con `test ah, 1`: con la z o la altura en NaN
+// también la escribe). Fuera de eso, la z de `actor`. Sin las alturas, corta en `address` (la llamada a 0x5f93c0).
+[[nodiscard]] Core::Expected<float, std::string> ShadowGroundOf(const WorldState& world, const GameCharacterPass& pass,
+                                                                const ActorState& actor, std::int32_t map,
+                                                                std::uint32_t address);
+
 // 0x50ba30 con un monstruo o un NPC (el tipo no es el 0x20a) en el lugar `slot`, en el orden del ASM:
 // - con un +0x376 de WearsClothOnTheMesh (0x50bae7), 0x5ffdf0, la tela sobre la malla de pass.cloths[slot]
 //   (MonsterMeshCloth, también si 0x5ffdf0 no dibuja) y 0x6002e0, con el cuarto argumento en 0;

@@ -48,6 +48,10 @@ inline constexpr std::int32_t BrazierFallSubtype = 6;
 // nacen con la subida del ángulo x (0x544295 y 0x543e14) y avanzan 20 hacia su ángulo z (0x5480fd y 0x547f6b). Todas
 // van al billboard común (0x54889a).
 inline constexpr std::int32_t KundunFallSubtype = 3;
+// La 6f4/2, las cien del golpe de un pedazo de Kundun contra el suelo (0x52a37d): nace en 0x543d68 con vida 20, el giro
+// rand() % 360, la escala 0,5, 50 más arriba y la subida rand() % 5 + 10 (dos rand(), con la luz del pedido), y su paso
+// (0x547ee2) crece 0,1f hasta 1, la corre rand() % 10 − 5 en x y en y, le resta 1 a la subida y se apaga como la 6f4.
+inline constexpr std::int32_t KundunDebrisSubtype = 2;
 inline constexpr std::int32_t KundunSplashSubtype = 2;
 inline constexpr std::int32_t KundunSplashLastSubtype = 4;
 [[nodiscard]] bool IsKalimaParticle(std::int32_t type, std::int32_t subtype);

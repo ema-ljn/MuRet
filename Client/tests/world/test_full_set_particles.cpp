@@ -88,6 +88,13 @@ protected:
         return Client::World::StepParticlesChecked(pool, random, std::cref(m_clock), nullptr, m_trig, {}, {}, actions);
     }
 
+    // El paso con el resolvedor del estado del dueño (el de un efecto con modelo) y sin el de los personajes.
+    auto StepWithStates(Particles& pool, CrtRandom& random, const Client::World::ParticleOwnerStates& states)
+    {
+        return Client::World::StepParticlesChecked(pool, random, std::cref(m_clock), nullptr, m_trig, {}, {}, {}, {},
+                                                   nullptr, {}, {}, {}, states);
+    }
+
     static Client::World::ParticleActorActions ActionOf(const std::uint8_t& action)
     {
         return [&action](std::uint64_t identity) -> std::optional<std::uint8_t>
@@ -302,6 +309,79 @@ TEST_F(FullSetOrbitTest, TheFallenOrbitStaysWhereItFellAndFades)
         EXPECT_EQ(p.alive, step < 20);
         EXPECT_EQ(p.position, expected.position);
         EXPECT_EQ(p.light, expected.light);
+    }
+}
+
+// 0x52b8ff y 0x52b977: el 0x61d suelta la /0 con él de dueño (+0x40), y 0x54735f lee su +0x111 (ModelEffect::animation)
+// como la acción de un personaje, por ParticleOwnerStates: con 0 (la del prefijo de 0x518cf0) sigue girando como la /3,
+// en [0xd, 0x21] o [0x38, 0x3c] cae a la /1. Lo lee aunque el lugar del efecto esté muerto; sin el resolvedor, o con un
+// lugar que no responde, MissingOwner después de girar. Lo esperado sale de orbit.py (0x542ed0 y 0x5446e0..0x5473a9
+// en una x87 aparte): con la semilla 1, la fase 17, la subida 0x4028f5c2 y, tras un paso (el viento y la vida 59), el
+// punto (0x430ab77f; 0x433df31a; 0x439751ec) y la escala 0x3e6978d4.
+TEST_F(FullSetOrbitTest, TheSetOrbitReadsTheActionOfItsModelEffectOwner)
+{
+    static constexpr ParticleOwner DecalOwner{ParticleOwnerKind::ModelEffect, 5};
+    struct Case
+    {
+        std::uint8_t action;
+        bool alive;
+        bool falls;
+    };
+    constexpr std::array cases{Case{0, true, false}, Case{0xd, true, true}, Case{0x3c, false, true},
+                               Case{0x22, false, false}};
+    const glm::vec3 turned{Float(0x430ab77fu), Float(0x433df31au), Float(0x439751ecu)};
+    for (const Case& probe : cases)
+    {
+        SCOPED_TRACE(static_cast<int>(probe.action));
+        const Client::World::ParticleOwnerStates states =
+            [&probe](const ParticleOwner& owner) -> std::optional<Client::World::ParticleOwnerState>
+        {
+            if (owner != DecalOwner)
+                return std::nullopt;
+            return Client::World::ParticleOwnerState{probe.alive, {}, std::nullopt, probe.action};
+        };
+        Particles set;
+        CrtRandom setRandom(1);
+        Create(set, 0, DecalOwner, setRandom);
+        EXPECT_EQ(setRandom.State(), 0xe7847115u);
+        ASSERT_TRUE(StepWithStates(set, setRandom, states).HasValue());
+        const Particle& stepped = set.All()[0];
+        EXPECT_EQ(setRandom.State(), 0x3d6c1037u);
+        EXPECT_EQ(stepped.position, turned);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(stepped.scale), 0x3e6978d4u);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(stepped.verticalSpeed), 0x4028f5c2u);
+        EXPECT_EQ(stepped.rotation, 220.0f);
+        EXPECT_EQ(stepped.light, glm::vec3(1.0f));
+        EXPECT_EQ(stepped.typedOwner, DecalOwner);
+        if (!probe.falls)
+        {
+            EXPECT_EQ(stepped.subtype, 0);
+            EXPECT_EQ(stepped.life, 59);
+            EXPECT_EQ(stepped.velocity, (glm::vec3{17.0f, 0.0f, 0.0f}));
+            EXPECT_EQ(stepped.start, (glm::vec3{100.0f, 200.0f, 300.0f}));
+            continue;
+        }
+        EXPECT_EQ(stepped.subtype, 1);
+        EXPECT_EQ(stepped.life, 20);
+        EXPECT_EQ(stepped.velocity, glm::vec3(0.0f));
+        EXPECT_EQ(stepped.start, turned);
+    }
+    for (const ParticleOwner owner : {DecalOwner, ParticleOwner{ParticleOwnerKind::ModelEffect, 6}})
+    {
+        const bool resolver = owner == DecalOwner;
+        const Client::World::ParticleOwnerStates states =
+            [](const ParticleOwner& asked) -> std::optional<Client::World::ParticleOwnerState>
+        {
+            if (asked != DecalOwner)
+                return std::nullopt;
+            return Client::World::ParticleOwnerState{true, {}, std::nullopt, 0};
+        };
+        Particles set;
+        CrtRandom random(1);
+        Create(set, 0, owner, random);
+        const auto missing = StepWithStates(set, random, resolver ? Client::World::ParticleOwnerStates{} : states);
+        ASSERT_FALSE(missing.HasValue());
+        EXPECT_EQ(missing.Error(), ParticleError::MissingOwner);
     }
 }
 

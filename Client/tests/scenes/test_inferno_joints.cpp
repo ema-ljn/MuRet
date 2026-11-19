@@ -239,7 +239,7 @@ TEST(InfernoJointsTest, TheLavaStopsWithAFullTail)
 // 0x53b735..0x53b768: la /2 con la vida múltiplo de 5 suelta el 0xf6/6 en su camino (+0x24, la partida 10 más
 // arriba) con sus ángulos propios (+0x3c), su luz y la clave 20, sin dueño: vida 5, +0xec en 20 y la escala 20 · 0,01f,
 // velocidad y luz del modelo en 0,1f, sin rand(). Con otra vida, nada. Sin la tabla de efectos, corta ahí; sin el
-// héroe, corta el alta (0x519a4f).
+// héroe, nace igual: el /6 no lo mira (0x519a5c, solo por debajo de 2).
 TEST(InfernoJointsTest, TheInfernoDropsItsBurstEveryFiveSteps)
 {
     const Client::Scenes::ActorState hero{};
@@ -288,8 +288,9 @@ TEST(InfernoJointsTest, TheInfernoDropsItsBurstEveryFiveSteps)
     heroless.effects = std::make_unique<Client::World::ModelEffects>();
     ASSERT_TRUE(heroless.Create(2).HasValue());
     const auto blind = heroless.Step();
-    ASSERT_FALSE(blind.HasValue());
-    EXPECT_NE(blind.Error().find("0x519a4f"), std::string::npos) << blind.Error();
+    ASSERT_TRUE(blind.HasValue()) << blind.Error();
+    EXPECT_TRUE(heroless.effects->Effects()[0].alive);
+    EXPECT_EQ(heroless.effects->Effects()[0].subtype, 6);
 }
 
 // El 0x61c/1, el rayo rojo del láser 0xd0/1 de los magos (0x51a5dd), con el efecto de dueño. 0x53439e..0x53442d:

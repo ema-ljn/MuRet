@@ -13924,7 +13924,9 @@ con el modelo de `0x5769ad8 + tipo · 0xe0` (sin acciones, nada: `0x50ba82`), en
      4 en `0x440` (aditivas y con la onda de `0x4ed775`, fase 8) con su blendMesh; con el 9, 1 y las 0, 1 y 3 en `0x48`; si no, las 2 y 4 en 2 con su
      blendMesh y la luz en `sin(T · 0,002f) · 0,3f + 0,7f`; la malla 6 en 2 con blendMesh 6 y la luz en
      `sin(T · 0,002f) · 0,1f + 0,05f`, que queda en `+0x68`, y `0x439d90`. `0x439d90`: con `+0x110` en `0x21` o
-     `0x22`, `0x4ee770(6, 0x10a, 1 o 2, 0, 0)` (en los frames del original; décima vuelta), `+0x110` en 0 y el sonido `0x88`. Después de todos, `0x43fc04`: con
+     `0x22`, `0x4ee770(6, 0x10a, 1 o 2, 0, 0)` (en los frames del original; décima vuelta), `+0x110` en 0 y el sonido `0x88`
+     (MuRet: `ActorState::byte110`, el mismo byte que escribe `SettleMonsterFlags` desde `0x439d40`; de punta a punta en
+     `TheMagicCancelLeavesThe197sStonesOnItsNextDraw`). Después de todos, `0x43fc04`: con
      `+0x78 & 0x100` o `& 8`, v = sin(T · 0,001f) · 0,2f + 0,5f en la x87, el color (v · 0,1; v · 0,3; v · 0,6) o
      (v · 0,1; v · 0,6; v · 0,3) y `0x60cd60(modelo, objeto, 0x44, 1, 1,3f)`: sin `+0x78 & 0x4000`, `+0x44` del modelo
      en 0, `0x4ebc80` a 1,3 alrededor de los huesos propios y `RenderBody(0x44)`; esas mallas quedan en `0x5786f9c`

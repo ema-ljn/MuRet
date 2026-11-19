@@ -166,8 +166,8 @@ Result Shake(MonsterBodyFrame& frame, std::string_view address)
 
 // 0x439d90 con un monstruo (el tipo no es el 0x20a): con +0x110 en 0x21 o 0x22, 0x4ee770(6, 0x10a, 1 o 2, 0, 0) con
 // el modelo del tipo sobre las mallas de este dibujo (las piedras 0x10b/2 o /3 de cada esquina de la malla 6, en los
-// frames del original) y después +0x110 en 0 y el sonido 0x88. MuRet solo pone 0 y 1 en +0x110 (las puertas del 30,
-// MonsterStepCases.h).
+// frames del original) y después +0x110 en 0 y el sonido 0x88. Esos dos valores los pone 0x439d40 al llegar el 1B con
+// 0xc9 o 0xca (SettleMonsterFlags, ActorFlags.h); las puertas del 30 usan 0 y 1 y 0x42dcb0, 3 (ActorState::byte110).
 Result StrikeTheGlow(MonsterBodyFrame& frame)
 {
     constexpr std::uint8_t BlueStrike = 0x21, GreenStrike = 0x22;

@@ -110,4 +110,25 @@ World::WizardEffectServices WizardEffectServicesOf(const CharacterStepContext& c
                          .send = context.send,
                          .joints = context.joints});
 }
+
+World::ModelEffectArguments WizardArguments(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
+                                            const glm::vec3& light, std::int32_t subtype, void* owner,
+                                            std::uint16_t key)
+{
+    return World::ModelEffectArguments{.type = type,
+                                       .position = position,
+                                       .angles = angles,
+                                       .light = light,
+                                       .subtype = subtype,
+                                       .owner = owner,
+                                       .key = key};
+}
+
+Core::Expected<std::optional<std::size_t>, std::string> CreateWizardEffect(const CharacterStepContext& context,
+                                                                           const World::ModelEffectArguments& arguments,
+                                                                           glm::vec3* callerLight)
+{
+    return World::CreateWizardModelEffect(context.world.Map().effects, arguments, context.random,
+                                          WizardEffectServicesOf(context), callerLight);
+}
 } // namespace Client::Scenes

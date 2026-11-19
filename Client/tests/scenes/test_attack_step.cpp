@@ -481,7 +481,7 @@ TEST(AttackStepTest, TheStrikeSoundFollowsTheOwnHands)
 
 // Lo que corta, en su orden y con los rand() de antes: los joints
 // 0x614 de la 3 sin caso (0x4f8fef, CL11), lo que crean los casos de la cabeza y con blanco (0x4fdeeb, 0x504372,
-// CL11), los efectos de los casos de 0x4f5b70 (0x4f7050), la partícula de 0x52e740 (0x5042ce, CL11) y, sin el pool de
+// CL11), los efectos de los casos de 0x4f5b70 (0x4f67fb), la partícula de 0x52e740 (0x5042ce, CL11) y, sin el pool de
 // joints, los de +0x380 en 2 (0x505169). La flecha (0x53e2b0) ya no corta: sus cortes están en test_arrow_effects.cpp.
 // Los demás casos de 0x4f97b0, en test_attack_frame_skills.cpp; los de 0x4fdeeb y 0x504372, en
 // test_attack_skill_cases.cpp.
@@ -511,13 +511,8 @@ TEST(AttackStepTest, TheCutsAfterTheirDraws)
                  hero.byte381 = 14;
              },
              "0x50497e", CountingStep + 2 * SkillRead},
-        Case{"el caso 0x23 de +0x376",
-             [](AttackWorld&, ActorState& hero)
-             {
-                 hero.word376 = 0x23;
-                 hero.byte38e = 0x32;
-             },
-             "0x4f7050", SkillRead + 1 + SkillRead},
+        Case{"el caso 0x31 de +0x376", [](AttackWorld&, ActorState& hero) { hero.word376 = 0x31; }, "0x4f67fb",
+             SkillRead + 1},
         Case{"la 0x39",
              [](AttackWorld&, ActorState& hero)
              {

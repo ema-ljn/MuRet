@@ -45,8 +45,6 @@ namespace Client::Scenes
 namespace
 {
 constexpr std::int16_t NoTarget = -1;
-// La clave −1 (+0x8a) de 0x518cf0.
-constexpr std::uint16_t NoKey = 0xffff;
 // El sonido de los fuegos 0xc2 de la 0x02 y la 0x04 (0x5049f9, 0x504bda).
 constexpr std::int32_t FireSound = 0x42;
 constexpr std::size_t PoolSlots = 400;
@@ -117,29 +115,13 @@ void CountHeroVolley(const ActorState& actor, const CharacterStepContext& contex
     ++context.world.OwnCharacter().bytef04;
 }
 
-// 0x518cf0(tipo, posición, ángulos, luz, subtipo, dueño, clave, 0, 0, 0, 0) con un tipo de los magos.
-World::ModelEffectArguments WizardArguments(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
-                                            const glm::vec3& light, std::int32_t subtype, void* owner = nullptr,
-                                            std::uint16_t key = NoKey)
-{
-    return World::ModelEffectArguments{.type = type,
-                                       .position = position,
-                                       .angles = angles,
-                                       .light = light,
-                                       .subtype = subtype,
-                                       .owner = owner,
-                                       .key = key};
-}
-
-// El alta de un efecto de los magos (World::CreateWizardModelEffect) con los servicios del paso
-// (Scenes/WizardEffects.h). Con la tabla llena, nada y sin rand(); lo que el efecto pide y MuRet no tiene corta con la
-// dirección de la llamada.
+// El alta de un efecto de los magos (Scenes::CreateWizardEffect). Con la tabla llena, nada y sin rand(); lo que el
+// efecto pide y MuRet no tiene corta con la dirección de la llamada.
 Core::Expected<void, std::string> CreateWizard(std::uint32_t address, const World::ModelEffectArguments& arguments,
                                                std::uint8_t skill, std::size_t slot,
                                                const CharacterStepContext& context)
 {
-    const auto created = World::CreateWizardModelEffect(context.world.Map().effects, arguments, context.random,
-                                                        WizardEffectServicesOf(context));
+    const auto created = CreateWizardEffect(context, arguments);
     if (!created.HasValue())
     {
         return Core::Unexpected(std::format("{:#x}: el efecto {:#x}/{} de la habilidad {:#x} del lugar {}: {}", address,

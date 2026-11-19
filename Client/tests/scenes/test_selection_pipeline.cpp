@@ -12,7 +12,6 @@
 #include "Network/PacketSerials.h"
 #include "Protocol/Character/CharacterDelete.h"
 #include "Render/ModelBatch.h"
-#include "Render/ModelVertex.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Render/TextureSlot.h"

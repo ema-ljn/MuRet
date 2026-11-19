@@ -14979,8 +14979,10 @@ lote (ADR 0020).
   `+0x68` ni los 50 más en z, con cinco `rand()`. Como la roca ya está apagada, si su lugar es el primero libre el
   primer pedazo cae en él, y `0x521684..0x5216d4` mueven y giran ese pedazo. Cada `rand()` sale antes del corte de
   MuRet que le sigue: el del temblor antes de `0x52163e`, el del tipo antes de `0x521675` (y de `0x521175` en el
-  `0xf5`), el `rand() % 5` del `0x108/0` antes de `0x525750`, y el `0xf4` en Kalima saca sus cuatro (`0x5219cc`,
-  `0x5219ec`, `0x521a30` y `0x521a4c`) antes de la `0x6f4/3` (`0x521aa3`).
+  `0xf5`), el `rand() % 5` del `0x108/0` antes de `0x525750`. El `0xf4` en Kalima (mapas `0x18..0x1d` y `0x24`) da una sola
+  chispa con sus cuatro `rand()` (`0x5219cc`, `0x5219ec`, `0x521a30` y `0x521a4c`) y, en vez del joint y la `0x5c5/0`,
+  la `0x6f4/3` 120 más arriba con la luz (0,5; 0,5; 0,5) y escala 1 (`0x521aa3`); su sprite `0x5ac` sube 60
+  (`0x42700000`) en vez de 20 (`0x5219ae..0x5219c5`).
 - **El dibujo** (Q-C1548): el `0xf3` no se dibuja (`0x52d620`), el `0xf4` es el ítem del dueño (`DrawItemModelEffect`),
   el `0x10f` va por `DrawBloodCastleModelEffect` y los demás por el cuerpo común de `0x6002e0`. El `0x112/0` pasa
   `+0x74 | 2`, que es 2 porque nadie escribe `+0x74`. El `0x109/0` agrega antes del pase común uno con

@@ -7,6 +7,7 @@
 #include "Render/Models/OriginalRotation.h"
 #include "World/GameModelEffects.h"
 #include "World/IFishStepServices.h"
+#include "World/KalimaParticleKernels.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
@@ -771,6 +772,43 @@ TEST(BlastModelEffectsTest, TheSpinningItemStaysBehindItsOwnerWithItsDustAndSpar
     ReplayParticle(replay, 0x5c5, 0);
     Skip(replay, 3 * 4);
     EXPECT_EQ(random.State(), replay.State());
+}
+
+// 0x521996..0x521aab y 0x521bb6: en Kalima (24 a 29 y 36), una sola chispa con sus cuatro rand(), sin el joint ni la
+// 5c5/0: la 6f4/3 120 más arriba con la luz (0,5; 0,5; 0,5) (0x521aa3) y el sprite 0x5ac 60 más arriba.
+TEST(BlastModelEffectsTest, TheSpinningItemDropsOneKalimaFallInKalima)
+{
+    for (const std::int32_t map : {24, 29, 36})
+    {
+        SCOPED_TRACE(map);
+        StepHarness harness;
+        harness.map = map;
+        CrtRandom random(7);
+        CrtRandom replay(7);
+        const glm::vec3 owner{500, 600, 70};
+        const std::int16_t itemType = 0x650;
+        ModelEffect& item = Alive(*harness.effects, 0, 0xf4, 2, 25);
+        item.owner.position = &owner;
+        item.itemType = &itemType;
+        const auto stepped = harness.Step(item, random);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_TRUE(harness.joints.empty());
+        EXPECT_EQ(AliveParticles(*harness.particles, 0x5c5, 0), 0);
+        ASSERT_EQ(AliveParticles(*harness.particles, Client::World::KalimaWaterfallLast, 3), 1);
+        const auto fall = std::ranges::find_if(harness.particles->All(), [](const auto& particle)
+                                               { return particle.alive && particle.type == 0x6f4; });
+        EXPECT_EQ(fall->light, glm::vec3(0.5f));
+        EXPECT_EQ(fall->position.z, 190.0f);
+        Skip(replay, 1);
+        ReplayParticle(replay, Client::World::BreathParticle, 3);
+        Skip(replay, 4);
+        ReplayParticle(replay, Client::World::KalimaWaterfallLast, 3);
+        EXPECT_EQ(random.State(), replay.State());
+        const auto& sprite = harness.sprites->Sprites()[0];
+        ASSERT_TRUE(sprite.alive);
+        EXPECT_EQ(sprite.texture, 0x5ac);
+        EXPECT_EQ(sprite.position, glm::vec3(500, 420, 130));
+    }
 }
 
 // 0x52552d..0x52569a: el 0x108/0 se hamaca (los dos rand() del seno y el de la caída), suelta el aliento 5f2/0, sortea

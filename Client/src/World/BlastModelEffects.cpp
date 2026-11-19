@@ -12,6 +12,7 @@
 #include "World/Ftol.h"
 #include "World/GameModelEffects.h"
 #include "World/IFishStepServices.h"
+#include "World/KalimaParticleKernels.h"
 #include "World/KalimaWorld.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
@@ -932,10 +933,11 @@ Core::Expected<void, std::string> StepTheSpinningItem(ModelEffect& effect, float
         return lit;
     if (services.map == nullptr)
         return Core::Unexpected(Cut("0x52198e", "el 0xf4 lee el mapa (0x6c9dd0)"));
-    // 0x521996..0x521aab: en Kalima, una sola chispa con sus cuatro rand() (0x5219cc, 0x5219ec, 0x521a30 y 0x521a4c),
-    // 120 más arriba (0x6b86c8), y la 0x6f4/3 (0x521aa3), que MuRet no crea; el sprite sube 60 (0x42700000).
+    // 0x521996..0x521aab: en Kalima (0x18..0x1d o 0x24), una sola chispa con sus cuatro rand() (0x5219cc, 0x5219ec,
+    // 0x521a30 y 0x521a4c), 120 más arriba (0x6b86c8), y 0x53fe70(0x6f4, punto, ángulos, (0,5; 0,5; 0,5), 3, 1, 0)
+    // (0x521aa3), que salta al sprite (0x521bb6); el sprite sube 60 (0x42700000) en vez de 20 (0x41a00000, 0x5219ae).
     const bool kalima = IsKalimaMap(*services.map);
-    constexpr double Lift = 20.0; // 0x41a00000
+    const double lift = kalima ? 60.0 : 20.0;
     const int sparks = kalima ? 1 : 4;
     for (int spark = 0; spark < sparks; ++spark)
     {
@@ -949,11 +951,14 @@ Core::Expected<void, std::string> StepTheSpinningItem(ModelEffect& effect, float
         point.y = F32(static_cast<double>(random.Next() % 20 - 10) + D(point.y));
         if (kalima)
         {
+            constexpr std::int32_t FallSubtype = 3;
+            constexpr glm::vec3 FallLight{0.5f}; // 0x521a68..0x521a76, 0x3f000000
             point.z = F32(D(point.z) + 120.0);
-            return Core::Unexpected(
-                Cut("0x521aa3", std::format("la partícula 0x6f4/3 (0x53fe70) del 0xf4 en Kalima, en "
-                                            "({}, {}, {}) con el giro {}, no está portada",
-                                            point.x, point.y, point.z, angles.z)));
+            if (auto made = Emit(particles, KalimaWaterfallLast, point, angles, FallLight, FallSubtype, 1.0f,
+                                 worldClock, random, "0x521aa3");
+                !made.HasValue())
+                return made;
+            break;
         }
         if (!services.joint)
             return Core::Unexpected(Cut("0x521b75", "el joint 0x617/0 (0x530860) no tiene la tabla"));
@@ -968,7 +973,7 @@ Core::Expected<void, std::string> StepTheSpinningItem(ModelEffect& effect, float
                 return made;
         }
     }
-    const glm::vec3 above{position.x, position.y, F32(D(position.z) + Lift)};
+    const glm::vec3 above{position.x, position.y, F32(D(position.z) + lift)};
     if (auto made = Sprite(services, 0x5ac, above, 2.0f, {1.0f, 0.8f, 0.6f}, 0.0f, "0x521bf6"); !made.HasValue())
         return made;
     return {};

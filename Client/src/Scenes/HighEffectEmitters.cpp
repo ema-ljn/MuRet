@@ -25,12 +25,12 @@ namespace Client::Scenes
 Core::Expected<void, std::string> CreateHighJoint(WorldState& world, Render::Models::CrtRandom& random,
                                                   std::int32_t type, glm::vec3 first, glm::vec3 second,
                                                   glm::vec3 angles, std::int32_t subtype, World::ModelEffect* owner,
-                                                  float scale, std::uint32_t address)
+                                                  float scale, std::uint32_t address, std::int32_t key)
 {
-    constexpr std::int32_t NoKey = -1, NoTarget = -1;
+    constexpr std::int32_t NoTarget = -1;
     const auto made = CreateFaunaJoint(
         world.DrawTail().joints,
-        World::FishEffectRequest{type, first, second, angles, subtype, owner, scale, NoKey, 0, 0, NoTarget}, random,
+        World::FishEffectRequest{type, first, second, angles, subtype, owner, scale, key, 0, 0, NoTarget}, random,
         owner != nullptr ? JointOwnerKind::ModelEffect : JointOwnerKind::ByType);
     if (!made.HasValue())
         return Core::Unexpected(std::format("{:#x}: {} (CL11)", address, made.Error()));

@@ -19,6 +19,7 @@
 #include "Scenes/HighEffectEmitters.h"
 #include "Scenes/JavelinEffect.h"
 #include "Scenes/KalimaMonsterEffects.h"
+#include "Scenes/KundunEffects.h"
 #include "Scenes/MeteorEffects.h"
 #include "Scenes/RingEffects.h"
 #include "Scenes/SkullEffects.h"
@@ -1230,7 +1231,7 @@ bool IsHighModelEffect(std::int16_t type)
            type == PiercingGlowEffect || type == SkullEffect || type == SeamanEffect || type == FireBreathEffect ||
            type == JavelinEffect || type == ThunderEffect || type == WaveEffect || type == PiercingEffect ||
            type == RingEffect || type == MeteorEffect || type == MeteorShellEffect || type == MeteorCallEffect ||
-           type == GuildMarkEffect;
+           type == GuildMarkEffect || type == KundunSpiritEffect;
 }
 
 Core::Expected<std::optional<std::size_t>, std::string>
@@ -1324,6 +1325,9 @@ CreateHighModelEffect(const World::ModelEffectArguments& arguments, const HighEf
     case MeteorShellEffect:
     case MeteorCallEffect:
         BeginTheMeteor(effect);
+        break;
+    case KundunSpiritEffect:
+        begun = BeginTheKundunSpirit(effect, context);
         break;
     case GuildMarkEffect:
     {
@@ -1450,6 +1454,9 @@ Core::Expected<void, std::string> StepHighModelEffect(World::ModelEffect& effect
         break;
     case GuildMarkEffect:
         stepped = StepTheGuildMark(effect, context);
+        break;
+    case KundunSpiritEffect:
+        stepped = StepTheKundunSpirit(effect, context);
         break;
     default:
         break;

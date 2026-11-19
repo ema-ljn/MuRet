@@ -688,4 +688,89 @@ TEST(HighEffectFamiliesTest, TheGuildMarkSparksAtBirthAndBeforeFading)
         }
     }
 }
+
+// 0x51cdc9..0x51cebe: el 0x125 sube 100, sortea el giro y el radio y deja el joint 0x6ee/0x12 con él de dueño y la
+// clave 0 en (FSIN(giro) · radio + x, FCOS(giro) · radio + y, 0); después los ángulos en (−30, 0, rand() % 360). El
+// 0x6ee/0x12 con un efecto de dueño es del lote de joints: con lugar corta en 0x51ce91, después de los dos rand(). Con
+// los joints llenos, sin el joint y con el tercer rand().
+TEST(HighEffectFamiliesTest, TheKundunSpiritLeavesItsOrbitingJoint)
+{
+    for (const bool full : {false, true})
+    {
+        SCOPED_TRACE(full);
+        FamilyWorld tested;
+        if (full)
+            tested.FillTheJoints();
+        const glm::vec3 origin{1000.0f, 2000.0f, 300.0f};
+        const glm::vec3 angles{0.0f, 0.0f, 15.0f};
+        const auto made =
+            CreateHighModelEffect({.type = 0x125, .position = origin, .angles = angles}, tested.Context());
+        const ModelEffect& spirit = tested.Effect(0);
+        EXPECT_EQ(spirit.life, 30);
+        EXPECT_EQ(spirit.objectState.blendMesh, -2);
+        EXPECT_EQ(spirit.transform.scale, 1.0f);
+        EXPECT_EQ(spirit.light, glm::vec3(0.5f));
+        EXPECT_EQ(spirit.alpha, 0.0f);
+        EXPECT_EQ(spirit.transform.position, (glm::vec3{1000.0f, 2000.0f, 400.0f}));
+        if (!full)
+        {
+            EXPECT_TRUE(HasError(made, "0x51ce91")) << (made.HasValue() ? std::string() : made.Error());
+            EXPECT_EQ(tested.Draws(), 2);
+            EXPECT_EQ(spirit.transform.angles, angles);
+            continue;
+        }
+        ASSERT_TRUE(made.HasValue()) << made.Error();
+        CrtRandom replay(Seed);
+        static_cast<void>(replay.Next());
+        static_cast<void>(replay.Next());
+        const auto yaw = static_cast<float>(replay.Next() % 360);
+        EXPECT_EQ(spirit.transform.angles, (glm::vec3{-30.0f, 0.0f, yaw}));
+        EXPECT_EQ(tested.random.State(), replay.State());
+    }
+}
+
+// 0x5276b7..0x527787: el paso del 0x125 gira rand() % 10 + 10; entre 300 y 600 de z, con rand() & 1 en 0, el joint
+// 0x6ee/0xe sin dueño en (x, y, 350) con el giro (rand() % 24) · 30. Fuera de esa franja, un solo rand().
+TEST(HighEffectFamiliesTest, TheKundunSpiritFansOutBetweenThreeAndSixHundred)
+{
+    for (const float height : {300.0f, 450.0f, 600.0f})
+    {
+        SCOPED_TRACE(height);
+        FamilyWorld tested;
+        tested.FillTheJoints();
+        ASSERT_TRUE(CreateHighModelEffect({.type = 0x125}, tested.Context()).HasValue());
+        for (auto& joint : tested.world->DrawTail().joints)
+            joint.alive = false;
+        ModelEffect& spirit = tested.Effect(0);
+        spirit.transform.position = {1000.0f, 2000.0f, height};
+        const float yaw = spirit.transform.angles.z;
+        const int before = tested.Draws();
+        ASSERT_TRUE(Client::Scenes::StepHighModelEffect(spirit, nullptr, tested.StepContext()).HasValue());
+        CrtRandom replay(Seed);
+        for (int draw = 0; draw < before + 1; ++draw)
+            static_cast<void>(replay.Next());
+        const int spin = replay.Next() % 10 + 10;
+        EXPECT_EQ(spirit.transform.angles.z, static_cast<float>(spin + static_cast<double>(yaw)));
+        const auto& fan = tested.world->DrawTail().joints[0];
+        if (height != 450.0f)
+        {
+            EXPECT_EQ(tested.random.State(), replay.State());
+            EXPECT_FALSE(fan.alive);
+            continue;
+        }
+        if ((replay.Next() & 1) != 0)
+        {
+            EXPECT_EQ(tested.random.State(), replay.State());
+            EXPECT_FALSE(fan.alive);
+            continue;
+        }
+        const int spoke = replay.Next() % 24;
+        ASSERT_TRUE(fan.alive);
+        EXPECT_EQ(fan.type, 0x6ee);
+        EXPECT_EQ(fan.subtype, 0xe);
+        EXPECT_EQ(fan.ownerContext, nullptr);
+        EXPECT_EQ(fan.position, (glm::vec3{1000.0f, 2000.0f, 350.0f}));
+        EXPECT_EQ(fan.angles, (glm::vec3{0.0f, 0.0f, static_cast<float>(spoke * 30)}));
+    }
+}
 } // namespace

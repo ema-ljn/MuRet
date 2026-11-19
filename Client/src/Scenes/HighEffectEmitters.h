@@ -27,12 +27,13 @@ class WorldState;
 struct HighEffectStepContext;
 
 // 0x530860(tipo, punto, punto2, ángulos, subtipo, dueño, escala, clave, 0, 0, −1): el joint, con la dirección del que
-// lo pide delante del error de un joint que MuRet no tiene (el lote de los joints de la CL11) y "(CL11)" detrás.
+// lo pide delante del error de un joint que MuRet no tiene (el lote de los joints de la CL11) y "(CL11)" detrás. La
+// clave es −1 salvo en los que pasan otra (el 0x125, 0x51ce91 y 0x52777f, con 0).
 [[nodiscard]] Core::Expected<void, std::string> CreateHighJoint(WorldState& world, Render::Models::CrtRandom& random,
                                                                 std::int32_t type, glm::vec3 first, glm::vec3 second,
                                                                 glm::vec3 angles, std::int32_t subtype,
                                                                 World::ModelEffect* owner, float scale,
-                                                                std::uint32_t address);
+                                                                std::uint32_t address, std::int32_t key = -1);
 
 // 0x53fe70 de una partícula, con el error del pool como texto y la dirección del que la pide. Con el pool lleno,
 // nullopt y sin rand().

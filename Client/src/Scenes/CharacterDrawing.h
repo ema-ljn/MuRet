@@ -270,6 +270,14 @@ void DrawObjectFromMeshes(Render::ModelBatch& batch, const IModelLibrary& models
 SkinObjectMeshes(const IModelLibrary& models, const DrawnObject& object,
                  std::span<const Render::Models::BoneTransform> bones, float boneScale = 1.0f);
 
+// El scratch de 0x5ffdf0 con el segundo argumento en 0 (0x602e90 de un objeto del mundo en 0x604a47, de un efecto en
+// 0x52da99, de un ayudante en 0x44532e o del cuervo en 0x41834e) cuando nadie lo publicó: 0x4eb860 con la bandera en 1
+// (PoseWorldSkeleton, los dummy con la identidad) y 0x4ebc80 con Translate en 0 (SkinMeshInWorld, 0x6001a1), todas las
+// mallas del modelo, las normales con la escala dentro (R · s). No mira el alpha. La que no se puede posar queda
+// vacía. Sin el modelo, el esqueleto o la pose, ninguna.
+[[nodiscard]] std::vector<Render::Models::SkinnedMesh> WorldScratchOf(const IModelLibrary& models,
+                                                                      const DrawnObject& object);
+
 // Un pase de 0x60cd60: la escala que 0x4ebc80 lee de 0x6c881c y el color del modelo (+0x48..+0x50).
 struct ObjectOutlinePass
 {

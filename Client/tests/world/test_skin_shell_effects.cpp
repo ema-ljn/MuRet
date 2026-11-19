@@ -2,7 +2,6 @@
 
 #include "Core/Expected.h"
 #include "Render/Models/Cloth.h"
-#include "Render/Models/OriginalRotation.h"
 #include "World/GameModelEffects.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
@@ -33,16 +32,6 @@ constexpr std::uint32_t StraightSeed = 298;
 float Bits(std::uint32_t value)
 {
     return std::bit_cast<float>(value);
-}
-
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-double D(float value)
-{
-    return static_cast<double>(value);
 }
 
 // Lo que pide 0x4ee770 (0x4eee6b): la esquina, los ángulos en 0, la luz (1, 1, 1) y el subtipo del joint.
@@ -109,21 +98,29 @@ TEST(SkinShellEffectsTest, TheShellIsBornWithNineRandoms)
     }
 }
 
-// Con otra semilla, el empuje girado por la z de los ángulos (0x5fc8f0, 0x5fcbd0) antes de sortear los tres ángulos.
+// Con la semilla 7 (rand() 61, 17422, 15215, 7040, 15521, 6516, 30152, 11794, 27727): empuje (61 & 127) + 32 = 93 ·
+// 0,1f = 0x4114cccd, vida (17422 & 15) + 32 = 46, escala (15215 % 3 + 3) · 0,1f = 0,5 y la z de los ángulos 7040 % 360
+// = 200. 0x5fc8f0 con (0, 0, 200): sin(200 · 0x3c8efa35) guardado en float y el coseno en la pila; 0x5fcbd0 gira (0,
+// empuje, 0) a (0x404b9205, 0xc10bd386, 0). Después la caída 15521 % 5 + 2 + 6516 % 5 = 4 y los ángulos (272, 274, 7).
+// Los bits salen de repetir las cuentas del ASM en la x87 aparte (Fraction exacta con redondeo a 53 y 24 bits).
 TEST(SkinShellEffectsTest, ThePushTurnsWithTheFirstYaw)
 {
     auto effects = std::make_unique<ModelEffects>();
     CrtRandom random(7);
     ASSERT_TRUE(Client::World::CreateSkinShell(ShellArguments(0), *effects, random).has_value());
 
-    CrtRandom replay(7);
-    const float push = F32(static_cast<double>((replay.Next() & 127) + 32) * D(Bits(0x3dcccccdu)));
-    static_cast<void>(replay.Next());
-    static_cast<void>(replay.Next());
-    const auto yaw = static_cast<float>(replay.Next() % 360);
-    const glm::vec3 velocity = Client::Render::Models::OriginalVectorRotate(
-        {0.0f, push, 0.0f}, Client::Render::Models::OriginalAngleMatrix({0.0f, 0.0f, yaw}));
-    EXPECT_EQ(effects->Effects()[0].velocity, velocity);
+    const ModelEffect& shell = effects->Effects()[0];
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(shell.velocity.x), 0x404b9205u);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(shell.velocity.y), 0xc10bd386u);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(shell.velocity.z), 0x00000000u);
+    EXPECT_EQ(shell.turnDirection, 4.0f);
+    EXPECT_EQ(shell.transform.angles, (glm::vec3{272.0f, 274.0f, 7.0f}));
+    EXPECT_EQ(shell.life, 46);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(shell.transform.scale), 0x3f000000u);
+    EXPECT_EQ(shell.transform.position, (glm::vec3{1000.0f, 2000.0f, 350.0f}));
+    CrtRandom expected(7);
+    expected.Discard(9);
+    EXPECT_EQ(random.State(), expected.State());
 }
 
 // 0x518cf0 con la tabla llena: nada, ni rand().
@@ -178,11 +175,13 @@ TEST(SkinShellEffectsTest, TheShellFallsAndBouncesOnTheGround)
 
 // 0x5208a0 con el 0x137: el rand() de la luz local (0x5208c5), el cuerpo, la animación (sin esqueleto, nada), el
 // movimiento común 0x51fc80(efecto, 1) con la velocidad nueva girada por los ángulos nuevos y la vida menos uno; la
-// posición de antes del paso queda como la anterior.
+// posición de antes del paso queda como la anterior. El paso del 0x137 deja la posición en (1010, 2020, 306), la
+// velocidad en (0x411e6667, 0x419e6667, 0) y la x de los ángulos en 0x42bb3333 (93,6f); 0x5fc8f0 con (93,6f, 0, 0)
+// da sin y cos en float (0x3f7f7eae, 0xbd80984c), y 0x5fcbd0 gira la velocidad a (0x411e6667, 0xbf9f22df,
+// 0x419e1663). Los bits de la posición salen de repetir esas cuentas en la x87 aparte.
 TEST(SkinShellEffectsTest, TheGameStepAddsTheCommonMove)
 {
     ModelEffect shell = PlacedShell();
-    ModelEffect body = PlacedShell();
     Client::World::ModelEffectStepServices services;
     services.terrainHeight = [](float, float) { return -1000.0; };
     auto particles = std::make_unique<Client::World::Particles>();
@@ -192,12 +191,9 @@ TEST(SkinShellEffectsTest, TheGameStepAddsTheCommonMove)
         Client::World::StepGameModelEffect(shell, nullptr, *particles, 0.0f, random, nullptr, services);
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-    ASSERT_TRUE(Client::World::StepSkinShell(body, services).HasValue());
-    const glm::vec3 move = Client::Render::Models::OriginalVectorRotate(
-        body.velocity, Client::Render::Models::OriginalAngleMatrix(body.transform.angles));
-    EXPECT_EQ(shell.transform.position,
-              (glm::vec3{F32(D(move.x) + D(body.transform.position.x)), F32(D(move.y) + D(body.transform.position.y)),
-                         F32(D(move.z) + D(body.transform.position.z))}));
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(shell.transform.position.x), 0x447ef99au);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(shell.transform.position.y), 0x44fc5837u);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(shell.transform.position.z), 0x43a2e166u);
     EXPECT_EQ(shell.previousPosition, (glm::vec3{1000.0f, 2000.0f, 300.0f}));
     EXPECT_EQ(shell.life, 39);
     EXPECT_EQ(shell.alpha, 4.0f);

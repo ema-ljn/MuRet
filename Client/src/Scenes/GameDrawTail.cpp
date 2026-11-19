@@ -23,6 +23,7 @@
 #include "Scenes/GameFloorItemDrawing.h"
 #include "Scenes/GameItemSpecialDrawing.h"
 #include "Scenes/GameTailDrawingPrimitives.h"
+#include "Scenes/HighEffectDrawing.h"
 #include "Scenes/ModelPoseCallbacks.h"
 #include "Scenes/MeteorEffects.h"
 #include "Scenes/WizardEffectDrawing.h"
@@ -659,12 +660,23 @@ DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect, cons
         return {};
     }
     // 0x6004aa (+0x74 en 0x80) y los colores del 0xcc/3, /4 y el 0xcb/2, /3 (Scenes/WizardEffectDrawing, CL11); el
-    // 0x13d y el 0x13e por 0x442e10 (Scenes/MeteorEffects).
+    // 0x13d y el 0x13e por 0x442e10 (Scenes/MeteorEffects); el 0x11b, el 0x114/3..5, el 0x140 y, por 0x438fe0, el
+    // 0x125 (Scenes/HighEffectDrawing), después del +0x74 en 0x80, que 0x6002e0 mira antes que el tipo.
     const auto drawTheSpecialBody = [&]() -> Core::Expected<bool, std::string>
     {
         if (effect.type == MeteorEffect || effect.type == MeteorShellEffect)
             return DrawTheMeteorBody(batch, models, effect, object, frameClock,
                                      resources != nullptr ? std::optional<float>(resources->worldClock) : std::nullopt);
+        if (effect.renderFlags != World::CrackRenderFlags && HasHighEffectBody(effect))
+        {
+            HighEffectDrawServices services;
+            if (resources != nullptr)
+                services = {.sprites = resources->sprites,
+                            .random = resources->random,
+                            .posedBones = resources->posedBones,
+                            .worldClock = resources->worldClock};
+            return DrawTheHighEffectBody(batch, models, effect, object, frameClock, services);
+        }
         return DrawTheWizardEffectBody(batch, models, effect, object, frameClock);
     };
     if (resources != nullptr && resources->onPose && !(effect.alpha < 0.01f) && models.Find(model) != nullptr &&

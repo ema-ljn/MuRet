@@ -2,6 +2,8 @@
 
 #include "Core/Expected.h"
 
+#include <glm/ext/vector_float3.hpp>
+
 #include <cstdint>
 #include <string>
 
@@ -38,6 +40,12 @@ void BeginTheSkull(World::ModelEffect& effect);
 // que giran. Sin rand(). Corta en la primera partícula que MuRet no tiene, con lugar en la tabla (CL11).
 [[nodiscard]] Core::Expected<void, std::string> StepTheSkull(World::ModelEffect& effect,
                                                              const HighEffectStepContext& context);
+
+// 0x52b795..0x52b829: el punto de la vuelta `turn` (0 a 2) del /5 con la vida `life` del efecto y T (`worldClock`,
+// 0x5767b88): el ángulo turn · 2π/3 + vida · 0,17f + T · 0,003f, a 50 del dueño en x (FSIN) y en y (FCOS), con el
+// perfil PC53, y a (turn + 1) · su escala · 50 sobre su z. Ahí nace su 0x5ac/5.
+[[nodiscard]] Core::Expected<glm::vec3, std::string> SkullStackPoint(int turn, std::int32_t life, float worldClock,
+                                                                     const ActorState& owner);
 
 // 0x518ac0(0x628, personaje, 0) y 0x518cf0(0x628, +0x10, +0x1c, (1, 1, 1), 0, personaje, −1, 0, 0, 0, 0): apaga el
 // 0x628/0 del personaje y crea otro con él de dueño (con la tabla llena, ninguno). Sin rand(). `address` es la del

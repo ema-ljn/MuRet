@@ -169,23 +169,42 @@ TEST(FlareJointsTest, TheFlareShootsTenSegmentsWhileItIsYoung)
     EXPECT_EQ(joint.life, 15);
 }
 
-// Con los ángulos del alta: cada avance es el giro de (0, −velocidad, 0) por la matriz de los ángulos, sumado y
-// guardado en float.
+// Con los ángulos del alta (la semilla da (−7, 0, 199) y velocidad 10): cada avance gira (0, −velocidad, 0) con
+// 0x5fcbd0 en el mismo vector (0x535a1d..0x535a3f: la y relee la x girada y la z las dos) y lo suma en float. Los bits
+// salen de una emulación aparte del original (0x5fc8f0 y 0x5fcbd0 a doble, con cada fstp en float).
 TEST(FlareJointsTest, TheFlareAdvancesAlongItsAngles)
 {
     FlareWorld tested;
     ASSERT_TRUE(tested.Create(0).HasValue());
     const JointState& joint = tested.joints[0];
-    const auto matrix = Client::Render::Models::OriginalAngleMatrix(joint.angles);
-    const auto moved = Client::Render::Models::OriginalVectorRotate({0.0f, -joint.speed, 0.0f}, matrix);
-    glm::vec3 expected = tested.start;
-    for (int step = 0; step < 10; ++step)
-        for (int axis = 0; axis < 3; ++axis)
-            expected[axis] = static_cast<float>(static_cast<double>(moved[axis]) + static_cast<double>(expected[axis]));
+    ASSERT_EQ(joint.angles, (glm::vec3{-7.0f, 0.0f, 199.0f}));
+    ASSERT_EQ(joint.speed, 10.0f);
 
     ASSERT_TRUE(tested.Step().HasValue());
 
-    EXPECT_EQ(joint.position, expected);
+    EXPECT_EQ(Bits(joint.position.x), 0x4471ebeau);
+    EXPECT_EQ(Bits(joint.position.y), 0x450385e2u);
+    EXPECT_EQ(Bits(joint.position.z), 0x438fa3f4u);
+}
+
+// 0x535ab6..0x535ad8: la /1 gira igual en el mismo vector. La semilla da el skill 0, la velocidad 3 y los ángulos
+// (30, 0, 199): cinco avances con la velocidad en 3; 3,5; 4; 4,5 y 5 (bits de la misma emulación aparte).
+TEST(FlareJointsTest, TheSecondFlareAdvancesAlongItsAngles)
+{
+    FlareWorld tested;
+    ASSERT_TRUE(tested.Create(1).HasValue());
+    const JointState& joint = tested.joints[0];
+    ASSERT_EQ(joint.skill, 0);
+    ASSERT_EQ(joint.angles, (glm::vec3{30.0f, 0.0f, 199.0f}));
+    ASSERT_EQ(joint.speed, 3.0f);
+
+    ASSERT_TRUE(tested.Step().HasValue());
+
+    EXPECT_EQ(Bits(joint.position.x), 0x4478971bu);
+    EXPECT_EQ(Bits(joint.position.y), 0x44fc46d0u);
+    EXPECT_EQ(Bits(joint.position.z), 0x439a8d9eu);
+    EXPECT_EQ(joint.speed, 5.5f);
+    EXPECT_EQ(joint.count, 5);
 }
 
 // 0x535a71..0x535b0c: la /1 con el skill en 0 (o la vida de más de 3) agrega cinco tramos y avanza cinco veces, la

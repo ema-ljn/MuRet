@@ -14543,7 +14543,11 @@ en un lugar de más adelante pasa en la misma vuelta de `0x53c670`.
   posición en `+0x24` (`0x533242`). Paso `0x5359d7..0x535b32`, sin el movimiento común (`0x53585e`): la /0 con vida de
   más de 16 agrega diez tramos con la matriz de sus ángulos, cada uno antes de avanzar (0, −velocidad, 0) girado; la /1
   con el skill en 0 o vida de más de 3, cinco, con la velocidad + 0,5 después de cada uno; todos apagan la luz por
-  0,8333333f.
+  0,8333333f. El giro del avance es `0x5fcbd0` con la entrada y la salida en el mismo vector `[ebp−0x2c]`
+  (`0x535a1d..0x535a3f` en la /0, `0x535ab6..0x535ad8` en la /1): la x girada se guarda antes de calcular la y, que la
+  relee, y la z relee las dos (`OriginalVectorRotateInPlace`; séptima vuelta, antes MuRet giraba en otro vector). Con
+  la semilla `0x5ac` (ángulos (−7, 0, 199), velocidad 10, desde (1000; 2000; 300)) un paso de la /0 deja la posición
+  en (`0x4471ebea`, `0x450385e2`, `0x438fa3f4`).
 - **`0x60f` y `0x62b` /0x10, /0xe y /0xf** (`OrbitJoints.cpp`, sexta vuelta). Lo común del `0x60f` (`0x533677`: vida
   100, 20 puntos, ancho 10) y, en todos, el destino en el segundo punto (`0x5342be`). La /0x10 es la columna de la
   lluvia de sombras `0xbd` (`0x51bcb0`, el personaje del efecto de dueño, ancho 120): alta `0x5337fa` sin la cola

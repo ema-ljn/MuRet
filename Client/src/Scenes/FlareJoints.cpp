@@ -6,6 +6,8 @@
 #include "Scenes/JointKernels.h"
 #include "World/IFishStepServices.h"
 
+#include <glm/ext/vector_float3.hpp>
+
 #include <bit>
 #include <cstdint>
 #include <string>
@@ -21,12 +23,14 @@ using JointKernels::D;
 using JointKernels::F32;
 
 // 0x535a07..0x535a61 y 0x535aa0..0x535b0c: un tramo con la matriz de los ángulos (0x535520) y después el avance,
-// (0, −velocidad, 0) girado (0x5fcbd0) y sumado a la posición.
+// (0, −velocidad, 0) girado y sumado a la posición. 0x535a1d..0x535a3f y 0x535ab6..0x535ad8: 0x5fcbd0 recibe el mismo
+// vector [ebp−0x2c] de entrada y de salida, así que la y relee la x ya girada y la z relee las dos.
 Core::Expected<void, std::string> Advance(JointState& joint, const Render::Models::OriginalMatrix& matrix)
 {
     if (auto appended = JointKernels::AppendJointTail(joint, matrix); !appended.HasValue())
         return appended;
-    const auto moved = Render::Models::OriginalVectorRotate({0, -joint.speed, 0}, matrix);
+    glm::vec3 moved{0, -joint.speed, 0};
+    Render::Models::OriginalVectorRotateInPlace(moved, matrix);
     for (int axis = 0; axis < 3; ++axis)
         joint.position[axis] = F32(D(moved[axis]) + D(joint.position[axis]));
     return {};

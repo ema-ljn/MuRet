@@ -98,8 +98,11 @@ CreateBeamJoint(JointState& joint, const World::FishEffectRequest& request, Rend
                                                               const JointKernels::StepServices& services);
 
 // El 0x632/7 y sus tres 0x632/6 (StormJoints.cpp): alta 0x534b27 y 0x534a16 y paso 0x53bec2. La /6 salta el primer
-// tramo (0x530a5c); FaunaJointCreation.cpp crea los tres /6 al final del alta de la /7 (0x534b3f..0x534bc0).
+// tramo (0x530a5c); FaunaJointCreation.cpp crea los tres /6 al final del alta de la /7 (0x534b3f..0x534bc0). La /5, la
+// estrella que cae del pulso 0x61c/0 del asedio (0x52c266, con el efecto de dueño, que no lee): alta 0x534bcb y paso
+// 0x53c0a5.
 inline constexpr std::int32_t StormJoint = 0x632;
+inline constexpr std::int32_t FallingStarSubtype = 5;
 inline constexpr std::int32_t BoltSubtype = 6;
 inline constexpr std::int32_t StormSubtype = 7;
 [[nodiscard]] Core::Expected<void, std::string>

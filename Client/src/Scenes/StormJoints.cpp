@@ -7,6 +7,7 @@
 #include "Scenes/JointKernels.h"
 #include "World/IFishStepServices.h"
 #include "World/Particles.h"
+#include "World/Sprites.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -22,6 +23,55 @@ namespace
 {
 using JointKernels::D;
 using JointKernels::F32;
+
+// 0x53c0a5..0x53c390 con la /5 (la que suelta el pulso 0x61c/0 del asedio, 0x52c266), después del movimiento común: la
+// velocidad sube 10, la cola con la matriz de los ángulos (0x535520, si está prendida), sube otros 10 y avanza
+// (0, −velocidad, 0) girado por +0x3c. Debajo de la altura del terreno menos +0x9ec (150), la z queda ahí y, la primera
+// vez (la clave en 0), el efecto 0x6eb/4 (0x518cf0) con la luz (1; 0,8f; 0,3f), que es del lote de los altos: corta;
+// después, la clave en 1, la velocidad en −20 y la luz por 0,8333333f. Siempre, el sprite 0x60f de escala 2,5 con la
+// luz y el giro rand() % 360.
+Core::Expected<void, std::string> StepFallingStar(JointState& joint, const JointKernels::StepServices& services)
+{
+    if (services.random == nullptr || services.sprites == nullptr || services.terrainHeight == nullptr ||
+        !*services.terrainHeight)
+        return Core::Unexpected(
+            std::string("0x53c0c9: faltan el RNG, los sprites o la altura del terreno del joint 0x632/5"));
+    constexpr double Boost = 10.0; // 0x6b87a8
+    joint.speed = F32(D(joint.speed) + Boost);
+    if (joint.tailEnabled)
+        if (auto appended = JointKernels::AppendJointTail(joint, Render::Models::OriginalAngleMatrix(joint.angles));
+            !appended.HasValue())
+            return appended;
+    joint.speed = F32(D(joint.speed) + Boost);
+    const auto moved = Render::Models::OriginalVectorRotate({0, -joint.speed, 0},
+                                                            Render::Models::OriginalAngleMatrix(joint.bendAngles));
+    for (int axis = 0; axis < 3; ++axis)
+        joint.position[axis] = F32(D(moved[axis]) + D(joint.position[axis]));
+    // 0x53c16d..0x53c18a: fisub de +0x9ec y fcom con la z (test ah,0x41): sólo con el suelo estrictamente arriba.
+    const double floor =
+        (*services.terrainHeight)(joint.position.x, joint.position.y) - static_cast<double>(joint.field9ec);
+    if (floor > D(joint.position.z))
+    {
+        joint.position.z = F32(floor);
+        constexpr std::int16_t Landed = 1;
+        if (joint.tailEnabled && joint.key != Landed)
+            return Core::Unexpected(std::string("0x53c295: el efecto 0x6eb/4 (0x518cf0) del joint 0x632/5 al llegar "
+                                                "al suelo es del lote de los altos (CL11)"));
+        constexpr float Bounce = std::bit_cast<float>(0xc1a00000u); // −20
+        joint.key = Landed;
+        joint.speed = Bounce;
+        constexpr double Fade = static_cast<double>(std::bit_cast<float>(0x3f555555u)); // 0x6b8b98, 0,8333333f
+        for (int channel = 0; channel < 3; ++channel)
+            joint.light[channel] = F32(D(joint.light[channel]) * Fade);
+    }
+    // 0x53c320..0x53c38b: 0x5491e0(0x60f, posición, 2,5, luz, 0, giro, 0); MuRet no guarda el dueño del sprite.
+    constexpr std::uint16_t StarTexture = 0x60f;
+    constexpr float StarScale = 2.5f; // 0x40200000
+    constexpr int FullTurn = 360;
+    const auto rotation = static_cast<float>(services.random->Next() % FullTurn);
+    static_cast<void>(services.sprites->Create(StarTexture, joint.position, StarScale, joint.light, rotation, 0));
+    return {};
+}
 } // namespace
 
 Core::Expected<void, std::string> CreateStormJoint(JointState& joint, const World::FishEffectRequest& request,
@@ -40,6 +90,31 @@ Core::Expected<void, std::string> CreateStormJoint(JointState& joint, const Worl
         constexpr std::int32_t MostPoints = 50;
         if (joint.maximumCount > MostPoints)
             joint.maximumCount = MostPoints;
+        return {};
+    }
+    if (request.subtype == FallingStarSubtype)
+    {
+        // 0x534bcb..0x534c0c: 10 puntos, vida 40, velocidad 70, el ancho, +0x9f1 en rand() & 1, la clave en 0 y +0x9ec
+        // en 150 (lo que baja la altura del terreno en el paso). 0x534c61..0x534c8e: la /5 con la textura 0x60f, 15
+        // puntos, la velocidad rand() % 20 + 10 y +0x9f1 en 2. 0x534ca4: +0x3c, los ángulos del pedido. Dos rand().
+        constexpr std::int32_t Life = 0x28, Points = 0xf, Below = 0x96;
+        constexpr float Speed = 70;                  // 0x428c0000
+        constexpr std::uint16_t StarTexture = 0x60f; // 0x534c61
+        constexpr int SpeedSpan = 0x14;
+        constexpr double SpeedBase = 10.0; // 0x6b87a8
+        constexpr std::uint8_t StarOrientation = 2;
+        joint.maximumCount = 10;
+        joint.life = Life;
+        joint.speed = Speed;
+        joint.width = request.scale;
+        joint.orientation = static_cast<std::uint8_t>(random.Next() & 1);
+        joint.key = 0;
+        joint.field9ec = Below;
+        joint.texture = StarTexture;
+        joint.maximumCount = Points;
+        joint.speed = F32(static_cast<double>(random.Next() % SpeedSpan) + SpeedBase);
+        joint.orientation = StarOrientation;
+        joint.bendAngles = joint.angles;
         return {};
     }
     if (request.subtype != BoltSubtype)
@@ -78,6 +153,8 @@ Core::Expected<void, std::string> StepStormJoint(JointState& joint, const JointK
 {
     if (joint.subtype >= StormSubtype)
         return {}; // 0x53bec5: la /7 y las de más de 7 sólo pasan por la cola y la vida.
+    if (joint.subtype == FallingStarSubtype)
+        return StepFallingStar(joint, services);
     if (joint.subtype != BoltSubtype)
         return Core::Unexpected(
             std::format("0x53be76: el paso del joint 0x632/{} no está portado (CL11)", joint.subtype));

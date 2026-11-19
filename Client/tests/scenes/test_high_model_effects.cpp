@@ -381,8 +381,9 @@ TEST(HighModelEffectsTest, TheSiegePulseDrawsItsPhaseAndRaisesItsJoint)
 }
 
 // 0x52c19a: con la vida en 10 o menos y par, el pulso gira +0x30 72 más, pone los ángulos en (90, 0, 0) y, con el /0,
-// saca rand() % 400 para el joint 0x632/5 (0x52c266, del lote de los joints; con la tabla llena no se crea); después
-// sigue por el paso del 0x13b/0 (0x52c34e): en 12 o menos, cuatro chispas 0x617/0 y 0x5d9/2 con su rand() % 60.
+// saca rand() % 400 para el joint 0x632/5 (0x52c266, StormJoints.cpp: dos rand() más; con la tabla llena no se crea);
+// después sigue por el paso del 0x13b/0 (0x52c34e): en 12 o menos, cuatro chispas 0x617/0 (dos rand() cada una) y
+// 0x5d9/2 con su rand() % 60.
 TEST(HighModelEffectsTest, TheSiegePulseTurnsAndFallsIntoTheFlareStep)
 {
     HighWorld tested;
@@ -394,17 +395,50 @@ TEST(HighModelEffectsTest, TheSiegePulseTurnsAndFallsIntoTheFlareStep)
     pulse.velocity = {0, -550, 0};
     pulse.copiedAngles = {0, 0, 10};
     pulse.start = {1000, 2000, 300};
-    EXPECT_TRUE(HasError(StepHighModelEffect(pulse, nullptr, tested.StepContext()), "0x52c266"));
+    pulse.transform.scale = 1.0f;
+    const ModelEffect initial = pulse;
+    const auto raised = StepHighModelEffect(pulse, nullptr, tested.StepContext());
+    ASSERT_TRUE(raised.HasValue()) << raised.Error();
     EXPECT_EQ(pulse.transform.angles, (glm::vec3{90, 0, 0}));
     EXPECT_EQ(pulse.copiedAngles.z, 82.0f);
-    EXPECT_EQ(tested.Draws(), 2);
+    // La luz, el rand() % 400, los dos del 0x632/5 (rand() & 1 y rand() % 20), los dos del punto y, por chispa, su
+    // ángulo, los dos del 0x617/0 y los dos del fuego.
+    EXPECT_EQ(tested.Draws(), 1 + 1 + 2 + 2 + 4 * 5);
+    CrtRandom expected(Seed);
+    static_cast<void>(expected.Next());
+    const int rise = expected.Next() % 400;
+    static_cast<void>(expected.Next());
+    const int speed = expected.Next() % 20;
+    const glm::vec3 reach = Client::Render::Models::OriginalVectorRotate(
+        {0, -550, 0}, Client::Render::Models::OriginalAngleMatrix({0, 0, 82}));
+    const glm::vec3 point{
+        static_cast<float>(static_cast<double>(reach.x) + 1000.0),
+        static_cast<float>(static_cast<double>(reach.y) + 2000.0),
+        static_cast<float>(static_cast<double>(static_cast<float>(static_cast<double>(reach.z) + 300.0)) +
+                           static_cast<double>(rise) + 700.0)};
+    const auto& star = tested.world->DrawTail().joints.front();
+    ASSERT_TRUE(star.alive);
+    EXPECT_EQ(star.type, 0x632);
+    EXPECT_EQ(star.subtype, 5);
+    EXPECT_EQ(star.ownerContext, &pulse);
+    EXPECT_EQ(star.ownerKind, Client::Scenes::JointOwnerKind::ModelEffect);
+    EXPECT_EQ(star.position, point);
+    EXPECT_EQ(star.angles, (glm::vec3{90, 0, 0}));
+    EXPECT_EQ(star.bendAngles, (glm::vec3{90, 0, 0}));
+    EXPECT_EQ(star.texture, 0x60f);
+    EXPECT_EQ(star.width, 110.0f);
+    EXPECT_EQ(star.maximumCount, 15);
+    EXPECT_EQ(star.life, 40);
+    EXPECT_EQ(star.speed, static_cast<float>(speed + 10));
+    EXPECT_EQ(star.orientation, 2);
+    EXPECT_EQ(star.key, 0);
+    EXPECT_EQ(star.field9ec, 150);
+    EXPECT_EQ(tested.world->DrawTail().joints[1].type, 0x617);
 
     HighWorld full;
     full.FillTheJoints();
     ModelEffect& joined = full.Effect(0);
-    joined = pulse;
-    joined.copiedAngles = {0, 0, 10};
-    joined.transform.scale = 1.0f;
+    joined = initial;
     const auto stepped = StepHighModelEffect(joined, nullptr, full.StepContext());
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(joined.life, 9);
@@ -1641,8 +1675,9 @@ TEST(HighModelEffectsTest, TheJavelinHuntsItsOwnerAndTrailsFire)
 
 // 0x51ed79 y 0x52b4a7: el 0x615 vive 10 y, con dueño y el subtipo 0, se corre (−25, −80, 0) girado por los ángulos del
 // dueño. Su paso no hace nada hasta que le quedan menos de 5 pasos; con la vida par, tres rand() (x e y de rand() % 64
-// − 32 y la escala rand() % 10 + 50) y el joint 0x615/5, que MuRet no tiene: con lugar corta (0x52b560); con los joints
-// llenos sigue. La cola no lo mueve (sin velocidad) ni lo dibuja.
+// − 32 y la escala rand() % 10 + 50) y el joint 0x615/5 (0x52b560, con dos rand() más: la x y la y corridas rand() %
+// 10 − 5, 800 más arriba, la luz (1; 0,5; 0,2f)); con los joints llenos, sin él. La cola no lo mueve (sin velocidad)
+// ni lo dibuja.
 TEST(HighModelEffectsTest, TheThunderShiftsOverItsOwnerAndDropsBoltsAtTheEnd)
 {
     HighWorld tested;
@@ -1674,14 +1709,43 @@ TEST(HighModelEffectsTest, TheThunderShiftsOverItsOwnerAndDropsBoltsAtTheEnd)
     EXPECT_EQ(thunder.life, 4);
     EXPECT_EQ(thunder.transform.position, shifted);
     EXPECT_EQ(tested.Draws(), 6);
-    EXPECT_TRUE(HasError(StepHighModelEffect(thunder, nullptr, tested.StepContext()), "0x52b560"));
-    EXPECT_EQ(tested.Draws(), 6 + 1 + 3);
+    const auto dropped = StepHighModelEffect(thunder, nullptr, tested.StepContext());
+    ASSERT_TRUE(dropped.HasValue()) << dropped.Error();
+    EXPECT_EQ(tested.Draws(), 6 + 1 + 3 + 2);
+    CrtRandom expected(Seed);
+    for (int draw = 0; draw < 6 + 1; ++draw)
+        static_cast<void>(expected.Next());
+    const int x = expected.Next() % 64;
+    const int y = expected.Next() % 64;
+    const int scale = expected.Next() % 10;
+    const int jitterX = expected.Next() % 10;
+    const int jitterY = expected.Next() % 10;
+    const glm::vec3 point{static_cast<float>(static_cast<double>(x) - 32.0 + static_cast<double>(shifted.x)),
+                          static_cast<float>(static_cast<double>(y) - 32.0 + static_cast<double>(shifted.y)),
+                          shifted.z};
+    const auto& bolt = tested.world->DrawTail().joints.front();
+    ASSERT_TRUE(bolt.alive);
+    EXPECT_EQ(bolt.type, 0x615);
+    EXPECT_EQ(bolt.subtype, 5);
+    EXPECT_EQ(bolt.ownerContext, nullptr);
+    EXPECT_EQ(bolt.texture, 0x614);
+    EXPECT_EQ(bolt.width, static_cast<float>(scale + 50));
+    EXPECT_EQ(bolt.maximumCount, 50);
+    EXPECT_EQ(bolt.life, 20);
+    EXPECT_EQ(bolt.angles, glm::vec3(0));
+    EXPECT_EQ(bolt.targetPosition, point);
+    EXPECT_EQ(bolt.position,
+              (glm::vec3{static_cast<float>(static_cast<double>(jitterX - 5) + static_cast<double>(point.x)),
+                         static_cast<float>(static_cast<double>(jitterY - 5) + static_cast<double>(point.y)),
+                         static_cast<float>(static_cast<double>(point.z) + 800.0)}));
+    EXPECT_EQ(bolt.pathIncrement, bolt.position);
+    EXPECT_EQ(bolt.light, (glm::vec3{1, 0.5f, std::bit_cast<float>(0x3e4ccccdu)}));
     tested.FillTheJoints();
     ASSERT_TRUE(StepHighModelEffect(thunder, nullptr, tested.StepContext()).HasValue());
-    EXPECT_EQ(tested.Draws(), 6 + 4 + 4);
+    EXPECT_EQ(tested.Draws(), 6 + 6 + 1);
     ASSERT_TRUE(StepHighModelEffect(thunder, nullptr, tested.StepContext()).HasValue());
-    EXPECT_EQ(tested.Draws(), 6 + 4 + 4 + 1);
-    EXPECT_EQ(thunder.life, 2);
+    EXPECT_EQ(tested.Draws(), 6 + 6 + 1 + 4);
+    EXPECT_EQ(thunder.life, 1);
 }
 
 // 0x51efa5 y 0x52bb79: el 0x621/1 guarda la posición como partida y vive 20; su paso pone el origen del modelo de su

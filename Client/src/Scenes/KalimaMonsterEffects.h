@@ -35,8 +35,8 @@ void BeginTheSeaman(World::ModelEffect& effect);
 void BeginTheThunder(World::ModelEffect& effect);
 
 // 0x52b4a7..0x52b568: con menos de 5 de vida (edi, 0x5208df), par y el subtipo 0, un punto corrido (rand() % 64 − 32)
-// en x y en y y el joint 0x615/5 ahí con sus ángulos, sin dueño y la escala rand() % 10 + 50, que MuRet no tiene: con
-// lugar en los joints corta después de los tres rand() (0x52b560). Si no, nada.
+// en x y en y y el joint 0x615/5 ahí con sus ángulos, sin dueño y la escala rand() % 10 + 50 (0x52b560; dos rand() más
+// con lugar en los joints). Si no, nada.
 [[nodiscard]] Core::Expected<void, std::string> StepTheThunder(World::ModelEffect& effect,
                                                                const HighEffectStepContext& context);
 } // namespace Client::Scenes

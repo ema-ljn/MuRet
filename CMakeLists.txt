@@ -21,6 +21,15 @@ option(MURET_BUILD_TESTS "Compilar los tests de GoogleTest" ON)
 # el warning C4819, que con /WX corta la compilación.
 add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/utf-8>)
 
+# MSBuild compila los archivos de un proyecto de a uno: ClientLib, con sus ~600 .cpp, tardaba 21
+# minutos en un solo núcleo del runner de Windows mientras los otros tres esperaban (CI del
+# 2026-11-19). /MP los reparte entre los núcleos. Ninja ya compila de a varios archivos, así que va
+# solo con el generador de Visual Studio, que lo pasa a MultiProcessorCompilation y compila aparte
+# el que crea el precompiled header (/Yc).
+if(MSVC AND CMAKE_GENERATOR MATCHES "^Visual Studio")
+    add_compile_options(/MP)
+endif()
+
 # <windows.h> (lo incluye SDL_opengl.h, entre otros) define min y max como macros y rompe
 # std::min y std::max en cualquier archivo que lo vea después.
 add_compile_definitions($<$<PLATFORM_ID:Windows>:NOMINMAX>)

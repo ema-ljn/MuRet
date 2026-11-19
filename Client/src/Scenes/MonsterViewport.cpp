@@ -15,12 +15,14 @@
 #include "Scenes/CastleBattleActors.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/ChatReceive.h"
+#include "Scenes/FaunaJointCreation.h"
 #include "Scenes/MonsterCreation.h"
 #include "Scenes/ViewportPlayers.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
+#include "World/IFishStepServices.h"
 #include "World/TerrainCulling.h"
 
 #include <algorithm>
@@ -191,8 +193,34 @@ Core::Expected<std::size_t, std::string> CreateSummon(const Protocol::Viewport::
     if (auto put = PutActorText(actor, bytes, 0x51745c); !put.HasValue())
         return Core::Unexpected(put.Error());
     if (record.isNew)
-        return Core::Unexpected(std::string("0x51747c: los cuatro rand() y los joints 0x615 (0x530860) del invocado "
-                                            "que llega son de la CL11"));
+    {
+        // 0x51746e..0x517555: cuatro 0x530860(0x615, +0x10, +0x10, +0x1c, 1, nulo, ancho, −1, 0, 0, −1), el rayo que
+        // cae sobre el invocado (FaunaJointCreation.cpp), con el ancho rand() % 10 más 60, 50, 50 y 60 (0x6b86cc y
+        // 0x6b86b0; fild y fadd, guardado en float). Con el pool lleno, los rand() igual.
+        constexpr std::int32_t ArrivalBolt = 0x615, ArrivalSubtype = 1;
+        constexpr int WidthSpan = 10;
+        constexpr std::array<double, 4> WidthBases{60.0, 50.0, 50.0, 60.0};
+        constexpr std::array<std::uint32_t, 4> Calls{0x5174a5, 0x5174de, 0x517517, 0x517550};
+        for (std::size_t bolt = 0; bolt < WidthBases.size(); ++bolt)
+        {
+            const int jitter = resources.cloth.random.Next() % WidthSpan;
+            const World::FishEffectRequest request{
+                .type = ArrivalBolt,
+                .firstPosition = actor.position,
+                .secondPosition = actor.position,
+                .angles = actor.angles,
+                .subtype = ArrivalSubtype,
+                .ownerContext = nullptr,
+                .scale = static_cast<float>(static_cast<double>(jitter) + WidthBases[bolt]),
+                .key = -1,
+                .skill = 0,
+                .skillSerial = 0,
+                .target = -1};
+            if (auto made = CreateFaunaJoint(resources.world.DrawTail().joints, request, resources.cloth.random);
+                !made.HasValue())
+                return Core::Unexpected(std::format("{:#x}: {}", Calls[bolt], made.Error()));
+        }
+    }
     return created;
 }
 

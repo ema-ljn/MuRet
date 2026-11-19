@@ -260,8 +260,9 @@ Core::Expected<void, std::string> CreateSkyBolt(JointState& joint, const World::
     return {};
 }
 
-// 0x5319ea, 0x531b0c..0x531bd2 y 0x534cb6: el 615/2 de la trampa de Chaos Castle (0x405d49), el /5 del 0x615 de Kalima
-// (0x52b560) y el /6 del pulso 0x61c/1 del asedio (0x52c31e y 0x52c342). Textura 0x614, el ancho, 50 puntos y vida 20;
+// 0x5319ea, 0x531b0c..0x531bd2 y 0x534cb6: el 615/1 de los invocados que llegan (0x51747c..0x517550, sin dueño, la cola
+// apagada en 0x531b9e), el 615/2 de la trampa de Chaos Castle (0x405d49), el /5 del 0x615 de Kalima (0x52b560) y el /6
+// del pulso 0x61c/1 del asedio (0x52c31e y 0x52c342). Textura 0x614, el ancho, 50 puntos y vida 20;
 // la x y la y se corren rand() % 10 − 5 (fild y fadd, guardado en float) y la z sube 800 (0x6b8ac8; la /7, 1050).
 // Ángulos en cero, el destino es el segundo punto y +0x24 guarda la partida ya corrida. La /5 con la luz (1; 0,5;
 // 0,2f); la /6 con la velocidad 0,3f, la luz en 1 y la z otros 700 más arriba (después de guardar +0x24). Dos rand().
@@ -288,6 +289,8 @@ Core::Expected<void, std::string> CreateTrapBolt(JointState& joint, const World:
         static_cast<float>(static_cast<double>(joint.position.z) + (request.subtype == 7 ? ArrivalRise : TrapRise));
     joint.angles = {};
     joint.targetPosition = request.secondPosition;
+    if (request.subtype == 1)
+        joint.tailEnabled = false; // 0x531b9e: la /1 también conserva esto en el paso.
     joint.pathIncrement = joint.position;
     if (request.subtype == 5)
         joint.light = {1, 0.5f, std::bit_cast<float>(0x3e4ccccdu)}; // 0x531bbe..0x531bcb
@@ -819,8 +822,8 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
     }
     if (request.type == 0x615 && request.subtype == 0)
         return CreateSkyBolt(joint, request, random);
-    if (request.type == 0x615 &&
-        (request.subtype == 2 || request.subtype == 5 || request.subtype == 6 || request.subtype == 7))
+    if (request.type == 0x615 && (request.subtype == 1 || request.subtype == 2 || request.subtype == 5 ||
+                                  request.subtype == 6 || request.subtype == 7))
         return CreateTrapBolt(joint, request, random);
     if ((request.type == 0x6ee || request.type == 0x613) && request.subtype == 9) // 0x5333f6, la misma tabla.
     {
@@ -1234,7 +1237,7 @@ Core::Expected<void, std::string> StepSkyBolt(JointState& joint, Render::Models:
     return {};
 }
 
-// 0x53768f..0x5379ef: el 615/2, /5, /6 y /7. Rehace el rayo desde +0x24 con la matriz de sus ángulos (0x5fc8f0): en
+// 0x53768f..0x5379ef: el 615/1, /2, /5, /6 y /7. Rehace el rayo desde +0x24 con la matriz de sus ángulos (0x5fc8f0): en
 // los primeros 50 − 5 tramos corre x e y rand() % 20 − 10 y baja la z 16 (0x6b8f00; la /6, 13, 0x6b8834; la /7, 20,
 // 0x6b86d0); los cuatro siguientes avanzan un quinto de lo que falta hasta el destino (la x sin redondear la resta, la
 // y y la z guardadas antes del 0,2f) y vuelven a correr x e y; el último es el destino. Con vida menor que 4 la luz se
@@ -1296,8 +1299,9 @@ Core::Expected<void, std::string> StepTrapBolt(JointState& joint, Render::Models
         joint.light = {static_cast<float>(static_cast<double>(joint.light.x) * Fade),
                        static_cast<float>(static_cast<double>(joint.light.y) * Fade),
                        static_cast<float>(static_cast<double>(joint.light.z) * Fade)};
-    // 0x5379af..0x5379ca: la /7 (y la /1) conservan la cola apagada del alta.
-    if (joint.subtype == ArrivalSubtype)
+    // 0x5379af..0x5379ca: la /7 y la /1 conservan la cola apagada del alta.
+    constexpr std::int32_t SummonSubtype = 1;
+    if (joint.subtype == ArrivalSubtype || joint.subtype == SummonSubtype)
         return {};
     if (chaos)
     {
@@ -2140,8 +2144,8 @@ StepJointsChecked(std::span<JointState> joints, Render::Models::CrtRandom* rando
         const bool laser = joint.type == LaserJoint && joint.subtype == LaserSubtype;
         const bool noria = joint.type == 0x617 && joint.subtype >= 0 && joint.subtype <= 3;
         const bool skyBolt = joint.type == 0x615 && joint.subtype == 0;
-        const bool trapBolt = joint.type == 0x615 &&
-                              (joint.subtype == 2 || joint.subtype == 5 || joint.subtype == 6 || joint.subtype == 7);
+        const bool trapBolt = joint.type == 0x615 && (joint.subtype == 1 || joint.subtype == 2 || joint.subtype == 5 ||
+                                                      joint.subtype == 6 || joint.subtype == 7);
         const bool meteor = (joint.type == 0x6ee || joint.type == 0x613) && joint.subtype == 9;
         // Los de lo que cuelga de un jugador, con el ActorState del personaje como dueño.
         const bool swordTrail = joint.type == 0x610 && joint.subtype == 4;

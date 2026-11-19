@@ -13607,8 +13607,8 @@ no, el alpha en 0.
 **El `1F`, `0x4ca0b0`**, por cada registro: los tipos `0x98..0x9e` (los de `0x514390`, el modelo `0xc5`) van por
 `0x517400(dueño, clave, tipo, X, Y, recién llegado)`: `0x5141e0`, el nivel (`+0x1d6`) en `tipo − 0x97`,
 `wsprintfA(local, +0x1d9, dueño)` (el formato es el nombre del caso, la cadena vacía de `0x6e57a4`), el sufijo en 1
-con el nivel 7 y los 24 bytes del local a `+0x1d9` (Q-C848); recién llegado, cuatro `rand()` y los joints `0x615`
-(`0x51747c`). Los demás, `0x5141e0`. Después, como el `13`: los estados, el ángulo por 45, las celdas; `+0x88` en 1,
+con el nivel 7 y los 24 bytes del local a `+0x1d9` (Q-C848); recién llegado, cuatro joints `0x615/1` sin dueño con
+el ancho `rand() % 10` más 60, 50, 50 y 60 (`0x51746e..0x517555`; CL11, lote joints, octava vuelta). Los demás, `0x5141e0`. Después, como el `13`: los estados, el ángulo por 45, las celdas; `+0x88` en 1,
 el PK (`+0xc & 0xf`) y, con 6 o más, el nivel en 1. Fuera de `0x98..0x9e`, el nombre: `+0x1e3` en 0, los diez bytes
 del dueño, el Text 485 (`0x76e0a38`) y el nombre que tenía (`strcat`, sin tope, Q-C847). Recién llegado,
 `0x4c9790` y el efecto `0xec` (`0x518cf0`) con el joint `0x5d5`/2 (`0x53fe70`), y con `0x98..0x9e` además el frame
@@ -13632,7 +13632,7 @@ posición, con los lados `+0x130..+0x138` menos el piso (*inferido* que vale la 
 `ApplyViewportObjects`, con `ArriveAsNew` (`0x4c9790`); `ApplyTransformed` da de alta con `CreateMonster` y el `DF`
 empuja al `0xf1`. Cortan con su dirección, después de lo que el original hace antes: la puerta del asedio (`0x4c9f0f` y
 `0x4e0bd1`, CL9.5), el freno del `0x35` (`0x4c982b`: `0x53fe70` y `0x518cf0`, CL11, P-C54 c), la llegada del `0x154`
-(`0x4c9883`, CL11), la acción sin el esqueleto del modelo (P-C176), el invocado que llega (`0x51747c` y `0x4ca5f6`,
+(`0x4c9883`, CL11), la acción sin el esqueleto del modelo (P-C176), el invocado que llega (~~`0x51747c`~~, portado en la CL11, y `0x4ca5f6`,
 CL11), el nombre que llegaría a `+0x218` (Q-C847) y el formato de un invocado
 que lee más de lo que `0x517400` le pasa (P-C356). `CharacterPicking` usa la caja de cada tipo. Tests:
 `MonsterViewportTest` (Lorencia, Devias, Devil Square, Castle Siege y Crywolf),
@@ -14577,6 +14577,12 @@ en un lugar de más adelante pasa en la misma vuelta de `0x53c670`.
   MuRet tenía en 16), cuatro de llegada y el destino; la /6 pone la z del destino 30 sobre el terreno (`0x5f93c0`) y
   deja la partícula `0x6ed/0` de escala 2 ahí (su luz local no se escribe: Q-C1625). Con 10 de vida o menos apagan la
   cola.
+- **`0x615/1`** (`FaunaJointCreation.cpp`, octava vuelta): los cuatro rayos del invocado que llega
+  (`0x51746e..0x517555`: `0x530860(0x615, +0x10, +0x10, +0x1c, 1, nulo, ancho, −1, 0, 0, −1)` con el ancho
+  `rand() % 10` más 60, 50, 50 y 60, `fild` y `fadd` guardado en `float`; con el pool lleno, los cuatro `rand()` igual).
+  Alta como la /2 (`0x531b0c`: los dos `rand()` de la x y la y, 800 más arriba) con la cola apagada después del destino
+  (`0x531b9e`); paso como la /2, bajando 16, sin lo de la /2 ni la /6 y sin volver a prender la cola (`0x5379ca`, como la
+  /7).
 - **`0x60f/4` y `/0xc`, `0x62b/4` y `/0xc`** (`HelixJoints.cpp`, quinta vuelta): las chispas que el `0x812` suelta en
   cada paso (`0x52c9da` la /4, escala 50; `0x52c9a7` la /0xc, escala 100; con él de dueño). Alta `0x533faf..0x5340d7`
   sobre lo común del `0x60f` (vida 100, 20 puntos, ancho 10, que el ancho de la escala pisa): la /0xc vive 70 con la luz

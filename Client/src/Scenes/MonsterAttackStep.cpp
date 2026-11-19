@@ -1442,8 +1442,8 @@ Core::Expected<void, std::string> StepTheKindSkill(ActorState& actor, ActorState
                 return {};
             }
             constexpr std::int32_t MeteorSubtype = 6;
-            const auto target = static_cast<std::size_t>(std::bit_cast<std::int16_t>(actor.attackTarget));
-            const ActorState& victim = context.world.Actors()[target];
+            const auto targetSlot = static_cast<std::size_t>(std::bit_cast<std::int16_t>(actor.attackTarget));
+            const ActorState& victim = context.world.Actors()[targetSlot];
             for (const std::uint32_t address : {0x4f8287u, 0x4f82a5u})
             {
                 if (auto created = CreateWizard(

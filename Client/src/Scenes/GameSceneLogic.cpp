@@ -219,7 +219,8 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
                          .send = m_session != nullptr ? std::function<void(Protocol::Outgoing)>(
                                                             [session = m_session](Protocol::Outgoing packet)
                                                             { session->SendChat(std::move(packet)); })
-                                                      : std::function<void(Protocol::Outgoing)>{}});
+                                                      : std::function<void(Protocol::Outgoing)>{},
+                         .models = m_models});
     // 52d220: reset44dc40antesdelprimeractivo; el último proyectil seguido vuelveaescribirlo.
     CameraInputState().effectTarget = glm::vec3(0.0f);
     auto effects = m_context.world->Map().effects.Effects();
@@ -380,11 +381,26 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
     // 0x53b548: el 0x61c/0 compara su dueño con el héroe ([0x743a170]).
     const auto actors = m_context.world->Actors();
     const ActorState* hero = runtime.hero < actors.size() ? &actors[runtime.hero] : nullptr;
+    // 0x539a50..0x539add: el 0x613 de ancho 80 lee el asedio, el atributo de 0x5f82c0 y manda los blancos del héroe.
+    const JointKernels::VolleyServices volley{
+        .siegeActive = runtime.siegeActive,
+        .attributes = terrain.attributes.get(),
+        .skillHits = [this](const SkillHitsRequest& request) -> Core::Expected<void, std::string>
+        {
+            const auto send = m_session != nullptr ? std::function<void(Protocol::Outgoing)>(
+                                                         [session = m_session](Protocol::Outgoing packet)
+                                                         { session->SendChat(std::move(packet)); })
+                                                   : std::function<void(Protocol::Outgoing)>{};
+            const auto hit = HitTheTargetsAround(request, *m_context.world, m_context.cloth->random, send);
+            if (!hit.HasValue())
+                return Core::Unexpected(hit.Error());
+            return {};
+        }};
     if (auto stepped = StepJoints(
             m_context.world->DrawTail().joints, m_context.cloth->random, m_context.cloth, &m_context.world->Particles(),
             worldClock, &m_sprites, &m_context.world->DynamicLighting().Lighting(),
             [&](std::int32_t sound) { runtime.RequestSound(sound); }, terrainHeight, actors, arrowHit,
-            &m_context.world->Map().effects, hero, m_context.world);
+            &m_context.world->Map().effects, hero, m_context.world, &volley);
         !stepped.HasValue())
         return stepped;
     // 0x63712d: 0x549090, las marcas del suelo, sin rand(). En la espera también corre, y acá no: la tabla

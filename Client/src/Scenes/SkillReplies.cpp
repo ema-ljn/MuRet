@@ -14,6 +14,7 @@
 #include "Scenes/ActorEffectFlags.h"
 #include "Scenes/ActorFlags.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/BlastEffectCalls.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/CombatActionSpeeds.h"
@@ -30,7 +31,6 @@
 #include "UI/GameUiState.h"
 #include "World/ModelEffects.h"
 
-#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <format>
@@ -111,12 +111,6 @@ Core::Expected<void, std::string> AttackAndSettle(ActorState& actor, const World
 void Sound(const WorldEntryResources& resources, std::int32_t id)
 {
     resources.world.Runtime().RequestSound(id);
-}
-
-// 0x518d0f..0x518d26: sin hueco, 0x518cf0 retorna antes del constructor, incluso para un tipo aún pendiente.
-bool HasFreeEffectSlot(const WorldState& world)
-{
-    return std::ranges::any_of(world.Map().effects.Effects(), [](const auto& effect) { return !effect.alive; });
 }
 
 // 0x4f5290: en un jugador, las velocidades (0x4f3f80) y la acción de golpe por la montura, la clase o un rand(); en
@@ -591,12 +585,23 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
         const std::int32_t map = world.Runtime().map;
         return ActAndSettle(cast, map == 8 || map == 10 ? std::uint8_t{0x41} : std::uint8_t{0x40});
     }
-    // 0x4cddd3: el efecto 0x112 en la fuente (CL11) y el sonido 0x94.
+    // 0x4cddd3..0x4cde03: 0x518cf0(0x112, +0x10, +0x1c, +0xf4, 0, sin dueño, −1, 0, 0, 0, 0) en la fuente, con sus
+    // sesenta joints 0x5ac/0 (World/BlastModelEffects), y el sonido 0x94.
     case 0x3b:
-        if (HasFreeEffectSlot(world))
-            return Core::Unexpected(std::string("0x4cddfa: el efecto 0x112 de 0x518cf0 es de la CL11"));
+    {
+        constexpr std::int16_t ComboEffect = 0x112;
+        const auto made = CreateBlastEffectOutsideTheStep({.type = ComboEffect,
+                                                           .position = source.position,
+                                                           .angles = source.angles,
+                                                           .light = source.light,
+                                                           .subtype = 0,
+                                                           .key = 0xffff},
+                                                          nullptr, world, resources.cloth.random);
+        if (!made.HasValue())
+            return Core::Unexpected(std::format("0x4cddf5: {}", made.Error()));
         Sound(resources, 0x94);
         return {};
+    }
     case 0x3a:
     {
         if (auto acted = Act(source, 0x44, resources); !acted.HasValue())

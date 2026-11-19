@@ -578,6 +578,29 @@ TEST(ArrowEffectsTest, TheViperAndTheTwentiethArrowsAreBornWithTheirTrail)
     }
 }
 
+// 0x51c6dd..0x51c713: el alta de la 0x11c pone +0x64 en 1 y la y de los ángulos en rand() % 360 antes de soltar su
+// 0x610/0xc en el primer lugar libre, que nace con esos ángulos; después, el registro propio.
+TEST(ArrowEffectsTest, TheTwentiethArrowTurnsAtRandomBeforeItsTrail)
+{
+    ArrowWorld tested(0);
+    const Client::World::ModelEffectArguments arguments{
+        .type = 0x11c, .position = {2000.0f, 3000.0f, 400.0f}, .light = glm::vec3(1.0f), .subtype = 0};
+    const auto made = Client::Scenes::CreateTheArrowEffect(arguments, tested.world, tested.random);
+    ASSERT_TRUE(made.HasValue()) << ErrorOf(made);
+    const auto arrows = tested.Arrows();
+    ASSERT_EQ(arrows.size(), 1u);
+    const ModelEffect& arrow = *arrows.front();
+    CrtRandom twin{Seed};
+    EXPECT_EQ(arrow.transform.angles.y, static_cast<float>(twin.Next() % 360));
+    EXPECT_EQ(arrow.objectState.blendMesh, 1);
+    EXPECT_EQ(DrawsSince(Seed, tested.random), 1 + OwnRecord);
+    const auto& joints = tested.world.DrawTail().joints;
+    ASSERT_TRUE(joints[0].alive);
+    EXPECT_EQ(joints[0].subtype, 0xc);
+    EXPECT_EQ(joints[0].angles, arrow.transform.angles);
+    EXPECT_FALSE(joints[1].alive);
+}
+
 // 0x526b06..0x526bcb: con la vida par, la 0x11c saca tres veces el punto al azar ((& 31) − 16; (& 63) − 32; (& 31) −
 // 16) y deja la 0x60f/5 de escala 0,2f con sus ángulos (ya girados 60) y la luz (0,4f; 0,2f; 1); con la vida impar,
 // nada. Cada una se repite en un pool gemelo con el mismo CrtRandom.
@@ -626,6 +649,8 @@ TEST(ArrowEffectsTest, TheTwentiethArrowLeavesThreeShinesOnEvenLives)
             EXPECT_EQ(shine.scale, reference.scale);
             EXPECT_EQ(shine.life, reference.life);
             EXPECT_EQ(shine.rotation, reference.rotation);
+            EXPECT_EQ(shine.velocity, reference.velocity);
+            EXPECT_EQ(shine.owner, 0u); // sin dueño: el último argumento de 0x53fe70 (0x526b72)
         }
         EXPECT_FALSE(tested.particles.All()[shines].alive);
         EXPECT_EQ(arrow.transform.angles.y, 75.0f);

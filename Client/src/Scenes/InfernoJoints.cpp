@@ -3,7 +3,9 @@
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/JointFamilies.h"
 #include "Scenes/JointKernels.h"
+#include "World/BlastModelEffects.h"
 #include "World/IFishStepServices.h"
+#include "World/ModelEffects.h"
 #include "World/Sprites.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -15,7 +17,7 @@
 
 // El 0x61c/2..6 (alta 0x534444..0x53463b, paso 0x53b6a0..0x53b7ec): suben acelerando con la velocidad (+0x9d8) que
 // crece en vz, que a su vez crece en vx (de a 0,5 con menos de 15 de vida). La /4 (la skill 0x49, 0x504b33) suelta en
-// cada paso un 0x62b/6 y los sprites 0x5ac y 0x5fd; la /2 pide el efecto 0xf6 cada cinco vidas.
+// cada paso un 0x62b/6 y los sprites 0x5ac y 0x5fd; la /2 suelta el efecto 0xf6/6 cada cinco vidas.
 namespace Client::Scenes::JointFamilies
 {
 namespace
@@ -109,10 +111,31 @@ Core::Expected<void, std::string> StepInfernoJoint(JointState& joint, const Join
         for (int channel = 0; channel < 3; ++channel)
             joint.light[channel] = F32(D(joint.light[channel]) * Fade);
     }
-    // 0x53b735..0x53b768: la /2 con la vida múltiplo de 5 pide el efecto 0xf6/6 en su camino, que no está portado.
-    if (life % 5 == 0 && joint.subtype == 2)
-        return Core::Unexpected(std::string("0x53b760: el efecto 0xf6/6 (0x518cf0) del joint 0x61c/2 no está portado "
-                                            "(CL11)"));
+    // 0x53b735..0x53b768: la /2 con la vida múltiplo de 5 suelta el 0xf6/6 en su camino: 0x518cf0(0xf6, +0x24, +0x3c,
+    // +0x48, 6, sin dueño, 20, 0, 0, 0, 0), y vuelve a la cola (0x53c393).
+    constexpr std::int32_t BurstEvery = 5; // 0x53b736
+    if (life % BurstEvery == 0 && joint.subtype == 2)
+    {
+        constexpr std::int16_t InfernoBurst = 0xf6;
+        constexpr std::int32_t BurstSubtype = 6;
+        constexpr std::uint16_t BurstKey = 20; // 0x53b74a: 0x14
+        if (services.effects == nullptr || services.random == nullptr)
+            return Core::Unexpected(
+                std::string("0x53b760: el joint 0x61c/2 pide la tabla de efectos (0x518cf0) y el RNG para el 0xf6/6"));
+        const auto made = World::CreateBlastModelEffect(*services.effects,
+                                                        {.type = InfernoBurst,
+                                                         .position = joint.pathIncrement,
+                                                         .angles = joint.bendAngles,
+                                                         .light = joint.light,
+                                                         .subtype = BurstSubtype,
+                                                         .owner = nullptr,
+                                                         .key = BurstKey},
+                                                        World::ModelEffectOwner{}, *services.random,
+                                                        World::BlastEffectServices{.hero = services.hero});
+        if (!made.HasValue())
+            return Core::Unexpected(std::format("0x53b760: {}", made.Error()));
+        return {};
+    }
     if (joint.subtype != 4)
         return {};
     // 0x53b776..0x53b7ec: la /4 suelta un 0x62b/6 sin dueño de ancho 30 desde su posición, con sus ángulos (un rand()

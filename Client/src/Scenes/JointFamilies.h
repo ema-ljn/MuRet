@@ -79,7 +79,7 @@ CreateHelixJoint(JointState& joint, const World::FishEffectRequest& request, Ren
 [[nodiscard]] Core::Expected<void, std::string> StepHelixJoint(JointState& joint);
 
 // El 0x61c/2..6 (InfernoJoints.cpp): alta 0x534444..0x53463b y paso 0x53b6a0..0x53b7ec. La /4 (la skill 0x49,
-// 0x504b33) suelta en cada paso un 0x62b/6 y dos sprites; la /2 corta en su efecto 0xf6 (0x53b760).
+// 0x504b33) suelta en cada paso un 0x62b/6 y dos sprites; la /2, el efecto 0xf6/6 cada cinco vidas (0x53b760).
 inline constexpr std::int32_t InfernoJoint = 0x61c;
 [[nodiscard]] bool IsInferno(std::int32_t type, std::int32_t subtype);
 void CreateInfernoJoint(JointState& joint, const World::FishEffectRequest& request);

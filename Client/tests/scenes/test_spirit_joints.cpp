@@ -1,6 +1,7 @@
 #include "Scenes/FaunaJointCreation.h"
 
 #include "Core/Expected.h"
+#include "Data/Terrain/TerrainAttributes.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
@@ -12,6 +13,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/JointKernels.h"
+#include "Scenes/SkillHits.h"
 #include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
@@ -86,7 +88,7 @@ struct Pool
     Client::Core::Expected<void, std::string> Step()
     {
         return Client::Scenes::StepJoints(joints, random, &cloth, &particles, 0.0f, &sprites, lighting.get(), {},
-                                          terrainHeight, {}, {}, effects.get());
+                                          terrainHeight, {}, {}, effects.get(), hero, nullptr, volley);
     }
 
     std::vector<JointState> joints = std::vector<JointState>(4);
@@ -102,6 +104,8 @@ struct Pool
     Client::World::FrameSprites sprites;
     std::unique_ptr<Client::World::TerrainLighting> lighting = std::make_unique<Client::World::TerrainLighting>();
     std::unique_ptr<Client::World::ModelEffects> effects = std::make_unique<Client::World::ModelEffects>();
+    const ActorState* hero = nullptr;
+    const Client::Scenes::JointKernels::VolleyServices* volley = nullptr;
 };
 
 ActorState Owner(glm::vec3 position)
@@ -592,42 +596,182 @@ TEST(SpiritJointsTest, TheEighthArcsAndTheTenthTurns)
     EXPECT_EQ(turning.random.State(), CrtRandom(Seed).State());
 }
 
-// 0x539a0e: con ancho 80 la /0, la /5 y la /0x13 cortan en el efecto 0xd0 (0x539a48); con otro, la /0x13 suelta el
-// destello 0x11b/0 (0x539b08: vida 1, escala 2,3f, sin rand()) y sigue como la /0; sin la tabla de efectos, corta ahí.
-TEST(SpiritJointsTest, TheWideVolleyStepIsCut)
+// 0x539a0e..0x539a48: con ancho 80, la /0, la /5 y la /0x13 sueltan el 0xd0 (el rayo, subtipo 3 la /5 y 0 las
+// demás) con su posición, sus ángulos y su luz, sin rand(); sin el asedio, sin ser el héroe su dueño o fuera de los
+// múltiplos de 15 de vida, siguen como con otro ancho (el mismo paso, los mismos rand()), y la /0x13 no suelta el
+// 0x11b/0. Con otro ancho, la /0x13 suelta el destello 0x11b/0 (0x539b08: vida 1, escala 2,3f, sin rand()) y sigue como
+// la /0; sin la tabla de efectos, corta ahí.
+TEST(SpiritJointsTest, TheWideVolleyDropsItsRayAndGoesOn)
 {
+    const ActorState someoneElse = Owner({});
+    const Client::Scenes::JointKernels::VolleyServices calm{.siegeActive = false};
     for (const std::int32_t subtype : {0, 5, 0x13})
     {
         SCOPED_TRACE(subtype);
-        Pool pool;
-        ActorState owner = Owner({});
-        ASSERT_TRUE(pool.Create(0x613, subtype, {}, 80.0f, &owner, JointOwnerKind::Actor).HasValue());
-        const auto stepped = pool.Step();
-        ASSERT_FALSE(stepped.HasValue());
-        EXPECT_TRUE(stepped.Error().starts_with("0x539a48")) << stepped.Error();
+        ActorState owner = Owner({50.0f, 60.0f, 70.0f});
+        Pool wide;
+        Pool thin;
+        for (Pool* pool : {&wide, &thin})
+        {
+            pool->terrainHeight = [](float, float) { return 150.0; };
+            pool->hero = &someoneElse;
+            pool->volley = &calm;
+        }
+        ASSERT_TRUE(
+            wide.Create(0x613, subtype, {100.0f, 200.0f, 300.0f}, 80.0f, &owner, JointOwnerKind::Actor).HasValue());
+        ASSERT_TRUE(
+            thin.Create(0x613, subtype, {100.0f, 200.0f, 300.0f}, 20.0f, &owner, JointOwnerKind::Actor).HasValue());
+        const glm::vec3 light = wide.joints[0].light;
+        const auto stepped = wide.Step();
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        ASSERT_TRUE(thin.Step().HasValue());
+        EXPECT_EQ(wide.random.State(), thin.random.State());
+        const JointState& joint = wide.joints[0];
+        EXPECT_EQ(joint.position, thin.joints[0].position);
+        EXPECT_EQ(joint.angles, thin.joints[0].angles);
+        EXPECT_EQ(joint.velocity, thin.joints[0].velocity);
+        EXPECT_EQ(joint.life, thin.joints[0].life);
+        EXPECT_EQ(joint.light, thin.joints[0].light);
+        const auto& ray = wide.effects->Effects()[0];
+        ASSERT_TRUE(ray.alive);
+        EXPECT_EQ(ray.type, 0xd0);
+        EXPECT_EQ(ray.subtype, subtype == 5 ? 3 : 0);
+        EXPECT_EQ(ray.life, 1);
+        EXPECT_EQ(ray.transform.position, joint.position);
+        EXPECT_EQ(ray.light, light);
+        EXPECT_EQ(ray.ownerContext, nullptr);
+        EXPECT_FALSE(wide.effects->Effects()[1].alive);
+        if (subtype != 0x13)
+        {
+            EXPECT_FALSE(thin.effects->Effects()[0].alive);
+            continue;
+        }
+        // El 0x11b/0 del ancho 20 nace en el mismo punto del paso que el 0xd0: los mismos ángulos.
+        const auto& spark = thin.effects->Effects()[0];
+        ASSERT_TRUE(spark.alive);
+        EXPECT_EQ(spark.type, 0x11b);
+        EXPECT_EQ(spark.subtype, 0);
+        EXPECT_EQ(spark.life, 1);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(spark.transform.scale), 0x40133333u);
+        EXPECT_EQ(spark.light, light);
+        EXPECT_EQ(ray.transform.angles, spark.transform.angles);
+        EXPECT_FALSE(thin.effects->Effects()[1].alive);
     }
-    Pool thin;
-    ActorState owner = Owner({});
-    thin.terrainHeight = [](float, float) { return 150.0; };
-    ASSERT_TRUE(thin.Create(0x613, 0x13, {100.0f, 200.0f, 300.0f}, 20.0f, &owner, JointOwnerKind::Actor).HasValue());
-    const glm::vec3 light = thin.joints[0].light;
-    const auto stepped = thin.Step();
-    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-    const auto& spark = thin.effects->Effects()[0];
-    ASSERT_TRUE(spark.alive);
-    EXPECT_EQ(spark.type, 0x11b);
-    EXPECT_EQ(spark.subtype, 0);
-    EXPECT_EQ(spark.life, 1);
-    EXPECT_EQ(std::bit_cast<std::uint32_t>(spark.transform.scale), 0x40133333u);
-    EXPECT_EQ(spark.light, light);
-    EXPECT_FALSE(thin.effects->Effects()[1].alive);
 
+    ActorState owner = Owner({});
     Pool tableless;
     tableless.effects.reset();
     ASSERT_TRUE(tableless.Create(0x613, 0x13, {}, 20.0f, &owner, JointOwnerKind::Actor).HasValue());
     const auto cut = tableless.Step();
     ASSERT_FALSE(cut.HasValue());
     EXPECT_TRUE(cut.Error().starts_with("0x539b08")) << cut.Error();
+    Pool wideTableless;
+    wideTableless.effects.reset();
+    ASSERT_TRUE(wideTableless.Create(0x613, 0, {}, 80.0f, &owner, JointOwnerKind::Actor).HasValue());
+    const auto wideCut = wideTableless.Step();
+    ASSERT_FALSE(wideCut.HasValue());
+    EXPECT_TRUE(wideCut.Error().starts_with("0x539a48")) << wideCut.Error();
+    // Sin el asedio, los atributos y los blancos, corta después de soltar el 0xd0.
+    Pool bare;
+    ASSERT_TRUE(bare.Create(0x613, 0, {}, 80.0f, &owner, JointOwnerKind::Actor).HasValue());
+    const auto bareCut = bare.Step();
+    ASSERT_FALSE(bareCut.HasValue());
+    EXPECT_TRUE(bareCut.Error().starts_with("0x539a50")) << bareCut.Error();
+    EXPECT_TRUE(bare.effects->Effects()[0].alive);
+}
+
+// 0x539a50..0x539a95: con el asedio prendido y el bit 0x100 de 0x5f82c0 en el punto del joint, la velocidad en 0, la
+// vida en _ftol(49 · 0,2f) = 9 y la cola 0x53c393, sin el resto del paso ni sus rand(). Con el asedio y la celda sin
+// el bit, como sin asedio.
+TEST(SpiritJointsTest, TheWideVolleyStopsOverTheCastleWall)
+{
+    auto walled = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+    walled->cells.fill(0x100);
+    auto open = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+    const ActorState someoneElse = Owner({});
+    ActorState owner = Owner({50.0f, 60.0f, 70.0f});
+    const Client::Scenes::JointKernels::VolleyServices wall{.siegeActive = true, .attributes = walled.get()};
+    const Client::Scenes::JointKernels::VolleyServices field{.siegeActive = true, .attributes = open.get()};
+    Pool stopped;
+    Pool going;
+    Pool thin;
+    for (Pool* pool : {&stopped, &going, &thin})
+    {
+        pool->terrainHeight = [](float, float) { return 150.0; };
+        pool->hero = &someoneElse;
+        pool->volley = &field;
+    }
+    stopped.volley = &wall;
+    ASSERT_TRUE(stopped.Create(0x613, 0, {100.0f, 200.0f, 300.0f}, 80.0f, &owner, JointOwnerKind::Actor).HasValue());
+    ASSERT_TRUE(going.Create(0x613, 0, {100.0f, 200.0f, 300.0f}, 80.0f, &owner, JointOwnerKind::Actor).HasValue());
+    ASSERT_TRUE(thin.Create(0x613, 0, {100.0f, 200.0f, 300.0f}, 20.0f, &owner, JointOwnerKind::Actor).HasValue());
+    ASSERT_EQ(stopped.joints[0].life, 49);
+    const std::uint32_t created = stopped.random.State();
+    const auto stepped = stopped.Step();
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    ASSERT_TRUE(going.Step().HasValue());
+    ASSERT_TRUE(thin.Step().HasValue());
+    // La cola 0x53c393 resta la vida igual que con el paso entero.
+    const std::int32_t tail = thin.joints[0].life - 49;
+    EXPECT_EQ(stopped.joints[0].life, 9 + tail);
+    EXPECT_EQ(stopped.joints[0].speed, 0.0f);
+    EXPECT_EQ(stopped.random.State(), created);
+    EXPECT_TRUE(stopped.effects->Effects()[0].alive);
+    EXPECT_EQ(going.joints[0].life, thin.joints[0].life);
+    EXPECT_EQ(going.joints[0].angles, thin.joints[0].angles);
+    EXPECT_EQ(going.random.State(), thin.random.State());
+}
+
+// 0x539a9a..0x539add: con la vida múltiplo de 15 y el héroe de dueño, los blancos de 0x517a20 con la skill (+0x9ea),
+// la posición, 150, la tanda (+0x9eb), la clave (+0x9e8) y el byte de +0xa08; antes del resto del paso. Con otro dueño
+// u otra vida, ninguno.
+TEST(SpiritJointsTest, TheWideVolleyOfTheHeroHitsEveryFifteenSteps)
+{
+    std::vector<Client::Scenes::SkillHitsRequest> hits;
+    const Client::Scenes::JointKernels::VolleyServices volley{
+        .siegeActive = false,
+        .skillHits =
+            [&hits](const Client::Scenes::SkillHitsRequest& request) -> Client::Core::Expected<void, std::string>
+        {
+            hits.push_back(request);
+            return {};
+        }};
+    ActorState hero = Owner({50.0f, 60.0f, 70.0f});
+    const ActorState someoneElse = Owner({});
+    struct Case
+    {
+        std::int32_t life;
+        bool heroOwned;
+        bool hits;
+    };
+    for (const Case tested :
+         {Case{45, true, true}, Case{30, true, true}, Case{44, true, false}, Case{45, false, false}})
+    {
+        SCOPED_TRACE(tested.life);
+        hits.clear();
+        Pool pool;
+        pool.terrainHeight = [](float, float) { return 150.0; };
+        pool.hero = tested.heroOwned ? &hero : &someoneElse;
+        pool.volley = &volley;
+        pool.ownVolley = 7;
+        ASSERT_TRUE(pool.Create(0x613, 5, {100.0f, 200.0f, 300.0f}, 80.0f, &hero, JointOwnerKind::Actor, 3).HasValue());
+        pool.joints[0].life = tested.life;
+        pool.joints[0].key = 0x1234;
+        const auto stepped = pool.Step();
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        if (!tested.hits)
+        {
+            EXPECT_TRUE(hits.empty());
+            continue;
+        }
+        ASSERT_EQ(hits.size(), 1U);
+        EXPECT_EQ(hits[0].skillIndex, 3);
+        EXPECT_EQ(hits[0].point, pool.joints[0].position);
+        EXPECT_EQ(hits[0].radius, 150.0f);
+        EXPECT_EQ(hits[0].volley, 7);
+        EXPECT_EQ(hits[0].key, 0x1234);
+        EXPECT_EQ(hits[0].extra, 0);
+    }
 }
 
 // 0x539b10..0x539cc7: la /0 y la /5 de otro ancho van hacia el dueño 80 más arriba, la /0 sacudida con dos rand(); el

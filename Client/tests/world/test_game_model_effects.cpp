@@ -808,6 +808,50 @@ TEST(GameModelEffectsTest, TheRisingStoneChipAcceleratesWithoutTerrainOrFire)
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 2).State());
 }
 
+// 0x523985..0x523a62 con la /2 (la de las tormentas): se mueve y sube como la /1 con los ángulos de antes y, después
+// del movimiento, gira 20 en z (0x523a44, 0x6b86d0). Sin terreno ni fuego: sólo el rand() de la luz de cada paso.
+TEST(GameModelEffectsTest, TheSpinningStoneChipRisesAndTurnsTwentyEachStep)
+{
+    auto particles = std::make_unique<Client::World::Particles>();
+    auto chip = DungeonEffect(Client::World::SecondStoneChipEffect, 3);
+    chip.subtype = Client::World::SpinningStoneChipSubtype;
+    chip.transform.angles = {0, 0, 90};
+    chip.velocity = {0, 10, 0};
+    chip.turnDirection = 8;
+    Client::Render::Models::CrtRandom random(1);
+    // La gemela: el movimiento con los ángulos de antes, el arrastre, la caída, el giro de 20 y la cola común
+    // (StepModelEffect, 0x52cb98), escritos aparte.
+    auto twin = chip;
+    for (int step = 0; step < 2; ++step)
+    {
+        SCOPED_TRACE(step);
+        const auto moved = Client::Render::Models::OriginalVectorRotate(
+            twin.velocity, Client::Render::Models::OriginalAngleMatrix(twin.transform.angles));
+        for (int axis = 0; axis < 3; ++axis)
+            twin.transform.position[axis] = static_cast<float>(static_cast<double>(moved[axis]) +
+                                                               static_cast<double>(twin.transform.position[axis]));
+        for (int axis = 0; axis < 3; ++axis)
+            twin.velocity[axis] = static_cast<float>(static_cast<double>(twin.velocity[axis]) *
+                                                     static_cast<double>(std::bit_cast<float>(0x3f666666u)));
+        twin.transform.position.z = static_cast<float>(static_cast<double>(twin.transform.position.z) +
+                                                       static_cast<double>(twin.turnDirection));
+        twin.transform.angles.z = static_cast<float>(static_cast<double>(twin.transform.angles.z) + 20.0);
+        twin.turnDirection = static_cast<float>(static_cast<double>(twin.turnDirection) + 0.5);
+        Client::World::StepModelEffect(twin, nullptr);
+
+        const auto result = Client::World::StepGameModelEffect(chip, nullptr, *particles, 0.0f, random);
+
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(chip.transform.position, twin.transform.position);
+        EXPECT_EQ(chip.velocity, twin.velocity);
+        EXPECT_EQ(chip.transform.angles, (glm::vec3{0, 0, step == 0 ? 110.0f : 130.0f}));
+        EXPECT_EQ(chip.turnDirection, step == 0 ? 8.5f : 9.0f);
+        EXPECT_EQ(chip.life, twin.life);
+    }
+    EXPECT_FALSE(particles->All()[0].alive);
+    EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 2).State());
+}
+
 // El pedazo de hielo 0xca de 0x52e810 entra en 0x523974 con el subtipo 0: el mismo paso que la piedrita (se arrastra,
 // cae, rebota y se inclina) y, con rand() % 10 en 0, el aliento 5f2/0 con su luz y escala 1 en lugar del fuego, sin el
 // rand() de su subtipo (0x523af4 y 0x523b47): el prefijo, el % 10 y los dos de la creación de 0x54184b. Otro subtipo

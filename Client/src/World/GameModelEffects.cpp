@@ -294,7 +294,8 @@ Core::Expected<void, std::string> StepFallingStone(ModelEffect& effect, const Mo
     return {};
 }
 
-// 0x523985 con el subtipo 1 de c8/c9: suma la velocidad girada, aplica el arrastre y acelera en Z sin leer el suelo.
+// 0x523985 con el subtipo 1 de c8/c9: suma la velocidad girada, aplica el arrastre y acelera en Z sin leer el suelo; la
+// /2 hace lo mismo y además gira 20 en z (0x523a3f..0x523a4d, después del movimiento).
 // 0x5239c8..0x523b3a con el subtipo 0 y el 10: la velocidad sin girar sumada y por 0,9f (0x6b8a1c), la caída +0xe4
 // que pierde 3; en el suelo se apoya, rebota a −0,5, pierde 4 de vida y se inclina escala · 128 (si no, ·
 // 32); con el subtipo 0 y rand() % 10 en 0, un fuego 5d9 con el subtipo rand() % 3 + 1. El 10 (el de la piedra
@@ -308,7 +309,7 @@ Core::Expected<void, std::string> StepStoneChip(ModelEffect& effect, Particles& 
                                                 const ModelEffectStepServices& services)
 {
     const bool rising = (effect.type == FirstStoneChipEffect || effect.type == SecondStoneChipEffect) &&
-                        effect.subtype == RisingStoneChipSubtype;
+                        (effect.subtype == RisingStoneChipSubtype || effect.subtype == SpinningStoneChipSubtype);
     if (!rising && effect.subtype != 0 && effect.subtype != GroundStoneChipSubtype)
         return Core::Unexpected(std::format("{}: el paso de la piedrita {:#x} con el subtipo {} no está portado",
                                             effect.type == IceShardEffect ? "0x523974" : "0x5238be", effect.type,
@@ -329,7 +330,10 @@ Core::Expected<void, std::string> StepStoneChip(ModelEffect& effect, Particles& 
     position.z = F32(static_cast<double>(position.z) + static_cast<double>(effect.turnDirection));
     if (rising)
     {
+        constexpr double Spin = 20.0;        // 0x6b86d0
         constexpr double Acceleration = 0.5; // 0x6b882c.
+        if (effect.subtype != RisingStoneChipSubtype)
+            effect.transform.angles.z = F32(static_cast<double>(effect.transform.angles.z) + Spin);
         effect.turnDirection = F32(static_cast<double>(effect.turnDirection) + Acceleration);
         return {};
     }
@@ -664,6 +668,10 @@ Core::Expected<void, std::string> StepFadingDecal(const ModelEffect& effect, Par
     return {};
 }
 
+// 0x5263d6..0x5264fa: el 0x145/2 (la marea de Crywolf). La escala sube 0,2f debajo de 0,8f (un NaN también) o baja
+// 0,4f; +0x68 en vida · 0,1f y +0x6c en vida · −0,2f; el punto (0, −500, 0) girado por los ángulos con la z + 7, seis
+// humos 0x5f2/25 con esos ángulos, la luz del efecto, escala 1 y sin dueño (0x5264be), y la luz (L · 0,3f; L · 0,6f;
+// L) de radio 3.
 Core::Expected<void, std::string> StepCrywolfTide(ModelEffect& effect, Particles& particles, float clock,
                                                   Render::Models::CrtRandom& random, float luminosity,
                                                   const ModelEffectStepServices& services)
@@ -685,7 +693,8 @@ Core::Expected<void, std::string> StepCrywolfTide(ModelEffect& effect, Particles
         const auto made = particles.CreateChecked(BreathParticle, point, angles, effect.light, CrywolfTideSmokeSubtype,
                                                   1, clock, random);
         if (!made.HasValue())
-            return Core::Unexpected(std::string("0x5264be: el humo5f2/25 de145 no está portado"));
+            return Core::Unexpected(std::format("0x5264be: el humo 0x5f2/25 del 0x145 falla con error {}",
+                                                static_cast<unsigned>(made.Error())));
     }
     const glm::vec3 light{F32(static_cast<double>(luminosity) * static_cast<double>(0.3f)),
                           F32(static_cast<double>(luminosity) * static_cast<double>(0.6f)), luminosity};

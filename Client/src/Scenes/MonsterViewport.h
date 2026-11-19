@@ -40,8 +40,9 @@ struct WorldEntryResources;
 // wsprintfA con el del dueño, +4 en 1 con el nivel 7; recién llegado corta en 0x51747c, los rand() y los joints 0x615
 // de la CL11) y los demás por CreateMonster; los estados, el ángulo, la celda protegida, +0x39a/+0x39b, +0x88 en 1, el
 // PK (dirección & 0xf) y, con 6 o más, el nivel en 1. Fuera de 0x98..0x9e, el nombre es el del dueño (diez bytes, con
-// +0x1e3 en 0), el Text 485 y el del monstruo (strcat). Recién llegado: ArriveAsNew y corta en 0x4ca5f6 (el efecto 0xec
-// de 0x518cf0 y el joint 0x5d5 de 0x53fe70, CL11); si no, el camino.
+// +0x1e3 en 0), el Text 485 y el del monstruo (strcat). Recién llegado: ArriveAsNew, el círculo 0xec (0x518cf0) y la
+// partícula 0x5d5/2 (0x53fe70) con el personaje de dueño y, el invocado, el frame en 0 y el sonido 0x61; si no, el
+// camino.
 [[nodiscard]] Core::Expected<void, std::string> ApplySummons(const Protocol::Viewport::Summons& summons,
                                                              const WorldEntryResources& resources);
 

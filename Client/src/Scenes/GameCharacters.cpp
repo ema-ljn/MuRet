@@ -509,6 +509,7 @@ Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const I
                                                .particles = pass.particles,
                                                .joints = pass.joints,
                                                .effects = pass.effects,
+                                               .world = &world,
                                                .slot = slot,
                                                .scan = scan,
                                                .party = PartyMembers(world.Runtime()),
@@ -540,8 +541,7 @@ Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const I
                                               .random = &random,
                                               .particles = pass.particles,
                                               .worldClock = worldClock,
-                                              .joints = pass.joints,
-                                              .actors = world.Actors()});
+                                              .world = &world});
 }
 
 // `slot` es su lugar en el pool, o ActorPoolSize fuera de él; `cloth`, su tela.

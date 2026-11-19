@@ -55,6 +55,9 @@ inline constexpr std::int16_t DebrisEffect = 0x10b;
 inline constexpr std::int16_t FirstStoneChipEffect = 0xc8;
 inline constexpr std::int16_t SecondStoneChipEffect = 0xc9;
 inline constexpr std::int32_t RisingStoneChipSubtype = 1;
+// La /2 de las piedritas (la de las tormentas 0xcf, 0x522f17 y 0x5231a1 → 0x52b14d): nace como la /0 (0x51b72b) y
+// sube como la /1, girando 20 en z en cada paso (0x523a44).
+inline constexpr std::int32_t SpinningStoneChipSubtype = 2;
 // Los pedazos grandes (Data\Skill\BigStone1 y 2): con el subtipo 0 los suelta la muerte del 0x16b (0x4f59ca), corridos
 // rand() % 128 − 64 en x e y y rand() % 180 en z antes del camino de las piedritas (0x51b659); el /5 es del lote del
 // estallido (World/BlastModelEffects) y el /10 de la piedra que cae (CreateGroundStoneChip).

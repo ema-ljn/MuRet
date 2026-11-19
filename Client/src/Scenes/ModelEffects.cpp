@@ -1085,6 +1085,8 @@ void CrywolfStone(ModelEffectsPass& pass, std::int16_t type, const glm::vec3& po
         static_cast<void>(effects.CreateStoneChip(type, point, pass.actor.angles, pass.actor.light, pass.random));
 }
 
+// 0x43192b..0x4319aa: el 0x636/2 de 0x518cf0 en el hueso 33, la explosión 0x5ed/2 de 0x53fe70 (blanca, escala 1, sin
+// dueño; su alta pide el sonido 0x40 en 0x542a82) y seis piedras 0xe5/0xa.
 Result CrywolfHeavyStrike(ModelEffectsPass& pass)
 {
     const glm::vec3 point = CrywolfGlobalPoint(pass, 33);
@@ -1095,7 +1097,8 @@ Result CrywolfHeavyStrike(ModelEffectsPass& pass)
     const auto burst =
         pass.particles->CreateChecked(0x5ed, point, pass.actor.angles, White, 2, 1, pass.worldClock, pass.random);
     if (!burst.HasValue())
-        return Core::Unexpected(std::string("0x43197c: la explosión 5ed/2 no está portada"));
+        return Core::Unexpected(
+            std::format("0x43197c: la explosión 5ed/2 falla con error {}", static_cast<unsigned>(burst.Error())));
     if (burst.Value())
         Sound(pass, 0x40);
     for (int index = 0; index < 6; ++index)

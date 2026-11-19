@@ -433,7 +433,8 @@ Result DrawTheBody(MonsterFrame& frame, const Render::Models::Skeleton& skeleton
                           .cameraShake = frame.pass.cameraShake,
                           .effects = frame.pass.effects,
                           .particles = frame.pass.particles,
-                          .terrainHeight = BodyTerrainHeight(frame.world, frame.pass)};
+                          .terrainHeight = BodyTerrainHeight(frame.world, frame.pass),
+                          .joints = frame.world.DrawTail().joints};
     return DrawMonsterBody(body);
 }
 

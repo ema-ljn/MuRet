@@ -25,6 +25,11 @@
 #include "Scenes/SceneContext.h"
 #include "Scenes/TextureSets.h"
 #include "Scenes/WorldRuntime.h"
+#include "Data/Terrain/TerrainObjects.h"
+#include "Render/Models/Animation.h"
+#include "World/ModelEffects.h"
+#include "World/Particles.h"
+#include "World/WizardModelEffects.h"
 #include "UI/MessageArea.h"
 #include "World/TerrainLighting.h"
 #include "support/FakeClock.h"
@@ -44,10 +49,12 @@
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <memory>
 #include <optional>
 #include <random>
 #include <span>
@@ -780,5 +787,77 @@ TEST(LoginSceneModelsTest, TheBodyKeepsTheDummyMatricesOfItsOwnBones)
     ASSERT_EQ(actor.bodyPose.size(), 48u);
     EXPECT_EQ(actor.bodyPose[0], own);
     EXPECT_EQ(tested.scene->Failure(), std::nullopt);
+}
+
+// El meteoro en la escena del login: 0x6046a0 lo suelta en la tabla del mundo con el reloj del dibujo en la ventana
+// (ftol(reloj) % 8000 desde 7950), y el paso (0x634d18 → 0x52d220) lo avanza con el de los magos, después del dragón,
+// sin cortar: la estela 5f2/0x24 sigue al meteoro (su dueño, el lugar 1) en el paso de las partículas
+// (0x634d22 → 0x5446e0), y la 5f2/0x25 y el fuego 5d9/5 salen con ella. Antes, el login se paraba en 0x604427.
+TEST(LoginSceneModelsTest, TheLoginDropsTheMeteorOfTheObject89AndKeepsGoing)
+{
+    constexpr std::int16_t MeteorMarker = 0x59;
+    auto world = std::make_unique<Client::Scenes::WorldState>();
+    Harness tested;
+    auto attributes = Client::Tests::PlainTerrainAttributes(56, Client::Tests::AttributeCells::Bytes);
+    std::fill(attributes.begin() + 4, attributes.end(), std::byte{0});
+    Client::Tests::WriteSceneFile(tested.folder.Path(), "World56/EncTerrain56.att",
+                                  Client::Tests::EncryptTerrainAttributes(std::move(attributes)));
+    Client::Tests::WriteSceneFile(tested.folder.Path(), "World56/EncTerrain56.map",
+                                  Client::Tests::EncryptK16(Client::Tests::PlainTerrainMapping(56)));
+    const std::vector<std::byte> ozj = Client::Tests::OzjOf(Client::Tests::ReadJpegVector("baseline-420.jpg"));
+    Client::Tests::WriteSceneFile(tested.folder.Path(), "Interface/accept_box01.OZJ", ozj);
+    Client::Tests::WriteSceneFile(tested.folder.Path(), "World56/TileGrass01.OZJ", ozj);
+    Client::Tests::WriteSceneFile(tested.folder.Path(), "Object8/drop01.OZJ", ozj);
+    Client::Data::Terrain::TerrainObject marker;
+    marker.type = MeteorMarker;
+    marker.position = {11679.0f, 14191.0f, 333.0f};
+    marker.scale = 1.0f;
+    Client::Tests::WriteSceneFile(
+        tested.folder.Path(), "World56/EncTerrain56.obj",
+        Client::Tests::EncryptK16(Client::Tests::PlainTerrainObjects(56, 1, std::span(&marker, 1))));
+    Client::Render::Models::ClothWorld cloth;
+    const auto entered = tested.Make(FixedSeed, nullptr, &cloth, world.get()).Enter();
+    ASSERT_TRUE(entered.HasValue()) << entered.Error();
+    for (auto& actor : world->Actors())
+        actor.darkSpirit.reset();
+    const auto effects = world->Map().effects.Effects();
+    ASSERT_TRUE(effects[0].alive) << "el dragón del mapa 55";
+    ASSERT_EQ(effects[0].type, Client::World::DragonEffect);
+    for (int frame = 0; frame < 4 && !effects[1].alive; ++frame)
+    {
+        tested.scene->Render(tested.target.BeginFrame(std::chrono::milliseconds{7950} +
+                                                      frame * Client::Render::Models::OriginalFrameTime),
+                             0.0f);
+        tested.target.Present();
+    }
+    ASSERT_EQ(tested.scene->Failure(), std::nullopt);
+    const Client::World::ModelEffect& meteor = effects[1];
+    ASSERT_TRUE(meteor.alive);
+    EXPECT_EQ(meteor.type, Client::World::FireEffect);
+    EXPECT_EQ(meteor.subtype, 9);
+    const std::int32_t dragonLife = effects[0].life;
+    const glm::vec3 born = meteor.transform.position;
+    tested.Steps(1);
+    ASSERT_EQ(tested.scene->Failure(), std::nullopt);
+    EXPECT_EQ(effects[0].life, dragonLife - 1);
+    EXPECT_EQ(meteor.life, 599);
+    EXPECT_EQ(meteor.previousPosition, born);
+    EXPECT_EQ(meteor.transform.position.y, born.y + meteor.velocity.y);
+    EXPECT_EQ(meteor.light, glm::vec3(1.0f, std::bit_cast<float>(0x3e4ccccdu), std::bit_cast<float>(0x3e4ccccdu)));
+    const auto alive = [&](std::int32_t type, std::int32_t subtype)
+    {
+        return std::ranges::count_if(world->Particles().All(),
+                                     [&](const Client::World::Particle& particle) {
+                                         return particle.alive && particle.type == type && particle.subtype == subtype;
+                                     });
+    };
+    EXPECT_EQ(alive(0x5f2, 0x24), 1);
+    EXPECT_EQ(alive(0x5f2, 0x25), 1);
+    EXPECT_EQ(alive(0x5d9, 5), 1);
+    tested.Steps(30);
+    ASSERT_EQ(tested.scene->Failure(), std::nullopt);
+    EXPECT_TRUE(meteor.alive);
+    EXPECT_EQ(meteor.life, 569);
+    tested.scene->Leave();
 }
 } // namespace

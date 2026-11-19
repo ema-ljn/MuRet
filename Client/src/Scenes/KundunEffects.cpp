@@ -5,6 +5,7 @@
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Scenes/HighEffectEmitters.h"
 #include "Scenes/HighModelEffects.h"
+#include "Scenes/KundunFallEffects.h"
 #include "World/ModelEffects.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -50,22 +51,22 @@ Core::Expected<void, std::string> CallOut(const World::ModelEffect& call, std::i
 }
 } // namespace
 
-Core::Expected<void, std::string> BeginTheKundunCall(World::ModelEffect& effect)
+void BeginTheKundunCall(World::ModelEffects& effects, std::size_t slot)
 {
     constexpr std::int32_t EchoSubtype = 2;
+    World::ModelEffect& effect = effects.Effects()[slot];
     if (effect.subtype == 0 || effect.subtype == 1)
     {
         effect.life = CallLife;
-        return {};
+        return;
     }
     if (effect.subtype != EchoSubtype)
-        return {};
+        return;
     // 0x518f62 y 0x518f69: antes de volver a entrar.
     constexpr std::int32_t EchoLife = 40; // 0x28
     effect.life = EchoLife;
     effect.disturbanceState = 0;
-    return Core::Unexpected(std::string("0x518f90: el 0x128/2 vuelve a entrar en 0x518cf0 como el 0x127/0, con él de "
-                                        "dueño, que no está portado (CL11)"));
+    static_cast<void>(CreateTheKundunEcho(effects, slot));
 }
 
 Core::Expected<std::optional<std::size_t>, std::string>
@@ -76,8 +77,7 @@ CreateTheKundunCall(World::ModelEffects& effects, const World::ModelEffectArgume
     const auto slot = effects.Begin(arguments);
     if (!slot.has_value())
         return slot;
-    if (auto begun = BeginTheKundunCall(effects.Effects()[*slot]); !begun.HasValue())
-        return Core::Unexpected(begun.Error());
+    BeginTheKundunCall(effects, *slot);
     return slot;
 }
 

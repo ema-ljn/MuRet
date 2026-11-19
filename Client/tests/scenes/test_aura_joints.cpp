@@ -347,17 +347,57 @@ TEST(AuraJointsTest, TheSpinTurnsAndRises)
     EXPECT_EQ(spin.position, glm::vec3(F32(D(turned.x) + 10), F32(D(turned.y) + 20), F32(D(turned.z) + 30)));
 }
 
-// 0x530f7e y 0x535db2: el 10f/2 toma el segundo punto; sin dueño vivo lo suelta, y con él corta en 0x53d1a0.
-TEST(AuraJointsTest, TheBeamCutsOnThePlayerBone)
+// 0x530f7e y 0x535dbe..0x535ee4: el 10f/2 toma el segundo punto; sin dueño vivo lo suelta. Con él, el ancho es la vida
+// · 3 y la posición va de la mano del dueño (+0x194) al destino corrido por 0x53d1a0(17721 · lugar, dir, 1,4f) · 300,
+// con a = (vida − 10) · 0,1f entre 0 y 1. Los bits salen aparte de MuRet (Fraction y Decimal de Python): la frecuencia
+// de la x sin guardar en float (con ella guardada, la dirección del lugar 0 sería (0xbe847c40, 0xbf7734eb,
+// 0xbcc1fe0a)), FSIN y FCOS a 64 bits, PC53 y los stores a float. Fase 77 en el lugar 0 y 17.798 en el 1.
+TEST(AuraJointsTest, TheBeamRunsFromTheHandToItsPoint)
 {
     Pool pool;
+    pool.actors[0].skillHandPoint = {1100, 2200, 400};
+    ASSERT_TRUE(pool.Create(2, 10, -1, {7, 8, 9}).HasValue());
     ASSERT_TRUE(pool.Create(2, 10, -1, {7, 8, 9}).HasValue());
     EXPECT_EQ(pool.joints[0].targetPosition, glm::vec3(7, 8, 9));
     EXPECT_EQ(pool.joints[0].texture, 0x62c);
     EXPECT_EQ(pool.joints[0].maximumCount, 5);
-    const auto cut = pool.Step();
-    ASSERT_FALSE(cut.HasValue());
-    EXPECT_NE(cut.Error().find("0x535e66"), std::string::npos) << cut.Error();
+    EXPECT_EQ(pool.joints[0].life, 20);
+    pool.joints[1].life = 13;
+    const CrtRandom before = pool.cloth->random;
+
+    ASSERT_TRUE(pool.Step().HasValue());
+
+    // Vida 20: a = 1,0000000149 → 1; la posición es el punto.
+    EXPECT_EQ(pool.joints[0].width, 60.0f);
+    EXPECT_EQ(pool.joints[0].position, glm::vec3(std::bit_cast<float>(0xc28d4689u), std::bit_cast<float>(0xc38cd8c4u),
+                                                 std::bit_cast<float>(0x3ff66054u)));
+    // Vida 13: a = 0,3f y 1 − a = 0,7f.
+    EXPECT_EQ(pool.joints[1].width, 39.0f);
+    EXPECT_EQ(pool.joints[1].position, glm::vec3(std::bit_cast<float>(0x44359c23u), std::bit_cast<float>(0x44b73895u),
+                                                 std::bit_cast<float>(0x43876087u)));
+    EXPECT_EQ(pool.joints[1].life, 12);
+    EXPECT_EQ(pool.cloth->random.State(), before.State());
+
+    // El lugar 0 con vida 13, y con vida 5 (a = 0: la mano), con el contador cerrado: cuatro rand() por acceso.
+    for (const auto& [life, expected] :
+         {std::pair{13, glm::vec3(std::bit_cast<float>(0x443b33c1u), std::bit_cast<float>(0x44b5efbeu),
+                                  std::bit_cast<float>(0x438c49eau))},
+          std::pair{5, glm::vec3(1100, 2200, 400)}})
+    {
+        SCOPED_TRACE(life);
+        Pool closed;
+        closed.cloth->openCounterAccesses = 0;
+        closed.actors[0].skillHandPoint = {1100, 2200, 400};
+        ASSERT_TRUE(closed.Create(2, 10, -1, {7, 8, 9}).HasValue());
+        closed.joints[0].life = life;
+        CrtRandom expectedRandom = closed.cloth->random;
+        for (int draw = 0; draw < 4; ++draw)
+            static_cast<void>(expectedRandom.Next());
+        ASSERT_TRUE(closed.Step().HasValue());
+        EXPECT_EQ(closed.joints[0].position, expected);
+        EXPECT_EQ(closed.cloth->random.State(), expectedRandom.State());
+    }
+
     pool.actors[0].alive = false;
     ASSERT_TRUE(pool.Step().HasValue());
     EXPECT_EQ(pool.joints[0].ownerContext, nullptr);

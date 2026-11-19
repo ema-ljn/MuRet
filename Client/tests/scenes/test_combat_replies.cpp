@@ -564,40 +564,78 @@ TEST_F(CombatRepliesTest, AHeroDeathClosesItsOwnRecordBeforeTheChaosSound)
     }
 }
 
-// Con un efecto libre, el 0x16b aún corta en 0x4f59ca (CL11), pero el prefijo ya dejó vivo=false y puso en 0 la vida
-// propia.
-TEST_F(CombatRepliesTest, AHeroSpecialEffectDeathKeepsItsPrefixWhenTheEffectCreationCuts)
+// 0x4f59ad..0x4f59f4: con lugar, la muerte del 0x16b (el héroe) deja ocho pares 0xe5/0 y 0xe6/0 en su posición, con
+// sus ángulos y su luz, después del cierre del registro propio; cada uno saca sus ocho rand() (0x51b659), repetidos en
+// un pool gemelo con el mismo CrtRandom. Con dos lugares libres, sólo el primer par; después, el sonido y el frame.
+TEST_F(CombatRepliesTest, AHeroSpecialEffectDeathScattersItsSplinters)
 {
-    Runtime().map = 0;
-    Runtime().ownRecordDepth = 0;
-    Runtime().lastSoundId.reset();
-    m_world->OwnCharacter().life = 50;
-    auto effectPool = m_world->Map().effects.Effects();
-    for (Client::World::ModelEffect& effect : effectPool)
-        effect.alive = true;
-    effectPool.front().alive = false;
+    for (const std::size_t free : {std::size_t{2}, std::size_t{200}})
+    {
+        SCOPED_TRACE(free);
+        Runtime().map = 0;
+        Runtime().ownRecordDepth = 0;
+        Runtime().lastSoundId.reset();
+        m_world->OwnCharacter().life = 50;
+        auto effectPool = m_world->Map().effects.Effects();
+        for (std::size_t slot = 0; slot < effectPool.size(); ++slot)
+            effectPool[slot].alive = slot >= free;
 
-    ActorState& hero = Hero();
-    hero = ActorState{};
-    hero.alive = true;
-    hero.type = 0x16b;
-    hero.animation.action = 7;
-    hero.animation.frame = 0.0f;
+        ActorState& hero = Hero();
+        hero = ActorState{};
+        hero.alive = true;
+        hero.type = 0x16b;
+        hero.position = glm::vec3(1000.0f, 2000.0f, 300.0f);
+        hero.angles = glm::vec3(0.0f, 0.0f, 45.0f);
+        hero.light = glm::vec3(0.5f, 0.25f, 1.0f);
+        hero.animation.action = 7;
+        hero.animation.frame = 0.0f;
+        CrtRandom expected = m_random;
+        expected.Discard(OwnRecordDraws);
+        CrtRandom counted = expected;
 
-    const auto died = Client::Scenes::SetActorDie(hero, Combat());
+        const auto died = Client::Scenes::SetActorDie(hero, Combat());
 
-    ASSERT_FALSE(died.HasValue());
-    EXPECT_NE(died.Error().find("CL11"), std::string::npos);
-    EXPECT_FALSE(hero.alive);
-    EXPECT_EQ(hero.animation.action, 7);
-    EXPECT_EQ(hero.animation.frame, 0.0f);
-    EXPECT_EQ(m_world->OwnCharacter().life, 0);
-    EXPECT_EQ(Runtime().ownRecordDepth, 0);
-    EXPECT_FALSE(Runtime().lastSoundId.has_value());
-    EXPECT_EQ(m_random.State(), After(OwnRecordDraws));
-    EXPECT_FALSE(effectPool.front().alive);
-    EXPECT_EQ(std::ranges::count_if(effectPool, [](const Client::World::ModelEffect& effect) { return effect.alive; }),
-              effectPool.size() - 1);
+        ASSERT_TRUE(died.HasValue()) << died.Error();
+        auto twin = std::make_unique<Client::World::ModelEffects>();
+        for (std::size_t slot = free; slot < twin->Effects().size(); ++slot)
+            twin->Effects()[slot].alive = true;
+        for (int pair = 0; pair < 8; ++pair)
+        {
+            for (const std::int16_t type : {Client::World::FirstSplinterEffect, Client::World::SecondSplinterEffect})
+                static_cast<void>(twin->CreateStoneChip(type, hero.position, hero.angles, hero.light, expected));
+        }
+        for (std::size_t slot = 0; slot < std::min<std::size_t>(free, 16); ++slot)
+        {
+            SCOPED_TRACE(slot);
+            const Client::World::ModelEffect& made = effectPool[slot];
+            const Client::World::ModelEffect& twinEffect = twin->Effects()[slot];
+            ASSERT_TRUE(made.alive);
+            EXPECT_EQ(made.type, slot % 2 == 0 ? 0xe5 : 0xe6);
+            EXPECT_EQ(made.subtype, 0);
+            EXPECT_EQ(made.transform.position, twinEffect.transform.position);
+            EXPECT_EQ(made.transform.angles, twinEffect.transform.angles);
+            EXPECT_EQ(made.velocity, twinEffect.velocity);
+            EXPECT_EQ(made.life, twinEffect.life);
+            EXPECT_EQ(made.light, twinEffect.light);
+        }
+        if (free > 16)
+        {
+            EXPECT_FALSE(effectPool[16].alive);
+        }
+        EXPECT_FALSE(hero.alive);
+        EXPECT_EQ(hero.animation.action, 7);
+        EXPECT_EQ(hero.animation.frame, DeathFrame);
+        EXPECT_EQ(m_world->OwnCharacter().life, 0);
+        EXPECT_EQ(Runtime().ownRecordDepth, 0);
+        EXPECT_EQ(m_random.State(), expected.State());
+        int draws = 0;
+        while (counted.State() != m_random.State() && draws < 1000)
+        {
+            static_cast<void>(counted.Next());
+            ++draws;
+        }
+        EXPECT_EQ(draws, free > 16 ? 128 : 16);
+    }
 }
 
 // El 0x9C que manda el GameServer 0.97 (0x49af90) lleva la clave 0xFFFF: 0x7fff con el bit 15. Nadie tiene la 0x7fff y
@@ -1321,39 +1359,41 @@ TEST_F(CombatRepliesTest, TheSawOf27GoesOutWithTheStrike)
     EXPECT_EQ(m_random.State(), expected.State());
 }
 
-// Con un lugar libre, el 0x33 sigue cortando en la alta del 0x5da, que no está portada (CL11, lote de los altos).
-TEST_F(CombatRepliesTest, EffectsWithPoolSpaceKeepTheirCut)
+// 0x4f4f98..0x4f4fc4: con un lugar libre, el 0x33 crea el golpe 0x5da/0 sin dueño (Scenes/SkillBurstEffects): vida 10
+// y (0, −60, 0) girado por sus ángulos (en 0) más su posición, con 130 más de z, sin rand(); sigue con el sonido 0x79 y
+// +0x38f.
+TEST_F(CombatRepliesTest, TheFlameOf33GoesOutWithTheStrike)
 {
-    struct EffectCase
-    {
-        std::uint16_t model;
-        std::string_view errorAddress;
-    };
-    constexpr std::array<EffectCase, 1> EffectModels{{{0x33, "0x4f4fb9"}}};
-    std::size_t slot = 12;
-    for (const EffectCase& test : EffectModels)
-    {
-        SCOPED_TRACE(test.model);
-        ActorState& effect = MonsterAt(slot, static_cast<std::uint16_t>(0x200 + slot));
-        ++slot;
-        effect.type = test.model;
-        effect.attackCount = 0xff;
-        effect.animation.action = 7;
-        effect.animation.frame = 1.0f;
-        Runtime().lastSoundId.reset();
+    ActorState& burner = MonsterAt(12, 0x20c);
+    burner.type = 0x33;
+    burner.attackCount = 0xff;
+    burner.animation.action = 7;
+    burner.animation.frame = 1.0f;
+    burner.position = {300.0f, 400.0f, 50.0f};
+    burner.angles = glm::vec3(0.0f);
+    burner.light = {0.5f, 0.25f, 1.0f};
+    Runtime().lastSoundId.reset();
+    auto effectPool = m_world->Map().effects.Effects();
+    for (Client::World::ModelEffect& poolEffect : effectPool)
+        poolEffect.alive = true;
+    effectPool[3].alive = false;
+    const CrtRandom expected = m_random;
 
-        auto effectPool = m_world->Map().effects.Effects();
-        for (Client::World::ModelEffect& poolEffect : effectPool)
-            poolEffect.alive = true;
-        effectPool.front().alive = false;
+    const auto attacked = Client::Scenes::SetActorAttack(burner, Combat());
 
-        EXPECT_TRUE(HasError(Client::Scenes::SetActorAttack(effect, Combat()), test.errorAddress));
-        EXPECT_EQ(effect.animation.action, 7);
-        EXPECT_EQ(effect.animation.frame, 1.0f);
-        EXPECT_EQ(effect.attackCount, 0xff);
-        EXPECT_FALSE(Runtime().lastSoundId.has_value());
-        EXPECT_FALSE(effectPool.front().alive);
-    }
+    ASSERT_TRUE(attacked.HasValue()) << attacked.Error();
+    const Client::World::ModelEffect& created = effectPool[3];
+    EXPECT_TRUE(created.alive);
+    EXPECT_EQ(created.type, 0x5da);
+    EXPECT_EQ(created.subtype, 0);
+    EXPECT_EQ(created.ownerContext, nullptr);
+    EXPECT_EQ(created.life, 10);
+    EXPECT_EQ(created.transform.position, glm::vec3(300.0f, 340.0f, 180.0f));
+    EXPECT_EQ(created.light, burner.light);
+    EXPECT_EQ(burner.animation.action, 7);
+    EXPECT_EQ(burner.attackCount, 0);
+    EXPECT_EQ(Runtime().lastSoundId, std::optional<std::int32_t>(0x79));
+    EXPECT_EQ(m_random.State(), expected.State());
 }
 
 // La tabla de sonidos que escribió el alta (WorldRuntime::modelSounds) es la de 0x4f4a10 si el contexto no trae otra.

@@ -692,6 +692,18 @@ std::optional<std::size_t> ModelEffects::CreateFlameJet(const glm::vec3& positio
     return std::nullopt;
 }
 
+std::optional<std::size_t> ModelEffects::CreateFlameColumn(const ModelEffectArguments& arguments)
+{
+    constexpr std::int32_t FlameColumnLife = 15; // 0xf, 0x51ecb0
+    if (arguments.type != FlameJetEffect || arguments.subtype != FlameColumnSubtype)
+        return std::nullopt;
+    const std::optional<std::size_t> slot = Begin(arguments);
+    if (!slot)
+        return std::nullopt;
+    m_effects[*slot].life = FlameColumnLife;
+    return slot;
+}
+
 std::optional<std::size_t> ModelEffects::CreateOwnedFlameJet(const ModelEffectArguments& arguments,
                                                              std::uint8_t& ownRecordDepth, std::uint8_t ownRecordCount,
                                                              Render::Models::CrtRandom& random)
@@ -725,7 +737,9 @@ std::optional<std::size_t> ModelEffects::CreateStoneChip(std::int16_t type, cons
     constexpr std::int16_t FirstRockShard = 0xea, SecondRockShard = 0xeb;
     const bool chip = type == FirstStoneChipEffect || type == SecondStoneChipEffect;
     const bool shard = (type == FirstRockShard || type == SecondRockShard) && subtype == 0;
-    if ((!chip && !shard) || (subtype != 0 && subtype != RisingStoneChipSubtype && subtype != SpinningStoneChipSubtype))
+    const bool splinter = (type == FirstSplinterEffect || type == SecondSplinterEffect) && subtype == 0;
+    if ((!chip && !shard && !splinter) ||
+        (subtype != 0 && subtype != RisingStoneChipSubtype && subtype != SpinningStoneChipSubtype))
         return std::nullopt;
     constexpr int PushMask = 255, PushBase = 64, LifeMask = 15, LifeBase = 32, ScaleMask = 3, ScaleBase = 8;
     constexpr int Degrees = 360, FallMask = 15, FallBase = 8;
@@ -736,6 +750,17 @@ std::optional<std::size_t> ModelEffects::CreateStoneChip(std::int16_t type, cons
             continue;
         InitializeOwnerlessEffect(effect, type, position, angles, light);
         effect.subtype = subtype;
+        if (splinter)
+        {
+            // 0x51b66b..0x51b6d6: los tres corrimientos, cada uno en float antes de sumarse.
+            constexpr int SpreadMask = 127, SpreadCenter = 64, Lift = 180; // 0x7f, 0x40 y 0xb4
+            const auto dx = static_cast<float>((random.Next() & SpreadMask) - SpreadCenter);
+            const auto dy = static_cast<float>((random.Next() & SpreadMask) - SpreadCenter);
+            const auto dz = static_cast<float>(random.Next() % Lift);
+            effect.transform.position.x = F32(static_cast<double>(dx) + static_cast<double>(position.x));
+            effect.transform.position.y = F32(static_cast<double>(dy) + static_cast<double>(position.y));
+            effect.transform.position.z = F32(static_cast<double>(dz) + static_cast<double>(position.z));
+        }
         // 0x51b735: la /1 inicializa a cero, sin llamar a rand() para el empuje.
         const float impulse = subtype == RisingStoneChipSubtype
                                   ? 0.0f

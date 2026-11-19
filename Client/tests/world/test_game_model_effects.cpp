@@ -40,6 +40,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <format>
 #include <functional>
 #include <span>
 #include <limits>
@@ -745,6 +746,35 @@ TEST(GameModelEffectsTest, TheStoneChipsDragTiltBounceAndSometimesBurn)
     }
 }
 
+// Los pedazos 0xe5 y 0xe6 de la muerte del 0x16b (subtipo 0) entran por 0x523926 → 0x523974 y dan el paso de la
+// piedrita; con rand() % 10 en 0 no sueltan nada (0x523b10): el del prefijo y el % 10.
+TEST(GameModelEffectsTest, TheSplintersStepLikeChipsAndNeverBurn)
+{
+    const std::uint32_t burns = SeedWhereDraw(1, [](int value) { return value % 10 == 0; });
+    for (const std::int16_t type : {Client::World::FirstSplinterEffect, Client::World::SecondSplinterEffect})
+    {
+        SCOPED_TRACE(type);
+        Client::World::ModelEffect splinter = DungeonEffect(type, 40);
+        splinter.velocity = {10.0f, 0.0f, 0.0f};
+        splinter.turnDirection = 5.0f;
+        auto particles = std::make_unique<Client::World::Particles>();
+        Client::World::ModelEffectStepServices services;
+        services.terrainHeight = [](float, float) { return 0.0; };
+        Client::Render::Models::CrtRandom random(burns);
+        const auto stepped =
+            Client::World::StepGameModelEffect(splinter, nullptr, *particles, 0.0f, random, nullptr, services);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(splinter.velocity.x,
+                  static_cast<float>(10.0 * static_cast<double>(std::bit_cast<float>(0x3f666666u))));
+        EXPECT_EQ(splinter.turnDirection, 2.0f);
+        EXPECT_EQ(splinter.transform.angles.x, -32.0f);
+        EXPECT_EQ(splinter.transform.position.z, 105.0f);
+        EXPECT_EQ(splinter.life, 39);
+        EXPECT_FALSE(particles->Any());
+        EXPECT_EQ(random.State(), Client::Tests::AfterDraws(burns, 2).State());
+    }
+}
+
 TEST(GameModelEffectsTest, TheRisingStoneChipAcceleratesWithoutTerrainOrFire)
 {
     auto particles = std::make_unique<Client::World::Particles>();
@@ -942,6 +972,98 @@ TEST(GameModelEffectsTest, TheFlameJetSpitsSixFlamesASometimesChipAndItsLight)
     }
 }
 
+// 0x52ae9a..0x52b019, el 0x5de/3 del 0x1a4: tres veces la llama 5de/6 y la brasa 6ec/0 (±5, 40 más arriba, 2,8f); el
+// humo 5f2/0x15 (±5, 40 más abajo, 0,8f), en blanco; el rand() % 2 de la piedrita 0xc8/0xc9 con el subtipo 0xc, que
+// con la tabla llena no hace nada; y la luz (L; L · 0,4f; 0) de radio 3. Con lugar en la tabla, corta en 0x52afe1
+// después de ese rand().
+TEST(GameModelEffectsTest, TheFlameColumnSpitsFlamesEmbersAndSmokeAndCutsAtItsChip)
+{
+    for (const bool room : {false, true})
+    {
+        SCOPED_TRACE(room);
+        constexpr std::uint32_t Seed = 0x1a4u;
+        Client::World::ModelEffect column = DungeonEffect(Client::World::FlameJetEffect, 15);
+        column.subtype = Client::World::FlameColumnSubtype;
+        column.transform.angles = {0.0f, 0.0f, 30.0f};
+        auto particles = std::make_unique<Client::World::Particles>();
+        auto effects = std::make_unique<Client::World::ModelEffects>();
+        if (!room)
+            for (auto& effect : effects->Effects())
+                effect.alive = true;
+        auto lighting = std::make_unique<Client::World::TerrainLighting>();
+        Client::World::ModelEffectStepServices services;
+        services.effects = effects.get();
+        services.lighting = lighting.get();
+        Client::Render::Models::CrtRandom random(Seed);
+        const auto stepped =
+            Client::World::StepGameModelEffect(column, nullptr, *particles, 0.0f, random, nullptr, services);
+
+        // La réplica: el rand() de la luz local, las mismas partículas en un pool gemelo y el de la piedrita.
+        Client::Render::Models::CrtRandom draws(Seed);
+        const auto luminosity =
+            static_cast<float>(((draws.Next() & 3) + 7) * static_cast<double>(std::bit_cast<float>(0x3dcccccdu)));
+        auto twin = std::make_unique<Client::World::Particles>();
+        const glm::vec3 angles{0.0f, 0.0f, 30.0f};
+        const auto aside = [&draws](double height)
+        {
+            const int dx = draws.Next() % 10 - 5;
+            const int dy = draws.Next() % 10 - 5;
+            return glm::vec3{static_cast<float>(1000 + dx), static_cast<float>(1000 + dy),
+                             static_cast<float>(100.0 + height)};
+        };
+        for (int flame = 0; flame < 3; ++flame)
+        {
+            ASSERT_TRUE(
+                twin->CreateChecked(0x5de, {1000.0f, 1000.0f, 100.0f}, angles, glm::vec3(1.0f), 6, 1.0f, 0.0f, draws)
+                    .HasValue());
+            const glm::vec3 ember = aside(40.0);
+            ASSERT_TRUE(twin->CreateChecked(0x6ec, ember, angles, glm::vec3(1.0f), 0, std::bit_cast<float>(0x40333333u),
+                                            0.0f, draws)
+                            .HasValue());
+        }
+        const glm::vec3 smoke = aside(-40.0);
+        ASSERT_TRUE(twin->CreateChecked(0x5f2, smoke, angles, glm::vec3(1.0f), 0x15, std::bit_cast<float>(0x3f4ccccdu),
+                                        0.0f, draws)
+                        .HasValue());
+        const auto chip = 0xc8 + draws.Next() % 2;
+        for (std::size_t slot = 0; slot < 7; ++slot)
+        {
+            SCOPED_TRACE(slot);
+            const auto& made = particles->All()[slot];
+            const auto& expected = twin->All()[slot];
+            ASSERT_TRUE(made.alive);
+            EXPECT_EQ(made.type, expected.type);
+            EXPECT_EQ(made.subtype, expected.subtype);
+            EXPECT_EQ(made.position, expected.position);
+            EXPECT_EQ(made.angles, expected.angles);
+            EXPECT_EQ(made.light, expected.light);
+            EXPECT_EQ(made.scale, expected.scale);
+        }
+        EXPECT_FALSE(particles->All()[7].alive);
+        EXPECT_EQ(random.State(), draws.State());
+        if (room)
+        {
+            ASSERT_FALSE(stepped.HasValue());
+            EXPECT_EQ(stepped.Error().rfind("0x52afe1", 0), 0u) << stepped.Error();
+            EXPECT_NE(stepped.Error().find(std::format("{:#x}/0xc", chip)), std::string::npos) << stepped.Error();
+            EXPECT_FALSE(effects->Effects()[0].alive);
+            continue;
+        }
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        auto expectedLighting = std::make_unique<Client::World::TerrainLighting>();
+        ASSERT_TRUE(
+            Client::World::AddDynamicLight(expectedLighting.get(), {1000.0f, 1000.0f, 100.0f},
+                                           {luminosity,
+                                            static_cast<float>(static_cast<double>(luminosity) *
+                                                               static_cast<double>(std::bit_cast<float>(0x3ecccccdu))),
+                                            0.0f},
+                                           3, "test")
+                .HasValue());
+        EXPECT_EQ(lighting->cells, expectedLighting->cells);
+        EXPECT_EQ(column.life, 14);
+    }
+}
+
 // 0x52ae2a: después de la luz, con el héroe ([0x743a170]) de dueño (+0x108) y la vida de antes de la cola múltiplo de
 // 20, el chorro de la Flame pide 0x517a20 a 150 sobre sí mismo; con otro dueño, sin dueño o con otra vida, no. Los
 // rand() del paso son los del chorro sin dueño (los de 0x517a20 los saca quien los pide). Sin `skillHits`, corta.
@@ -1047,9 +1169,10 @@ TEST(GameModelEffectsTest, TheFlameJetFadesItsLightAndCutsWithoutItsTables)
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x52ae25"), std::string::npos) << cut.Error();
 
-    // El /1 y el /2 son del lote switch de la CL11 (World/BlastModelEffects); el /3 sigue sin portar.
+    // El /1 y el /2 son del lote switch de la CL11 (World/BlastModelEffects) y el /3 es la columna (StepFlameColumn);
+    // el /4 sigue sin portar.
     Client::World::ModelEffect other = DungeonEffect(Client::World::FlameJetEffect, 30);
-    other.subtype = 3;
+    other.subtype = 4;
     cut = Client::World::StepGameModelEffect(other, nullptr, more, 0.0f, quietRandom, nullptr, services);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x52ae7f"), std::string::npos) << cut.Error();

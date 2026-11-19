@@ -644,6 +644,84 @@ TEST(ModelEffectsTest, TheStoneChipsArePushedAlongTheirDrawnYaw)
     EXPECT_EQ(random.State(), 4u);
 }
 
+// 0x518cf0(0xe5 o 0xe6, …, 0, 0, −1, …) → 0x51b659..0x51b6d6 y 0x51b72b: la muerte del 0x16b (0x4f59ca) los corre
+// rand() % 128 − 64 en x e y y rand() % 180 en z (cada uno guardado en float y sumado con un fstp) y después da los
+// cinco rand() de las piedritas: ocho en total. Con otro subtipo que el 0 (el 5 es del estallido, el 10 de la piedra
+// que cae) o la tabla llena, ninguno.
+TEST(ModelEffectsTest, TheSplintersAreScatteredBeforeTheChipPath)
+{
+    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
+    for (const std::int16_t type : {Client::World::FirstSplinterEffect, Client::World::SecondSplinterEffect})
+    {
+        SCOPED_TRACE(type);
+        ModelEffects effects;
+        Client::Render::Models::CrtRandom random(7);
+        Client::Render::Models::CrtRandom draws(7);
+        const glm::vec3 angles{0.0f, 0.0f, 33.0f};
+        const auto slot = effects.CreateStoneChip(type, {1000.0f, 2000.0f, 30.0f}, angles, {0.5f, 0.6f, 0.7f}, random);
+        ASSERT_EQ(slot, std::optional<std::size_t>(0));
+        const ModelEffect& effect = effects.Effects()[0];
+        const int dx = (draws.Next() & 127) - 64;
+        const int dy = (draws.Next() & 127) - 64;
+        const int dz = draws.Next() % 180;
+        const auto push = static_cast<float>(((draws.Next() & 255) + 64) * Tenth);
+        const int life = (draws.Next() & 15) + 32;
+        const auto scale = static_cast<float>(((draws.Next() & 3) + 8) * Tenth);
+        const auto yaw = static_cast<float>(draws.Next() % 360);
+        const auto fall = static_cast<float>((draws.Next() & 15) + 8);
+        // Enteros chicos sumados a 1000, 2000 y 30: exactos en float.
+        EXPECT_EQ(effect.transform.position,
+                  glm::vec3(static_cast<float>(1000 + dx), static_cast<float>(2000 + dy), static_cast<float>(30 + dz)));
+        EXPECT_EQ(effect.type, type);
+        EXPECT_EQ(effect.subtype, 0);
+        EXPECT_EQ(effect.life, life);
+        EXPECT_EQ(effect.transform.scale, scale);
+        EXPECT_EQ(effect.transform.angles, glm::vec3(0.0f, 0.0f, yaw));
+        EXPECT_EQ(effect.velocity,
+                  Client::Render::Models::OriginalVectorRotate(
+                      {0.0f, push, 0.0f}, Client::Render::Models::OriginalAngleMatrix({0.0f, 0.0f, yaw})));
+        EXPECT_EQ(effect.turnDirection, fall);
+        EXPECT_EQ(effect.light, glm::vec3(0.5f, 0.6f, 0.7f));
+        EXPECT_EQ(effect.disturbanceState, 0xffff);
+        EXPECT_EQ(random.State(), draws.State());
+    }
+    ModelEffects effects;
+    Client::Render::Models::CrtRandom random(7);
+    EXPECT_FALSE(
+        effects.CreateStoneChip(Client::World::FirstSplinterEffect, {}, {}, glm::vec3(1.0f), random, 5).has_value());
+    for (auto& effect : effects.Effects())
+        effect.alive = true;
+    EXPECT_FALSE(
+        effects.CreateStoneChip(Client::World::SecondSplinterEffect, {}, {}, glm::vec3(1.0f), random).has_value());
+    EXPECT_EQ(random.State(), 7u);
+}
+
+// 0x518cf0(0x5de, …, 3, …) → 0x51ecaa: la columna del 0x1a4 vive 15, sin rand(); con otro tipo o subtipo, o la tabla
+// llena, nada.
+TEST(ModelEffectsTest, TheFlameColumnLivesFifteenSteps)
+{
+    ModelEffects effects;
+    const auto slot = effects.CreateFlameColumn({.type = Client::World::FlameJetEffect,
+                                                 .position = {1.0f, 2.0f, 3.0f},
+                                                 .angles = {0.0f, 0.0f, 45.0f},
+                                                 .light = {0.5f, 0.5f, 0.5f},
+                                                 .subtype = Client::World::FlameColumnSubtype});
+    ASSERT_EQ(slot, std::optional<std::size_t>(0));
+    const ModelEffect& column = effects.Effects()[0];
+    EXPECT_TRUE(column.alive);
+    EXPECT_EQ(column.type, Client::World::FlameJetEffect);
+    EXPECT_EQ(column.subtype, 3);
+    EXPECT_EQ(column.life, 15);
+    EXPECT_EQ(column.transform.position, glm::vec3(1.0f, 2.0f, 3.0f));
+    EXPECT_EQ(column.transform.angles, glm::vec3(0.0f, 0.0f, 45.0f));
+    EXPECT_EQ(column.disturbanceState, 0xffff);
+    EXPECT_FALSE(effects.CreateFlameColumn({.type = Client::World::FlameJetEffect}).has_value());
+    EXPECT_FALSE(effects.CreateFlameColumn({.type = 0x5dd, .subtype = 3}).has_value());
+    for (auto& effect : effects.Effects())
+        effect.alive = true;
+    EXPECT_FALSE(effects.CreateFlameColumn({.type = Client::World::FlameJetEffect, .subtype = 3}).has_value());
+}
+
 // 0x518cf0(0xca, …) → 0x51b659..0x51b809, el pedazo de hielo de 0x52e810: el blendMesh (+0x64) en 0 y su luz (+0x68)
 // en 0,3f, el empuje ((& 255) + 64) · 0,1f en y, la z 50 más (0x6b86b0), la vida (& 15) + 32, la escala ((& 3) + 8) ·
 // 0,1f, el yaw rand() % 360 sobre los ángulos que trae, la velocidad (el empuje girado) y la caída (& 15) + 8. Cinco

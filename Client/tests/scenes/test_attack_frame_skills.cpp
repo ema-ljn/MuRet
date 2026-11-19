@@ -343,7 +343,7 @@ TEST(AttackFrameSkillsTest, TheBoltsOf2cCutWithoutTheirPools)
 
 // 0x2b (0x4f98a0..0x4f9bcd): el hueso de la mano de 0x4f9780 (la izquierda con la 0x25 o la 0x26) en Player.bmd. Un
 // dummy o fuera de la cuenta (JGE: el igual tampoco), nada. Hasta 8, la mano a +0x194, corrida 300 por el rumbo; en 8,
-// el sonido 0x71; de 2 a 8 corta en el primer joint 0x10f/2 después de sus tres rand(); de 6 a 12, los dos efectos
+// el sonido 0x71; de 2 a 8, tres joints 0x10f/2 con tres rand() cada uno; de 6 a 12, los dos efectos
 // 0x812/1 (sin rand()); desde 12, +0x381 en [0x6c88ac].
 TEST(AttackFrameSkillsTest, TheHandOf2bChargesUntilEight)
 {
@@ -364,8 +364,8 @@ TEST(AttackFrameSkillsTest, TheHandOf2bChargesUntilEight)
         {"en 1", 0x2b, 1, HandBone, 0, "", 0, true, 1, {}},
         {"en 1, con la izquierda de la 0x25", 0x25, 1, DummyBone, HandBone, "", 0, true, 1, {}},
         {"en 1, con la izquierda de la 0x26", 0x26, 1, Bones, HandBone, "", 0, true, 1, {}},
-        {"en 2", 0x2b, 2, HandBone, 0, "0x4f99fe", 3, false, 2, {}},
-        {"en 8", 0x2b, 8, HandBone, 0, "0x4f99fe", 3, false, 8, {0x71}},
+        {"en 2", 0x2b, 2, HandBone, 0, "", 9, true, 2, {}},
+        {"en 8", 0x2b, 8, HandBone, 0, "", 9, true, 8, {0x71}},
         {"en 9", 0x2b, 9, HandBone, 0, "", 0, false, 9, {}},
         {"en 12", 0x2b, 12, HandBone, 0, "", 0, false, FullThreshold, {}},
         {"en 13", 0x2b, 13, HandBone, 0, "", 0, false, FullThreshold, {}},
@@ -409,6 +409,73 @@ TEST(AttackFrameSkillsTest, TheHandOf2bChargesUntilEight)
             EXPECT_EQ(hero.skillHandPoint, probe.handPoint ? glm::vec3(1010.0f, 1720.0f, 30.0f) : untouched);
             EXPECT_EQ(tested.Threshold(), FullThreshold);
         }
+    }
+}
+
+// 0x4f9918..0x4f9a07: de 2 a 8, tres veces la posición de o con la z + 120 y tres rand() % 601 − 300 sumados, menos el
+// seno del rumbo · 1.400 en x y más el coseno en y (FSIN y FCOS retenidos, un redondeo con el FMUL: PC53), y el joint
+// 0x10f/2 de ancho 40 con o de dueño y sus ángulos, que va de su mano (AuraJoints.cpp). Con el pool lleno, los nueve
+// rand() igual y ningún joint; sin el pool, corta.
+TEST(AttackFrameSkillsTest, TheBoltsOf2bLeaveFromTheHand)
+{
+    for (const std::int32_t map : Maps)
+    {
+        SCOPED_TRACE(map);
+        FrameWorld tested(map);
+        ActorState& hero = tested.Striker(0x2b, 0.0f, 4);
+        hero.hands[0].bone = HandBone;
+        hero.position = {1000.0f, 2000.0f, 33.5f};
+        hero.angles = {0.0f, 0.0f, 30.0f};
+        hero.scale = 1.0f;
+        tested.world.PlaceModel(hero);
+
+        const auto stepped = tested.Step(hero, 0x2b);
+
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        const double angle = 30.0 * static_cast<double>(std::bit_cast<float>(0x3c8efa35u));
+        const auto sine = Client::Render::Models::Detail::SineProductPC53(angle, 1400.0f);
+        const auto cosine = Client::Render::Models::Detail::CosineProductPC53(angle, 1400.0f);
+        ASSERT_TRUE(sine.has_value() && cosine.has_value());
+        CrtRandom expected{Seed};
+        const auto bolts = AliveJoints(tested.joints);
+        ASSERT_EQ(bolts.size(), 3u);
+        for (const JointState* bolt : bolts)
+        {
+            const double x = static_cast<double>(expected.Next() % 601 - 300) + 1000.0;
+            const double y = static_cast<double>(expected.Next() % 601 - 300) + 2000.0;
+            const auto z =
+                static_cast<float>(static_cast<double>(expected.Next() % 601 - 300) + static_cast<double>(153.5f));
+            const glm::vec3 point{static_cast<float>(static_cast<double>(static_cast<float>(x)) - *sine),
+                                  static_cast<float>(*cosine + static_cast<double>(static_cast<float>(y))), z};
+            EXPECT_EQ(bolt->type, 0x10f);
+            EXPECT_EQ(bolt->subtype, 2);
+            EXPECT_EQ(bolt->position, point);
+            EXPECT_EQ(bolt->targetPosition, point);
+            EXPECT_EQ(bolt->angles, hero.angles);
+            EXPECT_EQ(bolt->width, 40.0f);
+            EXPECT_EQ(bolt->ownerContext, &hero);
+            EXPECT_EQ(bolt->ownerKind, Client::Scenes::JointOwnerKind::Actor);
+            EXPECT_EQ(bolt->texture, 0x62c);
+        }
+        EXPECT_EQ(tested.random.State(), expected.State());
+
+        FrameWorld full(map);
+        for (JointState& joint : full.joints)
+            joint.alive = true;
+        ActorState& crowded = full.Striker(0x2b, 0.0f, 4);
+        crowded.hands[0].bone = HandBone;
+        full.world.PlaceModel(crowded);
+        ASSERT_TRUE(full.Step(crowded, 0x2b).HasValue());
+        EXPECT_EQ(DrawsSince(Seed, full.random), 9);
+
+        FrameWorld without(map);
+        without.withJoints = false;
+        ActorState& alone = without.Striker(0x2b, 0.0f, 4);
+        alone.hands[0].bone = HandBone;
+        without.world.PlaceModel(alone);
+        const auto cut = without.Step(alone, 0x2b);
+        EXPECT_TRUE(HasError(cut, "0x4f99fe")) << ErrorOf(cut);
+        EXPECT_EQ(DrawsSince(Seed, without.random), 3);
     }
 }
 
@@ -707,9 +774,11 @@ TEST(AttackFrameSkillsTest, ThePiercingShotReachesTheArrowThroughTheAttack)
     }
 }
 
-// 0x37 (0x4f9ef3..0x4fa490), solo el 0x20a en la 0x3d: en 1 y 2, el efecto 0x621/1 sobre o; antes del frame 3 sale
-// con [0x6c88ac] en 15; desde el 3, la clave del elegido en +0x8a (0x558eb0), el sonido 0x72, el lugar de la 0x37 en
-// el registro propio (0x59fb80, 3.848 rand() al cerrarlo) y el efecto 0x5be (0x4f9fae, CL11).
+// 0x37 (0x4f9ef3..0x4fa490), solo el 0x20a en la 0x3d, en todos los mapas: en 1 y 2, el efecto 0x621/1 sobre o;
+// antes del frame 3 sale con [0x6c88ac] en 15; desde el 3, la clave del elegido en +0x8a (0x558eb0), el sonido 0x72,
+// el lugar de la 0x37 en el registro propio (0x59fb80, 3.848 rand() al cerrarlo; la 0x37 en el lugar 5), el 0x5be/0
+// (0x4f9fae, Scenes/SkillBurstEffects) con o de dueño, la clave y el lugar, sin rand(), y la velocidad de la acción
+// 0x3d con otro registro propio; +0x381 en 15.
 TEST(AttackFrameSkillsTest, TheThrowOf37)
 {
     struct Case
@@ -719,19 +788,17 @@ TEST(AttackFrameSkillsTest, TheThrowOf37)
         std::uint8_t action;
         float frame;
         std::uint8_t step;
-        std::string_view cut;
-        int draws;
-        std::vector<std::int32_t> sounds;
-        std::int32_t threshold;
+        bool thrown;
     };
     const std::vector<Case> cases{
-        {"otro tipo", 0x152, 0x3d, 3.0f, 3, "", 0, {}, FullThreshold},
-        {"otra acción", Player, 0x3c, 3.0f, 3, "", 0, {}, FullThreshold},
-        {"en 1", Player, 0x3d, 3.0f, 1, "0x4f9fae", OwnRecord, {0x72}, UntouchedThreshold},
-        {"en 2", Player, 0x3d, 0.0f, 2, "", 0, {}, FullThreshold},
-        {"antes del frame 3", Player, 0x3d, 2.9f, 3, "", 0, {}, FullThreshold},
-        {"en el frame 3", Player, 0x3d, 3.0f, 3, "0x4f9fae", OwnRecord, {0x72}, UntouchedThreshold},
+        {"otro tipo", 0x152, 0x3d, 3.0f, 3, false},
+        {"otra acción", Player, 0x3c, 3.0f, 3, false},
+        {"en 1", Player, 0x3d, 3.0f, 1, true},
+        {"en 2", Player, 0x3d, 0.0f, 2, false},
+        {"antes del frame 3", Player, 0x3d, 2.9f, 3, false},
+        {"en el frame 3", Player, 0x3d, 3.0f, 3, true},
     };
+    constexpr std::size_t ThrowIndex = 5;
     for (const std::int32_t map : Maps)
     {
         for (const Case& probe : cases)
@@ -741,35 +808,44 @@ TEST(AttackFrameSkillsTest, TheThrowOf37)
             ActorState& hero = tested.Striker(probe.action, probe.frame, probe.step);
             hero.type = probe.type;
             hero.word8a = 0x1234;
+            hero.position = {1000.0f, 2000.0f, 300.0f};
+            hero.angles = {0.0f, 0.0f, 30.0f};
+            tested.world.OwnCharacter().SetSkillAt(ThrowIndex, 0x37);
             tested.world.Runtime().skillThreshold = UntouchedThreshold;
 
             const auto stepped = tested.Step(hero, 0x37);
 
-            if (probe.cut.empty())
-            {
-                ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-                EXPECT_TRUE(stepped.Value());
-            }
-            else
-            {
-                EXPECT_TRUE(HasError(stepped, probe.cut)) << ErrorOf(stepped);
-            }
-            EXPECT_EQ(DrawsSince(Seed, tested.random), probe.draws);
-            EXPECT_EQ(tested.sounds, probe.sounds);
-            EXPECT_EQ(tested.Threshold(), probe.threshold);
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+            EXPECT_TRUE(stepped.Value());
+            EXPECT_EQ(DrawsSince(Seed, tested.random), probe.thrown ? 2 * OwnRecord : 0);
+            EXPECT_EQ(tested.sounds, probe.thrown ? std::vector<std::int32_t>{0x72} : std::vector<std::int32_t>{});
+            EXPECT_EQ(tested.Threshold(), FullThreshold);
             // Sin elegido, 0x558eb0 da −1.
-            EXPECT_EQ(static_cast<std::uint16_t>(hero.word8a), probe.draws == OwnRecord ? 0xffff : 0x1234);
-            EXPECT_EQ(hero.byte381, probe.step);
-            const auto& glow = tested.world.Map().effects.Effects()[0];
+            EXPECT_EQ(static_cast<std::uint16_t>(hero.word8a), probe.thrown ? 0xffff : 0x1234);
+            EXPECT_EQ(hero.byte381, probe.thrown ? 15 : probe.step);
+            const auto effects = tested.world.Map().effects.Effects();
             const bool held = probe.type == Player && probe.action == 0x3d && probe.step <= 2;
-            EXPECT_EQ(glow.alive, held);
             if (held)
             {
-                EXPECT_EQ(glow.type, 0x621);
-                EXPECT_EQ(glow.subtype, 1);
-                EXPECT_EQ(glow.ownerContext, &hero);
-                EXPECT_EQ(glow.life, 20);
+                EXPECT_EQ(effects[0].type, 0x621);
+                EXPECT_EQ(effects[0].subtype, 1);
+                EXPECT_EQ(effects[0].ownerContext, &hero);
+                EXPECT_EQ(effects[0].life, 20);
             }
+            const auto& sweep = effects[held ? 1 : 0];
+            EXPECT_EQ(sweep.alive, probe.thrown);
+            EXPECT_EQ(effects[held ? 0 : 1].alive, held);
+            if (!probe.thrown)
+                continue;
+            EXPECT_EQ(sweep.type, 0x5be);
+            EXPECT_EQ(sweep.subtype, 0);
+            EXPECT_EQ(sweep.ownerContext, &hero);
+            EXPECT_EQ(sweep.disturbanceState, 0xffff);
+            EXPECT_EQ(sweep.byte89, ThrowIndex);
+            EXPECT_EQ(sweep.transform.position, hero.position);
+            EXPECT_EQ(sweep.start, hero.position);
+            EXPECT_EQ(sweep.copiedAngles, glm::vec3(0.0f, 0.0f, 75.0f));
+            EXPECT_EQ(sweep.life, 30);
         }
     }
 }

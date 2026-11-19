@@ -104,6 +104,9 @@ struct MonsterBodyFrame
     float* cameraShake = nullptr;
     // 4ee770 consume el mismo pool de518cf0 que el resto del frame.
     World::ModelEffects* effects = nullptr;
+    // 0x5f93c0, la altura del terreno que piden las altas de los pedazos de Kundun al caer (0x51e26e). Vacía, esas
+    // altas cortan.
+    std::function<double(float, float)> terrainHeight{};
     // 0x530860: la tabla de joints (0x74a8d78, WorldState::DrawTail), para los rayos de Kundun al morir (0x43f20d).
     // Vacía: corta ahí.
     std::span<JointState> joints{};

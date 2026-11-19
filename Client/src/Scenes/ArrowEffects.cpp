@@ -260,9 +260,16 @@ Core::Expected<void, std::string> BeginTheArrow(World::ModelEffect& effect, Worl
     {
         effect.transform.scale = 1.0f;
         effect.velocity.y = -70.0f;
-        if (HasJointRoom(world))
-            return Core::Unexpected(std::string("0x51c56c: el joint 0x610/0xe de la flecha 0xf9 (0x530860), sin portar "
-                                                "(CL11)"));
+        // 0x51c542..0x51c56c: 0x530860(0x610, posición, posición, ángulos, 0xe, flecha, 50, 40, 0, 0, −1).
+        constexpr std::int32_t ViperTrailSubtype = 0xe, ViperTrailKey = 0x28;
+        constexpr float ViperTrailWidth = 50.0f; // 0x42480000
+        const auto made =
+            CreateFaunaJoint(world.DrawTail().joints,
+                             {0x610, effect.transform.position, effect.transform.position, effect.transform.angles,
+                              ViperTrailSubtype, &effect, ViperTrailWidth, ViperTrailKey, 0, 0, -1},
+                             random, JointOwnerKind::ModelEffect);
+        if (!made.HasValue())
+            return Core::Unexpected(std::format("0x51c56c: {}", made.Error()));
     }
     else
     {
@@ -296,19 +303,17 @@ Core::Expected<void, std::string> BeginTheArrow(World::ModelEffect& effect, Worl
     }
     if (type == TwentiethArrow)
     {
-        // 0x51c6dd..0x51c705: +0x64 en 1 y la y de los ángulos en rand() % 360, antes del joint. 0x51c713:
-        // 0x530860(0x610, posición, posición, ángulos, 0xc, la flecha, 40, 0x50, 0, 0, −1), la estela violeta (edi es
-        // +0x10 desde 0x51c4c4 y esi sigue en 0 desde 0x518d08).
+        // 0x51c6dd..0x51c705: +0x64 en 1 y la y de los ángulos en rand() % 360, antes del joint.
         constexpr int FullTurn = 360;
-        constexpr std::int32_t TrailSubtype = 0xc; // 0x51c6fd
-        constexpr float TrailWidth = 40.0f;        // 0x51c6f7: 0x42200000
-        constexpr std::int32_t TrailLife = 0x50;   // 0x51c6f5, la key que el alta pasa a la vida
         effect.objectState.blendMesh = 1;
         effect.transform.angles.y = static_cast<float>(random.Next() % FullTurn);
+        // 0x51c6ef..0x51c713: 0x530860(0x610, posición, posición, ángulos, 0xc, flecha, 40, 80, 0, 0, −1).
+        constexpr std::int32_t TwentiethTrailSubtype = 0xc, TwentiethTrailKey = 0x50;
+        constexpr float TwentiethTrailWidth = 40.0f; // 0x42200000
         const auto made =
             CreateFaunaJoint(world.DrawTail().joints,
                              {0x610, effect.transform.position, effect.transform.position, effect.transform.angles,
-                              TrailSubtype, &effect, TrailWidth, TrailLife, 0, 0, -1},
+                              TwentiethTrailSubtype, &effect, TwentiethTrailWidth, TwentiethTrailKey, 0, 0, -1},
                              random, JointOwnerKind::ModelEffect);
         if (!made.HasValue())
             return Core::Unexpected(std::format("0x51c713: {}", made.Error()));
@@ -1156,7 +1161,7 @@ Core::Expected<void, std::string> StepAquagoldArrow(World::ModelEffect& effect, 
     return HitWithTheArrow(effect, context);
 }
 
-// 0x526aef..0x526c51: la flecha 0x11c (su alta corta antes, en 0x51c713).
+// 0x526aef..0x526c51: la flecha 0x11c.
 Core::Expected<void, std::string> StepTwentiethArrow(World::ModelEffect& effect, float luminosity,
                                                      const ArrowStepContext& context)
 {
@@ -1164,23 +1169,23 @@ Core::Expected<void, std::string> StepTwentiethArrow(World::ModelEffect& effect,
     effect.transform.angles.y = F32(D(effect.transform.angles.y) + Turn);
     if (effect.life % 2 == 0)
     {
-        // 0x526b1c..0x526bcb: tres veces el punto ((& 31) − 16; (& 63) − 32; (& 31) − 16) y 0x53fe70(0x60f, punto,
-        // ángulos, (0,4f; 0,2f; 1), 5, 0,2f, 0), la chispa violeta.
         constexpr int SparkCount = 3;
-        constexpr glm::vec3 Violet{std::bit_cast<float>(0x3ecccccdu), std::bit_cast<float>(0x3e4ccccdu),
-                                   1.0f};                               // 0x526baa..0x526bb8
-        constexpr float SparkScale = std::bit_cast<float>(0x3e4ccccdu); // 0x526b77
+        // 0x526b24..0x526bcb: tres veces el punto al azar y 0x53fe70(0x60f, punto, ángulos, (0,4f; 0,2f; 1), 5, 0,2f,
+        // 0).
+        if (context.particles == nullptr)
+            return Core::Unexpected(std::string("0x526bc2: falta el pool de la 0x60f/5 de la flecha 0x11c"));
+        constexpr glm::vec3 Violet{std::bit_cast<float>(0x3ecccccdu), std::bit_cast<float>(0x3e4ccccdu), 1.0f};
+        constexpr std::int32_t ShineSubtype = 5;
+        constexpr float ShineScale = std::bit_cast<float>(0x3e4ccccdu); // 0x526b77
         for (int index = 0; index < SparkCount; ++index)
         {
             const auto point = ScatteredPoint(effect.transform.position, context.random, {31, 63, 31}, {16, 32, 16});
-            if (context.particles == nullptr)
-                return Core::Unexpected(std::string("0x526bc2: falta el pool de la 0x60f/5 de la flecha 0x11c"));
             World::PortableParticleTrigonometry trigonometry;
-            const auto created =
-                context.particles->CreateChecked(0x60f, point, effect.transform.angles, Violet, 5, SparkScale,
-                                                 std::cref(context.worldClock), context.random, 0, trigonometry);
+            const auto created = context.particles->CreateChecked(
+                World::OrbitParticle, point, effect.transform.angles, Violet, ShineSubtype, ShineScale,
+                std::cref(context.worldClock), context.random, 0, trigonometry);
             if (!created.HasValue())
-                return Core::Unexpected(std::format("0x526bc2: la 0x60f/5 de la flecha 0x11c falla con error {}",
+                return Core::Unexpected(std::format("0x526bc2: la 0x60f/5 de la flecha 0x11c falla con el error {}",
                                                     static_cast<unsigned>(created.Error())));
         }
     }

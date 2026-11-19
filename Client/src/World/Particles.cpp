@@ -976,9 +976,10 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
     if (type == BreathParticle)
     {
         return subtype == CrywolfTideSmokeSubtype || subtype == CrywolfSwingSmokeSubtype ||
-                       subtype == MissileSmokeSubtype || subtype == ExplosionSmokeSubtype || subtype == BreathSubtype ||
-                       subtype == WorldSmokeSubtype || subtype == CrywolfSmokeSubtype ||
-                       subtype == CrywolfRisingSmokeSubtype || subtype == StoneDustSubtype
+                       subtype == MissileSmokeSubtype || subtype == ExplosionSmokeSubtype ||
+                       subtype == ViperSmokeSubtype || subtype == BreathSubtype || subtype == WorldSmokeSubtype ||
+                       subtype == CrywolfSmokeSubtype || subtype == CrywolfRisingSmokeSubtype ||
+                       subtype == StoneDustSubtype
                    ? std::nullopt
                    : std::optional(ParticleError::UnsupportedSubtype);
     }
@@ -2253,7 +2254,10 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
             particle.rotation = static_cast<float>(random.Next() % 360);
             return std::optional(index);
         }
-        if (type == BreathParticle && (subtype == MissileSmokeSubtype || subtype == ExplosionSmokeSubtype))
+        // 0x541a36..0x541a8c: la /34 y la /35, vida 30, la luz (1; 0,2f; 0,2f) y el giro rand() % 360; la /35 baja 5 en
+        // y y la /34 queda quieta (0x5435bb).
+        if (type == BreathParticle &&
+            (subtype == MissileSmokeSubtype || subtype == ExplosionSmokeSubtype || subtype == ViperSmokeSubtype))
         {
             particle.life = subtype == MissileSmokeSubtype ? 35 : 30;
             particle.rotation = static_cast<float>(random.Next() % 360);
@@ -2262,7 +2266,7 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
             else
             {
                 particle.light = {1, 0.2f, 0.2f};
-                particle.velocity = {0, -5, 0};
+                particle.velocity = {0, subtype == ExplosionSmokeSubtype ? -5.0f : 0.0f, 0};
             }
             return std::optional(index);
         }
@@ -2674,7 +2678,8 @@ Core::Expected<void, ParticleError> StepParticlesImpl(
                 particle.light[channel] = F32(static_cast<double>(particle.light[channel]) * Fade);
         }
         else if (particle.type == BreathParticle &&
-                 (particle.subtype == MissileSmokeSubtype || particle.subtype == ExplosionSmokeSubtype))
+                 (particle.subtype == MissileSmokeSubtype || particle.subtype == ExplosionSmokeSubtype ||
+                  particle.subtype == ViperSmokeSubtype))
         {
             const float growth = particle.subtype == MissileSmokeSubtype ? 0.09f : std::bit_cast<float>(0x3d75c28fu);
             if (particle.subtype == MissileSmokeSubtype)
@@ -2682,7 +2687,7 @@ Core::Expected<void, ParticleError> StepParticlesImpl(
             constexpr double Fade = static_cast<double>(std::bit_cast<float>(0x3f762763u));
             for (int channel = 0; channel < 3; ++channel)
                 particle.light[channel] = F32(static_cast<double>(particle.light[channel]) * Fade);
-            if (particle.subtype == ExplosionSmokeSubtype)
+            if (particle.subtype != MissileSmokeSubtype)
                 particle.scale = F32(static_cast<double>(particle.scale) + static_cast<double>(growth));
         }
         else if (particle.type == FireworkParticle)

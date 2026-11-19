@@ -381,37 +381,101 @@ TEST_F(GameCharacterEffectsTest, TheActionWindowsCreateTheirEffectsOnlyInsideThe
     }
 }
 
-TEST_F(GameCharacterEffectsTest, TheGlowFlagsCutWithTheExactConditionOfTheAssembly)
+// 0x50fba4..0x50fbcf: con 0x4 o 0x2000000 en +0x78 y sin 0x4000, las manos brillan: un rand() y tres sprites por mano.
+// Entre frames, sin los joints.
+TEST_F(GameCharacterEffectsTest, TheGlowFlagsLightTheHandsWithTheExactConditionOfTheAssembly)
 {
     struct Case
     {
         std::uint32_t flags;
-        bool cuts;
+        bool glows;
     };
     for (const Case probe : {Case{0x4, true}, Case{0x2000000, true}, Case{0x2000004, true}, Case{0x4004, false},
                              Case{0x2004000, false}, Case{0x800, false}, Case{0x1, false}})
     {
         SCOPED_TRACE(probe.flags);
+        m_sprites = {};
+        m_random = CrtRandom{1};
         m_actor.flags78 = probe.flags;
         GameCharacterEffectsPass pass = Pass();
         pass.originalFrame = false;
 
         const auto result = Client::Scenes::DrawGameCharacterEffects(m_actor, pass);
 
-        EXPECT_EQ(!result.HasValue(), probe.cuts);
-        if (probe.cuts)
-        {
-            EXPECT_NE(result.Error().find("0x50fbd5"), std::string::npos) << result.Error();
-        }
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(LiveSprites(m_sprites).size(), probe.glows ? 6u : 0u);
+        EXPECT_EQ(m_random.State(), AfterRandoms(probe.glows ? 2 : 0));
+        EXPECT_TRUE(LiveJoints(m_joints).empty());
     }
+}
+
+// 0x50fbe5..0x50fd5c en un frame del original: por mano, k = (rand() % 30 + 70) · 0,01f (con la semilla 1, 41 y
+// 18.467: 81 y 87) y la luz (k; k · 0,3f; k · 0,2f), con k sin guardar en float para los productos; los sprites 0x5fd
+// de escala 1,5 en los huesos mano, mano − 6 y mano − 7 con el corrimiento de [ebp−0x50] (acá 0). Después, sin un
+// 0x10f/4 ni /9 suyo, cinco 0x10f/4 de ancho 20 desde él, con sus ángulos y el +0x3a4 con signo de blanco (+0xa0c).
+TEST_F(GameCharacterEffectsTest, TheGlowFlagsBindTheCharacterWithFiveAuras)
+{
+    m_actor.flags78 = 0x2000000;
+    m_actor.angles = {0.0f, 0.0f, 90.0f};
+    m_actor.attackTarget = 0xfffe;
+
+    const auto result = Client::Scenes::DrawGameCharacterEffects(m_actor, Pass());
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    const auto sprites = LiveSprites(m_sprites);
+    ASSERT_EQ(sprites.size(), 6u);
+    const std::array<glm::vec3, 2> lights{glm::vec3{Float(0x3f4f5c29u), Float(0x3e78d4feu), Float(0x3e25e354u)},
+                                          glm::vec3{Float(0x3f5eb852u), Float(0x3e85a1cbu), Float(0x3e322d0eu)}};
+    const std::array<std::int32_t, 6> bones{0x21, 0x21 - 6, 0x21 - 7, 0x2a, 0x2a - 6, 0x2a - 7};
+    for (std::size_t index = 0; index < sprites.size(); ++index)
+    {
+        SCOPED_TRACE(index);
+        EXPECT_EQ(sprites[index].texture, 0x5fd);
+        EXPECT_EQ(sprites[index].scale, 1.5f);
+        EXPECT_EQ(sprites[index].rotation, 0.0f);
+        EXPECT_EQ(sprites[index].light, lights[index / 3]);
+        EXPECT_EQ(sprites[index].position, At(bones[index], {}));
+    }
+    const auto auras = LiveJoints(m_joints);
+    ASSERT_EQ(auras.size(), 5u);
+    for (const auto& aura : auras)
+    {
+        EXPECT_EQ(aura.type, 0x10f);
+        EXPECT_EQ(aura.subtype, 4);
+        EXPECT_EQ(aura.width, 20.0f);
+        EXPECT_EQ(aura.position, m_actor.position);
+        EXPECT_EQ(aura.angles, m_actor.angles);
+        EXPECT_EQ(aura.ownerContext, &m_actor);
+        EXPECT_EQ(aura.target, -2);
+    }
+    EXPECT_EQ(m_random.State(), AfterRandoms(2));
+
+    // Con un 0x10f/9 suyo vivo, ninguno más; los sprites y los rand() igual.
+    for (auto& joint : m_joints)
+        joint.alive = false;
+    m_joints[7].alive = true;
+    m_joints[7].type = 0x10f;
+    m_joints[7].subtype = 9;
+    m_joints[7].ownerContext = &m_actor;
+    m_sprites = {};
+    m_random = CrtRandom{1};
+    ASSERT_TRUE(Client::Scenes::DrawGameCharacterEffects(m_actor, Pass()).HasValue());
+    EXPECT_EQ(LiveJoints(m_joints).size(), 1u);
+    EXPECT_EQ(LiveSprites(m_sprites).size(), 6u);
+    EXPECT_EQ(m_random.State(), AfterRandoms(2));
+
+    // El de otro dueño o con otro subtipo no cuenta.
+    m_joints[7].subtype = 2;
+    ASSERT_TRUE(Client::Scenes::DrawGameCharacterEffects(m_actor, Pass()).HasValue());
+    EXPECT_EQ(LiveJoints(m_joints).size(), 6u);
 }
 
 // 0x50f9c9..0x50fac2: por debajo del frame 2 (0x6b8818) y con party, 0x59e680 sobre el nombre. Fuera de la party salta
 // a 0x510a7a, sin las banderas de 0x50fba4, también entre frames. En la party, los joints 0x618 hacia otro miembro a la
 // vista (+0x1c en 0 o más y no él) nacen en un frame del original (0x50fa74 y 0x50fa97: /0xc y /0xd de ancho 20, desde
-// el miembro 150 más arriba, con él de dueño) y después cortan las banderas. Con el frame en 2 o sin party, las
-// banderas cortan. Cada 0x618/0xc y /0xd saca tres rand() (el sentido en 0x53217c y los dos giros en 0x5321af y
-// 0x5321c5): seis por miembro, y ninguno sin joints.
+// el miembro 150 más arriba, con él de dueño) y después siguen las banderas (0x4: dos rand(), seis sprites y, en un
+// frame del original, cinco 0x10f/4). Con el frame en 2 o sin party, también las banderas. Cada 0x618/0xc y /0xd saca
+// tres rand() (el sentido en 0x53217c y los dos giros en 0x5321af y 0x5321c5): seis por miembro, y ninguno sin joints.
 TEST_F(GameCharacterEffectsTest, BelowFrameTwoTheActionsReadTheParty)
 {
     struct Case
@@ -421,16 +485,16 @@ TEST_F(GameCharacterEffectsTest, BelowFrameTwoTheActionsReadTheParty)
         float frame;
         bool originalFrame;
         bool partyListed;
-        const char* cut;
+        bool flags;
         bool beams = false;
     };
     constexpr std::int32_t Self = static_cast<std::int32_t>(Slot);
     constexpr std::array cases{
-        Case{"Otro", -1, 1.9f, true, true, nullptr},           Case{"Otro", -1, 0.5f, false, true, nullptr},
-        Case{"Otro", -1, 2.0f, false, true, "0x50fbd5"},       Case{"Otro", -1, 1.9f, false, false, "0x50fbd5"},
-        Case{"Lordes", -1, 1.9f, true, true, "0x50fbd5"},      Case{"Lordes", Self, 1.9f, true, true, "0x50fbd5"},
-        Case{"Lordes", 7, 1.9f, true, true, "0x50fbd5", true}, Case{"Lordes", 7, 1.9f, false, true, "0x50fbd5"},
-        Case{"Lord", 0, 0.0f, true, true, "0x50fbd5", true},
+        Case{"Otro", -1, 1.9f, true, true, false},       Case{"Otro", -1, 0.5f, false, true, false},
+        Case{"Otro", -1, 2.0f, false, true, true},       Case{"Otro", -1, 1.9f, false, false, true},
+        Case{"Lordes", -1, 1.9f, true, true, true},      Case{"Lordes", Self, 1.9f, true, true, true},
+        Case{"Lordes", 7, 1.9f, true, true, true, true}, Case{"Lordes", 7, 1.9f, false, true, true},
+        Case{"Lord", 0, 0.0f, true, true, true, true},
     };
     for (const Case& probe : cases)
     {
@@ -461,22 +525,18 @@ TEST_F(GameCharacterEffectsTest, BelowFrameTwoTheActionsReadTheParty)
             joint.alive = false;
         m_random = CrtRandom{1};
 
+        m_sprites = {};
+
         const auto result = Client::Scenes::DrawGameCharacterEffects(m_actor, pass);
 
-        if (probe.cut == nullptr)
-        {
-            ASSERT_TRUE(result.HasValue()) << result.Error();
-        }
-        else
-        {
-            ASSERT_FALSE(result.HasValue());
-            EXPECT_NE(result.Error().find(probe.cut), std::string::npos) << result.Error();
-        }
+        ASSERT_TRUE(result.HasValue()) << result.Error();
         const auto joints = LiveJoints(m_joints);
-        ASSERT_EQ(joints.size(), probe.beams ? 2u : 0u);
+        const std::size_t auras = probe.flags && probe.originalFrame ? 5u : 0u;
+        ASSERT_EQ(joints.size(), (probe.beams ? 2u : 0u) + auras);
         constexpr std::size_t RandomsPerMember = 2 * 3;
-        EXPECT_EQ(m_random.State(), AfterRandoms(probe.beams ? RandomsPerMember : 0));
-        for (std::size_t index = 0; index < joints.size(); ++index)
+        EXPECT_EQ(m_random.State(), AfterRandoms((probe.beams ? RandomsPerMember : 0) + (probe.flags ? 2 : 0)));
+        EXPECT_EQ(LiveSprites(m_sprites).size(), probe.flags ? 6u : 0u);
+        for (std::size_t index = 0; index + auras < joints.size(); ++index)
         {
             EXPECT_EQ(joints[index].type, 0x618);
             EXPECT_EQ(joints[index].subtype, index == 0 ? 0xc : 0xd);

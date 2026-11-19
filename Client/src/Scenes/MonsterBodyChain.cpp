@@ -12,9 +12,12 @@
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/KundunEffects.h"
+#include "Scenes/KundunFallEffects.h"
 #include "Scenes/MonsterBodyPasses.h"
 #include "Scenes/VertexEffects.h"
 #include "World/IFishStepServices.h"
+#include "World/ModelEffects.h"
 #include "World/OriginalFtol.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -162,6 +165,72 @@ Result CutTheStruckGlow(const ActorState& actor)
     return {};
 }
 
+// Un pedazo de la caída de Kundun: el tipo, el subtipo, la clave (+0x8a), +0x89 (el umbral de su paso), el punto
+// (0x4ec110 sobre el hueso 4 con este desplazamiento, en bits) y la llamada a 0x518cf0.
+struct FallingPiece
+{
+    std::int16_t type = 0;
+    std::int32_t subtype = 0;
+    std::int16_t key = 0;
+    std::uint8_t byte89 = 0;
+    std::array<std::uint32_t, 3> offset{};
+    std::uint32_t call = 0;
+};
+
+// 0x43ee84..0x43f123, en ese orden.
+constexpr std::array<FallingPiece, 8> FallingPieces{{
+    {0x124, 3, -130, 3, {0x421c0000u, 0xc0f00000u, 0xbf000000u}, 0x43eeb9}, // (39; −7,5; −0,5)
+    {0x11d, 3, -130, 4, {0x41c00000u, 0xc0f00000u, 0x42020000u}, 0x43ef12}, // (24; −7,5; 32,5)
+    {0x11e, 3, -130, 5, {0x41c00000u, 0xc1080000u, 0xc2020000u}, 0x43ef6b}, // (24; −8,5; −32,5)
+    {0x11f, 2, -130, 6, {0xbf000000u, 0x40800000u, 0x3f000000u}, 0x43efc3}, // (−0,5; 4; 0,5)
+    {0x120, 3, -130, 1, {0xc0200000u, 0xc1b00000u, 0x42580000u}, 0x43f01c}, // (−2,5; −22; 54)
+    {0x121, 3, -130, 2, {0xc0900000u, 0xc1c40000u, 0xc2540000u}, 0x43f075}, // (−4,5; −24,5; −53)
+    {0x122, 4, -10, 2, {0xc3080000u, 0xc3198000u, 0u}, 0x43f0ca},           // (−136; −153,5; 0)
+    {0x123, 5, -130, 2, {0xc3070000u, 0xc3190000u, 0u}, 0x43f123},          // (−135; −153; 0)
+}};
+
+// 0x43ee84..0x43f14c: los ocho pedazos (0x518cf0(pedazo, punto del hueso 4, ángulos y luz de Kundun, subtipo,
+// Kundun de dueño, clave, +0x89, 0, 0, 0)) y el 0x128/2 en su posición (0x43f144, sin dueño y con la clave en −1);
+// después, 0x43fc04. Con la tabla llena, cada alta no hace nada ni saca rand().
+Result ScatterKundun(MonsterBodyFrame& frame)
+{
+    ActorState& actor = frame.actor;
+    if (frame.effects == nullptr)
+        return Core::Unexpected(std::string("0x43eeb9: la caída de Kundun pide la tabla de efectos (0x518cf0)"));
+    constexpr std::size_t FallBone = 4; // [esi+0x120] + 0xc0
+    if (frame.bones.size() <= FallBone)
+        return Core::Unexpected(std::string("0x43ee90: Kundun sin el hueso 4 en su buffer propio (+0x120)"));
+    const MonsterBodyModel& model = frame.model;
+    const auto matrix = Render::Models::OriginalMatrixOf(frame.bones[FallBone]);
+    for (const FallingPiece& piece : FallingPieces)
+    {
+        const glm::vec3 offset{std::bit_cast<float>(piece.offset[0]), std::bit_cast<float>(piece.offset[1]),
+                               std::bit_cast<float>(piece.offset[2])};
+        const glm::vec3 point = Render::Models::OriginalTransformPosition(matrix, offset, model.object.transform.scale,
+                                                                          model.object.transform.position);
+        const World::ModelEffectArguments arguments{.type = piece.type,
+                                                    .position = point,
+                                                    .angles = actor.angles,
+                                                    .light = actor.light,
+                                                    .subtype = piece.subtype,
+                                                    .owner = &actor,
+                                                    .key = std::bit_cast<std::uint16_t>(piece.key),
+                                                    .byte89 = piece.byte89};
+        const auto made = CreateTheKundunPiece(*frame.effects, arguments, frame.random, frame.terrainHeight);
+        if (!made.HasValue())
+            return Core::Unexpected(std::format("{:#x}: {}", piece.call, made.Error()));
+    }
+    constexpr std::int32_t EchoSubtype = 2;
+    const auto called = CreateTheKundunCall(*frame.effects, {.type = KundunCallEffect,
+                                                             .position = actor.position,
+                                                             .angles = actor.angles,
+                                                             .light = actor.light,
+                                                             .subtype = EchoSubtype});
+    if (!called.HasValue())
+        return Core::Unexpected(std::format("0x43f144: {}", called.Error()));
+    return {};
+}
+
 // 0x43edc1..0x43f493: el 0x192 (Kundun; +0x60 en 100 desde su alta, 0x43a155).
 Result DrawKundun(MonsterBodyFrame& frame)
 {
@@ -180,8 +249,7 @@ Result DrawKundun(MonsterBodyFrame& frame)
             return drawn;
         if (auto shaken = Shake(frame, "0x43ee7e"); !shaken.HasValue())
             return shaken;
-        return Core::Unexpected(std::string("0x43eeb9: las partículas de Kundun al caer (0x518cf0(0x124), CL11) no "
-                                            "están portadas"));
+        return ScatterKundun(frame);
     }
     if (dying && frameNumber >= 8.0f && actor.dword60 >= 100)
     {

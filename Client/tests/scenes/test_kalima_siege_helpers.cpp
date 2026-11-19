@@ -751,7 +751,8 @@ TEST_F(KalimaSiegeHelperTest, TheFifthKalimaHelperIsRedForItsMonster)
 }
 
 // 0x43e606..0x43e923, el 0x196: la partícula 0x5ac/0 del hueso 60 (la neblina de 0x5435cf, con sus rand()) y, en las
-// acciones 0 y 1, rand() % 50 por cada hueso de 63 a 67; en 0, dos rand() % 360 y el joint 0x610/5 hacia el 60 (CL11).
+// acciones 0 y 1, rand() % 50 por cada hueso de 63 a 67; en 0, dos rand() % 360 y el joint 0x610/5 hacia el 60
+// (0x43e904: con el skill 0, ancho 20; vida 50, velocidad 3, 8 puntos, la mezcla 4 y la segunda cara; sin rand()).
 TEST_F(KalimaSiegeHelperTest, TheSixthKalimaHelperBeatsAndSparks)
 {
     ActorState& heart = Actor(0x196, 2);
@@ -790,8 +791,30 @@ TEST_F(KalimaSiegeHelperTest, TheSixthKalimaHelperBeatsAndSparks)
     SetUp();
     Actor(0x196, 0);
     FillParticles();
-    ExpectCut(Draw(24), "0x43e904", "0x610");
-    EXPECT_EQ(m_random.State(), After(6));
+    const auto sparked = Draw(24);
+    ASSERT_TRUE(sparked.HasValue()) << sparked.Error();
+    CrtRandom turns{After(4)};
+    const auto pitch = static_cast<float>(turns.Next() % 360);
+    const auto yaw = static_cast<float>(turns.Next() % 360);
+    const Client::Scenes::JointState& spark = m_joints[0];
+    EXPECT_TRUE(spark.alive);
+    EXPECT_EQ(spark.type, 0x610);
+    EXPECT_EQ(spark.subtype, 5);
+    EXPECT_EQ(spark.position, Bone(66));
+    EXPECT_EQ(spark.targetPosition, Bone(60));
+    EXPECT_EQ(spark.angles.x, pitch);
+    EXPECT_EQ(spark.angles.z, yaw);
+    EXPECT_EQ(spark.width, 20.0f);
+    EXPECT_EQ(spark.life, 50);
+    EXPECT_EQ(spark.speed, 3.0f);
+    EXPECT_EQ(spark.maximumCount, 8);
+    EXPECT_EQ(spark.blend, 4);
+    EXPECT_EQ(spark.drawEnabled, 2);
+    EXPECT_EQ(spark.category, 2);
+    EXPECT_EQ(spark.light, glm::vec3(1.0f));
+    EXPECT_FALSE(m_joints[1].alive);
+    // El hueso 67 saca su rand() % 50 (que no da 0).
+    EXPECT_EQ(m_random.State(), After(7));
     SetUp();
     Actor(0x196, 1);
     FillParticles();

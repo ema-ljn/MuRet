@@ -88,7 +88,7 @@ struct Pool
     Client::Core::Expected<void, std::string> Step()
     {
         return Client::Scenes::StepJoints(joints, random, &cloth, &particles, 0.0f, &sprites, lighting.get(), {},
-                                          terrainHeight, {}, {}, effects.get(), hero, volley);
+                                          terrainHeight, {}, {}, effects.get(), hero, nullptr, volley);
     }
 
     std::vector<JointState> joints = std::vector<JointState>(4);
@@ -547,7 +547,8 @@ TEST(SpiritJointsTest, TheKundunSparkTiltsAndPicksItsParticle)
         std::int32_t type;
         std::int32_t subtype;
     };
-    for (const Case& each : {Case{0, 0x6f2, 2}, Case{2, 0x6f3, 2}, Case{4, 0x6f4, 4}})
+    for (const Case& each :
+         {Case{0, 0x6f2, 2}, Case{1, 0x6f3, 2}, Case{2, 0x6f3, 2}, Case{3, 0x6f4, 4}, Case{4, 0x6f4, 4}})
     {
         SCOPED_TRACE(each.pick);
         Pool pool;
@@ -992,19 +993,17 @@ TEST(SpiritJointsTest, TheSpiralTurnsWithItsKey)
     pool.joints[0].position = {100.0f, 200.0f, 0.0f};
     const CrtRandom still = pool.random;
     ASSERT_TRUE(pool.Step().HasValue());
-    const double radius = 59.0 * D(Tenth) + 30.0;
-    const auto sine = Client::Render::Models::Detail::SineDoubleProductPC53(30.0, radius);
-    const auto cosine = Client::Render::Models::Detail::CosineDoubleProductPC53(30.0, radius);
-    ASSERT_TRUE(sine && cosine);
+    // k = 59 · 0,1f + 30 retenido; bits de una cuenta aparte (seno y coseno de 30 exactos a 64 bits).
     EXPECT_EQ(pool.joints[0].key, 59);
-    EXPECT_EQ(pool.joints[0].position.x, F32(*sine + 100.0));
-    EXPECT_EQ(pool.joints[0].position.y, F32(200.0 - *cosine));
+    EXPECT_EQ(Bits(pool.joints[0].position.x), 0x42810f30u);
+    EXPECT_EQ(Bits(pool.joints[0].position.y), 0x4342765eu);
     EXPECT_EQ(pool.random.State(), still.State());
 }
 
 // 0x5391a9..0x53923a: con rand() & 1 en 0, la copia de la posición pasa a (x − FSIN(z) · k, FCOS(z) · k + y, 350) con
 // k = 40 − key · 0,1f retenido y suelta dos joints 0x613/0xe (vida 10, la x de los ángulos en 20 por su alta) con los
-// ángulos (0, 0, 0) y (0, 0, 3), de ancho 0,9f; caen en lugares anteriores y no pasan en esta vuelta. Bits aparte.
+// ángulos (0, 0, 0) y (0, 0, 3), de ancho 0,9f; caen en lugares anteriores y no pasan en esta vuelta. En (0, 0) con la
+// z en 2, el k retenido da (0xc206f093, 0xc1770657) y guardado en float daría (0xc206f092, 0xc1770656). Bits aparte.
 TEST(SpiritJointsTest, TheSpiralSometimesReleasesTwoSplashes)
 {
     std::uint32_t seed = 0;
@@ -1017,8 +1016,8 @@ TEST(SpiritJointsTest, TheSpiralSometimesReleasesTwoSplashes)
     }
     ASSERT_NE(seed, 0U);
     Pool pool;
-    pool.startAngles = {0.0f, 0.0f, 30.0f};
-    ASSERT_TRUE(pool.Create(0x613, 0xf, {100.0f, 200.0f, 0.0f}, 30.0f).HasValue());
+    pool.startAngles = {0.0f, 0.0f, 2.0f};
+    ASSERT_TRUE(pool.Create(0x613, 0xf, {0.0f, 0.0f, 0.0f}, 30.0f).HasValue());
     pool.joints[3] = pool.joints[0];
     pool.joints[0].alive = false;
     pool.random = CrtRandom(seed);
@@ -1033,16 +1032,17 @@ TEST(SpiritJointsTest, TheSpiralSometimesReleasesTwoSplashes)
         EXPECT_EQ(splash.type, 0x613);
         EXPECT_EQ(splash.subtype, 0xe);
         EXPECT_EQ(splash.ownerContext, nullptr);
-        EXPECT_EQ(Bits(splash.position.x), 0x4308a7eeu);
-        EXPECT_EQ(Bits(splash.position.y), 0x434db905u);
+        EXPECT_EQ(Bits(splash.position.x), 0xc206f093u);
+        EXPECT_EQ(Bits(splash.position.y), 0xc1770657u);
         EXPECT_EQ(splash.position.z, 350.0f);
         EXPECT_EQ(splash.angles, (glm::vec3{20.0f, 0.0f, piece == 0 ? 0.0f : 3.0f}));
         EXPECT_EQ(Bits(splash.width), 0x3f666666u);
         EXPECT_EQ(splash.life, 10);
     }
     EXPECT_FALSE(pool.joints[2].alive);
-    EXPECT_EQ(Bits(pool.joints[3].position.x), 0x4286fcceu);
-    EXPECT_EQ(Bits(pool.joints[3].position.y), 0x4342ecd5u);
+    EXPECT_EQ(pool.joints[3].key, 29);
+    EXPECT_EQ(Bits(pool.joints[3].position.x), 0x41ef53bcu);
+    EXPECT_EQ(Bits(pool.joints[3].position.y), 0x415b0f48u);
 
     Pool other;
     int otherOwner = 0;

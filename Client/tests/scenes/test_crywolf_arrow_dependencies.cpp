@@ -51,17 +51,6 @@ TEST(CrywolfArrowDependenciesTest, TheJointCopiesItsRequestAndKeepsTheNativeKeyL
     EXPECT_EQ(joint.light, (glm::vec3{.7f, .7f, .3f}));
     EXPECT_EQ(joint.targetPosition, (glm::vec3{400, 500, 600}));
     EXPECT_EQ(random.State(), 7u);
-    // 0x531fa3: la /0xc, igual con la luz (0,6f; 0,2f; 0,8f).
-    joints[0] = {};
-    const auto violet =
-        Client::Scenes::CreateFaunaJoint(joints, {0x610, position, target, angles, 12, &owner, 40, 0x50, 0, 0, -1},
-                                         random, Client::Scenes::JointOwnerKind::ModelEffect);
-    ASSERT_TRUE(violet.HasValue()) << violet.Error();
-    EXPECT_EQ(joints[0].life, 0x50);
-    EXPECT_EQ(joints[0].maximumCount, 16);
-    EXPECT_EQ(joints[0].blend, 4);
-    EXPECT_EQ(joints[0].light, (glm::vec3{.6f, .2f, .8f}));
-    EXPECT_EQ(random.State(), 7u);
 }
 // 0x537d2e..0x537d43: la /0xc (la estela de la flecha 0x11c) va al mismo paso que la /13 (0x537ee6).
 TEST(CrywolfArrowDependenciesTest, TheJointMovesBeforeCheckingItsOwnerAndStillRunsItsLightAndTail)

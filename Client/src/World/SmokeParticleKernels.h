@@ -14,6 +14,10 @@ namespace Client::World
 {
 // Los humos 5f2 de la CL11 con caso propio en la tabla del alta de 0x53fe70 y en la del paso de 0x5446e0 (las dos
 // sólo del tipo 0x5f2, Effect\smoke01.jpg). El dibujo de 0x548550 ya los trata por su subtipo (0x548707..0x54874c).
+// La /13 (0x541c18) es la del bastón de Kundun 0x192 (0x43c9cb), la del 0x195 del 0x91 (0x43e4c0) y la de la flecha
+// 0x111 (0x525972, 0x52598b, 0x5259a4): nace con escala, giro y subida al azar y su paso (0x5462c8) la enciende con la
+// vida en naranja y la agranda.
+inline constexpr std::int32_t EmberSmokeSubtype = 13;
 // La /17 (0x5418b1) es la del 0x192 y el 0x197 (0x43bf75, 0x43c04b): guarda la luz y su paso la usa.
 inline constexpr std::int32_t GlowSmokeSubtype = 17;
 // La /19 (0x54228c, la que el paso de los joints crea en 0x5394fb) y la /20 (0x542307, que se dibuja restando:

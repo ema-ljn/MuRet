@@ -54,7 +54,7 @@ void ShakeAtBirth(Particle& particle, Render::Models::CrtRandom& random, float c
     particle.rotation = static_cast<float>(FtolLow(static_cast<double>(clock)) % FullTurn);
 }
 
-// 0x5424ff..0x542524 y 0x5426f2..0x542717: la velocidad vertical ((rand() & 31) + 60) · 0,1f.
+// 0x541c58..0x541c7d, 0x5424ff..0x542524 y 0x5426f2..0x542717: la velocidad vertical ((rand() & 31) + 60) · 0,1f.
 void RiseAtBirth(Particle& particle, Render::Models::CrtRandom& random)
 {
     constexpr int RiseMask = 31, RiseBase = 60;
@@ -224,6 +224,7 @@ bool IsSmokeParticle(std::int32_t type, std::int32_t subtype)
         return false;
     switch (subtype)
     {
+    case EmberSmokeSubtype:
     case GlowSmokeSubtype:
     case ShakingSmokeSubtype:
     case DarkShakingSmokeSubtype:
@@ -242,7 +243,7 @@ bool IsSmokeParticle(std::int32_t type, std::int32_t subtype)
 void CreateSmokeParticle(Particle& particle, Render::Models::CrtRandom& random, float clock)
 {
     constexpr std::int32_t GlowLife = 12, ShakingLife = 40, BreathLife = 16, StoneLife = 32, FadingLife = 25;
-    constexpr std::int32_t ShrinkingLife = 15;
+    constexpr std::int32_t ShrinkingLife = 15, EmberLife = 20;
     constexpr int BreathMask = 31, BreathBase = 48, FadingMask = 63, FadingBase = 64;
     constexpr float Ember = std::bit_cast<float>(0x3e99999au); // 0x541973, 0,3f
     constexpr double BackStep = 15.0;                          // 0x6b87bc
@@ -253,6 +254,13 @@ void CreateSmokeParticle(Particle& particle, Render::Models::CrtRandom& random, 
     }
     switch (particle.subtype)
     {
+    case EmberSmokeSubtype:
+        // 0x541c18..0x541c7d: vida 20, la escala ((rand() & 63) + 64) · 0,01f, el giro rand() % 360 y la subida.
+        particle.life = EmberLife;
+        particle.scale = F32(static_cast<double>((random.Next() & FadingMask) + FadingBase) * Hundredth);
+        particle.rotation = static_cast<float>(random.Next() % FullTurn);
+        RiseAtBirth(particle, random);
+        return;
     case GlowSmokeSubtype:
         // 0x5418b1..0x541924: guarda la luz, vida 12.
         KeepTheLight(particle);
@@ -343,6 +351,16 @@ Core::Expected<void, ParticleError> StepSmokeParticle(Particle& particle, Render
     }
     switch (particle.subtype)
     {
+    case EmberSmokeSubtype:
+    {
+        // 0x5462c8..0x5462f1: l = vida · 0,05f, retenido: la luz (l; l · 0,5; l · 0,1f), y la escala crece 0,09f
+        // (0x6ba3ac).
+        constexpr double EmberGrowth = static_cast<double>(std::bit_cast<float>(0x3db851ecu));
+        const double ember = static_cast<double>(particle.life) * Twentieth;
+        particle.light = glm::vec3(F32(ember), F32(ember * Half), F32(ember * Tenth));
+        particle.scale = F32(static_cast<double>(particle.scale) + EmberGrowth);
+        return {};
+    }
     case GlowSmokeSubtype:
     {
         // 0x546171..0x5461a0: l = vida · 0,125; con l mayor a 1, l = 1 − l. La luz es l por la guardada y sigue como

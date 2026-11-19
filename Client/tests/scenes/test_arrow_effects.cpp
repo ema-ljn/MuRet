@@ -1712,6 +1712,52 @@ TEST(ArrowEffectsTest, FullPoolsPreserveTheNewlyReachableArrowSteps)
     }
 }
 
+// 0x52594c..0x5259a4: después del rand() de la luz (0x5208c5), el paso de la flecha 0x111 gira la y +30 y suelta tres
+// humos 0x5f2/13 en su posición, con esos ángulos, la luz 1 (0x520921) y escala 1, tres rand() cada uno; después se
+// mueve.
+TEST(ArrowEffectsTest, TheReignArrowLeavesThreeEmbers)
+{
+    ArrowWorld tested(0);
+    for (auto& effect : tested.world.Map().effects.Effects())
+        effect.alive = true;
+    auto& arrow = tested.world.Map().effects.Effects().front();
+    arrow.type = 0x111;
+    arrow.subtype = 2;
+    arrow.life = 20;
+    arrow.transform.position = {1000.0f, 1000.0f, 1000.0f};
+    arrow.transform.angles = {0.0f, 15.0f, 0.0f};
+    arrow.velocity = {0.0f, -70.0f, 0.0f};
+    const auto stepped = StepArrow(arrow, nullptr, tested.StepContext());
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(arrow.transform.angles.y, 45.0f);
+    auto twin = std::make_unique<Client::World::Particles>();
+    CrtRandom expected(Seed);
+    static_cast<void>(expected.Next());
+    for (std::size_t index = 0; index < 3; ++index)
+    {
+        SCOPED_TRACE(index);
+        const auto replayed = twin->CreateChecked(0x5f2, {1000.0f, 1000.0f, 1000.0f}, {0.0f, 45.0f, 0.0f},
+                                                  glm::vec3(1.0f), 13, 1.0f, 0.0f, expected);
+        ASSERT_TRUE(replayed.HasValue() && replayed.Value() == std::optional<std::size_t>{index});
+        const Client::World::Particle& ember = tested.particles.All()[index];
+        const Client::World::Particle& reference = twin->All()[index];
+        EXPECT_TRUE(ember.alive);
+        EXPECT_EQ(ember.type, 0x5f2);
+        EXPECT_EQ(ember.subtype, 13);
+        EXPECT_EQ(ember.position, glm::vec3(1000.0f));
+        EXPECT_EQ(ember.angles, reference.angles);
+        EXPECT_EQ(ember.light, glm::vec3(1.0f));
+        EXPECT_EQ(ember.life, 20);
+        EXPECT_EQ(ember.scale, reference.scale);
+        EXPECT_EQ(ember.rotation, reference.rotation);
+        EXPECT_EQ(ember.verticalSpeed, reference.verticalSpeed);
+    }
+    EXPECT_FALSE(tested.particles.All()[3].alive);
+    EXPECT_EQ(tested.random.State(), expected.State());
+    EXPECT_EQ(DrawsSince(Seed, tested.random), 1 + 3 * 3);
+    EXPECT_EQ(arrow.transform.position.y, 930.0f);
+}
+
 // 0x51a347..0x51a3b7: la 0xf8/1 escribe los ángulos del caller (0, 0, z) antes de sus tres joints 0x60f/0x19, que son
 // del lote de los joints de la CL11: con lugar, corta en el primero; con la tabla llena, sigue a 0x51a1b0.
 TEST(ArrowEffectsTest, CelestialWritesTheCallerAnglesBeforeItsJoints)

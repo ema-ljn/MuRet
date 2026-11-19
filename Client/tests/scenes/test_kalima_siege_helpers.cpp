@@ -160,6 +160,31 @@ protected:
         return random.State();
     }
 
+    // El humo 0x5f2/13 (0x541c18) en el lugar 0 con los ángulos del personaje, contra un pool gemelo con el rand()
+    // desde `state`; devuelve el rand() de después.
+    [[nodiscard]] std::uint32_t ExpectTheEmber(const glm::vec3& point, const glm::vec3& light, float scale,
+                                               std::uint32_t state) const
+    {
+        auto twin = std::make_unique<Client::World::Particles>();
+        CrtRandom expected{state};
+        const auto replayed = twin->CreateChecked(0x5f2, point, m_actor->angles, light, 13, scale, Clock, expected);
+        EXPECT_TRUE(replayed.HasValue() && replayed.Value() == std::optional<std::size_t>{0});
+        const Client::World::Particle& ember = m_particles->All()[0];
+        const Client::World::Particle& reference = twin->All()[0];
+        EXPECT_TRUE(ember.alive);
+        EXPECT_EQ(ember.type, 0x5f2);
+        EXPECT_EQ(ember.subtype, 13);
+        EXPECT_EQ(ember.position, point);
+        EXPECT_EQ(ember.angles, m_actor->angles);
+        EXPECT_EQ(ember.light, light);
+        EXPECT_EQ(ember.life, 20);
+        EXPECT_EQ(ember.scale, reference.scale);
+        EXPECT_EQ(ember.rotation, reference.rotation);
+        EXPECT_EQ(ember.verticalSpeed, reference.verticalSpeed);
+        EXPECT_FALSE(m_particles->All()[1].alive);
+        return expected.State();
+    }
+
     static void ExpectCut(const Client::Core::Expected<bool, std::string>& result, std::string_view address,
                           std::string_view what)
     {
@@ -331,12 +356,16 @@ TEST_F(KalimaSiegeHelperTest, KundunDropsItsLeftHandOrLightsItsStaff)
     EXPECT_EQ(m_actor->word8a, 0);
     EXPECT_EQ(m_random.State(), After(1));
 
-    // La partícula 0x5f2/13 con lugar: 41 es impar, 18467 también; la tercera vez (6334) corta.
+    // El humo 0x5f2/13 con lugar: 41 es impar, 18467 también; la tercera vez (6334) lo suelta en el bastón con la luz 1
+    // y escala 1 (tres rand() más).
     SetUp();
     Actor(0x192, 0);
     ASSERT_TRUE(Draw(0).HasValue());
     ASSERT_TRUE(Draw(0).HasValue());
-    ExpectCut(Draw(0), "0x43c9cb", "0x5f2/13");
+    EXPECT_FALSE(m_particles->Any());
+    const auto third = Draw(0);
+    ASSERT_TRUE(third.HasValue()) << third.Error();
+    EXPECT_EQ(m_random.State(), ExpectTheEmber(Bone(100), glm::vec3(1.0f), 1.0f, After(3)));
 }
 
 // 0x43c7a8..0x43c8e3 (Q-C879): el pulso de la acción 5 avanza con cada dibujo. +0x8a sube pasado el frame 4 y baja
@@ -617,7 +646,7 @@ TEST_F(KalimaSiegeHelperTest, TheFourthKalimaHelperTurnsItsGlowsAndChainsItsBone
 }
 
 // 0x43e3f3..0x43e605, el 0x195: en la acción 6 suelta las dos manos; el 0x91 (+0x376) es rojo y saca rand() & 1 para
-// la partícula 0x5f2/13 (CL11); los demás, blancos y sin rand().
+// el humo 0x5f2/13 (0x43e4c0); los demás, blancos y sin rand().
 TEST_F(KalimaSiegeHelperTest, TheFifthKalimaHelperIsRedForItsMonster)
 {
     ActorState& helper = Actor(0x195, 6);
@@ -647,8 +676,11 @@ TEST_F(KalimaSiegeHelperTest, TheFifthKalimaHelperIsRedForItsMonster)
     EXPECT_EQ(sprites[0].scale, F32(wave * D(0.3f) + 2.0));
     EXPECT_EQ(sprites[0].light, glm::vec3(1.0f, 0.0f, 0.0f));
     ASSERT_TRUE(Draw(24).HasValue()); // 18467
-    ExpectCut(Draw(24), "0x43e4c0", "0x5f2/13");
-    EXPECT_EQ(m_random.State(), After(3));
+    EXPECT_FALSE(m_particles->Any());
+    const auto third = Draw(24); // 6334, par: el humo rojo en el punto (0, 0, 30) del hueso 0, de 1
+    ASSERT_TRUE(third.HasValue()) << third.Error();
+    EXPECT_EQ(m_random.State(),
+              ExpectTheEmber(Bone(0, {0.0f, 0.0f, 30.0f}), glm::vec3(1.0f, 0.0f, 0.0f), 1.0f, After(3)));
 }
 
 // 0x43e606..0x43e923, el 0x196: la partícula 0x5ac/0 del hueso 60 (la neblina de 0x5435cf, con sus rand()) y, en las

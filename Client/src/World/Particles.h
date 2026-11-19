@@ -49,6 +49,9 @@ inline constexpr std::int32_t MissileFireParticle = 0x5da;
 inline constexpr std::int32_t DeathSpiritFireParticle = 0x5db;
 inline constexpr std::int32_t MissileSmokeSubtype = 38;
 inline constexpr std::int32_t ExplosionSmokeSubtype = 35;
+// La 5f2/34 del joint 0x610/0xe de la flecha 0xf9 (0x537f39): nace como la /35 pero quieta (0x541a69 → 0x5435bb) y
+// comparte con ella el paso (0x5446e0, el caso 0x22..0x23) y el dibujo.
+inline constexpr std::int32_t ViperSmokeSubtype = 34;
 inline constexpr std::int32_t FireworkParticle = 0x60d;
 inline constexpr std::int32_t PoundingBallParticle = 0x640;
 inline constexpr std::int32_t ShinyParticle = 0x5fc;

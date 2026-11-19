@@ -375,8 +375,10 @@ private:
             m_resources.world.Runtime().RequestSound(static_cast<std::int32_t>(step.value));
             return {};
         case MonsterStepKind::Joint:
-            // 0x515f9c y los otros casos normales usan el mismo contrato que 349: dueño Actor y 618/2,3.
-            if (m_index && step.value == 0x618 && (step.offset == 2 || step.offset == 3))
+            // 0x515f9c y los otros casos normales usan el mismo contrato que 349: dueño Actor y 618/2,3. 0x5165d1, el
+            // NPC 257: el 0x60f/0x2a que gira a su alrededor, de ancho 15, con él de dueño.
+            if (m_index && ((step.value == 0x618 && (step.offset == 2 || step.offset == 3)) ||
+                            (step.value == 0x60f && step.offset == 0x2a)))
             {
                 ActorState& actor = m_resources.world.Actors()[*m_index];
                 auto created =

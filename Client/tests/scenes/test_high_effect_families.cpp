@@ -925,9 +925,10 @@ TEST(HighEffectFamiliesTest, TheKundunJointShowsAndCarriesItsSpirit)
 
 // 0x539249..0x5392e6: el 0x613/0xf del 0x126 (vida 20, menos de 35) deja la 0x5d9/7 y, con rand() & 1 en 1, no suelta
 // nada; con dueño le pone al 0x126 la x y la y de los ángulos en 0, el alpha en 1 (vida de más de 5) y la posición del
-// joint más (FSIN(z) · k, −FCOS(z) · k, 0) con k = 30 · 0,1f + 30 en float; después el joint avanza con k retenido. Con
-// los ángulos (0, 0, 75) del 0x126, z = 75 · 0,01745329f; los bits salen de una cuenta aparte (seno y coseno exactos a
-// 64 bits).
+// joint más (FSIN(z) · k, −FCOS(z) · k, 0) con k = 30 · 0,1f + 30 en float (0x53929a); después el joint avanza con k
+// retenido. En (10, 20) y con la z de los ángulos del 0x126 en 29, z = 29 · 0,01745329f (0x3f0192c0) y el k en float
+// separa los dos: el 0x126 queda en x 0x41cffd5f y el joint en 0x41cffd60 (con el k retenido el 0x126 daría el del
+// joint); la y es 0xc10dcc99 en los dos. Los bits salen de una cuenta aparte (seno y coseno exactos a 64 bits).
 TEST(HighEffectFamiliesTest, TheKundunPhoenixJointCarriesItsPhoenix)
 {
     std::uint32_t seed = 0;
@@ -941,7 +942,7 @@ TEST(HighEffectFamiliesTest, TheKundunPhoenixJointCarriesItsPhoenix)
     ASSERT_NE(seed, 0U);
     FamilyWorld tested;
     ASSERT_TRUE(
-        CreateHighModelEffect({.type = 0x126, .position = {1000.0f, 2000.0f, 300.0f}, .angles = {12.0f, 34.0f, 75.0f}},
+        CreateHighModelEffect({.type = 0x126, .position = {10.0f, 20.0f, 300.0f}, .angles = {12.0f, 34.0f, 29.0f}},
                               tested.Context())
             .HasValue());
     ModelEffect& phoenix = tested.Effect(0);
@@ -950,7 +951,7 @@ TEST(HighEffectFamiliesTest, TheKundunPhoenixJointCarriesItsPhoenix)
     EXPECT_EQ(joints[0].type, 0x613);
     EXPECT_EQ(joints[0].subtype, 0xf);
     EXPECT_EQ(joints[0].ownerContext, &phoenix);
-    EXPECT_EQ(std::bit_cast<std::uint32_t>(joints[0].angles.z), 0x3fa78d36u);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(joints[0].angles.z), 0x3f0192c0u);
     tested.random = CrtRandom(seed);
 
     const auto stepped =
@@ -958,18 +959,17 @@ TEST(HighEffectFamiliesTest, TheKundunPhoenixJointCarriesItsPhoenix)
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(joints[0].key, 30);
-    EXPECT_EQ(phoenix.transform.angles, (glm::vec3{0.0f, 0.0f, 75.0f}));
+    EXPECT_EQ(phoenix.transform.angles, (glm::vec3{0.0f, 0.0f, 29.0f}));
     EXPECT_EQ(phoenix.alpha, 1.0f);
-    EXPECT_EQ(std::bit_cast<std::uint32_t>(phoenix.transform.position.x), 0x4480fc05u);
-    EXPECT_EQ(std::bit_cast<std::uint32_t>(phoenix.transform.position.y), 0x44f8eeb0u);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(phoenix.transform.position.x), 0x41cffd5fu);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(phoenix.transform.position.y), 0xc10dcc99u);
     EXPECT_EQ(phoenix.transform.position.z, 300.0f);
-    EXPECT_EQ(std::bit_cast<std::uint32_t>(joints[0].position.x), 0x4480fc05u);
-    EXPECT_EQ(std::bit_cast<std::uint32_t>(joints[0].position.y), 0x44f8eeb0u);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(joints[0].position.x), 0x41cffd60u);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(joints[0].position.y), 0xc10dcc99u);
     EXPECT_FALSE(joints[1].alive);
     EXPECT_EQ(AliveParticles(*tested.world, 0x5d9, 7), 1);
     CrtRandom replay(seed);
-    static_cast<void>(
-        TwinParticle(replay, 0x5d9, 7, {1000.0f, 2000.0f, 300.0f}, joints[0].angles, glm::vec3(1.0f), 1.0f));
+    static_cast<void>(TwinParticle(replay, 0x5d9, 7, {10.0f, 20.0f, 300.0f}, joints[0].angles, glm::vec3(1.0f), 1.0f));
     static_cast<void>(replay.Next());
     EXPECT_EQ(tested.random.State(), replay.State());
 

@@ -7,6 +7,7 @@
 #include "Scenes/GameDrawTail.h"
 #include "World/IFishStepServices.h"
 #include "World/Particles.h"
+#include "World/Sprites.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -55,6 +56,53 @@ TEST(CrywolfJointsTest, ArrivalBoltCreatesStepsAndDrawsWithoutTheChaosCastleEmis
     batch.Begin(Client::Render::Pass3D{});
     ASSERT_TRUE(Client::Scenes::DrawJoints(batch, joints, 0).HasValue());
     EXPECT_EQ(batch.Vertices().size(), 588u);
+}
+
+// 0x531b0c, /1 (el rayo del invocado que llega, 0x51747c): como la /7, pero la z sube 800 (0x6b8ac8) y la cola se
+// apaga después del destino (0x531b9e); el paso baja 16 por tramo (0x537753) y, como la /7, no vuelve a prender la cola
+// (0x5379ca), con los mismos rand() que la /2 y la /7. La /2 la prende con vida de más de 10.
+TEST(CrywolfJointsTest, TheSummonBoltFallsLikeTheArrivalWithItsTailOff)
+{
+    std::array<JointState, 3> joints{};
+    CrtRandom random(7);
+    CrtRandom twin(7);
+    glm::vec3 position{100, 200, 300};
+    glm::vec3 angles{};
+    for (const std::int32_t subtype : {1, 2})
+    {
+        const auto created = Client::Scenes::CreateFaunaJoint(
+            joints,
+            Client::World::FishEffectRequest{0x615, position, position, angles, subtype, nullptr, 55, -1, 0, 0, -1},
+            subtype == 1 ? random : twin);
+        ASSERT_TRUE(created.HasValue()) << created.Error();
+    }
+    const auto& joint = joints[0];
+    EXPECT_EQ(joint.position, (glm::vec3{96, 197, 1100}));
+    EXPECT_EQ(joint.pathIncrement, joint.position);
+    EXPECT_EQ(joint.targetPosition, position);
+    EXPECT_EQ(joint.width, 55.0f);
+    EXPECT_EQ(joint.life, 20);
+    EXPECT_EQ(joint.maximumCount, 50);
+    EXPECT_FALSE(joint.tailEnabled);
+    EXPECT_TRUE(joints[1].tailEnabled);
+    EXPECT_EQ(random.State(), 0xc40e66b9u);
+    EXPECT_EQ(twin.State(), random.State());
+    std::array<JointState, 1> alone{joint};
+    std::array<JointState, 1> chaos{joints[1]};
+    chaos[0].position = alone[0].position;
+    chaos[0].pathIncrement = alone[0].pathIncrement;
+    auto sprites = std::make_unique<Client::World::FrameSprites>();
+    auto particles = std::make_unique<Client::World::Particles>();
+    ASSERT_TRUE(Client::Scenes::StepJoints(alone, random).HasValue());
+    ASSERT_TRUE(Client::Scenes::StepJoints(chaos, twin, nullptr, particles.get(), 0, sprites.get()).HasValue());
+    EXPECT_EQ(alone[0].life, 19);
+    EXPECT_EQ(alone[0].position, position);
+    EXPECT_EQ(alone[0].points[5][0].z, 1100.0f - 45 * 16.0f);
+    EXPECT_EQ(alone[0].count, 49);
+    // La /2 con la cola prendida agrega además el tramo de la cola común.
+    EXPECT_EQ(chaos[0].points[6][0].z, alone[0].points[5][0].z);
+    EXPECT_FALSE(alone[0].tailEnabled);
+    EXPECT_TRUE(chaos[0].tailEnabled);
 }
 
 // 0x530afa → 0x5309d6 → 0x530a00: /17 pasa por FirstQuad con el ancho retenido (el 0x614 solo llega a 0x5309d6 por

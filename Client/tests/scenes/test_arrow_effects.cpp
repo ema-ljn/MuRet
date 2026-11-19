@@ -21,6 +21,7 @@
 #include "World/GameModelEffects.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
+#include "World/PortableParticleTrigonometry.h"
 #include "World/Sprites.h"
 #include "World/TerrainLighting.h"
 
@@ -466,9 +467,8 @@ TEST(ArrowEffectsTest, TheMountedBowsShootLikeOnFoot)
     }
 }
 
-// Las armas cuyas flechas piden algo sin portar cortan en su dirección, con lo de antes: en el alta, los joints de
-// la 0x11c (4/20, después de su rand() % 360) y la 0xf9 (4/21); en el paso, la 0xe1 (4/6) en sus partículas
-// 0x608..0x60a, después de sus dos sprites y de los rand() del punto.
+// Las armas cuyas flechas piden algo sin portar cortan en su dirección, con lo de antes: en el paso, la 0xe1 (4/6) en
+// sus partículas 0x608..0x60a, después de sus dos sprites y de los rand() del punto.
 
 TEST(ArrowEffectsTest, TheArrowsOfUnportedEffectsCut)
 {
@@ -482,9 +482,7 @@ TEST(ArrowEffectsTest, TheArrowsOfUnportedEffectsCut)
         std::string_view stepCut;
         int stepDraws;
     };
-    const std::array cases{Case{"4/20", 0xffff, 0x814, "0x51c713", 1, "", 0},
-                           Case{"4/21", 0xffff, 0x815, "0x51c56c", 0, "", 0},
-                           Case{"4/6", 0xffff, 0x806, "", 0, "0x526a8b", 1 + 4}};
+    const std::array cases{Case{"4/6", 0xffff, 0x806, "", 0, "0x526a8b", 1 + 4}};
     for (const Case& probe : cases)
     {
         SCOPED_TRACE(probe.name);
@@ -511,6 +509,127 @@ TEST(ArrowEffectsTest, TheArrowsOfUnportedEffectsCut)
         EXPECT_TRUE(HasError(stepped, probe.stepCut)) << ErrorOf(stepped);
         EXPECT_EQ(DrawsSince(before.State(), tested.random), probe.stepDraws);
         EXPECT_EQ(std::ranges::count_if(tested.sprites.Sprites(), [](const auto& sprite) { return sprite.alive; }), 2);
+    }
+}
+
+// 0x51c542..0x51c56c y 0x51c6dd..0x51c713: el arma 4/21 tira la 0xf9, que nace con el joint 0x610/0xe (ancho 50, key
+// 40) y el 4/20 la 0x11c, que después de su rand() % 360 nace con el 0x610/0xc (ancho 40, key 80); los dos con la
+// flecha de dueño y nacidos en su posición con sus ángulos (0x531fa3..0x53200e: la key es la vida, 16 puntos y
+// velocidad 70; la luz y la mezcla, las de su subtipo). Ninguno saca rand(): el tiro sigue como el de las otras.
+TEST(ArrowEffectsTest, TheViperAndTheTwentiethArrowsAreBornWithTheirTrail)
+{
+    struct Case
+    {
+        std::string_view name;
+        std::uint16_t left;
+        std::int16_t arrow;
+        std::int32_t subtype;
+        float width;
+        std::int32_t life;
+        glm::vec3 light;
+        std::uint8_t blend;
+        int creationDraws;
+    };
+    const std::array cases{
+        Case{"4/21", 0x815, 0xf9, 0xe, 50.0f, 40, glm::vec3(1.0f), 1, 0},
+        Case{"4/20",
+             0x814,
+             0x11c,
+             0xc,
+             40.0f,
+             80,
+             {std::bit_cast<float>(0x3f19999au), std::bit_cast<float>(0x3e4ccccdu), std::bit_cast<float>(0x3f4ccccdu)},
+             4,
+             1}};
+    for (const Case& probe : cases)
+    {
+        SCOPED_TRACE(probe.name);
+        ArrowWorld tested(0);
+        const Weapon weapon{probe.name, 0xffff, probe.left, 0x2e, probe.arrow};
+        ActorState& hero = tested.Archer(weapon, weapon.action, NoTarget);
+
+        const auto struck = StepTheAttack(hero, HeroSlot, tested.Context());
+
+        ASSERT_TRUE(struck.HasValue()) << struck.Error();
+        EXPECT_EQ(DrawsSince(Seed, tested.random), CountingWithoutTarget + 2 * SkillRead + ShotReads + OwnRecord +
+                                                       probe.creationDraws + ArrowCreation + SkillRead);
+        const auto arrows = tested.Arrows();
+        ASSERT_EQ(arrows.size(), 1u);
+        const ModelEffect& arrow = *arrows.front();
+        EXPECT_EQ(arrow.type, probe.arrow);
+        const auto& joints = tested.world.DrawTail().joints;
+        const auto trail =
+            std::ranges::find_if(joints, [](const auto& joint) { return joint.alive && joint.type == 0x610; });
+        ASSERT_NE(trail, joints.end());
+        EXPECT_EQ(trail->subtype, probe.subtype);
+        EXPECT_EQ(trail->ownerKind, Client::Scenes::JointOwnerKind::ModelEffect);
+        EXPECT_EQ(trail->ownerContext, &arrow);
+        EXPECT_EQ(trail->position, arrow.transform.position);
+        EXPECT_EQ(trail->targetPosition, arrow.transform.position);
+        EXPECT_EQ(trail->angles, arrow.transform.angles);
+        EXPECT_EQ(trail->life, probe.life);
+        EXPECT_EQ(trail->key, 0);
+        EXPECT_EQ(trail->width, probe.width);
+        EXPECT_EQ(trail->maximumCount, 16);
+        EXPECT_EQ(trail->speed, 70.0f);
+        EXPECT_EQ(trail->light, probe.light);
+        EXPECT_EQ(trail->blend, probe.blend);
+        EXPECT_EQ(std::ranges::count_if(joints, [](const auto& joint) { return joint.alive; }), 1);
+    }
+}
+
+// 0x526b06..0x526bcb: con la vida par, la 0x11c saca tres veces el punto al azar ((& 31) − 16; (& 63) − 32; (& 31) −
+// 16) y deja la 0x60f/5 de escala 0,2f con sus ángulos (ya girados 60) y la luz (0,4f; 0,2f; 1); con la vida impar,
+// nada. Cada una se repite en un pool gemelo con el mismo CrtRandom.
+TEST(ArrowEffectsTest, TheTwentiethArrowLeavesThreeShinesOnEvenLives)
+{
+    for (const std::int32_t life : {20, 21})
+    {
+        SCOPED_TRACE(life);
+        ArrowWorld tested(0);
+        auto& arrow = tested.world.Map().effects.Effects().front();
+        arrow.alive = true;
+        arrow.type = 0x11c;
+        arrow.life = life;
+        arrow.transform.position = {1000.0f, 1000.0f, 300.0f};
+        arrow.transform.angles = {0.0f, 15.0f, 0.0f};
+
+        const auto stepped = StepArrow(arrow, nullptr, tested.StepContext());
+
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        CrtRandom expected(Seed);
+        static_cast<void>(expected.Next());
+        auto twin = std::make_unique<Client::World::Particles>();
+        const glm::vec3 violet{std::bit_cast<float>(0x3ecccccdu), std::bit_cast<float>(0x3e4ccccdu), 1.0f};
+        const std::size_t shines = life % 2 == 0 ? 3 : 0;
+        for (std::size_t index = 0; index < shines; ++index)
+        {
+            SCOPED_TRACE(index);
+            glm::vec3 point{static_cast<float>((expected.Next() & 31) - 16),
+                            static_cast<float>((expected.Next() & 63) - 32),
+                            static_cast<float>((expected.Next() & 31) - 16)};
+            point += glm::vec3{1000.0f, 1000.0f, 300.0f};
+            Client::World::PortableParticleTrigonometry trigonometry;
+            const float clock = 0.0f;
+            const auto replayed =
+                twin->CreateChecked(0x60f, point, {0.0f, 75.0f, 0.0f}, violet, 5, std::bit_cast<float>(0x3e4ccccdu),
+                                    std::cref(clock), expected, 0, trigonometry);
+            ASSERT_TRUE(replayed.HasValue() && replayed.Value() == std::optional<std::size_t>{index});
+            const Client::World::Particle& shine = tested.particles.All()[index];
+            const Client::World::Particle& reference = twin->All()[index];
+            ASSERT_TRUE(shine.alive);
+            EXPECT_EQ(shine.type, 0x60f);
+            EXPECT_EQ(shine.subtype, 5);
+            EXPECT_EQ(shine.position, point);
+            EXPECT_EQ(shine.angles, reference.angles);
+            EXPECT_EQ(shine.light, reference.light);
+            EXPECT_EQ(shine.scale, reference.scale);
+            EXPECT_EQ(shine.life, reference.life);
+            EXPECT_EQ(shine.rotation, reference.rotation);
+        }
+        EXPECT_FALSE(tested.particles.All()[shines].alive);
+        EXPECT_EQ(arrow.transform.angles.y, 75.0f);
+        EXPECT_EQ(DrawsSince(Seed, tested.random), DrawsSince(Seed, expected));
     }
 }
 

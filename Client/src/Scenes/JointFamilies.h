@@ -114,8 +114,12 @@ CreateBeamJoint(JointState& joint, const World::FishEffectRequest& request, Rend
 // El 0x632/7 y sus tres 0x632/6 (StormJoints.cpp): alta 0x534b27 y 0x534a16 y paso 0x53bec2. La /6 salta el primer
 // tramo (0x530a5c); FaunaJointCreation.cpp crea los tres /6 al final del alta de la /7 (0x534b3f..0x534bc0). La /5, la
 // estrella que cae del pulso 0x61c/0 del asedio (0x52c266, con el efecto de dueño, que no lee): alta 0x534bcb y paso
-// 0x53c0a5.
+// 0x53c0a5. La /0..3 caen como la /5 (la /0 de la 0x44, 0x4fe235, y la /1 de la 0x47, 0x4fe4e7, con el personaje
+// blanco de dueño, que sólo leen al llegar al suelo); la /4 (el rayo del 0x13a, 0x51e01a) sigue a su efecto de dueño:
+// alta 0x534977 y paso 0x53be90.
 inline constexpr std::int32_t StormJoint = 0x632;
+inline constexpr std::int32_t LastFallingSubtype = 3;
+inline constexpr std::int32_t BlastSubtype = 4;
 inline constexpr std::int32_t FallingStarSubtype = 5;
 inline constexpr std::int32_t BoltSubtype = 6;
 inline constexpr std::int32_t StormSubtype = 7;
@@ -160,9 +164,22 @@ void CreateSweepJoint(JointState& joint, const World::FishEffectRequest& request
                                                                const JointKernels::StepServices& services);
 
 // El 0x14f (PlasmaJoints.cpp): alta 0x530ddd y paso 0x535b37, una vuelta por punto hacia su personaje dueño (0x4e9810).
-// Su llamador (0x5026a4) sigue cortado: el subtipo sale de 0x4f2230 (el +0x31b de Fenrir, que ActorState no tiene).
+// Lo pide la 0x4c (0x5026a4..0x502841, AttackSkillCases.cpp), con el subtipo de 0x4f2230 (el +0x31b, pet.flags1b).
 inline constexpr std::int32_t PlasmaJoint = 0x14f;
 void CreatePlasmaJoint(JointState& joint, const World::FishEffectRequest& request);
 [[nodiscard]] Core::Expected<void, std::string> StepPlasmaJoint(JointState& joint,
                                                                 const JointKernels::StepServices& services);
+
+// El 0x610/5 y el 0x60f/0x29 y /0x2a (SparkJoints.cpp): las chispas del sexto ayudante de Kalima, el 0x196 (0x43e904;
+// alta 0x531dd0 y paso 0x537a00), y el que gira alrededor del NPC 257 (0x5165d1, con él de dueño; alta 0x5339a5 y paso
+// 0x53a039), que suelta las /0x29 (0x53a0eb; alta 0x533915 y paso 0x539fc2). La /0x2a no se mueve con el paso común.
+inline constexpr std::int32_t HelperSparkJoint = 0x610;
+inline constexpr std::int32_t HelperSparkSubtype = 5;
+inline constexpr std::int32_t FallingSparkleSubtype = 0x29;
+inline constexpr std::int32_t SpinningSparkleSubtype = 0x2a;
+[[nodiscard]] bool IsSpark(std::int32_t type, std::int32_t subtype);
+[[nodiscard]] Core::Expected<void, std::string>
+CreateSparkJoint(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random);
+[[nodiscard]] Core::Expected<void, std::string> StepSparkJoint(JointState& joint,
+                                                               const JointKernels::StepServices& services);
 } // namespace Client::Scenes::JointFamilies

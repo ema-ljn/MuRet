@@ -2,9 +2,13 @@
 
 #include "Core/Expected.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRotation.h"
+#include "Scenes/ActorState.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/WorldState.h"
 #include "World/IFishStepServices.h"
+#include "World/Sprites.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -13,6 +17,7 @@
 #include <bit>
 #include <cstdint>
 #include <cstddef>
+#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
@@ -60,9 +65,11 @@ struct Spirals
         return Client::Scenes::CreateFaunaJoint(joints, request, random);
     }
 
-    Client::Core::Expected<void, std::string> Step()
+    Client::Core::Expected<void, std::string> Step(Client::Scenes::WorldState* world = nullptr,
+                                                   Client::World::FrameSprites* sprites = nullptr)
     {
-        return Client::Scenes::StepJoints(joints, random, nullptr, nullptr, 0.0f, nullptr, nullptr, {});
+        return Client::Scenes::StepJoints(joints, random, nullptr, nullptr, 0.0f, sprites, nullptr, {}, {}, {}, {},
+                                          nullptr, nullptr, world);
     }
 
     std::vector<JointState> joints = std::vector<JointState>(4);
@@ -160,14 +167,101 @@ TEST(SpiralJointsTest, TheOrbitsWaitOnTheirOwnerBone)
     ASSERT_TRUE(keyed.Create(5, 20.0f, 7).HasValue());
     EXPECT_EQ(keyed.joints[0].velocity, glm::vec3(0.0f));
 
-    // 0x53bbe6..0x53be1c: sin dueño muere; con dueño, el hueso corta.
+    // 0x53bbe6..0x53be1c: sin dueño muere.
     ASSERT_TRUE(spirals.Step().HasValue());
     EXPECT_FALSE(joint.alive);
-    int owner = 0;
-    keyed.joints[0].ownerContext = &owner;
-    const auto stepped = keyed.Step();
-    ASSERT_FALSE(stepped.HasValue());
-    EXPECT_TRUE(stepped.Error().starts_with("0x53bc71")) << stepped.Error();
+}
+
+// 0x53bbf1..0x53be17: con dueño, la posición del dueño va al modelo compartido de su tipo (la escala y la acción
+// quedan) y el camino arranca en el punto (0, 20, 0) de su hueso +0x9ec. Cada paso da min(+0x6c, tanda) tramos: el
+// camino avanza la velocidad girada por el hueso (con la key en −1, 0,1f más baja por tramo, sólo en la local), +0x5c
+// gira 40 (la /5 y la /7 para un lado, la /6 para el otro) desde +0x60, la posición es (0, 0, radio) girado por (+0x5c,
+// 0, 0) sobre el camino, el radio baja 0,15f y en los tramos pares queda el sprite 0x60f con media luz roja. +0x6c
+// crece uno.
+TEST(SpiralJointsTest, TheOrbitsCircleTheirOwnerBone)
+{
+    using Client::Render::Models::OriginalMatrixOf;
+    using Client::Render::Models::OriginalTransformPosition;
+    Client::Scenes::ActorState owner;
+    owner.type = 0x1a5;
+    owner.position = {100.0f, 200.0f, 300.0f};
+    owner.bodyPose.assign(3, Client::Render::Models::BoneTransform(0.0f));
+    owner.bodyPose[2] =
+        Client::Render::Models::BoneTransform(glm::vec3{0.6f, 0.8f, 0.0f}, glm::vec3{-0.8f, 0.6f, 0.0f},
+                                              glm::vec3{0.0f, 0.0f, 1.0f}, glm::vec3{10.0f, 20.0f, 30.0f});
+    auto world = std::make_unique<Client::Scenes::WorldState>();
+    world->PlaceModel(owner.type, {.scale = 1.25f, .origin = {9.0f, 9.0f, 9.0f}, .action = 4});
+    Client::World::FrameSprites sprites;
+
+    for (const std::int32_t subtype : {5, 6})
+    {
+        SCOPED_TRACE(subtype);
+        Spirals spirals;
+        spirals.owner = &owner;
+        ASSERT_TRUE(spirals.Create(subtype, 20.0f, -1, 2).HasValue());
+        JointState& joint = spirals.joints[0];
+        joint.light = {0.75f, 0.5f, 0.25f};
+        sprites.Clear();
+
+        const auto bone = OriginalMatrixOf(owner.bodyPose[2]);
+        const double swing = subtype == 5 ? 40.0 : -40.0;
+        float radius = 30.0f;
+        int expectedSprites = 0;
+        for (std::int32_t step = 1; step <= 2; ++step)
+        {
+            ASSERT_TRUE(spirals.Step(world.get(), &sprites).HasValue());
+            const auto placement = world->ModelPlacement(owner.type);
+            EXPECT_EQ(placement.scale, 1.25f);
+            EXPECT_EQ(placement.origin, owner.position);
+            EXPECT_EQ(placement.action, 4);
+            glm::vec3 path = OriginalTransformPosition(bone, {0.0f, 20.0f, 0.0f}, 1.25f, owner.position);
+            glm::vec3 velocity{0.0f, -4.0f, 0.0f};
+            float turn = 450.0f + static_cast<float>(subtype - 5) * 90.0f;
+            glm::vec3 position{};
+            for (std::int32_t segment = 0; segment < step; ++segment)
+            {
+                path = Sum(OriginalVectorRotate(velocity, bone), path);
+                turn = F32(static_cast<double>(turn) + swing);
+                position =
+                    Sum(OriginalVectorRotate({0.0f, 0.0f, radius}, OriginalAngleMatrix({turn, 0.0f, 0.0f})), path);
+                radius = F32(static_cast<double>(radius) - static_cast<double>(std::bit_cast<float>(0x3e19999au)));
+                velocity.y =
+                    F32(static_cast<double>(velocity.y) - static_cast<double>(std::bit_cast<float>(0x3dcccccdu)));
+                if (segment % 2 == 0)
+                {
+                    const Client::World::Sprite& sprite = sprites.Sprites()[static_cast<std::size_t>(expectedSprites)];
+                    ++expectedSprites;
+                    EXPECT_TRUE(sprite.alive);
+                    EXPECT_EQ(sprite.texture, 0x60f);
+                    EXPECT_EQ(sprite.position, path);
+                    EXPECT_EQ(sprite.scale, 0.375f);
+                    EXPECT_EQ(sprite.light, joint.light);
+                }
+            }
+            EXPECT_EQ(joint.pathIncrement, path);
+            EXPECT_EQ(joint.position, position);
+            EXPECT_EQ(joint.targetPosition,
+                      (glm::vec3{radius, turn, 450.0f + static_cast<float>(subtype - 5) * 90.0f}));
+            EXPECT_EQ(joint.velocity, (glm::vec3{0.0f, -4.0f, 0.0f}));
+            EXPECT_EQ(joint.maximumCount, step + 1);
+            EXPECT_TRUE(joint.alive);
+        }
+        EXPECT_EQ(expectedSprites, 2);
+        EXPECT_FALSE(sprites.Sprites()[2].alive);
+        EXPECT_EQ(spirals.random.State(), CrtRandom(Seed).State());
+    }
+
+    // Sin los modelos compartidos, o con un dueño que no es un personaje, corta.
+    Spirals unserved;
+    unserved.owner = &owner;
+    ASSERT_TRUE(unserved.Create(7, 20.0f, -1, 2).HasValue());
+    const auto cut = unserved.Step(nullptr, &sprites);
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_TRUE(cut.Error().starts_with("0x53bc42")) << cut.Error();
+    unserved.joints[0].ownerKind = Client::Scenes::JointOwnerKind::Helper;
+    const auto stranger = unserved.Step(world.get(), &sprites);
+    ASSERT_FALSE(stranger.HasValue());
+    EXPECT_TRUE(stranger.Error().starts_with("0x53bc27")) << stranger.Error();
 }
 
 // 0x53b974..0x53ba27: la /0 da +0x9ec − 1 tramos por paso (0, 2, 4…): cada uno la cola con la matriz de los ángulos y

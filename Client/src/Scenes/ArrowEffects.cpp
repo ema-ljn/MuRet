@@ -132,12 +132,6 @@ bool HasJointRoom(WorldState& world)
     return std::ranges::any_of(world.DrawTail().joints, [](const auto& joint) { return !joint.alive; });
 }
 
-bool HasParticleRoom(const ArrowStepContext& context)
-{
-    return context.particles == nullptr ||
-           std::ranges::any_of(context.particles->All(), [](const auto& particle) { return !particle.alive; });
-}
-
 // 0x518cf0(0x105, la posición de la flecha, sus ángulos, su luz, subtipo, la flecha, −1, 0, 0, 0, 0): el /0 es la
 // estela de la skill 0x34 (0x51c590..0x51c5a9) y el /3, el pulso de la 0xf8/1 en su vida 13 (0x523f72). El caso 0x105
 // (0x519fc9..0x51a101): vida 100, +0x64 en 0, +0x68 en 1 y +0xe4 en 0; el /0, la escala 12 (0x519ff3) y el /3, la
@@ -266,9 +260,16 @@ Core::Expected<void, std::string> BeginTheArrow(World::ModelEffect& effect, Worl
     {
         effect.transform.scale = 1.0f;
         effect.velocity.y = -70.0f;
-        if (HasJointRoom(world))
-            return Core::Unexpected(std::string("0x51c56c: el joint 0x610/0xe de la flecha 0xf9 (0x530860), sin portar "
-                                                "(CL11)"));
+        // 0x51c542..0x51c56c: 0x530860(0x610, posición, posición, ángulos, 0xe, flecha, 50, 40, 0, 0, −1).
+        constexpr std::int32_t ViperTrailSubtype = 0xe, ViperTrailKey = 0x28;
+        constexpr float ViperTrailWidth = 50.0f; // 0x42480000
+        const auto made =
+            CreateFaunaJoint(world.DrawTail().joints,
+                             {0x610, effect.transform.position, effect.transform.position, effect.transform.angles,
+                              ViperTrailSubtype, &effect, ViperTrailWidth, ViperTrailKey, 0, 0, -1},
+                             random, JointOwnerKind::ModelEffect);
+        if (!made.HasValue())
+            return Core::Unexpected(std::format("0x51c56c: {}", made.Error()));
     }
     else
     {
@@ -306,10 +307,16 @@ Core::Expected<void, std::string> BeginTheArrow(World::ModelEffect& effect, Worl
         constexpr int FullTurn = 360;
         effect.objectState.blendMesh = 1;
         effect.transform.angles.y = static_cast<float>(random.Next() % FullTurn);
-        if (HasJointRoom(world))
-            return Core::Unexpected(
-                std::string("0x51c713: el joint 0x610/0xc de la flecha 0x11c (0x530860), sin portar "
-                            "(CL11)"));
+        // 0x51c6ef..0x51c713: 0x530860(0x610, posición, posición, ángulos, 0xc, flecha, 40, 80, 0, 0, −1).
+        constexpr std::int32_t TwentiethTrailSubtype = 0xc, TwentiethTrailKey = 0x50;
+        constexpr float TwentiethTrailWidth = 40.0f; // 0x42200000
+        const auto made =
+            CreateFaunaJoint(world.DrawTail().joints,
+                             {0x610, effect.transform.position, effect.transform.position, effect.transform.angles,
+                              TwentiethTrailSubtype, &effect, TwentiethTrailWidth, TwentiethTrailKey, 0, 0, -1},
+                             random, JointOwnerKind::ModelEffect);
+        if (!made.HasValue())
+            return Core::Unexpected(std::format("0x51c713: {}", made.Error()));
     }
     CopyTheOwnCount(effect, world, random);
     return {};
@@ -1154,7 +1161,7 @@ Core::Expected<void, std::string> StepAquagoldArrow(World::ModelEffect& effect, 
     return HitWithTheArrow(effect, context);
 }
 
-// 0x526aef..0x526c51: la flecha 0x11c (su alta corta antes, en 0x51c713).
+// 0x526aef..0x526c51: la flecha 0x11c.
 Core::Expected<void, std::string> StepTwentiethArrow(World::ModelEffect& effect, float luminosity,
                                                      const ArrowStepContext& context)
 {
@@ -1163,12 +1170,23 @@ Core::Expected<void, std::string> StepTwentiethArrow(World::ModelEffect& effect,
     if (effect.life % 2 == 0)
     {
         constexpr int SparkCount = 3;
+        // 0x526b24..0x526bcb: tres veces el punto al azar y 0x53fe70(0x60f, punto, ángulos, (0,4f; 0,2f; 1), 5, 0,2f,
+        // 0).
+        if (context.particles == nullptr)
+            return Core::Unexpected(std::string("0x526bc2: falta el pool de la 0x60f/5 de la flecha 0x11c"));
+        constexpr glm::vec3 Violet{std::bit_cast<float>(0x3ecccccdu), std::bit_cast<float>(0x3e4ccccdu), 1.0f};
+        constexpr std::int32_t ShineSubtype = 5;
+        constexpr float ShineScale = std::bit_cast<float>(0x3e4ccccdu); // 0x526b77
         for (int index = 0; index < SparkCount; ++index)
         {
-            static_cast<void>(ScatteredPoint(effect.transform.position, context.random, {31, 63, 31}, {16, 32, 16}));
-            if (HasParticleRoom(context))
-                return Core::Unexpected(
-                    std::string("0x526bc2: la 0x60f/5 de la flecha 0x11c (0x53fe70), sin portar (CL11)"));
+            const auto point = ScatteredPoint(effect.transform.position, context.random, {31, 63, 31}, {16, 32, 16});
+            World::PortableParticleTrigonometry trigonometry;
+            const auto created = context.particles->CreateChecked(
+                World::OrbitParticle, point, effect.transform.angles, Violet, ShineSubtype, ShineScale,
+                std::cref(context.worldClock), context.random, 0, trigonometry);
+            if (!created.HasValue())
+                return Core::Unexpected(std::format("0x526bc2: la 0x60f/5 de la flecha 0x11c falla con el error {}",
+                                                    static_cast<unsigned>(created.Error())));
         }
     }
     effect.point40 = effect.transform.position;

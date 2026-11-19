@@ -132,7 +132,7 @@ public:
     }
 
     // 0x4ec110(hueso, offset, salida, 1) con el modelo del personaje: el hueso propio (+0x120) con la escala y la
-    // posición que 0x5ffdf0 le dio al modelo (KalimaSiegeHelperPass::modelOrigin).
+    // posición del registro del modelo (KalimaSiegeHelperPass::modelOrigin: la de la sombra o la de 0x5ffdf0).
     [[nodiscard]] glm::vec3 Point(std::size_t bone, const glm::vec3& offset) const
     {
         const ActorState& actor = m_pass.actor;

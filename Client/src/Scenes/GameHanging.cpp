@@ -141,7 +141,7 @@ struct Frame
     // cuerpo, aunque quien llama a 0x509340 haya cambiado la del personaje (0x50c7dd).
     float bodyScale = 0.0f;
 
-    // +0x6c..+0x74 del modelo del tipo (GameHangingPass::modelOrigin): la posición de antes del suelo de la sombra.
+    // +0x6c..+0x74 del modelo del tipo (GameHangingPass::modelOrigin): la del registro, no la del objeto.
     [[nodiscard]] glm::vec3 ModelOrigin() const
     {
         return pass.modelOrigin.value_or(actor.position);

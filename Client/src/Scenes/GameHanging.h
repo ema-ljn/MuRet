@@ -72,11 +72,12 @@ struct GameHangingPass
     bool originalFrame = true;
     // 414820 lee los nombres de gremio/alianza sólo para un maestro de rol6/7/8/12.
     const GuildState* guild = nullptr;
-    // +0x6c..+0x74 del modelo del tipo ([ebp−0x14] de 0x50ba30, 0x50ba7f): la posición que 0x6001b0 o 0x5ffdf0 le
-    // copiaron antes del suelo de la sombra de Blood Castle (0x50bcaf, 0x50be4f). Con ella traslada 0x4ec110 los puntos
-    // de los huesos del cuerpo (0x50e022, 0x50e13a, 0x50e9c6..0x50f804) y 0x5092d0 los sprites de los huesos del buffer
-    // global (0x50f1bf, 0x50f423); lo que cuelga sale de la del objeto (+0x10, 0x50966e), ya en el suelo. Sin ella, la
-    // del personaje.
+    // +0x6c..+0x74 del modelo del tipo ([ebp−0x14] de 0x50ba30, 0x50ba7f): la posición que 0x6001b0 le copió al
+    // jugador antes del suelo de la sombra de Blood Castle (0x50bcaf), y en un monstruo la del último 0x5ffdf0 o la del
+    // 0x60cf70 de su sombra (0x50beb6, ya en el suelo de 0x50be4d; sin él, el 0x18e, el 0x18f y del 0xa8 al 0xac quedan
+    // a la z de antes: MonsterFrame::modelOrigin). Con ella traslada 0x4ec110 los puntos de los huesos del cuerpo
+    // (0x50e022, 0x50e13a, 0x50e9c6..0x50f804) y 0x5092d0 los sprites de los huesos del buffer global (0x50f1bf,
+    // 0x50f423); lo que cuelga sale de la del objeto (+0x10, 0x50966e), ya en el suelo. Sin ella, la del personaje.
     std::optional<glm::vec3> modelOrigin{};
 };
 

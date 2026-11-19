@@ -14026,11 +14026,17 @@ con el modelo de `0x5769ad8 + tipo · 0xe0` (sin acciones, nada: `0x50ba82`), en
 3. **La sombra** (`0x50bd89..0x50bf3e`): sin `+0x88` en 8, sin los `+0x376` `0x19`, `0x16`, `0x2a`, `0xf2`, `0x3b`,
    `0x3f` y `0x98`, fuera del mapa 10 y con el alpha desde 0,3f. En Blood Castle, con `+0x1a1` y muriéndose (`+0x389`),
    la z baja a la del terreno (`0x5f93c0`) si el terreno queda debajo, y también con la z o la altura en NaN (el `fcom`
-   con `test ah, 1`, `0x50be15..0x50be52`; `ShadowGroundOf`). Sólo baja la z del objeto: lo que sigue lee los huesos
-   con `0x4ec110` sobre el registro del tipo que copió `0x5ffdf0` al posar el cuerpo (`0x5ffe8b..0x5ffe9a`, antes del
-   suelo; `MonsterFrame::modelOrigin`), salvo los `0x602e90` que vuelven a posar (el `0x4d`) (Q-C1820). El `0xe8` y el
+   con `test ah, 1`, `0x50be15..0x50be52`; `ShadowGroundOf`). El suelo (`0x50be4d`) sólo baja la z del objeto; lo que
+   sigue lee los huesos con `0x4ec110` sobre el registro del tipo (`[ebp−0x14]`, `MonsterFrame::modelOrigin`), que
+   `0x5ffdf0` copió al posar el cuerpo (`0x5ffe8b..0x5ffe9a`, antes del suelo) y que el `0x60cf70` de la sombra vuelve
+   a copiar después, ya en el suelo (abajo); sin esa llamada (el `0x18e`, el `0x18f` y del `0xa8` al `0xac`) queda a la
+   z de antes. Los `0x602e90` del `0x4d` con el tipo propio (`0x50c20b`, `0x50c217`) también lo vuelven a copiar; el de
+   `0x50c248` escribe el del tipo + 1 (`inc [ebx+2]` en `0x50c244`) (Q-C1820). El `0xe8` y el
    `0xe9` ponen `+0x58` en 2. Salvo el `0x18e`,
-   el `0x18f` y del `0xa8` al `0xac`, `0x60cf70` con `+0x98` en 1 → `0x60b3d0` → `0x4eff40(+0x64, +0x58, −1, −1)`:
+   el `0x18f` y del `0xa8` al `0xac`, `0x60cf70(objeto, tipo, …)` con `+0x98` en 1 (`0x50be6e..0x50beb6`; el objeto es
+   el personaje, `0x510e9f`), que primero copia al registro del tipo la escala (`+0xc` → `+0x68`) y la posición ya en el
+   suelo (`+0x10..+0x18` → `+0x6c..+0x74`, `0x60cfe8..0x60d015`) y vuelve a pasar las mallas de `0x5786f9c` con ellas
+   (`0x4ebc80`, `0x60d186`), antes de las guardas de `0x60b3d0`; después, `0x60b3d0` → `0x4eff40(+0x64, +0x58, −1, −1)`:
    cada malla salvo la de `+0x58`, las sin triángulos y las de la textura `+0x64`, aplastada como la del jugador
    (negra; en el 7, con alpha 0,2; sin sombra en Kalima). Después, el calco del `0xe8` y el `0xe9` (`0x50bed8..0x50bf3e`,
    los NPC 232 y 233, los tipos `0x1f3` y `0x1f4`): `0x620a90` y `0x5fb2f0(0x61e, x, y, 2,7f, 2,7f, &luz, −giro z, 1,
@@ -14055,8 +14061,9 @@ con el modelo de `0x5769ad8 + tipo · 0xe0` (sin acciones, nada: `0x50ba82`), en
    `+0x174` · factor en la x87 y, por la tabla de `0x60936c`, cada componente k por la del tipo (la de
    `Render::Models::ShineColorOf`; el `0x16d` con el `0x100`, el caso 8: (0,8k; 0,8k; k)); después
    `RenderBody(banderas, +0x174, +0x64, +0x68, +0x6c, +0x70, −1, textura)`, que no mira el `0x100`. Las mallas son las
-   de `0x5786f9c` como las dejó el último `0x4ebc80`: las del cuerpo, o las de la sombra, que son las mismas; MuRet las
-   vuelve a pasar a la pose guardada. Un monstruo que nunca se posó (el alpha por debajo de 0,01f desde que llegó) las
+   de `0x5786f9c` como las dejó el último `0x4ebc80`: las del cuerpo, o las del `0x60cf70` de la sombra, que son las mismas
+   salvo en el muerto de Blood Castle, donde ya están en el suelo; MuRet las vuelve a pasar a la pose guardada con el
+   origen del registro (`PosedBodyOf`). Un monstruo que nunca se posó (el alpha por debajo de 0,01f desde que llegó) las
    dibuja con las de otro modelo (Q-C863). Con el alpha por debajo de 0,99, Q-C95 oscurece cada malla en el lugar.
    El `0x4d` (fase 8, `0x50c177..0x50c366`, el monstruo 77, el tipo `0x189`, que el alta carga con su segundo modelo, el
    `0x18a`): s = f((sin((ftol(T) % 10.000) · 0,001f) + 1) · 0,5f), con el resto con el signo del dividendo y la suma

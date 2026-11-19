@@ -37,6 +37,7 @@
 #include <span>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <glm/ext/vector_int2.hpp>
 #include <glm/ext/vector_float4.hpp>
 #include <string>

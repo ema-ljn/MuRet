@@ -1046,8 +1046,17 @@ Core::Expected<void, std::string> StepFire(ModelEffect& effect, float luminosity
         if (services.cameraShake == nullptr)
             return Core::Unexpected(std::string("0x524a87: falta el temblor de la cámara (0x7d325c8)"));
         *services.cameraShake = F32(static_cast<double>((random.Next() & 3) - 4) * Tenth);
-        return Core::Unexpected(
-            std::string("0x524a8d: el 0xc2/4 empuja a los personajes cercanos (0x4e9cd0 y 0x4ea030) (CL11)"));
+        // 0x524a8d..0x524b21: los personajes cercanos van a 0x4e9cd0 (el 0x20a con +0x318 en 0x1c37) o a 0x4ea030
+        // (0xc2 el 0x20a, 5 los demás).
+        if (!services.someoneToPush)
+            return Core::Unexpected(std::string("0x524a8d: faltan los personajes del pool (0x743a16c)"));
+        if (services.someoneToPush(at.x, at.y))
+            return Core::Unexpected(
+                std::string("0x524a8d: el 0xc2/4 empuja a los personajes cercanos (0x4e9cd0 y 0x4ea030) (CL11)"));
+        // 0x524b27: sin nadie, cae en el suelo (fld [ebp-0x7c]; jmp 0x524c64).
+        if (auto landed = LandTheFire(effect, D(ground), local, random, services); !landed.HasValue())
+            return landed;
+        return FireGlow(effect, luminosity, local, random, services);
     }
     if (subtype == 6 || subtype == 7 || subtype == 8)
     {

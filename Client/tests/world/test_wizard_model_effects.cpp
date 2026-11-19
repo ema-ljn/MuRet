@@ -77,6 +77,8 @@ struct Harness
     double ground = 0.0;
     std::optional<WizardOwnerView> owner;
     int hero = 0;
+    bool someoneClose = false;
+    std::vector<std::pair<float, float>> pushes;
 
     WizardEffectServices Services()
     {
@@ -107,7 +109,13 @@ struct Harness
                 return {};
             },
             .ownRecordDepth = &depth,
-            .ownRecordCount = &count};
+            .ownRecordCount = &count,
+            .someoneToPush =
+                [this](float x, float y)
+            {
+                pushes.emplace_back(x, y);
+                return someoneClose;
+            }};
     }
 
     ModelEffect& At(std::size_t slot)
@@ -442,6 +450,39 @@ TEST(WizardModelEffectsTest, TheMeteorExplodesOnTheGround)
     EXPECT_EQ(world.AliveOf(0xc8) + world.AliveOf(0xc9), 6U);
     EXPECT_EQ(world.ParticlesOf(0x5ed, 0), 1U);
     EXPECT_EQ(world.ParticlesOf(0x5d9, 5), 1U);
+}
+
+// 0x524a5f..0x524b2a: el 0xc2/4 que baja del suelo tiembla la cámara y mira los personajes del pool. Con alguno a 200
+// o menos, MuRet corta (0x4e9cd0 y 0x4ea030 no están); sin nadie, cae en el suelo como el meteoro (0x524c64): seis
+// piedritas, la explosión y muere.
+TEST(WizardModelEffectsTest, TheFallingFireLandsWhenNobodyIsClose)
+{
+    for (const bool close : {false, true})
+    {
+        SCOPED_TRACE(close);
+        Harness world;
+        world.ground = 1000.0;
+        world.someoneClose = close;
+        CrtRandom random(16);
+        ModelEffect& fire = world.At(Create(world, Arguments(0xc2, 4), random));
+        const auto stepped = Client::World::StepWizardModelEffect(fire, nullptr, random, world.Services());
+        ASSERT_EQ(world.pushes.size(), 1U);
+        EXPECT_EQ(world.pushes[0].first, fire.transform.position.x);
+        EXPECT_EQ(world.pushes[0].second, fire.transform.position.y);
+        EXPECT_NE(world.shake, 0.0f);
+        if (close)
+        {
+            ASSERT_FALSE(stepped.HasValue());
+            EXPECT_NE(stepped.Error().find("0x524a8d"), std::string::npos) << stepped.Error();
+            EXPECT_TRUE(fire.alive);
+            continue;
+        }
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_FALSE(fire.alive);
+        EXPECT_EQ(fire.transform.position.z, 1000.0f);
+        EXPECT_EQ(world.AliveOf(0xc8) + world.AliveOf(0xc9), 6U);
+        EXPECT_EQ(world.ParticlesOf(0x5ed, 0), 1U);
+    }
 }
 
 TEST(WizardModelEffectsTest, TheBouncingFireNeedsItsEmberParticle)

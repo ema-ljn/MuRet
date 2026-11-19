@@ -15,6 +15,8 @@
 #include "World/WizardModelEffects.h"
 #include "World/WorldTerrain.h"
 
+#include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <optional>
@@ -93,6 +95,27 @@ World::WizardEffectServices WizardEffectServicesOf(WorldState& world, Render::Mo
             auto placement = world.ModelPlacement(type);
             placement.action = action;
             world.PlaceModel(type, placement);
+        },
+        .someoneToPush =
+            [&world, hero = runtime.hero](float x, float y)
+        {
+            constexpr std::size_t PooledActors = 400; // 0x524b1b: 0x69780 / 0x438.
+            constexpr double PushRadius = 200.0;      // 0x6b8928
+            const auto actors = world.Actors().first<PooledActors>();
+            for (std::size_t index = 0; index < actors.size(); ++index)
+            {
+                const ActorState& actor = actors[index];
+                // 0x524a93..0x524aa9: dx y dy se guardan en float antes de mirar al personaje.
+                const auto dx = static_cast<float>(static_cast<double>(x) - static_cast<double>(actor.position.x));
+                const auto dy = static_cast<float>(static_cast<double>(y) - static_cast<double>(actor.position.y));
+                if (!actor.alive || !actor.seen || index == hero || actor.dying != 0)
+                    continue;
+                const double distance = std::sqrt(static_cast<double>(dy) * static_cast<double>(dy) +
+                                                  static_cast<double>(dx) * static_cast<double>(dx));
+                if (!(distance > PushRadius))
+                    return true;
+            }
+            return false;
         }};
 }
 

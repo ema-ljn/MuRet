@@ -1441,6 +1441,44 @@ TEST_F(MonsterDrawingTest, BetweenOriginalFramesNothingIsStored)
     EXPECT_EQ(m_clothWorld.random.State(), 1u);
 }
 
+// 0x43f182..0x43f269: Kundun cayendo (+0x60 desde 100, la acción 6 desde el frame 8) suelta sus 0x56 vueltas del
+// 0x613/3 y el 0x6ee/3 en la tabla de joints real (0x74a8d78) y tiembla una vez por cuadro del original (ADR 0005).
+// Entre frames del original dibuja el cuerpo de la copia proyectada, pero no toca ninguna tabla de joints, ni la real
+// ni la proyectada, ni saca los rand() de la rama.
+TEST_F(MonsterDrawingTest, KundunFallingBetweenOriginalFramesLeavesTheJointTablesAlone)
+{
+    constexpr std::uint16_t Kundun = 0x192;
+    constexpr std::size_t Rays = 0x56;
+    const auto alive = [](const Client::Scenes::JointState& joint) { return joint.alive; };
+    m_models.SetActionCount(7);
+    ActorState& kundun = Monster(4, Kundun, 0x113);
+    kundun.animation = {.action = 6, .frame = 8.0f};
+    kundun.dword60 = 100;
+    float shake = 0.0f;
+    GameCharacterPass pass = Pass();
+    pass.cameraShake = &shake;
+    pass.originalFrames = 0;
+
+    const auto between = Draw(pass);
+
+    ASSERT_TRUE(between.HasValue()) << between.Error();
+    EXPECT_FALSE(m_batch.Vertices().empty());
+    EXPECT_TRUE(std::ranges::none_of(m_world->DrawTail().joints, alive));
+    EXPECT_TRUE(std::ranges::none_of(m_joints, alive));
+    EXPECT_EQ(kundun.dword60, 100);
+    EXPECT_EQ(shake, 0.0f);
+
+    pass.originalFrames = 1;
+    m_batch.Begin(Client::Render::Pass3D{});
+    const auto original = Draw(pass);
+
+    ASSERT_TRUE(original.HasValue()) << original.Error();
+    EXPECT_EQ(static_cast<std::size_t>(std::ranges::count_if(m_world->DrawTail().joints, alive)), 2 * Rays);
+    EXPECT_TRUE(std::ranges::none_of(m_joints, alive));
+    EXPECT_EQ(kundun.dword60, 0x5a);
+    EXPECT_NE(shake, 0.0f);
+}
+
 // 0x5ffe9d..0x5ffeef: 0x18f suma 60 y 0x18e 120 a y antes de copiar escala y origen al modelo compartido; entre frames
 // del original no publica esa transformacion.
 TEST_F(MonsterDrawingTest, TheBodyPublishesItsSharedModelPlacementOnOriginalFrames)

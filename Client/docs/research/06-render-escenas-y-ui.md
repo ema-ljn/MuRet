@@ -14324,9 +14324,11 @@ los ocho pedazos en el punto de 0x4ec110 sobre el hueso 4 y el `0x128/2` en su p
 terreno llega por `MonsterBodyFrame::terrainHeight`, y sin ella el /2, el /3 y el /4 cortan en `0x51e26e` y
 `0x51e2ee`. 0x4ec110 con Translate en 1 suma la escala `+0x68` y el origen `+0x6c` que 0x5ffdf0 copió al modelo en
 el mismo dibujo: los de `MonsterBodyModel::object.transform`, que `MonsterDrawing` publica con `PlaceModel` en el frame
-del original. El original dibuja una vez por paso; entre frames del original MuRet dibuja una copia proyectada de
-Kundun (ADR 0005) con su malla 0, pero sin el temblor, los pedazos ni sus `rand()`, que corren sólo en el frame del
-original, como los creadores de la tormenta: `KundunFallsOnlyInTheOriginalFrame`, décima vuelta) y el golpe de la 3
+del original. El original dibuja una vez por cuadro, después de 0 a N pasos (ADR 0005); entre frames del original
+MuRet dibuja una copia proyectada de Kundun con su malla 0, pero sin el temblor, los pedazos ni sus `rand()`, que corren
+sólo en el frame del original, como los creadores de la tormenta: `KundunFallsOnlyInTheOriginalFrame`, décima vuelta;
+lo mismo con los 0x56 pares de rayos `0x613/3` y `0x6ee/3` y el temblor de `0x43f182..0x43f269`, que van a la tabla de
+joints real solo en un frame del original: `KundunFallingBetweenOriginalFramesLeavesTheJointTablesAlone`) y el golpe de la 3
 del `0x1a4` (`0x441b33`: en la mano derecha con su z y en cada uno de los primeros 400 jugadores (`0x441c60`) visto y vivo a
 más de 200 y menos de 1.100 en el plano, el cráter `0x636/2`, el joint `0x61c/6` (ancho 200, sin dueño) y la columna
 `0x5de/3`, `World::ModelEffects::CreateFlameColumn`: vida 15; su paso, `0x52ae7f..0x52b011`, deja tres `0x5de/6` y tres

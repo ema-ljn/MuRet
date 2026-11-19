@@ -11999,7 +11999,8 @@ y las partículas que MuRet ya crea; los efectos (`0x518cf0`), los joints (`0x53
   - `0x43abea` (`0x93`, `0xb1`, `0xb9`, `0xc1`, `0x107`, `0x10f` y `0x117`): en la 4 y en 14, `0x11a` (`0x43ac29`; CL11, el seamanFX sobre c con sus ángulos, `Scenes::KalimaMonsterEffects`; la luz de c que recibe, el alta la pisa con (1, 1, 1)).
   - `0x43ac3a`: lee `+0x38e`; con `0x11` y en 14, el terremoto `0xfa`/1 (`0x43ae45`).
   - `0x43ae56`: lee `+0x38e`; en 14, con 1, dos `rand() % 200` y el primero de tres `0xc2`/7 alrededor del héroe
-    (`0x43b1f4`), y con `0x11` y el blanco en `[0, 400)`, tres joints `0x610`/6 (`0x43b0ed`).
+    (`0x43b1f4`), y con `0x11` y el blanco en `[0, 400)`, tres joints `0x610`/6 (`0x43b0ed`, `0x43b11c`, `0x43b14e`;
+    CL11, *Los joints de las familias*).
   - `0x43b208`: en la 3 y desde 13, `0xf6`/5 y `0x5de`/2 (`0x43b241`).
 - `0x4436f0`, el 31: el `0x123` a `0x125`, el `0x127` y el `0x12f` devuelven 1 sin nada más.
 - `0x42dcf0`, el 30: el `0x120`, `0x61c` siempre (`0x42dd48`); el `0x68`, en 5, `0x19f` (`0x42dd9c`); los dos
@@ -14099,8 +14100,8 @@ la 0x4b (con el `0x138`), la 0x4a y la 0x3d; de `0x4f97b0` la 0x2b, la 0x2f y la
 0x46 (`0x4f5cb6`: un blanco fuera de la tabla corta en `0x4f5cd4`), `0x4f67fb`, `0x4f6b51` y `0x4f81cc`; el rayo
 blanco del `0x1bb` (`0x428da7`); el `0x615` del `0x43a872` de Kalima (`0x43ab5f`, `KalimaMonsterEffects`); la calavera `0x628/0` de la bandera `0x40` (`0x4e688c`, `Scenes::ApplyEffectFlags`) y de la 0x37 que llega (`0x4cd664`, `CastTheSkill`), las dos por `Scenes::PutTheSkullOn` (`SkullEffects`); y de `0x441400` las muertes del `0x1a4` y el `0x1a6` (`0x4ee770` sobre las mallas
 de su cuerpo posado, `Scenes::EmitVertexEffects`, Q-C1581) y la piedra del `0x1a6` (`0x442397`; con el primer
-`rand() % 2` en 1 el punto no está escrito y corta, Q-C1580). Las piedras están en `World/SiegeVertexEffects`. Cortan con su dirección los joints que todavía no están (`0x61c/3`, `0x632/5`,
-`0x615/6`, `0x60f/0x19`, `0x60f/0xb`, `0x614/3`, `0x61c/2`, `0x60f/4`, `0x60f/0xc`, `0x619/6`; 08, P-C420), las
+`rand() % 2` en 1 el punto no está escrito y corta, Q-C1580). Las piedras están en `World/SiegeVertexEffects`. Los joints que piden (`0x61c/3`, `0x632/5`,
+`0x615/6`, `0x60f/0x19`, `0x60f/0xb`, `0x614/3`, `0x61c/2`, `0x60f/4`, `0x60f/0xc`, `0x619/6`) los crea el lote joints (*Los joints de las familias*; 08, P-C420). Cortan con su dirección las
 partículas sin portar (`0x5ac/8`, `0x5db/7`, `0x5db/0xb`, `0x5da/0`, `0x5f2/0x18`, `0x5de/5` y `0x5ac/5` del `0x628`; 08, P-C422) y la segunda animación del `0x13b`
 cuando la primera dejó la acción en `0xff` (`0x52cd84`: el original lee la acción 255 fuera de la tabla del modelo,
 P-C421). La comprobación de distancia del `0x116/0` (la vida en 5, `0x5f93c0` en una variable que nadie lee) no se
@@ -14110,8 +14111,8 @@ Quinta vuelta: las familias nuevas están en `WaveEffects`, `RingEffects`, `Kund
 (`0x504cdb`), la flecha `0x11c` (`0x526c05`), los anillos de la 0x37 de Kalima (`0x439ba5`) y el `0x11b/0` del joint
 `0x613/0x13` (`0x539b08`), el `0x13f` del `0x1a9` con el sonido `0x20d` (`0x442cb9`, solo en el frame del original),
 la marca `0x140` de `+0x369` (`0x510f4d`, en `MonsterDrawing` y en `GameCharacterEffects`) y la onda `0x6eb/3` del
-joint `0x10f/5` y `/6` (`0x536626`). Cortan, con un lugar libre y después de sus `rand()`: los joints `0x5ac/0` y
-`0x6e8/0` del `0x114` (`0x51c1b8`, `0x51c25f`) y el `0x6ee/0x12` con dueño del `0x125` (`0x51ce91`) (08, P-C420); las
+joint `0x10f/5` y `/6` (`0x536626`). Los dos `0x6e8/0` del `0x114/1` (`0x51c25f`) los crea el lote joints. Cortan, con un lugar libre y después de sus
+`rand()`: los joints `0x5ac/0` del `0x114/0` (`0x51c1b8`) y el `0x6ee/0x12` con dueño del `0x125` (`0x51ce91`) (08, P-C420); las
 partículas `0x6ec/3` del `0x13d` (`0x5262e8`), `0x5c5/6` y `0x5c5/5` del `0x140` (`0x529f71`, `0x52a16e`) y la órbita
 `0x60f/0` con el `0x61d` de dueño (`0x52b8ff`, `0x52b977`; su paso lee `+0x111` del efecto como la acción de un
 personaje) (08, P-C422). El `0x125` todavía no sale en el juego: el `0x128` que lo suelta no está (`0x43d051`,
@@ -14372,6 +14373,56 @@ en un lugar de más adelante pasa en la misma vuelta de `0x53c670`.
   la vida del lugar (tope 50, `0x534cb6`). Paso `0x5366bd..0x5366ee`: con el dueño vivo y de tipo `0xc2`, la posición
   es la suya (`+0x10`). El dibujo de la /0 salta el tramo 0 y lleva la luz por min(vida, 20) · 0,1f.
 
+- **`0x632/5`** (`StormJoints.cpp`, quinta vuelta): la estrella que suelta el pulso `0x61c/0` del asedio (`0x52c266`,
+  con el efecto de dueño, que no lee). Alta `0x534bcb..0x534cb6`: 10 puntos, vida 40, velocidad 70, el ancho,
+  `+0x9f1` en `rand() & 1` (que pisa en 2), la clave en 0, `+0x9ec` en 150, la textura `0x60f`, 15 puntos, la
+  velocidad `rand() % 20 + 10` y `+0x3c` con los ángulos. Paso `0x53c0a5..0x53c390`: la velocidad sube 10, la cola con
+  la matriz de los ángulos, sube otros 10 y avanza (0, −velocidad, 0) girado por `+0x3c`; con el terreno menos `+0x9ec`
+  estrictamente arriba de la z, la z queda ahí y, la primera vez (cola prendida y clave en 0), la onda `0x6eb/4` con la
+  luz (1; 0,8f; 0,3f) en la posición y con los ángulos (`0x53c295`, un `rand()` si hay lugar); después la clave en 1, la
+  velocidad en −20 y la luz por 0,8333333f. Siempre el sprite `0x60f` de escala 2,5 con la luz y `rand() % 360`.
+- **`0x615/5` y `/6`** (`FaunaJointCreation.cpp`, con el `/2` y el `/7`, quinta vuelta): el rayo del `0x615` de Kalima
+  en sus últimas vidas pares (`0x52b560`) y los dos del pulso `0x61c/1` del asedio (`0x52c31e`, `0x52c342`, con él de
+  dueño). Alta `0x531b0c..0x531bfc`: la /5 con la luz (1; 0,5; 0,2f); la /6 con velocidad 0,3f, la luz en 1 y otros 700
+  más arriba después de guardar `+0x24`. Paso `0x53768f..0x5379ef`: 45 tramos que bajan 16 (13 la /6; 20 la /7, que
+  MuRet tenía en 16), cuatro de llegada y el destino; la /6 pone la z del destino 30 sobre el terreno (`0x5f93c0`) y
+  deja la partícula `0x6ed/0` de escala 2 ahí (su luz local no se escribe: Q-C1625). Con 10 de vida o menos apagan la
+  cola.
+- **`0x60f/4` y `/0xc`, `0x62b/4` y `/0xc`** (`HelixJoints.cpp`, quinta vuelta): las chispas que el `0x812` suelta en
+  cada paso (`0x52c9da` la /4, escala 50; `0x52c9a7` la /0xc, escala 100; con él de dueño). Alta `0x533faf..0x5340d7`
+  sobre lo común del `0x60f` (vida 100, 20 puntos, ancho 10, que el ancho de la escala pisa): la /0xc vive 70 con la luz
+  (0,1f; 0,1f; 1) y 50 puntos; la /4 vive 110 con la luz del efecto dueño (`+0xf4`) y 200 puntos (el tope de
+  `0x534cb6` los deja en 50); vx en `rand() % 360`, vy y vz el seno y el coseno de −z (en radianes, `0x6ba2c4`) por −4
+  la /0xc y por −2 la /4, y el destino en el segundo punto (`0x5342be`). Paso `0x53b08a..0x53b14c`: el giro a = (vida +
+  vx) · 0,1f; la /0xc con el radio horizontal cos a · −26 (a sin redondear) y el vertical sen a · 26 − (90 − vida) ·
+  0,3f; la /4 con el radio (vida + 40, no menos de 10) · 0,65f, −cos y sen; el destino avanza (vy, vz) y la posición
+  es el destino más (sen f · h, cos f · h, v), con f = (90 − z) en radianes; bajo 10 de vida, la luz por 0,7692308f.
+  **La segunda vuelta** (`0x53c3c6..0x53c3f3`): después de la cola común, con la vida (ya restada) ≥ 0 y no múltiplo
+  de 12, el `0x60f` y el `0x62b` con el subtipo 4 o 0xc llaman otra vez a `0x535840`, con su propio marco: el joint da
+  vueltas en el mismo cuadro hasta que la vida es múltiplo de 12 (con 110, dos; con 108, doce).
+- **`0x619/3` y `/6`** (`FaunaJointCreation.cpp`, junto al `0x619/1`, quinta vuelta): el /3 lo sueltan de a tres los
+  calcos `0x61e/3` de la `0x1c` y de las invocaciones (`0x518900`, `0x5189cc`), con el personaje de dueño: lo común
+  del `0x619` (`0x5323d3`) y el paso del /1 (velocidad + 4, `0x4e9810` de a 10 hacia el dueño 120 más arriba, el
+  sprite `0x5fd` en la vida 1) con la luz (12 − vida) · 0,1f por (1; 0,6f; 0,4f) (`0x538bc8`). El /6 lo suelta de a
+  tres el `0x813` (`0x52cb85`), sin dueño: la luz (1; 1; 0,5) y 4 puntos (`0x5323fa`); su paso sube la velocidad 2 sin
+  girar ni cambiar la luz y, con 10 de vida o menos, deja el sprite `0x5fd` en su destino con la luz gris
+  (6 − |vida − 6|) · 0,15f, `rand() % 360` y la escala ((`rand() & 7`) + 8) · 0,05f (`0x538c25..0x538ca9`).
+- **`0x610/6`** (`FaunaJointCreation.cpp`, quinta vuelta): los tres que el `0x95` de Kalima tira con la `0x11` en 14
+  hacia el blanco de `+0x3a4` (`0x43b045..0x43b156`: desde el punto del hueso 60 de c con `0x4ec110`, a la posición del
+  blanco, con él de dueño, ancho 30, key 50 y los giros z, z − 30 y z − 15). Alta `0x531c43..0x531cc7` y
+  `0x531e04..0x531e27`: la vida en la key, la luz en 1, mezcla 4, el ancho, 16 puntos y velocidad 5, el destino en el
+  segundo punto. Paso `0x537b36..0x537c7d`: sin dueño se apaga (`0x53be97`); con 30 de vida o más la z de los ángulos
+  baja 10 y la posición sube 2,5; la velocidad sube 5 con tope 30 (la suma de la x87); `0x4e9810` gira con la velocidad
+  hacia el blanco 150 más arriba y, con la distancia que deja en la x87 a 70 o menos, el giro z cambiado más de 20 y la
+  velocidad de 20 o más, frena 10; bajo 15 de vida los tres canales son la x por 0,8333333f; siempre la luz dinámica de
+  radio 2 con ((`rand() & 3`) + 8) · 0,03f por (0,4f; 1; 0,8f).
+- **`0x6e8/0` y `/1`** (`FaunaJointCreation.cpp`, quinta vuelta): los remolinos que el `0x114/1` suelta de a dos
+  (`0x51c25f`, sin dueño, escala `rand() % 40 + 70`). Alta `0x5345bf..0x5346d3`: sin la cola común (`+0x9f2` en 0), el
+  ancho, velocidad 20, los ángulos (−90, 0, z), vida 10, 30 puntos y la velocidad `+0x9dc` en 0; la /1 con la textura
+  repetida (`+0x9f0`); la luz en 1 con `rand()` impar y (1; 0,8f; 0,6f) con par; `+0x24` en la posición. Paso
+  `0x53b7f1..0x53b93a`, sin el movimiento común (lista de `0x53585e`): con más de 9 de vida, treinta veces la cola con la
+  matriz de los ángulos (`0x535520`) y la posición más (0, 0, −velocidad) girado; siempre la velocidad 2 menos y la luz
+  por 0,7142857f.
 La matriz de la cola común (`0x53c393`, `[ebp−0xe8]`) es la que calculó `0x53590e` en el paso del joint; los de la
 lista `0x53585e..0x53590c` no la calculan y usan la del último joint de la vuelta que la calculó (Q-C1623). El paso
 común lee también `[ebp−0x30]` y `[ebp+8]`, la posición menos el destino en x y en y antes de moverse (`0x53584f`).

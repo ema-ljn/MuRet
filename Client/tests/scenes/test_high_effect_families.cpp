@@ -298,6 +298,15 @@ TEST(HighEffectFamiliesTest, TheRingAsksForTheGroundOnlyWhileItIsYoung)
             continue;
         }
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        // El primer rand() del paso es la luz local; la sacudida, (8845 & 31) − 16 = −3 de cabeceo y (11882 & 31) − 16
+        // = −6 de giro. 0x4e9810 gira también el cabeceo hacia la partida, (0, 0, 200) desde el origen: 0x4e93f0(z, 0,
+        // 200, 0) da 90, 360 − 90 = 270 y 0x4e9560 lo lleva de 0 a 350 de a 10 (0x4e9647); la z, de 0 a 350 hacia 180.
+        // La copiada x en −3 · 0,2f se suma (349,4f, por encima de 80: sin los 5 de 0x52663d) y se frena por 0,6f; la
+        // copiada z en −6 · 0,8f se suma (345,2f) y se frena por 0,8f.
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(ring.transform.angles.x), 0x43aeb333u);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(ring.transform.angles.z), 0x43ac999au);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(ring.copiedAngles.x), 0xbeb851ecu);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(ring.copiedAngles.z), 0xc075c290u);
         EXPECT_EQ(ring.alpha, std::bit_cast<float>(0x3f68ba2eu));
         EXPECT_EQ(ring.objectState.light,
                   static_cast<float>(0.5 * static_cast<double>(std::bit_cast<float>(0x3f555555u))));
@@ -615,6 +624,9 @@ TEST(HighEffectFamiliesTest, TheGuildMarkRisesOverItsOwnerWithTenSparks)
         ASSERT_TRUE(sine.has_value());
         const auto& first = tested.world->Particles().All()[0];
         EXPECT_EQ(first.position.x, static_cast<float>(*sine + 1000.0));
+        // Referencia aparte (FSIN nativo con el perfil PC53): la x y la y de la primera chispa, en bits.
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(first.position.x), 0x44778b75u);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(first.position.y), 0x44f8261bu);
         EXPECT_EQ(first.position.z, 180.0f);
         EXPECT_EQ(first.typedOwner, (Client::World::ParticleOwner{Client::World::ParticleOwnerKind::ModelEffect, 0}));
     }
@@ -730,7 +742,10 @@ TEST(HighEffectFamiliesTest, TheKundunSpiritLeavesItsOrbitingJoint)
 }
 
 // 0x5276b7..0x527787: el paso del 0x125 gira rand() % 10 + 10; entre 300 y 600 de z, con rand() & 1 en 0, el joint
-// 0x6ee/0xe sin dueño en (x, y, 350) con el giro (rand() % 24) · 30. Fuera de esa franja, un solo rand().
+// 0x6ee/0xe sin dueño, de ancho 100 y clave 0, en (x, y, 350) con el giro (rand() % 24) · 30. Fuera de esa franja, un
+// solo rand(). Con la semilla, el alta saca tres rand() (con los joints llenos) y el paso empieza con el de la luz
+// local; con cuatro más antes del paso, el giro es el noveno (2629: 19), la moneda el décimo (22786, par) y el rayo el
+// undécimo (11018 % 24 = 2: 60 grados).
 TEST(HighEffectFamiliesTest, TheKundunSpiritFansOutBetweenThreeAndSixHundred)
 {
     for (const float height : {300.0f, 450.0f, 600.0f})
@@ -739,38 +754,33 @@ TEST(HighEffectFamiliesTest, TheKundunSpiritFansOutBetweenThreeAndSixHundred)
         FamilyWorld tested;
         tested.FillTheJoints();
         ASSERT_TRUE(CreateHighModelEffect({.type = 0x125}, tested.Context()).HasValue());
+        ASSERT_EQ(tested.Draws(), 3);
         for (auto& joint : tested.world->DrawTail().joints)
             joint.alive = false;
+        for (int draw = 0; draw < 4; ++draw)
+            static_cast<void>(tested.random.Next());
         ModelEffect& spirit = tested.Effect(0);
         spirit.transform.position = {1000.0f, 2000.0f, height};
         const float yaw = spirit.transform.angles.z;
-        const int before = tested.Draws();
         ASSERT_TRUE(Client::Scenes::StepHighModelEffect(spirit, nullptr, tested.StepContext()).HasValue());
-        CrtRandom replay(Seed);
-        for (int draw = 0; draw < before + 1; ++draw)
-            static_cast<void>(replay.Next());
-        const int spin = replay.Next() % 10 + 10;
-        EXPECT_EQ(spirit.transform.angles.z, static_cast<float>(spin + static_cast<double>(yaw)));
+        EXPECT_EQ(spirit.transform.angles.z, static_cast<float>(19.0 + static_cast<double>(yaw)));
         const auto& fan = tested.world->DrawTail().joints[0];
         if (height != 450.0f)
         {
-            EXPECT_EQ(tested.random.State(), replay.State());
+            EXPECT_EQ(tested.Draws(), 9);
             EXPECT_FALSE(fan.alive);
             continue;
         }
-        if ((replay.Next() & 1) != 0)
-        {
-            EXPECT_EQ(tested.random.State(), replay.State());
-            EXPECT_FALSE(fan.alive);
-            continue;
-        }
-        const int spoke = replay.Next() % 24;
+        EXPECT_EQ(tested.Draws(), 11);
         ASSERT_TRUE(fan.alive);
         EXPECT_EQ(fan.type, 0x6ee);
         EXPECT_EQ(fan.subtype, 0xe);
         EXPECT_EQ(fan.ownerContext, nullptr);
         EXPECT_EQ(fan.position, (glm::vec3{1000.0f, 2000.0f, 350.0f}));
-        EXPECT_EQ(fan.angles, (glm::vec3{0.0f, 0.0f, static_cast<float>(spoke * 30)}));
+        // Pide los ángulos (0, 0, 60); el alta del 0x6ee/0xe pone la x en 20 (0x5334bb).
+        EXPECT_EQ(fan.angles, (glm::vec3{20.0f, 0.0f, 60.0f}));
+        EXPECT_EQ(fan.width, 100.0f);
+        EXPECT_EQ(fan.key, 0);
     }
 }
 } // namespace

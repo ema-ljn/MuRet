@@ -22,28 +22,16 @@
 #include <string>
 #include <vector>
 
-// Los modelos del personaje (0x60dbe0), de los ítems (0x60ff50) y el caballo oscuro con los tres que
-// van antes de él en sus texturas (0x615700), con el esqueleto de cada uno y el slot de la textura de
-// cada malla, como los lee la carga en su avance 1 (0x61ccb0) y los usan las escenas que siguen.
-// Viven en main.cpp, como GameData: se leen una vez, y sus texturas quedan. Contrato:
-// Client/docs/research/06-render-escenas-y-ui.md, "El modelo en el binario" y "El caballo oscuro",
-// y el plan de la CL6 (pregunta 4, CL6.3 y CL6.4).
+// Los modelos del personaje (0x60dbe0), ítems (0x60ff50) y efectos (0x615700), con sus esqueletos
+// y enlaces de mallas a texturas para las escenas. Contrato en 06 § El modelo en el binario.
 namespace Client::Scenes
 {
 class GameModels final : public IModelLibrary
 {
 public:
-    // Lee PlayerModelFiles, ItemModelFiles, SkillModelFiles y los efectos del final de 0x615700, incluidas
-    // las 15 de SiegeModelFiles, y les da a sus mallas las texturas que piden 0x60f7d0, 0x611850 y 0x615700
-    // (PlayerTextureCalls, ItemTextureCalls y SkillTextureCalls: cada llamada con su carpeta, desde 0x138, 0x25a y
-    // 0x3b8, con ModelTextureSlots), Gate02/StoneCoffin desde Monster en 0x69 antes del bloque 0x3b8, las de
-    // SiegeTextureCalls (Npc/Object31/Monster antes de la consulta final Skill), y las sube con las fijas de
-    // PlayerFixedTextures, las de los pases de brillo (GlowTextureSet, del avance 0 de 0x61ccb0) y las de
-    // los sprites (EffectTextureSet), el atlas de daño (DamageTextureSet, de 0x61bd80) y los joints
-    // emitidos por fauna (FaunaJointTextureSet). Un
-    // modelo que el original exige (Player, PlayerTest) y falta corta, con un
-    // error que lo nombra (Q-C23); otro que falta, o una textura que no carga, se saltea con una
-    // línea en el log (el original, con una textura que falta, se cierra).
+    // Reconstruye las tablas de modelos y los enlaces de 0x60f7d0, 0x611850 y 0x615700 en sus fases.
+    // Conserva los metadatos de texturas ya publicados si una subida posterior falla. Un modelo
+    // obligatorio ausente detiene la carga y los demás recursos ausentes se registran en el log (Q-C23).
     [[nodiscard]] Core::Expected<void, std::string> Load(const std::filesystem::path& dataRoot,
                                                          Render::ITextureStore& textures, Core::Log& log);
 
@@ -63,6 +51,8 @@ public:
     [[nodiscard]] const Render::Models::ModelTextureSlots& TextureSlots() const;
 
 private:
+    [[nodiscard]] Core::Expected<void, std::string> LoadResources(const std::filesystem::path& dataRoot,
+                                                                  Render::ITextureStore& textures, Core::Log& log);
     void AssignTextures(std::span<const Data::Models::ModelTextureCall> calls);
 
     std::map<std::uint16_t, Data::Models::Model> m_models;

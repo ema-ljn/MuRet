@@ -21,9 +21,10 @@ struct ModelTextureCall
 {
     std::uint16_t model = 0;
     std::string_view folder;
+    Textures::Wrap wrap = Textures::Wrap::Repeat;
 };
 
-// El muestreo de todas esas llamadas: 0x2901 y 0x2600, repitiendo y sin filtro. Las OZT van siempre
+// El muestreo por defecto: 0x2901 y 0x2600, repitiendo y sin filtro. Las OZT van siempre
 // sin filtro (0x60d5f0 le pasa 0x2600 a 0x63bd00).
 inline constexpr Textures::Sampling ModelTextureSampling{Textures::Filter::Nearest, Textures::Wrap::Repeat};
 
@@ -35,9 +36,8 @@ inline constexpr Textures::Sampling ModelTextureSampling{Textures::Filter::Neare
 // 26 modelos se piden dos veces, y la segunda encuentra los nombres de la primera.
 [[nodiscard]] std::span<const ModelTextureCall> ItemTextureCalls();
 
-// Las siete primeras de 0x615700 después de su 0x60d530(0x3b8), con Skill\: las de 0x145, 0x146 y 0x147, las del
-// caballo oscuro, las del cuervo (0xc0), las de HellGate (0xc5) y las del Dinorant (0x110,
-// Data::Models::SkillModelFiles). Las otras, que van antes y después, cuando entren las habilidades y los efectos.
+// Las 45 consultas explícitas de 0x615700 después del reset a 0x3b8, antes del barrido be..150.
+// Las de 0x113, 0x11a y 0x11b usan GL_CLAMP; las otras, GL_REPEAT.
 [[nodiscard]] std::span<const ModelTextureCall> SkillTextureCalls();
 
 // Los Fenrir (0x14a a 0x14c), su rayo (0x14d) y la flecha eléctrica (0xf9) en el bloque que sigue a

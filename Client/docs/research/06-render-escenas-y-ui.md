@@ -783,6 +783,23 @@ archivo y su lector están en [05](05-formatos-de-datos.md#modelos-bmd); acá, l
   **Verificado:** un script que repite `0x60d530`, `0x60d550` y `0x60d5f0` con los modelos del
   laboratorio da, para los 750 slots de `0x12e` a `0x41b`, los mismos nombres que el volcado
   `lor_slots.bin` de la tabla (sacado en Lorencia después del login y la selección), uno por uno.
+  En CL11.3, `GameModels` registra las 106 cargas BMD de la rama Data de `0x615700`. El
+  laboratorio aporta 105 archivos. Falta `SkillManyFlag.bmd` (`0x129`, `0x6166e8`), que
+  se saltea y deja las dos consultas de mallas vacías. Las consultas de `0xdb`, `0x109` y
+  `0x10f` que preceden a sus cargas también encuentran cero mallas en esa fase. Quedan
+  primero las asignaciones explícitas de `0x616953..0x616e18` y después el barrido
+  `0xbe..0x150` de `0x616e46`. Las mallas de `0x113`, `0x11a` y `0x11b` conservan
+  GL_CLAMP cuando sus nombres entran por primera vez. El volcado coincide con la tabla de
+  arranque hasta `0x41b`, que queda libre delante de los objetos de mapa.
+
+  `0x61606f..0x61607f` escribe la acción 0 de HellGate (`0xc5`), con el lock apagado y
+  velocidad 0,15. `0x616276` pone 0,5 en la acción 0 de Ball01 (`0xf1`). El cargador
+  aplica esos valores al esqueleto. Los slots fijos `0x608..0x60a` y `0x6f7` se suben
+  fuera de la asignación de mallas. `0x635` se comparte con el login, que vuelve a subir el
+  mismo archivo y conserva la textura común al salir. El slot `0x716` se reutiliza en la
+  selección y la salida lo libera (`0x61cc65..0x61cc7a`); la carga común de MuRet deja
+  esa entrada a cargo de las escenas.
+
   En esa carga, 29 nombres se encuentran en un slot que cargó otra carpeta y su modelo **no
   tiene** ese archivo en la suya (4 de `0x611850` y 25 de `0x615700`: anda porque otro lo cargó
   antes), y uno con otro archivo: `Helper04` (`0x1c15`, `Item\`) dibuja el de `Skill\` (`0x285`).

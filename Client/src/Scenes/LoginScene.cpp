@@ -1755,7 +1755,10 @@ void LoginScene::Leave()
     m_options.Close();
     m_credits.Close();
     m_ui.Clear();
-    m_textures.Release();
+    // 0x61c7c0 vuelve a subir las brasas de 0x61ccb0. El slot común sobrevive a la salida del login.
+    const Render::TextureSlot ember{World::EmberTexture};
+    const auto commonSlot = m_models.TextureSlotOf(ember.value);
+    m_textures.Release(commonSlot == ember ? commonSlot : std::nullopt);
     m_windowTextures.Release();
     ReleaseTheIllustrations();
     RetainTheTerrain();

@@ -58,7 +58,7 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 1> DamageTextureSet
 // fase 3): bar.jpg y back1 a back3 en 0xfd a 0x100 (0x61d3e3..0x61d43a, después de menu01_new2) y lock_01 a lock_04 en
 // 0x126 a 0x129 (0x61b2c3..0x61b31d, después de level_02, accept_box y mix_button de 0x121 a 0x125, que son de la caja
 // del caos).
-inline constexpr std::array<Data::Textures::TextureSetEntry, 126> HudTextureSet{{
+inline constexpr std::array<Data::Textures::TextureSetEntry, 129> HudTextureSet{{
     {"Interface\\CursorAttack.tga", 0x04, TextureSetsDetail::LinearClamp},
     {"Interface\\CursorGet.tga", 0x05, TextureSetsDetail::LinearClamp},
     {"Interface\\CursorTalk.tga", 0x06, TextureSetsDetail::LinearClamp},
@@ -189,6 +189,10 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 126> HudTextureSet{
     {"Interface\\lock_02.jpg", 0x127, TextureSetsDetail::NearestClamp},
     {"Interface\\lock_03.jpg", 0x128, TextureSetsDetail::NearestClamp},
     {"Interface\\lock_04.jpg", 0x129, TextureSetsDetail::NearestClamp},
+    // Slots de la carga común de 0x61ccb0 que siguen vivos al entrar al mundo.
+    {"Interface\\level01.jpg", 0xf6, TextureSetsDetail::NearestClamp}, // 0x61cfb5
+    {"Interface\\Quest1.jpg", 0x102, TextureSetsDetail::NearestClamp}, // 0x61d47f
+    {"Interface\\Quest2.jpg", 0x103, TextureSetsDetail::NearestClamp}, // 0x61d49b
 }};
 
 // Las de la interfaz de Crywolf que sube 0x61ccb0 (0x61de5f..0x61e373, CL9 hito 11), de 0x6b6 a 0x6e2 en su orden, con
@@ -264,7 +268,7 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 3> GlowTextureSet{{
 // flareBlue/62b (61dc9d), todos GL_LINEAR/GL_CLAMP; los dos últimos tienen slots físicos propios.
 // Lo que cuelga de un jugador (0x509340 y 0x50ba30) pide además Shiny03 en 0x5fe (61d937) e Impack03 de
 // Object9 en 0x5ad (61e799), del mismo lazo sin ramas de 0x61ccb0 y con el mismo sampling.
-inline constexpr std::array<Data::Textures::TextureSetEntry, 47> EffectTextureSet{{
+inline constexpr std::array<Data::Textures::TextureSetEntry, 81> EffectTextureSet{{
     {"Effect\\Fire01.jpg", 0x5d9, TextureSetsDetail::LinearClamp},
     // 0x61d523: Fire03 para la partícula 0x5db/0 del efecto 0x147/1 de Crywolf.
     {"Effect\\Fire03.jpg", 0x5db, TextureSetsDetail::LinearClamp},
@@ -330,6 +334,42 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 47> EffectTextureSe
     {"Effect\\Cratered.tga", 0x636, TextureSetsDetail::NearestClamp},
     {"Effect\\FormationMark.tga", 0x637, TextureSetsDetail::NearestClamp},
     {"Effect\\Plus.tga", 0x638, TextureSetsDetail::NearestClamp},
+    // Materiales persistentes de 0x61ccb0, contrastados con los slots de Lorencia.
+    {"Effect\\Piercing.jpg", 0x6e8, TextureSetsDetail::LinearRepeat},     // 0x61d5f7
+    {"Effect\\Magic_b.jpg", 0x6e9, TextureSetsDetail::NearestClamp},      // 0x61d632
+    {"Effect\\Magic_Ground1.jpg", 0x61d, TextureSetsDetail::LinearClamp}, // 0x61d6c4
+    {"Effect\\BowE.jpg", 0x699, TextureSetsDetail::LinearClamp},          // 0x61d8af
+    {"Effect\\Shockwave.jpg", 0x69a, TextureSetsDetail::LinearClamp},     // 0x61d8ce
+    {"Effect\\DinoE.jpg", 0x5ee, TextureSetsDetail::LinearClamp},         // 0x61d8ea
+    {"Effect\\eye01.jpg", 0x5ff, TextureSetsDetail::LinearClamp},         // 0x61d95d
+    {"Effect\\ring.jpg", 0x600, TextureSetsDetail::LinearClamp},          // 0x61d97c
+    {"Effect\\bab2.jpg", 0x5c1, TextureSetsDetail::LinearRepeat},         // 0x61d9d3
+    {"Effect\\JointLaser02.jpg", 0x61b, TextureSetsDetail::LinearRepeat}, // 0x61db10
+    {"Monster\\iui03.jpg", 0x624, TextureSetsDetail::LinearRepeat},       // 0x61db2f
+    {"Monster\\magic_H.tga", 0x629, TextureSetsDetail::LinearRepeat},     // 0x61db4b
+    {"Item\\t_lower_14m.tga", 0x62a, TextureSetsDetail::LinearRepeat},    // 0x61db67
+    {"Skill\\Skull.jpg", 0x628, TextureSetsDetail::NearestClamp},         // 0x61db86
+    {"Effect\\Chrome06.jpg", 0x6b2, TextureSetsDetail::NearestClamp},     // 0x61dc34
+    {"Effect\\Chrome07.jpg", 0x6b3, TextureSetsDetail::NearestClamp},     // 0x61dc50
+    {"Effect\\energy01.jpg", 0x6b4, TextureSetsDetail::NearestClamp},     // 0x61dc6c
+    {"Item\\nfm03.jpg", 0x6b5, TextureSetsDetail::NearestRepeat},         // 0x61dc8b
+    {"Monster\\King11.jpg", 0x62e, TextureSetsDetail::LinearClamp},       // 0x61dcfe
+    {"Monster\\Kni000.jpg", 0x62f, TextureSetsDetail::LinearClamp},       // 0x61dd1a
+    {"Monster\\Kni011.jpg", 0x630, TextureSetsDetail::LinearClamp},       // 0x61dd39
+    {"Monster\\Kni022.jpg", 0x631, TextureSetsDetail::LinearClamp},       // 0x61dd55
+    {"Skill\\pinkWave.jpg", 0x6ef, TextureSetsDetail::LinearClamp},       // 0x61dd71
+    {"Effect\\flareRed.jpg", 0x62d, TextureSetsDetail::LinearClamp},      // 0x61dd90
+    {"Effect\\Fire05.jpg", 0x5dc, TextureSetsDetail::LinearClamp},        // 0x61ddac
+    {"Effect\\Hole.jpg", 0x6ae, TextureSetsDetail::LinearRepeat},         // 0x61ddc8
+    {"Effect\\Flashing.jpg", 0x632, TextureSetsDetail::LinearClamp},      // 0x61e3ae
+    {"Effect\\Inferno.jpg", 0x633, TextureSetsDetail::LinearClamp},       // 0x61e647
+    {"Effect\\Lava.jpg", 0x634, TextureSetsDetail::LinearClamp},          // 0x61e666
+    {"Effect\\FireSnuff.jpg", 0x635, TextureSetsDetail::LinearClamp},     // 0x61d877/0x61e494
+    // Slots fijos de 0x615700, fuera de su tabla de nombres de malla.
+    {"Skill\\dkthreebody_r.jpg", 0x6f7, TextureSetsDetail::LinearRepeat}, // 0x616043
+    {"Skill\\flower1.tga", 0x608, TextureSetsDetail::NearestClamp},       // 0x616e6f
+    {"Skill\\flower2.tga", 0x609, TextureSetsDetail::NearestClamp},       // 0x616e8c
+    {"Skill\\flower3.tga", 0x60a, TextureSetsDetail::NearestClamp},       // 0x616ea9
 }};
 
 // Recursos de los joints que ya crean los peces y pájaros: 61d858/61dab9/61dad8/61dce2. 61d5db sube

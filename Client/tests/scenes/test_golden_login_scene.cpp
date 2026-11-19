@@ -368,6 +368,20 @@ protected:
     Client::Scenes::GameModels m_models;
 };
 
+TEST_F(GoldenLoginWorld, LeavingLoginKeepsTheCommonFireSnuffSlot)
+{
+    // 0x61ccb0 carga primero este slot y 0x61c7c0 repite la misma subida.
+    constexpr TextureSlot fireSnuff{0x635};
+    EXPECT_EQ(m_models.TextureSlotOf(fireSnuff.value), fireSnuff);
+    LoginScene scene(SceneContext{m_dataRoot, m_store, m_log}, *m_data, m_models, nullptr, Version, FixedSeed,
+                     &m_models.TextureSlots());
+    ASSERT_TRUE(scene.Enter().HasValue());
+    ASSERT_TRUE(m_store.Find(fireSnuff).has_value());
+    scene.Leave();
+    EXPECT_TRUE(m_store.Find(fireSnuff).has_value());
+    EXPECT_FALSE(m_store.Find(TextureSlot{0x15}).has_value());
+}
+
 // Un frame del login con el reloj `clock`, sin mirar lo que dibujó.
 void DrawAt(LoginScene& scene, Client::Core::Duration clock)
 {

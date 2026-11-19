@@ -9,10 +9,14 @@
 #include "Scenes/JointFamilies.h"
 #include "Scenes/JointKernels.h"
 #include "Scenes/RingEffects.h"
+#include "Scenes/SkillHits.h"
+#include "World/Ftol.h"
 #include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
+#include "World/TerrainAttributeQuery.h"
+#include "World/WizardModelEffects.h"
 #include "World/WorldObjectStepServices.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -792,6 +796,72 @@ Core::Expected<void, std::string> StepTheVolley(JointState& joint, const JointKe
     constexpr std::int32_t ShadeRadius = 4;
     return World::AddDynamicLight(services.lighting, joint.position, shade, ShadeRadius, "0x539cbf");
 }
+
+// 0x539a0e..0x539ae5: el 0x613/0, /5 y /0x13 de ancho 80. Suelta el 0xd0 (0x518cf0(0xd0, posición, ángulos, luz,
+// 3 la /5 y 0 los demás, sin dueño, −1, 0, 0, 0, 0), el rayo que cae, que no saca rand()). Con el asedio prendido
+// (0x4294b0) y el bit 0x100 de 0x5f82c0 en su punto, la velocidad en 0 y la vida en _ftol(vida · 0,2f), y vuelve a la
+// cola 0x53c393 sin el resto (false). Si no, con la vida múltiplo de 15 y el héroe de dueño, sus blancos (0x517a20(la
+// skill +0x9ea, la posición, 150, la tanda +0x9eb, la clave +0x9e8, el byte +0xa08)), y sigue (true).
+Core::Expected<bool, std::string> VolleyFromTheSky(JointState& joint, const JointKernels::StepServices& services)
+{
+    constexpr std::int32_t ShieldSubtype = 5;
+    constexpr std::int32_t FallingRay = 3; // 0x539a2f
+    constexpr std::uint32_t SiegeCell = 0x100;
+    constexpr double Shrink = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu)); // 0x6b8cfc: 0,2f
+    constexpr std::int32_t HitEvery = 15;                                             // 0x539aa0
+    constexpr float HitRadius = 150.0f;                                               // 0x539ad6: 0x43160000
+    if (services.effects == nullptr || services.random == nullptr)
+        return Core::Unexpected(std::format("0x539a48: el joint {:#x}/{:#x} de ancho 80 pide la tabla de efectos "
+                                            "(0x518cf0) para el 0xd0",
+                                            joint.type, joint.subtype));
+    const World::ModelEffectArguments ray{.type = World::LaserEffect,
+                                          .position = joint.position,
+                                          .angles = joint.angles,
+                                          .light = joint.light,
+                                          .subtype = joint.subtype == ShieldSubtype ? FallingRay : 0,
+                                          .owner = nullptr,
+                                          .key = 0xffff};
+    const auto created =
+        World::CreateWizardModelEffect(*services.effects, ray, *services.random, World::WizardEffectServices{});
+    if (!created.HasValue())
+        return Core::Unexpected(std::format("0x539a48: {}", created.Error()));
+    if (services.volley == nullptr)
+        return Core::Unexpected(std::format("0x539a50: el joint {:#x}/{:#x} de ancho 80 pide el asedio, los atributos "
+                                            "y los blancos del héroe",
+                                            joint.type, joint.subtype));
+    if (services.volley->siegeActive)
+    {
+        if (services.volley->attributes == nullptr)
+            return Core::Unexpected(std::string("0x539a60: faltan los atributos de las celdas (0x7d0d348)"));
+        const auto cell =
+            World::TerrainAttributeQueryAt(*services.volley->attributes, joint.position.x, joint.position.y);
+        if (!cell.HasValue())
+            return Core::Unexpected(std::string("0x539a60: 0x5f82c0 lee fuera de la tabla de atributos"));
+        if ((cell.Value() & SiegeCell) == SiegeCell)
+        {
+            joint.speed = 0.0f;
+            joint.life = World::FtolLow(static_cast<double>(joint.life) * Shrink);
+            return false;
+        }
+    }
+    if (joint.life % HitEvery != 0)
+        return true;
+    if (services.hero == nullptr)
+        return Core::Unexpected(std::string("0x539aaf: falta el héroe ([0x743a170])"));
+    if (joint.ownerContext != services.hero)
+        return true;
+    if (!services.volley->skillHits)
+        return Core::Unexpected(std::string("0x539add: faltan los blancos de la skill (0x517a20)"));
+    const SkillHitsRequest request{.skillIndex = joint.skill,
+                                   .point = joint.position,
+                                   .radius = HitRadius,
+                                   .volley = joint.volley,
+                                   .key = static_cast<std::uint16_t>(joint.key),
+                                   .extra = joint.skillSerial};
+    if (auto hit = services.volley->skillHits(request); !hit.HasValue())
+        return Core::Unexpected(hit.Error());
+    return true;
+}
 } // namespace
 
 Core::Expected<void, std::string> StepSpiritJoint(JointState& joint, const JointKernels::StepServices& services)
@@ -799,14 +869,19 @@ Core::Expected<void, std::string> StepSpiritJoint(JointState& joint, const Joint
     const std::int32_t subtype = joint.subtype;
     if (subtype == 0 || subtype == 5 || subtype == 0x13)
     {
-        // 0x539a0e: con el ancho en 80 (los bits 0x42a00000), el efecto 0xd0 con modelo (0x518cf0, otro lote) y
-        // después el asedio de 0x4294b0 con el atributo de 0x5f82c0, los blancos del héroe de 0x517a20 cada 15 de vida
-        // y la misma cola que con otro ancho. Con otro ancho, la /0x13 suelta antes el destello 0x11b/0 (0x539b08).
+        // 0x539a0e: con el ancho en 80 (los bits 0x42a00000), el 0xd0 y lo que sigue (VolleyFromTheSky); si no vuelve
+        // antes, la misma cola que con otro ancho. Con otro ancho, la /0x13 suelta antes el destello 0x11b/0
+        // (0x539b08).
         constexpr std::uint32_t VolleyWidth = 0x42a00000u;
         if (std::bit_cast<std::uint32_t>(joint.width) == VolleyWidth)
-            return Core::Unexpected(std::format(
-                "0x539a48: el efecto 0xd0 (0x518cf0) del joint {:#x}/{:#x} de ancho 80 no está portado (CL11)",
-                joint.type, subtype));
+        {
+            const auto fallen = VolleyFromTheSky(joint, services);
+            if (!fallen.HasValue())
+                return Core::Unexpected(fallen.Error());
+            if (!fallen.Value())
+                return {};
+            return StepTheVolley(joint, services);
+        }
         if (subtype == 0x13)
         {
             // 0x539aec..0x539b08: 0x518cf0(0x11b, posición, ángulos, luz, 0, 0, −1, 0, 0, 0, 0), sin rand().

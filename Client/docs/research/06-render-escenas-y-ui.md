@@ -14385,9 +14385,13 @@ en un lugar de más adelante pasa en la misma vuelta de `0x53c670`.
   /0xd sin dueño, corta (Q-C1620).
   (Segunda vuelta.) La /4 y la /9 comparten la tabla con el 6ee: la 6ee/4 nace como la 613/4 (`0x5332b8`, la viga sin
   velocidad) y la 613/9 como el meteoro 6ee/9 (`0x5333f6`, paso `0x538ea4`); la /4 no tiene caso en el paso. La /0 y
-  la /5 con el ancho en 80 (los bits `0x42a00000`) piden el efecto `0xd0` (`0x539a48`, otro lote) y después el asedio
-  de `0x4294b0`/`0x5f82c0` (con el bit `0x100` del atributo, la vida a `ftol(vida · 0,2f)` y la velocidad 0) o, con la
-  vida múltiplo de 15 y el héroe de dueño, los blancos de `0x517a20(skill, posición, 150, +0x9eb, +0x9e8, +0xa08)`;
+  la /5 con el ancho en 80 (los bits `0x42a00000`) sueltan el rayo `0xd0` (`0x539a48`: `0x518cf0(0xd0, posición,
+  ángulos, luz, 3 la /5 y 0 las demás, sin dueño, −1, 0, 0, 0, 0)`, sin `rand()`; CL11 lote magos,
+  `World::CreateWizardModelEffect`) y después el asedio de `0x4294b0`/`0x5f82c0` (con el bit `0x100` del atributo,
+  la vida a `ftol(vida · 0,2f)`, la velocidad 0 y la cola `0x53c393` sin el resto) o, con la vida múltiplo de 15 y el
+  héroe de dueño, los blancos de `0x517a20(skill, posición, 150, +0x9eb, +0x9e8, +0xa08)`, y siguen como con otro
+  ancho (la /0x13 de ancho 80 tampoco suelta el `0x11b`). Lo leen de `JointKernels::VolleyServices`, que da el paso del
+  juego (`StepTerrain()` y `Scenes::HitTheTargetsAround`); sin ellos, cortan en `0x539a50`;
   la /0x13 de otro ancho pide el efecto `0x11b` (`0x539b08`). La /0 y la /5 de otro ancho (`0x539b10..0x539cc7`; los
   `0x613/0` de ancho 20 de la `0x09`) van hacia el dueño 80 más arriba: la distancia en el plano es la de antes del
   movimiento común (`[ebp+8]` y `[ebp−0x30]`, `0x53584f`), `0x4e9810` gira de a 10 (la /5, de a 2) y con el doble de la

@@ -61,9 +61,10 @@ struct SweepWorld
         return created;
     }
 
-    Client::Core::Expected<void, std::string> Step()
+    Client::Core::Expected<void, std::string> Step(const ActorState* hero = nullptr)
     {
-        return Client::Scenes::StepJoints(joints, random, nullptr, particles.get(), 0.0f, nullptr);
+        return Client::Scenes::StepJoints(joints, random, nullptr, particles.get(), 0.0f, nullptr, nullptr, {}, {}, {},
+                                          {}, nullptr, hero);
     }
 
     glm::vec3 start{1000.0f, 2000.0f, 400.0f};
@@ -194,17 +195,47 @@ TEST(SweepJointsTest, TheFullSweepOnlyDims)
     EXPECT_FALSE(tested.joints[0].alive);
 }
 
-// 0x53b545..0x53b5b6: con dueño, vida de más de 18 y la vuelta múltiplo de 5, el original lo compara con el héroe
-// ([0x743a170]) y pide el asedio o los blancos de la skill: corta después del primer tramo. Con vida 18, no.
-TEST(SweepJointsTest, TheOwnedSweepCutsWhereItLooksForTheHero)
+// 0x53b53e..0x53b5b6: con dueño igual al héroe ([0x743a170]), vida de más de 18 y la vuelta múltiplo de 5, el original
+// pide el asedio o los blancos de la skill (0x4294b0, 0x5f82c0, 0x517a20): corta después del primer tramo. Con otro
+// dueño sigue como sin dueño (los mismos rand(), rayos y partículas). Sin el héroe en el paso corta en 0x53b548, salvo
+// con vida 18, donde no lo compara.
+TEST(SweepJointsTest, TheSweepCutsOnlyWhenItsOwnerIsTheHero)
 {
     ActorState owner{};
+    ActorState other{};
     SweepWorld tested;
     ASSERT_TRUE(tested.Create({0.0f, 0.0f, -30.0f}, &owner).HasValue());
-    const auto cut = tested.Step();
+    const auto cut = tested.Step(&owner);
     ASSERT_FALSE(cut.HasValue());
-    EXPECT_TRUE(cut.Error().starts_with("0x53b548")) << cut.Error();
+    EXPECT_TRUE(cut.Error().starts_with("0x53b569")) << cut.Error();
     EXPECT_EQ(tested.joints[Last].count, 0);
+
+    SweepWorld foreign;
+    ASSERT_TRUE(foreign.Create({0.0f, 0.0f, -30.0f}, &owner).HasValue());
+    SweepWorld ownerless;
+    ASSERT_TRUE(ownerless.Create({0.0f, 0.0f, -30.0f}).HasValue());
+    ASSERT_TRUE(foreign.Step(&other).HasValue());
+    ASSERT_TRUE(ownerless.Step(&other).HasValue());
+    EXPECT_EQ(foreign.joints[Last].count, 7);
+    EXPECT_EQ(foreign.joints[Last].life, 19);
+    EXPECT_EQ(foreign.random.State(), ownerless.random.State());
+    EXPECT_EQ(foreign.joints[Last].position, ownerless.joints[Last].position);
+    for (std::size_t slot = 0; slot < Last; ++slot)
+    {
+        SCOPED_TRACE(slot);
+        EXPECT_EQ(foreign.joints[slot].alive, ownerless.joints[slot].alive);
+        EXPECT_EQ(foreign.joints[slot].width, ownerless.joints[slot].width);
+    }
+    std::size_t differences = 0;
+    for (std::size_t slot = 0; slot < foreign.particles->All().size(); ++slot)
+        differences += foreign.particles->All()[slot].alive == ownerless.particles->All()[slot].alive ? 0U : 1U;
+    EXPECT_EQ(differences, 0U);
+
+    SweepWorld blind;
+    ASSERT_TRUE(blind.Create({0.0f, 0.0f, -30.0f}, &owner).HasValue());
+    const auto unknown = blind.Step();
+    ASSERT_FALSE(unknown.HasValue());
+    EXPECT_TRUE(unknown.Error().starts_with("0x53b548")) << unknown.Error();
 
     SweepWorld late;
     ASSERT_TRUE(late.Create({0.0f, 0.0f, -30.0f}, &owner).HasValue());

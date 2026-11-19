@@ -112,9 +112,12 @@ void CreateSweepJoint(JointState& joint, const World::FishEffectRequest& request
 
 Core::Expected<void, std::string> StepSweepJoint(JointState& joint, const JointKernels::StepServices& services)
 {
-    // 0x53b3f1..0x53b5c3: ocho vueltas; cada una agrega un tramo mientras la cuenta sea menor que los puntos − 1. Con
-    // el dueño en el héroe ([0x743a170]), vida de más de 18 y la vuelta múltiplo de 5, el asedio (0x4294b0, 0x5f82c0) o
-    // los blancos de la skill (0x517a20, radio 150): MuRet no tiene al héroe en el paso, y corta si hay dueño.
+    // 0x53b3f1..0x53b5c3: ocho vueltas; cada una agrega un tramo mientras la cuenta sea menor que los puntos − 1.
+    // 0x53b53e..0x53b567: en la /0 (+0xc) con el dueño (+0x54) igual al héroe ([0x743a170]), vida de más de 18 y la
+    // vuelta múltiplo de 5, el asedio (0x4294b0, 0x5f82c0: con el atributo 0x100 corta la vida a vida · 0,2f y sale de
+    // las vueltas, 0x53b5cb) o los blancos de la skill (0x517a20, radio 150), que MuRet no tiene: corta ahí. Con otro
+    // dueño (o sin dueño) sigue con la vuelta siguiente. Sin el héroe en los servicios no se sabe: con dueño, vida de
+    // más de 18 y la vuelta múltiplo de 5, corta.
     constexpr int Turns = 8, HitEvery = 5;
     constexpr std::int32_t HitLife = 18;
     for (int turn = 0; turn < Turns; ++turn)
@@ -122,9 +125,16 @@ Core::Expected<void, std::string> StepSweepJoint(JointState& joint, const JointK
         if (joint.count < joint.maximumCount - 1)
             if (auto swept = Sweep(joint, services); !swept.HasValue())
                 return swept;
-        if (joint.ownerContext != nullptr && joint.life > HitLife && turn % HitEvery == 0)
-            return Core::Unexpected(std::string("0x53b548: el dueño del joint 0x61c/0 frente al héroe ([0x743a170]), "
-                                                "el asedio y los blancos de 0x517a20 no están portados (CL11)"));
+        // Las comparaciones no tienen efectos: el orden (dueño, vida, vuelta) no cambia nada.
+        if (joint.subtype != 0 || joint.ownerContext == nullptr || !(joint.life > HitLife) || turn % HitEvery != 0)
+            continue;
+        if (services.hero == nullptr)
+            return Core::Unexpected(
+                std::string("0x53b548: falta el héroe ([0x743a170]) para el dueño del joint 0x61c/0"));
+        if (joint.ownerContext == static_cast<const void*>(services.hero))
+            return Core::Unexpected(
+                std::string("0x53b569: el joint 0x61c/0 del héroe ([0x743a170]): el asedio "
+                            "(0x4294b0, 0x5f82c0) y los blancos de 0x517a20 no están portados (CL11)"));
     }
     // 0x53b5ec..0x53b620: con vida de menos de 10, la x de la luz por 0,6666667f en los tres canales; si no, la vida
     // por 0,033333335f.

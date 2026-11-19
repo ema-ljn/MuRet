@@ -14524,7 +14524,7 @@ en un lugar de más adelante pasa en la misma vuelta de `0x53c670`.
   `Effect\Hole.jpg` (`0x6ae`), 13 puntos, vx 15,5 y vz 3; la /5 y la /6 `Effect\Lava.jpg` (`0x634`), la /6 con
   velocidad 20 y vida 16; el camino `+0x24` en la posición. Paso `0x53b6a0..0x53b7ec`: la velocidad suma vz y vz suma
   vx (0,5 con menos de 15 de vida); salvo la /4, con la cola llena deja de agregar tramos; bajo `+0x9ec`, la luz por
-  0,7692308f; la /2 con la vida múltiplo de 5 pide el efecto `0xf6/6` (`0x53b760`, corta); la /4 suelta un `0x62b/6`
+  0,7692308f; la /2 con la vida múltiplo de 5 suelta el `0xf6/6` (`0x53b760`: `0x518cf0(0xf6, +0x24, +0x3c, +0x48, 6, sin dueño, 20, 0, 0, 0, 0)`, `World::CreateBlastModelEffect` con la tabla y el héroe del paso; CL11 lote magos) y vuelve a la cola; la /4 suelta un `0x62b/6`
   sin dueño de ancho 30 desde su posición y con sus ángulos, el sprite `0x5ac` (1,6f) y el `0x5fd` (1,5f, girado el
   reloj · 0,1f), con la luz (0,1; 0,6; 1). El `0x62b/6` comparte alta y paso con el `0x60f/6` (vida y puntos 15 en vez
   de 20 y 30, `0x533faf..0x5340d7`; el paso `0x53b029` multiplica la vida por 0,8f en vez de 0,5). La skill `0x49`

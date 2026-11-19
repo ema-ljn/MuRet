@@ -1158,7 +1158,7 @@ TEST(GameDrawTailTest, TheEarthquakeBurstDrawsFlashingBmdThroughTheGenericPath)
     EXPECT_TRUE(excluded.Vertices().empty());
     // Sin flashing.bmd la cuenta de mallas es 0 (0x60dbe0): el primer pase no dibuja nada y no corta.
     burst.objectState.blendMesh = 0;
-    models.missingModel = Client::World::EarthquakeBurstEffect;
+    models.missingModel = static_cast<std::uint16_t>(Client::World::EarthquakeBurstEffect);
     Client::Render::ModelBatch missing;
     const auto withoutModel =
         Client::Scenes::DrawGameModelEffects(missing, models, std::span(&burst, 1), frustum, nullptr, {}, 0, 0);
@@ -1403,7 +1403,7 @@ TEST(GameDrawTailTest, AnUnloadedModelDoesNotAbortTheRestOfTheSecondPass)
 {
     Client::Render::ModelBatch batch;
     TriangleModels models;
-    models.missingModel = 0x14e;
+    models.missingModel = std::uint16_t{0x14e};
     Client::World::SphereFrustum frustum;
     std::array<Client::World::ModelEffect, 2> effects{};
     effects[0].alive = true;

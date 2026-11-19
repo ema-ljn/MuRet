@@ -137,6 +137,7 @@ struct JointState
     float width = 0;
     glm::vec3 position{};
     glm::vec3 angles{};
+    glm::vec3 bendAngles{}; // +3c: giro propio del60f/0x17, separado de los ángulos del movimiento común.
     glm::vec3 targetPosition{};
     void* ownerContext = nullptr;
     // Propio de MuRet: cómo leer ownerContext. 0x530860 lo escribe en cada alta.

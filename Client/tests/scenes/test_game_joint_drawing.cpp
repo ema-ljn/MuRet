@@ -1,4 +1,6 @@
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/FaunaJointCreation.h"
+#include "World/IFishStepServices.h"
 #include "Scenes/FaunaObject.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/Cloth.h"
@@ -220,4 +222,40 @@ TEST(GameJointDrawingTest, EnergyArrowMutatesItsLightAndEmitsOneSpritePerAdmitte
     EXPECT_FLOAT_EQ(sprites.Sprites()[0].scale, 0.5f);
     EXPECT_FLOAT_EQ(joint.light.x, 0.49780244f);
     EXPECT_EQ(random.State(), expected.State());
+}
+
+TEST(GameJointDrawingTest, Skill39KeepsItsFinalLiveFrameAndDrawsBothFacesWithoutRandomness)
+{
+    std::array<Client::Scenes::JointState, 1> joints{};
+    glm::vec3 point{100, 200, 300}, angles{};
+    Client::Render::Models::CrtRandom random(1);
+    Client::World::FrameSprites sprites;
+    const Client::World::FishEffectRequest request{0x60f, point, point, angles, 0x17, nullptr, 40, 0, 0, 0, -1};
+    ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, random).HasValue());
+    auto& joint = joints[0];
+    Client::Render::ModelBatch waiting;
+    ASSERT_TRUE(Client::Scenes::DrawJoints(waiting, joints, 0, {random, sprites}).HasValue());
+    EXPECT_TRUE(waiting.Vertices().empty());
+    while (joint.life > 0)
+        ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+    ASSERT_TRUE(joint.alive);
+    ASSERT_EQ(joint.count, 14);
+    Client::Render::ModelBatch last;
+    ASSERT_TRUE(Client::Scenes::DrawJoints(last, joints, 0, {random, sprites}).HasValue());
+    ASSERT_EQ(last.Vertices().size(), 14u * 12u);
+    EXPECT_EQ(last.State().blend, Client::Render::ModelBlend::Additive);
+    EXPECT_EQ(last.Vertices()[0].color.red, joint.light.x);
+    EXPECT_EQ(last.Vertices()[0].position, joint.points[0][2]);
+    EXPECT_EQ(last.Vertices()[6].position, joint.points[0][0]);
+    EXPECT_EQ(random.State(), 1u);
+    Client::Render::ModelBatch replay;
+    ASSERT_TRUE(Client::Scenes::DrawJoints(replay, joints, 0, {random, sprites, false}).HasValue());
+    EXPECT_EQ(replay.Vertices().size(), last.Vertices().size());
+    EXPECT_EQ(random.State(), 1u);
+    ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+    EXPECT_FALSE(joint.alive);
+    EXPECT_EQ(joint.life, -1);
+    Client::Render::ModelBatch expired;
+    ASSERT_TRUE(Client::Scenes::DrawJoints(expired, joints, 0, {random, sprites}).HasValue());
+    EXPECT_TRUE(expired.Vertices().empty());
 }

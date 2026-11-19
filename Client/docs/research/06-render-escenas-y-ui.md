@@ -11626,9 +11626,14 @@ mano es la de `0x4f9780(o)`: la izquierda (`+0x2d8`) con el `0x20a` en la `0x25`
   y 20 más cada vez, o+0xf4, 2, o, …)`, el sonido `0x72` y `+0x381` en 15: corta en el primero (`0x4fa4fa`). Después,
   con la `0x8d` o sin ella, `[0x6c88ac]` en 15 (`0x4fa5c3`).
 - `0x39` (`0x4fa994..0x4faaca`), de cualquier tipo (Q-C1107). Pasado el frame 5, tres `0x530860(0x60f, o+0x10,
-  o+0x10, o+0x1c, 0x17, sin dueño, 40,0f, la clave 0, 1 y 4, 0, 0, −1)`, `+0x381` en 15 y el sonido `0x270`: corta en
-  el primero (`0x4fa9ca`); si no, pasado 2,3f (`0x6ba178`) y antes de 2,6f (`0x6ba174`), los de las claves 2 y 3 y el
-  sonido `0x270` (`0x4faa81`). Los dos siguen con `[0x6c88ac]` en 15, como el que no hace nada (`0x4faaba`).
+  o+0x10, o+0x1c, 0x17, sin dueño, 40,0f, la clave 0, 1 y 4, 0, 0, −1)`, `+0x381` en 15 y el sonido `0x270`.
+  Pasado 2,3f (`0x6ba178`) y antes de 2,6f (`0x6ba174`), intenta claves 2 y 3 y pide el mismo sonido.
+  `[0x6c88ac]` queda en 15 con cualquier capacidad (`0x4faaba`).
+  El joint conserva los ángulos del actor y los de la curva aparte (`0x533e60`). Nace con contador −1 y
+  vida 24 menos la clave. La clave 5 usa vida 10, límite 20 y una cara. En el paso `0x53a6b3`, de vidas 19
+  a 8 aumenta cuatro muestras por vez hasta el tope y gira desde la partida. Por debajo de 8 añade un quad
+  con la matriz de la curva. Por debajo de 10 atenúa el RGB (`0x53b339`) y se libera cuando la vida queda en −1.
+  El ciclo del joint no consume CRT.
 
 **`0x4f8f5b`, la 3 sin caso de `+0x376`** (la cola de `0x4f5b70`). El hueso de la derecha (`+0x2bd`) contra la cuenta
 de huesos del modelo del tipo (`[EBP − 4]`; en MuRet como en la `0x2b`, y sin esqueleto corta en `0x4f8f69`): con la

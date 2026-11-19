@@ -14029,6 +14029,42 @@ y la key a `FaunaModels::RecordPoseKey`; la acción, la escala y la posición de
 cada tipo en Lorencia, Devias o Crywolf, con sus `rand()` contados) y
 `MonsterStep.TheSwingOfThe1b0DrawsItsRandomsBeforeItsEffects` (`test_model_body.cpp`).
 
+### Los joints de las familias (CL11)
+
+(CL11, lote joints, 2026-11-19, *estático*, ASM c32bbd5f.) Las familias de joints con archivo propio
+(`Scenes/JointFamilies.h`): `FaunaJointCreation.cpp` llama a su alta después del primer tramo (`0x530afa..0x530c38`,
+con el ancho retenido del uso anterior del lugar) y a su paso después del movimiento común (`0x53590e`); el paso vuelve
+a la cola común (`0x53c393`: `0x535520` con la matriz del principio del paso y la vida − 1). Un joint que el paso crea
+en un lugar de más adelante pasa en la misma vuelta de `0x53c670`.
+
+- **`0x614`** (`LightningJoints.cpp`): alta `0x5309d6` (subtipos 0 a 0x11 salvo 0xc y 0xf, que cortan) y paso
+  `0x53683e..0x537278`, con la rama /1 de `0x53703d`. **`0x61b` y `0x5bc`** (`HandBoltJoints.cpp`): alta
+  `0x5335cf`/`0x5335d6` y paso `0x539ccc..0x539f16`. El dibujo de los dos es el común: en `0x53c6a0` solo el `0x614`
+  tiene caso propio.
+- **`0x613` y `0x6ee`** (`SpiritJoints.cpp`): alta `0x53265e` (la mezcla en 3 y la tabla `0x534f18`). La /0 y la /5
+  copian a `+0x9eb` el `+0xf04` del registro propio con un acceso abierto y cerrado (`0x532675`, `0x532bab`; 3.848
+  `rand()` al cerrarlo en 0); `+0x9eb` no lo escribe `0x530860` y en los demás queda el de antes (Q-C1621). La /1 pide
+  el sonido `0x3e` al nacer (`0x5330c5`); la /6 sortea la key con `rand() % 5` y sin 0 pierde la cola; la /2, la /6,
+  la /7 y la /0x15 guardan la partida en `+0x24`. Paso `0x538d77`: la /1 suelta el sprite `0x5ac` (escala 4, luz
+  (0,8; 0,4; 1)); la /2, /6, /7 y /0x15 (`0x539586`) el `0x5ac` de escala (20 − vida) / 5 + 4 con su luz local, se
+  apagan por 0,8333333f con menos de 10 de vida y suben la velocidad 5; con vida 19 la /2 y la /0x15 sortean tres
+  `rand()` y la /2 suelta la gota `0x60f/2` (`0x5396ff`). La /3 y la /0xd (`0x53977a`) se desvían con `0x53d1a0(lugar,
+  dir, 1)` (el contador con su acceso: 4 `rand()` al cerrarlo en 0; la fase es lugar + contador) o, la /0xd con vida de
+  28 o menos y dueño, buscan al dueño con `0x4e9810`; el `fcomp` de `0x5398ab` compara con 50 la distancia que
+  `0x4e9810` dejó en la x87, y más cerca la vida baja una más. Después, los sprites `0x5ac` y `0x5fd` (a media escala).
+  La /8 sube con la x en 110 hasta la vida 42 y después va de 180 a 360 de a `rand() % 3 + 2`; la /0xa gira 50 en z.
+  La luz local sin escribir de la /6 y la /7 con otra skill que 0 o 1, y de la /0xd sin dueño, corta (Q-C1620).
+- **`0x60f/2` y `0x60f/0x18`** (`DropJoints.cpp`): alta `0x533677` y `0x5340dc` (la /0x18 con la textura `0x62d`; vz
+  en `rand() % 20 + 35`, la luz blanca, vida `rand() % 50 + 25` y el destino en el segundo punto) y paso `0x53b156`
+  (con vida de 25 o menos cae sobre el destino con vz + 5; con menos de 10, la luz por 0,7692308f).
+
+Los que los crean: la cola de `0x4f5b70` (los `0x614`, `0x61b` y `0x5bc` colgados del blanco, ESI), el `0x1b6`
+(`0x427a8d`), las cadenas del `0x49` y el `0x4b` (`0x50c36b`), los treinta y seis `0x613/1` de `0x4f756a` y los cuarenta
+`0x613/3` de `0x4f7f3c` (sin dueño, con los ángulos de tres `rand() % 360` cada uno), los treinta y seis `0x613/2` y
+`0x613/0x15` de las skills `0x30` y `0x45` (`0x4fe0e4`, `0x4fe322`; cortan en el calco `0x61e` de la vuelta 0) y los ocho
+`0x613/0` de la `0x09` (`0x501c67` y `0x501c9c`), y los veinticuatro `0x6ee/0xe` de Kundun (`0x43d19f`). Lo que sigue
+cortado está en [08](08-pendientes.md) (P-C430).
+
 ### Los restos (0x52e810)
 
 (CL9 hito 3, fase 7, 2026-11-13, *estático*, ASM c32bbd5f.) Lo llaman `0x4fcb10` (`0x4fcb87..0x4fcba6`: el `0x20a` que

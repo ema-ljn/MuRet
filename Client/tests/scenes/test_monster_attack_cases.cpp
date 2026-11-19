@@ -1734,33 +1734,55 @@ TEST_F(MonsterAttackCasesTest, FullJointPoolSkipsItsEffectsAndContinuesTheCaller
         ExpectWithOnlyJointPoolFull(probe);
 }
 
-TEST_F(MonsterAttackCasesTest, AFreeJointAfterTheFullModelPoolKeepsTheJointCutBoundary)
+// 0x4f74ee..0x4f7573 y 0x4f7ec0..0x4f7f45: con un solo lugar libre, el primero de los joints 0x613 sale sin dueño 100
+// más arriba del monstruo, con los ángulos de sus tres rand() % 360, y los demás intentos sólo sacan los suyos. El /1
+// suena 0x3e al nacer (0x5330c5); el /3 no. Los rand() de la cola (0x4f80e0) siguen.
+TEST_F(MonsterAttackCasesTest, AFreeJointAfterTheFullModelPoolTakesTheFirstSpirit)
 {
     Load(0);
-    const std::vector<Probe> probes{{.name = "0x48, primer joint",
-                                     .type = 3,
-                                     .step = 14,
-                                     .skill = CaseSkill,
-                                     .cut = "0x4f756a",
-                                     .draws = 4,
-                                     .kind = std::uint16_t{0x48}},
-                                    {.name = "0x4d, primer joint",
-                                     .type = 3,
-                                     .step = 2,
-                                     .skill = CaseSkill,
-                                     .cut = "0x4f7f3c",
-                                     .draws = 4,
-                                     .kind = std::uint16_t{0x4d}}};
-    for (const Probe& probe : probes)
+    struct Case
     {
-        SCOPED_TRACE(probe.name);
-        ActorState& monster = Prepare(probe);
+        Probe probe;
+        std::int32_t subtype;
+        int joints;
+        float width;
+        float speed;
+        std::vector<std::int32_t> expectedSounds;
+    };
+    const std::array cases{
+        Case{Probe{.name = "0x48, 0x613/1", .type = 3, .step = 14, .skill = CaseSkill, .kind = std::uint16_t{0x48}}, 1,
+             36, 60.0f, 70.0f, std::vector<std::int32_t>{0x3e}},
+        Case{Probe{.name = "0x4d, 0x613/3", .type = 3, .step = 2, .skill = CaseSkill, .kind = std::uint16_t{0x4d}}, 3,
+             40, 50.0f, 140.0f, std::vector<std::int32_t>{}}};
+    for (const Case& probe : cases)
+    {
+        SCOPED_TRACE(probe.probe.name);
+        ActorState& monster = Prepare(probe.probe);
+        monster.position = {1000.0f, 2000.0f, 30.0f};
         SetPoolAvailability(true, false, false);
+        const std::uint32_t seed = game->cloth.random.State();
         const auto stepped = Step(monster);
-        EXPECT_TRUE(!stepped.HasValue() && stepped.Error().starts_with(probe.cut)) << stepped.Error();
-        EXPECT_EQ(Draws(), probe.draws);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(Draws(), SkillRead + 3 * probe.joints + Tail);
+        EXPECT_EQ(sounds, probe.expectedSounds);
         ASSERT_EQ(game->joints.size(), 1u);
-        EXPECT_FALSE(game->joints.front().alive);
+        const Client::Scenes::JointState& joint = game->joints.front();
+        ASSERT_TRUE(joint.alive);
+        CrtRandom angles(seed);
+        static_cast<void>(angles.Next()); // +0x38e
+        const float x = static_cast<float>(angles.Next() % 360);
+        const float y = static_cast<float>(angles.Next() % 360);
+        const float z = static_cast<float>(angles.Next() % 360);
+        EXPECT_EQ(joint.type, 0x613);
+        EXPECT_EQ(joint.subtype, probe.subtype);
+        EXPECT_EQ(joint.angles, glm::vec3(x, y, z));
+        EXPECT_EQ(joint.position, glm::vec3(1000.0f, 2000.0f, 130.0f));
+        EXPECT_EQ(joint.targetPosition, joint.position);
+        EXPECT_EQ(joint.ownerContext, nullptr);
+        EXPECT_EQ(joint.key, 0);
+        EXPECT_EQ(joint.width, probe.width);
+        EXPECT_EQ(joint.speed, probe.speed);
+        EXPECT_EQ(joint.life, 49);
     }
 }
 

@@ -33,4 +33,23 @@ inline constexpr std::int32_t BlueHandBoltJoint = 0x5bc;
 void CreateHandBoltJoint(JointState& joint);
 [[nodiscard]] Core::Expected<void, std::string> StepHandBoltJoint(JointState& joint,
                                                                   const JointKernels::StepServices& services);
+
+// El 0x613 y el 0x6ee (SpiritJoints.cpp): alta 0x53265e (la mezcla en 3 y la tabla 0x534f18) y paso 0x538d77. La /4
+// (y la 6ee/9) tienen alta y paso propios en FaunaJointCreation.cpp; la 6ee/4 y la 613/9 cortan en el alta.
+inline constexpr std::int32_t SpiritJoint = 0x613;
+inline constexpr std::int32_t SecondSpiritJoint = 0x6ee;
+[[nodiscard]] Core::Expected<void, std::string> CreateSpiritJoint(JointState& joint,
+                                                                  const World::FishEffectRequest& request,
+                                                                  Render::Models::CrtRandom& random,
+                                                                  const JointKernels::CreationServices* services);
+[[nodiscard]] Core::Expected<void, std::string> StepSpiritJoint(JointState& joint,
+                                                                const JointKernels::StepServices& services);
+
+// El 0x60f/2 y el 0x60f/0x18 (DropJoints.cpp), la gota que el 0x613/2 suelta en su segundo paso (0x5396ff): alta
+// 0x533677 y 0x5340dc, y paso 0x53b156.
+inline constexpr std::int32_t DropJoint = 0x60f;
+inline constexpr std::int32_t DropSubtype = 2;
+inline constexpr std::int32_t DarkDropSubtype = 0x18;
+void CreateDropJoint(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random);
+void StepDropJoint(JointState& joint);
 } // namespace Client::Scenes::JointFamilies

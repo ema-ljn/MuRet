@@ -463,7 +463,7 @@ TEST_F(KalimaSiegeHelperTest, KundunRoarsShakesAndDropsStonesInKalima)
 }
 
 // Las acciones 3 y 4 de Kundun: el efecto 0x128 (0x518cf0, CL11) con lugar en la tabla corta; llena, nada. En la 4,
-// pasado el 6, veinticuatro joints 0x6ee/14 (CL11) y, en Kalima, 0x437860; pasado el 9, otra vez 0x437860; pasado el
+// pasado el 6, veinticuatro joints 0x6ee/0xe y, en Kalima, 0x437860; pasado el 9, otra vez 0x437860; pasado el
 // 6, el temblor (rand() & 15 − 16) · 0,1.
 TEST_F(KalimaSiegeHelperTest, KundunAttacksCutInTheirEffectsAndJoints)
 {
@@ -484,10 +484,34 @@ TEST_F(KalimaSiegeHelperTest, KundunAttacksCutInTheirEffectsAndJoints)
     FillParticles();
     ExpectCut(Draw(2), "0x43d0fd", "0x128/1");
 
+    // 0x43d19f: los veinticuatro joints 0x6ee/0xe (0x53349a: quietos, vida 10, un punto y la x de los ángulos en 20)
+    // desde el hueso 49 a 400 de altura; fuera de Kalima, el temblor y nada más.
     SetUp();
-    Actor(0x192, 4, 6.5f).dword60 = 0x65;
+    ActorState& burst = Actor(0x192, 4, 6.5f);
+    burst.dword60 = 0x65;
     FillParticles();
-    ExpectCut(Draw(0), "0x43d19f", "0x6ee");
+    {
+        CrtRandom expected{Seed};
+        static_cast<void>(expected.Next());
+        static_cast<void>(expected.Next());
+        const auto result = Draw(0);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(burst.dword60, 0x66);
+        EXPECT_EQ(std::ranges::count_if(m_joints, [](const Client::Scenes::JointState& joint) { return joint.alive; }),
+                  24);
+        for (std::size_t turn = 0; turn < 24; ++turn)
+        {
+            const Client::Scenes::JointState& joint = m_joints[turn];
+            EXPECT_EQ(joint.type, 0x6ee);
+            EXPECT_EQ(joint.subtype, 0xe);
+            EXPECT_EQ(joint.angles, glm::vec3(20.0f, 0.0f, 30.0f * static_cast<float>(turn)));
+            EXPECT_EQ(joint.position.z, 400.0f);
+            EXPECT_EQ(joint.life, 10);
+            EXPECT_EQ(joint.maximumCount, 1);
+            EXPECT_EQ(joint.width, 100.0f);
+        }
+        EXPECT_EQ(m_random.State(), expected.State());
+    }
 
     for (const std::int32_t map : {2, 24})
     {

@@ -708,6 +708,14 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
         CreateMeteor(joint, request);
         return {};
     }
+    if (request.type == JointFamilies::SpiritJoint || request.type == JointFamilies::SecondSpiritJoint)
+        return JointFamilies::CreateSpiritJoint(joint, request, random, services);
+    if (request.type == JointFamilies::DropJoint &&
+        (request.subtype == JointFamilies::DropSubtype || request.subtype == JointFamilies::DarkDropSubtype))
+    {
+        JointFamilies::CreateDropJoint(joint, request, random);
+        return {};
+    }
     if (request.type == 0x617 && request.subtype >= 0 && request.subtype <= 3)
     {
         // 534e9c: /0→53202f,/1→5320a4,/2→5320dd,/3→532085.
@@ -820,9 +828,10 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateFaunaJoint(std::sp
     const bool kalimaBeam = request.type == 0x610 && request.subtype == 8;
     const bool barrierBeam = request.type == 0x618 && (request.subtype == 2 || request.subtype == 3);
     // Las familias de JointFamilies.h leen al personaje dueño con JointKernels::ActorOwner.
-    const bool familyJoint = request.type == JointFamilies::LightningJoint ||
-                             request.type == JointFamilies::RedHandBoltJoint ||
-                             request.type == JointFamilies::BlueHandBoltJoint;
+    const bool familyJoint =
+        request.type == JointFamilies::LightningJoint || request.type == JointFamilies::RedHandBoltJoint ||
+        request.type == JointFamilies::BlueHandBoltJoint || request.type == JointFamilies::SpiritJoint ||
+        request.type == JointFamilies::SecondSpiritJoint;
     for (std::size_t i = 0; i < joints.size(); ++i)
     {
         if (joints[i].alive)
@@ -1537,6 +1546,8 @@ enum class Family : std::uint8_t
 {
     Lightning,
     HandBolt,
+    Spirit,
+    Drop,
 };
 
 std::optional<Family> FamilyStep(const JointState& joint)
@@ -1545,6 +1556,13 @@ std::optional<Family> FamilyStep(const JointState& joint)
         return Family::Lightning;
     if (joint.type == JointFamilies::RedHandBoltJoint || joint.type == JointFamilies::BlueHandBoltJoint)
         return Family::HandBolt;
+    // El 613/4 y el 6ee/9 siguen en el paso de abajo.
+    if ((joint.type == JointFamilies::SpiritJoint && joint.subtype != 4) ||
+        (joint.type == JointFamilies::SecondSpiritJoint && joint.subtype != 9))
+        return Family::Spirit;
+    if (joint.type == JointFamilies::DropJoint &&
+        (joint.subtype == JointFamilies::DropSubtype || joint.subtype == JointFamilies::DarkDropSubtype))
+        return Family::Drop;
     return std::nullopt;
 }
 
@@ -1584,6 +1602,11 @@ Core::Expected<void, std::string> RunFamily(JointState& joint, Family family,
         return JointFamilies::StepLightningJoint(joint, services);
     case Family::HandBolt:
         return JointFamilies::StepHandBoltJoint(joint, services);
+    case Family::Spirit:
+        return JointFamilies::StepSpiritJoint(joint, services);
+    case Family::Drop:
+        JointFamilies::StepDropJoint(joint);
+        return {};
     }
     return {};
 }

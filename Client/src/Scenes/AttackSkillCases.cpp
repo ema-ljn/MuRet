@@ -8,14 +8,18 @@
 #include "Scenes/ArrowEffects.h"
 #include "Scenes/AttackSkillReads.h"
 #include "Scenes/CharacterStep.h"
+#include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/HeroAttack.h"
 #include "Scenes/HeroSkillCasts.h"
 #include "Scenes/HeroSkills.h"
+#include "Scenes/JointFamilies.h"
+#include "Scenes/JointKernels.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
 #include "World/KalimaWorld.h"
 #include "World/Particles.h"
@@ -97,6 +101,85 @@ Core::Expected<void, std::string> JointThenSound(std::uint32_t address, std::str
         return CutAt(address, what, skill, slot);
     if (sound >= 0)
         RequestTheSound(context, sound);
+    return {};
+}
+
+// 0x530860(0x613, desde, hasta, ángulos, subtipo, o, ancho, key, skill, serial, −1): un joint 0x613 colgado de o, con
+// lo que su alta pide al paso (el sonido de la /1 y el registro propio de la /0). Con el pool lleno, nada.
+struct SpiritJointRequest
+{
+    std::uint32_t address = 0;
+    std::int32_t subtype = 0;
+    glm::vec3 from{};
+    glm::vec3 to{};
+    glm::vec3 angles{};
+    float width = 0.0f;
+    std::int32_t key = 0;
+    std::int32_t skill = 0;
+    std::int32_t serial = 0;
+};
+
+Core::Expected<void, std::string> CreateTheSpirit(ActorState& actor, const CharacterStepContext& context,
+                                                  SpiritJointRequest spirit)
+{
+    if (context.joints.empty())
+        return Core::Unexpected(std::format("{:#x}: faltan los joints del frame (0x530860)", spirit.address));
+    const JointKernels::CreationServices services{.playerBonePoint = {},
+                                                  .soundRequest = [&context](std::int32_t sound)
+                                                  { RequestTheSound(context, sound); },
+                                                  .ownRecordDepth = &context.world.Runtime().ownRecordDepth,
+                                                  .ownVolley = &context.world.OwnCharacter().bytef04};
+    const World::FishEffectRequest request{.type = JointFamilies::SpiritJoint,
+                                           .firstPosition = spirit.from,
+                                           .secondPosition = spirit.to,
+                                           .angles = spirit.angles,
+                                           .subtype = spirit.subtype,
+                                           .ownerContext = &actor,
+                                           .scale = spirit.width,
+                                           .key = spirit.key,
+                                           .skill = spirit.skill,
+                                           .skillSerial = spirit.serial,
+                                           .target = -1};
+    const auto created = CreateFaunaJoint(context.joints, request, context.random, JointOwnerKind::Actor, &services);
+    if (!created.HasValue())
+        return Core::Unexpected(std::format("{:#x}: {}", spirit.address, created.Error()));
+    return {};
+}
+
+// 0x4fe015..0x4fe13f (la 0x30) y 0x4fe253..0x4fe37b (la 0x45): treinta y seis joints 0x613 de ancho 60 colgados de o,
+// 100 más arriba, con los ángulos (−10, 0, 10 · i); en la vuelta 0 y en la 20, el calco 0x61e sobre o. Sin rand().
+struct SpiritRing
+{
+    std::int32_t subtype = 0;
+    std::uint32_t jointAddress = 0;
+    std::uint32_t effectAddress = 0;
+    std::string_view effect;
+    std::int32_t sound = 0;
+};
+
+Core::Expected<void, std::string> RingTheSpirits(ActorState& actor, std::size_t slot, std::uint8_t skill,
+                                                 const CharacterStepContext& context, const SpiritRing& ring)
+{
+    constexpr int Spirits = 36, EffectEvery = 20;
+    constexpr float Width = 60.0f; // 0x42700000
+    for (int index = 0; index < Spirits; ++index)
+    {
+        const glm::vec3 angles{-10.0f, 0.0f, static_cast<float>(static_cast<double>(index) * 10.0)};
+        const glm::vec3 point{actor.position.x, actor.position.y,
+                              static_cast<float>(static_cast<double>(actor.position.z) + 100.0)};
+        if (auto made = CreateTheSpirit(actor, context,
+                                        {.address = ring.jointAddress,
+                                         .subtype = ring.subtype,
+                                         .from = point,
+                                         .to = point,
+                                         .angles = angles,
+                                         .width = Width});
+            !made.HasValue())
+            return made;
+        if (index % EffectEvery == 0 && HasEffectRoom(context))
+            return CutAt(ring.effectAddress, ring.effect, skill, slot);
+    }
+    RequestTheSound(context, ring.sound);
     return {};
 }
 
@@ -376,18 +459,23 @@ Core::Expected<void, std::string> StepTheHeadSkill(ActorState& actor, std::size_
         KeepTheWeapon(actor);
         return {};
     case 0x30:
-        // 0x4fe015: treinta y seis vueltas; la primera, 0x530860(0x613, …, 2, o, 60, …) sin rand() antes.
-        if (HasJointRoom(context))
-            return CutAt(0x4fe0e4, "el primero de los 36 joints 0x613/2 (0x530860)", skill, slot);
-        return EffectThenSound(0x4fe127, "el calco 0x61e/4 entre los joints", skill, slot, 0x7f, context);
+        return RingTheSpirits(actor, slot, skill, context,
+                              {.subtype = 2,
+                               .jointAddress = 0x4fe0e4,
+                               .effectAddress = 0x4fe127,
+                               .effect = "el calco 0x61e/4 entre los joints 0x613/2",
+                               .sound = 0x7f});
     case 0x43:
         return JointThenSound(0x4fe172, "el joint 0x632/7 sobre o (0x530860)", skill, slot, 0x266, context);
     case 0x44:
         return BindTheTarget(actor, slot, skill, context, 0x4fe1a6, 0x4fe235);
     case 0x45:
-        if (HasJointRoom(context))
-            return CutAt(0x4fe322, "el primero de los 36 joints 0x613/0x15 (0x530860)", skill, slot);
-        return EffectThenSound(0x4fe360, "el calco 0x61e/0xa entre los joints", skill, slot, 0x268, context);
+        return RingTheSpirits(actor, slot, skill, context,
+                              {.subtype = 0x15,
+                               .jointAddress = 0x4fe322,
+                               .effectAddress = 0x4fe360,
+                               .effect = "el calco 0x61e/0xa entre los joints 0x613/0x15",
+                               .sound = 0x268});
     case 0x46:
         return FreeTheTarget(actor, slot, skill, context);
     case 0x47:
@@ -484,16 +572,43 @@ Core::Expected<void, std::string> StepTheHeadSkill(ActorState& actor, std::size_
         CountHeroVolley(actor, context);
         return {};
     case 0x09:
-        // 0x501bab: la primera de cuatro vueltas, con 0x59fb80(9).
-        for (int index = 0; index < 4; ++index)
+    {
+        // 0x501bab..0x501ca4: cuatro vueltas con 0x59fb80(9); en cada una, dos joints 0x613/0 colgados de o desde 100
+        // más arriba, con los ángulos (0, 0, 90 · i): el de ancho 80 con la key +0x8a, el índice de la skill y +0x1bd
+        // (0x501c67), y el de ancho 20 con la key −1 (0x501c9c).
+        constexpr int Turns = 4;
+        constexpr float WideWidth = 80.0f, ThinWidth = 20.0f; // 0x42a00000 y 0x41a00000
+        const glm::vec3 point{actor.position.x, actor.position.y,
+                              static_cast<float>(static_cast<double>(actor.position.z) + 100.0)};
+        for (int turn = 0; turn < Turns; ++turn)
         {
-            static_cast<void>(OwnSkillIndex(context, skill));
-            if (HasJointRoom(context))
-                return CutAt(0x501c67, "el primero de los joints 0x613/0 (0x530860)", skill, slot);
+            const glm::vec3 angles{0.0f, 0.0f, static_cast<float>(static_cast<double>(turn) * 90.0)};
+            const std::int32_t index = OwnSkillIndex(context, skill);
+            if (auto wide = CreateTheSpirit(actor, context,
+                                            {.address = 0x501c67,
+                                             .from = point,
+                                             .to = actor.position,
+                                             .angles = angles,
+                                             .width = WideWidth,
+                                             .key = actor.word8a,
+                                             .skill = index,
+                                             .serial = actor.magicKey});
+                !wide.HasValue())
+                return wide;
+            if (auto thin = CreateTheSpirit(actor, context,
+                                            {.address = 0x501c9c,
+                                             .from = point,
+                                             .to = actor.position,
+                                             .angles = angles,
+                                             .width = ThinWidth,
+                                             .key = -1});
+                !thin.HasValue())
+                return thin;
         }
         CountHeroVolley(actor, context);
         RequestTheSound(context, 0x75);
         return {};
+    }
     case 0x4c:
         return StrikeAround(actor, slot, skill, context);
     case 0x2c:

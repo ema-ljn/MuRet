@@ -13,6 +13,7 @@
 #include "Scenes/CharacterStep.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/JointFamilies.h"
 #include "Scenes/JointKernels.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -239,6 +240,56 @@ glm::vec3 MatrixPoint(const ActorState& actor, const Render::Models::BoneTransfo
                                                      placement.origin);
 }
 
+// Lo que el alta de un joint le pide al paso: el hueso 33 del jugador, el sonido de la CL10 y el registro propio.
+JointKernels::CreationServices JointServices(const CharacterStepContext& context)
+{
+    return {.playerBonePoint =
+                [&context](const ActorState& bones, std::size_t bone, const glm::vec3& offset)
+            {
+                const Render::Models::BoneTransform matrix =
+                    bone < bones.bodyPose.size() ? bones.bodyPose[bone] : Render::Models::BoneTransform(0.0f);
+                const SharedModelPlacement placement = context.world.ModelPlacement(Data::Models::PlayerSkeletonModel);
+                return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), offset,
+                                                                 placement.scale, placement.origin);
+            },
+            .soundRequest = [&context](std::int32_t sound) { RequestTheSound(context, sound); },
+            .ownRecordDepth = &context.world.Runtime().ownRecordDepth,
+            .ownVolley = &context.world.OwnCharacter().bytef04};
+}
+
+// 0x4f74ee..0x4f7573 y 0x4f7ec0..0x4f7f45: un joint 0x613 sin dueño desde 100 más arriba del monstruo, con los
+// ángulos (rand() % 360, rand() % 360, rand() % 360) y la key, la skill y el serial en 0. Con el pool lleno, los
+// rand() de los ángulos y nada más.
+Core::Expected<void, std::string> ThrowTheSpirit(const ActorState& actor, const CharacterStepContext& context,
+                                                 std::uint32_t address, std::int32_t subtype, float width)
+{
+    constexpr std::int32_t FullTurn = 360;
+    glm::vec3 angles{};
+    angles.x = static_cast<float>(context.random.Next() % FullTurn);
+    angles.y = static_cast<float>(context.random.Next() % FullTurn);
+    angles.z = static_cast<float>(context.random.Next() % FullTurn);
+    glm::vec3 point{actor.position.x, actor.position.y,
+                    static_cast<float>(static_cast<double>(actor.position.z) + 100.0)};
+    if (context.joints.empty())
+        return Core::Unexpected(std::format("{:#x}: faltan los joints del frame (0x530860)", address));
+    const JointKernels::CreationServices services = JointServices(context);
+    const World::FishEffectRequest request{.type = JointFamilies::SpiritJoint,
+                                           .firstPosition = point,
+                                           .secondPosition = point,
+                                           .angles = angles,
+                                           .subtype = subtype,
+                                           .ownerContext = nullptr,
+                                           .scale = width,
+                                           .key = 0,
+                                           .skill = 0,
+                                           .skillSerial = 0,
+                                           .target = -1};
+    const auto created = CreateFaunaJoint(context.joints, request, context.random, JointOwnerKind::ByType, &services);
+    if (!created.HasValue())
+        return Core::Unexpected(std::format("{:#x}: {}", address, created.Error()));
+    return {};
+}
+
 // 0x530860(tipo, desde, hasta, ángulos, subtipo, dueño, ancho, −1, 0, 0, −1) desde la cola de 0x4f5b70: el dueño es el
 // blanco (ESI). El 0x614/2 lee el hueso 33 del blanco con el modelo del jugador (0x5313fe: 0x5769ad8 + 0x20a · 0xe0).
 // Con el pool lleno, nada y sin rand().
@@ -248,15 +299,7 @@ Core::Expected<void, std::string> CreateTheJoint(ActorState& owner, const Charac
 {
     if (context.joints.empty())
         return Core::Unexpected(std::format("{:#x}: faltan los joints del frame (0x530860)", address));
-    const JointKernels::CreationServices services{
-        .playerBonePoint = [&context](const ActorState& bones, std::size_t bone, const glm::vec3& offset)
-        {
-            const Render::Models::BoneTransform matrix =
-                bone < bones.bodyPose.size() ? bones.bodyPose[bone] : Render::Models::BoneTransform(0.0f);
-            const SharedModelPlacement placement = context.world.ModelPlacement(Data::Models::PlayerSkeletonModel);
-            return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), offset,
-                                                             placement.scale, placement.origin);
-        }};
+    const JointKernels::CreationServices services = JointServices(context);
     const World::FishEffectRequest request{.type = type,
                                            .firstPosition = from,
                                            .secondPosition = to,
@@ -1044,17 +1087,14 @@ Core::Expected<void, std::string> StepTheKindCase(ActorState& actor, const KindC
     case 0x4f715a:
         return DripTheBlood(actor, slot, context);
     case 0x4f7223:
-        // +0x38e; con '2' y en 14, treinta y seis joints 0x613/1, cada intento precedido por tres rand() % 360.
+        // +0x38e; con '2' y en 14, treinta y seis joints 0x613/1 de ancho 60 (0x4f756a), cada uno con su sonido 0x3e.
         if (ReadTheSkill(actor, context.random) == CaseSkill && actor.byte381 == FourteenthStep)
         {
             constexpr int JointCount = 36;
+            constexpr float Width = 60.0f; // 0x42700000
             for (int joint = 0; joint < JointCount; ++joint)
-            {
-                for (int angle = 0; angle < 3; ++angle)
-                    static_cast<void>(context.random.Next());
-                if (!IsJointPoolFull(context))
-                    return CutAt(0x4f756a, "el primero de los treinta y seis joints 0x613/1 (CL11)", actor, slot);
-            }
+                if (auto thrown = ThrowTheSpirit(actor, context, 0x4f756a, 1, Width); !thrown.HasValue())
+                    return thrown;
         }
         return {};
     case 0x4f75b5:
@@ -1119,20 +1159,17 @@ Core::Expected<void, std::string> StepTheKindCase(ActorState& actor, const KindC
     }
     case 0x4f7bc8:
     {
-        // +0x38e; con '2' y en 2 o 6, cuarenta joints 0x613/3, cada intento precedido por tres rand() % 360.
+        // +0x38e; con '2' y en 2 o 6, cuarenta joints 0x613/3 de ancho 50 (0x4f7f3c).
         constexpr std::uint8_t SecondStep = 2;
         constexpr std::uint8_t SixthStep = 6;
         if (ReadTheSkill(actor, context.random) == CaseSkill &&
             (actor.byte381 == SecondStep || actor.byte381 == SixthStep))
         {
             constexpr int JointCount = 40;
+            constexpr float Width = 50.0f; // 0x42480000
             for (int joint = 0; joint < JointCount; ++joint)
-            {
-                for (int angle = 0; angle < 3; ++angle)
-                    static_cast<void>(context.random.Next());
-                if (!IsJointPoolFull(context))
-                    return CutAt(0x4f7f3c, "el primero de los cuarenta joints 0x613/3 (CL11)", actor, slot);
-            }
+                if (auto thrown = ThrowTheSpirit(actor, context, 0x4f7f3c, 3, Width); !thrown.HasValue())
+                    return thrown;
         }
         return {};
     }

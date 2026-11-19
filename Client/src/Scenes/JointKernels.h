@@ -54,6 +54,12 @@ using PlayerBonePoint = std::function<glm::vec3(const ActorState& owner, std::si
 struct CreationServices
 {
     PlayerBonePoint playerBonePoint{};
+    // 0x41ed10(sonido, 0, 0): el 0x613/1 suena al nacer (0x5330c5). Sin él, no suena (la CL10 decide cómo).
+    std::function<void(std::int32_t)> soundRequest{};
+    // El registro propio ([0x7681eb4]): la cuenta de sus accesos abiertos y su +0xf04, que el 0x613/0 y el /5 leen con
+    // un acceso (0x532675, 0x532bab; el cierre que lo deja en 0 saca 3.848 rand()). Sin ellos, esas altas cortan.
+    std::uint8_t* ownRecordDepth = nullptr;
+    const std::uint8_t* ownVolley = nullptr;
 };
 
 // Lo que el paso de una familia de joints le pide al frame: el pool entero (las altas que hace el paso caen en él,

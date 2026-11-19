@@ -284,29 +284,35 @@ TEST_F(MonsterDrawingTest, ALorenciaSpiderDrawsItsBodyThenItsShadowWithTheOneAtt
 }
 
 // 0x50be15..0x50be52: después del cuerpo, en Blood Castle (0xb a 0x11), el que muere empujado (+0x1a1 y +0x389) baja a
-// la altura del terreno (0x5f93c0, 4 en todo el mapa) y la sombra se aplasta ahí (5 sobre su z). El fcom con `test ah,
-// 1` escribe también con la z en NaN; con el terreno a la altura de la z o arriba, no. Fuera de esos mapas, sin +0x1a1
-// o sin morirse, la z queda. Sin las alturas corta en la llamada a 0x5f93c0, después del cuerpo.
+// la altura del terreno (0x5f93c0) y la sombra se aplasta ahí (5 sobre su z). El fcom con `test ah, 1` escribe también
+// con la z o la altura en NaN; con el terreno a la altura de la z o arriba, no: con la z en −0 y el terreno en +0, la z
+// queda en −0 (un `>` la pisaría con +0). Fuera de esos mapas, sin +0x1a1 o sin morirse, la z queda. El suelo va detrás
+// de las guardas de su sombra (0x50bd89..0x50bdfb): con el alpha por debajo de 0,3f (en 0,3f baja), con +0x88 en 8 o
+// con un +0x376 sin sombra (el 0x19), ni sombra ni suelo. Sin las alturas corta en la llamada a 0x5f93c0, después del
+// cuerpo.
 TEST_F(MonsterDrawingTest, TheDyingOfBloodCastleSinkToTheGroundUnderTheirShadow)
 {
     m_world->Map().terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
-    m_world->Map().terrain.heights->cells.fill(4.0f);
     struct Case
     {
         std::int32_t map;
         std::uint8_t byte1a1;
         std::uint8_t dying;
         float z;
+        float height;
         float grounded;
     };
     const float nan = std::numeric_limits<float>::quiet_NaN();
-    const std::array cases{Case{0xb, 1, 1, 10.0f, 4.0f},  Case{0x11, 1, 1, 10.0f, 4.0f}, Case{0xb, 1, 1, nan, 4.0f},
-                           Case{0xb, 1, 1, 3.0f, 3.0f},   Case{2, 1, 1, 10.0f, 10.0f},   Case{0x12, 1, 1, 10.0f, 10.0f},
-                           Case{0xb, 0, 1, 10.0f, 10.0f}, Case{0xb, 1, 0, 10.0f, 10.0f}};
+    const std::array cases{Case{0xb, 1, 1, 10.0f, 4.0f, 4.0f},  Case{0x11, 1, 1, 10.0f, 4.0f, 4.0f},
+                           Case{0xb, 1, 1, nan, 4.0f, 4.0f},    Case{0xb, 1, 1, 10.0f, nan, nan},
+                           Case{0xb, 1, 1, 3.0f, 4.0f, 3.0f},   Case{0xb, 1, 1, -0.0f, 0.0f, -0.0f},
+                           Case{2, 1, 1, 10.0f, 4.0f, 10.0f},   Case{0x12, 1, 1, 10.0f, 4.0f, 10.0f},
+                           Case{0xb, 0, 1, 10.0f, 4.0f, 10.0f}, Case{0xb, 1, 0, 10.0f, 4.0f, 10.0f}};
     for (const Case& probe : cases)
     {
         SCOPED_TRACE(::testing::Message() << "mapa " << probe.map << ", +0x1a1 " << int{probe.byte1a1} << ", +0x389 "
-                                          << int{probe.dying} << ", z " << probe.z);
+                                          << int{probe.dying} << ", z " << probe.z << ", terreno " << probe.height);
+        m_world->Map().terrain.heights->cells.fill(probe.height);
         m_world->Runtime().map = probe.map;
         ActorState& spider = Monster(5, Spider, 3);
         spider.byte1a1 = probe.byte1a1;
@@ -317,13 +323,54 @@ TEST_F(MonsterDrawingTest, TheDyingOfBloodCastleSinkToTheGroundUnderTheirShadow)
         const auto result = Draw(Pass());
 
         ASSERT_TRUE(result.HasValue()) << result.Error();
-        EXPECT_EQ(spider.position, (glm::vec3{150.0f, 150.0f, probe.grounded}));
+        EXPECT_EQ(spider.position.x, 150.0f);
+        EXPECT_EQ(spider.position.y, 150.0f);
+        if (std::isnan(probe.grounded))
+            EXPECT_TRUE(std::isnan(spider.position.z)) << spider.position.z;
+        else
+            EXPECT_TRUE(spider.position.z == probe.grounded &&
+                        std::signbit(spider.position.z) == std::signbit(probe.grounded))
+                << spider.position.z;
         ASSERT_EQ(m_batch.Vertices().size(), 6u);
-        EXPECT_FLOAT_EQ(m_batch.Vertices()[3].position.z, probe.grounded + 5.0f);
+        const float shadow = m_batch.Vertices()[3].position.z;
+        if (std::isnan(probe.grounded))
+            EXPECT_TRUE(std::isnan(shadow)) << shadow;
+        else
+            EXPECT_FLOAT_EQ(shadow, probe.grounded + 5.0f);
+    }
+
+    // Detrás de las guardas de la sombra: sin ella, la z queda y sólo se dibuja el cuerpo.
+    struct Guard
+    {
+        float alpha;
+        std::uint8_t kind;
+        std::uint16_t monster;
+        float grounded;
+    };
+    const float shadowAlpha = std::bit_cast<float>(0x3e99999au); // 0x6b89dc, 0,3f
+    const std::array guards{Guard{0.29f, 2, 3, 10.0f}, Guard{shadowAlpha, 2, 3, 4.0f}, Guard{1.0f, 8, 3, 10.0f},
+                            Guard{1.0f, 2, 0x19, 10.0f}};
+    m_world->Map().terrain.heights->cells.fill(4.0f);
+    m_world->Runtime().map = 0xb;
+    for (const Guard& guard : guards)
+    {
+        SCOPED_TRACE(::testing::Message()
+                     << "alpha " << guard.alpha << ", +0x88 " << int{guard.kind} << ", +0x376 " << guard.monster);
+        ActorState& spider = Monster(5, Spider, guard.monster);
+        spider.alpha = guard.alpha;
+        spider.byte88 = guard.kind;
+        spider.byte1a1 = 1;
+        spider.dying = 1;
+        m_batch.Begin(Client::Render::Pass3D{});
+
+        const auto result = Draw(Pass());
+
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(spider.position.z, guard.grounded);
+        EXPECT_EQ(m_batch.Vertices().size(), guard.grounded == 4.0f ? 6u : 3u);
     }
 
     m_world->Map().terrain.heights.reset();
-    m_world->Runtime().map = 0xb;
     ActorState& blind = Monster(5, Spider, 3);
     blind.byte1a1 = 1;
     blind.dying = 1;
@@ -332,6 +379,39 @@ TEST_F(MonsterDrawingTest, TheDyingOfBloodCastleSinkToTheGroundUnderTheirShadow)
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x50be3b"), std::string::npos) << cut.Error();
     EXPECT_EQ(m_batch.Vertices().size(), 3u);
+}
+
+// 0x5ffdf0 copia la posición al registro del modelo (+0x6c..+0x74, 0x5ffe8b..0x5ffe9a) al posar el cuerpo, antes del
+// suelo de la sombra (0x50be4f), y lo que sigue lo lee con 0x4ec110 sobre [ebp−0x14]: el flare01 (0x5ac) del +0x376
+// 0x46 (0x50c0fb..0x50c136) en el hueso 20 (el hueso k está en (0, 0, k)) sale desde la z de antes, 10, en (150, 150,
+// 30), aunque la araña quede en 4. Entre frames del original, lo mismo, sobre la copia.
+TEST_F(MonsterDrawingTest, TheTailOfTheDyingOfBloodCastleHangsFromWhereTheyStoodBeforeTheGround)
+{
+    m_world->Map().terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+    m_world->Map().terrain.heights->cells.fill(4.0f);
+    m_world->Runtime().map = 0xb;
+    for (const int frames : {1, 0})
+    {
+        SCOPED_TRACE(frames);
+        ActorState& spider = Monster(5, Spider, 0x46);
+        spider.byte1a1 = 1;
+        spider.dying = 1;
+        m_sprites.Clear();
+        m_batch.Begin(Client::Render::Pass3D{});
+        GameCharacterPass pass = Pass();
+        pass.originalFrames = frames;
+
+        const auto result = Draw(pass);
+
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(spider.position.z, frames > 0 ? 4.0f : 10.0f);
+        ASSERT_EQ(m_batch.Vertices().size(), 6u);
+        EXPECT_FLOAT_EQ(m_batch.Vertices()[3].position.z, 9.0f);
+        const auto live = LiveSprites();
+        ASSERT_EQ(live.size(), 1u);
+        EXPECT_EQ(live[0].texture, 0x5ac);
+        EXPECT_EQ(live[0].position, (glm::vec3{150.0f, 150.0f, 30.0f}));
+    }
 }
 
 TEST_F(MonsterDrawingTest, ADeviasYetiWithVertexLightTakesTheWholeTerrainLight)

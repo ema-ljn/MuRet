@@ -68,6 +68,9 @@ struct KalimaSiegeHelperPass
     std::int32_t map = 0;
     // 0x4294b0 (0x7239ec).
     bool siegeActive = false;
+    // +0x6c..+0x74 del modelo (+0x10 de 0x43c150, [ebp−0x14] de 0x50ba30): la posición que le copió 0x5ffdf0, antes del
+    // suelo de la sombra de Blood Castle (0x50be4f). Sin ella, la del personaje.
+    std::optional<glm::vec3> modelOrigin{};
 };
 
 // 0x510a1e..0x510a36: 0x43c150 y, si no es suyo, 0x42dfe0. Devuelve true si uno de los dos tiene el tipo (+0x2), que

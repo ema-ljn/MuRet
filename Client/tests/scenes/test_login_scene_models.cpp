@@ -16,6 +16,7 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Render/TextureSlot.h"
+#include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/DarkHorse.h"
 #include "Scenes/FaunaJointCreation.h"
@@ -698,8 +699,10 @@ TEST(LoginSceneModelsTest, NativeLoginPosesUpdateTheDurableCarryAndIntermediateD
     EXPECT_EQ(tested.scene->Failure(), std::nullopt);
 }
 
-// El login de los tests de la pose: el mundo 56 con sus archivos, sin el cuervo, y un paso.
-void EnterTheLoginWithItsWorld(Harness& tested, Client::Scenes::WorldState& world)
+// El login de los tests de la pose: el mundo 56 con sus archivos, sin el cuervo, y un paso. Con `cloth`, el flujo
+// global de la tela: la rama del 0x50ba30 con la tela y Player.bmd.
+void EnterTheLoginWithItsWorld(Harness& tested, Client::Scenes::WorldState& world,
+                               Client::Render::Models::ClothWorld* cloth = nullptr)
 {
     auto attributes = Client::Tests::PlainTerrainAttributes(56, Client::Tests::AttributeCells::Bytes);
     std::fill(attributes.begin() + 4, attributes.end(), std::byte{0});
@@ -713,11 +716,61 @@ void EnterTheLoginWithItsWorld(Harness& tested, Client::Scenes::WorldState& worl
                                   Client::Tests::OzjOf(Client::Tests::ReadJpegVector("baseline-420.jpg")));
     Client::Tests::WriteSceneFile(tested.folder.Path(), "Object8/drop01.OZJ",
                                   Client::Tests::OzjOf(Client::Tests::ReadJpegVector("baseline-420.jpg")));
-    const auto entered = tested.Make(FixedSeed, nullptr, nullptr, &world).Enter();
+    const auto entered = tested.Make(FixedSeed, nullptr, cloth, &world).Enter();
     ASSERT_TRUE(entered.HasValue()) << entered.Error();
     for (auto& actor : world.Actors())
         actor.darkSpirit.reset();
     tested.Steps(1);
+}
+
+// 0x635206 → 0x510d00 → 0x50ba30 con el del login: la rama con la tela y Player.bmd mira las guardas de la sombra
+// (0x50bbff..0x50bc71, CastsShadow: el alpha desde 0,5 y sin +0x3e4; el mundo 56 es el mapa 55, con sombra) y, en un
+// frame del original, 0x60cf70 con el 0x20b (0x50bcec) le copia la escala y la posición del personaje
+// (WorldState::PlaceShadowModel), que la 0x632/0 y /1 leen al llegar al suelo. Con el alpha en 0,4 o con +0x3e4, no; un
+// dibujo intermedio tampoco.
+TEST(LoginSceneModelsTest, TheRealBranchPlacesTheShadowModelBehindItsGuards)
+{
+    constexpr std::uint16_t Shadow = Client::Data::Models::PlayerShadowModel;
+    auto world = std::make_unique<Client::Scenes::WorldState>();
+    Harness tested;
+    Client::Render::Models::ClothWorld cloth;
+    ASSERT_NO_FATAL_FAILURE(EnterTheLoginWithItsWorld(tested, *world, &cloth));
+    ASSERT_EQ(world->Runtime().map, 55);
+    auto& actor = world->Actors()[Client::Scenes::LoginActorSlot];
+    ASSERT_TRUE(actor.alive && actor.seen);
+    // Sin el cetro: su modelo no está en la biblioteca sintética y lo que cuelga cortaría en 0x50a169.
+    for (auto& hand : actor.hands)
+        hand.model = Client::Scenes::NoItemModel;
+    const auto drawAt = [&tested](Client::Core::Duration clock)
+    {
+        tested.scene->Render(tested.target.BeginFrame(clock), 0.0f);
+        tested.target.Present();
+        EXPECT_EQ(tested.scene->Failure(), std::nullopt);
+    };
+    using Client::Render::Models::OriginalFrameTime;
+
+    world->PlaceModel(Shadow, {});
+    drawAt(OriginalFrameTime);
+    EXPECT_EQ(world->ModelPlacement(Shadow).origin, actor.position);
+    EXPECT_EQ(world->ModelPlacement(Shadow).scale, actor.scale);
+
+    world->PlaceModel(Shadow, {});
+    drawAt(OriginalFrameTime);
+    EXPECT_EQ(world->ModelPlacement(Shadow).scale, 0.0f);
+
+    actor.alpha = 0.4f;
+    drawAt(OriginalFrameTime * 2);
+    EXPECT_EQ(world->ModelPlacement(Shadow).scale, 0.0f);
+
+    actor.alpha = 1.0f;
+    actor.byte3e4 = 1;
+    drawAt(OriginalFrameTime * 3);
+    EXPECT_EQ(world->ModelPlacement(Shadow).scale, 0.0f);
+
+    actor.byte3e4 = 0;
+    drawAt(OriginalFrameTime * 4);
+    EXPECT_EQ(world->ModelPlacement(Shadow).origin, actor.position);
+    tested.scene->Leave();
 }
 
 // 0x634b45..0x634b5e: al entrar, 120 mensajes vacíos dejan vacía el área vieja.

@@ -104,15 +104,17 @@ inline constexpr std::int32_t Particle67 = 0x67;
 inline constexpr std::int32_t Particle68 = 0x68;
 // La órbita (0x60f/3): nace con 60 de vida, y 548550 no la dibuja mientras la conserve, salvo la /4 (la de la
 // antorcha de Blood Castle, que nace con 40). La /0 (la del conjunto completo, 0x510339) nace y gira igual que la
-// /3; con su personaje en ciertas acciones pasa a ser la /1, que sólo se apaga (0x54735c).
+// /3; con su dueño (el personaje del conjunto, o el calco 0x61d de 0x52b8ff y 0x52b977) en ciertas acciones pasa a
+// ser la /1, que sólo se apaga (0x54735c).
 inline constexpr std::int32_t OrbitParticle = 0x60f;
 inline constexpr std::int32_t OrbitLife = 60;
 // Las flores 608, 609 y 60a (Skill\flower1..3.tga) de la flecha 0xe1 (0x526a8b): nacen en 0x542c4b sin leer el
 // subtipo y su paso (0x546da6) las deja caer, la /0 y la /1 con su deriva, hasta el terreno (0x5f93c0), girando.
 inline constexpr std::int32_t FirstFlowerParticle = 0x608;
 inline constexpr std::int32_t LastFlowerParticle = 0x60a;
-// La columna 62b/0 (Effect\flareBlue.jpg) del círculo 0xc3 (0x523677 y 0x52384c): nace en 0x542d01 y sube cada vez
-// más rápido (0x546f0d). Las demás de 0x53fe70 (0x54304c) no se portan.
+// La columna 62b/0 (Effect\flareBlue.jpg) del círculo 0xcc/3 y /4 (0x523677 y 0x52384c; la tabla 0x52cef4 lleva el
+// 0xcc a 0x523374): nace en 0x542d01 y sube cada vez más rápido (0x546f0d). Los demás subtipos salen de 0x53fe70 en
+// 0x54304c con sólo el prefijo y no tienen paso propio (0x546f12).
 inline constexpr std::int32_t FlareColumnParticle = 0x62b;
 // El agujero 6ae (Effect\Hole.jpg) de la puerta 0xc5 de Kalima (0x43c20d): nace en 0x543bf1 y gira, se achica y se
 // apaga con la vida (0x547d42), sin leer el subtipo.
@@ -223,7 +225,8 @@ enum class ParticleError : std::uint8_t
     MissingClock,
     MissingScene,
     // 0x5476f0: el dueño (+0x40) de una 622/1 no está entre los objetos del mapa; 0x54735c: el de una 60f/0 no
-    // es un personaje del pool.
+    // responde (ni un personaje del pool por ParticleActorActions ni un lugar de la tabla de efectos, el calco 0x61d,
+    // por ParticleOwnerStates).
     MissingOwner,
     // 0x545cd6: la 5ed pide la luz dinámica (0x7b4ccc4) y no está, o su centro no cabe en el int32 de 0x5f9780.
     MissingDynamicLight,
@@ -274,10 +277,12 @@ class Particles
 public:
     // 0x53fe70(tipo, posición, ángulos, luz, subtipo, escala, dueño) en el primer lugar libre, con el reloj
     // del mundo (DAT_05767b88, en ms) y el rand() de la CRT. Con los 3.000 llenos no se crea ni saca
-    // rand(). Se aceptan5ca/0, 5e4 (cualquier subtipo), 5f2/0,2,11,21,33, 5f3/0,1, 5f6/0,1, 5ed/0, 5c6/1,5,9,11,
-    // 622/6,8,9,10, 5d9/0..3,5,8, 5dc/12, 607/0, 67/0, 68/0, 698/0, 6ab/0,1, 6ac/0,1, 608..60a y 6ae (cualquier
-    // subtipo) y 62b/0; la órbita 60f/0,3,4,10 pide el
-    // overload con la trigonometría. Create es la compatibilidad login; Core usa CreateChecked para distinguir errores
+    // rand(). Se aceptan, entre otras (la lista entera es la de BindingError más las familias de Kalima, de la
+    // selección, de las pruebas y de Blood Castle), la 5ca, la 5e4, las flores 608..60a, la 62b y el 6ae (cualquier
+    // subtipo; la 62b fuera de la /0 sólo con el prefijo), 5f2/0,2,11,21,25,27,33,34,35,38, 5f3/0,1, 5f6/0,1, 5ed/0,
+    // 5c6/1,5,9,11, 622/6,8,9,10, el fuego 5d9, 5db y 5dc (cualquier subtipo), 607/0..4, 67/0, 68/0, 698/0, 6ab/0,1,
+    // 6ac/0,1 y la 6f4/2 del golpe de Kundun (0x52a37d, de Kalima); la órbita 60f/0,3,4,10 pide el overload con la
+    // trigonometría. Create es la compatibilidad login; Core usa CreateChecked para distinguir errores
     // de pool lleno. La neblina consume cinco rand() y conserva +0x60 del uso anterior del lugar. 622/8 consume siete
     // rand().
     std::optional<std::size_t> Create(std::int32_t type, const glm::vec3& position, const glm::vec3& angles,

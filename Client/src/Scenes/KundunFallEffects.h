@@ -75,9 +75,10 @@ std::optional<std::size_t> CreateTheKundunEcho(World::ModelEffects& effects, std
 //   escala ((rand() & 31) + 48) · 0,02f). Después cae:
 //   por encima de 350, con la velocidad en (0, 0, 0) la x y la y en rand() % 2 · 2 − 2, y la z 6 menos; si no, con la
 //   z de la velocidad distinta de −3, la onda de Kalima (0x437860(x · 0,01, y · 0,01, 2, −1000)) y cien partículas
-//   0x6f4/2 en un círculo de radio rand() % 30 + 30 (corta en la primera, 0x52a37d: MuRet no la tiene); siempre, la
-//   partícula 0x607/4 a ±20 en x e y y 50 más abajo, la velocidad en (0, 0, −3), el balanceo de la x de los ángulos
-//   entre −30 y 30 de a rand() % 3 + 1 y, con menos de 100 de vida, el alpha 0,1f menos.
+//   0x6f4/2 (0x52a37d, la alta de 0x543d68) en un círculo de radio rand() % 30 + 30, 30 más abajo y con la z de los
+//   ángulos rand() % 180 más; siempre, la partícula 0x607/4 a ±20 en x e y y 50 más abajo, la velocidad en
+//   (0, 0, −3), el balanceo de la x de los ángulos entre −30 y 30 de a rand() % 3 + 1 y, con menos de 100 de vida, el
+//   alpha 0,1f menos.
 [[nodiscard]] Core::Expected<void, std::string> StepTheKundunPiece(World::ModelEffect& effect,
                                                                    const HighEffectStepContext& context);
 

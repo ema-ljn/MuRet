@@ -14423,6 +14423,12 @@ en un lugar de más adelante pasa en la misma vuelta de `0x53c670`.
   `0x53b7f1..0x53b93a`, sin el movimiento común (lista de `0x53585e`): con más de 9 de vida, treinta veces la cola con la
   matriz de los ángulos (`0x535520`) y la posición más (0, 0, −velocidad) girado; siempre la velocidad 2 menos y la luz
   por 0,7142857f.
+- **`0x61c/1`** (`FaunaJointCreation.cpp`, quinta vuelta): el rayo rojo del láser `0xd0/1` de los magos (`0x51a5dd`),
+  con el efecto de dueño. Alta `0x53439e..0x53442d`: velocidad 0, el ancho, el pase 1 (`+0x64`), la luz en 1, `+0x9dc`
+  en 0, 15 puntos, vida 30, la tanda (`+0x9eb`) en 0 y la posición y los ángulos los del dueño; sin dueño el original
+  apaga el joint y lee de 0, y MuRet corta (`0x5343f8`). Paso `0x53b628..0x53b69b`, sin `rand()`: sin dueño se apaga;
+  si no, vive lo que vive el dueño, el ancho baja 1, la posición es la del dueño 100 más arriba y, bajo 15 de vida, la
+  luz por 0,7692308f (`0x3f44ec4f`).
 La matriz de la cola común (`0x53c393`, `[ebp−0xe8]`) es la que calculó `0x53590e` en el paso del joint; los de la
 lista `0x53585e..0x53590c` no la calculan y usan la del último joint de la vuelta que la calculó (Q-C1623). El paso
 común lee también `[ebp−0x30]` y `[ebp+8]`, la posición menos el destino en x y en y antes de moverse (`0x53584f`).

@@ -17,6 +17,7 @@
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorActions.h"
+#include "Scenes/ActorCooldownServices.h"
 #include "Scenes/ActorCreation.h"
 #include "Scenes/ActorMotion.h"
 #include "Scenes/ActorRemains.h"
@@ -1220,7 +1221,8 @@ Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t 
         }
         StepCharacterHead(actor.headTurn, !hero && actor.dying == 0, context.random);
     }
-    if (auto cooldown = StepActorCooldown(actor, context.random, context.cooldown); !cooldown.HasValue())
+    if (auto cooldown = StepActorCooldown(actor, context.random, CharacterCooldownServices(context));
+        !cooldown.HasValue())
     {
         return cooldown;
     }
@@ -1442,6 +1444,35 @@ Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& con
     }
     // 0x5091d0: una vez después del último 0x508ea0, también en el login y antes del preview de selección.
     return StepRibbons(world.DrawTail().ribbons);
+}
+
+// 0x5069ae..0x506ac6: los creadores del freno de +0x3e5 con el contexto del paso. La 5f3/1 va al pool de partículas
+// en la posición sorteada, con los ángulos (+0x1c) y la luz (+0xf4, ya en 1) del personaje, escala 1 y sin dueño
+// (0x506a57..0x506a73); la piedrita 0xc8 o 0xc9, a la tabla de efectos del mundo en la posición del personaje (+0x10),
+// con sus ángulos y su luz, el subtipo 0, sin dueño y la clave −1 (0x506a8c..0x506ab7). Los dos con el CRT del paso.
+// Sin el pool, la partícula corta ahí.
+ActorCooldownServices CharacterCooldownServices(const CharacterStepContext& context)
+{
+    return {
+        .particle = [&context](const glm::vec3& position, const ActorState& actor) -> Core::Expected<void, std::string>
+        {
+            constexpr std::int32_t BrakeDustSubtype = 1;
+            if (context.particles == nullptr)
+                return Core::Unexpected(std::string("0x506a73: falta el pool de partículas del polvo 0x5f3/1"));
+            const auto created =
+                context.particles->CreateChecked(World::DustParticle, position, actor.angles, actor.light,
+                                                 BrakeDustSubtype, 1.0f, context.worldClock, context.random, 0);
+            if (!created.HasValue())
+                return Core::Unexpected(std::format("0x506a73: el polvo 0x5f3/1 falla con error {}",
+                                                    static_cast<unsigned>(created.Error())));
+            return {};
+        },
+        .effect = [&context](std::int32_t type, const ActorState& actor) -> Core::Expected<void, std::string>
+        {
+            static_cast<void>(context.world.Map().effects.CreateStoneChip(
+                static_cast<std::int16_t>(type), actor.position, actor.angles, actor.light, context.random));
+            return {};
+        }};
 }
 
 Core::Expected<void, std::string> StepCharacter(ActorState& actor, const CharacterStepContext& context)

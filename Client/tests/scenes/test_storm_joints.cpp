@@ -1,25 +1,36 @@
 #include "Scenes/FaunaJointCreation.h"
 
 #include "Core/Expected.h"
+#include "Data/Models/Model.h"
+#include "Data/Models/PlayerModels.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRotation.h"
+#include "Render/Models/Skeleton.h"
+#include "Render/TextureSlot.h"
+#include "Scenes/ActorPickingBox.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CharacterDrawing.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/WorldState.h"
 #include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
+#include "World/SkinShellEffects.h"
 #include "World/Sprites.h"
 
+#include <glm/ext/quaternion_float.hpp>
 #include <glm/ext/vector_float3.hpp>
 
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <array>
 #include <bit>
 #include <cstdint>
 #include <cstddef>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -283,11 +294,12 @@ struct FallingStar
         return Client::Scenes::CreateFaunaJoint(joints, request, random, Client::Scenes::JointOwnerKind::ModelEffect);
     }
 
-    Client::Core::Expected<void, std::string> Step()
+    Client::Core::Expected<void, std::string> Step(const Client::Scenes::IModelLibrary* models = nullptr,
+                                                   Client::Scenes::WorldState* world = nullptr)
     {
         return Client::Scenes::StepJoints(
             joints, random, nullptr, nullptr, 0.0f, sprites.get(), nullptr, {}, [this](float, float) { return ground; },
-            {}, {}, effects.get());
+            {}, {}, effects.get(), nullptr, world, nullptr, models);
     }
 
     std::vector<JointState> joints = std::vector<JointState>(2);
@@ -494,11 +506,12 @@ struct Falling
         return Client::Scenes::CreateFaunaJoint(joints, request, random, kind);
     }
 
-    Client::Core::Expected<void, std::string> Step()
+    Client::Core::Expected<void, std::string> Step(const Client::Scenes::IModelLibrary* models = nullptr,
+                                                   Client::Scenes::WorldState* world = nullptr)
     {
         return Client::Scenes::StepJoints(
             joints, random, nullptr, nullptr, 0.0f, sprites.get(), nullptr, {}, [this](float, float) { return ground; },
-            {}, {}, effects.get());
+            {}, {}, effects.get(), nullptr, world, nullptr, models);
     }
 
     const Client::World::Sprite* LiveSprite() const
@@ -516,6 +529,56 @@ struct Falling
     glm::vec3 start{1500.0f, 1600.0f, 1220.0f};
     glm::vec3 angles{0.0f, 0.0f, 135.0f};
     double ground = 20.0;
+};
+
+// El 0x20b (Player\Shadow01) de prueba: una malla de tres vértices del hueso 0 y 30 triángulos (90 esquinas), un hueso
+// sin padre con su key en el origen y una acción de una key. Los demás modelos no están.
+class ShadowModels final : public Client::Scenes::IModelLibrary
+{
+public:
+    ShadowModels()
+    {
+        Client::Data::Models::Mesh mesh;
+        mesh.vertices = {{0, {1.0f, 2.0f, 3.0f}}, {0, {-4.0f, 5.0f, 6.0f}}, {0, {7.0f, -8.0f, 9.0f}}};
+        mesh.triangles.assign(30, {3, {0, 1, 2, 0}});
+        model.meshes.push_back(mesh);
+        Client::Render::Models::SkeletonBone bone;
+        bone.actions = {{Client::Render::Models::BoneKey{}}};
+        skeleton.bones = {bone};
+        skeleton.actions = {Client::Render::Models::ActionInfo{.keyCount = 1}};
+    }
+    const Client::Data::Models::Model* Find(std::uint16_t type) const override
+    {
+        return type == Client::Data::Models::PlayerShadowModel ? &model : nullptr;
+    }
+    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t type) const override
+    {
+        return type == Client::Data::Models::PlayerShadowModel ? &skeleton : nullptr;
+    }
+    std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    {
+        return {};
+    }
+    Client::Data::Models::Model model;
+    Client::Render::Models::Skeleton skeleton;
+};
+
+// Lo que no tiene el 0x20b: ni modelo ni esqueleto.
+class NoModels final : public Client::Scenes::IModelLibrary
+{
+public:
+    const Client::Data::Models::Model* Find(std::uint16_t) const override
+    {
+        return nullptr;
+    }
+    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    {
+        return nullptr;
+    }
+    std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    {
+        return {};
+    }
 };
 } // namespace
 
@@ -604,7 +667,7 @@ TEST(StormJointsTest, TheFallingSubtypesSpeedUpInTheAir)
 // 0x53c16d..0x53c2e0 en el suelo (la altura del terreno menos +0x9ec por encima de la z): la z queda ahí; la /2 y la
 // /3, con la cola y la clave en 0, sueltan la onda 0x6eb/4 con la luz (0,3f; 0,8f; 1) (con el rand() de su escala);
 // todas apagan la cola (la clave queda) y la luz pasa a · 0,8333333f; el sprite sale igual. La /0 y la /1 sin dueño no
-// sueltan nada; con dueño, posan el modelo 0x20b y piden los efectos por vértice 0x137 (0x4ee770): cortan.
+// sueltan nada; con dueño, sin los modelos, el mundo o la tabla de efectos, MuRet corta en 0x53c1c6.
 TEST(StormJointsTest, TheFallingSubtypesLandWithTheirWaveOrTheirVertices)
 {
     for (const std::int32_t subtype : {0, 1, 2, 3})
@@ -647,6 +710,7 @@ TEST(StormJointsTest, TheFallingSubtypesLandWithTheirWaveOrTheirVertices)
     for (const std::int32_t subtype : {0, 1})
     {
         SCOPED_TRACE(subtype);
+        // Sin los modelos, el mundo o la tabla, MuRet corta.
         Falling owned;
         owned.ground = 5000.0;
         ASSERT_TRUE(owned.Create(subtype, &owned.target, Client::Scenes::JointOwnerKind::Actor).HasValue());
@@ -659,6 +723,158 @@ TEST(StormJointsTest, TheFallingSubtypesLandWithTheirWaveOrTheirVertices)
         ASSERT_TRUE(tailless.Create(subtype, &tailless.target, Client::Scenes::JointOwnerKind::Actor).HasValue());
         tailless.joints[0].tailEnabled = false;
         ASSERT_TRUE(tailless.Step().HasValue());
+    }
+}
+
+// 0x53c1c6..0x53c246: la /0 y la /1 con dueño, en el suelo con la cola, posan el 0x20b con la acción, la escala (2) y
+// el origen (100, 200, 300) que dejó la última sombra (no la posición del dueño) y los ángulos del dueño (en 0): los
+// vértices quedan en el origen más el doble de los suyos. 0x4ebc80 le escribe al dueño la caja de +0x13c (el origen más
+// su piso; los ejes, su caja). Después 0x4ee770(0, 0x137, subtipo): por esquina, rand() % 8 y con 0 la cáscara 0x137
+// del subtipo (nueve rand()); al final, el sprite con su rand() % 360.
+TEST(StormJointsTest, TheOwnedFallingSubtypesShedTheShellsOfTheShadow)
+{
+    const ShadowModels models;
+    const glm::vec3 origin{100.0f, 200.0f, 300.0f};
+    const std::array<glm::vec3, 3> posed{glm::vec3{102.0f, 204.0f, 306.0f}, glm::vec3{92.0f, 210.0f, 312.0f},
+                                         glm::vec3{114.0f, 184.0f, 318.0f}};
+    for (const std::int32_t subtype : {0, 1})
+    {
+        SCOPED_TRACE(subtype);
+        auto world = std::make_unique<Client::Scenes::WorldState>();
+        world->PlaceModel(Client::Data::Models::PlayerShadowModel, {.scale = 2.0f, .origin = origin, .action = 0});
+        Falling owned;
+        owned.ground = 5000.0;
+        owned.target.position = {9000.0f, 9000.0f, 9000.0f};
+        owned.target.boundsMin = {-60.0f, -50.0f, 0.0f};
+        owned.target.boundsMaxX = 60.0f;
+        owned.target.boundsMaxY = 70.0f;
+        owned.target.boundsTop = 150.0f;
+        ASSERT_TRUE(owned.Create(subtype, &owned.target, Client::Scenes::JointOwnerKind::Actor).HasValue());
+        CrtRandom expected = owned.random;
+
+        const auto stepped = owned.Step(&models, world.get());
+
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        auto twin = std::make_unique<Client::World::ModelEffects>();
+        std::size_t shells = 0;
+        for (std::size_t corner = 0; corner < 90; ++corner)
+        {
+            if (expected.Next() % 8 != 0)
+                continue;
+            ASSERT_TRUE(Client::World::CreateSkinShell({.type = Client::World::SkinShellEffect,
+                                                        .position = posed[corner % 3],
+                                                        .angles = glm::vec3(0.0f),
+                                                        .light = glm::vec3(1.0f),
+                                                        .subtype = subtype},
+                                                       *twin, expected)
+                            .has_value());
+            ++shells;
+        }
+        static_cast<void>(expected.Next());
+        EXPECT_EQ(owned.random.State(), expected.State());
+        ASSERT_GT(shells, 0U);
+        for (std::size_t slot = 0; slot < shells; ++slot)
+        {
+            const Client::World::ModelEffect& shell = owned.effects->Effects()[slot];
+            const Client::World::ModelEffect& replica = twin->Effects()[slot];
+            EXPECT_TRUE(shell.alive);
+            EXPECT_EQ(shell.type, Client::World::SkinShellEffect);
+            EXPECT_EQ(shell.subtype, subtype);
+            EXPECT_EQ(shell.transform.position, replica.transform.position);
+            EXPECT_EQ(shell.velocity, replica.velocity);
+            EXPECT_EQ(shell.light, replica.light);
+        }
+        EXPECT_FALSE(owned.effects->Effects()[shells].alive);
+        const Client::Scenes::ActorPickingBox box = Client::Scenes::PickingBoxOf(owned.target);
+        EXPECT_EQ(box.origin, (glm::vec3{40.0f, 150.0f, 300.0f}));
+        EXPECT_EQ(box.axisX, (glm::vec3{120.0f, 0.0f, 0.0f}));
+        EXPECT_EQ(box.axisY, (glm::vec3{0.0f, 120.0f, 0.0f}));
+        EXPECT_EQ(box.axisZ, (glm::vec3{0.0f, 0.0f, 150.0f}));
+        EXPECT_FALSE(owned.joints[0].tailEnabled);
+        EXPECT_NE(owned.LiveSprite(), nullptr);
+
+        // Sin el 0x20b en los modelos, corta en 0x53c1eb.
+        const NoModels none;
+        Falling bare;
+        bare.ground = 5000.0;
+        ASSERT_TRUE(bare.Create(subtype, &bare.target, Client::Scenes::JointOwnerKind::Actor).HasValue());
+        const auto missing = bare.Step(&none, world.get());
+        ASSERT_FALSE(missing.HasValue());
+        EXPECT_TRUE(missing.Error().starts_with("0x53c1eb")) << missing.Error();
+    }
+}
+
+// 0x53c1c6..0x53c210 con los ángulos del dueño y un hueso raíz que no es la identidad: 0x4eb860 arma la raíz con
+// 0x5fc8f0(ángulos del dueño) por la escala (2) y el origen (100, 200, 300) del 0x20b, le concatena (0x5fca90) la key
+// del hueso, el cuaternión (0,5; 0,5; 0,5; 0,5) (0x5fcdb0: (x, y, z) → (z, x, y), exacto) en (1, 2, 3), y 0x4ebc80 pasa
+// cada vértice por esa matriz (0x5fccc0). Con (0, 0, 90) el coseno de 90 · 0x3c8efa35 queda en la pila (0x32510b46 en
+// float) y se pierde al redondear: (94, 208, 310), (104, 214, 316) y (82, 220, 290). Con (30, 0, 45), los bits de
+// abajo. Los vértices salen de repetir 0x5fc8f0, 0x5fcdb0, 0x5fca90 y 0x5fccc0 en la x87 aparte (Fraction exacta con
+// redondeo a 53 y 24 bits, el seno y el coseno a 64).
+TEST(StormJointsTest, TheShellsOfTheShadowTurnWithTheOwnerAndTheRootBone)
+{
+    struct Case
+    {
+        glm::vec3 angles;
+        std::array<std::array<std::uint32_t, 3>, 3> posed;
+    };
+    const std::array cases{Case{{0.0f, 0.0f, 90.0f},
+                                {{{0x42bc0000u, 0x43500000u, 0x439b0000u},
+                                  {0x42d00000u, 0x43560000u, 0x439e0000u},
+                                  {0x42a40000u, 0x435c0000u, 0x43910000u}}}},
+                           Case{{30.0f, 0.0f, 45.0f},
+                                {{{0x42d3094bu, 0x434dcbaau, 0x439bd484u},
+                                  {0x42ec02fdu, 0x4349cb0cu, 0x439bed9fu},
+                                  {0x42c72af5u, 0x4364b34cu, 0x43962b7du}}}}};
+    ShadowModels models;
+    Client::Render::Models::BoneKey& key = models.skeleton.bones[0].actions[0][0];
+    key.position = {1.0f, 2.0f, 3.0f};
+    key.rotation = glm::quat::wxyz(0.5f, 0.5f, 0.5f, 0.5f);
+    for (const Case& probe : cases)
+    {
+        SCOPED_TRACE(::testing::Message() << probe.angles.x << ", " << probe.angles.y << ", " << probe.angles.z);
+        auto world = std::make_unique<Client::Scenes::WorldState>();
+        world->PlaceModel(Client::Data::Models::PlayerShadowModel,
+                          {.scale = 2.0f, .origin = {100.0f, 200.0f, 300.0f}, .action = 0});
+        Falling owned;
+        owned.ground = 5000.0;
+        owned.target.position = {9000.0f, 9000.0f, 9000.0f};
+        owned.target.angles = probe.angles;
+        ASSERT_TRUE(owned.Create(0, &owned.target, Client::Scenes::JointOwnerKind::Actor).HasValue());
+        CrtRandom expected = owned.random;
+
+        const auto stepped = owned.Step(&models, world.get());
+
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        auto twin = std::make_unique<Client::World::ModelEffects>();
+        std::size_t shells = 0;
+        for (std::size_t corner = 0; corner < 90; ++corner)
+        {
+            if (expected.Next() % 8 != 0)
+                continue;
+            const std::array<std::uint32_t, 3>& bits = probe.posed[corner % 3];
+            const glm::vec3 vertex{std::bit_cast<float>(bits[0]), std::bit_cast<float>(bits[1]),
+                                   std::bit_cast<float>(bits[2])};
+            ASSERT_TRUE(Client::World::CreateSkinShell({.type = Client::World::SkinShellEffect,
+                                                        .position = vertex,
+                                                        .angles = glm::vec3(0.0f),
+                                                        .light = glm::vec3(1.0f),
+                                                        .subtype = 0},
+                                                       *twin, expected)
+                            .has_value());
+            ++shells;
+        }
+        static_cast<void>(expected.Next());
+        EXPECT_EQ(owned.random.State(), expected.State());
+        ASSERT_GT(shells, 0U);
+        for (std::size_t slot = 0; slot < shells; ++slot)
+        {
+            SCOPED_TRACE(slot);
+            const Client::World::ModelEffect& shell = owned.effects->Effects()[slot];
+            EXPECT_TRUE(shell.alive);
+            EXPECT_EQ(shell.transform.position, twin->Effects()[slot].transform.position);
+        }
+        EXPECT_FALSE(owned.effects->Effects()[shells].alive);
     }
 }
 

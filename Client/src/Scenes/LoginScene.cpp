@@ -2,6 +2,7 @@
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/Skinning.h"
 #include "Scenes/FaunaDrawing.h"
+#include "Scenes/FaunaJointCreation.h"
 #include "Scenes/FaunaModels.h"
 
 #include "App/LoopTiming.h"
@@ -934,6 +935,12 @@ void LoginScene::StepTheWorld()
         m_failure = stepped.Error();
         return;
     }
+    // 0x53c670 (0x634d1d): los joints, después de los efectos con modelo y antes de las partículas.
+    if (auto stepped = StepTheJoints(); !stepped.HasValue())
+    {
+        m_failure = stepped.Error();
+        return;
+    }
     // 0x5446e0, al final (0x634d22): el viento y las partículas, con el rand() de la CRT.
     if (m_context.cloth != nullptr)
     {
@@ -976,8 +983,8 @@ Core::Expected<void, std::string> LoginScene::StepTheModelEffects()
         placement.action = action;
         world.PlaceModel(type, placement);
     };
-    // Lo que 0x5208a0 lee afuera del efecto, como en el juego, sin los joints: el login no tiene su paso (0x53c670) ni
-    // su dibujo (0x53c6a0), y un tipo que suelta joints corta con su dirección.
+    // Lo que 0x5208a0 lee afuera del efecto, como en el juego: los joints que suelta un efecto (0x530860) van a la
+    // tabla del mundo, que el login avanza (0x53c670, StepTheJoints) y dibuja (0x53c6a0(0), DrawTheModels).
     const World::ModelEffectStepServices services{
         .terrainHeight = terrainHeight,
         .sprites = &m_sprites,
@@ -987,6 +994,13 @@ Core::Expected<void, std::string> LoginScene::StepTheModelEffects()
         .map = &world.Runtime().map,
         .cameraShake = &CameraInputState().shake,
         .sound = sound,
+        .joint = [&world, &cloth](const World::FishEffectRequest& request) -> Core::Expected<void, std::string>
+        {
+            const auto created = CreateFaunaJoint(world.DrawTail().joints, request, cloth.random);
+            if (!created.HasValue())
+                return Core::Unexpected(created.Error());
+            return {};
+        },
         .publishAction = publishAction,
         .soundAt = [&world](std::int32_t id, const glm::vec3& origin) { world.Runtime().RequestSound(id, origin); },
         .hero = &world.Actors()[world.Runtime().hero]};
@@ -999,7 +1013,6 @@ Core::Expected<void, std::string> LoginScene::StepTheModelEffects()
                                                 .fixedHeight = CameraState().fixedHeight,
                                                 .cameraShake = &CameraInputState().shake,
                                                 .sound = sound});
-    wizard.joint = {};
     // 0x52d222..0x52d22d: 0x44dc40(0, 0, 0) borra el desvío de la cámara antes del primer efecto.
     CameraInputState().effectTarget = glm::vec3(0.0f);
     const LoginEffectModels models(m_worldModels, m_models);
@@ -1017,6 +1030,26 @@ Core::Expected<void, std::string> LoginScene::StepTheModelEffects()
         if (!stepped.HasValue())
             return Core::Unexpected(stepped.Error() + ", en el login (0x634d18 → 0x52d220)");
     }
+    return {};
+}
+
+Core::Expected<void, std::string> LoginScene::StepTheJoints()
+{
+    WorldState& world = CharacterWorld();
+    Render::Models::ClothWorld& cloth = CharacterRandomWorld();
+    // Los globales de 0x53c670, como en el juego (0x637123) y la selección: la luz dinámica (0x7b4ccc4), la altura del
+    // terreno (0x5f93c0), los 400 personajes (0x743a16c), la tabla de efectos (0x7491fd8), el héroe ([0x743a170]) y
+    // los modelos compartidos (0x5769ad8). Sin el choque de la flecha dueña (0x520170), el asedio ni los blancos del
+    // héroe: los joints que los piden los crean skills que el login no corre; si llegaran, cortan con su dirección.
+    const auto actors = world.Actors();
+    const std::size_t heroSlot = world.Runtime().hero;
+    const ActorState* hero = heroSlot < actors.size() ? &actors[heroSlot] : nullptr;
+    const auto stepped = StepJoints(
+        world.DrawTail().joints, cloth.random, &cloth, &world.Particles(), WorldClock(), &m_sprites,
+        &world.DynamicLighting().Lighting(), [&world](std::int32_t id) { world.Runtime().RequestSound(id); },
+        TerrainHeight(), actors, {}, &world.Map().effects, hero, &world);
+    if (!stepped.HasValue())
+        return Core::Unexpected(stepped.Error() + ", en el login (0x634d1d → 0x53c670)");
     return {};
 }
 
@@ -1671,6 +1704,14 @@ DrawnCharacter LoginScene::TheCharacterToDraw(float alpha)
                                    : LoginCharacterTransform();
     // La cabeza del paso: el original no la interpola.
     character.headAngles = actor.headTurn.angles;
+    if (actor.alive)
+    {
+        // 0x50bbff..0x50bc71: las guardas de la sombra del mismo 0x50ba30 (0x635206 → 0x510d00 → 0x510ea1): el alpha
+        // desde 0,5, sin +0x3e4, fuera de los mapas sin sombra y, con las mascotas que se montan, en la zona segura
+        // (+0x3e2, 0x50bc52).
+        character.safeZone = actor.safeZone != 0;
+        character.castsShadow = CastsShadow(actor, CharacterWorld().Runtime().map);
+    }
     character.light = TerrainLightAt(character.object.position) + actor.light;
     character.cloth = &m_characterCloth;
     character.clothWorld = m_context.cloth;
@@ -1720,6 +1761,10 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
         if (m_context.cloth != nullptr && skeleton != nullptr && !skeleton->actions.empty())
         {
             DrawCharacter(canvas.models, m_models, character, canvas.frameClock, CharacterDrawPass::Body);
+            // 0x50bcec: la sombra le copia la escala y la posición al 0x20b (WorldState::PlaceShadowModel), sólo en un
+            // frame del original.
+            if (nativeFrames > 0 && DrawsTheShadow(character))
+                CharacterWorld().PlaceShadowModel(actor);
             DrawTheTail(canvas, actor, character, carry, scan, nativeFrames);
         }
         else
@@ -1733,6 +1778,9 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
                 actor.bodyPose = PoseCharacterBody(m_models, character);
                 if (actor.alpha >= PlayerModelAlpha)
                     CharacterWorld().PlacePlayerModel(actor);
+                // 0x50bcec: la sombra le copia la escala y la posición al 0x20b (WorldState::PlaceShadowModel).
+                if (DrawsTheShadow(character))
+                    CharacterWorld().PlaceShadowModel(actor);
             }
         }
     }
@@ -1783,9 +1831,19 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
                                         .objectDrawCounter = &CharacterWorld().Runtime().objectDrawCounter,
                                         .modelEffects = &CharacterWorld().Map().effects,
                                         .onFailure = [&](const std::string& error) { m_failure = error; }});
-    // 0x52d620(0): los efectos con modelo, después de los objetos, con el dibujo del juego: el dragón por el camino
-    // genérico (0x52da92 → 0x602e90) y el meteoro 0xc2/9 con su +0x74 en 1 (Scenes/WizardEffectDrawing). Sin los
-    // joints de 0x53c6a0, que el login no tiene. La posición va `alpha` de un paso más (D-C4).
+    // 0x53c6a0(0) (0x635217), después de los objetos (0x6046a0) y antes de los efectos con modelo: los joints del
+    // mundo. Sólo un frame del original saca los rand() de su dibujo (los giros del 0x610/6 y /8); entre frames van
+    // sobre una copia y repiten los giros guardados.
+    const float jointClock = static_cast<float>(std::chrono::duration<double, std::milli>(canvas.frameClock).count());
+    Render::Models::CrtRandom projectedJointRandom = CharacterRandomWorld().random;
+    const JointDrawResources jointResources{nativeFrames > 0 ? CharacterRandomWorld().random : projectedJointRandom,
+                                            m_sprites, nativeFrames > 0, jointClock};
+    if (auto joints = DrawJoints(canvas.models, CharacterWorld().DrawTail().joints, 0, jointResources);
+        !joints.HasValue())
+        m_failure = joints.Error();
+    // 0x52d620(0) (0x63521e): los efectos con modelo, después de los joints, con el dibujo del juego: el dragón por el
+    // camino genérico (0x52da92 → 0x602e90) y el meteoro 0xc2/9 con su +0x64 en 1 (el blendMesh, 0x51adb5;
+    // Scenes/WizardEffectDrawing). La posición va `alpha` de un paso más (D-C4).
     const LoginEffectModels effectModels(m_worldModels, m_models);
     const World::SphereFrustum frustum = World::SphereFrustumOf(canvas.models.Pass().view, m_drawnCamera);
     const std::span<World::ModelEffect> table = CharacterWorld().Map().effects.Effects();

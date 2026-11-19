@@ -127,11 +127,6 @@ void CountTheVolley(WorldState& world, CrtRandom& random)
     ++world.OwnCharacter().bytef04;
 }
 
-bool HasJointRoom(WorldState& world)
-{
-    return std::ranges::any_of(world.DrawTail().joints, [](const auto& joint) { return !joint.alive; });
-}
-
 // 0x518cf0(0x105, la posición de la flecha, sus ángulos, su luz, subtipo, la flecha, −1, 0, 0, 0, 0): el /0 es la
 // estela de la skill 0x34 (0x51c590..0x51c5a9) y el /3, el pulso de la 0xf8/1 en su vida 13 (0x523f72). El caso 0x105
 // (0x519fc9..0x51a101): vida 100, +0x64 en 0, +0x68 en 1 y +0xe4 en 0; el /0, la escala 12 (0x519ff3) y el /3, la
@@ -460,7 +455,8 @@ Core::Expected<void, std::string> CreateTheArrow(std::int16_t type, ActorState& 
 // 0x53deff..0x53df2a: 0x518cf0(0x13a, o+0x10, o+0x1c, o+0xf4, 0, el blanco, o+0x8a, lugar, bandera, 0, 0), el tiro de
 // la skill 0x2e. El caso 0x13a (0x51df6a..0x51e01a): +0xd8 en 1, vida 20, escala 1,8f, +0x64 en −2, la y de la
 // velocidad en −30, la luz en (0,3f; 0,8f; 1), (−10; −80; 200) girado por los ángulos y sumado a la posición y la x de
-// los ángulos en −30; después, el joint 0x632/4 (0x51e01a), que corta. Con la tabla llena, nada y sin rand().
+// los ángulos en −30; después, el joint 0x632/4 (0x51e01a) y la cuenta de la tanda. Con la tabla llena, nada y sin
+// rand().
 Core::Expected<void, std::string> CreateTheBlast(ActorState& owner, ActorState* target, std::int32_t skillIndex,
                                                  std::uint8_t flag, const CharacterStepContext& context)
 {
@@ -492,13 +488,28 @@ Core::Expected<void, std::string> CreateTheBlast(ActorState& owner, ActorState* 
     AddRotated(blast.transform.position, Render::Models::OriginalVectorRotate(
                                              Muzzle, Render::Models::OriginalAngleMatrix(blast.transform.angles)));
     blast.transform.angles.x = -30.0f;
-    if (!HasJointRoom(context.world))
-    {
-        CopyTheOwnCount(blast, context.world, context.random);
-        return {};
-    }
-    return Core::Unexpected(std::string("0x51e01a: el joint 0x632/4 del efecto 0x13a de la skill 0x2e (0x530860), sin "
-                                        "portar (CL11)"));
+    // 0x51e01a: 0x530860(0x632, o+0x10, o+0x10, o+0x1c, 4, el efecto, 40, 0x32, 0, 0, −1), el rayo que sigue al 0x13a
+    // (JointFamilies::StormJoint, alta 0x534977, sin rand()); con los joints llenos, nada.
+    constexpr std::int32_t BlastJointSubtype = 4, BlastJointKey = 0x32, NoTarget = -1;
+    constexpr float BlastJointWidth = 40.0f; // 0x42200000
+    const World::FishEffectRequest request{.type = JointFamilies::StormJoint,
+                                           .firstPosition = blast.transform.position,
+                                           .secondPosition = blast.transform.position,
+                                           .angles = blast.transform.angles,
+                                           .subtype = BlastJointSubtype,
+                                           .ownerContext = &blast,
+                                           .scale = BlastJointWidth,
+                                           .key = BlastJointKey,
+                                           .skill = 0,
+                                           .skillSerial = 0,
+                                           .target = NoTarget};
+    if (auto made =
+            CreateFaunaJoint(context.world.DrawTail().joints, request, context.random, JointOwnerKind::ModelEffect);
+        !made.HasValue())
+        return Core::Unexpected(std::format("0x51e01a: {}", made.Error()));
+    // 0x51e01f..0x51e04d: la cuenta de la tanda en +0x8c.
+    CopyTheOwnCount(blast, context.world, context.random);
+    return {};
 }
 
 // 0x53e642..0x53e73a: quince puntos del hueso de la mano, un joint par y una chispa por iteración.

@@ -18,7 +18,8 @@ class CrtRandom;
 namespace Client::Scenes::JointFamilies
 {
 // El 0x614 (LightningJoints.cpp): alta 0x5309d6 y paso 0x53683e..0x537278. Las /0xa y /0xe tienen alta propia en
-// FaunaJointCreation.cpp; la /0xc y la /0xf cortan en el alta.
+// FaunaJointCreation.cpp. La /0xc tiene alta y paso, pero hoy no tiene creador vivo: nadie conocido en c32bbd5f la
+// pide; la /0xf corta en el paso, en la luz de su 0x5ca (0x5370e8).
 inline constexpr std::int32_t LightningJoint = 0x614;
 [[nodiscard]] Core::Expected<void, std::string> CreateLightningJoint(JointState& joint,
                                                                      const World::FishEffectRequest& request,
@@ -130,7 +131,8 @@ CreateStormJoint(JointState& joint, const World::FishEffectRequest& request, Ren
 
 // El 0x62c (SpiralJoints.cpp): alta 0x5346d8..0x534954 y paso 0x53b93f..0x53be71, sin el movimiento común (0x5358a3).
 // La /0 sube derecho; la /1..4 y la /0xb..0xd suben dando la vuelta (el efecto 0x62c/0 de la 0x41, 0x51f25e, y los
-// seis de la 0x4c, 0x50293c); la /5..7 (el efecto 0x62c/1, 0x51f32e) siguen un hueso del dueño, que corta.
+// seis de la 0x4c, 0x50293c); la /5..7 siguen el hueso del dueño con su modelo compartido (0x53bc71). Su único
+// creador, el efecto 0x62c/1 (0x51f32e), nace detrás del corte 0x50e0c0 (el efecto de +0x78 & 0x800).
 inline constexpr std::int32_t SpiralJoint = 0x62c;
 [[nodiscard]] Core::Expected<void, std::string>
 CreateSpiralJoint(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random);
@@ -156,7 +158,7 @@ CreateOrbitJoint(JointState& joint, const World::FishEffectRequest& request, Ren
                                                                const JointKernels::StepServices& services);
 
 // El 0x61c/0 (SweepJoints.cpp): alta 0x5342e4 y paso 0x53b3e1, sin la cola ni el movimiento comunes. Lo pide el paso
-// del efecto 0x5be (0x52a72a), que MuRet no crea (0x4f9fae); con dueño y vida de más de 18, corta en 0x53b548 (el
+// del efecto 0x5be (0x52a72a), que crea la 0x37 (0x4f9fae); con dueño y vida de más de 18, corta en 0x53b548 (el
 // héroe).
 inline constexpr std::int32_t SweepSubtype = 0;
 void CreateSweepJoint(JointState& joint, const World::FishEffectRequest& request);

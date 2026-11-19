@@ -1096,6 +1096,43 @@ TEST_F(GameCharacterEffectsTest, TheMageSkinOffsetAlsoMovesTheFullSetFlares)
     EXPECT_EQ(sprites[7].position, At(0x2a - 7, {-4.0f, 11.0f, 0.0f}));
 }
 
+// Q-C350 también en las acciones: la piel del mago (0x50ea86) deja (−4, 11, 0) en [ebp−0x50] y 0x4ec110 lo usa en la
+// mano (+0x2bd, 0x21) de los rayos de la 0x94 (0x50f89b) y de los 0x117/2 de la 0x51 y la 0x5b (0x50fb16).
+TEST_F(GameCharacterEffectsTest, TheMageSkinOffsetAlsoMovesTheHandOfTheActions)
+{
+    m_actor.skin = 8;
+    const glm::vec3 hand = At(0x21, {-4.0f, 11.0f, 0.0f});
+    m_actor.animation.action = 0x94;
+    m_actor.animation.frame = 3.0f;
+    ASSERT_TRUE(Client::Scenes::DrawGameCharacterEffects(m_actor, Pass()).HasValue());
+    const auto sprites = LiveSprites(m_sprites);
+    ASSERT_EQ(sprites.size(), 5u);
+    for (std::size_t index = 2; index < sprites.size(); ++index)
+    {
+        EXPECT_EQ(sprites[index].texture, 0x5d5) << index;
+        EXPECT_EQ(sprites[index].position, hand) << index;
+    }
+    for (const std::uint8_t action : {std::uint8_t{0x51}, std::uint8_t{0x5b}})
+    {
+        SCOPED_TRACE(int{action});
+        m_sprites = {};
+        m_actor.animation.action = action;
+        m_actor.animation.frame = 7.5f;
+        auto world = std::make_unique<Client::Scenes::WorldState>();
+        GameCharacterEffectsPass pass = Pass();
+        pass.world = world.get();
+        const auto result = Client::Scenes::DrawGameCharacterEffects(m_actor, pass);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        const auto& effects = world->Map().effects.Effects();
+        for (std::size_t index = 0; index < 2; ++index)
+        {
+            ASSERT_TRUE(effects[index].alive) << index;
+            EXPECT_EQ(effects[index].type, 0x117) << index;
+            EXPECT_EQ(effects[index].transform.position, hand) << index;
+        }
+    }
+}
+
 TEST_F(GameCharacterEffectsTest, HiddenAttachmentsDropTheFlaresButKeepTheRandomOfTheSparkles)
 {
     m_actor.flags78 = 0x4000;
@@ -1798,13 +1835,15 @@ TEST_F(GameRavenTest, TheAttackDropsItsJointsAndTheDarkLordSkill)
             EXPECT_EQ(skill.ownerContext, nullptr);
         }
 
+    // Sin la tabla de joints corta en la primera 0x530860, después del rand() % 40 de 0x418ad6.
     GameRavenPass bare = Pass();
     bare.world = nullptr;
     m_owner.darkSpirit->byte38d = 0;
-    const CrtRandom before = m_random;
+    CrtRandom before = m_random;
     const auto cut = Client::Scenes::DrawGameRaven(m_owner, bare);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x418aff"), std::string::npos) << cut.Error();
+    static_cast<void>(before.Next());
     EXPECT_EQ(m_random.State(), before.State());
 }
 
@@ -1928,8 +1967,14 @@ TEST_F(GameRavenTest, TheShoutSparksFromEveryOtherBone)
     EXPECT_NE(missing.Error().find("0x418a26"), std::string::npos) << missing.Error();
 }
 
-// 0x418a51: con +0x38d en 15, sin personaje en +0x3b0 solo vuelve el contador a 0; con uno, 0x4ee770 (CL11). Fuera de
-// los frames del original, 0x418920 no corre.
+// 0x418a51: con +0x38d en 15, sin personaje en +0x3b0 solo vuelve el contador a 0; con uno, 0x4ee770(1, 0x5ac, 1,
+// cuervo+0x1c, el personaje) sobre la malla 1 del cuervo recién posado (en cada esquina del triángulo 0, rand() % 90 y
+// rand() % 120 y el joint 0x613/0xd hacia el personaje, ancho 20) y 0x4164f0(0). Fuera de los frames del original,
+// 0x418920 no corre. Las esquinas y la normal, del scratch que deja 0x602e90(cuervo, 0, 0, …): el hueso 0 en el origen
+// sin giro, la raíz de 0x4eb860 con la bandera en 1 (0x5fc8f0 con (−10, 0, 30), cada elemento por 0,7f en float y el
+// origen (1050, 1060, 300)), 0x5fca90 con la identidad y 0x4ebc80 con Translate en 0 (0x5fccc0 para (0, 0, 10),
+// (1, 0, 10) y (0, 1, 10); 0x5fcbd0 para la normal (0, 0, 1), con la escala dentro). Los bits salen de una emulación
+// aparte de la x87 (fracciones exactas, PC53, fsin y fcos en 64 bits, cada FSTP en float), no de MuRet.
 TEST_F(GameRavenTest, TheEndOfTheShoutLooksAtTheAttackTarget)
 {
     m_owner.darkSpirit->state = 6;
@@ -1941,14 +1986,82 @@ TEST_F(GameRavenTest, TheEndOfTheShoutLooksAtTheAttackTarget)
 
     m_owner.darkSpirit->byte38d = 15;
     m_owner.darkSpirit->target3b0 = 3;
+    m_owner.darkSpirit->far = 7;
+    m_owner.darkSpirit->angles = {-10.0f, 0.0f, 30.0f};
+    m_owner.darkSpirit->scale = std::bit_cast<float>(0x3f333333u); // 0,7f
     GameRavenPass projected = Pass();
     projected.originalFrame = false;
     ASSERT_TRUE(Client::Scenes::DrawGameRaven(m_owner, projected).HasValue());
     EXPECT_EQ(m_owner.darkSpirit->byte38d, 15);
-    const auto end = Client::Scenes::DrawGameRaven(m_owner, Pass());
-    ASSERT_FALSE(end.HasValue());
-    EXPECT_NE(end.Error().find("0x418a8c"), std::string::npos) << end.Error();
-    EXPECT_EQ(m_random.State(), Client::Render::Models::CrtRandom{}.State());
+
+    Client::Scenes::FaunaDrawCarry carry;
+    auto world = std::make_unique<Client::Scenes::WorldState>();
+    const auto actors = world->Actors();
+    actors[3].position = {1200.0f, 1300.0f, 40.0f};
+    const auto& joints = world->DrawTail().joints;
+    GameRavenPass pass = Pass();
+    pass.carry = &carry;
+    pass.world = world.get();
+    const auto end = Client::Scenes::DrawGameRaven(m_owner, pass);
+    ASSERT_TRUE(end.HasValue()) << end.Error();
+    EXPECT_EQ(m_owner.darkSpirit->byte38d, 0);
+    EXPECT_EQ(m_owner.darkSpirit->state, 0);
+    EXPECT_EQ(m_owner.darkSpirit->far, 0);
+    ASSERT_GE(carry.meshes.size(), 2u);
+    ASSERT_GE(carry.meshes[1].positions.size(), 3u);
+    const auto bits = [](std::uint32_t x, std::uint32_t y, std::uint32_t z)
+    { return glm::vec3(std::bit_cast<float>(x), std::bit_cast<float>(y), std::bit_cast<float>(z)); };
+    const std::array<glm::vec3, 3> corners{bits(0x44832c8du, 0x4484a1b0u, 0x43997263u),
+                                           bits(0x44833ff3u, 0x4484ace3u, 0x43997263u),
+                                           bits(0x44832186u, 0x4484b4cau, 0x439962d4u)};
+    ASSERT_EQ(carry.meshes[1].normals.size(), 1u);
+    EXPECT_EQ(carry.meshes[1].normals[0], bits(0xbd78f129u, 0x3dd79713u, 0x3f307a40u));
+    Client::Render::Models::CrtRandom replay;
+    std::vector<Client::Scenes::JointState> twin(joints.size());
+    for (std::size_t corner = 0; corner < 3; ++corner)
+    {
+        SCOPED_TRACE(corner);
+        EXPECT_EQ(carry.meshes[1].positions[corner], corners[corner]);
+        const auto pitch = static_cast<double>(replay.Next() % 90);
+        const auto turn = static_cast<double>((replay.Next() % 120) - 60);
+        glm::vec3 angles{static_cast<float>(-pitch), 0.0f, static_cast<float>(turn + 30.0)};
+        glm::vec3 first = corners[corner];
+        glm::vec3 second = actors[3].position;
+        ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(twin,
+                                                     {.type = 0x613,
+                                                      .firstPosition = first,
+                                                      .secondPosition = second,
+                                                      .angles = angles,
+                                                      .subtype = 0xd,
+                                                      .ownerContext = &actors[3],
+                                                      .scale = 20.0f,
+                                                      .key = 0,
+                                                      .skill = 0,
+                                                      .skillSerial = 0,
+                                                      .target = -1},
+                                                     replay, Client::Scenes::JointOwnerKind::Actor)
+                        .HasValue());
+        const auto& joint = joints[corner];
+        ASSERT_TRUE(joint.alive);
+        EXPECT_EQ(joint.type, 0x613);
+        EXPECT_EQ(joint.subtype, 0xd);
+        EXPECT_EQ(joint.ownerContext, &actors[3]);
+        EXPECT_EQ(joint.width, 20.0f);
+        EXPECT_EQ(joint.position, twin[corner].position);
+        EXPECT_EQ(joint.position, corners[corner]);
+        EXPECT_EQ(joint.angles, twin[corner].angles);
+        EXPECT_EQ(joint.angles, angles);
+    }
+    EXPECT_FALSE(joints[3].alive);
+    EXPECT_EQ(m_random.State(), replay.State());
+
+    // Sin el cuervo posado en este dibujo (sin el buffer de la pose), el scratch es de otro modelo: corta.
+    m_owner.darkSpirit->state = 6;
+    m_owner.darkSpirit->byte38d = 15;
+    m_owner.darkSpirit->alpha = 0.0f;
+    const auto stale = Client::Scenes::DrawGameRaven(m_owner, pass);
+    ASSERT_FALSE(stale.HasValue());
+    EXPECT_NE(stale.Error().find("0x418a8c"), std::string::npos) << stale.Error();
 }
 
 TEST_F(GameRavenTest, AnOwnerWithoutRavenDrawsNothing)

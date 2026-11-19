@@ -19,6 +19,7 @@
 #include "Scenes/PartyActors.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SocialState.h"
+#include "Scenes/VertexEffects.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldState.h"
 #include "World/BlastModelEffects.h"
@@ -218,14 +219,21 @@ struct Tail
     // partículas de las botas; lo leen las manos de las acciones, de las banderas y del conjunto (Q-C350).
     glm::vec3 offset{};
 
-    // 0x4ec110 con el jugador sobre el hueso `bone` de su pose propia (+0x120), en la llamada `call`.
+    // +0x6c..+0x74 del 0x20a (GameCharacterEffectsPass::modelOrigin): la posición de antes del suelo de la sombra.
+    [[nodiscard]] glm::vec3 ModelOrigin() const
+    {
+        return pass.modelOrigin.value_or(actor.position);
+    }
+
+    // 0x4ec110 con [ebp−0x14] (el 0x20a: la escala del personaje y ModelOrigin) sobre el hueso `bone` de su pose propia
+    // (+0x120), en la llamada `call`.
     [[nodiscard]] Core::Expected<glm::vec3, std::string> BodyPoint(std::int32_t bone, std::string_view call) const
     {
         if (bone < 0 || static_cast<std::size_t>(bone) >= pass.body.size())
             return Core::Unexpected(std::format("{}: el hueso {} del cuerpo no existe", call, bone));
         return Render::Models::OriginalTransformPosition(
             Render::Models::OriginalMatrixOf(pass.body[static_cast<std::size_t>(bone)]), offset, actor.scale,
-            actor.position);
+            ModelOrigin());
     }
 
     // 0x5491e0: el sprite aditivo; el dueño no se guarda.
@@ -724,11 +732,12 @@ Result GuildMark(const Tail& tail)
     if (tail.pass.effects == nullptr || tail.pass.particles == nullptr)
         return Core::Unexpected<std::string>("0x510f4d: el efecto 0x140 pide la tabla de efectos y las partículas");
     // 0x51e121: 0x4ec110 con el hueso 20 de los huesos propios (+0x120) y la escala y la posición que 0x6001b0 le copió
-    // al modelo, sin el corrimiento de [ebp−0x50] (el de 0x518cf0 es suyo, en 0).
+    // al modelo (antes del suelo de la sombra), sin el corrimiento de [ebp−0x50] (el de 0x518cf0 es suyo, en 0).
     if (GuildMarkBone >= tail.pass.body.size())
         return Core::Unexpected(std::format("0x51e121: el hueso {} del cuerpo no existe", GuildMarkBone));
-    const glm::vec3 point = Render::Models::OriginalTransformPosition(
-        Render::Models::OriginalMatrixOf(tail.pass.body[GuildMarkBone]), glm::vec3(0.0f), actor.scale, actor.position);
+    const glm::vec3 point =
+        Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(tail.pass.body[GuildMarkBone]),
+                                                  glm::vec3(0.0f), actor.scale, tail.ModelOrigin());
     if (auto raised = RaiseTheGuildMark(actor, point, *tail.pass.effects, *tail.pass.particles, tail.pass.random,
                                         tail.pass.worldClock);
         !raised.HasValue())
@@ -946,8 +955,8 @@ Core::Expected<void, std::string> StepPetSummon(World::ModelEffect& effect, std:
 // 0x418920(CHARACTER, CHARACTER), desde 0x41835a después de 0x602e90, con el cuervo en el trapecio: en el 5 y el 6, los
 // efectos del ataque. En el 5, con +0x38d hasta 2, diez joints 0x5ac/1 desde el cuervo y, con 1, el 0x117/3; impar
 // desde 4 y alto, el 0x113/0 del pico, en las tablas de `world`. El grito del 6 suelta las partículas 0x5ac/6
-// (0x418a26) y su final (0x4ee770) es de la CL11 y corta con su dirección. Sin la pose (+0x120 en 0 hasta el primer
-// dibujo), el 6 no hace nada.
+// (0x418a26). Sin la pose (+0x120 en 0 hasta el primer dibujo), el 6 no hace nada. El final del grito (+0x38d en 15)
+// es EndTheShout.
 Core::Expected<void, std::string> DrawTheRavenAttack(DarkSpirit& spirit, const ActorState& owner,
                                                      const Render::Models::Skeleton* skeleton,
                                                      Render::Models::CrtRandom& random, World::Particles* particles,
@@ -959,15 +968,16 @@ Core::Expected<void, std::string> DrawTheRavenAttack(DarkSpirit& spirit, const A
         {
             // 0x418aab..0x418b08: con el blanco de +8, que el A8 puso antes del estado 5, diez 0x530860(0x5ac, la
             // posición del cuervo dos veces, sus ángulos, 1, sin dueño, rand() % 40 + 20, −1, 0, 0, −1).
-            if (world == nullptr)
-                return Core::Unexpected(std::string("0x418aff: faltan los joints del mundo (0x530860) para el ataque "
-                                                    "del cuervo"));
             constexpr int AttackJoints = 10;               // 0x418ac9
             constexpr std::int32_t AttackJoint = 0x5ac;    // 0x418afa
             constexpr std::int32_t AttackJointSubtype = 1; // 0x418af5
             for (int made = 0; made < AttackJoints; ++made)
             {
                 const auto width = static_cast<float>(static_cast<std::int32_t>(random.Next() % JointSpan) + JointBase);
+                // Sin la tabla, corta en la primera 0x530860, después del rand() de 0x418ad6.
+                if (world == nullptr)
+                    return Core::Unexpected(std::string("0x418aff: faltan los joints del mundo (0x530860) para el "
+                                                        "ataque del cuervo"));
                 const World::FishEffectRequest request{.type = AttackJoint,
                                                        .firstPosition = spirit.position,
                                                        .secondPosition = spirit.position,
@@ -1012,9 +1022,9 @@ Core::Expected<void, std::string> DrawTheRavenAttack(DarkSpirit& spirit, const A
         }
         // 0x418b7c..0x418c0a: impar desde 4 y 100 más arriba que el dueño, 0x4ec110(+0x120 + 6 · 0x30, (50, 0, 0),
         // punto, 0), el hueso 6 en el mundo, y 0x518cf0(0x113, punto, +0x1c, +0xf4, 0, el cuervo, −1, 0, 0, 0, 0). No
-        // saca rand().
+        // saca rand(). 0x418ba6..0x418bb7: FCOMP y TEST AH, 1 siguen con C0, que también prende un NaN.
         if (spirit.byte38d > LastQuietStep && (spirit.byte38d & 1u) != 0 &&
-            static_cast<double>(owner.position.z) + AboveTheOwner < static_cast<double>(spirit.position.z))
+            !(static_cast<double>(owner.position.z) + AboveTheOwner >= static_cast<double>(spirit.position.z)))
         {
             constexpr std::size_t BeakBone = 6;                // 0x418bc8: +0x120 más 0x120
             constexpr glm::vec3 BeakOffset{50.0f, 0.0f, 0.0f}; // 0x418bcf: 0x42480000
@@ -1073,16 +1083,50 @@ Core::Expected<void, std::string> DrawTheRavenAttack(DarkSpirit& spirit, const A
         }
         return {};
     }
-    if (spirit.byte38d == ShoutEnd)
+    return {};
+}
+
+// 0x418a51..0x418a9b: el final del grito (el estado 6 con +0x38d en 15). Con el personaje de +0x3b0 (MOVSX; 0xffff no),
+// 0x4ee770(1, 0x5ac, 1, cuervo+0x1c, el personaje) con el modelo del cuervo (ECX, 0x5769ad8 + 0xc0 · 0xe0) sobre la
+// malla 1 del scratch que dejó su 0x602e90 en este dibujo (Scenes/VertexEffects.h: los joints 0x613/0xd de los
+// vértices hacia el personaje, con él de dueño) y 0x4164f0(0), el estado y el contador de lejanía en 0. Siempre,
+// +0x38d en 0. `meshes` es el scratch del cuervo si se dibujó (`drawn`); si no, 0x4ee770 leería el del último modelo
+// posado y corta.
+Core::Expected<void, std::string> EndTheShout(DarkSpirit& spirit, std::span<const Render::Models::SkinnedMesh> meshes,
+                                              bool drawn, const GameRavenPass& pass)
+{
+    constexpr std::int32_t ShoutMesh = 1, ShoutEffects = 0x5ac, ShoutJoints = 1;
+    constexpr std::uint8_t Released = 0;
+    if (spirit.target3b0 != NoAttackTarget)
     {
-        // 0x418a59..0x418a9b: después de 0x4ee770, 0x4164f0(0); sin el personaje, sólo +0x38d en 0.
-        if (spirit.target3b0 != NoAttackTarget)
+        if (pass.world == nullptr)
+            return Core::Unexpected(std::string("0x418a8c: faltan los personajes y los joints del mundo para el final "
+                                                "del grito del cuervo"));
+        const auto actors = pass.world->Actors();
+        const auto slot = static_cast<std::int16_t>(spirit.target3b0);
+        if (slot < 0 || static_cast<std::size_t>(slot) >= actors.size())
             return Core::Unexpected(
-                std::format("0x418a8c: 0x4ee770 sobre el personaje {} del grito del cuervo es de la "
-                            "CL11",
-                            static_cast<std::int16_t>(spirit.target3b0)));
-        spirit.byte38d = 0;
+                std::format("0x418a77: el personaje {} de +0x3b0 del grito del cuervo no está en el pool", slot));
+        if (!drawn)
+            return Core::Unexpected(std::string("0x418a8c: sin el cuervo dibujado en este frame, 0x4ee770 lee el "
+                                                "scratch (0x5786f9c) del último modelo posado"));
+        if (const Data::Models::Model* model = pass.models.Find(DarkSpiritModel); model != nullptr)
+        {
+            const VertexEffectCall call{.mesh = ShoutMesh,
+                                        .type = ShoutEffects,
+                                        .subtype = ShoutJoints,
+                                        .angles = spirit.angles,
+                                        .target = &actors[static_cast<std::size_t>(slot)]};
+            if (auto emitted = EmitVertexEffectsOf(*model, spirit.scale, meshes, call,
+                                                   {.joints = pass.world->DrawTail().joints}, *pass.random);
+                !emitted.HasValue())
+                return Core::Unexpected(std::format("0x418a8c: {}", emitted.Error()));
+        }
+        // 0x418a91: 0x4164f0(0) sobre el cuervo.
+        spirit.state = Released;
+        spirit.far = 0;
     }
+    spirit.byte38d = 0;
     return {};
 }
 
@@ -1100,6 +1144,8 @@ Core::Expected<void, std::string> DrawGameRaven(ActorState& owner, const GameRav
     // 0x5ffdff..0x5ffe3b: en los mapas 18 a 23, con +0x1a1 del héroe, el alpha baja 0,15f y queda guardado.
     if (pass.originalFrame)
         spirit.alpha = World::ChaosCastlePoseAlpha(pass.map, pass.heroByte1a1, spirit.alpha);
+    // Si 0x602e90 posó al cuervo en este dibujo: su scratch (0x5786f9c) es el del buffer de la pose.
+    bool ravenPosed = false;
     if (spirit.alpha >= DrawnAlpha)
     {
         if (pass.lighting == nullptr)
@@ -1122,6 +1168,7 @@ Core::Expected<void, std::string> DrawGameRaven(ActorState& owner, const GameRav
         // +0x120: la pose de 0x5ffdf0, antes del camino de 0x6002e0 que sea.
         if (pass.originalFrame)
             spirit.pose = PosedWorldBones(pass.models, drawn);
+        ravenPosed = true;
         if (shell)
         {
             // 0x60033c: el +0x108 del cuervo lo deja en 0 el rep stos de 0x415c1e y nadie lo escribe, así que el lazo
@@ -1147,6 +1194,13 @@ Core::Expected<void, std::string> DrawGameRaven(ActorState& owner, const GameRav
     {
         if (pass.random == nullptr)
             return Core::Unexpected(std::string("0x41835a: falta el rand() para el ataque del cuervo"));
+        if (spirit.state == SecondOrderState && spirit.byte38d == ShoutEnd)
+        {
+            std::span<const Render::Models::SkinnedMesh> scratch{};
+            if (pass.carry != nullptr)
+                scratch = pass.carry->meshes;
+            return EndTheShout(spirit, scratch, ravenPosed, pass);
+        }
         return DrawTheRavenAttack(spirit, owner, pass.models.SkeletonOf(DarkSpiritModel), *pass.random, pass.particles,
                                   pass.worldClock, pass.world);
     }

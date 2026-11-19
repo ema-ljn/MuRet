@@ -18,6 +18,7 @@
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/TextureMetadata.h"
 #include "Scenes/WorldObjectsDrawing.h"
+#include "World/ModelEffects.h"
 #include "World/ParticleOwner.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
@@ -660,4 +661,32 @@ TEST(GameParticlesTest, TheOwnerStateOfAnActorReadsItsActionAndItsNamedBones)
     EXPECT_EQ(state->namedBone("Monster82_LHand"), std::optional(glm::vec3(102, 204, 16)));
     EXPECT_EQ(state->namedBone("Monster82_RHand"), std::nullopt);
     EXPECT_EQ(state->namedBone("monster82_lhand"), std::nullopt);
+}
+
+// ParticleOwnerStatesOf con un efecto con modelo (su lugar en la tabla): su byte vivo, su posición, su partida
+// (+0x17c) y su acción (+0x111), la que la órbita 60f/0 del 0x61d lee como la de un personaje (0x54735f). Un lugar
+// muerto conserva lo que tenía, como la memoria que el original lee por el puntero; fuera de la tabla, nullopt.
+TEST(GameParticlesTest, TheOwnerStateOfAModelEffectReadsItsAction)
+{
+    auto world = std::make_unique<Client::Scenes::WorldState>();
+    Client::World::ModelEffect& effect = world->Map().effects.Effects()[4];
+    effect.alive = true;
+    effect.transform.position = {300, 400, 50};
+    effect.start = {1, 2, 3};
+    effect.animation.action = 0x21;
+    const auto states = Client::Scenes::ParticleOwnerStatesOf(*world);
+    const Client::World::ParticleOwner owner{Client::World::ParticleOwnerKind::ModelEffect, 4};
+    const auto state = states(owner);
+    ASSERT_TRUE(state.has_value());
+    EXPECT_TRUE(state->alive);
+    EXPECT_EQ(state->position, effect.transform.position);
+    EXPECT_EQ(state->start, std::optional(glm::vec3(1, 2, 3)));
+    EXPECT_EQ(state->action, 0x21);
+    effect.alive = false;
+    const auto dead = states(owner);
+    ASSERT_TRUE(dead.has_value());
+    EXPECT_FALSE(dead->alive);
+    EXPECT_EQ(dead->action, 0x21);
+    const auto size = world->Map().effects.Effects().size();
+    EXPECT_FALSE(states({Client::World::ParticleOwnerKind::ModelEffect, size}).has_value());
 }

@@ -107,8 +107,8 @@ World::WizardEffectServices WizardEffectServicesOf(WorldState& world, Render::Mo
         .otherEffect = [&world, &random, sound = parts.sound](
                            const World::ModelEffectArguments& arguments) -> Core::Expected<void, std::string>
         {
-            // 0x524d38: el 0xf6/2 (World/BlastModelEffects) con el meteoro que lo suelta de dueño (+0x108), que su
-            // paso lee en vivo como un efecto de la tabla.
+            // 0x524d38: el 0xf6/2 (World/BlastModelEffects) con el meteoro que lo suelta de dueño (+0x108), que tiene
+            // que ser un efecto de la tabla. Su paso (0x521324) no lo lee: sólo le suma 0,04f a la escala (+0xc).
             const std::span<World::ModelEffect> table = world.Map().effects.Effects();
             const auto owner = std::ranges::find_if(table, [&arguments](const World::ModelEffect& effect)
                                                     { return &effect == arguments.owner; });

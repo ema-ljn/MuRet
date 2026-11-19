@@ -918,7 +918,8 @@ TEST_F(MonsterViewportTest, TheMissingMonsterFileCutsBeforeTheCreation)
 }
 
 // 0x4c9790: el 85 pide el sonido 0x173; el 21 la acción 1 (0x4c97ff) con las acciones de Monster15.bmd, que su caso
-// cargó en el modelo 0x160 (0x612d90(0xe), P-C176), y el sonido 0x13. El 0x35 todavía corta en 0x4c982b.
+// cargó en el modelo 0x160 (0x612d90(0xe), P-C176), y el sonido 0x13. El 0x35 (0x4c9828) pone +0x3e5 en 0x3c y la
+// acción 1, sin sonido ni rand().
 TEST_F(MonsterViewportTest, TheNewArrivalsAskForTheirSoundOrAction)
 {
     Load(0);
@@ -945,11 +946,20 @@ TEST_F(MonsterViewportTest, TheNewArrivalsAskForTheirSoundOrAction)
     // Cargar no saca rand(): el alta y las celdas, como el 85.
     EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, 2 * ArrivingRecordDraws).State());
 
-    ActorState arriving = Actor(1);
+    ActorState arriving = Actor(2);
     arriving.word376 = 0x35;
+    arriving.alpha = 0.0f;
+    arriving.animation.action = 0;
+    arriving.animation.previousAction = 0;
+    game->world.Runtime().lastSoundId.reset();
     auto arrived = Client::Scenes::ArriveAsNew(arriving, game->Resources());
-    ASSERT_FALSE(arrived.HasValue());
-    EXPECT_NE(arrived.Error().find("0x4c982b"), std::string::npos) << arrived.Error();
+    ASSERT_TRUE(arrived.HasValue()) << arrived.Error();
+    EXPECT_EQ(arriving.movementCooldown, 0x3c);
+    EXPECT_EQ(arriving.animation.action, 1);
+    EXPECT_EQ(arriving.animation.previousAction, 1);
+    EXPECT_EQ(arriving.alpha, 1.0f);
+    EXPECT_FALSE(game->world.Runtime().lastSoundId.has_value());
+    EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, 2 * ArrivingRecordDraws).State());
     arriving.word376 = 0x154;
     arrived = Client::Scenes::ArriveAsNew(arriving, game->Resources());
     ASSERT_TRUE(arrived.HasValue()) << arrived.Error();

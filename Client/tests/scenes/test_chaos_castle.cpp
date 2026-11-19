@@ -21,11 +21,13 @@
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -193,6 +195,102 @@ TEST(ChaosCastleTest, EachCellDrawsOnceWithoutItsArea)
     const auto cut = Client::World::StepChaosCastleCell(30, 80, noRandom);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x405e1e"), std::string::npos) << cut.Error();
+}
+
+// 0x405e00 con el área 0 y una celda del primer rectángulo: con rand() % 8 en 0, la piedra 0x5f6/0 (0x405f24, que nace
+// como la 5f3/0 en 0x54271f) en (x · 100 + rand() % 30 − 15; y · 100 + rand() % 30 − 15; z del héroe), con ángulos en
+// 0, luz 1, escala 1,5 y sin dueño, y con rand() % 5 en 0 el temblor (rand() % 3 − 3) · 0,1f. Lo esperado sale de
+// castle.py (0x405e00 y 0x54271f en una x87 aparte), no de CreateChecked.
+struct CastleStone
+{
+    glm::vec3 position;  // después de los (rand() & 15) − 8 de 0x542726 y 0x542744
+    std::uint32_t scale; // ((rand() & 31) + 32) · 1,5 · 0,01f
+    float turn;          // el ángulo x, rand() % 360
+};
+
+struct CastleRow
+{
+    std::uint32_t seed;
+    std::uint32_t state;
+    std::uint32_t shake; // los bits de 0x7d325c8; 0 si no tembló
+    std::array<CastleStone, 3> stones;
+    std::size_t count;
+};
+
+TEST(ChaosCastleTest, ACellOfTheAreaDropsItsStone)
+{
+    constexpr std::array<CastleRow, 3> Rows{{
+        {1, 0x4db793afu, 0xbdcccccdu, {{{{3183, 7493, 125.5f}, 0x3f1d70a4u, 131}}}, 1},
+        {2,
+         0x6c4b7231u,
+         0xbe4ccccdu,
+         {{{{2407, 7484, 125.5f}, 0x3f6e147bu, 151}, {{4014, 7509, 125.5f}, 0x3ef5c28fu, 15}}},
+         2},
+        {3,
+         0x12928b6cu,
+         0,
+         {{{{2306, 7508, 125.5f}, 0x3f5ae147u, 62},
+           {{2493, 7480, 125.5f}, 0x3f2147aeu, 239},
+           {{3704, 7505, 125.5f}, 0x3ef5c28fu, 241}}},
+         3},
+    }};
+    const float clock = 0.0f;
+    for (const CastleRow& row : Rows)
+    {
+        SCOPED_TRACE(row.seed);
+        auto particles = std::make_unique<Client::World::Particles>();
+        float shake = 0.0f;
+        CrtRandom random(row.seed);
+        const Client::World::ChaosCastleCellContext context{.area = 0,
+                                                            .heroZ = 125.5f,
+                                                            .random = &random,
+                                                            .particles = particles.get(),
+                                                            .worldClock = std::cref(clock),
+                                                            .cameraShake = &shake};
+        for (std::uint8_t x = 23; x <= 44; ++x)
+            ASSERT_TRUE(Client::World::StepChaosCastleCell(x, 75, context).HasValue());
+        EXPECT_EQ(random.State(), row.state);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(shake), row.shake);
+        for (std::size_t slot = 0; slot < row.count; ++slot)
+        {
+            const auto& made = particles->All()[slot];
+            const CastleStone& stone = row.stones[slot];
+            ASSERT_TRUE(made.alive) << slot;
+            EXPECT_EQ(made.type, 0x5f6);
+            EXPECT_EQ(made.subtype, 0);
+            EXPECT_EQ(made.life, 32);
+            EXPECT_EQ(made.position, stone.position) << slot;
+            EXPECT_EQ(std::bit_cast<std::uint32_t>(made.scale), stone.scale) << slot;
+            EXPECT_EQ(made.angles, (glm::vec3{stone.turn, 0.0f, 0.0f})) << slot;
+            EXPECT_EQ(made.velocity, (glm::vec3{0.0f, 3.0f, 0.0f}));
+            EXPECT_EQ(made.light, glm::vec3(1.0f));
+        }
+        EXPECT_FALSE(particles->All()[row.count].alive);
+    }
+}
+
+// 0x405e00 con el pool lleno: los dos rand() % 30 de la piedra ya salieron (son sus argumentos), 0x53fe70 no saca los
+// cuatro suyos y el rand() % 5 del temblor sigue (0x405f2c). Con la semilla 4, una piedra que no nace y el temblor en
+// −0,1f: 26 rand() (castle.py; con el pool vacío serían 29 y sin temblor).
+TEST(ChaosCastleTest, ACellOfTheAreaShakesWithAFullPool)
+{
+    const float clock = 0.0f;
+    auto particles = std::make_unique<Client::World::Particles>();
+    for (auto& particle : particles->All())
+        particle.alive = true;
+    float shake = 0.0f;
+    CrtRandom random(4);
+    const Client::World::ChaosCastleCellContext context{.area = 0,
+                                                        .heroZ = 125.5f,
+                                                        .random = &random,
+                                                        .particles = particles.get(),
+                                                        .worldClock = std::cref(clock),
+                                                        .cameraShake = &shake};
+    for (std::uint8_t x = 23; x <= 44; ++x)
+        ASSERT_TRUE(Client::World::StepChaosCastleCell(x, 75, context).HasValue());
+    EXPECT_EQ(random.State(), 0x31f67436u);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(shake), 0xbdcccccdu);
+    EXPECT_TRUE(std::ranges::all_of(particles->All(), [](const Particle& particle) { return particle.type == 0; }));
 }
 
 // Fuera de los cuatro rectángulos del área no hay piedra, aunque el rand() % 8 dé 0.

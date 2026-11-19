@@ -98,7 +98,8 @@ struct DrawnCharacter
     // 0x50db94 repone el RGB antes de las armas, las alas y la mascota: el héroe no conserva ahí
     // el color de los bits del registro propio que usó para sus partes.
     std::optional<glm::vec3> hangingLight{};
-    // +0x174 y las guardas de la sombra de 0x50bc05..0x50bc71.
+    // +0x174 y las guardas de la sombra de 0x50bc05..0x50bcbd (CastsShadow, GameCharacters.h). `object.position` ya
+    // tiene la z del suelo de la sombra (0x50bc77..0x50bcbd, ShadowGroundOf en MonsterDrawing.h).
     float alpha = 1.0f;
     bool castsShadow = true;
     bool safeZone = false;
@@ -193,6 +194,12 @@ inline constexpr Render::TextureSlot MetalTextureSlot{0x620};
 void DrawCharacter(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnCharacter& character,
                    Core::Duration frameClock, CharacterDrawPass pass = CharacterDrawPass::All);
 
+// Las guardas de la sombra de 0x50ba30 (0x50bc05..0x50bc71: castsShadow y, fuera de la zona segura, sin las mascotas
+// que se montan): con ellas, en Blood Castle el que muere empujado baja al terreno (0x50bc77..0x50bcbd) y 0x50bcec
+// llama a 0x60cf70 con el 0x20b, que le copia la escala y la posición del personaje aunque no lo dibuje
+// (WorldState::PlaceShadowModel).
+[[nodiscard]] bool DrawsTheShadow(const DrawnCharacter& character);
+
 // 0x50d374..0x50d3d7: en Chaos Castle (18 a 23), un jugador (+0x88 en 1) no lleva sus seis partes sino el Angel
 // (0x1f7, Player\Angel), sobre el cuerpo posado, con 0x60cf70: el contorno de esos mapas si está marcado, y
 // 0x60b3d0 con el nivel 0, que le pone la luz (+0x3b4) y llama a 0x609640 (caso 0x1f7) con `flags`: 2, o 6 el
@@ -262,6 +269,14 @@ void DrawObjectFromMeshes(Render::ModelBatch& batch, const IModelLibrary& models
 [[nodiscard]] std::vector<Render::Models::SkinnedMesh>
 SkinObjectMeshes(const IModelLibrary& models, const DrawnObject& object,
                  std::span<const Render::Models::BoneTransform> bones, float boneScale = 1.0f);
+
+// El scratch de 0x5ffdf0 con el segundo argumento en 0 (0x602e90 de un objeto del mundo en 0x604a47, de un efecto en
+// 0x52da99, de un ayudante en 0x44532e o del cuervo en 0x41834e) cuando nadie lo publicó: 0x4eb860 con la bandera en 1
+// (PoseWorldSkeleton, los dummy con la identidad) y 0x4ebc80 con Translate en 0 (SkinMeshInWorld, 0x6001a1), todas las
+// mallas del modelo, las normales con la escala dentro (R · s). No mira el alpha. La que no se puede posar queda
+// vacía. Sin el modelo, el esqueleto o la pose, ninguna.
+[[nodiscard]] std::vector<Render::Models::SkinnedMesh> WorldScratchOf(const IModelLibrary& models,
+                                                                      const DrawnObject& object);
 
 // Un pase de 0x60cd60: la escala que 0x4ebc80 lee de 0x6c881c y el color del modelo (+0x48..+0x50).
 struct ObjectOutlinePass

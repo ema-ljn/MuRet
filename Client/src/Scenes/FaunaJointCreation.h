@@ -37,6 +37,8 @@ struct TerrainLighting;
 // Pool lleno no lee los argumentos ni RNG.
 namespace Client::Scenes
 {
+class IModelLibrary;
+
 // El 618/0 y el 618/1 que el que mató lanza desde el blanco (0x505169, 0x5051a4): con el ActorState del que pega como
 // dueño, giran 20 pasos y después vuelven hacia él (0x538313), con la luz dinámica, el rayo 0x5d5/0 de cada paso y, al
 // llegar, el 0x5d5/1 y el sonido 0x23.
@@ -74,7 +76,9 @@ CreateFaunaJoint(std::span<JointState> joints, const World::FishEffectRequest& r
 // [0x743a170], 0x53b548): sólo con él de dueño corta. De la octava: el 0x614/0xc y el 0x62c/5..7 con dueño piden los
 // modelos compartidos (`world`, 0x5769ad8), y el 0x62c/5..7, los sprites. El 0x613/0, /5 y /0x13 de ancho 80 sueltan
 // el 0xd0 en la tabla de efectos y piden `volley` (el asedio, los atributos de 0x5f82c0 y los blancos del héroe,
-// 0x539a50).
+// 0x539a50). De la novena: el 0x61c/0 del héroe pide también `volley` (0x53b569); el 0x632/0 y /1 con dueño, al llegar
+// al suelo, posan el 0x20b de `models` con el modelo compartido de `world` y sueltan las cáscaras 0x137 de sus vértices
+// en la tabla de efectos (0x53c1c6).
 [[nodiscard]] Core::Expected<void, std::string>
 StepJoints(std::span<JointState> joints, Render::Models::CrtRandom& random, Render::Models::ClothWorld* cloth = nullptr,
            World::Particles* particles = nullptr, float worldClock = 0, World::FrameSprites* sprites = nullptr,
@@ -82,5 +86,5 @@ StepJoints(std::span<JointState> joints, Render::Models::CrtRandom& random, Rend
            const std::function<double(float, float)>& terrainHeight = {}, std::span<const ActorState> actors = {},
            const JointKernels::EffectHit& effectHit = {}, World::ModelEffects* effects = nullptr,
            const ActorState* hero = nullptr, WorldState* world = nullptr,
-           const JointKernels::VolleyServices* volley = nullptr);
+           const JointKernels::VolleyServices* volley = nullptr, const IModelLibrary* models = nullptr);
 } // namespace Client::Scenes

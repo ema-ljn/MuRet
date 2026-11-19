@@ -2,6 +2,7 @@
 
 #include "Data/Models/Model.h"
 #include "Render/Models/HalfLifeMath.h"
+#include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Pose.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -10,6 +11,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <span>
+#include <vector>
 
 namespace Client::Render::Models
 {
@@ -72,6 +74,36 @@ bool SkinMesh(const Data::Models::Mesh& mesh, std::span<const BoneTransform> bon
         out.positions.push_back(VectorTransform(ToVec3(vertex.position), bone) * object.scale + object.position);
     }
     RotateNormals(mesh, bones, out);
+    return true;
+}
+
+bool SkinMeshInWorld(const Data::Models::Mesh& mesh, std::span<const BoneTransform> worldBones, SkinnedMesh& out)
+{
+    if (!BonesExist(mesh, worldBones.size()))
+    {
+        return false;
+    }
+    // 0x4ebde2 y 0x4ebf70: 0x5fccc0 y 0x5fcbd0 leen la 3 × 4 del hueso por filas.
+    std::vector<OriginalMatrix> matrices;
+    matrices.reserve(worldBones.size());
+    for (const BoneTransform& bone : worldBones)
+    {
+        matrices.push_back(OriginalMatrixOf(bone));
+    }
+    out.positions.clear();
+    out.positions.reserve(mesh.vertices.size());
+    for (const Data::Models::Vertex& vertex : mesh.vertices)
+    {
+        out.positions.push_back(
+            OriginalVectorTransform(ToVec3(vertex.position), matrices[static_cast<std::size_t>(vertex.bone)]));
+    }
+    out.normals.clear();
+    out.normals.reserve(mesh.normals.size());
+    for (const Data::Models::Normal& normal : mesh.normals)
+    {
+        out.normals.push_back(
+            OriginalVectorRotate(ToVec3(normal.normal), matrices[static_cast<std::size_t>(normal.bone)]));
+    }
     return true;
 }
 

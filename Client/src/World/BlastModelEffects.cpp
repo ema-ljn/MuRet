@@ -325,9 +325,13 @@ Core::Expected<void, std::string> BeginTheInferno(ModelEffect& effect, std::uint
     default:
         break;
     }
+    // 0x519a49..0x519a60: el dueño contra el héroe publicado (0x743a170) y después el subtipo; con el subtipo desde 2
+    // las dos salidas van a 0x51db73, así que el héroe solo decide por debajo de 2.
+    if (effect.subtype >= 2)
+        return {};
     if (services.hero == nullptr)
         return Core::Unexpected(Cut("0x519a4f", "el 0xf6 compara su dueño con el héroe publicado (0x743a170)"));
-    if (effect.ownerContext != services.hero || effect.subtype >= 2)
+    if (effect.ownerContext != services.hero)
         return {};
     if (auto copied =
             WithTheOwnRecord(services, random, "0x519a66", [&](const std::uint8_t& count) { effect.word8c = count; });

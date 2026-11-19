@@ -66,9 +66,11 @@ struct ModelEffectStepServices
     std::uint8_t* ownRecordDepth = nullptr;
     std::uint8_t* ownRecordCount = nullptr;
 };
-// 0x52bbf6..0x52bd9c: las tres emisiones del brillo 0x621 de cualquier subtipo (el /0 desde aquí, los demás desde
-// Scenes/HighModelEffects): dos rand() % 360 de los ángulos, el sprite 0x5fd con dos rand() más y la chispa 0x5c6/2 con
-// otro. Sin la tabla de sprites o de efectos, corta.
+// 0x52bbf6..0x52be6d: las tres emisiones del brillo 0x621 de cualquier subtipo (el /0 desde aquí, los demás desde
+// Scenes/HighModelEffects): dos rand() % 360 de los ángulos y, fuera del /1 y el /2, el sprite 0x5fd con dos rand() más
+// (escala · 0,3f) y la chispa 0x5c6/2 con otro (0x52be64). El /1 y el /2, con la vida par, el joint 0x614/3 del punto a
+// la posición (0x52bcc4, 0x52bd80) y, el /1 con la vida impar, la chispa (0x52bd02); después los dos, el sprite con
+// escala · 0,2f. Sin la tabla de sprites o de efectos, o sin el servicio de joints cuando lo pide, corta.
 [[nodiscard]] Core::Expected<void, std::string> EmitPiercingShotGlow(ModelEffect& effect, Particles& particles,
                                                                      Render::Models::CrtRandom& random,
                                                                      const ModelEffectStepServices& services);
@@ -89,8 +91,9 @@ struct ModelEffectStepServices
 // dinámica de radio 2. El 0xb3 de Aida (0x520b77) vaga con sus
 // dos giros sorteados y el seno del reloj, y suelta una 5ac/9 por paso. El 0x135 del 30 (0x52973e) no
 // muere y, con dueño, sube y baja con el seno del reloj. El calco 0x61d/3 del 0x38 de Crywolf (0x52b933), con la
-// vida entre 6 y 9, suelta una órbita 60f/10; el /0 deja el /1 en cada paso y, con el /2 y el /7, corta en su órbita
-// 60f/0 con lugar (0x52b8ff, 0x52b977). La onda 0x6eb/1 del galope del caballo en Icarus (0x52c5ca) crece y tiembla con
+// vida entre 6 y 9, suelta una órbita 60f/10; el /0 deja el /1 en cada paso y, con el /2 y el /7, suelta la 60f/0
+// (0x52b8ff, 0x52b977): sin la tabla de efectos corta sólo si la órbita tiene lugar.
+// La onda 0x6eb/1 del galope del caballo en Icarus (0x52c5ca) crece y tiembla con
 // tres rand() (la /2, igual de a 0,025f); la /0 del pisotón se achica 1 por paso, sin rand(); la /3 y la /4 crecen 2 y
 // 0,3f; los subtipos5..8 del asedio conservan sus escalas y RGB: el6 emite hijos5 cada8vidas, que el pool ascendente
 // puede avanzar en el mismo paso; otro subtipo no toca la escala. El rayo 0x14d de los Fenrir (0x5295a4) se prende de a

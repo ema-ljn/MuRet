@@ -418,9 +418,13 @@ Core::Expected<void, std::string> ArriveAsNew(ActorState& actor, const WorldEntr
         return RiseWithActionOne(actor, 0x4c97d0, 0x14e, resources);
     case 0x35:
     case 0x36:
-        return Core::Unexpected(
-            std::string("0x4c982b: +0x3e5 en 0x3c frena al recién llegado 60 pasos con los efectos y los rand() de "
-                        "0x505de0 (0x5069ae: 0x53fe70 y 0x518cf0), de la CL11 (P-C54 c)"));
+    {
+        // 0x4c9828..0x4c984f: +0x3e5 en 0x3c antes de la acción 1 (0x4c9832), sin sonido. El freno lo bajan
+        // 0x505de0 (0x5069ae, Scenes::StepActorCooldown, con sus veinte vueltas de efectos), 0x508ba0 y el D3.
+        constexpr std::uint8_t ArrivalCooldown = 0x3c;
+        actor.movementCooldown = ArrivalCooldown;
+        return RiseWithActionOne(actor, 0x4c9832, std::nullopt, resources);
+    }
     case 0x55:
     case 0x5b:
     case 0x61:

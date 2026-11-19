@@ -1499,6 +1499,9 @@ void CharacterSelectScene::DrawTheCharacters(SceneCanvas& canvas, float alpha, s
             drawn.object.scale = actor->scale;
             drawn.alpha = actor->alpha;
             drawn.safeZone = actor->safeZone != 0;
+            // 0x50bbff..0x50bc71: las guardas de la sombra del mismo 0x50ba30 (0x634851 → 0x510d00): el alpha desde
+            // 0,5, sin +0x3e4 y fuera de los mapas sin sombra (el 54 no es ninguno).
+            drawn.castsShadow = CastsShadow(*actor, map);
         }
         const bool isChosen = chosen != nullptr && chosen->slot == character.slot;
         // 0x50ba30: la base del lugar más +0xf4, que el dibujo dejó en 1 para el elegido vivo y en 0 para los
@@ -1559,6 +1562,10 @@ void CharacterSelectScene::DrawTheCharacters(SceneCanvas& canvas, float alpha, s
             }
             drawn.sprites = &m_world.FrameSprites();
             DrawCharacter(canvas.models, m_models, drawn, canvas.frameClock, CharacterDrawPass::Body);
+            // 0x50bcec: la sombra le copia la escala y la posición al 0x20b (WorldState::PlaceShadowModel), sólo en un
+            // frame del original.
+            if (scanFrames > 0 && DrawsTheShadow(drawn))
+                m_context.world->PlaceShadowModel(*actor);
             DrawTheTail(canvas, *actor, character.slot, drawn, *poseCarry, scan, scanFrames > 0);
             if (m_failure)
                 return;
@@ -1573,6 +1580,9 @@ void CharacterSelectScene::DrawTheCharacters(SceneCanvas& canvas, float alpha, s
             actor->bodyPose = PoseCharacterBody(m_models, drawn);
             if (actor->alpha >= PlayerModelAlpha)
                 m_context.world->PlacePlayerModel(*actor);
+            // 0x50bcec: la sombra le copia la escala y la posición al 0x20b (WorldState::PlaceShadowModel).
+            if (DrawsTheShadow(drawn))
+                m_context.world->PlaceShadowModel(*actor);
         }
     }
 }
@@ -1742,10 +1752,12 @@ void CharacterSelectScene::DrawTheCreateWindow(SceneCanvas& canvas, float alpha)
     {
         // Q-C410: 0x63e3e0 la arma con 0x511290 (0x63e409), que le pone +0x11c en 1 y le da su buffer (+0x120);
         // 0x63e637 → 0x50ba30 → 0x602e90 → 0x5ffdf0 la posa ahí (0x5fff13..0x5fff4c) y no en el global. Sólo un
-        // frame del original guarda la pose en el buffer propio.
+        // frame del original guarda la pose en el buffer propio. 0x50ba30 llama con el segundo argumento en 1
+        // (0x5ffdf0 en 0x50baed, 0x602e90 en 0x50bd81): los huesos quedan en el modelo (0x4eb860 con la bandera en 0)
+        // y 0x4ebc80 corre con Translate en 1, la normal sin la escala de la clase (5,9 a 9,1) para la luz por vértice.
         FaunaDrawCarry own;
         own.bones = Preview().bodyPose;
-        if (auto result = PublishFaunaPose(own, m_selectionModels, drawn, true); !result.HasValue())
+        if (auto result = PublishFaunaPose(own, m_selectionModels, drawn, false); !result.HasValue())
         {
             m_failure = result.Error();
             return;

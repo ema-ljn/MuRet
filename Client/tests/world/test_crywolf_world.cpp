@@ -10,6 +10,7 @@
 #include "World/KalimaParticleKernels.h"
 #include "World/ModelEffects.h"
 #include "World/ParticleDrawParameters.h"
+#include "World/ParticleOwner.h"
 #include "World/Particles.h"
 #include "World/PortableParticleTrigonometry.h"
 #include "World/TerrainCells.h"
@@ -516,8 +517,8 @@ TEST(CrywolfParticlesTest, TheAnchoredOrbStaysOverItsShiftedStart)
 
 // 0x51ee96..0x51eeae: el calco 0x61d nace con vida 20 (15 con el subtipo 0) y escala 0,5, sin rand().
 // 0x52b91f..0x52b954: el /3, con la vida entre 6 y 9 antes del paso común, suelta una 60f/10 con su luz y la
-// escala 0,19; el /0, el /2 y el /7 cortan en su 60f/0 con lugar (y, llena, siguen), y los demás solo tienen el paso
-// común.
+// escala 0,19; el /0, el /2 y el /7 sueltan la 60f/0 con el efecto de dueño (0x52b8ff, 0x52b977), y los demás solo
+// tienen el paso común.
 TEST(CrywolfDecalTest, TheBannerDecalReleasesFourOrbsBeforeItFades)
 {
     auto effects = std::make_unique<Client::World::ModelEffects>();
@@ -573,24 +574,74 @@ TEST(CrywolfDecalTest, TheBannerDecalReleasesFourOrbsBeforeItFades)
     }
     EXPECT_EQ(orbs, 4);
 
+    // 0x52b8ff y 0x52b977: el /0, el /2 y el /7 sueltan la órbita 60f/0 con su posición, sus ángulos, su luz, la escala
+    // 0,19 y el efecto de dueño (su lugar en la tabla), después del rand() de la luz del paso; llena, nada. Sin la
+    // tabla de efectos (de donde sale el lugar del dueño) cortan con su dirección si la órbita tiene lugar.
     for (const std::int32_t subtype : {0, 2, 7})
     {
         SCOPED_TRACE(subtype);
-        Client::World::ModelEffect other = effects->Effects()[*first];
-        other.subtype = subtype;
-        other.life = 8;
-        const Client::World::ModelEffectStepServices services{.effects = effects.get()};
-        const auto cut =
-            Client::World::StepGameModelEffect(other, nullptr, *particles, 2500.0f, random, nullptr, services);
-        ASSERT_FALSE(cut.HasValue());
-        EXPECT_NE(cut.Error().find(subtype == 0 ? "0x52b8ff" : "0x52b977"), std::string::npos) << cut.Error();
+        auto table = std::make_unique<Client::World::ModelEffects>();
+        static_cast<void>(table->CreateFadingDecal(position, angles, light, 4, 4));
+        const auto made = table->CreateFadingDecal(position, angles, light, subtype, 4);
+        ASSERT_EQ(made, std::optional<std::size_t>(1));
+        Client::World::ModelEffect& owner = table->Effects()[*made];
+        owner.life = 8;
+        const Client::World::ModelEffect before = owner;
+        const Client::World::ModelEffectStepServices services{.effects = table.get()};
+        auto spawned = std::make_unique<Particles>();
+        CrtRandom orbRandom(29);
+        ASSERT_TRUE(Client::World::StepGameModelEffect(owner, nullptr, *spawned, 2500.0f, orbRandom, nullptr, services)
+                        .HasValue());
+        constexpr Client::World::ParticleOwner DecalOwner{Client::World::ParticleOwnerKind::ModelEffect, 1};
+        // El rand() de la luz y los cuatro de 0x542f83, 0x542fab, 0x542fc6 y 0x542fe5; los valores, de orbit.py
+        // (0x542ed0..0x54304a en una x87 aparte) y no de CreateChecked.
+        EXPECT_EQ(orbRandom.State(), 0x3309f4f0u);
+        EXPECT_EQ(orbRandom.State(), Client::Tests::AfterDraws(29, 5).State());
+        const Particle& orb = spawned->All()[0];
+        ASSERT_TRUE(orb.alive);
+        EXPECT_EQ(orb.type, Client::World::OrbitParticle);
+        EXPECT_EQ(orb.subtype, 0);
+        EXPECT_EQ(orb.typedOwner, DecalOwner);
+        EXPECT_EQ(orb.light, light);
+        EXPECT_EQ(orb.position, position);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(orb.scale), 0x3e4ccccdu);         // 0,19f + (rand() % 6) · 0,01f
+        EXPECT_EQ(orb.rotation, 105.0f);                                         // rand() % 360
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(orb.verticalSpeed), 0x3fb851ebu); // (rand() % 100) · 0,01f · 4 + 1
+        EXPECT_EQ(orb.velocity, (glm::vec3{-139.0f, 0.0f, 0.0f}));               // rand() % 300 − 150
+        EXPECT_EQ(orb.angles, glm::vec3(0.0f));
+        EXPECT_EQ(orb.start, position);
+        EXPECT_EQ(orb.life, 60);
+        EXPECT_FALSE(spawned->All()[1].alive);
+
         auto full = std::make_unique<Particles>();
         for (Particle& particle : full->All())
             particle.alive = true;
+        Client::World::ModelEffect again = before;
         CrtRandom fullRandom(29);
-        ASSERT_TRUE(Client::World::StepGameModelEffect(other, nullptr, *full, 2500.0f, fullRandom, nullptr, services)
+        auto fullTable = std::make_unique<Client::World::ModelEffects>();
+        static_cast<void>(fullTable->CreateFadingDecal(position, angles, light, 4, 4));
+        const auto fullMade = fullTable->CreateFadingDecal(position, angles, light, subtype, 4);
+        ASSERT_TRUE(fullMade.has_value());
+        fullTable->Effects()[*fullMade].life = 8;
+        const Client::World::ModelEffectStepServices fullServices{.effects = fullTable.get()};
+        ASSERT_TRUE(Client::World::StepGameModelEffect(fullTable->Effects()[*fullMade], nullptr, *full, 2500.0f,
+                                                       fullRandom, nullptr, fullServices)
                         .HasValue());
         EXPECT_EQ(fullRandom.State(), Client::Tests::AfterDraws(29, 1).State());
+
+        if (subtype == 0)
+            continue;
+        // Con la tabla de partículas llena la órbita no nace y el dueño no hace falta: sin la tabla de efectos el /2 y
+        // el /7 siguen como el original, con sólo el rand() de la luz.
+        Client::World::ModelEffect unowned = before;
+        CrtRandom unownedRandom(29);
+        ASSERT_TRUE(Client::World::StepGameModelEffect(unowned, nullptr, *full, 2500.0f, unownedRandom).HasValue());
+        EXPECT_EQ(unownedRandom.State(), 0x0085526cu); // 29 · 214013 + 2531011
+        EXPECT_EQ(unownedRandom.State(), Client::Tests::AfterDraws(29, 1).State());
+        CrtRandom loneRandom(29);
+        const auto lone = Client::World::StepGameModelEffect(again, nullptr, *spawned, 2500.0f, loneRandom);
+        ASSERT_FALSE(lone.HasValue());
+        EXPECT_NE(lone.Error().find("0x52b977"), std::string::npos) << lone.Error();
     }
     for (const std::int32_t subtype : {1, 4})
     {

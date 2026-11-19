@@ -22,6 +22,8 @@
 #include "Scenes/WorldRuntime.h"
 #include "World/Particles.h"
 
+#include <glm/ext/vector_float3.hpp>
+
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -164,13 +166,26 @@ const SharedModelPlacement& WorldState::PlayerModel() const
 
 void WorldState::PlacePlayerModel(const ActorState& actor)
 {
+    PlacePlayerModel(actor, actor.position);
+}
+
+void WorldState::PlacePlayerModel(const ActorState& actor, const glm::vec3& origin)
+{
     if (actor.type != Data::Models::PlayerSkeletonModel)
     {
         return;
     }
     m_playerModel.scale = actor.scale;
-    m_playerModel.origin = actor.position;
+    m_playerModel.origin = origin;
     m_playerModel.action = actor.animation.action;
+}
+
+void WorldState::PlaceShadowModel(const ActorState& actor)
+{
+    SharedModelPlacement placement = ModelPlacement(Data::Models::PlayerShadowModel);
+    placement.scale = actor.scale;
+    placement.origin = actor.position;
+    PlaceModel(Data::Models::PlayerShadowModel, placement);
 }
 
 void WorldState::PlaceModel(const ActorState& actor)

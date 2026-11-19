@@ -247,6 +247,33 @@ TEST(BlastModelEffectsTest, TheHeroInfernoCopiesTheCountAndHitsAtFourHundred)
     EXPECT_EQ(harness.hits.size(), 1u);
 }
 
+// 0x519a49..0x519a60: el dueño se compara con el héroe publicado (0x743a170) y después el subtipo; desde el 2 las dos
+// salidas van a 0x51db73. Sin el héroe, solo el /0 y el /1 cortan; del /2 al /6 nacen sin él.
+TEST(BlastModelEffectsTest, TheInfernoOnlyAsksForTheHeroBelowTheSecondSubtype)
+{
+    for (const std::int32_t subtype : {0, 1, 2, 3, 4, 5, 6})
+    {
+        SCOPED_TRACE(subtype);
+        Harness harness;
+        BlastEffectServices services = harness.Services();
+        services.hero = nullptr;
+        CrtRandom random(9);
+        const auto made = Client::World::CreateBlastModelEffect(*harness.effects, Arguments(0xf6, subtype, &harness),
+                                                                {}, random, services);
+        if (subtype < 2)
+        {
+            ASSERT_FALSE(made.HasValue());
+            EXPECT_NE(made.Error().find("0x519a4f"), std::string::npos) << made.Error();
+            continue;
+        }
+        ASSERT_TRUE(made.HasValue()) << made.Error();
+        ASSERT_TRUE(made.Value().has_value());
+        EXPECT_EQ(harness.effects->Effects()[*made.Value()].subtype, subtype);
+        EXPECT_EQ(random.State(), CrtRandom(9).State());
+        EXPECT_TRUE(harness.hits.empty());
+    }
+}
+
 TEST(BlastModelEffectsTest, TheBlizzardDrawsItsFallAndTheSecondIceJointHalfTheTime)
 {
     Harness harness;

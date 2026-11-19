@@ -4227,8 +4227,28 @@ de `0x443d70` en el mapa 55 y la escena 2; los slots, **verificados** en `lor_sl
     `rand() % 50 + 40` (salvo en una celda con el `0x4`, el `0x8` o el `0x10`, Q-C424) a la altura del suelo más 3
     (100 en Kalima). En la vida 10, cuatro anillos de cinco pares `0x101`/`0x102` de tamaño 100 (el sentido del
     cuarto sale de un `rand()`, Q-C429; la celda los frena sólo con los tres bits), el sonido `0x97` y la vida en
-    0. En las demás, se hamaca alrededor de la partida. El estado 0 (la habilidad del Dark Lord) corta en
-    `0x521e13` y `0x5224ec` (CL9.2, P-C58).
+    0. En las demás, se hamaca alrededor de la partida. Con el estado 0 y vida 13,
+    `0x5225bb` y `0x52264e` intentan crear dos grupos de cuatro estelas `0x104` antes del
+    movimiento. Los dos sorteos intermedios se consumen aunque se llene la tabla. `0x52266a`
+    pide `0x96` con origen nulo, luego sigue el movimiento y la vida queda en 12.
+    MuRet comparte el alta y el paso de la estela con Crywolf. Cada hijo toma el primer
+    hueco, conserva el sorteo común por paso y se libera tras seis pasos. El render
+    continúa sin geometría de la estela cuando falta su malla en la tabla actual.
+    En la vida 11 y estado 0, después de la explosión intenta ocho joints
+    `0x617/0` de ancho 10 (`0x521ef5`). Cada intento usa cuatro sorteos para
+    la inclinación, el rumbo y las dos coordenadas, aun con la tabla llena.
+    Tras el primero intenta `0x5c5/0` en el mismo punto y ángulos
+    (`0x521f1c`); después del octavo intenta `0x103/0` (`0x521f6c`),
+    antes de bajar la partida y emitir las grietas.
+    El pulso toma el primer hueco sin sorteo, nace sin dueño a Z menos 15
+    y se libera tras 15 pasos. En `0x521253` cambia la escala y baja X y Z.
+    Conserva el brillo inicial hasta que la escala supera 2. Cada paso usa
+    el sorteo común y reduce la luz del terreno con radio 5 en la nueva
+    posición. Antes del paso común publica la acción en `0x52cc21`, con
+    una sola clave que conserva el cuadro. El dibujo de ambos pases usa
+    [la señal de área de MuRet](../../../docs/adr/0023-senal-del-terremoto.md).
+    El creador de Kalima en `0x43b570` conserva las referencias vivas al
+    equipo del dueño, que el dibujo del padre lee en `0x52d43a` y `0x52d549`.
   - **Las grietas** `0xfb..0x102` (`Skill\EarthQuake01..08`, `0x6165bc..0x616688`) nacen
     (`0x51a6e4..0x51a85c`) con la escala `tamaño · 0,01f` y la vida de su tipo y subtipo (Q-C423); en su paso, la
     luz de las mallas, se hunden 0,5f, la `0xfb` hace temblar la cámara, la `0xfc` y la `0xff` sueltan piedritas
@@ -12374,11 +12394,18 @@ la rama de la skill:
 | `0x37` | salida: apaga el `0x628/0` del blanco y crea otro (CL11, `0x4cd664`); si no, un monstruo va a `0x4f4a10` con el frame en 0 (`0x4cd68e`) |
 | `0x43`..`0x48` | la acción por la montura (Dark Horse `0x52`, Uniria `0x40`, Dinorant `0x41`, Fenrir `0x5d`; si no `0x3f` o `0x87`); salidas, la `0x44` baja el `0x1000` del blanco, la `0x46` le prende `0x4000` (si no es la fuente), la `0x47` le baja `0x4000`, la `0x48` le baja seis y la `0x45` prende `0x2000` en la fuente y crea su `0x138` (CL11, `0x4cdb72`) |
 | `0x4b`, `0x40` | `0x200` (`0x800` con `0x4f3f80` antes) en el blanco; la acción del Dark Horse, Fenrir o `0x8e` |
-| `0x35`, `0x30` | sin `0x400` (`0x10`) en el blanco, apaga su `0x5ac/2` y sus joints `0x619/9` (su `0x5ac/1`) y crea otro con él de dueño (`0x4cdc88`, `0x4cdd84`; `World::ModelEffects::CreateSkillFlare`, vida 1000); después, el bit. El paso (`0x52a7b7`, `Scenes::StepSkillFlare`): el /2 gira alrededor del dueño y cada 50 suelta un joint `0x619/9`; el /1 corta en sus partículas `0x5ac/4` (`0x52a866`, CL11) |
+| `0x35`, `0x30` | sin `0x400` (`0x10`) en el blanco, apaga su `0x5ac/2` y sus joints `0x619/9` (su `0x5ac/1`) y crea otro con él de dueño (`0x4cdc88`, `0x4cdd84`; `World::ModelEffects::CreateSkillFlare`, vida 1000); después, el bit. El paso (`0x52a7b7`, `Scenes::StepSkillFlare`): el /2 gira alrededor del dueño y cada 50 suelta un joint `0x619/9`; el /1 emite `0x5ac/4` en dos huesos opuestos (`0x52a866`, `0x52a89a`, CL11.3) |
 | `0x31` | `0x41` en Atlans (8) y en el cielo (10), `0x40` en los demás |
 | `0x3b` | el efecto `0x112` en la fuente (CL11, `0x4cddfa`) |
 | `0x3a` | `0x44`, el sonido `0x92` y `+0x1bc` en 0 |
 | `0x28` | `0x45`; en el héroe suelta el clic derecho (`0x4cde43..0x4cde58`: el soltado `0x7d36840`, el clic `0x7d36880`, el botón `0x7d3685c` y los frames de carga `0x7d368a4`) |
+
+Swell Life elige un índice `rand() % 7` incluso con el pool lleno. Intenta dos altas con los índices
+`k` y `6−k` de `[25, 26, 27, 20, 34, 35, 36]`. Cada `0x5ac/4` guarda ese hueso como rotación, toma
+el primer lugar libre y nace con vida 10, escala 2 y RGB `(1, 0.5, 0.1)`. En el paso `0x544a7d`
+sigue el hueso del actor de tipo `0x20a` con `+0x88 == 1`. Aunque el dueño quede inválido o se
+agote la vida, consume sus dos sorteos, sube y reduce la escala y la luz. Conserva el dibujo
+común de `0x5ac` y la rotación guardada.
 
 `0x4f5290`, en un jugador, abre los stats propios (`0x4f3f80`, 3.848 `rand()`) y elige `0x97` (Uniria o Dinorant),
 `0x5d` (Fenrir), `0x92` (elfo) o `0x8e + rand() % 2`; en otro, 3 y 4 de a tres con `+0x38f`.

@@ -6,6 +6,7 @@
 #include "Scenes/FullSetScan.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/SocialState.h"
+#include "World/ParticleOwner.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -106,13 +107,16 @@ StepFullSetFlare(World::ModelEffect& effect, std::span<JointState> joints, Rende
 
 // 0x5208a0 sobre los 0x5ac/1 y /2 de las skills que llegan (0x52a7b7 y 0x52a8a7, Scenes/SkillReplies): el rand() de la
 // luz de todo efecto vivo (0x5208c5) y la vida en 10 con el dueño (+0x108) vivo (+0x0 en 1) y su bandera de +0x78 (0x10
-// el /1, 0x400 el /2), si no en 0. Con 0x4000 en +0x78 del dueño, nada más. Si no, el /1 saca rand() % 7 y corta en
-// sus partículas 5ac/4 (0x52a866, CL11); el /2 sube +0xd8 en 1 y, con su ftol múltiplo de 50, gira 50 más en z, se pone
-// a 80 del dueño con el seno del giro sin redondear y el coseno del giro guardado (Q-C380), 50 más arriba, y suelta el
-// joint 619/9 de ancho 15 ahí (con la tabla de joints llena, ninguno). Después la cola común (0x52cb98): sin animación
-// ni velocidad, una vida menos. Sin dueño, el original lee +0x78 de 0: MuRet corta.
+// el /1, 0x400 el /2), si no en 0. Con 0x4000 en +0x78 del dueño, nada más. Si no, el /1 saca rand() % 7 y crea
+// sus dos partículas 5ac/4 (0x52a866/0x52a89a) con `particleOwner`, la identidad del dueño en el pool; el /2 sube +0xd8
+// en 1 y, con su ftol múltiplo de 50, gira 50 más en z, se pone a 80 del dueño con el seno del giro sin redondear y el
+// coseno del giro guardado (Q-C380), 50 más arriba, y suelta el joint 619/9 de ancho 15 ahí (con la tabla de joints
+// llena, ninguno). Después la cola común (0x52cb98): sin animación ni velocidad, una vida menos. Sin dueño, el original
+// lee +0x78 de 0: MuRet corta.
 [[nodiscard]] Core::Expected<void, std::string> StepSkillFlare(World::ModelEffect& effect, std::span<JointState> joints,
-                                                               Render::Models::CrtRandom& random);
+                                                               Render::Models::CrtRandom& random,
+                                                               World::Particles* particles = nullptr,
+                                                               World::ParticleOwner particleOwner = {});
 
 // Lo que lee el cuervo del juego (0x420df0 → 0x4182f0) fuera de su dueño.
 struct GameRavenPass

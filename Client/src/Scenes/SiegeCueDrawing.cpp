@@ -74,7 +74,8 @@ Shape ShapeOf(const World::ModelEffect& effect, float progress)
 
 void DrawBattleCue(Render::ModelBatch& batch, const World::ModelEffect& effect)
 {
-    const float intensity = std::clamp(effect.alpha, 0.0f, 1.0f);
+    const float intensity =
+        std::clamp(effect.type == World::EarthquakeBurstEffect ? effect.objectState.light : effect.alpha, 0.0f, 1.0f);
     if (!(intensity > 0.0f))
         return;
     const Shape shape = ShapeOf(effect, 1.0f - intensity);
@@ -84,7 +85,9 @@ void DrawBattleCue(Render::ModelBatch& batch, const World::ModelEffect& effect)
     batch.SetState({.texture = {}, .blend = Render::ModelBlend::Additive, .texture2d = false});
     constexpr float FullTurn = 2.0f * std::numbers::pi_v<float>;
     constexpr float RadiansPerDegree = FullTurn / 360.0f;
-    const float phase = (effect.transform.angles.z + effect.copiedAngles.z) * RadiansPerDegree;
+    const float phase = effect.type == World::EarthquakeBurstEffect
+                            ? 0.0f
+                            : (effect.transform.angles.z + effect.copiedAngles.z) * RadiansPerDegree;
     const glm::vec3 origin = effect.transform.position + glm::vec3{0, 0, shape.height};
     for (int i = 0; i < shape.count; ++i)
     {

@@ -75,22 +75,6 @@ CreateCrywolfDeathSpirit(const World::ModelEffectArguments& args, World::ModelEf
     }
     return slot;
 }
-std::optional<std::size_t> CreateCrywolfSpiritTrail(const World::ModelEffectArguments& args,
-                                                    World::ModelEffects& effects)
-{
-    const auto slot = effects.Begin(args);
-    if (!slot)
-        return slot;
-    auto& e = effects.Effects()[*slot];
-    e.objectState.blendMesh = -2;
-    e.life = 6;
-    e.transform.scale = 1;
-    e.turnDirection = 80;
-    e.light = glm::vec3(.5f);
-    e.transform.angles = {0, 0, 45};
-    e.owner.effect = static_cast<const World::ModelEffect*>(args.owner);
-    return slot;
-}
 Core::Expected<void, std::string> StepCrywolfDeathSpirit(World::ModelEffect& e, Render::Models::CrtRandom& random,
                                                          const World::ModelEffectStepServices& services,
                                                          std::optional<glm::vec3> point)
@@ -139,8 +123,8 @@ Core::Expected<void, std::string> StepCrywolfDeathSpirit(World::ModelEffect& e, 
         for (int axis = 0; axis < 3; ++axis)
             e.transform.position[axis] = F32(static_cast<double>((*point)[axis]) + e.transform.position[axis]);
         if (services.effects == nullptr)
-            return Core::Unexpected(std::string("0x52720c: falta el pool del trail104/0"));
-        static_cast<void>(CreateCrywolfSpiritTrail({.type = 0x104,
+            return Core::Unexpected(std::string("0x52720c: falta el pool de la estela104/0"));
+        static_cast<void>(World::CreateSpiritTrail({.type = 0x104,
                                                     .position = e.transform.position,
                                                     .angles = e.transform.angles,
                                                     .light = e.light,
@@ -151,11 +135,5 @@ Core::Expected<void, std::string> StepCrywolfDeathSpirit(World::ModelEffect& e, 
     if (services.sound)
         services.sound(0x1ca);
     return {};
-}
-void StepCrywolfSpiritTrail(World::ModelEffect& e)
-{
-    e.transform.position.z = F32(static_cast<double>(e.transform.position.z) - e.turnDirection);
-    e.turnDirection = F32(static_cast<double>(e.turnDirection) + 60.0);
-    e.objectState.light = F32(static_cast<double>(e.life) * static_cast<double>(.05f));
 }
 } // namespace Client::Scenes

@@ -102,7 +102,8 @@ Core::Expected<DrawSelection, ParticleDrawingError> SelectBranch(Particle& p, st
     const std::int32_t type = p.type;
     // 0x548644: la 6f2/3 va al default (caseD_5c5) y la 5f2/22 sale del caso del 0x5f2 sin restar ni ser el
     // /6 (0x548a64): las dos al billboard común.
-    if (IsKalimaParticle(type, p.subtype) || IsTrialsParticle(type, p.subtype))
+    if (IsKalimaParticle(type, p.subtype) || IsTrialsParticle(type, p.subtype) ||
+        (type == SwellLifeParticle && p.subtype == SwellLifeParticleSubtype))
         return DrawSelection{ParticleDrawKind::Common, false};
     switch (type)
     {

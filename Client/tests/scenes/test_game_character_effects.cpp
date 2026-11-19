@@ -20,6 +20,10 @@
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/GameParticles.h"
+#include "Scenes/WorldState.h"
+#include "Scenes/WorldMap.h"
+#include "support/ParticleDrawRecorder.h"
 #include "Scenes/SocialState.h"
 #include "World/ModelEffects.h"
 #include "World/ParticleOwner.h"
@@ -32,6 +36,7 @@
 #include <gtest/gtest.h>
 
 #include <glm/ext/vector_float2.hpp>
+#include <optional>
 #include <glm/ext/vector_float3.hpp>
 
 #include <array>
@@ -714,41 +719,163 @@ TEST_F(GameCharacterEffectsTest, TheGuardFlareCirclesItsTargetEveryFiftyStepsWit
     EXPECT_EQ(m_random.State(), AfterRandoms(51));
 }
 
-// 0x52a7b7: el 5ac/1 de la 0x30 saca el rand() de la luz y deja la vida en 10 con el dueño vivo con 0x10; sin 0x4000 en
-// el dueño, rand() % 7 elige la escala de sus 5ac/4, que son de la CL11 (0x52a866). Con 0x4000, sólo la cola. Sin
-// dueño, el original lee +0x78 de 0: MuRet corta.
-TEST_F(GameCharacterEffectsTest, TheSwellFlareCutsAtItsParticlesAfterItsDraws)
+// 0x52a866/0x52a89a: el selector precede las dos altas, aun con la tabla llena o en el paso final.
+TEST_F(GameCharacterEffectsTest, TheSwellFlareEmitsItsMirroredBonePairBeforeTheCommonTail)
 {
+    for (const std::size_t freeSlots : std::array<std::size_t, 3>{0, 1, 2})
+    {
+        SCOPED_TRACE(freeSlots);
+        m_random = CrtRandom(1);
+        for (std::size_t slot = 0; slot < m_particles.All().size(); ++slot)
+            m_particles.All()[slot].alive = slot >= freeSlots;
+        m_effects.Clear();
+        m_actor.alive = true;
+        m_actor.flags78 = 0x10;
+        ASSERT_TRUE(m_effects
+                        .CreateSkillFlare(m_actor.position, m_actor.angles, glm::vec3(0.5f),
+                                          Client::World::SwellFlareSubtype, &m_actor)
+                        .has_value());
+        auto& flare = m_effects.Effects()[0];
+        const Client::World::ParticleOwner owner{Client::World::ParticleOwnerKind::Actor, Slot};
+
+        const auto stepped = Client::Scenes::StepSkillFlare(flare, m_joints, m_random, &m_particles, owner);
+
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(m_random.State(), AfterRandoms(2));
+        EXPECT_EQ(flare.life, 9);
+        EXPECT_TRUE(flare.alive);
+        for (std::size_t slot = 0; slot < freeSlots; ++slot)
+        {
+            const auto& child = m_particles.All()[slot];
+            EXPECT_EQ(child.rotation, slot == 0 ? 26 : 35); // CRT(1): R2=18467, k=1.
+            EXPECT_EQ(child.typedOwner, owner);
+            EXPECT_EQ(child.life, 10);
+            EXPECT_EQ(child.scale, 2);
+            EXPECT_EQ(child.position, flare.transform.position);
+            EXPECT_EQ(child.angles, glm::vec3(0));
+            EXPECT_EQ(child.light, glm::vec3(1, 0.5f, 0.1f));
+        }
+    }
+    m_particles.Clear();
+    auto& flare = m_effects.Effects()[0];
+    m_actor.flags78 = 0x4010;
+    ASSERT_TRUE(Client::Scenes::StepSkillFlare(flare, m_joints, m_random, &m_particles).HasValue());
+    EXPECT_EQ(flare.life, 9);
+    EXPECT_TRUE(LiveParticles(m_particles).empty());
+    EXPECT_EQ(m_random.State(), AfterRandoms(3));
+    m_actor.flags78 = 0x10;
+    m_actor.alive = false;
+    ASSERT_TRUE(Client::Scenes::StepSkillFlare(flare, m_joints, m_random, &m_particles).HasValue());
+    EXPECT_FALSE(flare.alive);
+    EXPECT_EQ(LiveParticles(m_particles).size(), 2u);
+    EXPECT_EQ(m_random.State(), AfterRandoms(5));
+
+    m_particles.Clear();
+    flare.alive = true;
+    m_actor.alive = true;
+    m_actor.flags78 = 0;
+    ASSERT_TRUE(Client::Scenes::StepSkillFlare(flare, m_joints, m_random, &m_particles).HasValue());
+    EXPECT_FALSE(flare.alive);
+    EXPECT_EQ(LiveParticles(m_particles).size(), 2u);
+    EXPECT_EQ(m_random.State(), AfterRandoms(7));
+
+    flare.alive = true;
+    flare.ownerContext = nullptr;
+    const auto ownerless = Client::Scenes::StepSkillFlare(flare, m_joints, m_random, &m_particles);
+    ASSERT_FALSE(ownerless.HasValue());
+    EXPECT_NE(ownerless.Error().find("0x52a7ec"), std::string::npos);
+    EXPECT_EQ(flare.life, 0);
+}
+
+TEST_F(GameCharacterEffectsTest, TheSwellBoneTableCoversAllSevenMirroredPairs)
+{
+    constexpr std::array<float, 7> Bones{25, 26, 27, 20, 34, 35, 36};
     m_actor.alive = true;
     m_actor.flags78 = 0x10;
-    ASSERT_TRUE(m_effects
-                    .CreateSkillFlare(m_actor.position, m_actor.angles, glm::vec3(0.5f),
-                                      Client::World::SwellFlareSubtype, &m_actor)
-                    .has_value());
-    Client::World::ModelEffect& flare = m_effects.Effects()[0];
+    for (std::size_t index = 0; index < Bones.size(); ++index)
+    {
+        m_particles.Clear();
+        m_effects.Clear();
+        m_random = CrtRandom(1);
+        const auto skipped = RandomsBeforePair([](int) { return true; }, [index](int value)
+                                               { return static_cast<std::size_t>(value % 7) == index; });
+        for (std::size_t draw = 0; draw < skipped; ++draw)
+            (void)m_random.Next();
+        ASSERT_TRUE(m_effects.CreateSkillFlare({}, {}, {}, Client::World::SwellFlareSubtype, &m_actor).has_value());
+        const auto stepped = Client::Scenes::StepSkillFlare(m_effects.Effects()[0], m_joints, m_random, &m_particles,
+                                                            {Client::World::ParticleOwnerKind::Actor, Slot});
+        ASSERT_TRUE(stepped.HasValue());
+        ASSERT_EQ(LiveParticles(m_particles).size(), 2u);
+        EXPECT_EQ(m_particles.All()[0].rotation, Bones[index]);
+        EXPECT_EQ(m_particles.All()[1].rotation, Bones[Bones.size() - 1 - index]);
+        EXPECT_EQ(m_random.State(), AfterRandoms(skipped + 2));
+    }
+}
 
-    const auto cut = Client::Scenes::StepSkillFlare(flare, m_joints, m_random);
-
-    ASSERT_FALSE(cut.HasValue());
-    EXPECT_NE(cut.Error().find("0x52a866"), std::string::npos) << cut.Error();
-    EXPECT_EQ(m_random.State(), AfterRandoms(2));
-    EXPECT_EQ(flare.life, 10);
-
-    m_actor.flags78 = 0x4010;
-    ASSERT_TRUE(Client::Scenes::StepSkillFlare(flare, m_joints, m_random).HasValue());
-    EXPECT_EQ(flare.life, 9);
-    EXPECT_TRUE(flare.alive);
-    EXPECT_EQ(m_random.State(), AfterRandoms(3));
-
-    flare.ownerContext = nullptr;
-    const auto ownerless = Client::Scenes::StepSkillFlare(flare, m_joints, m_random);
-    ASSERT_FALSE(ownerless.HasValue());
-    EXPECT_NE(ownerless.Error().find("0x52a7ec"), std::string::npos) << ownerless.Error();
-
-    flare.subtype = 3;
-    const auto refused = Client::Scenes::StepSkillFlare(flare, m_joints, m_random);
-    ASSERT_FALSE(refused.HasValue());
-    EXPECT_NE(refused.Error().find("0x52a7b7"), std::string::npos) << refused.Error();
+TEST(SwellLifePipelineTest, RunsFromParentToRetainedActorBonesAndExistingFlareDraw)
+{
+    auto world = std::make_unique<Client::Scenes::WorldState>();
+    auto& actor = world->Actors()[3];
+    actor.type = 0x20a;
+    actor.alive = true;
+    actor.byte88 = 1;
+    actor.flags78 = 0x10;
+    actor.scale = 7; // Leído por otros efectos: esta partícula no aplica escala.
+    actor.position = {100, 200, 300};
+    actor.bodyPose.assign(40, Client::Render::Models::BoneTransform(1));
+    actor.bodyPose[36][3] = {11, 22, 33};
+    actor.bodyPose[25][3] = {44, 55, 66};
+    world->PlaceModel(actor);
+    auto& effects = world->Map().effects;
+    ASSERT_TRUE(
+        effects.CreateSkillFlare({1, 2, 3}, {}, glm::vec3(1), Client::World::SwellFlareSubtype, &actor).has_value());
+    CrtRandom random(7);
+    const Client::World::ParticleOwner owner{Client::World::ParticleOwnerKind::Actor, 3};
+    ASSERT_TRUE(Client::Scenes::StepSkillFlare(effects.Effects()[0], world->DrawTail().joints, random,
+                                               &world->Particles(), owner)
+                    .HasValue());
+    const auto resolver = Client::Scenes::ParticleOwnerBonesOf(*world);
+    ASSERT_TRUE(
+        Client::Scenes::StepGameParticles(world->Particles(), random, 0, {}, 0, {}, {}, {}, nullptr, {}, resolver)
+            .HasValue());
+    const auto children = LiveParticles(world->Particles());
+    ASSERT_EQ(children.size(), 2u);
+    EXPECT_EQ(children[0].rotation, 36);
+    EXPECT_EQ(children[1].rotation, 25);
+    constexpr std::array SpeedBits{0x40b970a4u, 0x410bd70au};
+    constexpr std::array ScaleBits{0x3ff9652cu, 0x3ff86595u};
+    for (std::size_t slot = 0; slot < children.size(); ++slot)
+    {
+        auto child = children[slot];
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(child.verticalSpeed), SpeedBits[slot]);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(child.scale), ScaleBits[slot]);
+        EXPECT_EQ(child.light, (glm::vec3{Float(0x3f3da12fu), Float(0x3ebda12fu), Float(0x3d97b426u)}));
+        const glm::vec3 base = slot == 0 ? glm::vec3(111, 222, 333) : glm::vec3(144, 255, 366);
+        EXPECT_EQ(
+            child.position,
+            (glm::vec3{base.x, base.y, static_cast<float>(static_cast<double>(base.z) + Float(SpeedBits[slot]))}));
+        const auto drawn = Client::Tests::DrawOneParticle(child, glm::vec2(64), std::uint8_t{3});
+        ASSERT_TRUE(drawn.HasValue());
+        ASSERT_TRUE(drawn.Value().has_value());
+        EXPECT_EQ(drawn.Value()->texture, 0x5ac);
+        EXPECT_EQ(drawn.Value()->blend, Client::Tests::RecordedParticleDraw::Blend::Additive);
+        EXPECT_EQ(drawn.Value()->light, child.light);
+        EXPECT_EQ(drawn.Value()->rotation, child.rotation);
+    }
+    EXPECT_EQ(random.State(), 0x2e12d22fu);
+    // Reusar el lugar del actor conserva la dirección nativa: alive/flags no invalidan, tipo/byte88 sí.
+    actor.alive = false;
+    actor.flags78 = 0;
+    actor.position = {500, 600, 700};
+    EXPECT_EQ(resolver(children[0]), std::optional(glm::vec3(511, 622, 733)));
+    actor.type = 0x194;
+    EXPECT_FALSE(resolver(children[0]).has_value());
+    actor.type = 0x20a;
+    actor.byte88 = 0;
+    EXPECT_FALSE(resolver(children[0]).has_value());
+    actor.byte88 = 1;
+    actor.bodyPose.clear();
+    EXPECT_EQ(resolver(children[0]), std::optional(actor.position));
 }
 
 TEST_F(GameCharacterEffectsTest, ChaosCastleSkipsTheCounterAndTheFullSet)

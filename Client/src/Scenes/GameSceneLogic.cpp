@@ -14,7 +14,9 @@
 #include "Scenes/GameCharacterEffects.h"
 #include "Scenes/GameFloorItems.h"
 #include "World/GameModelEffects.h"
+#include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
+#include "World/ParticleOwner.h"
 
 #include "App/ServerSession.h"
 #include "Core/Expected.h"
@@ -164,6 +166,20 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
         .cameraShake = &CameraInputState().shake,
         // 0x41ed10(id, 0, 0): RequestSound lo despacha sin sacar rand().
         .sound = [this](std::int32_t id) { m_context.world->Runtime().RequestSound(id); },
+        .joint = [this](const World::FishEffectRequest& request) -> Core::Expected<void, std::string>
+        {
+            const auto created = CreateFaunaJoint(m_context.world->DrawTail().joints, request, m_context.cloth->random);
+            if (!created.HasValue())
+                return Core::Unexpected(created.Error());
+            return {};
+        },
+        .publishAction =
+            [this](std::uint16_t type, std::uint8_t action)
+        {
+            auto placement = m_context.world->ModelPlacement(type);
+            placement.action = action;
+            m_context.world->PlaceModel(type, placement);
+        },
         .soundAt = [this](std::int32_t id, const glm::vec3& origin)
         { m_context.world->Runtime().RequestSound(id, origin); },
         // 0x52ae2a (CL9 hito 4): el chorro de la Flame con el héroe de dueño manda los blancos con 0x517a20(+0x89, la
@@ -200,7 +216,9 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
             const auto* owner = static_cast<const ActorState*>(effect.ownerContext);
             effect.hasOwner = owner != nullptr && owner->alive;
         }
-        const auto* skeleton = m_worldModels.SkeletonOf(static_cast<std::uint16_t>(effect.type));
+        const auto* skeleton = effect.type == World::EarthquakeBurstEffect
+                                   ? nullptr
+                                   : m_worldModels.SkeletonOf(static_cast<std::uint16_t>(effect.type));
         // 0x52a9ad: el 5ac/3 del conjunto completo lee al personaje dueño y crea joints, fuera de World.
         if (effect.type == World::IcarusFlareEffect && effect.subtype == World::FullSetFlareSubtype)
         {
@@ -214,7 +232,18 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
         if (effect.type == World::IcarusFlareEffect &&
             (effect.subtype == World::SwellFlareSubtype || effect.subtype == World::GuardFlareSubtype))
         {
-            if (auto stepped = StepSkillFlare(effect, m_context.world->DrawTail().joints, m_context.cloth->random);
+            World::ParticleOwner particleOwner;
+            const auto actors = m_context.world->Actors();
+            for (std::size_t actorSlot = 0; actorSlot < actors.size(); ++actorSlot)
+            {
+                if (&actors[actorSlot] == effect.ownerContext)
+                {
+                    particleOwner = {World::ParticleOwnerKind::Actor, actorSlot};
+                    break;
+                }
+            }
+            if (auto stepped = StepSkillFlare(effect, m_context.world->DrawTail().joints, m_context.cloth->random,
+                                              &m_context.world->Particles(), particleOwner);
                 !stepped.HasValue())
                 return stepped;
             continue;
@@ -273,19 +302,13 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
                 return stepped;
             continue;
         }
-        if (effect.type == 0x147 || effect.type == 0x104)
+        if (effect.type == 0x147)
         {
             const auto before = effect.transform.position;
-            // 5208c5: el sorteo común precede también los cuerpos147/104.
+            // 5208c5: el sorteo común precede también el cuerpo147.
             static_cast<void>(m_context.cloth->random.Next());
-            if (effect.type == 0x147)
-            {
-                if (auto stepped = StepCrywolfDeathSpirit(effect, m_context.cloth->random, services);
-                    !stepped.HasValue())
-                    return stepped;
-            }
-            else
-                StepCrywolfSpiritTrail(effect);
+            if (auto stepped = StepCrywolfDeathSpirit(effect, m_context.cloth->random, services); !stepped.HasValue())
+                return stepped;
             World::StepModelEffect(effect, skeleton);
             effect.previousPosition = before;
             continue;

@@ -479,6 +479,26 @@ TEST_F(MonsterAttackCasesTest, Kalima91CreatesTheStateOneEarthquakeBeforeThe615B
     }
 }
 
+TEST_F(MonsterAttackCasesTest, KalimaA1BindsTheLiveEarthquakeOwnerForDrawing)
+{
+    Load(24);
+    ActorState& monster = Prepare(Probe{.name = "Kalima a1, acción 3, paso 7", .type = 0xa1, .step = 7});
+    const auto stepped = Step(monster);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    const auto effects = game->world.Map().effects.Effects();
+    const auto quake = std::find_if(effects.begin(), effects.end(), [](const auto& effect)
+                                    { return effect.alive && effect.type == Client::World::EarthquakeEffect; });
+    ASSERT_NE(quake, effects.end());
+    EXPECT_EQ(quake->state, 0);
+    EXPECT_EQ(quake->ownerContext, &monster);
+    EXPECT_EQ(quake->itemType, &monster.word8c);
+    EXPECT_EQ(quake->itemLevel, &monster.byte8e);
+    monster.word8c = 0x123;
+    monster.byte8e = 7;
+    EXPECT_EQ(*quake->itemType, 0x123);
+    EXPECT_EQ(*quake->itemLevel, 7);
+}
+
 TEST_F(MonsterAttackCasesTest, KalimaSkipsEffectsWhenTheirOwnPoolIsFull)
 {
     for (const std::uint16_t kind : {std::uint16_t{0x90}, std::uint16_t{0x92}})

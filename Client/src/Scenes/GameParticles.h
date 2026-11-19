@@ -99,9 +99,11 @@ ParticleActorActionsAmong(std::span<const ActorState> actors);
 [[nodiscard]] std::function<World::WorldObject*(std::uint64_t)>
 ParticleOwnersAmong(std::span<World::WorldObject> objects);
 
-// 0x53fdb0(partícula) con un dueño del pool de personajes (ParticleOwnerKind::Actor): el hueso es el byte +5 de la
-// parte del héroe publicado ([0x743a170] + 0x2bd + (subtipo % 2, con signo) · 0x20: la mano derecha con 0, la izquierda
-// con 1 y la quinta del cuerpo con −1) y el punto local (0; −120; 0) con la 5fe y la 62d, cero con las demás.
+// 5ac/4 (0x544a9d): dueño tipo20a y byte88=1, hueso ftol(rotation) de la pose propia, vector local `angles` más
+// posición del dueño, sin escala ni publicación de modelo. Un dueño inválido devuelve nullopt para apagar la luz.
+// Los demás: 0x53fdb0(partícula) con un dueño del pool de personajes (ParticleOwnerKind::Actor): el hueso es el byte +5
+// de la parte del héroe publicado ([0x743a170] + 0x2bd + (subtipo % 2, con signo) · 0x20: la mano derecha con 0, la
+// izquierda con 1 y la quinta del cuerpo con −1) y el punto local (0; −120; 0) con la 5fe y la 62d, cero con las demás.
 // 0x4ec110 con el modelo del dueño (+2): su origen (+0x6c) pasa a ser la posición del dueño y la escala (+0x68) es la
 // que quedó en el modelo; con los huesos propios (+0x120) del último dibujo, una matriz en cero antes del primero
 // (Q-C318). MuRet guarda el modelo de Player.bmd (WorldState::PlayerModel): con otro tipo, nullopt, que la partícula

@@ -106,13 +106,17 @@ TEST(CrywolfDeathSpiritTest, AFreeLateDecalRequiresTheNativeStackPointWhileAFull
 TEST(CrywolfDeathSpiritTest, TrailLifeAndItsFallingSpeedFollowTheNativeBody)
 {
     auto effects = std::make_unique<Client::World::ModelEffects>();
-    auto result = Client::Scenes::CreateCrywolfSpiritTrail({.type = 0x104, .position = {0, 0, 300}}, *effects);
+    auto result = Client::World::CreateSpiritTrail({.type = 0x104, .position = {0, 0, 300}}, *effects);
     ASSERT_TRUE(result);
     auto& e = effects->Effects()[*result];
     EXPECT_EQ(e.life, 6);
     EXPECT_FLOAT_EQ(e.turnDirection, 80);
     EXPECT_EQ(e.transform.angles, (glm::vec3{0, 0, 45}));
-    Client::Scenes::StepCrywolfSpiritTrail(e);
+    Client::World::Particles particles;
+    Client::Render::Models::CrtRandom random(1);
+    const auto stepped = Client::World::StepGameModelEffect(e, nullptr, particles, 0.0f, random);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(e.life, 5);
     EXPECT_FLOAT_EQ(e.transform.position.z, 220);
     EXPECT_FLOAT_EQ(e.turnDirection, 140);
     EXPECT_FLOAT_EQ(e.objectState.light, .3f);

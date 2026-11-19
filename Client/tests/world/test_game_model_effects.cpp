@@ -1,6 +1,9 @@
 #include "World/GameModelEffects.h"
 
 #include "Core/Expected.h"
+#include "Scenes/FaunaJointCreation.h"
+#include "Scenes/GameDrawTail.h"
+#include "World/IFishStepServices.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRetainedMath.h"
@@ -1552,8 +1555,277 @@ TEST(GameModelEffectsTest, TheEarthquakeInKalimaDisturbsTheWaterOrRisesHigher)
     }
 }
 
-// El estado 0 (la habilidad del Dark Lord) corta después de la explosión y su sonido en la vida 11 (0x521e13) y en la
-// vida 13 (0x5224ec); lo que el terremoto pide y no tiene corta en su dirección.
+// 0x5224ec..0x52266a: los dos grupos de cuatro estelas reutilizan el alta 0x5192a3.
+// El pool lleno no evita los dos rand() intermedios ni el sonido ni la hamaca del padre.
+TEST(GameModelEffectsTest, TheDarkLordAtThirteenDropsTwoTrailGroupsBeforeItsSoundAndSwing)
+{
+    constexpr std::uint32_t Seed = 19;
+    constexpr std::int16_t OccupiedType = 0x19f;
+    for (const std::size_t freeSlots : {std::size_t{8}, std::size_t{1}, std::size_t{0}})
+    {
+        SCOPED_TRACE(freeSlots);
+        const std::uint16_t horseType = HorseType;
+        glm::vec3 horseAngles{0.0f, 0.0f, 0.0f};
+        const ModelEffectOwner horse{.type = &horseType, .effect = nullptr, .angles = &horseAngles};
+        ModelEffect quake = Earthquake(0, 13, horse);
+        // El dueño gira después del alta; la posición actual difiere de la partida de la hamaca.
+        horseAngles = {15.0f, 25.0f, 75.0f};
+        quake.transform.position = {5100.75f, 6200.5f, 450.25f};
+        const glm::vec3 before = quake.transform.position;
+        QuakeScene scene;
+        auto expected = std::make_unique<ModelEffects>();
+        for (std::size_t slot = freeSlots; slot < scene.effects->Effects().size(); ++slot)
+        {
+            scene.effects->Effects()[slot].alive = true;
+            scene.effects->Effects()[slot].type = OccupiedType;
+            expected->Effects()[slot] = scene.effects->Effects()[slot];
+        }
+        Client::Render::Models::CrtRandom draws(Seed);
+        static_cast<void>(draws.Next()); // Prólogo del padre.
+        const glm::vec3 offset = QuakeTurned({-25.0f, -40.0f, 0.0f}, horseAngles);
+        glm::vec3 base;
+        for (int axis = 0; axis < 3; ++axis)
+            base[axis] = Narrow(Wide(before[axis]) + Wide(offset[axis]));
+        for (int group = 0; group < 2; ++group)
+        {
+            const float spacing = group == 0 ? 50.0f : 30.0f;
+            for (int child = 0; child < 4; ++child)
+            {
+                const glm::vec3 point{base.x, base.y, Narrow(Wide(base.z) - child * Wide(spacing))};
+                static_cast<void>(Client::World::CreateSpiritTrail(
+                    {.type = 0x104, .position = point, .angles = {}, .light = QuakeLight}, *expected));
+            }
+            if (group == 0)
+            {
+                base.x = Narrow(Wide(base.x) + (draws.Next() % 30 + 20));
+                base.z = Narrow(Wide(base.z) + (draws.Next() % 500 - 250));
+            }
+        }
+        Client::World::Particles particles;
+        Client::Render::Models::CrtRandom random(Seed);
+        auto services = scene.Services();
+        services.sound = [&](std::int32_t sound)
+        {
+            scene.sounds.push_back(sound);
+            EXPECT_EQ(sound, 0x96);
+            EXPECT_EQ(random.State(), draws.State());
+            EXPECT_EQ(quake.life, 13);
+            EXPECT_EQ(quake.transform.position, before);
+            ExpectSameEffects(*scene.effects, *expected);
+        };
+        const auto result =
+            Client::World::StepGameModelEffect(quake, nullptr, particles, 0.0f, random, nullptr, services);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        ExpectSameEffects(*scene.effects, *expected);
+        EXPECT_EQ(scene.sounds, std::vector<std::int32_t>{0x96});
+        EXPECT_EQ(random.State(), draws.State());
+        EXPECT_EQ(random.State(), Client::Tests::AfterDraws(Seed, 3).State());
+        EXPECT_TRUE(quake.alive);
+        EXPECT_EQ(quake.life, 12);
+        EXPECT_EQ(quake.transform.angles.x, 80.0f);
+        EXPECT_EQ(quake.turnDirection, 42.0f);
+        EXPECT_EQ(quake.previousPosition, before);
+        ModelEffect plain = Earthquake(2, 13, horse);
+        plain.transform.position = before;
+        Client::Render::Models::CrtRandom plainRandom(Seed);
+        ASSERT_TRUE(Client::World::StepGameModelEffect(plain, nullptr, particles, 0.0f, plainRandom).HasValue());
+        EXPECT_EQ(quake.transform.position, plain.transform.position);
+        EXPECT_EQ(quake.velocity, plain.velocity);
+        EXPECT_FALSE(particles.All()[0].alive);
+        for (std::size_t slot = 0; slot < freeSlots; ++slot)
+        {
+            const ModelEffect& child = scene.effects->Effects()[slot];
+            EXPECT_EQ(child.type, 0x104);
+            EXPECT_FALSE(child.hasOwner);
+            EXPECT_EQ(child.ownerContext, nullptr);
+            EXPECT_EQ(child.owner.effect, nullptr);
+        }
+    }
+}
+
+TEST(GameModelEffectsTest, TheSecondTrailGroupAddsTheSignedRandomOffsetAsAnInteger)
+{
+    const std::uint16_t horseType = HorseType;
+    const glm::vec3 horseAngles(0.0f);
+    const ModelEffectOwner horse{.type = &horseType, .effect = nullptr, .angles = &horseAngles};
+    ModelEffect quake = Earthquake(0, 13, horse);
+    constexpr float NonzeroHeight = 0x1p-50f;
+    quake.transform.position.z = NonzeroHeight;
+    QuakeScene scene;
+    Client::World::Particles particles;
+    // 0x5225fa: el tercer sorteo con semilla 48 da 26750. Su desplazamiento entero de Z vale cero.
+    Client::Render::Models::CrtRandom random(48);
+    const auto result =
+        Client::World::StepGameModelEffect(quake, nullptr, particles, 0.0f, random, nullptr, scene.Services());
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    const ModelEffect& firstOfSecondGroup = scene.effects->Effects()[4];
+    ASSERT_TRUE(firstOfSecondGroup.alive);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(firstOfSecondGroup.transform.position.z),
+              std::bit_cast<std::uint32_t>(NonzeroHeight));
+}
+
+TEST(GameModelEffectsTest, TheSharedDispatcherStepsAndExpiresAnUnownedSpiritTrail)
+{
+    auto effects = std::make_unique<ModelEffects>();
+    const auto slot = Client::World::CreateSpiritTrail(
+        {.type = 0x104, .position = {100.0f, 200.0f, 1000.0f}, .angles = {}, .light = QuakeLight}, *effects);
+    ASSERT_TRUE(slot.has_value());
+    ModelEffect& child = effects->Effects()[*slot];
+    Client::World::Particles particles;
+    Client::Render::Models::CrtRandom random(1);
+    for (int frame = 0; frame < 6; ++frame)
+    {
+        SCOPED_TRACE(frame);
+        const glm::vec3 before = child.transform.position;
+        const float fall = child.turnDirection;
+        const auto result = Client::World::StepGameModelEffect(child, nullptr, particles, 0.0f, random);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(child.previousPosition, before);
+        EXPECT_EQ(child.transform.position.z, Narrow(Wide(before.z) - Wide(fall)));
+        EXPECT_EQ(child.turnDirection, Narrow(Wide(fall) + 60.0));
+        EXPECT_EQ(child.objectState.light, Narrow((6.0 - frame) * Wide(0.05f)));
+        EXPECT_EQ(child.life, 5 - frame);
+        EXPECT_EQ(child.alive, frame < 5);
+    }
+    EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 6).State());
+}
+
+// 0x521e13: orden real entre los ocho intentos, su primera chispa, el pulso y las grietas.
+TEST(GameModelEffectsTest, TheDarkLordEarthquakeEmitsItsBurstEvenWhenThePoolsAreFull)
+{
+    struct Capacity
+    {
+        bool jointsFull;
+        bool particlesFull;
+        bool lastEffectSlot;
+        int draws;
+    };
+    constexpr std::array cases{Capacity{false, false, false, 69}, Capacity{true, true, false, 48},
+                               Capacity{true, false, true, 53}, Capacity{false, true, true, 64}};
+    for (const auto [jointsFull, particlesFull, lastEffectSlot, draws] : cases)
+    {
+        SCOPED_TRACE(draws);
+        const std::uint16_t ownerType = HorseType;
+        const glm::vec3 ownerAngles(0.0f);
+        ModelEffect quake = Earthquake(0, 11, {.type = &ownerType, .effect = nullptr, .angles = &ownerAngles});
+        QuakeScene scene;
+        auto particles = std::make_unique<Client::World::Particles>();
+        auto tail = std::make_unique<Client::Scenes::GameDrawTailState>();
+        if (particlesFull)
+            for (auto& particle : particles->All())
+                particle.alive = true;
+        if (jointsFull)
+            for (auto& joint : tail->joints)
+                joint.alive = true;
+        const auto effects = scene.effects->Effects();
+        const std::size_t burstIndex = lastEffectSlot ? effects.size() - 1 : 0;
+        for (auto& occupied : effects.first(burstIndex))
+            occupied.alive = true;
+        Client::Render::Models::CrtRandom random(1);
+        auto services = scene.Services();
+        int calls = 0;
+        services.joint =
+            [&](const Client::World::FishEffectRequest& request) -> Client::Core::Expected<void, std::string>
+        {
+            EXPECT_EQ(request.type, 0x617);
+            EXPECT_EQ(request.subtype, 0);
+            EXPECT_EQ(request.scale, 10.0f);
+            EXPECT_EQ(request.ownerContext, nullptr);
+            EXPECT_EQ(request.key, -1);
+            EXPECT_EQ(request.firstPosition, request.secondPosition);
+            EXPECT_GE(request.angles.x, -60.0f);
+            EXPECT_LT(request.angles.x, 0.0f);
+            EXPECT_GE(request.angles.z, 465.0f);
+            EXPECT_LT(request.angles.z, 495.0f);
+            if (calls == 0)
+            {
+                EXPECT_EQ(request.angles, (glm::vec3{-13.0f, 0.0f, 469.0f}));
+                EXPECT_EQ(request.firstPosition.x, 4965.5f);
+                EXPECT_EQ(request.firstPosition.y, 5919.25f);
+                EXPECT_EQ(request.firstPosition.z, 520.9765625f);
+            }
+            if (!particlesFull)
+            {
+                EXPECT_EQ(particles->All()[1].alive, calls > 0);
+            }
+            ++calls;
+            const auto created = Client::Scenes::CreateFaunaJoint(tail->joints, request, random);
+            if (!created.HasValue())
+                return Client::Core::Unexpected(created.Error());
+            return {};
+        };
+        const auto stepped =
+            Client::World::StepGameModelEffect(quake, nullptr, *particles, 0, random, nullptr, services);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(calls, 8);
+        EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, draws).State());
+        EXPECT_EQ(quake.life, 10);
+        const auto& burst = effects[burstIndex];
+        EXPECT_TRUE(burst.alive);
+        EXPECT_EQ(burst.type, Client::World::EarthquakeBurstEffect);
+        EXPECT_EQ(burst.transform.position.z, Narrow(Wide(quake.start.z) + 12.0));
+        EXPECT_EQ(burst.transform.angles, glm::vec3(0.0f));
+        if (!lastEffectSlot)
+        {
+            EXPECT_EQ(effects[1].type, 0xfd);
+            EXPECT_EQ(effects[2].transform.angles, glm::vec3(0.0f));
+        }
+        EXPECT_EQ(scene.sounds.size(), particlesFull ? 0u : 1u);
+        if (!particlesFull)
+        {
+            EXPECT_EQ(particles->All()[1].type, Client::World::FairySparkParticle);
+        }
+    }
+}
+
+TEST(GameModelEffectsTest, TheEarthquakeBurstExpandsDriftsAndExpiresWithNegativeTerrainLight)
+{
+    ModelEffects effects;
+    const auto slot = effects.CreateEarthquakeBurst({5000, 6000, 40}, {}, glm::vec3(0.2f));
+    ASSERT_TRUE(slot);
+    auto& burst = effects.Effects()[*slot];
+    auto particles = std::make_unique<Client::World::Particles>();
+    QuakeScene scene;
+    for (auto& cell : scene.lighting->cells)
+        cell = {10.0f, 10.0f, 10.0f};
+    Client::Render::Models::CrtRandom random(1);
+    auto services = scene.Services();
+    int actionsPublished = 0;
+    services.publishAction = [&](std::uint16_t type, std::uint8_t action)
+    {
+        EXPECT_EQ(type, Client::World::EarthquakeBurstEffect);
+        EXPECT_EQ(action, burst.animation.action);
+        EXPECT_EQ(burst.life, 15 - actionsPublished);
+        ++actionsPublished;
+    };
+    for (int frame = 0; frame < 15; ++frame)
+    {
+        const auto before = burst.transform;
+        const auto life = burst.life;
+        const bool expanding = before.scale <= 2.0f;
+        const auto stepped =
+            Client::World::StepGameModelEffect(burst, nullptr, *particles, 0, random, nullptr, services);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(burst.transform.scale, Narrow(Wide(before.scale) + (expanding ? Wide(1.2f) : Wide(0.1f))));
+        EXPECT_EQ(burst.transform.position.x, Narrow(Wide(before.position.x) - (expanding ? Wide(1.2f) : 1.0)));
+        EXPECT_EQ(burst.transform.position.z, Narrow(Wide(before.position.z) - (expanding ? Wide(1.8f) : 1.5)));
+        EXPECT_EQ(burst.objectState.light,
+                  expanding ? 1.5f : Narrow(static_cast<double>(life) * Wide(std::bit_cast<float>(0x3d088889u))));
+        EXPECT_EQ(burst.transform.position.y, before.position.y);
+        EXPECT_EQ(burst.transform.angles, before.angles);
+        EXPECT_EQ(burst.life, life - 1);
+        EXPECT_EQ(burst.alive, frame < 14);
+    }
+    EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 15).State());
+    EXPECT_EQ(actionsPublished, 15);
+    const auto& center = scene.lighting->cells[60u * 256u + 50u];
+    EXPECT_LT(center[0], 10.0f);
+    EXPECT_EQ(center[0], center[1]);
+    EXPECT_EQ(center[1], center[2]);
+}
+
+// Sin el servicio de joints, el estado 0 corta después de sus cuatro sorteos del primer intento; los demás servicios
+// cortan en la dirección que los necesita.
 TEST(GameModelEffectsTest, TheEarthquakeCutsTheDarkLordStateAndWhatItLacks)
 {
     const std::uint16_t horseType = HorseType;
@@ -1567,20 +1839,11 @@ TEST(GameModelEffectsTest, TheEarthquakeCutsTheDarkLordStateAndWhatItLacks)
         const auto cut =
             Client::World::StepGameModelEffect(quake, nullptr, particles, 0.0f, random, nullptr, scene.Services());
         ASSERT_FALSE(cut.HasValue());
-        EXPECT_NE(cut.Error().find("0x521e13"), std::string::npos) << cut.Error();
+        EXPECT_NE(cut.Error().find("0x521ef5"), std::string::npos) << cut.Error();
+        EXPECT_EQ(cut.Error().find("no están portados"), std::string::npos) << cut.Error();
         EXPECT_TRUE(particles.All()[0].alive);
         EXPECT_EQ(scene.sounds, std::vector<std::int32_t>{0x40});
         EXPECT_FALSE(scene.effects->Effects()[0].alive);
-    }
-    {
-        ModelEffect quake = Earthquake(0, 13, horse);
-        Client::World::Particles particles;
-        Client::Render::Models::CrtRandom random(1);
-        const auto cut = Client::World::StepGameModelEffect(quake, nullptr, particles, 0.0f, random);
-        ASSERT_FALSE(cut.HasValue());
-        EXPECT_NE(cut.Error().find("0x5224ec"), std::string::npos) << cut.Error();
-        ModelEffect anchored = Earthquake(2, 13, horse);
-        EXPECT_TRUE(Client::World::StepGameModelEffect(anchored, nullptr, particles, 0.0f, random).HasValue());
     }
     const auto cutWith = [](std::uint8_t state, std::int32_t life, const ModelEffectOwner& owner,
                             const std::function<void(QuakeScene&, Client::World::ModelEffectStepServices&)>& take)

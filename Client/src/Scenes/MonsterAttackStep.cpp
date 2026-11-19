@@ -188,10 +188,18 @@ bool HasFreeParticle(const CharacterStepContext& context)
 std::optional<std::size_t> CreateKalimaEarthquake(ActorState& actor, std::uint8_t state,
                                                   const CharacterStepContext& context)
 {
-    return context.world.Map().effects.CreateEarthquake(
+    const auto created = context.world.Map().effects.CreateEarthquake(
         actor.position, actor.angles, actor.light, state,
         World::ModelEffectOwner{.type = &actor.type, .effect = nullptr, .angles = &actor.angles},
         context.world.Runtime().ownRecordDepth, context.world.OwnCharacter().bytef04, context.random);
+    if (created)
+    {
+        auto& quake = context.world.Map().effects.Effects()[*created];
+        quake.ownerContext = &actor;
+        quake.itemType = &actor.word8c;
+        quake.itemLevel = &actor.byte8e;
+    }
+    return created;
 }
 
 // Un efecto, joint o partícula sin portar en un caso de 0x4f5b70 o de sus ayudantes, con lo que hizo antes y sus

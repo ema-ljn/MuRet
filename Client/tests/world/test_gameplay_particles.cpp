@@ -2,6 +2,8 @@
 
 #include "Render/Models/Cloth.h"
 #include "World/ParticleDrawing.h"
+#include "World/ParticleOwner.h"
+#include "World/PortableParticleTrigonometry.h"
 
 #include "support/ParticleDrawRecorder.h"
 
@@ -32,6 +34,121 @@ constexpr std::int32_t Smoke = 0x5f2;
 std::uint32_t Bits(float value)
 {
     return std::bit_cast<std::uint32_t>(value);
+}
+
+TEST(GameplayParticlesTest, SwellLifeChildRetainsItsBoneAndOwnerWithoutBirthRandoms)
+{
+    Particles particles;
+    CrtRandom random(7);
+    const Client::World::ParticleOwner owner{Client::World::ParticleOwnerKind::Actor, 17};
+    const auto made =
+        particles.CreateOwnedChecked(0x5ac, {100, 200, 300}, {}, {1, 0.5f, 0.1f}, 4, 25, 0, random, 5, owner);
+    ASSERT_TRUE(made.HasValue());
+    ASSERT_EQ(made.Value(), 0u);
+    const auto& child = particles.All()[0];
+    EXPECT_TRUE(child.alive);
+    EXPECT_EQ(child.type, 0x5ac);
+    EXPECT_EQ(child.texture, 0x5ac);
+    EXPECT_EQ(child.subtype, 4);
+    EXPECT_EQ(child.life, 10);
+    EXPECT_EQ(child.scale, 2);
+    EXPECT_EQ(child.rotation, 25);
+    EXPECT_EQ(child.verticalSpeed, 0);
+    EXPECT_EQ(child.typedOwner, owner);
+    EXPECT_EQ(child.position, glm::vec3(100, 200, 300));
+    EXPECT_EQ(child.light, glm::vec3(1, 0.5f, 0.1f));
+    EXPECT_EQ(random.State(), 7u);
+}
+
+TEST(GameplayParticlesTest, SwellLifeFinishesBothRandomsOnInvalidOwnersAndItsDeathTick)
+{
+    for (const int ownerState : std::array{0, 1, 2})
+    {
+        const bool valid = ownerState == 2;
+        Particles particles;
+        CrtRandom random(7);
+        const Client::World::ParticleOwner owner{
+            ownerState == 0 ? Client::World::ParticleOwnerKind::None : Client::World::ParticleOwnerKind::Actor, 0};
+        ASSERT_TRUE(
+            particles.CreateOwnedChecked(0x5ac, {100, 200, 300}, {}, {1, 0.5f, 0.1f}, 4, 25, 0, random, 5, owner)
+                .HasValue());
+        auto& child = particles.All()[0];
+        child.velocity = {1, 2, 3};
+        Client::World::PortableParticleTrigonometry trigonometry;
+        const float clock = 0;
+        const Client::World::ParticleOwnerBones bones = [valid](const Particle&) -> std::optional<glm::vec3>
+        {
+            if (valid)
+                return glm::vec3(10, 20, 30);
+            return std::nullopt;
+        };
+        auto expected = random;
+        float speed = 0;
+        float scale = 2;
+        glm::vec3 light{1, 0.5f, 0.1f};
+        const int ticks = valid ? 10 : 1;
+        for (int tick = 1; tick <= ticks; ++tick)
+        {
+            for (int wind = 0; wind < 2; ++wind)
+                (void)expected.Next();
+            speed = static_cast<float>(static_cast<double>(speed) +
+                                       static_cast<double>(expected.Next() % 40 + 60) *
+                                           static_cast<double>(std::bit_cast<float>(0x3dc28f5cu)));
+            scale = static_cast<float>(static_cast<double>(scale) -
+                                       static_cast<double>(expected.Next() % 400 + 400) *
+                                           static_cast<double>(std::bit_cast<float>(0x38d1b717u)));
+            for (int axis = 0; axis < 3; ++axis)
+                light[axis] = static_cast<float>(static_cast<double>(light[axis]) *
+                                                 static_cast<double>(std::bit_cast<float>(0x3f3da12fu)));
+            const auto stepped = Client::World::StepParticlesChecked(particles, random, std::cref(clock), nullptr,
+                                                                     trigonometry, {}, {}, {}, {}, nullptr, {}, bones);
+            ASSERT_TRUE(stepped.HasValue());
+            EXPECT_EQ(child.alive, valid && tick < 10);
+            EXPECT_EQ(child.life, 10 - tick);
+            EXPECT_EQ(child.verticalSpeed, speed);
+            EXPECT_EQ(child.scale, scale);
+            EXPECT_EQ(child.light, light);
+            const glm::vec3 base = valid ? glm::vec3(10, 20, 30) : glm::vec3(101, 202, 303);
+            EXPECT_EQ(child.position,
+                      (glm::vec3{base.x, base.y, static_cast<float>(static_cast<double>(base.z) + speed)}));
+            EXPECT_EQ(random.State(), expected.State());
+        }
+        const auto state = child;
+        (void)expected.Next();
+        (void)expected.Next();
+        ASSERT_TRUE(Client::World::StepParticlesChecked(particles, random, std::cref(clock), nullptr, trigonometry, {},
+                                                        {}, {}, {}, nullptr, {}, bones)
+                        .HasValue());
+        EXPECT_EQ(random.State(), expected.State());
+        EXPECT_EQ(child.life, state.life);
+        EXPECT_EQ(child.scale, state.scale);
+    }
+}
+
+TEST(GameplayParticlesTest, SwellLifeReusesTheFirstSlotAndFullPoolsConsumeNoBirthRandoms)
+{
+    Particles particles;
+    CrtRandom random(7);
+    for (auto& particle : particles.All())
+        particle.alive = true;
+    const auto full = particles.CreateOwnedChecked(0x5ac, {}, {}, {}, 4, 36, 0, random, 5, {});
+    ASSERT_TRUE(full.HasValue());
+    EXPECT_FALSE(full.Value().has_value());
+    EXPECT_EQ(random.State(), 7u);
+    auto& reused = particles.All()[0];
+    reused.alive = false;
+    reused.verticalSpeed = 999;
+    reused.velocity = {9, 8, 7};
+    reused.rotation = 123;
+    const Client::World::ParticleOwner owner{Client::World::ParticleOwnerKind::Actor, 9};
+    const auto made = particles.CreateOwnedChecked(0x5ac, {1, 2, 3}, {}, {1, 0.5f, 0.1f}, 4, 36, 0, random, 5, owner);
+    ASSERT_TRUE(made.HasValue());
+    ASSERT_EQ(made.Value(), 0u);
+    EXPECT_EQ(reused.typedOwner, owner);
+    EXPECT_EQ(reused.verticalSpeed, 0);
+    EXPECT_EQ(reused.velocity, glm::vec3(0));
+    EXPECT_EQ(reused.rotation, 36);
+    EXPECT_EQ(random.State(), 7u);
 }
 
 TEST(GameplayParticlesTest, FireCreationKeepsTheFourDistinctScaleAndRandomPaths)

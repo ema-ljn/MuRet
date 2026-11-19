@@ -57,6 +57,9 @@ struct GameCharacterEffectsPass
     World::Particles* particles = nullptr;
     std::span<JointState> joints{};
     World::ModelEffects* effects = nullptr;
+    // El mundo, para las altas de 0x518cf0 de las acciones 0x51 y 0x5b del Dark Lord (el 0x621/2 de 0x50f9b3 y los
+    // 0x117/2 de 0x50fb64, por CreateHighModelEffect) y su sonido 0x1cc. Sin él, esas ventanas cortan.
+    WorldState* world = nullptr;
     // El lugar del personaje en el pool: la identidad del dueño (+0x40) de la órbita 60f/0.
     std::size_t slot = 0;
     // Lo que devolvió 0x505820 en este dibujo (0x50c904) y lo que dejó en [0x743a178].

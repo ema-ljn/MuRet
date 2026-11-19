@@ -24,6 +24,7 @@
 #include "Scenes/GameParticles.h"
 #include "Scenes/WorldState.h"
 #include "Scenes/WorldMap.h"
+#include "Scenes/WorldRuntime.h"
 #include "support/ParticleDrawRecorder.h"
 #include "Scenes/SocialState.h"
 #include "World/IFishStepServices.h"
@@ -279,45 +280,104 @@ TEST_F(GameCharacterEffectsTest, TheLightningActionOutsideTheDarkLordPutsThreeSp
     EXPECT_EQ(m_random.State(), 1u);
 }
 
-TEST_F(GameCharacterEffectsTest, TheActionWindowsCutOnlyInsideTheirFramesOfAnOriginalFrame)
+// 0x50f96c..0x50f9c6 y 0x50fac5..0x50fb9c: en [1,2; 1,6) el brillo 0x621/2 con el personaje de dueño y el sonido
+// 0x1cc; en [7, 8) dos 0x117/2 sin dueño en la mano (+0x2bd), con (180, 45, 0) y (0, 0, z) y la luz (0,8f; 0,5f; 1).
+// Fuera de las ventanas o entre frames, nada. Ninguna saca rand(). Sin el mundo, cortan.
+TEST_F(GameCharacterEffectsTest, TheActionWindowsCreateTheirEffectsOnlyInsideTheirFramesOfAnOriginalFrame)
 {
+    enum class Window : std::uint8_t
+    {
+        None,
+        Glow,
+        Skills,
+    };
     struct Case
     {
         std::uint8_t characterClass;
         std::uint8_t action;
         float frame;
         bool originalFrame;
-        const char* cut;
+        Window window;
     };
     constexpr std::array cases{
-        Case{4, 0x94, 1.2f, true, "0x50f9b3"}, Case{0, 0x51, 1.5f, true, "0x50f9b3"},
-        Case{0, 0x5b, 7.0f, true, "0x50fb64"}, Case{4, 0x94, 7.9f, true, "0x50fb64"},
-        Case{4, 0x94, 1.6f, true, nullptr},    Case{4, 0x94, 1.1f, true, nullptr},
-        Case{4, 0x94, 8.0f, true, nullptr},    Case{4, 0x94, 1.3f, false, nullptr},
-        Case{0, 0x51, 7.5f, false, nullptr},
+        Case{4, 0x94, 1.2f, true, Window::Glow},   Case{0, 0x51, 1.5f, true, Window::Glow},
+        Case{0, 0x5b, 7.0f, true, Window::Skills}, Case{4, 0x94, 7.9f, true, Window::Skills},
+        Case{4, 0x94, 1.6f, true, Window::None},   Case{4, 0x94, 1.1f, true, Window::None},
+        Case{4, 0x94, 8.0f, true, Window::None},   Case{4, 0x94, 1.3f, false, Window::None},
+        Case{0, 0x51, 7.5f, false, Window::None},
     };
+    m_actor.angles = {10.0f, 20.0f, 30.0f};
     for (const Case& probe : cases)
     {
         SCOPED_TRACE(testing::Message() << int{probe.action} << ' ' << probe.frame << ' ' << probe.originalFrame);
         m_sprites = {};
+        m_random = CrtRandom{1};
         m_actor.characterClass = probe.characterClass;
         m_actor.animation.action = probe.action;
         m_actor.animation.frame = probe.frame;
+        auto world = std::make_unique<Client::Scenes::WorldState>();
         GameCharacterEffectsPass pass = Pass();
         pass.originalFrame = probe.originalFrame;
+        pass.world = world.get();
 
         const auto result = Client::Scenes::DrawGameCharacterEffects(m_actor, pass);
 
-        if (probe.cut == nullptr)
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_TRUE(LiveSprites(m_sprites).empty());
+        EXPECT_EQ(m_random.State(), 1u);
+        const auto& effects = world->Map().effects.Effects();
+        const auto alive = std::ranges::count_if(effects, [](const auto& effect) { return effect.alive; });
+        if (probe.window == Window::Glow)
         {
-            ASSERT_TRUE(result.HasValue()) << result.Error();
+            ASSERT_EQ(alive, 1);
+            EXPECT_EQ(effects[0].type, 0x621);
+            EXPECT_EQ(effects[0].subtype, 2);
+            EXPECT_EQ(effects[0].life, 20);
+            EXPECT_EQ(effects[0].transform.position, m_actor.position);
+            EXPECT_EQ(effects[0].start, m_actor.position);
+            EXPECT_EQ(effects[0].transform.angles, m_actor.angles);
+            EXPECT_EQ(effects[0].light, m_actor.light);
+            EXPECT_EQ(effects[0].ownerContext, &m_actor);
+            EXPECT_EQ(world->Runtime().lastSoundId, 0x1cc);
+        }
+        else if (probe.window == Window::Skills)
+        {
+            ASSERT_EQ(alive, 2);
+            const glm::vec3 hand = At(0x21, glm::vec3(0.0f));
+            const std::array angles{glm::vec3{180.0f, 45.0f, 0.0f}, glm::vec3{0.0f, 0.0f, 30.0f}};
+            for (std::size_t index = 0; index < 2; ++index)
+            {
+                SCOPED_TRACE(index);
+                EXPECT_EQ(effects[index].type, 0x117);
+                EXPECT_EQ(effects[index].subtype, 2);
+                EXPECT_EQ(effects[index].life, 12);
+                EXPECT_EQ(effects[index].transform.position, hand);
+                EXPECT_EQ(effects[index].transform.angles, angles[index]);
+                EXPECT_EQ(effects[index].light, glm::vec3(Float(0x3f4ccccdu), 0.5f, 1.0f));
+                EXPECT_EQ(effects[index].ownerContext, nullptr);
+            }
+            EXPECT_FALSE(world->Runtime().lastSoundId.has_value());
         }
         else
         {
-            ASSERT_FALSE(result.HasValue());
-            EXPECT_NE(result.Error().find(probe.cut), std::string::npos) << result.Error();
+            EXPECT_EQ(alive, 0);
+            EXPECT_FALSE(world->Runtime().lastSoundId.has_value());
         }
-        EXPECT_TRUE(LiveSprites(m_sprites).empty());
+
+        // Sin el mundo, las ventanas cortan con su dirección; fuera de ellas, nada.
+        pass.world = nullptr;
+        m_random = CrtRandom{1};
+        const auto alone = Client::Scenes::DrawGameCharacterEffects(m_actor, pass);
+        if (probe.window == Window::None)
+        {
+            EXPECT_TRUE(alone.HasValue()) << alone.Error();
+        }
+        else
+        {
+            ASSERT_FALSE(alone.HasValue());
+            EXPECT_NE(alone.Error().find(probe.window == Window::Glow ? "0x50f9b3" : "0x50fb64"), std::string::npos)
+                << alone.Error();
+        }
     }
 }
 

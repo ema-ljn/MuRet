@@ -46,6 +46,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace Client::Scenes
 {
@@ -307,11 +308,31 @@ Core::Expected<AfterTheActions, std::string> Actions(Tail& tail)
             return Core::Unexpected(third.Error());
         return Rest;
     }
-    // 0x50f96c: con el frame en [1,2; 1,6), el efecto 0x621/2 y el sonido 0x1cc.
+    // 0x50f96c..0x50f9c6: con el frame en [1,2; 1,6) (un NaN no entra), 0x518cf0(0x621, la posición, los ángulos, la
+    // luz, 2, el personaje, −1, 0, 0, 0, 0), el brillo que sigue su hueso 33, y el sonido 0x1cc (0x41ed10), se haya
+    // creado o no. Sin rand().
     const bool original = tail.pass.originalFrame;
     if (original && !(frame < FirstWindowStart) && frame < FirstWindowEnd)
-        return Core::Unexpected(
-            std::format("0x50f9b3: el efecto 0x621 y el sonido 0x1cc de la acción {:#x} no están portados", action));
+    {
+        constexpr std::int16_t GlowEffect = 0x621;
+        constexpr std::int32_t HeldSubtype = 2;   // 0x50f9a3
+        constexpr std::int32_t GlowSound = 0x1cc; // 0x50f9bc
+        if (tail.pass.world == nullptr)
+            return Core::Unexpected(std::format("0x50f9b3: falta el mundo para el 0x621/2 de la acción {:#x}", action));
+        const auto made = CreateHighModelEffect({.type = GlowEffect,
+                                                 .position = actor.position,
+                                                 .angles = actor.angles,
+                                                 .light = actor.light,
+                                                 .subtype = HeldSubtype,
+                                                 .owner = &tail.actor,
+                                                 .key = 0xffff},
+                                                HighEffectContext{.world = *tail.pass.world,
+                                                                  .random = tail.pass.random,
+                                                                  .worldClock = tail.pass.worldClock});
+        if (!made.HasValue())
+            return Core::Unexpected(std::format("0x50f9b3: {}", made.Error()));
+        tail.pass.world->Runtime().RequestSound(GlowSound);
+    }
     // 0x50f9c9: por debajo de 2 (también con NaN, como el fcomp) y con party (0x78aba48 sobre 0), 0x59e680. Fuera de
     // la party salta a 0x510a7a, sin las banderas, el contador ni el conjunto, también entre frames. En la party, dos
     // joints 0x618 (/0xc y /0xd, de ancho 20, BeamJoints.cpp) por cada miembro a la vista (+0x1c en 0 o más) que no es
@@ -353,10 +374,39 @@ Core::Expected<AfterTheActions, std::string> Actions(Tail& tail)
             }
         }
     }
-    // 0x50fac5: en [7, 8), dos 0x117/2 en la mano derecha.
+    // 0x50fac5..0x50fb9c: en [7, 8) (un NaN no entra), el punto de la mano (0x4ec110 con +0x2bd y el corrimiento de
+    // [ebp−0x50]) y dos 0x518cf0(0x117, punto, ángulos, (0,8f; 0,5f; 1), 2, sin dueño, −1, 0, 0, 0, 0): el primero con
+    // los ángulos (180, 45, 0) y el segundo con (0, 0, z del personaje). Sin rand() (el /2 no sortea su giro).
     if (original && !(frame < SecondWindowStart) && frame < SecondWindowEnd)
-        return Core::Unexpected(
-            std::format("0x50fb64: los efectos 0x117 de la acción {:#x} no están portados", action));
+    {
+        constexpr std::int16_t DarkLordSkill = 0x117;
+        constexpr std::int32_t WideSubtype = 2;                                        // 0x50fb2a
+        constexpr glm::vec3 SkillLight{std::bit_cast<float>(0x3f4ccccdu), 0.5f, 1.0f}; // 0x50fb3a..0x50fb48
+        constexpr glm::vec3 FirstAngles{180.0f, 45.0f, 0.0f};                          // 0x50fb4f..0x50fb5d
+        if (tail.pass.world == nullptr)
+            return Core::Unexpected(
+                std::format("0x50fb64: falta el mundo para los 0x117/2 de la acción {:#x}", action));
+        const auto point = tail.BodyPoint(actor.hands[0].bone, "0x50fb16");
+        if (!point.HasValue())
+            return Core::Unexpected(point.Error());
+        const std::array<std::pair<glm::vec3, std::string_view>, 2> skills{
+            {{FirstAngles, "0x50fb64"}, {glm::vec3{0.0f, 0.0f, actor.angles.z}, "0x50fb9c"}}};
+        for (const auto& [angles, call] : skills)
+        {
+            const auto made = CreateHighModelEffect({.type = DarkLordSkill,
+                                                     .position = point.Value(),
+                                                     .angles = angles,
+                                                     .light = SkillLight,
+                                                     .subtype = WideSubtype,
+                                                     .owner = nullptr,
+                                                     .key = 0xffff},
+                                                    HighEffectContext{.world = *tail.pass.world,
+                                                                      .random = tail.pass.random,
+                                                                      .worldClock = tail.pass.worldClock});
+            if (!made.HasValue())
+                return Core::Unexpected(std::format("{}: {}", call, made.Error()));
+        }
+    }
     return Rest;
 }
 

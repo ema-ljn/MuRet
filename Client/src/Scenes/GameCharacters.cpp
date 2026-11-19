@@ -509,6 +509,7 @@ Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const I
                                                .particles = pass.particles,
                                                .joints = pass.joints,
                                                .effects = pass.effects,
+                                               .world = &world,
                                                .slot = slot,
                                                .scan = scan,
                                                .party = PartyMembers(world.Runtime()),

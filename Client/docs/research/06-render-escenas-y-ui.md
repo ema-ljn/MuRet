@@ -8938,14 +8938,18 @@ frame del original:
   `0x4ce000`): fuera de la clase 4, la `0x94` sin `+0x78 & 0x4000` pone tres lightning2 (`0x5d5`) en el
   hueso de la mano derecha (`+0x2bd`), con s = frame · 0,1f: s · 0,3f con (0,1; 0,1; 1), s con la luz
   propia y −ftol(T) · 0,1f de giro, y s · 2,5 con ftol(T) · 0,1f. La clase 4, la `0x51` y la `0x5b` tienen
-  ventanas: en [1,2f; 1,6f) el efecto `621/2` y el sonido `0x1cc` (corta en `0x50f9b3`); por debajo de 2
+  ventanas: en [1,2f; 1,6f) el efecto `621/2` (`0x518cf0` con la posición, los ángulos y la luz del personaje,
+  él de dueño y clave −1: el brillo que sigue su hueso 33) y el sonido `0x1cc`, se haya creado o no (`0x50f96c..0x50f9c6`,
+  CL11: `CreateHighModelEffect` con `GameCharacterEffectsPass::world`); por debajo de 2
   (`0x6b8818`; el `fcomp` también entra con NaN) y con party (`0x78aba48` sobre 0), `0x59e680`
   (`Scenes::IsInTheParty`): fuera de la party `0x50f9f8` salta a `0x510a7a`, sin las banderas, el contador ni
   el conjunto, también entre frames; en la party, por cada lugar con `+0x1c` en 0 o más que no es él, dos
   joints `0x618` (`/0xc` y `/0xd`, de ancho 20) de la posición del miembro con 150 más de z (`0x6b87ac`) al
   personaje, con el personaje de dueño y sus ángulos, sólo en un frame del original (`0x50fa74` y `0x50fa97`, CL11:
-  `BeamJoints.cpp`). En [7, 8), dos `117/2` en la mano
-  derecha (corta en `0x50fb64`). (CL9 hito 7, al armar la cadena.)
+  `BeamJoints.cpp`). En [7, 8), dos `117/2` en el punto de la mano derecha (`+0x2bd`, con el corrimiento de
+  `[ebp−0x50]`), sin dueño, clave −1 y la luz (0,8f; 0,5f; 1): el primero con los ángulos (180, 45, 0) y el segundo con
+  (0, 0, z del personaje) (`0x50fac5..0x50fb9c`, CL11). Ninguna ventana saca `rand()`; sólo en un frame del original.
+  (CL9 hito 7, al armar la cadena.)
 - **Las banderas** `+0x78 & 4` o `0x2000000`, sin `0x4000` (`0x50fba4`): un `rand() % 30` por mano, los
   sprites con ese color y los cinco joints `10f/4` si no hay uno. `+0x78` sólo lo escriben los paquetes:
   corta en `0x50fbd5` con esa condición.

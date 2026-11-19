@@ -629,9 +629,27 @@ TEST(HighModelEffectsTest, TheBindingDecalSparksOverTheBonesOfItsOwner)
     const int before = tested.Draws();
     const ModelEffect kept = decal;
     const auto cut = StepHighModelEffect(decal, nullptr, tested.StepContext());
-    if (!cut.HasValue())
+    // Hasta el corte (0x52baf5): la luz local (0x5208c5), +0x68 (0x52ba0f) y, por vuelta, el hueso (0x52ba3d); el
+    // primero que no es un dummy saca los tres del corrimiento (0x52ba66..0x52ba98) y la partícula corta sin sacar más.
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_TRUE(cut.Error().starts_with("0x52baf5")) << cut.Error();
     {
-        EXPECT_NE(cut.Error().find("0x52baf5"), std::string::npos) << cut.Error();
+        CrtRandom untilCut{Seed};
+        for (int skipped = 0; skipped < before; ++skipped)
+            static_cast<void>(untilCut.Next());
+        int cutDraws = before + 2;
+        static_cast<void>(untilCut.Next());
+        static_cast<void>(untilCut.Next());
+        for (int turn = 0; turn < 3; ++turn)
+        {
+            ++cutDraws;
+            if (untilCut.Next() % 2 == 0)
+            {
+                cutDraws += 3;
+                break;
+            }
+        }
+        EXPECT_EQ(tested.Draws(), cutDraws);
     }
     decal = kept;
     tested.random = CrtRandom{Seed};

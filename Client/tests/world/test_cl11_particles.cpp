@@ -224,6 +224,158 @@ TEST(Cl11Particles, EveryFireSubtypeIsCreatedAndStepped)
         }
 }
 
+// 0x5412d2 y 0x54132c: la /7 y la /11 se mecen de costado y crecen sobre la escala del pedido; sólo la /11 vuelve a
+// escribir la vida (24, la misma). Cuatro rand(): la velocidad común (que pisan), el vaivén, la escala y el giro.
+TEST(Cl11Particles, TheSwayingFiresDrawTheirSwayAndTheirScale)
+{
+    for (const std::int32_t subtype : {7, 11})
+    {
+        auto particles = std::make_unique<Particles>();
+        CrtRandom random(Seed);
+        ASSERT_TRUE(particles->CreateChecked(0x5d9, {}, {}, glm::vec3(1.0f), subtype, 0.5f, 0.0f, random).HasValue());
+        Draws draws;
+        const Particle& fire = Only(*particles, 0);
+        static_cast<void>(draws.Next());
+        EXPECT_EQ(fire.life, 24) << subtype;
+        EXPECT_EQ(fire.velocity,
+                  glm::vec3(0.0f, F32(static_cast<double>((draws.Next() & 31) - 16) * D(0xbdcccccdu)), 0.0f))
+            << subtype;
+        EXPECT_EQ(fire.scale, F32(static_cast<double>((draws.Next() & 63) + 128) * D(0x3c03126fu) + 0.5)) << subtype;
+        EXPECT_EQ(fire.rotation, static_cast<float>(draws.Next() % 360)) << subtype;
+        EXPECT_EQ(random.State(), AfterDraws(Seed, 4).State()) << subtype;
+    }
+}
+
+// 0x5457a5: la subida + 0,004f y el caso del subtipo (0x548270): /5 y /6 bajan 0,04f y giran 5; /8 por 0,95f y gira 5;
+// /10 por 0,95f; /11 crece 0,04f. Lo común: z + subida · 10 y el cuadro (23 − vida) / 6.
+TEST(Cl11Particles, TheFireStepFollowsItsSubtypeTable)
+{
+    struct Case
+    {
+        std::int32_t subtype;
+        double scale;
+        double turn;
+    };
+    const double shrunk = 1.0 - D(0x3d23d70au);
+    const double damped = 1.0 * D(0x3f733333u);
+    for (const Case& value : {Case{5, shrunk, 5.0}, Case{6, shrunk, 5.0}, Case{8, damped, 5.0}, Case{10, damped, 0.0},
+                              Case{11, 1.0 + D(0x3d23d70au), 0.0}})
+    {
+        auto particles = std::make_unique<Particles>();
+        CrtRandom random(Seed);
+        ASSERT_TRUE(
+            particles->CreateChecked(0x5db, {}, {}, glm::vec3(1.0f), value.subtype, 1.0f, 0.0f, random).HasValue());
+        Particle& fire = Only(*particles, 0);
+        fire.scale = 1.0f;
+        fire.rotation = 10.0f;
+        fire.verticalSpeed = 0.5f;
+        fire.velocity = glm::vec3(0.0f);
+        fire.position = glm::vec3(0.0f, 0.0f, 100.0f);
+        fire.life = 20;
+        ASSERT_TRUE(Step(*particles, random, 0.0f).HasValue()) << value.subtype;
+        const float rise = F32(0.5 + D(0x3b83126fu));
+        EXPECT_EQ(fire.verticalSpeed, rise) << value.subtype;
+        EXPECT_EQ(fire.scale, F32(value.scale)) << value.subtype;
+        EXPECT_EQ(fire.rotation, F32(10.0 + value.turn)) << value.subtype;
+        EXPECT_EQ(fire.position.z, F32(static_cast<double>(rise) * 10.0 + 100.0)) << value.subtype;
+        EXPECT_EQ(std::bit_cast<std::int32_t>(fire.field48), (23 - 19) / 6) << value.subtype;
+    }
+}
+
+// 0x5410ea y 0x545750: la 5ca/1 vive 10 con la luz 0,5 y su paso la apaga con la vida y la agranda 0,1f.
+TEST(Cl11Particles, TheGrayThunderFadesWithItsLife)
+{
+    auto particles = std::make_unique<Particles>();
+    CrtRandom random(Seed);
+    ASSERT_TRUE(particles->CreateChecked(0x5ca, {}, {}, glm::vec3(1.0f), 1, 2.0f, 0.0f, random).HasValue());
+    Draws draws;
+    Particle& thunder = Only(*particles, 0);
+    const float scale = F32(static_cast<double>((draws.Next() & 7) + 6) * 2.0 * D(0x3dcccccdu));
+    EXPECT_EQ(thunder.scale, scale);
+    EXPECT_EQ(thunder.rotation, static_cast<float>(draws.Next() % 360));
+    EXPECT_EQ(thunder.verticalSpeed, 20.0f);
+    EXPECT_EQ(thunder.life, 10);
+    EXPECT_EQ(thunder.light, glm::vec3(0.5f));
+    EXPECT_EQ(random.State(), AfterDraws(Seed, 2).State());
+    ASSERT_TRUE(Step(*particles, random, 0.0f).HasValue());
+    EXPECT_EQ(thunder.light, glm::vec3(F32(9.0 * D(0x3d888889u))));
+    EXPECT_EQ(thunder.scale, F32(static_cast<double>(scale) + D(0x3dcccccdu)));
+}
+
+// 0x541112..0x541167 y 0x54577c: la 5ca/2 cambia la textura a 0x61e, vive 10, saca un tercer rand() para la escala
+// (+ 0,3f) y queda sin giro; su paso baja la luz 0,01f por canal.
+TEST(Cl11Particles, TheThunderBoltTakesItsTextureAndAThirdRand)
+{
+    auto particles = std::make_unique<Particles>();
+    CrtRandom random(Seed);
+    ASSERT_TRUE(particles->CreateChecked(0x5ca, {}, {}, glm::vec3(0.5f), 2, 2.0f, 0.0f, random).HasValue());
+    Draws draws;
+    Particle& bolt = Only(*particles, 0);
+    static_cast<void>(draws.Next());
+    static_cast<void>(draws.Next());
+    EXPECT_EQ(bolt.texture, 0x61e);
+    EXPECT_EQ(bolt.life, 10);
+    EXPECT_EQ(bolt.scale, F32(static_cast<double>((draws.Next() & 7) + 6) * 2.0 * D(0x3dcccccdu) + D(0x3e99999au)));
+    EXPECT_EQ(bolt.rotation, 0.0f);
+    EXPECT_EQ(bolt.verticalSpeed, 0.0f);
+    EXPECT_EQ(bolt.light, glm::vec3(0.5f));
+    EXPECT_EQ(random.State(), AfterDraws(Seed, 3).State());
+    ASSERT_TRUE(Step(*particles, random, 0.0f).HasValue());
+    EXPECT_EQ(bolt.light, glm::vec3(F32(0.5 - D(0x3c23d70au))));
+}
+
+// 0x541693..0x54174b: la 5de/2 salta hacia adelante con 0x4e98d0 (ángulos 0: la y) t = rand() % 80 · rojo · 0,01f y
+// queda con la velocidad (0; (rojo − t) · 0,0666667f; 0). 0x5414a5: la /6 sube recta y escala con la del pedido.
+// 0x545d21: el paso de la /1 en la vida 10 suma 6,4f a la velocidad y baja la escala 0,15f; gira y apaga la luz 0,05f.
+TEST(Cl11Particles, TheFlameJumpsGrowsAndKicks)
+{
+    PortableParticleTrigonometry trigonometry;
+    const float clock = 0.0f;
+    {
+        auto particles = std::make_unique<Particles>();
+        CrtRandom random(Seed);
+        ASSERT_TRUE(particles
+                        ->CreateChecked(0x5de, {0, 0, 0}, {0, 0, 0}, glm::vec3(0.8f, 1, 1), 2, 1.0f, std::cref(clock),
+                                        random, 0, trigonometry)
+                        .HasValue());
+        Draws draws;
+        const Particle& flame = Only(*particles, 0);
+        EXPECT_EQ(flame.scale, F32(static_cast<double>((draws.Next() & 31) + 32) * D(0x3c23d70au) + 1.0));
+        const float jump = F32(static_cast<double>(draws.Next() % 80) * D(0x3f4ccccdu) * D(0x3c23d70au));
+        EXPECT_EQ(flame.position, glm::vec3(0.0f, jump, 0.0f));
+        EXPECT_EQ(flame.velocity,
+                  glm::vec3(0.0f, F32((D(0x3f4ccccdu) - static_cast<double>(jump)) * D(0x3d888889u)), 0.0f));
+    }
+    {
+        auto particles = std::make_unique<Particles>();
+        CrtRandom random(Seed);
+        ASSERT_TRUE(particles->CreateChecked(0x5de, {}, {}, glm::vec3(1.0f), 6, 2.0f, 0.0f, random).HasValue());
+        Draws draws;
+        const Particle& jet = Only(*particles, 0);
+        EXPECT_EQ(jet.velocity,
+                  glm::vec3(0.0f, 0.0f, F32(static_cast<double>((draws.Next() & 127) + 256) * D(0x3df5c28fu))));
+        EXPECT_EQ(jet.scale, F32(static_cast<double>((draws.Next() & 63) + 64) * 2.0 * D(0x3c23d70au)));
+    }
+    {
+        auto particles = std::make_unique<Particles>();
+        CrtRandom random(Seed);
+        ASSERT_TRUE(particles->CreateChecked(0x5de, {}, {}, glm::vec3(1.0f), 1, 1.0f, 0.0f, random).HasValue());
+        Particle& flame = Only(*particles, 0);
+        flame.life = 11;
+        flame.scale = 1.0f;
+        flame.velocity = glm::vec3(0.0f, 1.0f, 0.0f);
+        CrtRandom step(Seed);
+        ASSERT_TRUE(Step(*particles, step, 0.0f).HasValue());
+        Draws draws;
+        static_cast<void>(draws.Next());
+        static_cast<void>(draws.Next()); // el viento
+        EXPECT_EQ(flame.velocity.y, F32(1.0 + D(0x40cccccdu)));
+        EXPECT_EQ(flame.scale, F32(1.0 - D(0x3e19999au)));
+        EXPECT_EQ(flame.rotation, static_cast<float>(draws.Next() % 360));
+        EXPECT_EQ(flame.light, glm::vec3(F32(1.0 - D(0x3d4ccccdu))));
+    }
+}
+
 TEST(Cl11Particles, TheRingFireFollowsItsOwner)
 {
     auto particles = std::make_unique<Particles>();
@@ -435,6 +587,55 @@ TEST(Cl11Particles, TheKundunFallKeepsTheRequestedLightAndTurns)
     ASSERT_TRUE(Step(*particles, random, 0.0f).HasValue());
     EXPECT_EQ(fall.rotation, F32(static_cast<double>(turn) + 4.0));
     EXPECT_EQ(fall.scale, F32(D(0x3fcccccdu) - static_cast<double>(0.005f)));
+}
+
+// 0x543b82..0x543be5: la fanta 0x6ec/0x6ed de cualquier subtipo menos la /1..4 nace como la /0 (vida 24, la /6 vida
+// 32); 0x543aed: la /7 vive 15, con la escala rand() % 30 · 0,01f más la del pedido y la posición corrida. 0x547cc2: su
+// paso se achica 0,1f y sube 2 antes de lo común (la z sube 1 y la luz es vida · 0,04f).
+TEST(Cl11Particles, TheFantaTakesEverySubtypeButTheOwnedOnes)
+{
+    for (const std::int32_t subtype : {6, 12})
+    {
+        auto particles = std::make_unique<Particles>();
+        CrtRandom random(Seed);
+        ASSERT_TRUE(
+            particles->CreateChecked(0x6ec, {1, 2, 3}, {}, glm::vec3(1.0f), subtype, 1.0f, 0.0f, random).HasValue());
+        Draws draws;
+        const Particle& fanta = Only(*particles, 0);
+        EXPECT_EQ(fanta.life, subtype == 6 ? 32 : 24) << subtype;
+        EXPECT_EQ(fanta.velocity.x, F32(static_cast<double>(draws.Next() % 10 - 5) * D(0x3ecccccdu))) << subtype;
+        EXPECT_EQ(fanta.velocity.z, F32(static_cast<double>(draws.Next() % 10 + 5) * D(0x3e4ccccdu))) << subtype;
+        EXPECT_EQ(fanta.start, glm::vec3(1, 2, 3)) << subtype;
+        EXPECT_EQ(random.State(), AfterDraws(Seed, 2).State()) << subtype;
+    }
+
+    auto particles = std::make_unique<Particles>();
+    CrtRandom random(Seed);
+    ASSERT_TRUE(particles->CreateChecked(0x6ed, {10, 20, 30}, {}, glm::vec3(1.0f), 7, 1.5f, 0.0f, random).HasValue());
+    Draws draws;
+    Particle& swirl = Only(*particles, 0);
+    EXPECT_EQ(swirl.life, 15);
+    EXPECT_EQ(swirl.scale, F32(static_cast<double>(draws.Next() % 30) * D(0x3c23d70au) + 1.5));
+    glm::vec3 shifted{10, 20, 30};
+    for (int axis = 0; axis < 3; ++axis)
+        shifted[axis] =
+            F32((static_cast<double>(draws.Next() % 10) * D(0x3dcccccdu) - 0.5) + static_cast<double>(shifted[axis]));
+    EXPECT_EQ(swirl.position, shifted);
+    EXPECT_EQ(swirl.start, shifted);
+    EXPECT_EQ(random.State(), AfterDraws(Seed, 6).State());
+    swirl.velocity = glm::vec3(0.0f);
+    swirl.scale = 1.0f;
+    ASSERT_TRUE(Step(*particles, random, 0.0f).HasValue());
+    EXPECT_EQ(swirl.scale, F32(1.0 - D(0x3dcccccdu)));
+    EXPECT_EQ(swirl.position.z, F32(static_cast<double>(F32(static_cast<double>(shifted.z) + 2.0)) + 1.0));
+    EXPECT_EQ(swirl.light, glm::vec3(F32(14.0 * D(0x3d23d70au))));
+
+    for (const std::int32_t owned : {1, 2, 3, 4})
+    {
+        CrtRandom other(Seed);
+        EXPECT_FALSE(particles->CreateChecked(0x6ec, {}, {}, glm::vec3(1.0f), owned, 1.0f, 0.0f, other).HasValue())
+            << owned;
+    }
 }
 
 TEST(Cl11Particles, TheNewTypesGoToTheirBillboards)

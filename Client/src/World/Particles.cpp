@@ -12,6 +12,7 @@
 #include "World/BloodCastleParticleKernels.h"
 #include "World/EffectParticleKernels.h"
 #include "World/KalimaParticleKernels.h"
+#include "World/MissileFireParticleKernels.h"
 #include "World/ParticleOwner.h"
 #include "World/WorldObjectStepServices.h"
 
@@ -852,7 +853,7 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
         return std::nullopt;
     if (IsSwellLifeParticle(type, subtype))
         return std::nullopt;
-    // 0x54109f y 0x54573f: la 5ca no lee el subtipo.
+    // 0x54109f y 0x54573f: la 5ca trata cualquier subtipo; la /1 y la /2 tienen además lo suyo (0x5410d9, 0x545745).
     if (type == ThunderParticle)
         return std::nullopt;
     if (type == ShinyParticle || type == FairySparkParticle)
@@ -870,8 +871,9 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
         return std::nullopt;
     if (type == MagicSparkParticle)
         return subtype == 2 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
+    // 0x540d13..0x54109e y 0x545565: la 5da trata cualquier subtipo (los de fuera de 0..9, sólo con el giro).
     if (type == MissileFireParticle)
-        return subtype == 8 || subtype == 9 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
+        return std::nullopt;
     if (type == BreathParticle)
     {
         return subtype == CrywolfTideSmokeSubtype || subtype == CrywolfSwingSmokeSubtype ||
@@ -1010,7 +1012,8 @@ void CreateTheFire(Particle& particle, Render::Models::CrtRandom& random)
     case FireLongSwaySubtype:
         // 0x5412d2 (/7) y 0x54132c (/11, que vuelve a poner la vida 24): la velocidad (0; ((rand() & 31) − 16) ·
         // −0,1f; 0) y la escala ((rand() & 63) + 128) · 0,008f más la del pedido.
-        particle.life = FireLife;
+        if (subtype == FireLongSwaySubtype)
+            particle.life = FireLife;
         particle.velocity.x = 0.0f;
         {
             const int sway = random.Next() % SwaySpan - SwayCenter;
@@ -1354,7 +1357,7 @@ Core::Expected<void, ParticleError> StepTheFire(Particle& particle, Render::Mode
     {
     case 0:
     case FireSwaySubtype:
-        // 0x545894 (/0) y 0x54587c (/7, que antes deja un cuadro que lo común pisa).
+        // 0x545894 (/0) y 0x54587c (/7, que antes deja un cuadro que 0x54597f pisa: no se ve).
         if (particle.subtype == FireSwaySubtype)
             particle.field48 = std::bit_cast<float>(WrapSubtract(SwayLife, particle.life) / SwaySteps);
         particle.scale = F32(static_cast<double>(particle.scale) - FireShrink);
@@ -1390,7 +1393,7 @@ Core::Expected<void, ParticleError> StepTheFire(Particle& particle, Render::Mode
         particle.scale = F32(static_cast<double>(particle.scale) * Damp); // 0x545831
         break;
     case FireLongSwaySubtype:
-        // 0x5458a5: el cuadro de la /11, que lo común pisa, y la escala crece 0,04f.
+        // 0x5458a5: el cuadro de la /11, que 0x54597f pisa (no se ve), y la escala crece 0,04f.
         if (particle.life > LongSwayStart)
             particle.field48 = std::bit_cast<float>(WrapSubtract(LongSwayLife, particle.life) / LongSwaySteps);
         particle.scale = F32(static_cast<double>(particle.scale) + FireShrink);
@@ -1727,7 +1730,8 @@ Particles::CreateOwnedChecked(std::int32_t type, const glm::vec3& position, cons
                               Render::Models::CrtRandom& random, std::int32_t scene, ParticleOwner owner)
 {
     if (!IsKalimaParticle(type, subtype) && !IsSelectionParticle(type, subtype) && !IsTrialsParticle(type, subtype) &&
-        !IsHandShine(type, subtype) && !IsSwellLifeParticle(type, subtype))
+        !IsHandShine(type, subtype) && !IsSwellLifeParticle(type, subtype) &&
+        !(FollowsItsOwner(type, subtype) && !NeedsOwnerPosition(type, subtype)))
     {
         if (IsParticlePoolFull(m_particles))
             return std::optional<std::size_t>{};
@@ -1864,9 +1868,15 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
             CreateBloodCastleParticle(particle, random);
             return std::optional(index);
         }
+        if (IsMissileFireKernel(type, subtype))
+        {
+            CreateMissileFire(particle, random);
+            return std::optional(index);
+        }
         if (IsEffectParticle(type, subtype))
         {
-            const auto created = CreateEffectParticle(particle, random, {worldClock, trigonometry, ownerPosition});
+            const auto created =
+                CreateEffectParticle(particle, random, {worldClock, trigonometry, ownerPosition, legacyClock});
             if (!created.HasValue())
                 return Core::Unexpected(created.Error());
             return std::optional(index);
@@ -1907,7 +1917,8 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
         }
         if (type == ThunderParticle)
         {
-            // 54109f: /0 conserva vida2, RGB y ángulos del prefijo; dos CRT y dos stores.
+            // 54109f: la escala ((rand() & 7) + 6) · escala · 0,1f, el giro +0x50 en 20 y +0x44 rand() % 360. Los
+            // subtipos que no son la /1 ni la /2 conservan la vida 2, la luz y los ángulos del prefijo.
             constexpr int ScaleSpan = 8;
             constexpr int ScaleBase = 6;
             constexpr float ScaleStep = 0.1f;
@@ -1916,6 +1927,28 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
             const int rotation = random.Next() % FullTurn;
             particle.verticalSpeed = RotationStep;
             particle.rotation = static_cast<float>(rotation);
+            if (subtype == ThunderGraySubtype)
+            {
+                // 0x5410ea: vida 10 y la luz (0,5; 0,5; 0,5).
+                constexpr std::int32_t GrayLife = 10;
+                particle.life = GrayLife;
+                particle.light = glm::vec3(0.5f);
+            }
+            else if (subtype == ThunderBoltSubtype)
+            {
+                // 0x541112..0x541167: la textura 0x61e, vida 10, un tercer rand() para la escala ((rand() & 7) + 6) ·
+                // escala · 0,1f + 0,3f, y +0x44 y +0x50 en 0. Copia la luz del lugar al vector del llamador
+                // (0x541154), que es la misma que le dio el prefijo: no cambia nada.
+                constexpr std::int32_t BoltTexture = 0x61e;
+                constexpr std::int32_t BoltLife = 10;
+                constexpr double BoltBase = static_cast<double>(std::bit_cast<float>(0x3e99999au)); // 0x6b89dc
+                particle.texture = BoltTexture;
+                particle.life = BoltLife;
+                const int size = random.Next() % ScaleSpan + ScaleBase;
+                particle.scale = F32((static_cast<double>(size) * scale) * static_cast<double>(ScaleStep) + BoltBase);
+                particle.rotation = 0.0f;
+                particle.verticalSpeed = 0.0f;
+            }
             return std::optional(index);
         }
         if (orbit)
@@ -2255,6 +2288,13 @@ StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random, const
             StepBloodCastleParticle(particle, random);
             continue;
         }
+        if (IsMissileFireKernel(particle.type, particle.subtype))
+        {
+            const auto stepped = StepMissileFire(particle, trigonometry);
+            if (!stepped.HasValue())
+                return stepped;
+            continue;
+        }
         if (IsEffectParticle(particle.type, particle.subtype))
         {
             const auto stepped = StepEffectParticle(particle, random, trigonometry, ownerStates);
@@ -2324,6 +2364,21 @@ StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random, const
         {
             // 54573f: se ejecuta incluso después del último movimiento común con alive=0.
             particle.rotation = F32(static_cast<double>(particle.verticalSpeed) + particle.rotation);
+            if (particle.subtype == ThunderGraySubtype)
+            {
+                // 0x545750..0x54576b: la luz vida · 0,0666667f (0x6ba1e0) y la escala + 0,1f.
+                constexpr double GrayFade = static_cast<double>(std::bit_cast<float>(0x3d888889u));
+                constexpr double GrayGrowth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8
+                particle.light = glm::vec3(F32(static_cast<double>(particle.life) * GrayFade));
+                particle.scale = F32(static_cast<double>(particle.scale) + GrayGrowth);
+            }
+            else if (particle.subtype == ThunderBoltSubtype)
+            {
+                // 0x54577c..0x54579d: la luz baja 0,01f (0x6b88d4) por canal.
+                constexpr double BoltFade = static_cast<double>(std::bit_cast<float>(0x3c23d70au));
+                for (int channel = 0; channel < 3; ++channel)
+                    particle.light[channel] = F32(static_cast<double>(particle.light[channel]) - BoltFade);
+            }
         }
         else if (IsNoriaParticle(particle.type, particle.subtype))
         {

@@ -264,9 +264,18 @@ Core::Expected<void, ParticleError> StepFlareSeven(Particle& p, const float* clo
     }
     return {};
 }
+// 0x547cba..0x547d3d: la escala baja 0,02f (la /7, 0,1f y además sube 2), sin bajar de 0; la velocidad x e y por 0,95f,
+// la z sube 1 y la luz es vida · 0,04f.
 void StepFanta(Particle& p)
 {
-    p.scale = F32(static_cast<double>(p.scale) - FantaShrink);
+    constexpr double SwirlLift = 2.0; // 0x6b8818
+    if (p.subtype == SwirlFantaSubtype)
+    {
+        p.scale = F32(static_cast<double>(p.scale) - Tenth);
+        p.position.z = F32(static_cast<double>(p.position.z) + SwirlLift);
+    }
+    else
+        p.scale = F32(static_cast<double>(p.scale) - FantaShrink);
     if (!(p.scale >= 0.0f))
         p.scale = 0;
     p.velocity.x = F32(static_cast<double>(p.velocity.x) * Damping);
@@ -340,7 +349,9 @@ bool IsKalimaParticle(std::int32_t type, std::int32_t subtype)
     const bool objectWaterfall =
         ((type == KalimaWaterfallFirst || type == KalimaWaterfallMist) && subtype == ObjectSubtype) ||
         ((type == WaterfallSplash || type == WaterfallSplash + 1) && subtype == SplashObjectSubtype);
-    const bool fanta = (type == KalimaFanta || type == CrywolfFanta) && (subtype == 0 || subtype == ShortFantaSubtype);
+    // 0x543b82 y 0x547cba: todos los subtipos menos la /1..4 (que leen a su dueño en 0x547a4d y 0x547a73, CL11).
+    const bool fanta =
+        (type == KalimaFanta || type == CrywolfFanta) && (subtype < 1 || subtype > LastOwnedFantaSubtype);
     return objectWaterfall || fanta ||
            (type == KalimaWaterfallLast && (subtype == 1 || subtype == KundunFallSubtype ||
                                             subtype == KundunSplashLastSubtype || subtype == BrazierFallSubtype)) ||
@@ -369,14 +380,28 @@ Core::Expected<void, ParticleError> CreateKalimaParticle(Particle& p, Render::Mo
     }
     if (p.type == KalimaFanta || p.type == CrywolfFanta)
     {
-        // 0x543b82..0x543bd5: vida 24, los dos rand() de la velocidad y, con la /5, la vida en 20.
-        constexpr int FantaLife = 24, ShortFantaLife = 20, Center = 5;
-        p.life = FantaLife;
+        // 0x543b82..0x543be5: vida 24, los dos rand() de la velocidad y, con la /5, la vida en 20 (la /6, 32).
+        // 0x543aed: la /7 vive 15, con la escala rand() % 30 · 0,01f más la del pedido y la posición corrida (rand() %
+        // 10) · 0,1f − 0,5 en x, y y z, antes de la velocidad.
+        constexpr int FantaLife = 24, ShortFantaLife = 20, LongFantaLife = 32, Center = 5, SwirlLife = 15;
+        constexpr int SwirlSpan = 30, ShiftSpan = 10;
+        if (p.subtype == SwirlFantaSubtype)
+        {
+            p.life = SwirlLife;
+            p.scale = F32(static_cast<double>(random.Next() % SwirlSpan) * Hundredth + static_cast<double>(p.scale));
+            for (int axis = 0; axis < 3; ++axis)
+                p.position[axis] = F32((static_cast<double>(random.Next() % ShiftSpan) * Tenth - 0.5) +
+                                       static_cast<double>(p.position[axis]));
+        }
+        else
+            p.life = FantaLife;
         p.velocity.x = F32(static_cast<double>(random.Next() % LifeSpan - Center) * static_cast<double>(0.4f));
         p.velocity.y = 0;
         p.velocity.z = F32(static_cast<double>(random.Next() % LifeSpan + Center) * static_cast<double>(0.2f));
         if (p.subtype == ShortFantaSubtype)
             p.life = ShortFantaLife;
+        else if (p.subtype == LongFantaSubtype)
+            p.life = LongFantaLife; // 0x543bdc..0x543be5
         p.start = p.position;
         return {};
     }

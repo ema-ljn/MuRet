@@ -2,6 +2,7 @@
 #include "World/EffectParticleKernels.h"
 #include "World/KalimaParticleKernels.h"
 #include "World/SelectionParticleKernels.h"
+#include "World/SmokeParticleKernels.h"
 #include "World/TrialsParticleKernels.h"
 #include "World/BloodCastleParticleKernels.h"
 #include "World/ParticleDrawParameters.h"
@@ -162,6 +163,7 @@ Core::Expected<DrawSelection, ParticleDrawingError> SelectBranch(Particle& p, st
         return DrawSelection{ParticleDrawKind::Common, false};
     case DustParticle:
     case ArrivalDustParticle:
+    case RisingPuffParticle: // 0x548895: la 5f5 también, sin leer el subtipo.
     {
         // 0x548a51: la 5f3 va a 0x620c10 y al billboard común, sin leer el subtipo.
         const auto blended = services.Blended();

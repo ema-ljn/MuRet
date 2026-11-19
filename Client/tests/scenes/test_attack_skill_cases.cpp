@@ -1189,7 +1189,9 @@ TEST(AttackSkillCasesTest, TheSparkLeavesItsHitAndTwentyFairySparks)
     EXPECT_EQ(count(0x5c6), 1);
     EXPECT_EQ(count(0x5c5), 20);
     EXPECT_EQ(tested.world.Particles().All()[0].position, tested.Victim().position);
-    EXPECT_GE(DrawsSince(Seed, tested.random), 40);
+    // La 0x5c6/0 no saca ninguno; cada vuelta, dos y los cinco de la alta de la 0x5c5/0 (0x540333, 0x54041f, 0x540436,
+    // 0x54045c y 0x540480).
+    EXPECT_EQ(DrawsSince(Seed, tested.random), 20 * (2 + 5));
 
     SkillWorld full;
     full.withParticles = true;

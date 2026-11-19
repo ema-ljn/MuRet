@@ -50,6 +50,9 @@ inline constexpr std::int32_t FireworkParticle = 0x60d;
 inline constexpr std::int32_t PoundingBallParticle = 0x640;
 inline constexpr std::int32_t ShinyParticle = 0x5fc;
 inline constexpr std::int32_t ThunderParticle = 0x5ca;
+// 0x5410d9: la /1 (la de 0x53fd42) gris que se apaga con la vida; la /2 (la de 0x51df52) con la textura 0x61e.
+inline constexpr std::int32_t ThunderGraySubtype = 1;
+inline constexpr std::int32_t ThunderBoltSubtype = 2;
 inline constexpr std::int32_t FairySparkParticle = 0x5c5;
 inline constexpr std::int32_t FireParticle = 0x5d9;
 // 0x4fd580/0x43ebb7: la llama azul de la estela de Kalima, con su textura Effect\Fire05.jpg (0x61ddac).
@@ -259,7 +262,8 @@ public:
     // CreateKalimaChecked agrega5ac/6,7,6ed/0,6f0..4/0, 6f1/3 y6f4/1; escena prestada para6f1.
     // Las familias con dueño tipado: las de Kalima y las de la selección (SelectionParticleKernels.h:
     // 622/1, 5de/7 y 729/0,1), más 6f0/2, 6f1/2 y 6f2,6f3/4 de los objetos del 54 y del 33, y la 5fd/0 y /2 de la
-    // mano (que no lee el reloj ni la escena, ni saca rand()), y la 5ac/4 de Swell Life (0x540112), sin rand().
+    // mano (que no lee el reloj ni la escena, ni saca rand()), y la 5ac/4 de Swell Life (0x540112), sin rand(). También
+    // las que siguen a su dueño sin leerlo al nacer (5d5/2, el fuego /9 y 5f2/36: FollowsItsOwner).
     [[nodiscard]] Core::Expected<std::optional<std::size_t>, ParticleError>
     CreateOwnedChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
                        std::int32_t subtype, float scale, float worldClock, Render::Models::CrtRandom& random,

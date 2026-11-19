@@ -26,6 +26,11 @@ inline constexpr std::int32_t KalimaFanta = 0x6ed;
 // a la 4).
 inline constexpr std::int32_t CrywolfFanta = 0x6ec;
 inline constexpr std::int32_t ShortFantaSubtype = 5;
+// 0x543be5: la /6 (la de 0x428adc y 0x428c52) vive 32. 0x543aed: la /7 nace corrida y más grande, y su paso (0x547cc2)
+// se achica 0,1f y sube 2 más. La /1..4 leen a su dueño (0x547a4d, 0x547a73) y no están; los demás subtipos son la /0.
+inline constexpr std::int32_t LongFantaSubtype = 6;
+inline constexpr std::int32_t SwirlFantaSubtype = 7;
+inline constexpr std::int32_t LastOwnedFantaSubtype = 4;
 inline constexpr std::int32_t KalimaWaterfallFirst = 0x6f0;
 inline constexpr std::int32_t KalimaWaterfallMist = 0x6f1;
 // 0x6f2 y 0x6f3: las salpicaduras de las cascadas (el 0x39 del 54 crea 6f2/4).

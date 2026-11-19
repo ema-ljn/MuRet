@@ -702,11 +702,13 @@ TEST_F(KalimaSiegeHelperTest, TheSixthKalimaHelperBeatsAndSparks)
 }
 
 // 0x43e924..0x43ebef, el 0x197: rojo con el subtipo 9 (+0x4) y azul con otro; seis vueltas de dos partículas por los
-// huesos 41 y 51 (0x5da/1 o 0x5dc/12). En la acción 6 suelta las dos manos.
+// huesos 41 y 51 (0x5da/1 o 0x5dc/12). La 0x5da/1 (0x540d1b) vive 3 y saca dos rand(): el empuje ((rand() & 7) + 32) ·
+// −0,3f en y y el giro. En la acción 6 suelta las dos manos.
 TEST_F(KalimaSiegeHelperTest, TheSeventhKalimaHelperIsRedOrBlue)
 {
     Actor(0x197, 0).subtype = 9;
-    ExpectCut(Draw(36), "0x43eb65", "0x5da/1");
+    ASSERT_TRUE(Draw(36).HasValue());
+    EXPECT_EQ(m_random.State(), After(24));
     auto sprites = Sprites();
     ASSERT_EQ(sprites.size(), 4u);
     const float lum = F32(std::sin(D(Clock) * D(0.003f)) * D(0.2f) + D(0.8f));
@@ -714,6 +716,21 @@ TEST_F(KalimaSiegeHelperTest, TheSeventhKalimaHelperIsRedOrBlue)
     EXPECT_EQ(sprites[0].position, Bone(33));
     EXPECT_EQ(sprites[0].light, glm::vec3(lum, pale, pale));
     EXPECT_EQ(sprites[3].position, Bone(34));
+    CrtRandom red{Seed};
+    for (std::size_t slot = 0; slot < 12; ++slot)
+    {
+        const auto& particle = m_particles->All()[slot];
+        EXPECT_EQ(particle.type, 0x5da);
+        EXPECT_EQ(particle.subtype, 1);
+        EXPECT_EQ(particle.life, 3);
+        EXPECT_EQ(particle.light, glm::vec3(lum, pale, pale));
+        const float offset = -40.0f - static_cast<float>(slot / 2) * 24.0f;
+        EXPECT_EQ(particle.position, Bone(slot % 2 == 0 ? 41 : 51, {0.0f, offset, 0.0f}));
+        EXPECT_EQ(particle.scale, F32(D(7.2f) / static_cast<double>((slot / 2) / 2 + 6)));
+        EXPECT_EQ(particle.velocity, glm::vec3(0.0f, F32(static_cast<double>((red.Next() & 7) + 32) * -D(0.3f)), 0.0f));
+        EXPECT_EQ(particle.rotation, static_cast<float>(red.Next() % 360));
+    }
+    EXPECT_FALSE(m_particles->All()[12].alive);
 
     SetUp();
     Actor(0x197, 0).subtype = 2;

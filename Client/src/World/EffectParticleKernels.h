@@ -17,9 +17,9 @@ namespace Client::World
 class IParticleTrigonometry;
 
 // Las partículas de los efectos de la CL11 que 0x53fe70 y 0x5446e0 tratan en casos propios: el anillo 0x600
-// (Effect\ring.jpg), el humo 5f2/1 y 5f2/3 (Effect\smoke01.jpg), la llama 5de/1..6 (Effect\Flame01.jpg; la /0 y la /7
-// son de la selección) y las chispas 5c6 que no tienen kernel propio (Effect\Spark03.jpg). Todas van al billboard común
-// de 548550 (0x54889a; 5f2 pasando por 0x54874c).
+// (Effect\ring.jpg), el humo 5f2/1 y 5f2/3 (Effect\smoke01.jpg; los demás humos de la CL11, en SmokeParticleKernels),
+// la llama 5de/1..6 (Effect\Flame01.jpg; la /0 y la /7 son de la selección) y las chispas 5c6 que no tienen kernel
+// propio (Effect\Spark03.jpg). Todas van al billboard común de 548550 (0x54889a; 5f2 pasando por 0x54874c).
 inline constexpr std::int32_t RingParticle = 0x600;
 // 0x543183: la /1 (la del 0x43a861 de Kalima, sobre el blanco) vive 15 y gira al azar; las demás viven 20.
 inline constexpr std::int32_t RingPulseSubtype = 0;
@@ -41,18 +41,20 @@ inline constexpr std::int32_t ShortHitSparkSubtype = 8;
 inline constexpr std::int32_t BurstSparkSubtype = 10;
 
 [[nodiscard]] bool IsEffectParticle(std::int32_t type, std::int32_t subtype);
-// Las que leen +0x40 en su paso (5c6/4, 5d5/2, el fuego /9 y 5de/4): 0x53fe70 guarda el dueño en el lugar.
+// Las que leen +0x40 en su paso (5c6/4, 5d5/2, el fuego /9, 5de/4 y 5f2/36): 0x53fe70 guarda el dueño en el lugar.
 [[nodiscard]] bool FollowsItsOwner(std::int32_t type, std::int32_t subtype);
 // Las que además leen la posición del dueño al nacer: 5c6/4 (0x540686) y 5de/4 (0x5417ba).
 [[nodiscard]] bool NeedsOwnerPosition(std::int32_t type, std::int32_t subtype);
 
-// Lo que el alta lee además del lugar: el reloj del mundo (0x5767b88) y su seno para la luz de 5de/2..4, y la
-// posición del dueño de 5c6/4 y 5de/4.
+// Lo que el alta lee además del lugar: el reloj del mundo (0x5767b88) y su seno para la luz de 5de/2..4, la posición
+// del dueño de 5c6/4 y 5de/4, y el reloj por valor de los que no lo prestan (los humos de SmokeParticleKernels lo usan
+// sin `worldClock`).
 struct EffectParticleBirth
 {
     const float* worldClock = nullptr;
     IParticleTrigonometry* trigonometry = nullptr;
     const glm::vec3* ownerPosition = nullptr;
+    float legacyClock = 0.0f;
 };
 
 // Después del prefijo de 0x53fe70 (Initialize). Sin el reloj o la trigonometría que pide la 5de/2..4, MissingClock con

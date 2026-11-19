@@ -1325,9 +1325,9 @@ Core::Expected<void, std::string> SparkTheTarget(const ActorState& actor, const 
                                                  const CharacterStepContext& context)
 {
     // 0x52e740..0x52e804: 0x53fe70(0x5c6, o + 0x10 del blanco, sus ángulos, (1, 1, 1), 0, 1,0f, 0), la chispa del golpe
-    // (0x54059f: sólo el prefijo); el (0, 50, 0) girado por los ángulos del que pega (0x5fc8f0 y 0x5fcbd0) y sumado a
-    // la posición no lo lee nadie. Después, veinte veces dos rand() y 0x53fe70(0x5c5, la misma posición y ángulos, (1,
-    // 1, 1), 0, 1,0f, 0), aun si el pool está lleno.
+    // (0x54058e..0x540592: la /0 sale a 0x54304c con sólo el prefijo); el (0, 50, 0) girado por los ángulos del que
+    // pega (0x5fc8f0 y 0x5fcbd0) y sumado a la posición no lo lee nadie. Después, veinte veces dos rand() y
+    // 0x53fe70(0x5c5, la misma posición y ángulos, (1, 1, 1), 0, 1,0f, 0), aun si el pool está lleno.
     constexpr std::int32_t HitSpark = 0x5c6;
     constexpr std::int32_t FairySpark = 0x5c5;
     constexpr int FairySparks = 20;

@@ -15,6 +15,7 @@
 #include "Protocol/Outgoing.h"
 #include "Protocol/Viewport.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/OriginalRotation.h"
 #include "Scenes/ActorCreation.h"
 #include "Scenes/ActorPickingBox.h"
 #include "Scenes/ActorState.h"
@@ -979,6 +980,48 @@ TEST_F(MonsterViewportTest, OrdinaryMonsterCreationAttachesBothOwnedBeamsInNativ
         }
         EXPECT_FALSE(joints[2].alive);
         EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, ConstructionDraws).State());
+    }
+}
+
+// 0x51656e..0x5165d1: el NPC 257 (un 0x20a) suelta el 0x60f/0x2a de ancho 15 con él de dueño, que nace (0, −15, 0)
+// girado por sus ángulos más allá de su posición. Sin rand(): con los joints llenos, el RNG queda igual.
+TEST_F(MonsterViewportTest, TheNpc257CarriesItsSpinningSparkle)
+{
+    std::optional<std::uint32_t> drawn;
+    for (const bool full : {false, true})
+    {
+        SCOPED_TRACE(full);
+        Load(0);
+        auto& joints = game->world.DrawTail().joints;
+        if (full)
+            for (auto& joint : joints)
+                joint.alive = true;
+        const Cell cell = FreeRow();
+        const auto created = Client::Scenes::CreateMonster(257, cell.x, cell.y, 100, game->Resources());
+        ASSERT_TRUE(created.HasValue()) << created.Error();
+        ActorState& actor = Actor(created.Value());
+        if (!full)
+        {
+            const Client::Scenes::JointState& joint = joints[0];
+            EXPECT_TRUE(joint.alive);
+            EXPECT_EQ(joint.type, 0x60f);
+            EXPECT_EQ(joint.subtype, 0x2a);
+            EXPECT_EQ(joint.ownerContext, &actor);
+            EXPECT_EQ(joint.ownerKind, Client::Scenes::JointOwnerKind::Actor);
+            EXPECT_EQ(joint.width, 15.0f);
+            EXPECT_EQ(joint.life, 100);
+            const auto moved = Client::Render::Models::OriginalVectorRotate(
+                {0.0f, -15.0f, 0.0f}, Client::Render::Models::OriginalAngleMatrix(actor.angles));
+            const glm::vec3 path{static_cast<float>(static_cast<double>(moved.x) + actor.position.x),
+                                 static_cast<float>(static_cast<double>(moved.y) + actor.position.y),
+                                 static_cast<float>(static_cast<double>(moved.z) + actor.position.z)};
+            EXPECT_EQ(joint.pathIncrement, path);
+            EXPECT_EQ(joint.targetPosition, actor.position);
+            EXPECT_FALSE(joints[1].alive);
+            drawn = game->cloth.random.State();
+        }
+        else
+            EXPECT_EQ(game->cloth.random.State(), drawn);
     }
 }
 

@@ -839,6 +839,8 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
     }
     if (JointFamilies::IsOrbit(request.type, request.subtype))
         return JointFamilies::CreateOrbitJoint(joint, request, random);
+    if (JointFamilies::IsSpark(request.type, request.subtype))
+        return JointFamilies::CreateSparkJoint(joint, request, random);
     if (JointFamilies::IsInferno(request.type, request.subtype))
     {
         JointFamilies::CreateInfernoJoint(joint, request);
@@ -1031,7 +1033,8 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateFaunaJoint(std::sp
         request.type == JointFamilies::PlasmaJoint ||
         (request.type == JointFamilies::AuraJoint && request.subtype != 1 && request.subtype != 3) ||
         (request.type == JointFamilies::StormJoint && request.subtype >= 0 &&
-         request.subtype <= JointFamilies::LastFallingSubtype);
+         request.subtype <= JointFamilies::LastFallingSubtype) ||
+        (request.type == JointFamilies::DropJoint && request.subtype == JointFamilies::SpinningSparkleSubtype);
     // El 0x618 que sigue a un efecto con modelo (la /5 de las flechas y la /0xa y /0xb del 0x11b/1) y el 0x60f/0xb y
     // /0x19 de la flecha 0xf8.
     const bool effectBeam =
@@ -1926,6 +1929,7 @@ enum class Family : std::uint8_t
     Orbit,
     Sweep,
     Plasma,
+    Spark,
 };
 
 std::optional<Family> FamilyStep(const JointState& joint)
@@ -1965,6 +1969,8 @@ std::optional<Family> FamilyStep(const JointState& joint)
         return Family::Sweep;
     if (joint.type == JointFamilies::PlasmaJoint)
         return Family::Plasma;
+    if (JointFamilies::IsSpark(joint.type, joint.subtype))
+        return Family::Spark;
     return std::nullopt;
 }
 
@@ -2060,6 +2066,8 @@ Core::Expected<void, std::string> RunFamily(JointState& joint, Family family,
         return JointFamilies::StepSweepJoint(joint, services);
     case Family::Plasma:
         return JointFamilies::StepPlasmaJoint(joint, services);
+    case Family::Spark:
+        return JointFamilies::StepSparkJoint(joint, services);
     }
     return {};
 }

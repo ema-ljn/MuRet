@@ -14133,7 +14133,7 @@ la acción 6.
 | `0x193` | fuera de la 6, los `0x5ca`, `0x5fd` y `0x5ac` de los huesos 6, 13, 19, 23, 25, 31 y 33 |
 | `0x194` | fuera de la 6, el `0x5ca` y el `0x5fd` de los huesos 9 y 10, y el `0x5ac` y el `0x5fd` girado `rand() % 360` de los huesos 3 y 4; en la 3, los joints `0x614/7` entre los huesos 10..16 y 31..37 de a pares (`0x43e368`, `0x43e3da`) |
 | `0x195` | muerto, las dos manos sin ítem; si no, el `0x62b` del hueso 0 (rojo con `+0x376` en `0x91`, y entonces `rand() & 1` en 0 da el humo `0x5f2/13` rojo de 1 en el mismo punto, `0x43e4c0`, tercera vuelta) y los `0x5ac` de los huesos 28 y 29 |
-| `0x196` | fuera de la 6, los `0x5ac` de los huesos 9 y 10, dos `0x5ca` girados del hueso 60 y la neblina `0x5ac/0` (`0x43e7f0`), verdes en la acción 4; los `0x5ac` de los huesos 63..67 y, en las acciones 0 y 1, `rand() % 50` en 0 da el joint `0x610/5` hacia el hueso 60 con dos `rand() % 360` (`0x43e904`) |
+| `0x196` | fuera de la 6, los `0x5ac` de los huesos 9 y 10, dos `0x5ca` girados del hueso 60 y la neblina `0x5ac/0` (`0x43e7f0`), verdes en la acción 4; los `0x5ac` de los huesos 63..67 y, en las acciones 0 y 1, `rand() % 50` en 0 da el joint `0x610/5` hacia el hueso 60 con dos `rand() % 360` (`0x43e904`; `SparkJoints.cpp`) |
 | `0x197` | muerto, las dos manos sin ítem; si no, el `0x5ca` y el `0x5fd` de los huesos 33 y 34, rojos con `+0x4` en 9 y azules con otro, y seis vueltas por los huesos 41 y 51 con las partículas `0x5da/1` o `0x5dc/12` (`0x43eb65`, `0x43ebb7`, `0x43ebd2`) |
 
 **`0x42dfe0`** (solo en el mapa 30; la tabla de bytes `0x42e354` sobre la de saltos `0x42e340`, desde el `0x19c`):
@@ -14518,6 +14518,25 @@ en un lugar de más adelante pasa en la misma vuelta de `0x53c670`.
   `0x4f5b10(o, 0, −90, −50)` (80 más alto en la acción `0x51`, 40 en la `0x5b`) con vida 0 y sus cinco joints (/1,
   /0 de ancho 250, /2, /3 y /4 de ancho 100; `0x51f25e`); el efecto no tiene caso en el paso (`0x52b57e`) ni en el
   dibujo. Los seis `0x62c/0xb..0xd` de la `0x4c` (`0x50293c`) siguen detrás del `0x14f`.
+- **`0x610/5`, `0x60f/0x29` y `/0x2a`** (`SparkJoints.cpp`). El `0x610/5` es la chispa del `0x196` de Kalima
+  (`0x43e904`): lo común del `0x610` (`0x531c43..0x531cc7`: la vida en la key, la key en 0, 50 puntos y el ancho del
+  color del skill, 20 con el 0 y el 3, 40 con el 1 y el que tenía el lugar con otro; el 3 lee la luz del dueño) y la
+  /5 (`0x531dd0`): la luz en 1, la mezcla 4, sólo la segunda cara (`+0x11` en 2), velocidad 3, vida 50, 8 puntos y el
+  pase 2 (`+0x64`); el destino es el segundo punto. Su paso (`0x537a00..0x537b31`, después del movimiento común): con
+  vida de 25 o más gira la z −10 y sube 2,5; con menos acelera 5 hasta 30 (compara la suma sin redondear), gira hacia
+  el destino a esa velocidad (`0x4e9810`) y, a 70 o menos (o NaN), si el rumbo cambió más de 20 y la velocidad es de
+  20 o más, frena 10; con vida de menos de 10 las tres luces son la roja por 0,8333333f. Siempre, la luz dinámica de
+  radio 2 en su posición con (0,4; 1; 0,8) por (`rand() % 4` + 8) · 0,03f. El `0x60f/0x2a` es el del NPC 257
+  (`0x5165d1`, un `0x20a`, con él de dueño y ancho 15): lo común del `0x60f` y (`0x5339a5..0x533a1e`) nace
+  (0, −15, 0) girado por sus ángulos más allá, ese punto queda en el camino (`+0x24`), la velocidad pasa a (0, −50, 0),
+  sin la cola común (`+0x9f2`) y con la luz en 1. Su paso (`0x53a039`, sin el movimiento común) gira la z 15; con el
+  byte vivo del dueño en 0 apaga todos los `0x60f/0x2a` de ese dueño (`0x534f90`) y va a la cola; si no, vida 100, la
+  posición en el camino más la velocidad girada por los ángulos, `rand() % 100` y, con la z en ftol múltiplo de 45 y
+  el `rand()` en 50 o menos, suelta una `0x60f/0x29` en su posición (ángulos en 0, sin dueño, su ancho; `0x53a0eb`);
+  después la luz dinámica de radio 2 en el destino. La `0x60f/0x29` (`0x533915`): vida 40, el ancho, 50 puntos, la luz
+  (1 − a; 1 − b; 1) con a y b en `rand() % 300` · 0,001f (a guardada en float, b no) y vz en `rand() % 5` + 5; su paso
+  (`0x539fc2`) con vida de 20 o menos la pone sobre el destino, sube vz + 1 y apaga la luz por 0,9090909f, y siempre
+  pone la luz dinámica de radio 1 con su luz en su posición; con menos de 10, la luz por 0,7692308f (`0x53b318`).
 - **`0x619/0xa`** (`FaunaJointCreation.cpp`, junto al `0x619/9`): alta `0x5325c7..0x532659` (vida 80, 20 puntos, vx 80,
   `+0x9ec` en `ftol` del giro z y `+0x9d4` en 1 con 225 o 405; la posición y el destino en el dueño) y paso
   `0x5388e7..0x538a4d` (como la /9, con la z en el destino más vida · 0,0125f · 300, `+0x9ec` que sube 2 con `+0x9d4`

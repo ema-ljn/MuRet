@@ -169,4 +169,17 @@ inline constexpr std::int32_t PlasmaJoint = 0x14f;
 void CreatePlasmaJoint(JointState& joint, const World::FishEffectRequest& request);
 [[nodiscard]] Core::Expected<void, std::string> StepPlasmaJoint(JointState& joint,
                                                                 const JointKernels::StepServices& services);
+
+// El 0x610/5 y el 0x60f/0x29 y /0x2a (SparkJoints.cpp): las chispas del sexto ayudante de Kalima, el 0x196 (0x43e904;
+// alta 0x531dd0 y paso 0x537a00), y el que gira alrededor del NPC 257 (0x5165d1, con él de dueño; alta 0x5339a5 y paso
+// 0x53a039), que suelta las /0x29 (0x53a0eb; alta 0x533915 y paso 0x539fc2). La /0x2a no se mueve con el paso común.
+inline constexpr std::int32_t HelperSparkJoint = 0x610;
+inline constexpr std::int32_t HelperSparkSubtype = 5;
+inline constexpr std::int32_t FallingSparkleSubtype = 0x29;
+inline constexpr std::int32_t SpinningSparkleSubtype = 0x2a;
+[[nodiscard]] bool IsSpark(std::int32_t type, std::int32_t subtype);
+[[nodiscard]] Core::Expected<void, std::string>
+CreateSparkJoint(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random);
+[[nodiscard]] Core::Expected<void, std::string> StepSparkJoint(JointState& joint,
+                                                               const JointKernels::StepServices& services);
 } // namespace Client::Scenes::JointFamilies

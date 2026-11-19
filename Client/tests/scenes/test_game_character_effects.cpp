@@ -347,7 +347,8 @@ TEST_F(GameCharacterEffectsTest, TheGlowFlagsCutWithTheExactConditionOfTheAssemb
 // a 0x510a7a, sin las banderas de 0x50fba4, también entre frames. En la party, los joints 0x618 hacia otro miembro a la
 // vista (+0x1c en 0 o más y no él) nacen en un frame del original (0x50fa74 y 0x50fa97: /0xc y /0xd de ancho 20, desde
 // el miembro 150 más arriba, con él de dueño) y después cortan las banderas. Con el frame en 2 o sin party, las
-// banderas cortan.
+// banderas cortan. Cada 0x618/0xc y /0xd saca tres rand() (el sentido en 0x53217c y los dos giros en 0x5321af y
+// 0x5321c5): seis por miembro, y ninguno sin joints.
 TEST_F(GameCharacterEffectsTest, BelowFrameTwoTheActionsReadTheParty)
 {
     struct Case
@@ -395,6 +396,7 @@ TEST_F(GameCharacterEffectsTest, BelowFrameTwoTheActionsReadTheParty)
             m_actors[static_cast<std::size_t>(probe.memberIndex)].position = {500.0f, 600.0f, 70.0f};
         for (auto& joint : m_joints)
             joint.alive = false;
+        m_random = CrtRandom{1};
 
         const auto result = Client::Scenes::DrawGameCharacterEffects(m_actor, pass);
 
@@ -409,6 +411,8 @@ TEST_F(GameCharacterEffectsTest, BelowFrameTwoTheActionsReadTheParty)
         }
         const auto joints = LiveJoints(m_joints);
         ASSERT_EQ(joints.size(), probe.beams ? 2u : 0u);
+        constexpr std::size_t RandomsPerMember = 2 * 3;
+        EXPECT_EQ(m_random.State(), AfterRandoms(probe.beams ? RandomsPerMember : 0));
         for (std::size_t index = 0; index < joints.size(); ++index)
         {
             EXPECT_EQ(joints[index].type, 0x618);

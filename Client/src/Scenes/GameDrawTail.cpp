@@ -11,6 +11,7 @@
 
 #include "Core/Expected.h"
 #include "Data/Models/Model.h"
+#include "Data/Models/PlayerModels.h"
 #include "Render/Billboard.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
@@ -739,11 +740,11 @@ DrawGameModelEffectsChecked(Render::ModelBatch& batch, const IModelLibrary& mode
             const auto blendMesh = effect.objectState.blendMesh;
             if (blendMesh == -1 || blendMesh < -2)
                 continue;
-            const auto* model = models.Find(static_cast<std::uint16_t>(effect.type));
-            // La tabla de recursos de MuRet omite la malla de la estela. El filtro de 0x52d68c
-            // puede usar una cuenta de cero y completar el pase.
-            if (model == nullptr && effect.type != World::SpiritTrailEffect)
-                return Core::Unexpected(std::string("0x52d68c: falta el modelo del filtro de blendMesh"));
+            const auto modelId = static_cast<std::uint16_t>(effect.type);
+            if (modelId >= Data::Models::ModelTableSize)
+                return Core::Unexpected(std::format("0x52d68c: modelo {:#x} fuera de la tabla", modelId));
+            const auto* model = models.Find(modelId);
+            // 0x60dbe0 inicializa la tabla a cero. Un BMD ausente deja en cero su cuenta de mallas.
             const auto meshCount = model != nullptr ? static_cast<std::int64_t>(model->meshes.size()) : 0;
             if (meshCount < blendMesh)
                 continue;

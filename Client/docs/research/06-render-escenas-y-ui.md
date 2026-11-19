@@ -11823,7 +11823,8 @@ alcance sin el `0x1c16` (con c en 0, Q-C1114) con los `rand()` de su entrada de 
 menor (`FCOMP`, C0). Después `rand() % 360`, que nadie lee antes de los joints (Q-C1112). Con `+0x434` en −1 o desde
 400 (`JGE` con signo: un negativo lee fuera del pool y MuRet corta en `0x5025b8`), termina; si no, dos vueltas con el
 punto de `0x4f5b10(o, 0, −140, 130)`, el ángulo `rand() % 360`, 0, `rand() % 360` y dos joints `0x14f` hacia el
-blanco de `+0x434`: corta en el primero (`0x5026a4`). La lista de los diez la leen los joints `0x62c` de
+blanco de `+0x434`: corta en el primero (`0x5026a4`): su subtipo es `0x4f2230(o)`, que lee el `+0x31b` de Fenrir (0 con 1,
+2 con 2, si no 1; el segundo, ese + 3), que `ActorState` no tiene; el joint `0x14f` está portado (`PlasmaJoints.cpp`). La lista de los diez la leen los joints `0x62c` de
 `0x5026fa..0x502944`. Skill.bmd llega en `CharacterStepContext::skills`; sin él, corta en el primer blanco que mira.
 
 **Con blanco** (`0x504372`, la skill − 1 por `0x5055c8` y `0x505578`; todos siguen en `0x505069`):

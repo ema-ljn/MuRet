@@ -877,6 +877,11 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
         JointFamilies::CreateSweepJoint(joint, request);
         return {};
     }
+    if (request.type == JointFamilies::PlasmaJoint)
+    {
+        JointFamilies::CreatePlasmaJoint(joint, request);
+        return {};
+    }
     // 531c43..531cc7 y531fc3..53200e: la estela del misilE1/1 de Crywolf.
     if (request.type == 0x610 && request.subtype == 13)
     {
@@ -1000,6 +1005,7 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateFaunaJoint(std::sp
         request.type == JointFamilies::SpiralJoint ||
         (request.type == JointFamilies::DropJoint && request.subtype == JointFamilies::WanderSubtype) ||
         (JointFamilies::IsOrbit(request.type, request.subtype) && request.subtype == JointFamilies::ColumnSubtype) ||
+        request.type == JointFamilies::PlasmaJoint ||
         (request.type == JointFamilies::AuraJoint && request.subtype != 1 && request.subtype != 3);
     // El 0x618 que sigue a un efecto con modelo (la /5 de las flechas y la /0xa y /0xb del 0x11b/1) y el 0x60f/0xb y
     // /0x19 de la flecha 0xf8.
@@ -1842,6 +1848,7 @@ enum class Family : std::uint8_t
     Flare,
     Orbit,
     Sweep,
+    Plasma,
 };
 
 std::optional<Family> FamilyStep(const JointState& joint)
@@ -1879,6 +1886,8 @@ std::optional<Family> FamilyStep(const JointState& joint)
         return Family::Flare;
     if (joint.type == JointFamilies::InfernoJoint && joint.subtype == JointFamilies::SweepSubtype)
         return Family::Sweep;
+    if (joint.type == JointFamilies::PlasmaJoint)
+        return Family::Plasma;
     return std::nullopt;
 }
 
@@ -1972,6 +1981,8 @@ Core::Expected<void, std::string> RunFamily(JointState& joint, Family family,
         return JointFamilies::StepOrbitJoint(joint, services);
     case Family::Sweep:
         return JointFamilies::StepSweepJoint(joint, services);
+    case Family::Plasma:
+        return JointFamilies::StepPlasmaJoint(joint, services);
     }
     return {};
 }

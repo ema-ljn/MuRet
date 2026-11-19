@@ -158,4 +158,11 @@ inline constexpr std::int32_t SweepSubtype = 0;
 void CreateSweepJoint(JointState& joint, const World::FishEffectRequest& request);
 [[nodiscard]] Core::Expected<void, std::string> StepSweepJoint(JointState& joint,
                                                                const JointKernels::StepServices& services);
+
+// El 0x14f (PlasmaJoints.cpp): alta 0x530ddd y paso 0x535b37, una vuelta por punto hacia su personaje dueño (0x4e9810).
+// Su llamador (0x5026a4) sigue cortado: el subtipo sale de 0x4f2230 (el +0x31b de Fenrir, que ActorState no tiene).
+inline constexpr std::int32_t PlasmaJoint = 0x14f;
+void CreatePlasmaJoint(JointState& joint, const World::FishEffectRequest& request);
+[[nodiscard]] Core::Expected<void, std::string> StepPlasmaJoint(JointState& joint,
+                                                                const JointKernels::StepServices& services);
 } // namespace Client::Scenes::JointFamilies

@@ -743,7 +743,8 @@ Client::Scenes::DrawnCharacter Drawn(const ActorState& actor)
 
 // 0x50db57..0x510a7a en el login y la selección, que corren el mismo 0x50ba30 que el juego: el rand() de 0x50db57 y
 // los dos cierres de +0x38e de las manos, como en DrawGameCharacters, y el cuerpo en sus huesos propios. Sin
-// 0x510ef0, que sólo corre en la escena 5 (0x510a80): con +0x369 en 1 el juego corta en 0x510f4d y esto no.
+// 0x510ef0, que sólo corre en la escena 5 (0x510a80): con +0x369 en 1 el juego crea el 0x140 (aquí, sin la tabla de
+// efectos ni las partículas en el pase, corta en 0x510f4d) y esto no.
 TEST_F(UnarmedGameCharacterTest, OutsideTheGameTheTailSpendsTheSameRandomsWithoutTheSceneFiveEffect)
 {
     Actor().byte88 = 1;

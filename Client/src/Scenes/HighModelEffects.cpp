@@ -14,6 +14,7 @@
 #include "Scenes/FaunaModels.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/GuildMarkEffects.h"
 #include "Scenes/FireBreathEffect.h"
 #include "Scenes/HighEffectEmitters.h"
 #include "Scenes/JavelinEffect.h"
@@ -1228,7 +1229,8 @@ bool IsHighModelEffect(std::int16_t type)
            type == ManaRuneEffect || type == SparkEmitterEffect || type == BoltEmitterEffect ||
            type == PiercingGlowEffect || type == SkullEffect || type == SeamanEffect || type == FireBreathEffect ||
            type == JavelinEffect || type == ThunderEffect || type == WaveEffect || type == PiercingEffect ||
-           type == RingEffect || type == MeteorEffect || type == MeteorShellEffect || type == MeteorCallEffect;
+           type == RingEffect || type == MeteorEffect || type == MeteorShellEffect || type == MeteorCallEffect ||
+           type == GuildMarkEffect;
 }
 
 Core::Expected<std::optional<std::size_t>, std::string>
@@ -1323,6 +1325,20 @@ CreateHighModelEffect(const World::ModelEffectArguments& arguments, const HighEf
     case MeteorCallEffect:
         BeginTheMeteor(effect);
         break;
+    case GuildMarkEffect:
+    {
+        // 0x51e0d8: el modelo y los huesos propios del dueño (+0x108 → +0x2 y +0x120).
+        const auto* owner = static_cast<const ActorState*>(arguments.owner);
+        if (owner == nullptr)
+        {
+            begun = Core::Unexpected(std::string("0x51e0d8: el 0x140 lee el modelo de un dueño (+0x108) nulo"));
+            break;
+        }
+        begun = BeginTheGuildMark(effect, *slot, *owner,
+                                  ActorBonePoint(*owner, GuildMarkBone, glm::vec3(0.0f), context.world),
+                                  context.world.Particles(), context.random, context.worldClock);
+        break;
+    }
     default:
         break;
     }
@@ -1431,6 +1447,9 @@ Core::Expected<void, std::string> StepHighModelEffect(World::ModelEffect& effect
         break;
     case MeteorCallEffect:
         stepped = StepTheMeteorCall(effect, context);
+        break;
+    case GuildMarkEffect:
+        stepped = StepTheGuildMark(effect, context);
         break;
     default:
         break;

@@ -40,6 +40,7 @@
 #include <glm/ext/vector_float3.hpp>
 
 #include <array>
+#include <algorithm>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
@@ -1249,7 +1250,10 @@ TEST_F(GameCharacterEffectsTest, TheWideSparklesNeedTheJoints)
     EXPECT_NE(result.Error().find("0x510435"), std::string::npos) << result.Error();
 }
 
-TEST_F(GameCharacterEffectsTest, TheGuildMarkCutsWithPlus369OutsideTheEventMaps)
+// 0x510a7a y 0x510ef0: con +0x88 en 1 y +0x369 en 1, fuera de los mapas 11 a 23 y 30 y en un frame del original, el
+// efecto 0x140 en el punto del hueso 20 (z 60 más), sus diez chispas 0x5c6/4 (treinta rand()) y +0x36c en el reloj;
+// después, con menos de 5000 de diferencia, nada, y con más, otro.
+TEST_F(GameCharacterEffectsTest, TheGuildMarkRisesWithPlus369OutsideTheEventMaps)
 {
     struct Case
     {
@@ -1257,7 +1261,7 @@ TEST_F(GameCharacterEffectsTest, TheGuildMarkCutsWithPlus369OutsideTheEventMaps)
         std::uint8_t byte369;
         std::int32_t map;
         bool originalFrame;
-        bool cuts;
+        bool rises;
     };
     constexpr std::array cases{
         Case{1, 1, 0, true, true},   Case{1, 1, 10, true, true},  Case{1, 1, 24, true, true},
@@ -1270,18 +1274,57 @@ TEST_F(GameCharacterEffectsTest, TheGuildMarkCutsWithPlus369OutsideTheEventMaps)
         SCOPED_TRACE(testing::Message() << int{probe.byte88} << ' ' << int{probe.byte369} << ' ' << probe.map);
         m_actor.byte88 = probe.byte88;
         m_actor.byte369 = probe.byte369;
+        m_actor.dword36c = 0;
+        m_random = CrtRandom{1};
+        for (auto& effect : m_effects.Effects())
+            effect.alive = false;
+        for (auto& particle : m_particles.All())
+            particle.alive = false;
         GameCharacterEffectsPass pass = Pass();
         pass.map = probe.map;
         pass.originalFrame = probe.originalFrame;
 
         const auto result = Client::Scenes::DrawGameCharacterEffects(m_actor, pass);
 
-        EXPECT_EQ(!result.HasValue(), probe.cuts);
-        if (probe.cuts)
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        const Client::World::ModelEffect& mark = m_effects.Effects()[0];
+        EXPECT_EQ(mark.alive, probe.rises);
+        if (!probe.rises)
         {
-            EXPECT_NE(result.Error().find("0x510f4d"), std::string::npos) << result.Error();
+            EXPECT_EQ(m_actor.dword36c, 0u);
+            continue;
         }
+        EXPECT_EQ(mark.type, 0x140);
+        EXPECT_EQ(mark.ownerContext, &m_actor);
+        EXPECT_EQ(mark.life, 130);
+        const glm::vec3 point = At(20, {});
+        EXPECT_EQ(mark.transform.position.x, point.x);
+        EXPECT_EQ(mark.transform.position.y, point.y);
+        EXPECT_EQ(mark.transform.position.z, point.z + 60.0f);
+        EXPECT_EQ(m_actor.dword36c, std::bit_cast<std::uint32_t>(1000.0f));
+        EXPECT_EQ(std::ranges::count_if(m_particles.All(), [](const Client::World::Particle& particle)
+                                        { return particle.alive && particle.type == 0x5c6 && particle.subtype == 4; }),
+                  10);
+        CrtRandom expected{1};
+        for (int draw = 0; draw < 30; ++draw)
+            static_cast<void>(expected.Next());
+        EXPECT_EQ(m_random.State(), expected.State());
     }
+    // Con 5000 o menos desde +0x36c, nada; con más, otro 0x140.
+    m_actor.byte88 = 1;
+    m_actor.byte369 = 1;
+    for (auto& effect : m_effects.Effects())
+        effect.alive = false;
+    m_actor.dword36c = std::bit_cast<std::uint32_t>(1000.0f);
+    GameCharacterEffectsPass soon = Pass();
+    soon.worldClock = 6000.0f;
+    ASSERT_TRUE(Client::Scenes::DrawGameCharacterEffects(m_actor, soon).HasValue());
+    EXPECT_FALSE(m_effects.Effects()[0].alive);
+    GameCharacterEffectsPass later = Pass();
+    later.worldClock = 6001.0f;
+    ASSERT_TRUE(Client::Scenes::DrawGameCharacterEffects(m_actor, later).HasValue());
+    EXPECT_TRUE(m_effects.Effects()[0].alive);
+    EXPECT_EQ(m_actor.dword36c, std::bit_cast<std::uint32_t>(6001.0f));
 }
 
 // Un cuervo sintético: un hueso y cinco mallas de un triángulo, para ver qué mallas dibuja y la sombra.

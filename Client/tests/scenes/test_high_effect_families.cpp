@@ -16,6 +16,7 @@
 #include "Scenes/WorldState.h"
 #include "World/GameModelEffects.h"
 #include "World/ModelEffects.h"
+#include "World/ParticleOwner.h"
 #include "World/Particles.h"
 #include "World/TerrainLighting.h"
 #include "World/WorldObjectStepServices.h"
@@ -35,6 +36,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -561,5 +563,129 @@ TEST(HighEffectFamiliesTest, TheMeteorSparksOverItsPosedBones)
     ASSERT_GE(carry.size(), 3u);
     EXPECT_EQ(carry[0], expected[0]);
     EXPECT_EQ(carry[1], expected[1]);
+}
+
+// Un dueño del 0x140 en el lugar 5: el hueso k sin giro y en (0, 0, k), su modelo con escala 1 y el origen en su
+// posición; el héroe (el lugar 0) en otro lado.
+ActorState& MarkOwner(FamilyWorld& tested)
+{
+    ActorState& owner = tested.world->Actors()[5];
+    owner.alive = true;
+    owner.type = 0x20a;
+    owner.position = {1000.0f, 2000.0f, 100.0f};
+    owner.bodyPose.assign(30, Client::Render::Models::BoneTransform(1.0f));
+    for (std::size_t bone = 0; bone < owner.bodyPose.size(); ++bone)
+        owner.bodyPose[bone][3] = {0.0f, 0.0f, static_cast<float>(bone)};
+    tested.world->PlaceModel(owner.type, {.scale = 1.0f, .origin = owner.position});
+    tested.world->Actors()[0].position = {900.0f, 1900.0f, 0.0f};
+    return owner;
+}
+
+// 0x51e0cb..0x51e233: el 0x140 nace en el hueso 20 de su dueño, 60 más arriba, con el alpha en 0, la z de los ángulos
+// en 45, vida 130 y escala 3,2f, y suelta diez chispas 0x5c6/4 hacia él con tres rand() cada una; con las partículas
+// llenas, los mismos treinta rand() y ninguna. Sin dueño, corta.
+TEST(HighEffectFamiliesTest, TheGuildMarkRisesOverItsOwnerWithTenSparks)
+{
+    for (const bool full : {false, true})
+    {
+        SCOPED_TRACE(full);
+        FamilyWorld tested;
+        if (full)
+            tested.FillTheParticles();
+        ActorState& owner = MarkOwner(tested);
+        const auto made =
+            CreateHighModelEffect({.type = 0x140, .position = owner.position, .owner = &owner}, tested.Context());
+        ASSERT_TRUE(made.HasValue()) << made.Error();
+        const ModelEffect& mark = tested.Effect(0);
+        EXPECT_EQ(mark.alpha, 0.0f);
+        EXPECT_EQ(mark.transform.angles.z, 45.0f);
+        EXPECT_EQ(mark.transform.position, (glm::vec3{1000.0f, 2000.0f, 180.0f}));
+        EXPECT_EQ(mark.start, mark.transform.position);
+        EXPECT_EQ(mark.life, 130);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(mark.transform.scale), 0x404ccccdu);
+        EXPECT_EQ(mark.light, glm::vec3(1.0f));
+        EXPECT_EQ(tested.Draws(), 30);
+        EXPECT_EQ(AliveParticles(*tested.world, 0x5c6, 4), full ? 0 : 10);
+        if (full)
+            continue;
+        CrtRandom replay(Seed);
+        const auto turn = static_cast<float>(replay.Next() % 360);
+        const auto side = static_cast<float>(replay.Next() % 20 + 15);
+        const auto sine = Client::Render::Models::Detail::SineProductPC53(turn, side);
+        ASSERT_TRUE(sine.has_value());
+        const auto& first = tested.world->Particles().All()[0];
+        EXPECT_EQ(first.position.x, static_cast<float>(*sine + 1000.0));
+        EXPECT_EQ(first.position.z, 180.0f);
+        EXPECT_EQ(first.typedOwner, (Client::World::ParticleOwner{Client::World::ParticleOwnerKind::ModelEffect, 0}));
+    }
+    FamilyWorld ownerless;
+    EXPECT_TRUE(HasError(CreateHighModelEffect({.type = 0x140}, ownerless.Context()), "0x51e0d8"));
+}
+
+// 0x529f0c..0x52a0aa: el paso del 0x140 sigue al hueso 20 del dueño (x e y en dueño − héroe + punto, la z a la mitad
+// hacia la meta si está debajo); entre 96 y 120 de vida el alpha sube 0,4f, sin girar mientras no llega a 1; con el
+// alpha en 1, la z de los ángulos 5 más. Sin dueño, la vida en 0 y se apaga en la cola.
+TEST(HighEffectFamiliesTest, TheGuildMarkFollowsItsOwnerAndFadesIn)
+{
+    FamilyWorld tested;
+    ActorState& owner = MarkOwner(tested);
+    ASSERT_TRUE(CreateHighModelEffect({.type = 0x140, .owner = &owner}, tested.Context()).HasValue());
+    ModelEffect& mark = tested.Effect(0);
+    mark.life = 100;
+    mark.transform.position.z = 0.0f;
+    const auto before = tested.Draws();
+    ASSERT_TRUE(Client::Scenes::StepHighModelEffect(mark, nullptr, tested.StepContext()).HasValue());
+    EXPECT_EQ(tested.Draws(), before + 1);
+    EXPECT_EQ(mark.alpha, static_cast<float>(static_cast<double>(std::bit_cast<float>(0x3ecccccdu))));
+    EXPECT_EQ(mark.transform.angles.z, 45.0f);
+    EXPECT_EQ(mark.transform.position, (glm::vec3{1100.0f, 2100.0f, 90.0f}));
+    EXPECT_EQ(mark.life, 99);
+
+    mark.alpha = 1.0f;
+    mark.life = 70;
+    ASSERT_TRUE(Client::Scenes::StepHighModelEffect(mark, nullptr, tested.StepContext()).HasValue());
+    EXPECT_EQ(mark.alpha, 1.0f);
+    EXPECT_EQ(mark.transform.angles.z, 50.0f);
+    EXPECT_EQ(mark.transform.position.z, static_cast<float>((180.0 - 90.0) * 0.5 + 90.0));
+
+    mark.ownerContext = nullptr;
+    ASSERT_TRUE(Client::Scenes::StepHighModelEffect(mark, nullptr, tested.StepContext()).HasValue());
+    EXPECT_FALSE(mark.alive);
+    EXPECT_EQ(mark.life, -1);
+}
+
+// Las chispas del paso del 0x140: con la vida entre 121 y 124, cinco 0x5c5/6 (0x529f71); entre 40 y 59, el giro, dos
+// radios y la altura (cuatro rand()) y una 0x5c5/5 (0x52a16e). No son de MuRet: con lugar cortan, con las partículas
+// llenas siguen; por debajo de 50 el alpha baja 0,1f.
+TEST(HighEffectFamiliesTest, TheGuildMarkSparksAtBirthAndBeforeFading)
+{
+    for (const bool full : {false, true})
+    {
+        SCOPED_TRACE(full);
+        for (const auto& [life, address, draws] : {std::tuple{122, "0x529f71", 1}, std::tuple{45, "0x52a16e", 5}})
+        {
+            SCOPED_TRACE(life);
+            FamilyWorld tested;
+            ActorState& owner = MarkOwner(tested);
+            tested.FillTheParticles();
+            ASSERT_TRUE(CreateHighModelEffect({.type = 0x140, .owner = &owner}, tested.Context()).HasValue());
+            if (!full)
+                for (auto& particle : tested.world->Particles().All())
+                    particle.alive = false;
+            ModelEffect& mark = tested.Effect(0);
+            mark.life = life;
+            mark.alpha = 0.5f;
+            const auto before = tested.Draws();
+            const auto stepped = Client::Scenes::StepHighModelEffect(mark, nullptr, tested.StepContext());
+            EXPECT_EQ(tested.Draws(), before + draws);
+            if (!full)
+            {
+                EXPECT_TRUE(HasError(stepped, address)) << (stepped.HasValue() ? std::string() : stepped.Error());
+                continue;
+            }
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+            EXPECT_EQ(mark.alpha, life < 50 ? static_cast<float>(0.5 - static_cast<double>(0.1f)) : 0.5f);
+        }
+    }
 }
 } // namespace

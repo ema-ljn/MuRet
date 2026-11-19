@@ -19,6 +19,7 @@
 #include "Scenes/WorldState.h"
 #include "World/Particles.h"
 #include "World/ModelEffects.h"
+#include "World/WizardModelEffects.h"
 
 #include "support/PlayerActors.h"
 
@@ -743,9 +744,9 @@ TEST(AttackFrameSkillsTest, Skill39AttemptsEveryKeyAcrossPartialAndFullPools)
     }
 }
 
-// 0x38 (0x4fa4a8..0x4fa5d3): el 0x20a en la 0x8d corta en el primer efecto 0xce/2 (0x4fa4fa); los demás, [0x6c88ac] en
-// 15. 0x39 (0x4fa994..0x4faaca), de cualquier tipo: pasado el frame 5, los joints 0x60f/0x17 (0x4fa9ca); entre 2,3f y
-// 2,6f (sin los bordes), los de las claves 2 y 3 (0x4faa81); siempre [0x6c88ac] en 15 para la0x39.
+// 0x38 (0x4fa4a8..0x4fa5d3): fuera del 0x20a en la 0x8d (TheSpinOf38ThrowsFiveWaves), [0x6c88ac] en 15. 0x39
+// (0x4fa994..0x4faaca), de cualquier tipo: pasado el frame 5, los joints 0x60f/0x17 (0x4fa9ca); entre 2,3f y 2,6f (sin
+// los bordes), los de las claves 2 y 3 (0x4faa81); siempre [0x6c88ac] en 15 para la0x39.
 TEST(AttackFrameSkillsTest, TheSpinOf38AndTheBoltsOf39)
 {
     struct Case
@@ -759,15 +760,10 @@ TEST(AttackFrameSkillsTest, TheSpinOf38AndTheBoltsOf39)
     };
     constexpr float NaN = std::numeric_limits<float>::quiet_NaN();
     const std::vector<Case> cases{
-        {"0x38 en la 0x8d", 0x38, Player, 0x8d, 0.0f, "0x4fa4fa"},
-        {"0x38 en la 0x8c", 0x38, Player, 0x8c, 0.0f, ""},
-        {"0x38 de otro tipo", 0x38, 0x152, 0x8d, 0.0f, ""},
-        {"0x39 en 5,5", 0x39, Player, 0x8d, 5.5f, ""},
-        {"0x39 de otro tipo en 5,5", 0x39, 0x152, 3, 5.5f, ""},
-        {"0x39 en 5", 0x39, Player, 0x8d, 5.0f, ""},
-        {"0x39 en 2,4", 0x39, Player, 0x8d, 2.4f, ""},
-        {"0x39 en 2,3", 0x39, Player, 0x8d, 2.3f, ""},
-        {"0x39 en 2,6", 0x39, Player, 0x8d, 2.6f, ""},
+        {"0x38 en la 0x8c", 0x38, Player, 0x8c, 0.0f, ""}, {"0x38 de otro tipo", 0x38, 0x152, 0x8d, 0.0f, ""},
+        {"0x39 en 5,5", 0x39, Player, 0x8d, 5.5f, ""},     {"0x39 de otro tipo en 5,5", 0x39, 0x152, 3, 5.5f, ""},
+        {"0x39 en 5", 0x39, Player, 0x8d, 5.0f, ""},       {"0x39 en 2,4", 0x39, Player, 0x8d, 2.4f, ""},
+        {"0x39 en 2,3", 0x39, Player, 0x8d, 2.3f, ""},     {"0x39 en 2,6", 0x39, Player, 0x8d, 2.6f, ""},
         {"0x39 con NaN", 0x39, Player, 0x8d, NaN, ""},
     };
     for (const std::int32_t map : Maps)
@@ -800,6 +796,44 @@ TEST(AttackFrameSkillsTest, TheSpinOf38AndTheBoltsOf39)
             EXPECT_EQ(tested.sounds, emitted ? std::vector<std::int32_t>{0x270} : std::vector<std::int32_t>{});
         }
     }
+}
+
+// 0x4fa4c1..0x4fa5c3, la 0x38 del 0x20a en la 0x8d: cinco 0xce/2 desde o con o de dueño, el rumbo 40 menos y después
+// 20 más cada vez; cada alta cuenta en el registro propio (+0x8c con la cuenta, que sube). Después el sonido 0x72,
+// +0x381 en 15 y [0x6c88ac] en 15.
+TEST(AttackFrameSkillsTest, TheSpinOf38ThrowsFiveWaves)
+{
+    FrameWorld tested(0);
+    ActorState& hero = tested.Striker(0x8d, 0.0f, 4);
+    hero.angles = glm::vec3(0.0f, 0.0f, 100.0f);
+    hero.light = glm::vec3(0.5f, 0.25f, 1.0f);
+    tested.world.OwnCharacter().bytef04 = 7;
+    tested.world.Runtime().skillThreshold = UntouchedThreshold;
+
+    const auto stepped = tested.Step(hero, 0x38);
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_TRUE(stepped.Value());
+    std::vector<float> headings;
+    std::vector<std::uint16_t> counts;
+    for (const Client::World::ModelEffect& effect : tested.world.Map().effects.Effects())
+    {
+        if (!effect.alive || effect.type != Client::World::MagicEffect)
+            continue;
+        EXPECT_EQ(effect.subtype, 2);
+        EXPECT_EQ(effect.ownerContext, &hero);
+        EXPECT_EQ(effect.transform.position, hero.position);
+        EXPECT_EQ(effect.light, hero.light);
+        headings.push_back(effect.transform.angles.z);
+        counts.push_back(effect.word8c);
+    }
+    EXPECT_EQ(headings, (std::vector<float>{60.0f, 80.0f, 100.0f, 120.0f, 140.0f}));
+    EXPECT_EQ(counts, (std::vector<std::uint16_t>{7, 8, 9, 10, 11}));
+    EXPECT_EQ(tested.world.OwnCharacter().bytef04, 12);
+    EXPECT_EQ(DrawsSince(Seed, tested.random), 5 * OwnRecord);
+    EXPECT_EQ(hero.byte381, 15);
+    EXPECT_EQ(tested.Threshold(), FullThreshold);
+    EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x72}));
 }
 
 // 0x4f8f5b, la 3 sin caso de +0x376 en la cola de 0x4f5b70 (por el paso del ataque, con el blanco en el pool): el

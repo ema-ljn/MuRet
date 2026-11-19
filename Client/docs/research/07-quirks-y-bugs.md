@@ -841,6 +841,14 @@ Q-C1364 toma el siguiente número libre después de los reservados por las cabez
 | Q-C1620 | la luz local del paso del `0x613`, `0x5395c4..0x539600` y `0x539796..0x5399a2` | la `/6` y la `/7` eligen su luz local por la skill (`+0x9ea`) y solo escriben la de 0 y la de 1; la `/0xd` con vida de 28 o menos y sin dueño salta a los sprites sin escribirla. Con 10 o más de vida, los sprites `0x5ac` y `0x5fd` salen con lo que haya en `[ebp−0x18..−0x10]` del paso anterior. *Estático* | indefinido | MuRet corta en `0x539707` y en `0x5399a2` (P-C430 c) | CL11 |
 | Q-C1621 | `+0x9eb` del joint, `0x530860` | el alta común no lo escribe: solo la `0x613/0` y la `/5` (`0x53293b`, `0x532e75`) y otros tipos lo ponen; en los demás queda el del uso anterior del lugar, y el paso de la `0x613/0` lo manda a `0x517a20` como la tanda. *Estático* | contrato | se reproduce: `JointState::volley` se retiene entre usos | CL11 |
 
+## Los efectos de los magos (CL11)
+
+| # | Dónde | Qué pasa | Clase | MuRet | Ola |
+| --- | --- | --- | --- | --- | --- |
+| Q-C1500 | el hielo, `0x51acc5..0x51acec` (desde `0x4e67fc`, `0x4e6825`, `0x4cd6ff` y `0x4cd72b`) | el `0xc1/1` y el `/2` escriben `(0,4f; 0,3f; 0,2f)` en la luz que les pasan, que es la del personaje (`+0xf4`): el personaje congelado queda teñido hasta que otro la pise, y el segundo alta ya lee la luz pisada. *Estático* | efecto sobre el llamador | igual (`Scenes::WrapInIce` pasa `&actor.light`) | CL11 |
+| Q-C1501 | `0x4fd5f0`, la luz local `[ebp-0x30]` | la escriben `0x4fd81e` (`(1, 1, 1)`) y la rama del destello (`0x4fdb3f`, `(0,3f; 0,5; 1)` con las acciones `0x4d`, `0x4f` y `0x5a` pasado el frame 5,5); la tormenta `0xcf/0` del `0x08` y el hielo `0xc1/0` del `0x07` salen con ese color, no con el del personaje. *Estático* | luz prestada | igual (`StepTheAttack` pasa la luz del cuerpo) | CL11 |
+| Q-C1502 | el `0xcc/3` y `/4` en `0x6002e0` (`0x601dbb..0x601dc7`) | el color del modelo es `(0,1f; 0,1f; 10)`: el azul pasa de 1 y la función fija lo recorta en cada vértice. *Estático* | color fuera de rango | igual: el shader recorta | CL11 |
+
 ## Cómo se agrega un quirk
 
 Igual que en el DataServer: número nuevo, dirección del original, evidencia (archivo del repo de

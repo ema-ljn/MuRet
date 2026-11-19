@@ -1,4 +1,5 @@
 #include "Scenes/AttackStep.h"
+#include "Scenes/AttackSkillCases.h"
 
 #include "Core/Expected.h"
 #include "Data/Terrain/TerrainAttributes.h"
@@ -18,6 +19,7 @@
 #include "World/GameModelEffects.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
+#include "World/WizardModelEffects.h"
 #include "World/PortableParticleTrigonometry.h"
 #include "World/TerrainLighting.h"
 
@@ -478,7 +480,7 @@ TEST(AttackStepTest, TheStrikeSoundFollowsTheOwnHands)
 }
 
 // Lo que corta, en su orden y con los rand() de antes: lo que crean los casos de la cabeza y con blanco (0x4fdeeb,
-// 0x504372, CL11), los efectos de los casos de 0x4f5b70 (0x4f7050), la partícula de 0x52e740 (0x5042ce, CL11) y, sin el
+// 0x504372, CL11), los efectos de los casos de 0x4f5b70 (0x4f67fb), la partícula de 0x52e740 (0x5042ce, CL11) y, sin el
 // pool de joints, los de +0x380 en 2 (0x505169). La flecha (0x53e2b0) ya no corta: sus cortes están en
 // test_arrow_effects.cpp. Los demás casos de 0x4f97b0, en test_attack_frame_skills.cpp; los de 0x4fdeeb y 0x504372, en
 // test_attack_skill_cases.cpp.
@@ -493,27 +495,22 @@ TEST(AttackStepTest, TheCutsAfterTheirDraws)
         int draws;
     };
     const std::array cases{
-        Case{"la habilidad 8",
+        Case{"la habilidad 0x0c",
              [](AttackWorld&, ActorState& hero)
              {
-                 hero.byte38e = 8;
+                 hero.byte38e = 0x0c;
                  hero.byte381 = 14;
              },
-             "0x500c49", CountingStep + SkillRead + OwnRecord},
-        Case{"la habilidad 7",
+             "0x500cb9", CountingStep + SkillRead + OwnRecord},
+        Case{"la habilidad 1",
              [](AttackWorld&, ActorState& hero)
              {
-                 hero.byte38e = 7;
+                 hero.byte38e = 1;
                  hero.byte381 = 14;
              },
-             "0x504768", CountingStep + 2 * SkillRead},
-        Case{"el caso 0x23 de +0x376",
-             [](AttackWorld&, ActorState& hero)
-             {
-                 hero.word376 = 0x23;
-                 hero.byte38e = 0x32;
-             },
-             "0x4f7050", SkillRead + 1 + SkillRead},
+             "0x50497e", CountingStep + 2 * SkillRead},
+        Case{"el caso 0x31 de +0x376", [](AttackWorld&, ActorState& hero) { hero.word376 = 0x31; }, "0x4f67fb",
+             SkillRead + 1},
         Case{"la 0x39",
              [](AttackWorld&, ActorState& hero)
              {
@@ -573,6 +570,28 @@ TEST(AttackStepTest, TheSkillThreeTailCreatesItsTwoLightningJoints)
     EXPECT_EQ(std::ranges::count_if(particles, [](const Client::World::Particle& particle)
                                     { return particle.alive && particle.type == Client::World::ThunderParticle; }),
               1);
+}
+
+// La luz local de 0x4fd5f0 llega a los casos: la 0x07 crea su 0xc1/0 sobre el blanco con ella (0x50474e), la de
+// Scenes::BodyLight o la que le pasa el cuerpo con la partícula 0x5ac (0x4fdb3f).
+TEST(AttackStepTest, TheSkillCasesTakeTheBodyLight)
+{
+    for (const glm::vec3& light : {Client::Scenes::BodyLight, glm::vec3(0.3f, 0.5f, 1.0f)})
+    {
+        AttackWorld tested;
+        ActorState& hero = tested.Striker(HeroSlot, 0x23, VictimSlot);
+        hero.byte38e = 7;
+        hero.byte381 = 14;
+
+        const auto stepped = StepTheAttack(hero, HeroSlot, tested.Context(), light);
+
+        ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
+        const auto ice = std::ranges::find_if(tested.world.Map().effects.Effects(), [](const auto& effect)
+                                              { return effect.alive && effect.type == Client::World::IceEffect; });
+        ASSERT_NE(ice, tested.world.Map().effects.Effects().end());
+        EXPECT_EQ(ice->light, light);
+        EXPECT_EQ(ice->transform.position, tested.Victim().position);
+    }
 }
 
 // 0x558eb0: la clave del elegido solo con el héroe que pega. −1 con otro, con un ítem en el cursor o sin elegido; el

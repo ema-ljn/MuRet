@@ -6,6 +6,7 @@
 #include "Data/Terrain/TerrainHeights.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
+#include "Render/Models/OriginalAngles.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ArrowEffects.h"
 #include "Scenes/CharacterStep.h"
@@ -18,6 +19,7 @@
 #include "World/KalimaWorld.h"
 #include "World/KalimaWaves.h"
 #include "World/Particles.h"
+#include "World/WizardModelEffects.h"
 #include "World/WorldTerrain.h"
 
 #include "support/PlayerActors.h"
@@ -211,11 +213,10 @@ TEST(AttackSkillCasesTest, TheHeadCasesCutAfterTheirDraws)
         int draws;
     };
     const std::array cases{
-        Case{0x30, "0x4fe127", 0},         Case{0x43, "0x4fe172", 0}, Case{0x45, "0x4fe360", 0},
-        Case{0x48, "0x4fe590", 0},         Case{0x35, "0x4fe856", 0}, Case{0x3f, "0x4feae8", 0},
-        Case{0x41, "0x4febbb", 0},         Case{0x31, "0x4fec15", 0}, Case{0x0a, "0x4fecf3", OwnRecord},
-        Case{0x28, "0x4ff4ef", 0},         Case{0x26, "0x4ff5b2", 0}, Case{0x08, "0x500c49", OwnRecord},
-        Case{0x0c, "0x500cb9", OwnRecord}, Case{0x0e, "0x51fe9e", 2}, Case{0x2c, "0x502975", 0},
+        Case{0x30, "0x4fe127", 0}, Case{0x43, "0x4fe172", 0},         Case{0x45, "0x4fe360", 0},
+        Case{0x48, "0x4fe590", 0}, Case{0x35, "0x4fe856", 0},         Case{0x41, "0x4febbb", 0},
+        Case{0x31, "0x4fec15", 0}, Case{0x0c, "0x500cb9", OwnRecord}, Case{0x0e, "0x51fe9e", 2},
+        Case{0x2c, "0x502975", 0},
     };
     for (const std::int32_t map : Maps)
     {
@@ -310,9 +311,9 @@ TEST(AttackSkillCasesTest, AnOpenOwnRecordFindsTheSkillWithoutDraws)
     SkillWorld tested;
     tested.world.Runtime().ownRecordDepth = 1;
 
-    const auto stepped = tested.Head(0x08);
+    const auto stepped = tested.Head(0x0c);
 
-    EXPECT_TRUE(HasError(stepped, "0x500c49")) << ErrorOf(stepped);
+    EXPECT_TRUE(HasError(stepped, "0x500cb9")) << ErrorOf(stepped);
     EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
 }
 
@@ -738,7 +739,8 @@ TEST(AttackSkillCasesTest, TheStrikeAroundCutsWhereItReads)
     }
 }
 
-// Los casos con blanco que crean lo que MuRet no tiene (CL11), sin rand() antes.
+// Los casos con blanco que crean lo que MuRet no tiene (CL11), sin rand() antes; el 0x20a de la 0x01 crea antes su
+// 0xc3 (sin rand()).
 TEST(AttackSkillCasesTest, TheTargetCasesCutWithoutDraws)
 {
     struct Case
@@ -748,11 +750,9 @@ TEST(AttackSkillCasesTest, TheTargetCasesCutWithoutDraws)
         std::string_view cut;
     };
     const std::array cases{
-        Case{0x07, 0x20a, "0x504768"}, Case{0x01, 0x20a, "0x504926"}, Case{0x01, 0x0e, "0x50497e"},
-        Case{0x02, 0x20a, "0x5049ef"}, Case{0x2d, 0x20a, "0x504a3a"}, Case{0x49, 0x20a, "0x504b33"},
-        Case{0x4a, 0x20a, "0x504b80"}, Case{0x04, 0x20a, "0x504bce"}, Case{0x0b, 0x164, "0x504c38"},
-        Case{0x0b, 0x20a, "0x504cc0"}, Case{0x3c, 0x20a, "0x504d05"}, Case{0x3d, 0x20a, "0x504e40"},
-        Case{0x11, 0x15e, "0x50501a"}, Case{0x11, 0x20a, "0x505053"},
+        Case{0x01, 0x20a, "0x50497e"}, Case{0x01, 0x0e, "0x50497e"},  Case{0x2d, 0x20a, "0x504a3a"},
+        Case{0x49, 0x20a, "0x504b33"}, Case{0x4a, 0x20a, "0x504b80"}, Case{0x3c, 0x20a, "0x504d05"},
+        Case{0x3d, 0x20a, "0x504e40"}, Case{0x11, 0x20a, "0x505053"},
     };
     for (const std::int32_t map : Maps)
     {
@@ -1160,6 +1160,8 @@ TEST(AttackSkillCasesTest, TheFullPoolsPreserveEveryHeadTail)
         actor.skillTarget4c = static_cast<std::int32_t>(VictimSlot);
         actor.attackTarget = static_cast<std::uint16_t>(VictimSlot);
         actor.flags78 = probe.skill == 0x48 ? 0x8000u : 0u;
+        if (probe.skill == 0x26)
+            Flatten(tested.world);
         for (auto& effect : tested.world.Map().effects.Effects())
             effect.alive = true;
         for (auto& joint : tested.joints)
@@ -1341,6 +1343,316 @@ TEST(AttackSkillCasesTest, AFullEffectPoolStillDisturbsKalimaWhenItsOwnerExists)
             EXPECT_NE(waves.planes[0][126 * 256 + 128], 0u);
             EXPECT_EQ(waves.planes[0][0], 0u);
         }
+    }
+}
+
+// Los efectos vivos de un tipo, en el orden de la tabla.
+std::vector<const Client::World::ModelEffect*> AliveOfType(const WorldState& world, std::int16_t type)
+{
+    std::vector<const Client::World::ModelEffect*> found;
+    for (const Client::World::ModelEffect* effect : AliveEffects(world))
+    {
+        if (effect->type == type)
+            found.push_back(effect);
+    }
+    return found;
+}
+
+// 0x5042d3..0x504324: el rumbo de o al blanco.
+float HeadingTo(const ActorState& from, const ActorState& to)
+{
+    return static_cast<float>(
+        Client::Render::Models::CreateAngle(from.position.x, from.position.y, to.position.x, to.position.y));
+}
+
+// 0x4feabb..0x4feb36, la 0x3f: el 0xcb/2 con o de dueño y el 0xcc/3 sin dueño, los dos sobre o con su luz (vida 250,
+// sin rand()), y el sonido 0x1cb desde o.
+TEST(AttackSkillCasesTest, TheRaisedRingsGoOverTheStriker)
+{
+    SkillWorld tested;
+    ActorState& striker = tested.Striker();
+    striker.position = glm::vec3(1250.0f, 3350.0f, 120.0f);
+    striker.angles = glm::vec3(0.0f, 0.0f, 45.0f);
+    striker.light = glm::vec3(0.5f, 0.25f, 1.0f);
+
+    ASSERT_TRUE(tested.Head(0x3f).HasValue());
+
+    const auto inner = AliveOfType(tested.world, Client::World::InnerCircleEffect);
+    const auto outer = AliveOfType(tested.world, Client::World::OuterCircleEffect);
+    ASSERT_EQ(inner.size(), 1u);
+    ASSERT_EQ(outer.size(), 1u);
+    EXPECT_EQ(inner.front()->subtype, 2);
+    EXPECT_EQ(inner.front()->life, 250);
+    EXPECT_EQ(inner.front()->ownerContext, &striker);
+    EXPECT_EQ(inner.front()->transform.position, striker.position);
+    EXPECT_EQ(inner.front()->light, striker.light);
+    EXPECT_EQ(outer.front()->subtype, 3);
+    EXPECT_EQ(outer.front()->life, 250);
+    EXPECT_EQ(outer.front()->ownerContext, nullptr);
+    EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
+    EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x1cb}));
+    ASSERT_EQ(tested.soundOrigins.size(), 1u);
+    EXPECT_EQ(tested.soundOrigins.front(), striker.position);
+}
+
+// 0x4fecb5..0x4fed2a, la 0x0a con otro que el héroe: 0x59fb80(0xa), el 0xcb/0 con o de dueño, +0x8a de o y el lugar de
+// la skill en +0x89 (sin el registro propio ni los blancos, que son del héroe), el 0xcc/0 sin dueño y el sonido 0x77.
+TEST(AttackSkillCasesTest, TheHellfireLeavesBothCirclesOverTheStriker)
+{
+    SkillWorld tested;
+    ActorState& striker = tested.Striker();
+    striker.position = glm::vec3(1250.0f, 3350.0f, 120.0f);
+    striker.word8a = 0x0123;
+    tested.world.OwnCharacter().SetSkillAt(3, 0x0a);
+    tested.world.OwnCharacter().bytef04 = 0x41;
+
+    ASSERT_TRUE(tested.Head(0x0a).HasValue());
+
+    const auto inner = AliveOfType(tested.world, Client::World::InnerCircleEffect);
+    const auto outer = AliveOfType(tested.world, Client::World::OuterCircleEffect);
+    ASSERT_EQ(inner.size(), 1u);
+    ASSERT_EQ(outer.size(), 1u);
+    EXPECT_EQ(inner.front()->subtype, 0);
+    EXPECT_EQ(inner.front()->life, 45);
+    EXPECT_EQ(inner.front()->ownerContext, &striker);
+    EXPECT_EQ(inner.front()->disturbanceState, 0x0123);
+    EXPECT_EQ(inner.front()->byte89, 3);
+    EXPECT_EQ(outer.front()->subtype, 0);
+    EXPECT_EQ(outer.front()->life, 40);
+    EXPECT_EQ(outer.front()->ownerContext, nullptr);
+    EXPECT_EQ(outer.front()->disturbanceState, 0xffff);
+    EXPECT_EQ(tested.world.OwnCharacter().bytef04, 0x41);
+    EXPECT_EQ(DrawsSince(Seed, tested.random), OwnRecord);
+    EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x77}));
+}
+
+// 0x4ff4c3..0x4ff514, la 0x28: el 0xcb/1 oculto (+0x58 en −2) con o de dueño, sin rand(), y el sonido 0x93.
+TEST(AttackSkillCasesTest, TheHiddenCircleGoesWithTheStriker)
+{
+    SkillWorld tested;
+    ActorState& striker = tested.Striker();
+
+    ASSERT_TRUE(tested.Head(0x28).HasValue());
+
+    const auto inner = AliveOfType(tested.world, Client::World::InnerCircleEffect);
+    ASSERT_EQ(inner.size(), 1u);
+    EXPECT_EQ(inner.front()->subtype, 1);
+    EXPECT_EQ(inner.front()->objectState.hiddenMesh, -2);
+    EXPECT_EQ(inner.front()->ownerContext, &striker);
+    EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
+    EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x93}));
+}
+
+// 0x4ff51c..0x4ff5f2, la 0x26: dos 0xc2/6 en el centro de la celda de la skill a la altura del terreno, con la luz
+// (0,8f; 0,5; 0,1f), sin dueño y la clave 0 (+0xd8 en 0), cada uno 500 a 799 más alto; después el sonido 0x8e y, con
+// el héroe, la tanda en +0xf04. El joint 0x5f2/0 de cada uno (0x51b098) es de la CL11: corta en el del primero,
+// después de sus cinco rand(). Sin las alturas, corta antes del primero y sin rand().
+TEST(AttackSkillCasesTest, TheMeteorsCutInTheirFirstTrail)
+{
+    SkillWorld tested;
+    Flatten(tested.world);
+    ActorState& striker = tested.Striker();
+    striker.skillCellX = 120;
+    striker.skillCellY = 33;
+
+    const auto stepped = tested.Head(0x26);
+    EXPECT_TRUE(HasError(stepped, "0x4ff5b2")) << ErrorOf(stepped);
+    EXPECT_TRUE(HasError(stepped, "0x51b098")) << ErrorOf(stepped);
+
+    const auto meteors = AliveOfType(tested.world, Client::World::FireEffect);
+    ASSERT_EQ(meteors.size(), 1u);
+    const Client::World::ModelEffect& meteor = *meteors.front();
+    EXPECT_EQ(meteor.subtype, 6);
+    EXPECT_EQ(meteor.ownerContext, nullptr);
+    EXPECT_EQ(meteor.speed, 0.0f);
+    EXPECT_EQ(meteor.light, glm::vec3(0.8f, 0.5f, 0.1f));
+    EXPECT_GE(meteor.transform.position.x, 12050.0f + 200.0f);
+    EXPECT_LT(meteor.transform.position.x, 12050.0f + 300.0f);
+    EXPECT_GE(meteor.transform.position.z, 150.0f + 500.0f);
+    EXPECT_LT(meteor.transform.position.z, 150.0f + 800.0f);
+    EXPECT_EQ(DrawsSince(Seed, tested.random), 5);
+    EXPECT_TRUE(tested.sounds.empty());
+
+    SkillWorld bare;
+    EXPECT_TRUE(HasError(bare.Head(0x26), "0x4ff570"));
+    EXPECT_EQ(DrawsSince(Seed, bare.random), 0);
+    EXPECT_TRUE(AliveEffects(bare.world).empty());
+}
+
+// 0x500c10..0x500c5c, la 0x08: 0x59fb80(8) y el 0xcf/0 sobre o con la luz local de 0x4fd5f0, o de dueño, +0x8a de o y
+// el lugar en +0x89, a la altura del terreno; su alta cuenta en el registro propio (+0x8c con la cuenta, que sube).
+// Después, el sonido 0x74.
+TEST(AttackSkillCasesTest, TheTwisterTakesTheBodyLight)
+{
+    for (const glm::vec3& light : {Client::Scenes::BodyLight, glm::vec3(0.3f, 0.5f, 1.0f)})
+    {
+        SkillWorld tested;
+        Flatten(tested.world);
+        ActorState& striker = tested.Striker();
+        striker.position = glm::vec3(1250.0f, 3350.0f, 20.0f);
+        striker.light = glm::vec3(0.5f, 0.25f, 1.0f);
+        striker.word8a = 0x0123;
+        tested.world.OwnCharacter().SetSkillAt(3, 0x08);
+        tested.world.OwnCharacter().bytef04 = 0x41;
+
+        const auto stepped = StepTheHeadSkill(striker, StrikerSlot, 0x08, tested.Context(), light);
+        ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
+
+        const auto storms = AliveOfType(tested.world, Client::World::StormEffect);
+        ASSERT_EQ(storms.size(), 1u);
+        const Client::World::ModelEffect& storm = *storms.front();
+        EXPECT_EQ(storm.subtype, 0);
+        EXPECT_EQ(storm.light, light);
+        EXPECT_EQ(storm.ownerContext, &striker);
+        EXPECT_EQ(storm.disturbanceState, 0x0123);
+        EXPECT_EQ(storm.byte89, 3);
+        EXPECT_EQ(storm.word8c, 0x41);
+        EXPECT_EQ(storm.transform.position.z, 150.0f);
+        EXPECT_EQ(tested.world.OwnCharacter().bytef04, 0x42);
+        EXPECT_EQ(DrawsSince(Seed, tested.random), 2 * OwnRecord);
+        EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x74}));
+    }
+}
+
+// 0x504740..0x504800, la 0x07: el 0xc1/0 sobre el blanco con los ángulos de o y la luz local, cinco pedazos de hielo
+// 0xca (cinco rand() cada uno), con +0x38d el 2 en +0x78 del blanco y el sonido 0x78.
+TEST(AttackSkillCasesTest, TheIceFreezesTheTarget)
+{
+    for (const std::uint8_t succeeded : {std::uint8_t{0}, std::uint8_t{1}})
+    {
+        SCOPED_TRACE(int{succeeded});
+        SkillWorld tested;
+        ActorState& striker = tested.Striker();
+        striker.skillSucceeded = succeeded;
+        striker.angles = glm::vec3(0.0f, 0.0f, 90.0f);
+        ActorState& victim = tested.Victim();
+        victim.position = glm::vec3(2250.0f, 1350.0f, 80.0f);
+        const glm::vec3 light(0.3f, 0.5f, 1.0f);
+
+        const auto stepped = StepTheTargetSkill(striker, victim, StrikerSlot, 0x07, tested.Context(), light);
+        ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
+
+        const auto ice = AliveOfType(tested.world, Client::World::IceEffect);
+        ASSERT_EQ(ice.size(), 1u);
+        EXPECT_EQ(ice.front()->subtype, 0);
+        EXPECT_EQ(ice.front()->life, 50);
+        EXPECT_EQ(ice.front()->light, light);
+        EXPECT_EQ(ice.front()->transform.position, victim.position);
+        EXPECT_EQ(AliveOfType(tested.world, Client::World::IceShardEffect).size(), 5u);
+        EXPECT_EQ(DrawsSince(Seed, tested.random), 25);
+        EXPECT_EQ(victim.flags78, succeeded != 0 ? 2u : 0u);
+        EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x78}));
+    }
+}
+
+// 0x5049bf..0x5049fd, la 0x02: el 0xc2/0 sobre el blanco con sus ángulos y la luz de o, y el sonido 0x42. 0x504b9e, la
+// 0x04: el 0xc2/1 desde o hacia el blanco, con él de dueño, y el mismo sonido.
+TEST(AttackSkillCasesTest, TheFiresGoToTheTarget)
+{
+    {
+        SkillWorld tested;
+        tested.Striker().light = glm::vec3(0.5f, 0.25f, 1.0f);
+        ActorState& victim = tested.Victim();
+        victim.position = glm::vec3(2250.0f, 1350.0f, 80.0f);
+
+        ASSERT_TRUE(tested.WithTarget(0x02).HasValue());
+
+        const auto fires = AliveOfType(tested.world, Client::World::FireEffect);
+        ASSERT_EQ(fires.size(), 1u);
+        EXPECT_EQ(fires.front()->subtype, 0);
+        EXPECT_EQ(fires.front()->ownerContext, nullptr);
+        EXPECT_EQ(fires.front()->light, tested.Striker().light);
+        EXPECT_EQ(fires.front()->transform.position.z, 480.0f);
+        EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x42}));
+    }
+    {
+        SkillWorld tested;
+        ActorState& striker = tested.Striker();
+        striker.position = glm::vec3(1250.0f, 3350.0f, 20.0f);
+        striker.angles = glm::vec3(5.0f, 7.0f, 90.0f);
+        ActorState& victim = tested.Victim();
+        victim.position = glm::vec3(2250.0f, 1350.0f, 80.0f);
+
+        ASSERT_TRUE(tested.WithTarget(0x04).HasValue());
+
+        const auto fires = AliveOfType(tested.world, Client::World::FireEffect);
+        ASSERT_EQ(fires.size(), 1u);
+        EXPECT_EQ(fires.front()->subtype, 1);
+        EXPECT_EQ(fires.front()->ownerContext, &victim);
+        EXPECT_EQ(fires.front()->transform.angles, glm::vec3(5.0f, 7.0f, HeadingTo(striker, victim)));
+        EXPECT_EQ(fires.front()->transform.position.z, 140.0f);
+        EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x42}));
+    }
+}
+
+// 0x504be9..0x504cce, la 0x0b: el 0xce/0 desde o hacia el blanco; el 0x164 crea antes dos más, con el rumbo 10 más y
+// 10 menos. El sonido 0x76.
+TEST(AttackSkillCasesTest, ThePowerWaveFansOutForTheTriple)
+{
+    for (const std::uint16_t type : {std::uint16_t{0x20a}, std::uint16_t{0x164}})
+    {
+        SCOPED_TRACE(type);
+        SkillWorld tested;
+        ActorState& striker = tested.Striker();
+        striker.type = type;
+        striker.position = glm::vec3(1250.0f, 3350.0f, 20.0f);
+        ActorState& victim = tested.Victim();
+        victim.position = glm::vec3(2250.0f, 1350.0f, 80.0f);
+        const float heading = HeadingTo(striker, victim);
+
+        ASSERT_TRUE(tested.WithTarget(0x0b).HasValue());
+
+        const auto waves = AliveOfType(tested.world, Client::World::MagicEffect);
+        std::vector<float> headings;
+        for (const Client::World::ModelEffect* wave : waves)
+        {
+            EXPECT_EQ(wave->subtype, 0);
+            EXPECT_EQ(wave->ownerContext, nullptr);
+            headings.push_back(wave->transform.angles.z);
+        }
+        const auto turned = [heading](double by) { return static_cast<float>(static_cast<double>(heading) + by); };
+        const float back = turned(10.0);
+        const float other = static_cast<float>(static_cast<double>(back) - 20.0);
+        const float last = static_cast<float>(static_cast<double>(other) + 10.0);
+        EXPECT_EQ(headings, type == 0x164 ? (std::vector<float>{back, other, last}) : (std::vector<float>{heading}));
+        EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
+        EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x76}));
+    }
+}
+
+// 0x504fdc..0x505022, la 0x11 del 0x15e: el 0xd7/0 desde o hacia el blanco, con él de dueño, sin sonido. 0x5048f1, la
+// 0x01 del 0x20a: el 0xc3/0 sobre el blanco, antes de las partículas.
+TEST(AttackSkillCasesTest, TheSnowballAndThePoisonFindTheTarget)
+{
+    {
+        SkillWorld tested;
+        ActorState& striker = tested.Striker();
+        striker.type = 0x15e;
+        striker.position = glm::vec3(1250.0f, 3350.0f, 20.0f);
+        ActorState& victim = tested.Victim();
+        victim.position = glm::vec3(2250.0f, 1350.0f, 80.0f);
+
+        ASSERT_TRUE(tested.WithTarget(0x11).HasValue());
+
+        const auto snow = AliveOfType(tested.world, Client::World::SnowEffect);
+        ASSERT_EQ(snow.size(), 1u);
+        EXPECT_EQ(snow.front()->ownerContext, &victim);
+        EXPECT_EQ(snow.front()->transform.angles.z, HeadingTo(striker, victim));
+        EXPECT_TRUE(tested.sounds.empty());
+    }
+    {
+        SkillWorld tested;
+        tested.Striker().type = 0x20a;
+        ActorState& victim = tested.Victim();
+        victim.position = glm::vec3(2250.0f, 1350.0f, 80.0f);
+
+        EXPECT_TRUE(HasError(tested.WithTarget(0x01), "0x50497e"));
+
+        const auto poison = AliveOfType(tested.world, Client::World::PoisonEffect);
+        ASSERT_EQ(poison.size(), 1u);
+        EXPECT_EQ(poison.front()->transform.position, victim.position);
+        EXPECT_EQ(poison.front()->life, 40);
+        EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
     }
 }
 

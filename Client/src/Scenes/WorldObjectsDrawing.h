@@ -95,6 +95,9 @@ struct ObjectFrameEffects
     bool publishProjectedPose = false;
     // 0x5763538 (WorldRuntime::objectDrawCounter): 0x6046a0 la cuenta una vez por frame original, como en el juego.
     std::int32_t* objectDrawCounter = nullptr;
+    // Un corte de 0x602ed0 (CL11): el meteoro 0xc2/9 del objeto 0x59 del mapa 55 (0x604427), que va a la tabla de los
+    // efectos con modelo, que el login no da. Después de un corte no siguen los efectos ni los brillos de los objetos.
+    std::function<void(const std::string&)> onFailure{};
 };
 
 // 0x6046a0 con `objects`: por sector, en World::DrawOrder; el sector que pasa el trapecio en su centro

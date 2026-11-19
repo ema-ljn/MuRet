@@ -16,12 +16,14 @@
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/JointFamilies.h"
 #include "Scenes/JointKernels.h"
+#include "Scenes/WizardEffects.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
 #include "World/OriginalFtol.h"
 #include "World/Particles.h"
+#include "World/WizardModelEffects.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -247,6 +249,25 @@ Core::Unexpected<std::string> CutAt(std::uint32_t address, std::string_view what
     return Core::Unexpected(
         std::format("{:#x}: {} del lugar {} (tipo {:#x}, +0x376 en {:#x}, +0x381 en {}), sin portar", address, what,
                     slot, actor.type, actor.word376, actor.byte381));
+}
+
+// La luz (0,8f; 0,5; 0,1f) de los fuegos 0xc2/6, /7 y /8 (0x439c1f, 0x43b172 y 0x4f8272).
+constexpr glm::vec3 MeteorLight{std::bit_cast<float>(0x3f4ccccdu), 0.5f, std::bit_cast<float>(0x3dcccccdu)};
+
+// El alta de un efecto de los magos (Scenes::CreateWizardEffect). Con la tabla llena, nada y sin rand(); lo que el
+// efecto pide y MuRet no tiene corta con la dirección de la llamada.
+Core::Expected<void, std::string> CreateWizard(std::uint32_t address, const World::ModelEffectArguments& arguments,
+                                               const ActorState& actor, std::size_t slot,
+                                               const CharacterStepContext& context)
+{
+    const auto created = CreateWizardEffect(context, arguments);
+    if (!created.HasValue())
+    {
+        return Core::Unexpected(std::format("{:#x}: el efecto {:#x}/{} del lugar {} (tipo {:#x}, +0x376 en {:#x}): {}",
+                                            address, arguments.type, arguments.subtype, slot, actor.type, actor.word376,
+                                            created.Error()));
+    }
+    return {};
 }
 
 // 0x4ec110(modelo, huesos propios + hueso · 0x30, offset, punto, 1) con la escala y la posición que 0x4fd69b copió
@@ -535,6 +556,40 @@ Core::Expected<void, std::string> LaunchTheFiveStabs(ActorState& actor, const Ch
     return {};
 }
 
+// 0x439bd0(c, +0x381, 13), la habilidad 1 de Kalima: rand() % 360 en la z de un giro (fild, guardado en float); cinco
+// veces, la z 72 más (fadd y fstp), el punto (0, 300, 0) girado por él (0x5fc8f0 y 0x5fcbd0) más la posición de c,
+// cada eje en la x87, y 0x518cf0(0xc2, punto, c+0x1c, (0,8f; 0,5; 0,1f), 8, sin dueño, 0, …); después el sonido 0x1e0.
+Core::Expected<void, std::string> ThrowTheFireRing(const ActorState& actor, std::size_t slot,
+                                                   const CharacterStepContext& context)
+{
+    constexpr int Fires = 5;
+    constexpr double FireTurn = 72.0; // 0x6b8ba0
+    constexpr glm::vec3 FireReach{0.0f, 300.0f, 0.0f};
+    constexpr std::int32_t FireSubtype = 8;
+    constexpr std::uint16_t FireKey = 0;
+    constexpr std::int32_t BurstSound = 0x1e0;
+    constexpr int FullTurn = 360;
+    glm::vec3 turn{0.0f, 0.0f, static_cast<float>(context.random.Next() % FullTurn)};
+    for (int fire = 0; fire < Fires; ++fire)
+    {
+        turn.z = static_cast<float>(static_cast<double>(turn.z) + FireTurn);
+        const glm::vec3 reach =
+            Render::Models::OriginalVectorRotate(FireReach, Render::Models::OriginalAngleMatrix(turn));
+        glm::vec3 point{};
+        for (int axis = 0; axis < 3; ++axis)
+            point[axis] =
+                static_cast<float>(static_cast<double>(reach[axis]) + static_cast<double>(actor.position[axis]));
+        if (auto created = CreateWizard(
+                0x439ca6,
+                WizardArguments(World::FireEffect, point, actor.angles, MeteorLight, FireSubtype, nullptr, FireKey),
+                actor, slot, context);
+            !created.HasValue())
+            return created;
+    }
+    RequestTheSound(context, BurstSound);
+    return {};
+}
+
 // 0x43aa46..0x43ab01 y sus copias de 0x43b47c y 0x43b7e7: el switch por la habilidad leída (las tablas de bytes de
 // 0x43b9a0, 0x43ba84 y 0x43bb68; los demás no hacen nada), todos con +0x381 desde 13 (JL o JC, el byte sin signo).
 Core::Expected<void, std::string> StepTheKalimaSkill(ActorState& actor, std::uint8_t skill, std::size_t slot,
@@ -569,16 +624,24 @@ Core::Expected<void, std::string> StepTheKalimaSkill(ActorState& actor, std::uin
     switch (skill)
     {
     case BurstSkill:
-        // 0x439bd0(c, +0x381, 13): rand() % 360, el giro de los cinco 0x518cf0(0xc2/8) alrededor de c y
-        // 0x41ed10(0x1e0).
-        static_cast<void>(context.random.Next());
-        return CutAt(0x439ca6, "el primero de los cinco efectos 0xc2/8 de 0x439bd0 (CL11)", actor, slot);
+        return ThrowTheFireRing(actor, slot, context);
     case RingSkill:
         // 0x439b20(c, +0x381, 13, 200,0f): tres 0x518cf0(0x11b/1) sobre c y 0x41ed10(0x1df), sin rand() antes.
         return CutAt(0x439ba5, "el primero de los tres efectos 0x11b/1 de 0x439b20 (CL11)", actor, slot);
     case ShieldSkill:
-        // 0x439cd0(c, +0x381, 13): 0x518cf0(0xcb/3) y 0x518cf0(0xcc/4) sobre c.
-        return CutAt(0x439d09, "los efectos 0xcb/3 y 0xcc/4 de 0x439cd0 (CL11)", actor, slot);
+    {
+        // 0x439cd0(c, +0x381, 13): 0x518cf0(0xcb, c+0x10, c+0x1c, c+0xf4, 3, c, −1, …) y (0xcc, …, 4, sin dueño, −1,
+        // …), sin sonido.
+        if (auto inner = CreateWizard(
+                0x439d09,
+                WizardArguments(World::InnerCircleEffect, actor.position, actor.angles, actor.light, 3, &actor), actor,
+                slot, context);
+            !inner.HasValue())
+            return inner;
+        return CreateWizard(0x439d24,
+                            WizardArguments(World::OuterCircleEffect, actor.position, actor.angles, actor.light, 4),
+                            actor, slot, context);
+    }
     case WardSkill:
     case GuardSkill:
         // 0x43aabf..0x43aaf7: +0x78 de c con 0x100 (0xc9) o 0x8 (0xca), +0x381 en 15 y 0x41ed10(0x1e1, 0, 0).
@@ -669,20 +732,33 @@ Core::Expected<Helped, std::string> StepKalima(ActorState& actor, const KindCase
             return Helped::Exit;
         if (skill == BurstSkill)
         {
-            // 0x43b18f..0x43b1f4: tres veces, rand() % 200 − 100 para la x y la y alrededor del héroe y
-            // 0x518cf0(0xc2/7); corta en el primero, después de sus dos rand().
-            constexpr int Iterations = 3;
-            constexpr int RandomsPerIteration = 2;
-            if (!HasFreeModelEffect(context))
+            // 0x43b172..0x43b1fd: tres veces, rand() % 200 − 100 sumado (fild y fadd) a la x y a la y del héroe
+            // ([0x743a170]), con su z, y 0x518cf0(0xc2, punto, c+0x1c, (0,8f; 0,5; 0,1f), 7, sin dueño, 0, …).
+            constexpr int Fires = 3;
+            constexpr int Spread = 200;
+            constexpr int Centre = 100;
+            constexpr std::int32_t FireSubtype = 7;
+            constexpr std::uint16_t FireKey = 0;
+            for (int fire = 0; fire < Fires; ++fire)
             {
-                for (int iteration = 0; iteration < Iterations; ++iteration)
-                    for (int draw = 0; draw < RandomsPerIteration; ++draw)
-                        static_cast<void>(context.random.Next());
-                return Helped::Exit;
+                const auto around = [&context](float axis)
+                {
+                    const int offset = context.random.Next() % Spread - Centre;
+                    return static_cast<float>(static_cast<double>(offset) + static_cast<double>(axis));
+                };
+                const ActorState& hero = context.world.Actors()[context.world.Runtime().hero];
+                glm::vec3 point{};
+                point.x = around(hero.position.x);
+                point.y = around(hero.position.y);
+                point.z = hero.position.z;
+                if (auto created = CreateWizard(0x43b1f4,
+                                                WizardArguments(World::FireEffect, point, actor.angles, MeteorLight,
+                                                                FireSubtype, nullptr, FireKey),
+                                                actor, slot, context);
+                    !created.HasValue())
+                    return Core::Unexpected(created.Error());
             }
-            for (int draw = 0; draw < RandomsPerIteration; ++draw)
-                static_cast<void>(context.random.Next());
-            return CutAt(0x43b1f4, "el primero de los tres efectos 0xc2/7 alrededor del héroe (CL11)", actor, slot);
+            return Helped::Exit;
         }
         // 0x43b045..0x43b0ed: con 0x11 y el blanco de +0x3a4 de c en [0, 400), 0x4ec110 con el hueso 60 y tres joints
         // 0x610/6 hacia el blanco.
@@ -744,12 +820,21 @@ Core::Expected<Helped, std::string> StepTheDoppelganger(const ActorState& actor,
     switch (found.address)
     {
     case 0x42914b:
-        // Cinco veces la misma pregunta (0x429152..0x4291a6): corta en la primera.
+        // 0x429152..0x4291a6: cinco veces, en la 3, 0x518cf0(0xcf, c+0x10, c+0x1c, (1, 1, 1), 3 + vuelta, sin dueño,
+        // −1, …): los cinco remolinos chicos (0xcf/3 a /7).
         if (action == FirstAttack)
         {
-            if (!HasFreeModelEffect(context))
-                return Helped::Exit;
-            return CutAt(0x42919a, "el primero de los cinco efectos 0xcf/3 (CL11)", actor, slot);
+            constexpr int Twisters = 5;
+            constexpr std::int32_t FirstTwister = 3;
+            for (int twister = 0; twister < Twisters; ++twister)
+            {
+                if (auto created = CreateWizard(0x42919a,
+                                                WizardArguments(World::StormEffect, actor.position, actor.angles,
+                                                                glm::vec3(1.0f), FirstTwister + twister),
+                                                actor, slot, context);
+                    !created.HasValue())
+                    return Core::Unexpected(created.Error());
+            }
         }
         return Helped::Exit;
     case 0x4291b1:
@@ -950,15 +1035,53 @@ Core::Expected<Helped, std::string> StepTheMapHelpers(ActorState& actor, std::si
     return Helped::Continue;
 }
 
-// Dos rand() & 0x3ff antes del 0xc2: con un slot de modelo libre conserva el corte; pool lleno omite ese intento.
-Core::Expected<void, std::string> ScatterAndCut(std::uint32_t address, const ActorState& actor, std::size_t slot,
-                                                const CharacterStepContext& context)
+// 0x4f6f53..0x4f6fc5 (y 0x4f70ee, 0x4f78be y 0x4f8063): dos rand() & 0x3ff (con signo, 0x800003ff), el punto
+// (rand + x − 512, rand + y − 512, z) de c, cada eje con fild, fadd y fsub en la x87, y 0x518cf0(0xc2, punto, c+0x1c,
+// c+0xf4, 0, sin dueño, −1, …). El sonido 0x42 de después lo pide el caso.
+Core::Expected<void, std::string> ScatterTheFire(std::uint32_t address, const ActorState& actor, std::size_t slot,
+                                                 const CharacterStepContext& context)
 {
-    static_cast<void>(context.random.Next());
-    static_cast<void>(context.random.Next());
-    if (!HasFreeModelEffect(context))
-        return {};
-    return CutAt(address, "el efecto 0xc2 alrededor del que pega (CL11)", actor, slot);
+    constexpr int Spread = 0x3ff;
+    constexpr double Centre = 512.0; // 0x6ba16c
+    const auto around = [&context](float axis)
+    {
+        const int offset = static_cast<int>(context.random.Next() & Spread);
+        return static_cast<float>((static_cast<double>(offset) + static_cast<double>(axis)) - Centre);
+    };
+    glm::vec3 point{};
+    point.x = around(actor.position.x);
+    point.y = around(actor.position.y);
+    point.z = actor.position.z;
+    return CreateWizard(address, WizardArguments(World::FireEffect, point, actor.angles, actor.light, 0), actor, slot,
+                        context);
+}
+
+// 0x4f6e51..0x4f6f40: el punto del hueso 11 (0x4ec110 con (0, 0, 0)) y tres 0x518cf0(0xc2, punto, ángulos, c+0xf4, 2,
+// sin dueño, −1, …), con los ángulos de c corridos (x − 20, z − 30), (x − 30) y (x − 20, z + 30), cada uno con fld,
+// fsub o fadd y fstp.
+Core::Expected<void, std::string> SpreadTheFires(const ActorState& actor, std::size_t slot,
+                                                 const CharacterStepContext& context)
+{
+    constexpr std::size_t FireBone = 11;
+    constexpr std::int32_t FallingSubtype = 2;
+    constexpr double Tilt = 20.0;  // 0x6b86d0
+    constexpr double Steep = 30.0; // 0x6b8858
+    const auto shifted = [](float axis, double by) { return static_cast<float>(static_cast<double>(axis) + by); };
+    const glm::vec3 point = BonePoint(actor, FireBone, glm::vec3(0.0f), context);
+    const glm::vec3& angles = actor.angles;
+    const std::array<std::pair<std::uint32_t, glm::vec3>, 3> fires{
+        std::pair{0x4f6ec5u, glm::vec3(shifted(angles.x, -Tilt), angles.y, shifted(angles.z, -Steep))},
+        std::pair{0x4f6efeu, glm::vec3(shifted(angles.x, -Steep), angles.y, angles.z)},
+        std::pair{0x4f6f40u, glm::vec3(shifted(angles.x, -Tilt), angles.y, shifted(angles.z, Steep))}};
+    for (const auto& [address, turned] : fires)
+    {
+        if (auto created =
+                CreateWizard(address, WizardArguments(World::FireEffect, point, turned, actor.light, FallingSubtype),
+                             actor, slot, context);
+            !created.HasValue())
+            return created;
+    }
+    return {};
 }
 
 // 0x51fff0: ocho estallidos alrededor del monstruo, cada uno con dos intentos de piedra.
@@ -1089,50 +1212,59 @@ Core::Expected<void, std::string> StepTheKindCase(ActorState& actor, const KindC
         return {};
     }
     case 0x4f6b78:
-        // +0x38e; con '2': en 1, tres 0xc2/2 y sonido 0x42; después, dos rand() y 0xc2.
+        // +0x38e; con '2': en 1, tres 0xc2/2 del hueso 11 y el sonido 0x42; después, en todos, dos rand() y el 0xc2.
         if (ReadTheSkill(actor, context.random) != CaseSkill)
             return {};
         if (actor.byte381 == FirstStep)
         {
-            if (!HasFreeModelEffect(context))
-            {
-                RequestTheSound(context, HitSound);
-                static_cast<void>(context.random.Next());
-                static_cast<void>(context.random.Next());
-                RequestTheSound(context, HitSound);
-                return {};
-            }
-            return CutAt(0x4f6ec5, "el primero de los tres efectos 0xc2/2 del hueso 11 (CL11)", actor, slot);
+            if (auto spread = SpreadTheFires(actor, slot, context); !spread.HasValue())
+                return spread;
+            RequestTheSound(context, HitSound);
         }
-        if (auto effect = ScatterAndCut(0x4f6fc5, actor, slot, context); !effect.HasValue())
+        if (auto effect = ScatterTheFire(0x4f6fc5, actor, slot, context); !effect.HasValue())
             return effect;
         RequestTheSound(context, HitSound);
         return {};
     case 0x4f6fea:
-        // 0x517630; con '2' y en 1, dieciocho 0xc2/1 y sonido 0x42; pool lleno, conserva el sonido.
-        if (ReadTheSkill(actor, context.random) == CaseSkill && actor.byte381 == FirstStep &&
-            HasFreeModelEffect(context))
-            return CutAt(0x4f7050, "el primero de los dieciocho efectos 0xc2/1 (CL11)", actor, slot);
-        if (actor.byte38e == CaseSkill && actor.byte381 == FirstStep)
-            RequestTheSound(context, HitSound);
+    {
+        // 0x517630; con '2' y en 1 (0x4f7010..0x4f706f), dieciocho 0x518cf0(0xc2, c+0x10, (0, 0, vuelta · 20f),
+        // c+0xf4, 1, c de dueño, −1, …) y el sonido 0x42.
+        if (ReadTheSkill(actor, context.random) != CaseSkill || actor.byte381 != FirstStep)
+            return {};
+        constexpr int Fires = 18;
+        constexpr double FireTurn = 20.0; // 0x6b86d0
+        for (int fire = 0; fire < Fires; ++fire)
+        {
+            const glm::vec3 angles{0.0f, 0.0f, static_cast<float>(static_cast<double>(fire) * FireTurn)};
+            if (auto created = CreateWizard(
+                    0x4f7050, WizardArguments(World::FireEffect, actor.position, angles, actor.light, 1, &actor), actor,
+                    slot, context);
+                !created.HasValue())
+                return created;
+        }
+        RequestTheSound(context, HitSound);
         return {};
+    }
     case 0x4f7074:
-        // 0x517630; con '2': en 1, 0xcb, 0xcc y 0x77; después, dos rand() y 0xc2.
+        // 0x517630; con '2': en 1 (0x4f7096..0x4f70e9), 0x518cf0(0xcb, c+0x10, c+0x1c, c+0xf4, 0, sin dueño, −1, …), el
+        // 0xcc/0 igual y el sonido 0x77; después, en todos, dos rand() y el 0xc2.
         if (ReadTheSkill(actor, context.random) != CaseSkill)
             return {};
         if (actor.byte381 == FirstStep)
         {
-            if (!HasFreeModelEffect(context))
-            {
-                RequestTheSound(context, AngryRoarSound);
-                static_cast<void>(context.random.Next());
-                static_cast<void>(context.random.Next());
-                RequestTheSound(context, HitSound);
-                return {};
-            }
-            return CutAt(0x4f70b8, "los efectos 0xcb y 0xcc (CL11)", actor, slot);
+            if (auto inner = CreateWizard(
+                    0x4f70b8, WizardArguments(World::InnerCircleEffect, actor.position, actor.angles, actor.light, 0),
+                    actor, slot, context);
+                !inner.HasValue())
+                return inner;
+            if (auto outer = CreateWizard(
+                    0x4f70d6, WizardArguments(World::OuterCircleEffect, actor.position, actor.angles, actor.light, 0),
+                    actor, slot, context);
+                !outer.HasValue())
+                return outer;
+            RequestTheSound(context, AngryRoarSound);
         }
-        if (auto effect = ScatterAndCut(0x4f80cf, actor, slot, context); !effect.HasValue())
+        if (auto effect = ScatterTheFire(0x4f80cf, actor, slot, context); !effect.HasValue())
             return effect;
         RequestTheSound(context, HitSound);
         return {};
@@ -1156,7 +1288,7 @@ Core::Expected<void, std::string> StepTheKindCase(ActorState& actor, const KindC
             return {};
         if ((context.random.Next() & 1) != 0)
         {
-            if (auto effect = ScatterAndCut(0x4f7930, actor, slot, context); !effect.HasValue())
+            if (auto effect = ScatterTheFire(0x4f7930, actor, slot, context); !effect.HasValue())
                 return effect;
             RequestTheSound(context, HitSound);
         }
@@ -1254,7 +1386,7 @@ Core::Expected<void, std::string> StepTheKindCase(ActorState& actor, const KindC
         // 0x517630; con '2', dos rand() & 0x3ff, 0xc2 y 0x41ed10(0x42).
         if (ReadTheSkill(actor, context.random) == CaseSkill)
         {
-            if (auto effect = ScatterAndCut(0x4f80cf, actor, slot, context); !effect.HasValue())
+            if (auto effect = ScatterTheFire(0x4f80cf, actor, slot, context); !effect.HasValue())
                 return effect;
             RequestTheSound(context, HitSound);
         }
@@ -1291,7 +1423,8 @@ Core::Expected<void, std::string> StepTheKindSkill(ActorState& actor, ActorState
                 return CutAt(0x4f81cc, "el efecto 0x5e8 delante del que pega (CL11)", actor, slot);
             return {};
         }
-        // En la 4 y en 8, rand() & 1: con 0 dos 0xf5 sobre el blanco (dueño c); con 1 dos 0xc2/6 sobre el blanco.
+        // En la 4 y en 8, rand() & 1: con 0 dos 0xf5 sobre el blanco (dueño c); con 1 (0x4f8253..0x4f82aa) dos
+        // 0x518cf0(0xc2, blanco+0x10, c+0x1c, (0,8f; 0,5; 0,1f), 6, sin dueño, −1, …).
         if (action == SecondAttack && step == EighthStep)
         {
             if ((context.random.Next() & 1) == 0)
@@ -1308,9 +1441,17 @@ Core::Expected<void, std::string> StepTheKindSkill(ActorState& actor, ActorState
                 }
                 return {};
             }
-            else if (HasFreeModelEffect(context))
+            constexpr std::int32_t MeteorSubtype = 6;
+            const auto target = static_cast<std::size_t>(std::bit_cast<std::int16_t>(actor.attackTarget));
+            const ActorState& victim = context.world.Actors()[target];
+            for (const std::uint32_t address : {0x4f8287u, 0x4f82a5u})
             {
-                return CutAt(0x4f8287, "los dos efectos 0xc2/6 sobre el blanco (CL11)", actor, slot);
+                if (auto created = CreateWizard(
+                        address,
+                        WizardArguments(World::FireEffect, victim.position, actor.angles, MeteorLight, MeteorSubtype),
+                        actor, slot, context);
+                    !created.HasValue())
+                    return created;
             }
         }
         return {};
@@ -1330,10 +1471,19 @@ Core::Expected<void, std::string> StepTheKindSkill(ActorState& actor, ActorState
         }
         return {};
     case 0x4f835b:
-        // En 13, 0x4ec110 con el hueso 6 y (60, 30, 0) y 0x518cf0(0xc2/5).
-        if (step == ThirteenthStep && HasFreeModelEffect(context))
-            return CutAt(0x4f83e5, "el efecto 0xc2/5 del hueso 6 (CL11)", actor, slot);
-        return {};
+    {
+        // En 13 (0x4f8368..0x4f83e5), 0x4ec110 con el hueso 6 y (60, 30, 0) y 0x518cf0(0xc2, punto, c+0x1c, c+0xf4, 5,
+        // sin dueño, −1, …).
+        constexpr std::size_t FireBone = 6;
+        constexpr glm::vec3 FireOffset{60.0f, 30.0f, 0.0f};
+        constexpr std::int32_t BouncingSubtype = 5;
+        if (step != ThirteenthStep)
+            return {};
+        return CreateWizard(0x4f83e5,
+                            WizardArguments(World::FireEffect, BonePoint(actor, FireBone, FireOffset, context),
+                                            actor.angles, actor.light, BouncingSubtype),
+                            actor, slot, context);
+    }
     case 0x4f83f4:
         // En 14, 0x4ec110 con la matriz de 0x74374ec (la cola del fénix), 0x106/1 y el joint 0x614/2 desde y hasta ese
         // punto, con los ángulos del actor.

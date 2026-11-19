@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
+#include "Render/Models/OriginalAngles.h"
 #include "Scenes/ActorFlags.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ArrowEffects.h"
@@ -17,6 +18,7 @@
 #include "Scenes/JointFamilies.h"
 #include "Scenes/JointKernels.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/WizardEffects.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -25,6 +27,7 @@
 #include "World/KalimaWorld.h"
 #include "World/Particles.h"
 #include "World/TerrainHeight.h"
+#include "World/WizardModelEffects.h"
 #include "World/WorldTerrain.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -47,6 +50,8 @@ namespace Client::Scenes
 namespace
 {
 constexpr std::int16_t NoTarget = -1;
+// El sonido de los fuegos 0xc2 de la 0x02 y la 0x04 (0x5049f9, 0x504bda).
+constexpr std::int32_t FireSound = 0x42;
 constexpr std::size_t PoolSlots = 400;
 // +0x78 & 0x4000: los casos 0x1b, 0x1c y 0x10 con blanco no hacen nada (0x50451c, 0x5046ca, 0x504836).
 constexpr std::uint32_t QuietFlag = 0x4000;
@@ -192,6 +197,29 @@ void CountHeroVolley(const ActorState& actor, const CharacterStepContext& contex
     const Render::Models::LogicalAccess own(context.world.Runtime().ownRecordDepth, context.random,
                                             Render::Models::OwnRecordCloseRandoms);
     ++context.world.OwnCharacter().bytef04;
+}
+
+// El alta de un efecto de los magos (Scenes::CreateWizardEffect). Con la tabla llena, nada y sin rand(); lo que el
+// efecto pide y MuRet no tiene corta con la dirección de la llamada.
+Core::Expected<void, std::string> CreateWizard(std::uint32_t address, const World::ModelEffectArguments& arguments,
+                                               std::uint8_t skill, std::size_t slot,
+                                               const CharacterStepContext& context)
+{
+    const auto created = CreateWizardEffect(context, arguments);
+    if (!created.HasValue())
+    {
+        return Core::Unexpected(std::format("{:#x}: el efecto {:#x}/{} de la habilidad {:#x} del lugar {}: {}", address,
+                                            arguments.type, arguments.subtype, skill, slot, created.Error()));
+    }
+    return {};
+}
+
+// 0x5042d3..0x504324: los ángulos de o con la z en el rumbo de 0x4e93f0 de o al blanco (fstp, sin rand()).
+glm::vec3 TowardsTheTarget(const ActorState& actor, const ActorState& victim)
+{
+    return glm::vec3(actor.angles.x, actor.angles.y,
+                     static_cast<float>(Render::Models::CreateAngle(actor.position.x, actor.position.y,
+                                                                    victim.position.x, victim.position.y)));
 }
 
 // Un tipo de la mano como WORD con signo (MOVSX).
@@ -506,10 +534,83 @@ Core::Expected<void, std::string> StrikeAround(const ActorState& actor, std::siz
         static_cast<void>(context.random.Next());
     return {};
 }
+
+// 0x4feabb..0x4feb36, la 0x3f: 0x518cf0(0xcb, o+0x10, o+0x1c, o+0xf4, 2, o, −1, …) y (0xcc, …, 3, sin dueño, −1, …), y
+// el sonido 0x1cb desde o.
+Core::Expected<void, std::string> RaiseTheRings(ActorState& actor, std::size_t slot, std::uint8_t skill,
+                                                const CharacterStepContext& context)
+{
+    constexpr std::int32_t RingSound = 0x1cb;
+    if (auto inner = CreateWizard(
+            0x4feae8, WizardArguments(World::InnerCircleEffect, actor.position, actor.angles, actor.light, 2, &actor),
+            skill, slot, context);
+        !inner.HasValue())
+        return inner;
+    if (auto outer = CreateWizard(
+            0x4feb1b, WizardArguments(World::OuterCircleEffect, actor.position, actor.angles, actor.light, 3), skill,
+            slot, context);
+        !outer.HasValue())
+        return outer;
+    RequestTheSound(context, RingSound, &actor);
+    return {};
+}
+
+// 0x4fecb5..0x4fed2a, la 0x0a (el Hellfire): 0x59fb80(0xa) y 0x518cf0(0xcb, o+0x10, o+0x1c, o+0xf4, 0, o, o+0x8a,
+// lugar, 0, 0, 0), cuyo alta con el héroe de dueño cuenta en el registro propio y manda los blancos de 300
+// (0x51aa97); después 0x518cf0(0xcc, …, 0, sin dueño, −1, …). Lo de Kalima y el sonido 0x77 siguen en el caso.
+Core::Expected<void, std::string> LightTheHellfire(ActorState& actor, std::size_t slot, std::uint8_t skill,
+                                                   const CharacterStepContext& context)
+{
+    const std::int32_t index = OwnSkillIndex(context, skill);
+    World::ModelEffectArguments inner =
+        WizardArguments(World::InnerCircleEffect, actor.position, actor.angles, actor.light, 0, &actor,
+                        static_cast<std::uint16_t>(actor.word8a));
+    inner.byte89 = static_cast<std::uint8_t>(index & 0xff);
+    if (auto created = CreateWizard(0x4fecf3, inner, skill, slot, context); !created.HasValue())
+        return created;
+    return CreateWizard(0x4fed25,
+                        WizardArguments(World::OuterCircleEffect, actor.position, actor.angles, actor.light, 0), skill,
+                        slot, context);
+}
+
+// 0x4ff51c..0x4ff5f2, la 0x26 (el Meteorito): el punto de la celda de la skill (+0x39c y +0x39d, más 0,5f por 100 en
+// la x87, cada eje guardado en float) con la altura de 0x5f93c0, la luz local en (0,8f; 0,5; 0,1f) y dos
+// 0x518cf0(0xc2, punto, o+0x1c, luz, 6, sin dueño, 0, …); después el sonido 0x8e y la tanda del héroe (0x4ff5f5).
+// Sin las alturas del terreno, MuRet corta antes del primero.
+Core::Expected<void, std::string> RainTheMeteors(ActorState& actor, std::size_t slot, std::uint8_t skill,
+                                                 const CharacterStepContext& context)
+{
+    constexpr double CellCentre = 0.5; // 0x6b882c
+    constexpr double CellSize = 100.0; // 0x6b86b4
+    constexpr glm::vec3 MeteorLight{std::bit_cast<float>(0x3f4ccccdu), 0.5f, std::bit_cast<float>(0x3dcccccdu)};
+    constexpr std::int32_t MeteorSubtype = 6;
+    constexpr std::uint16_t MeteorKey = 0;
+    constexpr std::int32_t MeteorSound = 0x8e;
+    const World::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
+    if (!terrain.heights || !terrain.attributes)
+        return Core::Unexpected(std::string("0x4ff570: falta la altura del terreno (0x5f93c0) del Meteorito"));
+    glm::vec3 point{};
+    point.x = static_cast<float>((static_cast<double>(actor.skillCellX) + CellCentre) * CellSize);
+    point.y = static_cast<float>((static_cast<double>(actor.skillCellY) + CellCentre) * CellSize);
+    point.z = static_cast<float>(
+        World::TerrainHeightAt(*terrain.heights, *terrain.attributes, point.x, point.y, context.fixedHeight));
+    for (const std::uint32_t address : {0x4ff5b2u, 0x4ff5dcu})
+    {
+        if (auto created = CreateWizard(
+                address,
+                WizardArguments(World::FireEffect, point, actor.angles, MeteorLight, MeteorSubtype, nullptr, MeteorKey),
+                skill, slot, context);
+            !created.HasValue())
+            return created;
+    }
+    RequestTheSound(context, MeteorSound);
+    CountHeroVolley(actor, context);
+    return {};
+}
 } // namespace
 
 Core::Expected<void, std::string> StepTheHeadSkill(ActorState& actor, std::size_t slot, std::uint8_t skill,
-                                                   const CharacterStepContext& context)
+                                                   const CharacterStepContext& context, const glm::vec3& light)
 {
     switch (skill)
     {
@@ -566,7 +667,7 @@ Core::Expected<void, std::string> StepTheHeadSkill(ActorState& actor, std::size_
     case 0x40:
         return SwingTheHands(actor, slot, skill, context, 0x4fea10, 0x4fea9b);
     case 0x3f:
-        return EffectThenSound(0x4feae8, "el efecto 0xcb/2 sobre o (0x518cf0)", skill, slot, 0x1cb, context, &actor);
+        return RaiseTheRings(actor, slot, skill, context);
     case 0x41:
         // 0x4feb3b: el punto de 0x4f5b10(o, 0, −90, −50), más alto en las acciones 0x51 y 0x5b, sin rand().
         return EffectThenSound(0x4febbb, "el efecto 0x62c (0x518cf0)", skill, slot, 0x1cd, context, &actor);
@@ -583,10 +684,8 @@ Core::Expected<void, std::string> StepTheHeadSkill(ActorState& actor, std::size_
         return {};
     }
     case 0x0a:
-        // 0x4fecb5: 0x59fb80(0xa) antes del 0xcb; lo de Kalima de después (0x4fed2d) no se alcanza.
-        static_cast<void>(OwnSkillIndex(context, skill));
-        if (HasEffectRoom(context))
-            return CutAt(0x4fecf3, "el efecto 0xcb sobre o (0x518cf0)", skill, slot);
+        if (auto lit = LightTheHellfire(actor, slot, skill, context); !lit.HasValue())
+            return lit;
         // 4fed2d..4ff4a8: Y, X y 437860(x,y,2,-1500); puntero 723c48 nulo es no-op, no una frontera.
         if (World::IsKalimaMap(context.world.Runtime().map))
         {
@@ -602,18 +701,18 @@ Core::Expected<void, std::string> StepTheHeadSkill(ActorState& actor, std::size_
         RequestTheSound(context, 0x77);
         return {};
     case 0x28:
-        if (HasEffectRoom(context))
-            return CutAt(0x4ff4ef, "el efecto 0xcb/1 sobre o (0x518cf0)", skill, slot);
+        // 0x4ff4c3: 0x518cf0(0xcb, o+0x10, o+0x1c, o+0xf4, 1, o, −1, …).
+        if (auto circle = CreateWizard(
+                0x4ff4ef,
+                WizardArguments(World::InnerCircleEffect, actor.position, actor.angles, actor.light, 1, &actor), skill,
+                slot, context);
+            !circle.HasValue())
+            return circle;
         context.world.Runtime().StopSound(0x92, true); // 0x4ff4fe: rebobina antes de pedir 0x93.
         RequestTheSound(context, 0x93);
         return {};
     case 0x26:
-        // 0x4ff51c: el punto de la celda +0x39c/+0x39d con la altura de 0x5f93c0 (sin rand()).
-        if (HasEffectRoom(context))
-            return CutAt(0x4ff5b2, "el primer efecto 0xc2/6 (0x518cf0)", skill, slot);
-        RequestTheSound(context, 0x8e); // 4ff5ed: antes de publicar la tanda.
-        CountHeroVolley(actor, context);
-        return {};
+        return RainTheMeteors(actor, slot, skill, context);
     case 0x27:
         if (auto storm = DropTheIceStorm(actor, context); !storm.HasValue())
             return storm;
@@ -623,8 +722,19 @@ Core::Expected<void, std::string> StepTheHeadSkill(ActorState& actor, std::size_
     case 0x05:
         return CastTheFlame(actor, context);
     case 0x08:
-        static_cast<void>(OwnSkillIndex(context, skill));
-        return EffectThenSound(0x500c49, "el efecto 0xcf sobre o (0x518cf0)", skill, slot, 0x74, context);
+    {
+        // 0x500c10..0x500c5c (el Twister): 0x59fb80(8) y 0x518cf0(0xcf, o+0x10, o+0x1c, la luz local, 0, o, o+0x8a,
+        // lugar, 0, 0, 0); después el sonido 0x74.
+        constexpr std::int32_t TwisterSound = 0x74;
+        const std::int32_t index = OwnSkillIndex(context, skill);
+        World::ModelEffectArguments storm = WizardArguments(World::StormEffect, actor.position, actor.angles, light, 0,
+                                                            &actor, static_cast<std::uint16_t>(actor.word8a));
+        storm.byte89 = static_cast<std::uint8_t>(index & 0xff);
+        if (auto created = CreateWizard(0x500c49, storm, skill, slot, context); !created.HasValue())
+            return created;
+        RequestTheSound(context, TwisterSound);
+        return {};
+    }
     case 0x0c:
         // 0x500c64: el punto de 0x4f5b10(o, −20, −90, 100), sin rand(), y 0x59fb80(0xc).
         static_cast<void>(OwnSkillIndex(context, skill));
@@ -704,7 +814,8 @@ Core::Expected<void, std::string> StepTheHeadSkill(ActorState& actor, std::size_
 }
 
 Core::Expected<void, std::string> StepTheTargetSkill(ActorState& actor, ActorState& victim, std::size_t slot,
-                                                     std::uint8_t skill, const CharacterStepContext& context)
+                                                     std::uint8_t skill, const CharacterStepContext& context,
+                                                     const glm::vec3& light)
 {
     switch (skill)
     {
@@ -781,12 +892,26 @@ Core::Expected<void, std::string> StepTheTargetSkill(ActorState& actor, ActorSta
         return {};
     }
     case 0x07:
-        if (HasEffectRoom(context))
-            return CutAt(0x504768, "el efecto 0xc1 sobre el blanco (0x518cf0)", skill, slot);
+    {
+        // 0x504740..0x504800 (el Ice): 0x518cf0(0xc1, blanco+0x10, o+0x1c, la luz local, 0, sin dueño, −1, …) y cinco
+        // pedazos de hielo 0xca (blanco+0x10, o+0x1c, o+0xf4; ModelEffects::CreateIceShard, cinco rand() cada uno);
+        // con +0x38d, 2 en +0x78 del blanco, y el sonido 0x78.
+        constexpr int Shards = 5;
+        if (auto created =
+                CreateWizard(0x504768, WizardArguments(World::IceEffect, victim.position, actor.angles, light, 0),
+                             skill, slot, context);
+            !created.HasValue())
+            return created;
+        for (int shard = 0; shard < Shards; ++shard)
+            static_cast<void>(
+                context.world.Map().effects.CreateIceShard(victim.position, actor.angles, actor.light, context.random));
+        constexpr std::uint32_t FrozenFlag = 2;
+        constexpr std::int32_t IceSound = 0x78;
         if (actor.skillSucceeded != 0)
-            victim.flags78 |= 2;
-        RequestTheSound(context, 0x78);
+            victim.flags78 |= FrozenFlag;
+        RequestTheSound(context, IceSound);
         return {};
+    }
     case 0x10:
     {
         // 0x504808..0x5048e5: el 0x189 prende 0x100 en su +0x78 y sale; con 0x4000, nada; si no, 0x100 en +0x78 del
@@ -811,10 +936,17 @@ Core::Expected<void, std::string> StepTheTargetSkill(ActorState& actor, ActorSta
     }
     case 0x01:
     {
-        // 504926/50497e: el jugador intenta c3 y TODOS los tipos intentan diez partículas 5f2/1.
+        // 0x5048f1..0x50492b: el jugador crea el 0xc3 (blanco+0x10, o+0x1c, o+0xf4, 0, sin dueño, −1, …); después
+        // TODOS los tipos, con la luz local en (0,4f; 0,6f; 1), intentan diez partículas 5f2/1 (0x50497e).
         constexpr std::uint16_t PlayerType = 0x20a;
-        if (actor.type == PlayerType && HasEffectRoom(context))
-            return CutAt(0x504926, "el efecto 0xc3 sobre el blanco (0x518cf0)", skill, slot);
+        if (actor.type == PlayerType)
+        {
+            if (auto created = CreateWizard(
+                    0x504926, WizardArguments(World::PoisonEffect, victim.position, actor.angles, actor.light, 0),
+                    skill, slot, context);
+                !created.HasValue())
+                return created;
+        }
         if (context.particles == nullptr ||
             std::ranges::any_of(context.particles->All(), [](const auto& p) { return !p.alive; }))
             return CutAt(0x50497e, "la primera de las diez partículas 0x5f2/1 (0x53fe70)", skill, slot);
@@ -824,7 +956,15 @@ Core::Expected<void, std::string> StepTheTargetSkill(ActorState& actor, ActorSta
         return {};
     }
     case 0x02:
-        return EffectThenSound(0x5049ef, "el efecto 0xc2 sobre el blanco (0x518cf0)", skill, slot, 0x42, context);
+        // 0x5049bf..0x5049fd (el Meteor): 0x518cf0(0xc2, blanco+0x10, blanco+0x1c, o+0xf4, 0, sin dueño, −1, …) y el
+        // sonido 0x42.
+        if (auto created = CreateWizard(
+                0x5049ef, WizardArguments(World::FireEffect, victim.position, victim.angles, actor.light, 0), skill,
+                slot, context);
+            !created.HasValue())
+            return created;
+        RequestTheSound(context, FireSound);
+        return {};
     case 0x2d:
         return EffectThenSound(0x504a3a, "el primero de los tres efectos 0x139 (0x518cf0)", skill, slot, 0x26d,
                                context);
@@ -833,15 +973,45 @@ Core::Expected<void, std::string> StepTheTargetSkill(ActorState& actor, ActorSta
     case 0x4a:
         return EffectThenSound(0x504b80, "el efecto 0x116/2 (0x518cf0)", skill, slot, 0x271, context);
     case 0x04:
-        return EffectThenSound(0x504bce, "el efecto 0xc2/1 (0x518cf0)", skill, slot, 0x42, context);
+        // 0x504b9e..0x504bdc (la Fire Ball): 0x518cf0(0xc2, o+0x10, los ángulos hacia el blanco, o+0xf4, 1, el blanco
+        // de dueño, −1, …) y el sonido 0x42.
+        if (auto created = CreateWizard(0x504bce,
+                                        WizardArguments(World::FireEffect, actor.position,
+                                                        TowardsTheTarget(actor, victim), actor.light, 1, &victim),
+                                        skill, slot, context);
+            !created.HasValue())
+            return created;
+        RequestTheSound(context, FireSound);
+        return {};
     case 0x0b:
     {
-        // 0x504be9: el 0x164 crea dos 0xce más, el primero con 10 más en el rumbo.
+        // 0x504be9..0x504cce (el Power Wave): 0x518cf0(0xce, o+0x10, los ángulos hacia el blanco, o+0xf4, 0, sin dueño,
+        // −1, …); el 0x164 crea antes dos más, con el rumbo 10 más y después 20 menos (fld/fadd/fstp sobre el local),
+        // y lo devuelve con 10 más. Después, el sonido 0x76.
         constexpr std::uint16_t TripleType = 0x164;
+        constexpr double SideTurn = 10.0;  // 0x6b87a8
+        constexpr double BothSides = 20.0; // 0x6b86d0
+        constexpr std::int32_t WaveSound = 0x76;
+        glm::vec3 angles = TowardsTheTarget(actor, victim);
+        const auto wave = [&](std::uint32_t address)
+        {
+            return CreateWizard(address, WizardArguments(World::MagicEffect, actor.position, angles, actor.light, 0),
+                                skill, slot, context);
+        };
         if (actor.type == TripleType)
-            return EffectThenSound(0x504c38, "el primero de los tres efectos 0xce (0x518cf0)", skill, slot, 0x76,
-                                   context);
-        return EffectThenSound(0x504cc0, "el efecto 0xce (0x518cf0)", skill, slot, 0x76, context);
+        {
+            angles.z = static_cast<float>(static_cast<double>(angles.z) + SideTurn);
+            if (auto created = wave(0x504c38); !created.HasValue())
+                return created;
+            angles.z = static_cast<float>(static_cast<double>(angles.z) - BothSides);
+            if (auto created = wave(0x504c7c); !created.HasValue())
+                return created;
+            angles.z = static_cast<float>(static_cast<double>(angles.z) + SideTurn);
+        }
+        if (auto created = wave(0x504cc0); !created.HasValue())
+            return created;
+        RequestTheSound(context, WaveSound);
+        return {};
     }
     case 0x3c:
         return EffectThenSound(0x504d05, "el primero de los efectos 0x114/1 (0x518cf0)", skill, slot, 0x1c8, context);
@@ -859,7 +1029,14 @@ Core::Expected<void, std::string> StepTheTargetSkill(ActorState& actor, ActorSta
         if (std::ranges::find(QuietKinds, actor.word376) != QuietKinds.end())
             return {};
         if (actor.type == RayType)
-            return EffectThenSound(0x50501a, "el efecto 0xd7 (0x518cf0)", skill, slot, -1, context);
+        {
+            // 0x504fdc..0x505022: 0x518cf0(0xd7, o+0x10, los ángulos hacia el blanco, o+0xf4, 0, el blanco de dueño,
+            // −1, …), sin sonido.
+            return CreateWizard(0x50501a,
+                                WizardArguments(World::SnowEffect, actor.position, TowardsTheTarget(actor, victim),
+                                                actor.light, 0, &victim),
+                                skill, slot, context);
+        }
         return EffectThenSound(0x505053, "el efecto 0x5ca (0x518cf0)", skill, slot, 0x76, context);
     }
     default:

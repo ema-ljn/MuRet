@@ -16,16 +16,19 @@
 #include "Scenes/HeroAttack.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/PlayerActionSpeeds.h"
+#include "Scenes/WizardEffects.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/IFishStepServices.h"
 #include "World/Particles.h"
 #include "World/ModelEffects.h"
+#include "World/WizardModelEffects.h"
 
 #include <glm/ext/vector_float3.hpp>
 
 #include <algorithm>
+#include <array>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
@@ -444,13 +447,31 @@ Core::Expected<void, std::string> StepTheSkill38(ActorState& actor, std::uint8_t
     constexpr std::uint8_t SpinAction = 0x8d;
     if (IsPlayer(actor) && ActionOf(actor) == SpinAction)
     {
-        // 0x4fa4c1..0x4fa5ba: cinco 0x518cf0(0xce, o+0x10, ángulos con la z 40 menos y 20 más cada vez, o+0xf4, 2, o,
-        // −1, 0, 0, 0, 0), 0x41ed10(0x72, 0, 0) y +0x381 en 15.
-        if (HasFreeEffect(context))
-            return CutAt(0x4fa4fa,
-                         "el primero de los cinco efectos 0xce/2 (CL11); detrás, el sonido 0x72 y +0x381 en 15", skill,
-                         actor, slot);
-        RequestTheSound(context, 0x72);
+        // 0x4fa4c1..0x4fa5ba: cinco 0x518cf0(0xce, o+0x10, ángulos, o+0xf4, 2, o, −1, 0, 0, 0, 0) con los de o y la z
+        // 40 menos y después 20 más cada vez (fld, fsub o fadd y fstp sobre el local), cuyas altas cuentan en el
+        // registro propio; después 0x41ed10(0x72, 0, 0) y +0x381 en 15.
+        constexpr int Waves = 5;
+        constexpr double FirstTurn = 40.0; // 0x6b8bf4
+        constexpr double NextTurn = 20.0;  // 0x6b86d0
+        constexpr std::int32_t WaveSubtype = 2;
+        constexpr std::int32_t SpinSound = 0x72;
+        constexpr std::array<std::uint32_t, Waves> Calls{0x4fa4fa, 0x4fa523, 0x4fa54f, 0x4fa578, 0x4fa5a4};
+        glm::vec3 angles = actor.angles;
+        angles.z = static_cast<float>(static_cast<double>(angles.z) - FirstTurn);
+        for (int wave = 0; wave < Waves; ++wave)
+        {
+            if (wave > 0)
+                angles.z = static_cast<float>(static_cast<double>(angles.z) + NextTurn);
+            const auto created = CreateWizardEffect(
+                context, WizardArguments(World::MagicEffect, actor.position, angles, actor.light, WaveSubtype, &actor));
+            if (!created.HasValue())
+            {
+                return Core::Unexpected(std::format("{:#x}: el 0xce/2 de la habilidad {:#x} del lugar {}: {}",
+                                                    Calls[static_cast<std::size_t>(wave)], skill, slot,
+                                                    created.Error()));
+            }
+        }
+        RequestTheSound(context, SpinSound);
         actor.byte381 = AttackDone;
     }
     // 0x4fa5c3.

@@ -42,10 +42,12 @@
 #include "Scenes/TerrainPolygonFrame.h"
 #include "Scenes/WorldRuntime.h"
 #include "World/GroundEffectDrawing.h"
+#include "Scenes/WizardEffects.h"
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
 #include "World/GroundMarks.h"
 #include "World/TerrainHeight.h"
+#include "World/WizardModelEffects.h"
 #include "World/WorldTerrain.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -203,6 +205,20 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
         // CL11 (World/BlastModelEffects): el registro propio (0x7681eb4) del 0xf4 que suelta el paso del 0xf3.
         .ownRecordDepth = &m_context.world->Runtime().ownRecordDepth,
         .ownRecordCount = &m_context.world->OwnCharacter().bytef04};
+    // CL11, lote magos: lo mismo para los efectos de las magias, con el dueño leído del pool de personajes.
+    const World::WizardEffectServices wizard = WizardEffectServicesOf(
+        *m_context.world, m_context.cloth->random,
+        WizardSceneParts{.particles = &m_context.world->Particles(),
+                         .worldClock = worldClock,
+                         .sprites = &m_sprites,
+                         .terrain = &StepTerrain(),
+                         .fixedHeight = CameraState().fixedHeight,
+                         .cameraShake = &CameraInputState().shake,
+                         .sound = [this](std::int32_t id) { m_context.world->Runtime().RequestSound(id); },
+                         .send = m_session != nullptr ? std::function<void(Protocol::Outgoing)>(
+                                                            [session = m_session](Protocol::Outgoing packet)
+                                                            { session->SendChat(std::move(packet)); })
+                                                      : std::function<void(Protocol::Outgoing)>{}});
     // 52d220: reset44dc40antesdelprimeractivo; el último proyectil seguido vuelveaescribirlo.
     CameraInputState().effectTarget = glm::vec3(0.0f);
     auto effects = m_context.world->Map().effects.Effects();
@@ -299,6 +315,20 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
         {
             if (auto stepped = StepFaunaLightning(effect, slot, skeleton, m_context.world->Particles(), m_sprites,
                                                   m_context.world->DynamicLighting().Lighting(), *m_context.cloth);
+                !stepped.HasValue())
+                return stepped;
+            // 0x52cde1..0x52cdfb: con vida impar después de la cola, otro paso entero (con su propio rand()).
+            if (effect.alive && effect.life > 0 && (effect.life & 1) != 0)
+                if (auto again = StepFaunaLightning(effect, slot, skeleton, m_context.world->Particles(), m_sprites,
+                                                    m_context.world->DynamicLighting().Lighting(), *m_context.cloth);
+                    !again.HasValue())
+                    return again;
+            continue;
+        }
+        // CL11, lote magos: los efectos de las magias (0xbd..0xd9, World/WizardModelEffects).
+        if (World::IsWizardModelEffect(effect.type))
+        {
+            if (auto stepped = World::StepWizardModelEffect(effect, skeleton, m_context.cloth->random, wizard);
                 !stepped.HasValue())
                 return stepped;
             continue;

@@ -40,6 +40,8 @@
 #include <cstdint>
 #include <optional>
 #include <span>
+#include <string>
+#include <vector>
 
 // El emisor de 0x602ed0 y el pase de ojo de 0x548550(0), sin GL.
 namespace
@@ -145,6 +147,49 @@ TEST(LoginCloudDrawingTest, AMissingPoolStillConsumesTheCloudGuard)
                                      0.0f, Client::Scenes::ObjectFrameEffects{.random = &random});
     EXPECT_TRUE(object.seen);
     EXPECT_EQ(random.State(), 0xc6192e9eu) << "común51 y guard17945, sin los cinco rand de creación";
+}
+
+// 0x6043ff..0x604427: el 0x59 del mapa 55 con ftol(reloj) % 8000 desde 7950 suelta un meteoro 0xc2/9, que el login no
+// tiene dónde poner: corta antes de sus tres rand(), después del común, por ObjectFrameEffects::onFailure. Fuera de
+// esa ventana (7949) o en otro mapa, sólo el rand común.
+TEST(LoginCloudDrawingTest, TheMeteorMarkerCutsInsideItsWindow)
+{
+    constexpr std::int16_t MeteorMarker = 0x59;
+    struct Case
+    {
+        std::uint8_t map;
+        std::int64_t clock;
+        bool cut;
+    };
+    for (const Case& tested : {Case{LoginMap, 7950, true}, Case{LoginMap, 15999, true}, Case{LoginMap, 7949, false},
+                               Case{LoginMap, 8000, false}, Case{54, 7950, false}})
+    {
+        SCOPED_TRACE(tested.clock);
+        SCOPED_TRACE(static_cast<int>(tested.map));
+        auto object = Marker(MeteorMarker);
+        const CloudTextures models;
+        Client::World::Particles particles;
+        Client::Render::Models::CrtRandom random(4);
+        Client::Render::Models::CrtRandom common(4);
+        static_cast<void>(common.Next());
+        std::vector<std::string> failures;
+        Client::Render::ModelBatch batch;
+        batch.Begin(Client::Render::Pass3D{});
+        Client::Scenes::DrawWorldObjects(batch, models, std::span(&object, 1), {.everything = true}, nullptr,
+                                         tested.map, std::chrono::milliseconds{tested.clock}, 0.0f,
+                                         Client::Scenes::ObjectFrameEffects{.random = &random,
+                                                                            .particles = &particles,
+                                                                            .onFailure = [&](const std::string& error)
+                                                                            { failures.push_back(error); }});
+        EXPECT_EQ(random.State(), common.State());
+        EXPECT_FALSE(particles.Any());
+        ASSERT_EQ(failures.size(), tested.cut ? 1U : 0U);
+        if (tested.cut)
+        {
+            EXPECT_NE(failures[0].find("0x604427"), std::string::npos) << failures[0];
+            EXPECT_NE(failures[0].find("CL11"), std::string::npos) << failures[0];
+        }
+    }
 }
 
 TEST(LoginCloudDrawingTest, OtherMapsAndTypesConsumeOnlyTheCommonRand)

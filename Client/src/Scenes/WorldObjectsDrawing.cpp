@@ -38,6 +38,7 @@
 #include "World/Leaves.h"
 #include "World/ChaosCastle.h"
 #include "World/KalimaWorld.h"
+#include "World/Ftol.h"
 #include "World/ModelEffects.h"
 #include "World/GroundEffectDrawing.h"
 #include "World/SphereFrustum.h"
@@ -78,6 +79,9 @@ constexpr double SectorCenter = 8.0;
 constexpr std::uint8_t LoginCloudMap = 55;
 constexpr std::int16_t LoginCloudMarker = 0x54;
 constexpr int LoginCloudChance = 5;
+constexpr std::int16_t LoginMeteorMarker = 0x59;
+constexpr std::int32_t LoginMeteorPeriod = 8000; // 0x604414
+constexpr std::int32_t LoginMeteorWindow = 7950; // 0x60441b
 
 bool SectorPasses(const World::TerrainPolygon& polygon, int sectorX, int sectorY)
 {
@@ -199,23 +203,34 @@ struct SeenObjectEffects
     std::optional<int> lastRandom;
 };
 
-void CreateObjectCloud(const World::WorldObject& object, std::uint8_t map, float clock,
-                       const ObjectFrameEffects& effects)
+Core::Expected<void, std::string> CreateObjectCloud(const World::WorldObject& object, std::uint8_t map, float clock,
+                                                    const ObjectFrameEffects& effects)
 {
+    // 0x6043ff..0x604421: el 0x59 del mapa 55, con ftol(reloj del mundo) % 8000 desde 7950, suelta un meteoro: tres
+    // rand() (0x604427, 0x60444c, 0x604471: x e y en ±1024 y z + 3000 + rand() % 600) y 0x518cf0(0xc2, punto, +0x1c,
+    // +0xf4, 9, 0, −1, …). El login no da la tabla de los efectos con modelo ni su paso: corta antes de los rand().
+    if (map == LoginCloudMap && object.type == LoginMeteorMarker)
+    {
+        if (World::FtolLow(static_cast<double>(clock)) % LoginMeteorPeriod < LoginMeteorWindow)
+            return {};
+        return Core::Unexpected(std::string("0x604427: el meteoro 0xc2/9 del objeto 0x59 del mapa 55 (0x518cf0) "
+                                            "no tiene la tabla de los efectos con modelo en el login (CL11)"));
+    }
     // 0x6044bc: el marcador oculto del mapa 55, después del rand común, sin guard de escena.
     if (map != LoginCloudMap || object.type != LoginCloudMarker || effects.random->Next() % LoginCloudChance != 0 ||
         effects.particles == nullptr)
     {
-        return;
+        return {};
     }
     // El caller original pasa luz indeterminada; el subtipo 10 la sobrescribe con RGB cero.
     (void)effects.particles->Create(World::CloudParticle, object.transform.position, object.transform.angles,
                                     glm::vec3(0.0f), World::LoginCloudSubtype, object.transform.scale, clock,
                                     *effects.random);
+    return {};
 }
 
-void AdvanceObjectEffects(std::span<SeenObjectEffects> seen, std::uint8_t map, Core::Duration frameClock,
-                          const ObjectFrameEffects& effects)
+Core::Expected<void, std::string> AdvanceObjectEffects(std::span<SeenObjectEffects> seen, std::uint8_t map,
+                                                       Core::Duration frameClock, const ObjectFrameEffects& effects)
 {
     const auto clock = static_cast<float>(std::chrono::duration<double, std::milli>(frameClock).count());
     for (int frame = 0; frame < effects.frames; ++frame)
@@ -223,9 +238,11 @@ void AdvanceObjectEffects(std::span<SeenObjectEffects> seen, std::uint8_t map, C
         for (SeenObjectEffects& entry : seen)
         {
             entry.lastRandom = effects.random->Next();
-            CreateObjectCloud(*entry.object, map, clock, effects);
+            if (auto created = CreateObjectCloud(*entry.object, map, clock, effects); !created.HasValue())
+                return created;
         }
     }
+    return {};
 }
 
 void DrawObjectGlows(std::span<const SeenObjectEffects> seen, const ObjectFrameEffects& effects)
@@ -397,7 +414,12 @@ void DrawWorldObjects(Render::ModelBatch& batch, const IModelLibrary& models, st
         }
         seen.push_back(entry);
     }
-    AdvanceObjectEffects(seen, map, frameClock, effects);
+    if (auto advanced = AdvanceObjectEffects(seen, map, frameClock, effects); !advanced.HasValue())
+    {
+        if (effects.onFailure)
+            effects.onFailure(advanced.Error());
+        return;
+    }
     DrawObjectGlows(seen, effects);
 }
 

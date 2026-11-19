@@ -62,7 +62,8 @@ struct VertexEffectTables
 // - 0x12d, 0x12e y 0x12f: rand() % 3 y con 0 el 0x12d (el 0x12f el 0x12f) + (rand() & 1), con el subtipo 1 el 0x12d y
 //   0 los otros dos.
 // - 0x131, con la luz en 0,2f: rand() % 12 (0x132), rand() % 40 (0x131) y rand() % 40 (0x133).
-// - 0x137: rand() & 7 con signo y con 0 el 0x137 del subtipo.
+// - 0x137: rand() & 7 con signo y con 0 la cáscara 0x137 del subtipo (World/SkinShellEffects.h; la piden el 0x632/0 y
+//   /1 con dueño al llegar al suelo, Scenes/SkinShells.h).
 // - 0x13c: rand() % 45; con 0 y menos de 20 contados, el /0 el 0x13c/0 y el /1 el 0x12d/2 y el 0x12e/2; cualquier
 //   subtipo cuenta uno.
 // - 0x5ac: el /0, el sprite 0x5ac con la escala del modelo (+0x68) y la luz en 0,08f; el /1, en los triángulos de

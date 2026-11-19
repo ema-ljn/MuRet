@@ -13,11 +13,11 @@
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/SiegeVertexEffects.h"
+#include "World/SkinShellEffects.h"
 #include "World/Sprites.h"
 
 #include <glm/ext/vector_float3.hpp>
 
-#include <algorithm>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
@@ -42,7 +42,7 @@ constexpr std::int16_t StoneEffect = 0x10a, StoneShard = 0x10b;
 constexpr std::int16_t GateStone = 0x10c, GateShard = 0x10d;
 constexpr std::int16_t ShowerEffect = 0x12d, SecondShower = 0x12e, GateEffect = 0x12f;
 constexpr std::int16_t SiegeShard = 0x131, SiegeDust = 0x132, SiegeSpark = 0x133;
-constexpr std::int16_t RockEffect = 0x137, GolemStones = 0x13c;
+constexpr std::int16_t SkinShell = World::SkinShellEffect, GolemStones = 0x13c;
 constexpr std::int32_t RavenSprite = 0x5ac, FadingParticle = 0x607;
 
 // rand() & máscara con el ajuste del signo (AND 0x80000001 o 0x80000007): con rand() no negativo, el resto.
@@ -193,17 +193,17 @@ void ScatterGolemStones(World::ModelEffects& effects, const glm::vec3& position,
     ++counted;
 }
 
-// 0x4eee6b..0x4eeec1: el 0x137, rand() & 7 y con 0 0x518cf0(0x137, punto, ángulos, luz, subtipo, 0, −1, 0, 0, 0, 0).
-// Su caso de 0x518cf0 no está en MuRet: con lugar en la tabla, corta.
-Result ScatterRocks(World::ModelEffects& effects, std::int32_t subtype, CrtRandom& random)
+// 0x4eee6b..0x4eeec1: el 0x137, rand() & 7 y con 0 0x518cf0(0x137, punto, ángulos, luz, subtipo, 0, −1, 0, 0, 0, 0):
+// la cáscara de World::CreateSkinShell (con la tabla llena, nada y sin sus rand()).
+void ScatterSkinShells(World::ModelEffects& effects, const glm::vec3& position, const glm::vec3& angles,
+                       const glm::vec3& light, std::int32_t subtype, CrtRandom& random)
 {
     constexpr int Chance = 8;
     if (Masked(random, Chance) != 0)
-        return {};
-    if (std::ranges::none_of(effects.Effects(), [](const World::ModelEffect& effect) { return !effect.alive; }))
-        return {};
-    return Core::Unexpected(
-        std::format("0x4eeeb9: el efecto 0x137/{} de los vértices (0x518cf0) no está portado (CL11)", subtype));
+        return;
+    static_cast<void>(World::CreateSkinShell(
+        {.type = SkinShell, .position = position, .angles = angles, .light = light, .subtype = subtype}, effects,
+        random));
 }
 
 // 0x4eef19..0x4eefca: el 0x5ac/1 en los triángulos de índice múltiplo de 22.
@@ -263,7 +263,7 @@ Result EmitAt(const glm::vec3& position, std::int32_t triangle, glm::vec3& angle
     case SecondShower:
     case GateEffect:
     case SiegeShard:
-    case RockEffect:
+    case SkinShell:
     case GolemStones:
     {
         const auto table = effects();
@@ -280,8 +280,9 @@ Result EmitAt(const glm::vec3& position, std::int32_t triangle, glm::vec3& angle
         case SiegeShard:
             ScatterSiegeShards(pool, position, angles, light, random);
             return {};
-        case RockEffect:
-            return ScatterRocks(pool, call.subtype, random);
+        case SkinShell:
+            ScatterSkinShells(pool, position, angles, light, call.subtype, random);
+            return {};
         case GolemStones:
             ScatterGolemStones(pool, position, angles, light, call.subtype, counted, random);
             return {};

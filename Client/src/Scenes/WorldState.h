@@ -115,6 +115,10 @@ public:
     [[nodiscard]] const SharedModelPlacement& PlayerModel() const;
     // Lo que 0x505ec6 y 0x6001b0 copian de `actor` si es un 0x20a; con otro tipo, a otro modelo.
     void PlacePlayerModel(const ActorState& actor);
+    // Lo que 0x60cf70 copia de `actor` al 0x20b (Player\Shadow01) cuando 0x50ba30 dibuja su sombra (0x50bcec): la
+    // escala (+0x68, 0x60cff1) y el origen (+0x6c, 0x60d009); la acción (+0xa0) queda como estaba. La lee el joint
+    // 0x632/0 y /1 al llegar al suelo (0x53c1eb).
+    void PlaceShadowModel(const ActorState& actor);
     // 0x505ec6 y 0x4ec110: copia escala y origen al modelo compartido de su tipo (el 0x20a, a PlayerModel).
     void PlaceModel(const ActorState& actor);
     void PlaceModel(std::uint16_t type, const SharedModelPlacement& placement);

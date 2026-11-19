@@ -1,5 +1,6 @@
 #include "World/GameModelEffects.h"
 #include "World/SiegeVertexEffects.h"
+#include "World/SkinShellEffects.h"
 #include "World/SiegeGateEffects.h"
 
 #include "Core/Expected.h"
@@ -1996,6 +1997,13 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
     {
         wholeStep = true;
         if (auto stepped = StepSiegeVertexEffect(effect, particles, random, services, worldClock); !stepped.HasValue())
+            return stepped;
+    }
+    else if (effect.type == SkinShellEffect)
+    {
+        // 0x529926: las cáscaras del 0x632/0 y /1 (World/SkinShellEffects.h).
+        wholeStep = true;
+        if (auto stepped = StepSkinShell(effect, services); !stepped.HasValue())
             return stepped;
     }
     else if (effect.type == FirstDebrisEffect || effect.type == DebrisEffect)

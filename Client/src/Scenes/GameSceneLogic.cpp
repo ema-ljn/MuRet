@@ -381,7 +381,8 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
     // 0x53b548: el 0x61c/0 compara su dueño con el héroe ([0x743a170]).
     const auto actors = m_context.world->Actors();
     const ActorState* hero = runtime.hero < actors.size() ? &actors[runtime.hero] : nullptr;
-    // 0x539a50..0x539add: el 0x613 de ancho 80 lee el asedio, el atributo de 0x5f82c0 y manda los blancos del héroe.
+    // 0x539a50..0x539add y 0x53b569..0x53b5b1: el 0x613 de ancho 80 y el 0x61c/0 del héroe leen el asedio, el atributo
+    // de 0x5f82c0 y mandan los blancos del héroe.
     const JointKernels::VolleyServices volley{
         .siegeActive = runtime.siegeActive,
         .attributes = terrain.attributes.get(),
@@ -400,7 +401,7 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
             m_context.world->DrawTail().joints, m_context.cloth->random, m_context.cloth, &m_context.world->Particles(),
             worldClock, &m_sprites, &m_context.world->DynamicLighting().Lighting(),
             [&](std::int32_t sound) { runtime.RequestSound(sound); }, terrainHeight, actors, arrowHit,
-            &m_context.world->Map().effects, hero, m_context.world, &volley);
+            &m_context.world->Map().effects, hero, m_context.world, &volley, m_models);
         !stepped.HasValue())
         return stepped;
     // 0x63712d: 0x549090, las marcas del suelo, sin rand(). En la espera también corre, y acá no: la tabla

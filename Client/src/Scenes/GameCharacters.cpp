@@ -580,6 +580,10 @@ Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const IMode
                 global(model, bones, transform, translated);
         };
     DrawCharacter(batch, models, character, pass.frameClock, CharacterDrawPass::Shadow);
+    // 0x50bcec: 0x60cf70 con el 0x20b le copia la escala y la posición del personaje (lo lee el 0x632/0 y /1 en el
+    // suelo, 0x53c1eb). Sólo en un frame del original.
+    if (originalFrame && DrawsTheShadow(character))
+        world.PlaceShadowModel(actor);
     if (auto decorated = CheckMonsterDecorations(actor.word376); !decorated.HasValue())
         return decorated;
     if (pass.clothWorld == nullptr)

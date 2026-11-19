@@ -27,10 +27,12 @@
 #include "Scenes/HighEffectDrawing.h"
 #include "Scenes/ModelPoseCallbacks.h"
 #include "Scenes/MeteorEffects.h"
+#include "Scenes/SkinShells.h"
 #include "Scenes/WizardEffectDrawing.h"
 #include "World/GameModelEffects.h"
 #include "World/Leaves.h"
 #include "World/ModelEffects.h"
+#include "World/SkinShellEffects.h"
 #include "World/Sprites.h"
 #include "World/SphereFrustum.h"
 #include "World/TerrainLighting.h"
@@ -669,10 +671,13 @@ DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect, cons
         return {};
     }
     // 0x6004aa (+0x74 en 0x80) y los colores del 0xcc/3, /4 y el 0xcb/2, /3 (Scenes/WizardEffectDrawing, CL11); el
-    // 0x13d y el 0x13e por 0x442e10 (Scenes/MeteorEffects); el 0x11b, el 0x114/3..5, el 0x140 y, por 0x438fe0, el
-    // 0x125 (Scenes/HighEffectDrawing), después del +0x74 en 0x80, que 0x6002e0 mira antes que el tipo.
+    // 0x137 (Scenes/SkinShells, 0x600557); el 0x13d y el 0x13e por 0x442e10 (Scenes/MeteorEffects); el 0x11b, el
+    // 0x114/3..5, el 0x140 y, por 0x438fe0, el 0x125 (Scenes/HighEffectDrawing), después del +0x74 en 0x80, que
+    // 0x6002e0 mira antes que el tipo.
     const auto drawTheSpecialBody = [&]() -> Core::Expected<bool, std::string>
     {
+        if (effect.type == World::SkinShellEffect && effect.renderFlags != World::CrackRenderFlags)
+            return DrawTheSkinShellBody(batch, models, effect, object, frameClock);
         if (effect.type == MeteorEffect || effect.type == MeteorShellEffect)
             return DrawTheMeteorBody(batch, models, effect, object, frameClock,
                                      resources != nullptr ? std::optional<float>(resources->worldClock) : std::nullopt);

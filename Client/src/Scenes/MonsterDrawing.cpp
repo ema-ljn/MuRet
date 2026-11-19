@@ -25,6 +25,8 @@
 #include "Scenes/GameCharacters.h"
 #include "Scenes/GameHanging.h"
 #include "Scenes/GameItemSpecialDrawing.h"
+#include "Scenes/GuildMarkEffects.h"
+#include "Scenes/HighModelEffects.h"
 #include "Scenes/KalimaSiegeHelpers.h"
 #include "Scenes/MonsterBody.h"
 #include "Scenes/MonsterBodyPasses.h"
@@ -1392,11 +1394,20 @@ Result DrawTheTail(MonsterFrame& frame, const glm::vec3& terrainLight)
                 return helpers;
         }
     }
-    // 0x510a7a: en la escena 5, con +0x88 en 1, fuera de Blood Castle, Chaos Castle y el 30, 0x510ef0 con +0x369 (y
-    // +0x36c en 0 en MuRet, Q-C352).
+    // 0x510a7a: en la escena 5, con +0x88 en 1, fuera de Blood Castle, Chaos Castle y el 30, 0x510ef0 con +0x369 y
+    // +0x36c (Q-C352): el efecto 0x140 (Scenes/GuildMarkEffects) con el hueso 20 del cuerpo recién posado. Solo en un
+    // frame del original: entre frames, el personaje es una copia y las tablas, las del mundo.
     if (actor.byte88 == PlayerKind && !InBloodCastle(frame.map) && !InChaosCastle(frame.map) &&
-        frame.map != CastleMap && actor.byte369 == 1 && frame.originalFrame)
-        return Core::Unexpected<std::string>("0x510f4d: el efecto 0x140 de +0x369 no está portado");
+        frame.map != CastleMap && frame.originalFrame && GuildMarkIsDue(actor, frame.worldClock))
+    {
+        if (pass.particles == nullptr)
+            return Core::Unexpected<std::string>("0x510f4d: el efecto 0x140 pide las partículas del frame");
+        const glm::vec3 point = ActorBonePoint(actor, GuildMarkBone, glm::vec3(0.0f), frame.world);
+        if (auto raised = RaiseTheGuildMark(actor, point, frame.world.Map().effects, *pass.particles, frame.random,
+                                            frame.worldClock);
+            !raised.HasValue())
+            return Core::Unexpected(std::format("0x510f4d: {}", raised.Error()));
+    }
     // 0x510abd: 0x420df0, el cuervo de +0x430, con cualquier tipo.
     if (!actor.darkSpirit)
         return {};

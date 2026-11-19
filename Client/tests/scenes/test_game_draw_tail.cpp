@@ -1286,6 +1286,66 @@ TEST(GameDrawTailTest, TheWizardEffectsTakeTheirBodyPass)
     }
 }
 
+// 0x6002e0 → 0x442e10 con el 0x13d y el 0x13e, sin RenderBody: la malla 0 con 2, la luz 1 y el color en (1, 1, 1). El
+// 0x13d, con el blendMesh −1 (opaca, su textura) y después con el 0 (aditiva) y la textura 0x63c. El 0x13e, una vez con
+// el blendMesh 0 y la U en FSIN(T · 0,00008f) · 2,5f, y deja +0x6c en 1; sin el reloj del mundo, corta.
+TEST(GameDrawTailTest, TheMeteorRockAndItsShellTakeTheirOwnPasses)
+{
+    Client::World::SphereFrustum frustum;
+    TriangleModels models;
+    auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+    const Client::Scenes::ModelEffectDrawResources resources{*heights, 30};
+    using Client::Render::ModelBlend;
+    struct Pass
+    {
+        ModelBlend blend;
+        Client::Render::TextureSlot texture;
+    };
+    const auto passes = [](const Client::Render::ModelBatch& batch)
+    {
+        std::vector<Pass> drawn;
+        for (const Client::Render::ModelDrawCommand& command : batch.Commands())
+            if (command.operation == Client::Render::ModelStateOperation::Draw && command.vertexCount != 0)
+                drawn.push_back({command.state.blend, command.state.texture.value_or(Client::Render::TextureSlot{})});
+        return drawn;
+    };
+    Client::World::ModelEffect rock;
+    rock.alive = true;
+    rock.type = 0x13d;
+    rock.life = 10;
+    rock.light = {0.25f, 0.25f, 0.25f};
+    rock.objectState.uv = {0.5f, 0.25f};
+    Client::Render::ModelBatch batch;
+    const auto drawn =
+        Client::Scenes::DrawGameModelEffects(batch, models, std::span(&rock, 1), frustum, nullptr, {}, 0, resources);
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    const auto rockPasses = passes(batch);
+    ASSERT_EQ(rockPasses.size(), 2u);
+    EXPECT_EQ(rockPasses[0].blend, ModelBlend::Opaque);
+    EXPECT_EQ(rockPasses[0].texture, Client::Render::TextureSlot{0x400});
+    EXPECT_EQ(rockPasses[1].blend, ModelBlend::Additive);
+    EXPECT_EQ(rockPasses[1].texture, Client::Render::TextureSlot{0x63c});
+    EXPECT_EQ(rock.objectState.uv, (glm::vec2{0.5f, 0.25f}));
+
+    Client::World::ModelEffect shell = rock;
+    shell.type = 0x13e;
+    Client::Render::ModelBatch shellBatch;
+    const auto swayed = Client::Scenes::DrawGameModelEffects(shellBatch, models, std::span(&shell, 1), frustum, nullptr,
+                                                             {}, 0, resources);
+    ASSERT_TRUE(swayed.HasValue()) << swayed.Error();
+    const auto shellPasses = passes(shellBatch);
+    ASSERT_EQ(shellPasses.size(), 1u);
+    EXPECT_EQ(shellPasses[0].blend, ModelBlend::Additive);
+    EXPECT_EQ(shellPasses[0].texture, Client::Render::TextureSlot{0x400});
+    EXPECT_EQ(shell.objectState.uv, (glm::vec2{1.0f, 0.25f}));
+
+    Client::Render::ModelBatch clockless;
+    const auto cut =
+        Client::Scenes::DrawGameModelEffects(clockless, models, std::span(&shell, 1), frustum, nullptr, {}, 0, 0);
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_TRUE(cut.Error().starts_with("0x443605")) << cut.Error();
+}
+
 // 0x4ecf22..0x4ed035 con RenderBody(0x82) (0x6004aa): la malla del blendMesh va por 0x4ed014, que sólo mira la 0x80
 // (0x620b10, ZERO / ONE_MINUS_SRC_COLOR); la otra, por 0x4ecf68, también. Con el blendMesh en −2 van las dos por
 // 0x4ed014. Sin la 0x80 (el pase común, RenderBody(2)) la del blendMesh es aditiva (0x620a90) y la otra opaca.

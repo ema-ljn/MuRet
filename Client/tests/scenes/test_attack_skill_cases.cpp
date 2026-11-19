@@ -978,7 +978,6 @@ TEST(AttackSkillCasesTest, TheTargetCasesCutWithoutDraws)
     const std::array cases{
         Case{0x01, 0x20a, "0x50497e"},
         Case{0x01, 0x0e, "0x50497e"},
-        Case{0x3c, 0x20a, "0x504d05"},
         Case{0x11, 0x20a, "0x505053"},
     };
     for (const std::int32_t map : Maps)
@@ -995,6 +994,69 @@ TEST(AttackSkillCasesTest, TheTargetCasesCutWithoutDraws)
             EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
         }
     }
+}
+
+// 0x504cdb..0x504d7a, la 0x3c: dos 0x114/1 y un 0x115/0 sobre o, y el sonido 0x1c8. Con lugar en los joints, el primer
+// 0x114/1 corta en su primer joint 0x6e8 (0x51c25f, CL11) después de dos rand() (su escala y la del joint).
+TEST(AttackSkillCasesTest, TheWaveCaseCutsAtTheFirstSwirlJointWithRoom)
+{
+    SkillWorld tested;
+    tested.Striker().position = glm::vec3(1000.0f, 2000.0f, 300.0f);
+    const auto stepped = tested.WithTarget(0x3c);
+    EXPECT_TRUE(HasError(stepped, "0x51c25f")) << ErrorOf(stepped);
+    EXPECT_EQ(DrawsSince(Seed, tested.random), 2);
+    const auto alive = AliveEffects(tested.world);
+    ASSERT_EQ(alive.size(), 1u);
+    EXPECT_EQ(alive.front()->type, 0x114);
+    EXPECT_EQ(alive.front()->life, 15);
+    EXPECT_TRUE(tested.sounds.empty());
+}
+
+// Con los joints llenos, cada 0x114/1 saca cinco rand() (la escala, la de sus dos joints y el corrimiento en x y en y)
+// y el 0x115/0 ninguno: vida 10, la z 130 más.
+TEST(AttackSkillCasesTest, TheWaveCaseRaisesTwoSwirlsAndAPiercingWithFullJoints)
+{
+    SkillWorld tested;
+    for (auto& joint : tested.world.DrawTail().joints)
+        joint.alive = true;
+    tested.Striker().position = glm::vec3(1000.0f, 2000.0f, 300.0f);
+    tested.Striker().angles = glm::vec3(0.0f, 0.0f, 45.0f);
+    ASSERT_TRUE(tested.WithTarget(0x3c).HasValue());
+    EXPECT_EQ(DrawsSince(Seed, tested.random), 10);
+    EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x1c8});
+    const auto alive = AliveEffects(tested.world);
+    ASSERT_EQ(alive.size(), 3u);
+    CrtRandom replay(Seed);
+    for (std::size_t index = 0; index < 2; ++index)
+    {
+        SCOPED_TRACE(index);
+        const auto& wave = *alive[index];
+        const int size = replay.Next() % 50;
+        static_cast<void>(replay.Next());
+        static_cast<void>(replay.Next());
+        const int dx = replay.Next() % 100;
+        const int dy = replay.Next() % 100;
+        EXPECT_EQ(wave.type, 0x114);
+        EXPECT_EQ(wave.subtype, 1);
+        EXPECT_EQ(wave.life, 15);
+        EXPECT_EQ(wave.renderFlags, 0x2000u);
+        EXPECT_EQ(wave.transform.scale, static_cast<float>(static_cast<double>(size) * static_cast<double>(0.01f) +
+                                                           static_cast<double>(0.1f)));
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(wave.turnDirection), 0x3c23d70au);
+        EXPECT_EQ(wave.transform.angles, (glm::vec3{90.0f, 0.0f, 45.0f}));
+        EXPECT_EQ(wave.transform.position,
+                  (glm::vec3{static_cast<float>(static_cast<double>(dx) - 50.0 + 1000.0),
+                             static_cast<float>(static_cast<double>(dy) - 50.0 + 2000.0), 430.0f}));
+        EXPECT_EQ(wave.start, (glm::vec3{1000.0f, 2000.0f, 300.0f}));
+        EXPECT_EQ(wave.objectState.blendMesh, -2);
+    }
+    const auto& piercing = *alive[2];
+    EXPECT_EQ(piercing.type, 0x115);
+    EXPECT_EQ(piercing.subtype, 0);
+    EXPECT_EQ(piercing.life, 10);
+    EXPECT_EQ(piercing.transform.scale, 2.0f);
+    EXPECT_EQ(piercing.velocity, (glm::vec3{0.0f, -60.0f, 0.0f}));
+    EXPECT_EQ(piercing.transform.position, (glm::vec3{1000.0f, 2000.0f, 430.0f}));
 }
 
 // 0x504a0a..0x504abf, la 0x2d: tres 0x139 sobre o, con los subtipos 0, 1 y 2, el blanco de dueño (la partida en su

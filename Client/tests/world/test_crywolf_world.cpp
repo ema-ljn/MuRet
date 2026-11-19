@@ -516,7 +516,8 @@ TEST(CrywolfParticlesTest, TheAnchoredOrbStaysOverItsShiftedStart)
 
 // 0x51ee96..0x51eeae: el calco 0x61d nace con vida 20 (15 con el subtipo 0) y escala 0,5, sin rand().
 // 0x52b91f..0x52b954: el /3, con la vida entre 6 y 9 antes del paso común, suelta una 60f/10 con su luz y la
-// escala 0,19; el /0, el /2 y el /7 cortan, y los demás solo tienen el paso común.
+// escala 0,19; el /0, el /2 y el /7 cortan en su 60f/0 con lugar (y, llena, siguen), y los demás solo tienen el paso
+// común.
 TEST(CrywolfDecalTest, TheBannerDecalReleasesFourOrbsBeforeItFades)
 {
     auto effects = std::make_unique<Client::World::ModelEffects>();
@@ -574,12 +575,22 @@ TEST(CrywolfDecalTest, TheBannerDecalReleasesFourOrbsBeforeItFades)
 
     for (const std::int32_t subtype : {0, 2, 7})
     {
+        SCOPED_TRACE(subtype);
         Client::World::ModelEffect other = effects->Effects()[*first];
         other.subtype = subtype;
         other.life = 8;
-        const auto cut = Client::World::StepGameModelEffect(other, nullptr, *particles, 2500.0f, random);
+        const Client::World::ModelEffectStepServices services{.effects = effects.get()};
+        const auto cut =
+            Client::World::StepGameModelEffect(other, nullptr, *particles, 2500.0f, random, nullptr, services);
         ASSERT_FALSE(cut.HasValue());
-        EXPECT_NE(cut.Error().find("0x52b8a6"), std::string::npos) << cut.Error();
+        EXPECT_NE(cut.Error().find(subtype == 0 ? "0x52b8ff" : "0x52b977"), std::string::npos) << cut.Error();
+        auto full = std::make_unique<Particles>();
+        for (Particle& particle : full->All())
+            particle.alive = true;
+        CrtRandom fullRandom(29);
+        ASSERT_TRUE(Client::World::StepGameModelEffect(other, nullptr, *full, 2500.0f, fullRandom, nullptr, services)
+                        .HasValue());
+        EXPECT_EQ(fullRandom.State(), Client::Tests::AfterDraws(29, 1).State());
     }
     for (const std::int32_t subtype : {1, 4})
     {
@@ -592,6 +603,44 @@ TEST(CrywolfDecalTest, TheBannerDecalReleasesFourOrbsBeforeItFades)
         EXPECT_EQ(quietRandom.State(), Client::Tests::AfterDraws(29, 1).State());
         EXPECT_FALSE(none->All()[0].alive);
     }
+}
+
+// 0x52b8ad..0x52b8cf: el 0x61d/0 deja en cada paso el /1 en su posición, con sus ángulos y su luz, vida 20 y escala
+// 0,5, sin rand(); llena, nada. Sin la tabla de efectos corta. Fuera de la vida 6..9 no suelta la órbita.
+TEST(CrywolfDecalTest, TheTrailDecalLeavesAFadingDecalEachStep)
+{
+    auto effects = std::make_unique<Client::World::ModelEffects>();
+    const glm::vec3 position(12550.0f, 4250.0f, 170.0f);
+    const glm::vec3 angles(0.0f, 0.0f, 90.0f);
+    const glm::vec3 light(0.37f);
+    const auto slot = effects->CreateFadingDecal(position, angles, light, 0, 4);
+    ASSERT_TRUE(slot.has_value());
+    auto particles = std::make_unique<Particles>();
+    CrtRandom random(29);
+    const Client::World::ModelEffectStepServices services{.effects = effects.get()};
+    Client::World::ModelEffect& trail = effects->Effects()[*slot];
+    ASSERT_TRUE(
+        Client::World::StepGameModelEffect(trail, nullptr, *particles, 2500.0f, random, nullptr, services).HasValue());
+    EXPECT_EQ(random.State(), Client::Tests::AfterDraws(29, 1).State());
+    const Client::World::ModelEffect& faded = effects->Effects()[1];
+    ASSERT_TRUE(faded.alive);
+    EXPECT_EQ(faded.type, Client::World::FadingDecalEffect);
+    EXPECT_EQ(faded.subtype, 1);
+    EXPECT_EQ(faded.life, 20);
+    EXPECT_EQ(faded.transform.scale, 0.5f);
+    EXPECT_EQ(faded.transform.position, position);
+    EXPECT_EQ(faded.transform.angles, angles);
+    EXPECT_EQ(faded.light, light);
+    EXPECT_EQ(faded.disturbanceState, 0xffff);
+    EXPECT_FALSE(particles->All()[0].alive);
+    for (auto& effect : effects->Effects())
+        effect.alive = true;
+    ASSERT_TRUE(
+        Client::World::StepGameModelEffect(trail, nullptr, *particles, 2500.0f, random, nullptr, services).HasValue());
+    EXPECT_EQ(random.State(), Client::Tests::AfterDraws(29, 2).State());
+    const auto cut = Client::World::StepGameModelEffect(trail, nullptr, *particles, 2500.0f, random);
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x52b8cf"), std::string::npos) << cut.Error();
 }
 
 namespace

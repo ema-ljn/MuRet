@@ -13,6 +13,7 @@
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/JointKernels.h"
 #include "World/IFishStepServices.h"
+#include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
 #include "World/TerrainLighting.h"
@@ -86,7 +87,7 @@ struct Pool
     Client::Core::Expected<void, std::string> Step()
     {
         return Client::Scenes::StepJoints(joints, random, &cloth, &particles, 0.0f, &sprites, lighting.get(), {},
-                                          terrainHeight);
+                                          terrainHeight, {}, {}, effects.get());
     }
 
     std::vector<JointState> joints = std::vector<JointState>(4);
@@ -101,6 +102,7 @@ struct Pool
     Client::World::Particles particles;
     Client::World::FrameSprites sprites;
     std::unique_ptr<Client::World::TerrainLighting> lighting = std::make_unique<Client::World::TerrainLighting>();
+    std::unique_ptr<Client::World::ModelEffects> effects = std::make_unique<Client::World::ModelEffects>();
 };
 
 ActorState Owner(glm::vec3 position)
@@ -521,8 +523,8 @@ TEST(SpiritJointsTest, TheEighthArcsAndTheTenthTurns)
     EXPECT_EQ(turning.random.State(), CrtRandom(Seed).State());
 }
 
-// 0x539a0e: con ancho 80 la /0, la /5 y la /0x13 cortan en el efecto 0xd0 (0x539a48); con otro, la /0x13 en el 0x11b
-// (0x539b08).
+// 0x539a0e: con ancho 80 la /0, la /5 y la /0x13 cortan en el efecto 0xd0 (0x539a48); con otro, la /0x13 suelta el
+// destello 0x11b/0 (0x539b08: vida 1, escala 2,3f, sin rand()) y sigue como la /0; sin la tabla de efectos, corta ahí.
 TEST(SpiritJointsTest, TheWideVolleyStepIsCut)
 {
     for (const std::int32_t subtype : {0, 5, 0x13})
@@ -536,10 +538,27 @@ TEST(SpiritJointsTest, TheWideVolleyStepIsCut)
         EXPECT_TRUE(stepped.Error().starts_with("0x539a48")) << stepped.Error();
     }
     Pool thin;
-    ASSERT_TRUE(thin.Create(0x613, 0x13, {}, 20.0f).HasValue());
+    ActorState owner = Owner({});
+    thin.terrainHeight = [](float, float) { return 150.0; };
+    ASSERT_TRUE(thin.Create(0x613, 0x13, {100.0f, 200.0f, 300.0f}, 20.0f, &owner, JointOwnerKind::Actor).HasValue());
+    const glm::vec3 light = thin.joints[0].light;
     const auto stepped = thin.Step();
-    ASSERT_FALSE(stepped.HasValue());
-    EXPECT_TRUE(stepped.Error().starts_with("0x539b08")) << stepped.Error();
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    const auto& spark = thin.effects->Effects()[0];
+    ASSERT_TRUE(spark.alive);
+    EXPECT_EQ(spark.type, 0x11b);
+    EXPECT_EQ(spark.subtype, 0);
+    EXPECT_EQ(spark.life, 1);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(spark.transform.scale), 0x40133333u);
+    EXPECT_EQ(spark.light, light);
+    EXPECT_FALSE(thin.effects->Effects()[1].alive);
+
+    Pool tableless;
+    tableless.effects.reset();
+    ASSERT_TRUE(tableless.Create(0x613, 0x13, {}, 20.0f, &owner, JointOwnerKind::Actor).HasValue());
+    const auto cut = tableless.Step();
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_TRUE(cut.Error().starts_with("0x539b08")) << cut.Error();
 }
 
 // 0x539b10..0x539cc7: la /0 y la /5 de otro ancho van hacia el dueño 80 más arriba, la /0 sacudida con dos rand(); el

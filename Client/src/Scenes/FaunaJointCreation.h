@@ -21,6 +21,7 @@ struct ClothWorld;
 namespace Client::World
 {
 class FrameSprites;
+class ModelEffects;
 class Particles;
 struct TerrainLighting;
 } // namespace Client::World
@@ -59,11 +60,12 @@ CreateFaunaJoint(std::span<JointState> joints, const World::FishEffectRequest& r
 [[nodiscard]] Core::Expected<void, std::string> StepJoints(std::span<JointState> joints);
 // El 618/0 y /1 piden además la luz dinámica (`lighting`, 0x7b4ccc4) y el sonido 0x23 (0x41ed10) al llegar; el
 // 613/0 y el /5, la altura del terreno (`terrainHeight`, 0x5f93c0); el 0x10f/4 y el /9, los 400 personajes
-// (`actors`, 0x743a16c); el 0x60f/0xb y el /0x19 con skill 1, el choque de la flecha dueña (`effectHit`, 0x520170).
+// (`actors`, 0x743a16c); el 0x60f/0xb y el /0x19 con skill 1, el choque de la flecha dueña (`effectHit`, 0x520170);
+// el 0x613/0x13, la tabla de efectos con modelo (`effects`, 0x7491fd8).
 [[nodiscard]] Core::Expected<void, std::string>
 StepJoints(std::span<JointState> joints, Render::Models::CrtRandom& random, Render::Models::ClothWorld* cloth = nullptr,
            World::Particles* particles = nullptr, float worldClock = 0, World::FrameSprites* sprites = nullptr,
            World::TerrainLighting* lighting = nullptr, const std::function<void(std::int32_t)>& soundRequest = {},
            const std::function<double(float, float)>& terrainHeight = {}, std::span<const ActorState> actors = {},
-           const JointKernels::EffectHit& effectHit = {});
+           const JointKernels::EffectHit& effectHit = {}, World::ModelEffects* effects = nullptr);
 } // namespace Client::Scenes

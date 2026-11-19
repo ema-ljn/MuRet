@@ -13,6 +13,7 @@
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/GuildMarkEffects.h"
 #include "Scenes/JointFamilies.h"
 #include "Scenes/PartyActors.h"
 #include "Scenes/SceneId.h"
@@ -590,18 +591,30 @@ Result FullSet(Tail& tail)
 }
 
 // 0x510a7a..0x510ab6 y 0x510ef0: en la escena 5 (el único caller), con +0x88 en 1 y fuera de los mapas 11 a 23 y
-// 30, +0x369 en 1 crea el efecto 0x140 si +0x36c está en 0 o pasaron más de 5000 ms. +0x369 sólo lo escriben los
-// paquetes (CL9) y +0x36c sólo este efecto: en MuRet, siempre 0 (Q-C352).
+// 30, +0x369 en 1 crea el efecto 0x140 (Scenes/GuildMarkEffects) si +0x36c está en 0 o pasaron más de 5000 ms, y
+// +0x36c pasa a ser el reloj (Q-C352). Solo en un frame del original: entre frames, el personaje es una copia.
 Result GuildMark(const Tail& tail)
 {
-    const ActorState& actor = tail.actor;
+    ActorState& actor = tail.actor;
     const std::int32_t map = tail.pass.map;
     // 0x510a7a: sólo en la escena 5.
     if (!tail.pass.gameScene || actor.byte88 != 1 || (map >= FirstBloodCastle && map <= LastBloodCastle) ||
         World::IsChaosCastleMap(map) || map == CastleMap)
         return {};
-    if (actor.byte369 == 1 && tail.pass.originalFrame)
-        return Core::Unexpected<std::string>("0x510f4d: el efecto 0x140 de +0x369 no está portado");
+    if (!tail.pass.originalFrame || !GuildMarkIsDue(actor, tail.pass.worldClock))
+        return {};
+    if (tail.pass.effects == nullptr || tail.pass.particles == nullptr)
+        return Core::Unexpected<std::string>("0x510f4d: el efecto 0x140 pide la tabla de efectos y las partículas");
+    // 0x51e121: 0x4ec110 con el hueso 20 de los huesos propios (+0x120) y la escala y la posición que 0x6001b0 le copió
+    // al modelo, sin el corrimiento de [ebp−0x50] (el de 0x518cf0 es suyo, en 0).
+    if (GuildMarkBone >= tail.pass.body.size())
+        return Core::Unexpected(std::format("0x51e121: el hueso {} del cuerpo no existe", GuildMarkBone));
+    const glm::vec3 point = Render::Models::OriginalTransformPosition(
+        Render::Models::OriginalMatrixOf(tail.pass.body[GuildMarkBone]), glm::vec3(0.0f), actor.scale, actor.position);
+    if (auto raised = RaiseTheGuildMark(actor, point, *tail.pass.effects, *tail.pass.particles, tail.pass.random,
+                                        tail.pass.worldClock);
+        !raised.HasValue())
+        return Core::Unexpected(std::format("0x510f4d: {}", raised.Error()));
     return {};
 }
 Core::Expected<void, std::string> RaiseSwellLifeChildren(const World::ModelEffect& effect, World::Particles* particles,

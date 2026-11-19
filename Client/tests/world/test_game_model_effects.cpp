@@ -1201,21 +1201,52 @@ TEST(GameModelEffectsTest, TheGallopShockWaveGrowsShakesAndFadesWithThreeRandoms
     }
 }
 
-// Los otros subtipos del 0x6eb cortan en su rama, después del rand() común.
-TEST(GameModelEffectsTest, OtherShockWavesStopAfterTheCommonRandom)
+// 0x52c649..0x52c6d4 y 0x52c74e: después del rand() común, la /2 crece (rand() % 5) · 0,025f y tiembla como la /1; la
+// /3 crece 2 y la /4 0,3f, sin rand(); un subtipo sin rama (9, −1) no toca la escala. De 0 a 3 la luz sigue la vida;
+// fuera, con menos de 6 de vida, se apaga por 0,769f.
+TEST(GameModelEffectsTest, TheOtherShockWavesGrowByTheirOwnSteps)
 {
-    Client::World::ModelEffects effects;
-    Client::Render::Models::CrtRandom random(1);
-    ASSERT_TRUE(effects.CreateGallopShockWave({}, {}, glm::vec3(1.0f), random).has_value());
-    Client::World::ModelEffect& wave = effects.Effects()[0];
-    wave.subtype = 2;
     Client::World::Particles particles;
-
-    const auto stepped = Client::World::StepGameModelEffect(wave, nullptr, particles, 0.0f, random);
-
-    ASSERT_FALSE(stepped.HasValue());
-    EXPECT_NE(stepped.Error().find("0x52c5ca"), std::string::npos) << stepped.Error();
-    EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 2).State());
+    for (const std::int32_t subtype : {2, 3, 4, 9, -1})
+    {
+        SCOPED_TRACE(subtype);
+        Client::World::ModelEffect wave;
+        wave.alive = true;
+        wave.type = 0x6eb;
+        wave.subtype = subtype;
+        wave.life = 5;
+        wave.transform.position = {100.5f, 200.25f, 300.0f};
+        wave.transform.scale = 1.0f;
+        wave.light = glm::vec3(1.0f);
+        Client::Render::Models::CrtRandom random(1);
+        ASSERT_TRUE(Client::World::StepGameModelEffect(wave, nullptr, particles, 0.0f, random).HasValue());
+        Client::Render::Models::CrtRandom replay(1);
+        static_cast<void>(replay.Next());
+        glm::vec3 position{100.5f, 200.25f, 300.0f};
+        float scale = 1.0f;
+        if (subtype == 2)
+        {
+            const int growth = replay.Next() % 5;
+            scale = static_cast<float>(growth * static_cast<double>(0.025f) + 1.0);
+            for (int axis = 0; axis < 2; ++axis)
+            {
+                const int shake = replay.Next() & 7;
+                position[axis] = static_cast<float>((shake - 4.0) + static_cast<double>(position[axis]));
+            }
+        }
+        else if (subtype == 3)
+            scale = 3.0f;
+        else if (subtype == 4)
+            scale = static_cast<float>(1.0 + static_cast<double>(0.3f));
+        EXPECT_EQ(wave.transform.scale, scale);
+        EXPECT_EQ(wave.transform.position, position);
+        EXPECT_EQ(random.State(), replay.State());
+        const float fade = static_cast<float>(static_cast<double>(std::bit_cast<float>(0x3f44ec4fu)));
+        EXPECT_EQ(wave.light, subtype >= 0 && subtype <= 3
+                                  ? glm::vec3(static_cast<float>(5 * static_cast<double>(0.05f)))
+                                  : glm::vec3(fade));
+        EXPECT_EQ(wave.life, 4);
+    }
 }
 
 namespace

@@ -627,9 +627,9 @@ TEST(HighModelEffectsTest, TheColoredDecalTakesItsLifeAndScaleBySubtype)
 }
 
 // 0x52b9c1..0x52bb24: el 0x61e/6 pone su partida como origen del modelo de su dueño, sortea +0x68 y, por cada vida, un
-// hueso; los dummy no sacan más; los otros, tres rand() del corrimiento y la partícula 0x5ac/8, que MuRet no tiene:
-// con lugar corta ahí (0x52baf5); llena, sigue. Después, el alpha del dueño en vida · 0,0125f, y la cola: una vida
-// menos sin moverse.
+// hueso; los dummy no sacan más; los otros, tres rand() del corrimiento y la partícula 0x5ac/8 (0x52baf5) con los
+// ángulos del dueño, luz 1 y escala 1, que saca otros tres; llena, sin ellos. Después, el alpha del dueño en vida ·
+// 0,0125f, y la cola: una vida menos sin moverse.
 TEST(HighModelEffectsTest, TheBindingDecalSparksOverTheBonesOfItsOwner)
 {
     HighWorld tested;
@@ -650,28 +650,41 @@ TEST(HighModelEffectsTest, TheBindingDecalSparksOverTheBonesOfItsOwner)
     decal.life = 3;
     const int before = tested.Draws();
     const ModelEffect kept = decal;
-    const auto cut = StepHighModelEffect(decal, nullptr, tested.StepContext());
-    // Hasta el corte (0x52baf5): la luz local (0x5208c5), +0x68 (0x52ba0f) y, por vuelta, el hueso (0x52ba3d); el
-    // primero que no es un dummy saca los tres del corrimiento (0x52ba66..0x52ba98) y la partícula corta sin sacar más.
-    ASSERT_FALSE(cut.HasValue());
-    EXPECT_TRUE(cut.Error().starts_with("0x52baf5")) << cut.Error();
+    const auto sparked = StepHighModelEffect(decal, nullptr, tested.StepContext());
+    ASSERT_TRUE(sparked.HasValue()) << sparked.Error();
     {
-        CrtRandom untilCut{Seed};
-        for (int skipped = 0; skipped < before; ++skipped)
-            static_cast<void>(untilCut.Next());
-        int cutDraws = before + 2;
-        static_cast<void>(untilCut.Next());
-        static_cast<void>(untilCut.Next());
+        // La luz local (0x5208c5), +0x68 (0x52ba0f) y, por vuelta, el hueso (0x52ba3d); el que no es un dummy saca los
+        // tres del corrimiento (0x52ba66..0x52ba98) y la 0x5ac/8 los suyos, replicados en un pool gemelo.
+        CrtRandom expected{Seed};
+        for (int skipped = 0; skipped < before + 2; ++skipped)
+            static_cast<void>(expected.Next());
+        auto twin = std::make_unique<Client::World::Particles>();
+        const auto& all = tested.world->Particles().All();
+        std::size_t made = 0;
         for (int turn = 0; turn < 3; ++turn)
         {
-            ++cutDraws;
-            if (untilCut.Next() % 2 == 0)
-            {
-                cutDraws += 3;
-                break;
-            }
+            if (expected.Next() % 2 == 1)
+                continue;
+            for (int axis = 0; axis < 3; ++axis)
+                static_cast<void>(expected.Next());
+            const Client::World::Particle& spark = all[made];
+            ASSERT_TRUE(spark.alive);
+            EXPECT_EQ(spark.type, 0x5ac);
+            EXPECT_EQ(spark.subtype, 8);
+            const auto replayed =
+                twin->CreateChecked(0x5ac, spark.start, owner.angles, glm::vec3(1.0f), 8, 1.0f, 0.0f, expected);
+            ASSERT_TRUE(replayed.HasValue() && replayed.Value().has_value());
+            const Client::World::Particle& twinSpark = twin->All()[*replayed.Value()];
+            EXPECT_EQ(spark.life, twinSpark.life);
+            EXPECT_EQ(spark.verticalSpeed, twinSpark.verticalSpeed);
+            EXPECT_EQ(spark.scale, twinSpark.scale);
+            EXPECT_EQ(spark.angles, owner.angles);
+            EXPECT_EQ(spark.light, glm::vec3(1.0f));
+            ++made;
         }
-        EXPECT_EQ(tested.Draws(), cutDraws);
+        EXPECT_GT(made, 0U);
+        EXPECT_FALSE(all[made].alive);
+        EXPECT_EQ(tested.random.State(), expected.State());
     }
     decal = kept;
     tested.random = CrtRandom{Seed};

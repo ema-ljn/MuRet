@@ -7845,7 +7845,7 @@ columnas son la dirección, los bytes, qué es y qué tiene MuRet.
 | `0x4fbe10` | 1.599 | la celda del héroe por la red, en los mapas 18 a 23 | corta |
 | `0x4fc450` | 819 | los WORD del registro propio | `StepTheOwnTimers` |
 | `0x4fb380` | 1.619 | `+0x398`, `+0x399` y el `0xf1` | el `0xf1`, `Scenes::StepTheFallingBall` (`0x4fb910`, CL9 hito 2, fase 6c) |
-| `0x4fb9e0` | 1.058 | muriéndose | `Scenes::StepActorDying`; corta en `0x4fba6d`, `0x4fbba8` y `0x4fbcdd` ([Pegar al llegar](#pegar-al-llegar), "Morirse") |
+| `0x4fb9e0` | 1.058 | muriéndose | `Scenes::StepActorDying`; corta en `0x4fba6d` y `0x4fbba8` (~~`0x4fbcdd`~~, las diez `0x5ac/5` en la tercera vuelta del lote de partículas; [Pegar al llegar](#pegar-al-llegar), "Morirse") |
 | `0x4e9980` | 191 | el alpha | `World::StepObjectAlpha` |
 | `0x4fcd00` | 473 | la animación | `StepTheAnimation`, con el `0x20a`; corta en `0x4fcd0c` y `0x4fcda2` |
 | `0x4f5660` | 1.185 | las partículas del que se muere | `Scenes::SetActorDie`, desde el paso 15 |
@@ -8657,6 +8657,15 @@ subtipo sale por `0x54304c` sin nada propio. El paso (`0x5478d7`, con cualquier 
 0,004f, achica la escala 0,02f, pone el cuadro `+0x48` en `(23 − vida) / 6` (que nadie lee: la dibuja el billboard
 común, `0x54889a`) y sube la z la velocidad vertical por 10; la /1 apaga la luz con la vida · 0,1f. La piden el fuego
 que rebota `0xc2/5` (la /0, `0x524f05`) y la jabalina `0x139` por debajo de 20 de vida (la /1, `0x529c69`).
+
+**Los destellos `0x5ac/5` y `0x5ac/8`** (`Effect\flare01.jpg`, en `KalimaParticleKernels.cpp`, tercera vuelta): la /5
+nace en `0x540140` con vida 25 y sin `rand()`, y su paso es el de la /1 (`0x544a19` → `0x5449e1`: la luz por 0,9f y
+la escala por 0,95f). La /8 entra en el alta por `0x53ffae` al mismo `0x540151` que la /0 y la /6 (tres `rand()`), y en
+el paso por `0x544c09`: el `cmp` por 8 todavía igual hace que `0x544c17` no salte y le deja la k = 0,5f de la /0, con
+la misma caminata, la escala 0,05f menos y la muerte en 0,1f; después, `0x544dd9..0x544dfd` le pone la luz
+(escala; escala · 0,5; escala · 0,3f). Las dos van al billboard común. Las piden la calavera `0x628/5` (tres /5,
+`0x52b843`), la skill `0x28` del que muere (diez /5, `0x4fbd3a`) y el calco `0x61e/6` (una /8 por hueso que no es un
+dummy, `0x52baf5`).
 
 ### Las partículas de la fuente en el juego
 
@@ -11484,7 +11493,9 @@ CL9 hito 3 (2026-11-13), *estático* salvo lo que se marca; los paquetes, en
   de `0x51fe10` (CL11: corta en `0x4fbba8`); fuera de los castillos, con la skill `0x28` o `0x3b` en `+0x391`,
   hasta el paso 14 `+0xd0 −= +0xd8` (0 si queda debajo), `+0xd8 += 1` y `0x51fd20` (la posición más `(+0xcc,
   +0xd0, +0xd4)` girado por los ángulos de la cabeza y `+0x30`), y con la `0x28` hasta el paso 30, diez
-  partículas `0x5ac` (CL11: corta en `0x4fbcdd`). Por último, en la escena 5 y el mapa 7, cuatro burbujas `0x607`
+  partículas `0x5ac/5` (`0x4fbca1..0x4fbd43`: el hueso `rand() % 32` por `0x4ec110` con Translate 1, los ángulos
+  `+0x1c`, la luz (0,3f; 0,3f; 1) y la escala `(rand() % 100) · 0,02f + 0,5`; CL11, tercera vuelta del lote de
+  partículas). Por último, en la escena 5 y el mapa 7, cuatro burbujas `0x607`
   (`rand() & 0x7f − 64` en x e y y `rand() & 0xff` en z sobre la posición, `0x53fe70`). Al volver, el cuerpo sube
   `+0x389` (un byte, Q-C1166) y desde 15 llama otra vez a `0x4f5660` (`0x4fd787..0x4fd7e1`; en Blood Castle con
   `+0x1a1`, también antes), y al final apaga `0x8000` y `0x10000` de `+0x78` (`0x505453..0x5054aa`).

@@ -29,6 +29,9 @@ constexpr double Brighten = static_cast<double>(1.1f);
 constexpr double WalkFactor = static_cast<double>(std::bit_cast<float>(0x39d1b718u));
 constexpr int FullTurn = 360, LifeSpan = 10, LongLife = 30, ShortLife = 20;
 constexpr int FlareZero = 0, FlareTrail = 1, FlareSix = 6, FlareSeven = 7, FlareNine = 9, SelectionScene = 4;
+// La 5ac/5 de la calavera 0x628/5 (0x52b843) y del empujón de la skill 0x28 (0x4fbd3a), y la 5ac/8 del 0x61e/6
+// (0x52baf5).
+constexpr int FlareFive = 5, FlareEight = 8;
 constexpr std::int32_t WaterfallSplash = WaterfallSplashFirst;
 float F32(double value)
 {
@@ -48,10 +51,11 @@ void Jitter(Particle& p, Render::Models::CrtRandom& random, int xySpan, int zSpa
         p.position[axis] = F32(static_cast<double>(offset) + p.position[axis]);
     }
 }
-// 0x540151..0x54018f: el 5ac/0 (y el /2 y el /8) son las mismas instrucciones que el /6.
+// 0x540151..0x54018f: el 5ac/0 (y el /2 y el /8, que 0x53ffa5 y 0x53ffae mandan al mismo 0x540151) son las mismas
+// instrucciones que el /6 (0x54003c); el /7 (0x53ffd9) vive 30 más y su escala es rand() % 15 + 30.
 void CreateFlare(Particle& p, Render::Models::CrtRandom& random)
 {
-    const bool six = p.subtype == FlareSix || p.subtype == FlareZero;
+    const bool six = p.subtype != FlareSeven;
     p.life = random.Next() % LifeSpan + (six ? LifeSpan : LongLife);
     p.verticalSpeed = static_cast<float>(random.Next() % LifeSpan + LifeSpan);
     const int size = random.Next() % (six ? 50 : 15) + (six ? 50 : LongLife);
@@ -357,8 +361,9 @@ bool IsKalimaParticle(std::int32_t type, std::int32_t subtype)
                                             subtype == KundunSplashLastSubtype || subtype == BrazierFallSubtype)) ||
            ((type == WaterfallSplash || type == WaterfallSplash + 1) && subtype == KundunSplashSubtype) ||
            (type == KalimaWaterfallMist && subtype == BootsMistSubtype) ||
-           (type == KalimaFlare && (subtype == FlareZero || subtype == FlareTrail || subtype == FlareSix ||
-                                    subtype == FlareSeven || subtype == FlareNine)) ||
+           (type == KalimaFlare &&
+            (subtype == FlareZero || subtype == FlareTrail || subtype == FlareFive || subtype == FlareSix ||
+             subtype == FlareSeven || subtype == FlareEight || subtype == FlareNine)) ||
            (subtype == 0 && type >= KalimaWaterfallFirst && type <= KalimaWaterfallLast);
 }
 Core::Expected<void, ParticleError> CreateKalimaParticle(Particle& p, Render::Models::CrtRandom& random,
@@ -366,12 +371,14 @@ Core::Expected<void, ParticleError> CreateKalimaParticle(Particle& p, Render::Mo
 {
     if (p.type == KalimaFlare)
     {
-        // 0x54007f: el 5ac/1 (la estela del efecto 0x5ac de Icarus) sólo vive 50, sin rand(). 0x53ffb9: el
-        // 5ac/9 vive ftol(escala · 40), sin rand().
-        constexpr std::int32_t TrailLife = 50;
+        // 0x54007f: el 5ac/1 (la estela del efecto 0x5ac de Icarus) sólo vive 50, sin rand(). 0x540140: el /5 vive
+        // 25, sin rand(). 0x53ffb9: el 5ac/9 vive ftol(escala · 40), sin rand().
+        constexpr std::int32_t TrailLife = 50, FiveLife = 25;
         constexpr double NineLifePerScale = 40.0;
         if (p.subtype == FlareTrail)
             p.life = TrailLife;
+        else if (p.subtype == FlareFive)
+            p.life = FiveLife;
         else if (p.subtype == FlareNine)
             p.life = FtolLow(static_cast<double>(p.scale) * NineLifePerScale);
         else
@@ -455,11 +462,21 @@ Core::Expected<void, ParticleError> StepKalimaParticle(Particle& p, Render::Mode
 {
     if (p.type == KalimaFlare)
     {
-        if (p.subtype == FlareZero)
-            StepFlareZero(p, random, wind);
-        else if (p.subtype == FlareTrail)
+        if (p.subtype == FlareZero || p.subtype == FlareEight)
         {
-            // 0x5449e1..0x544a11: la luz por 0,9f y la escala por 0,95f.
+            // 0x5448e1..0x544903 y 0x544c09..0x544c19: el /8 entra con el cmp por 8 todavía igual y toma la k = 0,5f
+            // del /0; después de su muerte, 0x544dd9..0x544dfd le pone la luz (escala; escala · 0,5; escala · 0,3f).
+            StepFlareZero(p, random, wind);
+            if (p.subtype == FlareEight)
+            {
+                constexpr double ThreeTenths = static_cast<double>(std::bit_cast<float>(0x3e99999au));
+                p.light = {p.scale, F32(static_cast<double>(p.scale) * 0.5),
+                           F32(static_cast<double>(p.scale) * ThreeTenths)};
+            }
+        }
+        else if (p.subtype == FlareTrail || p.subtype == FlareFive)
+        {
+            // 0x5449e1..0x544a11 (el /5 por 0x544a19): la luz por 0,9f y la escala por 0,95f.
             constexpr double TrailFade = static_cast<double>(std::bit_cast<float>(0x3f666666u));
             FadeLight(p, TrailFade);
             p.scale = F32(static_cast<double>(p.scale) * Damping);

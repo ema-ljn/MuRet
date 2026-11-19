@@ -756,6 +756,67 @@ TEST(Cl11Particles, TheCinderRisesShrinksAndTheJavelinOneFades)
     EXPECT_EQ(random.State(), CrtRandom(Seed).State());
 }
 
+// 0x540140 y 0x5449e1: la 0x5ac/5 vive 25 sin rand() y su paso (el de la /1, por 0x544a19) apaga la luz por 0,9f y
+// achica la escala por 0,95f. 0x540151 y 0x544c09: la /8 nace y camina como la /0 (el cmp por 8 todavía igual le da la
+// k = 0,5f) y después 0x544dd9 le pone la luz (escala; escala · 0,5; escala · 0,3f). Las dos, al billboard común.
+TEST(Cl11Particles, TheFlaresFiveAndEightFollowTheTrailAndTheZero)
+{
+    auto particles = std::make_unique<Particles>();
+    CrtRandom random(Seed);
+    const auto five = particles->CreateChecked(0x5ac, {1, 2, 3}, {}, {0.5f, 0.6f, 1.0f}, 5, 0.7f, 0.0f, random);
+    ASSERT_TRUE(five.HasValue());
+    ASSERT_TRUE(five.Value().has_value());
+    Particle& trail = Only(*particles, *five.Value());
+    EXPECT_EQ(trail.life, 25);
+    EXPECT_EQ(trail.scale, 0.7f);
+    EXPECT_EQ(random.State(), CrtRandom(Seed).State());
+    const Particle before = trail;
+    ASSERT_TRUE(Step(*particles, random, 0.0f).HasValue());
+    EXPECT_EQ(trail.life, 24);
+    EXPECT_EQ(trail.position, before.position);
+    EXPECT_EQ(trail.scale, F32(static_cast<double>(before.scale) * D(0x3f733333u)));
+    for (int channel = 0; channel < 3; ++channel)
+        EXPECT_EQ(trail.light[channel], F32(static_cast<double>(before.light[channel]) * D(0x3f666666u)));
+
+    auto eights = std::make_unique<Particles>();
+    auto zeros = std::make_unique<Particles>();
+    CrtRandom eightRandom(Seed);
+    CrtRandom zeroRandom(Seed);
+    const auto eight = eights->CreateChecked(0x5ac, {10, 20, 30}, {}, glm::vec3(1.0f), 8, 1.0f, 0.0f, eightRandom);
+    const auto zero = zeros->CreateChecked(0x5ac, {10, 20, 30}, {}, glm::vec3(1.0f), 0, 1.0f, 0.0f, zeroRandom);
+    ASSERT_TRUE(eight.HasValue() && eight.Value().has_value());
+    ASSERT_TRUE(zero.HasValue() && zero.Value().has_value());
+    Particle& spark = Only(*eights, *eight.Value());
+    const Particle& reference = Only(*zeros, *zero.Value());
+    EXPECT_EQ(eightRandom.State(), AfterDraws(Seed, 3).State());
+    EXPECT_EQ(eightRandom.State(), zeroRandom.State());
+    EXPECT_EQ(spark.life, reference.life);
+    EXPECT_EQ(spark.verticalSpeed, reference.verticalSpeed);
+    EXPECT_EQ(spark.scale, reference.scale);
+    for (int step = 1; step <= 3; ++step)
+    {
+        SCOPED_TRACE(step);
+        ASSERT_TRUE(Step(*eights, eightRandom, 0.0f).HasValue());
+        ASSERT_TRUE(Step(*zeros, zeroRandom, 0.0f).HasValue());
+        EXPECT_EQ(eightRandom.State(), zeroRandom.State());
+        EXPECT_EQ(spark.position, reference.position);
+        EXPECT_EQ(spark.scale, reference.scale);
+        EXPECT_EQ(spark.alive, reference.alive);
+        EXPECT_EQ(reference.light, glm::vec3(reference.scale));
+        EXPECT_EQ(spark.light, glm::vec3(spark.scale, F32(static_cast<double>(spark.scale) * 0.5),
+                                         F32(static_cast<double>(spark.scale) * D(0x3e99999au))));
+    }
+    for (Particle* flare : {&trail, &spark})
+    {
+        const auto drawn = DrawOneParticle(*flare, glm::vec2(64, 64), std::uint8_t{4});
+        ASSERT_TRUE(drawn.HasValue());
+        ASSERT_TRUE(drawn.Value().has_value());
+        EXPECT_EQ(drawn.Value()->texture, 0x5ac);
+        EXPECT_EQ(drawn.Value()->uv, glm::vec2(0.0f));
+        EXPECT_EQ(drawn.Value()->uvSize, glm::vec2(1.0f));
+    }
+}
+
 TEST(Cl11Particles, TheNewTypesGoToTheirBillboards)
 {
     using Kind = std::tuple<std::int32_t, std::int32_t, bool>;

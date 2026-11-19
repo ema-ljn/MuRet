@@ -17,7 +17,8 @@ struct Particle;
 class IParticleTrigonometry;
 enum class ParticleError : std::uint8_t;
 // El 0x5ac (Effect\flare01.jpg): 6 y 7 de Kalima, 0 del 10 de Icarus (0x604143), 1 la estela del efecto
-// 0x5ac de Icarus y 9 la del efecto 0xb3 de Aida (0x520d04).
+// 0x5ac de Icarus, 9 la del efecto 0xb3 de Aida (0x520d04), 5 la de la calavera 0x628/5 (0x52b843) y del empujón de
+// la skill 0x28 (0x4fbd3a), y 8 la del 0x61e/6 (0x52baf5).
 inline constexpr std::int32_t KalimaFlare = 0x5ac;
 inline constexpr std::int32_t KalimaFanta = 0x6ed;
 // Effect\fantaF.jpg: el 0x39 y el 0x47 de Crywolf crean 6ec/5 (0x430825 y 0x430890), y el 0 y el 0x35 de Castle

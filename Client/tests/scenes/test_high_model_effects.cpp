@@ -329,20 +329,34 @@ TEST(HighModelEffectsTest, TheSiegeSpearmanDropsAStoneEveryFiveSteps)
 }
 
 // 0x51f154: el pulso 0x61c/0 con vida 20, la velocidad (0, −550, 0), los ángulos (−90, 0, z), +0x28 y +0x2c en 0 y
-// +0x30 en rand() % 360; su joint 0x61c/3 (0x51f1c5) es del lote de los joints: con lugar corta ahí, antes de la
-// partida. El /1, (0, −250, 0) sin joint. Otro subtipo, sólo el prefijo y sin rand().
-TEST(HighModelEffectsTest, TheSiegePulseDrawsItsPhaseAndCutsAtItsJoint)
+// +0x30 en rand() % 360; después su joint 0x61c/3 (0x51f1c5, alta 0x534494 sin rand()) con escala 80 en la posición, y
+// la partida. El /1, (0, −250, 0) sin joint. Otro subtipo, sólo el prefijo y sin rand().
+TEST(HighModelEffectsTest, TheSiegePulseDrawsItsPhaseAndRaisesItsJoint)
 {
     {
         HighWorld tested;
         const ModelEffectArguments arguments{.type = 0x61c, .position = {10, 20, 30}, .angles = {4, 5, 6}};
-        EXPECT_TRUE(HasError(CreateHighModelEffect(arguments, tested.Context()), "0x51f1c5"));
+        const auto raised = CreateHighModelEffect(arguments, tested.Context());
+        ASSERT_TRUE(raised.HasValue()) << raised.Error();
         const ModelEffect& pulse = tested.Effect(0);
         EXPECT_EQ(pulse.life, 20);
         EXPECT_EQ(pulse.velocity, (glm::vec3{0, -550, 0}));
         EXPECT_EQ(pulse.transform.angles, (glm::vec3{-90, 0, 6}));
-        EXPECT_EQ(pulse.start, glm::vec3(0.0f));
+        EXPECT_EQ(pulse.start, (glm::vec3{10, 20, 30}));
         EXPECT_EQ(tested.Draws(), 1);
+        const auto& joint = tested.world->DrawTail().joints.front();
+        ASSERT_TRUE(joint.alive);
+        EXPECT_EQ(joint.type, 0x61c);
+        EXPECT_EQ(joint.subtype, 3);
+        EXPECT_EQ(joint.texture, 0x60f);
+        EXPECT_EQ(joint.width, 80.0f);
+        EXPECT_EQ(joint.position, (glm::vec3{10, 20, 30}));
+        EXPECT_EQ(joint.bendAngles, (glm::vec3{0, 0, 6}));
+        EXPECT_EQ(joint.speed, 10.0f);
+        EXPECT_EQ(joint.velocity.x, 10.5f);
+        EXPECT_EQ(joint.velocity.z, 2.0f);
+        EXPECT_EQ(joint.life, 20);
+        EXPECT_FALSE(tested.world->DrawTail().joints[1].alive);
 
         tested.FillTheJoints();
         const auto made = CreateHighModelEffect(arguments, tested.Context());
@@ -1205,8 +1219,8 @@ TEST(HighModelEffectsTest, TheHomingPartTurnsTowardItsOwnerAndLeavesItsTrail)
 }
 
 // 0x527455..0x527534 y 0x527252: el 0x116/2 gira hacia su dueño, +0xd8 2,4f más y avanza; con la vida múltiplo de 3,
-// el joint 0x61c/2 (del lote de los joints: con lugar corta en 0x52752c; lleno, sigue). El /1, con menos de 5 de vida,
-// el alpha por 0,7692308f.
+// el joint 0x61c/2 (alta 0x534578, sin rand()) con escala 150, 10 más arriba; lleno, sigue igual. El /1, con menos de 5
+// de vida, el alpha por 0,7692308f.
 TEST(HighModelEffectsTest, TheDivingPartDropsAJointEveryThreeSteps)
 {
     HighWorld tested;
@@ -1220,7 +1234,21 @@ TEST(HighModelEffectsTest, TheDivingPartDropsAJointEveryThreeSteps)
     ASSERT_TRUE(StepHighModelEffect(dive, nullptr, tested.StepContext()).HasValue());
     EXPECT_EQ(dive.speed, static_cast<float>(50.0 + static_cast<double>(std::bit_cast<float>(0x4019999au))));
     EXPECT_EQ(dive.life, 9);
-    EXPECT_TRUE(HasError(StepHighModelEffect(dive, nullptr, tested.StepContext()), "0x52752c"));
+    EXPECT_FALSE(tested.world->DrawTail().joints.front().alive);
+    const auto dropped = StepHighModelEffect(dive, nullptr, tested.StepContext());
+    ASSERT_TRUE(dropped.HasValue()) << dropped.Error();
+    const auto& joint = tested.world->DrawTail().joints.front();
+    ASSERT_TRUE(joint.alive);
+    EXPECT_EQ(joint.type, 0x61c);
+    EXPECT_EQ(joint.subtype, 2);
+    EXPECT_EQ(joint.texture, 0x633);
+    EXPECT_EQ(joint.width, 150.0f);
+    EXPECT_EQ(joint.life, 15);
+    EXPECT_EQ(joint.position.x, dive.transform.position.x);
+    EXPECT_EQ(joint.position.y, dive.transform.position.y);
+    EXPECT_EQ(joint.position.z, static_cast<float>(static_cast<double>(dive.transform.position.z) + 10.0));
+    EXPECT_EQ(joint.bendAngles, (glm::vec3{0, 0, dive.transform.angles.z}));
+    EXPECT_FALSE(tested.world->DrawTail().joints[1].alive);
     tested.FillTheJoints();
     dive.life = 9;
     ASSERT_TRUE(StepHighModelEffect(dive, nullptr, tested.StepContext()).HasValue());

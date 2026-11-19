@@ -976,7 +976,9 @@ TEST(AttackSkillCasesTest, TheTargetCasesCutWithoutDraws)
         std::string_view cut;
     };
     const std::array cases{
-        Case{0x01, 0x20a, "0x50497e"}, Case{0x01, 0x0e, "0x50497e"}, Case{0x3c, 0x20a, "0x504d05"},
+        Case{0x01, 0x20a, "0x50497e"},
+        Case{0x01, 0x0e, "0x50497e"},
+        Case{0x3c, 0x20a, "0x504d05"},
         Case{0x11, 0x20a, "0x505053"},
     };
     for (const std::int32_t map : Maps)
@@ -1913,10 +1915,10 @@ TEST(AttackSkillCasesTest, TheHiddenCircleGoesWithTheStriker)
 }
 
 // 0x4ff51c..0x4ff5f2, la 0x26: dos 0xc2/6 en el centro de la celda de la skill a la altura del terreno, con la luz
-// (0,8f; 0,5; 0,1f), sin dueño y la clave 0 (+0xd8 en 0), cada uno 500 a 799 más alto; después el sonido 0x8e y, con
-// el héroe, la tanda en +0xf04. El joint 0x5f2/0 de cada uno (0x51b098) es de la CL11: corta en el del primero,
-// después de sus cinco rand(). Sin las alturas, corta antes del primero y sin rand().
-TEST(AttackSkillCasesTest, TheMeteorsCutInTheirFirstTrail)
+// (0,8f; 0,5; 0,1f), sin dueño y la clave 0 (+0xd8 en 0), cada uno 500 a 799 más alto y con su estela 0x5f2/0 de dueño
+// (0x51b098, ancho 100, sin rand()); después el sonido 0x8e y, con el héroe, la tanda en +0xf04. Sin las alturas,
+// corta antes del primero y sin rand().
+TEST(AttackSkillCasesTest, TheMeteorsFallWithTheirTrails)
 {
     SkillWorld tested;
     Flatten(tested.world);
@@ -1925,22 +1927,36 @@ TEST(AttackSkillCasesTest, TheMeteorsCutInTheirFirstTrail)
     striker.skillCellY = 33;
 
     const auto stepped = tested.Head(0x26);
-    EXPECT_TRUE(HasError(stepped, "0x4ff5b2")) << ErrorOf(stepped);
-    EXPECT_TRUE(HasError(stepped, "0x51b098")) << ErrorOf(stepped);
+    ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
 
     const auto meteors = AliveOfType(tested.world, Client::World::FireEffect);
-    ASSERT_EQ(meteors.size(), 1u);
-    const Client::World::ModelEffect& meteor = *meteors.front();
-    EXPECT_EQ(meteor.subtype, 6);
-    EXPECT_EQ(meteor.ownerContext, nullptr);
-    EXPECT_EQ(meteor.speed, 0.0f);
-    EXPECT_EQ(meteor.light, glm::vec3(0.8f, 0.5f, 0.1f));
-    EXPECT_GE(meteor.transform.position.x, 12050.0f + 200.0f);
-    EXPECT_LT(meteor.transform.position.x, 12050.0f + 300.0f);
-    EXPECT_GE(meteor.transform.position.z, 150.0f + 500.0f);
-    EXPECT_LT(meteor.transform.position.z, 150.0f + 800.0f);
-    EXPECT_EQ(DrawsSince(Seed, tested.random), 5);
-    EXPECT_TRUE(tested.sounds.empty());
+    ASSERT_EQ(meteors.size(), 2u);
+    const auto& joints = tested.joints;
+    for (std::size_t index = 0; index < meteors.size(); ++index)
+    {
+        SCOPED_TRACE(index);
+        const Client::World::ModelEffect& meteor = *meteors[index];
+        EXPECT_EQ(meteor.subtype, 6);
+        EXPECT_EQ(meteor.ownerContext, nullptr);
+        EXPECT_EQ(meteor.speed, 0.0f);
+        EXPECT_EQ(meteor.light, glm::vec3(0.8f, 0.5f, 0.1f));
+        EXPECT_GE(meteor.transform.position.x, 12050.0f + 200.0f);
+        EXPECT_LT(meteor.transform.position.x, 12050.0f + 300.0f);
+        EXPECT_GE(meteor.transform.position.z, 150.0f + 500.0f);
+        EXPECT_LT(meteor.transform.position.z, 150.0f + 800.0f);
+        const auto& trail = joints[index];
+        ASSERT_TRUE(trail.alive);
+        EXPECT_EQ(trail.type, 0x5f2);
+        EXPECT_EQ(trail.subtype, 0);
+        EXPECT_EQ(trail.ownerContext, &meteor);
+        EXPECT_EQ(trail.position, meteor.transform.position);
+        EXPECT_EQ(trail.width, 100.0f);
+        EXPECT_EQ(trail.life, 20);
+        EXPECT_EQ(trail.texture, 0x60f);
+    }
+    EXPECT_FALSE(joints[2].alive);
+    EXPECT_EQ(DrawsSince(Seed, tested.random), 10);
+    EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x8e}));
 
     SkillWorld bare;
     EXPECT_TRUE(HasError(bare.Head(0x26), "0x4ff570"));

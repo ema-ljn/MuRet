@@ -5,6 +5,7 @@
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/Particles.h"
+#include "World/Sprites.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -44,15 +45,34 @@ constexpr double OwnedSparkStep = static_cast<double>(std::bit_cast<float>(0x3e4
 constexpr double OwnedSparkFall = static_cast<double>(std::bit_cast<float>(0x3e99999au));
 constexpr float OwnedSparkLight = std::bit_cast<float>(0x3f666666u);
 constexpr float SparkLifeLight = 0.0625f;
-constexpr float ShinyTurn = 12.0f;
+constexpr float ShinyTurn = 12.0f; // 0x6b8864
+// 0x542ad3..0x542b06: la 5fc/2 vive 25, gira rand() % 360 y sale con la velocidad (−0,1f; −0,5; −1) (0xbdcccccd,
+// 0xbf000000, 0xbf800000) que el movimiento común gira con los ángulos (el x en 45, 0x542ac6).
+constexpr std::int32_t FallingShineSubtype = 2;
+constexpr std::int32_t FallingShineLife = 25;
+constexpr int FallingShineTurns = 360;
+constexpr glm::vec3 FallingShineVelocity{std::bit_cast<float>(0xbdcccccdu), std::bit_cast<float>(0xbf000000u),
+                                         std::bit_cast<float>(0xbf800000u)};
+// 0x546c1b..0x546c96: la caída por (rand() & 7) · 0,05f (0x6b8a48), la luz por 0x6ba264 y el sprite flare01 (0x5ac)
+// con la escala por 2/3 (0x6b8c64).
+constexpr int FallingShineFallMask = 7;
+constexpr double FallingShineFall = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu));
+constexpr double FallingShineFade = static_cast<double>(std::bit_cast<float>(0x3f73cf3eu));
+constexpr double FallingShineSpriteScale = static_cast<double>(std::bit_cast<float>(0x3f2aaaabu));
+constexpr std::uint16_t FallingShineSprite = 0x5ac;
 } // namespace
 
 // 0x540333..0x54055a: la 5c5 trata cualquier subtipo; la /0, /2, /3, /4 y /6 salen con su vector, la /7 con su vida y
 // las demás (la /1 y las de fuera) por el camino de la /1 (0x5403eb). La /5 lee a su dueño al nacer y no está.
 bool IsNoriaParticle(std::int32_t type, std::int32_t subtype)
 {
-    return (type == ShinyParticle && (subtype == 0 || subtype == 1)) ||
+    return (type == ShinyParticle && (subtype == 0 || subtype == 1)) || IsFallingShine(type, subtype) ||
            (type == FairySparkParticle && subtype != OwnerBirthSparkSubtype);
+}
+
+bool IsFallingShine(std::int32_t type, std::int32_t subtype)
+{
+    return type == ShinyParticle && subtype == FallingShineSubtype;
 }
 
 bool IsOwnedFairySpark(std::int32_t type, std::int32_t subtype)
@@ -64,9 +84,15 @@ void CreateNoriaParticle(Particle& particle, float scale, Render::Models::CrtRan
 {
     if (particle.type == ShinyParticle)
     {
-        // 542ab9..542acd: los subtipos0/1 retornan sin rand y conservan la escala del prefijo.
+        // 542ab9..542acd: los subtipos menos la /2 retornan sin rand y conservan la escala del prefijo.
         particle.life = 18;
         particle.angles.x = 45.0f;
+        if (particle.subtype != FallingShineSubtype)
+            return;
+        particle.life = FallingShineLife;
+        const int turn = random.Next() % FallingShineTurns;
+        particle.velocity = FallingShineVelocity;
+        particle.rotation = static_cast<float>(turn);
         return;
     }
     // 540333..54055a, subtipo0: matriz DESPUÉS de escribir el yaw, sin cambiar pitch/roll.
@@ -179,6 +205,31 @@ Core::Expected<void, ParticleError> StepNoriaParticle(Particle& particle, const 
     particle.position.x = static_cast<float>(x - movedX);
     particle.position.y = static_cast<float>(static_cast<double>(y) - movedY);
     particle.position.z = static_cast<float>(static_cast<double>(z) - movedZ);
+    return {};
+}
+
+Core::Expected<void, ParticleError> StepTheFallingShine(Particle& particle, Render::Models::CrtRandom& random,
+                                                        FrameSprites* sprites)
+{
+    // 0x546c0f..0x546c18: gira 12 al revés.
+    particle.rotation = static_cast<float>(static_cast<double>(particle.rotation) - ShinyTurn);
+    // 0x546c1b..0x546c49: el fst guarda la z de la velocidad en float y la x87 retiene la resta para la posición.
+    const int fall = random.Next() & FallingShineFallMask;
+    const double vertical = static_cast<double>(particle.velocity.z) - (static_cast<double>(fall) * FallingShineFall);
+    particle.velocity.z = static_cast<float>(vertical);
+    // 0x546c4c..0x546c5f: vuelve a sumar la velocidad, sin girar (el movimiento común ya sumó la girada).
+    particle.position.x =
+        static_cast<float>(static_cast<double>(particle.velocity.x) + static_cast<double>(particle.position.x));
+    particle.position.y =
+        static_cast<float>(static_cast<double>(particle.velocity.y) + static_cast<double>(particle.position.y));
+    particle.position.z = static_cast<float>(vertical + static_cast<double>(particle.position.z));
+    for (int channel = 0; channel < 3; ++channel)
+        particle.light[channel] = static_cast<float>(static_cast<double>(particle.light[channel]) * FallingShineFade);
+    // 0x546c84..0x546c96: 0x5491e0(0x5ac, posición, escala, luz, 0, 0, 0), la mezcla aditiva y sin dueño.
+    const float scale = static_cast<float>(static_cast<double>(particle.scale) * FallingShineSpriteScale);
+    if (sprites == nullptr)
+        return Core::Unexpected(ParticleError::MissingSprites);
+    static_cast<void>(sprites->Create(FallingShineSprite, particle.position, scale, particle.light, 0.0f, 0));
     return {};
 }
 } // namespace Client::World

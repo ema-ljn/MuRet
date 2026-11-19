@@ -351,6 +351,40 @@ TEST(WizardModelEffectsTest, TheShadowRainDropsTenOrbitsFromItsOwner)
     EXPECT_EQ(world.joints[9].scale, 120.0f);
 }
 
+// 0x525438..0x5254f9: con dueño y vida por encima de 10, el paso del 0xbd/0 saca (rand() & 127) − 64 y suelta la
+// 0x5fc/2 a (r − 50; r + 50; 360) del dueño, con la escala (rand() % 30 + 50) · 0,01f.
+TEST(WizardModelEffectsTest, TheShadowRainDropsAFallingShineNearItsOwner)
+{
+    Harness world;
+    world.owner = WizardOwnerView{.alive = true, .position = {500.0f, 600.0f, 70.0f}};
+    CrtRandom random(4);
+    int owner = 0;
+    auto arguments = Arguments(0xbd, 0);
+    arguments.owner = &owner;
+    ModelEffect& rain = world.At(Create(world, arguments, random));
+    CrtRandom oracle = random;
+    const auto stepped = Client::World::StepWizardModelEffect(rain, nullptr, random, world.Services());
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    ASSERT_EQ(world.ParticlesOf(0x5fc, 2), 1U);
+    static_cast<void>(oracle.Next()); // 0x5208c5, la luz del paso.
+    const int spread = (oracle.Next() & 127) - 64;
+    const float scale = F32(static_cast<double>(oracle.Next() % 30 + 50) * std::bit_cast<float>(0x3c23d70au));
+    const glm::vec3 point{static_cast<float>(spread - 50) + 500.0f, static_cast<float>(spread + 50) + 600.0f, 430.0f};
+    auto twin = std::make_unique<Client::World::Particles>();
+    ASSERT_TRUE(
+        twin->CreateChecked(0x5fc, point, rain.transform.angles, rain.light, 2, scale, 1000.0f, oracle).HasValue());
+    EXPECT_EQ(random.State(), oracle.State());
+    const auto shine =
+        std::ranges::find_if(std::as_const(*world.particles).All(), [](const Client::World::Particle& particle)
+                             { return particle.alive && particle.type == 0x5fc; });
+    const Client::World::Particle& reference = twin->All()[0];
+    EXPECT_EQ(shine->start, point);
+    EXPECT_EQ(shine->scale, scale);
+    EXPECT_EQ(shine->light, rain.light);
+    EXPECT_EQ(shine->rotation, reference.rotation);
+    EXPECT_EQ(shine->life, 25);
+}
+
 TEST(WizardModelEffectsTest, TheSawTurnsAndMovesWithoutRotatingItsVelocity)
 {
     Harness world;

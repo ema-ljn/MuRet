@@ -31,6 +31,7 @@ class CrtRandom;
 // prometen equivalencia para cualquier control word o plataforma XP.
 namespace Client::World
 {
+class FrameSprites;
 class IParticleTrigonometry;
 struct TerrainLighting;
 struct WorldObject;
@@ -212,6 +213,8 @@ enum class ParticleError : std::uint8_t
     MissingOwner,
     // 0x545cd6: la 5ed pide la luz dinámica (0x7b4ccc4) y no está, o su centro no cabe en el int32 de 0x5f9780.
     MissingDynamicLight,
+    // 0x546c96: la 5fc/2 deja en cada paso un sprite en la tabla del frame (0x5491e0) y no está.
+    MissingSprites,
 };
 
 // 5f93c0: retorno retenido, consultado después del prefijo del slot5c5.
@@ -364,14 +367,14 @@ StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random,
 
 // Igual contrato con los sonidos0x40 de las explosiones1 creadas por5ed/2; no retiene el callback. `ownerStates` da
 // el dueño (+0x40) de las que lo siguen (5c6/4, 5d5/2, el fuego /9 y 5de/4): sin él, o sin ese dueño, cortan con
-// MissingOwner en su caso.
-[[nodiscard]] Core::Expected<void, ParticleError>
-StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random,
-                     std::reference_wrapper<const float> worldClock, const std::int32_t* map,
-                     IParticleTrigonometry& trigonometry, const ParticleTerrainHeight& terrainHeight,
-                     const ParticleObjectOwners& owners, const ParticleActorActions& actorActions,
-                     const ParticleTextureHeight& textureHeight, TerrainLighting* lighting,
-                     const ParticleActorHands& actorHands, const ParticleOwnerBones& ownerBones,
-                     const std::function<void(std::int32_t)>& sound, const ParticleOwnerStates& ownerStates = {});
+// MissingOwner en su caso. `sprites` es la tabla del frame (0x5491e0) donde la 5fc/2 deja su destello en cada paso:
+// sin ella corta con MissingSprites después de girar, sacar su rand(), moverse y apagarse.
+[[nodiscard]] Core::Expected<void, ParticleError> StepParticlesChecked(
+    Particles& particles, Render::Models::CrtRandom& random, std::reference_wrapper<const float> worldClock,
+    const std::int32_t* map, IParticleTrigonometry& trigonometry, const ParticleTerrainHeight& terrainHeight,
+    const ParticleObjectOwners& owners, const ParticleActorActions& actorActions,
+    const ParticleTextureHeight& textureHeight, TerrainLighting* lighting, const ParticleActorHands& actorHands,
+    const ParticleOwnerBones& ownerBones, const std::function<void(std::int32_t)>& sound,
+    const ParticleOwnerStates& ownerStates = {}, FrameSprites* sprites = nullptr);
 
 } // namespace Client::World

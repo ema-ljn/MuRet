@@ -20,6 +20,7 @@
 #include "Scenes/WorldObjectsDrawing.h"
 #include "World/ParticleOwner.h"
 #include "World/Particles.h"
+#include "World/Sprites.h"
 #include "World/TerrainCulling.h"
 #include "World/WorldObjects.h"
 
@@ -340,6 +341,29 @@ TEST(GameParticlesTest, TheGallopDustSitsOnTheGroundWithTheHeightOfItsTexture)
     EXPECT_EQ(std::bit_cast<std::uint32_t>(dust.position.z), 0x42d147aeu);
 
     const auto blind = Client::Scenes::StepGameParticles(particles, random, map, [](float, float) { return 100.0; });
+    ASSERT_FALSE(blind.HasValue());
+    EXPECT_NE(blind.Error().find("0x637128"), std::string::npos);
+}
+
+// 0x546c96: el paso de la 5fc/2 deja su flare01 en la tabla de los sprites del frame que presta la escena; sin ella,
+// corta en 0x637128.
+TEST(GameParticlesTest, TheFallingShineLeavesItsFlareInTheFrameSprites)
+{
+    Particles particles;
+    CrtRandom random;
+    ASSERT_TRUE(particles.CreateChecked(0x5fc, {10, 20, 30}, {}, glm::vec3(1.0f), 2, 0.6f, 0.0f, random).HasValue());
+    const std::int32_t map = 0;
+    const float clock = 0.0f;
+    auto sprites = std::make_unique<Client::World::FrameSprites>();
+    const auto stepped = Client::Scenes::StepGameParticles(particles, random, map, {}, clock, {}, {}, {}, nullptr, {},
+                                                           {}, {}, {}, sprites.get());
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_TRUE(sprites->Sprites()[0].alive);
+    EXPECT_EQ(sprites->Sprites()[0].texture, 0x5ac);
+    EXPECT_EQ(sprites->Sprites()[0].position, particles.All()[0].position);
+
+    const auto blind =
+        Client::Scenes::StepGameParticles(particles, random, map, {}, clock, {}, {}, {}, nullptr, {}, {}, {}, {});
     ASSERT_FALSE(blind.HasValue());
     EXPECT_NE(blind.Error().find("0x637128"), std::string::npos);
 }

@@ -8706,6 +8706,17 @@ escala en x e y, sube `(rand() % 20 + 10) · escala · 0,3f` y crece 0,002f; la 
 piden el `0x191` de Kalima (la /1, `0x43c332`, `0x43c3bf`), las flechas `0xe2` y `0xe3` (la /1, `0x52434e`,
 `0x526d5f`), el `0xcf/1` (la /3, `0x523089`), `0x4ef02e` (la /2) y `0x52a400` (la /4).
 
+**La `0x5fc`/2** (`NoriaParticleKernels`, tercera vuelta; la /0 y la /1 ya estaban): el alta (`0x542ab9`) da a todas
+la vida 18 y el ángulo x en 45, y las que no son la /2 salen ahí (`0x542acd`); la /2 (`0x542ad3..0x542b06`) vive 25,
+gira `rand() % 360` y sale con la velocidad (−0,1f; −0,5; −1) (`0xbdcccccd`, `0xbf000000`, `0xbf800000`), que el
+movimiento común gira con sus ángulos. Su paso (`0x546c0f..0x546c9e`) gira −12, baja la z de la velocidad
+`(rand() & 7) · 0,05f` (el `fst` la guarda en float y la x87 retiene la resta), vuelve a sumar la velocidad sin girar
+(la z con la resta retenida), apaga la luz por `0x3f73cf3e` y deja en la tabla de los sprites del frame
+`0x5491e0(0x5ac, posición, escala · 2/3, luz, 0, 0, 0)`: el flare01 aditivo y sin dueño. `StepParticlesChecked` y
+`Scenes::StepGameParticles` reciben esa tabla (`GameScene` presta la suya, la misma de los joints); sin ella, la /2 corta
+con `MissingSprites` después de todo lo de antes. Se dibuja con el billboard común. La pide sólo el paso del `0xbd/0`
+(`0x5254f9`), con dueño y la vida por encima de 10: `(rand() & 127) − 64` y la escala `(rand() % 30 + 50) · 0,01f`.
+
 ### Las partículas de la fuente en el juego
 
 **Estático**, `0x603011..0x60313f`: después del rand común del objeto, luz1 y V calculada con NEG

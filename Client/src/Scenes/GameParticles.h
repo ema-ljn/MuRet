@@ -24,6 +24,7 @@ class CrtRandom;
 }
 namespace Client::World
 {
+class FrameSprites;
 struct TerrainLighting;
 struct WorldObject;
 } // namespace Client::World
@@ -74,6 +75,8 @@ StepGameParticles(World::Particles& particles, Render::Models::CrtRandom& random
                   const std::function<std::optional<glm::vec3>(std::uint64_t, std::int32_t)>& actorHands = {},
                   const std::function<std::optional<glm::vec3>(const World::Particle&)>& ownerBones = {});
 
+// `sprites` es la tabla de los sprites del frame (0x5491e0) donde la 5fc/2 deja su destello en cada paso; sin ella,
+// una 5fc/2 viva corta (World::ParticleError::MissingSprites).
 [[nodiscard]] Core::Expected<void, std::string> StepGameParticles(
     World::Particles& particles, Render::Models::CrtRandom& random, const std::int32_t& map,
     const std::function<double(float, float)>& terrainHeight, const float& worldClock,
@@ -83,7 +86,8 @@ StepGameParticles(World::Particles& particles, Render::Models::CrtRandom& random
     const std::function<std::optional<glm::vec3>(std::uint64_t, std::int32_t)>& actorHands,
     const std::function<std::optional<glm::vec3>(const World::Particle&)>& ownerBones,
     const std::function<void(std::int32_t)>& sound,
-    const std::function<std::optional<World::ParticleOwnerState>(const World::ParticleOwner&)>& ownerStates = {});
+    const std::function<std::optional<World::ParticleOwnerState>(const World::ParticleOwner&)>& ownerStates = {},
+    World::FrameSprites* sprites = nullptr);
 
 // La acción (+0x111) del personaje de un lugar del pool entre `actors`, que tienen que vivir más que el
 // resolvedor: lo que el paso de la órbita 60f/0 lee por el puntero +0x40 (0x54735f).

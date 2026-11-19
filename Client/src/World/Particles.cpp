@@ -2427,13 +2427,12 @@ const ParticleWind& Particles::Wind() const
 
 namespace
 {
-Core::Expected<void, ParticleError>
-StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random, const float* worldClock,
-                  const std::int32_t* map, IParticleTrigonometry* trigonometry,
-                  const ParticleTerrainHeight& terrainHeight, const ParticleObjectOwners& owners,
-                  const ParticleActorActions& actorActions, const ParticleTextureHeight& textureHeight,
-                  TerrainLighting* lighting, const ParticleActorHands& actorHands, const ParticleOwnerBones& ownerBones,
-                  const std::function<void(std::int32_t)>& sound, const ParticleOwnerStates& ownerStates)
+Core::Expected<void, ParticleError> StepParticlesImpl(
+    Particles& particles, Render::Models::CrtRandom& random, const float* worldClock, const std::int32_t* map,
+    IParticleTrigonometry* trigonometry, const ParticleTerrainHeight& terrainHeight, const ParticleObjectOwners& owners,
+    const ParticleActorActions& actorActions, const ParticleTextureHeight& textureHeight, TerrainLighting* lighting,
+    const ParticleActorHands& actorHands, const ParticleOwnerBones& ownerBones,
+    const std::function<void(std::int32_t)>& sound, const ParticleOwnerStates& ownerStates, FrameSprites* sprites)
 {
     // Los punteros privados distinguen exclusivamente legacy de la API pública requerida.
     // El overload vivo siempre proporciona reloj y evaluador; no hay servicio opcional público.
@@ -2576,6 +2575,12 @@ StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random, const
                 for (int channel = 0; channel < 3; ++channel)
                     particle.light[channel] = F32(static_cast<double>(particle.light[channel]) - BoltFade);
             }
+        }
+        else if (IsFallingShine(particle.type, particle.subtype))
+        {
+            const auto stepped = StepTheFallingShine(particle, random, sprites);
+            if (!stepped.HasValue())
+                return stepped;
         }
         else if (IsNoriaParticle(particle.type, particle.subtype))
         {
@@ -2787,7 +2792,7 @@ Core::Expected<void, ParticleError> StepParticlesChecked(Particles& particles, R
                                                          const ParticleTerrainHeight& terrainHeight)
 {
     return StepParticlesImpl(particles, random, nullptr, map, nullptr, terrainHeight, {}, {}, {}, nullptr, {}, {}, {},
-                             {});
+                             {}, nullptr);
 }
 
 Core::Expected<void, ParticleError>
@@ -2799,20 +2804,20 @@ StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random,
                      const ParticleActorHands& actorHands, const ParticleOwnerBones& ownerBones)
 {
     return StepParticlesImpl(particles, random, &worldClock.get(), map, &trigonometry, terrainHeight, owners,
-                             actorActions, textureHeight, lighting, actorHands, ownerBones, {}, {});
+                             actorActions, textureHeight, lighting, actorHands, ownerBones, {}, {}, nullptr);
 }
 
-Core::Expected<void, ParticleError>
-StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random,
-                     std::reference_wrapper<const float> worldClock, const std::int32_t* map,
-                     IParticleTrigonometry& trigonometry, const ParticleTerrainHeight& terrainHeight,
-                     const ParticleObjectOwners& owners, const ParticleActorActions& actorActions,
-                     const ParticleTextureHeight& textureHeight, TerrainLighting* lighting,
-                     const ParticleActorHands& actorHands, const ParticleOwnerBones& ownerBones,
-                     const std::function<void(std::int32_t)>& sound, const ParticleOwnerStates& ownerStates)
+Core::Expected<void, ParticleError> StepParticlesChecked(
+    Particles& particles, Render::Models::CrtRandom& random, std::reference_wrapper<const float> worldClock,
+    const std::int32_t* map, IParticleTrigonometry& trigonometry, const ParticleTerrainHeight& terrainHeight,
+    const ParticleObjectOwners& owners, const ParticleActorActions& actorActions,
+    const ParticleTextureHeight& textureHeight, TerrainLighting* lighting, const ParticleActorHands& actorHands,
+    const ParticleOwnerBones& ownerBones, const std::function<void(std::int32_t)>& sound,
+    const ParticleOwnerStates& ownerStates, FrameSprites* sprites)
 {
     return StepParticlesImpl(particles, random, &worldClock.get(), map, &trigonometry, terrainHeight, owners,
-                             actorActions, textureHeight, lighting, actorHands, ownerBones, sound, ownerStates);
+                             actorActions, textureHeight, lighting, actorHands, ownerBones, sound, ownerStates,
+                             sprites);
 }
 
 std::optional<ParticleError> StepParticles(Particles& particles, Render::Models::CrtRandom& random)

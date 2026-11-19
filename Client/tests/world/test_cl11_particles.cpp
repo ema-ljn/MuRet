@@ -2,10 +2,12 @@
 
 #include "Core/Expected.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/OriginalRotation.h"
 #include "World/EffectParticleKernels.h"
 #include "World/KalimaParticleKernels.h"
 #include "World/ParticleOwner.h"
 #include "World/PortableParticleTrigonometry.h"
+#include "World/Sprites.h"
 #include "World/TerrainLighting.h"
 #include "World/WorldObjectStepServices.h"
 
@@ -1129,5 +1131,87 @@ TEST(Cl11Particles, TheNewTypesGoToTheirBillboards)
             EXPECT_EQ(drawn.Value()->rotation, rotated ? 30.0f : 0.0f) << type << "/" << subtype;
         }
     }
+}
+
+// 0x542ad3..0x542b06 y 0x546c0f..0x546c9e: la 0x5fc/2 de la lluvia de sombras (0x5254f9) vive 25, gira rand() % 360 y
+// sale con (−0,1f; −0,5; −1). Su paso, después del movimiento común (girado con el x en 45), gira −12, baja la z de la
+// velocidad (rand() & 7) · 0,05f, vuelve a sumarla sin girar con la z retenida, apaga la luz por 0x3f73cf3e y deja el
+// flare01 (0x5ac) con la escala por 2/3 en la tabla de los sprites del frame (0x5491e0).
+TEST(Cl11Particles, TheFallingShineDriftsDownAndLeavesAFlareEachStep)
+{
+    auto particles = std::make_unique<Particles>();
+    CrtRandom random(Seed);
+    const glm::vec3 from{100, 200, 300};
+    const float asked = 0.6f;
+    const auto created = particles->CreateChecked(0x5fc, from, {10, 20, 30}, glm::vec3(0.5f), 2, asked, 0.0f, random);
+    ASSERT_TRUE(created.HasValue() && created.Value().has_value());
+    Particle& shine = Only(*particles, *created.Value());
+    Draws draws;
+    EXPECT_EQ(shine.life, 25);
+    EXPECT_EQ(shine.rotation, static_cast<float>(draws.Next() % 360));
+    EXPECT_EQ(shine.angles, glm::vec3(45, 20, 30));
+    EXPECT_EQ(shine.scale, asked);
+    EXPECT_EQ(shine.velocity, glm::vec3(std::bit_cast<float>(0xbdcccccdu), -0.5f, -1.0f));
+    EXPECT_EQ(random.State(), draws.random.State());
+
+    PortableParticleTrigonometry trigonometry;
+    const std::int32_t map = 0;
+    const float clock = 0.0f;
+    const auto step = [&](Client::World::FrameSprites* sprites)
+    {
+        return Client::World::StepParticlesChecked(*particles, random, std::cref(clock), &map, trigonometry, {}, {}, {},
+                                                   {}, nullptr, {}, {}, {}, {}, sprites);
+    };
+    const auto expectTheStep = [&](const Particle& before)
+    {
+        static_cast<void>(draws.Next());
+        static_cast<void>(draws.Next());
+        const glm::vec3 turned = Client::Render::Models::OriginalVectorRotate(
+            before.velocity, Client::Render::Models::OriginalAngleMatrix(before.angles));
+        glm::vec3 moved{};
+        for (int axis = 0; axis < 3; ++axis)
+            moved[axis] = F32(static_cast<double>(turned[axis]) + static_cast<double>(before.position[axis]));
+        const double vertical =
+            static_cast<double>(before.velocity.z) - (static_cast<double>(draws.Next() & 7) * D(0x3d4ccccdu));
+        EXPECT_EQ(shine.life, before.life - 1);
+        EXPECT_EQ(shine.rotation, F32(static_cast<double>(before.rotation) - 12.0));
+        EXPECT_EQ(shine.velocity, glm::vec3(before.velocity.x, before.velocity.y, F32(vertical)));
+        EXPECT_EQ(shine.position, glm::vec3(F32(static_cast<double>(before.velocity.x) + moved.x),
+                                            F32(static_cast<double>(before.velocity.y) + moved.y),
+                                            F32(vertical + static_cast<double>(moved.z))));
+        EXPECT_EQ(shine.light, glm::vec3(F32(static_cast<double>(before.light.x) * D(0x3f73cf3eu))));
+        EXPECT_EQ(shine.scale, before.scale);
+        EXPECT_EQ(random.State(), draws.random.State());
+    };
+    auto sprites = std::make_unique<Client::World::FrameSprites>();
+    const Particle first = shine;
+    ASSERT_TRUE(step(sprites.get()).HasValue());
+    expectTheStep(first);
+    const Client::World::Sprite& flare = sprites->Sprites()[0];
+    EXPECT_TRUE(flare.alive);
+    EXPECT_EQ(flare.texture, 0x5ac);
+    EXPECT_EQ(flare.position, shine.position);
+    EXPECT_EQ(flare.scale, F32(static_cast<double>(asked) * D(0x3f2aaaabu)));
+    EXPECT_EQ(flare.light, shine.light);
+    EXPECT_EQ(flare.rotation, 0.0f);
+    EXPECT_EQ(flare.blend, 0);
+    EXPECT_FALSE(sprites->Sprites()[1].alive);
+
+    // Sin la tabla de los sprites, corta antes del sprite, con todo lo de antes hecho.
+    const Particle second = shine;
+    const auto cut = step(nullptr);
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_EQ(cut.Error(), ParticleError::MissingSprites);
+    expectTheStep(second);
+
+    // Con los 3.000 lugares llenos, ni la partícula ni su rand().
+    auto full = std::make_unique<Particles>();
+    for (Particle& particle : full->All())
+        particle.alive = true;
+    CrtRandom untouched(Seed);
+    const auto refused = full->CreateChecked(0x5fc, from, {}, glm::vec3(1.0f), 2, asked, 0.0f, untouched);
+    ASSERT_TRUE(refused.HasValue());
+    EXPECT_FALSE(refused.Value().has_value());
+    EXPECT_EQ(untouched.State(), CrtRandom(Seed).State());
 }
 } // namespace

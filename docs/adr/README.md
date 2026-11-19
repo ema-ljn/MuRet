@@ -97,4 +97,4 @@ merecen un ADR propio y cuáles alcanzan con la fila de 07; hasta entonces, la f
 
 | ADR | Título | Estado |
 | --- | --- | --- |
-| [0022](0022-material-de-la-estela-de-kalima.md) | Material de llama compartido para las partículas de Kalima | propuesto en CL11.2 (2026-11-18) |
+| [0025](0025-material-de-la-estela-de-kalima.md) | Material de llama compartido para las partículas de Kalima | propuesto en CL11.2 (2026-11-18) |

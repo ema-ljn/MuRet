@@ -7887,7 +7887,7 @@ se repite. Es el mismo en los dos mapas (`GoldenCharacterStep.TheHeroAtRestDraws
   - en la partícula de las `0x4d`, `0x4f` y `0x5a` (`0x4fdb70`);
   - en los efectos aún no portados de algunos helpers. La partícula `5dc/12` de la estela del `0x194`
     (`0x4fd580`) ya pasa por el pool común antes de cada apéndice impar de la cinta de `0x4fd5a0`;
-    su dibujo reutiliza [el material de llama de MuRet](../../../docs/adr/0022-material-de-la-estela-de-kalima.md).
+    su dibujo reutiliza [el material de llama de MuRet](../../../docs/adr/0025-material-de-la-estela-de-kalima.md).
 - Sin Item.bmd, `0x54efe0` corta con equipo que no sea el vacío de la respuesta del F3 03 (Q-C246).
 - Tests: `CharacterStepTest` y `GoldenCharacterStep`, `GameSceneDrawTest.WithoutPlayerBmdTheStepStopsAtTheBody` y
   `ActorConstructionTest.LeavesThePlayerUnseenAndNotDying`.

@@ -1,4 +1,4 @@
-# 0022. Material de llama compartido para las partículas de Kalima
+# 0025. Material de llama compartido para las partículas de Kalima
 
 **Estado** · Propuesto en CL11.2 (2026-11-18).
 

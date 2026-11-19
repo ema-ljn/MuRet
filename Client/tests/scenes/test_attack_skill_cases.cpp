@@ -829,10 +829,10 @@ TEST(AttackSkillCasesTest, TheTargetCasesCutWithoutDraws)
     };
     const std::array cases{
         Case{0x07, 0x20a, "0x504768"}, Case{0x01, 0x20a, "0x504926"}, Case{0x01, 0x0e, "0x50497e"},
-        Case{0x02, 0x20a, "0x5049ef"}, Case{0x2d, 0x20a, "0x504a3a"}, Case{0x49, 0x20a, "0x504b33"},
-        Case{0x4a, 0x20a, "0x504b80"}, Case{0x04, 0x20a, "0x504bce"}, Case{0x0b, 0x164, "0x504c38"},
-        Case{0x0b, 0x20a, "0x504cc0"}, Case{0x3c, 0x20a, "0x504d05"}, Case{0x3d, 0x20a, "0x504e40"},
-        Case{0x11, 0x15e, "0x50501a"}, Case{0x11, 0x20a, "0x505053"},
+        Case{0x02, 0x20a, "0x5049ef"}, Case{0x2d, 0x20a, "0x504a3a"}, Case{0x4a, 0x20a, "0x504b80"},
+        Case{0x04, 0x20a, "0x504bce"}, Case{0x0b, 0x164, "0x504c38"}, Case{0x0b, 0x20a, "0x504cc0"},
+        Case{0x3c, 0x20a, "0x504d05"}, Case{0x3d, 0x20a, "0x504e40"}, Case{0x11, 0x15e, "0x50501a"},
+        Case{0x11, 0x20a, "0x505053"},
     };
     for (const std::int32_t map : Maps)
     {
@@ -847,6 +847,42 @@ TEST(AttackSkillCasesTest, TheTargetCasesCutWithoutDraws)
             EXPECT_TRUE(HasError(stepped, probe.cut)) << ErrorOf(stepped);
             EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
         }
+    }
+}
+
+// 0x504ac7..0x504b49, la 0x49: un 0x61c/4 sin dueño desde o 130 más arriba, con los ángulos (0, 0, z de o) y ancho 40
+// (InfernoJoints.cpp: Effect\Hole.jpg, velocidad 8, vx 15,5, vz 3, 13 puntos, vida 20), sin rand(), y el sonido 0x26f.
+TEST(AttackSkillCasesTest, TheInfernoRisesFromTheStriker)
+{
+    for (const std::int32_t map : Maps)
+    {
+        SCOPED_TRACE(testing::Message() << "mapa " << map);
+        SkillWorld tested(map);
+        tested.Striker().position = {1500.0f, 1600.0f, 40.0f};
+        tested.Striker().angles = {10.0f, 20.0f, 135.0f};
+
+        ASSERT_TRUE(tested.WithTarget(0x49).HasValue());
+
+        EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
+        EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x26f});
+        const JointState& inferno = tested.joints[0];
+        ASSERT_TRUE(inferno.alive);
+        EXPECT_EQ(inferno.type, 0x61c);
+        EXPECT_EQ(inferno.subtype, 4);
+        EXPECT_EQ(inferno.ownerContext, nullptr);
+        EXPECT_EQ(inferno.position, glm::vec3(1500.0f, 1600.0f, 170.0f));
+        EXPECT_EQ(inferno.pathIncrement, inferno.position);
+        EXPECT_EQ(inferno.angles, glm::vec3(0.0f, 0.0f, 135.0f));
+        EXPECT_EQ(inferno.bendAngles, glm::vec3(0.0f, 0.0f, 135.0f));
+        EXPECT_EQ(inferno.width, 40.0f);
+        EXPECT_EQ(inferno.texture, 0x6ae);
+        EXPECT_EQ(inferno.speed, 8.0f);
+        EXPECT_EQ(inferno.velocity, glm::vec3(15.5f, 0.0f, 3.0f));
+        EXPECT_EQ(inferno.life, 20);
+        EXPECT_EQ(inferno.maximumCount, 13);
+        EXPECT_EQ(inferno.count, -1);
+        EXPECT_EQ(inferno.field9ec, 10);
+        EXPECT_FALSE(tested.joints[1].alive);
     }
 }
 

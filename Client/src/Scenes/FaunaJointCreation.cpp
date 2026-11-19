@@ -313,6 +313,8 @@ void CreateMeteor(JointState& joint, const World::FishEffectRequest& request)
 // Los joints del conjunto completo (0x50ba30, 0x5102c3..0x5104cb) y el del 5ac/3 que suelta (0x52aa5d), con el
 // ActorState del personaje como dueño (+0x54).
 constexpr std::int32_t SparkleJoint = 0x60f;
+// El 0x62b, que comparte el alta (0x533677) y el paso (0x539f1b) del 0x60f.
+constexpr std::int32_t SparkImpactJoint = 0x62b;
 constexpr std::int32_t SparkleSubtype = 0, FallenSparkleSubtype = 1, WideSparkleSubtype = 0x12;
 // El 60f/0xa del premio de una misión (A3 0xc9..0xcb, 0x4de0fe), que nace como el 60f/0 y baja vz en cada paso.
 constexpr std::int32_t FallingSparkleSubtype = 0xa;
@@ -561,15 +563,18 @@ void CreateSkill39Bolt(JointState& joint, const World::FishEffectRequest& reques
     joint.targetPosition = request.secondPosition;
 }
 
-// 0x533677..0x53369e y0x533faf..0x534028: el giro del impacto de PiercingShot.
+// 0x533677..0x53369e y0x533faf..0x534028: el giro del impacto de PiercingShot. El 0x62b/6 que suelta el 0x61c/4
+// (0x53b7a7) comparte el alta del 0x60f (la tabla 0x534d30 lo manda a 0x533677) con la vida y los puntos en 15 (el
+// ECX de 0x5337e8, 0x534044).
 Core::Expected<void, std::string> CreatePiercingImpact(JointState& joint, const World::FishEffectRequest& request,
                                                        Render::Models::CrtRandom& random)
 {
-    constexpr std::int32_t Life = 20, Points = 30;
+    const bool spark = request.type == SparkImpactJoint;
+    const std::int32_t life = spark ? 15 : 20, points = spark ? 15 : 30;
     constexpr int FullTurn = 360;
     constexpr double NegativeRadians = static_cast<double>(std::bit_cast<float>(0xbc8efa35u));
-    joint.life = Life;
-    joint.maximumCount = Points;
+    joint.life = life;
+    joint.maximumCount = points;
     joint.width = request.scale;
     joint.velocity.x = static_cast<float>(random.Next() % FullTurn);
     const double argument = D(joint.angles.z) * NegativeRadians;
@@ -676,7 +681,7 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
         CreateSkill39Bolt(joint, request);
         return {};
     }
-    if (request.type == SparkleJoint && request.subtype == 6)
+    if ((request.type == SparkleJoint || request.type == SparkImpactJoint) && request.subtype == 6)
         return CreatePiercingImpact(joint, request, random);
     if (request.type == 0x610 && request.subtype >= 0 && request.subtype <= 3)
         return CreatePiercingTrailJoint(joint, request);
@@ -708,6 +713,11 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
         (request.subtype == JointFamilies::DropSubtype || request.subtype == JointFamilies::DarkDropSubtype))
     {
         JointFamilies::CreateDropJoint(joint, request, random);
+        return {};
+    }
+    if (JointFamilies::IsInferno(request.type, request.subtype))
+    {
+        JointFamilies::CreateInfernoJoint(joint, request);
         return {};
     }
     if (IsWandering(request.type, request.subtype))
@@ -1147,10 +1157,12 @@ std::optional<double> SignedTrigonometricProduct(double argument, float multipli
     return std::signbit(multiplier) ? -*product : *product;
 }
 
-// 0x53b029..0x53b156: h ylos productos trigonométricos siguen retenidos hasta sus sumas.
+// 0x53b029..0x53b156: h ylos productos trigonométricos siguen retenidos hasta sus sumas. El 0x62b/6 gira con la vida
+// · 0,8f (0x53b03d) en vez de · 0,5.
 Core::Expected<void, std::string> StepPiercingImpact(JointState& joint)
 {
-    constexpr double Half = 0.5;
+    const double Half =
+        joint.type == SparkImpactJoint ? static_cast<double>(std::bit_cast<float>(0x3f4ccccdu)) : 0.5; // 0x6b8a38
     constexpr double Radians = static_cast<double>(std::bit_cast<float>(0x3c8efa35u));
     const float argument = F32(static_cast<double>(joint.life) * Half + D(joint.velocity.x));
     const float radius = F32(2.0 * static_cast<double>(joint.life > 1 ? joint.life : 1));
@@ -1507,6 +1519,7 @@ enum class Family : std::uint8_t
     Beam,
     Spiral,
     Wandering,
+    Inferno,
 };
 
 std::optional<Family> FamilyStep(const JointState& joint)
@@ -1533,6 +1546,8 @@ std::optional<Family> FamilyStep(const JointState& joint)
         return Family::Spiral;
     if (IsWandering(joint.type, joint.subtype))
         return Family::Wandering;
+    if (JointFamilies::IsInferno(joint.type, joint.subtype))
+        return Family::Inferno;
     return std::nullopt;
 }
 
@@ -1614,6 +1629,8 @@ Core::Expected<void, std::string> RunFamily(JointState& joint, Family family,
         return JointFamilies::StepSpiralJoint(joint, services);
     case Family::Wandering:
         return JointFamilies::StepWanderingJoint(joint, services);
+    case Family::Inferno:
+        return JointFamilies::StepInfernoJoint(joint, services);
     }
     return {};
 }
@@ -1668,7 +1685,8 @@ StepJointsChecked(std::span<JointState> joints, Render::Models::CrtRandom* rando
             continue;
         }
         const bool skill39 = joint.type == SparkleJoint && joint.subtype == 0x17;
-        const bool piercingImpact = joint.type == SparkleJoint && joint.subtype == 6;
+        const bool piercingImpact =
+            (joint.type == SparkleJoint || joint.type == SparkImpactJoint) && joint.subtype == 6;
         const bool crywolf = joint.type == 0x697 && joint.subtype == 0;
         const bool bloodCastle = joint.type == 0x10f && joint.subtype == 3;
         const bool fairy = joint.type == 0x10f && joint.subtype == 1;

@@ -2850,10 +2850,12 @@ TEST_F(MonsterAttackCasesTest, TheTrailStartsAtTheEleventhBone)
 // llega al 0x4f8493 después del 0x106/1 de su caso de +0x376 (0x4f80cf) y su sonido 0x42. Los impares de 0xa3 a 0xad
 // sacan en el alta (0x51443f) la derecha: 0xa25 (el arco) o 0xc17; acá va escrita. Con el arco, en 8, la flecha de
 // 0x4f816f (0x53e2b0 → 0x53d9a0 con las manos) da el 0x111 con su joint 0x618/5 (0x51bf35), el cierre del registro
-// propio y los quince giros de la mano del arco 0xa25 (0x53e630..0x53e73a, 105 rand() en esta semilla).
+// propio y los quince giros de la mano del arco 0xa25 (0x53e630..0x53e73a): en cada uno, el rand() % 360 de 0x53e6b0, la moneda de 0x53e6d4 y los cinco de la
+// 0x5c5/0 (0x540333, 0x54041f, 0x540436, 0x54045c y 0x540480). El 0x617/3 de la moneda par no saca nada: acá el pool
+// de joints está vacío.
 TEST_F(MonsterAttackCasesTest, TheSkill0x11CasesLeaveAfterTheirEffect)
 {
-    constexpr int ReignShine = 105;
+    constexpr int ReignShine = 15 * (2 + 5);
     constexpr std::uint16_t Bow = 0xa25;
     constexpr std::uint16_t Staff = 0xc17;
     const std::vector<Probe> probes{

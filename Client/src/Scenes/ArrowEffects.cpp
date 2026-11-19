@@ -357,7 +357,7 @@ Core::Expected<void, std::string> BeginCelestialArrow(World::ModelEffect& effect
         *callerAngles = angles;
     // 0x51a37a..0x51a419: con el /1, tres joints 0x60f/0x19 (0x51a3b7), y si no cuatro 0x60f/0xb (0x51a405), desde la
     // partida, con los ángulos del caller, la flecha de dueño, escala 50, clave −1 y el noveno argumento en 1 sólo en
-    // el segundo; después 0x51a1b0. Los dos joints son del lote de los joints de la CL11.
+    // el segundo; después 0x51a1b0. Los dos joints van en WanderingJoints.cpp (lote joints de la CL11).
     constexpr std::int32_t ArrowJoint = 0x60f, NoKey = -1, NoTarget = -1;
     constexpr float ArrowJointScale = 50.0f; // 0x42480000
     const bool celestial = effect.subtype == 1;
@@ -1543,5 +1543,10 @@ Core::Expected<void, std::string> StepArrow(World::ModelEffect& effect, const Re
     if (!alive)
         effect.alive = false;
     return {};
+}
+
+Core::Expected<void, std::string> HitTheArrow(World::ModelEffect& effect, const ArrowStepContext& context)
+{
+    return HitWithTheArrow(effect, context);
 }
 } // namespace Client::Scenes

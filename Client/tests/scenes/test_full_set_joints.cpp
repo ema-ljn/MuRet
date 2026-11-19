@@ -695,9 +695,67 @@ TEST(FullSetJointsTest, TheSkillEnergyTurnsForwardOnlyFromTwoAngles)
 
 // 0x5388e7..0x538a4d: el 619/0xa sigue al dueño como el /9, con la z en el destino más vida · 0,0125f · 300, +0x9ec
 // que sube 2 con +0x9d4 y si no baja 2, y la luz por 1,2f por encima de 68 y por 0,9090909f debajo de 40. En el paso
-// 81, vx por debajo de 0, queda en 0 con la vida en 0.
+// 81, vx por debajo de 0, queda en 0 con la vida en 0. Los valores, por sus bits, salen de un cálculo aparte del ASM
+// (FSIN/FCOS a 64 bits, PC53 y fstp a float) en los pasos 1 y 12 (la luz sube), 20 (el dueño se mueve 3,5; −2,25 y 1
+// antes del paso), 42 (la luz baja), 80 (vx en 0) y 81 (la vida en 0 y muerto).
 TEST(FullSetJointsTest, TheSkillEnergyCirclesItsOwnerAndClimbsWithItsLife)
 {
+    struct Checkpoint
+    {
+        float turn;
+        int step;
+        std::array<std::uint32_t, 3> position;
+        std::uint32_t radius;
+        std::array<std::uint32_t, 3> light;
+        std::int32_t field9ec;
+        std::int32_t life;
+    };
+    constexpr std::array<Checkpoint, 12> Checkpoints{{
+        {45, 1, {0x424f30bbu, 0x431922e7u, 0x44138000u}, 0x429e0000u, {0x3ddf6b0fu, 0x3d5f6b0fu, 0x3ddf6b0fu}, 43, 79},
+        {45, 12, {0x43357423u, 0x42f80dcdu, 0x44093000u}, 0x42880000u, {0x3f4f8087u, 0x3ecf8087u, 0x3f4f8087u}, 21, 68},
+        {45, 20, {0x432ccc1bu, 0x435667c7u, 0x4401f000u}, 0x42700000u, {0x3f4f8087u, 0x3ecf8087u, 0x3f4f8087u}, 5, 60},
+        {45,
+         42,
+         {0x431a29e2u, 0x4306ac92u, 0x43daa000u},
+         0x42180000u,
+         {0x3f3ca363u, 0x3ebca363u, 0x3f3ca363u},
+         -39,
+         38},
+        {45, 80, {0x4306743bu, 0x43280cbcu, 0x43936000u}, 0, {0x3ca161fdu, 0x3c2161fdu, 0x3ca161fdu}, -115, 0},
+        {45, 81, {0x43058000u, 0x4327c000u, 0x43918000u}, 0, {0x3c92b62bu, 0x3c12b62bu, 0x3c92b62bu}, -117, -1},
+        {225,
+         1,
+         {0x42b60d52u, 0x42c84573u, 0x44138000u},
+         0x429e0000u,
+         {0x3ddf6b0fu, 0x3d5f6b0fu, 0x3ddf6b0fu},
+         227,
+         79},
+        {225,
+         12,
+         {0x42ca20d4u, 0x4368a3bau, 0x44093000u},
+         0x42880000u,
+         {0x3f4f8087u, 0x3ecf8087u, 0x3f4f8087u},
+         249,
+         68},
+        {225,
+         20,
+         {0x433d99b0u, 0x433fb3ffu, 0x4401f000u},
+         0x42700000u,
+         {0x3f4f8087u, 0x3ecf8087u, 0x3f4f8087u},
+         265,
+         60},
+        {225,
+         42,
+         {0x42d7ceadu, 0x43452cc9u, 0x43daa000u},
+         0x42180000u,
+         {0x3f3ca363u, 0x3ebca363u, 0x3f3ca363u},
+         309,
+         38},
+        {225, 80, {0x430610bcu, 0x43289328u, 0x43936000u}, 0, {0x3ca161fdu, 0x3c2161fdu, 0x3ca161fdu}, 385, 0},
+        {225, 81, {0x43058000u, 0x4327c000u, 0x43918000u}, 0, {0x3c92b62bu, 0x3c12b62bu, 0x3c92b62bu}, 387, -1},
+    }};
+    const auto vector = [](const std::array<std::uint32_t, 3>& value)
+    { return glm::vec3(Float(value[0]), Float(value[1]), Float(value[2])); };
     for (const float turn : {45.0f, 225.0f})
     {
         SCOPED_TRACE(turn);
@@ -708,47 +766,29 @@ TEST(FullSetJointsTest, TheSkillEnergyCirclesItsOwnerAndClimbsWithItsLife)
         Request request{0x619, 0xa, 15.0f, -1, 0};
         request.angles = {-45.0f, 0.0f, turn};
         ASSERT_TRUE(Create(joints, request, &actor, random).HasValue());
-        JointState expected = joints[0];
-        const double tenth = D(Float(0x3dcccccdu));
 
         for (int step = 1; step <= 81; ++step)
         {
             SCOPED_TRACE(step);
             if (step == 20)
-                actor.position = {F32(D(actor.position.x) + 3.5), F32(D(actor.position.y) - 2.25),
-                                  F32(D(actor.position.z) + 1.0)};
+                actor.position = {133.5f, 167.75f, 291.0f};
             ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
 
-            expected.targetPosition = actor.position;
-            const double argument = static_cast<double>(expected.field9ec) * tenth;
-            expected.field9ec += turn == 225.0f ? 2 : -2;
-            const double sine = expected.velocity.x > 0 ? Sine(argument, expected.velocity.x) : 0.0;
-            const double cosine = expected.velocity.x > 0 ? Cosine(argument, expected.velocity.x) : 0.0;
-            expected.position.x = F32(sine + D(expected.targetPosition.x));
-            expected.position.y = F32(cosine + D(expected.targetPosition.y));
-            expected.position.z =
-                F32(static_cast<double>(expected.life) * D(Float(0x3c4ccccdu)) * 300.0 + D(expected.targetPosition.z));
-            const double reduced = D(expected.velocity.x) - 1.0;
-            expected.velocity.x = F32(reduced);
-            if (!(reduced >= 0))
-            {
-                expected.velocity.x = 0.0f;
-                expected.life = 0;
-            }
-            if (expected.life < 40)
-                expected.light = Faded(expected.light, 0x3f68ba2eu);
-            else if (expected.life > 0x44)
-                expected.light = Faded(expected.light, 0x3f99999au);
-            --expected.life;
-
             const JointState& joint = joints[0];
-            EXPECT_EQ(joint.field9ec, expected.field9ec);
-            EXPECT_EQ(joint.position, expected.position);
-            EXPECT_EQ(joint.velocity.x, expected.velocity.x);
-            EXPECT_EQ(joint.light, expected.light);
-            EXPECT_EQ(joint.life, expected.life);
+            EXPECT_EQ(joint.targetPosition, actor.position);
             EXPECT_EQ(joint.alive, step < 81);
+            for (const Checkpoint& checkpoint : Checkpoints)
+            {
+                if (checkpoint.turn != turn || checkpoint.step != step)
+                    continue;
+                EXPECT_EQ(joint.position, vector(checkpoint.position));
+                EXPECT_EQ(joint.velocity.x, Float(checkpoint.radius));
+                EXPECT_EQ(joint.light, vector(checkpoint.light));
+                EXPECT_EQ(joint.field9ec, checkpoint.field9ec);
+                EXPECT_EQ(joint.life, checkpoint.life);
+            }
         }
+        EXPECT_EQ(random.State(), CrtRandom(1).State());
     }
 }
 

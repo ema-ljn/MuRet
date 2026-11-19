@@ -53,6 +53,32 @@ inline constexpr std::int32_t DarkDropSubtype = 0x18;
 void CreateDropJoint(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random);
 void StepDropJoint(JointState& joint);
 
+// El 0x60f/7, /0xb y /0x19 (WanderingJoints.cpp): alta 0x533bbd, 0x533d5f y 0x533db8 y paso 0x53a87a..0x53b01f. Vagan
+// alrededor de su dueño con el contador de pasos: la /7 de un personaje (0x4f8592), la /0xb y la /0x19 de la flecha
+// 0xf8 (JointOwnerKind::ModelEffect, 0x51a405 y 0x51a3b7), que con el skill 1 sigue al joint y choca (0x520170).
+inline constexpr std::int32_t WanderSubtype = 7;
+inline constexpr std::int32_t ArrowWanderSubtype = 0xb;
+inline constexpr std::int32_t PinkWanderSubtype = 0x19;
+void CreateWanderingJoint(JointState& joint, const World::FishEffectRequest& request,
+                          Render::Models::CrtRandom& random);
+[[nodiscard]] Core::Expected<void, std::string> StepWanderingJoint(JointState& joint,
+                                                                   const JointKernels::StepServices& services);
+
+// El 0x61c/2..6 (InfernoJoints.cpp): alta 0x534444..0x53463b y paso 0x53b6a0..0x53b7ec. La /4 (la skill 0x49,
+// 0x504b33) suelta en cada paso un 0x62b/6 y dos sprites; la /2 corta en su efecto 0xf6 (0x53b760).
+inline constexpr std::int32_t InfernoJoint = 0x61c;
+[[nodiscard]] bool IsInferno(std::int32_t type, std::int32_t subtype);
+void CreateInfernoJoint(JointState& joint, const World::FishEffectRequest& request);
+[[nodiscard]] Core::Expected<void, std::string> StepInfernoJoint(JointState& joint,
+                                                                 const JointKernels::StepServices& services);
+
+// El 0x5f2 (FireTrailJoints.cpp): alta 0x531229..0x53128f y 0x532073 y paso 0x5366bd..0x5366ee. La estela de los
+// meteoros 0xc2/6 y /8 de los magos (0x51b098 y 0x51b268), con el efecto (World::ModelEffect) de dueño, que sigue
+// mientras vive y es 0xc2.
+inline constexpr std::int32_t FireTrailJoint = 0x5f2;
+void CreateFireTrailJoint(JointState& joint, const World::FishEffectRequest& request);
+[[nodiscard]] Core::Expected<void, std::string> StepFireTrailJoint(JointState& joint);
+
 // El 0x10f con un personaje (ActorState) de dueño (AuraJoints.cpp): alta 0x530edd..0x531214 y paso 0x535d4f..0x5366a7.
 // La /1 (el hada) y la /3 (Blood Castle) llevan un FaunaObject y siguen en FaunaJointCreation.cpp. Las /5..7 no hacen
 // el primer tramo (0x530a5c): FaunaJointCreation.cpp las llama antes.

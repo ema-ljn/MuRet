@@ -241,7 +241,8 @@ TEST(AttackSkillCasesTest, TheHeadCasesCutAfterTheirDraws)
 
 // 0x4fe795..0x4fe981: la 0x35 cuelga de o cuatro 0x619/0xa de ancho 15 con los ángulos (−45, 0, 45, 405, 225 y 450),
 // que nacen en o; su primer tramo queda en el punto (sen 4,5 · 80; cos 4,5 · 80; 300) o (cos 22,5 · 80; sen 22,5 · 80;
-// 300) más o. Suena 0x7f, sin rand().
+// 300) más o. Suena 0x7f, sin rand(). Los puntos, por sus bits: FSIN/FCOS a 64 bits, el producto por 80 y la suma con
+// o en PC53 y el fstp a float. Con el lugar nuevo (ancho 0 en 0x530afa), las cuatro esquinas caen justo en el punto.
 TEST(AttackSkillCasesTest, TheEnergyCaseHangsFourJointsAroundItsCaster)
 {
     SkillWorld tested;
@@ -263,15 +264,12 @@ TEST(AttackSkillCasesTest, TheEnergyCaseHangsFourJointsAroundItsCaster)
         EXPECT_EQ(joint.angles, glm::vec3(-45.0f, 0.0f, turns[index]));
         EXPECT_EQ(joint.position, tested.Striker().position);
         EXPECT_EQ(joint.ownerContext, &tested.Striker());
-        const bool near = index < 2;
-        const double argument = near ? 4.5 : 22.5;
-        const glm::vec3 from{1000.0f + 80.0f * static_cast<float>(near ? std::sin(argument) : std::cos(argument)),
-                             2000.0f + 80.0f * static_cast<float>(near ? std::cos(argument) : std::sin(argument)),
-                             350.0f};
-        const glm::vec3 center = (joint.points[0][0] + joint.points[0][1]) * 0.5f;
-        EXPECT_NEAR(center.x, from.x, 1e-3f);
-        EXPECT_NEAR(center.y, from.y, 1e-3f);
-        EXPECT_NEAR(center.z, from.z, 1e-3f);
+        // 921,7976 y 1983,1364 (4,5 rad); 930,1356 y 1961,0260 (22,5 rad).
+        const glm::vec3 from =
+            index < 2 ? glm::vec3(std::bit_cast<float>(0x4466730cu), std::bit_cast<float>(0x44f7e45du), 350.0f)
+                      : glm::vec3(std::bit_cast<float>(0x446888aeu), std::bit_cast<float>(0x44f520d5u), 350.0f);
+        for (const glm::vec3& corner : joint.points[0])
+            EXPECT_EQ(corner, from);
     }
     EXPECT_FALSE(tested.joints[4].alive);
     EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x7f});
@@ -978,8 +976,8 @@ TEST(AttackSkillCasesTest, TheTargetCasesCutWithoutDraws)
         std::string_view cut;
     };
     const std::array cases{
-        Case{0x01, 0x20a, "0x50497e"}, Case{0x01, 0x0e, "0x50497e"},  Case{0x49, 0x20a, "0x504b33"},
-        Case{0x3c, 0x20a, "0x504d05"}, Case{0x11, 0x20a, "0x505053"},
+        Case{0x01, 0x20a, "0x50497e"}, Case{0x01, 0x0e, "0x50497e"}, Case{0x3c, 0x20a, "0x504d05"},
+        Case{0x11, 0x20a, "0x505053"},
     };
     for (const std::int32_t map : Maps)
     {
@@ -1078,6 +1076,42 @@ TEST(AttackSkillCasesTest, TheLaunchedPartsAimAtTheTargetsTop)
     EXPECT_EQ(alive[4]->transform.position, alive[0]->transform.position);
     EXPECT_EQ(DrawsSince(Seed, tested.random), 2);
     EXPECT_TRUE(tested.sounds.empty());
+}
+
+// 0x504ac7..0x504b49, la 0x49: un 0x61c/4 sin dueño desde o 130 más arriba, con los ángulos (0, 0, z de o) y ancho 40
+// (InfernoJoints.cpp: Effect\Hole.jpg, velocidad 8, vx 15,5, vz 3, 13 puntos, vida 20), sin rand(), y el sonido 0x26f.
+TEST(AttackSkillCasesTest, TheInfernoRisesFromTheStriker)
+{
+    for (const std::int32_t map : Maps)
+    {
+        SCOPED_TRACE(testing::Message() << "mapa " << map);
+        SkillWorld tested(map);
+        tested.Striker().position = {1500.0f, 1600.0f, 40.0f};
+        tested.Striker().angles = {10.0f, 20.0f, 135.0f};
+
+        ASSERT_TRUE(tested.WithTarget(0x49).HasValue());
+
+        EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
+        EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x26f});
+        const JointState& inferno = tested.joints[0];
+        ASSERT_TRUE(inferno.alive);
+        EXPECT_EQ(inferno.type, 0x61c);
+        EXPECT_EQ(inferno.subtype, 4);
+        EXPECT_EQ(inferno.ownerContext, nullptr);
+        EXPECT_EQ(inferno.position, glm::vec3(1500.0f, 1600.0f, 170.0f));
+        EXPECT_EQ(inferno.pathIncrement, inferno.position);
+        EXPECT_EQ(inferno.angles, glm::vec3(0.0f, 0.0f, 135.0f));
+        EXPECT_EQ(inferno.bendAngles, glm::vec3(0.0f, 0.0f, 135.0f));
+        EXPECT_EQ(inferno.width, 40.0f);
+        EXPECT_EQ(inferno.texture, 0x6ae);
+        EXPECT_EQ(inferno.speed, 8.0f);
+        EXPECT_EQ(inferno.velocity, glm::vec3(15.5f, 0.0f, 3.0f));
+        EXPECT_EQ(inferno.life, 20);
+        EXPECT_EQ(inferno.maximumCount, 13);
+        EXPECT_EQ(inferno.count, -1);
+        EXPECT_EQ(inferno.field9ec, 10);
+        EXPECT_FALSE(tested.joints[1].alive);
+    }
 }
 
 // 0x5046bf..0x50473b, la 0x1c: sin 0x4000 en o, el calco 0x61e/3 sobre el blanco, con él de dueño, y con +0x38d de o

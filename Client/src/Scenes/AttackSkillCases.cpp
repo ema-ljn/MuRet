@@ -242,6 +242,35 @@ Core::Expected<void, std::string> CallTheStorm(ActorState& actor, const Characte
     return {};
 }
 
+// 0x504ac7..0x504b49: la 0x49 crea un 0x61c/4 sin dueño desde o 130 más arriba, con los ángulos (0, 0, z de o) y ancho
+// 40 (InfernoJoints.cpp, sin rand()), y pide el sonido 0x26f aunque el pool esté lleno.
+Core::Expected<void, std::string> RaiseTheInferno(const ActorState& actor, const CharacterStepContext& context)
+{
+    constexpr std::int32_t InfernoSubtype = 4;
+    constexpr float InfernoWidth = 40;  // 0x42200000
+    constexpr double InfernoLift = 130; // 0x6ba194
+    constexpr std::int32_t InfernoSound = 0x26f;
+    if (context.joints.empty())
+        return Core::Unexpected(std::string("0x504b33: faltan los joints del frame (0x530860)"));
+    glm::vec3 from{actor.position.x, actor.position.y, F32(D(actor.position.z) + InfernoLift)};
+    glm::vec3 turn{0, 0, actor.angles.z};
+    const World::FishEffectRequest request{.type = JointFamilies::InfernoJoint,
+                                           .firstPosition = from,
+                                           .secondPosition = from,
+                                           .angles = turn,
+                                           .subtype = InfernoSubtype,
+                                           .ownerContext = nullptr,
+                                           .scale = InfernoWidth,
+                                           .key = -1,
+                                           .skill = 0,
+                                           .skillSerial = 0,
+                                           .target = -1};
+    if (auto created = CreateFaunaJoint(context.joints, request, context.random); !created.HasValue())
+        return Core::Unexpected(std::format("0x504b33: {}", created.Error()));
+    RequestTheSound(context, InfernoSound);
+    return {};
+}
+
 // 0x4f5b10(o, x, y, z, punto): (x, y, z) girado por los ángulos de o (0x5fc8f0 y 0x5fcbd0) y sumado a su posición,
 // sin rand().
 glm::vec3 TurnedPoint(const ActorState& actor, const glm::vec3& offset)
@@ -1398,7 +1427,7 @@ Core::Expected<void, std::string> StepTheTargetSkill(ActorState& actor, ActorSta
         return {};
     }
     case 0x49:
-        return JointThenSound(0x504b33, "el joint 0x61c/4 (0x530860)", skill, slot, 0x26f, context);
+        return RaiseTheInferno(actor, context);
     case 0x4a:
     {
         // 0x504b51..0x504b99: el 0x116/2 sobre o con el blanco de dueño y el sonido 0x271.

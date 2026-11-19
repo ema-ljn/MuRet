@@ -728,7 +728,9 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
 {
     const auto* owner =
         (joint.type == 0x613 || joint.type == 0x614) ? nullptr : static_cast<const FaunaObject*>(joint.ownerContext);
-    if (request.type == 0x697 && request.subtype == 0)
+    // 0x530a2a..0x530a55: el 0x697 (la estela del pez de 0x4473f9, el único que lo pide, con el subtipo 0) no lee el
+    // subtipo: la cuenta en −1, sin el primer tramo.
+    if (request.type == 0x697)
     {
         joint.count = -1;
         joint.width = request.scale;
@@ -2037,7 +2039,7 @@ StepJointsChecked(std::span<JointState> joints, Render::Models::CrtRandom* rando
         const bool skill39 = joint.type == SparkleJoint && joint.subtype == 0x17;
         const bool piercingImpact =
             (joint.type == SparkleJoint || joint.type == SparkImpactJoint) && joint.subtype == 6;
-        const bool crywolf = joint.type == 0x697 && joint.subtype == 0;
+        const bool crywolf = joint.type == 0x697; // 0x5381cb: el paso tampoco lee el subtipo.
         const bool bloodCastle = joint.type == 0x10f && joint.subtype == 3;
         const bool fairy = joint.type == 0x10f && joint.subtype == 1;
         const bool spiritBeam = (joint.type == 0x613 || joint.type == 0x6ee) && joint.subtype == 4;

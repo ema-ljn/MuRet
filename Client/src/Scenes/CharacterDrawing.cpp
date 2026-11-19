@@ -249,9 +249,6 @@ struct MeshDraw
     // personaje va en 1 y sin ella.
     float alpha = 1.0f;
     bool vertexLight = false;
-    // El largo de cada normal girada: la escala de un objeto de 0x5ffdf0, que la lleva en la raíz
-    // (0x4eb860 con Translate) y 0x4ebc80 no normaliza; un personaje, 1 (la escala va en cada vértice).
-    float normalScale = 1.0f;
     bool originalClock = false;
 };
 
@@ -279,11 +276,8 @@ glm::vec2 CornerUv(const MeshDraw& draw, const Data::Models::Triangle& triangle,
     {
         const auto normal = static_cast<std::size_t>(triangle.normals[corner]);
         if (itemClock)
-            return ItemShineTexCoords(*uv.shine, draw.skinned->normals[normal] * draw.normalScale, *itemClock) +
-                   uv.shift;
-        return Render::Models::ShineTexCoords(*uv.shine, draw.skinned->normals[normal] * draw.normalScale,
-                                              draw.frameClock) +
-               uv.shift;
+            return ItemShineTexCoords(*uv.shine, draw.skinned->normals[normal], *itemClock) + uv.shift;
+        return Render::Models::ShineTexCoords(*uv.shine, draw.skinned->normals[normal], draw.frameClock) + uv.shift;
     }
     const Data::Models::TexCoord& texCoord = draw.mesh->texCoords[static_cast<std::size_t>(triangle.texCoords[corner])];
     return glm::vec2{texCoord.u, texCoord.v} + uv.shift;
@@ -306,7 +300,7 @@ void Triangles(Render::ModelBatch& batch, const MeshDraw& draw, const Render::Mo
             if (normalLight)
             {
                 const auto normal = static_cast<std::size_t>(triangle.normals[corner]);
-                const float light = Render::Models::NormalLight(draw.skinned->normals[normal] * draw.normalScale);
+                const float light = Render::Models::NormalLight(draw.skinned->normals[normal]);
                 shaded = Render::Color{color.red * light, color.green * light, color.blue * light, color.alpha};
             }
             corners[corner] = Render::ModelVertex{draw.skinned->positions[vertex],
@@ -1183,7 +1177,6 @@ MeshDraw RetainedMeshDraw(const DrawnObject& object, Core::Duration frameClock, 
     const bool unlit = object.unlitMesh && static_cast<std::int16_t>(index) == *object.unlitMesh;
     draw.vertexLight = object.vertexLight && !unlit;
     draw.scrolls = draw.scrolls || unlit;
-    draw.normalScale = object.transform.scale;
     draw.originalClock = originalClock;
     return draw;
 }
@@ -1212,37 +1205,42 @@ std::vector<MeshDraw> RetainedObjectMeshDraws(const IModelLibrary& models, const
     }
     return draws;
 }
-// Las mallas de un objeto del mundo posado como 0x5ffdf0, con su alpha y su luz por vértice, o
-// ninguna si 0x5ffdf0 no lo dibuja (el alpha por debajo de 0,01, 0x6b88d4) o falta su modelo.
+// El scratch de 0x5ffdf0 con el segundo argumento en 0 (0x602e90 de un objeto del mundo en 0x604a47, de un efecto en
+// 0x52da99, de un ayudante en 0x44532e o del cuervo en 0x41834e) cuando nadie lo publicó: 0x4eb860 con la bandera en 1
+// (PoseWorldSkeleton, los dummy con la identidad) y 0x4ebc80 con Translate en 0 (SkinMeshInWorld, 0x6001a1), todas las
+// mallas del modelo, las normales con la escala dentro. La que no se puede posar queda vacía. Sin el modelo, el
+// esqueleto o la pose, ninguna.
+std::vector<Render::Models::SkinnedMesh> WorldScratchOf(const IModelLibrary& models, const DrawnObject& object)
+{
+    const Data::Models::Model* model = models.Find(object.model);
+    const Render::Models::Skeleton* skeleton = models.SkeletonOf(object.model);
+    if (model == nullptr || skeleton == nullptr)
+        return {};
+    std::vector<BoneTransform> bones(skeleton->bones.size(), BoneTransform(1.0f));
+    if (!Render::Models::PoseWorldSkeleton(*skeleton, object.animation, object.transform, glm::vec2{}, bones))
+        return {};
+    std::vector<Render::Models::SkinnedMesh> skinned(model->meshes.size());
+    for (std::size_t index = 0; index < model->meshes.size(); ++index)
+    {
+        if (IndicesInRange(model->meshes[index]))
+            static_cast<void>(Render::Models::SkinMeshInWorld(model->meshes[index], bones, skinned[index]));
+    }
+    return skinned;
+}
+
+// Las mallas de un objeto del mundo posado como 0x5ffdf0 con el segundo argumento en 0, con su alpha y su luz por
+// vértice, o ninguna si 0x5ffdf0 no lo dibuja (el alpha por debajo de 0,01, 0x6b88d4) o falta su modelo. Sin el scratch
+// publicado, lo arma WorldScratchOf en `skinned`.
 std::vector<MeshDraw> ObjectMeshDraws(const IModelLibrary& models, const DrawnObject& object, Core::Duration clock,
                                       std::vector<Render::Models::SkinnedMesh>& skinned)
 {
     if (!object.retainedMeshes.empty())
         return RetainedObjectMeshDraws(models, object, clock, object.retainedMeshes);
     constexpr float VisibleAlpha = 0.01f;
-    const Data::Models::Model* model = models.Find(object.model);
-    const Render::Models::Skeleton* skeleton = models.SkeletonOf(object.model);
-    if (object.alpha < VisibleAlpha || model == nullptr || skeleton == nullptr)
-    {
+    if (object.alpha < VisibleAlpha)
         return {};
-    }
-    std::vector<BoneTransform> bones(skeleton->bones.size(), BoneTransform(1.0f));
-    if (!Render::Models::PoseSkeleton(*skeleton, object.animation, object.transform, glm::vec2{}, bones))
-    {
-        return {};
-    }
-    std::vector<MeshDraw> draws =
-        MeshDrawsOf(models, object.model, *model, bones, object.transform, ObjectClass,
-                    Render::Color{object.color.x, object.color.y, object.color.z, 1.0f}, object.state, clock, skinned);
-    for (MeshDraw& draw : draws)
-    {
-        draw.alpha = object.alpha;
-        const bool unlit = object.unlitMesh && static_cast<std::int16_t>(draw.index) == *object.unlitMesh;
-        draw.vertexLight = object.vertexLight && !unlit;
-        draw.scrolls = draw.scrolls || unlit;
-        draw.normalScale = object.transform.scale;
-    }
-    return draws;
+    skinned = WorldScratchOf(models, object);
+    return RetainedObjectMeshDraws(models, object, clock, skinned);
 }
 
 // La última de las cuatro mallas de la fuente de Lorencia (0x600ad6), que también es su blendMesh.
@@ -2059,26 +2057,14 @@ namespace
 constexpr std::int32_t CastleSiegeMap = 0x1e;
 
 // Las mallas que dejó 0x5ffdf0: el scratch que publicó la pose o, sin él, todas las del modelo posadas como
-// las posa DrawObject, también las que no tienen textura (0x4ecc30 suelto y 0x4eff40 no miran el script).
-// Sin el modelo, sin el esqueleto o sin la pose, ninguna.
+// las posa DrawObject (WorldScratchOf), también las que no tienen textura (0x4ecc30 suelto y 0x4eff40 no miran el
+// script). Sin el modelo, sin el esqueleto o sin la pose, ninguna.
 std::span<const Render::Models::SkinnedMesh> PosedMeshesOf(const IModelLibrary& models, const DrawnObject& object,
                                                            std::vector<Render::Models::SkinnedMesh>& skinned)
 {
     if (!object.retainedMeshes.empty())
         return object.retainedMeshes;
-    const Data::Models::Model* model = models.Find(object.model);
-    const Render::Models::Skeleton* skeleton = models.SkeletonOf(object.model);
-    if (model == nullptr || skeleton == nullptr)
-        return {};
-    std::vector<BoneTransform> bones(skeleton->bones.size(), BoneTransform(1.0f));
-    if (!Render::Models::PoseSkeleton(*skeleton, object.animation, object.transform, glm::vec2{}, bones))
-        return {};
-    skinned.assign(model->meshes.size(), Render::Models::SkinnedMesh{});
-    for (std::size_t index = 0; index < model->meshes.size(); ++index)
-    {
-        if (IndicesInRange(model->meshes[index]))
-            static_cast<void>(Render::Models::SkinMesh(model->meshes[index], bones, object.transform, skinned[index]));
-    }
+    skinned = WorldScratchOf(models, object);
     return skinned;
 }
 

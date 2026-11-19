@@ -1569,6 +1569,48 @@ TEST(CharacterDrawingTest, TheDarkHorseGoesWhiteThenItsChromeThenItsShadow)
     EXPECT_FLOAT_EQ(shadow.position.z, 30.0f + 5.0f);
 }
 
+// El caballo de 0x4453b0 (0x44532e: 0x602e90(caballo, 0, …)) sale del scratch de 0x5ffdf0 con el segundo argumento en
+// 0: 0x4eb860 con la bandera en 1 mete la escala en la raíz y 0x4ebc80 con Translate en 0 gira cada normal por ese
+// hueso (0x5fcbd0), con la escala dentro. El cromo de la malla 12 (0x4ecc30 con 0x44, 0x4ed309..0x4ed32c con el reloj
+// en 0) es u = 0,5 · nz y v = 0,5 · ny: con la escala 1,6f del login y la normal (0, 0, 1), nz = 1,6f y u = 0,8f.
+TEST(CharacterDrawingTest, TheChromeOfAWorldScratchReadsTheScaledNormal)
+{
+    const OneModel models(0xbf, "dk.jpg", 13);
+    DrawnObject horse = HorseLike();
+    horse.transform.scale = 1.6f;
+
+    const ModelBatch batch = DrawnHorseOf(models, horse);
+
+    ASSERT_EQ(batch.Commands().size(), 3u);
+    ASSERT_EQ(batch.Commands()[1].vertexCount, 3u);
+    for (std::size_t corner = 13 * 3; corner < 13 * 3 + 3; ++corner)
+        EXPECT_EQ(batch.Vertices()[corner].uv, glm::vec2(0.8f, 0.0f)) << corner;
+}
+
+// Un scratch de 0x4ebc80 con Translate en 1 (el cuerpo de un monstruo por 0x50baed → 0x5ffdf0(objeto, 1) → 0x600177,
+// lo que cuelga por 0x509a39, un ítem del piso) guarda la normal girada sin la escala, y 0x4ecc30 la lee así: con 0x4
+// y la escala 1,5 del objeto, la normal (0, 0, 1) da u = 0,5, no 0,75.
+TEST(CharacterDrawingTest, TheChromeOfATranslatedScratchIgnoresTheObjectScale)
+{
+    const OneModel models(0x197, "m.jpg");
+    DrawnObject object = LitObject();
+    object.model = 0x197;
+    object.transform.scale = 1.5f;
+    std::array<Client::Render::Models::SkinnedMesh, 1> meshes{};
+    meshes[0].positions = {{0, 0, 0}, {1, 0, 0}, {0, 1, 0}};
+    meshes[0].normals = {{0, 0, 1}};
+    ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+
+    const auto drawn = Client::Scenes::DrawItemMeshPass(batch, models, object, std::chrono::milliseconds{0}, meshes, -1,
+                                                        0x4, TextureSlot{0x5c0});
+
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    ASSERT_EQ(batch.Vertices().size(), 3u);
+    for (const Client::Render::ModelVertex& corner : batch.Vertices())
+        EXPECT_EQ(corner.uv, glm::vec2(0.5f, 0.0f));
+}
+
 // Mientras aparece, el pase base mezcla con su alpha y el cromo va por él (0x4ecc30 multiplica el
 // color en el lugar); la sombra sigue en 0,7.
 TEST(CharacterDrawingTest, TheChromeOfAFadingHorseGoesByItsAlpha)

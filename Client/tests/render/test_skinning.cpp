@@ -2,12 +2,14 @@
 
 #include "Data/Models/Model.h"
 #include "Render/Models/HalfLifeMath.h"
+#include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Pose.h"
 
 #include <gtest/gtest.h>
 
 #include <glm/ext/vector_float3.hpp>
 
+#include <bit>
 #include <cstdint>
 #include <vector>
 
@@ -22,6 +24,7 @@ using Client::Render::Models::NormalLight;
 using Client::Render::Models::ObjectTransform;
 using Client::Render::Models::SkinMesh;
 using Client::Render::Models::SkinMeshAroundBones;
+using Client::Render::Models::SkinMeshInWorld;
 using Client::Render::Models::SkinnedMesh;
 
 constexpr float Tolerance = 1e-4f;
@@ -155,6 +158,44 @@ TEST(SkinningTest, TheNormalOnlyRotates)
     ASSERT_EQ(skinned.normals.size(), 2u);
     ExpectNear(skinned.normals[0], {0, 0, 1});
     ExpectNear(skinned.normals[1], {0, 1, 0});
+}
+
+glm::vec3 Bits(std::uint32_t x, std::uint32_t y, std::uint32_t z)
+{
+    return {std::bit_cast<float>(x), std::bit_cast<float>(y), std::bit_cast<float>(z)};
+}
+
+// 0x4ebc80 con Translate en 0 sobre un hueso del mundo de 0x4eb860 con la bandera en 1 (el de (−10, 0, 30) por 0,7f en
+// (1050, 1060, 300)): cada vértice por 0x5fccc0 y cada normal por 0x5fcbd0 con esa matriz, la escala dentro de la
+// normal. Los bits salen de una emulación aparte de la x87 (fracciones exactas, PC53, cada FSTP en float).
+TEST(SkinningTest, InTheWorldVerticesAndNormalsGoThroughTheWorldBoneLikeTheX87)
+{
+    const Client::Render::Models::OriginalMatrix rows{
+        std::bit_cast<float>(0x3f1b3116u), std::bit_cast<float>(0xbeb07a40u), std::bit_cast<float>(0xbd78f129u),
+        std::bit_cast<float>(0x44834000u), std::bit_cast<float>(0x3eb33333u), std::bit_cast<float>(0x3f18d583u),
+        std::bit_cast<float>(0x3dd79713u), std::bit_cast<float>(0x44848000u), 0.0f,
+        std::bit_cast<float>(0xbdf8f129u), std::bit_cast<float>(0x3f307a40u), std::bit_cast<float>(0x43960000u)};
+    const std::vector<BoneTransform> bones{Client::Render::Models::BoneTransformOf(rows)};
+    Mesh mesh;
+    mesh.vertices = {{0, {0, 0, 10}}, {0, {1, 0, 10}}, {0, {0, 1, 10}}};
+    mesh.normals = {{0, {0, 0, 1}, 0}, {0, {0.6f, -0.8f, 0}, 0}};
+    SkinnedMesh skinned;
+
+    ASSERT_TRUE(SkinMeshInWorld(mesh, bones, skinned));
+
+    ASSERT_EQ(skinned.positions.size(), 3u);
+    EXPECT_EQ(skinned.positions[0], Bits(0x44832c8du, 0x4484a1b0u, 0x43997263u));
+    EXPECT_EQ(skinned.positions[1], Bits(0x44833ff3u, 0x4484ace3u, 0x43997263u));
+    EXPECT_EQ(skinned.positions[2], Bits(0x44832186u, 0x4484b4cau, 0x439962d4u));
+    ASSERT_EQ(skinned.normals.size(), 2u);
+    EXPECT_EQ(skinned.normals[0], Bits(0xbd78f129u, 0x3dd79713u, 0x3f307a40u));
+    EXPECT_EQ(skinned.normals[1], Bits(0x3f23b4c1u, 0xbe8903b3u, 0x3dc72754u));
+
+    Mesh broken = mesh;
+    broken.normals[1].bone = 1;
+    skinned.positions = {glm::vec3(7.0f)};
+    EXPECT_FALSE(SkinMeshInWorld(broken, bones, skinned));
+    EXPECT_EQ(skinned.positions, std::vector<glm::vec3>{glm::vec3(7.0f)});
 }
 
 // Un hueso que no está, también justo en el borde: no escribe nada.

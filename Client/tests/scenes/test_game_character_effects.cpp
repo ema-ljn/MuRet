@@ -1970,10 +1970,11 @@ TEST_F(GameRavenTest, TheShoutSparksFromEveryOtherBone)
 // 0x418a51: con +0x38d en 15, sin personaje en +0x3b0 solo vuelve el contador a 0; con uno, 0x4ee770(1, 0x5ac, 1,
 // cuervo+0x1c, el personaje) sobre la malla 1 del cuervo recién posado (en cada esquina del triángulo 0, rand() % 90 y
 // rand() % 120 y el joint 0x613/0xd hacia el personaje, ancho 20) y 0x4164f0(0). Fuera de los frames del original,
-// 0x418920 no corre. Las esquinas, del scratch que deja 0x602e90(cuervo, 0, 0, …): el hueso 0 en el origen sin giro,
-// la raíz de 0x4eb860 con la bandera en 1 (el giro de (0, 0, 90) por 0,75 y el origen (1050, 1060, 300)) y 0x4ebc80
-// con Translate en 0: (0, 0, 10) → (1050; 1060; 307,5), (1, 0, 10) → (1050; 1060,75; 307,5) y (0, 1, 10) →
-// (1049,25; 1060; 307,5); el coseno de 90 en float (−4,4e−8) no llega a mover 1050.
+// 0x418920 no corre. Las esquinas y la normal, del scratch que deja 0x602e90(cuervo, 0, 0, …): el hueso 0 en el origen
+// sin giro, la raíz de 0x4eb860 con la bandera en 1 (0x5fc8f0 con (−10, 0, 30), cada elemento por 0,7f en float y el
+// origen (1050, 1060, 300)), 0x5fca90 con la identidad y 0x4ebc80 con Translate en 0 (0x5fccc0 para (0, 0, 10),
+// (1, 0, 10) y (0, 1, 10); 0x5fcbd0 para la normal (0, 0, 1), con la escala dentro). Los bits salen de una emulación
+// aparte de la x87 (fracciones exactas, PC53, fsin y fcos en 64 bits, cada FSTP en float), no de MuRet.
 TEST_F(GameRavenTest, TheEndOfTheShoutLooksAtTheAttackTarget)
 {
     m_owner.darkSpirit->state = 6;
@@ -1986,8 +1987,8 @@ TEST_F(GameRavenTest, TheEndOfTheShoutLooksAtTheAttackTarget)
     m_owner.darkSpirit->byte38d = 15;
     m_owner.darkSpirit->target3b0 = 3;
     m_owner.darkSpirit->far = 7;
-    m_owner.darkSpirit->angles = {0.0f, 0.0f, 90.0f};
-    m_owner.darkSpirit->scale = 0.75f;
+    m_owner.darkSpirit->angles = {-10.0f, 0.0f, 30.0f};
+    m_owner.darkSpirit->scale = std::bit_cast<float>(0x3f333333u); // 0,7f
     GameRavenPass projected = Pass();
     projected.originalFrame = false;
     ASSERT_TRUE(Client::Scenes::DrawGameRaven(m_owner, projected).HasValue());
@@ -2008,8 +2009,13 @@ TEST_F(GameRavenTest, TheEndOfTheShoutLooksAtTheAttackTarget)
     EXPECT_EQ(m_owner.darkSpirit->far, 0);
     ASSERT_GE(carry.meshes.size(), 2u);
     ASSERT_GE(carry.meshes[1].positions.size(), 3u);
-    const std::array<glm::vec3, 3> corners{glm::vec3(1050.0f, 1060.0f, 307.5f), glm::vec3(1050.0f, 1060.75f, 307.5f),
-                                           glm::vec3(1049.25f, 1060.0f, 307.5f)};
+    const auto bits = [](std::uint32_t x, std::uint32_t y, std::uint32_t z)
+    { return glm::vec3(std::bit_cast<float>(x), std::bit_cast<float>(y), std::bit_cast<float>(z)); };
+    const std::array<glm::vec3, 3> corners{bits(0x44832c8du, 0x4484a1b0u, 0x43997263u),
+                                           bits(0x44833ff3u, 0x4484ace3u, 0x43997263u),
+                                           bits(0x44832186u, 0x4484b4cau, 0x439962d4u)};
+    ASSERT_EQ(carry.meshes[1].normals.size(), 1u);
+    EXPECT_EQ(carry.meshes[1].normals[0], bits(0xbd78f129u, 0x3dd79713u, 0x3f307a40u));
     Client::Render::Models::CrtRandom replay;
     std::vector<Client::Scenes::JointState> twin(joints.size());
     for (std::size_t corner = 0; corner < 3; ++corner)
@@ -2018,7 +2024,7 @@ TEST_F(GameRavenTest, TheEndOfTheShoutLooksAtTheAttackTarget)
         EXPECT_EQ(carry.meshes[1].positions[corner], corners[corner]);
         const auto pitch = static_cast<double>(replay.Next() % 90);
         const auto turn = static_cast<double>((replay.Next() % 120) - 60);
-        glm::vec3 angles{static_cast<float>(-pitch), 0.0f, static_cast<float>(turn + 90.0)};
+        glm::vec3 angles{static_cast<float>(-pitch), 0.0f, static_cast<float>(turn + 30.0)};
         glm::vec3 first = corners[corner];
         glm::vec3 second = actors[3].position;
         ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(twin,

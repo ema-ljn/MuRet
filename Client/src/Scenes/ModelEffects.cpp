@@ -240,8 +240,10 @@ Core::Expected<float, std::string> SpeedOf(const ModelEffectsPass& pass, std::ui
 }
 
 // 0x4eb860(modelo, 0x68b181c, frame − velocidad, +0x118, +0x112, ángulos, +0x28, 0, 1): la pose en el buffer global
-// (WorldState::PoseCarry), trasladada al mundo, con la key en +0xa8 del modelo. La acción, la escala y la posición del
-// modelo son las del personaje (Q-C1102). Devuelve la velocidad.
+// (WorldState::PoseCarry), con la bandera en 1 (0x4318bc y 0x4314f3 empujan el 1): la escala y el origen van en la raíz
+// (0x4ebbda..0x4ebc14) y los huesos quedan en el mundo, sin los dummy, que conservan lo que tenía el buffer (0x4eb973).
+// La key queda en +0xa8 del modelo. La acción, la escala y la posición del modelo son las del personaje (Q-C1102).
+// Devuelve la velocidad.
 Core::Expected<float, std::string> PoseTheModel(ModelEffectsPass& pass, std::uint32_t address)
 {
     const auto speed = SpeedOf(pass, address);
@@ -259,7 +261,7 @@ Core::Expected<float, std::string> PoseTheModel(ModelEffectsPass& pass, std::uin
     if (carry.bones.size() < skeleton.bones.size())
         carry.bones.resize(skeleton.bones.size(), Render::Models::BoneTransform(0.0f));
     const auto bones = std::span(carry.bones).first(skeleton.bones.size());
-    if (!Render::Models::PoseSkeleton(skeleton, animation, transform, actor.headTurn.angles, bones))
+    if (!Render::Models::PoseWorldSkeleton(skeleton, animation, transform, actor.headTurn.angles, bones))
         return Core::Unexpected(std::format("{:#x}: la pose del modelo {:#x} falló", address, actor.type));
     FaunaModels& models = pass.world.FaunaResources();
     if (auto published = PublishFaunaPoseRaw(carry, models, actor.type, bones, transform, true, false);

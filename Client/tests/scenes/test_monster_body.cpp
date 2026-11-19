@@ -22,6 +22,7 @@
 
 #include <gtest/gtest.h>
 
+#include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
 #include <algorithm>
@@ -1055,6 +1056,27 @@ TEST_F(MonsterBodyTest, TheStruckGlowLeavesItsStonesOnMeshSix)
     EXPECT_FALSE(m_sound.has_value());
     EXPECT_EQ(m_cloth.random.State(), before);
     EXPECT_FALSE(m_effects->Effects()[0].alive);
+}
+
+// 0x50baed → 0x5ffdf0(Kundun, 1) → 0x600177: el cuerpo de un monstruo pasa por 0x4ebc80 con Translate en 1, que gira
+// cada normal por el hueso sin la escala (0x5fcbd0 en 0x68c53bc, 0x4ebf70) y no la escala nunca. El cromo de las mallas
+// 1 a 6 (0x4ecc30 con 0x44) lee esa normal (0x4ed149) y, con 0x4 y el reloj en 0, u = 0,5 · nz y v = 0,5 · ny
+// (0x4ed309..0x4ed32c): con la escala 1,5 y la normal (0, 0, 1), (0,5; 0), no (0,75; 0).
+TEST_F(MonsterBodyTest, KundunsChromeReadsTheNormalsWithoutTheScaleOfItsBody)
+{
+    m_transform.scale = 1.5f;
+    m_actor->scale = 1.5f;
+    m_actor->dword60 = 100;
+
+    const auto result = Draw(0x192, 0);
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    ASSERT_EQ(m_batch.Vertices().size(), WholeBody + 6 * Triangle);
+    for (std::size_t corner = WholeBody; corner < m_batch.Vertices().size(); ++corner)
+    {
+        SCOPED_TRACE(corner);
+        EXPECT_EQ(m_batch.Vertices()[corner].uv, glm::vec2(0.5f, 0.0f));
+    }
 }
 
 TEST_F(MonsterBodyTest, KundunDrawsItsChromeUntilItFalls)

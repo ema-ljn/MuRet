@@ -45,7 +45,9 @@ struct FaunaDrawCarry
                                                                  const DrawnObject& object, bool translated);
 [[nodiscard]] Core::Expected<void, std::string>
 PublishFaunaFloorPose(FaunaDrawCarry& carry, const IModelLibrary& models, const DrawnObject& object);
-// Las matrices prestadas ya incluyen cabeza o raíz attached; no vuelve a posar.
+// Las matrices prestadas ya incluyen cabeza o raíz attached; no vuelve a posar. Con `translated`, `bones` ya están en
+// el mundo (0x4eb860 con la bandera en 1, PoseWorldSkeleton) y el scratch sale de 0x4ebc80 con Translate en 0; sin él,
+// están en el modelo y el scratch lleva la escala y el origen de `transform` (Translate en 1).
 [[nodiscard]] Core::Expected<void, std::string>
 PublishFaunaPoseRaw(FaunaDrawCarry& carry, const IModelLibrary& models, std::uint16_t model,
                     std::span<const Render::Models::BoneTransform> bones,

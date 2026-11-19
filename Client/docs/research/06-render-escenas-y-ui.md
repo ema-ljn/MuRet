@@ -8640,8 +8640,18 @@ muere con la escala y el azul en 0 o menos (`0x546938`); la /36 (`0x54196c`, la 
 de dueño) sigue a su dueño más la partida al azar mientras su vida es 23 o más (`0x545f39`) y la /37 (`0x541932`, la de
 `0x5249a0`) toma la luz del pedido como dirección y retrocede por ella. La /17, /19, /20, /23 y /24 giran
 `_ftol(reloj) % 360`, con el reloj del pedido (`CreateChecked` con el reloj por valor también). La /28, /29 y /30
-(`0x5425c7`, `0x54261b`, `0x542668`) leen el terreno al nacer (`0x5f93c0`; la /30 además `fsin` del reloj) y siguen
-cortadas. En el mismo archivo, **la `0x5f5`** (alta `0x542943..0x542a5f`, paso `0x546a13..0x546aff`): la /0, /1 y /2
+(`0x5425c7`, `0x54261b`, `0x542668`; cuarta vuelta) son la niebla de la tormenta chica `0xcf/3..7` (`0x523144`,
+`0x52315d`, `0x523176`): sacan el giro `rand() % 360` y piden la altura del terreno (`0x5f93c0`, en `0x5425f9`,
+`0x54264d` y `0x54269a`) en la x y la y de la partícula (`edi` es `+0x14` desde `0x53feb8`, no el vector del llamador),
+retenida hasta sumarle 15 (`0x6b87bc`) en la z. La /28 vive 12, con la escala 2,3f, la subida (`+0x50`) 33 y la textura
+`0x6ad` (`0x54260a`); la /29, igual con la del tipo; la /30 vive 4, con la escala 1,8f y la subida 15, y después corre la
+x y la y con `s = fsin(reloj) · 5` en PC53, retenido para las dos sumas (`0x5426ae..0x5426c7`). El paso de la /28 y la /29
+(`0x546852`, `0x54689e`) suma la subida a la z y, con la vida (ya descontada) en 9 o más, baja la escala 0,4f
+(`0x6b87b4`; si no, la multiplica por 1,2f, `0x6b8bb0`); la /28 apaga la luz por 0,92f (`0x6ba3cc`) y la /29 la deja en
+1 (el `ecx` que `0x54486e` recarga). El de la /30 (`0x5468de`) la agranda 0,15f con la luz (1; 3; 1) y la sube. El
+dibujo: la /29 resta (`0x54872d` → `0x620b10`) y las tres van al billboard del humo (`0x54874c`). Piden
+`Particles::CreateOnGroundChecked` (el reloj, la trigonometría y la altura del terreno, como `EffectParticleBirth`);
+`CreateChecked` las rechaza con `MissingTerrainHeight` antes de tocar el lugar. `StepStorm` ya no corta en ellas. En el mismo archivo, **la `0x5f5`** (alta `0x542943..0x542a5f`, paso `0x546a13..0x546aff`): la /0, /1 y /2
 guardan la luz, viven 55, 30 y 55, sacan el ángulo x `(rand() & 3) − 2` (que el paso le suma al giro) y giran
 `_ftol(reloj) % 360`; su paso baja el rojo guardado (la /0; 0,005f más mientras el verde pasa de 0,1f, otra vez sobre
 el rojo) o el verde y el azul (la /2), apaga la luz con vida · 0,0181818f, sube 0,2f (la /1, 0,1f) y crece 0,03f. Los

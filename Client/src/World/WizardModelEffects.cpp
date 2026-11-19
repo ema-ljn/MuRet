@@ -14,6 +14,8 @@
 #include "World/ModelEffects.h"
 #include "World/ParticleOwner.h"
 #include "World/Particles.h"
+#include "World/PortableParticleTrigonometry.h"
+#include "World/SmokeParticleKernels.h"
 #include "World/Sprites.h"
 #include "World/TerrainAttributeQuery.h"
 #include "World/WorldObjectStepServices.h"
@@ -21,11 +23,13 @@
 #include <glm/ext/vector_float3.hpp>
 
 #include <algorithm>
+#include <array>
 #include <bit>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <format>
+#include <functional>
 #include <optional>
 #include <span>
 #include <string>
@@ -112,6 +116,25 @@ Core::Expected<void, std::string> Emit(const WizardEffectServices& services, Crt
     if (!created.HasValue())
         return Core::Unexpected(
             std::format("{}: la partícula {:#x}/{} no está portada (CL11)", address, type, subtype));
+    return {};
+}
+
+// 0x53fe70 con la niebla 5f2/28..30, que pide la altura del terreno (0x5f93c0) al nacer y, la /30, el seno del reloj
+// (0x5767b88).
+Core::Expected<void, std::string> EmitOnGround(const WizardEffectServices& services, CrtRandom& random,
+                                               std::string_view address, std::int32_t type, const glm::vec3& position,
+                                               const glm::vec3& angles, const glm::vec3& light, std::int32_t subtype,
+                                               float scale)
+{
+    if (services.particles == nullptr)
+        return Core::Unexpected(std::format("{}: falta la tabla de partículas (0x53fe70) (CL11)", address));
+    PortableParticleTrigonometry trigonometry;
+    const auto created = services.particles->CreateOnGroundChecked(type, position, angles, light, subtype, scale,
+                                                                   std::cref(services.worldClock), random, trigonometry,
+                                                                   services.terrainHeight);
+    if (!created.HasValue())
+        return Core::Unexpected(std::format("{}: la partícula {:#x}/{} falla con el error {} (0x5f93c0, el reloj)",
+                                            address, type, subtype, static_cast<unsigned>(created.Error())));
     return {};
 }
 
@@ -1268,9 +1291,12 @@ Core::Expected<void, std::string> StepStorm(ModelEffect& effect, float luminosit
         if (services.cameraShake == nullptr)
             return Core::Unexpected(std::string("0x52313e: falta el temblor de la cámara (0x7d325c8)"));
         *services.cameraShake = F32(static_cast<double>((random.Next() & 7) - 4) * Tenth);
-        for (const std::int32_t whirl : {0x1c, 0x1d, 0x1e})
-            if (auto created = Emit(services, random, "0x523144", BreathParticle, at, effect.transform.angles,
-                                    effect.light, whirl, 1.0f);
+        // 0x523144, 0x52315d y 0x523176: la niebla 5f2/28, /29 y /30 en el punto del efecto, con sus ángulos y su luz.
+        constexpr std::array<std::pair<std::int32_t, std::string_view>, 3> Mists{
+            {{StormMistSubtype, "0x523144"}, {DarkStormMistSubtype, "0x52315d"}, {ShortStormMistSubtype, "0x523176"}}};
+        for (const auto& [mist, address] : Mists)
+            if (auto created = EmitOnGround(services, random, address, BreathParticle, at, effect.transform.angles,
+                                            effect.light, mist, 1.0f);
                 !created.HasValue())
                 return created;
         if ((random.Next() & 1) != 0)

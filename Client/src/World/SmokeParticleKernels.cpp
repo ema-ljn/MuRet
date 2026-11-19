@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Render/Models/Cloth.h"
 #include "World/Ftol.h"
+#include "World/IParticleTrigonometry.h"
 #include "World/Particles.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -214,7 +215,75 @@ void StepThePuff(Particle& particle)
     particle.scale = F32(static_cast<double>(particle.scale) + Growth);
     particle.rotation = F32(static_cast<double>(particle.angles.x) + static_cast<double>(particle.rotation));
 }
+// 0x546852..0x546899 (/28) y 0x54689e..0x5468d9 (/29): la z suma la subida; con vida 9 o más la escala baja 0,4f y si
+// no crece por 1,2f; la /28 apaga la luz por 0,92f y la /29 la pone en 1 (el ecx de 0x54486e).
+void StepTheStormMist(Particle& particle)
+{
+    constexpr std::int32_t ShrinkingLife = 9;
+    constexpr double Brake = static_cast<double>(std::bit_cast<float>(0x3ecccccdu)); // 0x6b87b4, 0,4f
+    constexpr double Swell = static_cast<double>(std::bit_cast<float>(0x3f99999au)); // 0x6b8bb0, 1,2f
+    constexpr double Dim = static_cast<double>(std::bit_cast<float>(0x3f6b851fu));   // 0x6ba3cc, 0,92f
+    particle.position.z = F32(static_cast<double>(particle.verticalSpeed) + static_cast<double>(particle.position.z));
+    const double scale = static_cast<double>(particle.scale);
+    particle.scale = F32(particle.life >= ShrinkingLife ? scale - Brake : scale * Swell);
+    if (particle.subtype == StormMistSubtype)
+        ScaleLight(particle, Dim);
+    else
+        particle.light = glm::vec3(1.0f);
+}
+
+// 0x5468de..0x546900: la escala crece 0,15f, la luz queda en (1; 3; 1) y la z suma la subida.
+void StepTheShortStormMist(Particle& particle)
+{
+    constexpr double Growth = static_cast<double>(std::bit_cast<float>(0x3e19999au)); // 0x6b8ae8, 0,15f
+    constexpr float Green = 3.0f;                                                     // 0x5468ea, 0x40400000
+    particle.scale = F32(static_cast<double>(particle.scale) + Growth);
+    particle.light = glm::vec3(1.0f, Green, 1.0f);
+    particle.position.z = F32(static_cast<double>(particle.verticalSpeed) + static_cast<double>(particle.position.z));
+}
 } // namespace
+
+bool IsStormMist(std::int32_t type, std::int32_t subtype)
+{
+    return type == BreathParticle &&
+           (subtype == StormMistSubtype || subtype == DarkStormMistSubtype || subtype == ShortStormMistSubtype);
+}
+
+Core::Expected<void, ParticleError> CreateStormMist(Particle& particle, Render::Models::CrtRandom& random,
+                                                    const ParticleTerrainHeight& terrainHeight, const float* worldClock,
+                                                    IParticleTrigonometry* trigonometry)
+{
+    constexpr std::int32_t MistLife = 12, ShortLife = 4;
+    constexpr float MistScale = std::bit_cast<float>(0x40133333u);  // 0x5425ce, 2,3f
+    constexpr float ShortScale = std::bit_cast<float>(0x3fe66666u); // 0x54266f, 1,8f
+    constexpr float MistRise = 33.0f;                               // 0x5425e0, 0x42040000
+    constexpr float ShortRise = 15.0f;                              // 0x542676, 0x41700000
+    constexpr double AboveGround = 15.0;                            // 0x6b87bc, 15,0f
+    constexpr float Sway = 5.0f;                                    // 0x6b87f8, 5,0f
+    const bool shortMist = particle.subtype == ShortStormMistSubtype;
+    // 0x5425c7..0x5425f6, 0x54261b..0x54264a y 0x542668..0x542697.
+    particle.life = shortMist ? ShortLife : MistLife;
+    particle.scale = shortMist ? ShortScale : MistScale;
+    particle.verticalSpeed = shortMist ? ShortRise : MistRise;
+    particle.rotation = static_cast<float>(random.Next() % FullTurn);
+    // 0x5425f9, 0x54264d y 0x54269a: 0x5f93c0 con la x y la y de la partícula (edi es +0x14 desde 0x53feb8), retenida
+    // hasta sumarle 15.
+    particle.position.z = F32(terrainHeight(particle.position.x, particle.position.y) + AboveGround);
+    // 0x54260a: la /28 se dibuja con Effect\PoundingBall.jpg (0x6ad).
+    if (particle.subtype == StormMistSubtype)
+        particle.texture = CinderParticle;
+    if (!shortMist)
+        return {};
+    // 0x5426ae..0x5426c7: s = fsin(reloj) · 5 en PC53, retenido; la x y la y le suman s.
+    if (worldClock == nullptr || trigonometry == nullptr)
+        return Core::Unexpected(ParticleError::MissingClock);
+    const auto sway = trigonometry->SineProductPC53(static_cast<double>(*worldClock), Sway);
+    if (!sway.HasValue())
+        return Core::Unexpected(sway.Error());
+    particle.position.x = F32(sway.Value() + static_cast<double>(particle.position.x));
+    particle.position.y = F32(sway.Value() + static_cast<double>(particle.position.y));
+    return {};
+}
 
 bool IsSmokeParticle(std::int32_t type, std::int32_t subtype)
 {
@@ -234,6 +303,9 @@ bool IsSmokeParticle(std::int32_t type, std::int32_t subtype)
     case ShrinkingSmokeSubtype:
     case TrailSmokeSubtype:
     case BackTrailSmokeSubtype:
+    case StormMistSubtype:
+    case DarkStormMistSubtype:
+    case ShortStormMistSubtype:
         return true;
     default:
         return false;
@@ -408,6 +480,13 @@ Core::Expected<void, ParticleError> StepSmokeParticle(Particle& particle, Render
         return {};
     case ShrinkingSmokeSubtype:
         StepTheShrinking(particle);
+        return {};
+    case StormMistSubtype:
+    case DarkStormMistSubtype:
+        StepTheStormMist(particle);
+        return {};
+    case ShortStormMistSubtype:
+        StepTheShortStormMist(particle);
         return {};
     case TrailSmokeSubtype:
         return StepTheTrail(particle, ownerStates);

@@ -541,6 +541,11 @@ bool NeedsOwnerPosition(std::int32_t type, std::int32_t subtype)
            (type == FlameParticle && subtype == FollowingFlameSubtype);
 }
 
+bool NeedsTerrainHeight(std::int32_t type, std::int32_t subtype)
+{
+    return IsStormMist(type, subtype);
+}
+
 Core::Expected<void, ParticleError> CreateEffectParticle(Particle& particle, Render::Models::CrtRandom& random,
                                                          const EffectParticleBirth& birth)
 {
@@ -555,6 +560,12 @@ Core::Expected<void, ParticleError> CreateEffectParticle(Particle& particle, Ren
             particle.rotation = static_cast<float>(random.Next() % FullTurn);
         }
         return {};
+    }
+    if (IsStormMist(particle.type, particle.subtype))
+    {
+        if (birth.terrainHeight == nullptr || !*birth.terrainHeight)
+            return Core::Unexpected(ParticleError::MissingTerrainHeight);
+        return CreateStormMist(particle, random, *birth.terrainHeight, birth.worldClock, birth.trigonometry);
     }
     if (IsSmokeParticle(particle.type, particle.subtype))
     {

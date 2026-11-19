@@ -1930,6 +1930,16 @@ Particles::CreateTowardChecked(std::int32_t type, const glm::vec3& position, con
                       std::nullopt, owner, &ownerPosition);
 }
 
+Core::Expected<std::optional<std::size_t>, ParticleError>
+Particles::CreateOnGroundChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles,
+                                 const glm::vec3& light, std::int32_t subtype, float scale,
+                                 std::reference_wrapper<const float> worldClock, Render::Models::CrtRandom& random,
+                                 IParticleTrigonometry& trigonometry, const ParticleTerrainHeight& terrainHeight)
+{
+    return CreateImpl(type, position, angles, light, subtype, scale, 0.0f, &worldClock.get(), random, 0, &trigonometry,
+                      std::nullopt, {}, nullptr, &terrainHeight);
+}
+
 std::optional<std::size_t> Particles::CreatePiercingSpark(const glm::vec3& position, float scale, ParticleOwner owner,
                                                           const glm::vec3& center)
 {
@@ -1983,7 +1993,8 @@ Core::Expected<std::optional<std::size_t>, ParticleError>
 Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
                       std::int32_t subtype, float scale, float legacyClock, const float* worldClock,
                       Render::Models::CrtRandom& random, std::uint32_t owner, IParticleTrigonometry* trigonometry,
-                      std::optional<std::int32_t> scene, ParticleOwner typedOwner, const glm::vec3* ownerPosition)
+                      std::optional<std::int32_t> scene, ParticleOwner typedOwner, const glm::vec3* ownerPosition,
+                      const ParticleTerrainHeight* terrainHeight)
 {
     for (std::size_t index = 0; index < m_particles.size(); ++index)
     {
@@ -2010,6 +2021,11 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
         if (ownerPosition == nullptr && NeedsOwnerPosition(type, subtype))
         {
             return Core::Unexpected(ParticleError::MissingOwner);
+        }
+        // La niebla 5f2/28..30 pide la altura del terreno al nacer (0x5f93c0): sin ella no hay de dónde.
+        if ((terrainHeight == nullptr || !*terrainHeight) && NeedsTerrainHeight(type, subtype))
+        {
+            return Core::Unexpected(ParticleError::MissingTerrainHeight);
         }
         if (!kalima && !selection && !trials && !bloodCastle && !orbit &&
             !(worldClock != nullptr && IsMap8Smoke(type, subtype)))
@@ -2054,8 +2070,8 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
         }
         if (IsEffectParticle(type, subtype))
         {
-            const auto created =
-                CreateEffectParticle(particle, random, {worldClock, trigonometry, ownerPosition, legacyClock});
+            const auto created = CreateEffectParticle(
+                particle, random, {worldClock, trigonometry, ownerPosition, legacyClock, terrainHeight});
             if (!created.HasValue())
                 return Core::Unexpected(created.Error());
             return std::optional(index);

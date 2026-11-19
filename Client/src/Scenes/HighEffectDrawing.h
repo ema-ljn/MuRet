@@ -45,7 +45,9 @@ struct HighEffectDrawServices
 // Si el efecto tiene caso propio acá: el 0x11b, el 0x114/3, /4 y /5, el 0x140 y el 0x125, de cualquier otro subtipo.
 [[nodiscard]] bool HasHighEffectBody(const World::ModelEffect& effect);
 
-// El cuerpo de esos casos, con `object` posado (sus mallas en `object.retainedMeshes` o posadas acá como 0x5ffdf0):
+// El cuerpo de esos casos, con `object` posado (sus mallas en `object.retainedMeshes` o posadas acá como 0x5ffdf0).
+// Sólo llega acá un efecto con el alpha en 0,01 o más: con menos, o sin orden, 0x5ffdf0 devuelve 0 (0x5ffe2a..0x5ffe3d)
+// y 0x602e90 no llama a 0x6002e0 (DrawPlainModelEffect sale antes de la pose):
 // - 0x601e68..0x601faf, el 0x11b: el color del modelo en (1; 0,6f; 0,3f) y RenderBody(2); +0x40 en el hueso 2
 //   (0x68b187c) y +0x4c en el 3 (0x68b18ac), con 0x4ec110 sin trasladar; dos sprites 0x5ac (escala 1, luz (1, 0, 0),
 //   giro 0) en +0x40 y en +0x4c, y dos 0x5fd (escala 0,5f, luz 0,5) en los mismos puntos, cada uno con el giro
@@ -55,7 +57,9 @@ struct HighEffectDrawServices
 //   cromado, Chrome01).
 // - 0x43909e..0x439214 (0x600ef6 → 0x438fe0), el 0x125: el color en 0,3 y RenderBody(2); con l = FSIN(T · 0,003f) ·
 //   0,2f + 0,8f, los huesos 3 (0x68b18ac) y 4 (0x68b18dc), cada uno con un sprite 0x5ca (escala 0,2f) y un 0x5fd
-//   (escala 0,5f) de luz (l; l · 0,2f; l · 0,1f).
+//   (escala 0,5f) de luz (l; l · 0,2f; l · 0,1f). Sin rand(). El 0x125 nace con el alpha en 0 (0x51cdf5): sólo su
+//   joint 0x6ee/0x12 lo enciende (0x53949a, el alpha en 1 con la vida del efecto por encima de 5) y le copia su
+//   posición (0x5394a4..0x5394bb); hasta entonces no se posa ni se dibuja.
 // Después todos van a 0x602365, que con +0x78 & 2 repite RenderBody(2) con el blendMesh −2 y la luz 1: un efecto con
 // modelo no escribe su +0x78 (nadie lo hace entre 0x518cf0 y 0x52ce13), así que acá no corre. Devuelve true si lo
 // dibujó; false si el efecto no tiene caso acá. Sin los sprites, el CRT, los huesos o el reloj que pide, corta.

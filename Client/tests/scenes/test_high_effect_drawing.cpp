@@ -16,6 +16,7 @@
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/HighModelEffects.h"
 #include "Scenes/WorldMap.h"
+#include "Scenes/WorldObjectsDrawing.h"
 #include "Scenes/WorldState.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
@@ -29,9 +30,9 @@
 
 #include <array>
 #include <bit>
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <span>
@@ -129,6 +130,9 @@ struct Drawer
             .posedMeshes = [this]() -> std::span<const Client::Render::Models::SkinnedMesh> { return meshes; },
             .sprites = &sprites,
             .random = withRandom ? &random : nullptr,
+            .kalimaPass = pass.get(),
+            .heroByte1a1 = heroByte1a1,
+            .originalFrame = originalFrame,
             .posedBones = [this]() -> std::span<const BoneTransform> { return bones; }};
         return Client::Scenes::DrawGameModelEffects(batch, models, effects, Client::World::SphereFrustum{}, nullptr, {},
                                                     0, resources, mode);
@@ -150,6 +154,11 @@ struct Drawer
     CrtRandom random{Seed};
     bool withRandom = true;
     float clock = 1000.0f;
+    // El pase de los objetos (su mapa, 0x6c9dd0), el +0x1a1 del héroe y si el dibujo es de un frame del original: lo
+    // que 0x5ffdf0 mira para la resta de Chaos Castle.
+    std::unique_ptr<Client::Scenes::GameObjectPass> pass;
+    std::uint8_t heroByte1a1 = 0;
+    bool originalFrame = false;
     std::vector<BoneTransform> bones;
     std::vector<Client::Render::Models::SkinnedMesh> meshes;
     int poses = 0;
@@ -199,14 +208,14 @@ void ExpectSprite(const Client::World::Sprite& sprite, std::uint16_t texture, co
 
 // 0x601e68..0x601faf: el 0x11b/1 (blendMesh −2) pasa el filtro del modo 1 de 0x52d620 (0x52d673): en cada pase, +0x40 y
 // +0x4c en los huesos 2 y 3 (0x4ec110 sin trasladar), los dos 0x5ac de luz (1, 0, 0) y escala 1 y los dos 0x5fd de luz
-// 0,5 y escala 0,5f, cada uno con su rand() % 360 de giro: dos rand() por pase y cuatro por frame.
+// 0,5 y escala 0,5f, cada uno con su rand() % 360 de giro: dos rand() por pase y cuatro por frame. Con la semilla, los
+// giros son 211 y 205 en el modo 0 y 2 y 89 en el 1 (calculados aparte con el LCG del CRT).
 TEST(HighEffectDrawingTest, TheRingTakesTwoRandomsInEachPassAndLeavesItsPointsOnItsBones)
 {
     Drawer drawer;
     ModelEffect ring = EffectOf(0x11b, 1, -2);
     ring.point40 = {1.0f, 2.0f, 3.0f};
     ring.point4c = {4.0f, 5.0f, 6.0f};
-    CrtRandom replay(Seed);
     for (const std::uint8_t mode : {std::uint8_t{0}, std::uint8_t{1}})
     {
         SCOPED_TRACE(mode);
@@ -220,12 +229,100 @@ TEST(HighEffectDrawingTest, TheRingTakesTwoRandomsInEachPassAndLeavesItsPointsOn
         const std::size_t first = mode == 0 ? 0 : 4;
         ExpectSprite(alive[first], 0x5ac, SecondBonePoint, 1.0f, {1.0f, 0.0f, 0.0f}, 0.0f);
         ExpectSprite(alive[first + 1], 0x5ac, ThirdBonePoint, 1.0f, {1.0f, 0.0f, 0.0f}, 0.0f);
-        const float firstTurn = static_cast<float>(replay.Next() % 360);
-        const float secondTurn = static_cast<float>(replay.Next() % 360);
-        ExpectSprite(alive[first + 2], 0x5fd, SecondBonePoint, 0.5f, glm::vec3(0.5f), firstTurn);
-        ExpectSprite(alive[first + 3], 0x5fd, ThirdBonePoint, 0.5f, glm::vec3(0.5f), secondTurn);
+        ExpectSprite(alive[first + 2], 0x5fd, SecondBonePoint, 0.5f, glm::vec3(0.5f), mode == 0 ? 211.0f : 2.0f);
+        ExpectSprite(alive[first + 3], 0x5fd, ThirdBonePoint, 0.5f, glm::vec3(0.5f), mode == 0 ? 205.0f : 89.0f);
     }
     EXPECT_EQ(drawer.poses, 2);
+}
+
+// 0x602e90 → 0x5ffdf0 (0x5ffe2a..0x5ffe3d): con el alpha por debajo de 0,01f (0x6b88d4), o sin orden, devuelve 0 sin
+// posar y 0x602eb0 salta 0x6002e0: el 0x11b no saca sus rand(), ni deja sprites, ni mueve +0x40 y +0x4c, en ningún
+// pase.
+TEST(HighEffectDrawingTest, TheRingBelowTheVisibleAlphaTakesNoRandom)
+{
+    const float justBelow = std::bit_cast<float>(0x3c23d709u); // el float anterior a 0,01f (0x3c23d70a)
+    for (const float alpha : {0.0f, justBelow, std::numeric_limits<float>::quiet_NaN()})
+    {
+        SCOPED_TRACE(alpha);
+        Drawer drawer;
+        ModelEffect ring = EffectOf(0x11b, 1, -2);
+        ring.alpha = alpha;
+        ring.point40 = {1.0f, 2.0f, 3.0f};
+        ring.point4c = {4.0f, 5.0f, 6.0f};
+        for (const std::uint8_t mode : {std::uint8_t{0}, std::uint8_t{1}})
+        {
+            SCOPED_TRACE(mode);
+            const auto drawn = drawer.Draw(std::span(&ring, 1), mode);
+            ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        }
+        EXPECT_EQ(DrawsSince(drawer.random), 0);
+        EXPECT_TRUE(drawer.Alive().empty());
+        EXPECT_TRUE(drawer.batch.Vertices().empty());
+        EXPECT_EQ(drawer.poses, 0);
+        EXPECT_EQ(ring.point40, (glm::vec3{1.0f, 2.0f, 3.0f}));
+        EXPECT_EQ(ring.point4c, (glm::vec3{4.0f, 5.0f, 6.0f}));
+    }
+}
+
+// 0x5ffdff..0x5ffe24: en los mapas 18 a 23 (Chaos Castle), con +0x1a1 del héroe, cada llamada a 0x5ffdf0 le resta 0,15f
+// (0x6b8ae8) al alpha del efecto y lo guarda, antes del chequeo. El 0x11b/1 con 0,2f: en el primer frame queda en
+// 0x3d4ccccc (pasa, dos rand()); en el segundo, en 0xbdccccce (no pasa: ni pose, ni sprites, ni rand()). Fuera de 18 a
+// 23, sin el byte o en un dibujo intermedio de MuRet (la resta va una vez por llamada del frame del original), el 0x134
+// (camino común) queda como está.
+TEST(HighEffectDrawingTest, ChaosCastleFadesTheEffectBeforeItsVisibleCheck)
+{
+    {
+        Drawer drawer;
+        drawer.pass = std::make_unique<Client::Scenes::GameObjectPass>();
+        drawer.pass->map = 18;
+        drawer.heroByte1a1 = 1;
+        drawer.originalFrame = true;
+        ModelEffect ring = EffectOf(0x11b, 1, -2);
+        ring.alpha = std::bit_cast<float>(0x3e4ccccdu); // 0,2f
+        ASSERT_TRUE(drawer.Draw(std::span(&ring, 1), 0).HasValue());
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(ring.alpha), 0x3d4cccccu);
+        EXPECT_EQ(DrawsSince(drawer.random), 2);
+        EXPECT_EQ(drawer.poses, 1);
+        EXPECT_EQ(drawer.Alive().size(), 4u);
+        ASSERT_TRUE(drawer.Draw(std::span(&ring, 1), 0).HasValue());
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(ring.alpha), 0xbdccccceu);
+        EXPECT_EQ(DrawsSince(drawer.random), 2);
+        EXPECT_EQ(drawer.poses, 1);
+        EXPECT_EQ(drawer.Alive().size(), 4u);
+    }
+    struct Case
+    {
+        std::uint8_t map;
+        std::uint8_t heroByte1a1;
+        bool originalFrame;
+    };
+    for (const Case& outside : {Case{17, 1, true}, Case{24, 1, true}, Case{23, 0, true}, Case{23, 1, false}})
+    {
+        SCOPED_TRACE(outside.map);
+        SCOPED_TRACE(outside.heroByte1a1);
+        SCOPED_TRACE(outside.originalFrame);
+        Drawer drawer;
+        drawer.pass = std::make_unique<Client::Scenes::GameObjectPass>();
+        drawer.pass->map = outside.map;
+        drawer.heroByte1a1 = outside.heroByte1a1;
+        drawer.originalFrame = outside.originalFrame;
+        ModelEffect aurora = EffectOf(0x134, 0);
+        ASSERT_TRUE(drawer.Draw(std::span(&aurora, 1), 0).HasValue());
+        EXPECT_EQ(aurora.alpha, 1.0f);
+        EXPECT_EQ(drawer.poses, 1);
+        EXPECT_EQ(drawer.batch.Vertices().size(), 3u);
+    }
+    // En el 23 con el byte, el 0x134 con alpha 1 queda en 0x3f59999a (1 − 0,15f) y se dibuja con ese alpha.
+    Drawer drawer;
+    drawer.pass = std::make_unique<Client::Scenes::GameObjectPass>();
+    drawer.pass->map = 23;
+    drawer.heroByte1a1 = 1;
+    drawer.originalFrame = true;
+    ModelEffect aurora = EffectOf(0x134, 0);
+    ASSERT_TRUE(drawer.Draw(std::span(&aurora, 1), 0).HasValue());
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(aurora.alpha), 0x3f59999au);
+    ASSERT_EQ(drawer.batch.Vertices().size(), 3u);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(drawer.batch.Vertices()[0].color.alpha), 0x3f59999au);
 }
 
 // 0x52d66a: el 0x11b/0 (blendMesh −1) sólo se dibuja en el modo 0, con el color del modelo en (1; 0,6f; 0,3f) y
@@ -354,20 +451,51 @@ TEST(HighEffectDrawingTest, TheGuildMarkTakesTwoChromePasses)
 }
 
 // 0x43909e..0x439214: el 0x125 con el color en 0,3 y RenderBody(2); en los huesos 3 y 4, el 0x5ca de escala 0,2f y el
-// 0x5fd de escala 0,5f con la luz (l; l · 0,2f; l · 0,1f), l = FSIN(T · 0,003f) · 0,2f + 0,8f. Sin rand(); sin el
-// reloj del mundo, corta.
+// 0x5fd de escala 0,5f con la luz (l; l · 0,2f; l · 0,1f), l = FSIN(T · 0,003f) · 0,2f + 0,8f: con T = 1000, l en
+// 0x3f54067d, l · 0,2f en 0x3e299ecb y l · 0,1f en 0x3da99ecb (calculados aparte). Sin rand(); sin el reloj del mundo,
+// corta. El 0x125 recién creado (0x51cdc9, el alpha en 0 en 0x51cdf5) no pasa 0x5ffdf0 (0x5ffe2a..0x5ffe3d) en ningún
+// pase: ni pose, ni cuerpo, ni sprites sobre los huesos viejos del buffer, ni rand(); lo enciende su joint 0x6ee/0x12
+// (0x53949a).
 TEST(HighEffectDrawingTest, TheKundunSpiritGlowsOnItsThirdAndFourthBones)
 {
+    {
+        auto world = std::make_unique<Client::Scenes::WorldState>();
+        for (Client::Scenes::JointState& joint : world->DrawTail().joints)
+            joint.alive = true;
+        CrtRandom creation(Seed);
+        const auto made = Client::Scenes::CreateHighModelEffect({.type = 0x125, .position = {1000.0f, 2000.0f, 300.0f}},
+                                                                {.world = *world, .random = creation});
+        ASSERT_TRUE(made.HasValue()) << made.Error();
+        const auto effects = world->Map().effects.Effects();
+        ASSERT_TRUE(effects[0].alive);
+        ASSERT_EQ(effects[0].type, 0x125);
+        ASSERT_EQ(effects[0].alpha, 0.0f);
+        ASSERT_EQ(effects[0].objectState.blendMesh, -2);
+        Drawer drawer;
+        // Lo que dejó en el buffer de la pose el último que se posó.
+        drawer.bones = {BoneTransform(0.0f), BoneTransform(0.0f), Translation(SecondBonePoint),
+                        Translation(ThirdBonePoint), Translation(FourthBonePoint)};
+        for (const std::uint8_t mode : {std::uint8_t{0}, std::uint8_t{1}})
+        {
+            SCOPED_TRACE(mode);
+            const auto drawn = drawer.Draw(effects, mode);
+            ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+            EXPECT_TRUE(drawer.Alive().empty());
+            EXPECT_TRUE(drawer.batch.Vertices().empty());
+            EXPECT_EQ(drawer.poses, 0);
+            EXPECT_EQ(DrawsSince(drawer.random), 0);
+        }
+    }
+
     Drawer drawer;
+    ASSERT_EQ(drawer.clock, 1000.0f);
     ModelEffect spirit = EffectOf(0x125, 0, -2);
     const auto drawn = drawer.Draw(std::span(&spirit, 1), 1);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     ASSERT_EQ(drawer.batch.Vertices().size(), 3u);
     EXPECT_EQ(DrawsSince(drawer.random), 0);
-    const double angle = static_cast<double>(drawer.clock) * static_cast<double>(0.003f);
-    const auto l = static_cast<float>(std::sin(angle) * static_cast<double>(0.2f) + static_cast<double>(0.8f));
-    const glm::vec3 light{l, static_cast<float>(static_cast<double>(l) * static_cast<double>(0.2f)),
-                          static_cast<float>(static_cast<double>(l) * static_cast<double>(0.1f))};
+    const glm::vec3 light{std::bit_cast<float>(0x3f54067du), std::bit_cast<float>(0x3e299ecbu),
+                          std::bit_cast<float>(0x3da99ecbu)};
     const auto alive = drawer.Alive();
     ASSERT_EQ(alive.size(), 4u);
     ExpectSprite(alive[0], 0x5ca, ThirdBonePoint, 0.2f, light, 0.0f);

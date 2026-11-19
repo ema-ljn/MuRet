@@ -254,6 +254,10 @@ struct ModelEffectDrawResources
     Render::Models::CrtRandom* random = nullptr; // 607b60 sólo sortea los casos que lo necesitan.
     const ItemDrawContext* itemContext = nullptr;
     const GameObjectPass* kalimaPass = nullptr;
+    // 0x5ffdff..0x5ffe24: +0x1a1 del héroe (0x743a170), que 0x5ffdf0 lee en los mapas 18 a 23 (el de `kalimaPass`), y
+    // si el dibujo es de un frame del original: sólo entonces la resta de 0,15f queda guardada en el alpha del efecto.
+    std::uint8_t heroByte1a1 = 0;
+    bool originalFrame = false;
     // 42cfcb del fragmento3d..40: el mismo pool518cf0 al que emite4ee770.
     World::ModelEffects* effects = nullptr;
     World::Particles* particles = nullptr;

@@ -474,6 +474,14 @@ TEST_F(MonsterAttackCasesTest, TheKalimaMageThrowsThreeBoltsAtItsTarget)
     ActorState& monster =
         Prepare(Probe{.type = 0x95, .step = 14, .skill = 0x11, .target = VictimSlot, .joints = JointTable});
     monster.angles = {5.0f, 0.0f, 100.0f};
+    // El hueso 60 sin giro, corrido (12, −7, 45), con el modelo del tipo de escala 2 en (1000, 1100, 100): el punto es
+    // la traslación por la escala más el origen (0x4ec110 con el offset en 0).
+    monster.bodyPose.assign(61, Client::Render::Models::BoneTransform(1.0f));
+    for (std::size_t bone = 0; bone < monster.bodyPose.size(); ++bone)
+        monster.bodyPose[bone][3] = glm::vec3(static_cast<float>(bone), 0.0f, 0.0f);
+    monster.bodyPose[60][3] = glm::vec3(12.0f, -7.0f, 45.0f);
+    game->world.PlaceModel(static_cast<std::uint16_t>(monster.type),
+                           Client::Scenes::SharedModelPlacement{.scale = 2.0f, .origin = {1000.0f, 1100.0f, 100.0f}});
     ActorState& victim = game->world.Actors()[VictimSlot];
     victim.position = {1200.0f, 1300.0f, 140.0f};
 
@@ -481,6 +489,7 @@ TEST_F(MonsterAttackCasesTest, TheKalimaMageThrowsThreeBoltsAtItsTarget)
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(Draws(), SkillRead);
+    const glm::vec3 bonePoint{1024.0f, 1086.0f, 190.0f};
     const std::array<float, 3> turns{100.0f, 70.0f, 85.0f};
     for (std::size_t bolt = 0; bolt < turns.size(); ++bolt)
     {
@@ -491,7 +500,7 @@ TEST_F(MonsterAttackCasesTest, TheKalimaMageThrowsThreeBoltsAtItsTarget)
         EXPECT_EQ(joint.subtype, 6);
         EXPECT_EQ(joint.ownerContext, &victim);
         EXPECT_EQ(joint.targetPosition, victim.position);
-        EXPECT_EQ(joint.position, game->joints[0].position);
+        EXPECT_EQ(joint.position, bonePoint);
         EXPECT_EQ(joint.angles, glm::vec3(5.0f, 0.0f, turns[bolt]));
         EXPECT_EQ(joint.width, 30.0f);
         EXPECT_EQ(joint.life, 50);

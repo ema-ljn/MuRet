@@ -547,8 +547,8 @@ void CreateSwirl(JointState& joint, const World::FishEffectRequest& request, Ren
 
 // 0x53439e..0x53442d y 0x534cb6: el 61c/1, el rayo rojo del láser 0xd0/1 de los magos (0x51a5dd), con el efecto de
 // dueño. Velocidad 0, el ancho, el pase 1 (+0x64), la luz en 1, +0x9dc en 0, 15 puntos, vida 30 y la tanda (+0x9eb) en
-// 0; la posición y los ángulos los del dueño (+0x10 y +0x1c). Sin dueño, el original apaga el joint y lee de 0: MuRet
-// corta. Sin rand().
+// 0; la posición y los ángulos los del dueño (+0x10 y +0x1c). Sin dueño, el original apaga el joint y desreferencia el
+// puntero nulo (+0x10, 0x5343fb), y revienta: MuRet corta. Sin rand().
 Core::Expected<void, std::string> CreateLaserJoint(JointState& joint, const World::FishEffectRequest& request)
 {
     constexpr std::uint8_t FirstPass = 1;

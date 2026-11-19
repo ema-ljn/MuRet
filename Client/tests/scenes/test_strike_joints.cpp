@@ -135,6 +135,7 @@ TEST(StrikeJointsTest, TheBoltRedrawsItsPathEachStep)
         ASSERT_TRUE(strike.Create(subtype).HasValue());
         const JointState& joint = strike.joints[0];
         const glm::vec3 from = joint.pathIncrement;
+        const CrtRandom before = strike.random;
         CrtRandom expected = strike.random;
 
         ASSERT_TRUE(strike.Step().HasValue());
@@ -143,13 +144,23 @@ TEST(StrikeJointsTest, TheBoltRedrawsItsPathEachStep)
         for (int draw = 0; draw < 45 * 2 + 4 * 2 + (subtype == 6 ? 2 : 0); ++draw)
             static_cast<void>(expected.Next());
         EXPECT_EQ(strike.random.State(), expected.State());
+        // Cada tramo de la bajada corre la x y después la y rand() % 20 − 10 (sumados en la x87) y baja la z.
         const double drop = subtype == 6 ? 13.0 : 16.0;
-        float lowest = from.z;
+        CrtRandom jitter = before;
+        glm::vec3 lowest = from;
         for (int tramo = 0; tramo < 45; ++tramo)
-            lowest = F32(D(lowest) - drop);
+        {
+            lowest.x = F32(static_cast<double>(jitter.Next() % 20 - 10) + D(lowest.x));
+            lowest.y = F32(static_cast<double>(jitter.Next() % 20 - 10) + D(lowest.y));
+            lowest.z = F32(D(lowest.z) - drop);
+        }
         // El tramo 45 (el último de la bajada) quedó seis lugares atrás: los cuatro de la llegada, el destino y la
-        // cola.
-        EXPECT_EQ(joint.points[6][0].z, lowest);
+        // cola. Con los ángulos en 0, su punto 2 es el centro 40 más abajo y el 0, 40 a la izquierda.
+        EXPECT_EQ(joint.points[6][2].x, lowest.x);
+        EXPECT_EQ(joint.points[6][2].y, lowest.y);
+        EXPECT_EQ(joint.points[6][0].z, lowest.z);
+        EXPECT_NE(lowest.x, from.x);
+        EXPECT_NE(lowest.y, from.y);
         EXPECT_EQ(joint.count, 49);
         EXPECT_EQ(joint.life, 19);
         EXPECT_TRUE(joint.tailEnabled);

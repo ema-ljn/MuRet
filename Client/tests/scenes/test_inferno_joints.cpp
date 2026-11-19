@@ -246,7 +246,8 @@ TEST(InfernoJointsTest, TheInfernoCutsOnItsEffect)
 
 // El 0x61c/1, el rayo rojo del láser 0xd0/1 de los magos (0x51a5dd), con el efecto de dueño. 0x53439e..0x53442d:
 // velocidad 0, el ancho, el pase 1 (+0x64), la luz en 1, 15 puntos, vida 30 y la posición y los ángulos del dueño. Sin
-// rand(). Sin dueño, el original lee de 0 (0x5343f8): MuRet corta.
+// rand(). Los ángulos no son los del pedido sino los del dueño (+0x1c). Sin dueño, el original apaga el joint,
+// desreferencia el puntero nulo (+0x10, 0x5343fb) y revienta: MuRet corta (0x5343f8).
 TEST(InfernoJointsTest, TheLaserJointIsBornOnItsOwner)
 {
     Client::World::ModelEffect laser{};
@@ -256,7 +257,7 @@ TEST(InfernoJointsTest, TheLaserJointIsBornOnItsOwner)
     std::vector<JointState> joints(2);
     CrtRandom random(Seed);
     glm::vec3 from{1.0f, 2.0f, 3.0f};
-    glm::vec3 turn = laser.transform.angles;
+    glm::vec3 turn{5.0f, 6.0f, 7.0f};
     Client::World::FishEffectRequest request{.type = 0x61c,
                                              .firstPosition = from,
                                              .secondPosition = from,

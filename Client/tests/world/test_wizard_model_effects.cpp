@@ -817,30 +817,75 @@ TEST(WizardModelEffectsTest, TheLittleStormsLeaveTheirMistOnTheGround)
     EXPECT_TRUE(chipped);
 }
 
-// 0x5231f6..0x52328c: el 0xcb/1 con vida 45 suelta sus joints 613/6; el primero saca su rand() % 10 (0x52321f) antes
-// del alta del joint (0x530860), que corta. Con la vida en 44 − +0x1bc del dueño o menos, nada.
-TEST(WizardModelEffectsTest, TheHiddenCircleDrawsItsFirstJointRandomBeforeTheCut)
+// 0x5231f6..0x5232f8: el 0xcb/1 con la vida por encima de 44 − +0x1bc del dueño suelta 36 joints 613/6 en abanico,
+// cada uno con su rand() % 10 (0x52321f) antes del alta: los ángulos (−10, 0, (r + 10) · i), el punto (x, y, z + 100)
+// en las dos posiciones, el efecto de dueño, ancho 60, la clave 0 y sin blanco. Con la vida justo en 45 − +0x1bc, un
+// 613/7 de ángulo 10 · i detrás de cada uno. Con la vida en 44 − +0x1bc o menos, nada.
+TEST(WizardModelEffectsTest, TheHiddenCircleFansItsRays)
 {
+    struct Case
+    {
+        std::uint8_t byte1bc;
+        std::int32_t life;
+        bool second;
+    };
+    for (const Case tested : {Case{0, 45, true}, Case{0, 46, false}, Case{3, 42, true}, Case{3, 43, false}})
+    {
+        SCOPED_TRACE(tested.life);
+        Harness world;
+        world.owner = WizardOwnerView{.alive = true, .byte1bc = tested.byte1bc};
+        CrtRandom random(15);
+        ModelEffectArguments arguments = Arguments(0xcb, 1);
+        int owner = 0;
+        arguments.owner = &owner;
+        ModelEffect& circle = world.At(Create(world, arguments, random));
+        circle.life = tested.life;
+        CrtRandom oracle = random;
+        static_cast<void>(oracle.Next()); // 0x5208c5, la luz del paso.
+        const auto stepped = Client::World::StepWizardModelEffect(circle, nullptr, random, world.Services());
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        ASSERT_EQ(world.joints.size(), tested.second ? 72U : 36U);
+        const glm::vec3 point{1000.0f, 2000.0f, 400.0f};
+        std::size_t next = 0;
+        for (int ray = 0; ray < 36; ++ray)
+        {
+            SCOPED_TRACE(ray);
+            const auto spread = static_cast<float>(oracle.Next() % 10 + 10);
+            const RecordedJoint& fan = world.joints[next++];
+            EXPECT_EQ(fan.type, 0x613);
+            EXPECT_EQ(fan.subtype, 6);
+            EXPECT_EQ(fan.first, point);
+            EXPECT_EQ(fan.second, point);
+            EXPECT_EQ(fan.angles, glm::vec3(-10.0f, 0.0f, spread * static_cast<float>(ray)));
+            EXPECT_EQ(fan.owner, &circle);
+            EXPECT_EQ(fan.scale, 60.0f);
+            EXPECT_EQ(fan.key, 0);
+            EXPECT_EQ(fan.target, -1);
+            if (!tested.second)
+                continue;
+            const RecordedJoint& trail = world.joints[next++];
+            EXPECT_EQ(trail.subtype, 7);
+            EXPECT_EQ(trail.first, point);
+            EXPECT_EQ(trail.angles, glm::vec3(-10.0f, 0.0f, 10.0f * static_cast<float>(ray)));
+            EXPECT_EQ(trail.owner, &circle);
+            EXPECT_EQ(trail.scale, 60.0f);
+            EXPECT_EQ(trail.key, 0);
+        }
+        EXPECT_EQ(random.State(), oracle.State());
+    }
+
     Harness world;
-    world.owner = WizardOwnerView{.alive = true};
+    world.owner = WizardOwnerView{.alive = true, .byte1bc = 3};
     CrtRandom random(15);
     ModelEffectArguments arguments = Arguments(0xcb, 1);
     int owner = 0;
     arguments.owner = &owner;
     ModelEffect& circle = world.At(Create(world, arguments, random));
-    ASSERT_EQ(circle.life, 45);
-    CrtRandom oracle = random;
-    static_cast<void>(oracle.Next()); // 0x5208c5, la luz del paso.
-    static_cast<void>(oracle.Next()); // 0x52321f.
-    const auto cut = Client::World::StepWizardModelEffect(circle, nullptr, random, world.Services());
-    ASSERT_FALSE(cut.HasValue());
-    EXPECT_NE(cut.Error().find("0x52328c"), std::string::npos) << cut.Error();
-    EXPECT_EQ(random.State(), oracle.State());
-
-    circle.life = 44;
+    circle.life = 41;
     CrtRandom quiet = random;
     static_cast<void>(quiet.Next());
     ASSERT_TRUE(Client::World::StepWizardModelEffect(circle, nullptr, random, world.Services()).HasValue());
+    EXPECT_TRUE(world.joints.empty());
     EXPECT_EQ(random.State(), quiet.State());
 }
 

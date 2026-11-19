@@ -15417,6 +15417,11 @@ Los llamadores portados (cada alta con su dirección en el error):
   meteoro de dueño (`+0x108`), la clave 30, los ángulos en 0 y la luz `(0; 0,5; 0)`, sin `rand()` propio; después el
   polvo y las piedritas de su subtipo. `Scenes::WizardEffectServicesOf` lo da (`otherEffect`) con
   `World::CreateBlastModelEffect` sobre la tabla del mundo, y el dueño tiene que ser un lugar de esa tabla.
+- El círculo oculto (`0xcb/1`, `0x5231be..0x5232f8`): con la vida por encima de 44 − `+0x1bc` del dueño suelta 36
+  joints `0x613/6` en abanico (`0x52328c`), cada uno después de su `rand() % 10` (`0x52321f`): los ángulos
+  `(−10, 0, (r + 10) · i)`, el punto `(x, y, z + 100)` en las dos posiciones, el efecto de dueño, ancho 60, la clave 0,
+  la skill 0 y sin blanco (−1). Con la vida justo en 45 − `+0x1bc`, un `0x613/7` de ángulo `10 · i` detrás de cada
+  uno (`0x5232e9`). Van a la tabla del mundo por el servicio de joints (`Scenes::CreateFaunaJoint`).
 - El fuego que cae (`0xc2/4`, `0x524a5f..0x524b2a`): debajo del suelo tiembla la cámara (`(rand() & 3) − 4` por
   0,1f) y recorre los 400 primeros personajes del pool (`0x524a8d..0x524b21`): dx y dy se guardan en float antes de
   mirar al personaje, y empuja al vivo, visto (`+0x16c`), que no es el héroe (`[0x743a170]`), sin `+0x389` y con la raíz

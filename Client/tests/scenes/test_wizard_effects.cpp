@@ -7,16 +7,22 @@
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/FaunaJointCreation.h"
+#include "Scenes/GameDrawTail.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldState.h"
+#include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
+#include "World/Sprites.h"
 #include "World/WizardModelEffects.h"
 
 #include <glm/ext/vector_float3.hpp>
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -168,5 +174,81 @@ TEST(WizardEffectsTest, TheFallingMeteorDropsItsBurstIntoTheWorld)
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x518cf0"), std::string::npos) << cut.Error();
     EXPECT_FALSE(world->Map().effects.Effects()[1].alive);
+}
+
+// 0x5231f6..0x5232f8 con los joints del mundo: el 0xcb/1 en su primer paso (vida 45 con +0x1bc en 0) suelta 36
+// joints 613/6 y 36 613/7 a la tabla de 0x530860 (WorldState::DrawTail), con el efecto de dueño; cada rand() % 10 del
+// abanico va antes del alta de su 613/6, que saca el suyo (la key, rand() % 5). Después el paso de los joints los
+// avanza sin cortar.
+TEST(WizardEffectsTest, TheHiddenCircleFansItsRaysIntoTheWorld)
+{
+    auto world = std::make_unique<Client::Scenes::WorldState>();
+    ActorState& caster = world->Actors()[5];
+    caster.alive = true;
+    caster.byte1bc = 0;
+    Client::World::FrameSprites sprites;
+    Client::Render::Models::CrtRandom random(21);
+    const Client::World::WizardEffectServices services = Client::Scenes::WizardEffectServicesOf(
+        *world, random,
+        Client::Scenes::WizardSceneParts{.particles = &world->Particles(), .worldClock = 1000.0f, .sprites = &sprites});
+    const Client::World::ModelEffectArguments arguments = Client::Scenes::WizardArguments(
+        0xcb, {1000.0f, 2000.0f, 300.0f}, {0.0f, 0.0f, 90.0f}, glm::vec3(1.0f), 1, &caster);
+    const auto created = Client::World::CreateWizardModelEffect(world->Map().effects, arguments, random, services);
+    ASSERT_TRUE(created.HasValue() && created.Value().has_value()) << (created.HasValue() ? "" : created.Error());
+    Client::World::ModelEffect& circle = world->Map().effects.Effects()[*created.Value()];
+    ASSERT_EQ(circle.life, 45);
+
+    auto twin = std::make_unique<std::array<Client::Scenes::JointState, 500>>();
+    Client::Render::Models::CrtRandom oracle = random;
+    static_cast<void>(oracle.Next()); // 0x5208c5
+    glm::vec3 point{1000.0f, 2000.0f, 400.0f};
+    for (int ray = 0; ray < 36; ++ray)
+    {
+        glm::vec3 angles{-10.0f, 0.0f, static_cast<float>(oracle.Next() % 10 + 10) * static_cast<float>(ray)};
+        glm::vec3 second = point;
+        for (const std::int32_t subtype : {6, 7})
+        {
+            if (subtype == 7)
+                angles.z = 10.0f * static_cast<float>(ray);
+            const Client::World::FishEffectRequest request{.type = 0x613,
+                                                           .firstPosition = point,
+                                                           .secondPosition = second,
+                                                           .angles = angles,
+                                                           .subtype = subtype,
+                                                           .ownerContext = &circle,
+                                                           .scale = 60.0f,
+                                                           .key = 0,
+                                                           .skill = 0,
+                                                           .skillSerial = 0,
+                                                           .target = -1};
+            ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(*twin, request, oracle).HasValue());
+        }
+    }
+    const auto stepped = Client::World::StepWizardModelEffect(circle, nullptr, random, services);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(random.State(), oracle.State());
+    const auto& joints = world->DrawTail().joints;
+    for (std::size_t slot = 0; slot < joints.size(); ++slot)
+    {
+        SCOPED_TRACE(slot);
+        const Client::Scenes::JointState& joint = joints[slot];
+        const Client::Scenes::JointState& expected = (*twin)[slot];
+        ASSERT_EQ(joint.alive, expected.alive);
+        if (!joint.alive)
+            continue;
+        EXPECT_EQ(joint.type, 0x613);
+        EXPECT_EQ(joint.subtype, expected.subtype);
+        EXPECT_EQ(joint.key, expected.key);
+        EXPECT_EQ(joint.position, expected.position);
+        EXPECT_EQ(joint.angles, expected.angles);
+        EXPECT_EQ(joint.light, expected.light);
+        EXPECT_EQ(joint.width, 60.0f);
+        EXPECT_EQ(joint.ownerContext, &circle);
+    }
+    EXPECT_EQ(std::ranges::count_if(joints, [](const Client::Scenes::JointState& joint) { return joint.alive; }), 72);
+
+    const auto advanced =
+        Client::Scenes::StepJoints(world->DrawTail().joints, random, nullptr, &world->Particles(), 1000.0f, &sprites);
+    ASSERT_TRUE(advanced.HasValue()) << advanced.Error();
 }
 } // namespace

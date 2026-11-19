@@ -1157,10 +1157,53 @@ Core::Expected<void, std::string> StepInnerCircle(ModelEffect& effect, CrtRandom
             return Core::Unexpected(owner.Error());
         if (effect.life <= 44 - owner.Value().byte1bc)
             return {};
-        // 0x5231f6..0x5232f8: 36 joints 613/6 en abanico y, en el primer paso, 36 613/7. El primero saca su
-        // rand() % 10 (0x52321f) antes del alta del joint (0x52328c), que corta.
-        static_cast<void>(random.Next());
-        return Core::Unexpected(std::format("0x52328c: el 0xcb/1 suelta los joints {:#x}/6 (CL11)", SnowBlastJoint));
+        // 0x5231f6..0x5232f8: 36 joints 613/6 en abanico y, con la vida en 45 − +0x1bc, un 613/7 detrás de cada uno.
+        // Los ángulos locales son (−10, 0, z) y el punto (x, y, z + 100), el mismo para las dos posiciones; el efecto
+        // es el dueño, de ancho 60, con la clave 0, la skill 0 y sin blanco.
+        constexpr int Rays = 36;               // 0x5232f2: 0x24
+        constexpr std::int32_t Spread = 10;    // 0x523225: rand() % 10
+        constexpr double SpreadBase = 10.0;    // 0x6b87a8
+        constexpr double Rise = 100.0;         // 0x6b86b4
+        constexpr float Tilt = -10.0f;         // 0x523208: 0xc1200000
+        constexpr float RayWidth = 60.0f;      // 0x523234: 0x42700000
+        constexpr std::int32_t RayKey = 0;     // 0x523230
+        constexpr std::int32_t FirstStep = 45; // 0x523299: 0x2d − +0x1bc
+        const std::int32_t firstStep = FirstStep - owner.Value().byte1bc;
+        glm::vec3 angles{Tilt, 0.0f, 0.0f};
+        for (int ray = 0; ray < Rays; ++ray)
+        {
+            const auto turn = static_cast<float>(ray); // 0x523205: fild y fstp a [ebp+8]
+            const auto spread = static_cast<std::int32_t>(random.Next() % Spread);
+            angles.z = F32((static_cast<double>(spread) + SpreadBase) * D(turn));
+            glm::vec3 point{effect.transform.position.x, effect.transform.position.y,
+                            F32(D(effect.transform.position.z) + Rise)};
+            if (auto joint = Joint(services, "0x52328c",
+                                   {.type = SnowBlastJoint,
+                                    .first = point,
+                                    .second = point,
+                                    .angles = angles,
+                                    .subtype = 6,
+                                    .owner = &effect,
+                                    .scale = RayWidth,
+                                    .key = RayKey});
+                !joint.HasValue())
+                return joint;
+            if (effect.life != firstStep)
+                continue;
+            angles.z = F32(D(turn) * SpreadBase); // 0x5232b0
+            if (auto joint = Joint(services, "0x5232e9",
+                                   {.type = SnowBlastJoint,
+                                    .first = point,
+                                    .second = point,
+                                    .angles = angles,
+                                    .subtype = 7,
+                                    .owner = &effect,
+                                    .scale = RayWidth,
+                                    .key = RayKey});
+                !joint.HasValue())
+                return joint;
+        }
+        return {};
     }
     if (effect.subtype == 2)
     {

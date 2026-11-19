@@ -454,6 +454,44 @@ TEST(HighModelEffectsTest, TheSiegePulseTurnsAndFallsIntoTheFlareStep)
               4);
 }
 
+// 0x52c2df..0x52c34a: con el /1, los dos 0x615/6 (0x52c31e y 0x52c342, escala 80, el pulso de dueño) en el punto 100
+// más arriba, dos rand() cada uno (la x y la y corridas, 0x531b0c); después, el /1 del paso del 0x13b sin rand().
+TEST(HighModelEffectsTest, TheSecondSiegePulseDropsTwoBolts)
+{
+    HighWorld tested;
+    ModelEffect& pulse = tested.Effect(0);
+    pulse.alive = true;
+    pulse.type = 0x61c;
+    pulse.subtype = 1;
+    pulse.life = 8;
+    pulse.velocity = {0, -250, 0};
+    pulse.copiedAngles = {0, 0, 10};
+    pulse.start = {1000, 2000, 300};
+
+    const auto stepped = StepHighModelEffect(pulse, nullptr, tested.StepContext());
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(tested.Draws(), 1 + 2 + 2);
+    const glm::vec3 reach = Client::Render::Models::OriginalVectorRotate(
+        {0, -250, 0}, Client::Render::Models::OriginalAngleMatrix({0, 0, 82}));
+    const glm::vec3 point{static_cast<float>(static_cast<double>(reach.x) + 1000.0),
+                          static_cast<float>(static_cast<double>(reach.y) + 2000.0),
+                          static_cast<float>(static_cast<double>(reach.z) + 300.0 + 100.0)};
+    for (std::size_t slot = 0; slot < 2; ++slot)
+    {
+        SCOPED_TRACE(slot);
+        const auto& bolt = tested.world->DrawTail().joints[slot];
+        ASSERT_TRUE(bolt.alive);
+        EXPECT_EQ(bolt.type, 0x615);
+        EXPECT_EQ(bolt.subtype, 6);
+        EXPECT_EQ(bolt.ownerContext, &pulse);
+        EXPECT_EQ(bolt.width, 80.0f);
+        EXPECT_EQ(bolt.targetPosition, point);
+        EXPECT_EQ(bolt.speed, std::bit_cast<float>(0x3e99999au));
+    }
+    EXPECT_FALSE(tested.world->DrawTail().joints[2].alive);
+}
+
 // 0x51e059 y 0x52c34e: el 0x13b/0 con vida 15, la escala en 0, la z 100 más, la velocidad (0, −10, 0) y +0xd8 en
 // 0,25f; con más de 12 de vida crece 0,9f, baja la y de la velocidad y suelta el 0x13b/1 con él de dueño (vida 5,
 // escala 3,5), que en su paso pone la luz y el alpha en vida · 0,1f. Los dos con la luz dinámica sólo el /0.

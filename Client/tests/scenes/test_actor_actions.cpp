@@ -1,5 +1,6 @@
 #include "Scenes/ActorActions.h"
 
+#include "Audio/Playback.h"
 #include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Terrain/TerrainGrid.h"
@@ -21,7 +22,10 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <vector>
+
+#include <glm/ext/vector_float3.hpp>
 
 // Client::Scenes::SetActorStop: 0x4f2250, la acción de parado (06, "Caminar"; P-C14 c). Los valores
 // salen del ASM cotejado con el PE c32bbd5f; ninguno de una corrida del original.
@@ -35,6 +39,29 @@ using Client::Scenes::SceneId;
 using Client::Tests::AfterDraws;
 using Client::Tests::FirstSeedWhere;
 using Client::Tests::UnarmedPlayer;
+
+class RecordingPlayback final : public Client::Audio::IPlayback
+{
+public:
+    struct SoundRequest
+    {
+        std::int32_t id;
+        std::optional<glm::vec3> origin;
+        bool loop;
+    };
+
+    void PlaySound(std::int32_t id, std::optional<glm::vec3> origin, bool loop) override
+    {
+        requests.push_back({id, origin, loop});
+    }
+    void StopSound(std::int32_t, bool) override {}
+    void PlayMusic(std::string_view, bool) override {}
+    void StopMusic() override {}
+    void SetEffectsVolume(std::uint8_t) override {}
+    void SetListener(glm::vec3) override {}
+
+    std::vector<SoundRequest> requests;
+};
 
 // La primera semilla cuyo rand() % 16 no es 0: el sufijo saca uno y termina.
 std::uint32_t QuietSeed()
@@ -399,6 +426,31 @@ TEST_F(ActorStopTest, TheSuffixDrawsOneRandAndFenrirMaySound)
     ASSERT_TRUE(withSound.HasValue());
     EXPECT_EQ(withSound.Value().sound, 0x279 + variant);
     EXPECT_EQ(m_random.State(), expected.State());
+}
+
+TEST_F(ActorStopTest, FenrirSuffixRequestsItsSoundOnceAtTheActorPosition)
+{
+    const std::uint32_t loud =
+        FirstSeedWhere([](CrtRandom& random) { return random.Next() % 16 == 0 && random.Next() % 3 == 0; });
+    CrtRandom expected = AfterDraws(loud, 2);
+    const std::int32_t soundId = 0x279 + expected.Next() % 2;
+    m_random = CrtRandom(loud);
+    ActorState fenrir = UnarmedPlayer();
+    fenrir.pet.model = 0x1c37;
+    fenrir.safeZone = 1;
+    fenrir.position = {123.0f, 456.0f, 7.0f};
+    RecordingPlayback playback;
+    m_runtime.audio = &playback;
+
+    const auto stopped = Stop(fenrir);
+
+    ASSERT_TRUE(stopped.HasValue()) << stopped.Error();
+    ASSERT_EQ(stopped.Value().sound, soundId);
+    ASSERT_EQ(playback.requests.size(), 1u);
+    EXPECT_EQ(playback.requests[0].id, soundId);
+    ASSERT_TRUE(playback.requests[0].origin.has_value());
+    EXPECT_EQ(*playback.requests[0].origin, fenrir.position);
+    EXPECT_FALSE(playback.requests[0].loop);
 }
 
 // 0x4f2286..0x4f36be: el tipo 0x154 pide la acción 0 del esqueleto propio tras leer Y y luego X.

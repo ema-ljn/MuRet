@@ -106,8 +106,6 @@ Core::Expected<void, std::string> ApplyOtherWalk(ActorState& actor, const WorldE
     const auto stopped = SetActorStop(actor, context.Value());
     if (!stopped.HasValue())
         return Core::Unexpected(stopped.Error());
-    if (stopped.Value().sound)
-        resources.world.Runtime().RequestSound(*stopped.Value().sound);
     return {};
 }
 Core::Expected<void, std::string> ApplyJumpingWalk(ActorState& actor, const WorldEntryResources& resources)

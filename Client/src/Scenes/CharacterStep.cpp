@@ -462,10 +462,6 @@ Core::Expected<void, std::string> StopAtTheEnd(ActorState& actor, const Characte
         {
             return Core::Unexpected(stopped.Error());
         }
-        if (stopped.Value().sound)
-        {
-            context.world.Runtime().RequestSound(*stopped.Value().sound, actor.position);
-        }
     }
     // 0x4fcb71..0x4fcb7a: la 0x44, también la que puso 0x4f2250, vuelve al frame 0.
     if (actor.animation.action == HalvedAction)

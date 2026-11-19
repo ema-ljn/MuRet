@@ -661,8 +661,6 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
         {
             return Core::Unexpected(applied.Error());
         }
-        for (const std::int32_t sound : applied.Value().sounds)
-            m_resources.world.Runtime().RequestSound(sound);
         return {};
     }
     if (const auto* packet = std::get_if<Protocol::Events::EventPacket>(&event))

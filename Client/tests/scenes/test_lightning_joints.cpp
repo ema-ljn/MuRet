@@ -275,7 +275,7 @@ TEST(LightningJointsTest, TheRedBoltCutsOnItsOwnerBone)
 // con la vida impar sólo corre la cuenta (sin dibujo, la matriz de la pila no se ve).
 TEST(LightningJointsTest, TheChainPicksTheNearMonsters)
 {
-    std::vector<ActorState> actors(12);
+    std::vector<ActorState> actors(14);
     for (std::size_t i = 0; i < actors.size(); ++i)
     {
         actors[i] = Owner({100.0f + static_cast<float>(i) * 10.0f, 0.0f, 0.0f});
@@ -287,6 +287,10 @@ TEST(LightningJointsTest, TheChainPicksTheNearMonsters)
     actors[3].byte88 = 1;
     actors[4].seen = false;
     actors[5].alive = false;
+    // A 400 justos entra (0x53194f: test ah,0x41); apenas más lejos, no. Hay siete candidatos: el séptimo (el 13) queda
+    // afuera por el tope de seis (0x531995: cmp [+0x9ec],5; jg).
+    actors[6].position = {500.0f, 0.0f, 0.0f};
+    actors[7].position = {500.0f, 1.0f, 0.0f};
     const Client::Scenes::JointKernels::CreationServices services{.actors = actors};
     Pool pool;
     Pool unserved;
@@ -302,8 +306,8 @@ TEST(LightningJointsTest, TheChainPicksTheNearMonsters)
     EXPECT_EQ(joint.maximumCount, 0);
     EXPECT_EQ(joint.field9ec, 0);
     EXPECT_EQ(joint.volley, 90);
-    EXPECT_EQ(joint.chainTargets, (std::array<std::int32_t, 6>{6, 7, 8, 9, 10, 11}));
-    EXPECT_EQ(joint.skillSerial, 11);
+    EXPECT_EQ(joint.chainTargets, (std::array<std::int32_t, 6>{6, 8, 9, 10, 11, 12}));
+    EXPECT_EQ(joint.skillSerial, 12);
     EXPECT_EQ(joint.pathIncrement, (glm::vec3{7.0f, 8.0f, 159.0f}));
 
     const auto stepped = pool.Step();

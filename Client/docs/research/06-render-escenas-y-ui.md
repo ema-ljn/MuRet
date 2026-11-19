@@ -9673,7 +9673,7 @@ Las partículas de la antorcha (`0x53fe70`, `0x5446e0`, `0x548550`):
 |---|---|---|---|
 | `6ab/0`, `6ab/1` (`Effect\fi01.jpg`, `0x61d55e`) | `0x5436fe`: vida `rand() % 5` + 20, giro 0; escala (`rand() % 10`) · 0,02f + 0,5 (`/0`) o · 0,1f + 1 (`/1`); velocidad (`rand() % 10` + 5; `rand() % 10` − 5; `rand() % 10` + 5) por (0,4f; 0,4f; 0,2f) (`/0`) o (0,2f; 0,2f; 0,1f) (`/1`) | `0x5477e4`: la posición más la velocidad, la x y la y por 0,95f; la luz en vida · 0,1f, la z +0,3f y la escala +0,07f (`/0`) o +0,09f | aditiva, el default `0x54889a` |
 | `6ac/0` (`Effect\fi02.tga`, `0x61d57a`) | `0x543a5d`: vida `rand() % 5` + 25, escala 0,5, giro `rand() % 360` y la velocidad de adelante; después el caso del `6ec` (`0x543ae3`): vida 24, otra velocidad x (`rand() % 10` − 5) · 0,4f y z, y el inicio en la posición (`0x543e7d`) | `0x54793f`: lo mismo con la z +0,6f, la posición corrida (`rand() & 3`) − 2 en x e y y por 0,8f en z, la escala +0,05f, la luz en vida · 0,04f y el giro + (`rand() & 1`) + 1 | `0x5489eb` → `0x548a51`: `0x620c10` (el modo 6: `SRC_ALPHA`, `ONE_MINUS_SRC_ALPHA`) y el billboard común |
-| `6ac/2` (no es de la antorcha: la crea el paso del joint `0x632/6`, `0x53c042`, en `0x535840`) | `0x543a5d`, como la `/0`; la escala 3 (`0x40400000`) del pedido la pisa el 0,5 (Q-C393) | `0x54793f`, como la `/0`, salvo la luz: vida · 0,08f − 1 (`0x5479fb..0x547a0f`, Q-C392) | `0x5489f1..0x548a4c`: `glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_ADD)`, `0x620c10`, el billboard común y `GL_MODULATE` de vuelta: el color es téxel + luz, recortado, y el alfa, el del téxel |
+| `6ac/2` (no es de la antorcha: la crea el paso del joint `0x632/6`, `0x53c04a`, en `0x535840`) | `0x543a5d`, como la `/0`; la escala 3 (`0x40400000`) del pedido la pisa el 0,5 (Q-C393) | `0x54793f`, como la `/0`, salvo la luz: vida · 0,08f − 1 (`0x5479fb..0x547a0f`, Q-C392) | `0x5489f1..0x548a4c`: `glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_ADD)`, `0x620c10`, el billboard común y `GL_MODULATE` de vuelta: el color es téxel + luz, recortado, y el alfa, el del téxel |
 | `622/6` (`Effect\clouds.jpg`) | `0x54327b`: vida `rand() % 5` + 25, escala 0,2f, giro `rand() % 360` y la velocidad de la `6ac` | `0x54748a`: el de la `6ac` con la luz en vida · 0,02f | el `/6` de la tabla `0x548df8` va a `0x548c32` y, sin ser el 8 ni el 9, al default `0x54889a` |
 | `60f/4` | la órbita de `60f/3` con vida 40 | la de `60f/3` con la subida en 5, la escala −0,004f y el apagado desde vida 30 | `0x548bcf` |
 
@@ -9692,7 +9692,7 @@ Devil Square: `World::StepDevilSquarePrelude` (`EventMapObjectStep`), `Scenes::S
 modo 6 en `IParticleDrawingServices::Blended` y `ModelBatchParticleBackend`. La `6ac/2`: `GL_ADD` con
 `IParticleDrawingServices::TextureEnv` y `Render::TextureEnvMode`, que cada tramo del lote lleva aparte del material
 (`ModelBatch::SetTextureEnv`) y `GlModelRenderer` aplica en el fragment shader; la crea el joint `0x632/6` al llegar al
-suelo (`0x53c042`, `Scenes::JointFamilies` en `StormJoints.cpp`, séptima vuelta del lote joints). Las texturas,
+suelo (`0x53c04a`, `Scenes::JointFamilies` en `StormJoints.cpp`, séptima vuelta del lote joints). Las texturas,
 `EffectTextureSet`. Con la Data del repo, el 9 (y el 32) y los siete Blood Castle llegan a un cuadro completo y caminan
 (`GameT16SceneMatrix`; `GameT16MapWalk`, en (122, 174) con 38 del 2 cerca y en (12, 90) con cuatro `0xd` y cuatro
 `0x25`; `GameT16SafeZoneWalk`, en (12, 3) de los Blood Castle; Devil Square no tiene zona segura). Tests:
@@ -14410,7 +14410,7 @@ en un lugar de más adelante pasa en la misma vuelta de `0x53c670`.
     (0, 0, 0) y (0, 0, 3), de ancho 0,9f (`0x539228`); con dueño (el `0x126` de Kundun, `0x51cf45`, un efecto con
     modelo; otro dueño corta en `0x539249`), la x de sus ángulos en 0 si no es cero (fcomp con C3), el alpha en 1 con
     su vida de más de 5, su posición en (x + FSIN(z) · k, y − FCOS(z) · k, z) con k = key · 0,1f + 30 guardado en float
-    (`0x53929a`) y otra vez la x y la y de sus ángulos en 0. Siempre (`0x5392e9`): avanza k = key · 0,1f + 30 (sin
+    (`0x53929a`); después otra vez la x de sus ángulos en 0 y recién ahí la y en 0 (`0x5392e6`). Siempre (`0x5392e9`): avanza k = key · 0,1f + 30 (sin
     redondear) en x por el seno y en −y por el coseno de la z.
   - La /0x10 (`0x539328..0x539384`): la vida en la x de los ángulos, la `0x6f4/4` de escala 1 en la posición con la
     luz del joint y x + FCOS(z) · 30, y + FSIN(z) · 30.

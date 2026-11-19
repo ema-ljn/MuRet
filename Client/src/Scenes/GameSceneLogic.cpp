@@ -14,6 +14,7 @@
 #include "Scenes/GameCharacterEffects.h"
 #include "Scenes/GameFloorItems.h"
 #include "World/GameModelEffects.h"
+#include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
 
 #include "App/ServerSession.h"
@@ -164,6 +165,20 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
         .cameraShake = &CameraInputState().shake,
         // 0x41ed10(id, 0, 0): RequestSound lo despacha sin sacar rand().
         .sound = [this](std::int32_t id) { m_context.world->Runtime().RequestSound(id); },
+        .joint = [this](const World::FishEffectRequest& request) -> Core::Expected<void, std::string>
+        {
+            const auto created = CreateFaunaJoint(m_context.world->DrawTail().joints, request, m_context.cloth->random);
+            if (!created.HasValue())
+                return Core::Unexpected(created.Error());
+            return {};
+        },
+        .publishAction =
+            [this](std::uint16_t type, std::uint8_t action)
+        {
+            auto placement = m_context.world->ModelPlacement(type);
+            placement.action = action;
+            m_context.world->PlaceModel(type, placement);
+        },
         .soundAt = [this](std::int32_t id, const glm::vec3& origin)
         { m_context.world->Runtime().RequestSound(id, origin); },
         // 0x52ae2a (CL9 hito 4): el chorro de la Flame con el héroe de dueño manda los blancos con 0x517a20(+0x89, la
@@ -200,7 +215,9 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
             const auto* owner = static_cast<const ActorState*>(effect.ownerContext);
             effect.hasOwner = owner != nullptr && owner->alive;
         }
-        const auto* skeleton = m_worldModels.SkeletonOf(static_cast<std::uint16_t>(effect.type));
+        const auto* skeleton = effect.type == World::EarthquakeBurstEffect
+                                   ? nullptr
+                                   : m_worldModels.SkeletonOf(static_cast<std::uint16_t>(effect.type));
         // 0x52a9ad: el 5ac/3 del conjunto completo lee al personaje dueño y crea joints, fuera de World.
         if (effect.type == World::IcarusFlareEffect && effect.subtype == World::FullSetFlareSubtype)
         {

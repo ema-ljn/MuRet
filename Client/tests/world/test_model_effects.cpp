@@ -867,6 +867,9 @@ TEST(ModelEffectsTest, TheEarthquakeIsBornWithItsSubtypeAndClosesTheOwnRecord)
     {
         SCOPED_TRACE(static_cast<int>(start));
         ModelEffects effects;
+        effects.Effects()[0].byte89 = 7;
+        effects.Effects()[0].byte1bd = 8;
+        effects.Effects()[0].dword100 = 9;
         const std::uint16_t horseType = 0x1b1 + 1;
         const glm::vec3 horseAngles(0.0f, 0.0f, 33.0f);
         const ModelEffectOwner owner{.type = &horseType, .effect = nullptr, .angles = &horseAngles};
@@ -892,6 +895,9 @@ TEST(ModelEffectsTest, TheEarthquakeIsBornWithItsSubtypeAndClosesTheOwnRecord)
         EXPECT_EQ(quake.turnDirection, 50.0f);
         EXPECT_EQ(quake.light, glm::vec3(0.5f));
         EXPECT_EQ(quake.disturbanceState, 0xffffu);
+        EXPECT_EQ(quake.byte89, 0);
+        EXPECT_EQ(quake.byte1bd, 0);
+        EXPECT_EQ(quake.dword100, 0);
         EXPECT_TRUE(quake.hasOwner);
         EXPECT_EQ(quake.owner.type, &horseType);
         EXPECT_EQ(quake.owner.angles, &horseAngles);
@@ -928,6 +934,30 @@ struct CrackLifeCase
 
 // 0x51a6e4..0x51a85c: la vida de cada grieta con sus subtipos, la escala size · 0,01f en la x87, +0x8a con el tamaño
 // y +0x64 en 0 salvo en 0xfd y 0x100. Sin rand().
+TEST(ModelEffectsTest, TheEarthquakeBurstUsesTheFirstFreeSlotWithoutAnOwner)
+{
+    auto effects = std::make_unique<Client::World::ModelEffects>();
+    effects->Effects()[0].alive = true;
+    const auto slot = effects->CreateEarthquakeBurst({1, 2, 40}, {3, 4, 5}, glm::vec3(0.2f));
+    ASSERT_EQ(slot, 1u);
+    const auto& burst = effects->Effects()[*slot];
+    EXPECT_TRUE(burst.alive);
+    EXPECT_EQ(burst.type, Client::World::EarthquakeBurstEffect);
+    EXPECT_EQ(burst.life, 15);
+    EXPECT_EQ(burst.transform.position, (glm::vec3{1, 2, 25}));
+    EXPECT_EQ(burst.transform.angles, (glm::vec3{3, 4, 5}));
+    EXPECT_EQ(burst.transform.scale, 0.5f);
+    EXPECT_EQ(burst.light, glm::vec3(1.0f));
+    EXPECT_EQ(burst.objectState.blendMesh, 0);
+    EXPECT_EQ(burst.objectState.light, 1.5f);
+    EXPECT_EQ(burst.ownerContext, nullptr);
+    EXPECT_FALSE(burst.hasOwner);
+    EXPECT_EQ(burst.disturbanceState, 0xffffu);
+    for (auto& effect : effects->Effects())
+        effect.alive = true;
+    EXPECT_FALSE(effects->CreateEarthquakeBurst({}, {}, {}).has_value());
+}
+
 TEST(ModelEffectsTest, TheEarthquakeCracksTakeTheirLifeAndScaleFromTheirSize)
 {
     constexpr CrackLifeCase Cases[] = {

@@ -1044,6 +1044,36 @@ TEST(GameDrawTailTest, ModelEffectPublishesItsPoseBeforeGeometryAndNeverForGroun
     EXPECT_EQ(poses, 1);
 }
 
+TEST(GameDrawTailTest, TheEarthquakeBurstDrawsTheAuthoredCueWithoutModelLookups)
+{
+    LookupCounter models;
+    Client::World::SphereFrustum frustum;
+    Client::World::ModelEffect burst;
+    burst.alive = true;
+    burst.type = Client::World::EarthquakeBurstEffect;
+    burst.objectState.blendMesh = 0;
+    burst.objectState.light = 0.5f;
+    burst.transform.scale = 0.5f;
+    Client::Render::ModelBatch batch;
+    const auto drawn =
+        Client::Scenes::DrawGameModelEffects(batch, models, std::span(&burst, 1), frustum, nullptr, {}, 0, 0);
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    EXPECT_EQ(models.lookups, 0);
+    EXPECT_FALSE(batch.Vertices().empty());
+    Client::Render::ModelBatch secondary;
+    const auto drawnAgain =
+        Client::Scenes::DrawGameModelEffects(secondary, models, std::span(&burst, 1), frustum, nullptr, {}, 0, 1);
+    ASSERT_TRUE(drawnAgain.HasValue()) << drawnAgain.Error();
+    EXPECT_EQ(secondary.Vertices().size(), batch.Vertices().size());
+    burst.objectState.blendMesh = -1;
+    Client::Render::ModelBatch excluded;
+    const auto skipped =
+        Client::Scenes::DrawGameModelEffects(excluded, models, std::span(&burst, 1), frustum, nullptr, {}, 0, 1);
+    ASSERT_TRUE(skipped.HasValue()) << skipped.Error();
+    EXPECT_EQ(models.lookups, 0);
+    EXPECT_TRUE(excluded.Vertices().empty());
+}
+
 // 0x52d620 → 0x52d400: el terremoto 0xfa del caballo (estado 2) no se dibuja ni busca modelos, en ninguna vida. Las
 // grietas 0xfb..0x102 van por 0x52da84 → 0x602e90 con su malla; con +0x74 en 0x80 (0xfc, 0xff y 0x102 de subtipo 1),
 // 0x6002e0 las dibujaría por 0x4ef0c0, que no está portado: corta en 0x6004aa.

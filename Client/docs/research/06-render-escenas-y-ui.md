@@ -4234,8 +4234,21 @@ de `0x443d70` en el mapa 55 y la escena 2; los slots, **verificados** en `lor_sl
     MuRet comparte el alta y el paso de la estela con Crywolf. Cada hijo toma el primer
     hueco, conserva el sorteo común por paso y se libera tras seis pasos. El render
     continúa sin geometría de la estela cuando falta su malla en la tabla actual.
-    La vida 11 conserva el corte de `0x521e13`, con el ciclo de `0x103/0` aún pendiente
-    (CL11, P-C58).
+    En la vida 11 y estado 0, después de la explosión intenta ocho joints
+    `0x617/0` de ancho 10 (`0x521ef5`). Cada intento usa cuatro sorteos para
+    la inclinación, el rumbo y las dos coordenadas, aun con la tabla llena.
+    Tras el primero intenta `0x5c5/0` en el mismo punto y ángulos
+    (`0x521f1c`); después del octavo intenta `0x103/0` (`0x521f6c`),
+    antes de bajar la partida y emitir las grietas.
+    El pulso toma el primer hueco sin sorteo, nace sin dueño a Z menos 15
+    y se libera tras 15 pasos. En `0x521253` cambia la escala y baja X y Z.
+    Conserva el brillo inicial hasta que la escala supera 2. Cada paso usa
+    el sorteo común y reduce la luz del terreno con radio 5 en la nueva
+    posición. Antes del paso común publica la acción en `0x52cc21`, con
+    una sola clave que conserva el cuadro. El dibujo de ambos pases usa
+    [la señal de área de MuRet](../../../docs/adr/0023-senal-del-terremoto.md).
+    El creador de Kalima en `0x43b570` conserva las referencias vivas al
+    equipo del dueño, que el dibujo del padre lee en `0x52d43a` y `0x52d549`.
   - **Las grietas** `0xfb..0x102` (`Skill\EarthQuake01..08`, `0x6165bc..0x616688`) nacen
     (`0x51a6e4..0x51a85c`) con la escala `tamaño · 0,01f` y la vida de su tipo y subtipo (Q-C423); en su paso, la
     luz de las mallas, se hunden 0,5f, la `0xfb` hace temblar la cámara, la `0xfc` y la `0xff` sueltan piedritas

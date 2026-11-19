@@ -711,6 +711,14 @@ DrawGameModelEffectsChecked(Render::ModelBatch& batch, const IModelLibrary& mode
         effect.seen = World::SphereVisible(frustum, effect.transform.position, 400);
         if (!effect.seen)
             continue;
+        if (effect.type == World::EarthquakeBurstEffect)
+        {
+            // 0x52d66a..0x52d693: el pulso nace con blendMesh 0. Su señal no requiere una malla.
+            const auto blendMesh = effect.objectState.blendMesh;
+            if (mode == 0 || blendMesh == -2 || blendMesh == 0)
+                DrawBattleCue(batch, effect);
+            continue;
+        }
         if (World::IsSiegeCue(effect.type, effect.subtype) || World::IsCrywolfCue(effect.type, effect.subtype) ||
             World::IsRisingStoneChip(effect.type, effect.subtype))
         {

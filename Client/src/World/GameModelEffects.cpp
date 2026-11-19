@@ -6,6 +6,7 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "World/ModelEffects.h"
+#include "World/IFishStepServices.h"
 #include "World/Particles.h"
 #include "World/ParticleBurst.h"
 #include "World/ParticleOwner.h"
@@ -989,6 +990,43 @@ Core::Expected<void, std::string> CreateQuakeCrack(const ModelEffectStepServices
     return {};
 }
 
+// 0x521e13..0x521f6c: los sorteos del llamador preceden a cada intento, incluso con el pool lleno.
+Core::Expected<void, std::string> EmitEarthquakeBurst(ModelEffect& effect, Particles& particles, float worldClock,
+                                                      Render::Models::CrtRandom& random,
+                                                      const ModelEffectStepServices& services)
+{
+    constexpr int JointCount = 8, PitchSpan = 60, YawSpan = 30, YawBase = 90, PointSpan = 20, PointCentre = 10;
+    constexpr std::int32_t BurstJoint = 0x617;
+    for (int index = 0; index < JointCount; ++index)
+    {
+        glm::vec3 angles;
+        const float pitch = static_cast<float>(random.Next() % PitchSpan - PitchSpan);
+        angles.x = F32(static_cast<double>(pitch) + effect.transform.angles.x);
+        angles.y = F32(0.0 + effect.transform.angles.y);
+        const float yaw = static_cast<float>(random.Next() % YawSpan + YawBase);
+        angles.z = F32(static_cast<double>(yaw) + effect.transform.angles.z);
+        glm::vec3 point = effect.start;
+        point.x = F32(static_cast<double>(random.Next() % PointSpan - PointCentre) + point.x);
+        point.y = F32(static_cast<double>(random.Next() % PointSpan - PointCentre) + point.y);
+        if (!services.joint)
+            return Core::Unexpected(std::string("0x521ef5: el terremoto pide el servicio de joints 0x617/0"));
+        const FishEffectRequest request{BurstJoint, point, point, angles, 0, nullptr, 10.0f, -1, 0, 0, -1};
+        if (auto created = services.joint(request); !created.HasValue())
+            return created;
+        if (index == 0)
+        {
+            const auto spark = particles.CreateChecked(FairySparkParticle, point, angles, glm::vec3(1.0f), 0, 1.0f,
+                                                       worldClock, random);
+            if (!spark.HasValue())
+                return Core::Unexpected(std::string("0x521f1c: no se pudo crear la chispa 5c5/0 del terremoto"));
+        }
+    }
+    if (services.effects == nullptr)
+        return Core::Unexpected(std::string("0x521f6c: el terremoto pide la tabla de efectos para el pulso 0x103"));
+    static_cast<void>(services.effects->CreateEarthquakeBurst(effect.start, glm::vec3(0.0f), effect.light));
+    return {};
+}
+
 // 0x521c8f..0x5221f0, la vida 11, con la luz local en blanco y los ángulos locales en 0.
 Core::Expected<void, std::string> StepEarthquakeAtEleven(ModelEffect& effect, Particles& particles, float worldClock,
                                                          Render::Models::CrtRandom& random, KalimaWorld* kalima,
@@ -1048,9 +1086,8 @@ Core::Expected<void, std::string> StepEarthquakeAtEleven(ModelEffect& effect, Pa
         services.sound(ExplosionSound);
     }
     if (effect.state == 0)
-        return Core::Unexpected(
-            std::string("0x521e13: el terremoto con el estado 0 (la habilidad del Dark Lord) suelta "
-                        "joints 0x617, chispas 5c5 y el efecto 0x103, que no están portados"));
+        if (auto emitted = EmitEarthquakeBurst(effect, particles, worldClock, random, services); !emitted.HasValue())
+            return emitted;
     start.z = F32(static_cast<double>(start.z) - SinkBack);
     const auto ownerType = LiveOwnerType(effect, "0x521f90");
     if (!ownerType.HasValue())
@@ -1653,6 +1690,26 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
         if (auto stepped = StepLightningDecal(effect, services); !stepped.HasValue())
             return stepped;
     }
+    else if (effect.type == EarthquakeBurstEffect)
+    {
+        wholeStep = true;
+        constexpr double Expansion = static_cast<double>(1.2f), Fall = static_cast<double>(1.8f),
+                         Growth = static_cast<double>(0.1f);
+        const bool expanding = !(effect.transform.scale > 2.0f);
+        effect.transform.scale = F32(static_cast<double>(effect.transform.scale) + (expanding ? Expansion : Growth));
+        effect.transform.position.x =
+            F32(static_cast<double>(effect.transform.position.x) - (expanding ? Expansion : 1.0));
+        effect.transform.position.z = F32(static_cast<double>(effect.transform.position.z) - (expanding ? Fall : 1.5));
+        if (!expanding)
+            effect.objectState.light =
+                F32(static_cast<double>(effect.life) * static_cast<double>(std::bit_cast<float>(0x3d088889u)));
+        const glm::vec3 shadow(F32(-0.5 * static_cast<double>(StepLuminosity(lightDraw, effect.life))));
+        if (auto lit = AddDynamicLight(services.lighting, effect.transform.position, shadow, 5, "0x5212da");
+            !lit.HasValue())
+            return lit;
+        if (services.publishAction)
+            services.publishAction(EarthquakeBurstEffect, effect.animation.action);
+    }
     else if (effect.type == SpiritTrailEffect)
     {
         wholeStep = true;
@@ -1696,7 +1753,7 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
     constexpr std::int16_t FirstAnimatedModel = 0xad;
     constexpr std::int16_t LastAnimatedModel = 0x151;
     const bool animated = effect.type >= FirstAnimatedModel && effect.type < LastAnimatedModel;
-    StepModelEffect(effect, animated ? skeleton : nullptr);
+    StepModelEffect(effect, animated && effect.type != EarthquakeBurstEffect ? skeleton : nullptr);
     if (wholeStep)
         effect.previousPosition = before;
     // 0x52cdb3..0x52cdfb: el 0x5ac/0 vivo con la vida impar da otro paso entero, con su propio rand().

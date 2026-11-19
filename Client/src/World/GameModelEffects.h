@@ -21,6 +21,7 @@ struct TerrainAttributes;
 }
 namespace Client::World
 {
+struct FishEffectRequest;
 struct ModelEffect;
 struct ModelEffectArguments;
 class ModelEffects;
@@ -49,6 +50,9 @@ struct ModelEffectStepServices
     const std::int32_t* map = nullptr;
     float* cameraShake = nullptr;
     std::function<void(std::int32_t)> sound{};
+    std::function<Core::Expected<void, std::string>(const FishEffectRequest&)> joint{};
+    // 0x52cc21: el paso del pulso 0x103 publica su acción en la tabla compartida antes de animar.
+    std::function<void(std::uint16_t, std::uint8_t)> publishAction{};
     // 0x51ed6a y 0x52b349 piden sonido para el destello 0x60d en su posición.
     std::function<void(std::int32_t, const glm::vec3&)> soundAt{};
     // 0x52ae2a: el héroe publicado ([0x743a170]), que el chorro 0x5de/0 de la Flame compara con su dueño (+0x108), y
@@ -86,11 +90,11 @@ struct ModelEffectStepServices
 // tipo 0x1b1, las grietas 0xfd, 0xfb y 0xfc, y cinco pares 0xfe/0xff donde la celda lo deja; en la 10, cuatro anillos
 // de cinco pares 0x101/0x102, el sonido 0x97 y la vida en 0; en las demás, se hamaca con +0x28. Con el estado 0 (la
 // habilidad del Dark Lord), en la vida 13 emite dos grupos de cuatro estelas 0x104 y el sonido 0x96 antes de la
-// hamaca; en la 11 conserva el corte de 0x521e13. Salta la animación y 0x51fc80 de la cola (0x52cbb0). Las
-// grietas 0xfb..0x102 (0x52276a..0x522bd2) se apagan y se hunden; la 0xfb tiembla la cámara, las 0xfc y 0xff sueltan
-// a veces piedritas 0xc8/0xc9 y, con la 0x102, prenden la luz dinámica según el tipo de su dueño. Las piedras 0x10a y
-// 0x10b de las estatuas de Blood Castle (0x52531d) saltan, caen sobre el terreno y se inclinan; uno de cada diez pasos
-// corta en 0x5252e6, donde el polvo 5f3/0 va en un local sin escribir (Q-C1176).
+// hamaca; en la 11 emite ocho joints 0x617/0, una chispa 5c5/0 y el pulso 0x103. Salta la animación y 0x51fc80 de la
+// cola (0x52cbb0). Las grietas 0xfb..0x102 (0x52276a..0x522bd2) se apagan y se hunden; la 0xfb tiembla la cámara, las
+// 0xfc y 0xff sueltan a veces piedritas 0xc8/0xc9 y, con la 0x102, prenden la luz dinámica según el tipo de su dueño.
+// Las piedras 0x10a y 0x10b de las estatuas de Blood Castle (0x52531d) saltan, caen sobre el terreno y se inclinan; uno
+// de cada diez pasos corta en 0x5252e6, donde el polvo 5f3/0 va en un local sin escribir (Q-C1176).
 [[nodiscard]] Core::Expected<void, std::string>
 StepGameModelEffect(ModelEffect& effect, const Render::Models::Skeleton* skeleton, Particles& particles,
                     float worldClock, Render::Models::CrtRandom& random, KalimaWorld* kalima = nullptr,

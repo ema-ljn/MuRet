@@ -495,6 +495,10 @@ std::optional<std::size_t> ModelEffects::CreateEarthquake(const glm::vec3& posit
         if (effect.alive)
             continue;
         InitializeOwnerlessEffect(effect, EarthquakeEffect, position, angles, light);
+        // 0x518db5..0x518dcb: los argumentos comunes de las altas 0xfa son cero aun al reutilizar un lugar.
+        effect.byte89 = 0;
+        effect.byte1bd = 0;
+        effect.dword100 = 0;
         effect.state = state;
         SetOwner(effect, owner);
         effect.copiedAngles = effect.transform.angles;
@@ -512,6 +516,25 @@ std::optional<std::size_t> ModelEffects::CreateEarthquake(const glm::vec3& posit
         return slot;
     }
     return std::nullopt;
+}
+
+std::optional<std::size_t> ModelEffects::CreateEarthquakeBurst(const glm::vec3& position, const glm::vec3& angles,
+                                                               const glm::vec3& light)
+{
+    const auto slot = Begin({.type = EarthquakeBurstEffect, .position = position, .angles = angles, .light = light});
+    if (!slot)
+        return slot;
+    auto& effect = m_effects[*slot];
+    constexpr std::int32_t BurstLife = 15;
+    constexpr double Sink = 15.0;
+    effect.life = BurstLife;
+    effect.transform.scale = 0.5f;
+    effect.transform.position.z = F32(static_cast<double>(effect.transform.position.z) - Sink);
+    effect.light = glm::vec3(1.0f);
+    effect.objectState.blendMesh = 0;
+    effect.objectState.light = 1.5f;
+    effect.previousPosition = effect.transform.position;
+    return slot;
 }
 
 std::optional<std::size_t> ModelEffects::CreateEarthquakeCrack(std::int16_t type, const glm::vec3& position,

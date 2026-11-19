@@ -136,6 +136,7 @@ inline constexpr std::int32_t SummonDecalSubtype = 3;
 // 11 la explosión 5ed/0 y las grietas 0xfb..0x100, y en la 10 las 0x101 y 0x102 (Data\Skill\EarthQuake01..08, que
 // dibuja 0x602e90). Los tres primeros (0xfd, 0xfb y 0xfc) llevan al 0xfa de dueño; los demás, al dueño del 0xfa.
 inline constexpr std::int16_t EarthquakeEffect = 0xfa;
+inline constexpr std::int16_t EarthquakeBurstEffect = 0x103;
 inline constexpr std::int16_t FirstEarthquakeCrack = 0xfb;
 inline constexpr std::int16_t LastEarthquakeCrack = 0x102;
 // +0x74 en 0x80: las grietas 0xfc, 0xff y 0x102 con el subtipo 1 (0x51a850); 0x6002e0 las dibuja por 0x4ef0c0 con
@@ -422,6 +423,9 @@ public:
                                                 const glm::vec3& light, std::uint8_t state,
                                                 const ModelEffectOwner& owner, std::uint8_t& ownRecordDepth,
                                                 std::uint8_t& ownRecordCount, Render::Models::CrtRandom& random);
+    // 0x51a8ad: pulso sin dueño ni azar; primer lugar libre, vida 15 y luz blanca.
+    std::optional<std::size_t> CreateEarthquakeBurst(const glm::vec3& position, const glm::vec3& angles,
+                                                     const glm::vec3& light);
     // 0x518cf0(0xfb..0x102, posición, ángulos, luz, subtipo, dueño, tamaño, 0, 0, 0, 0) → 0x51a6e4..0x51a85c: el
     // prefijo común con el dueño y +0x8a en `size`, y la escala size · 0,01f (fild/fmul/fstp). Vida: 0xfb 35 con el
     // subtipo 0 y 60 con el 1; 0xfc 20 con el 0 y el 1 y 50 con el 2; 0xfd, 0xfe y 0x100 35; 0xff, 0x101 y 0x102 40.

@@ -4,6 +4,7 @@
 #include "Data/Models/Model.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/OriginalRotation.h"
@@ -1217,5 +1218,37 @@ TEST(HighModelEffectsTest, TheEmittersLeaveJointsEveryStep)
     ASSERT_TRUE(StepHighModelEffect(bolt, nullptr, tested.StepContext()).HasValue());
     EXPECT_EQ(bolt.life, 4);
     EXPECT_EQ(tested.Draws(), 3 + 7);
+}
+// 0x51efa5 y 0x52bb79: el 0x621/1 guarda la posición como partida y vive 20; su paso pone el origen del modelo de su
+// dueño en la partida, va al punto (0, 0, 10) del hueso 33 del dueño y hace las tres emisiones del /0 (cinco rand()
+// cada una). El /0 nace en World (vida 10) y su paso es de World.
+TEST(HighModelEffectsTest, TheHeldPiercingGlowFollowsTheOwnersBone)
+{
+    HighWorld tested;
+    auto sprites = std::make_unique<Client::World::FrameSprites>();
+    tested.services.sprites = sprites.get();
+    tested.services.effects = &tested.world->Map().effects;
+    ActorState& owner = tested.world->Actors()[3];
+    owner.type = 0x4a2;
+    owner.bodyPose.assign(34, Client::Render::Models::BoneTransform(1.0f));
+    owner.bodyPose[33][3] = {1.0f, 2.0f, 3.0f};
+    tested.world->PlaceModel(0x4a2, {.scale = 1.0f, .origin = {7, 8, 9}});
+    ASSERT_TRUE(CreateHighModelEffect({.type = 0x621, .position = {100, 200, 300}, .subtype = 1, .owner = &owner},
+                                      tested.Context())
+                    .HasValue());
+    ModelEffect& glow = tested.Effect(0);
+    EXPECT_EQ(glow.life, 20);
+    EXPECT_EQ(glow.start, (glm::vec3{100, 200, 300}));
+    EXPECT_TRUE(Client::Scenes::StepsAsHighModelEffect(glow));
+    ASSERT_TRUE(StepHighModelEffect(glow, nullptr, tested.StepContext()).HasValue());
+    EXPECT_EQ(tested.world->ModelPlacement(0x4a2).origin, (glm::vec3{100, 200, 300}));
+    EXPECT_EQ(glow.transform.position, Client::Scenes::ActorBonePoint(owner, 33, {0.0f, 0.0f, 10.0f}, *tested.world));
+    EXPECT_EQ(glow.life, 19);
+    EXPECT_EQ(tested.Draws(), 1 + 3 * 5);
+    EXPECT_TRUE(sprites->Sprites()[2].alive);
+
+    ASSERT_TRUE(CreateHighModelEffect({.type = 0x621}, tested.Context()).HasValue());
+    EXPECT_EQ(tested.Effect(1).life, 10);
+    EXPECT_FALSE(Client::Scenes::StepsAsHighModelEffect(tested.Effect(1)));
 }
 } // namespace

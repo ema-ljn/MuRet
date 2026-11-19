@@ -428,8 +428,19 @@ Core::Expected<void, std::string> StepTheSkill37(ActorState& actor, std::uint8_t
     }
     // 0x4f9f0c..0x4f9f3e: en 1 y 2, 0x518cf0(0x621, o+0x10, o+0x1c, o+0xf4, 1, o, −1, 0, 0, 0, 0).
     constexpr std::uint8_t LastGlowStep = 2;
-    if (actor.byte381 >= 1 && actor.byte381 <= LastGlowStep && HasFreeEffect(context))
-        return CutAt(0x4f9f3e, "el efecto 0x621/1 sobre el que tira (CL11)", skill, actor, slot);
+    if (actor.byte381 >= 1 && actor.byte381 <= LastGlowStep)
+    {
+        constexpr std::int32_t HeldGlowSubtype = 1;
+        if (auto made = CreateHighEffect({.type = World::PiercingShotGlowEffect,
+                                          .position = actor.position,
+                                          .angles = actor.angles,
+                                          .light = actor.light,
+                                          .subtype = HeldGlowSubtype,
+                                          .owner = &actor},
+                                         context, 0x4f9f3e);
+            !made.HasValue())
+            return made;
+    }
     // 0x4f9f46..0x4f9f57: antes del frame 3, o con NaN, sale.
     if (!(FrameOf(actor) >= ThirdFrame))
     {

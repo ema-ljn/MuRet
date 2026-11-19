@@ -42,9 +42,11 @@ float F32(double value)
 {
     return static_cast<float>(value);
 }
-Core::Expected<void, std::string> StepPiercingShot(ModelEffect& effect, Particles& particles,
-                                                   Render::Models::CrtRandom& random,
-                                                   const ModelEffectStepServices& services)
+} // namespace
+
+Core::Expected<void, std::string> EmitPiercingShotGlow(ModelEffect& effect, Particles& particles,
+                                                       Render::Models::CrtRandom& random,
+                                                       const ModelEffectStepServices& services)
 {
     constexpr int Emissions = 3;
     constexpr int FullCircle = 360;
@@ -78,6 +80,8 @@ Core::Expected<void, std::string> StepPiercingShot(ModelEffect& effect, Particle
     return {};
 }
 
+namespace
+{
 Core::Expected<void, std::string> StepKalimaEffect(ModelEffect& effect, KalimaWorld* kalima,
                                                    Render::Models::CrtRandom& random)
 {
@@ -1641,7 +1645,7 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
     }
     if (effect.type == PiercingShotGlowEffect && effect.subtype == 0)
     {
-        if (auto emitted = StepPiercingShot(effect, particles, random, services); !emitted.HasValue())
+        if (auto emitted = EmitPiercingShotGlow(effect, particles, random, services); !emitted.HasValue())
             return emitted;
     }
     else if (effect.type == KalimaType)

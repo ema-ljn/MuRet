@@ -64,6 +64,9 @@ constexpr std::int16_t PierPartEffect = 0x116, DarkLordSkillEffect = 0x117, Mana
 // Sin modelo ni dibujo: sueltan joints en su paso. El 0x812, el de la 0x2b y la 0x2f (0x4f97b0); el 0x813, el de la
 // mano de la 0x2f.
 constexpr std::int16_t SparkEmitterEffect = 0x812, BoltEmitterEffect = 0x813;
+// El brillo del tiro penetrante (0x621): el /0 nace y da su paso en World (ModelEffects::CreatePiercingShot y
+// StepGameModelEffect); los demás subtipos, aquí.
+constexpr std::int16_t PiercingGlowEffect = World::PiercingShotGlowEffect;
 // Los que caen sobre el blanco del 0x46 (+0x376) en su paso 5 (0x4f5cb6): sin dibujo, sólo su fuego y sus sprites.
 constexpr std::int16_t FallingStarEffect = 0x625;
 
@@ -495,6 +498,19 @@ void BeginTheEmitter(World::ModelEffect& effect)
         return;
     }
     effect.life = SparkLife;
+}
+
+// 0x51efa5..0x51efe9, el 0x621 salvo el /0: vida 10; el /1 y el /2, vida 20 y la partida (+0x17c) en la posición que
+// recibió. Sin rand().
+void BeginThePiercingGlow(World::ModelEffect& effect, const World::ModelEffectArguments& arguments)
+{
+    constexpr std::int32_t GlowLife = 10, HeldLife = 20;
+    effect.life = GlowLife;
+    if (effect.subtype == 1 || effect.subtype == 2)
+    {
+        effect.start = arguments.position;
+        effect.life = HeldLife;
+    }
 }
 
 // ---- Los pasos ----
@@ -1040,6 +1056,27 @@ Core::Expected<void, std::string> StepTheManaRune(World::ModelEffect& effect, co
     return {};
 }
 
+// 0x52bb79..0x52bbf1, el 0x621 salvo el /0: con el /1 y el /2, el origen compartido del modelo del dueño (+0x108 →
+// +0x2, el +0x6c..+0x74 de su BMD) pasa a ser la partida y la posición es el punto (0, 0, 10) del hueso 33 del dueño
+// (0x4ec110 con sus huesos, +0x120 + 0x630). Después, todos, las tres emisiones del /0 (0x52bbf6).
+Core::Expected<void, std::string> StepThePiercingGlow(World::ModelEffect& effect, const HighEffectStepContext& context)
+{
+    if (effect.subtype == 1 || effect.subtype == 2)
+    {
+        const auto* owner = static_cast<const ActorState*>(effect.ownerContext);
+        if (owner == nullptr)
+            return Core::Unexpected(std::string("0x52bb86: el brillo 0x621 lee el modelo de un dueño (+0x108) nulo"));
+        constexpr std::size_t GlowBone = 0x630 / 0x30;
+        constexpr glm::vec3 GlowOffset{0.0f, 0.0f, 10.0f}; // 0x41200000
+        const auto type = static_cast<std::uint16_t>(owner->type);
+        SharedModelPlacement placement = context.world.ModelPlacement(type);
+        placement.origin = effect.start;
+        context.world.PlaceModel(type, placement);
+        effect.transform.position = ActorBonePoint(*owner, GlowBone, GlowOffset, context.world);
+    }
+    return World::EmitPiercingShotGlow(effect, context.world.Particles(), context.random, context.services);
+}
+
 // 0x52c981..0x52c9e2, el 0x812: en cada paso, el joint 0x60f/0xc (el /1, escala 100) o 0x60f/4 (el /0, escala 50) en
 // su lugar con él de dueño (0x530860(0x60f, posición, posición, ángulos, subtipo, efecto, escala, −1, 0, 0, −1)). Otro
 // subtipo, nada.
@@ -1209,7 +1246,8 @@ bool IsHighModelEffect(std::int16_t type)
            type == SiegePulseEffect || type == RadialShardEffect || type == GrowingFlashEffect ||
            type == World::ColoredDecalEffect || (type >= MovingLightFirst && type <= MovingLightLast) ||
            type == FallingStarEffect || type == PierPartEffect || type == DarkLordSkillEffect ||
-           type == ManaRuneEffect || type == SparkEmitterEffect || type == BoltEmitterEffect;
+           type == ManaRuneEffect || type == SparkEmitterEffect || type == BoltEmitterEffect ||
+           type == PiercingGlowEffect;
 }
 
 Core::Expected<std::optional<std::size_t>, std::string>
@@ -1217,6 +1255,9 @@ CreateHighModelEffect(const World::ModelEffectArguments& arguments, const HighEf
 {
     if (!IsHighModelEffect(arguments.type))
         return Core::Unexpected(std::format("0x518cf0: el alta del efecto {:#x} no es de este lote", arguments.type));
+    // 0x51efea: el /0, el de World.
+    if (arguments.type == PiercingGlowEffect && arguments.subtype == 0)
+        return context.world.Map().effects.CreatePiercingShot(arguments);
     const auto slot = context.world.Map().effects.Begin(arguments);
     if (!slot.has_value())
         return slot;
@@ -1266,6 +1307,9 @@ CreateHighModelEffect(const World::ModelEffectArguments& arguments, const HighEf
     case BoltEmitterEffect:
         BeginTheEmitter(effect);
         break;
+    case PiercingGlowEffect:
+        BeginThePiercingGlow(effect, arguments);
+        break;
     default:
         break;
     }
@@ -1281,6 +1325,9 @@ bool StepsAsHighModelEffect(const World::ModelEffect& effect)
         return effect.subtype == World::PulsingDecalSubtype || effect.subtype == World::BindingDecalSubtype ||
                effect.subtype == World::BindingChildSubtype || effect.subtype == World::SpawningDecalSubtype ||
                effect.subtype == World::GrowingDecalSubtype || effect.subtype == World::CoolPulsingDecalSubtype;
+    // El 0x621/0 da su paso en World (StepGameModelEffect).
+    if (effect.type == PiercingGlowEffect)
+        return effect.subtype != 0;
     return IsHighModelEffect(effect.type);
 }
 
@@ -1341,6 +1388,9 @@ Core::Expected<void, std::string> StepHighModelEffect(World::ModelEffect& effect
         break;
     case BoltEmitterEffect:
         stepped = StepTheBoltEmitter(effect, context);
+        break;
+    case PiercingGlowEffect:
+        stepped = StepThePiercingGlow(effect, context);
         break;
     default:
         break;

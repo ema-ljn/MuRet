@@ -62,6 +62,12 @@ struct ModelEffectStepServices
     const void* hero = nullptr;
     std::function<Core::Expected<void, std::string>(const ModelEffect&, float)> skillHits{};
 };
+// 0x52bbf6..0x52bd9c: las tres emisiones del brillo 0x621 de cualquier subtipo (el /0 desde aquí, los demás desde
+// Scenes/HighModelEffects): dos rand() % 360 de los ángulos, el sprite 0x5fd con dos rand() más y la chispa 0x5c6/2 con
+// otro. Sin la tabla de sprites o de efectos, corta.
+[[nodiscard]] Core::Expected<void, std::string> EmitPiercingShotGlow(ModelEffect& effect, Particles& particles,
+                                                                     Render::Models::CrtRandom& random,
+                                                                     const ModelEffectStepServices& services);
 // 0x5208c5..0x52091a: la luz local del paso, del primer rand(): ((r & 3) + 7) · 0,1f (0x6b87b8); con menos de 5 de
 // vida, menos (5 − vida) · 0,2f (0x6b8854), guardada en float y comparada sin redondear con 0.
 [[nodiscard]] float StepLuminosity(int draw, std::int32_t life);

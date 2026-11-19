@@ -654,7 +654,7 @@ TEST(AttackFrameSkillsTest, ThePiercingShotReachesTheArrowThroughTheAttack)
     }
 }
 
-// 0x37 (0x4f9ef3..0x4fa490), solo el 0x20a en la 0x3d: en 1 y 2, el efecto 0x621/1 (0x4f9f3e); antes del frame 3 sale
+// 0x37 (0x4f9ef3..0x4fa490), solo el 0x20a en la 0x3d: en 1 y 2, el efecto 0x621/1 sobre o; antes del frame 3 sale
 // con [0x6c88ac] en 15; desde el 3, la clave del elegido en +0x8a (0x558eb0), el sonido 0x72, el lugar de la 0x37 en
 // el registro propio (0x59fb80, 3.848 rand() al cerrarlo) y el efecto 0x5be (0x4f9fae, CL11).
 TEST(AttackFrameSkillsTest, TheThrowOf37)
@@ -674,8 +674,8 @@ TEST(AttackFrameSkillsTest, TheThrowOf37)
     const std::vector<Case> cases{
         {"otro tipo", 0x152, 0x3d, 3.0f, 3, "", 0, {}, FullThreshold},
         {"otra acción", Player, 0x3c, 3.0f, 3, "", 0, {}, FullThreshold},
-        {"en 1", Player, 0x3d, 3.0f, 1, "0x4f9f3e", 0, {}, UntouchedThreshold},
-        {"en 2", Player, 0x3d, 0.0f, 2, "0x4f9f3e", 0, {}, UntouchedThreshold},
+        {"en 1", Player, 0x3d, 3.0f, 1, "0x4f9fae", OwnRecord, {0x72}, UntouchedThreshold},
+        {"en 2", Player, 0x3d, 0.0f, 2, "", 0, {}, FullThreshold},
         {"antes del frame 3", Player, 0x3d, 2.9f, 3, "", 0, {}, FullThreshold},
         {"en el frame 3", Player, 0x3d, 3.0f, 3, "0x4f9fae", OwnRecord, {0x72}, UntouchedThreshold},
     };
@@ -707,6 +707,16 @@ TEST(AttackFrameSkillsTest, TheThrowOf37)
             // Sin elegido, 0x558eb0 da −1.
             EXPECT_EQ(static_cast<std::uint16_t>(hero.word8a), probe.draws == OwnRecord ? 0xffff : 0x1234);
             EXPECT_EQ(hero.byte381, probe.step);
+            const auto& glow = tested.world.Map().effects.Effects()[0];
+            const bool held = probe.type == Player && probe.action == 0x3d && probe.step <= 2;
+            EXPECT_EQ(glow.alive, held);
+            if (held)
+            {
+                EXPECT_EQ(glow.type, 0x621);
+                EXPECT_EQ(glow.subtype, 1);
+                EXPECT_EQ(glow.ownerContext, &hero);
+                EXPECT_EQ(glow.life, 20);
+            }
         }
     }
 }

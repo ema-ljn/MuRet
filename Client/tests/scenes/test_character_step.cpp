@@ -106,11 +106,12 @@ constexpr int OtherSeenCellDraws = 8;
 constexpr int EffectsRandomDraws = 1;
 // Una lectura de +0x38e (0x517630 o sus copias en línea): un rand() al cerrarse en 0.
 constexpr int SkillReadDraws = 1;
-// Una habilidad todavía sin su efecto: la0x37 con acción0x3d y+0x381 en1 crea621/1.
-// El brillo621/0 de la0x34 ya recorre el productor normal (test_attack_frame_skills).
-constexpr std::uint8_t FrameSkill = 0x37;
-constexpr std::uint8_t FrameSkillStep = 1;
-constexpr std::string_view FrameSkillCut = "0x4f9f3e";
+// Una habilidad todavía sin su efecto: la 0x2f con +0x381 en 13 saca los tres rand() del punto y corta en el primer
+// 0x10f (0x4f9e49). El 0x621/1 de la 0x37 ya nace (test_attack_frame_skills).
+constexpr std::uint8_t FrameSkill = 0x2f;
+constexpr std::uint8_t FrameSkillStep = 13;
+constexpr std::string_view FrameSkillCut = "0x4f9e49";
+constexpr int FrameSkillDraws = 3;
 // 0x5068fd: la cabeza de otro que el héroe sortea con rand() % 32 en 0.
 constexpr int HeadOneIn = 32;
 // La selección (0x633f20, World55) y el login (0x6349a0, World56).
@@ -1429,7 +1430,7 @@ TEST(CharacterStepTest, TheBodyStopsWhereMuRetHasNothing)
                  tested.Hero().byte381 = FrameSkillStep;
                  tested.Hero().byte38e = FrameSkill;
              },
-             FrameSkillCut, OwnRecordDraws + BodyDraws + SkillReadDraws},
+             FrameSkillCut, OwnRecordDraws + BodyDraws + SkillReadDraws + FrameSkillDraws},
         Case{"pegó con una habilidad",
              [](GameWorld& tested)
              {
@@ -1437,7 +1438,7 @@ TEST(CharacterStepTest, TheBodyStopsWhereMuRetHasNothing)
                  tested.Hero().byte381 = FrameSkillStep;
                  tested.Hero().byte38e = FrameSkill;
              },
-             FrameSkillCut, AfterTheTimers + BodyDraws + SkillReadDraws},
+             FrameSkillCut, AfterTheTimers + BodyDraws + SkillReadDraws + FrameSkillDraws},
         Case{"el nombre",
              [](GameWorld& tested)
              {
@@ -2048,7 +2049,7 @@ TEST(CharacterStepTest, TheExitsOf508ba0BeforeTheCell)
     };
     constexpr std::uint16_t Player = Client::Data::Models::PlayerSkeletonModel;
     for (const Case& probe :
-         {Case{"se muere", Player, 1, 0, FrameSkillCut, WallDraws + BodyDraws + SkillReadDraws},
+         {Case{"se muere", Player, 1, 0, FrameSkillCut, WallDraws + BodyDraws + SkillReadDraws + FrameSkillDraws},
           Case{"se muere el 0x154", 0x154, 1, 0, "0x508e89", WallDraws},
           // Walk ya existe: consume su rand antes de que Position encuentre la altura ausente.
           Case{"camina", Player, 0, 1, "0x508a80", 2 * WallDraws + 1},

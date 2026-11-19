@@ -34,6 +34,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <string>
@@ -443,10 +444,28 @@ TEST_F(ModelEffectsTest, TheWalkersKickDustByTheirMap)
 
 // 0x505c50: el 0x157 en la 6 con el frame en [8, 9), después del rand() & 7, veinte vueltas: la luz propia en 1, tres
 // rand() alrededor de la posición ((& 63) − 32, (& 63) − 32 y (& 31) − 16) y el polvo 0x5f3/1 (0x505d2c, que nace
-// como la 5f6/1: seis rand()) con los ángulos y la luz propios, escala 1 y sin dueño. Réplica en un pool gemelo con el
-// mismo CrtRandom. Con el frame en 9, nada.
+// como la 5f6/1: seis rand()) con los ángulos y la luz propios, escala 1 y sin dueño. Las posiciones, escalas y
+// ángulos salen de burst.py (0x505c50 y 0x54271f en una x87 aparte), no de CreateChecked. Con el frame en 9, nada.
 TEST_F(ModelEffectsTest, TheDyingBurstLeavesTwentyDusts)
 {
+    struct Dust
+    {
+        glm::vec3 position;
+        std::uint32_t scale;
+        glm::vec3 angles;
+    };
+    constexpr std::array<Dust, 20> Dusts{{
+        {{1008, 2035, 66}, 0x3f1eb852u, {294, 0, 123}}, {{999, 2004, 62}, 0x3eccccccu, {56, 0, 253}},
+        {{970, 1975, 66}, 0x3f0a3d70u, {142, 0, 187}},  {{981, 1985, 58}, 0x3ee66666u, {38, 0, 99}},
+        {{1018, 1998, 37}, 0x3ee147aeu, {289, 0, 44}},  {{973, 2002, 69}, 0x3f147ae1u, {15, 0, 256}},
+        {{981, 1980, 62}, 0x3ef5c28fu, {114, 0, 91}},   {{1004, 1986, 60}, 0x3f0ccccdu, {328, 0, 298}},
+        {{1000, 1969, 42}, 0x3ee66666u, {353, 0, 171}}, {{978, 2020, 42}, 0x3ec7ae14u, {166, 0, 16}},
+        {{970, 2010, 55}, 0x3eae147bu, {145, 0, 245}},  {{996, 1980, 40}, 0x3f1eb852u, {300, 0, 133}},
+        {{982, 1995, 56}, 0x3ee66666u, {142, 0, 311}},  {{985, 2027, 38}, 0x3edc28f5u, {213, 0, 351}},
+        {{1015, 1990, 45}, 0x3eb33333u, {204, 0, 97}},  {{981, 2026, 41}, 0x3ed70a3du, {182, 0, 153}},
+        {{1009, 2022, 41}, 0x3ee147aeu, {289, 0, 30}},  {{995, 2010, 28}, 0x3f0f5c29u, {327, 0, 178}},
+        {{1015, 2016, 52}, 0x3ea8f5c2u, {198, 0, 2}},   {{1005, 1967, 52}, 0x3f2147aeu, {152, 0, 131}},
+    }};
     for (const std::int32_t map : {0, 2})
     {
         SCOPED_TRACE(map);
@@ -459,26 +478,54 @@ TEST_F(ModelEffectsTest, TheDyingBurstLeavesTwentyDusts)
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(m_actor.light, glm::vec3(1.0f));
         EXPECT_EQ(Alive(Client::World::DustParticle, 1), 20);
-        auto reference = std::make_unique<Client::World::Particles>();
-        CrtRandom replay = AfterDraws(Seed, 1);
-        for (int burst = 0; burst < 20; ++burst)
+        // El rand() & 7 y veinte vueltas de nueve: 181.
+        EXPECT_EQ(random.State(), 0xd8d78c92u);
+        for (std::size_t slot = 0; slot < Dusts.size(); ++slot)
         {
-            const glm::vec3& at = m_actor.position;
-            const auto x = static_cast<float>(static_cast<double>(replay.Next() % 64 - 32) + static_cast<double>(at.x));
-            const auto y = static_cast<float>(static_cast<double>(replay.Next() % 64 - 32) + static_cast<double>(at.y));
-            const auto z = static_cast<float>(static_cast<double>(replay.Next() % 32 - 16) + static_cast<double>(at.z));
-            ASSERT_TRUE(reference
-                            ->CreateChecked(Client::World::DustParticle, {x, y, z}, m_actor.angles, glm::vec3(1.0f), 1,
-                                            1.0f, Clock, replay, 0)
-                            .HasValue());
+            const Client::World::Particle& made = m_world->Particles().All()[slot];
+            ASSERT_TRUE(made.alive) << slot;
+            EXPECT_EQ(made.type, Client::World::DustParticle);
+            EXPECT_EQ(made.subtype, 1);
+            EXPECT_EQ(made.life, 40);
+            EXPECT_EQ(made.position, Dusts[slot].position) << slot;
+            EXPECT_EQ(std::bit_cast<std::uint32_t>(made.scale), Dusts[slot].scale) << slot;
+            EXPECT_EQ(made.angles, Dusts[slot].angles) << slot;
+            EXPECT_EQ(made.light, glm::vec3(1.0f));
+            EXPECT_EQ(made.velocity, glm::vec3(0.0f));
+            EXPECT_EQ(made.owner, 0u);
         }
-        EXPECT_EQ(random.State(), replay.State());
-        ExpectTheSameParticles(*reference);
         m_actor.animation.frame = 9.0f;
         CrtRandom late(Seed);
         EXPECT_TRUE(Step(0x157, map, late).HasValue());
         EXPECT_EQ(late.State(), AfterDraws(Seed, 1).State());
     }
+}
+
+// 0x505c50 con el pool lleno: 0x53fe70 no saca nada, pero las veinte vueltas siguen con la luz y sus tres rand()
+// (1 + 20 · 3 = 61, burst.py). Con el frame en NaN, el fcomp de 0x505c6d deja C0 en 1 y 0x505c78 sale: nada.
+TEST_F(ModelEffectsTest, TheDyingBurstScattersWithAFullPoolAndSkipsANaNFrame)
+{
+    Clear();
+    for (auto& particle : m_world->Particles().All())
+        particle.alive = true;
+    m_actor.animation.action = 6;
+    m_actor.animation.frame = 8.5f;
+    m_actor.light = {};
+    CrtRandom random(Seed);
+    ASSERT_TRUE(Step(0x157, 0, random).HasValue());
+    EXPECT_EQ(m_actor.light, glm::vec3(1.0f));
+    EXPECT_EQ(random.State(), 0x90b0001au);
+    EXPECT_TRUE(std::ranges::all_of(m_world->Particles().All(),
+                                    [](const Client::World::Particle& particle) { return particle.type == 0; }));
+
+    Clear();
+    m_actor.animation.frame = std::numeric_limits<float>::quiet_NaN();
+    m_actor.light = {};
+    CrtRandom nan(Seed);
+    ASSERT_TRUE(Step(0x157, 0, nan).HasValue());
+    EXPECT_EQ(nan.State(), AfterDraws(Seed, 1).State());
+    EXPECT_EQ(m_actor.light, glm::vec3(0.0f));
+    EXPECT_EQ(Alive(Client::World::DustParticle, 1), 0);
 }
 
 // 0x507006: el 0x185 crea sus catorce joints 0x614/7 (0x5315b7, sin rand()).

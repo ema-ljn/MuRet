@@ -132,13 +132,13 @@ public:
     }
 
     // 0x4ec110(hueso, offset, salida, 1) con el modelo del personaje: el hueso propio (+0x120) con la escala y la
-    // posición que 0x6001b0 le dio al modelo.
+    // posición que 0x5ffdf0 le dio al modelo (KalimaSiegeHelperPass::modelOrigin).
     [[nodiscard]] glm::vec3 Point(std::size_t bone, const glm::vec3& offset) const
     {
         const ActorState& actor = m_pass.actor;
         const BoneTransform matrix = bone < actor.bodyPose.size() ? actor.bodyPose[bone] : BoneTransform(0.0f);
         return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), offset, actor.scale,
-                                                         actor.position);
+                                                         m_pass.modelOrigin.value_or(actor.position));
     }
 
     // 0x5491e0(textura, posición, escala, luz, objeto, rotación, mezcla).

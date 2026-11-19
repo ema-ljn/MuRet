@@ -4272,7 +4272,7 @@ de `0x443d70` en el mapa 55 y la escena 2; los slots, **verificados** en `lor_sl
     luz de las mallas, se hunden 0,5f, la `0xfb` hace temblar la cámara, la `0xfc` y la `0xff` sueltan piedritas
     `0xc8`/`0xc9`, y prenden la luz dinámica roja con un dueño que no es `0x1b1`, azul con él y blanca sin dueño
     (Q-C427); la `0x102` saca un `rand()` que nadie usa (Q-C428). Se dibujan con el genérico; con el subtipo 1,
-    `0xfc`, `0xff` y `0x102` ponen `+0x74` en `0x80` y su dibujo corta en `0x6004aa` (no lo alcanza el caballo).
+    `0xfc`, `0xff` y `0x102` ponen `+0x74` en `0x80` y se dibujan por `RenderBody(0x82)` (`0x6004aa`, CL11 lote magos; no lo alcanza el caballo).
   - **Las piedras** `0x118` y `0x119` (`Skill\groundStone` y `groundStone2`, que `0x615700` carga en
     `0x61641d` y `0x616442`: 2 mallas, `DhorSS.jpg` y `DhorSS_R.jpg`, 3 huesos y una acción de 5 keys).
     Su alta (`0x51cc6b` y `0x51cd1b`), después del prefijo común, lee el atributo de su celda con

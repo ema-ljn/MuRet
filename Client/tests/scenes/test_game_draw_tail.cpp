@@ -23,6 +23,7 @@
 #include "Render/ModelBatch.h"
 #include "Render/Models/Skeleton.h"
 #include "World/ModelEffects.h"
+#include "World/WizardModelEffects.h"
 #include "World/GroundEffectDrawing.h"
 #include "World/SphereFrustum.h"
 #include "World/WorldObjects.h"
@@ -39,6 +40,7 @@
 #include <memory>
 #include <optional>
 #include <glm/ext/vector_int2.hpp>
+#include <glm/ext/vector_float3.hpp>
 #include <glm/ext/vector_float4.hpp>
 #include <string>
 #include <glm/ext/matrix_float4x4.hpp>
@@ -1086,7 +1088,7 @@ TEST(GameDrawTailTest, TheEarthquakeBurstDrawsFlashingBmdThroughTheGenericPath)
 
 // 0x52d620 → 0x52d400: el terremoto 0xfa del caballo (estado 2) no se dibuja ni busca modelos, en ninguna vida. Las
 // grietas 0xfb..0x102 van por 0x52da84 → 0x602e90 con su malla; con +0x74 en 0x80 (0xfc, 0xff y 0x102 de subtipo 1),
-// 0x6002e0 las dibujaría por 0x4ef0c0, que no está portado: corta en 0x6004aa.
+// 0x6002e0 las dibuja por 0x4ef0c0 con 0x82 (0x6004aa), con la mezcla que oscurece.
 TEST(GameDrawTailTest, TheHorseEarthquakeIsInvisibleAndItsCracksDrawTheirMesh)
 {
     Client::World::SphereFrustum frustum;
@@ -1125,11 +1127,77 @@ TEST(GameDrawTailTest, TheHorseEarthquakeIsInvisibleAndItsCracksDrawTheirMesh)
 
         crack.renderFlags = Client::World::CrackRenderFlags;
         Client::Render::ModelBatch flagged;
-        const auto cut =
+        const auto dark =
             Client::Scenes::DrawGameModelEffects(flagged, models, std::span(&crack, 1), frustum, nullptr, {}, 0, 0);
-        ASSERT_FALSE(cut.HasValue());
-        EXPECT_NE(cut.Error().find("0x6004aa"), std::string::npos) << cut.Error();
-        EXPECT_TRUE(flagged.Vertices().empty());
+        ASSERT_TRUE(dark.HasValue()) << dark.Error();
+        EXPECT_EQ(flagged.Vertices().size(), 3u);
+        ASSERT_FALSE(flagged.Commands().empty());
+        EXPECT_EQ(flagged.Commands().back().state.blend, Client::Render::ModelBlend::Subtractive);
+    }
+}
+
+// 0x6004aa, 0x601da8 y 0x601df6 con los efectos de los magos: el 0xd0 (con +0x74 en 0x80 desde el alta) oscurece; el
+// 0xcc/3 y /4 van con el color del modelo en (0,1f; 0,1f; 10) y el pase común; el 0xcb/2 y /3 con (0,5; 0,5; 1) y
+// Effect\Magic_b.jpg (0x6e9) en cada malla. El 0xcc/0 y el 0xcb/0, con el color de su luz. El color se compara con el
+// de un efecto común del mismo tipo cuya luz es ese color.
+TEST(GameDrawTailTest, TheWizardEffectsTakeTheirBodyPass)
+{
+    struct Case
+    {
+        std::int16_t type;
+        std::int32_t subtype;
+        std::uint32_t renderFlags;
+        Client::Render::ModelBlend blend;
+        glm::vec3 color;
+        Client::Render::TextureSlot texture;
+    };
+    constexpr glm::vec3 Light{0.25f, 0.25f, 0.25f};
+    const glm::vec3 deep{std::bit_cast<float>(0x3dcccccdu), std::bit_cast<float>(0x3dcccccdu), 10.0f};
+    constexpr Client::Render::TextureSlot Plain{0x400};
+    constexpr Client::Render::TextureSlot Magic{0x6e9};
+    using Client::Render::ModelBlend;
+    const std::array cases{
+        Case{Client::World::LaserEffect, 0, Client::World::CrackRenderFlags, ModelBlend::Subtractive, Light, Plain},
+        Case{Client::World::OuterCircleEffect, 1, Client::World::CrackRenderFlags, ModelBlend::Subtractive, Light,
+             Plain},
+        Case{Client::World::OuterCircleEffect, 3, 0, ModelBlend::Opaque, deep, Plain},
+        Case{Client::World::OuterCircleEffect, 4, 0, ModelBlend::Opaque, deep, Plain},
+        Case{Client::World::OuterCircleEffect, 0, 0, ModelBlend::Opaque, Light, Plain},
+        Case{Client::World::InnerCircleEffect, 2, 0, ModelBlend::Opaque, {0.5f, 0.5f, 1.0f}, Magic},
+        Case{Client::World::InnerCircleEffect, 3, 0, ModelBlend::Opaque, {0.5f, 0.5f, 1.0f}, Magic},
+        Case{Client::World::InnerCircleEffect, 0, 0, ModelBlend::Opaque, Light, Plain},
+    };
+    Client::World::SphereFrustum frustum;
+    TriangleModels models;
+    const auto draw = [&](std::int16_t type, std::int32_t subtype, std::uint32_t renderFlags, const glm::vec3& light,
+                          Client::Render::ModelBatch& batch)
+    {
+        Client::World::ModelEffect effect;
+        effect.alive = true;
+        effect.type = type;
+        effect.subtype = subtype;
+        effect.life = 10;
+        effect.renderFlags = renderFlags;
+        effect.light = light;
+        return Client::Scenes::DrawGameModelEffects(batch, models, std::span(&effect, 1), frustum, nullptr, {}, 0, 0);
+    };
+    for (const Case& tested : cases)
+    {
+        SCOPED_TRACE(tested.type);
+        SCOPED_TRACE(tested.subtype);
+        Client::Render::ModelBatch batch;
+        const auto drawn = draw(tested.type, tested.subtype, tested.renderFlags, Light, batch);
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        Client::Render::ModelBatch reference;
+        ASSERT_TRUE(draw(tested.type, 0, 0, tested.color, reference).HasValue());
+        ASSERT_EQ(batch.Vertices().size(), 3u);
+        ASSERT_EQ(reference.Vertices().size(), 3u);
+        ASSERT_FALSE(batch.Commands().empty());
+        EXPECT_EQ(batch.Commands().back().state.blend, tested.blend);
+        EXPECT_EQ(batch.Commands().back().state.texture, std::optional(tested.texture));
+        EXPECT_FLOAT_EQ(batch.Vertices()[0].color.red, reference.Vertices()[0].color.red);
+        EXPECT_FLOAT_EQ(batch.Vertices()[0].color.green, reference.Vertices()[0].color.green);
+        EXPECT_FLOAT_EQ(batch.Vertices()[0].color.blue, reference.Vertices()[0].color.blue);
     }
 }
 

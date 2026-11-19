@@ -379,8 +379,9 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
     { return HitTheArrow(arrow, ArrowContext(worldClock, terrainHeight)); };
     if (auto stepped = StepJoints(
             m_context.world->DrawTail().joints, m_context.cloth->random, m_context.cloth, &m_context.world->Particles(),
-            worldClock, &m_sprites, &m_context.world->DynamicLighting().Lighting(), [&](std::int32_t sound)
-            { runtime.RequestSound(sound); }, terrainHeight, m_context.world->Actors(), arrowHit);
+            worldClock, &m_sprites, &m_context.world->DynamicLighting().Lighting(),
+            [&](std::int32_t sound) { runtime.RequestSound(sound); }, terrainHeight, m_context.world->Actors(),
+            arrowHit, &m_context.world->Map().effects);
         !stepped.HasValue())
         return stepped;
     // 0x63712d: 0x549090, las marcas del suelo, sin rand(). En la espera también corre, y acá no: la tabla
@@ -390,7 +391,8 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
             ParticleOwnersAmong(m_context.world->Map().objects), ParticleActorActionsAmong(m_context.world->Actors()),
             ParticleTextureHeightsOf(m_worldModels), &m_context.world->DynamicLighting().Lighting(),
             ParticleActorHandsAmong(m_context.world->Actors(), runtime.hero), ParticleOwnerBonesOf(*m_context.world),
-            [&](std::int32_t sound) { runtime.RequestSound(sound); }, ParticleOwnerStatesOf(*m_context.world));
+            [&](std::int32_t sound) { runtime.RequestSound(sound); }, ParticleOwnerStatesOf(*m_context.world),
+            &m_sprites);
         !particles.HasValue())
     {
         return particles;

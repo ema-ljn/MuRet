@@ -11,6 +11,7 @@
 #include <functional>
 #include <optional>
 #include <span>
+#include <string_view>
 #include <vector>
 
 namespace Client::Render::Models
@@ -30,6 +31,7 @@ class CrtRandom;
 // prometen equivalencia para cualquier control word o plataforma XP.
 namespace Client::World
 {
+class FrameSprites;
 class IParticleTrigonometry;
 struct TerrainLighting;
 struct WorldObject;
@@ -38,7 +40,8 @@ inline constexpr std::size_t ParticleCount = 3000;
 // 0x52a866/0x52a89a: las dos luces que siguen los huesos del blanco de Swell Life.
 inline constexpr std::int32_t SwellLifeParticle = 0x5ac;
 inline constexpr std::int32_t SwellLifeParticleSubtype = 4;
-// 540260 y542599: las chispas5ad/2 y la niebla5f2/27 de la mano de Crywolf.
+// 540260 y542599: las chispas5ad/2 y la niebla5f2/27 de la mano de Crywolf. La 5ad/2, la /3 y la /4 (con la textura
+// 0x5fd) son también las del pie y del blanco del 0x1b6 (0x42769f..0x427a4d).
 inline constexpr std::int32_t MagicSparkParticle = 0x5ad;
 inline constexpr std::int32_t CrywolfTideSmokeSubtype = 25;
 inline constexpr std::int32_t CrywolfSwingSmokeSubtype = 27;
@@ -126,6 +129,20 @@ inline constexpr std::int32_t ArrivalDustParticle = 0x5f6;
 // (0x521dfd): nace en 0x542a60 con vida 20 y su paso (0x5459a4) avanza el cuadro (+0x48) con la vida y prende la luz
 // dinámica. El alta termina con el sonido 0x41ed10(0x40, 0, 0), que Particles no hace: lo hace quien la crea.
 inline constexpr std::int32_t ExplosionParticle = 0x5ed;
+// La llamarada 5ee (Effect\DinoE.jpg, cuatro cuadros en una fila) del 0x6ac (0x51ffd5) y del joint 0x632/6
+// (0x53bf6e): nace en 0x542a94 con vida 12 y la escala del pedido, de cualquier subtipo y sin rand(), su paso
+// (0x545ce3) pone el cuadro (+0x48) en (12 − vida) / 3 y 0x5486b6 la dibuja como el fuego (un cuarto del ancho, el
+// cuadro % 4 y el giro de +0x20). El alta termina con el sonido 0x41ed10(0x40, 0, 0): lo hace quien la crea.
+inline constexpr std::int32_t BlazeParticle = 0x5ee;
+// La brasa 6ad (Effect\PoundingBall.jpg) del fuego que rebota 0xc2/5 (la /0, 0x524f05) y de la jabalina 0x139 (la
+// /1, 0x529c69): nace en 0x543939 con vida 24 o 15, tres rand() y la velocidad hacia −y girada por sus ángulos; su paso
+// (0x5478d7) la sube cada vez más rápido, la achica y, la /1, la apaga con la vida. 0x5488f6 la dibuja con el billboard
+// común.
+inline constexpr std::int32_t CinderParticle = 0x6ad;
+// La onda 0x6eb (Effect\ShockWave.jpg) como partícula: la 0x6eb/3 del brazo izquierdo del 0x1b7 (0x427fad). Nace en
+// 0x5443ae con vida 7, sin rand(); su paso (0x5481ab) apaga la luz por 0,5555556f y crece 0,3f, y 0x5488f6 la dibuja
+// con el billboard común. No lee el subtipo.
+inline constexpr std::int32_t ShockWaveParticle = 0x6eb;
 // La sangre 5e4 (Effect\blood.tga, 0x61d7c9) que suelta el golpe con daño del paso del ataque (0x50419c, diez sobre el
 // blanco): nace en 0x542b3b con cuatro rand() y la velocidad girada por los ángulos del que pega, su paso (0x546b04)
 // la frena y avanza el cuadro (+0x48), y 548550 la dibuja con los cuadros de dos por dos (0x5487b9). No lee el subtipo.
@@ -196,6 +213,8 @@ enum class ParticleError : std::uint8_t
     MissingOwner,
     // 0x545cd6: la 5ed pide la luz dinámica (0x7b4ccc4) y no está, o su centro no cabe en el int32 de 0x5f9780.
     MissingDynamicLight,
+    // 0x546c96: la 5fc/2 deja en cada paso un sprite en la tabla del frame (0x5491e0) y no está.
+    MissingSprites,
 };
 
 // 5f93c0: retorno retenido, consultado después del prefijo del slot5c5.
@@ -219,12 +238,17 @@ using ParticleOwnerBones = std::function<std::optional<glm::vec3>(const Particle
 using ParticleActorHands = std::function<std::optional<glm::vec3>(std::uint64_t, std::int32_t)>;
 
 // Lo que el paso lee por el puntero +0x40 de las partículas que siguen a su dueño (5c6/4, 5d5/2, el fuego /9 y
-// 5de/4): el byte vivo (+0x0), la posición (+0x10) y, sólo de un efecto con modelo, su partida (+0x17c).
+// 5de/4): el byte vivo (+0x0), la posición (+0x10) y, sólo de un efecto con modelo, su partida (+0x17c). De un
+// personaje, también la acción (+0x111), que lee la fanta 6ec/1 y /2 (0x547a54), y sus huesos con nombre:
+// 0x4010b0(dueño, nombre, punto), sin corrimiento, que lee la 6ec/3 y /4 (0x547c1e); nullopt si 0x4016c0 no lo
+// encuentra (o el dueño no es un personaje).
 struct ParticleOwnerState
 {
     bool alive = false;
     glm::vec3 position{};
     std::optional<glm::vec3> start;
+    std::uint8_t action = 0;
+    std::function<std::optional<glm::vec3>(std::string_view)> namedBone{};
 };
 // El estado del dueño de una identidad (Particle::typedOwner); nullopt si no está.
 using ParticleOwnerStates = std::function<std::optional<ParticleOwnerState>(const ParticleOwner&)>;
@@ -276,13 +300,23 @@ public:
                            const glm::vec3& light, std::int32_t subtype, float scale, ParticleOwner owner,
                            const ParticleOwnerBones& bones);
     // 0x53fe70 con las que leen la posición de su dueño al nacer (+0x40 → +0x10): la 5c6/4 (0x540686, la velocidad
-    // hacia él) y la 5de/4 (0x5417ba, la partida). Las demás la ignoran; el dueño queda en typedOwner para su paso. Sin
-    // ella, CreateChecked rechaza esas dos con MissingOwner antes de tocar el lugar.
+    // hacia él), la 5de/4 (0x5417ba, la partida) y la 5c5/5 (0x5403ad, la partida). Las demás la ignoran; el dueño
+    // queda en typedOwner para su paso. Sin ella, CreateChecked y CreateOwnedChecked rechazan esas tres con
+    // MissingOwner o UnsupportedSubtype antes de tocar el lugar.
     [[nodiscard]] Core::Expected<std::optional<std::size_t>, ParticleError>
     CreateTowardChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
                         std::int32_t subtype, float scale, std::reference_wrapper<const float> worldClock,
                         Render::Models::CrtRandom& random, IParticleTrigonometry& trigonometry, ParticleOwner owner,
                         const glm::vec3& ownerPosition);
+    // 0x53fe70 con las que piden la altura del terreno (0x5f93c0) en su punto al nacer: la niebla 5f2/28, /29 y /30 de
+    // la tormenta 0xcf/3..7 (0x5425f9, 0x54264d y 0x54269a). La /30 además corre la x y la y con el seno del reloj
+    // (0x5426ae, `trigonometry`). Las demás la ignoran. Sin ella, CreateChecked rechaza esas tres con
+    // MissingTerrainHeight antes de tocar el lugar.
+    [[nodiscard]] Core::Expected<std::optional<std::size_t>, ParticleError>
+    CreateOnGroundChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
+                          std::int32_t subtype, float scale, std::reference_wrapper<const float> worldClock,
+                          Render::Models::CrtRandom& random, IParticleTrigonometry& trigonometry,
+                          const ParticleTerrainHeight& terrainHeight);
     // 0x54061d: chispa5c6/2 hacia el centro de su lugar físico621, sinCRT.
     std::optional<std::size_t> CreatePiercingSpark(const glm::vec3& position, float scale, ParticleOwner owner,
                                                    const glm::vec3& center);
@@ -301,7 +335,7 @@ private:
                std::int32_t subtype, float scale, float legacyClock, const float* worldClock,
                Render::Models::CrtRandom& random, std::uint32_t owner, IParticleTrigonometry* trigonometry,
                std::optional<std::int32_t> scene = std::nullopt, ParticleOwner typedOwner = {},
-               const glm::vec3* ownerPosition = nullptr);
+               const glm::vec3* ownerPosition = nullptr, const ParticleTerrainHeight* terrainHeight = nullptr);
     // En el heap: la escena que la lleva tiene que caber en la pila.
     std::vector<Particle> m_particles = std::vector<Particle>(ParticleCount);
     ParticleWind m_wind;
@@ -343,14 +377,14 @@ StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random,
 
 // Igual contrato con los sonidos0x40 de las explosiones1 creadas por5ed/2; no retiene el callback. `ownerStates` da
 // el dueño (+0x40) de las que lo siguen (5c6/4, 5d5/2, el fuego /9 y 5de/4): sin él, o sin ese dueño, cortan con
-// MissingOwner en su caso.
-[[nodiscard]] Core::Expected<void, ParticleError>
-StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random,
-                     std::reference_wrapper<const float> worldClock, const std::int32_t* map,
-                     IParticleTrigonometry& trigonometry, const ParticleTerrainHeight& terrainHeight,
-                     const ParticleObjectOwners& owners, const ParticleActorActions& actorActions,
-                     const ParticleTextureHeight& textureHeight, TerrainLighting* lighting,
-                     const ParticleActorHands& actorHands, const ParticleOwnerBones& ownerBones,
-                     const std::function<void(std::int32_t)>& sound, const ParticleOwnerStates& ownerStates = {});
+// MissingOwner en su caso. `sprites` es la tabla del frame (0x5491e0) donde la 5fc/2 deja su destello en cada paso:
+// sin ella corta con MissingSprites después de girar, sacar su rand(), moverse y apagarse.
+[[nodiscard]] Core::Expected<void, ParticleError> StepParticlesChecked(
+    Particles& particles, Render::Models::CrtRandom& random, std::reference_wrapper<const float> worldClock,
+    const std::int32_t* map, IParticleTrigonometry& trigonometry, const ParticleTerrainHeight& terrainHeight,
+    const ParticleObjectOwners& owners, const ParticleActorActions& actorActions,
+    const ParticleTextureHeight& textureHeight, TerrainLighting* lighting, const ParticleActorHands& actorHands,
+    const ParticleOwnerBones& ownerBones, const std::function<void(std::int32_t)>& sound,
+    const ParticleOwnerStates& ownerStates = {}, FrameSprites* sprites = nullptr);
 
 } // namespace Client::World

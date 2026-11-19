@@ -22,7 +22,8 @@ namespace
 using Client::Render::Models::CrtRandom;
 using Client::Scenes::JointState;
 
-// 0x531b0c, /7: dos rand() y z +1050, sin la cola común; el paso dibuja 50 tramos sin emitir las partículas de /2.
+// 0x531b0c, /7: dos rand() y z +1050, sin la cola común; el paso dibuja 50 tramos sin emitir las partículas de /2. Los
+// 45 de la bajada bajan 20 cada uno (0x53774b, 0x6b86d0).
 TEST(CrywolfJointsTest, ArrivalBoltCreatesStepsAndDrawsWithoutTheChaosCastleEmission)
 {
     std::array<JointState, 1> joints{};
@@ -48,6 +49,7 @@ TEST(CrywolfJointsTest, ArrivalBoltCreatesStepsAndDrawsWithoutTheChaosCastleEmis
     EXPECT_EQ(joint.life, 19);
     EXPECT_EQ(joint.count, 49);
     EXPECT_EQ(joint.position, position);
+    EXPECT_EQ(joint.points[5][0].z, 1350.0f - 45 * 20.0f);
     EXPECT_FALSE(joint.tailEnabled);
     Client::Render::ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});

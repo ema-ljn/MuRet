@@ -89,22 +89,23 @@ struct ModelEffectStepServices
 // dinámica de radio 2. El 0xb3 de Aida (0x520b77) vaga con sus
 // dos giros sorteados y el seno del reloj, y suelta una 5ac/9 por paso. El 0x135 del 30 (0x52973e) no
 // muere y, con dueño, sube y baja con el seno del reloj. El calco 0x61d/3 del 0x38 de Crywolf (0x52b933), con la
-// vida entre 6 y 9, suelta una órbita 60f/10; el /0, el /2 y el /7 cortan en 0x52b8a6. La onda 0x6eb/1 del galope del
-// caballo en Icarus (0x52c5ca) crece y tiembla con tres rand(); la /0 del pisotón se achica 1 por paso, sin rand(); los
-// subtipos5..8 del asedio conservan sus escalas y RGB: el6 emite hijos5 cada8vidas, que el pool ascendente
-// puede avanzar en el mismo paso. El rayo 0x14d de
-// los Fenrir (0x5295a4) se prende de a 0,3f con el subtipo 0 y se apaga con el 1, y gira 0,15f por eje; el calco
-// 0x14e (0x52965a) gira 0,1f en x, se apaga de a 0,05f (la luz según el subtipo) y cambia de cuadro cada 200 ms de
-// timeGetTime(), hasta el quinto. El terremoto 0xfa (0x521c5c): en la vida 11 corre la partida detrás de su dueño, la
-// pone sobre el terreno (en Kalima, con la onda 0x437860), suelta la explosión 5ed/0 y, con un dueño que no es del
-// tipo 0x1b1, las grietas 0xfd, 0xfb y 0xfc, y cinco pares 0xfe/0xff donde la celda lo deja; en la 10, cuatro anillos
-// de cinco pares 0x101/0x102, el sonido 0x97 y la vida en 0; en las demás, se hamaca con +0x28. Con el estado 0 (la
-// habilidad del Dark Lord), en la vida 13 emite dos grupos de cuatro estelas 0x104 y el sonido 0x96 antes de la
-// hamaca; en la 11 emite ocho joints 0x617/0, una chispa 5c5/0 y el pulso 0x103. Salta la animación y 0x51fc80 de la
-// cola (0x52cbb0). Las grietas 0xfb..0x102 (0x52276a..0x522bd2) se apagan y se hunden; la 0xfb tiembla la cámara, las
-// 0xfc y 0xff sueltan a veces piedritas 0xc8/0xc9 y, con la 0x102, prenden la luz dinámica según el tipo de su dueño.
-// Las piedras 0x10a y 0x10b de las estatuas de Blood Castle (0x52531d) saltan, caen sobre el terreno y se inclinan; uno
-// de cada diez pasos corta en 0x5252e6, donde el polvo 5f3/0 va en un local sin escribir (Q-C1176).
+// vida entre 6 y 9, suelta una órbita 60f/10; el /0 deja el /1 en cada paso y, con el /2 y el /7, corta en su órbita
+// 60f/0 con lugar (0x52b8ff, 0x52b977). La onda 0x6eb/1 del galope del caballo en Icarus (0x52c5ca) crece y tiembla con
+// tres rand() (la /2, igual de a 0,025f); la /0 del pisotón se achica 1 por paso, sin rand(); la /3 y la /4 crecen 2 y
+// 0,3f; los subtipos5..8 del asedio conservan sus escalas y RGB: el6 emite hijos5 cada8vidas, que el pool ascendente
+// puede avanzar en el mismo paso; otro subtipo no toca la escala. El rayo 0x14d de los Fenrir (0x5295a4) se prende de a
+// 0,3f con el subtipo 0 y se apaga con el 1, y gira 0,15f por eje; el calco 0x14e (0x52965a) gira 0,1f en x, se apaga
+// de a 0,05f (la luz según el subtipo) y cambia de cuadro cada 200 ms de timeGetTime(), hasta el quinto. El terremoto
+// 0xfa (0x521c5c): en la vida 11 corre la partida detrás de su dueño, la pone sobre el terreno (en Kalima, con la onda
+// 0x437860), suelta la explosión 5ed/0 y, con un dueño que no es del tipo 0x1b1, las grietas 0xfd, 0xfb y 0xfc, y cinco
+// pares 0xfe/0xff donde la celda lo deja; en la 10, cuatro anillos de cinco pares 0x101/0x102, el sonido 0x97 y la vida
+// en 0; en las demás, se hamaca con +0x28. Con el estado 0 (la habilidad del Dark Lord), en la vida 13 emite dos grupos
+// de cuatro estelas 0x104 y el sonido 0x96 antes de la hamaca; en la 11 emite ocho joints 0x617/0, una chispa 5c5/0 y
+// el pulso 0x103. Salta la animación y 0x51fc80 de la cola (0x52cbb0). Las grietas 0xfb..0x102 (0x52276a..0x522bd2) se
+// apagan y se hunden; la 0xfb tiembla la cámara, las 0xfc y 0xff sueltan a veces piedritas 0xc8/0xc9 y, con la 0x102,
+// prenden la luz dinámica según el tipo de su dueño. Las piedras 0x10a y 0x10b de las estatuas de Blood Castle
+// (0x52531d) saltan, caen sobre el terreno y se inclinan; uno de cada diez pasos corta en 0x5252e6, donde el polvo
+// 5f3/0 va en un local sin escribir (Q-C1176).
 [[nodiscard]] Core::Expected<void, std::string>
 StepGameModelEffect(ModelEffect& effect, const Render::Models::Skeleton* skeleton, Particles& particles,
                     float worldClock, Render::Models::CrtRandom& random, KalimaWorld* kalima = nullptr,

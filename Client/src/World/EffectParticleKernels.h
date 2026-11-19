@@ -41,24 +41,29 @@ inline constexpr std::int32_t ShortHitSparkSubtype = 8;
 inline constexpr std::int32_t BurstSparkSubtype = 10;
 
 [[nodiscard]] bool IsEffectParticle(std::int32_t type, std::int32_t subtype);
-// Las que leen +0x40 en su paso (5c6/4, 5d5/2, el fuego /9, 5de/4 y 5f2/36): 0x53fe70 guarda el dueño en el lugar.
+// Las que leen +0x40 en su paso (5c6/4, 5d5/2, el fuego /9, 5de/4, 5f2/36, 5c5/5 y 5c5/6): 0x53fe70 guarda el dueño
+// en el lugar.
 [[nodiscard]] bool FollowsItsOwner(std::int32_t type, std::int32_t subtype);
-// Las que además leen la posición del dueño al nacer: 5c6/4 (0x540686) y 5de/4 (0x5417ba).
+// Las que además leen la posición del dueño al nacer: 5c6/4 (0x540686), 5de/4 (0x5417ba) y 5c5/5 (0x5403ad).
 [[nodiscard]] bool NeedsOwnerPosition(std::int32_t type, std::int32_t subtype);
+// Las que leen la altura del terreno al nacer (0x5f93c0): la niebla 5f2/28, /29 y /30 (0x5425f9, 0x54264d, 0x54269a).
+[[nodiscard]] bool NeedsTerrainHeight(std::int32_t type, std::int32_t subtype);
 
-// Lo que el alta lee además del lugar: el reloj del mundo (0x5767b88) y su seno para la luz de 5de/2..4, la posición
-// del dueño de 5c6/4 y 5de/4, y el reloj por valor de los que no lo prestan (los humos de SmokeParticleKernels lo usan
-// sin `worldClock`).
+// Lo que el alta lee además del lugar: el reloj del mundo (0x5767b88) y su seno para la luz de 5de/2..4 y la niebla
+// 5f2/30, la posición del dueño de 5c6/4 y 5de/4, el reloj por valor de los que no lo prestan (los humos de
+// SmokeParticleKernels lo usan sin `worldClock`) y la altura del terreno de la niebla 5f2/28..30.
 struct EffectParticleBirth
 {
     const float* worldClock = nullptr;
     IParticleTrigonometry* trigonometry = nullptr;
     const glm::vec3* ownerPosition = nullptr;
     float legacyClock = 0.0f;
+    const ParticleTerrainHeight* terrainHeight = nullptr;
 };
 
-// Después del prefijo de 0x53fe70 (Initialize). Sin el reloj o la trigonometría que pide la 5de/2..4, MissingClock con
-// los rand() ya sacados; sin la posición del dueño, MissingOwner (Particles la pide antes de tocar el lugar).
+// Después del prefijo de 0x53fe70 (Initialize). Sin el reloj o la trigonometría que pide la 5de/2..4 y la 5f2/30,
+// MissingClock con los rand() ya sacados; sin la posición del dueño, MissingOwner, y sin la altura del terreno de la
+// 5f2/28..30, MissingTerrainHeight (Particles las pide antes de tocar el lugar).
 [[nodiscard]] Core::Expected<void, ParticleError>
 CreateEffectParticle(Particle& particle, Render::Models::CrtRandom& random, const EffectParticleBirth& birth);
 // Después de la vida y el movimiento comunes de 0x5446e0. El anillo pide la trigonometría (fsin); 5c6/4 y 5de/4, el

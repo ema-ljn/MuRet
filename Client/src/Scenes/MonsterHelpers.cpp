@@ -17,6 +17,7 @@
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/HighModelEffects.h"
 #include "Scenes/JointFamilies.h"
+#include "Scenes/MeteorEffects.h"
 #include "Scenes/WorldModelPose.h"
 #include "Scenes/WorldRuntime.h"
 #include "Render/TextureSlot.h"
@@ -28,6 +29,7 @@
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/ParticleBurst.h"
+#include "World/ParticleOwner.h"
 #include "World/SiegeVertexEffects.h"
 #include "World/SmokeParticleKernels.h"
 #include "World/TerrainDecal.h"
@@ -191,21 +193,6 @@ Result CreateParticle(World::Particles* particles, const ActorState& actor, std:
     return {};
 }
 
-// 0x53fe70 en `call` con un tipo o un subtipo que World::Particles no crea (CL11): con un lugar libre corta antes de
-// sus rand(); con la tabla llena el original no crea nada ni saca rand() y sigue. La tabla no se vacía mientras se
-// dibuja: las partículas que siguen en el mismo helper tampoco crean nada.
-Result UnportedParticle(World::Particles* particles, const ActorState& actor, std::int32_t type, std::int32_t subtype,
-                        std::uint32_t call)
-{
-    if (particles == nullptr)
-        return NoParticles(actor, call);
-    if (std::ranges::none_of(particles->All(), [](const World::Particle& particle) { return !particle.alive; }))
-        return {};
-    return Core::Unexpected(std::format("{:#x}: la partícula {:#x}/{} (0x53fe70) del tipo {:#x} en la acción {:#x} no "
-                                        "está portada (CL11)",
-                                        call, type, subtype, actor.type, actor.animation.action));
-}
-
 Result Particle(const MonsterHelperPass& pass, std::int32_t type, std::int32_t subtype, const glm::vec3& position,
                 const glm::vec3& angles, const glm::vec3& light, float scale, std::uint32_t call)
 {
@@ -213,9 +200,20 @@ Result Particle(const MonsterHelperPass& pass, std::int32_t type, std::int32_t s
                           pass.random, call);
 }
 
-Result Unported(const MonsterHelperPass& pass, std::int32_t type, std::int32_t subtype, std::uint32_t call)
+// 0x53fe70 con el personaje de dueño (+0x40), el lugar del pool en MuRet: la fanta 6ec/3 y /4 lo leen en su paso.
+Result OwnedParticle(const MonsterHelperPass& pass, std::int32_t type, std::int32_t subtype, const glm::vec3& position,
+                     const glm::vec3& angles, const glm::vec3& light, float scale, std::uint32_t call)
 {
-    return UnportedParticle(pass.particles, pass.actor, type, subtype, call);
+    if (pass.particles == nullptr)
+        return NoParticles(pass.actor, call);
+    const World::ParticleOwner owner{World::ParticleOwnerKind::Actor, pass.slot};
+    const auto created = pass.particles->CreateOwnedChecked(type, position, angles, light, subtype, scale,
+                                                            pass.worldClock, pass.random, 0, owner);
+    if (!created.HasValue())
+        return Core::Unexpected(
+            std::format("{:#x}: la partícula {:#x}/{} (0x53fe70) del tipo {:#x} falla con el error {}", call, type,
+                        subtype, pass.actor.type, static_cast<int>(created.Error())));
+    return {};
 }
 
 // 4335c7..36dd: incluso con todos los efectos ocupados, primero lee boundsTop del blanco con índice firmado.
@@ -345,12 +343,52 @@ Result DieInStones(MonsterHelperPass& pass, std::int32_t subtype, std::uint32_t 
     return {};
 }
 
+// 0x4416aa..0x441a02, con la luz (1, 1, 1) y los ángulos del 0x1a4: el punto (5, 10, 5) de la mano izquierda
+// (0x4010d0), la fanta 0x6ec/3 de 3,4f con él de dueño y la 0x5f2/21 de 2,5f; la mano derecha (0x4010b0), la 0x6ec/4
+// de 3,4f con dueño y la 0x5f2/21 de 2,5f; el punto (−20, −2, −10) del ojo, la 0x6ec/0 y la 0x5f2/21 de 0,8f sin
+// dueño, y la espalda, otra 0x5f2/21 de 0,8f. Con la tabla llena, ninguna crea nada ni saca rand().
+Result SmokeTheHandsEyeAndBackOf1a4(MonsterHelperPass& pass)
+{
+    constexpr glm::vec3 White{1.0f, 1.0f, 1.0f};
+    constexpr std::int32_t Fanta = 0x6ec, Smoke = 0x5f2, SmokeSubtype = 21;
+    constexpr float HandFanta = std::bit_cast<float>(0x4059999au); // 3,4f
+    constexpr float HandSmoke = 2.5f;                              // 0x40200000
+    constexpr float Small = std::bit_cast<float>(0x3f4ccccdu);     // 0,8f
+    const glm::vec3& angles = pass.actor.angles;
+    const auto left = PointOf(pass, "Monster82_LHand", 0x441713, {5.0f, 10.0f, 5.0f});
+    if (!left.HasValue())
+        return Core::Unexpected(left.Error());
+    if (auto made = OwnedParticle(pass, Fanta, 3, left.Value(), angles, White, HandFanta, 0x441774); !made.HasValue())
+        return made;
+    if (auto made = Particle(pass, Smoke, SmokeSubtype, left.Value(), angles, White, HandSmoke, 0x44178f);
+        !made.HasValue())
+        return made;
+    const auto right = PointOf(pass, "Monster82_RHand", 0x4417e5);
+    if (!right.HasValue())
+        return Core::Unexpected(right.Error());
+    if (auto made = OwnedParticle(pass, Fanta, 4, right.Value(), angles, White, HandFanta, 0x441846); !made.HasValue())
+        return made;
+    if (auto made = Particle(pass, Smoke, SmokeSubtype, right.Value(), angles, White, HandSmoke, 0x441861);
+        !made.HasValue())
+        return made;
+    const auto eye = PointOf(pass, "Monster82_Eye", 0x4418d0, {-20.0f, -2.0f, -10.0f});
+    if (!eye.HasValue())
+        return Core::Unexpected(eye.Error());
+    if (auto made = Particle(pass, Fanta, 0, eye.Value(), angles, White, Small, 0x441930); !made.HasValue())
+        return made;
+    if (auto made = Particle(pass, Smoke, SmokeSubtype, eye.Value(), angles, White, Small, 0x44194b); !made.HasValue())
+        return made;
+    const auto back = PointOf(pass, "Monster82_Back", 0x4419a1);
+    if (!back.HasValue())
+        return Core::Unexpected(back.Error());
+    return Particle(pass, Smoke, SmokeSubtype, back.Value(), angles, White, Small, 0x441a02);
+}
+
 // 0x441669..0x441d91: en la 6, 0x4ee770(modelo, 0, 0x13c, 0, 0, 0) (DieInStones: un rand() por vértice y las piedras
-// 0x13c), +0 en 0 y el sonido 0x209; si no, el punto (5, 10, 5) de la mano izquierda y la partícula 0x6ec/3 (CL11). Con
-// la tabla llena siguen, sin crear nada, la 0x5f2/21, la 0x6ec/4 de la mano derecha, la 0x5f2/21, la 0x6ec/0 y la
-// 0x5f2/21 del ojo y la 0x5f2/21 de la espalda (sus puntos no los lee nadie más); después rand() % 20 en 0 pide 0x205
-// más rand() % 2 sin mirar +4, y con +4 en 0, la 3 con el frame de 8,4 a 10,2 corta en sus efectos; la 4 de 5 a 5,7
-// pone +4 = 1, crea la ráfaga 0x51fe10 desde LHand + (80, 40, −25) y pide 0x208 incluso con el pool lleno.
+// 0x13c), +0 en 0 y el sonido 0x209; si no, las fantas y los humos de las manos, el ojo y la espalda
+// (SmokeTheHandsEyeAndBackOf1a4); después rand() % 20 en 0 pide 0x205 más rand() % 2 sin mirar +4, y con +4 en 0, la 3
+// con el frame de 8,4 a 10,2 corta en sus efectos; la 4 de 5 a 5,7 pone +4 = 1, crea la ráfaga 0x51fe10 desde LHand +
+// (80, 40, −25) y pide 0x208 incluso con el pool lleno.
 Result DrawThe1a4(MonsterHelperPass& pass)
 {
     ActorState& actor = pass.actor;
@@ -363,10 +401,8 @@ Result DrawThe1a4(MonsterHelperPass& pass)
         // 0x441a34 → 0x441a3c: las ramas de la 3 y la 4 no corren.
         return {};
     }
-    if (const auto point = PointOf(pass, "Monster82_LHand", 0x441713, {5.0f, 10.0f, 5.0f}); !point.HasValue())
-        return Core::Unexpected(point.Error());
-    if (auto made = Unported(pass, 0x6ec, 3, 0x441774); !made.HasValue())
-        return made;
+    if (auto smoked = SmokeTheHandsEyeAndBackOf1a4(pass); !smoked.HasValue())
+        return smoked;
     // 0x441a0a..0x441a34.
     if (pass.random.Next() % 20 == 0)
         Sound(pass, 0x205 + Coin(pass.random));
@@ -600,8 +636,9 @@ Result DrawThe1a7(MonsterHelperPass& pass)
 }
 
 // 0x442a62..0x442dc1: dos 0x5ac a 0,5 en el punto (0, −2, 0) de cada ojo, el izquierdo primero; con +4 en 0, 0x20b
-// más rand() % 2 en la 3 y 0x20e en la 6; en la 4, con +4 en 0, +4 = 1 y el efecto 0x13f; después, el punto (0, 0,
-// −10) de la mano y la partícula 0x6ec/3 (CL11); con la tabla llena, la 0x5f2/21 de 2 que sigue tampoco crea nada.
+// más rand() % 2 en la 3 y 0x20e en la 6; en la 4, con +4 en 0, +4 = 1, el efecto 0x13f (MeteorEffects) y el 0x20d;
+// después, el punto (0, 0, −10) de la mano, la fanta 0x6ec/3 con él de dueño y la 0x5f2/21 de 2, las dos con la luz
+// de los ojos.
 Result DrawThe1a9(MonsterHelperPass& pass)
 {
     if (auto ready = NeedTheSprites(pass, 0x442b3d); !ready.HasValue())
@@ -628,15 +665,31 @@ Result DrawThe1a9(MonsterHelperPass& pass)
     if (actor.subtype == 0)
     {
         actor.subtype = 1;
-        // 0x518cf0 no inicializa nada sin un slot libre; 0x442cc5 suena incluso en ese caso.
-        const auto& effects = pass.world.Map().effects.Effects();
-        if (std::ranges::any_of(effects, [](const World::ModelEffect& effect) { return !effect.alive; }))
-            return Cut(0x442cb9, "el efecto 0x13f (0x518cf0), y después el sonido 0x20d", actor);
+        // 0x442c9a..0x442cb9: 0x518cf0(0x13f, c+0x10, c+0x1c, c+0xf4, 0, c, −1, 0, 0, 0, 0), sin rand() (lleno, nada);
+        // 0x442cc5 suena incluso en ese caso. Solo en un frame del original, como sus sonidos: entre frames el monstruo
+        // es una copia y la tabla de efectos, la del mundo.
+        if (pass.originalFrame)
+        {
+            if (auto made =
+                    CreateHighModelEffect({.type = MeteorCallEffect,
+                                           .position = actor.position,
+                                           .angles = actor.angles,
+                                           .light = actor.light,
+                                           .owner = &actor},
+                                          {.world = pass.world, .random = pass.random, .worldClock = pass.worldClock});
+                !made.HasValue())
+                return Core::Unexpected(std::format("0x442cb9: {}", made.Error()));
+        }
         Sound(pass, 0x20d);
     }
-    if (const auto point = PointOf(pass, "Monster87_LeftHand", 0x442d4c, {0.0f, 0.0f, -10.0f}); !point.HasValue())
-        return Core::Unexpected(point.Error());
-    return Unported(pass, 0x6ec, 3, 0x442da1);
+    // 0x442d4c..0x442dbc: la fanta 0x6ec/3 de 3 con él de dueño y la 0x5f2/21 de 2, con la luz de los ojos.
+    const auto hand = PointOf(pass, "Monster87_LeftHand", 0x442d4c, {0.0f, 0.0f, -10.0f});
+    if (!hand.HasValue())
+        return Core::Unexpected(hand.Error());
+    if (auto made = OwnedParticle(pass, 0x6ec, 3, hand.Value(), actor.angles, RedEyes, 3.0f, 0x442da1);
+        !made.HasValue())
+        return made;
+    return Particle(pass, 0x5f2, 21, hand.Value(), actor.angles, RedEyes, 2.0f, 0x442dbc);
 }
 
 // 0x5fb2f0 con la luz o el giro que son la pila sin escribir (Q-C1100): MuRet no dibuja ese calco, que no saca rand()
@@ -902,13 +955,59 @@ bool HasTarget(const ActorState& actor)
     return target >= 0 && target < PoolSize;
 }
 
+// 0x427764..0x427a4d, las partículas del pie y del blanco del 0x1b6 en la 3 y la 4: desde el frame 4 (0x6b8a44, C0
+// también sin orden), en el punto (70, 0, 0) del pie, la 0x5f2/0x1b de 2 con la luz (0,5; 0,2f; 0,5) y la 0x5ad/2 de 1
+// con la luz 1; en la 3 desde el frame 6 (0x6b87f4), en otro punto (70, 0, 0) del pie la 0x5ad/3 de 1,3f con los
+// ángulos (0, 0, 0) y, con el blanco +0x3a4 en el pool, la 0x5ad/3 de 1,3f 100 más arriba del blanco, las dos con la
+// luz 1. Los ángulos de las demás son [EBP−0x60], que 0x4271d0 no escribe: nacen sin velocidad y nadie los lee
+// (0x4e98d0 gira la velocidad en cero), y MuRet pasa (0, 0, 0).
+Result SparkTheFootAndTheTargetOf1b6(MonsterHelperPass& pass)
+{
+    const ActorState& actor = pass.actor;
+    const std::uint8_t action = actor.animation.action;
+    if (action != 3 && action != 4)
+        return {};
+    constexpr glm::vec3 Unwritten{};
+    constexpr glm::vec3 White{1.0f, 1.0f, 1.0f};
+    constexpr glm::vec3 StepOffset{70.0f, 0.0f, 0.0f};         // 0x428c0000
+    constexpr float Flash = std::bit_cast<float>(0x3fa66666u); // 1,3f
+    const float frame = actor.animation.frame;
+    if (frame >= 4.0f)
+    {
+        const auto step = PointOf(pass, "Monster100_Footstepst", 0x4277f7, StepOffset);
+        if (!step.HasValue())
+            return Core::Unexpected(step.Error());
+        constexpr glm::vec3 DustLight{0.5f, std::bit_cast<float>(0x3e4ccccdu), 0.5f};
+        if (auto made = Particle(pass, 0x5f2, 0x1b, step.Value(), Unwritten, DustLight, 2.0f, 0x42786d);
+            !made.HasValue())
+            return made;
+        if (auto made = Particle(pass, Spark, 2, step.Value(), Unwritten, White, 1.0f, 0x4278a0); !made.HasValue())
+            return made;
+    }
+    if (frame >= 6.0f && action == 3)
+    {
+        const auto step = PointOf(pass, "Monster100_Footstepst", 0x42794b, StepOffset);
+        if (!step.HasValue())
+            return Core::Unexpected(step.Error());
+        if (auto made = Particle(pass, Spark, 3, step.Value(), {}, White, Flash, 0x4279c4); !made.HasValue())
+            return made;
+        if (HasTarget(actor))
+        {
+            const ActorState& target = pass.world.Actors()[static_cast<std::size_t>(actor.attackTarget)];
+            const glm::vec3 above{target.position.x, target.position.y, F32(D(target.position.z) + 100.0)};
+            if (auto made = Particle(pass, Spark, 3, above, Unwritten, White, Flash, 0x427a4d); !made.HasValue())
+                return made;
+        }
+    }
+    return {};
+}
+
 // 0x42720d..0x427a92, el 0x1b6: r = rand() % 30, v = r · 0,01f + 0,6f; la luz (v + 0,5; v − 0,05f; v + 0,5) para
-// cinco 0x5ad (la mano izquierda a 0,8, z02 a 1,1, z03 a 1, z04 a 1,7 y z05 a 0,8) y el punto (0, 0, −65) del pie
-// para su partícula 0x5ad/4 (CL11). Con la tabla llena siguen sus sonidos: en la 2 y la 10, rand() % 15 en 0 pide
-// 0x261 más rand() % 2; con +4 en 0, +4 = 1 y 0x264 en la 3, 0x9c más rand() % 2 y 0x263 en la 4 y 0x265 en la 6.
-// Después, en la 3 y la 4, las partículas 0x5f2/0x1b y 0x5ad del pie (desde el frame 4, 0x6b8a44) y del blanco (desde
-// 6, 0x6b87f4), que con la tabla llena no crean nada, y con el blanco +0x3a4 en el pool, en la 4 desde el frame 6, el
-// joint 0x614/0x10.
+// cinco 0x5ad (la mano izquierda a 0,8, z02 a 1,1, z03 a 1, z04 a 1,7 y z05 a 0,8) y, en el punto (0, 0, −65) del pie,
+// la partícula 0x5ad/4 de 4 con la luz (0,7f; 0,5; 0,7f) y los ángulos sin escribir (los de
+// SparkTheFootAndTheTargetOf1b6). Después sus sonidos: en la 2 y la 10, rand() % 15 en 0 pide 0x261 más rand() % 2;
+// con +4 en 0, +4 = 1 y 0x264 en la 3, 0x9c más rand() % 2 y 0x263 en la 4 y 0x265 en la 6; las partículas del pie y
+// del blanco, y con el blanco +0x3a4 en el pool, en la 4 desde el frame 6, el joint 0x614/0x10.
 Result DrawThe1b6(MonsterHelperPass& pass)
 {
     if (auto ready = NeedTheSprites(pass, 0x4272ee); !ready.HasValue())
@@ -934,9 +1033,11 @@ Result DrawThe1b6(MonsterHelperPass& pass)
             return Core::Unexpected(point.Error());
         Sprite(pass, Spark, point.Value(), glow.scale, light);
     }
-    if (const auto foot = PointOf(pass, "Monster100_Footstepst", 0x42763e, {0.0f, 0.0f, -65.0f}); !foot.HasValue())
+    const auto foot = PointOf(pass, "Monster100_Footstepst", 0x42763e, {0.0f, 0.0f, -65.0f});
+    if (!foot.HasValue())
         return Core::Unexpected(foot.Error());
-    if (auto made = Unported(pass, Spark, 4, 0x42769f); !made.HasValue())
+    constexpr glm::vec3 FootLight{std::bit_cast<float>(0x3f333333u), 0.5f, std::bit_cast<float>(0x3f333333u)};
+    if (auto made = Particle(pass, Spark, 4, foot.Value(), {}, FootLight, 4.0f, 0x42769f); !made.HasValue())
         return made;
     // 0x4276a4..0x427764.
     const std::uint8_t action = actor.animation.action;
@@ -958,6 +1059,8 @@ Result DrawThe1b6(MonsterHelperPass& pass)
     }
     else if (action == 6)
         SoundOnce(pass, 0x265, false);
+    if (auto sparked = SparkTheFootAndTheTargetOf1b6(pass); !sparked.HasValue())
+        return sparked;
     // 0x4279cc..0x427a8d: 6 (0x6b87f4). El 0x614/0x10 sin dueño desde el blanco hasta 100 (0x6b86b4) sobre él, con los
     // ángulos del actor y ancho 10.
     if (action == 4 && HasTarget(actor) && actor.animation.frame >= 6.0f)
@@ -984,21 +1087,61 @@ Result DrawThe1b6(MonsterHelperPass& pass)
     return {};
 }
 
-// 0x427ab0..0x428036, el 0x1b7: el punto del brazo izquierdo y su partícula 0x6f1/1 (CL11). Con la tabla llena, las
-// 0x6f1/1 del brazo derecho y de la cabeza tampoco crean nada; siguen sus sonidos (0x247, y 0x249, 0x24a y 0x24b en la
-// 3, la 4 y la 6) y, en la 3, las partículas 0x5f2/0x19 (desde el frame 4) y 0x6eb/3 (de 5 a 5,5), que no crean
-// nada, y con el blanco +0x3a4 en el pool, desde el frame 6,9 (0x6b8a3c), el joint 0x618/0x10 (0x427fea..0x428036
-// salta a 0x427a8d): desde el blanco, 100 (0x6b86b4) más arriba, hacia el actor, con los ángulos del blanco, el actor
-// de dueño y ancho 20; vuelve a él (BeamJoints.cpp).
+// 0x427ab0..0x428036, el 0x1b7: en los puntos de Monster101_L_Arm, R_Arm y Head, la neblina 0x6f1/1 (0x427b8b,
+// 0x427c42, 0x427cfd) con los ángulos (0, 0, 0), la luz 1 y escala 1; sus sonidos (0x247, y 0x249, 0x24a y 0x24b en la
+// 3, la 4 y la 6) y, en la 3, en el punto (30, 0, 0) del brazo izquierdo con los ángulos (0, 45, 45): desde el frame 4
+// (0x6b8a44) el humo 0x5f2/0x19 de 1 con la luz 1 (0x427eaf) y, de 5 a 5,5 (0x6b87f8, 0x6b8a40), en otro punto igual,
+// la onda 0x6eb/3 de 0,5 con la luz 5 (0x427fad). Con el blanco +0x3a4 en el pool, desde el frame 6,9 (0x6b8a3c), el
+// joint 0x618/0x10 (0x427fea..0x428036 salta a 0x427a8d): desde el blanco, 100 (0x6b86b4) más arriba, hacia el actor,
+// con los ángulos del blanco, el actor de dueño y ancho 20; vuelve a él (BeamJoints.cpp).
 Result DrawThe1b7(MonsterHelperPass& pass)
 {
-    if (const auto arm = PointOf(pass, "Monster101_L_Arm", 0x427b2a); !arm.HasValue())
-        return Core::Unexpected(arm.Error());
-    if (auto made = Unported(pass, 0x6f1, 1, 0x427b8b); !made.HasValue())
-        return made;
+    constexpr glm::vec3 White{1.0f, 1.0f, 1.0f};
+    struct Mist
+    {
+        std::string_view bone;
+        std::uint32_t point;
+        std::uint32_t call;
+    };
+    constexpr std::array<Mist, 3> Mists{{{"Monster101_L_Arm", 0x427b2a, 0x427b8b},
+                                         {"Monster101_R_Arm", 0x427be1, 0x427c42},
+                                         {"Monster101_Head", 0x427c98, 0x427cfd}}};
+    for (const Mist& mist : Mists)
+    {
+        const auto point = PointOf(pass, mist.bone, mist.point);
+        if (!point.HasValue())
+            return Core::Unexpected(point.Error());
+        if (auto made = Particle(pass, World::KalimaWaterfallMist, 1, point.Value(), {}, White, 1.0f, mist.call);
+            !made.HasValue())
+            return made;
+    }
     constexpr std::array<ActionSound, 3> Sounds{{{3, 0x249}, {4, 0x24a}, {6, 0x24b}}};
     PlayTheSounds(pass, 0x247, Sounds);
     const ActorState& actor = pass.actor;
+    const float frame = actor.animation.frame;
+    if (actor.animation.action == 3 && frame >= 4.0f)
+    {
+        constexpr glm::vec3 Tilt{0.0f, 45.0f, 45.0f};     // 0x42340000
+        constexpr glm::vec3 ArmOffset{30.0f, 0.0f, 0.0f}; // 0x41f00000
+        constexpr float Wave = 0.5f;                      // 0x3f000000
+        constexpr glm::vec3 Bright{5.0f, 5.0f, 5.0f};     // 0x40a00000
+        const auto arm = PointOf(pass, "Monster101_L_Arm", 0x427e4e, ArmOffset);
+        if (!arm.HasValue())
+            return Core::Unexpected(arm.Error());
+        if (auto made = Particle(pass, World::BreathParticle, World::CrywolfTideSmokeSubtype, arm.Value(), Tilt, White,
+                                 1.0f, 0x427eaf);
+            !made.HasValue())
+            return made;
+        if (frame >= 5.0f && frame <= 5.5f)
+        {
+            const auto wave = PointOf(pass, "Monster101_L_Arm", 0x427f4c, ArmOffset);
+            if (!wave.HasValue())
+                return Core::Unexpected(wave.Error());
+            if (auto made = Particle(pass, World::ShockWaveParticle, 3, wave.Value(), Tilt, Bright, Wave, 0x427fad);
+                !made.HasValue())
+                return made;
+        }
+    }
     // 0x427fd3: 6,9 (0x6b8a3c).
     if (actor.animation.action == 3 && HasTarget(actor) && actor.animation.frame >= 6.9f)
     {

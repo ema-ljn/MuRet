@@ -80,6 +80,11 @@ constexpr double DropScaleStep = static_cast<double>(std::bit_cast<float>(0x3cf5
 constexpr int DropWalkSpan = 20;
 constexpr int DropWalkCenter = 10;
 constexpr double DropWalkFactor = 2.5;
+// 0x542d60..0x542d6e: la 607 de 0 a 4 (la tabla de 0x544614); las de fuera salen por 0x54304c con el prefijo.
+constexpr std::int32_t LastDropSubtype = 4;
+// La /1 de las burbujas (0x43c332, 0x52434e, 0x526d5f), la /2 que pide el sonido 0x1d8 (0x4ef02e), la /3 que sube con
+// su +0x50 (0x523089) y la /4 que se para en 350 (0x52a400).
+constexpr std::int32_t BubbleDropSubtype = 1, SoundingDropSubtype = 2, RisingDropSubtype = 3, CappedDropSubtype = 4;
 // Contratos final-runtime 53fe70/5446e0/548550, casos 5d9/0..3 y 5f2/2.
 constexpr std::int32_t FireLife = 24;
 constexpr std::int32_t WorldSmokeLife = 50;
@@ -291,6 +296,97 @@ Core::Expected<void, ParticleError> StepTheExplosion(Particle& particle, Particl
     if (!AddDynamicLight(lighting, particle.position, color, ExplosionLightRadius, "0x545cd6").HasValue())
         return Core::Unexpected(ParticleError::MissingDynamicLight);
     return {};
+}
+
+// 0x540260..0x540316: la vida (rand() & 7) + 20 de todas; la /2 la pisa con 19 y corre la y rand() % 60 − 30
+// (0x5402ac); la /3 vive 7 y la /4 4, las dos con la textura 0x5fd (0x5402df, 0x5402f2), y la /4 gira rand() % 180 −
+// 360 (0x540310).
+void CreateTheMagicSpark(Particle& particle, Render::Models::CrtRandom& random)
+{
+    constexpr std::int32_t Shine = 0x5fd;
+    constexpr std::int32_t ShiftedLife = 19, FlashLife = 7, BlinkLife = 4;
+    constexpr int ShiftSpan = 60, TurnSpan = 180;
+    constexpr double ShiftCenter = 30.0, TurnBase = 360.0;
+    particle.life = (random.Next() & 7) + 20;
+    if (particle.subtype == 2)
+    {
+        particle.life = ShiftedLife;
+        particle.position.y = F32(
+            (static_cast<double>(random.Next() % ShiftSpan) + static_cast<double>(particle.position.y)) - ShiftCenter);
+    }
+    else if (particle.subtype == 3)
+    {
+        particle.life = FlashLife;
+        particle.texture = Shine;
+    }
+    else if (particle.subtype == 4)
+    {
+        particle.life = BlinkLife;
+        particle.texture = Shine;
+        particle.rotation = F32(static_cast<double>(random.Next() % TurnSpan) - TurnBase);
+    }
+}
+
+// 0x544e87..0x544ed5: la /2 se achica por 0,92f; la /3 crece por 1,3f y se apaga por 0,9f; la /4 salta al final
+// (0x544edd) sin nada propio.
+void StepTheMagicSpark(Particle& particle)
+{
+    if (particle.subtype == 2)
+    {
+        particle.scale =
+            F32(static_cast<double>(particle.scale) * static_cast<double>(std::bit_cast<float>(0x3f6b851fu)));
+    }
+    else if (particle.subtype == 3)
+    {
+        particle.scale =
+            F32(static_cast<double>(particle.scale) * static_cast<double>(std::bit_cast<float>(0x3fa66666u)));
+        for (int channel = 0; channel < 3; ++channel)
+            particle.light[channel] = F32(static_cast<double>(particle.light[channel]) *
+                                          static_cast<double>(std::bit_cast<float>(0x3f666666u)));
+    }
+}
+
+// 0x543939..0x5439c9 (la /0) y 0x5439ca..0x543a5c (la /1): vida 24 o 15, la velocidad (0; −(rand() % 16 + 32) ·
+// 0,1f; 0) del fild por −0,1f (0x6b8930), la escala (rand() % 128 + 128) · 0,01f (0x6b88d4), la luz 0,5 y el giro
+// rand() % 360. Tres rand(); con otro subtipo, 0x54304c sin nada propio.
+void CreateTheCinder(Particle& particle, Render::Models::CrtRandom& random)
+{
+    if (particle.subtype != 0 && particle.subtype != 1)
+        return;
+    constexpr double Fall = static_cast<double>(std::bit_cast<float>(0xbdcccccdu));
+    constexpr double Hundredth = static_cast<double>(std::bit_cast<float>(0x3c23d70au));
+    constexpr float Half = std::bit_cast<float>(0x3f000000u);
+    constexpr std::int32_t MeteorLife = 24, JavelinLife = 15;
+    particle.life = particle.subtype == 0 ? MeteorLife : JavelinLife;
+    particle.velocity.x = 0.0f;
+    const int fall = static_cast<int>(random.Next() & 15) + 32;
+    particle.velocity.z = 0.0f;
+    particle.velocity.y = F32(static_cast<double>(fall) * Fall);
+    const int size = static_cast<int>(random.Next() & 127) + 128;
+    particle.scale = F32(static_cast<double>(size) * Hundredth);
+    const int turn = static_cast<int>(random.Next() % 360);
+    particle.light = glm::vec3(Half);
+    particle.rotation = static_cast<float>(turn);
+}
+
+// 0x5478d7..0x54793a, después de la vida y del movimiento común, con cualquier subtipo: la velocidad vertical sube
+// 0,004f (0x6b89e8), la escala baja 0,02f (0x6b8b90), el cuadro (+0x48) es (23 − vida) / 6 (imul por 0x2aaaaaab,
+// hacia 0) y la z sube la velocidad vertical (releída del float) por 10. La /1 se apaga con la vida · 0,1f
+// (0x6b8a34), un fst por canal.
+void StepTheCinder(Particle& particle)
+{
+    constexpr double Rise = static_cast<double>(std::bit_cast<float>(0x3b83126fu));
+    constexpr double Shrink = static_cast<double>(std::bit_cast<float>(0x3ca3d70au));
+    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
+    constexpr std::int32_t FrameEnd = 23, FrameLength = 6;
+    particle.verticalSpeed = F32(static_cast<double>(particle.verticalSpeed) + Rise);
+    const std::int32_t life = particle.life;
+    particle.scale = F32(static_cast<double>(particle.scale) - Shrink);
+    particle.field48 = std::bit_cast<float>((FrameEnd - life) / FrameLength);
+    particle.position.z =
+        F32(static_cast<double>(particle.verticalSpeed) * 10.0 + static_cast<double>(particle.position.z));
+    if (particle.subtype == 1)
+        particle.light = glm::vec3(F32(static_cast<double>(life) * Tenth));
 }
 
 // 0x54271f..0x542838 con el subtipo 0: la vida, la posición corrida en x y en y, la escala en la x87 (fild, por la
@@ -844,7 +940,7 @@ bool IsMapSpark(const Particle& particle)
 
 bool IsDrop(const Particle& particle)
 {
-    return particle.type == DropParticle && particle.subtype == 0;
+    return particle.type == DropParticle && particle.subtype >= 0 && particle.subtype <= LastDropSubtype;
 }
 
 std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtype)
@@ -862,15 +958,18 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
     {
         return subtype == 0 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     }
+    // 0x542d60 y 0x546fa2: la 607 de 0 a 4.
     if (type == DropParticle)
     {
-        return subtype == 0 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
+        return subtype >= 0 && subtype <= LastDropSubtype ? std::nullopt
+                                                          : std::optional(ParticleError::UnsupportedSubtype);
     }
     // 0x541172 y 0x5457a5: el fuego trata cualquier subtipo (los de fuera de sus casos, sin nada propio).
     if (IsFireType(type))
         return std::nullopt;
+    // 0x540260 y 0x544e87: la /2, la /3 y la /4 (las de 0x1b6 y la mano de Crywolf).
     if (type == MagicSparkParticle)
-        return subtype == 2 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
+        return subtype >= 2 && subtype <= 4 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     // 0x540d13..0x54109e y 0x545565: la 5da trata cualquier subtipo (los de fuera de 0..9, sólo con el giro).
     if (type == MissileFireParticle)
         return std::nullopt;
@@ -891,6 +990,15 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
         return subtype == 0 || subtype == 1 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     if (type == ExplosionParticle)
         return subtype >= 0 && subtype <= 2 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
+    // 0x542a94 y 0x545ce3: la 5ee no lee el subtipo.
+    if (type == BlazeParticle)
+        return std::nullopt;
+    // 0x543939 y 0x5478d7: la 6ad trata cualquier subtipo (los de fuera de /0 y /1 nacen sin nada propio).
+    if (type == CinderParticle)
+        return std::nullopt;
+    // 0x5443ae y 0x5481ab: la 6eb tampoco.
+    if (type == ShockWaveParticle)
+        return std::nullopt;
     if (type == ArrivalDustParticle)
         return subtype == 1 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     // 0x542b3b y 0x546b04: la 5e4 no lee el subtipo.
@@ -1311,15 +1419,28 @@ void StepTheMapSpark(Particle& particle)
     }
 }
 
+// 0x542d75..0x542ecf: la vida rand() % 10 + 30, la luz 1 (pisa la del pedido) y la escala (rand() % 6 + 4) · 0,03f
+// (0x6b8bd4), dos rand(); la /2 además pide el sonido 0x1d8 (0x542e08, lo pide quien la crea). La /3 (0x542e1a) suma
+// esa escala a la del pedido y sortea otra igual para la subida (+0x50): tres rand().
 void CreateTheDrop(Particle& particle, Render::Models::CrtRandom& random)
 {
     particle.life = DropLifeBase + (random.Next() % DropLifeSpan);
     const int scaleSteps = (random.Next() % DropScaleSpan) + DropScaleBase;
+    if (particle.subtype == RisingDropSubtype)
+    {
+        particle.scale = F32(static_cast<double>(scaleSteps) * DropScaleStep + static_cast<double>(particle.scale));
+        const int riseSteps = (random.Next() % DropScaleSpan) + DropScaleBase;
+        particle.light = glm::vec3(1.0f);
+        particle.verticalSpeed = F32(static_cast<double>(riseSteps) * DropScaleStep);
+        return;
+    }
     particle.light = glm::vec3(1.0f);
     particle.scale = F32(static_cast<double>(scaleSteps) * DropScaleStep);
 }
 
-void StepTheDrop(Particle& particle, Render::Models::CrtRandom& random)
+// 0x546fb2..0x547024 (/0) y 0x5470d3..0x547145 (/3): el cuadro +0x48 (un entero) sube 1 y la posición camina
+// (rand() % 20 − 10; rand() % 20 − 10; rand() % 20 + 10) por la escala (la /3, por su subida +0x50) y por 2,5.
+void WalkTheDrop(Particle& particle, Render::Models::CrtRandom& random, float stride)
 {
     const std::uint32_t frame = std::bit_cast<std::uint32_t>(particle.field48) + 1u;
     particle.field48 = std::bit_cast<float>(frame);
@@ -1328,9 +1449,67 @@ void StepTheDrop(Particle& particle, Render::Models::CrtRandom& random)
         const int direction = axis == 2 ? DropWalkCenter : -DropWalkCenter;
         const int steps = (random.Next() % DropWalkSpan) + direction;
         // La escala se relee después de cada RNG; no hay store32 entre los dos productos.
-        particle.position[axis] =
-            F32(static_cast<double>(steps) * static_cast<double>(particle.scale) * DropWalkFactor +
-                static_cast<double>(particle.position[axis]));
+        particle.position[axis] = F32(static_cast<double>(steps) * static_cast<double>(stride) * DropWalkFactor +
+                                      static_cast<double>(particle.position[axis]));
+    }
+}
+
+// 0x5470a0..0x5470ce (/2) y 0x54714a..0x54719a (/4): la z sube (rand() % 20 + 10) · 0,3f y la escala crece 0,005f
+// (0x6b89d8); la /4, con la z guardada por encima de 350 (0x6b89ac; ni menor, ni igual, ni NaN), la deja en 350 y la
+// vida en 0.
+void FloatTheDrop(Particle& particle, Render::Models::CrtRandom& random)
+{
+    constexpr double Lift = static_cast<double>(std::bit_cast<float>(0x3e99999au));  // 0x6b89dc, 0,3f
+    constexpr double Swell = static_cast<double>(std::bit_cast<float>(0x3ba3d70au)); // 0x6b89d8, 0,005f
+    constexpr float Ceiling = 350.0f;                                                // 0x6b89ac
+    const int steps = (random.Next() % DropWalkSpan) + DropWalkCenter;
+    particle.position.z = F32(static_cast<double>(steps) * Lift + static_cast<double>(particle.position.z));
+    particle.scale = F32(static_cast<double>(particle.scale) + Swell);
+    if (particle.subtype == CappedDropSubtype && particle.position.z > Ceiling)
+    {
+        particle.position.z = Ceiling;
+        particle.life = 0;
+    }
+}
+
+// 0x547029..0x54709b, la /1: el cuadro sube 1, la x y la y caminan (rand() % 30 − 15) por la escala, la z sube
+// (rand() % 20 + 10) por la escala y por 0,3f, y la escala crece 0,002f (0x6b89bc).
+void BubbleTheDrop(Particle& particle, Render::Models::CrtRandom& random)
+{
+    constexpr int BubbleSpan = 30, BubbleCenter = 15;
+    constexpr double Lift = static_cast<double>(std::bit_cast<float>(0x3e99999au));  // 0x6b89dc, 0,3f
+    constexpr double Swell = static_cast<double>(std::bit_cast<float>(0x3b03126fu)); // 0x6b89bc, 0,002f
+    const std::uint32_t frame = std::bit_cast<std::uint32_t>(particle.field48) + 1u;
+    particle.field48 = std::bit_cast<float>(frame);
+    for (int axis = 0; axis < 2; ++axis)
+    {
+        const int steps = (random.Next() % BubbleSpan) - BubbleCenter;
+        particle.position[axis] = F32(static_cast<double>(steps) * static_cast<double>(particle.scale) +
+                                      static_cast<double>(particle.position[axis]));
+    }
+    const int steps = (random.Next() % DropWalkSpan) + DropWalkCenter;
+    particle.position.z = F32(static_cast<double>(steps) * static_cast<double>(particle.scale) * Lift +
+                              static_cast<double>(particle.position.z));
+    particle.scale = F32(static_cast<double>(particle.scale) + Swell);
+}
+
+void StepTheDrop(Particle& particle, Render::Models::CrtRandom& random)
+{
+    switch (particle.subtype)
+    {
+    case BubbleDropSubtype:
+        BubbleTheDrop(particle, random);
+        return;
+    case SoundingDropSubtype:
+    case CappedDropSubtype:
+        FloatTheDrop(particle, random);
+        return;
+    case RisingDropSubtype:
+        WalkTheDrop(particle, random, particle.verticalSpeed);
+        return;
+    default:
+        WalkTheDrop(particle, random, particle.scale);
+        return;
     }
 }
 
@@ -1751,6 +1930,16 @@ Particles::CreateTowardChecked(std::int32_t type, const glm::vec3& position, con
                       std::nullopt, owner, &ownerPosition);
 }
 
+Core::Expected<std::optional<std::size_t>, ParticleError>
+Particles::CreateOnGroundChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles,
+                                 const glm::vec3& light, std::int32_t subtype, float scale,
+                                 std::reference_wrapper<const float> worldClock, Render::Models::CrtRandom& random,
+                                 IParticleTrigonometry& trigonometry, const ParticleTerrainHeight& terrainHeight)
+{
+    return CreateImpl(type, position, angles, light, subtype, scale, 0.0f, &worldClock.get(), random, 0, &trigonometry,
+                      std::nullopt, {}, nullptr, &terrainHeight);
+}
+
 std::optional<std::size_t> Particles::CreatePiercingSpark(const glm::vec3& position, float scale, ParticleOwner owner,
                                                           const glm::vec3& center)
 {
@@ -1804,7 +1993,8 @@ Core::Expected<std::optional<std::size_t>, ParticleError>
 Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
                       std::int32_t subtype, float scale, float legacyClock, const float* worldClock,
                       Render::Models::CrtRandom& random, std::uint32_t owner, IParticleTrigonometry* trigonometry,
-                      std::optional<std::int32_t> scene, ParticleOwner typedOwner, const glm::vec3* ownerPosition)
+                      std::optional<std::int32_t> scene, ParticleOwner typedOwner, const glm::vec3* ownerPosition,
+                      const ParticleTerrainHeight* terrainHeight)
 {
     for (std::size_t index = 0; index < m_particles.size(); ++index)
     {
@@ -1827,10 +2017,16 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
         {
             return Core::Unexpected(ParticleError::MissingOwner);
         }
-        // 5c6/4 y 5de/4 leen la posición del dueño al nacer (0x540686 y 0x5417ba): sin ella no hay de dónde.
+        // 5c6/4, 5de/4 y 5c5/5 leen la posición del dueño al nacer (0x540686, 0x5417ba y 0x5403ad): sin ella no hay de
+        // dónde.
         if (ownerPosition == nullptr && NeedsOwnerPosition(type, subtype))
         {
             return Core::Unexpected(ParticleError::MissingOwner);
+        }
+        // La niebla 5f2/28..30 pide la altura del terreno al nacer (0x5f93c0): sin ella no hay de dónde.
+        if ((terrainHeight == nullptr || !*terrainHeight) && NeedsTerrainHeight(type, subtype))
+        {
+            return Core::Unexpected(ParticleError::MissingTerrainHeight);
         }
         if (!kalima && !selection && !trials && !bloodCastle && !orbit &&
             !(worldClock != nullptr && IsMap8Smoke(type, subtype)))
@@ -1875,8 +2071,8 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
         }
         if (IsEffectParticle(type, subtype))
         {
-            const auto created =
-                CreateEffectParticle(particle, random, {worldClock, trigonometry, ownerPosition, legacyClock});
+            const auto created = CreateEffectParticle(
+                particle, random, {worldClock, trigonometry, ownerPosition, legacyClock, terrainHeight});
             if (!created.HasValue())
                 return Core::Unexpected(created.Error());
             return std::optional(index);
@@ -1968,7 +2164,9 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
         }
         if (IsNoriaParticle(type, subtype))
         {
-            CreateNoriaParticle(particle, random);
+            const auto created = CreateNoriaParticle(particle, scale, random, ownerPosition);
+            if (!created.HasValue())
+                return Core::Unexpected(created.Error());
             return std::optional(index);
         }
         if (type == Particle67)
@@ -2027,11 +2225,7 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
         }
         if (type == MagicSparkParticle)
         {
-            // 0x540260: sortea la vida antes de pisarla con19 y tirar el corrimiento de y.
-            particle.life = (random.Next() & 7) + 20;
-            particle.life = 19;
-            particle.position.y =
-                F32((static_cast<double>(random.Next() % 60) + static_cast<double>(particle.position.y)) - 30.0);
+            CreateTheMagicSpark(particle, random);
             return std::optional(index);
         }
         if (type == BreathParticle && subtype == CrywolfSwingSmokeSubtype)
@@ -2114,6 +2308,27 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
         if (type == ExplosionParticle)
         {
             CreateTheExplosion(particle, scale);
+            return std::optional(index);
+        }
+        if (type == CinderParticle)
+        {
+            CreateTheCinder(particle, random);
+            return std::optional(index);
+        }
+        if (type == ShockWaveParticle)
+        {
+            // 0x5443b2: vida 7, sin rand().
+            constexpr std::int32_t ShockWaveLife = 7;
+            particle.life = ShockWaveLife;
+            return std::optional(index);
+        }
+        if (type == BlazeParticle)
+        {
+            // 0x542a94..0x542aa4: vida 12 y la escala del pedido otra vez en +0x10. El sonido de 0x542aa7, quien la
+            // crea.
+            constexpr std::int32_t BlazeLife = 12;
+            particle.life = BlazeLife;
+            particle.scale = scale;
             return std::optional(index);
         }
         if (type == BloodParticle)
@@ -2231,13 +2446,12 @@ const ParticleWind& Particles::Wind() const
 
 namespace
 {
-Core::Expected<void, ParticleError>
-StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random, const float* worldClock,
-                  const std::int32_t* map, IParticleTrigonometry* trigonometry,
-                  const ParticleTerrainHeight& terrainHeight, const ParticleObjectOwners& owners,
-                  const ParticleActorActions& actorActions, const ParticleTextureHeight& textureHeight,
-                  TerrainLighting* lighting, const ParticleActorHands& actorHands, const ParticleOwnerBones& ownerBones,
-                  const std::function<void(std::int32_t)>& sound, const ParticleOwnerStates& ownerStates)
+Core::Expected<void, ParticleError> StepParticlesImpl(
+    Particles& particles, Render::Models::CrtRandom& random, const float* worldClock, const std::int32_t* map,
+    IParticleTrigonometry* trigonometry, const ParticleTerrainHeight& terrainHeight, const ParticleObjectOwners& owners,
+    const ParticleActorActions& actorActions, const ParticleTextureHeight& textureHeight, TerrainLighting* lighting,
+    const ParticleActorHands& actorHands, const ParticleOwnerBones& ownerBones,
+    const std::function<void(std::int32_t)>& sound, const ParticleOwnerStates& ownerStates, FrameSprites* sprites)
 {
     // Los punteros privados distinguen exclusivamente legacy de la API pública requerida.
     // El overload vivo siempre proporciona reloj y evaluador; no hay servicio opcional público.
@@ -2264,7 +2478,8 @@ StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random, const
         }
         if (IsKalimaParticle(particle.type, particle.subtype))
         {
-            const auto stepped = StepKalimaParticle(particle, random, worldClock, trigonometry, particles.Wind().wind);
+            const auto stepped =
+                StepKalimaParticle(particle, random, worldClock, trigonometry, particles.Wind().wind, ownerStates);
             if (!stepped.HasValue())
                 return stepped;
             continue;
@@ -2380,9 +2595,15 @@ StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random, const
                     particle.light[channel] = F32(static_cast<double>(particle.light[channel]) - BoltFade);
             }
         }
+        else if (IsFallingShine(particle.type, particle.subtype))
+        {
+            const auto stepped = StepTheFallingShine(particle, random, sprites);
+            if (!stepped.HasValue())
+                return stepped;
+        }
         else if (IsNoriaParticle(particle.type, particle.subtype))
         {
-            const auto stepped = StepNoriaParticle(particle, terrainHeight);
+            const auto stepped = StepNoriaParticle(particle, terrainHeight, ownerStates);
             if (!stepped.HasValue())
                 return stepped;
         }
@@ -2434,8 +2655,7 @@ StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random, const
         }
         else if (particle.type == MagicSparkParticle)
         {
-            particle.scale =
-                F32(static_cast<double>(particle.scale) * static_cast<double>(std::bit_cast<float>(0x3f6b851fu)));
+            StepTheMagicSpark(particle);
         }
         else if (particle.type == BreathParticle && particle.subtype == CrywolfSwingSmokeSubtype)
         {
@@ -2488,6 +2708,25 @@ StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random, const
             const auto stepped = StepTheExplosion(particle, particles, random, worldClock, lighting, sound);
             if (!stepped.HasValue())
                 return stepped;
+        }
+        else if (particle.type == CinderParticle)
+        {
+            StepTheCinder(particle);
+        }
+        else if (particle.type == ShockWaveParticle)
+        {
+            // 0x5481ab..0x5481d8: la luz por 0,5555556f (0x6ba234) y la escala más 0,3f (0x6b89dc).
+            for (int channel = 0; channel < 3; ++channel)
+                particle.light[channel] = F32(static_cast<double>(particle.light[channel]) *
+                                              static_cast<double>(std::bit_cast<float>(0x3f0e38e4u)));
+            particle.scale =
+                F32(static_cast<double>(particle.scale) + static_cast<double>(std::bit_cast<float>(0x3e99999au)));
+        }
+        else if (particle.type == BlazeParticle)
+        {
+            // 0x545ce3..0x545cfb: el cuadro (+0x48) es (12 − vida) / 3, el cociente de imul por 0x55555556 (hacia 0).
+            constexpr std::int32_t BlazeLife = 12, BlazeFrameLength = 3;
+            particle.field48 = std::bit_cast<float>((BlazeLife - particle.life) / BlazeFrameLength);
         }
         else if (particle.type == BloodParticle)
         {
@@ -2572,7 +2811,7 @@ Core::Expected<void, ParticleError> StepParticlesChecked(Particles& particles, R
                                                          const ParticleTerrainHeight& terrainHeight)
 {
     return StepParticlesImpl(particles, random, nullptr, map, nullptr, terrainHeight, {}, {}, {}, nullptr, {}, {}, {},
-                             {});
+                             {}, nullptr);
 }
 
 Core::Expected<void, ParticleError>
@@ -2584,20 +2823,20 @@ StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random,
                      const ParticleActorHands& actorHands, const ParticleOwnerBones& ownerBones)
 {
     return StepParticlesImpl(particles, random, &worldClock.get(), map, &trigonometry, terrainHeight, owners,
-                             actorActions, textureHeight, lighting, actorHands, ownerBones, {}, {});
+                             actorActions, textureHeight, lighting, actorHands, ownerBones, {}, {}, nullptr);
 }
 
-Core::Expected<void, ParticleError>
-StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random,
-                     std::reference_wrapper<const float> worldClock, const std::int32_t* map,
-                     IParticleTrigonometry& trigonometry, const ParticleTerrainHeight& terrainHeight,
-                     const ParticleObjectOwners& owners, const ParticleActorActions& actorActions,
-                     const ParticleTextureHeight& textureHeight, TerrainLighting* lighting,
-                     const ParticleActorHands& actorHands, const ParticleOwnerBones& ownerBones,
-                     const std::function<void(std::int32_t)>& sound, const ParticleOwnerStates& ownerStates)
+Core::Expected<void, ParticleError> StepParticlesChecked(
+    Particles& particles, Render::Models::CrtRandom& random, std::reference_wrapper<const float> worldClock,
+    const std::int32_t* map, IParticleTrigonometry& trigonometry, const ParticleTerrainHeight& terrainHeight,
+    const ParticleObjectOwners& owners, const ParticleActorActions& actorActions,
+    const ParticleTextureHeight& textureHeight, TerrainLighting* lighting, const ParticleActorHands& actorHands,
+    const ParticleOwnerBones& ownerBones, const std::function<void(std::int32_t)>& sound,
+    const ParticleOwnerStates& ownerStates, FrameSprites* sprites)
 {
     return StepParticlesImpl(particles, random, &worldClock.get(), map, &trigonometry, terrainHeight, owners,
-                             actorActions, textureHeight, lighting, actorHands, ownerBones, sound, ownerStates);
+                             actorActions, textureHeight, lighting, actorHands, ownerBones, sound, ownerStates,
+                             sprites);
 }
 
 std::optional<ParticleError> StepParticles(Particles& particles, Render::Models::CrtRandom& random)

@@ -11,6 +11,7 @@
 #include "Scenes/CharacterStep.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/KundunEffects.h"
 #include "World/IFishStepServices.h"
 #include "World/KalimaWorld.h"
 #include "World/ModelEffects.h"
@@ -20,7 +21,6 @@
 
 #include <glm/ext/vector_float3.hpp>
 
-#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <format>
@@ -175,15 +175,20 @@ public:
         return {};
     }
 
-    // 0x518cf0 con un tipo que MuRet no crea: con un lugar sin el byte vivo corta en `address`; llena, nada.
-    [[nodiscard]] Result UnportedEffect(std::int32_t type, std::int32_t subtype, std::string_view address) const
+    // 0x518cf0(0x128, posición, ángulos del personaje (+0x1c), su luz (+0xf4), subtipo, 0, −1, 0, 0, 0, 0): el efecto
+    // de Kundun (Scenes/KundunEffects), sin rand(); con la tabla llena, nada.
+    [[nodiscard]] Result KundunCall(const glm::vec3& position, std::int32_t subtype, std::string_view address) const
     {
         if (m_pass.effects == nullptr)
             return Core::Unexpected(std::format("{}: faltan los efectos del frame (0x518cf0)", address));
-        const auto effects = m_pass.effects->Effects();
-        if (std::ranges::any_of(effects, [](const World::ModelEffect& effect) { return !effect.alive; }))
-            return Core::Unexpected(
-                std::format("{}: el efecto {:#x}/{} (0x518cf0) no está portado (CL11)", address, type, subtype));
+        const ActorState& actor = m_pass.actor;
+        const auto made = CreateTheKundunCall(*m_pass.effects, {.type = KundunCallEffect,
+                                                                .position = position,
+                                                                .angles = actor.angles,
+                                                                .light = actor.light,
+                                                                .subtype = subtype});
+        if (!made.HasValue())
+            return Core::Unexpected(std::format("{}: {}", address, made.Error()));
         return {};
     }
 
@@ -408,7 +413,6 @@ Result StepKundunAttacks(const Helper& helper)
     constexpr std::int32_t Cast = 0x65;
     constexpr std::int32_t Burst = 0x66;
     constexpr std::int32_t Done = 0x67;
-    constexpr std::int32_t BigEffect = 0x128;
     constexpr std::size_t HandBone = 49;
     if (action == 3)
     {
@@ -417,8 +421,9 @@ Result StepKundunAttacks(const Helper& helper)
         if (actor.dword60 == Armed && frame > 3.0f)
         {
             actor.dword60 = Cast;
-            // 0x43cff8..0x43d04e: la x y la y del objeto con la z del hueso 49, para el efecto.
-            return helper.UnportedEffect(BigEffect, 0, "0x43d051");
+            // 0x43cff8..0x43d04e: la x y la y del objeto con la z del hueso 49 (0x930 / 0x30), para el 0x128/0.
+            const glm::vec3 hand = helper.Point(HandBone, {});
+            return helper.KundunCall({actor.position.x, actor.position.y, hand.z}, 0, "0x43d051");
         }
         return {};
     }
@@ -429,8 +434,10 @@ Result StepKundunAttacks(const Helper& helper)
     if (actor.dword60 == Armed && frame > 5.0f)
     {
         actor.dword60 = Cast;
-        // 0x43d09b..0x43d0f6: el hueso 49 a 400 de altura, para el efecto.
-        if (auto made = helper.UnportedEffect(BigEffect, 1, "0x43d0fd"); !made.HasValue())
+        // 0x43d09b..0x43d0f6: el hueso 49 con el offset (0, 0, 0), a 400 de altura (0x43c80000), para el 0x128/1.
+        glm::vec3 hand = helper.Point(HandBone, {});
+        hand.z = 400.0f;
+        if (auto made = helper.KundunCall(hand, 1, "0x43d0fd"); !made.HasValue())
             return made;
     }
     if (actor.dword60 == Cast && frame > 6.0f)

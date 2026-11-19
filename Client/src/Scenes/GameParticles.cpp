@@ -23,6 +23,7 @@
 
 #include <glm/ext/vector_float3.hpp>
 
+#include <algorithm>
 #include <array>
 #include <bit>
 #include <cstddef>
@@ -34,6 +35,7 @@
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <utility>
 #include <vector>
 
 namespace Client::Scenes
@@ -186,12 +188,13 @@ Core::Expected<void, std::string> StepGameParticles(
     const std::function<std::optional<glm::vec3>(std::uint64_t, std::int32_t)>& actorHands,
     const std::function<std::optional<glm::vec3>(const World::Particle&)>& ownerBones,
     const std::function<void(std::int32_t)>& sound,
-    const std::function<std::optional<World::ParticleOwnerState>(const World::ParticleOwner&)>& ownerStates)
+    const std::function<std::optional<World::ParticleOwnerState>(const World::ParticleOwner&)>& ownerStates,
+    World::FrameSprites* sprites)
 {
     World::PortableParticleTrigonometry trigonometry;
-    const auto stepped =
-        World::StepParticlesChecked(particles, random, std::cref(worldClock), &map, trigonometry, terrainHeight, owners,
-                                    actorActions, textureHeight, lighting, actorHands, ownerBones, sound, ownerStates);
+    const auto stepped = World::StepParticlesChecked(particles, random, std::cref(worldClock), &map, trigonometry,
+                                                     terrainHeight, owners, actorActions, textureHeight, lighting,
+                                                     actorHands, ownerBones, sound, ownerStates, sprites);
     if (!stepped.HasValue())
     {
         return Core::Unexpected(std::format("0x637128 → 0x5446e0: el paso de las partículas falla con error {}",
@@ -248,8 +251,25 @@ ParticleOwnerStatesOf(WorldState& world)
         const auto actors = world.Actors();
         if (owner.kind != World::ParticleOwnerKind::Actor || owner.identity >= actors.size())
             return std::nullopt;
-        const ActorState& actor = actors[static_cast<std::size_t>(owner.identity)];
-        return World::ParticleOwnerState{actor.alive, actor.position, std::nullopt};
+        const auto slot = static_cast<std::size_t>(owner.identity);
+        const ActorState& actor = actors[slot];
+        // 0x4010b0 → 0x4016c0 (el lugar y el nombre exacto en la lista de 0x401000) y 0x401550: 0x4ec110 sin
+        // trasladar con los huesos propios (+0x120), por la escala (+0xc) y más la posición (+0x10).
+        auto namedBone = [&world, slot](std::string_view name) -> std::optional<glm::vec3>
+        {
+            const auto& bones = world.Runtime().namedBones;
+            const auto found = std::ranges::find_if(bones, [slot, name](const NamedBone& bone)
+                                                    { return bone.actor == slot && bone.name == name; });
+            if (found == bones.end())
+                return std::nullopt;
+            const ActorState& named = world.Actors()[slot];
+            const Render::Models::BoneTransform matrix =
+                found->bone < named.bodyPose.size() ? named.bodyPose[found->bone] : Render::Models::BoneTransform(0.0f);
+            return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), {}, named.scale,
+                                                             named.position);
+        };
+        return World::ParticleOwnerState{actor.alive, actor.position, std::nullopt, actor.animation.action,
+                                         std::move(namedBone)};
     };
 }
 

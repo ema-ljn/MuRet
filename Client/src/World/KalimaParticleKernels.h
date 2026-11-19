@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "World/Particles.h"
 
 #include <glm/ext/vector_float2.hpp>
 
@@ -17,7 +18,8 @@ struct Particle;
 class IParticleTrigonometry;
 enum class ParticleError : std::uint8_t;
 // El 0x5ac (Effect\flare01.jpg): 6 y 7 de Kalima, 0 del 10 de Icarus (0x604143), 1 la estela del efecto
-// 0x5ac de Icarus y 9 la del efecto 0xb3 de Aida (0x520d04).
+// 0x5ac de Icarus, 9 la del efecto 0xb3 de Aida (0x520d04), 5 la de la calavera 0x628/5 (0x52b843) y del empujón de
+// la skill 0x28 (0x4fbd3a), y 8 la del 0x61e/6 (0x52baf5).
 inline constexpr std::int32_t KalimaFlare = 0x5ac;
 inline constexpr std::int32_t KalimaFanta = 0x6ed;
 // Effect\fantaF.jpg: el 0x39 y el 0x47 de Crywolf crean 6ec/5 (0x430825 y 0x430890), y el 0 y el 0x35 de Castle
@@ -27,7 +29,9 @@ inline constexpr std::int32_t KalimaFanta = 0x6ed;
 inline constexpr std::int32_t CrywolfFanta = 0x6ec;
 inline constexpr std::int32_t ShortFantaSubtype = 5;
 // 0x543be5: la /6 (la de 0x428adc y 0x428c52) vive 32. 0x543aed: la /7 nace corrida y más grande, y su paso (0x547cc2)
-// se achica 0,1f y sube 2 más. La /1..4 leen a su dueño (0x547a4d, 0x547a73) y no están; los demás subtipos son la /0.
+// se achica 0,1f y sube 2 más. La /1..4 nacen como la /0 y, con dueño (CreateOwnedChecked), leen su acción (la /1 y la
+// /2, 0x547a4d) o la mano del Monster82 (la /3 del 0x1a4 y del 0x1a9 y la /4 del 0x1a4, 0x547a73); los demás subtipos
+// son la /0.
 inline constexpr std::int32_t LongFantaSubtype = 6;
 inline constexpr std::int32_t SwirlFantaSubtype = 7;
 inline constexpr std::int32_t LastOwnedFantaSubtype = 4;
@@ -48,12 +52,15 @@ inline constexpr std::int32_t KundunSplashSubtype = 2;
 inline constexpr std::int32_t KundunSplashLastSubtype = 4;
 [[nodiscard]] bool IsKalimaParticle(std::int32_t type, std::int32_t subtype);
 // Después del prefijo53fe70.6f1/0 consultaScene tras3CRT y antes de almacenar vz;
-// su ausencia conserva Initialize/vida/rotación/escala y devuelve MissingScene, sin jitter.
+// su ausencia conserva Initialize/vida/rotación/escala y devuelve MissingScene, sin jitter. La 6f1/1 pisa esa luz
+// (0x544057) y nace sin escena.
 [[nodiscard]] Core::Expected<void, ParticleError>
 CreateKalimaParticle(Particle& particle, Render::Models::CrtRandom& random, std::optional<std::int32_t> scene);
 // Después de vida/movimiento5446e0, incluso en el tick que apaga alive. `wind` es el viento de este paso
-// (0x7609bb8/bbc), ya movido; sólo lo lee el 5ac/0.
+// (0x7609bb8/bbc), ya movido; sólo lo lee el 5ac/0. `ownerStates` lo lee la fanta 6ec/1..4 con dueño: sin él,
+// MissingOwner.
 [[nodiscard]] Core::Expected<void, ParticleError>
 StepKalimaParticle(Particle& particle, Render::Models::CrtRandom& random, const float* clock,
-                   IParticleTrigonometry* trigonometry, const glm::vec2& wind);
+                   IParticleTrigonometry* trigonometry, const glm::vec2& wind,
+                   const ParticleOwnerStates& ownerStates = {});
 } // namespace Client::World

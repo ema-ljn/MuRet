@@ -3,6 +3,7 @@
 
 #include "World/Ftol.h"
 #include "World/IParticleTrigonometry.h"
+#include "World/ParticleOwner.h"
 #include "World/Particles.h"
 #include "Render/Models/Cloth.h"
 
@@ -10,8 +11,10 @@
 #include <glm/ext/vector_float3.hpp>
 
 #include <bit>
+#include <cmath>
 #include <cstdint>
 #include <optional>
+#include <string_view>
 
 namespace Client::World
 {
@@ -29,6 +32,9 @@ constexpr double Brighten = static_cast<double>(1.1f);
 constexpr double WalkFactor = static_cast<double>(std::bit_cast<float>(0x39d1b718u));
 constexpr int FullTurn = 360, LifeSpan = 10, LongLife = 30, ShortLife = 20;
 constexpr int FlareZero = 0, FlareTrail = 1, FlareSix = 6, FlareSeven = 7, FlareNine = 9, SelectionScene = 4;
+// La 5ac/5 de la calavera 0x628/5 (0x52b843) y del empujón de la skill 0x28 (0x4fbd3a), y la 5ac/8 del 0x61e/6
+// (0x52baf5).
+constexpr int FlareFive = 5, FlareEight = 8;
 constexpr std::int32_t WaterfallSplash = WaterfallSplashFirst;
 float F32(double value)
 {
@@ -48,10 +54,11 @@ void Jitter(Particle& p, Render::Models::CrtRandom& random, int xySpan, int zSpa
         p.position[axis] = F32(static_cast<double>(offset) + p.position[axis]);
     }
 }
-// 0x540151..0x54018f: el 5ac/0 (y el /2 y el /8) son las mismas instrucciones que el /6.
+// 0x540151..0x54018f: el 5ac/0 (y el /2 y el /8, que 0x53ffa5 y 0x53ffae mandan al mismo 0x540151) son las mismas
+// instrucciones que el /6 (0x54003c); el /7 (0x53ffd9) vive 30 más y su escala es rand() % 15 + 30.
 void CreateFlare(Particle& p, Render::Models::CrtRandom& random)
 {
-    const bool six = p.subtype == FlareSix || p.subtype == FlareZero;
+    const bool six = p.subtype != FlareSeven;
     p.life = random.Next() % LifeSpan + (six ? LifeSpan : LongLife);
     p.verticalSpeed = static_cast<float>(random.Next() % LifeSpan + LifeSpan);
     const int size = random.Next() % (six ? 50 : 15) + (six ? 50 : LongLife);
@@ -62,6 +69,9 @@ void CreateFlare(Particle& p, Render::Models::CrtRandom& random)
 constexpr std::int32_t ObjectSubtype = 2, SplashObjectSubtype = 4;
 // 0x544088..0x544153 y 0x5480ae..0x5480f0: la 6f1/3 de las botas del conjunto completo (0x50ff37).
 constexpr std::int32_t BootsMistSubtype = 3;
+// 0x544055..0x544085 y 0x548082..0x5480ab: la 6f1/1 de los brazos y la cabeza del 0x1b7 (0x427b8b, 0x427c42,
+// 0x427cfd).
+constexpr std::int32_t ArmMistSubtype = 1;
 constexpr double KundunFallTurn = 4.0; // 0x6b8a44
 // 0x544095..0x54414c: después de lo de la neblina, la textura cra_04 (0x5ae), la luz del argumento (pisa la de la
 // escena), vida 12, otro giro, vz 2, la escala (rand() % 3 + 3) · 0,18f y otro corrimiento de ±10, ±10 y ±20. Cinco
@@ -108,12 +118,24 @@ Core::Expected<void, ParticleError> CreateWaterfall(Particle& p, Render::Models:
         else
             p.scale = F32(static_cast<double>(random.Next() % MistSpan + MistSpan) * Tenth);
         const int fall = -3 - random.Next() % FallSpan;
-        // 543fcd consultaScene después de R2 y antes del store de vz543fd8.
-        if (!scene)
+        // 543fcd consultaScene después de R2 y antes del store de vz543fd8. La /1 pisa esa luz (0x544057) sin
+        // leerla: no la pide.
+        const bool arm = p.subtype == ArmMistSubtype;
+        if (!scene && !arm)
             return Core::Unexpected(ParticleError::MissingScene);
         p.velocity.z = static_cast<float>(fall);
-        p.light = glm::vec3(*scene == SelectionScene ? 0.25f : 0.4f);
+        if (scene)
+            p.light = glm::vec3(*scene == SelectionScene ? 0.25f : 0.4f);
         Jitter(p, random, ShortLife, 40);
+        if (arm)
+        {
+            // 0x544057..0x544085: la luz (0; 0,4f; 0,4f) de ebx, vida 50 y otra caída −3 − rand() % 3: siete rand().
+            constexpr float Cyan = std::bit_cast<float>(0x3ecccccdu);
+            constexpr std::int32_t ArmLife = 50;
+            p.light = {0.0f, Cyan, Cyan};
+            p.life = ArmLife;
+            p.velocity.z = static_cast<float>(-3 - random.Next() % FallSpan);
+        }
         if (p.subtype == BootsMistSubtype)
             CreateBootsMist(p, random, lightArgument);
         return {};
@@ -264,6 +286,41 @@ Core::Expected<void, ParticleError> StepFlareSeven(Particle& p, const float* clo
     }
     return {};
 }
+// 0x547a40..0x547cb4, la fanta con el dueño (+0x40) que no es nulo: la /1 y la /2 pierden dos de vida con su acción
+// (+0x111) en 1 (0x547a4d); la /3 y la /4 buscan la mano izquierda o la derecha del Monster82 (0x547c1e, 0x4010b0) y,
+// si está, la distancia d (las restas, los cuadrados y la raíz en la x87, ((dz² + dy²) + dx²)) achica la escala d ·
+// 0,003f (0x6b89cc) y apaga la luz d · 0,08f (0x6ba1ac), que el paso común pisa después con la vida.
+Core::Expected<void, ParticleError> StepOwnedFanta(Particle& p, const ParticleOwnerStates& ownerStates)
+{
+    if (p.subtype < 1 || p.subtype > LastOwnedFantaSubtype || p.typedOwner.kind == ParticleOwnerKind::None)
+        return {};
+    const auto owner = ownerStates ? ownerStates(p.typedOwner) : std::nullopt;
+    if (!owner)
+        return Core::Unexpected(ParticleError::MissingOwner);
+    constexpr std::int32_t ShakenSubtype = 2, ShakingAction = 1, ShakenLife = 2;
+    if (p.subtype <= ShakenSubtype)
+    {
+        if (owner->action == ShakingAction)
+            p.life -= ShakenLife;
+        return {};
+    }
+    constexpr std::int32_t LeftHandSubtype = 3;
+    const std::string_view hand = p.subtype == LeftHandSubtype ? "Monster82_LHand" : "Monster82_RHand";
+    const auto bone = owner->namedBone ? owner->namedBone(hand) : std::nullopt;
+    if (!bone)
+        return {};
+    constexpr double Shrink = static_cast<double>(std::bit_cast<float>(0x3b449ba6u));
+    constexpr double Dim = static_cast<double>(std::bit_cast<float>(0x3da3d70au));
+    const double dx = static_cast<double>(p.position.x) - static_cast<double>(bone->x);
+    const double dy = static_cast<double>(p.position.y) - static_cast<double>(bone->y);
+    const double dz = static_cast<double>(p.position.z) - static_cast<double>(bone->z);
+    const double distance = std::sqrt((dz * dz + dy * dy) + dx * dx);
+    p.scale = F32(static_cast<double>(p.scale) - distance * Shrink);
+    const double dim = distance * Dim;
+    for (int axis = 0; axis < 3; ++axis)
+        p.light[axis] = F32(static_cast<double>(p.light[axis]) - dim);
+    return {};
+}
 // 0x547cba..0x547d3d: la escala baja 0,02f (la /7, 0,1f y además sube 2), sin bajar de 0; la velocidad x e y por 0,95f,
 // la z sube 1 y la luz es vida · 0,04f.
 void StepFanta(Particle& p)
@@ -295,6 +352,9 @@ void StepWaterfall(Particle& p, Render::Models::CrtRandom& random)
         p.velocity.z = F32(rise);
         if (p.life < LifeSpan)
             FadeLight(p, MistFade);
+        // 0x54808a..0x5480ab: la /1 además se apaga por 0,95238101f (0x6ba264).
+        if (p.subtype == ArmMistSubtype)
+            FadeLight(p, static_cast<double>(std::bit_cast<float>(0x3f73cf3eu)));
         if (p.subtype == BootsMistSubtype)
         {
             // 0x5480b7..0x5480ed: la escala baja 0,038f, vz es la suma sin redondear menos 0,02f y la luz por
@@ -349,16 +409,16 @@ bool IsKalimaParticle(std::int32_t type, std::int32_t subtype)
     const bool objectWaterfall =
         ((type == KalimaWaterfallFirst || type == KalimaWaterfallMist) && subtype == ObjectSubtype) ||
         ((type == WaterfallSplash || type == WaterfallSplash + 1) && subtype == SplashObjectSubtype);
-    // 0x543b82 y 0x547cba: todos los subtipos menos la /1..4 (que leen a su dueño en 0x547a4d y 0x547a73, CL11).
-    const bool fanta =
-        (type == KalimaFanta || type == CrywolfFanta) && (subtype < 1 || subtype > LastOwnedFantaSubtype);
+    // 0x543b82 y 0x547a40: todos los subtipos; la /1..4 leen a su dueño en el paso (0x547a4d y 0x547a73).
+    const bool fanta = type == KalimaFanta || type == CrywolfFanta;
     return objectWaterfall || fanta ||
            (type == KalimaWaterfallLast && (subtype == 1 || subtype == KundunFallSubtype ||
                                             subtype == KundunSplashLastSubtype || subtype == BrazierFallSubtype)) ||
            ((type == WaterfallSplash || type == WaterfallSplash + 1) && subtype == KundunSplashSubtype) ||
-           (type == KalimaWaterfallMist && subtype == BootsMistSubtype) ||
-           (type == KalimaFlare && (subtype == FlareZero || subtype == FlareTrail || subtype == FlareSix ||
-                                    subtype == FlareSeven || subtype == FlareNine)) ||
+           (type == KalimaWaterfallMist && (subtype == ArmMistSubtype || subtype == BootsMistSubtype)) ||
+           (type == KalimaFlare &&
+            (subtype == FlareZero || subtype == FlareTrail || subtype == FlareFive || subtype == FlareSix ||
+             subtype == FlareSeven || subtype == FlareEight || subtype == FlareNine)) ||
            (subtype == 0 && type >= KalimaWaterfallFirst && type <= KalimaWaterfallLast);
 }
 Core::Expected<void, ParticleError> CreateKalimaParticle(Particle& p, Render::Models::CrtRandom& random,
@@ -366,12 +426,14 @@ Core::Expected<void, ParticleError> CreateKalimaParticle(Particle& p, Render::Mo
 {
     if (p.type == KalimaFlare)
     {
-        // 0x54007f: el 5ac/1 (la estela del efecto 0x5ac de Icarus) sólo vive 50, sin rand(). 0x53ffb9: el
-        // 5ac/9 vive ftol(escala · 40), sin rand().
-        constexpr std::int32_t TrailLife = 50;
+        // 0x54007f: el 5ac/1 (la estela del efecto 0x5ac de Icarus) sólo vive 50, sin rand(). 0x540140: el /5 vive
+        // 25, sin rand(). 0x53ffb9: el 5ac/9 vive ftol(escala · 40), sin rand().
+        constexpr std::int32_t TrailLife = 50, FiveLife = 25;
         constexpr double NineLifePerScale = 40.0;
         if (p.subtype == FlareTrail)
             p.life = TrailLife;
+        else if (p.subtype == FlareFive)
+            p.life = FiveLife;
         else if (p.subtype == FlareNine)
             p.life = FtolLow(static_cast<double>(p.scale) * NineLifePerScale);
         else
@@ -451,15 +513,25 @@ Core::Expected<void, ParticleError> CreateKalimaParticle(Particle& p, Render::Mo
 }
 Core::Expected<void, ParticleError> StepKalimaParticle(Particle& p, Render::Models::CrtRandom& random,
                                                        const float* clock, IParticleTrigonometry* trigonometry,
-                                                       const glm::vec2& wind)
+                                                       const glm::vec2& wind, const ParticleOwnerStates& ownerStates)
 {
     if (p.type == KalimaFlare)
     {
-        if (p.subtype == FlareZero)
-            StepFlareZero(p, random, wind);
-        else if (p.subtype == FlareTrail)
+        if (p.subtype == FlareZero || p.subtype == FlareEight)
         {
-            // 0x5449e1..0x544a11: la luz por 0,9f y la escala por 0,95f.
+            // 0x5448e1..0x544903 y 0x544c09..0x544c19: el /8 entra con el cmp por 8 todavía igual y toma la k = 0,5f
+            // del /0; después de su muerte, 0x544dd9..0x544dfd le pone la luz (escala; escala · 0,5; escala · 0,3f).
+            StepFlareZero(p, random, wind);
+            if (p.subtype == FlareEight)
+            {
+                constexpr double ThreeTenths = static_cast<double>(std::bit_cast<float>(0x3e99999au));
+                p.light = {p.scale, F32(static_cast<double>(p.scale) * 0.5),
+                           F32(static_cast<double>(p.scale) * ThreeTenths)};
+            }
+        }
+        else if (p.subtype == FlareTrail || p.subtype == FlareFive)
+        {
+            // 0x5449e1..0x544a11 (el /5 por 0x544a19): la luz por 0,9f y la escala por 0,95f.
             constexpr double TrailFade = static_cast<double>(std::bit_cast<float>(0x3f666666u));
             FadeLight(p, TrailFade);
             p.scale = F32(static_cast<double>(p.scale) * Damping);
@@ -472,7 +544,11 @@ Core::Expected<void, ParticleError> StepKalimaParticle(Particle& p, Render::Mode
             return StepFlareSeven(p, clock, trigonometry);
     }
     else if (p.type == KalimaFanta || p.type == CrywolfFanta)
+    {
+        if (auto owned = StepOwnedFanta(p, ownerStates); !owned.HasValue())
+            return owned;
         StepFanta(p);
+    }
     else if ((p.type == KalimaWaterfallLast && p.subtype == KundunSplashLastSubtype) ||
              (p.subtype == KundunSplashSubtype && (p.type == WaterfallSplash || p.type == WaterfallSplash + 1)))
         return StepKundunSplash(p, trigonometry);

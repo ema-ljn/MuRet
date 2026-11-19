@@ -21,6 +21,7 @@
 #include <initializer_list>
 #include <memory>
 #include <optional>
+#include <vector>
 
 // Los humos 5f2 de la CL11 (SmokeParticleKernels): oráculos escritos desde el ASM de 0x53fe70 y 0x5446e0, con los
 // rand() contados contra Client::Tests::AfterDraws.
@@ -251,6 +252,36 @@ TEST(Cl11SmokeParticles, TheFadingSmokeGrowsAndTheShrinkingOneDies)
     }
 }
 
+// 0x541c18: la /13 vive 20, con la escala ((rand() & 63) + 64) · 0,01f, el giro y la subida ((rand() & 31) + 60) ·
+// 0,1f, tres rand(); 0x5462c8: l = vida · 0,05f, retenido, da la luz (l; l · 0,5; l · 0,1f), y la escala crece 0,09f.
+TEST(Cl11SmokeParticles, TheEmberSmokeGlowsOrangeWithItsLife)
+{
+    auto particles = std::make_unique<Particles>();
+    CrtRandom random(Seed);
+    Particle& smoke = Create(*particles, random, 13, glm::vec3(1.0f, 0.0f, 0.0f), 1.5f, 0.0f);
+    Draws draws;
+    EXPECT_EQ(smoke.life, 20);
+    EXPECT_EQ(smoke.scale, F32(static_cast<double>((draws.Next() & 63) + 64) * D(0x3c23d70au)));
+    EXPECT_EQ(smoke.rotation, static_cast<float>(draws.Next() % 360));
+    EXPECT_EQ(smoke.verticalSpeed, F32(static_cast<double>((draws.Next() & 31) + 60) * D(0x3dcccccdu)));
+    EXPECT_EQ(smoke.light, glm::vec3(1.0f, 0.0f, 0.0f));
+    EXPECT_EQ(random.State(), AfterDraws(Seed, 3).State());
+    const float scale = smoke.scale;
+    ASSERT_TRUE(Step(*particles, random).HasValue());
+    const double ember = 19.0 * D(0x3d4ccccdu);
+    EXPECT_EQ(smoke.light, glm::vec3(F32(ember), F32(ember * 0.5), F32(ember * D(0x3dcccccdu))));
+    EXPECT_EQ(smoke.scale, F32(D(scale) + D(0x3db851ecu)));
+    EXPECT_EQ(random.State(), AfterDraws(Seed, 5).State()); // más el viento
+
+    for (Particle& particle : particles->All())
+        particle.alive = true;
+    CrtRandom full(Seed);
+    const auto none = particles->CreateChecked(Smoke, {}, {}, glm::vec3(1.0f), 13, 1.0f, 0.0f, full);
+    ASSERT_TRUE(none.HasValue());
+    EXPECT_FALSE(none.Value().has_value());
+    EXPECT_EQ(full.State(), Seed);
+}
+
 // 0x54196c..0x541a00: la /36 (la de 0x52497d, con el efecto de dueño) tiene la luz (1; 0,3f; 0), vida 25 y cinco
 // rand(): el giro, el ángulo x y la partida. 0x545ef9: con la vida en 23 o más, la posición del dueño más la partida;
 // después sube con la escala · 0,1f en la z y en la y y se achica 0,08f. El giro suma 0,01f.
@@ -376,11 +407,10 @@ TEST(Cl11SmokeParticles, ThePuffKeepsItsLightTiltsAndRises)
 }
 
 // Los humos nuevos van al billboard del humo (0x54874c) con la mezcla que deja el material (con el byte 4,
-// 0x620a00(0)), salvo la /20 (0x548723) y la /37 (0x54873a), que restan con 0x620b10. La /28..30 leen el terreno al
-// nacer (0x5425f9) y siguen sin portar.
-TEST(Cl11SmokeParticles, TheNewSmokesDrawAndTheGroundedOnesStayCut)
+// 0x620a00(0)), salvo la /20 (0x548723), la /29 (0x54872d) y la /37 (0x54873a), que restan con 0x620b10.
+TEST(Cl11SmokeParticles, TheNewSmokesDraw)
 {
-    for (const std::int32_t subtype : {17, 19, 20, 23, 24, 26, 31, 36, 37})
+    for (const std::int32_t subtype : {13, 17, 19, 20, 23, 24, 26, 28, 29, 30, 31, 36, 37})
     {
         Particle particle{.alive = true,
                           .type = Smoke,
@@ -391,16 +421,138 @@ TEST(Cl11SmokeParticles, TheNewSmokesDrawAndTheGroundedOnesStayCut)
         const auto drawn = Client::Tests::DrawOneParticle(particle, glm::vec2(64, 64), std::uint8_t{4});
         ASSERT_TRUE(drawn.HasValue()) << subtype;
         ASSERT_TRUE(drawn.Value().has_value()) << subtype;
-        const bool subtracts = subtype == 20 || subtype == 37;
+        const bool subtracts = subtype == 20 || subtype == 29 || subtype == 37;
         EXPECT_EQ(drawn.Value()->blend, subtracts ? Blend::Subtractive : Blend::Alpha) << subtype;
     }
-    for (const std::int32_t subtype : {28, 29, 30})
+}
+
+// 0x5425c7, 0x54261b y 0x542668: la niebla /28, /29 y /30 de la tormenta chica saca el giro rand() % 360 y pide la
+// altura del terreno (0x5f93c0) en su x y su y (edi es la posición de la partícula, +0x14): la z queda en ella más 15.
+// La /28 vive 12 con la escala 2,3f, la subida 33 y la textura 0x6ad; la /29 igual con la del tipo; la /30 vive 4 con
+// la escala 1,8f y la subida 15, y corre la x y la y con s = fsin(reloj) · 5 en PC53 (0x5426ae). Las x y las y de la
+// /30 son las de Python (decimal de 80 dígitos, float32 de numpy): sin(1000) · 5 = 4,134397702660013.
+TEST(Cl11SmokeParticles, TheStormMistsAreBornOnTheGround)
+{
+    struct Expected
     {
+        std::int32_t subtype;
+        std::int32_t life;
+        std::uint32_t scale;
+        float rise;
+        std::int32_t texture;
+        glm::vec2 at;
+    };
+    const glm::vec3 position{1000.0f, 2000.0f, 777.0f};
+    const glm::vec2 swayed{std::bit_cast<float>(0x447b089au), std::bit_cast<float>(0x44fa844du)};
+    for (const Expected& expected : {Expected{28, 12, 0x40133333u, 33.0f, 0x6ad, {1000.0f, 2000.0f}},
+                                     Expected{29, 12, 0x40133333u, 33.0f, Smoke, {1000.0f, 2000.0f}},
+                                     Expected{30, 4, 0x3fe66666u, 15.0f, Smoke, swayed}})
+    {
+        SCOPED_TRACE(expected.subtype);
         auto particles = std::make_unique<Particles>();
         CrtRandom random(Seed);
-        const auto created = particles->CreateChecked(Smoke, {}, {}, glm::vec3(1.0f), subtype, 1.0f, 0.0f, random);
-        ASSERT_FALSE(created.HasValue()) << subtype;
-        EXPECT_EQ(created.Error(), ParticleError::UnsupportedSubtype) << subtype;
+        PortableParticleTrigonometry trigonometry;
+        const float clock = 1000.0f;
+        std::vector<glm::vec2> asked;
+        const Client::World::ParticleTerrainHeight ground = [&asked](float x, float y)
+        {
+            asked.emplace_back(x, y);
+            return 123.25;
+        };
+        const auto created =
+            particles->CreateOnGroundChecked(Smoke, position, glm::vec3(1.0f, 2.0f, 3.0f), glm::vec3(0.5f),
+                                             expected.subtype, 0.75f, std::cref(clock), random, trigonometry, ground);
+        ASSERT_TRUE(created.HasValue());
+        ASSERT_EQ(created.Value(), std::optional<std::size_t>(0));
+        const Particle& mist = Only(*particles, 0);
+        Draws draws;
+        EXPECT_EQ(mist.life, expected.life);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(mist.scale), expected.scale);
+        EXPECT_EQ(mist.verticalSpeed, expected.rise);
+        EXPECT_EQ(mist.rotation, static_cast<float>(draws.Next() % 360));
+        EXPECT_EQ(mist.texture, expected.texture);
+        EXPECT_EQ(mist.position, glm::vec3(expected.at, 138.25f));
+        EXPECT_EQ(mist.start, position);
+        EXPECT_EQ(mist.light, glm::vec3(0.5f));
+        EXPECT_EQ(random.State(), AfterDraws(Seed, 1).State());
+        ASSERT_EQ(asked.size(), 1U);
+        EXPECT_EQ(asked.front(), glm::vec2(1000.0f, 2000.0f));
+
+        // Sin la altura del terreno no hay de dónde: nada antes de tocar el lugar, ni el rand().
+        auto bare = std::make_unique<Particles>();
+        CrtRandom untouched(Seed);
+        const auto refused =
+            bare->CreateChecked(Smoke, position, {}, glm::vec3(1.0f), expected.subtype, 1.0f, clock, untouched);
+        ASSERT_FALSE(refused.HasValue());
+        EXPECT_EQ(refused.Error(), ParticleError::MissingTerrainHeight);
+        const auto empty = bare->CreateOnGroundChecked(Smoke, position, {}, glm::vec3(1.0f), expected.subtype, 1.0f,
+                                                       std::cref(clock), untouched, trigonometry, {});
+        ASSERT_FALSE(empty.HasValue());
+        EXPECT_EQ(empty.Error(), ParticleError::MissingTerrainHeight);
+        EXPECT_EQ(untouched.State(), Seed);
+        EXPECT_FALSE(Only(*bare, 0).alive);
+
+        // Con los 3.000 llenos, 0x53fe70 sale antes: ni rand() ni terreno.
+        for (Particle& particle : particles->All())
+            particle.alive = true;
+        CrtRandom full(Seed);
+        asked.clear();
+        const auto none = particles->CreateOnGroundChecked(Smoke, position, {}, glm::vec3(1.0f), expected.subtype, 1.0f,
+                                                           std::cref(clock), full, trigonometry, ground);
+        ASSERT_TRUE(none.HasValue());
+        EXPECT_FALSE(none.Value().has_value());
+        EXPECT_EQ(full.State(), Seed);
+        EXPECT_TRUE(asked.empty());
     }
+}
+
+// 0x546852 (/28) y 0x54689e (/29): la z suma la subida; con la vida (ya descontada) en 9 o más la escala baja 0,4f y
+// si no crece por 1,2f; la /28 apaga la luz por 0,92f y la /29 la deja en 1. 0x5468de (/30): crece 0,15f, la luz
+// (1; 3; 1) y sube. Los valores, de Python (float32 de numpy): 2,3f − 0,4f = 0x3ff33333, por 1,2f = 0x4011eb85,
+// 0,5f · 0,92f = 0x3eeb851f, 0,6f · 0,92f = 0x3f0d4fe0, 0,7f · 0,92f = 0x3f24dd2f y 1,8f + 0,15f = 0x3ff99999.
+TEST(Cl11SmokeParticles, TheStormMistsShrinkThenSwellAndRise)
+{
+    const auto mist = [](std::int32_t subtype, std::int32_t life, std::uint32_t scale, float rise)
+    {
+        return Particle{.alive = true,
+                        .type = Smoke,
+                        .texture = Smoke,
+                        .subtype = subtype,
+                        .scale = std::bit_cast<float>(scale),
+                        .position = {1000.0f, 2000.0f, 138.25f},
+                        .light = {0.5f, 0.6f, 0.7f},
+                        .life = life,
+                        .moves = true,
+                        .verticalSpeed = rise};
+    };
+    for (const std::int32_t subtype : {28, 29})
+    {
+        SCOPED_TRACE(subtype);
+        auto particles = std::make_unique<Particles>();
+        Particle& smoke = Only(*particles, 0);
+        smoke = mist(subtype, 10, 0x40133333u, 33.0f);
+        CrtRandom random(Seed);
+        ASSERT_TRUE(Step(*particles, random).HasValue());
+        EXPECT_EQ(smoke.life, 9);
+        EXPECT_EQ(smoke.position, glm::vec3(1000.0f, 2000.0f, 171.25f));
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(smoke.scale), 0x3ff33333u);
+        const glm::vec3 dimmed{std::bit_cast<float>(0x3eeb851fu), std::bit_cast<float>(0x3f0d4fe0u),
+                               std::bit_cast<float>(0x3f24dd2fu)};
+        EXPECT_EQ(smoke.light, subtype == 28 ? dimmed : glm::vec3(1.0f));
+        EXPECT_EQ(random.State(), AfterDraws(Seed, 2).State()); // sólo el viento
+        ASSERT_TRUE(Step(*particles, random).HasValue());
+        EXPECT_EQ(smoke.life, 8);
+        EXPECT_EQ(smoke.position.z, 204.25f);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(smoke.scale), 0x4011eb85u);
+    }
+    auto particles = std::make_unique<Particles>();
+    Particle& smoke = Only(*particles, 0);
+    smoke = mist(30, 4, 0x3fe66666u, 15.0f);
+    CrtRandom random(Seed);
+    ASSERT_TRUE(Step(*particles, random).HasValue());
+    EXPECT_EQ(smoke.life, 3);
+    EXPECT_EQ(smoke.position, glm::vec3(1000.0f, 2000.0f, 153.25f));
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(smoke.scale), 0x3ff99999u);
+    EXPECT_EQ(smoke.light, glm::vec3(1.0f, 3.0f, 1.0f));
 }
 } // namespace

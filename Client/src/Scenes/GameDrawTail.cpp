@@ -5,6 +5,7 @@
 #include "Scenes/WorldObjectsDrawing.h"
 #include "World/KalimaWorld.h"
 #include "World/WorldObjects.h"
+#include "World/ChaosCastle.h"
 
 #include "Core/IClock.h"
 #include "Render/Models/ObjectState.h"
@@ -23,7 +24,9 @@
 #include "Scenes/GameFloorItemDrawing.h"
 #include "Scenes/GameItemSpecialDrawing.h"
 #include "Scenes/GameTailDrawingPrimitives.h"
+#include "Scenes/HighEffectDrawing.h"
 #include "Scenes/ModelPoseCallbacks.h"
+#include "Scenes/MeteorEffects.h"
 #include "Scenes/WizardEffectDrawing.h"
 #include "World/GameModelEffects.h"
 #include "World/Leaves.h"
@@ -42,6 +45,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <format>
+#include <optional>
 #include <span>
 #include <string>
 
@@ -576,6 +580,16 @@ DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect, cons
                      const World::TerrainLighting* lighting, Core::Duration frameClock, float alpha,
                      const ModelEffectDrawResources* resources, std::uint64_t physicalSlot)
 {
+    // 0x602e90 llama primero a 0x5ffdf0 (0x602ea6). 0x5ffdff..0x5ffe24: en los mapas 18 a 23, con +0x1a1 del héroe, el
+    // alpha del efecto (+0x174) baja 0,15f y queda guardado, una vez por llamada en un frame del original (como los
+    // objetos en WorldObjectsDrawing). 0x5ffe2a..0x5ffe3d: por debajo de 0,01f (0x6b88d4; fcomp y test ah,1, también
+    // sin orden, con NaN) devuelve al = 0 sin posar, y 0x602eb0 salta 0x6002e0: ni la pose, ni el cuerpo, ni el caso
+    // propio (0x438fe0 del 0x125, sus sprites, ni los rand() del 0x11b).
+    if (resources != nullptr && resources->originalFrame && resources->kalimaPass != nullptr)
+        effect.alpha = World::ChaosCastlePoseAlpha(resources->kalimaPass->map, resources->heroByte1a1, effect.alpha);
+    constexpr float VisibleAlpha = 0.01f; // 0x6b88d4
+    if (!(effect.alpha >= VisibleAlpha))
+        return {};
     const auto model = static_cast<std::uint16_t>(effect.type);
     DrawnObject object;
     object.model = model;
@@ -595,8 +609,6 @@ DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect, cons
         (effect.type == 0x114 && (effect.subtype == 2 || effect.subtype == 6)) ||
         (effect.type == 0x115 && effect.subtype == 1) || effect.type == 0xed || effect.type == 0xee)
     {
-        if (!(effect.alpha >= .01f))
-            return {};
         if (resources != nullptr && resources->onPose)
         {
             if (auto posed = resources->onPose(object); !posed.HasValue())
@@ -627,7 +639,7 @@ DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect, cons
     }
     const bool castleGate = effect.type >= 0x3d && effect.type <= 0x40 && resources != nullptr &&
                             resources->kalimaPass != nullptr && resources->kalimaPass->map == 30;
-    if (castleGate && effect.objectState.hiddenMesh != World::HiddenObject && effect.alpha >= .01f)
+    if (castleGate && effect.objectState.hiddenMesh != World::HiddenObject)
     {
         if (resources->onPose)
         {
@@ -656,8 +668,27 @@ DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect, cons
             return Core::Unexpected(drawn.Error());
         return {};
     }
-    // 0x6004aa (+0x74 en 0x80) y los colores del 0xcc/3, /4 y el 0xcb/2, /3 (Scenes/WizardEffectDrawing, CL11).
-    if (resources != nullptr && resources->onPose && !(effect.alpha < 0.01f) && models.Find(model) != nullptr &&
+    // 0x6004aa (+0x74 en 0x80) y los colores del 0xcc/3, /4 y el 0xcb/2, /3 (Scenes/WizardEffectDrawing, CL11); el
+    // 0x13d y el 0x13e por 0x442e10 (Scenes/MeteorEffects); el 0x11b, el 0x114/3..5, el 0x140 y, por 0x438fe0, el
+    // 0x125 (Scenes/HighEffectDrawing), después del +0x74 en 0x80, que 0x6002e0 mira antes que el tipo.
+    const auto drawTheSpecialBody = [&]() -> Core::Expected<bool, std::string>
+    {
+        if (effect.type == MeteorEffect || effect.type == MeteorShellEffect)
+            return DrawTheMeteorBody(batch, models, effect, object, frameClock,
+                                     resources != nullptr ? std::optional<float>(resources->worldClock) : std::nullopt);
+        if (effect.renderFlags != World::CrackRenderFlags && HasHighEffectBody(effect))
+        {
+            HighEffectDrawServices services;
+            if (resources != nullptr)
+                services = {.sprites = resources->sprites,
+                            .random = resources->random,
+                            .posedBones = resources->posedBones,
+                            .worldClock = resources->worldClock};
+            return DrawTheHighEffectBody(batch, models, effect, object, frameClock, services);
+        }
+        return DrawTheWizardEffectBody(batch, models, effect, object, frameClock);
+    };
+    if (resources != nullptr && resources->onPose && models.Find(model) != nullptr &&
         models.SkeletonOf(model) != nullptr)
     {
         if (auto published = resources->onPose(object); !published.HasValue())
@@ -667,7 +698,7 @@ DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect, cons
         {
             if (resources->posedMeshes)
                 object.retainedMeshes = resources->posedMeshes();
-            const auto special = DrawTheWizardEffectBody(batch, models, effect, object, frameClock);
+            const auto special = drawTheSpecialBody();
             if (!special.HasValue())
                 return Core::Unexpected(special.Error());
             if (!special.Value())
@@ -680,7 +711,7 @@ DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect, cons
     }
     else if (effect.objectState.hiddenMesh != World::HiddenObject)
     {
-        const auto special = DrawTheWizardEffectBody(batch, models, effect, object, frameClock);
+        const auto special = drawTheSpecialBody();
         if (!special.HasValue())
             return Core::Unexpected(special.Error());
         if (!special.Value())
@@ -688,7 +719,7 @@ DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect, cons
     }
     constexpr std::int16_t KalimaType = 9;
     if (effect.type == KalimaType && resources != nullptr && resources->kalimaPass != nullptr &&
-        World::IsKalimaMap(resources->kalimaPass->map) && !(effect.alpha < 0.01f))
+        World::IsKalimaMap(resources->kalimaPass->map))
     {
         World::WorldObject view;
         view.type = effect.type;

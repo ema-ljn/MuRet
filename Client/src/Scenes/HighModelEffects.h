@@ -63,7 +63,7 @@ struct HighEffectContext
 [[nodiscard]] glm::vec3 ActorBonePoint(const ActorState& actor, std::size_t bone, const glm::vec3& offset,
                                        const WorldState& world);
 
-// Los tipos cuya alta está en este archivo.
+// Los tipos cuya alta pasa por CreateHighModelEffect (la del 0x114/2..6, la del 0x115 y la del 0x621/0 son de World).
 [[nodiscard]] bool IsHighModelEffect(std::int16_t type);
 
 // 0x518cf0(tipo, posición, ángulos, luz, subtipo, dueño, clave, +0x89, +0x88, +0x1bd, escala) con uno de esos tipos: el

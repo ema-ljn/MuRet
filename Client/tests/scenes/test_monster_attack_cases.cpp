@@ -397,7 +397,8 @@ protected:
 // después de la lectura de +0x38e y de los rand() de su ayudante. Los de los magos se crean: el 0xcb/3 y el 0xcc/4 de
 // 0x439cd0 sin rand(), los tres 0xc2/7 de 0x43b18f con dos rand() % 200 y los cinco del alta cada uno; el anillo 0xc2/8
 // de 0x439bd0 (rand() % 360) crea sus cinco fuegos, con cuatro rand() y el joint 0x5f2/0 (0x51b268, sin rand()) cada
-// uno, y pide el sonido 0x1e0. Afuera, los mismos tipos van a la cola.
+// uno, y pide el sonido 0x1e0; los tres anillos 0x11b/1 de 0x439b20 se crean sin rand(). Afuera, los mismos tipos
+// van a la cola.
 TEST_F(MonsterAttackCasesTest, TheKalimaMonstersLeaveWithoutTheTail)
 {
     constexpr int Fires = 5, FireDraws = 4;
@@ -413,7 +414,7 @@ TEST_F(MonsterAttackCasesTest, TheKalimaMonstersLeaveWithoutTheTail)
          .skill = 1,
          .draws = SkillRead + 1 + Fires * FireDraws,
          .sounds = {BurstSound}},
-        {.name = "0x91 con 0x37 en 13", .type = 0x91, .step = 13, .skill = 0x37, .cut = "0x439ba5", .draws = SkillRead},
+        {.name = "0x91 con 0x37 en 13", .type = 0x91, .step = 13, .skill = 0x37, .draws = SkillRead, .sounds = {0x1df}},
         {.name = "0x91 con 0xc8 en 13", .type = 0x91, .step = 13, .skill = 0xc8, .draws = SkillRead},
         {.name = "0x91 con 1 en 12", .type = 0x91, .step = 12, .skill = 1, .draws = SkillRead},
         {.name = "0x91 en la 4 y en 14", .type = 0x91, .step = 14, .action = 4, .draws = SkillRead + 1 + 0xf08},
@@ -422,7 +423,12 @@ TEST_F(MonsterAttackCasesTest, TheKalimaMonstersLeaveWithoutTheTail)
         {.name = "0x94 con 0x11 en 14", .type = 0x94, .step = 14, .skill = 0x11, .draws = SkillRead + 1 + 0xf08},
         {.name = "0x94 con 0x11 en 13", .type = 0x94, .step = 13, .skill = 0x11, .draws = SkillRead},
         {.name = "0x95 con 1 en 14", .type = 0x95, .step = 14, .skill = 1, .draws = SkillRead + 3 * (2 + 5)},
-        {.name = "0x95 con 0x11 en 14", .type = 0x95, .step = 14, .skill = 0x11, .cut = "0x43b0ed", .draws = SkillRead},
+        {.name = "0x95 con 0x11 en 14",
+         .type = 0x95,
+         .step = 14,
+         .skill = 0x11,
+         .draws = SkillRead,
+         .joints = JointTable},
         {.name = "0x95 con 0x11 en 14 sin blanco",
          .type = 0x95,
          .step = 14,
@@ -455,6 +461,44 @@ TEST_F(MonsterAttackCasesTest, TheKalimaMonstersLeaveWithoutTheTail)
         SCOPED_TRACE(map);
         ExpectTheTailIn(map, {0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0xa0, 0xa1, 0x113});
     }
+}
+
+// 0x43b045..0x43b156: el 0x95 con 0x11 en 14 y el blanco de +0x3a4 en [0, 400) tira tres joints 0x610/6 desde el
+// punto del hueso 60 (el mismo para los tres) a la posición del blanco, con él de dueño, ancho 30, vida 50 (la key),
+// 16 puntos y velocidad 5; los giros z son el suyo, ése − 30 y ése + 15. Sin rand() más que la lectura de +0x38e.
+TEST_F(MonsterAttackCasesTest, TheKalimaMageThrowsThreeBoltsAtItsTarget)
+{
+    Load(24);
+    game->world.Runtime().hero = HeroAway;
+    constexpr std::uint16_t VictimSlot = 7;
+    ActorState& monster =
+        Prepare(Probe{.type = 0x95, .step = 14, .skill = 0x11, .target = VictimSlot, .joints = JointTable});
+    monster.angles = {5.0f, 0.0f, 100.0f};
+    ActorState& victim = game->world.Actors()[VictimSlot];
+    victim.position = {1200.0f, 1300.0f, 140.0f};
+
+    const auto stepped = Step(monster);
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(Draws(), SkillRead);
+    const std::array<float, 3> turns{100.0f, 70.0f, 85.0f};
+    for (std::size_t bolt = 0; bolt < turns.size(); ++bolt)
+    {
+        SCOPED_TRACE(bolt);
+        const Client::Scenes::JointState& joint = game->joints[bolt];
+        ASSERT_TRUE(joint.alive);
+        EXPECT_EQ(joint.type, 0x610);
+        EXPECT_EQ(joint.subtype, 6);
+        EXPECT_EQ(joint.ownerContext, &victim);
+        EXPECT_EQ(joint.targetPosition, victim.position);
+        EXPECT_EQ(joint.position, game->joints[0].position);
+        EXPECT_EQ(joint.angles, glm::vec3(5.0f, 0.0f, turns[bolt]));
+        EXPECT_EQ(joint.width, 30.0f);
+        EXPECT_EQ(joint.life, 50);
+        EXPECT_EQ(joint.maximumCount, 16);
+        EXPECT_EQ(joint.speed, 5.0f);
+    }
+    EXPECT_FALSE(game->joints[turns.size()].alive);
 }
 
 // 0x43ac07..0x43ac29: los siete números de +0x376 que la tabla de 0x43b8fc manda a 0x43abea (0x93, 0xb1, 0xb9, 0xc1,

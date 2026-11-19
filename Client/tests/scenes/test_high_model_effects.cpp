@@ -381,8 +381,9 @@ TEST(HighModelEffectsTest, TheSiegePulseDrawsItsPhaseAndRaisesItsJoint)
 }
 
 // 0x52c19a: con la vida en 10 o menos y par, el pulso gira +0x30 72 más, pone los ángulos en (90, 0, 0) y, con el /0,
-// saca rand() % 400 para el joint 0x632/5 (0x52c266, del lote de los joints; con la tabla llena no se crea); después
-// sigue por el paso del 0x13b/0 (0x52c34e): en 12 o menos, cuatro chispas 0x617/0 y 0x5d9/2 con su rand() % 60.
+// saca rand() % 400 para el joint 0x632/5 (0x52c266, StormJoints.cpp: dos rand() más; con la tabla llena no se crea);
+// después sigue por el paso del 0x13b/0 (0x52c34e): en 12 o menos, cuatro chispas 0x617/0 (dos rand() cada una) y
+// 0x5d9/2 con su rand() % 60.
 TEST(HighModelEffectsTest, TheSiegePulseTurnsAndFallsIntoTheFlareStep)
 {
     HighWorld tested;
@@ -394,17 +395,50 @@ TEST(HighModelEffectsTest, TheSiegePulseTurnsAndFallsIntoTheFlareStep)
     pulse.velocity = {0, -550, 0};
     pulse.copiedAngles = {0, 0, 10};
     pulse.start = {1000, 2000, 300};
-    EXPECT_TRUE(HasError(StepHighModelEffect(pulse, nullptr, tested.StepContext()), "0x52c266"));
+    pulse.transform.scale = 1.0f;
+    const ModelEffect initial = pulse;
+    const auto raised = StepHighModelEffect(pulse, nullptr, tested.StepContext());
+    ASSERT_TRUE(raised.HasValue()) << raised.Error();
     EXPECT_EQ(pulse.transform.angles, (glm::vec3{90, 0, 0}));
     EXPECT_EQ(pulse.copiedAngles.z, 82.0f);
-    EXPECT_EQ(tested.Draws(), 2);
+    // La luz, el rand() % 400, los dos del 0x632/5 (rand() & 1 y rand() % 20), los dos del punto y, por chispa, su
+    // ángulo, los dos del 0x617/0 y los dos del fuego.
+    EXPECT_EQ(tested.Draws(), 1 + 1 + 2 + 2 + 4 * 5);
+    CrtRandom expected(Seed);
+    static_cast<void>(expected.Next());
+    const int rise = expected.Next() % 400;
+    static_cast<void>(expected.Next());
+    const int speed = expected.Next() % 20;
+    const glm::vec3 reach = Client::Render::Models::OriginalVectorRotate(
+        {0, -550, 0}, Client::Render::Models::OriginalAngleMatrix({0, 0, 82}));
+    const glm::vec3 point{
+        static_cast<float>(static_cast<double>(reach.x) + 1000.0),
+        static_cast<float>(static_cast<double>(reach.y) + 2000.0),
+        static_cast<float>(static_cast<double>(static_cast<float>(static_cast<double>(reach.z) + 300.0)) +
+                           static_cast<double>(rise) + 700.0)};
+    const auto& star = tested.world->DrawTail().joints.front();
+    ASSERT_TRUE(star.alive);
+    EXPECT_EQ(star.type, 0x632);
+    EXPECT_EQ(star.subtype, 5);
+    EXPECT_EQ(star.ownerContext, &pulse);
+    EXPECT_EQ(star.ownerKind, Client::Scenes::JointOwnerKind::ModelEffect);
+    EXPECT_EQ(star.position, point);
+    EXPECT_EQ(star.angles, (glm::vec3{90, 0, 0}));
+    EXPECT_EQ(star.bendAngles, (glm::vec3{90, 0, 0}));
+    EXPECT_EQ(star.texture, 0x60f);
+    EXPECT_EQ(star.width, 110.0f);
+    EXPECT_EQ(star.maximumCount, 15);
+    EXPECT_EQ(star.life, 40);
+    EXPECT_EQ(star.speed, static_cast<float>(speed + 10));
+    EXPECT_EQ(star.orientation, 2);
+    EXPECT_EQ(star.key, 0);
+    EXPECT_EQ(star.field9ec, 150);
+    EXPECT_EQ(tested.world->DrawTail().joints[1].type, 0x617);
 
     HighWorld full;
     full.FillTheJoints();
     ModelEffect& joined = full.Effect(0);
-    joined = pulse;
-    joined.copiedAngles = {0, 0, 10};
-    joined.transform.scale = 1.0f;
+    joined = initial;
     const auto stepped = StepHighModelEffect(joined, nullptr, full.StepContext());
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(joined.life, 9);
@@ -418,6 +452,44 @@ TEST(HighModelEffectsTest, TheSiegePulseTurnsAndFallsIntoTheFlareStep)
     EXPECT_EQ(std::ranges::count_if(full.world->Particles().All(), [](const auto& particle)
                                     { return particle.alive && particle.type == Client::World::FireParticle; }),
               4);
+}
+
+// 0x52c2df..0x52c34a: con el /1, los dos 0x615/6 (0x52c31e y 0x52c342, escala 80, el pulso de dueño) en el punto 100
+// más arriba, dos rand() cada uno (la x y la y corridas, 0x531b0c); después, el /1 del paso del 0x13b sin rand().
+TEST(HighModelEffectsTest, TheSecondSiegePulseDropsTwoBolts)
+{
+    HighWorld tested;
+    ModelEffect& pulse = tested.Effect(0);
+    pulse.alive = true;
+    pulse.type = 0x61c;
+    pulse.subtype = 1;
+    pulse.life = 8;
+    pulse.velocity = {0, -250, 0};
+    pulse.copiedAngles = {0, 0, 10};
+    pulse.start = {1000, 2000, 300};
+
+    const auto stepped = StepHighModelEffect(pulse, nullptr, tested.StepContext());
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(tested.Draws(), 1 + 2 + 2);
+    const glm::vec3 reach = Client::Render::Models::OriginalVectorRotate(
+        {0, -250, 0}, Client::Render::Models::OriginalAngleMatrix({0, 0, 82}));
+    const glm::vec3 point{static_cast<float>(static_cast<double>(reach.x) + 1000.0),
+                          static_cast<float>(static_cast<double>(reach.y) + 2000.0),
+                          static_cast<float>(static_cast<double>(reach.z) + 300.0 + 100.0)};
+    for (std::size_t slot = 0; slot < 2; ++slot)
+    {
+        SCOPED_TRACE(slot);
+        const auto& bolt = tested.world->DrawTail().joints[slot];
+        ASSERT_TRUE(bolt.alive);
+        EXPECT_EQ(bolt.type, 0x615);
+        EXPECT_EQ(bolt.subtype, 6);
+        EXPECT_EQ(bolt.ownerContext, &pulse);
+        EXPECT_EQ(bolt.width, 80.0f);
+        EXPECT_EQ(bolt.targetPosition, point);
+        EXPECT_EQ(bolt.speed, std::bit_cast<float>(0x3e99999au));
+    }
+    EXPECT_FALSE(tested.world->DrawTail().joints[2].alive);
 }
 
 // 0x51e059 y 0x52c34e: el 0x13b/0 con vida 15, la escala en 0, la z 100 más, la velocidad (0, −10, 0) y +0xd8 en
@@ -641,9 +713,9 @@ TEST(HighModelEffectsTest, TheColoredDecalTakesItsLifeAndScaleBySubtype)
 }
 
 // 0x52b9c1..0x52bb24: el 0x61e/6 pone su partida como origen del modelo de su dueño, sortea +0x68 y, por cada vida, un
-// hueso; los dummy no sacan más; los otros, tres rand() del corrimiento y la partícula 0x5ac/8, que MuRet no tiene:
-// con lugar corta ahí (0x52baf5); llena, sigue. Después, el alpha del dueño en vida · 0,0125f, y la cola: una vida
-// menos sin moverse.
+// hueso; los dummy no sacan más; los otros, tres rand() del corrimiento y la partícula 0x5ac/8 (0x52baf5) con los
+// ángulos del dueño, luz 1 y escala 1, que saca otros tres; llena, sin ellos. Después, el alpha del dueño en vida ·
+// 0,0125f, y la cola: una vida menos sin moverse.
 TEST(HighModelEffectsTest, TheBindingDecalSparksOverTheBonesOfItsOwner)
 {
     HighWorld tested;
@@ -664,28 +736,41 @@ TEST(HighModelEffectsTest, TheBindingDecalSparksOverTheBonesOfItsOwner)
     decal.life = 3;
     const int before = tested.Draws();
     const ModelEffect kept = decal;
-    const auto cut = StepHighModelEffect(decal, nullptr, tested.StepContext());
-    // Hasta el corte (0x52baf5): la luz local (0x5208c5), +0x68 (0x52ba0f) y, por vuelta, el hueso (0x52ba3d); el
-    // primero que no es un dummy saca los tres del corrimiento (0x52ba66..0x52ba98) y la partícula corta sin sacar más.
-    ASSERT_FALSE(cut.HasValue());
-    EXPECT_TRUE(cut.Error().starts_with("0x52baf5")) << cut.Error();
+    const auto sparked = StepHighModelEffect(decal, nullptr, tested.StepContext());
+    ASSERT_TRUE(sparked.HasValue()) << sparked.Error();
     {
-        CrtRandom untilCut{Seed};
-        for (int skipped = 0; skipped < before; ++skipped)
-            static_cast<void>(untilCut.Next());
-        int cutDraws = before + 2;
-        static_cast<void>(untilCut.Next());
-        static_cast<void>(untilCut.Next());
+        // La luz local (0x5208c5), +0x68 (0x52ba0f) y, por vuelta, el hueso (0x52ba3d); el que no es un dummy saca los
+        // tres del corrimiento (0x52ba66..0x52ba98) y la 0x5ac/8 los suyos, replicados en un pool gemelo.
+        CrtRandom expected{Seed};
+        for (int skipped = 0; skipped < before + 2; ++skipped)
+            static_cast<void>(expected.Next());
+        auto twin = std::make_unique<Client::World::Particles>();
+        const auto& all = tested.world->Particles().All();
+        std::size_t made = 0;
         for (int turn = 0; turn < 3; ++turn)
         {
-            ++cutDraws;
-            if (untilCut.Next() % 2 == 0)
-            {
-                cutDraws += 3;
-                break;
-            }
+            if (expected.Next() % 2 == 1)
+                continue;
+            for (int axis = 0; axis < 3; ++axis)
+                static_cast<void>(expected.Next());
+            const Client::World::Particle& spark = all[made];
+            ASSERT_TRUE(spark.alive);
+            EXPECT_EQ(spark.type, 0x5ac);
+            EXPECT_EQ(spark.subtype, 8);
+            const auto replayed =
+                twin->CreateChecked(0x5ac, spark.start, owner.angles, glm::vec3(1.0f), 8, 1.0f, 0.0f, expected);
+            ASSERT_TRUE(replayed.HasValue() && replayed.Value().has_value());
+            const Client::World::Particle& twinSpark = twin->All()[*replayed.Value()];
+            EXPECT_EQ(spark.life, twinSpark.life);
+            EXPECT_EQ(spark.verticalSpeed, twinSpark.verticalSpeed);
+            EXPECT_EQ(spark.scale, twinSpark.scale);
+            EXPECT_EQ(spark.angles, owner.angles);
+            EXPECT_EQ(spark.light, glm::vec3(1.0f));
+            ++made;
         }
-        EXPECT_EQ(tested.Draws(), cutDraws);
+        EXPECT_GT(made, 0U);
+        EXPECT_FALSE(all[made].alive);
+        EXPECT_EQ(tested.random.State(), expected.State());
     }
     decal = kept;
     tested.random = CrtRandom{Seed};
@@ -1358,9 +1443,10 @@ TEST(HighModelEffectsTest, TheManaRuneGrowsFlashesAndSinks)
     ASSERT_TRUE(StepHighModelEffect(shrinking, nullptr, tested.StepContext()).HasValue());
     EXPECT_EQ(shrinking.transform.scale, 1.0f);
 }
-// 0x52c981 y 0x52caa5: el 0x812 suelta en cada paso el joint 0x60f/0xc (el /1) o 0x60f/4 (el /0), y el 0x813 tres
-// 0x619/6 con dos rand() cada uno; los dos joints son del lote de los joints: con lugar cortan (después de los rand()
-// del primero) y, con la tabla llena, siguen. Los dos pierden una vida y no se mueven.
+// 0x52c981 y 0x52caa5: el 0x812 suelta en cada paso el joint 0x60f/0xc (el /1, escala 100) o 0x60f/4 (el /0, escala
+// 50) con él de dueño (HelixJoints.cpp: un rand(), vx; la /4 toma su luz), y el 0x813 tres 0x619/6 del punto 100
+// hacia atrás a su posición, con dos rand() cada uno y sin dueño. Con la tabla llena, siguen sin los joints. Los dos
+// pierden una vida y no se mueven.
 TEST(HighModelEffectsTest, TheEmittersLeaveJointsEveryStep)
 {
     for (const std::int32_t subtype : {0, 1})
@@ -1370,14 +1456,31 @@ TEST(HighModelEffectsTest, TheEmittersLeaveJointsEveryStep)
         ASSERT_TRUE(CreateHighModelEffect({.type = 0x812, .position = {1, 2, 3}, .subtype = subtype}, tested.Context())
                         .HasValue());
         ModelEffect& spark = tested.Effect(0);
+        spark.light = {0.25f, 0.5f, 0.75f};
         EXPECT_EQ(spark.life, 10);
-        EXPECT_TRUE(HasError(StepHighModelEffect(spark, nullptr, tested.StepContext()),
-                             subtype == 1 ? "0x52c9a7" : "0x52c9da"));
+        const auto stepped = StepHighModelEffect(spark, nullptr, tested.StepContext());
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(tested.Draws(), 2);
+        CrtRandom expected(Seed);
+        static_cast<void>(expected.Next());
+        const auto& helix = tested.world->DrawTail().joints.front();
+        ASSERT_TRUE(helix.alive);
+        EXPECT_EQ(helix.type, 0x60f);
+        EXPECT_EQ(helix.subtype, subtype == 1 ? 0xc : 4);
+        EXPECT_EQ(helix.ownerContext, &spark);
+        EXPECT_EQ(helix.width, subtype == 1 ? 100.0f : 50.0f);
+        EXPECT_EQ(helix.life, subtype == 1 ? 70 : 110);
+        EXPECT_EQ(helix.maximumCount, 50);
+        EXPECT_EQ(helix.light,
+                  subtype == 1 ? glm::vec3(std::bit_cast<float>(0x3dcccccdu), std::bit_cast<float>(0x3dcccccdu), 1.0f)
+                               : spark.light);
+        EXPECT_EQ(helix.velocity.x, static_cast<float>(expected.Next() % 360));
+        EXPECT_EQ(helix.targetPosition, (glm::vec3{1, 2, 3}));
         tested.FillTheJoints();
         ASSERT_TRUE(StepHighModelEffect(spark, nullptr, tested.StepContext()).HasValue());
-        EXPECT_EQ(spark.life, 9);
+        EXPECT_EQ(spark.life, 8);
         EXPECT_EQ(spark.transform.position, (glm::vec3{1, 2, 3}));
-        EXPECT_EQ(tested.Draws(), 2);
+        EXPECT_EQ(tested.Draws(), 3);
     }
     HighWorld tested;
     ASSERT_TRUE(
@@ -1385,12 +1488,37 @@ TEST(HighModelEffectsTest, TheEmittersLeaveJointsEveryStep)
     ModelEffect& bolt = tested.Effect(0);
     EXPECT_EQ(bolt.life, 5);
     EXPECT_EQ(bolt.transform.angles, glm::vec3(0.0f));
-    EXPECT_TRUE(HasError(StepHighModelEffect(bolt, nullptr, tested.StepContext()), "0x52cb85"));
-    EXPECT_EQ(tested.Draws(), 3);
+    const auto bolted = StepHighModelEffect(bolt, nullptr, tested.StepContext());
+    ASSERT_TRUE(bolted.HasValue()) << bolted.Error();
+    EXPECT_EQ(tested.Draws(), 7);
+    CrtRandom expected(Seed);
+    static_cast<void>(expected.Next());
+    for (std::size_t made = 0; made < 3; ++made)
+    {
+        SCOPED_TRACE(made);
+        const auto& energy = tested.world->DrawTail().joints[made];
+        glm::vec3 angles{0.0f};
+        angles.x = static_cast<float>(expected.Next() % 90);
+        angles.z = static_cast<float>(expected.Next() % 360);
+        const glm::vec3 back = Client::Render::Models::OriginalVectorRotate(
+            {0.0f, -100.0f, 0.0f}, Client::Render::Models::OriginalAngleMatrix(angles));
+        const glm::vec3& at = bolt.transform.position;
+        ASSERT_TRUE(energy.alive);
+        EXPECT_EQ(energy.type, 0x619);
+        EXPECT_EQ(energy.subtype, 6);
+        EXPECT_EQ(energy.angles, angles);
+        EXPECT_EQ(energy.position,
+                  glm::vec3(static_cast<float>(static_cast<double>(at.x) - static_cast<double>(back.x)),
+                            static_cast<float>(static_cast<double>(at.y) - static_cast<double>(back.y)),
+                            static_cast<float>(static_cast<double>(at.z) - static_cast<double>(back.z))));
+        EXPECT_EQ(energy.targetPosition, at);
+        EXPECT_EQ(energy.width, 5.0f);
+        EXPECT_EQ(energy.ownerContext, nullptr);
+    }
     tested.FillTheJoints();
     ASSERT_TRUE(StepHighModelEffect(bolt, nullptr, tested.StepContext()).HasValue());
-    EXPECT_EQ(bolt.life, 4);
-    EXPECT_EQ(tested.Draws(), 3 + 7);
+    EXPECT_EQ(bolt.life, 3);
+    EXPECT_EQ(tested.Draws(), 7 + 7);
 }
 // El fld/fadd/fstp de cada eje, como Sum de HighModelEffects.
 glm::vec3 SumOf(const glm::vec3& a, const glm::vec3& b)
@@ -1523,6 +1651,52 @@ TEST(HighModelEffectsTest, TheFireBreathBurnsAtItsSidesAndSparksAtTheEnd)
     EXPECT_FALSE(burning.alive);
     EXPECT_EQ(full.Draws(), 40 + 10 * 2 + 40);
 }
+// 0x51fef0(punto, 1) con lugar: las veinte 0x5c5/2 (0x51ff7e) y la llamarada 0x5ee/0 (0x51ffd5) en el mismo punto, con
+// los ángulos en 0, la luz (1, 1, 1) y escala 4, y el sonido 0x40 de su alta (0x542aa7). Con la tabla llena, ni la
+// llamarada ni el sonido.
+TEST(HighModelEffectsTest, TheFireBreathEndsInABlaze)
+{
+    const glm::vec3 angles{10, 20, 30};
+    for (const bool full : {false, true})
+    {
+        SCOPED_TRACE(full);
+        HighWorld tested;
+        tested.FillTheJoints();
+        ASSERT_TRUE(
+            CreateHighModelEffect({.type = 0x6ac, .position = {1000, 2000, 300}, .angles = angles}, tested.Context())
+                .HasValue());
+        if (full)
+            tested.FillTheParticles();
+        ModelEffect& breath = tested.Effect(0);
+        for (int step = 0; step < 10 && breath.alive; ++step)
+        {
+            const auto stepped = StepHighModelEffect(breath, nullptr, tested.StepContext());
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        }
+        EXPECT_FALSE(breath.alive);
+        if (full)
+        {
+            EXPECT_NE(tested.world->Runtime().lastSoundId, std::optional<std::int32_t>{0x40});
+            continue;
+        }
+        EXPECT_EQ(AliveParticles(*tested.world, Client::World::FairySparkParticle, 2), 20);
+        ASSERT_EQ(AliveParticles(*tested.world, 0x5ee, 0), 1);
+        const auto& all = tested.world->Particles().All();
+        const auto blaze = std::ranges::find_if(all, [](const Client::World::Particle& particle)
+                                                { return particle.alive && particle.type == 0x5ee; });
+        const auto spark = std::ranges::find_if(all, [](const Client::World::Particle& particle)
+                                                { return particle.alive && particle.type == 0x5c5; });
+        ASSERT_NE(blaze, all.end());
+        ASSERT_NE(spark, all.end());
+        EXPECT_EQ(blaze->position, spark->start);
+        EXPECT_EQ(blaze->angles, glm::vec3(0.0f));
+        EXPECT_EQ(blaze->light, glm::vec3(1.0f));
+        EXPECT_EQ(blaze->scale, 4.0f);
+        EXPECT_EQ(blaze->life, 12);
+        EXPECT_EQ(tested.world->Runtime().lastSoundId, std::optional<std::int32_t>{0x40});
+    }
+}
+
 // 0x51dacb..0x51db6e: el 0x139 vive 35, con +0xe4 en 2, +0xd8 en 10, escala 1,2f y la velocidad (0, −5, 0); copia sus
 // ángulos en +0x28, toma la partida de la posición de su dueño y sube 150. Un rand() % 80 + 10 (r) mueve la z de
 // +0x28 subtipo · r − r. Sin dueño corta (el original lee la dirección 0x10); con la tabla llena, nada.
@@ -1612,8 +1786,9 @@ TEST(HighModelEffectsTest, TheJavelinClimbsSpinsAndBrakes)
     EXPECT_EQ(tested.random.State(), expected.State());
 }
 
-// 0x529bde..0x529c69: por debajo de 20, 0x4e9810 gira +0x28 hacia la partida. Lejos (100 o más), la partícula 0x6ad/1,
-// que MuRet no tiene: con lugar corta. Con las partículas llenas sigue; cerca, va a la partida y crece 0,04f más.
+// 0x529bde..0x529c69: por debajo de 20, 0x4e9810 gira +0x28 hacia la partida. Lejos (100 o más), la brasa 6ad/1 en
+// la posición girada, con los ángulos y la luz del efecto (la luz la pisa el alta con 0,5) y sus tres rand(), antes del
+// giro. Con las partículas llenas sigue sin ella; cerca, va a la partida y crece 0,04f más.
 TEST(HighModelEffectsTest, TheJavelinHuntsItsOwnerAndTrailsFire)
 {
     HighWorld tested;
@@ -1623,8 +1798,29 @@ TEST(HighModelEffectsTest, TheJavelinHuntsItsOwnerAndTrailsFire)
                     .HasValue());
     ModelEffect& javelin = tested.Effect(0);
     javelin.life = 19;
-    EXPECT_TRUE(HasError(StepHighModelEffect(javelin, nullptr, tested.StepContext()), "0x529c69"));
-    EXPECT_EQ(tested.Draws(), 1 + 1);
+    const glm::vec3 angles = javelin.transform.angles;
+    const auto stepped = StepHighModelEffect(javelin, nullptr, tested.StepContext());
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(tested.Draws(), 1 + 1 + 3 + 1);
+    EXPECT_EQ(AliveParticles(*tested.world, Client::World::CinderParticle, 1), 1);
+    const auto& all = tested.world->Particles().All();
+    const auto ember = std::ranges::find_if(all, [](const Client::World::Particle& particle)
+                                            { return particle.alive && particle.type == 0x6ad; });
+    ASSERT_NE(ember, all.end());
+    CrtRandom expected{Seed};
+    expected.Discard(2);
+    Client::World::Particles twin;
+    const auto made = twin.CreateChecked(0x6ad, ember->start, angles, javelin.light, 1, 1.0f, 0.0f, expected);
+    ASSERT_TRUE(made.HasValue() && made.Value().has_value());
+    const Client::World::Particle& replayed = twin.All()[*made.Value()];
+    EXPECT_EQ(ember->angles, angles);
+    EXPECT_EQ(ember->life, 15);
+    EXPECT_EQ(ember->velocity, replayed.velocity);
+    EXPECT_EQ(ember->scale, replayed.scale);
+    EXPECT_EQ(ember->rotation, replayed.rotation);
+    EXPECT_EQ(ember->light, glm::vec3(0.5f));
+    EXPECT_EQ(javelin.turnDirection, static_cast<float>(expected.Next() % 30 + 30));
+    EXPECT_EQ(tested.random.State(), expected.State());
 
     tested.FillTheParticles();
     javelin.life = 18;
@@ -1636,13 +1832,14 @@ TEST(HighModelEffectsTest, TheJavelinHuntsItsOwnerAndTrailsFire)
                   static_cast<double>(static_cast<float>(static_cast<double>(scale) + static_cast<double>(0.015f))) +
                   static_cast<double>(0.04f)));
     EXPECT_EQ(javelin.life, 17);
-    EXPECT_EQ(tested.Draws(), 1 + 1 + 2);
+    EXPECT_EQ(tested.Draws(), 6 + 2);
 }
 
 // 0x51ed79 y 0x52b4a7: el 0x615 vive 10 y, con dueño y el subtipo 0, se corre (−25, −80, 0) girado por los ángulos del
 // dueño. Su paso no hace nada hasta que le quedan menos de 5 pasos; con la vida par, tres rand() (x e y de rand() % 64
-// − 32 y la escala rand() % 10 + 50) y el joint 0x615/5, que MuRet no tiene: con lugar corta (0x52b560); con los joints
-// llenos sigue. La cola no lo mueve (sin velocidad) ni lo dibuja.
+// − 32 y la escala rand() % 10 + 50) y el joint 0x615/5 (0x52b560, con dos rand() más: la x y la y corridas rand() %
+// 10 − 5, 800 más arriba, la luz (1; 0,5; 0,2f)); con los joints llenos, sin él. La cola no lo mueve (sin velocidad)
+// ni lo dibuja.
 TEST(HighModelEffectsTest, TheThunderShiftsOverItsOwnerAndDropsBoltsAtTheEnd)
 {
     HighWorld tested;
@@ -1674,14 +1871,43 @@ TEST(HighModelEffectsTest, TheThunderShiftsOverItsOwnerAndDropsBoltsAtTheEnd)
     EXPECT_EQ(thunder.life, 4);
     EXPECT_EQ(thunder.transform.position, shifted);
     EXPECT_EQ(tested.Draws(), 6);
-    EXPECT_TRUE(HasError(StepHighModelEffect(thunder, nullptr, tested.StepContext()), "0x52b560"));
-    EXPECT_EQ(tested.Draws(), 6 + 1 + 3);
+    const auto dropped = StepHighModelEffect(thunder, nullptr, tested.StepContext());
+    ASSERT_TRUE(dropped.HasValue()) << dropped.Error();
+    EXPECT_EQ(tested.Draws(), 6 + 1 + 3 + 2);
+    CrtRandom expected(Seed);
+    for (int draw = 0; draw < 6 + 1; ++draw)
+        static_cast<void>(expected.Next());
+    const int x = expected.Next() % 64;
+    const int y = expected.Next() % 64;
+    const int scale = expected.Next() % 10;
+    const int jitterX = expected.Next() % 10;
+    const int jitterY = expected.Next() % 10;
+    const glm::vec3 point{static_cast<float>(static_cast<double>(x) - 32.0 + static_cast<double>(shifted.x)),
+                          static_cast<float>(static_cast<double>(y) - 32.0 + static_cast<double>(shifted.y)),
+                          shifted.z};
+    const auto& bolt = tested.world->DrawTail().joints.front();
+    ASSERT_TRUE(bolt.alive);
+    EXPECT_EQ(bolt.type, 0x615);
+    EXPECT_EQ(bolt.subtype, 5);
+    EXPECT_EQ(bolt.ownerContext, nullptr);
+    EXPECT_EQ(bolt.texture, 0x614);
+    EXPECT_EQ(bolt.width, static_cast<float>(scale + 50));
+    EXPECT_EQ(bolt.maximumCount, 50);
+    EXPECT_EQ(bolt.life, 20);
+    EXPECT_EQ(bolt.angles, glm::vec3(0));
+    EXPECT_EQ(bolt.targetPosition, point);
+    EXPECT_EQ(bolt.position,
+              (glm::vec3{static_cast<float>(static_cast<double>(jitterX - 5) + static_cast<double>(point.x)),
+                         static_cast<float>(static_cast<double>(jitterY - 5) + static_cast<double>(point.y)),
+                         static_cast<float>(static_cast<double>(point.z) + 800.0)}));
+    EXPECT_EQ(bolt.pathIncrement, bolt.position);
+    EXPECT_EQ(bolt.light, (glm::vec3{1, 0.5f, std::bit_cast<float>(0x3e4ccccdu)}));
     tested.FillTheJoints();
     ASSERT_TRUE(StepHighModelEffect(thunder, nullptr, tested.StepContext()).HasValue());
-    EXPECT_EQ(tested.Draws(), 6 + 4 + 4);
+    EXPECT_EQ(tested.Draws(), 6 + 6 + 1);
     ASSERT_TRUE(StepHighModelEffect(thunder, nullptr, tested.StepContext()).HasValue());
-    EXPECT_EQ(tested.Draws(), 6 + 4 + 4 + 1);
-    EXPECT_EQ(thunder.life, 2);
+    EXPECT_EQ(tested.Draws(), 6 + 6 + 1 + 4);
+    EXPECT_EQ(thunder.life, 1);
 }
 
 // 0x51efa5 y 0x52bb79: el 0x621/1 guarda la posición como partida y vive 20; su paso pone el origen del modelo de su

@@ -14,12 +14,17 @@
 #include "Scenes/FaunaModels.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/GuildMarkEffects.h"
 #include "Scenes/FireBreathEffect.h"
 #include "Scenes/HighEffectEmitters.h"
 #include "Scenes/JavelinEffect.h"
 #include "Scenes/KalimaMonsterEffects.h"
+#include "Scenes/KundunEffects.h"
+#include "Scenes/MeteorEffects.h"
+#include "Scenes/RingEffects.h"
 #include "Scenes/SkullEffects.h"
 #include "Scenes/SkillHits.h"
+#include "Scenes/WaveEffects.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -1224,7 +1229,10 @@ bool IsHighModelEffect(std::int16_t type)
            type == FallingStarEffect || type == PierPartEffect || type == DarkLordSkillEffect ||
            type == ManaRuneEffect || type == SparkEmitterEffect || type == BoltEmitterEffect ||
            type == PiercingGlowEffect || type == SkullEffect || type == SeamanEffect || type == FireBreathEffect ||
-           type == JavelinEffect || type == ThunderEffect;
+           type == JavelinEffect || type == ThunderEffect || type == WaveEffect || type == PiercingEffect ||
+           type == RingEffect || type == MeteorEffect || type == MeteorShellEffect || type == MeteorCallEffect ||
+           type == GuildMarkEffect || type == KundunSpiritEffect || type == KundunPhoenixEffect ||
+           type == KundunCallEffect;
 }
 
 Core::Expected<std::optional<std::size_t>, std::string>
@@ -1235,6 +1243,12 @@ CreateHighModelEffect(const World::ModelEffectArguments& arguments, const HighEf
     // 0x51efea: el /0, el de World.
     if (arguments.type == PiercingGlowEffect && arguments.subtype == 0)
         return context.world.Map().effects.CreatePiercingShot(arguments);
+    // 0x51c2b3..0x51c36d: las ondas 0x114/2..6 y el 0x115 (0x51c8e8), sin rand() ni nada de afuera: los de World.
+    constexpr std::int32_t FirstWorldWave = 2, LastWorldWave = 6;
+    if (arguments.type == WaveEffect && arguments.subtype >= FirstWorldWave && arguments.subtype <= LastWorldWave)
+        return context.world.Map().effects.CreateWaveEffect(arguments);
+    if (arguments.type == PiercingEffect)
+        return context.world.Map().effects.CreatePiercingEffect(arguments);
     const auto slot = context.world.Map().effects.Begin(arguments);
     if (!slot.has_value())
         return slot;
@@ -1302,6 +1316,40 @@ CreateHighModelEffect(const World::ModelEffectArguments& arguments, const HighEf
     case ThunderEffect:
         BeginTheThunder(effect);
         break;
+    case WaveEffect:
+        begun = BeginTheWave(effect, arguments, context);
+        break;
+    case RingEffect:
+        begun = BeginTheRing(effect, context);
+        break;
+    case MeteorEffect:
+    case MeteorShellEffect:
+    case MeteorCallEffect:
+        BeginTheMeteor(effect);
+        break;
+    case KundunSpiritEffect:
+        begun = BeginTheKundunSpirit(effect, context);
+        break;
+    case KundunPhoenixEffect:
+        begun = BeginTheKundunPhoenix(effect, context);
+        break;
+    case KundunCallEffect:
+        begun = BeginTheKundunCall(effect);
+        break;
+    case GuildMarkEffect:
+    {
+        // 0x51e0d8: el modelo y los huesos propios del dueño (+0x108 → +0x2 y +0x120).
+        const auto* owner = static_cast<const ActorState*>(arguments.owner);
+        if (owner == nullptr)
+        {
+            begun = Core::Unexpected(std::string("0x51e0d8: el 0x140 lee el modelo de un dueño (+0x108) nulo"));
+            break;
+        }
+        begun = BeginTheGuildMark(effect, *slot, *owner,
+                                  ActorBonePoint(*owner, GuildMarkBone, glm::vec3(0.0f), context.world),
+                                  context.world.Particles(), context.random, context.worldClock);
+        break;
+    }
     default:
         break;
     }
@@ -1320,6 +1368,9 @@ bool StepsAsHighModelEffect(const World::ModelEffect& effect)
     // El 0x621/0 da su paso en World (StepGameModelEffect).
     if (effect.type == PiercingGlowEffect)
         return effect.subtype != 0;
+    // El 0x114 y el 0x115 nacen aquí y dan su paso en World (0x526dd0 y 0x526f9d).
+    if (effect.type == WaveEffect || effect.type == PiercingEffect)
+        return false;
     return IsHighModelEffect(effect.type);
 }
 
@@ -1398,6 +1449,27 @@ Core::Expected<void, std::string> StepHighModelEffect(World::ModelEffect& effect
         break;
     case ThunderEffect:
         stepped = StepTheThunder(effect, context);
+        break;
+    case RingEffect:
+        stepped = StepTheRing(effect, World::StepLuminosity(lightDraw, effect.life), context);
+        break;
+    case MeteorEffect:
+        stepped = StepTheMeteor(effect, skeleton, context);
+        break;
+    case MeteorCallEffect:
+        stepped = StepTheMeteorCall(effect, context);
+        break;
+    case GuildMarkEffect:
+        stepped = StepTheGuildMark(effect, context);
+        break;
+    case KundunSpiritEffect:
+        stepped = StepTheKundunSpirit(effect, context);
+        break;
+    case KundunPhoenixEffect:
+        StepTheKundunPhoenix(effect);
+        break;
+    case KundunCallEffect:
+        stepped = StepTheKundunCall(effect, context);
         break;
     default:
         break;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "World/ParticleOwner.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -27,19 +28,20 @@ class WorldState;
 struct HighEffectStepContext;
 
 // 0x530860(tipo, punto, punto2, ángulos, subtipo, dueño, escala, clave, 0, 0, −1): el joint, con la dirección del que
-// lo pide delante del error de un joint que MuRet no tiene (el lote de los joints de la CL11) y "(CL11)" detrás.
+// lo pide delante del error de un joint que MuRet no tiene (el lote de los joints de la CL11) y "(CL11)" detrás. La
+// clave es −1 salvo en los que pasan otra (el 0x125, 0x51ce91 y 0x52777f, con 0).
 [[nodiscard]] Core::Expected<void, std::string> CreateHighJoint(WorldState& world, Render::Models::CrtRandom& random,
                                                                 std::int32_t type, glm::vec3 first, glm::vec3 second,
                                                                 glm::vec3 angles, std::int32_t subtype,
                                                                 World::ModelEffect* owner, float scale,
-                                                                std::uint32_t address);
+                                                                std::uint32_t address, std::int32_t key = -1);
 
 // 0x53fe70 de una partícula, con el error del pool como texto y la dirección del que la pide. Con el pool lleno,
-// nullopt y sin rand().
+// nullopt y sin rand(). Con `owner`, el dueño (+0x40) que el que la pide empuja.
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
 CreateHighParticle(WorldState& world, Render::Models::CrtRandom& random, float worldClock, std::int32_t type,
                    const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light, std::int32_t subtype,
-                   float scale, std::uint32_t address);
+                   float scale, std::uint32_t address, World::ParticleOwner owner = {});
 
 // 0x5491e0 desde un paso: el sprite con la luz y la rotación, en el lugar libre (el dueño, que MuRet no guarda). Sin
 // la tabla de sprites en los servicios, corta.

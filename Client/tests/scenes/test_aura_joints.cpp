@@ -7,6 +7,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/GameDrawTail.h"
 #include "World/IFishStepServices.h"
+#include "World/ModelEffects.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -76,13 +77,14 @@ struct Pool
     Client::Core::Expected<void, std::string> Step()
     {
         return Client::Scenes::StepJoints(joints, cloth->random, cloth.get(), nullptr, 0, nullptr, nullptr, {}, {},
-                                          actors);
+                                          actors, {}, effects);
     }
 
     std::vector<JointState> joints = std::vector<JointState>(4);
     std::vector<ActorState> actors = std::vector<ActorState>(3);
     std::unique_ptr<Client::Render::Models::ClothWorld> cloth = std::make_unique<Client::Render::Models::ClothWorld>();
     glm::vec3 startAngles{};
+    Client::World::ModelEffects* effects = nullptr;
 };
 
 // 0x5363bf..0x536450 con la frecuencia entera, calculado aparte del código de MuRet (Fraction y Decimal de Python):
@@ -242,7 +244,8 @@ TEST(AuraJointsTest, TheBindingFollowsItsTargetOnFenrir)
 }
 
 // 0x53106d y 0x536526: el 10f/5 nace sin el primer tramo, a 800 de su +0x24, y en cada paso da tres vueltas que lo
-// frenan (0,95) y lo hacen caer; en la tanda 40 suelta el efecto 0x6eb (0x518cf0, otro lote) y corta. La /7 no.
+// frenan (0,95) y lo hacen caer; en la tanda 40 suelta la onda 0x6eb/3 (0x536626) y, sin la tabla de efectos, corta.
+// La /7 no.
 TEST(AuraJointsTest, TheRiseFallsUntilItsEffect)
 {
     Pool pool;
@@ -279,6 +282,44 @@ TEST(AuraJointsTest, TheRiseFallsUntilItsEffect)
     ASSERT_FALSE(stepped.HasValue());
     EXPECT_NE(stepped.Error().find("0x536626"), std::string::npos) << stepped.Error();
     EXPECT_EQ(rise.volley, 40);
+
+    // Con la tabla: la onda en el +0x24 de esa vuelta, con los ángulos y la luz del joint, vida 15 y escala 1, sin
+    // rand(); llena, nada y el mismo RNG.
+    auto table = std::make_unique<Client::World::ModelEffects>();
+    auto full = std::make_unique<Client::World::ModelEffects>();
+    for (auto& effect : full->Effects())
+        effect.alive = true;
+    Pool withTable;
+    Pool withFull;
+    for (Pool* each : {&withTable, &withFull})
+    {
+        each->startAngles = pool.startAngles;
+        each->joints[0].width = PreviousWidth;
+        ASSERT_TRUE(each->Create(5, 25, -1, base).HasValue());
+    }
+    withTable.effects = table.get();
+    withFull.effects = full.get();
+    for (int step = 0; step < 60 && withTable.joints[0].volley <= 40; ++step)
+    {
+        const JointState before = withTable.joints[0];
+        ASSERT_TRUE(withTable.Step().HasValue());
+        ASSERT_TRUE(withFull.Step().HasValue());
+        EXPECT_EQ(withTable.cloth->random.State(), withFull.cloth->random.State());
+        if (before.volley <= 40 && withTable.joints[0].volley > 40)
+        {
+            const Client::World::ModelEffect& wave = table->Effects()[0];
+            ASSERT_TRUE(wave.alive);
+            EXPECT_EQ(wave.type, 0x6eb);
+            EXPECT_EQ(wave.subtype, 3);
+            EXPECT_EQ(wave.life, 15);
+            EXPECT_EQ(wave.transform.scale, 1.0f);
+            EXPECT_EQ(wave.transform.position.x, withTable.joints[0].pathIncrement.x);
+            EXPECT_EQ(wave.transform.position.y, withTable.joints[0].pathIncrement.y);
+            EXPECT_EQ(wave.light, withTable.joints[0].light);
+        }
+    }
+    EXPECT_GT(withTable.joints[0].volley, 40);
+    EXPECT_FALSE(table->Effects()[1].alive);
 
     Pool other;
     ASSERT_TRUE(other.Create(7, 25, -1, base).HasValue());

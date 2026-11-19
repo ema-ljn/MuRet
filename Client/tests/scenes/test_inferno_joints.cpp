@@ -5,6 +5,7 @@
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/GameDrawTail.h"
 #include "World/IFishStepServices.h"
+#include "World/ModelEffects.h"
 #include "World/Sprites.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -191,6 +192,30 @@ TEST(InfernoJointsTest, TheHoleSlowsAndFadesAtTheEnd)
     EXPECT_EQ(LiveSprites(*pool.sprites).size(), 2u);
 }
 
+// 0x53b709..0x53b732 con +0x9ec en 5 (la /2, la /5 y la /6): con vida 9 no se apagan (con el 10 de la /3 y la /4 sí)
+// y con vida 4, la luz por 0,7692308f.
+TEST(InfernoJointsTest, TheLavaFadesBelowFive)
+{
+    const double fade = D(std::bit_cast<float>(0x3f44ec4fu));
+    for (const std::int32_t subtype : {2, 5, 6})
+    {
+        for (const std::int32_t life : {9, 4})
+        {
+            SCOPED_TRACE(testing::Message() << "subtipo " << subtype << ", vida " << life);
+            Pool pool;
+            ASSERT_TRUE(pool.Create(subtype).HasValue());
+            JointState& joint = pool.joints[0];
+            ASSERT_EQ(joint.field9ec, 5);
+            joint.life = life;
+
+            ASSERT_TRUE(pool.Step().HasValue());
+
+            EXPECT_EQ(joint.light, glm::vec3(life < 5 ? F32(D(1.0f) * fade) : 1.0f));
+            EXPECT_EQ(pool.random.State(), CrtRandom{Seed}.State());
+        }
+    }
+}
+
 // 0x53b6f2..0x53b702: la /6 (la lava rápida) deja de agregar tramos con la cola llena y no suelta nada.
 TEST(InfernoJointsTest, TheLavaStopsWithAFullTail)
 {
@@ -217,4 +242,95 @@ TEST(InfernoJointsTest, TheInfernoCutsOnItsEffect)
 
     ASSERT_FALSE(stepped.HasValue());
     EXPECT_NE(stepped.Error().find("0x53b760"), std::string::npos) << stepped.Error();
+}
+
+// El 0x61c/1, el rayo rojo del láser 0xd0/1 de los magos (0x51a5dd), con el efecto de dueño. 0x53439e..0x53442d:
+// velocidad 0, el ancho, el pase 1 (+0x64), la luz en 1, 15 puntos, vida 30 y la posición y los ángulos del dueño. Sin
+// rand(). Sin dueño, el original lee de 0 (0x5343f8): MuRet corta.
+TEST(InfernoJointsTest, TheLaserJointIsBornOnItsOwner)
+{
+    Client::World::ModelEffect laser{};
+    laser.alive = true;
+    laser.transform.position = {700.0f, 800.0f, 450.0f};
+    laser.transform.angles = {30.0f, 0.0f, 90.0f};
+    std::vector<JointState> joints(2);
+    CrtRandom random(Seed);
+    glm::vec3 from{1.0f, 2.0f, 3.0f};
+    glm::vec3 turn = laser.transform.angles;
+    Client::World::FishEffectRequest request{.type = 0x61c,
+                                             .firstPosition = from,
+                                             .secondPosition = from,
+                                             .angles = turn,
+                                             .subtype = 1,
+                                             .ownerContext = &laser,
+                                             .scale = 180.0f,
+                                             .key = -1,
+                                             .skill = 0,
+                                             .skillSerial = 0,
+                                             .target = -1};
+    const auto created = Client::Scenes::CreateFaunaJoint(joints, request, random);
+    ASSERT_TRUE(created.HasValue()) << created.Error();
+    EXPECT_EQ(random.State(), CrtRandom(Seed).State());
+    const JointState& joint = joints[0];
+    EXPECT_EQ(joint.speed, 0.0f);
+    EXPECT_EQ(joint.width, 180.0f);
+    EXPECT_EQ(joint.category, 1);
+    EXPECT_EQ(joint.light, glm::vec3(1.0f));
+    EXPECT_EQ(joint.maximumCount, 15);
+    EXPECT_EQ(joint.life, 30);
+    EXPECT_EQ(joint.position, laser.transform.position);
+    EXPECT_EQ(joint.angles, laser.transform.angles);
+
+    request.ownerContext = nullptr;
+    std::vector<JointState> lonely(1);
+    const auto cut = Client::Scenes::CreateFaunaJoint(lonely, request, random);
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x5343f8"), std::string::npos) << cut.Error();
+}
+
+// 0x53b628..0x53b69b: toma el byte vivo del dueño, el ancho baja 1, la posición es la del dueño 100 más arriba y, con
+// menos de 15 de vida, la luz por 0,7692308f; después la cola común. Sin rand().
+TEST(InfernoJointsTest, TheLaserJointFollowsItsOwnerAndNarrows)
+{
+    Client::World::ModelEffect laser{};
+    laser.alive = true;
+    laser.transform.position = {700.0f, 800.0f, 450.0f};
+    std::vector<JointState> joints(2);
+    CrtRandom random(Seed);
+    glm::vec3 from{1.0f, 2.0f, 3.0f};
+    glm::vec3 turn{30.0f, 0.0f, 90.0f};
+    ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints,
+                                                 {.type = 0x61c,
+                                                  .firstPosition = from,
+                                                  .secondPosition = from,
+                                                  .angles = turn,
+                                                  .subtype = 1,
+                                                  .ownerContext = &laser,
+                                                  .scale = 180.0f,
+                                                  .key = -1,
+                                                  .skill = 0,
+                                                  .skillSerial = 0,
+                                                  .target = -1},
+                                                 random)
+                    .HasValue());
+    JointState& joint = joints[0];
+    laser.transform.position = {710.0f, 790.0f, 460.0f};
+
+    ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+
+    EXPECT_TRUE(joint.alive);
+    EXPECT_EQ(joint.width, 179.0f);
+    EXPECT_EQ(joint.position, glm::vec3(710.0f, 790.0f, 560.0f));
+    EXPECT_EQ(joint.light, glm::vec3(1.0f));
+    EXPECT_EQ(joint.life, 29);
+    EXPECT_EQ(random.State(), CrtRandom(Seed).State());
+
+    joint.life = 14;
+    laser.alive = false;
+    ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+
+    EXPECT_FALSE(joint.alive);
+    EXPECT_EQ(joint.width, 178.0f);
+    EXPECT_EQ(joint.light, glm::vec3(F32(D(1.0f) * D(std::bit_cast<float>(0x3f44ec4fu)))));
+    EXPECT_EQ(joint.life, 13);
 }

@@ -9,6 +9,7 @@
 #include "World/ModelEffects.h"
 #include "World/ParticleOwner.h"
 #include "World/Particles.h"
+#include "World/PortableParticleTrigonometry.h"
 #include "World/Sprites.h"
 #include "World/TerrainLighting.h"
 #include "Data/Terrain/TerrainAttributes.h"
@@ -25,6 +26,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -351,6 +353,40 @@ TEST(WizardModelEffectsTest, TheShadowRainDropsTenOrbitsFromItsOwner)
     EXPECT_EQ(world.joints[9].scale, 120.0f);
 }
 
+// 0x525438..0x5254f9: con dueño y vida por encima de 10, el paso del 0xbd/0 saca (rand() & 127) − 64 y suelta la
+// 0x5fc/2 a (r − 50; r + 50; 360) del dueño, con la escala (rand() % 30 + 50) · 0,01f.
+TEST(WizardModelEffectsTest, TheShadowRainDropsAFallingShineNearItsOwner)
+{
+    Harness world;
+    world.owner = WizardOwnerView{.alive = true, .position = {500.0f, 600.0f, 70.0f}};
+    CrtRandom random(4);
+    int owner = 0;
+    auto arguments = Arguments(0xbd, 0);
+    arguments.owner = &owner;
+    ModelEffect& rain = world.At(Create(world, arguments, random));
+    CrtRandom oracle = random;
+    const auto stepped = Client::World::StepWizardModelEffect(rain, nullptr, random, world.Services());
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    ASSERT_EQ(world.ParticlesOf(0x5fc, 2), 1U);
+    static_cast<void>(oracle.Next()); // 0x5208c5, la luz del paso.
+    const int spread = (oracle.Next() & 127) - 64;
+    const float scale = F32(static_cast<double>(oracle.Next() % 30 + 50) * std::bit_cast<float>(0x3c23d70au));
+    const glm::vec3 point{static_cast<float>(spread - 50) + 500.0f, static_cast<float>(spread + 50) + 600.0f, 430.0f};
+    auto twin = std::make_unique<Client::World::Particles>();
+    ASSERT_TRUE(
+        twin->CreateChecked(0x5fc, point, rain.transform.angles, rain.light, 2, scale, 1000.0f, oracle).HasValue());
+    EXPECT_EQ(random.State(), oracle.State());
+    const auto shine =
+        std::ranges::find_if(std::as_const(*world.particles).All(), [](const Client::World::Particle& particle)
+                             { return particle.alive && particle.type == 0x5fc; });
+    const Client::World::Particle& reference = twin->All()[0];
+    EXPECT_EQ(shine->start, point);
+    EXPECT_EQ(shine->scale, scale);
+    EXPECT_EQ(shine->light, rain.light);
+    EXPECT_EQ(shine->rotation, reference.rotation);
+    EXPECT_EQ(shine->life, 25);
+}
+
 TEST(WizardModelEffectsTest, TheSawTurnsAndMovesWithoutRotatingItsVelocity)
 {
     Harness world;
@@ -519,26 +555,52 @@ TEST(WizardModelEffectsTest, TheFallingFireLandsWhenNobodyIsClose)
     }
 }
 
-TEST(WizardModelEffectsTest, TheBouncingFireNeedsItsEmberParticle)
+// 0x524f05: con rand() % 5 distinto de 0, el 0xc2/5 suelta la brasa 6ad/0 en su posición y con sus ángulos (la luz
+// la pisa el alta con 0,5) y termina el paso; con las partículas llenas, sin la brasa ni sus tres rand().
+TEST(WizardModelEffectsTest, TheBouncingFireDropsItsEmber)
 {
-    Harness world;
-    world.ground = -1000.0;
-    CrtRandom random(12);
-    ModelEffect& fire = world.At(Create(world, Arguments(0xc2, 5), random));
-    CrtRandom oracle = random;
-    static_cast<void>(oracle.Next());
-    const bool ember = oracle.Next() % 5 != 0;
-    const auto stepped = Client::World::StepWizardModelEffect(fire, nullptr, random, world.Services());
-    if (ember)
+    for (const bool full : {false, true})
     {
-        ASSERT_FALSE(stepped.HasValue());
-        EXPECT_NE(stepped.Error().find("0x524f05"), std::string::npos);
+        SCOPED_TRACE(full);
+        Harness world;
+        world.ground = -1000.0;
+        CrtRandom random(12);
+        ModelEffect& fire = world.At(Create(world, Arguments(0xc2, 5), random));
+        if (full)
+            for (auto& particle : world.particles->All())
+                particle.alive = true;
+        CrtRandom oracle = random;
+        static_cast<void>(oracle.Next());
+        ASSERT_NE(oracle.Next() % 5, 0);
+        const auto stepped = Client::World::StepWizardModelEffect(fire, nullptr, random, world.Services());
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(fire.objectState.hiddenMesh, 0);
+        EXPECT_EQ(fire.transform.position.z, 300.0f + 5.0f);
+        EXPECT_EQ(fire.turnDirection, 3.0f);
+        if (full)
+        {
+            EXPECT_EQ(random.State(), oracle.State());
+            continue;
+        }
+        ASSERT_EQ(world.ParticlesOf(0x6ad, 0), 1U);
+        const auto it =
+            std::ranges::find_if(std::as_const(*world.particles).All(), [](const Client::World::Particle& particle)
+                                 { return particle.alive && particle.type == 0x6ad; });
+        const Client::World::Particle& ember = *it;
+        Client::World::Particles twin;
+        const auto made =
+            twin.CreateChecked(0x6ad, ember.start, fire.transform.angles, glm::vec3(1.0f), 0, 1.0f, 1000.0f, oracle);
+        ASSERT_TRUE(made.HasValue() && made.Value().has_value());
+        const Client::World::Particle& expected = twin.All()[0];
+        EXPECT_EQ(random.State(), oracle.State());
+        EXPECT_EQ(ember.angles, fire.transform.angles);
+        EXPECT_EQ(ember.life, 24);
+        EXPECT_EQ(ember.life, expected.life);
+        EXPECT_EQ(ember.velocity, expected.velocity);
+        EXPECT_EQ(ember.scale, expected.scale);
+        EXPECT_EQ(ember.rotation, expected.rotation);
+        EXPECT_EQ(ember.light, glm::vec3(0.5f));
     }
-    else
-        EXPECT_TRUE(stepped.HasValue());
-    EXPECT_EQ(fire.objectState.hiddenMesh, 0);
-    EXPECT_EQ(fire.transform.position.z, 300.0f + 5.0f);
-    EXPECT_EQ(fire.turnDirection, 3.0f);
 }
 
 // 0x522dff y 0x522c0e: el 0xcf/0 suelta su humo 5f2/3 antes de sus joints y el 0xce/0 cuatro, antes de su luz; los dos
@@ -563,8 +625,8 @@ TEST(WizardModelEffectsTest, TheStormAndTheMagicLeaveTheirSmoke)
 }
 
 // 0x52303b..0x5230be: el 0xcf/1 suelta su humo 5f2/3 y su gota 607/3 (con la tabla de partículas llena, 0x53fe70 no
-// hace nada: MuRet no tiene esas dos) y suma al terreno su propia luz (+0xf4, esi de 0x523049) con el radio 5; el tono
-// (−0,1L; −0,3L; −L) de [ebp-0x1c] no lo lee nadie.
+// hace nada) y suma al terreno su propia luz (+0xf4, esi de 0x523049) con el radio 5; el tono (−0,1L; −0,3L; −L) de
+// [ebp-0x1c] no lo lee nadie.
 TEST(WizardModelEffectsTest, TheTwistingStormLightsTheGroundWithItsOwnLight)
 {
     Harness world;
@@ -582,6 +644,128 @@ TEST(WizardModelEffectsTest, TheTwistingStormLightsTheGroundWithItsOwnLight)
     EXPECT_NE(world.lighting->cells[20 * 256 + 10], (Client::Data::Terrain::TerrainLightColor{}));
     for (std::size_t cell = 0; cell < reference->cells.size(); ++cell)
         ASSERT_EQ(world.lighting->cells[cell], reference->cells[cell]) << cell;
+}
+
+// 0x52303b..0x523089: con lugar, el 0xcf/1 suelta en el punto 100 más arriba su humo 5f2/3 y su gota 607/3 de 0,1f
+// (0x523070, 0x523089), con sus ángulos ya girados: la gota vive rand() % 10 + 30, su escala suma (rand() % 6 + 4) ·
+// 0,03f a la del pedido, sortea otra igual para la subida (+0x50) y pisa la luz con 1 (0x542e1a). Su paso suma 1 al
+// cuadro y camina por la subida · 2,5 (0x5470d3).
+TEST(WizardModelEffectsTest, TheTwistingStormDropsARisingDrop)
+{
+    Harness world;
+    CrtRandom random(14);
+    ModelEffect& storm = world.At(Create(world, Arguments(0xcf, 1), random));
+    const glm::vec3 at = storm.transform.position;
+    const glm::vec3 point{at.x, at.y, F32(static_cast<double>(at.z) + 100.0)};
+    CrtRandom oracle = random;
+    const auto stepped = Client::World::StepWizardModelEffect(storm, nullptr, random, world.Services());
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(world.ParticlesOf(0x5f2, 3), 1U);
+    ASSERT_EQ(world.ParticlesOf(0x607, 3), 1U);
+    static_cast<void>(oracle.Next()); // 0x5208c5, la luz del paso.
+    static_cast<void>(oracle.Next()); // rand() % 30 del giro.
+    auto twin = std::make_unique<Client::World::Particles>();
+    ASSERT_TRUE(
+        twin->CreateChecked(0x5f2, point, storm.transform.angles, storm.light, 3, 1.0f, 1000.0f, oracle).HasValue());
+    ASSERT_TRUE(twin->CreateChecked(0x607, point, storm.transform.angles, storm.light, 3,
+                                    std::bit_cast<float>(0x3dcccccdu), 1000.0f, oracle)
+                    .HasValue());
+    EXPECT_EQ(random.State(), oracle.State());
+    const auto drop =
+        std::ranges::find_if(std::as_const(*world.particles).All(), [](const Client::World::Particle& particle)
+                             { return particle.alive && particle.type == 0x607; });
+    const Client::World::Particle& reference = twin->All()[1];
+    EXPECT_EQ(drop->start, point);
+    EXPECT_EQ(drop->angles, storm.transform.angles);
+    EXPECT_EQ(drop->light, glm::vec3(1.0f));
+    EXPECT_EQ(drop->life, reference.life);
+    EXPECT_GE(drop->life, 30);
+    EXPECT_LE(drop->life, 39);
+    EXPECT_EQ(drop->scale, reference.scale);
+    EXPECT_GT(drop->scale, std::bit_cast<float>(0x3dcccccdu));
+    EXPECT_EQ(drop->verticalSpeed, reference.verticalSpeed);
+    EXPECT_GT(drop->verticalSpeed, 0.0f);
+}
+
+// 0x523101..0x52318f: el 0xcf/3..7 tiembla la cámara ((rand() & 7) − 4) · 0,1f y suelta en su punto la niebla 5f2/28,
+// /29 y /30 (0x523144, 0x52315d, 0x523176), con sus ángulos, su luz y la escala 1, que piden la altura del terreno y,
+// la /30, el seno del reloj. Después, con rand() & 1 en 0, la piedrita 0xc8 + (rand() & 1) con el subtipo 2 (0x52b14d),
+// que es de otro lote y corta. Con la tabla de partículas llena, la niebla no saca nada. Réplica en un pool gemelo con
+// el mismo CrtRandom.
+TEST(WizardModelEffectsTest, TheLittleStormsLeaveTheirMistOnTheGround)
+{
+    bool calm = false, chipped = false;
+    for (const std::int32_t subtype : {3, 7})
+        for (const bool full : {false, true})
+            for (std::uint32_t seed = 20; seed < 24; ++seed)
+            {
+                SCOPED_TRACE(testing::Message() << subtype << ' ' << full << ' ' << seed);
+                Harness world;
+                world.ground = 123.25;
+                CrtRandom random(seed);
+                ModelEffect& storm = world.At(Create(world, Arguments(0xcf, subtype), random));
+                if (full)
+                    for (auto& particle : world.particles->All())
+                        particle.alive = true;
+                const glm::vec3 at = storm.transform.position;
+                const glm::vec3 angles = storm.transform.angles;
+                const glm::vec3 light = storm.light;
+                CrtRandom oracle = random;
+                static_cast<void>(oracle.Next()); // 0x5208c5, la luz del paso.
+                const float shake = F32(static_cast<double>((oracle.Next() & 7) - 4) * Tenth);
+                auto twin = std::make_unique<Client::World::Particles>();
+                if (full)
+                    for (auto& particle : twin->All())
+                        particle.alive = true;
+                Client::World::PortableParticleTrigonometry trigonometry;
+                const float clock = 1000.0f;
+                const Client::World::ParticleTerrainHeight ground = [](float, float) { return 123.25; };
+                for (const std::int32_t mist : {28, 29, 30})
+                    ASSERT_TRUE(twin->CreateOnGroundChecked(0x5f2, at, angles, light, mist, 1.0f, std::cref(clock),
+                                                            oracle, trigonometry, ground)
+                                    .HasValue());
+                const bool chip = (oracle.Next() & 1) == 0;
+                if (chip)
+                    static_cast<void>(oracle.Next()); // 0x5231a9, el tipo de la piedrita.
+                const auto stepped = Client::World::StepWizardModelEffect(storm, nullptr, random, world.Services());
+                EXPECT_EQ(world.shake, shake);
+                if (chip)
+                {
+                    ASSERT_FALSE(stepped.HasValue());
+                    EXPECT_NE(stepped.Error().find("0x52b14d"), std::string::npos) << stepped.Error();
+                    chipped = true;
+                }
+                else
+                {
+                    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+                    calm = true;
+                }
+                // Con la piedrita, el corte llega después de sus dos rand(); sin ella, los de la niebla y el último.
+                EXPECT_EQ(random.State(), oracle.State());
+                if (full)
+                    continue;
+                for (const std::int32_t mist : {28, 29, 30})
+                {
+                    ASSERT_EQ(world.ParticlesOf(0x5f2, mist), 1U) << mist;
+                    const auto found = std::ranges::find_if(
+                        std::as_const(*world.particles).All(), [mist](const Client::World::Particle& particle)
+                        { return particle.alive && particle.type == 0x5f2 && particle.subtype == mist; });
+                    const auto reference =
+                        std::ranges::find_if(std::as_const(*twin).All(), [mist](const Client::World::Particle& particle)
+                                             { return particle.alive && particle.subtype == mist; });
+                    EXPECT_EQ(found->start, at);
+                    EXPECT_EQ(found->angles, angles);
+                    EXPECT_EQ(found->position, reference->position);
+                    EXPECT_EQ(found->position.z, 138.25f);
+                    EXPECT_EQ(found->rotation, reference->rotation);
+                    EXPECT_EQ(found->life, reference->life);
+                    EXPECT_EQ(found->scale, reference->scale);
+                    EXPECT_EQ(found->texture, mist == 28 ? 0x6ad : 0x5f2);
+                    EXPECT_EQ(found->light, light);
+                }
+            }
+    EXPECT_TRUE(calm);
+    EXPECT_TRUE(chipped);
 }
 
 // 0x5231f6..0x52328c: el 0xcb/1 con vida 45 suelta sus joints 613/6; el primero saca su rand() % 10 (0x52321f) antes

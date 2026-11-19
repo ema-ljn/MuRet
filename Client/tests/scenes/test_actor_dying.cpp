@@ -10,6 +10,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <string_view>
 
@@ -268,9 +269,10 @@ TEST(ActorDyingTest, AFullChaosCastlePoolSkipsTheExplosionAndItsSound)
         EXPECT_EQ(particle.type, -1);
 }
 
-// 0x4fbc1e..0x4fbcdd y 0x51fd20: fuera de los castillos, con la skill 0x28 o 0x3b y hasta el paso 14, +0xd0 baja
+// 0x4fbc1e..0x4fbd43 y 0x51fd20: fuera de los castillos, con la skill 0x28 o 0x3b y hasta el paso 14, +0xd0 baja
 // +0xd8 (sin bajar de 0), +0xd8 sube 1 y la posición suma (+0xcc, +0xd0, +0xd4) girado por la cabeza y +0x30. Con la
-// 0x28, hasta el paso 30 0x4ec110 sortea hueso y escala antes de las partículas 0x5ac (CL11).
+// 0x28, hasta el paso 30, diez 0x5ac/5 (vida 25) en un hueso de rand() % 32, con los ángulos del objeto, la luz
+// (0,3f; 0,3f; 1) y la escala (rand() % 100) · 0,02f + 0,5; con el pool lleno, los mismos veinte rand().
 TEST(ActorDyingTest, ThePushedFliesUntilTheFourteenthStep)
 {
     CrtRandom random(Seed);
@@ -309,14 +311,39 @@ TEST(ActorDyingTest, ThePushedFliesUntilTheFourteenthStep)
 
     for (const std::uint8_t dying : {std::uint8_t{15}, std::uint8_t{30}})
     {
-        ActorState sparks = Dying();
-        sparks.deathSkill = 0x28;
-        sparks.dying = dying;
-        CrtRandom prefixRandom(Seed);
-        Client::World::Particles particles;
-        const auto cut = StepActorDying(sparks, Slot, {.random = prefixRandom, .particles = &particles});
-        EXPECT_TRUE(CutsAt(cut, "0x4fbcdd")) << (cut.HasValue() ? "" : cut.Error());
-        EXPECT_EQ(prefixRandom.State(), After(Seed, 2).State());
+        for (const bool full : {false, true})
+        {
+            SCOPED_TRACE(full);
+            ActorState sparks = Dying();
+            sparks.deathSkill = 0x28;
+            sparks.dying = dying;
+            sparks.angles = {0.0f, 0.0f, 30.0f};
+            CrtRandom flareRandom(Seed);
+            auto particles = std::make_unique<Client::World::Particles>();
+            if (full)
+                for (Client::World::Particle& particle : particles->All())
+                    particle.alive = true;
+            ASSERT_TRUE(StepActorDying(sparks, Slot, {.random = flareRandom, .particles = particles.get()}).HasValue());
+            EXPECT_EQ(flareRandom.State(), After(Seed, 20).State());
+            if (full)
+                continue;
+            CrtRandom expected(Seed);
+            for (std::size_t flare = 0; flare < 10; ++flare)
+            {
+                SCOPED_TRACE(flare);
+                static_cast<void>(expected.Next());
+                const int draw = expected.Next() % 100;
+                const Client::World::Particle& made = particles->All()[flare];
+                EXPECT_TRUE(made.alive);
+                EXPECT_EQ(made.type, 0x5ac);
+                EXPECT_EQ(made.subtype, 5);
+                EXPECT_EQ(made.life, 25);
+                EXPECT_EQ(made.angles, sparks.angles);
+                EXPECT_EQ(made.light, glm::vec3(0.3f, 0.3f, 1.0f));
+                EXPECT_EQ(made.scale, static_cast<float>(static_cast<double>(draw) * static_cast<double>(0.02f) + 0.5));
+            }
+            EXPECT_FALSE(particles->All()[10].alive);
+        }
     }
     ActorState done = Dying();
     done.deathSkill = 0x28;

@@ -39,7 +39,8 @@ inline constexpr std::size_t ParticleCount = 3000;
 // 0x52a866/0x52a89a: las dos luces que siguen los huesos del blanco de Swell Life.
 inline constexpr std::int32_t SwellLifeParticle = 0x5ac;
 inline constexpr std::int32_t SwellLifeParticleSubtype = 4;
-// 540260 y542599: las chispas5ad/2 y la niebla5f2/27 de la mano de Crywolf.
+// 540260 y542599: las chispas5ad/2 y la niebla5f2/27 de la mano de Crywolf. La 5ad/2, la /3 y la /4 (con la textura
+// 0x5fd) son también las del pie y del blanco del 0x1b6 (0x42769f..0x427a4d).
 inline constexpr std::int32_t MagicSparkParticle = 0x5ad;
 inline constexpr std::int32_t CrywolfTideSmokeSubtype = 25;
 inline constexpr std::int32_t CrywolfSwingSmokeSubtype = 27;

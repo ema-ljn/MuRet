@@ -883,6 +883,54 @@ TEST(Cl11Particles, TheFlaresFiveAndEightFollowTheTrailAndTheZero)
     }
 }
 
+// 0x540260..0x540316 y 0x544e87: la chispa 0x5ad sortea la vida (rand() & 7) + 20 con cualquier subtipo; la /3 vive 7
+// y la /4 4, las dos con la textura 0x5fd, y la /4 gira rand() % 180 − 360. El paso agranda la /3 por 1,3f y la apaga
+// por 0,9f; la /4 salta al final (0x544edd). Las dos van al billboard común con su textura.
+TEST(Cl11Particles, TheShineSparksOfTheFootFlashAndBlink)
+{
+    for (const std::int32_t subtype : {3, 4})
+    {
+        SCOPED_TRACE(subtype);
+        auto particles = std::make_unique<Particles>();
+        CrtRandom random(Seed);
+        const auto created =
+            particles->CreateChecked(0x5ad, {1, 2, 3}, {}, {1.0f, 0.5f, 0.25f}, subtype, 1.3f, 0.0f, random);
+        ASSERT_TRUE(created.HasValue() && created.Value().has_value());
+        Particle& spark = Only(*particles, *created.Value());
+        Draws draws;
+        static_cast<void>(draws.Next());
+        EXPECT_EQ(spark.texture, 0x5fd);
+        EXPECT_EQ(spark.life, subtype == 3 ? 7 : 4);
+        if (subtype == 4)
+        {
+            EXPECT_EQ(spark.rotation, F32(static_cast<double>(draws.Next() % 180) - 360.0));
+        }
+        EXPECT_EQ(random.State(), draws.random.State());
+        const Particle before = spark;
+        ASSERT_TRUE(Step(*particles, random, 0.0f).HasValue());
+        EXPECT_EQ(spark.position, before.position);
+        if (subtype == 3)
+        {
+            EXPECT_EQ(spark.scale, F32(static_cast<double>(before.scale) * D(0x3fa66666u)));
+            for (int channel = 0; channel < 3; ++channel)
+                EXPECT_EQ(spark.light[channel], F32(static_cast<double>(before.light[channel]) * D(0x3f666666u)));
+        }
+        else
+        {
+            EXPECT_EQ(spark.scale, before.scale);
+            EXPECT_EQ(spark.light, before.light);
+        }
+        const auto drawn = DrawOneParticle(spark, glm::vec2(64, 64), std::uint8_t{4});
+        ASSERT_TRUE(drawn.HasValue());
+        ASSERT_TRUE(drawn.Value().has_value());
+        EXPECT_EQ(drawn.Value()->texture, 0x5fd);
+        EXPECT_EQ(drawn.Value()->rotation, spark.rotation);
+    }
+    auto particles = std::make_unique<Particles>();
+    CrtRandom random(Seed);
+    EXPECT_FALSE(particles->CreateChecked(0x5ad, {}, {}, glm::vec3(1.0f), 5, 1.0f, 0.0f, random).HasValue());
+}
+
 TEST(Cl11Particles, TheNewTypesGoToTheirBillboards)
 {
     using Kind = std::tuple<std::int32_t, std::int32_t, bool>;

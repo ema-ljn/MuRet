@@ -962,13 +962,59 @@ bool HasTarget(const ActorState& actor)
     return target >= 0 && target < PoolSize;
 }
 
+// 0x427764..0x427a4d, las partículas del pie y del blanco del 0x1b6 en la 3 y la 4: desde el frame 4 (0x6b8a44, C0
+// también sin orden), en el punto (70, 0, 0) del pie, la 0x5f2/0x1b de 2 con la luz (0,5; 0,2f; 0,5) y la 0x5ad/2 de 1
+// con la luz 1; en la 3 desde el frame 6 (0x6b87f4), en otro punto (70, 0, 0) del pie la 0x5ad/3 de 1,3f con los
+// ángulos (0, 0, 0) y, con el blanco +0x3a4 en el pool, la 0x5ad/3 de 1,3f 100 más arriba del blanco, las dos con la
+// luz 1. Los ángulos de las demás son [EBP−0x60], que 0x4271d0 no escribe: nacen sin velocidad y nadie los lee
+// (0x4e98d0 gira la velocidad en cero), y MuRet pasa (0, 0, 0).
+Result SparkTheFootAndTheTargetOf1b6(MonsterHelperPass& pass)
+{
+    const ActorState& actor = pass.actor;
+    const std::uint8_t action = actor.animation.action;
+    if (action != 3 && action != 4)
+        return {};
+    constexpr glm::vec3 Unwritten{};
+    constexpr glm::vec3 White{1.0f, 1.0f, 1.0f};
+    constexpr glm::vec3 StepOffset{70.0f, 0.0f, 0.0f};         // 0x428c0000
+    constexpr float Flash = std::bit_cast<float>(0x3fa66666u); // 1,3f
+    const float frame = actor.animation.frame;
+    if (frame >= 4.0f)
+    {
+        const auto step = PointOf(pass, "Monster100_Footstepst", 0x4277f7, StepOffset);
+        if (!step.HasValue())
+            return Core::Unexpected(step.Error());
+        constexpr glm::vec3 DustLight{0.5f, std::bit_cast<float>(0x3e4ccccdu), 0.5f};
+        if (auto made = Particle(pass, 0x5f2, 0x1b, step.Value(), Unwritten, DustLight, 2.0f, 0x42786d);
+            !made.HasValue())
+            return made;
+        if (auto made = Particle(pass, Spark, 2, step.Value(), Unwritten, White, 1.0f, 0x4278a0); !made.HasValue())
+            return made;
+    }
+    if (frame >= 6.0f && action == 3)
+    {
+        const auto step = PointOf(pass, "Monster100_Footstepst", 0x42794b, StepOffset);
+        if (!step.HasValue())
+            return Core::Unexpected(step.Error());
+        if (auto made = Particle(pass, Spark, 3, step.Value(), {}, White, Flash, 0x4279c4); !made.HasValue())
+            return made;
+        if (HasTarget(actor))
+        {
+            const ActorState& target = pass.world.Actors()[static_cast<std::size_t>(actor.attackTarget)];
+            const glm::vec3 above{target.position.x, target.position.y, F32(D(target.position.z) + 100.0)};
+            if (auto made = Particle(pass, Spark, 3, above, Unwritten, White, Flash, 0x427a4d); !made.HasValue())
+                return made;
+        }
+    }
+    return {};
+}
+
 // 0x42720d..0x427a92, el 0x1b6: r = rand() % 30, v = r · 0,01f + 0,6f; la luz (v + 0,5; v − 0,05f; v + 0,5) para
-// cinco 0x5ad (la mano izquierda a 0,8, z02 a 1,1, z03 a 1, z04 a 1,7 y z05 a 0,8) y el punto (0, 0, −65) del pie
-// para su partícula 0x5ad/4 (CL11). Con la tabla llena siguen sus sonidos: en la 2 y la 10, rand() % 15 en 0 pide
-// 0x261 más rand() % 2; con +4 en 0, +4 = 1 y 0x264 en la 3, 0x9c más rand() % 2 y 0x263 en la 4 y 0x265 en la 6.
-// Después, en la 3 y la 4, las partículas 0x5f2/0x1b y 0x5ad del pie (desde el frame 4, 0x6b8a44) y del blanco (desde
-// 6, 0x6b87f4), que con la tabla llena no crean nada, y con el blanco +0x3a4 en el pool, en la 4 desde el frame 6, el
-// joint 0x614/0x10.
+// cinco 0x5ad (la mano izquierda a 0,8, z02 a 1,1, z03 a 1, z04 a 1,7 y z05 a 0,8) y, en el punto (0, 0, −65) del pie,
+// la partícula 0x5ad/4 de 4 con la luz (0,7f; 0,5; 0,7f) y los ángulos sin escribir (los de
+// SparkTheFootAndTheTargetOf1b6). Después sus sonidos: en la 2 y la 10, rand() % 15 en 0 pide 0x261 más rand() % 2;
+// con +4 en 0, +4 = 1 y 0x264 en la 3, 0x9c más rand() % 2 y 0x263 en la 4 y 0x265 en la 6; las partículas del pie y
+// del blanco, y con el blanco +0x3a4 en el pool, en la 4 desde el frame 6, el joint 0x614/0x10.
 Result DrawThe1b6(MonsterHelperPass& pass)
 {
     if (auto ready = NeedTheSprites(pass, 0x4272ee); !ready.HasValue())
@@ -994,9 +1040,11 @@ Result DrawThe1b6(MonsterHelperPass& pass)
             return Core::Unexpected(point.Error());
         Sprite(pass, Spark, point.Value(), glow.scale, light);
     }
-    if (const auto foot = PointOf(pass, "Monster100_Footstepst", 0x42763e, {0.0f, 0.0f, -65.0f}); !foot.HasValue())
+    const auto foot = PointOf(pass, "Monster100_Footstepst", 0x42763e, {0.0f, 0.0f, -65.0f});
+    if (!foot.HasValue())
         return Core::Unexpected(foot.Error());
-    if (auto made = Unported(pass, Spark, 4, 0x42769f); !made.HasValue())
+    constexpr glm::vec3 FootLight{std::bit_cast<float>(0x3f333333u), 0.5f, std::bit_cast<float>(0x3f333333u)};
+    if (auto made = Particle(pass, Spark, 4, foot.Value(), {}, FootLight, 4.0f, 0x42769f); !made.HasValue())
         return made;
     // 0x4276a4..0x427764.
     const std::uint8_t action = actor.animation.action;
@@ -1018,6 +1066,8 @@ Result DrawThe1b6(MonsterHelperPass& pass)
     }
     else if (action == 6)
         SoundOnce(pass, 0x265, false);
+    if (auto sparked = SparkTheFootAndTheTargetOf1b6(pass); !sparked.HasValue())
+        return sparked;
     // 0x4279cc..0x427a8d: 6 (0x6b87f4). El 0x614/0x10 sin dueño desde el blanco hasta 100 (0x6b86b4) sobre él, con los
     // ángulos del actor y ancho 10.
     if (action == 4 && HasTarget(actor) && actor.animation.frame >= 6.0f)

@@ -293,6 +293,54 @@ Core::Expected<void, ParticleError> StepTheExplosion(Particle& particle, Particl
     return {};
 }
 
+// 0x540260..0x540316: la vida (rand() & 7) + 20 de todas; la /2 la pisa con 19 y corre la y rand() % 60 − 30
+// (0x5402ac); la /3 vive 7 y la /4 4, las dos con la textura 0x5fd (0x5402df, 0x5402f2), y la /4 gira rand() % 180 −
+// 360 (0x540310).
+void CreateTheMagicSpark(Particle& particle, Render::Models::CrtRandom& random)
+{
+    constexpr std::int32_t Shine = 0x5fd;
+    constexpr std::int32_t ShiftedLife = 19, FlashLife = 7, BlinkLife = 4;
+    constexpr int ShiftSpan = 60, TurnSpan = 180;
+    constexpr double ShiftCenter = 30.0, TurnBase = 360.0;
+    particle.life = (random.Next() & 7) + 20;
+    if (particle.subtype == 2)
+    {
+        particle.life = ShiftedLife;
+        particle.position.y = F32(
+            (static_cast<double>(random.Next() % ShiftSpan) + static_cast<double>(particle.position.y)) - ShiftCenter);
+    }
+    else if (particle.subtype == 3)
+    {
+        particle.life = FlashLife;
+        particle.texture = Shine;
+    }
+    else if (particle.subtype == 4)
+    {
+        particle.life = BlinkLife;
+        particle.texture = Shine;
+        particle.rotation = F32(static_cast<double>(random.Next() % TurnSpan) - TurnBase);
+    }
+}
+
+// 0x544e87..0x544ed5: la /2 se achica por 0,92f; la /3 crece por 1,3f y se apaga por 0,9f; la /4 salta al final
+// (0x544edd) sin nada propio.
+void StepTheMagicSpark(Particle& particle)
+{
+    if (particle.subtype == 2)
+    {
+        particle.scale =
+            F32(static_cast<double>(particle.scale) * static_cast<double>(std::bit_cast<float>(0x3f6b851fu)));
+    }
+    else if (particle.subtype == 3)
+    {
+        particle.scale =
+            F32(static_cast<double>(particle.scale) * static_cast<double>(std::bit_cast<float>(0x3fa66666u)));
+        for (int channel = 0; channel < 3; ++channel)
+            particle.light[channel] = F32(static_cast<double>(particle.light[channel]) *
+                                          static_cast<double>(std::bit_cast<float>(0x3f666666u)));
+    }
+}
+
 // 0x543939..0x5439c9 (la /0) y 0x5439ca..0x543a5c (la /1): vida 24 o 15, la velocidad (0; −(rand() % 16 + 32) ·
 // 0,1f; 0) del fild por −0,1f (0x6b8930), la escala (rand() % 128 + 128) · 0,01f (0x6b88d4), la luz 0,5 y el giro
 // rand() % 360. Tres rand(); con otro subtipo, 0x54304c sin nada propio.
@@ -912,8 +960,9 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
     // 0x541172 y 0x5457a5: el fuego trata cualquier subtipo (los de fuera de sus casos, sin nada propio).
     if (IsFireType(type))
         return std::nullopt;
+    // 0x540260 y 0x544e87: la /2, la /3 y la /4 (las de 0x1b6 y la mano de Crywolf).
     if (type == MagicSparkParticle)
-        return subtype == 2 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
+        return subtype >= 2 && subtype <= 4 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     // 0x540d13..0x54109e y 0x545565: la 5da trata cualquier subtipo (los de fuera de 0..9, sólo con el giro).
     if (type == MissileFireParticle)
         return std::nullopt;
@@ -2076,11 +2125,7 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
         }
         if (type == MagicSparkParticle)
         {
-            // 0x540260: sortea la vida antes de pisarla con19 y tirar el corrimiento de y.
-            particle.life = (random.Next() & 7) + 20;
-            particle.life = 19;
-            particle.position.y =
-                F32((static_cast<double>(random.Next() % 60) + static_cast<double>(particle.position.y)) - 30.0);
+            CreateTheMagicSpark(particle, random);
             return std::optional(index);
         }
         if (type == BreathParticle && subtype == CrywolfSwingSmokeSubtype)
@@ -2498,8 +2543,7 @@ StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random, const
         }
         else if (particle.type == MagicSparkParticle)
         {
-            particle.scale =
-                F32(static_cast<double>(particle.scale) * static_cast<double>(std::bit_cast<float>(0x3f6b851fu)));
+            StepTheMagicSpark(particle);
         }
         else if (particle.type == BreathParticle && particle.subtype == CrywolfSwingSmokeSubtype)
         {

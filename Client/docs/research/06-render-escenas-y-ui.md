@@ -8673,6 +8673,15 @@ la misma caminata, la escala 0,05f menos y la muerte en 0,1f; después, `0x544dd
 `0x52b843`), la skill `0x28` del que muere (diez /5, `0x4fbd3a`) y el calco `0x61e/6` (una /8 por hueso que no es un
 dummy, `0x52baf5`).
 
+**Las chispas `0x5ad/3` y `0x5ad/4`** (con la textura `0x5fd`, `Shiny02`, en `Particles.cpp`, tercera vuelta): el alta
+(`0x540260..0x540316`) sortea para todas la vida `(rand() & 7) + 20`; la /2 la pisa con 19 y corre la y `rand() % 60
+− 30` (`0x6b8858`); la /3 vive 7 y la /4 4, las dos con la textura `0x5fd` (`0x5402df`, `0x5402f2`), y la /4 gira
+`rand() % 180 − 360` (`0x6b869c`, 360f): dos `rand()` la /2 y la /4, uno la /3. En el paso (`0x544e87..0x544ed5`) la
+/2 se achica por 0,92f, la /3 crece por 1,3f y se apaga por 0,9f, y la /4 salta al final sin nada propio. Las tres van
+al billboard común (`0x548644`). Además de la /2 de la mano de Crywolf, las pide el `0x1b6` en el pie (la /4,
+`0x42769f`; la /2 y la /3, `0x4278a0` y `0x4279c4`) y sobre su blanco (la /3, `0x427a4d`); los demás subtipos siguen
+con `UnsupportedSubtype`.
+
 ### Las partículas de la fuente en el juego
 
 **Estático**, `0x603011..0x60313f`: después del rand común del objeto, luz1 y V calculada con NEG
@@ -14174,7 +14183,7 @@ de la lista pide el suyo una vez. Devuelve 1 (corta la cadena) con el `0x1ad` y 
 
 | Tipo | Qué hace, en orden |
 | --- | --- |
-| `0x1b6` (Monster100) | `v = rand() % 30 · 0,01f + 0,6f` (en la x87) y la luz (`v + 0,5`; `v − 0,05f`; `v + 0,5`); `0x5ad` en `L_Hand` (0,8), `z02` (1,1), `z03` (1), `z04` (1,7) y `z05` (0,8); el punto (0, 0, −65) de `Footstepst` y la partícula `0x5ad/4` (`0x42769f`); llena la tabla, los sonidos (ocioso `rand() % 15` en 0: `0x261 + rand() % 2`; una vez, `0x264` en la 3, `0x9c + rand() % 2` y `0x263` en la 4, `0x265` en la 6) y, en la 3 y la 4, las `0x5f2/0x1b` y `0x5ad` del pie y del blanco, que no crean nada; con el blanco `+0x3a4` (WORD con signo) en el pool, en la 4 desde el frame 6 el joint `0x614` (`0x427a8d`) |
+| `0x1b6` (Monster100) | `v = rand() % 30 · 0,01f + 0,6f` (en la x87) y la luz (`v + 0,5`; `v − 0,05f`; `v + 0,5`); `0x5ad` en `L_Hand` (0,8), `z02` (1,1), `z03` (1), `z04` (1,7) y `z05` (0,8); el punto (0, 0, −65) de `Footstepst` y la partícula `0x5ad/4` de 4 con la luz (0,7f; 0,5; 0,7f) (`0x42769f`, tercera vuelta del lote de partículas); los sonidos (ocioso, en la 2 y la 10, `rand() % 15` en 0: `0x261 + rand() % 2`; una vez, `0x264` en la 3, `0x9c + rand() % 2` y `0x263` en la 4, `0x265` en la 6); en la 3 y la 4 desde el frame 4, en el punto (70, 0, 0) del pie, la `0x5f2/0x1b` de 2 con la luz (0,5; 0,2f; 0,5) (`0x42786d`) y la `0x5ad/2` de 1 (`0x4278a0`); en la 3 desde el frame 6, en otro punto (70, 0, 0) del pie, la `0x5ad/3` de 1,3f con los ángulos (0, 0, 0) (`0x4279c4`) y, con el blanco en el pool, otra 100 más arriba del blanco (`0x427a4d`), todas con la luz 1 (los ángulos de las demás son `[EBP−0x60]`, que `0x4271d0` no escribe: nacen sin velocidad y MuRet pasa (0, 0, 0)); con el blanco `+0x3a4` (WORD con signo) en el pool, en la 4 desde el frame 6 el joint `0x614` (`0x427a8d`) |
 | `0x1b7` (Monster101) | el punto de `L_Arm` y su `0x6f1/1` (`0x427b8b`); llena, las de `R_Arm` y `Head` no crean nada, los sonidos (ocioso `0x247`; `0x249`, `0x24a`, `0x24b`) y, en la 3, las `0x5f2/0x19` (desde el frame 4) y `0x6eb/3` (de 5 a 5,5), que no crean nada, y con el blanco en el pool desde el frame 6,9 el joint `0x618` (`0x428036` salta a `0x427a8d`) |
 | `0x1b8` (Monster102) | `rand() % 10`, un `0x5ad` a 3 con (0; `r · 0,01f + 0,2f`; 0) en el punto (60, −30, 0) de `Head` y, en el mismo punto, la partícula `0x5c6/7` con ángulos (0, 0, 0), esa luz y escala 1 (`0x428164`, CL11); después, sus sonidos (ocioso `0x24c`; `0x24e`, `0x24f`, `0x250`) |
 | `0x1b9` | solo sonidos: ocioso `0x256`; `0x258`, `0x259`, `0x25a` |

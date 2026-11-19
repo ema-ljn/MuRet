@@ -8,6 +8,7 @@
 #include "World/ModelEffects.h"
 #include "Data/Text/TextTable.h"
 #include "Scenes/GameMessages.h"
+#include "Scenes/SkullEffects.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -190,8 +191,13 @@ Core::Expected<void, std::string> ApplyEffectFlags(ActorState& actor, std::uint3
     if (Has(flags, Bit40))
     {
         if (!Has(actor.flags78, Bit40))
-            return Cut("0x4e6869: 0x518ac0, el efecto 0x628/0 (0x518cf0) y el sonido 0x85 de la bandera 0x40 son de la "
-                       "CL11 y la CL10");
+        {
+            // 0x4e6842..0x4e6899: la calavera 0x628/0 sobre el personaje (la de antes, apagada) y el sonido 0x85 en él.
+            constexpr std::int32_t SkullSound = 0x85;
+            if (auto skull = PutTheSkullOn(actor, resources.world, resources.cloth.random, 0x4e688c); !skull.HasValue())
+                return skull;
+            resources.world.Runtime().RequestSound(SkullSound, actor.position);
+        }
         actor.flags78 |= Bit40;
     }
     // 0x4e68a7..0x4e68cc.

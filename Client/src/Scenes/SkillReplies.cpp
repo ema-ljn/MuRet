@@ -21,6 +21,7 @@
 #include "Scenes/HighModelEffects.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/SkullEffects.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
@@ -437,14 +438,13 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
             return acted;
         return Settle(cast);
     }
-    // 0x4cd617: con la skill salida, apaga el 0x628/0 del blanco y crea otro (CL11). Con la tabla llena 0x518cf0 no
-    // crea nada y sigue igual: el sonido 0x85 en el blanco (0x4cd669..0x4cd671) y su 0x40 (0x4cd676..0x4cd67e).
+    // 0x4cd617: con la skill salida, apaga el 0x628/0 del blanco y crea otro (Scenes::PutTheSkullOn; con la tabla
+    // llena, ninguno). Después, el sonido 0x85 en el blanco (0x4cd669..0x4cd671) y su 0x40 (0x4cd676..0x4cd67e).
     case 0x37:
         if (succeeded)
         {
-            KillModelEffectsOf(world.Map().effects, 0x628, &target, 0);
-            if (HasFreeEffectSlot(world))
-                return Core::Unexpected(std::string("0x4cd664: el efecto 0x628 de 0x518cf0 es de la CL11"));
+            if (auto skull = PutTheSkullOn(target, world, resources.cloth.random, 0x4cd664); !skull.HasValue())
+                return skull;
             world.Runtime().RequestSound(0x85, target.position);
             target.flags78 |= 0x40;
         }

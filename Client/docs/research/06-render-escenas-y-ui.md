@@ -12269,7 +12269,7 @@ propiedad de `WorldState`, también en cleanup de mapa; reconstruir una clave vi
 dirección, después de lo que el original hace antes: el recién llegado del `45` en `0x4c965c` (CL11; el alta de
 `0x4c934c` es `CreateMonster` desde el hito 2, [Los monstruos y los NPC en el
 viewport](#los-monstruos-y-los-npc-en-el-viewport)), y las banderas que crean efectos (`0x4e644f`, `0x4e662d`,
-`0x4e6725`, `0x4e676e`, `0x4e67d6` y `0x4e6869`, CL11 y CL10). La ráfaga DF ya está conectada mediante
+`0x4e6725`, `0x4e676e`, `0x4e67d6` y ~~`0x4e6869`~~, CL11 y CL10; la del `0x40`, el `0x628/0` y el sonido `0x85`, portada en la CL11 con `Scenes::PutTheSkullOn`). La ráfaga DF ya está conectada mediante
 `World::CreatePushBurst` y el subtipo de `NoriaParticleKernels`: duplica escala y triplica el vector local antes de
 girarlo (`0x5404ad..0x5404ca`); comparte paso y dibujo con la familia ya portada. `GameModels` carga su textura
 `Effect\Spark02.jpg` en el slot `0x5c5` mediante `EffectTextureSet`. Los sonidos (`0x76`, `0x84`) quedan en el último sonido, sin
@@ -12428,7 +12428,7 @@ la rama de la skill:
 | `0x17` | `0x3c` o `0x29` alternadas con `+0x38f` |
 | `0x3c`, `0x3d`, `0x4a` | `0x4e` con un pegaso (en la `0x4a`, solo el Dark Horse), `0x58` con Fenrir, si no `0x4c` |
 | `0x18`, `0x34`, `0x36`, `0x33`, `0x2e` | la acción por las manos (`0x4cc110`, y `0x4cc1d0` en la `0x2e`); la `0x33` salida apaga el `0xc1/1` del blanco y crea otro (CL11, `0x4cd6ff`) |
-| `0x37` | salida: apaga el `0x628/0` del blanco y crea otro (CL11, `0x4cd664`); si no, un monstruo va a `0x4f4a10` con el frame en 0 (`0x4cd68e`) |
+| `0x37` | salida: apaga el `0x628/0` del blanco y crea otro (`0x4cd664`, `Scenes::PutTheSkullOn`, CL11), el sonido `0x85` en él y su `0x40`; si no, un monstruo va a `0x4f4a10` con el frame en 0 (`0x4cd68e`) |
 | `0x43`..`0x48` | la acción por la montura (Dark Horse `0x52`, Uniria `0x40`, Dinorant `0x41`, Fenrir `0x5d`; si no `0x3f` o `0x87`); salidas, la `0x44` baja el `0x1000` del blanco, la `0x46` le prende `0x4000` (si no es la fuente), la `0x47` le baja `0x4000`, la `0x48` le baja seis y la `0x45` prende `0x2000` en la fuente y crea su `0x138` (CL11, `0x4cdb72`) |
 | `0x4b`, `0x40` | `0x200` (`0x800` con `0x4f3f80` antes) en el blanco; la acción del Dark Horse, Fenrir o `0x8e` |
 | `0x35`, `0x30` | sin `0x400` (`0x10`) en el blanco, apaga su `0x5ac/2` y sus joints `0x619/9` (su `0x5ac/1`) y crea otro con él de dueño (`0x4cdc88`, `0x4cdd84`; `World::ModelEffects::CreateSkillFlare`, vida 1000); después, el bit. El paso (`0x52a7b7`, `Scenes::StepSkillFlare`): el /2 gira alrededor del dueño y cada 50 suelta un joint `0x619/9`; el /1 emite `0x5ac/4` en dos huesos opuestos (`0x52a866`, `0x52a89a`, CL11.3) |
@@ -13971,6 +13971,7 @@ velocidad girada por los ángulos, sumada a la posición, un `fstp` por eje) y u
 | `0x13c` (`Skill\golem_stone`) y las piedritas `0x12d/2` y `0x12e/2` (`0x4ee770` al morir el `0x1a4` y el `0x1a6`, `0x441696` y `0x442165`) | `0x51d32c` y `0x51d3b1`: el empuje `((r & 127) + 32) · 0,1f`, la escala `((r & 1) + 10) · 0,25` (el `0x13c`) o `((r & 1) + 4) · 0,12f + 0,6f` (las piedritas) y la caída `r % 5 + 2`; después la cola de las piedras (`0x51d50d`: vida, yaw, tres ángulos, 50 más arriba). `0x4ee770` saca un `rand() % 45` por esquina de la malla 0 y, con 0 y menos de 20 contados, el /0 crea el `0x13c` y el /1 las dos piedritas | `0x5291ce`: el de las piedras (caen de a 3 y rebotan en el terreno, alpha vida · 0,1f); el `0x13c`, con `rand() & 3` en 0, la `0x6ec/5` y el humo `0x5f2/0x15` y, con `rand() % 10` en 0, el polvo `0x5f3/0`; el `0x12d/2`, con `rand() % 10` en 0, la z en el terreno y el humo `0x5f2/0xb` | el genérico |
 | `0x12e/3` (la piedra del `0x1a6` en la 3, `0x442397`) | `0x51d438..0x51d4a4`: vida `(r & 15) + 32`, la escala `(r % 3 + 2) · 0,12f + 1,2f`, la velocidad z `−20 − r % 5`, `+0xd8` en 1,8f; sin la cola de las piedras | `0x5290df..0x5291c9`: la velocidad z baja `+0xd8`, que sube 0,3f; con el terreno por encima, ahí, quieta y derecha, y con `rand() % 10` en 0 el humo `0x5f2/0x18`; si no, con `rand() & 1` en 0, el mismo humo a 0,2f | el genérico |
 | `0x621`/1 y /2 (el brillo de la 0x37 en la mano, `0x4f9f3e`) | `0x51efa5..0x51efe9`: vida 20 y la partida en la posición (los demás salvo el /0, vida 10) | `0x52bb79..0x52bbf1`: el origen del modelo del dueño pasa a ser la partida y la posición es el punto (0, 0, 10) de su hueso 33; después las emisiones del /0 (`0x52bbf6`) | sin caso |
+| `0x628` (la calavera, sin modelo: el sprite `0x628`, `Skill\Skull.jpg`; el /0 de la bandera `0x40`, `0x4e688c` y `0x4cd664`) | `0x51ee23..0x51ee95`: vida 1.000; el /1, 940; el /2, 8 y la z 150 más; el /4, 20, `+0xd8` en 2 y la velocidad (0, −10, 0) | `0x52b59b..0x52b8a1`: el /4 baja la velocidad y en `+0xd8` y la x de los ángulos en 1 y deja el sprite `0x628` de escala 10 con su luz. Los demás, con el dueño (`+0x108`) muerto, la vida y el byte vivo en 0; vivo, la tabla de `0x52d18c`: el /0 mira su **propio** `+0x78` (no el del dueño; nadie lo escribe en un efecto): con `0x40` la vida en 10 y, con `0x4000` también, `+0x16c` en 0 y nada más; si no, como el /1 y el /3, tres vueltas en el ángulo vida · 0,17f + i · 2π/3 (negado en el /3) y el radio FSIN(i · 15,37f + T · 0,0031f) · 20 + 50 sobre el dueño, a 200 (250) por su escala sobre su z, con la partícula `0x5de/5` (luz 0,65f, o (0,1f; 1; 1) el /3; escala 0,4f) y el sprite `0x628` de escala 1 con la luz local; el /2, el sprite `0x628` de escala 1,5f con la luz vida · 0,1f; el /5, tres `0x5ac/5` (luz (0,6f; 0,6f; 1), escala 0,7f) a 50 del dueño en el ángulo i · 2π/3 + vida · 0,17f + T · 0,003f y a (i + 1) · su escala · 50 sobre su z. Sin `rand()` | sin caso |
 
 MuRet: `Scenes::CreateHighModelEffect` y `StepHighModelEffect` (`HighModelEffects.h`), desde los llamadores del asedio
 (`MonsterCreation`, `StepTheSiege`, `StepTheDoppelganger`), de Crywolf (`LaunchTheRadialVolley`) y desde
@@ -13981,11 +13982,11 @@ destrabados: de `0x4fd5f0` la 0x30 y la 0x45 (`0x4fe015`, `0x4fe253`, el anillo 
 `0x613`), la 0x46 (`0x4fe424`), la 0x2c (el `0x13b` sobre o), la 0x0c (`0x500cb9`), las manos de la 0x40 y
 la 0x4b (con el `0x138`), la 0x4a y la 0x3d; de `0x4f97b0` la 0x2b, la 0x2f y la 0x37 (`0x4f9f3e`); de `0x4f5b70` el
 0x46 (`0x4f5cb6`: un blanco fuera de la tabla corta en `0x4f5cd4`), `0x4f67fb`, `0x4f6b51` y `0x4f81cc`; el rayo
-blanco del `0x1bb` (`0x428da7`); y de `0x441400` las muertes del `0x1a4` y el `0x1a6` (`0x4ee770` sobre las mallas
+blanco del `0x1bb` (`0x428da7`); la calavera `0x628/0` de la bandera `0x40` (`0x4e688c`, `Scenes::ApplyEffectFlags`) y de la 0x37 que llega (`0x4cd664`, `CastTheSkill`), las dos por `Scenes::PutTheSkullOn` (`SkullEffects`); y de `0x441400` las muertes del `0x1a4` y el `0x1a6` (`0x4ee770` sobre las mallas
 de su cuerpo posado, `Scenes::EmitVertexEffects`, Q-C1581) y la piedra del `0x1a6` (`0x442397`; con el primer
 `rand() % 2` en 1 el punto no está escrito y corta, Q-C1580). Las piedras están en `World/SiegeVertexEffects`. Cortan con su dirección los joints que todavía no están (`0x61c/3`, `0x632/5`,
 `0x615/6`, `0x60f/0x19`, `0x60f/0xb`, `0x614/3`, `0x61c/2`, `0x60f/4`, `0x60f/0xc`, `0x619/6`; 08, P-C420), las
-partículas sin portar (`0x5ac/8`, `0x5db/7`, `0x5db/0xb`, `0x5da/0`, `0x5f2/0x18`; 08, P-C422) y la segunda animación del `0x13b`
+partículas sin portar (`0x5ac/8`, `0x5db/7`, `0x5db/0xb`, `0x5da/0`, `0x5f2/0x18`, `0x5de/5` y `0x5ac/5` del `0x628`; 08, P-C422) y la segunda animación del `0x13b`
 cuando la primera dejó la acción en `0xff` (`0x52cd84`: el original lee la acción 255 fuera de la tabla del modelo,
 P-C421). La comprobación de distancia del `0x116/0` (la vida en 5, `0x5f93c0` en una variable que nadie lee) no se
 porta: no cambia nada. Las señales propias de los ADR 0019 y 0020 ya no existen.

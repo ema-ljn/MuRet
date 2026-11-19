@@ -31,6 +31,7 @@
 
 #include <glm/ext/vector_float3.hpp>
 
+#include <algorithm>
 #include <array>
 #include <bit>
 #include <cstddef>
@@ -82,6 +83,20 @@ constexpr float PartyFrameLimit = 2.0f;
 // 0x50fba4: las banderas de +0x78 con sprites y joints.
 constexpr std::uint32_t FirstGlowFlag = 0x4;
 constexpr std::uint32_t SecondGlowFlag = 0x2000000;
+// 0x50fbe5..0x50fc34: la luz de cada mano, k = (rand() % 30 + 70) · 0,01f y (k; k · 0,3f; k · 0,2f).
+constexpr int GlowSpan = 0x1e;
+constexpr int GlowBase = 0x46;
+constexpr double GlowStep = static_cast<double>(std::bit_cast<float>(0x3c23d70au));  // 0x6b88d4, 0,01f
+constexpr double GlowGreen = static_cast<double>(std::bit_cast<float>(0x3e99999au)); // 0x6b89dc, 0,3f
+constexpr double GlowBlue = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu));  // 0x6b8854, 0,2f
+constexpr std::uint16_t GlowSprite = 0x5fd;
+constexpr float GlowScale = 1.5f; // 0x3fc00000
+// 0x50fcf7..0x50fd5c: los cinco 0x10f/4 de ancho 20 (0x41a00000), si no hay un 0x10f/4 ni /9 suyo (0x534fd0).
+constexpr std::int32_t AuraType = 0x10f;
+constexpr std::int32_t BindingSubtype = 4;
+constexpr std::int32_t RiderBindingSubtype = 9;
+constexpr float BindingWidth = 20.0f;
+constexpr int BindingRings = 5;
 
 // 0x50fd74: +0x358, cada 100 dibujos con la acción por debajo de 0xd, el efecto 0x5ac/3 con la luz (0,2f; 0,7f;
 // 0,9f).
@@ -355,15 +370,63 @@ Core::Expected<AfterTheActions, std::string> Actions(Tail& tail)
     return Rest;
 }
 
-// 0x50fba4..0x50fd5e: los sprites de las manos con el color al azar y los cinco joints 0x10f/4. +0x78 sólo lo
-// escriben los paquetes (CL9): corta con la condición del ASM.
-Result Flags(const Tail& tail)
+// 0x50fba4..0x50fd5e: con 0x4 o 0x2000000 en +0x78 y sin 0x4000, por cada mano (+0x2bd y +0x2dd) un rand() da la
+// luz y tres sprites 0x5fd de escala 1,5 en los huesos mano, mano − 6 y mano − 7 (0x4ec110 con [ebp−0x50]); después,
+// si no hay un joint 0x10f/4 ni /9 suyo (0x534fd0), 0x530860(0x10f, +0x10, +0x10, +0x1c, 4, o, 20, −1, 0, 0, el
+// +0x3a4 con signo) cinco veces. Entre frames, sólo los sprites (con los rand() de la copia).
+Result Flags(Tail& tail)
 {
-    const std::uint32_t flags = tail.actor.flags78;
+    ActorState& actor = tail.actor;
+    const std::uint32_t flags = actor.flags78;
     const bool glows = (flags & FirstGlowFlag) != 0 || (flags & SecondGlowFlag) != 0;
-    if (glows && (flags & HiddenAttachmentFlag) == 0)
-        return Core::Unexpected(std::format(
-            "0x50fbd5: los sprites y los joints 0x10f de las banderas +0x78 ({:#x}) no están portados", flags));
+    if (!glows || (flags & HiddenAttachmentFlag) != 0)
+        return {};
+    for (const ActorItemPart& hand : actor.hands)
+    {
+        const double k = static_cast<double>(tail.pass.random.Next() % GlowSpan + GlowBase) * GlowStep;
+        const glm::vec3 light{F32(k), F32(k * GlowGreen), F32(k * GlowBlue)};
+        constexpr std::array<std::string_view, 3> BoneCalls{"0x50fc37", "0x50fc7d", "0x50fcc3"};
+        constexpr std::array<std::string_view, 3> SpriteCalls{"0x50fc53", "0x50fc99", "0x50fcdf"};
+        for (std::size_t i = 0; i < HandBoneDrops.size(); ++i)
+        {
+            const auto point = tail.BodyPoint(static_cast<std::int32_t>(hand.bone) - HandBoneDrops[i], BoneCalls[i]);
+            if (!point.HasValue())
+                return Core::Unexpected(point.Error());
+            if (auto sprite = tail.Sprite(SpriteCalls[i], GlowSprite, point.Value(), GlowScale, light);
+                !sprite.HasValue())
+                return sprite;
+        }
+    }
+    if (!tail.pass.originalFrame)
+        return {};
+    if (tail.pass.joints.empty())
+        return Core::Unexpected(std::string("0x50fcff: faltan los joints del frame (0x534fd0)"));
+    const bool bound =
+        std::ranges::any_of(tail.pass.joints,
+                            [&actor](const JointState& joint)
+                            {
+                                return joint.alive && joint.type == AuraType && joint.ownerContext == &actor &&
+                                       (joint.subtype == BindingSubtype || joint.subtype == RiderBindingSubtype);
+                            });
+    if (bound)
+        return {};
+    for (int ring = 0; ring < BindingRings; ++ring)
+    {
+        const World::FishEffectRequest request{.type = AuraType,
+                                               .firstPosition = actor.position,
+                                               .secondPosition = actor.position,
+                                               .angles = actor.angles,
+                                               .subtype = BindingSubtype,
+                                               .ownerContext = &actor,
+                                               .scale = BindingWidth,
+                                               .key = -1,
+                                               .skill = 0,
+                                               .skillSerial = 0,
+                                               .target = std::bit_cast<std::int16_t>(actor.attackTarget)};
+        if (auto created = CreateFaunaJoint(tail.pass.joints, request, tail.pass.random, JointOwnerKind::Actor);
+            !created.HasValue())
+            return Core::Unexpected(std::format("0x50fd4d: {}", created.Error()));
+    }
     return {};
 }
 

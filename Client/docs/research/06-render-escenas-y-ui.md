@@ -8944,9 +8944,12 @@ frame del original:
   personaje, con el personaje de dueño y sus ángulos, sólo en un frame del original (`0x50fa74` y `0x50fa97`, CL11:
   `BeamJoints.cpp`). En [7, 8), dos `117/2` en la mano
   derecha (corta en `0x50fb64`). (CL9 hito 7, al armar la cadena.)
-- **Las banderas** `+0x78 & 4` o `0x2000000`, sin `0x4000` (`0x50fba4`): un `rand() % 30` por mano, los
-  sprites con ese color y los cinco joints `10f/4` si no hay uno. `+0x78` sólo lo escriben los paquetes:
-  corta en `0x50fbd5` con esa condición.
+- **Las banderas** `+0x78 & 4` o `0x2000000`, sin `0x4000` (`0x50fba4..0x50fd5e`; CL11, octava vuelta del lote
+  joints): por mano (`+0x2bd` y `+0x2dd`), k = (`rand() % 30` + 70) · 0,01f (`0x6b88d4`, sin guardar) y la luz (k;
+  k · 0,3f; k · 0,2f), cada una guardada en `float`; tres sprites `0x5fd` de escala 1,5 con esa luz y el personaje de
+  dueño en los huesos mano, mano − 6 y mano − 7 de la pose propia (`0x4ec110` con el corrimiento de `[ebp−0x50]`). Después,
+  si `0x534fd0` no encuentra un joint `0x10f` vivo suyo con el subtipo 4 ni el 9, cinco `0x530860(0x10f, +0x10, +0x10,
+  +0x1c, 4, o, 20, −1, 0, 0, +0x3a4 con signo)`. Entre frames, sólo los sprites (con los `rand()` de la copia).
 - **Chaos Castle** (`0x50fd61`): en los mapas 18 a 23 salta al final, sin el contador ni el conjunto.
 - **El contador** (`0x50fd74`): con `+0x358` (el conjunto antiguo de `0x40d010`), `+0x35c` cuenta cada
   dibujo; con la acción por debajo de `0xd` y 100 o más, el efecto `5ac/3` en el personaje con

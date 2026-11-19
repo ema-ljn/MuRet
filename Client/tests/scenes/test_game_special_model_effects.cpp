@@ -344,6 +344,24 @@ TEST(GameSpecialModelEffectsTest, FallenItemGuardDoesNotRequireItsOwnerOrResourc
         Client::Scenes::DrawGameModelEffects(batch, models, std::span(&effect, 1), {}, nullptr, {}, 0).HasValue());
 }
 
+TEST(GameSpecialModelEffectsTest, TheTrailWithoutAMeshContinuesTheSecondKalimaPass)
+{
+    NoModels models;
+    Client::Render::ModelBatch batch;
+    Client::World::ModelEffect trail;
+    trail.alive = true;
+    trail.type = 0x104;
+    trail.life = 6;
+    trail.objectState.blendMesh = -2;
+    constexpr std::uint8_t SecondKalimaPass = 1;
+    const auto drawn = Client::Scenes::DrawGameModelEffects(batch, models, std::span(&trail, 1), {}, nullptr, {}, 0.0f,
+                                                            SecondKalimaPass);
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    EXPECT_TRUE(trail.seen);
+    EXPECT_EQ(trail.life, 6);
+    EXPECT_TRUE(batch.Vertices().empty());
+}
+
 TEST(GameSpecialModelEffectsTest, SpinningItemRequiresItsOwnerBeforeStoringAngularVelocity)
 {
     NoModels models;

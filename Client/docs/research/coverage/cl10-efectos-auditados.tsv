@@ -172,7 +172,7 @@ va	funcion	veredicto	archivo_cpp_referencia
 005057f9	00505770	corresponde	Scenes/ActorWalk.cpp:258
 00505808	00505770	corresponde	Scenes/ActorWalk.cpp:258
 0052248b	005208a0	alcanza el sonido	World/GameModelEffects.cpp:1094..1155
-0052266a	005208a0	corte previo en una rama	World/GameModelEffects.cpp:1185
+0052266a	005208a0	alcanza el sonido	World/GameModelEffects.cpp
 00524e65	005208a0	corte previo en una rama	World/GameModelEffects.cpp:1623..1627
 005257bc	005208a0	corte previo en una rama	World/GameModelEffects.cpp:1623..1627
 0052743f	005208a0	alcanza el sonido	Scenes/CrywolfDeathSpiritEffects.cpp:101..152

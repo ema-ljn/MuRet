@@ -4227,8 +4227,15 @@ de `0x443d70` en el mapa 55 y la escena 2; los slots, **verificados** en `lor_sl
     `rand() % 50 + 40` (salvo en una celda con el `0x4`, el `0x8` o el `0x10`, Q-C424) a la altura del suelo más 3
     (100 en Kalima). En la vida 10, cuatro anillos de cinco pares `0x101`/`0x102` de tamaño 100 (el sentido del
     cuarto sale de un `rand()`, Q-C429; la celda los frena sólo con los tres bits), el sonido `0x97` y la vida en
-    0. En las demás, se hamaca alrededor de la partida. El estado 0 (la habilidad del Dark Lord) corta en
-    `0x521e13` y `0x5224ec` (CL9.2, P-C58).
+    0. En las demás, se hamaca alrededor de la partida. Con el estado 0 y vida 13,
+    `0x5225bb` y `0x52264e` intentan crear dos grupos de cuatro estelas `0x104` antes del
+    movimiento. Los dos sorteos intermedios se consumen aunque se llene la tabla. `0x52266a`
+    pide `0x96` con origen nulo, luego sigue el movimiento y la vida queda en 12.
+    MuRet comparte el alta y el paso de la estela con Crywolf. Cada hijo toma el primer
+    hueco, conserva el sorteo común por paso y se libera tras seis pasos. El render
+    continúa sin geometría de la estela cuando falta su malla en la tabla actual.
+    La vida 11 conserva el corte de `0x521e13`, con el ciclo de `0x103/0` aún pendiente
+    (CL11, P-C58).
   - **Las grietas** `0xfb..0x102` (`Skill\EarthQuake01..08`, `0x6165bc..0x616688`) nacen
     (`0x51a6e4..0x51a85c`) con la escala `tamaño · 0,01f` y la vida de su tipo y subtipo (Q-C423); en su paso, la
     luz de las mallas, se hunden 0,5f, la `0xfb` hace temblar la cámara, la `0xfc` y la `0xff` sueltan piedritas

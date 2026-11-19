@@ -24,6 +24,7 @@
 #include "Scenes/GameTailDrawingPrimitives.h"
 #include "Scenes/ModelPoseCallbacks.h"
 #include "Scenes/SiegeCueDrawing.h"
+#include "World/GameModelEffects.h"
 #include "World/Leaves.h"
 #include "World/ModelEffects.h"
 #include "World/Sprites.h"
@@ -587,8 +588,8 @@ DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect, cons
     object.color = terrain + effect.light;
     object.alpha = effect.alpha;
     object.vertexLight = effect.vertexLight;
-    if ((effect.type == 0xe1 && effect.subtype == 1) || effect.type == 0x104 || effect.type == 0x145 ||
-        effect.type == 0x147 || effect.type == 0x10a || effect.type == 0x10b ||
+    if ((effect.type == 0xe1 && effect.subtype == 1) || effect.type == World::SpiritTrailEffect ||
+        effect.type == 0x145 || effect.type == 0x147 || effect.type == 0x10a || effect.type == 0x10b ||
         (effect.type >= 0x12b && effect.type <= 0x133) ||
         (effect.type == 0x114 && (effect.subtype == 2 || effect.subtype == 6)) ||
         (effect.type == 0x115 && effect.subtype == 1) || effect.type == 0xed || effect.type == 0xee)
@@ -723,9 +724,12 @@ DrawGameModelEffectsChecked(Render::ModelBatch& batch, const IModelLibrary& mode
             if (blendMesh == -1 || blendMesh < -2)
                 continue;
             const auto* model = models.Find(static_cast<std::uint16_t>(effect.type));
-            if (model == nullptr)
+            // La tabla de recursos de MuRet omite la malla de la estela. El filtro de 0x52d68c
+            // puede usar una cuenta de cero y completar el pase.
+            if (model == nullptr && effect.type != World::SpiritTrailEffect)
                 return Core::Unexpected(std::string("0x52d68c: falta el modelo del filtro de blendMesh"));
-            if (static_cast<std::int64_t>(model->meshes.size()) < blendMesh)
+            const auto meshCount = model != nullptr ? static_cast<std::int64_t>(model->meshes.size()) : 0;
+            if (meshCount < blendMesh)
                 continue;
         }
         if (OmittedEffect(effect))

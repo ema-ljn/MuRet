@@ -19,7 +19,7 @@ struct ModelEffectArguments;
 
 // Los subtipos del 0x61e con caso propio en el alta (0x51eebb), además de los de ModelEffects.h.
 inline constexpr std::int32_t PulsingDecalSubtype = 4; // el de la 0x30, entre los joints 0x613/2 (0x4fe127)
-inline constexpr std::int32_t BindingDecalSubtype = 6; // el de la 0x44 y la 0x47, sobre el blanco (0x4fe424)
+inline constexpr std::int32_t BindingDecalSubtype = 6; // el de la 0x46, sobre el blanco (0x4fe383..0x4fe43d)
 inline constexpr std::int32_t BindingChildSubtype = 7; // el que el dibujo del /6 suelta cada 25 vidas (0x52e04c)
 inline constexpr std::int32_t SpawningDecalSubtype = 8;
 inline constexpr std::int32_t GrowingDecalSubtype = 9; // el que el dibujo del /8 suelta en las vidas pares (0x52e0a2)

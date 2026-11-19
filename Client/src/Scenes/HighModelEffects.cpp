@@ -53,7 +53,9 @@ constexpr std::int16_t SiegeFlareEffect = 0x13b;    // la llama que suelta el pu
 constexpr std::int16_t SiegeSpearmanEffect = 0x19f; // el modelo del lancero (Monster78), sin dibujo: suelta los 0x12b/2
 constexpr std::int16_t SiegePulseEffect = 0x61c;    // sin dibujo: el pulso del asedio con sus joints
 constexpr std::int16_t RadialShardEffect = 0xc1a;   // el fragmento de la descarga radial de Crywolf
-// El destello que crece del 0x134 de 0x429110 (0x429202): sin BMD en la tabla de las skills.
+// El destello que crece de 0x429110 (0x429202). 0x615700 (los modelos de las skills) no lo carga: lo carga 0x616ec0
+// solo en el mapa 0x21 (0x618592 y 0x6185ad, Object34\tree_eff; WorldSpecialModels.cpp), así que fuera de ese mapa
+// el dibujo no encuentra su BMD.
 constexpr std::int16_t GrowingFlashEffect = 0x141;
 constexpr std::uint8_t NoAction = 0xff;
 // Los rayos de luz que se dibujan como sprites a lo largo de su velocidad (0x52d941): no se mueven ni tienen paso.
@@ -1156,7 +1158,7 @@ Core::Expected<void, std::string> StepTheRadialShard(World::ModelEffect& effect,
     return World::AddDynamicLight(context.services.lighting, position, color, 2, "0x521246");
 }
 
-// 0x52b9c1..0x52bb24, el 0x61e/6 (el calco que la 0x44 y la 0x47 ponen sobre el blanco, su dueño): el modelo del dueño
+// 0x52b9c1..0x52bb24, el 0x61e/6 (el calco que la 0x46 pone sobre el blanco, su dueño, 0x4fe424): el modelo del dueño
 // (0x5769ad8 + su tipo · 0xe0) toma la partida del calco como origen (+0x6c); +0x68 en (rand() % 10) · 0,1f; tantas
 // vueltas como vida, cada una con un hueso al azar (rand() % sus huesos) que, si no es un dummy, da tres rand() del
 // corrimiento (± 50, ± 10, ± 10), su punto (0x4ec110 con los huesos propios del dueño, la escala del modelo y ese

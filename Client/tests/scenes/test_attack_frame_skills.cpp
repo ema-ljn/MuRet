@@ -488,11 +488,12 @@ TEST(AttackFrameSkillsTest, TheStepsOf2f)
 
 // 0x4f9d44..0x4f9e52 (CL11): cada 0x10f de la 0x2f sale 145 por delante de o por su rumbo (PC53) y 110 más arriba, con
 // tres rand() % 60 − 30 sumados; sus argumentos: los ángulos de o, la luz (0,3; 0,3; 0,3), el modelo de la mano de
-// subtipo y o de dueño. Con la tabla llena, el lazo saca igual sus nueve rand().
+// subtipo y o de dueño. Con la tabla llena, el lazo saca igual sus nueve rand(). La base, calculada aparte para el
+// rumbo 30 desde (1000, 2000, 300): FSIN y FCOS por 145 en double, guardados en float.
 TEST(AttackFrameSkillsTest, TheRocksOf2fFallInFrontOfTheStriker)
 {
     constexpr std::uint16_t HandModel = 0x205;
-    constexpr double Degree = static_cast<double>(std::bit_cast<float>(0x3c8efa35u));
+    const glm::vec3 base{std::bit_cast<float>(0x44861000u), std::bit_cast<float>(0x44ea4da4u), 410.0f};
     for (const bool full : {false, true})
     {
         SCOPED_TRACE(full);
@@ -515,14 +516,10 @@ TEST(AttackFrameSkillsTest, TheRocksOf2fFallInFrontOfTheStriker)
         if (full)
             continue;
         CrtRandom expected(Seed);
-        const double angle = static_cast<double>(hero.angles.z) * Degree;
-        const auto sine = Client::Render::Models::Detail::SineProductPC53(angle, 145.0f);
-        const auto cosine = Client::Render::Models::Detail::CosineProductPC53(angle, 145.0f);
-        ASSERT_TRUE(sine && cosine);
         for (std::size_t rock = 0; rock < 3; ++rock)
         {
             SCOPED_TRACE(rock);
-            glm::vec3 point{static_cast<float>(*sine + 1000.0), static_cast<float>(2000.0 - *cosine), 410.0f};
+            glm::vec3 point = base;
             for (int axis = 0; axis < 3; ++axis)
             {
                 const int offset = expected.Next() % 60 - 30;

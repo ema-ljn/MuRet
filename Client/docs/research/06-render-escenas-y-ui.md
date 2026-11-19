@@ -8557,6 +8557,42 @@ sin afirmar todos los casos del switch ni precisión nativa CW/FSIN.
 comprueban creación, retención, orden/pool lleno y presupuestos CRT. No son una captura nativa
 ni una validación visual de la torre o del teleport.
 
+### Las partículas de los efectos de la CL11
+
+El lote de partículas de la CL11 (2026-11-19, *estático*, P-C440) agrega a `0x53fe70`, `0x5446e0` y `0x548550` los casos
+que pedían los efectos. Todos van al billboard común (`0x54889a`; el `0x5f2` pasando por `0x54874c`), salvo el fuego.
+`World/EffectParticleKernels` tiene los que no tenían kernel:
+
+- **El anillo `0x600`** (`Effect\ring.jpg`): nace en `0x543183` con vida 20; la /1, con vida 15, `+0x50` en 0 y el giro
+  `rand() % 360`. Su paso (`0x5473b1`): la /0 late con la vida (escala `sin(vida · 0,17453292f) · 3 + 2` con `fsin`, luz
+  `vida · 0,2f`); la /1 crece con `+0x50` (escala `sin(+0x50 · 0,017453292f) · 3 + 1,5`, `+0x50` suma `(15 − vida) · 6`
+  con tope 90 si la suma sin redondear lo pasa) y con vida menor que 6 apaga la luz a la mitad. La pide `0x43a7a0` en 14
+  (`0x43a861` y `0x43abd9`): sobre el blanco de `+0x3a4` en [0, 400) o el héroe, 150 más arriba, con los ángulos de c.
+- **El humo `0x5f2`/1 y /3**: la /1 (`0x541eb6`, siete `rand()`) es el veneno de la skill 1 (`0x50492e..0x504986`, diez
+  sobre el blanco con la luz (0,4f; 0,6f; 1)); la /3 (`0x541cf2`, cuatro) la piden `0x5216d6` y `0x521960`. Sus pasos
+  (`0x546250`, `0x5460c2`) apagan la luz con la vida, frenan la velocidad por 0,4f y crecen 0,05f o 0,1f.
+- **La llama `0x5de`/1..6** (tabla de `0x54448c` y de `0x5482f4`): la /2 da un salto con `0x4e98d0` al nacer, y la /2, /3
+  y /4 toman la luz del reloj `sin(reloj · 0,002f) · 0,3f + 0,7f`; la /4 sigue a su dueño (`+0x40`) desde su posición al
+  nacer (`Particles::CreateTowardChecked`).
+- **Las chispas `0x5c6`** sin kernel (tabla de `0x5443c0` y de `0x548204`): la /0 y la /8 (`0x545084`, bajan 0,5 y mueren
+  bajo 0,2f) del golpe de `0x52e740`, la /3 de las luces del `0x45` (`0x50c0db`), la /4 que va hacia su dueño y lo sigue con
+  su partida `+0x17c`, la /6 que sólo nace una de cada 50 veces (las demás quedan con vida 0 y su paso corre igual), la /7
+  verde y la /10 (con la cuenta de `+0x38`). La /13 comparte el kernel del arco (`0x540977`, `0x545368`).
+
+En `Particles.cpp`: **el fuego** (`0x541172` y `0x5457a5`, el mismo caso para `0x5d9`, `0x5db` y `0x5dc`) trata todos los
+subtipos (la /7 y la /11 se mecen, la /9 sigue a su dueño desde una partida en anillo, la /12 y la /13 suben y giran) y
+`0x548803` manda la 5, 7, 8, 11, 12 y 13 al atlas girado por `+0x44` (`0x548850`) y las demás al de los ángulos
+(`0x548821`), en los tres tipos; **el rayo `0x5d5`** (tabla de `0x544428`) trata todos los subtipos, y la /2 (vida 20, la de
+`0x4c965c`) sigue a su dueño 80 más arriba (`0x54548f`); **la `0x5ca`** no lee el subtipo. En los kernels de Kalima, las
+de Kundun: la caída `0x6f4`/3 (`0x543dc0`, gira 4 en `0x547f4c`) y las salpicaduras `0x6f2`/2, `0x6f3`/2 (`0x544295`) y
+`0x6f4`/4 (`0x543e14`), que avanzan 20 hacia su ángulo z con `fcos`/`fsin` del ángulo crudo (`0x5480fd`, `0x547f6b`).
+
+Las que siguen a su dueño (`0x5c6`/4, `0x5d5`/2, el fuego /9 y `0x5de`/4) guardan el `ParticleOwner` y su paso lee
+`ParticleOwnerStates` (`Scenes::ParticleOwnerStatesOf`: el byte vivo y la posición de un personaje, y además la partida de
+un efecto con modelo); sin él cortan con `MissingOwner`. El `0x4b` de `0x50bf45` (`0x50c37e`) deja el fuego `0x5d9/0` de
+0,3 en el hueso 18 y sigue con su brillo `0x144`; el `0x49` (`0x50c3ed`) dibuja los flare01 de los huesos 13 y 14 y corta
+en su primer joint `0x614/7` (`0x50c492`).
+
 ### Las partículas de la fuente en el juego
 
 **Estático**, `0x603011..0x60313f`: después del rand común del objeto, luz1 y V calculada con NEG

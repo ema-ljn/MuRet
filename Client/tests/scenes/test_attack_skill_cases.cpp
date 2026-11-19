@@ -30,6 +30,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -212,11 +213,11 @@ TEST(AttackSkillCasesTest, TheHeadCasesCutAfterTheirDraws)
         int draws;
     };
     const std::array cases{
-        Case{0x30, "0x4fe127", 0},         Case{0x45, "0x4fe360", 0},         Case{0x35, "0x4fe856", 0},
-        Case{0x3f, "0x4feae8", 0},         Case{0x31, "0x4fec15", 0},         Case{0x29, "0x4fec9a", OwnRecord},
-        Case{0x0a, "0x4fecf3", OwnRecord}, Case{0x28, "0x4ff4ef", 0},         Case{0x26, "0x4ff5b2", 0},
-        Case{0x27, "0x4ffdaf", 1},         Case{0x08, "0x500c49", OwnRecord}, Case{0x0c, "0x500cb9", OwnRecord},
-        Case{0x0d, "0x500d7b", OwnRecord}, Case{0x0e, "0x51fe9e", 2},         Case{0x2c, "0x502975", 0},
+        Case{0x30, "0x4fe127", 0},         Case{0x45, "0x4fe360", 0},         Case{0x3f, "0x4feae8", 0},
+        Case{0x31, "0x4fec15", 0},         Case{0x29, "0x4fec9a", OwnRecord}, Case{0x0a, "0x4fecf3", OwnRecord},
+        Case{0x28, "0x4ff4ef", 0},         Case{0x26, "0x4ff5b2", 0},         Case{0x27, "0x4ffdaf", 1},
+        Case{0x08, "0x500c49", OwnRecord}, Case{0x0c, "0x500cb9", OwnRecord}, Case{0x0d, "0x500d7b", OwnRecord},
+        Case{0x0e, "0x51fe9e", 2},         Case{0x2c, "0x502975", 0},
     };
     for (const std::int32_t map : Maps)
     {
@@ -234,6 +235,44 @@ TEST(AttackSkillCasesTest, TheHeadCasesCutAfterTheirDraws)
             EXPECT_TRUE(tested.sounds.empty());
         }
     }
+}
+
+// 0x4fe795..0x4fe981: la 0x35 cuelga de o cuatro 0x619/0xa de ancho 15 con los ángulos (−45, 0, 45, 405, 225 y 450),
+// que nacen en o; su primer tramo queda en el punto (sen 4,5 · 80; cos 4,5 · 80; 300) o (cos 22,5 · 80; sen 22,5 · 80;
+// 300) más o. Suena 0x7f, sin rand().
+TEST(AttackSkillCasesTest, TheEnergyCaseHangsFourJointsAroundItsCaster)
+{
+    SkillWorld tested;
+    tested.Striker().position = {1000.0f, 2000.0f, 50.0f};
+
+    const auto stepped = tested.Head(0x35);
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
+    const std::array<float, 4> turns{45.0f, 405.0f, 225.0f, 450.0f};
+    for (std::size_t index = 0; index < turns.size(); ++index)
+    {
+        SCOPED_TRACE(index);
+        const JointState& joint = tested.joints[index];
+        ASSERT_TRUE(joint.alive);
+        EXPECT_EQ(joint.type, 0x619);
+        EXPECT_EQ(joint.subtype, 0xa);
+        EXPECT_EQ(joint.width, 15.0f);
+        EXPECT_EQ(joint.angles, glm::vec3(-45.0f, 0.0f, turns[index]));
+        EXPECT_EQ(joint.position, tested.Striker().position);
+        EXPECT_EQ(joint.ownerContext, &tested.Striker());
+        const bool near = index < 2;
+        const double argument = near ? 4.5 : 22.5;
+        const glm::vec3 from{1000.0f + 80.0f * static_cast<float>(near ? std::sin(argument) : std::cos(argument)),
+                             2000.0f + 80.0f * static_cast<float>(near ? std::cos(argument) : std::sin(argument)),
+                             350.0f};
+        const glm::vec3 center = (joint.points[0][0] + joint.points[0][1]) * 0.5f;
+        EXPECT_NEAR(center.x, from.x, 1e-3f);
+        EXPECT_NEAR(center.y, from.y, 1e-3f);
+        EXPECT_NEAR(center.z, from.z, 1e-3f);
+    }
+    EXPECT_FALSE(tested.joints[4].alive);
+    EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x7f});
 }
 
 // 0x4feb3b..0x4febd3: la 0x41 crea el efecto 0x62c en el punto (0, −90, −50) de o (80 más alto en la acción 0x51), con

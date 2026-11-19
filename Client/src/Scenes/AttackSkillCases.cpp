@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
+#include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/ActorFlags.h"
 #include "Scenes/ActorState.h"
@@ -218,6 +219,63 @@ glm::vec3 TurnedPoint(const ActorState& actor, const glm::vec3& offset)
     const auto turned = Render::Models::OriginalVectorRotate(offset, Render::Models::OriginalAngleMatrix(actor.angles));
     return {F32(D(actor.position.x) + D(turned.x)), F32(D(actor.position.y) + D(turned.y)),
             F32(D(actor.position.z) + D(turned.z))};
+}
+
+// 0x4fe795..0x4fe981 (la 0x35): cuatro 0x619/0xa de ancho 15 colgados de o, con los ángulos (−45, 0, z): z 45 y 405
+// desde (sen 4,5 · 80; cos 4,5 · 80; 300) más la posición de o, y 225 y 450 desde (cos 22,5 · 80; sen 22,5 · 80; 300)
+// (0x6a1a90 es el seno de la CRT y 0x6a19e0 el coseno, FSIN y FCOS con el producto por 80 en la x87). Su alta los pone
+// en la posición del dueño (FaunaJointCreation.cpp, CreateSetEnergy). Al final, el sonido 0x7f; sin rand().
+Core::Expected<void, std::string> SpinTheEnergy(ActorState& actor, const CharacterStepContext& context)
+{
+    constexpr std::int32_t EnergyJoint = 0x619, EnergySubtype = 0xa, EnergySound = 0x7f;
+    constexpr float Radius = 80.0f, Width = 15.0f;
+    if (context.joints.empty())
+        return Core::Unexpected(std::string("0x4fe856: faltan los joints del frame (0x530860)"));
+    const auto point = [&actor](double argument, bool sineFirst) -> Core::Expected<glm::vec3, std::string>
+    {
+        const auto sine = Render::Models::Detail::SineProductPC53(argument, Radius);
+        const auto cosine = Render::Models::Detail::CosineProductPC53(argument, Radius);
+        if (!sine || !cosine)
+            return Core::Unexpected(std::string("0x4fe7d7: el seno de la 0x35 excede el perfil PC53"));
+        return glm::vec3(F32((sineFirst ? *sine : *cosine) + D(actor.position.x)),
+                         F32((sineFirst ? *cosine : *sine) + D(actor.position.y)), F32(D(actor.position.z) + 300.0));
+    };
+    const auto near = point(4.5, true);
+    if (!near.HasValue())
+        return Core::Unexpected(near.Error());
+    const auto far = point(22.5, false);
+    if (!far.HasValue())
+        return Core::Unexpected(far.Error());
+    struct Energy
+    {
+        std::uint32_t address;
+        float turn;
+        glm::vec3 from;
+    };
+    const std::array<Energy, 4> energies{{{0x4fe856, 45.0f, near.Value()},
+                                          {0x4fe895, 405.0f, near.Value()},
+                                          {0x4fe92c, 225.0f, far.Value()},
+                                          {0x4fe96b, 450.0f, far.Value()}}};
+    for (const Energy& energy : energies)
+    {
+        glm::vec3 from = energy.from;
+        glm::vec3 angles{-45.0f, 0.0f, energy.turn};
+        const World::FishEffectRequest request{.type = EnergyJoint,
+                                               .firstPosition = from,
+                                               .secondPosition = from,
+                                               .angles = angles,
+                                               .subtype = EnergySubtype,
+                                               .ownerContext = &actor,
+                                               .scale = Width,
+                                               .key = -1,
+                                               .skill = 0,
+                                               .skillSerial = 0,
+                                               .target = -1};
+        if (auto created = CreateFaunaJoint(context.joints, request, context.random); !created.HasValue())
+            return Core::Unexpected(std::format("{:#x}: {}", energy.address, created.Error()));
+    }
+    RequestTheSound(context, EnergySound);
+    return {};
 }
 
 // 0x4feb3b..0x4febd3 (la 0x41): el punto de 0x4f5b10(o, 0, −90, −50), 80 más alto en la acción 0x51 y 40 en la 0x5b,
@@ -646,9 +704,7 @@ Core::Expected<void, std::string> StepTheHeadSkill(ActorState& actor, std::size_
     case 0x48:
         return RaiseTheAuras(actor, context);
     case 0x35:
-        // 0x4fe795: los puntos con 0x6a1a90 y 0x6a19e0 (sin rand()) y cuatro joints 0x619.
-        return JointThenSound(0x4fe856, "el primero de los cuatro joints 0x619/0xa (0x530860)", skill, slot, 0x7f,
-                              context);
+        return SpinTheEnergy(actor, context);
     case 0x40:
         return SwingTheHands(actor, slot, skill, context, 0x4fea10, 0x4fea9b);
     case 0x3f:

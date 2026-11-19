@@ -317,7 +317,7 @@ constexpr std::int32_t SparkleSubtype = 0, FallenSparkleSubtype = 1, WideSparkle
 // El 60f/0xa del premio de una misión (A3 0xc9..0xcb, 0x4de0fe), que nace como el 60f/0 y baja vz en cada paso.
 constexpr std::int32_t FallingSparkleSubtype = 0xa;
 constexpr std::int32_t SetTrailJoint = 0x610, SetTrailSubtype = 7;
-constexpr std::int32_t EnergyJoint = 0x619, SetEnergySubtype = 9;
+constexpr std::int32_t EnergyJoint = 0x619, SetEnergySubtype = 9, SkillEnergySubtype = 0xa;
 // El 619/1 que suelta el calco 0x61e/1 de la mascota (0x518900), con el héroe de dueño (+0x54).
 constexpr std::int32_t SummonEnergySubtype = 1;
 
@@ -469,24 +469,30 @@ Core::Expected<void, std::string> CreateSetTrail(JointState& joint, const World:
 // 0x5323d3..0x5323f8, 0x53254f..0x5325c2 y 0x534cb6: el 619/9 del 5ac/3 del conjunto completo (0x52aa5d). Lo común del
 // 0x619 (velocidad 0, vida 12, el ancho y 2 puntos) y el caso 9: vida 90, 20 puntos, la cola en 0, +0x9ec en ftol del
 // giro z, vx 50, la luz (0,09090909f; 0,04545455f; 0,09090909f) y el destino y la posición en la del dueño (+0x10). Sin
-// rand().
+// rand(). El caso 0xa (0x5325c7..0x532659, los cuatro de la 0x35, 0x4fe856): vida 80, vx 80 y +0x9d4 en 1 con el giro
+// 225 o 405 (el sentido de la vuelta en el paso).
 Core::Expected<void, std::string> CreateSetEnergy(JointState& joint, const World::FishEffectRequest& request)
 {
-    constexpr std::int32_t SharedLife = 12, SharedPoints = 2, EnergyLife = 90, Points = 20;
-    constexpr float Orbit = 50;
+    constexpr std::int32_t SharedLife = 12, SharedPoints = 2, EnergyLife = 90, SkillLife = 80, Points = 20;
+    constexpr float Orbit = 50, SkillOrbit = 80;
+    constexpr std::int32_t FirstForward = 0xe1, SecondForward = 0x195;
     constexpr float Pale = std::bit_cast<float>(0x3dba2e8cu), Dim = std::bit_cast<float>(0x3d3a2e8cu);
+    const bool skill = request.subtype == SkillEnergySubtype;
     const auto* owner = static_cast<const ActorState*>(joint.ownerContext);
     if (owner == nullptr)
-        return Core::Unexpected(std::string("0x5325a2: falta el personaje dueño del joint 0x619/9"));
+        return Core::Unexpected(std::format("{}: falta el personaje dueño del joint 0x619/{}",
+                                            skill ? "0x53263c" : "0x5325a2", request.subtype));
     joint.speed = 0;
     joint.life = SharedLife;
     joint.width = request.scale;
     joint.maximumCount = SharedPoints;
-    joint.life = EnergyLife;
+    joint.life = skill ? SkillLife : EnergyLife;
     joint.maximumCount = Points;
     joint.count = 0;
     joint.field9ec = World::FtolLow(D(joint.angles.z));
-    joint.velocity.x = Orbit;
+    joint.velocity.x = skill ? SkillOrbit : Orbit;
+    if (skill)
+        joint.field9d4 = joint.field9ec == FirstForward || joint.field9ec == SecondForward ? 1 : 0;
     joint.light = {Pale, Dim, Pale};
     joint.targetPosition = owner->position;
     joint.position = owner->position;
@@ -738,7 +744,7 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
         return CreateSparkle(joint, request, random);
     if (request.type == SetTrailJoint && request.subtype == SetTrailSubtype)
         return CreateSetTrail(joint, request, random);
-    if (request.type == EnergyJoint && request.subtype == SetEnergySubtype)
+    if (request.type == EnergyJoint && (request.subtype == SetEnergySubtype || request.subtype == SkillEnergySubtype))
         return CreateSetEnergy(joint, request);
     if (request.type == EnergyJoint && request.subtype == SummonEnergySubtype)
     {
@@ -1242,38 +1248,50 @@ Core::Expected<void, std::string> StepSetTrail(JointState& joint, std::size_t in
 // 0 lo que el dueño se movió desde el destino (+0x58), que pasa a ser su posición. La posición gira alrededor del
 // destino con el argumento +0x9ec · 0,1f (+0x9ec sube 2) a la distancia vx; la z es la del destino más 90 − vida y 10
 // más. vx baja 1 y, por debajo de 0 sin redondear, queda en 0 con la vida en 0. Con la vida debajo de 50 la luz por
-// 0,9090909f (0x6ba26c) y por encima de 80 por 1,25 (0x6b8ad4).
+// 0,9090909f (0x6ba26c) y por encima de 80 por 1,25 (0x6b8ad4). El 619/0xa (0x5388e7..0x538a4d) igual, salvo la z (el
+// destino más vida · 0,0125f · 300), +0x9ec, que sube 2 con +0x9d4 y si no baja 2, y la luz: por 0,9090909f debajo de
+// 40 y por 1,2f (0x6b8bb0) por encima de 68.
 Core::Expected<void, std::string> StepSetEnergy(JointState& joint, std::size_t index)
 {
     constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8
     constexpr std::int32_t Rise = 90;
     constexpr double Lift = 10.0, Shrink = 1.0;
-    constexpr std::int32_t FadeLife = 50, BrightLife = 80;
+    constexpr double Climb = static_cast<double>(std::bit_cast<float>(0x3c4ccccdu)), Height = 300.0; // 0x6ba208
+    const bool skill = joint.subtype == SkillEnergySubtype;
+    const std::int32_t fadeLife = skill ? 40 : 50, brightLife = skill ? 0x44 : 80;
     const auto* owner = static_cast<const ActorState*>(joint.ownerContext);
     if (owner == nullptr)
-        return Core::Unexpected(std::format("0x5387b2: falta el personaje dueño del joint {} (0x619/9)", index));
+        return Core::Unexpected(std::format("{}: falta el personaje dueño del joint {} (0x619/{})",
+                                            skill ? "0x5388f0" : "0x5387b2", index, joint.subtype));
     glm::vec3 delta{};
     for (int axis = 0; axis < 3; ++axis)
         delta[axis] = F32(D(joint.targetPosition[axis]) - D(owner->position[axis]));
     joint.targetPosition = owner->position;
     if (joint.count >= static_cast<std::int32_t>(joint.points.size()))
-        return Core::Unexpected(std::format("0x5387e0: la cola del joint {} (0x619/9) excede sus puntos", index));
+        return Core::Unexpected(std::format("{}: la cola del joint {} (0x619/{}) excede sus puntos",
+                                            skill ? "0x53891e" : "0x5387e0", index, joint.subtype));
     for (std::int32_t segment = joint.count - 1; segment >= 0; --segment)
         for (glm::vec3& point : joint.points[static_cast<std::size_t>(segment)])
             for (int axis = 0; axis < 3; ++axis)
                 point[axis] = F32(D(point[axis]) - D(delta[axis]));
     const double argument = static_cast<double>(joint.field9ec) * Tenth;
-    joint.field9ec = std::bit_cast<std::int32_t>(std::bit_cast<std::uint32_t>(joint.field9ec) + 2u);
+    const std::uint32_t turn = !skill || joint.field9d4 != 0 ? 2u : 0xfffffffeu;
+    joint.field9ec = std::bit_cast<std::int32_t>(std::bit_cast<std::uint32_t>(joint.field9ec) + turn);
     const auto sine = SignedTrigonometricProduct(argument, joint.velocity.x, false);
     const auto cosine = SignedTrigonometricProduct(argument, joint.velocity.x, true);
     if (!sine || !cosine)
-        return Core::Unexpected(
-            std::format("0x53884e: el giro del joint {} (0x619/9) excede el perfil matemático", index));
+        return Core::Unexpected(std::format("{}: el giro del joint {} (0x619/{}) excede el perfil matemático",
+                                            skill ? "0x53897b" : "0x53884e", index, joint.subtype));
     joint.position.x = F32(*sine + D(joint.targetPosition.x));
     joint.position.y = F32(*cosine + D(joint.targetPosition.y));
-    const auto height =
-        std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(Rise) - std::bit_cast<std::uint32_t>(joint.life));
-    joint.position.z = F32((static_cast<double>(height) + D(joint.targetPosition.z)) + Lift);
+    if (skill)
+        joint.position.z = F32(static_cast<double>(joint.life) * Climb * Height + D(joint.targetPosition.z));
+    else
+    {
+        const auto height =
+            std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(Rise) - std::bit_cast<std::uint32_t>(joint.life));
+        joint.position.z = F32((static_cast<double>(height) + D(joint.targetPosition.z)) + Lift);
+    }
     // 0x538885: fst y fcomp con 0 de la resta sin redondear.
     const double reduced = D(joint.velocity.x) - Shrink;
     joint.velocity.x = F32(reduced);
@@ -1282,10 +1300,10 @@ Core::Expected<void, std::string> StepSetEnergy(JointState& joint, std::size_t i
         joint.velocity.x = 0;
         joint.life = 0;
     }
-    if (joint.life < FadeLife)
+    if (joint.life < fadeLife)
         FadeJointLight(joint, 0x3f68ba2eu);
-    else if (joint.life > BrightLife)
-        FadeJointLight(joint, 0x3fa00000u);
+    else if (joint.life > brightLife)
+        FadeJointLight(joint, skill ? 0x3f99999au : 0x3fa00000u);
     return {};
 }
 
@@ -1646,7 +1664,8 @@ StepJointsChecked(std::span<JointState> joints, Render::Models::CrtRandom* rando
                                            joint.subtype == FallingSparkleSubtype);
         const bool fallenSparkle = joint.type == SparkleJoint && joint.subtype == FallenSparkleSubtype;
         const bool setTrail = joint.type == SetTrailJoint && joint.subtype == SetTrailSubtype;
-        const bool setEnergy = joint.type == EnergyJoint && joint.subtype == SetEnergySubtype;
+        const bool setEnergy =
+            joint.type == EnergyJoint && (joint.subtype == SetEnergySubtype || joint.subtype == SkillEnergySubtype);
         const bool fullSet = sparkle || fallenSparkle || setTrail || setEnergy;
         // El del calco de la mascota (0x518900), con el héroe de dueño.
         const bool summonEnergy = joint.type == EnergyJoint && joint.subtype == SummonEnergySubtype;

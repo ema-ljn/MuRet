@@ -35,6 +35,9 @@ struct TerrainLighting;
 struct WorldObject;
 
 inline constexpr std::size_t ParticleCount = 3000;
+// 0x52a866/0x52a89a: las dos luces que siguen los huesos del blanco de Swell Life.
+inline constexpr std::int32_t SwellLifeParticle = 0x5ac;
+inline constexpr std::int32_t SwellLifeParticleSubtype = 4;
 // 540260 y542599: las chispas5ad/2 y la niebla5f2/27 de la mano de Crywolf.
 inline constexpr std::int32_t MagicSparkParticle = 0x5ad;
 inline constexpr std::int32_t CrywolfTideSmokeSubtype = 25;
@@ -187,7 +190,8 @@ using ParticleObjectOwners = std::function<WorldObject*(std::uint64_t)>;
 // la órbita 60f/0 lee por el puntero +0x40 (0x54735f). nullopt si no está.
 using ParticleActorActions = std::function<std::optional<std::uint8_t>(std::uint64_t)>;
 // 0x53fdb0(partícula): el punto en el mundo del hueso que sigue la 5fe, el de su dueño (+0x40, ParticleOwner del pool
-// de personajes) que elige el héroe publicado con el subtipo. nullopt si el dueño no está o no se resuelve.
+// de personajes) que elige el héroe publicado con el subtipo. También resuelve la 5ac/4 por rotation y pose propia,
+// sin escala del modelo. nullopt si el dueño no está o no se resuelve; la 5ac/4 se apaga y termina sus dos rand().
 using ParticleOwnerBones = std::function<std::optional<glm::vec3>(const Particle&)>;
 // 0x53fdb0 en el paso de la 5fd (0x546d37 y 0x546d47): el punto de la mano del personaje dueño
 // (ParticleOwnerKind::Actor, el lugar del pool) para el subtipo. nullopt si no está.
@@ -226,7 +230,7 @@ public:
     // CreateKalimaChecked agrega5ac/6,7,6ed/0,6f0..4/0, 6f1/3 y6f4/1; escena prestada para6f1.
     // Las familias con dueño tipado: las de Kalima y las de la selección (SelectionParticleKernels.h:
     // 622/1, 5de/7 y 729/0,1), más 6f0/2, 6f1/2 y 6f2,6f3/4 de los objetos del 54 y del 33, y la 5fd/0 y /2 de la
-    // mano (que no lee el reloj ni la escena, ni saca rand()).
+    // mano (que no lee el reloj ni la escena, ni saca rand()), y la 5ac/4 de Swell Life (0x540112), sin rand().
     [[nodiscard]] Core::Expected<std::optional<std::size_t>, ParticleError>
     CreateOwnedChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
                        std::int32_t subtype, float scale, float worldClock, Render::Models::CrtRandom& random,

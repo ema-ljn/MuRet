@@ -385,6 +385,34 @@ void StepTheBlood(Particle& particle)
     particle.position.z = F32(static_cast<double>(particle.velocity.z) + static_cast<double>(particle.position.z));
 }
 
+bool IsSwellLifeParticle(std::int32_t type, std::int32_t subtype)
+{
+    return type == SwellLifeParticle && subtype == SwellLifeParticleSubtype;
+}
+
+// 0x544a9d..0x544ba0: aun sin dueño válido y en el paso final consume sus dos rand().
+void StepTheSwellLife(Particle& particle, Render::Models::CrtRandom& random, const ParticleOwnerBones& ownerBones)
+{
+    const auto point =
+        particle.typedOwner.kind == ParticleOwnerKind::Actor && ownerBones ? ownerBones(particle) : std::nullopt;
+    if (point)
+        particle.position = *point;
+    else
+        particle.alive = false;
+    constexpr double Rise = static_cast<double>(std::bit_cast<float>(0x3dc28f5cu));
+    constexpr double Shrink = static_cast<double>(std::bit_cast<float>(0x38d1b717u));
+    constexpr double Fade = static_cast<double>(std::bit_cast<float>(0x3f3da12fu));
+    constexpr int RiseSpan = 40, RiseBase = 60;
+    constexpr int ShrinkSpan = 400, ShrinkBase = 400;
+    const double speed = static_cast<double>(random.Next() % RiseSpan + RiseBase) * Rise;
+    particle.verticalSpeed = F32(static_cast<double>(particle.verticalSpeed) + speed);
+    const double shrink = static_cast<double>(random.Next() % ShrinkSpan + ShrinkBase) * Shrink;
+    particle.scale = F32(static_cast<double>(particle.scale) - shrink);
+    particle.position.z = F32(static_cast<double>(particle.position.z) + particle.verticalSpeed);
+    for (int axis = 0; axis < 3; ++axis)
+        particle.light[axis] = F32(static_cast<double>(particle.light[axis]) * Fade);
+}
+
 // 0x546d54..0x546d6e, después de la vida y el movimiento comunes (también con la vida en 0): la escala (+0x10)
 // sin(vida · [0x6ba370]) · [0x6b86b8] (fild, fmul, fsin y fmul en la x87) y 0x53fdb0, que vuelve a poner la posición en
 // el hueso del dueño.
@@ -774,6 +802,8 @@ bool IsDrop(const Particle& particle)
 
 std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtype)
 {
+    if (IsSwellLifeParticle(type, subtype))
+        return std::nullopt;
     if (type == ThunderParticle)
         return subtype == 0 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     if (type == ShinyParticle || type == FairySparkParticle)
@@ -1549,7 +1579,7 @@ Particles::CreateOwnedChecked(std::int32_t type, const glm::vec3& position, cons
                               Render::Models::CrtRandom& random, std::int32_t scene, ParticleOwner owner)
 {
     if (!IsKalimaParticle(type, subtype) && !IsSelectionParticle(type, subtype) && !IsTrialsParticle(type, subtype) &&
-        !IsHandShine(type, subtype))
+        !IsHandShine(type, subtype) && !IsSwellLifeParticle(type, subtype))
         return Core::Unexpected(ParticleError::UnsupportedSubtype);
     return CreateImpl(type, position, angles, light, subtype, scale, worldClock, nullptr, random, 0, nullptr, scene,
                       owner);
@@ -1645,6 +1675,18 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
         if (bloodCastle)
         {
             CreateBloodCastleParticle(particle, random);
+            return std::optional(index);
+        }
+        if (IsSwellLifeParticle(type, subtype))
+        {
+            // 0x540112..0x54012a: el argumento escala es el índice de hueso en +44; sin rand().
+            constexpr std::int32_t Life = 10;
+            constexpr float Scale = 2;
+            particle.typedOwner = typedOwner;
+            particle.life = Life;
+            particle.verticalSpeed = 0;
+            particle.rotation = scale;
+            particle.scale = Scale;
             return std::optional(index);
         }
         if (type == HandShineParticle)
@@ -1987,6 +2029,11 @@ StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random, const
         if (particle.moves)
         {
             Move(particle);
+        }
+        if (IsSwellLifeParticle(particle.type, particle.subtype))
+        {
+            StepTheSwellLife(particle, random, ownerBones);
+            continue;
         }
         if (IsKalimaParticle(particle.type, particle.subtype))
         {

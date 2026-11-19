@@ -16,6 +16,7 @@
 #include "World/GameModelEffects.h"
 #include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
+#include "World/ParticleOwner.h"
 
 #include "App/ServerSession.h"
 #include "Core/Expected.h"
@@ -231,7 +232,18 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
         if (effect.type == World::IcarusFlareEffect &&
             (effect.subtype == World::SwellFlareSubtype || effect.subtype == World::GuardFlareSubtype))
         {
-            if (auto stepped = StepSkillFlare(effect, m_context.world->DrawTail().joints, m_context.cloth->random);
+            World::ParticleOwner particleOwner;
+            const auto actors = m_context.world->Actors();
+            for (std::size_t actorSlot = 0; actorSlot < actors.size(); ++actorSlot)
+            {
+                if (&actors[actorSlot] == effect.ownerContext)
+                {
+                    particleOwner = {World::ParticleOwnerKind::Actor, actorSlot};
+                    break;
+                }
+            }
+            if (auto stepped = StepSkillFlare(effect, m_context.world->DrawTail().joints, m_context.cloth->random,
+                                              &m_context.world->Particles(), particleOwner);
                 !stepped.HasValue())
                 return stepped;
             continue;

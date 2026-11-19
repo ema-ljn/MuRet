@@ -12394,11 +12394,18 @@ la rama de la skill:
 | `0x37` | salida: apaga el `0x628/0` del blanco y crea otro (CL11, `0x4cd664`); si no, un monstruo va a `0x4f4a10` con el frame en 0 (`0x4cd68e`) |
 | `0x43`..`0x48` | la acción por la montura (Dark Horse `0x52`, Uniria `0x40`, Dinorant `0x41`, Fenrir `0x5d`; si no `0x3f` o `0x87`); salidas, la `0x44` baja el `0x1000` del blanco, la `0x46` le prende `0x4000` (si no es la fuente), la `0x47` le baja `0x4000`, la `0x48` le baja seis y la `0x45` prende `0x2000` en la fuente y crea su `0x138` (CL11, `0x4cdb72`) |
 | `0x4b`, `0x40` | `0x200` (`0x800` con `0x4f3f80` antes) en el blanco; la acción del Dark Horse, Fenrir o `0x8e` |
-| `0x35`, `0x30` | sin `0x400` (`0x10`) en el blanco, apaga su `0x5ac/2` y sus joints `0x619/9` (su `0x5ac/1`) y crea otro con él de dueño (`0x4cdc88`, `0x4cdd84`; `World::ModelEffects::CreateSkillFlare`, vida 1000); después, el bit. El paso (`0x52a7b7`, `Scenes::StepSkillFlare`): el /2 gira alrededor del dueño y cada 50 suelta un joint `0x619/9`; el /1 corta en sus partículas `0x5ac/4` (`0x52a866`, CL11) |
+| `0x35`, `0x30` | sin `0x400` (`0x10`) en el blanco, apaga su `0x5ac/2` y sus joints `0x619/9` (su `0x5ac/1`) y crea otro con él de dueño (`0x4cdc88`, `0x4cdd84`; `World::ModelEffects::CreateSkillFlare`, vida 1000); después, el bit. El paso (`0x52a7b7`, `Scenes::StepSkillFlare`): el /2 gira alrededor del dueño y cada 50 suelta un joint `0x619/9`; el /1 emite `0x5ac/4` en dos huesos opuestos (`0x52a866`, `0x52a89a`, CL11.3) |
 | `0x31` | `0x41` en Atlans (8) y en el cielo (10), `0x40` en los demás |
 | `0x3b` | el efecto `0x112` en la fuente (CL11, `0x4cddfa`) |
 | `0x3a` | `0x44`, el sonido `0x92` y `+0x1bc` en 0 |
 | `0x28` | `0x45`; en el héroe suelta el clic derecho (`0x4cde43..0x4cde58`: el soltado `0x7d36840`, el clic `0x7d36880`, el botón `0x7d3685c` y los frames de carga `0x7d368a4`) |
+
+Swell Life elige un índice `rand() % 7` incluso con el pool lleno. Intenta dos altas con los índices
+`k` y `6−k` de `[25, 26, 27, 20, 34, 35, 36]`. Cada `0x5ac/4` guarda ese hueso como rotación, toma
+el primer lugar libre y nace con vida 10, escala 2 y RGB `(1, 0.5, 0.1)`. En el paso `0x544a7d`
+sigue el hueso del actor de tipo `0x20a` con `+0x88 == 1`. Aunque el dueño quede inválido o se
+agote la vida, consume sus dos sorteos, sube y reduce la escala y la luz. Conserva el dibujo
+común de `0x5ac` y la rotación guardada.
 
 `0x4f5290`, en un jugador, abre los stats propios (`0x4f3f80`, 3.848 `rand()`) y elige `0x97` (Uniria o Dinorant),
 `0x5d` (Fenrir), `0x92` (elfo) o `0x8e + rand() % 2`; en otro, 3 y 4 de a tres con `+0x38f`.

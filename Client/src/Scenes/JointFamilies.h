@@ -62,6 +62,15 @@ inline constexpr std::int32_t AuraJoint = 0x10f;
 [[nodiscard]] Core::Expected<void, std::string> StepAuraJoint(JointState& joint,
                                                               const JointKernels::StepServices& services);
 
+// El 0x618 (BeamJoints.cpp): alta 0x532125..0x5323ce y paso 0x5381f3..0x538704. El dueño (+0x54) es un personaje
+// (ActorState) en la /0, /1, /2, /3, /0xc, /0xd, /0x10 y /0x11, el FaunaObject en la /4 (0x447374) y el efecto con
+// modelo (JointOwnerKind::ModelEffect) en la /5 de las flechas y la /0xa y /0xb del 0x11b/1; la /6 y la /9 no lo leen.
+inline constexpr std::int32_t BeamJoint = 0x618;
+[[nodiscard]] Core::Expected<void, std::string>
+CreateBeamJoint(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random);
+[[nodiscard]] Core::Expected<void, std::string> StepBeamJoint(JointState& joint,
+                                                              const JointKernels::StepServices& services);
+
 // El 0x632/7 y sus tres 0x632/6 (StormJoints.cpp): alta 0x534b27 y 0x534a16 y paso 0x53bec2. La /6 salta el primer
 // tramo (0x530a5c); FaunaJointCreation.cpp crea los tres /6 al final del alta de la /7 (0x534b3f..0x534bc0).
 inline constexpr std::int32_t StormJoint = 0x632;
@@ -71,4 +80,13 @@ inline constexpr std::int32_t StormSubtype = 7;
 CreateStormJoint(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random);
 [[nodiscard]] Core::Expected<void, std::string> StepStormJoint(JointState& joint,
                                                                const JointKernels::StepServices& services);
+
+// El 0x62c (SpiralJoints.cpp): alta 0x5346d8..0x534954 y paso 0x53b93f..0x53be71, sin el movimiento común (0x5358a3).
+// La /0 sube derecho; la /1..4 y la /0xb..0xd suben dando la vuelta (el efecto 0x62c/0 de la 0x41, 0x51f25e, y los
+// seis de la 0x4c, 0x50293c); la /5..7 (el efecto 0x62c/1, 0x51f32e) siguen un hueso del dueño, que corta.
+inline constexpr std::int32_t SpiralJoint = 0x62c;
+[[nodiscard]] Core::Expected<void, std::string>
+CreateSpiralJoint(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random);
+[[nodiscard]] Core::Expected<void, std::string> StepSpiralJoint(JointState& joint,
+                                                                const JointKernels::StepServices& services);
 } // namespace Client::Scenes::JointFamilies

@@ -563,7 +563,9 @@ TEST_F(MonsterDrawingTest, TheLorenciaFairyNpcDrawsTwoSpinningFlaresAndDrawsItsJ
     EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(4));
 }
 
-TEST_F(MonsterDrawingTest, TheFairyJointCutsInItsCreationAfterItsThreeRandoms)
+// 0x5108a9: el 0x618/6 del hada, sin dueño, desde el punto al azar hacia el del hueso 20, con los ángulos del hada y
+// ancho 20 (0x53214b..0x5322df): velocidad 3, vida 120, 8 puntos y la luz (0,4; 0,3; 0,2), sin rand().
+TEST_F(MonsterDrawingTest, TheFairyLeavesItsBeamAfterItsThreeRandoms)
 {
     // Con la semilla 51 el cuarto rand() es 17250: % 30 da 0, y salen los tres % 100 del punto de partida.
     m_clothWorld.random = Client::Render::Models::CrtRandom{51};
@@ -571,10 +573,24 @@ TEST_F(MonsterDrawingTest, TheFairyJointCutsInItsCreationAfterItsThreeRandoms)
 
     const auto result = Draw(Pass());
 
-    ASSERT_FALSE(result.HasValue());
-    EXPECT_NE(result.Error().find("0x5108a9"), std::string::npos) << result.Error();
-    EXPECT_NE(result.Error().find("0x618/6"), std::string::npos) << result.Error();
+    ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(LiveSprites().size(), 2u);
+    const auto& beam = m_joints[0];
+    ASSERT_TRUE(beam.alive);
+    EXPECT_EQ(beam.type, 0x618);
+    EXPECT_EQ(beam.subtype, 6);
+    EXPECT_EQ(beam.ownerContext, nullptr);
+    EXPECT_EQ(beam.targetPosition, glm::vec3(153.5f, 138.0f, 40.0f));
+    EXPECT_EQ(beam.width, 20.0f);
+    EXPECT_EQ(beam.speed, 3.0f);
+    EXPECT_EQ(beam.life, 120);
+    EXPECT_EQ(beam.maximumCount, 8);
+    EXPECT_EQ(beam.light, glm::vec3(std::bit_cast<float>(0x3ecccccdu), std::bit_cast<float>(0x3e99999au),
+                                    std::bit_cast<float>(0x3e4ccccdu)));
+    Client::Render::Models::CrtRandom expected{51};
+    for (int draw = 0; draw < 7; ++draw)
+        static_cast<void>(expected.Next());
+    EXPECT_EQ(m_clothWorld.random.State(), expected.State());
 }
 
 TEST_F(MonsterDrawingTest, AModelCaseDrawsItsSpritesAndSkipsTheHelperChain)

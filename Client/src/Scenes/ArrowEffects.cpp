@@ -13,6 +13,7 @@
 #include "Scenes/CharacterStep.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/JointFamilies.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/SkillHits.h"
 #include "Scenes/WorldMap.h"
@@ -402,11 +403,26 @@ Core::Expected<void, std::string> BeginAdvancedArrow(World::ModelEffect& effect,
     }
     effect.velocity = {0.0f, -70.0f, 0.0f};
     effect.point40 = effect.transform.position;
-    if (HasJointRoom(world))
+    // 0x51a173, 0x51a24a y 0x51bf35: el 0x618/5 desde la posición, con los ángulos del efecto, el efecto de dueño y
+    // ancho 100; sigue su +0x40 (BeamJoints.cpp). Sin rand().
     {
         const auto address = effect.type == SaintArrow ? 0x51a24au : effect.type == ReignArrow ? 0x51bf35u : 0x51a173u;
-        return Core::Unexpected(
-            std::format("{:#x}: el joint 0x618/5 de la flecha {:#x} sigue en CL11", address, effect.type));
+        constexpr std::int32_t ArrowBeamSubtype = 5;
+        constexpr float ArrowBeamWidth = 100.0f; // 0x42c80000
+        const World::FishEffectRequest request{.type = JointFamilies::BeamJoint,
+                                               .firstPosition = effect.transform.position,
+                                               .secondPosition = effect.transform.position,
+                                               .angles = effect.transform.angles,
+                                               .subtype = ArrowBeamSubtype,
+                                               .ownerContext = &effect,
+                                               .scale = ArrowBeamWidth,
+                                               .key = -1,
+                                               .skill = 0,
+                                               .skillSerial = 0,
+                                               .target = -1};
+        if (auto made = CreateFaunaJoint(world.DrawTail().joints, request, random, JointOwnerKind::ModelEffect);
+            !made.HasValue())
+            return Core::Unexpected(std::format("{:#x}: {}", address, made.Error()));
     }
     if (effect.type != ReignArrow && effect.subtype != 0)
     {

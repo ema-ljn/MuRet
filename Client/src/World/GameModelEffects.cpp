@@ -1832,9 +1832,10 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
         if (auto stepped = StepEarthquakeCrack(effect, luminosity, random, services); !stepped.HasValue())
             return stepped;
     }
-    // Tablas52cef4/52ce14:3d..40saltan52cb98 sincasopropio, conservan el epílogo común.
+    // Tablas52cef4/52ce14:3d..40saltan52cb98 sincasopropio, conservan el epílogo común. El 0x62c (el de la 0x41,
+    // 0x51f25e) cae fuera de la tabla 0x52d17c (0x52b57e..0x52b586) y nace con vida 0.
     else if (effect.type != DragonEffect && effect.type != ArrivalEffect && effect.type != IcarusCloudEffect &&
-             !IsCastleGateEffect(effect.type))
+             !IsCastleGateEffect(effect.type) && effect.type != 0x62c)
         return Core::Unexpected(std::string("0x5208a0: el paso del tipo de efecto con modelo no está portado"));
     // 52cbf4..52cc04: sólo los BMD de [ad,151) avanzan la animación común.
     constexpr std::int16_t FirstAnimatedModel = 0xad;

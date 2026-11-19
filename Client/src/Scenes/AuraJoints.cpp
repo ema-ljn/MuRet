@@ -73,9 +73,12 @@ void ShiftByTarget(JointState& joint, const glm::vec3& target, bool add)
 }
 
 // 0x536073..0x5364d2: el 10f/0, /4 y /9 giran alrededor del dueño, 80 de radio y 120 de alto, 110 (o 140 la /9) por
-// encima de su +0x10 + 10. El /4 y el /9 viven mientras el dueño tenga 8 o 0x2000000 en +0x78.
+// encima de su +0x10 + 10. El /4 y el /9 viven mientras el dueño tenga 8 o 0x2000000 en +0x78. Los subtipos sin caso
+// (de 0xa en adelante o negativos, que ningún llamador crea) hacen lo mismo sin correr los tramos ni moverse: el dueño,
+// el destino, el acceso al contador y la dirección, y van a la cola (0x536452).
 Core::Expected<void, std::string> StepTheRing(JointState& joint, const JointKernels::StepServices& services)
 {
+    const bool ring = joint.subtype == 0 || joint.subtype == 4 || joint.subtype == 9;
     const auto* owner = JointKernels::ActorOwner(joint);
     if (owner == nullptr)
         return Core::Unexpected(std::format("0x536076: falta el personaje dueño del joint 0x10f/{}", joint.subtype));
@@ -97,10 +100,13 @@ Core::Expected<void, std::string> StepTheRing(JointState& joint, const JointKern
         }
         joint.life = 100; // 0x5360c4
     }
-    ShiftByTarget(joint, joint.targetPosition, false);
+    // 0x5360ce..0x536185: sólo el 0, el 4 y el 9 corren los tramos.
+    if (ring)
+        ShiftByTarget(joint, joint.targetPosition, false);
     joint.targetPosition = owner->position;
     joint.targetPosition.z = F32(D(owner->position.z) + 10);
-    ShiftByTarget(joint, joint.targetPosition, true);
+    if (ring)
+        ShiftByTarget(joint, joint.targetPosition, true);
     // 0x536187..0x536388: el acceso al contador de pasos (0x7d3a0f0), como el hada.
     if (services.cloth == nullptr || services.random == nullptr)
         return Core::Unexpected(
@@ -117,6 +123,8 @@ Core::Expected<void, std::string> StepTheRing(JointState& joint, const JointKern
     if (!direction)
         return Core::Unexpected(
             std::format("0x536409: la dirección del joint 0x10f/{} excede el perfil PC53", joint.subtype));
+    if (!ring)
+        return {};                                      // 0x536452: a la cola.
     const double lift = joint.subtype == 9 ? 140 : 110; // 0x5364c9, 0x536491
     joint.position = {F32(D((*direction)[0]) * 80 + D(joint.targetPosition.x)),
                       F32(D((*direction)[1]) * 80 + D(joint.targetPosition.y)),
@@ -306,12 +314,9 @@ Core::Expected<void, std::string> StepAuraJoint(JointState& joint, const JointKe
         return StepTheRise(joint);
     case 8:
         return StepTheSpin(joint);
-    case 0:
-    case 4:
-    case 9:
-        return StepTheRing(joint, services);
     default:
-        return {}; // 0x536452: los demás siguen en la cola.
+        // 0x536073: el 0, el 4, el 9 y los que no tienen caso.
+        return StepTheRing(joint, services);
     }
 }
 } // namespace Client::Scenes::JointFamilies

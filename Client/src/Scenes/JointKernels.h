@@ -88,6 +88,9 @@ struct StepServices
     const std::function<double(float, float)>* terrainHeight = nullptr;
     // Los 400 personajes (0x743a16c): el 0x10f/4 y el /9 miran el de su +0xa0c (0x535d63). Sin ellos, cortan.
     std::span<const ActorState> actors{};
+    // El paso de la familia sale de 0x535840 (ret) sin la cola ni la vida de 0x53c393 (el 0x618 con el dueño muerto,
+    // 0x538216).
+    bool* returned = nullptr;
 };
 
 // El dueño de un joint de las familias de este archivo, cuando es un personaje (ActorState): el objeto del original,

@@ -8813,7 +8813,8 @@ frame del original:
   (`Scenes::IsInTheParty`): fuera de la party `0x50f9f8` salta a `0x510a7a`, sin las banderas, el contador ni
   el conjunto, también entre frames; en la party, por cada lugar con `+0x1c` en 0 o más que no es él, dos
   joints `0x618` (`/0xc` y `/0xd`, de ancho 20) de la posición del miembro con 150 más de z (`0x6b87ac`) al
-  personaje, que corta en un frame del original (`0x50fa74`, 08 P-C55 d). En [7, 8), dos `117/2` en la mano
+  personaje, con el personaje de dueño y sus ángulos, sólo en un frame del original (`0x50fa74` y `0x50fa97`, CL11:
+  `BeamJoints.cpp`). En [7, 8), dos `117/2` en la mano
   derecha (corta en `0x50fb64`). (CL9 hito 7, al armar la cadena.)
 - **Las banderas** `+0x78 & 4` o `0x2000000`, sin `0x4000` (`0x50fba4`): un `rand() % 30` por mano, los
   sprites con ese color y los cinco joints `10f/4` si no hay uno. `+0x78` sólo lo escriben los paquetes:
@@ -11770,10 +11771,10 @@ registro propio abierto y cerrado: 3.848 en 0) y los de las lecturas de `+0x38e`
 | `0x45` | `0x4fe253` | 36 joints `0x613`/`0x15` | `0x4fe322` (CL11) |
 | `0x46` | `0x4fe383` | con blanco, `0x534f90(0x10f, blanco, 4)` y `(…, 9)`, el calco `0x61e`/6 sobre él y el sonido `0x269` | ~~`0x4fe424` (CL11)~~ (portado: el calco de colores, [Los efectos con modelo de los tipos altos](#los-efectos-con-modelo-de-los-tipos-altos)) |
 | `0x48` | `0x4fe505` | `o+0x78` en 0 entero (Q-C1118) y seis joints `0x10f` | `0x4fe590` (CL11) |
-| `0x35` | `0x4fe795` | cuatro joints `0x619`/`0xa` | `0x4fe856` (CL11) |
+| `0x35` | `0x4fe795` | cuatro joints `0x619`/`0xa` | — (CL11: `SpinTheEnergy`) |
 | `0x40`, `0x4b` | `0x4fe986`, `0x502993` | sin `0xa21` en la derecha, el `0x117`/0 en su hueso; sin `0xa19` ni un escudo (`0xe12..0x1011`) en la izquierda, el `0x117`/1; después la `0x40` suena (`0x1cf`) y la `0x4b` crea el `0x138` | la `0x40`, el final con las dos manos; si no, `0x4fea10`/`0x4fea9b`, `0x502a23`/`0x502ab4` y `0x502ae6` (CL11) |
 | `0x3f` | `0x4feabb` | el `0xcb`/2 sobre o | `0x4feae8` (CL11) |
-| `0x41` | `0x4feb3b` | el punto de `0x4f5b10(o, 0, −90, −50)` y el `0x62c` | `0x4febbb` (CL11) |
+| `0x41` | `0x4feb3b` | el punto de `0x4f5b10(o, 0, −90, −50)` y el `0x62c` | — (CL11: `RaiseTheSpirals`) |
 | `0x31` | `0x4febdb` | el `0x6ac` sobre o | `0x4fec15` (CL11) |
 | `0x29` | `0x4fec30` | `o+0x8c`, `o+0x8e`, `0x59fb80(0x29)` y el `0xf3` | `0x4fec9a` (CL11) |
 | `0xa` | `0x4fecb5` | `0x59fb80(0xa)` y el `0xcb` | `0x4fecf3` (CL11) |
@@ -14179,7 +14180,8 @@ en un lugar de más adelante pasa en la misma vuelta de `0x53c670`.
   DWORD de `+0xa08`, el serial); `+0x9eb` es la cuenta · 15, `+0x9ec` vuelve a 0 y `+0x24` es el segundo punto 150 más
   arriba. Su paso no se mueve (lista de `0x53585e`) ni gira (`0x536964`): con la vida par suelta dos `0x614/0` sin dueño
   de ancho 50 y 10 desde la posición hasta `+0x24` (`0x5370a8`, `0x5370c9`) y la partícula `0x5ca/0` con la luz de
-  `[ebp−0x18]`, que nadie escribió en ese camino (Q-C1622: MuRet corta en `0x5370e8`). Lo que sigue, para quien lo
+  `[ebp−0x18]`, que ese camino no escribe: es la última que dejó el paso de un joint anterior de la misma vuelta de
+  `0x53c670` (p. ej. `0x539cb6` del `0x613/0`; Q-C1622: MuRet corta en `0x5370e8`). Lo que sigue, para quien lo
   destrabe: con `+0x9ec` > 0, cada 15 de `i < +0x9ec` toma el personaje `+0x9f4[i / 15]` y, si sigue vivo, sin
   `+0x389`, de clase 2 y visible, pone el destino en él 100 más arriba, el rumbo de `0x4e93f0` desde la posición en la z
   de los ángulos y suelta dos `0x614/0` de ancho 50 y 10 desde el destino anterior (`[ebp−0xc]`, al principio `+0x24`
@@ -14252,6 +14254,36 @@ en un lugar de más adelante pasa en la misma vuelta de `0x53c670`.
   + `rand() % 5` − 2, vz − 10, se mueve por sus ángulos y, con la tanda menos la vida bajo 10 (los diez primeros
   pasos), corta en la partícula `0x5ee` (`0x53bf6e`, lote de partículas). La /7 sólo pasa por la cola y muere. La luz por tramo del dibujo lee la altura del
   personaje dueño.
+- **`0x618`** (`BeamJoints.cpp`, tercera vuelta): alta `0x532125..0x5323ce` y paso `0x5381f3..0x538704`. El dueño
+  (`+0x54`) es un personaje en la /0..3, /0xc, /0xd, /0x10 y /0x11, el `FaunaObject` en la /4 y el efecto con modelo
+  en la /5 (las flechas, `0x51a173`, `0x51a24a`, `0x51bf35`) y la /0xa y /0xb (el `0x11b/1`, `0x51c782`, que sigue
+  cortado por el lote altos); la /6 y la /9 no lo leen. Los que vuelven (/0, /1, /6, /7, /9, /0xc, /0xd, /0x10) nacen
+  con velocidad 3, vida 120 y 8 puntos (la /0xc, /0xd y /0x10 además se desvían: `+0x9ec` en ±1 con un `rand()`,
+  velocidad 10 y la x y la y de los ángulos con `rand() % 45`); con vida 100 o más giran y después vuelven al dueño
+  (z + 120) o a su destino (la /6 y la /9), y a 35 o menos mueren con la `0x5d5/1` y el sonido `0x23`. Los que siguen
+  al dueño (vida 999.999.999) se ponen en su `+0x40` (o `+0x4c` la /3, /0xb y /0xf); con el dueño muerto salen de
+  `0x535840` sin la cola (`0x538216`). La /7 no tiene paso. La 0x10 la crea el `0x1b7` (`0x427a8d`); la /0xc y la /0xd,
+  la party de las acciones del Dark Lord (`0x50fa74`).
+- **`0x62c`** (`SpiralJoints.cpp`, tercera vuelta): alta `0x5346d8..0x534954` (sin cola, velocidad −3, z + 150, vida
+  20, 30 puntos, luz (1; 0,8; 1), `+0x9ec` en 1 y el camino `+0x24` en la posición) y paso `0x53b93f..0x53be71`, sin
+  el movimiento común (`0x5358a3`). La /0 sube derecho con `+0x9ec` − 1 tramos por paso (`+0x9ec` crece de a 2): en
+  cada uno la cola con la matriz de los ángulos, (0, velocidad, 0) girado sobre el camino y la velocidad 2 menos. La
+  /1..4 y la /0xb..0xd esperan su tanda (`rand() % 3 + 2`, sumada a la vida; 0 en la /3 y la /4) y suben igual,
+  corridas por (0, 0, `+0x58`) girado por (0, `+0x5c`, la z de los ángulos): radio 80 que baja 2,5 y giro 180 (−180
+  en la /2, /4 y /0xb..0xd, con los colores (0,7; 1; 0,7), (1; 0,6; 0,6) y (0,7; 0,7; 1)) que baja 20 por tramo
+  (siempre: Q-C1624); la /3 y la /4 restan el corrimiento. Con la cola llena sólo se apagan (por 0,7692308f bajo 10
+  de vida). La /5..7 (del efecto `0x62c/1`, `0x51f32e`, detrás de un corte) salta el primer tramo, con el hueso del
+  dueño en `+0x9ec` (el skill), textura `0x60d`, vida 15, la tanda 30 y (30, 0, subtipo · 90) en `+0x58`; sin dueño
+  muere y con dueño corta en su hueso (`0x53bc71`). La `0x41` (`0x4feb3b..0x4febd3`) crea el efecto `0x62c/0` en
+  `0x4f5b10(o, 0, −90, −50)` (80 más alto en la acción `0x51`, 40 en la `0x5b`) con vida 0 y sus cinco joints (/1,
+  /0 de ancho 250, /2, /3 y /4 de ancho 100; `0x51f25e`); el efecto no tiene caso en el paso (`0x52b57e`) ni en el
+  dibujo. Los seis `0x62c/0xb..0xd` de la `0x4c` (`0x50293c`) siguen detrás del `0x14f`.
+- **`0x619/0xa`** (`FaunaJointCreation.cpp`, junto al `0x619/9`): alta `0x5325c7..0x532659` (vida 80, 20 puntos, vx 80,
+  `+0x9ec` en `ftol` del giro z y `+0x9d4` en 1 con 225 o 405; la posición y el destino en el dueño) y paso
+  `0x5388e7..0x538a4d` (como la /9, con la z en el destino más vida · 0,0125f · 300, `+0x9ec` que sube 2 con `+0x9d4`
+  y si no baja 2, y la luz por 0,9090909f bajo 40 y por 1,2f sobre 68). La `0x35` (`0x4fe795..0x4fe981`) cuelga de o
+  cuatro de ancho 15 con los ángulos (−45, 0, 45 / 405 / 225 / 450) desde (sen 4,5; cos 4,5) · 80 y (cos 22,5;
+  sen 22,5) · 80 más o, 300 más arriba (`0x6a1a90` es el seno de la CRT y `0x6a19e0` el coseno), y suena `0x7f`.
 
 La matriz de la cola común (`0x53c393`, `[ebp−0xe8]`) es la que calculó `0x53590e` en el paso del joint; los de la
 lista `0x53585e..0x53590c` no la calculan y usan la del último joint de la vuelta que la calculó (Q-C1623). El paso

@@ -174,6 +174,7 @@ protected:
                 .effects = &m_effects,
                 .slot = Slot,
                 .scan = {},
+                .actors = m_actors,
                 .worldClock = 1000.0f,
                 .map = 0,
                 .logicSteps = 1,
@@ -192,6 +193,7 @@ protected:
     Client::World::FrameSprites m_sprites;
     Client::World::Particles m_particles;
     std::vector<Client::Scenes::JointState> m_joints = std::vector<Client::Scenes::JointState>(16);
+    std::vector<ActorState> m_actors = std::vector<ActorState>(400);
     Client::World::ModelEffects m_effects;
 };
 
@@ -343,7 +345,9 @@ TEST_F(GameCharacterEffectsTest, TheGlowFlagsCutWithTheExactConditionOfTheAssemb
 
 // 0x50f9c9..0x50fac2: por debajo del frame 2 (0x6b8818) y con party, 0x59e680 sobre el nombre. Fuera de la party salta
 // a 0x510a7a, sin las banderas de 0x50fba4, también entre frames. En la party, los joints 0x618 hacia otro miembro a la
-// vista (+0x1c en 0 o más y no él) cortan en un frame del original. Con el frame en 2 o sin party, las banderas cortan.
+// vista (+0x1c en 0 o más y no él) nacen en un frame del original (0x50fa74 y 0x50fa97: /0xc y /0xd de ancho 20, desde
+// el miembro 150 más arriba, con él de dueño) y después cortan las banderas. Con el frame en 2 o sin party, las
+// banderas cortan.
 TEST_F(GameCharacterEffectsTest, BelowFrameTwoTheActionsReadTheParty)
 {
     struct Case
@@ -354,14 +358,15 @@ TEST_F(GameCharacterEffectsTest, BelowFrameTwoTheActionsReadTheParty)
         bool originalFrame;
         bool partyListed;
         const char* cut;
+        bool beams = false;
     };
     constexpr std::int32_t Self = static_cast<std::int32_t>(Slot);
     constexpr std::array cases{
-        Case{"Otro", -1, 1.9f, true, true, nullptr},      Case{"Otro", -1, 0.5f, false, true, nullptr},
-        Case{"Otro", -1, 2.0f, false, true, "0x50fbd5"},  Case{"Otro", -1, 1.9f, false, false, "0x50fbd5"},
-        Case{"Lordes", -1, 1.9f, true, true, "0x50fbd5"}, Case{"Lordes", Self, 1.9f, true, true, "0x50fbd5"},
-        Case{"Lordes", 7, 1.9f, true, true, "0x50fa74"},  Case{"Lordes", 7, 1.9f, false, true, "0x50fbd5"},
-        Case{"Lord", 0, 0.0f, true, true, "0x50fa74"},
+        Case{"Otro", -1, 1.9f, true, true, nullptr},           Case{"Otro", -1, 0.5f, false, true, nullptr},
+        Case{"Otro", -1, 2.0f, false, true, "0x50fbd5"},       Case{"Otro", -1, 1.9f, false, false, "0x50fbd5"},
+        Case{"Lordes", -1, 1.9f, true, true, "0x50fbd5"},      Case{"Lordes", Self, 1.9f, true, true, "0x50fbd5"},
+        Case{"Lordes", 7, 1.9f, true, true, "0x50fbd5", true}, Case{"Lordes", 7, 1.9f, false, true, "0x50fbd5"},
+        Case{"Lord", 0, 0.0f, true, true, "0x50fbd5", true},
     };
     for (const Case& probe : cases)
     {
@@ -386,6 +391,10 @@ TEST_F(GameCharacterEffectsTest, BelowFrameTwoTheActionsReadTheParty)
         pass.originalFrame = probe.originalFrame;
         if (probe.partyListed)
             pass.party = party;
+        if (probe.memberIndex >= 0)
+            m_actors[static_cast<std::size_t>(probe.memberIndex)].position = {500.0f, 600.0f, 70.0f};
+        for (auto& joint : m_joints)
+            joint.alive = false;
 
         const auto result = Client::Scenes::DrawGameCharacterEffects(m_actor, pass);
 
@@ -397,6 +406,16 @@ TEST_F(GameCharacterEffectsTest, BelowFrameTwoTheActionsReadTheParty)
         {
             ASSERT_FALSE(result.HasValue());
             EXPECT_NE(result.Error().find(probe.cut), std::string::npos) << result.Error();
+        }
+        const auto joints = LiveJoints(m_joints);
+        ASSERT_EQ(joints.size(), probe.beams ? 2u : 0u);
+        for (std::size_t index = 0; index < joints.size(); ++index)
+        {
+            EXPECT_EQ(joints[index].type, 0x618);
+            EXPECT_EQ(joints[index].subtype, index == 0 ? 0xc : 0xd);
+            EXPECT_EQ(joints[index].width, 20.0f);
+            EXPECT_EQ(joints[index].ownerContext, &m_actor);
+            EXPECT_EQ(joints[index].position, glm::vec3(500.0f, 600.0f, 220.0f));
         }
     }
 }
@@ -747,10 +766,10 @@ TEST_F(GameCharacterEffectsTest, TheSwellFlareEmitsItsMirroredBonePairBeforeTheC
         for (std::size_t slot = 0; slot < freeSlots; ++slot)
         {
             const auto& child = m_particles.All()[slot];
-            EXPECT_EQ(child.rotation, slot == 0 ? 26 : 35); // CRT(1): R2=18467, k=1.
+            EXPECT_EQ(child.rotation, slot == 0 ? 26.0f : 35.0f); // CRT(1): R2=18467, k=1.
             EXPECT_EQ(child.typedOwner, owner);
             EXPECT_EQ(child.life, 10);
-            EXPECT_EQ(child.scale, 2);
+            EXPECT_EQ(child.scale, 2.0f);
             EXPECT_EQ(child.position, flare.transform.position);
             EXPECT_EQ(child.angles, glm::vec3(0));
             EXPECT_EQ(child.light, glm::vec3(1, 0.5f, 0.1f));
@@ -840,8 +859,8 @@ TEST(SwellLifePipelineTest, RunsFromParentToRetainedActorBonesAndExistingFlareDr
             .HasValue());
     const auto children = LiveParticles(world->Particles());
     ASSERT_EQ(children.size(), 2u);
-    EXPECT_EQ(children[0].rotation, 36);
-    EXPECT_EQ(children[1].rotation, 25);
+    EXPECT_EQ(children[0].rotation, 36.0f);
+    EXPECT_EQ(children[1].rotation, 25.0f);
     constexpr std::array SpeedBits{0x40b970a4u, 0x410bd70au};
     constexpr std::array ScaleBits{0x3ff9652cu, 0x3ff86595u};
     for (std::size_t slot = 0; slot < children.size(); ++slot)

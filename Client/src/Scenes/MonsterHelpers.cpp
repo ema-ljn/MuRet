@@ -16,6 +16,7 @@
 #include "Scenes/GameRibbonCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/HighModelEffects.h"
+#include "Scenes/JointFamilies.h"
 #include "Scenes/WorldModelPose.h"
 #include "Scenes/WorldRuntime.h"
 #include "Render/TextureSlot.h"
@@ -986,8 +987,9 @@ Result DrawThe1b6(MonsterHelperPass& pass)
 // 0x427ab0..0x428036, el 0x1b7: el punto del brazo izquierdo y su partícula 0x6f1/1 (CL11). Con la tabla llena, las
 // 0x6f1/1 del brazo derecho y de la cabeza tampoco crean nada; siguen sus sonidos (0x247, y 0x249, 0x24a y 0x24b en la
 // 3, la 4 y la 6) y, en la 3, las partículas 0x5f2/0x19 (desde el frame 4) y 0x6eb/3 (de 5 a 5,5), que no crean
-// nada, y con el blanco +0x3a4 en el pool, desde el frame 6,9 (0x6b8a3c), el joint 0x618 (0x428036 salta a
-// 0x427a8d).
+// nada, y con el blanco +0x3a4 en el pool, desde el frame 6,9 (0x6b8a3c), el joint 0x618/0x10 (0x427fea..0x428036
+// salta a 0x427a8d): desde el blanco, 100 (0x6b86b4) más arriba, hacia el actor, con los ángulos del blanco, el actor
+// de dueño y ancho 20; vuelve a él (BeamJoints.cpp).
 Result DrawThe1b7(MonsterHelperPass& pass)
 {
     if (const auto arm = PointOf(pass, "Monster101_L_Arm", 0x427b2a); !arm.HasValue())
@@ -999,7 +1001,26 @@ Result DrawThe1b7(MonsterHelperPass& pass)
     const ActorState& actor = pass.actor;
     // 0x427fd3: 6,9 (0x6b8a3c).
     if (actor.animation.action == 3 && HasTarget(actor) && actor.animation.frame >= 6.9f)
-        return Cut(0x427a8d, "el joint 0x618 (0x530860) hacia el blanco +0x3a4", actor);
+    {
+        ActorState& target = pass.world.Actors()[static_cast<std::size_t>(actor.attackTarget)];
+        glm::vec3 from{target.position.x, target.position.y, F32(D(target.position.z) + 100.0)};
+        glm::vec3 to = pass.actor.position;
+        constexpr std::int32_t BeamSubtype = 0x10;
+        constexpr float Width = 20.0f; // 0x41a00000
+        const World::FishEffectRequest request{.type = JointFamilies::BeamJoint,
+                                               .firstPosition = from,
+                                               .secondPosition = to,
+                                               .angles = target.angles,
+                                               .subtype = BeamSubtype,
+                                               .ownerContext = &pass.actor,
+                                               .scale = Width,
+                                               .key = -1,
+                                               .skill = 0,
+                                               .skillSerial = 0,
+                                               .target = -1};
+        if (auto made = CreateFaunaJoint(pass.world.DrawTail().joints, request, pass.random); !made.HasValue())
+            return Core::Unexpected(std::format("0x427a8d: {}", made.Error()));
+    }
     return {};
 }
 

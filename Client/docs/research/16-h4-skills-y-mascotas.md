@@ -50,7 +50,7 @@ La revisión adversarial de Astra 6 high detectó y volvió a contrastar estos g
 | Chispa | `52e740` con P lleno conserva40 selectores y vuelve al golpe. |
 | Agua de Kalima | Skill0a con E lleno lee Y/X y llama `437860(x,y,2,-1500)` sólo con owner de ondas; sin él sigue igual por sonido77. |
 | Cuerpo y skills | `byte1a0` recorre huesos válidos, preserva seis RNG por joint y decrementa al final;614/7 con hueco sigue CL11. `byte398` gira por el contador anterior×10 y luego baja, sin normalizar. |
-| Acciones | 4d/4f/5a reutilizan5ac/0;44/45 reutilizan5ac/6, luego tres619/8 (frontera con hueco);96 reutiliza diez5d9/0 con un selector de hueso cada una. |
+| Acciones | 4d/4f/5a reutilizan5ac/0;44/45 reutilizan5ac/6, luego tres619/8 (portados en el cierre de la CL11, `6471f6e9`);96 reutiliza diez5d9/0 con un selector de hueso cada una. |
 | Placement | Los readers anteriores a505ec6 usan el placement compartido publicado antes del movimiento/muerte. El helper2b tampoco sustituye ese origen por actor.position posterior. |
 
 En los constructores de flechas se mantienen los prefijos f7/f8/f9/10e/111/11c, CopyOwnCount y el último hueco de effects con joints lleno. `point40` modela +40..48 y está separado de la interpolación de MuRet. El alta f8 copia sus ángulos y después escribe X/Y=0 en el caller. Los pasos recién alcanzables preservan luces, partículas, impacto y epílogo. Los pasos gráficos105/0 y13a todavía son fronteras CL11 posteriores.

@@ -54,6 +54,9 @@ inline constexpr std::int16_t DebrisEffect = 0x10b;
 inline constexpr std::int16_t FirstStoneChipEffect = 0xc8;
 inline constexpr std::int16_t SecondStoneChipEffect = 0xc9;
 inline constexpr std::int32_t RisingStoneChipSubtype = 1;
+// La /2 de las piedritas (la de las tormentas 0xc4, 0x522f17 y 0x5231a1 → 0x52b14d): nace como la /0 (0x51b72b) y
+// sube como la /1, girando 20 en z en cada paso (0x523a44).
+inline constexpr std::int32_t SpinningStoneChipSubtype = 2;
 // El pedazo de hielo 0xca (Data\Skill\Ice02.bmd, 0x615d36): diez los suelta el monstruo de hielo 0x161 al terminar de
 // morir (0x52e810, CL9 hito 3). Su paso es el de las piedritas (0x523974).
 inline constexpr std::int16_t IceShardEffect = 0xca;

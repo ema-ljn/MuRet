@@ -725,7 +725,7 @@ std::optional<std::size_t> ModelEffects::CreateStoneChip(std::int16_t type, cons
     constexpr std::int16_t FirstRockShard = 0xea, SecondRockShard = 0xeb;
     const bool chip = type == FirstStoneChipEffect || type == SecondStoneChipEffect;
     const bool shard = (type == FirstRockShard || type == SecondRockShard) && subtype == 0;
-    if ((!chip && !shard) || (subtype != 0 && subtype != RisingStoneChipSubtype))
+    if ((!chip && !shard) || (subtype != 0 && subtype != RisingStoneChipSubtype && subtype != SpinningStoneChipSubtype))
         return std::nullopt;
     constexpr int PushMask = 255, PushBase = 64, LifeMask = 15, LifeBase = 32, ScaleMask = 3, ScaleBase = 8;
     constexpr int Degrees = 360, FallMask = 15, FallBase = 8;

@@ -294,7 +294,8 @@ Core::Expected<void, std::string> StepFallingStone(ModelEffect& effect, const Mo
     return {};
 }
 
-// 0x523985 con el subtipo 1 de c8/c9: suma la velocidad girada, aplica el arrastre y acelera en Z sin leer el suelo.
+// 0x523985 con el subtipo 1 de c8/c9: suma la velocidad girada, aplica el arrastre y acelera en Z sin leer el suelo; la
+// /2 hace lo mismo y además gira 20 en z (0x523a3f..0x523a4d, después del movimiento).
 // 0x5239c8..0x523b3a con el subtipo 0 y el 10: la velocidad sin girar sumada y por 0,9f (0x6b8a1c), la caída +0xe4
 // que pierde 3; en el suelo se apoya, rebota a −0,5, pierde 4 de vida y se inclina escala · 128 (si no, ·
 // 32); con el subtipo 0 y rand() % 10 en 0, un fuego 5d9 con el subtipo rand() % 3 + 1. El 10 (el de la piedra
@@ -306,7 +307,7 @@ Core::Expected<void, std::string> StepStoneChip(ModelEffect& effect, Particles& 
                                                 const ModelEffectStepServices& services)
 {
     const bool rising = (effect.type == FirstStoneChipEffect || effect.type == SecondStoneChipEffect) &&
-                        effect.subtype == RisingStoneChipSubtype;
+                        (effect.subtype == RisingStoneChipSubtype || effect.subtype == SpinningStoneChipSubtype);
     if (!rising && effect.subtype != 0 && effect.subtype != GroundStoneChipSubtype)
         return Core::Unexpected(std::format("{}: el paso de la piedrita {:#x} con el subtipo {} no está portado",
                                             effect.type == IceShardEffect ? "0x523974" : "0x5238be", effect.type,
@@ -327,7 +328,10 @@ Core::Expected<void, std::string> StepStoneChip(ModelEffect& effect, Particles& 
     position.z = F32(static_cast<double>(position.z) + static_cast<double>(effect.turnDirection));
     if (rising)
     {
+        constexpr double Spin = 20.0;        // 0x6b86d0
         constexpr double Acceleration = 0.5; // 0x6b882c.
+        if (effect.subtype != RisingStoneChipSubtype)
+            effect.transform.angles.z = F32(static_cast<double>(effect.transform.angles.z) + Spin);
         effect.turnDirection = F32(static_cast<double>(effect.turnDirection) + Acceleration);
         return {};
     }

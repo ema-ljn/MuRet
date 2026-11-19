@@ -230,7 +230,7 @@ Core::Expected<void, std::string> Chip(const WizardEffectServices& services, Crt
     if (services.effects == nullptr)
         return Core::Unexpected(std::format("{}: falta la tabla de efectos (0x518cf0)", address));
     const auto type = static_cast<std::int16_t>(ChipEffect + (random.Next() & 1));
-    if (subtype != 0 && subtype != RisingStoneChipSubtype)
+    if (subtype != 0 && subtype != RisingStoneChipSubtype && subtype != SpinningStoneChipSubtype)
         return Core::Unexpected(
             std::format("{}: la piedrita {:#x} con el subtipo {} no está portada (CL11)", address, type, subtype));
     static_cast<void>(services.effects->CreateStoneChip(type, position, angles, light, random, subtype));

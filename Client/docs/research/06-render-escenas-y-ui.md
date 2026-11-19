@@ -9185,7 +9185,10 @@ En el 4 (`0x6053d5`, por el tipo − 3 en la tabla `0x605c6c` → `0x605c50`):
   El paso (`0x5239c8`): la velocidad sin girar se suma a la posición y queda por 0,9f; la z suma la caída, que
   pierde 3; en el suelo se apoya, la caída rebota a −0,5, pierde 4 de vida y se inclina escala · 128 (en el aire,
   escala · 32); con `rand()` % 10 en 0, un fuego `5d9` de subtipo `rand()` % 3 + 1 con su luz. Después,
-  `0x51fc80` vuelve a sumar la velocidad, girada (Q-C307).
+  `0x51fc80` vuelve a sumar la velocidad, girada (Q-C307). La /2 (la de las tormentas: el `0xcf/0` en `0x522f17` y el
+  `0xcf/3..7` en `0x5231a1` → `0x52b14d`, CL11) nace como la /0 y da el paso de la /1 (`0x523985`: la velocidad girada
+  por los ángulos, el arrastre y la caída, que gana 0,5 sin mirar el suelo) con un giro de 20 en z después del
+  movimiento (`0x523a44`); MuRet: `SpinningStoneChipSubtype`.
 - La llama `5de/0` (`0x54143c`): vida 20, la velocidad (0; 0; ((& 127) + 128) · 0,15f) y la escala ((& 63) +
   64) por el argumento por 0,01f. Su paso es el común (`0x545d03`), y se dibuja con el billboard común.
 

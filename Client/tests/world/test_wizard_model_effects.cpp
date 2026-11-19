@@ -738,9 +738,9 @@ TEST(WizardModelEffectsTest, TheTwistingStormDropsARisingDrop)
 
 // 0x523101..0x52318f: el 0xcf/3..7 tiembla la cámara ((rand() & 7) − 4) · 0,1f y suelta en su punto la niebla 5f2/28,
 // /29 y /30 (0x523144, 0x52315d, 0x523176), con sus ángulos, su luz y la escala 1, que piden la altura del terreno y,
-// la /30, el seno del reloj. Después, con rand() & 1 en 0, la piedrita 0xc8 + (rand() & 1) con el subtipo 2 (0x52b14d),
-// que es de otro lote y corta. Con la tabla de partículas llena, la niebla no saca nada. Réplica en un pool gemelo con
-// el mismo CrtRandom.
+// la /30, el seno del reloj. Después, con rand() & 1 en 0, la piedrita 0xc8 + (rand() & 1) con el subtipo 2 (0x5231a9
+// → 0x52b14d), que nace como la /0 (0x51b72b) con sus cinco rand(). Con la tabla de partículas llena, la niebla no saca
+// nada. Réplica en un pool gemelo con el mismo CrtRandom.
 TEST(WizardModelEffectsTest, TheLittleStormsLeaveTheirMistOnTheGround)
 {
     bool calm = false, chipped = false;
@@ -774,22 +774,42 @@ TEST(WizardModelEffectsTest, TheLittleStormsLeaveTheirMistOnTheGround)
                                                             oracle, trigonometry, ground)
                                     .HasValue());
                 const bool chip = (oracle.Next() & 1) == 0;
-                if (chip)
-                    static_cast<void>(oracle.Next()); // 0x5231a9, el tipo de la piedrita.
-                const auto stepped = Client::World::StepWizardModelEffect(storm, nullptr, random, world.Services());
-                EXPECT_EQ(world.shake, shake);
+                auto twinEffects = std::make_unique<ModelEffects>();
+                std::optional<std::size_t> twinChip;
                 if (chip)
                 {
-                    ASSERT_FALSE(stepped.HasValue());
-                    EXPECT_NE(stepped.Error().find("0x52b14d"), std::string::npos) << stepped.Error();
+                    // 0x5231a9, el tipo de la piedrita, y su alta en una tabla gemela.
+                    const auto type = static_cast<std::int16_t>(0xc8 + (oracle.Next() & 1));
+                    twinChip = twinEffects->CreateStoneChip(type, at, angles, light, oracle, 2);
+                    ASSERT_TRUE(twinChip.has_value());
+                }
+                const auto stepped = Client::World::StepWizardModelEffect(storm, nullptr, random, world.Services());
+                ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+                EXPECT_EQ(world.shake, shake);
+                const auto chips =
+                    std::ranges::count_if(world.effects->Effects(), [](const ModelEffect& effect)
+                                          { return effect.alive && (effect.type == 0xc8 || effect.type == 0xc9); });
+                if (chip)
+                {
+                    ASSERT_EQ(chips, 1);
+                    const auto found = std::ranges::find_if(world.effects->Effects(), [](const ModelEffect& effect)
+                                                            { return effect.alive && effect.subtype == 2; });
+                    const ModelEffect& reference = twinEffects->Effects()[*twinChip];
+                    EXPECT_EQ(found->type, reference.type);
+                    EXPECT_EQ(found->transform.position, at);
+                    EXPECT_EQ(found->transform.angles, reference.transform.angles);
+                    EXPECT_EQ(found->transform.scale, reference.transform.scale);
+                    EXPECT_EQ(found->velocity, reference.velocity);
+                    EXPECT_EQ(found->life, reference.life);
+                    EXPECT_EQ(found->turnDirection, reference.turnDirection);
+                    EXPECT_EQ(found->light, light);
                     chipped = true;
                 }
                 else
                 {
-                    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+                    EXPECT_EQ(chips, 0);
                     calm = true;
                 }
-                // Con la piedrita, el corte llega después de sus dos rand(); sin ella, los de la niebla y el último.
                 EXPECT_EQ(random.State(), oracle.State());
                 if (full)
                     continue;

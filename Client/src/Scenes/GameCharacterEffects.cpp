@@ -960,15 +960,16 @@ Core::Expected<void, std::string> DrawTheRavenAttack(DarkSpirit& spirit, const A
         {
             // 0x418aab..0x418b08: con el blanco de +8, que el A8 puso antes del estado 5, diez 0x530860(0x5ac, la
             // posición del cuervo dos veces, sus ángulos, 1, sin dueño, rand() % 40 + 20, −1, 0, 0, −1).
-            if (world == nullptr)
-                return Core::Unexpected(std::string("0x418aff: faltan los joints del mundo (0x530860) para el ataque "
-                                                    "del cuervo"));
             constexpr int AttackJoints = 10;               // 0x418ac9
             constexpr std::int32_t AttackJoint = 0x5ac;    // 0x418afa
             constexpr std::int32_t AttackJointSubtype = 1; // 0x418af5
             for (int made = 0; made < AttackJoints; ++made)
             {
                 const auto width = static_cast<float>(static_cast<std::int32_t>(random.Next() % JointSpan) + JointBase);
+                // Sin la tabla, corta en la primera 0x530860, después del rand() de 0x418ad6.
+                if (world == nullptr)
+                    return Core::Unexpected(std::string("0x418aff: faltan los joints del mundo (0x530860) para el "
+                                                        "ataque del cuervo"));
                 const World::FishEffectRequest request{.type = AttackJoint,
                                                        .firstPosition = spirit.position,
                                                        .secondPosition = spirit.position,
@@ -1013,9 +1014,9 @@ Core::Expected<void, std::string> DrawTheRavenAttack(DarkSpirit& spirit, const A
         }
         // 0x418b7c..0x418c0a: impar desde 4 y 100 más arriba que el dueño, 0x4ec110(+0x120 + 6 · 0x30, (50, 0, 0),
         // punto, 0), el hueso 6 en el mundo, y 0x518cf0(0x113, punto, +0x1c, +0xf4, 0, el cuervo, −1, 0, 0, 0, 0). No
-        // saca rand().
+        // saca rand(). 0x418ba6..0x418bb7: FCOMP y TEST AH, 1 siguen con C0, que también prende un NaN.
         if (spirit.byte38d > LastQuietStep && (spirit.byte38d & 1u) != 0 &&
-            static_cast<double>(owner.position.z) + AboveTheOwner < static_cast<double>(spirit.position.z))
+            !(static_cast<double>(owner.position.z) + AboveTheOwner >= static_cast<double>(spirit.position.z)))
         {
             constexpr std::size_t BeakBone = 6;                // 0x418bc8: +0x120 más 0x120
             constexpr glm::vec3 BeakOffset{50.0f, 0.0f, 0.0f}; // 0x418bcf: 0x42480000

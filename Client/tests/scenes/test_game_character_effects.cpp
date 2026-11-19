@@ -1798,13 +1798,15 @@ TEST_F(GameRavenTest, TheAttackDropsItsJointsAndTheDarkLordSkill)
             EXPECT_EQ(skill.ownerContext, nullptr);
         }
 
+    // Sin la tabla de joints corta en la primera 0x530860, después del rand() % 40 de 0x418ad6.
     GameRavenPass bare = Pass();
     bare.world = nullptr;
     m_owner.darkSpirit->byte38d = 0;
-    const CrtRandom before = m_random;
+    CrtRandom before = m_random;
     const auto cut = Client::Scenes::DrawGameRaven(m_owner, bare);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x418aff"), std::string::npos) << cut.Error();
+    static_cast<void>(before.Next());
     EXPECT_EQ(m_random.State(), before.State());
 }
 

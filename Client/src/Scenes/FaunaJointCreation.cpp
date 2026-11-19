@@ -864,6 +864,11 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
         return JointFamilies::CreateBeamJoint(joint, request, random);
     if (request.type == JointFamilies::SpiralJoint)
         return JointFamilies::CreateSpiralJoint(joint, request, random);
+    if (request.type == JointFamilies::FlareJoint)
+    {
+        JointFamilies::CreateFlareJoint(joint, request, random);
+        return {};
+    }
     // 531c43..531cc7 y531fc3..53200e: la estela del misilE1/1 de Crywolf.
     if (request.type == 0x610 && request.subtype == 13)
     {
@@ -1820,6 +1825,7 @@ enum class Family : std::uint8_t
     Inferno,
     FireTrail,
     Helix,
+    Flare,
 };
 
 std::optional<Family> FamilyStep(const JointState& joint)
@@ -1852,6 +1858,8 @@ std::optional<Family> FamilyStep(const JointState& joint)
         return Family::FireTrail;
     if (JointFamilies::IsHelix(joint.type, joint.subtype))
         return Family::Helix;
+    if (joint.type == JointFamilies::FlareJoint)
+        return Family::Flare;
     return std::nullopt;
 }
 
@@ -1939,6 +1947,8 @@ Core::Expected<void, std::string> RunFamily(JointState& joint, Family family,
         return JointFamilies::StepFireTrailJoint(joint);
     case Family::Helix:
         return JointFamilies::StepHelixJoint(joint);
+    case Family::Flare:
+        return JointFamilies::StepFlareJoint(joint);
     }
     return {};
 }

@@ -129,4 +129,10 @@ inline constexpr std::int32_t SpiralJoint = 0x62c;
 CreateSpiralJoint(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random);
 [[nodiscard]] Core::Expected<void, std::string> StepSpiralJoint(JointState& joint,
                                                                 const JointKernels::StepServices& services);
+
+// El 0x5ac (FlareJoints.cpp): alta 0x530c93..0x530dd8 y paso 0x5359d7..0x535b32, sin la cola ni el movimiento comunes.
+// Los sesenta /0 del 0x114/0 (0x51c1b8) y del combo de BlastModelEffects (0x51c004), sin dueño.
+inline constexpr std::int32_t FlareJoint = 0x5ac;
+void CreateFlareJoint(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random);
+[[nodiscard]] Core::Expected<void, std::string> StepFlareJoint(JointState& joint);
 } // namespace Client::Scenes::JointFamilies

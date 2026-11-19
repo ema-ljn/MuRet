@@ -135,8 +135,8 @@ template <typename Result> bool HasError(const Result& result, std::string_view 
     return !result.HasValue() && result.Error().starts_with(address);
 }
 
-// 0x51c186: el 0x114/0 saca un rand() (la escala) antes de cada uno de sus sesenta joints 0x5ac/0, que no son de MuRet:
-// con lugar, corta en el primero después de ese rand(); con los joints llenos, sesenta rand() y lo común.
+// 0x51c186: el 0x114/0 saca un rand() (la escala) antes de cada uno de sus sesenta joints 0x5ac/0 (FlareJoints.cpp),
+// que sacan tres más al nacer (0x530cbc..0x530cfe); con los joints llenos, sesenta rand() y lo común.
 TEST(HighEffectFamiliesTest, TheFlareWaveDrawsOneScaleForEachOfItsSixtyJoints)
 {
     for (const bool full : {false, true})
@@ -155,15 +155,19 @@ TEST(HighEffectFamiliesTest, TheFlareWaveDrawsOneScaleForEachOfItsSixtyJoints)
         EXPECT_EQ(wave.transform.position, (glm::vec3{100.0f, 200.0f, 350.0f}));
         EXPECT_EQ(wave.start, (glm::vec3{100.0f, 200.0f, 300.0f}));
         EXPECT_EQ(wave.objectState.blendMesh, -2);
-        if (full)
+        ASSERT_TRUE(made.HasValue()) << made.Error();
+        EXPECT_EQ(tested.Draws(), full ? 60 : 240);
+        if (!full)
         {
-            ASSERT_TRUE(made.HasValue()) << made.Error();
-            EXPECT_EQ(tested.Draws(), 60);
-        }
-        else
-        {
-            EXPECT_TRUE(HasError(made, "0x51c1b8")) << (made.HasValue() ? std::string() : made.Error());
-            EXPECT_EQ(tested.Draws(), 1);
+            const auto& joints = tested.world->DrawTail().joints;
+            EXPECT_EQ(std::ranges::count_if(joints, [](const Client::Scenes::JointState& joint)
+                                            { return joint.alive && joint.type == 0x5ac && joint.subtype == 0; }),
+                      60);
+            CrtRandom replay{Seed};
+            const auto width = static_cast<float>(replay.Next() % 40 + 70);
+            EXPECT_EQ(joints[0].width, width);
+            EXPECT_EQ(joints[0].position, (glm::vec3{100.0f, 200.0f, 350.0f}));
+            EXPECT_EQ(joints[0].ownerContext, nullptr);
         }
     }
 }

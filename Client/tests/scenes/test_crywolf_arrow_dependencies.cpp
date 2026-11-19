@@ -51,48 +51,63 @@ TEST(CrywolfArrowDependenciesTest, TheJointCopiesItsRequestAndKeepsTheNativeKeyL
     EXPECT_EQ(joint.light, (glm::vec3{.7f, .7f, .3f}));
     EXPECT_EQ(joint.targetPosition, (glm::vec3{400, 500, 600}));
     EXPECT_EQ(random.State(), 7u);
+    // 0x531fa3: la /0xc, igual con la luz (0,6f; 0,2f; 0,8f).
+    joints[0] = {};
+    const auto violet =
+        Client::Scenes::CreateFaunaJoint(joints, {0x610, position, target, angles, 12, &owner, 40, 0x50, 0, 0, -1},
+                                         random, Client::Scenes::JointOwnerKind::ModelEffect);
+    ASSERT_TRUE(violet.HasValue()) << violet.Error();
+    EXPECT_EQ(joints[0].life, 0x50);
+    EXPECT_EQ(joints[0].maximumCount, 16);
+    EXPECT_EQ(joints[0].blend, 4);
+    EXPECT_EQ(joints[0].light, (glm::vec3{.6f, .2f, .8f}));
+    EXPECT_EQ(random.State(), 7u);
 }
+// 0x537d2e..0x537d43: la /0xc (la estela de la flecha 0x11c) va al mismo paso que la /13 (0x537ee6).
 TEST(CrywolfArrowDependenciesTest, TheJointMovesBeforeCheckingItsOwnerAndStillRunsItsLightAndTail)
 {
-    for (const bool alive : {true, false})
-    {
-        std::vector<Client::Scenes::JointState> joints(1);
-        auto& joint = joints[0];
-        Client::World::ModelEffect owner;
-        owner.alive = alive;
-        joint.alive = true;
-        joint.type = 0x610;
-        joint.subtype = 13;
-        joint.ownerContext = &owner;
-        joint.ownerKind = Client::Scenes::JointOwnerKind::ModelEffect;
-        joint.position = {100, 200, 300};
-        joint.speed = 70;
-        joint.width = 20;
-        joint.life = 10;
-        joint.maximumCount = 16;
-        joint.tailEnabled = true;
-        joint.drawEnabled = 3;
-        joint.light = {.7f, .7f, .3f};
-        auto lighting = std::make_unique<Client::World::TerrainLighting>();
-        Client::Render::Models::CrtRandom random(7), expected(7);
-        expected.Discard(1);
-        const auto result = Client::Scenes::StepJoints(joints, random, nullptr, nullptr, 0, nullptr, lighting.get());
-        ASSERT_TRUE(result.HasValue()) << result.Error();
-        EXPECT_EQ(joint.alive, alive);
-        EXPECT_EQ(joint.life, 9);
-        EXPECT_EQ(joint.count, 1);
-        EXPECT_EQ(joint.position, (glm::vec3{100, 130, 300}));
-        EXPECT_EQ(random.State(), expected.State());
-        EXPECT_FLOAT_EQ(joint.light.x,
-                        static_cast<float>(static_cast<double>(.7f) * static_cast<double>(0.8333333134651184f)));
-        if (alive)
+    for (const std::int32_t subtype : {12, 13})
+        for (const bool alive : {true, false})
         {
-            Client::Render::ModelBatch batch;
-            batch.Begin(Client::Render::Pass3D{});
-            ASSERT_TRUE(Client::Scenes::DrawJoints(batch, joints, 0).HasValue());
-            EXPECT_EQ(batch.Vertices().size(), 12u);
+            SCOPED_TRACE(subtype);
+            std::vector<Client::Scenes::JointState> joints(1);
+            auto& joint = joints[0];
+            Client::World::ModelEffect owner;
+            owner.alive = alive;
+            joint.alive = true;
+            joint.type = 0x610;
+            joint.subtype = subtype;
+            joint.ownerContext = &owner;
+            joint.ownerKind = Client::Scenes::JointOwnerKind::ModelEffect;
+            joint.position = {100, 200, 300};
+            joint.speed = 70;
+            joint.width = 20;
+            joint.life = 10;
+            joint.maximumCount = 16;
+            joint.tailEnabled = true;
+            joint.drawEnabled = 3;
+            joint.light = {.7f, .7f, .3f};
+            auto lighting = std::make_unique<Client::World::TerrainLighting>();
+            Client::Render::Models::CrtRandom random(7), expected(7);
+            expected.Discard(1);
+            const auto result =
+                Client::Scenes::StepJoints(joints, random, nullptr, nullptr, 0, nullptr, lighting.get());
+            ASSERT_TRUE(result.HasValue()) << result.Error();
+            EXPECT_EQ(joint.alive, alive);
+            EXPECT_EQ(joint.life, 9);
+            EXPECT_EQ(joint.count, 1);
+            EXPECT_EQ(joint.position, (glm::vec3{100, 130, 300}));
+            EXPECT_EQ(random.State(), expected.State());
+            EXPECT_FLOAT_EQ(joint.light.x,
+                            static_cast<float>(static_cast<double>(.7f) * static_cast<double>(0.8333333134651184f)));
+            if (alive)
+            {
+                Client::Render::ModelBatch batch;
+                batch.Begin(Client::Render::Pass3D{});
+                ASSERT_TRUE(Client::Scenes::DrawJoints(batch, joints, 0).HasValue());
+                EXPECT_EQ(batch.Vertices().size(), 12u);
+            }
         }
-    }
 }
 TEST(CrywolfArrowDependenciesTest, TheFallingOrbitUsesFourDrawsAndDrawsAtLifeForty)
 {

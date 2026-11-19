@@ -467,9 +467,55 @@ TEST(ArrowEffectsTest, TheMountedBowsShootLikeOnFoot)
     }
 }
 
-// Las armas cuyas flechas piden algo sin portar cortan en su dirección, con lo de antes: en el alta, los joints de
-// la 0x11c (4/20, después de su rand() % 360) y la 0xf9 (4/21); en el paso, la 0xe1 (4/6) en sus partículas
-// 0x608..0x60a, después de sus dos sprites y de los rand() del punto.
+// Las armas cuyas flechas piden algo sin portar cortan en su dirección, con lo de antes: en el alta, el joint de
+// la 0xf9 (4/21); en el paso, la 0xe1 (4/6) en sus partículas 0x608..0x60a, después de sus dos sprites y de los
+// rand() del punto.
+
+// 0x51c6dd..0x51c713: la flecha 0x11c pone +0x64 en 1, la y de los ángulos en rand() % 360 y suelta su estela
+// 0x610/0xc (0x531fa3): la flecha de dueño, ancho 40, la vida en la key 0x50, la key en 0, 16 puntos, la luz
+// (0,6f; 0,2f; 0,8f), la mezcla 4 y la velocidad 70; después el registro propio. Con los joints llenos, sin estela.
+TEST(ArrowEffectsTest, TheTwentiethArrowBornsWithItsVioletTrail)
+{
+    for (const bool full : {false, true})
+    {
+        SCOPED_TRACE(full);
+        ArrowWorld tested(0);
+        if (full)
+            for (auto& joint : tested.world.DrawTail().joints)
+                joint.alive = true;
+        const Client::World::ModelEffectArguments arguments{
+            .type = 0x11c, .position = {2000.0f, 3000.0f, 400.0f}, .light = glm::vec3(1.0f), .subtype = 0};
+        const auto made = Client::Scenes::CreateTheArrowEffect(arguments, tested.world, tested.random);
+        ASSERT_TRUE(made.HasValue()) << ErrorOf(made);
+        const auto arrows = tested.Arrows();
+        ASSERT_EQ(arrows.size(), 1u);
+        const ModelEffect& arrow = *arrows.front();
+        CrtRandom twin{Seed};
+        const auto turn = static_cast<float>(twin.Next() % 360);
+        EXPECT_EQ(arrow.transform.angles.y, turn);
+        EXPECT_EQ(arrow.objectState.blendMesh, 1);
+        EXPECT_EQ(DrawsSince(Seed, tested.random), 1 + OwnRecord);
+        if (full)
+            continue;
+        const auto& trail = tested.world.DrawTail().joints[0];
+        ASSERT_TRUE(trail.alive);
+        EXPECT_EQ(trail.type, 0x610);
+        EXPECT_EQ(trail.subtype, 0xc);
+        EXPECT_EQ(trail.ownerContext, &arrow);
+        EXPECT_EQ(trail.ownerKind, Client::Scenes::JointOwnerKind::ModelEffect);
+        EXPECT_EQ(trail.width, 40.0f);
+        EXPECT_EQ(trail.life, 0x50);
+        EXPECT_EQ(trail.key, 0);
+        EXPECT_EQ(trail.maximumCount, 16);
+        EXPECT_EQ(trail.light, glm::vec3(std::bit_cast<float>(0x3f19999au), std::bit_cast<float>(0x3e4ccccdu),
+                                         std::bit_cast<float>(0x3f4ccccdu)));
+        EXPECT_EQ(trail.blend, 4);
+        EXPECT_EQ(trail.speed, 70.0f);
+        EXPECT_EQ(trail.position, arrow.transform.position);
+        EXPECT_EQ(trail.targetPosition, arrow.transform.position);
+        EXPECT_FALSE(tested.world.DrawTail().joints[1].alive);
+    }
+}
 
 TEST(ArrowEffectsTest, TheArrowsOfUnportedEffectsCut)
 {
@@ -483,8 +529,7 @@ TEST(ArrowEffectsTest, TheArrowsOfUnportedEffectsCut)
         std::string_view stepCut;
         int stepDraws;
     };
-    const std::array cases{Case{"4/20", 0xffff, 0x814, "0x51c713", 1, "", 0},
-                           Case{"4/21", 0xffff, 0x815, "0x51c56c", 0, "", 0},
+    const std::array cases{Case{"4/21", 0xffff, 0x815, "0x51c56c", 0, "", 0},
                            Case{"4/6", 0xffff, 0x806, "", 0, "0x526a8b", 1 + 4}};
     for (const Case& probe : cases)
     {

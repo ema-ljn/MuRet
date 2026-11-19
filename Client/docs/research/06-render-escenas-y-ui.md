@@ -12010,7 +12010,9 @@ con el subtipo 3 o 4 (`0x51c601`, la del asedio): vida 40, escala 1,5, `+0xe4` e
 los ángulos en −(`rand() % 20` + 45); con el 4, −(`rand() % 15` + 55) y −10 (cada fild más la constante y el `fchs` en
 la x87); después, la salida. La crean solo los objetos del asedio (`0x42b540`: `0x42c319` y `0x42c4e0`, CL9.5). El
 `0x11c`, `+0x64` en 1,
-la y de los ángulos en `rand() % 360` y el joint `0x610`/0xc (`0x51c713`). La salida `0x51a1b6` abre el registro
+la y de los ángulos en `rand() % 360` y el joint `0x610`/0xc (`0x51c713`: posición (edi, `+0x10` desde `0x51c4c4`),
+ángulos, la flecha de dueño, ancho 40, key `0x50`, skill 0; CL11: como el `/13` de `0x531c43` pero con la luz (0,6f;
+0,2f; 0,8f), `0x531fa3`, y el mismo paso, `0x537ee6`, que elige `0x537d2e`). La salida `0x51a1b6` abre el registro
 propio, copia su `+0xf04` a `+0x8c` y lo cierra (3.848 `rand()`). El `0xe2` (`0x51a41e`): igual hasta la boca,
 `+0x64` en 0, escala 1, −30, `+0xe4` en −10, vida 40, con el subtipo 2 `+0x100` en 0 y `+0x88` en 1, y la misma
 salida. El `0xf7` (`0x51a24a`), el `0xf8` (`0x51a405`), el `0x10e` (`0x51a173`) y el `0x111` (`0x51bf35`; con un
@@ -12049,7 +12051,7 @@ menos), que no mira el byte vivo: corre también si el choque la apagó.
 - `0x11c` (`0x526aef`): la y de los ángulos + 60; con vida par, tres veces el punto ((& 31) − 16; (& 63) − 32;
   (& 31) − 16) y la `0x60f`/5 violeta ((0,4f; 0,2f; 1), escala 0,2f, sin dueño; `0x526b1c..0x526bcb`, CL11:
   `ArrowEffectsTest.TheTwentiethArrowSparklesVioletOnEvenLives`); siempre el `0x114`/3 (`0x526c05`), la luz y el
-  choque. Su alta todavía corta en el joint `0x610`/0xc (`0x51c713`) si hay lugar en los joints. Los pasos del `0xf7`, `0xf8`, `0xf9`, `0x10e` y `0x111` no se alcanzan: su alta corta.
+  choque. Los pasos del `0xf7`, `0xf8`, `0xf9`, `0x10e` y `0x111` no se alcanzan: su alta corta.
 
 **El choque** (`0x520170`). Con el asedio (`0x4294b0`) y el bit `0x100` de la celda, la frena (`0x52018d`, CL9.5).
 Con `+0x88` distinto de 0 y sin el subtipo `0x63` (`0x5201ed`, CL9 hito 4): con `rand() & 1` en 1, nada; solo con el

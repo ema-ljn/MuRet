@@ -296,14 +296,22 @@ Core::Expected<void, std::string> BeginTheArrow(World::ModelEffect& effect, Worl
     }
     if (type == TwentiethArrow)
     {
-        // 0x51c6dd..0x51c705: +0x64 en 1 y la y de los ángulos en rand() % 360, antes del joint.
+        // 0x51c6dd..0x51c705: +0x64 en 1 y la y de los ángulos en rand() % 360, antes del joint. 0x51c713:
+        // 0x530860(0x610, posición, posición, ángulos, 0xc, la flecha, 40, 0x50, 0, 0, −1), la estela violeta (edi es
+        // +0x10 desde 0x51c4c4 y esi sigue en 0 desde 0x518d08).
         constexpr int FullTurn = 360;
+        constexpr std::int32_t TrailSubtype = 0xc; // 0x51c6fd
+        constexpr float TrailWidth = 40.0f;        // 0x51c6f7: 0x42200000
+        constexpr std::int32_t TrailLife = 0x50;   // 0x51c6f5, la key que el alta pasa a la vida
         effect.objectState.blendMesh = 1;
         effect.transform.angles.y = static_cast<float>(random.Next() % FullTurn);
-        if (HasJointRoom(world))
-            return Core::Unexpected(
-                std::string("0x51c713: el joint 0x610/0xc de la flecha 0x11c (0x530860), sin portar "
-                            "(CL11)"));
+        const auto made =
+            CreateFaunaJoint(world.DrawTail().joints,
+                             {0x610, effect.transform.position, effect.transform.position, effect.transform.angles,
+                              TrailSubtype, &effect, TrailWidth, TrailLife, 0, 0, -1},
+                             random, JointOwnerKind::ModelEffect);
+        if (!made.HasValue())
+            return Core::Unexpected(std::format("0x51c713: {}", made.Error()));
     }
     CopyTheOwnCount(effect, world, random);
     return {};

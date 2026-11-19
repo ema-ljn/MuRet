@@ -882,15 +882,20 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
         JointFamilies::CreatePlasmaJoint(joint, request);
         return {};
     }
-    // 531c43..531cc7 y531fc3..53200e: la estela del misilE1/1 de Crywolf.
-    if (request.type == 0x610 && request.subtype == 13)
+    // 531c43..531cc7 y531fc3..53200e: la estela del misilE1/1 de Crywolf. 0x531fa3: la /0xc (la de la flecha 0x11c,
+    // 0x51c713) hace lo mismo con la luz (0,6f; 0,2f; 0,8f).
+    if (request.type == 0x610 && (request.subtype == 12 || request.subtype == 13))
     {
         if (joint.skill == 3 && joint.ownerContext == nullptr)
-            return Core::Unexpected(std::string("0x531c7b: falta la luz del dueño del610/13"));
+            return Core::Unexpected(std::format("0x531c7b: falta la luz del dueño del 0x610/{}", request.subtype));
         joint.life = joint.key;
         joint.key = 0;
         joint.maximumCount = 16;
-        joint.light = {.7f, .7f, .3f};
+        if (request.subtype == 12)
+            joint.light = {std::bit_cast<float>(0x3f19999au), std::bit_cast<float>(0x3e4ccccdu),
+                           std::bit_cast<float>(0x3f4ccccdu)}; // 0x531fa6..0x531fb3
+        else
+            joint.light = {.7f, .7f, .3f};
         joint.blend = 4;
         joint.width = request.scale;
         joint.speed = 70; // 428c0000 en531ff9.
@@ -1041,7 +1046,8 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateFaunaJoint(std::sp
         if (ownerKind == JointOwnerKind::ModelEffect &&
             !((request.type == EnergyJoint &&
                (request.subtype == SummonEnergySubtype || request.subtype == SummonDecalEnergySubtype)) ||
-              (request.type == 0x610 && (request.subtype == 13 || (request.subtype >= 0 && request.subtype <= 3))) ||
+              (request.type == 0x610 &&
+               (request.subtype == 12 || request.subtype == 13 || (request.subtype >= 0 && request.subtype <= 3))) ||
               (request.type == SparkleJoint && request.subtype == 6) || effectBeam || pulseJoint || kundunSpirit ||
               whirl || request.type == JointFamilies::FireTrailJoint))
             return Core::Unexpected(
@@ -1681,13 +1687,14 @@ Core::Expected<void, std::string> StepCrywolfArrowTrail(JointState& joint, Rende
         return {};
     }
     if (joint.ownerKind != JointOwnerKind::ModelEffect)
-        return Core::Unexpected(std::string("0x537ef8: el dueño610/13 no es un ModelEffect durable"));
+        return Core::Unexpected(
+            std::format("0x537ef8: el dueño del 0x610/{} no es un ModelEffect durable", joint.subtype));
     if (!static_cast<const World::ModelEffect*>(joint.ownerContext)->alive)
         joint.alive = false; // Aun muerto siguen fade,RNG,luz,cola yvida.
     if (joint.life < 15)
         FadeJointLight(joint, 0x3f555555u);
     if (random == nullptr)
-        return Core::Unexpected(std::string("0x537fc8: falta el CRT del610/13"));
+        return Core::Unexpected(std::format("0x537fc8: falta el CRT del 0x610/{}", joint.subtype));
     const double luminosity =
         static_cast<double>((random->Next() & 3) + 8) * static_cast<double>(std::bit_cast<float>(0x3cf5c28fu));
     const glm::vec3 color{F32(luminosity * static_cast<double>(.4f)), F32(luminosity),
@@ -2061,7 +2068,9 @@ StepJointsChecked(std::span<JointState> joints, Render::Models::CrtRandom* rando
         const bool spiritBeam = (joint.type == 0x613 || joint.type == 0x6ee) && joint.subtype == 4;
         const bool icarus = joint.type == 0x610 && joint.subtype == 8;
         const bool piercingTrail = joint.type == 0x610 && joint.subtype >= 0 && joint.subtype <= 3;
-        const bool crywolfArrowTrail = joint.type == 0x610 && joint.subtype == 13;
+        // 0x537d2e..0x537d43: la /0xc, la /0xd y la /0xe van al mismo paso (0x537ee6); la /0xe, además, con sus
+        // sprites y partículas (no portada).
+        const bool crywolfArrowTrail = joint.type == 0x610 && (joint.subtype == 12 || joint.subtype == 13);
         // El del 0x95 de Kalima (0x43b0ed), con el personaje blanco de dueño.
         const bool targetBolt = joint.type == 0x610 && joint.subtype == 6;
         // Los remolinos del 0x114/1 (0x51c25f), sin dueño.

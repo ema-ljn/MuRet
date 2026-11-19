@@ -4886,7 +4886,9 @@ de vuelta. *Estático.*
   (`0x606560` → `0x445230` → `0x508f00` → `0x52d220`) y lo dibuja después de los objetos, con el frame
   entero y la posición `alpha` de un paso más (D-C4; el original la dibuja tal cual, a 25 por segundo).
   Sin la esfera de 400 contra el frustum: en el login siempre está en pantalla. El `rand()` que tira
-  cada paso (`0x5208c5`, una luz que el `0xb4` no usa) no va: es del `rand()` común (P-C22 a, CL7.6 B).
+  cada paso (`0x5208c5`, una luz que el `0xb4` no usa) va desde la CL11 (lote magos): el login avanza la tabla con
+  `World::StepGameModelEffect` (el dragón) y `World::StepWizardModelEffect` (el meteoro `0xc2/9` del `0x59`), con el
+  `rand()` de la CRT, y la dibuja con `DrawGameModelEffects` (06 § Los efectos con modelo de los magos).
 
 ### El cuervo
 
@@ -15400,8 +15402,17 @@ Los llamadores portados (cada alta con su dirección en el error):
   dueño, cuya luz `+0xf4` pisa cada alta con `(0,4f; 0,3f; 0,2f)`. Lo piden la bandera `0x20` sin su bit
   (`0x4e67fc`, `0x4e6825`) y la respuesta de la `0x33` (`0x4cd6ff`, `0x4cd72b`), antes de parar al blanco.
 - `0x4f4a10`: el `0x27` crea la sierra `0xd4/0` sin dueño (`0x4f4f5b`) antes del sonido `0x10`.
-- `0x602ed0` en el mapa 55: el objeto `0x59` con `ftol(reloj del mundo) % 8000 >= 7950` suelta un meteoro `0xc2/9`
-  (`0x604427..0x6044b2`); el login no tiene la tabla de los efectos con modelo y corta en `0x604427` (P-C401 a).
+- `0x602ed0` en el mapa 55 (el login): el objeto `0x59` con `ftol(reloj del mundo) % 8000 >= 7950` suelta un meteoro
+  `0xc2/9` (`0x604427..0x6044b2`), después del `rand()` común del objeto: x e y con `(rand() & 0x7ff) + objeto − 1024`
+  y z con `rand() % 600 + objeto + 3000` (cada una en la x87 y guardada en float), y `0x518cf0(0xc2, punto, +0x1c,
+  +0xf4, 9, 0, −1, 0, 0, 0, 0)`, con dueño nulo; con la tabla llena, sólo esos tres `rand()`. La tabla es la global
+  (`WorldState::Map().effects`, `ObjectFrameEffects::modelEffects`): el login la avanza en `0x634d18 → 0x52d220`
+  (`0x44dc40(0, 0, 0)` y `0x5208a0` con cada lugar vivo, el dragón y los meteoros, con su `rand()` de `0x5208c5`) y la
+  dibuja en `0x63521e → 0x52d620(0)`, después de los objetos, con el dibujo del juego. El paso del `0xc2/9` sólo pide
+  partículas (la estela `5f2/0x24` con el meteoro de dueño, la `5f2/0x25` y el fuego `5d9/5`), la luz dinámica y la
+  altura del terreno: ni joints ni sprites, así que el login sigue sin `0x53c670` ni `0x53c6a0`. Las partículas las
+  avanza `0x634d22 → 0x5446e0` con el dueño de la estela (`ParticleOwnerStatesOf`). Lo que nace en el login no llega
+  al juego: `0x61a560(54) → 0x6070a0` apaga la tabla antes del primer paso de la selección (`0x6342e5`).
 - `0x4f5660`: el jugador de subtipo `0xd1..0xd3` y el `0x170` sueltan un `0xd5/0` y diez `0xd6/0` sin dueño (`0x4f58c2`,
   `0x4f58e7`; `0x4f595d`, `0x4f5982`), cinco `rand()` cada uno, antes del sonido `0x7c`.
 

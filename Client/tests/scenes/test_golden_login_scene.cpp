@@ -789,8 +789,9 @@ TEST_F(GoldenLoginWorld, TheLoginDragonOwnerIsDetachedOnReentryAndDestruction)
 // CL7.6 B1: con lo global de la tela (como en main.cpp), el dibujo del personaje pide los sprites del
 // frame, los 30 destellos del casco blanco (0x455930) y después los cinco del cetro (0x509340, caso
 // 0x620), y van aditivos en su pase, el último de los modelos, con la vista en la identidad. Siguen los
-// dos del farol (CL7.6 B4). Después van las partículas (0x548550, CL7.6 B2): los alientos del caballo y
-// las chispas del cuervo (CL7.6 C2) que haya.
+// dos del farol (CL7.6 B4). Después van las partículas (0x548550, CL7.6 B2): los alientos del caballo,
+// las chispas del cuervo (CL7.6 C2) y las nubes del 0x54 que haya (con el rand() que el paso del dragón saca en
+// 0x5208c5, la guarda de este frame suelta una).
 TEST_F(GoldenLoginWorld, TheSpritesOfTheCharacterGoInTheirPass)
 {
     Client::Render::Models::ClothWorld cloth;
@@ -821,7 +822,9 @@ TEST_F(GoldenLoginWorld, TheSpritesOfTheCharacterGoInTheirPass)
             continue;
         }
         ASSERT_TRUE(command.state.texture.has_value());
-        EXPECT_EQ(command.state.blend, Client::Render::ModelBlend::Additive);
+        // Las nubes 0x622/10 del marcador 0x54 (0x6044bc), si el rand() de su guarda las suelta, van sustractivas.
+        EXPECT_EQ(command.state.blend, command.state.texture->value == 0x622 ? Client::Render::ModelBlend::Subtractive
+                                                                             : Client::Render::ModelBlend::Additive);
         runs.emplace_back(command.state.texture->value, static_cast<int>(command.vertexCount / PerSprite));
     }
     // Después de los del personaje, los dos del farol (0x602ed0, CL7.6 B4), en el dibujo de los objetos.
@@ -829,9 +832,9 @@ TEST_F(GoldenLoginWorld, TheSpritesOfTheCharacterGoInTheirPass)
     ASSERT_GE(runs.size(), expected.size());
     const std::vector<std::pair<int, int>> sprites(runs.begin(), runs.begin() + 5);
     EXPECT_EQ(sprites, expected);
-    EXPECT_TRUE(std::all_of(runs.begin() + 5, runs.end(),
-                            [](const auto& run) { return run.first == 0x5f2 || run.first == 0x5c6; }))
-        << "después, solo las partículas: los alientos y las chispas del cuervo";
+    EXPECT_TRUE(std::all_of(runs.begin() + 5, runs.end(), [](const auto& run)
+                            { return run.first == 0x5f2 || run.first == 0x5c6 || run.first == 0x622; }))
+        << "después, solo las partículas: los alientos, las chispas del cuervo y las nubes";
     // 0x549510 los marca vistos antes del pase: 0x549290 los mide con el alpha en 1. El primer destello
     // (la columna 0, escala 0,4, sin giro) va a 0,4 del ancho de flare01, en coordenadas de ojo.
     const auto flareSize = m_models.TextureSize(TextureSlot{0x5ac});

@@ -16,6 +16,7 @@
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/FireBreathEffect.h"
 #include "Scenes/HighEffectEmitters.h"
+#include "Scenes/JavelinEffect.h"
 #include "Scenes/KalimaMonsterEffects.h"
 #include "Scenes/SkullEffects.h"
 #include "Scenes/SkillHits.h"
@@ -523,8 +524,8 @@ void Move(World::ModelEffect& effect, bool rotated)
 }
 
 // 0x52cb98..0x52cd9d para los tipos de este archivo: la animación de los BMD de [0xad, 0x151) (salvo el 0x116 y el
-// 0x147, que saltan a la vida), el movimiento (salvo 0x5e8..0x5ea; el 0x13b anima otra vez antes, 0x52cd41) y una vida
-// menos.
+// 0x147, que saltan a la vida), el movimiento (salvo 0x5e8..0x5ea y el 0x139, que la tabla de 0x52ccb0 manda a la
+// vida, 0x52cd94; el 0x13b anima otra vez antes, 0x52cd41) y una vida menos.
 Core::Expected<void, std::string> CommonTail(World::ModelEffect& effect, const Render::Models::Skeleton* skeleton,
                                              const World::ModelEffectStepServices& services)
 {
@@ -535,7 +536,7 @@ Core::Expected<void, std::string> CommonTail(World::ModelEffect& effect, const R
     {
         if (type >= FirstAnimated && type < PastAnimated)
             Animate(effect, skeleton, services);
-        if (!(type >= MovingLightFirst && type <= MovingLightLast))
+        if (!(type >= MovingLightFirst && type <= MovingLightLast) && type != JavelinEffect)
         {
             if (type == SiegeFlareEffect)
             {
@@ -1222,7 +1223,8 @@ bool IsHighModelEffect(std::int16_t type)
            type == World::ColoredDecalEffect || (type >= MovingLightFirst && type <= MovingLightLast) ||
            type == FallingStarEffect || type == PierPartEffect || type == DarkLordSkillEffect ||
            type == ManaRuneEffect || type == SparkEmitterEffect || type == BoltEmitterEffect ||
-           type == PiercingGlowEffect || type == SkullEffect || type == SeamanEffect || type == FireBreathEffect;
+           type == PiercingGlowEffect || type == SkullEffect || type == SeamanEffect || type == FireBreathEffect ||
+           type == JavelinEffect;
 }
 
 Core::Expected<std::optional<std::size_t>, std::string>
@@ -1293,6 +1295,9 @@ CreateHighModelEffect(const World::ModelEffectArguments& arguments, const HighEf
         break;
     case FireBreathEffect:
         begun = BeginTheFireBreath(effect, context);
+        break;
+    case JavelinEffect:
+        begun = BeginTheJavelin(effect, context);
         break;
     default:
         break;
@@ -1384,6 +1389,9 @@ Core::Expected<void, std::string> StepHighModelEffect(World::ModelEffect& effect
         break;
     case FireBreathEffect:
         stepped = StepTheFireBreath(effect, World::StepLuminosity(lightDraw, effect.life), context);
+        break;
+    case JavelinEffect:
+        stepped = StepTheJavelin(effect, context);
         break;
     default:
         break;

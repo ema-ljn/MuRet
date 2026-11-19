@@ -812,9 +812,9 @@ TEST(AttackSkillCasesTest, TheTargetCasesCutWithoutDraws)
     };
     const std::array cases{
         Case{0x07, 0x20a, "0x504768"}, Case{0x01, 0x20a, "0x504926"}, Case{0x01, 0x0e, "0x50497e"},
-        Case{0x02, 0x20a, "0x5049ef"}, Case{0x2d, 0x20a, "0x504a3a"}, Case{0x49, 0x20a, "0x504b33"},
-        Case{0x04, 0x20a, "0x504bce"}, Case{0x0b, 0x164, "0x504c38"}, Case{0x0b, 0x20a, "0x504cc0"},
-        Case{0x3c, 0x20a, "0x504d05"}, Case{0x11, 0x15e, "0x50501a"}, Case{0x11, 0x20a, "0x505053"},
+        Case{0x02, 0x20a, "0x5049ef"}, Case{0x49, 0x20a, "0x504b33"}, Case{0x04, 0x20a, "0x504bce"},
+        Case{0x0b, 0x164, "0x504c38"}, Case{0x0b, 0x20a, "0x504cc0"}, Case{0x3c, 0x20a, "0x504d05"},
+        Case{0x11, 0x15e, "0x50501a"}, Case{0x11, 0x20a, "0x505053"},
     };
     for (const std::int32_t map : Maps)
     {
@@ -830,6 +830,31 @@ TEST(AttackSkillCasesTest, TheTargetCasesCutWithoutDraws)
             EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
         }
     }
+}
+
+// 0x504a0a..0x504abf, la 0x2d: tres 0x139 sobre o, con los subtipos 0, 1 y 2, el blanco de dueño (la partida en su
+// posición), la clave en −1 y un rand() cada uno (la z de +0x28); después el sonido 0x26d.
+TEST(AttackSkillCasesTest, TheJavelinCaseThrowsThreeJavelinsAtTheTarget)
+{
+    SkillWorld tested;
+    tested.Striker().position = glm::vec3(100.0f, 200.0f, 300.0f);
+    tested.Victim().position = glm::vec3(400.0f, 500.0f, 600.0f);
+    ASSERT_TRUE(tested.WithTarget(0x2d).HasValue());
+    const auto alive = AliveEffects(tested.world);
+    ASSERT_EQ(alive.size(), 3u);
+    for (std::size_t index = 0; index < alive.size(); ++index)
+    {
+        SCOPED_TRACE(index);
+        EXPECT_EQ(alive[index]->type, 0x139);
+        EXPECT_EQ(alive[index]->subtype, static_cast<std::int32_t>(index));
+        EXPECT_EQ(alive[index]->ownerContext, &tested.Victim());
+        EXPECT_EQ(alive[index]->start, tested.Victim().position);
+        EXPECT_EQ(alive[index]->transform.position, glm::vec3(100.0f, 200.0f, 450.0f));
+        EXPECT_EQ(alive[index]->disturbanceState, 0xffff);
+        EXPECT_EQ(alive[index]->life, 35);
+    }
+    EXPECT_EQ(DrawsSince(Seed, tested.random), 3);
+    EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x26d});
 }
 
 // 0x504b51..0x504b99, la 0x4a: el 0x116/2 sobre o con el blanco de dueño (vida 20, la z 20 menos) y el sonido 0x271,

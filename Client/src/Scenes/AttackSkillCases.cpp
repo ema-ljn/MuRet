@@ -14,6 +14,7 @@
 #include "Scenes/HeroSkillCasts.h"
 #include "Scenes/HeroSkills.h"
 #include "Scenes/HighModelEffects.h"
+#include "Scenes/JavelinEffect.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
@@ -826,8 +827,27 @@ Core::Expected<void, std::string> StepTheTargetSkill(ActorState& actor, ActorSta
     case 0x02:
         return EffectThenSound(0x5049ef, "el efecto 0xc2 sobre el blanco (0x518cf0)", skill, slot, 0x42, context);
     case 0x2d:
-        return EffectThenSound(0x504a3a, "el primero de los tres efectos 0x139 (0x518cf0)", skill, slot, 0x26d,
-                               context);
+    {
+        // 0x504a0a..0x504abf: tres 0x518cf0(0x139, o+0x10, o+0x1c, o+0xf4, subtipo, blanco, −1, 0, 0, 0, 0), con los
+        // subtipos 0, 1 y 2 (Scenes::JavelinEffect, un rand() cada uno), y el sonido 0x26d.
+        constexpr std::int32_t JavelinSound = 0x26d;
+        constexpr std::array<std::int32_t, 3> Subtypes{0, 1, 2};
+        constexpr std::array<std::uint32_t, 3> Addresses{0x504a3a, 0x504a72, 0x504aa9};
+        for (std::size_t index = 0; index < Subtypes.size(); ++index)
+        {
+            if (auto made = CreateHighEffect({.type = JavelinEffect,
+                                              .position = actor.position,
+                                              .angles = actor.angles,
+                                              .light = actor.light,
+                                              .subtype = Subtypes[index],
+                                              .owner = &victim},
+                                             skill, slot, context);
+                !made.HasValue())
+                return Core::Unexpected(std::format("{:#x}: {}", Addresses[index], made.Error()));
+        }
+        RequestTheSound(context, JavelinSound);
+        return {};
+    }
     case 0x49:
         return JointThenSound(0x504b33, "el joint 0x61c/4 (0x530860)", skill, slot, 0x26f, context);
     case 0x4a:

@@ -14336,8 +14336,11 @@ en su posición, con sus ángulos y su luz `+0xf4`; `World::ModelEffects::Create
 `0x51b426` → `0x51b509..0x51b5d6`, los cinco `rand()` de la /0 con la escala ((& 3) + 15) · 0,1f; cae y se prende como
 la /0, `0x523980`, `0x523a3a`, `0x523ad2`) y la luz (L; L · 0,4f; 0) de radio 3; después, el sonido `0x207`).
 El 0x61c/0 de la 0x37 nace sin tipo de dueño (`JointOwnerKind::ByType`): su paso solo compara el dueño con el héroe.
-Cortan, con lugar y después de sus `rand()`: la `0x6f4/2` del golpe de un pedazo (`0x52a37d`, la primera de las cien;
-con las partículas llenas, los trescientos `rand()`), ~~la piedrita `0xc8`/`0xc9` (subtipo `0xc`) de la columna
+Cortan, con lugar y después de sus `rand()`: ~~la `0x6f4/2` del golpe de un pedazo (`0x52a37d`, la primera de las cien;
+con las partículas llenas, los trescientos `rand()`)~~ (CL11, lote de las partículas: las cien nacen en `0x543d68` con
+vida 20, el giro `rand() % 360`, escala 0,5, la z 50 más y la subida `rand() % 5 + 10`, con la luz 0,3f del pedido; su
+paso, `0x547ee2`, crece 0,1f debajo de 1, las corre `rand() % 10 − 5` en x y en y, resta 1 a la subida y se apaga como
+la `0x6f4` en `0x547fc1`; `World::KundunDebrisSubtype`, al billboard común), ~~la piedrita `0xc8`/`0xc9` (subtipo `0xc`) de la columna
 `0x5de/3` (`0x52afe1`)~~ (décima vuelta, con la integración de los magos) y ~~los joints `0x632/2` y `/3` del `0x13a` (`0x529eca`; su `0x632/4` del alta, `0x51e01a`, es
 de otro lote)~~ (décima vuelta, con el alta y el paso de la `0x632` del lote de los joints: se crean los tres). El `0x127` sin el héroe publicado en el pool corta (`0x527919`, no pasa en el original) y el `0x5be` de
 un héroe corta en el paso de su joint `0x61c/0` (`0x53b569`, lote joints). Tests: `test_high_effect_families.cpp`, `test_model_effects.cpp`,

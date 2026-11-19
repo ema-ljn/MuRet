@@ -592,6 +592,59 @@ TEST(Cl11Particles, TheKundunFallKeepsTheRequestedLightAndTurns)
     EXPECT_EQ(fall.scale, F32(D(0x3fcccccdu) - static_cast<double>(0.005f)));
 }
 
+// 0x543d68..0x543dba: la 6f4/2 del golpe de un pedazo de Kundun (0x52a37d) vive 20, gira rand() % 360, escala 0,5, sube
+// 50 la z (123,3f + 50: 0x432d4ccd) y la subida es rand() % 5 + 10, con la luz del pedido. 0x547ee2: después del
+// movimiento común (la z más la subida: 0x433b4ccd), la escala 0,1f más (0x3f19999a), x e y más rand() % 10 − 5 y la
+// subida 1 menos; con vida 19, sin apagado. Con los 3.000 llenos, nada. Bits calculados aparte (x87).
+TEST(Cl11Particles, TheKundunDebrisRisesAndWanders)
+{
+    auto particles = std::make_unique<Particles>();
+    CrtRandom random(Seed);
+    const glm::vec3 dim{std::bit_cast<float>(0x3e99999au)};
+    const auto made = particles->CreateChecked(0x6f4, {1000.0f, 2000.0f, std::bit_cast<float>(0x42f6999au)}, {}, dim, 2,
+                                               1.0f, 0.0f, random);
+    ASSERT_TRUE(made.HasValue());
+    ASSERT_EQ(made.Value(), std::optional<std::size_t>(0));
+    Particle& debris = Only(*particles, 0);
+    EXPECT_EQ(debris.life, 20);
+    EXPECT_EQ(debris.rotation, 136.0f);
+    EXPECT_EQ(debris.scale, 0.5f);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(debris.position.z), 0x432d4ccdu);
+    EXPECT_EQ(debris.velocity, glm::vec3(0.0f, 0.0f, 14.0f));
+    EXPECT_EQ(debris.light, dim);
+    EXPECT_EQ(random.State(), AfterDraws(Seed, 2).State());
+
+    ASSERT_TRUE(Step(*particles, random, 0.0f).HasValue());
+    EXPECT_EQ(debris.life, 19);
+    EXPECT_EQ(debris.position.x, 1001.0f);
+    EXPECT_EQ(debris.position.y, 1999.0f);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(debris.position.z), 0x433b4ccdu);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(debris.scale), 0x3f19999au);
+    EXPECT_EQ(debris.velocity.z, 13.0f);
+    EXPECT_EQ(debris.light, dim);
+    EXPECT_EQ(random.State(), AfterDraws(Seed, 6).State());
+    // 0x548550: al default (0x54889a), el billboard común con la textura 0x6f4.
+    const auto drawn = DrawOneParticle(debris, glm::vec2(32.0f), std::uint8_t{3});
+    ASSERT_TRUE(drawn.HasValue());
+    ASSERT_TRUE(drawn.Value().has_value());
+    EXPECT_EQ(drawn.Value()->texture, 0x6f4);
+
+    // Ya en 1 o más, la escala no crece; con vida 7, la luz por 0,8333333f (0x3f555555) después del paso.
+    debris.scale = 1.0f;
+    debris.life = 8;
+    ASSERT_TRUE(Step(*particles, random, 0.0f).HasValue());
+    EXPECT_EQ(debris.scale, 1.0f);
+    EXPECT_EQ(debris.light, glm::vec3(F32(D(0x3e99999au) * D(0x3f555555u))));
+
+    for (auto& particle : particles->All())
+        particle.alive = true;
+    CrtRandom full(Seed);
+    const auto none = particles->CreateChecked(0x6f4, {}, {}, dim, 2, 1.0f, 0.0f, full);
+    ASSERT_TRUE(none.HasValue());
+    EXPECT_FALSE(none.Value().has_value());
+    EXPECT_EQ(full.State(), CrtRandom(Seed).State());
+}
+
 // 0x543b82..0x543be5: la fanta 0x6ec/0x6ed de cualquier subtipo nace como la /0 (vida 24, la /6 vida
 // 32); 0x543aed: la /7 vive 15, con la escala rand() % 30 · 0,01f más la del pedido y la posición corrida. 0x547cc2: su
 // paso se achica 0,1f y sube 2 antes de lo común (la z sube 1 y la luz es vida · 0,04f).

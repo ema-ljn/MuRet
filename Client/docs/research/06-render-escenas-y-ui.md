@@ -14052,8 +14052,28 @@ en un lugar de más adelante pasa en la misma vuelta de `0x53c670`.
   dir, 1)` (el contador con su acceso: 4 `rand()` al cerrarlo en 0; la fase es lugar + contador) o, la /0xd con vida de
   28 o menos y dueño, buscan al dueño con `0x4e9810`; el `fcomp` de `0x5398ab` compara con 50 la distancia que
   `0x4e9810` dejó en la x87, y más cerca la vida baja una más. Después, los sprites `0x5ac` y `0x5fd` (a media escala).
-  La /8 sube con la x en 110 hasta la vida 42 y después va de 180 a 360 de a `rand() % 3 + 2`; la /0xa gira 50 en z.
-  La luz local sin escribir de la /6 y la /7 con otra skill que 0 o 1, y de la /0xd sin dueño, corta (Q-C1620).
+  La /8 y la /0x14 (`0x53950e`) suben con la x en 110 hasta la vida 42 y después van de 180 a 360 de a
+  `rand() % 3 + 2`; la /0xa gira 50 en z. La luz local sin escribir de la /6 y la /7 con otra skill que 0 o 1, y de la
+  /0xd sin dueño, corta (Q-C1620).
+  (Segunda vuelta.) La /4 y la /9 comparten la tabla con el 6ee: la 6ee/4 nace como la 613/4 (`0x5332b8`, la viga sin
+  velocidad) y la 613/9 como el meteoro 6ee/9 (`0x5333f6`, paso `0x538ea4`); la /4 no tiene caso en el paso. La /0 y
+  la /5 con el ancho en 80 (los bits `0x42a00000`) piden el efecto `0xd0` (`0x539a48`, otro lote) y después el asedio
+  de `0x4294b0`/`0x5f82c0` (con el bit `0x100` del atributo, la vida a `ftol(vida · 0,2f)` y la velocidad 0) o, con la
+  vida múltiplo de 15 y el héroe de dueño, los blancos de `0x517a20(skill, posición, 150, +0x9eb, +0x9e8, +0xa08)`;
+  la /0x13 de otro ancho pide el efecto `0x11b` (`0x539b08`). La /0 y la /5 de otro ancho (`0x539b10..0x539cc7`; los
+  `0x613/0` de ancho 20 de la `0x09`) van hacia el dueño 80 más arriba: la distancia en el plano es la de antes del
+  movimiento común (`[ebp+8]` y `[ebp−0x30]`, `0x53584f`), `0x4e9810` gira de a 10 (la /5, de a 2) y con el doble de la
+  velocidad no menor que esa distancia prende `+0x9d4`; la /0 se sacude con dos `(rand() & 31) − 16` (vx + r1 · 0,2f,
+  la x de los ángulos + vx, la z + r2 · 0,8f + vz, vx · 0,6f, vz el sacudón · 0,8f); con `0x5f93c0` a menos de 100 del
+  terreno sube (x en −5) y a más de 400 baja (x en 5), con vx en 0; la luz es la vida · 0,1f y la luz dinámica de radio
+  4 resta `((rand() & 3) + 4) · 0,01f`. La /0xb y la /0x10 ponen la vida en la x de los ángulos y la /0xc saca su
+  `rand() & 31`; las tres cortan en su partícula (`0x538f8e` 0x5da/5, `0x539058` 0x5f5/0, `0x53935c` 0x6f4/4, lote de
+  partículas). La /0xf suma 30 a la key (WORD); con menos de 35 de vida corta en la `0x5d9/7` (`0x53918a`) y si no
+  avanza k = key · 0,1f + 30 (sin redondear) en x por el seno y en −y por el coseno de la z de los ángulos. La /0x11
+  con vida 100 suelta 120 `0x613/0x10` de ancho 0,9f con los ángulos (0, 0, 3 · i) (`0x53940d`). La /0x12 sube la
+  velocidad 3, mueve la key de a ±6 según vida % 12 y apunta −90 − key en x y 10 más en z; con dueño corta en
+  `0x539494` (le pone el alpha +0x174 y la posición; nadie conocido la crea) y si no en su partícula `0x5f2/0x13`
+  (`0x5394fb`).
 - **`0x60f/2` y `0x60f/0x18`** (`DropJoints.cpp`): alta `0x533677` y `0x5340dc` (la /0x18 con la textura `0x62d`; vz
   en `rand() % 20 + 35`, la luz blanca, vida `rand() % 50 + 25` y el destino en el segundo punto) y paso `0x53b156`
   (con vida de 25 o menos cae sobre el destino con vz + 5; con menos de 10, la luz por 0,7692308f).

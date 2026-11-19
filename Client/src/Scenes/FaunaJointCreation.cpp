@@ -688,7 +688,9 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
         return CreatePiercingImpact(joint, request, random);
     if (request.type == 0x610 && request.subtype >= 0 && request.subtype <= 3)
         return CreatePiercingTrailJoint(joint, request);
-    if ((request.type == 0x613 && request.subtype == 4) || (request.type == 0x614 && request.subtype == 14))
+    // 0x5332b8: el 613/4 y el 6ee/4 (la misma tabla 0x534f18) y 0x531813, el 614/14.
+    if (((request.type == 0x613 || request.type == 0x6ee) && request.subtype == 4) ||
+        (request.type == 0x614 && request.subtype == 14))
         return CreateHelperBeam(joint, request);
     if (request.type == 0x614 && request.subtype == 10)
         return CreateSwordBeam(joint, request, random);
@@ -703,7 +705,7 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
         return CreateSkyBolt(joint, request, random);
     if (request.type == 0x615 && (request.subtype == 2 || request.subtype == 7))
         return CreateTrapBolt(joint, request, random);
-    if (request.type == 0x6ee && request.subtype == 9)
+    if ((request.type == 0x6ee || request.type == 0x613) && request.subtype == 9) // 0x5333f6, la misma tabla.
     {
         CreateMeteor(joint, request);
         return {};
@@ -1556,9 +1558,9 @@ std::optional<Family> FamilyStep(const JointState& joint)
         return Family::Lightning;
     if (joint.type == JointFamilies::RedHandBoltJoint || joint.type == JointFamilies::BlueHandBoltJoint)
         return Family::HandBolt;
-    // El 613/4 y el 6ee/9 siguen en el paso de abajo.
-    if ((joint.type == JointFamilies::SpiritJoint && joint.subtype != 4) ||
-        (joint.type == JointFamilies::SecondSpiritJoint && joint.subtype != 9))
+    // La /4 y la /9 del 613 y del 6ee siguen en el paso de abajo.
+    if ((joint.type == JointFamilies::SpiritJoint || joint.type == JointFamilies::SecondSpiritJoint) &&
+        joint.subtype != 4 && joint.subtype != 9)
         return Family::Spirit;
     if (joint.type == JointFamilies::DropJoint &&
         (joint.subtype == JointFamilies::DropSubtype || joint.subtype == JointFamilies::DarkDropSubtype))
@@ -1611,9 +1613,11 @@ Core::Expected<void, std::string> RunFamily(JointState& joint, Family family,
     return {};
 }
 
-Core::Expected<void, std::string> StepFamilyJoint(JointState& joint, Family family,
-                                                  const JointKernels::StepServices& services)
+Core::Expected<void, std::string> StepFamilyJoint(JointState& joint, Family family, JointKernels::StepServices services)
 {
+    // 0x53584f..0x53586c: la posición menos el destino en x y en y, en float, antes de moverse.
+    services.startDeltaX = F32(D(joint.position.x) - D(joint.targetPosition.x));
+    services.startDeltaY = F32(D(joint.position.y) - D(joint.targetPosition.y));
     const auto matrix = MoveCommonly(joint);
     if (auto stepped = RunFamily(joint, family, services); !stepped.HasValue())
         return stepped;
@@ -1624,7 +1628,8 @@ Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints
                                                     Render::Models::ClothWorld* cloth, World::Particles* particles,
                                                     float worldClock, World::FrameSprites* sprites,
                                                     World::TerrainLighting* lighting,
-                                                    const std::function<void(std::int32_t)>& soundRequest)
+                                                    const std::function<void(std::int32_t)>& soundRequest,
+                                                    const std::function<double(float, float)>& terrainHeight)
 {
     for (std::size_t i = 0; i < joints.size(); ++i)
     {
@@ -1641,7 +1646,8 @@ Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints
                                                       .sprites = sprites,
                                                       .lighting = lighting,
                                                       .worldClock = worldClock,
-                                                      .soundRequest = &soundRequest};
+                                                      .soundRequest = &soundRequest,
+                                                      .terrainHeight = terrainHeight ? &terrainHeight : nullptr};
             if (auto stepped = StepFamilyJoint(joint, *family, services); !stepped.HasValue())
                 return stepped;
             continue;
@@ -1652,14 +1658,14 @@ Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints
         const bool tarkan = joint.type == 0x618 && joint.subtype == 4;
         const bool bloodCastle = joint.type == 0x10f && joint.subtype == 3;
         const bool fairy = joint.type == 0x10f && joint.subtype == 1;
-        const bool spiritBeam = joint.type == 0x613 && joint.subtype == 4;
+        const bool spiritBeam = (joint.type == 0x613 || joint.type == 0x6ee) && joint.subtype == 4;
         const bool icarus = joint.type == 0x610 && joint.subtype == 8;
         const bool piercingTrail = joint.type == 0x610 && joint.subtype >= 0 && joint.subtype <= 3;
         const bool crywolfArrowTrail = joint.type == 0x610 && joint.subtype == 13;
         const bool noria = joint.type == 0x617 && joint.subtype >= 0 && joint.subtype <= 3;
         const bool skyBolt = joint.type == 0x615 && joint.subtype == 0;
         const bool trapBolt = joint.type == 0x615 && (joint.subtype == 2 || joint.subtype == 7);
-        const bool meteor = joint.type == 0x6ee && joint.subtype == 9;
+        const bool meteor = (joint.type == 0x6ee || joint.type == 0x613) && joint.subtype == 9;
         // Los de lo que cuelga de un jugador, con el ActorState del personaje como dueño.
         const bool staffBeam = joint.type == 0x618 && joint.subtype == 0x11;
         const bool barrierBeam = joint.type == 0x618 && (joint.subtype == 2 || joint.subtype == 3);
@@ -1842,15 +1848,17 @@ Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints
 
 Core::Expected<void, std::string> StepJoints(std::span<JointState> joints)
 {
-    return StepJointsChecked(joints, nullptr, nullptr, nullptr, 0, nullptr, nullptr, {});
+    return StepJointsChecked(joints, nullptr, nullptr, nullptr, 0, nullptr, nullptr, {}, {});
 }
 
 Core::Expected<void, std::string> StepJoints(std::span<JointState> joints, Render::Models::CrtRandom& random,
                                              Render::Models::ClothWorld* cloth, World::Particles* particles,
                                              float worldClock, World::FrameSprites* sprites,
                                              World::TerrainLighting* lighting,
-                                             const std::function<void(std::int32_t)>& soundRequest)
+                                             const std::function<void(std::int32_t)>& soundRequest,
+                                             const std::function<double(float, float)>& terrainHeight)
 {
-    return StepJointsChecked(joints, &random, cloth, particles, worldClock, sprites, lighting, soundRequest);
+    return StepJointsChecked(joints, &random, cloth, particles, worldClock, sprites, lighting, soundRequest,
+                             terrainHeight);
 }
 } // namespace Client::Scenes

@@ -331,10 +331,10 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
     StepDamage(m_context.world->DrawTail().damage);
     if (auto stepped = StepTheModelEffects(worldClock, terrainHeight); !stepped.HasValue())
         return stepped;
-    if (auto stepped = StepJoints(m_context.world->DrawTail().joints, m_context.cloth->random, m_context.cloth,
-                                  &m_context.world->Particles(), worldClock, &m_sprites,
-                                  &m_context.world->DynamicLighting().Lighting(),
-                                  [&](std::int32_t sound) { runtime.RequestSound(sound); });
+    if (auto stepped = StepJoints(
+            m_context.world->DrawTail().joints, m_context.cloth->random, m_context.cloth, &m_context.world->Particles(),
+            worldClock, &m_sprites, &m_context.world->DynamicLighting().Lighting(),
+            [&](std::int32_t sound) { runtime.RequestSound(sound); }, terrainHeight);
         !stepped.HasValue())
         return stepped;
     // 0x63712d: 0x549090, las marcas del suelo, sin rand(). En la espera también corre, y acá no: la tabla

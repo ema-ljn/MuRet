@@ -75,6 +75,12 @@ struct StepServices
     World::TerrainLighting* lighting = nullptr;
     float worldClock = 0;
     const std::function<void(std::int32_t)>* soundRequest = nullptr;
+    // 0x53584f..0x53586c: [ebp−0x30] y [ebp+8], la posición menos el destino en x y en y, en float, antes del
+    // movimiento común. Las lee el 0x613/0 y el /5 (0x539b33).
+    float startDeltaX = 0;
+    float startDeltaY = 0;
+    // 0x5f93c0(x, y): la altura del terreno, como la deja en la x87. La pide el 0x613/0 y el /5 (0x539c19).
+    const std::function<double(float, float)>* terrainHeight = nullptr;
 };
 
 // El dueño de un joint de las familias de este archivo, cuando es un personaje (ActorState): el objeto del original,

@@ -57,9 +57,11 @@ CreateFaunaJoint(std::span<JointState> joints, const World::FishEffectRequest& r
 // Castle pide los sprites del frame (0x5491e0) y las partículas. El615/7 de la llegada comparte geometría sin esas
 // emisiones. Los618/2y/3 siguen los dos puntos del dueño y emiten5d5/0 con el seno del reloj.
 [[nodiscard]] Core::Expected<void, std::string> StepJoints(std::span<JointState> joints);
-// El 618/0 y /1 piden además la luz dinámica (`lighting`, 0x7b4ccc4) y el sonido 0x23 (0x41ed10) al llegar.
+// El 618/0 y /1 piden además la luz dinámica (`lighting`, 0x7b4ccc4) y el sonido 0x23 (0x41ed10) al llegar; el
+// 613/0 y el /5, la altura del terreno (`terrainHeight`, 0x5f93c0).
 [[nodiscard]] Core::Expected<void, std::string>
 StepJoints(std::span<JointState> joints, Render::Models::CrtRandom& random, Render::Models::ClothWorld* cloth = nullptr,
            World::Particles* particles = nullptr, float worldClock = 0, World::FrameSprites* sprites = nullptr,
-           World::TerrainLighting* lighting = nullptr, const std::function<void(std::int32_t)>& soundRequest = {});
+           World::TerrainLighting* lighting = nullptr, const std::function<void(std::int32_t)>& soundRequest = {},
+           const std::function<double(float, float)>& terrainHeight = {});
 } // namespace Client::Scenes

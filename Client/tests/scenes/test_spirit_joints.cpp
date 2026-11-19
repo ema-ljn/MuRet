@@ -6,6 +6,7 @@
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/OriginalRetainedMath.h"
+#include "Render/Models/OriginalRotation.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
@@ -23,7 +24,9 @@
 #include <array>
 #include <bit>
 #include <cstddef>
+#include <cmath>
 #include <cstdint>
+#include <functional>
 #include <ios>
 #include <memory>
 #include <optional>
@@ -82,10 +85,12 @@ struct Pool
 
     Client::Core::Expected<void, std::string> Step()
     {
-        return Client::Scenes::StepJoints(joints, random, &cloth, &particles, 0.0f, &sprites, lighting.get());
+        return Client::Scenes::StepJoints(joints, random, &cloth, &particles, 0.0f, &sprites, lighting.get(), {},
+                                          terrainHeight);
     }
 
     std::vector<JointState> joints = std::vector<JointState>(4);
+    std::function<double(float, float)> terrainHeight{};
     CrtRandom random{Seed};
     glm::vec3 startAngles{};
     std::vector<std::int32_t> sounds;
@@ -257,10 +262,32 @@ TEST(SpiritJointsTest, TheVolleySubtypesReadTheOwnRecord)
         EXPECT_FALSE(none.Value().has_value());
         EXPECT_EQ(full.random.State(), CrtRandom(Seed).State());
     }
-    // La 6ee/4 y la 613/9 cortan en su alta.
-    Pool pool;
-    EXPECT_FALSE(pool.Create(0x6ee, 4, {}, 20.0f).HasValue());
-    EXPECT_FALSE(pool.Create(0x613, 9, {}, 20.0f).HasValue());
+}
+
+// 0x5332b8 y 0x5333f6 con la tabla 0x534f18 compartida: la 6ee/4 nace como la 613/4 (la viga del ayudante, sin
+// velocidad) y la 613/9 como el meteoro 6ee/9; los pasos son los mismos (la /4 sin caso, la /9 con dos rand()).
+TEST(SpiritJointsTest, TheFourthAndTheNinthShareTheirTable)
+{
+    Pool beam;
+    ASSERT_TRUE(beam.Create(0x6ee, 4, {}, 20.0f).HasValue());
+    EXPECT_EQ(beam.joints[0].speed, 0.0f);
+    EXPECT_EQ(beam.joints[0].maximumCount, 10);
+    EXPECT_EQ(beam.joints[0].light, glm::vec3(std::bit_cast<float>(0x3e99999au), std::bit_cast<float>(0x3e99999au), 1));
+    ASSERT_TRUE(beam.Step().HasValue());
+    EXPECT_EQ(beam.random.State(), CrtRandom(Seed).State());
+
+    Pool meteor;
+    ASSERT_TRUE(meteor.Create(0x613, 9, {}, 20.0f).HasValue());
+    EXPECT_EQ(meteor.joints[0].blend, 3);
+    EXPECT_EQ(meteor.joints[0].drawEnabled, 2);
+    EXPECT_EQ(meteor.joints[0].angles, glm::vec3(-90.0f, 0.0f, 0.0f));
+    EXPECT_EQ(meteor.joints[0].life, 20);
+    EXPECT_EQ(meteor.joints[0].maximumCount, 15);
+    ASSERT_TRUE(meteor.Step().HasValue());
+    CrtRandom expected(Seed);
+    expected.Discard(2);
+    EXPECT_EQ(meteor.random.State(), expected.State());
+    EXPECT_EQ(meteor.joints[0].speed, 11.0f);
 }
 
 // 0x538d99..0x538dda: la /1 avanza 70 con sus ángulos, suelta el sprite 0x5ac de escala 4 con la luz (0,8; 0,4; 1) y el
@@ -494,14 +521,207 @@ TEST(SpiritJointsTest, TheEighthArcsAndTheTenthTurns)
     EXPECT_EQ(turning.random.State(), CrtRandom(Seed).State());
 }
 
-// 0x539a0e: el paso de la /0, la /5 y la /0x13 sigue cortado (el efecto 0xd0, el asedio, los blancos y la altura).
-TEST(SpiritJointsTest, TheVolleyStepIsCut)
+// 0x539a0e: con ancho 80 la /0, la /5 y la /0x13 cortan en el efecto 0xd0 (0x539a48); con otro, la /0x13 en el 0x11b
+// (0x539b08).
+TEST(SpiritJointsTest, TheWideVolleyStepIsCut)
+{
+    for (const std::int32_t subtype : {0, 5, 0x13})
+    {
+        SCOPED_TRACE(subtype);
+        Pool pool;
+        ActorState owner = Owner({});
+        ASSERT_TRUE(pool.Create(0x613, subtype, {}, 80.0f, &owner, JointOwnerKind::Actor).HasValue());
+        const auto stepped = pool.Step();
+        ASSERT_FALSE(stepped.HasValue());
+        EXPECT_TRUE(stepped.Error().starts_with("0x539a48")) << stepped.Error();
+    }
+    Pool thin;
+    ASSERT_TRUE(thin.Create(0x613, 0x13, {}, 20.0f).HasValue());
+    const auto stepped = thin.Step();
+    ASSERT_FALSE(stepped.HasValue());
+    EXPECT_TRUE(stepped.Error().starts_with("0x539b08")) << stepped.Error();
+}
+
+// 0x539b10..0x539cc7: la /0 y la /5 de otro ancho van hacia el dueño 80 más arriba, la /0 sacudida con dos rand(); el
+// terreno las sube a menos de 100 y las baja a más de 400; la luz es la vida · 0,1f y la luz dinámica, un rand() más.
+TEST(SpiritJointsTest, TheThinVolleyFollowsItsOwnerOverTheGround)
+{
+    for (const std::int32_t subtype : {0, 5})
+        for (const double ground : {20.0, 150.0, -300.0})
+        {
+            SCOPED_TRACE(subtype);
+            SCOPED_TRACE(ground);
+            Pool pool;
+            pool.terrainHeight = [ground](float, float) { return ground; };
+            pool.ownRecordDepth = 1; // Sin el cierre del registro propio (3.848 rand()) en el alta.
+            ActorState owner = Owner({900.0f, 700.0f, 120.0f});
+            ASSERT_TRUE(pool.Create(0x613, subtype, {1000.0f, 1100.0f, 200.0f}, 20.0f, &owner, JointOwnerKind::Actor)
+                            .HasValue());
+            JointState joint = pool.joints[0];
+            const float dx = F32(D(joint.position.x) - D(joint.targetPosition.x));
+            const float dy = F32(D(joint.position.y) - D(joint.targetPosition.y));
+            const auto matrix = Client::Render::Models::OriginalAngleMatrix(joint.angles);
+            const auto moved = Client::Render::Models::OriginalVectorRotate({0.0f, -joint.speed, 0.0f}, matrix);
+            for (int axis = 0; axis < 3; ++axis)
+                joint.position[axis] = F32(D(joint.position[axis]) + moved[axis]);
+            const glm::vec3 target{900.0f, 700.0f, 200.0f};
+            static_cast<void>(
+                Client::Render::Models::MoveToward(joint.position, joint.angles, target, subtype == 5 ? 2.0f : 10.0f));
+            CrtRandom expected(Seed);
+            float velocityX = 0.0f;
+            if (subtype == 0)
+            {
+                const int first = (expected.Next() & 31) - 16;
+                const int second = (expected.Next() & 31) - 16;
+                velocityX = F32(first * D(0.2f));
+                const double shake = second * D(0.8f);
+                joint.angles.x = F32(D(joint.angles.x) + D(velocityX));
+                joint.angles.z = F32(shake + D(joint.angles.z));
+                velocityX = F32(D(velocityX) * D(0.6f));
+                joint.velocity.z = F32(shake * D(0.8f));
+            }
+            if (ground + 100.0 > D(joint.position.z))
+            {
+                velocityX = 0.0f;
+                joint.angles.x = -5.0f;
+            }
+            if (!(ground + 400.0 >= D(joint.position.z)))
+            {
+                velocityX = 0.0f;
+                joint.angles.x = 5.0f;
+            }
+            expected.Discard(1);
+            ASSERT_TRUE(pool.Step().HasValue());
+            const JointState& stepped = pool.joints[0];
+            EXPECT_EQ(stepped.targetPosition, target);
+            EXPECT_EQ(stepped.position, joint.position);
+            EXPECT_EQ(stepped.angles, joint.angles);
+            EXPECT_EQ(stepped.velocity.x, velocityX);
+            EXPECT_EQ(stepped.velocity.z, joint.velocity.z);
+            const float distance = F32(std::sqrt(D(dy) * D(dy) + D(dx) * D(dx)));
+            EXPECT_EQ(stepped.field9d4, D(joint.speed) * 2 >= D(distance) ? 1 : 0);
+            EXPECT_EQ(stepped.light, glm::vec3(F32(49 * D(Tenth))));
+            EXPECT_EQ(stepped.life, 48);
+            EXPECT_EQ(pool.random.State(), expected.State());
+        }
+    // Sin la altura del terreno, corta en 0x5f93c0.
+    Pool blind;
+    ActorState owner = Owner({});
+    ASSERT_TRUE(blind.Create(0x613, 5, {}, 20.0f, &owner, JointOwnerKind::Actor).HasValue());
+    const auto cut = blind.Step();
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_TRUE(cut.Error().starts_with("0x539c19")) << cut.Error();
+}
+
+// 0x538f45, 0x538ff9 y 0x539328: la /0xb y la /0x10 ponen la vida en la x de los ángulos y la /0xc saca su rand();
+// después las tres cortan en su partícula (0x5da/5, 0x5f5/0, 0x6f4/4, del lote de partículas).
+TEST(SpiritJointsTest, TheStillOnesCutInTheirParticles)
+{
+    struct Case
+    {
+        std::int32_t subtype;
+        std::string_view address;
+        std::uint32_t randoms;
+    };
+    for (const Case& each : {Case{0xb, "0x538f8e", 0}, Case{0xc, "0x539058", 1}, Case{0x10, "0x53935c", 0}})
+    {
+        SCOPED_TRACE(each.subtype);
+        Pool pool;
+        ASSERT_TRUE(pool.Create(0x613, each.subtype, {}, 30.0f).HasValue());
+        const std::int32_t life = pool.joints[0].life;
+        const auto stepped = pool.Step();
+        ASSERT_FALSE(stepped.HasValue());
+        EXPECT_TRUE(stepped.Error().starts_with(each.address)) << stepped.Error();
+        if (each.subtype != 0xc)
+        {
+            EXPECT_EQ(pool.joints[0].angles.x, static_cast<float>(life));
+        }
+        CrtRandom expected(Seed);
+        expected.Discard(each.randoms);
+        EXPECT_EQ(pool.random.State(), expected.State());
+    }
+}
+
+// 0x539133..0x53931e: la /0xf suma 30 a la key; con menos de 35 de vida corta en su partícula 0x5d9/7 y si no avanza
+// key · 0,1f + 30 con el seno y el coseno de la z de los ángulos.
+TEST(SpiritJointsTest, TheSpiralTurnsWithItsKey)
 {
     Pool pool;
-    ASSERT_TRUE(pool.Create(0x613, 0, {}, 80.0f).HasValue());
-    const auto stepped = pool.Step();
-    ASSERT_FALSE(stepped.HasValue());
-    EXPECT_TRUE(stepped.Error().starts_with("0x539a0e")) << stepped.Error();
+    pool.startAngles = {0.0f, 0.0f, 30.0f};
+    ASSERT_TRUE(pool.Create(0x613, 0xf, {100.0f, 200.0f, 0.0f}, 30.0f).HasValue());
+    EXPECT_EQ(pool.joints[0].life, 20);
+    const auto cut = pool.Step();
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_TRUE(cut.Error().starts_with("0x53918a")) << cut.Error();
+    EXPECT_EQ(pool.joints[0].key, 29);
+
+    pool.joints[0].life = 40;
+    ASSERT_TRUE(pool.Step().HasValue());
+    const double radius = 59.0 * D(Tenth) + 30.0;
+    const auto sine = Client::Render::Models::Detail::SineDoubleProductPC53(30.0, radius);
+    const auto cosine = Client::Render::Models::Detail::CosineDoubleProductPC53(30.0, radius);
+    ASSERT_TRUE(sine && cosine);
+    EXPECT_EQ(pool.joints[0].key, 59);
+    EXPECT_EQ(pool.joints[0].position.x, F32(*sine + 100.0));
+    EXPECT_EQ(pool.joints[0].position.y, F32(200.0 - *cosine));
+    EXPECT_EQ(pool.random.State(), CrtRandom(Seed).State());
+}
+
+// 0x539392..0x53941e: la /0x11 con vida 100 suelta 120 joints 0x613/0x10 de ancho 0,9f con los ángulos (0, 0, 3 · i).
+// Los que caen en lugares de más adelante pasan en la misma vuelta (y cortan en su partícula).
+TEST(SpiritJointsTest, TheBurstReleasesItsPieces)
+{
+    Pool pool;
+    pool.joints = std::vector<JointState>(130);
+    ASSERT_TRUE(pool.Create(0x613, 0x11, {10.0f, 20.0f, 30.0f}, 30.0f).HasValue());
+    EXPECT_EQ(pool.joints[0].life, 100);
+    pool.joints[129] = pool.joints[0];
+    pool.joints[0].alive = false;
+    ASSERT_TRUE(pool.Step().HasValue());
+    for (std::size_t i = 0; i < 120; ++i)
+    {
+        SCOPED_TRACE(i);
+        const JointState& piece = pool.joints[i];
+        ASSERT_TRUE(piece.alive);
+        EXPECT_EQ(piece.subtype, 0x10);
+        EXPECT_EQ(piece.angles, glm::vec3(0.0f, 0.0f, static_cast<float>(i) * 3.0f));
+        EXPECT_EQ(piece.width, std::bit_cast<float>(0x3f666666u));
+        EXPECT_EQ(piece.position, glm::vec3(10.0f, 20.0f, 30.0f));
+        EXPECT_EQ(piece.life, 50);
+    }
+    EXPECT_FALSE(pool.joints[120].alive);
+    EXPECT_EQ(pool.joints[129].life, 99);
+    // En el paso siguiente, el primero corta en su partícula 0x6f4/4.
+    const auto cut = pool.Step();
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_TRUE(cut.Error().starts_with("0x53935c")) << cut.Error();
+}
+
+// 0x53942c..0x5394fb: la /0x12 sube 3 la velocidad, mueve la key de a 6 y apunta −90 − key en x y 10 más en z; sin
+// dueño corta en su partícula 0x5f2/0x13 y con dueño antes, en 0x539494. La /0x14 sube como la /8.
+TEST(SpiritJointsTest, TheSwingAndTheTwentiethStep)
+{
+    Pool pool;
+    ASSERT_TRUE(pool.Create(0x613, 0x12, {}, 30.0f).HasValue());
+    const auto cut = pool.Step();
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_TRUE(cut.Error().starts_with("0x5394fb")) << cut.Error();
+    EXPECT_EQ(pool.joints[0].speed, 53.0f);
+    EXPECT_EQ(pool.joints[0].key, 5); // 39 % 12 = 3: + 6.
+    EXPECT_EQ(pool.joints[0].angles.x, -95.0f);
+    EXPECT_EQ(pool.joints[0].angles.z, 10.0f);
+    Pool owned;
+    ActorState owner = Owner({});
+    ASSERT_TRUE(owned.Create(0x613, 0x12, {}, 30.0f, &owner, JointOwnerKind::Actor).HasValue());
+    const auto ownerCut = owned.Step();
+    ASSERT_FALSE(ownerCut.HasValue());
+    EXPECT_TRUE(ownerCut.Error().starts_with("0x539494")) << ownerCut.Error();
+
+    Pool rising;
+    ASSERT_TRUE(rising.Create(0x613, 0x14, {}, 30.0f).HasValue());
+    ASSERT_TRUE(rising.Step().HasValue());
+    EXPECT_EQ(rising.joints[0].angles.x, 110.0f);
+    EXPECT_EQ(rising.joints[0].speed, 10.0f);
 }
 
 // 0x53c6a0: el dibujo común, con la textura del tipo y la mezcla 3 (resta) o 1 (suma); la /2 sólo la segunda cara.

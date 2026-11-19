@@ -12,6 +12,7 @@
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/FaunaDrawing.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/HighModelEffects.h"
@@ -121,13 +122,14 @@ struct Drawer
             .worldClock = clock,
             .onPose = [this](const DrawnObject& object) -> Client::Core::Expected<void, std::string>
             {
+                ++poses;
+                // Como en producción (GameSceneTail): 0x52da99 → 0x602e90(efecto, 0, …) deja el scratch del mundo.
+                auto published = Client::Scenes::PublishFaunaPose(carry, models, object, true);
                 bones = {BoneTransform(0.0f), BoneTransform(0.0f), Translation(SecondBonePoint),
                          Translation(ThirdBonePoint), Translation(FourthBonePoint)};
-                meshes = Client::Scenes::SkinObjectMeshes(models, object, std::vector(1, BoneTransform(1.0f)));
-                ++poses;
-                return {};
+                return published;
             },
-            .posedMeshes = [this]() -> std::span<const Client::Render::Models::SkinnedMesh> { return meshes; },
+            .posedMeshes = [this]() -> std::span<const Client::Render::Models::SkinnedMesh> { return carry.meshes; },
             .sprites = &sprites,
             .random = withRandom ? &random : nullptr,
             .kalimaPass = pass.get(),
@@ -160,7 +162,7 @@ struct Drawer
     std::uint8_t heroByte1a1 = 0;
     bool originalFrame = false;
     std::vector<BoneTransform> bones;
-    std::vector<Client::Render::Models::SkinnedMesh> meshes;
+    Client::Scenes::FaunaDrawCarry carry;
     int poses = 0;
     ModelBatch batch;
 };
@@ -559,6 +561,42 @@ TEST(HighEffectDrawingTest, TheGuildMarkTakesTwoChromePasses)
     }
     EXPECT_EQ(DrawsSince(drawer.random), 0);
     EXPECT_TRUE(drawer.Alive().empty());
+}
+
+// 0x52da99 → 0x602e90(efecto, 0, …): 0x5ffdf0 posa el 0x140 con la bandera de 0x4eb860 en 1 y 0x4ebc80 con Translate
+// en 0 (0x6001a1), la normal girada por R · s. Los dos RenderBody(0x44) de 0x602005..0x602044 toman la U del cromo de
+// 0x4ecc30, 0,5 · nz: con la escala 1,5 y la normal (0, 0, 1), 0,75, con la pose publicada (la de producción) y por el
+// camino de reserva, sin ella.
+TEST(HighEffectDrawingTest, TheGuildMarkChromeKeepsTheScaleOfItsNormal)
+{
+    constexpr float MarkScale = 1.5f;
+    constexpr float ScaledChromeU = 0.75f;
+    {
+        Drawer drawer;
+        ModelEffect mark = EffectOf(0x140, 0);
+        mark.transform.scale = MarkScale;
+        const auto drawn = drawer.Draw(std::span(&mark, 1), 0);
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_EQ(drawer.poses, 1);
+        ASSERT_EQ(drawer.batch.Vertices().size(), 6u);
+        for (const Client::Render::ModelVertex& vertex : drawer.batch.Vertices())
+            EXPECT_EQ(vertex.uv.x, ScaledChromeU);
+    }
+    Drawer drawer;
+    ModelEffect mark = EffectOf(0x140, 0);
+    DrawnObject object;
+    object.model = 0x140;
+    object.transform.position = mark.transform.position;
+    object.transform.scale = MarkScale;
+    object.alpha = 1.0f;
+    ASSERT_TRUE(object.retainedMeshes.empty());
+    ModelBatch batch;
+    const auto drawn = Client::Scenes::DrawTheHighEffectBody(batch, drawer.models, mark, object, {}, {});
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    EXPECT_TRUE(drawn.Value());
+    ASSERT_EQ(batch.Vertices().size(), 6u);
+    for (const Client::Render::ModelVertex& vertex : batch.Vertices())
+        EXPECT_EQ(vertex.uv.x, ScaledChromeU);
 }
 
 // 0x43909e..0x439214: el 0x125 con el color en 0,3 y RenderBody(2); en los huesos 3 y 4, el 0x5ca de escala 0,2f y el

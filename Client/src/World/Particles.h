@@ -57,6 +57,7 @@ inline constexpr std::int32_t WorldSmokeSubtype = 2;
 inline constexpr std::uint16_t BreathParticle = 0x5f2;
 // La chispa del cuervo (Effect\Spark03.jpg), con el subtipo 5 (06 § El cuervo).
 inline constexpr std::uint16_t SparkParticle = 0x5c6;
+inline constexpr std::int32_t PiercingSparkSubtype = 2;
 // 0x42ddb0: bendición sobre un personaje cerca de la corona/marca del asedio.
 inline constexpr std::int32_t SiegeBlessingParticle = 0x638;
 inline constexpr std::int32_t TeleportSparkSubtype = 1;
@@ -192,6 +193,7 @@ using ParticleActorActions = std::function<std::optional<std::uint8_t>(std::uint
 // 0x53fdb0(partícula): el punto en el mundo del hueso que sigue la 5fe, el de su dueño (+0x40, ParticleOwner del pool
 // de personajes) que elige el héroe publicado con el subtipo. También resuelve la 5ac/4 por rotation y pose propia,
 // sin escala del modelo. nullopt si el dueño no está o no se resuelve; la 5ac/4 se apaga y termina sus dos rand().
+// Para 5c6/2 resuelve el centro del lugar físico ModelEffect cuando está vivo.
 using ParticleOwnerBones = std::function<std::optional<glm::vec3>(const Particle&)>;
 // 0x53fdb0 en el paso de la 5fd (0x546d37 y 0x546d47): el punto de la mano del personaje dueño
 // (ParticleOwnerKind::Actor, el lugar del pool) para el subtipo. nullopt si no está.
@@ -242,6 +244,9 @@ public:
     CreateFollowingChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles,
                            const glm::vec3& light, std::int32_t subtype, float scale, ParticleOwner owner,
                            const ParticleOwnerBones& bones);
+    // 0x54061d: chispa5c6/2 hacia el centro de su lugar físico621, sinCRT.
+    std::optional<std::size_t> CreatePiercingSpark(const glm::vec3& position, float scale, ParticleOwner owner,
+                                                   const glm::vec3& center);
     // 0x6070a0, al entrar a la escena: apaga el byte vivo de cada lugar. El viento sigue como estaba.
     void Clear();
 

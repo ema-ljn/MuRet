@@ -143,9 +143,9 @@ bool HasParticleRoom(const ArrowStepContext& context)
 
 // 0x51c590..0x51c5a9: 0x518cf0(0x105, la posición de la flecha, sus ángulos, su luz, 0, la flecha, −1, 0, 0, 0, 0), la
 // estela de la skill 0x34. El caso 0x105 con el subtipo 0 (0x519fc9..0x51a06d): vida 100, +0x64 en 0, +0x68 en 1, +0xe4
-// en 0, la escala 12 (0x519ff3) y la partida en la posición del dueño (0x51a040); después, el joint 0x610 (0x51a08a),
-// que corta. Con la tabla llena, nada y sin rand().
-Core::Expected<void, std::string> CreateTheArrowTrail(World::ModelEffect& arrow, WorldState& world)
+// en 0, la escala 12 (0x519ff3) y la partida en la posición del dueño (0x51a040); después, cuatro joints 610/0..3,
+// sonido 7a sin posición y escala 1. Cada alta busca el primer hueco, aun con saturación parcial; sin rand().
+Core::Expected<void, std::string> CreateTheArrowTrail(World::ModelEffect& arrow, WorldState& world, CrtRandom& random)
 {
     constexpr std::int16_t TrailType = 0x105;
     constexpr std::int32_t TrailLife = 100;
@@ -172,15 +172,22 @@ Core::Expected<void, std::string> CreateTheArrowTrail(World::ModelEffect& arrow,
     trail.turnDirection = 0.0f;
     trail.transform.scale = TrailScale;
     trail.start = arrow.transform.position;
-    if (!HasJointRoom(world))
+    trail.owner.effect = &arrow;
+    constexpr std::int32_t TrailJoint = 0x610, JointLife = 30, NoTarget = -1;
+    for (std::int32_t subtype = 0; subtype < 4; ++subtype)
     {
-        constexpr std::int32_t TrailSound = 0x7a;
-        world.Runtime().RequestSound(TrailSound);
-        trail.transform.scale = 1.0f; // 51a101, después de los cuatro intentos de joint610.
-        return {};
+        const auto made =
+            CreateFaunaJoint(world.DrawTail().joints,
+                             {TrailJoint, trail.transform.position, trail.transform.position, trail.transform.angles,
+                              subtype, &trail, TrailScale, JointLife, 0, 0, NoTarget},
+                             random, JointOwnerKind::ModelEffect);
+        if (!made.HasValue())
+            return Core::Unexpected("0x51a08a/aa/cd/ed: " + made.Error());
     }
-    return Core::Unexpected(std::string("0x51a08a: el joint 0x610 de la estela 0x105 de la flecha de la skill 0x34 "
-                                        "(0x530860), sin portar (CL11)"));
+    constexpr std::int32_t TrailSound = 0x7a;
+    world.Runtime().RequestSound(TrailSound);
+    trail.transform.scale = 1.0f; // 51a101, después de los cuatro intentos, incluso con la tabla llena.
+    return {};
 }
 
 // 0x51c601..0x51c6d1: la flecha 0xdb con el subtipo 3 o 4 (la del asedio): vida 40, escala 1,5, +0xe4 en (rand() % 100
@@ -264,7 +271,7 @@ Core::Expected<void, std::string> BeginTheArrow(World::ModelEffect& effect, Worl
     constexpr std::int32_t PiercingSubtype = 2;
     if (effect.subtype == PiercingSubtype)
     {
-        if (auto trail = CreateTheArrowTrail(effect, world); !trail.HasValue())
+        if (auto trail = CreateTheArrowTrail(effect, world, random); !trail.HasValue())
             return trail;
         effect.dword100 = 0;
         effect.state = 1;
@@ -361,7 +368,7 @@ Core::Expected<void, std::string> BeginAdvancedArrow(World::ModelEffect& effect,
         effect.turnDirection = -10.0f;
         if (effect.subtype == 2)
         {
-            if (auto trail = CreateTheArrowTrail(effect, world); !trail.HasValue())
+            if (auto trail = CreateTheArrowTrail(effect, world, random); !trail.HasValue())
                 return trail;
             effect.dword100 = 0;
             effect.state = 1;
@@ -377,7 +384,7 @@ Core::Expected<void, std::string> BeginAdvancedArrow(World::ModelEffect& effect,
     }
     if (effect.type != ReignArrow && effect.subtype != 0)
     {
-        if (auto trail = CreateTheArrowTrail(effect, world); !trail.HasValue())
+        if (auto trail = CreateTheArrowTrail(effect, world, random); !trail.HasValue())
             return trail;
         effect.dword100 = 0;
         effect.state = 1;
@@ -611,6 +618,30 @@ Core::Expected<void, std::string> BurstAt(const glm::vec3& position, const Arrow
 
 // 0x5201ed..0x5205ad: el choque de la flecha con +0x88 (la bandera 1 de 0x53e2e0 o el 1 de la skill 0x34) y sin el
 // subtipo 0x63.
+// 0x52055f y0x52083f: el dueño durable es la flecha física, no el personaje que la disparó.
+Core::Expected<void, std::string> CreatePiercingImpactJoint(World::ModelEffect& effect, const ArrowStepContext& context,
+                                                            std::string_view address)
+{
+    constexpr std::int32_t FlareJoint = 0x60f, ImpactSubtype = 6;
+    constexpr float Width = 30.0f;
+    const World::FishEffectRequest request{FlareJoint,
+                                           effect.transform.position,
+                                           effect.transform.position,
+                                           effect.transform.angles,
+                                           ImpactSubtype,
+                                           &effect,
+                                           Width,
+                                           -1,
+                                           0,
+                                           0,
+                                           -1};
+    const auto created =
+        CreateFaunaJoint(context.world.DrawTail().joints, request, context.random, JointOwnerKind::ModelEffect);
+    if (!created.HasValue())
+        return Core::Unexpected(std::format("{}: {}", address, created.Error()));
+    return {};
+}
+
 Core::Expected<void, std::string> HitWithTheMarkedArrow(World::ModelEffect& effect, const ArrowStepContext& context)
 {
     WorldState& world = context.world;
@@ -673,7 +704,7 @@ Core::Expected<void, std::string> HitWithTheMarkedArrow(World::ModelEffect& effe
     if (skill == PiercingSkill)
     {
         // 0x520504..0x52056d: con el subtipo 2 sigue viva, +0x100 en 5 (la 0xf8 con más de 14 de vida y la 0xe2) o en
-        // 2, y el joint 0x60f/6, que corta; si no, se apaga y 0x51fe10.
+        // 2, y el joint 0x60f/6; si no, se apaga y 0x51fe10.
         if (effect.subtype == PiercingSubtype)
         {
             constexpr std::int32_t LongPause = 5, ShortPause = 2, CelestialLife = 14;
@@ -681,10 +712,7 @@ Core::Expected<void, std::string> HitWithTheMarkedArrow(World::ModelEffect& effe
                 (effect.type == CelestialArrow && effect.life > CelestialLife) || effect.type == AquagoldArrow
                     ? LongPause
                     : ShortPause;
-            if (!HasJointRoom(context.world))
-                return {};
-            return Core::Unexpected(std::string("0x52055f: el joint 0x60f/6 de la flecha de la skill 0x34 que "
-                                                "atraviesa (0x530860), sin portar (CL11)"));
+            return CreatePiercingImpactJoint(effect, context, "0x52055f");
         }
         effect.alive = false;
         return BurstAt(effect.transform.position, context);
@@ -752,10 +780,7 @@ Core::Expected<void, std::string> HitWithTheArrow(World::ModelEffect& effect, co
         // 0x52081b..0x52085c: con el subtipo 2, el joint 0x60f/6 y sigue viva.
         if (effect.subtype == 2)
         {
-            if (HasJointRoom(context.world))
-                return Core::Unexpected(std::string("0x52083f: el joint 0x60f/6 de la flecha de la skill 0x34 "
-                                                    "(0x530860), sin portar (CL11)"));
-            return {};
+            return CreatePiercingImpactJoint(effect, context, "0x52083f");
         }
         effect.alive = false;
         return BurstAt(effect.transform.position, context);
@@ -1163,7 +1188,7 @@ Core::Expected<void, std::string> StepCelestialArrow(World::ModelEffect& effect,
     if (effect.subtype == 0)
         return {};
     if (effect.life == 13)
-        return CreateTheArrowTrail(effect, context.world);
+        return CreateTheArrowTrail(effect, context.world, context.random);
     if (effect.life == 30)
     {
         effect.dword100 = 0;

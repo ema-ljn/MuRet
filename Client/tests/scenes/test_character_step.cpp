@@ -106,11 +106,11 @@ constexpr int OtherSeenCellDraws = 8;
 constexpr int EffectsRandomDraws = 1;
 // Una lectura de +0x38e (0x517630 o sus copias en línea): un rand() al cerrarse en 0.
 constexpr int SkillReadDraws = 1;
-// Una habilidad con caso en el switch de 0x4f97b0 (0x4f9899) que corta: la 0x34 con +0x381 en 3, en el efecto 0x621
-// (0x4f9ecb, CL11).
-constexpr std::uint8_t FrameSkill = 0x34;
-constexpr std::uint8_t FrameSkillStep = 3;
-constexpr std::string_view FrameSkillCut = "0x4f9ecb";
+// Una habilidad todavía sin su efecto: la0x37 con acción0x3d y+0x381 en1 crea621/1.
+// El brillo621/0 de la0x34 ya recorre el productor normal (test_attack_frame_skills).
+constexpr std::uint8_t FrameSkill = 0x37;
+constexpr std::uint8_t FrameSkillStep = 1;
+constexpr std::string_view FrameSkillCut = "0x4f9f3e";
 // 0x5068fd: la cabeza de otro que el héroe sortea con rand() % 32 en 0.
 constexpr int HeadOneIn = 32;
 // La selección (0x633f20, World55) y el login (0x6349a0, World56).
@@ -1424,6 +1424,7 @@ TEST(CharacterStepTest, TheBodyStopsWhereMuRetHasNothing)
              [](GameWorld& tested)
              {
                  tested.Hero().dying = 1;
+                 tested.Hero().animation.action = 0x3d;
                  tested.Hero().byte381 = FrameSkillStep;
                  tested.Hero().byte38e = FrameSkill;
              },
@@ -1431,6 +1432,7 @@ TEST(CharacterStepTest, TheBodyStopsWhereMuRetHasNothing)
         Case{"pegó con una habilidad",
              [](GameWorld& tested)
              {
+                 tested.Hero().animation.action = 0x3d;
                  tested.Hero().byte381 = FrameSkillStep;
                  tested.Hero().byte38e = FrameSkill;
              },
@@ -2059,6 +2061,8 @@ TEST(CharacterStepTest, TheExitsOf508ba0BeforeTheCell)
         other.type = probe.type;
         other.dying = probe.dying;
         other.movement = probe.movement;
+        if (probe.dying != 0)
+            other.animation.action = 0x3d;
         other.byte381 = probe.dying != 0 ? FrameSkillStep : 0;
         other.byte38e = FrameSkill;
 

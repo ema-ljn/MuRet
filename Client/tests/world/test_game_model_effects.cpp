@@ -3,6 +3,16 @@
 #include "Core/Expected.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/CharacterDrawing.h"
+#include "Render/ModelBatch.h"
+#include "Render/Pass3D.h"
+#include "Render/TextureSlot.h"
+#include "Data/Models/Model.h"
+#include "Core/IClock.h"
+#include "World/SphereFrustum.h"
+#include "Scenes/GameParticles.h"
+#include "Scenes/WorldState.h"
+#include "Scenes/WorldMap.h"
 #include "World/IFishStepServices.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Render/Models/Cloth.h"
@@ -12,6 +22,7 @@
 #include "World/KalimaWorld.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
+#include "World/ParticleOwner.h"
 #include "World/SelectionParticleKernels.h"
 #include "World/Sprites.h"
 #include "World/TerrainLighting.h"
@@ -29,6 +40,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <span>
 #include <limits>
 #include <memory>
 #include <string>
@@ -88,6 +100,170 @@ TEST(GameModelEffectsTest, AVolleyPulseFollowsItsProjectileAndRetiresWhenTheOwne
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_FALSE(pulse.alive);
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 2).State());
+}
+
+TEST(GameModelEffectsTest, TheShortBowTrailFollowsThePhysicalArrowSlotAndRunsItsCommonTail)
+{
+    Client::World::Particles particles;
+    Client::World::ModelEffect arrow;
+    arrow.alive = true;
+    arrow.type = 0xdb;
+    arrow.transform.position = {100, 200, 300};
+    arrow.transform.angles = {10, 20, 30};
+    Client::World::ModelEffect trail;
+    trail.alive = true;
+    trail.type = 0x105;
+    trail.life = 100;
+    trail.transform.position = {1, 2, 3};
+    trail.owner.effect = &arrow;
+    Client::Render::Models::CrtRandom random(1);
+    const std::int32_t map = 0;
+    const Client::World::ModelEffectStepServices services{.map = &map};
+    auto result = Client::World::StepGameModelEffect(trail, nullptr, particles, 0, random, nullptr, services);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_EQ(trail.life, 99);
+    EXPECT_EQ(trail.turnDirection, 90);
+    EXPECT_EQ(trail.start, (glm::vec3{1, 2, 3}));
+    EXPECT_EQ(trail.transform.position, arrow.transform.position);
+    EXPECT_EQ(trail.transform.angles, arrow.transform.angles);
+    EXPECT_EQ(trail.copiedAngles, (glm::vec3{10, 90, 30}));
+    arrow.type = 0x123; // El original sigue el lugar reutilizado, no una generación ni un tipo.
+    arrow.transform.position = {400, 500, 600};
+    ASSERT_TRUE(Client::World::StepGameModelEffect(trail, nullptr, particles, 0, random, nullptr, services).HasValue());
+    EXPECT_EQ(trail.life, 98);
+    EXPECT_EQ(trail.turnDirection, 180);
+    EXPECT_EQ(trail.start, (glm::vec3{100, 200, 300}));
+    EXPECT_EQ(trail.transform.position, arrow.transform.position);
+    EXPECT_EQ(trail.copiedAngles, (glm::vec3{10, 180, 30}));
+    arrow.alive = false;
+    ASSERT_TRUE(Client::World::StepGameModelEffect(trail, nullptr, particles, 0, random, nullptr, services).HasValue());
+    EXPECT_FALSE(trail.alive);
+    EXPECT_EQ(trail.life, -2);
+    EXPECT_EQ(trail.turnDirection, 180);
+    EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 3).State());
+}
+
+TEST(GameModelEffectsTest, TheShortBowTrailPublishesAndAdvancesAnimationEvenOnItsDeadOwnerTick)
+{
+    Client::World::Particles particles;
+    Client::World::ModelEffect arrow;
+    arrow.alive = true;
+    arrow.transform.position = {100, 200, 300};
+    Client::World::ModelEffect trail;
+    trail.alive = true;
+    trail.type = 0x105;
+    trail.life = 100;
+    trail.speed = 0.25f;
+    trail.owner.effect = &arrow;
+    trail.transform.position = {1, 2, 3};
+    Client::Render::Models::Skeleton skeleton;
+    skeleton.actions.resize(1, {.repeats = false, .speed = 1, .keyCount = 2});
+    Client::Render::Models::CrtRandom random(1);
+    const std::int32_t map = 0;
+    int published = 0;
+    Client::World::ModelEffectStepServices services{.map = &map};
+    services.publishAction = [&](std::uint16_t type, std::uint8_t action)
+    {
+        EXPECT_EQ(type, 0x105);
+        EXPECT_EQ(action, 0);
+        EXPECT_EQ(trail.animation.frame, published == 0 ? 0 : 0.25f);
+        EXPECT_EQ(trail.life, published == 0 ? 100 : -1);
+        ++published;
+    };
+    ASSERT_TRUE(
+        Client::World::StepGameModelEffect(trail, &skeleton, particles, 0, random, nullptr, services).HasValue());
+    EXPECT_EQ(trail.animation.frame, 0.25f);
+    EXPECT_EQ(trail.previousPosition, (glm::vec3{1, 2, 3}));
+    arrow.alive = false;
+    ASSERT_TRUE(
+        Client::World::StepGameModelEffect(trail, &skeleton, particles, 0, random, nullptr, services).HasValue());
+    EXPECT_EQ(trail.animation.frame, 0.5f);
+    EXPECT_EQ(trail.life, -2);
+    EXPECT_FALSE(trail.alive);
+    EXPECT_EQ(published, 2);
+    EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 2).State());
+}
+
+TEST(GameModelEffectsTest, TheShortBowTrailDrawsItsAuthoredCueInBothNativePassesWithoutAnImportedModel)
+{
+    class EmptyModels final : public Client::Scenes::IModelLibrary
+    {
+    public:
+        const Client::Data::Models::Model* Find(std::uint16_t) const override
+        {
+            return nullptr;
+        }
+        const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+        {
+            return nullptr;
+        }
+        std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+        {
+            return {};
+        }
+    } models;
+    Client::World::ModelEffect trail;
+    trail.alive = true;
+    trail.type = 0x105;
+    trail.objectState.blendMesh = 0;
+    trail.alpha = 1;
+    const Client::World::SphereFrustum frustum;
+    for (const std::uint8_t mode : {std::uint8_t{0}, std::uint8_t{1}, std::uint8_t{2}})
+    {
+        Client::Render::ModelBatch batch;
+        batch.Begin(Client::Render::Pass3D{});
+        const auto drawn = Client::Scenes::DrawGameModelEffects(batch, models, std::span(&trail, 1), frustum, nullptr,
+                                                                Client::Core::Duration{}, 1, mode);
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_TRUE(trail.seen);
+        ASSERT_FALSE(batch.Commands().empty());
+        EXPECT_EQ(batch.Commands().front().state.blend, Client::Render::ModelBlend::Additive);
+        EXPECT_FALSE(batch.Vertices().empty());
+    }
+    trail.objectState.blendMesh = -1;
+    Client::Render::ModelBatch filtered;
+    filtered.Begin(Client::Render::Pass3D{});
+    ASSERT_TRUE(Client::Scenes::DrawGameModelEffects(filtered, models, std::span(&trail, 1), frustum, nullptr,
+                                                     Client::Core::Duration{}, 1, 1)
+                    .HasValue());
+    EXPECT_TRUE(filtered.Commands().empty());
+}
+
+TEST(GameModelEffectsTest, TheShortBowTrailOnlyDisturbsKalimaForThePublishedHeroArrow)
+{
+    for (const std::int32_t map : {23, 24, 29, 30, 36, 37})
+        for (const bool heroOwner : {false, true})
+        {
+            SCOPED_TRACE(map);
+            Client::World::Particles particles;
+            auto water = std::make_unique<Client::World::KalimaWorld>(map);
+            auto expectedWater = water->CloneForFrame();
+            int hero = 0;
+            int other = 0;
+            Client::World::ModelEffect arrow;
+            arrow.alive = true;
+            arrow.ownerContext = heroOwner ? &hero : &other;
+            arrow.transform.position = {1000.25f, 2000.5f, 300};
+            Client::World::ModelEffect trail;
+            trail.alive = true;
+            trail.type = 0x105;
+            trail.life = 100;
+            trail.owner.effect = &arrow;
+            Client::Render::Models::CrtRandom random(7);
+            auto expected = random;
+            (void)expected.Next();
+            if (heroOwner && (map == 24 || map == 29 || map == 36))
+            {
+                ASSERT_TRUE(expectedWater->Disturb(10, 20, 2, -200, expected).HasValue());
+            }
+            const Client::World::ModelEffectStepServices services{.map = &map, .hero = &hero};
+            const auto stepped =
+                Client::World::StepGameModelEffect(trail, nullptr, particles, 0, random, water.get(), services);
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+            EXPECT_EQ(water->Waves().planes, expectedWater->Waves().planes);
+            EXPECT_EQ(random.State(), expected.State());
+            EXPECT_EQ(trail.life, 99);
+        }
 }
 
 TEST(GameModelEffectsTest, TheSiegeArrivalCueStaysAtTheSpawnUntilItsActorIsGone)
@@ -2343,4 +2519,144 @@ TEST(GameModelEffectsTest, TheLastCrackDrawsARandomItNeverUses)
     const auto cut = Client::World::StepGameModelEffect(crack, nullptr, particles, 0.0f, random, nullptr, services);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x5212da"), std::string::npos) << cut.Error();
+}
+
+TEST(PiercingShotTest, NativeBirthOffsetsTheFirstFreeSlotWithoutRandom)
+{
+    auto effects = std::make_unique<Client::World::ModelEffects>();
+    const auto slot = effects->CreatePiercingShot(
+        {.type = 0x621, .position = {10, 20, 30}, .angles = {}, .light = {0.2f, 0.4f, 0.6f}});
+    ASSERT_TRUE(slot);
+    EXPECT_EQ(*slot, 0u);
+    const auto& effect = effects->Effects()[*slot];
+    EXPECT_EQ(effect.life, 10);
+    EXPECT_EQ(effect.transform.position, (glm::vec3{10, -80, 180}));
+    EXPECT_EQ(effect.light, (glm::vec3{0.2f, 0.4f, 0.6f}));
+    EXPECT_FLOAT_EQ(effect.transform.scale, 0.9f);
+}
+
+TEST(PiercingShotTest, ThreeEmissionsRetainActorRgbAndSpendSixteenDrawsEvenWithFullPools)
+{
+    using namespace Client;
+    for (const int free : {0, 1, 3})
+    {
+        SCOPED_TRACE(free);
+        auto effects = std::make_unique<World::ModelEffects>();
+        World::Particles particles;
+        World::FrameSprites sprites;
+        for (auto& sprite : sprites.Sprites())
+            sprite.alive = true;
+        for (auto& particle : particles.All())
+            particle.alive = true;
+        for (int index = 0; index < free; ++index)
+        {
+            sprites.Sprites()[static_cast<std::size_t>(index)].alive = false;
+            particles.All()[static_cast<std::size_t>(index)].alive = false;
+        }
+        const auto slot =
+            effects->CreatePiercingShot({.type = 0x621, .position = {10, 20, 30}, .light = {0.2f, 0.4f, 0.6f}});
+        ASSERT_TRUE(slot);
+        auto& effect = effects->Effects()[*slot];
+        effect.life = 1;
+        Render::Models::CrtRandom random(17);
+        Render::Models::CrtRandom expected(17);
+        static_cast<void>(expected.Next());
+        const World::ModelEffectStepServices services{.sprites = &sprites, .effects = effects.get()};
+        const auto stepped = World::StepGameModelEffect(effect, nullptr, particles, 0, random, nullptr, services);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_FALSE(effect.alive);
+        for (int index = 0; index < 3; ++index)
+        {
+            const glm::vec3 angles{static_cast<float>(expected.Next() % 360), 0,
+                                   static_cast<float>(expected.Next() % 360)};
+            const auto offset =
+                Render::Models::OriginalVectorRotate(glm::vec3{0, 120, 0}, Render::Models::OriginalAngleMatrix(angles));
+            const float rotation = static_cast<float>(expected.Next() % 360);
+            const float spriteScale =
+                static_cast<float>(static_cast<double>((expected.Next() & 7) + 8) * static_cast<double>(0.3f));
+            const float particleScale =
+                static_cast<float>(static_cast<double>(expected.Next() % 50 + 10) * static_cast<double>(0.01f));
+            if (index >= free)
+                continue;
+            const auto& sprite = sprites.Sprites()[static_cast<std::size_t>(index)];
+            const auto& particle = particles.All()[static_cast<std::size_t>(index)];
+            EXPECT_EQ(sprite.light, effect.light);
+            EXPECT_EQ(sprite.position, effect.transform.position);
+            EXPECT_FLOAT_EQ(sprite.rotation, rotation);
+            EXPECT_FLOAT_EQ(sprite.scale, spriteScale);
+            EXPECT_EQ(particle.type, 0x5c6);
+            EXPECT_EQ(particle.subtype, 2);
+            EXPECT_EQ(particle.life, 15);
+            EXPECT_EQ(particle.light, glm::vec3(1));
+            EXPECT_EQ(particle.angles, glm::vec3(0));
+            EXPECT_EQ(particle.start, particle.position);
+            EXPECT_EQ(particle.typedOwner, (World::ParticleOwner{World::ParticleOwnerKind::ModelEffect, *slot}));
+            EXPECT_FLOAT_EQ(particle.scale, particleScale);
+            for (int axis = 0; axis < 3; ++axis)
+            {
+                const float position =
+                    static_cast<float>(static_cast<double>(offset[axis]) + effect.transform.position[axis]);
+                EXPECT_FLOAT_EQ(particle.position[axis], position);
+                EXPECT_FLOAT_EQ(particle.velocity[axis],
+                                static_cast<float>((static_cast<double>(effect.transform.position[axis]) - position) *
+                                                   static_cast<double>(0.1f)));
+            }
+        }
+        EXPECT_EQ(random.State(), expected.State());
+    }
+}
+
+TEST(PiercingShotTest, BirthUsesTheFirstFreePhysicalSlotAndLeavesRetainedFields)
+{
+    using namespace Client;
+    auto effects = std::make_unique<World::ModelEffects>();
+    for (auto& effect : effects->Effects())
+        effect.alive = true;
+    EXPECT_FALSE(effects->CreatePiercingShot({.type = 0x621}));
+    auto& retained = effects->Effects()[37];
+    retained.alive = false;
+    retained.start = {11, 22, 33};
+    retained.copiedAngles = {44, 55, 66};
+    int actor = 0;
+    const auto slot =
+        effects->CreatePiercingShot({.type = 0x621, .position = {10, 20, 30}, .angles = {15, 25, 35}, .owner = &actor});
+    ASSERT_TRUE(slot);
+    EXPECT_EQ(*slot, 37u);
+    EXPECT_EQ(retained.start, (glm::vec3{11, 22, 33}));
+    EXPECT_EQ(retained.copiedAngles, (glm::vec3{44, 55, 66}));
+    EXPECT_EQ(retained.ownerContext, &actor);
+    const auto offset = Render::Models::OriginalVectorRotate(
+        glm::vec3{0, -100, 0}, Render::Models::OriginalAngleMatrix(glm::vec3{15, 25, 35}));
+    EXPECT_FLOAT_EQ(retained.transform.position.x, static_cast<float>(static_cast<double>(offset.x) + 10));
+    EXPECT_FLOAT_EQ(retained.transform.position.y, static_cast<float>(static_cast<double>(offset.y) + 20));
+    EXPECT_FLOAT_EQ(retained.transform.position.z, static_cast<float>(static_cast<double>(offset.z) + 30 + 150));
+}
+
+TEST(PiercingShotTest, ParentResolverReadsTheSamePhysicalSlotAfterReuse)
+{
+    using namespace Client;
+    auto world = std::make_unique<Scenes::WorldState>();
+    World::Particle particle;
+    particle.type = World::SparkParticle;
+    particle.subtype = World::PiercingSparkSubtype;
+    particle.typedOwner = {World::ParticleOwnerKind::ModelEffect, 37};
+    const auto resolve = Scenes::ParticleOwnerBonesOf(*world);
+    EXPECT_FALSE(resolve(particle));
+    auto& parent = world->Map().effects.Effects()[37];
+    parent.alive = true;
+    parent.transform.position = {10, 20, 30};
+    ASSERT_TRUE(resolve(particle));
+    EXPECT_EQ(*resolve(particle), parent.transform.position);
+    parent.alive = false;
+    EXPECT_FALSE(resolve(particle));
+    parent.alive = true;
+    parent.type = World::TeleportEffect;
+    parent.transform.position = {100, 200, 300};
+    ASSERT_TRUE(resolve(particle));
+    EXPECT_EQ(*resolve(particle), parent.transform.position);
+    particle.subtype = 0;
+    EXPECT_FALSE(resolve(particle));
+    particle.subtype = World::PiercingSparkSubtype;
+    particle.typedOwner.identity = world->Map().effects.Effects().size();
+    EXPECT_FALSE(resolve(particle));
 }

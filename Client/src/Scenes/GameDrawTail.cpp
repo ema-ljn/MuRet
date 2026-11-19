@@ -719,6 +719,14 @@ DrawGameModelEffectsChecked(Render::ModelBatch& batch, const IModelLibrary& mode
                 DrawBattleCue(batch, effect);
             continue;
         }
+        if (effect.type == World::CrywolfPulseEffect && effect.subtype == 0)
+        {
+            // 105/0: mismo pase nativo (52d66a), con la señal procedural existente de MuRet en lugar de la malla.
+            const auto blendMesh = effect.objectState.blendMesh;
+            if (mode == 0 || blendMesh == -2 || blendMesh == 0)
+                DrawBattleCue(batch, effect);
+            continue;
+        }
         if (World::IsSiegeCue(effect.type, effect.subtype) || World::IsCrywolfCue(effect.type, effect.subtype) ||
             World::IsRisingStoneChip(effect.type, effect.subtype))
         {

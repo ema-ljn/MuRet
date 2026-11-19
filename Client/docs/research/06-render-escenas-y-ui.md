@@ -11612,10 +11612,13 @@ mano es la de `0x4f9780(o)`: la izquierda (`+0x2d8`) con el `0x20a` en la `0x25`
   `rand()`).
 - `0x34` (`0x4f9e61..0x4f9ef2`). El `0x20a` de la `0x22` a la `0x97`, desde el frame 5, vuelve al 5 (`+0x114`) con la
   key anterior en 4 (`+0x118`, `4,0f`). En 3, `0x518cf0(0x621, o+0x10, o+0x1c, o+0xf4, 0, o, −1, 0, 0, 0, 0)` y el
-  sonido `0x81`: corta en el efecto (`0x4f9ecb`). Después, `[0x6c88ac]` en 5 (`0x4f9ee2`,
+  sonido `0x81` (`0x4f9ecb`). Después, `[0x6c88ac]` en 5 (`0x4f9ee2`,
   `WorldRuntime::skillThreshold`): la habilidad corre cuando `+0x381` llega a 5 y no a 15, y con ella el tiro de
-  `0x53e2b0` con la `0x34` (`0x50377d` sin blanco, `0x504060` con él; Q-C1094). Desde `+0x381` en 1, el paso corta en
-  3, antes del tiro (P-C345).
+  `0x53e2b0` con la `0x34` (`0x50377d` sin blanco, `0x504060` con él; Q-C1094).
+  `0x621/0` vive diez pasos. Su paso intenta tres pares de sprite `0x5fd` y partícula `0x5c6/2`
+  (`0x52be28`, `0x52be64`) con 16 sorteos incluidos los pools llenos. El sprite hereda el RGB
+  del actor y la partícula nace blanca. En su ciclo, el slot físico del padre determina si llega a
+  los últimos cinco pasos antes de lo previsto (`0x5450ce`).
 - `0x37` (`0x4f9ef3..0x4fa490`), solo el `0x20a` en la `0x3d` (si no, `[0x6c88ac]` en 15, `0x4fa47e`): en 1 y 2,
   `0x518cf0(0x621, …, 1, o, …)` (`0x4f9f3e`); antes del frame 3, o con NaN, sale con `[0x6c88ac]` en 15. Desde el 3:
   `o+0x8a = 0x558eb0(c, [0x6c8e30])`, el sonido `0x72`, el lugar de la `0x37` en el registro propio (`0x59fb80`, 3.848
@@ -11757,7 +11760,10 @@ y de la velocidad en −50 y `+0xe4` en −10; el `0xf9`, escala 1 y −70 y el 
 demás, escala 0,8f y −70. Con el subtipo 2 (la skill `0x34`, `0x51c58a`), la estela `0x518cf0(0x105, la posición
 de la flecha, sus ángulos, su luz, 0, la flecha, −1, 0, 0, 0, 0)` y, se haya creado o no, `+0x100` en 0 y `+0x88` en
 1; el caso `0x105` con el subtipo 0 (`0x519fc9`): vida 100, `+0x64` en 0, `+0x68` en 1, `+0xe4` en 0, escala 12 y la
-partida en la posición del dueño, y el joint `0x610` (`0x51a08a`, CL11). El `0xe1`/1, el joint `0x610`/0xd. El `0xdb`
+partida en la posición del dueño. Intenta en orden los cuatro `0x610/0..3` (`0x51a08a..0x51a0ed`) con la
+estela como dueño y luego pide `0x7a` y cambia a escala 1. La estela sigue la flecha en `0x523b8b` y conserva el
+paso de animación común. Su dibujo reutiliza [la señal de MuRet](../../../docs/adr/0024-estela-del-tiro-penetrante.md).
+El `0xe1`/1 usa el joint `0x610`/0xd. El `0xdb`
 con el subtipo 3 o 4 (`0x51c601`, la del asedio): vida 40, escala 1,5, `+0xe4` en (`rand() % 100` + 50) ·
 `0x3d888889`, la partida en la posición del héroe y, con el 3, la y de la velocidad en −(`rand() % 30` + 50) y la x de
 los ángulos en −(`rand() % 20` + 45); con el 4, −(`rand() % 15` + 55) y −10 (cada fild más la constante y el `fchs` en

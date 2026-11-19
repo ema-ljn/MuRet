@@ -1585,6 +1585,26 @@ Particles::CreateOwnedChecked(std::int32_t type, const glm::vec3& position, cons
                       owner);
 }
 
+std::optional<std::size_t> Particles::CreatePiercingSpark(const glm::vec3& position, float scale, ParticleOwner owner,
+                                                          const glm::vec3& center)
+{
+    constexpr std::int32_t PiercingLife = 15;
+    constexpr double Approach = static_cast<double>(0.1f);
+    for (std::size_t index = 0; index < m_particles.size(); ++index)
+    {
+        auto& particle = m_particles[index];
+        if (particle.alive)
+            continue;
+        Initialize(particle, SparkParticle, position, {}, glm::vec3(1), PiercingSparkSubtype, scale, 0);
+        particle.typedOwner = owner;
+        particle.life = PiercingLife;
+        for (int axis = 0; axis < 3; ++axis)
+            particle.velocity[axis] = F32((static_cast<double>(center[axis]) - position[axis]) * Approach);
+        return index;
+    }
+    return std::nullopt;
+}
+
 Core::Expected<std::optional<std::size_t>, ParticleError>
 Particles::CreateFollowingChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles,
                                   const glm::vec3& light, std::int32_t subtype, float scale, ParticleOwner owner,
@@ -2100,7 +2120,8 @@ StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random, const
                 StepTheMap8Eight(particle);
             continue;
         }
-        if (particle.type != Particle67 && particle.type != Particle68 && !IsCloud8(particle))
+        if (particle.type != Particle67 && particle.type != Particle68 && !IsCloud8(particle) &&
+            !(particle.type == SparkParticle && particle.subtype == PiercingSparkSubtype))
         {
             if (const auto error = BindingError(particle.type, particle.subtype))
             {
@@ -2243,6 +2264,28 @@ StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random, const
         else if (IsMapSpark(particle))
         {
             StepTheMapSpark(particle);
+        }
+        else if (particle.type == SparkParticle && particle.subtype == PiercingSparkSubtype)
+        {
+            // 0x5450ce: la partida guardada manda incluso tras el movimiento y la muerte comunes.
+            constexpr std::int32_t DetachedLife = 5;
+            constexpr double Brightness = static_cast<double>(0.2f);
+            constexpr double Growth = static_cast<double>(0.05f);
+            if (particle.life > DetachedLife)
+            {
+                if (!ownerBones)
+                    return Core::Unexpected(ParticleError::MissingOwner);
+                if (!ownerBones(particle))
+                    particle.life = DetachedLife;
+            }
+            particle.light = glm::vec3(F32(static_cast<double>(particle.life) * Brightness));
+            particle.scale = F32(static_cast<double>(particle.scale) + Growth);
+            for (int axis = 0; axis < 3; ++axis)
+            {
+                const float position = F32(static_cast<double>(particle.start[axis]) + particle.velocity[axis]);
+                particle.position[axis] = position;
+                particle.start[axis] = position;
+            }
         }
         else if (particle.type == SparkParticle && particle.subtype == BowSparkSubtype)
         {

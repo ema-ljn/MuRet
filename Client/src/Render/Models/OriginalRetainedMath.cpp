@@ -866,21 +866,35 @@ std::optional<double> SineSumPC53(double argument, double addend)
         return sine.significand == 0 && parts.significand == 0 ? addend + (sine.negative ? -0.0 : 0.0) : 0.0;
     return Nearest53(sum, sum.negative);
 }
-std::optional<double> SineDoubleProductPC53(double argument, double multiplier)
+namespace
+{
+std::optional<double> DoubleTrigonometricProduct(double argument, double multiplier, bool cosine)
 {
     if (!ValidParticleInputs(argument, 1) || !std::isfinite(multiplier))
         return std::nullopt;
-    const Retained64 sine = argument == 0 ? Retained64{0, 0, RetainedClass::Finite, std::signbit(argument)}
-                                          : RetainedSineOrCosine(argument, false);
+    const Retained64 value = argument == 0
+                                 ? (cosine ? Retained64{std::uint64_t{1} << 63, -63, RetainedClass::Finite, false}
+                                           : Retained64{0, 0, RetainedClass::Finite, std::signbit(argument)})
+                                 : RetainedSineOrCosine(argument, cosine);
     const BinaryParts parts = DecomposeDouble(multiplier);
-    const bool negative = sine.negative != parts.negative;
-    if (sine.significand == 0 || parts.significand == 0)
+    const bool negative = value.negative != parts.negative;
+    if (value.significand == 0 || parts.significand == 0)
         return NearestDouble(0, 0, negative);
     // 64 + 53 bits exactos caben en Wide: el producto sin R64 intermedio, como el FMUL de la x87 en PC53.
-    const Wide product = Multiply(FromInteger(SplitLimbs(sine.significand), sine.exponent, sine.negative),
+    const Wide product = Multiply(FromInteger(SplitLimbs(value.significand), value.exponent, value.negative),
                                   FromInteger(SplitLimbs(parts.significand), parts.exponent, parts.negative));
     return Nearest53(product, negative);
 }
+} // namespace
+std::optional<double> SineDoubleProductPC53(double argument, double multiplier)
+{
+    return DoubleTrigonometricProduct(argument, multiplier, false);
+}
+std::optional<double> CosineDoubleProductPC53(double argument, double multiplier)
+{
+    return DoubleTrigonometricProduct(argument, multiplier, true);
+}
+
 namespace
 {
 std::optional<std::array<float, 4>> DirectionPC53(std::int32_t phase, float rate)

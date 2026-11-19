@@ -721,63 +721,91 @@ TEST(ArrowEffectsTest, TheFlaggedArrowSendsTheHits)
     }
 }
 
-// La skill 0x34 (que el paso del ataque deja llegar desde +0x381 en 4: en 3 corta antes en el efecto 0x621, 0x4f9ecb;
-// test_attack_frame_skills.cpp), por 0x53e2b0 directo, en Lorencia y en Devias: el sonido 0x55, la flecha 0xdb con el
-// subtipo 2 y, en su alta, la estela 0x105 con la flecha de dueño (vida 100, escala 12, +0x64 en 0, la partida en la
-// flecha), cuyo joint 0x610 corta (0x51a08a, CL11).
+// 0x53e2b0 con la skill 0x34: dispara 0xdb/2, crea su estela 0x105/0 y conserva la tanda de cuatro
+// intentos de joint 0x610/0..3 y el sonido 0x7a con cualquier capacidad (0x51a08a..0x51a101).
 
 TEST(ArrowEffectsTest, ThePiercingShotLeavesItsTrail)
 {
-    for (const std::int32_t map : {0, 2})
-    {
-        SCOPED_TRACE(map);
-        ArrowWorld tested(map);
-        ActorState& hero = tested.Archer(ShortBow, ShortBow.action, NoTarget);
+    for (const std::size_t freeJoints : std::array<std::size_t, 3>{0, 2, 4})
+        for (const std::int32_t map : {0, 2})
+        {
+            SCOPED_TRACE(map);
+            ArrowWorld tested(map);
+            ActorState& hero = tested.Archer(ShortBow, ShortBow.action, NoTarget);
+            auto& joints = tested.world.DrawTail().joints;
+            for (std::size_t slot = 0; slot < joints.size(); ++slot)
+                joints[slot].alive = slot >= freeJoints;
 
-        const auto fired = Client::Scenes::FireTheArrow(hero, nullptr, HeroSlot, 3, 0, 0x34, tested.Context());
+            const auto fired = Client::Scenes::FireTheArrow(hero, nullptr, HeroSlot, 3, 0, 0x34, tested.Context());
 
-        EXPECT_TRUE(HasError(fired, "0x51a08a")) << ErrorOf(fired);
-        EXPECT_EQ(DrawsSince(Seed, tested.random), OwnRecord);
-        EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x55});
-        ASSERT_EQ(tested.soundOrigins.size(), 1u);
-        EXPECT_EQ(tested.soundOrigins.front(), hero.position);
-        EXPECT_EQ(tested.world.Runtime().lastShotSkill, 0x34u);
-        const auto arrows = tested.Arrows();
-        ASSERT_EQ(arrows.size(), 1u);
-        const ModelEffect& arrow = *arrows.front();
-        EXPECT_EQ(arrow.subtype, 2);
-        EXPECT_EQ(arrow.byte89, 3);
-        const auto effects = tested.world.Map().effects.Effects();
-        const auto trail = std::ranges::find_if(effects, [](const ModelEffect& effect)
-                                                { return effect.alive && effect.type == 0x105; });
-        ASSERT_NE(trail, effects.end());
-        EXPECT_EQ(trail->ownerContext, static_cast<const void*>(&arrow));
-        EXPECT_EQ(trail->subtype, 0);
-        EXPECT_EQ(trail->disturbanceState, 0xffff);
-        EXPECT_EQ(trail->life, 100);
-        EXPECT_EQ(trail->transform.scale, 12.0f);
-        EXPECT_EQ(trail->objectState.blendMesh, 0);
-        EXPECT_EQ(trail->transform.position, arrow.transform.position);
-        EXPECT_EQ(trail->start, arrow.transform.position);
-    }
+            ASSERT_TRUE(fired.HasValue()) << ErrorOf(fired);
+            EXPECT_EQ(DrawsSince(Seed, tested.random), 3 * OwnRecord);
+            EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x55});
+            ASSERT_EQ(tested.soundOrigins.size(), 1u);
+            EXPECT_EQ(tested.soundOrigins.front(), hero.position);
+            EXPECT_EQ(tested.world.Runtime().lastShotSkill, 0x34u);
+            const auto arrows = tested.Arrows();
+            ASSERT_EQ(arrows.size(), 1u);
+            const ModelEffect& arrow = *arrows.front();
+            EXPECT_EQ(arrow.subtype, 2);
+            EXPECT_EQ(arrow.byte89, 3);
+            const auto effects = tested.world.Map().effects.Effects();
+            const auto trail = std::ranges::find_if(effects, [](const ModelEffect& effect)
+                                                    { return effect.alive && effect.type == 0x105; });
+            ASSERT_NE(trail, effects.end());
+            EXPECT_EQ(trail->ownerContext, static_cast<const void*>(&arrow));
+            EXPECT_EQ(trail->subtype, 0);
+            EXPECT_EQ(trail->disturbanceState, 0xffff);
+            EXPECT_EQ(trail->life, 100);
+            EXPECT_EQ(trail->transform.scale, 1.0f);
+            EXPECT_EQ(trail->objectState.blendMesh, 0);
+            EXPECT_EQ(trail->transform.position, arrow.transform.position);
+            EXPECT_EQ(trail->start, arrow.transform.position);
+            EXPECT_EQ(trail->owner.effect, &arrow);
+            EXPECT_EQ(tested.world.Runtime().lastSoundId, 0x7a);
+            EXPECT_EQ(arrow.dword100, 0);
+            EXPECT_EQ(arrow.state, 1);
+            EXPECT_EQ(arrow.word8c, 0);
+            EXPECT_EQ(tested.world.OwnCharacter().bytef04, 1);
+            EXPECT_EQ(tested.world.Runtime().ownRecordDepth, 0);
+            for (std::size_t slot = 0; slot < freeJoints; ++slot)
+            {
+                EXPECT_TRUE(joints[slot].alive);
+                EXPECT_EQ(joints[slot].type, 0x610);
+                EXPECT_EQ(joints[slot].subtype, static_cast<std::int32_t>(slot));
+                EXPECT_EQ(joints[slot].ownerKind, Client::Scenes::JointOwnerKind::ModelEffect);
+                EXPECT_EQ(joints[slot].ownerContext, &*trail);
+                EXPECT_EQ(joints[slot].width, 20);
+                EXPECT_EQ(joints[slot].life, 30);
+                EXPECT_EQ(joints[slot].key, 0);
+                EXPECT_EQ(joints[slot].skill, 0);
+                EXPECT_EQ(joints[slot].maximumCount, 50);
+                EXPECT_EQ(joints[slot].velocity, (glm::vec3{18, 0, 0}));
+                EXPECT_EQ(joints[slot].light, glm::vec3(0.5f));
+            }
+        }
 }
 
-// Con un solo lugar libre en la tabla, la flecha de la 0x34 lo toma y la estela no nace: +0x100 en 0, +0x88 en 1, la
-// salida del alta y la cuenta de la tanda. En su paso, con un rand() par y la 0x34 en el lugar, choca con el monstruo
-// (el C1 10) y sigue viva con +0x100 en 2 hasta el joint 0x60f/6, que corta (0x52055f, CL11); en el paso siguiente
-// gasta uno de +0x100 sin chocar. En Lorencia y en Devias.
+// 0x52055f: la flecha 0x34 choca con el monstruo, manda C1 10 e intenta 0x60f/6.
+// La pausa de dos pasos y el impacto son los mismos con la estela activa o sin hueco para crearla.
 
-TEST(ArrowEffectsTest, WithTheTableFullThePiercingArrowWaits)
+TEST(ArrowEffectsTest, ThePiercingArrowHitsAndWaitsWithOrWithoutATrailSlot)
 {
     const int fireDraws = FireDraws();
-    for (const std::int32_t map : {0, 2})
+    struct Case
     {
-        SCOPED_TRACE(map);
+        std::int32_t map;
+        bool full;
+    };
+    constexpr std::array cases{Case{0, false}, Case{0, true}, Case{2, false}, Case{2, true}};
+    for (const auto [map, full] : cases)
+    {
+        SCOPED_TRACE(testing::Message() << map << "/" << full);
         ArrowWorld tested(map);
         tested.world.OwnCharacter().bytef04 = 9;
         tested.world.OwnCharacter().SetSkillAt(3, 0x34);
         auto effects = tested.world.Map().effects.Effects();
-        for (std::size_t slot = 0; slot + 1 < effects.size(); ++slot)
+        for (std::size_t slot = 0; full && slot + 1 < effects.size(); ++slot)
         {
             effects[slot].alive = true;
             effects[slot].type = 0x61f;
@@ -789,7 +817,14 @@ TEST(ArrowEffectsTest, WithTheTableFullThePiercingArrowWaits)
         ASSERT_TRUE(fired.HasValue()) << fired.Error();
         EXPECT_EQ(DrawsSince(Seed, tested.random), 3 * OwnRecord);
         EXPECT_EQ(tested.world.OwnCharacter().bytef04, 10);
-        ModelEffect& arrow = effects.back();
+        const auto arrows = tested.Arrows();
+        ASSERT_EQ(arrows.size(), 1u);
+        ModelEffect& arrow = *arrows.front();
+        if (!full)
+        {
+            ASSERT_EQ(effects[1].type, 0x105);
+            ASSERT_EQ(effects[1].owner.effect, &arrow);
+        }
         ASSERT_TRUE(arrow.alive);
         ASSERT_EQ(arrow.type, 0xdb);
         EXPECT_EQ(arrow.subtype, 2);
@@ -804,10 +839,17 @@ TEST(ArrowEffectsTest, WithTheTableFullThePiercingArrowWaits)
 
         const auto hit = StepArrow(arrow, nullptr, tested.StepContext());
 
-        EXPECT_TRUE(HasError(hit, "0x52055f")) << ErrorOf(hit);
-        EXPECT_EQ(DrawsSince(before.State(), tested.random), 1 + fireDraws + 1 + OwnRecord + OwnRecord + 2);
+        ASSERT_TRUE(hit.HasValue()) << hit.Error();
+        EXPECT_EQ(DrawsSince(before.State(), tested.random), 1 + fireDraws + 1 + OwnRecord + OwnRecord + 3);
         EXPECT_TRUE(arrow.alive);
         EXPECT_EQ(arrow.dword100, 2);
+        const auto& impact = tested.world.DrawTail().joints[full ? 0 : 4];
+        EXPECT_TRUE(impact.alive);
+        EXPECT_EQ(impact.type, 0x60f);
+        EXPECT_EQ(impact.subtype, 6);
+        EXPECT_EQ(impact.ownerContext, &arrow);
+        EXPECT_EQ(impact.width, 30);
+        EXPECT_EQ(impact.life, 20);
         ASSERT_EQ(tested.sent.size(), 1u);
         Client::Protocol::Skill::SkillHitsSend expected{.skill = 0x34, .x = 9, .y = 9, .volley = 9, .hits = 1};
         expected.keys[0] = 0x0789;
@@ -820,8 +862,69 @@ TEST(ArrowEffectsTest, WithTheTableFullThePiercingArrowWaits)
         ASSERT_TRUE(waited.HasValue()) << waited.Error();
         EXPECT_EQ(DrawsSince(waiting.State(), tested.random), 1 + fireDraws + 1 + OwnRecord);
         EXPECT_EQ(arrow.dword100, 1);
-        EXPECT_EQ(arrow.life, 29);
+        EXPECT_EQ(arrow.life, 28);
         EXPECT_EQ(tested.sent.size(), 1u);
+    }
+}
+
+TEST(ArrowEffectsTest, BothPiercingImpactSitesUseTheFirstFreeJointAndSkipBirthRandomnessWhenFull)
+{
+    for (const bool marked : {false, true})
+    {
+        std::uint32_t fullState = 0;
+        for (const bool full : {true, false})
+        {
+            SCOPED_TRACE(testing::Message() << marked << "/" << full);
+            ArrowWorld tested(0);
+            auto& arrow = tested.world.Map().effects.Effects()[0];
+            arrow.alive = true;
+            arrow.type = 0xdc;
+            arrow.life = 30;
+            arrow.subtype = 2;
+            arrow.state = marked ? 1 : 0;
+            arrow.ownerContext = &tested.Hero();
+            arrow.byte89 = 3;
+            arrow.transform.position = {1000, 1000, 0};
+            arrow.transform.angles = {10, 20, 30};
+            tested.world.OwnCharacter().SetSkillAt(3, 0x34);
+            auto& victim = tested.Target(VictimSlot, true, 0);
+            victim.position = {1000, 950, 0};
+            victim.key = 0x1234;
+            auto& joints = tested.world.DrawTail().joints;
+            for (auto& joint : joints)
+                joint.alive = true;
+            if (!full)
+                joints[13].alive = false;
+            if (marked)
+                tested.HitDrawIs(1, false);
+            const auto stepped = StepArrow(arrow, nullptr, tested.StepContext());
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+            EXPECT_TRUE(arrow.alive);
+            EXPECT_EQ(arrow.life, 29);
+            EXPECT_EQ(arrow.dword100, marked ? 2 : 0);
+            EXPECT_EQ(tested.sent.size(), marked ? 1u : 0u);
+            if (full)
+                fullState = tested.random.State();
+            else
+            {
+                CrtRandom expected(fullState);
+                const int phase = expected.Next() % 360;
+                EXPECT_EQ(tested.random.State(), expected.State());
+                const auto& impact = joints[13];
+                EXPECT_EQ(impact.type, 0x60f);
+                EXPECT_EQ(impact.subtype, 6);
+                EXPECT_EQ(impact.ownerContext, &arrow);
+                EXPECT_EQ(impact.ownerKind, Client::Scenes::JointOwnerKind::ModelEffect);
+                EXPECT_EQ(impact.position, (glm::vec3{1000, 1000, 0}));
+                EXPECT_EQ(impact.targetPosition, impact.position);
+                EXPECT_EQ(impact.angles, arrow.transform.angles);
+                EXPECT_EQ(impact.velocity.x, static_cast<float>(phase));
+                EXPECT_EQ(impact.key, -1);
+                EXPECT_EQ(impact.width, 30);
+                EXPECT_EQ(impact.maximumCount, 30);
+                EXPECT_EQ(impact.life, 20);
+            }
+        }
     }
 }
 

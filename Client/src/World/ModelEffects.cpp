@@ -1219,6 +1219,26 @@ std::optional<std::size_t> ModelEffects::CreateWaveEffect(const ModelEffectArgum
     return slot;
 }
 
+std::optional<std::size_t> ModelEffects::CreatePiercingShot(const ModelEffectArguments& arguments)
+{
+    constexpr std::int32_t GlowLife = 10;
+    constexpr glm::vec3 Offset{0, -100, 0};
+    constexpr double Height = 150;
+    if (arguments.type != PiercingShotGlowEffect || arguments.subtype != 0)
+        return std::nullopt;
+    const auto slot = Begin(arguments);
+    if (!slot)
+        return std::nullopt;
+    auto& effect = m_effects[*slot];
+    effect.life = GlowLife;
+    const glm::vec3 rotated =
+        Render::Models::OriginalVectorRotate(Offset, Render::Models::OriginalAngleMatrix(arguments.angles));
+    effect.transform.position.x = F32(static_cast<double>(rotated.x) + arguments.position.x);
+    effect.transform.position.y = F32(static_cast<double>(rotated.y) + arguments.position.y);
+    effect.transform.position.z = F32(static_cast<double>(rotated.z) + arguments.position.z + Height);
+    return slot;
+}
+
 std::optional<std::size_t> ModelEffects::CreatePiercingEffect(const ModelEffectArguments& arguments)
 {
     if (arguments.type != 0x115 || arguments.subtype != 1)

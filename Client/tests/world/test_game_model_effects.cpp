@@ -185,8 +185,8 @@ TEST(GameModelEffectsTest, TheShortBowTrailPublishesAndAdvancesAnimationEvenOnIt
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 2).State());
 }
 
-// 0x52d78f: la estela 0x105 sólo salta el subtipo 3; el 0 sigue por 0x52da92 → 0x602e90 con su malla, Piercing.bmd
-// (0x615700), en los dos pases del mundo. En el segundo, 0x52d66a..0x52d693 la filtra por blendMesh.
+// 0x52d78f: la estela 0x105/0 sigue por 0x52da92 → 0x602e90 con su malla, Piercing.bmd (0x615700), en los dos pases
+// del mundo. En el segundo, 0x52d66a..0x52d693 la filtra por blendMesh.
 TEST(GameModelEffectsTest, TheShortBowTrailDrawsPiercingBmdInBothNativePasses)
 {
     class TriangleModels final : public Client::Scenes::IModelLibrary
@@ -251,14 +251,6 @@ TEST(GameModelEffectsTest, TheShortBowTrailDrawsPiercingBmdInBothNativePasses)
                                                      Client::Core::Duration{}, 1, 1)
                     .HasValue());
     EXPECT_TRUE(filtered.Vertices().empty());
-    trail.objectState.blendMesh = 0;
-    trail.subtype = 3;
-    Client::Render::ModelBatch skipped;
-    skipped.Begin(Client::Render::Pass3D{});
-    ASSERT_TRUE(Client::Scenes::DrawGameModelEffects(skipped, models, std::span(&trail, 1), frustum, nullptr,
-                                                     Client::Core::Duration{}, 1, 0)
-                    .HasValue());
-    EXPECT_TRUE(skipped.Vertices().empty());
 }
 
 TEST(GameModelEffectsTest, TheShortBowTrailOnlyDisturbsKalimaForThePublishedHeroArrow)

@@ -414,7 +414,7 @@ Core::Expected<void, std::string> RingTheSpirits(ActorState& actor, std::size_t 
                                                  const CharacterStepContext& context, const SpiritRing& ring)
 {
     constexpr int Spirits = 36, DecalEvery = 20;
-    constexpr float Width = 60.0f; // 0x42700000
+    constexpr float Width = 60.0f;  // 0x42700000
     constexpr float Pitch = -10.0f; // 0xc1200000
     for (int index = 0; index < Spirits; ++index)
     {

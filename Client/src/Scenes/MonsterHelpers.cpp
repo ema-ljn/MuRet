@@ -1136,9 +1136,9 @@ Result DrawThe1bb(MonsterHelperPass& pass)
         !made.HasValue())
         return made;
     const float frame = actor.animation.frame;
-    // 0x428d5b..0x428da7: 0x518cf0(0x5e8, [ebp−0x48], c+0x1c, la luz roja, 1, sin dueño, −1, 0, 0, 0, 0), el rayo blanco,
-    // sin rand(), en el último punto que escribió 0x4010b0: el de la mano derecha. Solo en un frame del original, como
-    // sus sonidos.
+    // 0x428d5b..0x428da7: 0x518cf0(0x5e8, [ebp−0x48], c+0x1c, la luz roja, 1, sin dueño, −1, 0, 0, 0, 0), el rayo
+    // blanco, sin rand(), en el último punto que escribió 0x4010b0: el de la mano derecha. Solo en un frame del
+    // original, como sus sonidos.
     if (attacking && frame >= 9.0f && frame <= 10.0f && pass.originalFrame)
     {
         constexpr std::int16_t WhiteRay = 0x5e8;

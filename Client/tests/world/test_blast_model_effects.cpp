@@ -109,8 +109,8 @@ void Skip(CrtRandom& random, int count)
 void ReplayParticle(CrtRandom& replay, std::int32_t type, std::int32_t subtype, float scale = 1.0f)
 {
     auto twin = std::make_unique<Client::World::Particles>();
-    const auto made = twin->CreateChecked(type, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(1.0f), subtype, scale, 0.0f,
-                                          replay);
+    const auto made =
+        twin->CreateChecked(type, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(1.0f), subtype, scale, 0.0f, replay);
     ASSERT_TRUE(made.HasValue());
 }
 

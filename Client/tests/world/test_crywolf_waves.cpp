@@ -53,7 +53,8 @@ TEST(CrywolfWavesTest, BothNativeWaveSubtypesKeepTheirOwnGrowthFadeAndCommonTail
         wave.type = 0x114;
         wave.subtype = subtype;
         wave.life = 1;
-        wave.transform.scale = subtype == 2 ? 1.49f : 2.49f;
+        // 1,495f + 0,01f y 2,45f + 0,08f pasan el tope (1,5 y 2,5, 0x526e7d y 0x526f61), que los deja ahí.
+        wave.transform.scale = subtype == 2 ? 1.495f : 2.45f;
         wave.turnDirection = subtype == 2 ? 0.01f : 0.08f;
         wave.velocity = {1, 2, 3};
         Client::Render::Models::CrtRandom random(7);
@@ -145,6 +146,7 @@ TEST(CrywolfWavesTest, EveryWaveSubtypeStepsWithItsGrowthLimitAndFade)
         float growth;
         float light;
         float yaw;
+        float start = 1.0f;
     };
     const auto f = [](double value) { return static_cast<float>(value); };
     const auto d = [](std::uint32_t bits) { return static_cast<double>(std::bit_cast<float>(bits)); };
@@ -152,10 +154,14 @@ TEST(CrywolfWavesTest, EveryWaveSubtypeStepsWithItsGrowthLimitAndFade)
         Case{0, 6, f(1.0 + 0.5), f(0.5 + d(0x3dcccccdu)), f(d(0x3f36db6eu)), 0},
         Case{0, 4, 1.0f, 0.5f, f(d(0x3f36db6eu)), 0},
         Case{1, 6, 1.5f, f(0.5 + d(0x3d8f5c29u)), f(d(0x3f2aaaabu)), 0},
-        Case{1, 6, 2.0f, f(0.5 + d(0x3d8f5c29u)), f(d(0x3f2aaaabu)), 0},
+        Case{1, 6, 2.0f, f(0.5 + d(0x3d8f5c29u)), f(d(0x3f2aaaabu)), 0, 1.6f},
         Case{3, 6, 1.5f, f(0.5 + d(0x3ba3d70au)), f(d(0x3f44ec4fu)), 45},
         Case{4, 6, 1.5f, f(0.5 + d(0x3b03126fu)), f(d(0x3f555555u)), 45},
         Case{5, 6, 1.5f, f(0.5 + d(0x3c75c28fu)), f(d(0x3f44ec4fu)), 45},
+        // Los topes (0x526ec8, 0x526f0b y 0x526f61): 1,4f + 0,5 pasa el 1,5 y 2,4f + 0,5 pasa el 2,5.
+        Case{3, 6, 1.5f, f(0.5 + d(0x3ba3d70au)), f(d(0x3f44ec4fu)), 45, 1.4f},
+        Case{4, 6, std::bit_cast<float>(0x40200000u), f(0.5 + d(0x3b03126fu)), f(d(0x3f555555u)), 45, 2.4f},
+        Case{5, 6, std::bit_cast<float>(0x40200000u), f(0.5 + d(0x3c75c28fu)), f(d(0x3f44ec4fu)), 45, 2.4f},
         Case{7, 6, 1.0f, 0.5f, 1.0f, 0},
     };
     for (std::size_t index = 0; index < cases.size(); ++index)
@@ -168,7 +174,7 @@ TEST(CrywolfWavesTest, EveryWaveSubtypeStepsWithItsGrowthLimitAndFade)
         wave.type = 0x114;
         wave.subtype = probe.subtype;
         wave.life = probe.life;
-        wave.transform.scale = probe.subtype == 1 && probe.scale == 2.0f ? 1.6f : 1.0f;
+        wave.transform.scale = probe.start;
         wave.turnDirection = 0.5f;
         wave.objectState.light = 1.0f;
         Client::Render::Models::CrtRandom random(7);

@@ -83,8 +83,9 @@ struct KalimaSiegeHelperPass
 //   acción 5 el 0x62d con el pulso de +0x8a y +0x89) del hueso 100 y un rand() & 1 para la partícula 0x5f2/13 (CL11).
 //   En la acción 5, con el frame debajo de 2, el sonido 0x1db (CL10); pasado el 4, en Kalima, 0x437860 en su celda;
 //   pasado el 3, el temblor con rand() & 7; en Kalima entre el 3 y el 14, dos efectos 9 (0x518cf0) con rand() % 360 y
-//   rand() % 600. Las acciones 3 y 4 sacan el efecto 0x128 y los joints 0x6ee/14 (CL11), 0x437860 y el temblor con
-//   rand() & 15.
+//   rand() % 600. Las acciones 3 y 4 sacan el efecto 0x128 (el /0 en la x y la y del objeto con la z del hueso 49,
+//   0x43d051; el /1 en el hueso 49 a 400 de altura, 0x43d0fd; Scenes/KundunEffects), los joints 0x6ee/14 (CL11),
+//   0x437860 y el temblor con rand() & 15.
 // - 0x193, 0x194, 0x195, 0x196 y 0x197: sus sprites (el 0x194 con dos rand() % 360); el 0x196 saca la neblina 0x5ac/0
 //   del hueso 60 y, en las acciones 0 y 1, rand() % 50 por hueso; los joints 0x614/7 y 0x610/5 y la partícula
 //   0x5f2/13 cortan (CL11); la 0x5da/1 (World::MissileFireParticleKernels) y la 0x5dc/12 se crean. El 0x195 y el

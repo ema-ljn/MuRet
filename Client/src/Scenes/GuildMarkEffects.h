@@ -9,7 +9,8 @@
 #include <string>
 
 // El 0x140, la marca que 0x510ef0 pone sobre un personaje con +0x369 en 1 (0x510f4d): su alta (0x51e0cb) y su paso
-// (0x529f0c). Se dibuja por el camino común (0x52da92 → 0x602e90). 06, "Los efectos con modelo de los tipos altos".
+// (0x529f0c). Su dibujo es el caso propio de 0x6002e0 (0x602005, DrawTheHighEffectBody de Scenes/HighEffectDrawing):
+// dos pases cromados. 06, "Los efectos con modelo de los tipos altos".
 namespace Client::Render::Models
 {
 class CrtRandom;

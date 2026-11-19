@@ -520,27 +520,60 @@ TEST_F(KalimaSiegeHelperTest, KundunRoarsShakesAndDropsStonesInKalima)
     ExpectCut(Client::Scenes::DrawKalimaSiegeHelpers(pass), "0x43cec4", "0x7d325c8");
 }
 
-// Las acciones 3 y 4 de Kundun: el efecto 0x128 (0x518cf0, CL11) con lugar en la tabla corta; llena, nada. En la 4,
-// pasado el 6, veinticuatro joints 0x6ee/0xe y, en Kalima, 0x437860; pasado el 9, otra vez 0x437860; pasado el
-// 6, el temblor (rand() & 15 − 16) · 0,1.
-TEST_F(KalimaSiegeHelperTest, KundunAttacksCutInTheirEffectsAndJoints)
+// Las acciones 3 y 4 de Kundun: el efecto 0x128 (0x518cf0, Scenes/KundunEffects), sin rand(); con la tabla llena,
+// nada. En la 4, pasado el 6, veinticuatro joints 0x6ee/0xe y, en Kalima, 0x437860; pasado el 9, otra vez 0x437860;
+// pasado el 6, el temblor (rand() & 15 − 16) · 0,1.
+TEST_F(KalimaSiegeHelperTest, KundunAttacksCallTheirEffectsAndCutInTheirJoints)
 {
-    ActorState& kundun = Actor(0x192, 3, 1.0f);
-    FillParticles();
-    ASSERT_TRUE(Draw(24).HasValue());
-    EXPECT_EQ(kundun.dword60, 100);
-    kundun.animation.frame = 3.5f;
-    ExpectCut(Draw(24), "0x43d051", "0x128/0");
-    EXPECT_EQ(kundun.dword60, 0x65);
-    kundun.dword60 = 100;
-    FillEffects();
-    ASSERT_TRUE(Draw(24).HasValue());
-    EXPECT_EQ(kundun.dword60, 0x65);
+    std::uint32_t drawn = 0;
+    for (const bool full : {false, true})
+    {
+        SCOPED_TRACE(full);
+        SetUp();
+        ActorState& kundun = Actor(0x192, 3, 1.0f);
+        FillParticles();
+        if (full)
+            FillEffects();
+        ASSERT_TRUE(Draw(24).HasValue());
+        EXPECT_EQ(kundun.dword60, 100);
+        kundun.animation.frame = 3.5f;
+        const auto result = Draw(24);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(kundun.dword60, 0x65);
+        if (full)
+        {
+            EXPECT_EQ(m_random.State(), drawn);
+            continue;
+        }
+        drawn = m_random.State();
+        // 0x43cff8..0x43d051: la x y la y del objeto con la z del hueso 49; sus ángulos y su luz, el /0 y la clave −1.
+        const auto& call = m_effects->Effects()[0];
+        ASSERT_TRUE(call.alive);
+        EXPECT_EQ(call.type, 0x128);
+        EXPECT_EQ(call.subtype, 0);
+        EXPECT_EQ(call.life, 30);
+        EXPECT_EQ(call.transform.position, (glm::vec3{1000.0f, 2000.0f, 149.0f}));
+        EXPECT_EQ(call.transform.angles, kundun.angles);
+        EXPECT_EQ(call.light, kundun.light);
+        EXPECT_FALSE(call.hasOwner);
+        EXPECT_EQ(call.disturbanceState, 0xffff);
+        EXPECT_FALSE(m_effects->Effects()[1].alive);
+    }
 
+    // 0x43d09b..0x43d0fd: el /1 en el hueso 49 a 400 de altura.
     SetUp();
     Actor(0x192, 4, 5.5f).dword60 = 100;
     FillParticles();
-    ExpectCut(Draw(2), "0x43d0fd", "0x128/1");
+    {
+        const auto result = Draw(2);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        const auto& call = m_effects->Effects()[0];
+        ASSERT_TRUE(call.alive);
+        EXPECT_EQ(call.type, 0x128);
+        EXPECT_EQ(call.subtype, 1);
+        EXPECT_EQ(call.life, 30);
+        EXPECT_EQ(call.transform.position, (glm::vec3{1000.0f, 2000.0f, 400.0f}));
+    }
 
     // 0x43d19f: los veinticuatro joints 0x6ee/0xe (0x53349a: quietos, vida 10, un punto y la x de los ángulos en 20)
     // desde el hueso 49 a 400 de altura; fuera de Kalima, el temblor y nada más.

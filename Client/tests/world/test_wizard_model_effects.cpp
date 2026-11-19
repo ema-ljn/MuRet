@@ -987,6 +987,63 @@ TEST(WizardModelEffectsTest, TheBoneChipFallsAndDrawsItsTenWithoutFire)
     EXPECT_FALSE(world.particles->Any());
 }
 
+// 0x51b432..0x51b4ff, 0x51b509..0x51b5d6 y 0x51b612..0x51b658: las piedritas 0xd8 de subtipo 10 y 0xc nacen con el
+// empuje ((& 255) + 64) girado por el yaw rand() % 360, la vida (& 15) + 32, la escala ((& 3) + 15) y la caída (la /10
+// con 0,2 en double, 0,05f y + 28; la /0xc con 0,1f, 0,1f y + 8); la /0xb, con la vida 40, la escala ((& 3) + 8) ·
+// 0,8f y el yaw. En el paso, después del rand() de la luz, la /10 cae sin otro rand(), la /0xc saca el % 10 (0x523adb)
+// y la /0xb, con la vida en 10 o más, no hace nada.
+TEST(WizardModelEffectsTest, TheStonesOfSubtypesTenElevenAndTwelveAreBorn)
+{
+    for (const std::int32_t subtype : {10, 0xb, 0xc})
+    {
+        SCOPED_TRACE(subtype);
+        Harness world;
+        world.ground = -10000.0;
+        CrtRandom random(31);
+        ModelEffect& stone = world.At(Create(world, Arguments(0xd8, subtype), random));
+        CrtRandom oracle(31);
+        if (subtype == 0xb)
+        {
+            const auto scale = F32(static_cast<double>((oracle.Next() & 3) + 8) *
+                                   static_cast<double>(std::bit_cast<float>(0x3f4ccccdu)));
+            const auto yaw = static_cast<float>(oracle.Next() % 360);
+            EXPECT_EQ(stone.life, 40);
+            EXPECT_EQ(stone.transform.scale, scale);
+            EXPECT_EQ(stone.transform.angles, (glm::vec3{0.0f, 0.0f, yaw}));
+        }
+        else
+        {
+            const bool ground = subtype == 10;
+            const double pushStep = ground ? 0.2 : Tenth;
+            const double scaleStep = ground ? static_cast<double>(std::bit_cast<float>(0x3d4ccccdu)) : Tenth;
+            const auto push = F32(static_cast<double>((oracle.Next() & 255) + 64) * pushStep);
+            const std::int32_t life = (oracle.Next() & 15) + 32;
+            const auto scale = F32(static_cast<double>((oracle.Next() & 3) + 15) * scaleStep);
+            const auto yaw = static_cast<float>(oracle.Next() % 360);
+            const auto fall = static_cast<float>((oracle.Next() & 15) + (ground ? 28 : 8));
+            const glm::vec3 angles{0.0f, 0.0f, yaw};
+            EXPECT_EQ(stone.life, life);
+            EXPECT_EQ(stone.transform.scale, scale);
+            EXPECT_EQ(stone.transform.angles, angles);
+            EXPECT_EQ(stone.velocity, Client::Render::Models::OriginalVectorRotate(
+                                          {0.0f, push, 0.0f}, Client::Render::Models::OriginalAngleMatrix(angles)));
+            EXPECT_EQ(stone.turnDirection, fall);
+        }
+        EXPECT_EQ(random.State(), oracle.State());
+        const float alpha = stone.alpha;
+        ASSERT_TRUE(Client::World::StepWizardModelEffect(stone, nullptr, random, world.Services()).HasValue());
+        static_cast<void>(oracle.Next()); // 0x5208c5, la luz del paso.
+        if (subtype == 0xc)
+            static_cast<void>(oracle.Next()); // 0x523adb, el % 10 sin fuego.
+        EXPECT_EQ(random.State(), oracle.State());
+        if (subtype == 0xb)
+        {
+            EXPECT_EQ(stone.alpha, alpha);
+        }
+        EXPECT_FALSE(world.particles->Any());
+    }
+}
+
 TEST(WizardModelEffectsTest, TheLaserAcceleratesBackwards)
 {
     Harness world;

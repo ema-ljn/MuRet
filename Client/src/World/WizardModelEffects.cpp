@@ -301,9 +301,37 @@ Core::Expected<void, std::string> CreateChipCase(ModelEffect& effect, CrtRandom&
         effect.transform.scale = F32(static_cast<double>((random.Next() & 3) + 8) * Tenth);
         return {};
     }
-    if (effect.subtype == GroundStoneChipSubtype || effect.subtype == 0xb || effect.subtype == 0xc)
-        return Core::Unexpected(std::format("0x51b426: la piedrita {:#x} con el subtipo {} no está portada (CL11)",
-                                            effect.type, effect.subtype));
+    constexpr int PushMask = 255, PushBase = 64, LifeMask = 15, LifeBase = 32, ScaleMask = 3, FallMask = 15;
+    constexpr int FullTurn = 360;
+    // 0x51b432..0x51b4ff (la /10) y 0x51b509..0x51b5d6 (la /0xc): el empuje ((& 255) + 64) en y, la vida (& 15) + 32,
+    // la escala ((& 3) + 15), el yaw rand() % 360, la velocidad (el empuje girado) y la caída; la /10 con el empuje por
+    // 0,2 (double, 0x6ba1e8), la escala por 0,05f y la caída (& 15) + 28; la /0xc con los dos por 0,1f y la caída
+    // (& 15) + 8.
+    if (effect.subtype == GroundStoneChipSubtype || effect.subtype == 0xc)
+    {
+        const bool ground = effect.subtype == GroundStoneChipSubtype;
+        constexpr double GroundPush = std::bit_cast<double>(0x3fc999999999999aull); // 0x6ba1e8: 0,2
+        constexpr int GroundScaleBase = 15, GroundFallBase = 28, FallBase = 8;
+        const float push =
+            F32(static_cast<double>((random.Next() & PushMask) + PushBase) * (ground ? GroundPush : Tenth));
+        effect.life = (random.Next() & LifeMask) + LifeBase;
+        effect.transform.scale =
+            F32(static_cast<double>((random.Next() & ScaleMask) + GroundScaleBase) * (ground ? Twentieth : Tenth));
+        effect.transform.angles.z = static_cast<float>(random.Next() % FullTurn);
+        effect.velocity = Turned(glm::vec3(0.0f, push, 0.0f), effect.transform.angles);
+        effect.turnDirection = static_cast<float>((random.Next() & FallMask) + (ground ? GroundFallBase : FallBase));
+        return {};
+    }
+    // 0x51b612..0x51b658: la /0xb, vida 40, la escala ((& 3) + 8) · 0,8f y el yaw; sin velocidad ni caída.
+    if (effect.subtype == 0xb)
+    {
+        constexpr std::int32_t FadingLife = 40;
+        constexpr int FadingScaleBase = 8;
+        effect.life = FadingLife;
+        effect.transform.scale = F32(static_cast<double>((random.Next() & ScaleMask) + FadingScaleBase) * EightTenths);
+        effect.transform.angles.z = static_cast<float>(random.Next() % FullTurn);
+        return {};
+    }
     // 0x51b72b..0x51b805: el empuje (salvo el /1), la vida, la escala, el yaw, la velocidad girada y la caída.
     const float push =
         effect.subtype == RisingStoneChipSubtype ? 0.0f : F32(static_cast<double>((random.Next() & 255) + 64) * Tenth);

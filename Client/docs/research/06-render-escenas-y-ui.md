@@ -15448,6 +15448,12 @@ Los llamadores portados (cada alta con su dirección en el error):
   `(−10, 0, (r + 10) · i)`, el punto `(x, y, z + 100)` en las dos posiciones, el efecto de dueño, ancho 60, la clave 0,
   la skill 0 y sin blanco (−1). Con la vida justo en 45 − `+0x1bc`, un `0x613/7` de ángulo `10 · i` detrás de cada
   uno (`0x5232e9`). Van a la tabla del mundo por el servicio de joints (`Scenes::CreateFaunaJoint`).
+- Las piedritas `0xd8`/`0xd9` (y el `0xd5`/`0xd6` con otro subtipo que el 5) de subtipo 10, `0xb` y `0xc` (`0x51b426`,
+  `CreateChipCase`): la /10 (`0x51b432..0x51b4ff`) con el empuje ((& 255) + 64) · 0,2 (double, `0x6ba1e8`) girado por
+  el yaw `rand() % 360`, la vida (& 15) + 32, la escala ((& 3) + 15) · 0,05f y la caída (& 15) + 28; la /0xc
+  (`0x51b509..0x51b5d6`) igual con el empuje y la escala por 0,1f y la caída (& 15) + 8; la /0xb
+  (`0x51b612..0x51b658`) con la vida 40, la escala ((& 3) + 8) · 0,8f y el yaw, sin velocidad ni caída. Su paso es el
+  de `StepChip` (`0x5238be..0x523b3a`).
 - El fuego que cae (`0xc2/4`, `0x524a5f..0x524b2a`): debajo del suelo tiembla la cámara (`(rand() & 3) − 4` por
   0,1f) y recorre los 400 primeros personajes del pool (`0x524a8d..0x524b21`): dx y dy se guardan en float antes de
   mirar al personaje, y empuja al vivo, visto (`+0x16c`), que no es el héroe (`[0x743a170]`), sin `+0x389` y con la raíz

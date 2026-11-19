@@ -996,20 +996,41 @@ TEST(AttackSkillCasesTest, TheTargetCasesCutWithoutDraws)
     }
 }
 
-// 0x504cdb..0x504d7a, la 0x3c: dos 0x114/1 y un 0x115/0 sobre o, y el sonido 0x1c8. Con lugar en los joints, el primer
-// 0x114/1 corta en su primer joint 0x6e8 (0x51c25f, CL11) después de dos rand() (su escala y la del joint).
-TEST(AttackSkillCasesTest, TheWaveCaseCutsAtTheFirstSwirlJointWithRoom)
+// 0x504cdb..0x504d7a, la 0x3c: dos 0x114/1 y un 0x115/0 sobre o, y el sonido 0x1c8. Con lugar en los joints, cada
+// 0x114/1 suelta sus dos remolinos 0x6e8/0 (0x51c25f, sin dueño), cada uno con el rand() de su escala y el de su luz
+// (0x534619): siete rand() por onda.
+TEST(AttackSkillCasesTest, TheWaveCaseRaisesTwoSwirlJointsPerWaveWithRoom)
 {
     SkillWorld tested;
     tested.Striker().position = glm::vec3(1000.0f, 2000.0f, 300.0f);
     const auto stepped = tested.WithTarget(0x3c);
-    EXPECT_TRUE(HasError(stepped, "0x51c25f")) << ErrorOf(stepped);
-    EXPECT_EQ(DrawsSince(Seed, tested.random), 2);
+    ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
+    EXPECT_EQ(DrawsSince(Seed, tested.random), 14);
+    EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x1c8});
     const auto alive = AliveEffects(tested.world);
-    ASSERT_EQ(alive.size(), 1u);
+    ASSERT_EQ(alive.size(), 3u);
     EXPECT_EQ(alive.front()->type, 0x114);
-    EXPECT_EQ(alive.front()->life, 15);
-    EXPECT_TRUE(tested.sounds.empty());
+    CrtRandom replay(Seed);
+    static_cast<void>(replay.Next());
+    const auto& joints = tested.world.DrawTail().joints;
+    for (std::size_t index = 0; index < 4; ++index)
+    {
+        SCOPED_TRACE(index);
+        const float scale = static_cast<float>(replay.Next() % 40 + 70);
+        static_cast<void>(replay.Next());
+        if (index % 2 == 1)
+        {
+            static_cast<void>(replay.Next());
+            static_cast<void>(replay.Next());
+            static_cast<void>(replay.Next());
+        }
+        EXPECT_TRUE(joints[index].alive);
+        EXPECT_EQ(joints[index].type, 0x6e8);
+        EXPECT_EQ(joints[index].subtype, 0);
+        EXPECT_EQ(joints[index].width, scale);
+        EXPECT_EQ(joints[index].ownerContext, nullptr);
+    }
+    EXPECT_FALSE(joints[4].alive);
 }
 
 // Con los joints llenos, cada 0x114/1 saca cinco rand() (la escala, la de sus dos joints y el corrimiento en x y en y)

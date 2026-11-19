@@ -27,8 +27,8 @@ inline constexpr std::int16_t PiercingEffect = 0x115;
 // - la /1 (0x51c1ca): vida 15, +0x74 en 0x2000, la z + 80, la escala en (rand() % 50) · 0,01f + 0,1f, +0xe4 en 0,01f,
 //   la x de los ángulos en 90 y la z la del argumento; dos joints 0x6e8/0 de escala rand() % 40 + 70 y después la x y
 //   la y + rand() % 100 − 50 cada una.
-// Ninguno de los dos joints es de MuRet (el lote de joints de la CL11): con lugar en los joints, corta en el primero
-// (0x51c1b8 o 0x51c25f) después de su rand(); con los joints llenos, sigue sin crearlos.
+// El 0x6e8/0 lo crea el lote de joints de la CL11 (con el rand() de su luz). El 0x5ac/0 no es de MuRet: con lugar en
+// los joints, corta en el primero (0x51c1b8) después de su rand(); con los joints llenos, sigue sin crearlos.
 [[nodiscard]] Core::Expected<void, std::string> BeginTheWave(World::ModelEffect& effect,
                                                              const World::ModelEffectArguments& arguments,
                                                              const HighEffectContext& context);

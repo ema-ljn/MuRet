@@ -336,6 +336,8 @@ constexpr std::int32_t EnergyJoint = 0x619, SetEnergySubtype = 9, SkillEnergySub
 constexpr std::int32_t SummonEnergySubtype = 1, SummonDecalEnergySubtype = 3;
 // El 619/6 que el 0x813 suelta tres veces por paso (0x52cb85), sin dueño.
 constexpr std::int32_t BoltEnergySubtype = 6;
+// Los remolinos 6e8/0 y /1 del 0x114/1 (0x51c25f), sin dueño.
+constexpr std::int32_t SwirlJoint = 0x6e8;
 
 // El 0x60f/7, /0xb y /0x19 (WanderingJoints.cpp).
 bool IsWandering(std::int32_t type, std::int32_t subtype)
@@ -513,6 +515,32 @@ Core::Expected<void, std::string> CreateTargetBolt(JointState& joint, const Worl
     joint.speed = Speed;
     joint.targetPosition = request.secondPosition;
     return {};
+}
+
+// 0x5345bf..0x5346d3 y 0x534cb6: el 6e8/0 y /1, los remolinos del 0x114/1 (0x51c25f, sin dueño). Sin la cola común
+// (+0x9f2 en 0); el ancho, velocidad 20, los ángulos (−90, 0, z), vida 10, 30 puntos y la velocidad +0x9dc en 0; la /1
+// además la textura repetida (+0x9f0) en 1. La luz en 1 con rand() impar y (1; 0,8f; 0,6f) con par, y el camino +0x24
+// en la posición. Un rand().
+void CreateSwirl(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random)
+{
+    constexpr float Speed = 20, Upright = -90; // 0x41a00000 y 0xc2b40000
+    constexpr std::int32_t Life = 10, Points = 30;
+    joint.tailEnabled = false;
+    if (request.subtype == 1)
+        joint.repeatedTexture = true;
+    joint.width = request.scale;
+    joint.speed = Speed;
+    joint.angles.x = Upright;
+    joint.life = Life;
+    joint.maximumCount = Points;
+    joint.angles.y = 0;
+    joint.angles.z = request.angles.z;
+    joint.velocity = {};
+    if ((random.Next() & 1) != 0)
+        joint.light = {1, 1, 1};
+    else
+        joint.light = {1, std::bit_cast<float>(0x3f4ccccdu), std::bit_cast<float>(0x3f19999au)};
+    joint.pathIncrement = joint.position;
 }
 
 // 0x5323d3..0x5323f8, 0x53254f..0x5325c2 y 0x534cb6: el 619/9 del 5ac/3 del conjunto completo (0x52aa5d). Lo común del
@@ -829,6 +857,11 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
         return CreateSwordTrail(joint, request);
     if (request.type == 0x610 && request.subtype == 6)
         return CreateTargetBolt(joint, request);
+    if (request.type == SwirlJoint && (request.subtype == 0 || request.subtype == 1))
+    {
+        CreateSwirl(joint, request, random);
+        return {};
+    }
     if (request.type == SparkleJoint && (request.subtype == SparkleSubtype || request.subtype == WideSparkleSubtype ||
                                          request.subtype == FallingSparkleSubtype))
         return CreateSparkle(joint, request, random);
@@ -1536,6 +1569,32 @@ Core::Expected<void, std::string> StepTargetBolt(JointState& joint, Render::Mode
     return World::AddDynamicLight(lighting, joint.position, color, 2, "0x537c75");
 }
 
+// 0x53b7f1..0x53b93a: el 6e8/0 y /1, sin el movimiento común (lista de 0x53585e). Con más de 9 de vida, treinta veces
+// la cola con la matriz de los ángulos (0x535520) y la posición más (0, 0, −velocidad) girado por ella; siempre, la
+// velocidad 2 menos y la luz por 0,7142857f. Sin la cola común (+0x9f2 en 0). Sin rand().
+Core::Expected<void, std::string> StepSwirl(JointState& joint)
+{
+    constexpr std::int32_t LastQuietLife = 9, Turns = 30;
+    constexpr double Slowdown = 2.0;                                                // 0x6b8818
+    constexpr double Fade = static_cast<double>(std::bit_cast<float>(0x3f36db6eu)); // 0x6ba268, 0,7142857f
+    if (joint.life > LastQuietLife)
+    {
+        const auto matrix = Render::Models::OriginalAngleMatrix(joint.angles);
+        for (std::int32_t turn = 0; turn < Turns; ++turn)
+        {
+            if (auto appended = AppendJointTail(joint, matrix); !appended.HasValue())
+                return appended;
+            const auto moved = Render::Models::OriginalVectorRotate({0, 0, -joint.speed}, matrix);
+            for (int axis = 0; axis < 3; ++axis)
+                joint.position[axis] = F32(D(moved[axis]) + D(joint.position[axis]));
+        }
+    }
+    joint.speed = F32(D(joint.speed) - Slowdown);
+    for (int channel = 0; channel < 3; ++channel)
+        joint.light[channel] = F32(D(joint.light[channel]) * Fade);
+    return {};
+}
+
 Core::Expected<void, std::string> StepCrywolfArrowTrail(JointState& joint, Render::Models::CrtRandom* random,
                                                         World::TerrainLighting* lighting)
 {
@@ -1906,6 +1965,8 @@ StepJointsChecked(std::span<JointState> joints, Render::Models::CrtRandom* rando
         const bool crywolfArrowTrail = joint.type == 0x610 && joint.subtype == 13;
         // El del 0x95 de Kalima (0x43b0ed), con el personaje blanco de dueño.
         const bool targetBolt = joint.type == 0x610 && joint.subtype == 6;
+        // Los remolinos del 0x114/1 (0x51c25f), sin dueño.
+        const bool swirl = joint.type == SwirlJoint && (joint.subtype == 0 || joint.subtype == 1);
         const bool noria = joint.type == 0x617 && joint.subtype >= 0 && joint.subtype <= 3;
         const bool skyBolt = joint.type == 0x615 && joint.subtype == 0;
         const bool trapBolt = joint.type == 0x615 &&
@@ -1930,16 +1991,17 @@ StepJointsChecked(std::span<JointState> joints, Render::Models::CrtRandom* rando
         const bool boltEnergy = joint.type == EnergyJoint && joint.subtype == BoltEnergySubtype;
         if (!crywolf && !bloodCastle && !fairy && !spiritBeam && !icarus && !noria && !skyBolt && !trapBolt &&
             !meteor && !swordTrail && !fullSet && !summonEnergy && !boltEnergy && !crywolfArrowTrail &&
-            !piercingTrail && !piercingImpact && !skill39 && !targetBolt)
+            !piercingTrail && !piercingImpact && !skill39 && !targetBolt && !swirl)
             return Core::Unexpected(
                 std::format("0x535840: el paso del joint {} ({:#x}/{}) no está portado", i, joint.type, joint.subtype));
-        // 0x5358bc: el 60f/1 no se mueve ni calcula la matriz de 0x53590e; con la cola, 0x53c393 usa la que dejó el
-        // joint anterior en [ebp−0xe8] (AppendWithFrameMatrix).
+        // 0x5358bc: el 60f/1 y el 6e8 (la lista de 0x53585e) no se mueven ni calculan la matriz de 0x53590e; con la
+        // cola, 0x53c393 usa la que dejó el joint anterior en [ebp−0xe8] (AppendWithFrameMatrix).
         // 53590e..53597a: el movimiento común precede la lectura del dueño, incluso si muere.
-        if (!fallenSparkle)
+        const bool still = SkipsTheCommonMove(joint);
+        if (!still)
             frameMatrix = Render::Models::OriginalAngleMatrix(joint.angles);
         // 535932 también omite las sumas para unordered, conservando ceros con signo y posición.
-        if (!fallenSparkle && (joint.speed < 0 || joint.speed > 0))
+        if (!still && (joint.speed < 0 || joint.speed > 0))
         {
             const auto moved = Render::Models::OriginalVectorRotate({0, -joint.speed, 0}, *frameMatrix);
             joint.position = {static_cast<float>(static_cast<double>(joint.position.x) + moved.x),
@@ -1988,14 +2050,17 @@ StepJointsChecked(std::span<JointState> joints, Render::Models::CrtRandom* rando
         if (targetBolt)
             if (auto result = StepTargetBolt(joint, random, lighting); !result.HasValue())
                 return result;
+        if (swirl)
+            if (auto result = StepSwirl(joint); !result.HasValue())
+                return result;
         const bool actorOwned =
             swordTrail || fullSet || summonEnergy || crywolfArrowTrail || piercingTrail || targetBolt;
-        const auto* owner =
-            (joint.type == 0x613 || joint.type == 0x614 || joint.type == 0x615 || meteor || actorOwned || boltEnergy)
-                ? nullptr
-                : static_cast<const FaunaObject*>(joint.ownerContext);
+        const auto* owner = (joint.type == 0x613 || joint.type == 0x614 || joint.type == 0x615 || meteor ||
+                             actorOwned || boltEnergy || swirl)
+                                ? nullptr
+                                : static_cast<const FaunaObject*>(joint.ownerContext);
         const bool ownerless = spiritBeam || icarus || noria || skyBolt || trapBolt || meteor || actorOwned ||
-                               piercingImpact || skill39 || boltEnergy;
+                               piercingImpact || skill39 || boltEnergy || swirl;
         if (owner == nullptr && !ownerless)
             return Core::Unexpected(std::format("{}: falta el dueño durable del joint {:#x}/{}",
                                                 fairy         ? "0x536076"

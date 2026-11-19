@@ -340,12 +340,35 @@ Core::Expected<void, std::string> BeginCelestialArrow(World::ModelEffect& effect
     effect.start = effect.transform.position;
     AddRotated(effect.start, Render::Models::OriginalVectorRotate(
                                  Muzzle, Render::Models::OriginalAngleMatrix(effect.transform.angles)));
+    // 0x51a347..0x51a377: los ángulos del llamador (el tercer argumento de 0x518cf0) quedan en (0, 0, z).
+    glm::vec3 turned{0.0f, 0.0f, effect.transform.angles.z};
     if (callerAngles != nullptr)
-        *callerAngles = {0.0f, 0.0f, effect.transform.angles.z};
+        *callerAngles = turned;
     // H11: la /1 usa la señal procedural del proyecto; conserva el prefijo y el motor de trayectoria,
     // sin reconstruir la cadena visual de joints60f/19 ni consumir sus sorteos.
-    if (effect.subtype != 1 && HasJointRoom(world))
-        return Core::Unexpected(std::string("0x51a405: el joint 0x60f/0xb de la flecha 0xf8 sigue en CL11"));
+    if (effect.subtype != 1)
+    {
+        // 0x51a3d0..0x51a417: cuatro 0x60f/0xb desde la partida, con esos ángulos, la flecha de dueño, ancho 50 y el
+        // skill 1 en el segundo (WanderingJoints.cpp: ese sigue al joint y choca). Uno o ningún rand() cada uno.
+        constexpr float WanderWidth = 50.0f; // 0x42480000
+        for (std::int32_t attempt = 0; attempt < 4; ++attempt)
+        {
+            const World::FishEffectRequest request{.type = JointFamilies::DropJoint,
+                                                   .firstPosition = effect.start,
+                                                   .secondPosition = effect.start,
+                                                   .angles = turned,
+                                                   .subtype = JointFamilies::ArrowWanderSubtype,
+                                                   .ownerContext = &effect,
+                                                   .scale = WanderWidth,
+                                                   .key = -1,
+                                                   .skill = attempt == 1 ? 1 : 0,
+                                                   .skillSerial = 0,
+                                                   .target = -1};
+            if (auto made = CreateFaunaJoint(world.DrawTail().joints, request, random, JointOwnerKind::ModelEffect);
+                !made.HasValue())
+                return Core::Unexpected(std::format("0x51a405: {}", made.Error()));
+        }
+    }
     CopyTheOwnCount(effect, world, random);
     return {};
 }
@@ -1513,5 +1536,10 @@ Core::Expected<void, std::string> StepArrow(World::ModelEffect& effect, const Re
     if (!alive)
         effect.alive = false;
     return {};
+}
+
+Core::Expected<void, std::string> HitTheArrow(World::ModelEffect& effect, const ArrowStepContext& context)
+{
+    return HitWithTheArrow(effect, context);
 }
 } // namespace Client::Scenes

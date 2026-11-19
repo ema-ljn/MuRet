@@ -22,6 +22,7 @@ namespace Client::World
 {
 class FrameSprites;
 class Particles;
+struct ModelEffect;
 struct TerrainLighting;
 } // namespace Client::World
 
@@ -67,6 +68,10 @@ struct CreationServices
     std::span<const ActorState> actors{};
 };
 
+// 0x520170(efecto): el choque de la flecha que el 0x60f/0xb y el /0x19 con skill 1 piden desde su paso (0x53ae6d), con
+// la flecha en la posición del joint. Lo pone el que tiene el contexto de las flechas (Scenes/ArrowEffects.h).
+using EffectHit = std::function<Core::Expected<void, std::string>(World::ModelEffect&)>;
+
 // Lo que el paso de una familia de joints le pide al frame: el pool entero (las altas que hace el paso caen en él,
 // 0x53703d), el lugar del joint, y los servicios que el paso común ya recibe.
 struct StepServices
@@ -88,6 +93,8 @@ struct StepServices
     const std::function<double(float, float)>* terrainHeight = nullptr;
     // Los 400 personajes (0x743a16c): el 0x10f/4 y el /9 miran el de su +0xa0c (0x535d63). Sin ellos, cortan.
     std::span<const ActorState> actors{};
+    // El choque de la flecha dueña (0x520170). Sin él, el 0x60f/0xb y el /0x19 con skill 1 cortan.
+    const EffectHit* effectHit = nullptr;
     // El paso de la familia sale de 0x535840 (ret) sin la cola ni la vida de 0x53c393 (el 0x618 con el dueño muerto,
     // 0x538216).
     bool* returned = nullptr;

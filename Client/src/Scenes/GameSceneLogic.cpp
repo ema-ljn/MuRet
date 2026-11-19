@@ -36,6 +36,7 @@
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/GameCharacters.h"
 #include "Scenes/HelperTable.h"
+#include "Scenes/JointKernels.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SkillHits.h"
@@ -274,20 +275,7 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
         }
         if (IsArrowEffect(effect.type))
         {
-            const ArrowStepContext arrows{
-                .world = *m_context.world,
-                .random = m_context.cloth->random,
-                .particles = &m_context.world->Particles(),
-                .sprites = &m_sprites,
-                .lighting = &m_context.world->DynamicLighting().Lighting(),
-                .worldClock = worldClock,
-                .terrain = &StepTerrain(),
-                .terrainHeight = terrainHeight,
-                .soundRequest = [this](std::int32_t id) { m_context.world->Runtime().RequestSound(id); },
-                .send = m_session != nullptr
-                            ? std::function<void(Protocol::Outgoing)>([session = m_session](Protocol::Outgoing packet)
-                                                                      { session->SendChat(std::move(packet)); })
-                            : std::function<void(Protocol::Outgoing)>{}};
+            const ArrowStepContext arrows = ArrowContext(worldClock, terrainHeight);
             if (auto stepped = StepArrow(effect, skeleton, arrows); !stepped.HasValue())
                 return stepped;
             continue;
@@ -320,6 +308,23 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
     return {};
 }
 
+ArrowStepContext GameScene::ArrowContext(float worldClock, const std::function<double(float, float)>& terrainHeight)
+{
+    return ArrowStepContext{.world = *m_context.world,
+                            .random = m_context.cloth->random,
+                            .particles = &m_context.world->Particles(),
+                            .sprites = &m_sprites,
+                            .lighting = &m_context.world->DynamicLighting().Lighting(),
+                            .worldClock = worldClock,
+                            .terrain = &StepTerrain(),
+                            .terrainHeight = terrainHeight,
+                            .soundRequest = [this](std::int32_t id) { m_context.world->Runtime().RequestSound(id); },
+                            .send = m_session != nullptr ? std::function<void(Protocol::Outgoing)>(
+                                                               [session = m_session](Protocol::Outgoing packet)
+                                                               { session->SendChat(std::move(packet)); })
+                                                         : std::function<void(Protocol::Outgoing)>{}};
+}
+
 Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
 {
     auto& runtime = m_context.world->Runtime();
@@ -331,10 +336,13 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
     StepDamage(m_context.world->DrawTail().damage);
     if (auto stepped = StepTheModelEffects(worldClock, terrainHeight); !stepped.HasValue())
         return stepped;
+    // 0x53ae6d: el 0x60f/0xb de la flecha 0xf8 con el skill 1 la hace chocar desde el paso de los joints.
+    const JointKernels::EffectHit arrowHit = [&](World::ModelEffect& arrow)
+    { return HitTheArrow(arrow, ArrowContext(worldClock, terrainHeight)); };
     if (auto stepped = StepJoints(
             m_context.world->DrawTail().joints, m_context.cloth->random, m_context.cloth, &m_context.world->Particles(),
-            worldClock, &m_sprites, &m_context.world->DynamicLighting().Lighting(),
-            [&](std::int32_t sound) { runtime.RequestSound(sound); }, terrainHeight, m_context.world->Actors());
+            worldClock, &m_sprites, &m_context.world->DynamicLighting().Lighting(), [&](std::int32_t sound)
+            { runtime.RequestSound(sound); }, terrainHeight, m_context.world->Actors(), arrowHit);
         !stepped.HasValue())
         return stepped;
     // 0x63712d: 0x549090, las marcas del suelo, sin rand(). En la espera también corre, y acá no: la tabla

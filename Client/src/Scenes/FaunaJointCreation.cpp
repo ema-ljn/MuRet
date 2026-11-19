@@ -321,6 +321,14 @@ constexpr std::int32_t EnergyJoint = 0x619, SetEnergySubtype = 9, SkillEnergySub
 // El 619/1 que suelta el calco 0x61e/1 de la mascota (0x518900), con el héroe de dueño (+0x54).
 constexpr std::int32_t SummonEnergySubtype = 1;
 
+// El 0x60f/7, /0xb y /0x19 (WanderingJoints.cpp).
+bool IsWandering(std::int32_t type, std::int32_t subtype)
+{
+    return type == JointFamilies::DropJoint &&
+           (subtype == JointFamilies::WanderSubtype || subtype == JointFamilies::ArrowWanderSubtype ||
+            subtype == JointFamilies::PinkWanderSubtype);
+}
+
 double D(float value)
 {
     return static_cast<double>(value);
@@ -702,6 +710,11 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
         JointFamilies::CreateDropJoint(joint, request, random);
         return {};
     }
+    if (IsWandering(request.type, request.subtype))
+    {
+        JointFamilies::CreateWanderingJoint(joint, request, random);
+        return {};
+    }
     if (request.type == JointFamilies::AuraJoint && request.subtype != 1 && request.subtype != 3)
         return JointFamilies::CreateAuraJoint(joint, request);
     if (request.type == JointFamilies::StormJoint)
@@ -827,10 +840,15 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateFaunaJoint(std::sp
         request.type == JointFamilies::BlueHandBoltJoint || request.type == JointFamilies::SpiritJoint ||
         request.type == JointFamilies::SecondSpiritJoint || request.type == JointFamilies::BeamJoint ||
         request.type == JointFamilies::SpiralJoint ||
+        (request.type == JointFamilies::DropJoint && request.subtype == JointFamilies::WanderSubtype) ||
         (request.type == JointFamilies::AuraJoint && request.subtype != 1 && request.subtype != 3);
-    // El 0x618 que sigue a un efecto con modelo: la /5 de las flechas y la /0xa y /0xb del 0x11b/1.
-    const bool effectBeam = request.type == JointFamilies::BeamJoint &&
-                            (request.subtype == 5 || request.subtype == 0xa || request.subtype == 0xb);
+    // El 0x618 que sigue a un efecto con modelo (la /5 de las flechas y la /0xa y /0xb del 0x11b/1) y el 0x60f/0xb y
+    // /0x19 de la flecha 0xf8.
+    const bool effectBeam =
+        (request.type == JointFamilies::BeamJoint &&
+         (request.subtype == 5 || request.subtype == 0xa || request.subtype == 0xb)) ||
+        (request.type == JointFamilies::DropJoint &&
+         (request.subtype == JointFamilies::ArrowWanderSubtype || request.subtype == JointFamilies::PinkWanderSubtype));
     for (std::size_t i = 0; i < joints.size(); ++i)
     {
         if (joints[i].alive)
@@ -1488,6 +1506,7 @@ enum class Family : std::uint8_t
     Storm,
     Beam,
     Spiral,
+    Wandering,
 };
 
 std::optional<Family> FamilyStep(const JointState& joint)
@@ -1512,6 +1531,8 @@ std::optional<Family> FamilyStep(const JointState& joint)
         return Family::Beam;
     if (joint.type == JointFamilies::SpiralJoint)
         return Family::Spiral;
+    if (IsWandering(joint.type, joint.subtype))
+        return Family::Wandering;
     return std::nullopt;
 }
 
@@ -1591,6 +1612,8 @@ Core::Expected<void, std::string> RunFamily(JointState& joint, Family family,
         return JointFamilies::StepBeamJoint(joint, services);
     case Family::Spiral:
         return JointFamilies::StepSpiralJoint(joint, services);
+    case Family::Wandering:
+        return JointFamilies::StepWanderingJoint(joint, services);
     }
     return {};
 }
@@ -1616,7 +1639,8 @@ Core::Expected<void, std::string>
 StepJointsChecked(std::span<JointState> joints, Render::Models::CrtRandom* random, Render::Models::ClothWorld* cloth,
                   World::Particles* particles, float worldClock, World::FrameSprites* sprites,
                   World::TerrainLighting* lighting, const std::function<void(std::int32_t)>& soundRequest,
-                  const std::function<double(float, float)>& terrainHeight, std::span<const ActorState> actors)
+                  const std::function<double(float, float)>& terrainHeight, std::span<const ActorState> actors,
+                  const JointKernels::EffectHit& effectHit)
 {
     // [ebp−0xe8]: la matriz del último joint de esta vuelta que la calculó (0x53590e).
     std::optional<Render::Models::OriginalMatrix> frameMatrix;
@@ -1637,7 +1661,8 @@ StepJointsChecked(std::span<JointState> joints, Render::Models::CrtRandom* rando
                                                       .worldClock = worldClock,
                                                       .soundRequest = &soundRequest,
                                                       .terrainHeight = terrainHeight ? &terrainHeight : nullptr,
-                                                      .actors = actors};
+                                                      .actors = actors,
+                                                      .effectHit = effectHit ? &effectHit : nullptr};
             if (auto stepped = StepFamilyJoint(joint, *family, services, frameMatrix); !stepped.HasValue())
                 return stepped;
             continue;
@@ -1787,16 +1812,17 @@ StepJointsChecked(std::span<JointState> joints, Render::Models::CrtRandom* rando
 
 Core::Expected<void, std::string> StepJoints(std::span<JointState> joints)
 {
-    return StepJointsChecked(joints, nullptr, nullptr, nullptr, 0, nullptr, nullptr, {}, {}, {});
+    return StepJointsChecked(joints, nullptr, nullptr, nullptr, 0, nullptr, nullptr, {}, {}, {}, {});
 }
 
 Core::Expected<void, std::string>
 StepJoints(std::span<JointState> joints, Render::Models::CrtRandom& random, Render::Models::ClothWorld* cloth,
            World::Particles* particles, float worldClock, World::FrameSprites* sprites,
            World::TerrainLighting* lighting, const std::function<void(std::int32_t)>& soundRequest,
-           const std::function<double(float, float)>& terrainHeight, std::span<const ActorState> actors)
+           const std::function<double(float, float)>& terrainHeight, std::span<const ActorState> actors,
+           const JointKernels::EffectHit& effectHit)
 {
     return StepJointsChecked(joints, &random, cloth, particles, worldClock, sprites, lighting, soundRequest,
-                             terrainHeight, actors);
+                             terrainHeight, actors, effectHit);
 }
 } // namespace Client::Scenes

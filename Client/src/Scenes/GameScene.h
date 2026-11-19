@@ -59,6 +59,7 @@ struct WorldObject;
 
 namespace Client::Scenes
 {
+struct ArrowStepContext;
 class IModelLibrary;
 struct GameProjection;
 struct GameSceneFrameProjection;
@@ -158,6 +159,9 @@ private:
     [[nodiscard]] Core::Expected<void, std::string>
     StepTheModelEffects(float worldClock, const std::function<double(float, float)>& terrainHeight);
     [[nodiscard]] Core::Expected<void, std::string> StepTheEffects(float worldClock);
+    // Lo que el paso y el choque de una flecha (0x5208a0, 0x520170) leen del frame.
+    [[nodiscard]] ArrowStepContext ArrowContext(float worldClock,
+                                                const std::function<double(float, float)>& terrainHeight);
     [[nodiscard]] Core::Expected<void, std::string> StepTheHero(const Input::InputState& input);
     [[nodiscard]] Core::Expected<void, std::string> StepTheFauna();
     [[nodiscard]] Core::Expected<void, std::string> StepTheLeaves();

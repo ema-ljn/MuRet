@@ -53,6 +53,17 @@ inline constexpr std::int32_t DarkDropSubtype = 0x18;
 void CreateDropJoint(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random);
 void StepDropJoint(JointState& joint);
 
+// El 0x60f/7, /0xb y /0x19 (WanderingJoints.cpp): alta 0x533bbd, 0x533d5f y 0x533db8 y paso 0x53a87a..0x53b01f. Vagan
+// alrededor de su dueño con el contador de pasos: la /7 de un personaje (0x4f8592), la /0xb y la /0x19 de la flecha
+// 0xf8 (JointOwnerKind::ModelEffect, 0x51a405 y 0x51a3b7), que con el skill 1 sigue al joint y choca (0x520170).
+inline constexpr std::int32_t WanderSubtype = 7;
+inline constexpr std::int32_t ArrowWanderSubtype = 0xb;
+inline constexpr std::int32_t PinkWanderSubtype = 0x19;
+void CreateWanderingJoint(JointState& joint, const World::FishEffectRequest& request,
+                          Render::Models::CrtRandom& random);
+[[nodiscard]] Core::Expected<void, std::string> StepWanderingJoint(JointState& joint,
+                                                                   const JointKernels::StepServices& services);
+
 // El 0x10f con un personaje (ActorState) de dueño (AuraJoints.cpp): alta 0x530edd..0x531214 y paso 0x535d4f..0x5366a7.
 // La /1 (el hada) y la /3 (Blood Castle) llevan un FaunaObject y siguen en FaunaJointCreation.cpp. Las /5..7 no hacen
 // el primer tramo (0x530a5c): FaunaJointCreation.cpp las llama antes.

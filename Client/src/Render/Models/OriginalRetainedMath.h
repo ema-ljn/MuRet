@@ -59,6 +59,10 @@ struct SignedConversion
 [[nodiscard]] std::optional<double> SineDoubleProductPC53(double argument, double multiplier);
 // FCOS por un factor double retenido, con el mismo contrato que SineDoubleProductPC53.
 [[nodiscard]] std::optional<double> CosineDoubleProductPC53(double argument, double multiplier);
+// FSIN o FCOS y FSTP DWORD (0x52e3a0 y 0x52e390 seguidos de un store a float): el valor de 64 bits directo a float,
+// sin pasar por 53 bits. Mismo dominio que SineProductPC53.
+[[nodiscard]] std::optional<float> SineSpillF32(double argument);
+[[nodiscard]] std::optional<float> CosineSpillF32(double argument);
 // Valor canónico retenido; conserva clases y signo de cero. Error si no cabe exactamente en double.
 [[nodiscard]] std::optional<double> RetainedProductPC53(const Retained64& value, float multiplier);
 } // namespace Client::Render::Models::Detail

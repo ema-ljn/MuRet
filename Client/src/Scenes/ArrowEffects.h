@@ -102,4 +102,9 @@ struct ArrowStepContext
 // choque la apagó. Corta, con lo de antes y sus rand(), donde pide algo sin portar.
 [[nodiscard]] Core::Expected<void, std::string>
 StepArrow(World::ModelEffect& effect, const Render::Models::Skeleton* skeleton, const ArrowStepContext& context);
+
+// 0x520170(efecto) fuera del paso de la flecha: el 0x60f/0xb de la 0xf8 con el skill 1 la pone en su posición y la
+// hace chocar desde el paso de los joints (0x53ae6d).
+[[nodiscard]] Core::Expected<void, std::string> HitTheArrow(World::ModelEffect& effect,
+                                                            const ArrowStepContext& context);
 } // namespace Client::Scenes

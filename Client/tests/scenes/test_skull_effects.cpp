@@ -215,7 +215,8 @@ TEST(SkullEffectsTest, TheSkullCirclesOverItsOwner)
 }
 
 // 0x52b612..0x52b63b: el /0 mira su propio +0x78. Con 0x40, la vida en 10 (la cola la deja en 9) y da sus vueltas;
-// con 0x40 y 0x4000, además +0x16c en 0 y nada más. Sin los bits, gira como el /1.
+// con 0x40 y 0x4000, además +0x16c en 0 y nada más. Sin los bits, gira como el /1. Nadie escribe +0x78 en un efecto
+// (Q-C1582): el test lo pone a mano, en un estado al que el original no llega.
 TEST(SkullEffectsTest, ThePlainSkullReadsItsOwnFlags)
 {
     for (const std::uint32_t flags : {0x0u, 0x40u, 0x4040u, 0x4000u})

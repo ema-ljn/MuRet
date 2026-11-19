@@ -37,6 +37,7 @@
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
 #include "World/ModelEffects.h"
+#include "World/ParticleOwner.h"
 #include "World/TerrainPickingSegment.h"
 #include "World/TerrainWalls.h"
 #include "World/WorldTerrain.h"
@@ -1202,7 +1203,8 @@ TEST_F(MonsterViewportTest, TheSummonsTakeTheirLevelFromTheType)
 // 0x51746e..0x517555: el invocado que llega (0x98..0x9e), después del nombre y antes de las celdas, suelta cuatro
 // 0x615/1 sin dueño desde su posición, de ancho rand() % 10 más 60, 50, 50 y 60, cada uno con los dos rand() de su alta
 // (la x y la y ± 5, 0x531b1d y 0x531b37), 800 más arriba y con la cola apagada. Con el pool lleno, sólo los cuatro del
-// ancho. Después sigue como los otros recién llegados y corta en 0x4ca5f6 (el efecto 0xec).
+// ancho. Después sigue como los otros recién llegados (el círculo 0xec y el rayo 0x5d5/2, 0x4ca5f6 y 0x4ca611, sin
+// rand()) y, por ser de 0x98..0x9e, vuelve al frame 0 y suena 0x61 (0x4ca616..0x4ca642).
 TEST_F(MonsterViewportTest, ANewSummonDropsFourBoltsAfterItsName)
 {
     for (const bool full : {false, true})
@@ -1215,11 +1217,17 @@ TEST_F(MonsterViewportTest, ANewSummonDropsFourBoltsAfterItsName)
         const std::array<SummonRecordBytes, 1> records{
             {{.key = 0x0b00, .isNew = true, .type = 0x9a, .x = 130, .y = 130}}};
         const auto applied = Summons(records);
-        ASSERT_FALSE(applied.HasValue());
-        EXPECT_NE(applied.Error().find("0x4ca5f6"), std::string::npos) << applied.Error();
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
         const ActorState& summon = Actor(1);
         EXPECT_TRUE(summon.alive);
         EXPECT_EQ(summon.level, 3);
+        EXPECT_EQ(summon.animation.frame, 0.0f);
+        EXPECT_EQ(game->world.Runtime().lastSoundId, std::optional<std::int32_t>{0x61});
+        const auto effects = std::as_const(game->world.Map().effects).Effects();
+        const auto circle = std::ranges::find_if(effects, [](const Client::World::ModelEffect& effect)
+                                                 { return effect.alive && effect.type == 0xec; });
+        ASSERT_NE(circle, effects.end());
+        EXPECT_EQ(circle->ownerContext, &summon);
         constexpr std::array<double, 4> Bases{60.0, 50.0, 50.0, 60.0};
         auto expected = AfterDraws(Seed, ConstructionDraws);
         std::size_t live = 0;
@@ -1255,7 +1263,8 @@ TEST_F(MonsterViewportTest, ANewSummonDropsFourBoltsAfterItsName)
 
 // 0x4ca516..0x4ca5bf: fuera de 0x98..0x9e, el nombre es el del dueño (diez bytes), el Text 485 y el del monstruo; sin
 // Text.bmd corta en 0x4ca570. Los strcat siguen por +0x1f2 y la clave de +0x1f4 como el original (Q-C847). El recién
-// llegado corta en 0x4ca5f6.
+// llegado no camina: ArriveAsNew (alpha en 0), el círculo 0xec (0x4ca5f6) y el rayo 0x5d5/2 (0x4ca611) con él de
+// dueño, sin rand() y sin el sonido 0x61, que es de 0x98..0x9e.
 TEST_F(MonsterViewportTest, TheOtherSummonsTakeTheOwnersName)
 {
     Load(0);
@@ -1292,10 +1301,29 @@ TEST_F(MonsterViewportTest, TheOtherSummonsTakeTheOwnersName)
     EXPECT_EQ(spilled.key, 0x0c00);
 
     records[0] = {.key = 0x0c01, .isNew = true, .type = 3, .x = cell.x, .y = cell.y, .owner = "Carpincho"};
+    const std::optional<std::int32_t> lastSound = game->world.Runtime().lastSoundId;
+    CrtRandom expected = game->cloth.random;
+    expected.Discard(ArrivingRecordDraws);
     applied = Summons(records);
-    ASSERT_FALSE(applied.HasValue());
-    EXPECT_NE(applied.Error().find("0x4ca5f6"), std::string::npos) << applied.Error();
-    EXPECT_EQ(Actor(3).alpha, 0.0f);
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
+    const ActorState& arrived = Actor(3);
+    EXPECT_EQ(arrived.alpha, 0.0f);
+    EXPECT_EQ(game->cloth.random.State(), expected.State());
+    const auto effects = std::as_const(game->world.Map().effects).Effects();
+    const auto circle = std::ranges::find_if(effects, [](const Client::World::ModelEffect& effect)
+                                             { return effect.alive && effect.type == 0xec; });
+    ASSERT_NE(circle, effects.end());
+    EXPECT_EQ(circle->subtype, 0);
+    EXPECT_EQ(circle->ownerContext, &arrived);
+    EXPECT_EQ(circle->life, 30);
+    EXPECT_EQ(circle->transform.position, arrived.position);
+    const auto& particles = std::as_const(game->world.Particles()).All();
+    const auto bolt = std::ranges::find_if(particles, [](const Client::World::Particle& particle)
+                                           { return particle.alive && particle.type == 0x5d5; });
+    ASSERT_NE(bolt, particles.end());
+    EXPECT_EQ(bolt->subtype, 2);
+    EXPECT_EQ(bolt->typedOwner, (Client::World::ParticleOwner{Client::World::ParticleOwnerKind::Actor, 3}));
+    EXPECT_EQ(game->world.Runtime().lastSoundId, lastSound);
 }
 
 // 0x51743f..0x517466 con NpcName(Eng).txt cargado: la cola deja "Magic stone of %s " del 152 al 157 (0x98..0x9d) y

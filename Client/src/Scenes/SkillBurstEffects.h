@@ -62,8 +62,8 @@ void BeginTheFlameBurst(World::ModelEffect& effect);
 // 0x529dee..0x529f07: la x de los ángulos 5 menos y la y de la velocidad 8 menos; con la vida debajo de 2, el /0 y
 // dueño (+0x108, el blanco del tiro): la x de los ángulos en 90, el subtipo en 1 y, en la posición del dueño con
 // rand() % 100 − 50 más en x y en y y 1200 más en z, los joints 0x632/2 y /3 (0x529eca y 0x529eed) con el efecto de
-// dueño y ancho 50, que MuRet no tiene: con lugar en los joints corta en el primero. Si no, con el /1, el lugar libre.
-// Un dueño que no es uno de los personajes del mundo corta (0x529e3e).
+// dueño, ancho 50 y clave −1 (JointFamilies::StormJoint, un rand() cada uno); con los joints llenos, nada. Si no, con
+// el /1, el lugar libre. Un dueño que no es uno de los personajes del mundo corta (0x529e3e).
 [[nodiscard]] Core::Expected<void, std::string> StepTheArrowBlast(World::ModelEffect& effect,
                                                                   const HighEffectStepContext& context);
 } // namespace Client::Scenes

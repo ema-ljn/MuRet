@@ -644,6 +644,51 @@ TEST(ModelEffectsTest, TheStoneChipsArePushedAlongTheirDrawnYaw)
     EXPECT_EQ(random.State(), 4u);
 }
 
+// 0x518cf0(0xc8 o 0xc9, …, 0xc, 0, −1, …) → 0x51b426 → 0x51b509..0x51b5d6: la piedrita de la columna 0x5de/3
+// (0x52afe1) saca los cinco rand() de la /0 en su orden, con la escala ((& 3) + 15) · 0,1f; con la tabla llena,
+// ninguno.
+TEST(ModelEffectsTest, TheColumnChipIsBornLikeTheFirstOneButBigger)
+{
+    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
+    for (const std::int16_t type : {Client::World::FirstStoneChipEffect, Client::World::SecondStoneChipEffect})
+    {
+        SCOPED_TRACE(type);
+        ModelEffects effects;
+        Client::Render::Models::CrtRandom random(9);
+        Client::Render::Models::CrtRandom draws(9);
+        const glm::vec3 angles{0.0f, 0.0f, 30.0f};
+        const auto slot = effects.CreateStoneChip(type, {10.0f, 20.0f, 30.0f}, angles, {0.5f, 0.6f, 0.7f}, random,
+                                                  Client::World::ColumnStoneChipSubtype);
+        ASSERT_EQ(slot, std::optional<std::size_t>(0));
+        const ModelEffect& effect = effects.Effects()[0];
+        const auto push = static_cast<float>(((draws.Next() & 255) + 64) * Tenth);
+        const int life = (draws.Next() & 15) + 32;
+        const auto scale = static_cast<float>(((draws.Next() & 3) + 15) * Tenth);
+        const auto yaw = static_cast<float>(draws.Next() % 360);
+        const auto fall = static_cast<float>((draws.Next() & 15) + 8);
+        EXPECT_EQ(effect.type, type);
+        EXPECT_EQ(effect.subtype, 0xc);
+        EXPECT_EQ(effect.life, life);
+        EXPECT_EQ(effect.transform.scale, scale);
+        EXPECT_EQ(effect.transform.angles, glm::vec3(0.0f, 0.0f, yaw));
+        EXPECT_EQ(effect.velocity,
+                  Client::Render::Models::OriginalVectorRotate(
+                      {0.0f, push, 0.0f}, Client::Render::Models::OriginalAngleMatrix({0.0f, 0.0f, yaw})));
+        EXPECT_EQ(effect.turnDirection, fall);
+        EXPECT_EQ(effect.transform.position, glm::vec3(10.0f, 20.0f, 30.0f));
+        EXPECT_EQ(effect.light, glm::vec3(0.5f, 0.6f, 0.7f));
+        EXPECT_EQ(random.State(), draws.State());
+    }
+    ModelEffects full;
+    for (auto& effect : full.Effects())
+        effect.alive = true;
+    Client::Render::Models::CrtRandom random(9);
+    EXPECT_FALSE(full.CreateStoneChip(Client::World::FirstStoneChipEffect, {}, {}, glm::vec3(1.0f), random,
+                                      Client::World::ColumnStoneChipSubtype)
+                     .has_value());
+    EXPECT_EQ(random.State(), 9u);
+}
+
 // 0x518cf0(0xe5 o 0xe6, …, 0, 0, −1, …) → 0x51b659..0x51b6d6 y 0x51b72b: la muerte del 0x16b (0x4f59ca) los corre
 // rand() % 128 − 64 en x e y y rand() % 180 en z (cada uno guardado en float y sumado con un fstp) y después da los
 // cinco rand() de las piedritas: ocho en total. Con otro subtipo que el 0 (el 5 es del estallido, el 10 de la piedra

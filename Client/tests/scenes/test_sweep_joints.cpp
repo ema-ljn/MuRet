@@ -8,6 +8,7 @@
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/JointKernels.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/SkillHits.h"
 #include "Scenes/WorldMap.h"
@@ -77,16 +78,15 @@ struct SweepWorld
     Client::Core::Expected<void, std::string> Step(const ActorState* hero = nullptr)
     {
         return Client::Scenes::StepJoints(joints, random, nullptr, particles.get(), 0.0f, nullptr, nullptr, {}, {}, {},
-                                          {}, nullptr, hero, world, nullptr, send);
+                                          {}, nullptr, hero, nullptr, volley.get());
     }
 
     glm::vec3 start{1000.0f, 2000.0f, 400.0f};
     std::vector<JointState> joints = std::vector<JointState>(Last + 1);
     std::unique_ptr<Client::World::Particles> particles = std::make_unique<Client::World::Particles>();
     CrtRandom random{Seed};
-    // El mundo del héroe (el asedio, la celda y los blancos de 0x517a20) y el envío del C1 10.
-    Client::Scenes::WorldState* world = nullptr;
-    std::function<void(Client::Protocol::Outgoing)> send;
+    // El asedio, los atributos y los blancos del héroe (0x53b569..0x53b5b1).
+    std::unique_ptr<Client::Scenes::JointKernels::VolleyServices> volley;
 };
 
 constexpr std::size_t HeroSlot = 42;
@@ -137,11 +137,22 @@ struct HeroWorld
     std::vector<Client::Protocol::Outgoing> sent;
 };
 
-SweepWorld& Attach(SweepWorld& sweep, HeroWorld& hero)
+// Los servicios del juego (GameSceneLogic.cpp) sobre el mundo del héroe: el asedio y los atributos como están al
+// llamarla, y 0x517a20 con el RNG del barrido.
+void Attach(SweepWorld& sweep, HeroWorld& hero)
 {
-    sweep.world = &hero.world;
-    sweep.send = hero.Capture();
-    return sweep;
+    sweep.volley =
+        std::make_unique<Client::Scenes::JointKernels::VolleyServices>(Client::Scenes::JointKernels::VolleyServices{
+            .siegeActive = hero.world.Runtime().siegeActive,
+            .attributes = hero.world.Map().terrain.attributes.get(),
+            .skillHits = [&sweep, &hero](const Client::Scenes::SkillHitsRequest& request)
+                -> Client::Core::Expected<void, std::string>
+            {
+                const auto hit = Client::Scenes::HitTheTargetsAround(request, hero.world, sweep.random, hero.Capture());
+                if (!hit.HasValue())
+                    return Client::Core::Unexpected(hit.Error());
+                return {};
+            }});
 }
 
 // La partícula 0x5d9 con rand() & 1 en 0 y los anchos de los dos rayos (0x53b4a0..0x53b51d) de un tramo, en la réplica.
@@ -288,9 +299,10 @@ TEST(SweepJointsTest, TheFullSweepOnlyDims)
 }
 
 // 0x53b53e..0x53b567: con dueño igual al héroe ([0x743a170]), vida de más de 18 y la vuelta múltiplo de 5, el asedio o
-// los blancos de la skill (0x53b569); sin el mundo, MuRet corta ahí. Con otro dueño sigue como sin dueño (los mismos
-// rand(), rayos y partículas). Sin el héroe en el paso corta en 0x53b548, salvo con vida 18, donde no lo compara.
-TEST(SweepJointsTest, OnlyTheHeroSweepAsksForTheWorld)
+// los blancos de la skill (0x53b569); sin ellos (JointKernels::VolleyServices), MuRet corta ahí. Con otro dueño sigue
+// como sin dueño (los mismos rand(), rayos y partículas). Sin el héroe en el paso corta en 0x53b548, salvo con vida 18,
+// donde no lo compara.
+TEST(SweepJointsTest, OnlyTheHeroSweepAsksForTheSiegeAndTheTargets)
 {
     ActorState owner{};
     ActorState other{};

@@ -8,6 +8,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/MonsterBodyChain.h"
 #include "Scenes/MonsterBodyPasses.h"
+#include "Scenes/VertexEffects.h"
 #include "World/OriginalFtol.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -38,6 +39,9 @@ constexpr std::uint32_t ChromeFlags = 0x44;
 constexpr std::uint32_t ShinyFlags = 0x48;
 constexpr std::uint8_t DeathAction = 6;
 constexpr std::int32_t DeathSound = 0x87;
+// Los efectos por vértice de la muerte: las piedras 0x10a del 0x18e (0x601c01) y las 0x10c del 0x18f (0x601c3d).
+constexpr std::int32_t StoneEffects = 0x10a;
+constexpr std::int32_t GateStoneEffects = 0x10c;
 
 // Las constantes de 0x6002e0 (EDI es 1,0f desde 0x60043c).
 constexpr float Tenth = std::bit_cast<float>(0x3dcccccdu);       // 0,1
@@ -219,15 +223,22 @@ Result DrawTheGlowingMeshes(MonsterBodyFrame& frame)
     return DrawMeshPass(frame.model, 2, AdditiveFlags, args);
 }
 
-// 0x601be5..0x601c08 y 0x601c2d..0x601c44: el 0x4ee770 del 0x18e y del 0x18f, después de su sonido.
-Result CutTheDeathMesh(MonsterBodyFrame& frame, bool dies, std::int32_t effect)
+// 0x601be5..0x601c0d y 0x601c21..0x601c49: el 0x18e y el 0x18f; al morir (+0x111 en 6), el byte vivo en 0. Después,
+// el sonido 0x87 y 0x4ee770(0, efecto, 0, 0, 0) con el modelo del tipo sobre las mallas que dejó 0x5ffdf0 en este
+// dibujo (0x5786f9c), en los frames del original, y la cola (0x602365).
+LateResult EmitTheDeathMesh(MonsterBodyFrame& frame, bool dies, std::int32_t effect)
 {
     if (dies)
         frame.actor.alive = false;
     RequestBodySound(frame, DeathSound);
-    return Core::Unexpected(std::format("0x4ee770: los efectos por vértice del tipo {:#x} (0x4ee770(0, {:#x}), CL11) "
-                                        "no están portados",
-                                        frame.actor.type, effect));
+    if (!frame.originalFrame)
+        return LateNext::Tail;
+    if (frame.effects == nullptr)
+        return Core::Unexpected(
+            std::format("0x4ee770: faltan los efectos con modelo para los vértices del tipo {:#x}", frame.actor.type));
+    MonsterBodyModel& model = frame.model;
+    return Done(EmitVertexEffects(model.models, model.object, model.meshes, 0, effect, 0, *frame.effects, frame.random),
+                LateNext::Tail);
 }
 
 // 0x457e00, la vtable+4 de la clase de los bordes (0x6b8d4c), con el cuarto argumento en 1 (0x60121f): si llega a
@@ -260,12 +271,12 @@ LateResult DrawTheSpiritBody(MonsterBodyFrame& frame)
 {
     ActorState& actor = frame.actor;
     if (actor.animation.action == DeathAction)
-        return Core::Unexpected(CutTheDeathMesh(frame, true, 0x10a).Error());
+        return EmitTheDeathMesh(frame, true, StoneEffects);
     // 0x60166b..0x601b11: el contador de pasos (0x7d3a0f0) menos +0x188, con signo (JL).
     const std::int32_t steps = ReadLogicSteps(frame);
     if (static_cast<std::int32_t>(static_cast<std::uint32_t>(steps) - static_cast<std::uint32_t>(actor.stepStamp)) <
         0x19)
-        return Core::Unexpected(CutTheDeathMesh(frame, false, 0x10a).Error());
+        return EmitTheDeathMesh(frame, false, StoneEffects);
     MonsterBodyModel& model = frame.model;
     const BodyPassArgs args = ActorPassArgs(actor);
     if (auto drawn = DrawBodyPass(model, BaseFlags, args); !drawn.HasValue())
@@ -419,7 +430,7 @@ LateResult DrawTheLateCase(MonsterBodyFrame& frame)
         return DrawTheSpiritBody(frame);
     case 0x18f:
         if (actor.animation.action == DeathAction)
-            return Core::Unexpected(CutTheDeathMesh(frame, true, 0x10c).Error());
+            return EmitTheDeathMesh(frame, true, GateStoneEffects);
         return LateNext::Common;
     default:
         // El 0x198 (0x601d61 → 0x602170) y los demás: el común.

@@ -289,15 +289,15 @@ Core::Expected<void, std::string> HitTheGround(JointState& joint, const JointKer
                                                float ground)
 {
     glm::vec3 from = joint.position;
-    constexpr std::int32_t BoltJoint = 0x614, BoltSubtype = 4;
-    constexpr float BoltScale = 60.0f; // 0x42700000
-    const World::FishEffectRequest bolt{.type = BoltJoint,
+    constexpr std::int32_t GroundBoltJoint = 0x614, GroundBoltSubtype = 4;
+    constexpr float GroundBoltScale = 60.0f; // 0x42700000
+    const World::FishEffectRequest bolt{.type = GroundBoltJoint,
                                         .firstPosition = joint.position,
                                         .secondPosition = joint.position,
                                         .angles = joint.angles,
-                                        .subtype = BoltSubtype,
+                                        .subtype = GroundBoltSubtype,
                                         .ownerContext = nullptr,
-                                        .scale = BoltScale,
+                                        .scale = GroundBoltScale,
                                         .key = -1,
                                         .skill = 0,
                                         .skillSerial = 0,

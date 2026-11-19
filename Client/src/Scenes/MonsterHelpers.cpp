@@ -420,8 +420,9 @@ Result StrikeAt(MonsterHelperPass& pass, glm::vec3 point, glm::vec3 angles, cons
 
 // 0x441a8a..0x441c6e, el golpe de la 3 del 0x1a4: en la mano derecha (Monster82_RHand) con la z del personaje, el
 // cráter, el joint y la columna con los ángulos (−90, 0, z del personaje) y, la columna, con los ángulos y la luz del
-// personaje; después, en cada jugador (+0x88 en 1, el 0x20a) visto y vivo a más de 200 y menos de 1100 en el plano
-// (0x5fd0c0, en la x87) de ese punto, lo mismo en su posición, la columna con sus ángulos y la luz en blanco.
+// personaje; después, en cada uno de los primeros 400 jugadores (+0x88 en 1, el 0x20a) visto y vivo a más de 200 y
+// menos de 1100 en el plano (0x5fd0c0, en la x87) de ese punto, lo mismo en su posición, la columna con sus ángulos y
+// la luz en blanco.
 Result StrikeTheGroundOf1a4(MonsterHelperPass& pass)
 {
     ActorState& actor = pass.actor;
@@ -435,8 +436,10 @@ Result StrikeTheGroundOf1a4(MonsterHelperPass& pass)
         return struck;
     constexpr std::uint8_t PlayerClass = 1;
     constexpr double Near = 200.0, Far = 1100.0; // 0x6b8928 y 0x6b8bdc
+    // 0x441c58..0x441c68: corta en 0x69780 = 400 · 0x438; el registro 400 (el de reserva de 0x5110d0) no se recorre.
+    constexpr std::size_t SearchedPlayers = 400;
     const glm::vec3 white(1.0f);
-    for (const ActorState& other : pass.world.Actors())
+    for (const ActorState& other : pass.world.Actors().first<SearchedPlayers>())
     {
         if (other.byte88 != PlayerClass || other.type != Data::Models::PlayerSkeletonModel || !other.seen ||
             !other.alive)

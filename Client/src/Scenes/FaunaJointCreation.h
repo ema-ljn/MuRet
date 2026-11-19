@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Core/Expected.h"
-#include "Protocol/Outgoing.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/JointKernels.h"
 #include "World/IFishStepServices.h"
@@ -75,15 +74,17 @@ CreateFaunaJoint(std::span<JointState> joints, const World::FishEffectRequest& r
 // séptima: el 0x613 y el 0x6ee /0xb, /0xc, /0xe, /0xf, /0x10 y /0x12 piden el RNG y las partículas, el 0x613/0xf le
 // escribe al 0x126 dueño los ángulos, el alpha y la posición (0x539249) y el 0x61c/0 con dueño pide el héroe (`hero`,
 // [0x743a170], 0x53b548): sólo con él de dueño corta. De la octava: el 0x614/0xc y el 0x62c/5..7 con dueño piden los
-// modelos compartidos (`world`, 0x5769ad8), y el 0x62c/5..7, los sprites. De la novena: el 0x61c/0 del héroe lee el
-// asedio y la celda del mundo y manda sus blancos (0x517a20, con `send`); el 0x632/0 y /1 con dueño, al llegar al
-// suelo, posan el 0x20b de `models` y sueltan los 0x137 de sus vértices en la tabla de efectos (0x4ee770).
+// modelos compartidos (`world`, 0x5769ad8), y el 0x62c/5..7, los sprites. El 0x613/0, /5 y /0x13 de ancho 80 sueltan
+// el 0xd0 en la tabla de efectos y piden `volley` (el asedio, los atributos de 0x5f82c0 y los blancos del héroe,
+// 0x539a50). De la novena: el 0x61c/0 del héroe pide también `volley` (0x53b569); el 0x632/0 y /1 con dueño, al llegar
+// al suelo, posan el 0x20b de `models` con el modelo compartido de `world` y sueltan las cáscaras 0x137 de sus vértices
+// en la tabla de efectos (0x53c1c6).
 [[nodiscard]] Core::Expected<void, std::string>
 StepJoints(std::span<JointState> joints, Render::Models::CrtRandom& random, Render::Models::ClothWorld* cloth = nullptr,
            World::Particles* particles = nullptr, float worldClock = 0, World::FrameSprites* sprites = nullptr,
            World::TerrainLighting* lighting = nullptr, const std::function<void(std::int32_t)>& soundRequest = {},
            const std::function<double(float, float)>& terrainHeight = {}, std::span<const ActorState> actors = {},
            const JointKernels::EffectHit& effectHit = {}, World::ModelEffects* effects = nullptr,
-           const ActorState* hero = nullptr, WorldState* world = nullptr, const IModelLibrary* models = nullptr,
-           const std::function<void(Protocol::Outgoing)>& send = {});
+           const ActorState* hero = nullptr, WorldState* world = nullptr,
+           const JointKernels::VolleyServices* volley = nullptr, const IModelLibrary* models = nullptr);
 } // namespace Client::Scenes

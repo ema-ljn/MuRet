@@ -298,7 +298,7 @@ struct FallingStar
     {
         return Client::Scenes::StepJoints(
             joints, random, nullptr, nullptr, 0.0f, sprites.get(), nullptr, {}, [this](float, float) { return ground; },
-            {}, {}, effects.get(), nullptr, world, models);
+            {}, {}, effects.get(), nullptr, world, nullptr, models);
     }
 
     std::vector<JointState> joints = std::vector<JointState>(2);
@@ -510,7 +510,7 @@ struct Falling
     {
         return Client::Scenes::StepJoints(
             joints, random, nullptr, nullptr, 0.0f, sprites.get(), nullptr, {}, [this](float, float) { return ground; },
-            {}, {}, effects.get(), nullptr, world, models);
+            {}, {}, effects.get(), nullptr, world, nullptr, models);
     }
 
     const Client::World::Sprite* LiveSprite() const

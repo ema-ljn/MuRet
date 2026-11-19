@@ -1,23 +1,31 @@
 #include "Scenes/WizardEffects.h"
 
 #include "Core/Expected.h"
+#include "Data/Models/PlayerModels.h"
+#include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/Skeleton.h"
+#include "Scenes/ActorShock.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/SkillHits.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "World/BlastModelEffects.h"
 #include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
 #include "World/TerrainHeight.h"
 #include "World/WizardModelEffects.h"
 #include "World/WorldTerrain.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <format>
 #include <functional>
 #include <optional>
 #include <span>
@@ -96,15 +104,41 @@ World::WizardEffectServices WizardEffectServicesOf(WorldState& world, Render::Mo
             placement.action = action;
             world.PlaceModel(type, placement);
         },
-        .someoneToPush =
-            [&world, hero = runtime.hero](float x, float y)
+        .otherEffect = [&world, &random, sound = parts.sound](
+                           const World::ModelEffectArguments& arguments) -> Core::Expected<void, std::string>
         {
-            constexpr std::size_t PooledActors = 400; // 0x524b1b: 0x69780 / 0x438.
-            constexpr double PushRadius = 200.0;      // 0x6b8928
+            // 0x524d38: el 0xf6/2 (World/BlastModelEffects) con el meteoro que lo suelta de dueño (+0x108), que su
+            // paso lee en vivo como un efecto de la tabla.
+            const std::span<World::ModelEffect> table = world.Map().effects.Effects();
+            const auto owner = std::ranges::find_if(table, [&arguments](const World::ModelEffect& effect)
+                                                    { return &effect == arguments.owner; });
+            if (owner == table.end())
+                return Core::Unexpected(
+                    std::format("0x518cf0: el dueño del efecto {:#x}/{} no es un efecto de la tabla", arguments.type,
+                                arguments.subtype));
+            WorldRuntime& state = world.Runtime();
+            const World::BlastEffectServices services{.ownRecordDepth = &state.ownRecordDepth,
+                                                      .ownRecordCount = &world.OwnCharacter().bytef04,
+                                                      .hero = &world.Actors()[state.hero],
+                                                      .sound = sound};
+            const auto created = World::CreateBlastModelEffect(
+                world.Map().effects, arguments, World::ModelEffectOwner{.effect = &*owner}, random, services);
+            if (!created.HasValue())
+                return Core::Unexpected(created.Error());
+            return {};
+        },
+        .pushAround = [&world, hero = runtime.hero, models = parts.models](float x,
+                                                                           float y) -> Core::Expected<void, std::string>
+        {
+            constexpr std::size_t PooledActors = 400;       // 0x524b1b: 0x69780 / 0x438.
+            constexpr double PushRadius = 200.0;            // 0x6b8928
+            constexpr std::uint16_t FenrirPet = 0x1c37;     // 0x524aef: +0x318 del 0x20a con Fenrir
+            constexpr std::uint8_t PlayerPushAction = 0xc2; // 0x524b03
+            constexpr std::uint8_t MonsterPushAction = 5;   // 0x524b0a
             const auto actors = world.Actors().first<PooledActors>();
             for (std::size_t index = 0; index < actors.size(); ++index)
             {
-                const ActorState& actor = actors[index];
+                ActorState& actor = actors[index];
                 // 0x524a93..0x524aa9: dx y dy se guardan en float antes de mirar al personaje.
                 const auto dx = static_cast<float>(static_cast<double>(x) - static_cast<double>(actor.position.x));
                 const auto dy = static_cast<float>(static_cast<double>(y) - static_cast<double>(actor.position.y));
@@ -112,10 +146,28 @@ World::WizardEffectServices WizardEffectServicesOf(WorldState& world, Render::Mo
                     continue;
                 const double distance = std::sqrt(static_cast<double>(dy) * static_cast<double>(dy) +
                                                   static_cast<double>(dx) * static_cast<double>(dx));
-                if (!(distance > PushRadius))
-                    return true;
+                if (distance > PushRadius)
+                    continue;
+                // 0x4ea030 lee las acciones de 0x5769ad8 + tipo · 0xe0: primero los modelos del mapa (FaunaModels) y
+                // después los del juego, como MonsterSkeletonOf. Un modelo que no está es el registro sin acciones.
+                const Render::Models::Skeleton* skeleton = world.FaunaResources().SkeletonOf(actor.type);
+                if (skeleton == nullptr && models != nullptr)
+                    skeleton = models->SkeletonOf(actor.type);
+                if (actor.type != Data::Models::PlayerSkeletonModel)
+                {
+                    // 0x524b0a: 0x4ea030(personaje, 5).
+                    if (skeleton != nullptr)
+                        Render::Models::SetAction(actor.animation, *skeleton, MonsterPushAction);
+                    continue;
+                }
+                if (skeleton == nullptr)
+                    return Core::Unexpected(std::string("0x524afc: falta Player.bmd para el personaje que empuja el "
+                                                        "0xc2/4"));
+                // 0x524afa: 0x4e9cd0(personaje, personaje), la acción de golpe de Fenrir por las manos; si no, 0xc2.
+                Render::Models::SetAction(actor.animation, *skeleton,
+                                          actor.pet.model == FenrirPet ? FenrirHitActionOf(actor) : PlayerPushAction);
             }
-            return false;
+            return {};
         }};
 }
 
@@ -131,7 +183,8 @@ World::WizardEffectServices WizardEffectServicesOf(const CharacterStepContext& c
                          .cameraShake = nullptr,
                          .sound = context.soundRequest,
                          .send = context.send,
-                         .joints = context.joints});
+                         .joints = context.joints,
+                         .models = context.models});
 }
 
 World::ModelEffectArguments WizardArguments(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,

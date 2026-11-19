@@ -230,7 +230,7 @@ Core::Expected<void, std::string> Chip(const WizardEffectServices& services, Crt
     if (services.effects == nullptr)
         return Core::Unexpected(std::format("{}: falta la tabla de efectos (0x518cf0)", address));
     const auto type = static_cast<std::int16_t>(ChipEffect + (random.Next() & 1));
-    if (subtype != 0 && subtype != RisingStoneChipSubtype)
+    if (subtype != 0 && subtype != RisingStoneChipSubtype && subtype != SpinningStoneChipSubtype)
         return Core::Unexpected(
             std::format("{}: la piedrita {:#x} con el subtipo {} no está portada (CL11)", address, type, subtype));
     static_cast<void>(services.effects->CreateStoneChip(type, position, angles, light, random, subtype));
@@ -301,9 +301,37 @@ Core::Expected<void, std::string> CreateChipCase(ModelEffect& effect, CrtRandom&
         effect.transform.scale = F32(static_cast<double>((random.Next() & 3) + 8) * Tenth);
         return {};
     }
-    if (effect.subtype == GroundStoneChipSubtype || effect.subtype == 0xb || effect.subtype == 0xc)
-        return Core::Unexpected(std::format("0x51b426: la piedrita {:#x} con el subtipo {} no está portada (CL11)",
-                                            effect.type, effect.subtype));
+    constexpr int PushMask = 255, PushBase = 64, LifeMask = 15, LifeBase = 32, ScaleMask = 3, FallMask = 15;
+    constexpr int FullTurn = 360;
+    // 0x51b432..0x51b4ff (la /10) y 0x51b509..0x51b5d6 (la /0xc): el empuje ((& 255) + 64) en y, la vida (& 15) + 32,
+    // la escala ((& 3) + 15), el yaw rand() % 360, la velocidad (el empuje girado) y la caída; la /10 con el empuje por
+    // 0,2 (double, 0x6ba1e8), la escala por 0,05f y la caída (& 15) + 28; la /0xc con los dos por 0,1f y la caída
+    // (& 15) + 8.
+    if (effect.subtype == GroundStoneChipSubtype || effect.subtype == 0xc)
+    {
+        const bool ground = effect.subtype == GroundStoneChipSubtype;
+        constexpr double GroundPush = std::bit_cast<double>(0x3fc999999999999aull); // 0x6ba1e8: 0,2
+        constexpr int GroundScaleBase = 15, GroundFallBase = 28, FallBase = 8;
+        const float push =
+            F32(static_cast<double>((random.Next() & PushMask) + PushBase) * (ground ? GroundPush : Tenth));
+        effect.life = (random.Next() & LifeMask) + LifeBase;
+        effect.transform.scale =
+            F32(static_cast<double>((random.Next() & ScaleMask) + GroundScaleBase) * (ground ? Twentieth : Tenth));
+        effect.transform.angles.z = static_cast<float>(random.Next() % FullTurn);
+        effect.velocity = Turned(glm::vec3(0.0f, push, 0.0f), effect.transform.angles);
+        effect.turnDirection = static_cast<float>((random.Next() & FallMask) + (ground ? GroundFallBase : FallBase));
+        return {};
+    }
+    // 0x51b612..0x51b658: la /0xb, vida 40, la escala ((& 3) + 8) · 0,8f y el yaw; sin velocidad ni caída.
+    if (effect.subtype == 0xb)
+    {
+        constexpr std::int32_t FadingLife = 40;
+        constexpr int FadingScaleBase = 8;
+        effect.life = FadingLife;
+        effect.transform.scale = F32(static_cast<double>((random.Next() & ScaleMask) + FadingScaleBase) * EightTenths);
+        effect.transform.angles.z = static_cast<float>(random.Next() % FullTurn);
+        return {};
+    }
     // 0x51b72b..0x51b805: el empuje (salvo el /1), la vida, la escala, el yaw, la velocidad girada y la caída.
     const float push =
         effect.subtype == RisingStoneChipSubtype ? 0.0f : F32(static_cast<double>((random.Next() & 255) + 64) * Tenth);
@@ -914,7 +942,8 @@ Core::Expected<void, std::string> LandTheFire(ModelEffect& effect, double height
     }
     else
     {
-        // 0x524cf3..0x524d38: el 0xf6/2 (del lote del switch) con el 0xc2 de dueño y la clave 30.
+        // 0x524cf3..0x524d38: el 0xf6/2 (World/BlastModelEffects, por otherEffect) con el 0xc2 de dueño, la clave 30,
+        // los ángulos en 0 y la luz (0; 0,5; 0); no saca rand().
         const ModelEffectArguments burst{.type = MeteorBurst,
                                          .position = at,
                                          .angles = {},
@@ -923,7 +952,7 @@ Core::Expected<void, std::string> LandTheFire(ModelEffect& effect, double height
                                          .owner = &effect,
                                          .key = 30};
         if (!services.otherEffect)
-            return Core::Unexpected(std::string("0x524d38: el meteoro suelta el 0xf6/2, del lote del switch (CL11)"));
+            return Core::Unexpected(std::string("0x524d38: falta el alta del 0xf6/2 que suelta el meteoro (0x518cf0)"));
         if (auto created = services.otherEffect(burst); !created.HasValue())
             return created;
         const int dust = subtype == 7 ? 7 : subtype == 8 ? 5 : 15;
@@ -1100,12 +1129,11 @@ Core::Expected<void, std::string> StepFire(ModelEffect& effect, float luminosity
         *services.cameraShake = F32(static_cast<double>((random.Next() & 3) - 4) * Tenth);
         // 0x524a8d..0x524b21: los personajes cercanos van a 0x4e9cd0 (el 0x20a con +0x318 en 0x1c37) o a 0x4ea030
         // (0xc2 el 0x20a, 5 los demás).
-        if (!services.someoneToPush)
+        if (!services.pushAround)
             return Core::Unexpected(std::string("0x524a8d: faltan los personajes del pool (0x743a16c)"));
-        if (services.someoneToPush(at.x, at.y))
-            return Core::Unexpected(
-                std::string("0x524a8d: el 0xc2/4 empuja a los personajes cercanos (0x4e9cd0 y 0x4ea030) (CL11)"));
-        // 0x524b27: sin nadie, cae en el suelo (fld [ebp-0x7c]; jmp 0x524c64).
+        if (auto pushed = services.pushAround(at.x, at.y); !pushed.HasValue())
+            return pushed;
+        // 0x524b27: con o sin empujados, cae en el suelo (fld [ebp-0x7c]; jmp 0x524c64).
         if (auto landed = LandTheFire(effect, D(ground), local, random, services); !landed.HasValue())
             return landed;
         return FireGlow(effect, luminosity, local, random, services);
@@ -1157,10 +1185,53 @@ Core::Expected<void, std::string> StepInnerCircle(ModelEffect& effect, CrtRandom
             return Core::Unexpected(owner.Error());
         if (effect.life <= 44 - owner.Value().byte1bc)
             return {};
-        // 0x5231f6..0x5232f8: 36 joints 613/6 en abanico y, en el primer paso, 36 613/7. El primero saca su
-        // rand() % 10 (0x52321f) antes del alta del joint (0x52328c), que corta.
-        static_cast<void>(random.Next());
-        return Core::Unexpected(std::format("0x52328c: el 0xcb/1 suelta los joints {:#x}/6 (CL11)", SnowBlastJoint));
+        // 0x5231f6..0x5232f8: 36 joints 613/6 en abanico y, con la vida en 45 − +0x1bc, un 613/7 detrás de cada uno.
+        // Los ángulos locales son (−10, 0, z) y el punto (x, y, z + 100), el mismo para las dos posiciones; el efecto
+        // es el dueño, de ancho 60, con la clave 0, la skill 0 y sin blanco.
+        constexpr int Rays = 36;               // 0x5232f2: 0x24
+        constexpr std::int32_t Spread = 10;    // 0x523225: rand() % 10
+        constexpr double SpreadBase = 10.0;    // 0x6b87a8
+        constexpr double Rise = 100.0;         // 0x6b86b4
+        constexpr float Tilt = -10.0f;         // 0x523208: 0xc1200000
+        constexpr float RayWidth = 60.0f;      // 0x523234: 0x42700000
+        constexpr std::int32_t RayKey = 0;     // 0x523230
+        constexpr std::int32_t FirstStep = 45; // 0x523299: 0x2d − +0x1bc
+        const std::int32_t firstStep = FirstStep - owner.Value().byte1bc;
+        glm::vec3 angles{Tilt, 0.0f, 0.0f};
+        for (int ray = 0; ray < Rays; ++ray)
+        {
+            const auto turn = static_cast<float>(ray); // 0x523205: fild y fstp a [ebp+8]
+            const auto spread = static_cast<std::int32_t>(random.Next() % Spread);
+            angles.z = F32((static_cast<double>(spread) + SpreadBase) * D(turn));
+            glm::vec3 point{effect.transform.position.x, effect.transform.position.y,
+                            F32(D(effect.transform.position.z) + Rise)};
+            if (auto joint = Joint(services, "0x52328c",
+                                   {.type = SnowBlastJoint,
+                                    .first = point,
+                                    .second = point,
+                                    .angles = angles,
+                                    .subtype = 6,
+                                    .owner = &effect,
+                                    .scale = RayWidth,
+                                    .key = RayKey});
+                !joint.HasValue())
+                return joint;
+            if (effect.life != firstStep)
+                continue;
+            angles.z = F32(D(turn) * SpreadBase); // 0x5232b0
+            if (auto joint = Joint(services, "0x5232e9",
+                                   {.type = SnowBlastJoint,
+                                    .first = point,
+                                    .second = point,
+                                    .angles = angles,
+                                    .subtype = 7,
+                                    .owner = &effect,
+                                    .scale = RayWidth,
+                                    .key = RayKey});
+                !joint.HasValue())
+                return joint;
+        }
+        return {};
     }
     if (effect.subtype == 2)
     {

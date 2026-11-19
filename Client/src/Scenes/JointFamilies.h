@@ -114,8 +114,12 @@ CreateBeamJoint(JointState& joint, const World::FishEffectRequest& request, Rend
 // El 0x632/7 y sus tres 0x632/6 (StormJoints.cpp): alta 0x534b27 y 0x534a16 y paso 0x53bec2. La /6 salta el primer
 // tramo (0x530a5c); FaunaJointCreation.cpp crea los tres /6 al final del alta de la /7 (0x534b3f..0x534bc0). La /5, la
 // estrella que cae del pulso 0x61c/0 del asedio (0x52c266, con el efecto de dueño, que no lee): alta 0x534bcb y paso
-// 0x53c0a5.
+// 0x53c0a5. La /0..3 caen como la /5 (la /0 de la 0x44, 0x4fe235, y la /1 de la 0x47, 0x4fe4e7, con el personaje
+// blanco de dueño, que sólo leen al llegar al suelo); la /4 (el rayo del 0x13a, 0x51e01a) sigue a su efecto de dueño:
+// alta 0x534977 y paso 0x53be90.
 inline constexpr std::int32_t StormJoint = 0x632;
+inline constexpr std::int32_t LastFallingSubtype = 3;
+inline constexpr std::int32_t BlastSubtype = 4;
 inline constexpr std::int32_t FallingStarSubtype = 5;
 inline constexpr std::int32_t BoltSubtype = 6;
 inline constexpr std::int32_t StormSubtype = 7;

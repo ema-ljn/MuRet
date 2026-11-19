@@ -127,17 +127,6 @@ glm::vec3 CaseLight(const ActorState& actor)
     return flared ? glm::vec3(std::bit_cast<float>(0x3e99999au), 0.5f, 1.0f) : glm::vec3(1.0f);
 }
 
-Core::Expected<void, std::string> JointThenSound(std::uint32_t address, std::string_view what, std::uint8_t skill,
-                                                 std::size_t slot, std::int32_t sound,
-                                                 const CharacterStepContext& context)
-{
-    if (HasJointRoom(context))
-        return CutAt(address, what, skill, slot);
-    if (sound >= 0)
-        RequestTheSound(context, sound);
-    return {};
-}
-
 // 0x530860(0x613, desde, hasta, ángulos, subtipo, o, ancho, key, skill, serial, −1): un joint 0x613 colgado de o, con
 // lo que su alta pide al paso (el sonido de la /1 y el registro propio de la /0). Con el pool lleno, nada.
 struct SpiritJointRequest
@@ -687,18 +676,41 @@ Core::Expected<void, std::string> DropTheIceStorm(const ActorState& actor, const
 }
 
 // 0x4fe190..0x4fe24e (la 0x44, el subtipo 0) y 0x4fe442..0x4fe500 (la 0x47, el 1): con un blanco que no es o, el joint
-// 0x632 del blanco hacia sí mismo (z + 0x6ba198) y el sonido 0x267.
-Core::Expected<void, std::string> BindTheTarget(ActorState& actor, std::size_t slot, std::uint8_t skill,
+// 0x530860(0x632, p, p, los ángulos del blanco, subtipo, blanco, 120, −1, 0, 0, −1) con p la posición del blanco con
+// la z + 1200 (0x6ba198, en la x87 y guardada en float), que cae sobre él (StormJoints.cpp), y el sonido 0x267, se haya
+// creado o no.
+Core::Expected<void, std::string> BindTheTarget(ActorState& actor, std::size_t slot,
                                                 const CharacterStepContext& context, std::uint32_t read,
-                                                std::uint32_t joint)
+                                                std::uint32_t joint, std::int32_t subtype)
 {
     const auto target = TargetOf(actor, slot, context, read);
     if (!target.HasValue())
         return Core::Unexpected(target.Error());
     if (target.Value() == nullptr || target.Value() == &actor)
         return {};
+    if (context.joints.empty())
+        return Core::Unexpected(std::format("{:#x}: faltan los joints del frame (0x530860)", joint));
+    ActorState& bound = *target.Value();
+    constexpr double Height = 1200.0; // 0x6ba198
+    constexpr float Width = 120.0f;   // 0x42f00000
+    glm::vec3 from{bound.position.x, bound.position.y, F32(D(bound.position.z) + Height)};
+    const World::FishEffectRequest request{.type = JointFamilies::StormJoint,
+                                           .firstPosition = from,
+                                           .secondPosition = from,
+                                           .angles = bound.angles,
+                                           .subtype = subtype,
+                                           .ownerContext = &bound,
+                                           .scale = Width,
+                                           .key = -1,
+                                           .skill = 0,
+                                           .skillSerial = 0,
+                                           .target = -1};
+    if (auto created = CreateFaunaJoint(context.joints, request, context.random, JointOwnerKind::Actor);
+        !created.HasValue())
+        return Core::Unexpected(std::format("{:#x}: {}", joint, created.Error()));
     constexpr std::int32_t BindSound = 0x267;
-    return JointThenSound(joint, "el joint 0x632 sobre el blanco (0x530860)", skill, slot, BindSound, context);
+    RequestTheSound(context, BindSound);
+    return {};
 }
 
 // 0x4fe383..0x4fe43d, la 0x46: con blanco, 0x534f90(0x10f, blanco, 4) y (…, 9), el calco 0x61e/6 sobre él (0x518cf0)
@@ -970,7 +982,7 @@ Core::Expected<void, std::string> StepTheHeadSkill(ActorState& actor, std::size_
     case 0x43:
         return CallTheStorm(actor, context);
     case 0x44:
-        return BindTheTarget(actor, slot, skill, context, 0x4fe1a6, 0x4fe235);
+        return BindTheTarget(actor, slot, context, 0x4fe1a6, 0x4fe235, 0);
     case 0x45:
         return RingTheSpirits(actor, slot, skill, context,
                               {.subtype = 0x15,
@@ -981,7 +993,7 @@ Core::Expected<void, std::string> StepTheHeadSkill(ActorState& actor, std::size_
     case 0x46:
         return FreeTheTarget(actor, slot, skill, context);
     case 0x47:
-        return BindTheTarget(actor, slot, skill, context, 0x4fe458, 0x4fe4e7);
+        return BindTheTarget(actor, slot, context, 0x4fe458, 0x4fe4e7, 1);
     case 0x48:
         return RaiseTheAuras(actor, context);
     case 0x35:

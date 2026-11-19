@@ -11899,7 +11899,7 @@ registro propio abierto y cerrado: 3.848 en 0) y los de las lecturas de `+0x38e`
 | `0x37`, `0x38` | `0x4fdfb3`, `0x4fdfe4` | solo `o+0x8c` y `o+0x8e` | el final |
 | `0x30` | `0x4fe015` | 36 joints `0x613`/2 | `0x4fe0e4` (CL11) |
 | `0x43` | `0x4fe147` | el joint `0x632`/7 sobre o | `0x4fe172` (CL11) |
-| `0x44`, `0x47` | `0x4fe190`, `0x4fe442` | con el blanco de `+0x3a4` (`MOVSX`, sin rango, Q-C1113) que no es o, el joint `0x632` y el sonido `0x267` | `0x4fe235`, `0x4fe4e7` (CL11) |
+| `0x44`, `0x47` | `0x4fe190`, `0x4fe442` | con el blanco de `+0x3a4` (`MOVSX`, sin rango, Q-C1113) que no es o, el joint `0x632/0` o `/1` desde el blanco 1200 más arriba, con él de dueño (cae sobre él), y el sonido `0x267` aunque el pool esté lleno | — (CL11, octava vuelta del lote joints; el joint corta al llegar al suelo, `0x53c1c6`) |
 | `0x45` | `0x4fe253` | 36 joints `0x613`/`0x15` | `0x4fe322` (CL11) |
 | `0x46` | `0x4fe383` | con blanco, `0x534f90(0x10f, blanco, 4)` y `(…, 9)`, el calco `0x61e`/6 sobre él y el sonido `0x269` | ~~`0x4fe424` (CL11)~~ (portado: el calco de colores, [Los efectos con modelo de los tipos altos](#los-efectos-con-modelo-de-los-tipos-altos)) |
 | `0x48` | `0x4fe505` | `o+0x78` en 0 entero (Q-C1118) y seis joints `0x10f` | `0x4fe590` (CL11) |
@@ -14544,6 +14544,24 @@ en un lugar de más adelante pasa en la misma vuelta de `0x53c670`.
   estrictamente arriba de la z, la z queda ahí y, la primera vez (cola prendida y clave en 0), la onda `0x6eb/4` con la
   luz (1; 0,8f; 0,3f) en la posición y con los ángulos (`0x53c295`, un `rand()` si hay lugar); después la clave en 1, la
   velocidad en −20 y la luz por 0,8333333f. Siempre el sprite `0x60f` de escala 2,5 con la luz y `rand() % 360`.
+- **`0x632/0..4`** (`StormJoints.cpp`, octava vuelta). La /0..3 caen como la /5 (la misma alta y el mismo paso): la
+  /0 de la `0x44` (`0x4fe235`) y la /1 de la `0x47` (`0x4fe4e7`) desde el blanco con la z + 1200 (`0x6ba198`, en la x87
+  y guardada en float), con sus ángulos, ancho 120, la clave en −1 y el blanco de dueño (`+0x54`), con el sonido `0x267`
+  se cree o no; la /2 y la /3 no tienen llamador conocido. Alta (`0x534bcb..0x534cb6`): como la /5 hasta `+0x9ec`; la
+  /2 y la /3 (`0x534c1e..0x534c54`) con velocidad 30, `+0x9ec` en 300 y la textura `0x62c` y `0x62b` (la /0 y la /1
+  conservan la `0x632`); todas salvo la /5 con los ángulos en (90, 0, 0) (`0x534c97`), y `+0x3c` con los ángulos. Un
+  `rand()`. Paso (`0x53c0a5..0x53c390`): la /2 primero gira la z `rand() % 10 + 10` (en la x87, rand + z + 10); después
+  como la /5, con el suelo a 150 o 300 debajo del terreno. Al llegar, con la cola y la clave distinta de 1: la /0 y la
+  /1 con dueño posan el modelo `0x20b` (`0x5769ad8` + `0x1c9a0`, `0x4eb860` y `0x4ebc80`) con los ángulos y la
+  posición del dueño y `0x4ee770(0, 0x137, subtipo, 0, 0)` suelta los efectos `0x137` de sus vértices (MuRet corta en
+  `0x53c1c6`, P-C470); sin dueño, nada; la /2 y la /3, la onda `0x6eb/4` con la luz (0,3f; 0,8f; 1). Después la /5 pone
+  la clave en 1 y la velocidad en −20; las demás apagan la cola (`0x53c2b8`). Siempre el sprite con `rand() % 360`: el
+  `0x60f` de escala 1 con la luz la /0 y la /1 y el `0x5fe` de escala 1,6f con (0; 1; 1) la /2 y la /3. La /4 es la del
+  `0x13a` (`0x51e01a`, ancho 40, clave `0x32`, el efecto de dueño). Alta `0x534977..0x534a08`: el ancho, velocidad 0, el
+  pase (`+0x64`) en 1, la textura `0x62b`, la luz en 1, la velocidad `+0x9dc..+0x9e4` en 0, 20 puntos, vida 30, la
+  tanda en 0 y la posición y los ángulos del dueño, sin `rand()`; sin dueño, el original apaga el lugar y desreferencia
+  el puntero nulo (`0x5349d3`, MuRet corta). Paso `0x53be90..0x53bebd` y `0x53c076..0x53c0a0`: sin dueño se apaga; con
+  él toma su byte vivo y su posición y, con menos de 15 de vida, la luz por 0,7692308f (`0x6ba240`).
 - **`0x615/5` y `/6`** (`FaunaJointCreation.cpp`, con el `/2` y el `/7`, quinta vuelta): el rayo del `0x615` de Kalima
   en sus últimas vidas pares (`0x52b560`) y los dos del pulso `0x61c/1` del asedio (`0x52c31e`, `0x52c342`, con él de
   dueño). Alta `0x531b0c..0x531bfc`: la /5 con la luz (1; 0,5; 0,2f); la /6 con velocidad 0,3f, la luz en 1 y otros 700

@@ -689,32 +689,64 @@ TEST(AttackSkillCasesTest, AFullTableSkipsTheQuakeButNotItsSound)
     EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x95}));
 }
 
-// 0x44 y 0x47: el blanco de +0x3a4 sin rango; sin blanco o con o mismo, nada; con otro, el joint 0x632 (CL11); fuera
-// del pool, MuRet corta en la lectura.
-TEST(AttackSkillCasesTest, TheBindingSkillsLookAtTheirTarget)
+// 0x44 y 0x47: el blanco de +0x3a4 sin rango; sin blanco o con o mismo, nada; fuera del pool, MuRet corta en la
+// lectura. Con otro, el joint 0x632/0 (la 0x44, 0x4fe235) o /1 (la 0x47, 0x4fe4e7) 1200 por encima del blanco, con sus
+// ángulos, él de dueño, ancho 120 y key −1 (el alta 0x534bcb: vida 40, 10 puntos, velocidad 70, +0x9f1 en rand() & 1,
+// +0x9ec en 150 y los ángulos en (90, 0, 0)), y el sonido 0x267; con el pool lleno, sin el joint ni su rand(), pero con
+// el sonido.
+TEST(AttackSkillCasesTest, TheBindingSkillsDropAStormOnTheirTarget)
 {
     struct Case
     {
         std::uint8_t skill;
         std::string_view read;
-        std::string_view joint;
+        std::int32_t subtype;
     };
-    for (const Case& probe : {Case{0x44, "0x4fe1a6", "0x4fe235"}, Case{0x47, "0x4fe458", "0x4fe4e7"}})
+    for (const Case& probe : {Case{0x44, "0x4fe1a6", 0}, Case{0x47, "0x4fe458", 1}})
     {
         SCOPED_TRACE(int{probe.skill});
-        {
-            SkillWorld tested;
-            EXPECT_TRUE(tested.Head(probe.skill).HasValue());
-            tested.Striker().attackTarget = static_cast<std::uint16_t>(StrikerSlot);
-            EXPECT_TRUE(tested.Head(probe.skill).HasValue());
-            tested.Striker().attackTarget = static_cast<std::uint16_t>(VictimSlot);
-            EXPECT_TRUE(HasError(tested.Head(probe.skill), probe.joint));
-            tested.Striker().attackTarget = std::uint16_t{0x8000};
-            EXPECT_TRUE(HasError(tested.Head(probe.skill), probe.read));
-            tested.Striker().attackTarget = std::uint16_t{500};
-            EXPECT_TRUE(HasError(tested.Head(probe.skill), probe.read));
-            EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
-        }
+        SkillWorld tested;
+        EXPECT_TRUE(tested.Head(probe.skill).HasValue());
+        tested.Striker().attackTarget = static_cast<std::uint16_t>(StrikerSlot);
+        EXPECT_TRUE(tested.Head(probe.skill).HasValue());
+        tested.Striker().attackTarget = std::uint16_t{0x8000};
+        EXPECT_TRUE(HasError(tested.Head(probe.skill), probe.read));
+        tested.Striker().attackTarget = std::uint16_t{500};
+        EXPECT_TRUE(HasError(tested.Head(probe.skill), probe.read));
+        EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
+        EXPECT_TRUE(tested.sounds.empty());
+
+        tested.Striker().attackTarget = static_cast<std::uint16_t>(VictimSlot);
+        tested.Victim().position = glm::vec3(1500.0f, 1600.0f, 20.0f);
+        tested.Victim().angles = glm::vec3(0.0f, 0.0f, 135.0f);
+        const auto struck = tested.Head(probe.skill);
+        ASSERT_TRUE(struck.HasValue()) << ErrorOf(struck);
+        const JointState& storm = tested.joints[0];
+        ASSERT_TRUE(storm.alive);
+        EXPECT_EQ(storm.type, 0x632);
+        EXPECT_EQ(storm.subtype, probe.subtype);
+        EXPECT_EQ(storm.ownerKind, Client::Scenes::JointOwnerKind::Actor);
+        EXPECT_EQ(storm.ownerContext, &tested.Victim());
+        EXPECT_EQ(storm.position, glm::vec3(1500.0f, 1600.0f, 1220.0f));
+        EXPECT_EQ(storm.angles, glm::vec3(90.0f, 0.0f, 0.0f));
+        EXPECT_EQ(storm.bendAngles, glm::vec3(90.0f, 0.0f, 0.0f));
+        EXPECT_EQ(storm.width, 120.0f);
+        EXPECT_EQ(storm.life, 40);
+        EXPECT_EQ(storm.maximumCount, 10);
+        EXPECT_EQ(storm.speed, 70.0f);
+        EXPECT_EQ(storm.field9ec, 150);
+        EXPECT_EQ(storm.key, 0);
+        CrtRandom expected{Seed};
+        EXPECT_EQ(storm.orientation, expected.Next() & 1);
+        EXPECT_EQ(DrawsSince(Seed, tested.random), 1);
+        EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x267});
+
+        for (JointState& joint : tested.joints)
+            joint.alive = true;
+        const CrtRandom before = tested.random;
+        ASSERT_TRUE(tested.Head(probe.skill).HasValue());
+        EXPECT_EQ(tested.random.State(), before.State());
+        EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x267, 0x267}));
     }
 }
 

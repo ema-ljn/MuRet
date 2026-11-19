@@ -1026,7 +1026,9 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateFaunaJoint(std::sp
         (request.type == JointFamilies::DropJoint && request.subtype == JointFamilies::WanderSubtype) ||
         (JointFamilies::IsOrbit(request.type, request.subtype) && request.subtype == JointFamilies::ColumnSubtype) ||
         request.type == JointFamilies::PlasmaJoint ||
-        (request.type == JointFamilies::AuraJoint && request.subtype != 1 && request.subtype != 3);
+        (request.type == JointFamilies::AuraJoint && request.subtype != 1 && request.subtype != 3) ||
+        (request.type == JointFamilies::StormJoint && request.subtype >= 0 &&
+         request.subtype <= JointFamilies::LastFallingSubtype);
     // El 0x618 que sigue a un efecto con modelo (la /5 de las flechas y la /0xa y /0xb del 0x11b/1) y el 0x60f/0xb y
     // /0x19 de la flecha 0xf8.
     const bool effectBeam =
@@ -1035,9 +1037,11 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateFaunaJoint(std::sp
         (request.type == JointFamilies::DropJoint &&
          (request.subtype == JointFamilies::ArrowWanderSubtype || request.subtype == JointFamilies::PinkWanderSubtype));
     // Los del pulso 0x61c del asedio, con él de dueño, que no leen: el 0x632/5 (0x52c266) y el 0x615/6 (0x52c31e); y
-    // los del 0x812 (0x52c9a7 y 0x52c9da), el 0x60f/0xc y el /4, que lee su luz.
+    // los del 0x812 (0x52c9a7 y 0x52c9da), el 0x60f/0xc y el /4, que lee su luz. También el 0x632/4 del 0x13a
+    // (0x51e01a), que lo sigue.
     const bool pulseJoint =
-        (request.type == JointFamilies::StormJoint && request.subtype == JointFamilies::FallingStarSubtype) ||
+        (request.type == JointFamilies::StormJoint &&
+         (request.subtype == JointFamilies::FallingStarSubtype || request.subtype == JointFamilies::BlastSubtype)) ||
         (request.type == 0x615 && request.subtype == 6) || JointFamilies::IsHelix(request.type, request.subtype);
     // El 0x6ee/0x12 del 0x125 de Kundun (0x51ce91), que le escribe el alpha y la posición en su paso (0x539494), y el
     // 0x613/0xf del 0x126 (0x51cf45), que le escribe los ángulos, el alpha y la posición (0x539249).

@@ -1639,7 +1639,8 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
                                         },
                                         .retainedPose = &carry,
                                         .publishProjectedPose = true,
-                                        .objectDrawCounter = &CharacterWorld().Runtime().objectDrawCounter});
+                                        .objectDrawCounter = &CharacterWorld().Runtime().objectDrawCounter,
+                                        .onFailure = [&](const std::string& error) { m_failure = error; }});
     // 0x52d620(0): los efectos con modelo, después de los objetos.
     const auto effects = DrawModelEffects(
         canvas.models, m_worldModels, CharacterWorld().Map().effects.Effects(),

@@ -14721,6 +14721,8 @@ Los llamadores portados (cada alta con su dirección en el error):
   dueño, cuya luz `+0xf4` pisa cada alta con `(0,4f; 0,3f; 0,2f)`. Lo piden la bandera `0x20` sin su bit
   (`0x4e67fc`, `0x4e6825`) y la respuesta de la `0x33` (`0x4cd6ff`, `0x4cd72b`), antes de parar al blanco.
 - `0x4f4a10`: el `0x27` crea la sierra `0xd4/0` sin dueño (`0x4f4f5b`) antes del sonido `0x10`.
+- `0x602ed0` en el mapa 55: el objeto `0x59` con `ftol(reloj del mundo) % 8000 >= 7950` suelta un meteoro `0xc2/9`
+  (`0x604427..0x6044b2`); el login no tiene la tabla de los efectos con modelo y corta en `0x604427` (P-C401 a).
 - `0x4f5660`: el jugador de subtipo `0xd1..0xd3` y el `0x170` sueltan un `0xd5/0` y diez `0xd6/0` sin dueño (`0x4f58c2`,
   `0x4f58e7`; `0x4f595d`, `0x4f5982`), cinco `rand()` cada uno, antes del sonido `0x7c`.
 

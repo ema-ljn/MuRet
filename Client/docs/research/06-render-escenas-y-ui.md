@@ -14694,6 +14694,49 @@ intermedio dibuja una copia del retrato con la copia del `rand()` del frame, sin
 recursos del mundo (`GameUiContext::worldEntry`, `ChatReceiveContext::worldEntry`): el primer pedido crea el
 `LetterPortrait`.
 
+### Los efectos con modelo de los magos
+
+CL11, lote magos (2026-11-19). *Estático*: leído en el binario, sin una corrida del original.
+
+`World::WizardModelEffects` porta los tipos `0xbd`, `0xc1`, `0xc2`, `0xc3`, `0xc5`, `0xc7`, `0xcb`, `0xcc`, `0xcd`,
+`0xce`, `0xcf`, `0xd0`, `0xd4`, `0xd5`, `0xd6` y `0xd7` (con sus piedritas `0xd8` y `0xd9`): el alta de `0x518cf0`, el
+paso de `0x5208a0` con la cola `0x52cb98`, sus `rand()`, partículas, sprites, luces y el registro propio. Con la tabla
+llena, `0x518cf0` vuelve antes del caso, sin `rand()`. `Scenes/WizardEffects` arma los servicios desde el mundo: el
+dueño (`+0x108`) es un personaje del pool, el héroe es `[0x743a170]`, el asedio es `WorldRuntime::siegeActive` y
+`0x517a20` es `Scenes::HitTheTargetsAround`.
+
+Los llamadores portados (cada alta con su dirección en el error):
+
+- `0x4fd5f0`, los casos de habilidad del jugador: la luz local `[ebp-0x30]` es `(1, 1, 1)` (`0x4fd81e`) o
+  `(0,3f; 0,5; 1)` con el destello (`0x4fdb3f`), y la leen el `0x08` (`0x500c49`, `0xcf/0`) y el `0x07` (`0x504768`,
+  `0xc1/0`). También el `0x3f` (`0x4feae8`, `0x4feb1b`), el `0x0a` (`0x4fecf3`, `0x4fed25`), el `0x26` (`0x4ff5b2`,
+  `0x4ff5dc`), el `0x28` (`0x4ff4ef`), el `0x01` del `0x20a` (`0x504926`), el `0x02` (`0x5049ef`), el `0x04`
+  (`0x504bce`), el `0x0b` (`0x504c38`, `0x504c7c`, `0x504cc0`) y el `0x11`/`0x15e` (`0x50501a`).
+- `0x4f5b70` y sus ayudantes, los monstruos: los fuegos `0xc2/0`, `/1`, `/2`, `/5` y `/6` (`0x4f6ec5` a `0x4f83e5`), los
+  círculos `0xcb/0` y `0xcc/0` (`0x4f70b8`), el anillo de Kalima (`0x439ca6`, `0xc2/8`), su escudo (`0x439d09`,
+  `0x439d24`), los meteoros del `0x43a7a0` (`0x43b1f4`, `0xc2/7`) y las cinco tormentas del `0x429110` (`0x42919a`).
+- `0x4f97b0`: la `0x38` del `0x20a` en la acción `0x8d` tira cinco `0xce/2` (`0x4fa4fa..0x4fa5a4`) de 20 en 20 desde
+  z − 40, contadas en el registro propio.
+- El hielo (`Scenes::WrapInIce`): `0x518ac0(0xc1, personaje, 1)` y el `0xc1/1` y el `/2` (z + 180) con el personaje de
+  dueño, cuya luz `+0xf4` pisa cada alta con `(0,4f; 0,3f; 0,2f)`. Lo piden la bandera `0x20` sin su bit
+  (`0x4e67fc`, `0x4e6825`) y la respuesta de la `0x33` (`0x4cd6ff`, `0x4cd72b`), antes de parar al blanco.
+- `0x4f4a10`: el `0x27` crea la sierra `0xd4/0` sin dueño (`0x4f4f5b`) antes del sonido `0x10`.
+- `0x4f5660`: el jugador de subtipo `0xd1..0xd3` y el `0x170` sueltan un `0xd5/0` y diez `0xd6/0` sin dueño (`0x4f58c2`,
+  `0x4f58e7`; `0x4f595d`, `0x4f5982`), cinco `rand()` cada uno, antes del sonido `0x7c`.
+
+El dibujo (`Scenes/WizardEffectDrawing`, desde `DrawPlainModelEffect`): `0x52d620` manda estos tipos a `0x602e90` (el
+`0xcf/3..7` es una calcomanía del piso y el `0xbd` no se dibuja). En `0x6002e0`, después de la malla oculta −2:
+
+- `0x6004aa`: con `+0x74` en `0x80` (el `0xd0`, el `0xcc/1` y las grietas de subtipo 1), `RenderBody(0x82, …)` y sale:
+  el pase de cada malla con la mezcla que oscurece (`ZERO / ONE_MINUS_SRC_COLOR`). Sin la pose publicada, la posa como
+  `0x5ffdf0`.
+- `0x601da8`: el `0xcc/3` y `/4` con el color del modelo en `(0,1f; 0,1f; 10)` y el pase común.
+- `0x601df6`: el `0xcb/2` y `/3` con `(0,5; 0,5; 1)` y `RenderBody(2, …, 0x6e9)`, `Effect\Magic_b.jpg` en cada malla.
+  Después (`0x6021fe`) el color del modelo vuelve a `(1, 1, 1)`.
+
+Lo que queda cortado y por qué está en P-C400 y P-C401, y lo que pide la VM en P-C402 ([08](08-pendientes.md)); los
+quirks, en Q-C1500 a Q-C1502 ([07](07-quirks-y-bugs.md)).
+
 ## Lo que no se sabe
 
 - **Modelos, en el binario** (P-C01, cerrado en la CL6.R): el skinning, la pose, el avance, la

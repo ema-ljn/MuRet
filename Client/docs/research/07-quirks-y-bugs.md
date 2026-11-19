@@ -839,6 +839,14 @@ Q-C1364 toma el siguiente número libre después de los reservados por las cabez
 | --- | --- | --- | --- | --- | --- |
 | Q-C1369 | `F3 05` en `0x4d2ed0` | lee los WORD de `pkt[0x12]` y `pkt[0x14]` y los guarda en los offsets `+0x48` y `+0x4a` del registro propio. El emisor 1.02i termina en `0x12` bytes. `0x4e8fa7` agrega un byte FD fuera del frame; el resto no pertenece al wire. *Estático* | lectura fuera del paquete | acepta el frame de 18 bytes y usa cero para cada palabra incompleta, como en Q-C144. [ADR 0022](../../../docs/adr/0022-subida-de-nivel.md) | CL9 y CL10 |
 
+## Los efectos de los magos (CL11)
+
+| # | Dónde | Qué pasa | Clase | MuRet | Ola |
+| --- | --- | --- | --- | --- | --- |
+| Q-C1500 | el hielo, `0x51acc5..0x51acec` (desde `0x4e67fc`, `0x4e6825`, `0x4cd6ff` y `0x4cd72b`) | el `0xc1/1` y el `/2` escriben `(0,4f; 0,3f; 0,2f)` en la luz que les pasan, que es la del personaje (`+0xf4`): el personaje congelado queda teñido hasta que otro la pise, y el segundo alta ya lee la luz pisada. *Estático* | efecto sobre el llamador | igual (`Scenes::WrapInIce` pasa `&actor.light`) | CL11 |
+| Q-C1501 | `0x4fd5f0`, la luz local `[ebp-0x30]` | la escriben `0x4fd81e` (`(1, 1, 1)`) y la rama del destello (`0x4fdb3f`, `(0,3f; 0,5; 1)` con las acciones `0x4d`, `0x4f` y `0x5a` pasado el frame 5,5); la tormenta `0xcf/0` del `0x08` y el hielo `0xc1/0` del `0x07` salen con ese color, no con el del personaje. *Estático* | luz prestada | igual (`StepTheAttack` pasa la luz del cuerpo) | CL11 |
+| Q-C1502 | el `0xcc/3` y `/4` en `0x6002e0` (`0x601dbb..0x601dc7`) | el color del modelo es `(0,1f; 0,1f; 10)`: el azul pasa de 1 y la función fija lo recorta en cada vértice. *Estático* | color fuera de rango | igual: el shader recorta | CL11 |
+
 ## Cómo se agrega un quirk
 
 Igual que en el DataServer: número nuevo, dirección del original, evidencia (archivo del repo de

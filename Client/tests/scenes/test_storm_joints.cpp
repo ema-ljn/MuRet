@@ -155,13 +155,15 @@ struct FallingStar
 
     Client::Core::Expected<void, std::string> Step()
     {
-        return Client::Scenes::StepJoints(joints, random, nullptr, nullptr, 0.0f, sprites.get(), nullptr, {},
-                                          [this](float, float) { return ground; });
+        return Client::Scenes::StepJoints(
+            joints, random, nullptr, nullptr, 0.0f, sprites.get(), nullptr, {}, [this](float, float) { return ground; },
+            {}, {}, effects.get());
     }
 
     std::vector<JointState> joints = std::vector<JointState>(2);
     CrtRandom random{Seed};
     std::unique_ptr<Client::World::FrameSprites> sprites = std::make_unique<Client::World::FrameSprites>();
+    std::unique_ptr<Client::World::ModelEffects> effects = std::make_unique<Client::World::ModelEffects>();
     Client::World::ModelEffect owner{};
     glm::vec3 start{1000.0f, 2000.0f, 1500.0f};
     glm::vec3 angles{90.0f, 0.0f, 0.0f};
@@ -239,9 +241,9 @@ TEST(StormJointsTest, TheFallingStarSpeedsUpInTheAir)
     EXPECT_EQ(live->position, joint.position);
 }
 
-// 0x53c16d..0x53c2e0: debajo de la altura del terreno menos 150, la z queda ahí; la primera vez (la clave en 0) pide el
-// efecto 0x6eb/4 (0x518cf0, lote altos) y corta; después (la clave en 1) la velocidad pasa a −20 y la luz a ·
-// 0,8333333f, y el sprite sale igual.
+// 0x53c16d..0x53c2e0: debajo de la altura del terreno menos 150, la z queda ahí; la primera vez (la clave en 0) suelta
+// la onda 0x6eb/4 en la posición, con los ángulos y la luz (1; 0,8f; 0,3f) (0x53c295, con el rand() de su escala si hay
+// lugar); siempre la clave pasa a 1, la velocidad a −20 y la luz a · 0,8333333f, y el sprite sale igual.
 TEST(StormJointsTest, TheFallingStarBouncesOnTheGround)
 {
     for (const std::int16_t key : {std::int16_t{0}, std::int16_t{1}})
@@ -256,20 +258,54 @@ TEST(StormJointsTest, TheFallingStarBouncesOnTheGround)
 
         const auto stepped = star.Step();
 
-        EXPECT_EQ(joint.position.z, 4850.0f);
-        if (key == 0)
-        {
-            ASSERT_FALSE(stepped.HasValue());
-            EXPECT_NE(stepped.Error().find("0x53c295"), std::string::npos) << stepped.Error();
-            EXPECT_EQ(star.random.State(), before.State());
-            continue;
-        }
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(joint.position.z, 4850.0f);
+        EXPECT_EQ(joint.key, 1);
         EXPECT_EQ(joint.speed, -20.0f);
         const float faded = F32(1.0 * D(std::bit_cast<float>(0x3f555555u)));
         EXPECT_EQ(joint.light, glm::vec3(faded));
         CrtRandom expected = before;
+        const auto waves =
+            std::ranges::count_if(star.effects->Effects(), [](const auto& effect) { return effect.alive; });
+        if (key == 0)
+        {
+            ASSERT_EQ(waves, 1);
+            const Client::World::ModelEffect& wave = star.effects->Effects()[0];
+            EXPECT_EQ(wave.type, Client::World::ShockWaveEffect);
+            EXPECT_EQ(wave.subtype, 4);
+            EXPECT_EQ(wave.transform.position, joint.position);
+            EXPECT_EQ(wave.transform.angles, joint.angles);
+            EXPECT_EQ(wave.life, 10);
+            EXPECT_EQ(wave.transform.scale,
+                      F32((static_cast<double>(expected.Next() % 6) + 6.0) * D(std::bit_cast<float>(0x3dcccccdu))));
+        }
+        else
+            EXPECT_EQ(waves, 0);
         static_cast<void>(expected.Next());
         EXPECT_EQ(star.random.State(), expected.State());
     }
+}
+
+// 0x53c295: sin la tabla de efectos, la onda corta; con la tabla llena, no hay onda ni su rand().
+TEST(StormJointsTest, TheFallingStarWaveNeedsTheEffectTable)
+{
+    FallingStar tableless;
+    tableless.ground = 5000.0;
+    tableless.effects.reset();
+    ASSERT_TRUE(tableless.Create().HasValue());
+    const auto cut = tableless.Step();
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x53c295"), std::string::npos) << cut.Error();
+
+    FallingStar full;
+    full.ground = 5000.0;
+    for (Client::World::ModelEffect& effect : full.effects->Effects())
+        effect.alive = true;
+    ASSERT_TRUE(full.Create().HasValue());
+    const CrtRandom before = full.random;
+    ASSERT_TRUE(full.Step().HasValue());
+    CrtRandom expected = before;
+    static_cast<void>(expected.Next());
+    EXPECT_EQ(full.random.State(), expected.State());
+    EXPECT_EQ(full.joints[0].key, 1);
 }

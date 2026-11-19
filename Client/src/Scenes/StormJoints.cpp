@@ -6,6 +6,7 @@
 #include "Scenes/JointFamilies.h"
 #include "Scenes/JointKernels.h"
 #include "World/IFishStepServices.h"
+#include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
 
@@ -27,9 +28,9 @@ using JointKernels::F32;
 // 0x53c0a5..0x53c390 con la /5 (la que suelta el pulso 0x61c/0 del asedio, 0x52c266), después del movimiento común: la
 // velocidad sube 10, la cola con la matriz de los ángulos (0x535520, si está prendida), sube otros 10 y avanza
 // (0, −velocidad, 0) girado por +0x3c. Debajo de la altura del terreno menos +0x9ec (150), la z queda ahí y, la primera
-// vez (la clave en 0), el efecto 0x6eb/4 (0x518cf0) con la luz (1; 0,8f; 0,3f), que es del lote de los altos: corta;
-// después, la clave en 1, la velocidad en −20 y la luz por 0,8333333f. Siempre, el sprite 0x60f de escala 2,5 con la
-// luz y el giro rand() % 360.
+// vez (con la cola y la clave en 0), la onda 0x6eb/4 (0x53c295: 0x518cf0(0x6eb, posición, ángulos, (1; 0,8f; 0,3f),
+// 4, 0, −1, 0, 0, 0, 0), con su rand() si hay lugar); después, la clave en 1, la velocidad en −20 y la luz por
+// 0,8333333f. Siempre, el sprite 0x60f de escala 2,5 con la luz y el giro rand() % 360.
 Core::Expected<void, std::string> StepFallingStar(JointState& joint, const JointKernels::StepServices& services)
 {
     if (services.random == nullptr || services.sprites == nullptr || services.terrainHeight == nullptr ||
@@ -55,8 +56,19 @@ Core::Expected<void, std::string> StepFallingStar(JointState& joint, const Joint
         joint.position.z = F32(floor);
         constexpr std::int16_t Landed = 1;
         if (joint.tailEnabled && joint.key != Landed)
-            return Core::Unexpected(std::string("0x53c295: el efecto 0x6eb/4 (0x518cf0) del joint 0x632/5 al llegar "
-                                                "al suelo es del lote de los altos (CL11)"));
+        {
+            if (services.effects == nullptr)
+                return Core::Unexpected(
+                    std::string("0x53c295: el joint 0x632/5 pide la tabla de efectos (0x518cf0) para la onda 0x6eb/4"));
+            constexpr std::int32_t WaveSubtype = 4;
+            const glm::vec3 glow{1.0f, std::bit_cast<float>(0x3f4ccccdu), std::bit_cast<float>(0x3e99999au)};
+            static_cast<void>(services.effects->CreateCastleShockWave({.type = World::ShockWaveEffect,
+                                                                       .position = joint.position,
+                                                                       .angles = joint.angles,
+                                                                       .light = glow,
+                                                                       .subtype = WaveSubtype},
+                                                                      *services.random));
+        }
         constexpr float Bounce = std::bit_cast<float>(0xc1a00000u); // −20
         joint.key = Landed;
         joint.speed = Bounce;

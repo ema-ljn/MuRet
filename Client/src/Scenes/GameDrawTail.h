@@ -149,11 +149,20 @@ struct JointState
     std::int16_t key = 0;
     std::uint8_t skill = 0;
     std::uint8_t skillSerial = 0;
+    // +0x9eb: la cuenta de la tanda (+0xf04 del registro propio) que el 0x613/0 y el /5 copian al nacer (0x53293b,
+    // 0x532e75) y mandan con sus blancos (0x517a20, 0x539ac5). 0x530860 no la escribe: en los demás queda la de antes.
+    std::uint8_t volley = 0;
     bool tailEnabled = false;
     std::int32_t field9ec = 0;
     // D-C4: dos giros del último dibujo original; no forman parte del registro nativo.
     std::optional<std::array<float, 2>> icarusRotations{};
     glm::vec3 pathIncrement{}; // +24;531851/5332fa guardan el delta de las cintas Helper07.
+    // +0x9f4..+0xa08: los lugares de los personajes que el 614/0xf encadena (0x531981, a lo sumo seis). El sexto pisa
+    // el DWORD de +0xa08, cuyo primer byte es skillSerial: el alta escribe los dos (ver CreateLightningJoint).
+    std::array<std::int32_t, 6> chainTargets{};
+    // +0xa0c: el lugar del personaje que el 0x10f/4 y el /9 miran en su paso (0x535d4f). Sólo lo escribe el alta de
+    // esos dos con un blanco ≠ −1 (0x53098d); si no, queda el del uso anterior (el BSS arranca en 0).
+    std::int32_t target = 0;
 };
 
 struct JointDrawResources
@@ -245,6 +254,10 @@ struct ModelEffectDrawResources
     Render::Models::CrtRandom* random = nullptr; // 607b60 sólo sortea los casos que lo necesitan.
     const ItemDrawContext* itemContext = nullptr;
     const GameObjectPass* kalimaPass = nullptr;
+    // 0x5ffdff..0x5ffe24: +0x1a1 del héroe (0x743a170), que 0x5ffdf0 lee en los mapas 18 a 23 (el de `kalimaPass`), y
+    // si el dibujo es de un frame del original: sólo entonces la resta de 0,15f queda guardada en el alpha del efecto.
+    std::uint8_t heroByte1a1 = 0;
+    bool originalFrame = false;
     // 42cfcb del fragmento3d..40: el mismo pool518cf0 al que emite4ee770.
     World::ModelEffects* effects = nullptr;
     World::Particles* particles = nullptr;

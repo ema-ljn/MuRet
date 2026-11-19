@@ -1,6 +1,8 @@
 #include "World/ParticleDrawing.h"
+#include "World/EffectParticleKernels.h"
 #include "World/KalimaParticleKernels.h"
 #include "World/SelectionParticleKernels.h"
+#include "World/SmokeParticleKernels.h"
 #include "World/TrialsParticleKernels.h"
 #include "World/BloodCastleParticleKernels.h"
 #include "World/ParticleDrawParameters.h"
@@ -108,26 +110,24 @@ Core::Expected<DrawSelection, ParticleDrawingError> SelectBranch(Particle& p, st
     switch (type)
     {
     case BlueTrailFireParticle:
-        // 0x548c9c/0x548850: atlas de fuego girado, con la textura y la mezcla de 0x5dc (Effect\Fire05.jpg).
-        if (p.subtype != BlueTrailFireSubtype)
-            return Core::Unexpected(BranchError(ParticleError::UnsupportedSubtype));
-        return DrawSelection{ParticleDrawKind::RotatedFire, false};
     case FireParticle:
     case DeathSpiritFireParticle:
-        // 548803..1f: sólo estos seis subtipos salen del default acreditado.
+        // 0x548803..0x54881f: 5d9, 5db y 5dc comparten el caso; estos seis subtipos van al atlas de fuego girado por
+        // +0x44 (0x548850) y los demás al de los ángulos (0x548821), cada uno con la textura de su tipo.
         switch (p.subtype)
         {
-        case 7:
-        case 11:
-        case 12:
-        case 13:
-            return Core::Unexpected(BranchError(ParticleError::UnsupportedSubtype));
         case 5:
+        case FireSwaySubtype:
         case 8:
+        case FireLongSwaySubtype:
+        case FireTallSubtype:
+        case FireFountainSubtype:
             return DrawSelection{ParticleDrawKind::RotatedFire, false};
         default:
             return DrawSelection{ParticleDrawKind::Fire, false};
         }
+    case BlazeParticle: // 0x5486b6: los argumentos del fuego de 0x548821 (un cuarto del ancho, el cuadro % 4, +0x20).
+        return DrawSelection{ParticleDrawKind::Fire, false};
     case BreathParticle:
     {
         const auto kind = PrepareSmoke(p, services);
@@ -162,9 +162,12 @@ Core::Expected<DrawSelection, ParticleDrawingError> SelectBranch(Particle& p, st
     case SkillShineParticle:    // 0x5488f6 → 0x54889a (el byte 8 de 0x548cf0), sin leer el subtipo.
     case HandShineParticle:     // 0x5488f6: la 5fd también (el byte 8 de 0x548cf7), sin leer el subtipo.
     case SiegeBlessingParticle: // 5488f6: el billboard común, sin leer el subtipo.
+    case CinderParticle:        // 0x5488f6 → 0x54889a (el byte 8 de 0x548da7), sin leer el subtipo.
+    case ShockWaveParticle:     // 0x5488f6 → 0x54889a (el byte 8 de 0x548de5), sin leer el subtipo.
         return DrawSelection{ParticleDrawKind::Common, false};
     case DustParticle:
     case ArrivalDustParticle:
+    case RisingPuffParticle: // 0x548895: la 5f5 también, sin leer el subtipo.
     {
         // 0x548a51: la 5f3 va a 0x620c10 y al billboard común, sin leer el subtipo.
         const auto blended = services.Blended();
@@ -189,6 +192,7 @@ Core::Expected<DrawSelection, ParticleDrawingError> SelectBranch(Particle& p, st
             return Core::Unexpected(blended.Error());
         return DrawSelection{ParticleDrawKind::Common, false, added};
     }
+    case RingParticle:      // 0x548644: el anillo 0x600 va al default (0x54889a), sin leer el subtipo.
     case ThunderParticle:   // 548ca1→54889a: billboard común sin lectura del subtipo.
     case LightningParticle: // 0x548644: el índice 8 de 0x548c9c, al mismo 0x54889a.
     case SparkParticle:

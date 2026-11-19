@@ -33,12 +33,14 @@
 
 #include <glm/ext/vector_float3.hpp>
 
+#include <algorithm>
 #include <array>
 #include <bit>
 #include <chrono>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <algorithm>
 #include <memory>
 #include <span>
 #include <string>
@@ -58,6 +60,9 @@ constexpr std::uint16_t DeviasNpc = 0x1d5; // el NPC 241
 constexpr std::uint16_t FairyNpc = 0x1d9;  // el NPC 237 de Lorencia
 constexpr std::uint16_t Golem = 0x176;     // un caso con sprites de 0x50b870 y 0x50b920
 constexpr std::uint16_t HelperType = 0x1b6;
+
+// Los tres rand() que saca el resto de 0x50ba30 en un dibujo que no corta (los de los demás tests con AfterRandoms(3)).
+constexpr std::size_t TailDraws = 3;
 
 std::uint32_t AfterRandoms(std::size_t count)
 {
@@ -483,6 +488,46 @@ TEST_F(MonsterDrawingTest, TheBodyLeadsToTheKalimaAndSiegeHelpers)
     EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(3));
 }
 
+// 0x441688..0x4416a5: el 0x1a4 al morir (la 6) pide 0x4ee770(0, 0x13c, 0) sobre las mallas de su cuerpo recién
+// posado: un rand() % 45 por esquina (tres, de un triángulo) después de los tres de lo que cuelga, las piedras 0x13c
+// que salgan, +0 en 0 y el sonido 0x209.
+TEST_F(MonsterDrawingTest, The1a4DiesInStonesOverItsPosedBody)
+{
+    // La primera semilla con una piedra en la primera esquina.
+    std::uint32_t seed = 1;
+    for (;; ++seed)
+    {
+        Client::Render::Models::CrtRandom probe{seed};
+        for (int draw = 0; draw < 3; ++draw)
+            static_cast<void>(probe.Next());
+        if (probe.Next() % 45 == 0)
+            break;
+    }
+    m_clothWorld.random = Client::Render::Models::CrtRandom{seed};
+    ActorState& golem = Monster(4, 0x1a4, 0x1a4);
+    golem.animation.action = 6;
+    const auto drawn = Draw(Pass());
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    EXPECT_FALSE(golem.alive);
+    EXPECT_EQ(m_world->Runtime().lastSoundId, 0x209);
+    Client::Render::Models::CrtRandom expected{seed};
+    for (int draw = 0; draw < 3; ++draw)
+        static_cast<void>(expected.Next());
+    std::size_t stones = 0;
+    for (int corner = 0; corner < 3; ++corner)
+    {
+        if (expected.Next() % 45 != 0)
+            continue;
+        expected.Discard(8);
+        ++stones;
+    }
+    EXPECT_EQ(m_clothWorld.random.State(), expected.State());
+    const auto live = static_cast<std::size_t>(std::ranges::count_if(
+        m_world->Map().effects.Effects(), [](const auto& effect) { return effect.alive && effect.type == 0x13c; }));
+    EXPECT_EQ(live, stones);
+    EXPECT_GE(stones, 1u);
+}
+
 TEST_F(MonsterDrawingTest, TheFrozenFlagPaintsTheBodyAndAddsAPassWithoutTheBlendMesh)
 {
     ActorState& spider = Monster(2, Spider, 3);
@@ -518,7 +563,9 @@ TEST_F(MonsterDrawingTest, TheLorenciaFairyNpcDrawsTwoSpinningFlaresAndDrawsItsJ
     EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(4));
 }
 
-TEST_F(MonsterDrawingTest, TheFairyJointCutsInItsCreationAfterItsThreeRandoms)
+// 0x5108a9: el 0x618/6 del hada, sin dueño, desde el punto al azar hacia el del hueso 20, con los ángulos del hada y
+// ancho 20 (0x53214b..0x5322df): velocidad 3, vida 120, 8 puntos y la luz (0,4; 0,3; 0,2), sin rand().
+TEST_F(MonsterDrawingTest, TheFairyLeavesItsBeamAfterItsThreeRandoms)
 {
     // Con la semilla 51 el cuarto rand() es 17250: % 30 da 0, y salen los tres % 100 del punto de partida.
     m_clothWorld.random = Client::Render::Models::CrtRandom{51};
@@ -526,10 +573,24 @@ TEST_F(MonsterDrawingTest, TheFairyJointCutsInItsCreationAfterItsThreeRandoms)
 
     const auto result = Draw(Pass());
 
-    ASSERT_FALSE(result.HasValue());
-    EXPECT_NE(result.Error().find("0x5108a9"), std::string::npos) << result.Error();
-    EXPECT_NE(result.Error().find("0x618/6"), std::string::npos) << result.Error();
+    ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(LiveSprites().size(), 2u);
+    const auto& beam = m_joints[0];
+    ASSERT_TRUE(beam.alive);
+    EXPECT_EQ(beam.type, 0x618);
+    EXPECT_EQ(beam.subtype, 6);
+    EXPECT_EQ(beam.ownerContext, nullptr);
+    EXPECT_EQ(beam.targetPosition, glm::vec3(153.5f, 138.0f, 40.0f));
+    EXPECT_EQ(beam.width, 20.0f);
+    EXPECT_EQ(beam.speed, 3.0f);
+    EXPECT_EQ(beam.life, 120);
+    EXPECT_EQ(beam.maximumCount, 8);
+    EXPECT_EQ(beam.light, glm::vec3(std::bit_cast<float>(0x3ecccccdu), std::bit_cast<float>(0x3e99999au),
+                                    std::bit_cast<float>(0x3e4ccccdu)));
+    Client::Render::Models::CrtRandom expected{51};
+    for (int draw = 0; draw < 7; ++draw)
+        static_cast<void>(expected.Next());
+    EXPECT_EQ(m_clothWorld.random.State(), expected.State());
 }
 
 TEST_F(MonsterDrawingTest, AModelCaseDrawsItsSpritesAndSkipsTheHelperChain)
@@ -550,6 +611,24 @@ TEST_F(MonsterDrawingTest, AModelCaseDrawsItsSpritesAndSkipsTheHelperChain)
     EXPECT_EQ(m_world->Actors()[8].effectOrigin, glm::vec3(145.0f, 150.0f, 53.0f));
 }
 
+// 0x50c37e: el +0x376 0x4b deja el fuego 0x5d9/0 de 0,3 en el hueso 18 (tres rand(), 0x541172) y sigue con su brillo.
+TEST_F(MonsterDrawingTest, The0x4bLightsItsFireOnBone18)
+{
+    m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+    Monster(0, Spider, 0x4b);
+    auto particles = std::make_unique<Client::World::Particles>();
+    GameCharacterPass pass = Pass();
+    pass.particles = particles.get();
+    const auto result = Draw(pass);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    const Client::World::Particle& fire = particles->All()[0];
+    EXPECT_TRUE(fire.alive);
+    EXPECT_EQ(fire.type, 0x5d9);
+    EXPECT_EQ(fire.subtype, 0);
+    EXPECT_EQ(fire.life, 24);
+    EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(3 + TailDraws));
+}
+
 TEST_F(MonsterDrawingTest, UnportedBranchesCutWithTheirAddress)
 {
     struct Case
@@ -564,7 +643,7 @@ TEST_F(MonsterDrawingTest, UnportedBranchesCutWithTheirAddress)
     // lo que cuelga y de su rand() % 30, en el primer hueso con nombre que su alta no registró (0x427291); lo de
     // 0x50bf45, después de la sombra.
     constexpr std::array cases{Case{Spider, 0x59, "0x50bb96", 0, 0}, Case{HelperType, 0x20, "0x427291", 6, 4},
-                               Case{Spider, 0x49, "0x50c36b", 6, 0}, Case{0x18e, 0x21, "0x4ee770", 0, 4}};
+                               Case{Spider, 0x49, "0x50c595", 9, 0}, Case{0x18e, 0x21, "0x4ee770", 0, 4}};
     for (const Case& value : cases)
     {
         SCOPED_TRACE(value.address);
@@ -1098,8 +1177,8 @@ TEST_F(MonsterDrawingTest, The0x2aBetweenOriginalFramesStoresNothing)
 }
 
 // 0x50bf98: el +0x376 0x45 saca su rand() % 30, pone nueve flare01 de 0,6 con su luz y, antes de cada una de sus tres
-// partículas 0x5c6/3, cuatro rand(); la 0x5c6/3 no está en Particles (CL11) y corta en la primera.
-TEST_F(MonsterDrawingTest, The0x45LightsItsNineFlaresAndCutsAtItsFirstSpark)
+// partículas 0x5c6/3 (vida 5, sin rand(), 0x540675), cuatro rand().
+TEST_F(MonsterDrawingTest, The0x45LightsItsNineFlaresAndItsThreeSparks)
 {
     // 0x51483f: el monstruo 69 (el +0x376 0x45) con el modelo 0x184, que no tiene caso en 0x6002e0.
     constexpr std::uint16_t ModelOf69 = 0x184;
@@ -1118,8 +1197,11 @@ TEST_F(MonsterDrawingTest, The0x45LightsItsNineFlaresAndCutsAtItsFirstSpark)
 
         const auto result = Draw(pass);
 
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_NE(result.Error().find("0x50c0db"), std::string::npos) << result.Error();
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        const auto sparks = std::ranges::count_if(
+            particles->All(), [](const auto& particle)
+            { return particle.alive && particle.type == 0x5c6 && particle.subtype == 3 && particle.life == 5; });
+        EXPECT_EQ(sparks, 3);
         // El cuerpo y la sombra antes.
         EXPECT_EQ(m_batch.Vertices().size(), 6u);
         Client::Render::Models::CrtRandom random{1};
@@ -1134,7 +1216,7 @@ TEST_F(MonsterDrawingTest, The0x45LightsItsNineFlaresAndCutsAtItsFirstSpark)
         EXPECT_EQ(sprites[0].light.z, static_cast<float>(x));
         // El hueso 10 en (0, 0, 10), más la posición.
         EXPECT_EQ(sprites[0].position, glm::vec3(150.0f, 150.0f, 20.0f));
-        EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(5));
+        EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(1 + 3 * 4 + TailDraws));
         TearDown();
     }
     // Entre frames del original, los nueve flare01 sin las partículas, sobre una copia del rand().
@@ -1151,6 +1233,67 @@ TEST_F(MonsterDrawingTest, The0x45LightsItsNineFlaresAndCutsAtItsFirstSpark)
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_EQ(LiveSprites().size(), 9u);
     EXPECT_EQ(m_clothWorld.random.State(), 1u);
+}
+
+// 0x50c3ed..0x50c50e: el +0x376 0x49 pone catorce flare01 de 0,8 con (0,1; 0,1; 1) en los huesos 13 a 26 y siete en
+// los 52 a 58, y une los huesos 13 a 16 y 22 a 23 con cuatro joints 0x614/7 de ancho 20 sin rand(); su pase 0x44 y
+// después corta en 0x60b300 (0x50c595). 0x50c37e..0x50c3e8: el 0x4b suelta la 0x5d9/0 de 0,3 en su hueso 18 y sigue.
+TEST_F(MonsterDrawingTest, The0x49ChainsItsBonesAndThe0x4bSparksItsEighteenth)
+{
+    Monster(0, Spider, 0x49);
+    const auto chained = Draw(Pass());
+    ASSERT_FALSE(chained.HasValue());
+    EXPECT_NE(chained.Error().find("0x50c595"), std::string::npos) << chained.Error();
+    const auto sprites = LiveSprites();
+    ASSERT_EQ(sprites.size(), 21u);
+    EXPECT_EQ(sprites[0].texture, 0x5ac);
+    EXPECT_FLOAT_EQ(sprites[0].scale, 0.8f);
+    EXPECT_EQ(sprites[0].light, glm::vec3(std::bit_cast<float>(0x3dcccccdu), std::bit_cast<float>(0x3dcccccdu), 1.0f));
+    EXPECT_EQ(sprites[0].position, glm::vec3(150.0f, 150.0f, 23.0f));
+    EXPECT_EQ(sprites[13].position, glm::vec3(150.0f, 150.0f, 36.0f));
+    // Los huesos 52 a 58 quedan fuera de la pose de prueba: la matriz en cero, la posición.
+    EXPECT_EQ(sprites[14].position, glm::vec3(150.0f, 150.0f, 10.0f));
+    std::vector<const Client::Scenes::JointState*> links;
+    for (const auto& joint : m_joints)
+    {
+        if (joint.alive)
+            links.push_back(&joint);
+    }
+    ASSERT_EQ(links.size(), 4u);
+    for (const auto* link : links)
+    {
+        EXPECT_EQ(link->type, 0x614);
+        EXPECT_EQ(link->subtype, 7);
+        EXPECT_EQ(link->width, 20.0f);
+        EXPECT_EQ(link->ownerContext, nullptr);
+    }
+    EXPECT_EQ(links[0]->position, glm::vec3(150.0f, 150.0f, 23.0f));
+    EXPECT_EQ(links[0]->targetPosition, glm::vec3(150.0f, 150.0f, 24.0f));
+    EXPECT_EQ(links[3]->position, glm::vec3(150.0f, 150.0f, 32.0f));
+    EXPECT_EQ(links[3]->targetPosition, glm::vec3(150.0f, 150.0f, 33.0f));
+    EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(0));
+
+    m_world = std::make_unique<Client::Scenes::WorldState>();
+    TearDown();
+    SetUp();
+    m_sprites.Clear();
+    Monster(0, Spider, 0x4b);
+    auto particles = std::make_unique<Client::World::Particles>();
+    GameCharacterPass pass = Pass();
+    pass.particles = particles.get();
+    const auto sparked = Draw(pass);
+    ASSERT_TRUE(sparked.HasValue()) << sparked.Error();
+    std::vector<const Client::World::Particle*> fires;
+    for (const auto& particle : particles->All())
+    {
+        if (particle.alive && particle.type == Client::World::FireParticle)
+            fires.push_back(&particle);
+    }
+    ASSERT_EQ(fires.size(), 1u);
+    // La escala de 0,3 la pisa el alta de la 0x5d9/0 (0x541197) con la suya.
+    EXPECT_EQ(fires[0]->position, glm::vec3(150.0f, 150.0f, 28.0f));
+    EXPECT_EQ(fires[0]->light, glm::vec3(1.0f));
+    EXPECT_TRUE(LiveSprites().empty());
 }
 
 // 0x50c0fb: el +0x376 0x46 pone un flare01 de 0,8 en blanco en su hueso 20, sin rand(), y sigue.

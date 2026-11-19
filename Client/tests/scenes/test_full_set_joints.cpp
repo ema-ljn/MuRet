@@ -8,6 +8,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/HelperTable.h"
+#include "Scenes/JointKernels.h"
 #include "World/IFishStepServices.h"
 #include "World/Sprites.h"
 
@@ -367,21 +368,41 @@ TEST(FullSetJointsTest, OnlyTheSparklesTakeAHelperForOwner)
     EXPECT_FALSE(full.Value().has_value());
 }
 
-// 0x53c393: un 60f/1 con la cola usaría la matriz que dejó el joint anterior; el 60f/0 que cae la apaga, así que sólo
-// se llega con un estado armado a mano.
-TEST(FullSetJointsTest, AFallenSparkleWithItsTailIsNotPorted)
+// 0x53c393: un 60f/1 con la cola usa la matriz que dejó en [ebp−0xe8] el último joint de la vuelta que la calculó (el
+// 60f/0 que cae la apaga, así que sólo se llega con un estado armado a mano). Sin ninguno antes, la de la pila: con
+// dibujo corta (Q-C1623).
+TEST(FullSetJointsTest, AFallenSparkleWithItsTailUsesThePreviousMatrix)
 {
-    std::array<JointState, 1> joints{};
-    joints[0].alive = true;
-    joints[0].type = 0x60f;
-    joints[0].subtype = 1;
-    joints[0].tailEnabled = true;
+    std::array<JointState, 2> joints{};
+    joints[1].alive = true;
+    joints[1].type = 0x60f;
+    joints[1].subtype = 1;
+    joints[1].tailEnabled = true;
+    joints[1].drawEnabled = 3;
+    joints[1].width = 20.0f;
+    joints[1].maximumCount = 5;
+    joints[1].life = 30;
+    joints[1].position = {10.0f, 20.0f, 30.0f};
     CrtRandom random(1);
-
-    const auto stepped = Client::Scenes::StepJoints(joints, random);
-
+    auto alone = joints;
+    const auto stepped = Client::Scenes::StepJoints(alone, random);
     ASSERT_FALSE(stepped.HasValue());
-    EXPECT_NE(stepped.Error().find("0x53c393"), std::string::npos) << stepped.Error();
+    EXPECT_NE(stepped.Error().find("0x53c3a5"), std::string::npos) << stepped.Error();
+
+    // El 0x613/0xa de antes calcula la matriz con sus ángulos de antes del caso (0, 0, 90).
+    joints[0].alive = true;
+    joints[0].type = 0x613;
+    joints[0].subtype = 0xa;
+    joints[0].angles = {0.0f, 0.0f, 90.0f};
+    joints[0].life = 10;
+    JointState expected = joints[1];
+    ASSERT_TRUE(Client::Scenes::JointKernels::AppendJointTail(
+                    expected, Client::Render::Models::OriginalAngleMatrix(glm::vec3{0.0f, 0.0f, 90.0f}))
+                    .HasValue());
+    ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+    EXPECT_EQ(joints[1].count, expected.count);
+    EXPECT_EQ(joints[1].points[0], expected.points[0]);
+    EXPECT_EQ(joints[1].position, (glm::vec3{10.0f, 20.0f, 30.0f}));
 }
 
 // 0x534cb6: los 60f/0x12 (0x5103be) restan (mezcla 4) y, con el ancho 20, viven 50 con un tercer rand() para vz:
@@ -641,7 +662,137 @@ TEST(FullSetJointsTest, TheSetEnergyCirclesItsMovingOwnerUntilItsRadiusRunsOut)
     EXPECT_EQ(random.State(), CrtRandom(1).State());
 }
 
-// El 619/1 del calco de la mascota (0x518900), con el héroe de dueño.
+// 0x5325c7..0x532659: el 619/0xa de la 0x35: como el /9, con vida 80, vx 80 y +0x9d4 en 1 sólo con el giro 225 o 405.
+TEST(FullSetJointsTest, TheSkillEnergyTurnsForwardOnlyFromTwoAngles)
+{
+    for (const float turn : {45.0f, 405.0f, 225.0f, 450.0f})
+    {
+        SCOPED_TRACE(turn);
+        ActorState actor;
+        actor.position = {130.0f, 170.0f, 290.0f};
+        std::array<JointState, 1> joints{};
+        CrtRandom random(1);
+        Request request{0x619, 0xa, 15.0f, -1, 0};
+        request.angles = {-45.0f, 0.0f, turn};
+
+        const auto created = Create(joints, request, &actor, random);
+
+        ASSERT_TRUE(created.HasValue()) << created.Error();
+        EXPECT_EQ(random.State(), CrtRandom(1).State());
+        const JointState& joint = joints[0];
+        EXPECT_EQ(joint.life, 80);
+        EXPECT_EQ(joint.maximumCount, 20);
+        EXPECT_EQ(joint.count, 0);
+        EXPECT_EQ(joint.field9ec, static_cast<std::int32_t>(turn));
+        EXPECT_EQ(joint.field9d4, turn == 225.0f || turn == 405.0f ? 1 : 0);
+        EXPECT_EQ(joint.velocity, glm::vec3(80.0f, 0.0f, 0.0f));
+        EXPECT_EQ(joint.light, glm::vec3(Float(0x3dba2e8cu), Float(0x3d3a2e8cu), Float(0x3dba2e8cu)));
+        EXPECT_EQ(joint.position, actor.position);
+        EXPECT_EQ(joint.targetPosition, actor.position);
+        EXPECT_EQ(joint.width, 15.0f);
+    }
+}
+
+// 0x5388e7..0x538a4d: el 619/0xa sigue al dueño como el /9, con la z en el destino más vida · 0,0125f · 300, +0x9ec
+// que sube 2 con +0x9d4 y si no baja 2, y la luz por 1,2f por encima de 68 y por 0,9090909f debajo de 40. En el paso
+// 81, vx por debajo de 0, queda en 0 con la vida en 0. Los valores, por sus bits, salen de un cálculo aparte del ASM
+// (FSIN/FCOS a 64 bits, PC53 y fstp a float) en los pasos 1 y 12 (la luz sube), 20 (el dueño se mueve 3,5; −2,25 y 1
+// antes del paso), 42 (la luz baja), 80 (vx en 0) y 81 (la vida en 0 y muerto).
+TEST(FullSetJointsTest, TheSkillEnergyCirclesItsOwnerAndClimbsWithItsLife)
+{
+    struct Checkpoint
+    {
+        float turn;
+        int step;
+        std::array<std::uint32_t, 3> position;
+        std::uint32_t radius;
+        std::array<std::uint32_t, 3> light;
+        std::int32_t field9ec;
+        std::int32_t life;
+    };
+    constexpr std::array<Checkpoint, 12> Checkpoints{{
+        {45, 1, {0x424f30bbu, 0x431922e7u, 0x44138000u}, 0x429e0000u, {0x3ddf6b0fu, 0x3d5f6b0fu, 0x3ddf6b0fu}, 43, 79},
+        {45, 12, {0x43357423u, 0x42f80dcdu, 0x44093000u}, 0x42880000u, {0x3f4f8087u, 0x3ecf8087u, 0x3f4f8087u}, 21, 68},
+        {45, 20, {0x432ccc1bu, 0x435667c7u, 0x4401f000u}, 0x42700000u, {0x3f4f8087u, 0x3ecf8087u, 0x3f4f8087u}, 5, 60},
+        {45,
+         42,
+         {0x431a29e2u, 0x4306ac92u, 0x43daa000u},
+         0x42180000u,
+         {0x3f3ca363u, 0x3ebca363u, 0x3f3ca363u},
+         -39,
+         38},
+        {45, 80, {0x4306743bu, 0x43280cbcu, 0x43936000u}, 0, {0x3ca161fdu, 0x3c2161fdu, 0x3ca161fdu}, -115, 0},
+        {45, 81, {0x43058000u, 0x4327c000u, 0x43918000u}, 0, {0x3c92b62bu, 0x3c12b62bu, 0x3c92b62bu}, -117, -1},
+        {225,
+         1,
+         {0x42b60d52u, 0x42c84573u, 0x44138000u},
+         0x429e0000u,
+         {0x3ddf6b0fu, 0x3d5f6b0fu, 0x3ddf6b0fu},
+         227,
+         79},
+        {225,
+         12,
+         {0x42ca20d4u, 0x4368a3bau, 0x44093000u},
+         0x42880000u,
+         {0x3f4f8087u, 0x3ecf8087u, 0x3f4f8087u},
+         249,
+         68},
+        {225,
+         20,
+         {0x433d99b0u, 0x433fb3ffu, 0x4401f000u},
+         0x42700000u,
+         {0x3f4f8087u, 0x3ecf8087u, 0x3f4f8087u},
+         265,
+         60},
+        {225,
+         42,
+         {0x42d7ceadu, 0x43452cc9u, 0x43daa000u},
+         0x42180000u,
+         {0x3f3ca363u, 0x3ebca363u, 0x3f3ca363u},
+         309,
+         38},
+        {225, 80, {0x430610bcu, 0x43289328u, 0x43936000u}, 0, {0x3ca161fdu, 0x3c2161fdu, 0x3ca161fdu}, 385, 0},
+        {225, 81, {0x43058000u, 0x4327c000u, 0x43918000u}, 0, {0x3c92b62bu, 0x3c12b62bu, 0x3c92b62bu}, 387, -1},
+    }};
+    const auto vector = [](const std::array<std::uint32_t, 3>& value)
+    { return glm::vec3(Float(value[0]), Float(value[1]), Float(value[2])); };
+    for (const float turn : {45.0f, 225.0f})
+    {
+        SCOPED_TRACE(turn);
+        ActorState actor;
+        actor.position = {130.0f, 170.0f, 290.0f};
+        std::array<JointState, 1> joints{};
+        CrtRandom random(1);
+        Request request{0x619, 0xa, 15.0f, -1, 0};
+        request.angles = {-45.0f, 0.0f, turn};
+        ASSERT_TRUE(Create(joints, request, &actor, random).HasValue());
+
+        for (int step = 1; step <= 81; ++step)
+        {
+            SCOPED_TRACE(step);
+            if (step == 20)
+                actor.position = {133.5f, 167.75f, 291.0f};
+            ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+
+            const JointState& joint = joints[0];
+            EXPECT_EQ(joint.targetPosition, actor.position);
+            EXPECT_EQ(joint.alive, step < 81);
+            for (const Checkpoint& checkpoint : Checkpoints)
+            {
+                if (checkpoint.turn != turn || checkpoint.step != step)
+                    continue;
+                EXPECT_EQ(joint.position, vector(checkpoint.position));
+                EXPECT_EQ(joint.velocity.x, Float(checkpoint.radius));
+                EXPECT_EQ(joint.light, vector(checkpoint.light));
+                EXPECT_EQ(joint.field9ec, checkpoint.field9ec);
+                EXPECT_EQ(joint.life, checkpoint.life);
+            }
+        }
+        EXPECT_EQ(random.State(), CrtRandom(1).State());
+    }
+}
+
+// El 619/1 del calco de la mascota y el 619/3 del calco de las invocaciones (0x518900), con el héroe de dueño.
 namespace
 {
 // 4e9810 con el destino: el yaw y el pitch giran de a `turn` (lo que hace SteerJoint en el paso).
@@ -659,48 +810,51 @@ void Steer(JointState& expected, const glm::vec3& target, float turn)
 }
 } // namespace
 
-// 0x5323d3..0x5323f8 y 0x5325ca: el 619/1 sólo tiene lo común del 0x619: velocidad 0, vida 12, el ancho y 2 puntos. Sin
-// rand(); la posición es el primer punto y el destino no se escribe, porque tiene dueño.
+// 0x5323d3..0x5323f8 y 0x5325ca: el 619/1 y el 619/3 sólo tienen lo común del 0x619: velocidad 0, vida 12, el ancho y 2
+// puntos. Sin rand(); la posición es el primer punto y el destino no se escribe, porque tiene dueño.
 TEST(FullSetJointsTest, TheSummonEnergyIsBornWithTheCommonFieldsOfThe619)
 {
-    ActorState hero;
-    hero.position = {1300.0f, 1700.0f, 290.0f};
-    std::array<JointState, 1> joints{};
-    joints[0].targetPosition = {1.0f, 2.0f, 3.0f};
-    CrtRandom random(1);
-    Request request{0x619, 1, 5.0f, -1, 0};
-    request.angles = {40.0f, 0.0f, 213.0f};
+    for (const std::int32_t subtype : {1, 3})
+    {
+        SCOPED_TRACE(subtype);
+        ActorState hero;
+        hero.position = {1300.0f, 1700.0f, 290.0f};
+        std::array<JointState, 1> joints{};
+        joints[0].targetPosition = {1.0f, 2.0f, 3.0f};
+        CrtRandom random(1);
+        Request request{0x619, subtype, 5.0f, -1, 0};
+        request.angles = {40.0f, 0.0f, 213.0f};
 
-    const auto created = Create(joints, request, &hero, random);
+        const auto created = Create(joints, request, &hero, random);
 
-    ASSERT_TRUE(created.HasValue()) << created.Error();
-    EXPECT_EQ(random.State(), CrtRandom(1).State());
-    const JointState& joint = joints[0];
-    EXPECT_TRUE(joint.alive);
-    EXPECT_EQ(joint.life, 12);
-    EXPECT_EQ(joint.maximumCount, 2);
-    EXPECT_EQ(joint.count, 0);
-    EXPECT_EQ(joint.speed, 0.0f);
-    EXPECT_EQ(joint.width, 5.0f);
-    EXPECT_EQ(joint.texture, 0x619);
-    EXPECT_EQ(joint.light, glm::vec3(1.0f));
-    EXPECT_EQ(joint.position, request.first);
-    EXPECT_EQ(joint.angles, request.angles);
-    EXPECT_EQ(joint.targetPosition, glm::vec3(1.0f, 2.0f, 3.0f));
-    EXPECT_EQ(joint.ownerContext, &hero);
+        ASSERT_TRUE(created.HasValue()) << created.Error();
+        EXPECT_EQ(random.State(), CrtRandom(1).State());
+        const JointState& joint = joints[0];
+        EXPECT_TRUE(joint.alive);
+        EXPECT_EQ(joint.life, 12);
+        EXPECT_EQ(joint.maximumCount, 2);
+        EXPECT_EQ(joint.count, 0);
+        EXPECT_EQ(joint.speed, 0.0f);
+        EXPECT_EQ(joint.width, 5.0f);
+        EXPECT_EQ(joint.texture, 0x619);
+        EXPECT_EQ(joint.light, glm::vec3(1.0f));
+        EXPECT_EQ(joint.position, request.first);
+        EXPECT_EQ(joint.angles, request.angles);
+        EXPECT_EQ(joint.targetPosition, glm::vec3(1.0f, 2.0f, 3.0f));
+        EXPECT_EQ(joint.ownerContext, &hero);
+    }
 }
 
-// 0x538a52..0x538d28: después del avance común con la velocidad de antes, sube 4; gira de a 10 hacia el héroe 120 más
-// arriba, leído en vivo; la luz es (12 − vida) · 0,1f por (0,4f; 0,6f; 1) y, con la vida en 1, el sprite 0x5fd en ese
-// destino con el giro rand() % 360 y la escala ((rand() & 7) + 8) · 0,2f. La cola común con la matriz del principio del
-// paso; muere en el paso 13.
-TEST(FullSetJointsTest, TheSummonEnergyClimbsTowardsItsOwnerAndShinesOnItsLastLife)
+namespace
+{
+// 0x538a52..0x538d28 con el 619/1 o el 619/3 (lo comprueba el test de abajo).
+void ClimbTowardsTheOwner(std::int32_t subtype)
 {
     ActorState hero;
     hero.position = {1300.0f, 1700.0f, 290.0f};
     std::array<JointState, 1> joints{};
     CrtRandom random(1);
-    Request request{0x619, 1, 5.0f, -1, 0};
+    Request request{0x619, subtype, 5.0f, -1, 0};
     request.first = {1450.0f, 1600.0f, 380.0f};
     request.angles = {40.0f, 0.0f, 213.0f};
     ASSERT_TRUE(Create(joints, request, &hero, random).HasValue());
@@ -725,8 +879,12 @@ TEST(FullSetJointsTest, TheSummonEnergyClimbsTowardsItsOwnerAndShinesOnItsLastLi
         const glm::vec3 target{hero.position.x, hero.position.y, F32(D(hero.position.z) + 120.0)};
         Steer(expected, target, 10.0f);
         const double brightness = static_cast<double>(12 - expected.life) * tenth;
-        expected.light = {F32(brightness * D(Float(0x3ecccccdu))), F32(brightness * D(Float(0x3f19999au))),
-                          F32(brightness)};
+        if (subtype == 3)
+            expected.light = {F32(brightness), F32(brightness * D(Float(0x3f19999au))),
+                              F32(brightness * D(Float(0x3ecccccdu)))};
+        else
+            expected.light = {F32(brightness * D(Float(0x3ecccccdu))), F32(brightness * D(Float(0x3f19999au))),
+                              F32(brightness)};
         if (expected.life == 1)
         {
             const auto rotation = static_cast<float>(draws.Next() % 360);
@@ -757,6 +915,21 @@ TEST(FullSetJointsTest, TheSummonEnergyClimbsTowardsItsOwnerAndShinesOnItsLastLi
     }
 }
 
+} // namespace
+
+// 0x538a52..0x538d28: después del avance común con la velocidad de antes, sube 4; gira de a 10 hacia el héroe 120 más
+// arriba, leído en vivo; la luz es (12 − vida) · 0,1f por (0,4f; 0,6f; 1) la /1 y por (1; 0,6f; 0,4f) la /3
+// (0x538bc8) y, con la vida en 1, el sprite 0x5fd en ese destino con el giro rand() % 360 y la escala
+// ((rand() & 7) + 8) · 0,2f. La cola común con la matriz del principio del paso; muere en el paso 13.
+TEST(FullSetJointsTest, TheSummonEnergyClimbsTowardsItsOwnerAndShinesOnItsLastLife)
+{
+    for (const std::int32_t subtype : {1, 3})
+    {
+        SCOPED_TRACE(subtype);
+        ClimbTowardsTheOwner(subtype);
+    }
+}
+
 // 0x538b17: sin el héroe no tiene a quién seguir; 0x538cce: en la última vida, sin el RNG o los sprites corta antes de
 // tocar nada.
 TEST(FullSetJointsTest, TheSummonEnergyNeedsItsOwnerAndItsLastSprite)
@@ -780,4 +953,102 @@ TEST(FullSetJointsTest, TheSummonEnergyNeedsItsOwnerAndItsLastSprite)
     EXPECT_EQ(last[0].speed, before.speed);
     EXPECT_EQ(last[0].light, before.light);
     EXPECT_EQ(last[0].life, 1);
+}
+
+// El 619/6 de los rayos del 0x813 (0x52cb85), sin dueño. 0x5323d3..0x532415: lo común del 0x619 y la luz (1; 1; 0,5)
+// con 4 puntos; el destino es el segundo punto. Sin rand().
+TEST(FullSetJointsTest, TheBoltEnergyIsBornWithAPaleLight)
+{
+    std::array<JointState, 1> joints{};
+    CrtRandom random(1);
+    Request request{0x619, 6, 5.0f, -1, 0};
+    request.angles = {40.0f, 0.0f, 213.0f};
+
+    const auto created = Create(joints, request, nullptr, random);
+
+    ASSERT_TRUE(created.HasValue()) << created.Error();
+    EXPECT_EQ(random.State(), CrtRandom(1).State());
+    const JointState& joint = joints[0];
+    EXPECT_EQ(joint.life, 12);
+    EXPECT_EQ(joint.maximumCount, 4);
+    EXPECT_EQ(joint.speed, 0.0f);
+    EXPECT_EQ(joint.width, 5.0f);
+    EXPECT_EQ(joint.light, glm::vec3(1.0f, 1.0f, 0.5f));
+    EXPECT_EQ(joint.position, request.first);
+    EXPECT_EQ(joint.targetPosition, request.second);
+    EXPECT_EQ(joint.ownerContext, nullptr);
+}
+
+// 0x538a52..0x538a70 y 0x538c25..0x538ca9: después del avance común con la velocidad de antes, sube 2, sin girar ni
+// cambiar la luz. Con 10 de vida o menos, el sprite 0x5fd en el destino con la luz gris (6 − |vida − 6|) · 0,15f, el
+// giro rand() % 360 y la escala ((rand() & 7) + 8) · 0,05f: once sprites, del paso 3 al 13, en que muere.
+TEST(FullSetJointsTest, TheBoltEnergyGlidesAndSparksInItsLastLives)
+{
+    std::array<JointState, 1> joints{};
+    CrtRandom random(1);
+    Request request{0x619, 6, 5.0f, -1, 0};
+    request.angles = {40.0f, 0.0f, 213.0f};
+    ASSERT_TRUE(Create(joints, request, nullptr, random).HasValue());
+    JointState expected = joints[0];
+    Client::World::FrameSprites sprites;
+    CrtRandom draws(1);
+    std::size_t made = 0;
+
+    for (int step = 1; step <= 13; ++step)
+    {
+        SCOPED_TRACE(step);
+        ASSERT_TRUE(Client::Scenes::StepJoints(joints, random, nullptr, nullptr, 0, &sprites).HasValue());
+
+        const auto matrix = Client::Render::Models::OriginalAngleMatrix(expected.angles);
+        const glm::vec3 moved = Client::Render::Models::OriginalVectorRotate({0.0f, -expected.speed, 0.0f}, matrix);
+        if (expected.speed > 0)
+            for (int axis = 0; axis < 3; ++axis)
+                expected.position[axis] = F32(D(expected.position[axis]) + D(moved[axis]));
+        expected.speed = F32(2.0 + D(expected.speed));
+        if (expected.life <= 10)
+        {
+            const auto rotation = static_cast<float>(draws.Next() % 360);
+            const auto scale = F32(static_cast<double>((draws.Next() & 7) + 8) * D(Float(0x3d4ccccdu)));
+            const int distance = expected.life < 6 ? 6 - expected.life : expected.life - 6;
+            const auto glow = F32(static_cast<double>(6 - distance) * D(Float(0x3e19999au)));
+            ASSERT_LT(made, sprites.Sprites().size());
+            const auto& shown = sprites.Sprites()[made++];
+            EXPECT_TRUE(shown.alive);
+            EXPECT_EQ(shown.texture, 0x5fd);
+            EXPECT_EQ(shown.position, request.second);
+            EXPECT_EQ(shown.scale, scale);
+            EXPECT_EQ(shown.light, glm::vec3(glow));
+            EXPECT_EQ(shown.rotation, rotation);
+        }
+        EXPECT_EQ(std::ranges::count_if(sprites.Sprites(), [](const auto& sprite) { return sprite.alive; }),
+                  static_cast<std::ptrdiff_t>(made));
+        expected.count = Appended(expected.count, expected.maximumCount);
+        --expected.life;
+
+        const JointState& joint = joints[0];
+        EXPECT_EQ(joint.speed, expected.speed);
+        EXPECT_EQ(joint.position, expected.position);
+        EXPECT_EQ(joint.angles, request.angles);
+        EXPECT_EQ(joint.light, glm::vec3(1.0f, 1.0f, 0.5f));
+        EXPECT_EQ(joint.count, expected.count);
+        EXPECT_EQ(joint.life, expected.life);
+        EXPECT_EQ(joint.alive, step < 13);
+        EXPECT_EQ(random.State(), draws.State());
+    }
+    EXPECT_EQ(made, 11u);
+}
+
+// 0x538c5d: con 10 de vida o menos, sin el RNG o los sprites corta; antes, no los pide.
+TEST(FullSetJointsTest, TheBoltEnergyNeedsTheSpritesOnlyForItsSparks)
+{
+    std::array<JointState, 1> joints{};
+    CrtRandom random(1);
+    Request request{0x619, 6, 5.0f, -1, 0};
+    ASSERT_TRUE(Create(joints, request, nullptr, random).HasValue());
+    ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+    ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+    EXPECT_EQ(joints[0].life, 10);
+    const auto blind = Client::Scenes::StepJoints(joints, random);
+    ASSERT_FALSE(blind.HasValue());
+    EXPECT_NE(blind.Error().find("0x538c5d"), std::string::npos) << blind.Error();
 }

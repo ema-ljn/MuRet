@@ -4,6 +4,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <string>
 
 namespace Client::Data::Terrain
@@ -33,8 +34,9 @@ class Particles;
 // Todo lo que es estado, sonido o rand() está portado, y las partículas (0x53fe70) que World::Particles crea (0x5ca/0,
 // 0x5f2/11, 0x5f3/0, 0x5d9/0 y 0x729/0 y /1) se crean con sus rand(). Las que MuRet no tiene cortan con la dirección
 // de la llamada solo si su tabla tiene lugar: llena, el original no crea nada, no saca rand() y sigue, y MuRet sigue
-// con él. Los efectos (0x518cf0), los joints (0x530860), las estelas (0x52e470), 0x51fe10 y 0x4ee770 son de la CL11 y
-// cortan con la dirección de la llamada, sin mirar si su tabla está llena (el pase no la lleva, P-C336). Un hueso con
+// con él. Los efectos (0x518cf0), los joints (0x530860), las estelas (0x52e470) y 0x51fe10 que siguen sin portar son
+// de la CL11 y cortan con la dirección de la llamada, sin mirar si su tabla está llena (el pase no la lleva, P-C336);
+// las muertes del 0x1a4 y el 0x1a6 (0x4ee770) y la piedra 0x12e/3 del 0x1a6 (0x442397) ya están. Un hueso con
 // nombre (0x4010b0 y 0x4010d0 → 0x4016c0) que el alta del monstruo no registró en WorldRuntime::namedBones también
 // corta: el original dejaría el punto sin escribir, con lo que hubiera en la pila.
 namespace Client::Scenes
@@ -60,6 +62,10 @@ struct MonsterHelperPass
     bool originalFrame = true;
     Render::ModelBatch* batch = nullptr;
     const Data::Terrain::TerrainHeights* heights = nullptr;
+    // 0x4ee770(0, tipo, subtipo, 0, 0) con el modelo del monstruo sobre las mallas de 0x5786f9c (las del cuerpo que
+    // acaba de dibujar, Q-C1581): los efectos por vértice de la muerte del 0x1a4 y el 0x1a6 (Scenes::EmitVertexEffects
+    // en los efectos del mundo). Sin él, esas muertes cortan.
+    std::function<Core::Expected<void, std::string>(std::int32_t type, std::int32_t subtype)> vertexEffects{};
 };
 
 // 0x441400(c, objeto, modelo), del 0x1a3 al 0x1a9 (la tabla de 0x442de8): los ojos, la cola y las manos de

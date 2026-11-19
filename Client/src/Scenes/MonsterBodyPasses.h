@@ -31,6 +31,7 @@ class ModelEffects;
 namespace Client::Scenes
 {
 struct ActorState;
+struct JointState;
 
 // Lo que 0x4ef0c0 (RenderBody) y 0x4ecc30 (RenderMesh) reciben después de las banderas: el alpha, el blendMesh, su
 // luz, la U, la V, la malla oculta (solo RenderBody) y la textura (−1: la de cada malla; si no, ese slot).
@@ -103,6 +104,12 @@ struct MonsterBodyFrame
     float* cameraShake = nullptr;
     // 4ee770 consume el mismo pool de518cf0 que el resto del frame.
     World::ModelEffects* effects = nullptr;
+    // 0x5f93c0, la altura del terreno que piden las altas de los pedazos de Kundun al caer (0x51e26e). Vacía, esas
+    // altas cortan.
+    std::function<double(float, float)> terrainHeight{};
+    // 0x530860: la tabla de joints (0x74a8d78, WorldState::DrawTail), para los rayos de Kundun al morir (0x43f20d).
+    // Vacía: corta ahí.
+    std::span<JointState> joints{};
 };
 
 // 0x41ed10(id, objeto, 0) en un frame del original: lo anota para CL10.

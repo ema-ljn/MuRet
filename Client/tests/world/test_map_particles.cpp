@@ -154,7 +154,7 @@ TEST(MapParticlesTest, UnsupportedStepBindingsKeepTheCommonPrefixAndStopBeforeTh
         Client::World::ParticleError error;
     };
     constexpr std::array cases{Case{0x123456, 0, Client::World::ParticleError::UnsupportedType},
-                               Case{0x5d9, 4, Client::World::ParticleError::UnsupportedSubtype}};
+                               Case{0x5ad, 5, Client::World::ParticleError::UnsupportedSubtype}};
     for (const Case& value : cases)
     {
         SCOPED_TRACE(value.type);

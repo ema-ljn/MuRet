@@ -1,4 +1,5 @@
 #include "support/CheckedWorldObjectProjection.h"
+#include "support/PlayerActors.h"
 
 #include "Scenes/WorldObjectsDrawing.h"
 
@@ -27,8 +28,10 @@
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/TextureMetadata.h"
 #include "Data/Textures/Texture.h"
+#include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/TerrainCulling.h"
+#include "World/WizardModelEffects.h"
 #include "World/WorldObjects.h"
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/vector_float2.hpp>
@@ -40,12 +43,15 @@
 #include <cstdint>
 #include <optional>
 #include <span>
+#include <string>
+#include <vector>
 
 // El emisor de 0x602ed0 y el pase de ojo de 0x548550(0), sin GL.
 namespace
 {
 constexpr std::uint8_t LoginMap = 55;
 constexpr std::int16_t CloudMarker = 0x54;
+constexpr std::int16_t MeteorMarker = 0x59;
 constexpr std::int32_t CloudType = 0x622;
 constexpr std::int32_t CloudSubtype = 10;
 class CloudTextures final : public Client::Scenes::IModelLibrary
@@ -145,6 +151,129 @@ TEST(LoginCloudDrawingTest, AMissingPoolStillConsumesTheCloudGuard)
                                      0.0f, Client::Scenes::ObjectFrameEffects{.random = &random});
     EXPECT_TRUE(object.seen);
     EXPECT_EQ(random.State(), 0xc6192e9eu) << "común51 y guard17945, sin los cinco rand de creación";
+}
+
+// 0x6043ff..0x604427: el 0x59 del mapa 55 con ftol(reloj) % 8000 desde 7950 suelta un meteoro 0xc2/9; sin la tabla de
+// los efectos con modelo (ObjectFrameEffects::modelEffects) no tiene dónde ponerlo: corta antes de sus tres rand(),
+// después del común, por ObjectFrameEffects::onFailure. Fuera de esa ventana (7949) o en otro mapa, sólo el rand común.
+TEST(LoginCloudDrawingTest, TheMeteorMarkerCutsInsideItsWindow)
+{
+    struct Case
+    {
+        std::uint8_t map;
+        std::int64_t clock;
+        bool cut;
+    };
+    for (const Case& tested : {Case{LoginMap, 7950, true}, Case{LoginMap, 15999, true}, Case{LoginMap, 7949, false},
+                               Case{LoginMap, 8000, false}, Case{54, 7950, false}})
+    {
+        SCOPED_TRACE(tested.clock);
+        SCOPED_TRACE(static_cast<int>(tested.map));
+        auto object = Marker(MeteorMarker);
+        const CloudTextures models;
+        Client::World::Particles particles;
+        Client::Render::Models::CrtRandom random(4);
+        Client::Render::Models::CrtRandom common(4);
+        static_cast<void>(common.Next());
+        std::vector<std::string> failures;
+        Client::Render::ModelBatch batch;
+        batch.Begin(Client::Render::Pass3D{});
+        Client::Scenes::DrawWorldObjects(batch, models, std::span(&object, 1), {.everything = true}, nullptr,
+                                         tested.map, std::chrono::milliseconds{tested.clock}, 0.0f,
+                                         Client::Scenes::ObjectFrameEffects{.random = &random,
+                                                                            .particles = &particles,
+                                                                            .onFailure = [&](const std::string& error)
+                                                                            { failures.push_back(error); }});
+        EXPECT_EQ(random.State(), common.State());
+        EXPECT_FALSE(particles.Any());
+        ASSERT_EQ(failures.size(), tested.cut ? 1U : 0U);
+        if (tested.cut)
+        {
+            EXPECT_NE(failures[0].find("0x604427"), std::string::npos) << failures[0];
+            EXPECT_NE(failures[0].find("CL11"), std::string::npos) << failures[0];
+        }
+    }
+}
+
+// El 0x59 dibujado una vez en el mapa 55 con el reloj `clock`, con la tabla de los efectos con modelo.
+std::vector<std::string> DropTheMeteor(Client::World::WorldObject& object, Client::World::ModelEffects& effects,
+                                       Client::Render::Models::CrtRandom& random, std::int64_t clock)
+{
+    const CloudTextures models;
+    Client::World::Particles particles;
+    std::vector<std::string> failures;
+    Client::Render::ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    Client::Scenes::DrawWorldObjects(
+        batch, models, std::span(&object, 1), {.everything = true}, nullptr, LoginMap, std::chrono::milliseconds{clock},
+        0.0f,
+        Client::Scenes::ObjectFrameEffects{.random = &random,
+                                           .particles = &particles,
+                                           .modelEffects = &effects,
+                                           .onFailure = [&](const std::string& error) { failures.push_back(error); }});
+    EXPECT_FALSE(particles.Any());
+    return failures;
+}
+
+// 0x604427..0x6044b2: en la ventana, después del rand común, x e y con (rand() & 0x7ff) − 1024 y z con rand() % 600 +
+// 3000 sobre el objeto, y 0x518cf0(0xc2, punto, ángulos, luz, 9, 0, −1): el caso 9 (0x51b280) sigue con sus cinco
+// rand(). Con la semilla 4: común 51; 17945, 27159 y 386 dan (1537; 1511; 3686); el caso, 17345 (escala 25 · 0,13f),
+// 27504 (x + 16 + 130), 20815 (z + 15 + 400), 20576 (vy −1 − 8) y 10960 (vz −10 − 0). La réplica pasa el mismo punto
+// por el alta de los magos en una tabla gemela con la misma CRT.
+TEST(LoginCloudDrawingTest, TheMeteorMarkerDropsAMeteorInsideItsWindow)
+{
+    auto object = Marker(MeteorMarker);
+    object.light = {0.25f, 0.5f, 0.75f};
+    Client::World::ModelEffects effects;
+    Client::Render::Models::CrtRandom random(4);
+    EXPECT_TRUE(DropTheMeteor(object, effects, random, 15999).empty());
+    EXPECT_EQ(random.State(), Client::Tests::AfterDraws(4, 9).State());
+    Client::World::ModelEffects twin;
+    Client::Render::Models::CrtRandom twinRandom = Client::Tests::AfterDraws(4, 4);
+    ASSERT_TRUE(Client::World::CreateWizardModelEffect(twin,
+                                                       {.type = Client::World::FireEffect,
+                                                        .position = {1537.0f, 1511.0f, 3686.0f},
+                                                        .angles = object.transform.angles,
+                                                        .light = object.light,
+                                                        .subtype = 9},
+                                                       twinRandom, {})
+                    .HasValue());
+    EXPECT_EQ(twinRandom.State(), random.State());
+    const Client::World::ModelEffect& meteor = effects.Effects()[0];
+    const Client::World::ModelEffect& expected = twin.Effects()[0];
+    ASSERT_TRUE(meteor.alive);
+    EXPECT_FALSE(effects.Effects()[1].alive);
+    EXPECT_EQ(meteor.type, Client::World::FireEffect);
+    EXPECT_EQ(meteor.subtype, 9);
+    EXPECT_EQ(meteor.life, 600);
+    EXPECT_EQ(meteor.transform.position, glm::vec3(1683.0f, 1511.0f, 4101.0f));
+    EXPECT_EQ(meteor.transform.scale, 3.25f);
+    EXPECT_EQ(meteor.velocity, glm::vec3(0.0f, -9.0f, -10.0f));
+    EXPECT_EQ(meteor.transform.position, expected.transform.position);
+    EXPECT_EQ(meteor.transform.angles, expected.transform.angles);
+    EXPECT_EQ(meteor.light, expected.light);
+    EXPECT_EQ(meteor.velocity, expected.velocity);
+    EXPECT_EQ(meteor.transform.scale, expected.transform.scale);
+    EXPECT_EQ(meteor.ownerContext, nullptr);
+    EXPECT_EQ(meteor.disturbanceState, expected.disturbanceState);
+    EXPECT_EQ(meteor.objectState.blendMesh, expected.objectState.blendMesh);
+}
+
+// 0x518cf0 con la tabla llena no hace nada ni saca rand(): los tres del punto ya salieron (0x604427..0x604471).
+TEST(LoginCloudDrawingTest, AFullTableTakesOnlyTheThreeRandsOfThePoint)
+{
+    auto object = Marker(MeteorMarker);
+    Client::World::ModelEffects effects;
+    for (Client::World::ModelEffect& effect : effects.Effects())
+    {
+        effect.alive = true;
+        effect.type = -1;
+    }
+    Client::Render::Models::CrtRandom random(4);
+    EXPECT_TRUE(DropTheMeteor(object, effects, random, 7950).empty());
+    EXPECT_EQ(random.State(), Client::Tests::AfterDraws(4, 4).State());
+    for (const Client::World::ModelEffect& effect : effects.Effects())
+        EXPECT_EQ(effect.type, -1);
 }
 
 TEST(LoginCloudDrawingTest, OtherMapsAndTypesConsumeOnlyTheCommonRand)
@@ -346,4 +475,5 @@ TEST(LoginCloudDrawingTest, TheSceneEmitsInTheEyePassAndClearsThePoolOnEnteringA
     EXPECT_EQ(CloudsIn(target.frames.back()), 0u);
     scene.Leave();
 }
+
 } // namespace

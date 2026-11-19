@@ -346,12 +346,12 @@ TEST(ParticlesTest, UnsupportedTypesAndSubtypesAreNotCreated)
     EXPECT_FALSE(
         particles.Create(0x5f3, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(3.0f), 1, 1.0f, 0.0f, random).has_value());
     EXPECT_FALSE(particles
-                     .Create(Client::World::BreathParticle, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(3.0f), 1, 1.0f,
+                     .Create(Client::World::BreathParticle, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(3.0f), 5, 1.0f,
                              0.0f, random)
                      .has_value());
     EXPECT_FALSE(particles
-                     .Create(Client::World::SparkParticle, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(3.0f), 4, 1.0f,
-                             0.0f, random)
+                     .Create(Client::World::MagicSparkParticle, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(3.0f), 5,
+                             1.0f, 0.0f, random)
                      .has_value());
     EXPECT_FALSE(particles
                      .Create(Client::World::CloudParticle, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(3.0f), 11, 1.0f,

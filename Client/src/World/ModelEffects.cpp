@@ -202,9 +202,14 @@ void InitializeCommonEffect(ModelEffect& effect, std::int16_t type, const glm::v
 
 std::optional<std::size_t> ModelEffects::Begin(const ModelEffectArguments& arguments)
 {
-    for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
+    return BeginModelEffect(m_effects, arguments);
+}
+
+std::optional<std::size_t> BeginModelEffect(std::span<ModelEffect> table, const ModelEffectArguments& arguments)
+{
+    for (std::size_t slot = 0; slot < table.size(); ++slot)
     {
-        ModelEffect& effect = m_effects[slot];
+        ModelEffect& effect = table[slot];
         if (effect.alive)
             continue;
         InitializeCommonEffect(effect, arguments.type, arguments.position, arguments.angles, arguments.light,
@@ -222,67 +227,6 @@ std::optional<std::size_t> ModelEffects::Begin(const ModelEffectArguments& argum
         return slot;
     }
     return std::nullopt;
-}
-
-std::optional<std::size_t> ModelEffects::CreateSiegeCue(const ModelEffectArguments& arguments,
-                                                        Render::Models::CrtRandom& random)
-{
-    if (!IsSiegeCue(arguments.type, arguments.subtype))
-        return std::nullopt;
-    // 0x518d63 limpia +0x16d. El pase de suelo todavía lee el +0x16c anterior.
-    const auto slot = Begin(arguments);
-    if (!slot)
-        return std::nullopt;
-    auto& effect = m_effects[*slot];
-    effect.copiedAngles = {};
-    effect.life = SiegeAttackCueLife;
-    if (effect.type == SiegeArrivalCue)
-    {
-        // 0x51d714: la clave del llamador dimensiona la señal en el lugar del alta.
-        constexpr std::int32_t InitialLife = 100;
-        constexpr double ScalePerUnit = static_cast<double>(0.01f);
-        effect.life = InitialLife;
-        effect.transform.scale = F32(static_cast<double>(std::bit_cast<std::int16_t>(arguments.key)) * ScalePerUnit);
-    }
-    else if (effect.type == SiegePulseCue)
-    {
-        // 0x51f193: se sortea una fase sólo al obtener el lugar.
-        effect.copiedAngles.z = static_cast<float>(random.Next() % static_cast<int>(FullTurn));
-    }
-    return slot;
-}
-
-std::optional<std::size_t> ModelEffects::CreateCrywolfEffect(const ModelEffectArguments& arguments)
-{
-    if (arguments.type == CrywolfArrowEffect || !IsCrywolfCue(arguments.type, arguments.subtype))
-        return std::nullopt;
-    const auto slot = Begin(arguments);
-    if (!slot)
-        return std::nullopt;
-
-    auto& effect = m_effects[*slot];
-    effect.copiedAngles = {};
-    effect.transform.scale = 1.0f;
-    if (arguments.type == CrywolfPulseEffect)
-    {
-        constexpr std::int32_t PulseLife = 100;
-        effect.life = PulseLife;
-        effect.objectState.blendMesh = 0;
-        effect.owner.effect = static_cast<const ModelEffect*>(arguments.owner);
-        return slot;
-    }
-
-    // 0x51f84f..0x51f8a7 fija las entradas al movimiento compartido de los fragmentos.
-    constexpr std::int32_t ShardLife = 30;
-    constexpr double LaunchHeight = 280.0;
-    constexpr double LaunchPitch = 20.0;
-    effect.life = ShardLife;
-    effect.objectState.blendMesh = -2;
-    effect.transform.position.z = F32(static_cast<double>(effect.transform.position.z) + LaunchHeight);
-    effect.transform.angles.x = F32(static_cast<double>(effect.transform.angles.x) + LaunchPitch);
-    effect.velocity = {0, -80, -10};
-    effect.previousPosition = effect.transform.position;
-    return slot;
 }
 
 std::optional<std::size_t> ModelEffects::CreateKalimaEffect(const glm::vec3& position, const glm::vec3& angles,
@@ -748,6 +692,18 @@ std::optional<std::size_t> ModelEffects::CreateFlameJet(const glm::vec3& positio
     return std::nullopt;
 }
 
+std::optional<std::size_t> ModelEffects::CreateFlameColumn(const ModelEffectArguments& arguments)
+{
+    constexpr std::int32_t FlameColumnLife = 15; // 0xf, 0x51ecb0
+    if (arguments.type != FlameJetEffect || arguments.subtype != FlameColumnSubtype)
+        return std::nullopt;
+    const std::optional<std::size_t> slot = Begin(arguments);
+    if (!slot)
+        return std::nullopt;
+    m_effects[*slot].life = FlameColumnLife;
+    return slot;
+}
+
 std::optional<std::size_t> ModelEffects::CreateOwnedFlameJet(const ModelEffectArguments& arguments,
                                                              std::uint8_t& ownRecordDepth, std::uint8_t ownRecordCount,
                                                              Render::Models::CrtRandom& random)
@@ -776,8 +732,14 @@ std::optional<std::size_t> ModelEffects::CreateStoneChip(std::int16_t type, cons
                                                          const glm::vec3& angles, const glm::vec3& light,
                                                          Render::Models::CrtRandom& random, std::int32_t subtype)
 {
-    if ((type != FirstStoneChipEffect && type != SecondStoneChipEffect) ||
-        (subtype != 0 && subtype != RisingStoneChipSubtype))
+    // 0x51b659 → 0x51b72b: los pedazos 0xea y 0xeb de las rocas 0xe7..0xe9 (CL11, lote switch) van por el mismo
+    // camino, con el subtipo 0.
+    constexpr std::int16_t FirstRockShard = 0xea, SecondRockShard = 0xeb;
+    const bool chip = type == FirstStoneChipEffect || type == SecondStoneChipEffect;
+    const bool shard = (type == FirstRockShard || type == SecondRockShard) && subtype == 0;
+    const bool splinter = (type == FirstSplinterEffect || type == SecondSplinterEffect) && subtype == 0;
+    if ((!chip && !shard && !splinter) ||
+        (subtype != 0 && subtype != RisingStoneChipSubtype && subtype != SpinningStoneChipSubtype))
         return std::nullopt;
     constexpr int PushMask = 255, PushBase = 64, LifeMask = 15, LifeBase = 32, ScaleMask = 3, ScaleBase = 8;
     constexpr int Degrees = 360, FallMask = 15, FallBase = 8;
@@ -788,6 +750,17 @@ std::optional<std::size_t> ModelEffects::CreateStoneChip(std::int16_t type, cons
             continue;
         InitializeOwnerlessEffect(effect, type, position, angles, light);
         effect.subtype = subtype;
+        if (splinter)
+        {
+            // 0x51b66b..0x51b6d6: los tres corrimientos, cada uno en float antes de sumarse.
+            constexpr int SpreadMask = 127, SpreadCenter = 64, Lift = 180; // 0x7f, 0x40 y 0xb4
+            const auto dx = static_cast<float>((random.Next() & SpreadMask) - SpreadCenter);
+            const auto dy = static_cast<float>((random.Next() & SpreadMask) - SpreadCenter);
+            const auto dz = static_cast<float>(random.Next() % Lift);
+            effect.transform.position.x = F32(static_cast<double>(dx) + static_cast<double>(position.x));
+            effect.transform.position.y = F32(static_cast<double>(dy) + static_cast<double>(position.y));
+            effect.transform.position.z = F32(static_cast<double>(dz) + static_cast<double>(position.z));
+        }
         // 0x51b735: la /1 inicializa a cero, sin llamar a rand() para el empuje.
         const float impulse = subtype == RisingStoneChipSubtype
                                   ? 0.0f
@@ -1180,24 +1153,27 @@ std::optional<std::size_t> ModelEffects::CreateCrywolfTideEffect(const ModelEffe
 
 std::optional<std::size_t> ModelEffects::CreateWaveEffect(const ModelEffectArguments& arguments)
 {
-    if (arguments.type != 0x114 || (arguments.subtype != 2 && arguments.subtype != 6))
+    constexpr std::int32_t FirstWave = 2, LastSlowWave = 4, LastWave = 6;
+    if (arguments.type != 0x114 || arguments.subtype < FirstWave || arguments.subtype > LastWave)
         return std::nullopt;
     const auto slot = Begin(arguments);
     if (!slot)
         return std::nullopt;
     auto& effect = m_effects[*slot];
+    constexpr double Lift = 50.0;                                                          // 0x6b86b0
+    constexpr double ScalePerKey = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu)); // 0x6b8a48, 0,05f
     effect.start = arguments.position;
-    // El store del prefijo +50 precede el−50 del subtipo, incluso si redondea una z grande.
+    // 0x51c173: el +50 de lo común y el −50 del subtipo, cada uno con su fstp.
     effect.transform.position.z =
-        F32(static_cast<double>(F32(static_cast<double>(arguments.position.z) + 50.0)) - 50.0);
+        F32(static_cast<double>(F32(static_cast<double>(arguments.position.z) + Lift)) - Lift);
     effect.objectState.blendMesh = Render::Models::EveryMeshBlends;
     effect.objectState.light = 1;
-    effect.life = effect.subtype == 2 ? 15 : 10;
-    effect.transform.scale =
-        F32(static_cast<double>(std::bit_cast<std::int16_t>(arguments.key)) * static_cast<double>(0.05f));
+    const bool slow = effect.subtype <= LastSlowWave;
+    effect.life = slow ? 15 : 10;
+    effect.transform.scale = F32(static_cast<double>(std::bit_cast<std::int16_t>(arguments.key)) * ScalePerKey);
     effect.disturbanceState = 0xffff;
-    effect.turnDirection = effect.subtype == 2 ? 0.01f : 0.08f;
-    effect.transform.angles = {effect.subtype == 2 ? 90.0f : -90.0f, 0, arguments.angles.z};
+    effect.turnDirection = std::bit_cast<float>(slow ? 0x3c23d70au : 0x3da3d70au); // 0,01f y 0,08f
+    effect.transform.angles = {slow ? 90.0f : -90.0f, 0, arguments.angles.z};
     return slot;
 }
 
@@ -1223,18 +1199,20 @@ std::optional<std::size_t> ModelEffects::CreatePiercingShot(const ModelEffectArg
 
 std::optional<std::size_t> ModelEffects::CreatePiercingEffect(const ModelEffectArguments& arguments)
 {
-    if (arguments.type != 0x115 || arguments.subtype != 1)
+    if (arguments.type != 0x115)
         return std::nullopt;
     const auto slot = Begin(arguments);
     if (!slot)
         return std::nullopt;
     auto& effect = m_effects[*slot];
+    constexpr std::int32_t ShortSubtype = 1, ShortLife = 6, LongLife = 10;
+    constexpr double Lift = 130.0; // 0x6ba194
     effect.transform.scale = 2;
-    effect.life = 6;
+    effect.life = effect.subtype == ShortSubtype ? ShortLife : LongLife;
     effect.objectState.blendMesh = Render::Models::EveryMeshBlends;
     effect.velocity = {0, -60, 0};
     effect.start = arguments.position;
-    effect.transform.position.z = F32(static_cast<double>(effect.transform.position.z) + 130.0);
+    effect.transform.position.z = F32(static_cast<double>(effect.transform.position.z) + Lift);
     return slot;
 }
 
@@ -1312,8 +1290,24 @@ std::optional<std::size_t> ModelEffects::CreateCastleShockWave(const ModelEffect
     ModelEffect& effect = m_effects[*slot];
     effect.life = 30;
     effect.transform.scale = 20.0f;
+    // fild, más la base (0x6b87a8 o 0x6b87f4) y por 0,1f (0x6b8a34), en la x87 hasta el fstp.
+    const auto tenths = [&random](int span, double base)
+    { return F32((static_cast<double>(random.Next() % span) + base) * StoneTenth); };
     switch (effect.subtype)
     {
+    case 1:
+    case 2:
+        effect.life = 20;
+        effect.transform.scale = tenths(10, 10.0);
+        break;
+    case 3:
+        effect.life = 15;
+        effect.transform.scale = 1;
+        break;
+    case 4:
+        effect.life = 10;
+        effect.transform.scale = tenths(6, 6.0);
+        break;
     case 5:
         effect.life = 20;
         effect.transform.scale = 9;

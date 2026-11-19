@@ -47,6 +47,7 @@ inline constexpr std::int16_t ButterflyEffect = 0xae;
 // del 0x18 del 4 (sin modelo: sólo el pase del suelo) y las dos piedritas que salta el chorro (Stone01/02).
 inline constexpr std::int16_t FallingStoneEffect = 0xda;
 inline constexpr std::int16_t FlameJetEffect = 0x5de;
+inline constexpr std::int32_t FlameColumnSubtype = 3; // el 0x5de/3 de la mano derecha del 0x1a4 (0x441b7c)
 // Las piedras del 0x10a y del 0x10b (0x51bafb, 0x52531d): el ataque con daño a las estatuas 0x18e de Blood Castle
 // suelta el 0x10b (0x504267), que salta, cae sobre el terreno y se inclina.
 inline constexpr std::int16_t FirstDebrisEffect = 0x10a;
@@ -54,10 +55,14 @@ inline constexpr std::int16_t DebrisEffect = 0x10b;
 inline constexpr std::int16_t FirstStoneChipEffect = 0xc8;
 inline constexpr std::int16_t SecondStoneChipEffect = 0xc9;
 inline constexpr std::int32_t RisingStoneChipSubtype = 1;
-[[nodiscard]] constexpr bool IsRisingStoneChip(std::int16_t type, std::int32_t subtype)
-{
-    return subtype == RisingStoneChipSubtype && (type == FirstStoneChipEffect || type == SecondStoneChipEffect);
-}
+// La /2 de las piedritas (la de las tormentas 0xcf, 0x522f17 y 0x5231a1 → 0x52b14d): nace como la /0 (0x51b72b) y
+// sube como la /1, girando 20 en z en cada paso (0x523a44).
+inline constexpr std::int32_t SpinningStoneChipSubtype = 2;
+// Los pedazos grandes (Data\Skill\BigStone1 y 2): con el subtipo 0 los suelta la muerte del 0x16b (0x4f59ca), corridos
+// rand() % 128 − 64 en x e y y rand() % 180 en z antes del camino de las piedritas (0x51b659); el /5 es del lote del
+// estallido (World/BlastModelEffects) y el /10 de la piedra que cae (CreateGroundStoneChip).
+inline constexpr std::int16_t FirstSplinterEffect = 0xe5;
+inline constexpr std::int16_t SecondSplinterEffect = 0xe6;
 // El pedazo de hielo 0xca (Data\Skill\Ice02.bmd, 0x615d36): diez los suelta el monstruo de hielo 0x161 al terminar de
 // morir (0x52e810, CL9 hito 3). Su paso es el de las piedritas (0x523974).
 inline constexpr std::int16_t IceShardEffect = 0xca;
@@ -80,29 +85,6 @@ inline constexpr std::int16_t AidaWispEffect = 0xb3;
 // El de Castle Siege (0x42c6b0): el objeto 79 del mapa 30 crea el 0x135 (Skill\TowerGatePlane), un plano
 // que sube y baja con el reloj y se dibuja dos veces, la segunda reflejada.
 inline constexpr std::int16_t GatePlaneEffect = 0x135;
-// Señales procedurales de MuRet para los tres llamadores del mapa 30.
-inline constexpr std::int16_t SiegeArrivalCue = 0x134;
-inline constexpr std::int16_t SiegeStoneCue = 0x19f;
-inline constexpr std::int16_t SiegePulseCue = 0x61c;
-inline constexpr std::int32_t SiegeAttackCueLife = 20;
-inline constexpr std::int16_t CrywolfArrowEffect = 0xf8;
-inline constexpr std::int16_t CrywolfPulseEffect = 0x105;
-inline constexpr std::int16_t CrywolfShardEffect = 0xc1a;
-inline constexpr std::int32_t CrywolfArrowSubtype = 1;
-inline constexpr std::int32_t CrywolfPulseSubtype = 3;
-
-[[nodiscard]] constexpr bool IsSiegeCue(std::int16_t type, std::int32_t subtype)
-{
-    return subtype == 0 && (type == SiegeArrivalCue || type == SiegeStoneCue || type == SiegePulseCue);
-}
-
-[[nodiscard]] constexpr bool IsCrywolfCue(std::int16_t type, std::int32_t subtype)
-{
-    return (type == CrywolfArrowEffect && subtype == CrywolfArrowSubtype) ||
-           (type == CrywolfPulseEffect && subtype == CrywolfPulseSubtype) ||
-           (type == CrywolfShardEffect && subtype == 0);
-}
-
 // El calco que se apaga (0x61d, sin modelo: solo el pase del suelo dibuja la /1). El 0x38 de Crywolf crea el /3, que
 // suelta órbitas 60f/10 (0x52b933).
 inline constexpr std::int16_t FadingDecalEffect = 0x61d;
@@ -130,7 +112,7 @@ inline constexpr std::int16_t ColoredDecalEffect = 0x61e;
 inline constexpr std::int32_t LevelUpDecalSubtype = 0;
 inline constexpr std::int32_t PetSummonSubtype = 1;
 // El /3, que la 0x1c crea sobre el blanco y las invocaciones 0x1e..0x24 sobre el que las lanza (0x50470f y 0x4fdf1e):
-// su paso suelta tres joints 619/3 (0x518900), que son de la CL11.
+// su paso suelta tres joints 619/3 (0x518900), que suben hacia él como los 619/1.
 inline constexpr std::int32_t SummonDecalSubtype = 3;
 // El terremoto (la familia EarthQuake): el 0xfa, que la acción 3 del caballo oscuro crea con el caballo de dueño y el
 // estado (+0x88) en 2 (0x4453e0) y que con un estado distinto de 0 no se dibuja (0x52d400). Su paso suelta en la vida
@@ -155,6 +137,12 @@ struct ModelEffectOwner
     const std::uint16_t* type = nullptr;
     const ModelEffect* effect = nullptr;
     const glm::vec3* angles = nullptr;
+    // CL11 (World/BlastModelEffects): +0x10 (la posición), +0 (el byte vivo) y +0x16c (si se dibujó) de un dueño que
+    // no es otro efecto, como los leen en vivo los pasos del 0xe4, del 0xe5/5, del 0xec, del 0xf6, del 0x109 y del
+    // 0x113.
+    const glm::vec3* position = nullptr;
+    const bool* alive = nullptr;
+    const bool* seen = nullptr;
 };
 
 // Proyección de los campos compartidos por los efectos de 0x1d4 bytes.
@@ -182,7 +170,9 @@ struct ModelEffect
     std::uint16_t disturbanceState = 0;       // +0x8a, guard de437860 del efecto9
     bool vertexLight = true;                  // +0xe8
     glm::vec3 point40{}; // +0x40..+0x48, vector nativo de las estelas, distinto de la interpolación.
-    glm::vec3 start{};   // +0x17c, la partida
+    // +0x4c..+0x54: el otro punto que sigue el joint 0x618/0xb del 0x11b/1 (0x51c82d, 0x538256).
+    glm::vec3 point4c{};
+    glm::vec3 start{}; // +0x17c, la partida
     // De MuRet: la posición antes del último paso, para dibujar entre dos pasos (D-C4).
     glm::vec3 previousPosition{};
     std::int32_t textureFrame = 0;           // +0x1c4: selector firmado del calco 0x14e en52d8f2.
@@ -236,19 +226,26 @@ struct ModelEffectArguments
 // El WORD +0x2 del dueño, leído en vivo, o nada sin dueño.
 [[nodiscard]] std::optional<std::uint16_t> OwnerTypeOf(const ModelEffectOwner& owner);
 
+// ModelEffects::Begin sobre otra tabla del mismo formato: la copia que repite el pase del suelo (0x52dc20) crea ahí lo
+// que el original crea en la suya (los 0x61e/7 y /9 de 0x52e04c y 0x52e0a2).
+[[nodiscard]] std::optional<std::size_t> BeginModelEffect(std::span<ModelEffect> table,
+                                                          const ModelEffectArguments& arguments);
+
 class ModelEffects
 {
 public:
-    // El caller presta el actor durable de llegada. Sólo el pulso consume RNG al obtener un lugar.
-    std::optional<std::size_t> CreateSiegeCue(const ModelEffectArguments& arguments, Render::Models::CrtRandom& random);
-    // Fragmento radial o pulso. El dueño del pulso es una flecha durable del mismo pool.
-    std::optional<std::size_t> CreateCrywolfEffect(const ModelEffectArguments& arguments);
     // 0x51c754: el torbellino145/2 de la estela del1ae, sinRNG.
     std::optional<std::size_t> CreateCrywolfTideEffect(const ModelEffectArguments& arguments);
-    // 0x51c129: ondas114/2 y/6, key firmado como escala, sinRNG; 0x51c8e8:115/1.
+    // 0x51c129..0x51c36d: las ondas 0x114/2..6, sin rand(). Lo común del 0x114 (vida 20, +0xe4 en 0,1f, +0x64 en −2,
+    // +0x68 en 1, los ángulos en 0, la partida en la posición y la z + 50) y lo del subtipo: la /2, /3 y /4 (0x51c31f)
+    // viven 15 con +0xe4 en 0,01f y la x de los ángulos en 90; la /5 y la /6 (0x51c2d0) viven 10 con +0xe4 en 0,08f y
+    // la x en −90. Todas: la escala de la clave (+0x8a, MOVSX) por 0,05f, la clave en −1, la z − 50 y la z de los
+    // ángulos la del argumento. La /0 y la /1 sueltan joints (Scenes/WaveEffects); otro subtipo, nada. Lleno, ninguno.
     std::optional<std::size_t> CreateWaveEffect(const ModelEffectArguments& arguments);
     // 0x51efa5: brillo621/0 de Piercing Shot, vida10 y corrimiento girado, sinCRT.
     std::optional<std::size_t> CreatePiercingShot(const ModelEffectArguments& arguments);
+    // 0x51c8e8..0x51c951: el 0x115 de cualquier subtipo, sin rand(): escala 2, vida 6 con el /1 y 10 con los demás,
+    // +0x64 en −2, la velocidad (0, −60, 0), la partida en la posición y la z + 130. Lleno, ninguno.
     std::optional<std::size_t> CreatePiercingEffect(const ModelEffectArguments& arguments);
     // 0x51c06c: proyectil0xee de BD0C, sinCRT; +1b0 recibe los ángulos como destino.
     std::optional<std::size_t> CreateCrywolfMissile(const ModelEffectArguments& arguments);
@@ -258,7 +255,10 @@ public:
                                                    Render::Models::CrtRandom& random);
     // 0x51f7f9: cráter636, sub0/1/2; no consume RNG y el pool lleno conserva sus argumentos.
     std::optional<std::size_t> CreateCraterEffect(const ModelEffectArguments& arguments);
-    // 0x51f577..0x51f5fd: ondas6eb/5..8. Sólo /8 consume un rand() al conseguir lugar.
+    // 0x51f4ad..0x51f5fd: la onda 0x6eb de cualquier subtipo: vida 30 y escala 20, y después la /1 y la /2 vida 20 y
+    // (rand() % 10 + 10) · 0,1f, la /3 vida 15 y 1, la /4 vida 10 y (rand() % 6 + 6) · 0,1f, la /5 20 y 9, la /6 50 y
+    // 9, la /7 10 y 1 y la /8 10 y (rand() % 10 + 10) · 0,2f. Sólo la /1, la /2, la /4 y la /8 sacan un rand(), con
+    // lugar.
     std::optional<std::size_t> CreateCastleShockWave(const ModelEffectArguments& arguments,
                                                      Render::Models::CrtRandom& random);
     // 438a1a→5191be: tipo9/0, ownerNULL, escalaargumento0; primer libre, lleno sinCRT.
@@ -306,6 +306,9 @@ public:
     std::optional<std::size_t> CreateFlameJet(const glm::vec3& position, const glm::vec3& angles,
                                               const glm::vec3& light, std::uint8_t& ownRecordDepth,
                                               Render::Models::CrtRandom& random);
+    // 0x518cf0(0x5de, …) con el subtipo 3 → 0x51ecaa: la columna de la mano derecha del 0x1a4 (0x441b7c y 0x441c4c):
+    // el prefijo de Begin y vida 15, sin rand(). Otro tipo o subtipo, o la tabla llena, ninguno.
+    std::optional<std::size_t> CreateFlameColumn(const ModelEffectArguments& arguments);
     // 0x518cf0(0x5de, punto, ángulos, luz, 0, dueño, clave, lugar, 0, 0, 0) → 0x51e7d8 con el subtipo 0, el chorro de
     // la Flame (0x500531, Scenes/AttackSkillCases): el prefijo de Begin (el dueño en +0x108, la clave en +0x8a y el
     // lugar de la skill en +0x89), vida 40 (0x51e7f9) y el registro propio abierto, su cuenta +0xf04 (`ownRecordCount`)
@@ -314,10 +317,12 @@ public:
     // rand() y sin tocar el registro.
     std::optional<std::size_t> CreateOwnedFlameJet(const ModelEffectArguments& arguments, std::uint8_t& ownRecordDepth,
                                                    std::uint8_t ownRecordCount, Render::Models::CrtRandom& random);
-    // 0x518cf0(0xc8 o 0xc9, …, 0, 0, −1, 0, 0, 0, 0) → 0x51b72b con el subtipo 0: el prefijo común y cinco
-    // rand(): el empuje ((& 255) + 64) · 0,1f en y, la vida (& 15) + 32, la escala ((& 3) + 8) · 0,1f, el
-    // yaw rand() % 360 y la caída (& 15) + 8 en +0xe4; la velocidad es el empuje girado por los ángulos con
-    // ese yaw. La /1 de 0x520119 tiene empuje cero y omite ese primer sorteo. Otro tipo o la tabla llena, ninguno.
+    // 0x518cf0(0xc8 o 0xc9, o 0xea, 0xeb, 0xe5 o 0xe6 con el subtipo 0, …, 0, 0, −1, 0, 0, 0, 0) → 0x51b72b: el
+    // prefijo común y cinco rand(): el empuje ((& 255) + 64) · 0,1f en y, la vida (& 15) + 32, la escala ((& 3) + 8) ·
+    // 0,1f, el yaw rand() % 360 y la caída (& 15) + 8 en +0xe4; la velocidad es el empuje girado por los ángulos con
+    // ese yaw. La /1 de 0x520119 tiene empuje cero y omite ese primer sorteo. El 0xe5 y el 0xe6 sacan antes tres más
+    // (0x51b66b..0x51b6d6): rand() % 128 − 64 en x, otro en y y rand() % 180 en z, sumados a la posición (cada uno
+    // guardado en float y después fld, fadd y fstp). Otro tipo o la tabla llena, ninguno.
     std::optional<std::size_t> CreateStoneChip(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
                                                const glm::vec3& light, Render::Models::CrtRandom& random);
     std::optional<std::size_t> CreateStoneChip(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,

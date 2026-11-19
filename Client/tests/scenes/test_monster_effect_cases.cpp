@@ -1,10 +1,14 @@
 #include "Scenes/ModelEffects.h"
 
 #include "Core/Expected.h"
+#include "Data/Terrain/TerrainGrid.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/HalfLifeMath.h"
+#include "Render/Models/OriginalAngles.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/DynamicWorldLight.h"
 #include "Scenes/FaunaModels.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/WorldRuntime.h"
@@ -14,7 +18,9 @@
 #include "World/ModelEffects.h"
 #include "World/OriginalFtol.h"
 #include "World/Particles.h"
+#include "World/PortableParticleTrigonometry.h"
 #include "World/Sprites.h"
+#include "World/TerrainLighting.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -22,13 +28,17 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
+#include <array>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
 #include <tuple>
+#include <utility>
 
 // Los casos de 0x505de0 y los helpers de 0x5085db de un personaje que no es el 0x20a (Scenes::StepTheModelEffects):
 // lo que escriben, sus rand() en orden, sus partículas, joints, sprites y luces, y dónde cortan.
@@ -66,7 +76,7 @@ protected:
                                               .skeleton = m_skeleton,
                                               .particles = &m_world->Particles(),
                                               .sprites = &m_sprites,
-                                              .worldClock = Clock,
+                                              .worldClock = m_clock,
                                               .map = map};
         return Client::Scenes::StepTheModelEffects(pass);
     }
@@ -108,10 +118,84 @@ protected:
         return !result.HasValue() && result.Error().find(address) != std::string::npos;
     }
 
+    // Los 88 huesos de Monster45 (el modelo 0x17e) en la identidad, cada uno corrido a BoneOffset: el punto de
+    // 0x4ec110 sin offset es la posición más eso.
+    void PoseEveryBone()
+    {
+        constexpr std::size_t MonsterBones = 88;
+        m_actor.bodyPose.assign(MonsterBones, Client::Render::Models::BoneTransform(1.0f));
+        for (std::size_t bone = 0; bone < m_actor.bodyPose.size(); ++bone)
+            m_actor.bodyPose[bone][3] = BoneOffset(bone);
+    }
+
+    static glm::vec3 BoneOffset(std::size_t bone)
+    {
+        const auto at = static_cast<float>(bone);
+        return {2.0f * at, 90.0f - at, static_cast<float>(bone % 7) * 3.0f};
+    }
+
+    glm::vec3 BoneAt(std::size_t bone) const
+    {
+        return m_actor.position + BoneOffset(bone);
+    }
+
+    // El rojo de la luz dinámica en la celda del personaje (x · 0,01; y · 0,01); 0x5f9780 no la deja bajar de 0.
+    float& RedAtTheActor()
+    {
+        const auto x = static_cast<std::uint8_t>(m_actor.position.x / 100.0f);
+        const auto y = static_cast<std::uint8_t>(m_actor.position.y / 100.0f);
+        return m_world->DynamicLighting().Lighting().cells[Client::Data::Terrain::CellIndex(x, y)][0];
+    }
+
+    // 0x53fe70(0x5de, …) en un pool gemelo, con el reloj `clock` y el rand() de `replay`.
+    static void ReferenceFlame(Client::World::Particles& reference, CrtRandom& replay, const float& clock,
+                               std::int32_t subtype, const glm::vec3& point, const glm::vec3& angles,
+                               const glm::vec3& light, float scale)
+    {
+        Client::World::PortableParticleTrigonometry trigonometry;
+        const auto made = reference.CreateChecked(0x5de, point, angles, light, subtype, scale, std::cref(clock), replay,
+                                                  0, trigonometry);
+        ASSERT_TRUE(made.HasValue());
+    }
+
+    // Deja libres sólo los primeros `free` lugares de `pool`; los demás, ocupados por una partícula sin tipo.
+    static void Crowd(Client::World::Particles& pool, std::size_t free)
+    {
+        const auto all = pool.All();
+        for (std::size_t index = free; index < all.size(); ++index)
+            all[index] = Client::World::Particle{.alive = true};
+    }
+
+    // Las partículas del mundo, lugar por lugar, contra las del pool gemelo.
+    void ExpectTheSameParticles(const Client::World::Particles& reference)
+    {
+        const auto got = m_world->Particles().All();
+        const auto want = reference.All();
+        for (std::size_t index = 0; index < got.size(); ++index)
+        {
+            SCOPED_TRACE(index);
+            ASSERT_EQ(got[index].alive, want[index].alive);
+            if (!want[index].alive)
+                continue;
+            EXPECT_EQ(got[index].type, want[index].type);
+            EXPECT_EQ(got[index].subtype, want[index].subtype);
+            EXPECT_EQ(got[index].position, want[index].position);
+            EXPECT_EQ(got[index].start, want[index].start);
+            EXPECT_EQ(got[index].angles, want[index].angles);
+            EXPECT_EQ(got[index].light, want[index].light);
+            EXPECT_EQ(got[index].scale, want[index].scale);
+            EXPECT_EQ(got[index].life, want[index].life);
+            EXPECT_EQ(got[index].velocity, want[index].velocity);
+            EXPECT_EQ(got[index].rotation, want[index].rotation);
+            EXPECT_EQ(got[index].owner, want[index].owner);
+        }
+    }
+
     std::unique_ptr<Client::Scenes::WorldState> m_world = std::make_unique<Client::Scenes::WorldState>();
     Client::World::FrameSprites m_sprites;
     Client::Render::Models::Skeleton m_skeleton;
     ActorState m_actor;
+    float m_clock = Clock;
 };
 
 // 0x506cac: el & 7 sin condición; un modelo sin caso ni helper no saca más.
@@ -377,20 +461,202 @@ TEST_F(ModelEffectsTest, TheDyingBurstCutsAtItsUnknownDust)
     }
 }
 
-// 0x507006 y 0x50749c: el 0x185 corta en su primer joint 0x614/7 y el 0x17e en su primer 0x5de, después del & 7.
-TEST_F(ModelEffectsTest, TheUnknownJointsAndParticlesCut)
+// 0x507006: el 0x185 crea sus catorce joints 0x614/7 (0x5315b7, sin rand()).
+TEST_F(ModelEffectsTest, TheBoneJointsAreCreated)
 {
     for (const std::int32_t map : {0, 2})
     {
         SCOPED_TRACE(map);
+        Clear();
         CrtRandom random(Seed);
-        EXPECT_TRUE(CutAt(Step(0x185, map, random), "0x50706f"));
+        ASSERT_TRUE(Step(0x185, map, random).HasValue());
+        EXPECT_EQ(Joints(0x614), 14);
         EXPECT_EQ(random.State(), AfterDraws(Seed, 1).State());
-        m_actor.word376 = 0x3f;
-        CrtRandom other(Seed);
-        EXPECT_TRUE(CutAt(Step(0x17e, map, other), "0x50758a"));
+    }
+}
+
+// 0x5074bb..0x50775c: el 0x17e con +0x376 en 0x3f, después de 0x505bc0(8, 9). Los 35 puntos de los huesos de
+// 0x6c882c; una 0x5de/2 por par de 0x6c8850 y de 0x6c8870 (escala 1 hasta el byte 0x16 y 0,5 desde ahí) y de 0x6c8890
+// y de 0x6c8898 (0,6f), en el punto del byte par, mirada desde el del impar con los ángulos que dejó la anterior y la
+// distancia de 0x4e9810 en la x de la luz; con ftol(reloj) par, la /2 del punto 30 desde el 0 con 1,3f y la /3 del 1
+// con 0,5f; al final, la luz (−1,3) × 3. Lugar por lugar, lo mismo que un pool gemelo con esos pedidos y el mismo
+// rand(); la y y la z de la luz del pedido (que el original no escribe) no cambian nada. Con cinco lugares libres, las
+// cinco primeras y las demás sin rand().
+TEST_F(ModelEffectsTest, TheFlamingMonsterBurnsAlongItsLimbs)
+{
+    // 0x6c882c..0x6c889f, byte a byte.
+    constexpr std::array<std::size_t, 35> Bones{5,  6,  33, 53, 35, 49, 50, 45, 46, 41, 42, 37, 38, 11, 31, 13, 27, 28,
+                                                23, 24, 19, 20, 15, 16, 54, 55, 62, 69, 70, 77, 2,  79, 81, 84, 86};
+    constexpr std::array<std::size_t, 30> First{0, 2, 2,  3, 2,  4,  4,  5, 5, 6, 4, 7,  7, 8,  4,
+                                                9, 9, 10, 4, 11, 11, 12, 6, 5, 8, 7, 10, 9, 12, 11};
+    constexpr std::array<std::size_t, 30> Second{0,  13, 13, 14, 13, 15, 15, 16, 16, 17, 15, 18, 18, 19, 15,
+                                                 20, 20, 21, 15, 22, 22, 23, 17, 16, 19, 18, 21, 20, 23, 22};
+    constexpr std::array<std::size_t, 8> Third{29, 28, 28, 27, 34, 33, 33, 30};
+    constexpr std::array<std::size_t, 8> Fourth{26, 25, 25, 24, 32, 31, 31, 30};
+    constexpr std::size_t SmallFrom = 0x16;
+    const float tail = std::bit_cast<float>(0x3f19999au);
+    const float big = std::bit_cast<float>(0x3fa66666u);
+    PoseEveryBone();
+    m_actor.word376 = 0x3f;
+    for (const std::int32_t map : {0, 2})
+    {
+        for (const auto& [clock, free] :
+             {std::pair{12345.0f, Client::World::ParticleCount}, std::pair{12346.0f, Client::World::ParticleCount},
+              std::pair{12346.0f, std::size_t{5}}})
+        {
+            SCOPED_TRACE(testing::Message() << map << " " << clock << " " << free);
+            const bool even = *Client::World::OriginalFtolLow(static_cast<double>(clock)) % 2 == 0;
+            const bool crowded = free < Client::World::ParticleCount;
+            Clear();
+            Crowd(m_world->Particles(), free);
+            m_clock = clock;
+            RedAtTheActor() = 2.0f;
+            CrtRandom random(Seed);
+            const auto stepped = Step(0x17e, map, random);
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+            EXPECT_EQ(m_actor.bonePoint4c, BoneAt(8));
+            EXPECT_EQ(m_actor.effectOrigin, BoneAt(9));
+            EXPECT_EQ(Alive(0x5de, 2), crowded ? 5 : (even ? 39 : 38));
+            EXPECT_EQ(Alive(0x5de, 3), !crowded && even ? 1 : 0);
+            // 0x50772c..0x507754: la celda (10, 20) del personaje con peso 1: 2 − 1,3f = 0x3f333334.
+            EXPECT_EQ(std::bit_cast<std::uint32_t>(RedAtTheActor()), 0x3f333334u);
+
+            std::array<glm::vec3, Bones.size()> points{};
+            for (std::size_t index = 0; index < Bones.size(); ++index)
+                points[index] = BoneAt(Bones[index]);
+            auto reference = std::make_unique<Client::World::Particles>();
+            Crowd(*reference, free);
+            CrtRandom replay = AfterDraws(Seed, 1);
+            glm::vec3 angles(0.0f);
+            glm::vec3 light(0.0f, 7.0f, -7.0f);
+            const auto flame = [&](std::size_t point, std::size_t from, float scale)
+            {
+                light.x =
+                    static_cast<float>(Client::Render::Models::MoveToward(points[from], angles, points[point], 360.0f));
+                ReferenceFlame(*reference, replay, clock, 2, points[point], angles, light, scale);
+            };
+            for (std::size_t byte = 0; byte < First.size(); byte += 2)
+            {
+                const float scale = byte < SmallFrom ? 1.0f : 0.5f;
+                flame(First[byte], First[byte + 1], scale);
+                flame(Second[byte], Second[byte + 1], scale);
+            }
+            for (std::size_t byte = 0; byte < Third.size(); byte += 2)
+            {
+                flame(Third[byte], Third[byte + 1], tail);
+                flame(Fourth[byte], Fourth[byte + 1], tail);
+            }
+            if (even)
+            {
+                flame(30, 0, big);
+                ReferenceFlame(*reference, replay, clock, 3, points[1], angles, light, 0.5f);
+            }
+            EXPECT_EQ(random.State(), replay.State());
+            ExpectTheSameParticles(*reference);
+        }
+    }
+}
+
+// 0x507761..0x507897: el 0x17e sin el 0x3f. La luz (L; L · 0,5; L · 0,5) con L = sen(reloj · 0,002f) · 0,3f + 0,7f, la
+// 0x5de/1 de 0,2f en el hueso 62 mirada desde el 55 y en el 77 desde el 70 (los ángulos siguen de una a la otra) y
+// después 0x505d50 (en la 2, sus dos rand() y el polvo 0x5f3/0) y 0x505c50 (en la 6 con el frame en [8, 9), que corta
+// en su 0x5f3/1, 0x505d2c).
+TEST_F(ModelEffectsTest, TheMonsterWithoutFlamesBurnsItsHands)
+{
+    PoseEveryBone();
+    m_actor.word376 = 0;
+    m_actor.angles = {0.0f, 0.0f, 45.0f};
+    const auto sine = Client::Render::Models::Detail::SineProductPC53(
+        static_cast<double>(Clock) * static_cast<double>(std::bit_cast<float>(0x3b03126fu)),
+        std::bit_cast<float>(0x3e99999au));
+    ASSERT_TRUE(sine.has_value());
+    const double glow = *sine + static_cast<double>(std::bit_cast<float>(0x3f333333u));
+    const glm::vec3 light{static_cast<float>(glow), static_cast<float>(glow * 0.5), static_cast<float>(glow * 0.5)};
+    // Con el reloj en 12345, los bits que da una emulación x87 aparte (redondeo a 53 bits y seno con 80 dígitos).
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(light.x), 0x3f124c2eu);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(light.y), 0x3e924c2eu);
+    EXPECT_EQ(light.z, light.y);
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        Clear();
+        m_actor.animation.action = 2;
+        m_actor.animation.frame = 0.0f;
+        CrtRandom random(Seed);
+        const auto stepped = Step(0x17e, map, random);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(m_actor.bonePoint4c, BoneAt(8));
+        EXPECT_EQ(m_actor.effectOrigin, BoneAt(9));
+        EXPECT_EQ(Alive(0x5de, 1), 2);
+        EXPECT_EQ(Alive(Client::World::DustParticle, 0), 1);
+
+        auto reference = std::make_unique<Client::World::Particles>();
+        CrtRandom replay = AfterDraws(Seed, 1);
+        glm::vec3 angles(0.0f);
+        for (const auto& [from, to] : {std::pair<std::size_t, std::size_t>{55, 62}, {70, 77}})
+        {
+            static_cast<void>(Client::Render::Models::MoveToward(BoneAt(from), angles, BoneAt(to), 360.0f));
+            ReferenceFlame(*reference, replay, Clock, 1, BoneAt(to), angles, light, std::bit_cast<float>(0x3e4ccccdu));
+        }
+        const float x = static_cast<float>(static_cast<double>(replay.Next() % 200) +
+                                           static_cast<double>(m_actor.position.x) - 100.0);
+        const float y = static_cast<float>(static_cast<double>(replay.Next() % 200) +
+                                           static_cast<double>(m_actor.position.y) - 100.0);
+        const auto dust = reference->CreateChecked(Client::World::DustParticle, {x, y, m_actor.position.z},
+                                                   m_actor.angles, m_actor.light, 0, 1.0f, Clock, replay, 0);
+        ASSERT_TRUE(dust.HasValue());
+        EXPECT_EQ(random.State(), replay.State());
+        ExpectTheSameParticles(*reference);
+
+        Clear();
+        m_actor.animation.action = 6;
+        m_actor.animation.frame = 8.0f;
+        CrtRandom burst(Seed);
+        EXPECT_TRUE(CutAt(Step(0x17e, map, burst), "0x505d2c"));
+        EXPECT_EQ(Alive(0x5de, 1), 2);
+    }
+}
+
+// Con la tabla de partículas llena, 0x53fe70 no crea nada ni saca rand() y el 0x17e sigue: con el 0x3f, la luz; sin
+// él, los dos rand() de 0x505d50 en la 2 y los sesenta de 0x505c50 en la 6, que ya no corta.
+TEST_F(ModelEffectsTest, TheFlamingMonsterGoesOnWithTheParticlesFull)
+{
+    PoseEveryBone();
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        for (const float clock : {12345.0f, 12346.0f})
+        {
+            SCOPED_TRACE(clock);
+            Clear();
+            for (auto& particle : m_world->Particles().All())
+                particle.alive = true;
+            m_clock = clock;
+            m_actor.word376 = 0x3f;
+            RedAtTheActor() = 1.0f;
+            CrtRandom random(Seed);
+            const auto stepped = Step(0x17e, map, random);
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+            EXPECT_EQ(random.State(), AfterDraws(Seed, 1).State());
+            // 1 − 1,3f es negativo: 0x5f9780 deja la celda en 0.
+            EXPECT_EQ(RedAtTheActor(), 0.0f);
+        }
+        m_clock = Clock;
         m_actor.word376 = 0;
-        EXPECT_TRUE(CutAt(Step(0x17e, map, other), "0x50780d"));
+        m_actor.animation.action = 2;
+        m_actor.animation.frame = 0.0f;
+        CrtRandom dusty(Seed);
+        ASSERT_TRUE(Step(0x17e, map, dusty).HasValue());
+        EXPECT_EQ(dusty.State(), AfterDraws(Seed, 3).State());
+        m_actor.animation.action = 6;
+        m_actor.animation.frame = 8.0f;
+        m_actor.light = {};
+        CrtRandom bursting(Seed);
+        const auto burst = Step(0x17e, map, bursting);
+        ASSERT_TRUE(burst.HasValue()) << burst.Error();
+        EXPECT_EQ(bursting.State(), AfterDraws(Seed, 1 + 60).State());
+        EXPECT_EQ(m_actor.light, glm::vec3(1.0f));
+        m_actor.light = {0.5f, 0.25f, 0.125f};
     }
 }
 
@@ -483,6 +749,98 @@ TEST_F(ModelEffectsTest, TheKalimaHelperKeepsItsStoneOrderAndPulseWhenPoolsFill)
             EXPECT_EQ(effects[index].ownerContext, nullptr);
         }
         EXPECT_EQ(random.State(), AfterDraws(Seed, capacity.draws).State());
+    }
+}
+
+// 0x43befb y 0x43bfa8: el 0x192 y el 0x197 (salvo el 0x197 en la 6, que vuelve sin rand(): 0x43bfaf) sacan rand() % 2;
+// en 0, el humo 0x5f2/0x11 en el punto (2, 30, 0) del hueso 6 (+0x120, el 0x192) o 31 (+0x5d0, el 0x197) por 0x4ec110,
+// con los ángulos del objeto (+0x1c), escala 1 y sin dueño (0x43bf75, 0x43c04b). La luz: (1; 0,2f; 0) del 0x192; la
+// del 0x197, (1; 0; 0) con +0x4 en 9 y (0; 0,3f; 1) si no. Con la tabla llena, sin los rand() del humo.
+TEST_F(ModelEffectsTest, TheKalimaSmokersBreatheFromTheirBone)
+{
+    m_actor.bodyPose.assign(40, Client::Render::Models::BoneTransform(1.0f));
+    for (std::size_t bone = 0; bone < m_actor.bodyPose.size(); ++bone)
+        m_actor.bodyPose[bone][3] = glm::vec3(0.0f, 0.0f, static_cast<float>(bone));
+    m_actor.angles = {0.0f, 0.0f, 30.0f};
+    const std::uint32_t smoky = FirstSeedWhere(
+        [](CrtRandom& random)
+        {
+            static_cast<void>(random.Next());
+            return random.Next() % 2 == 0;
+        });
+    const std::uint32_t clean = FirstSeedWhere(
+        [](CrtRandom& random)
+        {
+            static_cast<void>(random.Next());
+            return random.Next() % 2 != 0;
+        });
+    struct Case
+    {
+        std::uint16_t type;
+        std::uint8_t action;
+        std::int32_t subtype;
+        float bone;
+        glm::vec3 light;
+    };
+    const float fifth = std::bit_cast<float>(0x3e4ccccdu);
+    const float third = std::bit_cast<float>(0x3e99999au);
+    for (const std::int32_t map : {0, 24})
+    {
+        for (const Case& value :
+             {Case{0x192, 0, 0, 6.0f, {1.0f, fifth, 0.0f}}, Case{0x192, 6, 9, 6.0f, {1.0f, fifth, 0.0f}},
+              Case{0x197, 0, 9, 31.0f, {1.0f, 0.0f, 0.0f}}, Case{0x197, 3, 0, 31.0f, {0.0f, third, 1.0f}}})
+        {
+            SCOPED_TRACE(testing::Message()
+                         << map << " " << value.type << " " << static_cast<int>(value.action) << " " << value.subtype);
+            Clear();
+            m_actor.animation.action = value.action;
+            m_actor.subtype = value.subtype;
+            CrtRandom random(smoky);
+            const auto stepped = Step(value.type, map, random);
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+            auto reference = std::make_unique<Client::World::Particles>();
+            CrtRandom expected = AfterDraws(smoky, 2);
+            const glm::vec3 point = m_actor.position + glm::vec3(2.0f, 30.0f, value.bone);
+            const auto made =
+                reference->CreateChecked(0x5f2, point, m_actor.angles, value.light, 0x11, 1.0f, Clock, expected, 0);
+            ASSERT_TRUE(made.HasValue());
+            ASSERT_TRUE(made.Value().has_value());
+            EXPECT_EQ(random.State(), expected.State());
+            ASSERT_EQ(Alive(0x5f2, 0x11), 1);
+            const Client::World::Particle& want = reference->All()[*made.Value()];
+            const auto all = m_world->Particles().All();
+            const auto got =
+                std::ranges::find_if(all, [](const Client::World::Particle& particle) { return particle.alive; });
+            ASSERT_NE(got, all.end());
+            EXPECT_EQ(got->position, want.position);
+            EXPECT_EQ(got->angles, want.angles);
+            EXPECT_EQ(got->light, want.light);
+            EXPECT_EQ(got->scale, want.scale);
+            EXPECT_EQ(got->life, want.life);
+            EXPECT_EQ(got->rotation, want.rotation);
+            EXPECT_EQ(got->rotationFactor, want.rotationFactor);
+            EXPECT_EQ(got->field64, want.field64);
+            EXPECT_EQ(got->owner, want.owner);
+
+            Clear();
+            CrtRandom dry(clean);
+            ASSERT_TRUE(Step(value.type, map, dry).HasValue());
+            EXPECT_EQ(dry.State(), AfterDraws(clean, 2).State());
+            EXPECT_EQ(Alive(0x5f2, 0x11), 0);
+
+            for (auto& particle : m_world->Particles().All())
+                particle.alive = true;
+            CrtRandom crowded(smoky);
+            ASSERT_TRUE(Step(value.type, map, crowded).HasValue());
+            EXPECT_EQ(crowded.State(), AfterDraws(smoky, 2).State());
+        }
+        // El 0x197 en la 6: sólo el rand() de 0x506cac.
+        Clear();
+        m_actor.animation.action = 6;
+        CrtRandom still(smoky);
+        ASSERT_TRUE(Step(0x197, map, still).HasValue());
+        EXPECT_EQ(still.State(), AfterDraws(smoky, 1).State());
+        EXPECT_EQ(Alive(0x5f2, 0x11), 0);
     }
 }
 

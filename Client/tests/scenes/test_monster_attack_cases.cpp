@@ -25,6 +25,7 @@
 #include "World/Particles.h"
 #include "World/ModelEffects.h"
 #include "World/WorldTerrain.h"
+#include "World/WizardModelEffects.h"
 
 #include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
@@ -38,6 +39,7 @@
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
@@ -70,6 +72,21 @@ constexpr int Tail = 2 * SkillRead;
 // '2' en +0x38e, la habilidad de los casos.
 constexpr std::uint8_t CaseSkill = 0x32;
 constexpr std::uint16_t NoTarget = 0xffff;
+// Un lugar del héroe lejos del monstruo del alta (el primero libre del pool).
+constexpr std::size_t HeroAway = 399;
+// El alta del 0xf5 (0x5192ed): la escala, tres rand() del punto y uno de la caída antes del joint 0x618/5, que corta
+// (0x5193d6, lote joints de la CL11).
+constexpr int BlastDraws = 5;
+// 0x41ed10(0x7a) del hijo 0x105/1 de cada 0x106/1 (0x51a08f).
+constexpr std::int32_t StabSound = 0x7a;
+
+// El estallido de 0x51fff0 (ocho 0x40) y los cinco 0x106/1 de 0x4f79db, cada uno con el sonido de su hijo.
+std::vector<std::int32_t> FiveStabSounds()
+{
+    std::vector<std::int32_t> sounds(8, 0x40);
+    sounds.insert(sounds.end(), 5, StabSound);
+    return sounds;
+}
 
 int DrawsSince(std::uint32_t state, const CrtRandom& random)
 {
@@ -174,7 +191,13 @@ struct Probe
     std::optional<std::uint16_t> model{};
     std::optional<std::uint16_t> right{};
     std::optional<std::uint8_t> bone{};
+    // Los lugares libres de la tabla de joints (0x74a8d78) del paso: los 0x106/1 del lote switch (CL11) piden los
+    // joints 0x610/0..3 de su hijo 0x105/1, y el 0xf5 el 0x618/5. Sin tabla, el paso corta ahí.
+    std::size_t joints = 0;
 };
+
+// Los lugares de la tabla de joints del juego (GameDrawTailState::joints).
+constexpr std::size_t JointTable = 500;
 
 class MonsterAttackCasesTest : public Client::Tests::GoldenDataTest
 {
@@ -222,6 +245,7 @@ protected:
         monster.byte38e = probe.skill;
         monster.byte38eAccesses = 0;
         monster.attackTarget = probe.target;
+        game->joints.assign(probe.joints, Client::Scenes::JointState{});
         return monster;
     }
 
@@ -368,48 +392,67 @@ protected:
     bool withParticles = true;
 };
 
-// 0x43a7a0 en Kalima (24 a 29 y 36): todos sus casos salen sin la cola; los efectos y la partícula 0x600 cortan después
-// de la lectura de +0x38e y de los rand() de su ayudante (0x439bd0: rand() % 360; 0x43b18f: dos rand() % 200). Afuera,
-// los mismos tipos van a la cola.
+// 0x43a7a0 en Kalima (24 a 29 y 36): todos sus casos salen sin la cola; la partícula 0x600/1 nace en 14 (0x43a861 y
+// 0x43abd9, sobre el blanco o el héroe, con el rand() % 360 de su giro en 0x5431a1) y los efectos de otros lotes cortan
+// después de la lectura de +0x38e y de los rand() de su ayudante. Los de los magos se crean: el 0xcb/3 y el 0xcc/4 de
+// 0x439cd0 sin rand(), los tres 0xc2/7 de 0x43b18f con dos rand() % 200 y los cinco del alta cada uno; el anillo 0xc2/8
+// de 0x439bd0 (rand() % 360) crea sus cinco fuegos, con cuatro rand() y el joint 0x5f2/0 (0x51b268, sin rand()) cada
+// uno, y pide el sonido 0x1e0; los tres anillos 0x11b/1 de 0x439b20 se crean sin rand(). Afuera, los mismos tipos
+// van a la cola.
 TEST_F(MonsterAttackCasesTest, TheKalimaMonstersLeaveWithoutTheTail)
 {
+    constexpr int Fires = 5, FireDraws = 4;
+    constexpr std::int32_t BurstSound = 0x1e0;
+    constexpr int RingDraws = 1;
     const std::vector<Probe> probes{
         {.name = "0x90 en 13", .type = 0x90, .step = 13},
-        {.name = "0x90 en 14", .type = 0x90, .step = 14, .cut = "0x43a861"},
-        {.name = "0x92 en 14", .type = 0x92, .step = 14, .cut = "0x43abd9"},
-        {.name = "0x91 con 1 en 13", .type = 0x91, .step = 13, .skill = 1, .cut = "0x439ca6", .draws = SkillRead + 1},
-        {.name = "0x91 con 0x37 en 13", .type = 0x91, .step = 13, .skill = 0x37, .cut = "0x439ba5", .draws = SkillRead},
-        {.name = "0x91 con 0xc8 en 13", .type = 0x91, .step = 13, .skill = 0xc8, .cut = "0x439d09", .draws = SkillRead},
-        {.name = "0x91 con 1 en 12", .type = 0x91, .step = 12, .skill = 1, .draws = SkillRead},
-        {.name = "0x91 en la 4 y en 14",
+        {.name = "0x90 en 14", .type = 0x90, .step = 14, .draws = RingDraws},
+        {.name = "0x92 en 14", .type = 0x92, .step = 14, .draws = RingDraws},
+        {.name = "0x91 con 1 en 13",
          .type = 0x91,
-         .step = 14,
-         .action = 4,
-         .cut = "0x43ab5f",
-         .draws = SkillRead + 1 + 0xf08},
-        {.name = "0x93 en la 4 y en 14", .type = 0x93, .step = 14, .action = 4, .cut = "0x43ac29"},
+         .step = 13,
+         .skill = 1,
+         .draws = SkillRead + 1 + Fires * FireDraws,
+         .sounds = {BurstSound}},
+        {.name = "0x91 con 0x37 en 13", .type = 0x91, .step = 13, .skill = 0x37, .draws = SkillRead, .sounds = {0x1df}},
+        {.name = "0x91 con 0xc8 en 13", .type = 0x91, .step = 13, .skill = 0xc8, .draws = SkillRead},
+        {.name = "0x91 con 1 en 12", .type = 0x91, .step = 12, .skill = 1, .draws = SkillRead},
+        {.name = "0x91 en la 4 y en 14", .type = 0x91, .step = 14, .action = 4, .draws = SkillRead + 1 + 0xf08},
+        {.name = "0x93 en la 4 y en 14", .type = 0x93, .step = 14, .action = 4},
         {.name = "0x93 en la 3 y en 14", .type = 0x93, .step = 14},
         {.name = "0x94 con 0x11 en 14", .type = 0x94, .step = 14, .skill = 0x11, .draws = SkillRead + 1 + 0xf08},
         {.name = "0x94 con 0x11 en 13", .type = 0x94, .step = 13, .skill = 0x11, .draws = SkillRead},
-        {.name = "0x95 con 1 en 14", .type = 0x95, .step = 14, .skill = 1, .cut = "0x43b1f4", .draws = SkillRead + 2},
-        {.name = "0x95 con 0x11 en 14", .type = 0x95, .step = 14, .skill = 0x11, .cut = "0x43b0ed", .draws = SkillRead},
+        {.name = "0x95 con 1 en 14", .type = 0x95, .step = 14, .skill = 1, .draws = SkillRead + 3 * (2 + 5)},
+        {.name = "0x95 con 0x11 en 14",
+         .type = 0x95,
+         .step = 14,
+         .skill = 0x11,
+         .draws = SkillRead,
+         .joints = JointTable},
         {.name = "0x95 con 0x11 en 14 sin blanco",
          .type = 0x95,
          .step = 14,
          .skill = 0x11,
          .draws = SkillRead,
          .target = NoTarget},
-        {.name = "0xa0 en la 3 y en 13", .type = 0xa0, .step = 13, .cut = "0x43b241"},
+        {.name = "0xa0 en la 3 y en 13", .type = 0xa0, .step = 13},
         {.name = "0xa0 en la 4 y en 13", .type = 0xa0, .step = 13, .action = 4},
         {.name = "0xa1 en la 3 y en 7", .type = 0xa1, .step = 7, .draws = SkillRead + 1 + 0xf08},
-        {.name = "0xa1 en la 3 y en 13", .type = 0xa1, .step = 13, .cut = "0x43b5ac", .draws = SkillRead},
+        {.name = "0xa1 en la 3 y en 13", .type = 0xa1, .step = 13, .draws = SkillRead},
         {.name = "0xa1 en la 4 y en 13", .type = 0xa1, .step = 13, .action = 4, .draws = SkillRead},
-        {.name = "0x113 con 1 en 13", .type = 0x113, .step = 13, .skill = 1, .cut = "0x439ca6", .draws = SkillRead + 1},
+        {.name = "0x113 con 1 en 13",
+         .type = 0x113,
+         .step = 13,
+         .skill = 1,
+         .draws = SkillRead + 1 + Fires * FireDraws,
+         .sounds = {BurstSound}},
         {.name = "0x113 en la 3 y en 13", .type = 0x113, .step = 13, .draws = SkillRead}};
     for (const std::uint8_t map : {std::uint8_t{24}, std::uint8_t{36}})
     {
         SCOPED_TRACE(map);
         Load(map);
+        // El héroe lejos del lugar del monstruo: el 0xf6/0 de 0x43b5ac compara su dueño con [0x743a170].
+        game->world.Runtime().hero = HeroAway;
         for (const Probe& probe : probes)
             Expect(probe);
     }
@@ -420,7 +463,84 @@ TEST_F(MonsterAttackCasesTest, TheKalimaMonstersLeaveWithoutTheTail)
     }
 }
 
-TEST_F(MonsterAttackCasesTest, Kalima91CreatesTheStateOneEarthquakeBeforeThe615Boundary)
+// 0x43b045..0x43b156: el 0x95 con 0x11 en 14 y el blanco de +0x3a4 en [0, 400) tira tres joints 0x610/6 desde el
+// punto del hueso 60 (el mismo para los tres) a la posición del blanco, con él de dueño, ancho 30, vida 50 (la key),
+// 16 puntos y velocidad 5; los giros z son el suyo, ése − 30 y ése + 15. Sin rand() más que la lectura de +0x38e.
+TEST_F(MonsterAttackCasesTest, TheKalimaMageThrowsThreeBoltsAtItsTarget)
+{
+    Load(24);
+    game->world.Runtime().hero = HeroAway;
+    constexpr std::uint16_t VictimSlot = 7;
+    ActorState& monster =
+        Prepare(Probe{.type = 0x95, .step = 14, .skill = 0x11, .target = VictimSlot, .joints = JointTable});
+    monster.angles = {5.0f, 0.0f, 100.0f};
+    // El hueso 60 sin giro, corrido (12, −7, 45), con el modelo del tipo de escala 2 en (1000, 1100, 100): el punto es
+    // la traslación por la escala más el origen (0x4ec110 con el offset en 0).
+    monster.bodyPose.assign(61, Client::Render::Models::BoneTransform(1.0f));
+    for (std::size_t bone = 0; bone < monster.bodyPose.size(); ++bone)
+        monster.bodyPose[bone][3] = glm::vec3(static_cast<float>(bone), 0.0f, 0.0f);
+    monster.bodyPose[60][3] = glm::vec3(12.0f, -7.0f, 45.0f);
+    game->world.PlaceModel(static_cast<std::uint16_t>(monster.type),
+                           Client::Scenes::SharedModelPlacement{.scale = 2.0f, .origin = {1000.0f, 1100.0f, 100.0f}});
+    ActorState& victim = game->world.Actors()[VictimSlot];
+    victim.position = {1200.0f, 1300.0f, 140.0f};
+
+    const auto stepped = Step(monster);
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(Draws(), SkillRead);
+    const glm::vec3 bonePoint{1024.0f, 1086.0f, 190.0f};
+    const std::array<float, 3> turns{100.0f, 70.0f, 85.0f};
+    for (std::size_t bolt = 0; bolt < turns.size(); ++bolt)
+    {
+        SCOPED_TRACE(bolt);
+        const Client::Scenes::JointState& joint = game->joints[bolt];
+        ASSERT_TRUE(joint.alive);
+        EXPECT_EQ(joint.type, 0x610);
+        EXPECT_EQ(joint.subtype, 6);
+        EXPECT_EQ(joint.ownerContext, &victim);
+        EXPECT_EQ(joint.targetPosition, victim.position);
+        EXPECT_EQ(joint.position, bonePoint);
+        EXPECT_EQ(joint.angles, glm::vec3(5.0f, 0.0f, turns[bolt]));
+        EXPECT_EQ(joint.width, 30.0f);
+        EXPECT_EQ(joint.life, 50);
+        EXPECT_EQ(joint.maximumCount, 16);
+        EXPECT_EQ(joint.speed, 5.0f);
+    }
+    EXPECT_FALSE(game->joints[turns.size()].alive);
+}
+
+// 0x43ac07..0x43ac29: los siete números de +0x376 que la tabla de 0x43b8fc manda a 0x43abea (0x93, 0xb1, 0xb9, 0xc1,
+// 0x107, 0x10f y 0x117), en la 4 y en 14, ponen el seamanFX 0x11a sobre sí, con sus ángulos (vida 20, la luz que el
+// alta pisa con (1, 1, 1) y la partida en su lugar), sin rand() propios.
+TEST_F(MonsterAttackCasesTest, TheKalimaSeamenRaiseTheSeamanEffectOverThemselves)
+{
+    Load(24);
+    for (const std::uint16_t kind : std::array<std::uint16_t, 7>{0x93, 0xb1, 0xb9, 0xc1, 0x107, 0x10f, 0x117})
+    {
+        SCOPED_TRACE(kind);
+        for (Client::World::ModelEffect& effect : game->world.Map().effects.Effects())
+            effect.alive = false;
+        ActorState& monster =
+            Prepare(Probe{.name = "en la 4 y en 14", .type = 0x93, .step = 14, .action = 4, .kind = kind});
+        monster.light = {0.2f, 0.3f, 0.4f};
+        ASSERT_TRUE(Step(monster).HasValue());
+        const auto effects = game->world.Map().effects.Effects();
+        const auto seaman = std::find_if(effects.begin(), effects.end(),
+                                         [](const auto& effect) { return effect.alive && effect.type == 0x11a; });
+        ASSERT_NE(seaman, effects.end());
+        EXPECT_EQ(seaman->transform.position, monster.position);
+        EXPECT_EQ(seaman->start, monster.position);
+        EXPECT_EQ(seaman->transform.angles, monster.angles);
+        EXPECT_EQ(seaman->light, glm::vec3(1.0f));
+        EXPECT_EQ(seaman->life, 20);
+        EXPECT_EQ(Draws(), 0);
+    }
+}
+
+// 0x43ab04..0x43ab6b: el 0x91 en la 4 y en 14 crea el terremoto 0xfa/1 y, con otro lugar, el 0x615 sobre sí (vida 10,
+// +0x88 en 1, la posición corrida (−25, −80, 0) girado por sus ángulos), sin rand() propios; después, +0x381 en 15.
+TEST_F(MonsterAttackCasesTest, Kalima91CreatesTheStateOneEarthquakeAndTheThunder)
 {
     constexpr std::uint8_t InitialStep = 14;
     constexpr std::uint8_t StoredStep = 15;
@@ -443,17 +563,33 @@ TEST_F(MonsterAttackCasesTest, Kalima91CreatesTheStateOneEarthquakeBeforeThe615B
             const auto expectedSubtype = expectedRandom.Next() % 100;
             const auto stepped = Step(monster);
 
-            if (freeSlots == 2)
-                EXPECT_TRUE(!stepped.HasValue() && stepped.Error().starts_with("0x43ab5f")) << stepped.Error();
-            else
-                EXPECT_TRUE(stepped.HasValue()) << stepped.Error();
-            EXPECT_EQ(monster.byte381, freeSlots == 2 ? InitialStep : StoredStep);
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+            EXPECT_EQ(monster.byte381, StoredStep);
             EXPECT_EQ(game->world.Runtime().ownRecordDepth, initialDepth);
             EXPECT_EQ(game->world.OwnCharacter().bytef04,
                       static_cast<std::uint8_t>(InitialOwnCount + (freeSlots == 0 ? 0 : 1)));
             EXPECT_EQ(Draws(), SkillRead + (freeSlots == 0 ? 0 : 1 + (initialDepth == 0 ? 0xf08 : 0)));
 
             const auto effects = game->world.Map().effects.Effects();
+            const auto thunder = std::find_if(effects.begin(), effects.end(),
+                                              [](const auto& effect) { return effect.alive && effect.type == 0x615; });
+            if (freeSlots == 2)
+            {
+                ASSERT_NE(thunder, effects.end());
+                EXPECT_EQ(thunder->life, 10);
+                EXPECT_EQ(thunder->state, 1);
+                EXPECT_EQ(thunder->ownerContext, &monster);
+                const glm::vec3 offset = Client::Render::Models::OriginalVectorRotate(
+                    {-25.0f, -80.0f, 0.0f}, Client::Render::Models::OriginalAngleMatrix(monster.angles));
+                EXPECT_EQ(thunder->transform.position,
+                          (glm::vec3{static_cast<float>(static_cast<double>(offset.x) + monster.position.x),
+                                     static_cast<float>(static_cast<double>(offset.y) + monster.position.y),
+                                     static_cast<float>(static_cast<double>(offset.z) + monster.position.z)}));
+            }
+            else
+            {
+                EXPECT_EQ(thunder, effects.end());
+            }
             const auto earthquake = std::find_if(effects.begin(), effects.end(), [](const auto& effect)
                                                  { return effect.alive && effect.type == 0xfa; });
             if (freeSlots == 0)
@@ -667,7 +803,7 @@ TEST_F(MonsterAttackCasesTest, KalimaOtherFamiliesSkipFullModelEffectsAndKeepThe
 
 // Las habilidades 0xc9 y 0xca de los tres switch de Kalima (0x43aabf, 0x43b4f4 y 0x43b878): desde 13, +0x78 con 0x100
 // o 0x8, +0x381 en 15 y el sonido 0x1e1. Lo que sigue lee el +0x381 nuevo: el 0x91 en la 4 ya no ve el 14 y el 0xa1 en
-// la 3 corta desde 13.
+// la 3 suelta desde 13 sus 0xf6/0 y 0x5de/1 (CL11).
 TEST_F(MonsterAttackCasesTest, TheKalimaWardsSetTheFlagsAndEndTheCount)
 {
     struct Case
@@ -683,12 +819,13 @@ TEST_F(MonsterAttackCasesTest, TheKalimaWardsSetTheFlagsAndEndTheCount)
     constexpr std::uint32_t Earlier = 0x40;
     const std::vector<Case> cases{{"0x91 con 0xc9 en 13", 0x91, 13, 3, 0xc9, 0x100, ""},
                                   {"0x91 con 0xca en 14 y en la 4", 0x91, 14, 4, 0xca, 0x8, ""},
-                                  {"0xa1 con 0xca en 13 y en la 3", 0xa1, 13, 3, 0xca, 0x8, "0x43b5ac"},
+                                  {"0xa1 con 0xca en 13 y en la 3", 0xa1, 13, 3, 0xca, 0x8, ""},
                                   {"0x113 con 0xc9 en 14", 0x113, 14, 3, 0xc9, 0x100, ""}};
     for (const std::uint8_t map : {std::uint8_t{24}, std::uint8_t{36}})
     {
         SCOPED_TRACE(map);
         Load(map);
+        game->world.Runtime().hero = HeroAway;
         for (const Case& probe : cases)
         {
             SCOPED_TRACE(probe.name);
@@ -719,8 +856,9 @@ TEST_F(MonsterAttackCasesTest, TheKalimaWardsSetTheFlagsAndEndTheCount)
     }
 }
 
-// 42dcf0 en30: el68 emite sólo en5 y el120 siempre. Las señales propias conservan ese caller.
-// 429110 en33/54 conserva sus fronteras en10 y en la acción que corresponde.
+// 0x42dcf0 en el 30: el 0x68 suelta el lancero 0x19f/0 sólo en 5 y el 0x120 el pulso 0x61c/0 siempre; el alta del pulso
+// saca su rand() % 360 y crea su joint 0x61c/3 (0x51f1c5, sin rand()).
+// 0x429110 en el 33 y el 54: en 10, el 0x134 suelta el 0x141 y el 0x130 el 0x61c/1 (con su rand() % 360) en la 4.
 TEST_F(MonsterAttackCasesTest, TheSiegeAndTheTrialMonstersLeaveOrCut)
 {
     Load(30);
@@ -729,11 +867,11 @@ TEST_F(MonsterAttackCasesTest, TheSiegeAndTheTrialMonstersLeaveOrCut)
                                                  {.name = "0x120", .type = 0x120, .step = 1, .draws = 1}})
         Expect(probe);
     const std::vector<Probe> trials{
-        {.name = "0x135 en la 3 y en 10", .type = 0x135, .step = 10, .cut = "0x42919a"},
+        {.name = "0x135 en la 3 y en 10", .type = 0x135, .step = 10},
         {.name = "0x135 en la 4 y en 10", .type = 0x135, .step = 10, .action = 4},
-        {.name = "0x134 en la 4 y en 10", .type = 0x134, .step = 10, .action = 4, .cut = "0x429202"},
+        {.name = "0x134 en la 4 y en 10", .type = 0x134, .step = 10, .action = 4},
         {.name = "0x134 en la 4 y en 9", .type = 0x134, .step = 9, .action = 4},
-        {.name = "0x130 en la 4 y en 10", .type = 0x130, .step = 10, .action = 4, .cut = "0x42925a"},
+        {.name = "0x130 en la 4 y en 10", .type = 0x130, .step = 10, .action = 4, .draws = 1},
         {.name = "0x130 en la 3 y en 10", .type = 0x130, .step = 10}};
     for (const std::uint8_t map : {std::uint8_t{33}, std::uint8_t{54}})
     {
@@ -749,15 +887,20 @@ TEST_F(MonsterAttackCasesTest, TheSiegeAndTheTrialMonstersLeaveOrCut)
     }
 }
 
-// 42dd23..42dda4: entradas completas, dueñoNULL/keyffff y salida antes de la cola del ataque.
-TEST_F(MonsterAttackCasesTest, SiegeCuesKeepTheCallerInputsAndUseTheFirstFreeEffectSlot)
+// 0x42dd23..0x42dda4: las entradas completas, sin dueño y con la clave en −1, y la salida antes de la cola del ataque.
+// Las altas: el 0x61c/0 (0x51f154) con vida 20, la velocidad (0, −550, 0), los ángulos (−90, 0, z), +0x28 y +0x2c en 0,
+// +0x30 en rand() % 360 y la partida en la posición (con los joints llenos, sin el 0x61c/3); el 0x19f/0 (0x51e4ba) con
+// vida 20, +0x58 en 3, +0xd8 en 0,33f y los ángulos en 0.
+TEST_F(MonsterAttackCasesTest, TheSiegeEffectsKeepTheCallerInputsAndUseTheFirstFreeEffectSlot)
 {
     Load(30);
     withParticles = false;
+    for (auto& joint : game->world.DrawTail().joints)
+        joint.alive = true;
     for (const std::uint16_t kind : {std::uint16_t{0x68}, std::uint16_t{0x120}})
     {
         SCOPED_TRACE(kind);
-        ActorState& monster = Prepare(Probe{.name = "señal del asedio", .type = kind, .step = 5, .target = 0});
+        ActorState& monster = Prepare(Probe{.name = "efecto del asedio", .type = kind, .step = 5, .target = 0});
         monster.position = {1125.0f, 2250.0f, 37.25f};
         monster.angles = {12.0f, 34.0f, 56.0f};
         monster.light = {.2f, .4f, .6f};
@@ -776,8 +919,21 @@ TEST_F(MonsterAttackCasesTest, SiegeCuesKeepTheCallerInputsAndUseTheFirstFreeEff
         EXPECT_EQ(cue.type, kind == 0x68 ? 0x19f : 0x61c);
         EXPECT_EQ(cue.subtype, 0);
         EXPECT_EQ(cue.transform.position, (glm::vec3{1125.0f, 2250.0f, kind == 0x68 ? 537.25f : 37.25f}));
-        EXPECT_EQ(cue.transform.angles, monster.angles);
+        EXPECT_EQ(cue.transform.angles, (kind == 0x68 ? glm::vec3(0.0f) : glm::vec3{-90.0f, 0.0f, 56.0f}));
         EXPECT_EQ(cue.light, monster.light);
+        EXPECT_EQ(cue.life, 20);
+        if (kind == 0x68)
+        {
+            EXPECT_EQ(cue.objectState.hiddenMesh, 3);
+            EXPECT_EQ(cue.speed, std::bit_cast<float>(0x3ea8f5c3u));
+        }
+        else
+        {
+            Client::Render::Models::CrtRandom expected(before);
+            EXPECT_EQ(cue.velocity, (glm::vec3{0.0f, -550.0f, 0.0f}));
+            EXPECT_EQ(cue.copiedAngles, (glm::vec3{0.0f, 0.0f, static_cast<float>(expected.Next() % 360)}));
+            EXPECT_EQ(cue.start, cue.transform.position);
+        }
         EXPECT_EQ(cue.ownerContext, nullptr);
         EXPECT_FALSE(cue.hasOwner);
         EXPECT_EQ(cue.disturbanceState, 0xffff);
@@ -794,10 +950,13 @@ TEST_F(MonsterAttackCasesTest, SiegeCuesKeepTheCallerInputsAndUseTheFirstFreeEff
     }
 }
 
-TEST_F(MonsterAttackCasesTest, SiegeCueGatesUseTheMapAndKindFrameWithoutAnActionOrTargetRequirement)
+TEST_F(MonsterAttackCasesTest, TheSiegeEffectGatesUseTheMapAndKindFrameWithoutAnActionOrTargetRequirement)
 {
     Load(30);
     withParticles = false;
+    // Sin lugar para el joint 0x61c/3 del pulso: su alta termina.
+    for (auto& joint : game->world.DrawTail().joints)
+        joint.alive = true;
     for (const std::uint8_t map :
          {std::uint8_t{0}, std::uint8_t{29}, std::uint8_t{30}, std::uint8_t{31}, std::uint8_t{34}, std::uint8_t{35}})
         for (const std::uint16_t kind : {std::uint16_t{0x68}, std::uint16_t{0x120}})
@@ -808,7 +967,7 @@ TEST_F(MonsterAttackCasesTest, SiegeCueGatesUseTheMapAndKindFrameWithoutAnAction
                                                 << " frame=" << static_cast<int>(frame));
                 // El alta usa el30; este caso varía sólo el gate del caller, sin cargar mundos de otros mapas.
                 game->world.Runtime().map = 30;
-                ActorState& monster = Prepare(Probe{.name = "gate de la señal",
+                ActorState& monster = Prepare(Probe{.name = "gate del efecto del asedio",
                                                     .type = kind,
                                                     .step = frame,
                                                     .action = 0xff,
@@ -876,35 +1035,46 @@ TEST_F(MonsterAttackCasesTest, CrywolfRunsItsRadialVolleyBeforeTheCommonVolley)
     }
 }
 
+// 0x43257a y 0x42fd76: la 0xf8/1 con el actor de dueño y su +0x8a de clave. Su alta escribe los ángulos del actor
+// (0x51a347) antes de los tres joints 0x60f/0x19 (0x51a3b7, un rand() cada uno si hay lugar) y del registro propio
+// (0x51a1b0).
 TEST_F(MonsterAttackCasesTest, CrywolfAndFortressLaunchF8AtFrameFourteenAndPreserveTheOwnerAndKey)
 {
     withParticles = false;
     for (const std::uint8_t map : {std::uint8_t{34}, std::uint8_t{35}})
     {
         Load(map, map == 35 ? std::uint8_t{0} : map);
-        for (const std::size_t free : {0u, 1u})
-        {
-            SCOPED_TRACE(testing::Message() << "mapa " << static_cast<int>(map) << ", lugares " << free);
-            auto& actor =
-                Prepare(Probe{.name = "flecha de Crywolf o Fortress", .type = map == 34 ? 0x13c : 0x136, .step = 14});
-            actor.angles = {15, 25, 35};
-            actor.word8a = 0x1234;
-            FillModelEffectPoolExceptLast(free);
-            const auto result = Step(actor);
-            ASSERT_TRUE(result.HasValue()) << result.Error();
-            EXPECT_EQ(Draws(), free == 0 ? 0 : OwnRecord);
-            EXPECT_EQ(actor.angles, (free == 0 ? glm::vec3{15, 25, 35} : glm::vec3{0, 0, 35}));
-            if (free == 0)
-                continue;
-            const auto& arrow = game->world.Map().effects.Effects().back();
-            EXPECT_TRUE(arrow.alive);
-            EXPECT_EQ(arrow.type, 0xf8);
-            EXPECT_EQ(arrow.subtype, 1);
-            EXPECT_EQ(arrow.life, 30);
-            EXPECT_EQ(arrow.ownerContext, &actor);
-            EXPECT_EQ(arrow.disturbanceState, 0x1234u);
-            EXPECT_EQ(arrow.transform.angles, (glm::vec3{15, 25, 35}));
-        }
+        for (const bool jointRoom : {false, true})
+            for (const std::size_t free : {0u, 1u})
+            {
+                SCOPED_TRACE(testing::Message()
+                             << "mapa " << static_cast<int>(map) << ", lugares " << free << ", joints " << jointRoom);
+                for (auto& joint : game->world.DrawTail().joints)
+                    joint.alive = !jointRoom;
+                auto& actor = Prepare(
+                    Probe{.name = "flecha de Crywolf o Fortress", .type = map == 34 ? 0x13c : 0x136, .step = 14});
+                actor.angles = {15, 25, 35};
+                actor.word8a = 0x1234;
+                FillModelEffectPoolExceptLast(free);
+                const auto result = Step(actor);
+                ASSERT_TRUE(result.HasValue()) << result.Error();
+                EXPECT_EQ(Draws(), free == 0 ? 0 : (jointRoom ? 3 : 0) + OwnRecord);
+                EXPECT_EQ(actor.angles, (free == 0 ? glm::vec3{15, 25, 35} : glm::vec3{0, 0, 35}));
+                if (free == 0)
+                    continue;
+                const auto& arrow = game->world.Map().effects.Effects().back();
+                EXPECT_TRUE(arrow.alive);
+                EXPECT_EQ(arrow.type, 0xf8);
+                EXPECT_EQ(arrow.subtype, 1);
+                EXPECT_EQ(arrow.life, 30);
+                EXPECT_EQ(arrow.ownerContext, &actor);
+                EXPECT_EQ(arrow.disturbanceState, 0x1234u);
+                EXPECT_EQ(arrow.transform.angles, (glm::vec3{15, 25, 35}));
+                const auto& joints = game->world.DrawTail().joints;
+                EXPECT_EQ(std::ranges::count_if(joints, [&arrow](const auto& joint)
+                                                { return joint.alive && joint.ownerContext == &arrow; }),
+                          jointRoom ? 3 : 0);
+            }
     }
 }
 
@@ -917,7 +1087,7 @@ TEST_F(MonsterAttackCasesTest, TheFortressAndCrywolfLookAtTheModel)
     EXPECT_EQ(Create(0x136).type, 0x1ad);
     EXPECT_EQ(Create(0x13c).type, 0x1b2);
     for (const Probe& probe :
-         std::vector<Probe>{{.name = "0x1ad en 14", .type = 0x136, .step = 14, .draws = OwnRecord},
+         std::vector<Probe>{{.name = "0x1ad en 14", .type = 0x136, .step = 14, .draws = 3 + OwnRecord},
                             {.name = "0x1ad en 13", .type = 0x136, .step = 13, .draws = Tail},
                             {.name = "0x1b2 en 14", .type = 0x13c, .step = 14, .draws = OwnRecord}})
         Expect(probe);
@@ -928,7 +1098,7 @@ TEST_F(MonsterAttackCasesTest, TheFortressAndCrywolfLookAtTheModel)
     EXPECT_EQ(Create(0x15c).type, 0x1b5);
     const std::vector<Probe> crywolf{{.name = "0x1b2 en 14", .type = 0x138, .step = 14, .draws = OwnRecord},
                                      {.name = "0x1b2 en 13", .type = 0x138, .step = 13, .draws = Tail},
-                                     {.name = "0x1ad en 14", .type = 0x13c, .step = 14, .draws = OwnRecord},
+                                     {.name = "0x1ad en 14", .type = 0x13c, .step = 14, .draws = 3 + OwnRecord},
                                      {.name = "0x1b5 en 15", .type = 0x15c, .step = 15, .draws = OwnRecord},
                                      {.name = "0x1b5 en 14", .type = 0x15c, .step = 14, .draws = Tail},
                                      {.name = "0x17c en 1",
@@ -995,15 +1165,18 @@ TEST_F(MonsterAttackCasesTest, TheSiegeTrialAndFortressHelpersExitWhenTheirModel
         std::uint8_t action;
         std::string_view cut;
     };
-    const std::array cases{Case{30, 30, 0x120, 1, 3, ""},          Case{30, 30, 0x68, 5, 3, ""},
-                           Case{33, 33, 0x135, 10, 3, "0x42919a"}, Case{54, 54, 0x134, 10, 4, "0x429202"},
-                           Case{33, 33, 0x130, 10, 4, "0x42925a"}, Case{35, 0, 0x136, 14, 3, ""},
+    const std::array cases{Case{30, 30, 0x120, 1, 3, ""},  Case{30, 30, 0x68, 5, 3, ""},
+                           Case{33, 33, 0x135, 10, 3, ""}, Case{54, 54, 0x134, 10, 4, ""},
+                           Case{33, 33, 0x130, 10, 4, ""}, Case{35, 0, 0x136, 14, 3, ""},
                            Case{35, 0, 0x13c, 14, 3, ""}};
     withParticles = false;
     for (const Case& probe : cases)
     {
         SCOPED_TRACE(testing::Message() << "map " << static_cast<int>(probe.map) << ", type " << probe.type);
         Load(probe.map, probe.terrain);
+        // Sin lugar para el joint 0x61c/3 del pulso del 0x120 (0x51f1c5).
+        for (auto& joint : game->world.DrawTail().joints)
+            joint.alive = true;
         ActorState& monster = Prepare(Probe{.name = "ayudante con efecto omitido",
                                             .type = probe.type,
                                             .step = probe.step,
@@ -1022,13 +1195,26 @@ TEST_F(MonsterAttackCasesTest, TheSiegeTrialAndFortressHelpersExitWhenTheirModel
 
         FillModelEffectPoolExceptLast(1);
         const auto freeSlot = Step(monster);
-        if (probe.map == 30)
+        if (probe.map == 30 || probe.type == 0x134 || probe.type == 0x130)
         {
             EXPECT_TRUE(freeSlot.HasValue()) << freeSlot.Error();
-            EXPECT_EQ(Draws(), probe.type == 0x120 ? 1 : 0);
-            const auto& cue = game->world.Map().effects.Effects().back();
-            EXPECT_TRUE(cue.alive);
-            EXPECT_EQ(cue.type, probe.type == 0x120 ? 0x61c : 0x19f);
+            EXPECT_EQ(Draws(), probe.type == 0x120 || probe.type == 0x130 ? 1 : 0);
+            const auto& made = game->world.Map().effects.Effects().back();
+            EXPECT_TRUE(made.alive);
+            const std::int16_t effect = probe.type == 0x120 || probe.type == 0x130 ? 0x61c
+                                        : probe.type == 0x134                      ? 0x141
+                                                                                   : 0x19f;
+            EXPECT_EQ(made.type, effect);
+            EXPECT_EQ(made.subtype, probe.type == 0x130 ? 1 : 0);
+        }
+        else if (probe.type == 0x135)
+        {
+            // 0x42919a: el primero de los cinco 0xcf (el /3) toma el lugar libre; los demás no encuentran.
+            EXPECT_TRUE(freeSlot.HasValue()) << (freeSlot.HasValue() ? std::string() : freeSlot.Error());
+            EXPECT_EQ(Draws(), 0);
+            const auto& twister = game->world.Map().effects.Effects().back();
+            EXPECT_EQ(twister.type, Client::World::StormEffect);
+            EXPECT_EQ(twister.subtype, 3);
         }
         else if (probe.cut.empty())
         {
@@ -1037,7 +1223,8 @@ TEST_F(MonsterAttackCasesTest, TheSiegeTrialAndFortressHelpersExitWhenTheirModel
         }
         else
         {
-            EXPECT_TRUE(!freeSlot.HasValue() && freeSlot.Error().starts_with(probe.cut)) << freeSlot.Error();
+            EXPECT_TRUE(!freeSlot.HasValue() && freeSlot.Error().starts_with(probe.cut))
+                << (freeSlot.HasValue() ? std::string("sin corte") : freeSlot.Error());
             EXPECT_EQ(Draws(), 0);
         }
     }
@@ -1327,36 +1514,35 @@ TEST_F(MonsterAttackCasesTest, CrywolfAttacksSkipTheirFullModelEffectAndExit)
 }
 
 // El switch por +0x376 (0x4f5c7e): cada caso con su +0x381, su acción y '2' en +0x38e, el corte después de sus
-// lecturas y rand(), o la cola. En Lorencia y en Devias (los mismos en cualquier mapa fuera de los ayudantes).
+// lecturas y rand(), o la cola. En Lorencia y en Devias (los mismos en cualquier mapa fuera de los ayudantes). Los
+// fuegos de los magos se crean: el 0xc2/1 y el /2, un rand() cada uno (la escala); el 0xc2/0 de alrededor, sus dos
+// rand() & 0x3ff y dos del alta (la escala y la x).
 TEST_F(MonsterAttackCasesTest, TheKindCasesCutAfterTheirDrawsOrGoOnToTheTail)
 {
+    constexpr int FallingFireDraws = 1;
+    constexpr int ScatteredFireDraws = 2 + 2;
     const std::vector<Probe> probes{
-        {.name = "0x46 en 5", .type = 0x46, .step = 5, .cut = "0x4f5d13"},
+        {.name = "0x46 en 5", .type = 0x46, .step = 5, .draws = 20 * 4 + Tail},
         {.name = "0x46 en 5 sin blanco", .type = 0x46, .step = 5, .target = NoTarget},
         {.name = "0x46 en 4", .type = 0x46, .step = 4, .draws = Tail},
-        {.name = "0x3d en 1", .type = 3, .step = 1, .cut = "0x4f6145", .kind = std::uint16_t{0x3d}},
+        {.name = "0x3d en 1", .type = 3, .step = 1, .draws = Tail, .kind = std::uint16_t{0x3d}},
         {.name = "0x3d en 2", .type = 3, .step = 2, .draws = Tail, .kind = std::uint16_t{0x3d}},
         {.name = "0x3f en 1",
          .type = 3,
          .step = 1,
-         .cut = "0x4f5d5a",
-         .draws = 1208,
+         .draws = 1208 + SkillRead + Tail,
          .sounds = std::vector<std::int32_t>(8, 0x40),
          .kind = std::uint16_t{0x3f}},
+        // El 0xf5 cuelga su joint 0x618/5 (0x5193d6, lote joints) y lee el registro propio antes de la cola.
         {.name = "0x3f con '2'",
          .type = 3,
          .step = 2,
          .skill = CaseSkill,
-         .cut = "0x4f609d",
-         .draws = SkillRead + 2,
-         .kind = std::uint16_t{0x3f}},
+         .draws = SkillRead + 2 + BlastDraws + OwnRecord + Tail,
+         .kind = std::uint16_t{0x3f},
+         .joints = JointTable},
         {.name = "0x3f en 2", .type = 3, .step = 2, .draws = SkillRead + Tail, .kind = std::uint16_t{0x3f}},
-        {.name = "0x42 con '2' en 1",
-         .type = 0x42,
-         .step = 1,
-         .skill = CaseSkill,
-         .cut = "0x4f6422",
-         .draws = SkillRead},
+        {.name = "0x42 con '2' en 1", .type = 0x42, .step = 1, .skill = CaseSkill, .draws = SkillRead + Tail},
         {.name = "0x42 con '2' en 2", .type = 0x42, .step = 2, .skill = CaseSkill, .draws = SkillRead + Tail},
         {.name = "0x35 en 1",
          .type = 3,
@@ -1376,40 +1562,40 @@ TEST_F(MonsterAttackCasesTest, TheKindCasesCutAfterTheirDrawsOrGoOnToTheTail)
          .skill = CaseSkill,
          .draws = Tail,
          .kind = std::uint16_t{0x3a}},
-        {.name = "0x31 en 6", .type = 0x31, .step = 6, .cut = "0x4f67fb"},
+        {.name = "0x31 en 6", .type = 0x31, .step = 6, .draws = SkillRead + Tail},
         {.name = "0x31 con '2' en 2", .type = 0x31, .step = 2, .skill = CaseSkill, .draws = SkillRead + Tail},
         {.name = "0x2a con '2' en 1",
          .type = 0x2a,
          .step = 1,
          .skill = CaseSkill,
-         .cut = "0x4f6ec5",
-         .draws = SkillRead},
+         .draws = SkillRead + 3 * FallingFireDraws + ScatteredFireDraws + Tail,
+         .sounds = {0x42, 0x42}},
         {.name = "0x2a con '2' en 2",
          .type = 0x2a,
          .step = 2,
          .skill = CaseSkill,
-         .cut = "0x4f6fc5",
-         .draws = SkillRead + 2},
+         .draws = SkillRead + ScatteredFireDraws + Tail,
+         .sounds = {0x42}},
         {.name = "0x2a en 2", .type = 0x2a, .step = 2, .draws = SkillRead + Tail},
         {.name = "0x23 con '2' en 1",
          .type = 0x23,
          .step = 1,
          .skill = CaseSkill,
-         .cut = "0x4f7050",
-         .draws = SkillRead},
+         .draws = SkillRead + 18 * FallingFireDraws + Tail,
+         .sounds = {0x42}},
         {.name = "0x23 con '2' en 2", .type = 0x23, .step = 2, .skill = CaseSkill, .draws = SkillRead + Tail},
         {.name = "0x26 con '2' en 1",
          .type = 0x26,
          .step = 1,
          .skill = CaseSkill,
-         .cut = "0x4f70b8",
-         .draws = SkillRead},
+         .draws = SkillRead + ScatteredFireDraws + Tail,
+         .sounds = {0x77, 0x42}},
         {.name = "0x43 con '2' en 2",
          .type = 0x43,
          .step = 2,
          .skill = CaseSkill,
-         .cut = "0x4f80cf",
-         .draws = SkillRead + 2},
+         .draws = SkillRead + ScatteredFireDraws + Tail,
+         .sounds = {0x42}},
         {.name = "0x48 con '2' en 14",
          .type = 0x48,
          .step = 14,
@@ -1420,25 +1606,29 @@ TEST_F(MonsterAttackCasesTest, TheKindCasesCutAfterTheirDrawsOrGoOnToTheTail)
         {.name = "0x47 en la 3 y en 5",
          .type = 0x47,
          .step = 5,
-         .cut = "0x4f7980",
-         .draws = 1208,
+         .draws = 1208 + Tail,
          .sounds = std::vector<std::int32_t>(8, 0x40)},
         {.name = "0x4a en la 4 y en 5",
          .type = 0x4a,
          .step = 5,
          .action = 4,
-         .cut = "0x4f7980",
-         .draws = 1208,
+         .draws = 1208 + Tail,
          .sounds = std::vector<std::int32_t>(8, 0x40)},
         {.name = "0x12d en la 5 y en 5", .type = 0x12d, .step = 5, .action = 5, .draws = Tail},
         {.name = "0x49 en la 3 y en 11",
          .type = 0x49,
          .step = 11,
-         .cut = "0x4f79d3",
-         .draws = 1208,
-         .sounds = std::vector<std::int32_t>(8, 0x40)},
+         .draws = 1208 + 5 * 2 + Tail,
+         .sounds = FiveStabSounds(),
+         .joints = JointTable},
         {.name = "0x49 en la 3 y en 13", .type = 0x49, .step = 13, .draws = Tail},
-        {.name = "0x4b en la 4 y en 13", .type = 0x4b, .step = 13, .action = 4, .cut = "0x4f80cf"},
+        {.name = "0x4b en la 4 y en 13",
+         .type = 0x4b,
+         .step = 13,
+         .action = 4,
+         .draws = Tail,
+         .sounds = {StabSound, 0x42},
+         .joints = JointTable},
         {.name = "0x49 en la 4 y en 9", .type = 0x49, .step = 9, .action = 4, .draws = Tail},
         {.name = "0x4d con '2' en 2",
          .type = 0x4d,
@@ -1460,8 +1650,8 @@ TEST_F(MonsterAttackCasesTest, TheKindCasesCutAfterTheirDrawsOrGoOnToTheTail)
          .type = 0x67,
          .step = 2,
          .skill = CaseSkill,
-         .cut = "0x4f80cf",
-         .draws = SkillRead + 2},
+         .draws = SkillRead + ScatteredFireDraws + Tail,
+         .sounds = {0x42}},
         {.name = "0x67", .type = 0x67, .step = 2, .draws = SkillRead + Tail},
         {.name = "sin caso", .type = 3, .step = 1, .draws = Tail},
         {.name = "sin caso ni blanco", .type = 3, .step = 1, .target = NoTarget}};
@@ -1472,6 +1662,39 @@ TEST_F(MonsterAttackCasesTest, TheKindCasesCutAfterTheirDrawsOrGoOnToTheTail)
         for (const Probe& probe : probes)
             Expect(probe);
     }
+}
+
+// 0x4f5cb6..0x4f5d1e: el 0x46 en 5 suelta veinte 0x625 en la posición y con los ángulos de su blanco (+0x3a4), con
+// la luz local (1, 1, 1), y sigue a la cola; con el blanco fuera de la tabla de personajes, MuRet corta.
+TEST_F(MonsterAttackCasesTest, TheKind46DropsTwentyFallingStarsOnItsTarget)
+{
+    Load(0);
+    ActorState& monster = Prepare({.type = 0x46, .step = 5, .target = 7});
+    ActorState& target = game->world.Actors()[7];
+    target.position = {3000, 4000, 120};
+    target.angles = {0, 0, 30};
+    game->world.Map().effects.Clear();
+    const auto stepped = Step(monster);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    const auto effects = game->world.Map().effects.Effects();
+    for (std::size_t star = 0; star < 20; ++star)
+    {
+        SCOPED_TRACE(star);
+        EXPECT_TRUE(effects[star].alive);
+        EXPECT_EQ(effects[star].type, 0x625);
+        EXPECT_EQ(effects[star].subtype, 0);
+        EXPECT_EQ(effects[star].transform.angles, target.angles);
+        EXPECT_EQ(effects[star].transform.position.z, 620.0f);
+        EXPECT_EQ(effects[star].disturbanceState, 0xffff);
+    }
+    EXPECT_FALSE(effects[20].alive);
+    EXPECT_EQ(Draws(), 20 * 4 + Tail);
+    EXPECT_EQ(game->world.Runtime().lastSoundId, 0x42);
+
+    ActorState& far = Prepare({.type = 0x46, .step = 5, .target = 400});
+    const auto cut = Step(far);
+    EXPECT_TRUE(!cut.HasValue() && cut.Error().starts_with("0x4f5cd4"))
+        << (cut.HasValue() ? std::string("sin corte") : cut.Error());
 }
 
 TEST_F(MonsterAttackCasesTest, SaturatedPoolsPreserveTheCallersOfTheKindAndSkillCases)
@@ -1733,42 +1956,66 @@ TEST_F(MonsterAttackCasesTest, FullJointPoolSkipsItsEffectsAndContinuesTheCaller
         ExpectWithOnlyJointPoolFull(probe);
 }
 
-TEST_F(MonsterAttackCasesTest, AFreeJointAfterTheFullModelPoolKeepsTheJointCutBoundary)
+// 0x4f74ee..0x4f7573 y 0x4f7ec0..0x4f7f45: con un solo lugar libre, el primero de los joints 0x613 sale sin dueño 100
+// más arriba del monstruo, con los ángulos de sus tres rand() % 360, y los demás intentos sólo sacan los suyos. El /1
+// suena 0x3e al nacer (0x5330c5); el /3 no. Los rand() de la cola (0x4f80e0) siguen.
+TEST_F(MonsterAttackCasesTest, AFreeJointAfterTheFullModelPoolTakesTheFirstSpirit)
 {
     Load(0);
-    const std::vector<Probe> probes{{.name = "0x48, primer joint",
-                                     .type = 3,
-                                     .step = 14,
-                                     .skill = CaseSkill,
-                                     .cut = "0x4f756a",
-                                     .draws = 4,
-                                     .kind = std::uint16_t{0x48}},
-                                    {.name = "0x4d, primer joint",
-                                     .type = 3,
-                                     .step = 2,
-                                     .skill = CaseSkill,
-                                     .cut = "0x4f7f3c",
-                                     .draws = 4,
-                                     .kind = std::uint16_t{0x4d}}};
-    for (const Probe& probe : probes)
+    struct Case
     {
-        SCOPED_TRACE(probe.name);
-        ActorState& monster = Prepare(probe);
+        Probe probe;
+        std::int32_t subtype;
+        int joints;
+        float width;
+        float speed;
+        std::vector<std::int32_t> expectedSounds;
+    };
+    const std::array cases{
+        Case{Probe{.name = "0x48, 0x613/1", .type = 3, .step = 14, .skill = CaseSkill, .kind = std::uint16_t{0x48}}, 1,
+             36, 60.0f, 70.0f, std::vector<std::int32_t>{0x3e}},
+        Case{Probe{.name = "0x4d, 0x613/3", .type = 3, .step = 2, .skill = CaseSkill, .kind = std::uint16_t{0x4d}}, 3,
+             40, 50.0f, 140.0f, std::vector<std::int32_t>{}}};
+    for (const Case& probe : cases)
+    {
+        SCOPED_TRACE(probe.probe.name);
+        ActorState& monster = Prepare(probe.probe);
+        monster.position = {1000.0f, 2000.0f, 30.0f};
         SetPoolAvailability(true, false, false);
+        const std::uint32_t seed = game->cloth.random.State();
         const auto stepped = Step(monster);
-        EXPECT_TRUE(!stepped.HasValue() && stepped.Error().starts_with(probe.cut)) << stepped.Error();
-        EXPECT_EQ(Draws(), probe.draws);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(Draws(), SkillRead + 3 * probe.joints + Tail);
+        EXPECT_EQ(sounds, probe.expectedSounds);
         ASSERT_EQ(game->joints.size(), 1u);
-        EXPECT_FALSE(game->joints.front().alive);
+        const Client::Scenes::JointState& joint = game->joints.front();
+        ASSERT_TRUE(joint.alive);
+        CrtRandom angles(seed);
+        static_cast<void>(angles.Next()); // +0x38e
+        const float x = static_cast<float>(angles.Next() % 360);
+        const float y = static_cast<float>(angles.Next() % 360);
+        const float z = static_cast<float>(angles.Next() % 360);
+        EXPECT_EQ(joint.type, 0x613);
+        EXPECT_EQ(joint.subtype, probe.subtype);
+        EXPECT_EQ(joint.angles, glm::vec3(x, y, z));
+        EXPECT_EQ(joint.position, glm::vec3(1000.0f, 2000.0f, 130.0f));
+        EXPECT_EQ(joint.targetPosition, joint.position);
+        EXPECT_EQ(joint.ownerContext, nullptr);
+        EXPECT_EQ(joint.key, 0);
+        EXPECT_EQ(joint.width, probe.width);
+        EXPECT_EQ(joint.speed, probe.speed);
+        EXPECT_EQ(joint.life, 49);
     }
 }
 
-TEST_F(MonsterAttackCasesTest, AFullModelPoolReachesTheNextTailJointCall)
+// 0x4f834c, 0x4f8484 y 0x4f8553: con el pool de efectos lleno, el 0x106/1 no sale y el joint 0x614/2 sí, colgado del
+// blanco (ESI) y apuntado a su hueso 33 con el modelo del jugador (0x5313fe), sin rand() propio.
+TEST_F(MonsterAttackCasesTest, AFullModelPoolCreatesTheTailLightningOfTheTarget)
 {
     struct Case
     {
         Probe probe;
-        std::string_view nextJointCut;
+        std::string_view address;
         int draws;
         std::vector<std::int32_t> expectedSounds;
     };
@@ -1825,7 +2072,7 @@ TEST_F(MonsterAttackCasesTest, AFullModelPoolReachesTheNextTailJointCall)
 
         const auto stepped = Step(monster);
 
-        EXPECT_TRUE(!stepped.HasValue() && stepped.Error().starts_with(probe.nextJointCut)) << stepped.Error();
+        ASSERT_TRUE(stepped.HasValue()) << probe.address << ": " << stepped.Error();
         EXPECT_EQ(Draws(), probe.draws);
         EXPECT_EQ(sounds, probe.expectedSounds);
         if (!probe.expectedSounds.empty())
@@ -1834,7 +2081,21 @@ TEST_F(MonsterAttackCasesTest, AFullModelPoolReachesTheNextTailJointCall)
             EXPECT_EQ(soundDraws, std::vector<int>{0});
         }
         ASSERT_EQ(game->joints.size(), 1u);
-        EXPECT_FALSE(game->joints.front().alive);
+        const Client::Scenes::JointState& joint = game->joints.front();
+        ASSERT_TRUE(joint.alive);
+        EXPECT_EQ(joint.type, 0x614);
+        EXPECT_EQ(joint.subtype, 2);
+        EXPECT_EQ(joint.width, 50.0f);
+        EXPECT_EQ(joint.life, 2);
+        EXPECT_EQ(joint.light, glm::vec3(1.0f, std::bit_cast<float>(0x3dcccccdu), 0.0f));
+        const ActorState& victim = game->world.Actors()[0];
+        EXPECT_EQ(joint.ownerContext, &victim);
+        const auto player = game->world.ModelPlacement(Client::Data::Models::PlayerSkeletonModel);
+        const Client::Render::Models::BoneTransform chest =
+            victim.bodyPose.size() > 33 ? victim.bodyPose[33] : Client::Render::Models::BoneTransform(0.0f);
+        EXPECT_EQ(joint.targetPosition, Client::Render::Models::OriginalTransformPosition(
+                                            Client::Render::Models::OriginalMatrixOf(chest),
+                                            glm::vec3(0.0f, -150.0f, 0.0f), player.scale, player.origin));
     }
 }
 
@@ -2360,8 +2621,129 @@ TEST_F(MonsterAttackCasesTest, Saturated49AttackKeepsTheFifthTrailPointAndActorP
     }
 }
 
-// 0x4f75b5 (0x59, 0x5f, 0x70, 0x76, 0x7c, 0x82 y 0x8f): con '2', rand() & 1; con 1, dos rand() más y el 0xc2
-// (0x4f7930); con 0, en 1 el 0xf6/1 (0x4f789b) y si no la cola.
+// Los efectos de los magos que crean los monstruos, con sus argumentos: el 0xcb/3 (dueño c) y el 0xcc/4 de 0x439cd0;
+// los tres 0xc2/7 de 0x43b172 alrededor del héroe, con la luz (0,8f; 0,5; 0,1f) y la clave 0; los cinco 0xcf/3 a /7
+// de 0x429152 con la luz (1, 1, 1); el 0xcb/0 y el 0xcc/0 sin dueño de 0x4f7096; los dieciocho 0xc2/1 de 0x4f7010 con
+// c de dueño y el rumbo de 20 en 20; los tres 0xc2/2 del hueso 11 de 0x4f6e51 con los ángulos corridos y el 0xc2/0 de
+// alrededor (0x4f6fc5); y el 0xc2/5 del hueso 6 de 0x4f8368.
+TEST_F(MonsterAttackCasesTest, TheMonsterWizardEffectsKeepTheirArguments)
+{
+    const auto alive = [this](std::int16_t type)
+    {
+        std::vector<const Client::World::ModelEffect*> found;
+        for (const Client::World::ModelEffect& effect : game->world.Map().effects.Effects())
+        {
+            if (effect.alive && effect.type == type)
+                found.push_back(&effect);
+        }
+        return found;
+    };
+    const glm::vec3 meteorLight(0.8f, 0.5f, 0.1f);
+    {
+        Load(24);
+        ActorState& monster = Prepare(Probe{.name = "0x91 con 0xc8", .type = 0x91, .step = 13, .skill = 0xc8});
+        ASSERT_TRUE(Step(monster).HasValue());
+        const auto inner = alive(Client::World::InnerCircleEffect);
+        const auto outer = alive(Client::World::OuterCircleEffect);
+        ASSERT_EQ(inner.size(), 1u);
+        ASSERT_EQ(outer.size(), 1u);
+        EXPECT_EQ(inner.front()->subtype, 3);
+        EXPECT_EQ(inner.front()->ownerContext, &monster);
+        EXPECT_EQ(inner.front()->life, 30);
+        EXPECT_EQ(outer.front()->subtype, 4);
+        EXPECT_EQ(outer.front()->ownerContext, nullptr);
+        EXPECT_EQ(outer.front()->life, 20);
+    }
+    {
+        Load(24);
+        ActorState& monster = Prepare(Probe{.name = "0x95 con 1", .type = 0x95, .step = 14, .skill = 1});
+        ActorState& hero = game->world.Actors()[game->world.Runtime().hero];
+        hero.position = glm::vec3(3000.0f, 4000.0f, 250.0f);
+        ASSERT_TRUE(Step(monster).HasValue());
+        const auto fires = alive(Client::World::FireEffect);
+        ASSERT_EQ(fires.size(), 3u);
+        for (const Client::World::ModelEffect* fire : fires)
+        {
+            EXPECT_EQ(fire->subtype, 7);
+            EXPECT_EQ(fire->ownerContext, nullptr);
+            EXPECT_EQ(fire->speed, 0.0f);
+            EXPECT_EQ(fire->light, meteorLight);
+            // La x del alta suma 200 a 299 y la y −50 a 49 a las del héroe ± 100.
+            EXPECT_GE(fire->transform.position.x, 3000.0f - 100.0f + 200.0f);
+            EXPECT_LT(fire->transform.position.x, 3000.0f + 100.0f + 300.0f);
+            EXPECT_GE(fire->transform.position.y, 4000.0f - 100.0f - 50.0f);
+            EXPECT_LT(fire->transform.position.y, 4000.0f + 100.0f + 50.0f);
+        }
+    }
+    {
+        Load(33);
+        ActorState& monster = Prepare(Probe{.name = "0x135", .type = 0x135, .step = 10});
+        ASSERT_TRUE(Step(monster).HasValue());
+        const auto twisters = alive(Client::World::StormEffect);
+        ASSERT_EQ(twisters.size(), 5u);
+        for (std::size_t index = 0; index < twisters.size(); ++index)
+        {
+            EXPECT_EQ(twisters[index]->subtype, static_cast<std::int32_t>(3 + index));
+            EXPECT_EQ(twisters[index]->light, glm::vec3(1.0f));
+            EXPECT_EQ(twisters[index]->transform.position, monster.position);
+        }
+    }
+    {
+        Load(0);
+        ActorState& monster = Prepare(Probe{.name = "0x26 en 1", .type = 0x26, .step = 1, .skill = CaseSkill});
+        ASSERT_TRUE(Step(monster).HasValue());
+        const auto inner = alive(Client::World::InnerCircleEffect);
+        ASSERT_EQ(inner.size(), 1u);
+        EXPECT_EQ(inner.front()->subtype, 0);
+        EXPECT_EQ(inner.front()->ownerContext, nullptr);
+        EXPECT_EQ(alive(Client::World::OuterCircleEffect).size(), 1u);
+        EXPECT_EQ(alive(Client::World::FireEffect).size(), 1u);
+    }
+    {
+        Load(0);
+        ActorState& monster = Prepare(Probe{.name = "0x23 en 1", .type = 0x23, .step = 1, .skill = CaseSkill});
+        ASSERT_TRUE(Step(monster).HasValue());
+        const auto fires = alive(Client::World::FireEffect);
+        ASSERT_EQ(fires.size(), 18u);
+        for (std::size_t index = 0; index < fires.size(); ++index)
+        {
+            EXPECT_EQ(fires[index]->subtype, 1);
+            EXPECT_EQ(fires[index]->ownerContext, &monster);
+            EXPECT_EQ(fires[index]->transform.angles, glm::vec3(0.0f, 0.0f, static_cast<float>(index) * 20.0f));
+        }
+    }
+    {
+        Load(0);
+        ActorState& monster = Prepare(Probe{.name = "0x2a en 1", .type = 0x2a, .step = 1, .skill = CaseSkill});
+        monster.angles = glm::vec3(5.0f, 7.0f, 90.0f);
+        ASSERT_TRUE(Step(monster).HasValue());
+        std::vector<glm::vec3> falling;
+        std::size_t scattered = 0;
+        for (const Client::World::ModelEffect* fire : alive(Client::World::FireEffect))
+        {
+            if (fire->subtype == 2)
+                falling.push_back(fire->transform.angles);
+            else if (fire->subtype == 0)
+                ++scattered;
+        }
+        EXPECT_EQ(falling,
+                  (std::vector<glm::vec3>{{-15.0f, 7.0f, 60.0f}, {-25.0f, 7.0f, 90.0f}, {-15.0f, 7.0f, 120.0f}}));
+        EXPECT_EQ(scattered, 1u);
+    }
+    {
+        Load(0);
+        ActorState& monster = Prepare(Probe{.name = "0x57 en 13", .type = 0x57, .step = 13, .skill = 0x11});
+        ASSERT_TRUE(Step(monster).HasValue());
+        const auto fires = alive(Client::World::FireEffect);
+        ASSERT_EQ(fires.size(), 1u);
+        EXPECT_EQ(fires.front()->subtype, 5);
+        EXPECT_EQ(fires.front()->life, 40);
+        EXPECT_EQ(fires.front()->light, monster.light);
+    }
+}
+
+// 0x4f75b5 (0x59, 0x5f, 0x70, 0x76, 0x7c, 0x82 y 0x8f): con '2', rand() & 1; con 1, dos rand() más, el 0xc2/0
+// (0x4f7930, dos rand() de su alta), el sonido 0x42 y la cola; con 0, en 1 el 0xf6/1 (0x4f789b) y si no la cola.
 TEST_F(MonsterAttackCasesTest, TheOddDrawPicksTheEffectOfTheGroup)
 {
     for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
@@ -2380,13 +2762,33 @@ TEST_F(MonsterAttackCasesTest, TheOddDrawPicksTheEffectOfTheGroup)
                 const auto stepped = Step(monster);
                 if (odd)
                 {
-                    EXPECT_TRUE(!stepped.HasValue() && stepped.Error().starts_with("0x4f7930"));
-                    EXPECT_EQ(Draws(), SkillRead + 1 + 2);
+                    EXPECT_TRUE(stepped.HasValue()) << (stepped.HasValue() ? std::string() : stepped.Error());
+                    EXPECT_EQ(Draws(), SkillRead + 1 + 2 + 2 + Tail);
+                    EXPECT_EQ(sounds, (std::vector<std::int32_t>{0x42}));
+                    EXPECT_TRUE(std::ranges::any_of(game->world.Map().effects.Effects(),
+                                                    [](const Client::World::ModelEffect& effect) {
+                                                        return effect.alive && effect.type == Client::World::FireEffect;
+                                                    }));
+                    // El fuego sigue vivo; se baja para que la vuelta par busque sólo su 0xf6.
+                    for (auto& effect : game->world.Map().effects.Effects())
+                    {
+                        effect.alive = false;
+                    }
                 }
                 else if (step == 1)
                 {
-                    EXPECT_TRUE(!stepped.HasValue() && stepped.Error().starts_with("0x4f789b"));
-                    EXPECT_EQ(Draws(), SkillRead + 1);
+                    EXPECT_TRUE(stepped.HasValue()) << stepped.Error();
+                    EXPECT_EQ(Draws(), SkillRead + 1 + Tail);
+                    const auto effects = game->world.Map().effects.Effects();
+                    const auto inferno =
+                        std::find_if(effects.begin(), effects.end(), [](const auto& effect) { return effect.alive; });
+                    ASSERT_NE(inferno, effects.end());
+                    EXPECT_EQ(inferno->type, 0xf6);
+                    EXPECT_EQ(inferno->subtype, 1);
+                    EXPECT_EQ(inferno->transform.position, monster.position);
+                    EXPECT_EQ(inferno->ownerContext, nullptr);
+                    EXPECT_EQ(inferno->life, 35);
+                    inferno->alive = false;
                 }
                 else
                 {
@@ -2445,7 +2847,8 @@ TEST_F(MonsterAttackCasesTest, TheBleedingMonsterDropsFourPairs)
 }
 
 // 0x4f7ab9 (+0x376 0x49 y 0x4b fuera de la 3, en 13): el punto (−50, 100, 0) del hueso 11 de los huesos propios va a
-// +0x17c..+0x184 antes del efecto 0x106/1, que corta.
+// +0x17c..+0x184 antes del efecto 0x106/1 (0x4f80cf, CL11), que sale de ahí con c de dueño y 45 más en la x de los
+// ángulos; después, el sonido 0x42 y la cola.
 TEST_F(MonsterAttackCasesTest, TheTrailStartsAtTheEleventhBone)
 {
     constexpr std::size_t Bones = 16;
@@ -2455,7 +2858,8 @@ TEST_F(MonsterAttackCasesTest, TheTrailStartsAtTheEleventhBone)
     {
         SCOPED_TRACE(map);
         Load(map);
-        ActorState& monster = Prepare(Probe{.name = "0x49", .type = 0x49, .step = 13, .action = 4});
+        ActorState& monster =
+            Prepare(Probe{.name = "0x49", .type = 0x49, .step = 13, .action = 4, .joints = JointTable});
         monster.bodyPose.assign(Bones, Client::Render::Models::BoneTransform(1.0f));
         for (std::size_t bone = 0; bone < Bones; ++bone)
             monster.bodyPose[bone][3] = glm::vec3(static_cast<float>(bone), 2.0f * static_cast<float>(bone), 30.0f);
@@ -2466,13 +2870,23 @@ TEST_F(MonsterAttackCasesTest, TheTrailStartsAtTheEleventhBone)
 
         const auto stepped = Step(monster);
 
-        EXPECT_TRUE(!stepped.HasValue() && stepped.Error().starts_with("0x4f80cf"));
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         const glm::vec3 expected = Client::Render::Models::OriginalTransformPosition(
             Client::Render::Models::OriginalMatrixOf(monster.bodyPose[TrailBone]), glm::vec3(-50.0f, 100.0f, 0.0f),
             monster.scale, monster.position);
         EXPECT_EQ(monster.trailOrigin, expected);
         EXPECT_NE(monster.trailOrigin, monster.position);
-        EXPECT_EQ(Draws(), 0);
+        EXPECT_EQ(Draws(), Tail);
+        EXPECT_EQ(sounds, (std::vector<std::int32_t>{StabSound, 0x42}));
+        const auto effects = game->world.Map().effects.Effects();
+        const auto stab = std::find_if(effects.begin(), effects.end(),
+                                       [](const auto& effect) { return effect.alive && effect.type == 0x106; });
+        ASSERT_NE(stab, effects.end());
+        EXPECT_EQ(stab->subtype, 1);
+        EXPECT_EQ(stab->ownerContext, &monster);
+        EXPECT_EQ(stab->transform.angles.x, monster.angles.x + 45.0f);
+        for (auto& effect : effects)
+            effect.alive = false;
 
         // En 9, el mismo 0x4ec110 sin escribir nada.
         ActorState& later = Prepare(Probe{.name = "0x4b en 9", .type = 0x4b, .step = 9, .action = 4});
@@ -2483,11 +2897,17 @@ TEST_F(MonsterAttackCasesTest, TheTrailStartsAtTheEleventhBone)
 }
 
 // La cola con 0x11 en +0x38e (0x4f8147): los casos salen siempre, sin la segunda lectura; los sonidos 0x75 y 0x50 en
-// 1 salen antes del joint que corta. El 0x4f8493 del 0x49 y el 0x4b no llega: su caso de +0x376 corta antes. Los
-// impares de 0xa3 a 0xad sacan en el alta (0x51443f) la derecha: 0xa25 (el arco) o 0xc17; acá va escrita. Con el arco,
-// en 8, la flecha de 0x4f816f (0x53e2b0 → 0x53d9a0 con las manos) da el 0x111, cuya alta corta en su joint (0x51bf35).
+// 1 salen antes del joint que corta. El 0x57 en 13 crea su 0xc2/5 del hueso 6 (sin rand()). Los 0x106/1 del lote
+// switch piden los joints de su hijo y su sonido 0x7a antes del joint 0x614/2, que ya no corta; el 0x4b en la 4 y en 13
+// llega al 0x4f8493 después del 0x106/1 de su caso de +0x376 (0x4f80cf) y su sonido 0x42. Los impares de 0xa3 a 0xad
+// sacan en el alta (0x51443f) la derecha: 0xa25 (el arco) o 0xc17; acá va escrita. Con el arco, en 8, la flecha de
+// 0x4f816f (0x53e2b0 → 0x53d9a0 con las manos) da el 0x111 con su joint 0x618/5 (0x51bf35), el cierre del registro
+// propio y los quince giros de la mano del arco 0xa25 (0x53e630..0x53e73a): en cada uno, el rand() % 360 de 0x53e6b0,
+// la moneda de 0x53e6d4 y los cinco de la 0x5c5/0 (0x540333, 0x54041f, 0x540436, 0x54045c y 0x540480). El 0x617/3 de la
+// moneda par no saca nada: acá el pool de joints está vacío.
 TEST_F(MonsterAttackCasesTest, TheSkill0x11CasesLeaveAfterTheirEffect)
 {
+    constexpr int ReignShine = 15 * (2 + 5);
     constexpr std::uint16_t Bow = 0xa25;
     constexpr std::uint16_t Staff = 0xc17;
     const std::vector<Probe> probes{
@@ -2495,17 +2915,10 @@ TEST_F(MonsterAttackCasesTest, TheSkill0x11CasesLeaveAfterTheirEffect)
          .type = 0xa3,
          .step = 8,
          .skill = 0x11,
-         .cut = "0x51bf35",
-         .draws = SkillRead,
+         .draws = SkillRead + OwnRecord + ReignShine,
          .right = Bow},
         {.name = "0xa9 con el arco en 9", .type = 0xa9, .step = 9, .skill = 0x11, .draws = SkillRead, .right = Bow},
-        {.name = "0xa7 en la 3 y en 15",
-         .type = 0xa7,
-         .step = 15,
-         .skill = 0x11,
-         .cut = "0x4f81cc",
-         .draws = SkillRead,
-         .right = Staff},
+        {.name = "0xa7 en la 3 y en 15", .type = 0xa7, .step = 15, .skill = 0x11, .draws = SkillRead, .right = Staff},
         {.name = "0xad en la 3 y en 14", .type = 0xad, .step = 14, .skill = 0x11, .draws = SkillRead, .right = Staff},
         {.name = "0xad en la 4 y en 7",
          .type = 0xad,
@@ -2519,15 +2932,33 @@ TEST_F(MonsterAttackCasesTest, TheSkill0x11CasesLeaveAfterTheirEffect)
          .step = 8,
          .action = 4,
          .skill = 0x11,
-         .cut = "0x51bf35",
-         .draws = SkillRead,
+         .draws = SkillRead + OwnRecord + ReignShine,
          .right = Bow},
-        {.name = "0x59 en 14", .type = 0x59, .step = 14, .skill = 0x11, .cut = "0x4f8326", .draws = 2 * SkillRead},
+        {.name = "0x59 en 14",
+         .type = 0x59,
+         .step = 14,
+         .skill = 0x11,
+         .draws = 2 * SkillRead,
+         .sounds = {StabSound},
+         .joints = JointTable},
         {.name = "0x8f en 13", .type = 0x8f, .step = 13, .skill = 0x11, .draws = 2 * SkillRead},
-        {.name = "0x57 en 13", .type = 0x57, .step = 13, .skill = 0x11, .cut = "0x4f83e5", .draws = SkillRead},
+        {.name = "0x57 en 13", .type = 0x57, .step = 13, .skill = 0x11, .draws = SkillRead},
         {.name = "0x8d en 14", .type = 0x8d, .step = 14, .skill = 0x11, .draws = SkillRead},
-        {.name = "0x4d en 14", .type = 0x4d, .step = 14, .skill = 0x11, .cut = "0x4f845e", .draws = 2 * SkillRead},
-        {.name = "0x4b en la 4 y en 13", .type = 0x4b, .step = 13, .action = 4, .skill = 0x11, .cut = "0x4f80cf"},
+        {.name = "0x4d en 14",
+         .type = 0x4d,
+         .step = 14,
+         .skill = 0x11,
+         .draws = 2 * SkillRead,
+         .sounds = {StabSound},
+         .joints = JointTable},
+        {.name = "0x4b en la 4 y en 13",
+         .type = 0x4b,
+         .step = 13,
+         .action = 4,
+         .skill = 0x11,
+         .draws = SkillRead,
+         .sounds = {StabSound, 0x42, StabSound},
+         .joints = JointTable},
         {.name = "0x49 en la 4 y en 12", .type = 0x49, .step = 12, .action = 4, .skill = 0x11, .draws = SkillRead},
         {.name = "0x45 en 1", .type = 0x45, .step = 1, .skill = 0x11, .cut = "0x4f8592", .draws = SkillRead},
         {.name = "0x45 en 2", .type = 0x45, .step = 2, .skill = 0x11, .draws = SkillRead},
@@ -2567,28 +2998,47 @@ TEST_F(MonsterAttackCasesTest, TheSkill0x11CasesLeaveAfterTheirEffect)
         Load(map);
         // El héroe lejos del lugar del monstruo: 0x53d9a0 compara o con [0x743a170] y, con el héroe, lee las armas
         // del registro propio.
-        constexpr std::size_t HeroAway = 399;
         game->world.Runtime().hero = HeroAway;
         for (const Probe& probe : probes)
             Expect(probe);
-        // Sin el arco 0xa25, en la 4 y en 8: rand() & 1 elige 0xf5 (0x4f8227) o 0xc2/6 (0x4f8287).
+        // Sin el arco 0xa25, en la 4 y en 8: rand() & 1 elige dos 0xf5 (0x4f8227), cada uno con su joint 0x618/5
+        // (0x5193d6) y el registro propio, o dos 0xc2/6 (0x4f8287 y 0x4f82a5), cada uno con los cinco rand() de su alta
+        // y su joint 0x5f2/0 (0x51b098, sin rand()).
         for (const std::int32_t type : {0xa5, 0xa7, 0xad, 0xa3})
         {
-            ActorState& monster = Prepare(
-                Probe{.name = "sin el arco", .type = type, .step = 8, .action = 4, .skill = 0x11, .right = Staff});
+            ActorState& monster = Prepare(Probe{.name = "sin el arco",
+                                                .type = type,
+                                                .step = 8,
+                                                .action = 4,
+                                                .skill = 0x11,
+                                                .right = Staff,
+                                                .joints = JointTable});
             CrtRandom expected(game->cloth.random.State());
             expected.Discard(SkillRead);
             const bool odd = (expected.Next() & 1) != 0;
             const auto stepped = Step(monster);
-            EXPECT_TRUE(!stepped.HasValue() && stepped.Error().starts_with(odd ? "0x4f8287" : "0x4f8227"));
-            EXPECT_EQ(Draws(), SkillRead + 1);
+            constexpr int MeteorDraws = 5;
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+            if (odd)
+            {
+                EXPECT_EQ(Draws(), SkillRead + 1 + 2 * MeteorDraws);
+                const auto trails =
+                    std::ranges::count_if(game->joints, [](const Client::Scenes::JointState& joint)
+                                          { return joint.alive && joint.type == 0x5f2 && joint.subtype == 0; });
+                EXPECT_EQ(trails, 2);
+                continue;
+            }
+            EXPECT_EQ(Draws(), SkillRead + 1 + 2 * (BlastDraws + OwnRecord));
+            const auto beams =
+                std::ranges::count_if(game->joints, [](const Client::Scenes::JointState& joint)
+                                      { return joint.alive && joint.type == 0x618 && joint.subtype == 5; });
+            EXPECT_EQ(beams, 2);
         }
     }
 }
 
-// La cola con 3 en +0x38e (0x4f8a56): los casos con sus sonidos en 1 y su rand() % 360 antes del joint; sin caso,
-// 0x4f8f5b: el hueso de la mano del alta pasa la cuenta del esqueleto de prueba (sin huesos) y sale, sin rand(). Sus
-// joints 0x614/0 (0x4f8fef), en test_attack_frame_skills.cpp.
+// La cola con 3 en +0x38e (0x4f8a56): los casos con sus sonidos en 1 y su rand() % 360 antes del joint, que corta sin
+// el pool de joints del frame; sin caso, 0x4f8f5b crea sus dos 0x614/0 (0x4f8fef y 0x4f9012) y la 0x5ca/0.
 TEST_F(MonsterAttackCasesTest, TheSkill3CasesLeaveAfterTheirJoints)
 {
     const std::vector<Probe> probes{
@@ -2630,8 +3080,18 @@ TEST_F(MonsterAttackCasesTest, TheSkill3CasesLeaveAfterTheirJoints)
         ASSERT_NE(game->world.FaunaResources().SkeletonOf(static_cast<std::uint16_t>(fallback.type)), nullptr);
         game->joints.assign(1, Client::Scenes::JointState{});
         const auto stepped = Step(fallback);
-        EXPECT_TRUE(!stepped.HasValue() && stepped.Error().starts_with("0x4f8fef")) << stepped.Error();
-        EXPECT_EQ(Draws(), Tail);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        // El primer 0x614/0 (0x4f8fef) toma el único lugar; el segundo (0x4f9012) no tiene dónde y la 0x5ca/0
+        // (0x4f9034) saca sus dos rand().
+        EXPECT_EQ(Draws(), Tail + 2);
+        const Client::Scenes::JointState& joint = game->joints.front();
+        ASSERT_TRUE(joint.alive);
+        EXPECT_EQ(joint.type, 0x614);
+        EXPECT_EQ(joint.subtype, 0);
+        EXPECT_EQ(joint.width, 50.0f);
+        EXPECT_EQ(joint.life, 2);
+        EXPECT_EQ(joint.ownerContext, &game->world.Actors()[0]);
+        EXPECT_EQ(joint.angles, glm::vec3(-60.0f, 0.0f, fallback.angles.z));
     }
 }
 
@@ -2986,5 +3446,126 @@ TEST_F(MonsterAttackCasesTest, Kind49And4bStepNineUseTheirOrangeTailLightWithout
         EXPECT_EQ(thunder->subtype, 0);
         EXPECT_GT(thunder->life, 0);
     }
+}
+
+// 0x43b5ac/0x43b5cc y 0x43b241/0x43b25e (CL11): el 0xa1 en la 3 desde 13 suelta 0xf6/0 y 0x5de/1, y el 0xa0 0xf6/5 y
+// 0x5de/2, sobre c y con c de dueño, y deja +0x381 en 15. Con el pool lleno, los dos se omiten y el 15 queda igual.
+TEST_F(MonsterAttackCasesTest, TheKalimaInfernosLeaveTheirOwnerAndEndTheCount)
+{
+    struct Case
+    {
+        std::int32_t type;
+        std::int32_t inferno;
+        std::int32_t jet;
+        int draws;
+    };
+    for (const Case probe : {Case{0xa1, 0, 1, SkillRead}, Case{0xa0, 5, 2, 0}})
+    {
+        for (const bool full : {false, true})
+        {
+            SCOPED_TRACE(testing::Message() << probe.type << ", lleno " << full);
+            Load(24);
+            game->world.Runtime().hero = HeroAway;
+            ActorState& monster = Prepare(Probe{.type = probe.type, .step = 13});
+            if (full)
+                FillModelEffectPoolExceptLast(0);
+
+            const auto stepped = Step(monster);
+
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+            EXPECT_EQ(monster.byte381, 15);
+            EXPECT_EQ(Draws(), probe.draws);
+            EXPECT_TRUE(sounds.empty());
+            if (full)
+                continue;
+            const auto effects = game->world.Map().effects.Effects();
+            ASSERT_TRUE(effects[0].alive);
+            ASSERT_TRUE(effects[1].alive);
+            EXPECT_FALSE(effects[2].alive);
+            EXPECT_EQ(effects[0].type, 0xf6);
+            EXPECT_EQ(effects[0].subtype, probe.inferno);
+            EXPECT_EQ(effects[1].type, Client::World::FlameJetEffect);
+            EXPECT_EQ(effects[1].subtype, probe.jet);
+            for (const Client::World::ModelEffect* effect : {&effects[0], &effects[1]})
+            {
+                EXPECT_EQ(effect->transform.position, monster.position);
+                EXPECT_EQ(effect->ownerContext, &monster);
+                EXPECT_EQ(effect->itemType, &monster.word8c);
+                EXPECT_EQ(effect->itemLevel, &monster.byte8e);
+            }
+            EXPECT_EQ(effects[0].light, glm::vec3(0.8f));
+            EXPECT_EQ(effects[0].life, 15);
+            EXPECT_EQ(effects[1].life, 10);
+        }
+    }
+}
+
+// 0x4f8227 y 0x4f8244 (CL11): con el par, los dos 0xf5 caen sobre el blanco (+0x3a4) con c de dueño; cada alta saca sus
+// cinco rand(), omite el joint 0x618/5 con la tabla llena y cierra el registro propio (3.848 rand()).
+TEST_F(MonsterAttackCasesTest, TheEvenDrawDropsTwoBlastsOnTheTarget)
+{
+    constexpr std::uint16_t Staff = 0xc17;
+    constexpr std::uint16_t TargetSlot = 7;
+    constexpr int OwnRecordDraws = Client::Render::Models::OwnRecordCloseRandoms;
+    Load(0);
+    game->world.Runtime().hero = HeroAway;
+    ActorState& target = game->world.Actors()[TargetSlot];
+    target.position = glm::vec3(1234.0f, 2345.0f, 345.0f);
+    const std::uint32_t seed = SeedForSecondRandomParity(false);
+    ActorState& monster = Prepare(
+        Probe{.type = 0xa5, .step = 8, .action = 4, .skill = 0x11, .target = TargetSlot, .right = Staff, .joints = 1});
+    game->joints.front().alive = true;
+    game->cloth.random = CrtRandom(seed);
+
+    const auto stepped = Step(monster);
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(Draws(), SkillRead + 1 + 2 * (BlastDraws + OwnRecordDraws));
+    const auto effects = game->world.Map().effects.Effects();
+    for (std::size_t blast = 0; blast < 2; ++blast)
+    {
+        SCOPED_TRACE(blast);
+        const Client::World::ModelEffect& effect = effects[blast];
+        ASSERT_TRUE(effect.alive);
+        EXPECT_EQ(effect.type, 0xf5);
+        EXPECT_EQ(effect.subtype, 0);
+        EXPECT_EQ(effect.ownerContext, &monster);
+        EXPECT_EQ(effect.life, 30);
+        // 0x51931b..0x51936a: el punto sube 300 a 799 sobre el blanco, con x en [200, 300) y y en [−50, 50).
+        EXPECT_GE(effect.transform.position.x, target.position.x + 200.0f);
+        EXPECT_LT(effect.transform.position.x, target.position.x + 300.0f);
+        EXPECT_GE(effect.transform.position.z, target.position.z + 300.0f);
+    }
+    EXPECT_FALSE(effects[2].alive);
+}
+
+// 0x4f79db..0x4f7aae (CL11): el 0x49 en la 3 y en 11, después del estallido y del 0xf6/0, suelta cinco 0x106/1 desde
+// los puntos de +0x17c con c de dueño; cada uno deja su hijo 0x105/1 y sus cuatro joints 0x610/0..3.
+TEST_F(MonsterAttackCasesTest, TheFiveStabsFallFromTheTrailPoints)
+{
+    Load(0);
+    ActorState& monster = Prepare(Probe{.type = 0x49, .step = 11, .joints = JointTable});
+
+    const auto stepped = Step(monster);
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    int infernos = 0;
+    int stabs = 0;
+    int children = 0;
+    for (const Client::World::ModelEffect& effect : game->world.Map().effects.Effects())
+    {
+        if (!effect.alive)
+            continue;
+        infernos += effect.type == 0xf6 && effect.subtype == 0 ? 1 : 0;
+        stabs += effect.type == 0x106 && effect.subtype == 1 && effect.ownerContext == &monster ? 1 : 0;
+        children += effect.type == 0x105 && effect.subtype == 1 ? 1 : 0;
+    }
+    EXPECT_EQ(infernos, 1);
+    EXPECT_EQ(stabs, 5);
+    EXPECT_EQ(children, 5);
+    const auto joints = std::count_if(game->joints.begin(), game->joints.end(),
+                                      [](const Client::Scenes::JointState& joint) { return joint.alive; });
+    EXPECT_EQ(joints, 5 * 4);
+    EXPECT_NE(monster.trailOrigin, monster.position);
 }
 } // namespace

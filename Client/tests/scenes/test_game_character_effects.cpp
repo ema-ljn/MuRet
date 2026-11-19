@@ -18,13 +18,16 @@
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/FaunaDrawing.h"
+#include "Scenes/FaunaJointCreation.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/GameParticles.h"
 #include "Scenes/WorldState.h"
 #include "Scenes/WorldMap.h"
+#include "Scenes/WorldRuntime.h"
 #include "support/ParticleDrawRecorder.h"
 #include "Scenes/SocialState.h"
+#include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
 #include "World/ParticleOwner.h"
 #include "World/Particles.h"
@@ -40,6 +43,7 @@
 #include <glm/ext/vector_float3.hpp>
 
 #include <array>
+#include <algorithm>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
@@ -174,6 +178,7 @@ protected:
                 .effects = &m_effects,
                 .slot = Slot,
                 .scan = {},
+                .actors = m_actors,
                 .worldClock = 1000.0f,
                 .map = 0,
                 .logicSteps = 1,
@@ -192,6 +197,7 @@ protected:
     Client::World::FrameSprites m_sprites;
     Client::World::Particles m_particles;
     std::vector<Client::Scenes::JointState> m_joints = std::vector<Client::Scenes::JointState>(16);
+    std::vector<ActorState> m_actors = std::vector<ActorState>(400);
     Client::World::ModelEffects m_effects;
 };
 
@@ -274,76 +280,202 @@ TEST_F(GameCharacterEffectsTest, TheLightningActionOutsideTheDarkLordPutsThreeSp
     EXPECT_EQ(m_random.State(), 1u);
 }
 
-TEST_F(GameCharacterEffectsTest, TheActionWindowsCutOnlyInsideTheirFramesOfAnOriginalFrame)
+// 0x50f96c..0x50f9c6 y 0x50fac5..0x50fb9c: en [1,2; 1,6) el brillo 0x621/2 con el personaje de dueño y el sonido
+// 0x1cc; en [7, 8) dos 0x117/2 sin dueño en la mano (+0x2bd), con (180, 45, 0) y (0, 0, z) y la luz (0,8f; 0,5f; 1).
+// Fuera de las ventanas o entre frames, nada. Ninguna saca rand(). Sin el mundo, cortan.
+TEST_F(GameCharacterEffectsTest, TheActionWindowsCreateTheirEffectsOnlyInsideTheirFramesOfAnOriginalFrame)
 {
+    enum class Window : std::uint8_t
+    {
+        None,
+        Glow,
+        Skills,
+    };
     struct Case
     {
         std::uint8_t characterClass;
         std::uint8_t action;
         float frame;
         bool originalFrame;
-        const char* cut;
+        Window window;
     };
     constexpr std::array cases{
-        Case{4, 0x94, 1.2f, true, "0x50f9b3"}, Case{0, 0x51, 1.5f, true, "0x50f9b3"},
-        Case{0, 0x5b, 7.0f, true, "0x50fb64"}, Case{4, 0x94, 7.9f, true, "0x50fb64"},
-        Case{4, 0x94, 1.6f, true, nullptr},    Case{4, 0x94, 1.1f, true, nullptr},
-        Case{4, 0x94, 8.0f, true, nullptr},    Case{4, 0x94, 1.3f, false, nullptr},
-        Case{0, 0x51, 7.5f, false, nullptr},
+        Case{4, 0x94, 1.2f, true, Window::Glow},   Case{0, 0x51, 1.5f, true, Window::Glow},
+        Case{0, 0x5b, 7.0f, true, Window::Skills}, Case{4, 0x94, 7.9f, true, Window::Skills},
+        Case{4, 0x94, 1.6f, true, Window::None},   Case{4, 0x94, 1.1f, true, Window::None},
+        Case{4, 0x94, 8.0f, true, Window::None},   Case{4, 0x94, 1.3f, false, Window::None},
+        Case{0, 0x51, 7.5f, false, Window::None},
     };
+    m_actor.angles = {10.0f, 20.0f, 30.0f};
     for (const Case& probe : cases)
     {
         SCOPED_TRACE(testing::Message() << int{probe.action} << ' ' << probe.frame << ' ' << probe.originalFrame);
         m_sprites = {};
+        m_random = CrtRandom{1};
         m_actor.characterClass = probe.characterClass;
         m_actor.animation.action = probe.action;
         m_actor.animation.frame = probe.frame;
+        auto world = std::make_unique<Client::Scenes::WorldState>();
         GameCharacterEffectsPass pass = Pass();
         pass.originalFrame = probe.originalFrame;
+        pass.world = world.get();
 
         const auto result = Client::Scenes::DrawGameCharacterEffects(m_actor, pass);
 
-        if (probe.cut == nullptr)
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_TRUE(LiveSprites(m_sprites).empty());
+        EXPECT_EQ(m_random.State(), 1u);
+        const auto& effects = world->Map().effects.Effects();
+        const auto alive = std::ranges::count_if(effects, [](const auto& effect) { return effect.alive; });
+        if (probe.window == Window::Glow)
         {
-            ASSERT_TRUE(result.HasValue()) << result.Error();
+            ASSERT_EQ(alive, 1);
+            EXPECT_EQ(effects[0].type, 0x621);
+            EXPECT_EQ(effects[0].subtype, 2);
+            EXPECT_EQ(effects[0].life, 20);
+            EXPECT_EQ(effects[0].transform.position, m_actor.position);
+            EXPECT_EQ(effects[0].start, m_actor.position);
+            EXPECT_EQ(effects[0].transform.angles, m_actor.angles);
+            EXPECT_EQ(effects[0].light, m_actor.light);
+            EXPECT_EQ(effects[0].ownerContext, &m_actor);
+            EXPECT_EQ(world->Runtime().lastSoundId, 0x1cc);
+        }
+        else if (probe.window == Window::Skills)
+        {
+            ASSERT_EQ(alive, 2);
+            const glm::vec3 hand = At(0x21, glm::vec3(0.0f));
+            const std::array angles{glm::vec3{180.0f, 45.0f, 0.0f}, glm::vec3{0.0f, 0.0f, 30.0f}};
+            for (std::size_t index = 0; index < 2; ++index)
+            {
+                SCOPED_TRACE(index);
+                EXPECT_EQ(effects[index].type, 0x117);
+                EXPECT_EQ(effects[index].subtype, 2);
+                EXPECT_EQ(effects[index].life, 12);
+                EXPECT_EQ(effects[index].transform.position, hand);
+                EXPECT_EQ(effects[index].transform.angles, angles[index]);
+                EXPECT_EQ(effects[index].light, glm::vec3(Float(0x3f4ccccdu), 0.5f, 1.0f));
+                EXPECT_EQ(effects[index].ownerContext, nullptr);
+            }
+            EXPECT_FALSE(world->Runtime().lastSoundId.has_value());
         }
         else
         {
-            ASSERT_FALSE(result.HasValue());
-            EXPECT_NE(result.Error().find(probe.cut), std::string::npos) << result.Error();
+            EXPECT_EQ(alive, 0);
+            EXPECT_FALSE(world->Runtime().lastSoundId.has_value());
         }
-        EXPECT_TRUE(LiveSprites(m_sprites).empty());
+
+        // Sin el mundo, las ventanas cortan con su dirección; fuera de ellas, nada.
+        pass.world = nullptr;
+        m_random = CrtRandom{1};
+        const auto alone = Client::Scenes::DrawGameCharacterEffects(m_actor, pass);
+        if (probe.window == Window::None)
+        {
+            EXPECT_TRUE(alone.HasValue()) << alone.Error();
+        }
+        else
+        {
+            ASSERT_FALSE(alone.HasValue());
+            EXPECT_NE(alone.Error().find(probe.window == Window::Glow ? "0x50f9b3" : "0x50fb64"), std::string::npos)
+                << alone.Error();
+        }
     }
 }
 
-TEST_F(GameCharacterEffectsTest, TheGlowFlagsCutWithTheExactConditionOfTheAssembly)
+// 0x50fba4..0x50fbcf: con 0x4 o 0x2000000 en +0x78 y sin 0x4000, las manos brillan: un rand() y tres sprites por mano.
+// Entre frames, sin los joints.
+TEST_F(GameCharacterEffectsTest, TheGlowFlagsLightTheHandsWithTheExactConditionOfTheAssembly)
 {
     struct Case
     {
         std::uint32_t flags;
-        bool cuts;
+        bool glows;
     };
     for (const Case probe : {Case{0x4, true}, Case{0x2000000, true}, Case{0x2000004, true}, Case{0x4004, false},
                              Case{0x2004000, false}, Case{0x800, false}, Case{0x1, false}})
     {
         SCOPED_TRACE(probe.flags);
+        m_sprites = {};
+        m_random = CrtRandom{1};
         m_actor.flags78 = probe.flags;
         GameCharacterEffectsPass pass = Pass();
         pass.originalFrame = false;
 
         const auto result = Client::Scenes::DrawGameCharacterEffects(m_actor, pass);
 
-        EXPECT_EQ(!result.HasValue(), probe.cuts);
-        if (probe.cuts)
-        {
-            EXPECT_NE(result.Error().find("0x50fbd5"), std::string::npos) << result.Error();
-        }
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(LiveSprites(m_sprites).size(), probe.glows ? 6u : 0u);
+        EXPECT_EQ(m_random.State(), AfterRandoms(probe.glows ? 2 : 0));
+        EXPECT_TRUE(LiveJoints(m_joints).empty());
     }
+}
+
+// 0x50fbe5..0x50fd5c en un frame del original: por mano, k = (rand() % 30 + 70) · 0,01f (con la semilla 1, 41 y
+// 18.467: 81 y 87) y la luz (k; k · 0,3f; k · 0,2f), con k sin guardar en float para los productos; los sprites 0x5fd
+// de escala 1,5 en los huesos mano, mano − 6 y mano − 7 con el corrimiento de [ebp−0x50] (acá 0). Después, sin un
+// 0x10f/4 ni /9 suyo, cinco 0x10f/4 de ancho 20 desde él, con sus ángulos y el +0x3a4 con signo de blanco (+0xa0c).
+TEST_F(GameCharacterEffectsTest, TheGlowFlagsBindTheCharacterWithFiveAuras)
+{
+    m_actor.flags78 = 0x2000000;
+    m_actor.angles = {0.0f, 0.0f, 90.0f};
+    m_actor.attackTarget = 0xfffe;
+
+    const auto result = Client::Scenes::DrawGameCharacterEffects(m_actor, Pass());
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    const auto sprites = LiveSprites(m_sprites);
+    ASSERT_EQ(sprites.size(), 6u);
+    const std::array<glm::vec3, 2> lights{glm::vec3{Float(0x3f4f5c29u), Float(0x3e78d4feu), Float(0x3e25e354u)},
+                                          glm::vec3{Float(0x3f5eb852u), Float(0x3e85a1cbu), Float(0x3e322d0eu)}};
+    const std::array<std::int32_t, 6> bones{0x21, 0x21 - 6, 0x21 - 7, 0x2a, 0x2a - 6, 0x2a - 7};
+    for (std::size_t index = 0; index < sprites.size(); ++index)
+    {
+        SCOPED_TRACE(index);
+        EXPECT_EQ(sprites[index].texture, 0x5fd);
+        EXPECT_EQ(sprites[index].scale, 1.5f);
+        EXPECT_EQ(sprites[index].rotation, 0.0f);
+        EXPECT_EQ(sprites[index].light, lights[index / 3]);
+        EXPECT_EQ(sprites[index].position, At(bones[index], {}));
+    }
+    const auto auras = LiveJoints(m_joints);
+    ASSERT_EQ(auras.size(), 5u);
+    for (const auto& aura : auras)
+    {
+        EXPECT_EQ(aura.type, 0x10f);
+        EXPECT_EQ(aura.subtype, 4);
+        EXPECT_EQ(aura.width, 20.0f);
+        EXPECT_EQ(aura.position, m_actor.position);
+        EXPECT_EQ(aura.angles, m_actor.angles);
+        EXPECT_EQ(aura.ownerContext, &m_actor);
+        EXPECT_EQ(aura.target, -2);
+    }
+    EXPECT_EQ(m_random.State(), AfterRandoms(2));
+
+    // Con un 0x10f/9 suyo vivo, ninguno más; los sprites y los rand() igual.
+    for (auto& joint : m_joints)
+        joint.alive = false;
+    m_joints[7].alive = true;
+    m_joints[7].type = 0x10f;
+    m_joints[7].subtype = 9;
+    m_joints[7].ownerContext = &m_actor;
+    m_sprites = {};
+    m_random = CrtRandom{1};
+    ASSERT_TRUE(Client::Scenes::DrawGameCharacterEffects(m_actor, Pass()).HasValue());
+    EXPECT_EQ(LiveJoints(m_joints).size(), 1u);
+    EXPECT_EQ(LiveSprites(m_sprites).size(), 6u);
+    EXPECT_EQ(m_random.State(), AfterRandoms(2));
+
+    // El de otro dueño o con otro subtipo no cuenta.
+    m_joints[7].subtype = 2;
+    ASSERT_TRUE(Client::Scenes::DrawGameCharacterEffects(m_actor, Pass()).HasValue());
+    EXPECT_EQ(LiveJoints(m_joints).size(), 6u);
 }
 
 // 0x50f9c9..0x50fac2: por debajo del frame 2 (0x6b8818) y con party, 0x59e680 sobre el nombre. Fuera de la party salta
 // a 0x510a7a, sin las banderas de 0x50fba4, también entre frames. En la party, los joints 0x618 hacia otro miembro a la
-// vista (+0x1c en 0 o más y no él) cortan en un frame del original. Con el frame en 2 o sin party, las banderas cortan.
+// vista (+0x1c en 0 o más y no él) nacen en un frame del original (0x50fa74 y 0x50fa97: /0xc y /0xd de ancho 20, desde
+// el miembro 150 más arriba, con él de dueño) y después siguen las banderas (0x4: dos rand(), seis sprites y, en un
+// frame del original, cinco 0x10f/4). Con el frame en 2 o sin party, también las banderas. Cada 0x618/0xc y /0xd saca
+// tres rand() (el sentido en 0x53217c y los dos giros en 0x5321af y 0x5321c5): seis por miembro, y ninguno sin joints.
 TEST_F(GameCharacterEffectsTest, BelowFrameTwoTheActionsReadTheParty)
 {
     struct Case
@@ -353,15 +485,16 @@ TEST_F(GameCharacterEffectsTest, BelowFrameTwoTheActionsReadTheParty)
         float frame;
         bool originalFrame;
         bool partyListed;
-        const char* cut;
+        bool flags;
+        bool beams = false;
     };
     constexpr std::int32_t Self = static_cast<std::int32_t>(Slot);
     constexpr std::array cases{
-        Case{"Otro", -1, 1.9f, true, true, nullptr},      Case{"Otro", -1, 0.5f, false, true, nullptr},
-        Case{"Otro", -1, 2.0f, false, true, "0x50fbd5"},  Case{"Otro", -1, 1.9f, false, false, "0x50fbd5"},
-        Case{"Lordes", -1, 1.9f, true, true, "0x50fbd5"}, Case{"Lordes", Self, 1.9f, true, true, "0x50fbd5"},
-        Case{"Lordes", 7, 1.9f, true, true, "0x50fa74"},  Case{"Lordes", 7, 1.9f, false, true, "0x50fbd5"},
-        Case{"Lord", 0, 0.0f, true, true, "0x50fa74"},
+        Case{"Otro", -1, 1.9f, true, true, false},       Case{"Otro", -1, 0.5f, false, true, false},
+        Case{"Otro", -1, 2.0f, false, true, true},       Case{"Otro", -1, 1.9f, false, false, true},
+        Case{"Lordes", -1, 1.9f, true, true, true},      Case{"Lordes", Self, 1.9f, true, true, true},
+        Case{"Lordes", 7, 1.9f, true, true, true, true}, Case{"Lordes", 7, 1.9f, false, true, true},
+        Case{"Lord", 0, 0.0f, true, true, true, true},
     };
     for (const Case& probe : cases)
     {
@@ -386,17 +519,30 @@ TEST_F(GameCharacterEffectsTest, BelowFrameTwoTheActionsReadTheParty)
         pass.originalFrame = probe.originalFrame;
         if (probe.partyListed)
             pass.party = party;
+        if (probe.memberIndex >= 0)
+            m_actors[static_cast<std::size_t>(probe.memberIndex)].position = {500.0f, 600.0f, 70.0f};
+        for (auto& joint : m_joints)
+            joint.alive = false;
+        m_random = CrtRandom{1};
+
+        m_sprites = {};
 
         const auto result = Client::Scenes::DrawGameCharacterEffects(m_actor, pass);
 
-        if (probe.cut == nullptr)
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        const auto joints = LiveJoints(m_joints);
+        const std::size_t auras = probe.flags && probe.originalFrame ? 5u : 0u;
+        ASSERT_EQ(joints.size(), (probe.beams ? 2u : 0u) + auras);
+        constexpr std::size_t RandomsPerMember = 2 * 3;
+        EXPECT_EQ(m_random.State(), AfterRandoms((probe.beams ? RandomsPerMember : 0) + (probe.flags ? 2 : 0)));
+        EXPECT_EQ(LiveSprites(m_sprites).size(), probe.flags ? 6u : 0u);
+        for (std::size_t index = 0; index + auras < joints.size(); ++index)
         {
-            ASSERT_TRUE(result.HasValue()) << result.Error();
-        }
-        else
-        {
-            ASSERT_FALSE(result.HasValue());
-            EXPECT_NE(result.Error().find(probe.cut), std::string::npos) << result.Error();
+            EXPECT_EQ(joints[index].type, 0x618);
+            EXPECT_EQ(joints[index].subtype, index == 0 ? 0xc : 0xd);
+            EXPECT_EQ(joints[index].width, 20.0f);
+            EXPECT_EQ(joints[index].ownerContext, &m_actor);
+            EXPECT_EQ(joints[index].position, glm::vec3(500.0f, 600.0f, 220.0f));
         }
     }
 }
@@ -622,36 +768,49 @@ TEST_F(GameCharacterEffectsTest, ThePetSummonRefusesOtherEffectsAndAMissingJoint
     EXPECT_EQ(m_random.State(), 1u);
     EXPECT_EQ(summon.life, 20);
 
-    summon.subtype = 2;
+    summon.subtype = 4;
     const auto refused = Client::Scenes::StepPetSummon(summon, m_joints, m_random);
     ASSERT_FALSE(refused.HasValue());
     EXPECT_NE(refused.Error().find("0x52b9a6"), std::string::npos) << refused.Error();
 }
 
-// 0x52b9a6 → 0x518900 con el /3 de la 0x1c y de las invocaciones: el rand() de la luz y el giro del primer joint, que
-// es un 619/3 de la CL11 (0x530c18): corta en 0x5189cc después de esos tres rand(), sin la cola. Con la tabla de joints
-// llena, ninguno y sigue: nueve rand() y la cola.
-TEST_F(GameCharacterEffectsTest, TheSummonDecalCutsAtItsFirstEnergyJoint)
+// 0x52b9a6 → 0x518900 con el /3 de la 0x1c y de las invocaciones: el rand() de la luz y, como el /1, tres joints
+// 619/3 (0x5189cc), cada uno con los dos rand() de su giro, con el personaje de dueño. Con la tabla de joints llena,
+// ninguno y sigue: los mismos siete rand() y la cola.
+TEST_F(GameCharacterEffectsTest, TheSummonDecalDropsThreeEnergyJoints)
 {
     ASSERT_TRUE(
         m_effects.CreatePetSummon(m_actor.position, {}, glm::vec3(0.5f), &m_actor, Client::World::SummonDecalSubtype)
             .has_value());
     Client::World::ModelEffect& summon = m_effects.Effects()[0];
 
-    const auto cut = Client::Scenes::StepPetSummon(summon, m_joints, m_random);
+    const auto stepped = Client::Scenes::StepPetSummon(summon, m_joints, m_random);
 
-    ASSERT_FALSE(cut.HasValue());
-    EXPECT_NE(cut.Error().find("0x5189cc"), std::string::npos) << cut.Error();
-    EXPECT_NE(cut.Error().find("0x619/3"), std::string::npos) << cut.Error();
-    EXPECT_EQ(m_random.State(), AfterRandoms(3));
-    EXPECT_EQ(summon.life, 20);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(m_random.State(), AfterRandoms(7));
+    EXPECT_EQ(summon.life, 19);
+    const std::vector<int> draws = RandomsAfter(1, 6);
+    const auto joints = LiveJoints(m_joints);
+    ASSERT_EQ(joints.size(), 3u);
+    for (std::size_t index = 0; index < joints.size(); ++index)
+    {
+        SCOPED_TRACE(index);
+        EXPECT_EQ(joints[index].type, 0x619);
+        EXPECT_EQ(joints[index].subtype, 3);
+        EXPECT_EQ(joints[index].angles, glm::vec3(static_cast<float>(draws[index * 2] % 90), 0.0f,
+                                                  static_cast<float>(draws[(index * 2) + 1] % 360)));
+        EXPECT_EQ(joints[index].ownerContext, &m_actor);
+        EXPECT_EQ(joints[index].width, 5.0f);
+        EXPECT_EQ(joints[index].life, 12);
+        EXPECT_EQ(joints[index].maximumCount, 2);
+    }
 
     for (auto& joint : m_joints)
         joint.alive = true;
     CrtRandom full{1};
     ASSERT_TRUE(Client::Scenes::StepPetSummon(summon, m_joints, full).HasValue());
     EXPECT_EQ(full.State(), AfterRandoms(7));
-    EXPECT_EQ(summon.life, 19);
+    EXPECT_EQ(summon.life, 18);
 }
 
 // 0x52a8a7: el 5ac/2 de la 0x35 saca el rand() de la luz, deja la vida en 10 con el dueño vivo con 0x400 (en 0 si no) y
@@ -747,10 +906,10 @@ TEST_F(GameCharacterEffectsTest, TheSwellFlareEmitsItsMirroredBonePairBeforeTheC
         for (std::size_t slot = 0; slot < freeSlots; ++slot)
         {
             const auto& child = m_particles.All()[slot];
-            EXPECT_EQ(child.rotation, slot == 0 ? 26 : 35); // CRT(1): R2=18467, k=1.
+            EXPECT_EQ(child.rotation, slot == 0 ? 26.0f : 35.0f); // CRT(1): R2=18467, k=1.
             EXPECT_EQ(child.typedOwner, owner);
             EXPECT_EQ(child.life, 10);
-            EXPECT_EQ(child.scale, 2);
+            EXPECT_EQ(child.scale, 2.0f);
             EXPECT_EQ(child.position, flare.transform.position);
             EXPECT_EQ(child.angles, glm::vec3(0));
             EXPECT_EQ(child.light, glm::vec3(1, 0.5f, 0.1f));
@@ -840,8 +999,8 @@ TEST(SwellLifePipelineTest, RunsFromParentToRetainedActorBonesAndExistingFlareDr
             .HasValue());
     const auto children = LiveParticles(world->Particles());
     ASSERT_EQ(children.size(), 2u);
-    EXPECT_EQ(children[0].rotation, 36);
-    EXPECT_EQ(children[1].rotation, 25);
+    EXPECT_EQ(children[0].rotation, 36.0f);
+    EXPECT_EQ(children[1].rotation, 25.0f);
     constexpr std::array SpeedBits{0x40b970a4u, 0x410bd70au};
     constexpr std::array ScaleBits{0x3ff9652cu, 0x3ff86595u};
     for (std::size_t slot = 0; slot < children.size(); ++slot)
@@ -1230,7 +1389,10 @@ TEST_F(GameCharacterEffectsTest, TheWideSparklesNeedTheJoints)
     EXPECT_NE(result.Error().find("0x510435"), std::string::npos) << result.Error();
 }
 
-TEST_F(GameCharacterEffectsTest, TheGuildMarkCutsWithPlus369OutsideTheEventMaps)
+// 0x510a7a y 0x510ef0: con +0x88 en 1 y +0x369 en 1, fuera de los mapas 11 a 23 y 30 y en un frame del original, el
+// efecto 0x140 en el punto del hueso 20 (z 60 más), sus diez chispas 0x5c6/4 (treinta rand()) y +0x36c en el reloj;
+// después, con menos de 5000 de diferencia, nada, y con más, otro.
+TEST_F(GameCharacterEffectsTest, TheGuildMarkRisesWithPlus369OutsideTheEventMaps)
 {
     struct Case
     {
@@ -1238,7 +1400,7 @@ TEST_F(GameCharacterEffectsTest, TheGuildMarkCutsWithPlus369OutsideTheEventMaps)
         std::uint8_t byte369;
         std::int32_t map;
         bool originalFrame;
-        bool cuts;
+        bool rises;
     };
     constexpr std::array cases{
         Case{1, 1, 0, true, true},   Case{1, 1, 10, true, true},  Case{1, 1, 24, true, true},
@@ -1251,18 +1413,57 @@ TEST_F(GameCharacterEffectsTest, TheGuildMarkCutsWithPlus369OutsideTheEventMaps)
         SCOPED_TRACE(testing::Message() << int{probe.byte88} << ' ' << int{probe.byte369} << ' ' << probe.map);
         m_actor.byte88 = probe.byte88;
         m_actor.byte369 = probe.byte369;
+        m_actor.dword36c = 0;
+        m_random = CrtRandom{1};
+        for (auto& effect : m_effects.Effects())
+            effect.alive = false;
+        for (auto& particle : m_particles.All())
+            particle.alive = false;
         GameCharacterEffectsPass pass = Pass();
         pass.map = probe.map;
         pass.originalFrame = probe.originalFrame;
 
         const auto result = Client::Scenes::DrawGameCharacterEffects(m_actor, pass);
 
-        EXPECT_EQ(!result.HasValue(), probe.cuts);
-        if (probe.cuts)
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        const Client::World::ModelEffect& mark = m_effects.Effects()[0];
+        EXPECT_EQ(mark.alive, probe.rises);
+        if (!probe.rises)
         {
-            EXPECT_NE(result.Error().find("0x510f4d"), std::string::npos) << result.Error();
+            EXPECT_EQ(m_actor.dword36c, 0u);
+            continue;
         }
+        EXPECT_EQ(mark.type, 0x140);
+        EXPECT_EQ(mark.ownerContext, &m_actor);
+        EXPECT_EQ(mark.life, 130);
+        const glm::vec3 point = At(20, {});
+        EXPECT_EQ(mark.transform.position.x, point.x);
+        EXPECT_EQ(mark.transform.position.y, point.y);
+        EXPECT_EQ(mark.transform.position.z, point.z + 60.0f);
+        EXPECT_EQ(m_actor.dword36c, std::bit_cast<std::uint32_t>(1000.0f));
+        EXPECT_EQ(std::ranges::count_if(m_particles.All(), [](const Client::World::Particle& particle)
+                                        { return particle.alive && particle.type == 0x5c6 && particle.subtype == 4; }),
+                  10);
+        CrtRandom expected{1};
+        for (int draw = 0; draw < 30; ++draw)
+            static_cast<void>(expected.Next());
+        EXPECT_EQ(m_random.State(), expected.State());
     }
+    // Con 5000 o menos desde +0x36c, nada; con más, otro 0x140.
+    m_actor.byte88 = 1;
+    m_actor.byte369 = 1;
+    for (auto& effect : m_effects.Effects())
+        effect.alive = false;
+    m_actor.dword36c = std::bit_cast<std::uint32_t>(1000.0f);
+    GameCharacterEffectsPass soon = Pass();
+    soon.worldClock = 6000.0f;
+    ASSERT_TRUE(Client::Scenes::DrawGameCharacterEffects(m_actor, soon).HasValue());
+    EXPECT_FALSE(m_effects.Effects()[0].alive);
+    GameCharacterEffectsPass later = Pass();
+    later.worldClock = 6001.0f;
+    ASSERT_TRUE(Client::Scenes::DrawGameCharacterEffects(m_actor, later).HasValue());
+    EXPECT_TRUE(m_effects.Effects()[0].alive);
+    EXPECT_EQ(m_actor.dword36c, std::bit_cast<std::uint32_t>(6001.0f));
 }
 
 // Un cuervo sintético: un hueso y cinco mallas de un triángulo, para ver qué mallas dibuja y la sombra.
@@ -1285,6 +1486,19 @@ public:
         mesh.triangles = {{3, {0, 1, 2, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}};
         mesh.textureName = "dksbody.tga";
         m_model.meshes.assign(5, mesh);
+    }
+
+    // Con `count` huesos, todos raíz; el 6 corrido a (1, 2, 3) y girado 90 en z, para el pico del 0x113 (0x418bc8).
+    void GrowBones(std::size_t count)
+    {
+        using namespace Client::Render::Models;
+        SkeletonBone bone = m_skeleton.bones[0];
+        m_skeleton.bones.assign(count, bone);
+        if (count > 6)
+        {
+            m_skeleton.bones[6].actions[0][0].position = {1.0f, 2.0f, 3.0f};
+            m_skeleton.bones[6].actions[0][0].rotation = AngleQuaternion({0.0f, 0.0f, 1.5707964f});
+        }
     }
 
     [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t model) const override
@@ -1339,11 +1553,13 @@ protected:
                 .map = map,
                 .heroByte1a1 = 0,
                 .originalFrame = true,
-                .random = &m_random};
+                .random = &m_random,
+                .world = m_world.get()};
     }
 
     ActorState m_owner;
     Client::Render::Models::CrtRandom m_random;
+    std::unique_ptr<Client::Scenes::WorldState> m_world = std::make_unique<Client::Scenes::WorldState>();
     RavenModels m_models;
     Client::World::WorldTerrain m_terrain;
     std::unique_ptr<Client::World::TerrainLighting> m_lighting;
@@ -1505,48 +1721,140 @@ TEST_F(GameRavenTest, TheOwnersFlag4000DrawsTheRavenAsAChromeShellWithoutShadow)
     EXPECT_EQ(carry.models.at(Client::Scenes::DarkSpiritModel).position, glm::vec3(1050.0f, 1060.0f, 300.0f));
 }
 
-// 0x418aab: en el 5, con +0x38d hasta 2, las juntas 0x5ac (0x530860, CL11) cortan después del dibujo y del rand() de
-// la primera, con el 0x4000 o sin él.
-TEST_F(GameRavenTest, TheAttackJointsCutAfterTheDrawAndTheirRandom)
+// 0x418aab..0x418b71: en el 5, con +0x38d hasta 2, después del dibujo, diez joints 0x5ac/1 desde la posición y los
+// ángulos del cuervo, sin dueño, de ancho rand() % 40 + 20 cada uno (sus rand() antes de cada alta, que saca los
+// suyos), con el 0x4000 o sin él; con +0x38d en 1, después el 0x117/3 con los ángulos (45, rand() % 180 − 90, 0) y la
+// luz (1; 0,8f; 0,6f), sin más rand(). Sin las tablas del mundo, corta en la primera alta.
+TEST_F(GameRavenTest, TheAttackDropsItsJointsAndTheDarkLordSkill)
 {
     for (const std::uint32_t flags : {0u, 0x4000u})
-    {
-        SCOPED_TRACE(flags);
-        m_owner.flags78 = flags;
-        m_owner.darkSpirit->state = 5;
-        m_owner.darkSpirit->byte38d = 1;
-        m_batch.Begin(Client::Render::Pass3D{});
-        Client::Render::Models::CrtRandom expected = m_random;
-        static_cast<void>(expected.Next());
+        for (const std::uint8_t counter : {std::uint8_t{0}, std::uint8_t{1}, std::uint8_t{2}})
+        {
+            SCOPED_TRACE(flags);
+            SCOPED_TRACE(counter);
+            m_world = std::make_unique<Client::Scenes::WorldState>();
+            m_owner.flags78 = flags;
+            Client::Scenes::DarkSpirit& spirit = *m_owner.darkSpirit;
+            spirit.state = 5;
+            spirit.byte38d = counter;
+            spirit.angles = {10.0f, 0.0f, 30.0f};
+            m_batch.Begin(Client::Render::Pass3D{});
+            CrtRandom oracle = m_random;
+            auto twin = std::make_unique<std::array<Client::Scenes::JointState, 500>>();
+            std::array<float, 10> widths{};
+            for (float& width : widths)
+            {
+                width = static_cast<float>(oracle.Next() % 40 + 20);
+                glm::vec3 from = spirit.position;
+                glm::vec3 angles = spirit.angles;
+                const Client::World::FishEffectRequest request{.type = 0x5ac,
+                                                               .firstPosition = from,
+                                                               .secondPosition = from,
+                                                               .angles = angles,
+                                                               .subtype = 1,
+                                                               .ownerContext = nullptr,
+                                                               .scale = width,
+                                                               .key = -1,
+                                                               .skill = 0,
+                                                               .skillSerial = 0,
+                                                               .target = -1};
+                ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(*twin, request, oracle).HasValue());
+            }
+            const auto turn = counter == 1 ? static_cast<std::int32_t>(oracle.Next() % 180) : 0;
 
-        const auto order = Client::Scenes::DrawGameRaven(m_owner, Pass());
+            const auto attacked = Client::Scenes::DrawGameRaven(m_owner, Pass());
 
-        ASSERT_FALSE(order.HasValue());
-        EXPECT_NE(order.Error().find("0x418aff"), std::string::npos) << order.Error();
-        EXPECT_EQ(m_batch.Vertices().size(), flags == 0 ? 21u : 15u);
-        EXPECT_EQ(m_random.State(), expected.State());
-    }
+            ASSERT_TRUE(attacked.HasValue()) << attacked.Error();
+            EXPECT_EQ(m_batch.Vertices().size(), flags == 0 ? 21u : 15u);
+            EXPECT_EQ(m_random.State(), oracle.State());
+            const auto& joints = m_world->DrawTail().joints;
+            for (std::size_t slot = 0; slot < joints.size(); ++slot)
+            {
+                ASSERT_EQ(joints[slot].alive, (*twin)[slot].alive) << slot;
+                if (!joints[slot].alive)
+                    continue;
+                EXPECT_EQ(joints[slot].type, 0x5ac);
+                EXPECT_EQ(joints[slot].subtype, 1);
+                EXPECT_EQ(joints[slot].width, widths[slot]);
+                EXPECT_EQ(joints[slot].position, (*twin)[slot].position);
+                EXPECT_EQ(joints[slot].angles, (*twin)[slot].angles);
+                EXPECT_EQ(joints[slot].ownerContext, nullptr);
+            }
+            EXPECT_EQ(std::ranges::count_if(joints, [](const auto& joint) { return joint.alive; }), 10);
+            const auto& skill = m_world->Map().effects.Effects()[0];
+            if (counter != 1)
+            {
+                EXPECT_FALSE(skill.alive);
+                continue;
+            }
+            ASSERT_TRUE(skill.alive);
+            EXPECT_EQ(skill.type, 0x117);
+            EXPECT_EQ(skill.subtype, 3);
+            EXPECT_EQ(skill.life, 10);
+            EXPECT_EQ(skill.transform.position, spirit.position);
+            EXPECT_EQ(skill.transform.angles, glm::vec3(45.0f, static_cast<float>(turn - 90), 0.0f));
+            EXPECT_EQ(skill.light,
+                      glm::vec3(1.0f, std::bit_cast<float>(0x3f4ccccdu), std::bit_cast<float>(0x3f19999au)));
+            EXPECT_EQ(skill.ownerContext, nullptr);
+        }
+
+    GameRavenPass bare = Pass();
+    bare.world = nullptr;
+    m_owner.darkSpirit->byte38d = 0;
+    const CrtRandom before = m_random;
+    const auto cut = Client::Scenes::DrawGameRaven(m_owner, bare);
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x418aff"), std::string::npos) << cut.Error();
+    EXPECT_EQ(m_random.State(), before.State());
 }
 
-// 0x418b7c: en el 5, con +0x38d en 3 nada; impar desde 4 y más de 100 por encima del dueño, el efecto 0x113 (CL11).
+// 0x418b7c..0x418c0a: en el 5, con +0x38d en 3 nada; impar desde 4 y más de 100 por encima del dueño, el 0x113/0 en el
+// pico (el hueso 6 de la pose de +0x120 con (50, 0, 0), 0x4ec110 sin escala), con los ángulos y la luz del cuervo y el
+// cuervo de dueño (vida 15, escala 0,6f), sin rand(). Con menos de siete huesos en la pose, corta en 0x418be4.
 TEST_F(GameRavenTest, TheAttackEffectNeedsAnOddCounterAndHeight)
 {
+    m_models.GrowBones(7);
     m_owner.darkSpirit->state = 5;
+    m_owner.darkSpirit->angles = {0.0f, 0.0f, 45.0f};
+    m_owner.darkSpirit->light = {0.25f, 0.5f, 0.75f};
     for (const std::uint8_t counter : {std::uint8_t{3}, std::uint8_t{4}, std::uint8_t{6}})
     {
         m_owner.darkSpirit->byte38d = counter;
         const auto quiet = Client::Scenes::DrawGameRaven(m_owner, Pass());
         ASSERT_TRUE(quiet.HasValue()) << quiet.Error();
     }
+    EXPECT_FALSE(m_world->Map().effects.Effects()[0].alive);
     m_owner.darkSpirit->byte38d = 5;
     const auto high = Client::Scenes::DrawGameRaven(m_owner, Pass());
-    ASSERT_FALSE(high.HasValue());
-    EXPECT_NE(high.Error().find("0x418c0a"), std::string::npos) << high.Error();
+    ASSERT_TRUE(high.HasValue()) << high.Error();
+    const Client::Scenes::DarkSpirit& spirit = *m_owner.darkSpirit;
+    ASSERT_EQ(spirit.pose.size(), 7u);
+    const auto& air = m_world->Map().effects.Effects()[0];
+    ASSERT_TRUE(air.alive);
+    EXPECT_EQ(air.type, 0x113);
+    EXPECT_EQ(air.subtype, 0);
+    EXPECT_EQ(air.life, 15);
+    EXPECT_EQ(air.transform.scale, 0.6f);
+    EXPECT_EQ(air.transform.position,
+              Client::Render::Models::OriginalVectorTransform({50.0f, 0.0f, 0.0f}, spirit.pose[6]));
+    EXPECT_NE(air.transform.position, spirit.position);
+    EXPECT_EQ(air.transform.angles, spirit.angles);
+    EXPECT_EQ(air.light, spirit.light);
+    EXPECT_EQ(air.ownerContext, &spirit);
+    EXPECT_TRUE(air.hasOwner);
+    EXPECT_FALSE(m_world->Map().effects.Effects()[1].alive);
     // 300 no pasa de 200 + 100.
     m_owner.position.z = 200.0f;
     const auto low = Client::Scenes::DrawGameRaven(m_owner, Pass());
     EXPECT_TRUE(low.HasValue()) << low.Error();
+    EXPECT_FALSE(m_world->Map().effects.Effects()[1].alive);
     EXPECT_EQ(m_random.State(), Client::Render::Models::CrtRandom{}.State());
+
+    m_owner.position.z = 0.0f;
+    m_models.GrowBones(6);
+    const auto shortPose = Client::Scenes::DrawGameRaven(m_owner, Pass());
+    ASSERT_FALSE(shortPose.HasValue());
+    EXPECT_NE(shortPose.Error().find("0x418be4"), std::string::npos) << shortPose.Error();
 }
 
 // 0x41896d: en el 6, con la pose del dibujo, rand() & 1 elige el primer hueso; el del modelo de prueba (el 0) suelta la

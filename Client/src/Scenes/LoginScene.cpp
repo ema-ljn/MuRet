@@ -48,9 +48,12 @@
 #include "Scenes/FullSetScan.h"
 #include "Scenes/GameCharacters.h"
 #include "Scenes/GameData.h"
+#include "Scenes/GameDrawTail.h"
 #include "Scenes/GameItemRenderState.h"
 #include "Scenes/GameItemSpecialDrawing.h"
 #include "Scenes/GameMessages.h"
+#include "Scenes/GameParticles.h"
+#include "Scenes/HandShine.h"
 #include "Scenes/ITextDrawer.h"
 #include "Scenes/ItemDrawResources.h"
 #include "Scenes/LoginModels.h"
@@ -69,6 +72,7 @@
 #include "Scenes/WorldObjectsDrawing.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "Scenes/WizardEffects.h"
 #include "Scenes/DynamicWorldLight.h"
 #include "Scenes/WorldMap.h"
 #include "UI/CreditsWindow.h"
@@ -89,13 +93,16 @@
 #include "World/TerrainCulling.h"
 #include "World/TerrainHeight.h"
 #include "World/Leaves.h"
+#include "World/GameModelEffects.h"
 #include "World/ModelEffects.h"
 #include "World/ObjectModelStepState.h"
 #include "World/SphereFrustum.h"
 #include "World/Sprites.h"
 #include "World/ParticleDrawing.h"
 #include "World/Particles.h"
+#include "World/PortableParticleTrigonometry.h"
 #include "World/TerrainLighting.h"
+#include "World/WizardModelEffects.h"
 #include "World/WorldObjects.h"
 #include "World/WorldTerrain.h"
 
@@ -106,6 +113,8 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <format>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <ratio>
@@ -271,6 +280,37 @@ private:
 
     const IModelLibrary& m_world;
     const IModelLibrary& m_logo;
+};
+
+// Los modelos de los efectos con modelo del login: la tabla del original es una sola, con los de Object56\ (el
+// dragón, 0x616ec0) y los de los efectos (Skill\Fire01 del meteoro 0xc2, 0x615700); MuRet busca primero en el mundo y
+// después en los de la carga.
+class LoginEffectModels final : public IModelLibrary
+{
+public:
+    LoginEffectModels(const IModelLibrary& world, const IModelLibrary& loaded) : m_world(world), m_loaded(loaded) {}
+
+    [[nodiscard]] const Data::Models::Model* Find(std::uint16_t model) const override
+    {
+        return Of(model).Find(model);
+    }
+    [[nodiscard]] const Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    {
+        return Of(model).SkeletonOf(model);
+    }
+    [[nodiscard]] std::span<const Render::TextureSlot> MeshTextures(std::uint16_t model) const override
+    {
+        return Of(model).MeshTextures(model);
+    }
+
+private:
+    [[nodiscard]] const IModelLibrary& Of(std::uint16_t model) const
+    {
+        return m_world.Find(model) != nullptr ? m_world : m_loaded;
+    }
+
+    const IModelLibrary& m_world;
+    const IModelLibrary& m_loaded;
 };
 
 // El logo de 0x606660 como uno más de la lista: sin luz por vértice, como lo deja su caso.
@@ -888,14 +928,114 @@ void LoginScene::StepTheWorld()
         return;
     }
     // 0x52d220, después de los objetos (0x606560), el caballo (0x445230) y los personajes (0x508f00): los
-    // efectos con modelo, el dragón.
-    StepModelEffects(CharacterWorld().Map().effects.Effects(), m_worldModels);
+    // efectos con modelo, el dragón y los meteoros del 0x59.
+    if (auto stepped = StepTheModelEffects(); !stepped.HasValue())
+    {
+        m_failure = stepped.Error();
+        return;
+    }
     // 0x5446e0, al final (0x634d22): el viento y las partículas, con el rand() de la CRT.
     if (m_context.cloth != nullptr)
     {
-        World::StepParticles(CharacterWorld().Particles(), m_context.cloth->random);
+        if (auto stepped = StepTheParticles(); !stepped.HasValue())
+        {
+            m_failure = stepped.Error();
+            return;
+        }
     }
     AdvanceRoutes(m_routes);
+}
+
+std::function<double(float, float)> LoginScene::TerrainHeight()
+{
+    const World::WorldTerrain* terrain = m_terrain.Terrain();
+    if (terrain == nullptr || !terrain->heights || !terrain->attributes)
+        return {};
+    return [terrain, fixed = CameraState().fixedHeight](float x, float y)
+    { return World::TerrainHeightAt(*terrain->heights, *terrain->attributes, x, y, fixed); };
+}
+
+float LoginScene::WorldClock() const
+{
+    return m_context.clock != nullptr
+               ? static_cast<float>(std::chrono::duration<double, std::milli>(m_context.clock->Now()).count())
+               : 0.0f;
+}
+
+Core::Expected<void, std::string> LoginScene::StepTheModelEffects()
+{
+    WorldState& world = CharacterWorld();
+    Render::Models::ClothWorld& cloth = CharacterRandomWorld();
+    const float worldClock = WorldClock();
+    const std::function<double(float, float)> terrainHeight = TerrainHeight();
+    const World::WorldTerrain* terrain = m_terrain.Terrain();
+    const auto sound = [&world](std::int32_t id) { world.Runtime().RequestSound(id); };
+    const auto publishAction = [&world](std::uint16_t type, std::uint8_t action)
+    {
+        auto placement = world.ModelPlacement(type);
+        placement.action = action;
+        world.PlaceModel(type, placement);
+    };
+    // Lo que 0x5208a0 lee afuera del efecto, como en el juego, sin los joints: el login no tiene su paso (0x53c670) ni
+    // su dibujo (0x53c6a0), y un tipo que suelta joints corta con su dirección.
+    const World::ModelEffectStepServices services{
+        .terrainHeight = terrainHeight,
+        .sprites = &m_sprites,
+        .effects = &world.Map().effects,
+        .lighting = &world.DynamicLighting().Lighting(),
+        .terrainAttributes = terrain != nullptr ? terrain->attributes.get() : nullptr,
+        .map = &world.Runtime().map,
+        .cameraShake = &CameraInputState().shake,
+        .sound = sound,
+        .publishAction = publishAction,
+        .soundAt = [&world](std::int32_t id, const glm::vec3& origin) { world.Runtime().RequestSound(id, origin); },
+        .hero = &world.Actors()[world.Runtime().hero]};
+    World::WizardEffectServices wizard =
+        WizardEffectServicesOf(world, cloth.random,
+                               WizardSceneParts{.particles = &world.Particles(),
+                                                .worldClock = worldClock,
+                                                .sprites = &m_sprites,
+                                                .terrain = terrain,
+                                                .fixedHeight = CameraState().fixedHeight,
+                                                .cameraShake = &CameraInputState().shake,
+                                                .sound = sound});
+    wizard.joint = {};
+    // 0x52d222..0x52d22d: 0x44dc40(0, 0, 0) borra el desvío de la cámara antes del primer efecto.
+    CameraInputState().effectTarget = glm::vec3(0.0f);
+    const LoginEffectModels models(m_worldModels, m_models);
+    for (World::ModelEffect& effect : world.Map().effects.Effects())
+    {
+        if (!effect.alive)
+            continue;
+        const Render::Models::Skeleton* skeleton = models.SkeletonOf(static_cast<std::uint16_t>(effect.type));
+        // 0x5208a0 con su primer rand() (0x5208c5) para todos: los de las magias (el meteoro 0xc2/9) por
+        // World::WizardModelEffects y los demás (el dragón 0xb4) por World::StepGameModelEffect.
+        const auto stepped = World::IsWizardModelEffect(effect.type)
+                                 ? World::StepWizardModelEffect(effect, skeleton, cloth.random, wizard)
+                                 : World::StepGameModelEffect(effect, skeleton, world.Particles(), worldClock,
+                                                              cloth.random, world.Map().kalima.get(), services);
+        if (!stepped.HasValue())
+            return Core::Unexpected(stepped.Error() + ", en el login (0x634d18 → 0x52d220)");
+    }
+    return {};
+}
+
+Core::Expected<void, std::string> LoginScene::StepTheParticles()
+{
+    WorldState& world = CharacterWorld();
+    const float worldClock = WorldClock();
+    World::PortableParticleTrigonometry trigonometry;
+    const auto stepped = World::StepParticlesChecked(
+        world.Particles(), m_context.cloth->random, std::cref(worldClock), &world.Runtime().map, trigonometry,
+        TerrainHeight(), ParticleOwnersAmong(m_objects), ParticleActorActionsAmong(world.Actors()),
+        ParticleTextureHeightsOf(m_models), &world.DynamicLighting().Lighting(),
+        ParticleActorHandsAmong(world.Actors(), world.Runtime().hero), ParticleOwnerBonesOf(world),
+        [&world](std::int32_t id) { world.Runtime().RequestSound(id); }, ParticleOwnerStatesOf(world), &m_sprites);
+    if (!stepped.HasValue())
+        return Core::Unexpected(std::format("0x634d22 → 0x5446e0: el paso de las partículas del login falla con el "
+                                            "error {}",
+                                            static_cast<unsigned>(stepped.Error())));
+    return {};
 }
 
 void LoginScene::BreatheTheHorse(const DarkHorse& drawn)
@@ -944,6 +1084,7 @@ glm::vec3 LoginScene::GlobalPosePoint(std::size_t bone, const glm::vec3& offset,
             PosedInTheBuffer{&m_models, DrawnDarkHorse(drawnHorse, m_models.SkeletonOf(DarkHorseModel),
                                                        LoginCharacterTransform(), DarkHorseLoginScale, 0.0f)});
     }
+    const LoginEffectModels effectModels(m_worldModels, m_models);
     for (const World::ModelEffect& effect : CharacterWorld().Map().effects.Effects())
     {
         if (!effect.alive || !effect.seen || effect.alpha < Drawn)
@@ -954,7 +1095,7 @@ glm::vec3 LoginScene::GlobalPosePoint(std::size_t bone, const glm::vec3& offset,
         object.model = static_cast<std::uint16_t>(effect.type);
         object.animation = effect.animation;
         object.transform = effect.transform;
-        posed.push_back(PosedInTheBuffer{&m_worldModels, object});
+        posed.push_back(PosedInTheBuffer{&effectModels, object});
     }
     return LastPosedBonePoint(posed, bone, offset).value_or(glm::vec3(0.0f));
 }
@@ -1639,13 +1780,34 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
                                         },
                                         .retainedPose = &carry,
                                         .publishProjectedPose = true,
-                                        .objectDrawCounter = &CharacterWorld().Runtime().objectDrawCounter});
-    // 0x52d620(0): los efectos con modelo, después de los objetos.
-    const auto effects = DrawModelEffects(
-        canvas.models, m_worldModels, CharacterWorld().Map().effects.Effects(),
-        World::SphereFrustumOf(canvas.models.Pass().view, m_drawnCamera), lighting, canvas.frameClock, alpha,
-        [&](const DrawnObject& object) { return PublishFaunaPose(carry, m_worldModels, object, true); },
-        [&]() { return std::span<const Render::Models::SkinnedMesh>(carry.meshes); });
+                                        .objectDrawCounter = &CharacterWorld().Runtime().objectDrawCounter,
+                                        .modelEffects = &CharacterWorld().Map().effects,
+                                        .onFailure = [&](const std::string& error) { m_failure = error; }});
+    // 0x52d620(0): los efectos con modelo, después de los objetos, con el dibujo del juego: el dragón por el camino
+    // genérico (0x52da92 → 0x602e90) y el meteoro 0xc2/9 con su +0x74 en 1 (Scenes/WizardEffectDrawing). Sin los
+    // joints de 0x53c6a0, que el login no tiene. La posición va `alpha` de un paso más (D-C4).
+    const LoginEffectModels effectModels(m_worldModels, m_models);
+    const World::SphereFrustum frustum = World::SphereFrustumOf(canvas.models.Pass().view, m_drawnCamera);
+    const std::span<World::ModelEffect> table = CharacterWorld().Map().effects.Effects();
+    const World::WorldTerrain* terrain = m_terrain.Terrain();
+    Core::Expected<void, std::string> effects;
+    if (terrain != nullptr && terrain->heights)
+    {
+        ModelEffectDrawResources resources{
+            *terrain->heights,
+            static_cast<float>(std::chrono::duration<double, std::milli>(canvas.frameClock).count())};
+        resources.onPose = [&](const DrawnObject& object)
+        { return PublishFaunaPose(carry, effectModels, object, true); };
+        resources.onUntranslatedPose = [&](const DrawnObject& object)
+        { return PublishFaunaPose(carry, effectModels, object, false); };
+        resources.posedMeshes = [&]() { return std::span<const Render::Models::SkinnedMesh>(carry.meshes); };
+        resources.dynamicLighting = &CharacterWorld().DynamicLighting().Lighting();
+        resources.originalFrame = nativeFrames > 0;
+        effects = DrawGameModelEffects(canvas.models, effectModels, table, frustum, lighting, canvas.frameClock, alpha,
+                                       resources, 0);
+    }
+    else
+        effects = DrawGameModelEffects(canvas.models, effectModels, table, frustum, lighting, canvas.frameClock, alpha);
     if (!effects.HasValue())
         m_failure = effects.Error();
     // 0x5306a0, después de 0x549510: las brasas, en el mundo.

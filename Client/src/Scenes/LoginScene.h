@@ -52,6 +52,7 @@
 #include <glm/ext/vector_float3.hpp>
 
 #include <cstddef>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <random>
@@ -164,6 +165,17 @@ private:
     [[nodiscard]] Core::Expected<void, std::string> PlaceTheCharacter();
     [[nodiscard]] Core::Expected<void, std::string> StepTheCharacters();
     void StepTheWorld();
+    // 0x52d220 (0x634d18): 0x44dc40(0, 0, 0) y 0x5208a0 con cada efecto vivo de la tabla del mundo, en su orden, con el
+    // rand() de la CRT: el dragón por World::StepGameModelEffect y el meteoro 0xc2/9 del 0x59 por
+    // World::StepWizardModelEffect.
+    [[nodiscard]] Core::Expected<void, std::string> StepTheModelEffects();
+    // 0x5446e0 (0x634d22): el de la escena del juego, con el dueño de las partículas que siguen a un efecto (la estela
+    // 5f2/0x24 del meteoro).
+    [[nodiscard]] Core::Expected<void, std::string> StepTheParticles();
+    // 0x5f93c0 sobre el terreno del login, o nada sin él.
+    [[nodiscard]] std::function<double(float, float)> TerrainHeight();
+    // 0x5767b88: el reloj del mundo en ms, o 0 sin reloj.
+    [[nodiscard]] float WorldClock() const;
     void StepTheScene(const Input::InputState& input, bool connecting);
     // 0x444010 (0x44453f..0x4445d9), después del paso del caballo: el aliento, con `drawn`, el caballo como
     // lo dejó el dibujo anterior (antes de este paso).

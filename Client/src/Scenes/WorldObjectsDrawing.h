@@ -95,6 +95,12 @@ struct ObjectFrameEffects
     bool publishProjectedPose = false;
     // 0x5763538 (WorldRuntime::objectDrawCounter): 0x6046a0 la cuenta una vez por frame original, como en el juego.
     std::int32_t* objectDrawCounter = nullptr;
+    // La tabla de los efectos con modelo (0x7491fd8) donde el objeto 0x59 del mapa 55 suelta sus meteoros 0xc2/9
+    // (0x6044b2). Sin ella, el meteoro corta en 0x604427, antes de sus tres rand().
+    World::ModelEffects* modelEffects = nullptr;
+    // Un corte de 0x602ed0: el alta del meteoro que falla o que no tiene tabla. Después de un corte no siguen los
+    // efectos ni los brillos de los objetos.
+    std::function<void(const std::string&)> onFailure{};
 };
 
 // 0x6046a0 con `objects`: por sector, en World::DrawOrder; el sector que pasa el trapecio en su centro

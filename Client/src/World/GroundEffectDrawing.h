@@ -1,8 +1,14 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "World/ModelEffects.h"
+
+#include <glm/ext/vector_float3.hpp>
 
 #include <cstdint>
+#include <functional>
+#include <optional>
+#include <span>
 #include <string>
 
 namespace Client::Data::Terrain
@@ -22,7 +28,6 @@ class CrtRandom;
 // Contrato estático: 06 § Después de los objetos, P-C55 (b).
 namespace Client::World
 {
-struct ModelEffect;
 class KalimaWorld;
 
 struct GroundEffectResources
@@ -32,6 +37,11 @@ struct GroundEffectResources
     float worldClock = 0.0f;
     std::uint8_t map = 0;
     const KalimaWorld* kalima = nullptr;
+    // La tabla que recorre el pase: el dibujo del 0x61e/6 y del /8 crea ahí los /7 y /9 (0x52e04c, 0x52e0a2).
+    std::span<ModelEffect> table{};
+    // La posición (+0x10) del dueño (+0x108) de un efecto, leída en vivo: la del 0x61e/7 (0x52ded0). nullopt si el
+    // dueño no es un personaje.
+    std::function<std::optional<glm::vec3>(const void*)> ownerPosition{};
 };
 
 // 0x620a90 antes del caso: publica el perfil aditivo sin ligar una textura.

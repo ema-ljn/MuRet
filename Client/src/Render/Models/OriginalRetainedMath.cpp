@@ -897,20 +897,46 @@ std::optional<double> CosineDoubleProductPC53(double argument, double multiplier
 
 namespace
 {
+// FSTP DWORD de un retenido64 finito: un solo redondeo de los 64 bits a los 24 de float, al más cercano con empate a
+// par. Para un seno nunca hay subnormales de float ni desborde, así que ldexp y la conversión a float son exactas.
+float NearestFloat(const Retained64& value)
+{
+    if (value.significand == 0)
+        return value.negative ? -0.0f : 0.0f;
+    constexpr int FloatDigits = std::numeric_limits<float>::digits;
+    const int drop = static_cast<int>(std::bit_width(value.significand)) - FloatDigits;
+    const std::uint64_t mantissa = drop > 0 ? ShiftNearestEven(value.significand, drop) : value.significand;
+    const int exponent = value.exponent + (drop > 0 ? drop : 0);
+    const auto magnitude = static_cast<float>(std::ldexp(static_cast<double>(mantissa), exponent));
+    return value.negative ? -magnitude : magnitude;
+}
+
+// 0x53642d..0x53642f (y 0x53d260): FSIN y FSTP DWORD, el seno de 64 bits directo a float, sin pasar por 53 bits.
+std::optional<float> SineSpill(double argument)
+{
+    if (!ValidParticleInputs(argument, 1))
+        return std::nullopt;
+    if (argument == 0)
+        return std::signbit(argument) ? -0.0f : 0.0f;
+    return NearestFloat(RetainedSineOrCosine(argument, false));
+}
+
+// 0x53d1f9..0x53d231: la frecuencia de la x (0,048 · escala) queda en la x87 sin guardarse (el producto de dos float
+// cabe en 53 bits); las de la y y la z se guardan en float.
 std::optional<std::array<float, 4>> DirectionPC53(std::int32_t phase, float rate)
 {
     const auto wrapped = [](std::int32_t value, std::uint32_t add)
     { return std::bit_cast<std::int32_t>(std::bit_cast<std::uint32_t>(value) + add); };
-    const double x = static_cast<double>(.048f * rate) * wrapped(phase, 55555U);
+    const double x = (static_cast<double>(.048f) * static_cast<double>(rate)) * wrapped(phase, 55555U);
     const double y = static_cast<double>(.0613f * rate) * phase;
     const double z = static_cast<double>(.1113f * rate) * wrapped(phase, 11111U);
     const auto a = PairProduct(x, false, y, true);
     const auto b = PairProduct(x, false, y, false);
     const auto c = PairProduct(x, true, z, true);
-    const auto sine = SineProductPC53(z, 1);
+    const auto sine = SineSpill(z);
     if (!a || !b || !c || !sine)
         return std::nullopt;
-    const float spillB = static_cast<float>(*b), spillSine = static_cast<float>(*sine);
+    const float spillB = static_cast<float>(*b), spillSine = *sine;
     const auto signedCos = [](double argument, float factor) -> std::optional<double>
     {
         if (factor == 0)
@@ -938,6 +964,25 @@ std::optional<std::array<float, 3>> FaunaDirectionPC53(std::int32_t phase)
 std::optional<std::array<float, 4>> JointDirectionPC53(std::int32_t phase)
 {
     return DirectionPC53(phase, 0.5f);
+}
+std::optional<std::array<float, 3>> ScaledFaunaDirectionPC53(std::int32_t phase, float scale)
+{
+    const auto direction = DirectionPC53(phase, scale);
+    if (!direction)
+        return std::nullopt;
+    return std::array<float, 3>{(*direction)[0], (*direction)[1], (*direction)[2]};
+}
+std::optional<float> SineSpillF32(double argument)
+{
+    return SineSpill(argument);
+}
+std::optional<float> CosineSpillF32(double argument)
+{
+    if (!ValidParticleInputs(argument, 1))
+        return std::nullopt;
+    if (argument == 0)
+        return 1.0f;
+    return NearestFloat(RetainedSineOrCosine(argument, true));
 }
 
 } // namespace Client::Render::Models::Detail

@@ -7,6 +7,7 @@
 #include "Scenes/SelectionState.h"
 #include "Scenes/GameParticles.h"
 #include "Scenes/HandShine.h"
+#include "Scenes/HighModelEffects.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/FaunaEffects.h"
@@ -24,7 +25,6 @@
 #include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/Skeleton.h"
-#include "Scenes/ActorState.h"
 #include "Scenes/CameraTour.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterStep.h"
@@ -36,16 +36,19 @@
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/GameCharacters.h"
 #include "Scenes/HelperTable.h"
+#include "Scenes/JointKernels.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SkillHits.h"
 #include "Scenes/TerrainPolygonFrame.h"
 #include "Scenes/WorldRuntime.h"
 #include "World/GroundEffectDrawing.h"
+#include "Scenes/WizardEffects.h"
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
 #include "World/GroundMarks.h"
 #include "World/TerrainHeight.h"
+#include "World/WizardModelEffects.h"
 #include "World/WorldTerrain.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -199,7 +202,25 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
             if (!hit.HasValue())
                 return Core::Unexpected(hit.Error());
             return {};
-        }};
+        },
+        // CL11 (World/BlastModelEffects): el registro propio (0x7681eb4) del 0xf4 que suelta el paso del 0xf3.
+        .ownRecordDepth = &m_context.world->Runtime().ownRecordDepth,
+        .ownRecordCount = &m_context.world->OwnCharacter().bytef04};
+    // CL11, lote magos: lo mismo para los efectos de las magias, con el dueño leído del pool de personajes.
+    const World::WizardEffectServices wizard = WizardEffectServicesOf(
+        *m_context.world, m_context.cloth->random,
+        WizardSceneParts{.particles = &m_context.world->Particles(),
+                         .worldClock = worldClock,
+                         .sprites = &m_sprites,
+                         .terrain = &StepTerrain(),
+                         .fixedHeight = CameraState().fixedHeight,
+                         .cameraShake = &CameraInputState().shake,
+                         .sound = [this](std::int32_t id) { m_context.world->Runtime().RequestSound(id); },
+                         .send = m_session != nullptr ? std::function<void(Protocol::Outgoing)>(
+                                                            [session = m_session](Protocol::Outgoing packet)
+                                                            { session->SendChat(std::move(packet)); })
+                                                      : std::function<void(Protocol::Outgoing)>{},
+                         .models = m_models});
     // 52d220: reset44dc40antesdelprimeractivo; el último proyectil seguido vuelveaescribirlo.
     CameraInputState().effectTarget = glm::vec3(0.0f);
     auto effects = m_context.world->Map().effects.Effects();
@@ -208,12 +229,6 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
         auto& effect = effects[slot];
         if (!effect.alive)
             continue;
-        if (effect.type == World::SiegeArrivalCue && effect.subtype == 0)
-        {
-            // 0x52952d consulta al actor del alta. Sus lugares viven tanto como el mundo.
-            const auto* owner = static_cast<const ActorState*>(effect.ownerContext);
-            effect.hasOwner = owner != nullptr && owner->alive;
-        }
         const auto* skeleton = effect.type == World::EarthquakeBurstEffect
                                    ? nullptr
                                    : m_worldModels.SkeletonOf(static_cast<std::uint16_t>(effect.type));
@@ -248,9 +263,7 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
         }
         // 0x52b9a6: el calco 0x61e/1 de la mascota suelta joints 619/1 con el héroe de dueño, y el /3 de la 0x1c y de
         // las invocaciones, los 619/3 de la CL11, fuera de World.
-        if (effect.type == World::ColoredDecalEffect &&
-            (effect.subtype == World::LevelUpDecalSubtype || effect.subtype == World::PetSummonSubtype ||
-             effect.subtype == World::SummonDecalSubtype))
+        if (StepsAsPetSummon(effect))
         {
             if (auto stepped = StepPetSummon(effect, m_context.world->DrawTail().joints, m_context.cloth->random);
                 !stepped.HasValue())
@@ -274,20 +287,7 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
         }
         if (IsArrowEffect(effect.type))
         {
-            const ArrowStepContext arrows{
-                .world = *m_context.world,
-                .random = m_context.cloth->random,
-                .particles = &m_context.world->Particles(),
-                .sprites = &m_sprites,
-                .lighting = &m_context.world->DynamicLighting().Lighting(),
-                .worldClock = worldClock,
-                .terrain = &StepTerrain(),
-                .terrainHeight = terrainHeight,
-                .soundRequest = [this](std::int32_t id) { m_context.world->Runtime().RequestSound(id); },
-                .send = m_session != nullptr
-                            ? std::function<void(Protocol::Outgoing)>([session = m_session](Protocol::Outgoing packet)
-                                                                      { session->SendChat(std::move(packet)); })
-                            : std::function<void(Protocol::Outgoing)>{}};
+            const ArrowStepContext arrows = ArrowContext(worldClock, terrainHeight);
             if (auto stepped = StepArrow(effect, skeleton, arrows); !stepped.HasValue())
                 return stepped;
             continue;
@@ -297,6 +297,33 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
             if (auto stepped = StepFaunaLightning(effect, slot, skeleton, m_context.world->Particles(), m_sprites,
                                                   m_context.world->DynamicLighting().Lighting(), *m_context.cloth);
                 !stepped.HasValue())
+                return stepped;
+            // 0x52cde1..0x52cdfb: con vida impar después de la cola, otro paso entero (con su propio rand()).
+            if (effect.alive && effect.life > 0 && (effect.life & 1) != 0)
+                if (auto again = StepFaunaLightning(effect, slot, skeleton, m_context.world->Particles(), m_sprites,
+                                                    m_context.world->DynamicLighting().Lighting(), *m_context.cloth);
+                    !again.HasValue())
+                    return again;
+            continue;
+        }
+        // CL11, lote magos: los efectos de las magias (0xbd..0xd9, World/WizardModelEffects).
+        if (World::IsWizardModelEffect(effect.type))
+        {
+            if (auto stepped = World::StepWizardModelEffect(effect, skeleton, m_context.cloth->random, wizard);
+                !stepped.HasValue())
+                return stepped;
+            continue;
+        }
+        // 0x525e6e, 0x52a688, 0x52b56d y 0x52c9e7: los tipos altos de la CL11 leen el mundo (el dueño, el héroe, los
+        // joints, las partículas y la tabla de efectos), fuera de World.
+        if (StepsAsHighModelEffect(effect))
+        {
+            const HighEffectStepContext high{.world = *m_context.world,
+                                             .random = m_context.cloth->random,
+                                             .services = services,
+                                             .worldClock = worldClock,
+                                             .models = m_models};
+            if (auto stepped = StepHighModelEffect(effect, skeleton, high); !stepped.HasValue())
                 return stepped;
             continue;
         }
@@ -320,6 +347,23 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
     return {};
 }
 
+ArrowStepContext GameScene::ArrowContext(float worldClock, const std::function<double(float, float)>& terrainHeight)
+{
+    return ArrowStepContext{.world = *m_context.world,
+                            .random = m_context.cloth->random,
+                            .particles = &m_context.world->Particles(),
+                            .sprites = &m_sprites,
+                            .lighting = &m_context.world->DynamicLighting().Lighting(),
+                            .worldClock = worldClock,
+                            .terrain = &StepTerrain(),
+                            .terrainHeight = terrainHeight,
+                            .soundRequest = [this](std::int32_t id) { m_context.world->Runtime().RequestSound(id); },
+                            .send = m_session != nullptr ? std::function<void(Protocol::Outgoing)>(
+                                                               [session = m_session](Protocol::Outgoing packet)
+                                                               { session->SendChat(std::move(packet)); })
+                                                         : std::function<void(Protocol::Outgoing)>{}};
+}
+
 Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
 {
     auto& runtime = m_context.world->Runtime();
@@ -331,10 +375,32 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
     StepDamage(m_context.world->DrawTail().damage);
     if (auto stepped = StepTheModelEffects(worldClock, terrainHeight); !stepped.HasValue())
         return stepped;
-    if (auto stepped = StepJoints(m_context.world->DrawTail().joints, m_context.cloth->random, m_context.cloth,
-                                  &m_context.world->Particles(), worldClock, &m_sprites,
-                                  &m_context.world->DynamicLighting().Lighting(),
-                                  [&](std::int32_t sound) { runtime.RequestSound(sound); });
+    // 0x53ae6d: el 0x60f/0xb de la flecha 0xf8 con el skill 1 la hace chocar desde el paso de los joints.
+    const JointKernels::EffectHit arrowHit = [&](World::ModelEffect& arrow)
+    { return HitTheArrow(arrow, ArrowContext(worldClock, terrainHeight)); };
+    // 0x53b548: el 0x61c/0 compara su dueño con el héroe ([0x743a170]).
+    const auto actors = m_context.world->Actors();
+    const ActorState* hero = runtime.hero < actors.size() ? &actors[runtime.hero] : nullptr;
+    // 0x539a50..0x539add: el 0x613 de ancho 80 lee el asedio, el atributo de 0x5f82c0 y manda los blancos del héroe.
+    const JointKernels::VolleyServices volley{
+        .siegeActive = runtime.siegeActive,
+        .attributes = terrain.attributes.get(),
+        .skillHits = [this](const SkillHitsRequest& request) -> Core::Expected<void, std::string>
+        {
+            const auto send = m_session != nullptr ? std::function<void(Protocol::Outgoing)>(
+                                                         [session = m_session](Protocol::Outgoing packet)
+                                                         { session->SendChat(std::move(packet)); })
+                                                   : std::function<void(Protocol::Outgoing)>{};
+            const auto hit = HitTheTargetsAround(request, *m_context.world, m_context.cloth->random, send);
+            if (!hit.HasValue())
+                return Core::Unexpected(hit.Error());
+            return {};
+        }};
+    if (auto stepped = StepJoints(
+            m_context.world->DrawTail().joints, m_context.cloth->random, m_context.cloth, &m_context.world->Particles(),
+            worldClock, &m_sprites, &m_context.world->DynamicLighting().Lighting(),
+            [&](std::int32_t sound) { runtime.RequestSound(sound); }, terrainHeight, actors, arrowHit,
+            &m_context.world->Map().effects, hero, m_context.world, &volley);
         !stepped.HasValue())
         return stepped;
     // 0x63712d: 0x549090, las marcas del suelo, sin rand(). En la espera también corre, y acá no: la tabla
@@ -344,7 +410,8 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
             ParticleOwnersAmong(m_context.world->Map().objects), ParticleActorActionsAmong(m_context.world->Actors()),
             ParticleTextureHeightsOf(m_worldModels), &m_context.world->DynamicLighting().Lighting(),
             ParticleActorHandsAmong(m_context.world->Actors(), runtime.hero), ParticleOwnerBonesOf(*m_context.world),
-            [&](std::int32_t sound) { runtime.RequestSound(sound); });
+            [&](std::int32_t sound) { runtime.RequestSound(sound); }, ParticleOwnerStatesOf(*m_context.world),
+            &m_sprites);
         !particles.HasValue())
     {
         return particles;

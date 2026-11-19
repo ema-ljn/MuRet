@@ -50,6 +50,8 @@ struct SignedConversion
 [[nodiscard]] std::optional<std::array<float, 3>> FaunaDirectionPC53(std::int32_t phase);
 // 5363d9: las mismas cuentas con frecuencias a la mitad; el cuarto valor es el spill sinC.
 [[nodiscard]] std::optional<std::array<float, 4>> JointDirectionPC53(std::int32_t phase);
+// 53d1a0 con otra escala (el 0x10f/2, 0x535e66, con 1,4f): la frecuencia de la x sin guardar en float.
+[[nodiscard]] std::optional<std::array<float, 3>> ScaledFaunaDirectionPC53(std::int32_t phase, float scale);
 // FSIN y después FADD de un sumando double (el float de la constante): sin64 + sumando con un solo R53,
 // sin redondear el seno a double antes de la suma. Mismo dominio que SineProductPC53.
 [[nodiscard]] std::optional<double> SineSumPC53(double argument, double addend);
@@ -59,6 +61,10 @@ struct SignedConversion
 [[nodiscard]] std::optional<double> SineDoubleProductPC53(double argument, double multiplier);
 // FCOS por un factor double retenido, con el mismo contrato que SineDoubleProductPC53.
 [[nodiscard]] std::optional<double> CosineDoubleProductPC53(double argument, double multiplier);
+// FSIN o FCOS y FSTP DWORD (0x52e3a0 y 0x52e390 seguidos de un store a float): el valor de 64 bits directo a float,
+// sin pasar por 53 bits. Mismo dominio que SineProductPC53.
+[[nodiscard]] std::optional<float> SineSpillF32(double argument);
+[[nodiscard]] std::optional<float> CosineSpillF32(double argument);
 // Valor canónico retenido; conserva clases y signo de cero. Error si no cabe exactamente en double.
 [[nodiscard]] std::optional<double> RetainedProductPC53(const Retained64& value, float multiplier);
 } // namespace Client::Render::Models::Detail

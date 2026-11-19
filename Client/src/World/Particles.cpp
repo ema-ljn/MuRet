@@ -2017,7 +2017,8 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
         {
             return Core::Unexpected(ParticleError::MissingOwner);
         }
-        // 5c6/4 y 5de/4 leen la posición del dueño al nacer (0x540686 y 0x5417ba): sin ella no hay de dónde.
+        // 5c6/4, 5de/4 y 5c5/5 leen la posición del dueño al nacer (0x540686, 0x5417ba y 0x5403ad): sin ella no hay de
+        // dónde.
         if (ownerPosition == nullptr && NeedsOwnerPosition(type, subtype))
         {
             return Core::Unexpected(ParticleError::MissingOwner);
@@ -2163,7 +2164,9 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
         }
         if (IsNoriaParticle(type, subtype))
         {
-            CreateNoriaParticle(particle, scale, random);
+            const auto created = CreateNoriaParticle(particle, scale, random, ownerPosition);
+            if (!created.HasValue())
+                return Core::Unexpected(created.Error());
             return std::optional(index);
         }
         if (type == Particle67)

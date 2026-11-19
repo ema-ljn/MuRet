@@ -19,6 +19,7 @@
 #include "World/ModelEffects.h"
 #include "World/ParticleOwner.h"
 #include "World/Particles.h"
+#include "World/PortableParticleTrigonometry.h"
 #include "World/TerrainLighting.h"
 #include "World/WorldObjectStepServices.h"
 
@@ -32,12 +33,12 @@
 #include <bit>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <span>
 #include <string>
 #include <string_view>
-#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -685,14 +686,16 @@ TEST(HighEffectFamiliesTest, TheGuildMarkFollowsItsOwnerAndFadesIn)
 
 // Las chispas del paso del 0x140: con la vida entre 121 y 124, cinco 0x5c5/6 con él de dueño (0x529f71, escala 1,5f),
 // que el paso de las partículas resuelve; entre 40 y 59, el giro, dos radios y la altura (cuatro rand()) y una 0x5c5/5
-// (0x52a16e), que no es de MuRet: con lugar corta. Con las partículas llenas, sólo los rand() propios; por debajo de 50
-// el alpha baja 0,1f.
+// (0x52a16e, escala 2) también con él de dueño (el ebx de 0x52a134), que al nacer lee su posición para su partida
+// (0x5403ad) y saca dos rand(). Réplica en un pool gemelo con el mismo CrtRandom; el punto, desde el ASM (FSIN y FCOS
+// del giro por los radios enteros, retenidos, y ((z + 48) − vida) + altura). Con las partículas llenas, sólo los rand()
+// propios; por debajo de 50 el alpha baja 0,1f.
 TEST(HighEffectFamiliesTest, TheGuildMarkSparksAtBirthAndBeforeFading)
 {
     for (const bool full : {false, true})
     {
         SCOPED_TRACE(full);
-        for (const auto& [life, draws] : {std::tuple{122, 1}, std::tuple{45, 5}})
+        for (const int life : {122, 45})
         {
             SCOPED_TRACE(life);
             FamilyWorld tested;
@@ -705,36 +708,66 @@ TEST(HighEffectFamiliesTest, TheGuildMarkSparksAtBirthAndBeforeFading)
             ModelEffect& mark = tested.Effect(0);
             mark.life = life;
             mark.alpha = 0.5f;
+            // Las 0x5c5/6 nacen donde estaba el 0x140 (0x529f5b, antes de seguir al hueso); la 0x5c5/5, después.
+            const glm::vec3 before = mark.transform.position;
             CrtRandom replay = tested.random;
             const auto stepped = Client::Scenes::StepHighModelEffect(mark, nullptr, tested.StepContext());
-            for (int draw = 0; draw < draws; ++draw)
-                static_cast<void>(replay.Next());
-            if (!full && life == 45)
-            {
-                EXPECT_TRUE(HasError(stepped, "0x52a16e")) << (stepped.HasValue() ? std::string() : stepped.Error());
-                EXPECT_EQ(tested.random.State(), replay.State());
-                continue;
-            }
             ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-            const bool bursts = !full && life == 122;
+            static_cast<void>(replay.Next()); // 0x5208c5, la luz del paso.
             const Client::World::ParticleOwner markOwner{Client::World::ParticleOwnerKind::ModelEffect, 0};
             auto twin = std::make_unique<Client::World::Particles>();
-            for (int burst = 0; bursts && burst < 5; ++burst)
-                ASSERT_TRUE(twin->CreateOwnedChecked(0x5c5, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(1.0f), 6, 1.5f,
+            if (full)
+                for (auto& particle : twin->All())
+                    particle.alive = true;
+            const glm::vec3& at = mark.transform.position;
+            for (int burst = 0; life == 122 && burst < 5; ++burst)
+                ASSERT_TRUE(twin->CreateOwnedChecked(0x5c5, before, mark.transform.angles, mark.light, 6, 1.5f,
                                                      tested.clock, replay, 0, markOwner)
                                 .HasValue());
-            EXPECT_EQ(tested.random.State(), replay.State());
-            if (!full)
+            if (life == 45)
             {
-                EXPECT_EQ(AliveParticles(*tested.world, 0x5c5, 6), bursts ? 5 : 0);
-                for (const auto& particle : tested.world->Particles().All())
-                    if (particle.alive && particle.type == 0x5c5)
-                    {
-                        EXPECT_EQ(particle.typedOwner, markOwner);
-                    }
-                const auto resolved = Client::Scenes::ParticleOwnerStatesOf(*tested.world)(markOwner);
-                ASSERT_TRUE(resolved.has_value());
-                EXPECT_EQ(resolved->position, mark.transform.position);
+                const auto turn = static_cast<float>(replay.Next() % 360);
+                const int side = replay.Next() % 26 - 13;
+                const auto sine = Client::Render::Models::Detail::SineDoubleProductPC53(turn, side);
+                const int depth = replay.Next() % 26 - 13;
+                const auto cosine = Client::Render::Models::Detail::CosineDoubleProductPC53(turn, depth);
+                const int lift = replay.Next() % 5;
+                ASSERT_TRUE(sine.has_value() && cosine.has_value());
+                const glm::vec3 point{static_cast<float>(*sine + static_cast<double>(at.x)),
+                                      static_cast<float>(*cosine + static_cast<double>(at.y)),
+                                      static_cast<float>(((static_cast<double>(at.z) + 48.0) - 45.0) + lift)};
+                Client::World::PortableParticleTrigonometry trigonometry;
+                ASSERT_TRUE(twin->CreateTowardChecked(0x5c5, point, mark.transform.angles, mark.light, 5, 2.0f,
+                                                      std::cref(tested.clock), replay, trigonometry, markOwner, at)
+                                .HasValue());
+            }
+            EXPECT_EQ(tested.random.State(), replay.State());
+            const int subtype = life == 122 ? 6 : 5;
+            const auto resolved = Client::Scenes::ParticleOwnerStatesOf(*tested.world)(markOwner);
+            ASSERT_TRUE(resolved.has_value());
+            EXPECT_EQ(resolved->position, at);
+            EXPECT_EQ(AliveParticles(*tested.world, 0x5c5, subtype), full ? 0 : (life == 122 ? 5 : 1));
+            const auto all = tested.world->Particles().All();
+            for (std::size_t slot = 0; !full && slot < all.size(); ++slot)
+            {
+                const auto& particle = all[slot];
+                if (!particle.alive || particle.type != 0x5c5)
+                    continue;
+                const auto& expected = twin->All()[slot];
+                ASSERT_TRUE(expected.alive) << slot;
+                EXPECT_EQ(particle.typedOwner, markOwner);
+                EXPECT_EQ(particle.subtype, expected.subtype);
+                EXPECT_EQ(particle.position, expected.position);
+                EXPECT_EQ(particle.start, expected.start);
+                EXPECT_EQ(particle.velocity, expected.velocity);
+                EXPECT_EQ(particle.life, expected.life);
+                EXPECT_EQ(particle.scale, expected.scale);
+                EXPECT_EQ(particle.texture, 0x5c6);
+                if (subtype == 5)
+                {
+                    EXPECT_EQ(particle.start, at); // 0x5403ad: la posición del 0x140 al nacer.
+                    EXPECT_EQ(particle.scale, 2.0f);
+                }
             }
             EXPECT_EQ(mark.alpha, life < 50 ? static_cast<float>(0.5 - static_cast<double>(0.1f)) : 0.5f);
         }

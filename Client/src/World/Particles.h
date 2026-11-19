@@ -300,8 +300,9 @@ public:
                            const glm::vec3& light, std::int32_t subtype, float scale, ParticleOwner owner,
                            const ParticleOwnerBones& bones);
     // 0x53fe70 con las que leen la posición de su dueño al nacer (+0x40 → +0x10): la 5c6/4 (0x540686, la velocidad
-    // hacia él) y la 5de/4 (0x5417ba, la partida). Las demás la ignoran; el dueño queda en typedOwner para su paso. Sin
-    // ella, CreateChecked rechaza esas dos con MissingOwner antes de tocar el lugar.
+    // hacia él), la 5de/4 (0x5417ba, la partida) y la 5c5/5 (0x5403ad, la partida). Las demás la ignoran; el dueño
+    // queda en typedOwner para su paso. Sin ella, CreateChecked y CreateOwnedChecked rechazan esas tres con
+    // MissingOwner o UnsupportedSubtype antes de tocar el lugar.
     [[nodiscard]] Core::Expected<std::optional<std::size_t>, ParticleError>
     CreateTowardChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
                         std::int32_t subtype, float scale, std::reference_wrapper<const float> worldClock,

@@ -8688,10 +8688,14 @@ cualquier subtipo. Todas sortean la escala `((rand() & 3) + 4) · 0,1f`; la /0, 
 por 3 y por 10, y la /6 (`0x5404f9`, la de `0x529f71`, que le pasa el efecto de dueño) vive `(rand() & 3) + 4`, toma la
 escala del pedido, la textura `0x5c6`, la subida en 0 y el vector `(0; (rand() % 20 + 20) · 0,2f; 0)`: siete `rand()`.
 La /7 sólo sortea su vida y las demás (la /1 y las de fuera de la tabla) van por `0x5403eb`, `(rand() & 7) + 8`. La /5
-lee a su dueño al nacer (`0x5403ad`) y sigue sin portar. En el paso (`0x544f29`) la /6 cae 0,3f, su luz es el 0,9f que
-dejó `edx` (`0x544807`) y, después de moverse, resta lo que su dueño se corrió desde la partida (`0x544fef..0x545040`,
-la x retenida y la y y la z guardadas), que pasa a ser la posición del dueño (`CreateOwnedChecked`; sin dueño,
-`MissingOwner`).
+(`0x5403ad..0x5403e9`, cuarta vuelta; la del paso del `0x140`, `0x52a16e`, con él de dueño) saca la escala de la tabla,
+que pisa con la del pedido, lee la posición de su dueño (`+0x40` → `+0x10`, sin mirar si vive) para su partida
+(`+0x6c`), vive `(rand() & 3) + 12` y sale con la subida en 0, la textura `0x5c6` y la velocidad del prefijo (cero): dos
+`rand()`. Pide `CreateTowardChecked` con la posición del dueño, como la `0x5c6/4`; `CreateChecked` la rechaza con
+`MissingOwner` antes de tocar el lugar. En el paso (`0x544f29`) la /5 y la /6 caen 0,3f (`0x544f4c`, `0x544f5c`); la /5
+conserva la luz de la vida · 0,0625 y la /6 la pisa con el 0,9f que dejó `edx` (`0x544807`); las dos, después de
+moverse, restan lo que su dueño se corrió desde la partida (`0x544fe4` → `0x544fef..0x545040`, la x retenida y la y y la
+z guardadas), que pasa a ser la posición del dueño (sin dueño, `MissingOwner`).
 
 **La llamarada `0x5ee`** (`Effect\DinoE.jpg`, en `Particles.cpp`, tercera vuelta): nace en `0x542a94` con vida 12 y la
 escala del pedido, de cualquier subtipo y sin `rand()`, y su alta pide el sonido 0x40 (`0x542aa7`, lo pide quien la
@@ -14211,9 +14215,10 @@ Quinta vuelta: las familias nuevas están en `WaveEffects`, `RingEffects`, `Kund
 `0x613/0x13` (`0x539b08`), el `0x13f` del `0x1a9` con el sonido `0x20d` (`0x442cb9`, solo en el frame del original),
 la marca `0x140` de `+0x369` (`0x510f4d`, en `MonsterDrawing` y en `GameCharacterEffects`) y la onda `0x6eb/3` del
 joint `0x10f/5` y `/6` (`0x536626`). Los dos `0x6e8/0` del `0x114/1` (`0x51c25f`) los crea el lote joints. Cortan, con un lugar libre y después de sus
-`rand()`: los joints `0x5ac/0` del `0x114/0` (`0x51c1b8`) y el `0x6ee/0x12` con dueño del `0x125` (`0x51ce91`) (08, P-C420); la
-partícula `0x5c5/5` del `0x140` (`0x52a16e`; la `0x6ec/3` del `0x13d`, `0x5262e8`, con él de dueño, y las cinco `0x5c5/6`
-del `0x140`, `0x529f71`, ya nacen con el efecto de dueño) y la órbita
+`rand()`: los joints `0x5ac/0` del `0x114/0` (`0x51c1b8`) y el `0x6ee/0x12` con dueño del `0x125` (`0x51ce91`) (08, P-C420); ~~la
+partícula `0x5c5/5` del `0x140` (`0x52a16e`)~~ (lote de partículas, cuarta vuelta: nace con la marca de dueño, el `ebx`
+de `0x52a134`, y lee su posición para su partida; la `0x6ec/3` del `0x13d`, `0x5262e8`, con él de dueño, y las cinco
+`0x5c5/6` del `0x140`, `0x529f71`, ya nacían con el efecto de dueño) y la órbita
 `0x60f/0` con el `0x61d` de dueño (`0x52b8ff`, `0x52b977`; su paso lee `+0x111` del efecto como la acción de un
 personaje) (08, P-C422). El `0x125` todavía no sale en el juego: el `0x128` que lo suelta no está (`0x43d051`,
 `0x43d0fd`, `KalimaSiegeHelpers`; su /0 crea diez `0x126`). Del `0x145` el original solo crea el /2 (`0x433339`, ya en

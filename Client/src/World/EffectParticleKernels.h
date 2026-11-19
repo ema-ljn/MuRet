@@ -41,10 +41,10 @@ inline constexpr std::int32_t ShortHitSparkSubtype = 8;
 inline constexpr std::int32_t BurstSparkSubtype = 10;
 
 [[nodiscard]] bool IsEffectParticle(std::int32_t type, std::int32_t subtype);
-// Las que leen +0x40 en su paso (5c6/4, 5d5/2, el fuego /9, 5de/4, 5f2/36 y 5c5/6): 0x53fe70 guarda el dueño en el
-// lugar.
+// Las que leen +0x40 en su paso (5c6/4, 5d5/2, el fuego /9, 5de/4, 5f2/36, 5c5/5 y 5c5/6): 0x53fe70 guarda el dueño
+// en el lugar.
 [[nodiscard]] bool FollowsItsOwner(std::int32_t type, std::int32_t subtype);
-// Las que además leen la posición del dueño al nacer: 5c6/4 (0x540686) y 5de/4 (0x5417ba).
+// Las que además leen la posición del dueño al nacer: 5c6/4 (0x540686), 5de/4 (0x5417ba) y 5c5/5 (0x5403ad).
 [[nodiscard]] bool NeedsOwnerPosition(std::int32_t type, std::int32_t subtype);
 // Las que leen la altura del terreno al nacer (0x5f93c0): la niebla 5f2/28, /29 y /30 (0x5425f9, 0x54264d, 0x54269a).
 [[nodiscard]] bool NeedsTerrainHeight(std::int32_t type, std::int32_t subtype);

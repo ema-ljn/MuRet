@@ -532,13 +532,14 @@ bool FollowsItsOwner(std::int32_t type, std::int32_t subtype)
            ((type == FireParticle || type == DeathSpiritFireParticle || type == BlueTrailFireParticle) &&
             subtype == FireRingSubtype) ||
            (type == FlameParticle && subtype == FollowingFlameSubtype) ||
-           (type == BreathParticle && subtype == TrailSmokeSubtype) || IsOwnedFairySpark(type, subtype);
+           (type == BreathParticle && subtype == TrailSmokeSubtype) || IsOwnedFairySpark(type, subtype) ||
+           IsOwnerBirthFairySpark(type, subtype);
 }
 
 bool NeedsOwnerPosition(std::int32_t type, std::int32_t subtype)
 {
     return (type == SparkParticle && subtype == FollowingSparkSubtype) ||
-           (type == FlameParticle && subtype == FollowingFlameSubtype);
+           (type == FlameParticle && subtype == FollowingFlameSubtype) || IsOwnerBirthFairySpark(type, subtype);
 }
 
 bool NeedsTerrainHeight(std::int32_t type, std::int32_t subtype)

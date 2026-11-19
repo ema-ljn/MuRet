@@ -59,7 +59,8 @@ inline constexpr std::size_t GuildMarkBone = 20;
 // x e y en dueño − héroe ([0x743a170]) + punto, y la z hacia ((punto + z) − z) + 60, en un décimo si está más arriba o
 // a la mitad si no. Con la vida entre 40 y 59: el giro rand() % 360, dos radios rand() % 26 − 13 y rand() % 5, y la
 // chispa 0x5c5/5 (escala 2, 0x52a16e) en (FSIN(giro) · r + x, FCOS(giro) · r2 + y, z + 48 − vida + k). Las 0x5c5/5 y
-// /6 no son de MuRet (el lote de partículas de la CL11): con lugar, cortan.
+// /6 guardan la marca de dueño (su lugar en la tabla, el ebx de 0x52a134 y 0x529f5b); la /5 lee su posición al nacer
+// (0x5403ad) y las dos la siguen en su paso. Con las partículas llenas, sin chispas ni sus rand().
 [[nodiscard]] Core::Expected<void, std::string> StepTheGuildMark(World::ModelEffect& effect,
                                                                  const HighEffectStepContext& context);
 } // namespace Client::Scenes

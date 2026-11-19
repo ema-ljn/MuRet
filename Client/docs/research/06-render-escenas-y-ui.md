@@ -7389,6 +7389,9 @@ con el contador en más de 30, MoveHero sale en `0x59afd6`, pero el paso sigue (
    `0x505de0` y `0x42da90` (fuera del mapa 30 devuelve 0 en `0x42da9a`).
 5. `0x52e500` (`0x5091d0`): el paso de las estelas de `0x75e9870` (100 de `0x2f4`), sin `rand()`. Las crea
    `0x52e470`, desde habilidades, efectos y la acción 3 del caballo (`0x444671`).
+   `StepCharacters` lo ejecuta una vez tras los 400 personajes del login (`0x634d13`), la selección
+   (`0x6342f9`) y el juego (`0x63710f`). En la selección, el dibujo de la cinta queda entre el personaje
+   y el joint (`0x63486a`, `0x63486f`, `0x634875`).
 
 **`0x505de0` con un jugador** (entero en [§ Los efectos de los
 personajes](#los-efectos-de-los-personajes-0x505de0)). El `0x20a` tiene acciones; un modelo sin acciones
@@ -7445,8 +7448,8 @@ Corta con error, en el orden del original:
 - con otro que el héroe, en Kalima y en las acciones del `0x6f4`, después de sus dos `rand()` (`0x5087fc`).
 
 Con el héroe, el `0x6f4` de los mapas 24 a 29 y 36 no se alcanza sin cortar antes en los pasos. Su cabeza gira
-hacia un blanco que MuRet todavía no escribe (MoveHero, P-C44 b). `0x52e500` es frontera, como las de T8, porque
-corre también en la espera (P-C44). En la espera, `0x508f00` entero sigue siendo frontera (P-C41 a).
+hacia un blanco que MuRet todavía no escribe (MoveHero, P-C44 b). En la espera, el paso común de los personajes
+también envejece las estelas si alcanzó `0x5091d0`.
 
 Tests: `CharacterStepTest`, `GoldenCharacterStep.TheSafeZoneFollowsTheLogicalCellAhead` y
 `TheHeroAtRestDrawsTheSameBudgetOnLorenciaAndDevias`, y

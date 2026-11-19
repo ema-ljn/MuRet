@@ -33,6 +33,7 @@
 #include "Scenes/CharacterHead.h"
 #include "Scenes/DarkHorse.h"
 #include "Scenes/GameData.h"
+#include "Scenes/GameDrawTail.h"
 #include "Scenes/GameModels.h"
 #include "Scenes/LoadingScene.h"
 #include "Scenes/SceneCameras.h"
@@ -874,7 +875,14 @@ TEST_F(GoldenLoginWorld, TheLoginCharacterRunsTheTailOfTheGame)
         SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth, .world = &world},
         *m_data, m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
     ASSERT_TRUE(scene.Enter().HasValue());
+    // 0x634d13 termina en 0x5091d0 después de avanzar los personajes del login.
+    auto& ribbon = world.DrawTail().ribbons[0];
+    ribbon.alive = true;
+    ribbon.count = 3;
+    ribbon.life = 4;
     scene.Step(Client::Input::InputState{});
+    EXPECT_EQ(ribbon.count, 2);
+    EXPECT_EQ(ribbon.life, 3);
     auto& actor = world.Actors()[2];
     DrawAt(scene, 40ms);
     ASSERT_FALSE(scene.Failure().has_value()) << *scene.Failure();
@@ -915,10 +923,14 @@ TEST_F(GoldenLoginWorld, TheLoginPublishesTheCharacterCutAndKeepsItsRandomState)
     cloth.logicSteps = 77;
     const auto wind = cloth.wind;
     const float windBase = cloth.windBase;
+    auto& ribbon = world.DrawTail().ribbons[0];
+    ribbon.alive = true;
+    ribbon.life = 3;
     scene.Step(Client::Input::InputState{});
     ASSERT_TRUE(scene.Failure());
     EXPECT_NE(scene.Failure()->find("0x4fcd82"), std::string::npos);
     EXPECT_GT(world.Actors()[2].run, 0) << "el movimiento precede al corte publicado del cuerpo";
+    EXPECT_EQ(ribbon.life, 3) << "el corte del personaje precede a 0x5091d0";
     // Ochenta brasas con10 rand; siguen8 de TerrainWall y1 de SetActorWalk. El cuerpo corta
     // antes de los efectos, las partículas y la tela.
     EXPECT_EQ(cloth.random.State(), Client::Tests::AfterDraws(Seed, 809).State());

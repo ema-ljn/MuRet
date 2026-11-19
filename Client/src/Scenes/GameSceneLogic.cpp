@@ -8,7 +8,6 @@
 #include "Scenes/GameParticles.h"
 #include "Scenes/HandShine.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/GameRibbonCreation.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/FaunaEffects.h"
 #include "Scenes/GameCharacterEffects.h"
@@ -134,8 +133,7 @@ Core::Expected<void, std::string> GameScene::StepTheCharacters(float worldClock,
     {
         return stepped;
     }
-    // 5091d0, inmediatamente después del último508ea0 y antes de63711e.
-    return StepRibbons(m_context.world->DrawTail().ribbons);
+    return {};
 }
 
 Core::Expected<void, std::string>

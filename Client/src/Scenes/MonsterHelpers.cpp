@@ -17,6 +17,7 @@
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/HighModelEffects.h"
 #include "Scenes/JointFamilies.h"
+#include "Scenes/MeteorEffects.h"
 #include "Scenes/WorldModelPose.h"
 #include "Scenes/WorldRuntime.h"
 #include "Render/TextureSlot.h"
@@ -600,8 +601,9 @@ Result DrawThe1a7(MonsterHelperPass& pass)
 }
 
 // 0x442a62..0x442dc1: dos 0x5ac a 0,5 en el punto (0, −2, 0) de cada ojo, el izquierdo primero; con +4 en 0, 0x20b
-// más rand() % 2 en la 3 y 0x20e en la 6; en la 4, con +4 en 0, +4 = 1 y el efecto 0x13f; después, el punto (0, 0,
-// −10) de la mano y la partícula 0x6ec/3 (CL11); con la tabla llena, la 0x5f2/21 de 2 que sigue tampoco crea nada.
+// más rand() % 2 en la 3 y 0x20e en la 6; en la 4, con +4 en 0, +4 = 1, el efecto 0x13f (MeteorEffects) y el 0x20d;
+// después, el punto (0, 0, −10) de la mano y la partícula 0x6ec/3 (CL11); con la tabla llena, la 0x5f2/21 de 2 que
+// sigue tampoco crea nada.
 Result DrawThe1a9(MonsterHelperPass& pass)
 {
     if (auto ready = NeedTheSprites(pass, 0x442b3d); !ready.HasValue())
@@ -628,10 +630,21 @@ Result DrawThe1a9(MonsterHelperPass& pass)
     if (actor.subtype == 0)
     {
         actor.subtype = 1;
-        // 0x518cf0 no inicializa nada sin un slot libre; 0x442cc5 suena incluso en ese caso.
-        const auto& effects = pass.world.Map().effects.Effects();
-        if (std::ranges::any_of(effects, [](const World::ModelEffect& effect) { return !effect.alive; }))
-            return Cut(0x442cb9, "el efecto 0x13f (0x518cf0), y después el sonido 0x20d", actor);
+        // 0x442c9a..0x442cb9: 0x518cf0(0x13f, c+0x10, c+0x1c, c+0xf4, 0, c, −1, 0, 0, 0, 0), sin rand() (lleno, nada);
+        // 0x442cc5 suena incluso en ese caso. Solo en un frame del original, como sus sonidos: entre frames el monstruo
+        // es una copia y la tabla de efectos, la del mundo.
+        if (pass.originalFrame)
+        {
+            if (auto made =
+                    CreateHighModelEffect({.type = MeteorCallEffect,
+                                           .position = actor.position,
+                                           .angles = actor.angles,
+                                           .light = actor.light,
+                                           .owner = &actor},
+                                          {.world = pass.world, .random = pass.random, .worldClock = pass.worldClock});
+                !made.HasValue())
+                return Core::Unexpected(std::format("0x442cb9: {}", made.Error()));
+        }
         Sound(pass, 0x20d);
     }
     if (const auto point = PointOf(pass, "Monster87_LeftHand", 0x442d4c, {0.0f, 0.0f, -10.0f}); !point.HasValue())

@@ -8,6 +8,7 @@
 
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 
 namespace
@@ -30,6 +31,47 @@ TEST(CrywolfEffectsTest, TheCraterVariantsKeepTheNativeSidesAndRetainedThirdComp
                   (glm::vec3{sides[static_cast<std::size_t>(subtype)], sides[static_cast<std::size_t>(subtype)], 73}));
         EXPECT_EQ(crater.light, glm::vec3(1));
     }
+}
+
+// 0x51f4ad..0x51f576: la /0 y un subtipo sin rama (9) quedan en vida 30 y escala 20; la /1 y la /2, vida 20 y (rand() %
+// 10 + 10) · 0,1f; la /3, 15 y 1; la /4, 10 y (rand() % 6 + 6) · 0,1f. Llena, ningún rand().
+TEST(CrywolfEffectsTest, TheLowShockWavesTakeTheirLifeAndScale)
+{
+    auto effects = std::make_unique<Client::World::ModelEffects>();
+    for (const std::int32_t subtype : {0, 1, 2, 3, 4, 9})
+    {
+        SCOPED_TRACE(subtype);
+        effects->Effects()[0].alive = false;
+        Client::Render::Models::CrtRandom random(7);
+        ASSERT_EQ(effects->CreateCastleShockWave({.type = 0x6eb, .subtype = subtype}, random), 0u);
+        Client::Render::Models::CrtRandom replay(7);
+        std::int32_t life = 30;
+        float scale = 20.0f;
+        const double tenth = static_cast<double>(0.1f);
+        if (subtype == 1 || subtype == 2)
+        {
+            life = 20;
+            scale = static_cast<float>((replay.Next() % 10 + 10.0) * tenth);
+        }
+        else if (subtype == 3)
+        {
+            life = 15;
+            scale = 1.0f;
+        }
+        else if (subtype == 4)
+        {
+            life = 10;
+            scale = static_cast<float>((replay.Next() % 6 + 6.0) * tenth);
+        }
+        EXPECT_EQ(effects->Effects()[0].life, life);
+        EXPECT_EQ(effects->Effects()[0].transform.scale, scale);
+        EXPECT_EQ(random.State(), replay.State());
+    }
+    for (auto& effect : effects->Effects())
+        effect.alive = true;
+    Client::Render::Models::CrtRandom random(7);
+    EXPECT_FALSE(effects->CreateCastleShockWave({.type = 0x6eb, .subtype = 4}, random));
+    EXPECT_EQ(random.State(), 7u);
 }
 
 TEST(CrywolfEffectsTest, TheCastleWavesSortOnlyTheAllocatedEighthVariant)

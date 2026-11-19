@@ -783,28 +783,60 @@ TEST_F(MonsterHelpersTest, The1a7RaisesDustWhenIdle)
     EXPECT_EQ(full.State(), expected.State());
 }
 
-// 0x442a62..0x442da1: dos 0x5ac por ojo en (0, −2, 0); en la 4, la primera vez +4 = 1 y el efecto 0x13f; después, la
-// mano izquierda y su partícula 0x6ec/3, que corta solo con lugar en la tabla.
+// 0x442a62..0x442da1: dos 0x5ac por ojo en (0, −2, 0); en la 4, la primera vez +4 = 1, el efecto 0x13f (0x442cb9,
+// sin rand(): vida 20 y el monstruo de dueño) y el sonido 0x20d; después, la mano izquierda y su partícula 0x6ec/3, que
+// corta solo con lugar en la tabla.
 TEST_F(MonsterHelpersTest, The1a9AttackMarksItsFirstFrame)
 {
     Name("Monster87_LeftEye", 8);
     Name("Monster87_RightEye", 9);
     Name("Monster87_LeftHand", 16);
     ActorState& actor = Monster(0x1a9, 4);
+    actor.angles = {0.0f, 0.0f, 45.0f};
     CrtRandom random(1);
     MonsterHelperPass pass = Pass(Lorencia, random);
-    EXPECT_TRUE(CutAt(Client::Scenes::DrawTheEffectsOf1a3To1a9(pass), "0x442cb9"));
+    EXPECT_TRUE(CutAt(Client::Scenes::DrawTheEffectsOf1a3To1a9(pass), "0x442da1"));
     EXPECT_EQ(actor.subtype, 1);
+    EXPECT_EQ(Sound(), 0x20d);
+    const auto& call = m_world->Map().effects.Effects()[0];
+    ASSERT_TRUE(call.alive);
+    EXPECT_EQ(call.type, 0x13f);
+    EXPECT_EQ(call.life, 20);
+    EXPECT_EQ(call.transform.position, actor.position);
+    EXPECT_EQ(call.transform.angles, actor.angles);
+    EXPECT_EQ(call.light, actor.light);
+    EXPECT_EQ(call.ownerContext, &actor);
+    EXPECT_FALSE(m_world->Map().effects.Effects()[1].alive);
     const auto sprites = LiveSprites();
     ASSERT_EQ(sprites.size(), 4u);
     EXPECT_EQ(sprites[3].position, At(9, {0.0f, -2.0f, 0.0f}));
+    // La segunda vez, con +4 en 1, ni el efecto ni el sonido.
+    m_world->Runtime().lastSoundId.reset();
     EXPECT_TRUE(CutAt(Client::Scenes::DrawTheEffectsOf1a3To1a9(pass), "0x442da1"));
+    EXPECT_FALSE(Sound().has_value());
+    EXPECT_FALSE(m_world->Map().effects.Effects()[1].alive);
     EXPECT_EQ(random.State(), 1u);
     // Con la tabla llena, la 0x6ec/3 y la 0x5f2/21 no crean nada.
     FillParticles();
     MonsterHelperPass crowded = Pass(Devias, random);
     ASSERT_TRUE(Client::Scenes::DrawTheEffectsOf1a3To1a9(crowded).HasValue());
     EXPECT_EQ(random.State(), 1u);
+}
+
+// Entre frames del original el monstruo es una copia: +4 pasa a 1 en ella, pero el 0x13f no nace en la tabla del mundo
+// ni suena el 0x20d.
+TEST_F(MonsterHelpersTest, The1a9CallsItsMeteorOnlyInAnOriginalFrame)
+{
+    Name("Monster87_LeftEye", 8);
+    Name("Monster87_RightEye", 9);
+    Name("Monster87_LeftHand", 16);
+    ActorState& actor = Monster(0x1a9, 4);
+    CrtRandom random(1);
+    MonsterHelperPass pass = Pass(Lorencia, random, false);
+    EXPECT_TRUE(CutAt(Client::Scenes::DrawTheEffectsOf1a3To1a9(pass), "0x442da1"));
+    EXPECT_EQ(actor.subtype, 1);
+    EXPECT_FALSE(Sound().has_value());
+    EXPECT_FALSE(m_world->Map().effects.Effects()[0].alive);
 }
 
 // 0x518cf0 no inicia el efecto con la tabla llena: sigue el sonido de 0x442cc5 y la mano.

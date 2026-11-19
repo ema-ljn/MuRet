@@ -1823,7 +1823,9 @@ TEST(ArrowEffectsTest, CelestialWritesTheCallerAnglesBeforeItsJoints)
     }
 }
 
-TEST(ArrowEffectsTest, AFullParticlePoolReachesTwentiethsEffectFrontier)
+// 0x526c05: con las partículas llenas, la flecha 0x11c deja la onda 0x114/3 (0x51c31f) con la clave en 0, sin rand(),
+// y sigue con su luz y su choque.
+TEST(ArrowEffectsTest, TheTwentiethArrowLeavesTheThirdWave)
 {
     ArrowWorld tested(0);
     tested.FillTheParticles();
@@ -1832,12 +1834,25 @@ TEST(ArrowEffectsTest, AFullParticlePoolReachesTwentiethsEffectFrontier)
     arrow.type = 0x11c;
     arrow.life = 20;
     arrow.transform.position = {100.0f, 200.0f, 300.0f};
+    arrow.transform.angles = {10.0f, 20.0f, 30.0f};
+    arrow.light = {0.5f, 0.25f, 1.0f};
     const auto stepped = StepArrow(arrow, nullptr, tested.StepContext());
-    EXPECT_TRUE(HasError(stepped, "0x526c05"));
-    EXPECT_EQ(arrow.point40, arrow.transform.position);
-    EXPECT_EQ(arrow.transform.angles.y, 60.0f);
-    EXPECT_EQ(arrow.life, 20);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(arrow.point40, (glm::vec3{100.0f, 200.0f, 300.0f}));
+    EXPECT_EQ(arrow.life, 19);
     EXPECT_EQ(DrawsSince(Seed, tested.random), 10);
+    const auto& wave = tested.world.Map().effects.Effects()[1];
+    ASSERT_TRUE(wave.alive);
+    EXPECT_EQ(wave.type, 0x114);
+    EXPECT_EQ(wave.subtype, 3);
+    EXPECT_EQ(wave.life, 15);
+    EXPECT_EQ(wave.transform.scale, 0.0f);
+    EXPECT_EQ(wave.disturbanceState, 0xffff);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(wave.turnDirection), 0x3c23d70au);
+    EXPECT_EQ(wave.transform.angles, (glm::vec3{90.0f, 0.0f, 30.0f}));
+    EXPECT_EQ(wave.transform.position, (glm::vec3{100.0f, 200.0f, 300.0f}));
+    EXPECT_EQ(wave.start, (glm::vec3{100.0f, 200.0f, 300.0f}));
+    EXPECT_EQ(wave.light, (glm::vec3{0.5f, 0.25f, 1.0f}));
 }
 
 TEST(ArrowEffectsTest, TheLastFreeEffectSlotStillFinishesAnArrowWithFullJoints)

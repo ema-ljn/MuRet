@@ -24,6 +24,7 @@
 #include "Scenes/GameItemSpecialDrawing.h"
 #include "Scenes/GameTailDrawingPrimitives.h"
 #include "Scenes/ModelPoseCallbacks.h"
+#include "Scenes/MeteorEffects.h"
 #include "Scenes/WizardEffectDrawing.h"
 #include "World/GameModelEffects.h"
 #include "World/Leaves.h"
@@ -42,6 +43,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <format>
+#include <optional>
 #include <span>
 #include <string>
 
@@ -656,7 +658,15 @@ DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect, cons
             return Core::Unexpected(drawn.Error());
         return {};
     }
-    // 0x6004aa (+0x74 en 0x80) y los colores del 0xcc/3, /4 y el 0xcb/2, /3 (Scenes/WizardEffectDrawing, CL11).
+    // 0x6004aa (+0x74 en 0x80) y los colores del 0xcc/3, /4 y el 0xcb/2, /3 (Scenes/WizardEffectDrawing, CL11); el
+    // 0x13d y el 0x13e por 0x442e10 (Scenes/MeteorEffects).
+    const auto drawTheSpecialBody = [&]() -> Core::Expected<bool, std::string>
+    {
+        if (effect.type == MeteorEffect || effect.type == MeteorShellEffect)
+            return DrawTheMeteorBody(batch, models, effect, object, frameClock,
+                                     resources != nullptr ? std::optional<float>(resources->worldClock) : std::nullopt);
+        return DrawTheWizardEffectBody(batch, models, effect, object, frameClock);
+    };
     if (resources != nullptr && resources->onPose && !(effect.alpha < 0.01f) && models.Find(model) != nullptr &&
         models.SkeletonOf(model) != nullptr)
     {
@@ -667,7 +677,7 @@ DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect, cons
         {
             if (resources->posedMeshes)
                 object.retainedMeshes = resources->posedMeshes();
-            const auto special = DrawTheWizardEffectBody(batch, models, effect, object, frameClock);
+            const auto special = drawTheSpecialBody();
             if (!special.HasValue())
                 return Core::Unexpected(special.Error());
             if (!special.Value())
@@ -680,7 +690,7 @@ DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect, cons
     }
     else if (effect.objectState.hiddenMesh != World::HiddenObject)
     {
-        const auto special = DrawTheWizardEffectBody(batch, models, effect, object, frameClock);
+        const auto special = drawTheSpecialBody();
         if (!special.HasValue())
             return Core::Unexpected(special.Error());
         if (!special.Value())

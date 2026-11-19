@@ -8,6 +8,7 @@
 #include "Scenes/JointFamilies.h"
 #include "Scenes/JointKernels.h"
 #include "World/IFishStepServices.h"
+#include "World/ModelEffects.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -148,9 +149,10 @@ Core::Expected<void, std::string> StepTheSpin(JointState& joint)
 
 // 0x536526..0x5366a7: el 10f/5..7, tres vueltas por paso. Cada una gira 10 en z, se pone en su +0x24 más la velocidad
 // girada y agrega la cola. Con la tanda (+0x9eb) en 0, la velocidad y se frena (0,95) hasta −10 bajo 10; pasada la 40,
-// cae 20, gira −5 y ensancha 15. Con la y negativa: la tanda 40 de la /5 y la /6 suelta el efecto 0x6eb (0x518cf0,
-// otro lote: corta); la tanda sube y, hasta la 20, la y vuelve a −30 y el ancho a 40; después el +0x24 sube 5.
-Core::Expected<void, std::string> StepTheRise(JointState& joint)
+// cae 20, gira −5 y ensancha 15. Con la y negativa: la tanda 40 de la /5 y la /6 suelta la onda 0x6eb/3 (0x536626:
+// 0x518cf0(0x6eb, +0x24, ángulos, luz, 3, 0, −1, 0, 0, 0, 0), sin rand(); llena, nada); la tanda sube y, hasta la 20,
+// la y vuelve a −30 y el ancho a 40; después el +0x24 sube 5.
+Core::Expected<void, std::string> StepTheRise(JointState& joint, const JointKernels::StepServices& services)
 {
     constexpr float Brake = std::bit_cast<float>(0x3f733333u);  // 0x6ba30c, 0,95
     constexpr float Floor = std::bit_cast<float>(0xc1200000u);  // 0x5365b3, −10
@@ -186,9 +188,19 @@ Core::Expected<void, std::string> StepTheRise(JointState& joint)
         if (joint.velocity.y < 0)
         {
             if (volley == BurstVolley && joint.subtype <= 6)
-                return Core::Unexpected(std::format("0x536626: el efecto 0x6eb del joint 0x10f/{} (0x518cf0) es de "
-                                                    "otro lote (CL11)",
-                                                    joint.subtype));
+            {
+                constexpr std::int32_t WaveSubtype = 3;
+                if (services.effects == nullptr || services.random == nullptr)
+                    return Core::Unexpected(std::format(
+                        "0x536626: el joint 0x10f/{} pide la tabla de efectos (0x518cf0) para la onda 0x6eb/3",
+                        joint.subtype));
+                static_cast<void>(services.effects->CreateCastleShockWave({.type = World::ShockWaveEffect,
+                                                                           .position = joint.pathIncrement,
+                                                                           .angles = joint.angles,
+                                                                           .light = joint.light,
+                                                                           .subtype = WaveSubtype},
+                                                                          *services.random));
+            }
             joint.volley = static_cast<std::uint8_t>(joint.volley + 1);
             if (joint.volley < FallingVolleys)
             {
@@ -311,7 +323,7 @@ Core::Expected<void, std::string> StepAuraJoint(JointState& joint, const JointKe
     case 5:
     case 6:
     case 7:
-        return StepTheRise(joint);
+        return StepTheRise(joint, services);
     case 8:
         return StepTheSpin(joint);
     default:

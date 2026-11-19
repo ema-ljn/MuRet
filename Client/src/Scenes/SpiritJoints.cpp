@@ -8,6 +8,7 @@
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/JointFamilies.h"
 #include "Scenes/JointKernels.h"
+#include "Scenes/RingEffects.h"
 #include "World/IFishStepServices.h"
 #include "World/Sprites.h"
 #include "World/WorldObjectStepServices.h"
@@ -609,15 +610,20 @@ Core::Expected<void, std::string> StepSpiritJoint(JointState& joint, const Joint
     {
         // 0x539a0e: con el ancho en 80 (los bits 0x42a00000), el efecto 0xd0 con modelo (0x518cf0, otro lote) y
         // después el asedio de 0x4294b0 con el atributo de 0x5f82c0, los blancos del héroe de 0x517a20 cada 15 de vida
-        // y la misma cola que con otro ancho. Con otro ancho, la /0x13 pide el efecto 0x11b (0x539b08, otro lote).
+        // y la misma cola que con otro ancho. Con otro ancho, la /0x13 suelta antes el destello 0x11b/0 (0x539b08).
         constexpr std::uint32_t VolleyWidth = 0x42a00000u;
         if (std::bit_cast<std::uint32_t>(joint.width) == VolleyWidth)
             return Core::Unexpected(std::format(
                 "0x539a48: el efecto 0xd0 (0x518cf0) del joint {:#x}/{:#x} de ancho 80 no está portado (CL11)",
                 joint.type, subtype));
         if (subtype == 0x13)
-            return Core::Unexpected(std::format(
-                "0x539b08: el efecto 0x11b (0x518cf0) del joint {:#x}/0x13 no está portado (CL11)", joint.type));
+        {
+            // 0x539aec..0x539b08: 0x518cf0(0x11b, posición, ángulos, luz, 0, 0, −1, 0, 0, 0, 0), sin rand().
+            if (services.effects == nullptr)
+                return Core::Unexpected(std::format(
+                    "0x539b08: el joint {:#x}/0x13 pide la tabla de efectos (0x518cf0) para el 0x11b/0", joint.type));
+            static_cast<void>(CreateTheRingSpark(*services.effects, joint.position, joint.angles, joint.light));
+        }
         return StepTheVolley(joint, services);
     }
     switch (subtype)

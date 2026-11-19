@@ -15,6 +15,7 @@
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/HighModelEffects.h"
+#include "Scenes/RingEffects.h"
 #include "Scenes/JointFamilies.h"
 #include "Scenes/JointKernels.h"
 #include "Scenes/KalimaMonsterEffects.h"
@@ -585,6 +586,37 @@ Core::Expected<void, std::string> ThrowTheFireRing(const ActorState& actor, std:
     return {};
 }
 
+// 0x439b20(c, +0x381, 13, 200,0f), la habilidad 0x37 de Kalima: el punto de c con la z 200 más (fadd del float y su
+// fstp); tres veces 0x518cf0(0x11b, punto, (0, 0, i · 120), luz 0, 1, c, −1, 0, 0, 0, 0) (0x439ba5), sin rand() antes
+// (los del alta, sus joints 0x618/0xa y /0xb), y después el sonido 0x1df.
+Core::Expected<void, std::string> RaiseTheRings(ActorState& actor, std::size_t slot,
+                                                const CharacterStepContext& context)
+{
+    constexpr float Hover = 200.0f;    // el cuarto argumento de 0x439b20
+    constexpr float RingTurn = 120.0f; // 0x6b86c8
+    constexpr int Rings = 3;
+    constexpr std::int32_t RingSubtype = 1;
+    constexpr std::int32_t RingSound = 0x1df;
+    const glm::vec3 point{actor.position.x, actor.position.y,
+                          static_cast<float>(static_cast<double>(actor.position.z) + static_cast<double>(Hover))};
+    for (int ring = 0; ring < Rings; ++ring)
+    {
+        const glm::vec3 angles{0.0f, 0.0f,
+                               static_cast<float>(static_cast<double>(ring) * static_cast<double>(RingTurn))};
+        if (auto created = CreateHighModelEffect({.type = RingEffect,
+                                                  .position = point,
+                                                  .angles = angles,
+                                                  .light = glm::vec3(0.0f),
+                                                  .subtype = RingSubtype,
+                                                  .owner = &actor},
+                                                 HighContextOf(context));
+            !created.HasValue())
+            return Core::Unexpected(std::format("{} (0x439ba5, el lugar {})", created.Error(), slot));
+    }
+    RequestTheSound(context, RingSound);
+    return {};
+}
+
 // 0x43aa46..0x43ab01 y sus copias de 0x43b47c y 0x43b7e7: el switch por la habilidad leída (las tablas de bytes de
 // 0x43b9a0, 0x43ba84 y 0x43bb68; los demás no hacen nada), todos con +0x381 desde 13 (JL o JC, el byte sin signo).
 Core::Expected<void, std::string> StepTheKalimaSkill(ActorState& actor, std::uint8_t skill, std::size_t slot,
@@ -621,8 +653,7 @@ Core::Expected<void, std::string> StepTheKalimaSkill(ActorState& actor, std::uin
     case BurstSkill:
         return ThrowTheFireRing(actor, slot, context);
     case RingSkill:
-        // 0x439b20(c, +0x381, 13, 200,0f): tres 0x518cf0(0x11b/1) sobre c y 0x41ed10(0x1df), sin rand() antes.
-        return CutAt(0x439ba5, "el primero de los tres efectos 0x11b/1 de 0x439b20 (CL11)", actor, slot);
+        return RaiseTheRings(actor, slot, context);
     case ShieldSkill:
     {
         // 0x439cd0(c, +0x381, 13): 0x518cf0(0xcb, c+0x10, c+0x1c, c+0xf4, 3, c, −1, …) y (0xcc, …, 4, sin dueño, −1,

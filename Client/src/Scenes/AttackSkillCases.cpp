@@ -1488,7 +1488,29 @@ Core::Expected<void, std::string> StepTheTargetSkill(ActorState& actor, ActorSta
         return {};
     }
     case 0x3c:
-        return EffectThenSound(0x504d05, "el primero de los efectos 0x114/1 (0x518cf0)", skill, slot, 0x1c8, context);
+    {
+        // 0x504cdb..0x504d7a: dos 0x518cf0(0x114, o+0x10, o+0x1c, o+0xf4, 1, 0, −1, 0, 0, 0, 0) (0x504d05 y 0x504d37),
+        // uno con el 0x115/0 (0x504d69) y después el sonido 0x1c8. El 0x114/1 corta en su primer joint 0x6e8 (CL11)
+        // cuando hay lugar en los joints.
+        constexpr std::uint16_t Wave = 0x114, Piercing = 0x115;
+        constexpr std::int32_t SwirlSubtype = 1, WaveSound = 0x1c8;
+        for (int wave = 0; wave < 2; ++wave)
+            if (auto made = CreateHighEffect({.type = Wave,
+                                              .position = actor.position,
+                                              .angles = actor.angles,
+                                              .light = actor.light,
+                                              .subtype = SwirlSubtype},
+                                             skill, slot, context);
+                !made.HasValue())
+                return made;
+        if (auto made = CreateHighEffect(
+                {.type = Piercing, .position = actor.position, .angles = actor.angles, .light = actor.light}, skill,
+                slot, context);
+            !made.HasValue())
+            return made;
+        RequestTheSound(context, WaveSound);
+        return {};
+    }
     case 0x3d:
         return LaunchThePierParts(actor, victim, slot, skill, context);
     case 0x11:

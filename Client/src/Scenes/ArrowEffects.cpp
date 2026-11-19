@@ -131,11 +131,6 @@ bool HasJointRoom(WorldState& world)
     return std::ranges::any_of(world.DrawTail().joints, [](const auto& joint) { return !joint.alive; });
 }
 
-bool HasEffectRoom(WorldState& world)
-{
-    return std::ranges::any_of(world.Map().effects.Effects(), [](const auto& effect) { return !effect.alive; });
-}
-
 bool HasParticleRoom(const ArrowStepContext& context)
 {
     return context.particles == nullptr ||
@@ -1176,9 +1171,15 @@ Core::Expected<void, std::string> StepTwentiethArrow(World::ModelEffect& effect,
         }
     }
     effect.point40 = effect.transform.position;
-    if (HasEffectRoom(context.world))
-        return Core::Unexpected(
-            std::string("0x526c05: el efecto 0x114 de la flecha 0x11c (0x518cf0), sin portar (CL11)"));
+    // 0x526c05: 0x518cf0(0x114, posición, ángulos, luz, 3, 0, 0, 0, 0, 0, 0), la onda 0x114/3 con la clave en 0 (su
+    // escala, 0); sin rand().
+    constexpr std::int32_t WaveSubtype = 3;
+    static_cast<void>(context.world.Map().effects.CreateWaveEffect({.type = 0x114,
+                                                                    .position = effect.transform.position,
+                                                                    .angles = effect.transform.angles,
+                                                                    .light = effect.light,
+                                                                    .subtype = WaveSubtype,
+                                                                    .key = 0}));
     constexpr glm::vec3 Tint{0.6f, 0.2f, 0.8f};
     glm::vec3 color{};
     for (int axis = 0; axis < 3; ++axis)

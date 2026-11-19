@@ -227,10 +227,16 @@ class ModelEffects
 public:
     // 0x51c754: el torbellino145/2 de la estela del1ae, sinRNG.
     std::optional<std::size_t> CreateCrywolfTideEffect(const ModelEffectArguments& arguments);
-    // 0x51c129: ondas114/2 y/6, key firmado como escala, sinRNG; 0x51c8e8:115/1.
+    // 0x51c129..0x51c36d: las ondas 0x114/2..6, sin rand(). Lo común del 0x114 (vida 20, +0xe4 en 0,1f, +0x64 en −2,
+    // +0x68 en 1, los ángulos en 0, la partida en la posición y la z + 50) y lo del subtipo: la /2, /3 y /4 (0x51c31f)
+    // viven 15 con +0xe4 en 0,01f y la x de los ángulos en 90; la /5 y la /6 (0x51c2d0) viven 10 con +0xe4 en 0,08f y
+    // la x en −90. Todas: la escala de la clave (+0x8a, MOVSX) por 0,05f, la clave en −1, la z − 50 y la z de los
+    // ángulos la del argumento. La /0 y la /1 sueltan joints (Scenes/WaveEffects); otro subtipo, nada. Lleno, ninguno.
     std::optional<std::size_t> CreateWaveEffect(const ModelEffectArguments& arguments);
     // 0x51efa5: brillo621/0 de Piercing Shot, vida10 y corrimiento girado, sinCRT.
     std::optional<std::size_t> CreatePiercingShot(const ModelEffectArguments& arguments);
+    // 0x51c8e8..0x51c951: el 0x115 de cualquier subtipo, sin rand(): escala 2, vida 6 con el /1 y 10 con los demás,
+    // +0x64 en −2, la velocidad (0, −60, 0), la partida en la posición y la z + 130. Lleno, ninguno.
     std::optional<std::size_t> CreatePiercingEffect(const ModelEffectArguments& arguments);
     // 0x51c06c: proyectil0xee de BD0C, sinCRT; +1b0 recibe los ángulos como destino.
     std::optional<std::size_t> CreateCrywolfMissile(const ModelEffectArguments& arguments);
@@ -240,7 +246,10 @@ public:
                                                    Render::Models::CrtRandom& random);
     // 0x51f7f9: cráter636, sub0/1/2; no consume RNG y el pool lleno conserva sus argumentos.
     std::optional<std::size_t> CreateCraterEffect(const ModelEffectArguments& arguments);
-    // 0x51f577..0x51f5fd: ondas6eb/5..8. Sólo /8 consume un rand() al conseguir lugar.
+    // 0x51f4ad..0x51f5fd: la onda 0x6eb de cualquier subtipo: vida 30 y escala 20, y después la /1 y la /2 vida 20 y
+    // (rand() % 10 + 10) · 0,1f, la /3 vida 15 y 1, la /4 vida 10 y (rand() % 6 + 6) · 0,1f, la /5 20 y 9, la /6 50 y
+    // 9, la /7 10 y 1 y la /8 10 y (rand() % 10 + 10) · 0,2f. Sólo la /1, la /2, la /4 y la /8 sacan un rand(), con
+    // lugar.
     std::optional<std::size_t> CreateCastleShockWave(const ModelEffectArguments& arguments,
                                                      Render::Models::CrtRandom& random);
     // 438a1a→5191be: tipo9/0, ownerNULL, escalaargumento0; primer libre, lleno sinCRT.

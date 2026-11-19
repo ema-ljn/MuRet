@@ -589,6 +589,55 @@ TEST(Cl11Particles, TheKundunFallKeepsTheRequestedLightAndTurns)
     EXPECT_EQ(fall.scale, F32(D(0x3fcccccdu) - static_cast<double>(0.005f)));
 }
 
+// 0x543b82..0x543be5: la fanta 0x6ec/0x6ed de cualquier subtipo menos la /1..4 nace como la /0 (vida 24, la /6 vida
+// 32); 0x543aed: la /7 vive 15, con la escala rand() % 30 · 0,01f más la del pedido y la posición corrida. 0x547cc2: su
+// paso se achica 0,1f y sube 2 antes de lo común (la z sube 1 y la luz es vida · 0,04f).
+TEST(Cl11Particles, TheFantaTakesEverySubtypeButTheOwnedOnes)
+{
+    for (const std::int32_t subtype : {6, 12})
+    {
+        auto particles = std::make_unique<Particles>();
+        CrtRandom random(Seed);
+        ASSERT_TRUE(
+            particles->CreateChecked(0x6ec, {1, 2, 3}, {}, glm::vec3(1.0f), subtype, 1.0f, 0.0f, random).HasValue());
+        Draws draws;
+        const Particle& fanta = Only(*particles, 0);
+        EXPECT_EQ(fanta.life, subtype == 6 ? 32 : 24) << subtype;
+        EXPECT_EQ(fanta.velocity.x, F32(static_cast<double>(draws.Next() % 10 - 5) * D(0x3ecccccdu))) << subtype;
+        EXPECT_EQ(fanta.velocity.z, F32(static_cast<double>(draws.Next() % 10 + 5) * D(0x3e4ccccdu))) << subtype;
+        EXPECT_EQ(fanta.start, glm::vec3(1, 2, 3)) << subtype;
+        EXPECT_EQ(random.State(), AfterDraws(Seed, 2).State()) << subtype;
+    }
+
+    auto particles = std::make_unique<Particles>();
+    CrtRandom random(Seed);
+    ASSERT_TRUE(particles->CreateChecked(0x6ed, {10, 20, 30}, {}, glm::vec3(1.0f), 7, 1.5f, 0.0f, random).HasValue());
+    Draws draws;
+    Particle& swirl = Only(*particles, 0);
+    EXPECT_EQ(swirl.life, 15);
+    EXPECT_EQ(swirl.scale, F32(static_cast<double>(draws.Next() % 30) * D(0x3c23d70au) + 1.5));
+    glm::vec3 shifted{10, 20, 30};
+    for (int axis = 0; axis < 3; ++axis)
+        shifted[axis] =
+            F32((static_cast<double>(draws.Next() % 10) * D(0x3dcccccdu) - 0.5) + static_cast<double>(shifted[axis]));
+    EXPECT_EQ(swirl.position, shifted);
+    EXPECT_EQ(swirl.start, shifted);
+    EXPECT_EQ(random.State(), AfterDraws(Seed, 6).State());
+    swirl.velocity = glm::vec3(0.0f);
+    swirl.scale = 1.0f;
+    ASSERT_TRUE(Step(*particles, random, 0.0f).HasValue());
+    EXPECT_EQ(swirl.scale, F32(1.0 - D(0x3dcccccdu)));
+    EXPECT_EQ(swirl.position.z, F32(static_cast<double>(F32(static_cast<double>(shifted.z) + 2.0)) + 1.0));
+    EXPECT_EQ(swirl.light, glm::vec3(F32(14.0 * D(0x3d23d70au))));
+
+    for (const std::int32_t owned : {1, 2, 3, 4})
+    {
+        CrtRandom other(Seed);
+        EXPECT_FALSE(particles->CreateChecked(0x6ec, {}, {}, glm::vec3(1.0f), owned, 1.0f, 0.0f, other).HasValue())
+            << owned;
+    }
+}
+
 TEST(Cl11Particles, TheNewTypesGoToTheirBillboards)
 {
     using Kind = std::tuple<std::int32_t, std::int32_t, bool>;

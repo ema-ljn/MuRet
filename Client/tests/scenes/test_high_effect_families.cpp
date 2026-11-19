@@ -507,8 +507,8 @@ void ReplayTheMeteorPrefix(CrtRandom& replay)
 }
 
 // 0x52620f..0x526331: con el BMD, la pose del 0x13d en el buffer global (la acción publicada que se pasa de las del
-// modelo vuelve a 0) y un rand() % 12 por cada hueso que no es dummy; con 0, la 0x6ec/3 (de otro lote) corta con lugar
-// (0x5262e8); con las partículas llenas, sólo los rand().
+// modelo vuelve a 0) y un rand() % 12 por cada hueso que no es dummy; con 0, la 0x6ec/3 con el efecto de dueño
+// (0x5262e8) y la 0x5f2/0x15 sin dueño (0x526307) en el punto del hueso; con las partículas llenas, sólo los rand().
 TEST(HighEffectFamiliesTest, TheMeteorSparksOverItsPosedBones)
 {
     auto loaded = Client::Render::Models::MakeSkeleton(Client::Tests::SampleModel());
@@ -530,12 +530,40 @@ TEST(HighEffectFamiliesTest, TheMeteorSparksOverItsPosedBones)
         tested.services.cameraShake = &shake;
         ASSERT_TRUE(CreateHighModelEffect({.type = 0x13d, .position = {12800.0f, 12800.0f, 0.0f}}, tested.Context())
                         .HasValue());
-        const auto cut = Client::Scenes::StepHighModelEffect(tested.Effect(0), &skeleton, tested.StepContext());
-        EXPECT_TRUE(HasError(cut, "0x5262e8")) << (cut.HasValue() ? std::string() : cut.Error());
+        const auto sparked = Client::Scenes::StepHighModelEffect(tested.Effect(0), &skeleton, tested.StepContext());
+        ASSERT_TRUE(sparked.HasValue()) << sparked.Error();
+        // Los rand() de las dos partículas por cada hueso que sale, en un pool aparte.
         CrtRandom replay(hit);
         ReplayTheMeteorPrefix(replay);
-        static_cast<void>(replay.Next());
+        auto twin = std::make_unique<Client::World::Particles>();
+        const Client::World::ParticleOwner rockOwner{Client::World::ParticleOwnerKind::ModelEffect, 0};
+        std::ptrdiff_t sparks = 0;
+        for (const auto& bone : skeleton.bones)
+        {
+            if (bone.dummy || replay.Next() % 12 != 0)
+                continue;
+            ++sparks;
+            ASSERT_TRUE(twin->CreateOwnedChecked(0x6ec, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(1.0f), 3, 4.0f,
+                                                 tested.clock, replay, 0, rockOwner)
+                            .HasValue());
+            ASSERT_TRUE(twin->CreateChecked(0x5f2, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(1.0f), 0x15, 1.0f,
+                                            tested.clock, replay, 0)
+                            .HasValue());
+        }
         EXPECT_EQ(tested.random.State(), replay.State());
+        ASSERT_GE(sparks, 1);
+        EXPECT_EQ(AliveParticles(*tested.world, 0x6ec, 3), sparks);
+        EXPECT_EQ(AliveParticles(*tested.world, 0x5f2, 0x15), sparks);
+        const auto all = tested.world->Particles().All();
+        const auto shard = std::ranges::find_if(all, [](const Client::World::Particle& particle)
+                                                { return particle.alive && particle.type == 0x6ec; });
+        const auto spark = std::ranges::find_if(all, [](const Client::World::Particle& particle)
+                                                { return particle.alive && particle.type == 0x5f2; });
+        ASSERT_NE(shard, all.end());
+        ASSERT_NE(spark, all.end());
+        EXPECT_EQ(shard->typedOwner, rockOwner);
+        EXPECT_EQ(spark->typedOwner.kind, Client::World::ParticleOwnerKind::None);
+        EXPECT_EQ(shard->position, spark->position);
     }
     FamilyWorld tested;
     tested.FillTheParticles();
@@ -654,15 +682,15 @@ TEST(HighEffectFamiliesTest, TheGuildMarkFollowsItsOwnerAndFadesIn)
     EXPECT_EQ(mark.life, -1);
 }
 
-// Las chispas del paso del 0x140: con la vida entre 121 y 124, cinco 0x5c5/6 (0x529f71); entre 40 y 59, el giro, dos
-// radios y la altura (cuatro rand()) y una 0x5c5/5 (0x52a16e). No son de MuRet: con lugar cortan, con las partículas
-// llenas siguen; por debajo de 50 el alpha baja 0,1f.
+// Las chispas del paso del 0x140: con la vida entre 121 y 124, cinco 0x5c5/6 (0x529f71, escala 1,5f); entre 40 y 59,
+// el giro, dos radios y la altura (cuatro rand()) y una 0x5c5/5 (0x52a16e), que no es de MuRet: con lugar corta. Con las
+// partículas llenas, sólo los rand() propios; por debajo de 50 el alpha baja 0,1f.
 TEST(HighEffectFamiliesTest, TheGuildMarkSparksAtBirthAndBeforeFading)
 {
     for (const bool full : {false, true})
     {
         SCOPED_TRACE(full);
-        for (const auto& [life, address, draws] : {std::tuple{122, "0x529f71", 1}, std::tuple{45, "0x52a16e", 5}})
+        for (const auto& [life, draws] : {std::tuple{122, 1}, std::tuple{45, 5}})
         {
             SCOPED_TRACE(life);
             FamilyWorld tested;
@@ -675,15 +703,26 @@ TEST(HighEffectFamiliesTest, TheGuildMarkSparksAtBirthAndBeforeFading)
             ModelEffect& mark = tested.Effect(0);
             mark.life = life;
             mark.alpha = 0.5f;
-            const auto before = tested.Draws();
+            CrtRandom replay = tested.random;
             const auto stepped = Client::Scenes::StepHighModelEffect(mark, nullptr, tested.StepContext());
-            EXPECT_EQ(tested.Draws(), before + draws);
-            if (!full)
+            for (int draw = 0; draw < draws; ++draw)
+                static_cast<void>(replay.Next());
+            if (!full && life == 45)
             {
-                EXPECT_TRUE(HasError(stepped, address)) << (stepped.HasValue() ? std::string() : stepped.Error());
+                EXPECT_TRUE(HasError(stepped, "0x52a16e")) << (stepped.HasValue() ? std::string() : stepped.Error());
+                EXPECT_EQ(tested.random.State(), replay.State());
                 continue;
             }
             ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+            const bool bursts = !full && life == 122;
+            if (bursts)
+                for (int burst = 0; burst < 5; ++burst)
+                    ReplayParticle(replay, 0x5c5, 6, 1.5f);
+            EXPECT_EQ(tested.random.State(), replay.State());
+            if (!full)
+            {
+                EXPECT_EQ(AliveParticles(*tested.world, 0x5c5, 6), bursts ? 5 : 0);
+            }
             EXPECT_EQ(mark.alpha, life < 50 ? static_cast<float>(0.5 - static_cast<double>(0.1f)) : 0.5f);
         }
     }

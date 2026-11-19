@@ -4,6 +4,7 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/IParticleTrigonometry.h"
+#include "World/NoriaParticleKernels.h"
 #include "World/Particles.h"
 #include "World/SelectionParticleKernels.h"
 #include "World/SmokeParticleKernels.h"
@@ -531,7 +532,7 @@ bool FollowsItsOwner(std::int32_t type, std::int32_t subtype)
            ((type == FireParticle || type == DeathSpiritFireParticle || type == BlueTrailFireParticle) &&
             subtype == FireRingSubtype) ||
            (type == FlameParticle && subtype == FollowingFlameSubtype) ||
-           (type == BreathParticle && subtype == TrailSmokeSubtype);
+           (type == BreathParticle && subtype == TrailSmokeSubtype) || IsOwnedFairySpark(type, subtype);
 }
 
 bool NeedsOwnerPosition(std::int32_t type, std::int32_t subtype)

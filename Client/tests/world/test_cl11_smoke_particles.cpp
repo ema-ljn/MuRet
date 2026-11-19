@@ -251,6 +251,36 @@ TEST(Cl11SmokeParticles, TheFadingSmokeGrowsAndTheShrinkingOneDies)
     }
 }
 
+// 0x541c18: la /13 vive 20, con la escala ((rand() & 63) + 64) · 0,01f, el giro y la subida ((rand() & 31) + 60) ·
+// 0,1f, tres rand(); 0x5462c8: l = vida · 0,05f, retenido, da la luz (l; l · 0,5; l · 0,1f), y la escala crece 0,09f.
+TEST(Cl11SmokeParticles, TheEmberSmokeGlowsOrangeWithItsLife)
+{
+    auto particles = std::make_unique<Particles>();
+    CrtRandom random(Seed);
+    Particle& smoke = Create(*particles, random, 13, glm::vec3(1.0f, 0.0f, 0.0f), 1.5f, 0.0f);
+    Draws draws;
+    EXPECT_EQ(smoke.life, 20);
+    EXPECT_EQ(smoke.scale, F32(static_cast<double>((draws.Next() & 63) + 64) * D(0x3c23d70au)));
+    EXPECT_EQ(smoke.rotation, static_cast<float>(draws.Next() % 360));
+    EXPECT_EQ(smoke.verticalSpeed, F32(static_cast<double>((draws.Next() & 31) + 60) * D(0x3dcccccdu)));
+    EXPECT_EQ(smoke.light, glm::vec3(1.0f, 0.0f, 0.0f));
+    EXPECT_EQ(random.State(), AfterDraws(Seed, 3).State());
+    const float scale = smoke.scale;
+    ASSERT_TRUE(Step(*particles, random).HasValue());
+    const double ember = 19.0 * D(0x3d4ccccdu);
+    EXPECT_EQ(smoke.light, glm::vec3(F32(ember), F32(ember * 0.5), F32(ember * D(0x3dcccccdu))));
+    EXPECT_EQ(smoke.scale, F32(D(scale) + D(0x3db851ecu)));
+    EXPECT_EQ(random.State(), AfterDraws(Seed, 5).State()); // más el viento
+
+    for (Particle& particle : particles->All())
+        particle.alive = true;
+    CrtRandom full(Seed);
+    const auto none = particles->CreateChecked(Smoke, {}, {}, glm::vec3(1.0f), 13, 1.0f, 0.0f, full);
+    ASSERT_TRUE(none.HasValue());
+    EXPECT_FALSE(none.Value().has_value());
+    EXPECT_EQ(full.State(), Seed);
+}
+
 // 0x54196c..0x541a00: la /36 (la de 0x52497d, con el efecto de dueño) tiene la luz (1; 0,3f; 0), vida 25 y cinco
 // rand(): el giro, el ángulo x y la partida. 0x545ef9: con la vida en 23 o más, la posición del dueño más la partida;
 // después sube con la escala · 0,1f en la z y en la y y se achica 0,08f. El giro suma 0,01f.
@@ -380,7 +410,7 @@ TEST(Cl11SmokeParticles, ThePuffKeepsItsLightTiltsAndRises)
 // nacer (0x5425f9) y siguen sin portar.
 TEST(Cl11SmokeParticles, TheNewSmokesDrawAndTheGroundedOnesStayCut)
 {
-    for (const std::int32_t subtype : {17, 19, 20, 23, 24, 26, 31, 36, 37})
+    for (const std::int32_t subtype : {13, 17, 19, 20, 23, 24, 26, 31, 36, 37})
     {
         Particle particle{.alive = true,
                           .type = Smoke,

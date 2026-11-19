@@ -40,10 +40,13 @@ Core::Expected<void, std::string> CreateHighJoint(WorldState& world, Render::Mod
 Core::Expected<std::optional<std::size_t>, std::string>
 CreateHighParticle(WorldState& world, Render::Models::CrtRandom& random, float worldClock, std::int32_t type,
                    const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light, std::int32_t subtype,
-                   float scale, std::uint32_t address)
+                   float scale, std::uint32_t address, World::ParticleOwner owner)
 {
     const auto created =
-        world.Particles().CreateChecked(type, position, angles, light, subtype, scale, worldClock, random, 0);
+        owner.kind == World::ParticleOwnerKind::None
+            ? world.Particles().CreateChecked(type, position, angles, light, subtype, scale, worldClock, random, 0)
+            : world.Particles().CreateOwnedChecked(type, position, angles, light, subtype, scale, worldClock, random, 0,
+                                                   owner);
     if (!created.HasValue())
         return Core::Unexpected(std::format("{:#x}: la partícula {:#x}/{} falla con el error {} (CL11)", address, type,
                                             subtype, static_cast<unsigned>(created.Error())));

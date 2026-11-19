@@ -350,7 +350,7 @@ TEST(ParticlesTest, UnsupportedTypesAndSubtypesAreNotCreated)
                              0.0f, random)
                      .has_value());
     EXPECT_FALSE(particles
-                     .Create(Client::World::MagicSparkParticle, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(3.0f), 4,
+                     .Create(Client::World::MagicSparkParticle, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(3.0f), 5,
                              1.0f, 0.0f, random)
                      .has_value());
     EXPECT_FALSE(particles

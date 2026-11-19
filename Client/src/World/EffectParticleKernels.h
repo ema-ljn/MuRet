@@ -41,7 +41,8 @@ inline constexpr std::int32_t ShortHitSparkSubtype = 8;
 inline constexpr std::int32_t BurstSparkSubtype = 10;
 
 [[nodiscard]] bool IsEffectParticle(std::int32_t type, std::int32_t subtype);
-// Las que leen +0x40 en su paso (5c6/4, 5d5/2, el fuego /9, 5de/4 y 5f2/36): 0x53fe70 guarda el dueño en el lugar.
+// Las que leen +0x40 en su paso (5c6/4, 5d5/2, el fuego /9, 5de/4, 5f2/36 y 5c5/6): 0x53fe70 guarda el dueño en el
+// lugar.
 [[nodiscard]] bool FollowsItsOwner(std::int32_t type, std::int32_t subtype);
 // Las que además leen la posición del dueño al nacer: 5c6/4 (0x540686) y 5de/4 (0x5417ba).
 [[nodiscard]] bool NeedsOwnerPosition(std::int32_t type, std::int32_t subtype);

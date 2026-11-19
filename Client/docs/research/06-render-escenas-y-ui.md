@@ -13968,7 +13968,7 @@ velocidad girada por los ángulos, sumada a la posición, un `fstp` por eje) y u
 | `0x117` (`Skill\DarkLordSkill`, las manos de la 0x40, la 0x4b y la 0x3d) | `0x51cbb2..0x51cc6a`: vida 10, escala 0,2f, `+0xd8` en 0,1f; con el subtipo ≤ 1, los ángulos (45, y, 0) con un `rand() % 2`; el /2, vida 12 y `+0xd8` 0,4f | `0x527539..0x5275c8`: la escala crece `+0xd8`, que sube 0,02f (≤ 1), baja 0,06f (/2) o sube 0,04f, y el alpha se apaga al final | el genérico |
 | `0x138` (`Skill\ManaRune`, la 0x4b, `0x502ae6`) | `0x51da46..0x51daca`: el /0, vida 50, escala 0, `+0xe4` 0,1f, alpha 0,3f, la z 300 más y los ángulos (0, 0, 45); el /1, vida 10, escala 1,1f, `+0x58` −1, `+0x64` −2 y `+0x68` 0,4f | `0x529a4f..0x529b81`: el /0 crece hasta 1 y suelta el /1, se achica desde la vida 15 y baja 10 por paso; el /1 se achica 0,02f (piso 1) | el genérico |
 | `0x812` y `0x813` (los emisores de la 0x2b y la 0x2f, `0x4f97b0`) | `0x51e4f6`: vida 10 (también el `0x5c6`). `0x51f8a8`: los ángulos en 0 y vida 5 | `0x52c981`: el joint `0x60f/0xc` (escala 100) o `0x60f/4` (escala 50) con él de dueño. `0x52caa5`: tres joints `0x619/6` (escala 5) desde 100 hacia atrás con ángulos `(rand() % 90, 0, rand() % 360)` | sin caso |
-| `0x621`/1 y /2 (el brillo de la 0x37 en la mano, `0x4f9f3e`) | `0x51efa5..0x51efe9`: vida 20 y la partida en la posición (los demás salvo el /0, vida 10) | `0x52bb79..0x52bbf1`: el origen del modelo del dueño pasa a ser la partida y la posición es el punto (0, 0, 10) de su hueso 33; después las emisiones del /0 (`0x52bbf6`) | sin caso |
+| `0x13c` (`Skill\golem_stone`) y las piedritas `0x12d/2` y `0x12e/2` (`0x4ee770` al morir el `0x1a4` y el `0x1a6`, `0x441696` y `0x442165`) | `0x51d32c` y `0x51d3b1`: el empuje `((r & 127) + 32) · 0,1f`, la escala `((r & 1) + 10) · 0,25` (el `0x13c`) o `((r & 1) + 4) · 0,12f + 0,6f` (las piedritas) y la caída `r % 5 + 2`; después la cola de las piedras (`0x51d50d`: vida, yaw, tres ángulos, 50 más arriba). `0x4ee770` saca un `rand() % 45` por esquina de la malla 0 y, con 0 y menos de 20 contados, el /0 crea el `0x13c` y el /1 las dos piedritas | `0x5291ce`: el de las piedras (caen de a 3 y rebotan en el terreno, alpha vida · 0,1f); el `0x13c`, con `rand() & 3` en 0, la `0x6ec/5` y el humo `0x5f2/0x15` y, con `rand() % 10` en 0, el polvo `0x5f3/0`; el `0x12d/2`, con `rand() % 10` en 0, la z en el terreno y el humo `0x5f2/0xb` | el genérico |\n| `0x12e/3` (la piedra del `0x1a6` en la 3, `0x442397`) | `0x51d438..0x51d4a4`: vida `(r & 15) + 32`, la escala `(r % 3 + 2) · 0,12f + 1,2f`, la velocidad z `−20 − r % 5`, `+0xd8` en 1,8f; sin la cola de las piedras | `0x5290df..0x5291c9`: la velocidad z baja `+0xd8`, que sube 0,3f; con el terreno por encima, ahí, quieta y derecha, y con `rand() % 10` en 0 el humo `0x5f2/0x18`; si no, con `rand() & 1` en 0, el mismo humo a 0,2f | el genérico |\n| `0x621`/1 y /2 (el brillo de la 0x37 en la mano, `0x4f9f3e`) | `0x51efa5..0x51efe9`: vida 20 y la partida en la posición (los demás salvo el /0, vida 10) | `0x52bb79..0x52bbf1`: el origen del modelo del dueño pasa a ser la partida y la posición es el punto (0, 0, 10) de su hueso 33; después las emisiones del /0 (`0x52bbf6`) | sin caso |
 
 MuRet: `Scenes::CreateHighModelEffect` y `StepHighModelEffect` (`HighModelEffects.h`), desde los llamadores del asedio
 (`MonsterCreation`, `StepTheSiege`, `StepTheDoppelganger`), de Crywolf (`LaunchTheRadialVolley`) y desde
@@ -13978,10 +13978,12 @@ MuRet: `Scenes::CreateHighModelEffect` y `StepHighModelEffect` (`HighModelEffect
 destrabados: de `0x4fd5f0` la 0x30 y la 0x45 (`0x4fe015`, `0x4fe253`, el anillo de calcos hasta su primer joint
 `0x613`), la 0x44 y la 0x47 (`0x4fe424`), la 0x2c (el `0x13b` sobre o), la 0x0c (`0x500cb9`), las manos de la 0x40 y
 la 0x4b (con el `0x138`), la 0x4a y la 0x3d; de `0x4f97b0` la 0x2b, la 0x2f y la 0x37 (`0x4f9f3e`); de `0x4f5b70` el
-0x46 (`0x4f5cb6`: un blanco fuera de la tabla corta en `0x4f5cd4`), `0x4f67fb`, `0x4f6b51` y `0x4f81cc`; y el rayo
-blanco del `0x1bb` (`0x428da7`). Cortan con su dirección los joints que todavía no están (`0x61c/3`, `0x632/5`,
+0x46 (`0x4f5cb6`: un blanco fuera de la tabla corta en `0x4f5cd4`), `0x4f67fb`, `0x4f6b51` y `0x4f81cc`; el rayo
+blanco del `0x1bb` (`0x428da7`); y de `0x441400` las muertes del `0x1a4` y el `0x1a6` (`0x4ee770` sobre las mallas
+de su cuerpo posado, `Scenes::EmitVertexEffects`, Q-C1581) y la piedra del `0x1a6` (`0x442397`; con el primer
+`rand() % 2` en 1 el punto no está escrito y corta, Q-C1580). Las piedras están en `World/SiegeVertexEffects`. Cortan con su dirección los joints que todavía no están (`0x61c/3`, `0x632/5`,
 `0x615/6`, `0x60f/0x19`, `0x60f/0xb`, `0x614/3`, `0x61c/2`, `0x60f/4`, `0x60f/0xc`, `0x619/6`; 08, P-C420), las
-partículas sin portar (`0x5ac/8`, `0x5db/7`, `0x5db/0xb`, `0x5da/0`; 08, P-C422) y la segunda animación del `0x13b`
+partículas sin portar (`0x5ac/8`, `0x5db/7`, `0x5db/0xb`, `0x5da/0`, `0x5f2/0x18`; 08, P-C422) y la segunda animación del `0x13b`
 cuando la primera dejó la acción en `0xff` (`0x52cd84`: el original lee la acción 255 fuera de la tabla del modelo,
 P-C421). La comprobación de distancia del `0x116/0` (la vida en 5, `0x5f93c0` en una variable que nadie lee) no se
 porta: no cambia nada. Las señales propias de los ADR 0019 y 0020 ya no existen.
@@ -13998,8 +14000,9 @@ una del paso desde el frame 3 (`0x4fd5d7`). Lo que es estado, sonido o `rand()` 
 (`0x53fe70`) que `World::Particles` crea (`0x5ca/0`, `0x5f2/11`, `0x5f3/0`, `0x5d9/0`, `0x729/0` y `/1`) salen con sus
 `rand()` (revisión C, 2026-11-14). Las demás partículas cortan con la dirección de la llamada solo con lugar en la
 tabla: llena, `0x53fe70` no crea nada ni saca `rand()` y el helper sigue, y como la tabla no se vacía mientras se
-dibuja, las que siguen tampoco crean nada. Los efectos (`0x518cf0`), los joints (`0x530860`), la estela (`0x52e470`),
-`0x51fe10` y `0x4ee770` (un `rand()` por vértice y sus efectos) cortan siempre (08, P-C336). Las marcas del piso
+dibuja, las que siguen tampoco crean nada. Los efectos (`0x518cf0`), los joints (`0x530860`), la estela (`0x52e470`) y
+`0x51fe10` que no están portados cortan siempre (08, P-C336); `0x4ee770` al morir el `0x1a4` y el `0x1a6` y la piedra
+`0x12e/3` del `0x1a6` ya están (CL11, [Los efectos con modelo de los tipos altos](#los-efectos-con-modelo-de-los-tipos-altos)). Las marcas del piso
 (`0x5fb2f0`) se dibujan, salvo la que lee la pila (Q-C1100). Los
 sprites son de `0x5491e0` sin dueño, rotación 0 y mezcla 0 salvo donde se dice. Los sonidos son `0x41ed10(id, 0, 0)`
 (CL10). El `+4` del objeto (el subtipo, Q-C1098) hace de "ya sonó": con `+4` en 0, `+4 = 1` y el sonido, y al final

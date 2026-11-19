@@ -366,9 +366,66 @@ TEST_F(MonsterHelpersTest, AMissingNamedBoneCutsAtItsCall)
     EXPECT_EQ(LiveSprites().size(), 1u);
 }
 
-// 0x441669..0x441d7d: el 0x1a4 corta en 0x4ee770 al morir y, con lugar en la tabla, en su partícula 0x6ec/3 después
-// del punto de la mano. Con la tabla llena sigue: rand() % 20 en 0 pide 0x205 más rand() % 2, y en la 3 de 8,4 a 10,2
-// con +4 en 0, +4 = 1 y el corte de sus efectos.
+// 0x441688..0x4416a5 y 0x442159..0x442179: al morir (la 6), el 0x1a4 pide 0x4ee770(0, 0x13c, 0) y el 0x1a6
+// 0x4ee770(0, 0x13c, 1) sobre las mallas del cuerpo, los dos dejan +0 en 0 y piden su sonido (0x209 y 0x1ff); el 0x1a6
+// sigue con sus venenos. Entre frames del original, sin efectos ni sonido. Sin las mallas, cortan en la llamada.
+TEST_F(MonsterHelpersTest, The1a4AndThe1a6DieInStones)
+{
+    for (const char* bone : {"Monster84_PoisonTop", "Monster84_PoisonRight", "Monster84_PoisonLeft"})
+        Name(bone, 53);
+    const std::uint32_t calm =
+        FirstSeedWhere([](CrtRandom& random)
+                       { return random.Next() % 10 != 0 && random.Next() % 10 != 0 && random.Next() % 10 != 0; });
+    struct Death
+    {
+        std::uint16_t type;
+        std::int32_t subtype;
+        std::int32_t sound;
+        int draws;
+    };
+    for (const Death& death : {Death{0x1a4, 0, 0x209, 0}, Death{0x1a6, 1, 0x1ff, 3}})
+    {
+        SCOPED_TRACE(death.type);
+        for (const bool original : {true, false})
+        {
+            SCOPED_TRACE(original);
+            m_world->Runtime().lastSoundId.reset();
+            ActorState& actor = Monster(death.type, 6);
+            CrtRandom random(calm);
+            MonsterHelperPass pass = Pass(Lorencia, random, original);
+            std::vector<std::pair<std::int32_t, std::int32_t>> asked;
+            pass.vertexEffects = [&asked](std::int32_t type,
+                                          std::int32_t subtype) -> Client::Core::Expected<void, std::string>
+            {
+                asked.emplace_back(type, subtype);
+                return {};
+            };
+            const auto drawn = Client::Scenes::DrawTheEffectsOf1a3To1a9(pass);
+            ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+            EXPECT_FALSE(actor.alive);
+            EXPECT_EQ(random.State(), AfterDraws(calm, death.draws).State());
+            if (original)
+            {
+                ASSERT_EQ(asked.size(), 1u);
+                EXPECT_EQ(asked[0], std::make_pair(std::int32_t{0x13c}, death.subtype));
+                EXPECT_EQ(Sound(), death.sound);
+            }
+            else
+            {
+                EXPECT_TRUE(asked.empty());
+                EXPECT_FALSE(Sound().has_value());
+            }
+        }
+    }
+    Monster(0x1a6, 6);
+    CrtRandom random(calm);
+    MonsterHelperPass bare = Pass(Lorencia, random);
+    EXPECT_TRUE(CutAt(Client::Scenes::DrawTheEffectsOf1a3To1a9(bare), "0x442165"));
+}
+
+// 0x441669..0x441d7d: el 0x1a4 corta en 0x4ee770 al morir sin las mallas del cuerpo y, con lugar en la tabla, en su
+// partícula 0x6ec/3 después del punto de la mano. Con la tabla llena sigue: rand() % 20 en 0 pide 0x205 más rand() % 2,
+// y en la 3 de 8,4 a 10,2 con +4 en 0, +4 = 1 y el corte de sus efectos.
 TEST_F(MonsterHelpersTest, The1a4CutsInItsParticleOnlyWithRoom)
 {
     Name("Monster82_LHand", 34);
@@ -506,10 +563,11 @@ TEST_F(MonsterHelpersTest, The1a5TailAndBellyGlowWithTheirThunder)
     EXPECT_EQ(LiveSprites().size(), 26u);
 }
 
-// 0x4420f7..0x44281f: en la 3, rand() % 2 en 1 corta en el efecto 0x12e; en 0, otro elige el veneno y rand() % 32 + 50
-// por 0,025f es la escala de su 0x5f2/11, antes del mismo corte. En la 4 con el frame de 3,5 a 4,2, la 0x5f2/11 de cada
-// mano en el piso, de escala rand() % 32 + 50 por 0,05f. Descansando, tres rand() % 10 sin acertar no hacen nada más
-// que +4 a 0; uno que acierta corta en su 0x5f2/0x17 solo con lugar en la tabla.
+// 0x4420f7..0x44281f: en la 3, rand() % 2 en 1 corta en la piedra 0x12e/3, que saldría en un punto que la llamada no
+// escribió (Q-C1580); en 0, otro elige el veneno y rand() % 32 + 50 por 0,025f es la escala de su 0x5f2/11, y la
+// piedra 0x12e/3 sale en ese punto con sus tres rand() (0x442397) antes de los venenos. En la 4 con el frame de 3,5 a
+// 4,2, la 0x5f2/11 de cada mano en el piso, de escala rand() % 32 + 50 por 0,05f. Descansando, tres rand() % 10 sin
+// acertar no hacen nada más que +4 a 0; uno que acierta corta en su 0x5f2/0x17 solo con lugar en la tabla.
 TEST_F(MonsterHelpersTest, The1a6PoisonDrawsItsRandomsInOrder)
 {
     for (const char* bone : {"Monster84_PoisonTop", "Monster84_PoisonRight", "Monster84_PoisonLeft"})
@@ -531,13 +589,48 @@ TEST_F(MonsterHelpersTest, The1a6PoisonDrawsItsRandomsInOrder)
     const std::uint32_t even = FirstSeedWhere([](CrtRandom& random) { return (random.Next() & 1) == 0; });
     CrtRandom second(even);
     MonsterHelperPass poisoned = Pass(Lorencia, second);
-    EXPECT_TRUE(CutAt(Client::Scenes::DrawTheEffectsOf1a3To1a9(poisoned), "0x442397"));
+    const auto thrown = Client::Scenes::DrawTheEffectsOf1a3To1a9(poisoned);
     CrtRandom expected(even);
     static_cast<void>(expected.Next());
     static_cast<void>(expected.Next());
     const auto dusty = static_cast<float>(static_cast<double>(expected.Next() % 32 + 50) * static_cast<double>(0.025f));
     Expect(expected, 0x5f2, 11, At(53), actor.angles, poison, dusty);
+    // 0x51d438: la vida, la escala y la caída de la piedra; después los tres venenos.
+    const std::int32_t life = (expected.Next() & 15) + 32;
+    const auto stoneScale = static_cast<float>(
+        static_cast<double>(expected.Next() % 3 + 2) * static_cast<double>(0.12f) + static_cast<double>(1.2f));
+    const auto stoneDrop = static_cast<float>(-20 - expected.Next() % 5);
+    std::string_view dripped;
+    for (const std::string_view address : {"0x44267f", "0x44274b", "0x442817"})
+    {
+        if (expected.Next() % 10 == 0)
+        {
+            dripped = address;
+            break;
+        }
+    }
+    if (dripped.empty())
+    {
+        ASSERT_TRUE(thrown.HasValue()) << thrown.Error();
+    }
+    else
+    {
+        EXPECT_TRUE(CutAt(thrown, dripped));
+    }
     EXPECT_EQ(second.State(), expected.State());
+    const auto& effects = m_world->Map().effects.Effects();
+    const auto stone = std::ranges::find_if(effects, [](const auto& effect) { return effect.alive; });
+    ASSERT_NE(stone, effects.end());
+    EXPECT_EQ(stone->type, 0x12e);
+    EXPECT_EQ(stone->subtype, 3);
+    EXPECT_EQ(stone->transform.position, At(53));
+    EXPECT_EQ(stone->transform.angles, glm::vec3(-55.0f, 0.0f, actor.angles.z));
+    EXPECT_EQ(stone->light, poison);
+    EXPECT_EQ(stone->life, life);
+    EXPECT_EQ(stone->transform.scale, stoneScale);
+    EXPECT_EQ(stone->velocity, glm::vec3(0.0f, 0.0f, stoneDrop));
+    EXPECT_EQ(stone->speed, std::bit_cast<float>(0x3fe66666u));
+    m_world->Map().effects.Effects()[static_cast<std::size_t>(stone - effects.begin())].alive = false;
     ExpectTheParticles();
     ASSERT_EQ(LiveParticles().size(), 1u);
     EXPECT_EQ(LiveParticles()[0].scale, dusty);

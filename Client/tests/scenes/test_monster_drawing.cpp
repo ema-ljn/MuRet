@@ -33,6 +33,7 @@
 
 #include <glm/ext/vector_float3.hpp>
 
+#include <algorithm>
 #include <array>
 #include <bit>
 #include <chrono>
@@ -481,6 +482,46 @@ TEST_F(MonsterDrawingTest, TheBodyLeadsToTheKalimaAndSiegeHelpers)
     EXPECT_EQ(castle.dword58, -2);
     EXPECT_GT(m_batch.Vertices().size(), 0u);
     EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(3));
+}
+
+// 0x441688..0x4416a5: el 0x1a4 al morir (la 6) pide 0x4ee770(0, 0x13c, 0) sobre las mallas de su cuerpo recién
+// posado: un rand() % 45 por esquina (tres, de un triángulo) después de los tres de lo que cuelga, las piedras 0x13c
+// que salgan, +0 en 0 y el sonido 0x209.
+TEST_F(MonsterDrawingTest, The1a4DiesInStonesOverItsPosedBody)
+{
+    // La primera semilla con una piedra en la primera esquina.
+    std::uint32_t seed = 1;
+    for (;; ++seed)
+    {
+        Client::Render::Models::CrtRandom probe{seed};
+        for (int draw = 0; draw < 3; ++draw)
+            static_cast<void>(probe.Next());
+        if (probe.Next() % 45 == 0)
+            break;
+    }
+    m_clothWorld.random = Client::Render::Models::CrtRandom{seed};
+    ActorState& golem = Monster(4, 0x1a4, 0x1a4);
+    golem.animation.action = 6;
+    const auto drawn = Draw(Pass());
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    EXPECT_FALSE(golem.alive);
+    EXPECT_EQ(m_world->Runtime().lastSoundId, 0x209);
+    Client::Render::Models::CrtRandom expected{seed};
+    for (int draw = 0; draw < 3; ++draw)
+        static_cast<void>(expected.Next());
+    std::size_t stones = 0;
+    for (int corner = 0; corner < 3; ++corner)
+    {
+        if (expected.Next() % 45 != 0)
+            continue;
+        expected.Discard(8);
+        ++stones;
+    }
+    EXPECT_EQ(m_clothWorld.random.State(), expected.State());
+    const auto live = static_cast<std::size_t>(std::ranges::count_if(
+        m_world->Map().effects.Effects(), [](const auto& effect) { return effect.alive && effect.type == 0x13c; }));
+    EXPECT_EQ(live, stones);
+    EXPECT_GE(stones, 1u);
 }
 
 TEST_F(MonsterDrawingTest, TheFrozenFlagPaintsTheBodyAndAddsAPassWithoutTheBlendMesh)

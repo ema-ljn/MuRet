@@ -1812,7 +1812,7 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
     else if (IsSiegeVertexEffect(effect.type))
     {
         wholeStep = true;
-        if (auto stepped = StepSiegeVertexEffect(effect, particles, random, services); !stepped.HasValue())
+        if (auto stepped = StepSiegeVertexEffect(effect, particles, random, services, worldClock); !stepped.HasValue())
             return stepped;
     }
     else if (effect.type == FirstDebrisEffect || effect.type == DebrisEffect)

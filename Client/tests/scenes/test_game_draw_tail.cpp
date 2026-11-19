@@ -860,6 +860,39 @@ TEST(GameDrawTailTest, TheCrywolfEffectsDrawThroughTheirModelsOrNotAtAll)
     }
 }
 
+// 0x52d620 con los tipos altos de la CL11: el 0x116, el 0x117, el 0x138, el 0x13c y la piedra 0x12e/3 van por el
+// camino común (0x602e90) con su BMD de las skills; el 0x625, los emisores 0x812 y 0x813 y el brillo 0x621/1 (de
+// 0x151 en adelante, sin caso) no se dibujan.
+TEST(GameDrawTailTest, TheHighEffectsDrawThroughTheirModelsOrNotAtAll)
+{
+    struct Probe
+    {
+        std::int16_t type;
+        std::int32_t subtype;
+        bool drawn;
+    };
+    constexpr std::array probes{Probe{0x116, 0, true},  Probe{0x117, 0, true},  Probe{0x138, 0, true},
+                                Probe{0x13c, 0, true},  Probe{0x12e, 3, true},  Probe{0x625, 0, false},
+                                Probe{0x812, 0, false}, Probe{0x813, 0, false}, Probe{0x621, 1, false}};
+    for (const auto [type, subtype, drawn] : probes)
+    {
+        SCOPED_TRACE(type);
+        LookupCounter models;
+        Client::World::ModelEffect effect;
+        effect.alive = true;
+        effect.type = type;
+        effect.subtype = subtype;
+        effect.transform.position = {1000, 2000, 300};
+        Client::Render::ModelBatch batch;
+        const auto result = Client::Scenes::DrawGameModelEffects(batch, models, std::span(&effect, 1),
+                                                                 Client::World::SphereFrustum{}, nullptr, {}, 0, 0);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_TRUE(effect.seen);
+        EXPECT_TRUE(batch.Vertices().empty());
+        EXPECT_EQ(models.lookups > 0, drawn);
+    }
+}
+
 TEST(GameDrawTailTest, NoriaJointConsumesTwoConstructorRandomsAndMovesBeforeGrowingItsTail)
 {
     std::array<Client::Scenes::JointState, 1> joints{};

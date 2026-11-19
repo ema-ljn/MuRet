@@ -145,7 +145,8 @@ void PaintTheBeam(JointState& joint)
     }
 }
 
-// Un corte en una partícula que el lote de partículas de la CL11 todavía no acepta (0x53fe70).
+// 0x53fe70(tipo, posición, ángulos, luz, subtipo, escala, 0) en la posición y con los ángulos del joint. Todas las del
+// 0x618 (0x5d5/0, /1, /3, /4 y 0x5f2/0x1f) las acepta World::Particles; un error suyo corta con la dirección.
 Core::Expected<void, std::string> Particle(const JointState& joint, const JointKernels::StepServices& services,
                                            std::uint32_t address, std::int32_t type, std::int32_t subtype,
                                            const glm::vec3& light, float scale)

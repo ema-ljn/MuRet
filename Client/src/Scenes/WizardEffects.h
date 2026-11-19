@@ -32,6 +32,7 @@ struct WorldTerrain;
 // 0x517a20 es Scenes::HitTheTargetsAround.
 namespace Client::Scenes
 {
+class IModelLibrary;
 class WorldState;
 struct CharacterStepContext;
 struct JointState;
@@ -50,6 +51,9 @@ struct WizardSceneParts
     std::function<void(Protocol::Outgoing)> send{};
     // La tabla de joints (0x530860); vacía, la del mundo (WorldState::DrawTail).
     std::span<JointState> joints{};
+    // Los esqueletos del juego que lee 0x4ea030 después de los del mapa (WorldState::FaunaResources), para el empujón
+    // del 0xc2/4 (0x524a8d). Sin ellos, un 0x20a que empuja corta.
+    const IModelLibrary* models = nullptr;
 };
 
 [[nodiscard]] World::WizardEffectServices WizardEffectServicesOf(WorldState& world, Render::Models::CrtRandom& random,

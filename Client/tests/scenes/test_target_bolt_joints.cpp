@@ -8,6 +8,7 @@
 #include "Scenes/GameDrawTail.h"
 #include "World/IFishStepServices.h"
 #include "World/TerrainLighting.h"
+#include "World/WorldObjectStepServices.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -111,8 +112,8 @@ void MoveAhead(JointState& expected)
 } // namespace
 
 // 0x531c43..0x531cc7, 0x531e04..0x531e27 y 0x532003: la vida en la key (50) y la key en 0; la luz en 1, la mezcla 4, el
-// ancho, 16 puntos, velocidad 5 y el destino en el segundo punto. Sin rand(). Con el color 3 sin dueño, el original lee
-// de 0 (0x531c7b) y MuRet corta.
+// ancho, 16 puntos, velocidad 5 y el destino en el segundo punto. Sin rand(). Con el color 3 sin dueño, el original
+// desreferencia el puntero nulo (+0xf4, 0x531c7b) y revienta: MuRet corta.
 TEST(TargetBoltJointsTest, TheBoltIsBornWithTheKeyAsItsLife)
 {
     BoltWorld tested;
@@ -207,4 +208,42 @@ TEST(TargetBoltJointsTest, TheBoltWithoutItsTargetGoesOut)
     EXPECT_FALSE(joint.alive);
     EXPECT_EQ(joint.life, 49);
     EXPECT_EQ(tested.random.State(), CrtRandom(Seed).State());
+}
+
+// 0x537bf3..0x537c29 en el borde de 70: desde (1000, 1025, 300) con los ángulos en 0, velocidad 25 y vida 20, el
+// avance común deja el joint en (1000, 1000, 300) y el blanco 150 más arriba queda a la misma altura, 70 más allá en x.
+// Con la y del blanco en 1000 la distancia es 70 justo y frena (30 − 10); con la siguiente y en float, apenas más de
+// 70, no. En los dos, la luz dinámica de radio 2 en la posición con ((rand() & 3) + 8) · 0,03f por (0,4f; 1; 0,8f).
+TEST(TargetBoltJointsTest, TheBoltBrakesOnlyWithinSeventy)
+{
+    for (const float y : {std::nextafter(1000.0f, 2000.0f), 1000.0f})
+    {
+        SCOPED_TRACE(y);
+        BoltWorld tested;
+        tested.start = {1000.0f, 1025.0f, 300.0f};
+        tested.target.position = {1070.0f, y, 150.0f};
+        ASSERT_TRUE(tested.Create().HasValue());
+        JointState& joint = tested.joints[0];
+        joint.angles = {};
+        joint.speed = 25.0f;
+        joint.life = 20;
+        CrtRandom draws = tested.random;
+
+        const auto stepped = tested.Step();
+
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(joint.position, glm::vec3(1000.0f, 1000.0f, 300.0f));
+        EXPECT_EQ(joint.speed, y == 1000.0f ? 20.0f : 30.0f);
+        EXPECT_EQ(joint.light, glm::vec3(1.0f));
+        const double luminosity =
+            static_cast<double>((draws.Next() & 3) + 8) * D(std::bit_cast<float>(0x3cf5c28fu)); // 0x6b8bd4
+        EXPECT_EQ(tested.random.State(), draws.State());
+        const glm::vec3 color{F32(luminosity * D(std::bit_cast<float>(0x3ecccccdu))), F32(luminosity),
+                              F32(luminosity * D(std::bit_cast<float>(0x3f4ccccdu)))};
+        auto lit = std::make_unique<Client::World::TerrainLighting>();
+        ASSERT_TRUE(Client::World::AddDynamicLight(lit.get(), joint.position, color, 2, "prueba").HasValue());
+        EXPECT_TRUE(lit->cells == tested.lighting->cells);
+        const auto dark = std::make_unique<Client::World::TerrainLighting>();
+        EXPECT_FALSE(lit->cells == dark->cells);
+    }
 }

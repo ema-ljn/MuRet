@@ -17,6 +17,7 @@
 #include "Scenes/ActorCreation.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/FaunaDrawing.h"
+#include "Scenes/FaunaJointCreation.h"
 #include "Scenes/FaunaModels.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -526,9 +527,120 @@ TEST_F(MonsterHelpersTest, The1a4LeavesFantasAndSmokesOnItsBones)
     actor.subtype = 0;
     CrtRandom attack(quiet);
     MonsterHelperPass attacking = Pass(Devias, attack);
-    EXPECT_TRUE(CutAt(Client::Scenes::DrawTheEffectsOf1a3To1a9(attacking), "0x441b33"));
+    const auto struck = Client::Scenes::DrawTheEffectsOf1a3To1a9(attacking);
+    ASSERT_TRUE(struck.HasValue()) << struck.Error();
     EXPECT_EQ(actor.subtype, 1);
-    EXPECT_EQ(attack.State(), AfterDraws(quiet, 1).State());
+    EXPECT_EQ(Sound(), 0x207);
+    EXPECT_EQ(m_world->Map().effects.Effects()[0].type, 0x636);
+}
+
+// 0x441a8a..0x441c75, en Lorencia y en Devias: en la 3 de 8,4 a 10,2 con +4 en 0, el 0x1a4 golpea en su mano derecha
+// (Monster82_RHand) con su z: el cráter 0x636/2 y el joint 0x61c/6 (ancho 200, sin dueño, clave −1) con los ángulos
+// (−90, 0, z) y la columna 0x5de/3 con sus ángulos y su luz (vida 15). Después, lo mismo en cada jugador visto y vivo
+// a más de 200 y menos de 1100 en el plano, la columna con los ángulos de él y en blanco; el sonido 0x207. Los rand()
+// del joint, repetidos en un pool gemelo con el mismo CrtRandom; el cráter y la columna no sacan.
+TEST_F(MonsterHelpersTest, The1a4StrikesTheGroundUnderItsHandAndItsVictims)
+{
+    Name("Monster82_LHand", 34);
+    Name("Monster82_RHand", 45);
+    Name("Monster82_Eye", 48);
+    Name("Monster82_Back", 46);
+    const std::uint32_t quiet = FirstSeedWhere([](CrtRandom& draw) { return draw.Next() % 20 != 0; });
+    for (const std::int32_t map : {Lorencia, Devias})
+    {
+        SCOPED_TRACE(map);
+        for (auto& effect : m_world->Map().effects.Effects())
+            effect.alive = false;
+        for (auto& joint : m_world->DrawTail().joints)
+            joint.alive = false;
+        m_world->Runtime().lastSoundId.reset();
+        FillParticles();
+        ActorState& actor = Monster(0x1a4, 3, 9.0f);
+        actor.subtype = 0;
+        actor.angles = {1.0f, 2.0f, 30.0f};
+        const auto player = [this](std::size_t slot, const glm::vec3& offset, bool seen) -> ActorState&
+        {
+            ActorState& other = m_world->Actors()[slot];
+            other = ActorState{};
+            other.alive = true;
+            other.seen = seen;
+            other.byte88 = 1;
+            other.type = 0x20a;
+            other.position = Origin + offset;
+            other.angles = {0.0f, 0.0f, static_cast<float>(slot)};
+            return other;
+        };
+        const ActorState& victim = player(20, {600.0f, 0.0f, 50.0f}, true);
+        static_cast<void>(player(21, {150.0f, 0.0f, 0.0f}, true));
+        static_cast<void>(player(22, {0.0f, 1100.0f, 0.0f}, true));
+        static_cast<void>(player(23, {600.0f, 0.0f, 0.0f}, false));
+        CrtRandom attack(quiet);
+        MonsterHelperPass attacking = Pass(map, attack);
+
+        const auto struck = Client::Scenes::DrawTheEffectsOf1a3To1a9(attacking);
+
+        ASSERT_TRUE(struck.HasValue()) << struck.Error();
+        EXPECT_EQ(actor.subtype, 1);
+        EXPECT_EQ(Sound(), 0x207);
+        CrtRandom replay = AfterDraws(quiet, 1);
+        std::vector<Client::Scenes::JointState> twin(m_world->DrawTail().joints.size());
+        const glm::vec3 hand{Origin.x, Origin.y, Origin.z};
+        const glm::vec3 down{-90.0f, 0.0f, 30.0f};
+        for (const glm::vec3& at : {hand, victim.position})
+        {
+            glm::vec3 point = at;
+            glm::vec3 angles = down;
+            ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(twin,
+                                                         {.type = 0x61c,
+                                                          .firstPosition = point,
+                                                          .secondPosition = point,
+                                                          .angles = angles,
+                                                          .subtype = 6,
+                                                          .ownerContext = nullptr,
+                                                          .scale = 200.0f,
+                                                          .key = -1,
+                                                          .skill = 0,
+                                                          .skillSerial = 0,
+                                                          .target = -1},
+                                                         replay)
+                            .HasValue());
+        }
+        EXPECT_EQ(attack.State(), replay.State());
+        const auto effects = m_world->Map().effects.Effects();
+        const auto& joints = m_world->DrawTail().joints;
+        const std::array<glm::vec3, 2> points{hand, victim.position};
+        const std::array<glm::vec3, 2> columnAngles{actor.angles, victim.angles};
+        const std::array<glm::vec3, 2> columnLights{actor.light, glm::vec3(1.0f)};
+        for (std::size_t strike = 0; strike < 2; ++strike)
+        {
+            SCOPED_TRACE(strike);
+            const Client::World::ModelEffect& crater = effects[2 * strike];
+            ASSERT_TRUE(crater.alive);
+            EXPECT_EQ(crater.type, 0x636);
+            EXPECT_EQ(crater.subtype, 2);
+            EXPECT_EQ(crater.transform.angles, down);
+            EXPECT_EQ(crater.ownerContext, nullptr);
+            const Client::World::ModelEffect& column = effects[(2 * strike) + 1];
+            ASSERT_TRUE(column.alive);
+            EXPECT_EQ(column.type, 0x5de);
+            EXPECT_EQ(column.subtype, 3);
+            EXPECT_EQ(column.transform.position, points[strike]);
+            EXPECT_EQ(column.transform.angles, columnAngles[strike]);
+            EXPECT_EQ(column.light, columnLights[strike]);
+            EXPECT_EQ(column.life, 15);
+            EXPECT_EQ(column.ownerContext, nullptr);
+            const auto& joint = joints[strike];
+            ASSERT_TRUE(joint.alive);
+            EXPECT_EQ(joint.type, 0x61c);
+            EXPECT_EQ(joint.subtype, 6);
+            EXPECT_EQ(joint.width, 200.0f);
+            EXPECT_EQ(joint.ownerContext, nullptr);
+            EXPECT_EQ(joint.position, twin[strike].position);
+            EXPECT_EQ(joint.angles, twin[strike].angles);
+        }
+        EXPECT_FALSE(effects[4].alive);
+        EXPECT_FALSE(joints[2].alive);
+    }
 }
 
 // 0x441d7d consume cuarenta rand() aunque no haya slots; 0x441d89 pide 0x208 sin sortear.

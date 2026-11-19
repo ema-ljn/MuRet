@@ -498,6 +498,48 @@ TEST(GameDrawTailTest, FaunaJointCreationRetainsOldPointsAndCountsItsTwoRandoms)
     EXPECT_EQ(random.State(), expected.State());
 }
 
+// 0x530a2a y 0x5381cb: el alta y el paso del 0x697 no leen el subtipo; el único llamador (0x4473f9) pide el /0, pero
+// otro subtipo nace y sigue a su dueño igual, y con el dueño inactivo muere sin la cola ni la vida.
+TEST(GameDrawTailTest, ScrollTailOfAnotherSubtypeIsTheSame)
+{
+    std::array<Client::Scenes::JointState, 1> joints{};
+    Client::Scenes::FaunaObject owner;
+    owner.active = 1;
+    owner.previousPosition = {10, 20, 30};
+    glm::vec3 first{1, 2, 3}, second{4, 5, 6}, angles{};
+    const Client::World::FishEffectRequest request{.type = 0x697,
+                                                   .firstPosition = first,
+                                                   .secondPosition = second,
+                                                   .angles = angles,
+                                                   .subtype = 5,
+                                                   .ownerContext = &owner,
+                                                   .scale = 30,
+                                                   .key = -1,
+                                                   .skill = 0,
+                                                   .skillSerial = 0,
+                                                   .target = -1};
+    Client::Render::Models::CrtRandom random(7);
+    ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, random).HasValue());
+    auto& joint = joints[0];
+    EXPECT_EQ(joint.subtype, 5);
+    EXPECT_EQ(joint.life, 120);
+    EXPECT_EQ(joint.count, -1);
+    EXPECT_EQ(joint.maximumCount, 28);
+    EXPECT_EQ(joint.speed, 3.0f);
+    EXPECT_EQ(joint.width, 30.0f);
+    ASSERT_TRUE(Client::Scenes::StepJoints(joints).HasValue());
+    EXPECT_EQ(joint.position, owner.previousPosition);
+    EXPECT_EQ(joint.count, 0);
+    EXPECT_EQ(joint.life, 119);
+    owner.active = 0;
+    owner.previousPosition = {40, 50, 60};
+    ASSERT_TRUE(Client::Scenes::StepJoints(joints).HasValue());
+    EXPECT_FALSE(joint.alive);
+    EXPECT_EQ(joint.position, owner.previousPosition);
+    EXPECT_EQ(joint.count, 0);
+    EXPECT_EQ(joint.life, 119);
+}
+
 TEST(GameDrawTailTest, CrywolfJointCopiesItsOwnerTrailBeforeGrowingAndExpiring)
 {
     std::array<Client::Scenes::JointState, 1> joints{};

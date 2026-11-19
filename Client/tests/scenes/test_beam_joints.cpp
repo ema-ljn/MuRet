@@ -15,12 +15,14 @@
 
 #include <gtest/gtest.h>
 
+#include <array>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 // El 0x618 (BeamJoints.cpp): el alta 0x532125..0x5323ce y el paso 0x5381f3..0x538704, con los subtipos que el lote de
@@ -173,17 +175,41 @@ TEST(BeamJointsTest, TheFollowersTrackTheirOwnerUntilItDies)
     EXPECT_EQ(tested.random.State(), CrtRandom(Seed).State());
 }
 
-// 0x5382c9..0x53830e: la /0xe pide el 0x5d5/4 con (v; v · 0,1f; v · 0,1f), que el lote de partículas todavía no acepta:
-// corta ahí, ya en su lugar.
-TEST(BeamJointsTest, TheRedFollowersCutInTheirLightning)
+// 0x5382c9..0x53830e: la /0xe sigue el +0x40 del dueño y deja el 0x5d5/4 de escala 1 con la luz (v; v · 0,1f; v ·
+// 0,1f), v = sen(reloj · 0,002f) · 0,3f + 0,8f en la x87 (los bits, de una cuenta aparte: el seno exacto a 64 bits). La
+// partícula se repite en un pool gemelo con el mismo CrtRandom.
+TEST(BeamJointsTest, TheRedFollowersLeaveTheirLightning)
 {
-    BeamWorld tested;
-    ASSERT_TRUE(tested.Create(0xe, &tested.actor).HasValue());
-    const auto stepped = tested.Step();
-    if (stepped.HasValue())
-        GTEST_SKIP() << "el lote de partículas ya acepta el 0x5d5/4";
-    EXPECT_NE(stepped.Error().find("0x538309"), std::string::npos) << stepped.Error();
-    EXPECT_EQ(tested.joints[0].position, glm::vec3(10.0f, 20.0f, 30.0f));
+    for (const auto& [clock, light] : {std::pair{0.0f, std::array{0x3f4ccccdu, 0x3da3d70bu}},
+                                       std::pair{1000.0f, std::array{0x3f895128u, 0x3ddbb50eu}}})
+    {
+        SCOPED_TRACE(clock);
+        BeamWorld tested;
+        ASSERT_TRUE(tested.Create(0xe, &tested.actor).HasValue());
+        CrtRandom replay = tested.random;
+
+        ASSERT_TRUE(tested.Step(clock).HasValue());
+
+        const JointState& joint = tested.joints[0];
+        EXPECT_EQ(joint.position, glm::vec3(10.0f, 20.0f, 30.0f));
+        const glm::vec3 glow{std::bit_cast<float>(light[0]), std::bit_cast<float>(light[1]),
+                             std::bit_cast<float>(light[1])};
+        auto twin = std::make_unique<Client::World::Particles>();
+        ASSERT_TRUE(twin->CreateChecked(0x5d5, joint.position, joint.angles, glow, 4, 1.0f, clock, replay).HasValue());
+        const Client::World::Particle& made = tested.particles.All()[0];
+        const Client::World::Particle& expected = twin->All()[0];
+        ASSERT_TRUE(made.alive);
+        EXPECT_EQ(made.type, 0x5d5);
+        EXPECT_EQ(made.subtype, 4);
+        EXPECT_EQ(made.light, glow);
+        EXPECT_EQ(made.position, expected.position);
+        EXPECT_EQ(made.scale, expected.scale);
+        EXPECT_EQ(made.life, expected.life);
+        EXPECT_EQ(made.velocity, expected.velocity);
+        EXPECT_EQ(made.rotation, expected.rotation);
+        EXPECT_FALSE(tested.particles.All()[1].alive);
+        EXPECT_EQ(tested.random.State(), replay.State());
+    }
 }
 
 // 0x53214b..0x5321db: la /0xc, /0xd y /0x10 sacan el sentido (rand() impar: 1; par: −1), velocidad 10 y los ángulos x e
@@ -266,7 +292,7 @@ TEST(BeamJointsTest, TheSwervingBeamSpinsAndLeavesItsSprites)
 }
 
 // 0x538475..0x5385cd: debajo de vida 100 la /6 va hacia su propio destino (no lee al dueño): la velocidad + 5 hasta 30,
-// y a 35 o menos muere, deja el 0x5d5/1 y pide el sonido 0x23.
+// y a 35 o menos muere, deja el 0x5d5/1 y pide el sonido 0x23; después sigue con la luz y el 0x5d5/3.
 TEST(BeamJointsTest, TheOwnerlessBeamGoesToItsOwnTarget)
 {
     BeamWorld tested;
@@ -274,16 +300,40 @@ TEST(BeamJointsTest, TheOwnerlessBeamGoesToItsOwnTarget)
     ASSERT_TRUE(tested.Create(6, nullptr).HasValue());
     tested.joints[0].life = 50;
     tested.joints[0].speed = 0.0f;
+    CrtRandom replay = tested.random;
 
     const auto stepped = tested.Step();
 
     EXPECT_EQ(tested.joints[0].targetPosition, glm::vec3(1300.0f, 1020.0f, 100.0f));
     EXPECT_FALSE(tested.joints[0].alive);
     EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x23});
-    // Después, el 0x5d5/3 del paso: hasta que el lote de partículas lo acepte, corta.
-    if (!stepped.HasValue())
+    // 0x5385d3..0x538704: después, la luz ((rand() & 3) + 8) · 0,03f y el 0x5d5/3 de escala 0,05f con su luz
+    // (0x5386ff). El 0x5d5/1 del choque, el rand() de la luz y el 0x5d5/3, en ese orden, en un pool gemelo con el mismo
+    // CrtRandom.
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    const JointState& joint = tested.joints[0];
+    auto twin = std::make_unique<Client::World::Particles>();
+    ASSERT_TRUE(
+        twin->CreateChecked(0x5d5, joint.position, joint.angles, joint.light, 1, 1.0f, 0.0f, replay).HasValue());
+    static_cast<void>(replay.Next());
+    ASSERT_TRUE(twin->CreateChecked(0x5d5, joint.position, joint.angles, joint.light, 3,
+                                    std::bit_cast<float>(0x3d4ccccdu), 0.0f, replay)
+                    .HasValue());
+    EXPECT_EQ(tested.random.State(), replay.State());
+    for (std::size_t slot = 0; slot < 2; ++slot)
     {
-        EXPECT_NE(stepped.Error().find("0x5386ff"), std::string::npos) << stepped.Error();
+        SCOPED_TRACE(slot);
+        const Client::World::Particle& made = tested.particles.All()[slot];
+        const Client::World::Particle& expected = twin->All()[slot];
+        ASSERT_TRUE(made.alive);
+        EXPECT_EQ(made.type, expected.type);
+        EXPECT_EQ(made.subtype, expected.subtype);
+        EXPECT_EQ(made.scale, expected.scale);
+        EXPECT_EQ(made.position, expected.position);
+        EXPECT_EQ(made.light, expected.light);
+        EXPECT_EQ(made.life, expected.life);
+        EXPECT_EQ(made.velocity, expected.velocity);
     }
+    EXPECT_FALSE(tested.particles.All()[2].alive);
 }
 } // namespace

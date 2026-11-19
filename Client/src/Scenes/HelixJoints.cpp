@@ -56,7 +56,7 @@ Core::Expected<void, std::string> CreateHelixJoint(JointState& joint, const Worl
     else
     {
         // 0x53405c..0x53408d: vida 110, 200 puntos (el tope de 0x534cb6 los deja en 50) y la luz del dueño (+0xf4: el
-        // efecto 0x812); sin dueño, el original lee de 0.
+        // efecto 0x812); sin dueño, el original desreferencia el puntero nulo (0x534070) y revienta.
         if (joint.ownerKind != JointOwnerKind::ModelEffect || joint.ownerContext == nullptr)
             return Core::Unexpected(std::format("0x534070: falta el efecto dueño del joint {:#x}/4", joint.type));
         joint.life = 0x6e;

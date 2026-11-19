@@ -238,6 +238,16 @@ std::optional<double> GroundHeight(const WorldState& world, const GameCharacterP
     return World::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y, pass.fixedHeight);
 }
 
+// La misma altura como función para el cuerpo (MonsterBodyFrame::terrainHeight); vacía sin las alturas o los atributos.
+std::function<double(float, float)> BodyTerrainHeight(const WorldState& world, const GameCharacterPass& pass)
+{
+    const World::WorldTerrain& terrain = pass.terrain != nullptr ? *pass.terrain : world.Map().terrain;
+    if (!terrain.heights || !terrain.attributes)
+        return {};
+    return [&terrain, fixed = pass.fixedHeight](float x, float y)
+    { return World::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y, fixed); };
+}
+
 // 0x4eb860 (0x4eb86d..0x4eb94c): la key que deja en +0xa8 del modelo, el frame (+0x114) por 0x69fd3c en un short, en 0
 // si es negativa o si llega a las keys de la acción del modelo (+0xa0, en 0 si el modelo no la tiene). Sin acciones no
 // la toca; con un frame infinito, el original no está observado: tampoco.
@@ -421,7 +431,9 @@ Result DrawTheBody(MonsterFrame& frame, const Render::Models::Skeleton& skeleton
                           { runtime.RequestSound(sound); },
                           .originalFrame = frame.originalFrame,
                           .cameraShake = frame.pass.cameraShake,
-                          .effects = frame.pass.effects};
+                          .effects = frame.pass.effects,
+                          .terrainHeight = BodyTerrainHeight(frame.world, frame.pass),
+                          .joints = frame.world.DrawTail().joints};
     return DrawMonsterBody(body);
 }
 

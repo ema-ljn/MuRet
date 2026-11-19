@@ -294,19 +294,22 @@ Core::Expected<void, std::string> StepFallingStone(ModelEffect& effect, const Mo
     return {};
 }
 
-// 0x523985 con el subtipo 1 de c8/c9: suma la velocidad girada, aplica el arrastre y acelera en Z sin leer el suelo.
+// 0x523985 con el subtipo 1 de c8/c9: suma la velocidad girada, aplica el arrastre y acelera en Z sin leer el suelo; la
+// /2 hace lo mismo y además gira 20 en z (0x523a3f..0x523a4d, después del movimiento).
 // 0x5239c8..0x523b3a con el subtipo 0 y el 10: la velocidad sin girar sumada y por 0,9f (0x6b8a1c), la caída +0xe4
 // que pierde 3; en el suelo se apoya, rebota a −0,5, pierde 4 de vida y se inclina escala · 128 (si no, ·
 // 32); con el subtipo 0 y rand() % 10 en 0, un fuego 5d9 con el subtipo rand() % 3 + 1. El 10 (el de la piedra
 // 0x118/0x119) sale en 0x523ad5 sin ese rand(). El 5 sigue a su dueño (y salta la cola) y el resto no está portado.
 // El pedazo de hielo 0xca (CL9 hito 3, de 0x52e810) entra directo en 0x523974 y da el mismo paso; con el rand() % 10
-// en 0 suelta, en lugar del fuego y sin otro rand(), el aliento 5f2/0 con escala 1 (0x523af4 y 0x523b47).
+// en 0 suelta, en lugar del fuego y sin otro rand(), el aliento 5f2/0 con escala 1 (0x523af4 y 0x523b47). El 0xe5 y el
+// 0xe6 con el subtipo 0 (los de la muerte del 0x16b) llegan desde 0x523974 (0x523926 con otro subtipo que el 5) y dan
+// el mismo paso; su rand() % 10 no suelta nada (0x523b10).
 Core::Expected<void, std::string> StepStoneChip(ModelEffect& effect, Particles& particles, float worldClock,
                                                 Render::Models::CrtRandom& random,
                                                 const ModelEffectStepServices& services)
 {
     const bool rising = (effect.type == FirstStoneChipEffect || effect.type == SecondStoneChipEffect) &&
-                        effect.subtype == RisingStoneChipSubtype;
+                        (effect.subtype == RisingStoneChipSubtype || effect.subtype == SpinningStoneChipSubtype);
     if (!rising && effect.subtype != 0 && effect.subtype != GroundStoneChipSubtype)
         return Core::Unexpected(std::format("{}: el paso de la piedrita {:#x} con el subtipo {} no está portado",
                                             effect.type == IceShardEffect ? "0x523974" : "0x5238be", effect.type,
@@ -327,7 +330,10 @@ Core::Expected<void, std::string> StepStoneChip(ModelEffect& effect, Particles& 
     position.z = F32(static_cast<double>(position.z) + static_cast<double>(effect.turnDirection));
     if (rising)
     {
+        constexpr double Spin = 20.0;        // 0x6b86d0
         constexpr double Acceleration = 0.5; // 0x6b882c.
+        if (effect.subtype != RisingStoneChipSubtype)
+            effect.transform.angles.z = F32(static_cast<double>(effect.transform.angles.z) + Spin);
         effect.turnDirection = F32(static_cast<double>(effect.turnDirection) + Acceleration);
         return {};
     }
@@ -356,12 +362,73 @@ Core::Expected<void, std::string> StepStoneChip(ModelEffect& effect, Particles& 
                                                 static_cast<int>(breath.Error())));
         return {};
     }
+    // 0x523b06..0x523b10: el 0xe5 y el 0xe6 sacan el rand() % 10 y no sueltan nada.
+    if (effect.type == FirstSplinterEffect || effect.type == SecondSplinterEffect)
+        return {};
     const int subtype = random.Next() % FireSubtypes + 1;
     const auto created = particles.CreateChecked(FireParticle, position, effect.transform.angles, effect.light, subtype,
                                                  1.0f, worldClock, random);
     if (!created.HasValue())
         return Core::Unexpected(std::format("0x523b3a: no se pudo crear el fuego 5d9/{} de la piedrita", subtype));
     return {};
+}
+
+// 0x52ae9a..0x52b019, el 0x5de/3 (la columna de la mano derecha del 0x1a4, 0x441b7c): tres veces la llama 5de/6 en su
+// posición y, a ±5 en x e y y 40 más arriba, la brasa 6ec/0 de 2,8f; después, a ±5 y 40 más abajo, el humo 5f2/0x15 de
+// 0,8f, todos con la luz local en blanco; la piedrita 0xc8 + rand() % 2 con el subtipo 0xc (0x52afe1), cuya alta
+// (0x51b426) MuRet no tiene: con lugar en la tabla corta ahí, después de su rand(); y la luz dinámica (L; L · 0,4f; 0)
+// de radio 3.
+Core::Expected<void, std::string> StepFlameColumn(ModelEffect& effect, float luminosity, Particles& particles,
+                                                  float worldClock, Render::Models::CrtRandom& random,
+                                                  const ModelEffectStepServices& services)
+{
+    constexpr int Flames = 3, Spread = 10, Center = 5;
+    constexpr double Rise = 40.0; // 0x6b8bf4
+    constexpr std::int32_t ColumnFlameSubtype = 6, EmberParticle = 0x6ec, ColumnSmokeSubtype = 0x15;
+    constexpr float EmberScale = std::bit_cast<float>(0x40333333u); // 2,8f
+    constexpr float SmokeScale = std::bit_cast<float>(0x3f4ccccdu); // 0,8f
+    const glm::vec3 white(1.0f);
+    const glm::vec3& position = effect.transform.position;
+    const auto aside = [&random, &position](double height)
+    {
+        const auto dx = static_cast<float>(random.Next() % Spread - Center);
+        const auto dy = static_cast<float>(random.Next() % Spread - Center);
+        return glm::vec3{F32(static_cast<double>(dx) + static_cast<double>(position.x)),
+                         F32(static_cast<double>(dy) + static_cast<double>(position.y)),
+                         F32(static_cast<double>(position.z) + height)};
+    };
+    for (int flame = 0; flame < Flames; ++flame)
+    {
+        if (!particles
+                 .CreateChecked(FlameParticle, position, effect.transform.angles, white, ColumnFlameSubtype, 1.0f,
+                                worldClock, random)
+                 .HasValue())
+            return Core::Unexpected(std::string("0x52aeb7: no se pudo crear la llama 5de/6 de la columna"));
+        const glm::vec3 ember = aside(Rise);
+        if (!particles
+                 .CreateChecked(EmberParticle, ember, effect.transform.angles, white, 0, EmberScale, worldClock, random)
+                 .HasValue())
+            return Core::Unexpected(std::string("0x52af29: no se pudo crear la brasa 6ec/0 de la columna"));
+    }
+    const glm::vec3 smoke = aside(-Rise);
+    if (!particles
+             .CreateChecked(BreathParticle, smoke, effect.transform.angles, white, ColumnSmokeSubtype, SmokeScale,
+                            worldClock, random)
+             .HasValue())
+        return Core::Unexpected(std::string("0x52afab: no se pudo crear el humo 5f2/0x15 de la columna"));
+    constexpr int ChipKinds = 2;
+    constexpr std::int32_t ColumnChipSubtype = 0xc;
+    const auto chip = static_cast<std::int16_t>(FirstStoneChipEffect + random.Next() % ChipKinds);
+    if (services.effects == nullptr)
+        return Core::Unexpected(std::string("0x52afe1: la columna 0x5de/3 pide la tabla de efectos (0x518cf0)"));
+    if (std::ranges::any_of(services.effects->Effects(), [](const ModelEffect& slot) { return !slot.alive; }))
+        return Core::Unexpected(std::format("0x52afe1: la piedrita {:#x}/{:#x} de la columna 0x5de/3 (0x518cf0, "
+                                            "0x51b426) no está portada (CL11)",
+                                            chip, ColumnChipSubtype));
+    constexpr std::int32_t LightRadius = 3;
+    constexpr double Orange = static_cast<double>(std::bit_cast<float>(0x3ecccccdu)); // 0x6b87b4, 0,4f
+    const glm::vec3 light{luminosity, F32(static_cast<double>(luminosity) * Orange), 0.0f};
+    return AddDynamicLight(services.lighting, position, light, LightRadius, "0x52b011");
 }
 
 // 0x52ad21..0x52ae7a con el subtipo 0: seis llamas 5de/0 a ±25 en x e y con la luz local en blanco (los dos
@@ -373,6 +440,8 @@ Core::Expected<void, std::string> StepFlameJet(ModelEffect& effect, float lumino
                                                float worldClock, Render::Models::CrtRandom& random,
                                                const ModelEffectStepServices& services)
 {
+    if (effect.subtype == FlameColumnSubtype)
+        return StepFlameColumn(effect, luminosity, particles, worldClock, random, services);
     if (effect.subtype != 0)
         return Core::Unexpected(
             std::format("0x52ae7f: el paso del chorro 0x5de con el subtipo {} no está portado", effect.subtype));
@@ -599,6 +668,10 @@ Core::Expected<void, std::string> StepFadingDecal(const ModelEffect& effect, Par
     return {};
 }
 
+// 0x5263d6..0x5264fa: el 0x145/2 (la marea de Crywolf). La escala sube 0,2f debajo de 0,8f (un NaN también) o baja
+// 0,4f; +0x68 en vida · 0,1f y +0x6c en vida · −0,2f; el punto (0, −500, 0) girado por los ángulos con la z + 7, seis
+// humos 0x5f2/25 con esos ángulos, la luz del efecto, escala 1 y sin dueño (0x5264be), y la luz (L · 0,3f; L · 0,6f;
+// L) de radio 3.
 Core::Expected<void, std::string> StepCrywolfTide(ModelEffect& effect, Particles& particles, float clock,
                                                   Render::Models::CrtRandom& random, float luminosity,
                                                   const ModelEffectStepServices& services)
@@ -620,7 +693,8 @@ Core::Expected<void, std::string> StepCrywolfTide(ModelEffect& effect, Particles
         const auto made = particles.CreateChecked(BreathParticle, point, angles, effect.light, CrywolfTideSmokeSubtype,
                                                   1, clock, random);
         if (!made.HasValue())
-            return Core::Unexpected(std::string("0x5264be: el humo5f2/25 de145 no está portado"));
+            return Core::Unexpected(std::format("0x5264be: el humo 0x5f2/25 del 0x145 falla con error {}",
+                                                static_cast<unsigned>(made.Error())));
     }
     const glm::vec3 light{F32(static_cast<double>(luminosity) * static_cast<double>(0.3f)),
                           F32(static_cast<double>(luminosity) * static_cast<double>(0.6f)), luminosity};
@@ -1732,7 +1806,9 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
             return stepped;
     }
     else if (effect.type == FirstStoneChipEffect || effect.type == SecondStoneChipEffect ||
-             effect.type == IceShardEffect || (effect.type == 0xe5 && effect.subtype == GroundStoneChipSubtype))
+             effect.type == IceShardEffect ||
+             (effect.type == FirstSplinterEffect && effect.subtype == GroundStoneChipSubtype) ||
+             ((effect.type == FirstSplinterEffect || effect.type == SecondSplinterEffect) && effect.subtype == 0))
     {
         wholeStep = true;
         if (auto stepped = StepStoneChip(effect, particles, worldClock, random, services); !stepped.HasValue())

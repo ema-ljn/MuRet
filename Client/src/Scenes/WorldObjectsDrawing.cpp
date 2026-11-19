@@ -49,6 +49,7 @@
 #include "Render/Models/OriginalRotation.h"
 #include "World/TerrainCulling.h"
 #include "World/TerrainLighting.h"
+#include "World/WizardModelEffects.h"
 #include "World/WorldObjects.h"
 
 #include <glm/ext/vector_float2.hpp>
@@ -82,6 +83,12 @@ constexpr int LoginCloudChance = 5;
 constexpr std::int16_t LoginMeteorMarker = 0x59;
 constexpr std::int32_t LoginMeteorPeriod = 8000; // 0x604414
 constexpr std::int32_t LoginMeteorWindow = 7950; // 0x60441b
+// 0x60442c y 0x604451: rand() & 0x7ff (el resto de 2048, con signo, de un rand() que no es negativo).
+constexpr int LoginMeteorSpreadMask = 0x7ff;
+constexpr double LoginMeteorSpreadHalf = 1024.0; // 0x6b89b8
+constexpr int LoginMeteorRiseSpan = 600;         // 0x604477
+constexpr double LoginMeteorRise = 3000.0;       // 0x6b8c10
+constexpr std::int32_t LoginMeteorSubtype = 9;   // 0x60448a
 
 bool SectorPasses(const World::TerrainPolygon& polygon, int sectorX, int sectorY)
 {
@@ -207,14 +214,35 @@ Core::Expected<void, std::string> CreateObjectCloud(const World::WorldObject& ob
                                                     const ObjectFrameEffects& effects)
 {
     // 0x6043ff..0x604421: el 0x59 del mapa 55, con ftol(reloj del mundo) % 8000 desde 7950, suelta un meteoro: tres
-    // rand() (0x604427, 0x60444c, 0x604471: x e y en ±1024 y z + 3000 + rand() % 600) y 0x518cf0(0xc2, punto, +0x1c,
-    // +0xf4, 9, 0, −1, …). El login no da la tabla de los efectos con modelo ni su paso: corta antes de los rand().
+    // rand() (0x604427, 0x60444c, 0x604471) y 0x518cf0(0xc2, punto, +0x1c, +0xf4, 9, 0, −1, 0, 0, 0, 0) (0x6044b2).
     if (map == LoginCloudMap && object.type == LoginMeteorMarker)
     {
         if (World::FtolLow(static_cast<double>(clock)) % LoginMeteorPeriod < LoginMeteorWindow)
             return {};
-        return Core::Unexpected(std::string("0x604427: el meteoro 0xc2/9 del objeto 0x59 del mapa 55 (0x518cf0) "
-                                            "no tiene la tabla de los efectos con modelo en el login (CL11)"));
+        if (effects.modelEffects == nullptr)
+            return Core::Unexpected(std::string("0x604427: el meteoro 0xc2/9 del objeto 0x59 del mapa 55 (0x518cf0) "
+                                                "no tiene la tabla de los efectos con modelo (CL11)"));
+        // x e y: (rand() % 2048) + la del objeto − 1024 (0x60442c..0x60446e, fild, fadd y fsub en la x87); z: la del
+        // objeto + rand() % 600 + 3000 (0x604471..0x6044af), con el resto sumado primero.
+        glm::vec3 point{};
+        for (int axis = 0; axis < 2; ++axis)
+            point[axis] = static_cast<float>((static_cast<double>(effects.random->Next() & LoginMeteorSpreadMask) +
+                                              static_cast<double>(object.transform.position[axis])) -
+                                             LoginMeteorSpreadHalf);
+        point.z = static_cast<float>((static_cast<double>(effects.random->Next() % LoginMeteorRiseSpan) +
+                                      static_cast<double>(object.transform.position.z)) +
+                                     LoginMeteorRise);
+        const World::ModelEffectArguments meteor{.type = World::FireEffect,
+                                                 .position = point,
+                                                 .angles = object.transform.angles,
+                                                 .light = object.light,
+                                                 .subtype = LoginMeteorSubtype};
+        // El caso 9 del 0xc2 (0x51b280) sólo saca sus rand(): no pide servicios.
+        const auto created = World::CreateWizardModelEffect(*effects.modelEffects, meteor, *effects.random,
+                                                            World::WizardEffectServices{});
+        if (!created.HasValue())
+            return Core::Unexpected(created.Error() + ", en el meteoro del 0x59 (0x6044b2)");
+        return {};
     }
     // 0x6044bc: el marcador oculto del mapa 55, después del rand común, sin guard de escena.
     if (map != LoginCloudMap || object.type != LoginCloudMarker || effects.random->Next() % LoginCloudChance != 0 ||

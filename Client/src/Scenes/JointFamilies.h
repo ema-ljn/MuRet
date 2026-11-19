@@ -46,10 +46,13 @@ inline constexpr std::int32_t SecondSpiritJoint = 0x6ee;
                                                                 const JointKernels::StepServices& services);
 
 // El 0x60f/2 y el 0x60f/0x18 (DropJoints.cpp), la gota que el 0x613/2 suelta en su segundo paso (0x5396ff): alta
-// 0x533677 y 0x5340dc, y paso 0x53b156.
+// 0x533677 y 0x5340dc, y paso 0x53b156. La /0x13, que baja (alta 0x533a28 y paso 0x53a12c), la piden las columnas del
+// círculo 0xc3 con el 0x62b (0x5236ce y 0x523898). El 0x62b comparte el alta y el paso.
 inline constexpr std::int32_t DropJoint = 0x60f;
 inline constexpr std::int32_t DropSubtype = 2;
 inline constexpr std::int32_t DarkDropSubtype = 0x18;
+inline constexpr std::int32_t SinkingDropSubtype = 0x13;
+[[nodiscard]] bool IsDrop(std::int32_t type, std::int32_t subtype);
 void CreateDropJoint(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random);
 void StepDropJoint(JointState& joint);
 
@@ -76,7 +79,7 @@ CreateHelixJoint(JointState& joint, const World::FishEffectRequest& request, Ren
 [[nodiscard]] Core::Expected<void, std::string> StepHelixJoint(JointState& joint);
 
 // El 0x61c/2..6 (InfernoJoints.cpp): alta 0x534444..0x53463b y paso 0x53b6a0..0x53b7ec. La /4 (la skill 0x49,
-// 0x504b33) suelta en cada paso un 0x62b/6 y dos sprites; la /2 corta en su efecto 0xf6 (0x53b760).
+// 0x504b33) suelta en cada paso un 0x62b/6 y dos sprites; la /2, el efecto 0xf6/6 cada cinco vidas (0x53b760).
 inline constexpr std::int32_t InfernoJoint = 0x61c;
 [[nodiscard]] bool IsInferno(std::int32_t type, std::int32_t subtype);
 void CreateInfernoJoint(JointState& joint, const World::FishEffectRequest& request);
@@ -111,8 +114,12 @@ CreateBeamJoint(JointState& joint, const World::FishEffectRequest& request, Rend
 // El 0x632/7 y sus tres 0x632/6 (StormJoints.cpp): alta 0x534b27 y 0x534a16 y paso 0x53bec2. La /6 salta el primer
 // tramo (0x530a5c); FaunaJointCreation.cpp crea los tres /6 al final del alta de la /7 (0x534b3f..0x534bc0). La /5, la
 // estrella que cae del pulso 0x61c/0 del asedio (0x52c266, con el efecto de dueño, que no lee): alta 0x534bcb y paso
-// 0x53c0a5.
+// 0x53c0a5. La /0..3 caen como la /5 (la /0 de la 0x44, 0x4fe235, y la /1 de la 0x47, 0x4fe4e7, con el personaje
+// blanco de dueño, que sólo leen al llegar al suelo); la /4 (el rayo del 0x13a, 0x51e01a) sigue a su efecto de dueño:
+// alta 0x534977 y paso 0x53be90.
 inline constexpr std::int32_t StormJoint = 0x632;
+inline constexpr std::int32_t LastFallingSubtype = 3;
+inline constexpr std::int32_t BlastSubtype = 4;
 inline constexpr std::int32_t FallingStarSubtype = 5;
 inline constexpr std::int32_t BoltSubtype = 6;
 inline constexpr std::int32_t StormSubtype = 7;
@@ -129,4 +136,50 @@ inline constexpr std::int32_t SpiralJoint = 0x62c;
 CreateSpiralJoint(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random);
 [[nodiscard]] Core::Expected<void, std::string> StepSpiralJoint(JointState& joint,
                                                                 const JointKernels::StepServices& services);
+
+// El 0x5ac (FlareJoints.cpp): alta 0x530c93..0x530dd8 y paso 0x5359d7..0x535b32, sin la cola ni el movimiento comunes.
+// Los sesenta /0 del 0x114/0 (0x51c1b8) y del combo de BlastModelEffects (0x51c004), sin dueño.
+inline constexpr std::int32_t FlareJoint = 0x5ac;
+void CreateFlareJoint(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random);
+[[nodiscard]] Core::Expected<void, std::string> StepFlareJoint(JointState& joint);
+
+// El 0x60f y el 0x62b /0x10, /0xe y /0xf (OrbitJoints.cpp): alta 0x5337fa y 0x534132 y paso 0x53a5c7 y 0x53b18a. La
+// /0x10 es la columna de la lluvia de sombras 0xbd (0x51bcb0), con su personaje de dueño; la /0xe y la /0xf las pide el
+// efecto 0x60f (0x52b408 y 0x52b42b, con él de dueño, JointOwnerKind::ModelEffect), que MuRet no crea.
+inline constexpr std::int32_t ColumnSubtype = 0x10;
+inline constexpr std::int32_t WhirlSubtype = 0xe;
+inline constexpr std::int32_t MirroredWhirlSubtype = 0xf;
+[[nodiscard]] bool IsOrbit(std::int32_t type, std::int32_t subtype);
+[[nodiscard]] Core::Expected<void, std::string>
+CreateOrbitJoint(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random);
+[[nodiscard]] Core::Expected<void, std::string> StepOrbitJoint(JointState& joint,
+                                                               const JointKernels::StepServices& services);
+
+// El 0x61c/0 (SweepJoints.cpp): alta 0x5342e4 y paso 0x53b3e1, sin la cola ni el movimiento comunes. Lo pide el paso
+// del efecto 0x5be (0x52a72a), que MuRet no crea (0x4f9fae); con dueño y vida de más de 18, corta en 0x53b548 (el
+// héroe).
+inline constexpr std::int32_t SweepSubtype = 0;
+void CreateSweepJoint(JointState& joint, const World::FishEffectRequest& request);
+[[nodiscard]] Core::Expected<void, std::string> StepSweepJoint(JointState& joint,
+                                                               const JointKernels::StepServices& services);
+
+// El 0x14f (PlasmaJoints.cpp): alta 0x530ddd y paso 0x535b37, una vuelta por punto hacia su personaje dueño (0x4e9810).
+// Lo pide la 0x4c (0x5026a4..0x502841, AttackSkillCases.cpp), con el subtipo de 0x4f2230 (el +0x31b, pet.flags1b).
+inline constexpr std::int32_t PlasmaJoint = 0x14f;
+void CreatePlasmaJoint(JointState& joint, const World::FishEffectRequest& request);
+[[nodiscard]] Core::Expected<void, std::string> StepPlasmaJoint(JointState& joint,
+                                                                const JointKernels::StepServices& services);
+
+// El 0x610/5 y el 0x60f/0x29 y /0x2a (SparkJoints.cpp): las chispas del sexto ayudante de Kalima, el 0x196 (0x43e904;
+// alta 0x531dd0 y paso 0x537a00), y el que gira alrededor del NPC 257 (0x5165d1, con él de dueño; alta 0x5339a5 y paso
+// 0x53a039), que suelta las /0x29 (0x53a0eb; alta 0x533915 y paso 0x539fc2). La /0x2a no se mueve con el paso común.
+inline constexpr std::int32_t HelperSparkJoint = 0x610;
+inline constexpr std::int32_t HelperSparkSubtype = 5;
+inline constexpr std::int32_t FallingSparkleSubtype = 0x29;
+inline constexpr std::int32_t SpinningSparkleSubtype = 0x2a;
+[[nodiscard]] bool IsSpark(std::int32_t type, std::int32_t subtype);
+[[nodiscard]] Core::Expected<void, std::string>
+CreateSparkJoint(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random);
+[[nodiscard]] Core::Expected<void, std::string> StepSparkJoint(JointState& joint,
+                                                               const JointKernels::StepServices& services);
 } // namespace Client::Scenes::JointFamilies

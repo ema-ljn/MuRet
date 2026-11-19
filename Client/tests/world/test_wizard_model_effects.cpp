@@ -81,8 +81,10 @@ struct Harness
     double ground = 0.0;
     std::optional<WizardOwnerView> owner;
     int hero = 0;
-    bool someoneClose = false;
+    // Lo que devuelve el empujón (0x524a8d): un error del servicio corta el paso ahí.
+    std::string pushFailure;
     std::vector<std::pair<float, float>> pushes;
+    std::vector<ModelEffectArguments> others;
 
     WizardEffectServices Services()
     {
@@ -114,11 +116,17 @@ struct Harness
             },
             .ownRecordDepth = &depth,
             .ownRecordCount = &count,
-            .someoneToPush =
-                [this](float x, float y)
+            .otherEffect = [this](const ModelEffectArguments& arguments) -> Client::Core::Expected<void, std::string>
+            {
+                others.push_back(arguments);
+                return {};
+            },
+            .pushAround = [this](float x, float y) -> Client::Core::Expected<void, std::string>
             {
                 pushes.emplace_back(x, y);
-                return someoneClose;
+                if (!pushFailure.empty())
+                    return Client::Core::Unexpected(pushFailure);
+                return {};
             }};
     }
 
@@ -522,17 +530,58 @@ TEST(WizardModelEffectsTest, TheMapMeteorTrailsTwoSmokesOwnedByItself)
     EXPECT_NE(cut.Error().find("0x52497d"), std::string::npos) << cut.Error();
 }
 
-// 0x524a5f..0x524b2a: el 0xc2/4 que baja del suelo tiembla la cámara y mira los personajes del pool. Con alguno a 200
-// o menos, MuRet corta (0x4e9cd0 y 0x4ea030 no están); sin nadie, cae en el suelo como el meteoro (0x524c64): seis
-// piedritas, la explosión y muere.
-TEST(WizardModelEffectsTest, TheFallingFireLandsWhenNobodyIsClose)
+// 0x524c64..0x524e95: el 0xc2/6, /7 y /8 que pasa el suelo se apoya en él y suelta el 0xf6/2 (0x524d38: en su punto,
+// ángulos 0, luz (0; 0,5; 0), el meteoro de dueño y la clave 30), los humos de piedra 5f2/11 (15, 7 o 5), las seis
+// piedritas sólo el /6, el sonido 0x8f y la explosión 5ed/0; después, su brillo (0x524e99).
+TEST(WizardModelEffectsTest, TheGreenMeteorDropsItsBurstWhenItLands)
 {
-    for (const bool close : {false, true})
+    struct Case
     {
-        SCOPED_TRACE(close);
+        std::int32_t subtype;
+        std::size_t dust;
+        std::size_t chips;
+    };
+    for (const Case& tested : {Case{6, 15, 6}, Case{7, 7, 0}, Case{8, 5, 0}})
+    {
+        SCOPED_TRACE(tested.subtype);
+        Harness world;
+        CrtRandom random(21);
+        const std::size_t slot = Create(world, Arguments(0xc2, tested.subtype), random);
+        ModelEffect& meteor = world.At(slot);
+        world.ground = static_cast<double>(meteor.transform.position.z) + 5000.0;
+        const auto stepped = Client::World::StepWizardModelEffect(meteor, nullptr, random, world.Services());
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_FALSE(meteor.alive);
+        ASSERT_EQ(world.others.size(), 1U);
+        const ModelEffectArguments& burst = world.others[0];
+        EXPECT_EQ(burst.type, 0xf6);
+        EXPECT_EQ(burst.subtype, 2);
+        EXPECT_EQ(burst.owner, &meteor);
+        EXPECT_EQ(burst.key, 30);
+        EXPECT_EQ(burst.angles, glm::vec3(0.0f));
+        EXPECT_EQ(burst.light, glm::vec3(0.0f, 0.5f, 0.0f));
+        EXPECT_EQ(burst.position.z, static_cast<float>(world.ground));
+        EXPECT_EQ(burst.position.x, meteor.previousPosition.x);
+        EXPECT_EQ(world.ParticlesOf(0x5f2, 11), tested.dust);
+        EXPECT_EQ(world.AliveOf(0xc8) + world.AliveOf(0xc9), tested.chips);
+        EXPECT_EQ(world.ParticlesOf(0x5ed, 0), 1U);
+        ASSERT_FALSE(world.sounds.empty());
+        EXPECT_EQ(world.sounds.back(), 0x8f);
+    }
+}
+
+// 0x524a5f..0x524b2a: el 0xc2/4 que baja del suelo tiembla la cámara, empuja a los personajes del pool que estén
+// cerca (el servicio, en su punto) y cae en el suelo como el meteoro (0x524b27 → 0x524c64), haya empujado o no: seis
+// piedritas, la explosión y muere. Un error del empujón corta ahí, con el efecto vivo.
+TEST(WizardModelEffectsTest, TheFallingFirePushesAndLands)
+{
+    for (const bool fails : {false, true})
+    {
+        SCOPED_TRACE(fails);
         Harness world;
         world.ground = 1000.0;
-        world.someoneClose = close;
+        if (fails)
+            world.pushFailure = "0x524afc: prueba";
         CrtRandom random(16);
         ModelEffect& fire = world.At(Create(world, Arguments(0xc2, 4), random));
         const auto stepped = Client::World::StepWizardModelEffect(fire, nullptr, random, world.Services());
@@ -540,10 +589,10 @@ TEST(WizardModelEffectsTest, TheFallingFireLandsWhenNobodyIsClose)
         EXPECT_EQ(world.pushes[0].first, fire.transform.position.x);
         EXPECT_EQ(world.pushes[0].second, fire.transform.position.y);
         EXPECT_NE(world.shake, 0.0f);
-        if (close)
+        if (fails)
         {
             ASSERT_FALSE(stepped.HasValue());
-            EXPECT_NE(stepped.Error().find("0x524a8d"), std::string::npos) << stepped.Error();
+            EXPECT_EQ(stepped.Error(), "0x524afc: prueba");
             EXPECT_TRUE(fire.alive);
             continue;
         }
@@ -689,9 +738,9 @@ TEST(WizardModelEffectsTest, TheTwistingStormDropsARisingDrop)
 
 // 0x523101..0x52318f: el 0xcf/3..7 tiembla la cámara ((rand() & 7) − 4) · 0,1f y suelta en su punto la niebla 5f2/28,
 // /29 y /30 (0x523144, 0x52315d, 0x523176), con sus ángulos, su luz y la escala 1, que piden la altura del terreno y,
-// la /30, el seno del reloj. Después, con rand() & 1 en 0, la piedrita 0xc8 + (rand() & 1) con el subtipo 2 (0x52b14d),
-// que es de otro lote y corta. Con la tabla de partículas llena, la niebla no saca nada. Réplica en un pool gemelo con
-// el mismo CrtRandom.
+// la /30, el seno del reloj. Después, con rand() & 1 en 0, la piedrita 0xc8 + (rand() & 1) con el subtipo 2 (0x5231a9
+// → 0x52b14d), que nace como la /0 (0x51b72b) con sus cinco rand(). Con la tabla de partículas llena, la niebla no saca
+// nada. Réplica en un pool gemelo con el mismo CrtRandom.
 TEST(WizardModelEffectsTest, TheLittleStormsLeaveTheirMistOnTheGround)
 {
     bool calm = false, chipped = false;
@@ -725,22 +774,42 @@ TEST(WizardModelEffectsTest, TheLittleStormsLeaveTheirMistOnTheGround)
                                                             oracle, trigonometry, ground)
                                     .HasValue());
                 const bool chip = (oracle.Next() & 1) == 0;
-                if (chip)
-                    static_cast<void>(oracle.Next()); // 0x5231a9, el tipo de la piedrita.
-                const auto stepped = Client::World::StepWizardModelEffect(storm, nullptr, random, world.Services());
-                EXPECT_EQ(world.shake, shake);
+                auto twinEffects = std::make_unique<ModelEffects>();
+                std::optional<std::size_t> twinChip;
                 if (chip)
                 {
-                    ASSERT_FALSE(stepped.HasValue());
-                    EXPECT_NE(stepped.Error().find("0x52b14d"), std::string::npos) << stepped.Error();
+                    // 0x5231a9, el tipo de la piedrita, y su alta en una tabla gemela.
+                    const auto type = static_cast<std::int16_t>(0xc8 + (oracle.Next() & 1));
+                    twinChip = twinEffects->CreateStoneChip(type, at, angles, light, oracle, 2);
+                    ASSERT_TRUE(twinChip.has_value());
+                }
+                const auto stepped = Client::World::StepWizardModelEffect(storm, nullptr, random, world.Services());
+                ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+                EXPECT_EQ(world.shake, shake);
+                const auto chips =
+                    std::ranges::count_if(world.effects->Effects(), [](const ModelEffect& effect)
+                                          { return effect.alive && (effect.type == 0xc8 || effect.type == 0xc9); });
+                if (chip)
+                {
+                    ASSERT_EQ(chips, 1);
+                    const auto found = std::ranges::find_if(world.effects->Effects(), [](const ModelEffect& effect)
+                                                            { return effect.alive && effect.subtype == 2; });
+                    const ModelEffect& reference = twinEffects->Effects()[*twinChip];
+                    EXPECT_EQ(found->type, reference.type);
+                    EXPECT_EQ(found->transform.position, at);
+                    EXPECT_EQ(found->transform.angles, reference.transform.angles);
+                    EXPECT_EQ(found->transform.scale, reference.transform.scale);
+                    EXPECT_EQ(found->velocity, reference.velocity);
+                    EXPECT_EQ(found->life, reference.life);
+                    EXPECT_EQ(found->turnDirection, reference.turnDirection);
+                    EXPECT_EQ(found->light, light);
                     chipped = true;
                 }
                 else
                 {
-                    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+                    EXPECT_EQ(chips, 0);
                     calm = true;
                 }
-                // Con la piedrita, el corte llega después de sus dos rand(); sin ella, los de la niebla y el último.
                 EXPECT_EQ(random.State(), oracle.State());
                 if (full)
                     continue;
@@ -768,30 +837,75 @@ TEST(WizardModelEffectsTest, TheLittleStormsLeaveTheirMistOnTheGround)
     EXPECT_TRUE(chipped);
 }
 
-// 0x5231f6..0x52328c: el 0xcb/1 con vida 45 suelta sus joints 613/6; el primero saca su rand() % 10 (0x52321f) antes
-// del alta del joint (0x530860), que corta. Con la vida en 44 − +0x1bc del dueño o menos, nada.
-TEST(WizardModelEffectsTest, TheHiddenCircleDrawsItsFirstJointRandomBeforeTheCut)
+// 0x5231f6..0x5232f8: el 0xcb/1 con la vida por encima de 44 − +0x1bc del dueño suelta 36 joints 613/6 en abanico,
+// cada uno con su rand() % 10 (0x52321f) antes del alta: los ángulos (−10, 0, (r + 10) · i), el punto (x, y, z + 100)
+// en las dos posiciones, el efecto de dueño, ancho 60, la clave 0 y sin blanco. Con la vida justo en 45 − +0x1bc, un
+// 613/7 de ángulo 10 · i detrás de cada uno. Con la vida en 44 − +0x1bc o menos, nada.
+TEST(WizardModelEffectsTest, TheHiddenCircleFansItsRays)
 {
+    struct Case
+    {
+        std::uint8_t byte1bc;
+        std::int32_t life;
+        bool second;
+    };
+    for (const Case tested : {Case{0, 45, true}, Case{0, 46, false}, Case{3, 42, true}, Case{3, 43, false}})
+    {
+        SCOPED_TRACE(tested.life);
+        Harness world;
+        world.owner = WizardOwnerView{.alive = true, .byte1bc = tested.byte1bc};
+        CrtRandom random(15);
+        ModelEffectArguments arguments = Arguments(0xcb, 1);
+        int owner = 0;
+        arguments.owner = &owner;
+        ModelEffect& circle = world.At(Create(world, arguments, random));
+        circle.life = tested.life;
+        CrtRandom oracle = random;
+        static_cast<void>(oracle.Next()); // 0x5208c5, la luz del paso.
+        const auto stepped = Client::World::StepWizardModelEffect(circle, nullptr, random, world.Services());
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        ASSERT_EQ(world.joints.size(), tested.second ? 72U : 36U);
+        const glm::vec3 point{1000.0f, 2000.0f, 400.0f};
+        std::size_t next = 0;
+        for (int ray = 0; ray < 36; ++ray)
+        {
+            SCOPED_TRACE(ray);
+            const auto spread = static_cast<float>(oracle.Next() % 10 + 10);
+            const RecordedJoint& fan = world.joints[next++];
+            EXPECT_EQ(fan.type, 0x613);
+            EXPECT_EQ(fan.subtype, 6);
+            EXPECT_EQ(fan.first, point);
+            EXPECT_EQ(fan.second, point);
+            EXPECT_EQ(fan.angles, glm::vec3(-10.0f, 0.0f, spread * static_cast<float>(ray)));
+            EXPECT_EQ(fan.owner, &circle);
+            EXPECT_EQ(fan.scale, 60.0f);
+            EXPECT_EQ(fan.key, 0);
+            EXPECT_EQ(fan.target, -1);
+            if (!tested.second)
+                continue;
+            const RecordedJoint& trail = world.joints[next++];
+            EXPECT_EQ(trail.subtype, 7);
+            EXPECT_EQ(trail.first, point);
+            EXPECT_EQ(trail.angles, glm::vec3(-10.0f, 0.0f, 10.0f * static_cast<float>(ray)));
+            EXPECT_EQ(trail.owner, &circle);
+            EXPECT_EQ(trail.scale, 60.0f);
+            EXPECT_EQ(trail.key, 0);
+        }
+        EXPECT_EQ(random.State(), oracle.State());
+    }
+
     Harness world;
-    world.owner = WizardOwnerView{.alive = true};
+    world.owner = WizardOwnerView{.alive = true, .byte1bc = 3};
     CrtRandom random(15);
     ModelEffectArguments arguments = Arguments(0xcb, 1);
     int owner = 0;
     arguments.owner = &owner;
     ModelEffect& circle = world.At(Create(world, arguments, random));
-    ASSERT_EQ(circle.life, 45);
-    CrtRandom oracle = random;
-    static_cast<void>(oracle.Next()); // 0x5208c5, la luz del paso.
-    static_cast<void>(oracle.Next()); // 0x52321f.
-    const auto cut = Client::World::StepWizardModelEffect(circle, nullptr, random, world.Services());
-    ASSERT_FALSE(cut.HasValue());
-    EXPECT_NE(cut.Error().find("0x52328c"), std::string::npos) << cut.Error();
-    EXPECT_EQ(random.State(), oracle.State());
-
-    circle.life = 44;
+    circle.life = 41;
     CrtRandom quiet = random;
     static_cast<void>(quiet.Next());
     ASSERT_TRUE(Client::World::StepWizardModelEffect(circle, nullptr, random, world.Services()).HasValue());
+    EXPECT_TRUE(world.joints.empty());
     EXPECT_EQ(random.State(), quiet.State());
 }
 
@@ -871,6 +985,63 @@ TEST(WizardModelEffectsTest, TheBoneChipFallsAndDrawsItsTenWithoutFire)
     ASSERT_TRUE(Client::World::StepWizardModelEffect(bone, nullptr, random, world.Services()).HasValue());
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(15, 7).State());
     EXPECT_FALSE(world.particles->Any());
+}
+
+// 0x51b432..0x51b4ff, 0x51b509..0x51b5d6 y 0x51b612..0x51b658: las piedritas 0xd8 de subtipo 10 y 0xc nacen con el
+// empuje ((& 255) + 64) girado por el yaw rand() % 360, la vida (& 15) + 32, la escala ((& 3) + 15) y la caída (la /10
+// con 0,2 en double, 0,05f y + 28; la /0xc con 0,1f, 0,1f y + 8); la /0xb, con la vida 40, la escala ((& 3) + 8) ·
+// 0,8f y el yaw. En el paso, después del rand() de la luz, la /10 cae sin otro rand(), la /0xc saca el % 10 (0x523adb)
+// y la /0xb, con la vida en 10 o más, no hace nada.
+TEST(WizardModelEffectsTest, TheStonesOfSubtypesTenElevenAndTwelveAreBorn)
+{
+    for (const std::int32_t subtype : {10, 0xb, 0xc})
+    {
+        SCOPED_TRACE(subtype);
+        Harness world;
+        world.ground = -10000.0;
+        CrtRandom random(31);
+        ModelEffect& stone = world.At(Create(world, Arguments(0xd8, subtype), random));
+        CrtRandom oracle(31);
+        if (subtype == 0xb)
+        {
+            const auto scale = F32(static_cast<double>((oracle.Next() & 3) + 8) *
+                                   static_cast<double>(std::bit_cast<float>(0x3f4ccccdu)));
+            const auto yaw = static_cast<float>(oracle.Next() % 360);
+            EXPECT_EQ(stone.life, 40);
+            EXPECT_EQ(stone.transform.scale, scale);
+            EXPECT_EQ(stone.transform.angles, (glm::vec3{0.0f, 0.0f, yaw}));
+        }
+        else
+        {
+            const bool ground = subtype == 10;
+            const double pushStep = ground ? 0.2 : Tenth;
+            const double scaleStep = ground ? static_cast<double>(std::bit_cast<float>(0x3d4ccccdu)) : Tenth;
+            const auto push = F32(static_cast<double>((oracle.Next() & 255) + 64) * pushStep);
+            const std::int32_t life = (oracle.Next() & 15) + 32;
+            const auto scale = F32(static_cast<double>((oracle.Next() & 3) + 15) * scaleStep);
+            const auto yaw = static_cast<float>(oracle.Next() % 360);
+            const auto fall = static_cast<float>((oracle.Next() & 15) + (ground ? 28 : 8));
+            const glm::vec3 angles{0.0f, 0.0f, yaw};
+            EXPECT_EQ(stone.life, life);
+            EXPECT_EQ(stone.transform.scale, scale);
+            EXPECT_EQ(stone.transform.angles, angles);
+            EXPECT_EQ(stone.velocity, Client::Render::Models::OriginalVectorRotate(
+                                          {0.0f, push, 0.0f}, Client::Render::Models::OriginalAngleMatrix(angles)));
+            EXPECT_EQ(stone.turnDirection, fall);
+        }
+        EXPECT_EQ(random.State(), oracle.State());
+        const float alpha = stone.alpha;
+        ASSERT_TRUE(Client::World::StepWizardModelEffect(stone, nullptr, random, world.Services()).HasValue());
+        static_cast<void>(oracle.Next()); // 0x5208c5, la luz del paso.
+        if (subtype == 0xc)
+            static_cast<void>(oracle.Next()); // 0x523adb, el % 10 sin fuego.
+        EXPECT_EQ(random.State(), oracle.State());
+        if (subtype == 0xb)
+        {
+            EXPECT_EQ(stone.alpha, alpha);
+        }
+        EXPECT_FALSE(world.particles->Any());
+    }
 }
 
 TEST(WizardModelEffectsTest, TheLaserAcceleratesBackwards)

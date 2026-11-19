@@ -13,10 +13,12 @@
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/FaunaJointCreation.h"
+#include "Scenes/GameDrawTail.h"
 #include "Scenes/HeroAttack.h"
 #include "Scenes/HighModelEffects.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/PlayerActionSpeeds.h"
+#include "Scenes/SkillBurstEffects.h"
 #include "Scenes/WizardEffects.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
@@ -44,11 +46,6 @@ namespace Client::Scenes
 {
 namespace
 {
-bool HasFreeEffect(const CharacterStepContext& context)
-{
-    return std::ranges::any_of(context.world.Map().effects.Effects(), [](const auto& effect) { return !effect.alive; });
-}
-
 // 0x518cf0 de un tipo alto (Scenes/HighModelEffects) desde un caso, con la dirección del llamador delante del error.
 Core::Expected<void, std::string> CreateHighEffect(const World::ModelEffectArguments& arguments,
                                                    const CharacterStepContext& context, std::uint32_t address)
@@ -56,13 +53,6 @@ Core::Expected<void, std::string> CreateHighEffect(const World::ModelEffectArgum
     if (auto made = CreateHighModelEffect(arguments, HighContextOf(context)); !made.HasValue())
         return Core::Unexpected(std::format("{:#x}: {}", address, made.Error()));
     return {};
-}
-
-bool HasFreeJoint(const CharacterStepContext& context)
-{
-    // Una tabla no prestada sigue siendo una capacidad ausente, no una tabla nativa llena.
-    return context.joints.empty() ||
-           std::ranges::any_of(context.joints, [](const auto& joint) { return !joint.alive; });
 }
 
 constexpr std::uint16_t PlayerType = Data::Models::PlayerSkeletonModel;
@@ -146,13 +136,6 @@ glm::vec3 BonePoint(const ActorState& actor, std::size_t bone, const glm::vec3& 
                                                      placement.origin);
 }
 
-// Tres rand() por punto del lazo de un caso que corta en su primer efecto: el lazo saca los del primero y corta.
-void DrawThePoint(const CharacterStepContext& context)
-{
-    for (int axis = 0; axis < 3; ++axis)
-        static_cast<void>(context.random.Next());
-}
-
 // 0x4f98a0..0x4f9bcd: la 0x2b.
 Core::Expected<void, std::string> StepTheSkill2b(ActorState& actor, std::uint8_t skill, std::size_t slot,
                                                  const CharacterStepContext& context)
@@ -176,18 +159,52 @@ Core::Expected<void, std::string> StepTheSkill2b(ActorState& actor, std::uint8_t
     if (step == SoundStep)
         RequestTheSound(context, ChargeSound);
     // 0x4f9918..0x4f9a07: de 2 a 8, tres veces la posición con z + 120 (0x6b86c8), tres rand() % 0x259 − 300 sumados
-    // (x, y, z), menos el seno del rumbo · 1.400 en x y más el coseno en y (0x6ba188), y
-    // 0x530860(0x10f, punto, punto, o+0x1c, 2, o, 40,0f, −1, 0, 0, −1).
+    // (x, y, z), menos el seno del rumbo · 1.400 en x y más el coseno en y (0x6ba188; FSIN y FCOS retenidos, un solo
+    // redondeo con el FMUL), y 0x530860(0x10f, punto, punto, o+0x1c, 2, o, 40,0f, −1, 0, 0, −1): el joint va de la
+    // mano (o+0x194) hacia el punto (AuraJoints.cpp). Con el pool lleno, los rand() igual.
     constexpr std::uint8_t FirstBoltStep = 2;
     constexpr std::uint8_t LastBoltStep = 8;
     if (step >= FirstBoltStep && step <= LastBoltStep)
     {
-        for (int bolt = 0; bolt < 3; ++bolt)
+        constexpr int Bolts = 3;
+        constexpr double Lift = 120.0;                // 0x6b86c8
+        constexpr int Spread = 0x259, Center = 0x12c; // 0x4f995f, 0x4f9966
+        constexpr float BoltReach = 1400.0f;          // 0x6ba188
+        constexpr std::int32_t BoltJoint = 0x10f, BoltSubtype = 2;
+        constexpr float BoltWidth = 40.0f; // 0x42200000
+        for (int bolt = 0; bolt < Bolts; ++bolt)
         {
-            DrawThePoint(context);
-            if (HasFreeJoint(context))
-                return CutAt(0x4f99fe, "el primero de los tres joints 0x10f/2 hacia o+0x194 (CL11)", skill, actor,
-                             slot);
+            glm::vec3 point{actor.position.x, actor.position.y,
+                            static_cast<float>(static_cast<double>(actor.position.z) + Lift)};
+            for (int axis = 0; axis < 3; ++axis)
+            {
+                const int jitter = context.random.Next() % Spread - Center;
+                point[axis] = static_cast<float>(static_cast<double>(jitter) + static_cast<double>(point[axis]));
+            }
+            const double angle = static_cast<double>(actor.angles.z) * Degree;
+            const auto sine = Render::Models::Detail::SineProductPC53(angle, BoltReach);
+            const auto cosine = Render::Models::Detail::CosineProductPC53(angle, BoltReach);
+            if (!sine || !cosine)
+                return Core::Unexpected(std::format(
+                    "0x4f99e2: el rumbo {} de los rayos de la {:#x} no cabe en el perfil PC53", actor.angles.z, skill));
+            point.x = static_cast<float>(static_cast<double>(point.x) - *sine);
+            point.y = static_cast<float>(*cosine + static_cast<double>(point.y));
+            if (context.joints.empty())
+                return CutAt(0x4f99fe, "falta el pool de joints de los 0x10f/2", skill, actor, slot);
+            const World::FishEffectRequest request{.type = BoltJoint,
+                                                   .firstPosition = point,
+                                                   .secondPosition = point,
+                                                   .angles = actor.angles,
+                                                   .subtype = BoltSubtype,
+                                                   .ownerContext = &actor,
+                                                   .scale = BoltWidth,
+                                                   .key = -1,
+                                                   .skill = 0,
+                                                   .skillSerial = 0,
+                                                   .target = -1};
+            if (auto created = CreateFaunaJoint(context.joints, request, context.random, JointOwnerKind::Actor);
+                !created.HasValue())
+                return Core::Unexpected(std::format("0x4f99fe: {}", created.Error()));
         }
     }
     // 0x4f9a0d..0x4f9a80: hasta 8, 0x4ec110 con el hueso y (0, 0, 0) a o+0x194; después, o+0x194 más el seno del
@@ -491,15 +508,21 @@ Core::Expected<void, std::string> StepTheSkill37(ActorState& actor, std::uint8_t
     // 0x4f9f87: 0x59fb80(0x37, 0, 0, 0), el lugar de la skill en el registro propio.
     constexpr std::uint8_t ThrowSkill = 0x37;
     const std::int32_t index = OwnSkillIndex(context, ThrowSkill);
-    // 0x4f9fae: 0x518cf0(0x5be, o+0x10, o+0x1c, o+0xf4, 0, o, o+0x8a, lugar). Detrás (0x4f9fb3..0x4fa47e): el registro
-    // propio abierto y cerrado en línea para fijar la velocidad de la acción 0x3d de Player.bmd (+0x3d4 de las acciones
-    // de +0x30 del modelo 0x20a) en +0x4c · 0,004f + 0,54f (0x6b89e8, 0x6ba17c), y +0x381 en 15.
-    if (HasFreeEffect(context))
-        return Core::Unexpected(
-            std::format("0x4f9fae: el efecto 0x5be (clave {:#x}, lugar {}) de la habilidad {:#x} del "
-                        "lugar {}, sin portar (CL11); detrás, la velocidad de la acción 0x3d y +0x381 "
-                        "en 15",
-                        actor.word8a, index, skill, slot));
+    // 0x4f9fae: 0x518cf0(0x5be, o+0x10, o+0x1c, o+0xf4, 0, o, o+0x8a, lugar, 0, 0, 0) (Scenes/SkillBurstEffects).
+    // Detrás (0x4f9fb3..0x4fa47e): el registro propio abierto y cerrado en línea para fijar la velocidad de la acción
+    // 0x3d de Player.bmd (+0x3d4 de las acciones de +0x30 del modelo 0x20a) en +0x4c · 0,004f + 0,54f (0x6b89e8,
+    // 0x6ba17c), y +0x381 en 15.
+    if (auto made = CreateHighEffect({.type = SweepEmitterEffect,
+                                      .position = actor.position,
+                                      .angles = actor.angles,
+                                      .light = actor.light,
+                                      .subtype = 0,
+                                      .owner = &actor,
+                                      .key = static_cast<std::uint16_t>(actor.word8a),
+                                      .byte89 = static_cast<std::uint8_t>(index)},
+                                     context, 0x4f9fae);
+        !made.HasValue())
+        return Core::Unexpected(std::format("{} (la habilidad {:#x} del lugar {})", made.Error(), skill, slot));
     float product = 0.0f;
     {
         const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,

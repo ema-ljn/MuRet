@@ -217,6 +217,51 @@ Core::Expected<void, std::string> StepTheRise(JointState& joint, const JointKern
     joint.width = F32(D(joint.width) - 5);
     return {};
 }
+// 0x535dbe..0x535ee4: el 0x10f/2 de la 0x2b (0x4f99fe). Sin dueño vivo, lo suelta y sigue en la cola. Con él, el
+// ancho es la vida · 3 y la posición va de la mano del dueño (+0x194, la que deja 0x4f9a0d) hacia el destino
+// (+0x58) corrido por la dirección de 0x53d1a0(17721 · lugar, dir, 1,4f) · 300: con a = (vida − 10) · 0,1 entre 0 y
+// 1, (1 − a) · mano + a · punto. La x del punto suma el producto sin guardarlo en float.
+Core::Expected<void, std::string> StepTheBeam(JointState& joint, const JointKernels::StepServices& services)
+{
+    const auto* owner = JointKernels::ActorOwner(joint);
+    if (owner == nullptr || !owner->alive)
+    {
+        joint.ownerContext = nullptr; // 0x535ee9
+        return {};
+    }
+    constexpr double WidthPerLife = 3.0;                                                // 0x6b86b8
+    constexpr std::int32_t FadeStart = 10;                                              // 0x535ddb
+    constexpr double FadeRate = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b8a34, 0,1f
+    joint.width = F32(static_cast<double>(joint.life) * WidthPerLife);
+    const double fade = static_cast<double>(joint.life - FadeStart) * FadeRate;
+    // 0x535df6..0x535e35: menor que 1 y no menor que 0, guardado en float; si no, 0 o 1.
+    float near = 1.0f;
+    if (fade < 1.0)
+        near = fade >= 0.0 ? F32(fade) : 0.0f;
+    const float far = F32(1.0 - D(near));
+    // 0x535e3c..0x535e66 y 0x53d1a0..0x53d1f4: el acceso al contador de pasos (0x7d3a0f0), como el hada.
+    if (services.cloth == nullptr || services.random == nullptr)
+        return Core::Unexpected(std::string("0x535e66: falta el contador compartido del joint 0x10f/2"));
+    const auto steps = std::bit_cast<std::uint32_t>(services.cloth->logicSteps);
+    if (services.cloth->openCounterAccesses == 0)
+        for (std::uint16_t draw = 0; draw < Render::Models::SmallLogicalCloseRandoms; ++draw)
+            static_cast<void>(services.random->Next());
+    constexpr std::uint32_t PhaseStride = 17721;                        // 0x535e4e..0x535e62
+    constexpr float DirectionScale = std::bit_cast<float>(0x3fb33333u); // 0x535e3f, 1,4f
+    const auto phase = std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(services.index) * PhaseStride + steps);
+    const auto direction = Render::Models::Detail::ScaledFaunaDirectionPC53(phase, DirectionScale);
+    if (!direction)
+        return Core::Unexpected(std::string("0x535e66: la dirección del joint 0x10f/2 excede el perfil PC53"));
+    constexpr double Reach = 300.0; // 0x6b8900
+    const glm::vec3 point{F32(D((*direction)[0]) * Reach + D(joint.targetPosition.x)),
+                          F32(D(F32(D((*direction)[1]) * Reach)) + D(joint.targetPosition.y)),
+                          F32(D(F32(D((*direction)[2]) * Reach)) + D(joint.targetPosition.z))};
+    const glm::vec3 hand = owner->skillHandPoint;
+    for (int axis = 0; axis < 3; ++axis)
+        joint.position[axis] = F32(D(far) * D(hand[axis]) + D(near) * D(point[axis]));
+    return {};
+}
+
 } // namespace
 
 Core::Expected<void, std::string> CreateAuraJoint(JointState& joint, const World::FishEffectRequest& request)
@@ -307,19 +352,7 @@ Core::Expected<void, std::string> StepAuraJoint(JointState& joint, const JointKe
     switch (joint.subtype)
     {
     case 2:
-    {
-        // 0x535dbe: sin dueño vivo, lo suelta y sigue en la cola. Con él, el ancho es la vida · 3 y el resto sale del
-        // hueso del jugador (0x53d1a0, con escala 1,4f): corta.
-        const auto* owner = JointKernels::ActorOwner(joint);
-        if (owner == nullptr || !owner->alive)
-        {
-            joint.ownerContext = nullptr;
-            return {};
-        }
-        joint.width = F32(static_cast<double>(joint.life) * 3);
-        return Core::Unexpected(std::string("0x535e66: el punto del joint 0x10f/2 sale de 0x53d1a0 (escala 1,4), que "
-                                            "no está portado (CL11)"));
-    }
+        return StepTheBeam(joint, services);
     case 5:
     case 6:
     case 7:

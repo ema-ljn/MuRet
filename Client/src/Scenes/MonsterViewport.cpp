@@ -12,15 +12,20 @@
 #include "Scenes/ActorEffectFlags.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ArrivalSparks.h"
+#include "Scenes/BlastEffectCalls.h"
 #include "Scenes/CastleBattleActors.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/ChatReceive.h"
+#include "Scenes/FaunaJointCreation.h"
 #include "Scenes/MonsterCreation.h"
 #include "Scenes/ViewportPlayers.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
+#include "World/IFishStepServices.h"
+#include "World/ParticleOwner.h"
+#include "World/Particles.h"
 #include "World/TerrainCulling.h"
 
 #include <algorithm>
@@ -191,8 +196,34 @@ Core::Expected<std::size_t, std::string> CreateSummon(const Protocol::Viewport::
     if (auto put = PutActorText(actor, bytes, 0x51745c); !put.HasValue())
         return Core::Unexpected(put.Error());
     if (record.isNew)
-        return Core::Unexpected(std::string("0x51747c: los cuatro rand() y los joints 0x615 (0x530860) del invocado "
-                                            "que llega son de la CL11"));
+    {
+        // 0x51746e..0x517555: cuatro 0x530860(0x615, +0x10, +0x10, +0x1c, 1, nulo, ancho, −1, 0, 0, −1), el rayo que
+        // cae sobre el invocado (FaunaJointCreation.cpp), con el ancho rand() % 10 más 60, 50, 50 y 60 (0x6b86cc y
+        // 0x6b86b0; fild y fadd, guardado en float). Con el pool lleno, los rand() igual.
+        constexpr std::int32_t ArrivalBolt = 0x615, ArrivalSubtype = 1;
+        constexpr int WidthSpan = 10;
+        constexpr std::array<double, 4> WidthBases{60.0, 50.0, 50.0, 60.0};
+        constexpr std::array<std::uint32_t, 4> Calls{0x5174a5, 0x5174de, 0x517517, 0x517550};
+        for (std::size_t bolt = 0; bolt < WidthBases.size(); ++bolt)
+        {
+            const int jitter = resources.cloth.random.Next() % WidthSpan;
+            const World::FishEffectRequest request{
+                .type = ArrivalBolt,
+                .firstPosition = actor.position,
+                .secondPosition = actor.position,
+                .angles = actor.angles,
+                .subtype = ArrivalSubtype,
+                .ownerContext = nullptr,
+                .scale = static_cast<float>(static_cast<double>(jitter) + WidthBases[bolt]),
+                .key = -1,
+                .skill = 0,
+                .skillSerial = 0,
+                .target = -1};
+            if (auto made = CreateFaunaJoint(resources.world.DrawTail().joints, request, resources.cloth.random);
+                !made.HasValue())
+                return Core::Unexpected(std::format("{:#x}: {}", Calls[bolt], made.Error()));
+        }
+    }
     return created;
 }
 
@@ -271,8 +302,35 @@ Core::Expected<void, std::string> ApplySummonRecord(const Protocol::Viewport::Su
     {
         if (auto arrived = ArriveAsNew(actor, resources); !arrived.HasValue())
             return arrived;
-        return Core::Unexpected(std::string("0x4ca5f6: el efecto 0xec (0x518cf0) y el joint 0x5d5/2 (0x53fe70) del "
-                                            "invocado que llega son de la CL11"));
+        // 0x4ca5d5..0x4ca611: 0x518cf0(0xec, +0x10, +0x1c, +0xf4, 0, el personaje, −1, 0, 0, 0, 0), el círculo mágico
+        // (World/BlastModelEffects), y 0x53fe70(0x5d5, +0x10, +0x1c, +0xf4, 2, 1,0f, el personaje), el rayo que lo
+        // sigue en su paso, como el transformado de 0x4c965c; ninguno saca rand(). Con la tabla llena, nada.
+        constexpr std::int16_t MagicCircle = 0xec;
+        if (auto circle = CreateBlastEffectOutsideTheStep({.type = MagicCircle,
+                                                           .position = actor.position,
+                                                           .angles = actor.angles,
+                                                           .light = actor.light,
+                                                           .subtype = 0,
+                                                           .key = 0xffff},
+                                                          &actor, world, random);
+            !circle.HasValue())
+            return Core::Unexpected(std::format("0x4ca5f6: {}", circle.Error()));
+        const World::ParticleOwner owner{World::ParticleOwnerKind::Actor, index};
+        if (auto bolt = world.Particles().CreateOwnedChecked(World::LightningParticle, actor.position, actor.angles,
+                                                             actor.light, World::LightningFollowSubtype, 1.0f, 0.0f,
+                                                             random, 0, owner);
+            !bolt.HasValue())
+            return Core::Unexpected(
+                std::format("0x4ca611: la partícula 0x5d5/2, error {}", static_cast<unsigned>(bolt.Error())));
+        // 0x4ca616..0x4ca642: un invocado (0x98..0x9e) vuelve al frame 0 (+0x114 y +0x118) y suena 0x61.
+        if (summon)
+        {
+            constexpr std::int32_t SummonSound = 0x61;
+            actor.animation.frame = 0.0f;
+            actor.animation.previousKey = 0;
+            runtime.RequestSound(SummonSound);
+        }
+        return {};
     }
     return WalkToTheTarget(actor, record.targetX, record.targetY, resources);
 }

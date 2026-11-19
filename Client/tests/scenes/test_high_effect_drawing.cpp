@@ -325,6 +325,117 @@ TEST(HighEffectDrawingTest, ChaosCastleFadesTheEffectBeforeItsVisibleCheck)
     EXPECT_EQ(std::bit_cast<std::uint32_t>(drawer.batch.Vertices()[0].color.alpha), 0x3f59999au);
 }
 
+// 0x52d86a..0x52d89f: el 0x135 llama dos veces a 0x602e90 (0x52d871 y 0x52d897) y cada una pasa por 0x5ffdf0. En los
+// mapas 18 a 23, con +0x1a1 del héroe, cada llamada le resta 0,15f (0x6b8ae8) al alpha guardado (0x5ffdff..0x5ffe24):
+// con alpha 1, la primera lo deja en 0x3f59999a y la segunda en 0x3f333334, y se dibuja las dos veces con ese alpha
+// (calculado aparte con RN a 53 bits en el fsub y a 24 en el fstp; a 64 o a 24 da lo mismo).
+TEST(HighEffectDrawingTest, ChaosCastleFadesTheMirroredEffectOnEachOfItsTwoBodies)
+{
+    for (std::uint8_t map = 18; map <= 23; ++map)
+    {
+        SCOPED_TRACE(static_cast<int>(map));
+        Drawer drawer;
+        drawer.pass = std::make_unique<Client::Scenes::GameObjectPass>();
+        drawer.pass->map = map;
+        drawer.heroByte1a1 = 1;
+        drawer.originalFrame = true;
+        ModelEffect mirrored = EffectOf(0x135, 0);
+        ASSERT_EQ(mirrored.alpha, 1.0f);
+        const auto drawn = drawer.Draw(std::span(&mirrored, 1), 0);
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(mirrored.alpha), 0x3f333334u);
+        EXPECT_EQ(drawer.poses, 2);
+        const auto vertices = drawer.batch.Vertices();
+        ASSERT_EQ(vertices.size(), 6u);
+        for (std::size_t vertex = 0; vertex < 3; ++vertex)
+        {
+            EXPECT_EQ(std::bit_cast<std::uint32_t>(vertices[vertex].color.alpha), 0x3f59999au);
+            EXPECT_EQ(std::bit_cast<std::uint32_t>(vertices[vertex + 3].color.alpha), 0x3f333334u);
+        }
+    }
+}
+
+// 0x5ffe2a..0x5ffe3d: fcomp con 0,01f (0x6b88d4) y test ah,1 sólo sale con C0 (menor o sin orden); con el alpha igual a
+// 0,01f (0x3c23d70a) devuelve 1 y se dibuja: el 0x134 posa y deja su cuerpo con ese alpha y el 0x11b/1 saca sus dos
+// rand() y deja sus cuatro sprites.
+TEST(HighEffectDrawingTest, AnEffectWithExactlyTheVisibleAlphaIsDrawn)
+{
+    const float visible = std::bit_cast<float>(0x3c23d70au); // 0,01f
+    {
+        Drawer drawer;
+        ModelEffect aurora = EffectOf(0x134, 0);
+        aurora.alpha = visible;
+        const auto drawn = drawer.Draw(std::span(&aurora, 1), 0);
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_EQ(drawer.poses, 1);
+        ASSERT_EQ(drawer.batch.Vertices().size(), 3u);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(drawer.batch.Vertices()[0].color.alpha), 0x3c23d70au);
+    }
+    Drawer drawer;
+    ModelEffect ring = EffectOf(0x11b, 1, -2);
+    ring.alpha = visible;
+    const auto drawn = drawer.Draw(std::span(&ring, 1), 0);
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    EXPECT_EQ(drawer.poses, 1);
+    EXPECT_EQ(DrawsSince(drawer.random), 2);
+    EXPECT_EQ(drawer.Alive().size(), 4u);
+    EXPECT_EQ(ring.point40, SecondBonePoint);
+}
+
+// Regresión de 0x5ffdf0 antes de 0x6002e0: la puerta 0x3d..0x40 del mapa 30 (0x42cc10) y el tipo 9 de la cola de
+// Kalima (mapas 24 a 29 y 36), con alpha 0 o NaN, no posan ni dibujan nada (antes, con 0, caían a DrawObject sin pose;
+// con NaN, se posaban). Con alpha 1 los dos posan una vez y dibujan su cuerpo (RenderBody(2) de la puerta con +0x4 en
+// 0), y el tipo 9 llega a la cola de Kalima.
+TEST(HighEffectDrawingTest, TheGateAndTheKalimaTailBelowTheVisibleAlphaNeitherPoseNorDraw)
+{
+    struct Case
+    {
+        std::int16_t type;
+        std::uint8_t map;
+    };
+    for (const Case tested :
+         {Case{0x3d, 30}, Case{0x3e, 30}, Case{0x3f, 30}, Case{0x40, 30}, Case{9, 24}, Case{9, 29}, Case{9, 36}})
+    {
+        SCOPED_TRACE(tested.type);
+        SCOPED_TRACE(static_cast<int>(tested.map));
+        for (const float alpha : {0.0f, std::numeric_limits<float>::quiet_NaN()})
+        {
+            SCOPED_TRACE(alpha);
+            Drawer drawer;
+            drawer.pass = std::make_unique<Client::Scenes::GameObjectPass>();
+            drawer.pass->map = tested.map;
+            ModelEffect effect = EffectOf(tested.type, 0);
+            effect.alpha = alpha;
+            for (const std::uint8_t mode : {std::uint8_t{0}, std::uint8_t{1}})
+            {
+                SCOPED_TRACE(mode);
+                const auto drawn = drawer.Draw(std::span(&effect, 1), mode);
+                ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+            }
+            EXPECT_EQ(drawer.poses, 0);
+            EXPECT_TRUE(drawer.batch.Vertices().empty());
+            EXPECT_EQ(DrawsSince(drawer.random), 0);
+        }
+        Drawer drawer;
+        drawer.pass = std::make_unique<Client::Scenes::GameObjectPass>();
+        drawer.pass->map = tested.map;
+        ModelEffect effect = EffectOf(tested.type, 0);
+        const auto drawn = drawer.Draw(std::span(&effect, 1), 0);
+        EXPECT_EQ(drawer.poses, 1);
+        EXPECT_EQ(drawer.batch.Vertices().size(), 3u);
+        if (tested.type == 9)
+        {
+            // Después del cuerpo, la cola de Kalima, que acá corta en su capa de agua sin el productor de DAT_07d2d360.
+            ASSERT_FALSE(drawn.HasValue());
+            EXPECT_TRUE(drawn.Error().starts_with("0x439593")) << drawn.Error();
+        }
+        else
+        {
+            ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        }
+    }
+}
+
 // 0x52d66a: el 0x11b/0 (blendMesh −1) sólo se dibuja en el modo 0, con el color del modelo en (1; 0,6f; 0,3f) y
 // RenderBody(2) con su textura; en el modo 1, ni sprites ni rand().
 TEST(HighEffectDrawingTest, TheRingSparkDrawsOnlyInTheFirstPassWithItsWarmLight)

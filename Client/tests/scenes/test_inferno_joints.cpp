@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRotation.h"
+#include "Scenes/ActorState.h"
 #include "Scenes/GameDrawTail.h"
 #include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
@@ -61,7 +62,8 @@ struct Pool
 
     Client::Core::Expected<void, std::string> Step()
     {
-        return Client::Scenes::StepJoints(joints, random, nullptr, nullptr, worldClock, sprites.get());
+        return Client::Scenes::StepJoints(joints, random, nullptr, nullptr, worldClock, sprites.get(), nullptr, {}, {},
+                                          {}, {}, effects.get(), hero);
     }
 
     std::vector<JointState> joints = std::vector<JointState>(4);
@@ -70,6 +72,8 @@ struct Pool
     glm::vec3 origin{1500.0f, 1600.0f, 170.0f};
     glm::vec3 angles{0.0f, 0.0f, 135.0f};
     float worldClock = 1234.5f;
+    std::unique_ptr<Client::World::ModelEffects> effects;
+    const Client::Scenes::ActorState* hero = nullptr;
 };
 
 std::vector<Client::World::Sprite> LiveSprites(Client::World::FrameSprites& sprites)
@@ -232,21 +236,66 @@ TEST(InfernoJointsTest, TheLavaStopsWithAFullTail)
     EXPECT_TRUE(LiveSprites(*pool.sprites).empty());
 }
 
-// 0x53b735..0x53b768: la /2 con la vida múltiplo de 5 pide el efecto 0xf6/6 (CL11).
-TEST(InfernoJointsTest, TheInfernoCutsOnItsEffect)
+// 0x53b735..0x53b768: la /2 con la vida múltiplo de 5 suelta el 0xf6/6 en su camino (+0x24, la partida 10 más
+// arriba) con sus ángulos propios (+0x3c), su luz y la clave 20, sin dueño: vida 5, +0xec en 20 y la escala 20 · 0,01f,
+// velocidad y luz del modelo en 0,1f, sin rand(). Con otra vida, nada. Sin la tabla de efectos, corta ahí; sin el
+// héroe, corta el alta (0x519a4f).
+TEST(InfernoJointsTest, TheInfernoDropsItsBurstEveryFiveSteps)
 {
-    Pool pool;
-    ASSERT_TRUE(pool.Create(2).HasValue());
+    const Client::Scenes::ActorState hero{};
+    for (const std::int32_t life : {15, 14, 10})
+    {
+        SCOPED_TRACE(life);
+        Pool pool;
+        pool.effects = std::make_unique<Client::World::ModelEffects>();
+        pool.hero = &hero;
+        ASSERT_TRUE(pool.Create(2).HasValue());
+        JointState& joint = pool.joints[0];
+        joint.life = life;
+        const glm::vec3 light = joint.light;
+        ASSERT_EQ(joint.pathIncrement, glm::vec3(1500.0f, 1600.0f, 180.0f));
 
-    const auto stepped = pool.Step();
+        ASSERT_TRUE(pool.Step().HasValue());
 
-    ASSERT_FALSE(stepped.HasValue());
-    EXPECT_NE(stepped.Error().find("0x53b760"), std::string::npos) << stepped.Error();
+        EXPECT_EQ(pool.random.State(), CrtRandom{Seed}.State());
+        const Client::World::ModelEffect& burst = pool.effects->Effects()[0];
+        if (life % 5 != 0)
+        {
+            EXPECT_FALSE(burst.alive);
+            continue;
+        }
+        ASSERT_TRUE(burst.alive);
+        EXPECT_EQ(burst.type, 0xf6);
+        EXPECT_EQ(burst.subtype, 6);
+        EXPECT_EQ(burst.life, 5);
+        EXPECT_EQ(burst.transform.position, glm::vec3(1500.0f, 1600.0f, 180.0f));
+        EXPECT_EQ(burst.transform.angles, joint.bendAngles);
+        EXPECT_EQ(burst.light, light);
+        EXPECT_EQ(burst.flagEc, 20.0f);
+        EXPECT_EQ(burst.transform.scale, F32(20.0 * D(0.01f)));
+        EXPECT_EQ(burst.speed, 0.1f);
+        EXPECT_EQ(burst.objectState.light, 0.1f);
+        EXPECT_FALSE(burst.hasOwner);
+        EXPECT_FALSE(pool.effects->Effects()[1].alive);
+    }
+
+    Pool tableless;
+    ASSERT_TRUE(tableless.Create(2).HasValue());
+    const auto cut = tableless.Step();
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x53b760"), std::string::npos) << cut.Error();
+    Pool heroless;
+    heroless.effects = std::make_unique<Client::World::ModelEffects>();
+    ASSERT_TRUE(heroless.Create(2).HasValue());
+    const auto blind = heroless.Step();
+    ASSERT_FALSE(blind.HasValue());
+    EXPECT_NE(blind.Error().find("0x519a4f"), std::string::npos) << blind.Error();
 }
 
 // El 0x61c/1, el rayo rojo del láser 0xd0/1 de los magos (0x51a5dd), con el efecto de dueño. 0x53439e..0x53442d:
 // velocidad 0, el ancho, el pase 1 (+0x64), la luz en 1, 15 puntos, vida 30 y la posición y los ángulos del dueño. Sin
-// rand(). Sin dueño, el original lee de 0 (0x5343f8): MuRet corta.
+// rand(). Los ángulos no son los del pedido sino los del dueño (+0x1c). Sin dueño, el original apaga el joint,
+// desreferencia el puntero nulo (+0x10, 0x5343fb) y revienta: MuRet corta (0x5343f8).
 TEST(InfernoJointsTest, TheLaserJointIsBornOnItsOwner)
 {
     Client::World::ModelEffect laser{};
@@ -256,7 +305,7 @@ TEST(InfernoJointsTest, TheLaserJointIsBornOnItsOwner)
     std::vector<JointState> joints(2);
     CrtRandom random(Seed);
     glm::vec3 from{1.0f, 2.0f, 3.0f};
-    glm::vec3 turn = laser.transform.angles;
+    glm::vec3 turn{5.0f, 6.0f, 7.0f};
     Client::World::FishEffectRequest request{.type = 0x61c,
                                              .firstPosition = from,
                                              .secondPosition = from,

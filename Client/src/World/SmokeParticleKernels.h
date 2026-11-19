@@ -35,10 +35,10 @@ inline constexpr std::int32_t FadingSmokeSubtype = 26;
 inline constexpr std::int32_t ShrinkingSmokeSubtype = 31;
 // La niebla /28, /29 y /30 de la tormenta chica 0xcf/3..7 (0x523144, 0x52315d y 0x523176): nacen en el suelo, a la
 // altura del terreno (0x5f93c0) más 15, con el giro rand() % 360 y suben con su +0x50. La /28 (0x5425c7, vida 12,
-// escala 2,3f, sube 33) se dibuja con la textura 0x6ad y su paso (0x546852) la achica 0,4f (desde la vida 8, la
-// agranda por 1,2f) y la apaga por 0,92f; la /29 (0x54261b) es igual con la textura del tipo, la luz en 1 (0x54689e)
-// y se dibuja restando (0x548732); la /30 (0x542668, vida 4, escala 1,8f, sube 15) se corre en x y en y con
-// sin(reloj) · 5 (0x5426ae) y su paso (0x5468de) la agranda 0,15f con la luz (1; 3; 1).
+// escala 2,3f, sube 33) se dibuja con la textura 0x6ad y su paso (0x546852) la achica 0,4f (con la vida ya descontada
+// en 8 o menos, la agranda por 1,2f) y la apaga por 0,92f; la /29 (0x54261b) es igual con la textura del tipo, la luz
+// en 1 (0x54689e) y se dibuja restando (0x548732); la /30 (0x542668, vida 4, escala 1,8f, sube 15) se corre en x y en y
+// con sin(reloj) · 5 (0x5426ae) y su paso (0x5468de) la agranda 0,15f con la luz (1; 3; 1).
 inline constexpr std::int32_t StormMistSubtype = 28;
 inline constexpr std::int32_t DarkStormMistSubtype = 29;
 inline constexpr std::int32_t ShortStormMistSubtype = 30;

@@ -366,6 +366,17 @@ TEST(NoriaParticlesTest, TheOwnerBirthFairySparkMovesWithItsOwner)
     EXPECT_EQ(particle.position, glm::vec3(12.5f, 24.25f, 110.0f));
     EXPECT_EQ(particle.start, moved);
 
+    // La x retenida: 2^24 + 1 no entra en un float y, con la partida 1 más allá del dueño, vuelve a 2^24. Por un float
+    // daría 2^24 − 1 (0x4b7fffff).
+    particle = initial;
+    particle.position.x = 16777216.0f;
+    particle.start.x = 7.0f;
+    ASSERT_TRUE(
+        step([&](const Client::World::ParticleOwner&) -> std::optional<Client::World::ParticleOwnerState>
+             { return Client::World::ParticleOwnerState{.alive = true, .position = moved, .start = std::nullopt}; })
+            .HasValue());
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(particle.position.x), 0x4b800000u);
+
     particle = initial;
     const auto lost = step({});
     ASSERT_FALSE(lost.HasValue());

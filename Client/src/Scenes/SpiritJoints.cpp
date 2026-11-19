@@ -9,8 +9,14 @@
 #include "Scenes/JointFamilies.h"
 #include "Scenes/JointKernels.h"
 #include "Scenes/RingEffects.h"
+#include "Scenes/SkillHits.h"
+#include "World/Ftol.h"
 #include "World/IFishStepServices.h"
+#include "World/ModelEffects.h"
+#include "World/Particles.h"
 #include "World/Sprites.h"
+#include "World/TerrainAttributeQuery.h"
+#include "World/WizardModelEffects.h"
 #include "World/WorldObjectStepServices.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -423,14 +429,6 @@ void StepTheArc(JointState& joint, CrtRandom& random)
 
 namespace
 {
-// Un corte en una partícula del lote de partículas de la CL11 (0x53fe70), después de lo que el caso hace antes.
-Core::Unexpected<std::string> ParticleCut(const JointState& joint, std::uint32_t address, std::int32_t particle,
-                                          std::int32_t particleSubtype)
-{
-    return Core::Unexpected(std::format("{:#x}: la partícula {:#x}/{:#x} del joint {:#x}/{:#x} no está portada (CL11)",
-                                        address, particle, particleSubtype, joint.type, joint.subtype));
-}
-
 Core::Expected<CrtRandom*, std::string> RandomOf(const JointState& joint, const JointKernels::StepServices& services,
                                                  std::uint32_t address)
 {
@@ -440,39 +438,223 @@ Core::Expected<CrtRandom*, std::string> RandomOf(const JointState& joint, const 
     return services.random;
 }
 
-// 0x538f45..0x538f8e (la /0xb) y 0x539328..0x53935c (la /0x10): la x de los ángulos es la vida (fild); después la
-// partícula 0x5da/5 o 0x6f4/4, del lote de partículas.
-Core::Expected<void, std::string> StepTheStill(JointState& joint)
+// 0x53fe70(tipo, posición, ángulos, luz, subtipo, escala, 0): una partícula sin dueño, con el RNG y el reloj del paso.
+// Con la tabla llena no hace nada (ni rand()).
+Core::Expected<void, std::string> Particle(const JointState& joint, const JointKernels::StepServices& services,
+                                           std::uint32_t address, std::int32_t type, std::int32_t subtype,
+                                           const glm::vec3& position, const glm::vec3& light, float scale)
 {
-    joint.angles.x = static_cast<float>(joint.life);
-    if (joint.subtype == 0xb)
-        return ParticleCut(joint, 0x538f8e, 0x5da, 5);
-    return ParticleCut(joint, 0x53935c, 0x6f4, 4);
+    if (services.particles == nullptr || services.random == nullptr)
+        return Core::Unexpected(std::format("{:#x}: faltan las partículas o el RNG del joint {:#x}/{:#x}", address,
+                                            joint.type, joint.subtype));
+    const auto created = services.particles->CreateChecked(type, position, joint.angles, light, subtype, scale,
+                                                           services.worldClock, *services.random);
+    if (!created.HasValue())
+        return Core::Unexpected(
+            std::format("{:#x}: la partícula {:#x}/{:#x} del joint {:#x}/{:#x} falla con el error {}", address, type,
+                        subtype, joint.type, joint.subtype, static_cast<unsigned>(created.Error())));
+    return {};
 }
 
-// 0x538ff9..0x539058: la /0xc saca rand() & 31 para la escala de la partícula 0x5f5/0, del lote de partículas.
+// 0x530860(0x613, desde, desde, ángulos, subtipo, 0, 0,9f, −1, 0, 0, −1): los joints que sueltan la /0xb y la /0xf, sin
+// dueño y siempre del 0x613 (también desde un 0x6ee).
+Core::Expected<void, std::string> Release(JointState& joint, const JointKernels::StepServices& services,
+                                          std::uint32_t address, glm::vec3& from, glm::vec3& angles,
+                                          std::int32_t subtype)
+{
+    const auto random = RandomOf(joint, services, address);
+    if (!random.HasValue())
+        return Core::Unexpected(random.Error());
+    const World::FishEffectRequest request{.type = SpiritJoint,
+                                           .firstPosition = from,
+                                           .secondPosition = from,
+                                           .angles = angles,
+                                           .subtype = subtype,
+                                           .ownerContext = nullptr,
+                                           .scale = Bits(0x3f666666u),
+                                           .key = -1,
+                                           .skill = 0,
+                                           .skillSerial = 0,
+                                           .target = -1};
+    if (auto created = CreateFaunaJoint(services.joints, request, *random.Value()); !created.HasValue())
+        return Core::Unexpected(std::format("{:#x}: {}", address, created.Error()));
+    return {};
+}
+
+// FCOS y FSIN de la z de los ángulos (sin pasar a radianes) por un float de memoria, sumados a la x y a la y.
+Core::Expected<void, std::string> Drift(JointState& joint, float reach, std::uint32_t address)
+{
+    const auto cosine = Render::Models::Detail::CosineProductPC53(D(joint.angles.z), reach);
+    const auto sine = Render::Models::Detail::SineProductPC53(D(joint.angles.z), reach);
+    if (!cosine || !sine)
+        return Core::Unexpected(
+            std::format("{:#x}: el giro del joint {:#x}/{:#x} excede el perfil", address, joint.type, joint.subtype));
+    joint.position.x = F32(*cosine + D(joint.position.x));
+    joint.position.y = F32(*sine + D(joint.position.y));
+    return {};
+}
+
+// 0x538f45..0x538feb (la /0xb): la x de los ángulos es la vida (fild); la partícula 0x5da/5 de 0,9f con la luz 1 en una
+// copia de la posición; con rand() % 200 en 0, el joint 0x613/0xc desde esa copia; después avanza 20 por FCOS y FSIN de
+// la z (0x6b86d0).
+Core::Expected<void, std::string> StepTheStill(JointState& joint, const JointKernels::StepServices& services)
+{
+    glm::vec3 from = joint.position;
+    joint.angles.x = static_cast<float>(joint.life);
+    constexpr std::int32_t Glow = 0x5da, GlowSubtype = 5;
+    if (auto made = Particle(joint, services, 0x538f8e, Glow, GlowSubtype, from, glm::vec3(1.0f), Bits(0x3f666666u));
+        !made.HasValue())
+        return made;
+    const auto random = RandomOf(joint, services, 0x538f96);
+    if (!random.HasValue())
+        return Core::Unexpected(random.Error());
+    constexpr std::int32_t Rarity = 200; // 0xc8
+    constexpr std::int32_t SmokeSubtype = 0xc;
+    if (random.Value()->Next() % Rarity == 0)
+        if (auto released = Release(joint, services, 0x538fc3, from, joint.angles, SmokeSubtype); !released.HasValue())
+            return released;
+    constexpr float Reach = 20.0f; // 0x6b86d0
+    return Drift(joint, Reach, 0x538fce);
+}
+
+// 0x539328..0x539384 (la /0x10): la x de los ángulos es la vida; la partícula 0x6f4/4 de escala 1 en la posición, con
+// la luz del joint (+0x48); después avanza 30 por FCOS y FSIN de la z (0x6b8858).
+Core::Expected<void, std::string> StepTheColumn(JointState& joint, const JointKernels::StepServices& services)
+{
+    joint.angles.x = static_cast<float>(joint.life);
+    constexpr std::int32_t Splash = 0x6f4, SplashSubtype = 4;
+    if (auto made = Particle(joint, services, 0x53935c, Splash, SplashSubtype, joint.position, joint.light, 1.0f);
+        !made.HasValue())
+        return made;
+    constexpr float Reach = 30.0f; // 0x6b8858
+    return Drift(joint, Reach, 0x539361);
+}
+
+// 0x538ff9..0x539091 (la /0xc): en una copia de la posición, la 0x5f5/0 de escala ((rand() & 31) + 48) · 0,01f
+// (0x6b88d4) con la luz (1; 0,2f; 0,1f) y la 0x5da/6 de 0,6f con la luz 1.
 Core::Expected<void, std::string> StepTheSmoke(const JointState& joint, const JointKernels::StepServices& services)
 {
     const auto random = RandomOf(joint, services, 0x539024);
     if (!random.HasValue())
         return Core::Unexpected(random.Error());
-    static_cast<void>(random.Value()->Next());
-    return ParticleCut(joint, 0x539058, 0x5f5, 0);
+    const glm::vec3 from = joint.position;
+    constexpr std::int32_t Mask = 31, Base = 0x30;
+    constexpr double Hundredth = static_cast<double>(std::bit_cast<float>(0x3c23d70au)); // 0x6b88d4
+    const std::int32_t size = (random.Value()->Next() & Mask) + Base;
+    const float scale = F32(static_cast<double>(size) * Hundredth);
+    constexpr std::int32_t Smoke = 0x5f5, Glow = 0x5da, GlowSubtype = 6;
+    const glm::vec3 ember{1.0f, Bits(0x3e4ccccdu), Bits(0x3dcccccdu)};
+    if (auto made = Particle(joint, services, 0x539058, Smoke, 0, from, ember, scale); !made.HasValue())
+        return made;
+    return Particle(joint, services, 0x539089, Glow, GlowSubtype, from, glm::vec3(1.0f), Bits(0x3f19999au));
 }
 
-// 0x539133..0x53931e: la /0xf. La key (WORD) suma 30; con vida de menos de 35, la partícula 0x5d9/7 (0x53918a, del
-// lote de partículas) corta antes de sus rand(), sus joints 0x613/0xe y el dueño. Con 35 o más, 0x5392e9: avanza
-// k = key · 0,1f + 30 (en la x87, sin redondear) en x con el seno de la z de los ángulos y lo resta en y con el coseno.
-Core::Expected<void, std::string> StepTheSpiral(JointState& joint)
+// 0x53909f..0x539125 (la /0xe): la x de los ángulos − 2 (0x6b8818) y rand() % 5: con 0 la partícula 0x6f2/2, con 1 o 2
+// la 0x6f3/2 y si no la 0x6f4/4, de escala 1 en la posición, con la luz del joint (+0x48).
+Core::Expected<void, std::string> StepTheSplash(JointState& joint, const JointKernels::StepServices& services)
 {
-    constexpr std::uint16_t KeyStep = 30;   // 0x53913b
-    constexpr std::int32_t SpiralLife = 35; // 0x53914c
+    const auto random = RandomOf(joint, services, 0x5390c2);
+    if (!random.HasValue())
+        return Core::Unexpected(random.Error());
+    constexpr double Tilt = 2.0; // 0x6b8818
+    joint.angles.x = F32(D(joint.angles.x) - Tilt);
+    constexpr std::int32_t Choices = 5;
+    const std::int32_t pick = random.Value()->Next() % Choices;
+    constexpr std::int32_t First = 0x6f2, Second = 0x6f3, Third = 0x6f4;
+    constexpr std::int32_t SplashSubtype = 2, LastSubtype = 4;
+    if (pick == 0)
+        return Particle(joint, services, 0x5390e6, First, SplashSubtype, joint.position, joint.light, 1.0f);
+    if (pick <= 2)
+        return Particle(joint, services, 0x539109, Second, SplashSubtype, joint.position, joint.light, 1.0f);
+    return Particle(joint, services, 0x539120, Third, LastSubtype, joint.position, joint.light, 1.0f);
+}
+
+// 0x539249..0x5392e6: el dueño de la /0xf (el 0x126 de Kundun, 0x51cf45: un efecto con modelo). La x de sus ángulos en
+// 0 si no es cero (fcomp con C3: un cero de cualquier signo o NaN quedan); con su vida (+0x60) de más de 5, el alpha
+// (+0x174) en 1; su posición, la del joint con k = clave · 0,1f + 30 guardado en float: x + FSIN(z) · k (el fst deja la
+// suma en la pila y el fstp la guarda igual), y − FCOS(z) · k y la z; otra vez la x de los ángulos y la y en 0.
+Core::Expected<void, std::string> CarryThePhoenix(const JointState& joint, World::ModelEffect& owner)
+{
+    const auto flatten = [](float& pitch)
+    {
+        if (pitch < 0.0f || pitch > 0.0f)
+            pitch = 0.0f;
+    };
+    flatten(owner.transform.angles.x);
+    constexpr std::int32_t ShownLife = 5;
+    if (owner.life > ShownLife)
+        owner.alpha = 1.0f;
+    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8
+    constexpr double Reach = 30.0;                                                   // 0x6b8858
+    const float radius = F32(static_cast<double>(joint.key) * Tenth + Reach);
+    const auto sine = Render::Models::Detail::SineDoubleProductPC53(D(joint.angles.z), D(radius));
+    const auto cosine = Render::Models::Detail::CosineDoubleProductPC53(D(joint.angles.z), D(radius));
+    if (!sine || !cosine)
+        return Core::Unexpected(std::format("0x5392a0: el giro del joint {:#x}/0xf excede el perfil", joint.type));
+    owner.transform.position = {F32(D(joint.position.x) + *sine), F32(D(joint.position.y) - *cosine), joint.position.z};
+    flatten(owner.transform.angles.x);
+    owner.transform.angles.y = 0.0f;
+    return {};
+}
+
+// 0x539133..0x53931e: la /0xf. La key (WORD) suma 30. Con vida de menos de 35, en una copia de la posición: la
+// partícula 0x5d9/7 de escala 1 con la luz 1 (0x53918a); con rand() & 1 en 0, la copia pasa a (x − FSIN(z) · k, FCOS(z)
+// · k + y, 350) con k = 40 − key · 0,1f retenido en la x87 y suelta dos joints 0x613/0xe desde ella con los ángulos (0,
+// 0, 0) y (0, 0, 3); después, con dueño, CarryThePhoenix. Siempre (0x5392e9): avanza k = key · 0,1f + 30 (en la x87,
+// sin redondear) en x con el seno de la z de los ángulos y lo resta en y con el coseno.
+Core::Expected<void, std::string> StepTheSpiral(JointState& joint, const JointKernels::StepServices& services)
+{
+    constexpr std::uint16_t KeyStep = 30;                                            // 0x53913b
+    constexpr std::int32_t SpiralLife = 35;                                          // 0x53914c
+    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8
     joint.key =
         std::bit_cast<std::int16_t>(static_cast<std::uint16_t>(std::bit_cast<std::uint16_t>(joint.key) + KeyStep));
     if (joint.life < SpiralLife)
-        return ParticleCut(joint, 0x53918a, 0x5d9, 7);
-    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8
-    constexpr double Reach = 30.0;                                                   // 0x6b8858
+    {
+        glm::vec3 from = joint.position;
+        constexpr std::int32_t Fall = 0x5d9, FallSubtype = 7;
+        if (auto made = Particle(joint, services, 0x53918a, Fall, FallSubtype, from, glm::vec3(1.0f), 1.0f);
+            !made.HasValue())
+            return made;
+        const auto random = RandomOf(joint, services, 0x539192);
+        if (!random.HasValue())
+            return Core::Unexpected(random.Error());
+        if ((random.Value()->Next() & 1) == 0)
+        {
+            constexpr float Hover = 350.0f; // 0x43af0000
+            constexpr double Span = 40.0;   // 0x6b8bf4
+            from.z = Hover;
+            const double radius = Span - static_cast<double>(joint.key) * Tenth;
+            const auto sine = Render::Models::Detail::SineDoubleProductPC53(D(joint.angles.z), radius);
+            const auto cosine = Render::Models::Detail::CosineDoubleProductPC53(D(joint.angles.z), radius);
+            if (!sine || !cosine)
+                return Core::Unexpected(
+                    std::format("0x5391d3: el giro del joint {:#x}/0xf excede el perfil", joint.type));
+            from.x = F32(D(from.x) - *sine);
+            from.y = F32(*cosine + D(from.y));
+            constexpr int Pieces = 2;
+            constexpr double Spread = 3.0; // 0x6b86b8
+            constexpr std::int32_t SplashSubtype = 0xe;
+            for (int piece = 0; piece < Pieces; ++piece)
+            {
+                glm::vec3 angles{0.0f, 0.0f, F32(static_cast<double>(piece) * Spread)};
+                if (auto released = Release(joint, services, 0x539228, from, angles, SplashSubtype);
+                    !released.HasValue())
+                    return released;
+            }
+        }
+        if (joint.ownerContext != nullptr)
+        {
+            if (joint.ownerKind != JointOwnerKind::ModelEffect)
+                return Core::Unexpected(std::format(
+                    "0x539249: el dueño del joint {:#x}/0xf que no es un efecto con modelo no está portado (CL11)",
+                    joint.type));
+            if (auto carried = CarryThePhoenix(joint, *static_cast<World::ModelEffect*>(joint.ownerContext));
+                !carried.HasValue())
+                return carried;
+        }
+    }
+    constexpr double Reach = 30.0; // 0x6b8858
     const double radius = static_cast<double>(joint.key) * Tenth + Reach;
     const auto sine = Render::Models::Detail::SineDoubleProductPC53(D(joint.angles.z), radius);
     if (!sine)
@@ -518,10 +700,12 @@ Core::Expected<void, std::string> StepTheBurst(JointState& joint, const JointKer
     return {};
 }
 
-// 0x53942c..0x5394fb: la /0x12. La velocidad + 3; la key (WORD) + 6 con vida % 12 de 5 o menos y − 6 si no; la x de los
-// ángulos −90 − key y la z + 10. Con dueño, el original le pone el alpha (+0x174) en 1 si su +0x60 pasa de 5 y le
-// copia la posición (0x539494, sin portar: no se conoce quién crea la /0x12); después, la partícula 0x5f2/0x13.
-Core::Expected<void, std::string> StepTheSwing(JointState& joint)
+// 0x53942c..0x539500: la /0x12. La velocidad + 3; la key (WORD) + 6 con vida % 12 de 5 o menos y − 6 si no; la x de los
+// ángulos −90 − key y la z + 10. Con dueño (el 0x125 de Kundun, 0x51ce91: JointOwnerKind::ModelEffect), le pone el
+// alpha (+0x174) en 1 si su vida (+0x60) pasa de 5 y le copia la posición (+0x10, 0x539494); otro dueño corta ahí.
+// Después (0x5394be..0x5394fb), en una copia de la posición, la partícula 0x5f2/0x13 de escala 7 (0x40e00000) con la
+// luz 1, y sigue a la cola (0x53c390).
+Core::Expected<void, std::string> StepTheSwing(JointState& joint, const JointKernels::StepServices& services)
 {
     constexpr std::int32_t SwingPeriod = 12, RisingHalf = 5;
     const std::int32_t phase = joint.life % SwingPeriod;
@@ -533,10 +717,21 @@ Core::Expected<void, std::string> StepTheSwing(JointState& joint)
     joint.angles.x = F32(Down - static_cast<double>(joint.key));
     joint.angles.z = F32(D(joint.angles.z) + 10.0);
     if (joint.ownerContext != nullptr)
-        return Core::Unexpected(std::format(
-            "0x539494: el dueño del joint {:#x}/0x12 (+0x60, el alpha +0x174 y la posición) no está portado (CL11)",
-            joint.type));
-    return ParticleCut(joint, 0x5394fb, 0x5f2, 0x13);
+    {
+        if (joint.ownerKind != JointOwnerKind::ModelEffect)
+            return Core::Unexpected(std::format(
+                "0x539494: el dueño del joint {:#x}/0x12 que no es un efecto con modelo no está portado (CL11)",
+                joint.type));
+        auto& owner = *static_cast<World::ModelEffect*>(joint.ownerContext);
+        constexpr std::int32_t ShownLife = 5;
+        if (owner.life > ShownLife)
+            owner.alpha = 1.0f;
+        owner.transform.position = joint.position;
+    }
+    const glm::vec3 from = joint.position;
+    constexpr std::int32_t Flame = 0x5f2, FlameSubtype = 0x13;
+    constexpr float FlameScale = 7.0f; // 0x40e00000
+    return Particle(joint, services, 0x5394fb, Flame, FlameSubtype, from, glm::vec3(1.0f), FlameScale);
 }
 
 // 0x539b10..0x539cc7: la /0 y la /5 con un ancho distinto de 80. El destino es el dueño 80 más arriba; la distancia en
@@ -601,6 +796,72 @@ Core::Expected<void, std::string> StepTheVolley(JointState& joint, const JointKe
     constexpr std::int32_t ShadeRadius = 4;
     return World::AddDynamicLight(services.lighting, joint.position, shade, ShadeRadius, "0x539cbf");
 }
+
+// 0x539a0e..0x539ae5: el 0x613/0, /5 y /0x13 de ancho 80. Suelta el 0xd0 (0x518cf0(0xd0, posición, ángulos, luz,
+// 3 la /5 y 0 los demás, sin dueño, −1, 0, 0, 0, 0), el rayo que cae, que no saca rand()). Con el asedio prendido
+// (0x4294b0) y el bit 0x100 de 0x5f82c0 en su punto, la velocidad en 0 y la vida en _ftol(vida · 0,2f), y vuelve a la
+// cola 0x53c393 sin el resto (false). Si no, con la vida múltiplo de 15 y el héroe de dueño, sus blancos (0x517a20(la
+// skill +0x9ea, la posición, 150, la tanda +0x9eb, la clave +0x9e8, el byte +0xa08)), y sigue (true).
+Core::Expected<bool, std::string> VolleyFromTheSky(JointState& joint, const JointKernels::StepServices& services)
+{
+    constexpr std::int32_t ShieldSubtype = 5;
+    constexpr std::int32_t FallingRay = 3; // 0x539a2f
+    constexpr std::uint32_t SiegeCell = 0x100;
+    constexpr double Shrink = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu)); // 0x6b8cfc: 0,2f
+    constexpr std::int32_t HitEvery = 15;                                             // 0x539aa0
+    constexpr float HitRadius = 150.0f;                                               // 0x539ad6: 0x43160000
+    if (services.effects == nullptr || services.random == nullptr)
+        return Core::Unexpected(std::format("0x539a48: el joint {:#x}/{:#x} de ancho 80 pide la tabla de efectos "
+                                            "(0x518cf0) para el 0xd0",
+                                            joint.type, joint.subtype));
+    const World::ModelEffectArguments ray{.type = World::LaserEffect,
+                                          .position = joint.position,
+                                          .angles = joint.angles,
+                                          .light = joint.light,
+                                          .subtype = joint.subtype == ShieldSubtype ? FallingRay : 0,
+                                          .owner = nullptr,
+                                          .key = 0xffff};
+    const auto created =
+        World::CreateWizardModelEffect(*services.effects, ray, *services.random, World::WizardEffectServices{});
+    if (!created.HasValue())
+        return Core::Unexpected(std::format("0x539a48: {}", created.Error()));
+    if (services.volley == nullptr)
+        return Core::Unexpected(std::format("0x539a50: el joint {:#x}/{:#x} de ancho 80 pide el asedio, los atributos "
+                                            "y los blancos del héroe",
+                                            joint.type, joint.subtype));
+    if (services.volley->siegeActive)
+    {
+        if (services.volley->attributes == nullptr)
+            return Core::Unexpected(std::string("0x539a60: faltan los atributos de las celdas (0x7d0d348)"));
+        const auto cell =
+            World::TerrainAttributeQueryAt(*services.volley->attributes, joint.position.x, joint.position.y);
+        if (!cell.HasValue())
+            return Core::Unexpected(std::string("0x539a60: 0x5f82c0 lee fuera de la tabla de atributos"));
+        if ((cell.Value() & SiegeCell) == SiegeCell)
+        {
+            joint.speed = 0.0f;
+            joint.life = World::FtolLow(static_cast<double>(joint.life) * Shrink);
+            return false;
+        }
+    }
+    if (joint.life % HitEvery != 0)
+        return true;
+    if (services.hero == nullptr)
+        return Core::Unexpected(std::string("0x539aaf: falta el héroe ([0x743a170])"));
+    if (joint.ownerContext != services.hero)
+        return true;
+    if (!services.volley->skillHits)
+        return Core::Unexpected(std::string("0x539add: faltan los blancos de la skill (0x517a20)"));
+    const SkillHitsRequest request{.skillIndex = joint.skill,
+                                   .point = joint.position,
+                                   .radius = HitRadius,
+                                   .volley = joint.volley,
+                                   .key = static_cast<std::uint16_t>(joint.key),
+                                   .extra = joint.skillSerial};
+    if (auto hit = services.volley->skillHits(request); !hit.HasValue())
+        return Core::Unexpected(hit.Error());
+    return true;
+}
 } // namespace
 
 Core::Expected<void, std::string> StepSpiritJoint(JointState& joint, const JointKernels::StepServices& services)
@@ -608,14 +869,19 @@ Core::Expected<void, std::string> StepSpiritJoint(JointState& joint, const Joint
     const std::int32_t subtype = joint.subtype;
     if (subtype == 0 || subtype == 5 || subtype == 0x13)
     {
-        // 0x539a0e: con el ancho en 80 (los bits 0x42a00000), el efecto 0xd0 con modelo (0x518cf0, otro lote) y
-        // después el asedio de 0x4294b0 con el atributo de 0x5f82c0, los blancos del héroe de 0x517a20 cada 15 de vida
-        // y la misma cola que con otro ancho. Con otro ancho, la /0x13 suelta antes el destello 0x11b/0 (0x539b08).
+        // 0x539a0e: con el ancho en 80 (los bits 0x42a00000), el 0xd0 y lo que sigue (VolleyFromTheSky); si no vuelve
+        // antes, la misma cola que con otro ancho. Con otro ancho, la /0x13 suelta antes el destello 0x11b/0
+        // (0x539b08).
         constexpr std::uint32_t VolleyWidth = 0x42a00000u;
         if (std::bit_cast<std::uint32_t>(joint.width) == VolleyWidth)
-            return Core::Unexpected(std::format(
-                "0x539a48: el efecto 0xd0 (0x518cf0) del joint {:#x}/{:#x} de ancho 80 no está portado (CL11)",
-                joint.type, subtype));
+        {
+            const auto fallen = VolleyFromTheSky(joint, services);
+            if (!fallen.HasValue())
+                return Core::Unexpected(fallen.Error());
+            if (!fallen.Value())
+                return {};
+            return StepTheVolley(joint, services);
+        }
         if (subtype == 0x13)
         {
             // 0x539aec..0x539b08: 0x518cf0(0x11b, posición, ángulos, luz, 0, 0, −1, 0, 0, 0, 0), sin rand().
@@ -634,33 +900,19 @@ Core::Expected<void, std::string> StepSpiritJoint(JointState& joint, const Joint
         joint.speed = 50.0f;
         return {};
     case 0xb:
+        return StepTheStill(joint, services);
     case 0x10:
-        return StepTheStill(joint);
+        return StepTheColumn(joint, services);
     case 0xc:
         return StepTheSmoke(joint, services);
     case 0xe:
-    {
-        // 0x53909f..0x539125: la x de los ángulos − 2 (0x6b8818), la luz local en 1 y rand() % 5: con 0 la partícula
-        // 0x6f2/2 (0x5390e6), con 1 o 2 la 0x6f3/2 (0x539109) y si no la 0x6f4/4 (0x539120), en la posición con los
-        // ángulos y la luz +0x48 del joint. Las tres son del lote de partículas de la CL11.
-        const auto random = RandomOf(joint, services, 0x5390c2);
-        if (!random.HasValue())
-            return Core::Unexpected(random.Error());
-        constexpr double Tilt = 2.0; // 0x6b8818
-        joint.angles.x = F32(D(joint.angles.x) - Tilt);
-        const std::int32_t pick = random.Value()->Next() % 5;
-        if (pick == 0)
-            return ParticleCut(joint, 0x5390e6, 0x6f2, 2);
-        if (pick <= 2)
-            return ParticleCut(joint, 0x539109, 0x6f3, 2);
-        return ParticleCut(joint, 0x539120, 0x6f4, 4);
-    }
+        return StepTheSplash(joint, services);
     case 0xf:
-        return StepTheSpiral(joint);
+        return StepTheSpiral(joint, services);
     case 0x11:
         return StepTheBurst(joint, services);
     case 0x12:
-        return StepTheSwing(joint);
+        return StepTheSwing(joint, services);
     case 1:
     case 2:
     case 3:

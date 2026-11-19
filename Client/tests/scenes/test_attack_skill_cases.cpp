@@ -7,6 +7,7 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalAngles.h"
+#include "Render/Models/OriginalRotation.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ArrowEffects.h"
 #include "Scenes/CharacterStep.h"
@@ -14,6 +15,7 @@
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/HighModelEffects.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/SkillBurstEffects.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -689,32 +691,64 @@ TEST(AttackSkillCasesTest, AFullTableSkipsTheQuakeButNotItsSound)
     EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x95}));
 }
 
-// 0x44 y 0x47: el blanco de +0x3a4 sin rango; sin blanco o con o mismo, nada; con otro, el joint 0x632 (CL11); fuera
-// del pool, MuRet corta en la lectura.
-TEST(AttackSkillCasesTest, TheBindingSkillsLookAtTheirTarget)
+// 0x44 y 0x47: el blanco de +0x3a4 sin rango; sin blanco o con o mismo, nada; fuera del pool, MuRet corta en la
+// lectura. Con otro, el joint 0x632/0 (la 0x44, 0x4fe235) o /1 (la 0x47, 0x4fe4e7) 1200 por encima del blanco, con sus
+// ángulos, él de dueño, ancho 120 y key −1 (el alta 0x534bcb: vida 40, 10 puntos, velocidad 70, +0x9f1 en rand() & 1,
+// +0x9ec en 150 y los ángulos en (90, 0, 0)), y el sonido 0x267; con el pool lleno, sin el joint ni su rand(), pero con
+// el sonido.
+TEST(AttackSkillCasesTest, TheBindingSkillsDropAStormOnTheirTarget)
 {
     struct Case
     {
         std::uint8_t skill;
         std::string_view read;
-        std::string_view joint;
+        std::int32_t subtype;
     };
-    for (const Case& probe : {Case{0x44, "0x4fe1a6", "0x4fe235"}, Case{0x47, "0x4fe458", "0x4fe4e7"}})
+    for (const Case& probe : {Case{0x44, "0x4fe1a6", 0}, Case{0x47, "0x4fe458", 1}})
     {
         SCOPED_TRACE(int{probe.skill});
-        {
-            SkillWorld tested;
-            EXPECT_TRUE(tested.Head(probe.skill).HasValue());
-            tested.Striker().attackTarget = static_cast<std::uint16_t>(StrikerSlot);
-            EXPECT_TRUE(tested.Head(probe.skill).HasValue());
-            tested.Striker().attackTarget = static_cast<std::uint16_t>(VictimSlot);
-            EXPECT_TRUE(HasError(tested.Head(probe.skill), probe.joint));
-            tested.Striker().attackTarget = std::uint16_t{0x8000};
-            EXPECT_TRUE(HasError(tested.Head(probe.skill), probe.read));
-            tested.Striker().attackTarget = std::uint16_t{500};
-            EXPECT_TRUE(HasError(tested.Head(probe.skill), probe.read));
-            EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
-        }
+        SkillWorld tested;
+        EXPECT_TRUE(tested.Head(probe.skill).HasValue());
+        tested.Striker().attackTarget = static_cast<std::uint16_t>(StrikerSlot);
+        EXPECT_TRUE(tested.Head(probe.skill).HasValue());
+        tested.Striker().attackTarget = std::uint16_t{0x8000};
+        EXPECT_TRUE(HasError(tested.Head(probe.skill), probe.read));
+        tested.Striker().attackTarget = std::uint16_t{500};
+        EXPECT_TRUE(HasError(tested.Head(probe.skill), probe.read));
+        EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
+        EXPECT_TRUE(tested.sounds.empty());
+
+        tested.Striker().attackTarget = static_cast<std::uint16_t>(VictimSlot);
+        tested.Victim().position = glm::vec3(1500.0f, 1600.0f, 20.0f);
+        tested.Victim().angles = glm::vec3(0.0f, 0.0f, 135.0f);
+        const auto struck = tested.Head(probe.skill);
+        ASSERT_TRUE(struck.HasValue()) << ErrorOf(struck);
+        const JointState& storm = tested.joints[0];
+        ASSERT_TRUE(storm.alive);
+        EXPECT_EQ(storm.type, 0x632);
+        EXPECT_EQ(storm.subtype, probe.subtype);
+        EXPECT_EQ(storm.ownerKind, Client::Scenes::JointOwnerKind::Actor);
+        EXPECT_EQ(storm.ownerContext, &tested.Victim());
+        EXPECT_EQ(storm.position, glm::vec3(1500.0f, 1600.0f, 1220.0f));
+        EXPECT_EQ(storm.angles, glm::vec3(90.0f, 0.0f, 0.0f));
+        EXPECT_EQ(storm.bendAngles, glm::vec3(90.0f, 0.0f, 0.0f));
+        EXPECT_EQ(storm.width, 120.0f);
+        EXPECT_EQ(storm.life, 40);
+        EXPECT_EQ(storm.maximumCount, 10);
+        EXPECT_EQ(storm.speed, 70.0f);
+        EXPECT_EQ(storm.field9ec, 150);
+        EXPECT_EQ(storm.key, 0);
+        CrtRandom expected{Seed};
+        EXPECT_EQ(storm.orientation, expected.Next() & 1);
+        EXPECT_EQ(DrawsSince(Seed, tested.random), 1);
+        EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x267});
+
+        for (JointState& joint : tested.joints)
+            joint.alive = true;
+        const CrtRandom before = tested.random;
+        ASSERT_TRUE(tested.Head(probe.skill).HasValue());
+        EXPECT_EQ(tested.random.State(), before.State());
+        EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x267, 0x267}));
     }
 }
 
@@ -863,7 +897,8 @@ TEST(AttackSkillCasesTest, TheHandsDecideTheRaise)
 
 // 0x4c: el sonido 0x27d y el lazo de los 400: el monstruo lejos lee el alcance y no entra, el de la acción 6 no lo lee,
 // y de los doce cerca entran diez (el último, justo en el alcance) y el lazo se corta ahí. Después rand() % 360; sin
-// blanco en +0x434, nada más; con él, dos rand() y el joint 0x14f corta.
+// blanco en +0x434, nada más; con él, dos vueltas de dos rand() por él y por cada uno de los diez (los 0x14f llenan los
+// 16 lugares y los demás no se crean) y seis 0x62c de tres rand() cada uno, sin lugar.
 TEST(AttackSkillCasesTest, TheStrikeAroundGathersTenTargetsInRange)
 {
     const auto skills = SkillsWithRange(3);
@@ -887,8 +922,10 @@ TEST(AttackSkillCasesTest, TheStrikeAroundGathersTenTargetsInRange)
             const int reads = 1 + 10;
             if (target == 2)
             {
-                EXPECT_TRUE(HasError(stepped, "0x5026a4")) << ErrorOf(stepped);
-                EXPECT_EQ(DrawsSince(Seed, tested.random), reads * SkillEntry + 3);
+                ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
+                EXPECT_EQ(DrawsSince(Seed, tested.random), reads * SkillEntry + 1 + 11 * 4 + 6 * 3);
+                EXPECT_TRUE(std::ranges::all_of(tested.joints, [](const JointState& joint)
+                                                { return joint.alive && joint.type == 0x14f; }));
             }
             else
             {
@@ -897,6 +934,78 @@ TEST(AttackSkillCasesTest, TheStrikeAroundGathersTenTargetsInRange)
             }
             EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x27d}));
         }
+    }
+}
+
+// 0x5025d7..0x502944: con el blanco de +0x434 (que no se junta) dos vueltas desde el punto (0, −140, 130) de o, con los
+// ángulos (rand() % 360, 0, rand() % 360), de dos 0x14f hacia su posición y con él de dueño: ancho 100 con el subtipo
+// de 0x4f2230 y 80 con ese más 3. Después seis 0x62c sin dueño, de ancho 60 y con el subtipo más 0xb, desde (0, rand()
+// % 40 − 20 + 10, 130) hacia el mismo punto, con sus ángulos y el rand() de su tanda (0x53477e; el camino 150 más
+// alto). 0x4f2230 lee +0x31b (el excelente de Fenrir): 1 da 0, 2 da 2 y cualquier otro 1.
+TEST(AttackSkillCasesTest, TheStrikeAroundSendsPlasmaAndRaisesSpirals)
+{
+    for (const auto& [excellent, shade] :
+         {std::pair{std::uint8_t{1}, 0}, std::pair{std::uint8_t{2}, 2}, std::pair{std::uint8_t{7}, 1}})
+    {
+        SCOPED_TRACE(shade);
+        SkillWorld tested;
+        tested.Striker().pet.flags1b = excellent;
+        tested.Striker().angles = {0.0f, 0.0f, 90.0f};
+        ActorState& aimed = tested.world.Actors()[30];
+        aimed = ActorState{};
+        aimed.position = {700.0f, 800.0f, 900.0f};
+        tested.Striker().skillTarget4c = 30;
+        ASSERT_TRUE(tested.Head(0x4c).HasValue());
+
+        const auto point = [&](const glm::vec3& offset)
+        {
+            const auto turned = Client::Render::Models::OriginalVectorRotate(
+                offset, Client::Render::Models::OriginalAngleMatrix(tested.Striker().angles));
+            const glm::vec3& at = tested.Striker().position;
+            const auto sum = [](float first, float second)
+            { return static_cast<float>(static_cast<double>(first) + static_cast<double>(second)); };
+            return glm::vec3{sum(at.x, turned.x), sum(at.y, turned.y), sum(at.z, turned.z)};
+        };
+        CrtRandom expected{Seed};
+        static_cast<void>(expected.Next());
+        for (std::size_t round = 0; round < 2; ++round)
+        {
+            const auto pitch = static_cast<float>(expected.Next() % 360);
+            const auto yaw = static_cast<float>(expected.Next() % 360);
+            for (std::size_t pair = 0; pair < 2; ++pair)
+            {
+                const JointState& plasma = tested.joints[round * 2 + pair];
+                EXPECT_TRUE(plasma.alive);
+                EXPECT_EQ(plasma.type, 0x14f);
+                EXPECT_EQ(plasma.subtype, shade + (pair == 0 ? 0 : 3));
+                EXPECT_EQ(plasma.ownerContext, &aimed);
+                EXPECT_EQ(plasma.ownerKind, Client::Scenes::JointOwnerKind::Actor);
+                EXPECT_EQ(plasma.width, pair == 0 ? 100.0f : 80.0f);
+                EXPECT_EQ(plasma.position, point({0.0f, -140.0f, 130.0f}));
+                EXPECT_EQ(plasma.angles, (glm::vec3{pitch, 0.0f, yaw}));
+                // Con dueño, 0x530967 no copia el segundo punto: su paso va hacia el dueño (0x535b37).
+                EXPECT_EQ(plasma.targetPosition, glm::vec3(0.0f));
+            }
+        }
+        for (std::size_t spiral = 0; spiral < 6; ++spiral)
+        {
+            const auto height = static_cast<float>(static_cast<double>(expected.Next() % 40 - 20) + 10.0);
+            static_cast<void>(expected.Next());
+            static_cast<void>(expected.Next());
+            static_cast<void>(expected.Next());
+            const JointState& risen = tested.joints[4 + spiral];
+            EXPECT_TRUE(risen.alive);
+            EXPECT_EQ(risen.type, 0x62c);
+            EXPECT_EQ(risen.subtype, shade + 0xb);
+            EXPECT_EQ(risen.ownerContext, nullptr);
+            EXPECT_EQ(risen.width, 60.0f);
+            // Su alta (0x5346d8) sube el camino 150.
+            const glm::vec3 from = point({0.0f, height, 130.0f});
+            EXPECT_EQ(risen.pathIncrement,
+                      (glm::vec3{from.x, from.y, static_cast<float>(static_cast<double>(from.z) + 150.0)}));
+        }
+        EXPECT_FALSE(tested.joints[10].alive);
+        EXPECT_EQ(tested.random.State(), expected.State());
     }
 }
 
@@ -978,7 +1087,6 @@ TEST(AttackSkillCasesTest, TheTargetCasesCutWithoutDraws)
     const std::array cases{
         Case{0x01, 0x20a, "0x50497e"},
         Case{0x01, 0x0e, "0x50497e"},
-        Case{0x11, 0x20a, "0x505053"},
     };
     for (const std::int32_t map : Maps)
     {
@@ -1279,13 +1387,15 @@ TEST(AttackSkillCasesTest, TheQuietTargetCasesDoNothing)
         striker.word376 = kind;
         EXPECT_TRUE(tested.WithTarget(0x11).HasValue());
     }
-    striker.word376 = 0x26;
-    EXPECT_TRUE(HasError(tested.WithTarget(0x11), "0x505053"));
     EXPECT_TRUE(tested.WithTarget(0x03).HasValue());
     EXPECT_TRUE(tested.WithTarget(0x00).HasValue());
     EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
     EXPECT_TRUE(tested.sounds.empty());
     EXPECT_EQ(AliveEffects(tested.world).size(), 1u); // el 0x61e/2 de la 0x1b
+    // Otro +0x376 (0x26) ya no es de las tablas: la bola 0x5ca y el sonido 0x76 (TheEnergyBallFliesAtTheTarget).
+    striker.word376 = 0x26;
+    EXPECT_TRUE(tested.WithTarget(0x11).HasValue());
+    EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x76});
 }
 
 // 0x10: el 0x189 prende 0x100 en su +0x78; con 0x4000, nada; si no, 0x100 en +0x78 del blanco, el sonido 0x84,
@@ -1927,6 +2037,57 @@ float HeadingTo(const ActorState& from, const ActorState& to)
 {
     return static_cast<float>(
         Client::Render::Models::CreateAngle(from.position.x, from.position.y, to.position.x, to.position.y));
+}
+
+// 0x505024..0x505061, la 0x11 de un jugador (+0x376 en 0xffff) que no es el 0x15e, en todos los mapas: el 0x5ca/0
+// (Scenes/SkillBurstEffects: vida 20, la velocidad (0, −60, 0) y 100 más de z) sobre o con los ángulos hacia el blanco,
+// su luz y el blanco de dueño, sin rand(), y el sonido 0x76 sin objeto; con la tabla llena, sólo el sonido.
+TEST(AttackSkillCasesTest, TheEnergyBallFliesAtTheTarget)
+{
+    for (const std::int32_t map : Maps)
+    {
+        for (const bool full : {false, true})
+        {
+            SCOPED_TRACE(testing::Message() << "mapa " << map << (full ? ", lleno" : ""));
+            SkillWorld tested(map);
+            ActorState& striker = tested.Striker();
+            striker.type = 0x20a;
+            striker.position = glm::vec3(1000.0f, 2000.0f, 50.0f);
+            striker.angles = glm::vec3(5.0f, 6.0f, 7.0f);
+            striker.light = glm::vec3(0.5f, 0.25f, 1.0f);
+            tested.Victim().position = glm::vec3(1300.0f, 2400.0f, 0.0f);
+            if (full)
+            {
+                for (Client::World::ModelEffect& effect : tested.world.Map().effects.Effects())
+                {
+                    effect.alive = true;
+                    effect.type = 0x01;
+                }
+            }
+
+            const auto stepped = tested.WithTarget(0x11);
+
+            ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
+            EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
+            EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x76});
+            const auto balls = AliveOfType(tested.world, Client::Scenes::EnergyBallEffect);
+            if (full)
+            {
+                EXPECT_EQ(AliveEffects(tested.world).size(), tested.world.Map().effects.Effects().size());
+                continue;
+            }
+            ASSERT_EQ(balls.size(), 1u);
+            const Client::World::ModelEffect& ball = *balls.front();
+            EXPECT_EQ(ball.subtype, 0);
+            EXPECT_EQ(ball.ownerContext, &tested.Victim());
+            EXPECT_EQ(ball.transform.position, glm::vec3(1000.0f, 2000.0f, 150.0f));
+            EXPECT_EQ(ball.transform.angles, glm::vec3(5.0f, 6.0f, HeadingTo(striker, tested.Victim())));
+            EXPECT_EQ(ball.light, striker.light);
+            EXPECT_EQ(ball.life, 20);
+            EXPECT_EQ(ball.velocity, glm::vec3(0.0f, -60.0f, 0.0f));
+            EXPECT_EQ(ball.disturbanceState, 0xffff);
+        }
+    }
 }
 
 // 0x4feabb..0x4feb36, la 0x3f: el 0xcb/2 con o de dueño y el 0xcc/3 sin dueño, los dos sobre o con su luz (vida 250,

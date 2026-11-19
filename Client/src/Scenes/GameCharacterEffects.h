@@ -40,6 +40,7 @@ struct WorldTerrain;
 namespace Client::Scenes
 {
 class IModelLibrary;
+class WorldState;
 struct ActorState;
 struct FaunaDrawCarry;
 
@@ -56,6 +57,9 @@ struct GameCharacterEffectsPass
     World::Particles* particles = nullptr;
     std::span<JointState> joints{};
     World::ModelEffects* effects = nullptr;
+    // El mundo, para las altas de 0x518cf0 de las acciones 0x51 y 0x5b del Dark Lord (el 0x621/2 de 0x50f9b3 y los
+    // 0x117/2 de 0x50fb64, por CreateHighModelEffect) y su sonido 0x1cc. Sin él, esas ventanas cortan.
+    WorldState* world = nullptr;
     // El lugar del personaje en el pool: la identidad del dueño (+0x40) de la órbita 60f/0.
     std::size_t slot = 0;
     // Lo que devolvió 0x505820 en este dibujo (0x50c904) y lo que dejó en [0x743a178].
@@ -148,6 +152,9 @@ struct GameRavenPass
     // el grito corta en su primera partícula.
     World::Particles* particles = nullptr;
     float worldClock = 0.0f;
+    // Las tablas del mundo para el estado 5 (0x418aab..0x418c0a): los joints 0x5ac/1 (0x530860) y los efectos 0x117/3
+    // y 0x113/0 (0x518cf0). Sin ellas, el estado 5 corta en la primera alta.
+    WorldState* world = nullptr;
 };
 
 // 0x420df0: con un cuervo en +0x430, 0x4182f0. Sin pasar el trapecio (su (x, y) por 0,01f, con −20),
@@ -156,8 +163,9 @@ struct GameRavenPass
 // +0x78 & 0x4000 del dueño, 0x6002e0 recibe 10 y va por 0x60033c: DrawChromeShell, sin la sombra ni la altura del
 // terreno (el +0x108 del cuervo queda en 0 desde 0x415c1e, así que el lazo del asedio de 0x600343 no lo encuentra en
 // el pool). Después, en los frames del original, 0x418920, que sólo hace algo en los estados 5 y 6 (los que pone el
-// A8): el grito del 6 suelta las partículas 0x5ac/6 de sus huesos y lo demás es de la CL11 y corta con su dirección
-// (DrawTheRavenAttack). Se dibuja como lo dejó el paso, como
-// el personaje. En un frame del original le quedan los huesos de la pose para la chispa del paso.
+// A8): el 5 suelta los joints 0x5ac/1, el 0x117/3 y el 0x113/0 en las tablas de `world`, el grito del 6 las partículas
+// 0x5ac/6 de sus huesos, y su final (0x4ee770) es de la CL11 y corta con su dirección (DrawTheRavenAttack). Se dibuja
+// como lo dejó el paso, como el personaje. En un frame del original le quedan los huesos de la pose para la chispa del
+// paso.
 [[nodiscard]] Core::Expected<void, std::string> DrawGameRaven(ActorState& owner, const GameRavenPass& pass);
 } // namespace Client::Scenes

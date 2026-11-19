@@ -27,9 +27,16 @@ struct ModelEffect;
 struct TerrainLighting;
 } // namespace Client::World
 
+namespace Client::Data::Terrain
+{
+struct TerrainAttributes;
+}
+
 namespace Client::Scenes
 {
 struct ActorState;
+struct SkillHitsRequest;
+class WorldState;
 } // namespace Client::Scenes
 
 // Lo que comparten el alta de los joints (0x530860), su paso (0x535840) y las familias que viven en sus propios
@@ -73,6 +80,16 @@ struct CreationServices
 // la flecha en la posición del joint. Lo pone el que tiene el contexto de las flechas (Scenes/ArrowEffects.h).
 using EffectHit = std::function<Core::Expected<void, std::string>(World::ModelEffect&)>;
 
+// Lo que el 0x613/0, /5 y /0x13 de ancho 80 leen después de soltar su 0xd0 (0x539a50..0x539add): el asedio de
+// 0x4294b0 ([0x7239ec], WorldRuntime::siegeActive), los atributos de 0x5f82c0 (0x7d0d348) y los blancos del héroe de
+// 0x517a20 (Scenes::HitTheTargetsAround).
+struct VolleyServices
+{
+    bool siegeActive = false;
+    const Data::Terrain::TerrainAttributes* attributes = nullptr;
+    std::function<Core::Expected<void, std::string>(const SkillHitsRequest&)> skillHits{};
+};
+
 // Lo que el paso de una familia de joints le pide al frame: el pool entero (las altas que hace el paso caen en él,
 // 0x53703d), el lugar del joint, y los servicios que el paso común ya recibe.
 struct StepServices
@@ -101,6 +118,13 @@ struct StepServices
     bool* returned = nullptr;
     // La tabla de efectos con modelo (0x7491fd8): el 0x613/0x13 suelta ahí el 0x11b/0 (0x539b08). Sin ella, corta.
     World::ModelEffects* effects = nullptr;
+    // El héroe ([0x743a170]): el 0x61c/0 compara su dueño con él (0x53b548). Sin él, el 0x61c/0 con dueño corta.
+    const ActorState* hero = nullptr;
+    // Los modelos compartidos (0x5769ad8 + tipo · 0xe0, su escala y su posición): el 0x614/0xc se pone en el modelo del
+    // dueño (0x536b1d) y el 0x62c/5..7 con dueño le escribe la posición al suyo (0x53bc42). Sin ellos, cortan.
+    WorldState* world = nullptr;
+    // El 0x613/0, /5 y /0x13 de ancho 80 (0x539a50). Sin ellos, cortan ahí.
+    const VolleyServices* volley = nullptr;
 };
 
 // El dueño de un joint de las familias de este archivo, cuando es un personaje (ActorState): el objeto del original,

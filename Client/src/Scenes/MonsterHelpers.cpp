@@ -20,6 +20,7 @@
 #include "Scenes/MeteorEffects.h"
 #include "Scenes/WorldModelPose.h"
 #include "Scenes/WorldRuntime.h"
+#include "Data/Models/PlayerModels.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/WorldState.h"
 #include "Scenes/WorldMap.h"
@@ -40,6 +41,7 @@
 #include <algorithm>
 #include <array>
 #include <bit>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <format>
@@ -384,6 +386,72 @@ Result SmokeTheHandsEyeAndBackOf1a4(MonsterHelperPass& pass)
     return Particle(pass, Smoke, SmokeSubtype, back.Value(), angles, White, Small, 0x441a02);
 }
 
+// 0x441b33..0x441b7c y 0x441c0c..0x441c4c: el cráter 0x636/2 (World::ModelEffects::CreateCraterEffect), el joint
+// 0x61c/6 sin dueño (ancho 200, clave −1) y la columna 0x5de/3 (World::ModelEffects::CreateFlameColumn), sin dueño y
+// con la clave en −1. Con la tabla llena, cada uno nada.
+Result StrikeAt(MonsterHelperPass& pass, glm::vec3 point, glm::vec3 angles, const glm::vec3& columnAngles,
+                const glm::vec3& columnLight, std::uint32_t joint)
+{
+    constexpr std::int32_t CraterSubtype = 2, LaserJoint = 0x61c, LaserSubtype = 6;
+    constexpr float LaserWidth = 200.0f; // 0x43480000
+    const glm::vec3 white(1.0f);         // [ebp−0x3c], 0x44166f
+    static_cast<void>(pass.world.Map().effects.CreateCraterEffect(
+        {.type = 0x636, .position = point, .angles = angles, .light = white, .subtype = CraterSubtype}));
+    const World::FishEffectRequest request{.type = LaserJoint,
+                                           .firstPosition = point,
+                                           .secondPosition = point,
+                                           .angles = angles,
+                                           .subtype = LaserSubtype,
+                                           .ownerContext = nullptr,
+                                           .scale = LaserWidth,
+                                           .key = -1,
+                                           .skill = 0,
+                                           .skillSerial = 0,
+                                           .target = -1};
+    if (auto made = CreateFaunaJoint(pass.world.DrawTail().joints, request, pass.random); !made.HasValue())
+        return Core::Unexpected(std::format("{:#x}: {}", joint, made.Error()));
+    static_cast<void>(pass.world.Map().effects.CreateFlameColumn({.type = World::FlameJetEffect,
+                                                                  .position = point,
+                                                                  .angles = columnAngles,
+                                                                  .light = columnLight,
+                                                                  .subtype = World::FlameColumnSubtype}));
+    return {};
+}
+
+// 0x441a8a..0x441c6e, el golpe de la 3 del 0x1a4: en la mano derecha (Monster82_RHand) con la z del personaje, el
+// cráter, el joint y la columna con los ángulos (−90, 0, z del personaje) y, la columna, con los ángulos y la luz del
+// personaje; después, en cada jugador (+0x88 en 1, el 0x20a) visto y vivo a más de 200 y menos de 1100 en el plano
+// (0x5fd0c0, en la x87) de ese punto, lo mismo en su posición, la columna con sus ángulos y la luz en blanco.
+Result StrikeTheGroundOf1a4(MonsterHelperPass& pass)
+{
+    ActorState& actor = pass.actor;
+    const auto right = PointOf(pass, "Monster82_RHand", 0x441ac3);
+    if (!right.HasValue())
+        return Core::Unexpected(right.Error());
+    const glm::vec3 point{right.Value().x, right.Value().y, actor.position.z};
+    constexpr float Down = -90.0f; // 0xc2b40000
+    const glm::vec3 angles{Down, 0.0f, actor.angles.z};
+    if (auto struck = StrikeAt(pass, point, angles, actor.angles, actor.light, 0x441b57); !struck.HasValue())
+        return struck;
+    constexpr std::uint8_t PlayerClass = 1;
+    constexpr double Near = 200.0, Far = 1100.0; // 0x6b8928 y 0x6b8bdc
+    const glm::vec3 white(1.0f);
+    for (const ActorState& other : pass.world.Actors())
+    {
+        if (other.byte88 != PlayerClass || other.type != Data::Models::PlayerSkeletonModel || !other.seen ||
+            !other.alive)
+            continue;
+        const double dx = static_cast<double>(other.position.x) - static_cast<double>(point.x);
+        const double dy = static_cast<double>(other.position.y) - static_cast<double>(point.y);
+        const double distance = std::sqrt((dy * dy) + (dx * dx));
+        if (!(distance > Near) || !(distance < Far))
+            continue;
+        if (auto struck = StrikeAt(pass, other.position, angles, other.angles, white, 0x441c2a); !struck.HasValue())
+            return struck;
+    }
+    return {};
+}
+
 // 0x441669..0x441d91: en la 6, 0x4ee770(modelo, 0, 0x13c, 0, 0, 0) (DieInStones: un rand() por vértice y las piedras
 // 0x13c), +0 en 0 y el sonido 0x209; si no, las fantas y los humos de las manos, el ojo y la espalda
 // (SmokeTheHandsEyeAndBackOf1a4); después rand() % 20 en 0 pide 0x205 más rand() % 2 sin mirar +4, y con +4 en 0, la 3
@@ -412,8 +480,9 @@ Result DrawThe1a4(MonsterHelperPass& pass)
     if (action == 3 && frame >= 8.4f && frame <= 10.2f && actor.subtype == 0)
     {
         actor.subtype = 1;
-        return Cut(0x441b33, "los efectos 0x518cf0 y el joint 0x530860 de la mano derecha, y el sonido que sigue",
-                   actor);
+        if (auto struck = StrikeTheGroundOf1a4(pass); !struck.HasValue())
+            return struck;
+        Sound(pass, 0x207); // 0x441c75
     }
     // 0x441c7d..0x441cd4: 5 (0x6b87f8) y 5,7 (0x6b8bd8).
     if (action == 4 && frame >= 5.0f && frame <= 5.7f && actor.subtype == 0)

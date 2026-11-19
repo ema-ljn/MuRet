@@ -30,10 +30,11 @@ inline constexpr std::int16_t KundunSpiritEffect = 0x125;
 inline constexpr std::int16_t KundunPhoenixEffect = 0x126;
 inline constexpr std::int16_t KundunCallEffect = 0x128;
 
-// 0x518f38..0x518f90, el 0x128 después del prefijo de 0x518cf0: el /0 y el /1, vida 30 (0x51cf97). El /2 deja la vida
-// en 40 y la clave (+0x8a) en 0 y vuelve a entrar en 0x518cf0 como un 0x127 con él de dueño (0x518f90), que MuRet no
-// tiene: corta ahí (nadie conocido crea el /2). Los demás subtipos, sólo lo común. Sin rand().
-[[nodiscard]] Core::Expected<void, std::string> BeginTheKundunCall(World::ModelEffect& effect);
+// 0x518f38..0x518f90, el 0x128 del lugar `slot` después del prefijo de 0x518cf0: el /0 y el /1, vida 30 (0x51cf97). El
+// /2 (el de la caída de Kundun, 0x43f144) deja la vida en 40 y la clave (+0x8a) en 0 y vuelve a entrar en 0x518cf0
+// como el 0x127/0 con él de dueño (0x518f90, CreateTheKundunEcho de Scenes/KundunFallEffects). Los demás subtipos,
+// sólo lo común. Sin rand().
+void BeginTheKundunCall(World::ModelEffects& effects, std::size_t slot);
 
 // 0x518cf0(0x128, ...) sobre `effects` sin el resto del mundo, como lo piden 0x43d051 y 0x43d0fd: el prefijo
 // (World::ModelEffects::Begin) y BeginTheKundunCall. Con la tabla llena, nada. Devuelve el lugar.
@@ -52,8 +53,8 @@ CreateTheKundunCall(World::ModelEffects& effects, const World::ModelEffectArgume
 
 // 0x51cebf..0x51cf6c, el 0x126: +0xd8 en 0,34f, vida 20, +0x64 en −2, escala 0,7f, la luz en 0,5 y el alpha en 0; el
 // joint 0x613/0xf con el efecto de dueño, de ancho 100 y clave 0 (0x51cf45), en su posición, con los ángulos (0, 0,
-// z · 0,01745329f); después el frame (+0x114) en rand() % 5. Cualquier subtipo. El 0x613/0xf con un efecto de dueño es
-// del lote de joints: con lugar corta ahí, antes del rand(); con los joints llenos sigue.
+// z · 0,01745329f); después el frame (+0x114) en rand() % 5. Cualquier subtipo. El 0x613/0xf (SpiritJoints.cpp) no saca
+// rand() al nacer; en su paso le escribe al 0x126 los ángulos, el alpha y la posición (0x539249).
 [[nodiscard]] Core::Expected<void, std::string> BeginTheKundunPhoenix(World::ModelEffect& effect,
                                                                       const HighEffectContext& context);
 
@@ -63,8 +64,8 @@ void StepTheKundunPhoenix(World::ModelEffect& effect);
 // 0x51cdc9..0x51cebe: vida 30, +0x64 en −2, escala 1, la luz en 0,5, el alpha en 0 y la z 100 más; el giro rand() % 360
 // y el radio rand() % 600 + 200, y el joint 0x6ee/0x12 con el efecto de dueño, de ancho 100 y clave 0 (0x51ce91), en
 // (FSIN(giro) · radio + x, FCOS(giro) · radio + y, 0) con la x y la y de antes; después los ángulos en (−30, 0,
-// rand() % 360). Cualquier subtipo. El 0x6ee/0x12 con un efecto de dueño es del lote de joints: con lugar corta ahí,
-// después de los dos rand(); con los joints llenos sigue.
+// rand() % 360). Cualquier subtipo. El 0x6ee/0x12 (SpiritJoints.cpp) no saca rand(); en su paso le pone al 0x125 el
+// alpha y la posición (0x539494).
 [[nodiscard]] Core::Expected<void, std::string> BeginTheKundunSpirit(World::ModelEffect& effect,
                                                                      const HighEffectContext& context);
 

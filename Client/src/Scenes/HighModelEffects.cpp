@@ -20,8 +20,10 @@
 #include "Scenes/JavelinEffect.h"
 #include "Scenes/KalimaMonsterEffects.h"
 #include "Scenes/KundunEffects.h"
+#include "Scenes/KundunFallEffects.h"
 #include "Scenes/MeteorEffects.h"
 #include "Scenes/RingEffects.h"
+#include "Scenes/SkillBurstEffects.h"
 #include "Scenes/SkullEffects.h"
 #include "Scenes/SkillHits.h"
 #include "Scenes/WaveEffects.h"
@@ -1232,7 +1234,9 @@ bool IsHighModelEffect(std::int16_t type)
            type == JavelinEffect || type == ThunderEffect || type == WaveEffect || type == PiercingEffect ||
            type == RingEffect || type == MeteorEffect || type == MeteorShellEffect || type == MeteorCallEffect ||
            type == GuildMarkEffect || type == KundunSpiritEffect || type == KundunPhoenixEffect ||
-           type == KundunCallEffect;
+           type == KundunCallEffect || (type >= FirstKundunPieceEffect && type <= LastKundunPieceEffect) ||
+           type == KundunEchoEffect || type == SweepEmitterEffect || type == EnergyBallEffect ||
+           type == FlameBurstEffect;
 }
 
 Core::Expected<std::optional<std::size_t>, std::string>
@@ -1334,7 +1338,19 @@ CreateHighModelEffect(const World::ModelEffectArguments& arguments, const HighEf
         begun = BeginTheKundunPhoenix(effect, context);
         break;
     case KundunCallEffect:
-        begun = BeginTheKundunCall(effect);
+        BeginTheKundunCall(context.world.Map().effects, *slot);
+        break;
+    case KundunEchoEffect:
+        BeginTheKundunEcho(effect);
+        break;
+    case SweepEmitterEffect:
+        BeginTheSweepEmitter(effect);
+        break;
+    case EnergyBallEffect:
+        BeginTheEnergyBall(effect);
+        break;
+    case FlameBurstEffect:
+        BeginTheFlameBurst(effect);
         break;
     case GuildMarkEffect:
     {
@@ -1351,6 +1367,10 @@ CreateHighModelEffect(const World::ModelEffectArguments& arguments, const HighEf
         break;
     }
     default:
+        // 0x51e234: los pedazos de la caída de Kundun; sin la altura del terreno (la tienen los que llama
+        // CreateTheKundunPiece), el /2, el /3 y el /4 cortan.
+        if (arguments.type >= FirstKundunPieceEffect && arguments.type <= LastKundunPieceEffect)
+            begun = BeginTheKundunPiece(effect, context.random, {});
         break;
     }
     if (!begun.HasValue())
@@ -1371,6 +1391,9 @@ bool StepsAsHighModelEffect(const World::ModelEffect& effect)
     // El 0x114 y el 0x115 nacen aquí y dan su paso en World (0x526dd0 y 0x526f9d).
     if (effect.type == WaveEffect || effect.type == PiercingEffect)
         return false;
+    // El 0x13a nace en Scenes/ArrowEffects (CreateTheBlast) y da su paso aquí (0x529dee).
+    if (effect.type == ArrowBlastEffect)
+        return true;
     return IsHighModelEffect(effect.type);
 }
 
@@ -1471,7 +1494,24 @@ Core::Expected<void, std::string> StepHighModelEffect(World::ModelEffect& effect
     case KundunCallEffect:
         stepped = StepTheKundunCall(effect, context);
         break;
+    case KundunEchoEffect:
+        stepped = StepTheKundunEcho(effect, context);
+        break;
+    case SweepEmitterEffect:
+        stepped = StepTheSweepEmitter(effect, context);
+        break;
+    case EnergyBallEffect:
+        stepped = StepTheEnergyBall(effect, context);
+        break;
+    case FlameBurstEffect:
+        stepped = StepTheFlameBurst(effect, World::StepLuminosity(lightDraw, effect.life), context);
+        break;
+    case ArrowBlastEffect:
+        stepped = StepTheArrowBlast(effect, context);
+        break;
     default:
+        if (effect.type >= FirstKundunPieceEffect && effect.type <= LastKundunPieceEffect)
+            stepped = StepTheKundunPiece(effect, context);
         break;
     }
     if (!stepped.HasValue())

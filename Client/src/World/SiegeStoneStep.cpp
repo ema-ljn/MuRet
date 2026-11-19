@@ -35,10 +35,10 @@ Result ParticleAt(ModelEffect& effect, Particles& particles, Render::Models::Crt
         return Core::Unexpected(std::string("0x527dd2: falla una partícula de las armas del asedio"));
     return {};
 }
-void Sound(const SiegeStoneStepServices& services, std::int32_t id)
+void Sound(const SiegeStoneStepServices& services, std::int32_t id, const glm::vec3& position)
 {
     if (services.sound)
-        services.sound(id);
+        services.sound(id, position);
 }
 Result Camera(ModelEffect& effect, const SiegeStoneStepServices& services)
 {
@@ -62,7 +62,7 @@ Result ImpactVisuals(ModelEffect& effect, Render::Models::CrtRandom& random, con
     const ModelEffectArguments crater{
         .type = 0x636, .position = effect.transform.position, .angles = effect.transform.angles, .light = effect.light};
     static_cast<void>(services.effects->CreateCraterEffect(crater));
-    Sound(services, 0x1eb);
+    Sound(services, 0x1eb, effect.transform.position);
     if (effect.type == SiegeStoneEffect)
     {
         if (!services.collide)
@@ -107,7 +107,7 @@ Result Contact(ModelEffect& effect, Render::Models::CrtRandom& random, const Sie
             if (!collided.HasValue())
                 return Core::Unexpected(collided.Error());
             if (collided.Value() && effect.seen)
-                Sound(services, 0x1eb);
+                Sound(services, 0x1eb, effect.transform.position);
         }
         return {};
     }

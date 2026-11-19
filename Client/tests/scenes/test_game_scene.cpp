@@ -1,6 +1,8 @@
 #include "Scenes/GameScene.h"
 
 #include "App/PacingMode.h"
+#include "Audio/Playback.h"
+#include "Scenes/MonsterSounds.h"
 #include "App/ServerSession.h"
 #include "App/SessionState.h"
 #include "App/WorldEvent.h"
@@ -892,6 +894,53 @@ protected:
     Client::Scenes::GameModels playerModels;
     Client::Scenes::GameData data;
 };
+
+// 0x6151fc/0x61520f reservan los dos .wav antes de publicar las WORD en 0x615232.
+class SpearmanRegistrationPlayback final : public Client::Audio::IPlayback
+{
+public:
+    explicit SpearmanRegistrationPlayback(const WorldRuntime& runtime) : m_runtime(runtime) {}
+    void PlaySound(std::int32_t, std::optional<glm::vec3>, bool) override {}
+    void StopSound(std::int32_t, bool) override {}
+    void PlayMusic(std::string_view, bool) override {}
+    void StopMusic() override {}
+    void SetEffectsVolume(std::uint8_t) override {}
+    void SetListener(glm::vec3) override {}
+    void RegisterSound(std::int32_t id, std::string_view path) override
+    {
+        if (id != 0x1bd && id != 0x1be)
+            return;
+        EXPECT_FALSE(Client::Scenes::WrittenSounds(m_runtime.modelSounds, Client::Scenes::SpearmanModel));
+        registrations.emplace_back(id, path);
+    }
+    std::vector<std::pair<std::int32_t, std::string>> registrations;
+
+private:
+    const WorldRuntime& m_runtime;
+};
+
+TEST_F(GameSceneDrawTest, TheCastleSpearmanReservesItsSoundsBeforePublishingTheActionTable)
+{
+    ASSERT_NO_FATAL_FAILURE(Prepare(30, 80, 80));
+    SpearmanRegistrationPlayback audio(world.Runtime());
+    world.Runtime().audio = &audio;
+    GameScene scene = Scene();
+    ASSERT_TRUE(scene.Enter().HasValue());
+    Client::Tests::RecordingFrameTarget target;
+    scene.PrepareFrame();
+    scene.Render(target.BeginFrame(std::chrono::milliseconds{1000}), 0.0f);
+    target.Present();
+    ASSERT_FALSE(scene.Failure().has_value()) << *scene.Failure();
+    const std::vector<std::pair<std::int32_t, std::string>> expected{
+        {0x1bd, "Sound\\BattleCastle\\m_SpearMercAttack.wav"}, {0x1be, "Sound\\BattleCastle\\m_SpearMercDeath.wav"}};
+    EXPECT_EQ(audio.registrations, expected);
+    const Client::Scenes::ModelSounds sounds{-1, -1, 0xeb, 0xeb, 0xec, -1, -1, -1, -1, -1};
+    EXPECT_EQ(Client::Scenes::WrittenSounds(world.Runtime().modelSounds, Client::Scenes::SpearmanModel), sounds);
+    scene.PrepareFrame();
+    scene.Render(target.BeginFrame(std::chrono::milliseconds{1040}), 0.0f);
+    target.Present();
+    EXPECT_EQ(audio.registrations, expected);
+}
 
 // El primer lote de modelos contiene terreno, pasto y objetos; la cola puede agregar otros lotes.
 const Client::Tests::FrameEvent* ModelsOf(const Client::Tests::RecordedFrame& frame)

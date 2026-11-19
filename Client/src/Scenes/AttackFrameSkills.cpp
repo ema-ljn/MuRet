@@ -340,7 +340,10 @@ Core::Expected<void, std::string> StepTheSkill34(ActorState& actor, std::uint8_t
             return CutAt(0x4f9ecb,
                          "el efecto 0x621/0 sobre el que tira (CL11); detrás, el sonido 0x81 y [0x6c88ac] en 5", skill,
                          actor, slot);
-        RequestTheSound(context, 0x81);
+        if (context.soundAt)
+            context.soundAt(0x81, actor.position);
+        else
+            RequestTheSound(context, 0x81);
     }
     // 0x4f9ee2.
     context.world.Runtime().skillThreshold = ShortThreshold;

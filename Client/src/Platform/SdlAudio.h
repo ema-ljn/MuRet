@@ -24,6 +24,7 @@ public:
     SdlAudio(const SdlAudio&) = delete;
     SdlAudio& operator=(const SdlAudio&) = delete;
 
+    [[nodiscard]] std::string_view DriverName() const;
     void PlaySound(std::int32_t id, std::optional<glm::vec3> origin, bool loop) override;
     void StopSound(std::int32_t id, bool rewind) override;
     void PlayMusic(std::string_view relativePath, bool loop) override;

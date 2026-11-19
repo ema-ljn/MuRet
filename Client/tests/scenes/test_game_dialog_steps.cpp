@@ -1,5 +1,6 @@
 #include "Scenes/GameDialogSteps.h"
 
+#include "Audio/Playback.h"
 #include "Core/Expected.h"
 #include "Data/Text/DialogTable.h"
 #include "Input/InputEvent.h"
@@ -35,6 +36,8 @@
 
 #include "support/SceneDataFiles.h"
 
+#include <glm/ext/vector_float3.hpp>
+
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -59,6 +62,22 @@ using Client::Input::InputState;
 using Client::Render::Models::CrtRandom;
 using Client::Scenes::GameUiContext;
 using Client::Scenes::WorldState;
+
+class DialogPlayback final : public Client::Audio::IPlayback
+{
+public:
+    void PlaySound(std::int32_t id, std::optional<glm::vec3>, bool) override
+    {
+        onSound(id);
+    }
+    void StopSound(std::int32_t, bool) override {}
+    void PlayMusic(std::string_view, bool) override {}
+    void StopMusic() override {}
+    void SetEffectsVolume(std::uint8_t) override {}
+    void SetListener(glm::vec3) override {}
+
+    std::function<void(std::int32_t)> onSound;
+};
 
 // 0x61c210: el registro propio abierto y cerrado.
 constexpr int OptionDataRandoms = 3848;
@@ -382,6 +401,62 @@ TEST(GameDialogStepsTest, TheOptionRowsToggleTheirSettings)
     ASSERT_TRUE(tested.Click(0x110, 0xe8).HasValue());
     EXPECT_EQ(runtime.dialogs.current, 0x8b);
     EXPECT_EQ(runtime.dialogs.pending, 0);
+}
+
+// 0x6258e7..0x6258fa frente a 0x628280..0x6282c3: las opciones suenan antes de cerrar; el OK, después.
+TEST(GameDialogStepsTest, OptionsAndGenericOkKeepTheirNativeSoundAndPendingDialogOrder)
+{
+    for (const bool options : {true, false})
+    {
+        SteppingDialogs tested(Lorencia);
+        auto& runtime = tested.world.Runtime();
+        runtime.dialogs.current = options ? Client::UI::OptionsDialog : 0x72;
+        runtime.dialogs.pending = 0x8b;
+        DialogPlayback playback;
+        int sounds = 0;
+        playback.onSound = [&](std::int32_t id)
+        {
+            ++sounds;
+            EXPECT_EQ(id, 0x19);
+            EXPECT_EQ(runtime.dialogs.current, options ? Client::UI::OptionsDialog : 0x8b);
+            EXPECT_EQ(runtime.dialogs.pending, options ? 0x8b : 0);
+            EXPECT_EQ(runtime.movement.mouseUpdateTime, 0);
+            EXPECT_EQ(runtime.movement.mouseUpdateTimeMax, 6);
+        };
+        runtime.audio = &playback;
+        ASSERT_TRUE(tested.Click(options ? 0x110 : 0x161, options ? 0xe8 : 0x76).HasValue());
+        EXPECT_EQ(sounds, 1);
+        EXPECT_EQ(runtime.dialogs.current, 0x8b);
+        EXPECT_EQ(runtime.dialogs.pending, 0);
+        EXPECT_FALSE(runtime.movement.pendingClick);
+    }
+}
+
+// 0x628299 destruye el audio sincrónicamente antes del intento de sonido de 0x6282c3.
+TEST(GameDialogStepsTest, QuittingOkDialogsKeepTheCloseStateWithoutAnAudibleClick)
+{
+    for (const std::int32_t id : {0x70, 0x6f, 0x1a, 0x1c})
+    {
+        SCOPED_TRACE(id);
+        SteppingDialogs tested(Devias);
+        auto& runtime = tested.world.Runtime();
+        runtime.dialogs.current = id;
+        runtime.dialogs.pending = 0x8b;
+        DialogPlayback playback;
+        int sounds = 0;
+        playback.onSound = [&](std::int32_t) { ++sounds; };
+        runtime.audio = &playback;
+        runtime.ui.enterPressed = true;
+        runtime.movement.mouseUpdateTime = 20;
+        ASSERT_TRUE(tested.Dialogs(0, 0).HasValue());
+        EXPECT_EQ(sounds, 0);
+        EXPECT_TRUE(runtime.ui.destroyRequested);
+        EXPECT_FALSE(runtime.ui.enterPressed);
+        EXPECT_EQ(runtime.dialogs.current, 0x8b);
+        EXPECT_EQ(runtime.dialogs.pending, 0);
+        EXPECT_EQ(runtime.movement.mouseUpdateTime, 0);
+        EXPECT_EQ(runtime.movement.mouseUpdateTimeMax, 6);
+    }
 }
 
 // Q-C550: volver deja el menú esperando y las opciones abiertas, hasta cerrarlas.

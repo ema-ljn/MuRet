@@ -1,5 +1,6 @@
 #include "Scenes/NpcWindows.h"
 
+#include "Audio/Playback.h"
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
@@ -39,6 +40,8 @@
 #include "support/SameBytes.h"
 #include "support/SceneDataFiles.h"
 
+#include <glm/ext/vector_float3.hpp>
+
 #include <gtest/gtest.h>
 
 #include <array>
@@ -46,6 +49,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <memory>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -66,6 +70,24 @@ using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
 namespace Npc = Client::Protocol::NpcWindows;
 namespace UI = Client::UI;
+
+class NpcPlayback final : public Client::Audio::IPlayback
+{
+public:
+    void PlaySound(std::int32_t id, std::optional<glm::vec3> origin, bool loop) override
+    {
+        EXPECT_FALSE(origin.has_value());
+        EXPECT_FALSE(loop);
+        sounds.push_back(id);
+    }
+    void StopSound(std::int32_t, bool) override {}
+    void PlayMusic(std::string_view, bool) override {}
+    void StopMusic() override {}
+    void SetEffectsVolume(std::uint8_t) override {}
+    void SetListener(glm::vec3) override {}
+
+    std::vector<std::int32_t> sounds;
+};
 
 constexpr std::uint32_t Seed = 0x1357;
 constexpr int Own = Client::Render::Models::OwnRecordCloseRandoms;
@@ -664,6 +686,27 @@ TEST_F(NpcWindowRepliesTest, ASuccessfulMixLeavesTheNewItemInTheChaosBox)
 
     ASSERT_TRUE(Client::Scenes::ApplyChaosMixResult({.result = 2, .item = {}}, stage->Resources()).HasValue());
     EXPECT_EQ(Npc().chaosMixState, 0);
+}
+
+// 0x4d2899/0x4d28a4, 0x4c5f7f/0x4c5f8a, 0x4c5fcb/0x4c5fd6 y 0x4da31b/0x4da326.
+TEST_F(NpcWindowRepliesTest, NativeSoundPairsReachPlaybackInOrderWithoutAnOriginOrLoop)
+{
+    NpcPlayback playback;
+    stage->world.Runtime().audio = &playback;
+    ASSERT_TRUE(Talk(13).HasValue());
+    EXPECT_EQ(playback.sounds, (std::vector<std::int32_t>{0x19, 0x1c}));
+    playback.sounds.clear();
+
+    for (const std::uint8_t grid : {std::uint8_t{3}, std::uint8_t{5}})
+    {
+        ASSERT_TRUE(Client::Scenes::ApplyItemList({.grid = grid, .items = {}}, stage->Resources()).HasValue());
+        EXPECT_EQ(playback.sounds, (std::vector<std::int32_t>{0x57, 0x44}));
+        playback.sounds.clear();
+    }
+    ASSERT_TRUE(
+        Client::Scenes::ApplyChaosMixResult({.result = 1, .item = ItemBytes(Sword)}, stage->Resources()).HasValue());
+    EXPECT_EQ(playback.sounds, (std::vector<std::int32_t>{0x57, 0x45}));
+    stage->world.Runtime().audio = nullptr;
 }
 
 // El 86 con 100 (0x4da373): la caja del entrenador vacía y el ítem en su lugar 0 con 0x44ad70(0, datos, 1), sin la cola

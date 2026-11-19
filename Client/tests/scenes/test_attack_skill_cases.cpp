@@ -157,6 +157,12 @@ struct SkillWorld
                                     .particles = withParticles ? &world.Particles() : nullptr,
                                     .joints = withJoints ? std::span<JointState>(joints) : std::span<JointState>{},
                                     .soundRequest = [this](std::int32_t sound) { sounds.push_back(sound); },
+                                    .soundAt =
+                                        [this](std::int32_t sound, const glm::vec3& origin)
+                                    {
+                                        sounds.push_back(sound);
+                                        soundOrigins.push_back(origin);
+                                    },
                                     .controlDown = controlDown};
     }
 
@@ -174,6 +180,7 @@ struct SkillWorld
     WorldState& world = *ownedWorld;
     CrtRandom random{Seed};
     std::vector<std::int32_t> sounds;
+    std::vector<glm::vec3> soundOrigins;
     bool controlDown = false;
     const Client::Data::Tables::SkillTable* skills = nullptr;
     std::vector<JointState> joints = std::vector<JointState>(16);
@@ -536,6 +543,7 @@ TEST(AttackSkillCasesTest, TheHandsDecideTheRaise)
     {
         SCOPED_TRACE(testing::Message() << probe.right << " y " << probe.left);
         SkillWorld tested(2);
+        tested.Striker().position = glm::vec3(125.0f, 250.0f, 375.0f);
         tested.Striker().hands[0].model = probe.right;
         tested.Striker().hands[1].model = probe.left;
 
@@ -546,6 +554,8 @@ TEST(AttackSkillCasesTest, TheHandsDecideTheRaise)
         {
             EXPECT_TRUE(raised.HasValue()) << ErrorOf(raised);
             EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x1cf}));
+            ASSERT_EQ(tested.soundOrigins.size(), 1u);
+            EXPECT_EQ(tested.soundOrigins.front(), tested.Striker().position);
         }
         else
         {
@@ -956,6 +966,7 @@ TEST(AttackSkillCasesTest, TheFullPoolsPreserveEveryHeadTail)
         SkillWorld tested;
         tested.withParticles = true;
         auto& actor = tested.Hero();
+        actor.position = glm::vec3(125.0f, 250.0f, 375.0f);
         actor.skillTarget4c = static_cast<std::int32_t>(VictimSlot);
         actor.attackTarget = static_cast<std::uint16_t>(VictimSlot);
         actor.flags78 = probe.skill == 0x48 ? 0x8000u : 0u;
@@ -971,6 +982,11 @@ TEST(AttackSkillCasesTest, TheFullPoolsPreserveEveryHeadTail)
         EXPECT_EQ(tested.world.OwnCharacter().bytef04, probe.volley);
         EXPECT_EQ(tested.sounds,
                   probe.sound < 0 ? std::vector<std::int32_t>{} : std::vector<std::int32_t>{probe.sound});
+        if (probe.skill == 0x40 || probe.skill == 0x3f || probe.skill == 0x41)
+        {
+            ASSERT_EQ(tested.soundOrigins.size(), 1u);
+            EXPECT_EQ(tested.soundOrigins.front(), actor.position);
+        }
         if (probe.skill == 0x48)
         {
             EXPECT_EQ(actor.flags78, 0u);

@@ -21,6 +21,7 @@
 #include "Scenes/WorldMap.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
+#include "World/ParticleBurst.h"
 #include "World/TerrainDecal.h"
 #include "World/Sprites.h"
 
@@ -324,7 +325,8 @@ Result DrawThe1a3(MonsterHelperPass& pass)
 // no, el punto (5, 10, 5) de la mano izquierda y la partícula 0x6ec/3 (CL11). Con la tabla llena siguen, sin crear
 // nada, la 0x5f2/21, la 0x6ec/4 de la mano derecha, la 0x5f2/21, la 0x6ec/0 y la 0x5f2/21 del ojo y la 0x5f2/21 de la
 // espalda (sus puntos no los lee nadie más); después rand() % 20 en 0 pide 0x205 más rand() % 2 sin mirar +4, y con
-// +4 en 0, la 3 con el frame de 8,4 a 10,2 y la 4 de 5 a 5,7 ponen +4 = 1 y cortan en sus efectos.
+// +4 en 0, la 3 con el frame de 8,4 a 10,2 corta en sus efectos; la 4 de 5 a 5,7 pone +4 = 1, crea
+// la ráfaga 0x51fe10 desde LHand + (80, 40, −25) y pide 0x208 incluso con el pool lleno.
 Result DrawThe1a4(MonsterHelperPass& pass)
 {
     ActorState& actor = pass.actor;
@@ -351,8 +353,15 @@ Result DrawThe1a4(MonsterHelperPass& pass)
     if (action == 4 && frame >= 5.0f && frame <= 5.7f && actor.subtype == 0)
     {
         actor.subtype = 1;
-        return Cut(0x441d7d, "0x51fe10 desde el punto (80, 40, −25) de la mano izquierda, y el sonido que sigue",
-                   actor);
+        const auto point = PointOf(pass, "Monster82_LHand", 0x441d2f, {80.0f, 40.0f, -25.0f});
+        if (!point.HasValue())
+            return Core::Unexpected(point.Error());
+        const auto burst =
+            World::CreateParticleBurst(*pass.particles, point.Value(), pass.random, true, pass.worldClock);
+        if (!burst.HasValue())
+            return Core::Unexpected(std::format("0x441d7d: falla la ráfaga del tipo 0x1a4 con el error {}",
+                                                static_cast<unsigned>(burst.Error())));
+        Sound(pass, 0x208);
     }
     return {};
 }
@@ -555,7 +564,11 @@ Result DrawThe1a9(MonsterHelperPass& pass)
     if (actor.subtype == 0)
     {
         actor.subtype = 1;
-        return Cut(0x442cb9, "el efecto 0x13f (0x518cf0), y después el sonido 0x20d", actor);
+        // 0x518cf0 no inicializa nada sin un slot libre; 0x442cc5 suena incluso en ese caso.
+        const auto& effects = pass.world.Map().effects.Effects();
+        if (std::ranges::any_of(effects, [](const World::ModelEffect& effect) { return !effect.alive; }))
+            return Cut(0x442cb9, "el efecto 0x13f (0x518cf0), y después el sonido 0x20d", actor);
+        Sound(pass, 0x20d);
     }
     if (const auto point = PointOf(pass, "Monster87_LeftHand", 0x442d4c, {0.0f, 0.0f, -10.0f}); !point.HasValue())
         return Core::Unexpected(point.Error());

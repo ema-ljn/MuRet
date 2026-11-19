@@ -151,7 +151,8 @@ World::SiegeStoneStepServices SiegeStoneServicesOf(const WorldEntryResources& re
         },
         .deform = [&world](float x, float y, std::int32_t tx, std::int32_t ty)
         { return World::DeformTheSiegeTerrain(world.Map().terrain, x, y, tx, ty); },
-        .sound = [&world](std::int32_t sound) { world.Runtime().RequestSound(sound); }};
+        .sound = [&world](std::int32_t sound, const glm::vec3& position)
+        { world.Runtime().RequestSound(sound, position, false); }};
     const auto& terrain = world.Map().terrain;
     if (terrain.heights && terrain.attributes)
         services.terrainHeight = [&terrain, &resources](float x, float y)

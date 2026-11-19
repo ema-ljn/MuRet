@@ -29,6 +29,7 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
+#include "World/ModelEffects.h"
 #include "World/TerrainHeight.h"
 #include "World/WorldTerrain.h"
 #include "support/TestGameServer.h"
@@ -236,6 +237,27 @@ TEST_F(SelectionPipelineTest, RestartingTheSessionHoldsSelectionUntilAnotherList
     m_manager->Render(0.0f);
     EXPECT_EQ(m_cameraInput.hero.z, 777.0f);
     EXPECT_FALSE(m_state.Failure().has_value());
+}
+
+TEST_F(SelectionPipelineTest, SelectionForwardsTheLastFireworkSound)
+{
+    ASSERT_NO_FATAL_FAILURE(StartSelect());
+    ASSERT_NO_FATAL_FAILURE(ReceiveList({WithoutPet(0)}));
+    m_manager->Step(Client::Input::InputState{});
+    ASSERT_TRUE(m_state.IsInitialized());
+
+    Client::World::ModelEffect& firework = m_world.Map().effects.Effects()[0];
+    firework.alive = true;
+    firework.type = 0x60d;
+    firework.life = 1;
+    firework.light = glm::vec3(1);
+    firework.transform.position = {1000, 2000, 100};
+    m_world.Runtime().lastSoundId.reset();
+
+    m_manager->Step(Client::Input::InputState{});
+
+    EXPECT_EQ(m_world.Runtime().lastSoundId, 0x59);
+    EXPECT_FALSE(firework.alive);
 }
 
 TEST_F(SelectionPipelineTest, MissingWorldTablesAbortTheManagerWithoutInventingAHeight)

@@ -47,6 +47,8 @@
 #include "World/TerrainHeight.h"
 #include "World/WorldTerrain.h"
 
+#include <glm/ext/vector_float3.hpp>
+
 #include <algorithm>
 #include <chrono>
 #include <cstddef>
@@ -111,6 +113,7 @@ Core::Expected<void, std::string> GameScene::StepTheCharacters(float worldClock,
             .actionSpeeds = &m_context.world->ActionSpeeds(),
             .fixedHeight = CameraState().fixedHeight,
             .soundRequest = [&](std::int32_t sound) { runtime.RequestSound(sound); },
+            .soundAt = [&](std::int32_t sound, const glm::vec3& origin) { runtime.RequestSound(sound, origin); },
             .send = m_session != nullptr
                         ? std::function<void(Protocol::Outgoing)>([session = m_session](Protocol::Outgoing packet)
                                                                   { session->SendChat(std::move(packet)); })
@@ -161,6 +164,8 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
         .cameraShake = &CameraInputState().shake,
         // 0x41ed10(id, 0, 0): RequestSound lo despacha sin sacar rand().
         .sound = [this](std::int32_t id) { m_context.world->Runtime().RequestSound(id); },
+        .soundAt = [this](std::int32_t id, const glm::vec3& origin)
+        { m_context.world->Runtime().RequestSound(id, origin); },
         // 0x52ae2a (CL9 hito 4): el chorro de la Flame con el héroe de dueño manda los blancos con 0x517a20(+0x89, la
         // posición, 150, el byte +0x8c, +0x8a, 0), como el choque de las flechas de skill.
         .hero = &m_context.world->Actors()[m_context.world->Runtime().hero],

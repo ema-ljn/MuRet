@@ -17,6 +17,7 @@
 #include <cmath>
 #include <cstdint>
 #include <filesystem>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <string>
@@ -219,6 +220,12 @@ Core::Expected<std::unique_ptr<SdlAudio>, std::string> SdlAudio::Create(const st
 
 SdlAudio::~SdlAudio() = default;
 
+std::string_view SdlAudio::DriverName() const
+{
+    const char* driver = m_impl->audioInitialized ? SDL_GetCurrentAudioDriver() : nullptr;
+    return driver != nullptr ? std::string_view(driver) : std::string_view{};
+}
+
 void SdlAudio::PlaySound(std::int32_t id, std::optional<glm::vec3> origin, bool loop)
 {
     const auto sound = m_impl->sounds.find(id);
@@ -355,7 +362,8 @@ int SdlAudio::MusicProgressPercent() const
     }
     const std::int64_t position = MIX_GetTrackPlaybackPosition(m_impl->musicTrack);
     const std::int64_t duration = MIX_GetAudioDuration(m_impl->music);
-    if (position < 0 || duration <= 0)
+    // wzAudio.dll 0x10002292 reinicia el progreso al terminar. SDL retiene el último cursor.
+    if (position < 0 || duration <= 0 || !MIX_TrackPlaying(m_impl->musicTrack))
     {
         return 0;
     }
@@ -365,6 +373,8 @@ int SdlAudio::MusicProgressPercent() const
     {
         return 0;
     }
-    return static_cast<int>(std::clamp<std::int64_t>(100 * positionSeconds / durationSeconds, 0, 100));
+    // 0x1000489a..0x100048c6 publica el porcentaje truncado, incluso por encima de 100.
+    return static_cast<int>(
+        std::min<std::int64_t>(100 * positionSeconds / durationSeconds, std::numeric_limits<int>::max()));
 }
 } // namespace Client::Platform

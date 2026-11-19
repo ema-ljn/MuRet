@@ -298,9 +298,14 @@ public:
     void StopMusic() override {}
     void SetEffectsVolume(std::uint8_t) override {}
     void SetListener(glm::vec3) override {}
+    void ReleaseWorldSounds() override
+    {
+        ++worldSoundReleases;
+    }
 
     std::vector<std::string> music;
     std::vector<bool> loops;
+    int worldSoundReleases = 0;
 };
 
 // Una sesión que no conectó todavía, sobre un FakeSocket.
@@ -573,6 +578,7 @@ TEST(LoginSceneTest, EnterRequestsTheLoginThemeOnceWithoutLooping)
     EXPECT_EQ(playback.music.front(), "Music\\main_theme.mp3");
     ASSERT_EQ(playback.loops.size(), 1u);
     EXPECT_FALSE(playback.loops.front());
+    EXPECT_EQ(playback.worldSoundReleases, 2);
 }
 
 // Sin servidor (Main sin host), la escena dibuja igual y no pide la selección.

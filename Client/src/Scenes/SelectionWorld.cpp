@@ -1,7 +1,5 @@
 #include "Scenes/SelectionWorld.h"
 
-#include "Audio/SoundCatalog.h"
-
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Core/Log.h"
@@ -132,8 +130,7 @@ SelectionWorld::SelectionWorld(Render::ITextureStore& store, Core::Log& log)
 
 SelectionWorld::~SelectionWorld() = default;
 
-Core::Expected<void, std::string> SelectionWorld::Load(WorldState& world, const std::filesystem::path& dataRoot,
-                                                       std::uint8_t map,
+Core::Expected<void, std::string> SelectionWorld::Load(const std::filesystem::path& dataRoot, std::uint8_t map,
                                                        const Render::Models::ModelTextureSlots* gameSlots,
                                                        const IModelLibrary* globalModels)
 {
@@ -152,13 +149,6 @@ Core::Expected<void, std::string> SelectionWorld::Load(WorldState& world, const 
     }
     if (m_modelsMap != map)
     {
-        if (world.Runtime().audio != nullptr)
-        {
-            world.Runtime().audio->ReleaseWorldSounds();
-            world.FaunaResources().ResetSoundRegistrationStamps();
-            for (const Audio::SoundDefinition& sound : Audio::WorldSoundsForMap(map))
-                world.Runtime().audio->RegisterSound(sound.id, sound.path);
-        }
         m_models.Release();
         m_modelsMap.reset();
         if (auto loaded = m_models.Load(dataRoot, map, m_store, m_log, gameSlots, globalModels); !loaded.HasValue())
@@ -244,7 +234,13 @@ Core::Expected<void, std::string> SelectionWorld::StepEffects(WorldState& world,
                                                               std::uint32_t systemTime)
 {
     const World::ModelEffectStepServices services{
-        .terrainHeight = height, .sprites = &m_sprites, .systemTime = [systemTime]() { return systemTime; }};
+        .terrainHeight = height,
+        .sprites = &m_sprites,
+        .effects = &world.Map().effects,
+        .lighting = &world.DynamicLighting().Lighting(),
+        .systemTime = [systemTime]() { return systemTime; },
+        .sound = [&world](std::int32_t id) { world.Runtime().RequestSound(id); },
+        .soundAt = [&world](std::int32_t id, const glm::vec3& origin) { world.Runtime().RequestSound(id, origin); }};
     for (World::ModelEffect& effect : world.Map().effects.Effects())
     {
         const auto* skeleton = m_models.SkeletonOf(static_cast<std::uint16_t>(effect.type));

@@ -107,6 +107,7 @@ struct CharacterStepContext
     ActorCooldownServices cooldown{};
     // Solicitudes de sonido: el consumidor CL10 decide cómo reproducirlas.
     std::function<void(std::int32_t)> soundRequest{};
+    std::function<void(std::int32_t, const glm::vec3&)> soundAt{};
     // Lo que el paso manda por send() (el A7 del cuervo, 0x416a20). Vacío, sin la sesión: no sale.
     std::function<void(Protocol::Outgoing)> send{};
     // GetAsyncKeyState(0x11) con 0x80 en el byte de arriba: Ctrl abajo, que 0x558eb0 lee en la habilidad del héroe

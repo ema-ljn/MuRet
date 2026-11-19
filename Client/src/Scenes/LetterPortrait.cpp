@@ -401,7 +401,9 @@ CharacterStepContext StepContextOf(const WorldEntryResources& resources)
                                 .counter = resources.cloth.logicSteps,
                                 .actionSpeeds = &world.ActionSpeeds(),
                                 .fixedHeight = resources.camera.fixedHeight,
-                                .soundRequest = [&runtime](std::int32_t sound) { runtime.RequestSound(sound); }};
+                                .soundRequest = [&runtime](std::int32_t sound) { runtime.RequestSound(sound); },
+                                .soundAt = [&runtime](std::int32_t sound, const glm::vec3& origin)
+                                { runtime.RequestSound(sound, origin); }};
 }
 
 // 0x495796: el paso del ayudante con lo del mundo de `resources`.

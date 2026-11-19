@@ -708,8 +708,13 @@ Core::Expected<void, std::string> StepFirework(ModelEffect& effect, float lumino
                                                                        .angles = effect.transform.angles,
                                                                        .light = effect.light},
                                                   random);
-        if (created && services.sound)
-            services.sound(0x58);
+        if (created)
+        {
+            if (services.soundAt)
+                services.soundAt(0x58, effect.transform.position);
+            else if (services.sound)
+                services.sound(0x58);
+        }
         return {};
     }
     // 0x52b2b9: tres sorteos del caller para la explosión, incluso con las partículas llenas.
@@ -727,7 +732,9 @@ Core::Expected<void, std::string> StepFirework(ModelEffect& effect, float lumino
             if (!created.HasValue())
                 return Core::Unexpected(std::string("0x52b339: el estallido60d sin su partícula"));
         }
-        if (services.sound)
+        if (services.soundAt)
+            services.soundAt(0x59, effect.transform.position);
+        else if (services.sound)
             services.sound(0x59);
     }
     const auto trail = particles.CreateChecked(0x60d, effect.transform.position, effect.transform.angles, effect.light,

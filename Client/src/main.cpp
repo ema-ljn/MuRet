@@ -672,6 +672,10 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
         audio = std::move(audioCreated).Value();
         world.Runtime().audio = audio.get();
         world.Runtime().SetSoundVolume(static_cast<std::uint8_t>(world.Runtime().ui.volume));
+        if (const auto driver = audio->DriverName(); !driver.empty())
+        {
+            log.Info("el audio usa el controlador SDL {}", driver);
+        }
     }
     else
     {

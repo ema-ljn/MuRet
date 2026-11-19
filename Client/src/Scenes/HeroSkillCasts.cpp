@@ -232,6 +232,8 @@ Core::Expected<void, std::string> ShootTheArrow(ActorState& caster, std::uint8_t
                                     .items = context.items,
                                     .soundRequest = [&world](std::int32_t sound)
                                     { world.Runtime().RequestSound(sound); },
+                                    .soundAt = [&world](std::int32_t sound, const glm::vec3& origin)
+                                    { world.Runtime().RequestSound(sound, origin); },
                                     .controlDown = context.controlDown};
     return FireTheArrow(caster, nullptr, SlotOf(world, caster), static_cast<std::int32_t>(slot), count, 0, shot);
 }

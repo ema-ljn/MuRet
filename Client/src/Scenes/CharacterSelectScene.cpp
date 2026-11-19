@@ -487,7 +487,9 @@ CharacterStepContext CharacterSelectScene::CharacterContext()
             .worldClock = clock,
             .counter = m_context.cloth->logicSteps,
             .newFaceSkeleton = m_selectionModels.SkeletonOf(Preview().type),
-            .soundRequest = [this](std::int32_t sound) { m_context.world->Runtime().RequestSound(sound); }};
+            .soundRequest = [this](std::int32_t sound) { m_context.world->Runtime().RequestSound(sound); },
+            .soundAt = [this](std::int32_t sound, const glm::vec3& origin)
+            { m_context.world->Runtime().RequestSound(sound, origin); }};
 }
 
 // 0x6342f9, después 0x634303: los 400 registros y el objeto NewFace, antes de la UI.
@@ -504,8 +506,7 @@ void CharacterSelectScene::StepCharacters()
         {
             // 0x6342e1: 0x606560, los objetos del 54 que vio el último dibujo (0x4250f0).
             const auto map = static_cast<std::uint8_t>(m_context.world->Runtime().map);
-            if (auto loaded = m_world.Load(*m_context.world, m_context.dataRoot, map, m_gameSlots, &m_models);
-                !loaded.HasValue())
+            if (auto loaded = m_world.Load(m_context.dataRoot, map, m_gameSlots, &m_models); !loaded.HasValue())
             {
                 m_failure = loaded.Error();
                 return;
@@ -1328,8 +1329,7 @@ void CharacterSelectScene::DrawTheWorldAndTheCharacters(SceneCanvas& canvas, flo
         return;
     }
     WorldState& world = *m_context.world;
-    if (auto loaded = m_world.Load(*m_context.world, m_context.dataRoot, map, m_gameSlots, &m_models);
-        !loaded.HasValue())
+    if (auto loaded = m_world.Load(m_context.dataRoot, map, m_gameSlots, &m_models); !loaded.HasValue())
     {
         m_failure = loaded.Error();
         return;

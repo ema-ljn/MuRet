@@ -137,9 +137,43 @@ TEST(SiegeStoneStepTest, AirCollisionPreservesTheOldImpactCutoff)
         return true;
     };
     auto effect = Flight(World::SiegeStoneEffect);
+    effect.seen = true;
+    int sounds = 0;
+    state.services.sound = [&](std::int32_t id, const glm::vec3& position)
+    {
+        EXPECT_EQ(id, 0x1eb);
+        EXPECT_EQ(position, effect.transform.position);
+        ++sounds;
+    };
     effect.byte90 = 71;
     ASSERT_TRUE(World::StepSiegeStone(effect, nullptr, particles, random, state.services).HasValue());
     EXPECT_EQ(effect.life, 14);
     EXPECT_EQ(effect.byte90, 71);
+    EXPECT_EQ(sounds, 1);
+}
+TEST(SiegeStoneStepTest, VisibleLandingSoundsAtTheGroundAdjustedImpactPosition)
+{
+    World::Particles particles;
+    Render::Models::CrtRandom random(1);
+    Services state;
+    auto effects = std::make_unique<World::ModelEffects>();
+    state.services.effects = effects.get();
+    state.services.heroAction = [](const glm::vec3&, float) -> Core::Expected<void, std::string> { return {}; };
+    auto effect = Flight(World::SiegeStoneEffect);
+    effect.subtype = 0;
+    effect.transform.position.z = -100;
+    effect.start.z = -100;
+    effect.seen = true;
+    int sounds = 0;
+    state.services.sound = [&](std::int32_t id, const glm::vec3& position)
+    {
+        EXPECT_EQ(id, 0x1eb);
+        EXPECT_EQ(position, effect.transform.position);
+        EXPECT_EQ(position.z, -5.0f);
+        ++sounds;
+    };
+    const auto stepped = World::StepSiegeStone(effect, nullptr, particles, random, state.services);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(sounds, 1);
 }
 } // namespace

@@ -49,7 +49,8 @@ std::uint8_t FenrirAction(const ActorState& actor)
 void PlayerHitSound(const ActorState& actor, const WorldEntryResources& resources)
 {
     auto& random = resources.cloth.random;
-    const auto requestSound = [&resources](std::int32_t id) { resources.world.Runtime().RequestSound(id); };
+    const auto requestSound = [&actor, &resources](std::int32_t id)
+    { resources.world.Runtime().RequestSound(id, actor.position); };
     constexpr std::uint8_t ClassMask = 7;
     constexpr std::uint8_t ElfClass = 2;
     constexpr std::uint8_t DarkLordClass = 4;
@@ -71,7 +72,8 @@ void HitSound(const ActorState& actor, const WorldEntryResources& resources)
     // 0x4f5496 mira C3: unordered también entra en el sonido.
     if (actor.animation.frame < 0.0f || actor.animation.frame > 0.0f)
         return;
-    const auto requestSound = [&resources](std::int32_t id) { resources.world.Runtime().RequestSound(id); };
+    const auto requestSound = [&actor, &resources](std::int32_t id)
+    { resources.world.Runtime().RequestSound(id, actor.position); };
     if (actor.subtype >= 209 && actor.subtype <= 211)
     {
         requestSound(0x7b);
@@ -150,7 +152,7 @@ Core::Expected<void, std::string> SetActorShock(ActorState& actor, std::uint16_t
         const bool fenrir = actor.pet.model == Fenrir;
         Render::Models::SetAction(actor.animation, *skeleton, fenrir ? FenrirAction(actor) : PlayerShockAction);
         if (fenrir && resources.cloth.random.Next() % 3 == 0)
-            resources.world.Runtime().RequestSound(0x27b + (resources.cloth.random.Next() & 1));
+            resources.world.Runtime().RequestSound(0x27b + (resources.cloth.random.Next() & 1), actor.position);
         actor.movement = 0;
     }
     HitSound(actor, resources);

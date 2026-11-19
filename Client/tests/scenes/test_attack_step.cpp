@@ -170,6 +170,12 @@ struct AttackWorld
                                     .particles = withParticles ? &particles : nullptr,
                                     .joints = withJoints ? std::span<JointState>(joints) : std::span<JointState>{},
                                     .soundRequest = [this](std::int32_t sound) { sounds.push_back(sound); },
+                                    .soundAt =
+                                        [this](std::int32_t sound, const glm::vec3& origin)
+                                    {
+                                        sounds.push_back(sound);
+                                        soundOrigins.push_back(origin);
+                                    },
                                     .controlDown = controlDown};
     }
 
@@ -183,6 +189,7 @@ struct AttackWorld
     CrtRandom random{Seed};
     Client::Render::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
     std::vector<std::int32_t> sounds;
+    std::vector<glm::vec3> soundOrigins;
     bool controlDown = false;
     Client::World::Particles particles;
     bool withParticles = true;
@@ -457,6 +464,7 @@ TEST(AttackStepTest, TheStrikeSoundFollowsTheOwnHands)
         }
         ActorState& other = tested.Striker(OtherSlot, 0x23, HeroSlot);
         other.byte381 = 14;
+        other.position = glm::vec3(125.0f, 250.0f, 375.0f);
 
         const auto stepped = tested.Attack(other, OtherSlot);
 
@@ -464,6 +472,8 @@ TEST(AttackStepTest, TheStrikeSoundFollowsTheOwnHands)
         CrtRandom expected(Seed);
         expected.Discard(CountingStep + 3 * SkillRead);
         EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{probe.base + (expected.Next() & 3)}));
+        ASSERT_EQ(tested.soundOrigins.size(), 1u);
+        EXPECT_EQ(tested.soundOrigins.front(), other.position);
     }
 }
 

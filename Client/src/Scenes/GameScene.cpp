@@ -1,6 +1,8 @@
 #include "Scenes/GameScene.h"
 #include "Scenes/SiegeBattleUi.h"
 #include "Scenes/MonsterSounds.h"
+#include "Scenes/MonsterModelTable.h"
+#include "Audio/Playback.h"
 #include "Scenes/ArrowEffects.h"
 #include "World/SiegeStoneEffects.h"
 #include "World/SiegeGateEffects.h"
@@ -885,10 +887,17 @@ Core::Expected<void, std::string> GameScene::LoadTheObjectModels(std::int32_t ma
     {
         return Core::Unexpected("0x616ec0: los modelos de los objetos del " + MapText(map) + ": " + loaded.Error());
     }
-    // 0x42aa6b: el lancero del 30 (0x612d90(0x4d)) escribe su tabla de sonidos (0x612c80) si cargó con mallas.
+    // 0x42aa6b: el lancero del 30 (0x612d90(0x4d)) reserva sus .wav antes de publicar la tabla
+    // (0x6151fc, 0x61520f y 0x615232), si cargó con mallas.
     constexpr std::int32_t SpearmanMonster = 0x4d;
     if (const auto* spearman = m_worldModels.Find(SpearmanModel); spearman != nullptr && !spearman->meshes.empty())
+    {
+        if (Audio::IPlayback* audio = m_context.world->Runtime().audio)
+            for (const MonsterModelOp& op : MonsterModelCaseOf(SpearmanMonster).ops)
+                if (op.kind == MonsterModelOpKind::Sound)
+                    audio->RegisterSound(static_cast<std::int32_t>(op.value), op.path);
         WriteMonsterSounds(SpearmanMonster, m_context.world->Runtime().modelSounds);
+    }
     m_worldModelsMap = map;
     World::SeedTarkanModelState(static_cast<std::uint8_t>(map), m_context.world->Runtime().objectModelState);
     if (m_projectingFrame)

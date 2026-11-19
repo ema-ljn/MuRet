@@ -8600,8 +8600,8 @@ en su primer joint `0x614/7` (`0x50c492`).
 
 **Los humos `0x5f2` de la CL11** (`World/SmokeParticleKernels.h`, por la misma puerta que los de arriba): la /17
 (`0x5418b1`, la del `0x192` y el `0x197`) guarda la luz del pedido en `+0x60..+0x68`, vive 12 y su paso (`0x546171`) le
-da esa luz por `l = vida · 0,125` (pasado 1, `1 − l`) y sube como el aliento; la /19 (`0x54228c`, la del joint de
-`0x539494`) y la /20 (`0x542307`) viven 40 y su paso (`0x546573`, `0x54661e`) saca cuatro `rand()` (la subida, la x, la
+da esa luz por `l = vida · 0,125` (pasado 1, `1 − l`) y sube como el aliento; la /19 (`0x54228c`, la que el paso
+de los joints crea en `0x5394fb`) y la /20 (`0x542307`) viven 40 y su paso (`0x546573`, `0x54661e`) saca cuatro `rand()` (la subida, la x, la
 y y la escala, que también queda en el giro); la /23 (`0x54184b`, el alta del aliento) se ilumina (l · 0,1f; l; l ·
 0,6f) (`0x5460a0`); la /24 (`0x542450`, la de la piedra `0x12e/3`) vive 32 y sube 0,1f con la luz (l · 0,2f; l · 0,5;
 l · 0,35f), `l = vida · 0,03125`; la /26 (`0x54252c`) se apaga por vida · 0,05f; la /31 (`0x5426cf`) se achica 0,05f y

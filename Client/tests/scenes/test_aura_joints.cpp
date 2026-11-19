@@ -14,11 +14,13 @@
 
 #include <array>
 #include <bit>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 // El 0x10f con un personaje de dueño (AuraJoints.cpp): el alta 0x530edd..0x531214 y el paso 0x535d4f..0x5366a7. 06,
@@ -83,6 +85,18 @@ struct Pool
     glm::vec3 startAngles{};
 };
 
+// 0x5363bf..0x536450 con la frecuencia entera, calculado aparte del código de MuRet (Fraction y Decimal de Python):
+// FSIN y FCOS a 64 bits, los productos en PC53, el seno de z directo a float (0x53642f) y los spills a float. La fase
+// −77 es la del lugar 0 con 77 pasos; 53.808, la del lugar 1.
+glm::vec3 GoldenDirection(std::int32_t phase)
+{
+    if (phase == -77)
+        return {std::bit_cast<float>(0x3f3ffc03u), std::bit_cast<float>(0xbf29561bu),
+                std::bit_cast<float>(0xbbe42472u)};
+    EXPECT_EQ(phase, 53808);
+    return {std::bit_cast<float>(0xbe5d83c5u), std::bit_cast<float>(0xbf7610b0u), std::bit_cast<float>(0x3e2f529eu)};
+}
+
 // 0x536388..0x5364d2: el punto del lugar `index` alrededor de `target`, con la frecuencia entera.
 glm::vec3 RingPoint(std::size_t index, std::int32_t steps, const glm::vec3& target, double lift)
 {
@@ -90,10 +104,9 @@ glm::vec3 RingPoint(std::size_t index, std::int32_t steps, const glm::vec3& targ
     const auto phase =
         std::bit_cast<std::int32_t>(slot * 53731u + ((slot & 1u) != 0 ? std::bit_cast<std::uint32_t>(steps)
                                                                       : 0u - std::bit_cast<std::uint32_t>(steps)));
-    const auto direction = Client::Render::Models::Detail::FaunaDirectionPC53(phase);
-    EXPECT_TRUE(direction.has_value());
-    return {F32(D((*direction)[0]) * 80 + D(target.x)), F32(D((*direction)[1]) * 80 + D(target.y)),
-            F32(D((*direction)[2]) * 120 + D(target.z) + lift)};
+    const glm::vec3 direction = GoldenDirection(phase);
+    return {F32(D(direction[0]) * 80 + D(target.x)), F32(D(direction[1]) * 80 + D(target.y)),
+            F32(D(direction[2]) * 120 + D(target.z) + lift)};
 }
 } // namespace
 
@@ -127,6 +140,70 @@ TEST(AuraJointsTest, TheRingsCircleTheirOwner)
     ASSERT_TRUE(pool.Step().HasValue());
     EXPECT_FALSE(ring.alive);
     EXPECT_EQ(ring.life, -1);
+}
+
+// FaunaDirectionPC53 (0x53d1a0 con escala 1, el mismo bloque que 0x5363bf) da los valores dorados.
+TEST(AuraJointsTest, TheDirectionMatchesTheGoldenValues)
+{
+    for (const std::int32_t phase : {-77, 53808})
+    {
+        SCOPED_TRACE(phase);
+        const auto direction = Client::Render::Models::Detail::FaunaDirectionPC53(phase);
+        ASSERT_TRUE(direction.has_value());
+        const glm::vec3 golden = GoldenDirection(phase);
+        for (int axis = 0; axis < 3; ++axis)
+            EXPECT_EQ(std::bit_cast<std::uint32_t>((*direction)[static_cast<std::size_t>(axis)]),
+                      std::bit_cast<std::uint32_t>(golden[axis]));
+    }
+}
+
+// 0x536187..0x536383: sin otro acceso abierto al contador de pasos, cada anillo lo abre y lo cierra, y el cierre saca
+// cuatro rand() (0x536383 → 0x412890), por anillo y por paso.
+TEST(AuraJointsTest, EachRingClosesTheCounterWithFourRandoms)
+{
+    Pool pool;
+    pool.cloth->openCounterAccesses = 0;
+    ASSERT_TRUE(pool.Create(0, 50).HasValue());
+    ASSERT_TRUE(pool.Create(0, 50).HasValue());
+    CrtRandom expected = pool.cloth->random;
+
+    ASSERT_TRUE(pool.Step().HasValue());
+
+    for (int draw = 0; draw < 2 * 4; ++draw)
+        static_cast<void>(expected.Next());
+    EXPECT_EQ(pool.cloth->random.State(), expected.State());
+    glm::vec3 target = pool.actors[0].position;
+    target.z = 310;
+    EXPECT_EQ(pool.joints[0].position, RingPoint(0, 77, target, 110));
+    EXPECT_EQ(pool.joints[1].position, RingPoint(1, 77, target, 110));
+    EXPECT_EQ(pool.cloth->openCounterAccesses, 0);
+}
+
+// 0x53120e y 0x536073..0x536452: un subtipo sin caso (0xa, que ningún llamador crea) nace sólo con el ancho y en su
+// paso lee al dueño, pone el destino 10 más arriba, abre y cierra el acceso al contador (cuatro rand() sin otro
+// abierto) y va a la cola, sin correr los tramos ni moverse.
+TEST(AuraJointsTest, TheUnhandledSubtypesOnlyReadTheirOwner)
+{
+    Pool pool;
+    pool.cloth->openCounterAccesses = 0;
+    ASSERT_TRUE(pool.Create(0xa, 20).HasValue());
+    JointState& joint = pool.joints[0];
+    joint.life = 5; // el alta no la escribe.
+    const glm::vec3 before = joint.position;
+    CrtRandom expected = pool.cloth->random;
+
+    ASSERT_TRUE(pool.Step().HasValue());
+
+    for (int draw = 0; draw < 4; ++draw)
+        static_cast<void>(expected.Next());
+    EXPECT_EQ(pool.cloth->random.State(), expected.State());
+    EXPECT_EQ(joint.targetPosition, glm::vec3(1000, 2000, 310));
+    EXPECT_EQ(joint.position, before);
+    EXPECT_EQ(joint.count, -1); // sin puntos: +0x6c quedó en 0 y la cuenta llega a −1 (0x535520).
+    pool.actors[0].alive = false;
+    ASSERT_TRUE(pool.Step().HasValue());
+    EXPECT_FALSE(joint.alive);
+    EXPECT_EQ(joint.life, -1);
 }
 
 // 0x530f35 y 0x535d4f: el 10f/4 vive mientras su dueño tenga 8 (o 0x2000000) en +0x78, con la vida en 100; con el
@@ -171,8 +248,17 @@ TEST(AuraJointsTest, TheRiseFallsUntilItsEffect)
     Pool pool;
     pool.startAngles = {0, 0, 30};
     const glm::vec3 base{500, 600, 700};
+    // 0x53115b va antes de 0x531166: el primer tramo usa el ancho del uso anterior del lugar.
+    constexpr float PreviousWidth = 12.0f;
+    pool.joints[0].width = PreviousWidth;
     ASSERT_TRUE(pool.Create(5, 25, -1, base).HasValue());
     const JointState& rise = pool.joints[0];
+    for (const auto& [first, second] : {std::pair{0, 1}, std::pair{2, 3}})
+    {
+        const glm::vec3 across =
+            rise.points[0][static_cast<std::size_t>(second)] - rise.points[0][static_cast<std::size_t>(first)];
+        EXPECT_NEAR(std::sqrt(across.x * across.x + across.y * across.y + across.z * across.z), PreviousWidth, 1e-3);
+    }
     EXPECT_EQ(rise.texture, 0x610);
     EXPECT_EQ(rise.drawEnabled, 1);
     EXPECT_FALSE(rise.tailEnabled);

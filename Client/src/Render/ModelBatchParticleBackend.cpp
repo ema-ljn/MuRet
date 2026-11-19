@@ -270,13 +270,19 @@ IParticleDrawBackend::Result ModelBatchParticleBackend::Type620850()
 }
 IParticleDrawBackend::Result ModelBatchParticleBackend::Type620870()
 {
-    return Unsupported();
+    const auto prepared = PrepareMaterial();
+    if (!prepared.HasValue())
+        return prepared;
+    if (!m_state.depthTest)
+        return {};
+    m_state.depthTest = false; // 62087e: caché antes del glDisable(GL_DEPTH_TEST).
+    return PublishOperation(ModelStateOperation::DepthTest);
 }
 
 IParticleDrawBackend::Result ModelBatchParticleBackend::TextureEnv(TextureEnvMode mode)
 {
     // glTexEnvi entre glBegin y glEnd es un error de GL; 0x5489eb lo llama fuera del quad. No es del material:
-    // no publica una operación ni cambia el serial del lote.
+    // publica su propio eje sin cambiar el serial del material.
     if (IsDrawing())
         return Core::Unexpected(std::make_error_code(std::errc::operation_in_progress));
     m_batch.get().SetTextureEnv(mode);

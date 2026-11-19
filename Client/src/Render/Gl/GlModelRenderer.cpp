@@ -103,6 +103,11 @@ void GlModelRenderer::Draw(const ModelBatch& batch, const TextureTable& textures
     BeginPass(batch);
     for (const ModelDrawCommand& command : batch.Commands())
     {
+        if (command.operation == ModelStateOperation::TextureEnv)
+        {
+            m_gl->uniform1i(m_uniforms.textureAdd, command.textureEnv == TextureEnvMode::Add ? 1 : 0);
+            continue;
+        }
         if (!command.state.HasValidTextureBinding())
         {
             log.Error("un comando 3D pide slot y nombre físico a la vez; se rechaza el comando ambiguo");
@@ -165,6 +170,8 @@ void GlModelRenderer::BeginPass(const ModelBatch& batch) const
         // 620eea..620f4c: alpha off; textura/depth/cull on; escritura y LEQUAL.
         m_gl->uniform1i(m_uniforms.alphaTest, 0);
         m_gl->uniform1i(m_uniforms.textured, 1);
+        // 620f52..620fa5: política cero desactiva fog incluso en un pase vacío.
+        m_gl->uniform1i(m_uniforms.fog, 0);
         m_gl->enable(GL_DEPTH_TEST);
         m_gl->depthFunc(GL_LEQUAL);
         m_gl->enable(GL_CULL_FACE);
@@ -280,6 +287,7 @@ void GlModelRenderer::SetOperation(const ModelDrawState& state, ModelStateOperat
         break;
     case ModelStateOperation::Draw:
     case ModelStateOperation::Binding:
+    case ModelStateOperation::TextureEnv:
         break;
     }
 }

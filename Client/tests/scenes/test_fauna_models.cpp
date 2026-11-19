@@ -5,6 +5,7 @@
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Data/Models/Model.h"
+#include "Data/Textures/TextureSet.h"
 #include "Render/Models/ModelTextureSlots.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
@@ -20,6 +21,7 @@
 #include <memory>
 #include <optional>
 #include <set>
+#include <span>
 #include <string>
 #include "Scenes/WorldModels.h"
 #include "support/GoldenDir.h"
@@ -137,6 +139,76 @@ TEST(FaunaModelsTest, MissingRequiredMonsterStopsBeforeTexturesOrFalsePreparatio
 
 namespace
 {
+TEST(FaunaModelsTest, AFailedTextureReplacementLeavesTheResidentWithItsOwner)
+{
+    Client::Tests::TemporaryFolder folder{"fauna-failed-replacement"};
+    WriteMonster(folder.Path(), 32);
+    Client::Tests::WriteSceneFile(folder.Path(), "Monster/resident.OZT", Client::Tests::PlainOzt(8, 8));
+    Client::Tests::FakeTextureStore store;
+    Client::Tests::RecordingSink sink;
+    Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
+    Client::Scenes::FaunaModels fauna;
+    auto& table = fauna.TextureTable();
+    table.Bind(store);
+    const auto slot = table.Slots().Next();
+    const Client::Data::Textures::TextureSetEntry entry{"Monster/resident.tga", slot.value, {}};
+    const auto loaded = Client::Data::Textures::LoadTextureSet(folder.Path(), std::span(&entry, 1));
+    ASSERT_TRUE(loaded.HasValue());
+    ASSERT_TRUE(table.Upload(loaded.Value().front()).HasValue());
+    table.Slots().SetName(slot, "resident.tga.extra");
+    Client::Scenes::FaunaModelLoadContext context{folder.Path(), store, log, table.Slots(), &table};
+
+    store.failNextLoad = true;
+    ASSERT_TRUE(fauna.Prepare(0x1f, context).HasValue());
+    const auto bindings = fauna.MeshTextures(0x171);
+    ASSERT_FALSE(bindings.empty());
+    EXPECT_EQ(bindings.front(), Client::Render::UnboundModelTextureSlot);
+    EXPECT_EQ(table.Slots().NameOf(slot), "resident.tga.extra");
+    EXPECT_EQ(table.Slots().Next().value, slot.value + 1);
+    EXPECT_EQ(table.References(slot), 1);
+    ASSERT_TRUE(store.Find(slot));
+    EXPECT_EQ(store.Find(slot)->texture.width, 8);
+
+    fauna.Release();
+    EXPECT_EQ(table.References(slot), 1);
+    table.Slots().SetNext(slot);
+    ASSERT_TRUE(fauna.Prepare(0x1f, context).HasValue());
+    EXPECT_EQ(fauna.MeshTextures(0x171).front(), slot);
+    EXPECT_EQ(table.Slots().NameOf(slot), "fauna.tga");
+    EXPECT_EQ(table.References(slot), 1);
+    ASSERT_TRUE(store.Find(slot));
+    EXPECT_EQ(store.Find(slot)->texture.width, 2);
+}
+
+TEST(FaunaModelsTest, AFailedEmptySlotDoesNotOwnALaterUpload)
+{
+    Client::Tests::TemporaryFolder folder{"fauna-empty-texture-slot"};
+    WriteMonster(folder.Path(), 32);
+    Client::Tests::FakeTextureStore store;
+    Client::Tests::RecordingSink sink;
+    Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
+    Client::Scenes::FaunaModels fauna;
+    auto& table = fauna.TextureTable();
+    const auto slot = table.Slots().Next();
+    Client::Scenes::FaunaModelLoadContext context{folder.Path(), store, log, table.Slots(), &table};
+    store.failNextLoad = true;
+    ASSERT_TRUE(fauna.Prepare(0x1f, context).HasValue());
+    EXPECT_TRUE(table.Slots().NameOf(slot).empty());
+    EXPECT_EQ(table.Slots().Next().value, slot.value + 1);
+    EXPECT_EQ(fauna.MeshTextures(0x171).front(), Client::Render::UnboundModelTextureSlot);
+
+    const Client::Data::Textures::TextureSetEntry entry{"Monster/fauna.tga", slot.value, {}};
+    const auto loaded = Client::Data::Textures::LoadTextureSet(folder.Path(), std::span(&entry, 1));
+    ASSERT_TRUE(loaded.HasValue());
+    table.Slots().SetName(slot, "later.tga");
+    ASSERT_TRUE(table.Upload(loaded.Value().front()).HasValue());
+
+    fauna.Release();
+    EXPECT_EQ(table.References(slot), 1);
+    EXPECT_EQ(table.Slots().NameOf(slot), "later.tga");
+    EXPECT_TRUE(store.Find(slot));
+}
+
 TEST(FaunaModelsTest, AMapTransitionSharesMonsterReferencesAndACachedMonsterSeesAReusedSlot)
 {
     Client::Tests::TemporaryFolder folder{"fauna-map-textures"};

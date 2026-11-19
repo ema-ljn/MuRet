@@ -58,7 +58,13 @@ const std::optional<ModelFog>& ModelBatch::Fog() const
 
 void ModelBatch::SetTextureEnv(TextureEnvMode mode)
 {
+    if (m_textureEnv == mode)
+        return;
     m_textureEnv = mode;
+    // 548a06/548a4a: el cambio y el restore existen aunque no siga otro dibujo.
+    ModelDrawCommand command = NewDraw();
+    command.operation = ModelStateOperation::TextureEnv;
+    m_commands.push_back(command);
 }
 
 TextureEnvMode ModelBatch::TextureEnv() const

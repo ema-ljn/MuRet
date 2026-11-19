@@ -116,17 +116,32 @@ bool FaunaModels::HasMeshes(std::uint16_t model) const
 void FaunaModels::AssignTextures(Entry& entry, std::string_view folder, FaunaModelLoadContext& context)
 {
     const auto first = context.slots.ToLoad().size();
-    entry.textures = context.slots.Assign(entry.model, folder, MonsterSampling);
+    Render::Models::ModelTextureRequests textureRequests;
+    std::vector<std::optional<std::size_t>> requestsByMesh;
+    entry.textures = context.slots.Assign(entry.model, folder, MonsterSampling, &textureRequests, &requestsByMesh);
     m_store = &context.textures;
     m_sharedTextures = context.sharedTextures;
     if (m_sharedTextures != nullptr)
         m_sharedTextures->Bind(context.textures);
     std::vector<Render::TextureSlot> uploadedHere;
-    for (const auto& request : context.slots.ToLoad().subspan(first))
+    const auto requests = context.slots.ToLoad().subspan(first);
+    for (std::size_t index = 0; index < requests.size(); ++index)
     {
+        const auto& request = requests[index];
+        const Render::TextureSlot slot{request.slot};
+        const auto restoreResident = [&]
+        {
+            // 0x63bfcf/0x63bb7a reemplazan la textura física solo después de leerla.
+            const bool resident = m_sharedTextures == nullptr || m_sharedTextures->Metadata(slot.value).has_value();
+            context.slots.SetName(slot, resident ? textureRequests.names[index].previous : std::string_view{});
+            for (std::size_t mesh = 0; mesh < requestsByMesh.size(); ++mesh)
+                if (requestsByMesh[mesh] == index)
+                    entry.textures[mesh] = Render::UnboundModelTextureSlot;
+        };
         auto texture = Data::Textures::LoadTextureSet(context.dataRoot, std::span(&request, 1));
         if (!texture.HasValue())
         {
+            restoreResident();
             context.log.Warning("una textura de un monstruo se saltea: {}", Data::Textures::Describe(texture.Error()));
             continue;
         }
@@ -134,11 +149,12 @@ void FaunaModels::AssignTextures(Entry& entry, std::string_view folder, FaunaMod
                                                     : context.textures.Load(texture.Value());
         if (!uploaded.HasValue())
         {
+            restoreResident();
             context.log.Warning("una textura de un monstruo no sube: {}", uploaded.Error());
             continue;
         }
-        m_uploaded.push_back(Render::TextureSlot{request.slot});
-        uploadedHere.push_back(Render::TextureSlot{request.slot});
+        m_uploaded.push_back(slot);
+        uploadedHere.push_back(slot);
         m_metadata.insert_or_assign(request.slot, TextureMetadata(texture.Value().front().texture));
     }
     // 0x60d645: una coincidencia por nombre suma una referencia.
@@ -148,7 +164,7 @@ void FaunaModels::AssignTextures(Entry& entry, std::string_view folder, FaunaMod
             const auto uploaded = std::find(uploadedHere.begin(), uploadedHere.end(), slot);
             if (uploaded != uploadedHere.end())
                 uploadedHere.erase(uploaded);
-            else
+            else if (slot != Render::UnboundModelTextureSlot)
                 m_sharedTextures->Acquire(slot);
         }
 }
@@ -354,7 +370,7 @@ void FaunaModels::Release()
     {
         for (const auto& [model, entry] : m_models)
             for (const auto slot : entry.textures)
-                if (slot.value != KeptSlot)
+                if (slot.value != KeptSlot && slot != Render::UnboundModelTextureSlot)
                     m_sharedTextures->Release(slot);
     }
     else if (m_store != nullptr)

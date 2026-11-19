@@ -17,6 +17,7 @@
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Render/Text/TextStyle.h"
 #include "Render/TextureSlot.h"
+#include "Render/TextureEnvMode.h"
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneText.h"
 #include "support/FakeGlyphRasterizer.h"
@@ -112,6 +113,22 @@ protected:
         {
             EXPECT_EQ(Gl().getError(), static_cast<GLenum>(GL_NO_ERROR));
         }
+    }
+
+    std::optional<GLint> ReadUniform(const char* name)
+    {
+        PFNGLGETUNIFORMIVPROC read = nullptr;
+        std::string error;
+        if (!Client::Platform::LoadGlFunction(read, "glGetUniformiv", error))
+            return std::nullopt;
+        GLint program = 0;
+        Gl().getIntegerv(GL_CURRENT_PROGRAM, &program);
+        const GLint location = Gl().getUniformLocation(static_cast<GLuint>(program), name);
+        if (location < 0)
+            return std::nullopt;
+        GLint value = -1;
+        read(static_cast<GLuint>(program), location, &value);
+        return value;
     }
 
     // El rasterizador falso, con la letra de un octavo del ancho, y los anchos con que se abrió.
@@ -215,6 +232,33 @@ TEST_F(GlFrameTargetTest, StateOnlyModelCommandsReachGlWhenTheBatchHasNoVertices
     Gl().getIntegerv(GL_BLEND_DST_RGB, &value);
     EXPECT_EQ(value, GL_ONE);
     EXPECT_EQ(Gl().getError(), static_cast<GLenum>(GL_NO_ERROR));
+    m_target->Present();
+}
+
+// 548a06/548a4a: el restore posterior al último dibujo también llega al shader.
+TEST_F(GlFrameTargetTest, TrailingTextureEnvRestoreReachesGlThroughAnEmptyContinuation)
+{
+    SceneCanvas& canvas = m_target->BeginFrame(std::chrono::milliseconds{40});
+    canvas.models.Begin(Client::Tests::TestPass(m_screen));
+    canvas.models.SetTextureEnv(Client::Render::TextureEnvMode::Add);
+    Client::Tests::AddSquare(canvas.models, canvas.models.State(), 20, {1, 1, 1, 1});
+    canvas.flushModels();
+    ASSERT_EQ(ReadUniform("textureAdd"), 1);
+    ASSERT_FALSE(canvas.models.InitializesMaterial());
+    ASSERT_TRUE(canvas.models.Vertices().empty());
+    canvas.models.SetTextureEnv(Client::Render::TextureEnvMode::Modulate);
+    const auto serial = canvas.models.StateSerial();
+    canvas.models.SetTextureEnv(Client::Render::TextureEnvMode::Modulate);
+    EXPECT_EQ(canvas.models.StateSerial(), serial);
+    Gl().disable(GL_CULL_FACE);
+    Gl().depthMask(GL_FALSE);
+    canvas.flushModels();
+    EXPECT_EQ(ReadUniform("textureAdd"), 0);
+    GLint value = 0;
+    Gl().getIntegerv(GL_CULL_FACE, &value);
+    EXPECT_EQ(value, GL_FALSE);
+    Gl().getIntegerv(GL_DEPTH_WRITEMASK, &value);
+    EXPECT_EQ(value, GL_FALSE);
     m_target->Present();
 }
 

@@ -329,7 +329,10 @@ TEST(ParticleMaterialBackendTest, NegativeSelectorsRemainRawAndMaterialNeverRebi
     EXPECT_FALSE(backend.SubtractiveTail().HasValue());
     EXPECT_EQ(batch.StateSerial(), before);
     EXPECT_FALSE(backend.Type620850().HasValue());
-    EXPECT_FALSE(backend.Type620870().HasValue());
+    const auto disableDepth = backend.Type620870();
+    ASSERT_FALSE(disableDepth.HasValue());
+    EXPECT_EQ(disableDepth.Error(), std::make_error_code(std::errc::operation_in_progress));
+    EXPECT_EQ(batch.StateSerial(), before);
 }
 
 TEST(ParticleMaterialBackendTest, RawOneRestoresWriteAndPreservesNoncanonicalTrueBytes)
@@ -446,7 +449,7 @@ TEST(ParticleMaterialBackendTest, KalimaSixEnablesDepthAfterMaterialWithoutChang
     EXPECT_EQ(batch.StateSerial(), serial);
 }
 
-// 0x5489eb: glTexEnvi va fuera del quad y no es del material: no publica una operación ni cambia el serial, y el quad
+// 0x5489eb: glTexEnvi va fuera del quad y no es del material: publica su eje sin cambiar el serial, y el quad
 // que sigue lleva GL_ADD hasta que vuelve GL_MODULATE. Adentro del quad es un error de GL y no cambia nada.
 TEST(ParticleMaterialBackendTest, TextureEnvIsOutsideTheQuadAndTravelsWithIt)
 {
@@ -460,7 +463,7 @@ TEST(ParticleMaterialBackendTest, TextureEnvIsOutsideTheQuadAndTravelsWithIt)
     const auto serial = batch.StateSerial();
     ASSERT_TRUE(backend.TextureEnv(TextureEnvMode::Add).HasValue());
     EXPECT_EQ(batch.TextureEnv(), TextureEnvMode::Add);
-    EXPECT_EQ(batch.Commands().size(), commands);
+    EXPECT_EQ(batch.Commands().size(), commands + 1);
     EXPECT_EQ(batch.StateSerial(), serial);
     ASSERT_TRUE(backend.BlendedPrefix().HasValue());
     ASSERT_TRUE(backend.Helper6208f0().HasValue());
@@ -481,10 +484,40 @@ TEST(ParticleMaterialBackendTest, TextureEnvIsOutsideTheQuadAndTravelsWithIt)
     ASSERT_TRUE(backend.End().HasValue());
     ASSERT_TRUE(backend.TextureEnv(TextureEnvMode::Modulate).HasValue());
     ASSERT_FALSE(batch.Commands().empty());
-    const auto& quad = batch.Commands().back();
+    const auto& quad = batch.Commands()[batch.Commands().size() - 2];
     EXPECT_EQ(quad.operation, Client::Render::ModelStateOperation::Draw);
     EXPECT_EQ(quad.vertexCount, 6u);
     EXPECT_EQ(quad.textureEnv, TextureEnvMode::Add);
     EXPECT_EQ(quad.state.blend, Client::Render::ModelBlend::BlendedShadow);
     EXPECT_EQ(batch.TextureEnv(), TextureEnvMode::Modulate);
+}
+
+TEST(ParticleMaterialBackendTest, DepthTestTogglesPublishOnlyCacheMissesWithoutGeometry)
+{
+    Client::Render::ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    MaterialModels models;
+    Client::Render::ModelBatchParticleBackend backend(std::ref(batch), std::cref(models),
+                                                      Client::Render::ModelBatchParticleState::ForModelPass());
+    const auto serial = batch.StateSerial();
+    const auto commands = batch.Commands().size();
+    ASSERT_TRUE(backend.Type620870().HasValue());
+    EXPECT_FALSE(backend.State().depthTest);
+    EXPECT_FALSE(batch.State().depthTest);
+    ASSERT_TRUE(backend.Type620870().HasValue());
+    EXPECT_EQ(batch.StateSerial(), serial + 1);
+    ASSERT_EQ(batch.Commands().size(), commands + 1);
+    ASSERT_TRUE(backend.Type620850().HasValue());
+    ASSERT_TRUE(backend.Type620870().HasValue());
+    ASSERT_EQ(batch.Commands().size(), commands + 3);
+    for (std::size_t index = 0; index < 3; ++index)
+    {
+        const auto& command = batch.Commands()[commands + index];
+        EXPECT_EQ(command.operation, Client::Render::ModelStateOperation::DepthTest);
+        EXPECT_EQ(command.state.depthTest, index == 1);
+        EXPECT_EQ(command.firstVertex, 0u);
+        EXPECT_EQ(command.vertexCount, 0u);
+    }
+    EXPECT_EQ(batch.StateSerial(), serial + 3);
+    EXPECT_TRUE(batch.Vertices().empty());
 }

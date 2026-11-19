@@ -16,6 +16,9 @@ struct TextureSlot
     friend bool operator==(TextureSlot, TextureSlot) = default;
 };
 
+// Conserva el ordinal de una malla cuyo archivo de textura no pudo reemplazar un slot residente.
+inline constexpr TextureSlot UnboundModelTextureSlot{0xffff};
+
 // Los slots de la tabla del original: 0x622e40 la pone en cero con 0x64e6 dwords, 1.845 slots de
 // 0x38 bytes desde 0x7d3a198.
 inline constexpr std::size_t OriginalTextureSlotCount = 1845;

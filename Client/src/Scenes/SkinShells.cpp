@@ -58,8 +58,10 @@ Core::Expected<void, std::string> ShedTheSkinShells(ActorState& owner, std::int3
     std::vector<Render::Models::BoneTransform> bones(skeleton->bones.size(), Render::Models::BoneTransform(0.0f));
     if (!Render::Models::PoseWorldSkeleton(*skeleton, animation, transform, owner.headTurn.angles, bones))
         return Core::Unexpected(std::string("0x53c1eb: la pose del 0x20b (Player\\Shadow01) del joint 0x632 falla"));
-    // 0x53c1f0..0x53c210: con el último argumento en 0, cada vértice sólo por la matriz de su hueso (0x5fccc0); la
-    // escala de los huesos (0x6c881c) está en 1 fuera de los dibujos que la cambian y la restauran.
+    // 0x53c1f0..0x53c210: con el último argumento en 0 y la escala de los huesos (0x6c881c) en 1 (0x4ebdb0), cada
+    // vértice sólo por la matriz de su hueso (0x5fccc0). Vale 1 porque 0x5ffdf0 y 0x60cf70 la ponen en 1 antes de
+    // mirar el modo (0x5fff82, 0x60d01e) y los únicos modos 2 y 3 (0x50c20b, 0x50c217) van seguidos de 0x50c248
+    // (Q-C1730; si ese sale por el alpha, quedaría en 1,4f: P-C521).
     std::vector<Render::Models::SkinnedMesh> meshes(model->meshes.size());
     for (std::size_t index = 0; index < model->meshes.size(); ++index)
     {

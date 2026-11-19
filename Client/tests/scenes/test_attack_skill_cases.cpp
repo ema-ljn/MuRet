@@ -1817,7 +1817,8 @@ TEST(AttackSkillCasesTest, TheRisingAurasLeaveFromAboveTheCaster)
 }
 
 // 0x4fe147..0x4fe18b: la 0x43 crea el 0x632/7 sobre o, que suelta tres 0x632/6 con dos rand() cada uno, y suena
-// 0x266. El paso de los /6 corta en su partícula 0x5ee (0x53bf6e) después de su rand().
+// 0x266. Sin la tabla de partículas, el paso de los /6 corta donde pide su llamarada 0x5ee (0x53bf6e), después de su
+// rand().
 TEST(AttackSkillCasesTest, TheStormDropsThreeBolts)
 {
     SkillWorld tested;

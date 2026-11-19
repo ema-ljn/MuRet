@@ -21,11 +21,13 @@
 #include "World/GameModelEffects.h"
 #include "World/ModelEffects.h"
 #include "World/OriginalFtol.h"
+#include "World/ParticleOwner.h"
 #include "World/WorldObjectStepServices.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
+#include <algorithm>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
@@ -161,15 +163,24 @@ Core::Expected<void, std::string> SparkTheBones(const World::ModelEffect& effect
     const auto placed = carry.models.find(static_cast<std::uint16_t>(effect.type));
     const float scale = placed != carry.models.end() ? placed->second.scale : 0.0f;
     const glm::vec3 origin = placed != carry.models.end() ? placed->second.position : glm::vec3(0.0f);
+    // 0x5262cf: push ebx, el efecto, como dueño de la 0x6ec/3; la 0x5f2/0x15 va sin dueño (0x5262ed: push 0).
+    const auto pool = context.world.Map().effects.Effects();
+    const auto found =
+        std::ranges::find_if(pool, [&](const World::ModelEffect& candidate) { return &candidate == &effect; });
+    if (found == pool.end())
+        return Core::Unexpected(std::string("0x5262cf: el 0x13d fuera de su pool durable"));
+    const World::ParticleOwner owner{World::ParticleOwnerKind::ModelEffect,
+                                     static_cast<std::uint64_t>(found - pool.begin())};
     for (std::size_t bone = 0; bone < skeleton.bones.size(); ++bone)
     {
         if (skeleton.bones[bone].dummy || context.random.Next() % SparkOdds != 0)
             continue;
         const glm::vec3 point = Render::Models::OriginalTransformPosition(
             Render::Models::OriginalMatrixOf(context.world.PoseCarry().bones[bone]), glm::vec3(0.0f), scale, origin);
-        // La 0x6ec/3 lleva el efecto de dueño; no es de MuRet (el lote de partículas de la CL11): con lugar corta.
+        // La 0x6ec/3 con el efecto de dueño: su paso busca la mano del Monster82 en la lista de 0x401000, donde el
+        // efecto no está, y sigue como la fanta común (0x547c28).
         if (auto shard = CreateHighParticle(context.world, context.random, context.worldClock, Shard, point,
-                                            effect.transform.angles, white, ShardSubtype, ShardScale, 0x5262e8);
+                                            effect.transform.angles, white, ShardSubtype, ShardScale, 0x5262e8, owner);
             !shard.HasValue())
             return Core::Unexpected(shard.Error());
         if (auto spark = CreateHighParticle(context.world, context.random, context.worldClock, Spark, point,

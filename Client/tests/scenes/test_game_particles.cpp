@@ -10,11 +10,17 @@
 #include "Render/Pass3D.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
+#include "Render/Models/HalfLifeMath.h"
+#include "Scenes/ActorCreation.h"
+#include "Scenes/ActorState.h"
+#include "Scenes/WorldState.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/TextureMetadata.h"
 #include "Scenes/WorldObjectsDrawing.h"
+#include "World/ParticleOwner.h"
 #include "World/Particles.h"
+#include "World/Sprites.h"
 #include "World/TerrainCulling.h"
 #include "World/WorldObjects.h"
 
@@ -28,6 +34,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string>
@@ -338,6 +345,29 @@ TEST(GameParticlesTest, TheGallopDustSitsOnTheGroundWithTheHeightOfItsTexture)
     EXPECT_NE(blind.Error().find("0x637128"), std::string::npos);
 }
 
+// 0x546c96: el paso de la 5fc/2 deja su flare01 en la tabla de los sprites del frame que presta la escena; sin ella,
+// corta en 0x637128.
+TEST(GameParticlesTest, TheFallingShineLeavesItsFlareInTheFrameSprites)
+{
+    Particles particles;
+    CrtRandom random;
+    ASSERT_TRUE(particles.CreateChecked(0x5fc, {10, 20, 30}, {}, glm::vec3(1.0f), 2, 0.6f, 0.0f, random).HasValue());
+    const std::int32_t map = 0;
+    const float clock = 0.0f;
+    auto sprites = std::make_unique<Client::World::FrameSprites>();
+    const auto stepped = Client::Scenes::StepGameParticles(particles, random, map, {}, clock, {}, {}, {}, nullptr, {},
+                                                           {}, {}, {}, sprites.get());
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_TRUE(sprites->Sprites()[0].alive);
+    EXPECT_EQ(sprites->Sprites()[0].texture, 0x5ac);
+    EXPECT_EQ(sprites->Sprites()[0].position, particles.All()[0].position);
+
+    const auto blind =
+        Client::Scenes::StepGameParticles(particles, random, map, {}, clock, {}, {}, {}, nullptr, {}, {}, {}, {});
+    ASSERT_FALSE(blind.HasValue());
+    EXPECT_NE(blind.Error().find("0x637128"), std::string::npos);
+}
+
 TEST(GameParticlesTest, DrawUsesModeZeroAndEyeCoordinatesWithoutKillingParticles)
 {
     Particles particles;
@@ -600,4 +630,34 @@ TEST(GameParticlesTest, LaterAmbientSlotReadsTheCallerClockChangedByTerrainHeigh
     EXPECT_FALSE(ambient.alive);
     EXPECT_EQ(ambient.life, 0);
     EXPECT_EQ(random.State(), 0xc40e66b9u);
+}
+
+// ParticleOwnerStatesOf con un personaje: su byte vivo, su posición, la acción (+0x111) y sus huesos con nombre por
+// 0x4010b0 (0x4016c0 con su lugar y el nombre exacto, y 0x4ec110 sin corrimiento por la escala y más la posición). Sin
+// el nombre, o con el de otro lugar, nullopt.
+TEST(GameParticlesTest, TheOwnerStateOfAnActorReadsItsActionAndItsNamedBones)
+{
+    auto world = std::make_unique<Client::Scenes::WorldState>();
+    Client::Scenes::ActorState& actor = world->Actors()[7];
+    actor.alive = true;
+    actor.position = {100, 200, 10};
+    actor.scale = 2.0f;
+    actor.animation.action = 3;
+    actor.bodyPose.assign(40, Client::Render::Models::BoneTransform(1.0f));
+    actor.bodyPose[34][3] = glm::vec3(1, 2, 3);
+    Client::Scenes::NameABone(world->Runtime(), 7, "Monster82_LHand", 34);
+    Client::Scenes::NameABone(world->Runtime(), 8, "Monster82_RHand", 34);
+    const auto states = Client::Scenes::ParticleOwnerStatesOf(*world);
+    const auto state = states({Client::World::ParticleOwnerKind::Actor, 7});
+    ASSERT_TRUE(state.has_value());
+    EXPECT_TRUE(state->alive);
+    EXPECT_EQ(state->position, actor.position);
+    EXPECT_EQ(state->action, 3);
+    ASSERT_TRUE(state->namedBone);
+    EXPECT_EQ(state->namedBone("Monster82_LHand"),
+              Client::Render::Models::OriginalTransformPosition(
+                  Client::Render::Models::OriginalMatrixOf(actor.bodyPose[34]), {}, 2.0f, actor.position));
+    EXPECT_EQ(state->namedBone("Monster82_LHand"), std::optional(glm::vec3(102, 204, 16)));
+    EXPECT_EQ(state->namedBone("Monster82_RHand"), std::nullopt);
+    EXPECT_EQ(state->namedBone("monster82_lhand"), std::nullopt);
 }

@@ -314,8 +314,9 @@ TEST(SkullEffectsTest, TheGlowingSkullFadesWithItsLife)
     EXPECT_EQ(skull.life, 7);
 }
 
-// 0x52b78d..0x52b853: el /5 suelta tres 0x5ac/5; con la tabla llena, nada; con lugar, corta en la primera (CL11). El
-// /6 y los demás de más de 5 solo pierden una vida.
+// 0x52b78d..0x52b853: el /5 suelta tres 0x5ac/5 (vida 25, sin rand()) en SkullStackPoint con la vida de antes de la
+// cola, sus ángulos, la luz (0,6f; 0,6f; 1) y la escala 0,7f; con la tabla llena, nada. El /6 y los demás de más de 5
+// solo pierden una vida.
 TEST(SkullEffectsTest, TheStackedSkullAndTheOthers)
 {
     SkullWorld full;
@@ -326,9 +327,26 @@ TEST(SkullEffectsTest, TheStackedSkullAndTheOthers)
     EXPECT_FALSE(full.sprites->Sprites()[0].alive);
 
     SkullWorld roomy;
-    const auto cut = roomy.Step(roomy.Create(5));
-    ASSERT_FALSE(cut.HasValue());
-    EXPECT_TRUE(cut.Error().starts_with("0x52b843")) << cut.Error();
+    ModelEffect& flaring = roomy.Create(5);
+    const auto stepped = roomy.Step(flaring);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(DrawsSince(roomy.random), DrawsSince(full.random));
+    for (int turn = 0; turn < 3; ++turn)
+    {
+        SCOPED_TRACE(turn);
+        const auto point = Client::Scenes::SkullStackPoint(turn, 1000, roomy.clock, roomy.Owner());
+        ASSERT_TRUE(point.HasValue());
+        const Client::World::Particle& flare = roomy.world->Particles().All()[static_cast<std::size_t>(turn)];
+        EXPECT_TRUE(flare.alive);
+        EXPECT_EQ(flare.type, 0x5ac);
+        EXPECT_EQ(flare.subtype, 5);
+        EXPECT_EQ(flare.life, 25);
+        EXPECT_EQ(flare.position, point.Value());
+        EXPECT_EQ(flare.angles, glm::vec3(0, 0, 45));
+        EXPECT_EQ(flare.light, glm::vec3(std::bit_cast<float>(0x3f19999au), std::bit_cast<float>(0x3f19999au), 1.0f));
+        EXPECT_EQ(flare.scale, std::bit_cast<float>(0x3f333333u));
+    }
+    EXPECT_FALSE(roomy.world->Particles().All()[3].alive);
 
     SkullWorld other;
     ModelEffect& sixth = other.Create(6);

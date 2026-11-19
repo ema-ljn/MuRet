@@ -467,9 +467,8 @@ TEST(ArrowEffectsTest, TheMountedBowsShootLikeOnFoot)
 }
 
 // Las armas cuyas flechas piden algo sin portar cortan en su dirección, con lo de antes: en el alta, los joints de
-// la 0x11c (4/20, después de su rand() % 360) y la 0xf9 (4/21); en el paso, la 0xe1 (4/6) en sus
-// partículas 0x608..0x60a, la 0xe2 (4/14) y la 0xe3 (4/13) en las 0x607/1, después de sus dos sprites y de los rand()
-// del punto.
+// la 0x11c (4/20, después de su rand() % 360) y la 0xf9 (4/21); en el paso, la 0xe1 (4/6) en sus partículas
+// 0x608..0x60a, después de sus dos sprites y de los rand() del punto.
 
 TEST(ArrowEffectsTest, TheArrowsOfUnportedEffectsCut)
 {
@@ -485,8 +484,7 @@ TEST(ArrowEffectsTest, TheArrowsOfUnportedEffectsCut)
     };
     const std::array cases{
         Case{"4/20", 0xffff, 0x814, "0x51c713", 1, "", 0}, Case{"4/21", 0xffff, 0x815, "0x51c56c", 0, "", 0},
-        Case{"4/6", 0xffff, 0x806, "", 0, "0x526a8b", 1 + 4}, Case{"4/14", 0x80e, 0xffff, "", 0, "0x52434e", 1 + 3},
-        Case{"4/13", 0x80d, 0xffff, "", 0, "0x526d5f", 1 + 3}};
+        Case{"4/6", 0xffff, 0x806, "", 0, "0x526a8b", 1 + 4}};
     for (const Case& probe : cases)
     {
         SCOPED_TRACE(probe.name);
@@ -513,6 +511,70 @@ TEST(ArrowEffectsTest, TheArrowsOfUnportedEffectsCut)
         EXPECT_TRUE(HasError(stepped, probe.stepCut)) << ErrorOf(stepped);
         EXPECT_EQ(DrawsSince(before.State(), tested.random), probe.stepDraws);
         EXPECT_EQ(std::ranges::count_if(tested.sprites.Sprites(), [](const auto& sprite) { return sprite.alive; }), 2);
+    }
+}
+
+// 0x524300..0x52434e (la 0xe2, 4/14) y 0x526cd0..0x526d5f (la 0xe3, 4/13): después del rand() de la luz, cuatro
+// veces el punto al azar (tres rand()) y la burbuja 0x607/1 de 1 con los ángulos de la flecha (la luz 1 de su alta,
+// 0x542d96, y dos rand()). La 0xe3 sigue con su humo 0x5f2/0 en la posición de la flecha.
+TEST(ArrowEffectsTest, TheWaterArrowsLeaveFourBubbles)
+{
+    for (const Weapon& weapon : {Weapon{"4/14", 0x80e, 0xffff, 0x2e, 0xe2}, Weapon{"4/13", 0x80d, 0xffff, 0x2e, 0xe3}})
+    {
+        SCOPED_TRACE(weapon.name);
+        ArrowWorld tested(0);
+        ActorState& hero = tested.Archer(weapon, weapon.action, NoTarget);
+        ASSERT_TRUE(StepTheAttack(hero, HeroSlot, tested.Context()).HasValue());
+        const auto arrows = tested.Arrows();
+        ASSERT_EQ(arrows.size(), 1u);
+        ModelEffect& arrow = *arrows.front();
+        arrow.life = 40;
+        tested.ground = 0.0;
+        for (auto& particle : tested.particles.All())
+            particle.alive = false;
+        const glm::vec3 position = arrow.transform.position;
+        const glm::vec3 angles = arrow.transform.angles;
+        const CrtRandom before = tested.random;
+
+        const auto stepped = StepArrow(arrow, nullptr, tested.StepContext());
+
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        auto twin = std::make_unique<Client::World::Particles>();
+        CrtRandom expected = before;
+        static_cast<void>(expected.Next());
+        for (std::size_t index = 0; index < 4; ++index)
+        {
+            SCOPED_TRACE(index);
+            expected.Discard(3);
+            const Client::World::Particle& bubble = tested.particles.All()[index];
+            const auto replayed =
+                twin->CreateChecked(0x607, bubble.start, angles, glm::vec3(0.25f), 1, 1.0f, 0.0f, expected);
+            ASSERT_TRUE(replayed.HasValue() && replayed.Value() == std::optional<std::size_t>{index});
+            const Client::World::Particle& reference = twin->All()[index];
+            EXPECT_TRUE(bubble.alive);
+            EXPECT_EQ(bubble.type, 0x607);
+            EXPECT_EQ(bubble.subtype, 1);
+            EXPECT_EQ(bubble.angles, angles);
+            EXPECT_EQ(bubble.light, glm::vec3(1.0f));
+            EXPECT_EQ(bubble.life, reference.life);
+            EXPECT_EQ(bubble.scale, reference.scale);
+            for (int axis = 0; axis < 3; ++axis)
+            {
+                EXPECT_GE(bubble.start[axis], position[axis] - 8.0f);
+                EXPECT_LE(bubble.start[axis], position[axis] + 7.0f);
+            }
+        }
+        if (weapon.arrow == 0xe2)
+        {
+            EXPECT_FALSE(tested.particles.All()[4].alive);
+            EXPECT_EQ(tested.random.State(), expected.State());
+            continue;
+        }
+        const Client::World::Particle& smoke = tested.particles.All()[4];
+        EXPECT_TRUE(smoke.alive);
+        EXPECT_EQ(smoke.type, 0x5f2);
+        EXPECT_EQ(smoke.subtype, 0);
+        EXPECT_EQ(smoke.start, position);
     }
 }
 
@@ -1771,6 +1833,52 @@ TEST(ArrowEffectsTest, FullPoolsPreserveTheNewlyReachableArrowSteps)
         EXPECT_EQ(arrow.transform.position.y, type == 0xf8 ? 1000.0f : 930.0f);
         EXPECT_EQ(DrawsSince(Seed, tested.random), type == 0x10e ? 2 : type == 0x11c ? 10 : 1);
     }
+}
+
+// 0x52594c..0x5259a4: después del rand() de la luz (0x5208c5), el paso de la flecha 0x111 gira la y +30 y suelta tres
+// humos 0x5f2/13 en su posición, con esos ángulos, la luz 1 (0x520921) y escala 1, tres rand() cada uno; después se
+// mueve.
+TEST(ArrowEffectsTest, TheReignArrowLeavesThreeEmbers)
+{
+    ArrowWorld tested(0);
+    for (auto& effect : tested.world.Map().effects.Effects())
+        effect.alive = true;
+    auto& arrow = tested.world.Map().effects.Effects().front();
+    arrow.type = 0x111;
+    arrow.subtype = 2;
+    arrow.life = 20;
+    arrow.transform.position = {1000.0f, 1000.0f, 1000.0f};
+    arrow.transform.angles = {0.0f, 15.0f, 0.0f};
+    arrow.velocity = {0.0f, -70.0f, 0.0f};
+    const auto stepped = StepArrow(arrow, nullptr, tested.StepContext());
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(arrow.transform.angles.y, 45.0f);
+    auto twin = std::make_unique<Client::World::Particles>();
+    CrtRandom expected(Seed);
+    static_cast<void>(expected.Next());
+    for (std::size_t index = 0; index < 3; ++index)
+    {
+        SCOPED_TRACE(index);
+        const auto replayed = twin->CreateChecked(0x5f2, {1000.0f, 1000.0f, 1000.0f}, {0.0f, 45.0f, 0.0f},
+                                                  glm::vec3(1.0f), 13, 1.0f, 0.0f, expected);
+        ASSERT_TRUE(replayed.HasValue() && replayed.Value() == std::optional<std::size_t>{index});
+        const Client::World::Particle& ember = tested.particles.All()[index];
+        const Client::World::Particle& reference = twin->All()[index];
+        EXPECT_TRUE(ember.alive);
+        EXPECT_EQ(ember.type, 0x5f2);
+        EXPECT_EQ(ember.subtype, 13);
+        EXPECT_EQ(ember.position, glm::vec3(1000.0f));
+        EXPECT_EQ(ember.angles, reference.angles);
+        EXPECT_EQ(ember.light, glm::vec3(1.0f));
+        EXPECT_EQ(ember.life, 20);
+        EXPECT_EQ(ember.scale, reference.scale);
+        EXPECT_EQ(ember.rotation, reference.rotation);
+        EXPECT_EQ(ember.verticalSpeed, reference.verticalSpeed);
+    }
+    EXPECT_FALSE(tested.particles.All()[3].alive);
+    EXPECT_EQ(tested.random.State(), expected.State());
+    EXPECT_EQ(DrawsSince(Seed, tested.random), 1 + 3 * 3);
+    EXPECT_EQ(arrow.transform.position.y, 930.0f);
 }
 
 // 0x51a347..0x51a3b7: la 0xf8/1 escribe los ángulos del caller (0, 0, z) antes de sus tres joints 0x60f/0x19 (alta

@@ -14,6 +14,7 @@
 
 #include <glm/ext/vector_float3.hpp>
 
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <format>
@@ -122,28 +123,37 @@ Core::Expected<void, std::string> CreateTheChaosCastleBurst(ActorState& actor, s
     return {};
 }
 
-Core::Expected<void, std::string> CreateTheDeathSkillFlare(const ActorState& actor, std::size_t slot,
-                                                           const ActorDyingContext& context)
+// 0x4fbca1..0x4fbd43: diez veces, el hueso rand() % 32 por 0x4ec110 (Translate 1) con el corrimiento (0, 0, 0) y la
+// partícula 0x5ac/5 en ese punto, con los ángulos del objeto (+0x1c), la luz (0,3f; 0,3f; 1) y la escala
+// (rand() % 100) · 0,02f + 0,5 (0x6b89e4 y 0x6b882c). Dos rand() por vuelta, también con el pool lleno.
+Core::Expected<void, std::string> CreateTheDeathSkillFlares(const ActorState& actor, std::size_t slot,
+                                                            const ActorDyingContext& context)
 {
-    const int boneDraw = context.random.Next() % DeathSkillBoneCount;
-    const std::size_t bone = static_cast<std::size_t>(boneDraw);
+    constexpr int Flares = 10;
+    constexpr glm::vec3 FlareLight{std::bit_cast<float>(0x3e99999au), std::bit_cast<float>(0x3e99999au), 1.0f};
+    constexpr double ScaleStep = static_cast<double>(std::bit_cast<float>(0x3ca3d70au));
+    constexpr double ScaleBase = 0.5;
+    if (context.particles == nullptr)
+        return Core::Unexpected(std::format("0x4fbd3a: falta el pool para la partícula 0x5ac/5 del lugar {}", slot));
     const Render::Models::BoneTransform emptyPose(0.0f);
-    const Render::Models::BoneTransform& bodyBone = bone < actor.bodyPose.size() ? actor.bodyPose[bone] : emptyPose;
     const glm::vec3 offset{};
     const SharedModelPlacement placement =
         context.world != nullptr ? context.world->ModelPlacement(actor.type) : SharedModelPlacement{};
-    const glm::vec3 point = Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(bodyBone),
-                                                                      offset, placement.scale, placement.origin);
-    const int scaleDraw = context.random.Next() % DeathSkillScaleSpan;
-    const float scale = static_cast<float>(scaleDraw);
-    if (context.particles == nullptr)
-        return Core::Unexpected(std::format("0x4fbcdd: falta el pool para la partícula 0x5ac/5 del lugar {}", slot));
-    const auto created =
-        context.particles->CreateChecked(World::KalimaFlare, point, actor.angles, actor.light, DeathSkillFlareSubtype,
-                                         scale, context.worldClock, context.random);
-    if (!created.HasValue())
-        return Core::Unexpected(std::format("0x4fbcdd: la partícula 0x5ac/5 del lugar {} falla con error {}", slot,
-                                            static_cast<unsigned>(created.Error())));
+    for (int flare = 0; flare < Flares; ++flare)
+    {
+        const auto bone = static_cast<std::size_t>(context.random.Next() % DeathSkillBoneCount);
+        const Render::Models::BoneTransform& bodyBone = bone < actor.bodyPose.size() ? actor.bodyPose[bone] : emptyPose;
+        const glm::vec3 point = Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(bodyBone),
+                                                                          offset, placement.scale, placement.origin);
+        const int scaleDraw = context.random.Next() % DeathSkillScaleSpan;
+        const auto scale = static_cast<float>(static_cast<double>(scaleDraw) * ScaleStep + ScaleBase);
+        const auto created =
+            context.particles->CreateChecked(World::KalimaFlare, point, actor.angles, FlareLight,
+                                             DeathSkillFlareSubtype, scale, context.worldClock, context.random);
+        if (!created.HasValue())
+            return Core::Unexpected(std::format("0x4fbd3a: la partícula 0x5ac/5 del lugar {} falla con error {}", slot,
+                                                static_cast<unsigned>(created.Error())));
+    }
     return {};
 }
 } // namespace
@@ -245,7 +255,7 @@ Core::Expected<void, std::string> StepActorDying(ActorState& actor, std::size_t 
         }
         if (actor.dying <= LastSparkStep && actor.deathSkill == PushSkill)
         {
-            if (auto flare = CreateTheDeathSkillFlare(actor, slot, context); !flare.HasValue())
+            if (auto flare = CreateTheDeathSkillFlares(actor, slot, context); !flare.HasValue())
                 return Core::Unexpected(std::format("{} (paso {})", flare.Error(), actor.dying));
         }
     }

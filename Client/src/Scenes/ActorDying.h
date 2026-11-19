@@ -45,8 +45,8 @@ struct ActorDyingContext
 // +0x391, +0x1a1 y +0x1bc en 0; 0x401040 saca sus huesos con nombre y 0x4fb1a0 suelta sus telas). Después, el vuelo
 // del empuje: en Blood Castle (11 a 17) con +0x1a1, 0x4fb2b0; con la skill 0x28 o 0x3b (fuera de los castillos), antes
 // del paso 15, 0x51fd20. Las burbujas 0x607 del mapa 7 en la escena 5 (cuatro, con tres rand() cada una). En Chaos
-// Castle completa 0x51fe10; la skill 0x28 conserva el corte CL11 en el primer 0x5ac/5 no portado, tras sortear hueso y
-// escala.
+// Castle completa 0x51fe10; la skill 0x28, hasta el paso 30, suelta diez 0x5ac/5 (dos rand() cada una: hueso y
+// escala).
 [[nodiscard]] Core::Expected<void, std::string> StepActorDying(ActorState& actor, std::size_t slot,
                                                                const ActorDyingContext& context);
 

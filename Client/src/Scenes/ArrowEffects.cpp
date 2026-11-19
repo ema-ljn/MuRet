@@ -25,6 +25,7 @@
 #include "World/ParticleBurst.h"
 #include "World/OriginalFtol.h"
 #include "World/Particles.h"
+#include "World/SmokeParticleKernels.h"
 #include "World/PortableParticleTrigonometry.h"
 #include "World/Sprites.h"
 #include "World/WorldObjectStepServices.h"
@@ -1235,15 +1236,25 @@ Core::Expected<void, std::string> StepCelestialArrow(World::ModelEffect& effect,
     return {};
 }
 
-// 52593c..525a5f: tres partículas 5f2/13 y el estallido terminal; con P lleno, el resto continúa.
+// 52593c..525a5f: el giro y +30, tres humos 0x5f2/13 en la posición de la flecha con sus ángulos, la luz 1 de
+// 0x520921 y escala 1 (0x525972, 0x52598b, 0x5259a4; tres rand() cada uno) y el estallido terminal.
 Core::Expected<void, std::string> StepReignArrow(World::ModelEffect& effect, float luminosity,
                                                  const ArrowStepContext& context)
 {
     if (effect.subtype != 0 && effect.subtype != 2)
         return {};
     effect.transform.angles.y = F32(D(effect.transform.angles.y) + 30.0);
-    if (HasParticleRoom(context))
-        return Core::Unexpected(std::string("0x525972: la partícula 0x5f2/13 de la flecha 0x111 sigue en CL11"));
+    if (context.particles == nullptr)
+        return Core::Unexpected(std::string("0x525972: falta el pool de partículas de la flecha 0x111"));
+    for (const std::string_view call : {"0x525972", "0x52598b", "0x5259a4"})
+    {
+        const auto created = context.particles->CreateChecked(
+            World::BreathParticle, effect.transform.position, effect.transform.angles, glm::vec3(1.0f),
+            World::EmberSmokeSubtype, 1.0f, context.worldClock, context.random);
+        if (!created.HasValue())
+            return Core::Unexpected(std::format("{}: el humo 0x5f2/13 de la flecha 0x111 falla con el error {}", call,
+                                                static_cast<unsigned>(created.Error())));
+    }
     if (effect.life == 1)
     {
         if (auto burst = BurstAt(effect.transform.position, context); !burst.HasValue())

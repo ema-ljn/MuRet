@@ -11,12 +11,16 @@
 #include "Input/Key.h"
 #include "Network/PacketSerials.h"
 #include "Protocol/Character/CharacterDelete.h"
+#include "Render/ModelBatch.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
+#include "Render/TextureSlot.h"
+#include "Scenes/ActorState.h"
 #include "Scenes/CharacterSelectScene.h"
 #include "Scenes/CharacterSlots.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/GameData.h"
+#include "Scenes/GameDrawTail.h"
 #include "Scenes/HelperTable.h"
 #include "Scenes/IScene.h"
 #include "Scenes/LoginModels.h"
@@ -277,6 +281,79 @@ TEST_F(SelectionPipelineTest, MissingWorldTablesAbortTheManagerWithoutInventingA
     EXPECT_TRUE(m_manager->HoldsTheLastFrame());
     m_manager->Render(0.0f);
     EXPECT_EQ(m_cameraInput.hero.z, 777.0f);
+}
+
+// 0x634851 dibuja los personajes. 0x63486f dibuja las cintas antes de las juntas de 0x634875.
+TEST_F(SelectionPipelineTest, TheSelectorDrawsTheLiveRibbonAfterCharactersAndBeforeJoints)
+{
+    ASSERT_NO_FATAL_FAILURE(StartSelect());
+    ASSERT_NO_FATAL_FAILURE(ReceiveList({Bare(0)}));
+    m_manager->Step(Client::Input::InputState{});
+    ASSERT_TRUE(m_state.IsInitialized());
+    ASSERT_EQ(m_state.Map(), SelectionMap);
+    auto& ribbon = m_world.DrawTail().ribbons[0];
+    ribbon.alive = true;
+    ribbon.life = 3;
+    ribbon.count = 3;
+    m_online.clock.Advance(Client::Render::Models::OriginalFrameTime);
+    m_manager->Step(Client::Input::InputState{});
+    // 0x6342f9 pasa por 0x5091d0. El preview de 0x634303 no vuelve a envejecer la cinta.
+    ASSERT_EQ(ribbon.life, 2);
+    ASSERT_EQ(ribbon.count, 2);
+    // La escena publica la luz del personaje aunque su biblioteca no tenga mallas.
+    m_models.Clear();
+
+    auto& actor = m_world.Actors()[0];
+    ribbon.ownerEquipment = &actor.level;
+    ribbon.type = 3;
+    ribbon.light = {1.0f, 0.5f, 0.25f};
+    ribbon.first[0] = {1, 2, 3};
+    ribbon.second[0] = {4, 2, 3};
+    ribbon.first[1] = {1, 5, 3};
+    ribbon.second[1] = {4, 5, 3};
+    auto& joint = m_world.DrawTail().joints[0];
+    joint.alive = true;
+    joint.type = 0x60f;
+    joint.texture = 0x60f;
+    joint.count = 1;
+    joint.maximumCount = 3;
+    joint.drawEnabled = 1;
+    joint.blend = 1;
+    joint.light = glm::vec3(1.0f);
+    joint.points[0][2] = {6, 2, 3};
+    joint.points[0][3] = {9, 2, 3};
+    joint.points[1][2] = {6, 5, 3};
+    joint.points[1][3] = {9, 5, 3};
+
+    m_manager->Render(0.0f);
+    ASSERT_FALSE(m_manager->Failure().has_value()) << *m_manager->Failure();
+    ASSERT_FALSE(m_target.frames.empty());
+    std::vector<std::uint16_t> selectors;
+    for (const auto& event : m_target.frames.back().events)
+    {
+        for (const auto& command : event.modelCommands)
+        {
+            if (command.vertexCount == 0 || !command.state.texture)
+                continue;
+            const auto& first = event.modelVertices.at(command.firstVertex).position;
+            if (first == ribbon.first[0] || first == joint.points[0][2])
+            {
+                EXPECT_EQ(command.vertexCount, 6u);
+                selectors.push_back(command.state.texture->value);
+            }
+        }
+    }
+    EXPECT_EQ(selectors, (std::vector<std::uint16_t>{0x639, 0x60f}));
+
+    // Si la cinta corta, el personaje ya publicó su luz en este mismo dibujo.
+    const glm::vec3 drawnLight = actor.drawnLight;
+    actor.drawnLight = glm::vec3(-1.0f);
+    ribbon.ownerEquipment = nullptr;
+    m_online.clock.Advance(Client::Render::Models::OriginalFrameTime);
+    m_manager->Render(0.0f);
+    ASSERT_TRUE(m_manager->Failure().has_value());
+    EXPECT_NE(m_manager->Failure()->find("0x52e5bc"), std::string::npos);
+    EXPECT_EQ(actor.drawnLight, drawnLight);
 }
 
 TEST_F(SelectionPipelineTest, PollConstructsBeforeLogicAndTheRenderGuardKeepsTheLoginTerrain)

@@ -636,8 +636,9 @@ void StepTheCloud8(Particle& particle)
 
 bool IsFire(const Particle& particle)
 {
-    return (particle.type == FireParticle || (particle.type == DeathSpiritFireParticle && particle.subtype == 0)) &&
-           ((particle.subtype >= 0 && particle.subtype <= 3) || particle.subtype == 5 || particle.subtype == 8);
+    return (particle.type == BlueTrailFireParticle && particle.subtype == BlueTrailFireSubtype) ||
+           ((particle.type == FireParticle || (particle.type == DeathSpiritFireParticle && particle.subtype == 0)) &&
+            ((particle.subtype >= 0 && particle.subtype <= 3) || particle.subtype == 5 || particle.subtype == 8));
 }
 
 // 0x5466c3: la tabla de 0x548310 manda al mismo paso la 5f2/2 y la 5f2/21 de Crywolf.
@@ -824,6 +825,8 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
     {
         return subtype == 0 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     }
+    if (type == BlueTrailFireParticle)
+        return subtype == BlueTrailFireSubtype ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     if (type == DeathSpiritFireParticle)
         return subtype == 0 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     if (type == FireParticle)
@@ -950,6 +953,17 @@ void CreateTheFire(Particle& particle, Render::Models::CrtRandom& random)
     {
         particle.scale =
             F32(static_cast<double>((random.Next() % FireSmallScaleSpan) + FireSmallScaleBase) * BreathScaleStep);
+    }
+    if (particle.type == BlueTrailFireParticle)
+    {
+        // 0x541197..0x541403: R2 escribe un giro que R4 pisa; R3 multiplica la escala del pedido.
+        constexpr int ScaleSpan = 16;
+        constexpr int ScaleBase = 150;
+        constexpr double ScaleStep = static_cast<double>(0.012f);
+        particle.rotation = static_cast<float>(random.Next() % FullTurn);
+        particle.scale = F32((static_cast<double>(random.Next() % ScaleSpan + ScaleBase) * particle.scale) * ScaleStep);
+        // Fallback deliberado: atlas de llama ya registrado, conservando tipo y subtipo nativos.
+        particle.texture = FireParticle;
     }
     particle.rotation = static_cast<float>(random.Next() % FullTurn);
 }
@@ -1249,10 +1263,21 @@ std::int32_t WrapSubtract(std::int32_t left, std::int32_t right)
     return std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(left) - static_cast<std::uint32_t>(right));
 }
 
-void StepTheFire(Particle& particle)
+void StepTheFire(Particle& particle, Render::Models::CrtRandom& random)
 {
     particle.verticalSpeed = F32(static_cast<double>(particle.verticalSpeed) + FireRise);
-    if (particle.subtype == 0)
+    if (particle.type == BlueTrailFireParticle && particle.subtype == BlueTrailFireSubtype)
+    {
+        // 0x5457dc: también en el último paso, después de bajar la vida y del movimiento común.
+        constexpr double Fade = static_cast<double>(std::bit_cast<float>(0x3d2aaaabu));
+        constexpr int TurnSpan = 10;
+        constexpr int TurnBase = 10;
+        particle.light = glm::vec3(F32(static_cast<double>(particle.life) * Fade));
+        const double turn = static_cast<double>(random.Next() % TurnSpan) + TurnBase;
+        particle.rotation = F32(turn + static_cast<double>(particle.rotation));
+        particle.scale = F32(static_cast<double>(particle.scale) - FireShrink);
+    }
+    else if (particle.subtype == 0)
     {
         particle.scale = F32(static_cast<double>(particle.scale) - FireShrink);
     }
@@ -1790,7 +1815,7 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
             CreateTheDrop(particle, random);
             return std::optional(index);
         }
-        if (type == FireParticle || type == DeathSpiritFireParticle)
+        if (type == FireParticle || type == DeathSpiritFireParticle || type == BlueTrailFireParticle)
         {
             CreateTheFire(particle, random);
             return std::optional(index);
@@ -2187,7 +2212,7 @@ StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random, const
         }
         else if (IsFire(particle))
         {
-            StepTheFire(particle);
+            StepTheFire(particle, random);
         }
         else if (IsWorldSmoke(particle))
         {

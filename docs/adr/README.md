@@ -92,3 +92,9 @@ merecen un ADR propio y cuáles alcanzan con la fila de 07; hasta entonces, la f
 | ADR | Título | Estado |
 | --- | --- | --- |
 | [0016](0016-texto-occidental-en-windows-1252.md) | entrada y dibujo occidental con Windows-1252 de XP; activos y wire en bytes | propuesto junto con la corrección de entrada y rasterizador, 2026-11-15 |
+
+## Los de la CL11
+
+| ADR | Título | Estado |
+| --- | --- | --- |
+| [0025](0025-material-de-la-estela-de-kalima.md) | Material de llama compartido para las partículas de Kalima | propuesto en CL11.2 (2026-11-18) |

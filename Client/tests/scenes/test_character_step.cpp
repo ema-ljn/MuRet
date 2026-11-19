@@ -1330,8 +1330,9 @@ TEST(CharacterStepTest, AnEquippedSwordAttackCreatesItsTrailAndContinuesTheBody)
     EXPECT_EQ(ribbon.ownerContext, &hero);
     EXPECT_EQ(ribbon.ownerEquipment, &hero.level);
     EXPECT_EQ(ribbon.type, 0);
-    EXPECT_EQ(ribbon.count, 10);
-    EXPECT_EQ(ribbon.life, 15);
+    // Las diez altas de 0x4fd5a0 preceden al único paso de las cintas al terminar el pool (0x5091d0).
+    EXPECT_EQ(ribbon.count, 9);
+    EXPECT_EQ(ribbon.life, 14);
     EXPECT_EQ(ribbon.light, (glm::vec3{1.0f, 0.6f, 0.2f}));
     EXPECT_EQ(ribbon.first[0], (glm::vec3{100.0f, 180.0f, 300.0f}));
     EXPECT_EQ(ribbon.second[0], (glm::vec3{100.0f, 80.0f, 300.0f}));

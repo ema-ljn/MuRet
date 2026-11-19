@@ -107,6 +107,11 @@ Core::Expected<DrawSelection, ParticleDrawingError> SelectBranch(Particle& p, st
         return DrawSelection{ParticleDrawKind::Common, false};
     switch (type)
     {
+    case BlueTrailFireParticle:
+        // 0x548c9c/0x548850: atlas de fuego girado. El material existente 5d9 es una adaptación visual MuRet.
+        if (p.subtype != BlueTrailFireSubtype)
+            return Core::Unexpected(BranchError(ParticleError::UnsupportedSubtype));
+        return DrawSelection{ParticleDrawKind::RotatedFire, false};
     case FireParticle:
     case DeathSpiritFireParticle:
         // 548803..1f: sólo estos seis subtipos salen del default acreditado.
@@ -277,7 +282,7 @@ Result DrawOne(Particle& p, std::size_t index, std::reference_wrapper<const floa
     const float resourceHeight = dimensions.Value().y;
     const std::int32_t type = p.type;
     const double heightWide = static_cast<double>(resourceHeight) * static_cast<double>(p.scale);
-    const auto flag = services.MaterialFlag(type);
+    const auto flag = services.MaterialFlag(type == BlueTrailFireParticle ? FireParticle : type);
     if (!flag.HasValue())
         return Core::Unexpected(ParticleDrawingError{flag.Error(), Phase::MaterialFlag, {}});
     const float height = static_cast<float>(heightWide);

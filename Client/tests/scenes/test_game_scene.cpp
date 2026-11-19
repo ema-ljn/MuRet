@@ -43,6 +43,7 @@
 #include "Scenes/FaunaState.h"
 #include "Scenes/GameLeaves.h"
 #include "Scenes/GameData.h"
+#include "Scenes/GameDrawTail.h"
 #include "Scenes/GameModels.h"
 #include "Scenes/HelperTable.h"
 #include "Scenes/MapLoad.h"
@@ -570,6 +571,28 @@ TEST(GameSceneTest, AStepLowersTheCounterWithTwoAccesses)
         EXPECT_EQ(tested.cloth.random.State(),
                   StateAfterAStep(FirstStepDraws + InertFishCandidateRandoms + probe.draws + wind));
     }
+}
+
+// 0x63710f llama a 0x508f00 también en la espera. El retorno de ese paso ya envejeció la cinta.
+TEST(GameSceneTest, TheWorldWaitAgesItsRibbonOnce)
+{
+    Client::Tests::RecordingSink sink;
+    Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
+    Harness tested(log);
+    tested.Runtime().drawingEnabled = true;
+    tested.Runtime().movement.inputBlocked = true;
+    tested.Runtime().warpCounter = WorldLoadingWait;
+    ASSERT_TRUE(tested.scene.Enter().HasValue());
+    auto& ribbon = tested.world.DrawTail().ribbons[0];
+    ribbon.alive = true;
+    ribbon.life = 3;
+    ribbon.count = 4;
+
+    tested.scene.Step(tested.input);
+
+    ASSERT_EQ(tested.scene.Failure(), std::nullopt);
+    EXPECT_EQ(ribbon.life, 2);
+    EXPECT_EQ(ribbon.count, 3);
 }
 
 // Solo el esqueleto del caballo oscuro (0xbf), con una acción de una key en un hueso.

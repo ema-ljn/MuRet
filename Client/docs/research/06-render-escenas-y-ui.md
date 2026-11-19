@@ -7409,6 +7409,9 @@ con el contador en más de 30, MoveHero sale en `0x59afd6`, pero el paso sigue (
    `0x505de0` y `0x42da90` (fuera del mapa 30 devuelve 0 en `0x42da9a`).
 5. `0x52e500` (`0x5091d0`): el paso de las estelas de `0x75e9870` (100 de `0x2f4`), sin `rand()`. Las crea
    `0x52e470`, desde habilidades, efectos y la acción 3 del caballo (`0x444671`).
+   `StepCharacters` lo ejecuta una vez tras los 400 personajes del login (`0x634d13`), la selección
+   (`0x6342f9`) y el juego (`0x63710f`). En la selección, el dibujo de la cinta queda entre el personaje
+   y el joint (`0x63486a`, `0x63486f`, `0x634875`).
 
 **`0x505de0` con un jugador** (entero en [§ Los efectos de los
 personajes](#los-efectos-de-los-personajes-0x505de0)). El `0x20a` tiene acciones; un modelo sin acciones
@@ -7465,8 +7468,8 @@ Corta con error, en el orden del original:
 - con otro que el héroe, en Kalima y en las acciones del `0x6f4`, después de sus dos `rand()` (`0x5087fc`).
 
 Con el héroe, el `0x6f4` de los mapas 24 a 29 y 36 no se alcanza sin cortar antes en los pasos. Su cabeza gira
-hacia un blanco que MuRet todavía no escribe (MoveHero, P-C44 b). `0x52e500` es frontera, como las de T8, porque
-corre también en la espera (P-C44). En la espera, `0x508f00` entero sigue siendo frontera (P-C41 a).
+hacia un blanco que MuRet todavía no escribe (MoveHero, P-C44 b). En la espera, el paso común de los personajes
+también envejece las estelas si alcanzó `0x5091d0`.
 
 Tests: `CharacterStepTest`, `GoldenCharacterStep.TheSafeZoneFollowsTheLogicalCellAhead` y
 `TheHeroAtRestDrawsTheSameBudgetOnLorenciaAndDevias`, y
@@ -7902,7 +7905,9 @@ se repite. Es el mismo en los dos mapas (`GoldenCharacterStep.TheHeroAtRestDraws
   - ~~en las `0xc3` y `0xc4` que terminan (`0x4fcb87`)~~: dejan los restos ([Los restos](#los-restos-0x52e810), CL9
     hito 3, fase 7);
   - en la partícula de las `0x4d`, `0x4f` y `0x5a` (`0x4fdb70`);
-  - en la partícula `5dc/12` de la estela del `0x194` (`0x4fd585`) y en los efectos aún no portados de algunos helpers; la cinta común de `0x4fd236` está implementada.
+  - en los efectos aún no portados de algunos helpers. La partícula `5dc/12` de la estela del `0x194`
+    (`0x4fd580`) ya pasa por el pool común antes de cada apéndice impar de la cinta de `0x4fd5a0`;
+    su dibujo reutiliza [el material de llama de MuRet](../../../docs/adr/0025-material-de-la-estela-de-kalima.md).
 - Sin Item.bmd, `0x54efe0` corta con equipo que no sea el vacío de la respuesta del F3 03 (Q-C246).
 - Tests: `CharacterStepTest` y `GoldenCharacterStep`, `GameSceneDrawTest.WithoutPlayerBmdTheStepStopsAtTheBody` y
   `ActorConstructionTest.LeavesThePlayerUnseenAndNotDying`.
@@ -13538,7 +13543,8 @@ NewFace suelto o el que cargó el alta ([Los modelos de los monstruos y los NPC]
    y la 4, y el `0x1b8` en la 3 y la 4 con el frame en 5,06f (`0x6b8a30`) o menos, o NaN). Fuera de esas acciones no
    hacen nada ni sacan `rand()`, salvo el sorteo incondicional de `0x432bd0`. Las cintas de los cuatro helpers
    están portadas: [auditoría de estelas H3](15-h3-combate-y-muerte.md#estelas-de-ataque-auditoría-del-2026-11-16).
-   Los efectos145/147 y partículas640/5dc aún conservan su frontera cuando hay capacidad en su pool.
+   Los efectos `0x145` y `0x147` y la partícula `0x640` aún cortan cuando hay capacidad en su pool.
+   La `0x5dc/12` completa sus cinco intentos y el paso continúa hasta el sorteo de `0x432bd0`.
 4. **`0x505de0`**: sin acciones va a la caja de `0x505e15`; la cabeza pasa antes por `0x4ea190` (`0x5068e3`): la acción
    6 no toca el blanco, la 0 sortea uno (`rand() % 32` en 0: `rand() % 128 − 64` y `rand() % 48 − 16`), la 2 con
    `+0x3a4` distinto de −1 mira a ese personaje del pool con `0x4ea0e0` (el rumbo de `0x4e93f0` a menos de 90 grados

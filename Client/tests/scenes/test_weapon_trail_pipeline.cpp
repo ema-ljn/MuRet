@@ -12,10 +12,14 @@
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "World/Particles.h"
+
+#include "support/PlayerActors.h"
 
 #include <gtest/gtest.h>
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <span>
@@ -106,6 +110,60 @@ TEST(WeaponTrailPipelineTest, TheWholeBodyRunsEveryProducerBeforeAndAfterTheUnco
         }
     }
 }
+// 0x4fd580 antes de 0x4fd5a0: una partícula cada dos muestras y después el rand() común de 0x432bd0.
+TEST(WeaponTrailPipelineTest, TheKalimaWeaponTrailReturnsThroughTheCharacterStep)
+{
+    std::uint32_t withoutBirths = 0;
+    for (const bool full : {true, false})
+    {
+        SCOPED_TRACE(full);
+        auto world = std::make_unique<Client::Scenes::WorldState>();
+        RibbonModels models;
+        world->FaunaResources().Bind(&models);
+        world->Runtime().map = 0;
+        world->Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+        Client::Scenes::ActorState actor;
+        actor.alive = true;
+        actor.type = 0x194;
+        actor.byte88 = 2;
+        actor.scale = 1.0f;
+        actor.position = {10000, 20000, 0};
+        actor.animation.action = actor.animation.previousAction = 3;
+        actor.animation.frame = 3.0f;
+        actor.hands[0].model = actor.hands[1].model = 0xffff;
+        Client::Render::Models::CrtRandom random{0x12345678u};
+
+        if (full)
+            for (auto& particle : world->Particles().All())
+                particle.alive = true;
+
+        const auto stepped =
+            Client::Scenes::StepCharacter(actor, {.world = *world, .random = random, .particles = &world->Particles()});
+
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        const auto& ribbon = world->DrawTail().ribbons[0];
+        ASSERT_TRUE(ribbon.alive);
+        EXPECT_EQ(ribbon.count, 10);
+        EXPECT_EQ(ribbon.type, 2);
+        EXPECT_EQ(ribbon.ownerContext, &actor);
+        if (full)
+        {
+            withoutBirths = random.State();
+            continue;
+        }
+        for (std::size_t slot = 0; slot < 5; ++slot)
+        {
+            const auto& particle = world->Particles().All()[slot];
+            EXPECT_TRUE(particle.alive);
+            EXPECT_EQ(particle.type, 0x5dc);
+            EXPECT_EQ(particle.subtype, 12);
+            EXPECT_EQ(particle.position, ribbon.second[8 - 2 * slot]);
+        }
+        EXPECT_FALSE(world->Particles().All()[5].alive);
+        EXPECT_EQ(random.State(), Client::Tests::AfterDraws(withoutBirths, 5 * 4).State());
+    }
+}
+
 // 4fcbe3 vuelve a 4f9580 sin volver a publicar+a0 después de cambiar la acción del actor.
 TEST(WeaponTrailPipelineTest, AdvancingAgainUsesThePublishedActionForItsSpeed)
 {

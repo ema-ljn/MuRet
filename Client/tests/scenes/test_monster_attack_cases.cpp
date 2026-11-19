@@ -2599,6 +2599,11 @@ TEST_F(MonsterAttackCasesTest, TheOddDrawPicksTheEffectOfTheGroup)
                                                     [](const Client::World::ModelEffect& effect) {
                                                         return effect.alive && effect.type == Client::World::FireEffect;
                                                     }));
+                    // El fuego sigue vivo; se baja para que la vuelta par busque sólo su 0xf6.
+                    for (auto& effect : game->world.Map().effects.Effects())
+                    {
+                        effect.alive = false;
+                    }
                 }
                 else if (step == 1)
                 {

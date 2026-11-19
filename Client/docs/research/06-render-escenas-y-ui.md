@@ -13152,9 +13152,13 @@ del CHARACTER (`Scenes::DarkSpirit`):
 
 **`0x418920`**, desde el dibujo (`0x41835a`, después de `0x602e90` con el cuervo en el trapecio), en el 5 y el 6:
 
-- 5: con `+0x381` hasta 2 (y el blanco de `+8`), diez juntas `0x5ac` (`0x530860`) desde su posición, cada una de
-  `rand() % 40 + 20`, y con `+0x381` en 1 el efecto `0x117` (`0x518cf0`, con `rand() % 180 − 90`). Con `+0x381`
-  impar desde 5 y el cuervo más de 100 por encima del dueño, el efecto `0x113` desde el hueso 6 con (50, 0, 0).
+- 5: con `+0x381` hasta 2 (y el blanco de `+8`), diez juntas `0x5ac/1` (`0x530860(0x5ac, posición, posición,
+  ángulos, 1, sin dueño, rand() % 40 + 20, −1, 0, 0, −1)`, `0x418aff`) con la posición y los ángulos del cuervo (los
+  suyos, por puntero), cada `rand()` antes de su alta, y con `+0x381` en 1 el efecto `0x117/3` (`0x418b71`:
+  `0x518cf0(0x117, posición, (45, rand() % 180 − 90, 0), (1; 0,8f; 0,6f), 3, sin dueño, −1, 0, 0, 0, 0)`). Con
+  `+0x381` impar desde 5 y el cuervo más de 100 por encima del dueño (`fcomp` con `test ah,0x1`), el `0x113/0`
+  (`0x418c0a`) en `0x4ec110(+0x120 + 6 · 0x30, (50, 0, 0), punto, 0)`, con los ángulos (`+0x1c`) y la luz
+  (`+0xf4`) del cuervo y el cuervo de dueño, sin `rand()`.
 - 6: con `+0x381` hasta 14 y la pose (`+0x120`), `rand() & 1` elige el primer hueso y, de a dos hasta el 65, cada
   hueso del modelo que no es dummy saca la partícula `0x5ac` subtipo 6 con escala 1,3. Con 15: si `+0x3a4` no es
   `0xffff`, `0x4ee770(1, 0x5ac, 1, ángulos, personaje)` y `0x4164f0(0)`; `+0x381` en 0.
@@ -13162,10 +13166,11 @@ del CHARACTER (`Scenes::DarkSpirit`):
 **MuRet**: `Scenes::StepDarkSpirit` porta el paso con `DarkSpiritTargets` (lo que lee del pool, que arma
 `CharacterStep`) y devuelve el aviso (`DarkSpiritStepped::stopsTheAttack`), que `CharacterStep` manda por
 `CharacterStepContext::send` (el `A7`, `Protocol::Pet::WritePetCommand`) y el grito, que va a
-`WorldRuntime::lastSoundId` (CL10). `DrawGameRaven` corre `0x418920` en los frames del original: las juntas, los
-efectos y las partículas son de la CL11 y cortan con su dirección (`0x418aff`, `0x418c0a`, `0x418a8c`)
-después de los `rand()` que sacan antes; las `0x5ac`/6 del grito (`0x418a26`) se crean (`Particles::CreateChecked`,
-con el pool lleno ninguna) (`test_raven_attack.cpp`, `test_character_step.cpp`,
+`WorldRuntime::lastSoundId` (CL10). `DrawGameRaven` corre `0x418920` en los frames del original: el 5 crea las
+juntas en `WorldState::DrawTail().joints` (`Scenes::CreateFaunaJoint`), el `0x117/3` con `Scenes::CreateHighModelEffect`
+y el `0x113/0` con `World::CreateBlastModelEffect`, en la tabla del mundo (`GameRavenPass::world`; CL11, lote magos;
+sin la pose de siete huesos corta en `0x418be4`); las `0x5ac`/6 del grito (`0x418a26`) se crean
+(`Particles::CreateChecked`, con el pool lleno ninguna) y el final del 6 (`0x4ee770`, `0x418a8c`) sigue cortando (`test_raven_attack.cpp`, `test_character_step.cpp`,
 `test_game_character_effects.cpp`).
 
 

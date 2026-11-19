@@ -14,12 +14,17 @@
 #include "Scenes/FullSetScan.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/GuildMarkEffects.h"
+#include "Scenes/HighModelEffects.h"
 #include "Scenes/JointFamilies.h"
 #include "Scenes/PartyActors.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SocialState.h"
+#include "Scenes/WorldMap.h"
+#include "Scenes/WorldState.h"
+#include "World/BlastModelEffects.h"
 #include "World/ChaosCastle.h"
 #include "World/Ftol.h"
+#include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
 #include "World/ParticleOwner.h"
 #include "World/Particles.h"
@@ -826,31 +831,100 @@ Core::Expected<void, std::string> StepPetSummon(World::ModelEffect& effect, std:
 }
 
 // 0x418920(CHARACTER, CHARACTER), desde 0x41835a después de 0x602e90, con el cuervo en el trapecio: en el 5 y el 6, los
-// efectos del ataque. Los del 5 (0x530860, 0x518cf0) y el final del 6 (0x4ee770) son de la CL11: cortan con su
-// dirección después de los rand() que saca antes. El grito del 6 suelta las partículas 0x5ac/6 (0x418a26), que MuRet
-// crea. Sin la pose (+0x120 en 0 hasta el primer dibujo), el 6 no hace nada.
+// efectos del ataque. En el 5, con +0x38d hasta 2, diez joints 0x5ac/1 desde el cuervo y, con 1, el 0x117/3; impar
+// desde 4 y alto, el 0x113/0 del pico, en las tablas de `world`. El grito del 6 suelta las partículas 0x5ac/6
+// (0x418a26) y su final (0x4ee770) es de la CL11 y corta con su dirección. Sin la pose (+0x120 en 0 hasta el primer
+// dibujo), el 6 no hace nada.
 Core::Expected<void, std::string> DrawTheRavenAttack(DarkSpirit& spirit, const ActorState& owner,
                                                      const Render::Models::Skeleton* skeleton,
                                                      Render::Models::CrtRandom& random, World::Particles* particles,
-                                                     float worldClock)
+                                                     float worldClock, WorldState* world)
 {
     if (spirit.state == FirstOrderState)
     {
-        // 0x418aab..0x418b08: con el blanco de +8, que el A8 puso antes del estado 5.
         if (spirit.byte38d <= LastJointStep)
         {
-            const int length = (random.Next() % JointSpan) + JointBase;
-            return Core::Unexpected(
-                std::format("0x418aff: las juntas 0x5ac del ataque del cuervo (0x530860, la primera "
-                            "de largo {}) son de la CL11",
-                            length));
+            // 0x418aab..0x418b08: con el blanco de +8, que el A8 puso antes del estado 5, diez 0x530860(0x5ac, la
+            // posición del cuervo dos veces, sus ángulos, 1, sin dueño, rand() % 40 + 20, −1, 0, 0, −1).
+            if (world == nullptr)
+                return Core::Unexpected(std::string("0x418aff: faltan los joints del mundo (0x530860) para el ataque "
+                                                    "del cuervo"));
+            constexpr int AttackJoints = 10;               // 0x418ac9
+            constexpr std::int32_t AttackJoint = 0x5ac;    // 0x418afa
+            constexpr std::int32_t AttackJointSubtype = 1; // 0x418af5
+            for (int made = 0; made < AttackJoints; ++made)
+            {
+                const auto width = static_cast<float>(static_cast<std::int32_t>(random.Next() % JointSpan) + JointBase);
+                const World::FishEffectRequest request{.type = AttackJoint,
+                                                       .firstPosition = spirit.position,
+                                                       .secondPosition = spirit.position,
+                                                       .angles = spirit.angles,
+                                                       .subtype = AttackJointSubtype,
+                                                       .ownerContext = nullptr,
+                                                       .scale = width,
+                                                       .key = -1,
+                                                       .skill = 0,
+                                                       .skillSerial = 0,
+                                                       .target = -1};
+                const auto created = CreateFaunaJoint(world->DrawTail().joints, request, random);
+                if (!created.HasValue())
+                    return Core::Unexpected(std::format("0x418aff: {}", created.Error()));
+            }
+            // 0x418b0a..0x418b71: con +0x38d en 1, 0x518cf0(0x117, la posición, (45, rand() % 180 − 90, 0),
+            // (1; 0,8f; 0,6f), 3, sin dueño, −1, 0, 0, 0, 0).
+            constexpr std::uint8_t SkillStep = 1;
+            if (spirit.byte38d == SkillStep)
+            {
+                constexpr std::int16_t DarkLordSkill = 0x117;
+                constexpr std::int32_t SkillSubtype = 3;
+                constexpr std::int32_t TurnSpan = 180; // 0x418b23: 0xb4
+                constexpr double QuarterTurn = 90.0;   // 0x6b8948
+                constexpr float Pitch = 45.0f;         // 0x418b16: 0x42340000
+                constexpr glm::vec3 SkillLight{1.0f, std::bit_cast<float>(0x3f4ccccdu),
+                                               std::bit_cast<float>(0x3f19999au)}; // 0x418b42..0x418b50
+                const auto turn = static_cast<std::int32_t>(random.Next() % TurnSpan);
+                const glm::vec3 angles{Pitch, F32(static_cast<double>(turn) - QuarterTurn), 0.0f};
+                const auto made = CreateHighModelEffect(
+                    {.type = DarkLordSkill,
+                     .position = spirit.position,
+                     .angles = angles,
+                     .light = SkillLight,
+                     .subtype = SkillSubtype,
+                     .owner = nullptr,
+                     .key = 0xffff},
+                    HighEffectContext{.world = *world, .random = random, .worldClock = worldClock});
+                if (!made.HasValue())
+                    return Core::Unexpected(std::format("0x418b71: {}", made.Error()));
+            }
         }
-        // 0x418b7c..0x418c0a: la posición del hueso 6 con (50, 0, 0) no saca rand().
+        // 0x418b7c..0x418c0a: impar desde 4 y 100 más arriba que el dueño, 0x4ec110(+0x120 + 6 · 0x30, (50, 0, 0),
+        // punto, 0), el hueso 6 en el mundo, y 0x518cf0(0x113, punto, +0x1c, +0xf4, 0, el cuervo, −1, 0, 0, 0, 0). No
+        // saca rand().
         if (spirit.byte38d > LastQuietStep && (spirit.byte38d & 1u) != 0 &&
             static_cast<double>(owner.position.z) + AboveTheOwner < static_cast<double>(spirit.position.z))
         {
-            return Core::Unexpected(std::string("0x418c0a: el efecto 0x113 del ataque del cuervo (0x518cf0) es de la "
-                                                "CL11"));
+            constexpr std::size_t BeakBone = 6;                // 0x418bc8: +0x120 más 0x120
+            constexpr glm::vec3 BeakOffset{50.0f, 0.0f, 0.0f}; // 0x418bcf: 0x42480000
+            constexpr std::int16_t AirForce = 0x113;
+            if (BeakBone >= spirit.pose.size())
+                return Core::Unexpected(
+                    std::format("0x418be4: el hueso {} del cuervo pasa los de su pose (+0x120)", BeakBone));
+            if (world == nullptr)
+                return Core::Unexpected(std::string("0x418c0a: falta la tabla de efectos (0x518cf0) para el ataque "
+                                                    "del cuervo"));
+            const glm::vec3 point = Render::Models::OriginalVectorTransform(BeakOffset, spirit.pose[BeakBone]);
+            const auto made =
+                World::CreateBlastModelEffect(world->Map().effects,
+                                              {.type = AirForce,
+                                               .position = point,
+                                               .angles = spirit.angles,
+                                               .light = spirit.light,
+                                               .subtype = 0,
+                                               .owner = &spirit,
+                                               .key = 0xffff},
+                                              World::ModelEffectOwner{}, random, World::BlastEffectServices{});
+            if (!made.HasValue())
+                return Core::Unexpected(std::format("0x418c0a: {}", made.Error()));
         }
         return {};
     }
@@ -961,7 +1035,7 @@ Core::Expected<void, std::string> DrawGameRaven(ActorState& owner, const GameRav
         if (pass.random == nullptr)
             return Core::Unexpected(std::string("0x41835a: falta el rand() para el ataque del cuervo"));
         return DrawTheRavenAttack(spirit, owner, pass.models.SkeletonOf(DarkSpiritModel), *pass.random, pass.particles,
-                                  pass.worldClock);
+                                  pass.worldClock, pass.world);
     }
     return {};
 }

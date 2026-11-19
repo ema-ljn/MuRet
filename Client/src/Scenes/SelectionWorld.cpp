@@ -273,7 +273,9 @@ Core::Expected<void, std::string> SelectionWorld::StepEffects(WorldState& world,
     // 0x634310 → 0x53c670: el mismo paso de los joints que el juego (0x637123), con los mismos globales: la luz
     // dinámica (0x7b4ccc4), la altura del terreno (0x5f93c0), los 400 personajes (0x743a16c), la tabla de efectos
     // (0x7491fd8), el héroe ([0x743a170]) y los modelos compartidos (0x5769ad8). El choque de la flecha dueña
-    // (0x520170, que piden el 0x60f/0xb y /0x19 con skill 1) queda sin servicio: sin él, corta en 0x53ae6d.
+    // (0x520170, que piden el 0x60f/0xb y /0x19 con skill 1) queda sin servicio: sin él, corta en 0x53ae6d. Tampoco van
+    // el asedio y los blancos del héroe (JointKernels::VolleyServices) ni los modelos del 0x20b: sus joints (el 0x613
+    // de ancho 80, el 0x61c/0 y la 0x632/0 y /1) los crean skills que la selección no corre; si llegaran, cortan.
     const auto actors = world.Actors();
     const std::size_t heroSlot = world.Runtime().hero;
     const ActorState* hero = heroSlot < actors.size() ? &actors[heroSlot] : nullptr;

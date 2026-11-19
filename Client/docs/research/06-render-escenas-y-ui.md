@@ -6027,7 +6027,11 @@ que queda en la x87) y suman a `0x7b4ccc4`, con radio 2, la luz (b + 0,4; b + 0,
 b + 0,2; b + 0,2); el `0x29` a medio alpha; el `0x38` a `0x3b`, el `0x3e`, el `0x3f`, el `0x43` y el `0x46` con
 `+0x58` en −2; el `0x40` a 0,05 keys por paso; y, con cualquier tipo, el sonido `0x246` (`0x41ed10`). Después de
 la vista previa, `0x52d220` (la mariposa) y `0x53c670`, y `0x5446e0` con los dueños de las neblinas
-(`0x634315`).
+(`0x634315`). `0x53c670` es el mismo paso de los joints que el del juego (`0x637123`), con los mismos globales: la luz
+dinámica, la altura del terreno, los 400 personajes, la tabla de efectos, el héroe y los modelos compartidos
+(`SelectionWorld::StepEffects`, novena vuelta de los joints). Sin servicio quedan el choque de las flechas
+(`0x53ae6d`), el asedio y los blancos del héroe (`0x539a50`, `0x53b569`) y los modelos del `0x20b` (`0x53c1c6`): sus
+joints los crean skills que la selección no corre.
 
 **El dibujo** (`0x634680`, después de [El dibujo](#el-dibujo)): con el elegido vivo, su luz en 1 y
 `0x5f9780(x, y, (1, 1, 1), 1)` entre `0x620a90` y `0x620980`; `0x5fc260(0)` (terreno, pasto y marcas);
@@ -11913,7 +11917,7 @@ registro propio abierto y cerrado: 3.848 en 0) y los de las lecturas de `+0x38e`
 | `0x37`, `0x38` | `0x4fdfb3`, `0x4fdfe4` | solo `o+0x8c` y `o+0x8e` | el final |
 | `0x30` | `0x4fe015` | 36 joints `0x613`/2 | `0x4fe0e4` (CL11) |
 | `0x43` | `0x4fe147` | el joint `0x632`/7 sobre o | `0x4fe172` (CL11) |
-| `0x44`, `0x47` | `0x4fe190`, `0x4fe442` | con el blanco de `+0x3a4` (`MOVSX`, sin rango, Q-C1113) que no es o, el joint `0x632/0` o `/1` desde el blanco 1200 más arriba, con él de dueño (cae sobre él), y el sonido `0x267` aunque el pool esté lleno | — (CL11, octava vuelta del lote joints; el joint corta al llegar al suelo, `0x53c1c6`) |
+| `0x44`, `0x47` | `0x4fe190`, `0x4fe442` | con el blanco de `+0x3a4` (`MOVSX`, sin rango, Q-C1113) que no es o, el joint `0x632/0` o `/1` desde el blanco 1200 más arriba, con él de dueño (cae sobre él), y el sonido `0x267` aunque el pool esté lleno | — (CL11, octava vuelta del lote joints; el aterrizaje con dueño, novena vuelta: las cáscaras `0x137` del `0x20b`, `0x53c1c6`) |
 | `0x45` | `0x4fe253` | 36 joints `0x613`/`0x15` | `0x4fe322` (CL11) |
 | `0x46` | `0x4fe383` | con blanco, `0x534f90(0x10f, blanco, 4)` y `(…, 9)`, el calco `0x61e`/6 sobre él y el sonido `0x269` | ~~`0x4fe424` (CL11)~~ (portado: el calco de colores, [Los efectos con modelo de los tipos altos](#los-efectos-con-modelo-de-los-tipos-altos)) |
 | `0x48` | `0x4fe505` | `o+0x78` en 0 entero (Q-C1118) y seis joints `0x10f` | `0x4fe590` (CL11) |
@@ -14334,8 +14338,9 @@ El 0x61c/0 de la 0x37 nace sin tipo de dueño (`JointOwnerKind::ByType`): su pas
 Cortan, con lugar y después de sus `rand()`: la `0x6f4/2` del golpe de un pedazo (`0x52a37d`, la primera de las cien;
 con las partículas llenas, los trescientos `rand()`), ~~la piedrita `0xc8`/`0xc9` (subtipo `0xc`) de la columna
 `0x5de/3` (`0x52afe1`)~~ (décima vuelta, con la integración de los magos) y ~~los joints `0x632/2` y `/3` del `0x13a` (`0x529eca`; su `0x632/4` del alta, `0x51e01a`, es
-de otro lote)~~ (décima vuelta, con el alta y el paso de la `0x632` del lote de los joints: se crean los tres). El `0x127` sin el héroe publicado en el pool corta (`0x527919`, no pasa en el original) y el `0x5be` de
-un héroe corta en el paso de su joint `0x61c/0` (`0x53b569`, lote joints). Tests: `test_high_effect_families.cpp`, `test_model_effects.cpp`,
+de otro lote)~~ (décima vuelta, con el alta y el paso de la `0x632` del lote de los joints: se crean los tres). El `0x127` sin el héroe publicado en el pool corta (`0x527919`, no pasa en el original) y ~~el `0x5be` de
+un héroe corta en el paso de su joint `0x61c/0` (`0x53b569`, lote joints)~~ (novena vuelta de los joints: el asedio y los
+blancos del héroe, con `JointKernels::VolleyServices`). Tests: `test_high_effect_families.cpp`, `test_model_effects.cpp`,
 `test_game_model_effects.cpp`, `test_attack_skill_cases.cpp`, `test_attack_frame_skills.cpp`,
 `test_combat_replies.cpp`, `test_action_reply.cpp`, `test_monster_body.cpp` y `test_monster_helpers.cpp`.
 
@@ -14357,7 +14362,7 @@ deduplicar, sobre el scratch que dejó el último `0x4ebc80` (`0x5786f9c + (mall
 | `0x10c` | 0, 1 | la luz en 0,2f; el /0, `rand() % 12` (`0x10d/0`, `0x4eeaf7`) y `rand() % 50` (`0x10c/0`, `0x4eeb46`); el /1, `rand() % 5` (`0x10d/2`, `0x4eea3a`) y `rand() % 10` (`0x10c/2`, `0x4eea8a`) |
 | `0x12d`, `0x12e`, `0x12f` | — | `rand() % 3` y con 0 el `0x12d` (el `0x12f`, el `0x12f`) más `rand() & 1`, con el subtipo 1 el del `0x12d` y 0 los otros |
 | `0x131` | — | la luz en 0,2f; `rand() % 12` (`0x132`), `rand() % 40` (`0x131`), `rand() % 40` (`0x133`) |
-| `0x137` | el suyo | `rand() & 7` con signo y con 0 el `0x137` del subtipo (`0x4eeeb9`; MuRet corta con lugar, P-C480 (a)) |
+| `0x137` | el suyo | `rand() & 7` con signo y con 0 el `0x137` del subtipo con los ángulos y la luz de ese momento (`0x4eeeb9`; ~~MuRet corta con lugar, P-C480 (a)~~ novena vuelta de los joints: `World::CreateSkinShell`, [las cáscaras](#las-cáscaras-0x137)) |
 | `0x13c` | 0, 1, otro | `rand() % 45`; con 0 y menos de 20 contados, el /0 el `0x13c/0`, el /1 el `0x12d/2` y el `0x12e/2`; cualquier subtipo cuenta uno |
 | `0x5ac` | 0 | la luz en 0,08f; el sprite `0x5ac` con la escala del modelo (`+0x68`), sin dueño ni giro (`0x4eef0f`) |
 | `0x5ac` | 1 | la luz en (1; 0,8f; 0,2f); en los triángulos de índice múltiplo de 22, la y de los ángulos en 0, la x en −(`rand() % 90`) (`FILD`, `FCHS`: −0 con 0), la z en (`rand() % 120` − 60) + la z del cuarto argumento (`FILD`, `FADD`, `FSTP`) y `0x530860(0x613, punto, personaje+0x10, ángulos, 0xd, personaje, 20, 0, 0, 0, −1)` (`0x4eefc5`) |
@@ -14368,7 +14373,7 @@ Otro tipo o subtipo no hace nada ni saca `rand()`. Los que llaman: el cuervo al 
 (`0x42cfcb`, `0x12f`), sus monstruos (`0x42e6f3` el `0x131`, `0x42e76b` el `0x10a`), `0x439d90` (`0x439dc5`, la malla
 6), los `0x191`, `0x193..0x197` al morir (`0x43ed6c`, `0x43f514`, `0x43f5b9`, `0x43f682`, `0x43f87d`, `0x43f933`, el
 `0x607`), el `0x1a4` y el `0x1a6` al morir (`0x441696`, `0x442165`, el `0x13c`), la `0x632/0` y `/1` en el suelo
-(`0x53c227`, `0x53c241`, el `0x137`, P-C470), el `0x18e` y el `0x18f` (`0x601c08` el `0x10a`, `0x601c44` el `0x10c`)
+(`0x53c227`, `0x53c241`, el `0x137`), el `0x18e` y el `0x18f` (`0x601c08` el `0x10a`, `0x601c44` el `0x10c`)
 y los impactos de las armas del asedio (`0x601c92`, `0x601d28`).
 
 **MuRet**: `Scenes::EmitVertexEffectsOf` (`VertexEffects.h`) con `VertexEffectCall` (malla, tipo, subtipo, ángulos,
@@ -14380,6 +14385,44 @@ pose del cuervo). Tests: `test_vertex_effects.cpp`, `test_monster_body.cpp` (`Th
 `TheDying18eAnd18f…`, `TheFadingDeathOf43ed20…`, `TheStruckGlowLeavesItsStonesOnMeshSix`),
 `test_monster_drawing.cpp` (`TheSpiritStatueLeavesItsStonesInTheFrameTable`) y `test_game_character_effects.cpp`
 (`TheEndOfTheShoutLooksAtTheAttackTarget`).
+
+### Las cáscaras `0x137`
+
+(CL11, lote de los joints, novena vuelta, 2026-11-19.) `Skill\skinshell` (`0x61672d`), el efecto con modelo que suelta
+`0x4ee770` desde los vértices del `0x20b` (`Player\Shadow01`) cuando la `0x632/0` o `/1` con dueño llega al suelo
+(`0x53c1c6..0x53c246`). Su único llamador.
+
+- **El aterrizaje** (`0x53c1c6..0x53c246`): `0x4eb860(0x68b181c, 0, 0, 0, dueño+0x1c, dueño+0x28, 0, 1)` posa el
+  `0x20b` (`0x5769ad8` + `0x1c9a0`) con el cuadro, el anterior y la acción anterior en 0 y la acción (`+0xa0`), la
+  escala (`+0x68`) y el origen (`+0x6c`) del modelo compartido, que sólo escribe `0x60cf70` cuando `0x50ba30` dibuja la
+  sombra de un personaje (`0x50bcec`, con las guardas de `0x50bc05..0x50bc71`; la acción no la escribe nadie; Q-C1730). Después
+  `0x4ebc80(0x68b181c, dueño+0x124, +0x130, +0x13c, 0)`: con el último argumento en 0, cada vértice sólo por la matriz
+  de su hueso (`0x5fccc0`, sin escala ni origen; `0x6c881c` está en 1 fuera de los dibujos que la cambian), y le escribe
+  al dueño la caja de `+0x13c` (el origen del modelo más su piso; los ejes, su caja, sin el modo del editor
+  `0x77f3b18`). Al final `0x4ee770(0, 0x137, subtipo, 0, 0)`.
+- **El alta** (`0x51d8c4..0x51da45`, después del prefijo común): el empuje en y `((rand() & 127) + 32) · 0,1f`, la z
+  + 50, la vida `(rand() & 15) + 32`, la escala `(rand() % 3 + 3) · 0,1f`, el alpha en 0,5, la z de los ángulos
+  `rand() % 360` y la velocidad (`+0xcc`) el empuje girado por los ángulos (`0x5fc8f0`, `0x5fcbd0`); la caída (`+0xe4`)
+  `rand() % 5 + 2` más `rand() % 5` (cada una guardada en float) y los tres ángulos `rand() % 360`. La luz: 0,5 el /0 y
+  (0,1f; 0,6f; 1) el /1; otro subtipo conserva la del pedido. Nueve `rand()`; con la tabla llena, nada.
+- **El paso** (`0x529926..0x529a4a`, entre el prólogo y el epílogo comunes de `0x5208a0`): la posición más la
+  velocidad, la velocidad por 0,9f (`0x6b8a1c`), la z más la caída, la velocidad por 1,1f (`0x6b8830`) y la caída
+  menos 3. Con la altura del terreno (`0x5f93c0`) estrictamente por encima de la z (`test ah,0x41`; NaN no), la z
+  ahí, la caída por −0,2f (`0x6b8d3c`), cinco vidas menos y la x de los ángulos menos la escala · 128; si no, menos la
+  escala · 16. El alpha, la vida · 0,1f. Después, el epílogo común: la animación del modelo, `0x51fc80(efecto, 1)` (la
+  velocidad nueva girada por los ángulos nuevos, sumada otra vez) y la vida menos uno.
+- **El dibujo** (`0x600557..0x6005e0`, en `0x6002e0` después de posar y del `+0x74` en `0x80`): el /0 con el color del
+  modelo en su luz y `RenderBody(2)` con Chrome01 (`0x5c0`) → `0x600b37`; el /1 con el color en (0,1f; 0,5; 1) y
+  `RenderBody(0x42)` con Chrome01; otro subtipo, nada (`0x602e7d`).
+
+**MuRet**: `World::CreateSkinShell` y `World::StepSkinShell` (`World/SkinShellEffects.h`, despachado por
+`StepGameModelEffect`), el caso `0x137` de `Scenes::EmitVertexEffectsOf`, `Scenes::ShedTheSkinShells` y
+`Scenes::DrawTheSkinShellBody` (`Scenes/SkinShells.h`, el dibujo desde `DrawPlainModelEffect`). La pose del `0x20b` va
+por `Render::Models::PoseWorldSkeleton` y los vértices por `OriginalVectorTransform`. `WorldState::PlaceShadowModel`
+publica la escala y el origen del `0x20b` donde MuRet dibuja la sombra de un personaje con sus guardas
+(`DrawsTheShadow`): en el juego (`GameCharacters.cpp`, sólo en los frames del original), en la selección y en el login.
+Tests: `test_skin_shell_effects.cpp`, `test_vertex_effects.cpp` (`TheSkinShellsComeOneInEightWithTheJointSubtype`) y
+`test_storm_joints.cpp` (`TheOwnedFallingSubtypesShedTheShellsOfTheShadow`).
 
 ### Los helpers de los monstruos
 
@@ -14711,9 +14754,10 @@ en un lugar de más adelante pasa en la misma vuelta de `0x53c670`.
   conservan la `0x632`); todas salvo la /5 con los ángulos en (90, 0, 0) (`0x534c97`), y `+0x3c` con los ángulos. Un
   `rand()`. Paso (`0x53c0a5..0x53c390`): la /2 primero gira la z `rand() % 10 + 10` (en la x87, rand + z + 10); después
   como la /5, con el suelo a 150 o 300 debajo del terreno. Al llegar, con la cola y la clave distinta de 1: la /0 y la
-  /1 con dueño posan el modelo `0x20b` (`0x5769ad8` + `0x1c9a0`, `0x4eb860` y `0x4ebc80`) con los ángulos y la
-  posición del dueño y `0x4ee770(0, 0x137, subtipo, 0, 0)` suelta los efectos `0x137` de sus vértices (MuRet corta en
-  `0x53c1c6`, P-C470); sin dueño, nada; la /2 y la /3, la onda `0x6eb/4` con la luz (0,3f; 0,8f; 1). Después la /5 pone
+  /1 con dueño posan el modelo `0x20b` (`0x5769ad8` + `0x1c9a0`, `0x4eb860` y `0x4ebc80`) con el modelo compartido de
+  la última sombra y los ángulos del dueño y `0x4ee770(0, 0x137, subtipo, 0, 0)` suelta los efectos `0x137` de sus
+  vértices (novena vuelta: [las cáscaras](#las-cáscaras-0x137); MuRet pide `StepServices::models`, `world` y `effects`
+  y sin ellos corta en `0x53c1c6`); sin dueño, nada; la /2 y la /3, la onda `0x6eb/4` con la luz (0,3f; 0,8f; 1). Después la /5 pone
   la clave en 1 y la velocidad en −20; las demás apagan la cola (`0x53c2b8`). Siempre el sprite con `rand() % 360`: el
   `0x60f` de escala 1 con la luz la /0 y la /1 y el `0x5fe` de escala 1,6f con (0; 1; 1) la /2 y la /3. La /4 es la del
   `0x13a` (`0x51e01a`, ancho 40, clave `0x32`, el efecto de dueño). Alta `0x534977..0x534a08`: el ancho, velocidad 0, el
@@ -14811,8 +14855,9 @@ en un lugar de más adelante pasa en la misma vuelta de `0x53c670`.
   `rand() & 1` en 0 la partícula `0x5d9` y dos `0x614/3` sin dueño desde la posición de antes, key 5 y skill 0xa, de
   ancho `rand() % 10 + 5` y `(rand() & 7) + 4`. En la /0 (`+0xc`, `0x53b53e`) con el dueño (`+0x54`) igual al héroe
   (`[0x743a170]`, `0x53b548`), vida de más de 18 y la vuelta múltiplo de 5, el asedio (`0x4294b0` y el `0x100` de
-  `0x5f82c0`: la vida · 0,2f, velocidad 0 y fuera de las vueltas, `0x53b5cb`) o `0x517a20(skill, posición, 150, tanda,
-  clave, 0)`: MuRet corta ahí (`0x53b569`); con otro dueño sigue como sin dueño (séptima vuelta: `StepJoints` recibe el
+  `0x5f82c0`: la vida en ftol(vida · 0,2f), velocidad 0 y fuera de las vueltas, `0x53b5cb`) o `0x517a20(skill,
+  posición, 150, tanda, clave, 0)` y la vuelta siguiente (novena vuelta: con `JointKernels::VolleyServices`, lo mismo que
+  lee el `0x613` de ancho 80; sin ellos MuRet corta en `0x53b569`); con otro dueño sigue como sin dueño (séptima vuelta: `StepJoints` recibe el
   héroe, `StepServices::hero`; sin él, con dueño y esa vida y vuelta, corta en `0x53b548`). Después la luz: bajo 10 de
   vida, la x por 0,6666667f en los tres canales; si no, la vida · 0,033333335f.
 - **`0x14f`** (`PlasmaJoints.cpp`, sexta vuelta): alta `0x530ddd..0x530ed8`: velocidad 50, la textura repetida

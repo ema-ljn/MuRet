@@ -14107,7 +14107,9 @@ en un lugar de más adelante pasa en la misma vuelta de `0x53c670`.
   por 0,8333333f, y el ancho − 5. La /2 con dueño vivo pone el ancho en vida · 3 y corta en `0x53d1a0` con escala 1,4
   (`0x535e66`); sin él, suelta el dueño. Los crean `0x5048db` (cinco /0 de ancho 20 tras `0x534f90`), `0x5045f9` y
   `0x5046b0` (cinco /4 con el `+0x3a4` de c, con signo), `0x4e644f` (cinco /0 de ancho 50) y `0x4e662d` (tres /8 de
-  ancho 30, ángulos z 90/180/270, la copia del `+0x10` 10 más abajo cada vez). La luz por tramo del dibujo lee la altura del
+  ancho 30, ángulos z 90/180/270, la copia del `+0x10` 10 más abajo cada vez) y la `0x48` (`0x4fe505..0x4fe790`: `+0x78`
+  de o en 0 y seis /5..7 de ancho 170 desde o + 100 en z, girados 45, 135, 225, 90, 180 y 270, la copia 10 más abajo
+  salvo después de los /7, y el sonido `0x26b`). La luz por tramo del dibujo lee la altura del
   personaje dueño.
 
 La matriz de la cola común (`0x53c393`, `[ebp−0xe8]`) es la que calculó `0x53590e` en el paso del joint; los de la

@@ -146,31 +146,67 @@ Core::Expected<void, std::string> CreateTheSpirit(ActorState& actor, const Chara
     return {};
 }
 
-// 0x530860(0x10f, blanco+0x10, blanco+0x10, blanco+0x1c, subtipo, blanco, 20, −1, 0, 0, blanco): cinco joints 0x10f
-// alrededor del blanco (AuraJoints.cpp). Con el pool lleno, los que no entran no están.
+// 0x530860(0x10f, desde, desde, ángulos, subtipo, dueño, ancho, −1, 0, 0, blanco): un joint 0x10f (AuraJoints.cpp).
+// Con el pool lleno, nada.
+Core::Expected<void, std::string> CreateTheAura(std::uint32_t address, ActorState& owner, glm::vec3& from,
+                                                glm::vec3& angles, std::int32_t subtype, float width,
+                                                std::int32_t target, const CharacterStepContext& context)
+{
+    if (context.joints.empty())
+        return Core::Unexpected(std::format("{:#x}: faltan los joints del frame (0x530860)", address));
+    const World::FishEffectRequest request{.type = FlameJoint,
+                                           .firstPosition = from,
+                                           .secondPosition = from,
+                                           .angles = angles,
+                                           .subtype = subtype,
+                                           .ownerContext = &owner,
+                                           .scale = width,
+                                           .key = -1,
+                                           .skill = 0,
+                                           .skillSerial = 0,
+                                           .target = target};
+    const auto created = CreateFaunaJoint(context.joints, request, context.random, JointOwnerKind::Actor);
+    if (!created.HasValue())
+        return Core::Unexpected(std::format("{:#x}: {}", address, created.Error()));
+    return {};
+}
+
+// Cinco 0x10f de ancho 20 alrededor del blanco, desde su +0x10 y con sus ángulos.
 Core::Expected<void, std::string> CreateFiveAuras(std::uint32_t address, ActorState& victim, std::int32_t subtype,
                                                   std::int32_t target, const CharacterStepContext& context)
 {
     constexpr float Width = 20;
-    if (context.joints.empty())
-        return Core::Unexpected(std::format("{:#x}: faltan los joints del frame (0x530860)", address));
     for (int ring = 0; ring < 5; ++ring)
+        if (auto created =
+                CreateTheAura(address, victim, victim.position, victim.angles, subtype, Width, target, context);
+            !created.HasValue())
+            return created;
+    return {};
+}
+
+// 0x4fe505..0x4fe790 (la 0x48): +0x78 de o en 0 y seis 0x10f/5..7 de ancho 170 desde o + 100 en z, girados 45, 135 y
+// 225 y después 90, 180 y 270; la copia baja 10 después de cada uno salvo los /7. Al final, el sonido 0x26b.
+Core::Expected<void, std::string> RaiseTheAuras(ActorState& actor, const CharacterStepContext& context)
+{
+    constexpr float Width = std::bit_cast<float>(0x432a0000u);
+    constexpr std::int32_t RiseSound = 0x26b;
+    actor.flags78 = 0;
+    glm::vec3 from = actor.position;
+    from.z = static_cast<float>(static_cast<double>(from.z) + 100);
+    constexpr std::array<std::uint32_t, 6> Turns{0x42340000u, 0x43070000u, 0x43610000u,
+                                                 0x42b40000u, 0x43340000u, 0x43870000u};
+    constexpr std::array<std::uint32_t, 6> Addresses{0x4fe590, 0x4fe5f5, 0x4fe65a, 0x4fe6ad, 0x4fe712, 0x4fe777};
+    for (std::size_t i = 0; i < Turns.size(); ++i)
     {
-        const World::FishEffectRequest request{.type = FlameJoint,
-                                               .firstPosition = victim.position,
-                                               .secondPosition = victim.position,
-                                               .angles = victim.angles,
-                                               .subtype = subtype,
-                                               .ownerContext = &victim,
-                                               .scale = Width,
-                                               .key = -1,
-                                               .skill = 0,
-                                               .skillSerial = 0,
-                                               .target = target};
-        const auto created = CreateFaunaJoint(context.joints, request, context.random, JointOwnerKind::Actor);
-        if (!created.HasValue())
-            return Core::Unexpected(std::format("{:#x}: {}", address, created.Error()));
+        glm::vec3 angles{0, 0, std::bit_cast<float>(Turns[i])};
+        const auto subtype = static_cast<std::int32_t>(5 + i % 3);
+        if (auto created = CreateTheAura(Addresses[i], actor, from, angles, subtype, Width, -1, context);
+            !created.HasValue())
+            return created;
+        if (subtype != 7)
+            from.z = static_cast<float>(static_cast<double>(from.z) - 10);
     }
+    RequestTheSound(context, RiseSound);
     return {};
 }
 
@@ -509,10 +545,7 @@ Core::Expected<void, std::string> StepTheHeadSkill(ActorState& actor, std::size_
     case 0x47:
         return BindTheTarget(actor, slot, skill, context, 0x4fe458, 0x4fe4e7);
     case 0x48:
-        // 0x4fe53b: +0x78 de o en 0, antes de los seis joints 0x10f.
-        actor.flags78 = 0;
-        return JointThenSound(0x4fe590, "el primero de los seis joints 0x10f (el /5, 0x530860)", skill, slot, 0x26b,
-                              context);
+        return RaiseTheAuras(actor, context);
     case 0x35:
         // 0x4fe795: los puntos con 0x6a1a90 y 0x6a19e0 (sin rand()) y cuatro joints 0x619.
         return JointThenSound(0x4fe856, "el primero de los cuatro joints 0x619/0xa (0x530860)", skill, slot, 0x7f,

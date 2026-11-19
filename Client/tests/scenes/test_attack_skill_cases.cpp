@@ -212,11 +212,11 @@ TEST(AttackSkillCasesTest, TheHeadCasesCutAfterTheirDraws)
     };
     const std::array cases{
         Case{0x30, "0x4fe127", 0},         Case{0x43, "0x4fe172", 0},         Case{0x45, "0x4fe360", 0},
-        Case{0x48, "0x4fe590", 0},         Case{0x35, "0x4fe856", 0},         Case{0x3f, "0x4feae8", 0},
-        Case{0x41, "0x4febbb", 0},         Case{0x31, "0x4fec15", 0},         Case{0x29, "0x4fec9a", OwnRecord},
-        Case{0x0a, "0x4fecf3", OwnRecord}, Case{0x28, "0x4ff4ef", 0},         Case{0x26, "0x4ff5b2", 0},
-        Case{0x27, "0x4ffdaf", 1},         Case{0x08, "0x500c49", OwnRecord}, Case{0x0c, "0x500cb9", OwnRecord},
-        Case{0x0d, "0x500d7b", OwnRecord}, Case{0x0e, "0x51fe9e", 2},         Case{0x2c, "0x502975", 0},
+        Case{0x35, "0x4fe856", 0},         Case{0x3f, "0x4feae8", 0},         Case{0x41, "0x4febbb", 0},
+        Case{0x31, "0x4fec15", 0},         Case{0x29, "0x4fec9a", OwnRecord}, Case{0x0a, "0x4fecf3", OwnRecord},
+        Case{0x28, "0x4ff4ef", 0},         Case{0x26, "0x4ff5b2", 0},         Case{0x27, "0x4ffdaf", 1},
+        Case{0x08, "0x500c49", OwnRecord}, Case{0x0c, "0x500cb9", OwnRecord}, Case{0x0d, "0x500d7b", OwnRecord},
+        Case{0x0e, "0x51fe9e", 2},         Case{0x2c, "0x502975", 0},
     };
     for (const std::int32_t map : Maps)
     {
@@ -230,7 +230,7 @@ TEST(AttackSkillCasesTest, TheHeadCasesCutAfterTheirDraws)
 
             EXPECT_TRUE(HasError(stepped, probe.cut)) << ErrorOf(stepped);
             EXPECT_EQ(DrawsSince(Seed, tested.random), probe.draws);
-            EXPECT_EQ(tested.Striker().flags78, probe.skill == 0x48 ? 0u : 0x4000u);
+            EXPECT_EQ(tested.Striker().flags78, 0x4000u);
             EXPECT_TRUE(tested.sounds.empty());
         }
     }
@@ -1187,6 +1187,34 @@ TEST(AttackSkillCasesTest, BindingFlagsPrecedeTheJointAndExistingBindingsSkipIt)
     binding.ownerContext = &tested.Victim();
     EXPECT_TRUE(tested.WithTarget(0x1b).HasValue());
     EXPECT_EQ(bindings(), 0);
+    EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
+}
+
+// 0x4fe505..0x4fe790: la 0x48 apaga +0x78 de o y crea seis 0x10f/5..7 de ancho 170 desde o + 100 en z (la copia
+// baja 10 salvo después de los /7), girados 45, 135, 225, 90, 180 y 270; después el sonido 0x26b. Sin rand().
+TEST(AttackSkillCasesTest, TheRisingAurasLeaveFromAboveTheCaster)
+{
+    SkillWorld tested;
+    tested.Striker().flags78 = 0x30;
+    tested.Striker().position.z = 40;
+    ASSERT_TRUE(tested.Head(0x48).HasValue());
+    EXPECT_EQ(tested.Striker().flags78, 0u);
+    constexpr std::array<float, 6> Turns{45, 135, 225, 90, 180, 270};
+    constexpr std::array<float, 6> Heights{140, 130, 120, 120, 110, 100};
+    for (std::size_t i = 0; i < Turns.size(); ++i)
+    {
+        SCOPED_TRACE(i);
+        const JointState& rise = tested.joints[i];
+        ASSERT_TRUE(rise.alive);
+        EXPECT_EQ(rise.type, 0x10f);
+        EXPECT_EQ(rise.subtype, static_cast<std::int32_t>(5 + i % 3));
+        EXPECT_EQ(rise.width, 170.0f);
+        EXPECT_EQ(rise.angles.z, Turns[i]);
+        EXPECT_EQ(rise.pathIncrement.z, Heights[i]);
+        EXPECT_EQ(rise.ownerContext, &tested.Striker());
+    }
+    EXPECT_FALSE(tested.joints[6].alive);
+    EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x26b}));
     EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
 }
 

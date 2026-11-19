@@ -63,6 +63,9 @@ struct GameCharacterEffectsPass
     // Los lugares de la party hasta su cuenta (PartyMembers): las acciones 0x51, 0x5b y 0x94 del Dark Lord los leen
     // con el frame por debajo de 2 (0x50f9c9).
     std::span<const PartySlot> party{};
+    // Los 400 personajes (0x743a16c): los miembros de la party a los que van los joints 0x618 de esas acciones
+    // (0x50fa25). Sin ellos, cortan.
+    std::span<const ActorState> actors{};
     // DAT_05767b88: el reloj del mundo en ms, en float.
     float worldClock = 0.0f;
     std::int32_t map = 0;        // 0x6c9dd0

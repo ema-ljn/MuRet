@@ -32,7 +32,8 @@ class WorldState;
 CreateBlastEffect(const World::ModelEffectArguments& arguments, ActorState* owner, const CharacterStepContext& context);
 
 // 0x518cf0 fuera del paso de los personajes (los paquetes del viewport, como el 0xec del transformado que llega en
-// 0x4c965c): el mismo dueño, sin el registro propio, los blancos, los joints ni el sonido; si el alta los pide, corta.
+// 0x4c965c, y las respuestas de skill, como el 0x112 de la 0x3b en 0x4cddf5): el mismo dueño y los joints de la tabla
+// global (WorldState::DrawTail), sin el registro propio, los blancos ni el sonido; si el alta los pide, corta.
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
 CreateBlastEffectOutsideTheStep(const World::ModelEffectArguments& arguments, ActorState* owner, WorldState& world,
                                 Render::Models::CrtRandom& random);

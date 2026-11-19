@@ -12646,7 +12646,7 @@ la rama de la skill:
 | `0x4b`, `0x40` | `0x200` (`0x800` con `0x4f3f80` antes) en el blanco; la acción del Dark Horse, Fenrir o `0x8e` |
 | `0x35`, `0x30` | sin `0x400` (`0x10`) en el blanco, apaga su `0x5ac/2` y sus joints `0x619/9` (su `0x5ac/1`) y crea otro con él de dueño (`0x4cdc88`, `0x4cdd84`; `World::ModelEffects::CreateSkillFlare`, vida 1000); después, el bit. El paso (`0x52a7b7`, `Scenes::StepSkillFlare`): el /2 gira alrededor del dueño y cada 50 suelta un joint `0x619/9`; el /1 emite `0x5ac/4` en dos huesos opuestos (`0x52a866`, `0x52a89a`, CL11.3) |
 | `0x31` | `0x41` en Atlans (8) y en el cielo (10), `0x40` en los demás |
-| `0x3b` | el efecto `0x112` en la fuente (CL11, `0x4cddfa`) |
+| `0x3b` | el efecto `0x112/0` en la fuente (`0x4cddf5`: `0x518cf0(0x112, +0x10, +0x1c, +0xf4, 0, sin dueño, −1, …)`, con sus sesenta joints `0x5ac/0` en la tabla global; CL11 lote magos, `CreateBlastEffectOutsideTheStep`) y el sonido `0x94` |
 | `0x3a` | `0x44`, el sonido `0x92` y `+0x1bc` en 0 |
 | `0x28` | `0x45`; en el héroe suelta el clic derecho (`0x4cde43..0x4cde58`: el soltado `0x7d36840`, el clic `0x7d36880`, el botón `0x7d3685c` y los frames de carga `0x7d368a4`) |
 

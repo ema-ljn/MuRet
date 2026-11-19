@@ -97,6 +97,17 @@ Core::Expected<std::optional<std::size_t>, std::string>
 CreateBlastEffectOutsideTheStep(const World::ModelEffectArguments& arguments, ActorState* owner, WorldState& world,
                                 Render::Models::CrtRandom& random)
 {
-    return PlaceTheBlast(arguments, owner, world, random, World::BlastEffectServices{});
+    // 0x530860: la tabla de joints es la global (0x74a8d78), también fuera del paso (los sesenta 0x5ac/0 del 0x112).
+    const World::BlastEffectServices services{
+        .joint = [&world, &random](const World::FishEffectRequest& request,
+                                   bool effectOwner) -> Core::Expected<void, std::string>
+        {
+            const auto made = CreateFaunaJoint(world.DrawTail().joints, request, random,
+                                               effectOwner ? JointOwnerKind::ModelEffect : JointOwnerKind::ByType);
+            if (!made.HasValue())
+                return Core::Unexpected(made.Error());
+            return {};
+        }};
+    return PlaceTheBlast(arguments, owner, world, random, services);
 }
 } // namespace Client::Scenes

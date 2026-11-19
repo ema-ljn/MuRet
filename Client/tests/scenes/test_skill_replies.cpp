@@ -16,6 +16,7 @@
 #include "Scenes/ActorEffectFlags.h"
 #include "Scenes/ActorFlags.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/BlastEffectCalls.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -440,16 +441,56 @@ TEST(SkillRepliesTest, TheSkill46MarksAnotherTarget)
     EXPECT_EQ(tested->Actor(TargetIndex).flags78, 0x4000u);
 }
 
-// Los efectos de 0x518cf0 (CL11) cortan después de lo que el original hace antes.
-TEST(SkillRepliesTest, TheEffectsOfTheSkillsAreCL11Cuts)
+// 0x4cddd3..0x4cde03: la 0x3b suelta el 0x112/0 en la fuente (su posición, ángulos y luz, sin dueño), con sus sesenta
+// joints 0x5ac/0 en la tabla del mundo, y pide el sonido 0x94. La réplica: lo mismo con la tabla llena (0x518cf0 sale
+// sin rand()) y después el alta sobre un mundo gemelo con ese CRT.
+TEST(SkillRepliesTest, TheSkill3bDropsItsComboAtTheSource)
 {
-    for (const auto& [skill, where] : {std::pair{std::uint8_t{0x3b}, "0x4cddfa"}})
+    auto tested = std::make_unique<Replies>();
+    auto full = std::make_unique<Replies>();
+    for (auto& effect : full->world.Map().effects.Effects())
+        effect.alive = true;
+    ASSERT_TRUE(full->Attack(0x3b).HasValue());
+    EXPECT_EQ(full->world.Runtime().lastSoundId, 0x94);
+
+    const auto applied = tested->Attack(0x3b);
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
+    EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x94);
+    const ActorState& source = tested->Actor(CasterIndex);
+    ASSERT_EQ(tested->AliveEffects(0x112), 1u);
+    const auto& combo = tested->world.Map().effects.Effects()[0];
+    EXPECT_EQ(combo.type, 0x112);
+    EXPECT_EQ(combo.subtype, 0);
+    EXPECT_EQ(combo.life, 20);
+    EXPECT_FALSE(combo.hasOwner);
+    EXPECT_EQ(combo.start, source.position);
+    EXPECT_EQ(combo.light, source.light);
+
+    auto twin = std::make_unique<Replies>();
+    Client::Render::Models::CrtRandom replay = full->cloth.random;
+    const ActorState& twinSource = twin->Actor(CasterIndex);
+    const auto made = Client::Scenes::CreateBlastEffectOutsideTheStep({.type = 0x112,
+                                                                       .position = twinSource.position,
+                                                                       .angles = twinSource.angles,
+                                                                       .light = twinSource.light,
+                                                                       .subtype = 0,
+                                                                       .key = 0xffff},
+                                                                      nullptr, twin->world, replay);
+    ASSERT_TRUE(made.HasValue()) << made.Error();
+    EXPECT_EQ(tested->cloth.random.State(), replay.State());
+    const auto& joints = tested->world.DrawTail().joints;
+    const auto& expected = twin->world.DrawTail().joints;
+    EXPECT_EQ(std::ranges::count_if(joints, [](const auto& joint) { return joint.alive; }), 60);
+    for (std::size_t slot = 0; slot < joints.size(); ++slot)
     {
-        auto tested = std::make_unique<Replies>();
-        const auto applied = tested->Attack(skill);
-        ASSERT_FALSE(applied.HasValue()) << int{skill};
-        EXPECT_NE(applied.Error().find(where), std::string::npos) << applied.Error();
-        EXPECT_NE(applied.Error().find("CL11"), std::string::npos) << applied.Error();
+        ASSERT_EQ(joints[slot].alive, expected[slot].alive) << slot;
+        if (!joints[slot].alive)
+            continue;
+        EXPECT_EQ(joints[slot].type, 0x5ac);
+        EXPECT_EQ(joints[slot].subtype, 0);
+        EXPECT_EQ(joints[slot].position, expected[slot].position);
+        EXPECT_EQ(joints[slot].angles, expected[slot].angles);
+        EXPECT_EQ(joints[slot].width, expected[slot].width);
     }
 }
 
@@ -749,11 +790,14 @@ TEST(SkillRepliesTest, TheGuardAndSwellSkillsLightAFlareOnTheTarget)
     }
 }
 
-// 0x4ccea1: la 0x3b no gira, ni toca +0x3a4, +0x38d ni +0x38e (sin el rand()).
+// 0x4ccea1: la 0x3b no gira, ni toca +0x3a4, +0x38d ni +0x38e (sin el rand()). Con la tabla de efectos llena, el
+// 0x112 no nace ni saca los rand() de sus joints.
 TEST(SkillRepliesTest, TheSkill3bGoesStraightToTheTable)
 {
     auto tested = std::make_unique<Replies>();
-    static_cast<void>(tested->Attack(0x3b));
+    for (auto& effect : tested->world.Map().effects.Effects())
+        effect.alive = true;
+    ASSERT_TRUE(tested->Attack(0x3b).HasValue());
     EXPECT_EQ(tested->Actor(CasterIndex).byte38e, 0);
     EXPECT_EQ(tested->Actor(CasterIndex).attackTarget, 0);
     EXPECT_EQ(tested->Actor(CasterIndex).angles.z, 0.0f);

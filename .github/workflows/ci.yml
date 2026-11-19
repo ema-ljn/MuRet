@@ -103,8 +103,8 @@ jobs:
               -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
             # Ninja corre por defecto núcleos + 2 = 6 compilaciones a la vez: con 6 cl de Scenes/
             # juntos el runner se quedó sin memoria (C1060, "compiler is out of heap space", #379).
-            # De a 4, cada test de tests/scenes tardó 3 a 4 min en compilar y todo el build tardó más
-            # que MSBuild de a 2 proyectos (71 min, main con el #378). Se prueba de a 2.
+            # De a 4, cada test de tests/scenes tardó 3 a 4 min en compilar (memoria): el build sin caché
+            # pasó las 2 h. De a 2, 31 a 34 s cada uno y 53 min el build entero sin caché (#379).
             build-jobs: '2'
             font-file: 'C:\Windows\Fonts\arial.ttf'
           # Que cada archivo del cliente incluya lo que usa (docs/CODING_RULES.md § 7). Antes iba al
@@ -303,7 +303,10 @@ jobs:
 
       # pch_defines,time_macros: lo que ccache pide para cachear con precompiled headers. El modo
       # depend toma los includes de /showIncludes o -MD (que Ninja ya pide) en vez de correr el
-      # preprocesador aparte en cada archivo que no está en la caché.
+      # preprocesador aparte en cada archivo que no está en la caché. compiler_check=content: por
+      # defecto ccache identifica el compilador por la fecha y el tamaño de cl.exe o g++, que cambian
+      # con cada imagen nueva del runner aunque el compilador sea el mismo (#379: con la imagen de
+      # Windows del 16/11, 3 aciertos de 1462). Con el contenido, solo un compilador distinto vacía la caché.
       - name: Configurar ccache
         if: matrix.kind == 'build'
         shell: bash
@@ -314,6 +317,7 @@ jobs:
             echo "CCACHE_MAXSIZE=2G"
             echo "CCACHE_SLOPPINESS=pch_defines,time_macros"
             echo "CCACHE_DEPEND=true"
+            echo "CCACHE_COMPILERCHECK=content"
           } >> "$GITHUB_ENV"
           export CCACHE_DIR="$dir"
           ccache --version | head -n 1

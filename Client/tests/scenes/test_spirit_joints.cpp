@@ -369,7 +369,7 @@ TEST(SpiritJointsTest, TheCrossFadesBelowTenAndCutsWithoutLight)
     ASSERT_TRUE(cut.Create(0x613, 6, {}, 60.0f, nullptr, JointOwnerKind::ByType, 2).HasValue());
     const auto stepped = cut.Step();
     ASSERT_FALSE(stepped.HasValue());
-    EXPECT_TRUE(stepped.Error().starts_with("0x539707")) << stepped.Error();
+    EXPECT_TRUE(stepped.Error().starts_with("0x53975b")) << stepped.Error();
 }
 
 // 0x539941..0x5399a2 y 0x5399a2..0x539a09: la /3 avanza 140 y se desvía con 0x53d1a0(lugar, dir, 1): el contador con
@@ -448,7 +448,7 @@ TEST(SpiritJointsTest, TheThirteenthSeeksItsOwner)
     ownerless.joints[0].life = 20;
     const auto stepped = ownerless.Step();
     ASSERT_FALSE(stepped.HasValue());
-    EXPECT_TRUE(stepped.Error().starts_with("0x5399a2")) << stepped.Error();
+    EXPECT_TRUE(stepped.Error().starts_with("0x5399cd")) << stepped.Error();
 }
 
 // 0x538e1e..0x538e7f: la /8 sube con la x en 110 y velocidad 10 hasta la vida 42; después va con velocidad 50 desde 180

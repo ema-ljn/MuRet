@@ -297,22 +297,32 @@ TEST(LightningJointsTest, TheMonsterBoltFollowsItsOwnerAndStopsWhenItArrives)
     EXPECT_EQ(AliveParticles(pool.particles, Client::World::ThunderParticle), 0);
 }
 
-// 0x536f71..0x53703d: en la primera mitad del segundo y con rand() % 16 en 0, la /0 suelta una /1 desde el destino
-// corrido (rand() % 100 − 50, rand() % 100 − 50, rand() % 120 − 60) con el ancho rand() % 8 + 6, del mismo dueño.
+// 0x536f71..0x53703d: con el ancho en 50, en la primera mitad del segundo y con rand() % 16 en 0, la /0 suelta una /1
+// desde el destino corrido (rand() % 100 − 50, rand() % 100 − 50, rand() % 120 − 60) con el ancho rand() % 8 + 6, del
+// mismo dueño. Antes: los dos rand() de la sacudida, los dos del 0x5ca/0 (0x536eb9) y el % 8 que no suelta el 0x5f2.
 TEST(LightningJointsTest, TheMonsterBoltBranchesInTheFirstHalfOfTheSecond)
 {
-    const std::uint32_t seed = SeedWhere(2, [](int value) { return value % 16 == 0; });
+    std::uint32_t seed = 0;
+    for (std::uint32_t probe = 1; probe < 100000 && seed == 0; ++probe)
+    {
+        CrtRandom draws(probe);
+        draws.Discard(4);
+        const int breath = draws.Next();
+        if (breath % 8 != 0 && draws.Next() % 16 == 0)
+            seed = probe;
+    }
     ASSERT_NE(seed, 0u);
     ActorState owner = Owner({1000, 1000, 0});
     Pool pool;
     pool.random = CrtRandom(seed);
-    ASSERT_TRUE(pool.Create(0x614, 0, {1000, 1040, 80}, {}, 10.0f, &owner, JointOwnerKind::Actor).HasValue());
+    ASSERT_TRUE(pool.Create(0x614, 0, {1000, 1040, 80}, {}, 50.0f, &owner, JointOwnerKind::Actor).HasValue());
     // El padre en el lugar 2: la rama cae en el 0, que el paso ya dejó atrás (0x53c670 recorre los 500 en orden).
     pool.joints[2] = pool.joints[0];
     pool.joints[0] = JointState{};
     ASSERT_TRUE(pool.Step(400.0f).HasValue());
+    EXPECT_EQ(AliveParticles(pool.particles, Client::World::ThunderParticle), 1);
     CrtRandom expected(seed);
-    expected.Discard(3);
+    expected.Discard(6);
     const int x = expected.Next() % 100 - 50;
     const int y = expected.Next() % 100 - 50;
     const int z = expected.Next() % 120 - 60;
@@ -332,6 +342,26 @@ TEST(LightningJointsTest, TheMonsterBoltBranchesInTheFirstHalfOfTheSecond)
     EXPECT_EQ(branch.life, life);
     EXPECT_EQ(pool.random.State(), expected.State());
     EXPECT_FALSE(pool.joints[1].alive);
+}
+
+// 0x536e9c: con un ancho distinto de 50 (los 0x614/0 de ancho 10 de la cola de 0x4f5b70) la llegada salta entera a
+// 0x537045: ni el 0x5ca, ni el % 8, ni la rama de la /0 aunque el reloj y el rand() la habrían soltado.
+TEST(LightningJointsTest, AThinMonsterBoltNeverBranches)
+{
+    const std::uint32_t seed = SeedWhere(2, [](int value) { return value % 16 == 0; });
+    ASSERT_NE(seed, 0u);
+    ActorState owner = Owner({1000, 1000, 0});
+    Pool pool;
+    pool.random = CrtRandom(seed);
+    ASSERT_TRUE(pool.Create(0x614, 0, {1000, 1040, 80}, {}, 10.0f, &owner, JointOwnerKind::Actor).HasValue());
+    pool.joints[2] = pool.joints[0];
+    pool.joints[0] = JointState{};
+    ASSERT_TRUE(pool.Step(400.0f).HasValue());
+    CrtRandom expected(seed);
+    expected.Discard(2);
+    EXPECT_EQ(pool.random.State(), expected.State());
+    EXPECT_FALSE(pool.joints[0].alive);
+    EXPECT_EQ(AliveParticles(pool.particles, Client::World::ThunderParticle), 0);
 }
 
 // 0x536d4d: la /3 lejos de su destino (más de 150) pone la vida en 0 y la cola común la mata.

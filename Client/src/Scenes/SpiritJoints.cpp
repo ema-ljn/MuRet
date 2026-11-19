@@ -310,11 +310,11 @@ Core::Expected<void, std::string> StepTheCross(JointState& joint, const JointKer
             if (auto dropped = DropTheDrop(services, point, angles); !dropped.HasValue())
                 return dropped;
     }
+    const auto rotation = static_cast<float>(random.Next() % FullTurn); // 0x539709, antes de leer la luz.
     if (!local)
         return Core::Unexpected(
-            std::format("0x539707: la luz local del joint {:#x}/{} con la skill {} queda sin escribir (sin portar)",
+            std::format("0x53975b: la luz local del joint {:#x}/{} con la skill {} queda sin escribir (sin portar)",
                         joint.type, joint.subtype, joint.skill));
-    const auto rotation = static_cast<float>(random.Next() % FullTurn);
     const auto growth = std::bit_cast<std::int32_t>(20u - std::bit_cast<std::uint32_t>(joint.life)) / 5;
     const float scale = F32(static_cast<double>(growth) + 4.0);
     if (auto drawn = Sprite(services, SpiritSprite, joint.position, scale, *local, rotation, 0x53975b);
@@ -388,10 +388,10 @@ Core::Expected<void, std::string> StepTheBolt(JointState& joint, const JointKern
             return wandered;
         local = glm::vec3{1.0f, 0.5f, Bits(0x3dcccccdu)};
     }
+    const auto first = static_cast<float>(random.Next() % FullTurn); // 0x5399a4, antes de leer la luz.
     if (!local)
         return Core::Unexpected(
-            std::string("0x5399a2: la luz local del joint 0x613/0xd sin dueño queda sin escribir (sin portar)"));
-    const auto first = static_cast<float>(random.Next() % FullTurn);
+            std::string("0x5399cd: la luz local del joint 0x613/0xd sin dueño queda sin escribir (sin portar)"));
     if (auto drawn = Sprite(services, SpiritSprite, joint.position, scale, *local, first, 0x5399cd); !drawn.HasValue())
         return drawn;
     const auto second = static_cast<float>(random.Next() % FullTurn);
@@ -432,6 +432,11 @@ Core::Expected<void, std::string> StepSpiritJoint(JointState& joint, const Joint
         joint.speed = 50.0f;
         return {};
     }
+    // 0x538d77..0x539505: la cadena de comparaciones no tiene caso para los subtipos mayores que 0x15; van directo a
+    // la cola 0x53c393 sin hacer nada.
+    constexpr std::int32_t LastSpiritSubtype = 0x15;
+    if (subtype > LastSpiritSubtype)
+        return {};
     const bool ported = subtype == 1 || subtype == 2 || subtype == 3 || subtype == 6 || subtype == 7 || subtype == 8 ||
                         subtype == 0xd || subtype == 0x15;
     if (!ported)

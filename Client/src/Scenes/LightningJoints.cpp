@@ -305,23 +305,23 @@ Core::Expected<void, std::string> Particle(const JointState& joint, std::int32_t
     return {};
 }
 
-// 0x536e95..0x537042: al llegar, con el ancho en 50 justo, el 0x5ca y una vez cada ocho el 0x5f2 (tres rand() para un
-// punto que nadie lee); la /0 en la primera mitad de cada segundo, una vez cada dieciséis, suelta una /1 hacia el
-// destino.
+// 0x536e95..0x537042: al llegar, sólo con el ancho en 50 justo (0x536e9c: con otro ancho salta a 0x537045, también
+// la /0), el 0x5ca y una vez cada ocho el 0x5f2 (tres rand() para un punto que nadie lee); la /0 en la primera mitad de
+// cada segundo, una vez cada dieciséis, suelta una /1 hacia el destino.
 Core::Expected<void, std::string> Arrive(JointState& joint, const JointKernels::StepServices& services)
 {
     CrtRandom& random = *services.random;
-    if (std::bit_cast<std::uint32_t>(joint.width) == 0x42480000u)
+    constexpr std::uint32_t ArrivalWidthBits = 0x42480000u; // 50.0f, el inmediato de 0x536e95.
+    if (std::bit_cast<std::uint32_t>(joint.width) != ArrivalWidthBits)
+        return {};
+    if (auto made = Particle(joint, World::ThunderParticle, services, "0x536eb9"); !made.HasValue())
+        return made;
+    if (random.Next() % 8 == 0)
     {
-        if (auto made = Particle(joint, World::ThunderParticle, services, "0x536eb9"); !made.HasValue())
+        for (int axis = 0; axis < 3; ++axis)
+            static_cast<void>(random.Next());
+        if (auto made = Particle(joint, World::BreathParticle, services, "0x536f58"); !made.HasValue())
             return made;
-        if (random.Next() % 8 == 0)
-        {
-            for (int axis = 0; axis < 3; ++axis)
-                static_cast<void>(random.Next());
-            if (auto made = Particle(joint, World::BreathParticle, services, "0x536f58"); !made.HasValue())
-                return made;
-        }
     }
     if (joint.subtype != 0)
         return {};
@@ -429,7 +429,7 @@ Core::Expected<void, std::string> StepLightningJoint(JointState& joint, const Jo
     if (services.random == nullptr)
         return StepWithoutRandom(joint);
     CrtRandom& random = *services.random;
-    glm::vec3 scratch{}; // [ebp−0xc]: el punto de la /4 y de la /9.
+    glm::vec3 scratch{}; // [ebp−0xc]: el punto de la /4 y de la /9, y después el avance de cada tramo.
     switch (subtype)
     {
     case 4: // 0x53686f..0x5368f1: en el destino, con el sprite 0x5fd 30 más arriba.
@@ -486,7 +486,10 @@ Core::Expected<void, std::string> StepLightningJoint(JointState& joint, const Jo
         }
         if (auto lit = Glow(joint, random, services.lighting); !lit.HasValue())
             return lit;
-        const auto moved = Render::Models::OriginalVectorRotate({0.0f, -joint.speed, 0.0f}, matrix);
+        // 0x536e35..0x536e56: el avance (0, −velocidad, 0) se arma en [ebp−0xc], la misma local del punto de la /9:
+        // desde el segundo tramo la /9 gira hacia ese avance y no hacia el punto sorteado.
+        scratch = {0.0f, -joint.speed, 0.0f};
+        const auto moved = Render::Models::OriginalVectorRotate(scratch, matrix);
         for (int axis = 0; axis < 3; ++axis)
             joint.position[axis] = F32(D(moved[axis]) + D(joint.position[axis]));
     }

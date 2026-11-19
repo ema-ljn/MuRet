@@ -28,6 +28,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <array>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
@@ -1320,6 +1321,131 @@ TEST(HighModelEffectsTest, TheEmittersLeaveJointsEveryStep)
     ASSERT_TRUE(StepHighModelEffect(bolt, nullptr, tested.StepContext()).HasValue());
     EXPECT_EQ(bolt.life, 4);
     EXPECT_EQ(tested.Draws(), 3 + 7);
+}
+// El fld/fadd/fstp de cada eje, como Sum de HighModelEffects.
+glm::vec3 SumOf(const glm::vec3& a, const glm::vec3& b)
+{
+    return {static_cast<float>(static_cast<double>(a.x) + static_cast<double>(b.x)),
+            static_cast<float>(static_cast<double>(a.y) + static_cast<double>(b.y)),
+            static_cast<float>(static_cast<double>(a.z) + static_cast<double>(b.z))};
+}
+
+glm::vec3 TurnedBy(const glm::vec3& vector, const glm::vec3& angles)
+{
+    return Client::Render::Models::OriginalVectorRotate(vector, Client::Render::Models::OriginalAngleMatrix(angles));
+}
+
+// 0x51f5fe..0x51f7f8: el 0x6ac vive 10, con +0xd8 en 1 y la velocidad (0, −30, 0), corrido (0, −20, 50) girado. Sus dos
+// bocas, (−20, −20, 60) y (30, −20, 60) giradas desde la posición que recibe (no la corrida), sueltan veinte 0x617/1
+// cada una: rand() % 20 + x + 5 en la x de los ángulos y la y que suma las vueltas de 18; dos rand() más por joint
+// (0x5320a4). Con los joints llenos, solo los cuarenta rand() del alta; con la tabla de efectos llena, nada.
+TEST(HighModelEffectsTest, TheFireBreathRaisesFortyJointsFromTwoMouths)
+{
+    const glm::vec3 origin{1000, 2000, 300};
+    const glm::vec3 angles{10, 20, 30};
+    HighWorld tested;
+    const auto made = CreateHighModelEffect({.type = 0x6ac, .position = origin, .angles = angles}, tested.Context());
+    ASSERT_TRUE(made.HasValue()) << made.Error();
+    ASSERT_EQ(made.Value(), std::optional<std::size_t>{0});
+    const ModelEffect& breath = tested.Effect(0);
+    EXPECT_EQ(breath.life, 10);
+    EXPECT_EQ(breath.speed, 1.0f);
+    EXPECT_EQ(breath.velocity, (glm::vec3{0, -30, 0}));
+    EXPECT_EQ(breath.transform.position, SumOf(TurnedBy({0, -20, 50}, angles), origin));
+    CrtRandom expected{Seed};
+    const std::array<glm::vec3, 2> mouths{SumOf(TurnedBy({-20, -20, 60}, angles), origin),
+                                          SumOf(TurnedBy({30, -20, 60}, angles), origin)};
+    std::size_t index = 0;
+    for (const glm::vec3& mouth : mouths)
+    {
+        float yaw = angles.y;
+        for (int turn = 0; turn < 360; turn += 18, ++index)
+        {
+            SCOPED_TRACE(index);
+            const int tilt = expected.Next() % 20;
+            static_cast<void>(expected.Next());
+            static_cast<void>(expected.Next());
+            yaw = static_cast<float>(static_cast<double>(turn) + static_cast<double>(yaw));
+            const auto& joint = tested.world->DrawTail().joints[index];
+            ASSERT_TRUE(joint.alive);
+            EXPECT_EQ(joint.type, 0x617);
+            EXPECT_EQ(joint.subtype, 1);
+            EXPECT_EQ(joint.position, mouth);
+            EXPECT_EQ(joint.angles,
+                      (glm::vec3{static_cast<float>(static_cast<double>(tilt) + static_cast<double>(angles.x) + 5.0),
+                                 yaw, angles.z}));
+            EXPECT_EQ(joint.width, 2.0f);
+        }
+    }
+    EXPECT_FALSE(tested.world->DrawTail().joints[40].alive);
+    EXPECT_EQ(tested.random.State(), expected.State());
+    EXPECT_EQ(tested.Draws(), 40 * 3);
+
+    HighWorld crowded;
+    crowded.FillTheJoints();
+    ASSERT_TRUE(
+        CreateHighModelEffect({.type = 0x6ac, .position = origin, .angles = angles}, crowded.Context()).HasValue());
+    EXPECT_EQ(crowded.Effect(0).transform.position, breath.transform.position);
+    EXPECT_EQ(crowded.Draws(), 40);
+
+    HighWorld full;
+    full.FillTheEffects();
+    const auto none = CreateHighModelEffect({.type = 0x6ac}, full.Context());
+    ASSERT_TRUE(none.HasValue());
+    EXPECT_FALSE(none.Value().has_value());
+    EXPECT_EQ(full.Draws(), 0);
+}
+
+// 0x52c7f0..0x52c97c: el paso del 0x6ac prende la luz dinámica de radio 2, saca rand() % 3 + 2 para la escala
+// (· (15 − vida) · 0,05f) y pone la partida a 20 de cada lado (los ángulos con la z 90 más) con el fuego 0x5db/0xa, que
+// MuRet no tiene: con lugar corta en el primero (0x52c8f7) después de sus dos rand(); con las partículas llenas, sigue,
+// se mueve (0, −30, 0) girado y, con la vida en 1, 0x51fef0 saca los cuarenta rand() de sus veinte chispas 0x5c5/2 (sin
+// lugar, ni ellas ni la 0x5ee/0) y se apaga.
+TEST(HighModelEffectsTest, TheFireBreathBurnsAtItsSidesAndSparksAtTheEnd)
+{
+    const glm::vec3 angles{10, 20, 30};
+    HighWorld tested;
+    tested.FillTheJoints();
+    ASSERT_TRUE(
+        CreateHighModelEffect({.type = 0x6ac, .position = {1000, 2000, 300}, .angles = angles}, tested.Context())
+            .HasValue());
+    ModelEffect& breath = tested.Effect(0);
+    ASSERT_EQ(tested.Draws(), 40);
+    EXPECT_TRUE(HasError(StepHighModelEffect(breath, nullptr, tested.StepContext()), "0x52c8f7"));
+    EXPECT_EQ(tested.Draws(), 40 + 2);
+    EXPECT_TRUE(std::ranges::any_of(tested.lighting->cells, [](const auto& cell) { return cell[0] > 0; }));
+
+    HighWorld full;
+    full.FillTheJoints();
+    full.FillTheParticles();
+    ASSERT_TRUE(CreateHighModelEffect({.type = 0x6ac, .position = {1000, 2000, 300}, .angles = angles}, full.Context())
+                    .HasValue());
+    ModelEffect& burning = full.Effect(0);
+    CrtRandom expected{Seed};
+    for (int draw = 0; draw < 40; ++draw)
+        static_cast<void>(expected.Next());
+    const glm::vec3 turned{angles.x, angles.y, 120.0f};
+    for (std::int32_t life = 10; life >= 1; --life)
+    {
+        SCOPED_TRACE(life);
+        const glm::vec3 before = burning.transform.position;
+        ASSERT_TRUE(StepHighModelEffect(burning, nullptr, full.StepContext()).HasValue());
+        static_cast<void>(expected.Next());
+        const int size = expected.Next() % 3 + 2;
+        EXPECT_EQ(burning.transform.scale,
+                  static_cast<float>(static_cast<double>(size) *
+                                     (static_cast<double>(15 - life) * static_cast<double>(0.05f))));
+        EXPECT_EQ(burning.start, SumOf(TurnedBy({0, -20, 0}, turned), before));
+        EXPECT_EQ(burning.transform.position, SumOf(TurnedBy({0, -30, 0}, angles), before));
+        if (life == 1)
+        {
+            for (int draw = 0; draw < 40; ++draw)
+                static_cast<void>(expected.Next());
+        }
+        EXPECT_EQ(full.random.State(), expected.State());
+    }
+    EXPECT_FALSE(burning.alive);
+    EXPECT_EQ(full.Draws(), 40 + 10 * 2 + 40);
 }
 // 0x51efa5 y 0x52bb79: el 0x621/1 guarda la posición como partida y vive 20; su paso pone el origen del modelo de su
 // dueño en la partida, va al punto (0, 0, 10) del hueso 33 del dueño y hace las tres emisiones del /0 (cinco rand()

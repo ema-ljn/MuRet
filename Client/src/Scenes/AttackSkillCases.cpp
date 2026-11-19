@@ -8,6 +8,7 @@
 #include "Scenes/ArrowEffects.h"
 #include "Scenes/AttackSkillReads.h"
 #include "Scenes/CharacterStep.h"
+#include "Scenes/FireBreathEffect.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/HeroAttack.h"
 #include "Scenes/HeroSkillCasts.h"
@@ -503,7 +504,24 @@ Core::Expected<void, std::string> StepTheHeadSkill(ActorState& actor, std::size_
         // 0x4feb3b: el punto de 0x4f5b10(o, 0, −90, −50), más alto en las acciones 0x51 y 0x5b, sin rand().
         return EffectThenSound(0x4febbb, "el efecto 0x62c (0x518cf0)", skill, slot, 0x1cd, context, &actor);
     case 0x31:
-        return EffectThenSound(0x4fec15, "el efecto 0x6ac sobre o (0x518cf0)", skill, slot, 0x72, context);
+    {
+        // 0x4febdb..0x4fec2b: 0x518cf0(0x6ac, o+0x10, o+0x1c, o+0xf4, 0, o, o+0x8a, [0x5767948], 0, 0, 0) sin
+        // 0x59fb80 antes (Scenes::FireBreathEffect: sus cuarenta joints 0x617/1) y el sonido 0x72.
+        constexpr std::int32_t BreathSound = 0x72;
+        if (auto made =
+                CreateHighEffect({.type = FireBreathEffect,
+                                  .position = actor.position,
+                                  .angles = actor.angles,
+                                  .light = actor.light,
+                                  .owner = &actor,
+                                  .key = static_cast<std::uint16_t>(actor.word8a),
+                                  .byte89 = static_cast<std::uint8_t>(context.world.Runtime().lastShotSkill & 0xffu)},
+                                 skill, slot, context);
+            !made.HasValue())
+            return made;
+        RequestTheSound(context, BreathSound);
+        return {};
+    }
     case 0x29:
         // 0x4fec30: el arma y 0x59fb80(0x29) antes del 0xf3.
         KeepTheWeapon(actor);

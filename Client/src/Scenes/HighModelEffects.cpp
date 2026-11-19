@@ -14,6 +14,7 @@
 #include "Scenes/FaunaModels.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/FireBreathEffect.h"
 #include "Scenes/HighEffectEmitters.h"
 #include "Scenes/KalimaMonsterEffects.h"
 #include "Scenes/SkullEffects.h"
@@ -1221,7 +1222,7 @@ bool IsHighModelEffect(std::int16_t type)
            type == World::ColoredDecalEffect || (type >= MovingLightFirst && type <= MovingLightLast) ||
            type == FallingStarEffect || type == PierPartEffect || type == DarkLordSkillEffect ||
            type == ManaRuneEffect || type == SparkEmitterEffect || type == BoltEmitterEffect ||
-           type == PiercingGlowEffect || type == SkullEffect || type == SeamanEffect;
+           type == PiercingGlowEffect || type == SkullEffect || type == SeamanEffect || type == FireBreathEffect;
 }
 
 Core::Expected<std::optional<std::size_t>, std::string>
@@ -1289,6 +1290,9 @@ CreateHighModelEffect(const World::ModelEffectArguments& arguments, const HighEf
         break;
     case SeamanEffect:
         BeginTheSeaman(effect);
+        break;
+    case FireBreathEffect:
+        begun = BeginTheFireBreath(effect, context);
         break;
     default:
         break;
@@ -1377,6 +1381,9 @@ Core::Expected<void, std::string> StepHighModelEffect(World::ModelEffect& effect
         break;
     case SeamanEffect:
         stepped = StepTheSeaman(effect, World::StepLuminosity(lightDraw, effect.life), context);
+        break;
+    case FireBreathEffect:
+        stepped = StepTheFireBreath(effect, World::StepLuminosity(lightDraw, effect.life), context);
         break;
     default:
         break;

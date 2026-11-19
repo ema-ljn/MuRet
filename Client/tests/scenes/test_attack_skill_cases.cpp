@@ -215,10 +215,10 @@ TEST(AttackSkillCasesTest, TheHeadCasesCutAfterTheirDraws)
     const std::array cases{
         Case{0x30, "0x4fe0e4", 0},         Case{0x43, "0x4fe172", 0},         Case{0x45, "0x4fe322", 0},
         Case{0x48, "0x4fe590", 0},         Case{0x35, "0x4fe856", 0},         Case{0x3f, "0x4feae8", 0},
-        Case{0x41, "0x4febbb", 0},         Case{0x31, "0x4fec15", 0},         Case{0x29, "0x4fec9a", OwnRecord},
-        Case{0x0a, "0x4fecf3", OwnRecord}, Case{0x28, "0x4ff4ef", 0},         Case{0x26, "0x4ff5b2", 0},
-        Case{0x27, "0x4ffdaf", 1},         Case{0x08, "0x500c49", OwnRecord}, Case{0x0d, "0x500d7b", OwnRecord},
-        Case{0x0e, "0x51fe9e", 2},         Case{0x09, "0x501c67", OwnRecord},
+        Case{0x41, "0x4febbb", 0},         Case{0x29, "0x4fec9a", OwnRecord}, Case{0x0a, "0x4fecf3", OwnRecord},
+        Case{0x28, "0x4ff4ef", 0},         Case{0x26, "0x4ff5b2", 0},         Case{0x27, "0x4ffdaf", 1},
+        Case{0x08, "0x500c49", OwnRecord}, Case{0x0d, "0x500d7b", OwnRecord}, Case{0x0e, "0x51fe9e", 2},
+        Case{0x09, "0x501c67", OwnRecord},
     };
     for (const std::int32_t map : Maps)
     {
@@ -236,6 +236,39 @@ TEST(AttackSkillCasesTest, TheHeadCasesCutAfterTheirDraws)
             EXPECT_TRUE(tested.sounds.empty());
         }
     }
+}
+
+// 0x31 (0x4febdb..0x4fec2b): el 0x6ac sobre o, con o de dueño, su clave (+0x8a) y el byte bajo de [0x5767948], sin
+// 0x59fb80 antes; sus cuarenta joints 0x617/1 sacan tres rand() cada uno (el de su alta y los dos de 0x530860).
+// Después, el sonido 0x72. Con la tabla de efectos llena, ni efecto ni rand(), y el sonido igual.
+TEST(AttackSkillCasesTest, TheBreathCaseRaisesTheFireBreathOverTheStriker)
+{
+    SkillWorld tested;
+    ActorState& striker = tested.Striker();
+    striker.word8a = 0x1234;
+    tested.world.Runtime().lastShotSkill = 0x1f31;
+
+    ASSERT_TRUE(tested.Head(0x31).HasValue());
+
+    const auto alive = AliveEffects(tested.world);
+    ASSERT_EQ(alive.size(), 1u);
+    const Client::World::ModelEffect& breath = *alive.front();
+    EXPECT_EQ(breath.type, 0x6ac);
+    EXPECT_EQ(breath.subtype, 0);
+    EXPECT_EQ(breath.ownerContext, &striker);
+    EXPECT_EQ(breath.disturbanceState, 0x1234);
+    EXPECT_EQ(breath.byte89, 0x31);
+    EXPECT_EQ(breath.light, striker.light);
+    EXPECT_EQ(breath.life, 10);
+    EXPECT_EQ(DrawsSince(Seed, tested.random), 40 * 3);
+    EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x72});
+
+    SkillWorld full;
+    for (Client::World::ModelEffect& effect : full.world.Map().effects.Effects())
+        effect.alive = true;
+    ASSERT_TRUE(full.Head(0x31).HasValue());
+    EXPECT_EQ(DrawsSince(Seed, full.random), 0);
+    EXPECT_EQ(full.sounds, std::vector<std::int32_t>{0x72});
 }
 
 // 0x0c (0x500c64..0x500ccf): el rayo 0x5e8 en el punto (−20, −90, 100) de o girado, con o de dueño, su clave (+0x8a)

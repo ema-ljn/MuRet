@@ -444,8 +444,7 @@ TEST(SkillRepliesTest, TheSkill46MarksAnotherTarget)
 TEST(SkillRepliesTest, TheEffectsOfTheSkillsAreCL11Cuts)
 {
     for (const auto& [skill, where] :
-         {std::pair{std::uint8_t{0x37}, "0x4cd664"}, std::pair{std::uint8_t{0x45}, "0x4cdb72"},
-          std::pair{std::uint8_t{0x3b}, "0x4cddfa"}})
+         {std::pair{std::uint8_t{0x3b}, "0x4cddfa"}})
     {
         auto tested = std::make_unique<Replies>();
         const auto applied = tested->Attack(skill);
@@ -491,6 +490,92 @@ TEST(SkillRepliesTest, TheSkill33FreezesTheTarget)
         EXPECT_FLOAT_EQ(effects[slot].transform.angles.z, heading);
     }
     EXPECT_EQ(tested->cloth.random.State(), reference->cloth.random.State());
+}
+
+// 0x4cd617..0x4cd67e: con la skill salida, la 0x37 apaga el 0x628/0 del blanco y le pone otro con él de dueño (vida
+// 1.000, su posición y sus ángulos, luz 1), sin rand() propios; después, el sonido 0x85 en él y su 0x40. El 0x628/5
+// del blanco queda.
+TEST(SkillRepliesTest, TheSkill37PutsASkullOverItsTarget)
+{
+    auto tested = std::make_unique<Replies>();
+    ActorState& target = tested->Actor(TargetIndex);
+    target.position = {1500, 2500, 100};
+    target.angles = {0, 0, 30};
+    const auto effects = tested->world.Map().effects.Effects();
+    for (const std::size_t slot : {std::size_t{0}, std::size_t{1}})
+    {
+        effects[slot].alive = true;
+        effects[slot].type = 0x628;
+        effects[slot].subtype = static_cast<std::int32_t>(slot) * 5;
+        effects[slot].ownerContext = &target;
+    }
+    const auto expected = Advanced(tested->cloth.random, ActorByteRandoms);
+
+    const auto applied = tested->Attack(0x37);
+
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
+    EXPECT_EQ(tested->cloth.random.State(), expected.State());
+    EXPECT_TRUE(effects[1].alive);
+    const auto& skull = effects[0];
+    ASSERT_TRUE(skull.alive);
+    EXPECT_EQ(skull.type, 0x628);
+    EXPECT_EQ(skull.subtype, 0);
+    EXPECT_EQ(skull.life, 1000);
+    EXPECT_EQ(skull.ownerContext, &target);
+    EXPECT_EQ(skull.transform.position, target.position);
+    EXPECT_EQ(skull.transform.angles, target.angles);
+    EXPECT_EQ(skull.light, glm::vec3(1.0f));
+    EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x85);
+    EXPECT_EQ(target.flags78, 0x40u);
+}
+
+// 0x4e683b..0x4e68a6: el 0x40 de 0x4e6380 sin el bit pone la calavera 0x628/0 sobre el personaje y el sonido 0x85;
+// con el bit, solo lo vuelve a prender.
+TEST(SkillRepliesTest, TheFlag40PutsASkullOverTheActorOnce)
+{
+    auto tested = std::make_unique<Replies>();
+    ActorState& caster = tested->Actor(CasterIndex);
+    caster.position = {700, 800, 90};
+    ASSERT_TRUE(
+        Client::Scenes::ApplyActorState(Client::Protocol::Skill::ActorState{1, 0x40, CasterKey}, tested->Resources())
+            .HasValue());
+    EXPECT_EQ(caster.flags78, 0x40u);
+    EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x85);
+    const auto& effects = tested->world.Map().effects.Effects();
+    const auto skulls = [&effects]
+    { return std::ranges::count_if(effects, [](const auto& effect) { return effect.alive && effect.type == 0x628; }); };
+    ASSERT_EQ(skulls(), 1);
+    EXPECT_EQ(effects[0].ownerContext, &caster);
+    EXPECT_EQ(effects[0].transform.position, caster.position);
+
+    tested->world.Runtime().lastSoundId.reset();
+    ASSERT_TRUE(Client::Scenes::ApplyEffectFlags(caster, 0x40, false, tested->Resources()).HasValue());
+    EXPECT_EQ(skulls(), 1);
+    EXPECT_FALSE(tested->world.Runtime().lastSoundId.has_value());
+}
+
+// 0x4cdb36..0x4cdb7a: con la skill salida, la 0x45 prende 0x2000 en la fuente y pone la runa de maná 0x138/0 en su
+// posición, con sus ángulos y su luz, sin rand() propios.
+TEST(SkillRepliesTest, TheSkill45RaisesAManaRuneOverItsCaster)
+{
+    auto tested = std::make_unique<Replies>();
+    ActorState& source = tested->Actor(CasterIndex);
+    source.position = {1000, 2000, 300};
+    source.angles = {0, 0, 90};
+    source.light = {0.5f, 0.6f, 0.7f};
+    const auto applied = tested->Attack(0x45);
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
+    EXPECT_EQ(source.flags78 & 0x2000u, 0x2000u);
+    const auto& effects = tested->world.Map().effects.Effects();
+    const auto rune = std::ranges::find_if(effects, [](const auto& effect) { return effect.alive; });
+    ASSERT_NE(rune, effects.end());
+    EXPECT_EQ(rune->type, 0x138);
+    EXPECT_EQ(rune->subtype, 0);
+    EXPECT_EQ(rune->life, 50);
+    EXPECT_EQ(rune->transform.position, glm::vec3(1000, 2000, 600));
+    EXPECT_EQ(rune->transform.angles, glm::vec3(0, 0, 45));
+    EXPECT_EQ(rune->light, glm::vec3(0.5f, 0.6f, 0.7f));
+    EXPECT_FALSE(rune->hasOwner);
 }
 
 // 0x518d0f..0x518d26 retorna al no hallar hueco, sin ejecutar el constructor pendiente ni consumir su RNG. Lo que
@@ -579,7 +664,8 @@ TEST(SkillRepliesTest, TheSkill33WithAFullPoolStillStopsTheTarget)
     EXPECT_EQ(tested->cloth.random.State(), reference->cloth.random.State());
 }
 
-// La 0x37 corta en su 0x628 (CL11). La 0x33 crea su 0xc1/1 en el hueco que dejó el viejo y el /2 ya no tiene dónde.
+// 0x518ac0 antes de 0x518cf0: con la tabla llena, apagar el efecto del blanco deja su lugar para el alta. La 0x37 crea
+// ahí la calavera nueva (vida 1.000); la 0x33 crea su 0xc1/1 en el hueco que dejó el viejo y el /2 ya no tiene dónde.
 TEST(SkillRepliesTest, KillingAMatchingEffectReopensItsConstructorEvenFromAFullPool)
 {
     for (const auto skill : {std::uint8_t{0x37}, std::uint8_t{0x33}})
@@ -592,18 +678,16 @@ TEST(SkillRepliesTest, KillingAMatchingEffectReopensItsConstructorEvenFromAFullP
         ActorState* target = &tested->Actor(TargetIndex);
         effects.front().type = skill == 0x37 ? 0x628 : 0xc1;
         effects.front().subtype = skill == 0x37 ? 0 : 1;
+        effects.front().life = 7;
         effects.front().ownerContext = target;
-        effects.front().life = 0;
         const auto applied = tested->Attack(skill);
-        if (skill == 0x37)
-        {
-            ASSERT_FALSE(applied.HasValue());
-            EXPECT_NE(applied.Error().find("CL11"), std::string::npos);
-            EXPECT_FALSE(effects.front().alive);
-            continue;
-        }
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         EXPECT_TRUE(effects.front().alive);
+        if (skill == 0x37)
+        {
+            EXPECT_EQ(effects.front().life, 1000);
+            continue;
+        }
         EXPECT_EQ(effects.front().subtype, 1);
         EXPECT_EQ(effects.front().life, 20);
         EXPECT_EQ(std::ranges::count_if(effects, [target](const auto& effect)

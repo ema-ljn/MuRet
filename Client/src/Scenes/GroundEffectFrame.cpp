@@ -38,7 +38,8 @@ Core::Expected<void, std::string> GroundEffectFrame::Draw(Render::ModelBatch& ba
                                               .random = random,
                                               .worldClock = m_worldClock,
                                               .map = *m_map,
-                                              .kalima = m_kalimaSnapshot.get()};
+                                              .kalima = m_kalimaSnapshot.get(),
+                                              .ownerPosition = resources.ownerPosition};
     return DrawGroundEffects(batch, m_replayEffects, replay);
 }
 

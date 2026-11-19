@@ -818,7 +818,9 @@ TEST(GameDrawTailTest, GroundModelEffectsRenderBeforeRestoringOpaqueStateWithout
     EXPECT_EQ(models.lookups, 0);
 }
 
-TEST(GameDrawTailTest, EachSiegeCueDrawsWithoutModelAssetsAndRestoresTheMaterial)
+// 0x52d620: el 0x19f y el 0x61c del asedio no tienen caso (ni en 0x52dc20) y no se dibujan; el aura 0x134 va por el
+// camino común (0x52da92 → 0x602e90) y busca su BMD (Skill\Aurora).
+TEST(GameDrawTailTest, TheSiegeEffectsDrawOnlyTheAuraThroughItsModel)
 {
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     Client::Scenes::ModelEffectDrawResources resources{*heights, 30};
@@ -827,8 +829,6 @@ TEST(GameDrawTailTest, EachSiegeCueDrawsWithoutModelAssetsAndRestoresTheMaterial
     {
         SCOPED_TRACE(type);
         Client::Render::ModelBatch batch;
-        const Client::Render::ModelDrawState material{.texture = Client::Render::TextureSlot{0x400}};
-        batch.SetState(material);
         LookupCounter models;
         Client::World::ModelEffect effect;
         effect.alive = true;
@@ -838,23 +838,21 @@ TEST(GameDrawTailTest, EachSiegeCueDrawsWithoutModelAssetsAndRestoresTheMaterial
             batch, models, std::span(&effect, 1), Client::World::SphereFrustum{}, nullptr, {}, 0, resources);
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         EXPECT_TRUE(effect.seen);
-        EXPECT_EQ(models.lookups, 0);
-        ASSERT_FALSE(batch.Vertices().empty());
-        ASSERT_FALSE(batch.Commands().empty());
-        EXPECT_FALSE(batch.Commands().front().state.texture.has_value());
-        EXPECT_EQ(batch.Commands().front().state.blend, Client::Render::ModelBlend::Additive);
-        EXPECT_EQ(batch.State(), material);
+        EXPECT_EQ(models.lookups > 0, type == 0x134);
+        EXPECT_TRUE(batch.Vertices().empty());
     }
 }
 
-TEST(GameDrawTailTest, AReusedSiegeCueKeepsItsVisibilityUntilTheModelPass)
+// 0x518d63 limpia +0x16d y no +0x16c: el lugar que vuelve a usar el prefijo conserva lo que vio el último dibujo, y el
+// pase del suelo (0x52dc46) saca su rand() aunque el tipo no tenga caso.
+TEST(GameDrawTailTest, AReusedSlotKeepsItsVisibilityUntilTheModelPass)
 {
     auto effects = std::make_unique<Client::World::ModelEffects>();
     effects->Effects().front().seen = true;
-    Client::Render::Models::CrtRandom random(11);
-    const auto slot = effects->CreateSiegeCue({.type = Client::World::SiegeStoneCue}, random);
+    const auto slot = effects->Begin({.type = 0x19f});
     ASSERT_EQ(slot, 0u);
 
+    Client::Render::Models::CrtRandom random(11);
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     const Client::World::GroundEffectResources resources{.heights = *heights, .random = random, .map = 30};
     Client::Render::ModelBatch batch;
@@ -867,15 +865,59 @@ TEST(GameDrawTailTest, AReusedSiegeCueKeepsItsVisibilityUntilTheModelPass)
     EXPECT_EQ(batch.State().blend, Client::Render::ModelBlend::Additive);
 }
 
-TEST(GameDrawTailTest, BattleEffectsDrawWithoutModelsAndSkipTheSecondWorldPass)
+// 0x52d620: la flecha 0xf8 y el pulso 0x105/3 no se dibujan (0x52d6c3 y 0x52d78f); el fragmento 0xc1a y las piedritas
+// 0xc8/0xc9 con el subtipo 1 van por el camino común (0x602e90) con su BMD, en los dos pases.
+TEST(GameDrawTailTest, TheCrywolfEffectsDrawThroughTheirModelsOrNotAtAll)
 {
-    struct Cue
+    struct Probe
     {
         std::int16_t type;
         std::int32_t subtype;
+        bool drawn;
     };
-    constexpr std::array cues{Cue{0xf8, 1}, Cue{0x105, 3}, Cue{0xc1a, 0}, Cue{0xc8, 1}, Cue{0xc9, 1}};
-    for (const auto [type, subtype] : cues)
+    constexpr std::array probes{Probe{0xf8, 1, false}, Probe{0x105, 3, false}, Probe{0xc1a, 0, true},
+                                Probe{0xc8, 1, true}, Probe{0xc9, 1, true}};
+    for (const auto [type, subtype, drawn] : probes)
+    {
+        SCOPED_TRACE(type);
+        for (const std::uint8_t mode : {std::uint8_t{0}, std::uint8_t{1}})
+        {
+            LookupCounter models;
+            Client::World::ModelEffect effect;
+            effect.alive = true;
+            effect.type = type;
+            effect.subtype = subtype;
+            effect.transform.position = {1000, 2000, 300};
+            Client::Render::ModelBatch batch;
+            const auto result = Client::Scenes::DrawGameModelEffects(
+                batch, models, std::span(&effect, 1), Client::World::SphereFrustum{}, nullptr, {}, 0, mode);
+            ASSERT_TRUE(result.HasValue()) << result.Error();
+            EXPECT_TRUE(effect.seen);
+            EXPECT_TRUE(batch.Vertices().empty());
+            // En el segundo pase el filtro (0x52d68c) busca el BMD de todos antes del caso.
+            if (mode == 0)
+            {
+                EXPECT_EQ(models.lookups > 0, drawn);
+            }
+        }
+    }
+}
+
+// 0x52d620 con los tipos altos de la CL11: el 0x116, el 0x117, el 0x138, el 0x13c y la piedra 0x12e/3 van por el
+// camino común (0x602e90) con su BMD de las skills; el 0x625, los emisores 0x812 y 0x813 y el brillo 0x621/1 (de
+// 0x151 en adelante, sin caso) no se dibujan.
+TEST(GameDrawTailTest, TheHighEffectsDrawThroughTheirModelsOrNotAtAll)
+{
+    struct Probe
+    {
+        std::int16_t type;
+        std::int32_t subtype;
+        bool drawn;
+    };
+    constexpr std::array probes{Probe{0x116, 0, true},  Probe{0x117, 0, true},  Probe{0x138, 0, true},
+                                Probe{0x13c, 0, true},  Probe{0x12e, 3, true},  Probe{0x625, 0, false},
+                                Probe{0x812, 0, false}, Probe{0x813, 0, false}, Probe{0x621, 1, false}};
+    for (const auto [type, subtype, drawn] : probes)
     {
         SCOPED_TRACE(type);
         LookupCounter models;
@@ -884,16 +926,13 @@ TEST(GameDrawTailTest, BattleEffectsDrawWithoutModelsAndSkipTheSecondWorldPass)
         effect.type = type;
         effect.subtype = subtype;
         effect.transform.position = {1000, 2000, 300};
-        for (const std::uint8_t mode : {std::uint8_t{0}, std::uint8_t{1}})
-        {
-            Client::Render::ModelBatch batch;
-            const auto drawn = Client::Scenes::DrawGameModelEffects(
-                batch, models, std::span(&effect, 1), Client::World::SphereFrustum{}, nullptr, {}, 0, mode);
-            ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
-            EXPECT_TRUE(effect.seen);
-            EXPECT_EQ(batch.Vertices().empty(), mode == 1);
-        }
-        EXPECT_EQ(models.lookups, 0);
+        Client::Render::ModelBatch batch;
+        const auto result = Client::Scenes::DrawGameModelEffects(batch, models, std::span(&effect, 1),
+                                                                 Client::World::SphereFrustum{}, nullptr, {}, 0, 0);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_TRUE(effect.seen);
+        EXPECT_TRUE(batch.Vertices().empty());
+        EXPECT_EQ(models.lookups > 0, drawn);
     }
 }
 

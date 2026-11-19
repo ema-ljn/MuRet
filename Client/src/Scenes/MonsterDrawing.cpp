@@ -32,6 +32,7 @@
 #include "Scenes/MonsterHelpers.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
+#include "Scenes/VertexEffects.h"
 #include "Scenes/WorldState.h"
 #include "World/ChaosCastle.h"
 #include "World/IFishStepServices.h"
@@ -1377,6 +1378,16 @@ Result DrawTheTail(MonsterFrame& frame, const glm::vec3& terrainLight)
                                          .originalFrame = frame.originalFrame,
                                          .batch = &frame.batch,
                                          .heights = terrain.heights.get()};
+            // 0x4ee770 desde 0x441400: la malla 0 del cuerpo posado otra vez, como la dejó en 0x5786f9c (Q-C1581).
+            helperPass.vertexEffects = [&frame](std::int32_t type,
+                                                std::int32_t subtype) -> Core::Expected<void, std::string>
+            {
+                if (frame.actor.bodyPose.empty())
+                    return Core::Unexpected(std::string("0x4ee770: el cuerpo no tiene pose para sus vértices"));
+                const PosedBody posed = PosedBodyOf(frame);
+                return EmitVertexEffects(frame.fauna, posed.object, posed.meshes, 0, type, subtype,
+                                         frame.world.Map().effects, frame.random);
+            };
             if (auto helpers = DrawTheMonsterHelpers(helperPass); !helpers.HasValue())
                 return helpers;
         }

@@ -15,6 +15,7 @@
 #include "Scenes/HeroAttack.h"
 #include "Scenes/HeroSkillCasts.h"
 #include "Scenes/HeroSkills.h"
+#include "Scenes/HighModelEffects.h"
 #include "Scenes/JointFamilies.h"
 #include "Scenes/JointKernels.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -22,6 +23,7 @@
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "World/ColoredDecals.h"
 #include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
 #include "World/KalimaWorld.h"
@@ -97,6 +99,26 @@ Core::Expected<void, std::string> EffectThenSound(std::uint32_t address, std::st
     if (sound >= 0)
         RequestTheSound(context, sound, actor);
     return {};
+}
+
+// 0x518cf0 de un tipo alto (Scenes/HighModelEffects) desde un caso: el error lleva la habilidad y el lugar.
+Core::Expected<void, std::string> CreateHighEffect(const World::ModelEffectArguments& arguments, std::uint8_t skill,
+                                                   std::size_t slot, const CharacterStepContext& context)
+{
+    if (auto made = CreateHighModelEffect(arguments, HighContextOf(context)); !made.HasValue())
+        return Core::Unexpected(std::format("{} (la habilidad {:#x} del lugar {})", made.Error(), skill, slot));
+    return {};
+}
+
+// 0x4fd81e y 0x4fdaeb..0x4fdb4d: la luz local del paso, (1; 1; 1) o, con la acción 0x4d, 0x4f o 0x5a pasado el frame
+// 5,5, la de la partícula 0x5ac/0 (0,3; 0,5; 1).
+glm::vec3 CaseLight(const ActorState& actor)
+{
+    constexpr std::array<std::uint8_t, 3> FlaredActions{0x4d, 0x4f, 0x5a};
+    constexpr float FlareFrame = 5.5f; // 0x6b8a40
+    const bool flared = std::ranges::find(FlaredActions, actor.animation.action) != FlaredActions.end() &&
+                        actor.animation.frame > FlareFrame;
+    return flared ? glm::vec3(std::bit_cast<float>(0x3e99999au), 0.5f, 1.0f) : glm::vec3(1.0f);
 }
 
 Core::Expected<void, std::string> JointThenSound(std::uint32_t address, std::string_view what, std::uint8_t skill,
@@ -241,24 +263,27 @@ Core::Expected<void, std::string> RaiseTheAuras(ActorState& actor, const Charact
 }
 
 // 0x4fe015..0x4fe13f (la 0x30) y 0x4fe253..0x4fe37b (la 0x45): treinta y seis joints 0x613 de ancho 60 colgados de o,
-// 100 más arriba, con los ángulos (−10, 0, 10 · i); en la vuelta 0 y en la 20, el calco 0x61e sobre o. Sin rand().
+// 100 más arriba, con los ángulos (−10, 0, 10 · i); en la vuelta 0 y en la 20, después del joint, el calco 0x61e
+// (`decalSubtype`) sobre o con esos ángulos, la luz `light` y o de dueño (0x4fe127, 0x4fe360). Sin rand(). Después, el
+// sonido.
 struct SpiritRing
 {
     std::int32_t subtype = 0;
     std::uint32_t jointAddress = 0;
-    std::uint32_t effectAddress = 0;
-    std::string_view effect;
+    std::int32_t decalSubtype = 0;
+    glm::vec3 light{1.0f};
     std::int32_t sound = 0;
 };
 
 Core::Expected<void, std::string> RingTheSpirits(ActorState& actor, std::size_t slot, std::uint8_t skill,
                                                  const CharacterStepContext& context, const SpiritRing& ring)
 {
-    constexpr int Spirits = 36, EffectEvery = 20;
+    constexpr int Spirits = 36, DecalEvery = 20;
     constexpr float Width = 60.0f; // 0x42700000
+    constexpr float Pitch = -10.0f; // 0xc1200000
     for (int index = 0; index < Spirits; ++index)
     {
-        const glm::vec3 angles{-10.0f, 0.0f, static_cast<float>(static_cast<double>(index) * 10.0)};
+        const glm::vec3 angles{Pitch, 0.0f, static_cast<float>(static_cast<double>(index) * 10.0)};
         const glm::vec3 point{actor.position.x, actor.position.y,
                               static_cast<float>(static_cast<double>(actor.position.z) + 100.0)};
         if (auto made = CreateTheSpirit(actor, context,
@@ -270,8 +295,17 @@ Core::Expected<void, std::string> RingTheSpirits(ActorState& actor, std::size_t 
                                          .width = Width});
             !made.HasValue())
             return made;
-        if (index % EffectEvery == 0 && HasEffectRoom(context))
-            return CutAt(ring.effectAddress, ring.effect, skill, slot);
+        if (index % DecalEvery != 0)
+            continue;
+        if (auto made = CreateHighEffect({.type = World::ColoredDecalEffect,
+                                          .position = actor.position,
+                                          .angles = angles,
+                                          .light = ring.light,
+                                          .subtype = ring.decalSubtype,
+                                          .owner = &actor},
+                                         skill, slot, context);
+            !made.HasValue())
+            return made;
     }
     RequestTheSound(context, ring.sound);
     return {};
@@ -518,12 +552,24 @@ Core::Expected<void, std::string> FreeTheTarget(ActorState& actor, std::size_t s
     KillJointsOf(context.joints, FlameJoint, target.Value(), 4);
     KillJointsOf(context.joints, FlameJoint, target.Value(), 9);
     constexpr std::int32_t FreeSound = 0x269;
-    return EffectThenSound(0x4fe424, "el calco 0x61e/6 sobre el blanco (0x518cf0)", skill, slot, FreeSound, context);
+    const ActorState& freed = *target.Value();
+    if (auto made = CreateHighEffect({.type = World::ColoredDecalEffect,
+                                      .position = freed.position,
+                                      .angles = freed.angles,
+                                      .light = freed.light,
+                                      .subtype = World::BindingDecalSubtype,
+                                      .owner = target.Value()},
+                                     skill, slot, context);
+        !made.HasValue())
+        return made;
+    RequestTheSound(context, FreeSound);
+    return {};
 }
 
 // 0x4fe986..0x4feab6 (la 0x40) y 0x502993..0x502aee (la 0x4b): con otra cosa que 0xa21 en la derecha, el 0x117/0 en su
-// hueso (+0x2bd, 0x4ec110); con otra cosa que 0xa19 o 0xe12..0x1011 en la izquierda, el 0x117/1 en el suyo (+0x2dd).
-// Después, la 0x40 suena (0x1cf) y la 0x4b crea el 0x138 (0x502ae6).
+// hueso (+0x2bd, 0x4ec110 con el offset en 0); con otra cosa que 0xa19 o 0xe12..0x1011 en la izquierda, el 0x117/1 en
+// el suyo (+0x2dd); los dos con los ángulos de o y la luz (1; 0,6; 0,3) de la 0x40 o (1; 1; 1) de la 0x4b. Después, la
+// 0x40 suena (0x1cf, con o de origen) y la 0x4b crea el 0x138 sobre o (0x502ae6) y suena (0x272).
 Core::Expected<void, std::string> SwingTheHands(const ActorState& actor, std::size_t slot, std::uint8_t skill,
                                                 const CharacterStepContext& context, std::uint32_t right,
                                                 std::uint32_t left)
@@ -532,14 +578,43 @@ Core::Expected<void, std::string> SwingTheHands(const ActorState& actor, std::si
     constexpr std::int32_t PlainLeft = 0xa19;
     constexpr std::int32_t FirstShield = 0xe12;
     constexpr std::int32_t PastShields = 0x1012;
-    if (HandOf(actor, 0) != PlainRight && HasEffectRoom(context))
-        return CutAt(right, "el efecto 0x117/0 en el hueso de la derecha (0x518cf0)", skill, slot);
-    const std::int32_t held = HandOf(actor, 1);
-    if (held != PlainLeft && !(held >= FirstShield && held < PastShields) && HasEffectRoom(context))
-        return CutAt(left, "el efecto 0x117/1 en el hueso de la izquierda (0x518cf0)", skill, slot);
     constexpr std::uint8_t RaiseSkill = 0x40;
-    if (skill != RaiseSkill && HasEffectRoom(context))
-        return CutAt(0x502ae6, "el efecto 0x138 sobre o (0x518cf0)", skill, slot);
+    constexpr std::int16_t DarkLordSkill = 0x117, ManaRune = 0x138;
+    const glm::vec3 handLight =
+        skill == RaiseSkill ? glm::vec3{1.0f, std::bit_cast<float>(0x3f19999au), std::bit_cast<float>(0x3e99999au)}
+                            : glm::vec3(1.0f);
+    const auto swing = [&](std::size_t hand, std::uint32_t address) -> Core::Expected<void, std::string>
+    {
+        const glm::vec3 point = ActorBonePoint(actor, actor.hands[hand].bone, glm::vec3(0.0f), context.world);
+        if (auto made = CreateHighEffect({.type = DarkLordSkill,
+                                          .position = point,
+                                          .angles = actor.angles,
+                                          .light = handLight,
+                                          .subtype = static_cast<std::int32_t>(hand)},
+                                         skill, slot, context);
+            !made.HasValue())
+            return Core::Unexpected(std::format("{:#x}: {}", address, made.Error()));
+        return {};
+    };
+    if (HandOf(actor, 0) != PlainRight)
+    {
+        if (auto swung = swing(0, right); !swung.HasValue())
+            return swung;
+    }
+    const std::int32_t held = HandOf(actor, 1);
+    if (held != PlainLeft && !(held >= FirstShield && held < PastShields))
+    {
+        if (auto swung = swing(1, left); !swung.HasValue())
+            return swung;
+    }
+    if (skill != RaiseSkill)
+    {
+        if (auto made = CreateHighEffect(
+                {.type = ManaRune, .position = actor.position, .angles = actor.angles, .light = actor.light}, skill,
+                slot, context);
+            !made.HasValue())
+            return Core::Unexpected("0x502ae6: " + made.Error());
+    }
     constexpr std::int32_t RaiseSound = 0x1cf;
     constexpr std::int32_t OtherSwingSound = 0x272;
     // 0x4feaae: la 0x40 conserva o como origen.
@@ -725,8 +800,8 @@ Core::Expected<void, std::string> StepTheHeadSkill(ActorState& actor, std::size_
         return RingTheSpirits(actor, slot, skill, context,
                               {.subtype = 2,
                                .jointAddress = 0x4fe0e4,
-                               .effectAddress = 0x4fe127,
-                               .effect = "el calco 0x61e/4 entre los joints 0x613/2",
+                               .decalSubtype = World::PulsingDecalSubtype,
+                               .light = actor.light,
                                .sound = 0x7f});
     case 0x43:
         return CallTheStorm(actor, context);
@@ -736,8 +811,8 @@ Core::Expected<void, std::string> StepTheHeadSkill(ActorState& actor, std::size_
         return RingTheSpirits(actor, slot, skill, context,
                               {.subtype = 0x15,
                                .jointAddress = 0x4fe322,
-                               .effectAddress = 0x4fe360,
-                               .effect = "el calco 0x61e/0xa entre los joints 0x613/0x15",
+                               .decalSubtype = World::CoolPulsingDecalSubtype,
+                               .light = CaseLight(actor),
                                .sound = 0x268});
     case 0x46:
         return FreeTheTarget(actor, slot, skill, context);
@@ -821,9 +896,27 @@ Core::Expected<void, std::string> StepTheHeadSkill(ActorState& actor, std::size_
         return {};
     }
     case 0x0c:
-        // 0x500c64: el punto de 0x4f5b10(o, −20, −90, 100), sin rand(), y 0x59fb80(0xc).
-        static_cast<void>(OwnSkillIndex(context, skill));
-        return EffectThenSound(0x500cb9, "el efecto 0x5e8 (0x518cf0)", skill, slot, 0x7a, context);
+    {
+        // 0x500c64..0x500ccf: el punto de 0x4f5b10(o, −20, −90, 100), sin rand(), 0x59fb80(0xc) y 0x518cf0(0x5e8,
+        // punto, o+0x1c, la luz del paso, 0, o, o+0x8a, lugar, 0, 0, 0): el rayo y, con el héroe de dueño, sus cuatro
+        // 0x517a20. Después, el sonido 0x7a.
+        constexpr std::int16_t LightningRay = 0x5e8;
+        constexpr glm::vec3 RayOffset{-20.0f, -90.0f, 100.0f};
+        const glm::vec3 point = PointAround(actor, RayOffset);
+        const std::int32_t index = OwnSkillIndex(context, skill);
+        if (auto made = CreateHighEffect({.type = LightningRay,
+                                          .position = point,
+                                          .angles = actor.angles,
+                                          .light = CaseLight(actor),
+                                          .owner = &actor,
+                                          .key = static_cast<std::uint16_t>(actor.word8a),
+                                          .byte89 = static_cast<std::uint8_t>(index)},
+                                         skill, slot, context);
+            !made.HasValue())
+            return made;
+        RequestTheSound(context, 0x7a);
+        return {};
+    }
     case 0x0d:
     {
         // 0x500cd4: la celda con su altura, 0x59fb80(0xd) y dos 0xf5 ahí con o de dueño (0x500d7b y 0x500dba).
@@ -889,13 +982,73 @@ Core::Expected<void, std::string> StepTheHeadSkill(ActorState& actor, std::size_
     case 0x4c:
         return StrikeAround(actor, slot, skill, context);
     case 0x2c:
-        return EffectThenSound(0x502975, "el efecto 0x13b sobre o (0x518cf0)", skill, slot, 0x26c, context);
+    {
+        // 0x50294e..0x50298e: 0x518cf0(0x13b, o+0x10, o+0x1c, la luz del paso, 0, o, −1, 0, 0, 0, 0), la llama del
+        // asedio sobre o, y el sonido 0x26c.
+        constexpr std::int16_t SwordForce = 0x13b;
+        constexpr std::int32_t ForceSound = 0x26c;
+        if (auto made = CreateHighEffect({.type = SwordForce,
+                                          .position = actor.position,
+                                          .angles = actor.angles,
+                                          .light = CaseLight(actor),
+                                          .owner = &actor},
+                                         skill, slot, context);
+            !made.HasValue())
+            return Core::Unexpected("0x502975: " + made.Error());
+        RequestTheSound(context, ForceSound);
+        return {};
+    }
     case 0x4b:
         return SwingTheHands(actor, slot, skill, context, 0x502a23, 0x502ab4);
     default:
         // 0x502aff, como el 0.
         return {};
     }
+}
+
+// 0x504d87..0x504f51, la 0x3d: el punto (80, 0, 20) del primer hueso de o (0x4ec110) y tres 0x116/0 con el blanco de
+// dueño y los ángulos (0, 0, z de o + 90), (0, 0, z) y (0, 0, z − 90); la "luz" (0, 0, techo del blanco (+0x138) / 1)
+// del primero y (0, 0, eso − techo / 2) de los otros dos, que el alta guarda como la partida (el punto del blanco al
+// que van). Después, el 0x117/0 y el 0x117/1 ahí con los ángulos de o y la luz (1; 0,6; 0,3). Sin rand() ni sonido.
+Core::Expected<void, std::string> LaunchThePierParts(const ActorState& actor, ActorState& victim, std::size_t slot,
+                                                     std::uint8_t skill, const CharacterStepContext& context)
+{
+    constexpr glm::vec3 LaunchOffset{80.0f, 0.0f, 20.0f}; // 0x42a00000 y 0x41a00000
+    constexpr std::size_t LaunchBone = 0;
+    constexpr double Turn = 90.0, Half = 2.0, Whole = 1.0; // 0x6b8948, 0x6b8818 y 0x6b87d4
+    constexpr std::int16_t PierPart = 0x116, DarkLordSkill = 0x117;
+    const glm::vec3 point = ActorBonePoint(actor, LaunchBone, LaunchOffset, context.world);
+    const double yaw = static_cast<double>(actor.angles.z);
+    glm::vec3 aim{0.0f, 0.0f, static_cast<float>(static_cast<double>(victim.boundsTop) / Whole)};
+    const auto launch = [&](float z, std::uint32_t address) -> Core::Expected<void, std::string>
+    {
+        if (auto made = CreateHighEffect(
+                {.type = PierPart, .position = point, .angles = {0.0f, 0.0f, z}, .light = aim, .owner = &victim}, skill,
+                slot, context);
+            !made.HasValue())
+            return Core::Unexpected(std::format("{:#x}: {}", address, made.Error()));
+        return {};
+    };
+    if (auto made = launch(static_cast<float>(yaw + Turn), 0x504e40); !made.HasValue())
+        return made;
+    aim.z = static_cast<float>(static_cast<double>(aim.z) - static_cast<double>(victim.boundsTop) / Half);
+    if (auto made = launch(actor.angles.z, 0x504e9c); !made.HasValue())
+        return made;
+    if (auto made = launch(static_cast<float>(yaw - Turn), 0x504ee0); !made.HasValue())
+        return made;
+    const glm::vec3 handLight{1.0f, std::bit_cast<float>(0x3f19999au), std::bit_cast<float>(0x3e99999au)};
+    for (const std::int32_t subtype : {0, 1})
+    {
+        if (auto made = CreateHighEffect({.type = DarkLordSkill,
+                                          .position = point,
+                                          .angles = actor.angles,
+                                          .light = handLight,
+                                          .subtype = subtype},
+                                         skill, slot, context);
+            !made.HasValue())
+            return Core::Unexpected(std::format("{:#x}: {}", subtype == 0 ? 0x504f1fu : 0x504f49u, made.Error()));
+    }
+    return {};
 }
 
 Core::Expected<void, std::string> StepTheTargetSkill(ActorState& actor, ActorState& victim, std::size_t slot,
@@ -943,8 +1096,15 @@ Core::Expected<void, std::string> StepTheTargetSkill(ActorState& actor, ActorSta
         // 0x5044fe: con +0x38d y sin 0x4000 en o+0x78, el calco 0x61e/2 sobre el blanco.
         if (actor.skillSucceeded == 0 || (actor.flags78 & QuietFlag) != 0)
             return {};
-        if (HasEffectRoom(context))
-            return CutAt(0x504561, "el calco 0x61e/2 sobre el blanco (0x518cf0)", skill, slot);
+        if (auto made = CreateHighEffect({.type = World::ColoredDecalEffect,
+                                          .position = victim.position,
+                                          .angles = victim.angles,
+                                          .light = victim.light,
+                                          .subtype = 2,
+                                          .owner = &victim},
+                                         skill, slot, context);
+            !made.HasValue())
+            return made;
         {
             constexpr std::uint32_t BoundFlag = 8;
             const bool alreadyBound = (victim.flags78 & BoundFlag) != 0;
@@ -1072,7 +1232,23 @@ Core::Expected<void, std::string> StepTheTargetSkill(ActorState& actor, ActorSta
     case 0x49:
         return JointThenSound(0x504b33, "el joint 0x61c/4 (0x530860)", skill, slot, 0x26f, context);
     case 0x4a:
-        return EffectThenSound(0x504b80, "el efecto 0x116/2 (0x518cf0)", skill, slot, 0x271, context);
+    {
+        // 0x504b51..0x504b99: el 0x116/2 sobre o con el blanco de dueño y el sonido 0x271.
+        constexpr std::int16_t PierPart = 0x116;
+        constexpr std::int32_t DivingSubtype = 2;
+        constexpr std::int32_t DiveSound = 0x271;
+        if (auto made = CreateHighEffect({.type = PierPart,
+                                          .position = actor.position,
+                                          .angles = actor.angles,
+                                          .light = actor.light,
+                                          .subtype = DivingSubtype,
+                                          .owner = &victim},
+                                         skill, slot, context);
+            !made.HasValue())
+            return Core::Unexpected("0x504b80: " + made.Error());
+        RequestTheSound(context, DiveSound);
+        return {};
+    }
     case 0x04:
         // 0x504b9e..0x504bdc (la Fire Ball): 0x518cf0(0xc2, o+0x10, los ángulos hacia el blanco, o+0xf4, 1, el blanco
         // de dueño, −1, …) y el sonido 0x42.
@@ -1117,8 +1293,7 @@ Core::Expected<void, std::string> StepTheTargetSkill(ActorState& actor, ActorSta
     case 0x3c:
         return EffectThenSound(0x504d05, "el primero de los efectos 0x114/1 (0x518cf0)", skill, slot, 0x1c8, context);
     case 0x3d:
-        // 0x504d87: el punto del primer hueso de o (0x4ec110), sin rand().
-        return EffectThenSound(0x504e40, "el primero de los efectos 0x116 (0x518cf0)", skill, slot, -1, context);
+        return LaunchThePierParts(actor, victim, slot, skill, context);
     case 0x11:
     {
         // 0x504f56..0x504fd0: los +0x376 de las tablas de 0x50561a y 0x505672 que van a 0x504fd7, y el 0x76, no

@@ -7,6 +7,7 @@
 #include "Render/Models/OriginalRotation.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
+#include "World/ColoredDecals.h"
 #include "World/ModelEffects.h"
 #include "World/KalimaSurfaceDecal.h"
 #include "World/OriginalFtol.h"
@@ -265,6 +266,7 @@ Core::Expected<glm::vec3, std::string> ColoredDecalLight(std::int32_t subtype, d
         return glm::vec3(F32(brightness), F32(brightness * D(ThreeFifths)), F32(brightness * D(TwoFifths)));
     case 4:
         return glm::vec3(F32(brightness), F32(brightness * D(Half)), F32(brightness * D(Tenth)));
+    case 7:
     case 9:
         return glm::vec3(F32(brightness * D(NineTenths)), F32(brightness * D(TwoFifths)), F32(brightness * D(Fifth)));
     case 10:
@@ -274,31 +276,58 @@ Core::Expected<glm::vec3, std::string> ColoredDecalLight(std::int32_t subtype, d
     }
 }
 
-Core::Expected<void, std::string> DrawColoredDecal(Render::ModelBatch& batch, const ModelEffect& effect,
+// 0x52e010..0x52e0a2: el /6 cada 25 vidas y el /8 en las vidas pares sueltan un 0x61e/7 o /9 en la tabla del pase, con
+// su posición, sus ángulos, su luz y su dueño (0x518cf0 con la clave −1; el /7 saca su rand() % 360).
+void SpawnColoredDecal(const ModelEffect& effect, const GroundEffectResources& resources, std::int32_t subtype)
+{
+    const ModelEffectArguments child{.type = ArrivalDecal,
+                                     .position = effect.transform.position,
+                                     .angles = effect.transform.angles,
+                                     .light = effect.light,
+                                     .subtype = subtype,
+                                     .owner = effect.ownerContext};
+    static_cast<void>(CreateColoredDecal(resources.table, child, resources.random));
+}
+
+Core::Expected<void, std::string> DrawColoredDecal(Render::ModelBatch& batch, ModelEffect& effect,
                                                    const GroundEffectResources& resources)
 {
-    if (effect.subtype == 7)
-    {
-        return Core::Unexpected(std::string("0x52ded0: el 0x61e/7 necesita la posición de su dueño"));
-    }
-    if (effect.subtype == 6 && effect.life % SpawnInterval == 0)
-    {
-        return Core::Unexpected(std::string("0x52e04c: falta crear el 0x61e/7 desde el dibujo del 0x61e/6"));
-    }
-    if (effect.subtype == 8 && effect.life % 2 == 0)
-    {
-        return Core::Unexpected(std::string("0x52e0a2: falta crear el 0x61e/9 desde el dibujo del 0x61e/8"));
-    }
-    if (effect.subtype == 5 || effect.subtype == 6 || effect.subtype == 8)
-    {
-        return {};
-    }
+    // 0x52dddc..0x52de2a: la luz 1, la de las cinco últimas vidas y, en el /7 con más de 30, (40 − vida) · 0,1f.
+    constexpr std::int32_t ChildFadeInLife = 30, ChildFullLife = 40;
     double brightness = ArrivalBrightness(effect.life);
-    const bool pulse = effect.subtype == 4 || effect.subtype == 10;
-    const float side = pulse || effect.subtype == 9 ? effect.transform.scale : ArrivalSide(effect.life);
+    if (effect.life >= FadeLife && effect.subtype == BindingChildSubtype && effect.life > ChildFadeInLife)
+        brightness = static_cast<double>(Difference(ChildFullLife, effect.life)) * D(Tenth);
+    // 0x52de30..0x52de96: el lado. El /4 y el /0xa, la escala (y, con la luz en 1, el pulso); el /7, vida · 0,07f; el
+    // /9, la escala; los demás, (20 − vida) · 0,15f (el /6 calcula el suyo y no se dibuja).
+    constexpr float ChildGrowth = std::bit_cast<float>(0x3d8f5c29u); // 0x6ba190, 0,07f
+    const bool pulse = effect.subtype == PulsingDecalSubtype || effect.subtype == CoolPulsingDecalSubtype;
+    float side = ArrivalSide(effect.life);
+    if (pulse || effect.subtype == GrowingDecalSubtype)
+        side = effect.transform.scale;
+    else if (effect.subtype == BindingChildSubtype)
+        side = F32(static_cast<double>(effect.life) * D(ChildGrowth));
     if (pulse && brightness == 1.0)
     {
         brightness = std::sin(static_cast<double>(Difference(PulseLife, effect.life)) * D(SmallGrowth)) + D(Half);
+    }
+    if (effect.subtype == BindingChildSubtype)
+    {
+        // 0x52ded0..0x52df00: la posición del dueño (+0x108 → +0x10), leída en cada dibujo, y el ángulo z 10 más.
+        constexpr double ChildTurn = 10.0; // 0x6b87a8
+        const auto owner = resources.ownerPosition ? resources.ownerPosition(effect.ownerContext) : std::nullopt;
+        if (!owner.has_value())
+            return Core::Unexpected(std::string("0x52ded0: el 0x61e/7 lee la posición de un dueño que no es un "
+                                                "personaje"));
+        effect.transform.position = *owner;
+        effect.transform.angles.z = F32(D(effect.transform.angles.z) + ChildTurn);
+    }
+    if (effect.subtype == 5 || effect.subtype == BindingDecalSubtype || effect.subtype == SpawningDecalSubtype)
+    {
+        if (effect.subtype == BindingDecalSubtype && effect.life % SpawnInterval == 0)
+            SpawnColoredDecal(effect, resources, BindingChildSubtype);
+        else if (effect.subtype == SpawningDecalSubtype && effect.life % 2 == 0)
+            SpawnColoredDecal(effect, resources, GrowingDecalSubtype);
+        return {};
     }
     const auto color = ColoredDecalLight(effect.subtype, brightness);
     if (!color.HasValue())

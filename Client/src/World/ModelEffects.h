@@ -54,10 +54,6 @@ inline constexpr std::int16_t DebrisEffect = 0x10b;
 inline constexpr std::int16_t FirstStoneChipEffect = 0xc8;
 inline constexpr std::int16_t SecondStoneChipEffect = 0xc9;
 inline constexpr std::int32_t RisingStoneChipSubtype = 1;
-[[nodiscard]] constexpr bool IsRisingStoneChip(std::int16_t type, std::int32_t subtype)
-{
-    return subtype == RisingStoneChipSubtype && (type == FirstStoneChipEffect || type == SecondStoneChipEffect);
-}
 // El pedazo de hielo 0xca (Data\Skill\Ice02.bmd, 0x615d36): diez los suelta el monstruo de hielo 0x161 al terminar de
 // morir (0x52e810, CL9 hito 3). Su paso es el de las piedritas (0x523974).
 inline constexpr std::int16_t IceShardEffect = 0xca;
@@ -80,29 +76,6 @@ inline constexpr std::int16_t AidaWispEffect = 0xb3;
 // El de Castle Siege (0x42c6b0): el objeto 79 del mapa 30 crea el 0x135 (Skill\TowerGatePlane), un plano
 // que sube y baja con el reloj y se dibuja dos veces, la segunda reflejada.
 inline constexpr std::int16_t GatePlaneEffect = 0x135;
-// Señales procedurales de MuRet para los tres llamadores del mapa 30.
-inline constexpr std::int16_t SiegeArrivalCue = 0x134;
-inline constexpr std::int16_t SiegeStoneCue = 0x19f;
-inline constexpr std::int16_t SiegePulseCue = 0x61c;
-inline constexpr std::int32_t SiegeAttackCueLife = 20;
-inline constexpr std::int16_t CrywolfArrowEffect = 0xf8;
-inline constexpr std::int16_t CrywolfPulseEffect = 0x105;
-inline constexpr std::int16_t CrywolfShardEffect = 0xc1a;
-inline constexpr std::int32_t CrywolfArrowSubtype = 1;
-inline constexpr std::int32_t CrywolfPulseSubtype = 3;
-
-[[nodiscard]] constexpr bool IsSiegeCue(std::int16_t type, std::int32_t subtype)
-{
-    return subtype == 0 && (type == SiegeArrivalCue || type == SiegeStoneCue || type == SiegePulseCue);
-}
-
-[[nodiscard]] constexpr bool IsCrywolfCue(std::int16_t type, std::int32_t subtype)
-{
-    return (type == CrywolfArrowEffect && subtype == CrywolfArrowSubtype) ||
-           (type == CrywolfPulseEffect && subtype == CrywolfPulseSubtype) ||
-           (type == CrywolfShardEffect && subtype == 0);
-}
-
 // El calco que se apaga (0x61d, sin modelo: solo el pase del suelo dibuja la /1). El 0x38 de Crywolf crea el /3, que
 // suelta órbitas 60f/10 (0x52b933).
 inline constexpr std::int16_t FadingDecalEffect = 0x61d;
@@ -242,13 +215,14 @@ struct ModelEffectArguments
 // El WORD +0x2 del dueño, leído en vivo, o nada sin dueño.
 [[nodiscard]] std::optional<std::uint16_t> OwnerTypeOf(const ModelEffectOwner& owner);
 
+// ModelEffects::Begin sobre otra tabla del mismo formato: la copia que repite el pase del suelo (0x52dc20) crea ahí lo
+// que el original crea en la suya (los 0x61e/7 y /9 de 0x52e04c y 0x52e0a2).
+[[nodiscard]] std::optional<std::size_t> BeginModelEffect(std::span<ModelEffect> table,
+                                                          const ModelEffectArguments& arguments);
+
 class ModelEffects
 {
 public:
-    // El caller presta el actor durable de llegada. Sólo el pulso consume RNG al obtener un lugar.
-    std::optional<std::size_t> CreateSiegeCue(const ModelEffectArguments& arguments, Render::Models::CrtRandom& random);
-    // Fragmento radial o pulso. El dueño del pulso es una flecha durable del mismo pool.
-    std::optional<std::size_t> CreateCrywolfEffect(const ModelEffectArguments& arguments);
     // 0x51c754: el torbellino145/2 de la estela del1ae, sinRNG.
     std::optional<std::size_t> CreateCrywolfTideEffect(const ModelEffectArguments& arguments);
     // 0x51c129: ondas114/2 y/6, key firmado como escala, sinRNG; 0x51c8e8:115/1.

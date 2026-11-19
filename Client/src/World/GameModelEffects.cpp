@@ -43,9 +43,11 @@ float F32(double value)
 {
     return static_cast<float>(value);
 }
-Core::Expected<void, std::string> StepPiercingShot(ModelEffect& effect, Particles& particles,
-                                                   Render::Models::CrtRandom& random,
-                                                   const ModelEffectStepServices& services)
+} // namespace
+
+Core::Expected<void, std::string> EmitPiercingShotGlow(ModelEffect& effect, Particles& particles,
+                                                       Render::Models::CrtRandom& random,
+                                                       const ModelEffectStepServices& services)
 {
     constexpr int Emissions = 3;
     constexpr int FullCircle = 360;
@@ -79,6 +81,8 @@ Core::Expected<void, std::string> StepPiercingShot(ModelEffect& effect, Particle
     return {};
 }
 
+namespace
+{
 Core::Expected<void, std::string> StepKalimaEffect(ModelEffect& effect, KalimaWorld* kalima,
                                                    Render::Models::CrtRandom& random)
 {
@@ -301,7 +305,8 @@ Core::Expected<void, std::string> StepStoneChip(ModelEffect& effect, Particles& 
                                                 Render::Models::CrtRandom& random,
                                                 const ModelEffectStepServices& services)
 {
-    const bool rising = IsRisingStoneChip(effect.type, effect.subtype);
+    const bool rising = (effect.type == FirstStoneChipEffect || effect.type == SecondStoneChipEffect) &&
+                        effect.subtype == RisingStoneChipSubtype;
     if (!rising && effect.subtype != 0 && effect.subtype != GroundStoneChipSubtype)
         return Core::Unexpected(std::format("{}: el paso de la piedrita {:#x} con el subtipo {} no está portado",
                                             effect.type == IceShardEffect ? "0x523974" : "0x5238be", effect.type,
@@ -1545,6 +1550,41 @@ Core::Expected<void, std::string> StepDebris(ModelEffect& effect, Particles& par
                                         "0x5208a0, un local que ningún camino escribe (Q-C1176; la VM, P-C232)",
                                         effect.type));
 }
+
+// 0x523c4a..0x523ccd, la 0x105/1: 0x530860(0x614, posición, posición, ángulos, 3, 0, 20,0f, 7, 0, 0, −1) y
+// 0x5491e0(0x5fd, posición, ((rand() & 7) + 8) · 0,2f, (1, 1, 1), el efecto, rand() % 360, 0); el rand() de la rotación
+// sale primero.
+Core::Expected<void, std::string> StepTheTrailSpark(ModelEffect& effect, Render::Models::CrtRandom& random,
+                                                    const ModelEffectStepServices& services)
+{
+    constexpr std::int32_t SparkJoint = 0x614, SparkJointSubtype = 3, SparkJointKey = 7, NoTarget = -1;
+    constexpr float SparkJointScale = 20.0f; // 0x41a00000
+    if (!services.joint)
+        return Core::Unexpected(std::string("0x523c78: la estela 0x105/1 pide el servicio de joints 0x614/3"));
+    const FishEffectRequest request{SparkJoint,
+                                    effect.transform.position,
+                                    effect.transform.position,
+                                    effect.transform.angles,
+                                    SparkJointSubtype,
+                                    nullptr,
+                                    SparkJointScale,
+                                    SparkJointKey,
+                                    0,
+                                    0,
+                                    NoTarget};
+    if (auto created = services.joint(request); !created.HasValue())
+        return Core::Unexpected("0x523c78: " + created.Error());
+    if (services.sprites == nullptr)
+        return Core::Unexpected(std::string("0x523cc8: la estela 0x105/1 pide la tabla de sprites"));
+    constexpr int FullTurn = 360;
+    constexpr std::int32_t SparkSprite = 0x5fd, SparkSizes = 7, SparkBase = 8;
+    constexpr double SparkStep = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu)); // 0x6b8854, 0,2f
+    const auto rotation = static_cast<float>(random.Next() % FullTurn);
+    const float scale = F32(static_cast<double>((random.Next() & SparkSizes) + SparkBase) * SparkStep);
+    static_cast<void>(
+        services.sprites->Create(SparkSprite, effect.transform.position, scale, glm::vec3(1.0f), rotation, 0));
+    return {};
+}
 } // namespace
 Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const Render::Models::Skeleton* skeleton,
                                                       Particles& particles, float worldClock,
@@ -1563,24 +1603,9 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
     constexpr std::int16_t FirstTower = 322;
     constexpr std::int16_t LastTower = 324;
     constexpr std::int16_t KalimaType = 9;
-    if (effect.type == CrywolfShardEffect && effect.subtype == 0)
-    {
-        if (!services.terrainHeight)
-            return Core::Unexpected(std::string("0x52c9f2: el fragmento radial pide la altura del terreno"));
-        const glm::vec3& position = effect.transform.position;
-        const bool hit = services.terrainHeight(position.x, position.y) > static_cast<double>(position.z);
-        constexpr glm::vec3 Light{0.2f, 0.4f, 1.0f};
-        const float luminosity = StepLuminosity(lightDraw, effect.life);
-        if (auto lit = AddDynamicLight(services.lighting, position, Light * luminosity, 2, "0x521216"); !lit.HasValue())
-            return lit;
-        effect.alpha = std::clamp(luminosity, 0.0f, 1.0f);
-        // 0x52caa0: aun tras el contacto corren el movimiento y el decremento de la cola.
-        StepModelEffect(effect, nullptr);
-        if (hit)
-            effect.alive = false;
-        return {};
-    }
-    if (effect.type == CrywolfPulseEffect && effect.subtype == 0)
+    // 0x523b8b..0x523d35, el 0x105 (la estela de las flechas, 0x51c590, y el pulso 0x105/3 de la 0xf8/1, 0x523f72).
+    constexpr std::int16_t ArrowTrailEffect = 0x105;
+    if (effect.type == ArrowTrailEffect)
     {
         // 0x523b8b..0x523d2c: el puntero retiene el lugar, sin filtrar su tipo ni su generación.
         const ModelEffect* arrow = effect.owner.effect;
@@ -1594,12 +1619,19 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
             effect.copiedAngles = arrow->transform.angles;
             effect.start = effect.transform.position;
             effect.transform.position = arrow->transform.position;
+            // 0x523c3e..0x523ccd: el /1, el joint 0x614/3 (escala 20, clave 7) y el sprite 0x5fd con el efecto de
+            // dueño, la luz (1, 1, 1), la rotación rand() % 360 y la escala ((rand() & 7) + 8) · 0,2f.
+            if (effect.subtype == 1)
+            {
+                if (auto made = StepTheTrailSpark(effect, random, services); !made.HasValue())
+                    return made;
+            }
             if (services.map == nullptr)
-                return Core::Unexpected(std::string("0x523cd0: la estela 105/0 necesita el mapa"));
+                return Core::Unexpected(std::string("0x523cd0: la estela 0x105 necesita el mapa"));
             if (IsKalimaMap(*services.map) && arrow->ownerContext != nullptr && arrow->ownerContext == services.hero)
             {
                 if (kalima == nullptr)
-                    return Core::Unexpected(std::string("0x523d24: la estela 105/0 necesita las ondas de Kalima"));
+                    return Core::Unexpected(std::string("0x523d24: la estela 0x105 necesita las ondas de Kalima"));
                 constexpr double TileFactor = static_cast<double>(0.01f);
                 constexpr std::int32_t Radius = 2, Amplitude = -200;
                 const auto tileX = FtolLow(static_cast<double>(effect.transform.position.x) * TileFactor);
@@ -1610,39 +1642,14 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
             effect.copiedAngles.y = effect.turnDirection; // 0x523d2c, después de la perturbación.
         }
         if (services.publishAction)
-            services.publishAction(CrywolfPulseEffect, effect.animation.action);
+            services.publishAction(ArrowTrailEffect, effect.animation.action);
         StepModelEffect(effect, skeleton);
         effect.previousPosition = before;
         return {};
     }
-    if (effect.type == CrywolfPulseEffect && effect.subtype == CrywolfPulseSubtype)
-    {
-        const auto* arrow = effect.owner.effect;
-        if (arrow == nullptr || !arrow->alive || arrow->type != CrywolfArrowEffect ||
-            arrow->subtype != CrywolfArrowSubtype)
-            effect.life = 1;
-        else
-        {
-            effect.transform.position = arrow->transform.position;
-            effect.transform.angles = arrow->transform.angles;
-        }
-        StepModelEffect(effect, nullptr);
-        return {};
-    }
-    if (IsSiegeCue(effect.type, effect.subtype))
-    {
-        if (effect.type == SiegeArrivalCue)
-            effect.life = effect.hasOwner ? 2 : 1;
-        else
-            effect.alpha =
-                std::clamp(static_cast<float>(effect.life) / static_cast<float>(SiegeAttackCueLife), 0.0f, 1.0f);
-        // La señal no tiene esqueleto. La cola común conserva el paso y la liberación del lugar.
-        StepModelEffect(effect, nullptr);
-        return {};
-    }
     if (effect.type == PiercingShotGlowEffect && effect.subtype == 0)
     {
-        if (auto emitted = StepPiercingShot(effect, particles, random, services); !emitted.HasValue())
+        if (auto emitted = EmitPiercingShotGlow(effect, particles, random, services); !emitted.HasValue())
             return emitted;
     }
     else if (effect.type == KalimaType)
@@ -1809,7 +1816,7 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
     else if (IsSiegeVertexEffect(effect.type))
     {
         wholeStep = true;
-        if (auto stepped = StepSiegeVertexEffect(effect, particles, random, services); !stepped.HasValue())
+        if (auto stepped = StepSiegeVertexEffect(effect, particles, random, services, worldClock); !stepped.HasValue())
             return stepped;
     }
     else if (effect.type == FirstDebrisEffect || effect.type == DebrisEffect)

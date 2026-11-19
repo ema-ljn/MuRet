@@ -622,7 +622,7 @@ TEST_F(GameCharacterEffectsTest, ThePetSummonRefusesOtherEffectsAndAMissingJoint
     EXPECT_EQ(m_random.State(), 1u);
     EXPECT_EQ(summon.life, 20);
 
-    summon.subtype = 2;
+    summon.subtype = 4;
     const auto refused = Client::Scenes::StepPetSummon(summon, m_joints, m_random);
     ASSERT_FALSE(refused.HasValue());
     EXPECT_NE(refused.Error().find("0x52b9a6"), std::string::npos) << refused.Error();

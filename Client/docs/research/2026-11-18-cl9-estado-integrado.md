@@ -31,7 +31,7 @@ no se reescribió historia pública y no se cerraron entregas ajenas.
 | Hito | Implementación presente en el conjunto | Condición que impide certificar el cierre total |
 | --- | --- | --- |
 | H1: emote y jugadores | Viewport, estado y acciones; conservación de los arreglos previos de entrada y selección. | Comparación dinámica estricta; efectos externos y precisión original en los casos documentados de H1. |
-| H2: monstruos, NPC y misiones | Altas/bajas, diálogos, premio A3 y cambio de partes de #362. NPC 12/13 conectados con H12. Llegadas en Crywolf, joints618 y señal propia `134/0` en el castillo. | Otras familias externas y casos de registro protegido. |
+| H2: monstruos, NPC y misiones | Altas/bajas, diálogos, premio A3 y cambio de partes de #362. NPC 12/13 conectados con H12. Llegadas en Crywolf, joints618 y `134/0` en el castillo (señal propia en H2; efecto original desde la CL11). | Otras familias externas y casos de registro protegido. |
 | H3: combate, daño y muerte | Entrega de #342 y fix de ataque #359 conservados; integración con estados del asedio. | Casos nativos indeterminados Q-C1050/Q-C1161 y efectos concretos de CL11; combate XP previo no certifica todos los casos. |
 | H4: skills, cuervo y mascotas | Entrega principal integrada; receptores/equipo y familias necesarias para Siege/Crywolf ampliados. | Efectos de skills que siguen perteneciendo a CL11 y validación de sus recorridos especiales. |
 | H5: ítems | Piso, usar/tirar, inventario y devolución del cursor antes del teleport. | Autoequipación de flechas P-C151/Q-C773: lectura de manos tras el cierre protegido. |
@@ -40,7 +40,7 @@ no se reescribió historia pública y no se cerraron entregas ajenas.
 | H8: gremio, alianza y guerra | Entrega principal integrada; caché canónica y cierres del Guild Master por chat, quest y paneles. | Servicio compatible, roles reales y contraste dinámico de los flujos sociales. |
 | H9: amigos y editor compartido | Edición occidental, cursor/selección, clipboard, foco y latch Tab; guard compartido de entrada. | Perfil XP de autoscroll horizontal, medida/caret e IME completo. Sigue abierto como fidelidad, aunque exista implementación funcional. |
 | H10: chat y cartas | Editor compartido, listas, retrato y multiline; #347 incorpora las reparaciones de H9. | Misma frontera del EDIT y validación del servicio de amigos/cartas. |
-| H11: eventos | Battle Soccer, marcador/telas, F3 24 y resultado incluso con HUD oculto. Crywolf ejecuta `F8/1`, la descarga `C1A/0` y la dispersión. El ataque `0x17e` sigue con el pool lleno. La carga del mapa reproduce la reutilización de tablas de Q-C181. | Servidor compatible y contraste en VM. Q-C1050 con lugar de partícula y Q-C1328 al recibir un `BD 00` fuera de los estados 0–2 leen pila sin inicializar. [Decisión de efectos](../../../docs/adr/0020-senales-crywolf.md). |
+| H11: eventos | Battle Soccer, marcador/telas, F3 24 y resultado incluso con HUD oculto. Crywolf ejecuta `F8/1`, la descarga `C1A/0` y la dispersión. El ataque `0x17e` sigue con el pool lleno. La carga del mapa reproduce la reutilización de tablas de Q-C181. | Servidor compatible y contraste en VM. Q-C1050 con lugar de partícula y Q-C1328 al recibir un `BD 00` fuera de los estados 0–2 leen pila sin inicializar. Efectos originales desde la CL11 [06](06-render-escenas-y-ui.md#los-efectos-con-modelo-de-los-tipos-altos). |
 | H12: ventanas del castillo | Registro/listas B4/B5, Senior, puertas/estatuas, impuestos, retiro/fabricación y zona de caza, desde NPC/recepción hasta paso/dibujo. | Estados iniciales/bytes residuales del original y comparación visual/servidor en VM. |
 | H13: batalla del castillo | B2/B6/B7/B9/BA/BB, corona/bandos, holders, panel y minimapa, NPC de armas/puertas, señales de alta y ataque en mapa 30, B1 y retorno. | Estados de pila sin inicializar y contraste de batalla/cambio de servidor. La selección de objetos del escenario sigue pendiente en CL7.4. |
 
@@ -68,8 +68,8 @@ no se reescribió historia pública y no se cerraron entregas ajenas.
   cuando falta un constructor con capacidad disponible.
 - Altas y ataques del asedio: `42d513` y `42d5af` publican los actores 278 y 283
   tanto con `134/0` como con el pool lleno. `42dd48` y `42dd9c` completan sus
-  invocaciones de `61c/0` y `19f/0` en el mapa 30. Las señales tienen geometría y
-  emisiones propias de MuRet. [ADR 0019](../../../docs/adr/0019-senales-del-asedio.md).
+  invocaciones de `61c/0` y `19f/0` en el mapa 30. Desde la CL11 (2026-11-19) son los
+  efectos originales, sin las señales del ADR 0019 (retirado) [06](06-render-escenas-y-ui.md#los-efectos-con-modelo-de-los-tipos-altos).
 - `BD 0C` de Crywolf: `4e15fa` lee hasta `pkt[9]`. El parser rechaza un mensaje
   truncado con `TooShort` antes del despacho. Los mensajes completos conservan los
   mismos datos y la prueba cubre desde los bytes hasta el alta del misil.
@@ -192,9 +192,8 @@ identidades, precondiciones, secuencias, VAs y entrega de evidencia. Casos prior
 La rama de `0x432acc` (Q-C1050) sigue requiriendo observar el local de pila
 cuando hay un lugar de partícula libre. Fuera de Crywolf, algunos llamadores
 de `0x51fff0` llegan ahora al límite de `F6` de CL11, después de la dispersión.
-Los llamadores de `F8/1` y `C1A/0` continúan con las señales propias de MuRet.
-El ADR 0020 registra las diferencias de trayectoria, emisiones y RNG que hay
-que identificar al contrastar estos ataques. Las demás variantes de CL11
+Los llamadores de `F8/1` y `C1A/0` continúan con los efectos originales desde la
+CL11 (2026-11-19; el ADR 0020 de las señales propias quedó retirado). Las demás variantes de CL11
 conservan sus límites individuales.
 
 Para continuar, revisar primero los checks del PR sobre su SHA, resolver cualquier fallo

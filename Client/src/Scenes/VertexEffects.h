@@ -21,7 +21,8 @@ class IModelLibrary;
 struct DrawnObject;
 
 // 4ee770: cada esquina de cada polígono de la malla, sobre el scratch de4ebc80 (sin deduplicar).
-// Familias alcanzadas por Castle Siege: 10a/0,12d/0,12e/0,12f/0 y131/0.
+// Familias alcanzadas por Castle Siege: 10a/0,12d/0,12e/0,12f/0 y131/0; y el 0x13c (las piedras de 0x441400 al morir:
+// el /0 con 0x13c/0, el /1 con 0x12d/2 y 0x12e/2).
 // Pool lleno conserva los sorteos del caller.
 [[nodiscard]] Core::Expected<void, std::string>
 EmitVertexEffects(const IModelLibrary& models, const DrawnObject& object,

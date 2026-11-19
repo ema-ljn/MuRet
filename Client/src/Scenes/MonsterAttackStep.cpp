@@ -14,8 +14,10 @@
 #include "Scenes/CharacterStep.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/HighModelEffects.h"
 #include "Scenes/JointFamilies.h"
 #include "Scenes/JointKernels.h"
+#include "Scenes/KalimaMonsterEffects.h"
 #include "Scenes/WizardEffects.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -720,11 +722,15 @@ Core::Expected<Helped, std::string> StepKalima(ActorState& actor, const KindCase
         return Helped::Exit;
     }
     case 0x43abea:
-        // En la 4 y en 14, 0x518cf0(0x11a) sobre c.
+        // En la 4 y en 14, 0x518cf0(0x11a, c + 0x10, c + 0x1c, c + 0xf4, 0, 0, −1, 0, 0, 0, 0) (0x43ac07..0x43ac29):
+        // el seamanFX sobre c (Scenes::KalimaMonsterEffects; su alta pisa la luz). Con la tabla llena, nada.
         if (action == SecondAttack && actor.byte381 == FourteenthStep)
         {
-            if (HasFreeModelEffect(context))
-                return CutAt(0x43ac29, "el efecto 0x11a (CL11)", actor, slot);
+            if (auto created = CreateHighModelEffect(
+                    {.type = SeamanEffect, .position = actor.position, .angles = actor.angles, .light = actor.light},
+                    HighContextOf(context));
+                !created.HasValue())
+                return Core::Unexpected(std::format("0x43ac29: {}", created.Error()));
         }
         return Helped::Exit;
     case 0x43ac3a:
@@ -796,25 +802,29 @@ Core::Expected<Helped, std::string> StepKalima(ActorState& actor, const KindCase
     }
 }
 
-// 42dcf0: en30,68 emite en5 conZ+500 y120 siempre. MuRet conserva ese caller y usa sus señales propias.
+// Lo que las altas de los tipos altos (Scenes/HighModelEffects) leen del paso de los personajes.
+// 0x42dcf0 en el 30: el 0x120 (0x42dd23) suelta el pulso 0x61c/0 en cada paso y el 0x68 (0x42dd56), en el 5, el
+// lancero 0x19f/0 con la z 500 más arriba; los dos sin dueño y con la clave en −1. Sale con AL en 1 también con la
+// tabla llena.
 Core::Expected<Helped, std::string> StepTheSiege(const ActorState& actor, const KindCase& found,
                                                  const CharacterStepContext& context)
 {
+    constexpr std::int16_t PulseEffect = 0x61c, SpearmanEffect = 0x19f;
     const bool pulse = found.address == 0x42dd23;
     if (!pulse && actor.byte381 != FifthStep)
         return Helped::Exit;
-    World::ModelEffectArguments cue{.type = pulse ? World::SiegePulseCue : World::SiegeStoneCue,
-                                    .position = actor.position,
-                                    .angles = actor.angles,
-                                    .light = actor.light};
+    World::ModelEffectArguments arguments{.type = pulse ? PulseEffect : SpearmanEffect,
+                                          .position = actor.position,
+                                          .angles = actor.angles,
+                                          .light = actor.light};
     if (!pulse)
     {
-        // 42dd7a..42dd92: FADDfloat500 yFSTP de laZ local, antes de intentar el alta.
-        constexpr double StoneHeight = 500.0;
-        cue.position.z = static_cast<float>(static_cast<double>(cue.position.z) + StoneHeight);
+        // 0x42dd6e..0x42dd92: la z más 500 (0x6b8a98) en la x87 y su FSTP, antes del alta.
+        constexpr double SpearmanLift = 500.0;
+        arguments.position.z = static_cast<float>(static_cast<double>(arguments.position.z) + SpearmanLift);
     }
-    static_cast<void>(context.world.Map().effects.CreateSiegeCue(cue, context.random));
-    // También con la tabla llena: AL1 impide caer al switch de tipos y a la cola del ataque.
+    if (auto created = CreateHighModelEffect(arguments, HighContextOf(context)); !created.HasValue())
+        return Core::Unexpected(created.Error());
     return Helped::Exit;
 }
 
@@ -845,20 +855,20 @@ Core::Expected<Helped, std::string> StepTheDoppelganger(const ActorState& actor,
             }
         }
         return Helped::Exit;
-    case 0x4291b1:
-        if (action == SecondAttack)
-        {
-            if (!HasFreeModelEffect(context))
-                return Helped::Exit;
-            return CutAt(0x429202, "el efecto 0x141 (CL11)", actor, slot);
-        }
-        return Helped::Exit;
     default:
+        // 0x4291ce..0x429202 (el 0x134) y 0x429226..0x42925a (el 0x130): el 0x141 o el 0x61c/1 con la luz (1, 1, 1),
+        // sin dueño y con la clave en −1.
         if (action == SecondAttack)
         {
-            if (!HasFreeModelEffect(context))
-                return Helped::Exit;
-            return CutAt(0x42925a, "el efecto 0x61c/1 (CL11)", actor, slot);
+            constexpr std::int16_t FlashEffect = 0x141, PulseEffect = 0x61c;
+            const bool flash = found.address == 0x4291b1;
+            const World::ModelEffectArguments arguments{.type = flash ? FlashEffect : PulseEffect,
+                                                        .position = actor.position,
+                                                        .angles = actor.angles,
+                                                        .light = glm::vec3(1.0f),
+                                                        .subtype = flash ? 0 : 1};
+            if (auto created = CreateHighModelEffect(arguments, HighContextOf(context)); !created.HasValue())
+                return Core::Unexpected(std::format("{} (lugar {})", created.Error(), slot));
         }
         return Helped::Exit;
     }
@@ -870,11 +880,13 @@ Core::Expected<void, std::string> ScatterTheBurst(const ActorState& actor, std::
 // 0x43257a y 0x42fd76 comparten los argumentos y salen incluso si el pool está lleno.
 Core::Expected<Helped, std::string> LaunchTheCrywolfArrow(ActorState& actor, const CharacterStepContext& context)
 {
-    const auto created = CreateTheArrowEffect({.type = World::CrywolfArrowEffect,
+    constexpr std::int16_t CelestialArrow = 0xf8;
+    constexpr std::int32_t CelestialSubtype = 1;
+    const auto created = CreateTheArrowEffect({.type = CelestialArrow,
                                                .position = actor.position,
                                                .angles = actor.angles,
                                                .light = actor.light,
-                                               .subtype = World::CrywolfArrowSubtype,
+                                               .subtype = CelestialSubtype,
                                                .owner = &actor,
                                                .key = static_cast<std::uint16_t>(actor.word8a)},
                                               context.world, context.random, &actor.angles);
@@ -883,18 +895,24 @@ Core::Expected<Helped, std::string> LaunchTheCrywolfArrow(ActorState& actor, con
     return Helped::Exit;
 }
 
-// 0x4329db y 0x4f6780: cada giro vuelve a partir del ángulo del actor.
-void LaunchTheRadialVolley(const ActorState& actor, World::ModelEffects& effects)
+// 0x4329a4..0x4329ea y 0x4f6749..0x4f678f: dieciocho 0xc1a/0 desde el actor, sin dueño y con la clave en −1; la z de
+// los ángulos es la del actor más i · 20 (FILD, FMUL y FADD).
+Core::Expected<void, std::string> LaunchTheRadialVolley(const ActorState& actor, const CharacterStepContext& context)
 {
+    constexpr std::int16_t ShardEffect = 0xc1a;
     constexpr int Shards = 18;
-    constexpr double DegreesPerShard = 20.0;
+    constexpr double DegreesPerShard = 20.0; // 0x6b86d0
     glm::vec3 angles = actor.angles;
     for (int shard = 0; shard < Shards; ++shard)
     {
-        angles.z = static_cast<float>(static_cast<double>(actor.angles.z) + shard * DegreesPerShard);
-        static_cast<void>(effects.CreateCrywolfEffect(
-            {.type = World::CrywolfShardEffect, .position = actor.position, .angles = angles, .light = actor.light}));
+        angles.z =
+            static_cast<float>(static_cast<double>(shard) * DegreesPerShard + static_cast<double>(actor.angles.z));
+        const World::ModelEffectArguments arguments{
+            .type = ShardEffect, .position = actor.position, .angles = angles, .light = actor.light};
+        if (auto created = CreateHighModelEffect(arguments, HighContextOf(context)); !created.HasValue())
+            return Core::Unexpected(created.Error());
     }
+    return {};
 }
 
 // 0x4324c0 en Crywolf (el 34), por el tipo. Salvo los efectos de los que pegan en 14 y 15, devuelve 0.
@@ -936,7 +954,10 @@ Core::Expected<Helped, std::string> StepCrywolf(ActorState& actor, const KindCas
         constexpr std::uint16_t StoneKind = 0x3b;
         if (actor.byte381 == FourteenthStep && actor.word376 == StoneKind &&
             ReadTheSkill(actor, context.random) == CaseSkill)
-            LaunchTheRadialVolley(actor, context.world.Map().effects);
+        {
+            if (auto volley = LaunchTheRadialVolley(actor, context); !volley.HasValue())
+                return Core::Unexpected(volley.Error());
+        }
         return Helped::Continue;
     }
     case 0x432a0c:
@@ -1149,10 +1170,29 @@ Core::Expected<void, std::string> StepTheKindCase(ActorState& actor, const KindC
     switch (found.address)
     {
     case 0x4f5cb6:
-        // En 5 y con +0x3a4 distinto de 0xffff, veinte 0x625; el primer slot libre conserva el corte.
-        if (step == FifthStep && actor.attackTarget != 0xffff && HasFreeModelEffect(context))
-            return CutAt(0x4f5d13, "el primero de los veinte efectos 0x625 sobre el blanco (CL11)", actor, slot);
+    {
+        // 0x4f5cb6..0x4f5d1e: en 5 y con +0x3a4 distinto de 0xffff, veinte 0x518cf0(0x625, la posición del personaje
+        // +0x3a4 (MOVSX, sin mirar si vive), sus ángulos, la luz local, 0, 0, −1, 0, 0, 0, 0). El original no acota el
+        // índice: fuera de [0, 400) lee fuera de la tabla, y MuRet corta.
+        if (step != FifthStep || actor.attackTarget == 0xffff)
+            return {};
+        const auto target = std::bit_cast<std::int16_t>(actor.attackTarget);
+        if (target < 0 || target >= PoolSlots)
+            return Core::Unexpected(
+                std::format("0x4f5cd4: el blanco {} del lugar {} está fuera de la tabla de personajes", target, slot));
+        const ActorState& victim = context.world.Actors()[static_cast<std::size_t>(target)];
+        constexpr int FallingStars = 20;
+        constexpr std::int16_t FallingStar = 0x625;
+        for (int star = 0; star < FallingStars; ++star)
+        {
+            if (auto created = CreateHighModelEffect(
+                    {.type = FallingStar, .position = victim.position, .angles = victim.angles, .light = localLight},
+                    HighContextOf(context));
+                !created.HasValue())
+                return Core::Unexpected("0x4f5d13: " + created.Error());
+        }
         return {};
+    }
     case 0x4f5d23:
     {
         constexpr std::uint16_t RockKind = 0x3f;
@@ -1202,20 +1242,45 @@ Core::Expected<void, std::string> StepTheKindCase(ActorState& actor, const KindC
         if (step == FirstStep)
             return ScatterTheBurst(actor, slot, context);
         if (step == FourteenthStep && actor.word376 == StoneKind && ReadTheSkill(actor, context.random) == CaseSkill)
-            LaunchTheRadialVolley(actor, context.world.Map().effects);
+            return LaunchTheRadialVolley(actor, context);
         return {};
     }
     case 0x4f67ad:
     {
-        // +0x381 % 5 en 1: 0x5e9 del hueso 63; luego +0x38e y, con '2' en 1, 0x5e8. Cada slot se intenta aparte.
+        // 0x4f67ad..0x4f6800: con +0x381 % 5 en 1, el 0x5e9 en el punto (0, 0, 0) del hueso 63 (0x4ec110), con los
+        // ángulos y la luz de c, sin dueño. 0x4f6803..0x4f6b5c: +0x38e y, con '2' y +0x381 en 1, la luz local en
+        // (0,42; 0,84; 1,4) y nueve 0x5e8 desde 50 sobre c, el ángulo z de c 20 más y 40 más antes de cada uno.
         constexpr std::uint8_t Period = 5;
-        if (step % Period == FirstStep && HasFreeModelEffect(context))
-            return CutAt(0x4f67fb, "el efecto 0x5e9 del hueso 63 (CL11)", actor, slot);
+        constexpr std::size_t RayBone = 63;
+        constexpr std::int16_t OrangeRay = 0x5e9, BlueRay = 0x5e8;
+        if (step % Period == FirstStep)
+        {
+            if (auto made = CreateHighModelEffect({.type = OrangeRay,
+                                                   .position = BonePoint(actor, RayBone, glm::vec3(0.0f), context),
+                                                   .angles = actor.angles,
+                                                   .light = actor.light},
+                                                  HighContextOf(context));
+                !made.HasValue())
+                return Core::Unexpected(std::format("{} (lugar {})", made.Error(), slot));
+        }
         if (ReadTheSkill(actor, context.random) == CaseSkill && actor.byte381 == FirstStep)
         {
             localLight = Kind31TailLight;
-            if (HasFreeModelEffect(context))
-                return CutAt(0x4f6b51, "el efecto 0x5e8 (CL11)", actor, slot);
+            constexpr int Rays = 9;
+            constexpr double RayLift = 50.0, RayTurn = 20.0, RaySpread = 40.0;
+            const glm::vec3 point{actor.position.x, actor.position.y,
+                                  static_cast<float>(static_cast<double>(actor.position.z) + RayLift)};
+            glm::vec3 angles = actor.angles;
+            angles.z = static_cast<float>(static_cast<double>(angles.z) + RayTurn);
+            for (int ray = 0; ray < Rays; ++ray)
+            {
+                angles.z = static_cast<float>(static_cast<double>(angles.z) + RaySpread);
+                if (auto made = CreateHighModelEffect(
+                        {.type = BlueRay, .position = point, .angles = angles, .light = localLight},
+                        HighContextOf(context));
+                    !made.HasValue())
+                    return Core::Unexpected(std::format("{} (lugar {})", made.Error(), slot));
+            }
         }
         return {};
     }
@@ -1424,11 +1489,22 @@ Core::Expected<void, std::string> StepTheKindSkill(ActorState& actor, ActorState
                 return FireTheArrow(actor, &actor, slot, 0, 0, 0, context);
             return {};
         }
-        // En la 3 y en 15, 0x4f5b10 (el punto (−20, −90, 100) de c) y 0x518cf0(0x5e8, dueño c).
+        // En la 3 y en 15, 0x4f5b10 (el punto (−20, −90, 100) de c) y 0x518cf0(0x5e8, punto, c+0x1c, la luz local, 0,
+        // c, −1, 0, 0, 0, 0) (0x4f81cc).
         if (action == FirstAttack)
         {
-            if (step == FifteenthStep && HasFreeModelEffect(context))
-                return CutAt(0x4f81cc, "el efecto 0x5e8 delante del que pega (CL11)", actor, slot);
+            if (step == FifteenthStep)
+            {
+                constexpr glm::vec3 RayOffset{-20.0f, -90.0f, 100.0f};
+                if (auto made = CreateHighModelEffect({.type = 0x5e8,
+                                                       .position = PointAround(actor, RayOffset),
+                                                       .angles = actor.angles,
+                                                       .light = localLight,
+                                                       .owner = &actor},
+                                                      HighContextOf(context));
+                    !made.HasValue())
+                    return Core::Unexpected(std::format("{} (lugar {})", made.Error(), slot));
+            }
             return {};
         }
         // En la 4 y en 8, rand() & 1: con 0 dos 0xf5 sobre el blanco (dueño c); con 1 (0x4f8253..0x4f82aa) dos

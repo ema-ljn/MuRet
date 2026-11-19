@@ -24,7 +24,6 @@
 #include "Scenes/GameItemSpecialDrawing.h"
 #include "Scenes/GameTailDrawingPrimitives.h"
 #include "Scenes/ModelPoseCallbacks.h"
-#include "Scenes/SiegeCueDrawing.h"
 #include "Scenes/WizardEffectDrawing.h"
 #include "World/GameModelEffects.h"
 #include "World/Leaves.h"
@@ -713,14 +712,8 @@ DrawGameModelEffectsChecked(Render::ModelBatch& batch, const IModelLibrary& mode
         if (!effect.seen)
             continue;
         // 0x103 (flashing.bmd) y 0x105/0 (Piercing.bmd) no tienen caso propio: 0x52d6c3 y 0x52d78f los mandan a
-        // 0x52da92 → 0x602e90 con su malla, como el resto de 0xbe..0x150 (GenericEffect, más abajo).
-        if (World::IsSiegeCue(effect.type, effect.subtype) || World::IsCrywolfCue(effect.type, effect.subtype) ||
-            World::IsRisingStoneChip(effect.type, effect.subtype))
-        {
-            if (mode == 0 && (effect.type != World::SiegeArrivalCue || resources == nullptr || resources->siegeActive))
-                DrawBattleCue(batch, effect);
-            continue;
-        }
+        // 0x52da92 → 0x602e90 con su malla, como el resto de 0xbe..0x150 (GenericEffect, más abajo). Los tipos altos de
+        // la CL11 (0x134, 0x13b, 0x141 y 0xc1a) también; el 0x19f y el 0x61c no tienen caso y no se dibujan.
         if (mode != 0)
         {
             const auto blendMesh = effect.objectState.blendMesh;

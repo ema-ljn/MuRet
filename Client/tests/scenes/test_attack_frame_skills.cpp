@@ -343,8 +343,8 @@ TEST(AttackFrameSkillsTest, TheBoltsOf2cCutWithoutTheirPools)
 
 // 0x2b (0x4f98a0..0x4f9bcd): el hueso de la mano de 0x4f9780 (la izquierda con la 0x25 o la 0x26) en Player.bmd. Un
 // dummy o fuera de la cuenta (JGE: el igual tampoco), nada. Hasta 8, la mano a +0x194, corrida 300 por el rumbo; en 8,
-// el sonido 0x71; de 2 a 8 corta en el primer joint 0x10f/2 después de sus tres rand(); de 6 a 12, en los efectos
-// 0x812/1; desde 13, +0x381 en [0x6c88ac].
+// el sonido 0x71; de 2 a 8 corta en el primer joint 0x10f/2 después de sus tres rand(); de 6 a 12, los dos efectos
+// 0x812/1 (sin rand()); desde 12, +0x381 en [0x6c88ac].
 TEST(AttackFrameSkillsTest, TheHandOf2bChargesUntilEight)
 {
     struct Case
@@ -366,8 +366,8 @@ TEST(AttackFrameSkillsTest, TheHandOf2bChargesUntilEight)
         {"en 1, con la izquierda de la 0x26", 0x26, 1, Bones, HandBone, "", 0, true, 1, {}},
         {"en 2", 0x2b, 2, HandBone, 0, "0x4f99fe", 3, false, 2, {}},
         {"en 8", 0x2b, 8, HandBone, 0, "0x4f99fe", 3, false, 8, {0x71}},
-        {"en 9", 0x2b, 9, HandBone, 0, "0x4f9b49", 0, false, 9, {}},
-        {"en 12", 0x2b, 12, HandBone, 0, "0x4f9b49", 0, false, 12, {}},
+        {"en 9", 0x2b, 9, HandBone, 0, "", 0, false, 9, {}},
+        {"en 12", 0x2b, 12, HandBone, 0, "", 0, false, FullThreshold, {}},
         {"en 13", 0x2b, 13, HandBone, 0, "", 0, false, FullThreshold, {}},
         {"en 14", 0x2b, 14, HandBone, 0, "", 0, false, FullThreshold, {}},
         {"un dummy", 0x2b, 13, DummyBone, 0, "", 0, false, 13, {}},
@@ -446,8 +446,8 @@ TEST(AttackFrameSkillsTest, TheHandOf2bTurnsWithTheHeading)
     }
 }
 
-// 0x2f (0x4f9bce..0x4f9e60): en 10, el sonido 0x7d; en 4, el efecto 0x813 de la mano; en 8, los 0x812/0; en 13 y 14,
-// tres veces tres rand() y el efecto 0x10f (lote switch de la CL11). En los demás, nada.
+// 0x2f (0x4f9bce..0x4f9e60): en 10, el sonido 0x7d; en 4, el efecto 0x813 de la mano; en 8, los 0x812/0 (sin
+// rand()); en 13 y 14, tres veces tres rand() y el efecto 0x10f. En los demás, nada.
 TEST(AttackFrameSkillsTest, TheStepsOf2f)
 {
     struct Case
@@ -458,8 +458,8 @@ TEST(AttackFrameSkillsTest, TheStepsOf2f)
         std::vector<std::int32_t> sounds;
     };
     const std::vector<Case> cases{
-        {1, "", 0, {}},  {4, "0x4f9c8d", 0, {}}, {8, "0x4f9d1c", 0, {}}, {10, "", 0, {0x7d}},
-        {12, "", 0, {}}, {13, "", 9, {}},        {14, "", 9, {}},        {15, "", 0, {}},
+        {1, "", 0, {}},  {4, "", 0, {}},  {8, "", 0, {}},  {10, "", 0, {0x7d}},
+        {12, "", 0, {}}, {13, "", 9, {}}, {14, "", 9, {}}, {15, "", 0, {}},
     };
     for (const std::int32_t map : Maps)
     {
@@ -536,6 +536,73 @@ TEST(AttackFrameSkillsTest, TheRocksOf2fFallInFrontOfTheStriker)
             EXPECT_EQ(effect.life, 20);
         }
         EXPECT_FALSE(effects[3].alive);
+    }
+}
+
+// 0x4f9a86..0x4f9b69 y 0x4f9c0e..0x4f9d3c: los 0x812/1 de la 0x2b, (+0x381 − 8) · 10 + 100 delante de la mano por el
+// rumbo; el 0x813 de la 0x2f en la mano, con su modelo de subtipo y la luz (1; 1; 0,5); y los 0x812/0 de la 0x2f, 50
+// delante de o y 110 más arriba. Todos con o de dueño.
+TEST(AttackFrameSkillsTest, TheEmittersOf2bAnd2fStartAtTheHand)
+{
+    const auto emitters = [](const FrameWorld& tested)
+    {
+        std::vector<const Client::World::ModelEffect*> found;
+        for (const auto& effect : tested.world.Map().effects.Effects())
+        {
+            if (effect.alive)
+                found.push_back(&effect);
+        }
+        return found;
+    };
+    {
+        FrameWorld tested(0);
+        ActorState& hero = tested.Striker(0x2b, 0.0f, 9);
+        hero.hands[0].bone = HandBone;
+        hero.position = {1000.0f, 2000.0f, 0.0f};
+        hero.angles = {0.0f, 0.0f, 0.0f};
+        hero.scale = 1.0f;
+        hero.bodyPose.assign(Bones, Client::Render::Models::BoneTransform(1.0f));
+        hero.bodyPose[HandBone][3] = {10.0f, 20.0f, 30.0f};
+        tested.world.PlaceModel(hero);
+        ASSERT_TRUE(tested.Step(hero, 0x2b).HasValue());
+        const auto made = emitters(tested);
+        ASSERT_EQ(made.size(), 2u);
+        for (const auto* effect : made)
+        {
+            EXPECT_EQ(effect->type, 0x812);
+            EXPECT_EQ(effect->subtype, 1);
+            EXPECT_EQ(effect->life, 10);
+            EXPECT_EQ(effect->ownerContext, &hero);
+            EXPECT_EQ(effect->transform.position, glm::vec3(1010.0f, 1910.0f, 30.0f));
+        }
+    }
+    {
+        FrameWorld tested(0);
+        ActorState& hero = tested.Striker(0x42, 0.0f, 8);
+        hero.position = {100.0f, 200.0f, 300.0f};
+        hero.angles = {0.0f, 0.0f, 0.0f};
+        ASSERT_TRUE(tested.Step(hero, 0x2f).HasValue());
+        const auto made = emitters(tested);
+        ASSERT_EQ(made.size(), 2u);
+        for (const auto* effect : made)
+        {
+            EXPECT_EQ(effect->type, 0x812);
+            EXPECT_EQ(effect->subtype, 0);
+            EXPECT_EQ(effect->transform.position, glm::vec3(100.0f, 150.0f, 410.0f));
+        }
+    }
+    {
+        FrameWorld tested(0);
+        ActorState& hero = tested.Striker(0x42, 0.0f, 4);
+        hero.hands[0].model = 0x0812;
+        ASSERT_TRUE(tested.Step(hero, 0x2f).HasValue());
+        const auto made = emitters(tested);
+        ASSERT_EQ(made.size(), 1u);
+        EXPECT_EQ(made[0]->type, 0x813);
+        EXPECT_EQ(made[0]->subtype, 0x812);
+        EXPECT_EQ(made[0]->life, 5);
+        EXPECT_EQ(made[0]->light, glm::vec3(1.0f, 1.0f, 0.5f));
+        EXPECT_EQ(made[0]->transform.angles, glm::vec3(0.0f));
     }
 }
 
@@ -640,7 +707,7 @@ TEST(AttackFrameSkillsTest, ThePiercingShotReachesTheArrowThroughTheAttack)
     }
 }
 
-// 0x37 (0x4f9ef3..0x4fa490), solo el 0x20a en la 0x3d: en 1 y 2, el efecto 0x621/1 (0x4f9f3e); antes del frame 3 sale
+// 0x37 (0x4f9ef3..0x4fa490), solo el 0x20a en la 0x3d: en 1 y 2, el efecto 0x621/1 sobre o; antes del frame 3 sale
 // con [0x6c88ac] en 15; desde el 3, la clave del elegido en +0x8a (0x558eb0), el sonido 0x72, el lugar de la 0x37 en
 // el registro propio (0x59fb80, 3.848 rand() al cerrarlo) y el efecto 0x5be (0x4f9fae, CL11).
 TEST(AttackFrameSkillsTest, TheThrowOf37)
@@ -660,8 +727,8 @@ TEST(AttackFrameSkillsTest, TheThrowOf37)
     const std::vector<Case> cases{
         {"otro tipo", 0x152, 0x3d, 3.0f, 3, "", 0, {}, FullThreshold},
         {"otra acción", Player, 0x3c, 3.0f, 3, "", 0, {}, FullThreshold},
-        {"en 1", Player, 0x3d, 3.0f, 1, "0x4f9f3e", 0, {}, UntouchedThreshold},
-        {"en 2", Player, 0x3d, 0.0f, 2, "0x4f9f3e", 0, {}, UntouchedThreshold},
+        {"en 1", Player, 0x3d, 3.0f, 1, "0x4f9fae", OwnRecord, {0x72}, UntouchedThreshold},
+        {"en 2", Player, 0x3d, 0.0f, 2, "", 0, {}, FullThreshold},
         {"antes del frame 3", Player, 0x3d, 2.9f, 3, "", 0, {}, FullThreshold},
         {"en el frame 3", Player, 0x3d, 3.0f, 3, "0x4f9fae", OwnRecord, {0x72}, UntouchedThreshold},
     };
@@ -693,6 +760,16 @@ TEST(AttackFrameSkillsTest, TheThrowOf37)
             // Sin elegido, 0x558eb0 da −1.
             EXPECT_EQ(static_cast<std::uint16_t>(hero.word8a), probe.draws == OwnRecord ? 0xffff : 0x1234);
             EXPECT_EQ(hero.byte381, probe.step);
+            const auto& glow = tested.world.Map().effects.Effects()[0];
+            const bool held = probe.type == Player && probe.action == 0x3d && probe.step <= 2;
+            EXPECT_EQ(glow.alive, held);
+            if (held)
+            {
+                EXPECT_EQ(glow.type, 0x621);
+                EXPECT_EQ(glow.subtype, 1);
+                EXPECT_EQ(glow.ownerContext, &hero);
+                EXPECT_EQ(glow.life, 20);
+            }
         }
     }
 }

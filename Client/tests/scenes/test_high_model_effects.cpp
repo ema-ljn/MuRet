@@ -761,15 +761,30 @@ TEST(HighModelEffectsTest, TheSeamanEffectRisesAndSpeedsUp)
     EXPECT_EQ(seaman.life, 16);
     EXPECT_EQ(tested.Draws(), 4);
 
-    // Con lugar, las cuatro 0x6f4/1 (las de la cascada de Kalima) en su lugar.
+    // Con lugar, las cuatro 0x6f4/1 (las de la cascada de Kalima) en su lugar, con la luz local (0x5208c5, sin la resta
+    // de las últimas 5 vidas) por (0,1f; 0,3f; 0,6f) (0x526740..0x526783) y un rand() cada una (0x543d30); después, la
+    // luz dinámica de radio 3 con esa misma luz (0x5267ba).
     HighWorld roomy;
     ASSERT_TRUE(CreateHighModelEffect({.type = 0x11a, .position = {100, 200, 300}}, roomy.Context()).HasValue());
     const auto stepped = StepHighModelEffect(roomy.Effect(0), nullptr, roomy.StepContext());
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-    const auto sprays =
-        std::ranges::count_if(roomy.world->Particles().All(), [](const auto& particle)
-                              { return particle.alive && particle.type == 0x6f4 && particle.subtype == 1; });
+    CrtRandom expected{Seed};
+    const auto luminosity =
+        static_cast<float>(static_cast<double>((expected.Next() & 3) + 7) * static_cast<double>(0.1f));
+    const glm::vec3 color{static_cast<float>(static_cast<double>(luminosity) * static_cast<double>(0.1f)),
+                          static_cast<float>(static_cast<double>(luminosity) * static_cast<double>(0.3f)),
+                          static_cast<float>(static_cast<double>(luminosity) * static_cast<double>(0.6f))};
+    int sprays = 0;
+    for (const auto& particle : roomy.world->Particles().All())
+    {
+        if (!particle.alive || particle.type != 0x6f4 || particle.subtype != 1)
+            continue;
+        ++sprays;
+        EXPECT_EQ(particle.light, color);
+    }
     EXPECT_EQ(sprays, 4);
+    EXPECT_EQ(roomy.Draws(), 1 + 4);
+    EXPECT_TRUE(std::ranges::any_of(roomy.lighting->cells, [](const auto& cell) { return cell[0] > 0; }));
 }
 
 // 0x52bb29..0x52bb74: el 0x61e/9 crece 0,3f y su luz baja a 0,909f; los /4, /7, /8 y /0xa solo pierden una vida.

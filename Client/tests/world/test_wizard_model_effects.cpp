@@ -507,19 +507,25 @@ TEST(WizardModelEffectsTest, TheBouncingFireNeedsItsEmberParticle)
     EXPECT_EQ(fire.turnDirection, 3.0f);
 }
 
-TEST(WizardModelEffectsTest, TheStormAndTheMagicCutAtTheirSmoke)
+// 0x522dff y 0x522c0e: el 0xcf/0 suelta su humo 5f2/3 antes de sus joints y el 0xce/0 cuatro, antes de su luz; los dos
+// siguen hasta el final del paso.
+TEST(WizardModelEffectsTest, TheStormAndTheMagicLeaveTheirSmoke)
 {
+    const auto smokes = [](Harness& world)
+    {
+        return std::ranges::count_if(world.particles->All(), [](const Client::World::Particle& particle)
+                                     { return particle.alive && particle.type == 0x5f2 && particle.subtype == 3; });
+    };
     Harness world;
     CrtRandom random(12);
     ModelEffect& storm = world.At(Create(world, Arguments(0xcf, 0), random));
-    const auto cut = Client::World::StepWizardModelEffect(storm, nullptr, random, world.Services());
-    ASSERT_FALSE(cut.HasValue());
-    EXPECT_NE(cut.Error().find("0x522dff"), std::string::npos);
-    EXPECT_NE(cut.Error().find("(CL11)"), std::string::npos);
+    const auto stepped = Client::World::StepWizardModelEffect(storm, nullptr, random, world.Services());
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(smokes(world), 1);
     ModelEffect& magic = world.At(Create(world, Arguments(0xce, 0), random));
-    const auto smoke = Client::World::StepWizardModelEffect(magic, nullptr, random, world.Services());
-    ASSERT_FALSE(smoke.HasValue());
-    EXPECT_NE(smoke.Error().find("0x522c0e"), std::string::npos);
+    const auto smoked = Client::World::StepWizardModelEffect(magic, nullptr, random, world.Services());
+    ASSERT_TRUE(smoked.HasValue()) << smoked.Error();
+    EXPECT_EQ(smokes(world), 1 + 4);
 }
 
 // 0x52303b..0x5230be: el 0xcf/1 suelta su humo 5f2/3 y su gota 607/3 (con la tabla de partículas llena, 0x53fe70 no

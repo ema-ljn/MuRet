@@ -8590,8 +8590,8 @@ de Kundun: la caída `0x6f4`/3 (`0x543dc0`, gira 4 en `0x547f4c`) y las salpicad
 Las que siguen a su dueño (`0x5c6`/4, `0x5d5`/2, el fuego /9 y `0x5de`/4) guardan el `ParticleOwner` y su paso lee
 `ParticleOwnerStates` (`Scenes::ParticleOwnerStatesOf`: el byte vivo y la posición de un personaje, y además la partida de
 un efecto con modelo); sin él cortan con `MissingOwner`. El `0x4b` de `0x50bf45` (`0x50c37e`) deja el fuego `0x5d9/0` de
-0,3 en el hueso 18 y sigue con su brillo `0x144`; el `0x49` (`0x50c3ed`) dibuja los flare01 de los huesos 13 y 14 y corta
-en su primer joint `0x614/7` (`0x50c492`).
+0,3 en el hueso 18 y sigue con su brillo `0x144`; el `0x49` (`0x50c3ed`) tiene sus flare01 y sus joints `0x614/7` del lote
+de los joints y corta en `0x60b300` (`0x50c595`).
 
 ### Las partículas de la fuente en el juego
 

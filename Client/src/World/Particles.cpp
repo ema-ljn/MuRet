@@ -17,6 +17,7 @@
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
+#include <algorithm>
 #include <bit>
 #include <cmath>
 #include <cstddef>
@@ -29,6 +30,13 @@ namespace Client::World
 {
 namespace
 {
+// 0x53fe70: sin lugar libre no se consulta el binding ni se consume rand().
+// Las entradas compatibles hacen la búsqueda en CreateImpl; sólo se anticipa si se rechazaría el tipo.
+bool IsParticlePoolFull(std::span<const Particle> particles)
+{
+    return std::ranges::all_of(particles, [](const Particle& particle) { return particle.alive; });
+}
+
 constexpr std::int32_t BreathSubtype = 0;
 // Extensiones 53fe70/5446e0/548550 para 67/0 y 68/0 (los tipos, en Particles.h); recursos y backend
 // se validan por separado. La 68 nace como la 67 y después corre la posición.
@@ -1568,7 +1576,11 @@ Particles::CreateKalimaChecked(std::int32_t type, const glm::vec3& position, con
                                Render::Models::CrtRandom& random, std::int32_t scene, ParticleOwner owner)
 {
     if (!IsKalimaParticle(type, subtype))
+    {
+        if (IsParticlePoolFull(m_particles))
+            return std::optional<std::size_t>{};
         return Core::Unexpected(ParticleError::UnsupportedSubtype);
+    }
     return CreateImpl(type, position, angles, light, subtype, scale, worldClock, nullptr, random, 0, nullptr, scene,
                       owner);
 }
@@ -1580,7 +1592,11 @@ Particles::CreateOwnedChecked(std::int32_t type, const glm::vec3& position, cons
 {
     if (!IsKalimaParticle(type, subtype) && !IsSelectionParticle(type, subtype) && !IsTrialsParticle(type, subtype) &&
         !IsHandShine(type, subtype) && !IsSwellLifeParticle(type, subtype))
+    {
+        if (IsParticlePoolFull(m_particles))
+            return std::optional<std::size_t>{};
         return Core::Unexpected(ParticleError::UnsupportedSubtype);
+    }
     return CreateImpl(type, position, angles, light, subtype, scale, worldClock, nullptr, random, 0, nullptr, scene,
                       owner);
 }
@@ -1611,13 +1627,13 @@ Particles::CreateFollowingChecked(std::int32_t type, const glm::vec3& position, 
                                   const ParticleOwnerBones& bones)
 {
     constexpr std::int32_t SkillShineLife = 0x12; // 0x542c00
-    if (type != SkillShineParticle)
-        return Core::Unexpected(ParticleError::UnsupportedType);
     for (std::size_t index = 0; index < m_particles.size(); ++index)
     {
         Particle& particle = m_particles[index];
         if (particle.alive)
             continue;
+        if (type != SkillShineParticle)
+            return Core::Unexpected(ParticleError::UnsupportedType);
         Initialize(particle, type, position, angles, light, subtype, scale, 0);
         particle.typedOwner = owner;
         particle.life = SkillShineLife;

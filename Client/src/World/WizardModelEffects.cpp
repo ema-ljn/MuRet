@@ -12,6 +12,7 @@
 #include "World/GameModelEffects.h"
 #include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
+#include "World/ParticleOwner.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
 #include "World/TerrainAttributeQuery.h"
@@ -19,14 +20,17 @@
 
 #include <glm/ext/vector_float3.hpp>
 
+#include <algorithm>
 #include <bit>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <format>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace Client::World
 {
@@ -105,6 +109,30 @@ Core::Expected<void, std::string> Emit(const WizardEffectServices& services, Crt
         return Core::Unexpected(std::format("{}: falta la tabla de partículas (0x53fe70) (CL11)", address));
     const auto created =
         services.particles->CreateChecked(type, position, angles, light, subtype, scale, services.worldClock, random);
+    if (!created.HasValue())
+        return Core::Unexpected(
+            std::format("{}: la partícula {:#x}/{} no está portada (CL11)", address, type, subtype));
+    return {};
+}
+
+// 0x53fe70 con el efecto de dueño (+0x40): la estela 0x5f2/0x24 lo sigue los dos primeros pasos. El dueño es su lugar
+// en la tabla de los efectos con modelo, como lo resuelve ParticleOwnerStatesOf.
+Core::Expected<void, std::string> EmitOwned(const WizardEffectServices& services, CrtRandom& random,
+                                            std::string_view address, const ModelEffect& effect, std::int32_t type,
+                                            const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
+                                            std::int32_t subtype, float scale)
+{
+    if (services.particles == nullptr)
+        return Core::Unexpected(std::format("{}: falta la tabla de partículas (0x53fe70) (CL11)", address));
+    if (services.effects == nullptr)
+        return Core::Unexpected(std::format("{}: falta la tabla de los efectos dueños (CL11)", address));
+    const std::span<const ModelEffect> pool = std::as_const(*services.effects).Effects();
+    const auto found = std::ranges::find_if(pool, [&effect](const ModelEffect& slot) { return &slot == &effect; });
+    if (found == pool.end())
+        return Core::Unexpected(std::format("{}: el efecto dueño no está en la tabla (CL11)", address));
+    const ParticleOwner owner{ParticleOwnerKind::ModelEffect, static_cast<std::uint64_t>(found - pool.begin())};
+    const auto created = services.particles->CreateOwnedChecked(type, position, angles, light, subtype, scale,
+                                                                services.worldClock, random, 0, owner);
     if (!created.HasValue())
         return Core::Unexpected(
             std::format("{}: la partícula {:#x}/{} no está portada (CL11)", address, type, subtype));
@@ -1000,10 +1028,11 @@ Core::Expected<void, std::string> StepFire(ModelEffect& effect, float luminosity
     }
     if (subtype == 9)
     {
-        // 0x524959..0x5249f6: dos humos con la velocidad de luz, la luz propia, y muere al pasar el terreno.
+        // 0x524959..0x5249f6: dos humos con la velocidad de luz y el efecto de dueño (push ebx), la luz propia, y muere
+        // al pasar el terreno. La 0x25 guarda el dueño pero su paso (0x545f68) no lo lee.
         constexpr std::int32_t FirstTrailSubtype = 0x24, SecondTrailSubtype = 0x25;
-        if (auto smoke = Emit(services, random, "0x52497d", BreathParticle, at, effect.transform.angles,
-                              effect.velocity, FirstTrailSubtype, F32(D(effect.transform.scale) + 1.0));
+        if (auto smoke = EmitOwned(services, random, "0x52497d", effect, BreathParticle, at, effect.transform.angles,
+                                   effect.velocity, FirstTrailSubtype, F32(D(effect.transform.scale) + 1.0));
             !smoke.HasValue())
             return smoke;
         if (auto smoke = Emit(services, random, "0x5249a0", BreathParticle, at, effect.transform.angles,

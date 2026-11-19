@@ -7,6 +7,7 @@
 #include "World/GameModelEffects.h"
 #include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
+#include "World/ParticleOwner.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
 #include "World/TerrainLighting.h"
@@ -450,6 +451,38 @@ TEST(WizardModelEffectsTest, TheMeteorExplodesOnTheGround)
     EXPECT_EQ(world.AliveOf(0xc8) + world.AliveOf(0xc9), 6U);
     EXPECT_EQ(world.ParticlesOf(0x5ed, 0), 1U);
     EXPECT_EQ(world.ParticlesOf(0x5d9, 5), 1U);
+}
+
+// 0x524959..0x5249a0: el meteoro 0xc2/9 del mapa 55 suelta en cada paso sus dos humos 0x5f2/0x24 y /0x25 con él de
+// dueño (push ebx); la 0x24 lo sigue (ParticleOwnerStatesOf lo busca por su lugar en la tabla), la 0x25 no lo lee.
+TEST(WizardModelEffectsTest, TheMapMeteorTrailsTwoSmokesOwnedByItself)
+{
+    Harness world;
+    world.ground = -1000.0;
+    CrtRandom random(14);
+    const std::size_t slot = Create(world, Arguments(0xc2, 9), random);
+    ModelEffect& meteor = world.At(slot);
+    const auto stepped = Client::World::StepWizardModelEffect(meteor, nullptr, random, world.Services());
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_TRUE(meteor.alive);
+    EXPECT_EQ(world.ParticlesOf(0x5f2, 0x24), 1U);
+    EXPECT_EQ(world.ParticlesOf(0x5f2, 0x25), 1U);
+    for (const auto& particle : std::as_const(*world.particles).All())
+    {
+        if (!particle.alive || particle.type != 0x5f2 || particle.subtype != 0x24)
+            continue;
+        EXPECT_EQ(particle.typedOwner,
+                  (Client::World::ParticleOwner{Client::World::ParticleOwnerKind::ModelEffect, slot}));
+    }
+
+    // Fuera de la tabla no hay de dónde sacar el dueño: corta en la primera.
+    Harness other;
+    other.ground = -1000.0;
+    CrtRandom again(14);
+    ModelEffect loose = world.At(slot);
+    const auto cut = Client::World::StepWizardModelEffect(loose, nullptr, again, other.Services());
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x52497d"), std::string::npos) << cut.Error();
 }
 
 // 0x524a5f..0x524b2a: el 0xc2/4 que baja del suelo tiembla la cámara y mira los personajes del pool. Con alguno a 200

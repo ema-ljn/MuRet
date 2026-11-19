@@ -67,8 +67,7 @@ struct Storm
 };
 
 // 0x53bf7f..0x53c0a0: desde el décimo paso, con la z por encima del suelo (0x5f93c0), el ancho 40, la cola cruzada
-// (0x535020 con la matriz del paso) y, con la vida por debajo de la mitad de la tanda, la luz · 0,7692308f. Sólo en el
-// suelo o debajo corta, en el 0x614/4 (0x53bfd3).
+// (0x535020 con la matriz del paso) y, con la vida por debajo de la mitad de la tanda, la luz · 0,7692308f.
 TEST(StormJointsTest, TheBoltFallsUntilItTouchesTheGround)
 {
     Storm storm;
@@ -97,11 +96,90 @@ TEST(StormJointsTest, TheBoltFallsUntilItTouchesTheGround)
     { return static_cast<float>(static_cast<double>(value) * static_cast<double>(std::bit_cast<float>(0x3f44ec4fu))); };
     EXPECT_EQ(bolt.light, glm::vec3(faded(light.x), faded(light.y), faded(light.z)));
     EXPECT_EQ(bolt.count, 2);
+}
 
-    storm.ground = 1.0e6;
-    const auto touched = storm.Step();
-    ASSERT_FALSE(touched.HasValue());
-    EXPECT_TRUE(touched.Error().starts_with("0x53bfd3")) << touched.Error();
+// 0x53bfa9..0x53c04f: en el suelo (la z del terreno, 1234,567 en float, no por debajo de la del joint), antes de la
+// cola, el joint 0x614/4 desde su posición con sus ángulos, de escala 60 y sin dueño; con la z de la velocidad en 0 o
+// menos, FSIN(velocidad) · 20; la z en el suelo + 5 y la partícula 0x6ac/2 de escala 3 en una copia 30 más arriba, con
+// su luz. Los bits salen de una cuenta aparte (el seno exacto a 64 bits); el joint y la partícula se repiten con
+// gemelos que sacan los rand() del mismo CrtRandom. Con la z de la velocidad positiva, no la toca.
+TEST(StormJointsTest, TheBoltHitsTheGround)
+{
+    for (const float rise : {-3.0f, 50.0f})
+    {
+        SCOPED_TRACE(rise);
+        auto storm = std::make_unique<Storm>();
+        ASSERT_TRUE(storm->Create(7).HasValue());
+        for (std::size_t slot : {0u, 2u, 3u})
+            storm->joints[slot].alive = false;
+        JointState& bolt = storm->joints[1];
+        bolt.life = 12;
+        bolt.speed = 2.5f;
+        bolt.velocity.z = rise;
+        auto above = std::make_unique<Storm>(*storm);
+        storm->ground = static_cast<double>(1234.567f);
+        CrtRandom replay = storm->random;
+
+        ASSERT_TRUE(storm->Step().HasValue());
+        ASSERT_TRUE(above->Step().HasValue());
+
+        const glm::vec3 moved = above->joints[1].position;
+        EXPECT_EQ(bolt.position.x, moved.x);
+        EXPECT_EQ(bolt.position.y, moved.y);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(bolt.position.z), 0x449af225u);
+        if (rise < 0.0f)
+        {
+            EXPECT_EQ(std::bit_cast<std::uint32_t>(bolt.velocity.z), 0x413f82d7u);
+        }
+        else
+        {
+            EXPECT_EQ(bolt.velocity.z, 40.0f);
+        }
+        EXPECT_EQ(bolt.count, above->joints[1].count);
+        EXPECT_EQ(bolt.life, 11);
+
+        static_cast<void>(replay.Next()); // el temblor de la y
+        std::vector<JointState> twinJoints(1);
+        glm::vec3 from = moved;
+        glm::vec3 angles = bolt.angles;
+        const Client::World::FishEffectRequest request{.type = 0x614,
+                                                       .firstPosition = from,
+                                                       .secondPosition = from,
+                                                       .angles = angles,
+                                                       .subtype = 4,
+                                                       .ownerContext = nullptr,
+                                                       .scale = 60.0f,
+                                                       .key = -1,
+                                                       .skill = 0,
+                                                       .skillSerial = 0,
+                                                       .target = -1};
+        ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(twinJoints, request, replay).HasValue());
+        const JointState& spark = storm->joints[0];
+        ASSERT_TRUE(spark.alive);
+        EXPECT_EQ(spark.type, 0x614);
+        EXPECT_EQ(spark.subtype, 4);
+        EXPECT_EQ(spark.ownerContext, nullptr);
+        EXPECT_EQ(spark.position, twinJoints[0].position);
+        EXPECT_EQ(spark.angles, twinJoints[0].angles);
+        EXPECT_EQ(spark.width, twinJoints[0].width);
+        EXPECT_EQ(spark.speed, twinJoints[0].speed);
+        EXPECT_EQ(spark.life, twinJoints[0].life);
+
+        auto twin = std::make_unique<Client::World::Particles>();
+        const glm::vec3 flame{moved.x, moved.y, std::bit_cast<float>(0x449eb225u)};
+        ASSERT_TRUE(twin->CreateChecked(0x6ac, flame, bolt.angles, bolt.light, 2, 3.0f, 0.0f, replay).HasValue());
+        const auto& made = storm->particles.All()[0];
+        const auto& expected = twin->All()[0];
+        ASSERT_TRUE(made.alive);
+        EXPECT_EQ(made.type, 0x6ac);
+        EXPECT_EQ(made.subtype, 2);
+        EXPECT_EQ(made.position, expected.position);
+        EXPECT_EQ(made.scale, expected.scale);
+        EXPECT_EQ(made.light, expected.light);
+        EXPECT_EQ(made.life, expected.life);
+        EXPECT_EQ(made.velocity, expected.velocity);
+        EXPECT_EQ(storm->random.State(), replay.State());
+    }
 }
 
 // 0x53bf3c..0x53bf76: en los diez primeros pasos de la tanda, la llamarada 0x5ee/0 (0x53bf6e) en +0x24, con los

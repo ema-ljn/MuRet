@@ -2,6 +2,7 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
+#include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/JointFamilies.h"
 #include "Scenes/JointKernels.h"
@@ -161,6 +162,57 @@ Core::Expected<void, std::string> CreateStormJoint(JointState& joint, const Worl
     return {};
 }
 
+namespace
+{
+// 0x53bfa9..0x53c04f: el 0x632/6 en el suelo. Una copia de la posición; el joint 0x614/4 desde la posición hasta la
+// posición con sus ángulos, sin dueño, de escala 60 (0x42700000), clave −1 (0x530860, 0x53bfd3); con la z de la
+// velocidad (+0x9e4) en 0 o menos (fcomp, C0 o C3), la z en FSIN(velocidad) · 20 (0x52e3a0, retenido hasta el fmul);
+// la z de la posición en el suelo + 5 (fst) y la de la copia en ese valor sin redondear + 30; la partícula 0x6ac/2 de
+// escala 3 en la copia, con los ángulos y la luz del joint (0x53c04a).
+Core::Expected<void, std::string> HitTheGround(JointState& joint, const JointKernels::StepServices& services,
+                                               float ground)
+{
+    glm::vec3 from = joint.position;
+    constexpr std::int32_t BoltJoint = 0x614, BoltSubtype = 4;
+    constexpr float BoltScale = 60.0f; // 0x42700000
+    const World::FishEffectRequest bolt{.type = BoltJoint,
+                                        .firstPosition = joint.position,
+                                        .secondPosition = joint.position,
+                                        .angles = joint.angles,
+                                        .subtype = BoltSubtype,
+                                        .ownerContext = nullptr,
+                                        .scale = BoltScale,
+                                        .key = -1,
+                                        .skill = 0,
+                                        .skillSerial = 0,
+                                        .target = -1};
+    if (auto created = CreateFaunaJoint(services.joints, bolt, *services.random); !created.HasValue())
+        return Core::Unexpected(std::format("0x53bfd3: {}", created.Error()));
+    if (!(joint.velocity.z > 0.0f))
+    {
+        constexpr float Bounce = 20.0f; // 0x6b86d0
+        const auto sine = Render::Models::Detail::SineProductPC53(D(joint.speed), Bounce);
+        if (!sine)
+            return Core::Unexpected(std::string("0x53c00a: la velocidad del joint 0x632/6 excede el perfil del seno"));
+        joint.velocity.z = F32(*sine);
+    }
+    constexpr double Lift = 5.0, Flame = 30.0; // 0x6b87f8 y 0x6b8858
+    const double landed = D(ground) + Lift;
+    joint.position.z = F32(landed);
+    from.z = F32(landed + Flame);
+    constexpr std::int32_t Flare = 0x6ac, FlareSubtype = 2;
+    constexpr float FlareScale = 3.0f; // 0x40400000
+    if (services.particles == nullptr)
+        return Core::Unexpected(std::string("0x53c04a: faltan las partículas del joint 0x632/6"));
+    const auto made = services.particles->CreateChecked(Flare, from, joint.angles, joint.light, FlareSubtype,
+                                                        FlareScale, services.worldClock, *services.random);
+    if (!made.HasValue())
+        return Core::Unexpected(std::format("0x53c04a: la partícula 0x6ac/2 del joint 0x632/6 falla con el error {}",
+                                            static_cast<unsigned>(made.Error())));
+    return {};
+}
+} // namespace
+
 Core::Expected<void, std::string> StepStormJoint(JointState& joint, const JointKernels::StepServices& services)
 {
     if (joint.subtype >= StormSubtype)
@@ -202,13 +254,13 @@ Core::Expected<void, std::string> StepStormJoint(JointState& joint, const JointK
     else
         joint.width = 40;
     // 0x53bf86..0x53bfa3: la altura del terreno (0x5f93c0), guardada en float. Con la z por encima, sólo la cola
-    // cruzada; en el suelo o debajo (o NaN), el 0x614/4, 0x52e3a0 y la partícula 0x6ac/2, que no están portados.
+    // cruzada; en el suelo o debajo (o NaN), antes, HitTheGround.
     if (services.terrainHeight == nullptr || !*services.terrainHeight)
         return Core::Unexpected(std::string("0x53bf8d: falta la altura del terreno del joint 0x632/6"));
     const float ground = F32((*services.terrainHeight)(joint.position.x, joint.position.y));
     if (!(joint.position.z > ground))
-        return Core::Unexpected(std::string("0x53bfd3: el joint 0x632/6 en el suelo (el 0x614/4, 0x52e3a0 y la "
-                                            "partícula 0x6ac) no está portado (CL11)"));
+        if (auto hit = HitTheGround(joint, services, ground); !hit.HasValue())
+            return hit;
     // 0x53c052..0x53c0a0: 0x535020(joint, la matriz del paso, 1) y, con la vida por debajo de la mitad de la tanda,
     // la luz · 0,7692308f.
     if (auto appended = JointKernels::AppendCrossedJointTail(joint, matrix, true); !appended.HasValue())

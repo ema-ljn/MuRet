@@ -5,6 +5,7 @@
 #include "Protocol/Outgoing.h"
 #include "Protocol/Skill.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameDrawTail.h"
@@ -348,9 +349,12 @@ TEST(SweepJointsTest, OnlyTheHeroSweepAsksForTheSiegeAndTheTargets)
 }
 
 // 0x53b569..0x53b5b6: el barrido del héroe, sin asedio, en las vueltas 0 y 5 (vida 20) llama a 0x517a20(+0x9ea,
-// posición, 150, +0x9eb, +0x9e8, 0) con la posición del tramo recién agregado: el registro propio y, con blancos, el C1
-// 10 y sus dos rand(), entre los rand() de los tramos. En la vuelta 0 entra el monstruo a 30, con la celda (9, 18):
-// 1000 · 0,01f (0x6b86c0) queda debajo de 10. En la 5, el otro. El paso sigue con todas las vueltas.
+// posición, 150, +0x9eb, +0x9e8, 0) con la posición del tramo recién agregado: el cierre del registro propio (3.848
+// rand(), 0x40b4d0) y, con blancos, el C1 10 con los dos rand() del C3 (el relleno de 0x518515 y el cierre del serial,
+// 0x40b413), entre los rand() de los tramos. En la vuelta 0 entra el monstruo a 30, con la celda (9, 18): 1000 · 0,01f
+// (0x6b86c0) queda debajo de 10. En la 5 (vz −55) el tramo cae en (1000 − 180 · sen 55°, 2000 − 180 · cos 55°) ≈
+// (852,56; 1896,76): el 0x1006 queda a ~4,1 y el 0x1005 a ~154,7 (fuera de 150), con la celda (8, 18). El paso sigue
+// con todas las vueltas.
 TEST(SweepJointsTest, TheHeroSweepHitsTheTargetsAroundEveryFiveTurns)
 {
     HeroWorld hero;
@@ -366,10 +370,10 @@ TEST(SweepJointsTest, TheHeroSweepHitsTheTargetsAroundEveryFiveTurns)
     EXPECT_EQ(tested.joints[Last].count, 7);
     EXPECT_EQ(tested.joints[Last].life, 19);
 
-    HeroWorld twin;
+    // Cada llamada con blancos: el cierre del registro propio y los dos rand() del C3.
+    constexpr std::uint32_t HitRandoms = Client::Render::Models::OwnRecordCloseRandoms + 2u;
     CrtRandom replay{Seed};
     auto particles = std::make_unique<Client::World::Particles>();
-    const auto capture = twin.Capture();
     glm::vec3 velocity{};
     for (int turn = 0; turn < 8; ++turn)
     {
@@ -377,23 +381,19 @@ TEST(SweepJointsTest, TheHeroSweepHitsTheTargetsAroundEveryFiveTurns)
         const glm::vec3 point = SegmentPoint(velocity);
         velocity.z = F32(static_cast<double>(velocity.z) - 11.0);
         ReplaySegment(replay, *particles, point);
-        if (turn % 5 != 0)
-            continue;
-        const Client::Scenes::SkillHitsRequest request{
-            .skillIndex = SkillPlace, .point = point, .radius = 150.0f, .volley = Volley, .key = 7, .extra = 0};
-        const auto hit = Client::Scenes::HitTheTargetsAround(request, twin.world, replay, capture);
-        ASSERT_TRUE(hit.HasValue()) << hit.Error();
-        EXPECT_TRUE(hit.Value());
+        if (turn % 5 == 0)
+            replay.Discard(HitRandoms);
     }
     EXPECT_EQ(tested.random.State(), replay.State());
     ASSERT_EQ(hero.sent.size(), 2u);
-    ASSERT_EQ(twin.sent.size(), 2u);
-    for (std::size_t packet = 0; packet < twin.sent.size(); ++packet)
-        EXPECT_TRUE(Client::Tests::SameBytes(hero.sent[packet].packet.Bytes(), twin.sent[packet].packet.Bytes()));
     Client::Protocol::Skill::SkillHitsSend first{.skill = Skill, .x = 9, .y = 18, .volley = Volley, .hits = 1};
     first.keys = {0x1005, 0, 0, 0, 0};
     EXPECT_TRUE(Client::Tests::SameBytes(hero.sent[0].packet.Bytes(),
                                          Client::Protocol::Skill::WriteSkillHits(first).packet.Bytes()));
+    Client::Protocol::Skill::SkillHitsSend second{.skill = Skill, .x = 8, .y = 18, .volley = Volley, .hits = 1};
+    second.keys = {0x1006, 0, 0, 0, 0};
+    EXPECT_TRUE(Client::Tests::SameBytes(hero.sent[1].packet.Bytes(),
+                                         Client::Protocol::Skill::WriteSkillHits(second).packet.Bytes()));
 }
 
 // 0x53b56e..0x53b583 y 0x53b5cb..0x53b5e6: con el asedio prendido (0x4294b0) y el bit 0x100 en el atributo de la celda

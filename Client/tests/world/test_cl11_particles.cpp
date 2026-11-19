@@ -931,6 +931,89 @@ TEST(Cl11Particles, TheShineSparksOfTheFootFlashAndBlink)
     EXPECT_FALSE(particles->CreateChecked(0x5ad, {}, {}, glm::vec3(1.0f), 5, 1.0f, 0.0f, random).HasValue());
 }
 
+// 0x543f49..0x544085 y 0x548000..0x5480ab: la neblina 0x6f1/1 del 0x1b7 nace como la /0 (vida 30, giro, escala
+// (rand() % 6 + 6) · 0,1f, caída y el corrimiento de ±10, ±10 y ±20) sin pedir la escena, cuya luz pisa con (0; 0,4f;
+// 0,4f); vive 50 y sortea otra caída: siete rand(). Su paso es el de la neblina (dos rand()) y además apaga la luz por
+// 0,95238101f. Con la tabla llena, nada.
+TEST(Cl11Particles, TheArmMistIsBornWithoutTheSceneAndFadesEveryStep)
+{
+    auto particles = std::make_unique<Particles>();
+    CrtRandom random(Seed);
+    const auto created = particles->CreateChecked(0x6f1, {100, 200, 300}, {}, glm::vec3(1.0f), 1, 1.0f, 0.0f, random);
+    ASSERT_TRUE(created.HasValue()) << static_cast<int>(created.Error());
+    ASSERT_TRUE(created.Value().has_value());
+    Particle& mist = Only(*particles, *created.Value());
+    Draws draws;
+    EXPECT_EQ(mist.rotation, static_cast<float>(draws.Next() % 360));
+    EXPECT_EQ(mist.scale, F32(static_cast<double>(draws.Next() % 6 + 6) * static_cast<double>(0.1f)));
+    static_cast<void>(draws.Next());
+    const float x = F32(static_cast<double>(draws.Next() % 20 - 10) + 100.0);
+    const float y = F32(static_cast<double>(draws.Next() % 20 - 10) + 200.0);
+    const float z = F32(static_cast<double>(draws.Next() % 40 - 20) + 300.0);
+    EXPECT_EQ(mist.position, glm::vec3(x, y, z));
+    const float cyan = std::bit_cast<float>(0x3ecccccdu);
+    EXPECT_EQ(mist.light, glm::vec3(0.0f, cyan, cyan));
+    EXPECT_EQ(mist.life, 50);
+    EXPECT_EQ(mist.velocity.z, static_cast<float>(-3 - draws.Next() % 3));
+    EXPECT_EQ(random.State(), draws.random.State());
+    EXPECT_EQ(random.State(), AfterDraws(Seed, 7).State());
+
+    const Particle before = mist;
+    ASSERT_TRUE(Step(*particles, random, 0.0f).HasValue());
+    static_cast<void>(draws.Next());
+    static_cast<void>(draws.Next());
+    EXPECT_EQ(mist.life, 49);
+    EXPECT_EQ(mist.scale, F32(static_cast<double>(before.scale) + static_cast<double>(0.03f)));
+    EXPECT_EQ(mist.velocity.x, F32(static_cast<double>(draws.Next() % 20 - 10) * static_cast<double>(0.1f)));
+    EXPECT_EQ(mist.velocity.y, F32(static_cast<double>(draws.Next() % 20 - 10) * static_cast<double>(0.1f)));
+    EXPECT_EQ(mist.velocity.z, F32(static_cast<double>(before.velocity.z) + static_cast<double>(0.1f)));
+    for (int channel = 0; channel < 3; ++channel)
+        EXPECT_EQ(mist.light[channel], F32(static_cast<double>(before.light[channel]) * D(0x3f73cf3eu)));
+    EXPECT_EQ(random.State(), draws.random.State());
+    const auto drawn = DrawOneParticle(mist, glm::vec2(64, 64), std::uint8_t{4});
+    ASSERT_TRUE(drawn.HasValue());
+    ASSERT_TRUE(drawn.Value().has_value());
+    EXPECT_EQ(drawn.Value()->texture, 0x6f1);
+
+    for (Particle& particle : particles->All())
+        particle.alive = true;
+    CrtRandom full(Seed);
+    const auto none = particles->CreateChecked(0x6f1, {}, {}, glm::vec3(1.0f), 1, 1.0f, 0.0f, full);
+    ASSERT_TRUE(none.HasValue());
+    EXPECT_FALSE(none.Value().has_value());
+    EXPECT_EQ(full.State(), Seed);
+}
+
+// 0x5443ae y 0x5481ab: la onda 0x6eb de cualquier subtipo nace con vida 7 y sin rand(); su paso apaga la luz por
+// 0,5555556f (0x6ba234) y crece 0,3f (0x6b89dc), y va al billboard común con su textura.
+TEST(Cl11Particles, TheShockWaveParticleFadesAndGrows)
+{
+    for (const std::int32_t subtype : {3, 0, 9})
+    {
+        SCOPED_TRACE(subtype);
+        auto particles = std::make_unique<Particles>();
+        CrtRandom random(Seed);
+        const auto created =
+            particles->CreateChecked(0x6eb, {1, 2, 3}, {0, 45, 45}, glm::vec3(5.0f), subtype, 0.5f, 0.0f, random);
+        ASSERT_TRUE(created.HasValue());
+        ASSERT_TRUE(created.Value().has_value());
+        Particle& wave = Only(*particles, *created.Value());
+        EXPECT_EQ(wave.life, 7);
+        EXPECT_EQ(wave.texture, 0x6eb);
+        EXPECT_EQ(random.State(), Seed);
+        ASSERT_TRUE(Step(*particles, random, 0.0f).HasValue());
+        EXPECT_EQ(wave.life, 6);
+        EXPECT_EQ(wave.light, glm::vec3(F32(5.0 * D(0x3f0e38e4u))));
+        EXPECT_EQ(wave.scale, F32(0.5 + D(0x3e99999au)));
+        EXPECT_EQ(wave.position, glm::vec3(1, 2, 3));
+        EXPECT_EQ(random.State(), AfterDraws(Seed, 2).State()); // sólo el viento
+        const auto drawn = DrawOneParticle(wave, glm::vec2(64, 64), std::uint8_t{4});
+        ASSERT_TRUE(drawn.HasValue());
+        ASSERT_TRUE(drawn.Value().has_value());
+        EXPECT_EQ(drawn.Value()->texture, 0x6eb);
+    }
+}
+
 TEST(Cl11Particles, TheNewTypesGoToTheirBillboards)
 {
     using Kind = std::tuple<std::int32_t, std::int32_t, bool>;

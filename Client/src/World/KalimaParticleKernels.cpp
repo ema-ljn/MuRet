@@ -69,6 +69,9 @@ void CreateFlare(Particle& p, Render::Models::CrtRandom& random)
 constexpr std::int32_t ObjectSubtype = 2, SplashObjectSubtype = 4;
 // 0x544088..0x544153 y 0x5480ae..0x5480f0: la 6f1/3 de las botas del conjunto completo (0x50ff37).
 constexpr std::int32_t BootsMistSubtype = 3;
+// 0x544055..0x544085 y 0x548082..0x5480ab: la 6f1/1 de los brazos y la cabeza del 0x1b7 (0x427b8b, 0x427c42,
+// 0x427cfd).
+constexpr std::int32_t ArmMistSubtype = 1;
 constexpr double KundunFallTurn = 4.0; // 0x6b8a44
 // 0x544095..0x54414c: después de lo de la neblina, la textura cra_04 (0x5ae), la luz del argumento (pisa la de la
 // escena), vida 12, otro giro, vz 2, la escala (rand() % 3 + 3) · 0,18f y otro corrimiento de ±10, ±10 y ±20. Cinco
@@ -115,12 +118,24 @@ Core::Expected<void, ParticleError> CreateWaterfall(Particle& p, Render::Models:
         else
             p.scale = F32(static_cast<double>(random.Next() % MistSpan + MistSpan) * Tenth);
         const int fall = -3 - random.Next() % FallSpan;
-        // 543fcd consultaScene después de R2 y antes del store de vz543fd8.
-        if (!scene)
+        // 543fcd consultaScene después de R2 y antes del store de vz543fd8. La /1 pisa esa luz (0x544057) sin
+        // leerla: no la pide.
+        const bool arm = p.subtype == ArmMistSubtype;
+        if (!scene && !arm)
             return Core::Unexpected(ParticleError::MissingScene);
         p.velocity.z = static_cast<float>(fall);
-        p.light = glm::vec3(*scene == SelectionScene ? 0.25f : 0.4f);
+        if (scene)
+            p.light = glm::vec3(*scene == SelectionScene ? 0.25f : 0.4f);
         Jitter(p, random, ShortLife, 40);
+        if (arm)
+        {
+            // 0x544057..0x544085: la luz (0; 0,4f; 0,4f) de ebx, vida 50 y otra caída −3 − rand() % 3: siete rand().
+            constexpr float Cyan = std::bit_cast<float>(0x3ecccccdu);
+            constexpr std::int32_t ArmLife = 50;
+            p.light = {0.0f, Cyan, Cyan};
+            p.life = ArmLife;
+            p.velocity.z = static_cast<float>(-3 - random.Next() % FallSpan);
+        }
         if (p.subtype == BootsMistSubtype)
             CreateBootsMist(p, random, lightArgument);
         return {};
@@ -337,6 +352,9 @@ void StepWaterfall(Particle& p, Render::Models::CrtRandom& random)
         p.velocity.z = F32(rise);
         if (p.life < LifeSpan)
             FadeLight(p, MistFade);
+        // 0x54808a..0x5480ab: la /1 además se apaga por 0,95238101f (0x6ba264).
+        if (p.subtype == ArmMistSubtype)
+            FadeLight(p, static_cast<double>(std::bit_cast<float>(0x3f73cf3eu)));
         if (p.subtype == BootsMistSubtype)
         {
             // 0x5480b7..0x5480ed: la escala baja 0,038f, vz es la suma sin redondear menos 0,02f y la luz por
@@ -397,7 +415,7 @@ bool IsKalimaParticle(std::int32_t type, std::int32_t subtype)
            (type == KalimaWaterfallLast && (subtype == 1 || subtype == KundunFallSubtype ||
                                             subtype == KundunSplashLastSubtype || subtype == BrazierFallSubtype)) ||
            ((type == WaterfallSplash || type == WaterfallSplash + 1) && subtype == KundunSplashSubtype) ||
-           (type == KalimaWaterfallMist && subtype == BootsMistSubtype) ||
+           (type == KalimaWaterfallMist && (subtype == ArmMistSubtype || subtype == BootsMistSubtype)) ||
            (type == KalimaFlare &&
             (subtype == FlareZero || subtype == FlareTrail || subtype == FlareFive || subtype == FlareSix ||
              subtype == FlareSeven || subtype == FlareEight || subtype == FlareNine)) ||

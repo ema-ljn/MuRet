@@ -163,6 +163,7 @@ Core::Expected<DrawSelection, ParticleDrawingError> SelectBranch(Particle& p, st
     case HandShineParticle:     // 0x5488f6: la 5fd también (el byte 8 de 0x548cf7), sin leer el subtipo.
     case SiegeBlessingParticle: // 5488f6: el billboard común, sin leer el subtipo.
     case CinderParticle:        // 0x5488f6 → 0x54889a (el byte 8 de 0x548da7), sin leer el subtipo.
+    case ShockWaveParticle:     // 0x5488f6 → 0x54889a (el byte 8 de 0x548de5), sin leer el subtipo.
         return DrawSelection{ParticleDrawKind::Common, false};
     case DustParticle:
     case ArrivalDustParticle:

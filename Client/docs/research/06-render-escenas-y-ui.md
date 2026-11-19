@@ -8682,6 +8682,15 @@ al billboard común (`0x548644`). Además de la /2 de la mano de Crywolf, las pi
 `0x42769f`; la /2 y la /3, `0x4278a0` y `0x4279c4`) y sobre su blanco (la /3, `0x427a4d`); los demás subtipos siguen
 con `UnsupportedSubtype`.
 
+**La neblina `0x6f1/1` y la onda `0x6eb`** (tercera vuelta): la /1 de la neblina de Kalima (`KalimaParticleKernels`)
+nace como la /0 (`0x543f49..0x544052`: vida 30, giro, escala `(rand() % 6 + 6) · 0,1f`, caída `−3 − rand() % 3` y el
+corrimiento de ±10, ±10 y ±20) y después (`0x544057..0x544085`) pisa la luz de la escena con (0; 0,4f; 0,4f), vive 50
+y sortea otra caída: siete `rand()`, y no pide la escena. Su paso es el de la neblina (`0x548000`) y además apaga la luz
+por 0,95238101f (`0x54808a`, `0x6ba264`). La onda `0x6eb` (`Effect\ShockWave.jpg`, en `Particles.cpp`) nace en
+`0x5443ae` con vida 7, de cualquier subtipo y sin `rand()`; su paso (`0x5481ab`) apaga la luz por 0,5555556f
+(`0x6ba234`) y crece 0,3f (`0x6b89dc`). Las dos van al billboard común (`0x54889a`). Las pide el `0x1b7` (las tres /1
+de los brazos y la cabeza y la `0x6eb/3` del brazo izquierdo de 5 a 5,5).
+
 ### Las partículas de la fuente en el juego
 
 **Estático**, `0x603011..0x60313f`: después del rand común del objeto, luz1 y V calculada con NEG
@@ -14184,7 +14193,7 @@ de la lista pide el suyo una vez. Devuelve 1 (corta la cadena) con el `0x1ad` y 
 | Tipo | Qué hace, en orden |
 | --- | --- |
 | `0x1b6` (Monster100) | `v = rand() % 30 · 0,01f + 0,6f` (en la x87) y la luz (`v + 0,5`; `v − 0,05f`; `v + 0,5`); `0x5ad` en `L_Hand` (0,8), `z02` (1,1), `z03` (1), `z04` (1,7) y `z05` (0,8); el punto (0, 0, −65) de `Footstepst` y la partícula `0x5ad/4` de 4 con la luz (0,7f; 0,5; 0,7f) (`0x42769f`, tercera vuelta del lote de partículas); los sonidos (ocioso, en la 2 y la 10, `rand() % 15` en 0: `0x261 + rand() % 2`; una vez, `0x264` en la 3, `0x9c + rand() % 2` y `0x263` en la 4, `0x265` en la 6); en la 3 y la 4 desde el frame 4, en el punto (70, 0, 0) del pie, la `0x5f2/0x1b` de 2 con la luz (0,5; 0,2f; 0,5) (`0x42786d`) y la `0x5ad/2` de 1 (`0x4278a0`); en la 3 desde el frame 6, en otro punto (70, 0, 0) del pie, la `0x5ad/3` de 1,3f con los ángulos (0, 0, 0) (`0x4279c4`) y, con el blanco en el pool, otra 100 más arriba del blanco (`0x427a4d`), todas con la luz 1 (los ángulos de las demás son `[EBP−0x60]`, que `0x4271d0` no escribe: nacen sin velocidad y MuRet pasa (0, 0, 0)); con el blanco `+0x3a4` (WORD con signo) en el pool, en la 4 desde el frame 6 el joint `0x614` (`0x427a8d`) |
-| `0x1b7` (Monster101) | el punto de `L_Arm` y su `0x6f1/1` (`0x427b8b`); llena, las de `R_Arm` y `Head` no crean nada, los sonidos (ocioso `0x247`; `0x249`, `0x24a`, `0x24b`) y, en la 3, las `0x5f2/0x19` (desde el frame 4) y `0x6eb/3` (de 5 a 5,5), que no crean nada, y con el blanco en el pool desde el frame 6,9 el joint `0x618` (`0x428036` salta a `0x427a8d`) |
+| `0x1b7` (Monster101) | en los puntos de `L_Arm`, `R_Arm` y `Head`, la neblina `0x6f1/1` con los ángulos (0, 0, 0), la luz 1 y escala 1 (`0x427b8b`, `0x427c42`, `0x427cfd`, tercera vuelta del lote de partículas); los sonidos (ocioso `0x247`; `0x249`, `0x24a`, `0x24b`) y, en la 3, en el punto (30, 0, 0) de `L_Arm` con los ángulos (0, 45, 45), desde el frame 4 la `0x5f2/0x19` de 1 con la luz 1 (`0x427eaf`) y, de 5 a 5,5 (`0x6b87f8`, `0x6b8a40`), en otro punto igual, la onda `0x6eb/3` de 0,5 con la luz 5 (`0x427fad`); con el blanco en el pool desde el frame 6,9 el joint `0x618` (`0x428036` salta a `0x427a8d`) |
 | `0x1b8` (Monster102) | `rand() % 10`, un `0x5ad` a 3 con (0; `r · 0,01f + 0,2f`; 0) en el punto (60, −30, 0) de `Head` y, en el mismo punto, la partícula `0x5c6/7` con ángulos (0, 0, 0), esa luz y escala 1 (`0x428164`, CL11); después, sus sonidos (ocioso `0x24c`; `0x24e`, `0x24f`, `0x250`) |
 | `0x1b9` | solo sonidos: ocioso `0x256`; `0x258`, `0x259`, `0x25a` |
 | `0x1ba` (Monster104) | sonidos (ocioso `0x251`; `0x253`, `0x254`, `0x255`); seis cuernos (`Monster104_Horn%d`): `rand() % 10`, un `0x5ad` a 0,4 con (0,4; `r · 0,01f + 0,8f`; 0,5) y, en el mismo punto, la partícula `0x5c6/6` con ángulos (0, 0, 0), esa luz y escala 1 (`0x42849c`, CL11); en la 4, la `0x5f2/0x1a` en el punto (0, −100, 20) de `Footsteps` (`0x428540`), con los ángulos del objeto, (0,5; 0,7f; 0,5) y escala 1 (`0x4285a4`, CL11) |

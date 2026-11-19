@@ -52,7 +52,8 @@ inline constexpr std::int32_t KundunSplashSubtype = 2;
 inline constexpr std::int32_t KundunSplashLastSubtype = 4;
 [[nodiscard]] bool IsKalimaParticle(std::int32_t type, std::int32_t subtype);
 // Después del prefijo53fe70.6f1/0 consultaScene tras3CRT y antes de almacenar vz;
-// su ausencia conserva Initialize/vida/rotación/escala y devuelve MissingScene, sin jitter.
+// su ausencia conserva Initialize/vida/rotación/escala y devuelve MissingScene, sin jitter. La 6f1/1 pisa esa luz
+// (0x544057) y nace sin escena.
 [[nodiscard]] Core::Expected<void, ParticleError>
 CreateKalimaParticle(Particle& particle, Render::Models::CrtRandom& random, std::optional<std::int32_t> scene);
 // Después de vida/movimiento5446e0, incluso en el tick que apaga alive. `wind` es el viento de este paso

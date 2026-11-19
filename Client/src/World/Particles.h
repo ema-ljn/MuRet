@@ -138,6 +138,10 @@ inline constexpr std::int32_t BlazeParticle = 0x5ee;
 // (0x5478d7) la sube cada vez más rápido, la achica y, la /1, la apaga con la vida. 0x5488f6 la dibuja con el billboard
 // común.
 inline constexpr std::int32_t CinderParticle = 0x6ad;
+// La onda 0x6eb (Effect\ShockWave.jpg) como partícula: la 0x6eb/3 del brazo izquierdo del 0x1b7 (0x427fad). Nace en
+// 0x5443ae con vida 7, sin rand(); su paso (0x5481ab) apaga la luz por 0,5555556f y crece 0,3f, y 0x5488f6 la dibuja
+// con el billboard común. No lee el subtipo.
+inline constexpr std::int32_t ShockWaveParticle = 0x6eb;
 // La sangre 5e4 (Effect\blood.tga, 0x61d7c9) que suelta el golpe con daño del paso del ataque (0x50419c, diez sobre el
 // blanco): nace en 0x542b3b con cuatro rand() y la velocidad girada por los ángulos del que pega, su paso (0x546b04)
 // la frena y avanza el cuadro (+0x48), y 548550 la dibuja con los cuadros de dos por dos (0x5487b9). No lee el subtipo.

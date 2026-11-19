@@ -192,21 +192,6 @@ Result CreateParticle(World::Particles* particles, const ActorState& actor, std:
     return {};
 }
 
-// 0x53fe70 en `call` con un tipo o un subtipo que World::Particles no crea (CL11): con un lugar libre corta antes de
-// sus rand(); con la tabla llena el original no crea nada ni saca rand() y sigue. La tabla no se vacía mientras se
-// dibuja: las partículas que siguen en el mismo helper tampoco crean nada.
-Result UnportedParticle(World::Particles* particles, const ActorState& actor, std::int32_t type, std::int32_t subtype,
-                        std::uint32_t call)
-{
-    if (particles == nullptr)
-        return NoParticles(actor, call);
-    if (std::ranges::none_of(particles->All(), [](const World::Particle& particle) { return !particle.alive; }))
-        return {};
-    return Core::Unexpected(std::format("{:#x}: la partícula {:#x}/{} (0x53fe70) del tipo {:#x} en la acción {:#x} no "
-                                        "está portada (CL11)",
-                                        call, type, subtype, actor.type, actor.animation.action));
-}
-
 Result Particle(const MonsterHelperPass& pass, std::int32_t type, std::int32_t subtype, const glm::vec3& position,
                 const glm::vec3& angles, const glm::vec3& light, float scale, std::uint32_t call)
 {
@@ -228,11 +213,6 @@ Result OwnedParticle(const MonsterHelperPass& pass, std::int32_t type, std::int3
             std::format("{:#x}: la partícula {:#x}/{} (0x53fe70) del tipo {:#x} falla con el error {}", call, type,
                         subtype, pass.actor.type, static_cast<int>(created.Error())));
     return {};
-}
-
-Result Unported(const MonsterHelperPass& pass, std::int32_t type, std::int32_t subtype, std::uint32_t call)
-{
-    return UnportedParticle(pass.particles, pass.actor, type, subtype, call);
 }
 
 // 4335c7..36dd: incluso con todos los efectos ocupados, primero lee boundsTop del blanco con índice firmado.
@@ -1094,21 +1074,61 @@ Result DrawThe1b6(MonsterHelperPass& pass)
     return {};
 }
 
-// 0x427ab0..0x428036, el 0x1b7: el punto del brazo izquierdo y su partícula 0x6f1/1 (CL11). Con la tabla llena, las
-// 0x6f1/1 del brazo derecho y de la cabeza tampoco crean nada; siguen sus sonidos (0x247, y 0x249, 0x24a y 0x24b en la
-// 3, la 4 y la 6) y, en la 3, las partículas 0x5f2/0x19 (desde el frame 4) y 0x6eb/3 (de 5 a 5,5), que no crean
-// nada, y con el blanco +0x3a4 en el pool, desde el frame 6,9 (0x6b8a3c), el joint 0x618/0x10 (0x427fea..0x428036
-// salta a 0x427a8d): desde el blanco, 100 (0x6b86b4) más arriba, hacia el actor, con los ángulos del blanco, el actor
-// de dueño y ancho 20; vuelve a él (BeamJoints.cpp).
+// 0x427ab0..0x428036, el 0x1b7: en los puntos de Monster101_L_Arm, R_Arm y Head, la neblina 0x6f1/1 (0x427b8b,
+// 0x427c42, 0x427cfd) con los ángulos (0, 0, 0), la luz 1 y escala 1; sus sonidos (0x247, y 0x249, 0x24a y 0x24b en la
+// 3, la 4 y la 6) y, en la 3, en el punto (30, 0, 0) del brazo izquierdo con los ángulos (0, 45, 45): desde el frame 4
+// (0x6b8a44) el humo 0x5f2/0x19 de 1 con la luz 1 (0x427eaf) y, de 5 a 5,5 (0x6b87f8, 0x6b8a40), en otro punto igual,
+// la onda 0x6eb/3 de 0,5 con la luz 5 (0x427fad). Con el blanco +0x3a4 en el pool, desde el frame 6,9 (0x6b8a3c), el
+// joint 0x618/0x10 (0x427fea..0x428036 salta a 0x427a8d): desde el blanco, 100 (0x6b86b4) más arriba, hacia el actor,
+// con los ángulos del blanco, el actor de dueño y ancho 20; vuelve a él (BeamJoints.cpp).
 Result DrawThe1b7(MonsterHelperPass& pass)
 {
-    if (const auto arm = PointOf(pass, "Monster101_L_Arm", 0x427b2a); !arm.HasValue())
-        return Core::Unexpected(arm.Error());
-    if (auto made = Unported(pass, 0x6f1, 1, 0x427b8b); !made.HasValue())
-        return made;
+    constexpr glm::vec3 White{1.0f, 1.0f, 1.0f};
+    struct Mist
+    {
+        std::string_view bone;
+        std::uint32_t point;
+        std::uint32_t call;
+    };
+    constexpr std::array<Mist, 3> Mists{{{"Monster101_L_Arm", 0x427b2a, 0x427b8b},
+                                         {"Monster101_R_Arm", 0x427be1, 0x427c42},
+                                         {"Monster101_Head", 0x427c98, 0x427cfd}}};
+    for (const Mist& mist : Mists)
+    {
+        const auto point = PointOf(pass, mist.bone, mist.point);
+        if (!point.HasValue())
+            return Core::Unexpected(point.Error());
+        if (auto made = Particle(pass, World::KalimaWaterfallMist, 1, point.Value(), {}, White, 1.0f, mist.call);
+            !made.HasValue())
+            return made;
+    }
     constexpr std::array<ActionSound, 3> Sounds{{{3, 0x249}, {4, 0x24a}, {6, 0x24b}}};
     PlayTheSounds(pass, 0x247, Sounds);
     const ActorState& actor = pass.actor;
+    const float frame = actor.animation.frame;
+    if (actor.animation.action == 3 && frame >= 4.0f)
+    {
+        constexpr glm::vec3 Tilt{0.0f, 45.0f, 45.0f};     // 0x42340000
+        constexpr glm::vec3 ArmOffset{30.0f, 0.0f, 0.0f}; // 0x41f00000
+        constexpr float Wave = 0.5f;                      // 0x3f000000
+        constexpr glm::vec3 Bright{5.0f, 5.0f, 5.0f};     // 0x40a00000
+        const auto arm = PointOf(pass, "Monster101_L_Arm", 0x427e4e, ArmOffset);
+        if (!arm.HasValue())
+            return Core::Unexpected(arm.Error());
+        if (auto made = Particle(pass, World::BreathParticle, World::CrywolfTideSmokeSubtype, arm.Value(), Tilt, White,
+                                 1.0f, 0x427eaf);
+            !made.HasValue())
+            return made;
+        if (frame >= 5.0f && frame <= 5.5f)
+        {
+            const auto wave = PointOf(pass, "Monster101_L_Arm", 0x427f4c, ArmOffset);
+            if (!wave.HasValue())
+                return Core::Unexpected(wave.Error());
+            if (auto made = Particle(pass, World::ShockWaveParticle, 3, wave.Value(), Tilt, Bright, Wave, 0x427fad);
+                !made.HasValue())
+                return made;
+        }
+    }
     // 0x427fd3: 6,9 (0x6b8a3c).
     if (actor.animation.action == 3 && HasTarget(actor) && actor.animation.frame >= 6.9f)
     {

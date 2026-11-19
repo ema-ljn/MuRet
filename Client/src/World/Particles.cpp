@@ -989,6 +989,9 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
     // 0x543939 y 0x5478d7: la 6ad trata cualquier subtipo (los de fuera de /0 y /1 nacen sin nada propio).
     if (type == CinderParticle)
         return std::nullopt;
+    // 0x5443ae y 0x5481ab: la 6eb tampoco.
+    if (type == ShockWaveParticle)
+        return std::nullopt;
     if (type == ArrivalDustParticle)
         return subtype == 1 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     // 0x542b3b y 0x546b04: la 5e4 no lee el subtipo.
@@ -2215,6 +2218,13 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
             CreateTheCinder(particle, random);
             return std::optional(index);
         }
+        if (type == ShockWaveParticle)
+        {
+            // 0x5443b2: vida 7, sin rand().
+            constexpr std::int32_t ShockWaveLife = 7;
+            particle.life = ShockWaveLife;
+            return std::optional(index);
+        }
         if (type == BlazeParticle)
         {
             // 0x542a94..0x542aa4: vida 12 y la escala del pedido otra vez en +0x10. El sonido de 0x542aa7, quien la
@@ -2600,6 +2610,15 @@ StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random, const
         else if (particle.type == CinderParticle)
         {
             StepTheCinder(particle);
+        }
+        else if (particle.type == ShockWaveParticle)
+        {
+            // 0x5481ab..0x5481d8: la luz por 0,5555556f (0x6ba234) y la escala más 0,3f (0x6b89dc).
+            for (int channel = 0; channel < 3; ++channel)
+                particle.light[channel] = F32(static_cast<double>(particle.light[channel]) *
+                                              static_cast<double>(std::bit_cast<float>(0x3f0e38e4u)));
+            particle.scale =
+                F32(static_cast<double>(particle.scale) + static_cast<double>(std::bit_cast<float>(0x3e99999au)));
         }
         else if (particle.type == BlazeParticle)
         {

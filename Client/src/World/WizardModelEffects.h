@@ -108,7 +108,8 @@ struct WizardEffectServices
     std::uint8_t* ownRecordCount = nullptr;
     // 0x52cc21: la cola publica la acción del efecto en la tabla de modelos antes de animar.
     std::function<void(std::uint16_t, std::uint8_t)> publishAction{};
-    // 0x518cf0 con un tipo de otro lote: el 0xf6/2 que suelta el 0xc2/6..8 al caer (0x524d38).
+    // 0x518cf0 con un tipo de otro lote: el 0xf6/2 que suelta el 0xc2/6..8 al caer (0x524d38), con el meteoro de
+    // dueño (+0x108). Scenes::WizardEffectServicesOf lo da con World::CreateBlastModelEffect.
     std::function<Core::Expected<void, std::string>(const ModelEffectArguments&)> otherEffect{};
     // 0x524a8d..0x524b21: si el 0xc2/4 que toca el suelo en (x, y) empuja a alguno de los 400 personajes del pool (de
     // a 0x438): vivo, visto (+0x16c), que no sea el héroe, sin morirse (+0x389 en 0) y a 200 o menos (la raíz de

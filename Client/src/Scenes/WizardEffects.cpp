@@ -10,6 +10,7 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/IFishStepServices.h"
+#include "World/BlastModelEffects.h"
 #include "World/ModelEffects.h"
 #include "World/TerrainHeight.h"
 #include "World/WizardModelEffects.h"
@@ -17,7 +18,9 @@
 
 #include <cmath>
 #include <cstddef>
+#include <algorithm>
 #include <cstdint>
+#include <format>
 #include <functional>
 #include <optional>
 #include <span>
@@ -95,6 +98,29 @@ World::WizardEffectServices WizardEffectServicesOf(WorldState& world, Render::Mo
             auto placement = world.ModelPlacement(type);
             placement.action = action;
             world.PlaceModel(type, placement);
+        },
+        .otherEffect = [&world, &random, sound = parts.sound](
+                           const World::ModelEffectArguments& arguments) -> Core::Expected<void, std::string>
+        {
+            // 0x524d38: el 0xf6/2 (World/BlastModelEffects) con el meteoro que lo suelta de dueño (+0x108), que su
+            // paso lee en vivo como un efecto de la tabla.
+            const std::span<World::ModelEffect> table = world.Map().effects.Effects();
+            const auto owner = std::ranges::find_if(table, [&arguments](const World::ModelEffect& effect)
+                                                    { return &effect == arguments.owner; });
+            if (owner == table.end())
+                return Core::Unexpected(
+                    std::format("0x518cf0: el dueño del efecto {:#x}/{} no es un efecto de la tabla", arguments.type,
+                                arguments.subtype));
+            WorldRuntime& state = world.Runtime();
+            const World::BlastEffectServices services{.ownRecordDepth = &state.ownRecordDepth,
+                                                      .ownRecordCount = &world.OwnCharacter().bytef04,
+                                                      .hero = &world.Actors()[state.hero],
+                                                      .sound = sound};
+            const auto created = World::CreateBlastModelEffect(
+                world.Map().effects, arguments, World::ModelEffectOwner{.effect = &*owner}, random, services);
+            if (!created.HasValue())
+                return Core::Unexpected(created.Error());
+            return {};
         },
         .someoneToPush =
             [&world, hero = runtime.hero](float x, float y)

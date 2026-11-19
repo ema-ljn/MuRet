@@ -83,6 +83,7 @@ struct Harness
     int hero = 0;
     bool someoneClose = false;
     std::vector<std::pair<float, float>> pushes;
+    std::vector<ModelEffectArguments> others;
 
     WizardEffectServices Services()
     {
@@ -114,6 +115,11 @@ struct Harness
             },
             .ownRecordDepth = &depth,
             .ownRecordCount = &count,
+            .otherEffect = [this](const ModelEffectArguments& arguments) -> Client::Core::Expected<void, std::string>
+            {
+                others.push_back(arguments);
+                return {};
+            },
             .someoneToPush =
                 [this](float x, float y)
             {
@@ -520,6 +526,46 @@ TEST(WizardModelEffectsTest, TheMapMeteorTrailsTwoSmokesOwnedByItself)
     const auto cut = Client::World::StepWizardModelEffect(loose, nullptr, again, other.Services());
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x52497d"), std::string::npos) << cut.Error();
+}
+
+// 0x524c64..0x524e95: el 0xc2/6, /7 y /8 que pasa el suelo se apoya en él y suelta el 0xf6/2 (0x524d38: en su punto,
+// ángulos 0, luz (0; 0,5; 0), el meteoro de dueño y la clave 30), los humos de piedra 5f2/11 (15, 7 o 5), las seis
+// piedritas sólo el /6, el sonido 0x8f y la explosión 5ed/0; después, su brillo (0x524e99).
+TEST(WizardModelEffectsTest, TheGreenMeteorDropsItsBurstWhenItLands)
+{
+    struct Case
+    {
+        std::int32_t subtype;
+        std::size_t dust;
+        std::size_t chips;
+    };
+    for (const Case& tested : {Case{6, 15, 6}, Case{7, 7, 0}, Case{8, 5, 0}})
+    {
+        SCOPED_TRACE(tested.subtype);
+        Harness world;
+        CrtRandom random(21);
+        const std::size_t slot = Create(world, Arguments(0xc2, tested.subtype), random);
+        ModelEffect& meteor = world.At(slot);
+        world.ground = static_cast<double>(meteor.transform.position.z) + 5000.0;
+        const auto stepped = Client::World::StepWizardModelEffect(meteor, nullptr, random, world.Services());
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_FALSE(meteor.alive);
+        ASSERT_EQ(world.others.size(), 1U);
+        const ModelEffectArguments& burst = world.others[0];
+        EXPECT_EQ(burst.type, 0xf6);
+        EXPECT_EQ(burst.subtype, 2);
+        EXPECT_EQ(burst.owner, &meteor);
+        EXPECT_EQ(burst.key, 30);
+        EXPECT_EQ(burst.angles, glm::vec3(0.0f));
+        EXPECT_EQ(burst.light, glm::vec3(0.0f, 0.5f, 0.0f));
+        EXPECT_EQ(burst.position.z, static_cast<float>(world.ground));
+        EXPECT_EQ(burst.position.x, meteor.previousPosition.x);
+        EXPECT_EQ(world.ParticlesOf(0x5f2, 11), tested.dust);
+        EXPECT_EQ(world.AliveOf(0xc8) + world.AliveOf(0xc9), tested.chips);
+        EXPECT_EQ(world.ParticlesOf(0x5ed, 0), 1U);
+        ASSERT_FALSE(world.sounds.empty());
+        EXPECT_EQ(world.sounds.back(), 0x8f);
+    }
 }
 
 // 0x524a5f..0x524b2a: el 0xc2/4 que baja del suelo tiembla la cámara y mira los personajes del pool. Con alguno a 200

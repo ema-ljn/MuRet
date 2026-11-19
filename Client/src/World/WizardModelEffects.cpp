@@ -914,7 +914,8 @@ Core::Expected<void, std::string> LandTheFire(ModelEffect& effect, double height
     }
     else
     {
-        // 0x524cf3..0x524d38: el 0xf6/2 (del lote del switch) con el 0xc2 de dueño y la clave 30.
+        // 0x524cf3..0x524d38: el 0xf6/2 (World/BlastModelEffects, por otherEffect) con el 0xc2 de dueño, la clave 30,
+        // los ángulos en 0 y la luz (0; 0,5; 0); no saca rand().
         const ModelEffectArguments burst{.type = MeteorBurst,
                                          .position = at,
                                          .angles = {},
@@ -923,7 +924,7 @@ Core::Expected<void, std::string> LandTheFire(ModelEffect& effect, double height
                                          .owner = &effect,
                                          .key = 30};
         if (!services.otherEffect)
-            return Core::Unexpected(std::string("0x524d38: el meteoro suelta el 0xf6/2, del lote del switch (CL11)"));
+            return Core::Unexpected(std::string("0x524d38: falta el alta del 0xf6/2 que suelta el meteoro (0x518cf0)"));
         if (auto created = services.otherEffect(burst); !created.HasValue())
             return created;
         const int dust = subtype == 7 ? 7 : subtype == 8 ? 5 : 15;

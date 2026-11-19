@@ -29,7 +29,7 @@ double D(float value)
 
 constexpr std::int32_t SpiritJoint = 0x6ee;
 constexpr float SpiritWidth = 100.0f; // 0x42c80000
-constexpr std::int32_t SpiritKey = 0; // esi en 0x51ce69; 0 en 0x527749
+constexpr std::int32_t SpiritKey = 0; // el 8.º argumento de 0x530860 ([ebp+0x24]): esi en 0x51ce6a; 0 en 0x52774b
 constexpr int FullTurn = 360;         // 0x168
 } // namespace
 

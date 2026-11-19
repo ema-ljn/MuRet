@@ -11,8 +11,9 @@
 
 // El 0x11b: el /1, los tres anillos que la habilidad 0x37 de Kalima (0x439b20) suelta sobre su dueño, con los dos
 // joints 0x618/0xa y /0xb que siguen sus puntos +0x40 y +0x4c; el /0, el destello del joint 0x613/0x13 (0x539b08).
-// Su alta (0x51c782) y su paso (0x526507). Se dibuja por el camino común (0x52da92 → 0x602e90). 06, "Los efectos con
-// modelo de los tipos altos".
+// Su alta (0x51c782) y su paso (0x526507). Su dibujo es el caso propio de 0x6002e0 (0x601e68, DrawTheHighEffectBody
+// de Scenes/HighEffectDrawing), que en cada pase deja +0x40 y +0x4c en los huesos 2 y 3. 06, "Los efectos con modelo
+// de los tipos altos".
 namespace Client::World
 {
 class ModelEffects;

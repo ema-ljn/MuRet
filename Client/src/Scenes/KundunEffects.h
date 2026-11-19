@@ -7,7 +7,8 @@
 
 // El 0x125, lo que suelta el paso del 0x128 de Kundun (0x527bb8 y 0x527c13): su alta (0x51cdc9) y su paso (0x5276b7).
 // El 0x128 todavía no nace (0x43d051 y 0x43d0fd cortan, KalimaSiegeHelpers), así que hoy sólo lo alcanzan los tests.
-// Se dibuja por el camino común (0x52da92 → 0x602e90). 06, "Los efectos con modelo de los tipos altos".
+// Su dibujo es el caso de 0x438fe0 que llama 0x6002e0 (0x43909e, DrawTheHighEffectBody de Scenes/HighEffectDrawing).
+// 06, "Los efectos con modelo de los tipos altos".
 namespace Client::World
 {
 struct ModelEffect;

@@ -392,18 +392,20 @@ protected:
     bool withParticles = true;
 };
 
-// 0x43a7a0 en Kalima (24 a 29 y 36): todos sus casos salen sin la cola; los efectos y la partícula 0x600 de otros lotes
-// cortan después de la lectura de +0x38e y de los rand() de su ayudante. Los de los magos se crean: el 0xcb/3 y el
-// 0xcc/4 de 0x439cd0 sin rand(), los tres 0xc2/7 de 0x43b18f con dos rand() % 200 y los cinco del alta cada uno; el
-// anillo 0xc2/8 de 0x439bd0 (rand() % 360) corta en el joint 0x5f2/0 de su primer fuego (0x51b268, CL11 de los
-// joints), después de sus cuatro rand(). Afuera, los mismos tipos van a la cola.
+// 0x43a7a0 en Kalima (24 a 29 y 36): todos sus casos salen sin la cola; la partícula 0x600/1 nace en 14 (0x43a861 y
+// 0x43abd9, sobre el blanco o el héroe, con el rand() % 360 de su giro en 0x5431a1) y los efectos de otros lotes cortan
+// después de la lectura de +0x38e y de los rand() de su ayudante. Los de los magos se crean: el 0xcb/3 y el 0xcc/4 de
+// 0x439cd0 sin rand(), los tres 0xc2/7 de 0x43b18f con dos rand() % 200 y los cinco del alta cada uno; el anillo 0xc2/8
+// de 0x439bd0 (rand() % 360) corta en el joint 0x5f2/0 de su primer fuego (0x51b268, CL11 de los joints), después de
+// sus cuatro rand(). Afuera, los mismos tipos van a la cola.
 TEST_F(MonsterAttackCasesTest, TheKalimaMonstersLeaveWithoutTheTail)
 {
     constexpr int FireRingDraws = 4;
+    constexpr int RingDraws = 1;
     const std::vector<Probe> probes{
         {.name = "0x90 en 13", .type = 0x90, .step = 13},
-        {.name = "0x90 en 14", .type = 0x90, .step = 14, .cut = "0x43a861"},
-        {.name = "0x92 en 14", .type = 0x92, .step = 14, .cut = "0x43abd9"},
+        {.name = "0x90 en 14", .type = 0x90, .step = 14, .draws = RingDraws},
+        {.name = "0x92 en 14", .type = 0x92, .step = 14, .draws = RingDraws},
         {.name = "0x91 con 1 en 13",
          .type = 0x91,
          .step = 13,

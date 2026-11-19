@@ -479,12 +479,32 @@ TEST(AttackStepTest, TheStrikeSoundFollowsTheOwnHands)
     }
 }
 
-// Lo que corta, en su orden y con los rand() de antes: lo que crean los casos de la cabeza y con blanco (0x4fdeeb,
-// 0x504372, CL11), los efectos de los casos de 0x4f5b70 (0x4f67fb), la partícula de 0x52e740 (0x5042ce, CL11) y, sin el
-// pool de joints, los de +0x380 en 2 (0x505169). La flecha (0x53e2b0) ya no corta: sus cortes están en
-// test_arrow_effects.cpp. Los demás casos de 0x4f97b0, en test_attack_frame_skills.cpp; los de 0x4fdeeb y 0x504372, en
-// test_attack_skill_cases.cpp.
+// 0x5042ce: con la 0x39 en 14, 0x52e740 ya no corta: la chispa 0x5c6/0 en el blanco y, con dos rand() antes de cada
+// una, las veinte 0x5c5/0; el paso sigue.
+TEST(AttackStepTest, TheSparkOf0x39LeavesItsParticles)
+{
+    AttackWorld tested;
+    ActorState& hero = tested.Striker(HeroSlot, 0x23, VictimSlot);
+    hero.animation.action = 0x39;
+    hero.byte381 = 14;
 
+    const auto stepped = tested.Attack(hero, HeroSlot);
+
+    ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
+    const auto count = [&](std::int32_t type)
+    {
+        return std::ranges::count_if(tested.particles.All(), [type](const Client::World::Particle& particle)
+                                     { return particle.alive && particle.type == type && particle.subtype == 0; });
+    };
+    EXPECT_EQ(count(0x5c6), 1);
+    EXPECT_EQ(count(0x5c5), 20);
+    EXPECT_GE(DrawsSince(Seed, tested.random), CountingStep + SkillRead + 40);
+}
+
+// Lo que corta, en su orden y con los rand() de antes: lo que crean los casos de la cabeza y con blanco (0x4fdeeb,
+// 0x504372, CL11), los efectos de los casos de 0x4f5b70 (0x4f67fb) y, sin el pool de joints, los de +0x380 en 2
+// (0x505169). La flecha (0x53e2b0) ya no corta: sus cortes están en test_arrow_effects.cpp. Los demás casos de
+// 0x4f97b0, en test_attack_frame_skills.cpp; los de 0x4fdeeb y 0x504372, en test_attack_skill_cases.cpp.
 TEST(AttackStepTest, TheCutsAfterTheirDraws)
 {
     struct Case
@@ -502,22 +522,8 @@ TEST(AttackStepTest, TheCutsAfterTheirDraws)
                  hero.byte381 = 14;
              },
              "0x500cb9", CountingStep + SkillRead + OwnRecord},
-        Case{"la habilidad 1",
-             [](AttackWorld&, ActorState& hero)
-             {
-                 hero.byte38e = 1;
-                 hero.byte381 = 14;
-             },
-             "0x50497e", CountingStep + 2 * SkillRead},
         Case{"el caso 0x31 de +0x376", [](AttackWorld&, ActorState& hero) { hero.word376 = 0x31; }, "0x4f67fb",
              SkillRead + 1},
-        Case{"la 0x39",
-             [](AttackWorld&, ActorState& hero)
-             {
-                 hero.animation.action = 0x39;
-                 hero.byte381 = 14;
-             },
-             "0x52e77b", CountingStep + SkillRead},
         Case{"mató, sin los joints",
              [](AttackWorld& tested, ActorState& hero)
              {

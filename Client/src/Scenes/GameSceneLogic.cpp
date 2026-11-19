@@ -377,7 +377,7 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
             ParticleOwnersAmong(m_context.world->Map().objects), ParticleActorActionsAmong(m_context.world->Actors()),
             ParticleTextureHeightsOf(m_worldModels), &m_context.world->DynamicLighting().Lighting(),
             ParticleActorHandsAmong(m_context.world->Actors(), runtime.hero), ParticleOwnerBonesOf(*m_context.world),
-            [&](std::int32_t sound) { runtime.RequestSound(sound); });
+            [&](std::int32_t sound) { runtime.RequestSound(sound); }, ParticleOwnerStatesOf(*m_context.world));
         !particles.HasValue())
     {
         return particles;

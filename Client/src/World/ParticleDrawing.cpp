@@ -1,4 +1,5 @@
 #include "World/ParticleDrawing.h"
+#include "World/EffectParticleKernels.h"
 #include "World/KalimaParticleKernels.h"
 #include "World/SelectionParticleKernels.h"
 #include "World/TrialsParticleKernels.h"
@@ -108,22 +109,18 @@ Core::Expected<DrawSelection, ParticleDrawingError> SelectBranch(Particle& p, st
     switch (type)
     {
     case BlueTrailFireParticle:
-        // 0x548c9c/0x548850: atlas de fuego girado, con la textura y la mezcla de 0x5dc (Effect\Fire05.jpg).
-        if (p.subtype != BlueTrailFireSubtype)
-            return Core::Unexpected(BranchError(ParticleError::UnsupportedSubtype));
-        return DrawSelection{ParticleDrawKind::RotatedFire, false};
     case FireParticle:
     case DeathSpiritFireParticle:
-        // 548803..1f: sólo estos seis subtipos salen del default acreditado.
+        // 0x548803..0x54881f: 5d9, 5db y 5dc comparten el caso; estos seis subtipos van al atlas de fuego girado por
+        // +0x44 (0x548850) y los demás al de los ángulos (0x548821), cada uno con la textura de su tipo.
         switch (p.subtype)
         {
-        case 7:
-        case 11:
-        case 12:
-        case 13:
-            return Core::Unexpected(BranchError(ParticleError::UnsupportedSubtype));
         case 5:
+        case FireSwaySubtype:
         case 8:
+        case FireLongSwaySubtype:
+        case FireTallSubtype:
+        case FireFountainSubtype:
             return DrawSelection{ParticleDrawKind::RotatedFire, false};
         default:
             return DrawSelection{ParticleDrawKind::Fire, false};
@@ -189,6 +186,7 @@ Core::Expected<DrawSelection, ParticleDrawingError> SelectBranch(Particle& p, st
             return Core::Unexpected(blended.Error());
         return DrawSelection{ParticleDrawKind::Common, false, added};
     }
+    case RingParticle:      // 0x548644: el anillo 0x600 va al default (0x54889a), sin leer el subtipo.
     case ThunderParticle:   // 548ca1→54889a: billboard común sin lectura del subtipo.
     case LightningParticle: // 0x548644: el índice 8 de 0x548c9c, al mismo 0x54889a.
     case SparkParticle:

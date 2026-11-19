@@ -947,9 +947,25 @@ Core::Expected<void, std::string> StepTheTargetSkill(ActorState& actor, ActorSta
                 !created.HasValue())
                 return created;
         }
-        if (context.particles == nullptr ||
-            std::ranges::any_of(context.particles->All(), [](const auto& p) { return !p.alive; }))
-            return CutAt(0x50497e, "la primera de las diez partículas 0x5f2/1 (0x53fe70)", skill, slot);
+        // 0x50492e..0x504986: diez 0x53fe70(0x5f2, o + 0x10 del blanco, c + 0x1c, (0,4f; 0,6f; 1), 1, 1,0f, 0), el
+        // humo del veneno (0x541eb6, siete rand() cada una mientras haya lugar).
+        constexpr std::int32_t PoisonSmoke = 0x5f2;
+        constexpr std::int32_t PoisonSmokeSubtype = 1;
+        constexpr int PoisonSmokeCount = 10;
+        const glm::vec3 poisonLight{std::bit_cast<float>(0x3ecccccdu), std::bit_cast<float>(0x3f19999au), 1.0f};
+        if (context.particles == nullptr)
+            return Core::Unexpected(std::format("0x50497e: falta el pool de partículas del lugar {}", slot));
+        for (int smoke = 0; smoke < PoisonSmokeCount; ++smoke)
+        {
+            const auto created =
+                context.particles->CreateChecked(PoisonSmoke, victim.position, actor.angles, poisonLight,
+                                                 PoisonSmokeSubtype, 1.0f, context.worldClock, context.random);
+            if (!created.HasValue())
+            {
+                return Core::Unexpected(std::format("0x50497e: la partícula 0x5f2/1 del lugar {} falla con error {}",
+                                                    slot, static_cast<unsigned>(created.Error())));
+            }
+        }
         if (actor.skillSucceeded != 0)
             victim.flags78 |= 1;
         RequestTheSound(context, 0x22);
@@ -1048,19 +1064,34 @@ Core::Expected<void, std::string> StepTheTargetSkill(ActorState& actor, ActorSta
 Core::Expected<void, std::string> SparkTheTarget(const ActorState& actor, const ActorState& victim, std::size_t slot,
                                                  const CharacterStepContext& context)
 {
-    // 0x52e740: la partícula 0x5c6/0 en el blanco con sus ángulos, y veinte veces dos rand() y la 0x5c5/0; la primera
-    // ya es de la CL11, sin rand() antes.
-    if (context.particles != nullptr &&
-        std::ranges::all_of(context.particles->All(), [](const auto& particle) { return particle.alive; }))
+    // 0x52e740..0x52e804: 0x53fe70(0x5c6, o + 0x10 del blanco, sus ángulos, (1, 1, 1), 0, 1,0f, 0), la chispa del golpe
+    // (0x54059f: sólo el prefijo); el (0, 50, 0) girado por los ángulos del que pega (0x5fc8f0 y 0x5fcbd0) y sumado a
+    // la posición no lo lee nadie. Después, veinte veces dos rand() y 0x53fe70(0x5c5, la misma posición y ángulos, (1,
+    // 1, 1), 0, 1,0f, 0), aun si el pool está lleno.
+    constexpr std::int32_t HitSpark = 0x5c6;
+    constexpr std::int32_t FairySpark = 0x5c5;
+    constexpr int FairySparks = 20;
+    if (context.particles == nullptr)
+        return Core::Unexpected(std::format("0x52e77b: falta el pool de partículas del lugar {}", slot));
+    const auto fail = [&](std::uint32_t address, std::int32_t type, World::ParticleError error)
     {
-        constexpr int SparkDraws = 20 * 2; // 52e7d5/52e7da, aun si las veinte 5c5/0 tampoco encuentran lugar.
-        for (int draw = 0; draw < SparkDraws; ++draw)
-            static_cast<void>(context.random.Next());
-        return {};
+        return Core::Unexpected(std::format("{:#x}: la partícula {:#x}/0 de 0x52e740 del lugar {} (acción {:#x}) falla "
+                                            "con error {}",
+                                            address, type, slot, actor.animation.action, static_cast<unsigned>(error)));
+    };
+    const auto spark = context.particles->CreateChecked(HitSpark, victim.position, victim.angles, glm::vec3(1.0f), 0,
+                                                        1.0f, context.worldClock, context.random);
+    if (!spark.HasValue())
+        return fail(0x52e77b, HitSpark, spark.Error());
+    for (int fairy = 0; fairy < FairySparks; ++fairy)
+    {
+        static_cast<void>(context.random.Next());
+        static_cast<void>(context.random.Next());
+        const auto created = context.particles->CreateChecked(
+            FairySpark, victim.position, victim.angles, glm::vec3(1.0f), 0, 1.0f, context.worldClock, context.random);
+        if (!created.HasValue())
+            return fail(0x52e7f3, FairySpark, created.Error());
     }
-    return Core::Unexpected(
-        std::format("0x52e77b: la partícula 0x5c6/0 de 0x52e740 sobre el blanco (tipo {:#x}) con la "
-                    "acción {:#x} del lugar {}, sin portar (CL11)",
-                    victim.type, actor.animation.action, slot));
+    return {};
 }
 } // namespace Client::Scenes

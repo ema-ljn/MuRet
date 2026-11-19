@@ -903,7 +903,7 @@ Result HangTheStatueWeapon(MonsterFrame& frame)
     return hung;
 }
 
-// 0x50bf45..0x50c904: lo que se agrega por el +0x376. El 0x45, hasta sus partículas, el 0x46, el 0x4d, las telas del
+// 0x50bf45..0x50c904: lo que se agrega por el +0x376. El 0x45 con sus partículas, el 0x46, el 0x4d, las telas del
 // 0x47, el 0x4a y el 0x12d (0x50c59f, con cualquier tipo: los tres son del 0x186), los pases de brillo
 // (MonsterShines), lo que cuelgan el 0x2a y las estatuas 0x84 a 0x86 y las cadenas del 0x49 y el 0x4b (el 0x49 corta
 // en 0x60b300); los demás cortan.

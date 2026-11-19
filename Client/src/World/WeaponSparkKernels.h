@@ -11,9 +11,10 @@ namespace Client::World
 struct Particle;
 
 // La chispa 0x5c6/0xb (Spark03) que sueltan el arco 0xa27 (0x50af72) y el bastón 0xc1e (0x50b5d8) en el dibujo de
-// lo que cuelga. La 0x5c6/0xd comparte sus instrucciones en 0x53fe70 y en 0x5446e0, pero nadie la pide en MuRet. Va
-// al billboard común, como todas las 0x5c6.
+// lo que cuelga. La 0x5c6/0xd comparte sus instrucciones en 0x53fe70 (0x540977) y en 0x5446e0 (0x545368). Va al
+// billboard común, como todas las 0x5c6.
 inline constexpr std::int32_t WeaponSparkSubtype = 11;
+inline constexpr std::int32_t TwinWeaponSparkSubtype = 13;
 [[nodiscard]] bool IsWeaponSpark(std::int32_t type, std::int32_t subtype);
 
 // 0x540977..0x5409fc, después del prefijo: +0x38 en 1,0f, la velocidad ((rand() & 7) − 4; rand() & 3; rand() & 3),

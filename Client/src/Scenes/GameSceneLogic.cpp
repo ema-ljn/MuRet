@@ -52,7 +52,6 @@
 #include <cstddef>
 #include <functional>
 #include <cstdint>
-#include <optional>
 #include <span>
 #include <string>
 #include <utility>
@@ -111,7 +110,7 @@ Core::Expected<void, std::string> GameScene::StepTheCharacters(float worldClock,
             .counter = m_context.cloth->logicSteps,
             .actionSpeeds = &m_context.world->ActionSpeeds(),
             .fixedHeight = CameraState().fixedHeight,
-            .soundRequest = [&](std::int32_t sound) { runtime.lastSoundId = sound; },
+            .soundRequest = [&](std::int32_t sound) { runtime.RequestSound(sound); },
             .send = m_session != nullptr
                         ? std::function<void(Protocol::Outgoing)>([session = m_session](Protocol::Outgoing packet)
                                                                   { session->SendChat(std::move(packet)); })
@@ -160,9 +159,8 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
         .map = &m_context.world->Runtime().map,
         // 0x5227ca: la grieta 0xfb escribe el temblor de la cámara del paso lógico.
         .cameraShake = &CameraInputState().shake,
-        // 0x41ed10(id, 0, 0): MuRet no tiene audio (CL10); como los demás pedidos de sonido del paso, queda anotado en
-        // WorldRuntime::lastSoundId y no saca rand().
-        .sound = [this](std::int32_t id) { m_context.world->Runtime().lastSoundId = id; },
+        // 0x41ed10(id, 0, 0): RequestSound lo despacha sin sacar rand().
+        .sound = [this](std::int32_t id) { m_context.world->Runtime().RequestSound(id); },
         // 0x52ae2a (CL9 hito 4): el chorro de la Flame con el héroe de dueño manda los blancos con 0x517a20(+0x89, la
         // posición, 150, el byte +0x8c, +0x8a, 0), como el choque de las flechas de skill.
         .hero = &m_context.world->Actors()[m_context.world->Runtime().hero],
@@ -229,7 +227,7 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
         }
         // 0x5208a0 sobre las flechas de 0x53d9a0 (CL9 hito 3, fase 2e): su choque lee el pool de personajes y el
         // registro propio, fuera de World. CL9 hito 4: la flecha 0xdb del asedio lee la celda y la altura del terreno,
-        // y el choque de las de skill pide un sonido (CL10, en WorldRuntime::lastSoundId) y manda el C1 10 (0x517a20).
+        // y el choque de las de skill pide un sonido (CL10) y manda el C1 10 (0x517a20).
         if (World::IsSiegeStoneEffect(effect.type))
         {
             if (m_context.worldEntry == nullptr)
@@ -253,7 +251,7 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
                 .worldClock = worldClock,
                 .terrain = &StepTerrain(),
                 .terrainHeight = terrainHeight,
-                .soundRequest = [this](std::int32_t id) { m_context.world->Runtime().lastSoundId = id; },
+                .soundRequest = [this](std::int32_t id) { m_context.world->Runtime().RequestSound(id); },
                 .send = m_session != nullptr
                             ? std::function<void(Protocol::Outgoing)>([session = m_session](Protocol::Outgoing packet)
                                                                       { session->SendChat(std::move(packet)); })
@@ -310,7 +308,7 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
     if (auto stepped = StepJoints(m_context.world->DrawTail().joints, m_context.cloth->random, m_context.cloth,
                                   &m_context.world->Particles(), worldClock, &m_sprites,
                                   &m_context.world->DynamicLighting().Lighting(),
-                                  [&](std::int32_t sound) { runtime.lastSoundId = sound; });
+                                  [&](std::int32_t sound) { runtime.RequestSound(sound); });
         !stepped.HasValue())
         return stepped;
     // 0x63712d: 0x549090, las marcas del suelo, sin rand(). En la espera también corre, y acá no: la tabla
@@ -320,7 +318,7 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
             ParticleOwnersAmong(m_context.world->Map().objects), ParticleActorActionsAmong(m_context.world->Actors()),
             ParticleTextureHeightsOf(m_worldModels), &m_context.world->DynamicLighting().Lighting(),
             ParticleActorHandsAmong(m_context.world->Actors(), runtime.hero), ParticleOwnerBonesOf(*m_context.world),
-            [&](std::int32_t sound) { runtime.lastSoundId = sound; });
+            [&](std::int32_t sound) { runtime.RequestSound(sound); });
         !particles.HasValue())
     {
         return particles;

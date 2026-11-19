@@ -13,9 +13,20 @@
     "gtest",
     "libjpeg-turbo",
     {
+      "name": "sdl3-mixer",
+      "features": [
+        "mpg123",
+        "libvorbis"
+      ]
+    },
+    {
       "name": "sdl3",
       "default-features": false,
       "features": [
+        {
+          "name": "alsa",
+          "platform": "linux"
+        },
         {
           "name": "x11",
           "platform": "linux"
@@ -31,6 +42,10 @@
     {
       "name": "libjpeg-turbo",
       "version": "3.2.0#1"
+    },
+    {
+      "name": "sdl3-mixer",
+      "version": "3.2.4"
     }
   ]
 }

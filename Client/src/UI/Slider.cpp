@@ -8,6 +8,7 @@
 
 #include <array>
 #include <cstdint>
+#include <functional>
 
 namespace Client::UI
 {
@@ -93,7 +94,8 @@ const Button& Slider::Thumb() const
     return m_thumb;
 }
 
-void Slider::Step(const Input::InputState& input, Point mouse, double elapsedMs)
+void Slider::Step(const Input::InputState& input, Point mouse, double elapsedMs,
+                  const std::function<void()>& onButtonClick)
 {
     if (!m_open)
     {
@@ -101,7 +103,7 @@ void Slider::Step(const Input::InputState& input, Point mouse, double elapsedMs)
     }
     // La perilla no está en la lista de la ventana (0x66a070): su +0xa9 queda en el 1 de 0x63c330 y
     // ve siempre el mouse.
-    static_cast<void>(m_thumb.Step(input, mouse));
+    static_cast<void>(m_thumb.Step(input, mouse, onButtonClick));
     if (!m_thumb.Enabled())
     {
         return;

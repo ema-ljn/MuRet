@@ -261,24 +261,33 @@ std::optional<std::int32_t> FootstepSound(const ActorState& actor, std::int32_t 
 Core::Expected<ActorWalkResult, std::string> StepSound(const ActorState& actor, const ActorWalkContext& context)
 {
     auto& random = context.stop.random;
+    const auto requestSound = [&context, &actor](std::int32_t sound)
+    { context.stop.runtime.RequestSound(sound, actor.position); };
     if (actor.type == 0x16d)
     {
+        requestSound(0x7c);
         return ActorWalkResult{.sound = 0x7c};
     }
     if ((actor.characterClass & ClassMask) == SecondRunningClass && actor.pet.model == DarkHorse && actor.safeZone == 0)
     {
-        return ActorWalkResult{.sound = 0x1c3 + random.Next() % 3};
+        const std::int32_t sound = 0x1c3 + random.Next() % 3;
+        requestSound(sound);
+        return ActorWalkResult{.sound = sound};
     }
     const std::uint8_t action = actor.animation.action;
     if (actor.pet.model == Fenrir && actor.safeZone == 0)
     {
         if (action >= 0x6a && action <= 0x75)
         {
-            return ActorWalkResult{.sound = 0x273 + random.Next() % 3};
+            const std::int32_t sound = 0x273 + random.Next() % 3;
+            requestSound(sound);
+            return ActorWalkResult{.sound = sound};
         }
         if (action >= 0x7a && action <= 0x7d)
         {
-            return ActorWalkResult{.sound = 0x273 + (random.Next() & 1)};
+            const std::int32_t sound = 0x273 + (random.Next() & 1);
+            requestSound(sound);
+            return ActorWalkResult{.sound = sound};
         }
     }
     const int mask = context.hero ? 63 : 15;
@@ -288,14 +297,14 @@ Core::Expected<ActorWalkResult, std::string> StepSound(const ActorState& actor, 
     {
         return ActorWalkResult{};
     }
-    // 0x4f3edc..0x4f3f6c: los subtipos 209 a 211 piden antes el 0x7b (0x41ed10(0x7b, personaje, 0), CL10), y después
-    // todos la WORD 0 o la 1 de la tabla del modelo (DrawModelSound): la del modelo cargado (ActorWalkContext::
-    // modelSounds, CL9 hito 2) o, sin ella, la que escribió el alta (WorldRuntime::modelSounds, CL9 hito 3); un 0x20a
-    // no la tiene y lee las WORD en 0 de 0x60dc80, el 0xd2. Si la tabla suena, su pedido pisa al 0x7b en lastSoundId
-    // (08 P-C241 e).
+    // 0x4f3edc..0x4f3f6c: los subtipos 209 a 211 piden 0x7b antes de elegir la WORD 0 o 1 de la tabla del modelo.
+    // El segundo pedido no borra el primero aunque sea el último que queda en el diagnóstico.
     ActorWalkResult result;
     if (modelSound)
+    {
+        requestSound(0x7b);
         result.sound = 0x7b;
+    }
     std::optional<ModelSounds> sounds = WrittenSounds(context.stop.runtime.modelSounds, actor.type);
     if (context.modelSounds.size() == std::tuple_size_v<ModelSounds>)
     {
@@ -304,7 +313,10 @@ Core::Expected<ActorWalkResult, std::string> StepSound(const ActorState& actor, 
     }
     constexpr std::size_t FirstWalkSound = 0;
     if (const auto drawn = DrawModelSound(sounds, FirstWalkSound, actor.subtype, random))
+    {
+        requestSound(*drawn);
         result.sound = drawn;
+    }
     return result;
 }
 } // namespace

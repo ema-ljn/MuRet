@@ -61,8 +61,11 @@ Core::Expected<void, std::string> StepCastleSiegePrelude(const CastleSiegePrelud
     if (elapsed > Period || last == 0.0f || std::isnan(last))
     {
         *prelude.musicTime = static_cast<float>(now);
-        // 0x42b5c3 (sin asedio) y 0x42b5a6 (con él): 0x4acf60 deja una música y 0x4acfd0 toca la otra. MuRet
-        // todavía no tiene audio (CL10).
+        // 0x42b5c3 (sin asedio) y 0x42b5a6 (con él): 0x4acf60 deja una música y 0x4acfd0 toca la otra.
+        if (prelude.updateMusic)
+        {
+            prelude.updateMusic(prelude.siegeActive);
+        }
     }
     if (!prelude.sound)
         return Core::Unexpected(std::string("0x42b5e9: falta el emisor sonoro 0x41ed10 del 0x1e2"));

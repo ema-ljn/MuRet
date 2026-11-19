@@ -105,7 +105,7 @@ bool ClickTheButton(OldButton& button, const OldWindowGlobals& globals, std::int
         if (globals.releasedClick && globals.pressedButton == base.id)
         {
             globals.releasedClick = false;
-            globals.sound = ButtonSound;
+            globals.RequestSound(ButtonSound);
             button.pressed = 0;
             globals.pressedButton = 0;
             return true;

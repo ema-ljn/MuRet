@@ -30,6 +30,8 @@ struct CreditsStep
     // 0x4acfd0 con main_theme.mp3). Un paso puede cerrarlos dos veces: con el botón o Esc, y otra al llegar
     // al final de la tabla en el mismo paso.
     int closes = 0;
+    // 0x63ffe0: al terminar la tabla, suena el 0x19 antes del F4 06.
+    bool buttonClickSound = false;
     // 0x63fc50 con +0x5c8: la escena sube Interface\im{n + 1}_1.jpg y _2.jpg en 0x6f8 y 0x6f9.
     std::optional<std::uint8_t> illustration;
 

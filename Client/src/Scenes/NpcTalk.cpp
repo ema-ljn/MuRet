@@ -166,7 +166,7 @@ Core::Expected<void, std::string> TalkToTheNpc(ActorState& hero, const HeroMovem
         if (!stopped.HasValue())
             return Core::Unexpected(stopped.Error());
         if (stopped.Value().sound)
-            runtime.lastSoundId = stopped.Value().sound;
+            runtime.RequestSound(*stopped.Value().sound);
         hero.movement = 0;
     }
     // 0x5674f4: sin NPC elegido, nada más (0x56ab0c).

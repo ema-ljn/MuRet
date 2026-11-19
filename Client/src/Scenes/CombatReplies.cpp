@@ -157,7 +157,7 @@ Core::Expected<void, std::string> DieInTheCastle(ActorState& actor, const ActorC
         actor.pushOrigin = actor.position;
         actor.floatD8 = static_cast<float>(static_cast<double>(actor.floatD8) -
                                            (static_cast<double>(drawn) + static_cast<double>(3.0f)));
-        runtime.lastSoundId = ChaosCastleFallSound;
+        runtime.RequestSound(ChaosCastleFallSound);
     }
     else if ((wall & PushWall) == PushWall)
     {

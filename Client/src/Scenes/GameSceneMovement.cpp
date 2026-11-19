@@ -187,12 +187,17 @@ Core::Expected<void, std::string> GameScene::StepTheFauna()
                              time};
     context.fixedHeight = CameraState().fixedHeight;
     context.prefixModel = world.FaunaResources().PrefixModel();
+    context.runtime = &world.Runtime();
     auto* slots = m_worldModels.TextureSlots();
     if (!slots)
         return Core::Unexpected(std::string("612d90: falta la tabla de texturas del mundo"));
-    const FaunaModelLoadContext resources{
-        m_context.dataRoot,          m_context.textures, m_context.log, *slots, &world.FaunaResources().TextureTable(),
-        &world.Runtime().modelSounds};
+    const FaunaModelLoadContext resources{m_context.dataRoot,
+                                          m_context.textures,
+                                          m_context.log,
+                                          *slots,
+                                          &world.FaunaResources().TextureTable(),
+                                          &world.Runtime().modelSounds,
+                                          world.Runtime().audio};
     context.effects = BindFaunaStepEffects(world.FaunaResources(), resources, world.DrawTail().joints,
                                            world.Map().effects, m_context.cloth->random);
     return StepGameFauna(context);

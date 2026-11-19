@@ -8,6 +8,7 @@
 
 #include <array>
 #include <cstdint>
+#include <functional>
 
 // Un deslizador de la UI nueva (vtable 0x6ba9f8; CL8, hito 8; 06 § Las opciones): 0x646640 lo arma
 // con tres imágenes, la perilla (un botón de 0x63c330 de un cuadro, +0x28), la barra y su relleno
@@ -60,7 +61,8 @@ public:
 
     // 0x646a50 con los `elapsedMs` del paso y el mouse de la UI (el de 0x640850, que no mira si la
     // ventana lo tiene): la ventana lo atiende en su lógica, con el foco.
-    void Step(const Input::InputState& input, Point mouse, double elapsedMs);
+    void Step(const Input::InputState& input, Point mouse, double elapsedMs,
+              const std::function<void()>& onButtonClick = {});
 
     // 0x646e90: la barra y el relleno (0x6407e0) y la perilla (0x63c710), cerrado nada.
     [[nodiscard]] std::array<Render::UiImage, 3> Images(const TextureSizes& sizes) const;

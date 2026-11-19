@@ -112,8 +112,8 @@ struct WorldEntryResources
     std::function<void(Protocol::Outgoing)> sendGamePacket{};
 };
 
-// Lo que la entrada pide afuera y MuRet todavía no hace (sin audio hasta la CL10): los sonidos de
-// 0x41ee00(id, 1) y el de Fenrir de 0x4f2250, en el orden en que los pide.
+// Los IDs de reproducción y de las pistas que la entrada detiene, en el orden nativo; el vector se conserva para
+// diagnóstico y fixtures.
 struct WorldEntryResult
 {
     std::vector<std::int32_t> sounds;

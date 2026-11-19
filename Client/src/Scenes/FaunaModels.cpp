@@ -1,4 +1,6 @@
 #include "Scenes/FaunaModels.h"
+
+#include "Audio/Playback.h"
 #include "Scenes/MonsterSounds.h"
 
 #include "Core/Expected.h"
@@ -113,6 +115,16 @@ bool FaunaModels::HasMeshes(std::uint16_t model) const
     return found != nullptr && !found->meshes.empty();
 }
 
+void FaunaModels::RegisterModelSounds(std::uint16_t model, Audio::IPlayback* audio)
+{
+    auto found = m_modelSoundRegistrations.find(model);
+    if (audio == nullptr || found == m_modelSoundRegistrations.end() || found->second.registered)
+        return;
+    for (const FaunaResourceSound& sound : found->second.sounds)
+        audio->RegisterSound(sound.id, sound.path);
+    found->second.registered = true;
+}
+
 void FaunaModels::AssignTextures(Entry& entry, std::string_view folder, FaunaModelLoadContext& context)
 {
     const auto first = context.slots.ToLoad().size();
@@ -209,8 +221,18 @@ Core::Expected<void, std::string> FaunaModels::ApplyMonsterTables(std::int32_t n
         switch (op.kind)
         {
         case MonsterModelOpKind::Sound:
-            m_sounds.push_back(SoundOf({static_cast<std::int32_t>(op.value), op.path}));
+        {
+            const FaunaResourceSound sound = SoundOf({static_cast<std::int32_t>(op.value), op.path});
+            m_sounds.push_back(sound);
+            auto& registration = m_modelSoundRegistrations[model];
+            registration.sounds.push_back(sound);
+            if (context.audio != nullptr)
+            {
+                context.audio->RegisterSound(sound.id, sound.path);
+                registration.registered = true;
+            }
             break;
+        }
         case MonsterModelOpKind::SoundTable:
             target->sounds = op.sounds;
             break;
@@ -245,7 +267,11 @@ Core::Expected<void, std::string> FaunaModels::LoadMonster(std::int32_t number, 
     const auto model = static_cast<std::uint16_t>(FirstMonsterModel + number);
     // 0x612dbc/0x612dc7: con [0x6c9e0c] en 1, acciones o mallas ya presentes.
     if (HasActions(model) || HasMeshes(model))
+    {
+        RegisterModelSounds(model, context.audio);
         return {};
+    }
+    m_modelSoundRegistrations.erase(model);
     // 0x612de1: 0x60da30(0x152 + n, "Data\Monster\", "Monster", n + 1).
     auto loaded = Data::Models::LoadModelFile(context.dataRoot, {model, "Monster\\", "Monster", number + 1});
     if (!loaded.HasValue())
@@ -276,7 +302,11 @@ Core::Expected<void, std::string> FaunaModels::LoadNpc(std::uint16_t model, Faun
 {
     // 0x61228d..0x61229f: con [0x6c9e0c] en 1, solo las acciones.
     if (HasActions(model))
+    {
+        RegisterModelSounds(model, context.audio);
         return {};
+    }
+    m_modelSoundRegistrations.erase(model);
     for (const NpcModelOp& op : NpcModelCaseOf(model).ops)
     {
         switch (op.kind)
@@ -315,8 +345,18 @@ Core::Expected<void, std::string> FaunaModels::LoadNpc(std::uint16_t model, Faun
             break;
         }
         case NpcModelOpKind::Sound:
-            m_sounds.push_back(SoundOf(op.sound));
+        {
+            const FaunaResourceSound sound = SoundOf(op.sound);
+            m_sounds.push_back(sound);
+            auto& registration = m_modelSoundRegistrations[model];
+            registration.sounds.push_back(sound);
+            if (context.audio != nullptr)
+            {
+                context.audio->RegisterSound(sound.id, sound.path);
+                registration.registered = true;
+            }
             break;
+        }
         }
     }
     // 0x612b4f..0x612b8b. Un modelo de la biblioteca prestada (un objeto del mapa) sin acciones con mallas solo
@@ -364,9 +404,16 @@ void FaunaModels::Release()
     m_metadata.clear();
     m_uploaded.clear();
     m_sounds.clear();
+    m_modelSoundRegistrations.clear();
     m_store = nullptr;
     m_sharedTextures = nullptr;
     m_base = nullptr;
+}
+
+void FaunaModels::ResetSoundRegistrationStamps()
+{
+    for (auto& [model, registration] : m_modelSoundRegistrations)
+        registration.registered = false;
 }
 ModelTextureTable& FaunaModels::TextureTable()
 {

@@ -487,6 +487,15 @@ struct OldWindowGlobals
     // ellos (un paso sin el juego), no se tocan.
     std::int32_t* mouseUpdateTime = nullptr;
     std::int32_t* mouseUpdateTimeMax = nullptr;
+    std::function<void(std::int32_t)> soundRequest{};
+
+    void RequestSound(std::int32_t id) const
+    {
+        if (soundRequest)
+            soundRequest(id);
+        else
+            sound = id;
+    }
 };
 
 // Lo que mandan las ventanas de amigos (Protocol/Friends; Scenes lo arma y lo manda por la sesión).

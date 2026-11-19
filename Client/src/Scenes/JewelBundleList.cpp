@@ -238,7 +238,7 @@ void Repeat(JewelBundleList& list, WorldRuntime& runtime, std::int32_t& counter,
     {
         Scroll(list, rows);
         if (sound)
-            runtime.lastSoundId = ArrowSound; // (CL10)
+            runtime.RequestSound(ArrowSound); // (CL10)
         counter = 1;
     }
     else if (counter < RepeatSteps)

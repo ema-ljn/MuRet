@@ -51,6 +51,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <format>
+#include <functional>
 #include <optional>
 #include <ratio>
 #include <span>
@@ -412,7 +413,8 @@ Result DrawTheBody(MonsterFrame& frame, const Render::Models::Skeleton& skeleton
                           .random = frame.random,
                           .cloth = *frame.pass.clothWorld,
                           .siegeActive = frame.world.Runtime().siegeActive,
-                          .lastSoundId = &frame.world.Runtime().lastSoundId,
+                          .soundRequest = [&runtime = frame.world.Runtime()](std::int32_t sound)
+                          { runtime.RequestSound(sound); },
                           .originalFrame = frame.originalFrame,
                           .cameraShake = frame.pass.cameraShake,
                           .effects = frame.pass.effects};
@@ -1150,7 +1152,11 @@ KalimaSiegeHelperPass HelperPassOf(MonsterFrame& frame)
             .kalima = frame.pass.kalima,
             .cameraShake = frame.pass.cameraShake,
             .heights = terrain.heights.get(),
-            .sound = frame.originalFrame ? &frame.world.Runtime().lastSoundId : nullptr,
+            .soundRequest =
+                frame.originalFrame
+                    ? std::function<void(std::int32_t)>{[&runtime = frame.world.Runtime()](std::int32_t sound)
+                                                        { runtime.RequestSound(sound); }}
+                    : std::function<void(std::int32_t)>{},
             .worldClock = frame.worldClock,
             .map = frame.map,
             .siegeActive = frame.world.Runtime().siegeActive};

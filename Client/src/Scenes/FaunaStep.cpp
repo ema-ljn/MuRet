@@ -12,6 +12,7 @@
 #include "Scenes/FaunaMotion.h"
 #include "Scenes/FaunaObject.h"
 #include "Scenes/FaunaState.h"
+#include "Scenes/WorldRuntime.h"
 #include "World/Birds.h"
 #include "World/Fish.h"
 #include "World/Ftol.h"
@@ -26,6 +27,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <map>
+#include <optional>
 #include <span>
 #include <string>
 #include <system_error>
@@ -92,6 +94,11 @@ public:
     std::error_code Audio(std::int32_t id, std::byte* owner) override
     {
         m_context.fauna.Sound(id, owner);
+        if (m_context.runtime != nullptr)
+        {
+            const auto* bird = reinterpret_cast<const FaunaObject*>(owner);
+            m_context.runtime->RequestSound(id, bird != nullptr ? std::optional{bird->position} : std::nullopt);
+        }
         return {};
     }
     std::error_code PrepareSpecial() override
@@ -217,9 +224,15 @@ public:
     {
         return Render::Models::OriginalVectorRotate(input, matrix);
     }
-    Core::Expected<std::int32_t, std::error_code> Sound(std::int32_t id, void* owner, std::int32_t) override
+    Core::Expected<std::int32_t, std::error_code> Sound(std::int32_t id, void* owner, std::int32_t loop) override
     {
         m_context.fauna.Sound(id, owner);
+        if (m_context.runtime != nullptr)
+        {
+            const auto* fish = static_cast<const FaunaObject*>(owner);
+            m_context.runtime->RequestSound(id, fish != nullptr ? std::optional{fish->position} : std::nullopt,
+                                            loop != 0);
+        }
         return std::int32_t{0};
     }
     Core::Expected<void, std::error_code> Finalize(World::FishStepView& fish) override

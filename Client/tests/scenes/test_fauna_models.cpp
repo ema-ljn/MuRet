@@ -1,4 +1,5 @@
 #include "Scenes/FaunaModels.h"
+#include "Audio/Playback.h"
 #include "Scenes/MonsterKinds.h"
 #include "Scenes/MonsterModelTable.h"
 #include "Scenes/MonsterSounds.h"
@@ -14,6 +15,7 @@
 #include "support/SyntheticModels.h"
 #include "support/TemporaryFolder.h"
 #include "support/TextureFiles.h"
+#include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
 #include <algorithm>
 #include <filesystem>
@@ -21,12 +23,32 @@
 #include <optional>
 #include <set>
 #include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 #include "Scenes/WorldModels.h"
 #include "support/GoldenDir.h"
 #include <cstdint>
 
 namespace
 {
+class SoundRegistrationPlayback final : public Client::Audio::IPlayback
+{
+public:
+    void PlaySound(std::int32_t, std::optional<glm::vec3>, bool) override {}
+    void StopSound(std::int32_t, bool) override {}
+    void PlayMusic(std::string_view, bool) override {}
+    void StopMusic() override {}
+    void SetEffectsVolume(std::uint8_t) override {}
+    void SetListener(glm::vec3) override {}
+    void RegisterSound(std::int32_t id, std::string_view path) override
+    {
+        registrations.emplace_back(id, path);
+    }
+
+    std::vector<std::pair<std::int32_t, std::string>> registrations;
+};
+
 void WriteMonster(const std::filesystem::path& root, int number)
 {
     auto model = Client::Tests::SampleModel();
@@ -43,6 +65,32 @@ void WriteMonster(const std::filesystem::path& root, int number)
                                   Client::Tests::PlainBmd(Client::Tests::BmdContent(model), 0x0a));
     Client::Tests::WriteSceneFile(root, "Monster/fauna.OZT", Client::Tests::PlainOzt(2, 2));
 }
+TEST(FaunaModelsTest, CachedMonsterSoundsAreRegisteredAgainAfterWorldSoundRelease)
+{
+    Client::Tests::TemporaryFolder folder{"fauna-model32-audio"};
+    WriteMonster(folder.Path(), 32);
+    Client::Tests::FakeTextureStore store;
+    Client::Tests::RecordingSink sink;
+    Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
+    Client::Render::Models::ModelTextureSlots slots{Client::Render::TextureSlot{0x500}};
+    Client::Scenes::FaunaModels models;
+    Client::Scenes::ModelSoundTable sounds;
+    SoundRegistrationPlayback audio;
+    Client::Scenes::FaunaModelLoadContext context{folder.Path(), store, log, slots, nullptr, &sounds, &audio};
+
+    ASSERT_TRUE(models.Prepare(0x1f, context).HasValue());
+    const auto firstRegistration = audio.registrations;
+    ASSERT_FALSE(firstRegistration.empty());
+    ASSERT_TRUE(models.Prepare(0x1f, context).HasValue());
+    EXPECT_EQ(audio.registrations, firstRegistration);
+
+    models.ResetSoundRegistrationStamps();
+    ASSERT_TRUE(models.Prepare(0x1f, context).HasValue());
+    auto expected = firstRegistration;
+    expected.insert(expected.end(), firstRegistration.begin(), firstRegistration.end());
+    EXPECT_EQ(audio.registrations, expected);
+}
+
 TEST(FaunaModelsTest, PrepareLoadsMonster32AndItsExactActionStoresOnce)
 {
     Client::Tests::TemporaryFolder folder{"fauna-model32"};

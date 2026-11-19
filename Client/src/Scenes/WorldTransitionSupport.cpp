@@ -70,7 +70,7 @@ Core::Expected<void, std::string> StopTransitionHero(ActorState& actor, const Wo
     if (!stopped.HasValue())
         return Core::Unexpected(stopped.Error());
     if (stopped.Value().sound)
-        resources.world.Runtime().lastSoundId = stopped.Value().sound;
+        resources.world.Runtime().RequestSound(*stopped.Value().sound);
     return {};
 }
 Core::Expected<void, std::string> DressTransitionHero(ActorState& actor, const WorldEntryResources& resources)
@@ -86,7 +86,7 @@ Core::Expected<void, std::string> DressTransitionHero(ActorState& actor, const W
     if (!dressed.HasValue())
         return Core::Unexpected(dressed.Error());
     if (dressed.Value().sound)
-        world.Runtime().lastSoundId = dressed.Value().sound;
+        world.Runtime().RequestSound(*dressed.Value().sound);
     return {};
 }
 Core::Expected<void, std::string> LoadTransitionMap(std::uint8_t map, std::uint16_t playerKey,
@@ -185,7 +185,7 @@ Core::Expected<void, std::string> StartTheTeleportAction(ActorState& actor, cons
     static_cast<void>(
         resources.world.Map().effects.Create(World::TeleportEffect, actor.position, actor.angles, actor.light, 0.0f));
     constexpr std::int32_t TeleportSound = 0x76;
-    resources.world.Runtime().lastSoundId = TeleportSound;
+    resources.world.Runtime().RequestSound(TeleportSound);
     return {};
 }
 Core::Expected<void, std::string> CloseTransitionWindows(const WorldEntryResources& resources)

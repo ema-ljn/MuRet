@@ -414,6 +414,9 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
         .crywolfSandOverlay = m_projectingFrame ? m_projection->crywolfSandOverlay : runtime.crywolf.sandOverlay,
         .crywolfInterface = m_projectingFrame ? &m_projection->crywolfInterface : &runtime.crywolf.ui,
         .sound = m_projectingFrame ? m_projection->sound : runtime.lastSoundId,
+        .soundRequest = !m_projectingFrame ? std::function<void(std::int32_t)>{[&runtime](std::int32_t sound)
+                                                                               { runtime.RequestSound(sound); }}
+                                           : std::function<void(std::int32_t)>{},
         .oldWindows = m_projectingFrame ? &m_projection->oldWindows : &runtime.oldWindows,
         .projecting = m_projectingFrame,
         .projection = projection,
@@ -576,21 +579,25 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
     UI::GameUiState& drawUi = m_projectingFrame ? projectedUi : runtime.ui;
     GameMovementState& drawMovement = m_projectingFrame ? projectedMovement : runtime.movement;
     UI::ChatFocus& drawFocus = m_projectingFrame ? projectedFocus : runtime.chat.input.focus;
-    const UI::OldWindowGlobals drawGlobals{.leftHeld = drawMovement.leftHeld,
-                                           .leftClick = drawMovement.pendingClick,
-                                           .releasedClick = drawMovement.releasedClick,
-                                           .mouseOnUi = drawUi.mouseOnUi,
-                                           .hovered = drawUi.hovered,
-                                           .capture = drawUi.capture,
-                                           .pressedButton = drawUi.pressedButton,
-                                           .keyboardFocus = drawFocus,
-                                           .sound = m_projectingFrame ? m_projection->sound : runtime.lastSoundId,
-                                           .focusedList = drawUi.focusedList,
-                                           .wheel = drawUi.wheel,
-                                           .rightClick = drawUi.rightClick,
-                                           .doubleClick = drawUi.doubleClick,
-                                           .mouseUpdateTime = &drawMovement.mouseUpdateTime,
-                                           .mouseUpdateTimeMax = &drawMovement.mouseUpdateTimeMax};
+    const UI::OldWindowGlobals drawGlobals{
+        .leftHeld = drawMovement.leftHeld,
+        .leftClick = drawMovement.pendingClick,
+        .releasedClick = drawMovement.releasedClick,
+        .mouseOnUi = drawUi.mouseOnUi,
+        .hovered = drawUi.hovered,
+        .capture = drawUi.capture,
+        .pressedButton = drawUi.pressedButton,
+        .keyboardFocus = drawFocus,
+        .sound = m_projectingFrame ? m_projection->sound : runtime.lastSoundId,
+        .focusedList = drawUi.focusedList,
+        .wheel = drawUi.wheel,
+        .rightClick = drawUi.rightClick,
+        .doubleClick = drawUi.doubleClick,
+        .mouseUpdateTime = &drawMovement.mouseUpdateTime,
+        .mouseUpdateTimeMax = &drawMovement.mouseUpdateTimeMax,
+        .soundRequest = !m_projectingFrame ? std::function<void(std::int32_t)>{[&runtime](std::int32_t sound)
+                                                                               { runtime.RequestSound(sound); }}
+                                           : std::function<void(std::int32_t)>{}};
     const UI::OldWindowMeasure drawMeasure{.measure = canvas.text, .dcFont = hud.hud.dcFont, .screen = canvas.screen};
     SceneUiRequests drawRequests(m_session, m_context.log, m_context.dataRoot);
     UI::OldWindowStepView drawStep{.mouseX = hud.mouse.x,

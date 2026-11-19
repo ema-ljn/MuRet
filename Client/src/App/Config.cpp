@@ -49,6 +49,8 @@ enum class Key : std::uint8_t
     VideoMaxFps,
     VideoFontFile,
     VideoBoldFontFile,
+    AudioSoundOnOff,
+    AudioMusicOnOff,
     LogPath,
 };
 
@@ -72,6 +74,8 @@ constexpr std::array KnownKeys = {
     KnownKey{"Video", "MaxFps", Key::VideoMaxFps},
     KnownKey{"Video", "FontFile", Key::VideoFontFile},
     KnownKey{"Video", "BoldFontFile", Key::VideoBoldFontFile},
+    KnownKey{"Audio", "SoundOnOff", Key::AudioSoundOnOff},
+    KnownKey{"Audio", "MusicOnOff", Key::AudioMusicOnOff},
     KnownKey{"Log", "Path", Key::LogPath},
 };
 
@@ -175,6 +179,19 @@ Core::Expected<int, std::string> ParseMaxFps(std::string_view value)
         return Unexpected(std::format("va de {} a {}, o 0 (sin tope)", MinFpsLimit, MaxFpsLimit));
     }
     return maxFps;
+}
+
+Core::Expected<bool, std::string> ParseOnOff(std::string_view value)
+{
+    if (value == "0")
+    {
+        return false;
+    }
+    if (value == "1")
+    {
+        return true;
+    }
+    return Unexpected(std::string("tiene que ser 0 o 1"));
 }
 
 Core::Expected<VSyncMode, std::string> ParseVSync(std::string_view value)
@@ -355,6 +372,17 @@ std::optional<std::string> Store(ClientConfig& config, Key key, std::string_view
             return pacing.Error();
         }
         config.pacing = pacing.Value();
+        return std::nullopt;
+    }
+    case Key::AudioSoundOnOff:
+    case Key::AudioMusicOnOff:
+    {
+        const auto enabled = ParseOnOff(value);
+        if (!enabled.HasValue())
+        {
+            return enabled.Error();
+        }
+        (key == Key::AudioSoundOnOff ? config.soundOnOff : config.musicOnOff) = enabled.Value();
         return std::nullopt;
     }
     }

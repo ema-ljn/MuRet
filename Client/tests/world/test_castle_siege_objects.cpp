@@ -112,10 +112,16 @@ TEST(CastleSiegeObjectsTest, ThePreludeRefreshesTheMusicTimeAndAlwaysAsksForTheA
         std::vector<std::int32_t> sounds;
         const CastleSiegePrelude prelude{.musicTime = &music,
                                          .systemTime = [&c] { return c.now; },
-                                         .sound = [&sounds](std::int32_t sound) { sounds.push_back(sound); }};
+                                         .sound = [&sounds](std::int32_t sound) { sounds.push_back(sound); },
+                                         .updateMusic =
+                                             [&sounds](bool siege)
+                                         {
+                                             EXPECT_FALSE(siege);
+                                             sounds.push_back(-1);
+                                         }};
         ASSERT_TRUE(Client::World::StepCastleSiegePrelude(prelude).HasValue());
         EXPECT_EQ(music, c.refreshes ? static_cast<float>(c.now) : c.last);
-        EXPECT_EQ(sounds, std::vector<std::int32_t>{0x1e2});
+        EXPECT_EQ(sounds, c.refreshes ? (std::vector<std::int32_t>{-1, 0x1e2}) : std::vector<std::int32_t>{0x1e2});
     }
 }
 

@@ -91,8 +91,8 @@ jobs:
       - name: Tests de las herramientas de evidencia CL9
         run: python -m unittest discover -s Client/docs/research/scripts/game/capture -p 'test_*evidence.py' -v
 
-      # Lo que el puerto sdl3 de vcpkg pide del sistema para las features x11 y wayland, los
-      # headers de OpenGL/EGL, y Xvfb + Mesa (llvmpipe) para abrir la ventana sin pantalla. NASM lo
+      # Lo que los puertos sdl3 y alsa de vcpkg piden del sistema, los headers de OpenGL/EGL,
+      # y Xvfb + Mesa (llvmpipe) para abrir la ventana sin pantalla. NASM lo
       # pide el puerto libjpeg-turbo para su SIMD: en Linux, vcpkg no lo baja y usa el del sistema
       # (en Windows sí lo baja). clang-tidy-18, para el paso de los includes.
       - name: Paquetes del sistema (Linux)
@@ -102,6 +102,7 @@ jobs:
           for attempt in 1 2 3 4 5; do
             sudo apt-get -o Acquire::Retries=5 update &&
               sudo apt-get -o Acquire::Retries=5 install -y ninja-build pkg-config \
+                autoconf autoconf-archive automake libtool \
                 libx11-dev libxext-dev \
                 libwayland-dev libxkbcommon-dev \
                 libgl-dev libegl-dev \

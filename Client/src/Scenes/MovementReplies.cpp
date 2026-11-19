@@ -107,7 +107,7 @@ Core::Expected<void, std::string> ApplyOtherWalk(ActorState& actor, const WorldE
     if (!stopped.HasValue())
         return Core::Unexpected(stopped.Error());
     if (stopped.Value().sound)
-        resources.world.Runtime().lastSoundId = stopped.Value().sound;
+        resources.world.Runtime().RequestSound(*stopped.Value().sound);
     return {};
 }
 Core::Expected<void, std::string> ApplyJumpingWalk(ActorState& actor, const WorldEntryResources& resources)
@@ -131,8 +131,6 @@ Core::Expected<void, std::string> ApplyJumpingWalk(ActorState& actor, const Worl
                                              context.Value().actorSkeleton, context.Value().modelSounds});
     if (!walked.HasValue())
         return Core::Unexpected(walked.Error());
-    if (walked.Value().sound)
-        resources.world.Runtime().lastSoundId = walked.Value().sound;
     actor.byte399 = 1;
     return {};
 }

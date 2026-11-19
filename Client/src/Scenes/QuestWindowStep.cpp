@@ -192,7 +192,7 @@ Core::Expected<void, std::string> StepTheQuestAnswers(const GameUiContext& conte
         break;
     }
     // 0x41a996..0x41a99a: con cualquier acción.
-    runtime.lastSoundId = ButtonSound;
+    runtime.RequestSound(ButtonSound);
     // 0x41a99f..0x41a9c5: el diálogo al que lleva, con [0x6d5e28] leído otra vez.
     const auto now = DialogRecordOf(runtime, box.dialogIndex, row, "0x41a9b0");
     if (!now.HasValue())
@@ -226,7 +226,7 @@ Core::Expected<void, std::string> StepTheQuestDialog(const GameUiContext& contex
             return sent;
         movement.pendingClick = false;
         movement.leftHeld = false;
-        runtime.lastSoundId = ButtonSound;
+        runtime.RequestSound(ButtonSound);
     }
     if (MouseIn(context, quest.x + CloseLeft, quest.y + CloseTop, quest.x + CloseLeft + CloseSize,
                 quest.y + CloseTop + CloseSize) &&

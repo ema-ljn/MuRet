@@ -231,7 +231,7 @@ Core::Expected<void, std::string> CopyIntoTheCursor(const InventoryMoveContext& 
     if (!picked.HasValue())
         return picked;
     constexpr std::int32_t ItemMoveSound = 0x1d; // 0x5c8f7a.
-    runtime.lastSoundId = ItemMoveSound;
+    runtime.RequestSound(ItemMoveSound);
     return {};
 }
 } // namespace

@@ -369,6 +369,10 @@ MaxFps = 0               ; tope de FPS con VSync off: 0 (sin tope), o de 25 a 10
 FontFile = letra.ttf     ; la fuente TrueType del texto
 BoldFontFile = negrita.ttf ; su negrita (sin darla, se ensancha la de FontFile)
 
+[Audio]
+SoundOnOff = 1           ; efectos: 1 encendidos, 0 apagados
+MusicOnOff = 1           ; música: 1 encendida, 0 apagada
+
 [Log]
 Path = muret-client.log
 ```
@@ -385,6 +389,8 @@ Path = muret-client.log
 | `[Video] MaxFps` | 0 (sin tope) | como `--max-fps`. Con `Pacing = faithful`, un tope que no es 0 es un error que nombra `Pacing` y `MaxFps` |
 | `[Video] FontFile` | ninguna | la fuente TrueType (o una colección TTC: su primera cara) de todo el texto. El original pide la suya por nombre a Windows; MuRet necesita un archivo. Las cuatro fuentes del original salen de esta, cada una con su alto (`Render/Text/FontSet.h`). Sin la clave, en Windows se busca la cara del original en la lista de fuentes del sistema; en Linux, o si la cara está vacía (como en el `Text.bmd` del laboratorio), es un error |
 | `[Video] BoldFontFile` | ninguna | la de la negrita. Sin darla, la negrita es la de `FontFile` ensanchada un píxel, como la que simula Windows |
+| `[Audio] SoundOnOff` | 1 | efectos de sonido; `0` los apaga sin cambiar el volumen configurado en las opciones |
+| `[Audio] MusicOnOff` | 1 | música de fondo; `0` la apaga. Si música y efectos están apagados, no se abre el dispositivo de audio |
 | `[Log] Path` | `muret-client.log` junto al ejecutable | el archivo del log |
 
 Una ruta relativa de la config (`[Data] Path`, `[Log] Path` y las dos fuentes) se toma desde la

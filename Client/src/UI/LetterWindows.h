@@ -6,6 +6,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -36,7 +37,8 @@ void ForgetAPendingChat(OldWindowManager& manager, std::string_view name);
 // 0x4a4990: el chat al final de +0xb4.
 void AddTheChatToTheList(OldWindowManager& manager, std::int32_t id);
 // 0x4a5e50: el sonido 0x28 y, si no estaba, el chat al final de +0x118.
-void MarkTheChatWaiting(OldWindowManager& manager, std::int32_t id, std::optional<std::int32_t>& sound);
+void MarkTheChatWaiting(OldWindowManager& manager, std::int32_t id, std::optional<std::int32_t>& sound,
+                        std::function<void(std::int32_t)> soundRequest = {});
 // 0x495530: el amigo del chat (el primer miembro que no es el héroe con menos de 3; tipo 1), ninguno (tipo 0) o la sala
 // de 3 o más (tipo 2).
 [[nodiscard]] std::string ChatFriend(const OldWindow& chat, std::string_view hero, std::int32_t& kind);

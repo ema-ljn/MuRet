@@ -308,7 +308,7 @@ void StepTheMarkEditor(WorldState& world, std::int32_t x, std::int32_t y, std::i
                 !runtime.movement.pendingClick)
                 continue;
             runtime.movement.pendingClick = false;
-            runtime.lastSoundId = ClickSound; // 0x41ed10 (CL10)
+            runtime.RequestSound(ClickSound); // 0x41ed10 (CL10)
             guild.markColor = row * GridSide + column;
         }
     }
@@ -375,7 +375,7 @@ Core::Expected<void, std::string> StepTheQuestion(const SecondGuildStepContext& 
     runtime.movement.mouseUpdateTimeMax = CloseMouseUpdateTimeMax;
     if (auto sent = Send(context.send, Protocol::Guild::WriteMasterAnswer(ClosedAnswer), "0x65610a"); !sent.HasValue())
         return sent;
-    runtime.lastSoundId = ClickSound; // 0x41ed10 (CL10)
+    runtime.RequestSound(ClickSound); // 0x41ed10 (CL10)
     return CloseTheSecondGuildWindow(context.world, context.send);
 }
 

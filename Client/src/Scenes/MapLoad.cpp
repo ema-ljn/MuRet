@@ -1,5 +1,7 @@
 #include "Scenes/MapLoad.h"
 
+#include "Audio/SoundCatalog.h"
+
 #include "Core/Expected.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainObjects.h"
@@ -266,8 +268,16 @@ void ClearWorldTransientPools(WorldState& world)
 Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoadContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
+    if (runtime.audio != nullptr)
+    {
+        runtime.audio->ReleaseWorldSounds();
+        context.world.FaunaResources().ResetSoundRegistrationStamps();
+    }
     runtime.map = Data::MapAtWorldLoadStart(argumentMap, runtime.map);
     const std::int32_t map = runtime.map;
+    if (runtime.audio != nullptr)
+        for (const Audio::SoundDefinition& sound : Audio::WorldSoundsForMap(map))
+            runtime.audio->RegisterSound(sound.id, sound.path);
     const std::uint8_t crywolfState = runtime.crywolf.state;
     const bool reusePreviousPaths = map == CrywolfMap && crywolfState > 2;
     WorldMap& loaded = context.world.Map();

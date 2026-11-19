@@ -20,6 +20,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <deque>
+#include <functional>
 #include <iterator>
 #include <optional>
 #include <string>
@@ -502,7 +503,8 @@ void StepTheListMouseAfterTheQueue(OldWindowManager& manager, OldList& list, std
                                      .mouseOnUi = globals.mouseOnUi,
                                      .sound = globals.sound,
                                      .drawn = manager.drawn == 1,
-                                     .modal = manager.modal};
+                                     .modal = manager.modal,
+                                     .soundRequest = globals.soundRequest};
     const OldListView listView{.mouseX = view.mouseX, .mouseY = view.mouseY, .keyDown = [&view](std::uint8_t key) {
                                    return view.keyDown && view.keyDown(key);
                                }};
@@ -957,7 +959,7 @@ Core::Expected<void, std::string> HandleTheChatMessage(OldWindowManager& manager
     // 0x4944d9: el doble clic en la lista de invitar es el 10 con 2.
     if (message.type == ChosenRowType && message.a == chat.chat.invite.base.id)
     {
-        globals.sound = ButtonSound;
+        globals.RequestSound(ButtonSound);
         message.type = CommandType;
         message.a = 2;
     }
@@ -1498,7 +1500,7 @@ Core::Expected<void, std::string> HandleTheLettersTabMessage(OldWindowManager& m
     // 0x4a11c8: el doble clic sobre una carta es leerla.
     if (message.type == ChosenRowType)
     {
-        globals.sound = ButtonSound;
+        globals.RequestSound(ButtonSound);
         message.type = CommandType;
         message.a = 2;
     }
@@ -1606,7 +1608,7 @@ void AfterTheLettersTabMove(OldWindowManager& manager, OldWindow& tab, const Old
     {
         if (manager.modal == 0)
         {
-            globals.sound = ButtonSound;
+            globals.RequestSound(ButtonSound);
             CheckAllTheLetters(manager, tab, tab.tab.allChecked == 0 ? 1 : 0);
         }
         globals.leftHeld = false;
@@ -1623,7 +1625,7 @@ void AfterTheLettersTabMove(OldWindowManager& manager, OldWindow& tab, const Old
         const auto mode = static_cast<std::int32_t>(column);
         if (manager.letterModel.sortMode != mode)
         {
-            globals.sound = ButtonSound;
+            globals.RequestSound(ButtonSound);
             SortTheLetters(manager.letterModel, mode);
             RefreshTheLetters(manager, tab);
         }
@@ -1737,9 +1739,13 @@ void AddTheChatToTheList(OldWindowManager& manager, std::int32_t id)
     manager.windowList.list.chats.push_back(id);
 }
 
-void MarkTheChatWaiting(OldWindowManager& manager, std::int32_t id, std::optional<std::int32_t>& sound)
+void MarkTheChatWaiting(OldWindowManager& manager, std::int32_t id, std::optional<std::int32_t>& sound,
+                        std::function<void(std::int32_t)> soundRequest)
 {
-    sound = ChatWaitingSound;
+    if (soundRequest)
+        soundRequest(ChatWaitingSound);
+    else
+        sound = ChatWaitingSound;
     std::deque<std::int32_t>& waiting = manager.windowList.list.waiting;
     if (std::ranges::find(waiting, id) == waiting.end())
         waiting.push_back(id);

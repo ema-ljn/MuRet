@@ -699,15 +699,13 @@ Core::Expected<void, std::string> MoveTheHero(ActorState& hero, const HeroMoveme
         if (!stopped.HasValue())
             return Core::Unexpected(stopped.Error());
         if (stopped.Value().sound)
-            runtime.lastSoundId = stopped.Value().sound;
+            runtime.RequestSound(*stopped.Value().sound);
         return {};
     }
     const auto walked =
         SetActorWalk(hero, {stop, context.world.ActionSpeeds(), true, stop.actorSkeleton, stop.modelSounds});
     if (!walked.HasValue())
         return Core::Unexpected(walked.Error());
-    if (walked.Value().sound)
-        runtime.lastSoundId = walked.Value().sound;
     if (MoveActorPath(hero, 1, context.random))
     {
         hero.movement = 0;
@@ -715,7 +713,7 @@ Core::Expected<void, std::string> MoveTheHero(ActorState& hero, const HeroMoveme
         if (!stopped.HasValue())
             return Core::Unexpected(stopped.Error());
         if (stopped.Value().sound)
-            runtime.lastSoundId = stopped.Value().sound;
+            runtime.RequestSound(*stopped.Value().sound);
         const auto yaw = World::OriginalFtolLow(hero.angles.z);
         if (!yaw)
             return Core::Unexpected(std::string("0x59b2d2: ángulo de llegada fuera del perfil ftol"));
@@ -778,7 +776,7 @@ Core::Expected<void, std::string> NameTheChosen(WorldState& world)
     UI::CopyIntoTheBuffer(input.whisperBuffer, UI::CStringOf(slot));
     input.whisperLength = static_cast<std::int32_t>(UI::CStringOf(input.whisperBuffer).size());
     // 0x59b180: el sonido 0x19.
-    runtime.lastSoundId = UI::ChatButtonSound;
+    runtime.RequestSound(UI::ChatButtonSound);
     return {};
 }
 
@@ -801,7 +799,7 @@ Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& co
         if (!stopped.HasValue())
             return Core::Unexpected(stopped.Error());
         if (stopped.Value().sound)
-            runtime.lastSoundId = stopped.Value().sound;
+            runtime.RequestSound(*stopped.Value().sound);
         return {};
     }
     if (runtime.selectedTargets[2] != -1 && (hero.flags7c & 0x200000u) != 0)

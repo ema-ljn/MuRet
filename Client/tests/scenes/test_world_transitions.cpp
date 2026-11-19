@@ -1,6 +1,7 @@
 #include "Scenes/WorldTransitions.h"
 
 #include "App/SessionState.h"
+#include "Audio/Playback.h"
 #include "Core/ILogSink.h"
 #include "Core/Expected.h"
 #include "Core/Log.h"
@@ -48,6 +49,7 @@
 #include "support/SessionHarness.h"
 #include "support/TestGameServer.h"
 
+#include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
 
 #include <array>
@@ -57,6 +59,7 @@
 #include <filesystem>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -129,6 +132,25 @@ public:
     std::function<void()> onConfirm;
     int confirmations = 0;
     int crywolf = 0;
+};
+
+class TransitionPlayback final : public Client::Audio::IPlayback
+{
+public:
+    void PlaySound(std::int32_t id, std::optional<glm::vec3>, bool loop) override
+    {
+        requests.push_back(loop ? "play-loop:" + std::to_string(id) : "play:" + std::to_string(id));
+    }
+    void StopSound(std::int32_t id, bool rewind) override
+    {
+        requests.push_back(rewind ? "stop-rewind:" + std::to_string(id) : "stop:" + std::to_string(id));
+    }
+    void PlayMusic(std::string_view, bool) override {}
+    void StopMusic() override {}
+    void SetEffectsVolume(std::uint8_t) override {}
+    void SetListener(glm::vec3) override {}
+
+    std::vector<std::string> requests{};
 };
 TEST(WorldTransitionsTest, SameMapGateClearsOthersAndItemsButPreservesTheHeroAndCamera)
 {
@@ -610,13 +632,15 @@ TEST_F(WorldTransitionsMapsTest, TheChaosCastlePrefixHidesTheOldWindowsWithoutNo
         std::uint8_t from;
         std::uint8_t to;
     };
-    for (const Pass pass : {Pass{18, 0}, Pass{23, 2}, Pass{0, 20}})
+    for (const Pass pass : {Pass{18, 0}, Pass{23, 2}, Pass{0, 20}, Pass{0, 2}})
     {
         SCOPED_TRACE(pass.to);
         Transition tested;
+        TransitionPlayback playback;
         Publisher publisher;
         tested.dataRoot = m_dataRoot;
         auto& runtime = tested.world.Runtime();
+        runtime.audio = &playback;
         runtime.map = pass.from;
         runtime.warpCounter = 9999999;
         const Letters letters;
@@ -635,10 +659,23 @@ TEST_F(WorldTransitionsMapsTest, TheChaosCastlePrefixHidesTheOldWindowsWithoutNo
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(runtime.map, pass.to);
         EXPECT_EQ(runtime.lastSoundId, 0x9e);
-        EXPECT_EQ(runtime.oldWindows.windows.at(box.Value()).base.state, Client::UI::HiddenWindow);
+        const bool fromChaos = pass.from >= 18 && pass.from <= 23;
+        const bool toChaos = pass.to >= 18 && pass.to <= 23;
+        const bool crossesChaos = fromChaos || toChaos;
+        EXPECT_EQ(runtime.oldWindows.windows.at(box.Value()).base.state, crossesChaos ? Client::UI::HiddenWindow : 0);
         EXPECT_TRUE(runtime.oldWindows.hidden.empty());
-        EXPECT_EQ(runtime.oldWindows.focus, 0);
-        EXPECT_EQ(runtime.chat.input.focus, Client::UI::ChatFocus::Game);
+        EXPECT_EQ(runtime.oldWindows.focus, crossesChaos ? 0 : box.Value());
+        EXPECT_EQ(runtime.chat.input.focus,
+                  crossesChaos ? Client::UI::ChatFocus::Game : Client::UI::ChatFocus::Message);
+        std::vector<std::string> expected;
+        if (crossesChaos)
+            expected.push_back("play-loop:158");
+        if (!toChaos)
+        {
+            expected.push_back("stop-rewind:153");
+            expected.push_back("stop-rewind:158");
+        }
+        EXPECT_EQ(playback.requests, expected);
     }
 }
 TEST(WorldTransitionsTest, RegenRetainsThePublishedAndRebuiltSlotsAsDistinctNativeSources)

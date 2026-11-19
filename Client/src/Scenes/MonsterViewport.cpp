@@ -54,7 +54,7 @@ Core::Expected<void, std::string> RiseWithActionOne(ActorState& actor, std::uint
     actor.animation.previousAction = 1;
     actor.alpha = 1.0f;
     if (sound)
-        resources.world.Runtime().lastSoundId = *sound; // (CL10)
+        resources.world.Runtime().RequestSound(*sound); // (CL10)
     return {};
 }
 
@@ -369,7 +369,7 @@ Core::Expected<void, std::string> ArriveAsNew(ActorState& actor, const WorldEntr
     case 0x72:
     case 0x78:
     case 0x7e:
-        runtime.lastSoundId = 0x173; // (CL10) 0x4c9876
+        runtime.RequestSound(0x173); // (CL10) 0x4c9876
         return {};
     case 0x154:
     case 0x155:

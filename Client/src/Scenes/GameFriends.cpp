@@ -52,7 +52,7 @@ constexpr std::uint8_t NotYourself = 5;
 constexpr std::uint8_t OtherLevelTooLow = 6;
 // 0x4dc690.
 constexpr std::uint8_t Deleted = 1;
-// 0x41ed10(0x2a, 0, 0): el pedido de amistad. Queda en lastSoundId: MuRet no tiene audio hasta la CL10.
+// 0x41ed10(0x2a, 0, 0): el pedido de amistad.
 constexpr std::int32_t RequestSound = 0x2a;
 // 0x491080: 0x46b720(1, 0, 1244, 2, 2,5, 0xffc8dce6).
 constexpr std::int32_t HelpRepeats = 1;
@@ -314,7 +314,7 @@ Core::Expected<void, std::string> ApplyFriendRequest(const Protocol::Friends::Fr
         return Core::Unexpected(std::move(opened).Error());
     if (opened.Value() != 0)
         UI::RememberTheFriendRequest(runtime.oldWindows, opened.Value(), name);
-    runtime.lastSoundId = RequestSound;
+    runtime.RequestSound(RequestSound);
     return {};
 }
 

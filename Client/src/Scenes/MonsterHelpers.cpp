@@ -249,11 +249,11 @@ Core::Expected<double, std::string> ClockSine(const MonsterHelperPass& pass, flo
     return *product;
 }
 
-// 0x41ed10(sonido, 0, 0) (CL10): el pedido queda en lastSoundId, solo en un frame del original.
+// 0x41ed10(sonido, 0, 0) (CL10): solo se despacha en un frame del original.
 void Sound(const MonsterHelperPass& pass, std::int32_t sound)
 {
     if (pass.originalFrame)
-        pass.world.Runtime().lastSoundId = sound;
+        pass.world.Runtime().RequestSound(sound);
 }
 
 // Con +4 en 0: +4 = 1 y `sound`, más rand() % 2 con `pair`.

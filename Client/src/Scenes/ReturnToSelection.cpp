@@ -44,6 +44,11 @@ constexpr std::int32_t NoMap = -1;
 void ReleaseTheGame(WorldState& world)
 {
     ReleaseTheMapObjects(world.Map());
+    if (world.Runtime().audio != nullptr)
+    {
+        world.Runtime().audio->ReleaseWorldSounds();
+        world.FaunaResources().ResetSoundRegistrationStamps();
+    }
     ClearWorldTransientPools(world);
     for (auto& item : world.DrawTail().floorItems)
         item.alive = false;
@@ -120,11 +125,21 @@ Core::Expected<void, std::string> RestoreTheCursor(const WorldEntryResources& re
     const InventoryServices services = InventoryServicesOf(resources);
     return ReturnTheCursorItem({.world = resources.world, .random = resources.cloth.random, .services = services});
 }
+
+void StopAudioForSceneReturn(WorldRuntime& runtime)
+{
+    if (runtime.audio == nullptr)
+        return;
+    runtime.music.StopWorld(runtime.audio);
+    for (std::int32_t sound = 0; sound < 0x27e; ++sound)
+        runtime.audio->StopSound(sound, true);
+}
 } // namespace
 
 Core::Expected<void, std::string> PrepareReturnToSelection(const WorldEntryResources& resources)
 {
     // 0x4c3626..0x4c363a: sonidos, cursor vacío, 0x61eef0 y 0x42fdc0.
+    StopAudioForSceneReturn(resources.world.Runtime());
     if (auto restored = RestoreTheCursor(resources); !restored.HasValue())
         return restored;
     ReleaseTheGame(resources.world);
@@ -155,6 +170,7 @@ Core::Expected<void, std::string> PrepareReturnToServerList(const WorldEntryReso
     if (!resources.scene || resources.scene() != SceneId::Game)
         return {};
     ResetTheInterface(resources.world.Runtime());
+    StopAudioForSceneReturn(resources.world.Runtime());
     if (auto restored = RestoreTheCursor(resources); !restored.HasValue())
         return restored;
     ReleaseTheGame(resources.world);

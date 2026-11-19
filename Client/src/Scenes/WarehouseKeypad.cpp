@@ -311,7 +311,7 @@ Core::Expected<void, std::string> PressTheKey(const GameUiContext& context, UI::
     const std::int32_t mode = runtime.ui.field78abb20;
     const auto digits = static_cast<std::size_t>(DigitsOf(mode));
     // 0x41ed10(0x19, 0, 0) (CL10).
-    runtime.lastSoundId = KeySound;
+    runtime.RequestSound(KeySound);
     const std::size_t length = TypedLength(typed);
     switch (key)
     {

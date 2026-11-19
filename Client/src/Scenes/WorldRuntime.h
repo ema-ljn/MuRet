@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Audio/Music.h"
+#include "Audio/Playback.h"
 #include "Data/Tables/MonsterSkillTable.h"
 #include "Data/Text/DialogTable.h"
 #include "Data/Text/MoveRequirements.h"
@@ -350,6 +352,9 @@ struct FloorItemGlobals
 
 struct WorldRuntime
 {
+    void RequestSound(std::int32_t id, std::optional<glm::vec3> origin = std::nullopt, bool loop = false);
+    void StopSound(std::int32_t id, bool rewind);
+    void SetSoundVolume(std::uint8_t level);
     // Q-C180/Q-C27: primer aviso de datos que pidió WM_DESTROY. Durable incluso si Poll falla;
     // main muestra el modal antes de cerrar. Unsupported-map y errores sin aviso no lo escriben.
     std::optional<std::string> fatalDataMessage{};
@@ -610,6 +615,8 @@ struct WorldRuntime
     std::vector<NamedBone> namedBones{};
     // Lo que las altas escribieron en la tabla de modelos (ModelBytePatch), en orden.
     std::vector<ModelBytePatch> modelPatches{};
+    Audio::IPlayback* audio = nullptr;
+    Audio::Music music{};
 };
 
 // 0x63722e y 0x59afd6: con el contador en más de esto, el juego no dibuja ni mueve al héroe.

@@ -40,12 +40,13 @@ struct CastleSiegePrelude
     // Cada llamada abre y cierra el +0x420 protegido; dos lecturas nativas conservan dos cierres.
     std::function<std::int32_t()> heroY{};
     std::function<Core::Expected<void, std::string>(const ModelEffectArguments&)> emit{};
+    std::function<void(bool)> updateMusic{};
 };
 
 // 0x42b540, el tercer eslabón de 0x6061c0, una vez por paso en el 30, antes de mirar si hay objetos vistos.
 // Con timeGetTime() en T, si (T − 0x7239f0) · 0,001 pasa de 1.800 (más de media hora) o 0x7239f0 es 0, guarda
-// T en float en 0x7239f0 y elige la música: sin asedio deja charge.mp3 y toca castle.mp3 (0x42b5c3; MuRet todavía
-// no tiene audio, CL10). Después, siempre, el sonido 0x1e2. Sin asedio termina ahí, sin rand(), y 0x6061c0 no
+// T en float en 0x7239f0 y elige la música: sin asedio deja charge.mp3 y toca castle.mp3 (0x42b5c3).
+// Después, siempre, el sonido 0x1e2. Sin asedio termina ahí, sin rand(), y 0x6061c0 no
 // sigue. Con el asedio (los rand() de los sonidos 0x1e3 a 0x1e7, las piedras 0x12b/0x12c y los 0xdb sobre el
 // héroe), emite en orden con los accesos protegidos del héroe intercalados. Un binding ausente corta donde lo pide el
 // ASM.

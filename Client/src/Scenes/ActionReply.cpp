@@ -132,7 +132,7 @@ Core::Expected<void, std::string> StopTheActor(ActorState& actor, const WorldEnt
     if (!stopped.HasValue())
         return Core::Unexpected(stopped.Error());
     if (stopped.Value().sound)
-        resources.world.Runtime().lastSoundId = stopped.Value().sound;
+        resources.world.Runtime().RequestSound(*stopped.Value().sound);
     return {};
 }
 // 0x4cb820..0x4cb852: 0x4f4a10 (SetActorAttack, con sus rand() y su sonido) y, después, +0x381 en 1, el frame
@@ -192,9 +192,9 @@ Core::Expected<void, std::string> ApplyActionReply(const Protocol::Movement::Act
     {
         return set;
     }
-    // 0x4cb864: 0x41ed10(0x6f, 0, 0). MuRet no tiene audio hasta la CL10.
+    // 0x4cb864: 0x41ed10(0x6f, 0, 0).
     if (action == ShieldAction)
-        resources.world.Runtime().lastSoundId = ShieldSound;
+        resources.world.Runtime().RequestSound(ShieldSound);
     return {};
 }
 } // namespace Client::Scenes

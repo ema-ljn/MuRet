@@ -193,7 +193,7 @@ Core::Expected<void, std::string> CloseTheGuildWindow(WorldState& world, const G
     delegated.guild = 0;
     window.unionRequested = 0;
     window.tab = FirstGuildTab;
-    runtime.lastSoundId = GuildCloseSound; // 0x41ed10 (CL10)
+    runtime.RequestSound(GuildCloseSound); // 0x41ed10 (CL10)
     return CancelTheGuildWindowDialog(world, send);
 }
 
@@ -216,7 +216,7 @@ Core::Expected<void, std::string> CloseTheSecondGuildWindow(WorldState& world, c
     ActorState& hero = world.Actors()[runtime.hero];
     if (static_cast<std::int16_t>(hero.word1f2) == CreatingGuildIndex)
         hero.word1f2 = static_cast<std::uint16_t>(NoGuildIndex);
-    runtime.lastSoundId = GuildCloseSound; // 0x41ed10 (CL10)
+    runtime.RequestSound(GuildCloseSound); // 0x41ed10 (CL10)
     guild.createKind = 0;
     guild.createStep = 0;
     // 0x657117: 0x77f3b68, el campo del alta, en 0 (el EDIT queda como estaba: Q-C1291).

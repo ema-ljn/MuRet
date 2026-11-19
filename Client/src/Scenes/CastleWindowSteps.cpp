@@ -62,7 +62,7 @@ Core::Expected<void, std::string> Close(const GameUiContext& context, UI::PanelI
     if (!runtime.movement.pendingClick || !Hit(context, x, CastleUi::CloseY, CastleUi::CloseSize, CastleUi::CloseSize))
         return {};
     ConsumeClick(runtime);
-    runtime.lastSoundId = ClickSound;
+    runtime.RequestSound(ClickSound);
     GamePanels panels(context.world, context.random);
     panels.LendTheSession(context.world, context.random, context.requests);
     panels.LendTheCastleWindowSteps(context);
@@ -116,7 +116,8 @@ void StepList(const GameUiContext& context, UI::OldList& list, std::deque<UI::Ca
                                .mouseOnUi = ui.mouseOnUi,
                                .sound = runtime.lastSoundId,
                                .drawn = runtime.oldWindows.drawn != 0,
-                               .modal = runtime.oldWindows.modal};
+                               .modal = runtime.oldWindows.modal,
+                               .soundRequest = [&runtime](std::int32_t sound) { runtime.RequestSound(sound); }};
     UI::OldListView view{.mouseX = context.mouseX, .mouseY = context.mouseY, .keyDown = [&context](std::uint8_t key) {
                              return context.input.IsDown(key == 0x26 ? Input::Key::Up : Input::Key::Down);
                          }};

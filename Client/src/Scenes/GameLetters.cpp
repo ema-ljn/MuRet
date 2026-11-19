@@ -293,7 +293,7 @@ Core::Expected<void, std::string> ApplyLetterRow(const Protocol::Letters::Letter
     else if (row.type == 2)
     {
         // (CL10) El sonido queda pedido.
-        runtime.lastSoundId = NewLetterSound;
+        runtime.RequestSound(NewLetterSound);
         manager.windowList.list.newLetter = 1;
         auto text = TextOf(context, NewLetterText, "0x4dcaa4");
         if (!text.HasValue())
@@ -611,7 +611,8 @@ Core::Expected<void, std::string> ApplyRoomPacket(std::int32_t window, const Net
             return {};
         if (chat->base.state == MinimizedState)
         {
-            UI::MarkTheChatWaiting(manager, window, runtime.lastSoundId);
+            UI::MarkTheChatWaiting(manager, window, runtime.lastSoundId,
+                                   [&runtime](std::int32_t sound) { runtime.RequestSound(sound); });
             auto text = TextOf(context, ChatWaitingText, "0x4dd47c");
             if (!text.HasValue())
                 return Core::Unexpected(std::move(text).Error());
@@ -621,7 +622,8 @@ Core::Expected<void, std::string> ApplyRoomPacket(std::int32_t window, const Net
             UI::Steps::AddTheWindowRow(manager, window, chat->frame.title.value_or(std::string()));
         }
         else if (chat->base.state == HiddenState || UI::LastOldWindow(manager) != window)
-            UI::MarkTheChatWaiting(manager, window, runtime.lastSoundId);
+            UI::MarkTheChatWaiting(manager, window, runtime.lastSoundId,
+                                   [&runtime](std::int32_t sound) { runtime.RequestSound(sound); });
         return UI::AddAChatLine(manager, *chat, message.Value().index, message.Value().text, MemberLine, 0,
                                 windows.Measure());
     }

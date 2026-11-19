@@ -57,6 +57,15 @@ struct GameHudContext
     CrywolfInterface* crywolfInterface = nullptr;
     // 0x41ed10(id, 0, 0): el sonido que pide la barra principal (0x22, la vida baja), el gancho de la CL10.
     std::optional<std::int32_t>& sound;
+    std::function<void(std::int32_t)> soundRequest{};
+
+    void RequestSound(std::int32_t id) const
+    {
+        if (soundRequest)
+            soundRequest(id);
+        else
+            sound = id;
+    }
     // La UI vieja que lee y escribe 0x4a5120, los íconos de la barra (la lista de ventanas de [0x5763524]: +0x144, la
     // carta nueva, y +0x148 y +0x14c, los dibujos y los parpadeos). Sin ella, la de WorldRuntime; en un dibujo
     // intermedio, la copia de la proyección, que nadie vuelve a leer.

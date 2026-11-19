@@ -30,11 +30,12 @@ export VCPKG_ROOT=~/vcpkg          # Windows: bootstrap-vcpkg.bat y $env:VCPKG_R
 Si al configurar vcpkg dice que no encuentra la baseline, el clon es más viejo que `vcpkg.json`:
 actualizalo con `git -C "$VCPKG_ROOT" pull`.
 
-En Linux, SDL3 necesita además los headers de X11, Wayland y OpenGL, y libjpeg-turbo, NASM (para su
-SIMD; en Windows vcpkg lo baja solo):
+En Linux, SDL3 necesita los headers de X11, Wayland y OpenGL. El puerto de ALSA requiere Autotools.
+libjpeg-turbo usa NASM para SIMD y en Windows vcpkg lo descarga.
 
 ```bash
-sudo apt install ninja-build pkg-config libx11-dev libxext-dev libwayland-dev libxkbcommon-dev libgl-dev libegl-dev nasm
+sudo apt install ninja-build pkg-config autoconf autoconf-archive automake libtool \
+  libx11-dev libxext-dev libwayland-dev libxkbcommon-dev libgl-dev libegl-dev nasm
 ```
 
 ```bash

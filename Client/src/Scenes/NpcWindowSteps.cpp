@@ -370,7 +370,7 @@ Core::Expected<void, std::string> PressTheMixButton(const GameUiContext& context
     case MixButtonAction::Nothing:
         break;
     }
-    runtime.lastSoundId = ButtonSound;
+    runtime.RequestSound(ButtonSound);
     return {};
 }
 
@@ -490,7 +490,7 @@ Core::Expected<void, std::string> StepTheWarehouse(const GameUiContext& context,
     if (!pressed || !movement.pendingClick)
         return {};
     movement.pendingClick = false;
-    runtime.lastSoundId = ButtonSound;
+    runtime.RequestSound(ButtonSound);
     NpcWindowState& npc = runtime.npcWindows;
     SocialState& social = runtime.social;
     switch (*pressed)

@@ -645,9 +645,9 @@ Core::Expected<void, std::string> UseInventoryItemOn(const InventoryMoveContext&
         return {};
     const std::int32_t type = Signed(cells[static_cast<std::size_t>(cell)].id);
     if (type == FirstPotion)
-        runtime.lastSoundId = FirstPotionSound;
+        runtime.RequestSound(FirstPotionSound);
     else if (type > FirstPotion && type <= LastSoundedPotion)
-        runtime.lastSoundId = PotionSound;
+        runtime.RequestSound(PotionSound);
     return {};
 }
 
@@ -1176,7 +1176,7 @@ Core::Expected<void, std::string> ReturnTheCursorItem(const InventoryMoveContext
     runtime.cursorItem.occupied = 0;
     if (auto dressed = Dress(context.services, "0x5be150 (0x5bebea)"); !dressed.HasValue())
         return dressed;
-    runtime.lastSoundId = ItemMoveSound;
+    runtime.RequestSound(ItemMoveSound);
     return {};
 }
 
@@ -1339,7 +1339,7 @@ Core::Expected<void, std::string> PickUpFromTheEquipment(const InventoryMoveCont
     runtime.hoveredItemCopy.id = EmptyOwnItemId;
     runtime.ui.field78abb28 = 0;
     runtime.ui.field78abb2c = static_cast<std::int32_t>(slot) + FirstGridSlot;
-    runtime.lastSoundId = ItemMoveSound;
+    runtime.RequestSound(ItemMoveSound);
     if (slot == PetSlot)
         TurnOffHelpersOf(world.Helpers(), runtime.hero);
     else if (slot == LeftHandSlot && runtime.cursorItem.id == DarkRaven)
@@ -2124,7 +2124,7 @@ Core::Expected<void, std::string> PlaceTheMovedItem(const Protocol::Inventory::I
     default:
         break;
     }
-    runtime.lastSoundId = ItemMoveSound;
+    runtime.RequestSound(ItemMoveSound);
     return {};
 }
 } // namespace
@@ -2278,7 +2278,7 @@ Core::Expected<void, std::string> ApplyItemPut(const Protocol::Inventory::ItemPu
     runtime.cursorItem.occupied = 0;
     if (auto placed = PlaceMovedItem(put.slot, put.item, resources); !placed.HasValue())
         return placed;
-    runtime.lastSoundId = ItemPutSound;
+    runtime.RequestSound(ItemPutSound);
     return {};
 }
 

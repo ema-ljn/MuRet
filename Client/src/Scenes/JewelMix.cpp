@@ -546,7 +546,7 @@ Core::Expected<void, std::string> AnswerTheJewelMix(const GameUiContext& context
     WorldRuntime& runtime = context.world.Runtime();
     runtime.social.trade.warningByte = yes ? YesAnswer : NoAnswer;
     LeaveTheMouseTime(runtime);
-    runtime.lastSoundId = DialogSound; // (CL10)
+    runtime.RequestSound(DialogSound); // (CL10)
     if (!yes)
         return ReturnToTheChoice(context);
     CloseTheDialog(runtime.dialogs);

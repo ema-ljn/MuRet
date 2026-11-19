@@ -32,6 +32,9 @@
 //                              ; MaxFpsLimit
 //   FontFile = letra.ttf       ; la fuente TrueType del texto (CL5.3)
 //   BoldFontFile = negrita.ttf ; su negrita; sin darla, se ensancha la de FontFile
+//   [Audio]
+//   SoundOnOff = 1              ; 1 para efectos, 0 para apagarlos
+//   MusicOnOff = 1              ; 1 para música, 0 para apagarla
 //   [Log]
 //   Path = muret-client.log
 //
@@ -90,6 +93,9 @@ struct ClientConfig
     // CL5). Vacías: no se dieron. Sin BoldFontFile, la negrita es la de FontFile ensanchada.
     std::optional<std::filesystem::path> fontFile;
     std::optional<std::filesystem::path> boldFontFile;
+    // [Audio] SoundOnOff y MusicOnOff. El launcher oficial los inicia encendidos.
+    bool soundOnOff = true;
+    bool musicOnOff = true;
     // [Log] Path. Vacío: muret-client.log junto al ejecutable.
     std::optional<std::filesystem::path> logPath;
 };

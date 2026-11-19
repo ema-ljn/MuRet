@@ -80,6 +80,12 @@ merecen un ADR propio y cuáles alcanzan con la fila de 07; hasta entonces, la f
 | [0019](0019-senales-del-asedio.md) | Señales propias para las altas y los ataques del asedio | propuesto en H13 (2026-11-18) |
 | [0020](0020-senales-crywolf.md) | Señales propias para el proyectil y la descarga radial de Crywolf | propuesto en H11 (2026-11-18) |
 
+## Los de la CL10
+
+| ADR | Título | Estado |
+| --- | --- | --- |
+| [0021](0021-audio-sdl3.md) | Audio del cliente con SDL3_mixer | propuesto en CL10 (2026-11-18) |
+
 ## Codificación occidental
 
 | ADR | Título | Estado |

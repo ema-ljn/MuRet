@@ -49,32 +49,32 @@ std::uint8_t FenrirAction(const ActorState& actor)
 void PlayerHitSound(const ActorState& actor, const WorldEntryResources& resources)
 {
     auto& random = resources.cloth.random;
-    auto& sound = resources.world.Runtime().lastSoundId;
+    const auto requestSound = [&resources](std::int32_t id) { resources.world.Runtime().RequestSound(id); };
     constexpr std::uint8_t ClassMask = 7;
     constexpr std::uint8_t ElfClass = 2;
     constexpr std::uint8_t DarkLordClass = 4;
     const auto characterClass = actor.characterClass & ClassMask;
     if (characterClass == ElfClass)
     {
-        sound = 0x6d + (random.Next() & 1);
+        requestSound(0x6d + (random.Next() & 1));
         return;
     }
     if (characterClass == DarkLordClass && random.Next() % 5 != 0)
     {
-        sound = 0x1c6;
+        requestSound(0x1c6);
         return;
     }
-    sound = 0x69 + random.Next() % 3;
+    requestSound(0x69 + random.Next() % 3);
 }
 void HitSound(const ActorState& actor, const WorldEntryResources& resources)
 {
     // 0x4f5496 mira C3: unordered también entra en el sonido.
     if (actor.animation.frame < 0.0f || actor.animation.frame > 0.0f)
         return;
-    auto& sound = resources.world.Runtime().lastSoundId;
+    const auto requestSound = [&resources](std::int32_t id) { resources.world.Runtime().RequestSound(id); };
     if (actor.subtype >= 209 && actor.subtype <= 211)
     {
-        sound = 0x7b;
+        requestSound(0x7b);
         return;
     }
     if (actor.type == Data::Models::PlayerSkeletonModel)
@@ -91,7 +91,7 @@ void HitSound(const ActorState& actor, const WorldEntryResources& resources)
     constexpr std::size_t HitSoundWord = 2;
     if (const auto drawn = DrawModelSound(WrittenSounds(resources.world.Runtime().modelSounds, actor.type),
                                           HitSoundWord, actor.subtype, resources.cloth.random))
-        sound = *drawn;
+        requestSound(*drawn);
 }
 // 0x4f55bb..0x4f5649: cinco intentos, aun con el pool lleno, y el sonido después de todos ellos.
 Core::Expected<void, std::string> CreateShockDust(const ActorState& actor, const WorldEntryResources& resources)
@@ -118,7 +118,7 @@ Core::Expected<void, std::string> CreateShockDust(const ActorState& actor, const
             return Core::Unexpected(
                 std::format("0x4f5635: falla el alta de 0x5f3/0 con error {}", static_cast<unsigned>(created.Error())));
     }
-    resources.world.Runtime().lastSoundId = DustSound;
+    resources.world.Runtime().RequestSound(DustSound);
     return {};
 }
 } // namespace
@@ -150,7 +150,7 @@ Core::Expected<void, std::string> SetActorShock(ActorState& actor, std::uint16_t
         const bool fenrir = actor.pet.model == Fenrir;
         Render::Models::SetAction(actor.animation, *skeleton, fenrir ? FenrirAction(actor) : PlayerShockAction);
         if (fenrir && resources.cloth.random.Next() % 3 == 0)
-            resources.world.Runtime().lastSoundId = 0x27b + (resources.cloth.random.Next() & 1);
+            resources.world.Runtime().RequestSound(0x27b + (resources.cloth.random.Next() & 1));
         actor.movement = 0;
     }
     HitSound(actor, resources);

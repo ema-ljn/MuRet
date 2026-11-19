@@ -34,6 +34,12 @@ constexpr int SelectorGate = 10;
 constexpr int ParticleGate = 5;
 constexpr int ParticleSpread = 800;
 
+void PlayKalimaSound(WorldState& world, std::int32_t sound)
+{
+    world.Fauna().Sound(sound, nullptr);
+    world.Runtime().RequestSound(sound);
+}
+
 void RegionSoundOf(WorldState& world, Render::Models::ClothWorld& cloth)
 {
     ActorState& hero = world.Actors()[world.Runtime().hero];
@@ -51,7 +57,7 @@ void RegionSoundOf(WorldState& world, Render::Models::ClothWorld& cloth)
     }();
     constexpr std::int32_t MinX = 25, MaxX = 51, MinY = 44, MaxY = 119;
     if (x >= MinX && x <= MaxX && y >= MinY && y <= MaxY && cloth.logicSteps % RegionPeriod == 0)
-        world.Fauna().Sound(RegionSound + cloth.random.Next() % SoundAlternatives, nullptr);
+        PlayKalimaSound(world, RegionSound + cloth.random.Next() % SoundAlternatives);
 }
 
 void OwnRecordSound(WorldState& world, Render::Models::ClothWorld& cloth)
@@ -83,9 +89,9 @@ std::uint8_t KalimaLevelOf(std::uint8_t characterClass, std::uint16_t level)
 
 Core::Expected<std::int32_t, std::string> StepKalimaObjectPrelude(WorldState& world, Render::Models::ClothWorld& cloth)
 {
-    world.Fauna().Sound(AmbientSound, nullptr);
+    PlayKalimaSound(world, AmbientSound);
     if (cloth.logicSteps % AmbientPeriod == 0)
-        world.Fauna().Sound(PeriodicSound + cloth.random.Next() % SoundAlternatives, nullptr);
+        PlayKalimaSound(world, PeriodicSound + cloth.random.Next() % SoundAlternatives);
     OwnRecordSound(world, cloth);
     // 438904: cierre propio antes del gate. El count se lee sólo si éste acepta.
     if (cloth.random.Next() % SelectorGate == 0 && world.Runtime().objectSelectionCount != 0)
@@ -113,7 +119,7 @@ Core::Expected<std::int32_t, std::string> StepKalimaObjectPrelude(WorldState& wo
         position.z = static_cast<float>(static_cast<double>(hero.position.z) + EffectHeight);
         static_cast<void>(world.Map().effects.CreateKalimaEffect(position, glm::vec3(0), light, cloth.random));
         constexpr std::int32_t EffectSound = 0x1d7;
-        world.Fauna().Sound(EffectSound, nullptr);
+        PlayKalimaSound(world, EffectSound);
     }
     return std::int32_t{0};
 }

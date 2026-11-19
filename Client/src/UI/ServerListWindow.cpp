@@ -342,11 +342,11 @@ std::optional<ServerClick> ServerListWindow::Step(const Input::InputState& input
         // Sin el foco, 0x669f40 atiende los botones y no corre 0x645e10.
         for (Button& button : m_groupButtons)
         {
-            static_cast<void>(button.Step(input, mouse));
+            static_cast<void>(button.Step(input, mouse, turn.buttonClicked));
         }
         for (std::size_t i = 0; i < ShownServers(); ++i)
         {
-            static_cast<void>(m_serverButtons[i].Step(input, mouse));
+            static_cast<void>(m_serverButtons[i].Step(input, mouse, turn.buttonClicked));
         }
         return std::nullopt;
     }
@@ -355,7 +355,7 @@ std::optional<ServerClick> ServerListWindow::Step(const Input::InputState& input
     std::optional<std::size_t> clickedGroup;
     for (std::size_t i = 0; i < m_groupButtons.size(); ++i)
     {
-        if (m_groupButtons[i].Step(input, mouse) && !clickedGroup)
+        if (m_groupButtons[i].Step(input, mouse, turn.buttonClicked) && !clickedGroup)
         {
             clickedGroup = i;
         }
@@ -369,7 +369,7 @@ std::optional<ServerClick> ServerListWindow::Step(const Input::InputState& input
     const ServerGroup* group = SelectedGroup();
     for (std::size_t i = 0; i < ShownServers(); ++i)
     {
-        if (!m_serverButtons[i].Step(input, mouse) || group == nullptr)
+        if (!m_serverButtons[i].Step(input, mouse, turn.buttonClicked) || group == nullptr)
         {
             continue;
         }

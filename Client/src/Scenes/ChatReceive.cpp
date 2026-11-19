@@ -240,9 +240,9 @@ Core::Expected<void, std::string> ApplyWhisper(const Protocol::Messages::Whisper
         level = context.world.OwnCharacter().level;
     }
     UI::RememberTheWhisperSender(runtime.chat.whisperSenders, level, name);
-    // 0x41ed10(0x26, 0, 0): MuRet no tiene audio hasta la CL10.
+    // 0x41ed10(0x26, 0, 0).
     if (runtime.chat.noticeSound)
-        runtime.lastSoundId = WhisperSound;
+        runtime.RequestSound(WhisperSound);
     return AddMessage(context, name, text, UI::WhisperMessage);
 }
 

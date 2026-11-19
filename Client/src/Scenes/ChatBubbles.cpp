@@ -282,7 +282,7 @@ Core::Expected<void, std::string> AddChatBubble(WorldState& world, const ChatBub
         if (!sound.HasValue())
             return Core::Unexpected(sound.Error());
         if (sound.Value())
-            runtime.lastSoundId = *sound.Value();
+            runtime.RequestSound(*sound.Value());
     }
     PutTheLine(*bubble, text, steps);
     return {};
@@ -354,7 +354,7 @@ Core::Expected<void, std::string> StepTheChatBubbles(WorldState& world, const Ch
         runtime.ui.rightClick = false;
         UI::SetTheChatFields(runtime.chat.input, std::nullopt, CString(bubble.name));
         UI::PutTheWhisperName(runtime.chat.input, CString(bubble.name));
-        runtime.lastSoundId = UI::ChatButtonSound;
+        runtime.RequestSound(UI::ChatButtonSound);
     }
     return {};
 }

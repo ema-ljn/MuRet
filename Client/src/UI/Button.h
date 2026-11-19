@@ -8,6 +8,7 @@
 #include "UI/Widget.h"
 
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <string>
 
@@ -59,9 +60,10 @@ public:
     void MoveTo(Point topLeft);
     [[nodiscard]] Rect Area() const;
 
-    // Un paso de 0x63c490 con el mouse en `mouse`: true si fue un clic. Sin mouse, el +0xa9 en 0
-    // de una ventana que no lo tiene (0x669ed0): nunca está encima (0x63c470).
-    bool Step(const Input::InputState& input, std::optional<Point> mouse);
+    // Un paso de 0x63c490 con el mouse en `mouse`: true si fue un clic. `onClick` corre para ese
+    // clic después de poner +0xaa en 1 y antes de voltear el marcado (0x63c4fc, 0x63c503). Sin
+    // mouse, el +0xa9 en 0 de una ventana que no lo tiene (0x669ed0): nunca está encima (0x63c470).
+    bool Step(const Input::InputState& input, std::optional<Point> mouse, const std::function<void()>& onClick = {});
 
     void SetChecked(bool checked);
     [[nodiscard]] bool Checked() const;

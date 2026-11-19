@@ -697,8 +697,8 @@ Core::Expected<void, std::string> StepTheCommandsWindow(const GameUiContext& con
         mouseY >= y + CloseTop + CloseSize || !movement.pendingClick)
         return {};
     movement.pendingClick = false;
-    runtime.lastSoundId = FirstCloseSound;
-    runtime.lastSoundId = SecondCloseSound;
+    runtime.RequestSound(FirstCloseSound);
+    runtime.RequestSound(SecondCloseSound);
     movement.mouseUpdateTime = 0;
     movement.mouseUpdateTimeMax = CloseMouseUpdateTimeMax;
     UI::ResetTheCommands(delegated);

@@ -175,7 +175,7 @@ Core::Expected<void, std::string> CreateTheArrowTrail(World::ModelEffect& arrow,
     if (!HasJointRoom(world))
     {
         constexpr std::int32_t TrailSound = 0x7a;
-        world.Runtime().lastSoundId = TrailSound;
+        world.Runtime().RequestSound(TrailSound);
         trail.transform.scale = 1.0f; // 51a101, después de los cuatro intentos de joint610.
         return {};
     }
@@ -598,7 +598,7 @@ Core::Expected<void, std::string> BurstAt(const glm::vec3& position, const Arrow
         return Core::Unexpected(std::format("0x51fe9e: el estallido de 0x51fe10 falla con error {}",
                                             static_cast<unsigned>(created.Error())));
     if (created.Value())
-        context.world.Runtime().lastSoundId = BurstSound;
+        context.world.Runtime().RequestSound(BurstSound);
     return {};
 }
 
@@ -1287,7 +1287,7 @@ Core::Expected<void, std::string> CreateCombatBurstAt(const glm::vec3& position,
     if (!created.Value())
         return {};
     constexpr std::int32_t BurstSound = 0x40;
-    context.world.Runtime().lastSoundId = BurstSound;
+    context.world.Runtime().RequestSound(BurstSound);
     if (context.soundRequest)
         context.soundRequest(BurstSound);
     return {};

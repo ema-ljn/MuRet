@@ -11990,7 +11990,8 @@ nada, nada, `0x11c` y `0xf9`. Cada una es `0x518cf0(tipo, o+0x10, o+0x1c, o+0xf4
 **El alta** (los casos de `0x518cf0`). `0x51c43b` (`0xdb`..`0xe1`, `0xe3`, `0xf9`, `0x11c`): `+0x64` en 1 con el
 `0xdb`, −2 con el `0xe1` y 0 con el `0xdd`, el `0xde`, el `0xdf` y el `0xe3`; `+0xd8` en 1, vida 30 y la boca
 (−10; −60; 135) girada por los ángulos (`0x5fc8f0`, `0x5fcbd0`) y sumada a la posición; el `0xe3`, escala 1,8f, la
-y de la velocidad en −50 y `+0xe4` en −10; el `0xf9`, escala 1 y −70 y el joint `0x610`/0xe (`0x51c56c`); los
+y de la velocidad en −50 y `+0xe4` en −10; el `0xf9`, escala 1 y −70 y el joint `0x610`/0xe (`0x51c56c`: ancho 50, key 40, la flecha de dueño; octava vuelta del
+lote joints de la CL11); los
 demás, escala 0,8f y −70. Con el subtipo 2 (la skill `0x34`, `0x51c58a`), la estela `0x518cf0(0x105, la posición
 de la flecha, sus ángulos, su luz, 0, la flecha, −1, 0, 0, 0, 0)` y, se haya creado o no, `+0x100` en 0 y `+0x88` en
 1; el caso `0x105` con el subtipo 0 (`0x519fc9`): vida 100, `+0x64` en 0, `+0x68` en 1, `+0xe4` en 0, escala 12 y la
@@ -12004,7 +12005,16 @@ con el subtipo 3 o 4 (`0x51c601`, la del asedio): vida 40, escala 1,5, `+0xe4` e
 los ángulos en −(`rand() % 20` + 45); con el 4, −(`rand() % 15` + 55) y −10 (cada fild más la constante y el `fchs` en
 la x87); después, la salida. La crean solo los objetos del asedio (`0x42b540`: `0x42c319` y `0x42c4e0`, CL9.5). El
 `0x11c`, `+0x64` en 1,
-la y de los ángulos en `rand() % 360` y el joint `0x610`/0xc (`0x51c713`). La salida `0x51a1b6` abre el registro
+la y de los ángulos en `rand() % 360` y el joint `0x610`/0xc (`0x51c713`: ancho 40, key 80, la flecha de dueño;
+octava vuelta). Los dos son estelas como el `0x610`/0xd del misil de Crywolf: el alta común del `0x610` (la key es la
+vida, `0x531c43`) y `0x531fa3..0x53200e` (la /0xc con la luz (0,6f; 0,2f; 0,8f) y la mezcla 4, la /0xe con la luz 1
+y la mezcla 1; el ancho, 16 puntos, velocidad 70 y el destino en el segundo punto); el paso, `0x537ee6..0x538016`
+(`StepArrowTrail` en `FaunaJointCreation.cpp`): sin dueño se apaga (`0x53be97`), con la flecha muerta también y sigue;
+la /0xe viva (`0x537f0b..0x537f94`) deja en su posición el sprite `0x5c6` de escala 5 con su luz, las partículas
+`0x5f2/0x22` y `/0x23` de escala 1 y la `0x5c6/0xa` de escala 4 con la luz (0,7f; 0,3f; 0,3f), que le queda, y la luz
+pasa a (1; 1; 0,2f); con menos de 15 de vida, la luz por 0,8333333f; después la luz dinámica de radio 2 ((`rand() & 3`
++ 8) · 0,03f por (0,4f; 1; 0,8f)). La `0x5f2/0x22` es la `/0x23` quieta (`0x541a69` → `0x5435bb`: la velocidad en 0;
+el mismo paso `0x5467b8` y el mismo dibujo; `World::ViperSmokeSubtype`). El dibujo es el común. La salida `0x51a1b6` abre el registro
 propio, copia su `+0xf04` a `+0x8c` y lo cierra (3.848 `rand()`). El `0xe2` (`0x51a41e`): igual hasta la boca,
 `+0x64` en 0, escala 1, −30, `+0xe4` en −10, vida 40, con el subtipo 2 `+0x100` en 0 y `+0x88` en 1, y la misma
 salida. El `0xf7` (`0x51a24a`), el `0xf8` (`0x51a405`), el `0x10e` (`0x51a173`) y el `0x111` (`0x51bf35`; con un
@@ -12040,8 +12050,9 @@ menos), que no mira el byte vivo: corre también si el choque la apagó.
   (`[0x743a170]`) de dueño y sin el subtipo `0x63`, `0x517a20` (`0x524405`, hito 4). Al final, la luz (luz · 0,6f;
   · 0,8f; · 0,8f) y el choque (`StepAquagoldArrow`, `ArrowStepContext::terrainHeight`;
   `ArrowEffectsTest.TheAquagoldArrowFallsAndBounces`).
-- `0x11c` (`0x526aef`): la y de los ángulos + 60; con vida par, la `0x60f`/5 (`0x526bc2`), con impar, el `0x114`
-  (`0x526c05`). Los pasos del `0xf7`, `0xf8`, `0xf9`, `0x10e` y `0x111` no se alcanzan: su alta corta.
+- `0x11c` (`0x526aef`): la y de los ángulos + 60; con vida par, tres veces el punto ((& 31) − 16; (& 63) − 32; (& 31)
+  − 16) y `0x53fe70(0x60f, punto, ángulos, (0,4f; 0,2f; 1), 5, 0,2f, 0)` (`0x526bc2`, octava vuelta del lote joints);
+  después (con cualquier vida) el `0x114`/3 (`0x526c05`), la luz y el choque.
 
 **El choque** (`0x520170`). Con el asedio (`0x4294b0`) y el bit `0x100` de la celda, la frena (`0x52018d`, CL9.5).
 Con `+0x88` distinto de 0 y sin el subtipo `0x63` (`0x5201ed`, CL9 hito 4): con `rand() & 1` en 1, nada; solo con el

@@ -12042,8 +12042,10 @@ menos), que no mira el byte vivo: corre también si el choque la apagó.
   (`[0x743a170]`) de dueño y sin el subtipo `0x63`, `0x517a20` (`0x524405`, hito 4). Al final, la luz (luz · 0,6f;
   · 0,8f; · 0,8f) y el choque (`StepAquagoldArrow`, `ArrowStepContext::terrainHeight`;
   `ArrowEffectsTest.TheAquagoldArrowFallsAndBounces`).
-- `0x11c` (`0x526aef`): la y de los ángulos + 60; con vida par, la `0x60f`/5 (`0x526bc2`), con impar, el `0x114`
-  (`0x526c05`). Los pasos del `0xf7`, `0xf8`, `0xf9`, `0x10e` y `0x111` no se alcanzan: su alta corta.
+- `0x11c` (`0x526aef`): la y de los ángulos + 60; con vida par, tres veces el punto ((& 31) − 16; (& 63) − 32;
+  (& 31) − 16) y la `0x60f`/5 violeta ((0,4f; 0,2f; 1), escala 0,2f, sin dueño; `0x526b1c..0x526bcb`, CL11:
+  `ArrowEffectsTest.TheTwentiethArrowSparklesVioletOnEvenLives`); siempre el `0x114`/3 (`0x526c05`), la luz y el
+  choque. Su alta todavía corta en el joint `0x610`/0xc (`0x51c713`) si hay lugar en los joints. Los pasos del `0xf7`, `0xf8`, `0xf9`, `0x10e` y `0x111` no se alcanzan: su alta corta.
 
 **El choque** (`0x520170`). Con el asedio (`0x4294b0`) y el bit `0x100` de la celda, la frena (`0x52018d`, CL9.5).
 Con `+0x88` distinto de 0 y sin el subtipo `0x63` (`0x5201ed`, CL9 hito 4): con `rand() & 1` en 1, nada; solo con el

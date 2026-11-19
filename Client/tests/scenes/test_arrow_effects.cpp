@@ -21,6 +21,7 @@
 #include "World/GameModelEffects.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
+#include "World/PortableParticleTrigonometry.h"
 #include "World/Sprites.h"
 #include "World/TerrainLighting.h"
 
@@ -1961,6 +1962,71 @@ TEST(ArrowEffectsTest, TheTwentiethArrowLeavesTheThirdWave)
     EXPECT_EQ(wave.transform.position, (glm::vec3{100.0f, 200.0f, 300.0f}));
     EXPECT_EQ(wave.start, (glm::vec3{100.0f, 200.0f, 300.0f}));
     EXPECT_EQ(wave.light, (glm::vec3{0.5f, 0.25f, 1.0f}));
+}
+
+// 0x526b1c..0x526bcb: con lugar en las partículas y la vida par, la flecha 0x11c suelta tres chispas violetas
+// 0x60f/5 ((0,4f; 0,2f; 1), escala 0,2f, sin dueño) en su punto disperso, con los ángulos ya girados 60; con la vida
+// impar, ninguna.
+TEST(ArrowEffectsTest, TheTwentiethArrowSparklesVioletOnEvenLives)
+{
+    for (const std::int32_t life : {20, 21})
+    {
+        SCOPED_TRACE(life);
+        ArrowWorld tested(0);
+        auto& arrow = tested.world.Map().effects.Effects().front();
+        arrow.alive = true;
+        arrow.type = 0x11c;
+        arrow.life = life;
+        arrow.transform.position = {100.5f, 200.25f, 300.0f};
+        arrow.transform.angles = {10.0f, 20.0f, 30.0f};
+        arrow.light = {0.5f, 0.25f, 1.0f};
+        const auto stepped = StepArrow(arrow, nullptr, tested.StepContext());
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+
+        // La gemela: el rand() de la luz (0x5208c5), y con la vida par, por cada chispa los tres rand() del punto y
+        // el alta de 0x53fe70 en un pool aparte.
+        CrtRandom twin{Seed};
+        static_cast<void>(twin.Next());
+        auto expected = std::make_unique<Client::World::Particles>();
+        const float clock = 0.0f; // el del contexto del paso
+        if (life % 2 == 0)
+        {
+            const glm::vec3 angles{10.0f, 80.0f, 30.0f};
+            for (int spark = 0; spark < 3; ++spark)
+            {
+                const auto x = static_cast<double>((twin.Next() & 31) - 16);
+                const auto y = static_cast<double>((twin.Next() & 63) - 32);
+                const auto z = static_cast<double>((twin.Next() & 31) - 16);
+                const glm::vec3 point{static_cast<float>(x + 100.5), static_cast<float>(y + 200.25),
+                                      static_cast<float>(z + 300.0)};
+                Client::World::PortableParticleTrigonometry trigonometry;
+                const auto made = expected->CreateChecked(
+                    0x60f, point, angles, {std::bit_cast<float>(0x3ecccccdu), std::bit_cast<float>(0x3e4ccccdu), 1.0f},
+                    5, std::bit_cast<float>(0x3e4ccccdu), std::cref(clock), twin, 0, trigonometry);
+                ASSERT_TRUE(made.HasValue());
+            }
+        }
+        EXPECT_EQ(tested.random.State(), twin.State());
+        EXPECT_EQ(arrow.transform.angles.y, 80.0f);
+        for (std::size_t slot = 0; slot < 4; ++slot)
+        {
+            SCOPED_TRACE(slot);
+            const auto& got = tested.particles.All()[slot];
+            const auto& want = expected->All()[slot];
+            EXPECT_EQ(got.alive, want.alive);
+            EXPECT_EQ(got.type, want.type);
+            EXPECT_EQ(got.subtype, want.subtype);
+            EXPECT_EQ(got.scale, want.scale);
+            EXPECT_EQ(got.position, want.position);
+            EXPECT_EQ(got.angles, want.angles);
+            EXPECT_EQ(got.light, want.light);
+            EXPECT_EQ(got.life, want.life);
+            EXPECT_EQ(got.velocity, want.velocity);
+            EXPECT_EQ(got.owner, 0u);
+        }
+        EXPECT_EQ(std::ranges::count_if(tested.particles.All(), [](const auto& particle) { return particle.alive; }),
+                  life % 2 == 0 ? 3 : 0);
+    }
 }
 
 TEST(ArrowEffectsTest, TheLastFreeEffectSlotStillFinishesAnArrowWithFullJoints)

@@ -132,12 +132,6 @@ bool HasJointRoom(WorldState& world)
     return std::ranges::any_of(world.DrawTail().joints, [](const auto& joint) { return !joint.alive; });
 }
 
-bool HasParticleRoom(const ArrowStepContext& context)
-{
-    return context.particles == nullptr ||
-           std::ranges::any_of(context.particles->All(), [](const auto& particle) { return !particle.alive; });
-}
-
 // 0x518cf0(0x105, la posición de la flecha, sus ángulos, su luz, subtipo, la flecha, −1, 0, 0, 0, 0): el /0 es la
 // estela de la skill 0x34 (0x51c590..0x51c5a9) y el /3, el pulso de la 0xf8/1 en su vida 13 (0x523f72). El caso 0x105
 // (0x519fc9..0x51a101): vida 100, +0x64 en 0, +0x68 en 1 y +0xe4 en 0; el /0, la escala 12 (0x519ff3) y el /3, la
@@ -1162,13 +1156,24 @@ Core::Expected<void, std::string> StepTwentiethArrow(World::ModelEffect& effect,
     effect.transform.angles.y = F32(D(effect.transform.angles.y) + Turn);
     if (effect.life % 2 == 0)
     {
+        // 0x526b1c..0x526bcb: tres veces el punto ((& 31) − 16; (& 63) − 32; (& 31) − 16) y 0x53fe70(0x60f, punto,
+        // ángulos, (0,4f; 0,2f; 1), 5, 0,2f, 0), la chispa violeta.
         constexpr int SparkCount = 3;
+        constexpr glm::vec3 Violet{std::bit_cast<float>(0x3ecccccdu), std::bit_cast<float>(0x3e4ccccdu),
+                                   1.0f};                               // 0x526baa..0x526bb8
+        constexpr float SparkScale = std::bit_cast<float>(0x3e4ccccdu); // 0x526b77
         for (int index = 0; index < SparkCount; ++index)
         {
-            static_cast<void>(ScatteredPoint(effect.transform.position, context.random, {31, 63, 31}, {16, 32, 16}));
-            if (HasParticleRoom(context))
-                return Core::Unexpected(
-                    std::string("0x526bc2: la 0x60f/5 de la flecha 0x11c (0x53fe70), sin portar (CL11)"));
+            const auto point = ScatteredPoint(effect.transform.position, context.random, {31, 63, 31}, {16, 32, 16});
+            if (context.particles == nullptr)
+                return Core::Unexpected(std::string("0x526bc2: falta el pool de la 0x60f/5 de la flecha 0x11c"));
+            World::PortableParticleTrigonometry trigonometry;
+            const auto created =
+                context.particles->CreateChecked(0x60f, point, effect.transform.angles, Violet, 5, SparkScale,
+                                                 std::cref(context.worldClock), context.random, 0, trigonometry);
+            if (!created.HasValue())
+                return Core::Unexpected(std::format("0x526bc2: la 0x60f/5 de la flecha 0x11c falla con error {}",
+                                                    static_cast<unsigned>(created.Error())));
         }
     }
     effect.point40 = effect.transform.position;

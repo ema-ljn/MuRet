@@ -443,8 +443,7 @@ TEST(SkillRepliesTest, TheSkill46MarksAnotherTarget)
 // Los efectos de 0x518cf0 (CL11) cortan después de lo que el original hace antes.
 TEST(SkillRepliesTest, TheEffectsOfTheSkillsAreCL11Cuts)
 {
-    for (const auto& [skill, where] :
-         {std::pair{std::uint8_t{0x3b}, "0x4cddfa"}})
+    for (const auto& [skill, where] : {std::pair{std::uint8_t{0x3b}, "0x4cddfa"}})
     {
         auto tested = std::make_unique<Replies>();
         const auto applied = tested->Attack(skill);

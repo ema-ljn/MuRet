@@ -1425,6 +1425,65 @@ TEST_F(MonsterHelpersTest, The1b1And1b2DrawTheirSprites)
     EXPECT_EQ(spinning.State(), AfterDraws(3, 1).State());
 }
 
+// El original dibuja una vez por cuadro, después de 0 a N pasos (ADR 0005): entre frames del original el personaje es
+// una copia proyectada y las tablas del mundo no se tocan. El golpe del 0x1a4 (0x441b33..0x441c4c: el cráter 0x636/2,
+// el joint 0x61c/6 y la columna 0x5de/3), el 0x115/1 del 0x1b3 (0x434eb0) y el 0x618/0x10 del 0x1b7 (0x427fd3) solo
+// nacen en un frame del original.
+TEST_F(MonsterHelpersTest, BetweenOriginalFramesTheHelpersLeaveTheWorldTablesAlone)
+{
+    const auto alive = [this]
+    {
+        return std::ranges::count_if(m_world->Map().effects.Effects(),
+                                     [](const auto& effect) { return effect.alive; }) +
+               std::ranges::count_if(m_world->DrawTail().joints, [](const auto& joint) { return joint.alive; });
+    };
+    const auto clear = [this]
+    {
+        for (auto& effect : m_world->Map().effects.Effects())
+            effect.alive = false;
+        for (auto& joint : m_world->DrawTail().joints)
+            joint.alive = false;
+    };
+    Name("Monster82_LHand", 34);
+    Name("Monster82_RHand", 45);
+    Name("Monster82_Eye", 48);
+    Name("Monster82_Back", 46);
+    Name("Monster101_L_Arm", 12);
+    Name("Monster101_R_Arm", 13);
+    Name("Monster101_Head", 14);
+    const std::uint32_t quiet = FirstSeedWhere([](CrtRandom& draw) { return draw.Next() % 20 != 0; });
+    for (const bool original : {false, true})
+    {
+        SCOPED_TRACE(original);
+        clear();
+        FillParticles();
+        ActorState& striker = Monster(0x1a4, 3, 9.0f);
+        striker.subtype = 0;
+        CrtRandom attack(quiet);
+        MonsterHelperPass striking = Pass(Devias, attack, original);
+        const auto struck = Client::Scenes::DrawTheEffectsOf1a3To1a9(striking);
+        ASSERT_TRUE(struck.HasValue()) << struck.Error();
+        EXPECT_EQ(alive() > 0, original);
+
+        clear();
+        Monster(0x1b3, 4, 6.0f);
+        CrtRandom piercing(1);
+        MonsterHelperPass crywolf = Pass(Crywolf, piercing, original);
+        ASSERT_TRUE(Client::Scenes::DrawTheCrywolfEffectsOf1abTo208(crywolf).HasValue());
+        EXPECT_EQ(alive() > 0, original);
+
+        clear();
+        ActorState& caster = Monster(0x1b7, 3, 6.9f);
+        caster.attackTarget = 0x18f;
+        m_world->Actors()[0x18f].position = {500.0f, 600.0f, 70.0f};
+        CrtRandom beam(21);
+        MonsterHelperPass lorencia = Pass(Lorencia, beam, original);
+        const auto beamed = Client::Scenes::DrawTheMonsterHelpers(lorencia);
+        ASSERT_TRUE(beamed.HasValue()) << beamed.Error();
+        EXPECT_EQ(alive() > 0, original);
+    }
+}
+
 // 0x434e3f..0x434ecf: el 0x1b3 en la4 y frame[4,6] crea115/1 desde la posición, y luego suena.
 TEST_F(MonsterHelpersTest, The1b3CreatesThePiercingInItsAttackWindowBeforeSounding)
 {

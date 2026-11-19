@@ -1096,6 +1096,43 @@ TEST_F(GameCharacterEffectsTest, TheMageSkinOffsetAlsoMovesTheFullSetFlares)
     EXPECT_EQ(sprites[7].position, At(0x2a - 7, {-4.0f, 11.0f, 0.0f}));
 }
 
+// Q-C350 también en las acciones: la piel del mago (0x50ea86) deja (−4, 11, 0) en [ebp−0x50] y 0x4ec110 lo usa en la
+// mano (+0x2bd, 0x21) de los rayos de la 0x94 (0x50f89b) y de los 0x117/2 de la 0x51 y la 0x5b (0x50fb16).
+TEST_F(GameCharacterEffectsTest, TheMageSkinOffsetAlsoMovesTheHandOfTheActions)
+{
+    m_actor.skin = 8;
+    const glm::vec3 hand = At(0x21, {-4.0f, 11.0f, 0.0f});
+    m_actor.animation.action = 0x94;
+    m_actor.animation.frame = 3.0f;
+    ASSERT_TRUE(Client::Scenes::DrawGameCharacterEffects(m_actor, Pass()).HasValue());
+    const auto sprites = LiveSprites(m_sprites);
+    ASSERT_EQ(sprites.size(), 5u);
+    for (std::size_t index = 2; index < sprites.size(); ++index)
+    {
+        EXPECT_EQ(sprites[index].texture, 0x5d5) << index;
+        EXPECT_EQ(sprites[index].position, hand) << index;
+    }
+    for (const std::uint8_t action : {std::uint8_t{0x51}, std::uint8_t{0x5b}})
+    {
+        SCOPED_TRACE(int{action});
+        m_sprites = {};
+        m_actor.animation.action = action;
+        m_actor.animation.frame = 7.5f;
+        auto world = std::make_unique<Client::Scenes::WorldState>();
+        GameCharacterEffectsPass pass = Pass();
+        pass.world = world.get();
+        const auto result = Client::Scenes::DrawGameCharacterEffects(m_actor, pass);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        const auto& effects = world->Map().effects.Effects();
+        for (std::size_t index = 0; index < 2; ++index)
+        {
+            ASSERT_TRUE(effects[index].alive) << index;
+            EXPECT_EQ(effects[index].type, 0x117) << index;
+            EXPECT_EQ(effects[index].transform.position, hand) << index;
+        }
+    }
+}
+
 TEST_F(GameCharacterEffectsTest, HiddenAttachmentsDropTheFlaresButKeepTheRandomOfTheSparkles)
 {
     m_actor.flags78 = 0x4000;
@@ -1798,13 +1835,15 @@ TEST_F(GameRavenTest, TheAttackDropsItsJointsAndTheDarkLordSkill)
             EXPECT_EQ(skill.ownerContext, nullptr);
         }
 
+    // Sin la tabla de joints corta en la primera 0x530860, después del rand() % 40 de 0x418ad6.
     GameRavenPass bare = Pass();
     bare.world = nullptr;
     m_owner.darkSpirit->byte38d = 0;
-    const CrtRandom before = m_random;
+    CrtRandom before = m_random;
     const auto cut = Client::Scenes::DrawGameRaven(m_owner, bare);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x418aff"), std::string::npos) << cut.Error();
+    static_cast<void>(before.Next());
     EXPECT_EQ(m_random.State(), before.State());
 }
 
@@ -1931,7 +1970,10 @@ TEST_F(GameRavenTest, TheShoutSparksFromEveryOtherBone)
 // 0x418a51: con +0x38d en 15, sin personaje en +0x3b0 solo vuelve el contador a 0; con uno, 0x4ee770(1, 0x5ac, 1,
 // cuervo+0x1c, el personaje) sobre la malla 1 del cuervo recién posado (en cada esquina del triángulo 0, rand() % 90 y
 // rand() % 120 y el joint 0x613/0xd hacia el personaje, ancho 20) y 0x4164f0(0). Fuera de los frames del original,
-// 0x418920 no corre.
+// 0x418920 no corre. Las esquinas, del scratch que deja 0x602e90(cuervo, 0, 0, …): el hueso 0 en el origen sin giro,
+// la raíz de 0x4eb860 con la bandera en 1 (el giro de (0, 0, 90) por 0,75 y el origen (1050, 1060, 300)) y 0x4ebc80
+// con Translate en 0: (0, 0, 10) → (1050; 1060; 307,5), (1, 0, 10) → (1050; 1060,75; 307,5) y (0, 1, 10) →
+// (1049,25; 1060; 307,5); el coseno de 90 en float (−4,4e−8) no llega a mover 1050.
 TEST_F(GameRavenTest, TheEndOfTheShoutLooksAtTheAttackTarget)
 {
     m_owner.darkSpirit->state = 6;
@@ -1944,7 +1986,8 @@ TEST_F(GameRavenTest, TheEndOfTheShoutLooksAtTheAttackTarget)
     m_owner.darkSpirit->byte38d = 15;
     m_owner.darkSpirit->target3b0 = 3;
     m_owner.darkSpirit->far = 7;
-    m_owner.darkSpirit->angles = {-10.0f, 0.0f, 30.0f};
+    m_owner.darkSpirit->angles = {0.0f, 0.0f, 90.0f};
+    m_owner.darkSpirit->scale = 0.75f;
     GameRavenPass projected = Pass();
     projected.originalFrame = false;
     ASSERT_TRUE(Client::Scenes::DrawGameRaven(m_owner, projected).HasValue());
@@ -1964,15 +2007,19 @@ TEST_F(GameRavenTest, TheEndOfTheShoutLooksAtTheAttackTarget)
     EXPECT_EQ(m_owner.darkSpirit->state, 0);
     EXPECT_EQ(m_owner.darkSpirit->far, 0);
     ASSERT_GE(carry.meshes.size(), 2u);
+    ASSERT_GE(carry.meshes[1].positions.size(), 3u);
+    const std::array<glm::vec3, 3> corners{glm::vec3(1050.0f, 1060.0f, 307.5f), glm::vec3(1050.0f, 1060.75f, 307.5f),
+                                           glm::vec3(1049.25f, 1060.0f, 307.5f)};
     Client::Render::Models::CrtRandom replay;
     std::vector<Client::Scenes::JointState> twin(joints.size());
     for (std::size_t corner = 0; corner < 3; ++corner)
     {
         SCOPED_TRACE(corner);
+        EXPECT_EQ(carry.meshes[1].positions[corner], corners[corner]);
         const auto pitch = static_cast<double>(replay.Next() % 90);
         const auto turn = static_cast<double>((replay.Next() % 120) - 60);
-        glm::vec3 angles{static_cast<float>(-pitch), 0.0f, static_cast<float>(turn + 30.0)};
-        glm::vec3 first = carry.meshes[1].positions[corner];
+        glm::vec3 angles{static_cast<float>(-pitch), 0.0f, static_cast<float>(turn + 90.0)};
+        glm::vec3 first = corners[corner];
         glm::vec3 second = actors[3].position;
         ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(twin,
                                                      {.type = 0x613,
@@ -1995,6 +2042,7 @@ TEST_F(GameRavenTest, TheEndOfTheShoutLooksAtTheAttackTarget)
         EXPECT_EQ(joint.ownerContext, &actors[3]);
         EXPECT_EQ(joint.width, 20.0f);
         EXPECT_EQ(joint.position, twin[corner].position);
+        EXPECT_EQ(joint.position, corners[corner]);
         EXPECT_EQ(joint.angles, twin[corner].angles);
         EXPECT_EQ(joint.angles, angles);
     }

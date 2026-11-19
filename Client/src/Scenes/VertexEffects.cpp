@@ -109,7 +109,7 @@ void ScatterStones(World::ModelEffects& effects, const glm::vec3& position, cons
     }
 }
 
-// 0x4ee9d8..0x4eeb3b: el 0x10c, con la luz en 0,2f.
+// 0x4ee9d8..0x4eeb4e: el 0x10c, con la luz en 0,2f.
 Result ScatterGateStones(World::ModelEffects& effects, const glm::vec3& position, const glm::vec3& angles,
                          glm::vec3& light, std::int32_t subtype, CrtRandom& random)
 {
@@ -144,7 +144,7 @@ Result ScatterGateStones(World::ModelEffects& effects, const glm::vec3& position
     return {};
 }
 
-// 0x4eeb40..0x4eec6b: el 0x12d, el 0x12e y el 0x12f; el segundo rand() & 1 elige entre el tipo base y el siguiente.
+// 0x4eeb53..0x4eec6b: el 0x12d, el 0x12e y el 0x12f; el segundo rand() & 1 elige entre el tipo base y el siguiente.
 void ScatterShower(World::ModelEffects& effects, std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
                    const glm::vec3& light, CrtRandom& random)
 {

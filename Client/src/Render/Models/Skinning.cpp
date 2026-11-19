@@ -75,6 +75,24 @@ bool SkinMesh(const Data::Models::Mesh& mesh, std::span<const BoneTransform> bon
     return true;
 }
 
+bool SkinMeshInWorld(const Data::Models::Mesh& mesh, std::span<const BoneTransform> worldBones,
+                     std::span<const BoneTransform> rotationBones, SkinnedMesh& out)
+{
+    if (!BonesExist(mesh, worldBones.size()) || !BonesExist(mesh, rotationBones.size()))
+    {
+        return false;
+    }
+    out.positions.clear();
+    out.positions.reserve(mesh.vertices.size());
+    for (const Data::Models::Vertex& vertex : mesh.vertices)
+    {
+        const BoneTransform& bone = worldBones[static_cast<std::size_t>(vertex.bone)];
+        out.positions.push_back(VectorTransform(ToVec3(vertex.position), bone));
+    }
+    RotateNormals(mesh, rotationBones, out);
+    return true;
+}
+
 bool SkinMeshAroundBones(const Data::Models::Mesh& mesh, std::span<const BoneTransform> bones,
                          const ObjectTransform& object, float boneScale, SkinnedMesh& out)
 {

@@ -391,9 +391,17 @@ TEST(VertexEffectsTest, TheRavenShoutLeavesSpritesOrJointsEveryTwentyTwoTriangle
                                     {.joints = joints}, shout)
                     .HasValue());
     EXPECT_EQ(shout.State(), expected.State());
+    // A mano, con la semilla 9 (68, 6151, 18175, 22398) y el giro en 45: (−68; 0; 31 − 60 + 45) y (−85; 0; 78 − 60 +
+    // 45). El alta del 0x613/0xd (0x53312c) no saca rand(): cuatro en total.
+    CrtRandom four(9);
+    for (int draw = 0; draw < 4; ++draw)
+        static_cast<void>(four.Next());
+    EXPECT_EQ(shout.State(), four.State());
     EXPECT_TRUE(joints[0].alive);
     EXPECT_TRUE(joints[1].alive);
     EXPECT_FALSE(joints[2].alive);
+    EXPECT_EQ(joints[0].angles, glm::vec3(-68.0f, 0.0f, 16.0f));
+    EXPECT_EQ(joints[1].angles, glm::vec3(-85.0f, 0.0f, 63.0f));
     EXPECT_EQ(joints[1].type, 0x613);
     EXPECT_EQ(joints[1].ownerContext, &target);
 

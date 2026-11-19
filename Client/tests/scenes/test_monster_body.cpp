@@ -537,6 +537,55 @@ TEST_F(MonsterBodyTest, The18eBeforeTwentyFiveStepsAsksItsSoundAndLeavesItsStone
     EXPECT_GT(ExpectTheTwinVertexEffects(AfterRandoms(4), 0, 0x10a, 0), 0u);
 }
 
+// La esquina que ancla las tablas gemelas de ExpectTheTwinVertexEffects, con valores a mano: 0x4ee770(0, 0x10a, 0)
+// sobre una esquina sola con la semilla 8. r0 = 64 es par (0x4ee835): el 0x10b/0, que 0x518cf0 deja en el /1 con un
+// rand() más (nueve); r10 = 4670 da 0 % 10 (0x4ee86a): el 0x10a/0 (ocho). 19 rand(), [0] el 0x10b/1 y [1] el 0x10a/0,
+// los dos sobre la esquina. Con la tabla llena, 0x518cf0 sale sin sortear: sólo r0 y r1.
+TEST(MonsterBodyStonesTest, OneCornerOfTheFallingStonesWithTheSeedEight)
+{
+    Client::Data::Models::Model model;
+    Client::Data::Models::Mesh mesh;
+    mesh.triangles.assign(1, {1, {0, 0, 0, 0}});
+    model.meshes.push_back(mesh);
+    const glm::vec3 corner{100.0f, 200.0f, 30.0f};
+    std::vector<Client::Render::Models::SkinnedMesh> posed(1);
+    posed[0].positions = {corner};
+    const auto after = [](std::size_t count)
+    {
+        Client::Render::Models::CrtRandom random{8};
+        for (std::size_t draw = 0; draw < count; ++draw)
+            static_cast<void>(random.Next());
+        return random.State();
+    };
+    auto effects = std::make_unique<Client::World::ModelEffects>();
+    Client::Render::Models::CrtRandom random{8};
+    const auto emitted = Client::Scenes::EmitVertexEffectsOf(model, 1.0f, posed, {.mesh = 0, .type = 0x10a},
+                                                             {.effects = effects.get()}, random);
+    ASSERT_TRUE(emitted.HasValue()) << emitted.Error();
+    EXPECT_EQ(random.State(), after(19));
+    const auto made = effects->Effects();
+    ASSERT_TRUE(made[0].alive);
+    EXPECT_EQ(made[0].type, 0x10b);
+    EXPECT_EQ(made[0].subtype, 1);
+    EXPECT_EQ(made[0].life, 39); // r2 = 311: 7 + 32 (0x51bb38).
+    ASSERT_TRUE(made[1].alive);
+    EXPECT_EQ(made[1].type, 0x10a);
+    EXPECT_EQ(made[1].subtype, 0);
+    EXPECT_EQ(made[1].life, 45); // r12 = 14413: 13 + 32.
+    EXPECT_FALSE(made[2].alive);
+    // La esquina con la z 50 más (0x51bafb..0x51bb35).
+    EXPECT_EQ(made[0].transform.position, glm::vec3(100.0f, 200.0f, 80.0f));
+    EXPECT_EQ(made[1].transform.position, glm::vec3(100.0f, 200.0f, 80.0f));
+
+    for (auto& effect : effects->Effects())
+        effect.alive = true;
+    Client::Render::Models::CrtRandom full{8};
+    ASSERT_TRUE(Client::Scenes::EmitVertexEffectsOf(model, 1.0f, posed, {.mesh = 0, .type = 0x10a},
+                                                    {.effects = effects.get()}, full)
+                    .HasValue());
+    EXPECT_EQ(full.State(), after(2));
+}
+
 // 0x601be5 y 0x601c21: al morir, el 0x18e y el 0x18f dejan el byte vivo en 0, piden el 0x87 y 0x4ee770 con el 0x10a y
 // el 0x10c (el /0: la luz en 0,2f, rand() % 12 y el 0x10d/0, rand() % 50 y el 0x10c/0), sin el contador. Entre frames
 // del original, ni el sonido ni los efectos.

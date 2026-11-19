@@ -388,13 +388,16 @@ Result SmokeTheHandsEyeAndBackOf1a4(MonsterHelperPass& pass)
 
 // 0x441b33..0x441b7c y 0x441c0c..0x441c4c: el cráter 0x636/2 (World::ModelEffects::CreateCraterEffect), el joint
 // 0x61c/6 sin dueño (ancho 200, clave −1) y la columna 0x5de/3 (World::ModelEffects::CreateFlameColumn), sin dueño y
-// con la clave en −1. Con la tabla llena, cada uno nada.
+// con la clave en −1. Con la tabla llena, cada uno nada. Solo en un frame del original: entre frames el personaje es
+// una copia y las tablas, las del mundo.
 Result StrikeAt(MonsterHelperPass& pass, glm::vec3 point, glm::vec3 angles, const glm::vec3& columnAngles,
                 const glm::vec3& columnLight, std::uint32_t joint)
 {
     constexpr std::int32_t CraterSubtype = 2, LaserJoint = 0x61c, LaserSubtype = 6;
     constexpr float LaserWidth = 200.0f; // 0x43480000
     const glm::vec3 white(1.0f);         // [ebp−0x3c], 0x44166f
+    if (!pass.originalFrame)
+        return {};
     static_cast<void>(pass.world.Map().effects.CreateCraterEffect(
         {.type = 0x636, .position = point, .angles = angles, .light = white, .subtype = CraterSubtype}));
     const World::FishEffectRequest request{.type = LaserJoint,
@@ -1001,8 +1004,10 @@ Handled DrawTheCrywolfCase(MonsterHelperPass& pass)
         drawn = DrawThe1b1(pass);
     else if (type == 0x1b2)
         drawn = DrawThe1b2(pass);
-    else if (type == 0x1b3 && action == 4 && actor.animation.frame >= 4.0f && actor.animation.frame <= 6.0f)
-        // 434e78..e9a gira +cc en un local muerto; 434eb0 pasa la posición del actor al constructor.
+    else if (type == 0x1b3 && action == 4 && actor.animation.frame >= 4.0f && actor.animation.frame <= 6.0f &&
+             pass.originalFrame)
+        // 434e78..e9a gira +cc en un local muerto; 434eb0 pasa la posición del actor al constructor. Entre frames del
+        // original, nada: el personaje es una copia y la tabla, la del mundo.
         static_cast<void>(pass.world.Map().effects.CreatePiercingEffect(
             {.type = 0x115, .position = actor.position, .angles = actor.angles, .light = {1, 0, 0.5f}, .subtype = 1}));
     if (!drawn.HasValue())
@@ -1134,8 +1139,8 @@ Result DrawThe1b6(MonsterHelperPass& pass)
     if (auto sparked = SparkTheFootAndTheTargetOf1b6(pass); !sparked.HasValue())
         return sparked;
     // 0x4279cc..0x427a8d: 6 (0x6b87f4). El 0x614/0x10 sin dueño desde el blanco hasta 100 (0x6b86b4) sobre él, con los
-    // ángulos del actor y ancho 10.
-    if (action == 4 && HasTarget(actor) && actor.animation.frame >= 6.0f)
+    // ángulos del actor y ancho 10. Solo en un frame del original (la tabla es la del mundo).
+    if (action == 4 && HasTarget(actor) && actor.animation.frame >= 6.0f && pass.originalFrame)
     {
         const ActorState& target = pass.world.Actors()[static_cast<std::size_t>(actor.attackTarget)];
         glm::vec3 from = target.position;
@@ -1214,8 +1219,8 @@ Result DrawThe1b7(MonsterHelperPass& pass)
                 return made;
         }
     }
-    // 0x427fd3: 6,9 (0x6b8a3c).
-    if (actor.animation.action == 3 && HasTarget(actor) && actor.animation.frame >= 6.9f)
+    // 0x427fd3: 6,9 (0x6b8a3c). Solo en un frame del original (la tabla es la del mundo).
+    if (actor.animation.action == 3 && HasTarget(actor) && actor.animation.frame >= 6.9f && pass.originalFrame)
     {
         ActorState& target = pass.world.Actors()[static_cast<std::size_t>(actor.attackTarget)];
         glm::vec3 from{target.position.x, target.position.y, F32(D(target.position.z) + 100.0)};

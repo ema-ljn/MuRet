@@ -166,8 +166,8 @@ Result Shake(MonsterBodyFrame& frame, std::string_view address)
 
 // 0x439d90 con un monstruo (el tipo no es el 0x20a): con +0x110 en 0x21 o 0x22, 0x4ee770(6, 0x10a, 1 o 2, 0, 0) con
 // el modelo del tipo sobre las mallas de este dibujo (las piedras 0x10b/2 o /3 de cada esquina de la malla 6, en los
-// frames del original) y después +0x110 en 0 y el sonido 0x88. MuRet solo pone 0 y 1 en +0x110 (las puertas del 30,
-// MonsterStepCases.h).
+// frames del original) y después +0x110 en 0 y el sonido 0x88. Esos dos valores los pone 0x439d40 al llegar el 1B con
+// 0xc9 o 0xca (SettleMonsterFlags, ActorFlags.h); las puertas del 30 usan 0 y 1 y 0x42dcb0, 3 (ActorState::byte110).
 Result StrikeTheGlow(MonsterBodyFrame& frame)
 {
     constexpr std::uint8_t BlueStrike = 0x21, GreenStrike = 0x22;
@@ -279,9 +279,9 @@ Result DrawKundun(MonsterBodyFrame& frame)
     {
         // 0x43edff..0x43ee38: el sonido 0x1dd, +0x60 en 10 y la malla 0 con 2 y la textura +0x58; 0x43ee3d..0x43ee7e:
         // el temblor; después 0x4ec110 sobre el hueso 0xc0/0x30 y las partículas 0x124, 0x11d y 0x11e de 0x518cf0.
-        // El original dibuja una vez por paso: entre frames del original (una copia proyectada de Kundun) MuRet dibuja
-        // la malla, pero no tiembla ni suelta los pedazos ni saca sus rand() (ADR 0005, como los creadores de la
-        // tormenta).
+        // El original dibuja una vez por cuadro, después de 0 a N pasos (ADR 0005): entre frames del original (una
+        // copia proyectada de Kundun) MuRet dibuja la malla, pero no tiembla ni suelta los pedazos ni saca sus rand(),
+        // como los creadores de la tormenta.
         RequestBodySound(frame, 0x1dd);
         actor.dword60 = 10;
         if (auto drawn = DrawMeshPass(model, 0, BaseFlags, MeshArgsOf(actor)); !drawn.HasValue())
@@ -297,49 +297,56 @@ Result DrawKundun(MonsterBodyFrame& frame)
         // 0x43f182: +0x60 no es 0x5a, el sonido 0x1de; 0x43f195: +0x60 en 0x5a; 0x43f1a6..0x43f243: 0x56 vueltas,
         // cada una con su rand() % 10, los ángulos (−10, 0, (r + 10) · i) y el punto (x, y, z + 200), los dos de la
         // pila, que reciben el 0x613/3 y el 0x6ee/3 (0x530860(tipo, punto, punto, ángulos, 3, sin dueño, 50, 0, 0, 0,
-        // −1)). Después el temblor (0x43f249..0x43f269) y el cuerpo, que ya tiene +0x60 en 0x5a.
+        // −1)). Después el temblor (0x43f249..0x43f269) y el cuerpo, que ya tiene +0x60 en 0x5a. Como en la rama de
+        // 0x43edff, entre frames del original (la copia proyectada de Kundun, con +0x60 en 0x5a) MuRet dibuja el
+        // cuerpo, pero no suelta los rayos, no tiembla ni saca sus rand(): el original lo hace una vez por cuadro.
         RequestBodySound(frame, 0x1de);
         actor.dword60 = Fallen;
-        if (frame.joints.empty())
-            return Core::Unexpected(std::string("0x43f20d: falta la tabla de joints (0x530860) para Kundun al morir"));
-        constexpr int Rays = 0x56;             // 0x43f23d
-        constexpr std::int32_t Spread = 10;    // 0x43f1ba
-        constexpr double SpreadBase = 10.0;    // 0x6b87a8
-        constexpr double Rise = 200.0;         // 0x6b8928
-        constexpr float Tilt = -10.0f;         // 0x43f1a6: 0xc1200000
-        constexpr float RayWidth = 50.0f;      // 0x43f1cc: 0x42480000
-        constexpr std::int32_t RaySubtype = 3; // 0x43f1d9
-        constexpr std::array<std::int32_t, 2> RayJoints{0x613, 0x6ee};
-        glm::vec3 angles{Tilt, 0.0f, 0.0f};
-        glm::vec3 point{};
-        for (int ray = 0; ray < Rays; ++ray)
+        if (frame.originalFrame)
         {
-            angles.x = Tilt;
-            angles.y = 0.0f;
-            const auto spread = static_cast<std::int32_t>(frame.random.Next() % Spread);
-            point = {actor.position.x, actor.position.y, F32(D(actor.position.z) + Rise)};
-            angles.z = F32((static_cast<double>(spread) + SpreadBase) * static_cast<double>(ray));
-            for (const std::int32_t type : RayJoints)
+            constexpr int Rays = 0x56;             // 0x43f23d
+            constexpr std::int32_t Spread = 10;    // 0x43f1ba
+            constexpr double SpreadBase = 10.0;    // 0x6b87a8
+            constexpr double Rise = 200.0;         // 0x6b8928
+            constexpr float Tilt = -10.0f;         // 0x43f1a6: 0xc1200000
+            constexpr float RayWidth = 50.0f;      // 0x43f1cc: 0x42480000
+            constexpr std::int32_t RaySubtype = 3; // 0x43f1d9
+            constexpr std::array<std::int32_t, 2> RayJoints{0x613, 0x6ee};
+            glm::vec3 angles{Tilt, 0.0f, 0.0f};
+            glm::vec3 point{};
+            for (int ray = 0; ray < Rays; ++ray)
             {
-                const World::FishEffectRequest request{.type = type,
-                                                       .firstPosition = point,
-                                                       .secondPosition = point,
-                                                       .angles = angles,
-                                                       .subtype = RaySubtype,
-                                                       .ownerContext = nullptr,
-                                                       .scale = RayWidth,
-                                                       .key = 0,
-                                                       .skill = 0,
-                                                       .skillSerial = 0,
-                                                       .target = -1};
-                const auto created = CreateFaunaJoint(frame.joints, request, frame.random);
-                if (!created.HasValue())
+                angles.x = Tilt;
+                angles.y = 0.0f;
+                const auto spread = static_cast<std::int32_t>(frame.random.Next() % Spread);
+                // Sin la tabla, corta en la primera 0x530860, después del rand() de 0x43f1b4.
+                if (frame.joints.empty())
                     return Core::Unexpected(
-                        std::format("{}: {}", type == RayJoints[0] ? "0x43f20d" : "0x43f234", created.Error()));
+                        std::string("0x43f20d: falta la tabla de joints (0x530860) para Kundun al morir"));
+                point = {actor.position.x, actor.position.y, F32(D(actor.position.z) + Rise)};
+                angles.z = F32((static_cast<double>(spread) + SpreadBase) * static_cast<double>(ray));
+                for (const std::int32_t type : RayJoints)
+                {
+                    const World::FishEffectRequest request{.type = type,
+                                                           .firstPosition = point,
+                                                           .secondPosition = point,
+                                                           .angles = angles,
+                                                           .subtype = RaySubtype,
+                                                           .ownerContext = nullptr,
+                                                           .scale = RayWidth,
+                                                           .key = 0,
+                                                           .skill = 0,
+                                                           .skillSerial = 0,
+                                                           .target = -1};
+                    const auto created = CreateFaunaJoint(frame.joints, request, frame.random);
+                    if (!created.HasValue())
+                        return Core::Unexpected(
+                            std::format("{}: {}", type == RayJoints[0] ? "0x43f20d" : "0x43f234", created.Error()));
+                }
             }
+            if (auto shaken = Shake(frame, "0x43f269"); !shaken.HasValue())
+                return shaken;
         }
-        if (auto shaken = Shake(frame, "0x43f269"); !shaken.HasValue())
-            return shaken;
     }
     if (actor.dword60 < Fallen)
         return {};

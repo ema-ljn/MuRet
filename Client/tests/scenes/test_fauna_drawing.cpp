@@ -325,6 +325,8 @@ TEST_F(FaunaDrawingTest, AProjectedFrameKeepsItsPosesInTheBorrowedFrameScratch)
     EXPECT_EQ(m_fauna.Birds()[0].seen, 0);
     EXPECT_EQ(m_cloth.random.State(), 1U);
 }
+// 0x5ffdf0 con el segundo argumento en 0: 0x4eb860 (bandera en 1) no toca el hueso dummy del scratch y 0x4ebc80, con
+// Translate en 0, lleva el vértice solo por esa matriz, sin la escala ni el origen del objeto.
 TEST_F(FaunaDrawingTest, WorldBodiesDrawThePublishedDummyScratchInsteadOfReposingFromIdentity)
 {
     std::array<Client::World::WorldObject, 1> objects{};
@@ -338,7 +340,7 @@ TEST_F(FaunaDrawingTest, WorldBodiesDrawThePublishedDummyScratchInsteadOfReposin
     { return PublishFaunaPose(m_carry, m_models, object, true); };
     ASSERT_TRUE(DrawGameWorldObjects(m_batch, m_models, objects, m_polygon, &m_light, {}, pass).HasValue());
     ASSERT_FALSE(m_batch.Vertices().empty());
-    EXPECT_EQ(m_batch.Vertices()[0].position, glm::vec3(1007, 1008, 309));
+    EXPECT_EQ(m_batch.Vertices()[0].position, glm::vec3(7, 8, 9));
 }
 } // namespace
 

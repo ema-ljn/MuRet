@@ -13935,7 +13935,9 @@ con el modelo de `0x5769ad8 + tipo · 0xe0` (sin acciones, nada: `0x50ba82`), en
      4 en `0x440` (aditivas y con la onda de `0x4ed775`, fase 8) con su blendMesh; con el 9, 1 y las 0, 1 y 3 en `0x48`; si no, las 2 y 4 en 2 con su
      blendMesh y la luz en `sin(T · 0,002f) · 0,3f + 0,7f`; la malla 6 en 2 con blendMesh 6 y la luz en
      `sin(T · 0,002f) · 0,1f + 0,05f`, que queda en `+0x68`, y `0x439d90`. `0x439d90`: con `+0x110` en `0x21` o
-     `0x22`, `0x4ee770(6, 0x10a, 1 o 2, 0, 0)` (en los frames del original; décima vuelta), `+0x110` en 0 y el sonido `0x88`. Después de todos, `0x43fc04`: con
+     `0x22`, `0x4ee770(6, 0x10a, 1 o 2, 0, 0)` (en los frames del original; décima vuelta), `+0x110` en 0 y el sonido `0x88`
+     (MuRet: `ActorState::byte110`, el mismo byte que escribe `SettleMonsterFlags` desde `0x439d40`; de punta a punta en
+     `TheMagicCancelLeavesThe197sStonesOnItsNextDraw`). Después de todos, `0x43fc04`: con
      `+0x78 & 0x100` o `& 8`, v = sin(T · 0,001f) · 0,2f + 0,5f en la x87, el color (v · 0,1; v · 0,3; v · 0,6) o
      (v · 0,1; v · 0,6; v · 0,3) y `0x60cd60(modelo, objeto, 0x44, 1, 1,3f)`: sin `+0x78 & 0x4000`, `+0x44` del modelo
      en 0, `0x4ebc80` a 1,3 alrededor de los huesos propios y `RenderBody(0x44)`; esas mallas quedan en `0x5786f9c`
@@ -14337,9 +14339,11 @@ los ocho pedazos en el punto de 0x4ec110 sobre el hueso 4 y el `0x128/2` en su p
 terreno llega por `MonsterBodyFrame::terrainHeight`, y sin ella el /2, el /3 y el /4 cortan en `0x51e26e` y
 `0x51e2ee`. 0x4ec110 con Translate en 1 suma la escala `+0x68` y el origen `+0x6c` que 0x5ffdf0 copió al modelo en
 el mismo dibujo: los de `MonsterBodyModel::object.transform`, que `MonsterDrawing` publica con `PlaceModel` en el frame
-del original. El original dibuja una vez por paso; entre frames del original MuRet dibuja una copia proyectada de
-Kundun (ADR 0005) con su malla 0, pero sin el temblor, los pedazos ni sus `rand()`, que corren sólo en el frame del
-original, como los creadores de la tormenta: `KundunFallsOnlyInTheOriginalFrame`, décima vuelta) y el golpe de la 3
+del original. El original dibuja una vez por cuadro, después de 0 a N pasos (ADR 0005); entre frames del original
+MuRet dibuja una copia proyectada de Kundun con su malla 0, pero sin el temblor, los pedazos ni sus `rand()`, que corren
+sólo en el frame del original, como los creadores de la tormenta: `KundunFallsOnlyInTheOriginalFrame`, décima vuelta;
+lo mismo con los 0x56 pares de rayos `0x613/3` y `0x6ee/3` y el temblor de `0x43f182..0x43f269`, que van a la tabla de
+joints real solo en un frame del original: `KundunFallingBetweenOriginalFramesLeavesTheJointTablesAlone`) y el golpe de la 3
 del `0x1a4` (`0x441b33`: en la mano derecha con su z y en cada uno de los primeros 400 jugadores (`0x441c60`) visto y vivo a
 más de 200 y menos de 1.100 en el plano, el cráter `0x636/2`, el joint `0x61c/6` (ancho 200, sin dueño) y la columna
 `0x5de/3`, `World::ModelEffects::CreateFlameColumn`: vida 15; su paso, `0x52ae7f..0x52b011`, deja tres `0x5de/6` y tres
@@ -14385,7 +14389,11 @@ deduplicar, sobre el scratch que dejó el último `0x4ebc80` (`0x5786f9c + (mall
 | `0x607` | — | la luz en 1; `rand() % 30` y con 0 `0x53fe70(0x607, punto, ángulos, luz, 2, 1,0f, 0)` (`0x4ef02e`) |
 
 Otro tipo o subtipo no hace nada ni saca `rand()`. Los que llaman: el cuervo al final del grito (`0x418a8c`,
-`0x4ee770(1, 0x5ac, 1, cuervo+0x1c, personaje)` sobre su malla 1, después de su `0x602e90`), las puertas del asedio
+`0x4ee770(1, 0x5ac, 1, cuervo+0x1c, personaje)` sobre su malla 1, después de su `0x602e90(cuervo, 0, 0, …)`: en
+`0x5ffdf0`, `0x4eb860` con la bandera en 1 arma los huesos en el mundo, con la escala y el origen en la raíz
+(`0x4ebbda..0x4ebc14`, R · s en float y la traslación en el origen) y sin tocar los dummy, y `0x4ebc80` corre con
+Translate en 0 (`0x600154`, `0x6001a1`): el scratch es hueso · v. MuRet: `PublishFaunaPose` con `translated`, con
+`PoseWorldSkeleton` y `Render::Models::SkinMeshInWorld`; las normales del scratch, con los huesos sin escala), las puertas del asedio
 (`0x42cfcb`, `0x12f`), sus monstruos (`0x42e6f3` el `0x131`, `0x42e76b` el `0x10a`), `0x439d90` (`0x439dc5`, la malla
 6), los `0x191`, `0x193..0x197` al morir (`0x43ed6c`, `0x43f514`, `0x43f5b9`, `0x43f682`, `0x43f87d`, `0x43f933`, el
 `0x607`), el `0x1a4` y el `0x1a6` al morir (`0x441696`, `0x442165`, el `0x13c`), la `0x632/0` y `/1` en el suelo
@@ -15664,7 +15672,9 @@ Los llamadores portados (cada alta con su dirección en el error):
   (`0x44dc40(0, 0, 0)` y `0x5208a0` con cada lugar vivo, el dragón y los meteoros, con su `rand()` de `0x5208c5`) y la
   dibuja en `0x63521e → 0x52d620(0)`, después de los objetos, con el dibujo del juego. El paso del `0xc2/9` sólo pide
   partículas (la estela `5f2/0x24` con el meteoro de dueño, la `5f2/0x25` y el fuego `5d9/5`), la luz dinámica y la
-  altura del terreno: ni joints ni sprites, así que el login sigue sin `0x53c670` ni `0x53c6a0`. Las partículas las
+  altura del terreno: ni joints ni sprites. Igual, el login avanza los joints en `0x634d1d → 0x53c670` (entre los
+  efectos y las partículas) y los dibuja en `0x635217 → 0x53c6a0(0)` (antes de los efectos), como el juego; MuRet lo
+  hace con la tabla del mundo (`LoginScene::StepTheJoints` y `DrawTheModels`, CL11). Las partículas las
   avanza `0x634d22 → 0x5446e0` con el dueño de la estela (`ParticleOwnerStatesOf`). Lo que nace en el login no llega
   al juego: `0x61a560(54) → 0x6070a0` apaga la tabla antes del primer paso de la selección (`0x6342e5`).
 - El meteoro que cae (`0xc2/6..8`, `0x524cf3..0x524d38`): al tocar el suelo suelta el `0xf6/2` en su punto, con el
@@ -15783,7 +15793,7 @@ Ver [08](08-pendientes.md).
 | Las partículas (`0x53fe70`, `0x5446e0` y `0x548550`), con el aliento del caballo desde el buffer global de la pose | `World::Particles` (la tabla de 3.000, el viento y el aliento, bit a bit contra el código real) y `Scenes::DrawParticles` en el pase de ojo, después de los sprites; el aliento lo pide `LoginScene` después del paso del caballo, en el hueso 27 del último modelo dibujado que lo tiene sin ser dummy (`PosedBonePoint`) | CL7.6 B2 |
 | Las hojas (`0x530490` / `0x5306a0`), con las 80 brasas del mapa 55 y la altura del terreno de `0x5f93c0` | `World::Leaves` (las 80 brasas: nacen y caen, bit a bit contra el código real) y `World::TerrainHeightAt`; `Scenes::DrawLeaves` en el pase del mundo, después de los efectos con modelo; `LoginScene` las avanza después del caballo, con el héroe y la cámara en (0, 0, 0) hasta el primer dibujo (Q-C137) | CL7.6 B3 |
 | `0x602ed0`, después del dibujo de cada objeto visto: el `rand()` de cada uno y el brillo del farol (`0x3c`) en la escena 2 | `Scenes::ObjectFrameEffects` en `DrawWorldObjects`: un `rand()` de la CRT por objeto visto y los dos sprites de `flare01` en los huesos 8 y 9 del último modelo posado (`LastPosedBonePoint`: el dueño del dragón, Q-C140); `World::StreetLightGlowLight`, la luz; el dueño (`0xb4`) en `m_objects`, antes del `.obj` | CL7.6 B4 |
-| Los joints (`0x53c6a0`) | un sistema con su tabla, cuando una escena los use (el login no tiene ninguno) | — |
+| Los joints (`0x53c670` y `0x53c6a0`) | `Scenes::StepJoints` y `DrawJoints` sobre `WorldState::DrawTail().joints`: el login los avanza (`0x634d1d`) y los dibuja (`0x635217`, antes de los efectos) como el juego y la selección | CL11 |
 | El cuervo: una mascota del ítem `0x1c17` con su propio paso, al final del paso del dueño, y su dibujo al final del de él | `Scenes::DarkSpirit`: el constructor (`0x4167b0`) y el paso (`0x416a20`, estados 0 y 1), bit a bit contra el código real (`raven.txt`); `DrawDarkSpirit` (mallas 3 y 2 y la sombra de las cinco); la chispa nace en `World::Particles` (`0x5c6`, subtipo 5); `ConstructLoginActor` lo crea en el dueño del pool; `StepCharacters` lo avanza dentro del cuerpo y `LoginScene` lo dibuja al final del dibujo del dueño | CL7.6 C1 y C2 (las chispas) |
 | La escena 5 en dos tiempos: el `F3 03` en el primer paso y el mundo con la respuesta, con el mosaico de la escena 3 en pantalla mientras tanto; su paso y su dibujo, con su propio orden del 3D | `GameScene` (hoy manda el `F3 03`, retiene el frame con el contador y dibuja hasta el primer pase del terreno) retiene el último frame mientras espera, carga el mapa del paquete, arma al héroe con la cuenta de `0x511290` y dibuja en el orden de `0x6371a0`; los casos del mapa 0 como datos, como los del 55 (propuesta del barrido, P-C28) | CL7 |
 | La cámara del juego: `0x635ae0` por frame dibujado, con el far del rectángulo en todos los mapas y sin el mouse | un valor con su estado (D, la meta, el zoom, el nivel, el yaw y la altura del `0x40`) y `OriginalVectorIRotate` (`0x5fcc30`), bit a bit contra el código real emulado y la traza de Lorencia (propuesta del barrido, P-C29) | CL7.3 |

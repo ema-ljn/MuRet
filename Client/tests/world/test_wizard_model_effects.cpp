@@ -736,6 +736,33 @@ TEST(WizardModelEffectsTest, TheTwistingStormDropsARisingDrop)
     EXPECT_GT(drop->verticalSpeed, 0.0f);
 }
 
+// La piedrita /2 de las tormentas (0x5231a9 → 0x52b14d → 0x51b72b), con valores a mano: la semilla 298 da 1011, 32248,
+// 3577, 29880 y 2406. El empuje ((1011 & 255) + 64) · 0,1f = 30,7f (0x41f5999a) en y, girado por los ángulos con la z
+// pisada por 29880 % 360 = 0: sin giro; la vida (32248 & 15) + 32 = 40; la escala ((3577 & 3) + 8) · 0,1f (0x3f666667);
+// la caída (2406 & 15) + 8 = 14. Cinco rand().
+TEST(WizardModelEffectsTest, TheStormChipIsBornWithItsFiveDrawsByHand)
+{
+    for (const std::int16_t type : {std::int16_t{0xc8}, std::int16_t{0xc9}})
+    {
+        SCOPED_TRACE(type);
+        auto effects = std::make_unique<ModelEffects>();
+        CrtRandom random(298);
+        const auto slot = effects->CreateStoneChip(type, {10.0f, 20.0f, 30.0f}, {0.0f, 0.0f, 45.0f}, {0.5f, 0.6f, 0.7f},
+                                                   random, Client::World::SpinningStoneChipSubtype);
+        ASSERT_EQ(slot, std::optional<std::size_t>(0));
+        const ModelEffect& chip = effects->Effects()[0];
+        EXPECT_EQ(chip.type, type);
+        EXPECT_EQ(chip.subtype, 2);
+        EXPECT_EQ(chip.velocity, glm::vec3(0.0f, std::bit_cast<float>(0x41f5999au), 0.0f));
+        EXPECT_EQ(chip.life, 40);
+        EXPECT_EQ(chip.transform.scale, std::bit_cast<float>(0x3f666667u));
+        EXPECT_EQ(chip.transform.angles, glm::vec3(0.0f));
+        EXPECT_EQ(chip.turnDirection, 14.0f);
+        EXPECT_EQ(chip.transform.position, glm::vec3(10.0f, 20.0f, 30.0f));
+        EXPECT_EQ(random.State(), Client::Tests::AfterDraws(298, 5).State());
+    }
+}
+
 // 0x523101..0x52318f: el 0xcf/3..7 tiembla la cámara ((rand() & 7) − 4) · 0,1f y suelta en su punto la niebla 5f2/28,
 // /29 y /30 (0x523144, 0x52315d, 0x523176), con sus ángulos, su luz y la escala 1, que piden la altura del terreno y,
 // la /30, el seno del reloj. Después, con rand() & 1 en 0, la piedrita 0xc8 + (rand() & 1) con el subtipo 2 (0x5231a9

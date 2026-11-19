@@ -2096,7 +2096,8 @@ StepJointsChecked(std::span<JointState> joints, Render::Models::CrtRandom* rando
                   World::Particles* particles, float worldClock, World::FrameSprites* sprites,
                   World::TerrainLighting* lighting, const std::function<void(std::int32_t)>& soundRequest,
                   const std::function<double(float, float)>& terrainHeight, std::span<const ActorState> actors,
-                  const JointKernels::EffectHit& effectHit, World::ModelEffects* effects, const ActorState* hero)
+                  const JointKernels::EffectHit& effectHit, World::ModelEffects* effects, const ActorState* hero,
+                  WorldState* world)
 {
     // [ebp−0xe8]: la matriz del último joint de esta vuelta que la calculó (0x53590e).
     std::optional<Render::Models::OriginalMatrix> frameMatrix;
@@ -2120,7 +2121,8 @@ StepJointsChecked(std::span<JointState> joints, Render::Models::CrtRandom* rando
                                                       .actors = actors,
                                                       .effectHit = effectHit ? &effectHit : nullptr,
                                                       .effects = effects,
-                                                      .hero = hero};
+                                                      .hero = hero,
+                                                      .world = world};
             if (auto stepped = StepFamilyJoint(joint, *family, services, frameMatrix); !stepped.HasValue())
                 return stepped;
             continue;
@@ -2298,7 +2300,8 @@ StepJointsChecked(std::span<JointState> joints, Render::Models::CrtRandom* rando
 
 Core::Expected<void, std::string> StepJoints(std::span<JointState> joints)
 {
-    return StepJointsChecked(joints, nullptr, nullptr, nullptr, 0, nullptr, nullptr, {}, {}, {}, {}, nullptr, nullptr);
+    return StepJointsChecked(joints, nullptr, nullptr, nullptr, 0, nullptr, nullptr, {}, {}, {}, {}, nullptr, nullptr,
+                             nullptr);
 }
 
 Core::Expected<void, std::string>
@@ -2306,9 +2309,10 @@ StepJoints(std::span<JointState> joints, Render::Models::CrtRandom& random, Rend
            World::Particles* particles, float worldClock, World::FrameSprites* sprites,
            World::TerrainLighting* lighting, const std::function<void(std::int32_t)>& soundRequest,
            const std::function<double(float, float)>& terrainHeight, std::span<const ActorState> actors,
-           const JointKernels::EffectHit& effectHit, World::ModelEffects* effects, const ActorState* hero)
+           const JointKernels::EffectHit& effectHit, World::ModelEffects* effects, const ActorState* hero,
+           WorldState* world)
 {
     return StepJointsChecked(joints, &random, cloth, particles, worldClock, sprites, lighting, soundRequest,
-                             terrainHeight, actors, effectHit, effects, hero);
+                             terrainHeight, actors, effectHit, effects, hero, world);
 }
 } // namespace Client::Scenes

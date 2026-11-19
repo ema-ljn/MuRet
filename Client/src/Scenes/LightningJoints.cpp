@@ -7,6 +7,7 @@
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/JointFamilies.h"
 #include "Scenes/JointKernels.h"
+#include "Scenes/WorldState.h"
 #include "World/IFishStepServices.h"
 #include "World/OriginalFtol.h"
 #include "World/Particles.h"
@@ -118,7 +119,7 @@ Core::Expected<void, std::string> CreateLightningJoint(JointState& joint, const 
     const glm::vec3 halfBlue{0.5f, 0.5f, 1.0f}; // 0x3f000000 y 0x3f800000
     switch (request.subtype)
     {
-    case 0xc: // 0x531356..0x531371: rojo; su paso lee un hueso del modelo del dueño (0x536adf) y corta.
+    case 0xc: // 0x531356..0x531371: rojo; su paso se pone en el modelo compartido del dueño (0x536adf).
         joint.light = {1.0f, std::bit_cast<float>(0x3dcccccdu), std::bit_cast<float>(0x3dcccccdu)};
         joint.life = 10;
         break;
@@ -246,8 +247,10 @@ Core::Expected<float, std::string> TurnFromTheObject(JointState& joint, CrtRando
     return F32(Render::Models::MoveToward(joint.position, joint.angles, joint.targetPosition, turn));
 }
 
-// 0x53695e..0x536b3a: hacia dónde gira cada subtipo; devuelve lo que falta (el float de 0x536b3a).
-Core::Expected<float, std::string> Turn(JointState& joint, const glm::vec3& scratch, CrtRandom& random)
+// 0x53695e..0x536b3a: hacia dónde gira cada subtipo; devuelve lo que falta (el float de 0x536b3a). `services` puede
+// faltar en los caminos sin rand().
+Core::Expected<float, std::string> Turn(JointState& joint, const glm::vec3& scratch, CrtRandom& random,
+                                        const JointKernels::StepServices* services)
 {
     using Render::Models::MoveToward;
     switch (joint.subtype)
@@ -278,10 +281,24 @@ Core::Expected<float, std::string> Turn(JointState& joint, const glm::vec3& scra
         const auto turn = static_cast<float>(random.Next() % 100 + 50);
         return F32(MoveToward(joint.position, joint.angles, joint.targetPosition, turn));
     }
-    case 0xc: // 0x536adf..0x536b1d: 0x4ec110 con el modelo del tipo del dueño y los huesos de 0x743751c (sin leer).
-        return Core::Unexpected(std::string(
-            "0x536b1d: el joint 0x614/0xc pone su posición en un hueso del modelo del dueño (0x4ec110 con 0x743751c), "
-            "sin portar (CL11)"));
+    case 0xc:
+    {
+        // 0x536adf..0x536b1d: 0x4ec110(el modelo del tipo del dueño, 0x743751c, (0, −100, 0), +0x18, 1). En c32bbd5f
+        // nadie escribe 0x743751c (0x50c232..0x50c281 escriben las tres matrices de antes, 0x74374ec, 0x743748c y
+        // 0x74374bc): queda la del BSS, en cero, y el punto es la posición que tenga el modelo compartido. El camino
+        // salta 0x4e9810: lo que falta es el [ebp+8] de 0x53586c, la y de la posición menos la del destino al empezar
+        // el paso.
+        const ActorState* owner = joint.ownerKind == JointOwnerKind::Actor ? JointKernels::ActorOwner(joint) : nullptr;
+        if (owner == nullptr)
+            return Core::Unexpected(std::string("0x536adf: el dueño del joint 0x614/0xc no es un personaje"));
+        if (services == nullptr || services->world == nullptr)
+            return Core::Unexpected(std::string("0x536b1d: faltan los modelos compartidos del joint 0x614/0xc"));
+        constexpr glm::vec3 Below{0.0f, -100.0f, 0.0f}; // 0x536b0f, 0xc2c80000
+        const auto placement = services->world->ModelPlacement(owner->type);
+        joint.position = Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrix{}, Below,
+                                                                   placement.scale, placement.origin);
+        return services->startDeltaY;
+    }
     case 9: // 0x536abc: hacia el punto sorteado antes del lazo.
     {
         const auto turn = F32(static_cast<double>(random.Next() % 80) + 60.0);
@@ -466,7 +483,7 @@ Core::Expected<void, std::string> StepWithoutRandom(JointState& joint)
     if (const std::uint32_t address = FirstTurnRandom(subtype); address != 0)
         return cut(address);
     CrtRandom unused(0); // Estos giros no sacan rand().
-    if (auto turned = Turn(joint, glm::vec3(0.0f), unused); !turned.HasValue())
+    if (auto turned = Turn(joint, glm::vec3(0.0f), unused, nullptr); !turned.HasValue())
         return Core::Unexpected(turned.Error());
     return cut(FirstJitterRandom(subtype));
 }
@@ -552,7 +569,7 @@ Core::Expected<void, std::string> StepLightningJoint(JointState& joint, const Jo
     // 0x53694a..0x536e8a: un tramo por punto, salvo que llegue.
     for (std::int32_t iteration = 0; iteration < joint.maximumCount; ++iteration)
     {
-        const auto distance = Turn(joint, scratch, random);
+        const auto distance = Turn(joint, scratch, random, &services);
         if (!distance.HasValue())
             return Core::Unexpected(distance.Error());
         Jitter(joint, random);

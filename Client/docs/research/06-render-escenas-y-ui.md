@@ -14366,9 +14366,13 @@ a la cola común (`0x53c393`: `0x535520` con la matriz del principio del paso y 
 en un lugar de más adelante pasa en la misma vuelta de `0x53c670`.
 
 - **`0x614`** (`LightningJoints.cpp`): alta `0x5309d6` (subtipos 0 a 0x11) y paso `0x53683e..0x537278`, con la rama
-  /1 de `0x53703d`. La /0xc (`0x531356`) nace roja ((1; 0,1; 0,1), vida 10) y su paso pone la posición en un hueso del
-  modelo del tipo del dueño con `0x4ec110` y los huesos de `0x743751c` (`0x536adf`, sin leer: corta en `0x536b1d`); ese
-  camino salta `0x4e9810` y la llegada lee el `[ebp+8]` que quedó. La /0xf (`0x531907`) no se dibuja (`+0x11` en 0),
+  /1 de `0x53703d`. La /0xc (`0x531356`) nace roja ((1; 0,1; 0,1), vida 10) y su paso pone la posición en el punto
+  (0, −100, 0) de la matriz `0x743751c` del modelo del tipo del dueño (`0x536adf..0x536b1d`, `0x4ec110` con Translate
+  en 1): en c32bbd5f nadie escribe `0x743751c` (`0x50c232..0x50c281` escriben `0x74374ec`, `0x743748c` y `0x74374bc`),
+  queda la del BSS en cero y el punto es la posición del modelo compartido (`WorldState::ModelPlacement`). Ese camino
+  salta `0x4e9810` y la llegada lee el `[ebp+8]` que quedó, el de `0x53586c` (la y de la posición menos la del destino
+  antes de moverse, con signo: más abajo que el destino llega siempre). Sin un personaje de dueño o sin los modelos,
+  MuRet corta (`0x536adf`, `0x536b1d`); nadie conocido crea la /0xc. La /0xf (`0x531907`) no se dibuja (`+0x11` en 0),
   vive 80, no tiene puntos y guarda en `+0x9f4` los lugares de hasta seis personajes a 400 o menos en el plano (con NaN
   también), vivos, sin `+0x389`, de clase 2 (`+0x88`), visibles (`+0x16c`) y que no son el dueño (el sexto pisa el
   DWORD de `+0xa08`, el serial); `+0x9eb` es la cuenta · 15, `+0x9ec` vuelve a 0 y `+0x24` es el segundo punto 150 más
@@ -14501,7 +14505,16 @@ en un lugar de más adelante pasa en la misma vuelta de `0x53c670`.
   (siempre: Q-C1624); la /3 y la /4 restan el corrimiento. Con la cola llena sólo se apagan (por 0,7692308f bajo 10
   de vida). La /5..7 (del efecto `0x62c/1`, `0x51f32e`, detrás de un corte) salta el primer tramo, con el hueso del
   dueño en `+0x9ec` (el skill), textura `0x60d`, vida 15, la tanda 30 y (30, 0, subtipo · 90) en `+0x58`; sin dueño
-  muere y con dueño corta en su hueso (`0x53bc71`). La `0x41` (`0x4feb3b..0x4febd3`) crea el efecto `0x62c/0` en
+  muere. Con dueño (`0x53bbf1..0x53be17`) copia la posición del dueño al modelo compartido de su tipo (sólo
+  `+0x6c..+0x74`: la escala y la acción quedan) y pone el camino y la posición en el punto (0, 20, 0) de su hueso
+  `+0x9ec` (`0x4ec110` con `+0x120 + hueso · 0x30`; sin huesos o fuera de ellos, la matriz en cero como Q-C318). La
+  cola vuelve a 0, `+0x6c` pasa a min(`+0x6c`, tanda) (con signo contra el byte) y `+0x5c` toma `+0x60`; cada tramo
+  suma al camino la velocidad (`+0x9dc`, en la local `[ebp−0x3c]`) girada por el hueso, gira `+0x5c` 40 (`+` en la /5
+  y la /7, `−` en la /6), pone la posición en (0, 0, `+0x58`) girado por (`+0x5c`, 0, 0) sobre el camino, llama a
+  `0x535520` con la matriz del hueso, resta 0,15f a `+0x58`, con la key en −1 baja 0,1f la y de la local (no la del
+  joint) y en los tramos pares crea el sprite `0x60f` en el camino con escala luz.r · 0,5 y la luz del joint. Al final
+  `+0x6c` crece uno: el primer paso da un tramo, el segundo dos, hasta 30. Sin dueño personaje o sin los modelos,
+  MuRet corta (`0x53bc27`, `0x53bc42`). La `0x41` (`0x4feb3b..0x4febd3`) crea el efecto `0x62c/0` en
   `0x4f5b10(o, 0, −90, −50)` (80 más alto en la acción `0x51`, 40 en la `0x5b`) con vida 0 y sus cinco joints (/1,
   /0 de ancho 250, /2, /3 y /4 de ancho 100; `0x51f25e`); el efecto no tiene caso en el paso (`0x52b57e`) ni en el
   dibujo. Los seis `0x62c/0xb..0xd` de la `0x4c` (`0x50293c`) siguen detrás del `0x14f`.

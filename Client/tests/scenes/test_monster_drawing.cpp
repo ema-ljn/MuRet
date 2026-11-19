@@ -39,6 +39,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <algorithm>
 #include <memory>
 #include <span>
 #include <string>
@@ -58,6 +59,9 @@ constexpr std::uint16_t DeviasNpc = 0x1d5; // el NPC 241
 constexpr std::uint16_t FairyNpc = 0x1d9;  // el NPC 237 de Lorencia
 constexpr std::uint16_t Golem = 0x176;     // un caso con sprites de 0x50b870 y 0x50b920
 constexpr std::uint16_t HelperType = 0x1b6;
+
+// Los tres rand() que saca el resto de 0x50ba30 en un dibujo que no corta (los de los demás tests con AfterRandoms(3)).
+constexpr std::size_t TailDraws = 3;
 
 std::uint32_t AfterRandoms(std::size_t count)
 {
@@ -550,6 +554,24 @@ TEST_F(MonsterDrawingTest, AModelCaseDrawsItsSpritesAndSkipsTheHelperChain)
     EXPECT_EQ(m_world->Actors()[8].effectOrigin, glm::vec3(145.0f, 150.0f, 53.0f));
 }
 
+// 0x50c37e: el +0x376 0x4b deja el fuego 0x5d9/0 de 0,3 en el hueso 18 (tres rand(), 0x541172) y sigue con su brillo.
+TEST_F(MonsterDrawingTest, The0x4bLightsItsFireOnBone18)
+{
+    m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+    Monster(0, Spider, 0x4b);
+    auto particles = std::make_unique<Client::World::Particles>();
+    GameCharacterPass pass = Pass();
+    pass.particles = particles.get();
+    const auto result = Draw(pass);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    const Client::World::Particle& fire = particles->All()[0];
+    EXPECT_TRUE(fire.alive);
+    EXPECT_EQ(fire.type, 0x5d9);
+    EXPECT_EQ(fire.subtype, 0);
+    EXPECT_EQ(fire.life, 24);
+    EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(3 + TailDraws));
+}
+
 TEST_F(MonsterDrawingTest, UnportedBranchesCutWithTheirAddress)
 {
     struct Case
@@ -564,7 +586,7 @@ TEST_F(MonsterDrawingTest, UnportedBranchesCutWithTheirAddress)
     // lo que cuelga y de su rand() % 30, en el primer hueso con nombre que su alta no registró (0x427291); lo de
     // 0x50bf45, después de la sombra.
     constexpr std::array cases{Case{Spider, 0x59, "0x50bb96", 0, 0}, Case{HelperType, 0x20, "0x427291", 6, 4},
-                               Case{Spider, 0x49, "0x50c36b", 6, 0}, Case{0x18e, 0x21, "0x4ee770", 0, 4}};
+                               Case{Spider, 0x49, "0x50c492", 6, 0}, Case{0x18e, 0x21, "0x4ee770", 0, 4}};
     for (const Case& value : cases)
     {
         SCOPED_TRACE(value.address);
@@ -1098,8 +1120,8 @@ TEST_F(MonsterDrawingTest, The0x2aBetweenOriginalFramesStoresNothing)
 }
 
 // 0x50bf98: el +0x376 0x45 saca su rand() % 30, pone nueve flare01 de 0,6 con su luz y, antes de cada una de sus tres
-// partículas 0x5c6/3, cuatro rand(); la 0x5c6/3 no está en Particles (CL11) y corta en la primera.
-TEST_F(MonsterDrawingTest, The0x45LightsItsNineFlaresAndCutsAtItsFirstSpark)
+// partículas 0x5c6/3 (vida 5, sin rand(), 0x540675), cuatro rand().
+TEST_F(MonsterDrawingTest, The0x45LightsItsNineFlaresAndItsThreeSparks)
 {
     // 0x51483f: el monstruo 69 (el +0x376 0x45) con el modelo 0x184, que no tiene caso en 0x6002e0.
     constexpr std::uint16_t ModelOf69 = 0x184;
@@ -1118,8 +1140,11 @@ TEST_F(MonsterDrawingTest, The0x45LightsItsNineFlaresAndCutsAtItsFirstSpark)
 
         const auto result = Draw(pass);
 
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_NE(result.Error().find("0x50c0db"), std::string::npos) << result.Error();
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        const auto sparks = std::ranges::count_if(
+            particles->All(), [](const auto& particle)
+            { return particle.alive && particle.type == 0x5c6 && particle.subtype == 3 && particle.life == 5; });
+        EXPECT_EQ(sparks, 3);
         // El cuerpo y la sombra antes.
         EXPECT_EQ(m_batch.Vertices().size(), 6u);
         Client::Render::Models::CrtRandom random{1};
@@ -1134,7 +1159,7 @@ TEST_F(MonsterDrawingTest, The0x45LightsItsNineFlaresAndCutsAtItsFirstSpark)
         EXPECT_EQ(sprites[0].light.z, static_cast<float>(x));
         // El hueso 10 en (0, 0, 10), más la posición.
         EXPECT_EQ(sprites[0].position, glm::vec3(150.0f, 150.0f, 20.0f));
-        EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(5));
+        EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(1 + 3 * 4 + TailDraws));
         TearDown();
     }
     // Entre frames del original, los nueve flare01 sin las partículas, sobre una copia del rand().

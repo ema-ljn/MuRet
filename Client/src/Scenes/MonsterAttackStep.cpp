@@ -177,14 +177,6 @@ bool IsJointPoolFull(const CharacterStepContext& context)
            std::ranges::none_of(context.joints, [](const JointState& joint) { return !joint.alive; });
 }
 
-bool HasFreeParticle(const CharacterStepContext& context)
-{
-    if (context.particles == nullptr)
-        return false;
-    const auto particles = context.particles->All();
-    return std::ranges::any_of(particles, [](const World::Particle& particle) { return !particle.alive; });
-}
-
 std::optional<std::size_t> CreateKalimaEarthquake(ActorState& actor, std::uint8_t state,
                                                   const CharacterStepContext& context)
 {
@@ -359,10 +351,26 @@ Core::Expected<Helped, std::string> StepKalima(ActorState& actor, const KindCase
         // 1, 1,0f, 0).
         if (actor.byte381 == FourteenthStep)
         {
-            if (context.particles != nullptr && !HasFreeParticle(context))
-                return Helped::Exit;
-            return CutAt(found.address == 0x43a7fe ? 0x43a861 : 0x43abd9,
-                         "la partícula 0x600/1 sobre el blanco o el héroe (CL11)", actor, slot);
+            constexpr std::int32_t RingParticle = 0x600;
+            constexpr std::int32_t RingBurstSubtype = 1;
+            constexpr double RingHeight = 150.0; // 0x6b87ac
+            const std::uint32_t address = found.address == 0x43a7fe ? 0x43a861 : 0x43abd9;
+            if (context.particles == nullptr)
+                return Core::Unexpected(std::format("{:#x}: falta el pool de partículas para 0x600/1", address));
+            const auto target = std::bit_cast<std::int16_t>(actor.attackTarget);
+            const auto actors = context.world.Actors();
+            const ActorState& ringed = target >= 0 && target < PoolSlots ? actors[static_cast<std::size_t>(target)]
+                                                                         : actors[context.world.Runtime().hero];
+            const glm::vec3 position{ringed.position.x, ringed.position.y,
+                                     static_cast<float>(static_cast<double>(ringed.position.z) + RingHeight)};
+            const auto created =
+                context.particles->CreateChecked(RingParticle, position, actor.angles, glm::vec3(1.0f),
+                                                 RingBurstSubtype, 1.0f, context.worldClock, context.random);
+            if (!created.HasValue())
+            {
+                return Core::Unexpected(std::format("{:#x}: la partícula 0x600/1 del lugar {} falla con error {}",
+                                                    address, slot, static_cast<unsigned>(created.Error())));
+            }
         }
         return Helped::Exit;
     case 0x43a872:

@@ -914,16 +914,33 @@ TEST(AttackSkillCasesTest, TheBlastCutsInItsJointBeforeItsSound)
     EXPECT_GE(DrawsSince(Seed, tested.random), 2 * SkillRead + OwnRecord);
 }
 
-// 0x5042ce: 0x52e740 con las acciones 0x38 a 0x3c empieza por la partícula 0x5c6/0 (CL11), sin rand() antes.
-TEST(AttackSkillCasesTest, TheSparkCutsAtItsFirstParticle)
+// 0x5042ce: 0x52e740 con las acciones 0x38 a 0x3c: la chispa 0x5c6/0 en el blanco, sin rand(), y veinte veces dos
+// rand() y la 0x5c5/0. Con el pool lleno, sólo los cuarenta rand().
+TEST(AttackSkillCasesTest, TheSparkLeavesItsHitAndTwentyFairySparks)
 {
     SkillWorld tested;
+    tested.withParticles = true;
     tested.Striker().animation.action = 0x3a;
 
     const auto sparked = SparkTheTarget(tested.Striker(), tested.Victim(), StrikerSlot, tested.Context());
 
-    EXPECT_TRUE(HasError(sparked, "0x52e77b")) << ErrorOf(sparked);
-    EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
+    ASSERT_TRUE(sparked.HasValue()) << ErrorOf(sparked);
+    const auto count = [&](std::int32_t type)
+    {
+        return std::ranges::count_if(tested.world.Particles().All(), [type](const auto& particle)
+                                     { return particle.alive && particle.type == type && particle.subtype == 0; });
+    };
+    EXPECT_EQ(count(0x5c6), 1);
+    EXPECT_EQ(count(0x5c5), 20);
+    EXPECT_EQ(tested.world.Particles().All()[0].position, tested.Victim().position);
+    EXPECT_GE(DrawsSince(Seed, tested.random), 40);
+
+    SkillWorld full;
+    full.withParticles = true;
+    for (auto& particle : full.world.Particles().All())
+        particle.alive = true;
+    ASSERT_TRUE(SparkTheTarget(full.Striker(), full.Victim(), StrikerSlot, full.Context()).HasValue());
+    EXPECT_EQ(DrawsSince(Seed, full.random), 40);
 }
 // 501494→51fff0: el estallido y las piedras preceden al efecto 0xf6.
 TEST(AttackSkillCasesTest, Skill0eRunsTheBurstBeforeTheNextCapability)
@@ -1046,8 +1063,15 @@ TEST(AttackSkillCasesTest, MixedPoolsStopAtTheFirstConstructorWithRoom)
         tested.withParticles = true;
         for (auto& effect : tested.world.Map().effects.Effects())
             effect.alive = true;
-        EXPECT_TRUE(HasError(tested.WithTarget(1), "0x50497e"));
-        EXPECT_TRUE(tested.sounds.empty());
+        // 0x50492e..0x504986: con lugar, las diez 0x5f2/1 sobre el blanco, sin el 1 de +0x78 (sin +0x38d), y el sonido.
+        ASSERT_TRUE(tested.WithTarget(1).HasValue());
+        const auto smokes =
+            std::ranges::count_if(tested.world.Particles().All(), [](const auto& particle)
+                                  { return particle.alive && particle.type == 0x5f2 && particle.subtype == 1; });
+        EXPECT_EQ(smokes, 10);
+        EXPECT_EQ(tested.Victim().flags78, 0u);
+        EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x22}));
+        tested.sounds.clear();
         tested.Striker().skillSucceeded = 1;
         tested.Striker().type = 0x164;
         for (auto& effect : tested.world.Map().effects.Effects())

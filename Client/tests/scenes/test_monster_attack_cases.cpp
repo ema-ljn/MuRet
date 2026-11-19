@@ -368,15 +368,17 @@ protected:
     bool withParticles = true;
 };
 
-// 0x43a7a0 en Kalima (24 a 29 y 36): todos sus casos salen sin la cola; los efectos y la partícula 0x600 cortan después
-// de la lectura de +0x38e y de los rand() de su ayudante (0x439bd0: rand() % 360; 0x43b18f: dos rand() % 200). Afuera,
-// los mismos tipos van a la cola.
+// 0x43a7a0 en Kalima (24 a 29 y 36): todos sus casos salen sin la cola; la partícula 0x600/1 nace en 14 y los efectos
+// cortan después de la lectura de +0x38e y de los rand() de su ayudante (0x439bd0: rand() % 360; 0x43b18f: dos rand() %
+// 200). Afuera, los mismos tipos van a la cola.
 TEST_F(MonsterAttackCasesTest, TheKalimaMonstersLeaveWithoutTheTail)
 {
+    // 0x43a861 y 0x43abd9: la 0x600/1 sobre el blanco o el héroe saca el rand() % 360 de su giro (0x5431a1).
+    constexpr int RingDraws = 1;
     const std::vector<Probe> probes{
         {.name = "0x90 en 13", .type = 0x90, .step = 13},
-        {.name = "0x90 en 14", .type = 0x90, .step = 14, .cut = "0x43a861"},
-        {.name = "0x92 en 14", .type = 0x92, .step = 14, .cut = "0x43abd9"},
+        {.name = "0x90 en 14", .type = 0x90, .step = 14, .draws = RingDraws},
+        {.name = "0x92 en 14", .type = 0x92, .step = 14, .draws = RingDraws},
         {.name = "0x91 con 1 en 13", .type = 0x91, .step = 13, .skill = 1, .cut = "0x439ca6", .draws = SkillRead + 1},
         {.name = "0x91 con 0x37 en 13", .type = 0x91, .step = 13, .skill = 0x37, .cut = "0x439ba5", .draws = SkillRead},
         {.name = "0x91 con 0xc8 en 13", .type = 0x91, .step = 13, .skill = 0xc8, .cut = "0x439d09", .draws = SkillRead},

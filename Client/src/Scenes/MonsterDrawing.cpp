@@ -636,6 +636,56 @@ Result DrawTheShines(MonsterFrame& frame)
     return DrawTheShinePass(frame, model, monster == 0x43 ? 0x144 : Chrome, factor, OwnTexture);
 }
 
+// 0x50c37e..0x50c3e8 y 0x50c510..0x50c556, el +0x376 0x4b: 0x53fe70(0x5d9, el hueso 18 (+0x360), c + 0x1c, (1, 1, 1),
+// 0, 0,3f, 0), el fuego 5d9/0 (0x541172, tres rand()), y el brillo 0x60b130 con las banderas 0x144 (0x50c52b: el 0x100
+// de todo lo que no es el 0x49), el factor 1 y la textura propia. Entre frames del original no crea la partícula.
+Result DrawTheFireOf0x4b(MonsterFrame& frame)
+{
+    constexpr std::size_t Bone = 18;
+    constexpr std::int32_t Fire = 0x5d9;
+    constexpr float FireScale = std::bit_cast<float>(0x3e99999au); // 0,3
+    constexpr std::uint32_t FireShine = 0x144;
+    const ActorState& actor = frame.actor;
+    if (frame.originalFrame)
+    {
+        if (frame.pass.particles == nullptr)
+            return Core::Unexpected<std::string>("0x50c3e0: falta el arreglo de las partículas (0x53fe70)");
+        const auto created =
+            frame.pass.particles->CreateChecked(Fire, PointOnTheBone(actor, Bone, glm::vec3(0.0f)), actor.angles,
+                                                glm::vec3(1.0f), 0, FireScale, frame.worldClock, frame.random);
+        if (!created.HasValue())
+            return Core::Unexpected(std::format("0x50c3e0: la partícula 0x5d9/0 del +0x376 0x4b falla con el error {}",
+                                                static_cast<int>(created.Error())));
+    }
+    if (actor.bodyPose.empty())
+        return {};
+    const PosedBody posed = PosedBodyOf(frame);
+    MonsterBodyModel model{.batch = frame.batch,
+                           .models = frame.fauna,
+                           .object = posed.object,
+                           .meshes = posed.meshes,
+                           .frameClock = frame.pass.frameClock};
+    return DrawTheShinePass(frame, model, FireShine, 1.0f, OwnTexture);
+}
+
+// 0x50c3ed..0x50c492, el +0x376 0x49: con la luz (0,1f; 0,1f; 1), un flare01 (0x5ac) de 0,8f en cada hueso de 13 a 26
+// (+0x270..+0x510) y, en los huesos 14 a 16 y 23, el joint 0x614/7 (0x530860) desde el punto. MuRet dibuja el flare del
+// hueso 13 y el del 14, y corta en el primer joint (lote de los joints, CL11).
+Result DrawTheFlaresOf0x49(MonsterFrame& frame)
+{
+    constexpr std::size_t FirstBone = 13;
+    constexpr std::size_t JointBone = 14;
+    constexpr std::uint16_t Flare = 0x5ac;
+    constexpr float FlareScale = std::bit_cast<float>(0x3f4ccccdu); // 0,8
+    const glm::vec3 light{std::bit_cast<float>(0x3dcccccdu), std::bit_cast<float>(0x3dcccccdu), 1.0f};
+    if (frame.pass.sprites == nullptr)
+        return Core::Unexpected<std::string>("0x50c43b: falta la tabla de los sprites del frame (0x5491e0)");
+    for (std::size_t bone = FirstBone; bone <= JointBone; ++bone)
+        static_cast<void>(frame.pass.sprites->Create(Flare, PointOnTheBone(frame.actor, bone, glm::vec3(0.0f)),
+                                                     FlareScale, light, 0.0f, 0));
+    return Cut("0x50c492", "el joint 0x614/7 desde el hueso 14 del +0x376 0x49 (CL11)", frame.actor.type);
+}
+
 // La tela de la grilla de un +0x376 de WearsAGridClothOfItsOwn (0x50c283..0x50c35c y 0x50c59f..0x50c669): la del lugar
 // (pass.cloths[slot]), armada, simulada y dibujada sobre la pose guardada (+0x120) con CharacterCloth, y entre frames
 // del original dibujada como quedó. Sin la tela del lugar, corta con `address`.
@@ -810,7 +860,8 @@ Result HangTheStatueWeapon(MonsterFrame& frame)
     return hung;
 }
 
-// 0x50bf45..0x50c904: lo que se agrega por el +0x376. El 0x45, hasta sus partículas, el 0x46, el 0x4d, las telas del
+// 0x50bf45..0x50c904: lo que se agrega por el +0x376. El 0x45 con sus partículas, el 0x46, el 0x4b, el 0x49 hasta su
+// primer joint, el 0x4d, las telas del
 // 0x47, el 0x4a y el 0x12d (0x50c59f, con cualquier tipo: los tres son del 0x186), los pases de brillo
 // (MonsterShines) y lo que cuelgan el 0x2a y las estatuas 0x84 a 0x86; los demás cortan.
 Result DrawTheDecorations(MonsterFrame& frame)
@@ -822,6 +873,10 @@ Result DrawTheDecorations(MonsterFrame& frame)
         return DrawTheFlareOf0x46(frame);
     if (monster == 0x4d)
         return DrawThePhoenix(frame);
+    if (monster == 0x4b)
+        return DrawTheFireOf0x4b(frame);
+    if (monster == 0x49)
+        return DrawTheFlaresOf0x49(frame);
     if (monster == 0x47 || monster == 0x4a || monster == 0x12d)
         return RunTheGridCloth(frame, "0x50c59f");
     if (MonsterShines(frame.actor.word376))

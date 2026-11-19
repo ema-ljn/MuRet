@@ -15,6 +15,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <initializer_list>
+#include <functional>
 #include <optional>
 #include <limits>
 
@@ -53,6 +54,132 @@ TEST(GameplayParticlesTest, FireCreationKeepsTheFourDistinctScaleAndRandomPaths)
         EXPECT_EQ(particle.light, glm::vec3(2, 3, 4));
         EXPECT_EQ(particle.start, glm::vec3(100, 200, 300));
     }
+}
+
+// 0x541197..0x541403: la 5dc/12 conserva el tipo lógico, con la llama existente como material MuRet.
+TEST(GameplayParticlesTest, BlueTrailFireUsesFourRandomsAndTheExistingFlameMaterial)
+{
+    Particles particles;
+    CrtRandom random(7);
+    const auto made = particles.CreateChecked(0x5dc, {100, 200, 300}, {10, 20, 30}, {2, 3, 4}, 12, 0.75f, 0, random);
+    ASSERT_TRUE(made.HasValue());
+    ASSERT_EQ(made.Value(), 0u);
+    const Particle& particle = particles.All()[0];
+    EXPECT_EQ(particle.type, 0x5dc);
+    EXPECT_EQ(particle.texture, Fire);
+    EXPECT_EQ(particle.subtype, 12);
+    EXPECT_EQ(particle.life, 24);
+    EXPECT_EQ(particle.position, glm::vec3(100, 200, 300));
+    EXPECT_EQ(particle.angles, glm::vec3(10, 20, 30));
+    EXPECT_EQ(particle.light, glm::vec3(2, 3, 4));
+    EXPECT_EQ(particle.velocity, glm::vec3(0, -4.5f, 0));
+    // CRT(7): 61,17422,15215,7040; R2 se consume aunque R4 lo pisa.
+    EXPECT_EQ(particle.scale, static_cast<float>((165.0 * 0.75) * static_cast<double>(0.012f)));
+    EXPECT_EQ(particle.rotation, 200.0f);
+    CrtRandom expected(7);
+    for (int draw = 0; draw < 4; ++draw)
+        (void)expected.Next();
+    EXPECT_EQ(random.State(), expected.State());
+}
+
+TEST(GameplayParticlesTest, BlueTrailFireAdvancesItsWholeLifeIncludingTheDeathTick)
+{
+    Particles particles;
+    CrtRandom random(7);
+    ASSERT_EQ(particles.Create(0x5dc, {100, 200, 300}, {}, {2, 3, 4}, 12, 0.75f, 0, random), 0u);
+    Particle& particle = particles.All()[0];
+    auto expectedRandom = random;
+    float expectedScale = particle.scale;
+    float expectedVertical = 0;
+    float expectedZ = particle.position.z;
+    float expectedY = particle.position.y;
+    float expectedRotation = particle.rotation;
+    const float velocity = particle.velocity.y;
+    const float clock = 0;
+    Client::Tests::ParticleDrawRecorder recorder;
+    recorder.dimensions[Fire] = {128, 64};
+    recorder.materialFlags[Fire] = 3;
+    for (int tick = 1; tick <= 24; ++tick)
+    {
+        (void)expectedRandom.Next();
+        (void)expectedRandom.Next();
+        expectedRotation += static_cast<float>(expectedRandom.Next() % 10 + 10);
+        expectedScale = static_cast<float>(static_cast<double>(expectedScale) - static_cast<double>(0.04f));
+        expectedVertical = static_cast<float>(static_cast<double>(expectedVertical) + static_cast<double>(0.004f));
+        expectedZ = static_cast<float>(static_cast<double>(expectedZ) + static_cast<double>(expectedVertical) * 10.0);
+        expectedY = static_cast<float>(static_cast<double>(expectedY) + velocity);
+        const auto stepped = Client::World::StepParticlesChecked(particles, random);
+        ASSERT_TRUE(stepped.HasValue());
+        EXPECT_EQ(particle.alive, tick < 24);
+        EXPECT_EQ(particle.life, 24 - tick);
+        EXPECT_EQ(particle.scale, expectedScale);
+        EXPECT_EQ(particle.rotation, expectedRotation);
+        EXPECT_EQ(particle.verticalSpeed, expectedVertical);
+        EXPECT_EQ(particle.position, glm::vec3(100, expectedY, expectedZ));
+        EXPECT_EQ(particle.velocity.y, velocity);
+        EXPECT_EQ(particle.light,
+                  glm::vec3(static_cast<float>(static_cast<double>(24 - tick) *
+                                               static_cast<double>(std::bit_cast<float>(0x3d2aaaabu)))));
+        EXPECT_EQ(std::bit_cast<std::int32_t>(particle.field48), (tick - 1) / 6);
+        EXPECT_EQ(random.State(), expectedRandom.State());
+        recorder.draws.clear();
+        const auto drawn = Client::World::DrawParticlesChecked(particles, 0, std::cref(clock), recorder);
+        ASSERT_TRUE(drawn.HasValue());
+        EXPECT_EQ(recorder.draws.size(), tick < 24 ? 1u : 0u);
+        if (!recorder.draws.empty())
+        {
+            const auto& draw = recorder.draws.front();
+            EXPECT_EQ(draw.uv, glm::vec2(static_cast<float>((tick - 1) / 6) * 0.25f, 0));
+            EXPECT_EQ(draw.rotation, expectedRotation);
+            EXPECT_EQ(draw.texture, Fire);
+        }
+    }
+    // El lugar muerto ya no consume su tercer rand; el viento continúa.
+    (void)expectedRandom.Next();
+    (void)expectedRandom.Next();
+    ASSERT_TRUE(Client::World::StepParticlesChecked(particles, random).HasValue());
+    EXPECT_EQ(random.State(), expectedRandom.State());
+    EXPECT_EQ(particle.life, 0);
+}
+
+TEST(GameplayParticlesTest, BlueTrailFireDrawKeepsItsAtlasRotationAndFailurePhases)
+{
+    Particles particles;
+    Particle& particle = particles.All()[0];
+    particle = Particle{.alive = true,
+                        .type = 0x5dc,
+                        .texture = Fire,
+                        .subtype = 12,
+                        .scale = 1.5f,
+                        .position = {100, 200, 300},
+                        .angles = {17, 22, 33},
+                        .light = {2, 3, 4},
+                        .rotation = 95,
+                        .field48 = std::bit_cast<float>(3)};
+    const float clock = 0;
+    Client::Tests::ParticleDrawRecorder recorder;
+    auto drawn = Client::World::DrawParticlesChecked(particles, 0, std::cref(clock), recorder);
+    ASSERT_FALSE(drawn.HasValue());
+    EXPECT_EQ(drawn.Error().error.phase, Client::World::ParticleDrawingPhase::Dimensions);
+    recorder.dimensions[Fire] = {128, 64};
+    drawn = Client::World::DrawParticlesChecked(particles, 0, std::cref(clock), recorder);
+    ASSERT_FALSE(drawn.HasValue());
+    EXPECT_EQ(drawn.Error().error.phase, Client::World::ParticleDrawingPhase::MaterialFlag);
+    recorder.materialFlags[Fire] = 3;
+    drawn = Client::World::DrawParticlesChecked(particles, 0, std::cref(clock), recorder);
+    ASSERT_TRUE(drawn.HasValue());
+    ASSERT_EQ(recorder.draws.size(), 1u);
+    const auto& draw = recorder.draws[0];
+    EXPECT_EQ(draw.texture, Fire);
+    EXPECT_EQ(draw.rotation, 95);
+    EXPECT_EQ(draw.width, 48);
+    EXPECT_EQ(draw.height, 96);
+    EXPECT_EQ(draw.uv, glm::vec2(0.75f, 0));
+    EXPECT_EQ(draw.uvSize, glm::vec2(0.25f, 1));
+    EXPECT_EQ(draw.light, glm::vec3(2, 3, 4));
+    EXPECT_EQ(draw.blend, RecordedParticleDraw::Blend::Additive);
+    EXPECT_EQ(particle.type, 0x5dc);
+    EXPECT_EQ(particle.subtype, 12);
 }
 
 TEST(GameplayParticlesTest, SmokeTwoDoesNotUseTheLoginCreation)

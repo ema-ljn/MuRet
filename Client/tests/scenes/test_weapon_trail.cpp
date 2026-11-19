@@ -161,24 +161,59 @@ TEST_F(WeaponTrailTest, AFullPoolStillAppendsToTheExistingOwnerWithoutRestarting
     EXPECT_EQ(retained.first[0], (glm::vec3{100, 160, 300}));
     EXPECT_EQ(m_random.State(), 0x12345678u);
 }
-// 4fd575/4fd585: la primera partícula impar va después de dos poses y de una sola cinta.
-TEST_F(WeaponTrailTest, TheUnportedType194ParticleKeepsTheCompletedPrefix)
+// 4fd580: cinco altas impares antes de sus cintas, con cuatro rand por lugar concedido.
+TEST_F(WeaponTrailTest, Type194CompletesTenSamplesWithNormalFullAndPartialParticlePools)
 {
-    m_actor.type = 0x194;
-    m_actor.animation.action = m_actor.animation.previousAction = 3;
-    m_skeleton.actions[3].speed = 1.0f;
-    m_world->PlaceModel(m_actor);
+    for (const std::size_t freeSlots : {std::size_t{3000}, std::size_t{0}, std::size_t{2}})
+    {
+        SCOPED_TRACE(freeSlots);
+        m_world->DrawTail().ribbons = {};
+        for (std::size_t slot = 0; slot < Client::World::ParticleCount; ++slot)
+            m_world->Particles().All()[slot].alive = slot >= freeSlots;
+        m_random = Client::Render::Models::CrtRandom{0x12345678u};
+        auto expectedRandom = m_random;
+        const std::size_t granted = freeSlots < 5 ? freeSlots : 5;
+        for (std::size_t draw = 0; draw < granted * 4; ++draw)
+            (void)expectedRandom.Next();
+        m_actor.type = 0x194;
+        m_actor.animation.action = m_actor.animation.previousAction = 3;
+        m_skeleton.actions[3].speed = 1.0f;
+        for (auto& bone : m_skeleton.bones)
+        {
+            auto& keys = bone.actions[3];
+            for (std::size_t key = 0; key < keys.size(); ++key)
+                keys[key].position.x = static_cast<float>(key) * 10.0f;
+        }
+        m_world->PlaceModel(m_actor);
 
-    const auto emitted = Emit();
+        const auto emitted = Emit();
 
-    ASSERT_FALSE(emitted.HasValue());
-    EXPECT_NE(emitted.Error().find("0x4fd585"), std::string::npos);
-    const auto& ribbon = m_world->DrawTail().ribbons[0];
-    ASSERT_TRUE(ribbon.alive);
-    EXPECT_EQ(ribbon.count, 1);
-    EXPECT_EQ(ribbon.type, 2);
-    EXPECT_FLOAT_EQ(m_world->FaunaResources().PoseFrame(m_actor.type), 3.1f);
-    EXPECT_EQ(m_world->FaunaResources().PoseKey(m_actor.type), 3);
+        ASSERT_TRUE(emitted.HasValue()) << emitted.Error();
+        const auto& ribbon = m_world->DrawTail().ribbons[0];
+        ASSERT_TRUE(ribbon.alive);
+        EXPECT_EQ(ribbon.count, 10);
+        EXPECT_EQ(ribbon.type, 2);
+        EXPECT_EQ(ribbon.life, 15);
+        EXPECT_GT(ribbon.second[0].x, ribbon.second[9].x);
+        EXPECT_EQ(m_random.State(), expectedRandom.State());
+        for (std::size_t slot = 0; slot < granted; ++slot)
+        {
+            const auto& particle = m_world->Particles().All()[slot];
+            EXPECT_TRUE(particle.alive);
+            EXPECT_EQ(particle.type, 0x5dc);
+            EXPECT_EQ(particle.subtype, 12);
+            EXPECT_EQ(particle.life, 24);
+            EXPECT_EQ(particle.position, ribbon.second[8 - slot * 2]);
+            EXPECT_NE(particle.position, ribbon.second[9 - slot * 2]);
+            EXPECT_EQ(particle.light, ribbon.light);
+        }
+        if (granted < freeSlots)
+        {
+            EXPECT_FALSE(m_world->Particles().All()[granted].alive);
+        }
+        EXPECT_NEAR(m_world->FaunaResources().PoseFrame(m_actor.type), 3.9f, 0.00001f);
+        EXPECT_EQ(m_world->FaunaResources().PoseKey(m_actor.type), 3);
+    }
 }
 
 // Selección literal 4fcf87..4fd22b: fronteras inclusivas y prioridad de acción sobre familia.

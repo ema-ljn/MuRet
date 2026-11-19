@@ -840,9 +840,11 @@ Core::Expected<void, std::string> StepFirework(ModelEffect& effect, float lumino
 
 // 0x52c5ca..0x52c7a6, la onda 0x6eb. Con el subtipo 0 (la del pisotón del caballo) la escala pierde 1 (0x6b87d4),
 // sin rand(). Con el 1 (la del galope en Icarus) la escala crece (rand() % 5) · 0,1f y la posición tiembla (rand() &
-// 7) − 4 en x y en y, cada una en la x87 hasta su fstp: tres rand(). Después, una escala negativa vuelve a 0
-// (0x52c74e) y, con el subtipo de 0 a 3, la luz es la vida, o 40 menos la vida pasados los 20, por 0,05f (0x6b8ad0)
-// en los tres canales. Los demás subtipos cortan en su rama.
+// 7) − 4 en x y en y, cada una en la x87 hasta su fstp: tres rand(); el 2, igual con 0,025f (0x6ba1fc). El 3 suma 2,
+// el 4 0,3f, el 5 resta 0,4f, el 7 suma 2,5 y el 8 suma 1; el 6, cada 8 de vida, la onda /5 y nada más; los demás no
+// tocan la escala. Después, una escala negativa vuelve a 0 (0x52c74e) y, con el subtipo de 0 a 3, la luz es la vida,
+// o 40 menos la vida pasados los 20, por 0,05f (0x6b8ad0) en los tres canales; con otro, con la vida por debajo de 6,
+// la luz por 0,769f (0x6ba240).
 Core::Expected<void, std::string> StepShockWave(ModelEffect& effect, Render::Models::CrtRandom& random,
                                                 const ModelEffectStepServices& services)
 {
@@ -853,13 +855,16 @@ Core::Expected<void, std::string> StepShockWave(ModelEffect& effect, Render::Mod
     constexpr std::int32_t FadeTurn = 20, FadeEnd = 40;
     constexpr double LightPerLife = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu)); // 0x6b8ad0: 0,05f.
     constexpr double Shrink = 1.0;                                                          // 0x6b87d4.
+    constexpr std::int32_t TremorSubtype = 2;
+    constexpr double TremorStep = static_cast<double>(std::bit_cast<float>(0x3ccccccdu)); // 0x6ba1fc: 0,025f.
     if (effect.subtype == StompShockWaveSubtype)
         effect.transform.scale = F32(static_cast<double>(effect.transform.scale) - Shrink);
-    else if (effect.subtype == GallopShockWaveSubtype)
+    else if (effect.subtype == GallopShockWaveSubtype || effect.subtype == TremorSubtype)
     {
         const int growth = random.Next() % GrowthSpan;
+        const double step = effect.subtype == TremorSubtype ? TremorStep : GrowthStep;
         effect.transform.scale =
-            F32((static_cast<double>(growth) * GrowthStep) + static_cast<double>(effect.transform.scale));
+            F32((static_cast<double>(growth) * step) + static_cast<double>(effect.transform.scale));
         for (int axis = 0; axis < 2; ++axis)
         {
             const int shake = random.Next() % ShakeSpan;
@@ -882,19 +887,21 @@ Core::Expected<void, std::string> StepShockWave(ModelEffect& effect, Render::Mod
         }
         return {};
     }
+    else if (effect.subtype == 3)
+        effect.transform.scale = F32(static_cast<double>(effect.transform.scale) + 2.0); // 0x6b8818
+    else if (effect.subtype == 4)
+        effect.transform.scale =
+            F32(static_cast<double>(effect.transform.scale) + static_cast<double>(0.3f)); // 0x6b89dc
     else if (effect.subtype == 5)
         effect.transform.scale = F32(static_cast<double>(effect.transform.scale) - static_cast<double>(.4f));
     else if (effect.subtype == 7)
         effect.transform.scale = F32(static_cast<double>(effect.transform.scale) + 2.5);
     else if (effect.subtype == 8)
         effect.transform.scale = F32(static_cast<double>(effect.transform.scale) + 1.0);
-    else
-        return Core::Unexpected(
-            std::format("0x52c5ca: el paso del 0x6eb con el subtipo {} no está portado", effect.subtype));
     // fcomp con 0 y C0: también sin orden.
     if (!(effect.transform.scale >= 0.0f))
         effect.transform.scale = 0.0f;
-    if (effect.subtype > 3)
+    if (effect.subtype < 0 || effect.subtype > 3)
     {
         if (effect.life < 6)
         {

@@ -246,7 +246,10 @@ public:
                                                    Render::Models::CrtRandom& random);
     // 0x51f7f9: cráter636, sub0/1/2; no consume RNG y el pool lleno conserva sus argumentos.
     std::optional<std::size_t> CreateCraterEffect(const ModelEffectArguments& arguments);
-    // 0x51f577..0x51f5fd: ondas6eb/5..8. Sólo /8 consume un rand() al conseguir lugar.
+    // 0x51f4ad..0x51f5fd: la onda 0x6eb de cualquier subtipo: vida 30 y escala 20, y después la /1 y la /2 vida 20 y
+    // (rand() % 10 + 10) · 0,1f, la /3 vida 15 y 1, la /4 vida 10 y (rand() % 6 + 6) · 0,1f, la /5 20 y 9, la /6 50 y
+    // 9, la /7 10 y 1 y la /8 10 y (rand() % 10 + 10) · 0,2f. Sólo la /1, la /2, la /4 y la /8 sacan un rand(), con
+    // lugar.
     std::optional<std::size_t> CreateCastleShockWave(const ModelEffectArguments& arguments,
                                                      Render::Models::CrtRandom& random);
     // 438a1a→5191be: tipo9/0, ownerNULL, escalaargumento0; primer libre, lleno sinCRT.

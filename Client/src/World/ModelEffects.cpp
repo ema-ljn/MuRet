@@ -1265,8 +1265,24 @@ std::optional<std::size_t> ModelEffects::CreateCastleShockWave(const ModelEffect
     ModelEffect& effect = m_effects[*slot];
     effect.life = 30;
     effect.transform.scale = 20.0f;
+    // fild, más la base (0x6b87a8 o 0x6b87f4) y por 0,1f (0x6b8a34), en la x87 hasta el fstp.
+    const auto tenths = [&random](int span, double base)
+    { return F32((static_cast<double>(random.Next() % span) + base) * StoneTenth); };
     switch (effect.subtype)
     {
+    case 1:
+    case 2:
+        effect.life = 20;
+        effect.transform.scale = tenths(10, 10.0);
+        break;
+    case 3:
+        effect.life = 15;
+        effect.transform.scale = 1;
+        break;
+    case 4:
+        effect.life = 10;
+        effect.transform.scale = tenths(6, 6.0);
+        break;
     case 5:
         effect.life = 20;
         effect.transform.scale = 9;

@@ -12,6 +12,7 @@
 #include "World/BloodCastleParticleKernels.h"
 #include "World/EffectParticleKernels.h"
 #include "World/KalimaParticleKernels.h"
+#include "World/MissileFireParticleKernels.h"
 #include "World/ParticleOwner.h"
 #include "World/WorldObjectStepServices.h"
 
@@ -870,8 +871,9 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
         return std::nullopt;
     if (type == MagicSparkParticle)
         return subtype == 2 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
+    // 0x540d13..0x54109e y 0x545565: la 5da trata cualquier subtipo (los de fuera de 0..9, sólo con el giro).
     if (type == MissileFireParticle)
-        return subtype == 8 || subtype == 9 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
+        return std::nullopt;
     if (type == BreathParticle)
     {
         return subtype == CrywolfTideSmokeSubtype || subtype == CrywolfSwingSmokeSubtype ||
@@ -1866,6 +1868,11 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
             CreateBloodCastleParticle(particle, random);
             return std::optional(index);
         }
+        if (IsMissileFireKernel(type, subtype))
+        {
+            CreateMissileFire(particle, random);
+            return std::optional(index);
+        }
         if (IsEffectParticle(type, subtype))
         {
             const auto created =
@@ -2279,6 +2286,13 @@ StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random, const
         if (IsBloodCastleParticle(particle.type, particle.subtype))
         {
             StepBloodCastleParticle(particle, random);
+            continue;
+        }
+        if (IsMissileFireKernel(particle.type, particle.subtype))
+        {
+            const auto stepped = StepMissileFire(particle, trigonometry);
+            if (!stepped.HasValue())
+                return stepped;
             continue;
         }
         if (IsEffectParticle(particle.type, particle.subtype))

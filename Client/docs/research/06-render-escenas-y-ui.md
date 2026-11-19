@@ -8612,6 +8612,15 @@ de dueño) sigue a su dueño más la partida al azar mientras su vida es 23 o m�
 (`0x5425c7`, `0x54261b`, `0x542668`) leen el terreno al nacer (`0x5f93c0`; la /30 además `fsin` del reloj) y siguen
 cortadas.
 
+**El fuego `0x5da`** (`World/MissileFireParticleKernels.h`; la /8 y la /9 siguen en `Particles.cpp`): el alta
+(`0x540d13..0x54109e`) es una cadena de `cmp` y todos terminan con el giro `rand() % 360` de `0x54107f` (los subtipos
+de fuera de 0..9, sólo eso). La /0 (vida 12, escala 0,8f), la /1 (3), la /2 (5) y la /3 (7) salen empujadas
+`((rand() & 7) + 32)` por −0,3f o −0,1f en y; la /4 (`0x540dcf`, vida 100) guarda la fase `rand() % 300 − 150` en la
+velocidad x y su paso (`0x5455b0`) da vueltas de radio 120 alrededor de su partida con `a = (vida + fase) · 0,1f`; la
+/5 (`0x540e74`, la de `0x538f8e`) avanza 20 hacia su ángulo z crudo (`0x5455f9`, como las salpicaduras de Kundun);
+la /6 sube y gira 4; la /0 y la /3 suben 0,02f por paso, se agrandan con la subida y la z suma la subida · 20
+(`0x5456a6`); la /1, /2 y /7 se apagan con vida · 0,2f. El `0x197` de `0x43eb65` ya crea sus doce `0x5da/1`.
+
 ### Las partículas de la fuente en el juego
 
 **Estático**, `0x603011..0x60313f`: después del rand común del objeto, luz1 y V calculada con NEG

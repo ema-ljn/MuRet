@@ -580,8 +580,9 @@ struct WorldRuntime
     // Estado durable de 0x530490 para el futuro binder de hojas; recibir 0F no crea lluvia.
     World::LeafWeather leafWeather{.firstWave = InitialLeafCount};
     // [0x5767964] (.bss, 0): el lugar del último que pegó. Lo escriben el 18 con las acciones 0x78 y 0x79 (0x4cb849),
-    // el 0x19 (0x4cce7d) y el 0x69 (0x4cc2e1) con la fuente, y el 0x1A (0x4cedf7); los tres últimos, con el 400 si no
-    // la encuentran. Lo lee sólo el D7 que le pega al héroe con el escudo (0x4cb32f, Scenes::RaiseTheShield).
+    // el 0x19 (0x4cce7d) y el 0x69 (0x4cc2e1) con la fuente, pero sólo si encuentran el blanco (0x4cce68, 0x4cc2c0),
+    // y el 0x1A (0x4cedf7) siempre; el lugar que escriben es el 400 si no encuentran a quien buscan. Lo lee sólo el D7
+    // que le pega al héroe con el escudo (0x4cb32f, Scenes::RaiseTheShield).
     std::int32_t lastAttacker = 0;
     // [0x6c88ac] (.data, 15): desde cuántos pasos de +0x381 corre la habilidad de 0x4fd5f0 (0x4fdbe5, con signo). Lo
     // escribe solo 0x4f97b0: 15 en 0x4f987d, antes de su switch, y 5 en 0x4f9ee2, un caso de habilidad (hito 4).

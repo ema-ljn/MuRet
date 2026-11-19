@@ -675,6 +675,14 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
     // 0x530aa5..0x530abf: el 62c/5..7 también.
     if (request.type == JointFamilies::SpiralJoint && request.subtype >= 5 && request.subtype <= 7)
         return JointFamilies::CreateSpiralJoint(joint, request, random);
+    // 0x530a32..0x530a55: el 618/0xa, /0xb, /0xe y /0xf (como el 0x697) dejan la cuenta en −1 y saltan a la tabla
+    // 0x530a5c sin el primer tramo de 0x530afa: el punto 0 conserva lo que tenía el lugar.
+    if (request.type == JointFamilies::BeamJoint &&
+        (request.subtype == 0xa || request.subtype == 0xb || request.subtype == 0xe || request.subtype == 0xf))
+    {
+        joint.count = -1;
+        return JointFamilies::CreateBeamJoint(joint, request, random);
+    }
     FirstQuad(joint);
     if (request.type == SparkleJoint && request.subtype == 0x17)
     {

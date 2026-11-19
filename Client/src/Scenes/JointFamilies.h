@@ -150,4 +150,12 @@ inline constexpr std::int32_t MirroredWhirlSubtype = 0xf;
 CreateOrbitJoint(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random);
 [[nodiscard]] Core::Expected<void, std::string> StepOrbitJoint(JointState& joint,
                                                                const JointKernels::StepServices& services);
+
+// El 0x61c/0 (SweepJoints.cpp): alta 0x5342e4 y paso 0x53b3e1, sin la cola ni el movimiento comunes. Lo pide el paso
+// del efecto 0x5be (0x52a72a), que MuRet no crea (0x4f9fae); con dueño y vida de más de 18, corta en 0x53b548 (el
+// héroe).
+inline constexpr std::int32_t SweepSubtype = 0;
+void CreateSweepJoint(JointState& joint, const World::FishEffectRequest& request);
+[[nodiscard]] Core::Expected<void, std::string> StepSweepJoint(JointState& joint,
+                                                               const JointKernels::StepServices& services);
 } // namespace Client::Scenes::JointFamilies

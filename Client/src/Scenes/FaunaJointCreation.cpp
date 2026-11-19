@@ -870,6 +870,11 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
         JointFamilies::CreateFlareJoint(joint, request, random);
         return {};
     }
+    if (request.type == JointFamilies::InfernoJoint && request.subtype == JointFamilies::SweepSubtype)
+    {
+        JointFamilies::CreateSweepJoint(joint, request);
+        return {};
+    }
     // 531c43..531cc7 y531fc3..53200e: la estela del misilE1/1 de Crywolf.
     if (request.type == 0x610 && request.subtype == 13)
     {
@@ -1834,6 +1839,7 @@ enum class Family : std::uint8_t
     Helix,
     Flare,
     Orbit,
+    Sweep,
 };
 
 std::optional<Family> FamilyStep(const JointState& joint)
@@ -1869,6 +1875,8 @@ std::optional<Family> FamilyStep(const JointState& joint)
         return Family::Helix;
     if (joint.type == JointFamilies::FlareJoint)
         return Family::Flare;
+    if (joint.type == JointFamilies::InfernoJoint && joint.subtype == JointFamilies::SweepSubtype)
+        return Family::Sweep;
     return std::nullopt;
 }
 
@@ -1960,6 +1968,8 @@ Core::Expected<void, std::string> RunFamily(JointState& joint, Family family,
         return JointFamilies::StepFlareJoint(joint);
     case Family::Orbit:
         return JointFamilies::StepOrbitJoint(joint, services);
+    case Family::Sweep:
+        return JointFamilies::StepSweepJoint(joint, services);
     }
     return {};
 }

@@ -97,6 +97,8 @@ constexpr std::uint8_t SkillPlace = 3;
 constexpr std::uint8_t Skill = 0x37;
 // +0x9eb: 0x530860 no la escribe, el 0x61c/0 manda la que el lugar tenía.
 constexpr std::uint8_t Volley = 0x0c;
+// 0x517a20 con blancos: el relleno de 0x518515 y el cierre del serial (0x40b413) del C3, después del C1 10.
+constexpr std::uint32_t TargetRandoms = 2u;
 
 // El mundo del héroe para 0x517a20: Lorencia, el héroe en el lugar 42 y dos monstruos, uno a 30 del primer tramo y otro
 // cerca del sexto (la vuelta 5).
@@ -370,8 +372,9 @@ TEST(SweepJointsTest, TheHeroSweepHitsTheTargetsAroundEveryFiveTurns)
     EXPECT_EQ(tested.joints[Last].count, 7);
     EXPECT_EQ(tested.joints[Last].life, 19);
 
-    // Cada llamada con blancos: el cierre del registro propio y los dos rand() del C3.
-    constexpr std::uint32_t HitRandoms = Client::Render::Models::OwnRecordCloseRandoms + 2u;
+    // Cada llamada: el cierre del registro propio (0x517af3, sin mirar los blancos); con blancos, además, los dos
+    // rand() del C3. Las dos llamadas de este barrido tienen blancos.
+    constexpr std::uint32_t HitRandoms = Client::Render::Models::OwnRecordCloseRandoms + TargetRandoms;
     CrtRandom replay{Seed};
     auto particles = std::make_unique<Client::World::Particles>();
     glm::vec3 velocity{};
@@ -394,6 +397,46 @@ TEST(SweepJointsTest, TheHeroSweepHitsTheTargetsAroundEveryFiveTurns)
     second.keys = {0x1006, 0, 0, 0, 0};
     EXPECT_TRUE(Client::Tests::SameBytes(hero.sent[1].packet.Bytes(),
                                          Client::Protocol::Skill::WriteSkillHits(second).packet.Bytes()));
+}
+
+// 0x517a44..0x517af3: 0x517a20 abre y cierra el registro propio al entrar, haya blancos o no: el cierre (3.848 rand(),
+// 0x40b4d0 en 0x517af3) corre en cada llamada, y sólo los dos rand() del C3 (0x518515 y 0x40b413) van con el C1 10.
+// Con el 0x1006 lejos, la llamada de la vuelta 5 no encuentra a nadie a 150 (el 0x1005 queda a ~154,7): no manda nada
+// y saca sólo el cierre.
+TEST(SweepJointsTest, AHeroSweepCallWithoutTargetsStillClosesTheOwnRecord)
+{
+    HeroWorld hero;
+    hero.Put(6, 0x1006, {9000.0f, 9000.0f, 0.0f});
+    SweepWorld tested;
+    Attach(tested, hero);
+    ActorState& owner = hero.world.Actors()[HeroSlot];
+    ASSERT_TRUE(tested.Create({0.0f, 0.0f, -30.0f}, &owner).HasValue());
+    tested.joints[Last].volley = Volley;
+
+    const auto stepped = tested.Step(&owner);
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(tested.joints[Last].count, 7);
+    CrtRandom replay{Seed};
+    auto particles = std::make_unique<Client::World::Particles>();
+    glm::vec3 velocity{};
+    for (int turn = 0; turn < 8; ++turn)
+    {
+        SCOPED_TRACE(turn);
+        const glm::vec3 point = SegmentPoint(velocity);
+        velocity.z = F32(static_cast<double>(velocity.z) - 11.0);
+        ReplaySegment(replay, *particles, point);
+        if (turn == 0)
+            replay.Discard(Client::Render::Models::OwnRecordCloseRandoms + TargetRandoms);
+        else if (turn == 5)
+            replay.Discard(Client::Render::Models::OwnRecordCloseRandoms);
+    }
+    EXPECT_EQ(tested.random.State(), replay.State());
+    ASSERT_EQ(hero.sent.size(), 1u);
+    Client::Protocol::Skill::SkillHitsSend first{.skill = Skill, .x = 9, .y = 18, .volley = Volley, .hits = 1};
+    first.keys = {0x1005, 0, 0, 0, 0};
+    EXPECT_TRUE(Client::Tests::SameBytes(hero.sent[0].packet.Bytes(),
+                                         Client::Protocol::Skill::WriteSkillHits(first).packet.Bytes()));
 }
 
 // 0x53b56e..0x53b583 y 0x53b5cb..0x53b5e6: con el asedio prendido (0x4294b0) y el bit 0x100 en el atributo de la celda

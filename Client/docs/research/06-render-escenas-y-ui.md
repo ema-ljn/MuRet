@@ -14037,8 +14037,20 @@ con el ancho retenido del uso anterior del lugar) y a su paso después del movim
 a la cola común (`0x53c393`: `0x535520` con la matriz del principio del paso y la vida − 1). Un joint que el paso crea
 en un lugar de más adelante pasa en la misma vuelta de `0x53c670`.
 
-- **`0x614`** (`LightningJoints.cpp`): alta `0x5309d6` (subtipos 0 a 0x11 salvo 0xc y 0xf, que cortan) y paso
-  `0x53683e..0x537278`, con la rama /1 de `0x53703d`. **`0x61b` y `0x5bc`** (`HandBoltJoints.cpp`): alta
+- **`0x614`** (`LightningJoints.cpp`): alta `0x5309d6` (subtipos 0 a 0x11) y paso `0x53683e..0x537278`, con la rama
+  /1 de `0x53703d`. La /0xc (`0x531356`) nace roja ((1; 0,1; 0,1), vida 10) y su paso pone la posición en un hueso del
+  modelo del tipo del dueño con `0x4ec110` y los huesos de `0x743751c` (`0x536adf`, sin leer: corta en `0x536b1d`); ese
+  camino salta `0x4e9810` y la llegada lee el `[ebp+8]` que quedó. La /0xf (`0x531907`) no se dibuja (`+0x11` en 0),
+  vive 80, no tiene puntos y guarda en `+0x9f4` los lugares de hasta seis personajes a 400 o menos en el plano (con NaN
+  también), vivos, sin `+0x389`, de clase 2 (`+0x88`), visibles (`+0x16c`) y que no son el dueño (el sexto pisa el
+  DWORD de `+0xa08`, el serial); `+0x9eb` es la cuenta · 15, `+0x9ec` vuelve a 0 y `+0x24` es el segundo punto 150 más
+  arriba. Su paso no se mueve (lista de `0x53585e`) ni gira (`0x536964`): con la vida par suelta dos `0x614/0` sin dueño
+  de ancho 50 y 10 desde la posición hasta `+0x24` (`0x5370a8`, `0x5370c9`) y la partícula `0x5ca/0` con la luz de
+  `[ebp−0x18]`, que nadie escribió en ese camino (Q-C1622: MuRet corta en `0x5370e8`). Lo que sigue, para quien lo
+  destrabe: con `+0x9ec` > 0, cada 15 de `i < +0x9ec` toma el personaje `+0x9f4[i / 15]` y, si sigue vivo, sin
+  `+0x389`, de clase 2 y visible, pone el destino en él 100 más arriba, el rumbo de `0x4e93f0` desde la posición en la z
+  de los ángulos y suelta dos `0x614/0` de ancho 50 y 10 desde el destino anterior (`[ebp−0xc]`, al principio `+0x24`
+  100 más arriba) hasta él; después, con `+0x9ec` menor que `+0x9eb` y la vida par, `+0x9ec` sube uno. **`0x61b` y `0x5bc`** (`HandBoltJoints.cpp`): alta
   `0x5335cf`/`0x5335d6` y paso `0x539ccc..0x539f16`. El dibujo de los dos es el común: en `0x53c6a0` solo el `0x614`
   tiene caso propio.
 - **`0x613` y `0x6ee`** (`SpiritJoints.cpp`): alta `0x53265e` (la mezcla en 3 y la tabla `0x534f18`). La /0 y la /5
@@ -14077,6 +14089,10 @@ en un lugar de más adelante pasa en la misma vuelta de `0x53c670`.
 - **`0x60f/2` y `0x60f/0x18`** (`DropJoints.cpp`): alta `0x533677` y `0x5340dc` (la /0x18 con la textura `0x62d`; vz
   en `rand() % 20 + 35`, la luz blanca, vida `rand() % 50 + 25` y el destino en el segundo punto) y paso `0x53b156`
   (con vida de 25 o menos cae sobre el destino con vz + 5; con menos de 10, la luz por 0,7692308f).
+
+La matriz de la cola común (`0x53c393`, `[ebp−0xe8]`) es la que calculó `0x53590e` en el paso del joint; los de la
+lista `0x53585e..0x53590c` no la calculan y usan la del último joint de la vuelta que la calculó (Q-C1623). El paso
+común lee también `[ebp−0x30]` y `[ebp+8]`, la posición menos el destino en x y en y antes de moverse (`0x53584f`).
 
 Los que los crean: la cola de `0x4f5b70` (los `0x614`, `0x61b` y `0x5bc` colgados del blanco, ESI), el `0x1b6`
 (`0x427a8d`), las cadenas del `0x49` y el `0x4b` (`0x50c36b`), los treinta y seis `0x613/1` de `0x4f756a` y los cuarenta

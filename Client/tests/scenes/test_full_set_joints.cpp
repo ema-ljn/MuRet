@@ -8,6 +8,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/HelperTable.h"
+#include "Scenes/JointKernels.h"
 #include "World/IFishStepServices.h"
 #include "World/Sprites.h"
 
@@ -367,21 +368,41 @@ TEST(FullSetJointsTest, OnlyTheSparklesTakeAHelperForOwner)
     EXPECT_FALSE(full.Value().has_value());
 }
 
-// 0x53c393: un 60f/1 con la cola usaría la matriz que dejó el joint anterior; el 60f/0 que cae la apaga, así que sólo
-// se llega con un estado armado a mano.
-TEST(FullSetJointsTest, AFallenSparkleWithItsTailIsNotPorted)
+// 0x53c393: un 60f/1 con la cola usa la matriz que dejó en [ebp−0xe8] el último joint de la vuelta que la calculó (el
+// 60f/0 que cae la apaga, así que sólo se llega con un estado armado a mano). Sin ninguno antes, la de la pila: con
+// dibujo corta (Q-C1623).
+TEST(FullSetJointsTest, AFallenSparkleWithItsTailUsesThePreviousMatrix)
 {
-    std::array<JointState, 1> joints{};
-    joints[0].alive = true;
-    joints[0].type = 0x60f;
-    joints[0].subtype = 1;
-    joints[0].tailEnabled = true;
+    std::array<JointState, 2> joints{};
+    joints[1].alive = true;
+    joints[1].type = 0x60f;
+    joints[1].subtype = 1;
+    joints[1].tailEnabled = true;
+    joints[1].drawEnabled = 3;
+    joints[1].width = 20.0f;
+    joints[1].maximumCount = 5;
+    joints[1].life = 30;
+    joints[1].position = {10.0f, 20.0f, 30.0f};
     CrtRandom random(1);
-
-    const auto stepped = Client::Scenes::StepJoints(joints, random);
-
+    auto alone = joints;
+    const auto stepped = Client::Scenes::StepJoints(alone, random);
     ASSERT_FALSE(stepped.HasValue());
-    EXPECT_NE(stepped.Error().find("0x53c393"), std::string::npos) << stepped.Error();
+    EXPECT_NE(stepped.Error().find("0x53c3a5"), std::string::npos) << stepped.Error();
+
+    // El 0x613/0xa de antes calcula la matriz con sus ángulos de antes del caso (0, 0, 90).
+    joints[0].alive = true;
+    joints[0].type = 0x613;
+    joints[0].subtype = 0xa;
+    joints[0].angles = {0.0f, 0.0f, 90.0f};
+    joints[0].life = 10;
+    JointState expected = joints[1];
+    ASSERT_TRUE(Client::Scenes::JointKernels::AppendJointTail(
+                    expected, Client::Render::Models::OriginalAngleMatrix(glm::vec3{0.0f, 0.0f, 90.0f}))
+                    .HasValue());
+    ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+    EXPECT_EQ(joints[1].count, expected.count);
+    EXPECT_EQ(joints[1].points[0], expected.points[0]);
+    EXPECT_EQ(joints[1].position, (glm::vec3{10.0f, 20.0f, 30.0f}));
 }
 
 // 0x534cb6: los 60f/0x12 (0x5103be) restan (mezcla 4) y, con el ancho 20, viven 50 con un tercer rand() para vz:

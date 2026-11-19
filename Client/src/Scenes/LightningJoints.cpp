@@ -17,6 +17,7 @@
 #include <glm/ext/vector_float3.hpp>
 
 #include <bit>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <format>
@@ -60,17 +61,56 @@ Core::Expected<void, std::string> AimAtTheOwnerBone(JointState& joint, const Joi
 }
 } // namespace
 
+namespace
+{
+// 0x531907..0x5319e5: la /0xf no se dibuja (+0x11 en 0), vive 80 y no tiene puntos. Recorre los 400 personajes y guarda
+// en +0x9f4 los lugares de los que están a 400 o menos en el plano (con NaN también), vivos, sin +0x389, de clase 2
+// (+0x88), visibles (+0x16c) y que no son el dueño, hasta seis. +0x9eb es la cuenta · 15 (en un byte), +0x9ec vuelve
+// a 0 y +0x24 es el segundo punto 150 más arriba.
+Core::Expected<void, std::string> CreateTheChain(JointState& joint, const World::FishEffectRequest& request,
+                                                 const JointKernels::CreationServices* services)
+{
+    if (services == nullptr || services->actors.empty())
+        return Core::Unexpected(std::string("0x531922: faltan los personajes del joint 0x614/0xf"));
+    joint.drawEnabled = 0;
+    constexpr std::int32_t ChainLife = 80; // 0x50
+    joint.life = ChainLife;
+    joint.maximumCount = 0;
+    joint.field9ec = 0;
+    constexpr double Reach = 400.0;          // 0x6b87b0
+    constexpr std::uint8_t MonsterClass = 2; // +0x88
+    constexpr std::int32_t MostLinks = 6;
+    for (std::size_t slot = 0; slot < services->actors.size(); ++slot)
+    {
+        const ActorState& actor = services->actors[slot];
+        const double dx = D(joint.position.x) - D(actor.position.x);
+        const double dy = D(joint.position.y) - D(actor.position.y);
+        const double distance = std::sqrt(dy * dy + dx * dx);
+        if (!(distance > Reach) && actor.alive && actor.dying == 0 && actor.byte88 == MonsterClass && actor.seen &&
+            static_cast<const void*>(&actor) != request.ownerContext)
+        {
+            const auto link = static_cast<std::size_t>(joint.field9ec);
+            joint.chainTargets[link] = static_cast<std::int32_t>(slot);
+            if (link + 1 == joint.chainTargets.size())
+                joint.skillSerial = static_cast<std::uint8_t>(slot); // el DWORD de +0xa08.
+            ++joint.field9ec;
+        }
+        if (joint.field9ec >= MostLinks)
+            break;
+    }
+    constexpr std::uint8_t LinkSteps = 15;
+    joint.volley = static_cast<std::uint8_t>(static_cast<std::uint8_t>(joint.field9ec) * LinkSteps);
+    joint.field9ec = 0;
+    constexpr double Lift = 150.0; // 0x6b87ac
+    joint.pathIncrement = {request.secondPosition.x, request.secondPosition.y, F32(D(request.secondPosition.z) + Lift)};
+    return {};
+}
+} // namespace
+
 Core::Expected<void, std::string> CreateLightningJoint(JointState& joint, const World::FishEffectRequest& request,
                                                        CrtRandom& random,
                                                        const JointKernels::CreationServices* services)
 {
-    if (request.subtype == 0xc)
-        return Core::Unexpected(
-            std::string("0x531356: el joint 0x614/0xc (su paso lee un hueso del modelo del dueño, 0x536adf) no está "
-                        "portado"));
-    if (request.subtype == 0xf)
-        return Core::Unexpected(
-            std::string("0x531907: el joint 0x614/0xf (la cadena sobre los personajes) no está portado"));
     // 0x5309d6..0x5309ec.
     joint.speed = SharedSpeed;
     joint.width = request.scale;
@@ -78,6 +118,14 @@ Core::Expected<void, std::string> CreateLightningJoint(JointState& joint, const 
     const glm::vec3 halfBlue{0.5f, 0.5f, 1.0f}; // 0x3f000000 y 0x3f800000
     switch (request.subtype)
     {
+    case 0xc: // 0x531356..0x531371: rojo; su paso lee un hueso del modelo del dueño (0x536adf) y corta.
+        joint.light = {1.0f, std::bit_cast<float>(0x3dcccccdu), std::bit_cast<float>(0x3dcccccdu)};
+        joint.life = 10;
+        break;
+    case 0xf:
+        if (auto chained = CreateTheChain(joint, request, services); !chained.HasValue())
+            return chained;
+        break;
     case 0: // 0x5313b1
         joint.life = 2;
         break;
@@ -230,6 +278,10 @@ Core::Expected<float, std::string> Turn(JointState& joint, const glm::vec3& scra
         const auto turn = static_cast<float>(random.Next() % 100 + 50);
         return F32(MoveToward(joint.position, joint.angles, joint.targetPosition, turn));
     }
+    case 0xc: // 0x536adf..0x536b1d: 0x4ec110 con el modelo del tipo del dueño y los huesos de 0x743751c (sin leer).
+        return Core::Unexpected(std::string(
+            "0x536b1d: el joint 0x614/0xc pone su posición en un hueso del modelo del dueño (0x4ec110 con 0x743751c), "
+            "sin portar (CL11)"));
     case 9: // 0x536abc: hacia el punto sorteado antes del lazo.
     {
         const auto turn = F32(static_cast<double>(random.Next() % 80) + 60.0);
@@ -420,9 +472,45 @@ Core::Expected<void, std::string> StepWithoutRandom(JointState& joint)
 }
 } // namespace
 
+namespace
+{
+// 0x53706d..0x5370e8: la /0xf, con la vida par, suelta dos 0x614/0 sin dueño de ancho 50 y 10 desde la posición hasta
+// +0x24 con sus ángulos; después la partícula 0x5ca/0 con la luz de [ebp−0x18], que en este camino nadie escribe: es la
+// que dejó el paso del joint anterior (Q-C1622), y corta. Lo que sigue (0x5370ed..0x537278: los joints hacia los
+// personajes de +0x9f4 cada 15 de +0x9ec, que crece de a uno con la vida par hasta +0x9eb) queda documentado en 06.
+Core::Expected<void, std::string> StepTheChain(JointState& joint, const JointKernels::StepServices& services)
+{
+    if (joint.life % 2 != 0)
+        return {};
+    if (services.random == nullptr)
+        return Core::Unexpected(std::string("0x5370a8: falta el RNG del joint 0x614/0xf"));
+    for (const float width : {50.0f, 10.0f}) // 0x42480000 (0x5370a8) y 0x41200000 (0x5370c9)
+    {
+        const World::FishEffectRequest strike{.type = LightningJoint,
+                                              .firstPosition = joint.position,
+                                              .secondPosition = joint.pathIncrement,
+                                              .angles = joint.angles,
+                                              .subtype = 0,
+                                              .ownerContext = nullptr,
+                                              .scale = width,
+                                              .key = -1,
+                                              .skill = 0,
+                                              .skillSerial = 0,
+                                              .target = -1};
+        if (auto created = CreateFaunaJoint(services.joints, strike, *services.random); !created.HasValue())
+            return Core::Unexpected(std::format("{:#x}: {}", width > 10.0f ? 0x5370a8 : 0x5370c9, created.Error()));
+    }
+    return Core::Unexpected(std::string("0x5370e8: la luz de la partícula 0x5ca del joint 0x614/0xf es la que dejó el "
+                                        "joint anterior en [ebp-0x18] (indefinido, Q-C1622)"));
+}
+} // namespace
+
 Core::Expected<void, std::string> StepLightningJoint(JointState& joint, const JointKernels::StepServices& services)
 {
     const std::int32_t subtype = joint.subtype;
+    // 0x536956/0x536964: la /0xf no gira (sin puntos y con su salto) y va a 0x537064.
+    if (subtype == 0xf)
+        return StepTheChain(joint, services);
     // 0x536841..0x536856: la /6 sólo se rehace con la vida en 4 o menos; la /8 no tiene caso.
     if ((subtype == 6 && joint.life > 4) || subtype == 8)
         return {};

@@ -1568,9 +1568,36 @@ std::optional<Family> FamilyStep(const JointState& joint)
     return std::nullopt;
 }
 
+// 0x53585e..0x53590c: los que no se mueven ni calculan la matriz de 0x53590e.
+bool SkipsTheCommonMove(const JointState& joint)
+{
+    const std::int32_t type = joint.type;
+    const std::int32_t subtype = joint.subtype;
+    return (type == 0x61c && subtype == 0) || (type == 0x614 && subtype == 0xf) || type == 0x5ac || type == 0x6e8 ||
+           type == 0x62c || ((type == 0x60f || type == 0x62b) && subtype == 1) ||
+           (type == 0x10f && subtype >= 5 && subtype <= 8) || (type == 0x60f && subtype == 0x2a) ||
+           (type == 0x632 && subtype == 6);
+}
+
+// 0x53c393..0x53c3aa: la cola con la matriz de [ebp−0xe8]. Los de la lista de 0x53585e no la calculan y usan la del
+// último joint de esta vuelta de 0x53c670 que la calculó (el marco es el mismo); sin ninguno antes, la que haya en la
+// pila (indefinida, Q-C1623): sin dibujo (+0x11 en 0) no se ve y sólo corre la cuenta; si no, corta.
+Core::Expected<void, std::string> AppendWithFrameMatrix(JointState& joint,
+                                                        const std::optional<Render::Models::OriginalMatrix>& matrix)
+{
+    if (!joint.tailEnabled)
+        return {};
+    if (matrix)
+        return AppendJointTail(joint, *matrix);
+    if (joint.drawEnabled == 0)
+        return JointKernels::AdvanceJointTail(joint);
+    return Core::Unexpected(std::format("0x53c3a5: la cola del joint {:#x}/{:#x} usa la matriz que quedó en la pila "
+                                        "(indefinido, Q-C1623)",
+                                        joint.type, joint.subtype));
+}
+
 // 0x53590e..0x53597a: el movimiento común, con la matriz de los ángulos de antes del caso (la que usa la cola de
-// 0x53c393). Salvo los de la lista de 0x53585e..0x53590c, que no la calculan; ninguna de estas familias está ahí
-// (el 614/0xf sí, pero su alta corta).
+// 0x53c393). Salvo los de la lista de 0x53585e..0x53590c (SkipsTheCommonMove), que no la calculan.
 Render::Models::OriginalMatrix MoveCommonly(JointState& joint)
 {
     const auto matrix = Render::Models::OriginalAngleMatrix(joint.angles);
@@ -1584,11 +1611,11 @@ Render::Models::OriginalMatrix MoveCommonly(JointState& joint)
 }
 
 // 0x53c393..0x53c3ba: la cola con la matriz del principio del paso y la vida.
-Core::Expected<void, std::string> CommonTail(JointState& joint, const Render::Models::OriginalMatrix& matrix)
+Core::Expected<void, std::string> CommonTail(JointState& joint,
+                                             const std::optional<Render::Models::OriginalMatrix>& matrix)
 {
-    if (joint.tailEnabled)
-        if (auto appended = AppendJointTail(joint, matrix); !appended.HasValue())
-            return appended;
+    if (auto appended = AppendWithFrameMatrix(joint, matrix); !appended.HasValue())
+        return appended;
     joint.life = std::bit_cast<std::int32_t>(std::bit_cast<std::uint32_t>(joint.life) - 1u);
     if (joint.life < 0)
         joint.alive = false;
@@ -1613,15 +1640,17 @@ Core::Expected<void, std::string> RunFamily(JointState& joint, Family family,
     return {};
 }
 
-Core::Expected<void, std::string> StepFamilyJoint(JointState& joint, Family family, JointKernels::StepServices services)
+Core::Expected<void, std::string> StepFamilyJoint(JointState& joint, Family family, JointKernels::StepServices services,
+                                                  std::optional<Render::Models::OriginalMatrix>& frameMatrix)
 {
     // 0x53584f..0x53586c: la posición menos el destino en x y en y, en float, antes de moverse.
     services.startDeltaX = F32(D(joint.position.x) - D(joint.targetPosition.x));
     services.startDeltaY = F32(D(joint.position.y) - D(joint.targetPosition.y));
-    const auto matrix = MoveCommonly(joint);
+    if (!SkipsTheCommonMove(joint))
+        frameMatrix = MoveCommonly(joint);
     if (auto stepped = RunFamily(joint, family, services); !stepped.HasValue())
         return stepped;
-    return CommonTail(joint, matrix);
+    return CommonTail(joint, frameMatrix);
 }
 
 Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints, Render::Models::CrtRandom* random,
@@ -1631,6 +1660,8 @@ Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints
                                                     const std::function<void(std::int32_t)>& soundRequest,
                                                     const std::function<double(float, float)>& terrainHeight)
 {
+    // [ebp−0xe8]: la matriz del último joint de esta vuelta que la calculó (0x53590e).
+    std::optional<Render::Models::OriginalMatrix> frameMatrix;
     for (std::size_t i = 0; i < joints.size(); ++i)
     {
         auto& joint = joints[i];
@@ -1648,7 +1679,7 @@ Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints
                                                       .worldClock = worldClock,
                                                       .soundRequest = &soundRequest,
                                                       .terrainHeight = terrainHeight ? &terrainHeight : nullptr};
-            if (auto stepped = StepFamilyJoint(joint, *family, services); !stepped.HasValue())
+            if (auto stepped = StepFamilyJoint(joint, *family, services, frameMatrix); !stepped.HasValue())
                 return stepped;
             continue;
         }
@@ -1688,17 +1719,15 @@ Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints
             !barrierBeam && !crywolfArrowTrail && !piercingTrail && !piercingImpact && !skill39)
             return Core::Unexpected(
                 std::format("0x535840: el paso del joint {} ({:#x}/{}) no está portado", i, joint.type, joint.subtype));
-        // 0x5358bc: el 60f/1 no se mueve ni calcula la matriz de 0x53590e; con la cola, 0x53c393 usaría la que dejó el
-        // joint anterior en [ebp−0xe8].
-        if (fallenSparkle && joint.tailEnabled)
-            return Core::Unexpected(std::format(
-                "0x53c393: el joint {} (0x60f/1) con cola usa la matriz del joint anterior, no está portado", i));
+        // 0x5358bc: el 60f/1 no se mueve ni calcula la matriz de 0x53590e; con la cola, 0x53c393 usa la que dejó el
+        // joint anterior en [ebp−0xe8] (AppendWithFrameMatrix).
         // 53590e..53597a: el movimiento común precede la lectura del dueño, incluso si muere.
-        const auto matrix = Render::Models::OriginalAngleMatrix(joint.angles);
+        if (!fallenSparkle)
+            frameMatrix = Render::Models::OriginalAngleMatrix(joint.angles);
         // 535932 también omite las sumas para unordered, conservando ceros con signo y posición.
         if (!fallenSparkle && (joint.speed < 0 || joint.speed > 0))
         {
-            const auto moved = Render::Models::OriginalVectorRotate({0, -joint.speed, 0}, matrix);
+            const auto moved = Render::Models::OriginalVectorRotate({0, -joint.speed, 0}, *frameMatrix);
             joint.position = {static_cast<float>(static_cast<double>(joint.position.x) + moved.x),
                               static_cast<float>(static_cast<double>(joint.position.y) + moved.y),
                               static_cast<float>(static_cast<double>(joint.position.z) + moved.z)};
@@ -1834,10 +1863,9 @@ Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints
                                                   static_cast<double>(joint.subtype == 1 ? FirstFade : ThirdFade));
             joint.light = glm::vec3(faded);
         }
-        if (joint.tailEnabled)
-            // 0x53c393: 535520 con la matriz de 0x53590e, la del principio del paso, aunque el caso haya girado.
-            if (auto appended = AppendJointTail(joint, matrix); !appended.HasValue())
-                return appended;
+        // 0x53c393: 535520 con la matriz de 0x53590e, la del principio del paso, aunque el caso haya girado.
+        if (auto appended = AppendWithFrameMatrix(joint, frameMatrix); !appended.HasValue())
+            return appended;
         joint.life = std::bit_cast<std::int32_t>(std::bit_cast<std::uint32_t>(joint.life) - 1u);
         if (joint.life < 0)
             joint.alive = false;

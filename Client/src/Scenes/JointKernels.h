@@ -42,6 +42,9 @@ void FirstQuad(JointState& joint);
 [[nodiscard]] Core::Expected<void, std::string> AppendJointTail(JointState& joint,
                                                                 const Render::Models::OriginalMatrix& matrix);
 [[nodiscard]] Core::Expected<void, std::string> AppendJointTail(JointState& joint);
+// 0x535520 sin rehacer el primer tramo: la cuenta y la corrida de los tramos. Sólo para una cola que no se dibuja y
+// cuya matriz es indefinida (Q-C1623).
+[[nodiscard]] Core::Expected<void, std::string> AdvanceJointTail(JointState& joint);
 // 0x535020(joint, matriz, cruzado): lo mismo que 0x535520, pero con `crossed` el segundo par de puntos va en y,
 // (0, ∓ancho/2, 0), en vez de en z.
 [[nodiscard]] Core::Expected<void, std::string>
@@ -60,6 +63,8 @@ struct CreationServices
     // un acceso (0x532675, 0x532bab; el cierre que lo deja en 0 saca 3.848 rand()). Sin ellos, esas altas cortan.
     std::uint8_t* ownRecordDepth = nullptr;
     const std::uint8_t* ownVolley = nullptr;
+    // Los 400 personajes (0x743a16c): el 614/0xf elige entre ellos los que encadena (0x531922). Sin ellos, corta.
+    std::span<const ActorState> actors{};
 };
 
 // Lo que el paso de una familia de joints le pide al frame: el pool entero (las altas que hace el paso caen en él,

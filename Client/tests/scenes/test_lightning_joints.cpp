@@ -18,6 +18,7 @@
 
 #include <gtest/gtest.h>
 
+#include <array>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
@@ -221,7 +222,7 @@ TEST(LightningJointsTest, TheFixedSubtypesWriteTheirFields)
 }
 
 // 0x5313fe: la /2 apunta al hueso 33 del personaje dueño, (0, −150, 0), con el modelo del jugador; sin dueño o sin el
-// servicio, corta. 0x531356 y 0x531907: la /0xc y la /0xf cortan.
+// servicio, corta.
 TEST(LightningJointsTest, TheOwnerBoneBoltAimsAtTheChestOfItsOwner)
 {
     ActorState owner = Owner({500, 600, 700});
@@ -251,11 +252,81 @@ TEST(LightningJointsTest, TheOwnerBoneBoltAimsAtTheChestOfItsOwner)
     const auto lonely = orphan.Create(0x614, 2, {}, {}, 50.0f, nullptr, JointOwnerKind::ByType, -1, 0, &services);
     ASSERT_FALSE(lonely.HasValue());
     EXPECT_NE(lonely.Error().find("0x531412"), std::string::npos) << lonely.Error();
-    for (const std::int32_t subtype : {0xc, 0xf})
+}
+
+// 0x531356: la /0xc nace roja con vida 10; su paso pone la posición en un hueso del modelo del dueño (0x536b1d) y
+// corta.
+TEST(LightningJointsTest, TheRedBoltCutsOnItsOwnerBone)
+{
+    Pool pool;
+    ASSERT_TRUE(pool.Create(0x614, 0xc, {}, {}, 30.0f).HasValue());
+    EXPECT_EQ(pool.joints[0].light, (glm::vec3{1.0f, Tenth, Tenth}));
+    EXPECT_EQ(pool.joints[0].life, 10);
+    EXPECT_EQ(pool.joints[0].speed, 50.0f);
+    EXPECT_EQ(pool.joints[0].maximumCount, 50);
+    const auto cut = pool.Step();
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_TRUE(cut.Error().starts_with("0x536b1d")) << cut.Error();
+}
+
+// 0x531907..0x5319e5: la /0xf no se dibuja, vive 80 y elige hasta seis personajes cercanos (a 400 o menos), vivos, sin
+// +0x389, de clase 2, visibles y que no son el dueño; +0x9eb es la cuenta · 15 y +0x24 el segundo punto 150 más arriba.
+// Su paso no se mueve (0x53587c); con la vida par suelta dos 0x614/0 y corta en la luz de su 0x5ca (0x5370e8, Q-C1622);
+// con la vida impar sólo corre la cuenta (sin dibujo, la matriz de la pila no se ve).
+TEST(LightningJointsTest, TheChainPicksTheNearMonsters)
+{
+    std::vector<ActorState> actors(12);
+    for (std::size_t i = 0; i < actors.size(); ++i)
     {
-        Pool pool2;
-        EXPECT_FALSE(pool2.Create(0x614, subtype, {}, {}, 50.0f).HasValue());
+        actors[i] = Owner({100.0f + static_cast<float>(i) * 10.0f, 0.0f, 0.0f});
+        actors[i].byte88 = 2;
+        actors[i].seen = true;
     }
+    actors[0].position.x = 600.0f; // lejos
+    actors[2].dying = 1;
+    actors[3].byte88 = 1;
+    actors[4].seen = false;
+    actors[5].alive = false;
+    const Client::Scenes::JointKernels::CreationServices services{.actors = actors};
+    Pool pool;
+    Pool unserved;
+    const auto cut = unserved.Create(0x614, 0xf, {}, {}, 50.0f);
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_TRUE(cut.Error().starts_with("0x531922")) << cut.Error();
+    ASSERT_TRUE(pool.Create(0x614, 0xf, {100.0f, 0.0f, 0.0f}, {7.0f, 8.0f, 9.0f}, 50.0f, &actors[1],
+                            JointOwnerKind::Actor, -1, 0, &services)
+                    .HasValue());
+    JointState& joint = pool.joints[0];
+    EXPECT_EQ(joint.drawEnabled, 0);
+    EXPECT_EQ(joint.life, 80);
+    EXPECT_EQ(joint.maximumCount, 0);
+    EXPECT_EQ(joint.field9ec, 0);
+    EXPECT_EQ(joint.volley, 90);
+    EXPECT_EQ(joint.chainTargets, (std::array<std::int32_t, 6>{6, 7, 8, 9, 10, 11}));
+    EXPECT_EQ(joint.skillSerial, 11);
+    EXPECT_EQ(joint.pathIncrement, (glm::vec3{7.0f, 8.0f, 159.0f}));
+
+    const auto stepped = pool.Step();
+    ASSERT_FALSE(stepped.HasValue());
+    EXPECT_TRUE(stepped.Error().starts_with("0x5370e8")) << stepped.Error();
+    EXPECT_EQ(joint.position, (glm::vec3{100.0f, 0.0f, 0.0f}));
+    for (std::size_t i = 1; i <= 2; ++i)
+    {
+        SCOPED_TRACE(i);
+        EXPECT_TRUE(pool.joints[i].alive);
+        EXPECT_EQ(pool.joints[i].type, 0x614);
+        EXPECT_EQ(pool.joints[i].subtype, 0);
+        EXPECT_EQ(pool.joints[i].width, i == 1 ? 50.0f : 10.0f);
+        EXPECT_EQ(pool.joints[i].targetPosition, joint.pathIncrement);
+    }
+    pool.joints[1].alive = false;
+    pool.joints[2].alive = false;
+    joint.life = 79;
+    ASSERT_TRUE(pool.Step().HasValue());
+    EXPECT_EQ(joint.position, (glm::vec3{100.0f, 0.0f, 0.0f}));
+    EXPECT_EQ(joint.count, -1);
+    EXPECT_EQ(joint.life, 78);
+    EXPECT_EQ(pool.random.State(), Seed);
 }
 
 // 0x530860 con el pool lleno: nada, ni los rand() de la /1.

@@ -30,10 +30,11 @@ inline constexpr std::int16_t KundunSpiritEffect = 0x125;
 inline constexpr std::int16_t KundunPhoenixEffect = 0x126;
 inline constexpr std::int16_t KundunCallEffect = 0x128;
 
-// 0x518f38..0x518f90, el 0x128 después del prefijo de 0x518cf0: el /0 y el /1, vida 30 (0x51cf97). El /2 deja la vida
-// en 40 y la clave (+0x8a) en 0 y vuelve a entrar en 0x518cf0 como un 0x127 con él de dueño (0x518f90), que MuRet no
-// tiene: corta ahí (nadie conocido crea el /2). Los demás subtipos, sólo lo común. Sin rand().
-[[nodiscard]] Core::Expected<void, std::string> BeginTheKundunCall(World::ModelEffect& effect);
+// 0x518f38..0x518f90, el 0x128 del lugar `slot` después del prefijo de 0x518cf0: el /0 y el /1, vida 30 (0x51cf97). El
+// /2 (el de la caída de Kundun, 0x43f144) deja la vida en 40 y la clave (+0x8a) en 0 y vuelve a entrar en 0x518cf0
+// como el 0x127/0 con él de dueño (0x518f90, CreateTheKundunEcho de Scenes/KundunFallEffects). Los demás subtipos,
+// sólo lo común. Sin rand().
+void BeginTheKundunCall(World::ModelEffects& effects, std::size_t slot);
 
 // 0x518cf0(0x128, ...) sobre `effects` sin el resto del mundo, como lo piden 0x43d051 y 0x43d0fd: el prefijo
 // (World::ModelEffects::Begin) y BeginTheKundunCall. Con la tabla llena, nada. Devuelve el lugar.

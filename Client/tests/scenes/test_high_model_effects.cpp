@@ -1630,8 +1630,9 @@ TEST(HighModelEffectsTest, TheJavelinClimbsSpinsAndBrakes)
     EXPECT_EQ(tested.random.State(), expected.State());
 }
 
-// 0x529bde..0x529c69: por debajo de 20, 0x4e9810 gira +0x28 hacia la partida. Lejos (100 o más), la partícula 0x6ad/1,
-// que MuRet no tiene: con lugar corta. Con las partículas llenas sigue; cerca, va a la partida y crece 0,04f más.
+// 0x529bde..0x529c69: por debajo de 20, 0x4e9810 gira +0x28 hacia la partida. Lejos (100 o más), la brasa 6ad/1 en
+// la posición girada, con los ángulos y la luz del efecto (la luz la pisa el alta con 0,5) y sus tres rand(), antes del
+// giro. Con las partículas llenas sigue sin ella; cerca, va a la partida y crece 0,04f más.
 TEST(HighModelEffectsTest, TheJavelinHuntsItsOwnerAndTrailsFire)
 {
     HighWorld tested;
@@ -1641,8 +1642,29 @@ TEST(HighModelEffectsTest, TheJavelinHuntsItsOwnerAndTrailsFire)
                     .HasValue());
     ModelEffect& javelin = tested.Effect(0);
     javelin.life = 19;
-    EXPECT_TRUE(HasError(StepHighModelEffect(javelin, nullptr, tested.StepContext()), "0x529c69"));
-    EXPECT_EQ(tested.Draws(), 1 + 1);
+    const glm::vec3 angles = javelin.transform.angles;
+    const auto stepped = StepHighModelEffect(javelin, nullptr, tested.StepContext());
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(tested.Draws(), 1 + 1 + 3 + 1);
+    EXPECT_EQ(AliveParticles(*tested.world, Client::World::CinderParticle, 1), 1);
+    const auto& all = tested.world->Particles().All();
+    const auto ember = std::ranges::find_if(all, [](const Client::World::Particle& particle)
+                                            { return particle.alive && particle.type == 0x6ad; });
+    ASSERT_NE(ember, all.end());
+    CrtRandom expected{Seed};
+    expected.Discard(2);
+    Client::World::Particles twin;
+    const auto made = twin.CreateChecked(0x6ad, ember->start, angles, javelin.light, 1, 1.0f, 0.0f, expected);
+    ASSERT_TRUE(made.HasValue() && made.Value().has_value());
+    const Client::World::Particle& replayed = twin.All()[*made.Value()];
+    EXPECT_EQ(ember->angles, angles);
+    EXPECT_EQ(ember->life, 15);
+    EXPECT_EQ(ember->velocity, replayed.velocity);
+    EXPECT_EQ(ember->scale, replayed.scale);
+    EXPECT_EQ(ember->rotation, replayed.rotation);
+    EXPECT_EQ(ember->light, glm::vec3(0.5f));
+    EXPECT_EQ(javelin.turnDirection, static_cast<float>(expected.Next() % 30 + 30));
+    EXPECT_EQ(tested.random.State(), expected.State());
 
     tested.FillTheParticles();
     javelin.life = 18;
@@ -1654,7 +1676,7 @@ TEST(HighModelEffectsTest, TheJavelinHuntsItsOwnerAndTrailsFire)
                   static_cast<double>(static_cast<float>(static_cast<double>(scale) + static_cast<double>(0.015f))) +
                   static_cast<double>(0.04f)));
     EXPECT_EQ(javelin.life, 17);
-    EXPECT_EQ(tested.Draws(), 1 + 1 + 2);
+    EXPECT_EQ(tested.Draws(), 6 + 2);
 }
 
 // 0x51ed79 y 0x52b4a7: el 0x615 vive 10 y, con dueño y el subtipo 0, se corre (−25, −80, 0) girado por los ángulos del

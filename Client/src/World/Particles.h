@@ -131,6 +131,11 @@ inline constexpr std::int32_t ExplosionParticle = 0x5ed;
 // (0x545ce3) pone el cuadro (+0x48) en (12 − vida) / 3 y 0x5486b6 la dibuja como el fuego (un cuarto del ancho, el
 // cuadro % 4 y el giro de +0x20). El alta termina con el sonido 0x41ed10(0x40, 0, 0): lo hace quien la crea.
 inline constexpr std::int32_t BlazeParticle = 0x5ee;
+// La brasa 6ad (Effect\PoundingBall.jpg) del fuego que rebota 0xc2/5 (la /0, 0x524f05) y de la jabalina 0x139 (la
+// /1, 0x529c69): nace en 0x543939 con vida 24 o 15, tres rand() y la velocidad hacia −y girada por sus ángulos; su paso
+// (0x5478d7) la sube cada vez más rápido, la achica y, la /1, la apaga con la vida. 0x5488f6 la dibuja con el billboard
+// común.
+inline constexpr std::int32_t CinderParticle = 0x6ad;
 // La sangre 5e4 (Effect\blood.tga, 0x61d7c9) que suelta el golpe con daño del paso del ataque (0x50419c, diez sobre el
 // blanco): nace en 0x542b3b con cuatro rand() y la velocidad girada por los ángulos del que pega, su paso (0x546b04)
 // la frena y avanza el cuadro (+0x48), y 548550 la dibuja con los cuadros de dos por dos (0x5487b9). No lee el subtipo.

@@ -682,6 +682,80 @@ TEST(Cl11Particles, TheBlazeLivesTwelveAndWalksItsFourFrames)
     }
 }
 
+// 0x543939 y 0x5478d7: la brasa 0x6ad/0 (vida 24) y /1 (vida 15) nacen con tres rand() (la caída por −0,1f, la
+// escala por 0,01f y el giro) y la luz 0,5; su paso sube la velocidad vertical 0,004f, achica 0,02f, pone el cuadro en
+// (23 − vida) / 6 y sube la z la velocidad vertical por 10; la /1 se apaga con la vida · 0,1f. Otro subtipo nace sin
+// nada propio (vida 2, sin rand()) y comparte el paso. La dibuja el billboard común (0x54889a).
+TEST(Cl11Particles, TheCinderRisesShrinksAndTheJavelinOneFades)
+{
+    for (const std::int32_t subtype : {0, 1, 2})
+    {
+        SCOPED_TRACE(subtype);
+        auto particles = std::make_unique<Particles>();
+        CrtRandom random(Seed);
+        const auto created =
+            particles->CreateChecked(0x6ad, {1, 2, 3}, {0, 0, 0}, glm::vec3(0.8f), subtype, 2.0f, 0.0f, random);
+        ASSERT_TRUE(created.HasValue());
+        ASSERT_TRUE(created.Value().has_value());
+        Particle& cinder = Only(*particles, *created.Value());
+        if (subtype == 2)
+        {
+            EXPECT_EQ(cinder.life, 2);
+            EXPECT_EQ(cinder.scale, 2.0f);
+            EXPECT_EQ(cinder.velocity, glm::vec3(0.0f));
+            EXPECT_EQ(cinder.light, glm::vec3(0.8f));
+            EXPECT_EQ(random.State(), CrtRandom(Seed).State());
+        }
+        else
+        {
+            Draws draws;
+            const int fall = draws.Next() % 16 + 32;
+            const int size = draws.Next() % 128 + 128;
+            const int turn = draws.Next() % 360;
+            EXPECT_EQ(cinder.life, subtype == 0 ? 24 : 15);
+            EXPECT_EQ(cinder.velocity, glm::vec3(0.0f, F32(static_cast<double>(fall) * D(0xbdcccccdu)), 0.0f));
+            EXPECT_EQ(cinder.scale, F32(static_cast<double>(size) * D(0x3c23d70au)));
+            EXPECT_EQ(cinder.rotation, static_cast<float>(turn));
+            EXPECT_EQ(cinder.light, glm::vec3(0.5f));
+            EXPECT_EQ(random.State(), draws.random.State());
+        }
+        const std::int32_t born = cinder.life;
+        for (int step = 1; step < born; ++step)
+        {
+            SCOPED_TRACE(step);
+            const Particle before = cinder;
+            ASSERT_TRUE(Step(*particles, random, 0.0f).HasValue());
+            const float rise = F32(static_cast<double>(before.verticalSpeed) + D(0x3b83126fu));
+            EXPECT_EQ(cinder.life, born - step);
+            EXPECT_EQ(cinder.verticalSpeed, rise);
+            EXPECT_EQ(cinder.scale, F32(static_cast<double>(before.scale) - D(0x3ca3d70au)));
+            EXPECT_EQ(std::bit_cast<std::int32_t>(cinder.field48), (23 - cinder.life) / 6);
+            EXPECT_EQ(cinder.position.z,
+                      F32(static_cast<double>(rise) * 10.0 + static_cast<double>(before.position.z)));
+            EXPECT_EQ(cinder.position.y,
+                      F32(static_cast<double>(before.velocity.y) + static_cast<double>(before.position.y)));
+            EXPECT_EQ(cinder.light,
+                      subtype == 1 ? glm::vec3(F32(static_cast<double>(cinder.life) * D(0x3dcccccdu))) : before.light);
+            const auto drawn = DrawOneParticle(cinder, glm::vec2(64, 64), std::uint8_t{4});
+            ASSERT_TRUE(drawn.HasValue());
+            ASSERT_TRUE(drawn.Value().has_value());
+            EXPECT_EQ(drawn.Value()->texture, 0x6ad);
+            EXPECT_EQ(drawn.Value()->rotation, cinder.rotation);
+            EXPECT_EQ(drawn.Value()->uv, glm::vec2(0.0f));
+            EXPECT_EQ(drawn.Value()->uvSize, glm::vec2(1.0f));
+        }
+    }
+    // 0x524f05 y 0x529c69: con las partículas llenas, ni la brasa ni sus rand().
+    auto full = std::make_unique<Particles>();
+    for (Particle& particle : full->All())
+        particle.alive = true;
+    CrtRandom random(Seed);
+    const auto refused = full->CreateChecked(0x6ad, {1, 2, 3}, {}, glm::vec3(1.0f), 1, 1.0f, 0.0f, random);
+    ASSERT_TRUE(refused.HasValue());
+    EXPECT_FALSE(refused.Value().has_value());
+    EXPECT_EQ(random.State(), CrtRandom(Seed).State());
+}
+
 TEST(Cl11Particles, TheNewTypesGoToTheirBillboards)
 {
     using Kind = std::tuple<std::int32_t, std::int32_t, bool>;

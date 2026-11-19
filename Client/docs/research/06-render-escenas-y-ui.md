@@ -8650,6 +8650,14 @@ crea); su paso (`0x545ce3`) pone el cuadro `+0x48` en `(12 − vida) / 3` y `0x5
 fuego (un cuarto del ancho, el cuadro `% 4` y el giro de `+0x20`). La piden el fin del `0x6ac` (`0x51ffd5`, escala 4) y
 el joint `0x632/6` en sus diez primeros pasos (`0x53bf6e`, escala 3).
 
+**La brasa `0x6ad`** (`Effect\PoundingBall.jpg`, en `Particles.cpp`, tercera vuelta): la /0 nace en `0x543939` con vida
+24 y la /1 en `0x5439ca` con 15, las dos con tres `rand()`: la velocidad `(0; −(rand() % 16 + 32) · 0,1f; 0)` (el
+`fild` por `0x6b8930`), la escala `(rand() % 128 + 128) · 0,01f` y el giro `rand() % 360`, con la luz en 0,5. Otro
+subtipo sale por `0x54304c` sin nada propio. El paso (`0x5478d7`, con cualquier subtipo) sube la velocidad vertical
+0,004f, achica la escala 0,02f, pone el cuadro `+0x48` en `(23 − vida) / 6` (que nadie lee: la dibuja el billboard
+común, `0x54889a`) y sube la z la velocidad vertical por 10; la /1 apaga la luz con la vida · 0,1f. La piden el fuego
+que rebota `0xc2/5` (la /0, `0x524f05`) y la jabalina `0x139` por debajo de 20 de vida (la /1, `0x529c69`).
+
 ### Las partículas de la fuente en el juego
 
 **Estático**, `0x603011..0x60313f`: después del rand común del objeto, luz1 y V calculada con NEG

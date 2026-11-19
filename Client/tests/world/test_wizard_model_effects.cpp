@@ -519,26 +519,52 @@ TEST(WizardModelEffectsTest, TheFallingFireLandsWhenNobodyIsClose)
     }
 }
 
-TEST(WizardModelEffectsTest, TheBouncingFireNeedsItsEmberParticle)
+// 0x524f05: con rand() % 5 distinto de 0, el 0xc2/5 suelta la brasa 6ad/0 en su posición y con sus ángulos (la luz
+// la pisa el alta con 0,5) y termina el paso; con las partículas llenas, sin la brasa ni sus tres rand().
+TEST(WizardModelEffectsTest, TheBouncingFireDropsItsEmber)
 {
-    Harness world;
-    world.ground = -1000.0;
-    CrtRandom random(12);
-    ModelEffect& fire = world.At(Create(world, Arguments(0xc2, 5), random));
-    CrtRandom oracle = random;
-    static_cast<void>(oracle.Next());
-    const bool ember = oracle.Next() % 5 != 0;
-    const auto stepped = Client::World::StepWizardModelEffect(fire, nullptr, random, world.Services());
-    if (ember)
+    for (const bool full : {false, true})
     {
-        ASSERT_FALSE(stepped.HasValue());
-        EXPECT_NE(stepped.Error().find("0x524f05"), std::string::npos);
+        SCOPED_TRACE(full);
+        Harness world;
+        world.ground = -1000.0;
+        CrtRandom random(12);
+        ModelEffect& fire = world.At(Create(world, Arguments(0xc2, 5), random));
+        if (full)
+            for (auto& particle : world.particles->All())
+                particle.alive = true;
+        CrtRandom oracle = random;
+        static_cast<void>(oracle.Next());
+        ASSERT_NE(oracle.Next() % 5, 0);
+        const auto stepped = Client::World::StepWizardModelEffect(fire, nullptr, random, world.Services());
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(fire.objectState.hiddenMesh, 0);
+        EXPECT_EQ(fire.transform.position.z, 300.0f + 5.0f);
+        EXPECT_EQ(fire.turnDirection, 3.0f);
+        if (full)
+        {
+            EXPECT_EQ(random.State(), oracle.State());
+            continue;
+        }
+        ASSERT_EQ(world.ParticlesOf(0x6ad, 0), 1U);
+        const auto it =
+            std::ranges::find_if(std::as_const(*world.particles).All(), [](const Client::World::Particle& particle)
+                                 { return particle.alive && particle.type == 0x6ad; });
+        const Client::World::Particle& ember = *it;
+        Client::World::Particles twin;
+        const auto made =
+            twin.CreateChecked(0x6ad, ember.start, fire.transform.angles, glm::vec3(1.0f), 0, 1.0f, 1000.0f, oracle);
+        ASSERT_TRUE(made.HasValue() && made.Value().has_value());
+        const Client::World::Particle& expected = twin.All()[0];
+        EXPECT_EQ(random.State(), oracle.State());
+        EXPECT_EQ(ember.angles, fire.transform.angles);
+        EXPECT_EQ(ember.life, 24);
+        EXPECT_EQ(ember.life, expected.life);
+        EXPECT_EQ(ember.velocity, expected.velocity);
+        EXPECT_EQ(ember.scale, expected.scale);
+        EXPECT_EQ(ember.rotation, expected.rotation);
+        EXPECT_EQ(ember.light, glm::vec3(0.5f));
     }
-    else
-        EXPECT_TRUE(stepped.HasValue());
-    EXPECT_EQ(fire.objectState.hiddenMesh, 0);
-    EXPECT_EQ(fire.transform.position.z, 300.0f + 5.0f);
-    EXPECT_EQ(fire.turnDirection, 3.0f);
 }
 
 // 0x522dff y 0x522c0e: el 0xcf/0 suelta su humo 5f2/3 antes de sus joints y el 0xce/0 cuatro, antes de su luz; los dos

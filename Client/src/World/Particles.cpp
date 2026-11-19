@@ -293,6 +293,49 @@ Core::Expected<void, ParticleError> StepTheExplosion(Particle& particle, Particl
     return {};
 }
 
+// 0x543939..0x5439c9 (la /0) y 0x5439ca..0x543a5c (la /1): vida 24 o 15, la velocidad (0; −(rand() % 16 + 32) ·
+// 0,1f; 0) del fild por −0,1f (0x6b8930), la escala (rand() % 128 + 128) · 0,01f (0x6b88d4), la luz 0,5 y el giro
+// rand() % 360. Tres rand(); con otro subtipo, 0x54304c sin nada propio.
+void CreateTheCinder(Particle& particle, Render::Models::CrtRandom& random)
+{
+    if (particle.subtype != 0 && particle.subtype != 1)
+        return;
+    constexpr double Fall = static_cast<double>(std::bit_cast<float>(0xbdcccccdu));
+    constexpr double Hundredth = static_cast<double>(std::bit_cast<float>(0x3c23d70au));
+    constexpr float Half = std::bit_cast<float>(0x3f000000u);
+    constexpr std::int32_t MeteorLife = 24, JavelinLife = 15;
+    particle.life = particle.subtype == 0 ? MeteorLife : JavelinLife;
+    particle.velocity.x = 0.0f;
+    const int fall = static_cast<int>(random.Next() & 15) + 32;
+    particle.velocity.z = 0.0f;
+    particle.velocity.y = F32(static_cast<double>(fall) * Fall);
+    const int size = static_cast<int>(random.Next() & 127) + 128;
+    particle.scale = F32(static_cast<double>(size) * Hundredth);
+    const int turn = static_cast<int>(random.Next() % 360);
+    particle.light = glm::vec3(Half);
+    particle.rotation = static_cast<float>(turn);
+}
+
+// 0x5478d7..0x54793a, después de la vida y del movimiento común, con cualquier subtipo: la velocidad vertical sube
+// 0,004f (0x6b89e8), la escala baja 0,02f (0x6b8b90), el cuadro (+0x48) es (23 − vida) / 6 (imul por 0x2aaaaaab,
+// hacia 0) y la z sube la velocidad vertical (releída del float) por 10. La /1 se apaga con la vida · 0,1f
+// (0x6b8a34), un fst por canal.
+void StepTheCinder(Particle& particle)
+{
+    constexpr double Rise = static_cast<double>(std::bit_cast<float>(0x3b83126fu));
+    constexpr double Shrink = static_cast<double>(std::bit_cast<float>(0x3ca3d70au));
+    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
+    constexpr std::int32_t FrameEnd = 23, FrameLength = 6;
+    particle.verticalSpeed = F32(static_cast<double>(particle.verticalSpeed) + Rise);
+    const std::int32_t life = particle.life;
+    particle.scale = F32(static_cast<double>(particle.scale) - Shrink);
+    particle.field48 = std::bit_cast<float>((FrameEnd - life) / FrameLength);
+    particle.position.z =
+        F32(static_cast<double>(particle.verticalSpeed) * 10.0 + static_cast<double>(particle.position.z));
+    if (particle.subtype == 1)
+        particle.light = glm::vec3(F32(static_cast<double>(life) * Tenth));
+}
+
 // 0x54271f..0x542838 con el subtipo 0: la vida, la posición corrida en x y en y, la escala en la x87 (fild, por la
 // escala del pedido y por 0,01f), la velocidad girada por AngleMatrix de los ángulos del pedido (0x5fc8f0 y
 // 0x5fcbd0) y el giro x en rand() % 360. Cuatro rand().
@@ -893,6 +936,9 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
         return subtype >= 0 && subtype <= 2 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     // 0x542a94 y 0x545ce3: la 5ee no lee el subtipo.
     if (type == BlazeParticle)
+        return std::nullopt;
+    // 0x543939 y 0x5478d7: la 6ad trata cualquier subtipo (los de fuera de /0 y /1 nacen sin nada propio).
+    if (type == CinderParticle)
         return std::nullopt;
     if (type == ArrivalDustParticle)
         return subtype == 1 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
@@ -2119,6 +2165,11 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
             CreateTheExplosion(particle, scale);
             return std::optional(index);
         }
+        if (type == CinderParticle)
+        {
+            CreateTheCinder(particle, random);
+            return std::optional(index);
+        }
         if (type == BlazeParticle)
         {
             // 0x542a94..0x542aa4: vida 12 y la escala del pedido otra vez en +0x10. El sonido de 0x542aa7, quien la
@@ -2500,6 +2551,10 @@ StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random, const
             const auto stepped = StepTheExplosion(particle, particles, random, worldClock, lighting, sound);
             if (!stepped.HasValue())
                 return stepped;
+        }
+        else if (particle.type == CinderParticle)
+        {
+            StepTheCinder(particle);
         }
         else if (particle.type == BlazeParticle)
         {

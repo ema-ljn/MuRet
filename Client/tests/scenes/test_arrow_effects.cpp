@@ -482,9 +482,9 @@ TEST(ArrowEffectsTest, TheArrowsOfUnportedEffectsCut)
         std::string_view stepCut;
         int stepDraws;
     };
-    const std::array cases{
-        Case{"4/20", 0xffff, 0x814, "0x51c713", 1, "", 0}, Case{"4/21", 0xffff, 0x815, "0x51c56c", 0, "", 0},
-        Case{"4/6", 0xffff, 0x806, "", 0, "0x526a8b", 1 + 4}};
+    const std::array cases{Case{"4/20", 0xffff, 0x814, "0x51c713", 1, "", 0},
+                           Case{"4/21", 0xffff, 0x815, "0x51c56c", 0, "", 0},
+                           Case{"4/6", 0xffff, 0x806, "", 0, "0x526a8b", 1 + 4}};
     for (const Case& probe : cases)
     {
         SCOPED_TRACE(probe.name);

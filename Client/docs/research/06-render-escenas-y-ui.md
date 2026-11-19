@@ -14728,8 +14728,9 @@ El dibujo (`Scenes/WizardEffectDrawing`, desde `DrawPlainModelEffect`): `0x52d62
 `0xcf/3..7` es una calcomanía del piso y el `0xbd` no se dibuja). En `0x6002e0`, después de la malla oculta −2:
 
 - `0x6004aa`: con `+0x74` en `0x80` (el `0xd0`, el `0xcc/1` y las grietas de subtipo 1), `RenderBody(0x82, …)` y sale:
-  el pase de cada malla con la mezcla que oscurece (`ZERO / ONE_MINUS_SRC_COLOR`). Sin la pose publicada, la posa como
-  `0x5ffdf0`.
+  el pase de cada malla con la mezcla que oscurece (`ZERO / ONE_MINUS_SRC_COLOR`, `0x620b10`), también la del blendMesh:
+  la rama del blendMesh de `0x4ecc30` (`0x4ed014`) sólo mira la `0x80`, y la `0x40` es de la otra (`0x4ecf57`). Sin la
+  pose publicada, la posa como `0x5ffdf0`.
 - `0x601da8`: el `0xcc/3` y `/4` con el color del modelo en `(0,1f; 0,1f; 10)` y el pase común.
 - `0x601df6`: el `0xcb/2` y `/3` con `(0,5; 0,5; 1)` y `RenderBody(2, …, 0x6e9)`, `Effect\Magic_b.jpg` en cada malla.
   Después (`0x6021fe`) el color del modelo vuelve a `(1, 1, 1)`.

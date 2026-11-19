@@ -10,6 +10,7 @@
 
 #include <bit>
 #include <cstdint>
+#include <optional>
 
 namespace Client::World
 {
@@ -23,23 +24,43 @@ constexpr float SparkCollision = std::bit_cast<float>(0xbf19999au);
 constexpr double SparkFall = 2.0;
 constexpr double FlutterFall = static_cast<double>(std::bit_cast<float>(0x3f19999au));
 constexpr std::int32_t FlutterSparkSubtype = 7;
-// 0x5c5/1, las chispas del bastón 0xc18 (0x50f5a8): vida (rand() & 7) + 8 (0x5403eb..0x5403ff) y el paso del /0.
-constexpr std::int32_t StaffSparkSubtype = 1;
+// La 5c5/1, las chispas del bastón 0xc18 (0x50f5a8), y las de fuera de la tabla: vida (rand() & 7) + 8
+// (0x5403eb..0x5403ff) y el paso del /0.
 constexpr std::int32_t PushSparkSubtype = 2;
 constexpr float PushSparkScale = 2.0f;
 constexpr double PushSparkSpeed = 3.0; // 0x5404b8/0x5404c4, 0x6b86b8.
+// 0x5404cc..0x5404f2: la /4 triplica la escala (0x6b86b8) y multiplica por 10 (0x6b87a8) el vector local.
+constexpr std::int32_t StrongSparkSubtype = 4;
+constexpr double StrongSparkScale = 3.0;
+constexpr double StrongSparkSpeed = 10.0;
+// La /5 lee a su dueño al nacer (0x5403ad): no está.
+constexpr std::int32_t OwnerBirthSparkSubtype = 5;
+// 0x5404f9..0x54053c: la /6 vive (rand() & 3) + 4, toma la escala del pedido, la textura 0x5c6, la subida en 0 y el
+// vector local (0; (rand() % 20 + 20) · 0,2f (0x6b8854); 0). Su paso cae 0,3f (0x6b89dc), su luz es el 0,9f de edx
+// (0x544807, 0x54481d o 0x544873) y sigue al dueño (0x544fef).
+constexpr std::int32_t OwnedSparkSubtype = 6;
+constexpr std::int32_t OwnedSparkTexture = 0x5c6;
+constexpr double OwnedSparkStep = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu));
+constexpr double OwnedSparkFall = static_cast<double>(std::bit_cast<float>(0x3e99999au));
+constexpr float OwnedSparkLight = std::bit_cast<float>(0x3f666666u);
 constexpr float SparkLifeLight = 0.0625f;
 constexpr float ShinyTurn = 12.0f;
 } // namespace
 
+// 0x540333..0x54055a: la 5c5 trata cualquier subtipo; la /0, /2, /3, /4 y /6 salen con su vector, la /7 con su vida y
+// las demás (la /1 y las de fuera) por el camino de la /1 (0x5403eb). La /5 lee a su dueño al nacer y no está.
 bool IsNoriaParticle(std::int32_t type, std::int32_t subtype)
 {
     return (type == ShinyParticle && (subtype == 0 || subtype == 1)) ||
-           (type == FairySparkParticle && (subtype == 0 || subtype == StaffSparkSubtype ||
-                                           subtype == PushSparkSubtype || subtype == FlutterSparkSubtype));
+           (type == FairySparkParticle && subtype != OwnerBirthSparkSubtype);
 }
 
-void CreateNoriaParticle(Particle& particle, Render::Models::CrtRandom& random)
+bool IsOwnedFairySpark(std::int32_t type, std::int32_t subtype)
+{
+    return type == FairySparkParticle && subtype == OwnedSparkSubtype;
+}
+
+void CreateNoriaParticle(Particle& particle, float scale, Render::Models::CrtRandom& random)
 {
     if (particle.type == ShinyParticle)
     {
@@ -57,7 +78,9 @@ void CreateNoriaParticle(Particle& particle, Render::Models::CrtRandom& random)
         particle.life = random.Next() % FlutterLifeSpan + FlutterLifeSpan;
         return;
     }
-    if (particle.subtype == StaffSparkSubtype)
+    const std::int32_t subtype = particle.subtype;
+    if (subtype != 0 && subtype != PushSparkSubtype && subtype != 3 && subtype != StrongSparkSubtype &&
+        subtype != OwnedSparkSubtype)
     {
         // 0x5403eb..0x540406: sólo la vida, sin giro ni velocidad; la suma de la escala del argumento es del /7.
         constexpr int StaffLifeMask = 7, StaffLifeBase = 8;
@@ -69,16 +92,31 @@ void CreateNoriaParticle(Particle& particle, Render::Models::CrtRandom& random)
     const auto matrix = Render::Models::OriginalAngleMatrix(particle.angles);
     particle.verticalSpeed = static_cast<float>((random.Next() & 15) + 6);
     float forward = static_cast<float>(static_cast<double>(random.Next() % 20 + 20) * SparkScaleStep);
-    if (particle.subtype == PushSparkSubtype)
+    if (subtype == PushSparkSubtype)
     {
         // 0x5404ad..0x5404ca: después de los cinco sorteos y de la matriz, antes de girar el vector local.
         particle.scale *= PushSparkScale;
         forward = static_cast<float>(static_cast<double>(forward) * PushSparkSpeed);
     }
+    else if (subtype == StrongSparkSubtype)
+    {
+        particle.scale = static_cast<float>(static_cast<double>(particle.scale) * StrongSparkScale);
+        forward = static_cast<float>(static_cast<double>(forward) * StrongSparkSpeed);
+    }
+    else if (subtype == OwnedSparkSubtype)
+    {
+        constexpr int OwnedLifeMask = 3, OwnedLifeBase = 4;
+        particle.life = (random.Next() & OwnedLifeMask) + OwnedLifeBase;
+        particle.scale = scale;
+        particle.verticalSpeed = 0.0f;
+        particle.texture = OwnedSparkTexture;
+        forward = static_cast<float>(static_cast<double>(random.Next() % 20 + 20) * OwnedSparkStep);
+    }
     particle.velocity = Render::Models::OriginalVectorRotate(glm::vec3(0.0f, forward, 0.0f), matrix);
 }
 
-Core::Expected<void, ParticleError> StepNoriaParticle(Particle& particle, const ParticleTerrainHeight& terrainHeight)
+Core::Expected<void, ParticleError> StepNoriaParticle(Particle& particle, const ParticleTerrainHeight& terrainHeight,
+                                                      const ParticleOwnerStates& ownerStates)
 {
     if (particle.type == ShinyParticle)
     {
@@ -102,8 +140,11 @@ Core::Expected<void, ParticleError> StepNoriaParticle(Particle& particle, const 
     const float light = static_cast<float>(static_cast<double>(particle.life) * SparkLifeLight);
     particle.light = glm::vec3(light);
     particle.position.z = static_cast<float>(static_cast<double>(particle.position.z) + particle.verticalSpeed);
-    particle.verticalSpeed = static_cast<float>(static_cast<double>(particle.verticalSpeed) -
-                                                (particle.subtype == FlutterSparkSubtype ? FlutterFall : SparkFall));
+    const bool owned = particle.subtype == OwnedSparkSubtype;
+    const double fall = owned ? OwnedSparkFall : particle.subtype == FlutterSparkSubtype ? FlutterFall : SparkFall;
+    if (owned)
+        particle.light = glm::vec3(OwnedSparkLight);
+    particle.verticalSpeed = static_cast<float>(static_cast<double>(particle.verticalSpeed) - fall);
     if (!terrainHeight)
         return Core::Unexpected(ParticleError::MissingTerrainHeight);
     const double height = terrainHeight(particle.position.x, particle.position.y);
@@ -113,9 +154,31 @@ Core::Expected<void, ParticleError> StepNoriaParticle(Particle& particle, const 
         particle.verticalSpeed = static_cast<float>(static_cast<double>(particle.verticalSpeed) * SparkCollision);
         particle.life -= 4;
     }
-    for (int axis = 0; axis < 3; ++axis)
-        particle.position[axis] =
-            static_cast<float>(static_cast<double>(particle.position[axis]) + particle.velocity[axis]);
+    if (!owned)
+    {
+        for (int axis = 0; axis < 3; ++axis)
+            particle.position[axis] =
+                static_cast<float>(static_cast<double>(particle.position[axis]) + particle.velocity[axis]);
+        return {};
+    }
+    // 0x544fbd..0x545040: la y y la z guardadas en float (0x544fd2, 0x544fde) y la x retenida; después restan lo que
+    // se movió el dueño (+0x40) desde la partida (+0x6c), que pasa a ser su posición.
+    const double x = static_cast<double>(particle.velocity.x) + static_cast<double>(particle.position.x);
+    particle.position.x = static_cast<float>(x);
+    const float y = static_cast<float>(static_cast<double>(particle.velocity.y) + particle.position.y);
+    particle.position.y = y;
+    const float z = static_cast<float>(static_cast<double>(particle.velocity.z) + particle.position.z);
+    particle.position.z = z;
+    const auto owner = ownerStates ? ownerStates(particle.typedOwner) : std::nullopt;
+    if (!owner)
+        return Core::Unexpected(ParticleError::MissingOwner);
+    const double movedX = static_cast<double>(particle.start.x) - static_cast<double>(owner->position.x);
+    const float movedY = static_cast<float>(static_cast<double>(particle.start.y) - owner->position.y);
+    const float movedZ = static_cast<float>(static_cast<double>(particle.start.z) - owner->position.z);
+    particle.start = owner->position;
+    particle.position.x = static_cast<float>(x - movedX);
+    particle.position.y = static_cast<float>(static_cast<double>(y) - movedY);
+    particle.position.z = static_cast<float>(static_cast<double>(z) - movedZ);
     return {};
 }
 } // namespace Client::World

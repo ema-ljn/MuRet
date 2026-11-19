@@ -1,13 +1,18 @@
 #include "Render/Models/Cloth.h"
+#include "Render/Models/OriginalRotation.h"
 #include "support/ParticleDrawRecorder.h"
+#include "World/ParticleOwner.h"
 #include "World/Particles.h"
+#include "World/PortableParticleTrigonometry.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
 #include <bit>
 #include <cstdint>
+#include <functional>
 #include <memory>
+#include <optional>
 
 namespace
 {
@@ -197,6 +202,159 @@ TEST(NoriaParticlesTest, TheStaffSparkDrawsOnlyItsScaleAndItsLife)
         EXPECT_EQ(particle.velocity, glm::vec3(0));
         EXPECT_EQ(random.State(), draws.State());
     }
+}
+
+// 0x540333..0x54055a: la /3 nace como la /0; la /4 triplica la escala y multiplica por 10 el vector local (0x5404cc);
+// las de fuera de la tabla (la /9, la −1) van por el camino de la /1 (0x5403eb). La /5 lee a su dueño al nacer
+// (0x5403ad) y no está.
+TEST(NoriaParticlesTest, TheOtherFairySparksFollowTheirBranch)
+{
+    for (const std::uint32_t seed : {1u, 7u, 99u})
+    {
+        SCOPED_TRACE(seed);
+        auto ordinary = std::make_unique<Client::World::Particles>();
+        Client::Render::Models::CrtRandom first(seed);
+        const auto base = ordinary->CreateChecked(0x5c5, {10, 20, 30}, {170, 0, 12}, {1, 1, 1}, 0, 1, 0, first);
+        ASSERT_TRUE(base.HasValue());
+        ASSERT_TRUE(base.Value().has_value());
+        const auto& original = ordinary->All()[*base.Value()];
+        for (const int subtype : {3, 4})
+        {
+            SCOPED_TRACE(subtype);
+            auto particles = std::make_unique<Client::World::Particles>();
+            Client::Render::Models::CrtRandom random(seed);
+            const auto created =
+                particles->CreateChecked(0x5c5, {10, 20, 30}, {170, 0, 12}, {1, 1, 1}, subtype, 1, 0, random);
+            ASSERT_TRUE(created.HasValue());
+            ASSERT_TRUE(created.Value().has_value());
+            const auto& particle = particles->All()[*created.Value()];
+            const bool strong = subtype == 4;
+            EXPECT_EQ(particle.scale,
+                      strong ? static_cast<float>(static_cast<double>(original.scale) * 3.0) : original.scale);
+            EXPECT_EQ(particle.life, original.life);
+            EXPECT_EQ(particle.angles, original.angles);
+            EXPECT_EQ(particle.verticalSpeed, original.verticalSpeed);
+            Client::Render::Models::CrtRandom draws(seed);
+            for (int draw = 0; draw < 4; ++draw)
+                static_cast<void>(draws.Next());
+            const auto forward = static_cast<float>(static_cast<double>(draws.Next() % 20 + 20) *
+                                                    static_cast<double>(std::bit_cast<float>(0x3dcccccdu)));
+            const float local = strong ? static_cast<float>(static_cast<double>(forward) * 10.0) : forward;
+            EXPECT_EQ(particle.velocity,
+                      Client::Render::Models::OriginalVectorRotate(
+                          glm::vec3(0.0f, local, 0.0f), Client::Render::Models::OriginalAngleMatrix(original.angles)));
+            EXPECT_EQ(random.State(), first.State());
+        }
+        for (const int subtype : {9, -1})
+        {
+            SCOPED_TRACE(subtype);
+            auto particles = std::make_unique<Client::World::Particles>();
+            Client::Render::Models::CrtRandom random(seed);
+            Client::Render::Models::CrtRandom draws(seed);
+            const auto created =
+                particles->CreateChecked(0x5c5, {10, 20, 30}, {0, 0, 30}, {1, 1, 1}, subtype, 1, 0, random);
+            ASSERT_TRUE(created.HasValue());
+            ASSERT_TRUE(created.Value().has_value());
+            const auto& particle = particles->All()[*created.Value()];
+            EXPECT_EQ(particle.scale, static_cast<float>(((draws.Next() & 3) + 4) * static_cast<double>(0.1f)));
+            EXPECT_EQ(particle.life, (draws.Next() & 7) + 8);
+            EXPECT_EQ(particle.velocity, glm::vec3(0));
+            EXPECT_EQ(random.State(), draws.State());
+        }
+    }
+    auto particles = std::make_unique<Client::World::Particles>();
+    Client::Render::Models::CrtRandom random(7);
+    const auto owned = particles->CreateChecked(0x5c5, {10, 20, 30}, {}, {1, 1, 1}, 5, 1, 0, random);
+    ASSERT_FALSE(owned.HasValue());
+    EXPECT_EQ(owned.Error(), Client::World::ParticleError::UnsupportedSubtype);
+    EXPECT_EQ(random.State(), 7u);
+}
+
+// 0x5404f9..0x54053c: la /6 (la de 0x529f71) saca los cinco rand() de la /0, después la vida (rand() & 3) + 4 y el
+// vector local (0; (rand() % 20 + 20) · 0,2f; 0); toma la escala del pedido, la textura 0x5c6 y la subida en 0. Con
+// CreateOwnedChecked guarda a su dueño.
+TEST(NoriaParticlesTest, TheOwnedFairySparkDrawsSevenTimesAndKeepsItsOwner)
+{
+    for (const std::uint32_t seed : {1u, 7u, 99u})
+    {
+        SCOPED_TRACE(seed);
+        auto particles = std::make_unique<Client::World::Particles>();
+        Client::Render::Models::CrtRandom random(seed);
+        const Client::World::ParticleOwner owner{Client::World::ParticleOwnerKind::ModelEffect, 4};
+        const auto created = particles->CreateOwnedChecked(0x5c5, {10, 20, 30}, {170, 0, 12}, {0.5f, 0.5f, 0.5f}, 6,
+                                                           1.5f, 0.0f, random, 0, owner);
+        ASSERT_TRUE(created.HasValue());
+        ASSERT_TRUE(created.Value().has_value());
+        const auto& particle = particles->All()[*created.Value()];
+        Client::Render::Models::CrtRandom draws(seed);
+        static_cast<void>(draws.Next());
+        static_cast<void>(draws.Next());
+        const auto yaw = static_cast<float>(draws.Next() % 360);
+        static_cast<void>(draws.Next());
+        static_cast<void>(draws.Next());
+        const int life = (draws.Next() & 3) + 4;
+        const auto forward = static_cast<float>(static_cast<double>(draws.Next() % 20 + 20) *
+                                                static_cast<double>(std::bit_cast<float>(0x3e4ccccdu)));
+        const glm::vec3 angles{170.0f, 0.0f, yaw};
+        EXPECT_EQ(particle.life, life);
+        EXPECT_EQ(particle.scale, 1.5f);
+        EXPECT_EQ(particle.texture, 0x5c6);
+        EXPECT_EQ(particle.verticalSpeed, 0.0f);
+        EXPECT_EQ(particle.angles, angles);
+        EXPECT_EQ(particle.velocity,
+                  Client::Render::Models::OriginalVectorRotate(glm::vec3(0.0f, forward, 0.0f),
+                                                               Client::Render::Models::OriginalAngleMatrix(angles)));
+        EXPECT_EQ(particle.typedOwner, owner);
+        EXPECT_EQ(random.State(), draws.State());
+    }
+}
+
+// 0x544f57..0x545040: la /6 cae 0,3f, su luz es 0,9f, se mueve y resta lo que el dueño se corrió desde su partida
+// (la x retenida, la y y la z guardadas); la partida pasa a ser la posición del dueño. Sin dueño, MissingOwner.
+TEST(NoriaParticlesTest, TheOwnedFairySparkMovesWithItsOwner)
+{
+    auto particles = std::make_unique<Client::World::Particles>();
+    auto& particle = particles->All().front();
+    particle.alive = true;
+    particle.type = 0x5c5;
+    particle.texture = 0x5c6;
+    particle.subtype = 6;
+    particle.life = 10;
+    particle.position = {10.5f, 20.25f, 100.0f};
+    particle.start = {5.0f, 5.0f, 5.0f};
+    particle.velocity = {1.0f, 2.0f, 3.0f};
+    particle.verticalSpeed = 4.0f;
+    particle.typedOwner = {Client::World::ParticleOwnerKind::ModelEffect, 4};
+    const auto initial = particle;
+    const glm::vec3 moved{6.0f, 7.0f, 8.0f};
+    Client::World::PortableParticleTrigonometry trigonometry;
+    const float clock = 0.0f;
+    const std::int32_t map = 0;
+    const auto step = [&](const Client::World::ParticleOwnerStates& owners)
+    {
+        Client::Render::Models::CrtRandom random(7);
+        return Client::World::StepParticlesChecked(
+            *particles, random, std::cref(clock), &map, trigonometry, [](float, float) { return 0.0; }, {}, {}, {},
+            nullptr, {}, {}, {}, owners);
+    };
+    const auto stepped = step(
+        [&](const Client::World::ParticleOwner& owner) -> std::optional<Client::World::ParticleOwnerState>
+        {
+            EXPECT_EQ(owner, initial.typedOwner);
+            return Client::World::ParticleOwnerState{.alive = true, .position = moved, .start = std::nullopt};
+        });
+    ASSERT_TRUE(stepped.HasValue());
+    const double fall = static_cast<double>(std::bit_cast<float>(0x3e99999au));
+    EXPECT_EQ(particle.life, 9);
+    EXPECT_EQ(particle.light, glm::vec3(std::bit_cast<float>(0x3f666666u)));
+    EXPECT_EQ(particle.verticalSpeed, static_cast<float>(4.0 - fall));
+    EXPECT_EQ(particle.position, glm::vec3(12.5f, 24.25f, 110.0f));
+    EXPECT_EQ(particle.start, moved);
+
+    particle = initial;
+    const auto lost = step({});
+    ASSERT_FALSE(lost.HasValue());
+    EXPECT_EQ(lost.Error(), Client::World::ParticleError::MissingOwner);
 }
 
 // 0x544f7b: la /7 cae 0,6 (0x6b8a20) por paso; la /0 y la /1, 2 (0x6b8818).

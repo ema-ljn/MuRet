@@ -8632,6 +8632,18 @@ su paso se achica 0,1f y sube 2 antes de lo común (`0x547cc2`). La /1 y la /2 (
 el byte `+0x111` de su dueño en 1, y la /3 y la /4 (`0x547a73`) buscan huesos de su dueño por nombre (`0x6c7608`):
 siguen sin portar.
 
+**La chispa `0x5c5`** (`World/NoriaParticleKernels`, tercera vuelta del lote): el alta (`0x540333..0x54055a`) trata
+cualquier subtipo. Todas sortean la escala `((rand() & 3) + 4) · 0,1f`; la /0, /2, /3, /4 y /6 siguen con la vida
+`(rand() & 15) + 24`, el ángulo z `rand() % 360`, la subida `(rand() & 15) + 6` y el vector local `(0; (rand() % 20 +
+20) · 0,1f; 0)` girado por esos ángulos: la /2 duplica la escala y triplica el vector, la /4 (`0x5404cc`) los multiplica
+por 3 y por 10, y la /6 (`0x5404f9`, la de `0x529f71`, que le pasa el efecto de dueño) vive `(rand() & 3) + 4`, toma la
+escala del pedido, la textura `0x5c6`, la subida en 0 y el vector `(0; (rand() % 20 + 20) · 0,2f; 0)`: siete `rand()`.
+La /7 sólo sortea su vida y las demás (la /1 y las de fuera de la tabla) van por `0x5403eb`, `(rand() & 7) + 8`. La /5
+lee a su dueño al nacer (`0x5403ad`) y sigue sin portar. En el paso (`0x544f29`) la /6 cae 0,3f, su luz es el 0,9f que
+dejó `edx` (`0x544807`) y, después de moverse, resta lo que su dueño se corrió desde la partida (`0x544fef..0x545040`,
+la x retenida y la y y la z guardadas), que pasa a ser la posición del dueño (`CreateOwnedChecked`; sin dueño,
+`MissingOwner`).
+
 ### Las partículas de la fuente en el juego
 
 **Estático**, `0x603011..0x60313f`: después del rand común del objeto, luz1 y V calculada con NEG

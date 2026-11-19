@@ -1968,7 +1968,7 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
         }
         if (IsNoriaParticle(type, subtype))
         {
-            CreateNoriaParticle(particle, random);
+            CreateNoriaParticle(particle, scale, random);
             return std::optional(index);
         }
         if (type == Particle67)
@@ -2382,7 +2382,7 @@ StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random, const
         }
         else if (IsNoriaParticle(particle.type, particle.subtype))
         {
-            const auto stepped = StepNoriaParticle(particle, terrainHeight);
+            const auto stepped = StepNoriaParticle(particle, terrainHeight, ownerStates);
             if (!stepped.HasValue())
                 return stepped;
         }

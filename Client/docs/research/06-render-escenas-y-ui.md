@@ -4263,8 +4263,8 @@ de `0x443d70` en el mapa 55 y la escena 2; los slots, **verificados** en `lor_sl
     Conserva el brillo inicial hasta que la escala supera 2. Cada paso usa
     el sorteo común y reduce la luz del terreno con radio 5 en la nueva
     posición. Antes del paso común publica la acción en `0x52cc21`, con
-    una sola clave que conserva el cuadro. El dibujo de ambos pases usa
-    [la señal de área de MuRet](../../../docs/adr/0023-senal-del-terremoto.md).
+    una sola clave que conserva el cuadro. Sin caso propio en el dibujo, va por
+    `0x52da84` → `0x602e90` con su malla, `Skill\flashing.bmd` (`0x615700`), en los dos pases.
     El creador de Kalima en `0x43b570` conserva las referencias vivas al
     equipo del dueño, que el dibujo del padre lee en `0x52d43a` y `0x52d549`.
   - **Las grietas** `0xfb..0x102` (`Skill\EarthQuake01..08`, `0x6165bc..0x616688`) nacen
@@ -7925,7 +7925,7 @@ se repite. Es el mismo en los dos mapas (`GoldenCharacterStep.TheHeroAtRestDraws
   - en la partícula de las `0x4d`, `0x4f` y `0x5a` (`0x4fdb70`);
   - en los efectos aún no portados de algunos helpers. La partícula `5dc/12` de la estela del `0x194`
     (`0x4fd580`) ya pasa por el pool común antes de cada apéndice impar de la cinta de `0x4fd5a0`;
-    su dibujo reutiliza [el material de llama de MuRet](../../../docs/adr/0025-material-de-la-estela-de-kalima.md).
+    su textura es su tipo (`Effect\Fire05.jpg`, `0x61ddac`) y se dibuja con el atlas girado de `0x548c9c`.
 - Sin Item.bmd, `0x54efe0` corta con equipo que no sea el vacío de la respuesta del F3 03 (Q-C246).
 - Tests: `CharacterStepTest` y `GoldenCharacterStep`, `GameSceneDrawTest.WithoutPlayerBmdTheStepStopsAtTheBody` y
   `ActorConstructionTest.LeavesThePlayerUnseenAndNotDying`.
@@ -11787,7 +11787,8 @@ de la flecha, sus ángulos, su luz, 0, la flecha, −1, 0, 0, 0, 0)` y, se haya 
 1; el caso `0x105` con el subtipo 0 (`0x519fc9`): vida 100, `+0x64` en 0, `+0x68` en 1, `+0xe4` en 0, escala 12 y la
 partida en la posición del dueño. Intenta en orden los cuatro `0x610/0..3` (`0x51a08a..0x51a0ed`) con la
 estela como dueño y luego pide `0x7a` y cambia a escala 1. La estela sigue la flecha en `0x523b8b` y conserva el
-paso de animación común. Su dibujo reutiliza [la señal de MuRet](../../../docs/adr/0024-estela-del-tiro-penetrante.md).
+paso de animación común. Su dibujo es el genérico (`0x52d78f` salta sólo el subtipo 3, `0x52da92` → `0x602e90`)
+con `Piercing.bmd`, que carga `0x615700`.
 El `0xe1`/1 usa el joint `0x610`/0xd. El `0xdb`
 con el subtipo 3 o 4 (`0x51c601`, la del asedio): vida 40, escala 1,5, `+0xe4` en (`rand() % 100` + 50) ·
 `0x3d888889`, la partida en la posición del héroe y, con el 3, la y de la velocidad en −(`rand() % 30` + 50) y la x de

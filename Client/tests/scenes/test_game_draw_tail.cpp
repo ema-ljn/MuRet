@@ -1046,21 +1046,22 @@ TEST(GameDrawTailTest, ModelEffectPublishesItsPoseBeforeGeometryAndNeverForGroun
     EXPECT_EQ(poses, 1);
 }
 
-TEST(GameDrawTailTest, TheEarthquakeBurstDrawsTheAuthoredCueWithoutModelLookups)
+// 0x52d6c3: el pulso 0x103 del terremoto no tiene caso propio y va por 0x52da84 → 0x602e90 con su malla,
+// flashing.bmd (0x615700). Nace con blendMesh 0: en el segundo pase lo filtra 0x52d66a..0x52d693 sólo con −1.
+TEST(GameDrawTailTest, TheEarthquakeBurstDrawsFlashingBmdThroughTheGenericPath)
 {
-    LookupCounter models;
+    TriangleModels models;
     Client::World::SphereFrustum frustum;
     Client::World::ModelEffect burst;
     burst.alive = true;
     burst.type = Client::World::EarthquakeBurstEffect;
     burst.objectState.blendMesh = 0;
-    burst.objectState.light = 0.5f;
+    burst.alpha = 1;
     burst.transform.scale = 0.5f;
     Client::Render::ModelBatch batch;
     const auto drawn =
         Client::Scenes::DrawGameModelEffects(batch, models, std::span(&burst, 1), frustum, nullptr, {}, 0, 0);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
-    EXPECT_EQ(models.lookups, 0);
     EXPECT_FALSE(batch.Vertices().empty());
     Client::Render::ModelBatch secondary;
     const auto drawnAgain =
@@ -1072,8 +1073,15 @@ TEST(GameDrawTailTest, TheEarthquakeBurstDrawsTheAuthoredCueWithoutModelLookups)
     const auto skipped =
         Client::Scenes::DrawGameModelEffects(excluded, models, std::span(&burst, 1), frustum, nullptr, {}, 0, 1);
     ASSERT_TRUE(skipped.HasValue()) << skipped.Error();
-    EXPECT_EQ(models.lookups, 0);
     EXPECT_TRUE(excluded.Vertices().empty());
+    // Sin flashing.bmd la cuenta de mallas es 0 (0x60dbe0): el primer pase no dibuja nada y no corta.
+    burst.objectState.blendMesh = 0;
+    models.missingModel = Client::World::EarthquakeBurstEffect;
+    Client::Render::ModelBatch missing;
+    const auto withoutModel =
+        Client::Scenes::DrawGameModelEffects(missing, models, std::span(&burst, 1), frustum, nullptr, {}, 0, 0);
+    ASSERT_TRUE(withoutModel.HasValue()) << withoutModel.Error();
+    EXPECT_TRUE(missing.Vertices().empty());
 }
 
 // 0x52d620 → 0x52d400: el terremoto 0xfa del caballo (estado 2) no se dibuja ni busca modelos, en ninguna vida. Las

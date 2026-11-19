@@ -52,7 +52,7 @@ inline constexpr std::int32_t ShinyParticle = 0x5fc;
 inline constexpr std::int32_t ThunderParticle = 0x5ca;
 inline constexpr std::int32_t FairySparkParticle = 0x5c5;
 inline constexpr std::int32_t FireParticle = 0x5d9;
-// 0x4fd580/0x43ebb7: identidad nativa; MuRet reutiliza el material 5d9, con aspecto de llama genérica.
+// 0x4fd580/0x43ebb7: la llama azul de la estela de Kalima, con su textura Effect\Fire05.jpg (0x61ddac).
 inline constexpr std::int32_t BlueTrailFireParticle = 0x5dc;
 inline constexpr std::int32_t BlueTrailFireSubtype = 12;
 inline constexpr std::int32_t DropParticle = 0x607;
@@ -208,7 +208,7 @@ public:
     // 0x53fe70(tipo, posición, ángulos, luz, subtipo, escala, dueño) en el primer lugar libre, con el reloj
     // del mundo (DAT_05767b88, en ms) y el rand() de la CRT. Con los 3.000 llenos no se crea ni saca
     // rand(). Se aceptan5ca/0, 5e4 (cualquier subtipo), 5f2/0,2,11,21,33, 5f3/0, 5ed/0, 5c6/1,5,9,11, 622/6,8,9,10,
-    // 5d9/0..3,5,8, 5dc/12 (material genérico 5d9), 607/0, 67/0,
+    // 5d9/0..3,5,8, 5dc/12, 607/0, 67/0,
     // 68/0, 698/0, 6ab/0,1 y 6ac/0,1; la órbita 60f/0,3,4,10 pide el overload con la trigonometría. Create es la
     // compatibilidad login; Core usa CreateChecked para distinguir errores de pool lleno. La neblina consume cinco
     // rand() y conserva +0x60 del uso anterior del lugar. 622/8 consume siete rand().

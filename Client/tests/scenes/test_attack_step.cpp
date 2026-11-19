@@ -1110,7 +1110,7 @@ TEST(AttackStepTest, TheElfBowShootsAndThenTheSkillVolley)
 }
 
 // 0x4fd236..0x4fd5bb: durante la acción 0x23, el cuerpo completo de un jugador con la espada 0x222 en la mano derecha
-// produce la cinta naranja de nivel 13 y sigue por 0x4fd5f0 sin cortar.
+// produce la cinta naranja de nivel 13 y sigue por 0x4fd5f0 sin cortar. La cinta envejece al final de cada paso.
 TEST(AttackStepTest, AVisibleMeleeWeaponSurvivesTheFullAttackBodyPipeline)
 {
     constexpr int Steps = 4;
@@ -1153,7 +1153,9 @@ TEST(AttackStepTest, AVisibleMeleeWeaponSurvivesTheFullAttackBodyPipeline)
     EXPECT_EQ(ribbon->ownerContext, &hero);
     EXPECT_EQ(ribbon->ownerEquipment, &hero.level);
     EXPECT_EQ(ribbon->type, 0);
-    EXPECT_EQ(ribbon->count, 29); // 52e454: cuatro tandas de diez saturan en 29.
+    // 52e454 satura en 29 y 0x5091d0, al final de cada paso de personajes, saca uno: 10−1, 19−1, 28−1 y 29−1.
+    EXPECT_EQ(ribbon->count, 28);
+    EXPECT_EQ(ribbon->life, 30 - Steps);
     EXPECT_EQ(ribbon->light, (glm::vec3{1.0f, 0.6f, 0.2f}));
 }
 

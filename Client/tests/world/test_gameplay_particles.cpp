@@ -30,6 +30,8 @@ using Client::Tests::RecordedParticleDraw;
 using Client::World::Particle;
 using Client::World::Particles;
 constexpr std::int32_t Fire = 0x5d9;
+// 0x5dc, la llama azul de la estela de Kalima: su textura es su tipo (Effect\Fire05.jpg, 0x61ddac).
+constexpr std::int32_t BlueFire = 0x5dc;
 constexpr std::int32_t Smoke = 0x5f2;
 
 std::uint32_t Bits(float value)
@@ -173,8 +175,8 @@ TEST(GameplayParticlesTest, FireCreationKeepsTheFourDistinctScaleAndRandomPaths)
     }
 }
 
-// 0x541197..0x541403: la 5dc/12 conserva el tipo lógico, con la llama existente como material MuRet.
-TEST(GameplayParticlesTest, BlueTrailFireUsesFourRandomsAndTheExistingFlameMaterial)
+// 0x541197..0x541403: la 5dc/12 con su propia textura (0x53feb3 copia el tipo en +0x8 y el caso no la cambia).
+TEST(GameplayParticlesTest, BlueTrailFireUsesFourRandomsAndItsOwnTexture)
 {
     Particles particles;
     CrtRandom random(7);
@@ -183,7 +185,7 @@ TEST(GameplayParticlesTest, BlueTrailFireUsesFourRandomsAndTheExistingFlameMater
     ASSERT_EQ(made.Value(), 0u);
     const Particle& particle = particles.All()[0];
     EXPECT_EQ(particle.type, 0x5dc);
-    EXPECT_EQ(particle.texture, Fire);
+    EXPECT_EQ(particle.texture, BlueFire);
     EXPECT_EQ(particle.subtype, 12);
     EXPECT_EQ(particle.life, 24);
     EXPECT_EQ(particle.position, glm::vec3(100, 200, 300));
@@ -214,8 +216,8 @@ TEST(GameplayParticlesTest, BlueTrailFireAdvancesItsWholeLifeIncludingTheDeathTi
     const float velocity = particle.velocity.y;
     const float clock = 0;
     Client::Tests::ParticleDrawRecorder recorder;
-    recorder.dimensions[Fire] = {128, 64};
-    recorder.materialFlags[Fire] = 3;
+    recorder.dimensions[BlueFire] = {128, 64};
+    recorder.materialFlags[BlueFire] = 3;
     for (int tick = 1; tick <= 24; ++tick)
     {
         (void)expectedRandom.Next();
@@ -248,7 +250,7 @@ TEST(GameplayParticlesTest, BlueTrailFireAdvancesItsWholeLifeIncludingTheDeathTi
             const auto& draw = recorder.draws.front();
             EXPECT_EQ(draw.uv, glm::vec2(static_cast<float>((tick - 1) / 6) * 0.25f, 0));
             EXPECT_EQ(draw.rotation, expectedRotation);
-            EXPECT_EQ(draw.texture, Fire);
+            EXPECT_EQ(draw.texture, BlueFire);
         }
     }
     // El lugar muerto ya no consume su tercer rand; el viento continúa.
@@ -265,7 +267,7 @@ TEST(GameplayParticlesTest, BlueTrailFireDrawKeepsItsAtlasRotationAndFailurePhas
     Particle& particle = particles.All()[0];
     particle = Particle{.alive = true,
                         .type = 0x5dc,
-                        .texture = Fire,
+                        .texture = BlueFire,
                         .subtype = 12,
                         .scale = 1.5f,
                         .position = {100, 200, 300},
@@ -278,16 +280,16 @@ TEST(GameplayParticlesTest, BlueTrailFireDrawKeepsItsAtlasRotationAndFailurePhas
     auto drawn = Client::World::DrawParticlesChecked(particles, 0, std::cref(clock), recorder);
     ASSERT_FALSE(drawn.HasValue());
     EXPECT_EQ(drawn.Error().error.phase, Client::World::ParticleDrawingPhase::Dimensions);
-    recorder.dimensions[Fire] = {128, 64};
+    recorder.dimensions[BlueFire] = {128, 64};
     drawn = Client::World::DrawParticlesChecked(particles, 0, std::cref(clock), recorder);
     ASSERT_FALSE(drawn.HasValue());
     EXPECT_EQ(drawn.Error().error.phase, Client::World::ParticleDrawingPhase::MaterialFlag);
-    recorder.materialFlags[Fire] = 3;
+    recorder.materialFlags[BlueFire] = 3;
     drawn = Client::World::DrawParticlesChecked(particles, 0, std::cref(clock), recorder);
     ASSERT_TRUE(drawn.HasValue());
     ASSERT_EQ(recorder.draws.size(), 1u);
     const auto& draw = recorder.draws[0];
-    EXPECT_EQ(draw.texture, Fire);
+    EXPECT_EQ(draw.texture, BlueFire);
     EXPECT_EQ(draw.rotation, 95);
     EXPECT_EQ(draw.width, 48);
     EXPECT_EQ(draw.height, 96);

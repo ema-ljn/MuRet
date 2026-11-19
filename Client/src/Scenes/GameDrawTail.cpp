@@ -712,22 +712,8 @@ DrawGameModelEffectsChecked(Render::ModelBatch& batch, const IModelLibrary& mode
         effect.seen = World::SphereVisible(frustum, effect.transform.position, 400);
         if (!effect.seen)
             continue;
-        if (effect.type == World::EarthquakeBurstEffect)
-        {
-            // 0x52d66a..0x52d693: el pulso nace con blendMesh 0. Su señal no requiere una malla.
-            const auto blendMesh = effect.objectState.blendMesh;
-            if (mode == 0 || blendMesh == -2 || blendMesh == 0)
-                DrawBattleCue(batch, effect);
-            continue;
-        }
-        if (effect.type == World::CrywolfPulseEffect && effect.subtype == 0)
-        {
-            // 105/0: mismo pase nativo (52d66a), con la señal procedural existente de MuRet en lugar de la malla.
-            const auto blendMesh = effect.objectState.blendMesh;
-            if (mode == 0 || blendMesh == -2 || blendMesh == 0)
-                DrawBattleCue(batch, effect);
-            continue;
-        }
+        // 0x103 (flashing.bmd) y 0x105/0 (Piercing.bmd) no tienen caso propio: 0x52d6c3 y 0x52d78f los mandan a
+        // 0x52da92 → 0x602e90 con su malla, como el resto de 0xbe..0x150 (GenericEffect, más abajo).
         if (World::IsSiegeCue(effect.type, effect.subtype) || World::IsCrywolfCue(effect.type, effect.subtype) ||
             World::IsRisingStoneChip(effect.type, effect.subtype))
         {

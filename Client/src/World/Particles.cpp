@@ -962,8 +962,7 @@ void CreateTheFire(Particle& particle, Render::Models::CrtRandom& random)
         constexpr double ScaleStep = static_cast<double>(0.012f);
         particle.rotation = static_cast<float>(random.Next() % FullTurn);
         particle.scale = F32((static_cast<double>(random.Next() % ScaleSpan + ScaleBase) * particle.scale) * ScaleStep);
-        // Fallback deliberado: atlas de llama ya registrado, conservando tipo y subtipo nativos.
-        particle.texture = FireParticle;
+        // 0x53feb3: la textura es el tipo (0x5dc, Effect\Fire05.jpg de 0x61ddac); el caso no la cambia.
     }
     particle.rotation = static_cast<float>(random.Next() % FullTurn);
 }

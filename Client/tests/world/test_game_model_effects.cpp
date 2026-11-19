@@ -34,6 +34,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <bit>
 #include <cmath>
@@ -184,23 +185,44 @@ TEST(GameModelEffectsTest, TheShortBowTrailPublishesAndAdvancesAnimationEvenOnIt
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 2).State());
 }
 
-TEST(GameModelEffectsTest, TheShortBowTrailDrawsItsAuthoredCueInBothNativePassesWithoutAnImportedModel)
+// 0x52d78f: la estela 0x105 sólo salta el subtipo 3; el 0 sigue por 0x52da92 → 0x602e90 con su malla, Piercing.bmd
+// (0x615700), en los dos pases del mundo. En el segundo, 0x52d66a..0x52d693 la filtra por blendMesh.
+TEST(GameModelEffectsTest, TheShortBowTrailDrawsPiercingBmdInBothNativePasses)
 {
-    class EmptyModels final : public Client::Scenes::IModelLibrary
+    class TriangleModels final : public Client::Scenes::IModelLibrary
     {
     public:
-        const Client::Data::Models::Model* Find(std::uint16_t) const override
+        TriangleModels()
         {
-            return nullptr;
+            Client::Data::Models::Mesh mesh;
+            mesh.vertices = {{0, {0, 0, 0}}, {0, {1, 0, 0}}, {0, {0, 1, 0}}};
+            mesh.normals = {{0, {0, 0, 1}, 0}};
+            mesh.texCoords = {{0, 0}};
+            mesh.triangles = {{3, {0, 1, 2, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}};
+            mesh.textureName = "Piercing.jpg";
+            model.meshes = {mesh};
+            Client::Render::Models::SkeletonBone bone;
+            bone.actions = {{Client::Render::Models::BoneKey{}}};
+            skeleton.bones = {bone};
+            skeleton.actions = {Client::Render::Models::ActionInfo{.keyCount = 1}};
+        }
+        const Client::Data::Models::Model* Find(std::uint16_t id) const override
+        {
+            found.push_back(id);
+            return &model;
         }
         const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
         {
-            return nullptr;
+            return &skeleton;
         }
         std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
         {
-            return {};
+            return textures;
         }
+        Client::Data::Models::Model model;
+        Client::Render::Models::Skeleton skeleton;
+        std::array<Client::Render::TextureSlot, 1> textures{Client::Render::TextureSlot{0x400}};
+        mutable std::vector<std::uint16_t> found;
     } models;
     Client::World::ModelEffect trail;
     trail.alive = true;
@@ -210,14 +232,16 @@ TEST(GameModelEffectsTest, TheShortBowTrailDrawsItsAuthoredCueInBothNativePasses
     const Client::World::SphereFrustum frustum;
     for (const std::uint8_t mode : {std::uint8_t{0}, std::uint8_t{1}, std::uint8_t{2}})
     {
+        SCOPED_TRACE(mode);
+        models.found.clear();
         Client::Render::ModelBatch batch;
         batch.Begin(Client::Render::Pass3D{});
         const auto drawn = Client::Scenes::DrawGameModelEffects(batch, models, std::span(&trail, 1), frustum, nullptr,
                                                                 Client::Core::Duration{}, 1, mode);
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         EXPECT_TRUE(trail.seen);
-        ASSERT_FALSE(batch.Commands().empty());
-        EXPECT_EQ(batch.Commands().front().state.blend, Client::Render::ModelBlend::Additive);
+        ASSERT_FALSE(models.found.empty());
+        EXPECT_TRUE(std::ranges::all_of(models.found, [](std::uint16_t id) { return id == 0x105; }));
         EXPECT_FALSE(batch.Vertices().empty());
     }
     trail.objectState.blendMesh = -1;
@@ -226,7 +250,15 @@ TEST(GameModelEffectsTest, TheShortBowTrailDrawsItsAuthoredCueInBothNativePasses
     ASSERT_TRUE(Client::Scenes::DrawGameModelEffects(filtered, models, std::span(&trail, 1), frustum, nullptr,
                                                      Client::Core::Duration{}, 1, 1)
                     .HasValue());
-    EXPECT_TRUE(filtered.Commands().empty());
+    EXPECT_TRUE(filtered.Vertices().empty());
+    trail.objectState.blendMesh = 0;
+    trail.subtype = 3;
+    Client::Render::ModelBatch skipped;
+    skipped.Begin(Client::Render::Pass3D{});
+    ASSERT_TRUE(Client::Scenes::DrawGameModelEffects(skipped, models, std::span(&trail, 1), frustum, nullptr,
+                                                     Client::Core::Duration{}, 1, 0)
+                    .HasValue());
+    EXPECT_TRUE(skipped.Vertices().empty());
 }
 
 TEST(GameModelEffectsTest, TheShortBowTrailOnlyDisturbsKalimaForThePublishedHeroArrow)

@@ -3,7 +3,8 @@
 El objetivo es cerrar los recorridos de efectos de MuRet que todavía interrumpen una escena o una
 habilidad. Cada lote cubre el alta, el paso, el dibujo y la limpieza que necesita su consumidor.
 El ASM c32bbd5f fija los contratos de ejecución, con el pseudocódigo como guía de lectura.
-Las representaciones nuevas usan efectos visuales propios de MuRet.
+Las representaciones usan los modelos y las texturas del original, que carga `0x615700` y `0x61ccb0` (decisión de
+Emanuel del 2026-11-19); no hay señales visuales propias de MuRet.
 [Roadmap de CL11](../specs/2026-10-30-cliente-design.md#la-ola-de-efectos-visuales-cl11)
 
 ## Base verificada

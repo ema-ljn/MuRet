@@ -28,6 +28,19 @@ struct WorldEntryResources;
 [[nodiscard]] Core::Expected<void, std::string>
 ApplyEffectFlags(ActorState& actor, std::uint32_t flags, bool publishedHero, const WorldEntryResources& resources);
 
+// Los dos sitios de 0x518cf0 de un hielo (para el error).
+struct IceCalls
+{
+    std::uint32_t first = 0;
+    std::uint32_t second = 0;
+};
+
+// El hielo de un personaje: 0x518ac0(0xc1, personaje, 1) y el 0xc1/1 y el /2 (z + 180) con él de dueño, su posición,
+// sus ángulos y su luz +0xf4, que cada alta pisa (World::CreateWizardModelEffect). Lo usan la bandera 0x20 (0x4e67bc)
+// y la respuesta de la 0x33 (0x4cd6bc). Con la tabla llena, nada y sin rand().
+[[nodiscard]] Core::Expected<void, std::string> WrapInIce(ActorState& actor, const WorldEntryResources& resources,
+                                                          const IceCalls& calls);
+
 // 0x42ab40(personaje, banderas): solo en el mapa 30. Con 0x80000, 0x400000 u 0x800000 (el primero que esté, en ese
 // orden), +0x360 en 6, 7 u 8, soltando antes la capa (0x414340) si estaba en 0xc; si no, con 0x40000, +0x360 en 0xc,
 // soltándola antes si estaba en 6, 7 u 8; con ninguno, suelta la capa si +0x360 es 6, 7, 8 o 0xc. Lo que devuelve no

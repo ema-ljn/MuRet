@@ -84,11 +84,14 @@ Core::Expected<void, std::string> ShowTheBlessingNotice(const WorldEntryResource
     return AddGameMessage(resources.world.Runtime(), *resources.textMeasure, screen, {}, *text, SystemMessage);
 }
 
-// 0x4e67bc..0x4e682a, la bandera 0x20 sin su bit: 0x518ac0(0xc1, personaje, 1) apaga sus 0xc1/1 y crea dos
-// 0x518cf0(0xc1, +0x10, ángulos, +0xf4, 1 y 2, personaje, −1, …) con los ángulos del personaje y, en el segundo, la z
-// 180 más (fld, fadd y fstp). La luz es la del personaje (+0xf4), que cada alta pisa con (0,4f; 0,3f; 0,2f)
-// (0x51acd2): el segundo ya la lee pisada. Sus humos 5f2/0 no leen el reloj del mundo.
-Core::Expected<void, std::string> FreezeTheActor(ActorState& actor, const WorldEntryResources& resources)
+} // namespace
+
+// 0x518ac0(0xc1, personaje, 1) apaga sus 0xc1/1 y dos 0x518cf0(0xc1, +0x10, ángulos, +0xf4, 1 y 2, personaje, −1, …)
+// crean el hielo con los ángulos del personaje y, en el segundo, la z 180 más (fld, fadd y fstp). La luz es la del
+// personaje (+0xf4), que cada alta pisa con (0,4f; 0,3f; 0,2f) (0x51acd2): el segundo ya la lee pisada. Sus humos 5f2/0
+// no leen el reloj del mundo.
+Core::Expected<void, std::string> WrapInIce(ActorState& actor, const WorldEntryResources& resources,
+                                            const IceCalls& calls)
 {
     constexpr std::int32_t FirstIce = 1;
     constexpr std::int32_t SecondIce = 2;
@@ -110,12 +113,12 @@ Core::Expected<void, std::string> FreezeTheActor(ActorState& actor, const WorldE
             WizardArguments(World::IceEffect, actor.position, angles, actor.light, subtype, &actor),
             resources.cloth.random, services, &actor.light);
         if (!created.HasValue())
-            return Core::Unexpected(std::format("{:#x}: el 0xc1/{} de la bandera 0x20: {}",
-                                                subtype == FirstIce ? 0x4e67fcu : 0x4e6825u, subtype, created.Error()));
+            return Core::Unexpected(std::format("{:#x}: el 0xc1/{} del hielo: {}",
+                                                subtype == FirstIce ? calls.first : calls.second, subtype,
+                                                created.Error()));
     }
     return {};
 }
-} // namespace
 
 Core::Expected<void, std::string> ApplyEffectFlags(ActorState& actor, std::uint32_t flags, bool publishedHero,
                                                    const WorldEntryResources& resources)
@@ -223,7 +226,9 @@ Core::Expected<void, std::string> ApplyEffectFlags(ActorState& actor, std::uint3
     {
         if (!Has(actor.flags78, Bit20))
         {
-            if (auto frozen = FreezeTheActor(actor, resources); !frozen.HasValue())
+            // 0x4e67bc..0x4e682a.
+            if (auto frozen = WrapInIce(actor, resources, IceCalls{.first = 0x4e67fc, .second = 0x4e6825});
+                !frozen.HasValue())
                 return frozen;
         }
         actor.flags78 |= Bit20;

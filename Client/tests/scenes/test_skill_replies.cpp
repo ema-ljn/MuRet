@@ -13,6 +13,7 @@
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorActions.h"
+#include "Scenes/ActorEffectFlags.h"
 #include "Scenes/ActorFlags.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
@@ -443,8 +444,8 @@ TEST(SkillRepliesTest, TheSkill46MarksAnotherTarget)
 TEST(SkillRepliesTest, TheEffectsOfTheSkillsAreCL11Cuts)
 {
     for (const auto& [skill, where] :
-         {std::pair{std::uint8_t{0x37}, "0x4cd664"}, std::pair{std::uint8_t{0x33}, "0x4cd6ff"},
-          std::pair{std::uint8_t{0x45}, "0x4cdb72"}, std::pair{std::uint8_t{0x3b}, "0x4cddfa"}})
+         {std::pair{std::uint8_t{0x37}, "0x4cd664"}, std::pair{std::uint8_t{0x45}, "0x4cdb72"},
+          std::pair{std::uint8_t{0x3b}, "0x4cddfa"}})
     {
         auto tested = std::make_unique<Replies>();
         const auto applied = tested->Attack(skill);
@@ -452,6 +453,44 @@ TEST(SkillRepliesTest, TheEffectsOfTheSkillsAreCL11Cuts)
         EXPECT_NE(applied.Error().find(where), std::string::npos) << applied.Error();
         EXPECT_NE(applied.Error().find("CL11"), std::string::npos) << applied.Error();
     }
+}
+
+// 0x4cd6bc..0x4cd748: con la skill salida, la 0x33 envuelve al blanco en hielo (0x4cd6ff y 0x4cd72b, el 0xc1/1 y el
+// /2 con él de dueño y la z 180 más) y después lo para y le prende 0x20. La referencia hace lo mismo a mano sobre un
+// blanco igual, después del rand() de la cabeza: el hielo gasta sus rand() antes que 0x4f2250.
+TEST(SkillRepliesTest, TheSkill33FreezesTheTarget)
+{
+    auto tested = std::make_unique<Replies>();
+    auto reference = std::make_unique<Replies>();
+    for (Replies* replies : {tested.get(), reference.get()})
+        replies->Actor(TargetIndex).angles = {0.0f, 0.0f, 90.0f};
+    reference->cloth.random = Advanced(reference->cloth.random, ActorByteRandoms);
+    ActorState& wrapped = reference->Actor(TargetIndex);
+    ASSERT_TRUE(Client::Scenes::WrapInIce(wrapped, reference->Resources(), {}).HasValue());
+    wrapped.movement = 0;
+    const auto context = Client::Scenes::TransitionStopContext(wrapped, reference->Resources());
+    ASSERT_TRUE(context.HasValue()) << context.Error();
+    ASSERT_TRUE(Client::Scenes::SetActorStop(wrapped, context.Value()).HasValue());
+
+    const auto applied = tested->Attack(0x33);
+
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
+    const ActorState& target = tested->Actor(TargetIndex);
+    EXPECT_EQ(target.flags78, 0x20u);
+    EXPECT_EQ(target.movement, 0);
+    EXPECT_EQ(target.light, glm::vec3(0.4f, 0.3f, 0.2f));
+    const auto effects = tested->world.Map().effects.Effects();
+    for (const auto& [slot, subtype, heading] :
+         {std::tuple{std::size_t{0}, 1, 90.0f}, std::tuple{std::size_t{1}, 2, 270.0f}})
+    {
+        SCOPED_TRACE(subtype);
+        EXPECT_TRUE(effects[slot].alive);
+        EXPECT_EQ(effects[slot].type, Client::World::IceEffect);
+        EXPECT_EQ(effects[slot].subtype, subtype);
+        EXPECT_EQ(effects[slot].ownerContext, &target);
+        EXPECT_FLOAT_EQ(effects[slot].transform.angles.z, heading);
+    }
+    EXPECT_EQ(tested->cloth.random.State(), reference->cloth.random.State());
 }
 
 // 0x518d0f..0x518d26 retorna al no hallar hueco, sin ejecutar el constructor pendiente ni consumir su RNG. Lo que
@@ -540,21 +579,37 @@ TEST(SkillRepliesTest, TheSkill33WithAFullPoolStillStopsTheTarget)
     EXPECT_EQ(tested->cloth.random.State(), reference->cloth.random.State());
 }
 
+// La 0x37 corta en su 0x628 (CL11). La 0x33 crea su 0xc1/1 en el hueco que dejó el viejo y el /2 ya no tiene dónde.
 TEST(SkillRepliesTest, KillingAMatchingEffectReopensItsConstructorEvenFromAFullPool)
 {
     for (const auto skill : {std::uint8_t{0x37}, std::uint8_t{0x33}})
     {
+        SCOPED_TRACE(static_cast<int>(skill));
         auto tested = std::make_unique<Replies>();
         auto effects = tested->world.Map().effects.Effects();
         for (auto& effect : effects)
             effect.alive = true;
+        ActorState* target = &tested->Actor(TargetIndex);
         effects.front().type = skill == 0x37 ? 0x628 : 0xc1;
         effects.front().subtype = skill == 0x37 ? 0 : 1;
-        effects.front().ownerContext = &tested->Actor(TargetIndex);
+        effects.front().ownerContext = target;
+        effects.front().life = 0;
         const auto applied = tested->Attack(skill);
-        ASSERT_FALSE(applied.HasValue());
-        EXPECT_NE(applied.Error().find("CL11"), std::string::npos);
-        EXPECT_FALSE(effects.front().alive);
+        if (skill == 0x37)
+        {
+            ASSERT_FALSE(applied.HasValue());
+            EXPECT_NE(applied.Error().find("CL11"), std::string::npos);
+            EXPECT_FALSE(effects.front().alive);
+            continue;
+        }
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        EXPECT_TRUE(effects.front().alive);
+        EXPECT_EQ(effects.front().subtype, 1);
+        EXPECT_EQ(effects.front().life, 20);
+        EXPECT_EQ(std::ranges::count_if(effects, [target](const auto& effect)
+                                        { return effect.type == 0xc1 && effect.ownerContext == target; }),
+                  1);
+        EXPECT_EQ(target->flags78, 0x20u);
     }
 }
 

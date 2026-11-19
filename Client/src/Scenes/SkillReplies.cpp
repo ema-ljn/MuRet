@@ -450,18 +450,18 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
         if (IsPlayer(source))
             return {};
         return AttackAndSettle(source, resources);
-    // 0x4cd6a5: con la skill salida, apaga el 0xc1/1 del blanco y crea el 0xc1/1 y el 0xc1/2 (CL11). Con la tabla
-    // llena los dos 0x518cf0 no crean nada y sigue igual (0x4cd733..0x4cd748): +0x378 del blanco en 0, 0x4f2250 sobre
-    // él y su 0x20.
+    // 0x4cd6a5: con la skill salida, el hielo del blanco (0x4cd6bc..0x4cd730: apaga su 0xc1/1 y crea el 0xc1/1 y el
+    // /2, Scenes::WrapInIce; con la tabla llena, nada). Después (0x4cd733..0x4cd748): +0x378 del blanco en 0, 0x4f2250
+    // sobre él y su 0x20.
     case 0x33:
     {
         if (auto acted = ActByTheHands(source, StaffHands, resources); !acted.HasValue())
             return acted;
         if (!succeeded)
             return Settle(cast);
-        KillModelEffectsOf(world.Map().effects, 0xc1, &target, 1);
-        if (HasFreeEffectSlot(world))
-            return Core::Unexpected(std::string("0x4cd6ff: el efecto 0xc1 de 0x518cf0 es de la CL11"));
+        if (auto frozen = WrapInIce(target, resources, IceCalls{.first = 0x4cd6ff, .second = 0x4cd72b});
+            !frozen.HasValue())
+            return frozen;
         target.movement = 0;
         if (auto stopped = Stop(target, resources); !stopped.HasValue())
             return stopped;

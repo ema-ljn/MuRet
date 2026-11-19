@@ -522,14 +522,18 @@ TEST_F(KalimaSiegeHelperTest, KundunRoarsShakesAndDropsStonesInKalima)
 
 // Las acciones 3 y 4 de Kundun: el efecto 0x128 (0x518cf0, Scenes/KundunEffects), sin rand(); con la tabla llena,
 // nada. En la 4, pasado el 6, veinticuatro joints 0x6ee/0xe y, en Kalima, 0x437860; pasado el 9, otra vez 0x437860;
-// pasado el 6, el temblor (rand() & 15 − 16) · 0,1.
+// pasado el 6, el temblor (rand() & 15 − 16) · 0,1. El hueso 49 va en (5, 7, 49), fuera del eje del objeto en
+// (1000, 2000, 100): el /0 toma la x y la y del objeto, (1000, 2000, 149), y el /1 las del hueso, (1005, 2007, 400).
 TEST_F(KalimaSiegeHelperTest, KundunAttacksCallTheirEffectsAndCutInTheirJoints)
 {
+    constexpr std::size_t HandBone = 49;
+    const glm::vec3 hand{5.0f, 7.0f, 49.0f};
     std::uint32_t drawn = 0;
     for (const bool full : {false, true})
     {
         SCOPED_TRACE(full);
         SetUp();
+        m_actor->bodyPose[HandBone][3] = hand;
         ActorState& kundun = Actor(0x192, 3, 1.0f);
         FillParticles();
         if (full)
@@ -562,6 +566,7 @@ TEST_F(KalimaSiegeHelperTest, KundunAttacksCallTheirEffectsAndCutInTheirJoints)
 
     // 0x43d09b..0x43d0fd: el /1 en el hueso 49 a 400 de altura.
     SetUp();
+    m_actor->bodyPose[HandBone][3] = hand;
     Actor(0x192, 4, 5.5f).dword60 = 100;
     FillParticles();
     {
@@ -572,7 +577,7 @@ TEST_F(KalimaSiegeHelperTest, KundunAttacksCallTheirEffectsAndCutInTheirJoints)
         EXPECT_EQ(call.type, 0x128);
         EXPECT_EQ(call.subtype, 1);
         EXPECT_EQ(call.life, 30);
-        EXPECT_EQ(call.transform.position, (glm::vec3{1000.0f, 2000.0f, 400.0f}));
+        EXPECT_EQ(call.transform.position, (glm::vec3{1005.0f, 2007.0f, 400.0f}));
     }
 
     // 0x43d19f: los veinticuatro joints 0x6ee/0xe (0x53349a: quietos, vida 10, un punto y la x de los ángulos en 20)

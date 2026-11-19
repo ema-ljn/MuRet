@@ -30,6 +30,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <array>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
@@ -879,9 +880,10 @@ TEST(HighEffectFamiliesTest, TheKundunCallLivesThirtyStepsOrCallsItsEcho)
 }
 
 // 0x527ad6..0x527b4a: el paso del 0x128/0 con la vida en 30 suelta diez 0x126 (i = 0, 8, …, 72) en su posición, de
-// ángulos (0, 0, i + z + 320) con un solo fstp; cada 0x126 (0x51cebf) pone sus campos y, con los joints llenos, saca
-// rand() % 5 para el frame. Once rand() con el de la luz local. Con un joint libre, el 0x613/0xf con el efecto de
-// dueño corta en 0x51cf45, antes del rand() del frame. Con la vida en 29, nada.
+// ángulos (0, 0, i + z + 320) con un solo fstp (con z = 15,3f, de 0x43a7a666 para i = 0 a 0x43cba666 para i = 72,
+// calculados aparte); cada 0x126 (0x51cebf) pone sus campos y, con los joints llenos, saca rand() % 5 para el frame.
+// Once rand() con el de la luz local. Con un joint libre, el 0x613/0xf con el efecto de dueño corta en 0x51cf45, antes
+// del rand() del frame. Con la vida en 29, nada.
 TEST(HighEffectFamiliesTest, TheKundunCallSendsTenPhoenixesAtLifeThirty)
 {
     for (const bool full : {true, false})
@@ -914,6 +916,8 @@ TEST(HighEffectFamiliesTest, TheKundunCallSendsTenPhoenixesAtLifeThirty)
         EXPECT_EQ(call.life, 29);
         CrtRandom replay(Seed);
         static_cast<void>(replay.Next());
+        constexpr std::array<std::uint32_t, 10> Turns{0x43a7a666u, 0x43aba666u, 0x43afa666u, 0x43b3a666u, 0x43b7a666u,
+                                                      0x43bba666u, 0x43bfa666u, 0x43c3a666u, 0x43c7a666u, 0x43cba666u};
         for (int phoenix = 0; phoenix < 10; ++phoenix)
         {
             SCOPED_TRACE(phoenix);
@@ -923,8 +927,8 @@ TEST(HighEffectFamiliesTest, TheKundunCallSendsTenPhoenixesAtLifeThirty)
             EXPECT_EQ(made.subtype, 0);
             EXPECT_FALSE(made.hasOwner);
             EXPECT_EQ(made.transform.position, origin);
-            const double turn = static_cast<double>(phoenix * 8) + static_cast<double>(angles.z) + 320.0;
-            EXPECT_EQ(made.transform.angles, (glm::vec3{0.0f, 0.0f, static_cast<float>(turn)}));
+            const float turn = std::bit_cast<float>(Turns[static_cast<std::size_t>(phoenix)]);
+            EXPECT_EQ(made.transform.angles, (glm::vec3{0.0f, 0.0f, turn}));
             EXPECT_EQ(made.speed, std::bit_cast<float>(0x3eae147bu));
             EXPECT_EQ(made.life, 20);
             EXPECT_EQ(made.objectState.blendMesh, -2);

@@ -1227,7 +1227,7 @@ Core::Expected<void, std::string> StepTheKindCase(ActorState& actor, const KindC
             !made.HasValue())
             return made;
         if (actor.byte381 == FourteenthStep)
-            LaunchTheRadialVolley(actor, context.world.Map().effects);
+            return LaunchTheRadialVolley(actor, context);
         return {};
     }
     case 0x4f6152:

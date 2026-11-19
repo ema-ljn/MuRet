@@ -241,17 +241,18 @@ TEST(AttackSkillCasesTest, TheHeadCasesCutAfterTheirDraws)
 
 // 0x4fe015..0x4fe13f: los 36 joints 0x613/2 de la 0x30, colgados de o 100 más arriba con los ángulos (−10, 0, 10 · i),
 // sin rand(); 0x53265e y 0x533173: la mezcla 1, la segunda cara, velocidad 50, la luz 0,5, vida 20, tres puntos y la
-// partida en +0x24. En las vueltas 0 y 20, después del joint, el calco 0x61e/4 sobre o (0x4fe127); al final, el sonido
-// 0x7f.
+// partida en +0x24. En las vueltas 0 y 20, después del joint, el calco 0x61e/4 sobre o (0x4fe127), con su escala
+// rand() % 50 + 50 por 0,04 (0x51ef79); al final, el sonido 0x7f.
 TEST(AttackSkillCasesTest, TheSpiritRingThrowsItsJointsAndTwoDecals)
 {
     SkillWorld tested;
+    tested.joints.resize(40);
     tested.Striker().position = {1000.0f, 2000.0f, 50.0f};
 
     const auto stepped = tested.Head(0x30);
 
     ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
-    EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
+    EXPECT_EQ(DrawsSince(Seed, tested.random), 2);
     for (std::size_t index = 0; index < 36; ++index)
     {
         SCOPED_TRACE(index);
@@ -991,8 +992,9 @@ TEST(AttackSkillCasesTest, TheQuietTargetCasesDoNothing)
     ActorState& striker = tested.Striker();
     EXPECT_TRUE(tested.WithTarget(0x1b).HasValue());
     striker.skillSucceeded = 1;
-    // El calco 0x61e/2 nace sobre el blanco, sin rand(); después corta en el joint 0x10f/4 de la CL11.
-    EXPECT_TRUE(HasError(tested.WithTarget(0x1b), "0x5045f9"));
+    // El calco 0x61e/2 nace sobre el blanco, sin rand(); después, los cinco joints 0x10f/4 de 0x5045f9 (en
+    // BindingFlagsPrecedeTheJointAndExistingBindingsSkipIt).
+    EXPECT_TRUE(tested.WithTarget(0x1b).HasValue());
     const auto bound = AliveEffects(tested.world);
     ASSERT_EQ(bound.size(), 1u);
     EXPECT_EQ(bound.front()->type, 0x61e);
@@ -1436,6 +1438,7 @@ TEST(AttackSkillCasesTest, MixedPoolsStopAtTheFirstConstructorWithRoom)
         EXPECT_TRUE(tested.Head(0x30).HasValue());
         EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x7f});
         EXPECT_EQ(AliveEffects(tested.world).size(), 2u);
+        tested.sounds.clear();
         tested.joints.front().alive = false;
         for (auto& effect : tested.world.Map().effects.Effects())
             effect.alive = true;

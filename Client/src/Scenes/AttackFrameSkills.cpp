@@ -310,7 +310,7 @@ Core::Expected<void, std::string> StepTheSkill2c(ActorState& actor, std::uint8_t
 }
 
 // 0x4f9bce..0x4f9e60: la 0x2f.
-Core::Expected<void, std::string> StepTheSkill2f(ActorState& actor, std::uint8_t skill, std::size_t slot,
+Core::Expected<void, std::string> StepTheSkill2f(ActorState& actor, std::uint8_t skill, std::size_t,
                                                  const CharacterStepContext& context)
 {
     constexpr std::uint8_t SoundStep = 10;

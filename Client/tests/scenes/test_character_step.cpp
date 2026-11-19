@@ -106,11 +106,12 @@ constexpr int OtherSeenCellDraws = 8;
 constexpr int EffectsRandomDraws = 1;
 // Una lectura de +0x38e (0x517630 o sus copias en línea): un rand() al cerrarse en 0.
 constexpr int SkillReadDraws = 1;
-// Una habilidad todavía sin su efecto: la 0x2f con +0x381 en 13 saca los tres rand() del punto y corta en el primer
-// 0x10f (0x4f9e49). El 0x621/1 de la 0x37 ya nace (test_attack_frame_skills).
-constexpr std::uint8_t FrameSkill = 0x2f;
-constexpr std::uint8_t FrameSkillStep = 13;
-constexpr std::string_view FrameSkillCut = "0x4f9e49";
+// Una habilidad todavía sin su efecto: la 0x2b con +0x381 en 2 y el hueso 0 de la mano en el modelo saca los tres
+// rand() del punto y corta en el primer joint 0x10f/2 (0x4f99fe). La 0x2f (sus 0x10f de 0x4f9e49) y el 0x621/1 de la
+// 0x37 ya nacen (test_attack_frame_skills).
+constexpr std::uint8_t FrameSkill = 0x2b;
+constexpr std::uint8_t FrameSkillStep = 2;
+constexpr std::string_view FrameSkillCut = "0x4f99fe";
 constexpr int FrameSkillDraws = 3;
 // 0x5068fd: la cabeza de otro que el héroe sortea con rand() % 32 en 0.
 constexpr int HeadOneIn = 32;
@@ -314,6 +315,16 @@ struct GameWorld
     }
 
     // En `map` (18 a 23), el héroe en (5; 6), la celda que 0x4fbe10 guardó hace 10 s, con el bit 8.
+    // El hueso 0 del modelo, con sus keys: la mano de la 0x2b (FrameSkill) llega al punto de 0x4f9918.
+    void GiveTheHandABone()
+    {
+        Client::Render::Models::SkeletonBone bone;
+        bone.actions.resize(skeleton.actions.size());
+        for (auto& keys : bone.actions)
+            keys.resize(10);
+        skeleton.bones.push_back(std::move(bone));
+    }
+
     void StandOnTheReportedCell(std::int32_t map)
     {
         world.Runtime().map = map;
@@ -1425,6 +1436,7 @@ TEST(CharacterStepTest, TheBodyStopsWhereMuRetHasNothing)
         Case{"se muere y pegó con una habilidad",
              [](GameWorld& tested)
              {
+                 tested.GiveTheHandABone();
                  tested.Hero().dying = 1;
                  tested.Hero().animation.action = 0x3d;
                  tested.Hero().byte381 = FrameSkillStep;
@@ -1434,6 +1446,7 @@ TEST(CharacterStepTest, TheBodyStopsWhereMuRetHasNothing)
         Case{"pegó con una habilidad",
              [](GameWorld& tested)
              {
+                 tested.GiveTheHandABone();
                  tested.Hero().animation.action = 0x3d;
                  tested.Hero().byte381 = FrameSkillStep;
                  tested.Hero().byte38e = FrameSkill;
@@ -2057,6 +2070,8 @@ TEST(CharacterStepTest, TheExitsOf508ba0BeforeTheCell)
     {
         SCOPED_TRACE(probe.name);
         GameWorld tested;
+        if (probe.type == Player && probe.dying != 0)
+            tested.GiveTheHandABone();
         ActorState& other = tested.world.Actors()[3];
         other.alive = true;
         other.byte88 = 1;

@@ -182,7 +182,7 @@ TEST(SkullEffectsTest, TheSkullDiesWithItsOwner)
 
 // 0x52b640..0x52b782: el /1 y el /3 (al revés, más alto) dan tres vueltas sobre su dueño; con la tabla de partículas
 // llena, la 0x5de/5 no nace y queda el sprite 0x628 de escala 1 con la luz local (1, 1, 1) en cada punto. Con lugar,
-// corta en la primera 0x5de/5 (CL11), antes de su sprite.
+// cada vuelta suelta su 0x5de/5 de escala 0,4f (0x52b74e), con sus rand(), antes de su sprite.
 TEST(SkullEffectsTest, TheSkullCirclesOverItsOwner)
 {
     for (const std::int32_t subtype : {1, 3})
@@ -207,10 +207,24 @@ TEST(SkullEffectsTest, TheSkullCirclesOverItsOwner)
         EXPECT_EQ(DrawsSince(tested.random), 1);
 
         SkullWorld roomy;
-        const auto cut = roomy.Step(roomy.Create(subtype));
-        ASSERT_FALSE(cut.HasValue());
-        EXPECT_TRUE(cut.Error().starts_with("0x52b74e")) << cut.Error();
-        EXPECT_FALSE(roomy.sprites->Sprites()[0].alive);
+        const auto lit = roomy.Step(roomy.Create(subtype));
+        ASSERT_TRUE(lit.HasValue()) << lit.Error();
+        CrtRandom replay(Seed);
+        static_cast<void>(replay.Next());
+        for (int turn = 0; turn < 3; ++turn)
+        {
+            auto twin = std::make_unique<Client::World::Particles>();
+            ASSERT_TRUE(twin->CreateChecked(0x5de, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(1.0f), 5,
+                                            std::bit_cast<float>(0x3ecccccdu), 0.0f, replay)
+                            .HasValue());
+        }
+        EXPECT_EQ(roomy.random.State(), replay.State());
+        std::size_t orbiting = 0;
+        for (const auto& particle : roomy.world->Particles().All())
+            orbiting += particle.alive && particle.type == 0x5de && particle.subtype == 5 ? 1 : 0;
+        EXPECT_EQ(orbiting, 3u);
+        EXPECT_TRUE(roomy.sprites->Sprites()[2].alive);
+        EXPECT_FALSE(roomy.sprites->Sprites()[3].alive);
     }
 }
 

@@ -155,6 +155,27 @@ bool HasError(const Client::Core::Expected<std::optional<std::size_t>, std::stri
     return !result.HasValue() && result.Error().starts_with(address);
 }
 
+// Los rand() de una partícula: la crea en un pool aparte con `replay`, que avanza como el original.
+void ReplayParticle(CrtRandom& replay, std::int32_t type, std::int32_t subtype, float scale = 1.0f)
+{
+    auto twin = std::make_unique<Client::World::Particles>();
+    const auto made = twin->CreateChecked(type, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(1.0f), subtype, scale, 0.0f,
+                                          replay);
+    ASSERT_TRUE(made.HasValue());
+}
+
+void Skip(CrtRandom& random, int draws)
+{
+    for (int draw = 0; draw < draws; ++draw)
+        static_cast<void>(random.Next());
+}
+
+std::ptrdiff_t AliveParticles(WorldState& world, std::int32_t type, std::int32_t subtype)
+{
+    return std::ranges::count_if(world.Particles().All(), [type, subtype](const Client::World::Particle& particle)
+                                 { return particle.alive && particle.type == type && particle.subtype == subtype; });
+}
+
 // 0x51d714: el aura 0x134 de la llegada del asedio, con vida 100, la escala de la clave (MOVSX) por 0,01f y +0x64 y
 // +0x68 en 0, sin rand(); con la tabla llena, nada.
 TEST(HighModelEffectsTest, TheArrivalAuraTakesItsScaleFromTheKeyWithoutRandoms)
@@ -993,17 +1014,23 @@ TEST(HighModelEffectsTest, TheWobblyFallingStarLeavesItsFireAndTwoSprites)
     EXPECT_EQ(made[1].rotation, flareTurn);
     EXPECT_FALSE(made[2].alive);
 
+    // Con lugar, el fuego 0x5db/7 (0x52bf29) saca sus rand() entre el temblor y los sprites.
     HighWorld room;
     room.services.sprites = sprites.get();
     ModelEffect& next = FallingStarAt(room, 0, 3);
-    const auto cut = StepHighModelEffect(next, nullptr, room.StepContext());
-    EXPECT_TRUE(HasError(cut, "0x52bf29")) << (cut.HasValue() ? std::string("sin corte") : cut.Error());
-    EXPECT_EQ(room.Draws(), 3);
+    const auto lit = StepHighModelEffect(next, nullptr, room.StepContext());
+    ASSERT_TRUE(lit.HasValue()) << lit.Error();
+    CrtRandom replay(Seed);
+    Skip(replay, 3);
+    ReplayParticle(replay, Client::World::DeathSpiritFireParticle, 7);
+    Skip(replay, 3);
+    EXPECT_EQ(room.random.State(), replay.State());
+    EXPECT_EQ(AliveParticles(*room.world, Client::World::DeathSpiritFireParticle, 7), 1);
 }
 
 // 0x52bfdc..0x52c195: el /1 se queda en la partida y, con el terreno por encima, saca la escala del humo 0x5f2/0xb y
 // el rand() % 5 que, en 0, suelta el pedazo de hielo 0xca 50 más arriba; con el terreno por debajo, nada de eso. Con
-// lugar para el fuego 0x5db/0xb, corta en 0x52c036 sin rand() propios.
+// lugar, el fuego 0x5db/0xb (0x52c036) saca sus rand() antes de los sprites.
 TEST(HighModelEffectsTest, TheStraightFallingStarSmokesAndDropsIceBelowTheTerrain)
 {
     for (const double ground : {-1000.0, 1000.0})
@@ -1047,12 +1074,17 @@ TEST(HighModelEffectsTest, TheStraightFallingStarSmokesAndDropsIceBelowTheTerrai
     HighWorld room;
     ModelEffect& star = FallingStarAt(room, 1, 10);
     const auto cut = StepHighModelEffect(star, nullptr, room.StepContext());
-    EXPECT_TRUE(HasError(cut, "0x52c036")) << (cut.HasValue() ? std::string("sin corte") : cut.Error());
-    EXPECT_EQ(room.Draws(), 1);
+    EXPECT_TRUE(HasError(cut, "0x52c0a5")) << (cut.HasValue() ? std::string("sin corte") : cut.Error());
+    CrtRandom replay(Seed);
+    Skip(replay, 1);
+    ReplayParticle(replay, Client::World::DeathSpiritFireParticle, 0xb);
+    Skip(replay, 2);
+    EXPECT_EQ(room.random.State(), replay.State());
+    EXPECT_EQ(AliveParticles(*room.world, Client::World::DeathSpiritFireParticle, 0xb), 1);
 }
 // 0x51ca31: el 0x116/0 guarda la luz que recibe como la partida y pone la suya en 1; el /2 baja 20; el /1 toma la vida
-// de su dueño (otro efecto) y suelta la llama 0x5da/0, que MuRet no tiene: corta en 0x51cb38 con lugar en la tabla de
-// partículas y, llena, sigue sin rand().
+// de su dueño (otro efecto) y suelta la llama 0x5da/0 (0x51cb38) con sus rand(); con la tabla de partículas llena,
+// sigue sin rand().
 TEST(HighModelEffectsTest, ThePierPartsTakeTheirAimLifeAndFlame)
 {
     HighWorld tested;
@@ -1087,7 +1119,12 @@ TEST(HighModelEffectsTest, ThePierPartsTakeTheirAimLifeAndFlame)
 
     tested.Effect(0).life = 12;
     const ModelEffectArguments trail{.type = 0x116, .position = {1, 2, 3}, .subtype = 1, .owner = &tested.Effect(0)};
-    EXPECT_TRUE(HasError(CreateHighModelEffect(trail, tested.Context()), "0x51cb38"));
+    ASSERT_TRUE(CreateHighModelEffect(trail, tested.Context()).HasValue());
+    EXPECT_EQ(AliveParticles(*tested.world, Client::World::MissileFireParticle, 0), 1);
+    CrtRandom replay(Seed);
+    ReplayParticle(replay, Client::World::MissileFireParticle, 0);
+    EXPECT_EQ(tested.random.State(), replay.State());
+    tested.random = CrtRandom(Seed);
     tested.FillTheParticles();
     tested.Effect(2).alive = false;
     ASSERT_TRUE(CreateHighModelEffect(trail, tested.Context()).HasValue());
@@ -1101,8 +1138,8 @@ TEST(HighModelEffectsTest, ThePierPartsTakeTheirAimLifeAndFlame)
 }
 
 // 0x52727b..0x527447: el 0x116/0 con +0xe4 en 2 da una vuelta (un rand(), el giro hacia su dueño más la partida, +0xd8
-// 0,4f más, el avance y el 0x116/1, que corta en su llama con lugar), y después +0xe4 0,1f más y el sonido 0x1ca; sin
-// dueño, sólo la luz local.
+// 0,4f más, el avance y el 0x116/1, que con lugar suelta su llama 0x5da/0), y después +0xe4 0,1f más y el sonido 0x1ca;
+// sin dueño, sólo la luz local.
 TEST(HighModelEffectsTest, TheHomingPartTurnsTowardItsOwnerAndLeavesItsTrail)
 {
     HighWorld tested;
@@ -1137,7 +1174,12 @@ TEST(HighModelEffectsTest, TheHomingPartTurnsTowardItsOwnerAndLeavesItsTrail)
 
     HighWorld room;
     ASSERT_TRUE(CreateHighModelEffect({.type = 0x116, .owner = &room.world->Actors()[3]}, room.Context()).HasValue());
-    EXPECT_TRUE(HasError(StepHighModelEffect(room.Effect(0), nullptr, room.StepContext()), "0x5273c6: 0x51cb38"));
+    ASSERT_TRUE(StepHighModelEffect(room.Effect(0), nullptr, room.StepContext()).HasValue());
+    CrtRandom replay(Seed);
+    Skip(replay, 2);
+    ReplayParticle(replay, Client::World::MissileFireParticle, 0);
+    EXPECT_EQ(room.random.State(), replay.State());
+    EXPECT_EQ(AliveParticles(*room.world, Client::World::MissileFireParticle, 0), 1);
 
     HighWorld alone;
     ASSERT_TRUE(CreateHighModelEffect({.type = 0x116}, alone.Context()).HasValue());

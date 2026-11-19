@@ -504,10 +504,10 @@ TEST(AttackStepTest, TheSparkOf0x39LeavesItsParticles)
     EXPECT_GE(DrawsSince(Seed, tested.random), CountingStep + SkillRead + 20 * (2 + 5));
 }
 
-// Lo que corta, en su orden y con los rand() de antes: lo que crean los casos de la cabeza y con blanco (0x4fdeeb,
-// 0x504372, CL11), los efectos de los casos de 0x4f5b70 (0x4f67fb) y, sin el pool de joints, los de +0x380 en 2
-// (0x505169). La flecha (0x53e2b0) ya no corta: sus cortes están en test_arrow_effects.cpp. Los demás casos de
-// 0x4f97b0, en test_attack_frame_skills.cpp; los de 0x4fdeeb y 0x504372, en test_attack_skill_cases.cpp.
+// Lo que corta, con los rand() de antes: sin el pool de joints, los de +0x380 en 2 (0x505169). La habilidad 0x0c (el
+// rayo 0x5e8, 0x500c64) y el caso 0x31 de +0x376 (0x4f67ad) ya no cortan: están en AttackSkillCases.cpp y
+// MonsterAttackStep.cpp. La flecha (0x53e2b0), en test_arrow_effects.cpp. Los demás casos de 0x4f97b0, en
+// test_attack_frame_skills.cpp; los de 0x4fdeeb y 0x504372, en test_attack_skill_cases.cpp.
 TEST(AttackStepTest, TheCutsAfterTheirDraws)
 {
     struct Case
@@ -518,15 +518,6 @@ TEST(AttackStepTest, TheCutsAfterTheirDraws)
         int draws;
     };
     const std::array cases{
-        Case{"la habilidad 0x0c",
-             [](AttackWorld&, ActorState& hero)
-             {
-                 hero.byte38e = 0x0c;
-                 hero.byte381 = 14;
-             },
-             "0x500cb9", CountingStep + SkillRead + OwnRecord},
-        Case{"el caso 0x31 de +0x376", [](AttackWorld&, ActorState& hero) { hero.word376 = 0x31; }, "0x4f67fb",
-             SkillRead + 1},
         Case{"mató, sin los joints",
              [](AttackWorld& tested, ActorState& hero)
              {

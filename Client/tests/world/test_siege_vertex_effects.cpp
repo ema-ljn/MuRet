@@ -204,8 +204,8 @@ TEST(SiegeVertexEffectsTest, TheShowerStoneSmokesOnTheGround)
 }
 
 // 0x5290df..0x5291c9: el 0x12e/3 baja su velocidad z en +0xd8, que sube 0,3f. En el aire, con rand() & 1 en 0, el
-// humo 0x5f2/0x18 (que MuRet no tiene) corta con lugar en la tabla. Con el terreno por encima, la z en el terreno y
-// la velocidad, los ángulos y +0x58 en 0; con rand() % 10 en 0, el mismo humo.
+// humo 0x5f2/0x18 de escala 0,2f (0x5291c1) con sus rand(). Con el terreno por encima, la z en el terreno y la
+// velocidad, los ángulos y +0x58 en 0; con rand() % 10 en 0, el mismo humo.
 TEST(SiegeVertexEffectsTest, TheThrownStoneFallsFasterAndLands)
 {
     const std::uint32_t even = SeedWhere(
@@ -221,8 +221,18 @@ TEST(SiegeVertexEffectsTest, TheThrownStoneFallsFasterAndLands)
     effect.speed = std::bit_cast<float>(0x3fe66666u);
     CrtRandom random(even);
     const auto smoked = Client::World::StepGameModelEffect(effect, nullptr, particles, 0, random, nullptr, low);
-    ASSERT_FALSE(smoked.HasValue());
-    EXPECT_NE(smoked.Error().find("0x5291c1"), std::string::npos) << smoked.Error();
+    ASSERT_TRUE(smoked.HasValue()) << smoked.Error();
+    ASSERT_EQ(LiveParticles(particles), 1u);
+    EXPECT_EQ(particles.All()[0].type, 0x5f2);
+    EXPECT_EQ(particles.All()[0].subtype, 0x18);
+    CrtRandom smoke(even);
+    smoke.Discard(2);
+    auto twin = std::make_unique<Client::World::Particles>();
+    ASSERT_TRUE(twin->CreateChecked(0x5f2, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(1.0f), 0x18,
+                                    std::bit_cast<float>(0x3e4ccccdu), 0.0f, smoke)
+                    .HasValue());
+    EXPECT_EQ(random.State(), smoke.State());
+    particles.All()[0].alive = false;
     EXPECT_EQ(effect.velocity.z, static_cast<float>(-20.0 - static_cast<double>(std::bit_cast<float>(0x3fe66666u))));
     EXPECT_EQ(effect.speed,
               static_cast<float>(static_cast<double>(std::bit_cast<float>(0x3fe66666u)) + static_cast<double>(0.3f)));

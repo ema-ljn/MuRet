@@ -13603,8 +13603,12 @@ con el nivel 7 y los 24 bytes del local a `+0x1d9` (Q-C848); recién llegado, cu
 (`0x51747c`). Los demás, `0x5141e0`. Después, como el `13`: los estados, el ángulo por 45, las celdas; `+0x88` en 1,
 el PK (`+0xc & 0xf`) y, con 6 o más, el nivel en 1. Fuera de `0x98..0x9e`, el nombre: `+0x1e3` en 0, los diez bytes
 del dueño, el Text 485 (`0x76e0a38`) y el nombre que tenía (`strcat`, sin tope, Q-C847). Recién llegado,
-`0x4c9790` y el efecto `0xec` (`0x518cf0`) con el joint `0x5d5`/2 (`0x53fe70`), y con `0x98..0x9e` además el frame
-(`+0x114`) y `+0x118` en 0 y el sonido `0x61` (`0x4ca630..0x4ca642`); si no, el camino.
+`0x4c9790` y el círculo `0xec` (`0x4ca5f6`: `0x518cf0(0xec, +0x10, +0x1c, +0xf4, 0, el personaje, −1, 0, 0, 0, 0)`)
+con la partícula `0x5d5`/2 (`0x4ca611`: `0x53fe70(0x5d5, +0x10, +0x1c, +0xf4, 2, 1,0f, el personaje)`), sin
+`rand()`, y con `0x98..0x9e` además el frame (`+0x114`) y `+0x118` en 0 y el sonido `0x61` (`0x4ca630..0x4ca642`); si
+no, el camino. MuRet (CL11, lote magos): `ApplySummonRecord` con `CreateBlastEffectOutsideTheStep` y
+`Particles::CreateOwnedChecked`, como el transformado de `0x4c965c`; el invocado que llega sigue cortando antes, en
+`0x51747c` (los joints `0x615`).
 
 **El `68`, `0x4e0980`**, por `+0`: con 1 (`0x4e0c1d`), `0x512870(clave, 0x20a, X, Y, 0)`, la clase de `+1` como el
 `12`, la piel y el PK en 0, `+0x88` en `0x80`, los estados, las celdas, un `rand()` (`+0x428` en `0x96` y el ángulo
@@ -13624,7 +13628,7 @@ posición, con los lados `+0x130..+0x138` menos el piso (*inferido* que vale la 
 `ApplyViewportObjects`, con `ArriveAsNew` (`0x4c9790`); `ApplyTransformed` da de alta con `CreateMonster` y el `DF`
 empuja al `0xf1`. Cortan con su dirección, después de lo que el original hace antes: la puerta del asedio (`0x4c9f0f` y
 `0x4e0bd1`, CL9.5), el freno del `0x35` (`0x4c982b`: `0x53fe70` y `0x518cf0`, CL11, P-C54 c), la llegada del `0x154`
-(`0x4c9883`, CL11), la acción sin el esqueleto del modelo (P-C176), el invocado que llega (`0x51747c` y `0x4ca5f6`,
+(`0x4c9883`, CL11), la acción sin el esqueleto del modelo (P-C176), el invocado que llega (`0x51747c`;
 CL11), el nombre que llegaría a `+0x218` (Q-C847) y el formato de un invocado
 que lee más de lo que `0x517400` le pasa (P-C356). `CharacterPicking` usa la caja de cada tipo. Tests:
 `MonsterViewportTest` (Lorencia, Devias, Devil Square, Castle Siege y Crywolf),

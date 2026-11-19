@@ -104,9 +104,9 @@ struct HighWorld
         return {.world = *world, .random = random, .worldClock = clock, .models = models};
     }
 
-    HighEffectStepContext StepContext()
+    HighEffectStepContext StepContext(const Client::Scenes::IModelLibrary* models = nullptr)
     {
-        return {.world = *world, .random = random, .services = services, .worldClock = clock};
+        return {.world = *world, .random = random, .services = services, .worldClock = clock, .models = models};
     }
 
     ModelEffect& Effect(std::size_t slot)
@@ -701,6 +701,29 @@ TEST(HighModelEffectsTest, TheBindingDecalCutsWhenItsOwnerHasNoBones)
     ASSERT_FALSE(stepped.HasValue());
     EXPECT_NE(stepped.Error().find("0x52ba47"), std::string::npos) << stepped.Error();
     EXPECT_EQ(tested.Draws(), 1 + 2);
+}
+
+// 0x52ba1d: el BMD del dueño sale de la tabla global, como en el alta del 0x19f: sin el de FaunaResources (un jugador),
+// el de `models`. Con un solo hueso dummy, cada vida saca solo el hueso y la partícula no corre.
+TEST(HighModelEffectsTest, TheBindingDecalFindsItsOwnerModelLikeTheSpearman)
+{
+    HighWorld tested;
+    ActionModels models(1);
+    models.skeleton.bones.resize(1);
+    models.skeleton.bones[0].dummy = true;
+    ActorState& owner = tested.world->Actors()[3];
+    owner.alive = true;
+    owner.type = 0x20a;
+    ASSERT_TRUE(CreateHighModelEffect({.type = 0x61e, .subtype = 6, .owner = &owner}, tested.Context()).HasValue());
+    ModelEffect& decal = tested.Effect(0);
+    decal.life = 3;
+    const int before = tested.Draws();
+
+    const auto stepped = StepHighModelEffect(decal, nullptr, tested.StepContext(&models));
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(tested.Draws(), before + 2 + 3);
+    EXPECT_EQ(decal.life, 2);
 }
 
 // 0x52bb29..0x52bb74: el 0x61e/9 crece 0,3f y su luz baja a 0,909f; los /4, /7, /8 y /0xa solo pierden una vida.

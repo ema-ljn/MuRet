@@ -124,6 +124,17 @@ CreateParticle(WorldState& world, CrtRandom& random, float worldClock, std::int3
     return created.Value();
 }
 
+// El BMD de la tabla global (0x5769ad8 + tipo · 0xe0): el de FaunaResources, que sigue con los modelos del mapa, y si
+// no el de `models` (los ítems y Player.bmd), como MonsterSkeletonOf.
+const Render::Models::Skeleton* ModelSkeletonOf(const WorldState& world, const IModelLibrary* models,
+                                                std::uint16_t model)
+{
+    const auto* skeleton = world.FaunaResources().SkeletonOf(model);
+    if (skeleton == nullptr && models != nullptr)
+        skeleton = models->SkeletonOf(model);
+    return skeleton;
+}
+
 // ---- Las altas ----
 
 // 0x51d714..0x51d73a, el 0x134 (la llegada del asedio, 0x42d513 y 0x42d5af): vida 100, la escala de la clave (+0x8a,
@@ -156,10 +167,7 @@ void BeginTheSiegeSpearman(World::ModelEffect& effect, const HighEffectContext& 
     // 0x4ea030 lee el BMD de la tabla global (0x5769ad8 + tipo · 0xe0): el de FaunaResources, que sigue con los modelos
     // del mapa, y si no el de `models`, como MonsterSkeletonOf. Sin el BMD cargado, la cuenta de acciones del original
     // es 0 y no hace nada.
-    const auto model = static_cast<std::uint16_t>(effect.type);
-    const auto* skeleton = context.world.FaunaResources().SkeletonOf(model);
-    if (skeleton == nullptr && context.models != nullptr)
-        skeleton = context.models->SkeletonOf(model);
+    const auto* skeleton = ModelSkeletonOf(context.world, context.models, static_cast<std::uint16_t>(effect.type));
     if (skeleton != nullptr)
         Render::Models::SetAction(effect.animation, *skeleton, SpearmanAction);
     effect.transform.angles = glm::vec3(0.0f);
@@ -1175,7 +1183,8 @@ Core::Expected<void, std::string> StepTheBindingDecal(World::ModelEffect& effect
     constexpr int GlowSpan = 10;
     constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8
     effect.objectState.light = F32(static_cast<double>(context.random.Next() % GlowSpan) * Tenth);
-    const Render::Models::Skeleton* skeleton = context.world.FaunaResources().SkeletonOf(owner->type);
+    // 0x52ba1d: el BMD de la tabla global por el tipo del dueño, por el mismo camino que el alta del 0x19f.
+    const Render::Models::Skeleton* skeleton = ModelSkeletonOf(context.world, context.models, owner->type);
     constexpr int SideSpan = 100, SideCenter = 50, DepthSpan = 20, DepthCenter = 10;
     constexpr std::int32_t SparkSubtype = 8;
     constexpr float SparkScale = 1.0f;

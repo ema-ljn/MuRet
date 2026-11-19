@@ -299,7 +299,8 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
             const HighEffectStepContext high{.world = *m_context.world,
                                              .random = m_context.cloth->random,
                                              .services = services,
-                                             .worldClock = worldClock};
+                                             .worldClock = worldClock,
+                                             .models = m_models};
             if (auto stepped = StepHighModelEffect(effect, skeleton, high); !stepped.HasValue())
                 return stepped;
             continue;

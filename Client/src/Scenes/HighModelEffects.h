@@ -74,13 +74,15 @@ struct HighEffectContext
 CreateHighModelEffect(const World::ModelEffectArguments& arguments, const HighEffectContext& context);
 
 // Lo que el paso de estos tipos pide: los servicios del paso común (la altura del terreno, la luz dinámica, el
-// sonido, la acción publicada del modelo) y el mundo y el CRT del juego.
+// sonido, la acción publicada del modelo) y el mundo y el CRT del juego. `models`, como en HighEffectContext, da el BMD
+// que world.FaunaResources() no tiene (el de un jugador dueño del 0x61e/6).
 struct HighEffectStepContext
 {
     WorldState& world;
     Render::Models::CrtRandom& random;
     const World::ModelEffectStepServices& services;
     float worldClock = 0.0f;
+    const IModelLibrary* models = nullptr;
 };
 
 // Los tipos cuyo paso está en este archivo.

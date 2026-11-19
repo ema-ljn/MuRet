@@ -338,6 +338,8 @@ constexpr std::int32_t SummonEnergySubtype = 1, SummonDecalEnergySubtype = 3;
 constexpr std::int32_t BoltEnergySubtype = 6;
 // Los remolinos 6e8/0 y /1 del 0x114/1 (0x51c25f), sin dueño.
 constexpr std::int32_t SwirlJoint = 0x6e8;
+// El 61c/1 del láser 0xd0/1 de los magos (0x51a5dd), con el efecto de dueño.
+constexpr std::int32_t LaserJoint = 0x61c, LaserSubtype = 1;
 
 // El 0x60f/7, /0xb y /0x19 (WanderingJoints.cpp).
 bool IsWandering(std::int32_t type, std::int32_t subtype)
@@ -541,6 +543,30 @@ void CreateSwirl(JointState& joint, const World::FishEffectRequest& request, Ren
     else
         joint.light = {1, std::bit_cast<float>(0x3f4ccccdu), std::bit_cast<float>(0x3f19999au)};
     joint.pathIncrement = joint.position;
+}
+
+// 0x53439e..0x53442d y 0x534cb6: el 61c/1, el rayo rojo del láser 0xd0/1 de los magos (0x51a5dd), con el efecto de
+// dueño. Velocidad 0, el ancho, el pase 1 (+0x64), la luz en 1, +0x9dc en 0, 15 puntos, vida 30 y la tanda (+0x9eb) en
+// 0; la posición y los ángulos los del dueño (+0x10 y +0x1c). Sin dueño, el original apaga el joint y lee de 0: MuRet
+// corta. Sin rand().
+Core::Expected<void, std::string> CreateLaserJoint(JointState& joint, const World::FishEffectRequest& request)
+{
+    constexpr std::uint8_t FirstPass = 1;
+    constexpr std::int32_t Points = 15, Life = 30;
+    if (joint.ownerContext == nullptr)
+        return Core::Unexpected(std::string("0x5343f8: falta el efecto dueño del joint 0x61c/1"));
+    const auto& owner = *static_cast<const World::ModelEffect*>(joint.ownerContext);
+    joint.speed = 0;
+    joint.width = request.scale;
+    joint.category = FirstPass;
+    joint.light = {1, 1, 1};
+    joint.velocity = {};
+    joint.maximumCount = Points;
+    joint.life = Life;
+    joint.volley = 0;
+    joint.position = owner.transform.position;
+    joint.angles = owner.transform.angles;
+    return {};
 }
 
 // 0x5323d3..0x5323f8, 0x53254f..0x5325c2 y 0x534cb6: el 619/9 del 5ac/3 del conjunto completo (0x52aa5d). Lo común del
@@ -857,6 +883,8 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
         return CreateSwordTrail(joint, request);
     if (request.type == 0x610 && request.subtype == 6)
         return CreateTargetBolt(joint, request);
+    if (request.type == LaserJoint && request.subtype == LaserSubtype)
+        return CreateLaserJoint(joint, request);
     if (request.type == SwirlJoint && (request.subtype == 0 || request.subtype == 1))
     {
         CreateSwirl(joint, request, random);
@@ -1595,6 +1623,28 @@ Core::Expected<void, std::string> StepSwirl(JointState& joint)
     return {};
 }
 
+// 0x53b628..0x53b69b: el 61c/1. Sin dueño se apaga; si no, toma su byte vivo, el ancho baja 1, la posición es la del
+// dueño 100 más arriba y, con menos de 15 de vida, la luz por 0,7692308f. Sigue la cola común. Sin rand().
+void StepLaserJoint(JointState& joint)
+{
+    if (joint.ownerContext == nullptr)
+    {
+        joint.alive = false;
+        return;
+    }
+    const auto& owner = *static_cast<const World::ModelEffect*>(joint.ownerContext);
+    constexpr double Narrowing = 1.0, Lift = 100.0; // 0x6b87d4 y 0x6b86b4
+    constexpr std::int32_t FadingLife = 15;
+    constexpr double Fade = static_cast<double>(std::bit_cast<float>(0x3f44ec4fu)); // 0x6ba240, 0,7692308f
+    joint.alive = owner.alive;
+    joint.width = F32(D(joint.width) - Narrowing);
+    joint.position = owner.transform.position;
+    joint.position.z = F32(D(joint.position.z) + Lift);
+    if (joint.life < FadingLife)
+        for (int channel = 0; channel < 3; ++channel)
+            joint.light[channel] = F32(D(joint.light[channel]) * Fade);
+}
+
 Core::Expected<void, std::string> StepCrywolfArrowTrail(JointState& joint, Render::Models::CrtRandom* random,
                                                         World::TerrainLighting* lighting)
 {
@@ -1967,6 +2017,8 @@ StepJointsChecked(std::span<JointState> joints, Render::Models::CrtRandom* rando
         const bool targetBolt = joint.type == 0x610 && joint.subtype == 6;
         // Los remolinos del 0x114/1 (0x51c25f), sin dueño.
         const bool swirl = joint.type == SwirlJoint && (joint.subtype == 0 || joint.subtype == 1);
+        // El rayo del láser 0xd0/1 (0x51a5dd), con el efecto de dueño.
+        const bool laser = joint.type == LaserJoint && joint.subtype == LaserSubtype;
         const bool noria = joint.type == 0x617 && joint.subtype >= 0 && joint.subtype <= 3;
         const bool skyBolt = joint.type == 0x615 && joint.subtype == 0;
         const bool trapBolt = joint.type == 0x615 &&
@@ -1991,7 +2043,7 @@ StepJointsChecked(std::span<JointState> joints, Render::Models::CrtRandom* rando
         const bool boltEnergy = joint.type == EnergyJoint && joint.subtype == BoltEnergySubtype;
         if (!crywolf && !bloodCastle && !fairy && !spiritBeam && !icarus && !noria && !skyBolt && !trapBolt &&
             !meteor && !swordTrail && !fullSet && !summonEnergy && !boltEnergy && !crywolfArrowTrail &&
-            !piercingTrail && !piercingImpact && !skill39 && !targetBolt && !swirl)
+            !piercingTrail && !piercingImpact && !skill39 && !targetBolt && !swirl && !laser)
             return Core::Unexpected(
                 std::format("0x535840: el paso del joint {} ({:#x}/{}) no está portado", i, joint.type, joint.subtype));
         // 0x5358bc: el 60f/1 y el 6e8 (la lista de 0x53585e) no se mueven ni calculan la matriz de 0x53590e; con la
@@ -2053,14 +2105,16 @@ StepJointsChecked(std::span<JointState> joints, Render::Models::CrtRandom* rando
         if (swirl)
             if (auto result = StepSwirl(joint); !result.HasValue())
                 return result;
+        if (laser)
+            StepLaserJoint(joint);
         const bool actorOwned =
             swordTrail || fullSet || summonEnergy || crywolfArrowTrail || piercingTrail || targetBolt;
         const auto* owner = (joint.type == 0x613 || joint.type == 0x614 || joint.type == 0x615 || meteor ||
-                             actorOwned || boltEnergy || swirl)
+                             actorOwned || boltEnergy || swirl || laser)
                                 ? nullptr
                                 : static_cast<const FaunaObject*>(joint.ownerContext);
         const bool ownerless = spiritBeam || icarus || noria || skyBolt || trapBolt || meteor || actorOwned ||
-                               piercingImpact || skill39 || boltEnergy || swirl;
+                               piercingImpact || skill39 || boltEnergy || swirl || laser;
         if (owner == nullptr && !ownerless)
             return Core::Unexpected(std::format("{}: falta el dueño durable del joint {:#x}/{}",
                                                 fairy         ? "0x536076"

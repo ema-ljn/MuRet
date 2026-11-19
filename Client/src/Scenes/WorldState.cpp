@@ -30,22 +30,22 @@ namespace Client::Scenes
 {
 std::span<ActorState, ActorPoolSize> WorldState::Actors()
 {
-    return m_actors;
+    return *m_actors;
 }
 
 std::span<const ActorState, ActorPoolSize> WorldState::Actors() const
 {
-    return m_actors;
+    return *m_actors;
 }
 
 std::span<CharacterCloth, ActorPoolSize> WorldState::ActorCloths()
 {
-    return m_actorCloths;
+    return *m_actorCloths;
 }
 
 std::span<const CharacterCloth, ActorPoolSize> WorldState::ActorCloths() const
 {
-    return m_actorCloths;
+    return *m_actorCloths;
 }
 
 OwnCharacterRecord& WorldState::OwnCharacter()

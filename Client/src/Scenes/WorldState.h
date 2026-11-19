@@ -132,8 +132,12 @@ public:
     void PrepareSelectedActor(const Protocol::Character::CharacterEntry& chosen, Render::Models::CrtRandom& random);
 
 private:
-    std::array<ActorState, ActorPoolSize> m_actors{};
-    std::array<CharacterCloth, ActorPoolSize> m_actorCloths{};
+    // Los 401 personajes y sus telas (≈ 540 KB) van al heap: con ellos dentro, un WorldState local (main.cpp, los
+    // tests) pasaba los 900 KB y desbordaba la pila de 1 MB de Windows en el Debug de MSVC.
+    std::unique_ptr<std::array<ActorState, ActorPoolSize>> m_actors =
+        std::make_unique<std::array<ActorState, ActorPoolSize>>();
+    std::unique_ptr<std::array<CharacterCloth, ActorPoolSize>> m_actorCloths =
+        std::make_unique<std::array<CharacterCloth, ActorPoolSize>>();
     OwnCharacterRecord m_own;
     OwnInventory m_inventory;
     WorldRuntime m_runtime;

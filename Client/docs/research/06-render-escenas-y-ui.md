@@ -8512,7 +8512,7 @@ de estado aunque no produzca vértices o corte después. Los tipos sin caso no d
 | `0x61d` | Solo /1: calco con scale, luz propia, giro −z y lift5; después luz por `0x3f68ba2e` y scale+0,05f. |
 | `0x5de` | Salvo /3: otro rand; gris `R32((r%4+8)*0,1f)`, lado2, giro −z. No se sustituye por un literal0,9f. |
 | `0x5d5` | scale+0,2f antes del calco; gris `R32(life*0,1f)`. |
-| `0x61e` | Brillo1 o `1−(5−life)*0,2f` con life<5; lado `(20−life)*0,15f`, salvo /4,/9,/10 que usan scale. Colores por la tabla original. /7 corta en `0x52ded0` por dueño ausente; los nacimientos de /6 y /8, en `0x52e04c` y `0x52e0a2`; subtipo fuera de tabla, en `0x52dfdc` por scratch retenido sin representar. |
+| `0x61e` | Brillo1 o `1−(5−life)*0,2f` con life<5; lado `(20−life)*0,15f`, salvo /4,/9,/10 que usan scale. Colores por la tabla original. /7 lee la posición de su dueño en cada dibujo (`0x52ded0`; corta si el dueño no es un personaje); el /6 suelta un /7 cada 25 vidas (`0x52e04c`) y el /8 un /9 en las vidas pares (`0x52e0a2`), en la tabla que recorre el pase (CL11); subtipo fuera de tabla, en `0x52dfdc` por scratch retenido sin representar. |
 | `0x61f` | Repite aditiva. Ángulo = low32 firmado de ftol(reloj), resto3600, por0,1f. /0: anillos ±ángulo y calco `0x61e` naranja. /2 no tiene anillos; con life≤10 corta en `0x52e312` por lado local no escrito; con life>10, lado `(20−life)*0,55f`. |
 | `0x636` | Mezcla alfa; ancho/alto de `+0x17c/+0x180`, luz propia, sin giro. |
 | `0x6eb` | Calco con scale y luz propia; en24..29/36, salvo /6, conserva depthWrite=false y corta en `0x52e12f` antes de `0x437940`. |
@@ -13961,16 +13961,34 @@ velocidad girada por los ángulos, sumada a la posición, un `fstp` por eje) y u
 | `0xc1a` (el fragmento radial de Crywolf, `0x4329db` y `0x4f6780`) | `0x51f85a..0x51f8a7`: vida 30, `+0x64` en −2, escala 1, la z 280 más, la x de los ángulos 20 más, la velocidad (0, −80, −10) | `0x52c9fd..0x52ca6c`: con el terreno por encima de la z, la partícula `0x5ed/0` 80 más arriba (con el sonido `0x40` si se crea), seis piedras `0xc8 + (rand() & 1)` y el lugar libre; siempre, la luz dinámica (luz · 0,2; luz · 0,4; luz) de radio 2 (`0x521246`) | el genérico |
 | `0xf8`/1 (la flecha de Crywolf, `0x43257a` y `0x42fd76`) | los ángulos del llamador y tres joints `0x60f/0x19` (`0x51a3b7`) o cuatro `0x60f/0xb` (`0x51a405`) con el efecto de dueño y escala 50 | en vida 13, el `0x105/3` (`0x51a08a`: escala 10 y la luz (0,9f; 0,4f; 0,6f)) con sus joints `0x610`; la cola mueve el punto de partida y no la posición (`0x52ccbe`) | sin caso |
 | `0x105` (la estela) | — | todos los subtipos: la chispa del /1 (`0x523c78`: el joint `0x614/3`, escala 20, clave 7; el sprite `0x5fd` girado `rand() % 360` a `((rand() & 7) + 8) · 0,2f`) | el genérico (Piercing) |
+| `0x61e` (el calco de colores, `Effect\Magic_Ground2`, de `0x4fd5f0` y del pase del suelo) | `0x51eebb..0x51efa4`: vida 20; el /4 y el /0xa, vida 40 y la escala `(rand() % 50 + 50) · 0,04f`; el /6, vida 60, esa escala y la partida en la posición; el /7, vida 40 y el ángulo z en `rand() % 360`; el /8, vida 20; el /9, vida 10 y la escala en 0,1f | `0x52b984..0x52bb74`: el /6 (`0x52b9c1`): el modelo del dueño toma la partida como origen, `+0x68` en `(rand() % 10) · 0,1f` y, tantas vueltas como vida, un hueso al azar que, si no es un dummy, da tres `rand()` de corrimiento (± 50, ± 10, ± 10) y la partícula `0x5ac/8` en su punto; después, el alpha del dueño en vida · 0,0125f. El /9 (`0x52bb29`): la escala 0,3f más y la luz por 0,909f. Los demás, la cola | el pase del suelo (`0x52dc20`): el /6 suelta cada 25 vidas un `0x61e/7` (`0x52e04c`) y el /8 un /9 en las vidas pares (`0x52e0a2`), en la tabla que recorre; el /7 sigue a su dueño (`0x52ded0`) |
+| `0x5e8..0x5ea` (los rayos: el azul, y con el /1 blanco y de escala 3; los naranjas) | `0x51e596..0x51e772`: vida 20, la luz, la escala y la velocidad (0, −50, 0) (el `0x5ea`, (0, −15, 0)) girada por los ángulos. Con el héroe de dueño, cuatro `0x517a20(+0x89, punto, 150, +0x8c, +0x8a, 0)` con el punto 150 más adelante (los blancos alrededor y el C1 10, con sus `rand()`) | solo la cola, sin moverse | su caso de `0x52d620` (la luz que se mueve) |
+| `0x625` (las estrellas que caen, los veinte de `0x4f5cb6`) | `0x51f048..0x51f153`: vida `rand() % 15 + 15`, `+0xe4` en −20, `+0xd8` en `rand() % 360`, la luz en 0; el /1, escala 0,5f, `+0xe4` `rand() % 20 + 10` más abajo y reparto 300; los demás, escala 0 y reparto 200. La x y la y `rand() % reparto` menos la mitad, la z 500 y la x 100 más, la partida en la posición y el sonido `0x42` | `0x52be78..0x52c195`: nada hasta la vida 15; desde ahí el /0 tiembla alrededor de la partida (`FSIN(rand() % 1000 · 0,01f) · 10`) y el /1 se queda; suben `+0xe4`, que baja 2, la x de la partida 10 menos, el fuego `0x5db` (/7 o /0xb), la luz 0,1f más y los sprites `0x5fd` y `0x5ac`; el /1 sobre el terreno suelta el humo `0x5f2/0xb` y, una de cinco veces, el hielo `0xca` | sin caso (≥ `0x151`) |
+| `0x116` (`Skill\PierPart`: el /0 de la 0x3d, `0x504e40`; el /1 de su paso; el /2 de la 0x4a, `0x504b80`) | `0x51ca31..0x51cb46`: el /0, vida 20, `+0xe4` en 2, `+0xd8` en 10, `+0x58` en 1, escala 1,2f, luz 1, la velocidad (0, −26, 0), la partida en la luz que recibió (el `ecx` del prefijo) y los ángulos (0, 0, z). El /1, la vida del dueño, escala 0,5f, alpha `(20 − vida) · 0,2f` y la llama `0x5da/0`. El /2, vida 20, `+0xd8` en 50, `+0x58` en −2, la z 20 menos, la velocidad (0, −40, 0) | `0x52727b..0x527534`: el /0 gira hacia el dueño más la partida (`0x4e9810`) con un `rand() & 1` del cabeceo, acelera, avanza y suelta un /1 por vuelta, después `+0xe4` 0,1f más y el sonido `0x1ca`; el /2 gira hacia el dueño de a `+0xd8`, acelera 2,4f y con la vida múltiplo de 3 deja el joint `0x61c/2` (escala 150); el /1 con vida < 5, el alpha por 0,7692308f | el genérico |
+| `0x117` (`Skill\DarkLordSkill`, las manos de la 0x40, la 0x4b y la 0x3d) | `0x51cbb2..0x51cc6a`: vida 10, escala 0,2f, `+0xd8` en 0,1f; con el subtipo ≤ 1, los ángulos (45, y, 0) con un `rand() % 2`; el /2, vida 12 y `+0xd8` 0,4f | `0x527539..0x5275c8`: la escala crece `+0xd8`, que sube 0,02f (≤ 1), baja 0,06f (/2) o sube 0,04f, y el alpha se apaga al final | el genérico |
+| `0x138` (`Skill\ManaRune`, la 0x4b, `0x502ae6`) | `0x51da46..0x51daca`: el /0, vida 50, escala 0, `+0xe4` 0,1f, alpha 0,3f, la z 300 más y los ángulos (0, 0, 45); el /1, vida 10, escala 1,1f, `+0x58` −1, `+0x64` −2 y `+0x68` 0,4f | `0x529a4f..0x529b81`: el /0 crece hasta 1 y suelta el /1, se achica desde la vida 15 y baja 10 por paso; el /1 se achica 0,02f (piso 1) | el genérico |
+| `0x812` y `0x813` (los emisores de la 0x2b y la 0x2f, `0x4f97b0`) | `0x51e4f6`: vida 10 (también el `0x5c6`). `0x51f8a8`: los ángulos en 0 y vida 5 | `0x52c981`: el joint `0x60f/0xc` (escala 100) o `0x60f/4` (escala 50) con él de dueño. `0x52caa5`: tres joints `0x619/6` (escala 5) desde 100 hacia atrás con ángulos `(rand() % 90, 0, rand() % 360)` | sin caso |
+| `0x621`/1 y /2 (el brillo de la 0x37 en la mano, `0x4f9f3e`) | `0x51efa5..0x51efe9`: vida 20 y la partida en la posición (los demás salvo el /0, vida 10) | `0x52bb79..0x52bbf1`: el origen del modelo del dueño pasa a ser la partida y la posición es el punto (0, 0, 10) de su hueso 33; después las emisiones del /0 (`0x52bbf6`) | sin caso |
 
 MuRet: `Scenes::CreateHighModelEffect` y `StepHighModelEffect` (`HighModelEffects.h`), desde los llamadores del asedio
 (`MonsterCreation`, `StepTheSiege`, `StepTheDoppelganger`), de Crywolf (`LaunchTheRadialVolley`) y desde
-`GameSceneLogic`; la flecha y la estela en `ArrowEffects.cpp` y `World/GameModelEffects.cpp`. El BMD del `0x19f` sale de
-`WorldState::FaunaResources()` y, si no está, de los modelos del contexto, como `MonsterSkeletonOf`. Cortan con su
-dirección los joints que todavía no están (`0x61c/3`, `0x632/5`, `0x615/6`, `0x60f/0x19`, `0x60f/0xb`, `0x614/3`; 08,
-P-C420) y la segunda animación del `0x13b` cuando la primera dejó la acción en `0xff` (`0x52cd84`: el original lee la
-acción 255 fuera de la tabla del modelo, P-C421). Las señales propias de los ADR 0019 y 0020 ya no existen.
-Tests: `HighModelEffectsTest` (`test_high_model_effects.cpp`), los del asedio y de Crywolf en
-`test_monster_attack_cases.cpp`, `test_arrow_effects.cpp`, `test_monster_viewport.cpp` y `test_game_draw_tail.cpp`.
+`GameSceneLogic`; la flecha y la estela en `ArrowEffects.cpp` y `World/GameModelEffects.cpp`; el alta del `0x61e` en
+`World/ColoredDecals` y su dibujo en `World/GroundEffectDrawing`. El BMD del `0x19f` sale de
+`WorldState::FaunaResources()` y, si no está, de los modelos del contexto, como `MonsterSkeletonOf`. Los llamadores
+destrabados: de `0x4fd5f0` la 0x30 y la 0x45 (`0x4fe015`, `0x4fe253`, el anillo de calcos hasta su primer joint
+`0x613`), la 0x44 y la 0x47 (`0x4fe424`), la 0x2c (el `0x13b` sobre o), la 0x0c (`0x500cb9`), las manos de la 0x40 y
+la 0x4b (con el `0x138`), la 0x4a y la 0x3d; de `0x4f97b0` la 0x2b, la 0x2f y la 0x37 (`0x4f9f3e`); de `0x4f5b70` el
+0x46 (`0x4f5cb6`: un blanco fuera de la tabla corta en `0x4f5cd4`), `0x4f67fb`, `0x4f6b51` y `0x4f81cc`; y el rayo
+blanco del `0x1bb` (`0x428da7`). Cortan con su dirección los joints que todavía no están (`0x61c/3`, `0x632/5`,
+`0x615/6`, `0x60f/0x19`, `0x60f/0xb`, `0x614/3`, `0x61c/2`, `0x60f/4`, `0x60f/0xc`, `0x619/6`; 08, P-C420), las
+partículas sin portar (`0x5ac/8`, `0x5db/7`, `0x5db/0xb`, `0x5da/0`; 08, P-C422) y la segunda animación del `0x13b`
+cuando la primera dejó la acción en `0xff` (`0x52cd84`: el original lee la acción 255 fuera de la tabla del modelo,
+P-C421). La comprobación de distancia del `0x116/0` (la vida en 5, `0x5f93c0` en una variable que nadie lee) no se
+porta: no cambia nada. Las señales propias de los ADR 0019 y 0020 ya no existen.
+Tests: `HighModelEffectsTest` (`test_high_model_effects.cpp`), los del asedio, de Crywolf y del 0x46 en
+`test_monster_attack_cases.cpp`, `test_attack_skill_cases.cpp`, `test_attack_frame_skills.cpp`,
+`test_character_step.cpp`, `test_arrow_effects.cpp`, `test_monster_viewport.cpp`, `test_monster_helpers.cpp` y
+`test_game_draw_tail.cpp`.
 
 ### Los helpers de los monstruos
 

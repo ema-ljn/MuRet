@@ -93,7 +93,7 @@ glm::vec3 Sum(const glm::vec3& a, const glm::vec3& b)
 }
 
 // 0x530860(tipo, punto, punto2, ángulos, subtipo, dueño, escala, clave, 0, 0, −1): el joint, con la dirección del que
-// lo pide delante del error de un joint que MuRet no tiene (el lote de los joints de la CL11).
+// lo pide delante del error de un joint que MuRet no tiene (el lote de los joints de la CL11) y "(CL11)" detrás.
 Core::Expected<void, std::string> CreateJoint(WorldState& world, CrtRandom& random, std::int32_t type, glm::vec3 first,
                                               glm::vec3 second, glm::vec3 angles, std::int32_t subtype,
                                               World::ModelEffect* owner, float scale, std::uint32_t address)
@@ -104,7 +104,7 @@ Core::Expected<void, std::string> CreateJoint(WorldState& world, CrtRandom& rand
         World::FishEffectRequest{type, first, second, angles, subtype, owner, scale, NoKey, 0, 0, NoTarget}, random,
         owner != nullptr ? JointOwnerKind::ModelEffect : JointOwnerKind::ByType);
     if (!made.HasValue())
-        return Core::Unexpected(std::format("{:#x}: {}", address, made.Error()));
+        return Core::Unexpected(std::format("{:#x}: {} (CL11)", address, made.Error()));
     return {};
 }
 
@@ -117,7 +117,7 @@ CreateParticle(WorldState& world, CrtRandom& random, float worldClock, std::int3
     const auto created =
         world.Particles().CreateChecked(type, position, angles, light, subtype, scale, worldClock, random, 0);
     if (!created.HasValue())
-        return Core::Unexpected(std::format("{:#x}: la partícula {:#x}/{} falla con el error {}", address, type,
+        return Core::Unexpected(std::format("{:#x}: la partícula {:#x}/{} falla con el error {} (CL11)", address, type,
                                             subtype, static_cast<unsigned>(created.Error())));
     return created.Value();
 }
@@ -400,7 +400,7 @@ Core::Expected<void, std::string> BeginThePierPart(World::ModelEffect& effect,
                 CreateParticle(context.world, context.random, context.worldClock, TrailFire, effect.transform.position,
                                effect.transform.angles, effect.light, TrailFireSubtype, 1.0f, 0x51cb38);
             !fire.HasValue())
-            return Core::Unexpected(fire.Error() + " (CL11)");
+            return Core::Unexpected(fire.Error());
         return {};
     }
     if (effect.subtype == 2)
@@ -820,7 +820,7 @@ Core::Expected<void, std::string> StepTheFallingStar(World::ModelEffect& effect,
                                    effect.transform.angles, localLight, wobbly ? WobblyFire : StraightFire,
                                    effect.transform.scale, wobbly ? 0x52bf29u : 0x52c036u);
         !fire.HasValue())
-        return Core::Unexpected(fire.Error() + " (CL11)");
+        return Core::Unexpected(fire.Error());
     constexpr double Glow = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8, 0,1f
     const float glow = F32(D(effect.light.x) + Glow);
     effect.light = glm::vec3(glow);

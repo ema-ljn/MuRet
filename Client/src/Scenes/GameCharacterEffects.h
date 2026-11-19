@@ -8,8 +8,11 @@
 #include "Scenes/SocialState.h"
 #include "World/ParticleOwner.h"
 
+#include <glm/ext/vector_float3.hpp>
+
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <string>
 
@@ -79,6 +82,11 @@ struct GameCharacterEffectsPass
     // En un frame del original corren los contadores y lo que nace en las tablas durables; entre frames,
     // sólo los sprites, sobre una copia del personaje y del rand().
     bool originalFrame = true;
+    // +0x6c..+0x74 del 0x20a ([ebp−0x14] de 0x50ba30): la posición que 0x6001b0 le copió en 0x50bbf7, antes de las
+    // guardas y del suelo de la sombra de Blood Castle (0x50bcaf). Con ella traslada 0x4ec110 los puntos de los huesos
+    // (0x50eab0, 0x50f89b, 0x50fb16, 0x50fc37.., 0x50fe4c.., 0x510071.. y el 0x51e121 del gremio); los joints y los
+    // efectos que nacen en el personaje van desde la del objeto (+0x10), ya en el suelo. Sin ella, la del personaje.
+    std::optional<glm::vec3> modelOrigin{};
 };
 
 // 0x50ea20..0x510ab6 sobre un 0x20a con lo que cuelga ya dibujado, en el orden del ASM: los sprites de la

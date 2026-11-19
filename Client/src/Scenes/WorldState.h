@@ -115,6 +115,9 @@ public:
     [[nodiscard]] const SharedModelPlacement& PlayerModel() const;
     // Lo que 0x505ec6 y 0x6001b0 copian de `actor` si es un 0x20a; con otro tipo, a otro modelo.
     void PlacePlayerModel(const ActorState& actor);
+    // Lo mismo con el origen `origin`: el de 0x6001b0 en 0x50ba30 es la posición de antes del suelo de la sombra de
+    // Blood Castle (0x600247..0x600256 corre en 0x50bbf7, antes de 0x50bcaf).
+    void PlacePlayerModel(const ActorState& actor, const glm::vec3& origin);
     // Lo que 0x60cf70 copia de `actor` al 0x20b (Player\Shadow01) cuando 0x50ba30 dibuja su sombra (0x50bcec): la
     // escala (+0x68, 0x60cff1) y el origen (+0x6c, 0x60d009); la acción (+0xa0) queda como estaba. La lee el joint
     // 0x632/0 y /1 al llegar al suelo (0x53c1eb).

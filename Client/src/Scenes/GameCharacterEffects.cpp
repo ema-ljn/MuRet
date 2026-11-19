@@ -219,14 +219,21 @@ struct Tail
     // partículas de las botas; lo leen las manos de las acciones, de las banderas y del conjunto (Q-C350).
     glm::vec3 offset{};
 
-    // 0x4ec110 con el jugador sobre el hueso `bone` de su pose propia (+0x120), en la llamada `call`.
+    // +0x6c..+0x74 del 0x20a (GameCharacterEffectsPass::modelOrigin): la posición de antes del suelo de la sombra.
+    [[nodiscard]] glm::vec3 ModelOrigin() const
+    {
+        return pass.modelOrigin.value_or(actor.position);
+    }
+
+    // 0x4ec110 con [ebp−0x14] (el 0x20a: la escala del personaje y ModelOrigin) sobre el hueso `bone` de su pose propia
+    // (+0x120), en la llamada `call`.
     [[nodiscard]] Core::Expected<glm::vec3, std::string> BodyPoint(std::int32_t bone, std::string_view call) const
     {
         if (bone < 0 || static_cast<std::size_t>(bone) >= pass.body.size())
             return Core::Unexpected(std::format("{}: el hueso {} del cuerpo no existe", call, bone));
         return Render::Models::OriginalTransformPosition(
             Render::Models::OriginalMatrixOf(pass.body[static_cast<std::size_t>(bone)]), offset, actor.scale,
-            actor.position);
+            ModelOrigin());
     }
 
     // 0x5491e0: el sprite aditivo; el dueño no se guarda.
@@ -725,11 +732,12 @@ Result GuildMark(const Tail& tail)
     if (tail.pass.effects == nullptr || tail.pass.particles == nullptr)
         return Core::Unexpected<std::string>("0x510f4d: el efecto 0x140 pide la tabla de efectos y las partículas");
     // 0x51e121: 0x4ec110 con el hueso 20 de los huesos propios (+0x120) y la escala y la posición que 0x6001b0 le copió
-    // al modelo, sin el corrimiento de [ebp−0x50] (el de 0x518cf0 es suyo, en 0).
+    // al modelo (antes del suelo de la sombra), sin el corrimiento de [ebp−0x50] (el de 0x518cf0 es suyo, en 0).
     if (GuildMarkBone >= tail.pass.body.size())
         return Core::Unexpected(std::format("0x51e121: el hueso {} del cuerpo no existe", GuildMarkBone));
-    const glm::vec3 point = Render::Models::OriginalTransformPosition(
-        Render::Models::OriginalMatrixOf(tail.pass.body[GuildMarkBone]), glm::vec3(0.0f), actor.scale, actor.position);
+    const glm::vec3 point =
+        Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(tail.pass.body[GuildMarkBone]),
+                                                  glm::vec3(0.0f), actor.scale, tail.ModelOrigin());
     if (auto raised = RaiseTheGuildMark(actor, point, *tail.pass.effects, *tail.pass.particles, tail.pass.random,
                                         tail.pass.worldClock);
         !raised.HasValue())

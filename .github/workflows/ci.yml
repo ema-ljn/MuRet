@@ -87,7 +87,12 @@ jobs:
             build-preset: windows-x64-debug
             test-preset: windows-x64-debug
             precompiled-headers: 'ON'
-            extra-configure: ''
+            # Sin información de depuración, como el --strip-debug de Linux: con /Zi cada archivo
+            # manda sus tipos al PDB del proyecto por un único mspdbsrv, y cada uno de los 690
+            # enlaces arma su PDB con los de ClientLib. Con /MP y 4 proyectos a la vez el build no
+            # bajó de 75 min (#379). Lo que este job verifica sigue igual: /Od, /RTC1, el runtime
+            # de depuración con sus iteradores verificados, /W4 /WX y la pila de 1 MB.
+            extra-configure: '-DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT= -DCMAKE_EXE_LINKER_FLAGS_DEBUG=/INCREMENTAL:NO'
             font-file: 'C:\Windows\Fonts\arial.ttf'
           # Que cada archivo del cliente incluya lo que usa (docs/CODING_RULES.md § 7). Antes iba al
           # final del job de Linux y le sumaba 12 a 18 minutos; clang-tidy solo lee el

@@ -90,7 +90,7 @@ Core::Expected<void, std::string> StepTheKundunCall(World::ModelEffect& effect, 
         if (effect.life != CallLife)
             return {};
         constexpr int Fan = 0x50, FanStep = 8;
-        constexpr double Offset = 320.0; // 0x6ba22c
+        constexpr double Offset = static_cast<double>(320.0f); // 0x6ba22c, el float de un fadd DWORD (0x527b18)
         for (int turn = 0; turn < Fan; turn += FanStep)
         {
             const glm::vec3 angles{0.0f, 0.0f, F32(static_cast<double>(turn) + D(effect.transform.angles.z) + Offset)};
@@ -167,9 +167,9 @@ void StepTheKundunPhoenix(World::ModelEffect& effect)
 Core::Expected<void, std::string> BeginTheKundunSpirit(World::ModelEffect& effect, const HighEffectContext& context)
 {
     constexpr std::int32_t SpiritLife = 30;
-    constexpr float Glow = 0.5f;                    // 0x3f000000
-    constexpr double Lift = 100.0;                  // 0x6b86b4, 100,0f
-    constexpr int ReachSpan = 600, ReachBase = 200; // 0x258 y 0xc8
+    constexpr float Glow = 0.5f;                         // 0x3f000000
+    constexpr double Lift = static_cast<double>(100.0f); // 0x6b86b4, el float de un fadd DWORD (0x51cdfe)
+    constexpr int ReachSpan = 600, ReachBase = 200;      // 0x258 y 0xc8
     constexpr std::int32_t OrbitSubtype = 0x12;
     constexpr float Pitch = -30.0f; // 0xc1f00000
     effect.life = SpiritLife;

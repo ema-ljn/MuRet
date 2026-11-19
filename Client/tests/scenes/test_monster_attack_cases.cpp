@@ -2524,9 +2524,12 @@ TEST_F(MonsterAttackCasesTest, TheTrailStartsAtTheEleventhBone)
 // La cola con 0x11 en +0x38e (0x4f8147): los casos salen siempre, sin la segunda lectura; los sonidos 0x75 y 0x50 en
 // 1 salen antes del joint que corta. El 0x4f8493 del 0x49 y el 0x4b no llega: su caso de +0x376 corta antes. Los
 // impares de 0xa3 a 0xad sacan en el alta (0x51443f) la derecha: 0xa25 (el arco) o 0xc17; acá va escrita. Con el arco,
-// en 8, la flecha de 0x4f816f (0x53e2b0 → 0x53d9a0 con las manos) da el 0x111, cuya alta corta en su joint (0x51bf35).
+// en 8, la flecha de 0x4f816f (0x53e2b0 → 0x53d9a0 con las manos) da el 0x111 con su joint 0x618/5 (0x51bf35), el
+// cierre del registro propio y los quince giros de la mano del arco 0xa25 (0x53e630..0x53e73a, 105 rand() en esta
+// semilla).
 TEST_F(MonsterAttackCasesTest, TheSkill0x11CasesLeaveAfterTheirEffect)
 {
+    constexpr int ReignShine = 105;
     constexpr std::uint16_t Bow = 0xa25;
     constexpr std::uint16_t Staff = 0xc17;
     const std::vector<Probe> probes{
@@ -2534,8 +2537,7 @@ TEST_F(MonsterAttackCasesTest, TheSkill0x11CasesLeaveAfterTheirEffect)
          .type = 0xa3,
          .step = 8,
          .skill = 0x11,
-         .cut = "0x51bf35",
-         .draws = SkillRead,
+         .draws = SkillRead + OwnRecord + ReignShine,
          .right = Bow},
         {.name = "0xa9 con el arco en 9", .type = 0xa9, .step = 9, .skill = 0x11, .draws = SkillRead, .right = Bow},
         {.name = "0xa7 en la 3 y en 15",
@@ -2558,8 +2560,7 @@ TEST_F(MonsterAttackCasesTest, TheSkill0x11CasesLeaveAfterTheirEffect)
          .step = 8,
          .action = 4,
          .skill = 0x11,
-         .cut = "0x51bf35",
-         .draws = SkillRead,
+         .draws = SkillRead + OwnRecord + ReignShine,
          .right = Bow},
         {.name = "0x59 en 14", .type = 0x59, .step = 14, .skill = 0x11, .cut = "0x4f8326", .draws = 2 * SkillRead},
         {.name = "0x8f en 13", .type = 0x8f, .step = 13, .skill = 0x11, .draws = 2 * SkillRead},

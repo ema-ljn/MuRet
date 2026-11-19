@@ -13,6 +13,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/AttackStep.h"
 #include "Scenes/CharacterStep.h"
+#include "Scenes/FaunaJointCreation.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
@@ -466,9 +467,9 @@ TEST(ArrowEffectsTest, TheMountedBowsShootLikeOnFoot)
 }
 
 // Las armas cuyas flechas piden algo sin portar cortan en su dirección, con lo de antes: en el alta, los joints de
-// la 0xf7 (4/16), la 0xf8 (4/17), la 0x10e (4/18), la 0x111 (4/19), la 0x11c (4/20, después de su rand() % 360) y la
-// 0xf9 (4/21); en el paso, la 0xe1 (4/6) en sus partículas 0x608..0x60a, la 0xe2 (4/14) y la 0xe3 (4/13) en las
-// 0x607/1, después de sus dos sprites y de los rand() del punto.
+// la 0xf8 (4/17), la 0x11c (4/20, después de su rand() % 360) y la 0xf9 (4/21); en el paso, la 0xe1 (4/6) en sus
+// partículas 0x608..0x60a, la 0xe2 (4/14) y la 0xe3 (4/13) en las 0x607/1, después de sus dos sprites y de los rand()
+// del punto.
 
 TEST(ArrowEffectsTest, TheArrowsOfUnportedEffectsCut)
 {
@@ -483,11 +484,9 @@ TEST(ArrowEffectsTest, TheArrowsOfUnportedEffectsCut)
         int stepDraws;
     };
     const std::array cases{
-        Case{"4/16", 0x810, 0xffff, "0x51a24a", 0, "", 0},    Case{"4/17", 0xffff, 0x811, "0x51a405", 0, "", 0},
-        Case{"4/18", 0x812, 0xffff, "0x51a173", 0, "", 0},    Case{"4/19", 0x813, 0xffff, "0x51bf35", 0, "", 0},
-        Case{"4/20", 0xffff, 0x814, "0x51c713", 1, "", 0},    Case{"4/21", 0xffff, 0x815, "0x51c56c", 0, "", 0},
-        Case{"4/6", 0xffff, 0x806, "", 0, "0x526a8b", 1 + 4}, Case{"4/14", 0x80e, 0xffff, "", 0, "0x52434e", 1 + 3},
-        Case{"4/13", 0x80d, 0xffff, "", 0, "0x526d5f", 1 + 3}};
+        Case{"4/17", 0xffff, 0x811, "0x51a405", 0, "", 0},     Case{"4/20", 0xffff, 0x814, "0x51c713", 1, "", 0},
+        Case{"4/21", 0xffff, 0x815, "0x51c56c", 0, "", 0},     Case{"4/6", 0xffff, 0x806, "", 0, "0x526a8b", 1 + 4},
+        Case{"4/14", 0x80e, 0xffff, "", 0, "0x52434e", 1 + 3}, Case{"4/13", 0x80d, 0xffff, "", 0, "0x526d5f", 1 + 3}};
     for (const Case& probe : cases)
     {
         SCOPED_TRACE(probe.name);
@@ -523,6 +522,55 @@ TEST(ArrowEffectsTest, TheArrowsOfUnportedEffectsCut)
 // por −0,4f y la y de la velocidad por 0,4f; con el terreno igual a la z no rebota. En la última vida suelta las
 // chispas de 0x51fe10 (40 rand() con el pool lleno) y, con el héroe de dueño y sin el subtipo 0x63, corta en 0x517a20
 // (0x524405, hito 4); sin la altura del terreno corta en 0x524382. En Lorencia, en Devias y en Icarus (10).
+
+// 0x51a173, 0x51a24a y 0x51bf35: la flecha de la 4/16, la 4/18 y la 4/19 deja un 0x618/5 con ella de dueño, desde su
+// posición (la z + 130, que también queda en su +0x40), con sus ángulos y ancho 100, sin rand(): velocidad 0, vida
+// 999.999.999, 10 puntos y la luz (0,5; 0,1; 1) (0x532238..0x53230e). En el paso sigue el +0x40 de la flecha y, con
+// la flecha apagada, se apaga sin la cola ni la vida (0x53820e).
+TEST(ArrowEffectsTest, TheAdvancedArrowsLeaveTheirBeam)
+{
+    for (const auto& [name, right] : {std::pair{"4/16", std::uint16_t{0x810}}, std::pair{"4/18", std::uint16_t{0x812}},
+                                      std::pair{"4/19", std::uint16_t{0x813}}})
+    {
+        SCOPED_TRACE(name);
+        ArrowWorld tested(0);
+        const Weapon weapon{name, right, 0xffff, 0x2e, 0};
+        ActorState& hero = tested.Archer(weapon, weapon.action, NoTarget);
+
+        const auto struck = StepTheAttack(hero, HeroSlot, tested.Context());
+
+        ASSERT_TRUE(struck.HasValue()) << struck.Error();
+        const auto arrows = tested.Arrows();
+        ASSERT_EQ(arrows.size(), 1u);
+        ModelEffect& arrow = *arrows.front();
+        auto& joints = tested.world.DrawTail().joints;
+        const auto beam = std::ranges::find_if(joints, [](const auto& joint) { return joint.alive; });
+        ASSERT_NE(beam, joints.end());
+        EXPECT_EQ(beam->type, 0x618);
+        EXPECT_EQ(beam->subtype, 5);
+        EXPECT_EQ(beam->ownerContext, &arrow);
+        EXPECT_EQ(beam->ownerKind, Client::Scenes::JointOwnerKind::ModelEffect);
+        EXPECT_EQ(beam->position, arrow.point40);
+        EXPECT_EQ(beam->angles, arrow.transform.angles);
+        EXPECT_EQ(beam->width, 100.0f);
+        EXPECT_EQ(beam->speed, 0.0f);
+        EXPECT_EQ(beam->life, 999999999);
+        EXPECT_EQ(beam->maximumCount, 10);
+        EXPECT_EQ(beam->light, glm::vec3(0.5f, std::bit_cast<float>(0x3dcccccdu), 1.0f));
+
+        arrow.point40 = {1.0f, 2.0f, 3.0f};
+        ASSERT_TRUE(Client::Scenes::StepJoints(joints, tested.random).HasValue());
+        EXPECT_EQ(beam->position, glm::vec3(1.0f, 2.0f, 3.0f));
+        EXPECT_EQ(beam->life, 999999998);
+        EXPECT_EQ(beam->count, 1);
+
+        arrow.alive = false;
+        ASSERT_TRUE(Client::Scenes::StepJoints(joints, tested.random).HasValue());
+        EXPECT_FALSE(beam->alive);
+        EXPECT_EQ(beam->life, 999999998);
+        EXPECT_EQ(beam->count, 1);
+    }
+}
 
 TEST(ArrowEffectsTest, TheArrowRainCountsTheVolley)
 {
@@ -775,7 +823,7 @@ TEST(ArrowEffectsTest, ThePiercingShotLeavesItsTrail)
                 EXPECT_EQ(joints[slot].subtype, static_cast<std::int32_t>(slot));
                 EXPECT_EQ(joints[slot].ownerKind, Client::Scenes::JointOwnerKind::ModelEffect);
                 EXPECT_EQ(joints[slot].ownerContext, &*trail);
-                EXPECT_EQ(joints[slot].width, 20);
+                EXPECT_EQ(joints[slot].width, 20.0f);
                 EXPECT_EQ(joints[slot].life, 30);
                 EXPECT_EQ(joints[slot].key, 0);
                 EXPECT_EQ(joints[slot].skill, 0);

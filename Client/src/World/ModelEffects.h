@@ -182,7 +182,9 @@ struct ModelEffect
     std::uint16_t disturbanceState = 0;       // +0x8a, guard de437860 del efecto9
     bool vertexLight = true;                  // +0xe8
     glm::vec3 point40{}; // +0x40..+0x48, vector nativo de las estelas, distinto de la interpolación.
-    glm::vec3 start{};   // +0x17c, la partida
+    // +0x4c..+0x54: el otro punto que sigue el joint 0x618/0xb del 0x11b/1 (0x51c82d, 0x538256).
+    glm::vec3 point4c{};
+    glm::vec3 start{}; // +0x17c, la partida
     // De MuRet: la posición antes del último paso, para dibujar entre dos pasos (D-C4).
     glm::vec3 previousPosition{};
     std::int32_t textureFrame = 0;           // +0x1c4: selector firmado del calco 0x14e en52d8f2.

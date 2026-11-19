@@ -149,44 +149,6 @@ Core::Expected<void, std::string> CreateSwordBeam(JointState& joint, const World
     return {};
 }
 
-// 0x532125, 0x5321e0..0x53220b, 0x5323ba y 0x534cb6: el 618/0x11 del bastón 0xc1e (0x50b4e7), con el ActorState del
-// personaje como dueño (+0x54). El ancho, velocidad 0, vida 12, la posición en +0x40 del dueño y la luz (0,8; 0,2;
-// 1). No escribe +0x6c: los puntos quedan los del uso anterior del lugar, a lo sumo 50 (Q-C361).
-Core::Expected<void, std::string> CreateStaffBeam(JointState& joint, const World::FishEffectRequest& request)
-{
-    constexpr std::int32_t StaffBeamLife = 12;
-    constexpr std::int32_t MostPoints = 50;
-    const auto* owner = static_cast<const ActorState*>(joint.ownerContext);
-    if (owner == nullptr)
-        return Core::Unexpected(std::string("0x5321ea: falta el personaje dueño del joint 0x618/0x11"));
-    joint.width = request.scale;
-    joint.speed = 0;
-    joint.life = StaffBeamLife;
-    joint.position = owner->effectOrigin;
-    joint.light = {0.8f, 0.2f, 1};
-    if (joint.maximumCount > MostPoints)
-        joint.maximumCount = MostPoints;
-    return {};
-}
-
-// 0x532125..0x532155, 0x5322df (/0) y 0x5322f8 (/1): el 618/0 y el 618/1 del que mató (0x505169, 0x5051a4), con el
-// ActorState del que pega como dueño (+0x54). El ancho del pedido, velocidad 3, vida 120, 8 puntos y la luz
-// (0,4; 0,3; 0,2) en la /0 y (0,1; 0,1; 0,5) en la /1. El destino (+0x58) queda el del uso anterior: con dueño, el
-// prefijo no lo escribe. Sin rand().
-void CreateKillBeam(JointState& joint, const World::FishEffectRequest& request)
-{
-    constexpr float KillBeamSpeed = 3.0f;
-    constexpr std::int32_t KillBeamLife = 120, KillBeamPoints = 8;
-    joint.width = request.scale;
-    joint.speed = KillBeamSpeed;
-    joint.life = KillBeamLife;
-    joint.maximumCount = KillBeamPoints;
-    joint.light = request.subtype == 0 ? glm::vec3(std::bit_cast<float>(0x3ecccccdu), std::bit_cast<float>(0x3e99999au),
-                                                   std::bit_cast<float>(0x3e4ccccdu))
-                                       : glm::vec3(std::bit_cast<float>(0x3dcccccdu), std::bit_cast<float>(0x3dcccccdu),
-                                                   std::bit_cast<float>(0x3f000000u));
-}
-
 // 0x531c43..0x531cc7, 0x531d24..0x531dcb y 0x532003: el 610/4 de la espada 0x223 (0x50ec26), con el ActorState del
 // personaje como dueño (+0x54). Lo común del 0x610 pone la vida en la key, 50 puntos y la key en 0, y el color del
 // skill (+0x9ea) elige el ancho y la luz; el caso 4 pisa todo salvo la key. Mezcla 3, los ángulos en 0, vida 0, el
@@ -747,28 +709,8 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
         joint.light = request.subtype == 2 ? glm::vec3(0.3f, 0.3f, 1) : glm::vec3(1);
         return {};
     }
-    if (request.type == 0x618 && request.subtype == 0x11)
-        return CreateStaffBeam(joint, request);
-    if (request.type == 0x618 && (request.subtype == 2 || request.subtype == 3))
-    {
-        // 0x532238..0x5322cc y 0x53230e: los dos joints de los huesos de la barrera de Crywolf.
-        const auto* actor = static_cast<const ActorState*>(joint.ownerContext);
-        if (actor == nullptr)
-            return Core::Unexpected(std::string("0x53229c: falta el personaje dueño del joint 0x618/2 o /3"));
-        constexpr std::int32_t Life = 999999999, Points = 20;
-        joint.width = request.scale;
-        joint.speed = 0;
-        joint.life = Life;
-        joint.maximumCount = Points;
-        joint.position = request.subtype == 2 ? actor->effectOrigin : actor->bonePoint4c;
-        joint.light = {0.5f, 0.1f, 1};
-        return {};
-    }
-    if (request.type == KillBeamJoint && (request.subtype == 0 || request.subtype == 1))
-    {
-        CreateKillBeam(joint, request);
-        return {};
-    }
+    if (request.type == JointFamilies::BeamJoint)
+        return JointFamilies::CreateBeamJoint(joint, request, random);
     // 531c43..531cc7 y531fc3..53200e: la estela del misilE1/1 de Crywolf.
     if (request.type == 0x610 && request.subtype == 13)
     {
@@ -796,17 +738,6 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
     if (request.type == EnergyJoint && request.subtype == SummonEnergySubtype)
     {
         CreateSummonEnergy(joint, request);
-        return {};
-    }
-    if (request.type == 0x618 && request.subtype == 4)
-    {
-        joint.width = request.scale;
-        joint.life = 999999999;
-        joint.maximumCount = 20;
-        if (owner == nullptr)
-            return Core::Unexpected(std::string("0x53229c: falta el dueño durable del joint 0x618/4"));
-        joint.position = owner->previousPosition;
-        joint.light = {0.3f, 0.15f, 0.1f};
         return {};
     }
     if (request.type == 0x10f && (request.subtype == 1 || request.subtype == 3))
@@ -879,13 +810,15 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateFaunaJoint(std::sp
         request.type == SparkleJoint && (request.subtype == SparkleSubtype || request.subtype == WideSparkleSubtype);
     // Y de un personaje fuera de su tipo: la posición, los ángulos, la luz y el byte vivo del 610/8 (0x4c91dc).
     const bool kalimaBeam = request.type == 0x610 && request.subtype == 8;
-    const bool barrierBeam = request.type == 0x618 && (request.subtype == 2 || request.subtype == 3);
     // Las familias de JointFamilies.h leen al personaje dueño con JointKernels::ActorOwner.
     const bool familyJoint =
         request.type == JointFamilies::LightningJoint || request.type == JointFamilies::RedHandBoltJoint ||
         request.type == JointFamilies::BlueHandBoltJoint || request.type == JointFamilies::SpiritJoint ||
-        request.type == JointFamilies::SecondSpiritJoint ||
+        request.type == JointFamilies::SecondSpiritJoint || request.type == JointFamilies::BeamJoint ||
         (request.type == JointFamilies::AuraJoint && request.subtype != 1 && request.subtype != 3);
+    // El 0x618 que sigue a un efecto con modelo: la /5 de las flechas y la /0xa y /0xb del 0x11b/1.
+    const bool effectBeam = request.type == JointFamilies::BeamJoint &&
+                            (request.subtype == 5 || request.subtype == 0xa || request.subtype == 0xb);
     for (std::size_t i = 0; i < joints.size(); ++i)
     {
         if (joints[i].alive)
@@ -894,14 +827,14 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateFaunaJoint(std::sp
             return Core::Unexpected(std::format("0x530860: el joint {:#x}/{} con un ayudante o el cuervo de dueño no "
                                                 "está portado",
                                                 request.type, request.subtype));
-        if (ownerKind == JointOwnerKind::Actor && !kalimaBeam && !barrierBeam && !familyJoint)
+        if (ownerKind == JointOwnerKind::Actor && !kalimaBeam && !familyJoint)
             return Core::Unexpected(
                 std::format("0x530860: el joint {:#x}/{} con el ActorState de dueño fuera de su tipo no está portado",
                             request.type, request.subtype));
         if (ownerKind == JointOwnerKind::ModelEffect &&
             !((request.type == EnergyJoint && request.subtype == SummonEnergySubtype) ||
               (request.type == 0x610 && (request.subtype == 13 || (request.subtype >= 0 && request.subtype <= 3))) ||
-              (request.type == SparkleJoint && request.subtype == 6)))
+              (request.type == SparkleJoint && request.subtype == 6) || effectBeam))
             return Core::Unexpected(
                 std::string("0x530860: el dueño ModelEffect no está portado para este tipo y subtipo"));
         Prefix(joints[i], request, ownerKind);
@@ -1452,84 +1385,6 @@ Core::Expected<void, std::string> StepSummonEnergy(JointState& joint, std::size_
     return {};
 }
 
-// 0x538313..0x5386a4 con la /0 y la /1, después del movimiento común (con la velocidad de antes del caso). Con la
-// vida en 100 o más, gira: la /0 suma 10 al rumbo y 6 a la z; la /1 resta 10 y suma 5. Con menos, la velocidad + 5,
-// hasta 30, el destino en el dueño (+0x54: su posición, la z + 120) y 0x4e9810 hacia él con la velocidad de paso. A 35
-// o menos (o NaN), muere y pide el 0x5d5/1 (0x538577) y el sonido 0x23 (0x538582); de 35 a 70, con el rumbo girado más
-// de 20 y la velocidad en 20 o más, la velocidad − 10. Después, siempre: v = ((rand() & 3) + 8) · 0,03f, la luz
-// dinámica de radio 2 (v · 0,4f; v; v · 0,8f) (0x53861c) y el 0x5d5/0 (0x538695) con la luz del joint. Un rand().
-Core::Expected<void, std::string> StepKillBeam(JointState& joint, std::size_t index, Render::Models::CrtRandom* random,
-                                               World::Particles* particles, float worldClock,
-                                               World::TerrainLighting* lighting,
-                                               const std::function<void(std::int32_t)>& soundRequest)
-{
-    constexpr std::int32_t SpinLife = 100;
-    constexpr double Turn = 10.0, Accel = 5.0, Brake = 10.0; // 0x6b87a8, 0x6b87f8
-    constexpr double FirstRise = 6.0, SecondRise = 5.0;      // 0x6b87f4, 0x6b87f8
-    constexpr double TopSpeed = 30.0, SlowSpeed = 20.0;      // 0x6b8858, 0x6b86d0
-    constexpr double Hit = 35.0, Near = 70.0, Swerve = 20.0; // 0x6b8974, 0x6ba1b0, 0x6ba2f8
-    constexpr double Above = 120.0;                          // 0x6b86c8
-    constexpr std::int32_t HitSound = 0x23;
-    constexpr std::int32_t GlowMask = 3, GlowBase = 8, GlowRadius = 2;
-    constexpr double GlowStep = static_cast<double>(std::bit_cast<float>(0x3cf5c28fu)); // 0x6b8bd4
-    constexpr double GlowRed = static_cast<double>(std::bit_cast<float>(0x3ecccccdu));  // 0x6b87b4
-    constexpr double GlowBlue = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu)); // 0x6b8a38
-    const bool first = joint.subtype == 0;
-    if (joint.life >= SpinLife)
-    {
-        joint.angles.z = static_cast<float>(D(joint.angles.z) + (first ? Turn : -Turn));
-        joint.position.z = static_cast<float>(D(joint.position.z) + (first ? FirstRise : SecondRise));
-    }
-    else
-    {
-        const double faster = D(joint.speed) + Accel;
-        joint.speed = static_cast<float>(faster);
-        // 0x538496: FCOMP con solo C0, así que NaN no llega a 30.
-        if (faster >= TopSpeed)
-            joint.speed = static_cast<float>(TopSpeed);
-        const float heading = joint.angles.z;
-        const auto* owner = static_cast<const ActorState*>(joint.ownerContext);
-        if (owner == nullptr)
-            return Core::Unexpected(
-                std::format("0x538501: falta el personaje dueño del joint {} (0x618/{})", index, joint.subtype));
-        joint.targetPosition = {owner->position.x, owner->position.y, static_cast<float>(D(owner->position.z) + Above)};
-        const double distance =
-            Render::Models::MoveToward(joint.position, joint.angles, joint.targetPosition, joint.speed);
-        if (!(distance > Hit))
-        {
-            joint.alive = false;
-            if (particles == nullptr || random == nullptr)
-                return Core::Unexpected(
-                    std::format("0x538577: faltan las partículas del joint {} (0x618/{})", index, joint.subtype));
-            if (!particles
-                     ->CreateChecked(World::LightningParticle, joint.position, joint.angles, joint.light,
-                                     World::LightningHitSubtype, 1.0f, worldClock, *random)
-                     .HasValue())
-                return Core::Unexpected(std::format("0x538577: el 0x5d5/1 del joint {} falla", index));
-            if (soundRequest)
-                soundRequest(HitSound);
-        }
-        else if (!(distance > Near) && std::abs(D(heading) - D(joint.angles.z)) > Swerve && D(joint.speed) >= SlowSpeed)
-        {
-            joint.speed = static_cast<float>(D(joint.speed) - Brake);
-        }
-    }
-    if (random == nullptr || particles == nullptr)
-        return Core::Unexpected(
-            std::format("0x5385d3: faltan el RNG y las partículas del joint {} (0x618/{})", index, joint.subtype));
-    const double glow = static_cast<double>((random->Next() & GlowMask) + GlowBase) * GlowStep;
-    const glm::vec3 color{static_cast<float>(glow * GlowRed), static_cast<float>(glow),
-                          static_cast<float>(glow * GlowBlue)};
-    if (auto lit = World::AddDynamicLight(lighting, joint.position, color, GlowRadius, "0x53861c"); !lit.HasValue())
-        return lit;
-    if (!particles
-             ->CreateChecked(World::LightningParticle, joint.position, joint.angles, joint.light,
-                             World::LightningTrailSubtype, 1.0f, worldClock, *random)
-             .HasValue())
-        return Core::Unexpected(std::format("0x538695: el 0x5d5/0 del joint {} falla", index));
-    return {};
-}
-
 // 0x53a73b..0x53a7cc: el delta queda retenido hasta después de girar, antes del límite persistente.
 void AdvanceSkill39Bend(JointState& joint)
 {
@@ -1607,6 +1462,7 @@ enum class Family : std::uint8_t
     Drop,
     Aura,
     Storm,
+    Beam,
 };
 
 std::optional<Family> FamilyStep(const JointState& joint)
@@ -1627,6 +1483,8 @@ std::optional<Family> FamilyStep(const JointState& joint)
         return Family::Aura;
     if (joint.type == JointFamilies::StormJoint)
         return Family::Storm;
+    if (joint.type == JointFamilies::BeamJoint)
+        return Family::Beam;
     return std::nullopt;
 }
 
@@ -1702,6 +1560,8 @@ Core::Expected<void, std::string> RunFamily(JointState& joint, Family family,
         return JointFamilies::StepAuraJoint(joint, services);
     case Family::Storm:
         return JointFamilies::StepStormJoint(joint, services);
+    case Family::Beam:
+        return JointFamilies::StepBeamJoint(joint, services);
     }
     return {};
 }
@@ -1714,8 +1574,12 @@ Core::Expected<void, std::string> StepFamilyJoint(JointState& joint, Family fami
     services.startDeltaY = F32(D(joint.position.y) - D(joint.targetPosition.y));
     if (!SkipsTheCommonMove(joint))
         frameMatrix = MoveCommonly(joint);
+    bool returned = false;
+    services.returned = &returned;
     if (auto stepped = RunFamily(joint, family, services); !stepped.HasValue())
         return stepped;
+    if (returned)
+        return {};
     return CommonTail(joint, frameMatrix);
 }
 
@@ -1752,7 +1616,6 @@ StepJointsChecked(std::span<JointState> joints, Render::Models::CrtRandom* rando
         const bool skill39 = joint.type == SparkleJoint && joint.subtype == 0x17;
         const bool piercingImpact = joint.type == SparkleJoint && joint.subtype == 6;
         const bool crywolf = joint.type == 0x697 && joint.subtype == 0;
-        const bool tarkan = joint.type == 0x618 && joint.subtype == 4;
         const bool bloodCastle = joint.type == 0x10f && joint.subtype == 3;
         const bool fairy = joint.type == 0x10f && joint.subtype == 1;
         const bool spiritBeam = (joint.type == 0x613 || joint.type == 0x6ee) && joint.subtype == 4;
@@ -1764,8 +1627,6 @@ StepJointsChecked(std::span<JointState> joints, Render::Models::CrtRandom* rando
         const bool trapBolt = joint.type == 0x615 && (joint.subtype == 2 || joint.subtype == 7);
         const bool meteor = (joint.type == 0x6ee || joint.type == 0x613) && joint.subtype == 9;
         // Los de lo que cuelga de un jugador, con el ActorState del personaje como dueño.
-        const bool staffBeam = joint.type == 0x618 && joint.subtype == 0x11;
-        const bool barrierBeam = joint.type == 0x618 && (joint.subtype == 2 || joint.subtype == 3);
         const bool swordTrail = joint.type == 0x610 && joint.subtype == 4;
         // Los del conjunto completo (0x5102c3) y el del 5ac/3 (0x52aa5d), con el ActorState del personaje.
         // Y los del premio de una misión (0x4ddb80), el 60f/0 y el 60f/0xa.
@@ -1778,11 +1639,9 @@ StepJointsChecked(std::span<JointState> joints, Render::Models::CrtRandom* rando
         const bool fullSet = sparkle || fallenSparkle || setTrail || setEnergy;
         // El del calco de la mascota (0x518900), con el héroe de dueño.
         const bool summonEnergy = joint.type == EnergyJoint && joint.subtype == SummonEnergySubtype;
-        // Los del que mató (0x505169), con el que pega de dueño.
-        const bool killBeam = joint.type == KillBeamJoint && (joint.subtype == 0 || joint.subtype == 1);
-        if (!crywolf && !tarkan && !bloodCastle && !fairy && !spiritBeam && !icarus && !noria && !skyBolt &&
-            !trapBolt && !meteor && !staffBeam && !swordTrail && !fullSet && !summonEnergy && !killBeam &&
-            !barrierBeam && !crywolfArrowTrail && !piercingTrail && !piercingImpact && !skill39)
+        if (!crywolf && !bloodCastle && !fairy && !spiritBeam && !icarus && !noria && !skyBolt && !trapBolt &&
+            !meteor && !swordTrail && !fullSet && !summonEnergy && !crywolfArrowTrail && !piercingTrail &&
+            !piercingImpact && !skill39)
             return Core::Unexpected(
                 std::format("0x535840: el paso del joint {} ({:#x}/{}) no está portado", i, joint.type, joint.subtype));
         // 0x5358bc: el 60f/1 no se mueve ni calcula la matriz de 0x53590e; con la cola, 0x53c393 usa la que dejó el
@@ -1833,12 +1692,7 @@ StepJointsChecked(std::span<JointState> joints, Render::Models::CrtRandom* rando
         if (summonEnergy)
             if (auto result = StepSummonEnergy(joint, i, random, sprites); !result.HasValue())
                 return result;
-        if (killBeam)
-            if (auto result = StepKillBeam(joint, i, random, particles, worldClock, lighting, soundRequest);
-                !result.HasValue())
-                return result;
-        const bool actorOwned = staffBeam || swordTrail || fullSet || summonEnergy || killBeam || barrierBeam ||
-                                crywolfArrowTrail || piercingTrail;
+        const bool actorOwned = swordTrail || fullSet || summonEnergy || crywolfArrowTrail || piercingTrail;
         const auto* owner = (joint.type == 0x613 || joint.type == 0x614 || joint.type == 0x615 || meteor || actorOwned)
                                 ? nullptr
                                 : static_cast<const FaunaObject*>(joint.ownerContext);
@@ -1848,54 +1702,15 @@ StepJointsChecked(std::span<JointState> joints, Render::Models::CrtRandom* rando
             return Core::Unexpected(std::format("{}: falta el dueño durable del joint {:#x}/{}",
                                                 fairy         ? "0x536076"
                                                 : bloodCastle ? "0x535efe"
-                                                : tarkan      ? "0x53820e"
                                                               : "0x5381ce",
                                                 joint.type, joint.subtype));
-        // 697 copia antes de comprobar active;618/4 comprueba antes de copiar.
+        // El 697 copia antes de comprobar active.
         if (crywolf)
             joint.position = owner->previousPosition;
         if (!bloodCastle && !fairy && !ownerless && owner->active == 0)
         {
             joint.alive = false;
             continue; // 5381e9: no agrega cola ni descuenta vida.
-        }
-        if (tarkan)
-            joint.position = owner->previousPosition;
-        if (staffBeam || barrierBeam)
-        {
-            // 0x53820e: con el personaje muerto se apaga sin cola ni vida; vivo, sigue su +0x40 (0x53822f).
-            const auto* actor = static_cast<const ActorState*>(joint.ownerContext);
-            if (actor == nullptr)
-                return Core::Unexpected(std::format("0x53820e: falta el personaje dueño del joint {} (0x618/0x11)", i));
-            if (!actor->alive)
-            {
-                joint.alive = false;
-                continue;
-            }
-            joint.position = joint.subtype == 3 ? actor->bonePoint4c : actor->effectOrigin;
-            if (barrierBeam)
-            {
-                // 0x538285..0x5382c4 → 0x5386f4: la luz local queda en la x87 entre sus productos.
-                constexpr double Phase = static_cast<double>(std::bit_cast<float>(0x3b03126fu));
-                constexpr float Amplitude = std::bit_cast<float>(0x3e99999au);
-                constexpr double Base = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu));
-                constexpr double Green = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
-                const auto wave =
-                    Render::Models::Detail::SineProductPC53(static_cast<double>(worldClock) * Phase, Amplitude);
-                if (!wave)
-                    return Core::Unexpected(
-                        std::string("0x53829d: el reloj del joint 0x618/2 o /3 excede el seno canónico"));
-                const double glow = *wave + Base;
-                const glm::vec3 color{static_cast<float>(glow * 0.5), static_cast<float>(glow * Green),
-                                      static_cast<float>(glow)};
-                if (particles == nullptr || random == nullptr)
-                    return Core::Unexpected(std::string("0x5386ff: faltan las partículas del joint 0x618/2 o /3"));
-                const auto created =
-                    particles->CreateChecked(World::LightningParticle, joint.position, joint.angles, color,
-                                             World::LightningTrailSubtype, 1, worldClock, *random);
-                if (!created.HasValue())
-                    return Core::Unexpected(std::string("0x5386ff: falló la partícula 0x5d5 del joint 0x618/2 o /3"));
-            }
         }
         if (swordTrail)
             if (auto result = StepSwordTrail(joint, i); !result.HasValue())

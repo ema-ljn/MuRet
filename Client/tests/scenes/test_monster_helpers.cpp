@@ -1233,8 +1233,8 @@ TEST_F(MonsterHelpersTest, The1b7To1bbCutInTheirParticles)
 }
 
 // Con la tabla llena, sus partículas no crean nada y siguen: el 0x1b7 suena y en la 3 desde el frame 6,9 con el blanco
-// en el pool corta en el joint 0x618 (0x428036 salta a 0x427a8d); el 0x1b8 suena; el 0x1ba da sus seis cuernos, cada
-// uno con su rand() % 10; el 0x1bb en la 4 de 9 a 10 corta en el efecto 0x5e8.
+// en el pool crea el joint 0x618/0x10 (0x428036 salta a 0x427a8d: sus tres rand()); el 0x1b8 suena; el 0x1ba da sus
+// seis cuernos, cada uno con su rand() % 10; el 0x1bb en la 4 de 9 a 10 corta en el efecto 0x5e8.
 TEST_F(MonsterHelpersTest, The1b7To1bbFollowTheirTailWithAFullTable)
 {
     Name("Monster101_L_Arm", 12);
@@ -1256,7 +1256,7 @@ TEST_F(MonsterHelpersTest, The1b7To1bbFollowTheirTailWithAFullTable)
         std::int32_t sound;
     };
     for (const Case& value :
-         {Case{0x1b7, 3, 6.9f, "0x427a8d", 0, 0, 0x249}, Case{0x1b7, 3, 6.8f, std::nullopt, 0, 0, 0x249},
+         {Case{0x1b7, 3, 6.9f, std::nullopt, 0, 3, 0x249}, Case{0x1b7, 3, 6.8f, std::nullopt, 0, 0, 0x249},
           Case{0x1b8, 4, 0.0f, std::nullopt, 1, 1, 0x24f}, Case{0x1ba, 4, 0.0f, std::nullopt, 6, 6, 0x254},
           Case{0x1bb, 4, 9.0f, "0x428da7", 5, 1, 0x25e}, Case{0x1bb, 4, 10.0f, "0x428da7", 5, 1, 0x25e},
           Case{0x1bb, 4, 10.5f, std::nullopt, 5, 1, 0x25e}, Case{0x1bb, 8, 9.5f, std::nullopt, 5, 1, 0x25d}})
@@ -1280,6 +1280,34 @@ TEST_F(MonsterHelpersTest, The1b7To1bbFollowTheirTailWithAFullTable)
             EXPECT_EQ(random.State(), AfterDraws(21, value.draws).State());
             EXPECT_EQ(Sound(), value.sound);
         }
+    }
+    // El 0x618/0x10 del 0x1b7 (0x427fea..0x428036): desde el blanco, 100 más arriba, con sus ángulos, el actor de dueño
+    // y ancho 20; el sentido (rand() impar: 1) y los ángulos x e y en rand() % 45 (0x53217c..0x5321d8).
+    {
+        auto& joints = m_world->DrawTail().joints;
+        for (auto& joint : joints)
+            joint.alive = false;
+        ActorState& actor = Monster(0x1b7, 3, 6.9f);
+        actor.attackTarget = 0x18f;
+        ActorState& target = m_world->Actors()[0x18f];
+        target.position = {500.0f, 600.0f, 70.0f};
+        target.angles = {0.0f, 0.0f, 45.0f};
+        CrtRandom random(21);
+        MonsterHelperPass pass = Pass(Lorencia, random);
+        ASSERT_TRUE(Client::Scenes::DrawTheMonsterHelpers(pass).HasValue());
+        const auto& joint = joints[0];
+        ASSERT_TRUE(joint.alive);
+        EXPECT_EQ(joint.type, 0x618);
+        EXPECT_EQ(joint.subtype, 0x10);
+        EXPECT_EQ(joint.ownerContext, &actor);
+        EXPECT_EQ(joint.position, glm::vec3(500.0f, 600.0f, 170.0f));
+        EXPECT_EQ(joint.width, 20.0f);
+        CrtRandom expected(21);
+        EXPECT_EQ(joint.field9ec, expected.Next() % 2 != 0 ? 1 : -1);
+        EXPECT_EQ(joint.angles.x, static_cast<float>(expected.Next() % 45));
+        EXPECT_EQ(joint.angles.y, static_cast<float>(expected.Next() % 45));
+        EXPECT_EQ(joint.angles.z, 45.0f);
+        EXPECT_EQ(random.State(), expected.State());
     }
     // Los cuernos del 0x1ba, en orden: (0,4; rand() % 10 · 0,01f + 0,8f; 0,5) a 0,4; en la 0, sin sonido ni sorteo.
     m_sprites.Clear();

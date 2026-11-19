@@ -609,7 +609,22 @@ Core::Expected<void, std::string> StepTheHeadSkill(ActorState& actor, std::size_
     case 0x4c:
         return StrikeAround(actor, slot, skill, context);
     case 0x2c:
-        return EffectThenSound(0x502975, "el efecto 0x13b sobre o (0x518cf0)", skill, slot, 0x26c, context);
+    {
+        // 0x50294e..0x50298e: 0x518cf0(0x13b, o+0x10, o+0x1c, la luz del paso, 0, o, −1, 0, 0, 0, 0), la llama del
+        // asedio sobre o, y el sonido 0x26c.
+        constexpr std::int16_t SwordForce = 0x13b;
+        constexpr std::int32_t ForceSound = 0x26c;
+        if (auto made = CreateHighEffect({.type = SwordForce,
+                                          .position = actor.position,
+                                          .angles = actor.angles,
+                                          .light = CaseLight(actor),
+                                          .owner = &actor},
+                                         skill, slot, context);
+            !made.HasValue())
+            return Core::Unexpected("0x502975: " + made.Error());
+        RequestTheSound(context, ForceSound);
+        return {};
+    }
     case 0x4b:
         return SwingTheHands(actor, slot, skill, context, 0x502a23, 0x502ab4);
     default:

@@ -218,7 +218,7 @@ TEST(AttackSkillCasesTest, TheHeadCasesCutAfterTheirDraws)
         Case{0x41, "0x4febbb", 0},         Case{0x31, "0x4fec15", 0},         Case{0x29, "0x4fec9a", OwnRecord},
         Case{0x0a, "0x4fecf3", OwnRecord}, Case{0x28, "0x4ff4ef", 0},         Case{0x26, "0x4ff5b2", 0},
         Case{0x27, "0x4ffdaf", 1},         Case{0x08, "0x500c49", OwnRecord}, Case{0x0d, "0x500d7b", OwnRecord},
-        Case{0x0e, "0x51fe9e", 2},         Case{0x09, "0x501c67", OwnRecord}, Case{0x2c, "0x502975", 0},
+        Case{0x0e, "0x51fe9e", 2},         Case{0x09, "0x501c67", OwnRecord},
     };
     for (const std::int32_t map : Maps)
     {
@@ -566,6 +566,35 @@ TEST(AttackSkillCasesTest, TheReleaseKillsTheFlamesOfTheTarget)
 
     tested.withJoints = false;
     EXPECT_TRUE(HasError(tested.Head(0x46), "0x4fe3ce"));
+}
+
+// 0x50294e..0x50298e, la 0x2c: el 0x13b/0 sobre o con o de dueño y la luz del paso (vida 15, la z 100 más) y el sonido
+// 0x26c, sin rand(); con la tabla llena, sólo el sonido.
+TEST(AttackSkillCasesTest, TheSwordForceRisesOverTheStriker)
+{
+    for (const bool full : {false, true})
+    {
+        SCOPED_TRACE(full);
+        SkillWorld tested;
+        tested.Striker().position = glm::vec3(100.0f, 200.0f, 300.0f);
+        if (full)
+        {
+            for (auto& effect : tested.world.Map().effects.Effects())
+                effect.alive = true;
+        }
+        ASSERT_TRUE(tested.Head(0x2c).HasValue());
+        EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
+        EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x26c}));
+        if (full)
+            continue;
+        const auto alive = AliveEffects(tested.world);
+        ASSERT_EQ(alive.size(), 1u);
+        EXPECT_EQ(alive[0]->type, 0x13b);
+        EXPECT_EQ(alive[0]->life, 15);
+        EXPECT_EQ(alive[0]->ownerContext, &tested.Striker());
+        EXPECT_EQ(alive[0]->transform.position, glm::vec3(100.0f, 200.0f, 400.0f));
+        EXPECT_EQ(alive[0]->light, glm::vec3(1.0f));
+    }
 }
 
 // 0x40 y 0x4b: con otra cosa que 0xa21 en la derecha, el 0x117/0 en el hueso de la derecha; con otra cosa que 0xa19 o

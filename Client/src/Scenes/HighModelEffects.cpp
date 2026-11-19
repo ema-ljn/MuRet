@@ -61,6 +61,9 @@ constexpr std::int16_t MovingLightFirst = 0x5e8, MovingLightSecond = 0x5e9, Movi
 // Skill\PierPart (la 0x3d y la 0x4a de 0x4fd5f0), Skill\DarkLordSkill (las manos de la 0x40, la 0x4b y la 0x3d) y
 // Skill\ManaRune (la 0x4b).
 constexpr std::int16_t PierPartEffect = 0x116, DarkLordSkillEffect = 0x117, ManaRuneEffect = 0x138;
+// Sin modelo ni dibujo: sueltan joints en su paso. El 0x812, el de la 0x2b y la 0x2f (0x4f97b0); el 0x813, el de la
+// mano de la 0x2f.
+constexpr std::int16_t SparkEmitterEffect = 0x812, BoltEmitterEffect = 0x813;
 // Los que caen sobre el blanco del 0x46 (+0x376) en su paso 5 (0x4f5cb6): sin dibujo, sólo su fuego y sus sprites.
 constexpr std::int16_t FallingStarEffect = 0x625;
 
@@ -479,6 +482,19 @@ void BeginTheManaRune(World::ModelEffect& effect)
         effect.objectState.blendMesh = FlashBlend;
         effect.objectState.light = FlashLight;
     }
+}
+
+// 0x51e4f6, el 0x812 (y el 0x5c6): vida 10. 0x51f8a8, el 0x813: los ángulos en 0 y vida 5. Sin rand().
+void BeginTheEmitter(World::ModelEffect& effect)
+{
+    constexpr std::int32_t SparkLife = 10, BoltLife = 5;
+    if (effect.type == BoltEmitterEffect)
+    {
+        effect.transform.angles = glm::vec3(0.0f);
+        effect.life = BoltLife;
+        return;
+    }
+    effect.life = SparkLife;
 }
 
 // ---- Los pasos ----
@@ -1024,6 +1040,49 @@ Core::Expected<void, std::string> StepTheManaRune(World::ModelEffect& effect, co
     return {};
 }
 
+// 0x52c981..0x52c9e2, el 0x812: en cada paso, el joint 0x60f/0xc (el /1, escala 100) o 0x60f/4 (el /0, escala 50) en
+// su lugar con él de dueño (0x530860(0x60f, posición, posición, ángulos, subtipo, efecto, escala, −1, 0, 0, −1)). Otro
+// subtipo, nada.
+Core::Expected<void, std::string> StepTheSparkEmitter(World::ModelEffect& effect, const HighEffectStepContext& context)
+{
+    constexpr std::int32_t SparkJoint = 0x60f;
+    constexpr std::int32_t WideSubtype = 0xc, NarrowSubtype = 4;
+    constexpr float WideScale = 100.0f, NarrowScale = 50.0f; // 0x42c80000 y 0x42480000
+    if (effect.subtype != 0 && effect.subtype != 1)
+        return {};
+    const bool wide = effect.subtype == 1;
+    const glm::vec3& position = effect.transform.position;
+    return CreateJoint(context.world, context.random, SparkJoint, position, position, effect.transform.angles,
+                       wide ? WideSubtype : NarrowSubtype, &effect, wide ? WideScale : NarrowScale,
+                       wide ? 0x52c9a7u : 0x52c9dau);
+}
+
+// 0x52caa5..0x52cb94, el 0x813: tres veces, los ángulos (rand() % 90, 0, rand() % 360), el punto 100 hacia atrás
+// (la posición menos (0, −100, 0) girado por ellos, un fstp por eje) y el joint 0x619/6 del punto a la posición, sin
+// dueño y con la escala 5.
+Core::Expected<void, std::string> StepTheBoltEmitter(World::ModelEffect& effect, const HighEffectStepContext& context)
+{
+    constexpr int Bolts = 3, PitchSpan = 90, FullTurn = 360;
+    constexpr glm::vec3 Reach{0.0f, -100.0f, 0.0f}; // 0xc2c80000
+    constexpr std::int32_t BoltJoint = 0x619, BoltJointSubtype = 6;
+    constexpr float BoltJointScale = 5.0f; // 0x40a00000
+    const glm::vec3& position = effect.transform.position;
+    for (int bolt = 0; bolt < Bolts; ++bolt)
+    {
+        glm::vec3 angles{0.0f};
+        angles.x = static_cast<float>(context.random.Next() % PitchSpan);
+        angles.z = static_cast<float>(context.random.Next() % FullTurn);
+        const glm::vec3 back = Rotated(Reach, angles);
+        const glm::vec3 from{F32(D(position.x) - D(back.x)), F32(D(position.y) - D(back.y)),
+                             F32(D(position.z) - D(back.z))};
+        if (auto joint = CreateJoint(context.world, context.random, BoltJoint, from, position, angles, BoltJointSubtype,
+                                     nullptr, BoltJointScale, 0x52cb85);
+            !joint.HasValue())
+            return joint;
+    }
+    return {};
+}
+
 // 0x52c9fd..0x52caa0 y 0x521216, el 0xc1a: con el terreno (0x5f93c0) por encima de su z, la explosión 0x5ed/0 80 más
 // arriba (con su sonido 0x40), seis piedritas 0xc8 o 0xc9 (rand() & 1) con el subtipo 0 y el lugar libre; siempre, la
 // luz dinámica (luz · 0,2f; luz · 0,4f; luz) de radio 2 con la luz local del primer rand().
@@ -1149,7 +1208,8 @@ bool IsHighModelEffect(std::int16_t type)
     return type == SiegeAuraEffect || type == SiegeFlareEffect || type == SiegeSpearmanEffect ||
            type == SiegePulseEffect || type == RadialShardEffect || type == GrowingFlashEffect ||
            type == World::ColoredDecalEffect || (type >= MovingLightFirst && type <= MovingLightLast) ||
-           type == FallingStarEffect || type == PierPartEffect || type == DarkLordSkillEffect || type == ManaRuneEffect;
+           type == FallingStarEffect || type == PierPartEffect || type == DarkLordSkillEffect ||
+           type == ManaRuneEffect || type == SparkEmitterEffect || type == BoltEmitterEffect;
 }
 
 Core::Expected<std::optional<std::size_t>, std::string>
@@ -1201,6 +1261,10 @@ CreateHighModelEffect(const World::ModelEffectArguments& arguments, const HighEf
         break;
     case ManaRuneEffect:
         BeginTheManaRune(effect);
+        break;
+    case SparkEmitterEffect:
+    case BoltEmitterEffect:
+        BeginTheEmitter(effect);
         break;
     default:
         break;
@@ -1271,6 +1335,12 @@ Core::Expected<void, std::string> StepHighModelEffect(World::ModelEffect& effect
         break;
     case ManaRuneEffect:
         stepped = StepTheManaRune(effect, context);
+        break;
+    case SparkEmitterEffect:
+        stepped = StepTheSparkEmitter(effect, context);
+        break;
+    case BoltEmitterEffect:
+        stepped = StepTheBoltEmitter(effect, context);
         break;
     default:
         break;

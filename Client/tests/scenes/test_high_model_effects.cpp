@@ -1184,4 +1184,38 @@ TEST(HighModelEffectsTest, TheManaRuneGrowsFlashesAndSinks)
     ASSERT_TRUE(StepHighModelEffect(shrinking, nullptr, tested.StepContext()).HasValue());
     EXPECT_EQ(shrinking.transform.scale, 1.0f);
 }
+// 0x52c981 y 0x52caa5: el 0x812 suelta en cada paso el joint 0x60f/0xc (el /1) o 0x60f/4 (el /0), y el 0x813 tres
+// 0x619/6 con dos rand() cada uno; los dos joints son del lote de los joints: con lugar cortan (después de los rand()
+// del primero) y, con la tabla llena, siguen. Los dos pierden una vida y no se mueven.
+TEST(HighModelEffectsTest, TheEmittersLeaveJointsEveryStep)
+{
+    for (const std::int32_t subtype : {0, 1})
+    {
+        SCOPED_TRACE(subtype);
+        HighWorld tested;
+        ASSERT_TRUE(CreateHighModelEffect({.type = 0x812, .position = {1, 2, 3}, .subtype = subtype}, tested.Context())
+                        .HasValue());
+        ModelEffect& spark = tested.Effect(0);
+        EXPECT_EQ(spark.life, 10);
+        EXPECT_TRUE(HasError(StepHighModelEffect(spark, nullptr, tested.StepContext()),
+                             subtype == 1 ? "0x52c9a7" : "0x52c9da"));
+        tested.FillTheJoints();
+        ASSERT_TRUE(StepHighModelEffect(spark, nullptr, tested.StepContext()).HasValue());
+        EXPECT_EQ(spark.life, 9);
+        EXPECT_EQ(spark.transform.position, (glm::vec3{1, 2, 3}));
+        EXPECT_EQ(tested.Draws(), 2);
+    }
+    HighWorld tested;
+    ASSERT_TRUE(
+        CreateHighModelEffect({.type = 0x813, .angles = {4, 5, 6}, .subtype = 0x812}, tested.Context()).HasValue());
+    ModelEffect& bolt = tested.Effect(0);
+    EXPECT_EQ(bolt.life, 5);
+    EXPECT_EQ(bolt.transform.angles, glm::vec3(0.0f));
+    EXPECT_TRUE(HasError(StepHighModelEffect(bolt, nullptr, tested.StepContext()), "0x52cb85"));
+    EXPECT_EQ(tested.Draws(), 3);
+    tested.FillTheJoints();
+    ASSERT_TRUE(StepHighModelEffect(bolt, nullptr, tested.StepContext()).HasValue());
+    EXPECT_EQ(bolt.life, 4);
+    EXPECT_EQ(tested.Draws(), 3 + 7);
+}
 } // namespace

@@ -342,8 +342,8 @@ TEST(AttackFrameSkillsTest, TheBoltsOf2cCutWithoutTheirPools)
 
 // 0x2b (0x4f98a0..0x4f9bcd): el hueso de la mano de 0x4f9780 (la izquierda con la 0x25 o la 0x26) en Player.bmd. Un
 // dummy o fuera de la cuenta (JGE: el igual tampoco), nada. Hasta 8, la mano a +0x194, corrida 300 por el rumbo; en 8,
-// el sonido 0x71; de 2 a 8 corta en el primer joint 0x10f/2 después de sus tres rand(); de 6 a 12, en los efectos
-// 0x812/1; desde 13, +0x381 en [0x6c88ac].
+// el sonido 0x71; de 2 a 8 corta en el primer joint 0x10f/2 después de sus tres rand(); de 6 a 12, los dos efectos
+// 0x812/1 (sin rand()); desde 12, +0x381 en [0x6c88ac].
 TEST(AttackFrameSkillsTest, TheHandOf2bChargesUntilEight)
 {
     struct Case
@@ -365,8 +365,8 @@ TEST(AttackFrameSkillsTest, TheHandOf2bChargesUntilEight)
         {"en 1, con la izquierda de la 0x26", 0x26, 1, Bones, HandBone, "", 0, true, 1, {}},
         {"en 2", 0x2b, 2, HandBone, 0, "0x4f99fe", 3, false, 2, {}},
         {"en 8", 0x2b, 8, HandBone, 0, "0x4f99fe", 3, false, 8, {0x71}},
-        {"en 9", 0x2b, 9, HandBone, 0, "0x4f9b49", 0, false, 9, {}},
-        {"en 12", 0x2b, 12, HandBone, 0, "0x4f9b49", 0, false, 12, {}},
+        {"en 9", 0x2b, 9, HandBone, 0, "", 0, false, 9, {}},
+        {"en 12", 0x2b, 12, HandBone, 0, "", 0, false, FullThreshold, {}},
         {"en 13", 0x2b, 13, HandBone, 0, "", 0, false, FullThreshold, {}},
         {"en 14", 0x2b, 14, HandBone, 0, "", 0, false, FullThreshold, {}},
         {"un dummy", 0x2b, 13, DummyBone, 0, "", 0, false, 13, {}},
@@ -445,8 +445,8 @@ TEST(AttackFrameSkillsTest, TheHandOf2bTurnsWithTheHeading)
     }
 }
 
-// 0x2f (0x4f9bce..0x4f9e60): en 10, el sonido 0x7d; en 4, el efecto 0x813 de la mano; en 8, los 0x812/0; en 13 y 14,
-// tres rand() y el primer efecto 0x10f. En los demás, nada.
+// 0x2f (0x4f9bce..0x4f9e60): en 10, el sonido 0x7d; en 4, el efecto 0x813 de la mano; en 8, los 0x812/0 (sin
+// rand()); en 13 y 14, tres rand() y el primer efecto 0x10f. En los demás, nada.
 TEST(AttackFrameSkillsTest, TheStepsOf2f)
 {
     struct Case
@@ -457,7 +457,7 @@ TEST(AttackFrameSkillsTest, TheStepsOf2f)
         std::vector<std::int32_t> sounds;
     };
     const std::vector<Case> cases{
-        {1, "", 0, {}},  {4, "0x4f9c8d", 0, {}},  {8, "0x4f9d1c", 0, {}},  {10, "", 0, {0x7d}},
+        {1, "", 0, {}},  {4, "", 0, {}},          {8, "", 0, {}},          {10, "", 0, {0x7d}},
         {12, "", 0, {}}, {13, "0x4f9e49", 3, {}}, {14, "0x4f9e49", 3, {}}, {15, "", 0, {}},
     };
     for (const std::int32_t map : Maps)
@@ -483,6 +483,73 @@ TEST(AttackFrameSkillsTest, TheStepsOf2f)
             EXPECT_EQ(tested.sounds, probe.sounds);
             EXPECT_EQ(hero.byte381, probe.step);
         }
+    }
+}
+
+// 0x4f9a86..0x4f9b69 y 0x4f9c0e..0x4f9d3c: los 0x812/1 de la 0x2b, (+0x381 − 8) · 10 + 100 delante de la mano por el
+// rumbo; el 0x813 de la 0x2f en la mano, con su modelo de subtipo y la luz (1; 1; 0,5); y los 0x812/0 de la 0x2f, 50
+// delante de o y 110 más arriba. Todos con o de dueño.
+TEST(AttackFrameSkillsTest, TheEmittersOf2bAnd2fStartAtTheHand)
+{
+    const auto emitters = [](const FrameWorld& tested)
+    {
+        std::vector<const Client::World::ModelEffect*> found;
+        for (const auto& effect : tested.world.Map().effects.Effects())
+        {
+            if (effect.alive)
+                found.push_back(&effect);
+        }
+        return found;
+    };
+    {
+        FrameWorld tested(0);
+        ActorState& hero = tested.Striker(0x2b, 0.0f, 9);
+        hero.hands[0].bone = HandBone;
+        hero.position = {1000.0f, 2000.0f, 0.0f};
+        hero.angles = {0.0f, 0.0f, 0.0f};
+        hero.scale = 1.0f;
+        hero.bodyPose.assign(Bones, Client::Render::Models::BoneTransform(1.0f));
+        hero.bodyPose[HandBone][3] = {10.0f, 20.0f, 30.0f};
+        tested.world.PlaceModel(hero);
+        ASSERT_TRUE(tested.Step(hero, 0x2b).HasValue());
+        const auto made = emitters(tested);
+        ASSERT_EQ(made.size(), 2u);
+        for (const auto* effect : made)
+        {
+            EXPECT_EQ(effect->type, 0x812);
+            EXPECT_EQ(effect->subtype, 1);
+            EXPECT_EQ(effect->life, 10);
+            EXPECT_EQ(effect->ownerContext, &hero);
+            EXPECT_EQ(effect->transform.position, glm::vec3(1010.0f, 1910.0f, 30.0f));
+        }
+    }
+    {
+        FrameWorld tested(0);
+        ActorState& hero = tested.Striker(0x42, 0.0f, 8);
+        hero.position = {100.0f, 200.0f, 300.0f};
+        hero.angles = {0.0f, 0.0f, 0.0f};
+        ASSERT_TRUE(tested.Step(hero, 0x2f).HasValue());
+        const auto made = emitters(tested);
+        ASSERT_EQ(made.size(), 2u);
+        for (const auto* effect : made)
+        {
+            EXPECT_EQ(effect->type, 0x812);
+            EXPECT_EQ(effect->subtype, 0);
+            EXPECT_EQ(effect->transform.position, glm::vec3(100.0f, 150.0f, 410.0f));
+        }
+    }
+    {
+        FrameWorld tested(0);
+        ActorState& hero = tested.Striker(0x42, 0.0f, 4);
+        hero.hands[0].model = 0x0812;
+        ASSERT_TRUE(tested.Step(hero, 0x2f).HasValue());
+        const auto made = emitters(tested);
+        ASSERT_EQ(made.size(), 1u);
+        EXPECT_EQ(made[0]->type, 0x813);
+        EXPECT_EQ(made[0]->subtype, 0x812);
+        EXPECT_EQ(made[0]->life, 5);
+        EXPECT_EQ(made[0]->light, glm::vec3(1.0f, 1.0f, 0.5f));
+        EXPECT_EQ(made[0]->transform.angles, glm::vec3(0.0f));
     }
 }
 

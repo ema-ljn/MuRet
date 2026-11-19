@@ -23,6 +23,7 @@
 #include "Scenes/JointFamilies.h"
 #include "Scenes/JointKernels.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/SkillBurstEffects.h"
 #include "Scenes/WizardEffects.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
@@ -83,28 +84,11 @@ Core::Unexpected<std::string> CutAt(std::uint32_t address, std::string_view what
         std::format("{:#x}: {} de la habilidad {:#x} del lugar {}, sin portar (CL11)", address, what, skill, slot));
 }
 
-// 518d0f/530872: lleno sale antes del constructor. Un pool de joints ausente sigue siendo una capacidad pendiente.
-bool HasEffectRoom(const CharacterStepContext& context)
-{
-    return std::ranges::any_of(context.world.Map().effects.Effects(), [](const auto& effect) { return !effect.alive; });
-}
-
+// 530872: lleno sale antes del constructor. Un pool de joints ausente sigue siendo una capacidad pendiente.
 bool HasJointRoom(const CharacterStepContext& context)
 {
     return context.joints.empty() ||
            std::ranges::any_of(context.joints, [](const auto& joint) { return !joint.alive; });
-}
-
-Core::Expected<void, std::string> EffectThenSound(std::uint32_t address, std::string_view what, std::uint8_t skill,
-                                                  std::size_t slot, std::int32_t sound,
-                                                  const CharacterStepContext& context,
-                                                  const ActorState* actor = nullptr)
-{
-    if (HasEffectRoom(context))
-        return CutAt(address, what, skill, slot);
-    if (sound >= 0)
-        RequestTheSound(context, sound, actor);
-    return {};
 }
 
 // 0x518cf0 de un tipo alto (Scenes/HighModelEffects) desde un caso: el error lleva la habilidad y el lugar.
@@ -1531,7 +1515,19 @@ Core::Expected<void, std::string> StepTheTargetSkill(ActorState& actor, ActorSta
                                                 actor.light, 0, &victim),
                                 skill, slot, context);
         }
-        return EffectThenSound(0x505053, "el efecto 0x5ca (0x518cf0)", skill, slot, 0x76, context);
+        // 0x505024..0x505061: 0x518cf0(0x5ca, o+0x10, los ángulos hacia el blanco, o+0xf4, 0, el blanco de dueño, −1,
+        // …) (Scenes/SkillBurstEffects) y el sonido 0x76, también con la tabla llena.
+        if (auto made = CreateHighEffect({.type = EnergyBallEffect,
+                                          .position = actor.position,
+                                          .angles = TowardsTheTarget(actor, victim),
+                                          .light = actor.light,
+                                          .subtype = 0,
+                                          .owner = &victim},
+                                         skill, slot, context);
+            !made.HasValue())
+            return Core::Unexpected(std::format("0x505053: {}", made.Error()));
+        RequestTheSound(context, 0x76);
+        return {};
     }
     default:
         // 0x505069: el 3 y los demás.

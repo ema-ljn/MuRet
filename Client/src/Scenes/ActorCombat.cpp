@@ -10,7 +10,9 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CombatActionSpeeds.h"
+#include "Scenes/HighModelEffects.h"
 #include "Scenes/MonsterSounds.h"
+#include "Scenes/SkillBurstEffects.h"
 #include "Scenes/WizardEffects.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
@@ -516,12 +518,17 @@ Core::Expected<void, std::string> SetActorAttack(ActorState& actor, const ActorC
         context.world.Runtime().RequestSound(0x10, actor.position);
         break;
     case 0x33:
-        if (std::ranges::any_of(context.world.Map().effects.Effects(),
-                                [](const World::ModelEffect& effect) { return !effect.alive; }))
-            return Core::Unexpected(
-                std::string("0x4f4fb9: el efecto 0x5da del 0x33 al pegar (0x518cf0) es de la CL11"));
+    {
+        // 0x4f4f98..0x4f4fc4: 0x518cf0(0x5da, +0x10, +0x1c, +0xf4, 0, 0, −1, 0, 0, 0, 0), el golpe sin dueño
+        // (Scenes/SkillBurstEffects; con la tabla llena, nada), y el sonido 0x79.
+        const auto struck = CreateHighModelEffect(
+            {.type = FlameBurstEffect, .position = actor.position, .angles = actor.angles, .light = actor.light},
+            HighEffectContext{.world = context.world, .random = context.random, .models = context.models});
+        if (!struck.HasValue())
+            return Core::Unexpected(std::format("0x4f4fb9: {}", struck.Error()));
         context.world.Runtime().RequestSound(0x79);
         break;
+    }
     case 0x172:
     {
         // 0x4f4fd7..0x4f502f: rand() & 7; con 0 la 9, con 1 o 2 la 8, y si no rand() & 1 + 3.
@@ -562,12 +569,18 @@ Core::Expected<void, std::string> SetActorDie(ActorState& actor, const ActorComb
         actor.alive = false;
         if (actor.type == 0x16b)
         {
-            // 0x4f59ad..0x4f59f4: ocho pares 0xe5/0xe6 (CL11, lote del switch). Con la tabla llena, los creadores no
-            // hacen nada y sigue con el sonido y el frame.
-            if (std::ranges::any_of(context.world.Map().effects.Effects(),
-                                    [](const World::ModelEffect& effect) { return !effect.alive; }))
-                return Core::Unexpected(
-                    std::string("0x4f59ca: los efectos 0xe5 y 0xe6 de la muerte del 0x16b (0x518cf0) son de la CL11"));
+            // 0x4f59ad..0x4f59f4: ocho pares 0x518cf0(0xe5 y después 0xe6, +0x10, +0x1c, +0xf4, 0, 0, −1, 0, 0, 0, 0),
+            // los pedazos que saltan (World::ModelEffects::CreateStoneChip, 0x51b659), cada uno con sus ocho rand().
+            // Con la tabla llena, nada y sin rand(); sigue con el sonido y el frame.
+            constexpr int Pairs = 8; // [ebp-0x8]
+            World::ModelEffects& effects = context.world.Map().effects;
+            for (int pair = 0; pair < Pairs; ++pair)
+            {
+                static_cast<void>(effects.CreateStoneChip(World::FirstSplinterEffect, actor.position, actor.angles,
+                                                          actor.light, context.random));
+                static_cast<void>(effects.CreateStoneChip(World::SecondSplinterEffect, actor.position, actor.angles,
+                                                          actor.light, context.random));
+            }
         }
         else
         {

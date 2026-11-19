@@ -14,6 +14,7 @@
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/HighModelEffects.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/SkillBurstEffects.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -978,7 +979,6 @@ TEST(AttackSkillCasesTest, TheTargetCasesCutWithoutDraws)
     const std::array cases{
         Case{0x01, 0x20a, "0x50497e"},
         Case{0x01, 0x0e, "0x50497e"},
-        Case{0x11, 0x20a, "0x505053"},
     };
     for (const std::int32_t map : Maps)
     {
@@ -1279,13 +1279,15 @@ TEST(AttackSkillCasesTest, TheQuietTargetCasesDoNothing)
         striker.word376 = kind;
         EXPECT_TRUE(tested.WithTarget(0x11).HasValue());
     }
-    striker.word376 = 0x26;
-    EXPECT_TRUE(HasError(tested.WithTarget(0x11), "0x505053"));
     EXPECT_TRUE(tested.WithTarget(0x03).HasValue());
     EXPECT_TRUE(tested.WithTarget(0x00).HasValue());
     EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
     EXPECT_TRUE(tested.sounds.empty());
     EXPECT_EQ(AliveEffects(tested.world).size(), 1u); // el 0x61e/2 de la 0x1b
+    // Otro +0x376 (0x26) ya no es de las tablas: la bola 0x5ca y el sonido 0x76 (TheEnergyBallFliesAtTheTarget).
+    striker.word376 = 0x26;
+    EXPECT_TRUE(tested.WithTarget(0x11).HasValue());
+    EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x76});
 }
 
 // 0x10: el 0x189 prende 0x100 en su +0x78; con 0x4000, nada; si no, 0x100 en +0x78 del blanco, el sonido 0x84,
@@ -1927,6 +1929,57 @@ float HeadingTo(const ActorState& from, const ActorState& to)
 {
     return static_cast<float>(
         Client::Render::Models::CreateAngle(from.position.x, from.position.y, to.position.x, to.position.y));
+}
+
+// 0x505024..0x505061, la 0x11 de un jugador (+0x376 en 0xffff) que no es el 0x15e, en todos los mapas: el 0x5ca/0
+// (Scenes/SkillBurstEffects: vida 20, la velocidad (0, −60, 0) y 100 más de z) sobre o con los ángulos hacia el blanco,
+// su luz y el blanco de dueño, sin rand(), y el sonido 0x76 sin objeto; con la tabla llena, sólo el sonido.
+TEST(AttackSkillCasesTest, TheEnergyBallFliesAtTheTarget)
+{
+    for (const std::int32_t map : Maps)
+    {
+        for (const bool full : {false, true})
+        {
+            SCOPED_TRACE(testing::Message() << "mapa " << map << (full ? ", lleno" : ""));
+            SkillWorld tested(map);
+            ActorState& striker = tested.Striker();
+            striker.type = 0x20a;
+            striker.position = glm::vec3(1000.0f, 2000.0f, 50.0f);
+            striker.angles = glm::vec3(5.0f, 6.0f, 7.0f);
+            striker.light = glm::vec3(0.5f, 0.25f, 1.0f);
+            tested.Victim().position = glm::vec3(1300.0f, 2400.0f, 0.0f);
+            if (full)
+            {
+                for (Client::World::ModelEffect& effect : tested.world.Map().effects.Effects())
+                {
+                    effect.alive = true;
+                    effect.type = 0x01;
+                }
+            }
+
+            const auto stepped = tested.WithTarget(0x11);
+
+            ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
+            EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
+            EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x76});
+            const auto balls = AliveOfType(tested.world, Client::Scenes::EnergyBallEffect);
+            if (full)
+            {
+                EXPECT_EQ(AliveEffects(tested.world).size(), tested.world.Map().effects.Effects().size());
+                continue;
+            }
+            ASSERT_EQ(balls.size(), 1u);
+            const Client::World::ModelEffect& ball = *balls.front();
+            EXPECT_EQ(ball.subtype, 0);
+            EXPECT_EQ(ball.ownerContext, &tested.Victim());
+            EXPECT_EQ(ball.transform.position, glm::vec3(1000.0f, 2000.0f, 150.0f));
+            EXPECT_EQ(ball.transform.angles, glm::vec3(5.0f, 6.0f, HeadingTo(striker, tested.Victim())));
+            EXPECT_EQ(ball.light, striker.light);
+            EXPECT_EQ(ball.life, 20);
+            EXPECT_EQ(ball.velocity, glm::vec3(0.0f, -60.0f, 0.0f));
+            EXPECT_EQ(ball.disturbanceState, 0xffff);
+        }
+    }
 }
 
 // 0x4feabb..0x4feb36, la 0x3f: el 0xcb/2 con o de dueño y el 0xcc/3 sin dueño, los dos sobre o con su luz (vida 250,

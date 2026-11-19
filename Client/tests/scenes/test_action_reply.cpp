@@ -417,14 +417,14 @@ TEST_F(ActionReplyTest, TheModelHeadTracksTheHeroSlotWrittenByAnAttackReply)
     EXPECT_EQ(m_cloth.random.State(), before);
 }
 
-// Un corte de 0x4f4a10 (el 0x33, con su efecto 0x5da de la CL11) deja el ángulo, el Movement y la posición, y no
-// escribe ni +0x381 ni [0x5767964].
+// Un corte de 0x4f4a10 (un jugador con un arma cuerpo a cuerpo en la derecha y sin Item.bmd para leer su marca) deja el
+// ángulo, el Movement y la posición, y no escribe ni +0x381 ni [0x5767964].
 TEST_F(ActionReplyTest, AStrikeThatCutsLeavesTheAttackerAlone)
 {
-    Other().type = 0x33;
+    Other().hands[0].model = 0x212;
     const auto applied = Apply(3, 0x78);
     ASSERT_FALSE(applied.HasValue());
-    EXPECT_NE(applied.Error().find("0x4f4fb9"), std::string::npos);
+    EXPECT_NE(applied.Error().find("0x4f4a10: falta Item.bmd"), std::string::npos) << applied.Error();
     EXPECT_EQ(Other().movement, 0);
     EXPECT_EQ(Other().byte381, 0);
     EXPECT_EQ(m_world->Runtime().lastAttacker, 0);

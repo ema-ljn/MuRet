@@ -17,6 +17,7 @@
 #include "Scenes/HighModelEffects.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/PlayerActionSpeeds.h"
+#include "Scenes/SkillBurstEffects.h"
 #include "Scenes/WizardEffects.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
@@ -44,11 +45,6 @@ namespace Client::Scenes
 {
 namespace
 {
-bool HasFreeEffect(const CharacterStepContext& context)
-{
-    return std::ranges::any_of(context.world.Map().effects.Effects(), [](const auto& effect) { return !effect.alive; });
-}
-
 // 0x518cf0 de un tipo alto (Scenes/HighModelEffects) desde un caso, con la dirección del llamador delante del error.
 Core::Expected<void, std::string> CreateHighEffect(const World::ModelEffectArguments& arguments,
                                                    const CharacterStepContext& context, std::uint32_t address)
@@ -491,15 +487,21 @@ Core::Expected<void, std::string> StepTheSkill37(ActorState& actor, std::uint8_t
     // 0x4f9f87: 0x59fb80(0x37, 0, 0, 0), el lugar de la skill en el registro propio.
     constexpr std::uint8_t ThrowSkill = 0x37;
     const std::int32_t index = OwnSkillIndex(context, ThrowSkill);
-    // 0x4f9fae: 0x518cf0(0x5be, o+0x10, o+0x1c, o+0xf4, 0, o, o+0x8a, lugar). Detrás (0x4f9fb3..0x4fa47e): el registro
-    // propio abierto y cerrado en línea para fijar la velocidad de la acción 0x3d de Player.bmd (+0x3d4 de las acciones
-    // de +0x30 del modelo 0x20a) en +0x4c · 0,004f + 0,54f (0x6b89e8, 0x6ba17c), y +0x381 en 15.
-    if (HasFreeEffect(context))
-        return Core::Unexpected(
-            std::format("0x4f9fae: el efecto 0x5be (clave {:#x}, lugar {}) de la habilidad {:#x} del "
-                        "lugar {}, sin portar (CL11); detrás, la velocidad de la acción 0x3d y +0x381 "
-                        "en 15",
-                        actor.word8a, index, skill, slot));
+    // 0x4f9fae: 0x518cf0(0x5be, o+0x10, o+0x1c, o+0xf4, 0, o, o+0x8a, lugar, 0, 0, 0) (Scenes/SkillBurstEffects).
+    // Detrás (0x4f9fb3..0x4fa47e): el registro propio abierto y cerrado en línea para fijar la velocidad de la acción
+    // 0x3d de Player.bmd (+0x3d4 de las acciones de +0x30 del modelo 0x20a) en +0x4c · 0,004f + 0,54f (0x6b89e8,
+    // 0x6ba17c), y +0x381 en 15.
+    if (auto made = CreateHighEffect({.type = SweepEmitterEffect,
+                                      .position = actor.position,
+                                      .angles = actor.angles,
+                                      .light = actor.light,
+                                      .subtype = 0,
+                                      .owner = &actor,
+                                      .key = static_cast<std::uint16_t>(actor.word8a),
+                                      .byte89 = static_cast<std::uint8_t>(index)},
+                                     context, 0x4f9fae);
+        !made.HasValue())
+        return Core::Unexpected(std::format("{} (la habilidad {:#x} del lugar {})", made.Error(), skill, slot));
     float product = 0.0f;
     {
         const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,

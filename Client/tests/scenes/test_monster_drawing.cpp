@@ -50,7 +50,6 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
-#include <algorithm>
 #include <limits>
 #include <memory>
 #include <span>
@@ -382,35 +381,93 @@ TEST_F(MonsterDrawingTest, TheDyingOfBloodCastleSinkToTheGroundUnderTheirShadow)
 }
 
 // 0x5ffdf0 copia la posición al registro del modelo (+0x6c..+0x74, 0x5ffe8b..0x5ffe9a) al posar el cuerpo, antes del
-// suelo de la sombra (0x50be4f), y lo que sigue lo lee con 0x4ec110 sobre [ebp−0x14]: el flare01 (0x5ac) del +0x376
-// 0x46 (0x50c0fb..0x50c136) en el hueso 20 (el hueso k está en (0, 0, k)) sale desde la z de antes, 10, en (150, 150,
-// 30), aunque la araña quede en 4. Entre frames del original, lo mismo, sobre la copia.
-TEST_F(MonsterDrawingTest, TheTailOfTheDyingOfBloodCastleHangsFromWhereTheyStoodBeforeTheGround)
+// suelo de Blood Castle (0x50be4d); después, salvo el 0x18e, el 0x18f y del 0xa8 al 0xac, el 0x60cf70 de la sombra
+// (0x50beb6) la vuelve a copiar ya en el suelo (0x60cfe8..0x60d015), y lo que sigue la lee con 0x4ec110 sobre
+// [ebp−0x14]: el flare01 (0x5ac) del +0x376 0x46 (0x50c0fb..0x50c136) en el hueso 20 (el hueso k está en (0, 0, k))
+// sale desde la araña en 4, en (150, 150, 24). El 0xa8 (un objeto del mundo que ninguna alta de monstruo da: con +0x58
+// en −2 para que 0x6002e0 no corte en 0x6004ed) y el 0x18f no llaman a 0x60cf70 y lo sacan desde la z de antes, 10;
+// el 0x18f, además, 60 más en y (0x5ffea7..0x5ffeef). Entre frames del original, lo mismo, sobre la copia.
+TEST_F(MonsterDrawingTest, TheTailOfTheDyingOfBloodCastleHangsFromTheRegisterOfTheirShadow)
 {
     m_world->Map().terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     m_world->Map().terrain.heights->cells.fill(4.0f);
     m_world->Runtime().map = 0xb;
+    struct Case
+    {
+        std::uint16_t type;
+        std::int32_t hidden;
+        std::size_t vertices;
+        glm::vec3 flare;
+    };
+    const std::array cases{Case{Spider, -1, 6, {150.0f, 150.0f, 24.0f}}, Case{0xa8, -2, 0, {150.0f, 150.0f, 30.0f}},
+                           Case{0x18f, -1, 3, {150.0f, 210.0f, 30.0f}}};
     for (const int frames : {1, 0})
     {
-        SCOPED_TRACE(frames);
-        ActorState& spider = Monster(5, Spider, 0x46);
-        spider.byte1a1 = 1;
-        spider.dying = 1;
-        m_sprites.Clear();
-        m_batch.Begin(Client::Render::Pass3D{});
-        GameCharacterPass pass = Pass();
-        pass.originalFrames = frames;
+        for (const Case& probe : cases)
+        {
+            SCOPED_TRACE(::testing::Message() << "frames " << frames << ", tipo " << probe.type);
+            ActorState& monster = Monster(5, probe.type, 0x46);
+            monster.byte1a1 = 1;
+            monster.dying = 1;
+            monster.dword58 = probe.hidden;
+            m_sprites.Clear();
+            m_batch.Begin(Client::Render::Pass3D{});
+            GameCharacterPass pass = Pass();
+            pass.originalFrames = frames;
 
-        const auto result = Draw(pass);
+            const auto result = Draw(pass);
 
-        ASSERT_TRUE(result.HasValue()) << result.Error();
-        EXPECT_EQ(spider.position.z, frames > 0 ? 4.0f : 10.0f);
-        ASSERT_EQ(m_batch.Vertices().size(), 6u);
-        EXPECT_FLOAT_EQ(m_batch.Vertices()[3].position.z, 9.0f);
-        const auto live = LiveSprites();
-        ASSERT_EQ(live.size(), 1u);
-        EXPECT_EQ(live[0].texture, 0x5ac);
-        EXPECT_EQ(live[0].position, (glm::vec3{150.0f, 150.0f, 30.0f}));
+            ASSERT_TRUE(result.HasValue()) << result.Error();
+            EXPECT_EQ(monster.position.z, frames > 0 ? 4.0f : 10.0f);
+            ASSERT_EQ(m_batch.Vertices().size(), probe.vertices);
+            if (probe.vertices == 6)
+            {
+                EXPECT_FLOAT_EQ(m_batch.Vertices()[3].position.z, 9.0f);
+            }
+            const auto live = LiveSprites();
+            ASSERT_EQ(live.size(), 1u);
+            EXPECT_EQ(live[0].texture, 0x5ac);
+            EXPECT_EQ(live[0].position, probe.flare);
+        }
+    }
+}
+
+// Los pases de brillo de 0x60b130 (el +0x376 0x26, 0x50c671) dibujan las mallas de 0x5786f9c como las dejó el último
+// 0x4ebc80: en un muerto de Blood Castle con sombra, el de 0x60cf70 (0x60d186), con el origen ya en el suelo (z 4,
+// debajo del cuerpo en 10); el 0x18f no la llama y repite las del cuerpo de 0x5ffdf0, 60 más en y y en la z de antes.
+TEST_F(MonsterDrawingTest, TheShinesOfTheDyingOfBloodCastleRepeatTheMeshesOfTheLastPose)
+{
+    m_world->Map().terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+    m_world->Map().terrain.heights->cells.fill(4.0f);
+    m_world->Runtime().map = 0xb;
+    struct Case
+    {
+        std::uint16_t type;
+        std::size_t first;
+        glm::vec3 body;
+        glm::vec3 shine;
+    };
+    const std::array cases{Case{Spider, 6, {150.0f, 150.0f, 10.0f}, {150.0f, 150.0f, 4.0f}},
+                           Case{0x18f, 3, {150.0f, 210.0f, 10.0f}, {150.0f, 210.0f, 10.0f}}};
+    for (const int frames : {1, 0})
+    {
+        for (const Case& probe : cases)
+        {
+            SCOPED_TRACE(::testing::Message() << "frames " << frames << ", tipo " << probe.type);
+            ActorState& monster = Monster(5, probe.type, 0x26);
+            monster.byte1a1 = 1;
+            monster.dying = 1;
+            m_batch.Begin(Client::Render::Pass3D{});
+            GameCharacterPass pass = Pass();
+            pass.originalFrames = frames;
+
+            const auto result = Draw(pass);
+
+            ASSERT_TRUE(result.HasValue()) << result.Error();
+            ASSERT_EQ(m_batch.Vertices().size(), probe.first + 3);
+            EXPECT_EQ(m_batch.Vertices()[0].position, probe.body);
+            EXPECT_EQ(m_batch.Vertices()[probe.first].position, probe.shine);
+        }
     }
 }
 

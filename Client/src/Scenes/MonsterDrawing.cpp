@@ -283,8 +283,10 @@ struct MonsterFrame
     // El tercer argumento de 0x50ba30 (0x510ea1: el lugar en 0x6c8e30 o 0x6c8e2c): Outlined o Plain.
     PoseMode outline = PoseMode::Plain;
     // +0x6c..+0x74 del modelo del tipo ([ebp−0x14], 0x50ba7f): lo que copió el último 0x5ffdf0 de este dibujo
-    // (0x5ffe8b..0x5ffe9a; el 0x18f y el 0x18e, 60 y 120 más en y, 0x5ffea7..0x5ffeef), antes del suelo de la sombra
-    // (0x50be4f) salvo los 0x602e90 que siguen (el 0x4d). Con él trasladan 0x4ec110 los puntos de los huesos de lo que
+    // (0x5ffe8b..0x5ffe9a; el 0x18f y el 0x18e, 60 y 120 más en y, 0x5ffea7..0x5ffeef) o, después del suelo de Blood
+    // Castle (0x50be4d), el 0x60cf70 de la sombra (0x50beb6, 0x60cfe8..0x60d015, ya en el suelo; no lo llaman el 0x18e,
+    // el 0x18f ni del 0xa8 al 0xac, que quedan a la z de antes) y los 0x602e90 del 0x4d con el tipo propio (0x50c20b,
+    // 0x50c217; el de 0x50c248 escribe el del tipo + 1). Con él trasladan 0x4ec110 los puntos de los huesos de lo que
     // sigue (0x50bff8, 0x50c3c1.., 0x50b8bf, 0x50b99a, 0x5107b4, 0x51096d) y se repiten los vértices del cuerpo posado.
     // Antes de la primera copia (con el alpha por debajo de 0,01 no copia), la posición del personaje: el original lee
     // la que dejó otro dibujo o el paso en el registro compartido.
@@ -493,7 +495,7 @@ Result DrawTheFloorMark(MonsterFrame& frame)
 }
 
 // 0x4ec110(huesos propios + hueso · 0x30, corrimiento, salida, 1) de 0x50ba30 sobre [ebp−0x14]: la escala del personaje
-// y el origen del registro (MonsterFrame::modelOrigin, el de antes del suelo de la sombra).
+// y el origen del registro (MonsterFrame::modelOrigin: el de la sombra, ya en el suelo, o el de 0x5ffdf0 sin ella).
 glm::vec3 PointOnTheBone(const MonsterFrame& frame, std::size_t bone, const glm::vec3& offset)
 {
     const ActorState& actor = frame.actor;
@@ -624,7 +626,9 @@ PosedBody PosedBodyOf(const MonsterFrame& frame)
     DrawnObject& object = posed.object;
     object.model = actor.type;
     object.animation = actor.animation;
-    // Los vértices del cuerpo como los dejó 0x5ffdf0 → 0x6002e0, con el origen del registro (0x4ebeec).
+    // Los vértices de 0x5786f9c como los dejó el último 0x4ebc80, con el origen del registro (0x4ebeec): el del
+    // 0x60cf70 de la sombra (0x60d186, ya en el suelo) o, si no corre (sus guardas, o el 0x18e, el 0x18f y del 0xa8 al
+    // 0xac), el de 0x5ffdf0.
     object.transform = {.position = frame.modelOrigin, .angles = actor.angles, .scale = actor.scale};
     object.state = Render::Models::ObjectState{.blendMesh = static_cast<std::int16_t>(actor.dword64),
                                                .light = actor.blendMeshLight,
@@ -975,18 +979,27 @@ Result DrawTheShadow(MonsterFrame& frame)
     const bool marked = actor.word376 == 0xe8 || actor.word376 == 0xe9;
     if (marked)
         actor.dword58 = 2;
-    // 0x50be6e: sin sombra el 0x18e, el 0x18f y del 0xa8 al 0xac. 0x60cf70 → 0x60b3d0 con +0x98 en 1, sin +0x1bc en
-    // 3 (MuRet no lo tiene: 0, *inferido*), sin +0x78 & 0x4000 y con +0x92.
-    if (actor.type != 0x18e && actor.type != 0x18f && !Within(actor.type, 0xa8, 0xac) &&
-        (actor.flags78 & RiderFlag) == 0 && actor.byte92 != 0 && actor.bodyPose.size() > 0)
+    // 0x50be6e..0x50beb6: sin sombra el 0x18e, el 0x18f y del 0xa8 al 0xac; los demás, 0x60cf70(objeto, tipo, ...) con
+    // +0x98 en 1.
+    if (actor.type != 0x18e && actor.type != 0x18f && !Within(actor.type, 0xa8, 0xac))
     {
-        DrawnObject object;
-        object.model = actor.type;
-        object.transform = {.position = actor.position, .angles = actor.angles, .scale = actor.scale};
-        object.state.blendMesh = static_cast<std::int16_t>(actor.dword64);
-        object.state.hiddenMesh = static_cast<std::int16_t>(actor.dword58);
-        const auto meshes = SkinObjectMeshes(frame.fauna, object, actor.bodyPose);
-        DrawObjectShadow(frame.batch, frame.fauna, object, meshes, frame.map);
+        // 0x60cfe8..0x60d015: antes de 0x60b3d0 y sin mirar sus guardas, la escala (+0xc → +0x68, la del personaje,
+        // la misma que copió 0x5ffdf0) y la posición ya en el suelo (+0x10..+0x18 → +0x6c..+0x74) van al registro del
+        // tipo, el mismo [ebp−0x14] (0x510e9f: el objeto es el personaje), y 0x4ebc80 (0x60d186) vuelve a pasar las
+        // mallas de 0x5786f9c con ese origen: la cola lo lee. Entre frames del original, sobre la copia.
+        frame.modelOrigin = actor.position;
+        // 0x60d44b → 0x60b3d0 con +0x98 en 1, sin +0x1bc en 3 (MuRet no lo tiene: 0, *inferido*), sin +0x78 & 0x4000 y
+        // con +0x92.
+        if ((actor.flags78 & RiderFlag) == 0 && actor.byte92 != 0 && actor.bodyPose.size() > 0)
+        {
+            DrawnObject object;
+            object.model = actor.type;
+            object.transform = {.position = actor.position, .angles = actor.angles, .scale = actor.scale};
+            object.state.blendMesh = static_cast<std::int16_t>(actor.dword64);
+            object.state.hiddenMesh = static_cast<std::int16_t>(actor.dword58);
+            const auto meshes = SkinObjectMeshes(frame.fauna, object, actor.bodyPose);
+            DrawObjectShadow(frame.batch, frame.fauna, object, meshes, frame.map);
+        }
     }
     if (marked)
         return DrawTheFloorMark(frame);

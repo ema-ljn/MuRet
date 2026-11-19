@@ -12,7 +12,10 @@
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/FaunaJointCreation.h"
+#include "Scenes/GameDrawTail.h"
 #include "Scenes/MonsterBodyPasses.h"
+#include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
 
 #include <gtest/gtest.h>
@@ -51,6 +54,64 @@ std::uint32_t AfterRandoms(std::size_t count)
     for (std::size_t call = 0; call < count; ++call)
         static_cast<void>(random.Next());
     return random.State();
+}
+
+// La tabla de joints del original (0x74a8d78, 500 lugares).
+constexpr std::size_t KundunJointTable = 500;
+
+// Gemela de 0x43f1a6..0x43f243, escrita aparte: 0x56 vueltas con su rand() % 10, los ángulos (−10, 0, (r + 10) · i)
+// y el punto (x, y, z + 200) para el 0x613/3 y el 0x6ee/3 de ancho 50, sin dueño ni blanco.
+std::unique_ptr<std::vector<Client::Scenes::JointState>> KundunFallingRays(const glm::vec3& position,
+                                                                           Client::Render::Models::CrtRandom& random)
+{
+    auto joints = std::make_unique<std::vector<Client::Scenes::JointState>>(KundunJointTable);
+    glm::vec3 angles{-10.0f, 0.0f, 0.0f};
+    glm::vec3 point{};
+    for (std::int32_t ray = 0; ray < 0x56; ++ray)
+    {
+        const std::int32_t spread = random.Next() % 10;
+        point = {position.x, position.y, static_cast<float>(static_cast<double>(position.z) + 200.0)};
+        angles.z = static_cast<float>((static_cast<double>(spread) + 10.0) * static_cast<double>(ray));
+        for (const std::int32_t type : {0x613, 0x6ee})
+        {
+            const Client::World::FishEffectRequest request{.type = type,
+                                                           .firstPosition = point,
+                                                           .secondPosition = point,
+                                                           .angles = angles,
+                                                           .subtype = 3,
+                                                           .ownerContext = nullptr,
+                                                           .scale = 50.0f,
+                                                           .key = 0,
+                                                           .skill = 0,
+                                                           .skillSerial = 0,
+                                                           .target = -1};
+            const auto created = Client::Scenes::CreateFaunaJoint(*joints, request, random);
+            EXPECT_TRUE(created.HasValue()) << created.Error();
+        }
+    }
+    return joints;
+}
+
+void ExpectSameJoints(std::span<const Client::Scenes::JointState> actual,
+                      std::span<const Client::Scenes::JointState> expected)
+{
+    ASSERT_EQ(actual.size(), expected.size());
+    for (std::size_t slot = 0; slot < actual.size(); ++slot)
+    {
+        SCOPED_TRACE(slot);
+        const auto& got = actual[slot];
+        const auto& want = expected[slot];
+        EXPECT_EQ(got.alive, want.alive);
+        EXPECT_EQ(got.type, want.type);
+        EXPECT_EQ(got.subtype, want.subtype);
+        EXPECT_EQ(got.position, want.position);
+        EXPECT_EQ(got.targetPosition, want.targetPosition);
+        EXPECT_EQ(got.angles, want.angles);
+        EXPECT_EQ(got.width, want.width);
+        EXPECT_EQ(got.life, want.life);
+        EXPECT_EQ(got.light, want.light);
+        EXPECT_EQ(got.ownerContext, want.ownerContext);
+    }
 }
 
 class BodyModels final : public Client::Scenes::IModelLibrary
@@ -147,7 +208,8 @@ protected:
                                                .lastSoundId = &m_sound,
                                                .originalFrame = originalFrame,
                                                .cameraShake = &m_shake,
-                                               .effects = m_effects.get()};
+                                               .effects = m_effects.get(),
+                                               .joints = m_joints};
         auto result = Client::Scenes::DrawMonsterBody(frame);
         m_color = model.object.color;
         return result;
@@ -191,6 +253,8 @@ protected:
     bool m_siegeActive = false;
     float m_boneScale = 1.0f;
     std::unique_ptr<Client::World::ModelEffects> m_effects = std::make_unique<Client::World::ModelEffects>();
+    // La tabla de joints (0x74a8d78): vacía salvo en Kundun al morir.
+    std::vector<Client::Scenes::JointState> m_joints;
     std::vector<Client::Render::Models::BoneTransform> m_bones{Client::Render::Models::BoneTransform(1.0f)};
     std::vector<Client::Render::Models::SkinnedMesh> m_meshes;
     glm::vec3 m_color{};
@@ -846,18 +910,35 @@ TEST_F(MonsterBodyTest, KundunDrawsItsChromeUntilItFalls)
         m_batch.Begin(Client::Render::Pass3D{});
         ASSERT_TRUE(Draw(0x192, map).HasValue());
         EXPECT_EQ(m_batch.Vertices().size(), WholeBody + 6 * Triangle);
-        // 0x43f182: al morir desde el frame 8, el sonido 0x1de, +0x60 en 0x5a y el primer rand() de los joints.
+        // 0x43f182: al morir desde el frame 8, el sonido 0x1de, +0x60 en 0x5a, los 0x56 rayos 0x613/3 y 0x6ee/3 de
+        // 0x530860 desde (x, y, z + 200), el temblor y el cuerpo (0x43f26f: +0x60 ya está en 0x5a).
         m_sound.reset();
         m_actor->animation = {.action = 6, .frame = 8.0f};
+        m_actor->position = {12800.5f, 6400.25f, std::bit_cast<float>(0x4215999au)}; // z: 37,4f
         m_cloth.random = Client::Render::Models::CrtRandom{1};
+        m_joints.assign(KundunJointTable, Client::Scenes::JointState{});
         m_batch.Begin(Client::Render::Pass3D{});
         result = Draw(0x192, map);
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_EQ(result.Error().rfind("0x43f20d", 0), 0u) << result.Error();
+        ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(m_sound, 0x1de);
         EXPECT_EQ(m_actor->dword60, 0x5a);
-        EXPECT_TRUE(m_batch.Vertices().empty());
-        EXPECT_EQ(m_cloth.random.State(), AfterRandoms(1));
+        EXPECT_EQ(m_batch.Vertices().size(), WholeBody + 6 * Triangle);
+        Client::Render::Models::CrtRandom oracle{1};
+        const auto twin = KundunFallingRays(m_actor->position, oracle);
+        ExpectSameJoints(m_joints, *twin);
+        EXPECT_EQ(std::ranges::count_if(m_joints, [](const auto& joint) { return joint.alive; }), 2 * 0x56);
+        // 0x43f20d: el primer rayo sale con el giro 0 desde 37,4f + 200 (0x436d6666 en float).
+        EXPECT_EQ(m_joints[0].type, 0x613);
+        EXPECT_EQ(m_joints[1].type, 0x6ee);
+        EXPECT_EQ(m_joints[1].subtype, 3);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(m_joints[0].targetPosition.z), 0x436d6666u);
+        EXPECT_EQ(m_joints[0].angles.z, 0.0f);
+        // 0x43f249: el temblor con el rand() que sigue a los rayos.
+        const auto rayShake = static_cast<float>(static_cast<double>((oracle.Next() % 8) - 8) *
+                                                 static_cast<double>(std::bit_cast<float>(0x3dcccccdu)));
+        EXPECT_FLOAT_EQ(m_shake, rayShake);
+        EXPECT_EQ(m_cloth.random.State(), oracle.State());
+        m_joints.clear();
         // Con +0x60 en 0x5a y el frame hasta 14,8, el cuerpo.
         m_actor->animation.frame = std::bit_cast<float>(0x416ccccdu);
         m_batch.Begin(Client::Render::Pass3D{});

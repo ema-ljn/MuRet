@@ -421,7 +421,8 @@ Result DrawTheBody(MonsterFrame& frame, const Render::Models::Skeleton& skeleton
                           { runtime.RequestSound(sound); },
                           .originalFrame = frame.originalFrame,
                           .cameraShake = frame.pass.cameraShake,
-                          .effects = frame.pass.effects};
+                          .effects = frame.pass.effects,
+                          .joints = frame.world.DrawTail().joints};
     return DrawMonsterBody(body);
 }
 

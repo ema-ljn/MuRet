@@ -10,8 +10,11 @@
 #include "Data/Models/Model.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/FaunaJointCreation.h"
+#include "Scenes/GameDrawTail.h"
 #include "Scenes/MonsterBodyPasses.h"
 #include "Scenes/VertexEffects.h"
+#include "World/IFishStepServices.h"
 #include "World/OriginalFtol.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -182,13 +185,52 @@ Result DrawKundun(MonsterBodyFrame& frame)
     }
     if (dying && frameNumber >= 8.0f && actor.dword60 >= 100)
     {
-        // 0x43f182: +0x60 no es 0x5a, el sonido 0x1de; 0x43f195: +0x60 en 0x5a; 0x43f1a6..0x43f243: 0x56 vueltas de
-        // rand() % 10 con los joints 0x613 y 0x6ee de 0x530860 (CL11): corta en el primero, después de su rand().
+        // 0x43f182: +0x60 no es 0x5a, el sonido 0x1de; 0x43f195: +0x60 en 0x5a; 0x43f1a6..0x43f243: 0x56 vueltas,
+        // cada una con su rand() % 10, los ángulos (−10, 0, (r + 10) · i) y el punto (x, y, z + 200), los dos de la
+        // pila, que reciben el 0x613/3 y el 0x6ee/3 (0x530860(tipo, punto, punto, ángulos, 3, sin dueño, 50, 0, 0, 0,
+        // −1)). Después el temblor (0x43f249..0x43f269) y el cuerpo, que ya tiene +0x60 en 0x5a.
         RequestBodySound(frame, 0x1de);
         actor.dword60 = Fallen;
-        static_cast<void>(frame.random.Next());
-        return Core::Unexpected(std::string("0x43f20d: los joints de Kundun al morir (0x530860(0x613), CL11) no están "
-                                            "portados"));
+        if (frame.joints.empty())
+            return Core::Unexpected(std::string("0x43f20d: falta la tabla de joints (0x530860) para Kundun al morir"));
+        constexpr int Rays = 0x56;             // 0x43f23d
+        constexpr std::int32_t Spread = 10;    // 0x43f1ba
+        constexpr double SpreadBase = 10.0;    // 0x6b87a8
+        constexpr double Rise = 200.0;         // 0x6b8928
+        constexpr float Tilt = -10.0f;         // 0x43f1a6: 0xc1200000
+        constexpr float RayWidth = 50.0f;      // 0x43f1cc: 0x42480000
+        constexpr std::int32_t RaySubtype = 3; // 0x43f1d9
+        constexpr std::array<std::int32_t, 2> RayJoints{0x613, 0x6ee};
+        glm::vec3 angles{Tilt, 0.0f, 0.0f};
+        glm::vec3 point{};
+        for (int ray = 0; ray < Rays; ++ray)
+        {
+            angles.x = Tilt;
+            angles.y = 0.0f;
+            const auto spread = static_cast<std::int32_t>(frame.random.Next() % Spread);
+            point = {actor.position.x, actor.position.y, F32(D(actor.position.z) + Rise)};
+            angles.z = F32((static_cast<double>(spread) + SpreadBase) * static_cast<double>(ray));
+            for (const std::int32_t type : RayJoints)
+            {
+                const World::FishEffectRequest request{.type = type,
+                                                       .firstPosition = point,
+                                                       .secondPosition = point,
+                                                       .angles = angles,
+                                                       .subtype = RaySubtype,
+                                                       .ownerContext = nullptr,
+                                                       .scale = RayWidth,
+                                                       .key = 0,
+                                                       .skill = 0,
+                                                       .skillSerial = 0,
+                                                       .target = -1};
+                const auto created = CreateFaunaJoint(frame.joints, request, frame.random);
+                if (!created.HasValue())
+                    return Core::Unexpected(
+                        std::format("{}: {}", type == RayJoints[0] ? "0x43f20d" : "0x43f234", created.Error()));
+            }
+        }
+        if (auto shaken = Shake(frame, "0x43f269"); !shaken.HasValue())
+            return shaken;
     }
     if (actor.dword60 < Fallen)
         return {};

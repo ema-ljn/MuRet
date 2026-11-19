@@ -13869,8 +13869,10 @@ con el modelo de `0x5769ad8 + tipo · 0xe0` (sin acciones, nada: `0x50ba82`), en
      la malla 0 con `0x48` y Chrome01. El `0x192` (Kundun, `+0x60` en 100 desde `0x43a155`): muriendo pasado el frame
      14,8 con `+0x60` en `0x5a`, el sonido `0x1dd`, `+0x60` en 10, la malla 0, el temblor (`0x7d325c8`) en
      `(rand() % 8 − 8) · 0,1f` y las partículas `0x124`, `0x11d` y `0x11e` de `0x518cf0` (CL11); si no, muriendo desde el
-     frame 8 con `+0x60` desde 100, el sonido `0x1de`, `+0x60` en `0x5a` y 0x56 vueltas de `rand() % 10` con dos joints
-     de `0x530860` (CL11) y el temblor; con `+0x60` desde `0x5a`, el alpha guardado en 1, `RenderBody(2)`, (0,4; 0,4;
+     frame 8 con `+0x60` desde 100, el sonido `0x1de`, `+0x60` en `0x5a` y 0x56 vueltas (`0x43f1a6..0x43f243`), cada una
+     con su `rand() % 10` = r, los ángulos (−10, 0, (r + 10) · i) y el punto (x, y, z + 200) de la pila, que reciben el
+     `0x613`/3 (`0x43f20d`) y el `0x6ee`/3 (`0x43f234`) de `0x530860(tipo, punto, punto, ángulos, 3, sin dueño, 50, 0, 0,
+     0, −1)` (CL11, `MonsterBodyFrame::joints`), el temblor (`0x43f249..0x43f269`) y sigue al cuerpo (`0x43f26f`); con `+0x60` desde `0x5a`, el alpha guardado en 1, `RenderBody(2)`, (0,4; 0,4;
      0,3) con las mallas 1 a 6 en `0x44` y, en la acción 5 con el frame en (3,5; 6) o (8; 11), las 1, 2, 3 y 5 en
      `0x42`; con `+0x60` en 10, nada. El `0x193`: `RenderBody(2)` y (0,5; 0,1; 0) con la malla 0 en `0x44`. El `0x194`:
      `RenderBody(2)` sin la malla oculta y (0,25; 0,2; 0,1) con las mallas 0 y 2 en `0x44`. El `0x195`: con el subtipo
@@ -13940,8 +13942,8 @@ con el modelo de `0x5769ad8 + tipo · 0xe0` (sin acciones, nada: `0x50ba82`), en
    (`0x6011f1`, después de la malla 0 y solo cuando `0x457e00` llega a `0x457740`: con el alpha desde 0,01f, sin
    `+0x58` ni `+0x64` en −2 o en 1, con la malla 1 de tres componentes y con triángulos; si no, no se ve nada y sigue
    en `0x602365`), lo de la CL11 de `0x43ed20` (`0x4ee770` al morir del `0x191`, el `0x193` al
-   `0x197`, `0x43ed6c` y sus copias; las partículas de Kundun en `0x43eeb9`, después del temblor; sus joints en
-   `0x43f20d`, después del primer `rand()`; `0x439dc5`, que MuRet no alcanza: solo pone 0 y 1 en `+0x110`), y el
+   `0x197`, `0x43ed6c` y sus copias; las partículas de Kundun en `0x43eeb9`, después del temblor; ~~sus joints en
+   `0x43f20d`, después del primer `rand()`~~, hechos en la CL11; `0x439dc5`, que MuRet no alcanza: solo pone 0 y 1 en `+0x110`), y el
    helper de la cadena con tipos de monstruo `0x42e3d0` (el `0x19b`, el `0x19c`, el `0x1a8`, el `0x1f8` y el `0x1ff`
    en el 30).
 3. **La sombra** (`0x50bd89..0x50bf3e`): sin `+0x88` en 8, sin los `+0x376` `0x19`, `0x16`, `0x2a`, `0xf2`, `0x3b`,

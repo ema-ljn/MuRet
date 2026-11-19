@@ -16,7 +16,7 @@
 #include <string>
 
 // El 0x61c/0 (alta 0x5342e4..0x534399, paso 0x53b3e1..0x53b623): el barrido que pide el paso del efecto 0x5be
-// (0x52a72a, con el personaje dueño del efecto, ancho 150 y la skill y la clave del efecto), que MuRet no crea
+// (0x52a72a, con el personaje dueño del efecto, ancho 150 y la skill y la clave del efecto), que MuRet ya crea
 // (0x4f9fae). Gira a 180 de su destino (la posición de partida) bajando la z de su giro 11 por tramo, ocho tramos por
 // paso, y suelta en cada uno dos rayos 0x614/3 y a veces la partícula 0x5d9. Sin la cola común ni el movimiento común
 // (0x53585e).

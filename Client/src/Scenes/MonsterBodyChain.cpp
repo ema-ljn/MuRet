@@ -188,7 +188,9 @@ constexpr std::array<FallingPiece, 8> FallingPieces{{
 
 // 0x43ee84..0x43f14c: los ocho pedazos (0x518cf0(pedazo, punto del hueso 4, ángulos y luz de Kundun, subtipo,
 // Kundun de dueño, clave, +0x89, 0, 0, 0)) y el 0x128/2 en su posición (0x43f144, sin dueño y con la clave en −1);
-// después, 0x43fc04. Con la tabla llena, cada alta no hace nada ni saca rand().
+// después, 0x43fc04. Con la tabla llena, cada alta no hace nada ni saca rand(). El punto es el de 0x4ec110 con
+// Translate en 1: la escala (+0x68) y el origen (+0x6c) que 0x5ffdf0 copió al modelo compartido en este mismo dibujo,
+// los de `model.object.transform` (MonsterDrawing.cpp los publica con PlaceModel en el frame del original).
 Result ScatterKundun(MonsterBodyFrame& frame)
 {
     ActorState& actor = frame.actor;
@@ -240,10 +242,15 @@ Result DrawKundun(MonsterBodyFrame& frame)
     {
         // 0x43edff..0x43ee38: el sonido 0x1dd, +0x60 en 10 y la malla 0 con 2 y la textura +0x58; 0x43ee3d..0x43ee7e:
         // el temblor; después 0x4ec110 sobre el hueso 0xc0/0x30 y las partículas 0x124, 0x11d y 0x11e de 0x518cf0.
+        // El original dibuja una vez por paso: entre frames del original (una copia proyectada de Kundun) MuRet dibuja
+        // la malla, pero no tiembla ni suelta los pedazos ni saca sus rand() (ADR 0005, como los creadores de la
+        // tormenta).
         RequestBodySound(frame, 0x1dd);
         actor.dword60 = 10;
         if (auto drawn = DrawMeshPass(model, 0, BaseFlags, MeshArgsOf(actor)); !drawn.HasValue())
             return drawn;
+        if (!frame.originalFrame)
+            return {};
         if (auto shaken = Shake(frame, "0x43ee7e"); !shaken.HasValue())
             return shaken;
         return ScatterKundun(frame);

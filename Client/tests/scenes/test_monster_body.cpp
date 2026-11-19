@@ -126,6 +126,7 @@ protected:
         m_actor->type = type;
         Client::Scenes::DrawnObject object;
         object.model = type;
+        object.transform = m_transform;
         object.color = {0.2f, 0.4f, 0.6f};
         object.alpha = m_actor->alpha;
         m_meshes = Client::Scenes::SkinObjectMeshes(m_models, object, m_bones, m_boneScale);
@@ -192,6 +193,8 @@ protected:
     float m_shake = 0.0f;
     bool m_siegeActive = false;
     float m_boneScale = 1.0f;
+    // La escala y la posición que 0x5ffdf0 copió al modelo (+0x68 y +0x6c): las del objeto del dibujo.
+    Client::Render::Models::ObjectTransform m_transform{};
     std::unique_ptr<Client::World::ModelEffects> m_effects = std::make_unique<Client::World::ModelEffects>();
     std::vector<Client::Render::Models::BoneTransform> m_bones{Client::Render::Models::BoneTransform(1.0f)};
     std::function<double(float, float)> m_terrainHeight{};
@@ -891,9 +894,11 @@ TEST_F(MonsterBodyTest, KundunDrawsItsChromeUntilItFalls)
 
 // 0x43ee84..0x43f144, en todos los mapas: pasado 14,8, después del temblor, Kundun suelta en el hueso 4 sus ocho
 // pedazos (0x518cf0 con el punto de 0x4ec110, sus ángulos y su luz, él de dueño, la clave −130 (−10 el 0x122) y +0x89
-// de la tabla) y el 0x128/2 en su posición, que vuelve a entrar como el 0x127 con él de dueño. Con la altura del
-// terreno en 50, la partida del /2 y el /3 en 50 + 130 − 80 y la del /4 en 50 + 10; cada /2 y /3 saca su rand() % 2
-// después del rand() del temblor. Sin la altura, corta el primero (0x43eeb9 → 0x51e26e).
+// de la tabla) y el 0x128/2 en su posición, que vuelve a entrar como el 0x127 con él de dueño. El punto: el
+// desplazamiento de la tabla más la traslación del hueso (10, 20, 30), por la escala del modelo (2) y más su origen
+// (1.000, 2.000, 300), calculados aparte. Con la altura del terreno en x/2 + y/4 en ese punto (0x5f93c0), la partida
+// del /2 y el /3 en altura + 130 − 80 y la del /4 en altura + 10; cada /2 y /3 saca su rand() % 2 después del rand()
+// del temblor. Sin la altura, corta el primero (0x43eeb9 → 0x51e26e).
 TEST_F(MonsterBodyTest, KundunScattersItsPiecesWhenItFalls)
 {
     struct Piece
@@ -901,15 +906,19 @@ TEST_F(MonsterBodyTest, KundunScattersItsPiecesWhenItFalls)
         std::int16_t type;
         std::int32_t subtype;
         std::uint8_t byte89;
+        glm::vec3 position;
     };
-    constexpr std::array<Piece, 8> Pieces{{{0x124, 3, 3},
-                                           {0x11d, 3, 4},
-                                           {0x11e, 3, 5},
-                                           {0x11f, 2, 6},
-                                           {0x120, 3, 1},
-                                           {0x121, 3, 2},
-                                           {0x122, 4, 2},
-                                           {0x123, 5, 2}}};
+    // (desplazamiento + (10, 20, 30)) · 2 + (1.000, 2.000, 300).
+    const std::array<Piece, 8> pieces{{{0x124, 3, 3, {1098.0f, 2025.0f, 359.0f}},
+                                       {0x11d, 3, 4, {1068.0f, 2025.0f, 425.0f}},
+                                       {0x11e, 3, 5, {1068.0f, 2023.0f, 295.0f}},
+                                       {0x11f, 2, 6, {1019.0f, 2048.0f, 361.0f}},
+                                       {0x120, 3, 1, {1015.0f, 1996.0f, 468.0f}},
+                                       {0x121, 3, 2, {1011.0f, 1991.0f, 254.0f}},
+                                       {0x122, 4, 2, {748.0f, 1733.0f, 360.0f}},
+                                       {0x123, 5, 2, {750.0f, 1734.0f, 360.0f}}}};
+    const auto ground = [](float x, float y)
+    { return (static_cast<double>(x) * 0.5) + (static_cast<double>(y) * 0.25); };
     for (const std::int32_t map : {0, 2, 24})
     {
         SCOPED_TRACE(map);
@@ -919,9 +928,10 @@ TEST_F(MonsterBodyTest, KundunScattersItsPiecesWhenItFalls)
         m_actor->position = {1000.0f, 2000.0f, 300.0f};
         m_actor->angles = {0.0f, 0.0f, 30.0f};
         m_actor->light = {0.5f, 0.25f, 1.0f};
+        m_transform = {.position = m_actor->position, .angles = m_actor->angles, .scale = 2.0f};
         m_bones.assign(5, Client::Render::Models::BoneTransform(1.0f));
         m_bones[4][3] = glm::vec3(10.0f, 20.0f, 30.0f);
-        m_terrainHeight = [](float, float) { return 50.0; };
+        m_terrainHeight = ground;
         m_cloth.random = Client::Render::Models::CrtRandom{1};
         m_batch.Begin(Client::Render::Pass3D{});
 
@@ -932,35 +942,37 @@ TEST_F(MonsterBodyTest, KundunScattersItsPiecesWhenItFalls)
         Client::Render::Models::CrtRandom replica{1};
         static_cast<void>(replica.Next());
         const auto effects = m_effects->Effects();
-        for (std::size_t slot = 0; slot < Pieces.size(); ++slot)
+        for (std::size_t slot = 0; slot < pieces.size(); ++slot)
         {
             SCOPED_TRACE(slot);
-            const Piece& expected = Pieces[slot];
+            const Piece& expected = pieces[slot];
             const Client::World::ModelEffect& piece = effects[slot];
             ASSERT_TRUE(piece.alive);
             EXPECT_EQ(piece.type, expected.type);
             EXPECT_EQ(piece.subtype, expected.subtype);
             EXPECT_EQ(piece.byte89, expected.byte89);
+            EXPECT_EQ(piece.transform.position, expected.position);
             EXPECT_EQ(piece.ownerContext, m_actor.get());
             EXPECT_EQ(piece.disturbanceState, 0xffff);
             EXPECT_EQ(piece.transform.angles, m_actor->angles);
             EXPECT_EQ(piece.light, m_actor->light);
             EXPECT_EQ(piece.transform.scale, 2.0f);
+            const double floor = ground(expected.position.x, expected.position.y);
             if (expected.subtype == 2 || expected.subtype == 3)
             {
                 const auto rocking = static_cast<float>(replica.Next() % 2);
                 EXPECT_EQ(piece.copiedAngles.x, expected.subtype == 2 ? 0.0f : rocking);
-                EXPECT_EQ(piece.start.z, 100.0f);
+                EXPECT_EQ(piece.start, glm::vec3(expected.position.x, expected.position.y,
+                                                 static_cast<float>(floor + 130.0 - 80.0)));
                 EXPECT_EQ(piece.life, 500);
             }
             if (expected.subtype == 4)
             {
-                EXPECT_EQ(piece.start.z, 60.0f);
+                EXPECT_EQ(piece.start,
+                          glm::vec3(expected.position.x, expected.position.y, static_cast<float>(floor + 10.0)));
             }
         }
         EXPECT_EQ(m_cloth.random.State(), replica.State());
-        // (39; −7,5; −0,5) del 0x124 sobre el hueso 4 en (10, 20, 30), escala 1 y origen en 0.
-        EXPECT_EQ(effects[0].transform.position, glm::vec3(49.0f, 12.5f, 29.5f));
         const Client::World::ModelEffect& call = effects[8];
         ASSERT_TRUE(call.alive);
         EXPECT_EQ(call.type, 0x128);
@@ -983,6 +995,47 @@ TEST_F(MonsterBodyTest, KundunScattersItsPiecesWhenItFalls)
         const auto ungrounded = Draw(0x192, map);
         ASSERT_FALSE(ungrounded.HasValue());
         EXPECT_EQ(ungrounded.Error().rfind("0x43eeb9: 0x51e26e", 0), 0u) << ungrounded.Error();
+        m_bones.assign(1, Client::Render::Models::BoneTransform(1.0f));
+        m_transform = {};
+    }
+}
+
+// 0x43edc1..0x43ee7e entre frames del original (ADR 0005): Kundun, pasado 14,8 con +0x60 en 0x5a, dibuja su malla 0 y
+// deja +0x60 en 10 en la copia que dibuja, pero no tiembla, no suelta los pedazos ni el 0x128, no pide el sonido y no
+// saca rand(): eso lo hace una vez, en el frame del original.
+TEST_F(MonsterBodyTest, KundunFallsOnlyInTheOriginalFrame)
+{
+    for (const std::int32_t map : {0, 2, 24})
+    {
+        SCOPED_TRACE(map);
+        m_effects = std::make_unique<Client::World::ModelEffects>();
+        m_actor->dword60 = 0x5a;
+        m_actor->animation = {.action = 6, .frame = 15.0f};
+        m_bones.assign(5, Client::Render::Models::BoneTransform(1.0f));
+        m_terrainHeight = [](float, float) { return 50.0; };
+        m_cloth.random = Client::Render::Models::CrtRandom{1};
+        m_shake = 0.25f;
+        m_sound.reset();
+        m_batch.Begin(Client::Render::Pass3D{});
+
+        const auto between = Draw(0x192, map, 0, 0.0f, false);
+
+        ASSERT_TRUE(between.HasValue()) << between.Error();
+        EXPECT_EQ(m_batch.Vertices().size(), Triangle);
+        EXPECT_EQ(m_actor->dword60, 10);
+        EXPECT_EQ(m_cloth.random.State(), AfterRandoms(0));
+        EXPECT_EQ(m_shake, 0.25f);
+        EXPECT_FALSE(m_sound.has_value());
+        for (const auto& effect : m_effects->Effects())
+            EXPECT_FALSE(effect.alive);
+
+        m_actor->dword60 = 0x5a;
+        const auto original = Draw(0x192, map);
+        ASSERT_TRUE(original.HasValue()) << original.Error();
+        EXPECT_EQ(m_sound, 0x1dd);
+        EXPECT_NE(m_shake, 0.25f);
+        EXPECT_EQ(m_cloth.random.State(), AfterRandoms(7));
+        EXPECT_TRUE(m_effects->Effects()[9].alive);
         m_bones.assign(1, Client::Render::Models::BoneTransform(1.0f));
     }
 }

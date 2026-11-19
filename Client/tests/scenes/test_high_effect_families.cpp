@@ -1443,6 +1443,19 @@ TEST(HighEffectFamiliesTest, TheFlameBurstLeavesItsFlameAndItsLight)
                     .HasValue());
     EXPECT_EQ(tested.lighting->cells, expected->cells);
     EXPECT_EQ(burst.life, 9);
+    // Con la z de los ángulos en 45 (0x5fc8f0: sen y cos de 45 · 0,0174533f en la x87, guardados en float), (0, −60, 0)
+    // girado da (60 · sen, −60 · cos, 0): la posición en (142,4264…; 157,5735…; 430), bits calculados aparte.
+    FamilyWorld turned;
+    ASSERT_TRUE(CreateHighModelEffect({.type = Client::Scenes::FlameBurstEffect,
+                                       .position = {100.0f, 200.0f, 300.0f},
+                                       .angles = {0.0f, 0.0f, 45.0f}},
+                                      turned.Context())
+                    .HasValue());
+    const ModelEffect& aimed = turned.Effect(0);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(aimed.transform.position.x), 0x430e6d29u);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(aimed.transform.position.y), 0x431d92d7u);
+    EXPECT_EQ(aimed.transform.position.z, 430.0f);
+    EXPECT_EQ(aimed.transform.angles, (glm::vec3{0.0f, 0.0f, 45.0f}));
 }
 
 // El 0x13a de la skill 0x2e en la tabla, como lo deja su alta (Scenes/ArrowEffects).
@@ -1503,6 +1516,9 @@ TEST(HighEffectFamiliesTest, TheArrowBlastFallsAndCallsTheRainOverItsTarget)
         ModelEffect& blast = ArrowBlast(tested, &stranger, 0, 1);
         EXPECT_TRUE(HasError(Client::Scenes::StepHighModelEffect(blast, nullptr, tested.StepContext()), "0x529e3e"));
         EXPECT_EQ(tested.Draws(), 1);
+        // 0x529e31 y 0x529e37 escriben antes de leer al dueño en 0x529e3e.
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(blast.transform.angles.x), 0x42b40000u);
+        EXPECT_EQ(blast.subtype, 1);
     }
     {
         FamilyWorld tested;
@@ -1772,6 +1788,37 @@ TEST(HighEffectFamiliesTest, TheKundunPieceStrikesTheGroundOnce)
     EXPECT_EQ(piece.copiedAngles.x, 0.0f);
     EXPECT_EQ(piece.transform.angles.x, 30.0f);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(piece.alpha), 0x3f666666u);
+
+    // 0x52a37d..0x52a400 ya en el suelo (la z de la velocidad en −3), con lugar en el pool: después de la luz local,
+    // rand() % 40 − 20 en x, después en y, la z 50 menos y la 0x607/4 con sus ángulos y su luz (repetida en un pool
+    // gemelo con el mismo CrtRandom); después el balanceo.
+    FamilyWorld landed;
+    ModelEffect& rock = KundunPiece(landed, 3, 300);
+    rock.byte89 = 4;
+    rock.velocity = {0.0f, 0.0f, -3.0f};
+    rock.transform.position = {1000.25f, 2000.5f, 300.0f};
+    rock.transform.angles = {5.0f, 6.0f, 7.0f};
+    rock.light = {0.5f, 0.25f, 1.0f};
+    rock.copiedAngles.x = 0.0f;
+    const CrtRandom start = landed.random;
+    ASSERT_TRUE(Client::Scenes::StepHighModelEffect(rock, nullptr, landed.StepContext()).HasValue());
+    CrtRandom twin = start;
+    static_cast<void>(twin.Next());
+    const auto dx = static_cast<double>(twin.Next() % 40 - 20);
+    const auto dy = static_cast<double>(twin.Next() % 40 - 20);
+    const glm::vec3 dust{static_cast<float>(dx + 1000.25), static_cast<float>(dy + 2000.5), 250.0f};
+    const glm::vec3 angles{5.0f, 6.0f, 7.0f};
+    const Client::World::Particle expected = TwinParticle(twin, 0x607, 4, dust, angles, rock.light, 1.0f);
+    const auto rocking = static_cast<double>(twin.Next() % 3 + 1);
+    EXPECT_EQ(landed.random.State(), twin.State());
+    const Client::World::Particle& made = landed.world->Particles().All()[0];
+    ASSERT_TRUE(made.alive);
+    EXPECT_EQ(made.type, 0x607);
+    EXPECT_EQ(made.subtype, 4);
+    ExpectSameParticle(made, expected);
+    EXPECT_FALSE(landed.world->Particles().All()[1].alive);
+    EXPECT_EQ(rock.velocity, (glm::vec3{0.0f, 0.0f, -3.0f}));
+    EXPECT_EQ(rock.transform.angles.x, static_cast<float>(5.0 - rocking));
 }
 
 // 0x5277ae..0x5277d6: el 0x127 con su 0x128/2 de dueño: con la clave del 0x128 en 0, el frame en 0; si no, se queda
